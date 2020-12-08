@@ -63,7 +63,6 @@ type Service struct {
 
 	// Epoch configuration data
 	slotDuration uint64 // in milliseconds
-	epochLength  uint64 // in slots
 	epochData    *epochData
 	startSlot    uint64
 	slotToProof  map[uint64]*VrfOutputAndProof // for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
