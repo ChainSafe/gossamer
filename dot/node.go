@@ -91,7 +91,7 @@ func InitNode(cfg *Config) error {
 	}
 
 	// create genesis runtime
-	r, err := genesis.NewLegacyRuntimeFromGenesis(gen, genTrie) //nolint
+	r, err := genesis.NewRuntimeFromGenesis(gen, genTrie) //nolint
 	if err != nil {
 		return fmt.Errorf("failed to create genesis runtime: %w", err)
 	}

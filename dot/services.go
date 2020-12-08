@@ -96,7 +96,7 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore,
 	switch cfg.Core.WasmInterpreter {
 	case wasmer.Name:
 		rtCfg := &wasmer.Config{
-			Imports: wasmer.ImportsLegacyNodeRuntime,
+			Imports: wasmer.ImportsNodeRuntime,
 		}
 		rtCfg.Storage = ts
 		rtCfg.Keystore = ks
@@ -106,13 +106,13 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore,
 		rtCfg.Role = cfg.Core.Roles
 
 		// create runtime executor
-		rt, err = wasmer.NewLegacyInstance(code, rtCfg)
+		rt, err = wasmer.NewInstance(code, rtCfg)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create runtime executor: %s", err)
 		}
 	case wasmtime.Name:
 		rtCfg := &wasmtime.Config{
-			Imports: wasmtime.ImportLegacyNodeRuntime,
+			Imports: wasmtime.ImportNodeRuntime,
 		}
 		rtCfg.Storage = ts
 		rtCfg.Keystore = ks
@@ -122,7 +122,7 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore,
 		rtCfg.Role = cfg.Core.Roles
 
 		// create runtime executor
-		rt, err = wasmtime.NewLegacyInstance(code, rtCfg)
+		rt, err = wasmtime.NewInstance(code, rtCfg)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create runtime executor: %s", err)
 		}
