@@ -172,42 +172,36 @@ func TestStateRPCAPI(t *testing.T) {
 			method:      "state_getRuntimeVersion",
 			params:      `[""]`,
 			expected:    InvalidHashFormat,
-			isErr:       true,
 		},
 		{
 			description: "Test empty value hash state_getPairs",
 			method:      "state_getPairs",
 			params:      `["0x", ""]`,
 			expected:    InvalidHashFormat,
-			isErr:       true,
 		},
 		{
 			description: "Test empty value hash state_getMetadata",
 			method:      "state_getMetadata",
 			params:      `[""]`,
 			expected:    InvalidHashFormat,
-			isErr:       true,
 		},
 		{
 			description: "Test empty value hash state_getStorage",
 			method:      "state_getStorage",
 			params:      fmt.Sprintf(`["%s", ""]`, GrandpaAuthorityKey),
 			expected:    InvalidHashFormat,
-			isErr:       true,
 		},
 		{
 			description: "Test empty value hash state_getStorageHash",
 			method:      "state_getStorageHash",
 			params:      fmt.Sprintf(`["%s",""]`, GrandpaAuthorityKey),
 			expected:    InvalidHashFormat,
-			isErr:       true,
 		},
 		{
 			description: "Test empty value hash state_getStorageSize",
 			method:      "state_getStorageSize",
 			params:      fmt.Sprintf(`["%s", ""]`, GrandpaAuthorityKey),
 			expected:    InvalidHashFormat,
-			isErr:       true,
 		},
 		{
 			description: "Test optional params state_getRuntimeVersion",
@@ -247,42 +241,36 @@ func TestStateRPCAPI(t *testing.T) {
 			method:      "state_getRuntimeVersion",
 			params:      fmt.Sprintf(`["%s"]`, randomHash),
 			expected:    ErrKeyNotFound,
-			isErr:       true,
 		},
 		{
 			description: "Test invalid block hash state_getPairs",
 			method:      "state_getPairs",
 			params:      fmt.Sprintf(`["0x", "%s"]`, randomHash),
 			expected:    ErrKeyNotFound,
-			isErr:       true,
 		},
 		{
 			description: "Test invalid block hash state_getMetadata",
 			method:      "state_getMetadata",
 			params:      fmt.Sprintf(`["%s"]`, randomHash),
 			expected:    ErrKeyNotFound,
-			isErr:       true,
 		},
 		{
 			description: "Test invalid block hash  state_getStorage",
 			method:      "state_getStorage",
 			params:      fmt.Sprintf(`["%s", "%s"]`, GrandpaAuthorityKey, randomHash),
 			expected:    ErrKeyNotFound,
-			isErr:       true,
 		},
 		{
 			description: "Test invalid block hash state_getStorageHash",
 			method:      "state_getStorageHash",
 			params:      fmt.Sprintf(`["%s","%s"]`, GrandpaAuthorityKey, randomHash),
 			expected:    ErrKeyNotFound,
-			isErr:       true,
 		},
 		{
 			description: "Test invalid block hash state_getStorageSize",
 			method:      "state_getStorageSize",
 			params:      fmt.Sprintf(`["%s","%s"]`, GrandpaAuthorityKey, randomHash),
 			expected:    ErrKeyNotFound,
-			isErr:       true,
 		},
 		// TODO: Add validation for this RPC and enable the test.
 		//{
@@ -300,10 +288,8 @@ func TestStateRPCAPI(t *testing.T) {
 			respBody, err := utils.PostRPC(test.method, utils.NewEndpoint(nodes[0].RPCPort), test.params)
 			require.Nil(t, err)
 
-			if test.isErr || test.expected != nil {
+			if test.expected != nil {
 				require.Contains(t, string(respBody), test.expected)
-			} else {
-				require.NotContains(t, string(respBody), test.expected)
 			}
 			time.Sleep(100 * time.Millisecond)
 		})

@@ -118,7 +118,7 @@ func TestStateModule_GetPairs(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(fmt.Sprintf("%s", test.params), func(t *testing.T) {
-			req := StatePairRequest{}
+			var req StatePairRequest
 			var res StatePairResponse
 
 			// Convert human-readable param value to hex.
@@ -196,7 +196,6 @@ func TestStateModule_GetStorage(t *testing.T) {
 			}
 
 			err = sm.GetStorage(nil, &req, &res)
-
 			// Handle error cases.
 			if test.errMsg != "" {
 				require.Error(t, err)
@@ -207,8 +206,6 @@ func TestStateModule_GetStorage(t *testing.T) {
 			// Verify expected values.
 			require.NoError(t, err)
 			if test.expected != nil {
-				require.NoError(t, err)
-
 				// Convert human-readable result value to hex.
 				expectedVal := "0x" + hex.EncodeToString(test.expected)
 				require.Equal(t, expectedVal, res.StorageValue)

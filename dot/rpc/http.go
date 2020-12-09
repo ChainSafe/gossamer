@@ -136,6 +136,7 @@ func (h *HTTPServer) Start() error {
 	r.Handle("/", h.rpcServer)
 
 	validate := validator.New()
+	// Add custom validator for `common.Hash`
 	validate.RegisterCustomTypeFunc(common.HashValidator, common.Hash{})
 
 	validateHandler := func(r *rpc.RequestInfo, v interface{}) error {
