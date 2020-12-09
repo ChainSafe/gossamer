@@ -53,7 +53,7 @@ var (
 	// DefaultAuthority true if BABE block producer
 	DefaultAuthority = false
 	// DefaultEpochLength is number of slots in an Epoch
-	DefaultEpochLength = uint64(10)
+	DefaultEpochLength = uint64(200)
 	// DefaultRoles Default node roles
 	DefaultRoles = byte(1) // full node (see Table D.2)
 	// DefaultWasmInterpreter is the name of the wasm interpreter to use by default

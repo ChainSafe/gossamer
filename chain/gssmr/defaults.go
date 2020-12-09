@@ -55,7 +55,7 @@ var (
 	// DefaultRoles Default node roles
 	DefaultRoles = byte(4) // authority node (see Table D.2)
 	// DefaultEpochLength is number of slots in an Epoch
-	DefaultEpochLength = uint64(10)
+	DefaultEpochLength = uint64(200)
 	// DefaultBabeAuthority is true if the node is a block producer (overwrites previous settings)
 	DefaultBabeAuthority = true
 	// DefaultGrandpaAuthority is true if the node is a grandpa authority (overwrites previous settings)

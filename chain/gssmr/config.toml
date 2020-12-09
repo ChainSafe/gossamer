@@ -25,7 +25,6 @@ roles = 4
 babe-authority = true
 grandpa-authority = true
 babe-threshold = ""
-epoch-length = 10
 
 [network]
 port = 7001
