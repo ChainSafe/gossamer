@@ -29,7 +29,7 @@ var (
 	// DefaultID Default chain ID
 	DefaultID = string("gssmr")
 	// DefaultConfig Default toml configuration path
-	DefaultConfig = string("./chain/gssmr/config.toml")
+	DefaultConfig = string("../../chain/gssmr/config.toml")
 	// DefaultBasePath Default node base directory path
 	DefaultBasePath = string("~/.gossamer/gssmr")
 
@@ -39,7 +39,7 @@ var (
 	// InitConfig
 
 	// DefaultGenesisRaw Default genesis configuration path
-	DefaultGenesisRaw = string("./chain/gssmr/genesis-raw.json")
+	DefaultGenesisRaw = string("../../chain/gssmr/genesis-raw.json")
 
 	// AccountConfig
 
