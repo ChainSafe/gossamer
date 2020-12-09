@@ -79,42 +79,30 @@ func InitNode(cfg *Config) error {
 	// create new state service
 	stateSrvc := state.NewService(cfg.Global.BasePath, cfg.Global.LogLvl)
 
-	var genEpochInfo *types.EpochInfo
-	if !cfg.Init.TestFirstEpoch {
-		// load genesis trie state for loading runtime info
-		genTrie, err := state.NewTrieState(database.NewMemDatabase(), t) //nolint
-		if err != nil {
-			return fmt.Errorf("failed to instantiate TrieState: %w", err)
-		}
-
-		err = genTrie.WriteTrieToDB()
-		if err != nil {
-			return fmt.Errorf("failed to write trie to db: %w", err)
-		}
-
-		// create genesis runtime
-		r, err := genesis.NewLegacyRuntimeFromGenesis(gen, genTrie) //nolint
-		if err != nil {
-			return fmt.Errorf("failed to create genesis runtime: %w", err)
-		}
-
-		babeCfg, err := r.BabeConfiguration()
-		if err != nil {
-			return fmt.Errorf("failed to fetch genesis babe configuration: %w", err)
-		}
-
-		genEpochInfo = &types.EpochInfo{
-			Duration:   babeCfg.EpochLength,
-			FirstBlock: 1,
-			Randomness: babeCfg.Randomness,
-		}
-
-		r.Stop()
-	} else {
-		genEpochInfo = &types.EpochInfo{
-			Duration: 200,
-		}
+	// load genesis state into database
+	genTrie, err := state.NewTrieState(database.NewMemDatabase(), t) //nolint
+	if err != nil {
+		return fmt.Errorf("failed to instantiate TrieState: %w", err)
 	}
+
+	err = genTrie.WriteTrieToDB()
+	if err != nil {
+		return fmt.Errorf("failed to write trie to db: %w", err)
+	}
+
+	// create genesis runtime
+	r, err := genesis.NewRuntimeFromGenesis(gen, genTrie) //nolint
+	if err != nil {
+		return fmt.Errorf("failed to create genesis runtime: %w", err)
+	}
+
+	// load and store initial BABE epoch configuration
+	babeCfg, err := r.BabeConfiguration()
+	if err != nil {
+		return fmt.Errorf("failed to fetch genesis babe configuration: %w", err)
+	}
+
+	r.Stop()
 
 	// declare genesis data
 	data := gen.GenesisData()
@@ -129,7 +117,7 @@ func InitNode(cfg *Config) error {
 	data.ProtocolID = cfg.Network.ProtocolID
 
 	// initialize state service with genesis data, block, and trie
-	err = stateSrvc.Initialize(data, header, t, genEpochInfo)
+	err = stateSrvc.Initialize(data, header, t, babeCfg)
 	if err != nil {
 		return fmt.Errorf("failed to initialize state service: %s", err)
 	}

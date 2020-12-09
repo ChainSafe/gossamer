@@ -90,12 +90,12 @@ func (in *LegacyInstance) GrandpaAuthorities() ([]*types.Authority, error) {
 		return nil, err
 	}
 
-	adr, err := scale.Decode(ret, []*types.GrandpaAuthorityDataRaw{})
+	adr, err := scale.Decode(ret, []*types.GrandpaAuthoritiesRaw{})
 	if err != nil {
 		return nil, err
 	}
 
-	return types.GrandpaAuthorityDataRawToAuthorityData(adr.([]*types.GrandpaAuthorityDataRaw))
+	return types.GrandpaAuthoritiesRawToAuthorities(adr.([]*types.GrandpaAuthoritiesRaw))
 }
 
 // InitializeBlock calls runtime API function Core_initialize_block
@@ -105,7 +105,6 @@ func (in *LegacyInstance) InitializeBlock(header *types.Header) error {
 		return fmt.Errorf("cannot encode header: %w", err)
 	}
 
-	encodedHeader = append(encodedHeader, 0)
 	_, err = in.exec(runtime.CoreInitializeBlock, encodedHeader)
 	return err
 }

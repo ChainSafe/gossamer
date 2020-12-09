@@ -85,6 +85,6 @@ func TestNewTestGenesisFile(t *testing.T) {
 
 func TestNewRuntimeFromGenesis(t *testing.T) {
 	gen := NewTestGenesis(t)
-	_, err := genesis.NewLegacyRuntimeFromGenesis(gen, &state.TrieState{})
+	_, err := genesis.NewRuntimeFromGenesis(gen, &state.TrieState{})
 	require.NoError(t, err)
 }

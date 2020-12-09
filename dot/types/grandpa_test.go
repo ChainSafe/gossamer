@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGrandpaAuthorityDataRaw(t *testing.T) {
-	ad := new(GrandpaAuthorityDataRaw)
+func TestGrandpaAuthoritiesRaw(t *testing.T) {
+	ad := new(GrandpaAuthoritiesRaw)
 	buf := &bytes.Buffer{}
 	data, _ := common.HexToBytes("0xeea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640000000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000")
 	buf.Write(data)
@@ -21,8 +21,8 @@ func TestGrandpaAuthorityDataRaw(t *testing.T) {
 	require.Equal(t, "eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d71410364", fmt.Sprintf("%x", ad.Key))
 }
 
-func TestGrandpaAuthorityDataRawToAuthorityData(t *testing.T) {
-	ad := make([]*GrandpaAuthorityDataRaw, 2)
+func TestGrandpaAuthoritiesRawToAuthorities(t *testing.T) {
+	ad := make([]*GrandpaAuthoritiesRaw, 2)
 	buf := &bytes.Buffer{}
 	data, _ := common.HexToBytes("0xeea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640000000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000")
 	buf.Write(data)
@@ -30,7 +30,7 @@ func TestGrandpaAuthorityDataRawToAuthorityData(t *testing.T) {
 	authA, _ := common.HexToHash("0xeea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d71410364")
 	authB, _ := common.HexToHash("0xb64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d717")
 
-	expected := []*GrandpaAuthorityDataRaw{
+	expected := []*GrandpaAuthoritiesRaw{
 		{Key: authA, ID: 0},
 		{Key: authB, ID: 1},
 	}

@@ -111,7 +111,6 @@ func newTestConfig(t *testing.T) *dot.Config {
 		System:  dot.GssmrConfig().System,
 	}
 
-	cfg.Init.TestFirstEpoch = true
 	return cfg
 }
 

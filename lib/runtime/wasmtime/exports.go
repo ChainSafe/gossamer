@@ -72,12 +72,12 @@ func (in *LegacyInstance) GrandpaAuthorities() ([]*types.Authority, error) {
 		return nil, err
 	}
 
-	adr, err := scale.Decode(ret, []*types.GrandpaAuthorityDataRaw{})
+	adr, err := scale.Decode(ret, []*types.GrandpaAuthoritiesRaw{})
 	if err != nil {
 		return nil, err
 	}
 
-	return types.GrandpaAuthorityDataRawToAuthorityData(adr.([]*types.GrandpaAuthorityDataRaw))
+	return types.GrandpaAuthoritiesRawToAuthorities(adr.([]*types.GrandpaAuthoritiesRaw))
 }
 
 // ValidateTransaction runs the extrinsic through runtime function TaggedTransactionQueue_validate_transaction and returns *Validity

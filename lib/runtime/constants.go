@@ -36,9 +36,20 @@ const (
 	NODE_RUNTIME_FP  = "node_runtime.compact.wasm"
 	NODE_RUNTIME_URL = "https://github.com/noot/substrate/blob/noot/v0.8/target/wasm32-unknown-unknown/release/wbuild/node-runtime/node_runtime.compact.wasm?raw=true"
 
+	// v0.8 polkadot runtime
+	POLKADOT_RUNTIME     = "polkadot_runtime"
+	POLKADOT_RUNTIME_FP  = "polkadot_runtime.compact.wasm"
+	POLKADOT_RUNTIME_URL = "https://github.com/noot/polkadot/blob/noot/v0.8.25/polkadot_runtime.wasm?raw=true"
+
+	// legacy test API wasm
 	TEST_RUNTIME  = "test_runtime"
 	TESTS_FP      = "test_wasm.wasm"
 	TEST_WASM_URL = "https://github.com/ChainSafe/gossamer-test-wasm/blob/noot/target/wasm32-unknown-unknown/release/test_wasm.wasm?raw=true"
+
+	// v0.8 test API wasm
+	HOST_API_TEST_RUNTIME     = "hostapi_runtime"
+	HOST_API_TEST_RUNTIME_FP  = "hostapi_runtime.compact.wasm"
+	HOST_API_TEST_RUNTIME_URL = "https://github.com/noot/polkadot-spec/blob/master/test/hostapi_runtime.compact.wasm?raw=true"
 )
 
 var (
@@ -64,14 +75,14 @@ var (
 	BlockBuilderFinalizeBlock = "BlockBuilder_finalize_block"
 )
 
-// GrandpaAuthorityDataKey is the location of GRANDPA authority data in the storage trie for LEGACY_NODE_RUNTIME and NODE_RUNTIME
-var GrandpaAuthorityDataKey, _ = common.HexToBytes("0x3a6772616e6470615f617574686f726974696573")
+// GrandpaAuthoritiesKey is the location of GRANDPA authority data in the storage trie for LEGACY_NODE_RUNTIME and NODE_RUNTIME
+var GrandpaAuthoritiesKey, _ = common.HexToBytes("0x3a6772616e6470615f617574686f726974696573")
 
 // BABEPrefix is the prefix for all BABE related storage values
 var BABEPrefix, _ = common.Twox128Hash([]byte("Babe"))
 
-// BABEAuthorityDataKey is the location of the BABE authorities in the storage trie for NODE_RUNTIME
-func BABEAuthorityDataKey() []byte {
+// BABEAuthoritiesKey is the location of the BABE authorities in the storage trie for NODE_RUNTIME
+func BABEAuthoritiesKey() []byte {
 	key, _ := common.Twox128Hash([]byte("Authorities"))
 	return append(BABEPrefix, key...)
 }

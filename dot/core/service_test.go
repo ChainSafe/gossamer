@@ -116,7 +116,7 @@ func TestAnnounceBlock(t *testing.T) {
 
 func TestHandleRuntimeChanges(t *testing.T) {
 	tt := trie.NewEmptyTrie()
-	rt := wasmer.NewTestLegacyInstanceWithTrie(t, runtime.LEGACY_NODE_RUNTIME, tt, log.LvlTrace)
+	rt := wasmer.NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlTrace)
 
 	kp, err := sr25519.GenerateKeypair()
 	require.Nil(t, err)
@@ -133,10 +133,10 @@ func TestHandleRuntimeChanges(t *testing.T) {
 
 	s := NewTestService(t, cfg, nil)
 
-	_, err = runtime.GetRuntimeBlob(runtime.TESTS_FP, runtime.TEST_WASM_URL)
+	_, err = runtime.GetRuntimeBlob(runtime.HOST_API_TEST_RUNTIME_FP, runtime.HOST_API_TEST_RUNTIME_URL)
 	require.Nil(t, err)
 
-	testRuntime, err := ioutil.ReadFile(runtime.TESTS_FP)
+	testRuntime, err := ioutil.ReadFile(runtime.HOST_API_TEST_RUNTIME_FP)
 	require.Nil(t, err)
 
 	ts, err := s.storageState.TrieState(nil)
@@ -328,7 +328,6 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 
 	s := &Service{
 		transactionState: ts,
-		logger:           log.New("pkg", "core"),
 	}
 
 	err := s.maintainTransactionPool(&types.Block{
@@ -375,7 +374,6 @@ func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 
 	s := &Service{
 		transactionState: ts,
-		logger:           log.New("pkg", "core"),
 	}
 
 	body, err := types.NewBodyFromExtrinsics([]types.Extrinsic{txs[0].Extrinsic})

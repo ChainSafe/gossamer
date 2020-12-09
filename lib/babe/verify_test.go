@@ -44,7 +44,7 @@ func newTestVerificationManager(t *testing.T, descriptor *Descriptor) *Verificat
 
 	genesisData := new(genesis.Data)
 
-	err := dbSrv.Initialize(genesisData, genesisHeader, trie.NewEmptyTrie(), firstEpochInfo)
+	err := dbSrv.Initialize(genesisData, genesisHeader, trie.NewEmptyTrie(), genesisBABEConfig)
 	require.NoError(t, err)
 
 	err = dbSrv.Start()
@@ -62,9 +62,9 @@ func newTestVerificationManager(t *testing.T, descriptor *Descriptor) *Verificat
 
 func TestVerificationManager_SetAuthorityChangeAtBlock(t *testing.T) {
 	descriptor := &Descriptor{
-		AuthorityData: []*types.Authority{{Weight: 1}},
-		Randomness:    [types.RandomnessLength]byte{77},
-		Threshold:     big.NewInt(99),
+		Authorities: []*types.Authority{{Weight: 1}},
+		Randomness:  [types.RandomnessLength]byte{77},
+		Threshold:   big.NewInt(99),
 	}
 
 	vm := newTestVerificationManager(t, descriptor)
@@ -99,9 +99,9 @@ func TestVerificationManager_SetAuthorityChangeAtBlock(t *testing.T) {
 	require.Equal(t, []common.Hash{block1a.Hash()}, vm.branches[1])
 
 	expected := &Descriptor{
-		AuthorityData: authsA,
-		Randomness:    descriptor.Randomness,
-		Threshold:     descriptor.Threshold,
+		Authorities: authsA,
+		Randomness:  descriptor.Randomness,
+		Threshold:   descriptor.Threshold,
 	}
 	require.Equal(t, expected, vm.descriptors[block1a.Hash()])
 
@@ -111,9 +111,9 @@ func TestVerificationManager_SetAuthorityChangeAtBlock(t *testing.T) {
 	require.Equal(t, []common.Hash{block1a.Hash(), block1b.Hash()}, vm.branches[1])
 
 	expected = &Descriptor{
-		AuthorityData: authsB,
-		Randomness:    descriptor.Randomness,
-		Threshold:     descriptor.Threshold,
+		Authorities: authsB,
+		Randomness:  descriptor.Randomness,
+		Threshold:   descriptor.Threshold,
 	}
 	require.Equal(t, expected, vm.descriptors[block1b.Hash()])
 }
@@ -178,9 +178,9 @@ func TestVerificationManager_VerifyBlock_Branches(t *testing.T) {
 	randomnessA := [types.RandomnessLength]byte{0x77}
 
 	descriptorA := &Descriptor{
-		AuthorityData: descriptor.AuthorityData,
-		Randomness:    randomnessA,
-		Threshold:     maxThreshold,
+		Authorities: descriptor.Authorities,
+		Randomness:  randomnessA,
+		Threshold:   maxThreshold,
 	}
 
 	vm.setDescriptorChangeAtBlock(block1a, descriptorA)
@@ -195,7 +195,7 @@ func TestVerificationManager_VerifyBlock_Branches(t *testing.T) {
 	require.Equal(t, true, ok)
 
 	// create and verify block that's descendant of block A, should verify
-	babeService.randomness = randomnessA
+	babeService.epochData.randomness = randomnessA
 	block, _ = createTestBlock(t, babeService, block1a, [][]byte{}, 1)
 	require.NoError(t, err)
 
@@ -217,8 +217,8 @@ func TestVerifySlotWinner(t *testing.T) {
 	babeService := createTestService(t, cfg)
 
 	// create proof that we can authorize this block
-	babeService.threshold = maxThreshold
-	babeService.authorityIndex = 0
+	babeService.epochData.threshold = maxThreshold
+	babeService.epochData.authorityIndex = 0
 	var slotNumber uint64 = 1
 
 	addAuthorshipProof(t, babeService, slotNumber)
@@ -235,11 +235,11 @@ func TestVerifySlotWinner(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	authorityData := make([]*types.Authority, 1)
-	authorityData[0] = &types.Authority{
+	Authorities := make([]*types.Authority, 1)
+	Authorities[0] = &types.Authority{
 		Key: kp.Public().(*sr25519.PublicKey),
 	}
-	babeService.authorityData = authorityData
+	babeService.epochData.authorities = Authorities
 
 	verifier, err := newVerifier(babeService.blockState, babeService.Descriptor())
 	if err != nil {
@@ -287,8 +287,8 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 
 	babeService := createTestService(t, cfg)
 
-	babeService.authorityData = make([]*types.Authority, 1)
-	babeService.authorityData[0] = &types.Authority{
+	babeService.epochData.authorities = make([]*types.Authority, 1)
+	babeService.epochData.authorities[0] = &types.Authority{
 		Key: kp.Public().(*sr25519.PublicKey),
 	}
 
