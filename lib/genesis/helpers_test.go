@@ -19,15 +19,17 @@ package genesis
 import (
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/lib/runtime"
+
 	"github.com/stretchr/testify/require"
 )
 
-// TestNewGenesisFromJSON
 func TestNewGenesisRawFromJSON(t *testing.T) {
 	// Create temp file
 	file, err := ioutil.TempFile("", "genesis-test")
@@ -74,9 +76,9 @@ func TestNewGenesisFromJSON(t *testing.T) {
 
 	expRaw := [2]map[string]string{}
 	expRaw[0] = make(map[string]string)
-	expRaw[0]["0x3a636f6465"] = "0xfoo"                                                                                                                // raw system code entry
-	expRaw[0]["0x3a6772616e6470615f617574686f726974696573"] = "0x010834602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a6910000000000000000" // raw grandpa authorities
-	expRaw[0]["0x886726f904d8372fdabb7707870c2fad"] = "0x08d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0100000000000000"           // raw babe authorities
+	expRaw[0]["0x3a636f6465"] = "0xfoo"                                                                                                                                      // raw system code entry
+	expRaw[0]["0x3a6772616e6470615f617574686f726974696573"] = "0x010834602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a6910000000000000000"                       // raw grandpa authorities
+	expRaw[0]["0x014f204c006a2837deb5551ba5211d6ce887d1f35708af762efe7b709b5eff15"] = "0x08d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0100000000000000" // raw babe authorities
 	expectedGenesis.Genesis = Fields{
 		Raw: expRaw,
 	}
@@ -112,4 +114,11 @@ func TestNewGenesisFromJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, expectedGenesis.Genesis.Raw, testGenesisProcessed.Genesis.Raw)
+}
+
+func TestFormatKey(t *testing.T) {
+	input := []string{"Babe", "Authorities"}
+	out, err := formatKey(input)
+	require.NoError(t, err)
+	require.Equal(t, out, fmt.Sprintf("0x%x", runtime.BABEAuthoritiesKey()))
 }
