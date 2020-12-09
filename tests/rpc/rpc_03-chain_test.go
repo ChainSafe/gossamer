@@ -37,6 +37,12 @@ func TestChainRPC(t *testing.T) {
 
 	testCases := []*testCase{
 		{
+			description: "test chain_getFinalizedHead",
+			method:      "chain_getFinalizedHead",
+			expected:    "",
+			params:      "[]",
+		},
+		{
 			description: "test chain_getHeader",
 			method:      "chain_getHeader",
 			expected: modules.ChainBlockHeaderResponse{
@@ -60,12 +66,6 @@ func TestChainRPC(t *testing.T) {
 		{
 			description: "test chain_getBlockHash",
 			method:      "chain_getBlockHash",
-			expected:    "",
-			params:      "[]",
-		},
-		{
-			description: "test chain_getFinalizedHead",
-			method:      "chain_getFinalizedHead",
 			expected:    "",
 			params:      "[]",
 		},
