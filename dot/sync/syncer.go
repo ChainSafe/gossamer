@@ -180,8 +180,8 @@ func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) *networ
 	}
 
 	// check if block body is stored in block state (ie. if we have the full block already)
-	_, err = s.blockState.GetBlockBody(header.Hash())
-	if err != nil && err == chaindb.ErrKeyNotFound {
+	has, _ = s.blockState.HasBlockBody(header.Hash())
+	if !has {
 		s.synced = false
 
 		// create block request to send
