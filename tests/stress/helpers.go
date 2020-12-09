@@ -38,7 +38,7 @@ import (
 
 var (
 	numNodes    = 3
-	maxRetries  = 48
+	maxRetries  = 32
 	testTimeout = time.Minute
 	logger      = log.New("pkg", "tests/stress")
 )
@@ -214,7 +214,7 @@ func compareFinalizedHeadsWithRetry(t *testing.T, nodes []*utils.Node, round uin
 			return common.Hash{}, fmt.Errorf("%w: round=%d hashes=%v", err, round, hashes)
 		}
 
-		time.Sleep(5 * time.Second)
+		time.Sleep(3 * time.Second)
 	}
 
 	if err != nil {
