@@ -24,6 +24,7 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
 
@@ -35,6 +36,15 @@ type verifierInfo struct {
 	threshold   *big.Int
 }
 
+// onDisabledInfo contains information about an authority that's been disabled at a certain
+// block for the rest of the epoch. the block hash is used to check if the block being verified
+// is a descendent of the block that included the `OnDisabled` digest.
+type onDisabledInfo struct {
+	//index uint64
+	blockNumber *big.Int
+	blockHash   common.Hash
+}
+
 // VerificationManager deals with verification that a BABE block producer was authorized to produce a given block.
 // It trakcs the BABE epoch data that is needed for verification.
 type VerificationManager struct {
@@ -42,6 +52,8 @@ type VerificationManager struct {
 	blockState BlockState
 	epochState EpochState
 	epochInfo  map[uint64]*verifierInfo // map of epoch number -> info needed for verification
+	// there may be different OnDisabled digests on different branches of the chain, so we need to keep track of all of them.
+	onDisabled map[uint64]map[uint64][]*onDisabledInfo // map of epoch number -> block producer index -> block number and hash
 }
 
 // NewVerificationManager returns a new NewVerificationManager
@@ -58,12 +70,69 @@ func NewVerificationManager(blockState BlockState, epochState EpochState) (*Veri
 		epochState: epochState,
 		blockState: blockState,
 		epochInfo:  make(map[uint64]*verifierInfo),
+		onDisabled: make(map[uint64]map[uint64][]*onDisabledInfo),
 	}, nil
 }
 
 // SetOnDisabled sets the BABE authority with the given index as disabled for the rest of the epoch
-func (v *VerificationManager) SetOnDisabled(index uint64, header *types.Header) {
-	// TODO: see issue #1205
+func (v *VerificationManager) SetOnDisabled(index uint64, header *types.Header) error {
+	epoch, err := v.epochState.GetEpochForBlock(header)
+	if err != nil {
+		return err
+	}
+
+	v.lock.Lock()
+	defer v.lock.Unlock()
+
+	if _, has := v.epochInfo[epoch]; !has {
+		info, err := v.getVerifierInfo(epoch)
+		if err != nil {
+			return err
+		}
+
+		v.epochInfo[epoch] = info
+	}
+
+	// check that index is valid
+	if index >= uint64(len(v.epochInfo[epoch].authorities)) {
+		return ErrInvalidBlockProducerIndex
+	}
+
+	// no authorities have been disabled yet this epoch, init map
+	if _, has := v.onDisabled[epoch]; !has {
+		v.onDisabled[epoch] = make(map[uint64][]*onDisabledInfo)
+	}
+
+	disabledProducers := v.onDisabled[epoch]
+
+	if _, has := disabledProducers[index]; !has {
+		disabledProducers[index] = []*onDisabledInfo{
+			{
+				blockNumber: header.Number,
+				blockHash:   header.Hash(),
+			},
+		}
+		return nil
+	}
+
+	// this producer has already been disabled in this epoch on some branch
+	producerInfos := disabledProducers[index]
+
+	// check that the OnDisabled digest isn't a duplicate; ie. that the producer isn't already disabled on this branch
+	for _, info := range producerInfos {
+		isDescendant, _ := v.blockState.IsDescendantOf(info.blockHash, header.Hash())
+		if isDescendant && header.Number.Cmp(info.blockNumber) >= 0 {
+			// this authority has already been disabled on this branch
+			return errors.New("authority has already been disabled")
+		}
+	}
+
+	producerInfos = append(producerInfos, &onDisabledInfo{
+		blockNumber: header.Number,
+		blockHash:   header.Hash(),
+	})
+
+	return nil
 }
 
 // VerifyBlock verifies that the block producer for the given block was authorized to produce it.
@@ -81,25 +150,10 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) (bool, error) {
 	v.lock.Lock()
 
 	if info, has = v.epochInfo[epoch]; !has {
-		epochData, err := v.epochState.GetEpochData(epoch) //nolint
+		var err error
+		info, err = v.getVerifierInfo(epoch)
 		if err != nil {
 			return false, err
-		}
-
-		configData, err := v.getConfigData(epoch)
-		if err != nil {
-			return false, err
-		}
-
-		threshold, err := CalculateThreshold(configData.C1, configData.C2, len(epochData.Authorities))
-		if err != nil {
-			return false, err
-		}
-
-		info = &verifierInfo{
-			authorities: epochData.Authorities,
-			randomness:  epochData.Randomness,
-			threshold:   threshold,
 		}
 
 		v.epochInfo[epoch] = info
@@ -113,6 +167,29 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) (bool, error) {
 	}
 
 	return verifier.verifyAuthorshipRight(header)
+}
+
+func (v *VerificationManager) getVerifierInfo(epoch uint64) (*verifierInfo, error) {
+	epochData, err := v.epochState.GetEpochData(epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	configData, err := v.getConfigData(epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	threshold, err := CalculateThreshold(configData.C1, configData.C2, len(epochData.Authorities))
+	if err != nil {
+		return nil, err
+	}
+
+	return &verifierInfo{
+		authorities: epochData.Authorities,
+		randomness:  epochData.Randomness,
+		threshold:   threshold,
+	}, nil
 }
 
 func (v *VerificationManager) getConfigData(epoch uint64) (*types.ConfigData, error) {

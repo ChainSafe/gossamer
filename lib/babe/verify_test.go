@@ -51,6 +51,44 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 	return vm
 }
 
+func TestVerificationManager_OnDisabled_InvalidIndex(t *testing.T) {
+	vm := newTestVerificationManager(t, nil)
+
+	babeService := createTestService(t, &ServiceConfig{
+		Threshold: maxThreshold,
+	})
+	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1)
+	err := vm.SetOnDisabled(1, block.Header)
+	require.Equal(t, err, ErrInvalidBlockProducerIndex)
+}
+
+func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
+	kp, err := sr25519.GenerateKeypair()
+	require.NoError(t, err)
+
+	cfg := &ServiceConfig{
+		Keypair:   kp,
+		Threshold: maxThreshold,
+	}
+
+	babeService := createTestService(t, cfg)
+
+	vm := newTestVerificationManager(t, nil)
+	vm.epochInfo[1] = &verifierInfo{
+		authorities: babeService.epochData.authorities,
+		threshold:   babeService.epochData.threshold,
+		randomness:  babeService.epochData.randomness,
+	}
+
+	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1)
+	err = vm.SetOnDisabled(0, block.Header)
+	require.NoError(t, err)
+}
+
+func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
+
+}
+
 func TestVerificationManager_VerifyBlock(t *testing.T) {
 	babeService := createTestService(t, &ServiceConfig{
 		Threshold: maxThreshold,
