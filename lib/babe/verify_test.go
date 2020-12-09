@@ -17,7 +17,6 @@
 package babe
 
 import (
-	"math/big"
 	"testing"
 	"time"
 
@@ -25,190 +24,131 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
 	log "github.com/ChainSafe/log15"
 )
 
-func newTestVerificationManager(t *testing.T, descriptor *Descriptor) *VerificationManager {
+func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *VerificationManager {
 	dbSrv := state.NewService("", log.LvlInfo)
 	dbSrv.UseMemDB()
-
-	tt := trie.NewEmptyTrie()
-	rt := wasmer.NewTestLegacyInstanceWithTrie(t, runtime.LEGACY_NODE_RUNTIME, tt, log.LvlCrit)
-
 	genesisData := new(genesis.Data)
 
-	err := dbSrv.Initialize(genesisData, genesisHeader, trie.NewEmptyTrie(), genesisBABEConfig)
+	if genCfg == nil {
+		genCfg = genesisBABEConfig
+	}
+
+	err := dbSrv.Initialize(genesisData, genesisHeader, trie.NewEmptyTrie(), genCfg)
 	require.NoError(t, err)
 
 	err = dbSrv.Start()
 	require.NoError(t, err)
 
-	vm, err := NewVerificationManagerFromRuntime(dbSrv.Block, rt)
+	vm, err := NewVerificationManager(dbSrv.Block, dbSrv.Epoch)
 	require.NoError(t, err)
-
-	if descriptor != nil {
-		vm.descriptors[dbSrv.Block.GenesisHash()] = descriptor
-	}
-
 	return vm
-}
-
-func TestVerificationManager_SetAuthorityChangeAtBlock(t *testing.T) {
-	descriptor := &Descriptor{
-		Authorities: []*types.Authority{{Weight: 1}},
-		Randomness:  [types.RandomnessLength]byte{77},
-		Threshold:   big.NewInt(99),
-	}
-
-	vm := newTestVerificationManager(t, descriptor)
-	require.Equal(t, []common.Hash{vm.blockState.GenesisHash()}, vm.branches[0])
-	require.Equal(t, descriptor, vm.descriptors[vm.blockState.GenesisHash()])
-
-	block1a := &types.Header{
-		Number:     big.NewInt(1),
-		ParentHash: vm.blockState.GenesisHash(),
-	}
-
-	block1b := &types.Header{
-		ExtrinsicsRoot: common.Hash{0x8},
-		Number:         big.NewInt(1),
-		ParentHash:     vm.blockState.GenesisHash(),
-	}
-
-	err := vm.blockState.AddBlock(&types.Block{
-		Header: block1a,
-		Body:   &types.Body{},
-	})
-	require.NoError(t, err)
-	err = vm.blockState.AddBlock(&types.Block{
-		Header: block1b,
-		Body:   &types.Body{},
-	})
-	require.NoError(t, err)
-
-	authsA := []*types.Authority{{Weight: 77}}
-	vm.SetAuthorityChangeAtBlock(block1a, authsA)
-	require.Equal(t, []int64{1, 0}, vm.branchNums)
-	require.Equal(t, []common.Hash{block1a.Hash()}, vm.branches[1])
-
-	expected := &Descriptor{
-		Authorities: authsA,
-		Randomness:  descriptor.Randomness,
-		Threshold:   descriptor.Threshold,
-	}
-	require.Equal(t, expected, vm.descriptors[block1a.Hash()])
-
-	authsB := []*types.Authority{{Weight: 88}}
-	vm.SetAuthorityChangeAtBlock(block1b, authsB)
-	require.Equal(t, []int64{1, 0}, vm.branchNums)
-	require.Equal(t, []common.Hash{block1a.Hash(), block1b.Hash()}, vm.branches[1])
-
-	expected = &Descriptor{
-		Authorities: authsB,
-		Randomness:  descriptor.Randomness,
-		Threshold:   descriptor.Threshold,
-	}
-	require.Equal(t, expected, vm.descriptors[block1b.Hash()])
 }
 
 func TestVerificationManager_VerifyBlock(t *testing.T) {
 	babeService := createTestService(t, &ServiceConfig{
 		Threshold: maxThreshold,
 	})
-	descriptor := babeService.Descriptor()
+	cfg, err := babeService.rt.BabeConfiguration()
+	require.NoError(t, err)
 
-	vm := newTestVerificationManager(t, descriptor)
+	cfg.GenesisAuthorities = types.AuthoritiesToRaw(babeService.epochData.authorities)
+	cfg.C1 = 1
+	cfg.C2 = 1
+
+	vm := newTestVerificationManager(t, cfg)
 
 	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1)
-	err := vm.blockState.AddBlock(block)
-	require.NoError(t, err)
 
 	ok, err := vm.VerifyBlock(block.Header)
 	require.NoError(t, err)
 	require.Equal(t, true, ok)
 }
 
-func TestVerificationManager_VerifyBlock_Branches(t *testing.T) {
+func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	babeService := createTestService(t, &ServiceConfig{
 		Threshold: maxThreshold,
 	})
-	descriptor := babeService.Descriptor()
-
-	block1a := &types.Header{
-		Number:     big.NewInt(1),
-		ParentHash: babeService.blockState.GenesisHash(),
-	}
-
-	block1b := &types.Header{
-		ExtrinsicsRoot: common.Hash{0x8},
-		Number:         big.NewInt(1),
-		ParentHash:     babeService.blockState.GenesisHash(),
-	}
-
-	vm := newTestVerificationManager(t, descriptor)
-	err := babeService.blockState.AddBlock(&types.Block{
-		Header: block1a,
-		Body:   &types.Body{},
-	})
+	cfg, err := babeService.rt.BabeConfiguration()
 	require.NoError(t, err)
-	err = babeService.blockState.AddBlock(&types.Block{
-		Header: block1b,
-		Body:   &types.Body{},
-	})
-	require.NoError(t, err)
-	err = vm.blockState.AddBlock(&types.Block{
-		Header: block1a,
-		Body:   &types.Body{},
-	})
-	require.NoError(t, err)
-	err = vm.blockState.AddBlock(&types.Block{
-		Header: block1b,
-		Body:   &types.Body{},
+
+	cfg.GenesisAuthorities = types.AuthoritiesToRaw(babeService.epochData.authorities)
+	cfg.C1 = 1
+	cfg.C2 = 1
+
+	vm := newTestVerificationManager(t, cfg)
+
+	futureEpoch := uint64(5)
+
+	err = vm.epochState.(*state.EpochState).SetEpochData(futureEpoch, &types.EpochData{
+		Authorities: babeService.epochData.authorities,
+		Randomness:  babeService.epochData.randomness,
 	})
 	require.NoError(t, err)
 
-	// create a branch at block 1 on chain A
-	randomnessA := [types.RandomnessLength]byte{0x77}
-
-	descriptorA := &Descriptor{
-		Authorities: descriptor.Authorities,
-		Randomness:  randomnessA,
-		Threshold:   maxThreshold,
-	}
-
-	vm.setDescriptorChangeAtBlock(block1a, descriptorA)
-	require.Equal(t, []int64{1, 0}, vm.branchNums)
-
-	// create and verify block that's descendant of block B, should verify
-	block, _ := createTestBlock(t, babeService, block1b, [][]byte{}, 1)
-	require.NoError(t, err)
+	// create block in future epoch
+	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, cfg.EpochLength*(futureEpoch-1)+1)
 
 	ok, err := vm.VerifyBlock(block.Header)
 	require.NoError(t, err)
 	require.Equal(t, true, ok)
 
-	// create and verify block that's descendant of block A, should verify
-	babeService.epochData.randomness = randomnessA
-	block, _ = createTestBlock(t, babeService, block1a, [][]byte{}, 1)
-	require.NoError(t, err)
+	// create block in epoch 1
+	block, _ = createTestBlock(t, babeService, genesisHeader, [][]byte{}, cfg.EpochLength-1)
 
 	ok, err = vm.VerifyBlock(block.Header)
 	require.NoError(t, err)
 	require.Equal(t, true, ok)
 }
 
+func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T) {
+	babeService := createTestService(t, &ServiceConfig{
+		Threshold: maxThreshold,
+	})
+	cfg, err := babeService.rt.BabeConfiguration()
+	require.NoError(t, err)
+
+	cfg.GenesisAuthorities = types.AuthoritiesToRaw(babeService.epochData.authorities)
+	cfg.C1 = 1
+	cfg.C2 = 100
+
+	vm := newTestVerificationManager(t, cfg)
+
+	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1)
+
+	ok, err := vm.VerifyBlock(block.Header)
+	require.Equal(t, ErrVRFOutputOverThreshold, err)
+	require.Equal(t, false, ok)
+}
+
+func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
+	babeService := createTestService(t, &ServiceConfig{
+		Threshold: maxThreshold,
+	})
+	cfg, err := babeService.rt.BabeConfiguration()
+	require.NoError(t, err)
+
+	cfg.C1 = 1
+	cfg.C2 = 1
+
+	vm := newTestVerificationManager(t, cfg)
+
+	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1)
+
+	ok, err := vm.VerifyBlock(block.Header)
+	require.Equal(t, ErrInvalidBlockProducerIndex, err)
+	require.Equal(t, false, ok)
+}
+
 func TestVerifySlotWinner(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	cfg := &ServiceConfig{
 		Keypair: kp,
@@ -231,9 +171,7 @@ func TestVerifySlotWinner(t *testing.T) {
 
 	// create babe header
 	babeHeader, err := babeService.buildBlockBabeHeader(slot)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	Authorities := make([]*types.Authority, 1)
 	Authorities[0] = &types.Authority{
@@ -241,45 +179,37 @@ func TestVerifySlotWinner(t *testing.T) {
 	}
 	babeService.epochData.authorities = Authorities
 
-	verifier, err := newVerifier(babeService.blockState, babeService.Descriptor())
-	if err != nil {
-		t.Fatal(err)
-	}
+	verifier, err := newVerifier(babeService.blockState, &verifierInfo{
+		authorities: babeService.epochData.authorities,
+		threshold:   babeService.epochData.threshold,
+		randomness:  babeService.epochData.randomness,
+	})
+	require.NoError(t, err)
 
 	ok, err := verifier.verifySlotWinner(slot.number, babeHeader)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !ok {
-		t.Fatal("did not verify slot winner")
-	}
+	require.NoError(t, err)
+	require.True(t, ok)
 }
 
 func TestVerifyAuthorshipRight(t *testing.T) {
 	babeService := createTestService(t, nil)
 	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1)
 
-	verifier, err := newVerifier(babeService.blockState, babeService.Descriptor())
-	if err != nil {
-		t.Fatal(err)
-	}
+	verifier, err := newVerifier(babeService.blockState, &verifierInfo{
+		authorities: babeService.epochData.authorities,
+		threshold:   babeService.epochData.threshold,
+		randomness:  babeService.epochData.randomness,
+	})
+	require.NoError(t, err)
 
 	ok, err := verifier.verifyAuthorshipRight(block.Header)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !ok {
-		t.Fatal("did not verify authorship right")
-	}
+	require.NoError(t, err)
+	require.True(t, ok)
 }
 
 func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	cfg := &ServiceConfig{
 		Keypair: kp,
@@ -297,14 +227,14 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	block.Header.Hash()
 
 	err = babeService.blockState.AddBlock(block)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	verifier, err := newVerifier(babeService.blockState, babeService.Descriptor())
-	if err != nil {
-		t.Fatal(err)
-	}
+	verifier, err := newVerifier(babeService.blockState, &verifierInfo{
+		authorities: babeService.epochData.authorities,
+		threshold:   babeService.epochData.threshold,
+		randomness:  babeService.epochData.randomness,
+	})
+	require.NoError(t, err)
 
 	ok, err := verifier.verifyAuthorshipRight(block.Header)
 	require.NoError(t, err)
@@ -314,12 +244,8 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	block2, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1)
 	block2.Header.Hash()
 
-	t.Log(block2.Header)
-
 	err = babeService.blockState.AddBlock(block2)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	ok, err = verifier.verifyAuthorshipRight(block2.Header)
 	require.NotNil(t, err)
