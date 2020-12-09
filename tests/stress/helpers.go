@@ -96,15 +96,15 @@ func compareBlocksByNumber(t *testing.T, nodes []*utils.Node, num string) (map[c
 			hash, err := utils.GetBlockHash(t, node, num)
 			mapMu.Lock()
 			defer mapMu.Unlock()
+			defer wg.Done()
+
+			logger.Debug("getting hash from node", "hash", hash, "node", node.Key, "err", err)
 			if err != nil {
 				errs = append(errs, err)
-				wg.Done()
 				return
 			}
-			logger.Debug("getting hash from node", "hash", hash, "node", node.Key)
 
 			hashes[hash] = append(hashes[hash], node.Key)
-			wg.Done()
 		}(node)
 	}
 	wg.Wait()
@@ -130,7 +130,7 @@ func compareBlocksByNumberWithRetry(t *testing.T, nodes []*utils.Node, num strin
 	var hashes map[common.Hash][]string
 	var err error
 
-	timeout := time.After(30 * time.Second)
+	timeout := time.After(60 * time.Second)
 doneBlockProduction:
 	for {
 		select {
@@ -141,6 +141,7 @@ doneBlockProduction:
 			if err == nil {
 				break doneBlockProduction
 			}
+			time.Sleep(200 * time.Millisecond)
 		}
 	}
 
