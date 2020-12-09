@@ -138,6 +138,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 
 	var err error
 	genCfg, err := babeService.rt.BabeConfiguration()
+
 	if err != nil {
 		return nil, err
 	}
@@ -193,7 +194,11 @@ func (b *Service) setEpochData(cfg *ServiceConfig, genCfg *types.BabeConfigurati
 		b.epochData.threshold = cfg.Threshold
 	}
 
-	b.epochLength = genCfg.EpochLength
+	if cfg.EpochLength > 0 {
+		b.epochLength = cfg.EpochLength
+	} else {
+		b.epochLength = genCfg.EpochLength
+	}
 
 	return nil
 }
