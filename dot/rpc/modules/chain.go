@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
-	"reflect"
 	"regexp"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -107,7 +106,7 @@ func (cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *Cha
 //  the latest block hash gets returned.
 func (cm *ChainModule) GetBlockHash(r *http.Request, req *ChainBlockNumberRequest, res *ChainHashResponse) error {
 	// if request is empty, return highest hash
-	if req.Block == nil || reflect.ValueOf(req.Block).Len() == 0 {
+	if req.Block == nil {
 		*res = cm.blockAPI.BestBlockHash().String()
 		return nil
 	}
