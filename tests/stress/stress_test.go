@@ -129,6 +129,7 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 }
 
 func TestSync_SingleSyncingNode(t *testing.T) {
+	t.Skip("skipping TestSync_SingleSyncingNode")
 	numNodes = 2
 	utils.SetLogLevel(log.LvlInfo)
 
