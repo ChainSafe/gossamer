@@ -35,6 +35,7 @@ import (
 func TestChainGetHeader_Genesis(t *testing.T) {
 	chain := newTestStateService(t)
 	svc := NewChainModule(chain.Block)
+
 	expected := &ChainBlockHeaderResponse{
 		ParentHash:     "0x0000000000000000000000000000000000000000000000000000000000000000",
 		Number:         "0x00",
@@ -42,9 +43,14 @@ func TestChainGetHeader_Genesis(t *testing.T) {
 		ExtrinsicsRoot: trie.EmptyHash.String(),
 		Digest:         ChainBlockHeaderDigest{},
 	}
+
+	bhash, err := common.HexToHash("0xc375f478c6887dbcc2d1a4dbcc25f330b3df419325ece49cddfe5a0555663b7e")
+	require.NoError(t, err)
+
 	res := &ChainBlockHeaderResponse{}
-	req := ChainHashRequest("0xc375f478c6887dbcc2d1a4dbcc25f330b3df419325ece49cddfe5a0555663b7e")
-	err := svc.GetHeader(nil, &req, res)
+	req := &ChainHashRequest{Bhash: &bhash}
+
+	err = svc.GetHeader(nil, req, res)
 	require.Nil(t, err)
 
 	require.Equal(t, expected, res)
@@ -61,8 +67,9 @@ func TestChainGetHeader_Latest(t *testing.T) {
 		Digest:         ChainBlockHeaderDigest{},
 	}
 	res := &ChainBlockHeaderResponse{}
-	req := ChainHashRequest("") // empty request should return latest hash
-	err := svc.GetHeader(nil, &req, res)
+	req := &ChainHashRequest{} // empty request should return latest hash
+
+	err := svc.GetHeader(nil, req, res)
 	require.Nil(t, err)
 
 	require.Equal(t, expected, res)
@@ -72,20 +79,14 @@ func TestChainGetHeader_NotFound(t *testing.T) {
 	chain := newTestStateService(t)
 	svc := NewChainModule(chain.Block)
 
+	bhash, err := common.HexToHash("0xea374832a2c3997280d2772c10e6e5b0b493ccd3d09c0ab14050320e34076c2c")
+	require.NoError(t, err)
+
 	res := &ChainBlockHeaderResponse{}
-	req := ChainHashRequest("0xea374832a2c3997280d2772c10e6e5b0b493ccd3d09c0ab14050320e34076c2c")
-	err := svc.GetHeader(nil, &req, res)
+	req := &ChainHashRequest{Bhash: &bhash}
+
+	err = svc.GetHeader(nil, req, res)
 	require.EqualError(t, err, database.ErrKeyNotFound.Error())
-}
-
-func TestChainGetHeader_Error(t *testing.T) {
-	chain := newTestStateService(t)
-	svc := NewChainModule(chain.Block)
-
-	res := &ChainBlockHeaderResponse{}
-	req := ChainHashRequest("zz")
-	err := svc.GetHeader(nil, &req, res)
-	require.EqualError(t, err, "could not byteify non 0x prefixed string")
 }
 
 func TestChainGetBlock_Genesis(t *testing.T) {
@@ -105,9 +106,13 @@ func TestChainGetBlock_Genesis(t *testing.T) {
 		},
 	}
 
+	bhash, err := common.HexToHash("0xc375f478c6887dbcc2d1a4dbcc25f330b3df419325ece49cddfe5a0555663b7e")
+	require.NoError(t, err)
+
 	res := &ChainBlockResponse{}
-	req := ChainHashRequest("0xc375f478c6887dbcc2d1a4dbcc25f330b3df419325ece49cddfe5a0555663b7e")
-	err := svc.GetBlock(nil, &req, res)
+	req := &ChainHashRequest{Bhash: &bhash}
+
+	err = svc.GetBlock(nil, req, res)
 	require.Nil(t, err)
 
 	require.Equal(t, expected, res)
@@ -131,8 +136,9 @@ func TestChainGetBlock_Latest(t *testing.T) {
 	}
 
 	res := &ChainBlockResponse{}
-	req := ChainHashRequest("") // empty request should return latest block
-	err := svc.GetBlock(nil, &req, res)
+	req := &ChainHashRequest{} // empty request should return latest block
+
+	err := svc.GetBlock(nil, req, res)
 	require.Nil(t, err)
 
 	require.Equal(t, expected, res)
@@ -142,20 +148,14 @@ func TestChainGetBlock_NoFound(t *testing.T) {
 	chain := newTestStateService(t)
 	svc := NewChainModule(chain.Block)
 
+	bhash, err := common.HexToHash("0xea374832a2c3997280d2772c10e6e5b0b493ccd3d09c0ab14050320e34076c2c")
+	require.NoError(t, err)
+
 	res := &ChainBlockResponse{}
-	req := ChainHashRequest("0xea374832a2c3997280d2772c10e6e5b0b493ccd3d09c0ab14050320e34076c2c")
-	err := svc.GetBlock(nil, &req, res)
+	req := &ChainHashRequest{Bhash: &bhash}
+
+	err = svc.GetBlock(nil, req, res)
 	require.EqualError(t, err, database.ErrKeyNotFound.Error())
-}
-
-func TestChainGetBlock_Error(t *testing.T) {
-	chain := newTestStateService(t)
-	svc := NewChainModule(chain.Block)
-
-	res := &ChainBlockResponse{}
-	req := ChainHashRequest("zz")
-	err := svc.GetBlock(nil, &req, res)
-	require.EqualError(t, err, "could not byteify non 0x prefixed string")
 }
 
 func TestChainGetBlockHash_Latest(t *testing.T) {
@@ -164,10 +164,11 @@ func TestChainGetBlockHash_Latest(t *testing.T) {
 
 	resString := string("")
 	res := ChainHashResponse(resString)
-	req := ChainBlockNumberRequest(nil)
-	err := svc.GetBlockHash(nil, &req, &res)
+	req := ChainBlockNumberRequest{nil}
 
+	err := svc.GetBlockHash(nil, &req, &res)
 	require.Nil(t, err)
+
 	expected := chain.Block.BestBlockHash()
 	require.Equal(t, expected.String(), res)
 }
@@ -178,9 +179,9 @@ func TestChainGetBlockHash_ByNumber(t *testing.T) {
 
 	resString := string("")
 	res := ChainHashResponse(resString)
-	req := ChainBlockNumberRequest("1")
-	err := svc.GetBlockHash(nil, &req, &res)
+	req := ChainBlockNumberRequest{"1"}
 
+	err := svc.GetBlockHash(nil, &req, &res)
 	require.Nil(t, err)
 
 	require.Equal(t, "0x12ee07bf9e9f12e8edc7ec24e323debe693c04b40d121ae23bcd6fcf2a7dcc3b", res)
@@ -192,9 +193,9 @@ func TestChainGetBlockHash_ByHex(t *testing.T) {
 
 	resString := string("")
 	res := ChainHashResponse(resString)
-	req := ChainBlockNumberRequest("0x01")
-	err := svc.GetBlockHash(nil, &req, &res)
+	req := ChainBlockNumberRequest{"0x01"}
 
+	err := svc.GetBlockHash(nil, &req, &res)
 	require.Nil(t, err)
 
 	require.Equal(t, "0x12ee07bf9e9f12e8edc7ec24e323debe693c04b40d121ae23bcd6fcf2a7dcc3b", res)
@@ -206,12 +207,13 @@ func TestChainGetBlockHash_Array(t *testing.T) {
 
 	resString := string("")
 	res := ChainHashResponse(resString)
+
 	nums := make([]interface{}, 2)
 	nums[0] = float64(0)     // as number
 	nums[1] = string("0x01") // as hex string
-	req := ChainBlockNumberRequest(nums)
-	err := svc.GetBlockHash(nil, &req, &res)
+	req := ChainBlockNumberRequest{nums}
 
+	err := svc.GetBlockHash(nil, &req, &res)
 	require.Nil(t, err)
 
 	require.Equal(t, []string{"0x8b38e3b4dda30540c1245eab842b8d5ceefd8abcb46c5752348f5b0742e49d21", "0x12ee07bf9e9f12e8edc7ec24e323debe693c04b40d121ae23bcd6fcf2a7dcc3b"}, res)
@@ -224,6 +226,7 @@ func TestChainGetFinalizedHead(t *testing.T) {
 	var res ChainHashResponse
 	err := svc.GetFinalizedHead(nil, &EmptyRequest{}, &res)
 	require.NoError(t, err)
+
 	expected := genesisHeader.Hash()
 	require.Equal(t, common.BytesToHex(expected[:]), res)
 }
