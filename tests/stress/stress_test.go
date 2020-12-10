@@ -82,7 +82,7 @@ func TestRestartNode(t *testing.T) {
 	err = utils.StartNodes(t, nodes)
 	require.NoError(t, err)
 
-	errList = utils.TearDown(t, nodes)
+	errList = utils.StopNodes(t, nodes)
 	require.Len(t, errList, 0)
 }
 
@@ -130,7 +130,8 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 
 func TestSync_SingleSyncingNode(t *testing.T) {
 	// TODO: Fix this test and enable it.
-	t.Skip()
+	t.Skip("skipping TestSync_SingleSyncingNode")
+
 	numNodes = 2
 	utils.SetLogLevel(log.LvlInfo)
 
