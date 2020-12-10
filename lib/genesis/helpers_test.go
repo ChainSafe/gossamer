@@ -76,9 +76,11 @@ func TestNewGenesisFromJSON(t *testing.T) {
 
 	expRaw := [2]map[string]string{}
 	expRaw[0] = make(map[string]string)
-	expRaw[0]["0x3a636f6465"] = "0xfoo"                                                                                                                                      // raw system code entry
-	expRaw[0]["0x3a6772616e6470615f617574686f726974696573"] = "0x010834602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a6910000000000000000"                       // raw grandpa authorities
-	expRaw[0]["0x014f204c006a2837deb5551ba5211d6ce887d1f35708af762efe7b709b5eff15"] = "0x08d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0100000000000000" // raw babe authorities
+	expRaw[0]["0x3a636f6465"] = "0xfoo"                                                                                                                                                                                    // raw system code entry
+	expRaw[0]["0x3a6772616e6470615f617574686f726974696573"] = "0x010834602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a6910000000000000000"                                                                     // raw grandpa authorities
+	expRaw[0]["0x014f204c006a2837deb5551ba5211d6ce887d1f35708af762efe7b709b5eff15"] = "0x08d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0100000000000000"                                               // raw babe authorities
+	expRaw[0]["0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9de1e86a9a8c739864cf3cc5ec2bea59fd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"] = "0x00000000000000007aeb904900000000" // raw system account
+
 	expectedGenesis.Genesis = Fields{
 		Raw: expRaw,
 	}
@@ -97,7 +99,8 @@ func TestNewGenesisFromJSON(t *testing.T) {
 	hrData["babe"]["authorities"] = []interface{}{"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", 1} // babe authority data
 	hrData["grandpa"] = make(map[string]interface{})
 	hrData["grandpa"]["authorities"] = []interface{}{"5DFNv4Txc4b88qHqQ6GG4D646QcT4fN3jjS2G3r1PyZkfDut", 0} // grandpa authority data
-
+	hrData["balances"] = make(map[string]interface{})
+	hrData["balances"]["balances"] = []interface{}{"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", 1234234234} // balances
 	testGenesis.Genesis = Fields{
 		Runtime: hrData,
 	}
@@ -117,8 +120,21 @@ func TestNewGenesisFromJSON(t *testing.T) {
 }
 
 func TestFormatKey(t *testing.T) {
-	input := []string{"Babe", "Authorities"}
-	out, err := formatKey(input)
+	kv := &keyValue{
+		key: []string{"Babe", "Authorities"},
+	}
+
+	out, err := formatKey(kv)
+	require.NoError(t, err)
+	require.Equal(t, out, fmt.Sprintf("0x%x", runtime.BABEAuthoritiesKey()))
+}
+
+func TestFormatSystemAccountKey(t *testing.T) {
+	kv := &keyValue{
+		key: []string{"balances", "balances"},
+	}
+
+	out, err := formatKey(kv)
 	require.NoError(t, err)
 	require.Equal(t, out, fmt.Sprintf("0x%x", runtime.BABEAuthoritiesKey()))
 }
