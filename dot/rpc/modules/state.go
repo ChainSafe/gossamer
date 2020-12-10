@@ -63,7 +63,7 @@ type StatePairRequest struct {
 
 // StateStorageSizeRequest holds json field
 type StateStorageSizeRequest struct {
-	Key   string
+	Key   string `validate:"required"`
 	Bhash *common.Hash
 }
 
