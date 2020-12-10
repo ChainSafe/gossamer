@@ -123,3 +123,12 @@ func (a *AuthorityRaw) Decode(r io.Reader) (*AuthorityRaw, error) {
 
 	return a, nil
 }
+
+// AuthoritiesToRaw converts an array of Authority in an array of AuthorityRaw
+func AuthoritiesToRaw(auths []*Authority) []*AuthorityRaw {
+	raw := make([]*AuthorityRaw, len(auths))
+	for i, auth := range auths {
+		raw[i] = auth.ToRaw()
+	}
+	return raw
+}
