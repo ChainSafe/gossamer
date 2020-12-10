@@ -40,7 +40,6 @@ type verifierInfo struct {
 // block for the rest of the epoch. the block hash is used to check if the block being verified
 // is a descendent of the block that included the `OnDisabled` digest.
 type onDisabledInfo struct {
-	//index uint64
 	blockNumber *big.Int
 	blockHash   common.Hash
 }
