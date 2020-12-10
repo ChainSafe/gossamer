@@ -115,13 +115,8 @@ func TestCreateBlockVerifier(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.NoError(t, err)
 
-	ks := keystore.NewGlobalKeystore()
-	require.NotNil(t, ks)
-	rt, err := createRuntime(cfg, stateSrvc, ks.Acco.(*keystore.GenericKeystore), &network.Service{})
-	require.NoError(t, err)
-
 	cfg.Core.BabeThreshold = nil
-	_, err = createBlockVerifier(cfg, stateSrvc, rt)
+	_, err = createBlockVerifier(stateSrvc)
 	require.NoError(t, err)
 }
 
@@ -148,7 +143,7 @@ func TestCreateSyncService(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg.Core.BabeThreshold = nil
-	ver, err := createBlockVerifier(cfg, stateSrvc, rt)
+	ver, err := createBlockVerifier(stateSrvc)
 	require.NoError(t, err)
 
 	_, err = createSyncService(cfg, stateSrvc, nil, nil, ver, rt)
