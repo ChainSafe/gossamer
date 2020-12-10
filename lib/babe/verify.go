@@ -131,7 +131,7 @@ func (v *VerificationManager) SetOnDisabled(index uint64, header *types.Header) 
 		}
 	}
 
-	producerInfos = append(producerInfos, &onDisabledInfo{
+	disabledProducers[index] = append(producerInfos, &onDisabledInfo{
 		blockNumber: header.Number,
 		blockHash:   header.Hash(),
 	})
@@ -140,10 +140,11 @@ func (v *VerificationManager) SetOnDisabled(index uint64, header *types.Header) 
 }
 
 // VerifyBlock verifies that the block producer for the given block was authorized to produce it.
-func (v *VerificationManager) VerifyBlock(header *types.Header) (bool, error) {
+// It returns an error if the block is invalid.
+func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 	epoch, err := v.epochState.GetEpochForBlock(header)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	var (
@@ -154,11 +155,10 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) (bool, error) {
 	v.lock.Lock()
 
 	if info, has = v.epochInfo[epoch]; !has {
-		var err error
 		info, err = v.getVerifierInfo(epoch)
 		if err != nil {
 			v.lock.Unlock()
-			return false, err
+			return err
 		}
 
 		v.epochInfo[epoch] = info
@@ -168,17 +168,16 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) (bool, error) {
 
 	isDisabled, err := v.isDisabled(epoch, header)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	if isDisabled {
-		// TODO: update verifyBlock to only return error???
-		return false, nil
+		return ErrAuthorityDisabled
 	}
 
 	verifier, err := newVerifier(v.blockState, info)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	return verifier.verifyAuthorshipRight(header)
@@ -308,11 +307,11 @@ func (b *verifier) verifySlotWinner(slot uint64, header *types.BabeHeader) (bool
 }
 
 // verifyAuthorshipRight verifies that the authority that produced a block was authorized to produce it.
-func (b *verifier) verifyAuthorshipRight(header *types.Header) (bool, error) {
+func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	// header should have 2 digest items (possibly more in the future)
 	// first item should be pre-digest, second should be seal
 	if len(header.Digest) < 2 {
-		return false, fmt.Errorf("block header is missing digest items")
+		return fmt.Errorf("block header is missing digest items")
 	}
 
 	// check for valid seal by verifying signature
@@ -321,32 +320,32 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) (bool, error) {
 
 	digestItem, err := types.DecodeDigestItem(preDigestBytes)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	preDigest, ok := digestItem.(*types.PreRuntimeDigest)
 	if !ok {
-		return false, fmt.Errorf("first digest item is not pre-digest")
+		return fmt.Errorf("first digest item is not pre-digest")
 	}
 
 	digestItem, err = types.DecodeDigestItem(sealBytes)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	seal, ok := digestItem.(*types.SealDigest)
 	if !ok {
-		return false, fmt.Errorf("last digest item is not seal")
+		return fmt.Errorf("last digest item is not seal")
 	}
 
 	babeHeader := new(types.BabeHeader)
 	err = babeHeader.Decode(preDigest.Data)
 	if err != nil {
-		return false, fmt.Errorf("cannot decode babe header from pre-digest: %s", err)
+		return fmt.Errorf("cannot decode babe header from pre-digest: %s", err)
 	}
 
 	if len(b.authorities) <= int(babeHeader.BlockProducerIndex) {
-		return false, ErrInvalidBlockProducerIndex
+		return ErrInvalidBlockProducerIndex
 	}
 
 	slot := babeHeader.SlotNumber
@@ -356,27 +355,27 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) (bool, error) {
 	header.Digest = header.Digest[:len(header.Digest)-1]
 	encHeader, err := header.Encode()
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	// verify that they are the slot winner
 	ok, err = b.verifySlotWinner(slot, babeHeader)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	if !ok {
-		return false, ErrBadSlotClaim
+		return ErrBadSlotClaim
 	}
 
 	// verify the seal is valid
 	ok, err = authorPub.Verify(encHeader, seal.Data)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	if !ok {
-		return false, ErrBadSignature
+		return ErrBadSignature
 	}
 
 	// check if the producer has equivocated, ie. have they produced a conflicting block?
@@ -396,11 +395,11 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) (bool, error) {
 		existingBlockProducerIndex := babeHeader.BlockProducerIndex
 
 		if currentBlockProducerIndex == existingBlockProducerIndex && hash != header.Hash() {
-			return false, ErrProducerEquivocated
+			return ErrProducerEquivocated
 		}
 	}
 
-	return true, nil
+	return nil
 }
 
 func getBlockProducerIndex(header *types.Header) (uint64, error) {

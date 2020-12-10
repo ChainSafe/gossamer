@@ -151,20 +151,18 @@ func TestVerificationManager_VerifyBlock_IsDisabled(t *testing.T) {
 	require.NoError(t, err)
 
 	// a block that we created, that disables ourselves, should still be accepted
-	ok, err := vm.VerifyBlock(block.Header)
+	err = vm.VerifyBlock(block.Header)
 	require.NoError(t, err)
-	require.Equal(t, true, ok)
 
 	block, _ = createTestBlock(t, babeService, block.Header, [][]byte{}, 2)
 	err = vm.blockState.AddBlock(block)
 	require.NoError(t, err)
 
 	// any blocks following the one where we are disabled should reject
-	ok, err = vm.VerifyBlock(block.Header)
-	require.NoError(t, err)
-	require.Equal(t, false, ok)
+	err = vm.VerifyBlock(block.Header)
+	require.Equal(t, ErrAuthorityDisabled, err)
 
-	// let's try a block on a different chain
+	// let's try a block on a different chain, it shouldn't reject
 	parentHeader := genesisHeader
 	for slot := 77; slot < 80; slot++ {
 		block, _ = createTestBlock(t, babeService, parentHeader, [][]byte{}, uint64(slot))
@@ -173,9 +171,8 @@ func TestVerificationManager_VerifyBlock_IsDisabled(t *testing.T) {
 		parentHeader = block.Header
 	}
 
-	ok, err = vm.VerifyBlock(block.Header)
+	err = vm.VerifyBlock(block.Header)
 	require.NoError(t, err)
-	require.Equal(t, true, ok)
 }
 
 func TestVerificationManager_VerifyBlock(t *testing.T) {
@@ -193,9 +190,8 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 
 	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1)
 
-	ok, err := vm.VerifyBlock(block.Header)
+	err = vm.VerifyBlock(block.Header)
 	require.NoError(t, err)
-	require.Equal(t, true, ok)
 }
 
 func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
@@ -222,16 +218,14 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	// create block in future epoch
 	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, cfg.EpochLength*(futureEpoch-1)+1)
 
-	ok, err := vm.VerifyBlock(block.Header)
+	err = vm.VerifyBlock(block.Header)
 	require.NoError(t, err)
-	require.Equal(t, true, ok)
 
 	// create block in epoch 1
 	block, _ = createTestBlock(t, babeService, genesisHeader, [][]byte{}, cfg.EpochLength-1)
 
-	ok, err = vm.VerifyBlock(block.Header)
+	err = vm.VerifyBlock(block.Header)
 	require.NoError(t, err)
-	require.Equal(t, true, ok)
 }
 
 func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T) {
@@ -249,9 +243,8 @@ func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T)
 
 	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1)
 
-	ok, err := vm.VerifyBlock(block.Header)
+	err = vm.VerifyBlock(block.Header)
 	require.Equal(t, ErrVRFOutputOverThreshold, err)
-	require.Equal(t, false, ok)
 }
 
 func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
@@ -268,9 +261,8 @@ func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
 
 	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1)
 
-	ok, err := vm.VerifyBlock(block.Header)
+	err = vm.VerifyBlock(block.Header)
 	require.Equal(t, ErrInvalidBlockProducerIndex, err)
-	require.Equal(t, false, ok)
 }
 
 func TestVerifySlotWinner(t *testing.T) {
@@ -329,9 +321,8 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	ok, err := verifier.verifyAuthorshipRight(block.Header)
+	err = verifier.verifyAuthorshipRight(block.Header)
 	require.NoError(t, err)
-	require.True(t, ok)
 }
 
 func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
@@ -363,9 +354,8 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	ok, err := verifier.verifyAuthorshipRight(block.Header)
+	err = verifier.verifyAuthorshipRight(block.Header)
 	require.NoError(t, err)
-	require.True(t, ok)
 
 	// create new block
 	block2, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1)
@@ -374,8 +364,6 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	err = babeService.blockState.AddBlock(block2)
 	require.NoError(t, err)
 
-	ok, err = verifier.verifyAuthorshipRight(block2.Header)
-	require.NotNil(t, err)
-	require.False(t, ok)
+	err = verifier.verifyAuthorshipRight(block2.Header)
 	require.Equal(t, ErrProducerEquivocated, err)
 }
