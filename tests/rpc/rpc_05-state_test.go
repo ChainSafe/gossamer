@@ -19,6 +19,7 @@ package rpc
 import (
 	"fmt"
 	"os"
+	"reflect"
 	"testing"
 	"time"
 
@@ -96,10 +97,10 @@ func TestStateRPC(t *testing.T) {
 }
 
 func TestStateRPCAPI(t *testing.T) {
-	if utils.MODE != rpcSuite {
-		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
-		return
-	}
+	//if utils.MODE != rpcSuite {
+	//	_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
+	//	return
+	//}
 
 	t.Log("starting gossamer...")
 
@@ -138,16 +139,19 @@ func TestStateRPCAPI(t *testing.T) {
 			description: "Test valid block hash state_getRuntimeVersion",
 			method:      "state_getRuntimeVersion",
 			params:      fmt.Sprintf(`["%s"]`, blockHash.String()),
+			expected:    modules.StateRuntimeVersionResponse{},
 		},
 		{
 			description: "Test valid block hash state_getPairs",
 			method:      "state_getPairs",
 			params:      fmt.Sprintf(`["0x", "%s"]`, blockHash.String()),
+			expected:    modules.StatePairResponse{},
 		},
 		{
 			description: "Test valid block hash state_getMetadata",
 			method:      "state_getMetadata",
 			params:      fmt.Sprintf(`["%s"]`, blockHash.String()),
+			expected:    modules.StateMetadataResponse{},
 		},
 		{
 			description: "Test valid block hash state_getStorage",
@@ -207,16 +211,19 @@ func TestStateRPCAPI(t *testing.T) {
 			description: "Test optional params state_getRuntimeVersion",
 			method:      "state_getRuntimeVersion",
 			params:      `[]`,
+			expected:    modules.StateRuntimeVersionResponse{},
 		},
 		{
 			description: "Test optional params hash state_getPairs",
 			method:      "state_getPairs",
 			params:      `["0x"]`,
+			expected:    modules.StatePairResponse{},
 		},
 		{
 			description: "Test optional params hash state_getMetadata",
 			method:      "state_getMetadata",
 			params:      `[]`,
+			expected:    modules.StateMetadataResponse{},
 		},
 		{
 			description: "Test optional params hash state_getStorage",
@@ -278,7 +285,6 @@ func TestStateRPCAPI(t *testing.T) {
 		//	method:      "state_getPairs",
 		//	params:      `[]`,
 		//	expected:    "required field missing in params",
-		//	isErr:       true,
 		//},
 	}
 
@@ -288,10 +294,14 @@ func TestStateRPCAPI(t *testing.T) {
 			respBody, err := utils.PostRPC(test.method, utils.NewEndpoint(nodes[0].RPCPort), test.params)
 			require.Nil(t, err)
 
-			if test.expected != nil {
+			if reflect.TypeOf(test.expected).Kind() != reflect.Struct {
 				require.Contains(t, string(respBody), test.expected)
+				return
 			}
-			time.Sleep(100 * time.Millisecond)
+
+			target := reflect.New(reflect.TypeOf(test.expected)).Interface()
+			err = utils.DecodeRPC(t, respBody, target)
+			require.Nil(t, err)
 		})
 	}
 }
