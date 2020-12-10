@@ -120,10 +120,14 @@ func (v *VerificationManager) SetOnDisabled(index uint64, header *types.Header) 
 
 	// check that the OnDisabled digest isn't a duplicate; ie. that the producer isn't already disabled on this branch
 	for _, info := range producerInfos {
-		isDescendant, _ := v.blockState.IsDescendantOf(info.blockHash, header.Hash())
+		isDescendant, err := v.blockState.IsDescendantOf(info.blockHash, header.Hash())
+		if err != nil {
+			return err
+		}
+
 		if isDescendant && header.Number.Cmp(info.blockNumber) >= 0 {
 			// this authority has already been disabled on this branch
-			return errors.New("authority has already been disabled")
+			return ErrAuthorityAlreadyDisabled
 		}
 	}
 
@@ -153,6 +157,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) (bool, error) {
 		var err error
 		info, err = v.getVerifierInfo(epoch)
 		if err != nil {
+			v.lock.Unlock()
 			return false, err
 		}
 
@@ -161,12 +166,58 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) (bool, error) {
 
 	v.lock.Unlock()
 
+	isDisabled, err := v.isDisabled(epoch, header)
+	if err != nil {
+		return false, err
+	}
+
+	if isDisabled {
+		// TODO: update verifyBlock to only return error???
+		return false, nil
+	}
+
 	verifier, err := newVerifier(v.blockState, info)
 	if err != nil {
 		return false, err
 	}
 
 	return verifier.verifyAuthorshipRight(header)
+}
+
+func (v *VerificationManager) isDisabled(epoch uint64, header *types.Header) (bool, error) {
+	v.lock.RLock()
+	defer v.lock.RUnlock()
+
+	// check if any authorities have been disabled this epoch
+	if _, has := v.onDisabled[epoch]; !has {
+		return false, nil
+	}
+
+	// if authorities have been disabled, check which ones
+	idx, err := getBlockProducerIndex(header)
+	if err != nil {
+		return false, err
+	}
+
+	if _, has := v.onDisabled[epoch][idx]; !has {
+		return false, nil
+	}
+
+	// this authority has been disabled on some branch, check if we are on that branch
+	producerInfos := v.onDisabled[epoch][idx]
+	for _, info := range producerInfos {
+		isDescendant, err := v.blockState.IsDescendantOf(info.blockHash, header.Hash())
+		if err != nil {
+			return false, err
+		}
+
+		if isDescendant && header.Number.Cmp(info.blockNumber) > 0 {
+			// this authority has been disabled on this branch
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 func (v *VerificationManager) getVerifierInfo(epoch uint64) (*verifierInfo, error) {

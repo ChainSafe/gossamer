@@ -81,12 +81,101 @@ func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
 	}
 
 	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1)
+	err = vm.blockState.AddBlock(block)
+	require.NoError(t, err)
+
+	err = vm.SetOnDisabled(0, block.Header)
+	require.NoError(t, err)
+
+	// create an OnDisabled change on a different branch
+	block, _ = createTestBlock(t, babeService, genesisHeader, [][]byte{}, 2)
+	err = vm.blockState.AddBlock(block)
+	require.NoError(t, err)
+
 	err = vm.SetOnDisabled(0, block.Header)
 	require.NoError(t, err)
 }
 
 func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
+	kp, err := sr25519.GenerateKeypair()
+	require.NoError(t, err)
 
+	cfg := &ServiceConfig{
+		Keypair:   kp,
+		Threshold: maxThreshold,
+	}
+
+	babeService := createTestService(t, cfg)
+
+	vm := newTestVerificationManager(t, nil)
+	vm.epochInfo[1] = &verifierInfo{
+		authorities: babeService.epochData.authorities,
+		threshold:   babeService.epochData.threshold,
+		randomness:  babeService.epochData.randomness,
+	}
+
+	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1)
+	err = vm.blockState.AddBlock(block)
+	require.NoError(t, err)
+
+	err = vm.SetOnDisabled(0, block.Header)
+	require.NoError(t, err)
+
+	// create an OnDisabled change on a different branch
+	block2, _ := createTestBlock(t, babeService, block.Header, [][]byte{}, 2)
+	err = vm.blockState.AddBlock(block2)
+	require.NoError(t, err)
+
+	err = vm.SetOnDisabled(0, block2.Header)
+	require.Equal(t, ErrAuthorityAlreadyDisabled, err)
+}
+
+func TestVerificationManager_VerifyBlock_IsDisabled(t *testing.T) {
+	babeService := createTestService(t, &ServiceConfig{
+		Threshold: maxThreshold,
+	})
+	cfg, err := babeService.rt.BabeConfiguration()
+	require.NoError(t, err)
+
+	cfg.GenesisAuthorities = types.AuthoritiesToRaw(babeService.epochData.authorities)
+	cfg.C1 = 1
+	cfg.C2 = 1
+
+	vm := newTestVerificationManager(t, cfg)
+
+	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1)
+	err = vm.blockState.AddBlock(block)
+	require.NoError(t, err)
+
+	err = vm.SetOnDisabled(0, block.Header)
+	require.NoError(t, err)
+
+	// a block that we created, that disables ourselves, should still be accepted
+	ok, err := vm.VerifyBlock(block.Header)
+	require.NoError(t, err)
+	require.Equal(t, true, ok)
+
+	block, _ = createTestBlock(t, babeService, block.Header, [][]byte{}, 2)
+	err = vm.blockState.AddBlock(block)
+	require.NoError(t, err)
+
+	// any blocks following the one where we are disabled should reject
+	ok, err = vm.VerifyBlock(block.Header)
+	require.NoError(t, err)
+	require.Equal(t, false, ok)
+
+	// let's try a block on a different chain
+	parentHeader := genesisHeader
+	for slot := 77; slot < 80; slot++ {
+		block, _ = createTestBlock(t, babeService, parentHeader, [][]byte{}, uint64(slot))
+		err = vm.blockState.AddBlock(block)
+		require.NoError(t, err)
+		parentHeader = block.Header
+	}
+
+	ok, err = vm.VerifyBlock(block.Header)
+	require.NoError(t, err)
+	require.Equal(t, true, ok)
 }
 
 func TestVerificationManager_VerifyBlock(t *testing.T) {
