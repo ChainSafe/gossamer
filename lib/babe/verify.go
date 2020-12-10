@@ -18,66 +18,46 @@ package babe
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"math/big"
 	"sync"
 
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
 
-// VerificationManager assists the syncer in keeping track of what epoch is it currently syncing and verifying,
-// as well as keeping track of the NextEpochDesciptor which is required to create a Verifier for an epoch.
-type VerificationManager struct {
-	lock        sync.Mutex
-	descriptors map[common.Hash]*Descriptor
-	branchNums  []int64                 // descending slice of branch numbers, for quicker access
-	branches    map[int64][]common.Hash // a map of block numbers -> block hashes, needed to check what chain a block is on when verifying ie. what descriptor to use
-	blockState  BlockState
-	// TODO: BABE should signal to the verifier when the epoch changes and send it the current Descriptor
-	// TODO: when a block is finalized, update branches/descriptors to delete any block data w/ number < finalized block number
-
-	// current epoch information
-	verifier *verifier // current chain head verifier TODO: remove, or keep historical verifiers
+// verifierInfo contains the information needed to verify blocks
+// it remains the same for an epoch
+type verifierInfo struct {
+	authorities []*types.Authority
+	randomness  [types.RandomnessLength]byte
+	threshold   *big.Int
 }
 
-// NewVerificationManagerFromRuntime returns a new VerificationManager
-func NewVerificationManagerFromRuntime(blockState BlockState, rt runtime.LegacyInstance) (*VerificationManager, error) {
-	descriptor, err := descriptorFromRuntime(rt)
-	if err != nil {
-		return nil, err
-	}
-
-	return NewVerificationManager(blockState, descriptor)
+// VerificationManager deals with verification that a BABE block producer was authorized to produce a given block.
+// It trakcs the BABE epoch data that is needed for verification.
+type VerificationManager struct {
+	lock       sync.RWMutex
+	blockState BlockState
+	epochState EpochState
+	epochInfo  map[uint64]*verifierInfo // map of epoch number -> info needed for verification
 }
 
 // NewVerificationManager returns a new NewVerificationManager
-func NewVerificationManager(blockState BlockState, descriptor *Descriptor) (*VerificationManager, error) {
+func NewVerificationManager(blockState BlockState, epochState EpochState) (*VerificationManager, error) {
 	if blockState == nil {
 		return nil, ErrNilBlockState
 	}
 
-	descriptors := make(map[common.Hash]*Descriptor)
-	branches := make(map[int64][]common.Hash)
-
-	// TODO: save VerificationManager in database when node shuts down, reload upon startup
-	descriptors[blockState.GenesisHash()] = descriptor
-	branches[0] = []common.Hash{blockState.GenesisHash()}
-
-	verifier, err := newVerifier(blockState, descriptor)
-	if err != nil {
-		return nil, err
+	if epochState == nil {
+		return nil, ErrNilEpochState
 	}
 
 	return &VerificationManager{
-		blockState:  blockState,
-		descriptors: descriptors,
-		branchNums:  []int64{0},
-		branches:    branches,
-		verifier:    verifier,
+		epochState: epochState,
+		blockState: blockState,
+		epochInfo:  make(map[uint64]*verifierInfo),
 	}, nil
 }
 
@@ -86,182 +66,106 @@ func (v *VerificationManager) SetOnDisabled(index uint64, header *types.Header) 
 	// TODO: see issue #1205
 }
 
-// SetRuntimeChangeAtBlock sets a runtime change at the given block
-// Blocks that are descendants of this block will be verified using the given runtime
-func (v *VerificationManager) SetRuntimeChangeAtBlock(header *types.Header, rt runtime.LegacyInstance) error {
-	descriptor, err := descriptorFromRuntime(rt)
-	if err != nil {
-		return err
-	}
-
-	v.setDescriptorChangeAtBlock(header, descriptor)
-	return nil
-}
-
-// SetAuthorityChangeAtBlock sets an authority change at the given block and all descendants of that block
-func (v *VerificationManager) SetAuthorityChangeAtBlock(header *types.Header, authorities []*types.Authority) {
-	v.lock.Lock()
-
-	num := header.Number.Int64()
-	desc := &Descriptor{
-		Authorities: authorities,
-	}
-
-	// find branch that header is on, set randomness and threshold to latest known on that chain
-	for _, bn := range v.branchNums {
-		if num >= bn {
-			for _, hash := range v.branches[bn] {
-				// found most recent ancestor descriptor
-				if is, _ := v.blockState.IsDescendantOf(hash, header.Hash()); is {
-					desc.Randomness = v.descriptors[hash].Randomness
-					desc.Threshold = v.descriptors[hash].Threshold
-					break
-				}
-			}
-		}
-	}
-
-	v.lock.Unlock()
-	v.setDescriptorChangeAtBlock(header, desc)
-}
-
-func (v *VerificationManager) setDescriptorChangeAtBlock(header *types.Header, descriptor *Descriptor) {
-	v.lock.Lock()
-	defer v.lock.Unlock()
-
-	num := header.Number.Int64()
-	if v.branches[num] == nil {
-		v.branches[num] = []common.Hash{}
-	}
-
-	for i, bn := range v.branchNums {
-		// number already stored, don't need to add to branch number slice
-		if bn == num {
-			break
-		}
-
-		if num < bn || i == len(v.branchNums)-1 {
-			pre := make([]int64, len(v.branchNums[:i]))
-			copy(pre, v.branchNums[:i])
-			post := make([]int64, len(v.branchNums[i:]))
-			copy(post, v.branchNums[i:])
-			v.branchNums = append(append(pre, num), post...)
-			break
-		}
-	}
-
-	v.branches[num] = append(v.branches[num], header.Hash())
-	v.descriptors[header.Hash()] = descriptor
-}
-
-// VerifyBlock verifies the given header with verifyAuthorshipRight.
+// VerifyBlock verifies that the block producer for the given block was authorized to produce it.
 func (v *VerificationManager) VerifyBlock(header *types.Header) (bool, error) {
+	epoch, err := v.epochState.GetEpochForBlock(header)
+	if err != nil {
+		return false, err
+	}
+
 	var (
-		desc     *Descriptor
-		verifier *verifier
-		err      error
+		info *verifierInfo
+		has  bool
 	)
 
-	// iterate through descending list of blocktree branches
-	for _, n := range v.branchNums {
+	v.lock.Lock()
 
-		if header.Number.Int64() > n {
-			// this is a func so that locking can be deferred to whenever it exits
-			func() {
-				v.lock.Lock()
-				defer v.lock.Unlock()
-
-				// get block hashes at most recent branch
-				brs := v.branches[n]
-
-				// check which branch this block is a descendant of
-				for _, hash := range brs {
-					// can only compare ParentHash, since current block isn't in blockState yet
-					if is, _ := v.blockState.IsDescendantOf(hash, header.ParentHash); is {
-						desc = v.descriptors[hash]
-						break
-					}
-				}
-			}()
-
-			if desc != nil {
-				break
-			}
-		}
-	}
-
-	if desc == nil {
-		// we didn't find any data for the chain that this block is on, try to verify it with the current verifier anyways
-		verifier = v.verifier
-	} else {
-		verifier, err = newVerifier(v.blockState, desc)
+	if info, has = v.epochInfo[epoch]; !has {
+		epochData, err := v.epochState.GetEpochData(epoch) //nolint
 		if err != nil {
 			return false, err
 		}
+
+		configData, err := v.getConfigData(epoch)
+		if err != nil {
+			return false, err
+		}
+
+		threshold, err := CalculateThreshold(configData.C1, configData.C2, len(epochData.Authorities))
+		if err != nil {
+			return false, err
+		}
+
+		info = &verifierInfo{
+			authorities: epochData.Authorities,
+			randomness:  epochData.Randomness,
+			threshold:   threshold,
+		}
+
+		v.epochInfo[epoch] = info
+	}
+
+	v.lock.Unlock()
+
+	verifier, err := newVerifier(v.blockState, info)
+	if err != nil {
+		return false, err
 	}
 
 	return verifier.verifyAuthorshipRight(header)
 }
 
-func descriptorFromRuntime(rt runtime.LegacyInstance) (*Descriptor, error) {
-	cfg, err := rt.BabeConfiguration()
-	if err != nil {
-		return nil, err
+func (v *VerificationManager) getConfigData(epoch uint64) (*types.ConfigData, error) {
+	for i := epoch; i > 0; i-- {
+		has, err := v.epochState.HasConfigData(i)
+		if err != nil {
+			return nil, err
+		}
+
+		if has {
+			return v.epochState.GetConfigData(i)
+		}
 	}
 
-	auths, err := types.BABEAuthorityRawToAuthority(cfg.GenesisAuthorities)
-	if err != nil {
-		return nil, err
-	}
-
-	threshold, err := CalculateThreshold(cfg.C1, cfg.C2, len(auths))
-	if err != nil {
-		return nil, err
-	}
-
-	return &Descriptor{
-		Authorities: auths,
-		Randomness:  cfg.Randomness,
-		Threshold:   threshold,
-	}, nil
+	return nil, errors.New("cannot find ConfigData for epoch")
 }
 
 // verifier is a BABE verifier for a specific authority set, randomness, and threshold
 type verifier struct {
 	blockState  BlockState
-	Authorities []*types.Authority
+	authorities []*types.Authority
 	randomness  [types.RandomnessLength]byte
 	threshold   *big.Int
 }
 
 // newVerifier returns a Verifier for the epoch described by the given descriptor
-func newVerifier(blockState BlockState, descriptor *Descriptor) (*verifier, error) {
+func newVerifier(blockState BlockState, info *verifierInfo) (*verifier, error) {
 	if blockState == nil {
 		return nil, ErrNilBlockState
 	}
 
 	return &verifier{
 		blockState:  blockState,
-		Authorities: descriptor.Authorities,
-		randomness:  descriptor.Randomness,
-		threshold:   descriptor.Threshold,
+		authorities: info.authorities,
+		randomness:  info.randomness,
+		threshold:   info.threshold,
 	}, nil
 }
 
 // verifySlotWinner verifies the claim for a slot, given the BabeHeader for that slot.
 func (b *verifier) verifySlotWinner(slot uint64, header *types.BabeHeader) (bool, error) {
-	if len(b.Authorities) <= int(header.BlockProducerIndex) {
-		return false, fmt.Errorf("no authority data for index %d", header.BlockProducerIndex)
+	if len(b.authorities) <= int(header.BlockProducerIndex) {
+		return false, ErrInvalidBlockProducerIndex
 	}
 
 	// check that vrf output is under threshold
 	// if not, then return an error
 	output := big.NewInt(0).SetBytes(header.VrfOutput[:])
 	if output.Cmp(b.threshold) >= 0 {
-		return false, fmt.Errorf("vrf output over threshold")
+		return false, ErrVRFOutputOverThreshold
 	}
 
-	pub := b.Authorities[header.BlockProducerIndex].Key
+	pub := b.authorities[header.BlockProducerIndex].Key
 
 	slotBytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(slotBytes, slot)
@@ -313,13 +217,13 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) (bool, error) {
 		return false, fmt.Errorf("cannot decode babe header from pre-digest: %s", err)
 	}
 
-	if len(b.Authorities) <= int(babeHeader.BlockProducerIndex) {
-		return false, fmt.Errorf("no authority data for index %d", babeHeader.BlockProducerIndex)
+	if len(b.authorities) <= int(babeHeader.BlockProducerIndex) {
+		return false, ErrInvalidBlockProducerIndex
 	}
 
 	slot := babeHeader.SlotNumber
 
-	authorPub := b.Authorities[babeHeader.BlockProducerIndex].Key
+	authorPub := b.authorities[babeHeader.BlockProducerIndex].Key
 	// remove seal before verifying
 	header.Digest = header.Digest[:len(header.Digest)-1]
 	encHeader, err := header.Encode()

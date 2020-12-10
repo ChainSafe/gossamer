@@ -58,13 +58,6 @@ func (d Authorities) String() string {
 	return str
 }
 
-// Descriptor contains the information needed to verify blocks
-type Descriptor struct {
-	Authorities []*types.Authority
-	Randomness  [types.RandomnessLength]byte
-	Threshold   *big.Int
-}
-
 // epochData contains the current epoch information
 type epochData struct {
 	randomness     [types.RandomnessLength]byte
