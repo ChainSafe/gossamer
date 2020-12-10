@@ -131,7 +131,6 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 var (
 	// Data prefixes
 	headerPrefix        = []byte("hdr") // headerPrefix + hash -> header
-	babeHeaderPrefix    = []byte("hba") // babeHeaderPrefix || epoch || slot -> babeHeader
 	blockBodyPrefix     = []byte("blb") // blockBodyPrefix + hash -> body
 	headerHashPrefix    = []byte("hsh") // headerHashPrefix + encodedBlockNum -> hash
 	arrivalTimePrefix   = []byte("arr") // arrivalTimePrefix || hash -> arrivalTime
@@ -746,36 +745,4 @@ func (bs *BlockState) setArrivalTime(hash common.Hash, arrivalTime uint64) error
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, arrivalTime)
 	return bs.baseDB.Put(arrivalTimeKey(hash), buf)
-}
-
-// babeHeaderKey = babeHeaderPrefix || epoch || slice
-func babeHeaderKey(epoch uint64, slot uint64) []byte {
-	epochBytes := make([]byte, 8)
-	binary.LittleEndian.PutUint64(epochBytes, epoch)
-	sliceBytes := make([]byte, 8)
-	binary.LittleEndian.PutUint64(sliceBytes, slot)
-	combined := append(epochBytes, sliceBytes...)
-	return append(babeHeaderPrefix, combined...)
-}
-
-// GetBabeHeader retrieves a BabeHeader from the database
-func (bs *BlockState) GetBabeHeader(epoch uint64, slot uint64) (*types.BabeHeader, error) {
-	result := new(types.BabeHeader)
-
-	data, err := bs.db.Get(babeHeaderKey(epoch, slot))
-	if err != nil {
-		return nil, err
-	}
-
-	err = result.Decode(data)
-
-	return result, err
-}
-
-// SetBabeHeader sets a BabeHeader in the database
-func (bs *BlockState) SetBabeHeader(epoch uint64, slot uint64, bh *types.BabeHeader) error {
-	// Write the encoded header
-	enc := bh.Encode()
-
-	return bs.db.Put(babeHeaderKey(epoch, slot), enc)
 }

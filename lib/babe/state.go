@@ -69,4 +69,5 @@ type EpochState interface {
 	GetConfigData(epoch uint64) (*types.ConfigData, error)
 	HasConfigData(epoch uint64) (bool, error)
 	GetStartSlotForEpoch(epoch uint64) (uint64, error)
+	GetEpochForBlock(header *types.Header) (uint64, error)
 }
