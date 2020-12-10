@@ -147,6 +147,9 @@ func createInitConfig(ctx *cli.Context) (*dot.Config, error) {
 	// set system info
 	setSystemInfoConfig(ctx, cfg)
 
+	// set core config since BABE values are needed
+	setDotCoreConfig(ctx, tomlCfg.Core, &cfg.Core)
+
 	// ensure configuration values match genesis and overwrite with genesis
 	updateDotConfigFromGenesisJSONRaw(ctx, *tomlCfg, cfg)
 
