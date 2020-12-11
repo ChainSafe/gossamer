@@ -68,5 +68,5 @@ type DigestHandler interface {
 
 // Verifier deals with block verification
 type Verifier interface {
-	VerifyBlock(header *types.Header) (bool, error)
+	VerifyBlock(header *types.Header) error
 }

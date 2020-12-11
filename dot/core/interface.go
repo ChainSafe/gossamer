@@ -105,7 +105,7 @@ type BlockProducer interface {
 
 // Verifier is the interface for the block verifier
 type Verifier interface {
-	SetOnDisabled(authorityIndex uint64, block *types.Header)
+	SetOnDisabled(authorityIndex uint64, block *types.Header) error
 }
 
 // Network is the interface for the network service
