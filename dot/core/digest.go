@@ -406,7 +406,11 @@ func (h *DigestHandler) handleBABEOnDisabled(d *types.ConsensusDigest, header *t
 	}
 	od = dec.(*types.BABEOnDisabled)
 
-	h.verifier.SetOnDisabled(od.ID, header)
+	err = h.verifier.SetOnDisabled(od.ID, header)
+	if err != nil {
+		return err
+	}
+
 	h.babe.SetOnDisabled(od.ID)
 	return nil
 }
