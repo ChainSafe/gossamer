@@ -18,6 +18,7 @@ package sync
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 	mrand "math/rand"
 	"os"
@@ -380,13 +381,9 @@ func (s *Service) handleHeader(header *types.Header) error {
 		s.logger.Info("saved block header", "hash", header.Hash(), "number", header.Number)
 	}
 
-	ok, err := s.verifier.VerifyBlock(header)
+	err = s.verifier.VerifyBlock(header)
 	if err != nil {
-		return err
-	}
-
-	if !ok {
-		return ErrInvalidBlock
+		return fmt.Errorf("%w: %s", ErrInvalidBlock, err.Error())
 	}
 
 	return nil

@@ -24,6 +24,7 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
 
@@ -35,6 +36,14 @@ type verifierInfo struct {
 	threshold   *big.Int
 }
 
+// onDisabledInfo contains information about an authority that's been disabled at a certain
+// block for the rest of the epoch. the block hash is used to check if the block being verified
+// is a descendent of the block that included the `OnDisabled` digest.
+type onDisabledInfo struct {
+	blockNumber *big.Int
+	blockHash   common.Hash
+}
+
 // VerificationManager deals with verification that a BABE block producer was authorized to produce a given block.
 // It trakcs the BABE epoch data that is needed for verification.
 type VerificationManager struct {
@@ -42,6 +51,8 @@ type VerificationManager struct {
 	blockState BlockState
 	epochState EpochState
 	epochInfo  map[uint64]*verifierInfo // map of epoch number -> info needed for verification
+	// there may be different OnDisabled digests on different branches of the chain, so we need to keep track of all of them.
+	onDisabled map[uint64]map[uint64][]*onDisabledInfo // map of epoch number -> block producer index -> block number and hash
 }
 
 // NewVerificationManager returns a new NewVerificationManager
@@ -58,19 +69,81 @@ func NewVerificationManager(blockState BlockState, epochState EpochState) (*Veri
 		epochState: epochState,
 		blockState: blockState,
 		epochInfo:  make(map[uint64]*verifierInfo),
+		onDisabled: make(map[uint64]map[uint64][]*onDisabledInfo),
 	}, nil
 }
 
 // SetOnDisabled sets the BABE authority with the given index as disabled for the rest of the epoch
-func (v *VerificationManager) SetOnDisabled(index uint64, header *types.Header) {
-	// TODO: see issue #1205
+func (v *VerificationManager) SetOnDisabled(index uint64, header *types.Header) error {
+	epoch, err := v.epochState.GetEpochForBlock(header)
+	if err != nil {
+		return err
+	}
+
+	v.lock.Lock()
+	defer v.lock.Unlock()
+
+	if _, has := v.epochInfo[epoch]; !has {
+		info, err := v.getVerifierInfo(epoch)
+		if err != nil {
+			return err
+		}
+
+		v.epochInfo[epoch] = info
+	}
+
+	// check that index is valid
+	if index >= uint64(len(v.epochInfo[epoch].authorities)) {
+		return ErrInvalidBlockProducerIndex
+	}
+
+	// no authorities have been disabled yet this epoch, init map
+	if _, has := v.onDisabled[epoch]; !has {
+		v.onDisabled[epoch] = make(map[uint64][]*onDisabledInfo)
+	}
+
+	disabledProducers := v.onDisabled[epoch]
+
+	if _, has := disabledProducers[index]; !has {
+		disabledProducers[index] = []*onDisabledInfo{
+			{
+				blockNumber: header.Number,
+				blockHash:   header.Hash(),
+			},
+		}
+		return nil
+	}
+
+	// this producer has already been disabled in this epoch on some branch
+	producerInfos := disabledProducers[index]
+
+	// check that the OnDisabled digest isn't a duplicate; ie. that the producer isn't already disabled on this branch
+	for _, info := range producerInfos {
+		isDescendant, err := v.blockState.IsDescendantOf(info.blockHash, header.Hash())
+		if err != nil {
+			return err
+		}
+
+		if isDescendant && header.Number.Cmp(info.blockNumber) >= 0 {
+			// this authority has already been disabled on this branch
+			return ErrAuthorityAlreadyDisabled
+		}
+	}
+
+	disabledProducers[index] = append(producerInfos, &onDisabledInfo{
+		blockNumber: header.Number,
+		blockHash:   header.Hash(),
+	})
+
+	return nil
 }
 
 // VerifyBlock verifies that the block producer for the given block was authorized to produce it.
-func (v *VerificationManager) VerifyBlock(header *types.Header) (bool, error) {
+// It returns an error if the block is invalid.
+func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 	epoch, err := v.epochState.GetEpochForBlock(header)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	var (
@@ -81,25 +154,10 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) (bool, error) {
 	v.lock.Lock()
 
 	if info, has = v.epochInfo[epoch]; !has {
-		epochData, err := v.epochState.GetEpochData(epoch) //nolint
+		info, err = v.getVerifierInfo(epoch)
 		if err != nil {
-			return false, err
-		}
-
-		configData, err := v.getConfigData(epoch)
-		if err != nil {
-			return false, err
-		}
-
-		threshold, err := CalculateThreshold(configData.C1, configData.C2, len(epochData.Authorities))
-		if err != nil {
-			return false, err
-		}
-
-		info = &verifierInfo{
-			authorities: epochData.Authorities,
-			randomness:  epochData.Randomness,
-			threshold:   threshold,
+			v.lock.Unlock()
+			return err
 		}
 
 		v.epochInfo[epoch] = info
@@ -107,12 +165,80 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) (bool, error) {
 
 	v.lock.Unlock()
 
+	isDisabled, err := v.isDisabled(epoch, header)
+	if err != nil {
+		return err
+	}
+
+	if isDisabled {
+		return ErrAuthorityDisabled
+	}
+
 	verifier, err := newVerifier(v.blockState, info)
+	if err != nil {
+		return err
+	}
+
+	return verifier.verifyAuthorshipRight(header)
+}
+
+func (v *VerificationManager) isDisabled(epoch uint64, header *types.Header) (bool, error) {
+	v.lock.RLock()
+	defer v.lock.RUnlock()
+
+	// check if any authorities have been disabled this epoch
+	if _, has := v.onDisabled[epoch]; !has {
+		return false, nil
+	}
+
+	// if authorities have been disabled, check which ones
+	idx, err := getBlockProducerIndex(header)
 	if err != nil {
 		return false, err
 	}
 
-	return verifier.verifyAuthorshipRight(header)
+	if _, has := v.onDisabled[epoch][idx]; !has {
+		return false, nil
+	}
+
+	// this authority has been disabled on some branch, check if we are on that branch
+	producerInfos := v.onDisabled[epoch][idx]
+	for _, info := range producerInfos {
+		isDescendant, err := v.blockState.IsDescendantOf(info.blockHash, header.Hash())
+		if err != nil {
+			return false, err
+		}
+
+		if isDescendant && header.Number.Cmp(info.blockNumber) > 0 {
+			// this authority has been disabled on this branch
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+func (v *VerificationManager) getVerifierInfo(epoch uint64) (*verifierInfo, error) {
+	epochData, err := v.epochState.GetEpochData(epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	configData, err := v.getConfigData(epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	threshold, err := CalculateThreshold(configData.C1, configData.C2, len(epochData.Authorities))
+	if err != nil {
+		return nil, err
+	}
+
+	return &verifierInfo{
+		authorities: epochData.Authorities,
+		randomness:  epochData.Randomness,
+		threshold:   threshold,
+	}, nil
 }
 
 func (v *VerificationManager) getConfigData(epoch uint64) (*types.ConfigData, error) {
@@ -180,11 +306,11 @@ func (b *verifier) verifySlotWinner(slot uint64, header *types.BabeHeader) (bool
 }
 
 // verifyAuthorshipRight verifies that the authority that produced a block was authorized to produce it.
-func (b *verifier) verifyAuthorshipRight(header *types.Header) (bool, error) {
+func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	// header should have 2 digest items (possibly more in the future)
 	// first item should be pre-digest, second should be seal
 	if len(header.Digest) < 2 {
-		return false, fmt.Errorf("block header is missing digest items")
+		return fmt.Errorf("block header is missing digest items")
 	}
 
 	// check for valid seal by verifying signature
@@ -193,32 +319,32 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) (bool, error) {
 
 	digestItem, err := types.DecodeDigestItem(preDigestBytes)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	preDigest, ok := digestItem.(*types.PreRuntimeDigest)
 	if !ok {
-		return false, fmt.Errorf("first digest item is not pre-digest")
+		return fmt.Errorf("first digest item is not pre-digest")
 	}
 
 	digestItem, err = types.DecodeDigestItem(sealBytes)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	seal, ok := digestItem.(*types.SealDigest)
 	if !ok {
-		return false, fmt.Errorf("last digest item is not seal")
+		return fmt.Errorf("last digest item is not seal")
 	}
 
 	babeHeader := new(types.BabeHeader)
 	err = babeHeader.Decode(preDigest.Data)
 	if err != nil {
-		return false, fmt.Errorf("cannot decode babe header from pre-digest: %s", err)
+		return fmt.Errorf("cannot decode babe header from pre-digest: %s", err)
 	}
 
 	if len(b.authorities) <= int(babeHeader.BlockProducerIndex) {
-		return false, ErrInvalidBlockProducerIndex
+		return ErrInvalidBlockProducerIndex
 	}
 
 	slot := babeHeader.SlotNumber
@@ -228,27 +354,27 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) (bool, error) {
 	header.Digest = header.Digest[:len(header.Digest)-1]
 	encHeader, err := header.Encode()
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	// verify that they are the slot winner
 	ok, err = b.verifySlotWinner(slot, babeHeader)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	if !ok {
-		return false, ErrBadSlotClaim
+		return ErrBadSlotClaim
 	}
 
 	// verify the seal is valid
 	ok, err = authorPub.Verify(encHeader, seal.Data)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	if !ok {
-		return false, ErrBadSignature
+		return ErrBadSignature
 	}
 
 	// check if the producer has equivocated, ie. have they produced a conflicting block?
@@ -268,11 +394,11 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) (bool, error) {
 		existingBlockProducerIndex := babeHeader.BlockProducerIndex
 
 		if currentBlockProducerIndex == existingBlockProducerIndex && hash != header.Hash() {
-			return false, ErrProducerEquivocated
+			return ErrProducerEquivocated
 		}
 	}
 
-	return true, nil
+	return nil
 }
 
 func getBlockProducerIndex(header *types.Header) (uint64, error) {

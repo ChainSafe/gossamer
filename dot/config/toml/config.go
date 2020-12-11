@@ -74,6 +74,7 @@ type CoreConfig struct {
 	GrandpaAuthority bool   `toml:"grandpa-authority"`
 	BabeThreshold    string `toml:"babe-threshold,omitempty"`
 	SlotDuration     uint64 `toml:"slot-duration,omitempty"`
+	EpochLength      uint64 `toml:"epoch-length,omitempty"`
 	WasmInterpreter  string `toml:"wasm-interpreter,omitempty"`
 }
 
