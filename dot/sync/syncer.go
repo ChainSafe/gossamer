@@ -184,7 +184,7 @@ func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) *networ
 	has, _ = s.blockState.HasBlockBody(header.Hash())
 	if !has {
 		s.synced = false
-		err := s.blockProducer.Pause()
+		err = s.blockProducer.Pause()
 		if err != nil {
 			s.logger.Warn("failed to pause block production")
 		}
