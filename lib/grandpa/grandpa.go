@@ -473,7 +473,7 @@ func (s *Service) playGrandpaRound() error {
 		return false
 	})
 
-	time.Sleep(interval * 5)
+	time.Sleep(interval * 2)
 
 	if s.paused.Load().(bool) {
 		return ErrServicePaused

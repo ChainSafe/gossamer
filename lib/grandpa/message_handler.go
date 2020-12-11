@@ -43,6 +43,7 @@ func NewMessageHandler(grandpa *Service, blockState BlockState) *MessageHandler 
 // if it is a VoteMessage, it sends it to the GRANDPA service
 func (h *MessageHandler) handleMessage(msg *ConsensusMessage) (*ConsensusMessage, error) {
 	if msg == nil || len(msg.Data) == 0 {
+		h.grandpa.logger.Trace("received nil message or message with nil data")
 		return nil, nil
 	}
 

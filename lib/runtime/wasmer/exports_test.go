@@ -296,3 +296,68 @@ func TestInstance_FinalizeBlock_NodeRuntime(t *testing.T) {
 	require.NotEqual(t, trie.EmptyHash, res.StateRoot)
 	require.Equal(t, trie.EmptyHash, res.ExtrinsicsRoot)
 }
+
+func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
+	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
+
+	header := &types.Header{
+		ParentHash: trie.EmptyHash,
+		Number:     big.NewInt(77),
+		Digest:     [][]byte{},
+	}
+
+	err := instance.InitializeBlock(header)
+	require.NoError(t, err)
+
+	idata := types.NewInherentsData()
+	err = idata.SetInt64Inherent(types.Timstap0, uint64(time.Now().Unix()))
+	require.NoError(t, err)
+
+	err = idata.SetInt64Inherent(types.Babeslot, 1)
+	require.NoError(t, err)
+
+	err = idata.SetBigIntInherent(types.Finalnum, big.NewInt(0))
+	require.NoError(t, err)
+
+	ienc, err := idata.Encode()
+	require.NoError(t, err)
+
+	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
+	inherentExts, err := instance.InherentExtrinsics(ienc)
+	require.NoError(t, err)
+
+	// decode inherent extrinsics
+	exts, err := scale.Decode(inherentExts, [][]byte{})
+	require.NoError(t, err)
+
+	// apply each inherent extrinsic
+	for _, ext := range exts.([][]byte) {
+		in, err := scale.Encode(ext) //nolint
+		require.NoError(t, err)
+
+		ret, err := instance.ApplyExtrinsic(append([]byte{1}, in...))
+		require.NoError(t, err, in)
+		require.Equal(t, ret, []byte{0, 0})
+	}
+
+	res, err := instance.FinalizeBlock()
+	require.NoError(t, err)
+
+	res.Number = header.Number
+
+	expected := &types.Header{
+		ParentHash: header.ParentHash,
+		Number:     big.NewInt(77),
+		Digest:     [][]byte{},
+	}
+
+	require.Equal(t, expected.ParentHash, res.ParentHash)
+	require.Equal(t, expected.Number, res.Number)
+	require.Equal(t, expected.Digest, res.Digest)
+	require.NotEqual(t, common.Hash{}, res.StateRoot)
+	require.NotEqual(t, common.Hash{}, res.ExtrinsicsRoot)
+	require.NotEqual(t, trie.EmptyHash, res.StateRoot)
+	require.Equal(t, trie.EmptyHash, res.ExtrinsicsRoot)
+
+	// block formed, let's try to execute
+}
