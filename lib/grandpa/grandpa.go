@@ -473,7 +473,7 @@ func (s *Service) playGrandpaRound() error {
 		return false
 	})
 
-	time.Sleep(interval * 2)
+	time.Sleep(interval * 5)
 
 	if s.paused.Load().(bool) {
 		return ErrServicePaused
@@ -562,6 +562,11 @@ func (s *Service) playGrandpaRound() error {
 func (s *Service) attemptToFinalize() error {
 	if s.paused.Load().(bool) {
 		return ErrServicePaused
+	}
+
+	has, _ := s.blockState.HasFinalizedBlock(s.state.round, s.state.setID)
+	if has {
+		return nil // a block was finalized, seems like we missed some messages
 	}
 
 	bfc, err := s.getBestFinalCandidate()

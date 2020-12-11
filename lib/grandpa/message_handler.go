@@ -256,6 +256,8 @@ func (h *MessageHandler) verifyFinalizationMessageJustification(fm *Finalization
 
 	// confirm total # signatures >= grandpa threshold
 	if uint64(count) < h.grandpa.state.threshold() {
+		h.grandpa.logger.Error("minimum votes not met for finalization message", "votes needed", h.grandpa.state.threshold(),
+			"votes", fm.Justification)
 		return ErrMinVotesNotMet
 	}
 	return nil

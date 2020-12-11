@@ -403,7 +403,10 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 
 			slotNum := startSlot + uint64(i)
 			err = b.handleSlot(slotNum)
-			if err != nil {
+			if err == ErrNotAuthorized {
+				b.logger.Debug("not authorized to produce a block in this slot", "slot", slotNum)
+				continue
+			} else if err != nil {
 				b.logger.Warn("failed to handle slot", "slot", slotNum, "error", err)
 				continue
 			}
