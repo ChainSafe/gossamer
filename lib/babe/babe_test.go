@@ -99,6 +99,10 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 
 		genesisData := new(genesis.Data)
 
+		if cfg.EpochLength > 0 {
+			genesisBABEConfig.EpochLength = cfg.EpochLength
+		}
+
 		err = dbSrv.Initialize(genesisData, genesisHeader, tt, genesisBABEConfig)
 		require.NoError(t, err)
 
@@ -117,6 +121,18 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	babeService, err := NewService(cfg)
 	require.NoError(t, err)
 	return babeService
+}
+
+func TestRunEpochLengthConfig(t *testing.T) {
+	cfg := &ServiceConfig{
+		EpochLength: 5,
+	}
+
+	babeService := createTestService(t, cfg)
+
+	if babeService.epochLength != 5 {
+		t.Fatal("epoch length not set")
+	}
 }
 
 func TestSlotDuration(t *testing.T) {
