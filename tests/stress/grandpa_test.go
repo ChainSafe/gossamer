@@ -59,7 +59,7 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 		require.Len(t, errList, 0)
 	}()
 
-	numRounds := 10
+	numRounds := 5
 	for i := 1; i < numRounds+1; i++ {
 		fin, err := compareFinalizedHeadsWithRetry(t, nodes, uint64(i))
 		require.NoError(t, err)
