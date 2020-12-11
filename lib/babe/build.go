@@ -187,6 +187,7 @@ func (b *Service) buildBlockExtrinsics(slot Slot) ([]*transaction.ValidTransacti
 	for !hasSlotEnded(slot) && next != nil {
 		b.logger.Trace("build block", "applying extrinsic", next)
 		ret, err := b.rt.ApplyExtrinsic(next)
+		// TODO updated logic here to continue if errored
 		if err != nil {
 			return nil, err
 		}
