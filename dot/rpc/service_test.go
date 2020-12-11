@@ -33,7 +33,7 @@ func TestNewService(t *testing.T) {
 }
 
 func TestService_Methods(t *testing.T) {
-	qtySystemMethods := 8
+	qtySystemMethods := 9
 	qtyRPCMethods := 1
 	qtyAuthorMethods := 7
 

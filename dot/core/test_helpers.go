@@ -56,7 +56,9 @@ var genesisBABEConfig = &types.BabeConfiguration{
 
 type mockVerifier struct{}
 
-func (v *mockVerifier) SetOnDisabled(_ uint64, _ *types.Header) {}
+func (v *mockVerifier) SetOnDisabled(_ uint64, _ *types.Header) error {
+	return nil
+}
 
 // mockBlockProducer implements the BlockProducer interface
 type mockBlockProducer struct {

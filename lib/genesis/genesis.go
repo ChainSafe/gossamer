@@ -24,6 +24,7 @@ import (
 type Genesis struct {
 	Name       string   `json:"name"`
 	ID         string   `json:"id"`
+	ChainType  string   `json:"chainType"`
 	Bootnodes  []string `json:"bootNodes"`
 	ProtocolID string   `json:"protocolId"`
 	Genesis    Fields   `json:"genesis"`
@@ -33,6 +34,7 @@ type Genesis struct {
 type Data struct {
 	Name       string
 	ID         string
+	ChainType  string
 	Bootnodes  [][]byte
 	ProtocolID string
 }
@@ -48,6 +50,7 @@ func (g *Genesis) GenesisData() *Data {
 	return &Data{
 		Name:       g.Name,
 		ID:         g.ID,
+		ChainType:  g.ChainType,
 		Bootnodes:  common.StringArrayToBytes(g.Bootnodes),
 		ProtocolID: g.ProtocolID,
 	}

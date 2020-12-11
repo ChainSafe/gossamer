@@ -41,3 +41,9 @@ var ErrVRFOutputOverThreshold = errors.New("vrf output over threshold")
 
 // ErrInvalidBlockProducerIndex is returned when the producer of a block isn't in the authority set
 var ErrInvalidBlockProducerIndex = errors.New("block producer is not in authority set")
+
+// ErrAuthorityAlreadyDisabled is returned when attempting to disabled an already-disabled authority
+var ErrAuthorityAlreadyDisabled = errors.New("authority has already been disabled")
+
+// ErrAuthorityDisabled is returned when attempting to verify a block produced by a disabled authority
+var ErrAuthorityDisabled = errors.New("authority has been disabled for the remaining slots in the epoch")
