@@ -171,6 +171,7 @@ func createBABEService(cfg *Config, rt runtime.LegacyInstance, st *state.Service
 		TransactionState: st.Transaction,
 		EpochState:       st.Epoch,
 		StartSlot:        bestSlot + 1,
+		EpochLength:      cfg.Core.EpochLength,
 		Threshold:        cfg.Core.BabeThreshold,
 		SlotDuration:     cfg.Core.SlotDuration,
 		Authority:        cfg.Core.BabeAuthority,
