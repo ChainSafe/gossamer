@@ -71,19 +71,19 @@ func TestStateRPCResponseValidation(t *testing.T) {
 			description: "Test state_getChildStorage",
 			method:      "state_getChildStorage",
 			params:      `["","","0x579deccea7183c2afedbdaea59ad23e970458186afc4d57d5577842d4a219925"]`,
-			expected:    modules.StateStorageDataResponse{},
+			expected:    modules.StateStorageDataResponse(""),
 		},
 		{
 			description: "Test state_getChildStorageHash",
 			method:      "state_getChildStorageHash",
 			params:      `["","","0x579deccea7183c2afedbdaea59ad23e970458186afc4d57d5577842d4a219925"]`,
-			expected:    modules.StateChildStorageResponse{},
+			expected:    modules.StateChildStorageResponse(""),
 		},
 		{
 			description: "Test state_getChildStorageSize",
 			method:      "state_getChildStorageSize",
 			params:      `["","","0x579deccea7183c2afedbdaea59ad23e970458186afc4d57d5577842d4a219925"]`,
-			expected:    modules.StateChildStorageSizeResponse{},
+			expected:    modules.StateChildStorageSizeResponse(0),
 		},
 		{
 			description: "Test state_queryStorage",
@@ -107,7 +107,7 @@ func TestStateRPCResponseValidation(t *testing.T) {
 			description: "Test valid block hash state_getMetadata",
 			method:      "state_getMetadata",
 			params:      fmt.Sprintf(`["%s"]`, blockHash.String()),
-			expected:    modules.StateMetadataResponse{},
+			expected:    modules.StateMetadataResponse(""),
 		},
 		{
 			description: "Test optional param state_getRuntimeVersion",
@@ -125,7 +125,7 @@ func TestStateRPCResponseValidation(t *testing.T) {
 			description: "Test optional param hash state_getMetadata",
 			method:      "state_getMetadata",
 			params:      `[]`,
-			expected:    modules.StateMetadataResponse{},
+			expected:    modules.StateMetadataResponse(""),
 		},
 		{
 			description: "Test optional param value as null state_getRuntimeVersion",
@@ -137,7 +137,7 @@ func TestStateRPCResponseValidation(t *testing.T) {
 			description: "Test optional param value as null state_getMetadata",
 			method:      "state_getMetadata",
 			params:      `[null]`,
-			expected:    modules.StateMetadataResponse{},
+			expected:    modules.StateMetadataResponse(""),
 		},
 		{
 			description: "Test optional param value as null state_getPairs",

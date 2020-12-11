@@ -90,56 +90,38 @@ type StateStorageQueryRangeRequest struct {
 type StateStorageKeysQuery [][]byte
 
 // StateCallResponse holds json fields
-type StateCallResponse struct {
-	StateCallResponse []byte `json:"stateCallResponse"`
-}
+type StateCallResponse []byte
 
 // StateKeysResponse field to store the state keys
 type StateKeysResponse [][]byte
 
 // StateStorageDataResponse field to store data response
-type StateStorageDataResponse struct {
-	StorageData string
-}
+type StateStorageDataResponse string
 
 // StateStorageHashResponse is a hash value
-type StateStorageHashResponse struct {
-	StorageHash string
-}
+type StateStorageHashResponse string
 
 // StateChildStorageResponse is a hash value
-type StateChildStorageResponse struct {
-	StorageHash string
-}
+type StateChildStorageResponse string
 
 // StateChildStorageSizeResponse is a unint value
-type StateChildStorageSizeResponse struct {
-	Size uint64
-}
+type StateChildStorageSizeResponse uint64
 
 // StateStorageSizeResponse the default size for response
-type StateStorageSizeResponse struct {
-	StorageEntrySize uint64
-}
+type StateStorageSizeResponse uint64
 
 // StateStorageResponse storage hash value
-type StateStorageResponse struct {
-	StorageValue string
-}
+type StateStorageResponse string
 
 // StatePairResponse is a key values
-type StatePairResponse struct {
-	Keys []interface{}
-}
+type StatePairResponse []interface{}
 
 // StateStorageKeysResponse field for storage keys
 type StateStorageKeysResponse [][]byte
 
 // StateMetadataResponse holds the metadata
 //TODO: Determine actual type
-type StateMetadataResponse struct {
-	Metadata string
-}
+type StateMetadataResponse string
 
 // StorageChangeSetResponse is the struct that holds the block and changes
 type StorageChangeSetResponse struct {
@@ -148,10 +130,7 @@ type StorageChangeSetResponse struct {
 }
 
 // KeyValueOption struct holds json fields
-type KeyValueOption struct {
-	StorageKey  []byte `json:"storageKey"`
-	StorageData []byte `json:"storageData"`
-}
+type KeyValueOption []byte
 
 // StorageKey is the key for the storage
 type StorageKey []byte
@@ -203,7 +182,7 @@ func (sm *StateModule) GetPairs(r *http.Request, req *StatePairRequest, res *Sta
 			return err
 		}
 		for k, v := range pairs {
-			res.Keys = append(res.Keys, []string{"0x" + hex.EncodeToString([]byte(k)), "0x" + hex.EncodeToString(v)})
+			*res = append(*res, []string{"0x" + hex.EncodeToString([]byte(k)), "0x" + hex.EncodeToString(v)})
 		}
 	} else {
 		// TODO this should return all keys with same prefix, currently only returning
@@ -214,9 +193,9 @@ func (sm *StateModule) GetPairs(r *http.Request, req *StatePairRequest, res *Sta
 			return err
 		}
 		if resI != nil {
-			res.Keys = append(res.Keys, []string{"0x" + hex.EncodeToString(reqBytes), "0x" + hex.EncodeToString(resI)})
+			*res = append(*res, []string{"0x" + hex.EncodeToString(reqBytes), "0x" + hex.EncodeToString(resI)})
 		} else {
-			res.Keys = []interface{}{}
+			*res = []interface{}{}
 		}
 	}
 
@@ -269,7 +248,7 @@ func (sm *StateModule) GetMetadata(r *http.Request, req *StateRuntimeMetadataQue
 	}
 
 	decoded, err := scale.Decode(metadata, []byte{})
-	res.Metadata = common.BytesToHex(decoded.([]byte))
+	*res = StateMetadataResponse(common.BytesToHex(decoded.([]byte)))
 	return err
 }
 
@@ -313,9 +292,7 @@ func (sm *StateModule) GetStorage(r *http.Request, req *StateStorageRequest, res
 	}
 
 	if len(item) > 0 {
-		res.StorageValue = common.BytesToHex(item)
-	} else {
-		*res = StateStorageResponse{}
+		*res = StateStorageResponse(common.BytesToHex(item))
 	}
 
 	return nil
@@ -345,9 +322,7 @@ func (sm *StateModule) GetStorageHash(r *http.Request, req *StateStorageHashRequ
 	}
 
 	if len(item) > 0 {
-		res.StorageHash = common.BytesToHash(item).String()
-	} else {
-		*res = StateStorageHashResponse{}
+		*res = StateStorageHashResponse(common.BytesToHash(item).String())
 	}
 
 	return nil
@@ -377,9 +352,7 @@ func (sm *StateModule) GetStorageSize(r *http.Request, req *StateStorageSizeRequ
 	}
 
 	if len(item) > 0 {
-		*res = StateStorageSizeResponse{uint64(len(item))}
-	} else {
-		*res = StateStorageSizeResponse{}
+		*res = StateStorageSizeResponse((uint64)(len(item)))
 	}
 
 	return nil
