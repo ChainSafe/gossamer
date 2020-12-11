@@ -118,7 +118,7 @@ func TestStress_Grandpa_CatchUp(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping TestStress_Grandpa_CatchUp")
 	}
-	
+
 	utils.GenerateGenesisSixAuth()
 	defer os.Remove(utils.GenesisSixAuths)
 
