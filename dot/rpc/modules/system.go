@@ -71,6 +71,12 @@ func (sm *SystemModule) Name(r *http.Request, req *EmptyRequest, res *string) er
 	return nil
 }
 
+// ChainType returns the chain type
+func (sm *SystemModule) ChainType(r *http.Request, req *EmptyRequest, res *string) error {
+	*res = sm.systemAPI.ChainType()
+	return nil
+}
+
 // Properties returns the runtime properties
 func (sm *SystemModule) Properties(r *http.Request, req *EmptyRequest, res *interface{}) error {
 	*res = sm.systemAPI.Properties()

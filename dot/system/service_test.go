@@ -43,6 +43,12 @@ func TestService_SystemVersion(t *testing.T) {
 	require.Equal(t, "0.0.1", ver)
 }
 
+func TestService_ChainType(t *testing.T) {
+	svc := newTestService()
+	typ := svc.ChainType()
+	require.Equal(t, "Local", typ)
+}
+
 func TestService_Properties(t *testing.T) {
 	expected := make(map[string]interface{})
 	expected["ss58Format"] = 2
@@ -75,6 +81,7 @@ func newTestService() *Service {
 	sysInfo := &types.SystemInfo{
 		SystemName:       "gossamer",
 		SystemVersion:    "0.0.1",
+		ChainType:        "Local",
 		NodeName:         "gssmr",
 		SystemProperties: sysProps,
 	}
