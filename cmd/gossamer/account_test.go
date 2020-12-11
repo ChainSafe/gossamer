@@ -77,19 +77,73 @@ func TestAccountGeneratePassword(t *testing.T) {
 	// TODO: check contents of data directory - improve cmd account tests
 }
 
-// TestAccountGenerateType test "gossamer account --generate --type"
-func TestAccountGenerateType(t *testing.T) {
+// TestAccountGenerateEd25519 test "gossamer account --generate --ed25519"
+func TestAccountGenerateEd25519(t *testing.T) {
 	testDir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
 	directory := fmt.Sprintf("--basepath=%s", testDir)
-	err := app.Run([]string{"irrelevant", "account", directory, "--generate=true", "--password=false", "--type"})
+	err := app.Run([]string{"irrelevant", "account", directory, "--generate=true", "--password=false", "--ed25519"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	ctx, err := newTestContext(
-		"Test gossamer account --generate --type",
-		[]string{"basepath", "generate", "type"},
+		"Test gossamer account --generate --ed25519",
+		[]string{"basepath", "generate", "ed25519"},
 		[]interface{}{testDir, "true", "ed25519"},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	command := accountCommand
+	err = command.Run(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// TODO: check contents of data directory - improve cmd account tests
+}
+
+// TestAccountGenerateSr25519 test "gossamer account --generate --ed25519"
+func TestAccountGenerateSr25519(t *testing.T) {
+	testDir := utils.NewTestDir(t)
+	defer utils.RemoveTestDir(t)
+	directory := fmt.Sprintf("--basepath=%s", testDir)
+	err := app.Run([]string{"irrelevant", "account", directory, "--generate=true", "--password=false", "--sr25519"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, err := newTestContext(
+		"Test gossamer account --generate --sr25519",
+		[]string{"basepath", "generate", "sr25519"},
+		[]interface{}{testDir, "true", "sr25519"},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	command := accountCommand
+	err = command.Run(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// TODO: check contents of data directory - improve cmd account tests
+}
+
+// TestAccountGenerateSecp256k1 test "gossamer account --generate --ed25519"
+func TestAccountGenerateSecp256k1(t *testing.T) {
+	testDir := utils.NewTestDir(t)
+	defer utils.RemoveTestDir(t)
+	directory := fmt.Sprintf("--basepath=%s", testDir)
+	err := app.Run([]string{"irrelevant", "account", directory, "--generate=true", "--password=false", "--secp256k1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, err := newTestContext(
+		"Test gossamer account --generate --secp256k1",
+		[]string{"basepath", "generate", "secp256k1"},
+		[]interface{}{testDir, "true", "secp256k1"},
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -109,6 +163,7 @@ func TestAccountImport(t *testing.T) {
 	testDir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
 	directory := fmt.Sprintf("--basepath=%s", testDir)
+	// TODO: Add import value for test
 	err := app.Run([]string{"irrelevant", "account", directory, "--import"})
 	if err != nil {
 		t.Fatal(err)
@@ -116,6 +171,34 @@ func TestAccountImport(t *testing.T) {
 	ctx, err := newTestContext(
 		"Test gossamer account --import",
 		[]string{"basepath", "import"},
+		[]interface{}{testDir, "testfile"},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	command := accountCommand
+	err = command.Run(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// TODO: check contents of data directory - improve cmd account tests
+}
+
+// TestAccountImport test "gossamer account --import-raw"
+func TestAccountImportRaw(t *testing.T) {
+	testDir := utils.NewTestDir(t)
+	defer utils.RemoveTestDir(t)
+	directory := fmt.Sprintf("--basepath=%s", testDir)
+	// TODO: Add import-raw value for test
+	err := app.Run([]string{"irrelevant", "account", directory, "--import-raw"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, err := newTestContext(
+		"Test gossamer account --import-raw",
+		[]string{"basepath", "import-raw"},
 		[]interface{}{testDir, "testfile"},
 	)
 	if err != nil {
