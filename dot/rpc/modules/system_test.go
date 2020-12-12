@@ -87,8 +87,8 @@ func TestSystemModule_Health(t *testing.T) {
 	err := sys.Health(nil, nil, res)
 	require.NoError(t, err)
 
-	if res.Health != testHealth {
-		t.Errorf("System.Health.: expected: %+v got: %+v\n", testHealth, res.Health)
+	if *res != SystemHealthResponse(testHealth) {
+		t.Errorf("System.Health.: expected: %+v got: %+v\n", testHealth, *res)
 	}
 }
 
@@ -117,8 +117,8 @@ func TestSystemModule_Peers(t *testing.T) {
 	err := sys.Peers(nil, nil, res)
 	require.NoError(t, err)
 
-	if len(res.Peers) != len(testPeers) {
-		t.Errorf("System.Peers: expected: %+v got: %+v\n", testPeers, res.Peers)
+	if len(*res) != len(testPeers) {
+		t.Errorf("System.Peers: expected: %+v got: %+v\n", testPeers, *res)
 	}
 }
 

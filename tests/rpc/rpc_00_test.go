@@ -46,7 +46,6 @@ type testCase struct {
 	params      string
 	expected    interface{}
 	skip        bool
-	isErr       bool
 }
 
 func getResponse(t *testing.T, test *testCase) interface{} {
