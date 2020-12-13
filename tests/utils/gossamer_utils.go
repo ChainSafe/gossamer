@@ -244,7 +244,7 @@ func CheckNodeStarted(t *testing.T, gossamerHost string) error {
 		return err
 	}
 
-	if !target.Health.ShouldHavePeers {
+	if !target.ShouldHavePeers {
 		return fmt.Errorf("no peers")
 	}
 

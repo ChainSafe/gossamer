@@ -57,32 +57,32 @@ type StateRuntimeVersionRequest struct {
 
 // StatePairRequest holds json field
 type StatePairRequest struct {
-	Prefix string
+	Prefix *string `validate:"required"`
 	Bhash  *common.Hash
 }
 
 // StateStorageSizeRequest holds json field
 type StateStorageSizeRequest struct {
-	Key   string
+	Key   string `validate:"required"`
 	Bhash *common.Hash
 }
 
 // StateStorageHashRequest holds json field
 type StateStorageHashRequest struct {
-	Key   string
+	Key   string `validate:"required"`
 	Bhash *common.Hash
 }
 
 // StateStorageRequest holds json field
 type StateStorageRequest struct {
-	Key   string
+	Key   string `validate:"required"`
 	Bhash *common.Hash
 }
 
 // StateStorageQueryRangeRequest holds json fields
 type StateStorageQueryRangeRequest struct {
-	Keys       []*common.Hash `json:"keys"`
-	StartBlock *common.Hash   `json:"startBlock"`
+	Keys       []*common.Hash `json:"keys" validate:"required"`
+	StartBlock *common.Hash   `json:"startBlock" validate:"required"`
 	Block      *common.Hash   `json:"block"`
 }
 
@@ -90,9 +90,7 @@ type StateStorageQueryRangeRequest struct {
 type StateStorageKeysQuery [][]byte
 
 // StateCallResponse holds json fields
-type StateCallResponse struct {
-	StateCallResponse []byte `json:"stateCallResponse"`
-}
+type StateCallResponse []byte
 
 // StateKeysResponse field to store the state keys
 type StateKeysResponse [][]byte
@@ -101,43 +99,29 @@ type StateKeysResponse [][]byte
 type StateStorageDataResponse string
 
 // StateStorageHashResponse is a hash value
-type StateStorageHashResponse struct {
-	StorageHash string
-}
+type StateStorageHashResponse string
 
 // StateChildStorageResponse is a hash value
-type StateChildStorageResponse struct {
-	StorageHash string
-}
+type StateChildStorageResponse string
 
 // StateChildStorageSizeResponse is a unint value
-type StateChildStorageSizeResponse struct {
-	Size uint64
-}
+type StateChildStorageSizeResponse uint64
 
 // StateStorageSizeResponse the default size for response
-type StateStorageSizeResponse struct {
-	StorageEntrySize uint64
-}
+type StateStorageSizeResponse uint64
 
 // StateStorageResponse storage hash value
-type StateStorageResponse struct {
-	StorageValue string
-}
+type StateStorageResponse string
 
 // StatePairResponse is a key values
-type StatePairResponse struct {
-	keys []interface{}
-}
+type StatePairResponse []interface{}
 
 // StateStorageKeysResponse field for storage keys
 type StateStorageKeysResponse [][]byte
 
 // StateMetadataResponse holds the metadata
 //TODO: Determine actual type
-type StateMetadataResponse struct {
-	Metadata string
-}
+type StateMetadataResponse string
 
 // StorageChangeSetResponse is the struct that holds the block and changes
 type StorageChangeSetResponse struct {
@@ -146,10 +130,7 @@ type StorageChangeSetResponse struct {
 }
 
 // KeyValueOption struct holds json fields
-type KeyValueOption struct {
-	StorageKey  []byte `json:"storageKey"`
-	StorageData []byte `json:"storageData"`
-}
+type KeyValueOption []byte
 
 // StorageKey is the key for the storage
 type StorageKey []byte
@@ -188,7 +169,6 @@ func (sm *StateModule) GetPairs(r *http.Request, req *StatePairRequest, res *Sta
 		err           error
 	)
 
-	reqBytes, _ := common.HexToBytes(req.Prefix)
 	if req.Bhash != nil {
 		stateRootHash, err = sm.storageAPI.GetStateRootFromBlock(req.Bhash)
 		if err != nil {
@@ -196,25 +176,26 @@ func (sm *StateModule) GetPairs(r *http.Request, req *StatePairRequest, res *Sta
 		}
 	}
 
-	if len(reqBytes) < 1 {
+	if req.Prefix == nil || *req.Prefix == "" {
 		pairs, err := sm.storageAPI.Entries(stateRootHash)
 		if err != nil {
 			return err
 		}
 		for k, v := range pairs {
-			res.keys = append(res.keys, []string{"0x" + hex.EncodeToString([]byte(k)), "0x" + hex.EncodeToString(v)})
+			*res = append(*res, []string{"0x" + hex.EncodeToString([]byte(k)), "0x" + hex.EncodeToString(v)})
 		}
 	} else {
 		// TODO this should return all keys with same prefix, currently only returning
 		//  matches.  Implement when #837 is done.
+		reqBytes, _ := common.HexToBytes(*req.Prefix)
 		resI, err := sm.storageAPI.GetStorage(stateRootHash, reqBytes)
 		if err != nil {
 			return err
 		}
 		if resI != nil {
-			res.keys = append(res.keys, []string{"0x" + hex.EncodeToString(reqBytes), "0x" + hex.EncodeToString(resI)})
+			*res = append(*res, []string{"0x" + hex.EncodeToString(reqBytes), "0x" + hex.EncodeToString(resI)})
 		} else {
-			res.keys = []interface{}{}
+			*res = []interface{}{}
 		}
 	}
 
@@ -222,34 +203,40 @@ func (sm *StateModule) GetPairs(r *http.Request, req *StatePairRequest, res *Sta
 }
 
 // Call isn't implemented properly yet.
-func (sm *StateModule) Call(r *http.Request, req *StateCallRequest, res *StateCallResponse) {
+func (sm *StateModule) Call(r *http.Request, req *StateCallRequest, res *StateCallResponse) error {
 	_ = sm.networkAPI
 	_ = sm.storageAPI
+	return nil
 }
 
 // GetChildKeys isn't implemented properly yet.
-func (sm *StateModule) GetChildKeys(r *http.Request, req *StateChildStorageRequest, res *StateKeysResponse) {
+func (sm *StateModule) GetChildKeys(r *http.Request, req *StateChildStorageRequest, res *StateKeysResponse) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
+	return nil
 }
 
 // GetChildStorage isn't implemented properly yet.
-func (sm *StateModule) GetChildStorage(r *http.Request, req *StateChildStorageRequest, res *StateStorageDataResponse) {
+func (sm *StateModule) GetChildStorage(r *http.Request, req *StateChildStorageRequest, res *StateStorageDataResponse) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
+	return nil
 }
 
 // GetChildStorageHash isn't implemented properly yet.
-func (sm *StateModule) GetChildStorageHash(r *http.Request, req *StateChildStorageRequest, res *StateChildStorageResponse) {
+func (sm *StateModule) GetChildStorageHash(r *http.Request, req *StateChildStorageRequest, res *StateChildStorageResponse) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
+	return nil
 }
 
 // GetChildStorageSize isn't implemented properly yet.
-func (sm *StateModule) GetChildStorageSize(r *http.Request, req *StateChildStorageRequest, res *StateChildStorageSizeResponse) {
+func (sm *StateModule) GetChildStorageSize(r *http.Request, req *StateChildStorageRequest, res *StateChildStorageSizeResponse) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
+	return nil
 }
 
 // GetKeys isn't implemented properly yet.
-func (sm *StateModule) GetKeys(r *http.Request, req *StateStorageKeyRequest, res *StateStorageKeysResponse) {
+func (sm *StateModule) GetKeys(r *http.Request, req *StateStorageKeyRequest, res *StateStorageKeysResponse) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
+	return nil
 }
 
 // GetMetadata calls runtime Metadata_metadata function
@@ -261,7 +248,7 @@ func (sm *StateModule) GetMetadata(r *http.Request, req *StateRuntimeMetadataQue
 	}
 
 	decoded, err := scale.Decode(metadata, []byte{})
-	res.Metadata = common.BytesToHex(decoded.([]byte))
+	*res = StateMetadataResponse(common.BytesToHex(decoded.([]byte)))
 	return err
 }
 
@@ -305,9 +292,7 @@ func (sm *StateModule) GetStorage(r *http.Request, req *StateStorageRequest, res
 	}
 
 	if len(item) > 0 {
-		res.StorageValue = common.BytesToHex(item)
-	} else {
-		*res = StateStorageResponse{}
+		*res = StateStorageResponse(common.BytesToHex(item))
 	}
 
 	return nil
@@ -337,9 +322,7 @@ func (sm *StateModule) GetStorageHash(r *http.Request, req *StateStorageHashRequ
 	}
 
 	if len(item) > 0 {
-		res.StorageHash = common.BytesToHash(item).String()
-	} else {
-		*res = StateStorageHashResponse{}
+		*res = StateStorageHashResponse(common.BytesToHash(item).String())
 	}
 
 	return nil
@@ -369,9 +352,7 @@ func (sm *StateModule) GetStorageSize(r *http.Request, req *StateStorageSizeRequ
 	}
 
 	if len(item) > 0 {
-		*res = StateStorageSizeResponse{uint64(len(item))}
-	} else {
-		*res = StateStorageSizeResponse{}
+		*res = StateStorageSizeResponse((uint64)(len(item)))
 	}
 
 	return nil

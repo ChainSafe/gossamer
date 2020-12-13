@@ -85,5 +85,6 @@ type SystemAPI interface {
 	SystemName() string
 	SystemVersion() string
 	NodeName() string
+	ChainType() string
 	Properties() map[string]interface{}
 }

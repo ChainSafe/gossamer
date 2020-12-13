@@ -236,7 +236,7 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 	svc := NewChainModule(chain.Block)
 
 	var res ChainHashResponse
-	req := []ChainIntRequest{0, 0}
+	req := ChainFinalizedHeadRequest{0, 0}
 	err := svc.GetFinalizedHeadByRound(nil, &req, &res)
 	require.NoError(t, err)
 	expected := genesisHeader.Hash()
@@ -246,7 +246,7 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 	err = chain.Block.SetFinalizedHash(testhash, 77, 1)
 	require.NoError(t, err)
 
-	req = []ChainIntRequest{77, 1}
+	req = ChainFinalizedHeadRequest{77, 1}
 	err = svc.GetFinalizedHeadByRound(nil, &req, &res)
 	require.NoError(t, err)
 	require.Equal(t, common.BytesToHex(testhash[:]), res)
