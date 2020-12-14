@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -438,4 +439,84 @@ func TestExistingStream(t *testing.T) {
 
 	stream = nodeB.host.getStream(nodeA.host.id(), "")
 	require.NotNil(t, stream, "node B should have an outbound stream")
+}
+
+func TestStreamCloseMetadataCleanup(t *testing.T) {
+	basePathA := utils.NewTestBasePath(t, "nodeA")
+	mmhA := new(MockMessageHandler)
+	configA := &Config{
+		BasePath:       basePathA,
+		Port:           7001,
+		RandSeed:       1,
+		NoBootstrap:    true,
+		NoMDNS:         true,
+		MessageHandler: mmhA,
+	}
+
+	nodeA := createTestService(t, configA)
+	nodeA.noGossip = true
+	nodeA.noStatus = true
+
+	basePathB := utils.NewTestBasePath(t, "nodeB")
+	mmhB := new(MockMessageHandler)
+	configB := &Config{
+		BasePath:       basePathB,
+		Port:           7002,
+		RandSeed:       2,
+		NoBootstrap:    true,
+		NoMDNS:         true,
+		MessageHandler: mmhB,
+	}
+
+	nodeB := createTestService(t, configB)
+	nodeB.noGossip = true
+	nodeB.noStatus = true
+
+	addrInfosB, err := nodeB.host.addrInfos()
+	require.NoError(t, err)
+
+	err = nodeA.host.connect(*addrInfosB[0])
+	// retry connect if "failed to dial" error
+	if failedToDial(err) {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(*addrInfosB[0])
+	}
+	require.NoError(t, err)
+
+	stream := nodeA.host.getStream(nodeB.host.id(), "")
+	require.Nil(t, stream, "node A should not have an outbound stream")
+
+	// node A opens the stream to send the first message
+	err = nodeA.host.send(addrInfosB[0].ID, "", TestMessage)
+	require.NoError(t, err)
+
+	info := nodeA.notificationsProtocols[BlockAnnounceMsgType]
+	handler := nodeA.createNotificationsMessageHandler(info, nodeA.validateBlockAnnounceHandshake, nodeA.handleBlockAnnounceMessage)
+
+	// Set handshake data to received
+	info.handshakeData[nodeB.host.id()] = &handshakeData{
+		received:  true,
+		validated: true,
+	}
+	msg :=  &BlockAnnounceHandshake{
+		Roles:           4,
+		BestBlockNumber: 77,
+		BestBlockHash:   common.Hash{1},
+		GenesisHash:     common.Hash{2},
+	}
+
+	err = handler(nodeB.host.id(), msg)
+	require.NoError(t, err)
+
+	// Verify that handshake data exists.
+	_, ok := info.handshakeData[nodeB.host.id()]
+	require.True(t, ok)
+	nodeB.host.close()
+
+	// Wait for cleanup
+	time.Sleep(1 * time.Second)
+
+	// Verify that handshake data is cleared.
+	_, ok = info.handshakeData[nodeB.host.id()]
+	require.False(t, ok)
 }
