@@ -31,11 +31,11 @@ import (
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
-var defaultTestLogLvl = log.LvlTrace
+var DefaultTestLogLvl = log.LvlTrace
 
 // NewTestLegacyInstance will create a new runtime instance using the given target runtime
 func NewTestLegacyInstance(t *testing.T, targetRuntime string) *LegacyInstance {
-	return NewTestLegacyInstanceWithTrie(t, targetRuntime, nil, defaultTestLogLvl)
+	return NewTestLegacyInstanceWithTrie(t, targetRuntime, nil, DefaultTestLogLvl)
 }
 
 // NewTestLegacyInstanceWithTrie will create a new runtime (polkadot/test) with the supplied trie as the storage
@@ -49,7 +49,7 @@ func NewTestLegacyInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.
 
 // NewTestLegacyInstanceWithRole returns a test runtime with given role value
 func NewTestLegacyInstanceWithRole(t *testing.T, targetRuntime string, role byte) *LegacyInstance {
-	fp, cfg := setupConfig(t, targetRuntime, nil, defaultTestLogLvl, role)
+	fp, cfg := setupConfig(t, targetRuntime, nil, DefaultTestLogLvl, role)
 	r, err := NewLegacyInstanceFromFile(fp, cfg)
 	require.NoError(t, err, "Got error when trying to create new VM", "targetRuntime", targetRuntime)
 	require.NotNil(t, r, "Could not create new VM instance", "targetRuntime", targetRuntime)
@@ -58,12 +58,12 @@ func NewTestLegacyInstanceWithRole(t *testing.T, targetRuntime string, role byte
 
 // NewTestInstance will create a new runtime instance using the given target runtime
 func NewTestInstance(t *testing.T, targetRuntime string) *Instance {
-	return NewTestInstanceWithTrie(t, targetRuntime, nil, defaultTestLogLvl)
+	return NewTestInstanceWithTrie(t, targetRuntime, nil, DefaultTestLogLvl)
 }
 
 // NewTestInstanceWithTrie will create a new runtime (polkadot/test) with the supplied trie as the storage
 func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Lvl) *Instance {
-	fp, cfg := setupConfig(t, targetRuntime, tt, log.LvlTrace, 0)
+	fp, cfg := setupConfig(t, targetRuntime, tt, DefaultTestLogLvl, 0)
 	r, err := NewInstanceFromFile(fp, cfg)
 	require.NoError(t, err, "Got error when trying to create new VM", "targetRuntime", targetRuntime)
 	require.NotNil(t, r, "Could not create new VM instance", "targetRuntime", targetRuntime)
@@ -72,7 +72,7 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, 
 
 // NewTestInstanceWithRole returns a test runtime with given role value
 func NewTestInstanceWithRole(t *testing.T, targetRuntime string, role byte) *Instance {
-	fp, cfg := setupConfig(t, targetRuntime, nil, defaultTestLogLvl, role)
+	fp, cfg := setupConfig(t, targetRuntime, nil, DefaultTestLogLvl, role)
 	r, err := NewInstanceFromFile(fp, cfg)
 	require.NoError(t, err, "Got error when trying to create new VM", "targetRuntime", targetRuntime)
 	require.NotNil(t, r, "Could not create new VM instance", "targetRuntime", targetRuntime)

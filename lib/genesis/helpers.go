@@ -31,7 +31,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	// "github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
@@ -90,37 +90,37 @@ func NewGenesisBlockFromTrie(t *trie.Trie) (*types.Header, error) {
 	return header, nil
 }
 
-// NewLegacyRuntimeFromGenesis creates a runtime instance from the genesis data
-func NewLegacyRuntimeFromGenesis(g *Genesis, storage runtime.Storage) (runtime.LegacyInstance, error) {
-	codeStr := g.GenesisFields().Raw[0][common.BytesToHex(common.CodeKey)]
-	if codeStr == "" {
-		return nil, fmt.Errorf("cannot find :code in genesis")
-	}
+// // NewLegacyRuntimeFromGenesis creates a runtime instance from the genesis data
+// func NewLegacyRuntimeFromGenesis(g *Genesis, storage runtime.Storage) (runtime.LegacyInstance, error) {
+// 	codeStr := g.GenesisFields().Raw[0][common.BytesToHex(common.CodeKey)]
+// 	if codeStr == "" {
+// 		return nil, fmt.Errorf("cannot find :code in genesis")
+// 	}
 
-	code := common.MustHexToBytes(codeStr)
-	cfg := &wasmer.Config{
-		Imports: wasmer.ImportsLegacyNodeRuntime,
-	}
-	cfg.Storage = storage
+// 	code := common.MustHexToBytes(codeStr)
+// 	cfg := &wasmer.Config{
+// 		Imports: wasmer.ImportsLegacyNodeRuntime,
+// 	}
+// 	cfg.Storage = storage
 
-	return wasmer.NewLegacyInstance(code, cfg)
-}
+// 	return wasmer.NewLegacyInstance(code, cfg)
+// }
 
-// NewRuntimeFromGenesis creates a runtime instance from the genesis data
-func NewRuntimeFromGenesis(g *Genesis, storage runtime.Storage) (runtime.Instance, error) {
-	codeStr := g.GenesisFields().Raw[0][common.BytesToHex(common.CodeKey)]
-	if codeStr == "" {
-		return nil, fmt.Errorf("cannot find :code in genesis")
-	}
+// // NewRuntimeFromGenesis creates a runtime instance from the genesis data
+// func NewRuntimeFromGenesis(g *Genesis, storage runtime.Storage) (runtime.Instance, error) {
+// 	codeStr := g.GenesisFields().Raw[0][common.BytesToHex(common.CodeKey)]
+// 	if codeStr == "" {
+// 		return nil, fmt.Errorf("cannot find :code in genesis")
+// 	}
 
-	code := common.MustHexToBytes(codeStr)
-	cfg := &wasmer.Config{
-		Imports: wasmer.ImportsNodeRuntime,
-	}
-	cfg.Storage = storage
+// 	code := common.MustHexToBytes(codeStr)
+// 	cfg := &wasmer.Config{
+// 		Imports: wasmer.ImportsNodeRuntime,
+// 	}
+// 	cfg.Storage = storage
 
-	return wasmer.NewInstance(code, cfg)
-}
+// 	return wasmer.NewInstance(code, cfg)
+// }
 
 // trimGenesisAuthority iterates over authorities in genesis and keeps only `authCount` number of authorities.
 func trimGenesisAuthority(g *Genesis, authCount int) {

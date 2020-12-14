@@ -52,7 +52,7 @@ type Service struct {
 	// Synchronization variables
 	synced           bool
 	highestSeenBlock *big.Int // highest block number we have seen
-	runtime          runtime.LegacyInstance
+	runtime          runtime.Instance
 
 	// BABE verification
 	verifier Verifier
@@ -71,7 +71,7 @@ type Config struct {
 	StorageState     StorageState
 	BlockProducer    BlockProducer
 	TransactionState TransactionState
-	Runtime          runtime.LegacyInstance
+	Runtime          runtime.Instance
 	Verifier         Verifier
 	DigestHandler    DigestHandler
 }
@@ -406,7 +406,7 @@ func (s *Service) handleBody(body *types.Body) error {
 
 // handleHeader handles blocks (header+body) included in BlockResponses
 func (s *Service) handleBlock(block *types.Block) error {
-	if block == nil || block.Header == nil {
+	if block == nil || block.Header == nil || block.Body == nil {
 		return errors.New("nil block or header")
 	}
 
@@ -415,18 +415,24 @@ func (s *Service) handleBlock(block *types.Block) error {
 		return err
 	}
 
-	ts, err := s.storageState.TrieState(&parent.StateRoot)
+	parentState, err := s.storageState.TrieState(&parent.StateRoot)
+	if err != nil {
+		return err
+	}
+
+	ts, err := parentState.Copy()
 	if err != nil {
 		return err
 	}
 
 	s.runtime.SetContext(ts)
 
-	// TODO: needs to be fixed by #941
-	// _, err := s.executeBlock(block)
-	// if err != nil {
-	// 	return err
-	// }
+	fmt.Println(block)
+
+	_, err = s.runtime.ExecuteBlock(block)
+	if err != nil {
+		return err
+	}
 
 	err = s.storageState.StoreTrie(block.Header.StateRoot, ts)
 	if err != nil {
@@ -458,13 +464,6 @@ func (s *Service) handleBlock(block *types.Block) error {
 	}
 
 	return nil
-}
-
-// runs the block through runtime function Core_execute_block
-//  It doesn't seem to return data on success (although the spec say it should return
-//  a boolean value that indicate success.  will error if the call isn't successful
-func (s *Service) executeBlock(block *types.Block) ([]byte, error) {
-	return s.runtime.ExecuteBlock(block)
 }
 
 func (s *Service) handleDigests(header *types.Header) error {
