@@ -35,9 +35,7 @@ type EmptyRequest struct{}
 type StringResponse string
 
 // SystemHealthResponse struct to marshal json
-type SystemHealthResponse struct {
-	Health common.Health `json:"health"`
-}
+type SystemHealthResponse common.Health
 
 // NetworkStateString Network State represented as string so JSON encode/decoding works
 type NetworkStateString struct {
@@ -51,9 +49,7 @@ type SystemNetworkStateResponse struct {
 }
 
 // SystemPeersResponse struct to marshal json
-type SystemPeersResponse struct {
-	Peers []common.PeerInfo `json:"peers"`
-}
+type SystemPeersResponse []common.PeerInfo
 
 // NewSystemModule creates a new API instance
 func NewSystemModule(net NetworkAPI, sys SystemAPI) *SystemModule {
@@ -96,7 +92,7 @@ func (sm *SystemModule) Version(r *http.Request, req *EmptyRequest, res *string)
 // Health returns the information about the health of the network
 func (sm *SystemModule) Health(r *http.Request, req *EmptyRequest, res *SystemHealthResponse) error {
 	health := sm.networkAPI.Health()
-	res.Health = health
+	*res = SystemHealthResponse(health)
 	return nil
 }
 
@@ -113,7 +109,7 @@ func (sm *SystemModule) NetworkState(r *http.Request, req *EmptyRequest, res *Sy
 // Peers returns peer information for each connected and confirmed peer
 func (sm *SystemModule) Peers(r *http.Request, req *EmptyRequest, res *SystemPeersResponse) error {
 	peers := sm.networkAPI.Peers()
-	res.Peers = peers
+	*res = peers
 	return nil
 }
 

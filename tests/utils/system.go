@@ -34,5 +34,5 @@ func GetPeers(t *testing.T, node *Node) []common.PeerInfo {
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 
-	return resp.Peers
+	return *resp
 }
