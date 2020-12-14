@@ -60,14 +60,21 @@ func (s *mockSyncer) IsSynced() bool {
 	return false
 }
 
+type mockTransactionHandler struct{}
+
+func (h *mockTransactionHandler) HandleTransactionMessage(_ *network.TransactionMessage) error {
+	return nil
+}
+
 func newNetworkService(t *testing.T) *network.Service {
 	testDir := path.Join(os.TempDir(), "test_data")
 
 	cfg := &network.Config{
-		NoStatus:     true,
-		NetworkState: &state.NetworkState{},
-		BasePath:     testDir,
-		Syncer:       &mockSyncer{},
+		NoStatus:           true,
+		NetworkState:       &state.NetworkState{},
+		BasePath:           testDir,
+		Syncer:             &mockSyncer{},
+		TransactionHandler: &mockTransactionHandler{},
 	}
 
 	srv, err := network.NewService(cfg)

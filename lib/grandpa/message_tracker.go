@@ -29,13 +29,13 @@ type tracker struct {
 	blockState BlockState
 	messages   map[common.Hash][]*VoteMessage // map of vote block hash -> array of VoteMessages for that hash
 	mapLock    *sync.Mutex
-	in         chan *types.Block      // receive imported block from BlockState
-	chanID     byte                   // BlockState channel ID
-	out        chan<- FinalityMessage // send a VoteMessage back to grandpa. corresponds to grandpa's in channel
+	in         chan *types.Block     // receive imported block from BlockState
+	chanID     byte                  // BlockState channel ID
+	out        chan<- GrandpaMessage // send a VoteMessage back to grandpa. corresponds to grandpa's in channel
 	stopped    chan struct{}
 }
 
-func newTracker(bs BlockState, out chan<- FinalityMessage) (*tracker, error) {
+func newTracker(bs BlockState, out chan<- GrandpaMessage) (*tracker, error) {
 	in := make(chan *types.Block, 16)
 	id, err := bs.RegisterImportedChannel(in)
 	if err != nil {

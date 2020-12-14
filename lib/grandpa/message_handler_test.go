@@ -157,7 +157,7 @@ func TestMessageHandler_VoteMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block)
-	out, err := h.HandleMessage(cm)
+	out, err := h.handleMessage(cm)
 	require.NoError(t, err)
 	require.Nil(t, out)
 
@@ -197,7 +197,7 @@ func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_ValidSig(t *testing
 	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block)
-	out, err := h.HandleMessage(cm)
+	out, err := h.handleMessage(cm)
 	require.NoError(t, err)
 	require.Nil(t, out)
 
@@ -223,7 +223,7 @@ func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_MinVoteError(t *tes
 	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block)
-	out, err := h.HandleMessage(cm)
+	out, err := h.handleMessage(cm)
 	require.EqualError(t, err, ErrMinVotesNotMet.Error())
 	require.Nil(t, out)
 }
@@ -245,7 +245,7 @@ func TestMessageHandler_FinalizationMessage_WithCatchUpRequest(t *testing.T) {
 	gs.state.voters = gs.state.voters[:1]
 
 	h := NewMessageHandler(gs, st.Block)
-	out, err := h.HandleMessage(cm)
+	out, err := h.handleMessage(cm)
 	require.NoError(t, err)
 	require.NotNil(t, out)
 
@@ -263,7 +263,7 @@ func TestMessageHandler_CatchUpRequest_InvalidRound(t *testing.T) {
 	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block)
-	_, err = h.HandleMessage(cm)
+	_, err = h.handleMessage(cm)
 	require.Equal(t, ErrInvalidCatchUpRound, err)
 }
 
@@ -275,7 +275,7 @@ func TestMessageHandler_CatchUpRequest_InvalidSetID(t *testing.T) {
 	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block)
-	_, err = h.HandleMessage(cm)
+	_, err = h.handleMessage(cm)
 	require.Equal(t, ErrSetIDMismatch, err)
 }
 
@@ -334,7 +334,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block)
-	out, err := h.HandleMessage(cm)
+	out, err := h.handleMessage(cm)
 	require.NoError(t, err)
 	require.Equal(t, expected, out)
 }
@@ -447,7 +447,7 @@ func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
 	cm, err := msg.ToConsensusMessage()
 	require.NoError(t, err)
 
-	out, err := h.HandleMessage(cm)
+	out, err := h.handleMessage(cm)
 	require.NoError(t, err)
 	require.Nil(t, out)
 	require.Equal(t, round+1, gs.state.round)
