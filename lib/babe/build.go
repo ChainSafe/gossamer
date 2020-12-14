@@ -187,25 +187,24 @@ func (b *Service) buildBlockExtrinsics(slot Slot) ([]*transaction.ValidTransacti
 	for !hasSlotEnded(slot) && next != nil {
 		b.logger.Trace("build block", "applying extrinsic", next)
 		ret, err := b.rt.ApplyExtrinsic(next)
-		// TODO updated logic here to continue if errored
+		// TODO #1225 confirm approach & remove comments
 		if err != nil {
-			return nil, err
+			continue
+			// return nil, err
 		}
 
 		// if ret == 0x0001, there is a dispatch error; if ret == 0x01, there is an apply error
 		if ret[0] == 1 || bytes.Equal(ret[:2], []byte{0, 1}) {
-			errTxt, err := determineError(ret)
-			if err != nil {
-				return nil, err
-			}
+			_, err := determineError(ret)
 			// remove invalid extrinsic from queue
 			b.transactionState.Pop()
+			if err == nil {
+				// re-add previously popped extrinsics back to queue
+				b.addToQueue(included)
+			}
 
-			// re-add previously popped extrinsics back to queue
-			b.addToQueue(included)
-
-			return nil, errors.New("error applying extrinsic: " + errTxt)
-
+			// return nil, errors.New("error applying extrinsic: " + errTxt)
+			continue
 		}
 
 		b.logger.Trace("build block applied extrinsic", "extrinsic", next)
