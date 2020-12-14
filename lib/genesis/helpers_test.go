@@ -128,13 +128,3 @@ func TestFormatKey(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, out, fmt.Sprintf("0x%x", runtime.BABEAuthoritiesKey()))
 }
-
-func TestFormatSystemAccountKey(t *testing.T) {
-	kv := &keyValue{
-		key: []string{"balances", "balances"},
-	}
-
-	out, err := formatKey(kv)
-	require.NoError(t, err)
-	require.Equal(t, out, fmt.Sprintf("0x%x", runtime.BABEAuthoritiesKey()))
-}
