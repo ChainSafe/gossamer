@@ -97,10 +97,7 @@ func (n *mockNetwork) SendMessage(m network.Message) {
 
 // mockFinalityGadget implements the FinalityGadget interface
 type mockFinalityGadget struct {
-	in        chan FinalityMessage
-	out       chan FinalityMessage
-	finalized chan FinalityMessage
-	auths     []*types.Authority
+	auths []*types.Authority
 }
 
 // Start mocks starting
@@ -113,26 +110,6 @@ func (fg *mockFinalityGadget) Stop() error {
 	return nil
 }
 
-// GetVoteOutChannel returns the out channel
-func (fg *mockFinalityGadget) GetVoteOutChannel() <-chan FinalityMessage {
-	return fg.out
-}
-
-// GetVoteInChannel returns the in channel
-func (fg *mockFinalityGadget) GetVoteInChannel() chan<- FinalityMessage {
-	return fg.in
-}
-
-// GetFinalizedChannel returns the finalized channel
-func (fg *mockFinalityGadget) GetFinalizedChannel() <-chan FinalityMessage {
-	return fg.finalized
-}
-
-// DecodeMessage returns a mockFinalityMessage
-func (fg *mockFinalityGadget) DecodeMessage(*network.ConsensusMessage) (FinalityMessage, error) {
-	return &mockFinalityMessage{}, nil
-}
-
 func (fg *mockFinalityGadget) UpdateAuthorities(ad []*types.Authority) {
 	fg.auths = ad
 }
@@ -141,31 +118,8 @@ func (fg *mockFinalityGadget) Authorities() []*types.Authority {
 	return fg.auths
 }
 
-var testConsensusMessage = &network.ConsensusMessage{
-	ConsensusEngineID: types.GrandpaEngineID,
-	Data:              []byte("nootwashere"),
-}
-
-type mockFinalityMessage struct{}
-
-// ToConsensusMessage returns a testConsensusMessage
-func (fm *mockFinalityMessage) ToConsensusMessage() (*network.ConsensusMessage, error) {
-	return testConsensusMessage, nil
-}
-
-func (fm *mockFinalityMessage) Type() byte {
-	return 0
-}
-
-type mockConsensusMessageHandler struct{}
-
-func (h *mockConsensusMessageHandler) HandleMessage(msg *network.ConsensusMessage) (*network.ConsensusMessage, error) {
-	return nil, nil
-}
-
-// NewTestService creates a new test core service using a pre-initialized stateSrvc object. If stateSrvc is nil then it
-// creates a new object.
-func NewTestService(t *testing.T, cfg *Config, stateSrvc *state.Service) *Service {
+// NewTestService creates a new test core service
+func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg == nil {
 		cfg = &Config{
 			IsBlockProducer: false,
@@ -195,18 +149,16 @@ func NewTestService(t *testing.T, cfg *Config, stateSrvc *state.Service) *Servic
 
 	cfg.LogLvl = 3
 
-	if stateSrvc == nil {
-		stateSrvc = state.NewService("", log.LvlInfo)
-		stateSrvc.UseMemDB()
+	stateSrvc := state.NewService("", log.LvlInfo)
+	stateSrvc.UseMemDB()
 
-		genesisData := new(genesis.Data)
-		tt := trie.NewEmptyTrie()
-		err := stateSrvc.Initialize(genesisData, testGenesisHeader, tt, genesisBABEConfig)
-		require.Nil(t, err)
+	genesisData := new(genesis.Data)
+	tt := trie.NewEmptyTrie()
+	err := stateSrvc.Initialize(genesisData, testGenesisHeader, tt, genesisBABEConfig)
+	require.Nil(t, err)
 
-		err = stateSrvc.Start()
-		require.Nil(t, err)
-	}
+	err = stateSrvc.Start()
+	require.Nil(t, err)
 
 	if cfg.BlockState == nil {
 		cfg.BlockState = stateSrvc.Block
@@ -218,10 +170,6 @@ func NewTestService(t *testing.T, cfg *Config, stateSrvc *state.Service) *Servic
 
 	if cfg.TransactionState == nil {
 		cfg.TransactionState = stateSrvc.Transaction
-	}
-
-	if cfg.ConsensusMessageHandler == nil {
-		cfg.ConsensusMessageHandler = &mockConsensusMessageHandler{}
 	}
 
 	if cfg.Network == nil {
@@ -244,6 +192,10 @@ func NewTestService(t *testing.T, cfg *Config, stateSrvc *state.Service) *Servic
 	s, err := NewService(cfg)
 	require.Nil(t, err)
 
+	if net, ok := cfg.Network.(*network.Service); ok {
+		net.SetTransactionHandler(s)
+	}
+
 	return s
 }
 
@@ -262,9 +214,6 @@ func createTestNetworkService(t *testing.T, cfg *network.Config) (srvc *network.
 	}
 
 	srvc, err := network.NewService(cfg)
-	require.NoError(t, err)
-
-	err = srvc.Start()
 	require.NoError(t, err)
 
 	t.Cleanup(func() {

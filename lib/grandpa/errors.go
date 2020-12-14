@@ -31,6 +31,9 @@ var ErrNilDigestHandler = errors.New("cannot have nil DigestHandler")
 // ErrNilKeypair is returned when the keypair is nil
 var ErrNilKeypair = errors.New("cannot have nil keypair")
 
+// ErrNilNetwork is returned when the Network is nil
+var ErrNilNetwork = errors.New("cannot have nil Network")
+
 // ErrBlockDoesNotExist is returned when trying to validate a vote for a block that doesn't exist
 var ErrBlockDoesNotExist = errors.New("block does not exist")
 
