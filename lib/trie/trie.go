@@ -484,6 +484,7 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 	return value, err
 }
 
+// ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix
 func (t *Trie) ClearPrefix(prefix []byte) {
 	p := keyToNibbles(prefix)
 	t.root = t.clearPrefix(t.root, p)

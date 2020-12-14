@@ -237,6 +237,11 @@ func (trs *TestRuntimeStorage) NextKey(in []byte) []byte {
 	return trs.trie.NextKey(in)
 }
 
+// ClearPrefix ...
+func (trs *TestRuntimeStorage) ClearPrefix(prefix []byte) {
+	trs.trie.ClearPrefix(prefix)
+}
+
 // TestRuntimeNetwork ...
 type TestRuntimeNetwork struct {
 }

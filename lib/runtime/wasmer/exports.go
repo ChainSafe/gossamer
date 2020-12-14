@@ -146,6 +146,8 @@ func (in *LegacyInstance) ExecuteBlock(block *types.Block) ([]byte, error) {
 		return nil, err
 	}
 
+	fmt.Printf("0x%x", bdEnc)
+
 	return in.exec(runtime.CoreExecuteBlock, bdEnc)
 }
 

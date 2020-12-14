@@ -274,7 +274,6 @@ func TestInstance_FinalizeBlock_NodeRuntime(t *testing.T) {
 	require.NotEqual(t, common.Hash{}, res.StateRoot)
 	require.NotEqual(t, common.Hash{}, res.ExtrinsicsRoot)
 	require.NotEqual(t, trie.EmptyHash, res.StateRoot)
-	require.Equal(t, trie.EmptyHash, res.ExtrinsicsRoot)
 }
 
 func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
@@ -337,7 +336,8 @@ func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
 	require.NotEqual(t, common.Hash{}, res.StateRoot)
 	require.NotEqual(t, common.Hash{}, res.ExtrinsicsRoot)
 	require.NotEqual(t, trie.EmptyHash, res.StateRoot)
-	require.Equal(t, trie.EmptyHash, res.ExtrinsicsRoot)
+
+	t.Logf("\n\n\n\nexecute_block\n")
 
 	// reset state back to parent state before executing
 	parentState := runtime.NewTestRuntimeStorage(t, nil)
@@ -345,7 +345,7 @@ func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
 
 	block := &types.Block{
 		Header: res,
-		Body:   types.NewBody([]byte{0}), //types.NewBody(inherentExts),
+		Body:   types.NewBody(inherentExts),
 	}
 	ret, err := instance.ExecuteBlock(block)
 	require.NoError(t, err)
