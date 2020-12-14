@@ -53,6 +53,7 @@ type Service struct {
 	storageState     StorageState
 	transactionState TransactionState
 	epochState       EpochState
+	epochLength      uint64
 
 	// BABE authority keypair
 	keypair *sr25519.Keypair // TODO: change to BABE keystore
@@ -62,7 +63,6 @@ type Service struct {
 
 	// Epoch configuration data
 	slotDuration uint64 // in milliseconds
-	epochLength  uint64 // in slots
 	epochData    *epochData
 	startSlot    uint64
 	slotToProof  map[uint64]*VrfOutputAndProof // for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
@@ -88,6 +88,7 @@ type ServiceConfig struct {
 	AuthData         []*types.Authority
 	Threshold        *big.Int // for development purposes
 	SlotDuration     uint64   // for development purposes; in milliseconds
+	EpochLength      uint64   // for development purposes; in slots
 	StartSlot        uint64   // slot to start at
 	Authority        bool
 }
@@ -124,6 +125,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		blockState:       cfg.BlockState,
 		storageState:     cfg.StorageState,
 		epochState:       cfg.EpochState,
+		epochLength:      cfg.EpochLength,
 		keypair:          cfg.Keypair,
 		rt:               cfg.Runtime,
 		transactionState: cfg.TransactionState,
@@ -136,6 +138,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 
 	var err error
 	genCfg, err := babeService.rt.BabeConfiguration()
+
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +194,11 @@ func (b *Service) setEpochData(cfg *ServiceConfig, genCfg *types.BabeConfigurati
 		b.epochData.threshold = cfg.Threshold
 	}
 
-	b.epochLength = genCfg.EpochLength
+	if cfg.EpochLength > 0 {
+		b.epochLength = cfg.EpochLength
+	} else {
+		b.epochLength = genCfg.EpochLength
+	}
 
 	return nil
 }
@@ -274,15 +281,6 @@ func (b *Service) SetOnDisabled(authorityIndex uint64) {
 	}
 }
 
-// Descriptor returns the Descriptor for the current Service.
-func (b *Service) Descriptor() *Descriptor {
-	return &Descriptor{
-		Authorities: b.epochData.authorities,
-		Randomness:  b.epochData.randomness,
-		Threshold:   b.epochData.threshold,
-	}
-}
-
 // Authorities returns the current BABE authorities
 func (b *Service) Authorities() []*types.Authority {
 	return b.epochData.authorities
@@ -352,7 +350,7 @@ func (b *Service) initiate() {
 
 	// check if we are starting at genesis, if not, need to calculate slot
 	if bestNum.Cmp(big.NewInt(0)) == 1 && slotNum == 0 {
-		// if we have at least slotTail blcopks, we can run the slotTime algorithm
+		// if we have at least slotTail blocks, we can run the slotTime algorithm
 		if bestNum.Cmp(big.NewInt(int64(slotTail))) != -1 {
 			slotNum, err = b.getCurrentSlot()
 			if err != nil {
@@ -412,7 +410,10 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 
 			slotNum := startSlot + uint64(i)
 			err = b.handleSlot(slotNum)
-			if err != nil {
+			if err == ErrNotAuthorized {
+				b.logger.Debug("not authorized to produce a block in this slot", "slot", slotNum)
+				continue
+			} else if err != nil {
 				b.logger.Warn("failed to handle slot", "slot", slotNum, "error", err)
 				continue
 			}

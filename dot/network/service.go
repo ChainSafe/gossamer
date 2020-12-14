@@ -288,8 +288,8 @@ func (s *Service) SendMessage(msg Message) {
 	)
 
 	// check if the message is part of a notifications protocol
-	s.notificationsMu.RLock()
-	defer s.notificationsMu.RUnlock()
+	s.notificationsMu.Lock()
+	defer s.notificationsMu.Unlock()
 
 	for msgID, prtl := range s.notificationsProtocols {
 		if msg.Type() != msgID || prtl == nil {

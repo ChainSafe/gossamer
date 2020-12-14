@@ -564,6 +564,11 @@ func (s *Service) attemptToFinalize() error {
 		return ErrServicePaused
 	}
 
+	has, _ := s.blockState.HasFinalizedBlock(s.state.round, s.state.setID)
+	if has {
+		return nil // a block was finalized, seems like we missed some messages
+	}
+
 	bfc, err := s.getBestFinalCandidate()
 	if err != nil {
 		return err

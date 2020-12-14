@@ -10,6 +10,8 @@ require (
 	github.com/disiqueira/gotree v1.0.0
 	github.com/docker/docker v1.13.1
 	github.com/ethereum/go-ethereum v1.9.6
+	github.com/go-playground/validator/v10 v10.4.1
+	github.com/golangci/golangci-lint v1.23.1 // indirect
 	github.com/gorilla/mux v1.7.4
 	github.com/gorilla/rpc v1.2.0
 	github.com/gorilla/websocket v1.4.2
@@ -27,11 +29,10 @@ require (
 	github.com/nanobox-io/golang-scribble v0.0.0-20190309225732-aa3e7c118975
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/naoina/toml v0.1.1
-	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.6.1
 	github.com/urfave/cli v1.20.0
 	github.com/wasmerio/go-ext-wasm v0.3.2-0.20200326095750-0a32be6068ec
-	golang.org/x/crypto v0.0.0-20200423211502-4bdfaf469ed5
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/exp v0.0.0-20190121172915-509febef88a4
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9 // indirect
 	golang.org/x/tools v0.0.0-20200102140908-9497f49d5709 // indirect

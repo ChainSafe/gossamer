@@ -31,6 +31,7 @@ type BlockState interface {
 	AddBlock(*types.Block) error
 	CompareAndSetBlockData(bd *types.BlockData) error
 	GetBlockByNumber(*big.Int) (*types.Block, error)
+	HasBlockBody(hash common.Hash) (bool, error)
 	GetBlockBody(common.Hash) (*types.Body, error)
 	SetHeader(*types.Header) error
 	GetHeader(common.Hash) (*types.Header, error)
@@ -67,5 +68,5 @@ type DigestHandler interface {
 
 // Verifier deals with block verification
 type Verifier interface {
-	VerifyBlock(header *types.Header) (bool, error)
+	VerifyBlock(header *types.Header) error
 }

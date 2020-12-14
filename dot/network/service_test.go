@@ -63,6 +63,10 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 		cfg.TransactionHandler = newMockTransactionHandler()
 	}
 
+	if cfg.TransactionHandler == nil {
+		cfg.TransactionHandler = newMockTransactionHandler()
+	}
+
 	cfg.ProtocolID = TestProtocolID // default "/gossamer/gssmr/0"
 
 	if cfg.LogLvl == 0 {

@@ -179,7 +179,7 @@ func compareFinalizedHeadsByRound(t *testing.T, nodes []*utils.Node, round uint6
 	for _, node := range nodes {
 		hash, err := utils.GetFinalizedHeadByRound(t, node, round)
 		if err != nil {
-			continue
+			return nil, err
 		}
 
 		logger.Info("got finalized head from node", "hash", hash, "node", node.Key, "round", round)

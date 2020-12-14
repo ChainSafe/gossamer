@@ -360,7 +360,7 @@ func (s *Service) handleRuntimeChanges(_ *types.Header) error {
 		}
 
 		cfg := &wasmer.Config{
-			Imports: wasmer.ImportsLegacyNodeRuntime,
+			Imports: wasmer.ImportsNodeRuntime,
 		}
 		cfg.Storage = ts
 		cfg.Keystore = s.keys.Acco.(*keystore.GenericKeystore)
@@ -368,7 +368,7 @@ func (s *Service) handleRuntimeChanges(_ *types.Header) error {
 		cfg.NodeStorage = s.rt.NodeStorage()
 		cfg.Network = s.rt.NetworkService()
 
-		s.rt, err = wasmer.NewLegacyInstance(code, cfg)
+		s.rt, err = wasmer.NewInstance(code, cfg)
 		if err != nil {
 			return err
 		}

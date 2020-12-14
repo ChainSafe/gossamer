@@ -55,8 +55,8 @@ func TestStateModule_GetRuntimeVersion(t *testing.T) {
 			[]interface{}{"0xab3c0572291feb8b", int32(1)},
 		},
 	}
-	sm, hash := setupStateModule(t)
 
+	sm, hash := setupStateModule(t)
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
@@ -69,11 +69,18 @@ func TestStateModule_GetRuntimeVersion(t *testing.T) {
 		{params: randomHash.String(), errMsg: ErrKeyNotFound},
 	}
 
-	res := StateRuntimeVersionResponse{}
 	for _, test := range testCases {
 		t.Run(test.params, func(t *testing.T) {
-			err := sm.GetRuntimeVersion(nil, &test.params, &res)
+			var res StateRuntimeVersionResponse
+			var req StateRuntimeVersionRequest
 
+			if test.params != "" {
+				req.Bhash = &common.Hash{}
+				*req.Bhash, err = common.HexToHash(test.params)
+				require.NoError(t, err)
+			}
+
+			err := sm.GetRuntimeVersion(nil, &req, &res)
 			// Handle error cases.
 			if test.errMsg != "" {
 				require.Error(t, err)
@@ -111,13 +118,22 @@ func TestStateModule_GetPairs(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(fmt.Sprintf("%s", test.params), func(t *testing.T) {
+			var req StatePairRequest
+			var res StatePairResponse
+
 			// Convert human-readable param value to hex.
+			req.Prefix = &test.params[0]
 			if test.params[0] != "" && !strings.HasPrefix(test.params[0], "0x") {
-				test.params[0] = "0x" + hex.EncodeToString([]byte(test.params[0]))
+				*req.Prefix = "0x" + hex.EncodeToString([]byte(test.params[0]))
 			}
 
-			var res []interface{}
-			err := sm.GetPairs(nil, &test.params, &res)
+			if len(test.params) > 1 && test.params[1] != "" {
+				req.Bhash = &common.Hash{}
+				*req.Bhash, err = common.HexToHash(test.params[1])
+				require.NoError(t, err)
+			}
+
+			err := sm.GetPairs(nil, &req, &res)
 
 			// Handle error cases.
 			if test.errMsg != "" {
@@ -150,8 +166,6 @@ func TestStateModule_GetPairs(t *testing.T) {
 
 func TestStateModule_GetStorage(t *testing.T) {
 	sm, hash := setupStateModule(t)
-	var res interface{}
-
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
@@ -168,12 +182,20 @@ func TestStateModule_GetStorage(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(fmt.Sprintf("%s", test.params), func(t *testing.T) {
+			var res StateStorageResponse
+			var req StateStorageRequest
+
 			if test.params[0] != "" {
-				test.params[0] = "0x" + hex.EncodeToString([]byte(test.params[0]))
+				req.Key = "0x" + hex.EncodeToString([]byte(test.params[0]))
 			}
 
-			err = sm.GetStorage(nil, &test.params, &res)
+			if len(test.params) > 1 && test.params[1] != "" {
+				req.Bhash = &common.Hash{}
+				*req.Bhash, err = common.HexToHash(test.params[1])
+				require.NoError(t, err)
+			}
 
+			err = sm.GetStorage(nil, &req, &res)
 			// Handle error cases.
 			if test.errMsg != "" {
 				require.Error(t, err)
@@ -184,11 +206,9 @@ func TestStateModule_GetStorage(t *testing.T) {
 			// Verify expected values.
 			require.NoError(t, err)
 			if test.expected != nil {
-				require.NoError(t, err)
-
 				// Convert human-readable result value to hex.
 				expectedVal := "0x" + hex.EncodeToString(test.expected)
-				require.Equal(t, expectedVal, res)
+				require.Equal(t, StateStorageResponse(expectedVal), res)
 			}
 		})
 	}
@@ -196,8 +216,6 @@ func TestStateModule_GetStorage(t *testing.T) {
 
 func TestStateModule_GetStorageHash(t *testing.T) {
 	sm, hash := setupStateModule(t)
-	var res interface{}
-
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
@@ -214,11 +232,20 @@ func TestStateModule_GetStorageHash(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(fmt.Sprintf("%s", test.params), func(t *testing.T) {
+			var res StateStorageHashResponse
+			var req StateStorageHashRequest
+
 			if test.params[0] != "" {
-				test.params[0] = "0x" + hex.EncodeToString([]byte(test.params[0]))
+				req.Key = "0x" + hex.EncodeToString([]byte(test.params[0]))
 			}
 
-			err := sm.GetStorageHash(nil, &test.params, &res)
+			if len(test.params) > 1 && test.params[1] != "" {
+				req.Bhash = &common.Hash{}
+				*req.Bhash, err = common.HexToHash(test.params[1])
+				require.NoError(t, err)
+			}
+
+			err := sm.GetStorageHash(nil, &req, &res)
 			// Handle error cases.
 			if test.errMsg != "" {
 				require.Error(t, err)
@@ -228,27 +255,25 @@ func TestStateModule_GetStorageHash(t *testing.T) {
 
 			require.NoError(t, err)
 			if test.expected == nil {
-				require.Nil(t, res)
+				require.Empty(t, res)
 				return
 			}
 
 			// Convert human-readable result value to hex.
 			expectedVal := common.BytesToHash(test.expected)
-			require.Equal(t, expectedVal.String(), res)
+			require.Equal(t, StateStorageHashResponse(expectedVal.String()), res)
 		})
 	}
 }
 
 func TestStateModule_GetStorageSize(t *testing.T) {
 	sm, hash := setupStateModule(t)
-	var res interface{}
-
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
 	testCases := []struct {
 		params   []string
-		expected interface{}
+		expected StateStorageSizeResponse
 		errMsg   string
 	}{
 		{params: []string{""}},
@@ -258,12 +283,21 @@ func TestStateModule_GetStorageSize(t *testing.T) {
 	}
 
 	for _, test := range testCases {
+		var res StateStorageSizeResponse
+		var req StateStorageSizeRequest
+
 		t.Run(fmt.Sprintf("%s", test.params), func(t *testing.T) {
 			if test.params[0] != "" {
-				test.params[0] = "0x" + hex.EncodeToString([]byte(test.params[0]))
+				req.Key = "0x" + hex.EncodeToString([]byte(test.params[0]))
 			}
 
-			err := sm.GetStorageSize(nil, &test.params, &res)
+			if len(test.params) > 1 && test.params[1] != "" {
+				req.Bhash = &common.Hash{}
+				*req.Bhash, err = common.HexToHash(test.params[1])
+				require.NoError(t, err)
+			}
+
+			err := sm.GetStorageSize(nil, &req, &res)
 			// Handle error cases.
 			if test.errMsg != "" {
 				require.Error(t, err)
@@ -279,8 +313,6 @@ func TestStateModule_GetStorageSize(t *testing.T) {
 
 func TestStateModule_GetMetadata(t *testing.T) {
 	sm, hash := setupStateModule(t)
-	var res string
-
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
@@ -298,7 +330,16 @@ func TestStateModule_GetMetadata(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run(test.params, func(t *testing.T) {
-			err := sm.GetMetadata(nil, &test.params, &res)
+			var res StateMetadataResponse
+			var req StateRuntimeMetadataQuery
+
+			if test.params != "" {
+				req.Bhash = &common.Hash{}
+				*req.Bhash, err = common.HexToHash(test.params)
+				require.NoError(t, err)
+			}
+
+			err := sm.GetMetadata(nil, &req, &res)
 			if test.errMsg != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), test.errMsg)
@@ -306,7 +347,7 @@ func TestStateModule_GetMetadata(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			require.Equal(t, string(expectedMetadata), res)
+			require.Equal(t, string(expectedMetadata), string(res))
 		})
 	}
 }

@@ -97,8 +97,8 @@ func TestSystemModule_Health(t *testing.T) {
 	err := sys.Health(nil, nil, res)
 	require.NoError(t, err)
 
-	if res.Health != testHealth {
-		t.Errorf("System.Health.: expected: %+v got: %+v\n", testHealth, res.Health)
+	if *res != SystemHealthResponse(testHealth) {
+		t.Errorf("System.Health.: expected: %+v got: %+v\n", testHealth, *res)
 	}
 }
 
@@ -127,8 +127,8 @@ func TestSystemModule_Peers(t *testing.T) {
 	err := sys.Peers(nil, nil, res)
 	require.NoError(t, err)
 
-	if len(res.Peers) != len(testPeers) {
-		t.Errorf("System.Peers: expected: %+v got: %+v\n", testPeers, res.Peers)
+	if len(*res) != len(testPeers) {
+		t.Errorf("System.Peers: expected: %+v got: %+v\n", testPeers, *res)
 	}
 }
 
@@ -141,4 +141,87 @@ func TestSystemModule_NodeRoles(t *testing.T) {
 	err := sys.NodeRoles(nil, nil, &res)
 	require.NoError(t, err)
 	require.Equal(t, expected, res)
+}
+
+var testSystemInfo = &types.SystemInfo{
+	SystemName:       "gossamer",
+	ChainType:        "Local",
+	SystemVersion:    "0",
+	NodeName:         "gssmr",
+	SystemProperties: make(map[string]interface{}),
+}
+
+type mockSystemAPI struct {
+	info *types.SystemInfo
+}
+
+func newMockSystemAPI() *mockSystemAPI {
+	return &mockSystemAPI{
+		info: testSystemInfo,
+	}
+}
+
+func (api *mockSystemAPI) SystemName() string {
+	return api.info.SystemName
+}
+
+func (api *mockSystemAPI) SystemVersion() string {
+	return api.info.SystemVersion
+}
+
+func (api *mockSystemAPI) NodeName() string {
+	return api.info.NodeName
+}
+
+func (api *mockSystemAPI) ChainType() string {
+	return api.info.ChainType
+}
+
+func (api *mockSystemAPI) Properties() map[string]interface{} {
+	return api.info.SystemProperties
+}
+
+func TestSystemModule_Chain(t *testing.T) {
+	sys := NewSystemModule(nil, newMockSystemAPI())
+
+	res := new(string)
+	err := sys.Chain(nil, nil, res)
+	require.NoError(t, err)
+	require.Equal(t, testSystemInfo.NodeName, *res)
+}
+
+func TestSystemModule_ChainType(t *testing.T) {
+	sys := NewSystemModule(nil, newMockSystemAPI())
+
+	res := new(string)
+	err := sys.ChainType(nil, nil, res)
+	require.NoError(t, err)
+	require.Equal(t, testSystemInfo.ChainType, *res)
+}
+
+func TestSystemModule_Name(t *testing.T) {
+	sys := NewSystemModule(nil, newMockSystemAPI())
+
+	res := new(string)
+	err := sys.Name(nil, nil, res)
+	require.NoError(t, err)
+	require.Equal(t, testSystemInfo.SystemName, *res)
+}
+
+func TestSystemModule_Version(t *testing.T) {
+	sys := NewSystemModule(nil, newMockSystemAPI())
+
+	res := new(string)
+	err := sys.Version(nil, nil, res)
+	require.NoError(t, err)
+	require.Equal(t, testSystemInfo.SystemVersion, *res)
+}
+
+func TestSystemModule_Properties(t *testing.T) {
+	sys := NewSystemModule(nil, newMockSystemAPI())
+
+	res := new(interface{})
+	err := sys.Properties(nil, nil, res)
+	require.NoError(t, err)
+	require.Equal(t, testSystemInfo.SystemProperties, *res)
 }

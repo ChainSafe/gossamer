@@ -30,10 +30,13 @@ import (
 const Name = "wasmer"
 
 // Check that runtime interfaces are satisfied
-var _ runtime.LegacyInstance = (*LegacyInstance)(nil)
-var _ runtime.Memory = (*wasm.Memory)(nil)
+var (
+	_ runtime.LegacyInstance = (*LegacyInstance)(nil)
+	_ runtime.Instance       = (*Instance)(nil)
+	_ runtime.Memory         = (*wasm.Memory)(nil)
 
-var logger = log.New("pkg", "runtime", "module", "go-wasmer")
+	logger = log.New("pkg", "runtime", "module", "go-wasmer")
+)
 
 // Config represents a wasmer configuration
 type Config struct {

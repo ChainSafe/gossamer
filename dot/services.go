@@ -96,7 +96,7 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore,
 	switch cfg.Core.WasmInterpreter {
 	case wasmer.Name:
 		rtCfg := &wasmer.Config{
-			Imports: wasmer.ImportsLegacyNodeRuntime,
+			Imports: wasmer.ImportsNodeRuntime,
 		}
 		rtCfg.Storage = ts
 		rtCfg.Keystore = ks
@@ -106,13 +106,13 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore,
 		rtCfg.Role = cfg.Core.Roles
 
 		// create runtime executor
-		rt, err = wasmer.NewLegacyInstance(code, rtCfg)
+		rt, err = wasmer.NewInstance(code, rtCfg)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create runtime executor: %s", err)
 		}
 	case wasmtime.Name:
 		rtCfg := &wasmtime.Config{
-			Imports: wasmtime.ImportLegacyNodeRuntime,
+			Imports: wasmtime.ImportNodeRuntime,
 		}
 		rtCfg.Storage = ts
 		rtCfg.Keystore = ks
@@ -122,7 +122,7 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore,
 		rtCfg.Role = cfg.Core.Roles
 
 		// create runtime executor
-		rt, err = wasmtime.NewLegacyInstance(code, rtCfg)
+		rt, err = wasmtime.NewInstance(code, rtCfg)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create runtime executor: %s", err)
 		}
@@ -171,6 +171,7 @@ func createBABEService(cfg *Config, rt runtime.LegacyInstance, st *state.Service
 		TransactionState: st.Transaction,
 		EpochState:       st.Epoch,
 		StartSlot:        bestSlot + 1,
+		EpochLength:      cfg.Core.EpochLength,
 		Threshold:        cfg.Core.BabeThreshold,
 		SlotDuration:     cfg.Core.SlotDuration,
 		Authority:        cfg.Core.BabeAuthority,
@@ -337,41 +338,12 @@ func createGRANDPAService(cfg *Config, rt runtime.LegacyInstance, st *state.Serv
 	return grandpa.NewService(gsCfg)
 }
 
-func createBlockVerifier(cfg *Config, st *state.Service, rt runtime.LegacyInstance) (*babe.VerificationManager, error) {
-	// load BABE verification data from runtime
-	babeCfg, err := rt.BabeConfiguration()
+func createBlockVerifier(st *state.Service) (*babe.VerificationManager, error) {
+	ver, err := babe.NewVerificationManager(st.Block, st.Epoch)
 	if err != nil {
 		return nil, err
 	}
 
-	ad, err := types.BABEAuthorityRawToAuthority(babeCfg.GenesisAuthorities)
-	if err != nil {
-		return nil, err
-	}
-
-	var threshold *big.Int
-	// TODO: remove config options, directly set storage values in genesis
-	if cfg.Core.BabeThreshold == nil {
-		threshold, err = babe.CalculateThreshold(babeCfg.C1, babeCfg.C2, len(babeCfg.GenesisAuthorities))
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		threshold = cfg.Core.BabeThreshold
-	}
-
-	descriptor := &babe.Descriptor{
-		Authorities: ad,
-		Randomness:  babeCfg.Randomness,
-		Threshold:   threshold,
-	}
-
-	ver, err := babe.NewVerificationManager(st.Block, descriptor)
-	if err != nil {
-		return nil, err
-	}
-
-	logger.Info("verifier", "threshold", threshold)
 	return ver, nil
 }
 

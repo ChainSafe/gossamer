@@ -42,6 +42,11 @@ func NewMessageHandler(grandpa *Service, blockState BlockState) *MessageHandler 
 // if it is a FinalizationMessage, it updates the BlockState
 // if it is a VoteMessage, it sends it to the GRANDPA service
 func (h *MessageHandler) handleMessage(msg *ConsensusMessage) (*ConsensusMessage, error) {
+	if msg == nil || len(msg.Data) == 0 {
+		h.grandpa.logger.Trace("received nil message or message with nil data")
+		return nil, nil
+	}
+
 	m, err := decodeMessage(msg)
 	if err != nil {
 		return nil, err
@@ -252,6 +257,8 @@ func (h *MessageHandler) verifyFinalizationMessageJustification(fm *Finalization
 
 	// confirm total # signatures >= grandpa threshold
 	if uint64(count) < h.grandpa.state.threshold() {
+		h.grandpa.logger.Error("minimum votes not met for finalization message", "votes needed", h.grandpa.state.threshold(),
+			"votes", fm.Justification)
 		return ErrMinVotesNotMet
 	}
 	return nil

@@ -147,6 +147,9 @@ func createInitConfig(ctx *cli.Context) (*dot.Config, error) {
 	// set system info
 	setSystemInfoConfig(ctx, cfg)
 
+	// set core config since BABE values are needed
+	setDotCoreConfig(ctx, tomlCfg.Core, &cfg.Core)
+
 	// ensure configuration values match genesis and overwrite with genesis
 	updateDotConfigFromGenesisJSONRaw(ctx, *tomlCfg, cfg)
 
@@ -423,6 +426,7 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 	cfg.BabeAuthority = tomlCfg.Roles == types.AuthorityRole
 	cfg.GrandpaAuthority = tomlCfg.Roles == types.AuthorityRole
 	cfg.SlotDuration = tomlCfg.SlotDuration
+	cfg.EpochLength = tomlCfg.EpochLength
 
 	// check --roles flag and update node configuration
 	if roles := ctx.GlobalString(RolesFlag.Name); roles != "" {
@@ -484,6 +488,7 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 		"core configuration",
 		"babe-authority", cfg.BabeAuthority,
 		"grandpa-authority", cfg.GrandpaAuthority,
+		"epoch-length", cfg.EpochLength,
 		"babe-threshold", cfg.BabeThreshold,
 		"wasm-interpreter", cfg.WasmInterpreter,
 	)

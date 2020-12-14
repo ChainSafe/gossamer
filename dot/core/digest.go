@@ -215,11 +215,13 @@ func (h *DigestHandler) handleBlockFinalization(ctx context.Context) {
 			if h.isFinalityAuthority {
 				h.handleGrandpaChangesOnFinalization(header.Number)
 			}
+
+			// TODO: check if there's a NextEpochData or NextConfigData digest, if there is,
+			// make sure it matches what's in the EpochState for the upcoming epoch
 		case <-ctx.Done():
 			return
 		}
 	}
-
 }
 
 func (h *DigestHandler) handleGrandpaChangesOnImport(num *big.Int) {
@@ -404,7 +406,11 @@ func (h *DigestHandler) handleBABEOnDisabled(d *types.ConsensusDigest, header *t
 	}
 	od = dec.(*types.BABEOnDisabled)
 
-	h.verifier.SetOnDisabled(od.ID, header)
+	err = h.verifier.SetOnDisabled(od.ID, header)
+	if err != nil {
+		return err
+	}
+
 	h.babe.SetOnDisabled(od.ID)
 	return nil
 }

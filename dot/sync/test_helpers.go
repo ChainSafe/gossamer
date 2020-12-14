@@ -34,8 +34,8 @@ var genesisBABEConfig = &types.BabeConfiguration{
 type mockVerifier struct{}
 
 // VerifyBlock mocks verifying a block
-func (v *mockVerifier) VerifyBlock(header *types.Header) (bool, error) {
-	return true, nil
+func (v *mockVerifier) VerifyBlock(header *types.Header) error {
+	return nil
 }
 
 // mockBlockProducer implements the BlockProducer interface

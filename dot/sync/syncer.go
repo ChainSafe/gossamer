@@ -18,6 +18,7 @@ package sync
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 	mrand "math/rand"
 	"os"
@@ -156,9 +157,13 @@ func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) *networ
 	}
 
 	// check if block body is stored in block state (ie. if we have the full block already)
-	_, err = s.blockState.GetBlockBody(header.Hash())
-	if err != nil && err == chaindb.ErrKeyNotFound {
+	has, _ = s.blockState.HasBlockBody(header.Hash())
+	if !has {
 		s.synced = false
+		err = s.blockProducer.Pause()
+		if err != nil {
+			s.logger.Warn("failed to pause block production")
+		}
 
 		// create block request to send
 		bestNum, err := s.blockState.BestBlockNumber() //nolint
@@ -357,13 +362,9 @@ func (s *Service) handleHeader(header *types.Header) error {
 		s.logger.Info("saved block header", "hash", header.Hash(), "number", header.Number)
 	}
 
-	ok, err := s.verifier.VerifyBlock(header)
+	err = s.verifier.VerifyBlock(header)
 	if err != nil {
-		return err
-	}
-
-	if !ok {
-		return ErrInvalidBlock
+		return fmt.Errorf("%w: %s", ErrInvalidBlock, err.Error())
 	}
 
 	return nil

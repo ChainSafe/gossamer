@@ -35,7 +35,7 @@ func TestStress_Grandpa_OneAuthority(t *testing.T) {
 	require.NoError(t, err)
 
 	defer func() {
-		errList := utils.TearDown(t, nodes)
+		errList := utils.StopNodes(t, nodes)
 		require.Len(t, errList, 0)
 	}()
 
@@ -55,11 +55,11 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 	require.NoError(t, err)
 
 	defer func() {
-		errList := utils.TearDown(t, nodes)
+		errList := utils.StopNodes(t, nodes)
 		require.Len(t, errList, 0)
 	}()
 
-	numRounds := 10
+	numRounds := 5
 	for i := 1; i < numRounds+1; i++ {
 		fin, err := compareFinalizedHeadsWithRetry(t, nodes, uint64(i))
 		require.NoError(t, err)
@@ -77,7 +77,7 @@ func TestStress_Grandpa_SixAuthorities(t *testing.T) {
 	require.NoError(t, err)
 
 	defer func() {
-		errList := utils.TearDown(t, nodes)
+		errList := utils.StopNodes(t, nodes)
 		require.Len(t, errList, 0)
 	}()
 
@@ -102,7 +102,7 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 	require.NoError(t, err)
 
 	defer func() {
-		errList := utils.TearDown(t, nodes)
+		errList := utils.StopNodes(t, nodes)
 		require.Len(t, errList, 0)
 	}()
 
@@ -115,6 +115,10 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 }
 
 func TestStress_Grandpa_CatchUp(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping TestStress_Grandpa_CatchUp")
+	}
+
 	utils.GenerateGenesisSixAuth()
 	defer os.Remove(utils.GenesisSixAuths)
 
@@ -123,11 +127,11 @@ func TestStress_Grandpa_CatchUp(t *testing.T) {
 	require.NoError(t, err)
 
 	defer func() {
-		errList := utils.TearDown(t, nodes)
+		errList := utils.StopNodes(t, nodes)
 		require.Len(t, errList, 0)
 	}()
 
-	time.Sleep(time.Second * 50) // let some rounds run
+	time.Sleep(time.Second * 70) // let some rounds run
 
 	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, "ferdie"), utils.GenesisSixAuths, utils.ConfigDefault, false)
 	require.NoError(t, err)
