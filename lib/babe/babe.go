@@ -59,7 +59,7 @@ type Service struct {
 	keypair *sr25519.Keypair // TODO: change to BABE keystore
 
 	// Current runtime
-	rt runtime.LegacyInstance
+	rt runtime.Instance
 
 	// Epoch configuration data
 	slotDuration uint64 // in milliseconds
@@ -84,7 +84,7 @@ type ServiceConfig struct {
 	TransactionState TransactionState
 	EpochState       EpochState
 	Keypair          *sr25519.Keypair
-	Runtime          runtime.LegacyInstance
+	Runtime          runtime.Instance
 	AuthData         []*types.Authority
 	Threshold        *big.Int // for development purposes
 	SlotDuration     uint64   // for development purposes; in milliseconds
@@ -264,7 +264,7 @@ func (b *Service) Stop() error {
 }
 
 // SetRuntime sets the service's runtime
-func (b *Service) SetRuntime(rt runtime.LegacyInstance) {
+func (b *Service) SetRuntime(rt runtime.Instance) {
 	b.rt = rt
 }
 

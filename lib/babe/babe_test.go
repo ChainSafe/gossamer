@@ -63,7 +63,7 @@ var genesisBABEConfig = &types.BabeConfiguration{
 func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	var err error
 	tt := trie.NewEmptyTrie()
-	rt := wasmer.NewTestLegacyInstanceWithTrie(t, runtime.LEGACY_NODE_RUNTIME, tt, log.LvlCrit)
+	rt := wasmer.NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlCrit)
 
 	if cfg == nil {
 		cfg = &ServiceConfig{

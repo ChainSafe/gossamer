@@ -130,6 +130,14 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 	}, nil
 }
 
+// NewInstanceFromLegacy instantiates a runtime from legacy runtime
+// NOTE: this is unsafe and should be removed once all tests are upgraded to v0.8
+func NewInstanceFromLegacy(inst *LegacyInstance) *Instance {
+	return &Instance{
+		inst: inst,
+	}
+}
+
 // Legacy returns the instance as a LegacyInstance
 func (in *Instance) Legacy() *LegacyInstance {
 	return in.inst

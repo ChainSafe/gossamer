@@ -131,7 +131,7 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore,
 	return rt, nil
 }
 
-func createBABEService(cfg *Config, rt runtime.LegacyInstance, st *state.Service, ks keystore.Keystore) (*babe.Service, error) {
+func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks keystore.Keystore) (*babe.Service, error) {
 	logger.Info(
 		"creating BABE service...",
 		"authority", cfg.Core.BabeAuthority,
@@ -194,7 +194,7 @@ func createBABEService(cfg *Config, rt runtime.LegacyInstance, st *state.Service
 // Core Service
 
 // createCoreService creates the core service from the provided core configuration
-func createCoreService(cfg *Config, bp core.BlockProducer, fg core.FinalityGadget, verifier *babe.VerificationManager, rt runtime.LegacyInstance, ks *keystore.GlobalKeystore, stateSrvc *state.Service, net *network.Service) (*core.Service, error) {
+func createCoreService(cfg *Config, bp core.BlockProducer, fg core.FinalityGadget, verifier *babe.VerificationManager, rt runtime.Instance, ks *keystore.GlobalKeystore, stateSrvc *state.Service, net *network.Service) (*core.Service, error) {
 	logger.Info(
 		"creating core service...",
 		"authority", cfg.Core.Roles == types.AuthorityRole,
@@ -266,7 +266,7 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Servi
 // RPC Service
 
 // createRPCService creates the RPC service from the provided core configuration
-func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service, bp modules.BlockProducerAPI, rt runtime.LegacyInstance, sysSrvc *system.Service) *rpc.HTTPServer {
+func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service, bp modules.BlockProducerAPI, rt runtime.Instance, sysSrvc *system.Service) *rpc.HTTPServer {
 	logger.Info(
 		"creating rpc service...",
 		"host", cfg.RPC.Host,
@@ -305,7 +305,7 @@ func createSystemService(cfg *types.SystemInfo) *system.Service {
 }
 
 // createGRANDPAService creates a new GRANDPA service
-func createGRANDPAService(cfg *Config, rt runtime.LegacyInstance, st *state.Service, dh *core.DigestHandler, ks keystore.Keystore, net *network.Service) (*grandpa.Service, error) {
+func createGRANDPAService(cfg *Config, rt runtime.Instance, st *state.Service, dh *core.DigestHandler, ks keystore.Keystore, net *network.Service) (*grandpa.Service, error) {
 	ad, err := rt.GrandpaAuthorities()
 	if err != nil {
 		return nil, err

@@ -635,6 +635,7 @@ func ext_storage_append_version_1(context unsafe.Pointer, keySpan, valueSpan C.i
 		return
 	}
 
+	// remove length prefix from existing value
 	r := &bytes.Buffer{}
 	_, _ = r.Write(valueCurr)
 	dec := &scale.Decoder{Reader: r}
@@ -643,6 +644,17 @@ func ext_storage_append_version_1(context unsafe.Pointer, keySpan, valueSpan C.i
 		logger.Trace("[ext_storage_append_version_1] item in storage is not SCALE encoded, overwriting", "key", key)
 		_ = storage.Set(key, valueAppend)
 		return
+	}
+
+	// remove length prefix from value to append
+	rAppend := &bytes.Buffer{}
+	_, _ = rAppend.Write(valueAppend)
+	dec = &scale.Decoder{Reader: rAppend}
+	_, err = dec.DecodeUnsignedInteger()
+	if err != nil {
+		logger.Trace("[ext_storage_append_version_1] value to append is not SCALE encoded", "key", key, "value to append", valueAppend)
+	} else {
+		valueAppend = rAppend.Bytes()
 	}
 
 	valueRes := append(r.Bytes(), valueAppend...)
