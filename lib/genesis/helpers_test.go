@@ -99,8 +99,8 @@ func TestNewGenesisFromJSON(t *testing.T) {
 	hrData["babe"]["authorities"] = []interface{}{"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", 1} // babe authority data
 	hrData["grandpa"] = make(map[string]interface{})
 	hrData["grandpa"]["authorities"] = []interface{}{"5DFNv4Txc4b88qHqQ6GG4D646QcT4fN3jjS2G3r1PyZkfDut", 0} // grandpa authority data
-	hrData["balances"] = make(map[string]interface{})
-	hrData["balances"]["balances"] = []interface{}{"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", 1234234234} // balances
+	hrData["palletBalances"] = make(map[string]interface{})
+	hrData["palletBalances"]["balances"] = []interface{}{"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", 1234234234} // balances
 	testGenesis.Genesis = Fields{
 		Runtime: hrData,
 	}

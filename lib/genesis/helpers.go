@@ -190,7 +190,7 @@ func buildRawMap(m map[string]map[string]interface{}) (map[string]string, error)
 		kv.key = append(kv.key, k)
 		buildRawMapInterface(v, kv)
 
-		if reflect.DeepEqual([]string{"balances", "balances"}, kv.key) {
+		if reflect.DeepEqual([]string{"palletBalances", "balances"}, kv.key) {
 			err := buildBalances(kv, res)
 			if err != nil {
 				return nil, err
@@ -296,17 +296,7 @@ func buildBalances(kv *keyValue, res map[string]string) error {
 	for i := range kv.iVal {
 		if i%2 == 0 {
 			// build key
-			bKey := []byte{}
-			prefix, err := common.Twox128Hash([]byte(`System`))
-			if err != nil {
-				return err
-			}
-			bKey = append(bKey, prefix...)
-			keydata, err := common.Twox128Hash([]byte(`Account`))
-			if err != nil {
-				return err
-			}
-			bKey = append(bKey, keydata...)
+			bKey := runtime.SystemAccountPrefix()
 
 			addHash, err := common.Blake2b128(kv.iVal[i].([]byte))
 			if err != nil {
