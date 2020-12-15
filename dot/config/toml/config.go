@@ -16,8 +16,6 @@
 
 package toml
 
-import "math/big"
-
 // Config is a collection of configurations throughout the system
 type Config struct {
 	Global  GlobalConfig  `toml:"global,omitempty"`
@@ -71,14 +69,14 @@ type NetworkConfig struct {
 
 // CoreConfig is to marshal/unmarshal toml core config vars
 type CoreConfig struct {
-	Roles                    byte     `toml:"roles,omitempty"`
-	BabeAuthority            bool     `toml:"babe-authority"`
-	GrandpaAuthority         bool     `toml:"grandpa-authority"`
-	BabeThresholdNumerator   *big.Int `toml:"babe-threshold-numerator,omitempty"`
-	BabeThresholdDenominator *big.Int `toml:"babe-threshold-denominator,omitempty"`
-	SlotDuration             uint64   `toml:"slot-duration,omitempty"`
-	EpochLength              uint64   `toml:"epoch-length,omitempty"`
-	WasmInterpreter          string   `toml:"wasm-interpreter,omitempty"`
+	Roles                    byte   `toml:"roles,omitempty"`
+	BabeAuthority            bool   `toml:"babe-authority"`
+	GrandpaAuthority         bool   `toml:"grandpa-authority"`
+	BabeThresholdNumerator   uint64 `toml:"babe-threshold-numerator,omitempty"`
+	BabeThresholdDenominator uint64 `toml:"babe-threshold-denominator,omitempty"`
+	SlotDuration             uint64 `toml:"slot-duration,omitempty"`
+	EpochLength              uint64 `toml:"epoch-length,omitempty"`
+	WasmInterpreter          string `toml:"wasm-interpreter,omitempty"`
 }
 
 // RPCConfig is to marshal/unmarshal toml RPC config vars

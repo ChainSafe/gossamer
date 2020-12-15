@@ -18,7 +18,6 @@ package dot
 
 import (
 	"encoding/json"
-	"math/big"
 
 	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/chain/ksmcc"
@@ -86,8 +85,8 @@ type CoreConfig struct {
 	Roles                    byte
 	BabeAuthority            bool
 	GrandpaAuthority         bool
-	BabeThresholdNumerator   *big.Int
-	BabeThresholdDenominator *big.Int
+	BabeThresholdNumerator   uint64
+	BabeThresholdDenominator uint64
 	SlotDuration             uint64
 	EpochLength              uint64
 	WasmInterpreter          string

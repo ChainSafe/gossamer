@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math/big"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -33,7 +32,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
-	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
 )
@@ -470,8 +468,8 @@ func generateConfigBabeMaxThreshold() *ctoml.Config {
 		Roles:                    4,
 		BabeAuthority:            true,
 		GrandpaAuthority:         true,
-		BabeThresholdNumerator:   babe.MaxThreshold,
-		BabeThresholdDenominator: babe.DefaultThresholdDenominator,
+		BabeThresholdNumerator:   1,
+		BabeThresholdDenominator: 1,
 		SlotDuration:             500,
 	}
 	cfg.RPC.Modules = []string{"system", "author", "chain", "state", "dev"}
@@ -509,8 +507,8 @@ func generateConfigNoBabe() *ctoml.Config {
 		SyncLvl:    "debug",
 		NetworkLvl: "debug",
 	}
-	cfg.Core.BabeThresholdNumerator = babe.MaxThreshold
-	cfg.Core.BabeThresholdDenominator = big.NewInt(1)
+	cfg.Core.BabeThresholdNumerator = 1
+	cfg.Core.BabeThresholdDenominator = 1
 	cfg.Core.BabeAuthority = false
 	return cfg
 }

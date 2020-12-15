@@ -462,7 +462,7 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 		cfg.GrandpaAuthority = false
 	}
 
-	if tomlCfg.BabeThresholdDenominator != nil && tomlCfg.BabeThresholdNumerator != nil {
+	if tomlCfg.BabeThresholdDenominator != 0 && tomlCfg.BabeThresholdNumerator != 0 {
 		cfg.BabeThresholdDenominator = tomlCfg.BabeThresholdDenominator
 		cfg.BabeThresholdNumerator = tomlCfg.BabeThresholdNumerator
 	}
