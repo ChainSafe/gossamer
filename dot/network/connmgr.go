@@ -19,10 +19,12 @@ package network
 import (
 	"context"
 	"math/rand"
+	"sync"
 
 	"github.com/libp2p/go-libp2p-core/connmgr"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
 
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -30,11 +32,16 @@ import (
 // ConnManager implements connmgr.ConnManager
 type ConnManager struct {
 	max int // maximum number of peers
+	// closeHandlerMap contains all close handlers corresponding to a protocol.
+	// If there are multiple sub-protocols of a protocol, it can contain multiple close handlers.
+	closeHandlerMap map[protocol.ID][]func(peerID peer.ID)
+	sync.Mutex
 }
 
 func newConnManager(max int) *ConnManager {
 	return &ConnManager{
-		max: max,
+		max:             max,
+		closeHandlerMap: make(map[protocol.ID][]func(peerID peer.ID)),
 	}
 }
 
@@ -107,6 +114,8 @@ func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 		"peer", c.RemotePeer(),
 	)
 
+	cm.Lock()
+	defer cm.Unlock()
 	if len(n.Peers()) > cm.max {
 		i := rand.Intn(len(n.Peers()))
 		peers := n.Peers()
@@ -137,6 +146,11 @@ func (cm *ConnManager) OpenedStream(n network.Network, s network.Stream) {
 	)
 }
 
+// RegisterCloseHandler is called to register additional close stream handler
+func (cm *ConnManager) RegisterCloseHandler(protocolID protocol.ID, cb func(id peer.ID)) {
+	cm.closeHandlerMap[protocolID] = append(cm.closeHandlerMap[protocolID], cb)
+}
+
 // ClosedStream is called when a stream closed
 func (cm *ConnManager) ClosedStream(n network.Network, s network.Stream) {
 	logger.Trace(
@@ -146,5 +160,11 @@ func (cm *ConnManager) ClosedStream(n network.Network, s network.Stream) {
 		"protocol", s.Protocol(),
 	)
 
-	// TODO: on stream close, clear notifications protocol data for this peer
+	cm.Lock()
+	defer cm.Unlock()
+	if cbs, ok := cm.closeHandlerMap[s.Protocol()]; ok {
+		for _, cb := range cbs {
+			cb(s.Conn().RemotePeer())
+		}
+	}
 }
