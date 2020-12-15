@@ -32,6 +32,10 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 	var startHash common.Hash
 	var endHash common.Hash
 
+	if blockRequest.StartingBlock == nil || blockRequest.EndBlockHash == nil {
+		return nil, ErrInvalidBlockRequest
+	}
+
 	switch startBlock := blockRequest.StartingBlock.Value().(type) {
 	case uint64:
 		if startBlock == 0 {
@@ -53,8 +57,16 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 		endHash = s.blockState.BestBlockHash()
 	}
 
-	startHeader, _ := s.blockState.GetHeader(startHash)
-	endHeader, _ := s.blockState.GetHeader(endHash)
+	startHeader, err := s.blockState.GetHeader(startHash)
+	if err != nil {
+		return nil, err
+	}
+
+	endHeader, err := s.blockState.GetHeader(endHash)
+	if err != nil {
+		return nil, err
+	}
+
 	s.logger.Debug("BlockRequestMessage", "start", startHeader.Number, "end", endHeader.Number, "startHash", startHash, "endHash", endHash)
 
 	// get sub-chain of block hashes

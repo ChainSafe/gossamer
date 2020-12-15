@@ -224,18 +224,22 @@ func TestSync_Bench(t *testing.T) {
 	var end time.Time
 
 	for {
-		head := utils.GetChainHead(t, bob)
+		if time.Since(start) >= testTimeout {
+			t.Fatal("did not sync")
+		}
+
+		head, err := utils.GetChainHeadWithError(t, bob)
+		if err != nil {
+			continue
+		}
+
 		if head.Number.Cmp(last) >= 0 {
 			end = time.Now()
 			break
 		}
-
-		if time.Since(start) >= testTimeout {
-			t.Fatal("did not sync")
-		}
 	}
 
-	maxTime := time.Second * 7
+	maxTime := time.Second * 9
 	minBPS := float64(8)
 	totalTime := end.Sub(start)
 	bps := float64(numBlocks) / end.Sub(start).Seconds()
@@ -256,7 +260,7 @@ func TestSync_Restart(t *testing.T) {
 	utils.SetLogLevel(log.LvlInfo)
 
 	// start block producing node first
-	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, "ferdie"), utils.GenesisDefault, utils.ConfigBABEMaxThreshold, false)
+	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, "charlie"), utils.GenesisDefault, utils.ConfigBABEMaxThreshold, false)
 	require.NoError(t, err)
 
 	// wait and start rest of nodes
@@ -282,7 +286,7 @@ func TestSync_Restart(t *testing.T) {
 				errList := utils.StopNodes(t, nodes[idx:idx+1])
 				require.Len(t, errList, 0)
 
-				time.Sleep(time.Second * 2)
+				time.Sleep(time.Second)
 
 				err = utils.StartNodes(t, nodes[idx:idx+1])
 				require.NoError(t, err)

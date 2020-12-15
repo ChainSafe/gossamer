@@ -18,6 +18,7 @@ package state
 
 import (
 	"encoding/binary"
+	"math/rand"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -38,7 +39,11 @@ type TrieState struct {
 
 // NewTrieState returns a new TrieState with the given trie
 func NewTrieState(db chaindb.Database, t *trie.Trie) (*TrieState, error) {
-	tdb := chaindb.NewTable(db, string(triePrefix))
+	r := rand.Intn(1 << 16)
+	buf := make([]byte, 2)
+	binary.LittleEndian.PutUint16(buf, uint16(r))
+
+	tdb := chaindb.NewTable(db, string(append(triePrefix, buf...)))
 
 	entries := t.Entries()
 	for k, v := range entries {

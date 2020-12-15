@@ -305,7 +305,18 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 	end := int64(0)
 
 	for _, bd := range blockData {
-		if bd.Header.Exists() {
+		err := s.blockState.CompareAndSetBlockData(bd)
+		if err != nil {
+			return start, end, err
+		}
+
+		hasHeader, _ := s.blockState.HasHeader(bd.Hash)
+		hasBody, _ := s.blockState.HasBlockBody(bd.Hash)
+		if hasHeader && hasBody {
+			return 0, 0, nil
+		}
+
+		if bd.Header.Exists() && !hasHeader {
 			header, err := types.NewHeaderFromOptional(bd.Header)
 			if err != nil {
 				return 0, 0, err
@@ -325,7 +336,7 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 			}
 		}
 
-		if bd.Body.Exists {
+		if bd.Body.Exists && !hasBody {
 			body, err := types.NewBodyFromOptional(bd.Body)
 			if err != nil {
 				return start, end, err
@@ -358,11 +369,6 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 				return start, end, err
 			}
 		}
-
-		err := s.blockState.CompareAndSetBlockData(bd)
-		if err != nil {
-			return start, end, err
-		}
 	}
 
 	return start, end, nil
@@ -370,22 +376,7 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 
 // handleHeader handles headers included in BlockResponses
 func (s *Service) handleHeader(header *types.Header) error {
-	// get block header; if exists, return
-	has, err := s.blockState.HasHeader(header.Hash())
-	if err != nil {
-		return err
-	}
-
-	if !has {
-		err = s.blockState.SetHeader(header)
-		if err != nil {
-			return err
-		}
-
-		s.logger.Info("saved block header", "hash", header.Hash(), "number", header.Number)
-	}
-
-	err = s.verifier.VerifyBlock(header)
+	err := s.verifier.VerifyBlock(header)
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrInvalidBlock, err.Error())
 	}
@@ -429,9 +420,11 @@ func (s *Service) handleBlock(block *types.Block) error {
 		return err
 	}
 
+	s.logger.Trace("copied parent state", "parent state root", parentState.MustRoot(), "copy state root", ts.MustRoot())
+
 	s.runtime.SetContext(ts)
 
-	s.logger.Info("going to execute block", "block", block, "exts", block.Body)
+	s.logger.Debug("going to execute block", "block", block, "exts", block.Body)
 
 	_, err = s.runtime.ExecuteBlock(block)
 	if err != nil {
