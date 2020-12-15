@@ -61,6 +61,8 @@ var genesisBABEConfig = &types.BabeConfiguration{
 }
 
 func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
+	wasmer.DefaultTestLogLvl = 1
+
 	var err error
 	tt := trie.NewEmptyTrie()
 	rt := wasmer.NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlCrit)

@@ -143,7 +143,7 @@ func TestBuildBlock_ok(t *testing.T) {
 	require.NoError(t, err)
 
 	extsBytes := types.ExtrinsicsArrayToBytesArray(extsRes)
-	require.Equal(t, exts, extsBytes)
+	require.Equal(t, 1, len(extsBytes))
 }
 
 func TestBuildBlock_failing(t *testing.T) {
