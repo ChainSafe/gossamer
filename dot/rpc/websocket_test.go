@@ -46,7 +46,7 @@ var testCalls = []struct {
 }
 
 func TestHTTPServer_ServeHTTP(t *testing.T) {
-	coreAPI := core.NewTestService(t, nil, nil)
+	coreAPI := core.NewTestService(t, nil)
 	si := &types.SystemInfo{
 		SystemName: "gossamer",
 	}

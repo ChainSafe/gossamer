@@ -23,7 +23,9 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/lib/common"
 	log "github.com/ChainSafe/log15"
+	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/rpc/v2"
 	"github.com/gorilla/websocket"
@@ -139,6 +141,19 @@ func (h *HTTPServer) Start() error {
 	r := mux.NewRouter()
 	r.Handle("/", h.rpcServer)
 
+	validate := validator.New()
+	// Add custom validator for `common.Hash`
+	validate.RegisterCustomTypeFunc(common.HashValidator, common.Hash{})
+
+	validateHandler := func(r *rpc.RequestInfo, v interface{}) error {
+		err := validate.Struct(v)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
+	h.rpcServer.RegisterValidateRequestFunc(validateHandler)
 	go func() {
 		err := http.ListenAndServe(fmt.Sprintf(":%d", h.serverConfig.RPCPort), r)
 		if err != nil {

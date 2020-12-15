@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"sync"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -54,6 +55,7 @@ type notificationsProtocol struct {
 	subProtocol   protocol.ID
 	getHandshake  HandshakeGetter
 	handshakeData map[peer.ID]*handshakeData
+	mapMu         sync.RWMutex
 }
 
 type handshakeData struct {
@@ -72,6 +74,9 @@ func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecode
 
 		// if we don't have handshake data on this peer, or we haven't received the handshake from them already,
 		// assume we are receiving the handshake
+		info.mapMu.RLock()
+		defer info.mapMu.RUnlock()
+
 		if hsData, has := info.handshakeData[peer]; !has || !hsData.received {
 			return handshakeDecoder(r)
 		}
@@ -94,6 +99,9 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			if !ok {
 				return errors.New("failed to convert message to Handshake")
 			}
+
+			info.mapMu.Lock()
+			defer info.mapMu.Unlock()
 
 			// if we are the receiver and haven't received the handshake already, validate it
 			if _, has := info.handshakeData[peer]; !has {
@@ -166,7 +174,13 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 		}
 
 		// TODO: improve this by keeping track of who you've received/sent messages from
-		//s.broadcastExcluding(info, peer, msg)
+		// if !s.noGossip {
+		// 	seen := s.gossip.hasSeen(msg)
+		// 	if !seen {
+		// 		s.broadcastExcluding(info, peer, msg)
+		// 	}
+		// }
+
 		return nil
 	}
 }
@@ -190,6 +204,9 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 			continue
 		}
 
+		info.mapMu.RLock()
+		defer info.mapMu.RUnlock()
+
 		if hsData, has := info.handshakeData[peer]; !has || !hsData.received {
 			info.handshakeData[peer] = &handshakeData{
 				validated:   false,
@@ -200,6 +217,7 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 			err = s.host.send(peer, info.subProtocol, hs)
 		} else {
 			// we've already completed the handshake with the peer, send message directly
+			logger.Trace("sending message", "protocol", info.subProtocol, "peer", peer, "message", msg)
 			err = s.host.send(peer, info.subProtocol, msg)
 		}
 

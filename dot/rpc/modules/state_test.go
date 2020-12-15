@@ -81,7 +81,6 @@ func TestStateModule_GetRuntimeVersion(t *testing.T) {
 			}
 
 			err := sm.GetRuntimeVersion(nil, &req, &res)
-
 			// Handle error cases.
 			if test.errMsg != "" {
 				require.Error(t, err)
@@ -123,9 +122,9 @@ func TestStateModule_GetPairs(t *testing.T) {
 			var res StatePairResponse
 
 			// Convert human-readable param value to hex.
-			req.Prefix = test.params[0]
+			req.Prefix = &test.params[0]
 			if test.params[0] != "" && !strings.HasPrefix(test.params[0], "0x") {
-				req.Prefix = "0x" + hex.EncodeToString([]byte(test.params[0]))
+				*req.Prefix = "0x" + hex.EncodeToString([]byte(test.params[0]))
 			}
 
 			if len(test.params) > 1 && test.params[1] != "" {
@@ -145,13 +144,13 @@ func TestStateModule_GetPairs(t *testing.T) {
 
 			// Verify expected values.
 			require.NoError(t, err)
-			sort.Slice(res.keys, func(i, j int) bool {
-				return res.keys[i].([]string)[0] < res.keys[j].([]string)[0]
+			sort.Slice(res, func(i, j int) bool {
+				return res[i].([]string)[0] < res[j].([]string)[0]
 			})
 
-			require.Equal(t, len(test.expected), len(res.keys))
+			require.Equal(t, len(test.expected), len(res))
 			for idx, val := range test.expected {
-				kv, _ := res.keys[idx].([]string)
+				kv, _ := res[idx].([]string)
 				require.Equal(t, len(kv), 2)
 
 				// Convert human-readable result value to hex.
@@ -197,7 +196,6 @@ func TestStateModule_GetStorage(t *testing.T) {
 			}
 
 			err = sm.GetStorage(nil, &req, &res)
-
 			// Handle error cases.
 			if test.errMsg != "" {
 				require.Error(t, err)
@@ -208,11 +206,9 @@ func TestStateModule_GetStorage(t *testing.T) {
 			// Verify expected values.
 			require.NoError(t, err)
 			if test.expected != nil {
-				require.NoError(t, err)
-
 				// Convert human-readable result value to hex.
 				expectedVal := "0x" + hex.EncodeToString(test.expected)
-				require.Equal(t, expectedVal, res.StorageValue)
+				require.Equal(t, StateStorageResponse(expectedVal), res)
 			}
 		})
 	}
@@ -259,13 +255,13 @@ func TestStateModule_GetStorageHash(t *testing.T) {
 
 			require.NoError(t, err)
 			if test.expected == nil {
-				require.Empty(t, res.StorageHash)
+				require.Empty(t, res)
 				return
 			}
 
 			// Convert human-readable result value to hex.
 			expectedVal := common.BytesToHash(test.expected)
-			require.Equal(t, expectedVal.String(), res.StorageHash)
+			require.Equal(t, StateStorageHashResponse(expectedVal.String()), res)
 		})
 	}
 }
@@ -277,7 +273,7 @@ func TestStateModule_GetStorageSize(t *testing.T) {
 
 	testCases := []struct {
 		params   []string
-		expected uint64
+		expected StateStorageSizeResponse
 		errMsg   string
 	}{
 		{params: []string{""}},
@@ -310,7 +306,7 @@ func TestStateModule_GetStorageSize(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			require.Equal(t, test.expected, res.StorageEntrySize)
+			require.Equal(t, test.expected, res)
 		})
 	}
 }
@@ -351,7 +347,7 @@ func TestStateModule_GetMetadata(t *testing.T) {
 			}
 
 			require.NoError(t, err)
-			require.Equal(t, string(expectedMetadata), res.Metadata)
+			require.Equal(t, string(expectedMetadata), string(res))
 		})
 	}
 }

@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/stretchr/testify/require"
 )
@@ -59,21 +58,18 @@ func TestSystemRPC(t *testing.T) {
 			description: "test system_health",
 			method:      "system_health",
 			expected: modules.SystemHealthResponse{
-				Health: common.Health{
-					Peers:           2,
-					IsSyncing:       false,
-					ShouldHavePeers: true,
-				},
+
+				Peers:           2,
+				IsSyncing:       false,
+				ShouldHavePeers: true,
 			},
 			params: "{}",
 		},
 		{
 			description: "test system_peers",
 			method:      "system_peers",
-			expected: modules.SystemPeersResponse{
-				Peers: []common.PeerInfo{},
-			},
-			params: "{}",
+			expected:    modules.SystemPeersResponse{},
+			params:      "{}",
 		},
 		{
 			description: "test system_network_state",
@@ -123,9 +119,9 @@ func TestSystemRPC(t *testing.T) {
 			case *modules.SystemHealthResponse:
 				t.Log("Will assert SystemHealthResponse", "target", target)
 
-				require.Equal(t, test.expected.(modules.SystemHealthResponse).Health.IsSyncing, v.Health.IsSyncing)
-				require.Equal(t, test.expected.(modules.SystemHealthResponse).Health.ShouldHavePeers, v.Health.ShouldHavePeers)
-				require.GreaterOrEqual(t, v.Health.Peers, test.expected.(modules.SystemHealthResponse).Health.Peers)
+				require.Equal(t, test.expected.(modules.SystemHealthResponse).IsSyncing, v.IsSyncing)
+				require.Equal(t, test.expected.(modules.SystemHealthResponse).ShouldHavePeers, v.ShouldHavePeers)
+				require.GreaterOrEqual(t, v.Peers, test.expected.(modules.SystemHealthResponse).Peers)
 
 			case *modules.SystemNetworkStateResponse:
 				t.Log("Will assert SystemNetworkStateResponse", "target", target)
@@ -136,13 +132,13 @@ func TestSystemRPC(t *testing.T) {
 			case *modules.SystemPeersResponse:
 				t.Log("Will assert SystemPeersResponse", "target", target)
 
-				require.NotNil(t, v.Peers)
+				require.NotNil(t, v)
 
 				//TODO: #807
 				//this assertion requires more time on init to be enabled
 				//require.GreaterOrEqual(t, len(v.Peers), 2)
 
-				for _, vv := range v.Peers {
+				for _, vv := range *v {
 					require.NotNil(t, vv.PeerID)
 					require.NotNil(t, vv.Roles)
 					require.NotNil(t, vv.ProtocolVersion)
