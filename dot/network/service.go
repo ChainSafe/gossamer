@@ -22,6 +22,7 @@ import (
 	"errors"
 	"math/big"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -71,6 +72,7 @@ type Service struct {
 	requestTracker         *requestTracker
 	errCh                  chan<- error
 	notificationsProtocols map[byte]*notificationsProtocol // map of sub-protocol msg ID to protocol info
+	notificationsMu        sync.RWMutex
 
 	// Service interfaces
 	blockState         BlockState
@@ -103,10 +105,6 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err //nolint
 	}
 
-	if cfg.Syncer == nil {
-		return nil, errors.New("cannot have nil Syncer")
-	}
-
 	// create a new host instance
 	host, err := newHost(ctx, cfg)
 	if err != nil {
@@ -120,7 +118,7 @@ func NewService(cfg *Config) (*Service, error) {
 		host:                   host,
 		mdns:                   newMDNS(host),
 		status:                 newStatus(host),
-		gossip:                 newGossip(host),
+		gossip:                 newGossip(),
 		requestTracker:         newRequestTracker(logger),
 		blockState:             cfg.BlockState,
 		networkState:           cfg.NetworkState,
@@ -137,8 +135,26 @@ func NewService(cfg *Config) (*Service, error) {
 	return network, err
 }
 
+// SetSyncer sets the Syncer used by the network service
+func (s *Service) SetSyncer(syncer Syncer) {
+	s.syncer = syncer
+}
+
+// SetTransactionHandler sets the TransactionHandler used by the network service
+func (s *Service) SetTransactionHandler(handler TransactionHandler) {
+	s.transactionHandler = handler
+}
+
 // Start starts the network service
 func (s *Service) Start() error {
+	if s.syncer == nil {
+		return errors.New("service Syncer is nil")
+	}
+
+	if s.transactionHandler == nil {
+		return errors.New("service TransactionHandler is nil")
+	}
+
 	if s.IsStopped() {
 		s.ctx, s.cancel = context.WithCancel(context.Background())
 	}
@@ -229,15 +245,31 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 	messageDecoder MessageDecoder,
 	messageHandler NotificationsMessageHandler,
 ) error {
+	s.notificationsMu.Lock()
+	defer s.notificationsMu.Unlock()
+
 	if _, has := s.notificationsProtocols[messageID]; has {
 		return errors.New("notifications protocol with message type already exists")
 	}
 
-	s.notificationsProtocols[messageID] = &notificationsProtocol{
+	np := &notificationsProtocol{
 		subProtocol:   sub,
 		getHandshake:  handshakeGetter,
 		handshakeData: make(map[peer.ID]*handshakeData),
 	}
+	s.notificationsProtocols[messageID] = np
+
+	connMgr := s.host.h.ConnManager().(*ConnManager)
+	connMgr.RegisterCloseHandler(s.host.protocolID, func(peerID peer.ID) {
+		if _, ok := np.handshakeData[peerID]; ok {
+			logger.Debug(
+				"Cleaning up handshake data",
+				"peer", peerID,
+				"protocol", s.host.protocolID,
+			)
+			delete(np.handshakeData, peerID)
+		}
+	})
 
 	info := s.notificationsProtocols[messageID]
 
@@ -299,6 +331,9 @@ func (s *Service) SendMessage(msg Message) {
 	)
 
 	// check if the message is part of a notifications protocol
+	s.notificationsMu.Lock()
+	defer s.notificationsMu.Unlock()
+
 	for msgID, prtl := range s.notificationsProtocols {
 		if msg.Type() != msgID || prtl == nil {
 			continue
@@ -541,7 +576,10 @@ func (s *Service) handleMessage(peer peer.ID, msg Message) error {
 		if !s.noGossip {
 
 			// handle non-status message from peer with gossip submodule
-			s.gossip.handleMessage(msg, peer)
+			seen := s.gossip.hasSeen(msg)
+			if !seen {
+				s.host.broadcastExcluding(msg, peer)
+			}
 		}
 
 	} else {

@@ -76,6 +76,11 @@ func (s *Service) sendMessage(vote *Vote, stage subround) error {
 		return err
 	}
 
+	cm, err := msg.ToConsensusMessage()
+	if err != nil {
+		return err
+	}
+
 	s.chanLock.Lock()
 	defer s.chanLock.Unlock()
 
@@ -84,7 +89,7 @@ func (s *Service) sendMessage(vote *Vote, stage subround) error {
 		return nil
 	}
 
-	s.out <- msg
+	s.network.SendMessage(cm)
 	s.logger.Trace("sent VoteMessage", "msg", msg)
 
 	return nil

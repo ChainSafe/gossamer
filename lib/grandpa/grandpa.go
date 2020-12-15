@@ -39,18 +39,20 @@ var interval = time.Second
 // Service represents the current state of the grandpa protocol
 type Service struct {
 	// preliminaries
-	logger        log.Logger
-	ctx           context.Context
-	cancel        context.CancelFunc
-	blockState    BlockState
-	digestHandler DigestHandler
-	keypair       *ed25519.Keypair // TODO: change to grandpa keystore
-	mapLock       sync.Mutex
-	chanLock      sync.Mutex
-	roundLock     sync.Mutex
-	authority     bool          // run the service as an authority (ie participate in voting)
-	paused        atomic.Value  // the service will be paused if it is waiting for catch up responses
-	resumed       chan struct{} // this channel will be closed when the service resumes
+	logger         log.Logger
+	ctx            context.Context
+	cancel         context.CancelFunc
+	blockState     BlockState
+	digestHandler  DigestHandler
+	keypair        *ed25519.Keypair // TODO: change to grandpa keystore
+	mapLock        sync.Mutex
+	chanLock       sync.Mutex
+	roundLock      sync.Mutex
+	authority      bool          // run the service as an authority (ie participate in voting)
+	paused         atomic.Value  // the service will be paused if it is waiting for catch up responses
+	resumed        chan struct{} // this channel will be closed when the service resumes
+	messageHandler *MessageHandler
+	network        Network
 
 	// current state information
 	state            *State                             // current state
@@ -70,9 +72,7 @@ type Service struct {
 	justification      map[uint64][]*Justification // map of round number -> precommit round justification
 
 	// channels for communication with other services
-	in        chan FinalityMessage // only used to receive *VoteMessage
-	out       chan FinalityMessage // only used to send *VoteMessage
-	finalized chan FinalityMessage // only used to send *FinalizationMessage; channel that finalized blocks are output from at the end of a round
+	in chan GrandpaMessage // only used to receive *VoteMessage
 }
 
 // Config represents a GRANDPA service configuration
@@ -80,6 +80,7 @@ type Config struct {
 	LogLvl        log.Lvl
 	BlockState    BlockState
 	DigestHandler DigestHandler
+	Network       Network
 	Voters        []*Voter
 	SetID         uint64
 	Keypair       *ed25519.Keypair
@@ -87,7 +88,6 @@ type Config struct {
 }
 
 // NewService returns a new GRANDPA Service instance.
-// TODO: determine what needs to be exported.
 func NewService(cfg *Config) (*Service, error) {
 	if cfg.BlockState == nil {
 		return nil, ErrNilBlockState
@@ -99,6 +99,10 @@ func NewService(cfg *Config) (*Service, error) {
 
 	if cfg.Keypair == nil && cfg.Authority {
 		return nil, ErrNilKeypair
+	}
+
+	if cfg.Network == nil {
+		return nil, ErrNilNetwork
 	}
 
 	logger := log.New("pkg", "grandpa")
@@ -140,12 +144,12 @@ func NewService(cfg *Config) (*Service, error) {
 		bestFinalCandidate: make(map[uint64]*Vote),
 		justification:      make(map[uint64][]*Justification),
 		head:               head,
-		in:                 make(chan FinalityMessage, 128),
-		out:                make(chan FinalityMessage, 128),
-		finalized:          make(chan FinalityMessage, 128),
+		in:                 make(chan GrandpaMessage, 128),
 		resumed:            make(chan struct{}),
+		network:            cfg.Network,
 	}
 
+	s.messageHandler = NewMessageHandler(s, s.blockState)
 	s.paused.Store(false)
 	return s, nil
 }
@@ -153,6 +157,11 @@ func NewService(cfg *Config) (*Service, error) {
 // Start begins the GRANDPA finality service
 func (s *Service) Start() error {
 	// TODO: determine if we need to send a catch-up request
+
+	err := s.registerProtocol()
+	if err != nil {
+		return err
+	}
 
 	go func() {
 		err := s.initiate()
@@ -170,7 +179,6 @@ func (s *Service) Stop() error {
 	defer s.chanLock.Unlock()
 
 	s.cancel()
-	close(s.out)
 
 	if !s.authority {
 		return nil
@@ -379,8 +387,12 @@ func (s *Service) playGrandpaRound() error {
 
 	// if primary, broadcast the best final candidate from the previous round
 	if bytes.Equal(primary.key.Encode(), s.keypair.Public().Encode()) {
-		msg := s.newFinalizationMessage(s.head, s.state.round-1)
-		s.finalized <- msg
+		msg, err := s.newFinalizationMessage(s.head, s.state.round-1).ToConsensusMessage()
+		if err != nil {
+			s.logger.Error("failed to encode finalization message", "error", err)
+		} else {
+			s.network.SendMessage(msg)
+		}
 	}
 
 	s.logger.Debug("receiving pre-vote messages...")
@@ -444,7 +456,7 @@ func (s *Service) playGrandpaRound() error {
 		}
 	}(&finalized)
 
-	s.logger.Debug("receiving pre-vote messages...")
+	s.logger.Debug("receiving pre-commit messages...")
 
 	go s.receiveMessages(func() bool {
 		end := start.Add(interval * 4)
@@ -552,6 +564,11 @@ func (s *Service) attemptToFinalize() error {
 		return ErrServicePaused
 	}
 
+	has, _ := s.blockState.HasFinalizedBlock(s.state.round, s.state.setID)
+	if has {
+		return nil // a block was finalized, seems like we missed some messages
+	}
+
 	bfc, err := s.getBestFinalCandidate()
 	if err != nil {
 		return err
@@ -572,10 +589,12 @@ func (s *Service) attemptToFinalize() error {
 		votes := s.getDirectVotes(precommit)
 		s.logger.Debug("finalized block!!!", "setID", s.state.setID, "round", s.state.round, "hash", s.head.Hash(),
 			"precommits #", pc, "votes for bfc #", votes[*bfc], "total votes for bfc", pc, "precommits", s.precommits)
-		msg := s.newFinalizationMessage(s.head, s.state.round)
+		msg, err := s.newFinalizationMessage(s.head, s.state.round).ToConsensusMessage()
+		if err != nil {
+			return err
+		}
 
-		// TODO: safety
-		s.finalized <- msg
+		s.network.SendMessage(msg)
 		return nil
 	}
 
