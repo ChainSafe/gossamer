@@ -146,7 +146,8 @@ func TestNewNode_Authority(t *testing.T) {
 
 	// TODO: improve dot tests #687
 	cfg.Core.Roles = types.AuthorityRole
-	cfg.Core.BabeThreshold = nil
+	cfg.Core.BabeThresholdNumerator = nil
+	cfg.Core.BabeThresholdDenominator = nil
 
 	node, err := NewNode(cfg, ks, nil)
 	require.NoError(t, err)
@@ -321,7 +322,8 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
-	cfg.Core.BabeThreshold = nil
+	cfg.Core.BabeThresholdNumerator = nil
+	cfg.Core.BabeThresholdDenominator = nil
 	cfg.Init.GenesisRaw = genPath
 
 	err := InitNode(cfg)

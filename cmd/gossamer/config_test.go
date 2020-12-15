@@ -621,7 +621,8 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 		System:  testCfg.System,
 	}
 
-	expected.Core.BabeThreshold = nil
+	expected.Core.BabeThresholdNumerator = nil
+	expected.Core.BabeThresholdDenominator = nil
 
 	cfg, err := createDotConfig(ctx)
 	require.Nil(t, err)
@@ -679,7 +680,8 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 	require.Nil(t, err)
 
 	cfg.Init.GenesisRaw = genFile.Name()
-	expected.Core.BabeThreshold = nil
+	expected.Core.BabeThresholdNumerator = nil
+	expected.Core.BabeThresholdDenominator = nil
 
 	db, err := database.NewBadgerDB(cfg.Global.BasePath)
 	require.Nil(t, err)

@@ -115,7 +115,8 @@ func TestCreateBlockVerifier(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.NoError(t, err)
 
-	cfg.Core.BabeThreshold = nil
+	cfg.Core.BabeThresholdNumerator = nil
+	cfg.Core.BabeThresholdDenominator = nil
 	_, err = createBlockVerifier(stateSrvc)
 	require.NoError(t, err)
 }
@@ -142,7 +143,8 @@ func TestCreateSyncService(t *testing.T) {
 	rt, err := createRuntime(cfg, stateSrvc, ks.Acco.(*keystore.GenericKeystore), &network.Service{})
 	require.NoError(t, err)
 
-	cfg.Core.BabeThreshold = nil
+	cfg.Core.BabeThresholdNumerator = nil
+	cfg.Core.BabeThresholdDenominator = nil
 	ver, err := createBlockVerifier(stateSrvc)
 	require.NoError(t, err)
 

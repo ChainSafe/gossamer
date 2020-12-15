@@ -83,13 +83,14 @@ type NetworkConfig struct {
 
 // CoreConfig is to marshal/unmarshal toml core config vars
 type CoreConfig struct {
-	Roles            byte
-	BabeAuthority    bool
-	GrandpaAuthority bool
-	BabeThreshold    *big.Int
-	SlotDuration     uint64
-	EpochLength      uint64
-	WasmInterpreter  string
+	Roles                    byte
+	BabeAuthority            bool
+	GrandpaAuthority         bool
+	BabeThresholdNumerator   *big.Int
+	BabeThresholdDenominator *big.Int
+	SlotDuration             uint64
+	EpochLength              uint64
+	WasmInterpreter          string
 }
 
 // RPCConfig is to marshal/unmarshal toml RPC config vars

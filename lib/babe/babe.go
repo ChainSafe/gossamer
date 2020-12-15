@@ -33,11 +33,16 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
+// TODO: update #1233
 var (
 	// MaxThreshold is the maximum BABE threshold (node authorized to produce a block every slot)
 	MaxThreshold = big.NewInt(0).SetBytes([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff})
 	// MinThreshold is the minimum BABE threshold (node never authorized to produce a block)
 	MinThreshold = big.NewInt(0)
+	// DefaultThresholdNumerator is the default threshold numerator
+	DefaultThresholdNumerator = big.NewInt(10)
+	// DefaultThresholdDenominator is the default threshold denominator
+	DefaultThresholdDenominator = big.NewInt(1)
 )
 
 // Service contains the VRF keys for the validator, as well as BABE configuation data
@@ -78,19 +83,20 @@ type Service struct {
 
 // ServiceConfig represents a BABE configuration
 type ServiceConfig struct {
-	LogLvl           log.Lvl
-	BlockState       BlockState
-	StorageState     StorageState
-	TransactionState TransactionState
-	EpochState       EpochState
-	Keypair          *sr25519.Keypair
-	Runtime          runtime.LegacyInstance
-	AuthData         []*types.Authority
-	Threshold        *big.Int // for development purposes
-	SlotDuration     uint64   // for development purposes; in milliseconds
-	EpochLength      uint64   // for development purposes; in slots
-	StartSlot        uint64   // slot to start at
-	Authority        bool
+	LogLvl               log.Lvl
+	BlockState           BlockState
+	StorageState         StorageState
+	TransactionState     TransactionState
+	EpochState           EpochState
+	Keypair              *sr25519.Keypair
+	Runtime              runtime.LegacyInstance
+	AuthData             []*types.Authority
+	ThresholdNumerator   *big.Int // for development purposes
+	ThresholdDenominator *big.Int // for development purposes
+	SlotDuration         uint64   // for development purposes; in milliseconds
+	EpochLength          uint64   // for development purposes; in slots
+	StartSlot            uint64   // slot to start at
+	Authority            bool
 }
 
 // NewService returns a new Babe Service using the provided VRF keys and runtime
@@ -185,13 +191,14 @@ func (b *Service) setEpochData(cfg *ServiceConfig, genCfg *types.BabeConfigurati
 		}
 	}
 
-	if cfg.Threshold == nil {
+	if cfg.ThresholdNumerator == nil {
 		b.epochData.threshold, err = CalculateThreshold(genCfg.C1, genCfg.C2, len(b.epochData.authorities))
 		if err != nil {
 			return err
 		}
 	} else {
-		b.epochData.threshold = cfg.Threshold
+		// TODO: #1233 confirm
+		b.epochData.threshold = cfg.ThresholdNumerator.Div(cfg.ThresholdNumerator, cfg.ThresholdDenominator)
 	}
 
 	if cfg.EpochLength > 0 {

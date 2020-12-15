@@ -18,11 +18,9 @@ package main
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
-	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/urfave/cli"
@@ -108,12 +106,13 @@ func dotConfigToToml(dcfg *dot.Config) *ctoml.Config {
 	}
 
 	cfg.Core = ctoml.CoreConfig{
-		Roles:            dcfg.Core.Roles,
-		BabeAuthority:    dcfg.Core.BabeAuthority,
-		GrandpaAuthority: dcfg.Core.GrandpaAuthority,
-		EpochLength:      dcfg.Core.EpochLength,
-		BabeThreshold:    babeThresholdToString(dcfg.Core.BabeThreshold),
-		SlotDuration:     dcfg.Core.SlotDuration,
+		Roles:                    dcfg.Core.Roles,
+		BabeAuthority:            dcfg.Core.BabeAuthority,
+		GrandpaAuthority:         dcfg.Core.GrandpaAuthority,
+		EpochLength:              dcfg.Core.EpochLength,
+		BabeThresholdNumerator:   dcfg.Core.BabeThresholdNumerator,
+		BabeThresholdDenominator: dcfg.Core.BabeThresholdDenominator,
+		SlotDuration:             dcfg.Core.SlotDuration,
 	}
 
 	cfg.Network = ctoml.NetworkConfig{
@@ -134,20 +133,4 @@ func dotConfigToToml(dcfg *dot.Config) *ctoml.Config {
 	}
 
 	return cfg
-}
-
-func babeThresholdToString(threshold *big.Int) string {
-	if threshold == nil {
-		return ""
-	}
-
-	if threshold.Cmp(babe.MaxThreshold) == 0 {
-		return "max"
-	}
-
-	if threshold.Cmp(babe.MinThreshold) == 0 {
-		return "min"
-	}
-
-	return ""
 }

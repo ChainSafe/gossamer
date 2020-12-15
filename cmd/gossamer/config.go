@@ -27,7 +27,6 @@ import (
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
@@ -463,13 +462,9 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 		cfg.GrandpaAuthority = false
 	}
 
-	switch tomlCfg.BabeThreshold {
-	case "max":
-		cfg.BabeThreshold = babe.MaxThreshold
-	case "min":
-		cfg.BabeThreshold = babe.MinThreshold
-	default:
-		cfg.BabeThreshold = nil
+	if tomlCfg.BabeThresholdDenominator != nil && tomlCfg.BabeThresholdNumerator != nil {
+		cfg.BabeThresholdDenominator = tomlCfg.BabeThresholdDenominator
+		cfg.BabeThresholdNumerator = tomlCfg.BabeThresholdNumerator
 	}
 
 	switch tomlCfg.WasmInterpreter {
@@ -489,7 +484,8 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 		"babe-authority", cfg.BabeAuthority,
 		"grandpa-authority", cfg.GrandpaAuthority,
 		"epoch-length", cfg.EpochLength,
-		"babe-threshold", cfg.BabeThreshold,
+		"babe-threshold-numerator", cfg.BabeThresholdNumerator,
+		"babe-threshold-denominator", cfg.BabeThresholdDenominator,
 		"wasm-interpreter", cfg.WasmInterpreter,
 	)
 }

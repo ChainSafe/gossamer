@@ -96,8 +96,9 @@ type Config struct {
 	IsFinalityAuthority bool
 	Verifier            Verifier
 
-	NewBlocks     chan types.Block // only used for testing purposes
-	BabeThreshold *big.Int         // used by Verifier, for development purposes
+	NewBlocks                chan types.Block // only used for testing purposes
+	BabeThresholdNumerator   *big.Int         // used by Verifier, for development purposes
+	BabeThresholdDenominator *big.Int         // used by Verifier, for development purposes
 }
 
 // NewService returns a new core service that connects the runtime, BABE

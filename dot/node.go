@@ -106,7 +106,8 @@ func InitNode(cfg *Config) error {
 	r.Stop()
 
 	// TODO: this should be set in the genesis file, not the config
-	if cfg.Core.BabeThreshold == babe.MaxThreshold {
+	// TODO: #1233 confirm
+	if cfg.Core.BabeThresholdNumerator == babe.MaxThreshold {
 		babeCfg.C1 = 1
 		babeCfg.C2 = 1
 	}
