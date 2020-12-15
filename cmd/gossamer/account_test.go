@@ -164,14 +164,14 @@ func TestAccountImport(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 	directory := fmt.Sprintf("--basepath=%s", testDir)
 	// TODO: Add import value for test
-	err := app.Run([]string{"irrelevant", "account", directory, "--import"})
+	err := app.Run([]string{"irrelevant", "account", directory, "--import=./test_inputs/test-key.key"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	ctx, err := newTestContext(
-		"Test gossamer account --import",
+		"Test gossamer account --import=./test_inputs/test-key.key",
 		[]string{"basepath", "import"},
-		[]interface{}{testDir, "testfile"},
+		[]interface{}{"./test_inputs/", "test-key.key"},
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -192,14 +192,14 @@ func TestAccountImportRaw(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 	directory := fmt.Sprintf("--basepath=%s", testDir)
 	// TODO: Add import-raw value for test
-	err := app.Run([]string{"irrelevant", "account", directory, "--import-raw"})
+	err := app.Run([]string{"irrelevant", "account", directory, `--import-raw=0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09`, "--password=1234"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	ctx, err := newTestContext(
-		"Test gossamer account --import-raw",
-		[]string{"basepath", "import-raw"},
-		[]interface{}{testDir, "testfile"},
+		"Test gossamer account --import-raw=0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09 --password=1234",
+		[]string{"import-raw", "password"},
+		[]interface{}{"0x33a6f3093f158a7109f679410bef1a0c54168145e0cecb4df006c1c2fffb1f09", "1234"},
 	)
 	if err != nil {
 		t.Fatal(err)
