@@ -216,7 +216,7 @@ func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
 		parent = block.Header
 	}
 
-	startNum := 16
+	startNum := 15
 	start, err := variadic.NewUint64OrHash(startNum)
 	require.NoError(t, err)
 

@@ -32,7 +32,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 	var startHash common.Hash
 	var endHash common.Hash
 
-	if blockRequest.StartingBlock == nil || blockRequest.EndBlockHash == nil {
+	if blockRequest.StartingBlock == nil {
 		return nil, ErrInvalidBlockRequest
 	}
 
@@ -51,7 +51,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 		startHash = startBlock
 	}
 
-	if blockRequest.EndBlockHash.Exists() {
+	if blockRequest.EndBlockHash != nil && blockRequest.EndBlockHash.Exists() {
 		endHash = blockRequest.EndBlockHash.Value()
 	} else {
 		endHash = s.blockState.BestBlockHash()
