@@ -536,6 +536,7 @@ func createServiceHelper(t *testing.T, num int) []*Service {
 	return srvcs
 }
 
+// nolint
 func connectNoSync(t *testing.T, ctx context.Context, a, b *Service) {
 	t.Helper()
 
@@ -552,6 +553,7 @@ func connectNoSync(t *testing.T, ctx context.Context, a, b *Service) {
 	}
 }
 
+// nolint
 func wait(t *testing.T, ctx context.Context, a, b *dht.IpfsDHT) {
 	t.Helper()
 

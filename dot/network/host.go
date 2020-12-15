@@ -83,6 +83,9 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 
 	// create DHT service
 	dht, err := kaddht.New(ctx, h, dhtOpts...)
+	if err != nil {
+		return nil, err
+	}
 
 	// wrap host and DHT service with routed host
 	h = rhost.Wrap(h, dht)
