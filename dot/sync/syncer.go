@@ -411,7 +411,7 @@ func (s *Service) handleBody(body *types.Body) error {
 // handleHeader handles blocks (header+body) included in BlockResponses
 func (s *Service) handleBlock(block *types.Block) error {
 	if block == nil || block.Header == nil || block.Body == nil {
-		return errors.New("nil block or header")
+		return errors.New("block, header, or body is nil")
 	}
 
 	parent, err := s.blockState.GetHeader(block.Header.ParentHash)

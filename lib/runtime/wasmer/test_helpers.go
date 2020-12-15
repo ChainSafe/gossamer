@@ -31,6 +31,7 @@ import (
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
+// DefaultTestLogLvl is the log level used for test runtime instances
 var DefaultTestLogLvl = log.LvlTrace
 
 // NewTestLegacyInstance will create a new runtime instance using the given target runtime

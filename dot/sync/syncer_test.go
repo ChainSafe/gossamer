@@ -159,7 +159,7 @@ func TestHandleBlockResponse_MaxResponseSize(t *testing.T) {
 
 	for i := 0; i < 130; i++ {
 		block := buildBlock(t, responder.runtime, parent)
-		err := responder.blockState.AddBlock(block)
+		err = responder.blockState.AddBlock(block)
 		require.NoError(t, err)
 		parent = block.Header
 	}
@@ -199,7 +199,7 @@ func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
 
 	for i := 0; i < 4; i++ {
 		block := buildBlock(t, syncer.runtime, parent)
-		err := syncer.blockState.AddBlock(block)
+		err = syncer.blockState.AddBlock(block)
 		require.NoError(t, err)
 		parent = block.Header
 	}
@@ -211,7 +211,7 @@ func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
 
 	for i := 0; i < 16; i++ {
 		block := buildBlock(t, responder.runtime, parent)
-		err := responder.blockState.AddBlock(block)
+		err = responder.blockState.AddBlock(block)
 		require.NoError(t, err)
 		parent = block.Header
 	}
@@ -335,8 +335,6 @@ func buildBlock(t *testing.T, instance runtime.Instance, parent *types.Header) *
 	exts, err := scale.Decode(inherentExts, [][]byte{})
 	require.NoError(t, err)
 
-	bodyExts := []types.Extrinsic{}
-
 	// apply each inherent extrinsic
 	for _, ext := range exts.([][]byte) {
 		in, err := scale.Encode(ext) //nolint
@@ -345,8 +343,6 @@ func buildBlock(t *testing.T, instance runtime.Instance, parent *types.Header) *
 		ret, err := instance.ApplyExtrinsic(in)
 		require.NoError(t, err)
 		require.Equal(t, ret, []byte{0, 0})
-
-		bodyExts = append(bodyExts, in)
 	}
 
 	res, err := instance.FinalizeBlock()

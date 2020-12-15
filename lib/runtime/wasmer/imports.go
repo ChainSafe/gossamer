@@ -300,7 +300,7 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 	values := v.([][]byte)
 
 	for i, val := range values {
-		key, err := scale.Encode(big.NewInt(int64(i)))
+		key, err := scale.Encode(big.NewInt(int64(i))) //nolint
 		if err != nil {
 			logger.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
 			return 0
