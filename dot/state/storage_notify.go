@@ -16,7 +16,10 @@
 package state
 
 import (
+	"context"
 	"errors"
+	"fmt"
+	"github.com/dgraph-io/badger/v2"
 )
 
 // KeyValue struct to hold key value pairs
@@ -73,4 +76,17 @@ func (s *StorageState) notifyChanged(change *KeyValue) {
 			ch <- change
 		}(ch)
 	}
+}
+
+func (s *StorageState)Subscribe(prefixes []byte) {
+	fmt.Printf("SUBSCRIBE CALLED db %v pre %x\n", s.db, prefixes)
+	ctx, _ := context.WithCancel(context.Background())
+	//defer cancel()
+	cb := func(kvs *badger.KVList) error {
+		for _, kv := range kvs.Kv {
+			fmt.Printf("%s is now set to %s\n", kv.Key, kv.Value)
+		}
+		return nil
+	}
+	s.db.Subscribe(ctx, cb, prefixes)
 }

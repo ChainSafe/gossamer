@@ -18,10 +18,10 @@ package state
 
 import (
 	"encoding/binary"
-	"sync"
-
+	"fmt"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"sync"
 
 	"github.com/ChainSafe/chaindb"
 )
@@ -52,7 +52,6 @@ func NewTrieState(db chaindb.Database, t *trie.Trie) (*TrieState, error) {
 		db: tdb,
 		t:  t,
 	}
-
 	return ts, nil
 }
 
@@ -133,7 +132,7 @@ func (s *TrieState) Set(key []byte, value []byte) error {
 	if err != nil {
 		return err
 	}
-
+fmt.Printf("Set called db %v key %x\n",s.db, key)
 	return s.t.Put(key, value)
 }
 

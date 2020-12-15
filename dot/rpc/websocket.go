@@ -247,6 +247,7 @@ type StorageChangeListener struct {
 }
 
 func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (int, error) {
+
 	scl := &StorageChangeListener{
 		channel: make(chan *state.KeyValue),
 		filter:  make(map[string]bool),
@@ -254,11 +255,13 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (i
 	}
 	pA := params.([]interface{})
 	for _, param := range pA {
-		switch param.(type) {
+		switch p := param.(type) {
 		case []interface{}:
-			for _, p := range param.([]interface{}) {
-				scl.filter[p.(string)] = true
+			for _, pp := range param.([]interface{}) {
+				scl.filter[pp.(string)] = true
 			}
+		case string:
+			scl.filter[p] = true
 		default:
 			return 0, fmt.Errorf("unknow parameter type")
 		}
@@ -270,6 +273,12 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (i
 		}
 		return 0, fmt.Errorf("error StorageAPI not set")
 	}
+	for k, _ := range scl.filter {
+		fmt.Printf("Key %v", k)
+
+		c.storageAPI.Subscribe(common.MustHexToBytes("0x26aa394eea5630e07c48ae0c9558cef7ff553b5a9862a516939d82b3d3d8661a"))
+	}
+
 	chanID, err := c.storageAPI.RegisterStorageChangeChannel(scl.channel)
 	if err != nil {
 		return 0, err
