@@ -17,6 +17,7 @@
 package sync
 
 import (
+	"io/ioutil"
 	"math/big"
 	"testing"
 	"time"
@@ -24,8 +25,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -46,9 +45,11 @@ var testGenesisHeader = &types.Header{
 }
 
 func newTestSyncer(t *testing.T) *Service {
+	wasmer.DefaultTestLogLvl = 0
+
 	cfg := &Config{}
-	stateSrvc := state.NewService("", log.LvlInfo)
-	stateSrvc.UseMemDB()
+	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
+	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo)
 
 	genesisData := new(genesis.Data)
 	err := stateSrvc.Initialize(genesisData, testGenesisHeader, trie.NewEmptyTrie(), genesisBABEConfig)
@@ -145,9 +146,10 @@ func TestHandleSeenBlocks_GreaterThanHighestSeen_Synced(t *testing.T) {
 }
 
 func TestHandleBlockResponse_MaxResponseSize(t *testing.T) {
-	//t.Skip()
-	wasmer.DefaultTestLogLvl = 0
-
+	// this test takes around 4 minutes to run
+	if testing.Short() {
+		t.Skip("skipping TestHandleBlockResponse_MaxResponseSize")
+	}
 	syncer := newTestSyncer(t)
 	syncer.highestSeenBlock = big.NewInt(132)
 
@@ -155,14 +157,12 @@ func TestHandleBlockResponse_MaxResponseSize(t *testing.T) {
 	parent, err := responder.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
-	for i := 0; i < 1; i++ {
-		t.Log(parent.Hash())
+	for i := 0; i < 130; i++ {
 		block := buildBlock(t, responder.runtime, parent)
 		err := responder.blockState.AddBlock(block)
 		require.NoError(t, err)
 		parent = block.Header
 	}
-	//addTestBlocksToState(t, 130, responder.blockState)
 
 	startNum := 1
 	start, err := variadic.NewUint64OrHash(startNum)
@@ -191,13 +191,30 @@ func TestHandleBlockResponse_MaxResponseSize(t *testing.T) {
 }
 
 func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
-	t.Skip()
 	syncer := newTestSyncer(t)
 	syncer.highestSeenBlock = big.NewInt(20)
-	addTestBlocksToState(t, 4, syncer.blockState)
+
+	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
+	require.NoError(t, err)
+
+	for i := 0; i < 4; i++ {
+		block := buildBlock(t, syncer.runtime, parent)
+		err := syncer.blockState.AddBlock(block)
+		require.NoError(t, err)
+		parent = block.Header
+	}
 
 	responder := newTestSyncer(t)
-	addTestBlocksToState(t, 16, responder.blockState)
+
+	parent, err = responder.blockState.(*state.BlockState).BestBlockHeader()
+	require.NoError(t, err)
+
+	for i := 0; i < 16; i++ {
+		block := buildBlock(t, responder.runtime, parent)
+		err := responder.blockState.AddBlock(block)
+		require.NoError(t, err)
+		parent = block.Header
+	}
 
 	startNum := 16
 	start, err := variadic.NewUint64OrHash(startNum)
@@ -263,21 +280,16 @@ func TestHandleBlockResponse_NoBlockData(t *testing.T) {
 }
 
 func TestHandleBlockResponse_BlockData(t *testing.T) {
-	t.Skip()
 	syncer := newTestSyncer(t)
 
-	cHeader := &optional.CoreHeader{
-		ParentHash:     syncer.blockState.BestBlockHash(), // executeBlock fails empty or 0 hash
-		Number:         big.NewInt(1),
-		StateRoot:      trie.EmptyHash,
-		ExtrinsicsRoot: common.Hash{},
-		Digest:         nil,
-	}
-	header := optional.NewHeader(true, cHeader)
+	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
+	require.NoError(t, err)
+	block := buildBlock(t, syncer.runtime, parent)
+
 	bd := []*types.BlockData{{
-		Hash:          common.Hash{},
-		Header:        header,
-		Body:          optional.NewBody(true, optional.CoreBody{}),
+		Hash:          block.Header.Hash(),
+		Header:        block.Header.AsOptional(),
+		Body:          block.Body.AsOptional(),
 		Receipt:       nil,
 		MessageQueue:  nil,
 		Justification: nil,

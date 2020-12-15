@@ -147,6 +147,7 @@ func (s *TrieState) Get(key []byte) ([]byte, error) {
 	}
 
 	return nil, nil
+	//return s.t.Get(key)
 }
 
 // MustRoot returns the trie's root hash. It panics if it fails to compute the root.

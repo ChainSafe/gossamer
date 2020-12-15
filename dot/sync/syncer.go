@@ -427,8 +427,6 @@ func (s *Service) handleBlock(block *types.Block) error {
 
 	s.runtime.SetContext(ts)
 
-	fmt.Println(block)
-
 	_, err = s.runtime.ExecuteBlock(block)
 	if err != nil {
 		return err
