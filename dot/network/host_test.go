@@ -21,7 +21,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -491,22 +490,12 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	require.NoError(t, err)
 
 	info := nodeA.notificationsProtocols[BlockAnnounceMsgType]
-	handler := nodeA.createNotificationsMessageHandler(info, nodeA.validateBlockAnnounceHandshake, nodeA.handleBlockAnnounceMessage)
 
 	// Set handshake data to received
 	info.handshakeData[nodeB.host.id()] = &handshakeData{
 		received:  true,
 		validated: true,
 	}
-	msg :=  &BlockAnnounceHandshake{
-		Roles:           4,
-		BestBlockNumber: 77,
-		BestBlockHash:   common.Hash{1},
-		GenesisHash:     common.Hash{2},
-	}
-
-	err = handler(nodeB.host.id(), msg)
-	require.NoError(t, err)
 
 	// Verify that handshake data exists.
 	_, ok := info.handshakeData[nodeB.host.id()]
