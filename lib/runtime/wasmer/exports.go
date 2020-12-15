@@ -140,7 +140,8 @@ func (in *LegacyInstance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	// copy block since we're going to modify it
 	b := block.DeepCopy()
 
-	// TODO: remove seal digest
+	// TODO: remove seal digest only
+	b.Header.Digest = [][]byte{}
 	bdEnc, err := b.Encode()
 	if err != nil {
 		return nil, err

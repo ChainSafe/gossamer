@@ -331,9 +331,11 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 }
 
 //export ext_misc_print_hex_version_1
-func ext_misc_print_hex_version_1(context unsafe.Pointer, a C.int64_t) {
+func ext_misc_print_hex_version_1(context unsafe.Pointer, dataSpan C.int64_t) {
 	logger.Trace("[ext_misc_print_hex_version_1] executing...")
-	logger.Warn("[ext_misc_print_hex_version_1] unimplemented")
+	instanceContext := wasm.IntoInstanceContext(context)
+	data := asMemorySlice(instanceContext, dataSpan)
+	logger.Info("[ext_misc_print_hex_version_1]", "data", fmt.Sprintf("0x%x", data))
 }
 
 //export ext_misc_print_num_version_1

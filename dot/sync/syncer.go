@@ -431,6 +431,8 @@ func (s *Service) handleBlock(block *types.Block) error {
 
 	s.runtime.SetContext(ts)
 
+	s.logger.Info("going to execute block", "block", block, "exts", block.Body)
+
 	_, err = s.runtime.ExecuteBlock(block)
 	if err != nil {
 		return err
