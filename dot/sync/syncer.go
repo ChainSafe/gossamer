@@ -313,7 +313,7 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 		hasHeader, _ := s.blockState.HasHeader(bd.Hash)
 		hasBody, _ := s.blockState.HasBlockBody(bd.Hash)
 		if hasHeader && hasBody {
-			return 0, 0, nil
+			continue
 		}
 
 		if bd.Header.Exists() && !hasHeader {
