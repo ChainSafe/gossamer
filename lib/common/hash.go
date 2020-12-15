@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"reflect"
 	"strings"
 )
 
@@ -46,6 +47,19 @@ func NewHash(in []byte) (res Hash) {
 func (h Hash) ToBytes() []byte {
 	b := [32]byte(h)
 	return b[:]
+}
+
+// HashValidator validates hash fields
+func HashValidator(field reflect.Value) interface{} {
+	// Try to convert to hash type.
+	if valuer, ok := field.Interface().(Hash); ok {
+		// Check if the hash is empty.
+		if valuer.Equal(Hash{}) {
+			return ""
+		}
+		return valuer.ToBytes()
+	}
+	return ""
 }
 
 // Equal compares two hashes
@@ -92,7 +106,7 @@ func BytesToHash(b []byte) Hash {
 func (h *Hash) UnmarshalJSON(data []byte) error {
 	trimmedData := strings.Trim(string(data), "\"")
 	if len(trimmedData) < 2 {
-		return errors.New("incorrect hash format")
+		return errors.New("invalid hash format")
 	}
 
 	var err error

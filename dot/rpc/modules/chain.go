@@ -36,8 +36,11 @@ type ChainBlockNumberRequest struct {
 	Block interface{}
 }
 
-// ChainIntRequest represents an integer
-type ChainIntRequest uint64
+// ChainFinalizedHeadRequest ...
+type ChainFinalizedHeadRequest struct {
+	Round uint64
+	SetID uint64
+}
 
 // ChainBlockHeaderResponse struct
 type ChainBlockHeaderResponse struct {
@@ -139,10 +142,8 @@ func (cm *ChainModule) GetFinalizedHead(r *http.Request, req *EmptyRequest, res 
 }
 
 // GetFinalizedHeadByRound returns the hash of the block finalized at the given round and setID
-func (cm *ChainModule) GetFinalizedHeadByRound(r *http.Request, req *[]ChainIntRequest, res *ChainHashResponse) error {
-	round := (uint64)((*req)[0])
-	setID := (uint64)((*req)[1])
-	h, err := cm.blockAPI.GetFinalizedHash(round, setID)
+func (cm *ChainModule) GetFinalizedHeadByRound(r *http.Request, req *ChainFinalizedHeadRequest, res *ChainHashResponse) error {
+	h, err := cm.blockAPI.GetFinalizedHash(req.Round, req.SetID)
 	if err != nil {
 		return err
 	}

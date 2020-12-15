@@ -60,14 +60,21 @@ func (s *mockSyncer) IsSynced() bool {
 	return false
 }
 
+type mockTransactionHandler struct{}
+
+func (h *mockTransactionHandler) HandleTransactionMessage(_ *network.TransactionMessage) error {
+	return nil
+}
+
 func newNetworkService(t *testing.T) *network.Service {
 	testDir := path.Join(os.TempDir(), "test_data")
 
 	cfg := &network.Config{
-		NoStatus:     true,
-		NetworkState: &state.NetworkState{},
-		BasePath:     testDir,
-		Syncer:       &mockSyncer{},
+		NoStatus:           true,
+		NetworkState:       &state.NetworkState{},
+		BasePath:           testDir,
+		Syncer:             &mockSyncer{},
+		TransactionHandler: &mockTransactionHandler{},
 	}
 
 	srv, err := network.NewService(cfg)
@@ -87,8 +94,8 @@ func TestSystemModule_Health(t *testing.T) {
 	err := sys.Health(nil, nil, res)
 	require.NoError(t, err)
 
-	if res.Health != testHealth {
-		t.Errorf("System.Health.: expected: %+v got: %+v\n", testHealth, res.Health)
+	if *res != SystemHealthResponse(testHealth) {
+		t.Errorf("System.Health.: expected: %+v got: %+v\n", testHealth, *res)
 	}
 }
 
@@ -117,8 +124,8 @@ func TestSystemModule_Peers(t *testing.T) {
 	err := sys.Peers(nil, nil, res)
 	require.NoError(t, err)
 
-	if len(res.Peers) != len(testPeers) {
-		t.Errorf("System.Peers: expected: %+v got: %+v\n", testPeers, res.Peers)
+	if len(*res) != len(testPeers) {
+		t.Errorf("System.Peers: expected: %+v got: %+v\n", testPeers, *res)
 	}
 }
 

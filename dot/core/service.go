@@ -61,9 +61,8 @@ type Service struct {
 	isBlockProducer bool
 
 	// Finality gadget variables
-	finalityGadget          FinalityGadget
-	isFinalityAuthority     bool
-	consensusMessageHandler ConsensusMessageHandler
+	finalityGadget      FinalityGadget
+	isFinalityAuthority bool
 
 	// Block verification
 	verifier Verifier
@@ -84,19 +83,18 @@ type Service struct {
 
 // Config holds the configuration for the core Service.
 type Config struct {
-	LogLvl                  log.Lvl
-	BlockState              BlockState
-	StorageState            StorageState
-	TransactionState        TransactionState
-	Network                 Network
-	Keystore                *keystore.GlobalKeystore
-	Runtime                 runtime.LegacyInstance
-	BlockProducer           BlockProducer
-	IsBlockProducer         bool
-	FinalityGadget          FinalityGadget
-	IsFinalityAuthority     bool
-	ConsensusMessageHandler ConsensusMessageHandler
-	Verifier                Verifier
+	LogLvl              log.Lvl
+	BlockState          BlockState
+	StorageState        StorageState
+	TransactionState    TransactionState
+	Network             Network
+	Keystore            *keystore.GlobalKeystore
+	Runtime             runtime.LegacyInstance
+	BlockProducer       BlockProducer
+	IsBlockProducer     bool
+	FinalityGadget      FinalityGadget
+	IsFinalityAuthority bool
+	Verifier            Verifier
 
 	NewBlocks     chan types.Block // only used for testing purposes
 	BabeThreshold *big.Int         // used by Verifier, for development purposes
@@ -129,10 +127,6 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilFinalityGadget
 	}
 
-	if cfg.ConsensusMessageHandler == nil {
-		return nil, ErrNilConsensusMessageHandler
-	}
-
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
 	h = log.CallerFileHandler(h)
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
@@ -156,25 +150,24 @@ func NewService(cfg *Config) (*Service, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	srv := &Service{
-		ctx:                     ctx,
-		cancel:                  cancel,
-		rt:                      cfg.Runtime,
-		codeHash:                codeHash,
-		keys:                    cfg.Keystore,
-		blkRec:                  cfg.NewBlocks,
-		blockState:              cfg.BlockState,
-		storageState:            cfg.StorageState,
-		transactionState:        cfg.TransactionState,
-		net:                     cfg.Network,
-		isBlockProducer:         cfg.IsBlockProducer,
-		blockProducer:           cfg.BlockProducer,
-		finalityGadget:          cfg.FinalityGadget,
-		consensusMessageHandler: cfg.ConsensusMessageHandler,
-		verifier:                cfg.Verifier,
-		isFinalityAuthority:     cfg.IsFinalityAuthority,
-		lock:                    &sync.Mutex{},
-		blockAddCh:              blockAddCh,
-		blockAddChID:            id,
+		ctx:                 ctx,
+		cancel:              cancel,
+		rt:                  cfg.Runtime,
+		codeHash:            codeHash,
+		keys:                cfg.Keystore,
+		blkRec:              cfg.NewBlocks,
+		blockState:          cfg.BlockState,
+		storageState:        cfg.StorageState,
+		transactionState:    cfg.TransactionState,
+		net:                 cfg.Network,
+		isBlockProducer:     cfg.IsBlockProducer,
+		blockProducer:       cfg.BlockProducer,
+		finalityGadget:      cfg.FinalityGadget,
+		verifier:            cfg.Verifier,
+		isFinalityAuthority: cfg.IsFinalityAuthority,
+		lock:                &sync.Mutex{},
+		blockAddCh:          blockAddCh,
+		blockAddChID:        id,
 	}
 
 	if cfg.NewBlocks != nil {
@@ -202,15 +195,6 @@ func (s *Service) Start() error {
 	ctx, _ = context.WithCancel(s.ctx) //nolint
 	go s.handleBlocks(ctx)
 
-	if s.isFinalityAuthority && s.finalityGadget != nil {
-		logger.Debug("routing finality gadget messages")
-		ctx, _ = context.WithCancel(s.ctx) //nolint
-		go s.sendVoteMessages(ctx)
-
-		ctx, _ = context.WithCancel(s.ctx) //nolint
-		go s.sendFinalizationMessages(ctx)
-	}
-
 	return nil
 }
 
@@ -224,11 +208,6 @@ func (s *Service) Stop() error {
 	close(s.blockAddCh)
 
 	return nil
-}
-
-// SetNetwork sets the network interface for core
-func (s *Service) SetNetwork(net Network) {
-	s.net = net
 }
 
 // StorageRoot returns the hash of the storage root
@@ -337,17 +316,11 @@ func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
 }
 
 // handleReceivedMessage handles messages from the network service
+// TODO: delete this once all sub-protocols are updated
 func (s *Service) handleReceivedMessage(msg network.Message) (err error) {
 	msgType := msg.Type()
 
 	switch msgType {
-	case network.ConsensusMsgType: // 5
-		msg, ok := msg.(*network.ConsensusMessage)
-		if !ok {
-			return ErrMessageCast("ConsensusMessage")
-		}
-
-		err = s.processConsensusMessage(msg)
 	default:
 		err = ErrUnsupportedMsgType(msgType)
 	}
