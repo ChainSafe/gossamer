@@ -29,7 +29,7 @@ import (
 )
 
 func TestNewHTTPServer(t *testing.T) {
-	coreAPI := core.NewTestService(t, nil, nil)
+	coreAPI := core.NewTestService(t, nil)
 	si := &types.SystemInfo{
 		SystemName: "gossamer",
 	}

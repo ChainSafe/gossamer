@@ -72,9 +72,6 @@ func decodeMessage(r io.Reader) (m Message, err error) {
 	case BlockResponseMsgType:
 		m = new(BlockResponseMessage)
 		err = m.Decode(r)
-	case ConsensusMsgType:
-		m = new(ConsensusMessage)
-		err = m.Decode(r)
 	case LightRequestType:
 		m = new(LightRequest)
 		err = m.Decode(r)
@@ -320,7 +317,7 @@ func (bm *BlockAnnounceMessage) Type() byte {
 
 // string formats a BlockAnnounceMessage as a string
 func (bm *BlockAnnounceMessage) String() string {
-	return fmt.Sprintf("BlockAnnounceMessage ParentHash=0x%x Number=%d StateRoot=0x%x ExtrinsicsRoot=0x%x Digest=0x%x",
+	return fmt.Sprintf("BlockAnnounceMessage ParentHash=%s Number=%d StateRoot=%sx ExtrinsicsRoot=%s Digest=%v",
 		bm.ParentHash,
 		bm.Number,
 		bm.StateRoot,
@@ -509,8 +506,7 @@ func (cm *ConsensusMessage) String() string {
 
 // Encode encodes a block response message using SCALE and appends the type byte to the start
 func (cm *ConsensusMessage) Encode() ([]byte, error) {
-	encMsg := []byte{ConsensusMsgType}
-	encMsg = append(encMsg, cm.ConsensusEngineID.ToBytes()...)
+	encMsg := cm.ConsensusEngineID.ToBytes()
 	return append(encMsg, cm.Data...), nil
 }
 

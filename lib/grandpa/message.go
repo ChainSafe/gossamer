@@ -1,10 +1,25 @@
+// Copyright 2020 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package grandpa
 
 import (
 	"bytes"
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -12,25 +27,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
-// FinalityMessage is an alias for the core.FinalityMessage interface
-type FinalityMessage = core.FinalityMessage
-
-// ConsensusMessage is an alias for network.ConsensusMessage
-type ConsensusMessage = network.ConsensusMessage
-
-// GetVoteOutChannel returns a read-only VoteMessage channel
-func (s *Service) GetVoteOutChannel() <-chan FinalityMessage {
-	return s.out
-}
-
-// GetVoteInChannel returns a write-only VoteMessage channel
-func (s *Service) GetVoteInChannel() chan<- FinalityMessage {
-	return s.in
-}
-
-// GetFinalizedChannel returns a read-only FinalizationMessage channel
-func (s *Service) GetFinalizedChannel() <-chan FinalityMessage {
-	return s.finalized
+// GrandpaMessage is implemented by all GRANDPA network messages
+type GrandpaMessage interface { //nolint
+	ToConsensusMessage() (*network.ConsensusMessage, error)
+	Type() byte
 }
 
 var (
