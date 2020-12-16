@@ -73,10 +73,7 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 	b.logger.Trace("built block inherents")
 
 	// add block extrinsics
-	included, err := b.buildBlockExtrinsics(slot)
-	if err != nil {
-		return nil, fmt.Errorf("cannot build extrinsics: %s", err)
-	}
+	included := b.buildBlockExtrinsics(slot)
 
 	b.logger.Trace("built block extrinsics")
 
@@ -180,7 +177,7 @@ func (b *Service) buildBlockBabeHeader(slot Slot) (*types.BabeHeader, error) {
 // buildBlockExtrinsics applies extrinsics to the block. it returns an array of included extrinsics.
 // for each extrinsic in queue, add it to the block, until the slot ends or the block is full.
 // if any extrinsic fails, it returns an empty array and an error.
-func (b *Service) buildBlockExtrinsics(slot Slot) ([]*transaction.ValidTransaction, error) {
+func (b *Service) buildBlockExtrinsics(slot Slot) []*transaction.ValidTransaction {
 	next := b.nextReadyExtrinsic()
 	included := []*transaction.ValidTransaction{}
 
@@ -211,7 +208,7 @@ func (b *Service) buildBlockExtrinsics(slot Slot) ([]*transaction.ValidTransacti
 		next = b.nextReadyExtrinsic()
 	}
 
-	return included, nil
+	return included
 }
 
 // buildBlockInherents applies the inherents for a block
