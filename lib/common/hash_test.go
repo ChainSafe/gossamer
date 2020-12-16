@@ -35,7 +35,7 @@ func TestCustomUnmarshalJson(t *testing.T) {
 		errMsg      string
 		expected    string
 	}{
-		{description: "Test empty params", hash: "", errMsg: "incorrect hash format"},
+		{description: "Test empty params", hash: "", errMsg: "invalid hash format"},
 		{description: "Test valid params", hash: randomHashString, expected: randomHashString},
 		{description: "Test zero hash value", hash: "0x", expected: emptyHash},
 		{description: "Test invalid params", hash: "zz", errMsg: "could not byteify non 0x prefixed string"},

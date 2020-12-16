@@ -200,23 +200,20 @@ func createCoreService(cfg *Config, bp core.BlockProducer, fg core.FinalityGadge
 		"authority", cfg.Core.Roles == types.AuthorityRole,
 	)
 
-	handler := grandpa.NewMessageHandler(fg.(*grandpa.Service), stateSrvc.Block)
-
 	// set core configuration
 	coreConfig := &core.Config{
-		LogLvl:                  cfg.Log.CoreLvl,
-		BlockState:              stateSrvc.Block,
-		StorageState:            stateSrvc.Storage,
-		TransactionState:        stateSrvc.Transaction,
-		BlockProducer:           bp,
-		FinalityGadget:          fg,
-		ConsensusMessageHandler: handler,
-		Keystore:                ks,
-		Runtime:                 rt,
-		IsBlockProducer:         cfg.Core.BabeAuthority,
-		IsFinalityAuthority:     cfg.Core.GrandpaAuthority,
-		Verifier:                verifier,
-		Network:                 net,
+		LogLvl:              cfg.Log.CoreLvl,
+		BlockState:          stateSrvc.Block,
+		StorageState:        stateSrvc.Storage,
+		TransactionState:    stateSrvc.Transaction,
+		BlockProducer:       bp,
+		FinalityGadget:      fg,
+		Keystore:            ks,
+		Runtime:             rt,
+		IsBlockProducer:     cfg.Core.BabeAuthority,
+		IsFinalityAuthority: cfg.Core.GrandpaAuthority,
+		Verifier:            verifier,
+		Network:             net,
 	}
 
 	// create new core service
@@ -232,7 +229,7 @@ func createCoreService(cfg *Config, bp core.BlockProducer, fg core.FinalityGadge
 // Network Service
 
 // createNetworkService creates a network service from the command configuration and genesis data
-func createNetworkService(cfg *Config, stateSrvc *state.Service, syncer *sync.Service, coreSrvc *core.Service) (*network.Service, error) {
+func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Service, error) {
 	logger.Info(
 		"creating network service...",
 		"roles", cfg.Core.Roles,
@@ -245,19 +242,16 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service, syncer *sync.Se
 
 	// network service configuation
 	networkConfig := network.Config{
-		LogLvl:             cfg.Log.NetworkLvl,
-		BlockState:         stateSrvc.Block,
-		NetworkState:       stateSrvc.Network,
-		BasePath:           cfg.Global.BasePath,
-		Roles:              cfg.Core.Roles,
-		Port:               cfg.Network.Port,
-		Bootnodes:          cfg.Network.Bootnodes,
-		ProtocolID:         cfg.Network.ProtocolID,
-		NoBootstrap:        cfg.Network.NoBootstrap,
-		NoMDNS:             cfg.Network.NoMDNS,
-		Syncer:             syncer,
-		TransactionHandler: coreSrvc,
-		MessageHandler:     coreSrvc,
+		LogLvl:       cfg.Log.NetworkLvl,
+		BlockState:   stateSrvc.Block,
+		NetworkState: stateSrvc.Network,
+		BasePath:     cfg.Global.BasePath,
+		Roles:        cfg.Core.Roles,
+		Port:         cfg.Network.Port,
+		Bootnodes:    cfg.Network.Bootnodes,
+		ProtocolID:   cfg.Network.ProtocolID,
+		NoBootstrap:  cfg.Network.NoBootstrap,
+		NoMDNS:       cfg.Network.NoMDNS,
 	}
 
 	networkSrvc, err := network.NewService(&networkConfig)
@@ -311,7 +305,7 @@ func createSystemService(cfg *types.SystemInfo) *system.Service {
 }
 
 // createGRANDPAService creates a new GRANDPA service
-func createGRANDPAService(cfg *Config, rt runtime.LegacyInstance, st *state.Service, dh *core.DigestHandler, ks keystore.Keystore) (*grandpa.Service, error) {
+func createGRANDPAService(cfg *Config, rt runtime.LegacyInstance, st *state.Service, dh *core.DigestHandler, ks keystore.Keystore, net *network.Service) (*grandpa.Service, error) {
 	ad, err := rt.GrandpaAuthorities()
 	if err != nil {
 		return nil, err
@@ -335,6 +329,7 @@ func createGRANDPAService(cfg *Config, rt runtime.LegacyInstance, st *state.Serv
 		SetID:         1,
 		Voters:        voters,
 		Authority:     cfg.Core.GrandpaAuthority,
+		Network:       net,
 	}
 
 	if cfg.Core.GrandpaAuthority {
