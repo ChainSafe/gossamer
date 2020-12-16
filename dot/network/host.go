@@ -78,7 +78,10 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 
 	dhtOpts := []kaddht.Option{
 		kaddht.Datastore(dsync.MutexWrap(ds.NewMapDatastore())),
-		kaddht.Mode(kaddht.ModeAutoServer),
+	}
+
+	if cfg.NoMDNS {
+		dhtOpts = append(dhtOpts, kaddht.Mode(kaddht.ModeAutoServer))
 	}
 
 	// create DHT service
