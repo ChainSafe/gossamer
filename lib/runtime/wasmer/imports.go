@@ -325,62 +325,187 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, z C.int64_t) C.i
 }
 
 //export ext_default_child_storage_read_version_1
-func ext_default_child_storage_read_version_1(context unsafe.Pointer, a C.int64_t, b C.int64_t, c C.int64_t, d C.int32_t) C.int64_t {
+func ext_default_child_storage_read_version_1(context unsafe.Pointer, childStorageKey C.int64_t, key C.int64_t, valueOut C.int64_t, offset C.int32_t) C.int64_t {
 	logger.Trace("[ext_default_child_storage_read_version_1] executing...")
-	logger.Warn("[ext_default_child_storage_read_version_1] unimplemented")
-	return 0
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	storage := instanceContext.Data().(*runtime.Context).Storage
+	memory := instanceContext.Memory().Data()
+
+	value, err := storage.GetChildStorage(asMemorySlice(instanceContext, childStorageKey), asMemorySlice(instanceContext, key))
+	if err != nil {
+		logger.Error("[ext_default_child_storage_read_version_1] failed to get child storage", "error", err)
+		return 0
+	}
+
+	valueBuf, valueLen := int64ToPointerAndSize(int64(valueOut))
+	copy(memory[valueBuf:valueBuf+valueLen], value[offset:])
+
+	size := uint32(len(value[offset:]))
+	sizeBuf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(sizeBuf, size)
+
+	sizeSpan, err := toWasmMemoryOptional(instanceContext, sizeBuf)
+	if err != nil {
+		logger.Error("[ext_default_child_storage_read_version_1] failed to allocate", "error", err)
+		panic(err)
+	}
+
+	return C.int64_t(sizeSpan)
 }
 
 //export ext_default_child_storage_clear_version_1
-func ext_default_child_storage_clear_version_1(context unsafe.Pointer, a, b C.int64_t) {
+func ext_default_child_storage_clear_version_1(context unsafe.Pointer, childStorageKey, key C.int64_t) {
 	logger.Trace("[ext_default_child_storage_clear_version_1] executing...")
-	logger.Warn("[ext_default_child_storage_clear_version_1] unimplemented")
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	storage := instanceContext.Data().(*runtime.Context).Storage
+
+	err := storage.ClearChildStorage(asMemorySlice(instanceContext, childStorageKey), asMemorySlice(instanceContext, key))
+	if err != nil {
+		logger.Error("[ext_default_child_storage_clear_version_1] failed to clear child storage", "error", err)
+	}
 }
 
 //export ext_default_child_storage_clear_prefix_version_1
-func ext_default_child_storage_clear_prefix_version_1(context unsafe.Pointer, a C.int64_t, b C.int64_t) {
+func ext_default_child_storage_clear_prefix_version_1(context unsafe.Pointer, childStorageKey C.int64_t, prefix C.int64_t) {
 	logger.Trace("[ext_default_child_storage_clear_prefix_version_1] executing...")
-	logger.Warn("[ext_default_child_storage_clear_prefix_version_1] unimplemented")
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	storage := instanceContext.Data().(*runtime.Context).Storage
+
+	keys := storage.GetChildByPrefix(asMemorySlice(instanceContext, childStorageKey), asMemorySlice(instanceContext, prefix))
+	for _, v := range keys {
+		err := storage.ClearChildStorage(asMemorySlice(instanceContext, childStorageKey), v)
+		if err != nil {
+			logger.Error("[ext_default_child_storage_clear_prefix_version_1] failed to clear child storage by prefix", "error", err)
+			continue
+		}
+	}
 }
 
 //export ext_default_child_storage_exists_version_1
-func ext_default_child_storage_exists_version_1(context unsafe.Pointer, a C.int64_t, b C.int64_t) C.int32_t {
+func ext_default_child_storage_exists_version_1(context unsafe.Pointer, childStorageKey C.int64_t, key C.int64_t) C.int32_t {
 	logger.Trace("[ext_default_child_storage_exists_version_1] executing...")
-	logger.Warn("[ext_default_child_storage_exists_version_1] unimplemented")
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	storage := instanceContext.Data().(*runtime.Context).Storage
+
+	child, err := storage.GetChildStorage(asMemorySlice(instanceContext, childStorageKey), asMemorySlice(instanceContext, key))
+	if err != nil {
+		logger.Error("[ext_default_child_storage_exists_version_1] failed to get child from child storage", "error", err)
+		return 0
+	}
+	if child != nil {
+		return 1
+	}
 	return 0
 }
 
 //export ext_default_child_storage_get_version_1
-func ext_default_child_storage_get_version_1(context unsafe.Pointer, a, b C.int64_t) C.int64_t {
+func ext_default_child_storage_get_version_1(context unsafe.Pointer, childStorageKey, key C.int64_t) C.int64_t {
 	logger.Trace("[ext_default_child_storage_get_version_1] executing...")
-	logger.Warn("[ext_default_child_storage_get_version_1] unimplemented")
-	return 0
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	storage := instanceContext.Data().(*runtime.Context).Storage
+
+	child, err := storage.GetChildStorage(asMemorySlice(instanceContext, childStorageKey), asMemorySlice(instanceContext, key))
+	if err != nil {
+		logger.Error("[ext_default_child_storage_get_version_1] failed to get child from child storage", "error", err)
+		return 0
+	}
+
+	value, err := toWasmMemoryOptional(instanceContext, child)
+	if err != nil {
+		logger.Error("[ext_default_child_storage_get_version_1] failed to allocate", "error", err)
+		panic(err)
+	}
+
+	return C.int64_t(value)
 }
 
 //export ext_default_child_storage_next_key_version_1
-func ext_default_child_storage_next_key_version_1(context unsafe.Pointer, a C.int64_t, b C.int64_t) C.int64_t {
+func ext_default_child_storage_next_key_version_1(context unsafe.Pointer, childStorageKey C.int64_t, key C.int64_t) C.int64_t {
 	logger.Trace("[ext_default_child_storage_next_key_version_1] executing...")
-	logger.Warn("[ext_default_child_storage_next_key_version_1] unimplemented")
-	return 0
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	storage := instanceContext.Data().(*runtime.Context).Storage
+
+	child := storage.GetChildNextKey(asMemorySlice(instanceContext, childStorageKey), asMemorySlice(instanceContext, key))
+
+	value, err := toWasmMemoryOptional(instanceContext, child)
+	if err != nil {
+		logger.Error("[ext_default_child_storage_next_key_version_1] failed to allocate", "error", err)
+		panic(err)
+	}
+
+	return C.int64_t(value)
 }
 
 //export ext_default_child_storage_root_version_1
-func ext_default_child_storage_root_version_1(context unsafe.Pointer, z C.int64_t) C.int64_t {
+func ext_default_child_storage_root_version_1(context unsafe.Pointer, childStorageKey C.int64_t) C.int64_t {
 	logger.Trace("[ext_default_child_storage_root_version_1] executing...")
-	logger.Warn("[ext_default_child_storage_root_version_1] unimplemented")
-	return 0
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	storage := instanceContext.Data().(*runtime.Context).Storage
+
+	// TODO: Should we write to DB or load from DB to state trie
+	// Commit() loads the state trie from DB
+	// WriteTrieToDB() writes the state trie to the DB
+	err := storage.Commit()
+	if err != nil {
+		logger.Error("[ext_default_child_storage_root_version_1] failed to commit all operations", "error", err)
+		panic(err)
+	}
+
+	child, err := storage.GetChild(asMemorySlice(instanceContext, childStorageKey))
+	if err != nil {
+		logger.Error("[ext_default_child_storage_root_version_1] failed to retrieve child", "error", err)
+		panic(err)
+	}
+
+	childRoot, err := child.EncodeRoot()
+	if err != nil {
+		logger.Error("[ext_default_child_storage_root_version_1] failed to encode child root", "error", err)
+		panic(err)
+	}
+
+	root, err := toWasmMemoryOptional(instanceContext, childRoot)
+	if err != nil {
+		logger.Error("[ext_default_child_storage_root_version_1] failed to allocate", "error", err)
+		panic(err)
+	}
+
+	return C.int64_t(root)
 }
 
 //export ext_default_child_storage_set_version_1
-func ext_default_child_storage_set_version_1(context unsafe.Pointer, a, b, z C.int64_t) {
+func ext_default_child_storage_set_version_1(context unsafe.Pointer, childStorageKey, key, value C.int64_t) {
 	logger.Trace("[ext_default_child_storage_set_version_1] executing...")
-	logger.Warn("[ext_default_child_storage_set_version_1] unimplemented")
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	storage := instanceContext.Data().(*runtime.Context).Storage
+
+	err := storage.SetChildStorage(asMemorySlice(instanceContext, childStorageKey), asMemorySlice(instanceContext, key), asMemorySlice(instanceContext, value))
+	if err != nil {
+		logger.Error("[ext_default_child_storage_set_version_1] failed to set value in child storage", "error", err)
+		panic(err)
+	}
 }
 
 //export ext_default_child_storage_storage_kill_version_1
-func ext_default_child_storage_storage_kill_version_1(context unsafe.Pointer, a C.int64_t) {
+func ext_default_child_storage_storage_kill_version_1(context unsafe.Pointer, childStorageKey C.int64_t) {
 	logger.Trace("[ext_default_child_storage_storage_kill_version_1] executing...")
-	logger.Warn("[ext_default_child_storage_storage_kill_version_1] unimplemented")
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	storage := instanceContext.Data().(*runtime.Context).Storage
+
+	err := storage.DeleteChildStorage(asMemorySlice(instanceContext, childStorageKey))
+	if err != nil {
+		logger.Error("[ext_default_child_storage_storage_kill_version_1] failed to delete child storage from trie", "error", err)
+		panic(err)
+	}
+
 }
 
 //export ext_allocator_free_version_1

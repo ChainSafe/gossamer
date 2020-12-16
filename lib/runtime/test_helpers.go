@@ -237,6 +237,26 @@ func (trs *TestRuntimeStorage) NextKey(in []byte) []byte {
 	return trs.trie.NextKey(in)
 }
 
+// GetChildByPrefix ...
+func (trs *TestRuntimeStorage) GetChildByPrefix(keyToChild, prefix []byte) [][]byte {
+	panic("implement me")
+}
+
+// GetChildNextKey ...
+func (trs *TestRuntimeStorage) GetChildNextKey(keyToChild, prefix []byte) []byte {
+	panic("implement me")
+}
+
+// GetChild ...
+func (trs *TestRuntimeStorage) GetChild(keyToChild []byte) (*trie.Trie, error) {
+	panic("implement me")
+}
+
+// Commit ...
+func (trs *TestRuntimeStorage) Commit() error {
+	panic("implement me")
+}
+
 // TestRuntimeNetwork ...
 type TestRuntimeNetwork struct {
 }
