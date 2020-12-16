@@ -126,7 +126,7 @@ func compareBlocksByNumber(t *testing.T, nodes []*utils.Node, num string) (map[c
 }
 
 // compareBlocksByNumberWithRetry calls compareChainHeads, retrying up to maxRetries times if it errors.
-func compareBlocksByNumberWithRetry(t *testing.T, nodes []*utils.Node, num string) error {
+func compareBlocksByNumberWithRetry(t *testing.T, nodes []*utils.Node, num string) (map[common.Hash][]string, error) {
 	var hashes map[common.Hash][]string
 	var err error
 
@@ -147,7 +147,7 @@ doneBlockProduction:
 	if err != nil {
 		err = fmt.Errorf("%w: hashes=%v", err, hashes)
 	}
-	return err
+	return hashes, err
 }
 
 // compareFinalizedHeads calls getFinalizedHeadByRound for each node in the array
