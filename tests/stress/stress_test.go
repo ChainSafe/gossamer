@@ -248,8 +248,8 @@ func TestSync_Bench(t *testing.T) {
 		}
 	}
 
-	maxTime := time.Second * 78
-	minBPS := float64(0.8)
+	maxTime := time.Second * 85
+	minBPS := float64(0.75)
 	totalTime := end.Sub(start)
 	bps := float64(numBlocks) / end.Sub(start).Seconds()
 	t.Log("total sync time:", totalTime)
@@ -289,7 +289,7 @@ func TestSync_Restart(t *testing.T) {
 	go func() {
 		for {
 			select {
-			case <-time.After(time.Second * 5):
+			case <-time.After(time.Second * 10):
 				idx := rand.Intn(numNodes)
 
 				errList := utils.StopNodes(t, nodes[idx:idx+1])
