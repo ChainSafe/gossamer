@@ -313,8 +313,7 @@ func (s *Service) SendMessage(msg Message) {
 		return
 	}
 
-	// broadcast message to connected peers
-	s.host.broadcast(msg)
+	logger.Warn("network failed to send message not supported by any notifications protocol", "msg type", msg.Type())
 }
 
 // handleSyncStream handles streams with the <protocol-id>/sync/2 protocol ID
@@ -456,6 +455,7 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 	// message to the sync service
 	if resp, ok := msg.(*BlockResponseMessage); ok && s.requestTracker.hasRequestedBlockID(resp.ID) {
 		s.requestTracker.removeRequestedBlockID(resp.ID)
+
 		req := s.syncer.HandleBlockResponse(resp)
 		if req != nil {
 			s.requestTracker.addRequestedBlockID(req.ID)
@@ -471,6 +471,7 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 		resp, err := s.syncer.CreateBlockResponse(req)
 		if err != nil {
 			logger.Debug("cannot create response for request", "id", req.ID)
+			// TODO: close stream
 			return nil
 		}
 

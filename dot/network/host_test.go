@@ -415,6 +415,8 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
+	handlerA := newTestStreamHandler()
+	nodeA.host.registerStreamHandler("", handlerA.handleStream)
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
@@ -427,6 +429,8 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 
 	nodeB := createTestService(t, configB)
 	nodeB.noGossip = true
+	handlerB := newTestStreamHandler()
+	nodeB.host.registerStreamHandler("", handlerB.handleStream)
 
 	addrInfosB, err := nodeB.host.addrInfos()
 	require.NoError(t, err)
@@ -457,10 +461,12 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	// Verify that handshake data exists.
 	_, ok := info.handshakeData[nodeB.host.id()]
 	require.True(t, ok)
+	//nodeB.host.close()
+
 	nodeB.host.close()
 
 	// Wait for cleanup
-	time.Sleep(1 * time.Second)
+	time.Sleep(time.Second)
 
 	// Verify that handshake data is cleared.
 	_, ok = info.handshakeData[nodeB.host.id()]
