@@ -79,14 +79,14 @@ func (s *StorageState) notifyChanged(change *KeyValue) {
 }
 
 func (s *StorageState)Subscribe(prefixes []byte) {
-	fmt.Printf("SUBSCRIBE CALLED db %v pre %x\n", s.db, prefixes)
+	fmt.Printf("SUBSCRIBE CALLED db %v pre %x\n", s.db, append([]byte("storage"), prefixes...))
 	ctx, _ := context.WithCancel(context.Background())
 	//defer cancel()
 	cb := func(kvs *badger.KVList) error {
 		for _, kv := range kvs.Kv {
-			fmt.Printf("%s is now set to %s\n", kv.Key, kv.Value)
+			fmt.Printf("key %x\n", kv.Key)
 		}
 		return nil
 	}
-	s.db.Subscribe(ctx, cb, prefixes)
+	s.db.Subscribe(ctx, cb, append([]byte("storage"), prefixes...))
 }

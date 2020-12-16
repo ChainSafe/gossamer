@@ -120,7 +120,7 @@ func (s *StorageState) StoreTrie(root common.Hash, ts *TrieState) error {
 	if err != nil {
 		logger.Error("failed to delete TrieState db values", "state root", root, "error", err)
 	}
-
+fmt.Printf("Store in DB %v\n", s.db)
 	// store encoded *trie.Trie in database
 	err = s.StoreInDB(root)
 	if err != nil {
