@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package rpc
 
 import (
@@ -21,6 +22,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/big"
+	"net"
 	"net/http"
 	"strings"
 
@@ -78,7 +80,22 @@ var rpcHost string
 func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var upg = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
-			return true // todo determine how this should check orgigin
+			if !h.serverConfig.WSExternal {
+				ip, _, error := net.SplitHostPort(r.RemoteAddr)
+				if error != nil {
+					logger.Error("unable to parse IP", "error")
+					return false
+				}
+
+				f := LocalhostFilter()
+				if allowed := f.Allowed(ip); allowed {
+					return true
+				}
+
+				logger.Debug("external websocket request refused", "error")
+				return false
+			}
+			return true
 		},
 	}
 
