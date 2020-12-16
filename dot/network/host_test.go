@@ -405,34 +405,28 @@ func TestExistingStream(t *testing.T) {
 
 func TestStreamCloseMetadataCleanup(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
-	mmhA := new(MockMessageHandler)
 	configA := &Config{
-		BasePath:       basePathA,
-		Port:           7001,
-		RandSeed:       1,
-		NoBootstrap:    true,
-		NoMDNS:         true,
-		MessageHandler: mmhA,
+		BasePath:    basePathA,
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true,
+		NoMDNS:      true,
 	}
 
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
-	nodeA.noStatus = true
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
-	mmhB := new(MockMessageHandler)
 	configB := &Config{
-		BasePath:       basePathB,
-		Port:           7002,
-		RandSeed:       2,
-		NoBootstrap:    true,
-		NoMDNS:         true,
-		MessageHandler: mmhB,
+		BasePath:    basePathB,
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true,
+		NoMDNS:      true,
 	}
 
 	nodeB := createTestService(t, configB)
 	nodeB.noGossip = true
-	nodeB.noStatus = true
 
 	addrInfosB, err := nodeB.host.addrInfos()
 	require.NoError(t, err)

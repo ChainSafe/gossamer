@@ -117,7 +117,7 @@ func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 }
 
 // Exec func
-func (in *Instance) exec(function string, data []byte) ([]byte, error) {
+func (in *Instance) exec(function string, data []byte) ([]byte, error) { //nolint
 	return in.inst.exec(function, data)
 }
 
