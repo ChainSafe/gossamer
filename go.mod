@@ -11,13 +11,13 @@ require (
 	github.com/docker/docker v1.13.1
 	github.com/ethereum/go-ethereum v1.9.6
 	github.com/go-playground/validator/v10 v10.4.1
-	github.com/golangci/golangci-lint v1.23.1 // indirect
 	github.com/gorilla/mux v1.7.4
 	github.com/gorilla/rpc v1.2.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/gtank/merlin v0.1.1 // indirect
 	github.com/ipfs/go-datastore v0.4.4
 	github.com/jcelliott/lumber v0.0.0-20160324203708-dd349441af25 // indirect
+	github.com/jpillora/ipfilter v1.2.2 
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/libp2p/go-libp2p v0.10.3
 	github.com/libp2p/go-libp2p-core v0.6.1

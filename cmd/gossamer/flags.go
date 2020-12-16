@@ -140,6 +140,11 @@ var (
 		Name:  "rpc",
 		Usage: "Enable the HTTP-RPC server",
 	}
+	// RPCExternalFlag Enable the external HTTP-RPC
+	RPCExternalFlag = cli.BoolFlag{
+		Name:  "rpc-external",
+		Usage: "Enable external HTTP-RPC connections",
+	}
 	// RPCHostFlag HTTP-RPC server listening hostname
 	RPCHostFlag = cli.StringFlag{
 		Name:  "rpchost",
@@ -155,13 +160,20 @@ var (
 		Name:  "rpcmods",
 		Usage: "API modules to enable via HTTP-RPC, comma separated list",
 	}
+	// WSPortFlag WebSocket server listening port
 	WSPortFlag = cli.IntFlag{
 		Name:  "wsport",
 		Usage: "Websockets server listening port",
 	}
-	WSEnabledFlag = cli.BoolFlag{
+	// WSFlag Enable the websockets server
+	WSFlag = cli.BoolFlag{
 		Name:  "ws",
 		Usage: "Enable the websockets server",
+	}
+	// WSExternalFlag Enable external websocket connections
+	WSExternalFlag = cli.BoolFlag{
+		Name:  "ws-external",
+		Usage: "Enable external websocket connections",
 	}
 )
 
@@ -238,10 +250,12 @@ var (
 
 		// rpc flags
 		RPCEnabledFlag,
+		RPCExternalFlag,
 		RPCHostFlag,
 		RPCPortFlag,
 		RPCModulesFlag,
-		WSEnabledFlag,
+		WSFlag,
+		WSExternalFlag,
 		WSPortFlag,
 	}
 )
