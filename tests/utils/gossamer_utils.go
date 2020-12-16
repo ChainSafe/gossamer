@@ -128,7 +128,6 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 		"--rpcport", node.RPCPort,
 		"--rpcmods", "system,author,chain,state,dev",
 		"--rpc",
-		"--ws",
 		"--log", "info"}
 
 	if node.Idx >= len(keyList) {
