@@ -125,12 +125,14 @@ func dotConfigToToml(dcfg *dot.Config) *ctoml.Config {
 	}
 
 	cfg.RPC = ctoml.RPCConfig{
-		Enabled:   dcfg.RPC.Enabled,
-		Port:      dcfg.RPC.Port,
-		Host:      dcfg.RPC.Host,
-		Modules:   dcfg.RPC.Modules,
-		WSPort:    dcfg.RPC.WSPort,
-		WSEnabled: dcfg.RPC.WSEnabled,
+		Enabled:    dcfg.RPC.Enabled,
+		External:   dcfg.RPC.External,
+		Port:       dcfg.RPC.Port,
+		Host:       dcfg.RPC.Host,
+		Modules:    dcfg.RPC.Modules,
+		WSPort:     dcfg.RPC.WSPort,
+		WS:         dcfg.RPC.WS,
+		WSExternal: dcfg.RPC.WSExternal,
 	}
 
 	return cfg
