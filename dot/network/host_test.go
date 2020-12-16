@@ -482,11 +482,11 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	stream := nodeA.host.getStream(nodeB.host.id(), "")
+	stream := nodeA.host.getStream(nodeB.host.id(), blockAnnounceID)
 	require.Nil(t, stream, "node A should not have an outbound stream")
 
 	// node A opens the stream to send the first message
-	err = nodeA.host.send(addrInfosB[0].ID, "", TestMessage)
+	err = nodeA.host.send(addrInfosB[0].ID, blockAnnounceID, TestMessage)
 	require.NoError(t, err)
 
 	info := nodeA.notificationsProtocols[BlockAnnounceMsgType]
