@@ -46,6 +46,7 @@ func SetLogLevel(lvl log.Lvl) {
 }
 
 var (
+	// KeyList is the list of built-in keys
 	KeyList  = []string{"alice", "bob", "charlie", "dave", "eve", "ferdie", "george", "heather", "ian"}
 	basePort = 7000
 
