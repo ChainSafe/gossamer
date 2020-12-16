@@ -231,7 +231,7 @@ func (h *host) getStream(p peer.ID, sub protocol.ID) (stream libp2pnetwork.Strea
 		for _, stream := range streams {
 
 			// return stream with matching host protocol id and stream direction outbound
-			if stream.Protocol() == h.protocolID+sub /* && stream.Stat().Direction == libp2pnetwork.DirOutbound*/ {
+			if stream.Protocol() == h.protocolID+sub && stream.Stat().Direction == libp2pnetwork.DirOutbound {
 				return stream
 			}
 		}

@@ -313,7 +313,11 @@ func (s *Service) SendMessage(msg Message) {
 		return
 	}
 
-	logger.Warn("network failed to send message not supported by any notifications protocol", "msg type", msg.Type())
+	logger.Warn("message not supported by any notifications protocol", "msg type", msg.Type())
+
+	// TODO: deprecate
+	// broadcast message to connected peers
+	s.host.broadcast(msg)
 }
 
 // handleSyncStream handles streams with the <protocol-id>/sync/2 protocol ID
