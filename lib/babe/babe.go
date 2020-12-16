@@ -179,7 +179,7 @@ func (b *Service) setEpochData(cfg *ServiceConfig, genCfg *types.BabeConfigurati
 		}
 	}
 
-	if cfg.ThresholdNumerator == 0 && cfg.ThresholdDenominator == 0 {
+	if cfg.ThresholdDenominator == 0 {
 		b.epochData.threshold, err = CalculateThreshold(genCfg.C1, genCfg.C2, len(b.epochData.authorities))
 		if err != nil {
 			return err

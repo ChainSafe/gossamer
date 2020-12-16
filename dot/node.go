@@ -107,6 +107,12 @@ func InitNode(cfg *Config) error {
 	// declare genesis data
 	data := gen.GenesisData()
 
+	// TODO: this should be set in the genesis file, not the config
+	if cfg.Core.BabeThresholdDenominator != 0 && cfg.Core.BabeThresholdNumerator != 0 {
+		babeCfg.C1 = cfg.Core.BabeThresholdNumerator
+		babeCfg.C2 = cfg.Core.BabeThresholdDenominator
+	}
+
 	// set genesis data using configuration values (assumes the genesis values
 	// have already been set for the configuration, which allows for us to take
 	// into account dynamic genesis values if the corresponding flag values are
