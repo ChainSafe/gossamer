@@ -246,7 +246,7 @@ func Test_ext_storage_set_version_1(t *testing.T) {
 	require.Equal(t, testvalue, val)
 }
 
-func Test_ext_misc_print_hex_version_1(t *testing.T) {
+func Test_ext_misc_runtime_version_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	expected := &runtime.Version{
