@@ -104,6 +104,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
@@ -299,15 +300,18 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, data C.i
 }
 
 //export ext_misc_print_hex_version_1
-func ext_misc_print_hex_version_1(context unsafe.Pointer, a C.int64_t) {
+func ext_misc_print_hex_version_1(context unsafe.Pointer, data C.int64_t) {
 	logger.Trace("[ext_misc_print_hex_version_1] executing...")
-	logger.Warn("[ext_misc_print_hex_version_1] unimplemented")
+
+	ptr, size := int64ToPointerAndSize(int64(data))
+	ext_print_hex(context, C.int32_t(ptr), C.int32_t(size))
 }
 
 //export ext_misc_print_num_version_1
-func ext_misc_print_num_version_1(context unsafe.Pointer, a C.int64_t) {
+func ext_misc_print_num_version_1(context unsafe.Pointer, data C.int64_t) {
 	logger.Trace("[ext_misc_print_num_version_1] executing...")
 	logger.Warn("[ext_misc_print_num_version_1] unimplemented")
+	ext_print_num(context, data)
 }
 
 //export ext_misc_print_utf8_version_1
@@ -318,10 +322,31 @@ func ext_misc_print_utf8_version_1(context unsafe.Pointer, data C.int64_t) {
 }
 
 //export ext_misc_runtime_version_version_1
-func ext_misc_runtime_version_version_1(context unsafe.Pointer, z C.int64_t) C.int64_t {
+func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int64_t {
 	logger.Trace("[ext_misc_runtime_version_version_1] executing...")
-	logger.Warn("[ext_misc_runtime_version_version_1] unimplemented")
-	return 0
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	data := asMemorySlice(instanceContext, dataSpan)
+
+	version := &runtime.VersionAPI{
+		RuntimeVersion: &runtime.Version{},
+		API:            nil,
+	}
+	version.Decode(data)
+
+	encodedData, err := scale.Encode(version.RuntimeVersion)
+	if err != nil {
+		logger.Error("[ext_misc_runtime_version_version_1] failed to encode result", "error", err)
+		return 0
+	}
+
+	out, err := toWasmMemoryOptional(instanceContext, encodedData)
+	if err != nil {
+		logger.Error("[ext_misc_runtime_version_version_1] failed to allocate", "error", err)
+		return 0
+	}
+
+	return C.int64_t(out)
 }
 
 //export ext_default_child_storage_read_version_1
