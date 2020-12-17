@@ -20,6 +20,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"io/ioutil"
 	"math/big"
 	"path/filepath"
@@ -30,8 +32,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
@@ -56,7 +56,7 @@ func NewGenesisFromJSONRaw(file string) (*Genesis, error) {
 func NewTrieFromGenesis(g *Genesis) (*trie.Trie, error) {
 	t := trie.NewEmptyTrie()
 
-	r := g.GenesisFields().Raw[0]
+	r := g.GenesisFields().Raw["top"]
 
 	err := t.Load(r)
 	if err != nil {
@@ -91,24 +91,24 @@ func NewGenesisBlockFromTrie(t *trie.Trie) (*types.Header, error) {
 }
 
 // NewLegacyRuntimeFromGenesis creates a runtime instance from the genesis data
-func NewLegacyRuntimeFromGenesis(g *Genesis, storage runtime.Storage) (runtime.LegacyInstance, error) {
-	codeStr := g.GenesisFields().Raw[0][common.BytesToHex(common.CodeKey)]
-	if codeStr == "" {
-		return nil, fmt.Errorf("cannot find :code in genesis")
-	}
-
-	code := common.MustHexToBytes(codeStr)
-	cfg := &wasmer.Config{
-		Imports: wasmer.ImportsLegacyNodeRuntime,
-	}
-	cfg.Storage = storage
-
-	return wasmer.NewLegacyInstance(code, cfg)
-}
+//func NewLegacyRuntimeFromGenesis(g *Genesis, storage runtime.Storage) (runtime.LegacyInstance, error) {
+//	codeStr := g.GenesisFields().Raw[0][common.BytesToHex(common.CodeKey)]
+//	if codeStr == "" {
+//		return nil, fmt.Errorf("cannot find :code in genesis")
+//	}
+//
+//	code := common.MustHexToBytes(codeStr)
+//	cfg := &wasmer.Config{
+//		Imports: wasmer.ImportsLegacyNodeRuntime,
+//	}
+//	cfg.Storage = storage
+//
+//	return wasmer.NewLegacyInstance(code, cfg)
+//}
 
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data
 func NewRuntimeFromGenesis(g *Genesis, storage runtime.Storage) (runtime.Instance, error) {
-	codeStr := g.GenesisFields().Raw[0][common.BytesToHex(common.CodeKey)]
+	codeStr := g.GenesisFields().Raw["top"][common.BytesToHex(common.CodeKey)]
 	if codeStr == "" {
 		return nil, fmt.Errorf("cannot find :code in genesis")
 	}
@@ -170,7 +170,8 @@ func NewGenesisFromJSON(file string, authCount int) (*Genesis, error) {
 		return nil, err
 	}
 
-	g.Genesis.Raw[0] = res
+	g.Genesis.Raw = make(map[string]map[string]string)
+	g.Genesis.Raw["top"] = res
 
 	return g, err
 }
@@ -313,10 +314,10 @@ func BuildFromMap(m map[string][]byte, gen *Genesis) error {
 }
 
 func addRawValue(key string, value []byte, gen *Genesis) {
-	if gen.Genesis.Raw[0] == nil {
-		gen.Genesis.Raw[0] = make(map[string]string)
+	if gen.Genesis.Raw["top"] == nil {  // todo ed check
+		gen.Genesis.Raw["top"] = make(map[string]string)
 	}
-	gen.Genesis.Raw[0][key] = common.BytesToHex(value)
+	gen.Genesis.Raw["top"][key] = common.BytesToHex(value)
 }
 
 func addCodeValue(value []byte, gen *Genesis) {

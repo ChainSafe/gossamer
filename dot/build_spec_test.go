@@ -69,5 +69,5 @@ func TestBuildFromDB(t *testing.T) {
 	err = json.Unmarshal(res, &jGen)
 	require.NoError(t, err)
 
-	require.Equal(t, expected.Genesis.Raw[0]["0x3a636f6465"], jGen.Genesis.Runtime["system"]["code"])
+	require.Equal(t, expected.Genesis.Raw["top"]["0x3a636f6465"], jGen.Genesis.Runtime["system"]["code"])
 }

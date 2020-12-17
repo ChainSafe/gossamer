@@ -17,7 +17,6 @@
 package dot
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -59,7 +58,6 @@ func TestNewTestGenesis(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	cfg.Init.GenesisRaw = genFile.Name()
-	fmt.Printf("FileName %v\n", genFile.Name())
 }
 
 func TestNewTestGenesisFile(t *testing.T) {
@@ -80,7 +78,7 @@ func TestNewTestGenesisFile(t *testing.T) {
 	require.NoError(t, err)
 
 	// values from raw genesis file should equal values generated from human readable genesis file
-	require.Equal(t, genRaw.Genesis.Raw[0], genHR.Genesis.Raw[0])
+	require.Equal(t, genRaw.Genesis.Raw["top"], genHR.Genesis.Raw["top"])
 }
 
 func TestNewRuntimeFromGenesis(t *testing.T) {

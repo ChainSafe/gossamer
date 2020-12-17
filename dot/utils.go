@@ -19,6 +19,8 @@ package dot
 import (
 	"encoding/hex"
 	"encoding/json"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -26,8 +28,6 @@ import (
 
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
 	"github.com/naoina/toml"
@@ -130,12 +130,12 @@ func NewTestGenesisAndRuntime(t *testing.T) string {
 	gen := NewTestGenesis(t)
 	hex := hex.EncodeToString(runtimeData)
 
-	gen.Genesis.Raw = [2]map[string]string{}
-	if gen.Genesis.Raw[0] == nil {
-		gen.Genesis.Raw[0] = make(map[string]string)
+	gen.Genesis.Raw = map[string]map[string]string{}  // todo ed check
+	if gen.Genesis.Raw["top"] == nil {
+		gen.Genesis.Raw["top"] = make(map[string]string)
 	}
-	gen.Genesis.Raw[0]["0x3a636f6465"] = "0x" + hex
-	gen.Genesis.Raw[0]["0xcf722c0832b5231d35e29f319ff27389f5032bfc7bfc3ba5ed7839f2042fb99f"] = "0x0000000000000001"
+	gen.Genesis.Raw["top"]["0x3a636f6465"] = "0x" + hex
+	gen.Genesis.Raw["top"]["0xcf722c0832b5231d35e29f319ff27389f5032bfc7bfc3ba5ed7839f2042fb99f"] = "0x0000000000000001"
 
 	genFile, err := ioutil.TempFile(dir, "genesis-")
 	require.Nil(t, err)

@@ -17,7 +17,6 @@
 package genesis
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -38,14 +37,8 @@ func TestNewGenesisRawFromJSON(t *testing.T) {
 	}
 	defer os.Remove(file.Name())
 
-	testBytes, err := ioutil.ReadFile(file.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	testHex := hex.EncodeToString(testBytes)
-	testRaw := [2]map[string]string{}
-	testRaw[0] = map[string]string{"0x3a636f6465": "0x" + testHex}
+	testRaw := map[string]map[string]string{}
+	testRaw["top"] = map[string]string{"0x3a636f6465":"0x0102"}
 
 	expected := TestGenesis
 	expected.Genesis = Fields{Raw: testRaw}
@@ -71,14 +64,25 @@ func TestNewGenesisRawFromJSON(t *testing.T) {
 	}
 }
 
+// todo ed remove
+func TestLoadRawJSON(t *testing.T) {
+	genesis, err := NewGenesisFromJSONRaw("../../testGen_raw.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Printf("genesis %v\n", genesis.Genesis.Raw)
+	_, err = NewRuntimeFromGenesis(genesis, nil)
+	require.NoError(t, err)
+}
+
 func TestNewGenesisFromJSON(t *testing.T) {
 	var expectedGenesis = &Genesis{}
 
-	expRaw := [2]map[string]string{}
-	expRaw[0] = make(map[string]string)
-	expRaw[0]["0x3a636f6465"] = "0xfoo"                                                                                                                                      // raw system code entry
-	expRaw[0]["0x3a6772616e6470615f617574686f726974696573"] = "0x010834602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a6910000000000000000"                       // raw grandpa authorities
-	expRaw[0]["0x014f204c006a2837deb5551ba5211d6ce887d1f35708af762efe7b709b5eff15"] = "0x08d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0100000000000000" // raw babe authorities
+	expRaw := make(map[string]map[string]string)
+	expRaw["top"] = make(map[string]string)
+	expRaw["top"]["0x3a636f6465"] = "0xfoo"
+	expRaw["top"]["0x3a6772616e6470615f617574686f726974696573"] = "0x010834602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a6910000000000000000"                       // raw grandpa authorities
+	expRaw["top"]["0x014f204c006a2837deb5551ba5211d6ce887d1f35708af762efe7b709b5eff15"] = "0x08d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0100000000000000" // raw babe authorities
 	expectedGenesis.Genesis = Fields{
 		Raw: expRaw,
 	}

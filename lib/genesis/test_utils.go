@@ -38,7 +38,7 @@ var TestGenesis = &Genesis{
 
 // TestFieldsHR instance of human-readable Fields struct for testing, use with TestGenesis
 var TestFieldsHR = Fields{
-	Raw: [2]map[string]string{},
+	Raw: map[string]map[string]string{},  // todo ed check
 	Runtime: map[string]map[string]interface{}{
 		"system": {
 			"code": "mocktestcode",
@@ -48,8 +48,8 @@ var TestFieldsHR = Fields{
 
 // TestFieldsRaw instance of raw Fields struct for testing use with TestGenesis
 var TestFieldsRaw = Fields{
-	Raw: [2]map[string]string{
-		0: {"0x3a636f6465": "mocktestcode"},
+	Raw: map[string]map[string]string{
+		"top": {"0x3a636f6465": "mocktestcode"},
 	},
 }
 
@@ -71,7 +71,7 @@ func CreateTestGenesisJSONFile(asRaw bool) (string, error) {
 
 	if asRaw {
 		tGen.Genesis = Fields{
-			Raw: [2]map[string]string{},
+			Raw: map[string]map[string]string{},
 			Runtime: map[string]map[string]interface{}{
 				"system": {
 					"code": "mocktestcode",
