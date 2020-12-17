@@ -156,9 +156,3 @@ jobs:
         name: Run stress
         run: |
           docker run chainsafe/gossamer:latest sh -c "make it-grandpa"
-
-
-
-
-
-
