@@ -19,6 +19,7 @@ package genesis
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/big"
@@ -257,6 +258,9 @@ func formatKey(kv *keyValue) (string, error) {
 		prefix, err := common.Twox128Hash([]byte(kv.key[0]))
 		if err != nil {
 			return "", err
+		}
+		if len(kv.key) > 1 {
+			return "", errors.New("keydata must not be nil")
 		}
 		keydata, err := common.Twox128Hash([]byte(kv.key[1]))
 		if err != nil {
