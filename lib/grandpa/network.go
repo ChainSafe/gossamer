@@ -21,6 +21,7 @@ import (
 	"io"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/scale"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -37,6 +38,9 @@ type Handshake = network.Handshake
 
 // Message is an alias for network.Message
 type Message = network.Message
+
+// NotificationsMessage is an alias for network.NotificationsMessage
+type NotificationsMessage = network.NotificationsMessage
 
 // ConsensusMessage is an alias for network.ConsensusMessage
 type ConsensusMessage = network.ConsensusMessage
@@ -68,9 +72,9 @@ func (hs *GrandpaHandshake) Type() byte {
 	return 0
 }
 
-// IDString ...
-func (hs *GrandpaHandshake) IDString() string {
-	return ""
+// Hash ...
+func (hs *GrandpaHandshake) Hash() common.Hash {
+	return common.Hash{}
 }
 
 // IsHandshake returns true
@@ -105,13 +109,13 @@ func (s *Service) validateHandshake(_ Handshake) error {
 	return nil
 }
 
-func (s *Service) decodeMessage(r io.Reader) (Message, error) {
+func (s *Service) decodeMessage(r io.Reader) (NotificationsMessage, error) {
 	msg := new(network.ConsensusMessage)
 	err := msg.Decode(r)
 	return msg, err
 }
 
-func (s *Service) handleNetworkMessage(_ peer.ID, msg Message) error {
+func (s *Service) handleNetworkMessage(_ peer.ID, msg NotificationsMessage) error {
 	cm, ok := msg.(*network.ConsensusMessage)
 	if !ok {
 		return ErrInvalidMessageType

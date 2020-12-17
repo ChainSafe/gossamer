@@ -69,7 +69,7 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	}
 
 	time.Sleep(testMessageTimeout)
-	require.Equal(t, network.BlockAnnounceMsgType, net.Message.Type())
+	require.Equal(t, network.BlockAnnounceMsgType, net.Message.(network.NotificationsMessage).Type())
 	require.Equal(t, expected, net.Message)
 }
 
