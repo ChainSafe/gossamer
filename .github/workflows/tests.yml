@@ -25,8 +25,8 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
           restore-keys: ${{ runner.os }}-go-
 
-      - name: Prepare Test Reporter
         if: matrix.os == 'ubuntu-latest'
+      - name: Prepare Test Reporter
         run: |
           curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
           chmod +x ./cc-test-reporter
@@ -35,8 +35,8 @@ jobs:
       - name: Unit Tests
         run: ./scripts/ci.sh
 
-      - name: Upload to Code Climate
         if: matrix.os == 'ubuntu-latest'
+      - name: Upload to Code Climate
         run: ./cc-test-reporter after-build
 
       - name: Test State - Race
