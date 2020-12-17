@@ -1,0 +1,42 @@
+on: [pull_request]
+name: checks
+env:
+  GO111MODULE: on
+
+jobs:
+  linter-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v1
+        with:
+          go-version: '1.15.x'
+      - uses: actions/checkout@v2
+
+      - name: Cache go modules
+        uses: actions/cache@v1
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
+          restore-keys: ${{ runner.os }}-go-
+
+      - name: Run go fmt
+        run: diff -u <(echo -n) <(gofmt -d -s .)
+
+      - name: Run go linter
+        run: make lint
+
+      - name: Ensure go generate produces a zero diff
+        shell: bash
+        run:  go generate -x ./... && git diff --exit-code; code=$?; git checkout -- .; (exit $code)
+
+  vet-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v1
+        with:
+          go-version: '1.15.x'
+      - uses: actions/checkout@v2
+
+#      Turn back on when #1243 lands
+#      - name: Run go vet
+#        run: go vet ./...

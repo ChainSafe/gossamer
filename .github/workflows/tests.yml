@@ -1,0 +1,164 @@
+on: [pull_request]
+name: tests
+env:
+  GO111MODULE: on
+
+jobs:
+  unit-tests:
+    strategy:
+      matrix:
+        go-version: [1.15.x]
+        platform: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.platform }}
+    env:
+      CC_TEST_REPORTER_ID: abdad8b2e2ec0bfdd7af57d955c44e9470f4d174e744b824047f3037800f5b41
+    steps:
+      - uses: actions/setup-go@v1
+        with:
+          go-version: ${{ matrix.go-version }}
+      - uses: actions/checkout@v2
+
+      - name: Cache go modules
+        uses: actions/cache@v1
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
+          restore-keys: ${{ runner.os }}-go-
+
+      - name: Prepare Test Reporter
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+          chmod +x ./cc-test-reporter
+          ./cc-test-reporter before-build
+      - name: Unit Tests
+        run: ./scripts/ci.sh
+
+        if: matrix.os == 'ubuntu-latest'
+      - name: Upload to Code Climate
+        run: ./cc-test-reporter after-build
+
+      - name: Test State - Race
+        run: make test-state-race
+
+  docker-build-n-push:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      -
+        name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: chainsafe/gossamer:latest
+      -
+        name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}
+  docker-stable-tests:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Build
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: false
+          tags: chainsafe/gossamer:latest
+      -
+        name: Run stable tests
+        run: |
+          docker run chainsafe/gossamer:latest sh -c "make it-stable"
+  docker-rpc-tests:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Build
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: false
+          tags: chainsafe/gossamer:latest
+      -
+        name: Run rpc tests
+        run: |
+          docker run chainsafe/gossamer:latest sh -c "make it-rpc"
+  docker-stress-tests:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Build
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: false
+          tags: chainsafe/gossamer:latest
+      -
+        name: Run stress
+        run: |
+          docker run chainsafe/gossamer:latest sh -c "make it-stress"
+  docker-grandpa-tests:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      -
+        name: Build
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: false
+          tags: chainsafe/gossamer:latest
+      -
+        name: Run stress
+        run: |
+          docker run chainsafe/gossamer:latest sh -c "make it-grandpa"
+
+
+
+
+
+
