@@ -51,9 +51,11 @@ type HTTPServerConfig struct {
 	TransactionQueueAPI modules.TransactionStateAPI
 	RPCAPI              modules.RPCAPI
 	SystemAPI           modules.SystemAPI
+	External            bool
 	Host                string
 	RPCPort             uint32
-	WSEnabled           bool
+	WS                  bool
+	WSExternal          bool
 	WSPort              uint32
 	Modules             []string
 }
@@ -86,6 +88,10 @@ func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
 	}
 
 	server.RegisterModules(cfg.Modules)
+	if !cfg.External {
+		server.rpcServer.RegisterValidateRequestFunc(LocalRequestOnly)
+	}
+
 	return server
 }
 
@@ -155,7 +161,7 @@ func (h *HTTPServer) Start() error {
 		}
 	}()
 
-	if !h.serverConfig.WSEnabled {
+	if !h.serverConfig.WS {
 		return nil
 	}
 
@@ -174,7 +180,7 @@ func (h *HTTPServer) Start() error {
 
 // Stop stops the server
 func (h *HTTPServer) Stop() error {
-	if h.serverConfig.WSEnabled {
+	if h.serverConfig.WS {
 		// close all channels and websocket connections
 		for _, conn := range h.wsConns {
 			for _, sub := range conn.subscriptions {
