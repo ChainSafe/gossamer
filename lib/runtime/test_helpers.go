@@ -238,23 +238,32 @@ func (trs *TestRuntimeStorage) NextKey(in []byte) []byte {
 }
 
 // GetChildByPrefix ...
-func (trs *TestRuntimeStorage) GetChildByPrefix(keyToChild, prefix []byte) [][]byte {
-	panic("implement me")
+func (trs *TestRuntimeStorage) GetChildByPrefix(keyToChild, prefix []byte) ([][]byte, error) {
+	child, err := trs.GetChild(keyToChild)
+	if err != nil {
+		return nil, err
+	}
+	if child == nil {
+		return nil, nil
+	}
+	return child.GetKeysWithPrefix(prefix), nil
 }
 
 // GetChildNextKey ...
-func (trs *TestRuntimeStorage) GetChildNextKey(keyToChild, prefix []byte) []byte {
-	panic("implement me")
+func (trs *TestRuntimeStorage) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
+	child, err := trs.GetChild(keyToChild)
+	if err != nil {
+		return nil, err
+	}
+	if child == nil {
+		return nil, nil
+	}
+	return child.NextKey(key), nil
 }
 
 // GetChild ...
 func (trs *TestRuntimeStorage) GetChild(keyToChild []byte) (*trie.Trie, error) {
-	panic("implement me")
-}
-
-// Commit ...
-func (trs *TestRuntimeStorage) Commit() error {
-	panic("implement me")
+	return trs.trie.GetChild(keyToChild)
 }
 
 // TestRuntimeNetwork ...

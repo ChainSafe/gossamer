@@ -348,7 +348,7 @@ func ext_default_child_storage_read_version_1(context unsafe.Pointer, childStora
 	sizeSpan, err := toWasmMemoryOptional(instanceContext, sizeBuf)
 	if err != nil {
 		logger.Error("[ext_default_child_storage_read_version_1] failed to allocate", "error", err)
-		panic(err)
+		return 0
 	}
 
 	return C.int64_t(sizeSpan)
@@ -374,7 +374,12 @@ func ext_default_child_storage_clear_prefix_version_1(context unsafe.Pointer, ch
 	instanceContext := wasm.IntoInstanceContext(context)
 	storage := instanceContext.Data().(*runtime.Context).Storage
 
-	keys := storage.GetChildByPrefix(asMemorySlice(instanceContext, childStorageKey), asMemorySlice(instanceContext, prefix))
+	keys, err := storage.GetChildByPrefix(asMemorySlice(instanceContext, childStorageKey), asMemorySlice(instanceContext, prefix))
+	if err != nil {
+		logger.Error("[ext_default_child_storage_clear_prefix_version_1] failed to get child by prefix", "error", err)
+		return
+	}
+
 	for _, v := range keys {
 		err := storage.ClearChildStorage(asMemorySlice(instanceContext, childStorageKey), v)
 		if err != nil {
@@ -418,7 +423,7 @@ func ext_default_child_storage_get_version_1(context unsafe.Pointer, childStorag
 	value, err := toWasmMemoryOptional(instanceContext, child)
 	if err != nil {
 		logger.Error("[ext_default_child_storage_get_version_1] failed to allocate", "error", err)
-		panic(err)
+		return 0
 	}
 
 	return C.int64_t(value)
@@ -431,12 +436,16 @@ func ext_default_child_storage_next_key_version_1(context unsafe.Pointer, childS
 	instanceContext := wasm.IntoInstanceContext(context)
 	storage := instanceContext.Data().(*runtime.Context).Storage
 
-	child := storage.GetChildNextKey(asMemorySlice(instanceContext, childStorageKey), asMemorySlice(instanceContext, key))
+	child, err := storage.GetChildNextKey(asMemorySlice(instanceContext, childStorageKey), asMemorySlice(instanceContext, key))
+	if err != nil {
+		logger.Error("[ext_default_child_storage_next_key_version_1] failed to get child's next key", "error", err)
+		return 0
+	}
 
 	value, err := toWasmMemoryOptional(instanceContext, child)
 	if err != nil {
 		logger.Error("[ext_default_child_storage_next_key_version_1] failed to allocate", "error", err)
-		panic(err)
+		return 0
 	}
 
 	return C.int64_t(value)
@@ -449,31 +458,22 @@ func ext_default_child_storage_root_version_1(context unsafe.Pointer, childStora
 	instanceContext := wasm.IntoInstanceContext(context)
 	storage := instanceContext.Data().(*runtime.Context).Storage
 
-	// TODO: Should we write to DB or load from DB to state trie
-	// Commit() loads the state trie from DB
-	// WriteTrieToDB() writes the state trie to the DB
-	err := storage.Commit()
-	if err != nil {
-		logger.Error("[ext_default_child_storage_root_version_1] failed to commit all operations", "error", err)
-		panic(err)
-	}
-
 	child, err := storage.GetChild(asMemorySlice(instanceContext, childStorageKey))
 	if err != nil {
 		logger.Error("[ext_default_child_storage_root_version_1] failed to retrieve child", "error", err)
-		panic(err)
+		return 0
 	}
 
-	childRoot, err := child.EncodeRoot()
+	childRoot, err := child.Hash()
 	if err != nil {
 		logger.Error("[ext_default_child_storage_root_version_1] failed to encode child root", "error", err)
-		panic(err)
+		return 0
 	}
 
-	root, err := toWasmMemoryOptional(instanceContext, childRoot)
+	root, err := toWasmMemoryOptional(instanceContext, childRoot[:])
 	if err != nil {
 		logger.Error("[ext_default_child_storage_root_version_1] failed to allocate", "error", err)
-		panic(err)
+		return 0
 	}
 
 	return C.int64_t(root)
@@ -489,7 +489,7 @@ func ext_default_child_storage_set_version_1(context unsafe.Pointer, childStorag
 	err := storage.SetChildStorage(asMemorySlice(instanceContext, childStorageKey), asMemorySlice(instanceContext, key), asMemorySlice(instanceContext, value))
 	if err != nil {
 		logger.Error("[ext_default_child_storage_set_version_1] failed to set value in child storage", "error", err)
-		panic(err)
+		return
 	}
 }
 
@@ -503,9 +503,8 @@ func ext_default_child_storage_storage_kill_version_1(context unsafe.Pointer, ch
 	err := storage.DeleteChildStorage(asMemorySlice(instanceContext, childStorageKey))
 	if err != nil {
 		logger.Error("[ext_default_child_storage_storage_kill_version_1] failed to delete child storage from trie", "error", err)
-		panic(err)
+		return
 	}
-
 }
 
 //export ext_allocator_free_version_1
@@ -530,13 +529,13 @@ func ext_hashing_blake2_128_version_1(context unsafe.Pointer, dataSpan C.int64_t
 	hash, err := common.Blake2b128(data)
 	if err != nil {
 		logger.Error("[ext_hashing_blake2_128_version_1]", "error", err)
-		panic(err)
+		return 0
 	}
 
 	out, err := toWasmMemorySized(instanceContext, hash, 16)
 	if err != nil {
 		logger.Error("[ext_hashing_blake2_128_version_1] failed to allocate", "error", err)
-		panic(err)
+		return 0
 	}
 
 	return C.int32_t(out)
@@ -552,13 +551,13 @@ func ext_hashing_blake2_256_version_1(context unsafe.Pointer, dataSpan C.int64_t
 	hash, err := common.Blake2bHash(data)
 	if err != nil {
 		logger.Error("[ext_hashing_blake2_256_version_1]", "error", err)
-		panic(err)
+		return 0
 	}
 
 	out, err := toWasmMemorySized(instanceContext, hash[:], 32)
 	if err != nil {
 		logger.Error("[ext_hashing_blake2_256_version_1] failed to allocate", "error", err)
-		panic(err)
+		return 0
 	}
 
 	return C.int32_t(out)
@@ -574,13 +573,13 @@ func ext_hashing_keccak_256_version_1(context unsafe.Pointer, dataSpan C.int64_t
 	hash, err := common.Keccak256(data)
 	if err != nil {
 		logger.Error("[ext_hashing_keccak_256_version_1]", "error", err)
-		panic(err)
+		return 0
 	}
 
 	out, err := toWasmMemorySized(instanceContext, hash[:], 32)
 	if err != nil {
 		logger.Error("[ext_hashing_keccak_256_version_1] failed to allocate", "error", err)
-		panic(err)
+		return 0
 	}
 
 	return C.int32_t(out)
@@ -603,13 +602,13 @@ func ext_hashing_twox_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) 
 	hash, err := common.Twox256(data)
 	if err != nil {
 		logger.Error("[ext_hashing_twox_256_version_1]", "error", err)
-		panic(err)
+		return 0
 	}
 
 	out, err := toWasmMemorySized(instanceContext, hash[:], 32)
 	if err != nil {
 		logger.Error("[ext_hashing_twox_256_version_1] failed to allocate", "error", err)
-		panic(err)
+		return 0
 	}
 
 	return C.int32_t(out)
@@ -625,7 +624,7 @@ func ext_hashing_twox_128_version_1(context unsafe.Pointer, data C.int64_t) C.in
 	out, err := ctx.Allocator.Allocate(16)
 	if err != nil {
 		logger.Error("[ext_hashing_twox_128_version_1] failed to allocate", "error", err)
-		panic(err)
+		return 0
 	}
 	ext_twox_128(context, C.int32_t(ptr), C.int32_t(size), C.int32_t(out))
 	return C.int32_t(out)
@@ -641,13 +640,13 @@ func ext_hashing_twox_64_version_1(context unsafe.Pointer, dataSpan C.int64_t) C
 	hash, err := common.Twox64(data)
 	if err != nil {
 		logger.Error("[ext_hashing_twox_64_version_1]", "error", err)
-		panic(err)
+		return 0
 	}
 
 	out, err := toWasmMemorySized(instanceContext, hash, 8)
 	if err != nil {
 		logger.Error("[ext_hashing_twox_64_version_1] failed to allocate", "error", err)
-		panic(err)
+		return 0
 	}
 
 	return C.int32_t(out)
@@ -722,7 +721,7 @@ func ext_storage_changes_root_version_1(context unsafe.Pointer, parentHashSpan C
 
 	rootSpan, err := toWasmMemoryOptional(instanceContext, nil)
 	if err != nil {
-		logger.Error("[ext_storage_root_version_1] failed to allocate", "error", err)
+		logger.Error("[ext_storage_changes_root_version_1] failed to allocate", "error", err)
 		return 0
 	}
 
@@ -781,7 +780,7 @@ func ext_storage_get_version_1(context unsafe.Pointer, keySpan C.int64_t) C.int6
 	valueSpan, err := toWasmMemoryOptional(instanceContext, value)
 	if err != nil {
 		logger.Error("[ext_storage_get_version_1] failed to allocate", "error", err)
-		panic(err)
+		return 0
 	}
 
 	return C.int64_t(valueSpan)
@@ -802,7 +801,7 @@ func ext_storage_next_key_version_1(context unsafe.Pointer, keySpan C.int64_t) C
 	nextSpan, err := toWasmMemoryOptional(instanceContext, next)
 	if err != nil {
 		logger.Error("[ext_storage_next_key_version_1] failed to allocate", "error", err)
-		panic(err)
+		return 0
 	}
 
 	return C.int64_t(nextSpan)
@@ -839,7 +838,7 @@ func ext_storage_read_version_1(context unsafe.Pointer, keySpan, valueOut C.int6
 	sizeSpan, err := toWasmMemoryOptional(instanceContext, sizeBuf)
 	if err != nil {
 		logger.Error("[ext_storage_get_version_1] failed to allocate", "error", err)
-		panic(err)
+		return 0
 	}
 
 	return C.int64_t(sizeSpan)
@@ -889,7 +888,7 @@ func ext_storage_set_version_1(context unsafe.Pointer, keySpan C.int64_t, valueS
 	err := storage.Set(key, value)
 	if err != nil {
 		logger.Error("[ext_storage_set_version_1]", "error", err)
-		panic(err)
+		return
 	}
 }
 

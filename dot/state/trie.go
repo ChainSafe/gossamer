@@ -282,25 +282,31 @@ func (s *TrieState) ClearChildStorage(keyToChild, key []byte) error {
 }
 
 // GetChildByPrefix returns all the keys from trie that have the given prefix
-func (s *TrieState) GetChildByPrefix(keyToChild, key []byte) [][]byte {
+func (s *TrieState) GetChildByPrefix(keyToChild, prefix []byte) ([][]byte, error) {
 	s.lock.RLock()
 	defer s.lock.Unlock()
 	child, err := s.t.GetChild(keyToChild)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return child.GetKeysWithPrefix(key)
+	if child == nil {
+		return nil, nil
+	}
+	return child.GetKeysWithPrefix(prefix), nil
 }
 
 // GetChildNextKey returns the next lexicographical larger key from child storage. If it does not exist, it returns nil.
-func (s *TrieState) GetChildNextKey(keyToChild, key []byte) []byte {
+func (s *TrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
 	s.lock.RLock()
 	defer s.lock.Unlock()
 	child, err := s.t.GetChild(keyToChild)
 	if err != nil {
-		return nil
+		return nil, err
 	}
-	return child.NextKey(key)
+	if child == nil {
+		return nil, nil
+	}
+	return child.NextKey(key), nil
 }
 
 // NextKey returns the next key in the trie in lexicographical order. If it does not exist, it returns nil.
