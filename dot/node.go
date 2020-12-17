@@ -108,7 +108,7 @@ func InitNode(cfg *Config) error {
 	data := gen.GenesisData()
 
 	// TODO: this should be set in the genesis file, not the config
-	if cfg.Core.BabeThresholdDenominator != 0 && cfg.Core.BabeThresholdNumerator != 0 {
+	if cfg.Core.BabeThresholdDenominator != 0 {
 		babeCfg.C1 = cfg.Core.BabeThresholdNumerator
 		babeCfg.C2 = cfg.Core.BabeThresholdDenominator
 	}
