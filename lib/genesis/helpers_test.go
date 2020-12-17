@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -59,9 +58,7 @@ func TestNewGenesisRawFromJSON(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !reflect.DeepEqual(expected, genesis) {
-		t.Fatalf("Fail: expected %v got %v", expected, genesis)
-	}
+	require.Equal(t, expected, genesis)
 }
 
 // todo ed remove

@@ -17,6 +17,7 @@ package dot
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"testing"
 
@@ -56,7 +57,7 @@ func TestBuildFromDB(t *testing.T) {
 	cfg.Init.GenesisRaw = "../chain/gssmr/genesis-raw.json"
 	expected, err := genesis.NewGenesisFromJSONRaw(cfg.Init.GenesisRaw)
 	require.NoError(t, err)
-
+fmt.Printf("Pros %v\n", expected.Properties)
 	// initialize node (initialize state database and load genesis data)
 	err = InitNode(cfg)
 	require.NoError(t, err)

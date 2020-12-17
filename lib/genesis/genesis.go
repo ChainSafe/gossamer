@@ -28,6 +28,10 @@ type Genesis struct {
 	Bootnodes  []string `json:"bootNodes"`
 	ProtocolID string   `json:"protocolId"`
 	Genesis    Fields   `json:"genesis"`
+	Properties map[string]interface{} `json:"properties"`
+	ForkBlocks []string `json:"forkBlocks"`
+	BadBlocks []string `json:"badBlocks"`
+	ConsensusEngine string `json:"consensusEngine"`
 }
 
 // Data defines the genesis file data formatted for trie storage

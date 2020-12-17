@@ -28,12 +28,21 @@ var testBootnodes = []string{
 	"/dns4/p2p.cc3-1.kusama.network/tcp/30100/p2p/QmchDJtEGiEWf7Ag58HNoTg9jSGzxkSZ23VgmF6xiLKKsZ",
 }
 
+var testProperties = map[string]interface{}{"ss58Format":float64(0), "tokenDecimals":float64(10), "tokenSymbol": "DOT"}
+
+var testForkBlocks = []string{"fork1", "forkBlock2"}
+
+var testBadBlocks = []string{"badBlock1", "badBlock2"}
+
 // TestGenesis instance of Genesis struct for testing
 var TestGenesis = &Genesis{
 	Name:       "gossamer",
 	ID:         "gossamer",
 	Bootnodes:  testBootnodes,
 	ProtocolID: testProtocolID,
+	Properties: testProperties,
+	ForkBlocks: testForkBlocks,
+	BadBlocks: testBadBlocks,
 }
 
 // TestFieldsHR instance of human-readable Fields struct for testing, use with TestGenesis
