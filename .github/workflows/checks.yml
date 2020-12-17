@@ -25,10 +25,6 @@ jobs:
       - name: Run go linter
         run: make lint
 
-      - name: Ensure go generate produces a zero diff
-        shell: bash
-        run:  go generate -x ./... && git diff --exit-code; code=$?; git checkout -- .; (exit $code)
-
   vet-check:
     runs-on: ubuntu-latest
     steps:
