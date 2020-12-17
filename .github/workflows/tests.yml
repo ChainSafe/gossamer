@@ -8,8 +8,7 @@ jobs:
     strategy:
       matrix:
         go-version: [1.15.x]
-        # TODO add macos to matrix
-        platform: [ubuntu-latest]
+        platform: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.platform }}
     env:
       CC_TEST_REPORTER_ID: abdad8b2e2ec0bfdd7af57d955c44e9470f4d174e744b824047f3037800f5b41
@@ -27,6 +26,7 @@ jobs:
           restore-keys: ${{ runner.os }}-go-
 
       - name: Prepare Test Reporter
+        if: startsWith(matrix.os, 'ubuntu')
         run: |
           curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
           chmod +x ./cc-test-reporter
@@ -36,6 +36,7 @@ jobs:
         run: ./scripts/ci.sh
 
       - name: Upload to Code Climate
+        if: startsWith(matrix.os, 'ubuntu')
         run: ./cc-test-reporter after-build
 
       - name: Test State - Race
