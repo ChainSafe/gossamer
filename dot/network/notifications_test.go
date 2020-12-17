@@ -125,7 +125,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 
 	err := handler(testPeerID, msg)
 	require.NoError(t, err)
-	require.True(t, s.requestTracker.hasRequestedBlockID(99))
+	require.NotNil(t, s.syncing[testPeerID])
 }
 
 func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) {

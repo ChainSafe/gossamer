@@ -49,7 +49,7 @@ func TestMessageSize(t *testing.T) {
 		defer node.Stop()
 		nodes[i] = node
 		errs[i] = errCh
-		handler := newTestStreamHandler()
+		handler := newTestStreamHandler(testBlockRequestMessageDecoder)
 		node.host.registerStreamHandler("", handler.handleStream)
 	}
 
@@ -226,7 +226,7 @@ func TestSend(t *testing.T) {
 
 	nodeB := createTestService(t, configB)
 	nodeB.noGossip = true
-	handler := newTestStreamHandler()
+	handler := newTestStreamHandler(testBlockRequestMessageDecoder)
 	nodeB.host.registerStreamHandler("", handler.handleStream)
 
 	addrInfosB, err := nodeB.host.addrInfos()
@@ -242,11 +242,11 @@ func TestSend(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	err = nodeA.host.send(addrInfosB[0].ID, "", TestMessage)
+	err = nodeA.host.send(addrInfosB[0].ID, "", testBlockRequestMessage)
 	require.NoError(t, err)
 
 	time.Sleep(TestMessageTimeout)
-	require.Equal(t, TestMessage, handler.messages[nodeA.host.id()])
+	require.Equal(t, testBlockRequestMessage, handler.messages[nodeA.host.id()])
 }
 
 func TestBroadcast(t *testing.T) {
@@ -273,7 +273,7 @@ func TestBroadcast(t *testing.T) {
 
 	nodeB := createTestService(t, configB)
 	nodeB.noGossip = true
-	handlerB := newTestStreamHandler()
+	handlerB := newTestStreamHandler(testBlockRequestMessageDecoder)
 	nodeB.host.registerStreamHandler("", handlerB.handleStream)
 
 	addrInfosB, err := nodeB.host.addrInfos()
@@ -298,7 +298,7 @@ func TestBroadcast(t *testing.T) {
 
 	nodeC := createTestService(t, configC)
 	nodeC.noGossip = true
-	handlerC := newTestStreamHandler()
+	handlerC := newTestStreamHandler(testBlockRequestMessageDecoder)
 	nodeC.host.registerStreamHandler("", handlerC.handleStream)
 
 	addrInfosC, err := nodeC.host.addrInfos()
@@ -312,11 +312,11 @@ func TestBroadcast(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	nodeA.host.broadcast(TestMessage)
+	nodeA.host.broadcast(testBlockRequestMessage)
 
 	time.Sleep(TestMessageTimeout)
-	require.Equal(t, TestMessage, handlerB.messages[nodeA.host.id()])
-	require.Equal(t, TestMessage, handlerC.messages[nodeA.host.id()])
+	require.Equal(t, testBlockRequestMessage, handlerB.messages[nodeA.host.id()])
+	require.Equal(t, testBlockRequestMessage, handlerC.messages[nodeA.host.id()])
 }
 
 // test host send method with existing stream
@@ -332,7 +332,7 @@ func TestExistingStream(t *testing.T) {
 
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
-	handlerA := newTestStreamHandler()
+	handlerA := newTestStreamHandler(testBlockRequestMessageDecoder)
 	nodeA.host.registerStreamHandler("", handlerA.handleStream)
 
 	addrInfosA, err := nodeA.host.addrInfos()
@@ -349,7 +349,7 @@ func TestExistingStream(t *testing.T) {
 
 	nodeB := createTestService(t, configB)
 	nodeB.noGossip = true
-	handlerB := newTestStreamHandler()
+	handlerB := newTestStreamHandler(testBlockRequestMessageDecoder)
 	nodeB.host.registerStreamHandler("", handlerB.handleStream)
 
 	addrInfosB, err := nodeB.host.addrInfos()
@@ -367,7 +367,7 @@ func TestExistingStream(t *testing.T) {
 	require.Nil(t, stream, "node A should not have an outbound stream")
 
 	// node A opens the stream to send the first message
-	err = nodeA.host.send(addrInfosB[0].ID, "", TestMessage)
+	err = nodeA.host.send(addrInfosB[0].ID, "", testBlockRequestMessage)
 	require.NoError(t, err)
 
 	time.Sleep(TestMessageTimeout)
@@ -377,7 +377,7 @@ func TestExistingStream(t *testing.T) {
 	require.NotNil(t, stream, "node A should have an outbound stream")
 
 	// node A uses the stream to send a second message
-	err = nodeA.host.send(addrInfosB[0].ID, "", TestMessage)
+	err = nodeA.host.send(addrInfosB[0].ID, "", testBlockRequestMessage)
 	require.NoError(t, err)
 	require.NotNil(t, handlerB.messages[nodeA.host.id()], "node B timeout waiting for message from node A")
 
@@ -385,7 +385,7 @@ func TestExistingStream(t *testing.T) {
 	require.NotNil(t, stream, "node B should have an outbound stream")
 
 	// node B opens the stream to send the first message
-	err = nodeB.host.send(addrInfosA[0].ID, "", TestMessage)
+	err = nodeB.host.send(addrInfosA[0].ID, "", testBlockRequestMessage)
 	require.NoError(t, err)
 
 	time.Sleep(TestMessageTimeout)
@@ -395,7 +395,7 @@ func TestExistingStream(t *testing.T) {
 	require.NotNil(t, stream, "node B should have an outbound stream")
 
 	// node B uses the stream to send a second message
-	err = nodeB.host.send(addrInfosA[0].ID, "", TestMessage)
+	err = nodeB.host.send(addrInfosA[0].ID, "", testBlockRequestMessage)
 	require.NoError(t, err)
 	require.NotNil(t, handlerA.messages[nodeB.host.id()], "node A timeout waiting for message from node B")
 
@@ -415,7 +415,7 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
-	handlerA := newTestStreamHandler()
+	handlerA := newTestStreamHandler(testBlockAnnounceMessageDecoder)
 	nodeA.host.registerStreamHandler("", handlerA.handleStream)
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
@@ -429,7 +429,7 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 
 	nodeB := createTestService(t, configB)
 	nodeB.noGossip = true
-	handlerB := newTestStreamHandler()
+	handlerB := newTestStreamHandler(testBlockAnnounceMessageDecoder)
 	nodeB.host.registerStreamHandler("", handlerB.handleStream)
 
 	addrInfosB, err := nodeB.host.addrInfos()
@@ -447,7 +447,7 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	require.Nil(t, stream, "node A should not have an outbound stream")
 
 	// node A opens the stream to send the first message
-	err = nodeA.host.send(addrInfosB[0].ID, "", TestMessage)
+	err = nodeA.host.send(addrInfosB[0].ID, "", testBlockAnnounceMessage)
 	require.NoError(t, err)
 
 	info := nodeA.notificationsProtocols[BlockAnnounceMsgType]

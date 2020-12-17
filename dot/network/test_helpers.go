@@ -2,8 +2,11 @@ package network
 
 import (
 	"bufio"
+	"bytes"
+	"errors"
 	"math/big"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 
@@ -24,7 +27,7 @@ func newMockSyncer() *mockSyncer {
 }
 
 func (s *mockSyncer) CreateBlockResponse(msg *BlockRequestMessage) (*BlockResponseMessage, error) {
-	return nil, nil
+	return nil, errors.New("unimplemented")
 }
 
 func (s *mockSyncer) HandleBlockResponse(msg *BlockResponseMessage) *BlockRequestMessage {
@@ -47,7 +50,7 @@ func (s *mockSyncer) IsSynced() bool {
 	return s.synced
 }
 
-func (s *mockSyncer) SetSyncedState(newState bool) {
+func (s *mockSyncer) setSyncedState(newState bool) {
 	s.synced = newState
 }
 
@@ -131,4 +134,32 @@ func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream, peer peer.ID
 			return
 		}
 	}
+}
+
+var testBlockRequestMessage = &BlockRequestMessage{
+	RequestedData: 1,
+	StartingBlock: variadic.NewUint64OrHashFromBytes([]byte{1, 1, 1, 1, 1, 1, 1, 1, 1}),
+	EndBlockHash:  optional.NewHash(true, common.Hash{}),
+	Direction:     1,
+	Max:           optional.NewUint32(true, 1),
+}
+
+func testBlockRequestMessageDecoder(in []byte, _ peer.ID) (Message, error) {
+	r := &bytes.Buffer{}
+	r.Write(in)
+	msg := new(BlockRequestMessage)
+	err := msg.Decode(r)
+	return msg, err
+}
+
+var testBlockAnnounceMessage = &BlockAnnounceMessage{
+	Number: big.NewInt(99),
+}
+
+func testBlockAnnounceMessageDecoder(in []byte, _ peer.ID) (Message, error) {
+	r := &bytes.Buffer{}
+	r.Write(in)
+	msg := new(BlockAnnounceMessage)
+	err := msg.Decode(r)
+	return msg, err
 }

@@ -515,6 +515,10 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 			if err != nil {
 				logger.Error("failed to send BlockRequest message", "peer", peer)
 			}
+		} else {
+			// we are done syncing
+			delete(s.syncing, peer)
+			// TODO: close stream
 		}
 	}
 

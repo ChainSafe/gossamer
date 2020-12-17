@@ -21,26 +21,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
-	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
 )
 
 var TestProtocolID = "/gossamer/test/0"
-
-// arbitrary block request message
-var TestMessage = &BlockRequestMessage{
-	ID:            1,
-	RequestedData: 1,
-	// TODO: investigate starting block mismatch with different slice length
-	StartingBlock: variadic.NewUint64OrHashFromBytes([]byte{1, 1, 1, 1, 1, 1, 1, 1, 1}),
-	EndBlockHash:  optional.NewHash(true, common.Hash{}),
-	Direction:     1,
-	Max:           optional.NewUint32(true, 1),
-}
 
 // maximum wait time for non-status message to be handled
 var TestMessageTimeout = time.Second
@@ -139,8 +125,6 @@ func TestBroadcastMessages(t *testing.T) {
 	nodeB := createTestService(t, configB)
 	defer nodeB.Stop()
 	nodeB.noGossip = true
-	handler := newTestStreamHandler()
-	nodeB.host.registerStreamHandler("", handler.handleStream)
 
 	addrInfosB, err := nodeB.host.addrInfos()
 	if err != nil {
@@ -156,10 +140,9 @@ func TestBroadcastMessages(t *testing.T) {
 	require.NoError(t, err)
 
 	// simulate message sent from core service
-	nodeA.SendMessage(TestMessage)
+	nodeA.SendMessage(testBlockAnnounceMessage)
 	time.Sleep(time.Second)
-
-	require.Equal(t, TestMessage, handler.messages[nodeA.host.id()])
+	require.NotNil(t, nodeB.syncing[nodeA.host.id()])
 }
 
 func TestHandleSyncMessage_BlockResponse(t *testing.T) {
@@ -177,17 +160,12 @@ func TestHandleSyncMessage_BlockResponse(t *testing.T) {
 	s := createTestService(t, config)
 
 	peerID := peer.ID("noot")
-	msgID := uint64(17)
-	msg := &BlockResponseMessage{
-		ID: msgID,
-	}
+	msg := &BlockResponseMessage{}
+	s.syncing[peerID] = struct{}{}
 
-	s.requestTracker.addRequestedBlockID(msgID)
 	s.handleSyncMessage(peerID, msg)
-
-	if s.requestTracker.hasRequestedBlockID(msgID) {
-		t.Fatal("Fail: should have removed ID")
-	}
+	_, isSyncing := s.syncing[peerID]
+	require.False(t, isSyncing)
 }
 
 func TestService_NodeRoles(t *testing.T) {
@@ -218,7 +196,7 @@ func TestService_Health(t *testing.T) {
 	require.Equal(t, s.Health().IsSyncing, true)
 	mockSync := s.syncer.(*mockSyncer)
 
-	mockSync.SetSyncedState(true)
+	mockSync.setSyncedState(true)
 	require.Equal(t, s.Health().IsSyncing, false)
 }
 
