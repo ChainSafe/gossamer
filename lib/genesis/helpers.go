@@ -255,12 +255,12 @@ func formatKey(kv *keyValue) (string, error) {
 		kb := []byte(`:code`)
 		return common.BytesToHex(kb), nil
 	default:
+		if len(kv.key) < 2 {
+			return "", errors.New("key array less than 2")
+		}
 		prefix, err := common.Twox128Hash([]byte(kv.key[0]))
 		if err != nil {
 			return "", err
-		}
-		if len(kv.key) > 1 {
-			return "", errors.New("keydata must not be nil")
 		}
 		keydata, err := common.Twox128Hash([]byte(kv.key[1]))
 		if err != nil {
