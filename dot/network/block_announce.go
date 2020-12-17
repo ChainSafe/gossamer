@@ -20,12 +20,71 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/scale"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 )
+
+var (
+	_ NotificationsMessage = &BlockAnnounceMessage{}
+	_ NotificationsMessage = &BlockAnnounceHandshake{}
+)
+
+// BlockAnnounceMessage is a state block header
+type BlockAnnounceMessage struct {
+	ParentHash     common.Hash
+	Number         *big.Int
+	StateRoot      common.Hash
+	ExtrinsicsRoot common.Hash
+	Digest         [][]byte // any additional block info eg. logs, seal
+}
+
+// Type returns BlockAnnounceMsgType
+func (bm *BlockAnnounceMessage) Type() byte {
+	return BlockAnnounceMsgType
+}
+
+// string formats a BlockAnnounceMessage as a string
+func (bm *BlockAnnounceMessage) String() string {
+	return fmt.Sprintf("BlockAnnounceMessage ParentHash=%s Number=%d StateRoot=%sx ExtrinsicsRoot=%s Digest=%v",
+		bm.ParentHash,
+		bm.Number,
+		bm.StateRoot,
+		bm.ExtrinsicsRoot,
+		bm.Digest)
+}
+
+// Encode a BlockAnnounce Msg Type containing the BlockAnnounceMessage using scale.Encode
+func (bm *BlockAnnounceMessage) Encode() ([]byte, error) {
+	enc, err := scale.Encode(bm)
+	if err != nil {
+		return enc, err
+	}
+	return enc, nil
+}
+
+// Decode the message into a BlockAnnounceMessage, it assumes the type byte has been removed
+func (bm *BlockAnnounceMessage) Decode(r io.Reader) error {
+	sd := scale.Decoder{Reader: r}
+	_, err := sd.Decode(bm)
+	return err
+}
+
+// BlockAnnounceMessage returns the hash of the BlockAnnounceMessage
+func (bm *BlockAnnounceMessage) Hash() common.Hash {
+	// scale encode each extrinsic
+	encMsg, _ := bm.Encode()
+	hash, _ := common.Blake2bHash(encMsg)
+	return hash
+}
+
+// IsHandshake returns false
+func (bm *BlockAnnounceMessage) IsHandshake() bool {
+	return false
+}
 
 func decodeBlockAnnounceHandshake(r io.Reader) (Handshake, error) {
 	sd := scale.Decoder{Reader: r}
@@ -34,7 +93,7 @@ func decodeBlockAnnounceHandshake(r io.Reader) (Handshake, error) {
 	return hs, err
 }
 
-func decodeBlockAnnounceMessage(r io.Reader) (Message, error) {
+func decodeBlockAnnounceMessage(r io.Reader) (NotificationsMessage, error) {
 	sd := scale.Decoder{Reader: r}
 	msg := new(BlockAnnounceMessage)
 	_, err := sd.Decode(msg)
@@ -75,9 +134,9 @@ func (hs *BlockAnnounceHandshake) Type() byte {
 	return 0
 }
 
-// IDString ...
-func (hs *BlockAnnounceHandshake) IDString() string {
-	return ""
+// Hash ...
+func (hs *BlockAnnounceHandshake) Hash() common.Hash {
+	return common.Hash{}
 }
 
 // IsHandshake returns true
@@ -114,11 +173,11 @@ func (s *Service) validateBlockAnnounceHandshake(hs Handshake) error {
 // handleBlockAnnounceMessage handles BlockAnnounce messages
 // if some more blocks are required to sync the announced block, the node will open a sync stream
 // with its peer and send a BlockRequest message
-func (s *Service) handleBlockAnnounceMessage(peer peer.ID, msg Message) error {
+func (s *Service) handleBlockAnnounceMessage(peer peer.ID, msg NotificationsMessage) error {
 	if an, ok := msg.(*BlockAnnounceMessage); ok {
 		req := s.syncer.HandleBlockAnnounce(an)
 		if req != nil {
-			s.requestTracker.addRequestedBlockID(req.ID)
+			s.syncing[peer] = struct{}{}
 			err := s.host.send(peer, syncID, req)
 			if err != nil {
 				logger.Error("failed to send BlockRequest message", "peer", peer)

@@ -38,7 +38,6 @@ func (s *mockSyncer) HandleBlockAnnounce(msg *BlockAnnounceMessage) *BlockReques
 
 	startBlock, _ := variadic.NewUint64OrHash(1)
 	return &BlockRequestMessage{
-		ID:            99,
 		StartingBlock: startBlock,
 		Max:           optional.NewUint32(false, 0),
 	}
@@ -54,11 +53,13 @@ func (s *mockSyncer) SetSyncedState(newState bool) {
 
 type testStreamHandler struct {
 	messages map[peer.ID]Message
+	decoder  messageDecoder
 }
 
-func newTestStreamHandler() *testStreamHandler {
+func newTestStreamHandler(decoder messageDecoder) *testStreamHandler {
 	return &testStreamHandler{
 		messages: make(map[peer.ID]Message),
+		decoder:  decoder,
 	}
 }
 
@@ -70,7 +71,7 @@ func (s *testStreamHandler) handleStream(stream libp2pnetwork.Stream) {
 	}
 
 	peer := conn.RemotePeer()
-	s.readStream(stream, peer, decodeMessageBytes, s.handleMessage)
+	s.readStream(stream, peer, s.decoder, s.handleMessage)
 }
 
 func (s *testStreamHandler) handleMessage(peer peer.ID, msg Message) error {

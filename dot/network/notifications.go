@@ -30,7 +30,7 @@ var errCannotValidateHandshake = errors.New("failed to validate handshake")
 
 // Handshake is the interface all handshakes for notifications protocols must implement
 type Handshake interface {
-	Message
+	NotificationsMessage
 }
 
 // the following are used for RegisterNotificationsProtocol
@@ -45,10 +45,10 @@ type (
 	HandshakeValidator = func(Handshake) error
 
 	// MessageDecoder is a custom decoder for a message
-	MessageDecoder = func(io.Reader) (Message, error)
+	MessageDecoder = func(io.Reader) (NotificationsMessage, error)
 
 	// NotificationsMessageHandler is called when a (non-handshake) message is received over a notifications stream.
-	NotificationsMessageHandler = func(peer peer.ID, msg Message) error
+	NotificationsMessageHandler = func(peer peer.ID, msg NotificationsMessage) error
 )
 
 type notificationsProtocol struct {
@@ -61,7 +61,7 @@ type notificationsProtocol struct {
 type handshakeData struct {
 	received    bool
 	validated   bool
-	outboundMsg Message
+	outboundMsg NotificationsMessage
 }
 
 func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecoder, messageDecoder MessageDecoder) messageDecoder {
@@ -87,9 +87,18 @@ func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecode
 }
 
 func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol, handshakeValidator HandshakeValidator, messageHandler NotificationsMessageHandler) messageHandler {
-	return func(peer peer.ID, msg Message) error {
-		if msg == nil || info == nil || handshakeValidator == nil || messageHandler == nil {
+	return func(peer peer.ID, m Message) error {
+		if m == nil || info == nil || handshakeValidator == nil || messageHandler == nil {
 			return nil
+		}
+
+		var (
+			ok  bool
+			msg NotificationsMessage
+		)
+
+		if msg, ok = m.(NotificationsMessage); !ok {
+			return errors.New("message is not NotificationsMessage")
 		}
 
 		logger.Info("received message on notifications sub-protocol", "sub-protocol", info.subProtocol, "message", msg)
@@ -187,7 +196,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 
 // broadcastExcluding sends a message to each connected peer except the given peer
 // Used for notifications sub-protocols to gossip a message
-func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer.ID, msg Message) {
+func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer.ID, msg NotificationsMessage) {
 	logger.Trace(
 		"broadcasting message from notifications sub-protocol",
 		"sub-protocol", info.subProtocol,
