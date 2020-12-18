@@ -36,8 +36,11 @@ jobs:
         run: ./scripts/ci.sh
 
       - name: Upload Success to Code Climate
-        if: matrix.platform == 'ubuntu-latest' && ${{ success() }}
-        run: ./cc-test-reporter after-build --exit-code 0
+        if: |
+          matrix.platform == 'ubuntu-latest' &&
+          ${{ success() }}
+        run: |
+          ./cc-test-reporter after-build --exit-code 0
 
       - name: Test State - Race
         run: make test-state-race
