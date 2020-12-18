@@ -244,12 +244,12 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 	s.notificationsProtocols[messageID] = np
 
 	connMgr := s.host.h.ConnManager().(*ConnManager)
-	connMgr.RegisterCloseHandler(s.host.protocolID, func(peerID peer.ID) {
+	connMgr.RegisterCloseHandler(s.host.protocolID+sub, func(peerID peer.ID) {
 		if _, ok := np.handshakeData[peerID]; ok {
 			logger.Debug(
 				"Cleaning up handshake data",
 				"peer", peerID,
-				"protocol", s.host.protocolID,
+				"protocol", s.host.protocolID+sub,
 			)
 			delete(np.handshakeData, peerID)
 		}
