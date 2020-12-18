@@ -272,3 +272,15 @@ func Test_ext_misc_runtime_version_version_1(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, expected, expectedData)
 }
+
+func Test_ext_misc_print_num_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.LEGACY_NODE_RUNTIME)
+
+	testKey := []byte("2")
+	enc, err := scale.Encode(testKey)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_misc_print_num_version_1", enc)
+	require.NoError(t, err)
+
+}

@@ -326,6 +326,7 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 	logger.Trace("[ext_misc_runtime_version_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
+
 	data := asMemorySlice(instanceContext, dataSpan)
 
 	version := &runtime.VersionAPI{
