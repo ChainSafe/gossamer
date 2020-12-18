@@ -19,11 +19,11 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
           restore-keys: ${{ runner.os }}-go-
 
-      - name: Run go fmt
-        run: diff -u <(echo -n) <(gofmt -d -s .)
-
-      - name: Run go linter
-        run: make lint
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v2.0.0+
+          args: --config .golangci.yml
 
   vet-check:
     runs-on: ubuntu-latest
