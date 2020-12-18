@@ -92,3 +92,11 @@ func BABERandomnessKey() []byte {
 	key, _ := common.Twox128Hash([]byte("Randomness"))
 	return append(BABEPrefix, key...)
 }
+
+// SystemAccountPrefix is the prefix for all System Account related storage values
+func SystemAccountPrefix() []byte {
+	// build prefix
+	prefix, _ := common.Twox128Hash([]byte(`System`))
+	part2, _ := common.Twox128Hash([]byte(`Account`))
+	return append(prefix, part2...)
+}
