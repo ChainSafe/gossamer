@@ -465,7 +465,6 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	// Verify that handshake data exists.
 	_, ok := info.handshakeData[nodeB.host.id()]
 	require.True(t, ok)
-	//nodeB.host.close()
 
 	nodeB.host.close()
 
