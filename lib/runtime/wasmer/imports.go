@@ -96,6 +96,7 @@ package wasmer
 import "C"
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -103,6 +104,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
+	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -185,7 +187,7 @@ func ext_sandbox_memory_teardown_version_1(context unsafe.Pointer, a C.int32_t) 
 }
 
 //export ext_crypto_ed25519_generate_version_1
-func ext_crypto_ed25519_generate_version_1(context unsafe.Pointer, keyTypeId C.int32_t, seed C.int64_t) C.int32_t {
+func ext_crypto_ed25519_generate_version_1(context unsafe.Pointer, keyTypeId C.int32_t, seedSpan C.int64_t) C.int32_t {
 	logger.Trace("[ext_crypto_ed25519_generate_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
@@ -194,21 +196,37 @@ func ext_crypto_ed25519_generate_version_1(context unsafe.Pointer, keyTypeId C.i
 	// TODO: key types not yet implemented
 	// id := memory[idData:idData+4]
 
-	seedBytes := asMemorySlice(instanceContext, seed)
-	kp, err := ed25519.NewKeypairFromSeed(seedBytes)
+	seedBytes := asMemorySlice(instanceContext, seedSpan)
+	buf := &bytes.Buffer{}
+	buf.Write(seedBytes)
+	seed, err := optional.NewBytes(false, nil).Decode(buf)
 	if err != nil {
-		logger.Trace("[ext_crypto_ed25519_generate_version_1] cannot generate key", "error", err)
+		logger.Warn("[ext_crypto_ed25519_generate_version_1] cannot generate key", "error", err)
+		return 0
+	}
+
+	var kp crypto.Keypair
+
+	if seed.Exists() {
+		kp, err = ed25519.NewKeypairFromSeed(seedBytes)
+	} else {
+		kp, err = ed25519.GenerateKeypair()
+	}
+
+	if err != nil {
+		logger.Warn("[ext_crypto_ed25519_generate_version_1] cannot generate key", "error", err)
 		return 0
 	}
 
 	runtimeCtx.Keystore.Insert(kp)
 
-	ret, err := toWasmMemoryOptional(instanceContext, kp.Public().Encode())
+	ret, err := toWasmMemorySized(instanceContext, kp.Public().Encode(), 32)
 	if err != nil {
-		logger.Trace("[ext_crypto_ed25519_generate_version_1] failed to allocate memory", "error", err)
+		logger.Warn("[ext_crypto_ed25519_generate_version_1] failed to allocate memory", "error", err)
 		return 0
 	}
 
+	logger.Debug("[ext_crypto_ed25519_generate_version_1] generated ed25519 keypair", "public", kp.Public().Hex())
 	return C.int32_t(ret)
 }
 

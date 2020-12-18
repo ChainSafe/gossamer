@@ -22,6 +22,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -247,31 +248,39 @@ func Test_ext_storage_set_version_1(t *testing.T) {
 }
 func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	require.Equal(t, 0, inst.inst.ctx.Keystore.Size())
 
-	//testKey := int32(2)
-	//encKey, err := scale.Encode(testKey)
-	//require.NoError(t, err)
+	idData := []byte{2, 2, 2, 2}
 
-	data := []byte("helloworld")
-	seedData, err := scale.Encode(data)
+	// TODO: we currently don't provide a seed since the spec says the seed is an optional BIP-39 seed
+	// clarify whether this is a mnemonic or not
+	data := optional.NewBytes(false, nil)
+	seedData, err := data.Encode()
 	require.NoError(t, err)
 
-	_, err = inst.Exec("rtm_ext_crypto_ed25519_generate_version_1", append([]byte{2, 2, 2, 2}, seedData...))
+	params := append(idData, seedData...)
+
+	// we manually store and call the runtime function here since inst.exec assumes
+	// the data returned from the function is a pointer-size, but for ext_crypto_ed25519_generate_version_1,
+	// it's just a pointer
+	ptr, err := inst.inst.malloc(uint32(len(params)))
+	require.NoError(t, err)
+	inst.inst.store(params, int32(ptr))
+	datalen := int32(len(params))
+
+	runtimeFunc, ok := inst.inst.vm.Exports["rtm_ext_crypto_ed25519_generate_version_1"]
+	require.True(t, ok)
+
+	ret, err := runtimeFunc(int32(ptr), datalen)
 	require.NoError(t, err)
 
-	//buf := &bytes.Buffer{}
-	//buf.Write(ret)
-	//
-	//read, err := new(optional.Bytes).Decode(buf)
-	//require.NoError(t, err)
-	//
-	//kp, err := ed25519.NewPublicKey(seedData)
-	//require.NoError(t, err)
-	//
-	//expectedVal := inst.inst.ctx.Keystore.GetKeypair(kp)
-	//
-	//actualVal, err := read.Encode()
-	//require.NoError(t, err)
-	//
-	//require.Equal(t, expectedVal.Public().Encode(), actualVal)
+	mem := inst.inst.vm.Memory.Data()
+	// TODO: why is this SCALE encoded? it should just be a 32 byte buffer. may be due to way test runtime is written.
+	pubkeyBytes := mem[ret.ToI32()+1 : ret.ToI32()+1+32]
+	pubkey, err := ed25519.NewPublicKey(pubkeyBytes)
+	require.NoError(t, err)
+
+	require.Equal(t, 1, inst.inst.ctx.Keystore.Size())
+	kp := inst.inst.ctx.Keystore.GetKeypair(pubkey)
+	require.NotNil(t, kp)
 }
