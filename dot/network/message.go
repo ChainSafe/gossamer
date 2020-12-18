@@ -49,6 +49,7 @@ type NotificationsMessage interface {
 	IsHandshake() bool
 }
 
+// nolint
 const (
 	RequestedDataHeader        = byte(1)
 	RequestedDataBody          = byte(2)
@@ -235,7 +236,7 @@ func (cm *ConsensusMessage) Decode(r io.Reader) error {
 	return nil
 }
 
-// ConsensusMessage returns the Hash of ConsensusMessage
+// Hash returns the Hash of ConsensusMessage
 func (cm *ConsensusMessage) Hash() common.Hash {
 	// scale encode each extrinsic
 	encMsg, _ := cm.Encode()

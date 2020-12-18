@@ -453,7 +453,7 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	// node A opens the stream to send the first message
 	err = nodeA.host.send(addrInfosB[0].ID, blockAnnounceID, testBlockAnnounceMessage)
 	require.NoError(t, err)
-	s
+
 	info := nodeA.notificationsProtocols[BlockAnnounceMsgType]
 
 	// Set handshake data to received

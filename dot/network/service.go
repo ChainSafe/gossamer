@@ -341,7 +341,10 @@ func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 
 func (s *Service) decodeSyncMessage(in []byte, peer peer.ID) (Message, error) {
 	r := &bytes.Buffer{}
-	r.Write(in)
+	_, err := r.Write(in)
+	if err != nil {
+		return nil, err
+	}
 
 	s.syncingMu.RLock()
 	defer s.syncingMu.RUnlock()
@@ -350,13 +353,13 @@ func (s *Service) decodeSyncMessage(in []byte, peer peer.ID) (Message, error) {
 	if _, requested := s.syncing[peer]; requested {
 		// if we are, decode the bytes as a BlockResponseMessage
 		msg := new(BlockResponseMessage)
-		err := msg.Decode(r)
+		err = msg.Decode(r)
 		return msg, err
 	}
 
 	// otherwise, decode bytes as BlockRequestMessage
 	msg := new(BlockRequestMessage)
-	err := msg.Decode(r)
+	err = msg.Decode(r)
 	return msg, err
 }
 
@@ -374,7 +377,10 @@ func (s *Service) handleLightStream(stream libp2pnetwork.Stream) {
 
 func (s *Service) decodeLightMessage(in []byte, peer peer.ID) (Message, error) {
 	r := &bytes.Buffer{}
-	r.Write(in)
+	_, err := r.Write(in)
+	if err != nil {
+		return nil, err
+	}
 
 	s.lightRequestMu.RLock()
 	defer s.lightRequestMu.RUnlock()
@@ -383,13 +389,13 @@ func (s *Service) decodeLightMessage(in []byte, peer peer.ID) (Message, error) {
 	if _, requested := s.lightRequest[peer]; requested {
 		// if we are, decode the bytes as a LightResponse
 		msg := new(LightResponse)
-		err := msg.Decode(r)
+		err = msg.Decode(r)
 		return msg, err
 	}
 
 	// otherwise, decode bytes as LightRequest
 	msg := new(LightRequest)
-	err := msg.Decode(r)
+	err = msg.Decode(r)
 	return msg, err
 }
 

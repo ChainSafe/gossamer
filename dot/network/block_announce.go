@@ -73,7 +73,7 @@ func (bm *BlockAnnounceMessage) Decode(r io.Reader) error {
 	return err
 }
 
-// BlockAnnounceMessage returns the hash of the BlockAnnounceMessage
+// Hash returns the hash of the BlockAnnounceMessage
 func (bm *BlockAnnounceMessage) Hash() common.Hash {
 	// scale encode each extrinsic
 	encMsg, _ := bm.Encode()
