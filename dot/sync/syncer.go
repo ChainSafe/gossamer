@@ -271,7 +271,7 @@ func (s *Service) createBlockRequest(startInt int64) *network.BlockRequestMessag
 	// generate random ID
 	s1 := rand.NewSource(uint64(time.Now().UnixNano()))
 	seed := rand.New(s1).Uint64()
-	randomID := mrand.New(mrand.NewSource(int64(seed))).Uint64()
+	randomID := mrand.New(mrand.NewSource(int64(seed))).Uint64() //nolint
 
 	start, err := variadic.NewUint64OrHash(uint64(startInt))
 	if err != nil {
@@ -467,7 +467,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 // runs the block through runtime function Core_execute_block
 //  It doesn't seem to return data on success (although the spec say it should return
 //  a boolean value that indicate success.  will error if the call isn't successful
-func (s *Service) executeBlock(block *types.Block) ([]byte, error) {
+func (s *Service) executeBlock(block *types.Block) ([]byte, error) { //nolint
 	return s.runtime.ExecuteBlock(block)
 }
 

@@ -116,7 +116,8 @@ func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 	cm.Lock()
 	defer cm.Unlock()
 	if len(n.Peers()) > cm.max {
-		i := rand.Intn(len(n.Peers()))
+		// TODO: change to crypto/rand
+		i := rand.Intn(len(n.Peers())) //nolint
 		peers := n.Peers()
 		logger.Trace("Over max peer count, disconnecting from random peer", "peer", peers[i])
 		err := n.ClosePeer(peers[i])

@@ -277,7 +277,7 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 	require.Equal(t, int64(1), high)
 }
 
-func buildBlock(t *testing.T, instance runtime.LegacyInstance, parent *types.Header) *types.Block {
+func buildBlock(t *testing.T, instance runtime.LegacyInstance, parent *types.Header) *types.Block { //nolint
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     big.NewInt(0).Add(parent.Number, big.NewInt(1)),
