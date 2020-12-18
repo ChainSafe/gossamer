@@ -32,14 +32,12 @@ jobs:
           chmod +x ./cc-test-reporter
           ./cc-test-reporter before-build
 
-      - name: Unit Tests
-        run: ./scripts/ci.sh
-
-      - name: Upload Success to Code Climate
+      - name: Run unit tests & upload to code climate
         if: |
           matrix.platform == 'ubuntu-latest' &&
           ${{ success() }}
         run: |
+          ./scripts/ci.sh
           ./cc-test-reporter after-build --exit-code 0
 
       - name: Test State - Race
