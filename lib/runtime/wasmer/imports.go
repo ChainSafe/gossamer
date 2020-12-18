@@ -310,7 +310,6 @@ func ext_misc_print_hex_version_1(context unsafe.Pointer, data C.int64_t) {
 //export ext_misc_print_num_version_1
 func ext_misc_print_num_version_1(context unsafe.Pointer, data C.int64_t) {
 	logger.Trace("[ext_misc_print_num_version_1] executing...")
-	logger.Warn("[ext_misc_print_num_version_1] unimplemented")
 	ext_print_num(context, data)
 }
 
@@ -326,14 +325,19 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 	logger.Trace("[ext_misc_runtime_version_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
-
 	data := asMemorySlice(instanceContext, dataSpan)
 
-	version := &runtime.VersionAPI{
-		RuntimeVersion: &runtime.Version{},
-		API:            nil,
+	instance, err := NewInstance(data, nil)
+	if err != nil {
+		logger.Error("[ext_misc_runtime_version_version_1] failed to create instance", "error", err)
+		return 0
 	}
-	version.Decode(data)
+
+	version, err := instance.Version()
+	if err != nil {
+		logger.Error("[ext_misc_runtime_version_version_1] failed to fetch version", "error", err)
+		return 0
+	}
 
 	encodedData, err := scale.Encode(version.RuntimeVersion)
 	if err != nil {
