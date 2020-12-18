@@ -18,13 +18,11 @@ help: Makefile
 	@sed -n 's/^##//p' $< | column -t -s ':' |  sed -e 's/^/ /'
 	@echo
 
-$(GOLANGCI):
-	wget -O - -q https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s latest
-
 ## lint: Lints project files, go gets golangci-lint if missing. Runs `golangci-lint` on project files.
 .PHONY: lint
-lint: $(GOLANGCI)
-	GOBIN=$(PWD)/bin go run scripts/ci.go lint
+lint: 
+	./scripts/install-lint.sh
+	golangci-lint run
 
 clean:
 	rm -fr ./bin
