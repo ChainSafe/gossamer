@@ -19,6 +19,7 @@ package genesis
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/big"
@@ -147,6 +148,7 @@ type keyValue struct {
 	key      []string
 	value    string
 	valueLen *big.Int
+	iVal     []interface{}
 }
 
 func buildRawMap(m map[string]map[string]interface{}) (map[string]string, error) {
@@ -156,7 +158,14 @@ func buildRawMap(m map[string]map[string]interface{}) (map[string]string, error)
 		kv.key = append(kv.key, k)
 		buildRawMapInterface(v, kv)
 
-		key, err := formatKey(kv.key)
+		if reflect.DeepEqual([]string{"palletBalances", "balances"}, kv.key) {
+			err := buildBalances(kv, res)
+			if err != nil {
+				return nil, err
+			}
+			continue
+		}
+		key, err := formatKey(kv)
 		if err != nil {
 			return nil, err
 		}
@@ -192,30 +201,35 @@ func buildRawArrayInterface(a []interface{}, kv *keyValue) {
 			// todo check to confirm it's an address
 			tba := crypto.PublicAddressToByteArray(common.Address(v2))
 			kv.value = kv.value + fmt.Sprintf("%x", tba)
+			kv.iVal = append(kv.iVal, tba)
 		case float64:
 			encVal, err := scale.Encode(uint64(v2))
 			if err != nil {
 				//todo determine how to handle this error
 			}
 			kv.value = kv.value + fmt.Sprintf("%x", encVal)
+			kv.iVal = append(kv.iVal, encVal)
 		}
 	}
 }
 
-func formatKey(key []string) (string, error) {
+func formatKey(kv *keyValue) (string, error) {
 	switch true {
-	case reflect.DeepEqual([]string{"grandpa", "authorities"}, key):
+	case reflect.DeepEqual([]string{"grandpa", "authorities"}, kv.key):
 		kb := []byte(`:grandpa_authorities`)
 		return common.BytesToHex(kb), nil
-	case reflect.DeepEqual([]string{"system", "code"}, key):
+	case reflect.DeepEqual([]string{"system", "code"}, kv.key):
 		kb := []byte(`:code`)
 		return common.BytesToHex(kb), nil
 	default:
-		prefix, err := common.Twox128Hash([]byte(key[0]))
+		if len(kv.key) < 2 {
+			return "", errors.New("key array less than 2")
+		}
+		prefix, err := common.Twox128Hash([]byte(kv.key[0]))
 		if err != nil {
 			return "", err
 		}
-		keydata, err := common.Twox128Hash([]byte(key[1]))
+		keydata, err := common.Twox128Hash([]byte(kv.key[1]))
 		if err != nil {
 			return "", err
 		}
@@ -247,6 +261,36 @@ func formatValue(kv *keyValue) (string, error) {
 		}
 		return fmt.Sprintf("0x%x", kv.value), nil
 	}
+}
+
+func buildBalances(kv *keyValue, res map[string]string) error {
+	for i := range kv.iVal {
+		if i%2 == 0 {
+			// build key
+			bKey := runtime.SystemAccountPrefix()
+
+			addHash, err := common.Blake2b128(kv.iVal[i].([]byte))
+			if err != nil {
+				return err
+			}
+			bKey = append(bKey, addHash...)
+
+			bKey = append(bKey, kv.iVal[i].([]byte)...)
+
+			// build value
+			bVal := []byte{}
+			zero, err := scale.Encode(uint32(0))
+			if err != nil {
+				return err
+			}
+			bVal = append(bVal, zero...) // u32 for nonce
+			bVal = append(bVal, zero...) // u32 for ref count
+			bVal = append(bVal, kv.iVal[i+1].([]byte)...)
+			res[common.BytesToHex(bKey)] = common.BytesToHex(bVal)
+		}
+
+	}
+	return nil
 }
 
 // BuildFromMap builds genesis fields data from map

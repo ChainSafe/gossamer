@@ -22,6 +22,7 @@ require (
 	github.com/libp2p/go-libp2p v0.10.3
 	github.com/libp2p/go-libp2p-core v0.6.1
 	github.com/libp2p/go-libp2p-kad-dht v0.8.3
+	github.com/libp2p/go-libp2p-kbucket v0.4.2
 	github.com/libp2p/go-libp2p-noise v0.1.1
 	github.com/mattn/go-colorable v0.1.4 // indirect
 	github.com/mattn/go-isatty v0.0.11 // indirect
