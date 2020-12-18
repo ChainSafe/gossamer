@@ -1,5 +1,5 @@
 on: [pull_request]
-name: tests
+name: Build and Test
 env:
   GO111MODULE: on
 
@@ -10,8 +10,6 @@ jobs:
         go-version: [1.15.x]
         platform: [ubuntu-latest]
     runs-on: ${{ matrix.platform }}
-    env:
-      CC_TEST_REPORTER_ID: abdad8b2e2ec0bfdd7af57d955c44e9470f4d174e744b824047f3037800f5b41
     steps:
       - uses: actions/setup-go@v1
         with:
@@ -25,23 +23,19 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
           restore-keys: ${{ runner.os }}-go-
 
-      - name: Prepare Test Reporter
-        if: matrix.platform == 'ubuntu-latest'
-        run: |
-          curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
-          chmod +x ./cc-test-reporter
-          ./cc-test-reporter before-build
+      - name: Run unit tests
+        run: ./scripts/ci.sh
 
-      - name: Run unit tests & upload to code climate
-        if: |
-          matrix.platform == 'ubuntu-latest' &&
-          ${{ success() }}
-        run: |
-          ./scripts/ci.sh
-          ./cc-test-reporter after-build --exit-code 0
+      - name: Publish code coverage
+        uses: paambaati/codeclimate-action@v2.7.5
+        env:
+          CC_TEST_REPORTER_ID: abdad8b2e2ec0bfdd7af57d955c44e9470f4d174e744b824047f3037800f5b41
 
       - name: Test State - Race
         run: make test-state-race
+
+      - name: Run build
+        run: make build
 
   docker-build-n-push:
     runs-on: ubuntu-latest
