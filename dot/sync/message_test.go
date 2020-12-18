@@ -74,22 +74,18 @@ func TestService_CreateBlockResponse(t *testing.T) {
 	testCases := []struct {
 		description      string
 		value            *network.BlockRequestMessage
-		expectedMsgType  byte
 		expectedMsgValue *network.BlockResponseMessage
 	}{
 		{
 			description: "test get Header and Body",
 			value: &network.BlockRequestMessage{
-				ID:            1,
 				RequestedData: 3,
 				StartingBlock: start,
 				EndBlockHash:  optional.NewHash(true, endHash),
 				Direction:     1,
 				Max:           optional.NewUint32(false, 0),
 			},
-			expectedMsgType: network.BlockResponseMsgType,
 			expectedMsgValue: &network.BlockResponseMessage{
-				ID: 1,
 				BlockData: []*types.BlockData{
 					{
 						Hash:   optional.NewHash(true, bestHash).Value(),
@@ -102,7 +98,6 @@ func TestService_CreateBlockResponse(t *testing.T) {
 		{
 			description: "test get Header",
 			value: &network.BlockRequestMessage{
-				ID:            2,
 				RequestedData: 1,
 				StartingBlock: start,
 				EndBlockHash:  optional.NewHash(true, endHash),
@@ -111,7 +106,6 @@ func TestService_CreateBlockResponse(t *testing.T) {
 			},
 			expectedMsgType: network.BlockResponseMsgType,
 			expectedMsgValue: &network.BlockResponseMessage{
-				ID: 2,
 				BlockData: []*types.BlockData{
 					{
 						Hash:   optional.NewHash(true, bestHash).Value(),

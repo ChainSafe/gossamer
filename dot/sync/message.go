@@ -128,7 +128,6 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 
 	s.logger.Debug("sending BlockResponseMessage", "start", startHeader.Number, "end", endHeader.Number)
 	return &network.BlockResponseMessage{
-		ID:        blockRequest.ID,
 		BlockData: responseData,
 	}, nil
 }
