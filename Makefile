@@ -108,7 +108,7 @@ docker-version:
 
 docker-build:
 	@echo "  >  \033[32mBuilding Docker Container...\033[0m "
-	docker build -t $(FULLDOCKERNAME) -f Dockerfile.dev .
+	docker build -t $(FULLDOCKERNAME) -f Dockerfile .
 
 gossamer: clean
 	cd cmd/gossamer && go build -o ../../bin/gossamer && cd ../..
