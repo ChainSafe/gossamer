@@ -17,12 +17,16 @@
 package network
 
 import (
+	"context"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p-core/peer"
+	dht "github.com/libp2p/go-libp2p-kad-dht"
+	kbucket "github.com/libp2p/go-libp2p-kbucket"
 	"github.com/stretchr/testify/require"
 )
 
@@ -443,13 +447,13 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	stream := nodeA.host.getStream(nodeB.host.id(), "")
+	stream := nodeA.host.getStream(nodeB.host.id(), blockAnnounceID)
 	require.Nil(t, stream, "node A should not have an outbound stream")
 
 	// node A opens the stream to send the first message
-	err = nodeA.host.send(addrInfosB[0].ID, "", testBlockAnnounceMessage)
+	err = nodeA.host.send(addrInfosB[0].ID, blockAnnounceID, testBlockAnnounceMessage)
 	require.NoError(t, err)
-
+	s
 	info := nodeA.notificationsProtocols[BlockAnnounceMsgType]
 
 	// Set handshake data to received
@@ -461,7 +465,6 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	// Verify that handshake data exists.
 	_, ok := info.handshakeData[nodeB.host.id()]
 	require.True(t, ok)
-	//nodeB.host.close()
 
 	nodeB.host.close()
 
@@ -471,4 +474,84 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	// Verify that handshake data is cleared.
 	_, ok = info.handshakeData[nodeB.host.id()]
 	require.False(t, ok)
+}
+
+func createServiceHelper(t *testing.T, num int) []*Service {
+	t.Helper()
+	var srvcs []*Service
+	for i := 0; i < num; i++ {
+		config := &Config{
+			BasePath:    utils.NewTestBasePath(t, fmt.Sprintf("node%d", i)),
+			Port:        uint32(7001 + i),
+			RandSeed:    int64(1 + i),
+			NoBootstrap: true,
+			NoMDNS:      true,
+		}
+
+		srvc := createTestService(t, config)
+		srvc.noGossip = true
+		handler := newTestStreamHandler(testBlockAnnounceMessageDecoder)
+		srvc.host.registerStreamHandler("", handler.handleStream)
+
+		srvcs = append(srvcs, srvc)
+	}
+	return srvcs
+}
+
+// nolint
+func connectNoSync(t *testing.T, ctx context.Context, a, b *Service) {
+	t.Helper()
+
+	idB := b.host.h.ID()
+	addrB := b.host.h.Peerstore().Addrs(idB)
+	if len(addrB) == 0 {
+		t.Fatal("peers setup incorrectly: no local address")
+	}
+
+	a.host.h.Peerstore().AddAddrs(idB, addrB, time.Minute)
+	pi := peer.AddrInfo{ID: idB}
+
+	err := a.host.h.Connect(ctx, pi)
+	// retry connect if "failed to dial" error
+	if failedToDial(err) {
+		time.Sleep(TestBackoffTimeout)
+		err = a.host.h.Connect(ctx, pi)
+	}
+	require.NoError(t, err)
+}
+
+// nolint
+func wait(t *testing.T, ctx context.Context, a, b *dht.IpfsDHT) {
+	t.Helper()
+
+	// Loop until connection notification has been received.
+	// Under high load, this may not happen as immediately as we would like.
+	for a.RoutingTable().Find(b.PeerID()) == "" {
+		select {
+		case <-ctx.Done():
+			t.Fatal(ctx.Err())
+		case <-time.After(time.Millisecond * 5):
+		}
+	}
+}
+
+// Set `NoMDNS` to true and test routing via kademlia DHT service.
+func TestKadDHT(t *testing.T) {
+	nodes := createServiceHelper(t, 3)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	_, err := nodes[2].host.dht.FindPeer(ctx, nodes[1].host.id())
+	require.Equal(t, err, kbucket.ErrLookupFailure)
+
+	connectNoSync(t, ctx, nodes[1], nodes[0])
+	connectNoSync(t, ctx, nodes[2], nodes[0])
+
+	// Can't use `connect` because b and c are only clients.
+	wait(t, ctx, nodes[1].host.dht, nodes[0].host.dht)
+	wait(t, ctx, nodes[2].host.dht, nodes[0].host.dht)
+
+	_, err = nodes[2].host.dht.FindPeer(ctx, nodes[1].host.id())
+	require.NoError(t, err)
 }

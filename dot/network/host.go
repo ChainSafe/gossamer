@@ -76,8 +76,19 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		return nil, err
 	}
 
+	dhtOpts := []kaddht.Option{
+		kaddht.Datastore(dsync.MutexWrap(ds.NewMapDatastore())),
+	}
+
+	if cfg.NoMDNS {
+		dhtOpts = append(dhtOpts, kaddht.Mode(kaddht.ModeAutoServer))
+	}
+
 	// create DHT service
-	dht := kaddht.NewDHT(ctx, h, dsync.MutexWrap(ds.NewMapDatastore()))
+	dht, err := kaddht.New(ctx, h, dhtOpts...)
+	if err != nil {
+		return nil, err
+	}
 
 	// wrap host and DHT service with routed host
 	h = rhost.Wrap(h, dht)
