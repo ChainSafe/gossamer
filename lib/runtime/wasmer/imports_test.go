@@ -245,3 +245,33 @@ func Test_ext_storage_set_version_1(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, testvalue, val)
 }
+func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	//testKey := int32(2)
+	//encKey, err := scale.Encode(testKey)
+	//require.NoError(t, err)
+
+	data := []byte("helloworld")
+	seedData, err := scale.Encode(data)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_crypto_ed25519_generate_version_1", append([]byte{2, 2, 2, 2}, seedData...))
+	require.NoError(t, err)
+
+	//buf := &bytes.Buffer{}
+	//buf.Write(ret)
+	//
+	//read, err := new(optional.Bytes).Decode(buf)
+	//require.NoError(t, err)
+	//
+	//kp, err := ed25519.NewPublicKey(seedData)
+	//require.NoError(t, err)
+	//
+	//expectedVal := inst.inst.ctx.Keystore.GetKeypair(kp)
+	//
+	//actualVal, err := read.Encode()
+	//require.NoError(t, err)
+	//
+	//require.Equal(t, expectedVal.Public().Encode(), actualVal)
+}
