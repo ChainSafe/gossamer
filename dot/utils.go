@@ -19,8 +19,6 @@ package dot
 import (
 	"encoding/hex"
 	"encoding/json"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -28,6 +26,8 @@ import (
 
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
 	"github.com/naoina/toml"
@@ -130,7 +130,7 @@ func NewTestGenesisAndRuntime(t *testing.T) string {
 	gen := NewTestGenesis(t)
 	hex := hex.EncodeToString(runtimeData)
 
-	gen.Genesis.Raw = map[string]map[string]string{}  // todo ed check
+	gen.Genesis.Raw = map[string]map[string]string{}
 	if gen.Genesis.Raw["top"] == nil {
 		gen.Genesis.Raw["top"] = make(map[string]string)
 	}

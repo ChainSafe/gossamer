@@ -28,7 +28,7 @@ var testBootnodes = []string{
 	"/dns4/p2p.cc3-1.kusama.network/tcp/30100/p2p/QmchDJtEGiEWf7Ag58HNoTg9jSGzxkSZ23VgmF6xiLKKsZ",
 }
 
-var testProperties = map[string]interface{}{"ss58Format":float64(0), "tokenDecimals":float64(10), "tokenSymbol": "DOT"}
+var testProperties = map[string]interface{}{"ss58Format": float64(0), "tokenDecimals": float64(10), "tokenSymbol": "DOT"}
 
 var testForkBlocks = []string{"fork1", "forkBlock2"}
 
@@ -42,12 +42,12 @@ var TestGenesis = &Genesis{
 	ProtocolID: testProtocolID,
 	Properties: testProperties,
 	ForkBlocks: testForkBlocks,
-	BadBlocks: testBadBlocks,
+	BadBlocks:  testBadBlocks,
 }
 
 // TestFieldsHR instance of human-readable Fields struct for testing, use with TestGenesis
 var TestFieldsHR = Fields{
-	Raw: map[string]map[string]string{},  // todo ed check
+	Raw: map[string]map[string]string{},
 	Runtime: map[string]map[string]interface{}{
 		"system": {
 			"code": "mocktestcode",

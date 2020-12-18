@@ -37,7 +37,7 @@ func TestNewGenesisRawFromJSON(t *testing.T) {
 	defer os.Remove(file.Name())
 
 	testRaw := map[string]map[string]string{}
-	testRaw["top"] = map[string]string{"0x3a636f6465":"0x0102"}
+	testRaw["top"] = map[string]string{"0x3a636f6465": "0x0102"}
 
 	expected := TestGenesis
 	expected.Genesis = Fields{Raw: testRaw}
@@ -59,17 +59,6 @@ func TestNewGenesisRawFromJSON(t *testing.T) {
 	}
 
 	require.Equal(t, expected, genesis)
-}
-
-// todo ed remove
-func TestLoadRawJSON(t *testing.T) {
-	genesis, err := NewGenesisFromJSONRaw("../../testGen_raw.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Printf("genesis %v\n", genesis.Genesis.Raw)
-	_, err = NewRuntimeFromGenesis(genesis, nil)
-	require.NoError(t, err)
 }
 
 func TestNewGenesisFromJSON(t *testing.T) {
