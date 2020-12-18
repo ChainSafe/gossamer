@@ -36,5 +36,5 @@ nomdns = false
 enabled = false
 port = 8545
 host = "localhost"
-modules = ["system", "author", "chain", "state"]
+modules = ["system", "author", "chain", "state", "rpc"]
 ws-port = 8546
