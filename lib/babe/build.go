@@ -187,7 +187,7 @@ func (b *Service) buildBlockExtrinsics(slot Slot) []*transaction.ValidTransactio
 		ret, err := b.rt.ApplyExtrinsic(next)
 
 		if err != nil {
-			b.logger.Error("apply extrinsic failed:", "error", err, "extrinsic", next)
+			b.logger.Warn("apply extrinsic failed:", "error", err, "extrinsic", next)
 			continue
 		}
 
@@ -196,9 +196,9 @@ func (b *Service) buildBlockExtrinsics(slot Slot) []*transaction.ValidTransactio
 			errTxt, err := determineError(ret)
 			// remove invalid extrinsic from queue
 			if err == nil {
-				b.logger.Error("failed to interpret extrinsic error", ret, "extrinsic", next)
+				b.logger.Warn("failed to interpret extrinsic error", ret, "extrinsic", next)
 			} else {
-				b.logger.Error("error applying extrinsic: "+errTxt, "extrinsic", next)
+				b.logger.Warn("error applying extrinsic: "+errTxt, "extrinsic", next)
 			}
 
 			continue
