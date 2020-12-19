@@ -36,7 +36,7 @@ jobs:
 
       - name: Creating coverage report
         run: |
-          ./cc-test-reporter format-coverage --debug --prefix . --add-prefix gossamer --output ${{ env.APP_WORKSPACE }}/coverage/codeclimate.json -t lcov ${{ env.APP_WORKSPACE }}/coverage/lcov.info
+          ./cc-test-reporter format-coverage --debug --prefix . --add-prefix gossamer --output ${{ env.APP_WORKSPACE }}/coverage/codeclimate.json -t gocov ${{ env.APP_WORKSPACE }}/c.out
 
       - name: Publish code coverage to Code Climate
         run: |
