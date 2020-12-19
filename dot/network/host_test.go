@@ -578,7 +578,7 @@ func TestKadDHT(t *testing.T) {
 	nodes := createServiceHelper(t, 3)
 
 	// Wait for DHT initialization.
-	time.Sleep(5* time.Second)
+	time.Sleep(5 * time.Second)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
