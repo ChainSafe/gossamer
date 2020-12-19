@@ -577,10 +577,11 @@ func wait(t *testing.T, ctx context.Context, a, b *dht.IpfsDHT) {
 func TestKadDHT(t *testing.T) {
 	nodes := createServiceHelper(t, 3)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	defer cancel()
-
+	// Wait for DHT initialization.
 	time.Sleep(5* time.Second)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 
 	_, err := nodes[2].host.dht.FindPeer(ctx, nodes[1].host.id())
 	require.Equal(t, err, kbucket.ErrLookupFailure)
