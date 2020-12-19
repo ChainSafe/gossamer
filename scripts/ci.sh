@@ -19,9 +19,9 @@
 set -e
 
 echo ">> Running tests..."
-go test -short -coverprofile c.out ./...
+go test -v -short -coverprofile c.out ./...
 ./cc-test-reporter after-build --exit-code $?
 # echo ">> Running race condition test on runtime"
 # go test -short -race ./lib/runtime
 echo ">> Running race condition test on priority queue"
-go test -short -race ./lib/transaction/
+go test -v -short -race ./lib/transaction/
