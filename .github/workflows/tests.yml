@@ -30,20 +30,20 @@ jobs:
 
       - name: Code Climate Pre-build
         run: |
-          curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ${{ github.workspace }}/bin/cc-test-reporter
-          chmod +x ${{ github.workspace }}/bin/cc-test-reporter
-          ${{ github.workspace }}/bin/cc-test-reporter before-build
+          curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+          chmod +x ./cc-test-reporter
+          ./cc-test-reporter before-build
 
       - name: Run unit tests
         run: ./scripts/ci.sh
 
       - name: Creating coverage report
         run: |
-          ${{ github.workspace }}/bin/cc-test-reporter format-coverage --debug --prefix ${{ github.workspace }} --add-prefix gossamer --output ${{ env.APP_WORKSPACE }}/coverage/codeclimate.json -t lcov ${{ env.APP_WORKSPACE }}/coverage/lcov.info
+          ./cc-test-reporter format-coverage --debug --prefix . --add-prefix gossamer --output ${{ env.APP_WORKSPACE }}/coverage/codeclimate.json -t lcov ${{ env.APP_WORKSPACE }}/coverage/lcov.info
 
       - name: Publish code coverage to Code Climate
         run: |
-          ${{ github.workspace }}/bin/cc-test-reporter upload-coverage --debug -i coverage/codeclimate.total.json -r ${{ secrets.CC_TEST_REPORTER_ID }}
+          ./cc-test-reporter upload-coverage --debug -i coverage/codeclimate.total.json -r ${{ secrets.CC_TEST_REPORTER_ID }}
 
 #      - name: Test & publish code coverage
 #        uses: paambaati/codeclimate-action@v2.7.5
