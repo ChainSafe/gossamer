@@ -11,10 +11,8 @@ jobs:
         platform: [ubuntu-latest]
     runs-on: ${{ matrix.platform }}
     defaults:
-      run:
-        working-directory: gossamer
     env:
-      APP_WORKSPACE: ${{ github.workspace }}/
+      APP_WORKSPACE: ${{ github.workspace }}
     steps:
       - uses: actions/setup-go@v1
         with:
