@@ -19,7 +19,11 @@
 set -e
 
 echo ">> Running tests..."
-IPFS_LOGGING=debug go test -v -short -coverprofile c.out ./...
+# IPFS_LOGGING=debug go test -v -short -coverprofile c.out ./...
+
+echo ">> Running DHT Test"
+IPFS_LOGGING=debug go test -v -short -coverprofile c.out github.com/ChainSafe/gossamer/dot/network -run Test
+
 ./cc-test-reporter after-build --exit-code $?
 # echo ">> Running race condition test on runtime"
 # go test -short -race ./lib/runtime
