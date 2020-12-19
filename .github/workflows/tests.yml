@@ -38,10 +38,10 @@ jobs:
       - name: Creating coverage report
         run: |
           ${{ github.workspace }}/bin/cc-test-reporter format-coverage --debug --prefix ${{ github.workspace }} --add-prefix gossamer --output ${{ env.APP_WORKSPACE }}/coverage/codeclimate.json -t lcov ${{ env.APP_WORKSPACE }}/coverage/lcov.info
-
-     - name: Publish code coverage to Code Climate
-       run: |
-         ${{ github.workspace }}/bin/cc-test-reporter upload-coverage --debug -i coverage/codeclimate.total.json -r ${{ secrets.CC_TEST_REPORTER_ID }}
+          
+      - name: Publish code coverage to Code Climate
+        run: |
+          ${{ github.workspace }}/bin/cc-test-reporter upload-coverage --debug -i coverage/codeclimate.total.json -r ${{ secrets.CC_TEST_REPORTER_ID }}
 
 #      - name: Test & publish code coverage
 #        uses: paambaati/codeclimate-action@v2.7.5
