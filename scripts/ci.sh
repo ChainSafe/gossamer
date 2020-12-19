@@ -19,10 +19,7 @@
 set -e
 
 echo ">> Running tests..."
-# go test -v -short -coverprofile c.out ./...
-
-echo ">> Running DHT Test"
-go test -v -short -coverprofile c.out github.com/ChainSafe/gossamer/dot/network -run Test
+go test -v -short -coverprofile c.out ./...
 
 ./cc-test-reporter after-build --exit-code $?
 # echo ">> Running race condition test on runtime"
