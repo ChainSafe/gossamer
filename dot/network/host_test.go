@@ -577,7 +577,7 @@ func wait(t *testing.T, ctx context.Context, a, b *dht.IpfsDHT) {
 func TestKadDHT(t *testing.T) {
 	nodes := createServiceHelper(t, 3)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5* time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
 	_, err := nodes[2].host.dht.FindPeer(ctx, nodes[1].host.id())
