@@ -30,6 +30,8 @@ jobs:
 
       - name: Code Climate Pre-build
         run: |
+          curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ${{ github.workspace }}/bin/cc-test-reporter
+          chmod +x ${{ github.workspace }}/bin/cc-test-reporter
           ${{ github.workspace }}/bin/cc-test-reporter before-build
 
       - name: Run unit tests
