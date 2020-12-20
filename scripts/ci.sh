@@ -19,10 +19,12 @@
 set -e
 
 echo ">> Running tests..."
-go test -v -short -coverprofile c.out github.com/ChainSafe/gossamer/dot/network
+# go test -v -short -coverprofile c.out github.com/ChainSafe/gossamer/dot/network
 
-./cc-test-reporter after-build --exit-code $?
+go test -v -short -coverprofile c.out ./...
+#./cc-test-reporter after-build --exit-code $?
 # echo ">> Running race condition test on runtime"
 # go test -short -race ./lib/runtime
+
 echo ">> Running race condition test on priority queue"
-go test -v -short -race ./lib/transaction/
+go test -short -race ./lib/transaction/
