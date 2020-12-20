@@ -31,7 +31,7 @@ jobs:
           CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
         with:
           coverageCommand: go test -short -coverprofile c.out ./...
-          prefix: gossamer
+          prefix: github.com/ChainSafe/gossamer
           debug: true
 
       - name: Test Priority Queue - Race
