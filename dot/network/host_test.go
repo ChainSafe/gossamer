@@ -575,10 +575,6 @@ func wait(t *testing.T, ctx context.Context, a, b *dht.IpfsDHT) {
 
 // Set `NoMDNS` to true and test routing via kademlia DHT service.
 func TestKadDHT(t *testing.T) {
-	if testing.Short() {
-		return
-	}
-
 	nodes := createServiceHelper(t, 3)
 
 	// Wait for DHT initialization.
