@@ -1,5 +1,5 @@
 on: [pull_request]
-name: Build and Test
+name: build and test
 env:
   GO111MODULE: on
 
