@@ -22,7 +22,7 @@ help: Makefile
 .PHONY: lint
 lint: 
 	./scripts/install-lint.sh
-	golangci-lint run
+	$(GOPATH)/bin/golangci-lint run
 
 clean:
 	rm -fr ./bin
