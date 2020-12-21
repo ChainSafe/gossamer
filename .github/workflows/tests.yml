@@ -1,5 +1,5 @@
 on: [pull_request]
-name: build and test
+name: build
 env:
   GO111MODULE: on
 
@@ -8,10 +8,8 @@ jobs:
     strategy:
       matrix:
         go-version: [1.15.x]
-        platform: [ubuntu-latest]
+        platform: [macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.platform }}
-    env:
-      APP_WORKSPACE: ${{ github.workspace }}
     steps:
       - uses: actions/setup-go@v1
         with:
@@ -25,7 +23,31 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
           restore-keys: ${{ runner.os }}-go-
 
-      - name: Test & publish code coverage
+      - name: Run unit tests
+        run: ./scripts/ci.sh
+
+      - name: Test State - Race
+        run: make test-state-race
+
+      - name: Run build
+        run: make build
+
+  publish-code-coverage:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/setup-go@v1
+        with:
+          go-version: ${{ matrix.go-version }}
+      - uses: actions/checkout@v2
+
+      - name: Cache go modules
+        uses: actions/cache@v1
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
+          restore-keys: ${{ runner.os }}-go-
+
+      - name: Publish code coverage
         uses: paambaati/codeclimate-action@v2.7.5
         env:
           CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
@@ -33,15 +55,6 @@ jobs:
           coverageCommand: go test -short -coverprofile c.out ./...
           prefix: github.com/ChainSafe/gossamer
           debug: true
-
-      - name: Test Priority Queue - Race
-        run: go test -short -race ./lib/transaction/
-
-      - name: Test State - Race
-        run: make test-state-race
-
-      - name: Run build
-        run: make build
 
   docker-build-n-push:
     runs-on: ubuntu-latest
