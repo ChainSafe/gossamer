@@ -10,4 +10,3 @@ then
 fi
 
 export PATH=$PATH:$(go env GOPATH)/bin
-echo $GOPATH
