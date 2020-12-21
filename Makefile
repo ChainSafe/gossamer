@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 PROJECTNAME=$(shell basename "$(PWD)")
-GOLANGCI := $(GOPATH)/bin/golangci-lint
 COMPANY=chainsafe
 NAME=gossamer
 ifndef VERSION
