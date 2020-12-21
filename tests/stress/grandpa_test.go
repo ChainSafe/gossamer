@@ -50,6 +50,7 @@ func TestStress_Grandpa_OneAuthority(t *testing.T) {
 }
 
 func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
+	t.Skip()
 	numNodes = 3
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisThreeAuths, utils.ConfigDefault)
 	require.NoError(t, err)
