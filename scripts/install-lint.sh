@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [[ -z "${GOPATH}" ]]; then 
-	export GOPATH = ~/go
+	export GOPATH=~/go
 fi
 
 if ! command -v golangci-lint &> /dev/null
