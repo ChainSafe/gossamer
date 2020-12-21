@@ -7,4 +7,4 @@ fi
 
 export PATH=$PATH:$(go env GOPATH)/bin
 echo $PATH
-alias golangci-lint=$(go env GOPATH)/bin/golangci-lint
+ls $(go env GOPATH)/bin
