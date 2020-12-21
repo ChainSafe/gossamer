@@ -56,7 +56,7 @@ func NewGenesisFromJSONRaw(file string) (*Genesis, error) {
 func NewTrieFromGenesis(g *Genesis) (*trie.Trie, error) {
 	t := trie.NewEmptyTrie()
 
-	r := g.GenesisFields().Raw[0]
+	r := g.GenesisFields().Raw["top"]
 
 	err := t.Load(r)
 	if err != nil {
@@ -138,7 +138,8 @@ func NewGenesisFromJSON(file string, authCount int) (*Genesis, error) {
 		return nil, err
 	}
 
-	g.Genesis.Raw[0] = res
+	g.Genesis.Raw = make(map[string]map[string]string)
+	g.Genesis.Raw["top"] = res
 
 	return g, err
 }
@@ -324,10 +325,10 @@ func BuildFromMap(m map[string][]byte, gen *Genesis) error {
 }
 
 func addRawValue(key string, value []byte, gen *Genesis) {
-	if gen.Genesis.Raw[0] == nil {
-		gen.Genesis.Raw[0] = make(map[string]string)
+	if gen.Genesis.Raw["top"] == nil {
+		gen.Genesis.Raw["top"] = make(map[string]string)
 	}
-	gen.Genesis.Raw[0][key] = common.BytesToHex(value)
+	gen.Genesis.Raw["top"][key] = common.BytesToHex(value)
 }
 
 func addCodeValue(value []byte, gen *Genesis) {
