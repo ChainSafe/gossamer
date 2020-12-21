@@ -96,14 +96,17 @@ package wasmer
 import "C"
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math/big"
 	"unsafe"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
@@ -213,7 +216,7 @@ func ext_crypto_ed25519_verify_version_1(context unsafe.Pointer, a C.int32_t, z 
 func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t {
 	logger.Trace("[ext_crypto_finish_batch_verify_version_1] executing...")
 	logger.Warn("[ext_crypto_finish_batch_verify_version_1] unimplemented")
-	return 0
+	return 1
 }
 
 //export ext_crypto_secp256k1_ecdsa_recover_version_1
@@ -279,13 +282,36 @@ func ext_trie_blake2_256_root_version_1(context unsafe.Pointer, data C.int64_t) 
 }
 
 //export ext_trie_blake2_256_ordered_root_version_1
-func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, data C.int64_t) C.int32_t {
+func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
 	logger.Trace("[ext_trie_blake2_256_ordered_root_version_1] executing...")
-	logger.Warn("[ext_trie_blake2_256_ordered_root_version_1] unimplemented")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
+	data := asMemorySlice(instanceContext, dataSpan)
+
+	t := trie.NewEmptyTrie()
+	v, err := scale.Decode(data, [][]byte{})
+	if err != nil {
+		logger.Error("[ext_trie_blake2_256_ordered_root_version_1]", "error", err)
+		return 0
+	}
+
+	values := v.([][]byte)
+
+	for i, val := range values {
+		key, err := scale.Encode(big.NewInt(int64(i))) //nolint
+		if err != nil {
+			logger.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
+			return 0
+		}
+
+		err = t.Put(key, val)
+		if err != nil {
+			logger.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
+			return 0
+		}
+	}
 
 	// allocate memory for value and copy value to memory
 	ptr, err := runtimeCtx.Allocator.Allocate(32)
@@ -294,14 +320,22 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, data C.i
 		return 0
 	}
 
-	copy(memory[ptr:ptr+32], trie.EmptyHash[:])
+	hash, err := t.Hash()
+	if err != nil {
+		logger.Error("[ext_trie_blake2_256_ordered_root_version_1]", "error", err)
+		return 0
+	}
+
+	copy(memory[ptr:ptr+32], hash[:])
 	return C.int32_t(ptr)
 }
 
 //export ext_misc_print_hex_version_1
-func ext_misc_print_hex_version_1(context unsafe.Pointer, a C.int64_t) {
+func ext_misc_print_hex_version_1(context unsafe.Pointer, dataSpan C.int64_t) {
 	logger.Trace("[ext_misc_print_hex_version_1] executing...")
-	logger.Warn("[ext_misc_print_hex_version_1] unimplemented")
+	instanceContext := wasm.IntoInstanceContext(context)
+	data := asMemorySlice(instanceContext, dataSpan)
+	logger.Info("[ext_misc_print_hex_version_1]", "data", fmt.Sprintf("0x%x", data))
 }
 
 //export ext_misc_print_num_version_1
@@ -709,7 +743,54 @@ func ext_offchain_submit_transaction_version_1(context unsafe.Pointer, z C.int64
 //export ext_storage_append_version_1
 func ext_storage_append_version_1(context unsafe.Pointer, keySpan, valueSpan C.int64_t) {
 	logger.Trace("[ext_storage_append_version_1] executing...")
-	logger.Warn("[ext_storage_append_version_1] unimplemented")
+	instanceContext := wasm.IntoInstanceContext(context)
+	storage := instanceContext.Data().(*runtime.Context).Storage
+
+	key := asMemorySlice(instanceContext, keySpan)
+	logger.Trace("[ext_storage_append_version_1]", "key", fmt.Sprintf("0x%x", key))
+	valueAppend := asMemorySlice(instanceContext, valueSpan)
+
+	valueCurr, err := storage.Get(key)
+	if err != nil {
+		logger.Error("[ext_storage_append_version_1]", "error", err)
+		return
+	}
+
+	if len(valueCurr) == 0 {
+		_ = storage.Set(key, valueAppend)
+		return
+	}
+
+	// remove length prefix from existing value
+	r := &bytes.Buffer{}
+	_, _ = r.Write(valueCurr)
+	dec := &scale.Decoder{Reader: r}
+	_, err = dec.DecodeUnsignedInteger()
+	if err != nil {
+		logger.Trace("[ext_storage_append_version_1] item in storage is not SCALE encoded, overwriting", "key", key)
+		_ = storage.Set(key, valueAppend)
+		return
+	}
+
+	// remove length prefix from value to append
+	rAppend := &bytes.Buffer{}
+	_, _ = rAppend.Write(valueAppend)
+	dec = &scale.Decoder{Reader: rAppend}
+	_, err = dec.DecodeUnsignedInteger()
+	if err != nil {
+		logger.Trace("[ext_storage_append_version_1] value to append is not SCALE encoded", "key", key, "value to append", valueAppend)
+	} else {
+		valueAppend = rAppend.Bytes()
+	}
+
+	valueRes := append(r.Bytes(), valueAppend...)
+	finalVal, err := scale.Encode(valueRes)
+	if err != nil {
+		logger.Error("[ext_storage_append_version_1]", "error", err)
+		return
+	}
+
+	_ = storage.Set(key, finalVal)
 }
 
 //export ext_storage_changes_root_version_1
@@ -741,9 +822,14 @@ func ext_storage_clear_version_1(context unsafe.Pointer, keySpan C.int64_t) {
 }
 
 //export ext_storage_clear_prefix_version_1
-func ext_storage_clear_prefix_version_1(context unsafe.Pointer, a C.int64_t) {
+func ext_storage_clear_prefix_version_1(context unsafe.Pointer, prefixSpan C.int64_t) {
 	logger.Trace("[ext_storage_clear_prefix_version_1] executing...")
-	logger.Warn("[ext_storage_clear_prefix_version_1] unimplemented")
+	instanceContext := wasm.IntoInstanceContext(context)
+	storage := instanceContext.Data().(*runtime.Context).Storage
+
+	prefix := asMemorySlice(instanceContext, prefixSpan)
+	logger.Trace("[ext_storage_clear_prefix_version_1]", "prefix", fmt.Sprintf("0x%x", prefix))
+	storage.ClearPrefix(prefix)
 }
 
 //export ext_storage_commit_transaction_version_1

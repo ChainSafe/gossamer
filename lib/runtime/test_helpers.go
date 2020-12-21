@@ -266,6 +266,11 @@ func (trs *TestRuntimeStorage) GetChild(keyToChild []byte) (*trie.Trie, error) {
 	return trs.trie.GetChild(keyToChild)
 }
 
+// ClearPrefix ...
+func (trs *TestRuntimeStorage) ClearPrefix(prefix []byte) {
+	trs.trie.ClearPrefix(prefix)
+}
+
 // TestRuntimeNetwork ...
 type TestRuntimeNetwork struct {
 }
