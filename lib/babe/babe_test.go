@@ -192,6 +192,7 @@ func TestCalculateThreshold_Failing(t *testing.T) {
 
 func TestRunLottery(t *testing.T) {
 	babeService := createTestService(t, nil)
+
 	babeService.epochData.threshold = maxThreshold
 
 	outAndProof, err := babeService.runLottery(0)

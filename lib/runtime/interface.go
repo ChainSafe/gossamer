@@ -80,6 +80,9 @@ type Storage interface {
 	DeleteChildStorage(key []byte) error
 	ClearChildStorage(keyToChild, key []byte) error
 	NextKey([]byte) []byte
+	GetChildByPrefix(keyToChild, prefix []byte) ([][]byte, error)
+	GetChildNextKey(keyToChild, key []byte) ([]byte, error)
+	GetChild(keyToChild []byte) (*trie.Trie, error)
 	ClearPrefix(prefix []byte)
 }
 

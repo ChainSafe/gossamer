@@ -164,17 +164,18 @@ func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks k
 	}
 
 	bcfg := &babe.ServiceConfig{
-		LogLvl:           cfg.Log.BlockProducerLvl,
-		Runtime:          rt,
-		BlockState:       st.Block,
-		StorageState:     st.Storage,
-		TransactionState: st.Transaction,
-		EpochState:       st.Epoch,
-		StartSlot:        bestSlot + 1,
-		EpochLength:      cfg.Core.EpochLength,
-		Threshold:        cfg.Core.BabeThreshold,
-		SlotDuration:     cfg.Core.SlotDuration,
-		Authority:        cfg.Core.BabeAuthority,
+		LogLvl:               cfg.Log.BlockProducerLvl,
+		Runtime:              rt,
+		BlockState:           st.Block,
+		StorageState:         st.Storage,
+		TransactionState:     st.Transaction,
+		EpochState:           st.Epoch,
+		StartSlot:            bestSlot + 1,
+		EpochLength:          cfg.Core.EpochLength,
+		ThresholdNumerator:   cfg.Core.BabeThresholdNumerator,
+		ThresholdDenominator: cfg.Core.BabeThresholdDenominator,
+		SlotDuration:         cfg.Core.SlotDuration,
+		Authority:            cfg.Core.BabeAuthority,
 	}
 
 	if cfg.Core.BabeAuthority {
