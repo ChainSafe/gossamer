@@ -31,6 +31,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/services"
 
 	database "github.com/ChainSafe/chaindb"
@@ -92,7 +93,7 @@ func InitNode(cfg *Config) error {
 	}
 
 	// create genesis runtime
-	r, err := genesis.NewRuntimeFromGenesis(gen, genTrie) //nolint
+	r, err := wasmer.NewRuntimeFromGenesis(gen, genTrie) //nolint
 	if err != nil {
 		return fmt.Errorf("failed to create genesis runtime: %w", err)
 	}

@@ -484,6 +484,46 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 	return value, err
 }
 
+// ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix
+func (t *Trie) ClearPrefix(prefix []byte) {
+	p := keyToNibbles(prefix)
+	t.root = t.clearPrefix(t.root, p)
+}
+
+func (t *Trie) clearPrefix(curr node, prefix []byte) node {
+	switch c := curr.(type) {
+	case *branch:
+		length := lenCommonPrefix(c.key, prefix)
+
+		if length == len(prefix) {
+			// found prefix at this branch, delete it
+			return nil
+		}
+
+		if len(prefix) == len(c.key)+1 {
+			// found prefix at child index, delete child
+			c.children[len(c.key)+int(prefix[0])] = nil
+			return c
+		}
+
+		if len(prefix) <= len(c.key) {
+			// this node doesn't have the prefix, return
+			return c
+		}
+
+		for i, child := range c.children {
+			c.children[i] = t.clearPrefix(child, prefix[len(c.key)+1:])
+		}
+	case *leaf:
+		length := lenCommonPrefix(c.key, prefix)
+		if length == len(prefix) {
+			return nil
+		}
+	}
+
+	return curr
+}
+
 // Delete removes any existing value for key from the trie.
 func (t *Trie) Delete(key []byte) error {
 	k := keyToNibbles(key)
