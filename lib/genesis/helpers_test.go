@@ -24,7 +24,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/runtime"
-
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/require"
 )
 
@@ -117,4 +117,23 @@ func TestFormatKey(t *testing.T) {
 	out, err := formatKey(kv)
 	require.NoError(t, err)
 	require.Equal(t, out, fmt.Sprintf("0x%x", runtime.BABEAuthoritiesKey()))
+}
+
+func TestNewTrieFromGenesis(t *testing.T) {
+	var rawGenesis = &Genesis{}
+	raw := make(map[string]map[string]string)
+	raw["top"] = make(map[string]string)
+	raw["top"]["0x3a636f6465"] = "0x0102" // raw :code
+	rawGenesis.Genesis = Fields{
+		Raw: raw,
+	}
+
+	expTrie := trie.NewEmptyTrie()
+	err := expTrie.Put([]byte(`:code`), []byte{1, 2})
+	require.NoError(t, err)
+
+	trie, err := NewTrieFromGenesis(rawGenesis)
+	require.NoError(t, err)
+
+	require.Equal(t, expTrie, trie)
 }
