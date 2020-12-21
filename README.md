@@ -12,7 +12,7 @@
     <img alt="go report card" src="https://goreportcard.com/badge/github.com/ChainSafe/gossamer" />
   </a>
   <a href="https://github.com/ChainSafe/gossamer/actions">
-    <img alt="build status" src="https://github.com/ChainSafe/gossamer/workflows/Build%20and%20Test/badge.svg?branch=development" />
+    <img alt="build status" src="https://github.com/ChainSafe/gossamer/workflows/build/badge.svg?branch=development" />
   </a>
 </div>
 <div align="center">
