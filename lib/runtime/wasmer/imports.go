@@ -389,37 +389,54 @@ func ext_default_child_storage_read_version_1(context unsafe.Pointer, childStora
 }
 
 //export ext_default_child_storage_clear_version_1
-func ext_default_child_storage_clear_version_1(context unsafe.Pointer, childStorageKey, key C.int64_t) {
+func ext_default_child_storage_clear_version_1(context unsafe.Pointer, childStorageKey, keySpan C.int64_t) {
 	logger.Trace("[ext_default_child_storage_clear_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
-	storage := instanceContext.Data().(*runtime.Context).Storage
+	ctx := instanceContext.Data().(*runtime.Context)
+	storage := ctx.Storage
 
-	err := storage.ClearChildStorage(asMemorySlice(instanceContext, childStorageKey), asMemorySlice(instanceContext, key))
+	keyToChild := asMemorySlice(instanceContext, childStorageKey)
+	key := asMemorySlice(instanceContext, keySpan)
+
+	if ctx.TransactionStorageChanges != nil {
+		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
+			Operation:  runtime.ClearOp,
+			KeyToChild: keyToChild,
+			Key:        key,
+		})
+		return
+	}
+
+	err := storage.ClearChildStorage(keyToChild, key)
 	if err != nil {
 		logger.Error("[ext_default_child_storage_clear_version_1] failed to clear child storage", "error", err)
 	}
 }
 
 //export ext_default_child_storage_clear_prefix_version_1
-func ext_default_child_storage_clear_prefix_version_1(context unsafe.Pointer, childStorageKey C.int64_t, prefix C.int64_t) {
+func ext_default_child_storage_clear_prefix_version_1(context unsafe.Pointer, childStorageKey C.int64_t, prefixSpan C.int64_t) {
 	logger.Trace("[ext_default_child_storage_clear_prefix_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
-	storage := instanceContext.Data().(*runtime.Context).Storage
+	ctx := instanceContext.Data().(*runtime.Context)
+	storage := ctx.Storage
 
-	keys, err := storage.GetChildByPrefix(asMemorySlice(instanceContext, childStorageKey), asMemorySlice(instanceContext, prefix))
-	if err != nil {
-		logger.Error("[ext_default_child_storage_clear_prefix_version_1] failed to get child by prefix", "error", err)
+	keyToChild := asMemorySlice(instanceContext, childStorageKey)
+	prefix := asMemorySlice(instanceContext, prefixSpan)
+
+	if ctx.TransactionStorageChanges != nil {
+		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
+			Operation:  runtime.ClearPrefixOp,
+			KeyToChild: keyToChild,
+			Prefix:     prefix,
+		})
 		return
 	}
 
-	for _, v := range keys {
-		err := storage.ClearChildStorage(asMemorySlice(instanceContext, childStorageKey), v)
-		if err != nil {
-			logger.Error("[ext_default_child_storage_clear_prefix_version_1] failed to clear child storage by prefix", "error", err)
-			continue
-		}
+	err := storage.ClearPrefixInChild(keyToChild, prefix)
+	if err != nil {
+		logger.Error("[ext_default_child_storage_clear_prefix_version_1] failed to clear prefix in child", "error", err)
 	}
 }
 
@@ -514,13 +531,28 @@ func ext_default_child_storage_root_version_1(context unsafe.Pointer, childStora
 }
 
 //export ext_default_child_storage_set_version_1
-func ext_default_child_storage_set_version_1(context unsafe.Pointer, childStorageKey, key, value C.int64_t) {
+func ext_default_child_storage_set_version_1(context unsafe.Pointer, childStorageKeySpan, keySpan, valueSpan C.int64_t) {
 	logger.Trace("[ext_default_child_storage_set_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
-	storage := instanceContext.Data().(*runtime.Context).Storage
+	ctx := instanceContext.Data().(*runtime.Context)
+	storage := ctx.Storage
 
-	err := storage.SetChildStorage(asMemorySlice(instanceContext, childStorageKey), asMemorySlice(instanceContext, key), asMemorySlice(instanceContext, value))
+	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
+	key := asMemorySlice(instanceContext, keySpan)
+	value := asMemorySlice(instanceContext, valueSpan)
+
+	if ctx.TransactionStorageChanges != nil {
+		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
+			Operation:  runtime.SetOp,
+			KeyToChild: childStorageKey,
+			Key:        key,
+			Value:      value,
+		})
+		return
+	}
+
+	err := storage.SetChildStorage(childStorageKey, key, value)
 	if err != nil {
 		logger.Error("[ext_default_child_storage_set_version_1] failed to set value in child storage", "error", err)
 		return
@@ -528,13 +560,24 @@ func ext_default_child_storage_set_version_1(context unsafe.Pointer, childStorag
 }
 
 //export ext_default_child_storage_storage_kill_version_1
-func ext_default_child_storage_storage_kill_version_1(context unsafe.Pointer, childStorageKey C.int64_t) {
+func ext_default_child_storage_storage_kill_version_1(context unsafe.Pointer, childStorageKeySpan C.int64_t) {
 	logger.Trace("[ext_default_child_storage_storage_kill_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
-	storage := instanceContext.Data().(*runtime.Context).Storage
+	ctx := instanceContext.Data().(*runtime.Context)
+	storage := ctx.Storage
 
-	err := storage.DeleteChildStorage(asMemorySlice(instanceContext, childStorageKey))
+	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
+
+	if ctx.TransactionStorageChanges != nil {
+		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
+			Operation:  runtime.DeleteChildOp,
+			KeyToChild: childStorageKey,
+		})
+		return
+	}
+
+	err := storage.DeleteChildStorage(childStorageKey)
 	if err != nil {
 		logger.Error("[ext_default_child_storage_storage_kill_version_1] failed to delete child storage from trie", "error", err)
 		return
@@ -1050,21 +1093,53 @@ func ext_storage_commit_transaction_version_1(context unsafe.Pointer) {
 	for _, change := range changes {
 		switch change.Operation {
 		case runtime.SetOp:
+			if change.KeyToChild != nil {
+				err := storage.SetChildStorage(change.KeyToChild, change.Key, change.Value)
+				if err != nil {
+					logger.Error("[ext_default_child_storage_set_version_1] failed to set value in child storage", "error", err)
+				}
+
+				continue
+			}
+
 			err := storage.Set(change.Key, change.Value)
 			if err != nil {
-				logger.Warn("[ext_storage_commit_transaction_version_1] failed to set key", "key", change.Key, "error", err)
+				logger.Error("[ext_storage_commit_transaction_version_1] failed to set key", "key", change.Key, "error", err)
 			}
 		case runtime.ClearOp:
+			if change.KeyToChild != nil {
+				err := storage.ClearChildStorage(change.KeyToChild, change.Key)
+				if err != nil {
+					logger.Error("[ext_default_child_storage_clear_version_1] failed to clear child storage", "error", err)
+				}
+
+				continue
+			}
+
 			err := storage.Delete(change.Key)
 			if err != nil {
-				logger.Warn("[ext_storage_commit_transaction_version_1] failed to clear key", "key", change.Key, "error", err)
+				logger.Error("[ext_storage_commit_transaction_version_1] failed to clear key", "key", change.Key, "error", err)
 			}
 		case runtime.ClearPrefixOp:
+			if change.KeyToChild != nil {
+				err := storage.ClearPrefixInChild(change.KeyToChild, change.Prefix)
+				if err != nil {
+					logger.Error("[ext_storage_commit_transaction_version_1] failed to clear prefix in child", "error", err)
+				}
+
+				continue
+			}
+
 			storage.ClearPrefix(change.Prefix)
 		case runtime.AppendOp:
 			err := storageAppend(storage, change.Key, change.Value)
 			if err != nil {
-				logger.Warn("[ext_storage_commit_transaction_version_1] failed to append to storage", "key", change.Key, "error", err)
+				logger.Error("[ext_storage_commit_transaction_version_1] failed to append to storage", "key", change.Key, "error", err)
+			}
+		case runtime.DeleteChildOp:
+			err := storage.DeleteChildStorage(change.KeyToChild)
+			if err != nil {
+				logger.Error("[ext_storage_commit_transaction_version_1] failed to delete child from trie", "error", err)
 			}
 		}
 	}

@@ -60,15 +60,16 @@ const (
 	ClearOp       StorageChangeOperation = 1
 	ClearPrefixOp StorageChangeOperation = 2
 	AppendOp      StorageChangeOperation = 3
+	DeleteChildOp StorageChangeOperation = 4
 )
 
 // TransactionStorageChange represents a storage change made after ext_storage_start_transaction is called
 type TransactionStorageChange struct {
-	Operation StorageChangeOperation
-	Prefix    []byte
-	Key       []byte
-	ChildKey  []byte
-	Value     []byte
+	Operation  StorageChangeOperation
+	Prefix     []byte
+	KeyToChild []byte // key to child trie, if applicable
+	Key        []byte
+	Value      []byte
 }
 
 // Context is the context for the wasm interpreter's imported functions
