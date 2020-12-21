@@ -39,6 +39,9 @@ var ErrServiceStopped = errors.New("service has been stopped")
 // ErrInvalidBlock is returned when a block cannot be verified
 var ErrInvalidBlock = errors.New("could not verify block")
 
+// ErrInvalidBlockRequest is returned when an invalid block request is received
+var ErrInvalidBlockRequest = errors.New("invalid block request")
+
 // ErrNilChannel is returned if a channel is nil
 func ErrNilChannel(s string) error {
 	return fmt.Errorf("cannot have nil channel %s", s)
