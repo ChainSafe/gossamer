@@ -162,6 +162,30 @@ func Test_ext_storage_get_version_1(t *testing.T) {
 	require.Equal(t, testvalue, value.Value())
 }
 
+func Test_ext_storage_exists_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("noot")
+	testvalue := []byte{1, 2}
+	err := inst.inst.ctx.Storage.Set(testkey, testvalue)
+	require.NoError(t, err)
+
+	enc, err := scale.Encode(testkey)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_storage_exists_version_1", enc)
+	require.NoError(t, err)
+	require.Equal(t, byte(1), ret[0])
+
+	nonexistent := []byte("none")
+	enc, err = scale.Encode(nonexistent)
+	require.NoError(t, err)
+
+	ret, err = inst.Exec("rtm_ext_storage_exists_version_1", enc)
+	require.NoError(t, err)
+	require.Equal(t, byte(0), ret[0])
+}
+
 func Test_ext_storage_next_key_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 

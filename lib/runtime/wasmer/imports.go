@@ -839,9 +839,21 @@ func ext_storage_commit_transaction_version_1(context unsafe.Pointer) {
 }
 
 //export ext_storage_exists_version_1
-func ext_storage_exists_version_1(context unsafe.Pointer, a C.int64_t) C.int32_t {
+func ext_storage_exists_version_1(context unsafe.Pointer, keySpan C.int64_t) C.int32_t {
 	logger.Trace("[ext_storage_exists_version_1] executing...")
-	logger.Warn("[ext_storage_exists_version_1] unimplemented")
+	instanceContext := wasm.IntoInstanceContext(context)
+	storage := instanceContext.Data().(*runtime.Context).Storage
+
+	key := asMemorySlice(instanceContext, keySpan)
+	val, err := storage.Get(key)
+	if err != nil {
+		return 0
+	}
+
+	if len(val) > 0 {
+		return 1
+	}
+
 	return 0
 }
 
