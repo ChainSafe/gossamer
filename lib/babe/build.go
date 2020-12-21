@@ -73,10 +73,7 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 	b.logger.Trace("built block inherents", "encoded inherents", inherents)
 
 	// add block extrinsics
-	included, err := b.buildBlockExtrinsics(slot)
-	if err != nil {
-		return nil, fmt.Errorf("cannot build extrinsics: %s", err)
-	}
+	included := b.buildBlockExtrinsics(slot)
 
 	b.logger.Trace("built block extrinsics")
 
@@ -180,42 +177,42 @@ func (b *Service) buildBlockBabeHeader(slot Slot) (*types.BabeHeader, error) {
 // buildBlockExtrinsics applies extrinsics to the block. it returns an array of included extrinsics.
 // for each extrinsic in queue, add it to the block, until the slot ends or the block is full.
 // if any extrinsic fails, it returns an empty array and an error.
-func (b *Service) buildBlockExtrinsics(slot Slot) ([]*transaction.ValidTransaction, error) {
+func (b *Service) buildBlockExtrinsics(slot Slot) []*transaction.ValidTransaction {
 	next := b.nextReadyExtrinsic()
 	included := []*transaction.ValidTransaction{}
 
 	for !hasSlotEnded(slot) && next != nil {
 		b.logger.Trace("build block", "applying extrinsic", next)
+
+		t := b.transactionState.Pop()
 		ret, err := b.rt.ApplyExtrinsic(next)
 		if err != nil {
-			return nil, err
+			b.logger.Warn("failed to apply extrinsic", "error", err, "extrinsic", next)
+			next = b.nextReadyExtrinsic()
+			continue
 		}
 
 		// if ret == 0x0001, there is a dispatch error; if ret == 0x01, there is an apply error
 		if ret[0] == 1 || bytes.Equal(ret[:2], []byte{0, 1}) {
 			errTxt, err := determineError(ret)
-			if err != nil {
-				return nil, err
-			}
 			// remove invalid extrinsic from queue
-			b.transactionState.Pop()
+			if err == nil {
+				b.logger.Warn("failed to interpret extrinsic error", "error", ret, "extrinsic", next)
+			} else {
+				b.logger.Warn("failed to apply extrinsic", "error", errTxt, "extrinsic", next)
+			}
 
-			// re-add previously popped extrinsics back to queue
-			b.addToQueue(included)
-
-			return nil, errors.New("error applying extrinsic: " + errTxt)
-
+			next = b.nextReadyExtrinsic()
+			continue
 		}
 
-		b.logger.Trace("build block applied extrinsic", "extrinsic", next)
+		b.logger.Debug("build block applied extrinsic", "extrinsic", next)
 
-		// keep track of included transactions; re-add them to queue later if block building fails
-		t := b.transactionState.Pop()
 		included = append(included, t)
 		next = b.nextReadyExtrinsic()
 	}
 
-	return included, nil
+	return included
 }
 
 // buildBlockInherents applies the inherents for a block

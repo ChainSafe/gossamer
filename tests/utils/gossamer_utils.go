@@ -465,11 +465,12 @@ func generateConfigBabeMaxThreshold() *ctoml.Config {
 		BlockProducerLvl: "info",
 	}
 	cfg.Core = ctoml.CoreConfig{
-		Roles:            4,
-		BabeAuthority:    true,
-		GrandpaAuthority: true,
-		BabeThreshold:    "max",
-		SlotDuration:     500,
+		Roles:                    4,
+		BabeAuthority:            true,
+		GrandpaAuthority:         true,
+		BabeThresholdNumerator:   1,
+		BabeThresholdDenominator: 1,
+		SlotDuration:             500,
 	}
 	cfg.RPC.Modules = []string{"system", "author", "chain", "state", "dev"}
 	return cfg
@@ -506,7 +507,8 @@ func generateConfigNoBabe() *ctoml.Config {
 		SyncLvl:    "trace",
 		NetworkLvl: "debug",
 	}
-	cfg.Core.BabeThreshold = "max"
+	cfg.Core.BabeThresholdNumerator = 1
+	cfg.Core.BabeThresholdDenominator = 1
 	cfg.Core.BabeAuthority = false
 	return cfg
 }
