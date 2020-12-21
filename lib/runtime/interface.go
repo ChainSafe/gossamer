@@ -80,6 +80,7 @@ type Storage interface {
 	DeleteChildStorage(key []byte) error
 	ClearChildStorage(keyToChild, key []byte) error
 	NextKey([]byte) []byte
+	ClearPrefix(prefix []byte)
 }
 
 // BasicNetwork interface for functions used by runtime network state function

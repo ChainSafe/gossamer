@@ -245,3 +245,40 @@ func Test_ext_storage_set_version_1(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, testvalue, val)
 }
+
+func Test_ext_storage_append_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("noot")
+	testvalue := []byte("was")
+	testvalueAppend := []byte("here")
+
+	encKey, err := scale.Encode(testkey)
+	require.NoError(t, err)
+	encValue, err := scale.Encode(testvalue)
+	require.NoError(t, err)
+	doubleEncValue, err := scale.Encode(encValue)
+	require.NoError(t, err)
+
+	// place SCALE encoded value in storage
+	_, err = inst.Exec("rtm_ext_storage_set_version_1", append(encKey, doubleEncValue...))
+	require.NoError(t, err)
+
+	val, err := inst.inst.ctx.Storage.Get(testkey)
+	require.NoError(t, err)
+	require.Equal(t, encValue, val)
+
+	encValueAppend, err := scale.Encode(testvalueAppend)
+	require.NoError(t, err)
+	dpublEncValueAppend, err := scale.Encode(encValueAppend)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_storage_append_version_1", append(encKey, dpublEncValueAppend...))
+	require.NoError(t, err)
+
+	res, err := inst.inst.ctx.Storage.Get(testkey)
+	require.NoError(t, err)
+	dec, err := scale.Decode(res, []byte{})
+	require.NoError(t, err)
+	require.Equal(t, append(testvalue, testvalueAppend...), dec)
+}

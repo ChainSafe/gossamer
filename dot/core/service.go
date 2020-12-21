@@ -52,7 +52,7 @@ type Service struct {
 	transactionState TransactionState
 
 	// Current runtime and hash of the current runtime code
-	rt       runtime.LegacyInstance
+	rt       runtime.Instance
 	codeHash common.Hash
 
 	// Block production variables
@@ -88,7 +88,7 @@ type Config struct {
 	TransactionState    TransactionState
 	Network             Network
 	Keystore            *keystore.GlobalKeystore
-	Runtime             runtime.LegacyInstance
+	Runtime             runtime.Instance
 	BlockProducer       BlockProducer
 	IsBlockProducer     bool
 	FinalityGadget      FinalityGadget

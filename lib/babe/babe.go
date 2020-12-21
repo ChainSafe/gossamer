@@ -52,7 +52,7 @@ type Service struct {
 	keypair *sr25519.Keypair // TODO: change to BABE keystore
 
 	// Current runtime
-	rt runtime.LegacyInstance
+	rt runtime.Instance
 
 	// Epoch configuration data
 	slotDuration uint64 // in milliseconds
@@ -71,20 +71,20 @@ type Service struct {
 
 // ServiceConfig represents a BABE configuration
 type ServiceConfig struct {
-	LogLvl               log.Lvl
-	BlockState           BlockState
-	StorageState         StorageState
-	TransactionState     TransactionState
-	EpochState           EpochState
-	Keypair              *sr25519.Keypair
-	Runtime              runtime.LegacyInstance
-	AuthData             []*types.Authority
+	LogLvl           log.Lvl
+	BlockState       BlockState
+	StorageState     StorageState
+	TransactionState TransactionState
+	EpochState       EpochState
+	Keypair          *sr25519.Keypair
+	Runtime          runtime.Instance
+	AuthData         []*types.Authority
 	ThresholdNumerator   uint64 // for development purposes
 	ThresholdDenominator uint64 // for development purposes
-	SlotDuration         uint64 // for development purposes; in milliseconds
-	EpochLength          uint64 // for development purposes; in slots
-	StartSlot            uint64 // slot to start at
-	Authority            bool
+	SlotDuration     uint64   // for development purposes; in milliseconds
+	EpochLength      uint64   // for development purposes; in slots
+	StartSlot        uint64   // slot to start at
+	Authority        bool
 }
 
 // NewService returns a new Babe Service using the provided VRF keys and runtime
@@ -259,7 +259,7 @@ func (b *Service) Stop() error {
 }
 
 // SetRuntime sets the service's runtime
-func (b *Service) SetRuntime(rt runtime.LegacyInstance) {
+func (b *Service) SetRuntime(rt runtime.Instance) {
 	b.rt = rt
 }
 
