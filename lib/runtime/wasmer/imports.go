@@ -804,48 +804,6 @@ func ext_storage_append_version_1(context unsafe.Pointer, keySpan, valueSpan C.i
 	if err != nil {
 		logger.Error("[ext_storage_append_version_1]", "error", err)
 	}
-
-	// valueCurr, err := storage.Get(key)
-	// if err != nil {
-	// 	logger.Error("[ext_storage_append_version_1]", "error", err)
-	// 	return
-	// }
-
-	// if len(valueCurr) == 0 {
-	// 	_ = storage.Set(key, valueAppend)
-	// 	return
-	// }
-
-	// // remove length prefix from existing value
-	// r := &bytes.Buffer{}
-	// _, _ = r.Write(valueCurr)
-	// dec := &scale.Decoder{Reader: r}
-	// _, err = dec.DecodeUnsignedInteger()
-	// if err != nil {
-	// 	logger.Trace("[ext_storage_append_version_1] item in storage is not SCALE encoded, overwriting", "key", key)
-	// 	_ = storage.Set(key, valueAppend)
-	// 	return
-	// }
-
-	// // remove length prefix from value to append
-	// rAppend := &bytes.Buffer{}
-	// _, _ = rAppend.Write(valueAppend)
-	// dec = &scale.Decoder{Reader: rAppend}
-	// _, err = dec.DecodeUnsignedInteger()
-	// if err != nil {
-	// 	logger.Trace("[ext_storage_append_version_1] value to append is not SCALE encoded", "key", key, "value to append", valueAppend)
-	// } else {
-	// 	valueAppend = rAppend.Bytes()
-	// }
-
-	// valueRes := append(r.Bytes(), valueAppend...)
-	// finalVal, err := scale.Encode(valueRes)
-	// if err != nil {
-	// 	logger.Error("[ext_storage_append_version_1]", "error", err)
-	// 	return
-	// }
-
-	// _ = storage.Set(key, finalVal)
 }
 
 //export ext_storage_changes_root_version_1
