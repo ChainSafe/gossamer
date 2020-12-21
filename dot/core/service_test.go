@@ -237,8 +237,8 @@ func TestHandleChainReorg_WithReorg_NoTransactions(t *testing.T) {
 
 func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	cfg := &Config{
-		// TODO: change to LEGACY_NODE_RUNTIME
-		Runtime: wasmer.NewTestLegacyInstance(t, runtime.SUBSTRATE_TEST_RUNTIME),
+		// TODO: change to NODE_RUNTIME once transactions work
+		Runtime: wasmer.NewInstanceFromLegacy(wasmer.NewTestLegacyInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)),
 	}
 
 	s := NewTestService(t, cfg)

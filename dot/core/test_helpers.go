@@ -85,7 +85,7 @@ func (bp *mockBlockProducer) GetBlockChannel() <-chan types.Block {
 }
 
 // SetRuntime mocks setting runtime
-func (bp *mockBlockProducer) SetRuntime(rt runtime.LegacyInstance) {}
+func (bp *mockBlockProducer) SetRuntime(rt runtime.Instance) {}
 
 type mockNetwork struct {
 	Message network.Message
@@ -127,7 +127,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	}
 
 	if cfg.Runtime == nil {
-		cfg.Runtime = wasmer.NewTestLegacyInstance(t, runtime.LEGACY_NODE_RUNTIME)
+		cfg.Runtime = wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
 	}
 
 	if cfg.Keystore == nil {
