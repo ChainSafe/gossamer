@@ -71,20 +71,20 @@ type Service struct {
 
 // ServiceConfig represents a BABE configuration
 type ServiceConfig struct {
-	LogLvl           log.Lvl
-	BlockState       BlockState
-	StorageState     StorageState
-	TransactionState TransactionState
-	EpochState       EpochState
-	Keypair          *sr25519.Keypair
-	Runtime          runtime.Instance
-	AuthData         []*types.Authority
+	LogLvl               log.Lvl
+	BlockState           BlockState
+	StorageState         StorageState
+	TransactionState     TransactionState
+	EpochState           EpochState
+	Keypair              *sr25519.Keypair
+	Runtime              runtime.Instance
+	AuthData             []*types.Authority
 	ThresholdNumerator   uint64 // for development purposes
 	ThresholdDenominator uint64 // for development purposes
-	SlotDuration     uint64   // for development purposes; in milliseconds
-	EpochLength      uint64   // for development purposes; in slots
-	StartSlot        uint64   // slot to start at
-	Authority        bool
+	SlotDuration         uint64 // for development purposes; in milliseconds
+	EpochLength          uint64 // for development purposes; in slots
+	StartSlot            uint64 // slot to start at
+	Authority            bool
 }
 
 // NewService returns a new Babe Service using the provided VRF keys and runtime
