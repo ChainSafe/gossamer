@@ -22,6 +22,7 @@ import (
 	"reflect"
 	"testing"
 
+	database "github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 
@@ -32,6 +33,14 @@ var zeroHash, _ = common.HexToHash("0x00")
 var testHeader = &types.Header{
 	ParentHash: zeroHash,
 	Number:     big.NewInt(0),
+}
+
+func newBlockTreeFromNode(head *node, db database.Database) *BlockTree {
+	return &BlockTree{
+		head:   head,
+		leaves: newLeafMap(head),
+		db:     db,
+	}
 }
 
 func createFlatTree(t *testing.T, depth int) (*BlockTree, []common.Hash) {

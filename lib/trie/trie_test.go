@@ -686,3 +686,60 @@ func TestNextKey_MoreAncestors(t *testing.T) {
 		require.Equal(t, tc.expected, next)
 	}
 }
+
+func TestClearPrefix(t *testing.T) {
+	tests := []Test{
+		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: PUT},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: PUT},
+		{key: []byte{0x01, 0x35, 0x79, 0xab}, value: []byte("spaghetti"), op: PUT},
+		{key: []byte{0x01, 0x35, 0x79, 0xab, 0x9}, value: []byte("gnocchi"), op: PUT},
+		{key: []byte{0x07, 0x3a}, value: []byte("ramen"), op: PUT},
+		{key: []byte{0x07, 0x3b}, value: []byte("noodles"), op: PUT},
+		{key: []byte{0xf2}, value: []byte("pho"), op: PUT},
+	}
+
+	buildTrie := func() *Trie {
+		trie := NewEmptyTrie()
+
+		for _, test := range tests {
+			trie.Put(test.key, test.value)
+		}
+
+		return trie
+	}
+
+	// prefix to clear cases
+	testCases := [][]byte{
+		{},
+		{0x0},
+		{0x01},
+		{0x01, 0x30},
+		{0x01, 0x35},
+		{0x01, 0x35, 0x70},
+		{0x01, 0x35, 0x79},
+		{0x01, 0x35, 0x79, 0xab},
+		{0x07},
+		{0x07, 0x3},
+		{0xf},
+	}
+
+	for _, prefix := range testCases {
+		trie := buildTrie()
+		trie.ClearPrefix(prefix)
+		prefixNibbles := keyToNibbles(prefix)
+
+		for _, test := range tests {
+			res, err := trie.Get(test.key)
+			require.NoError(t, err)
+
+			keyNibbles := keyToNibbles(test.key)
+
+			length := lenCommonPrefix(keyNibbles, prefixNibbles)
+			if length == len(prefixNibbles) {
+				require.Nil(t, res)
+			} else {
+				require.Equal(t, test.value, res)
+			}
+		}
+	}
+}

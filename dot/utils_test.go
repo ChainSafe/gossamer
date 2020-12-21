@@ -22,6 +22,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
 )
@@ -83,6 +84,6 @@ func TestNewTestGenesisFile(t *testing.T) {
 
 func TestNewRuntimeFromGenesis(t *testing.T) {
 	gen := NewTestGenesis(t)
-	_, err := genesis.NewRuntimeFromGenesis(gen, &state.TrieState{})
+	_, err := wasmer.NewRuntimeFromGenesis(gen, &state.TrieState{})
 	require.NoError(t, err)
 }

@@ -11,8 +11,8 @@
   <a href="https://goreportcard.com/report/github.com/ChainSafe/gossamer">
     <img alt="go report card" src="https://goreportcard.com/badge/github.com/ChainSafe/gossamer" />
   </a>
-  <a href="https://travis-ci.org/ChainSafe/gossamer/">
-    <img alt="build status" src="https://travis-ci.org/ChainSafe/gossamer.svg?branch=development" />
+  <a href="https://github.com/ChainSafe/gossamer/actions">
+    <img alt="build status" src="https://github.com/ChainSafe/gossamer/workflows/build/badge.svg?branch=development" />
   </a>
 </div>
 <div align="center">
