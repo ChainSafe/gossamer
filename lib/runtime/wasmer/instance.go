@@ -21,6 +21,8 @@ import (
 	"os"
 	"sync"
 
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	log "github.com/ChainSafe/log15"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
@@ -54,6 +56,38 @@ type LegacyInstance struct {
 // Instance represents a v0.8 runtime go-wasmer instance
 type Instance struct {
 	inst *LegacyInstance
+}
+
+// NewLegacyRuntimeFromGenesis creates a runtime instance from the genesis data
+func NewLegacyRuntimeFromGenesis(g *genesis.Genesis, storage runtime.Storage) (runtime.LegacyInstance, error) {
+	codeStr := g.GenesisFields().Raw[0][common.BytesToHex(common.CodeKey)]
+	if codeStr == "" {
+		return nil, fmt.Errorf("cannot find :code in genesis")
+	}
+
+	code := common.MustHexToBytes(codeStr)
+	cfg := &Config{
+		Imports: ImportsLegacyNodeRuntime,
+	}
+	cfg.Storage = storage
+
+	return NewLegacyInstance(code, cfg)
+}
+
+// NewRuntimeFromGenesis creates a runtime instance from the genesis data
+func NewRuntimeFromGenesis(g *genesis.Genesis, storage runtime.Storage) (runtime.Instance, error) {
+	codeStr := g.GenesisFields().Raw[0][common.BytesToHex(common.CodeKey)]
+	if codeStr == "" {
+		return nil, fmt.Errorf("cannot find :code in genesis")
+	}
+
+	code := common.MustHexToBytes(codeStr)
+	cfg := &Config{
+		Imports: ImportsNodeRuntime,
+	}
+	cfg.Storage = storage
+
+	return NewInstance(code, cfg)
 }
 
 // NewLegacyInstanceFromFile instantiates a runtime from a .wasm file
@@ -94,6 +128,14 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 	return &Instance{
 		inst: inst,
 	}, nil
+}
+
+// NewInstanceFromLegacy instantiates a runtime from legacy runtime
+// NOTE: this is unsafe and should be removed once all tests are upgraded to v0.8
+func NewInstanceFromLegacy(inst *LegacyInstance) *Instance {
+	return &Instance{
+		inst: inst,
+	}
 }
 
 // Legacy returns the instance as a LegacyInstance
