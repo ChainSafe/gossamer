@@ -18,6 +18,8 @@ package wasmer
 
 import (
 	"bytes"
+	"fmt"
+	"sort"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -265,22 +267,114 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 	// it's just a pointer
 	ptr, err := inst.inst.malloc(uint32(len(params)))
 	require.NoError(t, err)
+
 	inst.inst.store(params, int32(ptr))
-	datalen := int32(len(params))
+	dataLen := int32(len(params))
 
 	runtimeFunc, ok := inst.inst.vm.Exports["rtm_ext_crypto_ed25519_generate_version_1"]
 	require.True(t, ok)
 
-	ret, err := runtimeFunc(int32(ptr), datalen)
+	ret, err := runtimeFunc(int32(ptr), dataLen)
 	require.NoError(t, err)
 
 	mem := inst.inst.vm.Memory.Data()
 	// TODO: why is this SCALE encoded? it should just be a 32 byte buffer. may be due to way test runtime is written.
-	pubkeyBytes := mem[ret.ToI32()+1 : ret.ToI32()+1+32]
-	pubkey, err := ed25519.NewPublicKey(pubkeyBytes)
+	pubKeyBytes := mem[ret.ToI32()+1 : ret.ToI32()+1+32]
+	pubKey, err := ed25519.NewPublicKey(pubKeyBytes)
 	require.NoError(t, err)
 
 	require.Equal(t, 1, inst.inst.ctx.Keystore.Size())
-	kp := inst.inst.ctx.Keystore.GetKeypair(pubkey)
+	kp := inst.inst.ctx.Keystore.GetKeypair(pubKey)
 	require.NotNil(t, kp)
+}
+
+func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	require.Equal(t, 0, inst.inst.ctx.Keystore.Size())
+
+	var expectedPubKeys [][]byte
+	numKps := 5
+
+	for i := 0; i < numKps; i++ {
+		kp, err := ed25519.GenerateKeypair()
+		if err != nil {
+			t.Fatal(err)
+		}
+		inst.inst.ctx.Keystore.Insert(kp)
+		expected := kp.Public().Encode()
+		expectedPubKeys = append(expectedPubKeys, expected)
+	}
+
+	// put some ed25519 keypairs in the keystore to make sure they don't get returned
+	for i := 0; i < numKps; i++ {
+		kp, err := ed25519.GenerateKeypair()
+		require.Nil(t, err)
+
+		inst.inst.ctx.Keystore.Insert(kp)
+	}
+
+	idData := []byte{2, 2, 2, 2}
+
+	ptr, err := inst.inst.malloc(uint32(len(idData)))
+	require.NoError(t, err)
+
+	inst.inst.store(idData, int32(ptr))
+	dataLen := int32(len(idData))
+
+	require.NoError(t, err)
+
+	runtimeFunc, ok := inst.inst.vm.Exports["rtm_ext_crypto_ed25519_public_keys_version_1"]
+	require.True(t, ok)
+
+	out, err := runtimeFunc(int32(ptr), dataLen)
+	require.NoError(t, err)
+
+	mem := inst.inst.vm.Memory.Data()
+	//resultLenBytes := mem[0:32]
+	//resultLen := binary.LittleEndian.Uint32(resultLenBytes)
+	pubKeyData := mem[out.ToI32() : out.ToI32()+int32(numKps*32)]
+
+	pubKeys := [][]byte{}
+	for i := 0; i < numKps; i++ {
+		kpData := pubKeyData[i*32 : i*32+32]
+		pubKeys = append(pubKeys, kpData)
+	}
+
+	sort.Slice(expectedPubKeys, func(i, j int) bool { return bytes.Compare(expectedPubKeys[i], expectedPubKeys[j]) < 0 })
+	sort.Slice(pubKeys, func(i, j int) bool { return bytes.Compare(pubKeys[i], pubKeys[j]) < 0 })
+
+	require.Equal(t, expectedPubKeys, pubKeys)
+}
+
+func Test_ext_crypto_ed25519_sign_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	//mem := inst.inst.vm.Memory.Data()
+
+	kp, err := ed25519.GenerateKeypair()
+	require.Nil(t, err)
+
+	inst.inst.ctx.Keystore.Insert(kp)
+
+	idData := []byte{2, 2, 2, 2}
+	pubKeyData := kp.Public().Encode()
+	msgData := []byte("helloworld")
+	encMsg, err := scale.Encode(msgData)
+	require.NoError(t, err)
+
+	params := append(idData, pubKeyData...)
+	params = append(params, encMsg...)
+
+	ptr, err := inst.inst.malloc(uint32(len(params)))
+	require.NoError(t, err)
+
+	inst.inst.store(params, int32(ptr))
+	dataLen := int32(len(params))
+
+	runtimeFunc, ok := inst.inst.vm.Exports["rtm_ext_crypto_ed25519_sign_version_1"]
+	require.True(t, ok)
+
+	ret, err := runtimeFunc(int32(ptr), dataLen)
+	require.NoError(t, err)
+
+	fmt.Println(ret.ToI32())
 }

@@ -199,6 +199,7 @@ func ext_crypto_ed25519_generate_version_1(context unsafe.Pointer, keyTypeId C.i
 	seedBytes := asMemorySlice(instanceContext, seedSpan)
 	buf := &bytes.Buffer{}
 	buf.Write(seedBytes)
+
 	seed, err := optional.NewBytes(false, nil).Decode(buf)
 	if err != nil {
 		logger.Warn("[ext_crypto_ed25519_generate_version_1] cannot generate key", "error", err)
@@ -236,20 +237,21 @@ func ext_crypto_ed25519_public_keys_version_1(context unsafe.Pointer, keyTypeId 
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
+	memory := instanceContext.Memory().Data()
 
 	keys := runtimeCtx.Keystore.Ed25519PublicKeys()
 
-	var ptr []byte
-	for _, key := range keys {
-		ptr = append(ptr, key.Encode()...)
-	}
-
-	ret, err := toWasmMemorySized(instanceContext, ptr, 32)
+	ptr, err := runtimeCtx.Allocator.Allocate(uint32(len(keys) * 32))
 	if err != nil {
-		logger.Trace("[ext_crypto_ed25519_public_keys_version_1] cannot allocate memory", err)
+		logger.Error("[ext_crypto_ed25519_public_keys_version_1]", "error", err)
 		return 0
 	}
 
+	for i, key := range keys {
+		copy(memory[ptr+uint32(i*32):ptr+uint32((i+1)*32)], key.Encode())
+	}
+
+	ret := pointerAndSizeToInt64(int32(ptr), int32(len(keys)*32))
 	return C.int64_t(ret)
 }
 
