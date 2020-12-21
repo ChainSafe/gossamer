@@ -206,7 +206,7 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 	} else {
 		logger.Crit("node didn't start!", "err", err)
 		errFileContents, _ := ioutil.ReadFile(errfile.Name())
-		t.Log(errFileContents)
+		t.Logf("%s\n", errFileContents)
 		return err
 	}
 
@@ -467,7 +467,7 @@ func CreateDefaultConfig() {
 func generateConfigBabeMaxThreshold() *ctoml.Config {
 	cfg := generateDefaultConfig()
 	cfg.Log = ctoml.LogConfig{
-		SyncLvl:          "debug",
+		SyncLvl:          "trace",
 		NetworkLvl:       "debug",
 		BlockProducerLvl: "info",
 	}
@@ -510,7 +510,7 @@ func generateConfigNoBabe() *ctoml.Config {
 	cfg := generateDefaultConfig()
 	cfg.Global.LogLvl = "info"
 	cfg.Log = ctoml.LogConfig{
-		SyncLvl:    "debug",
+		SyncLvl:    "trace",
 		NetworkLvl: "debug",
 	}
 	cfg.Core.BabeThreshold = "max"
