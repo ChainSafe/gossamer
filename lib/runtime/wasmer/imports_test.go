@@ -249,45 +249,6 @@ func Test_ext_storage_set_version_1(t *testing.T) {
 	require.Equal(t, testvalue, val)
 }
 
-func Test_ext_misc_runtime_version_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
-
-	expected := &runtime.Version{
-		Spec_name:         []byte("node"),
-		Impl_name:         []byte("substrate-node"),
-		Authoring_version: 10,
-		Spec_version:      193,
-		Impl_version:      193,
-	}
-
-	version := &runtime.VersionAPI{
-		RuntimeVersion: expected,
-		API:            nil,
-	}
-
-	enc, err := scale.Encode(version)
-	require.NoError(t, err)
-
-	ret, err := inst.Exec("rtm_ext_misc_runtime_version_version_1", enc)
-	require.NoError(t, err)
-
-	expectedData, err := scale.Decode(ret, &runtime.Version{})
-	require.NoError(t, err)
-	require.Equal(t, expected, expectedData)
-}
-
-func Test_ext_misc_print_num_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.LEGACY_NODE_RUNTIME)
-
-	testKey := []byte("2")
-	enc, err := scale.Encode(testKey)
-	require.NoError(t, err)
-
-	_, err = inst.Exec("rtm_ext_misc_print_num_version_1", enc)
-	require.NoError(t, err)
-
-}
-
 func Test_ext_default_child_storage_read_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
