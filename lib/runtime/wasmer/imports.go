@@ -256,14 +256,17 @@ func ext_crypto_ed25519_public_keys_version_1(context unsafe.Pointer, keyTypeId 
 }
 
 //export ext_crypto_ed25519_sign_version_1
-func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeId, key C.int32_t, msg C.int64_t) C.int64_t {
+func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeId C.int32_t, key C.int32_t, msg C.int64_t) C.int64_t {
 	logger.Trace("[ext_crypto_ed25519_sign_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 	memory := instanceContext.Memory().Data()
 
-	pubKey, err := ed25519.NewPublicKey(memory[key : key+32])
+	pubKeyData := memory[key : key+32]
+	data := memory[key+32 : key+32+32]
+	_ = data
+	pubKey, err := ed25519.NewPublicKey(pubKeyData)
 	if err != nil {
 		logger.Error("[ext_crypto_ed25519_sign_version_1]", "error", err)
 		return 0
@@ -275,7 +278,7 @@ func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeId, key C.
 		return 0
 	}
 
-	sig, err := signingKey.Sign(asMemorySlice(instanceContext, msg))
+	sig, err := signingKey.Sign(memory[key+32 : key+32+32])
 	if err != nil {
 		logger.Error("[ext_crypto_ed25519_sign_version_1] could not sign message")
 		return 0
@@ -326,18 +329,24 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, m
 
 	// msg must be the 32-byte hash of the message to be signed.
 	// sig must be a 65-byte compact ECDSA signature containing the
-	// recovery id as the last element.
+	// recovery id as the last element
 	newMsg := memory[msg : msg+32]
 	newSig := memory[sig : sig+65]
 
 	// TODO: Verify the return in spec.
 	pub, err := secp256k1.RecoverPubkey(newMsg, newSig)
 	if err != nil {
+		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_version_1] failed to recover public key", err)
 		return 0
 	}
 
-	copy(memory[len(newMsg)+len(newSig):len(newMsg)+len(newSig)+65], pub)
-	return 1
+	ret, err := toWasmMemoryOptional(instanceContext, pub)
+	if err != nil {
+		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_version_1] failed to allocate memory", err)
+		return 0
+	}
+
+	return C.int64_t(ret)
 }
 
 //export ext_crypto_secp256k1_ecdsa_recover_compressed_version_1
@@ -389,7 +398,7 @@ func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, keyTypeId 
 
 	ret, err := toWasmMemoryOptional(instanceContext, ptr)
 	if err != nil {
-		logger.Error("[ext_crypto_sr25519_public_keys_version_1] failed to allocate memory", err)
+		logger.Error("[ext_] failed to allocate memory", err)
 		return 0
 	}
 
@@ -410,7 +419,6 @@ func ext_crypto_sr25519_sign_version_1(context unsafe.Pointer, keyTypeId, key C.
 	}
 
 	signingKey := runtimeCtx.Keystore.GetKeypair(pubKey)
-
 	if signingKey == nil {
 		logger.Error("[ext_crypto_sr25519_sign_version_1] could not find key in keystore", pubKey)
 		return 0

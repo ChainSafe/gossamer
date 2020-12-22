@@ -18,6 +18,9 @@ package wasmer
 
 import (
 	"bytes"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"fmt"
 	"sort"
 	"testing"
@@ -28,6 +31,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 
 	"github.com/stretchr/testify/require"
 )
@@ -301,16 +305,8 @@ func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
 			t.Fatal(err)
 		}
 		inst.inst.ctx.Keystore.Insert(kp)
-		expected := kp.Public().Encode()
-		expectedPubKeys = append(expectedPubKeys, expected)
-	}
-
-	// put some ed25519 keypairs in the keystore to make sure they don't get returned
-	for i := 0; i < numKps; i++ {
-		kp, err := ed25519.GenerateKeypair()
-		require.Nil(t, err)
-
-		inst.inst.ctx.Keystore.Insert(kp)
+		expectedKey := kp.Public().Encode()
+		expectedPubKeys = append(expectedPubKeys, expectedKey)
 	}
 
 	idData := []byte{2, 2, 2, 2}
@@ -332,11 +328,11 @@ func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
 	mem := inst.inst.vm.Memory.Data()
 	//resultLenBytes := mem[0:32]
 	//resultLen := binary.LittleEndian.Uint32(resultLenBytes)
-	pubKeyData := mem[out.ToI32() : out.ToI32()+int32(numKps*32)]
-
+	pubKeyData := mem[out.ToI32() : out.ToI32()+32]
+	fmt.Println("pubKeyData: ", pubKeyData)
 	pubKeys := [][]byte{}
 	for i := 0; i < numKps; i++ {
-		kpData := pubKeyData[i*32 : i*32+32]
+		kpData := mem[out.ToI32()+int32(i*32) : out.ToI32()+int32((i+1)*32)]
 		pubKeys = append(pubKeys, kpData)
 	}
 
@@ -356,25 +352,78 @@ func Test_ext_crypto_ed25519_sign_version_1(t *testing.T) {
 	inst.inst.ctx.Keystore.Insert(kp)
 
 	idData := []byte{2, 2, 2, 2}
+
+	idPtr, err := inst.inst.malloc(uint32(len(idData)))
+	require.NoError(t, err)
+
+	inst.inst.store(idData, int32(idPtr))
+
 	pubKeyData := kp.Public().Encode()
-	msgData := []byte("helloworld")
-	encMsg, err := scale.Encode(msgData)
+	msgData, err := common.HexToBytes("0xce0677bb30baa8cf067c88db9811f4333d131bf8bcf12fe7065d211dce971008")
 	require.NoError(t, err)
 
-	params := append(idData, pubKeyData...)
-	params = append(params, encMsg...)
+	params := append(pubKeyData, msgData...)
 
-	ptr, err := inst.inst.malloc(uint32(len(params)))
+	paramPtr, err := inst.inst.malloc(uint32(len(params)))
 	require.NoError(t, err)
 
-	inst.inst.store(params, int32(ptr))
-	dataLen := int32(len(params))
+	inst.inst.store(params, int32(paramPtr))
 
 	runtimeFunc, ok := inst.inst.vm.Exports["rtm_ext_crypto_ed25519_sign_version_1"]
 	require.True(t, ok)
 
-	ret, err := runtimeFunc(int32(ptr), dataLen)
+	ret, err := runtimeFunc(int32(idPtr), int32(paramPtr))
 	require.NoError(t, err)
 
 	fmt.Println(ret.ToI32())
+}
+
+func Test_ext_crypto_secp256k1_ecdsa_recover_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	msgData := []byte("Hello world!")
+	blakeHash, err := common.Blake2bHash(msgData)
+	require.Nil(t, err)
+
+	pubKey, secKey := generateKeyPairs()
+	sigData, err := secp256k1.Sign(blakeHash.ToBytes(), secKey)
+	require.NoError(t, err)
+
+	fmt.Println(pubKey)
+
+	encSign, err := scale.Encode(sigData)
+	require.NoError(t, err)
+	encMsg, err := scale.Encode(blakeHash.ToBytes())
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_crypto_secp256k1_ecdsa_recover_version_1", append(encSign, encMsg...))
+
+	buf := &bytes.Buffer{}
+	buf.Write(ret[3:])
+
+	//value, err := new(optional.Bytes).Decode(buf)
+	//require.NoError(t, err)
+	//fmt.Println(value)
+	//require.Equal(t, pubKey, value.Value())
+
+	encPub, err := scale.Encode(pubKey)
+	require.NoError(t, err)
+
+	fmt.Println(encPub)
+
+	require.Equal(t, encPub, buf.Bytes())
+}
+
+func generateKeyPairs() (pubkey, privkey []byte) {
+	key, err := ecdsa.GenerateKey(secp256k1.S256(), rand.Reader)
+	if err != nil {
+		panic(err)
+	}
+	pubkey = elliptic.Marshal(secp256k1.S256(), key.X, key.Y)
+
+	privkey = make([]byte, 32)
+	blob := key.D.Bytes()
+	copy(privkey[32-len(blob):], blob)
+
+	return pubkey, privkey
 }

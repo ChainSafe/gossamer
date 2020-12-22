@@ -18,8 +18,10 @@ package secp256k1
 
 import (
 	"crypto/ecdsa"
+	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"io"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -207,4 +209,12 @@ func (pk *PrivateKey) Hex() string {
 	enc := pk.Encode()
 	h := hex.EncodeToString(enc)
 	return "0x" + h
+}
+
+func CsprngEntropy(n int) []byte {
+	buf := make([]byte, n)
+	if _, err := io.ReadFull(rand.Reader, buf); err != nil {
+		panic("reading from crypto/rand failed: " + err.Error())
+	}
+	return buf
 }
