@@ -79,7 +79,6 @@ func TestHandleBlockAnnounceMessage(t *testing.T) {
 		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		NoStatus:    true,
 	}
 
 	s := createTestService(t, config)

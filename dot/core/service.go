@@ -268,22 +268,6 @@ func (s *Service) receiveBlocks(ctx context.Context) {
 	}
 }
 
-// HandleMessage handles network messages that are passed to it
-func (s *Service) HandleMessage(message network.Message) {
-	if message == nil {
-		return
-	}
-
-	if s.ctx.Err() != nil {
-		return
-	}
-
-	err := s.handleReceivedMessage(message)
-	if err != nil {
-		logger.Trace("failed to handle message from network service", "err", err)
-	}
-}
-
 // handleReceivedBlock handles blocks from the BABE session
 func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
 	if s.blockState == nil {
@@ -311,19 +295,6 @@ func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
 
 	s.net.SendMessage(msg)
 	return nil
-}
-
-// handleReceivedMessage handles messages from the network service
-// TODO: delete this once all sub-protocols are updated
-func (s *Service) handleReceivedMessage(msg network.Message) (err error) {
-	msgType := msg.Type()
-
-	switch msgType {
-	default:
-		err = ErrUnsupportedMsgType(msgType)
-	}
-
-	return err
 }
 
 // handleRuntimeChanges checks if changes to the runtime code have occurred; if so, load the new runtime

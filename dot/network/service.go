@@ -20,7 +20,6 @@ import (
 	"bufio"
 	"context"
 	"errors"
-	"math/big"
 	"os"
 	"sync"
 	"time"
@@ -67,7 +66,6 @@ type Service struct {
 	cfg                    *Config
 	host                   *host
 	mdns                   *mdns
-	status                 *status
 	gossip                 *gossip
 	requestTracker         *requestTracker
 	errCh                  chan<- error
@@ -76,17 +74,12 @@ type Service struct {
 
 	// Service interfaces
 	blockState         BlockState
-	networkState       NetworkState
 	syncer             Syncer
 	transactionHandler TransactionHandler
-
-	// Interface for inter-process communication
-	messageHandler MessageHandler // TODO: remove with cleanup
 
 	// Configuration options
 	noBootstrap bool
 	noMDNS      bool
-	noStatus    bool // internal option
 	noGossip    bool // internal option
 }
 
@@ -117,16 +110,12 @@ func NewService(cfg *Config) (*Service, error) {
 		cfg:                    cfg,
 		host:                   host,
 		mdns:                   newMDNS(host),
-		status:                 newStatus(host),
 		gossip:                 newGossip(),
 		requestTracker:         newRequestTracker(logger),
 		blockState:             cfg.BlockState,
-		networkState:           cfg.NetworkState,
-		messageHandler:         cfg.MessageHandler,
 		transactionHandler:     cfg.TransactionHandler,
 		noBootstrap:            cfg.NoBootstrap,
 		noMDNS:                 cfg.NoMDNS,
-		noStatus:               cfg.NoStatus,
 		syncer:                 cfg.Syncer,
 		errCh:                  cfg.ErrChan,
 		notificationsProtocols: make(map[byte]*notificationsProtocol),
@@ -159,11 +148,6 @@ func (s *Service) Start() error {
 		s.ctx, s.cancel = context.WithCancel(context.Background())
 	}
 
-	// update network state
-	go s.updateNetworkState()
-
-	s.host.registerConnHandler(s.handleConn)
-	s.host.registerStreamHandler("", s.handleStream)
 	s.host.registerStreamHandler(syncID, s.handleSyncStream)
 	s.host.registerStreamHandler(lightID, s.handleLightStream)
 
@@ -298,20 +282,6 @@ func (s *Service) IsStopped() bool {
 	return s.ctx.Err() != nil
 }
 
-// updateNetworkState updates the network state at the set time interval
-func (s *Service) updateNetworkState() {
-	for {
-		select {
-		case <-s.ctx.Done():
-			return
-		case <-time.After(NetworkStateTimeout):
-			s.networkState.SetHealth(s.Health())
-			s.networkState.SetNetworkState(s.NetworkState())
-			s.networkState.SetPeers(s.Peers())
-		}
-	}
-}
-
 // SendMessage implementation of interface to handle receiving messages
 func (s *Service) SendMessage(msg Message) {
 	if s.host == nil {
@@ -343,53 +313,11 @@ func (s *Service) SendMessage(msg Message) {
 		return
 	}
 
+	logger.Warn("message not supported by any notifications protocol", "msg type", msg.Type())
+
+	// TODO: deprecate
 	// broadcast message to connected peers
 	s.host.broadcast(msg)
-}
-
-// handleConn starts processes that manage the connection
-func (s *Service) handleConn(conn libp2pnetwork.Conn) {
-	// check if status is enabled
-	if !s.noStatus {
-
-		// get latest block header from block state
-		latestBlock, err := s.blockState.BestBlockHeader()
-		if err != nil || (latestBlock == nil || latestBlock.Number == nil) {
-			logger.Error("Failed to get chain head", "error", err)
-			return
-		}
-
-		// update host status message
-		msg := &StatusMessage{
-			ProtocolVersion:     s.cfg.ProtocolVersion,
-			MinSupportedVersion: s.cfg.MinSupportedVersion,
-			Roles:               s.cfg.Roles,
-			BestBlockNumber:     latestBlock.Number.Uint64(),
-			BestBlockHash:       latestBlock.Hash(),
-			GenesisHash:         s.blockState.GenesisHash(),
-			ChainStatus:         []byte{0}, // TODO
-		}
-
-		// update host status message
-		s.status.setHostMessage(msg)
-
-		// manage status messages for new connection
-		s.status.handleConn(conn)
-	}
-}
-
-// handleStream starts reading from the inbound message stream and continues
-// reading until the inbound message stream is closed or reset.
-func (s *Service) handleStream(stream libp2pnetwork.Stream) {
-	conn := stream.Conn()
-	if conn == nil {
-		logger.Error("Failed to get connection from stream")
-		return
-	}
-
-	peer := conn.RemotePeer()
-	s.readStream(stream, peer, decodeMessageBytes, s.handleMessage)
-	// the stream stays open until closed or reset
 }
 
 // handleSyncStream handles streams with the <protocol-id>/sync/2 protocol ID
@@ -531,6 +459,7 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 	// message to the sync service
 	if resp, ok := msg.(*BlockResponseMessage); ok && s.requestTracker.hasRequestedBlockID(resp.ID) {
 		s.requestTracker.removeRequestedBlockID(resp.ID)
+
 		req := s.syncer.HandleBlockResponse(resp)
 		if req != nil {
 			s.requestTracker.addRequestedBlockID(req.ID)
@@ -546,6 +475,7 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 		resp, err := s.syncer.CreateBlockResponse(req)
 		if err != nil {
 			logger.Debug("cannot create response for request", "id", req.ID)
+			// TODO: close stream
 			return nil
 		}
 
@@ -553,78 +483,6 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 		if err != nil {
 			logger.Error("failed to send BlockResponse message", "peer", peer)
 		}
-	}
-
-	return nil
-}
-
-// handleMessage handles the message based on peer status and message type
-// TODO: deprecate this handler, messages will be handled via their sub-protocols
-func (s *Service) handleMessage(peer peer.ID, msg Message) error {
-	if msg.Type() != StatusMsgType {
-
-		// check if status is disabled or peer status is confirmed
-		if s.noStatus || s.status.confirmed(peer) {
-			if s.messageHandler == nil {
-				logger.Crit("Failed to handle message", "error", "message handler is nil")
-				return nil
-			}
-			s.messageHandler.HandleMessage(msg)
-		}
-
-		// check if gossip is enabled
-		if !s.noGossip {
-
-			// handle non-status message from peer with gossip submodule
-			seen := s.gossip.hasSeen(msg)
-			if !seen {
-				s.host.broadcastExcluding(msg, peer)
-			}
-		}
-
-	} else {
-
-		// check if status is enabled
-		if !s.noStatus {
-
-			// handle status message from peer with status submodule
-			s.status.handleMessage(peer, msg.(*StatusMessage))
-
-			// check if peer status confirmed
-			if s.status.confirmed(peer) {
-
-				// send a block request message if peer best block number is greater than host best block number
-				req := s.handleStatusMesssage(msg.(*StatusMessage))
-				if req != nil {
-					s.requestTracker.addRequestedBlockID(req.ID)
-					err := s.host.send(peer, syncID, req)
-					if err != nil {
-						logger.Error("failed to send BlockRequest message", "peer", peer)
-					}
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
-// handleStatusMesssage returns a block request message if peer best block
-// number is greater than host best block number
-func (s *Service) handleStatusMesssage(statusMessage *StatusMessage) *BlockRequestMessage {
-	// get latest block header from block state
-	latestHeader, err := s.blockState.BestBlockHeader()
-	if err != nil {
-		logger.Error("Failed to get best block header from block state", "error", err)
-		return nil
-	}
-
-	bestBlockNum := big.NewInt(int64(statusMessage.BestBlockNumber))
-
-	// check if peer block number is greater than host block number
-	if latestHeader.Number.Cmp(bestBlockNum) == -1 {
-		logger.Debug("sending new block to syncer", "number", statusMessage.BestBlockNumber)
-		return s.syncer.HandleSeenBlocks(bestBlockNum)
 	}
 
 	return nil
@@ -653,22 +511,14 @@ func (s *Service) Peers() []common.PeerInfo {
 	peers := []common.PeerInfo{}
 
 	for _, p := range s.host.peers() {
-		if s.status.confirmed(p) {
-			if m, ok := s.status.peerMessage.Load(p); ok {
-				msg, ok := m.(*StatusMessage)
-				if !ok {
-					return peers
-				}
-
-				peers = append(peers, common.PeerInfo{
-					PeerID:          p.String(),
-					Roles:           msg.Roles,
-					ProtocolVersion: msg.ProtocolVersion,
-					BestHash:        msg.BestBlockHash,
-					BestNumber:      msg.BestBlockNumber,
-				})
-			}
-		}
+		// TODO: update this based on BlockAnnounce handshake info
+		peers = append(peers, common.PeerInfo{
+			PeerID: p.String(),
+			// Roles:           msg.Roles,
+			// ProtocolVersion: msg.ProtocolVersion,
+			// BestHash:        msg.BestBlockHash,
+			// BestNumber:      msg.BestBlockNumber,
+		})
 	}
 	return peers
 }
