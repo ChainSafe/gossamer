@@ -91,7 +91,6 @@ func TestHandleTransactionMessage(t *testing.T) {
 		RandSeed:           1,
 		NoBootstrap:        true,
 		NoMDNS:             true,
-		NoStatus:           true,
 		TransactionHandler: handler,
 	}
 
