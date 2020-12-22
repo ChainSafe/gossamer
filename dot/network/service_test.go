@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
@@ -256,4 +257,37 @@ func TestHandleLightMessage_Response(t *testing.T) {
 	}
 	err = s.handleLightSyncMsg(peerID, msg)
 	require.Error(t, err, expectedErr, msg.String())
+}
+
+func TestDecodeSyncMessage(t *testing.T) {
+	s := &Service{
+		syncing: make(map[peer.ID]struct{}),
+	}
+
+	testPeer := peer.ID("noot")
+
+	testBlockResponseMessage := &BlockResponseMessage{
+		BlockData: []*types.BlockData{},
+	}
+
+	reqEnc, err := testBlockRequestMessage.Encode()
+	require.NoError(t, err)
+
+	msg, err := s.decodeSyncMessage(reqEnc, testPeer)
+	require.NoError(t, err)
+
+	req, ok := msg.(*BlockRequestMessage)
+	require.True(t, ok)
+	require.Equal(t, testBlockRequestMessage, req)
+
+	s.syncing[testPeer] = struct{}{}
+
+	respEnc, err := testBlockResponseMessage.Encode()
+	require.NoError(t, err)
+
+	msg, err = s.decodeSyncMessage(respEnc, testPeer)
+	require.NoError(t, err)
+	resp, ok := msg.(*BlockResponseMessage)
+	require.True(t, ok)
+	require.Equal(t, testBlockResponseMessage, resp)
 }
