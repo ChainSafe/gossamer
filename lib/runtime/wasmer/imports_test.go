@@ -729,3 +729,115 @@ func TestStartTransaction_ext_default_child_storage_clear_version_1(t *testing.T
 	require.Equal(t, testChildKey, changes[0].KeyToChild)
 	require.Equal(t, testKey, changes[0].Key)
 }
+
+func TestStartTransaction_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst.inst.ctx.TransactionStorageChanges = []*runtime.TransactionStorageChange{}
+
+	prefix := []byte("key")
+
+	testKeyValuePair := []struct {
+		key   []byte
+		value []byte
+	}{
+		{[]byte("keyOne"), []byte("value1")},
+		{[]byte("keyTwo"), []byte("value2")},
+		{[]byte("keyThree"), []byte("value3")},
+	}
+
+	err := inst.inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	require.NoError(t, err)
+
+	for _, kv := range testKeyValuePair {
+		err = inst.inst.ctx.Storage.SetChildStorage(testChildKey, kv.key, kv.value)
+		require.NoError(t, err)
+	}
+
+	// Confirm if value is set
+	keys, err := inst.inst.ctx.Storage.(*runtime.TestRuntimeStorage).GetKeysWithPrefixFromChild(testChildKey, prefix)
+	require.NoError(t, err)
+	require.Equal(t, 3, len(keys))
+
+	encChildKey, err := scale.Encode(testChildKey)
+	require.NoError(t, err)
+
+	encPrefix, err := scale.Encode(prefix)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_default_child_storage_clear_prefix_version_1", append(encChildKey, encPrefix...))
+	require.NoError(t, err)
+
+	keys, err = inst.inst.ctx.Storage.(*runtime.TestRuntimeStorage).GetKeysWithPrefixFromChild(testChildKey, prefix)
+	require.NoError(t, err)
+	require.Equal(t, 3, len(keys))
+
+	changes := inst.inst.ctx.TransactionStorageChanges
+	require.Equal(t, 1, len(changes))
+	require.Equal(t, runtime.ClearPrefixOp, changes[0].Operation)
+	require.Equal(t, testChildKey, changes[0].KeyToChild)
+	require.Equal(t, prefix, changes[0].Prefix)
+}
+
+func TestStartTransaction_ext_default_child_storage_set_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst.inst.ctx.TransactionStorageChanges = []*runtime.TransactionStorageChange{}
+
+	err := inst.inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	require.NoError(t, err)
+
+	// Check if value is not set
+	val, err := inst.inst.ctx.Storage.GetChildStorage(testChildKey, testKey)
+	require.NoError(t, err)
+	require.Nil(t, val)
+
+	encChildKey, err := scale.Encode(testChildKey)
+	require.NoError(t, err)
+
+	encKey, err := scale.Encode(testKey)
+	require.NoError(t, err)
+
+	encVal, err := scale.Encode(testValue)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_default_child_storage_set_version_1", append(append(encChildKey, encKey...), encVal...))
+	require.NoError(t, err)
+
+	val, err = inst.inst.ctx.Storage.GetChildStorage(testChildKey, testKey)
+	require.NoError(t, err)
+	require.Nil(t, val)
+
+	changes := inst.inst.ctx.TransactionStorageChanges
+	require.Equal(t, 1, len(changes))
+	require.Equal(t, runtime.SetOp, changes[0].Operation)
+	require.Equal(t, testChildKey, changes[0].KeyToChild)
+	require.Equal(t, testKey, changes[0].Key)
+	require.Equal(t, testValue, changes[0].Value)
+}
+
+func TestStartTransaction_ext_default_child_storage_storage_kill_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	inst.inst.ctx.TransactionStorageChanges = []*runtime.TransactionStorageChange{}
+
+	err := inst.inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	require.NoError(t, err)
+
+	// Confirm if value is set
+	child, err := inst.inst.ctx.Storage.GetChild(testChildKey)
+	require.NoError(t, err)
+	require.NotNil(t, child)
+
+	encChildKey, err := scale.Encode(testChildKey)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_default_child_storage_storage_kill_version_1", encChildKey)
+	require.NoError(t, err)
+
+	child, err = inst.inst.ctx.Storage.GetChild(testChildKey)
+	require.NoError(t, err)
+	require.NotNil(t, child)
+
+	changes := inst.inst.ctx.TransactionStorageChanges
+	require.Equal(t, 1, len(changes))
+	require.Equal(t, runtime.DeleteChildOp, changes[0].Operation)
+	require.Equal(t, testChildKey, changes[0].KeyToChild)
+}
