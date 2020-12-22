@@ -56,11 +56,11 @@ func failedToDial(err error) bool {
 // helper method to create and start a new network service
 func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	if cfg.BlockState == nil {
-		cfg.BlockState = &MockBlockState{}
+		cfg.BlockState = newMockBlockState(nil)
 	}
 
-	if cfg.NetworkState == nil {
-		cfg.NetworkState = &MockNetworkState{}
+	if cfg.TransactionHandler == nil {
+		cfg.TransactionHandler = newMockTransactionHandler()
 	}
 
 	if cfg.TransactionHandler == nil {
@@ -108,14 +108,6 @@ func TestStartService(t *testing.T) {
 	node.Stop()
 }
 
-type MockMessageHandler struct {
-	Message Message
-}
-
-func (m *MockMessageHandler) HandleMessage(msg Message) {
-	m.Message = msg
-}
-
 // test broacast messages from core service
 func TestBroadcastMessages(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
@@ -133,27 +125,22 @@ func TestBroadcastMessages(t *testing.T) {
 
 	nodeA := createTestService(t, configA)
 	defer nodeA.Stop()
-
 	nodeA.noGossip = true
-	nodeA.noStatus = true
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
-
-	mmhB := new(MockMessageHandler)
 	configB := &Config{
-		BasePath:       basePathB,
-		Port:           7002,
-		RandSeed:       2,
-		NoBootstrap:    true,
-		NoMDNS:         true,
-		MessageHandler: mmhB,
+		BasePath:    basePathB,
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true,
+		NoMDNS:      true,
 	}
 
 	nodeB := createTestService(t, configB)
 	defer nodeB.Stop()
-
 	nodeB.noGossip = true
-	nodeB.noStatus = true
+	handler := newTestStreamHandler()
+	nodeB.host.registerStreamHandler("", handler.handleStream)
 
 	addrInfosB, err := nodeB.host.addrInfos()
 	if err != nil {
@@ -172,7 +159,7 @@ func TestBroadcastMessages(t *testing.T) {
 	nodeA.SendMessage(TestMessage)
 	time.Sleep(time.Second)
 
-	require.Equal(t, TestMessage, mmhB.Message)
+	require.Equal(t, TestMessage, handler.messages[nodeA.host.id()])
 }
 
 func TestHandleSyncMessage_BlockResponse(t *testing.T) {
@@ -185,7 +172,6 @@ func TestHandleSyncMessage_BlockResponse(t *testing.T) {
 		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		NoStatus:    true,
 	}
 
 	s := createTestService(t, config)
@@ -226,7 +212,6 @@ func TestService_Health(t *testing.T) {
 		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		NoStatus:    true,
 	}
 	s := createTestService(t, config)
 
@@ -247,7 +232,6 @@ func TestHandleLightMessage_Response(t *testing.T) {
 		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		NoStatus:    true,
 	}
 	s := createTestService(t, config)
 
