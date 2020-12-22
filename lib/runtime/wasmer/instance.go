@@ -60,7 +60,7 @@ type Instance struct {
 
 // NewLegacyRuntimeFromGenesis creates a runtime instance from the genesis data
 func NewLegacyRuntimeFromGenesis(g *genesis.Genesis, storage runtime.Storage) (runtime.LegacyInstance, error) {
-	codeStr := g.GenesisFields().Raw[0][common.BytesToHex(common.CodeKey)]
+	codeStr := g.GenesisFields().Raw["top"][common.BytesToHex(common.CodeKey)]
 	if codeStr == "" {
 		return nil, fmt.Errorf("cannot find :code in genesis")
 	}
@@ -76,7 +76,7 @@ func NewLegacyRuntimeFromGenesis(g *genesis.Genesis, storage runtime.Storage) (r
 
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data
 func NewRuntimeFromGenesis(g *genesis.Genesis, storage runtime.Storage) (runtime.Instance, error) {
-	codeStr := g.GenesisFields().Raw[0][common.BytesToHex(common.CodeKey)]
+	codeStr := g.GenesisFields().Raw["top"][common.BytesToHex(common.CodeKey)]
 	if codeStr == "" {
 		return nil, fmt.Errorf("cannot find :code in genesis")
 	}
@@ -159,7 +159,7 @@ func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 }
 
 // Exec func
-func (in *Instance) exec(function string, data []byte) ([]byte, error) {
+func (in *Instance) exec(function string, data []byte) ([]byte, error) { //nolint
 	return in.inst.exec(function, data)
 }
 

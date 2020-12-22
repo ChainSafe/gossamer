@@ -271,7 +271,7 @@ func (s *Service) createBlockRequest(startInt int64) *network.BlockRequestMessag
 	// generate random ID
 	s1 := rand.NewSource(uint64(time.Now().UnixNano()))
 	seed := rand.New(s1).Uint64()
-	randomID := mrand.New(mrand.NewSource(int64(seed))).Uint64()
+	randomID := mrand.New(mrand.NewSource(int64(seed))).Uint64() //nolint
 
 	start, err := variadic.NewUint64OrHash(uint64(startInt))
 	if err != nil {

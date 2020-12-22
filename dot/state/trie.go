@@ -39,7 +39,7 @@ type TrieState struct {
 
 // NewTrieState returns a new TrieState with the given trie
 func NewTrieState(db chaindb.Database, t *trie.Trie) (*TrieState, error) {
-	r := rand.Intn(1 << 16)
+	r := rand.Intn(1 << 16) //nolint
 	buf := make([]byte, 2)
 	binary.LittleEndian.PutUint16(buf, uint16(r))
 
