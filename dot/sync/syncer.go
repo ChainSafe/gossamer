@@ -52,7 +52,7 @@ type Service struct {
 	// Synchronization variables
 	synced           bool
 	highestSeenBlock *big.Int // highest block number we have seen
-	runtime          runtime.LegacyInstance
+	runtime          runtime.Instance
 
 	// BABE verification
 	verifier Verifier
@@ -71,7 +71,7 @@ type Config struct {
 	StorageState     StorageState
 	BlockProducer    BlockProducer
 	TransactionState TransactionState
-	Runtime          runtime.LegacyInstance
+	Runtime          runtime.Instance
 	Verifier         Verifier
 	DigestHandler    DigestHandler
 }
@@ -271,7 +271,7 @@ func (s *Service) createBlockRequest(startInt int64) *network.BlockRequestMessag
 	// generate random ID
 	s1 := rand.NewSource(uint64(time.Now().UnixNano()))
 	seed := rand.New(s1).Uint64()
-	randomID := mrand.New(mrand.NewSource(int64(seed))).Uint64()
+	randomID := mrand.New(mrand.NewSource(int64(seed))).Uint64() //nolint
 
 	start, err := variadic.NewUint64OrHash(uint64(startInt))
 	if err != nil {
@@ -305,7 +305,18 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 	end := int64(0)
 
 	for _, bd := range blockData {
-		if bd.Header.Exists() {
+		err := s.blockState.CompareAndSetBlockData(bd)
+		if err != nil {
+			return start, end, err
+		}
+
+		hasHeader, _ := s.blockState.HasHeader(bd.Hash)
+		hasBody, _ := s.blockState.HasBlockBody(bd.Hash)
+		if hasHeader && hasBody {
+			continue
+		}
+
+		if bd.Header.Exists() && !hasHeader {
 			header, err := types.NewHeaderFromOptional(bd.Header)
 			if err != nil {
 				return 0, 0, err
@@ -325,7 +336,7 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 			}
 		}
 
-		if bd.Body.Exists {
+		if bd.Body.Exists && !hasBody {
 			body, err := types.NewBodyFromOptional(bd.Body)
 			if err != nil {
 				return start, end, err
@@ -358,11 +369,6 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 				return start, end, err
 			}
 		}
-
-		err := s.blockState.CompareAndSetBlockData(bd)
-		if err != nil {
-			return start, end, err
-		}
 	}
 
 	return start, end, nil
@@ -370,22 +376,7 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 
 // handleHeader handles headers included in BlockResponses
 func (s *Service) handleHeader(header *types.Header) error {
-	// get block header; if exists, return
-	has, err := s.blockState.HasHeader(header.Hash())
-	if err != nil {
-		return err
-	}
-
-	if !has {
-		err = s.blockState.SetHeader(header)
-		if err != nil {
-			return err
-		}
-
-		s.logger.Info("saved block header", "hash", header.Hash(), "number", header.Number)
-	}
-
-	err = s.verifier.VerifyBlock(header)
+	err := s.verifier.VerifyBlock(header)
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrInvalidBlock, err.Error())
 	}
@@ -410,8 +401,8 @@ func (s *Service) handleBody(body *types.Body) error {
 
 // handleHeader handles blocks (header+body) included in BlockResponses
 func (s *Service) handleBlock(block *types.Block) error {
-	if block == nil || block.Header == nil {
-		return errors.New("nil block or header")
+	if block == nil || block.Header == nil || block.Body == nil {
+		return errors.New("block, header, or body is nil")
 	}
 
 	parent, err := s.blockState.GetHeader(block.Header.ParentHash)
@@ -419,18 +410,26 @@ func (s *Service) handleBlock(block *types.Block) error {
 		return err
 	}
 
-	ts, err := s.storageState.TrieState(&parent.StateRoot)
+	parentState, err := s.storageState.TrieState(&parent.StateRoot)
 	if err != nil {
 		return err
 	}
 
+	ts, err := parentState.Copy()
+	if err != nil {
+		return err
+	}
+
+	s.logger.Trace("copied parent state", "parent state root", parentState.MustRoot(), "copy state root", ts.MustRoot())
+
 	s.runtime.SetContext(ts)
 
-	// TODO: needs to be fixed by #941
-	// _, err := s.executeBlock(block)
-	// if err != nil {
-	// 	return err
-	// }
+	s.logger.Debug("going to execute block", "block", block, "exts", block.Body)
+
+	_, err = s.runtime.ExecuteBlock(block)
+	if err != nil {
+		return err
+	}
 
 	err = s.storageState.StoreTrie(block.Header.StateRoot, ts)
 	if err != nil {
@@ -462,13 +461,6 @@ func (s *Service) handleBlock(block *types.Block) error {
 	}
 
 	return nil
-}
-
-// runs the block through runtime function Core_execute_block
-//  It doesn't seem to return data on success (although the spec say it should return
-//  a boolean value that indicate success.  will error if the call isn't successful
-func (s *Service) executeBlock(block *types.Block) ([]byte, error) {
-	return s.runtime.ExecuteBlock(block)
 }
 
 func (s *Service) handleDigests(header *types.Header) error {

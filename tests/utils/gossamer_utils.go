@@ -46,7 +46,8 @@ func SetLogLevel(lvl log.Lvl) {
 }
 
 var (
-	keyList  = []string{"alice", "bob", "charlie", "dave", "eve", "ferdie", "george", "heather", "ian"}
+	// KeyList is the list of built-in keys
+	KeyList  = []string{"alice", "bob", "charlie", "dave", "eve", "ferdie", "george", "heather", "ian"}
 	basePort = 7000
 
 	// BaseRPCPort is the starting RPC port for test nodes
@@ -68,7 +69,7 @@ var (
 	GenesisDefault string = filepath.Join(currentDir, "../..", "chain/gssmr/genesis-raw.json")
 
 	// ConfigDefault is the default config file
-	ConfigDefault string = filepath.Join(currentDir, "../..", "chain/gssmr/config.toml")
+	ConfigDefault string = filepath.Join(currentDir, "../utils/config_default.toml")
 	// ConfigLogGrandpa is a config file where log levels are set to CRIT except for GRANDPA
 	ConfigLogGrandpa string = filepath.Join(currentDir, "../utils/config_log_grandpa.toml")
 	// ConfigNoBABE is a config file with BABE disabled
@@ -130,10 +131,10 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 		"--rpc",
 		"--log", "info"}
 
-	if node.Idx >= len(keyList) {
+	if node.Idx >= len(KeyList) {
 		params = append(params, "--roles", "1")
 	} else {
-		key = keyList[node.Idx]
+		key = KeyList[node.Idx]
 		params = append(params, "--roles", "4",
 			"--key", key)
 	}
@@ -205,7 +206,7 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 	} else {
 		logger.Crit("node didn't start!", "err", err)
 		errFileContents, _ := ioutil.ReadFile(errfile.Name())
-		t.Log(errFileContents)
+		t.Logf("%s\n", errFileContents)
 		return err
 	}
 
@@ -302,8 +303,8 @@ func InitializeAndStartNodes(t *testing.T, num int, genesis, config string) ([]*
 	for i := 0; i < num; i++ {
 		go func(i int) {
 			name := strconv.Itoa(i)
-			if i < len(keyList) {
-				name = keyList[i]
+			if i < len(KeyList) {
+				name = KeyList[i]
 			}
 			node, err := RunGossamer(t, i, TestDir(t, name), genesis, config, false)
 			if err != nil {
@@ -332,8 +333,8 @@ func InitializeAndStartNodesWebsocket(t *testing.T, num int, genesis, config str
 	for i := 0; i < num; i++ {
 		go func(i int) {
 			name := strconv.Itoa(i)
-			if i < len(keyList) {
-				name = keyList[i]
+			if i < len(KeyList) {
+				name = KeyList[i]
 			}
 			node, err := RunGossamer(t, i, TestDir(t, name), genesis, config, true)
 			if err != nil {
@@ -457,19 +458,26 @@ func generateDefaultConfig() *ctoml.Config {
 	}
 }
 
+// CreateDefaultConfig generates and creates default config file.
+func CreateDefaultConfig() {
+	cfg := generateDefaultConfig()
+	_ = dot.ExportTomlConfig(cfg, ConfigDefault)
+}
+
 func generateConfigBabeMaxThreshold() *ctoml.Config {
 	cfg := generateDefaultConfig()
 	cfg.Log = ctoml.LogConfig{
-		SyncLvl:          "debug",
+		SyncLvl:          "trace",
 		NetworkLvl:       "debug",
 		BlockProducerLvl: "info",
 	}
 	cfg.Core = ctoml.CoreConfig{
-		Roles:            4,
-		BabeAuthority:    true,
-		GrandpaAuthority: true,
-		BabeThreshold:    "max",
-		SlotDuration:     500,
+		Roles:                    4,
+		BabeAuthority:            true,
+		GrandpaAuthority:         true,
+		BabeThresholdNumerator:   1,
+		BabeThresholdDenominator: 1,
+		SlotDuration:             500,
 	}
 	cfg.RPC.Modules = []string{"system", "author", "chain", "state", "dev"}
 	return cfg
@@ -503,10 +511,11 @@ func generateConfigNoBabe() *ctoml.Config {
 	cfg := generateDefaultConfig()
 	cfg.Global.LogLvl = "info"
 	cfg.Log = ctoml.LogConfig{
-		SyncLvl:    "debug",
+		SyncLvl:    "trace",
 		NetworkLvl: "debug",
 	}
-	cfg.Core.BabeThreshold = "max"
+	cfg.Core.BabeThresholdNumerator = 1
+	cfg.Core.BabeThresholdDenominator = 1
 	cfg.Core.BabeAuthority = false
 	return cfg
 }

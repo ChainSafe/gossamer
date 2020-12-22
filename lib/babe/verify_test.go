@@ -55,7 +55,8 @@ func TestVerificationManager_OnDisabled_InvalidIndex(t *testing.T) {
 	vm := newTestVerificationManager(t, nil)
 
 	babeService := createTestService(t, &ServiceConfig{
-		Threshold: maxThreshold,
+		ThresholdNumerator:   1,
+		ThresholdDenominator: 1,
 	})
 	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1)
 	err := vm.SetOnDisabled(1, block.Header)
@@ -67,8 +68,9 @@ func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &ServiceConfig{
-		Keypair:   kp,
-		Threshold: maxThreshold,
+		Keypair:              kp,
+		ThresholdNumerator:   1,
+		ThresholdDenominator: 1,
 	}
 
 	babeService := createTestService(t, cfg)
@@ -101,8 +103,9 @@ func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
 	require.NoError(t, err)
 
 	cfg := &ServiceConfig{
-		Keypair:   kp,
-		Threshold: maxThreshold,
+		Keypair:              kp,
+		ThresholdNumerator:   1,
+		ThresholdDenominator: 1,
 	}
 
 	babeService := createTestService(t, cfg)
@@ -132,7 +135,8 @@ func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
 
 func TestVerificationManager_VerifyBlock_IsDisabled(t *testing.T) {
 	babeService := createTestService(t, &ServiceConfig{
-		Threshold: maxThreshold,
+		ThresholdNumerator:   1,
+		ThresholdDenominator: 1,
 	})
 	cfg, err := babeService.rt.BabeConfiguration()
 	require.NoError(t, err)
@@ -177,7 +181,8 @@ func TestVerificationManager_VerifyBlock_IsDisabled(t *testing.T) {
 
 func TestVerificationManager_VerifyBlock(t *testing.T) {
 	babeService := createTestService(t, &ServiceConfig{
-		Threshold: maxThreshold,
+		ThresholdNumerator:   1,
+		ThresholdDenominator: 1,
 	})
 	cfg, err := babeService.rt.BabeConfiguration()
 	require.NoError(t, err)
@@ -196,7 +201,8 @@ func TestVerificationManager_VerifyBlock(t *testing.T) {
 
 func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	babeService := createTestService(t, &ServiceConfig{
-		Threshold: maxThreshold,
+		ThresholdNumerator:   1,
+		ThresholdDenominator: 1,
 	})
 	cfg, err := babeService.rt.BabeConfiguration()
 	require.NoError(t, err)
@@ -230,7 +236,8 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 
 func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T) {
 	babeService := createTestService(t, &ServiceConfig{
-		Threshold: maxThreshold,
+		ThresholdNumerator:   1,
+		ThresholdDenominator: 1,
 	})
 	cfg, err := babeService.rt.BabeConfiguration()
 	require.NoError(t, err)
@@ -249,7 +256,8 @@ func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T)
 
 func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
 	babeService := createTestService(t, &ServiceConfig{
-		Threshold: maxThreshold,
+		ThresholdNumerator:   1,
+		ThresholdDenominator: 1,
 	})
 	cfg, err := babeService.rt.BabeConfiguration()
 	require.NoError(t, err)
