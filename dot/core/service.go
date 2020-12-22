@@ -18,7 +18,6 @@ package core
 import (
 	"bytes"
 	"context"
-	"math/big"
 	"os"
 	"sync"
 
@@ -53,7 +52,7 @@ type Service struct {
 	transactionState TransactionState
 
 	// Current runtime and hash of the current runtime code
-	rt       runtime.LegacyInstance
+	rt       runtime.Instance
 	codeHash common.Hash
 
 	// Block production variables
@@ -89,15 +88,14 @@ type Config struct {
 	TransactionState    TransactionState
 	Network             Network
 	Keystore            *keystore.GlobalKeystore
-	Runtime             runtime.LegacyInstance
+	Runtime             runtime.Instance
 	BlockProducer       BlockProducer
 	IsBlockProducer     bool
 	FinalityGadget      FinalityGadget
 	IsFinalityAuthority bool
 	Verifier            Verifier
 
-	NewBlocks     chan types.Block // only used for testing purposes
-	BabeThreshold *big.Int         // used by Verifier, for development purposes
+	NewBlocks chan types.Block // only used for testing purposes
 }
 
 // NewService returns a new core service that connects the runtime, BABE

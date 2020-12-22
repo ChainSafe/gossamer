@@ -486,11 +486,11 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	stream := nodeA.host.getStream(nodeB.host.id(), "")
+	stream := nodeA.host.getStream(nodeB.host.id(), blockAnnounceID)
 	require.Nil(t, stream, "node A should not have an outbound stream")
 
 	// node A opens the stream to send the first message
-	err = nodeA.host.send(addrInfosB[0].ID, "", TestMessage)
+	err = nodeA.host.send(addrInfosB[0].ID, blockAnnounceID, TestMessage)
 	require.NoError(t, err)
 
 	info := nodeA.notificationsProtocols[BlockAnnounceMsgType]
@@ -548,9 +548,14 @@ func connectNoSync(t *testing.T, ctx context.Context, a, b *Service) {
 
 	a.host.h.Peerstore().AddAddrs(idB, addrB, time.Minute)
 	pi := peer.AddrInfo{ID: idB}
-	if err := a.host.h.Connect(ctx, pi); err != nil {
-		t.Fatal(err)
+
+	err := a.host.h.Connect(ctx, pi)
+	// retry connect if "failed to dial" error
+	if failedToDial(err) {
+		time.Sleep(TestBackoffTimeout)
+		err = a.host.h.Connect(ctx, pi)
 	}
+	require.NoError(t, err)
 }
 
 // nolint
@@ -570,9 +575,13 @@ func wait(t *testing.T, ctx context.Context, a, b *dht.IpfsDHT) {
 
 // Set `NoMDNS` to true and test routing via kademlia DHT service.
 func TestKadDHT(t *testing.T) {
+	if testing.Short() {
+		return
+	}
+
 	nodes := createServiceHelper(t, 3)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
 	_, err := nodes[2].host.dht.FindPeer(ctx, nodes[1].host.id())

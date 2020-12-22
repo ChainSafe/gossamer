@@ -476,46 +476,25 @@ func (bs *BlockState) GetRound() (uint64, error) {
 
 // CompareAndSetBlockData will compare empty fields and set all elements in a block data to db
 func (bs *BlockState) CompareAndSetBlockData(bd *types.BlockData) error {
-	var existingData = new(types.BlockData)
-
-	if bd.Header != nil && (existingData.Header == nil || (!existingData.Header.Exists() && bd.Header.Exists())) {
-		existingData.Header = bd.Header
-		header, err := types.NewHeaderFromOptional(existingData.Header)
-		if err != nil && header != nil {
-			err = bs.SetHeader(header)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	if bd.Body != nil && (existingData.Body == nil || (!existingData.Body.Exists && bd.Body.Exists)) {
-		existingData.Body = bd.Body
-		err := bs.SetBlockBody(bd.Hash, types.NewBody(existingData.Body.Value))
+	hasReceipt, _ := bs.HasReceipt(bd.Hash)
+	if bd.Receipt != nil && bd.Receipt.Exists() && !hasReceipt {
+		err := bs.SetReceipt(bd.Hash, bd.Receipt.Value())
 		if err != nil {
 			return err
 		}
 	}
 
-	if bd.Receipt != nil && (existingData.Receipt == nil || (!existingData.Receipt.Exists() && bd.Receipt.Exists())) {
-		existingData.Receipt = bd.Receipt
-		err := bs.SetReceipt(bd.Hash, existingData.Receipt.Value())
+	hasMessageQueue, _ := bs.HasMessageQueue(bd.Hash)
+	if bd.MessageQueue != nil && bd.MessageQueue.Exists() && !hasMessageQueue {
+		err := bs.SetMessageQueue(bd.Hash, bd.MessageQueue.Value())
 		if err != nil {
 			return err
 		}
 	}
 
-	if bd.MessageQueue != nil && (existingData.MessageQueue == nil || (!existingData.MessageQueue.Exists() && bd.MessageQueue.Exists())) {
-		existingData.MessageQueue = bd.MessageQueue
-		err := bs.SetMessageQueue(bd.Hash, existingData.MessageQueue.Value())
-		if err != nil {
-			return err
-		}
-	}
-
-	if bd.Justification != nil && (existingData.Justification == nil || (!existingData.Justification.Exists() && bd.Justification.Exists())) {
-		existingData.Justification = bd.Justification
-		err := bs.SetJustification(bd.Hash, existingData.Justification.Value())
+	hasJustification, _ := bs.HasJustification(bd.Hash)
+	if bd.Justification != nil && bd.Justification.Exists() && !hasJustification {
+		err := bs.SetJustification(bd.Hash, bd.Justification.Value())
 		if err != nil {
 			return err
 		}

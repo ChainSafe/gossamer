@@ -8,6 +8,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -190,26 +191,6 @@ func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {
 	require.Equal(t, expected, cfg)
 }
 
-func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
-	t.Skip()
-
-	rt := NewTestInstance(t, runtime.NODE_RUNTIME)
-
-	header := &types.Header{
-		ParentHash:     common.Hash{},
-		Number:         big.NewInt(1),
-		StateRoot:      trie.EmptyHash,
-		ExtrinsicsRoot: trie.EmptyHash,
-		Digest:         [][]byte{},
-	}
-
-	_, err := rt.ExecuteBlock(&types.Block{
-		Header: header,
-		Body:   types.NewBody([]byte{}),
-	})
-	require.NoError(t, err)
-}
-
 func TestInstance_InitializeBlock_NodeRuntime(t *testing.T) {
 	rt := NewTestInstance(t, runtime.NODE_RUNTIME)
 
@@ -234,9 +215,7 @@ func TestInstance_InitializeBlock_PolkadotRuntime(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestInstance_FinalizeBlock_NodeRuntime(t *testing.T) {
-	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
-
+func buildBlock(t *testing.T, instance runtime.Instance) *types.Block {
 	header := &types.Header{
 		ParentHash: trie.EmptyHash,
 		Number:     big.NewInt(77),
@@ -294,5 +273,72 @@ func TestInstance_FinalizeBlock_NodeRuntime(t *testing.T) {
 	require.NotEqual(t, common.Hash{}, res.StateRoot)
 	require.NotEqual(t, common.Hash{}, res.ExtrinsicsRoot)
 	require.NotEqual(t, trie.EmptyHash, res.StateRoot)
-	require.Equal(t, trie.EmptyHash, res.ExtrinsicsRoot)
+
+	return &types.Block{
+		Header: res,
+		Body:   types.NewBody(inherentExts),
+	}
+}
+
+func TestInstance_FinalizeBlock_NodeRuntime(t *testing.T) {
+	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
+	buildBlock(t, instance)
+}
+
+func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
+	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
+	block := buildBlock(t, instance)
+
+	// reset state back to parent state before executing
+	parentState := runtime.NewTestRuntimeStorage(t, nil)
+	instance.SetContext(parentState)
+
+	_, err := instance.ExecuteBlock(block)
+	require.NoError(t, err)
+}
+
+func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
+	instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME)
+	block := buildBlock(t, instance)
+
+	// reset state back to parent state before executing
+	parentState := runtime.NewTestRuntimeStorage(t, nil)
+	instance.SetContext(parentState)
+
+	_, err := instance.ExecuteBlock(block)
+	require.NoError(t, err)
+}
+
+func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
+	t.Skip() // TODO: complete this
+	instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME)
+
+	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/polkadot/genesis.json")
+	require.NoError(t, err)
+
+	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	// set state to genesis state
+	genState := runtime.NewTestRuntimeStorage(t, genTrie)
+	instance.SetContext(genState)
+
+	digestBytes := common.MustHexToBytes("0x0c0642414245b501010000000093decc0f00000000362ed8d6055645487fe42e9c8640be651f70a3a2a03658046b2b43f021665704501af9b1ca6e974c257e3d26609b5f68b5b0a1da53f7f252bbe5d94948c39705c98ffa4b869dd44ac29528e3723d619cc7edf1d3f7b7a57a957f6a7e9bdb270a044241424549040118fa3437b10f6e7af8f31362df3a179b991a8c56313d1bcd6307a4d0c734c1ae310100000000000000d2419bc8835493ac89eb09d5985281f5dff4bc6c7a7ea988fd23af05f301580a0100000000000000ccb6bef60defc30724545d57440394ed1c71ea7ee6d880ed0e79871a05b5e40601000000000000005e67b64cf07d4d258a47df63835121423551712844f5b67de68e36bb9a21e12701000000000000006236877b05370265640c133fec07e64d7ca823db1dc56f2d3584b3d7c0f1615801000000000000006c52d02d95c30aa567fda284acf25025ca7470f0b0c516ddf94475a1807c4d250100000000000000000000000000000000000000000000000000000000000000000000000000000005424142450101d468680c844b19194d4dfbdc6697a35bf2b494bda2c5a6961d4d4eacfbf74574379ba0d97b5bb650c2e8670a63791a727943bcb699dc7a228bdb9e0a98c9d089")
+	digest, err := scale.Decode(digestBytes, [][]byte{})
+	require.NoError(t, err)
+
+	// polkadot block 1, from polkadot.js
+	block := &types.Block{
+		Header: &types.Header{
+			ParentHash:     common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"),
+			Number:         big.NewInt(1),
+			StateRoot:      common.MustHexToHash("0xc56fcd6e7a757926ace3e1ecff9b4010fc78b90d459202a339266a7f6360002f"),
+			ExtrinsicsRoot: common.MustHexToHash("0x9a87f6af64ef97aff2d31bebfdd59f8fe2ef6019278b634b2515a38f1c4c2420"),
+			Digest:         digest.([][]byte),
+		},
+		Body: types.NewBody([]byte{8, 40, 4, 3, 0, 11, 80, 149, 160, 81, 114, 1, 16, 4, 20, 0, 0}),
+	}
+
+	_, err = instance.ExecuteBlock(block)
+	require.NoError(t, err)
 }

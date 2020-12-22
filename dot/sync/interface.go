@@ -27,6 +27,7 @@ import (
 // BlockState is the interface for the block state
 type BlockState interface {
 	BestBlockHash() common.Hash
+	BestBlockHeader() (*types.Header, error)
 	BestBlockNumber() (*big.Int, error)
 	AddBlock(*types.Block) error
 	CompareAndSetBlockData(bd *types.BlockData) error

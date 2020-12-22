@@ -65,18 +65,15 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 	b.logger.Trace("initialized block")
 
 	// add block inherents
-	err = b.buildBlockInherents(slot)
+	inherents, err := b.buildBlockInherents(slot)
 	if err != nil {
 		return nil, fmt.Errorf("cannot build inherents: %s", err)
 	}
 
-	b.logger.Trace("built block inherents")
+	b.logger.Trace("built block inherents", "encoded inherents", inherents)
 
 	// add block extrinsics
-	included, err := b.buildBlockExtrinsics(slot)
-	if err != nil {
-		return nil, fmt.Errorf("cannot build extrinsics: %s", err)
-	}
+	included := b.buildBlockExtrinsics(slot)
 
 	b.logger.Trace("built block extrinsics")
 
@@ -113,7 +110,7 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 
 	b.logger.Trace("built block seal")
 
-	body, err := extrinsicsToBody(included)
+	body, err := extrinsicsToBody(inherents, included)
 	if err != nil {
 		return nil, err
 	}
@@ -180,110 +177,110 @@ func (b *Service) buildBlockBabeHeader(slot Slot) (*types.BabeHeader, error) {
 // buildBlockExtrinsics applies extrinsics to the block. it returns an array of included extrinsics.
 // for each extrinsic in queue, add it to the block, until the slot ends or the block is full.
 // if any extrinsic fails, it returns an empty array and an error.
-func (b *Service) buildBlockExtrinsics(slot Slot) ([]*transaction.ValidTransaction, error) {
+func (b *Service) buildBlockExtrinsics(slot Slot) []*transaction.ValidTransaction {
 	next := b.nextReadyExtrinsic()
 	included := []*transaction.ValidTransaction{}
 
 	for !hasSlotEnded(slot) && next != nil {
 		b.logger.Trace("build block", "applying extrinsic", next)
+
+		t := b.transactionState.Pop()
 		ret, err := b.rt.ApplyExtrinsic(next)
 		if err != nil {
-			return nil, err
+			b.logger.Warn("failed to apply extrinsic", "error", err, "extrinsic", next)
+			next = b.nextReadyExtrinsic()
+			continue
 		}
 
 		// if ret == 0x0001, there is a dispatch error; if ret == 0x01, there is an apply error
 		if ret[0] == 1 || bytes.Equal(ret[:2], []byte{0, 1}) {
 			errTxt, err := determineError(ret)
-			if err != nil {
-				return nil, err
-			}
 			// remove invalid extrinsic from queue
-			b.transactionState.Pop()
+			if err == nil {
+				b.logger.Warn("failed to interpret extrinsic error", "error", ret, "extrinsic", next)
+			} else {
+				b.logger.Warn("failed to apply extrinsic", "error", errTxt, "extrinsic", next)
+			}
 
-			// re-add previously popped extrinsics back to queue
-			b.addToQueue(included)
-
-			return nil, errors.New("error applying extrinsic: " + errTxt)
-
+			next = b.nextReadyExtrinsic()
+			continue
 		}
 
-		b.logger.Trace("build block applied extrinsic", "extrinsic", next)
+		b.logger.Debug("build block applied extrinsic", "extrinsic", next)
 
-		// keep track of included transactions; re-add them to queue later if block building fails
-		t := b.transactionState.Pop()
 		included = append(included, t)
 		next = b.nextReadyExtrinsic()
 	}
 
-	return included, nil
+	return included
 }
 
 // buildBlockInherents applies the inherents for a block
-func (b *Service) buildBlockInherents(slot Slot) error {
+func (b *Service) buildBlockInherents(slot Slot) ([][]byte, error) {
 	// Setup inherents: add timstap0
 	idata := types.NewInherentsData()
 	err := idata.SetInt64Inherent(types.Timstap0, uint64(time.Now().Unix()))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// add babeslot
 	err = idata.SetInt64Inherent(types.Babeslot, slot.number)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// add finalnum
 	fin, err := b.blockState.GetFinalizedHeader(0, 0)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = idata.SetBigIntInherent(types.Finalnum, fin.Number)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	ienc, err := idata.Encode()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
 	inherentExts, err := b.rt.InherentExtrinsics(ienc)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// decode inherent extrinsics
 	exts, err := scale.Decode(inherentExts, [][]byte{})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// apply each inherent extrinsic
 	for _, ext := range exts.([][]byte) {
 		in, err := scale.Encode(ext)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		ret, err := b.rt.ApplyExtrinsic(in)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		if !bytes.Equal(ret, []byte{0, 0}) {
 			errTxt, err := determineError(ret)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
-			return errors.New("error applying extrinsic: " + errTxt)
+			return nil, errors.New("error applying extrinsic: " + errTxt)
 		}
 	}
 
-	return nil
+	return exts.([][]byte), nil
 }
 
 func (b *Service) addToQueue(txs []*transaction.ValidTransaction) {
@@ -310,8 +307,8 @@ func hasSlotEnded(slot Slot) bool {
 	return slot.start+slot.duration < uint64(time.Now().Unix())
 }
 
-func extrinsicsToBody(txs []*transaction.ValidTransaction) (*types.Body, error) {
-	extrinsics := []types.Extrinsic{}
+func extrinsicsToBody(inherents [][]byte, txs []*transaction.ValidTransaction) (*types.Body, error) {
+	extrinsics := types.BytesArrayToExtrinsics(inherents)
 
 	for _, tx := range txs {
 		extrinsics = append(extrinsics, tx.Extrinsic)
