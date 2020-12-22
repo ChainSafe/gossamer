@@ -562,3 +562,44 @@ func Test_ext_storage_append_version_1(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, append(testvalue, testvalueAppend...), dec)
 }
+
+func Test_ext_trie_blake2_256_ordered_root_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testvalues := []string{"static", "even-keeled", "Future-proofed"}
+	encValues, err := scale.Encode(testvalues)
+	require.NoError(t, err)
+
+	res, err := inst.Exec("rtm_ext_trie_blake2_256_ordered_root_version_1", encValues)
+	require.NoError(t, err)
+
+	hash, err := scale.Decode(res, []byte{})
+	require.NoError(t, err)
+
+	expected := common.MustHexToHash("0xd847b86d0219a384d11458e829e9f4f4cce7e3cc2e6dcd0e8a6ad6f12c64a737")
+	require.Equal(t, expected[:], hash)
+}
+
+func Test_ext_trie_blake2_256_root_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testinput := []string{"noot", "was", "here", "??"}
+	encInput, err := scale.Encode(testinput)
+	require.NoError(t, err)
+	encInput[0] = encInput[0] >> 1
+
+	res, err := inst.Exec("rtm_ext_trie_blake2_256_root_version_1", encInput)
+	require.NoError(t, err)
+
+	hash, err := scale.Decode(res, []byte{})
+	require.NoError(t, err)
+
+	tt := trie.NewEmptyTrie()
+	err = tt.Put([]byte("noot"), []byte("was"))
+	require.NoError(t, err)
+	err = tt.Put([]byte("here"), []byte("??"))
+	require.NoError(t, err)
+
+	expected := tt.MustHash()
+	require.Equal(t, expected[:], hash)
+}
