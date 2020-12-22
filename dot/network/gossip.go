@@ -37,7 +37,7 @@ func newGossip() *gossip {
 }
 
 // hasSeen broadcasts messages that have not been seen
-func (g *gossip) hasSeen(msg Message) bool {
+func (g *gossip) hasSeen(msg Message) bool { //nolint
 	// check if message has not been seen
 	if seen, ok := g.seen.Load(msg.IDString()); !ok || !seen.(bool) {
 		// set message to has been seen

@@ -42,9 +42,7 @@ func TestMDNS(t *testing.T) {
 
 	nodeA := createTestService(t, configA)
 	defer nodeA.Stop()
-
 	nodeA.noGossip = true
-	nodeA.noStatus = true
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 
@@ -57,9 +55,7 @@ func TestMDNS(t *testing.T) {
 
 	nodeB := createTestService(t, configB)
 	defer nodeB.Stop()
-
 	nodeB.noGossip = true
-	nodeB.noStatus = true
 
 	time.Sleep(TestMDNSTimeout)
 
