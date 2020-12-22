@@ -249,7 +249,7 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 	logger.Info("submitting transaction", "tx", txStr)
 
 	// send extrinsic to random node
-	idx := rand.Intn(len(nodes))
+	idx := rand.Intn(len(nodes))                    //nolint
 	prevHeader := utils.GetChainHead(t, nodes[idx]) // get starting header so that we can lookup blocks by number later
 	respBody, err := utils.PostRPC(utils.AuthorSubmitExtrinsic, utils.NewEndpoint(nodes[idx].RPCPort), "\"0x"+txStr+"\"")
 	require.NoError(t, err)

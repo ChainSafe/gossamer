@@ -23,7 +23,7 @@ jobs:
         run: diff -u <(echo -n) <(gofmt -d -s .)
 
       - name: Run go linter
-        run: make lint
+        run: export GOPATH=~/go && make lint
 
   vet-check:
     runs-on: ubuntu-latest
