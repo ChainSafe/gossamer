@@ -24,6 +24,16 @@ type LightRequest struct {
 	RmtChangesRequest   *RemoteChangesRequest
 }
 
+func NewLightRequest() *LightRequest {
+	return &LightRequest{
+		RmtCallRequest:      new(RemoteCallRequest),
+		RmtReadRequest:      new(RemoteReadRequest),
+		RmtHeaderRequest:    new(RemoteHeaderRequest),
+		RmtReadChildRequest: new(RemoteReadChildRequest),
+		RmtChangesRequest:   new(RemoteChangesRequest),
+	}
+}
+
 // Encode encodes a LightRequest message using SCALE and appends the type byte to the start
 func (l *LightRequest) Encode() ([]byte, error) {
 	return scale.Encode(l)
