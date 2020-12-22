@@ -82,7 +82,7 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 			Runtime: nil,
 		},
 	}
-	tmpGen.Genesis.Raw[0] = make(map[string]string)
+	tmpGen.Genesis.Raw = make(map[string]map[string]string)
 	tmpGen.Genesis.Runtime = make(map[string]map[string]interface{})
 
 	stateSrvc := state.NewService(path, log.LvlCrit)
