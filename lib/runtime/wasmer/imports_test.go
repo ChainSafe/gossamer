@@ -382,7 +382,7 @@ func Test_ext_crypto_ed25519_sign_version_1(t *testing.T) {
 	fmt.Println(ret.ToI32())
 }
 
-func Test_ext_crypto__ecdsa_recover_version_1(t *testing.T) {
+func Test_ext_crypto_secp256k1_ecdsa_recover_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	msgData := []byte("Hello world!")
@@ -393,8 +393,6 @@ func Test_ext_crypto__ecdsa_recover_version_1(t *testing.T) {
 	sigData, err := secp256k1.Sign(blakeHash.ToBytes(), secKey)
 	require.NoError(t, err)
 
-	fmt.Println(pubKey)
-
 	encSign, err := scale.Encode(sigData)
 	require.NoError(t, err)
 	encMsg, err := scale.Encode(blakeHash.ToBytes())
@@ -402,8 +400,12 @@ func Test_ext_crypto__ecdsa_recover_version_1(t *testing.T) {
 
 	ret, err := inst.Exec("rtm_ext_crypto_secp256k1_ecdsa_recover_version_1", append(encSign, encMsg...))
 
+	out, err := scale.Decode(ret, []byte{})
+	require.NoError(t, err)
+
+	val := out.([]byte)
 	buf := &bytes.Buffer{}
-	buf.Write(ret[2:])
+	buf.Write(val)
 
 	value, err := new(optional.Bytes).Decode(buf)
 	require.NoError(t, err)
