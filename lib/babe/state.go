@@ -64,6 +64,7 @@ type TransactionState interface {
 type EpochState interface {
 	SetCurrentEpoch(epoch uint64) error
 	GetCurrentEpoch() (uint64, error)
+	SetEpochData(uint64, *types.EpochData) error
 	GetEpochData(epoch uint64) (*types.EpochData, error)
 	HasEpochData(epoch uint64) (bool, error)
 	GetConfigData(epoch uint64) (*types.ConfigData, error)

@@ -41,11 +41,14 @@ func (b *Service) initiateEpoch(epoch, startSlot uint64) error {
 				Randomness:  b.epochData.randomness,
 				Authorities: b.epochData.authorities,
 			}
+
+			err = b.epochState.SetEpochData(epoch, data)
 		} else {
 			data, err = b.epochState.GetEpochData(epoch)
-			if err != nil {
-				return err
-			}
+		}
+		
+		if err != nil {
+			return err
 		}
 
 		idx, err := b.getAuthorityIndex(data.Authorities)
