@@ -288,6 +288,9 @@ func (s *TrieState) ClearChildStorage(keyToChild, key []byte) error {
 
 // ClearPrefixInChild clears all the keys from the child trie that have the given prefix
 func (s *TrieState) ClearPrefixInChild(keyToChild, prefix []byte) error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
 	child, err := s.t.GetChild(keyToChild)
 	if err != nil {
 		return err
@@ -296,8 +299,6 @@ func (s *TrieState) ClearPrefixInChild(keyToChild, prefix []byte) error {
 		return nil
 	}
 
-	s.lock.Lock()
-	defer s.lock.Unlock()
 	child.ClearPrefix(prefix)
 	return nil
 }
