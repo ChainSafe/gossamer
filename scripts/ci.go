@@ -29,10 +29,6 @@ import (
 	"strings"
 )
 
-const (
-	GOLANGCI_VERSION = "github.com/golangci/golangci-lint/cmd/golangci-lint@v1.23.1"
-)
-
 func main() {
 
 	log.SetFlags(log.Lshortfile)
@@ -48,8 +44,6 @@ func main() {
 		install(false)
 	case "install-debug":
 		install(true)
-	case "lint":
-		lint()
 	case "test":
 		test()
 	default:
@@ -87,33 +81,6 @@ func install(debug bool) {
 		log.Fatal("Error: Could not build Gossamer. ", "error: ", err, ", cmd: ", cmd)
 	}
 
-}
-
-func lint() {
-
-	verbose := flag.Bool("v", false, "Whether to log verbosely")
-
-	// Make sure golangci-lint is available
-	argsGet := append([]string{"get", GOLANGCI_VERSION})
-	cmd := exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), argsGet...)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		log.Fatalf("could not list packages: %v\n%s", err, string(out))
-	}
-
-	cmd = exec.Command(filepath.Join(GOBIN(), "golangci-lint"))
-	cmd.Args = append(cmd.Args, "run", "--config", ".golangci.yml")
-
-	if *verbose {
-		cmd.Args = append(cmd.Args, "-v")
-	}
-
-	fmt.Println("Lint Gossamer", strings.Join(cmd.Args, " \\\n"))
-	cmd.Stderr, cmd.Stdout = os.Stderr, os.Stdout
-
-	if err := cmd.Run(); err != nil {
-		log.Fatal("Error: Could not Lint Gossamer. ", "error: ", err, ", cmd: ", cmd)
-	}
 }
 
 func test() {

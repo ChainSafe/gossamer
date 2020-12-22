@@ -41,7 +41,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 	previousHash := blockState.BestBlockHash()
 
 	branches := []testBranch{}
-	r := *rand.New(rand.NewSource(rand.Int63()))
+	r := *rand.New(rand.NewSource(rand.Int63())) //nolint
 
 	arrivalTime := uint64(1)
 	currentChain := []*types.Header{}
