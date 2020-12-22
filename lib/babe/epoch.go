@@ -46,7 +46,7 @@ func (b *Service) initiateEpoch(epoch, startSlot uint64) error {
 		} else {
 			data, err = b.epochState.GetEpochData(epoch)
 		}
-		
+
 		if err != nil {
 			return err
 		}
