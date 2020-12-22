@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -24,13 +25,14 @@ type LightRequest struct {
 	RmtChangesRequest   *RemoteChangesRequest
 }
 
+// NewLightRequest returns a new LightRequest
 func NewLightRequest() *LightRequest {
 	return &LightRequest{
 		RmtCallRequest:      new(RemoteCallRequest),
 		RmtReadRequest:      new(RemoteReadRequest),
 		RmtHeaderRequest:    new(RemoteHeaderRequest),
 		RmtReadChildRequest: new(RemoteReadChildRequest),
-		RmtChangesRequest:   new(RemoteChangesRequest),
+		RmtChangesRequest:   NewRemoteChangesRequest(),
 	}
 }
 
@@ -60,6 +62,16 @@ type LightResponse struct {
 	RmtReadResponse   *RemoteReadResponse
 	RmtHeaderResponse *RemoteHeaderResponse
 	RmtChangeResponse *RemoteChangesResponse
+}
+
+// NewLightResponse returns a new LightResponse
+func NewLightResponse() *LightResponse {
+	return &LightResponse{
+		RmtCallResponse:   new(RemoteCallResponse),
+		RmtReadResponse:   new(RemoteReadResponse),
+		RmtHeaderResponse: new(RemoteHeaderResponse),
+		RmtChangeResponse: new(RemoteChangesResponse),
+	}
 }
 
 // Encode encodes a LightResponse message using SCALE and appends the type byte to the start
@@ -114,6 +126,17 @@ type RemoteChangesRequest struct {
 	Max        []byte
 	StorageKey *optional.Bytes
 	key        []byte
+}
+
+// NewRemoteChangesRequest returns a new RemoteChangesRequest
+func NewRemoteChangesRequest() *RemoteChangesRequest {
+	return &RemoteChangesRequest{
+		FirstBlock: optional.NewHash(false, common.Hash{}),
+		LastBlock:  optional.NewHash(false, common.Hash{}),
+		Min:        []byte{},
+		Max:        []byte{},
+		StorageKey: optional.NewBytes(false, nil),
+	}
 }
 
 // RemoteCallResponse ...

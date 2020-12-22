@@ -293,8 +293,6 @@ func TestDecodeSyncMessage(t *testing.T) {
 }
 
 func TestDecodeLightMessage(t *testing.T) {
-	t.Skip()
-
 	s := &Service{
 		lightRequest: make(map[peer.ID]struct{}),
 	}
@@ -302,7 +300,7 @@ func TestDecodeLightMessage(t *testing.T) {
 	testPeer := peer.ID("noot")
 
 	testLightRequest := NewLightRequest()
-	testLightResponse := &LightResponse{}
+	testLightResponse := NewLightResponse()
 
 	reqEnc, err := testLightRequest.Encode()
 	require.NoError(t, err)
@@ -312,9 +310,11 @@ func TestDecodeLightMessage(t *testing.T) {
 
 	req, ok := msg.(*LightRequest)
 	require.True(t, ok)
-	require.Equal(t, testLightRequest, req)
+	resEnc, err := req.Encode()
+	require.NoError(t, err)
+	require.Equal(t, reqEnc, resEnc)
 
-	s.syncing[testPeer] = struct{}{}
+	s.lightRequest[testPeer] = struct{}{}
 
 	respEnc, err := testLightResponse.Encode()
 	require.NoError(t, err)
@@ -323,5 +323,7 @@ func TestDecodeLightMessage(t *testing.T) {
 	require.NoError(t, err)
 	resp, ok := msg.(*LightResponse)
 	require.True(t, ok)
-	require.Equal(t, testLightResponse, resp)
+	resEnc, err = resp.Encode()
+	require.NoError(t, err)
+	require.Equal(t, respEnc, resEnc)
 }

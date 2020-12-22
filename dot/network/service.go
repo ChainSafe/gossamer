@@ -388,13 +388,13 @@ func (s *Service) decodeLightMessage(in []byte, peer peer.ID) (Message, error) {
 	// check if we are the requester
 	if _, requested := s.lightRequest[peer]; requested {
 		// if we are, decode the bytes as a LightResponse
-		msg := new(LightResponse)
+		msg := NewLightResponse()
 		err = msg.Decode(r)
 		return msg, err
 	}
 
 	// otherwise, decode bytes as LightRequest
-	msg := new(LightRequest)
+	msg := NewLightRequest()
 	err = msg.Decode(r)
 	return msg, err
 }
