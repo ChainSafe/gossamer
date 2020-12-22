@@ -399,6 +399,7 @@ func Test_ext_crypto_secp256k1_ecdsa_recover_version_1(t *testing.T) {
 	require.NoError(t, err)
 
 	ret, err := inst.Exec("rtm_ext_crypto_secp256k1_ecdsa_recover_version_1", append(encSign, encMsg...))
+	require.NoError(t, err)
 
 	out, err := scale.Decode(ret, []byte{})
 	require.NoError(t, err)

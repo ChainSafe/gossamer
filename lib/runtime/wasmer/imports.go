@@ -189,7 +189,7 @@ func ext_sandbox_memory_teardown_version_1(context unsafe.Pointer, a C.int32_t) 
 }
 
 //export ext_crypto_ed25519_generate_version_1
-func ext_crypto_ed25519_generate_version_1(context unsafe.Pointer, keyTypeId C.int32_t, seedSpan C.int64_t) C.int32_t {
+func ext_crypto_ed25519_generate_version_1(context unsafe.Pointer, keyTypeID C.int32_t, seedSpan C.int64_t) C.int32_t {
 	logger.Trace("[ext_crypto_ed25519_generate_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
@@ -234,7 +234,7 @@ func ext_crypto_ed25519_generate_version_1(context unsafe.Pointer, keyTypeId C.i
 }
 
 //export ext_crypto_ed25519_public_keys_version_1
-func ext_crypto_ed25519_public_keys_version_1(context unsafe.Pointer, keyTypeId C.int32_t) C.int64_t {
+func ext_crypto_ed25519_public_keys_version_1(context unsafe.Pointer, keyTypeID C.int32_t) C.int64_t {
 	logger.Trace("[ext_crypto_ed25519_public_keys_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
@@ -258,7 +258,7 @@ func ext_crypto_ed25519_public_keys_version_1(context unsafe.Pointer, keyTypeId 
 }
 
 //export ext_crypto_ed25519_sign_version_1
-func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeId C.int32_t, key C.int32_t, msg C.int64_t) C.int64_t {
+func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeID C.int32_t, key C.int32_t, msg C.int64_t) C.int64_t {
 	logger.Trace("[ext_crypto_ed25519_sign_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
@@ -359,14 +359,14 @@ func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context unsafe.Poin
 }
 
 //export ext_crypto_sr25519_generate_version_1
-func ext_crypto_sr25519_generate_version_1(context unsafe.Pointer, keyTypeId C.int32_t, seed C.int64_t) C.int32_t {
+func ext_crypto_sr25519_generate_version_1(context unsafe.Pointer, keyTypeID C.int32_t, seed C.int64_t) C.int32_t {
 	logger.Trace("[ext_crypto_sr25519_generate_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 
 	// TODO: key types not yet implemented
-	// id := asMemorySlice(instanceContext,keyTypeId)
+	// id := asMemorySlice(instanceContext,keyTypeID)
 
 	seedBytes := asMemorySlice(instanceContext, seed)
 	kp, err := sr25519.NewKeypairFromSeed(seedBytes)
@@ -386,7 +386,7 @@ func ext_crypto_sr25519_generate_version_1(context unsafe.Pointer, keyTypeId C.i
 }
 
 //export ext_crypto_sr25519_public_keys_version_1
-func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, keyTypeId C.int32_t) C.int64_t {
+func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, keyTypeID C.int32_t) C.int64_t {
 	logger.Trace("[ext_crypto_sr25519_public_keys_version_1] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
@@ -408,7 +408,7 @@ func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, keyTypeId 
 }
 
 //export ext_crypto_sr25519_sign_version_1
-func ext_crypto_sr25519_sign_version_1(context unsafe.Pointer, keyTypeId, key C.int32_t, msg C.int64_t) C.int64_t {
+func ext_crypto_sr25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.int32_t, msg C.int64_t) C.int64_t {
 	logger.Trace("[ext_crypto_sr25519_sign_version_1] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
