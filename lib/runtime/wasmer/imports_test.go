@@ -141,7 +141,7 @@ func Test_ext_storage_clear_version_1(t *testing.T) {
 }
 
 func Test_ext_storage_clear_prefix_version_1(t *testing.T) {
-	t.Skip()
+	t.Skip() // TODO: fix prefix clearing
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
@@ -615,7 +615,7 @@ func Test_ext_storage_append_version_1(t *testing.T) {
 
 func TestStartTransaction_ext_storage_set_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
-	// instead of commiting the change, it should be stored in the context
+	// instead of committing the change, it should be stored in the context
 	inst.inst.ctx.TransactionStorageChanges = []*runtime.TransactionStorageChange{}
 
 	testkey := []byte("noot")

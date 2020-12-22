@@ -237,7 +237,7 @@ func (trs *TestRuntimeStorage) NextKey(in []byte) []byte {
 	return trs.trie.NextKey(in)
 }
 
-// GetChildByPrefix ...
+// ClearPrefixInChild ...
 func (trs *TestRuntimeStorage) ClearPrefixInChild(keyToChild, prefix []byte) error {
 	child, err := trs.GetChild(keyToChild)
 	if err != nil {
