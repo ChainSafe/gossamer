@@ -103,7 +103,7 @@ func GenerateKeypair(keytype string, kp crypto.Keypair, basepath string, passwor
 		return "", fmt.Errorf("failed to create absolute filepath: %s", err)
 	}
 
-	file, err := os.OpenFile(fp, os.O_EXCL|os.O_CREATE|os.O_WRONLY, 0600)
+	file, err := os.OpenFile(filepath.Clean(fp), os.O_EXCL|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		return "", err
 	}
@@ -193,7 +193,7 @@ func ImportKeypair(fp string, dir string) (string, error) {
 		return "", fmt.Errorf("failed to create keystore filepath: %s", err)
 	}
 
-	err = ioutil.WriteFile(keyFilePath, keyData, 0644)
+	err = ioutil.WriteFile(keyFilePath, keyData, 0600)
 	if err != nil {
 		return "", fmt.Errorf("failed to write to keystore file: %s", err)
 	}

@@ -61,9 +61,11 @@ var genesisBABEConfig = &types.BabeConfiguration{
 }
 
 func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
+	wasmer.DefaultTestLogLvl = 1
+
 	var err error
 	tt := trie.NewEmptyTrie()
-	rt := wasmer.NewTestLegacyInstanceWithTrie(t, runtime.LEGACY_NODE_RUNTIME, tt, log.LvlCrit)
+	rt := wasmer.NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlCrit)
 
 	if cfg == nil {
 		cfg = &ServiceConfig{
@@ -190,6 +192,7 @@ func TestCalculateThreshold_Failing(t *testing.T) {
 
 func TestRunLottery(t *testing.T) {
 	babeService := createTestService(t, nil)
+
 	babeService.epochData.threshold = maxThreshold
 
 	outAndProof, err := babeService.runLottery(0)

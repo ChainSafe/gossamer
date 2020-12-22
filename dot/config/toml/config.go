@@ -69,21 +69,24 @@ type NetworkConfig struct {
 
 // CoreConfig is to marshal/unmarshal toml core config vars
 type CoreConfig struct {
-	Roles            byte   `toml:"roles,omitempty"`
-	BabeAuthority    bool   `toml:"babe-authority"`
-	GrandpaAuthority bool   `toml:"grandpa-authority"`
-	BabeThreshold    string `toml:"babe-threshold,omitempty"`
-	SlotDuration     uint64 `toml:"slot-duration,omitempty"`
-	EpochLength      uint64 `toml:"epoch-length,omitempty"`
-	WasmInterpreter  string `toml:"wasm-interpreter,omitempty"`
+	Roles                    byte   `toml:"roles,omitempty"`
+	BabeAuthority            bool   `toml:"babe-authority"`
+	GrandpaAuthority         bool   `toml:"grandpa-authority"`
+	BabeThresholdNumerator   uint64 `toml:"babe-threshold-numerator,omitempty"`
+	BabeThresholdDenominator uint64 `toml:"babe-threshold-denominator,omitempty"`
+	SlotDuration             uint64 `toml:"slot-duration,omitempty"`
+	EpochLength              uint64 `toml:"epoch-length,omitempty"`
+	WasmInterpreter          string `toml:"wasm-interpreter,omitempty"`
 }
 
 // RPCConfig is to marshal/unmarshal toml RPC config vars
 type RPCConfig struct {
-	Enabled   bool     `toml:"enabled,omitempty"`
-	Port      uint32   `toml:"port,omitempty"`
-	Host      string   `toml:"host,omitempty"`
-	Modules   []string `toml:"modules,omitempty"`
-	WSPort    uint32   `toml:"ws-port,omitempty"`
-	WSEnabled bool     `toml:"ws-enabled,omitempty"`
+	Enabled    bool     `toml:"enabled,omitempty"`
+	External   bool     `toml:"external,omitempty"`
+	Port       uint32   `toml:"port,omitempty"`
+	Host       string   `toml:"host,omitempty"`
+	Modules    []string `toml:"modules,omitempty"`
+	WSPort     uint32   `toml:"ws-port,omitempty"`
+	WS         bool     `toml:"ws,omitempty"`
+	WSExternal bool     `toml:"ws-external,omitempty"`
 }

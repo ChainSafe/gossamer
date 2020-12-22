@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package dot
 
 import (
@@ -81,7 +82,7 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 			Runtime: nil,
 		},
 	}
-	tmpGen.Genesis.Raw[0] = make(map[string]string)
+	tmpGen.Genesis.Raw = make(map[string]map[string]string)
 	tmpGen.Genesis.Runtime = make(map[string]map[string]interface{})
 
 	stateSrvc := state.NewService(path, log.LvlCrit)

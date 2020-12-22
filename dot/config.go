@@ -18,7 +18,6 @@ package dot
 
 import (
 	"encoding/json"
-	"math/big"
 
 	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/chain/ksmcc"
@@ -83,23 +82,26 @@ type NetworkConfig struct {
 
 // CoreConfig is to marshal/unmarshal toml core config vars
 type CoreConfig struct {
-	Roles            byte
-	BabeAuthority    bool
-	GrandpaAuthority bool
-	BabeThreshold    *big.Int
-	SlotDuration     uint64
-	EpochLength      uint64
-	WasmInterpreter  string
+	Roles                    byte
+	BabeAuthority            bool
+	GrandpaAuthority         bool
+	BabeThresholdNumerator   uint64
+	BabeThresholdDenominator uint64
+	SlotDuration             uint64
+	EpochLength              uint64
+	WasmInterpreter          string
 }
 
 // RPCConfig is to marshal/unmarshal toml RPC config vars
 type RPCConfig struct {
-	Enabled   bool
-	Port      uint32
-	Host      string
-	Modules   []string
-	WSPort    uint32
-	WSEnabled bool
+	Enabled    bool
+	External   bool
+	Port       uint32
+	Host       string
+	Modules    []string
+	WSPort     uint32
+	WS         bool
+	WSExternal bool
 }
 
 // String will return the json representation for a Config
@@ -111,11 +113,6 @@ func (c *Config) String() string {
 // networkServiceEnabled returns true if the network service is enabled
 func networkServiceEnabled(cfg *Config) bool {
 	return cfg.Core.Roles != byte(0)
-}
-
-// RPCServiceEnabled returns true if the rpc service is enabled
-func RPCServiceEnabled(cfg *Config) bool {
-	return cfg.RPC.Enabled
 }
 
 // GssmrConfig returns a new test configuration using the provided basepath

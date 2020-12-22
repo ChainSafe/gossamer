@@ -115,7 +115,8 @@ func TestCreateBlockVerifier(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.NoError(t, err)
 
-	cfg.Core.BabeThreshold = nil
+	cfg.Core.BabeThresholdNumerator = 0
+	cfg.Core.BabeThresholdDenominator = 0
 	_, err = createBlockVerifier(stateSrvc)
 	require.NoError(t, err)
 }
@@ -142,7 +143,8 @@ func TestCreateSyncService(t *testing.T) {
 	rt, err := createRuntime(cfg, stateSrvc, ks.Acco.(*keystore.GenericKeystore), &network.Service{})
 	require.NoError(t, err)
 
-	cfg.Core.BabeThreshold = nil
+	cfg.Core.BabeThresholdNumerator = 0
+	cfg.Core.BabeThresholdDenominator = 0
 	ver, err := createBlockVerifier(stateSrvc)
 	require.NoError(t, err)
 
@@ -313,7 +315,9 @@ func TestNewWebSocketServer(t *testing.T) {
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
 	cfg.Init.GenesisRaw = genFile.Name()
-	cfg.RPC.WSEnabled = true
+	cfg.RPC.External = false
+	cfg.RPC.WS = true
+	cfg.RPC.WSExternal = false
 	cfg.System.SystemName = "gossamer"
 
 	err := InitNode(cfg)

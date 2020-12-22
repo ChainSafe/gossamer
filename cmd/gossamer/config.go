@@ -27,7 +27,6 @@ import (
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
@@ -463,13 +462,9 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 		cfg.GrandpaAuthority = false
 	}
 
-	switch tomlCfg.BabeThreshold {
-	case "max":
-		cfg.BabeThreshold = babe.MaxThreshold
-	case "min":
-		cfg.BabeThreshold = babe.MinThreshold
-	default:
-		cfg.BabeThreshold = nil
+	if tomlCfg.BabeThresholdDenominator != 0 {
+		cfg.BabeThresholdDenominator = tomlCfg.BabeThresholdDenominator
+		cfg.BabeThresholdNumerator = tomlCfg.BabeThresholdNumerator
 	}
 
 	switch tomlCfg.WasmInterpreter {
@@ -489,7 +484,8 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 		"babe-authority", cfg.BabeAuthority,
 		"grandpa-authority", cfg.GrandpaAuthority,
 		"epoch-length", cfg.EpochLength,
-		"babe-threshold", cfg.BabeThreshold,
+		"babe-threshold-numerator", cfg.BabeThresholdNumerator,
+		"babe-threshold-denominator", cfg.BabeThresholdDenominator,
 		"wasm-interpreter", cfg.WasmInterpreter,
 	)
 }
@@ -545,17 +541,28 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 // setDotRPCConfig sets dot.RPCConfig using flag values from the cli context
 func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConfig) {
 	cfg.Enabled = tomlCfg.Enabled
+	cfg.External = tomlCfg.External
 	cfg.Port = tomlCfg.Port
 	cfg.Host = tomlCfg.Host
 	cfg.Modules = tomlCfg.Modules
 	cfg.WSPort = tomlCfg.WSPort
-	cfg.WSEnabled = tomlCfg.WSEnabled
+	cfg.WS = tomlCfg.WS
+	cfg.WSExternal = tomlCfg.WSExternal
 
 	// check --rpc flag and update node configuration
 	if enabled := ctx.GlobalBool(RPCEnabledFlag.Name); enabled {
 		cfg.Enabled = true
 	} else if ctx.IsSet(RPCEnabledFlag.Name) && !enabled {
 		cfg.Enabled = false
+	}
+
+	// check --rpc-external flag and update node configuration
+	if external := ctx.GlobalBool(RPCExternalFlag.Name); external {
+		cfg.Enabled = true
+		cfg.External = true
+	} else if ctx.IsSet(RPCExternalFlag.Name) && !external {
+		cfg.Enabled = true
+		cfg.External = false
 	}
 
 	// check --rpcport flag and update node configuration
@@ -577,10 +584,18 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 		cfg.WSPort = uint32(wsport)
 	}
 
-	if wsenabled := ctx.GlobalBool(WSEnabledFlag.Name); wsenabled {
-		cfg.WSEnabled = true
-	} else if ctx.IsSet(WSEnabledFlag.Name) && !wsenabled {
-		cfg.WSEnabled = false
+	if WS := ctx.GlobalBool(WSFlag.Name); WS {
+		cfg.WS = true
+	} else if ctx.IsSet(WSFlag.Name) && !WS {
+		cfg.WS = false
+	}
+
+	if wsExternal := ctx.GlobalBool(WSExternalFlag.Name); wsExternal {
+		cfg.WS = true
+		cfg.WSExternal = true
+	} else if ctx.IsSet(WSExternalFlag.Name) && !wsExternal {
+		cfg.WS = true
+		cfg.WSExternal = false
 	}
 
 	// format rpc modules
@@ -591,10 +606,12 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 	logger.Debug(
 		"rpc configuration",
 		"enabled", cfg.Enabled,
+		"external", cfg.External,
 		"port", cfg.Port,
 		"host", cfg.Host,
 		"modules", cfg.Modules,
-		"ws", cfg.WSEnabled,
+		"ws", cfg.WS,
+		"ws external", cfg.WSExternal,
 		"wsport", cfg.WSPort,
 	)
 }

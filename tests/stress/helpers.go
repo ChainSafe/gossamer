@@ -39,7 +39,7 @@ import (
 var (
 	numNodes    = 3
 	maxRetries  = 32
-	testTimeout = time.Minute
+	testTimeout = time.Minute * 2
 	logger      = log.New("pkg", "tests/stress")
 )
 
@@ -126,7 +126,7 @@ func compareBlocksByNumber(t *testing.T, nodes []*utils.Node, num string) (map[c
 }
 
 // compareBlocksByNumberWithRetry calls compareChainHeads, retrying up to maxRetries times if it errors.
-func compareBlocksByNumberWithRetry(t *testing.T, nodes []*utils.Node, num string) error {
+func compareBlocksByNumberWithRetry(t *testing.T, nodes []*utils.Node, num string) (map[common.Hash][]string, error) {
 	var hashes map[common.Hash][]string
 	var err error
 
@@ -147,7 +147,7 @@ doneBlockProduction:
 	if err != nil {
 		err = fmt.Errorf("%w: hashes=%v", err, hashes)
 	}
-	return err
+	return hashes, err
 }
 
 // compareFinalizedHeads calls getFinalizedHeadByRound for each node in the array
@@ -249,7 +249,7 @@ func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extri
 	logger.Info("submitting transaction", "tx", txStr)
 
 	// send extrinsic to random node
-	idx := rand.Intn(len(nodes))
+	idx := rand.Intn(len(nodes))                    //nolint
 	prevHeader := utils.GetChainHead(t, nodes[idx]) // get starting header so that we can lookup blocks by number later
 	respBody, err := utils.PostRPC(utils.AuthorSubmitExtrinsic, utils.NewEndpoint(nodes[idx].RPCPort), "\"0x"+txStr+"\"")
 	require.NoError(t, err)

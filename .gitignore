@@ -12,7 +12,12 @@
 /bin
 
 *.key
+!test-key.key
+!test-key-password.key
 *.wasm
 
 test_data
 tmp
+
+tests/utils/config*
+tests/utils/genesis*

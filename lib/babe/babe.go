@@ -33,13 +33,6 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-var (
-	// MaxThreshold is the maximum BABE threshold (node authorized to produce a block every slot)
-	MaxThreshold = big.NewInt(0).SetBytes([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff})
-	// MinThreshold is the minimum BABE threshold (node never authorized to produce a block)
-	MinThreshold = big.NewInt(0)
-)
-
 // Service contains the VRF keys for the validator, as well as BABE configuation data
 type Service struct {
 	logger    log.Logger
@@ -59,7 +52,7 @@ type Service struct {
 	keypair *sr25519.Keypair // TODO: change to BABE keystore
 
 	// Current runtime
-	rt runtime.LegacyInstance
+	rt runtime.Instance
 
 	// Epoch configuration data
 	slotDuration uint64 // in milliseconds
@@ -78,19 +71,20 @@ type Service struct {
 
 // ServiceConfig represents a BABE configuration
 type ServiceConfig struct {
-	LogLvl           log.Lvl
-	BlockState       BlockState
-	StorageState     StorageState
-	TransactionState TransactionState
-	EpochState       EpochState
-	Keypair          *sr25519.Keypair
-	Runtime          runtime.LegacyInstance
-	AuthData         []*types.Authority
-	Threshold        *big.Int // for development purposes
-	SlotDuration     uint64   // for development purposes; in milliseconds
-	EpochLength      uint64   // for development purposes; in slots
-	StartSlot        uint64   // slot to start at
-	Authority        bool
+	LogLvl               log.Lvl
+	BlockState           BlockState
+	StorageState         StorageState
+	TransactionState     TransactionState
+	EpochState           EpochState
+	Keypair              *sr25519.Keypair
+	Runtime              runtime.Instance
+	AuthData             []*types.Authority
+	ThresholdNumerator   uint64 // for development purposes
+	ThresholdDenominator uint64 // for development purposes
+	SlotDuration         uint64 // for development purposes; in milliseconds
+	EpochLength          uint64 // for development purposes; in slots
+	StartSlot            uint64 // slot to start at
+	Authority            bool
 }
 
 // NewService returns a new Babe Service using the provided VRF keys and runtime
@@ -185,13 +179,14 @@ func (b *Service) setEpochData(cfg *ServiceConfig, genCfg *types.BabeConfigurati
 		}
 	}
 
-	if cfg.Threshold == nil {
+	if cfg.ThresholdDenominator == 0 {
 		b.epochData.threshold, err = CalculateThreshold(genCfg.C1, genCfg.C2, len(b.epochData.authorities))
-		if err != nil {
-			return err
-		}
 	} else {
-		b.epochData.threshold = cfg.Threshold
+		b.epochData.threshold, err = CalculateThreshold(cfg.ThresholdNumerator, cfg.ThresholdDenominator, len(b.epochData.authorities))
+	}
+
+	if err != nil {
+		return err
 	}
 
 	if cfg.EpochLength > 0 {
@@ -264,7 +259,7 @@ func (b *Service) Stop() error {
 }
 
 // SetRuntime sets the service's runtime
-func (b *Service) SetRuntime(rt runtime.LegacyInstance) {
+func (b *Service) SetRuntime(rt runtime.Instance) {
 	b.rt = rt
 }
 
