@@ -90,6 +90,10 @@ func newTestSyncer(t *testing.T) *Service {
 }
 
 func TestHandleBlockResponse(t *testing.T) {
+	if testing.Short() {
+		t.Skip() // this test takes around 4min to run
+	}
+
 	syncer := newTestSyncer(t)
 	syncer.highestSeenBlock = big.NewInt(132)
 

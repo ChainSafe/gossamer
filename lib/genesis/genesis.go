@@ -22,12 +22,16 @@ import (
 
 // Genesis stores the data parsed from the genesis configuration file
 type Genesis struct {
-	Name       string   `json:"name"`
-	ID         string   `json:"id"`
-	ChainType  string   `json:"chainType"`
-	Bootnodes  []string `json:"bootNodes"`
-	ProtocolID string   `json:"protocolId"`
-	Genesis    Fields   `json:"genesis"`
+	Name            string                 `json:"name"`
+	ID              string                 `json:"id"`
+	ChainType       string                 `json:"chainType"`
+	Bootnodes       []string               `json:"bootNodes"`
+	ProtocolID      string                 `json:"protocolId"`
+	Genesis         Fields                 `json:"genesis"`
+	Properties      map[string]interface{} `json:"properties"`
+	ForkBlocks      []string               `json:"forkBlocks"`
+	BadBlocks       []string               `json:"badBlocks"`
+	ConsensusEngine string                 `json:"consensusEngine"`
 }
 
 // Data defines the genesis file data formatted for trie storage
@@ -37,11 +41,12 @@ type Data struct {
 	ChainType  string
 	Bootnodes  [][]byte
 	ProtocolID string
+	// TODO (ed) add fields Properties, ForkBlocks, BadBlocks, ConsensusEngine here (see issue #1248)
 }
 
 // Fields stores genesis raw data, and human readable runtime data
 type Fields struct {
-	Raw     [2]map[string]string              `json:"raw"`
+	Raw     map[string]map[string]string      `json:"raw"`
 	Runtime map[string]map[string]interface{} `json:"runtime,omitempty"`
 }
 

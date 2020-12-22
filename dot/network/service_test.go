@@ -125,11 +125,11 @@ func TestBroadcastMessages(t *testing.T) {
 	nodeB := createTestService(t, configB)
 	defer nodeB.Stop()
 	nodeB.noGossip = true
+	handler := newTestStreamHandler(testBlockAnnounceMessageDecoder)
+	nodeB.host.registerStreamHandler(blockAnnounceID, handler.handleStream)
 
 	addrInfosB, err := nodeB.host.addrInfos()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	err = nodeA.host.connect(*addrInfosB[0])
 	// retry connect if "failed to dial" error
