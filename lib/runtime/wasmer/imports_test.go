@@ -382,7 +382,7 @@ func Test_ext_crypto_ed25519_sign_version_1(t *testing.T) {
 	fmt.Println(ret.ToI32())
 }
 
-func Test_ext_crypto_secp256k1_ecdsa_recover_version_1(t *testing.T) {
+func Test_ext_crypto__ecdsa_recover_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	msgData := []byte("Hello world!")
@@ -403,19 +403,11 @@ func Test_ext_crypto_secp256k1_ecdsa_recover_version_1(t *testing.T) {
 	ret, err := inst.Exec("rtm_ext_crypto_secp256k1_ecdsa_recover_version_1", append(encSign, encMsg...))
 
 	buf := &bytes.Buffer{}
-	buf.Write(ret[3:])
+	buf.Write(ret[2:])
 
-	//value, err := new(optional.Bytes).Decode(buf)
-	//require.NoError(t, err)
-	//fmt.Println(value)
-	//require.Equal(t, pubKey, value.Value())
-
-	encPub, err := scale.Encode(pubKey)
+	value, err := new(optional.Bytes).Decode(buf)
 	require.NoError(t, err)
-
-	fmt.Println(encPub)
-
-	require.Equal(t, encPub, buf.Bytes())
+	require.Equal(t, pubKey, value.Value())
 }
 
 func generateKeyPairs() (pubkey, privkey []byte) {
