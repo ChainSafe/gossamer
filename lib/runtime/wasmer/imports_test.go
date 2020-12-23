@@ -420,7 +420,9 @@ func Test_ext_crypto_sr25519_generate_version_1(t *testing.T) {
 	require.NoError(t, err)
 
 	pubKey, err := ed25519.NewPublicKey(out.([]byte))
+	require.NoError(t, err)
 	require.Equal(t, 1, inst.inst.ctx.Keystore.Size())
+
 	kp := inst.inst.ctx.Keystore.GetKeypair(pubKey)
 	require.NotNil(t, kp)
 }
