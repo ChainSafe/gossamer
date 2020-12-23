@@ -101,6 +101,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"time"
 	"unsafe"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -112,7 +113,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
-
+	"github.com/ethereum/go-ethereum/log"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
@@ -296,20 +297,34 @@ func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeID C.int32
 //export ext_crypto_ed25519_verify_version_1
 func ext_crypto_ed25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, msg C.int64_t, key C.int32_t) C.int32_t {
 	logger.Trace("[ext_crypto_ed25519_verify_version_1] executing...")
+
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
+	signVerify := instanceContext.Data().(*runtime.Context).SigVerifier
 
-	sign := memory[sig : sig+64]
+	newSign := memory[sig : sig+64]
 	newMsg := asMemorySlice(instanceContext, msg)
 	pubKeyData := memory[key : key+32]
 
 	pubKey, err := ed25519.NewPublicKey(pubKeyData)
 	if err != nil {
+		logger.Error("[ext_crypto_ed25519_verify_version_1] failed to access public Key")
 		return 0
 	}
 
-	//TODO: batching verification extension
-	if ok, err := pubKey.Verify(newMsg, sign); err != nil || !ok {
+	if !signVerify.IsEmpty() {
+		signature := runtime.Signature{
+			PubKey:    pubKey.Encode(),
+			Sign:      newSign,
+			Msg:       newMsg,
+			KyeTypeID: crypto.Ed25519Type,
+		}
+		signVerify.Add(&signature)
+		return 0
+	}
+
+	if ok, err := pubKey.Verify(newMsg, newSign); err != nil || !ok {
+		logger.Error("[ext_crypto_ed25519_verify_version_1] failed to verify")
 		return 0
 	}
 
@@ -319,7 +334,21 @@ func ext_crypto_ed25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 //export ext_crypto_finish_batch_verify_version_1
 func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t {
 	logger.Trace("[ext_crypto_finish_batch_verify_version_1] executing...")
-	logger.Warn("[ext_crypto_finish_batch_verify_version_1] unimplemented")
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	signVerify := instanceContext.Data().(*runtime.Context).SigVerifier
+
+	if !signVerify.IsStarted() {
+		logger.Error("[ext_crypto_finish_batch_verify_version_1] verification extension not started")
+		panic("verification extension not started")
+	}
+
+	for !signVerify.IsEmpty() {
+		time.Sleep(100 * time.Millisecond)
+		if signVerify.IsInValid() {
+			return 0
+		}
+	}
 	return 1
 }
 
@@ -451,6 +480,7 @@ func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
+	signVerify := instanceContext.Data().(*runtime.Context).SigVerifier
 
 	newMsg := asMemorySlice(instanceContext, msg)
 	newSig := memory[sig : sig+64]
@@ -460,11 +490,20 @@ func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 		return 0
 	}
 
-	//TODO batching verification extension
-	if ok, err := pub.Verify(newMsg, newSig); err != nil || !ok {
+	if !signVerify.IsEmpty() {
+		signature := runtime.Signature{
+			PubKey:    pub.Encode(),
+			Sign:      newSig,
+			Msg:       newMsg,
+			KyeTypeID: crypto.Sr25519Type,
+		}
+		signVerify.Add(&signature)
 		return 0
 	}
 
+	if ok, err := pub.Verify(newMsg, newSig); err != nil || !ok {
+		return 0
+	}
 	return 1
 }
 
@@ -474,26 +513,88 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
+	signVerify := instanceContext.Data().(*runtime.Context).SigVerifier
 
 	newMsg := asMemorySlice(instanceContext, msg)
-	mewSig := memory[sig : sig+64]
+	newSig := memory[sig : sig+64]
 
 	pub, err := sr25519.NewPublicKey(memory[key : key+32])
 	if err != nil {
 		return 0
 	}
 
-	if ok, err := pub.Verify(newMsg, mewSig); err != nil || !ok {
+	if !signVerify.IsEmpty() {
+		signature := runtime.Signature{
+			PubKey:    pub.Encode(),
+			Sign:      newSig,
+			Msg:       newMsg,
+			KyeTypeID: crypto.Sr25519Type,
+		}
+		signVerify.Add(&signature)
+		return 0
+	}
+
+	if ok, err := pub.Verify(newMsg, newSig); err != nil || !ok {
 		return 0
 	}
 
 	return C.int32_t(1)
 }
 
+func verifySignature(sig runtime.Signature) bool {
+	var ok bool
+	switch sig.KyeTypeID {
+	case crypto.Ed25519Type:
+		pubKey, err := ed25519.NewPublicKey(sig.PubKey)
+		if err != nil {
+			log.Error("[ext_crypto_start_batch_verify_version_1] failed to fetch public key", err)
+			return false
+		}
+		ok, err = pubKey.Verify(sig.Msg, sig.Sign)
+		if err != nil || !ok {
+			log.Error("[ext_crypto_start_batch_verify_version_1] failed to verify signature", err)
+			return ok
+		}
+	case crypto.Sr25519Type:
+		pubKey, err := sr25519.NewPublicKey(sig.PubKey)
+		if err != nil {
+			log.Error("[ext_crypto_start_batch_verify_version_1] failed to fetch public key", err)
+			return false
+		}
+		ok, err = pubKey.Verify(sig.Msg, sig.Sign)
+		if err != nil || !ok {
+			log.Error("[ext_crypto_start_batch_verify_version_1] failed to verify signature", err)
+			return ok
+		}
+	case crypto.Secp256k1Type:
+		ok = secp256k1.VerifySignature(sig.PubKey, sig.Msg, sig.Sign)
+		if !ok {
+			log.Error("[ext_crypto_start_batch_verify_version_1] failed to verify signature")
+			return ok
+		}
+	}
+	return true
+}
+
 //export ext_crypto_start_batch_verify_version_1
 func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
 	logger.Trace("[ext_crypto_start_batch_verify_version_1] executing...")
-	logger.Warn("[ext_crypto_start_batch_verify_version_1] unimplemented")
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	sigVerify := instanceContext.Data().(*runtime.Context).SigVerifier
+
+	go func() {
+		sigVerify.Init()
+		for {
+			sign, err := sigVerify.Remove()
+			if err != nil {
+				time.Sleep(100 * time.Millisecond)
+			}
+			if !verifySignature(*sign) {
+				sigVerify.InValid()
+			}
+		}
+	}()
 }
 
 //export ext_trie_blake2_256_root_version_1

@@ -18,7 +18,10 @@ package runtime
 
 import (
 	"bytes"
+	"errors"
+	"sync"
 
+	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/scale"
 
@@ -60,7 +63,91 @@ type Context struct {
 	NodeStorage NodeStorage
 	Network     BasicNetwork
 	Transaction TransactionState
-	VerifySig   chan []byte
+	SigVerifier *SignatureVerifier
+}
+
+// Signature ...
+type Signature struct {
+	PubKey    []byte
+	Sign      []byte
+	Msg       []byte
+	KyeTypeID crypto.KeyType
+}
+
+// SignatureVerifier ...
+type SignatureVerifier struct {
+	batch   []*Signature
+	init    bool
+	inValid bool
+	sync.RWMutex
+}
+
+// Init ...
+func (sv *SignatureVerifier) Init() {
+	sv.Lock()
+	defer sv.Unlock()
+	sv.init = true
+}
+
+// IsStarted ...
+func (sv *SignatureVerifier) IsStarted() bool {
+	sv.RLock()
+	defer sv.RUnlock()
+	return sv.init
+}
+
+// IsInValid ...
+func (sv *SignatureVerifier) IsInValid() bool {
+	sv.RLock()
+	defer sv.RUnlock()
+	return sv.inValid
+}
+
+// InValid ...
+func (sv *SignatureVerifier) InValid() {
+	sv.RLock()
+	defer sv.RUnlock()
+	sv.inValid = true
+}
+
+// Add ...
+func (sv *SignatureVerifier) Add(s *Signature) {
+	sv.Lock()
+	defer sv.Unlock()
+	sv.batch = append(sv.batch, s)
+}
+
+// Remove ...
+func (sv *SignatureVerifier) Remove() (*Signature, error) {
+	sv.Lock()
+	defer sv.Unlock()
+	if sv.IsEmpty() {
+		return nil, errors.New("empty batch")
+	}
+	sign := sv.batch[sv.Len()-1]
+	sv.batch = sv.batch[:sv.Len()-1]
+	return sign, nil
+}
+
+// Get ...
+func (sv *SignatureVerifier) Get() []*Signature {
+	sv.RLock()
+	defer sv.RUnlock()
+	return sv.batch
+}
+
+// Len ...
+func (sv *SignatureVerifier) Len() int {
+	sv.RLock()
+	defer sv.RUnlock()
+	return len(sv.batch)
+}
+
+// IsEmpty ...
+func (sv *SignatureVerifier) IsEmpty() bool {
+	sv.RLock()
+	defer sv.RUnlock()
+	return len(sv.batch) == 0
 }
 
 // Version struct
