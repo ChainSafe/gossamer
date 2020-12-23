@@ -140,6 +140,31 @@ func Test_ext_storage_clear_version_1(t *testing.T) {
 	require.Nil(t, val)
 }
 
+func Test_ext_storage_clear_prefix_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("noot")
+	err := inst.inst.ctx.Storage.Set(testkey, []byte{1})
+	require.NoError(t, err)
+	testkey2 := []byte("spaghet")
+	err = inst.inst.ctx.Storage.Set(testkey2, []byte{2})
+	require.NoError(t, err)
+
+	enc, err := scale.Encode(testkey[:3])
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_storage_clear_prefix_version_1", enc)
+	require.NoError(t, err)
+
+	val, err := inst.inst.ctx.Storage.Get(testkey)
+	require.NoError(t, err)
+	require.Nil(t, val)
+
+	val, err = inst.inst.ctx.Storage.Get(testkey2)
+	require.NoError(t, err)
+	require.NotNil(t, val)
+}
+
 func Test_ext_storage_get_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 

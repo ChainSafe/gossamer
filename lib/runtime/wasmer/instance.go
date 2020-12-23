@@ -59,34 +59,26 @@ type Instance struct {
 }
 
 // NewLegacyRuntimeFromGenesis creates a runtime instance from the genesis data
-func NewLegacyRuntimeFromGenesis(g *genesis.Genesis, storage runtime.Storage) (runtime.LegacyInstance, error) {
+func NewLegacyRuntimeFromGenesis(g *genesis.Genesis, cfg *Config) (runtime.LegacyInstance, error) {
 	codeStr := g.GenesisFields().Raw["top"][common.BytesToHex(common.CodeKey)]
 	if codeStr == "" {
 		return nil, fmt.Errorf("cannot find :code in genesis")
 	}
 
 	code := common.MustHexToBytes(codeStr)
-	cfg := &Config{
-		Imports: ImportsLegacyNodeRuntime,
-	}
-	cfg.Storage = storage
-
+	cfg.Imports = ImportsLegacyNodeRuntime
 	return NewLegacyInstance(code, cfg)
 }
 
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data
-func NewRuntimeFromGenesis(g *genesis.Genesis, storage runtime.Storage) (runtime.Instance, error) {
+func NewRuntimeFromGenesis(g *genesis.Genesis, cfg *Config) (runtime.Instance, error) {
 	codeStr := g.GenesisFields().Raw["top"][common.BytesToHex(common.CodeKey)]
 	if codeStr == "" {
 		return nil, fmt.Errorf("cannot find :code in genesis")
 	}
 
 	code := common.MustHexToBytes(codeStr)
-	cfg := &Config{
-		Imports: ImportsNodeRuntime,
-	}
-	cfg.Storage = storage
-
+	cfg.Imports = ImportsNodeRuntime
 	return NewInstance(code, cfg)
 }
 
