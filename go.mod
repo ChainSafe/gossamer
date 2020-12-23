@@ -16,6 +16,7 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/gtank/merlin v0.1.1 // indirect
 	github.com/ipfs/go-datastore v0.4.4
+	github.com/ipsn/go-secp256k1 v0.0.0-20180726113642-9d62b9f0bc52 // indirect
 	github.com/jcelliott/lumber v0.0.0-20160324203708-dd349441af25 // indirect
 	github.com/jpillora/ipfilter v1.2.2
 	github.com/libp2p/go-libp2p v0.10.3

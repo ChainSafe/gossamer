@@ -60,6 +60,7 @@ type Context struct {
 	NodeStorage NodeStorage
 	Network     BasicNetwork
 	Transaction TransactionState
+	VerifySig   chan []byte
 }
 
 // Version struct

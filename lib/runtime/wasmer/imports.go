@@ -266,8 +266,6 @@ func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeID C.int32
 	memory := instanceContext.Memory().Data()
 
 	pubKeyData := memory[key : key+32]
-	data := memory[key+32 : key+32+32]
-	_ = data
 	pubKey, err := ed25519.NewPublicKey(pubKeyData)
 	if err != nil {
 		logger.Error("[ext_crypto_ed25519_sign_version_1]", "error", err)
@@ -280,7 +278,7 @@ func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeID C.int32
 		return 0
 	}
 
-	sig, err := signingKey.Sign(memory[key+32 : key+32+32])
+	sig, err := signingKey.Sign(asMemorySlice(instanceContext, msg))
 	if err != nil {
 		logger.Error("[ext_crypto_ed25519_sign_version_1] could not sign message")
 		return 0
@@ -301,14 +299,16 @@ func ext_crypto_ed25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
 
+	sign := memory[sig : sig+64]
 	newMsg := asMemorySlice(instanceContext, msg)
-	sign := memory[key : key+64]
+	pubKeyData := memory[key : key+32]
 
-	pubKey, err := ed25519.NewPublicKey(memory[key : key+32])
+	pubKey, err := ed25519.NewPublicKey(pubKeyData)
 	if err != nil {
 		return 0
 	}
 
+	//TODO: batching verification extension
 	if ok, err := pubKey.Verify(newMsg, sign); err != nil || !ok {
 		return 0
 	}
@@ -388,22 +388,24 @@ func ext_crypto_sr25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 //export ext_crypto_sr25519_public_keys_version_1
 func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, keyTypeID C.int32_t) C.int64_t {
 	logger.Trace("[ext_crypto_sr25519_public_keys_version_1] executing...")
+
 	instanceContext := wasm.IntoInstanceContext(context)
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
+	memory := instanceContext.Memory().Data()
 
 	keys := runtimeCtx.Keystore.Sr25519PublicKeys()
 
-	var ptr []byte
-	for _, key := range keys {
-		ptr = append(ptr, key.Encode()...)
-	}
-
-	ret, err := toWasmMemoryOptional(instanceContext, ptr)
+	ptr, err := runtimeCtx.Allocator.Allocate(uint32(len(keys) * 32))
 	if err != nil {
-		logger.Error("[ext_] failed to allocate memory", err)
+		logger.Error("[ext_crypto_ed25519_public_keys_version_1]", "error", err)
 		return 0
 	}
 
+	for i, key := range keys {
+		copy(memory[ptr+uint32(i*32):ptr+uint32((i+1)*32)], key.Encode())
+	}
+
+	ret := pointerAndSizeToInt64(int32(ptr), int32(len(keys)*32))
 	return C.int64_t(ret)
 }
 
@@ -416,7 +418,7 @@ func ext_crypto_sr25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.
 
 	pubKey, err := sr25519.NewPublicKey(memory[key : key+32])
 	if err != nil {
-		logger.Error("[ext_crypto_sr25519_sign_version_1]", "error", err)
+		logger.Error("[ext_crypto_sr25519_sign_version_1] failed to get public key", "error", err)
 		return 0
 	}
 
@@ -428,6 +430,7 @@ func ext_crypto_sr25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.
 
 	msgData := asMemorySlice(instanceContext, msg)
 	sig, err := signingKey.Sign(msgData)
+	fmt.Println("sig", sig)
 	if err != nil {
 		logger.Error("[ext_crypto_sr25519_sign_version_1] could not sign message")
 		return 0
@@ -450,18 +453,19 @@ func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 	memory := instanceContext.Memory().Data()
 
 	newMsg := asMemorySlice(instanceContext, msg)
-	mewSig := memory[sig : sig+64]
+	newSig := memory[sig : sig+64]
 
 	pub, err := sr25519.NewPublicKey(memory[key : key+32])
 	if err != nil {
 		return 0
 	}
 
-	if ok, err := pub.Verify(newMsg, mewSig); err != nil || !ok {
+	//TODO batching verification extension
+	if ok, err := pub.Verify(newMsg, newSig); err != nil || !ok {
 		return 0
 	}
 
-	return C.int32_t(1)
+	return 1
 }
 
 //export ext_crypto_sr25519_verify_version_2
