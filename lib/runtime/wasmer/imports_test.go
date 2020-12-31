@@ -18,6 +18,7 @@ package wasmer
 
 import (
 	"bytes"
+	"os"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -31,6 +32,25 @@ import (
 var testChildKey = []byte("childKey")
 var testKey = []byte("key")
 var testValue = []byte("value")
+
+func TestMain(m *testing.M) {
+	runtimes := []string{runtime.HOST_API_TEST_RUNTIME, runtime.LEGACY_NODE_RUNTIME, runtime.POLKADOT_RUNTIME, runtime.NODE_RUNTIME, runtime.SUBSTRATE_TEST_RUNTIME, runtime.TESTS_FP}
+	var wasmFilePaths []string
+	for _, rt := range runtimes {
+		testRuntimeFilePath, testRuntimeURL := runtime.GetRuntimeVars(rt)
+		wasmFilePaths = append(wasmFilePaths, testRuntimeFilePath)
+		runtime.GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
+	}
+
+	// Start all tests
+	code := m.Run()
+
+	for _, rt := range wasmFilePaths {
+		os.Remove(rt)
+	}
+
+	os.Exit(code)
+}
 
 func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
