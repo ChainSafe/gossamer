@@ -183,15 +183,12 @@ func (s *Service) Start() error {
 	// so all the child contexts should also be canceled. potentially update if there is a better way to do this
 
 	// start receiving blocks from BABE session
-	ctx, _ := context.WithCancel(s.ctx) //nolint
-	go s.receiveBlocks(ctx)
+	go s.receiveBlocks(s.ctx)
 
 	// start receiving messages from network service
-	ctx, _ = context.WithCancel(s.ctx) //nolint
 
 	// start handling imported blocks
-	ctx, _ = context.WithCancel(s.ctx) //nolint
-	go s.handleBlocks(ctx)
+	go s.handleBlocks(s.ctx)
 
 	return nil
 }
