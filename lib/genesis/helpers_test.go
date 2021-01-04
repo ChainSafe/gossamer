@@ -19,13 +19,13 @@ package genesis
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"os"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewGenesisRawFromJSON(t *testing.T) {
@@ -63,7 +63,6 @@ func TestNewGenesisRawFromJSON(t *testing.T) {
 
 func TestNewGenesisFromJSON(t *testing.T) {
 	var expectedGenesis = &Genesis{}
-
 
 	expRaw := make(map[string]map[string]string)
 	expRaw["top"] = make(map[string]string)

@@ -1,7 +1,7 @@
 module github.com/ChainSafe/gossamer
 
 require (
-	github.com/ChainSafe/chaindb v0.1.5-0.20201216022305-705e4f4f2f0d
+	github.com/ChainSafe/chaindb v0.1.5-0.20201215221215-67f49055e0c4
 	github.com/ChainSafe/go-schnorrkel v0.0.0-20200405005733-88cbf1b4c40d
 	github.com/ChainSafe/log15 v1.0.0
 	github.com/OneOfOne/xxhash v1.2.5

@@ -19,6 +19,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/dgraph-io/badger/v2"
 )
 
@@ -78,9 +79,10 @@ func (s *StorageState) notifyChanged(change *KeyValue) {
 	}
 }
 
-func (s *StorageState)Subscribe(prefixes []byte) {
+//Subscribe to listen for changes made to storage of the given prefix
+func (s *StorageState) Subscribe(prefixes []byte) {
 	fmt.Printf("SUBSCRIBE CALLED db %v pre %x\n", s.db, append([]byte("storage"), prefixes...))
-	ctx, _ := context.WithCancel(context.Background())
+	ctx := context.Background() // todo ed, deteremine how to best handle context
 	//defer cancel()
 	cb := func(kvs *badger.KVList) error {
 		for _, kv := range kvs.Kv {
@@ -88,5 +90,6 @@ func (s *StorageState)Subscribe(prefixes []byte) {
 		}
 		return nil
 	}
-	s.db.Subscribe(ctx, cb, append([]byte("storage"), prefixes...))
+	err := s.db.Subscribe(ctx, cb, append([]byte("storage"), prefixes...))
+	logger.Warn("error subscribing to storage", "error", err)
 }

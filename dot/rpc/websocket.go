@@ -290,11 +290,11 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (i
 		}
 		return 0, fmt.Errorf("error StorageAPI not set")
 	}
-	for k, _ := range scl.filter {
+	for k := range scl.filter {
 		fmt.Printf("Key %v", k)
 
 		//c.storageAPI.Subscribe(common.MustHexToBytes("0x2388746d7026aa394eea5630e07c48ae0c9558cef734abf5cb34d6244378cddbf18e849d96"))
-		c.storageAPI.Subscribe(common.MustHexToBytes(k));
+		c.storageAPI.Subscribe(common.MustHexToBytes(k))
 	}
 
 	chanID, err := c.storageAPI.RegisterStorageChangeChannel(scl.channel)
