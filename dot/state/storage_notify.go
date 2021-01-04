@@ -81,15 +81,17 @@ func (s *StorageState) notifyChanged(change *KeyValue) {
 
 //Subscribe to listen for changes made to storage of the given prefix
 func (s *StorageState) Subscribe(prefixes []byte) {
-	fmt.Printf("SUBSCRIBE CALLED db %v pre %x\n", s.db, append([]byte("storage"), prefixes...))
-	ctx := context.Background() // todo ed, deteremine how to best handle context
-	//defer cancel()
+	fmt.Printf("SUBSCRIBE CALLED db %v\n", s.db)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	//todo ed, change this callback to something that will notify the calling websocket
 	cb := func(kvs *badger.KVList) error {
 		for _, kv := range kvs.Kv {
 			fmt.Printf("key %x\n", kv.Key)
 		}
 		return nil
 	}
-	err := s.db.Subscribe(ctx, cb, append([]byte("storage"), prefixes...))
-	logger.Warn("error subscribing to storage", "error", err)
+
+	err := s.db.Subscribe(ctx, cb, prefixes)
+	logger.Error("error subscribing to storage", "error", err)
 }

@@ -16,6 +16,10 @@
 package state
 
 import (
+	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/lib/trie"
+	"io/ioutil"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -85,4 +89,24 @@ func TestStorageState_RegisterStorageChangeChannel_Multi(t *testing.T) {
 	for _, id := range ids {
 		ss.UnregisterStorageChangeChannel(id)
 	}
+}
+
+func TestStorageState_Subscribe(t *testing.T) {
+	fp, _ := ioutil.TempDir("/tmp", "test-datadir-*")
+	t.Cleanup(func() {
+		os.RemoveAll(fp)
+	})
+	db, err := chaindb.NewBadgerDB(fp)
+	require.NoError(t, err)
+
+	bs := newTestBlockState(t, testGenesisHeader)
+
+	s, err := NewStorageState(db, bs, trie.NewEmptyTrie())
+
+	go s.Subscribe([]byte("mackcom"))
+	time.Sleep(time.Second)
+	err = db.Put([]byte("mackcom"), []byte("wushere"))
+	require.NoError(t, err)
+	time.Sleep(time.Second)
+
 }

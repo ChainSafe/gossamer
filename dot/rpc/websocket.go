@@ -182,7 +182,7 @@ func (c *WSConn) handleComm() {
 			case "state_subscribeStorage":
 				scl, err2 := c.initStorageChangeListener(reqid, params)
 				if err2 != nil {
-					logger.Warn("failed to create state change listener", "error", err)
+					logger.Warn("failed to create state change listener", "error", err2)
 					continue
 				}
 				c.startListener(scl)
