@@ -21,56 +21,48 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/utils"
+
+	"github.com/stretchr/testify/require"
 )
 
 // test gossip messages to connected peers
 func TestGossip(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping TestGossip")
+		t.Skip("skipping TestGossip; currently, nothing is gossiped")
 	}
-	basePathA := utils.NewTestBasePath(t, "nodeA")
 
-	// removes all data directories created within test directory
+	basePathA := utils.NewTestBasePath(t, "nodeA")
 	defer utils.RemoveTestDir(t)
 
-	mmhA := new(MockMessageHandler)
-
 	configA := &Config{
-		BasePath:       basePathA,
-		Port:           7001,
-		RandSeed:       1,
-		NoBootstrap:    true,
-		NoMDNS:         true,
-		MessageHandler: mmhA,
+		BasePath:    basePathA,
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true,
+		NoMDNS:      true,
 	}
 
 	nodeA := createTestService(t, configA)
 	defer nodeA.Stop()
-
-	nodeA.noStatus = true
+	handlerA := newTestStreamHandler()
+	nodeA.host.registerStreamHandler("", handlerA.handleStream)
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
-
-	mmhB := new(MockMessageHandler)
-
 	configB := &Config{
-		BasePath:       basePathB,
-		Port:           7002,
-		RandSeed:       2,
-		NoBootstrap:    true,
-		NoMDNS:         true,
-		MessageHandler: mmhB,
+		BasePath:    basePathB,
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true,
+		NoMDNS:      true,
 	}
 
 	nodeB := createTestService(t, configB)
 	defer nodeB.Stop()
-
-	nodeB.noStatus = true
+	handlerB := newTestStreamHandler()
+	nodeB.host.registerStreamHandler("", handlerB.handleStream)
 
 	addrInfosA, err := nodeA.host.addrInfos()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	err = nodeB.host.connect(*addrInfosA[0])
 	// retry connect if "failed to dial" error
@@ -78,27 +70,21 @@ func TestGossip(t *testing.T) {
 		time.Sleep(TestBackoffTimeout)
 		err = nodeB.host.connect(*addrInfosA[0])
 	}
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	basePathC := utils.NewTestBasePath(t, "nodeC")
-
-	mmhC := new(MockMessageHandler)
-
 	configC := &Config{
-		BasePath:       basePathC,
-		Port:           7003,
-		RandSeed:       3,
-		NoBootstrap:    true,
-		NoMDNS:         true,
-		MessageHandler: mmhC,
+		BasePath:    basePathC,
+		Port:        7003,
+		RandSeed:    3,
+		NoBootstrap: true,
+		NoMDNS:      true,
 	}
 
 	nodeC := createTestService(t, configC)
 	defer nodeC.Stop()
-
-	nodeC.noStatus = true
+	handlerC := newTestStreamHandler()
+	nodeC.host.registerStreamHandler("", handlerC.handleStream)
 
 	err = nodeC.host.connect(*addrInfosA[0])
 	// retry connect if "failed to dial" error
@@ -106,14 +92,10 @@ func TestGossip(t *testing.T) {
 		time.Sleep(TestBackoffTimeout)
 		err = nodeC.host.connect(*addrInfosA[0])
 	}
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	addrInfosB, err := nodeB.host.addrInfos()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	err = nodeC.host.connect(*addrInfosB[0])
 	// retry connect if "failed to dial" error
@@ -121,36 +103,12 @@ func TestGossip(t *testing.T) {
 		time.Sleep(TestBackoffTimeout)
 		err = nodeC.host.connect(*addrInfosB[0])
 	}
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	err = nodeA.host.send(addrInfosB[0].ID, "", TestMessage)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	time.Sleep(TestMessageTimeout)
-
-	// node A sends message to node B
-	if mmhB.Message == nil {
-		t.Error("node A timeout waiting for message")
-	}
-
-	// node B gossips message to node C
-	if mmhC.Message == nil {
-		t.Error("node A timeout waiting for message")
-	}
-
-	// node C gossips message to node A
-	if mmhA.Message == nil {
-		t.Error("node A timeout waiting for message")
-	}
-
-	// node A gossips message to node B
-	if mmhB.Message == nil {
-		t.Error("node A timeout waiting for message")
-	}
 
 	if hasSeenB, ok := nodeB.gossip.seen.Load(TestMessage.IDString()); !ok || hasSeenB.(bool) == false {
 		t.Error(

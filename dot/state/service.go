@@ -39,7 +39,6 @@ type Service struct {
 	isMemDB     bool // set to true if using an in-memory database; only used for testing.
 	Storage     *StorageState
 	Block       *BlockState
-	Network     *NetworkState
 	Transaction *TransactionState
 	Epoch       *EpochState
 	closeCh     chan interface{}
@@ -57,7 +56,6 @@ func NewService(path string, lvl log.Lvl) *Service {
 		isMemDB: false,
 		Storage: nil,
 		Block:   nil,
-		Network: nil,
 		closeCh: make(chan interface{}),
 	}
 }
@@ -184,7 +182,7 @@ func (s *Service) storeInitialValues(db chaindb.Database, data *genesis.Data, he
 
 // Start initializes the Storage database and the Block database.
 func (s *Service) Start() error {
-	if !s.isMemDB && (s.Storage != nil || s.Block != nil || s.Network != nil || s.Epoch != nil) {
+	if !s.isMemDB && (s.Storage != nil || s.Block != nil || s.Epoch != nil) {
 		return nil
 	}
 
@@ -243,9 +241,6 @@ func (s *Service) Start() error {
 	if err != nil {
 		return fmt.Errorf("failed to get load storage trie from database: %w", err)
 	}
-
-	// create network state
-	s.Network = NewNetworkState()
 
 	// create transaction queue
 	s.Transaction = NewTransactionState()
