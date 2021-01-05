@@ -16,11 +16,7 @@
 package state
 
 import (
-	"context"
 	"errors"
-	"fmt"
-
-	"github.com/dgraph-io/badger/v2"
 )
 
 // KeyValue struct to hold key value pairs
@@ -77,21 +73,4 @@ func (s *StorageState) notifyChanged(change *KeyValue) {
 			ch <- change
 		}(ch)
 	}
-}
-
-//Subscribe to listen for changes made to storage of the given prefix
-func (s *StorageState) Subscribe(prefixes []byte) {
-	fmt.Printf("SUBSCRIBE CALLED db %v\n", s.db)
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	//todo ed, change this callback to something that will notify the calling websocket
-	cb := func(kvs *badger.KVList) error {
-		for _, kv := range kvs.Kv {
-			fmt.Printf("key %x\n", kv.Key)
-		}
-		return nil
-	}
-
-	err := s.db.Subscribe(ctx, cb, prefixes)
-	logger.Error("error subscribing to storage", "error", err)
 }

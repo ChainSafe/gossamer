@@ -405,3 +405,8 @@ func (s *StorageState) pruneStorage(closeCh chan interface{}) {
 		}
 	}
 }
+
+//Subscribe to listen for changes made to storage of the given prefix
+func (s *StorageState) Subscribe(prefixes []byte) {
+	// todo ed implement this
+}

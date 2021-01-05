@@ -17,14 +17,16 @@
 package state
 
 import (
+	"context"
 	"encoding/binary"
+	"fmt"
 	"math/rand"
 	"sync"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
-
-	"github.com/ChainSafe/chaindb"
+	"github.com/dgraph-io/badger/v2"
 )
 
 var triePrefix = []byte("tmp")
@@ -327,4 +329,25 @@ func (s *TrieState) ClearPrefix(prefix []byte) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	s.t.ClearPrefix(prefix)
+}
+
+//Subscribe to listen for changes made to storage of the given prefix
+func (s *TrieState) Subscribe(prefixes []byte) {
+	fmt.Printf("SUBSCRIBE CALLED db %v\n", s.db)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	//todo ed, change this callback to something that will notify the calling websocket
+	cb := func(kvs *badger.KVList) error {
+		fmt.Printf("CALLBACK Called")
+		for _, kv := range kvs.Kv {
+			fmt.Printf("key %x\n", kv.Key)
+		}
+		return nil
+	}
+
+	err := s.db.Subscribe(ctx, cb, prefixes)
+	if err != nil {
+		logger.Error("error subscribing to storage", "error", err)
+	}
+
 }
