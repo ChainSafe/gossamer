@@ -237,16 +237,17 @@ func (trs *TestRuntimeStorage) NextKey(in []byte) []byte {
 	return trs.trie.NextKey(in)
 }
 
-// GetChildByPrefix ...
-func (trs *TestRuntimeStorage) GetChildByPrefix(keyToChild, prefix []byte) ([][]byte, error) {
+// ClearPrefixInChild ...
+func (trs *TestRuntimeStorage) ClearPrefixInChild(keyToChild, prefix []byte) error {
 	child, err := trs.GetChild(keyToChild)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if child == nil {
-		return nil, nil
+		return nil
 	}
-	return child.GetKeysWithPrefix(prefix), nil
+	child.ClearPrefix(prefix)
+	return nil
 }
 
 // GetChildNextKey ...
@@ -269,6 +270,18 @@ func (trs *TestRuntimeStorage) GetChild(keyToChild []byte) (*trie.Trie, error) {
 // ClearPrefix ...
 func (trs *TestRuntimeStorage) ClearPrefix(prefix []byte) {
 	trs.trie.ClearPrefix(prefix)
+}
+
+// GetKeysWithPrefixFromChild ...
+func (trs *TestRuntimeStorage) GetKeysWithPrefixFromChild(keyToChild, prefix []byte) ([][]byte, error) {
+	child, err := trs.GetChild(keyToChild)
+	if err != nil {
+		return nil, err
+	}
+	if child == nil {
+		return nil, nil
+	}
+	return child.GetKeysWithPrefix(prefix), nil
 }
 
 // TestRuntimeNetwork ...
