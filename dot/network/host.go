@@ -30,7 +30,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
 	noise "github.com/libp2p/go-libp2p-noise"
-	//rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
+	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -98,7 +98,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	}
 
 	// wrap host and DHT service with routed host
-	// h = rhost.Wrap(h, dht)
+	h = rhost.Wrap(h, dht)
 
 	// format protocol id
 	pid := protocol.ID(cfg.ProtocolID)
