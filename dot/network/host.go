@@ -30,7 +30,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
 	noise "github.com/libp2p/go-libp2p-noise"
-	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
+	//rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -60,6 +60,21 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	// create connection manager
 	cm := newConnManager(defaultMaxPeerCount)
 
+	// format bootnodes
+	bns, err := stringsToAddrInfos(cfg.Bootnodes)
+	if err != nil {
+		return nil, err
+	}
+
+	dhtOpts := []kaddht.Option{
+		kaddht.Datastore(dsync.MutexWrap(ds.NewMapDatastore())), // TODO: use on-disk datastore
+		kaddht.BootstrapPeers(bns...),
+	}
+
+	if cfg.NoMDNS {
+		dhtOpts = append(dhtOpts, kaddht.Mode(kaddht.ModeAutoServer))
+	}
+
 	// set libp2p host options
 	opts := []libp2p.Option{
 		libp2p.ListenAddrs(addr),
@@ -76,14 +91,6 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		return nil, err
 	}
 
-	dhtOpts := []kaddht.Option{
-		kaddht.Datastore(dsync.MutexWrap(ds.NewMapDatastore())),
-	}
-
-	if cfg.NoMDNS {
-		dhtOpts = append(dhtOpts, kaddht.Mode(kaddht.ModeAutoServer))
-	}
-
 	// create DHT service
 	dht, err := kaddht.New(ctx, h, dhtOpts...)
 	if err != nil {
@@ -91,13 +98,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	}
 
 	// wrap host and DHT service with routed host
-	h = rhost.Wrap(h, dht)
-
-	// format bootnodes
-	bns, err := stringsToAddrInfos(cfg.Bootnodes)
-	if err != nil {
-		return nil, err
-	}
+	// h = rhost.Wrap(h, dht)
 
 	// format protocol id
 	pid := protocol.ID(cfg.ProtocolID)

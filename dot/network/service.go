@@ -20,6 +20,7 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -31,6 +32,7 @@ import (
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
+	discovery "github.com/libp2p/go-libp2p-discovery"
 )
 
 const (
@@ -79,6 +81,7 @@ type Service struct {
 
 	// Configuration options
 	noBootstrap bool
+	noDiscover  bool
 	noMDNS      bool
 	noGossip    bool // internal option
 }
@@ -195,6 +198,50 @@ func (s *Service) Start() error {
 		s.mdns.start()
 	}
 
+	if !s.noDiscover {
+		go func() {
+			err = s.beginDiscovery()
+			if err != nil {
+				logger.Error("failed to begin DHT discovery", "error", err)
+			}
+		}()
+	}
+
+	return nil
+}
+
+func (s *Service) beginDiscovery() error {
+	rd := discovery.NewRoutingDiscovery(s.host.dht)
+
+	err := s.host.dht.Bootstrap(s.ctx)
+	if err != nil {
+		return fmt.Errorf("failed to bootstrap DHT: %w", err)
+	}
+
+	time.Sleep(time.Millisecond * 100)
+
+	_, err = rd.Advertise(s.ctx, s.cfg.ProtocolID)
+	if err != nil {
+		return fmt.Errorf("failed to begin advertising: %w", err)
+	}
+
+	go func() {
+		peerCh, err := rd.FindPeers(s.ctx, s.cfg.ProtocolID)
+		if err != nil {
+			logger.Error("failed to begin finding peers via DHT", "err", err)
+		}
+
+		for peer := range peerCh {
+			logger.Debug("found new peer via DHT", "peer", peer.ID)
+			// found a peer, try to connect
+			err = s.host.connect(peer)
+			if err != nil {
+				logger.Debug("failed to connect to discovered peer", "peer", peer.ID, "err", err)
+			}
+		}
+	}()
+
+	logger.Info("DHT discovery started!")
 	return nil
 }
 
