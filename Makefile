@@ -81,6 +81,10 @@ build-debug:
 init:
 	./bin/gossamer --key alice init --genesis chain/gssmr/genesis.json
 
+## init-repo: Set initial configuration for the repo
+init-repo:
+	git config core.hooksPath .githooks
+
 ## start: Starts application from binary executable in `./bin/gossamer` with built-in key alice
 start:
 	@echo "  >  \033[32mStarting node...\033[0m "
