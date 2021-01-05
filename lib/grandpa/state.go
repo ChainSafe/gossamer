@@ -57,7 +57,7 @@ type DigestHandler interface {
 
 // Network is the interface required by GRANDPA for the network
 type Network interface {
-	SendMessage(msg network.Message)
+	SendMessage(msg network.NotificationsMessage)
 	RegisterNotificationsProtocol(sub protocol.ID,
 		messageID byte,
 		handshakeGetter network.HandshakeGetter,

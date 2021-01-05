@@ -108,7 +108,7 @@ func (x *Bytes) Set(exists bool, value []byte) {
 
 // Encode returns the SCALE encoded optional
 func (x *Bytes) Encode() ([]byte, error) {
-	if !x.exists {
+	if x == nil || !x.exists {
 		return []byte{0}, nil
 	}
 

@@ -21,11 +21,82 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/scale"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 )
+
+var (
+	_ NotificationsMessage = &TransactionMessage{}
+	_ NotificationsMessage = &transactionHandshake{}
+)
+
+// TransactionMessage is a network message that is sent to notify of new transactions entering the network
+type TransactionMessage struct {
+	Extrinsics []types.Extrinsic
+}
+
+// Type returns TransactionMsgType
+func (tm *TransactionMessage) Type() byte {
+	return TransactionMsgType
+}
+
+// String returns the TransactionMessage extrinsics
+func (tm *TransactionMessage) String() string {
+	return fmt.Sprintf("TransactionMessage extrinsics=%x", tm.Extrinsics)
+}
+
+// Encode will encode TransactionMessage using scale.Encode
+func (tm *TransactionMessage) Encode() ([]byte, error) {
+	// scale encode each extrinsic
+	var encodedExtrinsics = make([]byte, 0)
+	for _, extrinsic := range tm.Extrinsics {
+		encExt, err := scale.Encode([]byte(extrinsic))
+		if err != nil {
+			return nil, err
+		}
+		encodedExtrinsics = append(encodedExtrinsics, encExt...)
+	}
+
+	// scale encode the set of all extrinsics
+	return scale.Encode(encodedExtrinsics)
+}
+
+// Decode the message into a TransactionMessage, it assumes the type byte han been removed
+func (tm *TransactionMessage) Decode(r io.Reader) error {
+	sd := scale.Decoder{Reader: r}
+	decodedMessage, err := sd.Decode([]byte{})
+	if err != nil {
+		return err
+	}
+	messageSize := len(decodedMessage.([]byte))
+	bytesProcessed := 0
+	// loop through the message decoding extrinsics until they have all been decoded
+	for bytesProcessed < messageSize {
+		decodedExtrinsic, err := scale.Decode(decodedMessage.([]byte)[bytesProcessed:], []byte{})
+		if err != nil {
+			return err
+		}
+		bytesProcessed = bytesProcessed + len(decodedExtrinsic.([]byte)) + 1 // add 1 to processed since the first decode byte is consumed during decoding
+		tm.Extrinsics = append(tm.Extrinsics, decodedExtrinsic.([]byte))
+	}
+
+	return nil
+}
+
+// Hash returns the hash of the TransactionMessage
+func (tm *TransactionMessage) Hash() common.Hash {
+	encMsg, _ := tm.Encode()
+	hash, _ := common.Blake2bHash(encMsg)
+	return hash
+}
+
+// IsHandshake returns false
+func (tm *TransactionMessage) IsHandshake() bool {
+	return false
+}
 
 type transactionHandshake struct {
 	Roles byte
@@ -54,9 +125,9 @@ func (hs *transactionHandshake) Type() byte {
 	return 0
 }
 
-// IDString ...
-func (hs *transactionHandshake) IDString() string {
-	return ""
+// Hash ...
+func (hs *transactionHandshake) Hash() common.Hash {
+	return common.Hash{}
 }
 
 // IsHandshake returns true
@@ -85,13 +156,13 @@ func validateTransactionHandshake(_ Handshake) error {
 	return nil
 }
 
-func decodeTransactionMessage(r io.Reader) (Message, error) {
+func decodeTransactionMessage(r io.Reader) (NotificationsMessage, error) {
 	msg := new(TransactionMessage)
 	err := msg.Decode(r)
 	return msg, err
 }
 
-func (s *Service) handleTransactionMessage(_ peer.ID, msg Message) error {
+func (s *Service) handleTransactionMessage(_ peer.ID, msg NotificationsMessage) error {
 	txMsg, ok := msg.(*TransactionMessage)
 	if !ok {
 		return errors.New("invalid transaction type")
