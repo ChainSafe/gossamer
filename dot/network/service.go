@@ -18,6 +18,7 @@ package network
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -65,14 +66,19 @@ type Service struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	cfg                    *Config
-	host                   *host
-	mdns                   *mdns
-	gossip                 *gossip
-	requestTracker         *requestTracker
-	errCh                  chan<- error
+	cfg    *Config
+	host   *host
+	mdns   *mdns
+	gossip *gossip
+	errCh  chan<- error
+
 	notificationsProtocols map[byte]*notificationsProtocol // map of sub-protocol msg ID to protocol info
 	notificationsMu        sync.RWMutex
+
+	syncing        map[peer.ID]struct{} // set if we have sent a block request message to the given peer
+	syncingMu      sync.RWMutex
+	lightRequest   map[peer.ID]struct{} // set if we have sent a light request message to the given peer
+	lightRequestMu sync.RWMutex
 
 	// Service interfaces
 	blockState         BlockState
@@ -114,7 +120,6 @@ func NewService(cfg *Config) (*Service, error) {
 		host:                   host,
 		mdns:                   newMDNS(host),
 		gossip:                 newGossip(),
-		requestTracker:         newRequestTracker(logger),
 		blockState:             cfg.BlockState,
 		transactionHandler:     cfg.TransactionHandler,
 		noBootstrap:            cfg.NoBootstrap,
@@ -122,6 +127,8 @@ func NewService(cfg *Config) (*Service, error) {
 		syncer:                 cfg.Syncer,
 		errCh:                  cfg.ErrChan,
 		notificationsProtocols: make(map[byte]*notificationsProtocol),
+		syncing:                make(map[peer.ID]struct{}),
+		lightRequest:           make(map[peer.ID]struct{}),
 	}
 
 	return network, err
@@ -330,7 +337,7 @@ func (s *Service) IsStopped() bool {
 }
 
 // SendMessage implementation of interface to handle receiving messages
-func (s *Service) SendMessage(msg Message) {
+func (s *Service) SendMessage(msg NotificationsMessage) {
 	if s.host == nil {
 		return
 	}
@@ -376,8 +383,31 @@ func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 	}
 
 	peer := conn.RemotePeer()
-	s.readStream(stream, peer, decodeMessageBytes, s.handleSyncMessage)
-	// the stream stays open until closed or reset
+	s.readStream(stream, peer, s.decodeSyncMessage, s.handleSyncMessage)
+}
+
+func (s *Service) decodeSyncMessage(in []byte, peer peer.ID) (Message, error) {
+	r := &bytes.Buffer{}
+	_, err := r.Write(in)
+	if err != nil {
+		return nil, err
+	}
+
+	s.syncingMu.RLock()
+	defer s.syncingMu.RUnlock()
+
+	// check if we are the requester
+	if _, requested := s.syncing[peer]; requested {
+		// if we are, decode the bytes as a BlockResponseMessage
+		msg := new(BlockResponseMessage)
+		err = msg.Decode(r)
+		return msg, err
+	}
+
+	// otherwise, decode bytes as BlockRequestMessage
+	msg := new(BlockRequestMessage)
+	err = msg.Decode(r)
+	return msg, err
 }
 
 // handleLightStream handles streams with the <protocol-id>/light/2 protocol ID
@@ -389,8 +419,31 @@ func (s *Service) handleLightStream(stream libp2pnetwork.Stream) {
 	}
 
 	peer := conn.RemotePeer()
-	s.readStream(stream, peer, decodeMessageBytes, s.handleLightSyncMsg)
-	// the stream stays open until closed or reset
+	s.readStream(stream, peer, s.decodeLightMessage, s.handleLightSyncMsg)
+}
+
+func (s *Service) decodeLightMessage(in []byte, peer peer.ID) (Message, error) {
+	r := &bytes.Buffer{}
+	_, err := r.Write(in)
+	if err != nil {
+		return nil, err
+	}
+
+	s.lightRequestMu.RLock()
+	defer s.lightRequestMu.RUnlock()
+
+	// check if we are the requester
+	if _, requested := s.lightRequest[peer]; requested {
+		// if we are, decode the bytes as a LightResponse
+		msg := NewLightResponse()
+		err = msg.Decode(r)
+		return msg, err
+	}
+
+	// otherwise, decode bytes as LightRequest
+	msg := NewLightRequest()
+	err = msg.Decode(r)
+	return msg, err
 }
 
 func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder messageDecoder, handler messageHandler) {
@@ -443,7 +496,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 			"Received message from peer",
 			"host", s.host.id(),
 			"peer", peer,
-			"type", msg.Type(),
+			"msg", msg.String(),
 		)
 
 		// handle message based on peer status and message type
@@ -502,18 +555,23 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 		return nil
 	}
 
-	// if it's a BlockResponse with an ID corresponding to a BlockRequest we sent, forward
-	// message to the sync service
-	if resp, ok := msg.(*BlockResponseMessage); ok && s.requestTracker.hasRequestedBlockID(resp.ID) {
-		s.requestTracker.removeRequestedBlockID(resp.ID)
+	if resp, ok := msg.(*BlockResponseMessage); ok {
+		if _, isSyncing := s.syncing[peer]; !isSyncing {
+			logger.Debug("not currently syncing with peer", "peer", peer)
+			return nil
+		}
 
 		req := s.syncer.HandleBlockResponse(resp)
 		if req != nil {
-			s.requestTracker.addRequestedBlockID(req.ID)
+			s.syncing[peer] = struct{}{}
 			err := s.host.send(peer, syncID, req)
 			if err != nil {
 				logger.Error("failed to send BlockRequest message", "peer", peer)
 			}
+		} else {
+			// we are done syncing
+			delete(s.syncing, peer)
+			// TODO: close stream
 		}
 	}
 
@@ -521,7 +579,7 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 	if req, ok := msg.(*BlockRequestMessage); ok {
 		resp, err := s.syncer.CreateBlockResponse(req)
 		if err != nil {
-			logger.Debug("cannot create response for request", "id", req.ID)
+			logger.Debug("cannot create response for request")
 			// TODO: close stream
 			return nil
 		}

@@ -172,7 +172,7 @@ func (h *host) send(p peer.ID, sub protocol.ID, msg Message) (err error) {
 		"Sent message to peer",
 		"host", h.id(),
 		"peer", p,
-		"type", msg.Type(),
+		"message", msg.String(),
 	)
 
 	return nil
