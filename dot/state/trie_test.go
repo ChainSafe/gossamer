@@ -189,3 +189,37 @@ func TestTrieState_Root(t *testing.T) {
 	ts = newTestTrieStateWithBadgerDB(t)
 	testFunc(ts)
 }
+
+func TestTrieState_ClearPrefixInChild(t *testing.T) {
+	ts := newTestTrieStateWithMemDB(t)
+	child := trie.NewEmptyTrie()
+
+	keys := []string{
+		"noot",
+		"noodle",
+		"other",
+	}
+
+	for i, key := range keys {
+		err := child.Put([]byte(key), []byte{byte(i)})
+		require.NoError(t, err)
+	}
+
+	keyToChild := []byte("keytochild")
+
+	err := ts.SetChild(keyToChild, child)
+	require.NoError(t, err)
+
+	err = ts.ClearPrefixInChild(keyToChild, []byte("noo"))
+	require.NoError(t, err)
+
+	for i, key := range keys {
+		val, err := ts.GetChildStorage(keyToChild, []byte(key))
+		require.NoError(t, err)
+		if i < 2 {
+			require.Nil(t, val)
+		} else {
+			require.NotNil(t, val)
+		}
+	}
+}
