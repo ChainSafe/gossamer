@@ -158,6 +158,7 @@ func (s *Service) Start() error {
 		s.ctx, s.cancel = context.WithCancel(context.Background())
 	}
 
+	s.host.registerConnHandler(s.handleConn)
 	s.host.registerStreamHandler(syncID, s.handleSyncStream)
 	s.host.registerStreamHandler(lightID, s.handleLightStream)
 
@@ -250,6 +251,29 @@ func (s *Service) beginDiscovery() error {
 
 	logger.Info("DHT discovery started!")
 	return nil
+}
+
+// handleConn starts processes that manage the connection
+func (s *Service) handleConn(conn libp2pnetwork.Conn) {
+	// // get latest block header from block state
+	// latestBlock, err := s.blockState.BestBlockHeader()
+	// if err != nil || (latestBlock == nil || latestBlock.Number == nil) {
+	// 	logger.Error("Failed to get chain head", "error", err)
+	// 	return
+	// }
+
+	// // update host status message
+	// msg := &StatusMessage{
+	// 	ProtocolVersion:     3,//s.cfg.ProtocolVersion,
+	// 	MinSupportedVersion: 3,//s.cfg.MinSupportedVersion,
+	// 	Roles:               s.cfg.Roles,
+	// 	BestBlockNumber:     latestBlock.Number.Uint64(),
+	// 	BestBlockHash:       latestBlock.Hash(),
+	// 	GenesisHash:         s.blockState.GenesisHash(),
+	// 	ChainStatus:         []byte{0}, // TODO
+	// }
+
+	// _ = s.host.send(conn.RemotePeer(), "", msg)
 }
 
 // Stop closes running instances of the host and network services as well as
@@ -497,6 +521,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 			"host", s.host.id(),
 			"peer", peer,
 			"msg", msg.String(),
+			"raw", common.BytesToHex(msgBytes),
 		)
 
 		// handle message based on peer status and message type

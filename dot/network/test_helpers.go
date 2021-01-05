@@ -46,6 +46,10 @@ func (s *mockSyncer) HandleBlockAnnounce(msg *BlockAnnounceMessage) *BlockReques
 	}
 }
 
+func (s *mockSyncer) HandleBlockAnnounceHandshake(num *big.Int) *BlockRequestMessage {
+	return nil
+}
+
 func (s *mockSyncer) IsSynced() bool {
 	return s.synced
 }

@@ -115,6 +115,30 @@ func NewService(cfg *Config) (*Service, error) {
 	}, nil
 }
 
+// HandleBlockAnnounceHandshake handles a block that a peer claims to have through a HandleBlockAnnounceHandshake
+func (s *Service) HandleBlockAnnounceHandshake(blockNum *big.Int) *network.BlockRequestMessage {
+	if blockNum == nil || s.highestSeenBlock.Cmp(blockNum) != -1 {
+		return nil
+	}
+
+	// need to sync
+	var start int64
+	if s.synced {
+		start = s.highestSeenBlock.Add(s.highestSeenBlock, big.NewInt(1)).Int64()
+		s.synced = false
+
+		err := s.blockProducer.Pause()
+		if err != nil {
+			s.logger.Warn("failed to pause block production")
+		}
+	} else {
+		start = s.highestSeenBlock.Int64()
+	}
+
+	s.highestSeenBlock = blockNum
+	return s.createBlockRequest(start)
+}
+
 // HandleBlockAnnounce creates a block request message from the block
 // announce messages (block announce messages include the header but the full
 // block is required to execute `core_execute_block`).

@@ -42,7 +42,7 @@ type (
 	HandshakeDecoder = func(io.Reader) (Handshake, error)
 
 	// HandshakeValidator validates a handshake. It returns an error if it is invalid
-	HandshakeValidator = func(Handshake) error
+	HandshakeValidator = func(peer.ID, Handshake) error
 
 	// MessageDecoder is a custom decoder for a message
 	MessageDecoder = func(io.Reader) (NotificationsMessage, error)
@@ -115,7 +115,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			// if we are the receiver and haven't received the handshake already, validate it
 			if _, has := info.handshakeData[peer]; !has {
 				logger.Trace("receiver: validating handshake", "sub-protocol", info.subProtocol)
-				err := handshakeValidator(hs)
+				err := handshakeValidator(peer, hs)
 				if err != nil {
 					logger.Error("failed to validate handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
 					info.handshakeData[peer] = &handshakeData{
@@ -148,7 +148,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			// if we are the initiator and haven't received the handshake already, validate it
 			if hsData, has := info.handshakeData[peer]; has && !hsData.validated {
 				logger.Trace("sender: validating handshake")
-				err := handshakeValidator(hs)
+				err := handshakeValidator(peer, hs)
 				if err != nil {
 					logger.Error("failed to validate handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
 					// TODO: also delete on stream close

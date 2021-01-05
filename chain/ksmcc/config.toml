@@ -6,7 +6,7 @@ log = "info"
 
 [log]
 core = ""
-network = ""
+network = "trace"
 rpc = ""
 state = ""
 runtime = ""
@@ -28,7 +28,6 @@ grandpa-authority = false
 [network]
 port = 7001
 bootnodes = []
-protocol = "/gossamer/ksmcc/0"
 nobootstrap = false
 nomdns = false
 
