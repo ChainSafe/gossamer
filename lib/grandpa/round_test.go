@@ -50,7 +50,7 @@ func newTestNetwork(t *testing.T) *testNetwork {
 	}
 }
 
-func (n *testNetwork) SendMessage(msg Message) {
+func (n *testNetwork) SendMessage(msg NotificationsMessage) {
 	cm, ok := msg.(*ConsensusMessage)
 	require.True(n.t, ok)
 

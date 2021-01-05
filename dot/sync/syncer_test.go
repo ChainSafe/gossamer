@@ -90,6 +90,10 @@ func newTestSyncer(t *testing.T) *Service {
 }
 
 func TestHandleBlockResponse(t *testing.T) {
+	if testing.Short() {
+		t.Skip() // this test takes around 4min to run
+	}
+
 	syncer := newTestSyncer(t)
 	syncer.highestSeenBlock = big.NewInt(132)
 
@@ -109,7 +113,6 @@ func TestHandleBlockResponse(t *testing.T) {
 	require.NoError(t, err)
 
 	req := &network.BlockRequestMessage{
-		ID:            1,
 		RequestedData: 3,
 		StartingBlock: start,
 	}
@@ -161,7 +164,6 @@ func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
 	require.NoError(t, err)
 
 	req := &network.BlockRequestMessage{
-		ID:            1,
 		RequestedData: 3,
 		StartingBlock: start,
 	}
@@ -210,7 +212,6 @@ func TestRemoveIncludedExtrinsics(t *testing.T) {
 func TestHandleBlockResponse_NoBlockData(t *testing.T) {
 	syncer := newTestSyncer(t)
 	msg := &network.BlockResponseMessage{
-		ID:        0,
 		BlockData: nil,
 	}
 	low, high, err := syncer.processBlockResponseData(msg)
@@ -235,7 +236,6 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 		Justification: nil,
 	}}
 	msg := &network.BlockResponseMessage{
-		ID:        0,
 		BlockData: bd,
 	}
 	low, high, err := syncer.processBlockResponseData(msg)
