@@ -33,7 +33,7 @@ jobs:
         run: make build
 
   publish-code-coverage:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-go@v1
         with:
