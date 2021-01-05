@@ -89,5 +89,5 @@ func TestHandleBlockAnnounceMessage(t *testing.T) {
 	}
 
 	s.handleBlockAnnounceMessage(peerID, msg)
-	require.True(t, s.requestTracker.hasRequestedBlockID(99))
+	require.NotNil(t, s.syncing[peerID])
 }
