@@ -17,9 +17,6 @@
 package wasmer
 
 import (
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
 	"path/filepath"
 	"testing"
 
@@ -30,7 +27,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	log "github.com/ChainSafe/log15"
-	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	"github.com/stretchr/testify/require"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
@@ -143,18 +139,4 @@ type mockTransactionState struct {
 // AddToPool adds a transaction to the pool
 func (mt *mockTransactionState) AddToPool(vt *transaction.ValidTransaction) common.Hash {
 	return common.BytesToHash([]byte("test"))
-}
-
-func generateKeyPairs() (pubKey, prvKey []byte) {
-	key, err := ecdsa.GenerateKey(secp256k1.S256(), rand.Reader)
-	if err != nil {
-		panic(err)
-	}
-	pubKey = elliptic.Marshal(secp256k1.S256(), key.X, key.Y)
-
-	prvKey = make([]byte, 32)
-	blob := key.D.Bytes()
-	copy(prvKey[32-len(blob):], blob)
-
-	return pubKey, prvKey
 }

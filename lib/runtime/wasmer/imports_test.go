@@ -28,6 +28,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	"github.com/stretchr/testify/require"
 )
@@ -434,7 +435,7 @@ func Test_ext_crypto_secp256k1_ecdsa_recover_version_1(t *testing.T) {
 	blakeHash, err := common.Blake2bHash(msgData)
 	require.NoError(t, err)
 
-	pubKey, secKey := generateKeyPairs()
+	pubKey, secKey := utils.GenerateKeyPairs()
 	sigData, err := secp256k1.Sign(blakeHash.ToBytes(), secKey)
 	require.NoError(t, err)
 

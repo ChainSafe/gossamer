@@ -17,6 +17,9 @@
 package utils
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -25,6 +28,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 )
 
 // PathExists returns true if the named file or directory exists, otherwise false
@@ -191,4 +196,19 @@ func GetKsmccGenesisPath() string {
 	}
 
 	return fp
+}
+
+// GenerateKeyPairs public and private secp256k1 keys
+func GenerateKeyPairs() (pubKey, prvKey []byte) {
+	key, err := ecdsa.GenerateKey(secp256k1.S256(), rand.Reader)
+	if err != nil {
+		panic(err)
+	}
+	pubKey = elliptic.Marshal(secp256k1.S256(), key.X, key.Y)
+
+	prvKey = make([]byte, 32)
+	blob := key.D.Bytes()
+	copy(prvKey[32-len(blob):], blob)
+
+	return pubKey, prvKey
 }
