@@ -101,12 +101,14 @@ func NewService(cfg *Config) (*Service, error) {
 	// build configuration
 	err := cfg.build()
 	if err != nil {
+		cancel()
 		return nil, err //nolint
 	}
 
 	// create a new host instance
 	host, err := newHost(ctx, cfg)
 	if err != nil {
+		cancel()
 		return nil, err
 	}
 
