@@ -101,7 +101,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			return errors.New("message is not NotificationsMessage")
 		}
 
-		logger.Info("received message on notifications sub-protocol", "sub-protocol", info.subProtocol, "message", msg)
+		logger.Debug("received message on notifications sub-protocol", "sub-protocol", info.subProtocol, "message", msg)
 
 		if msg.IsHandshake() {
 			hs, ok := msg.(Handshake)

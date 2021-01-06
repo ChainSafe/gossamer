@@ -314,7 +314,7 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 	info := s.notificationsProtocols[messageID]
 
 	s.host.registerStreamHandler(sub, func(stream libp2pnetwork.Stream) {
-		logger.Info("received stream", "sub-protocol", sub)
+		logger.Trace("received stream", "sub-protocol", sub)
 		conn := stream.Conn()
 		if conn == nil {
 			logger.Error("Failed to get connection from stream")
@@ -455,7 +455,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 	for {
 		length, err := readLEB128ToUint64(r)
 		if err != nil {
-			logger.Error("Failed to read LEB128 encoding", "error", err)
+			logger.Error("Failed to read LEB128 encoding", "protocol", stream.Protocol(), "error", err)
 			_ = stream.Close()
 			s.errCh <- err
 			return
