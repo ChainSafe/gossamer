@@ -138,6 +138,34 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 	}
 }
 
+func TestSync_MultipleEpoch(t *testing.T) {
+	numNodes = 3 // TODO: increase this when syncing improves
+	utils.SetLogLevel(log.LvlInfo)
+
+	// start block producing node first
+	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDefault, utils.ConfigBABEMaxThreshold, false)
+	require.NoError(t, err)
+
+	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
+	// all nodes vote for different blocks.
+	time.Sleep(time.Second * 5)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDefault, utils.ConfigNoBABE)
+	require.NoError(t, err)
+	nodes = append(nodes, node)
+
+	defer func() {
+		errList := utils.StopNodes(t, nodes)
+		require.Len(t, errList, 0)
+	}()
+
+	numCmps := 10
+	for i := 0; i < numCmps; i++ {
+		time.Sleep(time.Second)
+		t.Log("comparing...", i)
+		// TODO: #1195 check randomness and that epoch has increased
+	}
+}
+
 func TestSync_SingleSyncingNode(t *testing.T) {
 	// TODO: Fix this test and enable it.
 	t.Skip("skipping TestSync_SingleSyncingNode")
