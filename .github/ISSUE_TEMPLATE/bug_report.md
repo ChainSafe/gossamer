@@ -1,8 +1,17 @@
-<!---
+---
+name: Bug report
+about: Create a report to help us improve
+title: ''
+labels: 'Type: Bug'
+assignees: ''
 
-PLEASE READ CAREFULLY
+---
 
--->
+## Describe the bug
+<!-- A clear and concise description of what the bug is. -->
+
+- 
+
 
 ## Expected Behavior
 
@@ -15,6 +24,7 @@ If you're suggesting a change/improvement, tell us how it should work.
 -->
 
 -
+
 
 ## Current Behavior
 
@@ -29,6 +39,7 @@ suggestion and current behavior.
 
 -
 
+
 ## Possible Solution
 
 <!---
@@ -42,25 +53,25 @@ submit a PR and you'll get credit for the whole thing.
 
 -
 
-## Steps to Reproduce
 
-<!---
+## To Reproduce
+Steps to reproduce the behavior:
 
-This is the most important information you can give us for a bug report.
-Without good information, it will take much longer to resolve your issue!
+1. 
+2. 
+3. 
 
-The best strategy here is to assume the maintainer reading this just started
-working on the project yesterday.
 
-If possible, please provide a link to a live example, or an unambiguous set of
-steps to reproduce this bug. Include code to reproduce, if relevant.
-
--->
-
-1.
-2.
-3.
-4.
+## Log output
+<!-- Please paste the log output derived from the error. -->
+<details>
+  <summary>Log Output</summary>
+  
+  ```Paste log output here
+  paste log output...
+  ```
+</details> 
+</br>
 
 ## Specification
 
@@ -85,15 +96,5 @@ specification section if a specification is not applicable):
 - operating system:
 - additional links:
 
-## Checklist
 
-<!---
-
-Each empty square brackets below is a checkbox. Replace [ ] with [x] to check
-the box after completing the task.
-
---->
-
-- [ ] I have read [CODE_OF_CONDUCT](https://github.com/ChainSafe/gossamer/blob/development/.github/CODE_OF_CONDUCT.md) and [CONTRIBUTING](https://github.com/ChainSafe/gossamer/blob/development/.github/CONTRIBUTING.md) 
-- [ ] I have provided as much information as possible and necessary
-- [ ] I am planning to submit a pull request to fix this issue myself
+<!-- Thank you 🙏 -->
