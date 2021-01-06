@@ -6,7 +6,7 @@ log = "info"
 
 [log]
 core = ""
-network = "trace"
+network = ""
 rpc = ""
 state = ""
 runtime = ""
