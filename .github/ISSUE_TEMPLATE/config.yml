@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+    - name: Substrate Technical Forum
+      url: https://app.element.io/#/room/#substrate-technical:matrix.org
+      about: Please ask questions here.
+    - name: ChainSafe Gossamer Implementation Forum
+      url: https://discord.gg/zy8eRF7FG2
+      about: Please ask Gossamer specific questions here.      
