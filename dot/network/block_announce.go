@@ -168,9 +168,9 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 		return errors.New("invalid handshake type")
 	}
 
-	// if bhs.GenesisHash != s.blockState.GenesisHash() {
-	// 	return errors.New("genesis hash mismatch")
-	// }
+	if bhs.GenesisHash != s.blockState.GenesisHash() {
+		return errors.New("genesis hash mismatch")
+	}
 
 	// if peer has higher best block than us, begin syncing
 	latestHeader, err := s.blockState.BestBlockHeader()

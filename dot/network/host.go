@@ -29,7 +29,9 @@ import (
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
+	"github.com/libp2p/go-libp2p-kad-dht/dual"
 	noise "github.com/libp2p/go-libp2p-noise"
+	//secio "github.com/libp2p/go-libp2p-secio"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -40,7 +42,7 @@ var defaultMaxPeerCount = 5
 type host struct {
 	ctx        context.Context
 	h          libp2phost.Host
-	dht        *kaddht.IpfsDHT
+	dht        *dual.DHT
 	bootnodes  []peer.AddrInfo
 	protocolID protocol.ID
 }
@@ -69,6 +71,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	dhtOpts := []kaddht.Option{
 		kaddht.Datastore(dsync.MutexWrap(ds.NewMapDatastore())), // TODO: use on-disk datastore
 		kaddht.BootstrapPeers(bns...),
+		kaddht.ProtocolPrefix(protocol.ID(cfg.ProtocolID)),
 	}
 
 	if cfg.NoMDNS {
@@ -82,6 +85,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		libp2p.Identity(cfg.privateKey),
 		libp2p.NATPortMap(),
 		libp2p.ConnectionManager(cm),
+		//libp2p.ChainOptions(libp2p.DefaultSecurity, libp2p.Security(secio.ID, secio.New)),
 		libp2p.ChainOptions(libp2p.DefaultSecurity, libp2p.Security(noise.ID, noise.New)),
 	}
 
@@ -92,7 +96,8 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	}
 
 	// create DHT service
-	dht, err := kaddht.New(ctx, h, dhtOpts...)
+	dht, err := dual.New(ctx, h, dhtOpts...)
+	//dht, err := kaddht.New(ctx, h, dhtOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +139,7 @@ func (h *host) close() error {
 }
 
 // registerConnHandler registers the connection handler (see handleConn)
-func (h *host) registerConnHandler(handler func(libp2pnetwork.Conn)) {
+func (h *host) registerConnHandler(handler func(libp2pnetwork.Conn)) { //nolint
 	h.h.Network().SetConnHandler(handler)
 }
 

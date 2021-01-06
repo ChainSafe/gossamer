@@ -17,6 +17,7 @@
 package modules
 
 import (
+	"math/big"
 	"os"
 	"path"
 	"testing"
@@ -47,6 +48,10 @@ func (s *mockSyncer) HandleBlockResponse(msg *network.BlockResponseMessage) *net
 }
 
 func (s *mockSyncer) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) *network.BlockRequestMessage {
+	return nil
+}
+
+func (s *mockSyncer) HandleBlockAnnounceHandshake(num *big.Int) *network.BlockRequestMessage {
 	return nil
 }
 

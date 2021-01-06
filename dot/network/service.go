@@ -158,7 +158,6 @@ func (s *Service) Start() error {
 		s.ctx, s.cancel = context.WithCancel(context.Background())
 	}
 
-	s.host.registerConnHandler(s.handleConn)
 	s.host.registerStreamHandler(syncID, s.handleSyncStream)
 	s.host.registerStreamHandler(lightID, s.handleLightStream)
 
@@ -221,12 +220,15 @@ func (s *Service) Start() error {
 func (s *Service) beginDiscovery() error {
 	rd := discovery.NewRoutingDiscovery(s.host.dht)
 
+	time.Sleep(time.Second * 2)
+
 	err := s.host.dht.Bootstrap(s.ctx)
 	if err != nil {
 		return fmt.Errorf("failed to bootstrap DHT: %w", err)
 	}
 
-	time.Sleep(time.Millisecond * 100)
+	// wait to connect to bootstrap peers
+	time.Sleep(time.Second * 2)
 
 	_, err = rd.Advertise(s.ctx, s.cfg.ProtocolID)
 	if err != nil {
@@ -251,29 +253,6 @@ func (s *Service) beginDiscovery() error {
 
 	logger.Info("DHT discovery started!")
 	return nil
-}
-
-// handleConn starts processes that manage the connection
-func (s *Service) handleConn(conn libp2pnetwork.Conn) {
-	// // get latest block header from block state
-	// latestBlock, err := s.blockState.BestBlockHeader()
-	// if err != nil || (latestBlock == nil || latestBlock.Number == nil) {
-	// 	logger.Error("Failed to get chain head", "error", err)
-	// 	return
-	// }
-
-	// // update host status message
-	// msg := &StatusMessage{
-	// 	ProtocolVersion:     3,//s.cfg.ProtocolVersion,
-	// 	MinSupportedVersion: 3,//s.cfg.MinSupportedVersion,
-	// 	Roles:               s.cfg.Roles,
-	// 	BestBlockNumber:     latestBlock.Number.Uint64(),
-	// 	BestBlockHash:       latestBlock.Hash(),
-	// 	GenesisHash:         s.blockState.GenesisHash(),
-	// 	ChainStatus:         []byte{0}, // TODO
-	// }
-
-	// _ = s.host.send(conn.RemotePeer(), "", msg)
 }
 
 // Stop closes running instances of the host and network services as well as
