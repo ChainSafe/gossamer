@@ -36,8 +36,7 @@ import (
 )
 
 var (
-	maxInt64        = int64(2 ^ 63 - 1)
-	responseTimeout = time.Minute
+	maxInt64 = int64(2 ^ 63 - 1)
 )
 
 // Service deals with chain syncing by sending block request messages and watching for responses.
