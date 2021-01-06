@@ -221,15 +221,13 @@ func (s *Service) Start() error {
 func (s *Service) beginDiscovery() error {
 	rd := discovery.NewRoutingDiscovery(s.host.dht)
 
-	time.Sleep(time.Second * 2)
-
 	err := s.host.dht.Bootstrap(s.ctx)
 	if err != nil {
 		return fmt.Errorf("failed to bootstrap DHT: %w", err)
 	}
 
 	// wait to connect to bootstrap peers
-	time.Sleep(time.Second * 2)
+	time.Sleep(time.Second)
 
 	_, err = rd.Advertise(s.ctx, s.cfg.ProtocolID)
 	if err != nil {
