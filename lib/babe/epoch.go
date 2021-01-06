@@ -44,6 +44,7 @@ func (b *Service) initiateEpoch(epoch, startSlot uint64) error {
 
 			err = b.epochState.SetEpochData(epoch, data)
 		} else {
+			b.logger.Info("getting epoch data")
 			data, err = b.epochState.GetEpochData(epoch)
 		}
 
@@ -51,10 +52,13 @@ func (b *Service) initiateEpoch(epoch, startSlot uint64) error {
 			return err
 		}
 
+		b.logger.Info("getting auth index")
 		idx, err := b.getAuthorityIndex(data.Authorities)
 		if err != nil {
 			return err
 		}
+
+		b.logger.Info("has config data")
 
 		has, err = b.epochState.HasConfigData(epoch)
 		if err != nil {
@@ -62,10 +66,13 @@ func (b *Service) initiateEpoch(epoch, startSlot uint64) error {
 		}
 
 		if has {
+			b.logger.Info("getting auth index")
 			cfgData, err := b.epochState.GetConfigData(epoch)
 			if err != nil {
 				return err
 			}
+
+			b.logger.Info("calculating threshold")
 
 			threshold, err := CalculateThreshold(cfgData.C1, cfgData.C2, len(data.Authorities))
 			if err != nil {
@@ -79,6 +86,8 @@ func (b *Service) initiateEpoch(epoch, startSlot uint64) error {
 				threshold:      threshold,
 			}
 		} else {
+			b.logger.Info("settng epoch data")
+
 			b.epochData = &epochData{
 				randomness:     data.Randomness,
 				authorities:    data.Authorities,
