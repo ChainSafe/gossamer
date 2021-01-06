@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 
+	pb "github.com/ChainSafe/gossamer/dot/network/proto"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
@@ -79,8 +80,30 @@ func (bm *BlockRequestMessage) String() string {
 		bm.Max.String())
 }
 
-// Encode encodes a block request message using SCALE
 func (bm *BlockRequestMessage) Encode() ([]byte, error) {
+	var (
+		fromBlock pb.isBlockRequest_FromBlock
+		toBlock   []byte
+		max       uint32
+	)
+
+	msg := pb.BlockRequest{
+		Fields:    uint32(bm.RequestedData),
+		FromBlock: fromBlock,
+		ToBlock:   toBlock,
+		Direction: pb.Direction(bm.Direction),
+		MaxBlocks: max,
+	}
+
+	return []byte(msg.String()), nil
+}
+
+func (bm *BlockRequestMessage) Decode(r io.Reader) error {
+	return nil
+}
+
+// Encode encodes a block request message using SCALE
+func (bm *BlockRequestMessage) SCALEEncode() ([]byte, error) {
 	encMsg := []byte{bm.RequestedData}
 
 	startingBlockArray, err := bm.StartingBlock.Encode()
@@ -110,7 +133,7 @@ func (bm *BlockRequestMessage) Encode() ([]byte, error) {
 }
 
 // Decode the message into a BlockRequestMessage
-func (bm *BlockRequestMessage) Decode(r io.Reader) error {
+func (bm *BlockRequestMessage) SCALEDecode(r io.Reader) error {
 	var err error
 
 	bm.RequestedData, err = common.ReadByte(r)
