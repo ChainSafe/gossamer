@@ -31,7 +31,6 @@ import (
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
 	noise "github.com/libp2p/go-libp2p-noise"
-	//secio "github.com/libp2p/go-libp2p-secio"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
 )
@@ -85,7 +84,6 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		libp2p.Identity(cfg.privateKey),
 		libp2p.NATPortMap(),
 		libp2p.ConnectionManager(cm),
-		//libp2p.ChainOptions(libp2p.DefaultSecurity, libp2p.Security(secio.ID, secio.New)),
 		libp2p.ChainOptions(libp2p.DefaultSecurity, libp2p.Security(noise.ID, noise.New)),
 	}
 
@@ -97,7 +95,6 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 
 	// create DHT service
 	dht, err := dual.New(ctx, h, dhtOpts...)
-	//dht, err := kaddht.New(ctx, h, dhtOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -305,4 +302,9 @@ func (h *host) multiaddrs() (multiaddrs []ma.Multiaddr) {
 		multiaddrs = append(multiaddrs, multiaddr)
 	}
 	return multiaddrs
+}
+
+// protocols returns all protocols currently supported by the node
+func (h *host) protocols() []string {
+	return h.h.Mux().Protocols()
 }

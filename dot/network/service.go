@@ -214,6 +214,7 @@ func (s *Service) Start() error {
 		}()
 	}
 
+	logger.Info("started network service", "supported protocols", s.host.protocols())
 	return nil
 }
 

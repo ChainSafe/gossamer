@@ -284,8 +284,9 @@ func TestGetAuthorityIndex(t *testing.T) {
 	}
 
 	bs := &Service{
-		keypair: kpA,
-		logger:  log.New("BABE"),
+		keypair:   kpA,
+		logger:    log.New("BABE"),
+		authority: true,
 	}
 
 	idx, err := bs.getAuthorityIndex(authData)
@@ -293,8 +294,9 @@ func TestGetAuthorityIndex(t *testing.T) {
 	require.Equal(t, uint64(0), idx)
 
 	bs = &Service{
-		keypair: kpB,
-		logger:  log.New("BABE"),
+		keypair:   kpB,
+		logger:    log.New("BABE"),
+		authority: true,
 	}
 
 	idx, err = bs.getAuthorityIndex(authData)

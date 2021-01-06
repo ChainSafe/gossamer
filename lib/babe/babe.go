@@ -200,13 +200,11 @@ func (b *Service) setEpochData(cfg *ServiceConfig, genCfg *types.BabeConfigurati
 
 // Start starts BABE block authoring
 func (b *Service) Start() error {
-	b.logger.Info("babe.Start getting current epoch")
 	epoch, err := b.epochState.GetCurrentEpoch()
 	if err != nil {
 		b.logger.Error("failed to get current epoch", "error", err)
 		return err
 	}
-	b.logger.Info("babe.Start initiating epoch", "epoch", epoch, "start slot", b.startSlot)
 
 	// TODO: initiateEpoch sigabrts w/ non authority node epoch > 1. fix this!!
 	err = b.initiateEpoch(epoch, b.startSlot)
@@ -214,8 +212,6 @@ func (b *Service) Start() error {
 		b.logger.Error("failed to initiate epoch", "error", err)
 		return err
 	}
-
-	b.logger.Info("babe.Start beginning babe")
 
 	go b.initiate()
 	return nil
@@ -315,6 +311,10 @@ func (b *Service) safeSend(msg types.Block) error {
 }
 
 func (b *Service) getAuthorityIndex(Authorities []*types.Authority) (uint64, error) {
+	if !b.authority {
+		return 0, ErrNotAuthority
+	}
+
 	pub := b.keypair.Public()
 
 	for i, auth := range Authorities {
