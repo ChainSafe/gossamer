@@ -106,10 +106,8 @@ func NewDigestHandler(blockState BlockState, epochState EpochState, babe BlockPr
 
 // Start starts the DigestHandler
 func (h *DigestHandler) Start() {
-	ctx, _ := context.WithCancel(h.ctx) //nolint
-	go h.handleBlockImport(ctx)
-	ctx, _ = context.WithCancel(h.ctx) //nolint
-	go h.handleBlockFinalization(ctx)
+	go h.handleBlockImport(h.ctx)
+	go h.handleBlockFinalization(h.ctx)
 }
 
 // Stop stops the DigestHandler
