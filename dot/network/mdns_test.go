@@ -21,6 +21,8 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/utils"
+
+	"github.com/golang/protobuf/proto"
 )
 
 // wait time to discover and connect using mdns discovery

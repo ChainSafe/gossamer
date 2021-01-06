@@ -18,6 +18,7 @@ package network
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 
@@ -26,6 +27,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
+
+	"github.com/golang/protobuf/proto"
 )
 
 // Message types for notifications protocol messages. Used internally to map message to protocol.
@@ -38,7 +41,7 @@ const (
 // Message must be implemented by all network messages
 type Message interface {
 	Encode() ([]byte, error)
-	Decode(io.Reader) error
+	Decode([]byte) error
 	String() string
 }
 
@@ -82,24 +85,37 @@ func (bm *BlockRequestMessage) String() string {
 
 func (bm *BlockRequestMessage) Encode() ([]byte, error) {
 	var (
-		fromBlock pb.isBlockRequest_FromBlock
-		toBlock   []byte
-		max       uint32
+		toBlock []byte
+		max     uint32
 	)
 
 	msg := pb.BlockRequest{
 		Fields:    uint32(bm.RequestedData),
-		FromBlock: fromBlock,
 		ToBlock:   toBlock,
 		Direction: pb.Direction(bm.Direction),
 		MaxBlocks: max,
 	}
 
-	return []byte(msg.String()), nil
+	if bm.StartingBlock.IsHash() {
+		hash := bm.StartingBlock.Hash()
+		msg.FromBlock = &pb.BlockRequest_Hash{
+			Hash: hash[:],
+		}
+	} else if bm.StartingBlock.IsUint64() {
+		buf := make([]byte, 8)
+		binary.LittleEndian.PutUint64(buf, bm.StartingBlock.Uint64())
+		msg.FromBlock = &pb.BlockRequest_Number{
+			Number: buf,
+		}
+	} else {
+		return nil, errors.New("invalid StartingBlock in messsage")
+	}
+
+	return proto.Marshal(msg)
 }
 
-func (bm *BlockRequestMessage) Decode(r io.Reader) error {
-	return nil
+func (bm *BlockRequestMessage) Decode(in []byte) error {
+	return proto.Unmarshal(in, bm)
 }
 
 // Encode encodes a block request message using SCALE
@@ -208,7 +224,13 @@ func (bm *BlockResponseMessage) Encode() ([]byte, error) {
 }
 
 // Decode the message into a BlockResponseMessage
-func (bm *BlockResponseMessage) Decode(r io.Reader) (err error) {
+func (bm *BlockResponseMessage) Decode(in []byte) (err error) {
+	r := &bytes.Buffer{}
+	_, err := r.Write(in)
+	if err != nil {
+		return err
+	}
+
 	bm.BlockData, err = types.DecodeBlockDataArray(r)
 	return err
 }
@@ -240,22 +262,13 @@ func (cm *ConsensusMessage) Encode() ([]byte, error) {
 }
 
 // Decode the message into a ConsensusMessage
-func (cm *ConsensusMessage) Decode(r io.Reader) error {
-	buf := make([]byte, 4)
-	_, err := r.Read(buf)
-	if err != nil {
-		return err
-	}
-	cm.ConsensusEngineID = types.NewConsensusEngineID(buf)
-	for {
-		b, err := common.ReadByte(r)
-		if err != nil {
-			break
-		}
-
-		cm.Data = append(cm.Data, b)
+func (cm *ConsensusMessage) Decode(in []byte) error {
+	if len(in) < 5 {
+		return errors.New("cannot decode ConsensusMessage: encoding is too short")
 	}
 
+	cm.ConsensusEngineID = types.NewConsensusEngineID(in[:4])
+	cm.Data = in[4:]
 	return nil
 }
 

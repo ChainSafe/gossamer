@@ -67,10 +67,13 @@ func (bm *BlockAnnounceMessage) Encode() ([]byte, error) {
 }
 
 // Decode the message into a BlockAnnounceMessage, it assumes the type byte has been removed
-func (bm *BlockAnnounceMessage) Decode(r io.Reader) error {
-	sd := scale.Decoder{Reader: r}
-	_, err := sd.Decode(bm)
-	return err
+func (bm *BlockAnnounceMessage) Decode(in []byte) error {
+	msg, err := scale.Decode(in, bm)
+	if err != nil {
+		return err
+	}
+	bm = msg.(*BlockAnnounceMessage)
+	return nil
 }
 
 // Hash returns the hash of the BlockAnnounceMessage
@@ -123,10 +126,13 @@ func (hs *BlockAnnounceHandshake) Encode() ([]byte, error) {
 }
 
 // Decode the message into a BlockAnnounceHandshake
-func (hs *BlockAnnounceHandshake) Decode(r io.Reader) error {
-	sd := scale.Decoder{Reader: r}
-	_, err := sd.Decode(hs)
-	return err
+func (hs *BlockAnnounceHandshake) Decode(in []byte) error {
+	msg, err := scale.Decode(in, hs)
+	if err != nil {
+		return err
+	}
+	hs = msg.(*BlockAnnounceHandshake)
+	return nil
 }
 
 // Type ...
