@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -34,7 +35,10 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-var maxInt64 = int64(2 ^ 63 - 1)
+var (
+	maxInt64        = int64(2 ^ 63 - 1)
+	responseTimeout = time.Minute
+)
 
 // Service deals with chain syncing by sending block request messages and watching for responses.
 type Service struct {

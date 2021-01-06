@@ -243,7 +243,7 @@ func (s *Service) beginDiscovery() error {
 		for peer := range peerCh {
 			logger.Debug("found new peer via DHT", "peer", peer.ID)
 			// found a peer, try to connect
-			err = s.host.connect(peer)
+			err = s.host.connect(peer) // TODO: check if it's own our peer ID
 			if err != nil {
 				logger.Debug("failed to connect to discovered peer", "peer", peer.ID, "err", err)
 			}
@@ -302,7 +302,7 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 	connMgr := s.host.h.ConnManager().(*ConnManager)
 	connMgr.RegisterCloseHandler(s.host.protocolID+sub, func(peerID peer.ID) {
 		if _, ok := np.handshakeData[peerID]; ok {
-			logger.Debug(
+			logger.Trace(
 				"Cleaning up handshake data",
 				"peer", peerID,
 				"protocol", s.host.protocolID+sub,
