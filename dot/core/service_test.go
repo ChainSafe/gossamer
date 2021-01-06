@@ -122,7 +122,7 @@ func TestAnnounceBlock(t *testing.T) {
 	}
 
 	time.Sleep(testMessageTimeout)
-	require.Equal(t, network.BlockAnnounceMsgType, net.Message.Type())
+	require.Equal(t, network.BlockAnnounceMsgType, net.Message.(network.NotificationsMessage).Type())
 }
 
 func TestHandleRuntimeChanges(t *testing.T) {

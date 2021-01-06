@@ -44,7 +44,7 @@ func TestGossip(t *testing.T) {
 
 	nodeA := createTestService(t, configA)
 	defer nodeA.Stop()
-	handlerA := newTestStreamHandler()
+	handlerA := newTestStreamHandler(testBlockAnnounceMessageDecoder)
 	nodeA.host.registerStreamHandler("", handlerA.handleStream)
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
@@ -58,7 +58,7 @@ func TestGossip(t *testing.T) {
 
 	nodeB := createTestService(t, configB)
 	defer nodeB.Stop()
-	handlerB := newTestStreamHandler()
+	handlerB := newTestStreamHandler(testBlockAnnounceMessageDecoder)
 	nodeB.host.registerStreamHandler("", handlerB.handleStream)
 
 	addrInfosA, err := nodeA.host.addrInfos()
@@ -83,7 +83,7 @@ func TestGossip(t *testing.T) {
 
 	nodeC := createTestService(t, configC)
 	defer nodeC.Stop()
-	handlerC := newTestStreamHandler()
+	handlerC := newTestStreamHandler(testBlockAnnounceMessageDecoder)
 	nodeC.host.registerStreamHandler("", handlerC.handleStream)
 
 	err = nodeC.host.connect(*addrInfosA[0])
@@ -105,12 +105,12 @@ func TestGossip(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	err = nodeA.host.send(addrInfosB[0].ID, "", TestMessage)
+	err = nodeA.host.send(addrInfosB[0].ID, "", testBlockAnnounceMessage)
 	require.NoError(t, err)
 
 	time.Sleep(TestMessageTimeout)
 
-	if hasSeenB, ok := nodeB.gossip.seen.Load(TestMessage.IDString()); !ok || hasSeenB.(bool) == false {
+	if hasSeenB, ok := nodeB.gossip.seen.Load(testBlockAnnounceMessage.Hash()); !ok || hasSeenB.(bool) == false {
 		t.Error(
 			"node B did not receive block request message from node A",
 			"\nreceived:", hasSeenB,
@@ -118,7 +118,7 @@ func TestGossip(t *testing.T) {
 		)
 	}
 
-	if hasSeenC, ok := nodeC.gossip.seen.Load(TestMessage.IDString()); !ok || hasSeenC.(bool) == false {
+	if hasSeenC, ok := nodeC.gossip.seen.Load(testBlockAnnounceMessage.Hash()); !ok || hasSeenC.(bool) == false {
 		t.Error(
 			"node C did not receive block request message from node B",
 			"\nreceived:", hasSeenC,
@@ -126,7 +126,7 @@ func TestGossip(t *testing.T) {
 		)
 	}
 
-	if hasSeenA, ok := nodeA.gossip.seen.Load(TestMessage.IDString()); !ok || hasSeenA.(bool) == false {
+	if hasSeenA, ok := nodeA.gossip.seen.Load(testBlockAnnounceMessage.Hash()); !ok || hasSeenA.(bool) == false {
 		t.Error(
 			"node A did not receive block request message from node C",
 			"\nreceived:", hasSeenA,
