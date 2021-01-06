@@ -34,21 +34,12 @@ var testKey = []byte("key")
 var testValue = []byte("value")
 
 func TestMain(m *testing.M) {
-	runtimes := []string{runtime.HOST_API_TEST_RUNTIME, runtime.LEGACY_NODE_RUNTIME, runtime.POLKADOT_RUNTIME, runtime.NODE_RUNTIME, runtime.SUBSTRATE_TEST_RUNTIME, runtime.TESTS_FP}
-	var wasmFilePaths []string
-	for _, rt := range runtimes {
-		testRuntimeFilePath, testRuntimeURL := runtime.GetRuntimeVars(rt)
-		wasmFilePaths = append(wasmFilePaths, testRuntimeFilePath)
-		runtime.GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
-	}
+	wasmFilePaths, _ := runtime.GenerateRuntimeWasmFile()
 
 	// Start all tests
 	code := m.Run()
 
-	for _, rt := range wasmFilePaths {
-		os.Remove(rt)
-	}
-
+	runtime.RemoveFiles(wasmFilePaths)
 	os.Exit(code)
 }
 

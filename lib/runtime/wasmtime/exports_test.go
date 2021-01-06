@@ -18,6 +18,7 @@ package wasmtime
 
 import (
 	"math/big"
+	"os"
 	"testing"
 	"time"
 
@@ -26,9 +27,18 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
-
 	"github.com/stretchr/testify/require"
 )
+
+func TestMain(m *testing.M) {
+	wasmFilePaths, _ := runtime.GenerateRuntimeWasmFile()
+
+	// Start all tests
+	code := m.Run()
+
+	runtime.RemoveFiles(wasmFilePaths)
+	os.Exit(code)
+}
 
 func TestConcurrentRuntimeCalls(t *testing.T) {
 	instance := NewTestInstance(t, runtime.LEGACY_NODE_RUNTIME)
