@@ -1,7 +1,7 @@
 module github.com/ChainSafe/gossamer
 
 require (
-	github.com/ChainSafe/chaindb v0.1.5-0.20201215221215-67f49055e0c4
+	github.com/ChainSafe/chaindb v0.1.5-0.20210107150430-118042210ed1
 	github.com/ChainSafe/go-schnorrkel v0.0.0-20200405005733-88cbf1b4c40d
 	github.com/ChainSafe/log15 v1.0.0
 	github.com/OneOfOne/xxhash v1.2.5
@@ -38,7 +38,7 @@ require (
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/exp v0.0.0-20190121172915-509febef88a4
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9 // indirect
-	golang.org/x/tools v0.0.0-20200102140908-9497f49d5709
+	golang.org/x/tools v0.0.0-20200102140908-9497f49d5709 // indirect
 	google.golang.org/grpc v1.21.0 // indirect
 	gopkg.in/yaml.v2 v2.2.7 // indirect
 )
