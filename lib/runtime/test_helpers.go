@@ -302,3 +302,29 @@ func (trn *TestRuntimeNetwork) NetworkState() common.NetworkState {
 		Multiaddrs: testAddrs,
 	}
 }
+
+// GenerateRuntimeWasmFile generates all runtime wasm files.
+func GenerateRuntimeWasmFile() ([]string, error) {
+	var wasmFilePaths []string
+	runtimes := []string{HOST_API_TEST_RUNTIME, LEGACY_NODE_RUNTIME, POLKADOT_RUNTIME, NODE_RUNTIME, SUBSTRATE_TEST_RUNTIME, TEST_RUNTIME}
+	for _, rt := range runtimes {
+		testRuntimeFilePath, testRuntimeURL := GetRuntimeVars(rt)
+		wasmFilePaths = append(wasmFilePaths, testRuntimeFilePath)
+		_, err := GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return wasmFilePaths, nil
+}
+
+// RemoveFiles removes multiple files.
+func RemoveFiles(files []string) error {
+	for _, file := range files {
+		err := os.Remove(file)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}

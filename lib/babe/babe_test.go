@@ -125,6 +125,20 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	return babeService
 }
 
+func TestMain(m *testing.M) {
+	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
+	if err != nil {
+		log.Error("failed to generate runtime wasm file", err)
+		os.Exit(1)
+	}
+
+	// Start all tests
+	code := m.Run()
+
+	runtime.RemoveFiles(wasmFilePaths)
+	os.Exit(code)
+}
+
 func TestRunEpochLengthConfig(t *testing.T) {
 	cfg := &ServiceConfig{
 		EpochLength: 5,
