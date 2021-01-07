@@ -18,6 +18,7 @@ package wasmtime
 
 import (
 	"math/big"
+	"os"
 	"testing"
 	"time"
 
@@ -26,9 +27,23 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
-
+	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
+
+func TestMain(m *testing.M) {
+	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
+	if err != nil {
+		log.Error("failed to generate runtime wasm file", err)
+		os.Exit(1)
+	}
+
+	// Start all tests
+	code := m.Run()
+
+	runtime.RemoveFiles(wasmFilePaths)
+	os.Exit(code)
+}
 
 func TestConcurrentRuntimeCalls(t *testing.T) {
 	instance := NewTestInstance(t, runtime.LEGACY_NODE_RUNTIME)
