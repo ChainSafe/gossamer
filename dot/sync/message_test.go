@@ -11,6 +11,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
 
@@ -38,7 +39,11 @@ func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 }
 
 func TestMain(m *testing.M) {
-	wasmFilePaths, _ := runtime.GenerateRuntimeWasmFile()
+	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
+	if err != nil {
+		log.Error("failed to generate runtime wasm file", err)
+		os.Exit(1)
+	}
 
 	// Start all tests
 	code := m.Run()

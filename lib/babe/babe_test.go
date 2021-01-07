@@ -126,7 +126,11 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 }
 
 func TestMain(m *testing.M) {
-	wasmFilePaths, _ := runtime.GenerateRuntimeWasmFile()
+	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
+	if err != nil {
+		log.Error("failed to generate runtime wasm file", err)
+		os.Exit(1)
+	}
 
 	// Start all tests
 	code := m.Run()

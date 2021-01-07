@@ -26,6 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,7 +35,11 @@ var testKey = []byte("key")
 var testValue = []byte("value")
 
 func TestMain(m *testing.M) {
-	wasmFilePaths, _ := runtime.GenerateRuntimeWasmFile()
+	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
+	if err != nil {
+		log.Error("failed to generate runtime wasm file", err)
+		os.Exit(1)
+	}
 
 	// Start all tests
 	code := m.Run()
