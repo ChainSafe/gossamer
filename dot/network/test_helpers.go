@@ -46,6 +46,19 @@ func (s *mockSyncer) HandleBlockAnnounce(msg *BlockAnnounceMessage) *BlockReques
 	}
 }
 
+func (s *mockSyncer) HandleBlockAnnounceHandshake(num *big.Int) *BlockRequestMessage {
+	if num.Cmp(s.highestSeen) > 0 {
+		s.highestSeen = num
+	}
+
+	startBlock, _ := variadic.NewUint64OrHash(1)
+
+	return &BlockRequestMessage{
+		StartingBlock: startBlock,
+		Max:           optional.NewUint32(false, 0),
+	}
+}
+
 func (s *mockSyncer) IsSynced() bool {
 	return s.synced
 }

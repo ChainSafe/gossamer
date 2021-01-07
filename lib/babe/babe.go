@@ -206,6 +206,7 @@ func (b *Service) Start() error {
 		return err
 	}
 
+	// TODO: initiateEpoch sigabrts w/ non authority node epoch > 1. fix this!!
 	err = b.initiateEpoch(epoch, b.startSlot)
 	if err != nil {
 		b.logger.Error("failed to initiate epoch", "error", err)
@@ -310,6 +311,10 @@ func (b *Service) safeSend(msg types.Block) error {
 }
 
 func (b *Service) getAuthorityIndex(Authorities []*types.Authority) (uint64, error) {
+	if !b.authority {
+		return 0, ErrNotAuthority
+	}
+
 	pub := b.keypair.Public()
 
 	for i, auth := range Authorities {

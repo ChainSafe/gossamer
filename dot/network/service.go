@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -32,6 +33,7 @@ import (
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
+	discovery "github.com/libp2p/go-libp2p-discovery"
 )
 
 const (
@@ -85,6 +87,7 @@ type Service struct {
 
 	// Configuration options
 	noBootstrap bool
+	noDiscover  bool
 	noMDNS      bool
 	noGossip    bool // internal option
 }
@@ -204,6 +207,52 @@ func (s *Service) Start() error {
 		s.mdns.start()
 	}
 
+	if !s.noDiscover {
+		go func() {
+			err = s.beginDiscovery()
+			if err != nil {
+				logger.Error("failed to begin DHT discovery", "error", err)
+			}
+		}()
+	}
+
+	logger.Info("started network service", "supported protocols", s.host.protocols())
+	return nil
+}
+
+func (s *Service) beginDiscovery() error {
+	rd := discovery.NewRoutingDiscovery(s.host.dht)
+
+	err := s.host.dht.Bootstrap(s.ctx)
+	if err != nil {
+		return fmt.Errorf("failed to bootstrap DHT: %w", err)
+	}
+
+	// wait to connect to bootstrap peers
+	time.Sleep(time.Second)
+
+	_, err = rd.Advertise(s.ctx, s.cfg.ProtocolID)
+	if err != nil {
+		return fmt.Errorf("failed to begin advertising: %w", err)
+	}
+
+	go func() {
+		peerCh, err := rd.FindPeers(s.ctx, s.cfg.ProtocolID)
+		if err != nil {
+			logger.Error("failed to begin finding peers via DHT", "err", err)
+		}
+
+		for peer := range peerCh {
+			logger.Debug("found new peer via DHT", "peer", peer.ID)
+			// found a peer, try to connect
+			err = s.host.connect(peer) // TODO: check if it's own our peer ID
+			if err != nil {
+				logger.Debug("failed to connect to discovered peer", "peer", peer.ID, "err", err)
+			}
+		}
+	}()
+
+	logger.Info("DHT discovery started!")
 	return nil
 }
 
@@ -255,7 +304,7 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 	connMgr := s.host.h.ConnManager().(*ConnManager)
 	connMgr.RegisterCloseHandler(s.host.protocolID+sub, func(peerID peer.ID) {
 		if _, ok := np.handshakeData[peerID]; ok {
-			logger.Debug(
+			logger.Trace(
 				"Cleaning up handshake data",
 				"peer", peerID,
 				"protocol", s.host.protocolID+sub,
@@ -267,7 +316,7 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 	info := s.notificationsProtocols[messageID]
 
 	s.host.registerStreamHandler(sub, func(stream libp2pnetwork.Stream) {
-		logger.Info("received stream", "sub-protocol", sub)
+		logger.Trace("received stream", "sub-protocol", sub)
 		conn := stream.Conn()
 		if conn == nil {
 			logger.Error("Failed to get connection from stream")
@@ -408,7 +457,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 	for {
 		length, err := readLEB128ToUint64(r)
 		if err != nil {
-			logger.Error("Failed to read LEB128 encoding", "error", err)
+			logger.Error("Failed to read LEB128 encoding", "protocol", stream.Protocol(), "error", err)
 			_ = stream.Close()
 			s.errCh <- err
 			return
@@ -452,6 +501,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 			"host", s.host.id(),
 			"peer", peer,
 			"msg", msg.String(),
+			"raw", common.BytesToHex(msgBytes),
 		)
 
 		// handle message based on peer status and message type
