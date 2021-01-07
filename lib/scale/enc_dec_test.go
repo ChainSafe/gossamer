@@ -189,3 +189,19 @@ func TestEncodeDecode_Array(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, b, dec)
 }
+
+func TestEncodeDecodeSliceStruct(t *testing.T) {
+	type SimpleStruct struct {
+		A int64
+		B bool
+	}
+
+	a := []SimpleStruct{{A: 1, B: false}, {A: 2, B: true}}
+
+	enc, err := Encode(a)
+	require.NoError(t, err)
+
+	dec, err := Decode(enc, []SimpleStruct{})
+	require.NoError(t, err)
+	require.Equal(t, a, dec)
+}

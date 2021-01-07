@@ -418,14 +418,21 @@ func (sd *Decoder) DecodeSlice(t interface{}) (interface{}, error) {
 			if err != nil {
 				return nil, err
 			}
-
 		default:
-			var res interface{}
-			res, err = sd.DecodeCustom(sl.Index(i).Interface())
-			if err != nil {
-				return nil, err
+			switch reflect.TypeOf(arrayValue.Interface()).Kind() {
+			case reflect.Struct:
+				_, err = sd.DecodeInterface(ptr)
+				if err != nil {
+					return nil, err
+				}
+			default:
+				var res interface{}
+				res, err = sd.DecodeCustom(sl.Index(i).Interface())
+				if err != nil {
+					return nil, err
+				}
+				arrayValue.Set(reflect.ValueOf(res))
 			}
-			arrayValue.Set(reflect.ValueOf(res))
 		}
 
 		if err != nil {
