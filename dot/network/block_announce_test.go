@@ -17,7 +17,6 @@
 package network
 
 import (
-	"bytes"
 	"math/big"
 	"testing"
 	"time"
@@ -40,10 +39,7 @@ func TestDecodeBlockAnnounceHandshake(t *testing.T) {
 	enc, err := testHandshake.Encode()
 	require.NoError(t, err)
 
-	buf := &bytes.Buffer{}
-	buf.Write(enc)
-
-	msg, err := decodeBlockAnnounceHandshake(buf)
+	msg, err := decodeBlockAnnounceHandshake(enc)
 	require.NoError(t, err)
 	require.Equal(t, testHandshake, msg)
 }
@@ -60,10 +56,7 @@ func TestDecodeBlockAnnounceMessage(t *testing.T) {
 	enc, err := testBlockAnnounce.Encode()
 	require.NoError(t, err)
 
-	buf := &bytes.Buffer{}
-	buf.Write(enc)
-
-	msg, err := decodeBlockAnnounceMessage(buf)
+	msg, err := decodeBlockAnnounceMessage(enc)
 	require.NoError(t, err)
 	require.Equal(t, testBlockAnnounce, msg)
 }

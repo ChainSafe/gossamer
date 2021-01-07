@@ -256,7 +256,7 @@ func (x *Hash) String() string {
 	if !x.exists {
 		return none
 	}
-	return fmt.Sprintf("%x", x.value)
+	return fmt.Sprintf("%s", x.value)
 }
 
 // Set sets the exists and value fields.
