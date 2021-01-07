@@ -113,15 +113,12 @@ import (
 )
 
 //export ext_logging_log_version_1
-func ext_logging_log_version_1(context unsafe.Pointer, level C.int32_t, targetData, msgData C.int64_t) {
+func ext_logging_log_version_1(context unsafe.Pointer, level C.int32_t, targetData C.int64_t, msgData C.int64_t) {
 	logger.Trace("[ext_logging_log_version_1] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
-	memory := instanceContext.Memory().Data()
 
-	targetPtr, targetSize := int64ToPointerAndSize(int64(targetData))
-	target := fmt.Sprintf("%s", memory[targetPtr:targetPtr+targetSize])
-	msgPtr, msgSize := int64ToPointerAndSize(int64(msgData))
-	msg := fmt.Sprintf("%s", memory[msgPtr:msgPtr+msgSize])
+	target := fmt.Sprintf("%s", asMemorySlice(instanceContext, targetData))
+	msg := fmt.Sprintf("%s", asMemorySlice(instanceContext, msgData))
 
 	switch int(level) {
 	case 0:
@@ -134,6 +131,8 @@ func ext_logging_log_version_1(context unsafe.Pointer, level C.int32_t, targetDa
 		logger.Debug("[ext_logging_log_version_1]", "target", target, "message", msg)
 	case 4:
 		logger.Trace("[ext_logging_log_version_1]", "target", target, "message", msg)
+	default:
+		logger.Error("[ext_logging_log_version_1]", "level", int(level), "target", target, "message", msg)
 	}
 }
 
@@ -378,29 +377,65 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 //export ext_misc_print_hex_version_1
 func ext_misc_print_hex_version_1(context unsafe.Pointer, dataSpan C.int64_t) {
 	logger.Trace("[ext_misc_print_hex_version_1] executing...")
+
 	instanceContext := wasm.IntoInstanceContext(context)
 	data := asMemorySlice(instanceContext, dataSpan)
-	logger.Info("[ext_misc_print_hex_version_1]", "data", fmt.Sprintf("0x%x", data))
+	logger.Debug("[ext_misc_print_hex_version_1]", "hex", fmt.Sprintf("0x%x", data))
 }
 
 //export ext_misc_print_num_version_1
-func ext_misc_print_num_version_1(context unsafe.Pointer, a C.int64_t) {
+func ext_misc_print_num_version_1(context unsafe.Pointer, data C.int64_t) {
 	logger.Trace("[ext_misc_print_num_version_1] executing...")
-	logger.Warn("[ext_misc_print_num_version_1] unimplemented")
+
+	logger.Debug("[ext_misc_print_num_version_1]", "num", fmt.Sprintf("%d", int64(data)))
 }
 
 //export ext_misc_print_utf8_version_1
-func ext_misc_print_utf8_version_1(context unsafe.Pointer, data C.int64_t) {
+func ext_misc_print_utf8_version_1(context unsafe.Pointer, dataSpan C.int64_t) {
 	logger.Trace("[ext_misc_print_utf8_version_1] executing...")
-	ptr, size := int64ToPointerAndSize(int64(data))
-	ext_print_utf8(context, C.int32_t(ptr), C.int32_t(size))
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	data := asMemorySlice(instanceContext, dataSpan)
+	logger.Debug("[ext_misc_print_utf8_version_1]", "utf8", fmt.Sprintf("%s", data))
 }
 
 //export ext_misc_runtime_version_version_1
-func ext_misc_runtime_version_version_1(context unsafe.Pointer, z C.int64_t) C.int64_t {
+func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int64_t {
 	logger.Trace("[ext_misc_runtime_version_version_1] executing...")
-	logger.Warn("[ext_misc_runtime_version_version_1] unimplemented")
-	return 0
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	data := asMemorySlice(instanceContext, dataSpan)
+
+	cfg := &Config{
+		Imports: ImportsNodeRuntime,
+	}
+	cfg.Storage = instanceContext.Data().(*runtime.Context).Storage
+
+	instance, err := NewInstance(data, cfg)
+	if err != nil {
+		logger.Error("[ext_misc_runtime_version_version_1] failed to create instance", "error", err)
+		return 0
+	}
+
+	version, err := instance.Version()
+	if err != nil {
+		logger.Error("[ext_misc_runtime_version_version_1] failed to fetch version", "error", err)
+		return 0
+	}
+
+	encodedData, err := scale.Encode(version.RuntimeVersion)
+	if err != nil {
+		logger.Error("[ext_misc_runtime_version_version_1] failed to encode result", "error", err)
+		return 0
+	}
+
+	out, err := toWasmMemoryOptional(instanceContext, encodedData)
+	if err != nil {
+		logger.Error("[ext_misc_runtime_version_version_1] failed to allocate", "error", err)
+		return 0
+	}
+
+	return C.int64_t(out)
 }
 
 //export ext_default_child_storage_read_version_1

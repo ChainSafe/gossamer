@@ -2,14 +2,16 @@ package sync
 
 import (
 	"math/big"
+	"os"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
-
+	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,6 +36,20 @@ func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 		err := blockState.AddBlock(block)
 		require.Nil(t, err)
 	}
+}
+
+func TestMain(m *testing.M) {
+	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
+	if err != nil {
+		log.Error("failed to generate runtime wasm file", err)
+		os.Exit(1)
+	}
+
+	// Start all tests
+	code := m.Run()
+
+	runtime.RemoveFiles(wasmFilePaths)
+	os.Exit(code)
 }
 
 // tests the ProcessBlockRequestMessage method
@@ -74,22 +90,18 @@ func TestService_CreateBlockResponse(t *testing.T) {
 	testCases := []struct {
 		description      string
 		value            *network.BlockRequestMessage
-		expectedMsgType  byte
 		expectedMsgValue *network.BlockResponseMessage
 	}{
 		{
 			description: "test get Header and Body",
 			value: &network.BlockRequestMessage{
-				ID:            1,
 				RequestedData: 3,
 				StartingBlock: start,
 				EndBlockHash:  optional.NewHash(true, endHash),
 				Direction:     1,
 				Max:           optional.NewUint32(false, 0),
 			},
-			expectedMsgType: network.BlockResponseMsgType,
 			expectedMsgValue: &network.BlockResponseMessage{
-				ID: 1,
 				BlockData: []*types.BlockData{
 					{
 						Hash:   optional.NewHash(true, bestHash).Value(),
@@ -102,16 +114,13 @@ func TestService_CreateBlockResponse(t *testing.T) {
 		{
 			description: "test get Header",
 			value: &network.BlockRequestMessage{
-				ID:            2,
 				RequestedData: 1,
 				StartingBlock: start,
 				EndBlockHash:  optional.NewHash(true, endHash),
 				Direction:     1,
 				Max:           optional.NewUint32(false, 0),
 			},
-			expectedMsgType: network.BlockResponseMsgType,
 			expectedMsgValue: &network.BlockResponseMessage{
-				ID: 2,
 				BlockData: []*types.BlockData{
 					{
 						Hash:   optional.NewHash(true, bestHash).Value(),
@@ -124,16 +133,13 @@ func TestService_CreateBlockResponse(t *testing.T) {
 		{
 			description: "test get Receipt",
 			value: &network.BlockRequestMessage{
-				ID:            2,
 				RequestedData: 4,
 				StartingBlock: start,
 				EndBlockHash:  optional.NewHash(true, endHash),
 				Direction:     1,
 				Max:           optional.NewUint32(false, 0),
 			},
-			expectedMsgType: network.BlockResponseMsgType,
 			expectedMsgValue: &network.BlockResponseMessage{
-				ID: 2,
 				BlockData: []*types.BlockData{
 					{
 						Hash:    optional.NewHash(true, bestHash).Value(),
@@ -147,16 +153,13 @@ func TestService_CreateBlockResponse(t *testing.T) {
 		{
 			description: "test get MessageQueue",
 			value: &network.BlockRequestMessage{
-				ID:            2,
 				RequestedData: 8,
 				StartingBlock: start,
 				EndBlockHash:  optional.NewHash(true, endHash),
 				Direction:     1,
 				Max:           optional.NewUint32(false, 0),
 			},
-			expectedMsgType: network.BlockResponseMsgType,
 			expectedMsgValue: &network.BlockResponseMessage{
-				ID: 2,
 				BlockData: []*types.BlockData{
 					{
 						Hash:         optional.NewHash(true, bestHash).Value(),
@@ -170,16 +173,13 @@ func TestService_CreateBlockResponse(t *testing.T) {
 		{
 			description: "test get Justification",
 			value: &network.BlockRequestMessage{
-				ID:            2,
 				RequestedData: 16,
 				StartingBlock: start,
 				EndBlockHash:  optional.NewHash(true, endHash),
 				Direction:     1,
 				Max:           optional.NewUint32(false, 0),
 			},
-			expectedMsgType: network.BlockResponseMsgType,
 			expectedMsgValue: &network.BlockResponseMessage{
-				ID: 2,
 				BlockData: []*types.BlockData{
 					{
 						Hash:          optional.NewHash(true, bestHash).Value(),
@@ -196,7 +196,6 @@ func TestService_CreateBlockResponse(t *testing.T) {
 		t.Run(test.description, func(t *testing.T) {
 			resp, err := s.CreateBlockResponse(test.value)
 			require.NoError(t, err)
-			require.Equal(t, test.expectedMsgValue.ID, resp.ID)
 			require.Len(t, resp.BlockData, 2)
 			require.Equal(t, test.expectedMsgValue.BlockData[0].Hash, bestHash)
 			require.Equal(t, test.expectedMsgValue.BlockData[0].Header, resp.BlockData[0].Header)
