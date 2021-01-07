@@ -2,7 +2,6 @@ package network
 
 import (
 	"fmt"
-	"io"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
@@ -42,10 +41,13 @@ func (l *LightRequest) Encode() ([]byte, error) {
 }
 
 // Decode the message into a LightRequest, it assumes the type byte has been removed
-func (l *LightRequest) Decode(r io.Reader) error {
-	sd := scale.Decoder{Reader: r}
-	_, err := sd.Decode(l)
-	return err
+func (l *LightRequest) Decode(in []byte) error {
+	msg, err := scale.Decode(in, l)
+	if err != nil {
+		return err
+	}
+	l = msg.(*LightRequest)
+	return nil
 }
 
 // String formats a LightRequest as a string
@@ -80,10 +82,13 @@ func (l *LightResponse) Encode() ([]byte, error) {
 }
 
 // Decode the message into a LightResponse, it assumes the type byte has been removed
-func (l *LightResponse) Decode(r io.Reader) error {
-	sd := scale.Decoder{Reader: r}
-	_, err := sd.Decode(l)
-	return err
+func (l *LightResponse) Decode(in []byte) error {
+	msg, err := scale.Decode(in, l)
+	if err != nil {
+		return err
+	}
+	l = msg.(*LightResponse)
+	return nil
 }
 
 // String formats a RemoteReadRequest as a string

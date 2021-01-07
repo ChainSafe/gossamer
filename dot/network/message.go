@@ -17,6 +17,7 @@
 package network
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -89,7 +90,7 @@ func (bm *BlockRequestMessage) Encode() ([]byte, error) {
 		max     uint32
 	)
 
-	msg := pb.BlockRequest{
+	msg := &pb.BlockRequest{
 		Fields:    uint32(bm.RequestedData),
 		ToBlock:   toBlock,
 		Direction: pb.Direction(bm.Direction),
@@ -115,7 +116,51 @@ func (bm *BlockRequestMessage) Encode() ([]byte, error) {
 }
 
 func (bm *BlockRequestMessage) Decode(in []byte) error {
-	return proto.Unmarshal(in, bm)
+	msg := &pb.BlockRequest{}
+	err := proto.Unmarshal(in, msg)
+	if err != nil {
+		return err
+	}
+
+	var (
+		startingBlock *variadic.Uint64OrHash
+		endBlockHash  *optional.Hash
+		max           *optional.Uint32
+	)
+
+	if from, ok := msg.FromBlock.(*pb.BlockRequest_Hash); ok {
+		startingBlock, err = variadic.NewUint64OrHash(from.Hash)
+	} else if from, ok := msg.FromBlock.(*pb.BlockRequest_Number); ok {
+		startingBlock, err = variadic.NewUint64OrHash(from.Number)
+	} else {
+		err = errors.New("invalid FromBlock")
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if len(msg.ToBlock) != 0 {
+		endBlockHash = optional.NewHash(true, common.BytesToHash(msg.ToBlock))
+	} else {
+		endBlockHash = optional.NewHash(false, common.Hash{})
+	}
+
+	if msg.MaxBlocks != 0 {
+		max = optional.NewUint32(true, msg.MaxBlocks)
+	} else {
+		max = optional.NewUint32(false, 0)
+	}
+
+	bm = &BlockRequestMessage{
+		RequestedData: byte(msg.Fields),
+		StartingBlock: startingBlock,
+		EndBlockHash:  endBlockHash,
+		Direction:     byte(msg.Direction),
+		Max:           max,
+	}
+
+	return nil
 }
 
 // Encode encodes a block request message using SCALE
@@ -226,7 +271,7 @@ func (bm *BlockResponseMessage) Encode() ([]byte, error) {
 // Decode the message into a BlockResponseMessage
 func (bm *BlockResponseMessage) Decode(in []byte) (err error) {
 	r := &bytes.Buffer{}
-	_, err := r.Write(in)
+	_, err = r.Write(in)
 	if err != nil {
 		return err
 	}

@@ -19,7 +19,6 @@ package network
 import (
 	"errors"
 	"fmt"
-	"io"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -89,18 +88,22 @@ func (bm *BlockAnnounceMessage) IsHandshake() bool {
 	return false
 }
 
-func decodeBlockAnnounceHandshake(r io.Reader) (Handshake, error) {
-	sd := scale.Decoder{Reader: r}
-	hs := new(BlockAnnounceHandshake)
-	_, err := sd.Decode(hs)
-	return hs, err
+func decodeBlockAnnounceHandshake(in []byte) (Handshake, error) {
+	hs, err := scale.Decode(in, new(BlockAnnounceHandshake))
+	if err != nil {
+		return nil, err
+	}
+
+	return hs.(*BlockAnnounceHandshake), err
 }
 
-func decodeBlockAnnounceMessage(r io.Reader) (NotificationsMessage, error) {
-	sd := scale.Decoder{Reader: r}
-	msg := new(BlockAnnounceMessage)
-	_, err := sd.Decode(msg)
-	return msg, err
+func decodeBlockAnnounceMessage(in []byte) (NotificationsMessage, error) {
+	msg, err := scale.Decode(in, new(BlockAnnounceMessage))
+	if err != nil {
+		return nil, err
+	}
+
+	return msg.(*BlockAnnounceMessage), err
 }
 
 // BlockAnnounceHandshake is exchanged by nodes that are beginning the BlockAnnounce protocol

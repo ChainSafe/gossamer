@@ -17,9 +17,7 @@
 package network
 
 import (
-	"bytes"
 	"errors"
-	"io"
 	"sync"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -39,13 +37,13 @@ type (
 	HandshakeGetter = func() (Handshake, error)
 
 	// HandshakeDecoder is a custom decoder for a handshake
-	HandshakeDecoder = func(io.Reader) (Handshake, error)
+	HandshakeDecoder = func([]byte) (Handshake, error)
 
 	// HandshakeValidator validates a handshake. It returns an error if it is invalid
 	HandshakeValidator = func(peer.ID, Handshake) error
 
 	// MessageDecoder is a custom decoder for a message
-	MessageDecoder = func(io.Reader) (NotificationsMessage, error)
+	MessageDecoder = func([]byte) (NotificationsMessage, error)
 
 	// NotificationsMessageHandler is called when a (non-handshake) message is received over a notifications stream.
 	NotificationsMessageHandler = func(peer peer.ID, msg NotificationsMessage) error
@@ -66,23 +64,17 @@ type handshakeData struct {
 
 func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecoder, messageDecoder MessageDecoder) messageDecoder {
 	return func(in []byte, peer peer.ID) (Message, error) {
-		r := &bytes.Buffer{}
-		_, err := r.Write(in)
-		if err != nil {
-			return nil, err
-		}
-
 		// if we don't have handshake data on this peer, or we haven't received the handshake from them already,
 		// assume we are receiving the handshake
 		info.mapMu.RLock()
 		defer info.mapMu.RUnlock()
 
 		if hsData, has := info.handshakeData[peer]; !has || !hsData.received {
-			return handshakeDecoder(r)
+			return handshakeDecoder(in)
 		}
 
 		// otherwise, assume we are receiving the Message
-		return messageDecoder(r)
+		return messageDecoder(in)
 	}
 }
 
