@@ -177,6 +177,7 @@ func (h *host) send(p peer.ID, sub protocol.ID, msg Message) (err error) {
 
 	logger.Trace(
 		"Sent message to peer",
+		"sub-protocol", sub,
 		"host", h.id(),
 		"peer", p,
 		"message", msg.String(),

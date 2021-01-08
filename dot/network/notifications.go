@@ -138,11 +138,13 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 
 				if handshakeResp != nil {
 					logger.Debug("sending message to peer in response to handshake", "peer", peer, "msg", handshakeResp)
-					err = s.host.send(peer, info.subProtocol, handshakeResp)
+					s.syncing[peer] = struct{}{}
+					err = s.host.send(peer, syncID, handshakeResp) // TODO: return protocol from handshakeValidator, or put protocol into Message interface?
 					if err != nil {
 						logger.Error("failed to send response to peer's handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
 						return err
 					}
+					go s.handleSyncStream(s.host.getStream(peer, syncID))
 				}
 			}
 
@@ -162,7 +164,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 
 				if handshakeResp != nil {
 					logger.Debug("sending message to peer in response to handshake", "peer", peer, "msg", handshakeResp)
-					err = s.host.send(peer, info.subProtocol, handshakeResp)
+					err = s.host.send(peer, syncID, handshakeResp)
 					if err != nil {
 						logger.Error("failed to send response to peer's handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
 						return err

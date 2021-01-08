@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"sync"
 	"time"
@@ -33,6 +34,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	discovery "github.com/libp2p/go-libp2p-discovery"
+
+	"github.com/golang/protobuf/proto"
 )
 
 const (
@@ -330,7 +333,7 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 		s.readStream(stream, p, decoder, handlerWithValidate)
 	})
 
-	logger.Info("registered notifications sub-protocol", "sub-protocol", sub)
+	logger.Info("registered notifications sub-protocol", "protocol", s.host.protocolID+sub)
 	return nil
 }
 
@@ -379,6 +382,7 @@ func (s *Service) SendMessage(msg NotificationsMessage) {
 
 // handleSyncStream handles streams with the <protocol-id>/sync/2 protocol ID
 func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
+	logger.Info("handling sync stream")
 	conn := stream.Conn()
 	if conn == nil {
 		logger.Error("Failed to get connection from stream")
@@ -441,43 +445,74 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 	// create buffer stream for non-blocking read
 	r := bufio.NewReader(stream)
 
+	var (
+		msgBytes []byte
+		tot      uint64
+	)
+
 	for {
-		length, err := readLEB128ToUint64(r)
-		if err != nil {
-			logger.Error("Failed to read LEB128 encoding", "protocol", stream.Protocol(), "error", err)
-			_ = stream.Close()
-			s.errCh <- err
-			return
-		}
+		if stream.Protocol() == s.host.protocolID+syncID {
+			//logger.Info("got sync msg")
+			tot = 0
+			msgBytes = make([]byte, 6000)
+			for {
+				n, err := r.Read(msgBytes[tot:])
+				tot += uint64(n)
+				if n == 0 || err == io.EOF {
+					if tot > 0 {
+						len, varintLen := proto.DecodeVarint(msgBytes)
+						logger.Info("proto varint", "msg length", len, "varint length", varintLen)
 
-		if length == 0 {
-			continue
-		}
-
-		msgBytes := make([]byte, length)
-		tot := uint64(0)
-		for i := 0; i < maxReads; i++ {
-			n, err := r.Read(msgBytes[tot:]) //nolint
+						buf := proto.NewBuffer(msgBytes)
+						buf.DebugPrint("debugging", msgBytes)
+					}
+					break
+				}
+			}
+		} else {
+			length, err := readLEB128ToUint64(r)
 			if err != nil {
-				logger.Error("Failed to read message from stream", "error", err)
+				logger.Error("Failed to read LEB128 encoding", "protocol", stream.Protocol(), "error", err)
 				_ = stream.Close()
 				s.errCh <- err
 				return
 			}
 
-			tot += uint64(n)
-			if tot == length {
-				break
+			if length == 0 {
+				continue
+			}
+
+			msgBytes = make([]byte, length)
+			tot = uint64(0)
+			for i := 0; i < maxReads; i++ {
+				n, err := r.Read(msgBytes[tot:]) //nolint
+				if err != nil {
+					logger.Error("Failed to read message from stream", "error", err)
+					_ = stream.Close()
+					s.errCh <- err
+					return
+				}
+
+				tot += uint64(n)
+				if tot == length {
+					break
+				}
+			}
+
+			if tot != length {
+				logger.Error("Failed to read entire message", "length", length, "read" /*n*/, tot)
+				continue
 			}
 		}
 
-		if tot != length {
-			logger.Error("Failed to read entire message", "length", length, "read" /*n*/, tot)
+		if tot == 0 {
 			continue
 		}
 
+		logger.Trace("message raw bytes", "len", tot, "bytes", msgBytes[:tot], "hex", fmt.Sprintf("%x", msgBytes[:tot]))
+
 		// decode message based on message type
-		msg, err := decoder(msgBytes, peer)
+		msg, err := decoder(msgBytes[:tot], peer)
 		if err != nil {
 			logger.Error("Failed to decode message from peer", "peer", peer, "err", err)
 			continue
@@ -488,7 +523,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 			"host", s.host.id(),
 			"peer", peer,
 			"msg", msg.String(),
-			"raw", common.BytesToHex(msgBytes),
+			//"raw", common.BytesToHex(msgBytes),
 		)
 
 		// handle message based on peer status and message type
@@ -553,6 +588,7 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 			return nil
 		}
 
+		logger.Info("sending BlockResponse to syncer")
 		req := s.syncer.HandleBlockResponse(resp)
 		if req != nil {
 			s.syncing[peer] = struct{}{}

@@ -277,11 +277,11 @@ func (s *Service) createBlockRequest(startInt int64) *network.BlockRequestMessag
 	s.logger.Debug("sending block request", "start", start)
 
 	blockRequest := &network.BlockRequestMessage{
-		RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification, // block header + body + justification
+		RequestedData: network.RequestedDataHeader + network.RequestedDataBody, // + network.RequestedDataJustification, // block header + body + justification
 		StartingBlock: start,
 		EndBlockHash:  optional.NewHash(false, common.Hash{}),
-		Direction:     1,
-		Max:           optional.NewUint32(false, 0),
+		Direction:     0, // ascending
+		Max:           optional.NewUint32(true, uint32(maxResponseSize)),
 	}
 
 	s.benchmarker.begin(uint64(startInt))

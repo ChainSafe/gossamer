@@ -83,6 +83,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 
 	responseData := []*types.BlockData{}
 
+	// TODO: check ascending vs descending direction
 	for _, hash := range subchain {
 
 		blockData := new(types.BlockData)
