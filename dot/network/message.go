@@ -138,11 +138,12 @@ func (bm *BlockRequestMessage) Decode(in []byte) error {
 		max           *optional.Uint32
 	)
 
-	if from, ok := msg.FromBlock.(*pb.BlockRequest_Hash); ok {
+	switch from := msg.FromBlock.(type) {
+	case *pb.BlockRequest_Hash:
 		startingBlock, err = variadic.NewUint64OrHash(common.BytesToHash(from.Hash))
-	} else if from, ok := msg.FromBlock.(*pb.BlockRequest_Number); ok {
+	case *pb.BlockRequest_Number:
 		startingBlock, err = variadic.NewUint64OrHash(binary.LittleEndian.Uint64(from.Number))
-	} else {
+	default:
 		err = errors.New("invalid FromBlock")
 	}
 
