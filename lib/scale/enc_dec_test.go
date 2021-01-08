@@ -206,7 +206,7 @@ func TestEncodeDecodeSliceStruct(t *testing.T) {
 	require.Equal(t, a, dec)
 }
 
-func TestEncodeDecodeSliceStructArray(t *testing.T) {
+func TestEncodeDecodeSliceComplexStruct(t *testing.T) {
 	type ComplexStruct struct {
 		A []byte
 		B []string
