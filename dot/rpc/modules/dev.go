@@ -80,7 +80,7 @@ func (m *DevModule) SlotDuration(r *http.Request, req *EmptyRequest, res *string
 	buffer := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buffer, m.blockProducerAPI.SlotDuration())
 	hexed := common.BytesToHex(buffer)
-	res = &hexed
+	*res = hexed
 	return err
 }
 
@@ -90,6 +90,6 @@ func (m *DevModule) EpochLength(r *http.Request, req *[]string, res *string) err
 	buffer := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buffer, m.blockProducerAPI.EpochLength())
 	hexed := common.BytesToHex(buffer)
-	res = &hexed
+	*res = hexed
 	return err
 }
