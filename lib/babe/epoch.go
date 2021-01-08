@@ -36,7 +36,6 @@ func (b *Service) initiateEpoch(epoch, startSlot uint64) error {
 
 		var data *types.EpochData
 		if !has {
-			b.logger.Warn("could not find epoch data, using previous epoch data", "epoch", epoch)
 			data = &types.EpochData{
 				Randomness:  b.epochData.randomness,
 				Authorities: b.epochData.authorities,
@@ -52,7 +51,7 @@ func (b *Service) initiateEpoch(epoch, startSlot uint64) error {
 		}
 
 		idx, err := b.getAuthorityIndex(data.Authorities)
-		if err != nil {
+		if err != nil && err != ErrNotAuthority {
 			return err
 		}
 
