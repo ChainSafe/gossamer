@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/stretchr/testify/require"
 )
 
 // PauseBABE calls the endpoint dev_control with the params ["babe", "stop"]
@@ -31,25 +32,25 @@ func PauseBABE(t *testing.T, node *Node) error {
 }
 
 // SlotDuration Calls dev endpoint for slot duration
-func SlotDuration(t *testing.T, node *Node) (uint64, error) {
+func SlotDuration(t *testing.T, node *Node) uint64 {
 	slotDuration, err := PostRPC("dev_slotDuration", NewEndpoint(node.RPCPort), "")
 
 	if err != nil {
-		return 0, err
+		require.NoError(t, err)
 	}
 
 	slotDurationParsed := binary.LittleEndian.Uint64(common.MustHexToBytes(fmt.Sprintf("%s", slotDuration)))
-	return slotDurationParsed, nil
+	return slotDurationParsed
 }
 
 // EpochLength Calls dev endpoint for epoch length
-func EpochLength(t *testing.T, node *Node) (uint64, error) {
+func EpochLength(t *testing.T, node *Node) uint64 {
 	epochLength, err := PostRPC("dev_epochLength", NewEndpoint(node.RPCPort), "")
 
 	if err != nil {
-		return 0, err
+		require.NoError(t, err)
 	}
 
 	epochLengthParsed := binary.LittleEndian.Uint64(common.MustHexToBytes(fmt.Sprintf("%s", epochLength)))
-	return epochLengthParsed, nil
+	return epochLengthParsed
 }

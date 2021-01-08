@@ -143,8 +143,6 @@ func TestSync_MultipleEpoch(t *testing.T) {
 	utils.SetLogLevel(log.LvlInfo)
 
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
-	// all nodes vote for different blocks.
-	time.Sleep(time.Second * 5)
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigDefault)
 	require.NoError(t, err)
 
@@ -153,19 +151,20 @@ func TestSync_MultipleEpoch(t *testing.T) {
 		require.Len(t, errList, 0)
 	}()
 
-	slotDuration, err := utils.SlotDuration(t, nodes[0])
-	require.NoError(t, err)
-	epochLength, err := utils.EpochLength(t, nodes[0])
-	require.NoError(t, err)
-
-	// Check state before wait
+	slotDuration := utils.SlotDuration(t, nodes[0])
+	epochLength := utils.EpochLength(t, nodes[0])
 
 	// Wait for epoch to pass
 	time.Sleep(time.Duration((slotDuration * epochLength) * 3))
 
 	// Just checking that everythings operating as expected
-	_, err = utils.SlotDuration(t, nodes[0])
-	require.NoError(t, err)
+	header := utils.GetChainHead(t, nodes[0])
+	currentHeight := header.Number.Int64()
+	for i := int64(0); i < currentHeight; i++ {
+		t.Log("comparing...", i)
+		_, err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(int(i)))
+		require.NoError(t, err, i)
+	}
 }
 
 func TestSync_SingleSyncingNode(t *testing.T) {

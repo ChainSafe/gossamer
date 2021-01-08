@@ -217,12 +217,12 @@ func (b *Service) Start() error {
 	return nil
 }
 
-// SlotDuration returns the current service slot duraiton
+// SlotDuration returns the current service slot duration
 func (b *Service) SlotDuration() uint64 {
 	return b.slotDuration
 }
 
-// EpochLength returns the current service epoch duraiton
+// EpochLength returns the current service epoch duration
 func (b *Service) EpochLength() uint64 {
 	return b.epochLength
 }
