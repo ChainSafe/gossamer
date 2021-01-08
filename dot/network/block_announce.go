@@ -57,7 +57,7 @@ func (bm *BlockAnnounceMessage) String() string {
 }
 
 // Encode a BlockAnnounce Msg Type containing the BlockAnnounceMessage using scale.Encode
-func (bm *BlockAnnounceMessage) Encode() ([]byte, error) { // TODO: test this explicitly
+func (bm *BlockAnnounceMessage) Encode() ([]byte, error) {
 	enc, err := scale.Encode(bm)
 	if err != nil {
 		return enc, err
@@ -65,7 +65,7 @@ func (bm *BlockAnnounceMessage) Encode() ([]byte, error) { // TODO: test this ex
 	return enc, nil
 }
 
-// Decode the message into a BlockAnnounceMessage, it assumes the type byte has been removed
+// Decode the message into a BlockAnnounceMessage
 func (bm *BlockAnnounceMessage) Decode(in []byte) error {
 	msg, err := scale.Decode(in, bm)
 	if err != nil {

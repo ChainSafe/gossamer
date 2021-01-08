@@ -28,6 +28,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestBlockAnnounce_Encode(t *testing.T) {
+	testBlockAnnounce := &BlockAnnounceMessage{
+		ParentHash:     common.Hash{1},
+		Number:         big.NewInt(77),
+		StateRoot:      common.Hash{2},
+		ExtrinsicsRoot: common.Hash{3},
+		Digest:         [][]byte{},
+	}
+
+	enc, err := testBlockAnnounce.Encode()
+	require.NoError(t, err)
+
+	res := new(BlockAnnounceMessage)
+	err = res.Decode(enc)
+	require.NoError(t, err)
+	require.Equal(t, testBlockAnnounce, res)
+}
+
 func TestDecodeBlockAnnounceHandshake(t *testing.T) {
 	testHandshake := &BlockAnnounceHandshake{
 		Roles:           4,

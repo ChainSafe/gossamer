@@ -63,7 +63,7 @@ func (tm *TransactionMessage) Encode() ([]byte, error) {
 	return scale.Encode(encodedExtrinsics)
 }
 
-// Decode the message into a TransactionMessage, it assumes the type byte han been removed
+// Decode the message into a TransactionMessage
 func (tm *TransactionMessage) Decode(in []byte) error {
 	decodedMessage, err := scale.Decode(in, []byte{})
 	if err != nil {
