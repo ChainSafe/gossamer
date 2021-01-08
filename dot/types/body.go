@@ -34,6 +34,16 @@ func NewBody(b []byte) *Body {
 	return &body
 }
 
+func NewBodyFromBytes(exts [][]byte) (*Body, error) {
+	enc, err := scale.Encode(exts)
+	if err != nil {
+		return nil, err
+	}
+
+	body := Body(enc)
+	return &body, nil
+}
+
 // NewBodyFromExtrinsics creates a block body given an array of extrinsics.
 func NewBodyFromExtrinsics(exts []Extrinsic) (*Body, error) {
 	enc, err := scale.Encode(ExtrinsicsArrayToBytesArray(exts))
@@ -85,11 +95,11 @@ func (b *Body) AsExtrinsics() ([]Extrinsic, error) {
 
 // NewBodyFromOptional returns a Body given an optional.Body. If the optional.Body is None, an error is returned.
 func NewBodyFromOptional(ob *optional.Body) (*Body, error) {
-	if !ob.Exists {
+	if !ob.Exists() {
 		return nil, errors.New("body is None")
 	}
 
-	b := ob.Value
+	b := ob.Value()
 	res := Body([]byte(b))
 	return &res, nil
 }

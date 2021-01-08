@@ -96,9 +96,6 @@ func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
 }
 
 func TestEncodeBlockResponseMessage(t *testing.T) {
-	expected, err := common.HexToBytes("0x01000000000000000000000000000000000000000000000000000000000000000000000001000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f04000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f04080e0f00000000")
-	require.Nil(t, err)
-
 	hash := common.NewHash([]byte{0})
 	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
 
@@ -124,44 +121,12 @@ func TestEncodeBlockResponseMessage(t *testing.T) {
 	}
 
 	encMsg, err := bm.Encode()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
-	require.Equal(t, expected, encMsg)
-}
-
-func TestDecodeBlockResponseMessage(t *testing.T) {
-	encMsg, err := common.HexToBytes("0x01000000000000000000000000000000000000000000000000000000000000000000000001000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f04000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f04080e0f00000000")
-	require.Nil(t, err)
-
-	m := new(BlockResponseMessage)
-	err = m.Decode(encMsg)
-	require.Nil(t, err)
-
-	hash := common.NewHash([]byte{0})
-	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
-
-	header := &optional.CoreHeader{
-		ParentHash:     testHash,
-		Number:         big.NewInt(1),
-		StateRoot:      testHash,
-		ExtrinsicsRoot: testHash,
-		Digest:         [][]byte{{0xe, 0xf}},
-	}
-
-	bd := &types.BlockData{
-		Hash:          hash,
-		Header:        optional.NewHeader(true, header),
-		Body:          optional.NewBody(false, nil),
-		Receipt:       optional.NewBytes(false, nil),
-		MessageQueue:  optional.NewBytes(false, nil),
-		Justification: optional.NewBytes(false, nil),
-	}
-
-	expected := &BlockResponseMessage{
-		BlockData: []*types.BlockData{bd},
-	}
-
-	require.Equal(t, expected, m)
+	res := new(BlockResponseMessage)
+	err = res.Decode(encMsg)
+	require.NoError(t, err)
+	require.Equal(t, bm, res)
 }
 
 func TestEncodeBlockAnnounceMessage(t *testing.T) {

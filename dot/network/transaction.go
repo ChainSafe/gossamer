@@ -117,7 +117,7 @@ func (hs *transactionHandshake) Decode(in []byte) error {
 	if err != nil {
 		return err
 	}
-	hs = msg.(*transactionHandshake)
+	hs.Roles = msg.(*transactionHandshake).Roles
 	return nil
 }
 

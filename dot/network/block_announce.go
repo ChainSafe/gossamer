@@ -57,7 +57,7 @@ func (bm *BlockAnnounceMessage) String() string {
 }
 
 // Encode a BlockAnnounce Msg Type containing the BlockAnnounceMessage using scale.Encode
-func (bm *BlockAnnounceMessage) Encode() ([]byte, error) {
+func (bm *BlockAnnounceMessage) Encode() ([]byte, error) { // TODO: test this explicitly
 	enc, err := scale.Encode(bm)
 	if err != nil {
 		return enc, err
@@ -71,7 +71,12 @@ func (bm *BlockAnnounceMessage) Decode(in []byte) error {
 	if err != nil {
 		return err
 	}
-	bm = msg.(*BlockAnnounceMessage)
+
+	bm.ParentHash = msg.(*BlockAnnounceMessage).ParentHash
+	bm.Number = msg.(*BlockAnnounceMessage).Number
+	bm.StateRoot = msg.(*BlockAnnounceMessage).StateRoot
+	bm.ExtrinsicsRoot = msg.(*BlockAnnounceMessage).ExtrinsicsRoot
+	bm.Digest = msg.(*BlockAnnounceMessage).Digest
 	return nil
 }
 
@@ -134,7 +139,11 @@ func (hs *BlockAnnounceHandshake) Decode(in []byte) error {
 	if err != nil {
 		return err
 	}
-	hs = msg.(*BlockAnnounceHandshake)
+
+	hs.Roles = msg.(*BlockAnnounceHandshake).Roles
+	hs.BestBlockNumber = msg.(*BlockAnnounceHandshake).BestBlockNumber
+	hs.BestBlockHash = msg.(*BlockAnnounceHandshake).BestBlockHash
+	hs.GenesisHash = msg.(*BlockAnnounceHandshake).GenesisHash
 	return nil
 }
 

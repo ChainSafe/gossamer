@@ -18,7 +18,6 @@ package grandpa
 
 import (
 	"fmt"
-	"io"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -61,10 +60,14 @@ func (hs *GrandpaHandshake) Encode() ([]byte, error) {
 }
 
 // Decode the message into a GrandpaHandshake
-func (hs *GrandpaHandshake) Decode(r io.Reader) error {
-	sd := scale.Decoder{Reader: r}
-	_, err := sd.Decode(hs)
-	return err
+func (hs *GrandpaHandshake) Decode(in []byte) error {
+	msg, err := scale.Decode(in, hs)
+	if err != nil {
+		return err
+	}
+
+	hs.Roles = msg.(*GrandpaHandshake).Roles
+	return nil
 }
 
 // Type ...
@@ -99,9 +102,9 @@ func (s *Service) getHandshake() (Handshake, error) {
 	}, nil
 }
 
-func (s *Service) decodeHandshake(r io.Reader) (Handshake, error) {
+func (s *Service) decodeHandshake(in []byte) (Handshake, error) {
 	hs := new(GrandpaHandshake)
-	err := hs.Decode(r)
+	err := hs.Decode(in)
 	return hs, err
 }
 
@@ -109,9 +112,9 @@ func (s *Service) validateHandshake(_ peer.ID, _ Handshake) error {
 	return nil
 }
 
-func (s *Service) decodeMessage(r io.Reader) (NotificationsMessage, error) {
+func (s *Service) decodeMessage(in []byte) (NotificationsMessage, error) {
 	msg := new(network.ConsensusMessage)
-	err := msg.Decode(r)
+	err := msg.Decode(in)
 	return msg, err
 }
 

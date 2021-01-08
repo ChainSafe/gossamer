@@ -30,6 +30,9 @@ import (
 
 func canDecodeCustom(t interface{}) bool {
 	method := reflect.ValueOf(t).MethodByName("Decode")
+	if !method.IsValid() {
+		return false
+	}
 
 	// check that first parameter is io.Reader
 	readerType := reflect.TypeOf((*io.Reader)(nil)).Elem()
@@ -39,13 +42,13 @@ func canDecodeCustom(t interface{}) bool {
 
 // DecodeCustom check if interface has method Decode, if so use that, otherwise use regular scale decoding
 func DecodeCustom(in []byte, t interface{}) error {
-	ok := canDecodeCustom(t)
-	if !ok {
-		return errors.New("cannot call custom decode func")
-	}
+	// ok := canDecodeCustom(t)
+	// if !ok {
+	// 	return errors.New("cannot call custom decode func")
+	// }
 
 	someType := reflect.TypeOf(t)
-	_, ok = someType.MethodByName("Decode")
+	_, ok := someType.MethodByName("Decode")
 	if ok {
 		method := reflect.ValueOf(t).MethodByName("Decode")
 		inVal := []reflect.Value{reflect.ValueOf(in)}
