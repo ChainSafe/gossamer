@@ -85,10 +85,8 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 		}
 
 		var (
-			ok            bool
-			err           error
-			msg           NotificationsMessage
-			handshakeResp Message
+			ok  bool
+			msg NotificationsMessage
 		)
 
 		if msg, ok = m.(NotificationsMessage); !ok {
@@ -109,7 +107,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			// if we are the receiver and haven't received the handshake already, validate it
 			if _, has := info.handshakeData[peer]; !has {
 				logger.Trace("receiver: validating handshake", "sub-protocol", info.subProtocol)
-				handshakeResp, err = handshakeValidator(hs)
+				handshakeResp, err := handshakeValidator(hs)
 				if err != nil {
 					logger.Error("failed to validate handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
 					info.handshakeData[peer] = &handshakeData{
@@ -151,7 +149,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			// if we are the initiator and haven't received the handshake already, validate it
 			if hsData, has := info.handshakeData[peer]; has && !hsData.validated {
 				logger.Trace("sender: validating handshake")
-				handshakeResp, err = handshakeValidator(hs)
+				handshakeResp, err := handshakeValidator(hs)
 				if err != nil {
 					logger.Error("failed to validate handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
 					delete(info.handshakeData, peer)
@@ -188,7 +186,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			return nil
 		}
 
-		err = messageHandler(peer, msg)
+		err := messageHandler(peer, msg)
 		if err != nil {
 			return err
 		}
