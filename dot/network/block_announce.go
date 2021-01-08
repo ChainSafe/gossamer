@@ -176,42 +176,41 @@ func (s *Service) getBlockAnnounceHandshake() (Handshake, error) {
 	}, nil
 }
 
-func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) error {
+func (s *Service) validateBlockAnnounceHandshake(hs Handshake) (Message, error) {
 	var (
 		bhs *BlockAnnounceHandshake
 		ok  bool
 	)
 
 	if bhs, ok = hs.(*BlockAnnounceHandshake); !ok {
-		return errors.New("invalid handshake type")
+		return nil, errors.New("invalid handshake type")
 	}
 
 	if bhs.GenesisHash != s.blockState.GenesisHash() {
-		return errors.New("genesis hash mismatch")
+		return nil, errors.New("genesis hash mismatch")
 	}
 
 	// if peer has higher best block than us, begin syncing
 	latestHeader, err := s.blockState.BestBlockHeader()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	bestBlockNum := big.NewInt(int64(bhs.BestBlockNumber))
 
 	// check if peer block number is greater than host block number
 	if latestHeader.Number.Cmp(bestBlockNum) >= 0 {
-		return nil
+		return nil, nil
 	}
 
 	// if so, send block request
 	logger.Trace("sending peer highest block to syncer", "number", bhs.BestBlockNumber)
 	req := s.syncer.HandleBlockAnnounceHandshake(bestBlockNum)
 	if req == nil {
-		return nil
+		return nil, nil
 	}
 
-	logger.Debug("sending block request to peer", "peer", peer, "number", bhs.BestBlockNumber)
-	return s.host.send(peer, syncID, req)
+	return req, nil
 }
 
 // handleBlockAnnounceMessage handles BlockAnnounce messages

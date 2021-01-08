@@ -152,8 +152,8 @@ func decodeTransactionHandshake(in []byte) (Handshake, error) {
 	}, nil
 }
 
-func validateTransactionHandshake(_ peer.ID, _ Handshake) error {
-	return nil
+func validateTransactionHandshake(_ Handshake) (Message, error) {
+	return nil, nil
 }
 
 func decodeTransactionMessage(in []byte) (NotificationsMessage, error) {
