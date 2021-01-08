@@ -218,7 +218,7 @@ func newLegacyInstance(code []byte, cfg *Config) (*LegacyInstance, error) {
 		NodeStorage: cfg.NodeStorage,
 		Network:     cfg.Network,
 		Transaction: cfg.Transaction,
-		SigVerifier: &runtime.SignatureVerifier{},
+		SigVerifier: runtime.NewSignatureVerifier(),
 	}
 
 	logger.Debug("NewInstance", "runtimeCtx", runtimeCtx)

@@ -7,15 +7,14 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	"github.com/stretchr/testify/require"
 )
 
 func TestBackgroundSignVerification(t *testing.T) {
 	signs := generateEd25519Signatures(t, 2)
-	signVerify := new(SignatureVerifier)
+	signVerify := NewSignatureVerifier()
 
 	go signVerify.Start()
 	time.Sleep(1 * time.Second)
@@ -27,7 +26,7 @@ func TestBackgroundSignVerification(t *testing.T) {
 	// Wait for background go routine to verify signature.
 	time.Sleep(1 * time.Second)
 	require.True(t, signVerify.IsEmpty())
-	require.False(t, signVerify.IsInValid())
+	require.False(t, signVerify.IsInvalid())
 }
 
 func TestInvalidSignatureBatch(t *testing.T) {
@@ -45,12 +44,12 @@ func TestInvalidSignatureBatch(t *testing.T) {
 		PubKey:    key.Public().Encode(),
 		Sign:      sigData,
 		Msg:       msg,
-		KyeTypeID: crypto.Ed25519Type,
+		KeyTypeID: crypto.Ed25519Type,
 	}
 
 	signs = append(signs, signature)
 
-	signVerify := new(SignatureVerifier)
+	signVerify := NewSignatureVerifier()
 	go signVerify.Start()
 	time.Sleep(1 * time.Second)
 
@@ -62,7 +61,7 @@ func TestInvalidSignatureBatch(t *testing.T) {
 
 func TestValidSignatureBatch(t *testing.T) {
 	signs := generateEd25519Signatures(t, 2)
-	signVerify := new(SignatureVerifier)
+	signVerify := NewSignatureVerifier()
 
 	go signVerify.Start()
 	time.Sleep(1 * time.Second)
@@ -88,25 +87,27 @@ func TestAllCryptoTypeSignature(t *testing.T) {
 		PubKey:    srKey.Public().Encode(),
 		Sign:      srSig,
 		Msg:       srMsg,
-		KyeTypeID: crypto.Sr25519Type,
+		KeyTypeID: crypto.Sr25519Type,
 	}
 
 	blakeHash, err := common.Blake2bHash([]byte("secp256k1"))
 	require.NoError(t, err)
 
-	secpPubKey, secpPrvKey := utils.GenerateKeyPairs()
-	secpSigData, err := secp256k1.Sign(blakeHash.ToBytes(), secpPrvKey)
+	kp, err := secp256k1.GenerateKeypair()
+	require.NoError(t, err)
+
+	secpSigData, err := kp.Sign(blakeHash.ToBytes())
 	require.NoError(t, err)
 
 	secpSigData = secpSigData[:len(secpSigData)-1] // remove recovery id
 	secpSignature := &Signature{
-		PubKey:    secpPubKey,
+		PubKey:    kp.Public().Encode(),
 		Sign:      secpSigData,
 		Msg:       blakeHash.ToBytes(),
-		KyeTypeID: crypto.Secp256k1Type,
+		KeyTypeID: crypto.Secp256k1Type,
 	}
 
-	signVerify := new(SignatureVerifier)
+	signVerify := NewSignatureVerifier()
 
 	go signVerify.Start()
 	time.Sleep(1 * time.Second)

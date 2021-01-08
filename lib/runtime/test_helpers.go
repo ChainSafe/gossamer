@@ -321,7 +321,7 @@ func generateEd25519Signatures(t *testing.T, n int) []*Signature {
 			PubKey:    key.Public().Encode(),
 			Sign:      sign,
 			Msg:       msg,
-			KyeTypeID: crypto.Ed25519Type,
+			KeyTypeID: crypto.Ed25519Type,
 		}
 	}
 	return signs

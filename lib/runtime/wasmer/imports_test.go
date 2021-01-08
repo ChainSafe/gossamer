@@ -24,12 +24,11 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	"github.com/stretchr/testify/require"
 )
 
@@ -485,9 +484,14 @@ func Test_ext_crypto_secp256k1_ecdsa_recover_version_1(t *testing.T) {
 	blakeHash, err := common.Blake2bHash(msgData)
 	require.NoError(t, err)
 
-	pubKey, secKey := utils.GenerateKeyPairs()
-	sigData, err := secp256k1.Sign(blakeHash.ToBytes(), secKey)
+	kp, err := secp256k1.GenerateKeypair()
 	require.NoError(t, err)
+
+	inst.inst.ctx.Keystore.Insert(kp)
+	sigData, err := kp.Private().Sign(blakeHash.ToBytes())
+	require.NoError(t, err)
+
+	expectedPubKey := kp.Public().Encode()
 
 	encSign, err := scale.Encode(sigData)
 	require.NoError(t, err)
@@ -504,9 +508,16 @@ func Test_ext_crypto_secp256k1_ecdsa_recover_version_1(t *testing.T) {
 	buf := &bytes.Buffer{}
 	buf.Write(val)
 
-	value, err := new(optional.Bytes).Decode(buf)
+	uncomPubKey, err := new(optional.Bytes).Decode(buf)
 	require.NoError(t, err)
-	require.Equal(t, pubKey, value.Value())
+
+	publicKey := new(secp256k1.PublicKey)
+
+	// Generates [33]byte compressed key from uncompressed [65]byte public key.
+	err = publicKey.UnmarshalPubkey(uncomPubKey.Value())
+	require.NoError(t, err)
+
+	require.Equal(t, expectedPubKey, publicKey.Encode())
 }
 
 func Test_ext_crypto_sr25519_public_keys_version_1(t *testing.T) {

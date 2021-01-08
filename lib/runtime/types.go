@@ -18,17 +18,9 @@ package runtime
 
 import (
 	"bytes"
-	"fmt"
-	"sync"
-	"time"
 
-	"github.com/ChainSafe/gossamer/lib/crypto"
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/scale"
-	"github.com/ethereum/go-ethereum/crypto/secp256k1"
-
 	log "github.com/ChainSafe/log15"
 )
 
@@ -94,138 +86,6 @@ type Context struct {
 	// commit all the changes, or if ext_storage_rollback_transaction is called, the changes
 	// will be discarded.
 	TransactionStorageChanges []*TransactionStorageChange
-}
-
-// Signature ...
-type Signature struct {
-	PubKey    []byte
-	Sign      []byte
-	Msg       []byte
-	KyeTypeID crypto.KeyType
-}
-
-func (sig *Signature) verify() error {
-	switch sig.KyeTypeID {
-	case crypto.Ed25519Type:
-		pubKey, err := ed25519.NewPublicKey(sig.PubKey)
-		if err != nil {
-			return fmt.Errorf("failed to fetch ed25519 public key: %s", err)
-		}
-		ok, err := pubKey.Verify(sig.Msg, sig.Sign)
-		if err != nil || !ok {
-			return fmt.Errorf("failed to verify ed25519 signature: %s", err)
-		}
-	case crypto.Sr25519Type:
-		pubKey, err := sr25519.NewPublicKey(sig.PubKey)
-		if err != nil {
-			return fmt.Errorf("failed to fetch sr25519 public key: %s", err)
-		}
-		ok, err := pubKey.Verify(sig.Msg, sig.Sign)
-		if err != nil || !ok {
-			return fmt.Errorf("failed to verify sr25519 signature: %s", err)
-		}
-	case crypto.Secp256k1Type:
-		ok := secp256k1.VerifySignature(sig.PubKey, sig.Msg, sig.Sign)
-		if !ok {
-			return fmt.Errorf("failed to verify secp256k1 signature")
-		}
-	}
-	return nil
-}
-
-// SignatureVerifier ...
-type SignatureVerifier struct {
-	batch   []*Signature
-	init    bool
-	inValid bool
-	sync.RWMutex
-	closeCh chan struct{}
-}
-
-// Init ...
-func (sv *SignatureVerifier) Init() {
-	sv.Lock()
-	defer sv.Unlock()
-
-	sv.init = true
-	sv.inValid = false
-	sv.batch = make([]*Signature, 0)
-	sv.closeCh = make(chan struct{})
-}
-
-// IsStarted ...
-func (sv *SignatureVerifier) IsStarted() bool {
-	sv.RLock()
-	defer sv.RUnlock()
-	return sv.init
-}
-
-// IsInValid ...
-func (sv *SignatureVerifier) IsInValid() bool {
-	sv.RLock()
-	defer sv.RUnlock()
-	return sv.inValid
-}
-
-// InValid ...
-func (sv *SignatureVerifier) InValid() {
-	sv.RLock()
-	defer sv.RUnlock()
-	sv.inValid = true
-}
-
-// Add ...
-func (sv *SignatureVerifier) Add(s *Signature) {
-	if sv.IsInValid() {
-		return
-	}
-
-	sv.Lock()
-	defer sv.Unlock()
-	sv.batch = append(sv.batch, s)
-}
-
-// Start signature verification in batch.
-func (sv *SignatureVerifier) Start() {
-	sv.Init()
-	for {
-		select {
-		case <-sv.closeCh:
-			return
-		default:
-			if sv.IsEmpty() {
-				continue
-			}
-
-			sv.Lock()
-			sign := sv.batch[0]
-			sv.batch = sv.batch[1:len(sv.batch)]
-			sv.Unlock()
-
-			err := sign.verify()
-			if err != nil {
-				log.Error("[ext_crypto_start_batch_verify_version_1] %s", err)
-				sv.InValid()
-				return
-			}
-		}
-	}
-}
-
-// Finish waits till batch is finished. Returns true if all the signatures are valid, Otherwise returns false.
-func (sv *SignatureVerifier) Finish() bool {
-	for !sv.IsEmpty() && !sv.IsInValid() {
-		time.Sleep(100 * time.Millisecond)
-	}
-	close(sv.closeCh)
-	return !sv.IsInValid()
-}
-
-// IsEmpty ...
-func (sv *SignatureVerifier) IsEmpty() bool {
-	sv.RLock()
-	defer sv.RUnlock()
-	return len(sv.batch) == 0
 }
 
 // Version struct
