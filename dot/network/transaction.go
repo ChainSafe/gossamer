@@ -152,7 +152,7 @@ func decodeTransactionHandshake(r io.Reader) (Handshake, error) {
 	}, nil
 }
 
-func validateTransactionHandshake(_ Handshake) error {
+func validateTransactionHandshake(_ peer.ID, _ Handshake) error {
 	return nil
 }
 

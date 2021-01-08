@@ -125,6 +125,20 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	return babeService
 }
 
+func TestMain(m *testing.M) {
+	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
+	if err != nil {
+		log.Error("failed to generate runtime wasm file", err)
+		os.Exit(1)
+	}
+
+	// Start all tests
+	code := m.Run()
+
+	runtime.RemoveFiles(wasmFilePaths)
+	os.Exit(code)
+}
+
 func TestRunEpochLengthConfig(t *testing.T) {
 	cfg := &ServiceConfig{
 		EpochLength: 5,
@@ -284,8 +298,9 @@ func TestGetAuthorityIndex(t *testing.T) {
 	}
 
 	bs := &Service{
-		keypair: kpA,
-		logger:  log.New("BABE"),
+		keypair:   kpA,
+		logger:    log.New("BABE"),
+		authority: true,
 	}
 
 	idx, err := bs.getAuthorityIndex(authData)
@@ -293,8 +308,9 @@ func TestGetAuthorityIndex(t *testing.T) {
 	require.Equal(t, uint64(0), idx)
 
 	bs = &Service{
-		keypair: kpB,
-		logger:  log.New("BABE"),
+		keypair:   kpB,
+		logger:    log.New("BABE"),
+		authority: true,
 	}
 
 	idx, err = bs.getAuthorityIndex(authData)

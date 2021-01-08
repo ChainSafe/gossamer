@@ -103,7 +103,7 @@ func decodeBlockAnnounceMessage(r io.Reader) (NotificationsMessage, error) {
 // BlockAnnounceHandshake is exchanged by nodes that are beginning the BlockAnnounce protocol
 type BlockAnnounceHandshake struct {
 	Roles           byte
-	BestBlockNumber uint64
+	BestBlockNumber uint32
 	BestBlockHash   common.Hash
 	GenesisHash     common.Hash
 }
@@ -152,22 +152,48 @@ func (s *Service) getBlockAnnounceHandshake() (Handshake, error) {
 
 	return &BlockAnnounceHandshake{
 		Roles:           s.cfg.Roles,
-		BestBlockNumber: latestBlock.Number.Uint64(),
+		BestBlockNumber: uint32(latestBlock.Number.Uint64()),
 		BestBlockHash:   latestBlock.Hash(),
 		GenesisHash:     s.blockState.GenesisHash(),
 	}, nil
 }
 
-func (s *Service) validateBlockAnnounceHandshake(hs Handshake) error {
-	if _, ok := hs.(*BlockAnnounceHandshake); !ok {
+func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) error {
+	var (
+		bhs *BlockAnnounceHandshake
+		ok  bool
+	)
+
+	if bhs, ok = hs.(*BlockAnnounceHandshake); !ok {
 		return errors.New("invalid handshake type")
 	}
 
-	if hs.(*BlockAnnounceHandshake).GenesisHash != s.blockState.GenesisHash() {
+	if bhs.GenesisHash != s.blockState.GenesisHash() {
 		return errors.New("genesis hash mismatch")
 	}
 
-	return nil
+	// if peer has higher best block than us, begin syncing
+	latestHeader, err := s.blockState.BestBlockHeader()
+	if err != nil {
+		return err
+	}
+
+	bestBlockNum := big.NewInt(int64(bhs.BestBlockNumber))
+
+	// check if peer block number is greater than host block number
+	if latestHeader.Number.Cmp(bestBlockNum) >= 0 {
+		return nil
+	}
+
+	// if so, send block request
+	logger.Trace("sending peer highest block to syncer", "number", bhs.BestBlockNumber)
+	req := s.syncer.HandleBlockAnnounceHandshake(bestBlockNum)
+	if req == nil {
+		return nil
+	}
+
+	logger.Debug("sending block request to peer", "peer", peer, "number", bhs.BestBlockNumber)
+	return s.host.send(peer, syncID, req)
 }
 
 // handleBlockAnnounceMessage handles BlockAnnounce messages

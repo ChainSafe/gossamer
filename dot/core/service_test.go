@@ -19,6 +19,7 @@ package core
 import (
 	"io/ioutil"
 	"math/big"
+	"os"
 	"sort"
 	"testing"
 	"time"
@@ -67,6 +68,20 @@ func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, dept
 	}
 
 	return headers
+}
+
+func TestMain(m *testing.M) {
+	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
+	if err != nil {
+		log.Error("failed to generate runtime wasm file", err)
+		os.Exit(1)
+	}
+
+	// Start all tests
+	code := m.Run()
+
+	runtime.RemoveFiles(wasmFilePaths)
+	os.Exit(code)
 }
 
 func TestStartService(t *testing.T) {
