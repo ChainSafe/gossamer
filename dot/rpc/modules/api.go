@@ -49,6 +49,8 @@ type NetworkAPI interface {
 type BlockProducerAPI interface {
 	Pause() error
 	Resume() error
+	EpochLength() uint64
+	SlotDuration() uint64
 }
 
 // TransactionStateAPI ...

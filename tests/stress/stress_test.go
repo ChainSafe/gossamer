@@ -142,28 +142,30 @@ func TestSync_MultipleEpoch(t *testing.T) {
 	numNodes = 3 // TODO: increase this when syncing improves
 	utils.SetLogLevel(log.LvlInfo)
 
-	// start block producing node first
-	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDefault, utils.ConfigBABEMaxThreshold, false)
-	require.NoError(t, err)
-
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
 	// all nodes vote for different blocks.
 	time.Sleep(time.Second * 5)
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDefault, utils.ConfigNoBABE)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigDefault)
 	require.NoError(t, err)
-	nodes = append(nodes, node)
 
 	defer func() {
 		errList := utils.StopNodes(t, nodes)
 		require.Len(t, errList, 0)
 	}()
 
-	numCmps := 10
-	for i := 0; i < numCmps; i++ {
-		time.Sleep(time.Second)
-		t.Log("comparing...", i)
-		// TODO: #1195 check randomness and that epoch has increased
-	}
+	slotDuration, err := utils.SlotDuration(t, nodes[0])
+	require.NoError(t, err)
+	epochLength, err := utils.EpochLength(t, nodes[0])
+	require.NoError(t, err)
+
+	// Check state before wait
+
+	// Wait for epoch to pass
+	time.Sleep(time.Duration((slotDuration * epochLength) * 3))
+
+	// Just checking that everythings operating as expected
+	_, err = utils.SlotDuration(t, nodes[0])
+	require.NoError(t, err)
 }
 
 func TestSync_SingleSyncingNode(t *testing.T) {
