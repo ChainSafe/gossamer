@@ -42,11 +42,6 @@ func canDecodeCustom(t interface{}) bool {
 
 // DecodeCustom check if interface has method Decode, if so use that, otherwise use regular scale decoding
 func DecodeCustom(in []byte, t interface{}) error {
-	// ok := canDecodeCustom(t)
-	// if !ok {
-	// 	return errors.New("cannot call custom decode func")
-	// }
-
 	someType := reflect.TypeOf(t)
 	_, ok := someType.MethodByName("Decode")
 	if ok {

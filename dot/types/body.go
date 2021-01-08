@@ -34,6 +34,7 @@ func NewBody(b []byte) *Body {
 	return &body
 }
 
+// NewBodyFromBytes returns a new Body from a slice of byte slices
 func NewBodyFromBytes(exts [][]byte) (*Body, error) {
 	enc, err := scale.Encode(exts)
 	if err != nil {
@@ -99,8 +100,7 @@ func NewBodyFromOptional(ob *optional.Body) (*Body, error) {
 		return nil, errors.New("body is None")
 	}
 
-	b := ob.Value()
-	res := Body([]byte(b))
+	res := Body(ob.Value())
 	return &res, nil
 }
 

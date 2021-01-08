@@ -56,6 +56,7 @@ func NewHeader(parentHash common.Hash, number *big.Int, stateRoot common.Hash, e
 	return bh, nil
 }
 
+// NewEmptyHeader returns a new header with all zero values
 func NewEmptyHeader() *Header {
 	return &Header{
 		Number: big.NewInt(0),

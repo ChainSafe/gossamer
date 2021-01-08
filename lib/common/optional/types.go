@@ -256,7 +256,8 @@ func (x *Hash) String() string {
 	if !x.exists {
 		return none
 	}
-	return fmt.Sprintf("%s", x.value)
+
+	return x.value.String()
 }
 
 // Set sets the exists and value fields.
@@ -341,7 +342,7 @@ func (x *Body) String() string {
 	if !x.exists {
 		return none
 	}
-	return fmt.Sprintf("%v", x.Value)
+	return fmt.Sprintf("%v", x.value)
 }
 
 // Set sets the exists and value fields.
@@ -350,6 +351,7 @@ func (x *Body) Set(exists bool, value CoreBody) {
 	x.value = value
 }
 
+// Value returns the value as []byte if it exists
 func (x *Body) Value() []byte {
 	if x == nil || !x.exists {
 		return nil
@@ -358,6 +360,7 @@ func (x *Body) Value() []byte {
 	return []byte(x.value)
 }
 
+// Exists returns true if the value is Some, false if it is None.
 func (x *Body) Exists() bool {
 	return x.exists
 }

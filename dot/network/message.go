@@ -28,7 +28,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/scale"
 
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // Message types for notifications protocol messages. Used internally to map message to protocol.
@@ -83,6 +83,7 @@ func (bm *BlockRequestMessage) String() string {
 		bm.Max.String())
 }
 
+// Encode returns the protobuf encoded BlockRequestMessage
 func (bm *BlockRequestMessage) Encode() ([]byte, error) {
 	var (
 		toBlock []byte
@@ -123,6 +124,7 @@ func (bm *BlockRequestMessage) Encode() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
+// Decode decodes the protobuf encoded input to a BlockRequestMessage
 func (bm *BlockRequestMessage) Decode(in []byte) error {
 	msg := &pb.BlockRequest{}
 	err := proto.Unmarshal(in, msg)
@@ -181,7 +183,7 @@ func (bm *BlockResponseMessage) String() string {
 	return fmt.Sprintf("BlockResponseMessage BlockData=%v", bm.BlockData)
 }
 
-// Encode encodes a block response message using SCALE
+// Encode returns the protobuf encoded BlockResponseMessage
 func (bm *BlockResponseMessage) Encode() ([]byte, error) {
 	var (
 		err error
@@ -201,7 +203,7 @@ func (bm *BlockResponseMessage) Encode() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
-// Decode the message into a BlockResponseMessage
+// Decode decodes the protobuf encoded input to a BlockResponseMessage
 func (bm *BlockResponseMessage) Decode(in []byte) (err error) {
 	msg := &pb.BlockResponse{}
 	err = proto.Unmarshal(in, msg)

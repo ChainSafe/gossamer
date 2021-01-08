@@ -46,7 +46,12 @@ func (l *LightRequest) Decode(in []byte) error {
 	if err != nil {
 		return err
 	}
-	l = msg.(*LightRequest)
+
+	l.RmtCallRequest = msg.(*LightRequest).RmtCallRequest
+	l.RmtReadRequest = msg.(*LightRequest).RmtReadRequest
+	l.RmtHeaderRequest = msg.(*LightRequest).RmtHeaderRequest
+	l.RmtReadChildRequest = msg.(*LightRequest).RmtReadChildRequest
+	l.RmtChangesRequest = msg.(*LightRequest).RmtChangesRequest
 	return nil
 }
 
@@ -87,7 +92,11 @@ func (l *LightResponse) Decode(in []byte) error {
 	if err != nil {
 		return err
 	}
-	l = msg.(*LightResponse)
+
+	l.RmtCallResponse = msg.(*LightResponse).RmtCallResponse
+	l.RmtReadResponse = msg.(*LightResponse).RmtReadResponse
+	l.RmtHeaderResponse = msg.(*LightResponse).RmtHeaderResponse
+	l.RmtChangeResponse = msg.(*LightResponse).RmtChangeResponse
 	return nil
 }
 

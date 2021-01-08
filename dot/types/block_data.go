@@ -50,7 +50,7 @@ func (bd *BlockData) Encode() ([]byte, error) {
 	}
 
 	if bd.Body.Exists() {
-		venc, err := scale.Encode([]byte(bd.Body.Value()))
+		venc, err := scale.Encode(bd.Body.Value())
 		if err != nil {
 			return nil, err
 		}
