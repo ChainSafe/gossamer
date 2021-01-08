@@ -205,3 +205,40 @@ func TestEncodeDecodeSliceStruct(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, a, dec)
 }
+
+func TestEncodeDecodeSliceStructArray(t *testing.T) {
+	type ComplexStruct struct {
+		A []byte
+		B []string
+		C []int
+		D [][]byte
+		E *MyType
+		F common.Hash
+	}
+
+	csArray := []ComplexStruct{
+		{
+			A: []byte("Hello"),
+			B: []string{"Hello", "abc"},
+			C: []int{1, 2, 3, 4},
+			D: [][]byte{[]byte("ascasc")},
+			E: &MyType{1, 2, 3, 4},
+			F: common.Hash{},
+		},
+		{
+			A: []byte("Hello"),
+			B: []string{"Hello", "abc"},
+			C: []int{1, 2, 3, 4},
+			D: [][]byte{[]byte("ascasc")},
+			E: &MyType{1, 2, 3, 4, 5},
+			F: common.NewHash([]byte("Hello")),
+		},
+	}
+
+	enc, err := Encode(csArray)
+	require.NoError(t, err)
+
+	dec, err := Decode(enc, []ComplexStruct{})
+	require.NoError(t, err)
+	require.Equal(t, csArray, dec)
+}
