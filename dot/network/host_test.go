@@ -234,9 +234,7 @@ func TestSend(t *testing.T) {
 	nodeB.host.registerStreamHandler("", handler.handleStream)
 
 	addrInfosB, err := nodeB.host.addrInfos()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	err = nodeA.host.connect(*addrInfosB[0])
 	// retry connect if "failed to dial" error
