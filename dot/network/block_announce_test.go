@@ -17,7 +17,6 @@
 package network
 
 import (
-	"bytes"
 	"math/big"
 	"testing"
 
@@ -27,6 +26,24 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
 )
+
+func TestBlockAnnounce_Encode(t *testing.T) {
+	testBlockAnnounce := &BlockAnnounceMessage{
+		ParentHash:     common.Hash{1},
+		Number:         big.NewInt(77),
+		StateRoot:      common.Hash{2},
+		ExtrinsicsRoot: common.Hash{3},
+		Digest:         [][]byte{},
+	}
+
+	enc, err := testBlockAnnounce.Encode()
+	require.NoError(t, err)
+
+	res := new(BlockAnnounceMessage)
+	err = res.Decode(enc)
+	require.NoError(t, err)
+	require.Equal(t, testBlockAnnounce, res)
+}
 
 func TestDecodeBlockAnnounceHandshake(t *testing.T) {
 	testHandshake := &BlockAnnounceHandshake{
@@ -39,10 +56,7 @@ func TestDecodeBlockAnnounceHandshake(t *testing.T) {
 	enc, err := testHandshake.Encode()
 	require.NoError(t, err)
 
-	buf := &bytes.Buffer{}
-	buf.Write(enc)
-
-	msg, err := decodeBlockAnnounceHandshake(buf)
+	msg, err := decodeBlockAnnounceHandshake(enc)
 	require.NoError(t, err)
 	require.Equal(t, testHandshake, msg)
 }
@@ -59,10 +73,7 @@ func TestDecodeBlockAnnounceMessage(t *testing.T) {
 	enc, err := testBlockAnnounce.Encode()
 	require.NoError(t, err)
 
-	buf := &bytes.Buffer{}
-	buf.Write(enc)
-
-	msg, err := decodeBlockAnnounceMessage(buf)
+	msg, err := decodeBlockAnnounceMessage(enc)
 	require.NoError(t, err)
 	require.Equal(t, testBlockAnnounce, msg)
 }
@@ -90,4 +101,24 @@ func TestHandleBlockAnnounceMessage(t *testing.T) {
 
 	s.handleBlockAnnounceMessage(peerID, msg)
 	require.NotNil(t, s.syncing[peerID])
+}
+
+func TestValidateBlockAnnounceHandshake(t *testing.T) {
+	configA := &Config{
+		BasePath:    utils.NewTestBasePath(t, "nodeA"),
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeA := createTestService(t, configA)
+	nodeA.noGossip = true
+
+	resp, err := nodeA.validateBlockAnnounceHandshake(&BlockAnnounceHandshake{
+		BestBlockNumber: 100,
+		GenesisHash:     nodeA.blockState.GenesisHash(),
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
 }

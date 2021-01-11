@@ -19,7 +19,6 @@ package network
 import (
 	"errors"
 	"fmt"
-	"io"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -66,11 +65,19 @@ func (bm *BlockAnnounceMessage) Encode() ([]byte, error) {
 	return enc, nil
 }
 
-// Decode the message into a BlockAnnounceMessage, it assumes the type byte has been removed
-func (bm *BlockAnnounceMessage) Decode(r io.Reader) error {
-	sd := scale.Decoder{Reader: r}
-	_, err := sd.Decode(bm)
-	return err
+// Decode the message into a BlockAnnounceMessage
+func (bm *BlockAnnounceMessage) Decode(in []byte) error {
+	msg, err := scale.Decode(in, bm)
+	if err != nil {
+		return err
+	}
+
+	bm.ParentHash = msg.(*BlockAnnounceMessage).ParentHash
+	bm.Number = msg.(*BlockAnnounceMessage).Number
+	bm.StateRoot = msg.(*BlockAnnounceMessage).StateRoot
+	bm.ExtrinsicsRoot = msg.(*BlockAnnounceMessage).ExtrinsicsRoot
+	bm.Digest = msg.(*BlockAnnounceMessage).Digest
+	return nil
 }
 
 // Hash returns the hash of the BlockAnnounceMessage
@@ -86,24 +93,28 @@ func (bm *BlockAnnounceMessage) IsHandshake() bool {
 	return false
 }
 
-func decodeBlockAnnounceHandshake(r io.Reader) (Handshake, error) {
-	sd := scale.Decoder{Reader: r}
-	hs := new(BlockAnnounceHandshake)
-	_, err := sd.Decode(hs)
-	return hs, err
+func decodeBlockAnnounceHandshake(in []byte) (Handshake, error) {
+	hs, err := scale.Decode(in, new(BlockAnnounceHandshake))
+	if err != nil {
+		return nil, err
+	}
+
+	return hs.(*BlockAnnounceHandshake), err
 }
 
-func decodeBlockAnnounceMessage(r io.Reader) (NotificationsMessage, error) {
-	sd := scale.Decoder{Reader: r}
-	msg := new(BlockAnnounceMessage)
-	_, err := sd.Decode(msg)
-	return msg, err
+func decodeBlockAnnounceMessage(in []byte) (NotificationsMessage, error) {
+	msg, err := scale.Decode(in, new(BlockAnnounceMessage))
+	if err != nil {
+		return nil, err
+	}
+
+	return msg.(*BlockAnnounceMessage), err
 }
 
 // BlockAnnounceHandshake is exchanged by nodes that are beginning the BlockAnnounce protocol
 type BlockAnnounceHandshake struct {
 	Roles           byte
-	BestBlockNumber uint64
+	BestBlockNumber uint32
 	BestBlockHash   common.Hash
 	GenesisHash     common.Hash
 }
@@ -123,10 +134,17 @@ func (hs *BlockAnnounceHandshake) Encode() ([]byte, error) {
 }
 
 // Decode the message into a BlockAnnounceHandshake
-func (hs *BlockAnnounceHandshake) Decode(r io.Reader) error {
-	sd := scale.Decoder{Reader: r}
-	_, err := sd.Decode(hs)
-	return err
+func (hs *BlockAnnounceHandshake) Decode(in []byte) error {
+	msg, err := scale.Decode(in, hs)
+	if err != nil {
+		return err
+	}
+
+	hs.Roles = msg.(*BlockAnnounceHandshake).Roles
+	hs.BestBlockNumber = msg.(*BlockAnnounceHandshake).BestBlockNumber
+	hs.BestBlockHash = msg.(*BlockAnnounceHandshake).BestBlockHash
+	hs.GenesisHash = msg.(*BlockAnnounceHandshake).GenesisHash
+	return nil
 }
 
 // Type ...
@@ -152,22 +170,47 @@ func (s *Service) getBlockAnnounceHandshake() (Handshake, error) {
 
 	return &BlockAnnounceHandshake{
 		Roles:           s.cfg.Roles,
-		BestBlockNumber: latestBlock.Number.Uint64(),
+		BestBlockNumber: uint32(latestBlock.Number.Uint64()),
 		BestBlockHash:   latestBlock.Hash(),
 		GenesisHash:     s.blockState.GenesisHash(),
 	}, nil
 }
 
-func (s *Service) validateBlockAnnounceHandshake(hs Handshake) error {
-	if _, ok := hs.(*BlockAnnounceHandshake); !ok {
-		return errors.New("invalid handshake type")
+func (s *Service) validateBlockAnnounceHandshake(hs Handshake) (Message, error) {
+	var (
+		bhs *BlockAnnounceHandshake
+		ok  bool
+	)
+
+	if bhs, ok = hs.(*BlockAnnounceHandshake); !ok {
+		return nil, errors.New("invalid handshake type")
 	}
 
-	if hs.(*BlockAnnounceHandshake).GenesisHash != s.blockState.GenesisHash() {
-		return errors.New("genesis hash mismatch")
+	if bhs.GenesisHash != s.blockState.GenesisHash() {
+		return nil, errors.New("genesis hash mismatch")
 	}
 
-	return nil
+	// if peer has higher best block than us, begin syncing
+	latestHeader, err := s.blockState.BestBlockHeader()
+	if err != nil {
+		return nil, err
+	}
+
+	bestBlockNum := big.NewInt(int64(bhs.BestBlockNumber))
+
+	// check if peer block number is greater than host block number
+	if latestHeader.Number.Cmp(bestBlockNum) >= 0 {
+		return nil, nil
+	}
+
+	// if so, send block request
+	logger.Trace("sending peer highest block to syncer", "number", bhs.BestBlockNumber)
+	req := s.syncer.HandleBlockAnnounceHandshake(bestBlockNum)
+	if req == nil {
+		return nil, nil
+	}
+
+	return req, nil
 }
 
 // handleBlockAnnounceMessage handles BlockAnnounce messages

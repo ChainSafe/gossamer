@@ -34,7 +34,9 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-var maxInt64 = int64(2 ^ 63 - 1)
+var (
+	maxInt64 = int64(2 ^ 63 - 1)
+)
 
 // Service deals with chain syncing by sending block request messages and watching for responses.
 type Service struct {
@@ -113,6 +115,30 @@ func NewService(cfg *Config) (*Service, error) {
 		digestHandler:    cfg.DigestHandler,
 		benchmarker:      newBenchmarker(logger),
 	}, nil
+}
+
+// HandleBlockAnnounceHandshake handles a block that a peer claims to have through a HandleBlockAnnounceHandshake
+func (s *Service) HandleBlockAnnounceHandshake(blockNum *big.Int) *network.BlockRequestMessage {
+	if blockNum == nil || s.highestSeenBlock.Cmp(blockNum) != -1 {
+		return nil
+	}
+
+	// need to sync
+	var start int64
+	if s.synced {
+		start = s.highestSeenBlock.Add(s.highestSeenBlock, big.NewInt(1)).Int64()
+		s.synced = false
+
+		err := s.blockProducer.Pause()
+		if err != nil {
+			s.logger.Warn("failed to pause block production")
+		}
+	} else {
+		start = s.highestSeenBlock.Int64()
+	}
+
+	s.highestSeenBlock = blockNum
+	return s.createBlockRequest(start)
 }
 
 // HandleBlockAnnounce creates a block request message from the block
@@ -304,7 +330,7 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 			}
 		}
 
-		if bd.Body.Exists && !hasBody {
+		if bd.Body.Exists() && !hasBody {
 			body, err := types.NewBodyFromOptional(bd.Body)
 			if err != nil {
 				return start, end, err
@@ -316,7 +342,7 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 			}
 		}
 
-		if bd.Header.Exists() && bd.Body.Exists {
+		if bd.Header.Exists() && bd.Body.Exists() {
 			header, err := types.NewHeaderFromOptional(bd.Header)
 			if err != nil {
 				return 0, 0, err

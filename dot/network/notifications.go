@@ -17,9 +17,7 @@
 package network
 
 import (
-	"bytes"
 	"errors"
-	"io"
 	"sync"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -39,13 +37,13 @@ type (
 	HandshakeGetter = func() (Handshake, error)
 
 	// HandshakeDecoder is a custom decoder for a handshake
-	HandshakeDecoder = func(io.Reader) (Handshake, error)
+	HandshakeDecoder = func([]byte) (Handshake, error)
 
 	// HandshakeValidator validates a handshake. It returns an error if it is invalid
-	HandshakeValidator = func(Handshake) error
+	HandshakeValidator = func(Handshake) (Message, error)
 
 	// MessageDecoder is a custom decoder for a message
-	MessageDecoder = func(io.Reader) (NotificationsMessage, error)
+	MessageDecoder = func([]byte) (NotificationsMessage, error)
 
 	// NotificationsMessageHandler is called when a (non-handshake) message is received over a notifications stream.
 	NotificationsMessageHandler = func(peer peer.ID, msg NotificationsMessage) error
@@ -66,23 +64,17 @@ type handshakeData struct {
 
 func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecoder, messageDecoder MessageDecoder) messageDecoder {
 	return func(in []byte, peer peer.ID) (Message, error) {
-		r := &bytes.Buffer{}
-		_, err := r.Write(in)
-		if err != nil {
-			return nil, err
-		}
-
 		// if we don't have handshake data on this peer, or we haven't received the handshake from them already,
 		// assume we are receiving the handshake
 		info.mapMu.RLock()
 		defer info.mapMu.RUnlock()
 
 		if hsData, has := info.handshakeData[peer]; !has || !hsData.received {
-			return handshakeDecoder(r)
+			return handshakeDecoder(in)
 		}
 
 		// otherwise, assume we are receiving the Message
-		return messageDecoder(r)
+		return messageDecoder(in)
 	}
 }
 
@@ -101,7 +93,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			return errors.New("message is not NotificationsMessage")
 		}
 
-		logger.Info("received message on notifications sub-protocol", "sub-protocol", info.subProtocol, "message", msg)
+		logger.Debug("received message on notifications sub-protocol", "sub-protocol", info.subProtocol, "message", msg)
 
 		if msg.IsHandshake() {
 			hs, ok := msg.(Handshake)
@@ -115,7 +107,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			// if we are the receiver and haven't received the handshake already, validate it
 			if _, has := info.handshakeData[peer]; !has {
 				logger.Trace("receiver: validating handshake", "sub-protocol", info.subProtocol)
-				err := handshakeValidator(hs)
+				handshakeResp, err := handshakeValidator(hs)
 				if err != nil {
 					logger.Error("failed to validate handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
 					info.handshakeData[peer] = &handshakeData{
@@ -143,15 +135,23 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 					return err
 				}
 				logger.Trace("receiver: sent handshake", "sub-protocol", info.subProtocol, "peer", peer)
+
+				if handshakeResp != nil {
+					logger.Debug("sending message to peer in response to handshake", "peer", peer, "msg", handshakeResp)
+					err = s.host.send(peer, info.subProtocol, handshakeResp)
+					if err != nil {
+						logger.Error("failed to send response to peer's handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
+						return err
+					}
+				}
 			}
 
 			// if we are the initiator and haven't received the handshake already, validate it
 			if hsData, has := info.handshakeData[peer]; has && !hsData.validated {
 				logger.Trace("sender: validating handshake")
-				err := handshakeValidator(hs)
+				handshakeResp, err := handshakeValidator(hs)
 				if err != nil {
 					logger.Error("failed to validate handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
-					// TODO: also delete on stream close
 					delete(info.handshakeData, peer)
 					return errCannotValidateHandshake
 				}
@@ -159,6 +159,15 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 				info.handshakeData[peer].validated = true
 				info.handshakeData[peer].received = true
 				logger.Trace("sender: validated handshake", "sub-protocol", info.subProtocol, "peer", peer)
+
+				if handshakeResp != nil {
+					logger.Debug("sending message to peer in response to handshake", "peer", peer, "msg", handshakeResp)
+					err = s.host.send(peer, info.subProtocol, handshakeResp)
+					if err != nil {
+						logger.Error("failed to send response to peer's handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
+						return err
+					}
+				}
 			} else if hsData.received {
 				return nil
 			}

@@ -67,6 +67,8 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	srvc, err := NewService(cfg)
 	require.NoError(t, err)
 
+	srvc.noDiscover = true
+
 	err = srvc.Start()
 	require.NoError(t, err)
 
@@ -201,64 +203,6 @@ func TestService_Health(t *testing.T) {
 	require.Equal(t, s.Health().IsSyncing, false)
 }
 
-func TestHandleLightMessage_Response(t *testing.T) {
-	basePath := utils.NewTestBasePath(t, "nodeA")
-	defer utils.RemoveTestDir(t)
-
-	config := &Config{
-		BasePath:    basePath,
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true,
-		NoMDNS:      true,
-	}
-	s := createTestService(t, config)
-
-	peerID := peer.ID("noot")
-
-	// Testing empty request
-	msg := &LightRequest{}
-	err := s.handleLightSyncMsg(peerID, msg)
-	require.NoError(t, err)
-
-	expectedErr := "failed to find any peer in table"
-
-	// Testing remoteCallResp()
-	msg = &LightRequest{
-		RmtCallRequest: &RemoteCallRequest{},
-	}
-	err = s.handleLightSyncMsg(peerID, msg)
-	require.Error(t, err, expectedErr, msg.String())
-
-	// Testing remoteHeaderResp()
-	msg = &LightRequest{
-		RmtHeaderRequest: &RemoteHeaderRequest{},
-	}
-	err = s.handleLightSyncMsg(peerID, msg)
-	require.Error(t, err, expectedErr, msg.String())
-
-	// Testing remoteChangeResp()
-	msg = &LightRequest{
-		RmtChangesRequest: &RemoteChangesRequest{},
-	}
-	err = s.handleLightSyncMsg(peerID, msg)
-	require.Error(t, err, expectedErr, msg.String())
-
-	// Testing remoteReadResp()
-	msg = &LightRequest{
-		RmtReadRequest: &RemoteReadRequest{},
-	}
-	err = s.handleLightSyncMsg(peerID, msg)
-	require.Error(t, err, expectedErr, msg.String())
-
-	// Testing remoteReadChildResp()
-	msg = &LightRequest{
-		RmtReadChildRequest: &RemoteReadChildRequest{},
-	}
-	err = s.handleLightSyncMsg(peerID, msg)
-	require.Error(t, err, expectedErr, msg.String())
-}
-
 func TestDecodeSyncMessage(t *testing.T) {
 	s := &Service{
 		syncing: make(map[peer.ID]struct{}),
@@ -292,38 +236,115 @@ func TestDecodeSyncMessage(t *testing.T) {
 	require.Equal(t, testBlockResponseMessage, resp)
 }
 
-func TestDecodeLightMessage(t *testing.T) {
-	s := &Service{
-		lightRequest: make(map[peer.ID]struct{}),
+func TestBeginDiscovery(t *testing.T) {
+	configA := &Config{
+		BasePath:    utils.NewTestBasePath(t, "nodeA"),
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true,
+		NoMDNS:      true,
 	}
 
-	testPeer := peer.ID("noot")
+	nodeA := createTestService(t, configA)
+	nodeA.noGossip = true
 
-	testLightRequest := NewLightRequest()
-	testLightResponse := NewLightResponse()
+	configB := &Config{
+		BasePath:    utils.NewTestBasePath(t, "nodeB"),
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
 
-	reqEnc, err := testLightRequest.Encode()
+	nodeB := createTestService(t, configB)
+	nodeB.noGossip = true
+
+	addrInfosB, err := nodeB.host.addrInfos()
 	require.NoError(t, err)
 
-	msg, err := s.decodeLightMessage(reqEnc, testPeer)
+	err = nodeA.host.connect(*addrInfosB[0])
+	if failedToDial(err) {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(*addrInfosB[0])
+	}
 	require.NoError(t, err)
 
-	req, ok := msg.(*LightRequest)
-	require.True(t, ok)
-	resEnc, err := req.Encode()
-	require.NoError(t, err)
-	require.Equal(t, reqEnc, resEnc)
-
-	s.lightRequest[testPeer] = struct{}{}
-
-	respEnc, err := testLightResponse.Encode()
+	err = nodeA.beginDiscovery()
 	require.NoError(t, err)
 
-	msg, err = s.decodeLightMessage(respEnc, testPeer)
+	err = nodeB.beginDiscovery()
 	require.NoError(t, err)
-	resp, ok := msg.(*LightResponse)
-	require.True(t, ok)
-	resEnc, err = resp.Encode()
+}
+
+func TestBeginDiscovery_ThreeNodes(t *testing.T) {
+	configA := &Config{
+		BasePath:    utils.NewTestBasePath(t, "nodeA"),
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeA := createTestService(t, configA)
+	nodeA.noGossip = true
+
+	configB := &Config{
+		BasePath:    utils.NewTestBasePath(t, "nodeB"),
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeB := createTestService(t, configB)
+	nodeB.noGossip = true
+
+	configC := &Config{
+		BasePath:    utils.NewTestBasePath(t, "nodeC"),
+		Port:        7003,
+		RandSeed:    3,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeC := createTestService(t, configC)
+	nodeC.noGossip = true
+
+	// connect A and B
+	addrInfosB, err := nodeB.host.addrInfos()
 	require.NoError(t, err)
-	require.Equal(t, respEnc, resEnc)
+
+	err = nodeA.host.connect(*addrInfosB[0])
+	if failedToDial(err) {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(*addrInfosB[0])
+	}
+	require.NoError(t, err)
+
+	// connect A and C
+	addrInfosC, err := nodeC.host.addrInfos()
+	require.NoError(t, err)
+
+	err = nodeA.host.connect(*addrInfosC[0])
+	if failedToDial(err) {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(*addrInfosC[0])
+	}
+	require.NoError(t, err)
+
+	// begin advertising and discovery for all nodes
+	err = nodeA.beginDiscovery()
+	require.NoError(t, err)
+
+	err = nodeB.beginDiscovery()
+	require.NoError(t, err)
+
+	err = nodeC.beginDiscovery()
+	require.NoError(t, err)
+
+	time.Sleep(time.Millisecond * 500)
+
+	// assert B and C can discover each other
+	addrs := nodeB.host.h.Peerstore().Addrs(nodeC.host.id())
+	require.NotEqual(t, 0, len(addrs))
 }

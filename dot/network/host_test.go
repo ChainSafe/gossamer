@@ -25,7 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p-core/peer"
-	dht "github.com/libp2p/go-libp2p-kad-dht"
+	"github.com/libp2p/go-libp2p-kad-dht/dual"
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
 	"github.com/stretchr/testify/require"
 )
@@ -234,9 +234,7 @@ func TestSend(t *testing.T) {
 	nodeB.host.registerStreamHandler("", handler.handleStream)
 
 	addrInfosB, err := nodeB.host.addrInfos()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	err = nodeA.host.connect(*addrInfosB[0])
 	// retry connect if "failed to dial" error
@@ -521,12 +519,12 @@ func connectNoSync(t *testing.T, ctx context.Context, a, b *Service) {
 }
 
 // nolint
-func wait(t *testing.T, ctx context.Context, a, b *dht.IpfsDHT) {
+func wait(t *testing.T, ctx context.Context, a, b *dual.DHT) {
 	t.Helper()
 
 	// Loop until connection notification has been received.
 	// Under high load, this may not happen as immediately as we would like.
-	for a.RoutingTable().Find(b.PeerID()) == "" {
+	for a.LAN.RoutingTable().Find(b.LAN.PeerID()) == "" {
 		select {
 		case <-ctx.Done():
 			t.Fatal(ctx.Err())

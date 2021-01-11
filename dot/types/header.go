@@ -56,6 +56,14 @@ func NewHeader(parentHash common.Hash, number *big.Int, stateRoot common.Hash, e
 	return bh, nil
 }
 
+// NewEmptyHeader returns a new header with all zero values
+func NewEmptyHeader() *Header {
+	return &Header{
+		Number: big.NewInt(0),
+		Digest: [][]byte{},
+	}
+}
+
 // DeepCopy returns a deep copy of the header to prevent side effects down the road
 func (bh *Header) DeepCopy() *Header {
 	//copy everything but pointers / array

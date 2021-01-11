@@ -188,5 +188,10 @@ func (c *Config) buildProtocol() error {
 		c.ProtocolID = DefaultProtocolID
 	}
 
+	// append "/" to front of protocol ID, if not already there
+	if c.ProtocolID[:1] != "/" {
+		c.ProtocolID = "/" + c.ProtocolID
+	}
+
 	return nil
 }
