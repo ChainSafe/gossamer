@@ -302,7 +302,6 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 
 	instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME)
 	block := buildBlock(t, instance)
-	t.Log(block.Body)
 
 	// reset state back to parent state before executing
 	parentState := runtime.NewTestRuntimeStorage(t, nil)
