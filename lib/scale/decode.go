@@ -69,6 +69,8 @@ func (sd *Decoder) Decode(t interface{}) (out interface{}, err error) {
 		out, err = sd.DecodeIntArray()
 	case []bool:
 		out, err = sd.DecodeBoolArray()
+	case []string:
+		out, err = sd.DecodeStringArray()
 	case []*big.Int:
 		out, err = sd.DecodeBigIntArray()
 	case common.Hash:
