@@ -395,7 +395,6 @@ func (s *StorageState) GetBalance(hash *common.Hash, key [32]byte) (uint64, erro
 	return binary.LittleEndian.Uint64(bal), nil
 }
 
-
 func (s *StorageState) pruneStorage(closeCh chan interface{}) {
 	for {
 		select {
