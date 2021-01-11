@@ -24,12 +24,10 @@ unlock = ""
 roles = 1
 babe-authority = false
 grandpa-authority = false
-babe-threshold = ""
 
 [network]
 port = 7001
 bootnodes = []
-protocol = "/gossamer/ksmcc/0"
 nobootstrap = false
 nomdns = false
 

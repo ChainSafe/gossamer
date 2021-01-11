@@ -19,6 +19,7 @@ package network
 import (
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -39,7 +40,6 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		NoStatus:    true,
 	}
 
 	s := createTestService(t, config)
@@ -102,7 +102,6 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		NoStatus:    true,
 	}
 
 	s := createTestService(t, config)
@@ -127,22 +126,16 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 
 	err := handler(testPeerID, msg)
 	require.NoError(t, err)
-	require.True(t, s.requestTracker.hasRequestedBlockID(99))
+	require.NotNil(t, s.syncing[testPeerID])
 }
 
 func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) {
-	basePath := utils.NewTestBasePath(t, "nodeA")
-
-	// removes all data directories created within test directory
-	defer utils.RemoveTestDir(t)
-
 	config := &Config{
-		BasePath:    basePath,
+		BasePath:    utils.NewTestBasePath(t, "nodeA"),
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		NoStatus:    true,
 	}
 
 	s := createTestService(t, config)
@@ -155,9 +148,20 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 	}
 	handler := s.createNotificationsMessageHandler(info, s.validateBlockAnnounceHandshake, s.handleBlockAnnounceMessage)
 
-	// don't set handshake data ie. this stream has just been opened
-	testPeerID := peer.ID("QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ")
+	configB := &Config{
+		BasePath:    utils.NewTestBasePath(t, "nodeB"),
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
 
+	b := createTestService(t, configB)
+
+	// don't set handshake data ie. this stream has just been opened
+	testPeerID := b.host.id()
+
+	// try invalid handshake
 	testHandshake := &BlockAnnounceHandshake{
 		Roles:           4,
 		BestBlockNumber: 77,
@@ -170,6 +174,18 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 	require.True(t, info.handshakeData[testPeerID].received)
 	require.False(t, info.handshakeData[testPeerID].validated)
 
+	// connect nodes
+	addrInfosB, err := b.host.addrInfos()
+	require.NoError(t, err)
+
+	err = s.host.connect(*addrInfosB[0])
+	if failedToDial(err) {
+		time.Sleep(TestBackoffTimeout)
+		err = s.host.connect(*addrInfosB[0])
+	}
+	require.NoError(t, err)
+
+	// try valid handshake
 	testHandshake = &BlockAnnounceHandshake{
 		Roles:           4,
 		BestBlockNumber: 77,

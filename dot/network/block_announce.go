@@ -20,12 +20,71 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/scale"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 )
+
+var (
+	_ NotificationsMessage = &BlockAnnounceMessage{}
+	_ NotificationsMessage = &BlockAnnounceHandshake{}
+)
+
+// BlockAnnounceMessage is a state block header
+type BlockAnnounceMessage struct {
+	ParentHash     common.Hash
+	Number         *big.Int
+	StateRoot      common.Hash
+	ExtrinsicsRoot common.Hash
+	Digest         [][]byte // any additional block info eg. logs, seal
+}
+
+// Type returns BlockAnnounceMsgType
+func (bm *BlockAnnounceMessage) Type() byte {
+	return BlockAnnounceMsgType
+}
+
+// string formats a BlockAnnounceMessage as a string
+func (bm *BlockAnnounceMessage) String() string {
+	return fmt.Sprintf("BlockAnnounceMessage ParentHash=%s Number=%d StateRoot=%sx ExtrinsicsRoot=%s Digest=%v",
+		bm.ParentHash,
+		bm.Number,
+		bm.StateRoot,
+		bm.ExtrinsicsRoot,
+		bm.Digest)
+}
+
+// Encode a BlockAnnounce Msg Type containing the BlockAnnounceMessage using scale.Encode
+func (bm *BlockAnnounceMessage) Encode() ([]byte, error) {
+	enc, err := scale.Encode(bm)
+	if err != nil {
+		return enc, err
+	}
+	return enc, nil
+}
+
+// Decode the message into a BlockAnnounceMessage, it assumes the type byte has been removed
+func (bm *BlockAnnounceMessage) Decode(r io.Reader) error {
+	sd := scale.Decoder{Reader: r}
+	_, err := sd.Decode(bm)
+	return err
+}
+
+// Hash returns the hash of the BlockAnnounceMessage
+func (bm *BlockAnnounceMessage) Hash() common.Hash {
+	// scale encode each extrinsic
+	encMsg, _ := bm.Encode()
+	hash, _ := common.Blake2bHash(encMsg)
+	return hash
+}
+
+// IsHandshake returns false
+func (bm *BlockAnnounceMessage) IsHandshake() bool {
+	return false
+}
 
 func decodeBlockAnnounceHandshake(r io.Reader) (Handshake, error) {
 	sd := scale.Decoder{Reader: r}
@@ -34,7 +93,7 @@ func decodeBlockAnnounceHandshake(r io.Reader) (Handshake, error) {
 	return hs, err
 }
 
-func decodeBlockAnnounceMessage(r io.Reader) (Message, error) {
+func decodeBlockAnnounceMessage(r io.Reader) (NotificationsMessage, error) {
 	sd := scale.Decoder{Reader: r}
 	msg := new(BlockAnnounceMessage)
 	_, err := sd.Decode(msg)
@@ -44,7 +103,7 @@ func decodeBlockAnnounceMessage(r io.Reader) (Message, error) {
 // BlockAnnounceHandshake is exchanged by nodes that are beginning the BlockAnnounce protocol
 type BlockAnnounceHandshake struct {
 	Roles           byte
-	BestBlockNumber uint64
+	BestBlockNumber uint32
 	BestBlockHash   common.Hash
 	GenesisHash     common.Hash
 }
@@ -75,9 +134,9 @@ func (hs *BlockAnnounceHandshake) Type() byte {
 	return 0
 }
 
-// IDString ...
-func (hs *BlockAnnounceHandshake) IDString() string {
-	return ""
+// Hash ...
+func (hs *BlockAnnounceHandshake) Hash() common.Hash {
+	return common.Hash{}
 }
 
 // IsHandshake returns true
@@ -93,32 +152,58 @@ func (s *Service) getBlockAnnounceHandshake() (Handshake, error) {
 
 	return &BlockAnnounceHandshake{
 		Roles:           s.cfg.Roles,
-		BestBlockNumber: latestBlock.Number.Uint64(),
+		BestBlockNumber: uint32(latestBlock.Number.Uint64()),
 		BestBlockHash:   latestBlock.Hash(),
 		GenesisHash:     s.blockState.GenesisHash(),
 	}, nil
 }
 
-func (s *Service) validateBlockAnnounceHandshake(hs Handshake) error {
-	if _, ok := hs.(*BlockAnnounceHandshake); !ok {
+func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) error {
+	var (
+		bhs *BlockAnnounceHandshake
+		ok  bool
+	)
+
+	if bhs, ok = hs.(*BlockAnnounceHandshake); !ok {
 		return errors.New("invalid handshake type")
 	}
 
-	if hs.(*BlockAnnounceHandshake).GenesisHash != s.blockState.GenesisHash() {
+	if bhs.GenesisHash != s.blockState.GenesisHash() {
 		return errors.New("genesis hash mismatch")
 	}
 
-	return nil
+	// if peer has higher best block than us, begin syncing
+	latestHeader, err := s.blockState.BestBlockHeader()
+	if err != nil {
+		return err
+	}
+
+	bestBlockNum := big.NewInt(int64(bhs.BestBlockNumber))
+
+	// check if peer block number is greater than host block number
+	if latestHeader.Number.Cmp(bestBlockNum) >= 0 {
+		return nil
+	}
+
+	// if so, send block request
+	logger.Trace("sending peer highest block to syncer", "number", bhs.BestBlockNumber)
+	req := s.syncer.HandleBlockAnnounceHandshake(bestBlockNum)
+	if req == nil {
+		return nil
+	}
+
+	logger.Debug("sending block request to peer", "peer", peer, "number", bhs.BestBlockNumber)
+	return s.host.send(peer, syncID, req)
 }
 
 // handleBlockAnnounceMessage handles BlockAnnounce messages
 // if some more blocks are required to sync the announced block, the node will open a sync stream
 // with its peer and send a BlockRequest message
-func (s *Service) handleBlockAnnounceMessage(peer peer.ID, msg Message) error {
+func (s *Service) handleBlockAnnounceMessage(peer peer.ID, msg NotificationsMessage) error {
 	if an, ok := msg.(*BlockAnnounceMessage); ok {
 		req := s.syncer.HandleBlockAnnounce(an)
 		if req != nil {
-			s.requestTracker.addRequestedBlockID(req.ID)
+			s.syncing[peer] = struct{}{}
 			err := s.host.send(peer, syncID, req)
 			if err != nil {
 				logger.Error("failed to send BlockRequest message", "peer", peer)

@@ -39,7 +39,7 @@ func GenerateRandomTests(t *testing.T, size int) []Test {
 }
 
 func generateRandomTest(t *testing.T, kv map[string][]byte) Test {
-	r := *rand.New(rand.NewSource(rand.Int63()))
+	r := *rand.New(rand.NewSource(rand.Int63())) //nolint
 	test := Test{}
 
 	for {

@@ -29,45 +29,13 @@ type BlockState interface {
 	GenesisHash() common.Hash
 }
 
-// NetworkState interface for network state methods
-//nolint:golint
-type NetworkState interface {
-	SetHealth(common.Health)
-	SetNetworkState(common.NetworkState)
-	SetPeers([]common.PeerInfo)
-}
-
-// MessageHandler interface for handling message passing
-type MessageHandler interface {
-	HandleMessage(Message)
-}
-
-// MockNetworkState for testing purposes
-type MockNetworkState struct {
-	Health       common.Health
-	NetworkState common.NetworkState
-	Peers        []common.PeerInfo
-}
-
-// SetHealth sets network health in the database
-func (ns *MockNetworkState) SetHealth(health common.Health) {
-	ns.Health = health
-}
-
-// SetNetworkState sets network state in the database
-func (ns *MockNetworkState) SetNetworkState(networkState common.NetworkState) {
-	ns.NetworkState = networkState
-}
-
-// SetPeers sets network state in the database
-func (ns *MockNetworkState) SetPeers(peers []common.PeerInfo) {
-	ns.Peers = peers
-}
-
 // Syncer is implemented by the syncing service
 type Syncer interface {
 	// CreateBlockResponse is called upon receipt of a BlockRequestMessage to create the response
 	CreateBlockResponse(*BlockRequestMessage) (*BlockResponseMessage, error)
+
+	// HandleBlockAnnounceHandshake is called upon receiving a BlockAnnounceHandshake from a peer that has a higher chain head than us
+	HandleBlockAnnounceHandshake(*big.Int) *BlockRequestMessage
 
 	// HandleBlockResponse is called upon receipt of BlockResponseMessage to process it.
 	// If another request needs to be sent to the peer, this function will return it.
@@ -76,9 +44,6 @@ type Syncer interface {
 	// HandleBlockAnnounce is called upon receipt of a BlockAnnounceMessage to process it.
 	// If a request needs to be sent to the peer to retrieve the full block, this function will return it.
 	HandleBlockAnnounce(*BlockAnnounceMessage) *BlockRequestMessage
-
-	// HandleSeenBlocks is called upon receiving a StatusMessage from a peer that has a higher chain head than us
-	HandleSeenBlocks(*big.Int) *BlockRequestMessage
 
 	// IsSynced exposes the internal synced state
 	IsSynced() bool

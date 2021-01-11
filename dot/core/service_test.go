@@ -19,6 +19,7 @@ package core
 import (
 	"io/ioutil"
 	"math/big"
+	"os"
 	"sort"
 	"testing"
 	"time"
@@ -69,6 +70,20 @@ func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, dept
 	return headers
 }
 
+func TestMain(m *testing.M) {
+	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
+	if err != nil {
+		log.Error("failed to generate runtime wasm file", err)
+		os.Exit(1)
+	}
+
+	// Start all tests
+	code := m.Run()
+
+	runtime.RemoveFiles(wasmFilePaths)
+	os.Exit(code)
+}
+
 func TestStartService(t *testing.T) {
 	s := NewTestService(t, nil)
 
@@ -111,7 +126,7 @@ func TestAnnounceBlock(t *testing.T) {
 	}
 
 	time.Sleep(testMessageTimeout)
-	require.Equal(t, network.BlockAnnounceMsgType, net.Message.Type())
+	require.Equal(t, network.BlockAnnounceMsgType, net.Message.(network.NotificationsMessage).Type())
 }
 
 func TestHandleRuntimeChanges(t *testing.T) {
@@ -237,8 +252,8 @@ func TestHandleChainReorg_WithReorg_NoTransactions(t *testing.T) {
 
 func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	cfg := &Config{
-		// TODO: change to LEGACY_NODE_RUNTIME
-		Runtime: wasmer.NewTestLegacyInstance(t, runtime.SUBSTRATE_TEST_RUNTIME),
+		// TODO: change to NODE_RUNTIME once transactions work
+		Runtime: wasmer.NewInstanceFromLegacy(wasmer.NewTestLegacyInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)),
 	}
 
 	s := NewTestService(t, cfg)

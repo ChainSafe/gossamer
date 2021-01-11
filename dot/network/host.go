@@ -29,18 +29,19 @@ import (
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
+	"github.com/libp2p/go-libp2p-kad-dht/dual"
 	noise "github.com/libp2p/go-libp2p-noise"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-var defaultMaxPeerCount = 5
+var defaultMaxPeerCount = 8
 
 // host wraps libp2p host with network host configuration and services
 type host struct {
 	ctx        context.Context
 	h          libp2phost.Host
-	dht        *kaddht.IpfsDHT
+	dht        *dual.DHT
 	bootnodes  []peer.AddrInfo
 	protocolID protocol.ID
 }
@@ -60,6 +61,22 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	// create connection manager
 	cm := newConnManager(defaultMaxPeerCount)
 
+	// format bootnodes
+	bns, err := stringsToAddrInfos(cfg.Bootnodes)
+	if err != nil {
+		return nil, err
+	}
+
+	dhtOpts := []kaddht.Option{
+		kaddht.Datastore(dsync.MutexWrap(ds.NewMapDatastore())), // TODO: use on-disk datastore
+		kaddht.BootstrapPeers(bns...),
+		kaddht.ProtocolPrefix(protocol.ID(cfg.ProtocolID)),
+	}
+
+	if cfg.NoMDNS {
+		dhtOpts = append(dhtOpts, kaddht.Mode(kaddht.ModeAutoServer))
+	}
+
 	// set libp2p host options
 	opts := []libp2p.Option{
 		libp2p.ListenAddrs(addr),
@@ -76,28 +93,14 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		return nil, err
 	}
 
-	dhtOpts := []kaddht.Option{
-		kaddht.Datastore(dsync.MutexWrap(ds.NewMapDatastore())),
-	}
-
-	if cfg.NoMDNS {
-		dhtOpts = append(dhtOpts, kaddht.Mode(kaddht.ModeAutoServer))
-	}
-
 	// create DHT service
-	dht, err := kaddht.New(ctx, h, dhtOpts...)
+	dht, err := dual.New(ctx, h, dhtOpts...)
 	if err != nil {
 		return nil, err
 	}
 
 	// wrap host and DHT service with routed host
 	h = rhost.Wrap(h, dht)
-
-	// format bootnodes
-	bns, err := stringsToAddrInfos(cfg.Bootnodes)
-	if err != nil {
-		return nil, err
-	}
 
 	// format protocol id
 	pid := protocol.ID(cfg.ProtocolID)
@@ -133,7 +136,7 @@ func (h *host) close() error {
 }
 
 // registerConnHandler registers the connection handler (see handleConn)
-func (h *host) registerConnHandler(handler func(libp2pnetwork.Conn)) {
+func (h *host) registerConnHandler(handler func(libp2pnetwork.Conn)) { //nolint
 	h.h.Network().SetConnHandler(handler)
 }
 
@@ -176,7 +179,7 @@ func (h *host) send(p peer.ID, sub protocol.ID, msg Message) (err error) {
 		"Sent message to peer",
 		"host", h.id(),
 		"peer", p,
-		"type", msg.Type(),
+		"message", msg.String(),
 	)
 
 	return nil
@@ -222,7 +225,7 @@ func (h *host) broadcast(msg Message) {
 }
 
 // broadcastExcluding sends a message to each connected peer except specified peer
-func (h *host) broadcastExcluding(msg Message, peer peer.ID) {
+func (h *host) broadcastExcluding(msg Message, peer peer.ID) { //nolint
 	for _, p := range h.peers() {
 		if p != peer {
 			err := h.send(p, "", msg)
@@ -256,9 +259,8 @@ func (h *host) getStream(p peer.ID, sub protocol.ID) (stream libp2pnetwork.Strea
 }
 
 // closePeer closes the peer connection
-func (h *host) closePeer(peer peer.ID) error {
-	err := h.h.Network().ClosePeer(peer)
-	return err
+func (h *host) closePeer(peer peer.ID) error { //nolint
+	return h.h.Network().ClosePeer(peer)
 }
 
 // id returns the host id
@@ -269,16 +271,6 @@ func (h *host) id() peer.ID {
 // Peers returns connected peers
 func (h *host) peers() []peer.ID {
 	return h.h.Network().Peers()
-}
-
-// peerConnected checks if peer is connected
-func (h *host) peerConnected(peer peer.ID) bool {
-	for _, p := range h.peers() {
-		if p == peer {
-			return true
-		}
-	}
-	return false
 }
 
 // peerCount returns the number of connected peers
@@ -310,4 +302,9 @@ func (h *host) multiaddrs() (multiaddrs []ma.Multiaddr) {
 		multiaddrs = append(multiaddrs, multiaddr)
 	}
 	return multiaddrs
+}
+
+// protocols returns all protocols currently supported by the node
+func (h *host) protocols() []string {
+	return h.h.Mux().Protocols()
 }

@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 PROJECTNAME=$(shell basename "$(PWD)")
-GOLANGCI := $(GOPATH)/bin/golangci-lint
 COMPANY=chainsafe
 NAME=gossamer
 ifndef VERSION
@@ -18,13 +17,11 @@ help: Makefile
 	@sed -n 's/^##//p' $< | column -t -s ':' |  sed -e 's/^/ /'
 	@echo
 
-$(GOLANGCI):
-	wget -O - -q https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s latest
-
 ## lint: Lints project files, go gets golangci-lint if missing. Runs `golangci-lint` on project files.
 .PHONY: lint
-lint: $(GOLANGCI)
-	GOBIN=$(PWD)/bin go run scripts/ci.go lint
+lint: 
+	./scripts/install-lint.sh
+	${GOPATH}/bin/golangci-lint run
 
 clean:
 	rm -fr ./bin
@@ -84,6 +81,10 @@ build-debug:
 init:
 	./bin/gossamer --key alice init --genesis chain/gssmr/genesis.json
 
+## init-repo: Set initial configuration for the repo
+init-repo:
+	git config core.hooksPath .githooks
+
 ## start: Starts application from binary executable in `./bin/gossamer` with built-in key alice
 start:
 	@echo "  >  \033[32mStarting node...\033[0m "
@@ -108,7 +109,7 @@ docker-version:
 
 docker-build:
 	@echo "  >  \033[32mBuilding Docker Container...\033[0m "
-	docker build -t $(FULLDOCKERNAME) -f Dockerfile.dev .
+	docker build -t $(FULLDOCKERNAME) -f Dockerfile .
 
 gossamer: clean
 	cd cmd/gossamer && go build -o ../../bin/gossamer && cd ../..

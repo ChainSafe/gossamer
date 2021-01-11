@@ -29,17 +29,33 @@ import (
 // and stores updated EpochInfo in the database
 func (b *Service) initiateEpoch(epoch, startSlot uint64) error {
 	if epoch > 1 {
-		data, err := b.epochState.GetEpochData(epoch)
+		has, err := b.epochState.HasEpochData(epoch)
+		if err != nil {
+			return err
+		}
+
+		var data *types.EpochData
+		if !has {
+			data = &types.EpochData{
+				Randomness:  b.epochData.randomness,
+				Authorities: b.epochData.authorities,
+			}
+
+			err = b.epochState.SetEpochData(epoch, data)
+		} else {
+			data, err = b.epochState.GetEpochData(epoch)
+		}
+
 		if err != nil {
 			return err
 		}
 
 		idx, err := b.getAuthorityIndex(data.Authorities)
-		if err != nil {
+		if err != nil && err != ErrNotAuthority {
 			return err
 		}
 
-		has, err := b.epochState.HasConfigData(epoch)
+		has, err = b.epochState.HasConfigData(epoch)
 		if err != nil {
 			return err
 		}

@@ -70,7 +70,7 @@ func createStateService(cfg *Config) (*state.Service, error) {
 	return stateSrvc, nil
 }
 
-func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore, net *network.Service) (runtime.LegacyInstance, error) {
+func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore, net *network.Service) (runtime.Instance, error) {
 	logger.Info(
 		"creating runtime...",
 		"interpreter", cfg.Core.WasmInterpreter,
@@ -92,7 +92,7 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore,
 		PersistentStorage: database.NewTable(st.DB(), "offlinestorage"),
 	}
 
-	var rt runtime.LegacyInstance
+	var rt runtime.Instance
 	switch cfg.Core.WasmInterpreter {
 	case wasmer.Name:
 		rtCfg := &wasmer.Config{
@@ -131,7 +131,7 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore,
 	return rt, nil
 }
 
-func createBABEService(cfg *Config, rt runtime.LegacyInstance, st *state.Service, ks keystore.Keystore) (*babe.Service, error) {
+func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks keystore.Keystore) (*babe.Service, error) {
 	logger.Info(
 		"creating BABE service...",
 		"authority", cfg.Core.BabeAuthority,
@@ -164,17 +164,18 @@ func createBABEService(cfg *Config, rt runtime.LegacyInstance, st *state.Service
 	}
 
 	bcfg := &babe.ServiceConfig{
-		LogLvl:           cfg.Log.BlockProducerLvl,
-		Runtime:          rt,
-		BlockState:       st.Block,
-		StorageState:     st.Storage,
-		TransactionState: st.Transaction,
-		EpochState:       st.Epoch,
-		StartSlot:        bestSlot + 1,
-		EpochLength:      cfg.Core.EpochLength,
-		Threshold:        cfg.Core.BabeThreshold,
-		SlotDuration:     cfg.Core.SlotDuration,
-		Authority:        cfg.Core.BabeAuthority,
+		LogLvl:               cfg.Log.BlockProducerLvl,
+		Runtime:              rt,
+		BlockState:           st.Block,
+		StorageState:         st.Storage,
+		TransactionState:     st.Transaction,
+		EpochState:           st.Epoch,
+		StartSlot:            bestSlot + 1,
+		EpochLength:          cfg.Core.EpochLength,
+		ThresholdNumerator:   cfg.Core.BabeThresholdNumerator,
+		ThresholdDenominator: cfg.Core.BabeThresholdDenominator,
+		SlotDuration:         cfg.Core.SlotDuration,
+		Authority:            cfg.Core.BabeAuthority,
 	}
 
 	if cfg.Core.BabeAuthority {
@@ -194,7 +195,7 @@ func createBABEService(cfg *Config, rt runtime.LegacyInstance, st *state.Service
 // Core Service
 
 // createCoreService creates the core service from the provided core configuration
-func createCoreService(cfg *Config, bp core.BlockProducer, fg core.FinalityGadget, verifier *babe.VerificationManager, rt runtime.LegacyInstance, ks *keystore.GlobalKeystore, stateSrvc *state.Service, net *network.Service) (*core.Service, error) {
+func createCoreService(cfg *Config, bp core.BlockProducer, fg core.FinalityGadget, verifier *babe.VerificationManager, rt runtime.Instance, ks *keystore.GlobalKeystore, stateSrvc *state.Service, net *network.Service) (*core.Service, error) {
 	logger.Info(
 		"creating core service...",
 		"authority", cfg.Core.Roles == types.AuthorityRole,
@@ -242,16 +243,15 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Servi
 
 	// network service configuation
 	networkConfig := network.Config{
-		LogLvl:       cfg.Log.NetworkLvl,
-		BlockState:   stateSrvc.Block,
-		NetworkState: stateSrvc.Network,
-		BasePath:     cfg.Global.BasePath,
-		Roles:        cfg.Core.Roles,
-		Port:         cfg.Network.Port,
-		Bootnodes:    cfg.Network.Bootnodes,
-		ProtocolID:   cfg.Network.ProtocolID,
-		NoBootstrap:  cfg.Network.NoBootstrap,
-		NoMDNS:       cfg.Network.NoMDNS,
+		LogLvl:      cfg.Log.NetworkLvl,
+		BlockState:  stateSrvc.Block,
+		BasePath:    cfg.Global.BasePath,
+		Roles:       cfg.Core.Roles,
+		Port:        cfg.Network.Port,
+		Bootnodes:   cfg.Network.Bootnodes,
+		ProtocolID:  cfg.Network.ProtocolID,
+		NoBootstrap: cfg.Network.NoBootstrap,
+		NoMDNS:      cfg.Network.NoMDNS,
 	}
 
 	networkSrvc, err := network.NewService(&networkConfig)
@@ -266,7 +266,7 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Servi
 // RPC Service
 
 // createRPCService creates the RPC service from the provided core configuration
-func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service, bp modules.BlockProducerAPI, rt runtime.LegacyInstance, sysSrvc *system.Service) *rpc.HTTPServer {
+func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service, bp modules.BlockProducerAPI, rt runtime.Instance, sysSrvc *system.Service) *rpc.HTTPServer {
 	logger.Info(
 		"creating rpc service...",
 		"host", cfg.RPC.Host,
@@ -309,7 +309,7 @@ func createSystemService(cfg *types.SystemInfo) *system.Service {
 }
 
 // createGRANDPAService creates a new GRANDPA service
-func createGRANDPAService(cfg *Config, rt runtime.LegacyInstance, st *state.Service, dh *core.DigestHandler, ks keystore.Keystore, net *network.Service) (*grandpa.Service, error) {
+func createGRANDPAService(cfg *Config, rt runtime.Instance, st *state.Service, dh *core.DigestHandler, ks keystore.Keystore, net *network.Service) (*grandpa.Service, error) {
 	ad, err := rt.GrandpaAuthorities()
 	if err != nil {
 		return nil, err
@@ -352,7 +352,7 @@ func createBlockVerifier(st *state.Service) (*babe.VerificationManager, error) {
 	return ver, nil
 }
 
-func createSyncService(cfg *Config, st *state.Service, bp sync.BlockProducer, dh *core.DigestHandler, verifier *babe.VerificationManager, rt runtime.LegacyInstance) (*sync.Service, error) {
+func createSyncService(cfg *Config, st *state.Service, bp sync.BlockProducer, dh *core.DigestHandler, verifier *babe.VerificationManager, rt runtime.Instance) (*sync.Service, error) {
 	syncCfg := &sync.Config{
 		LogLvl:           cfg.Log.SyncLvl,
 		BlockState:       st.Block,

@@ -69,7 +69,7 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	}
 
 	time.Sleep(testMessageTimeout)
-	require.Equal(t, network.BlockAnnounceMsgType, net.Message.Type())
+	require.Equal(t, network.BlockAnnounceMsgType, net.Message.(network.NotificationsMessage).Type())
 	require.Equal(t, expected, net.Message)
 }
 
@@ -78,7 +78,7 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 
 	t.Skip()
 	tt := trie.NewEmptyTrie()
-	rt := wasmer.NewTestLegacyInstanceWithTrie(t, runtime.LEGACY_NODE_RUNTIME, tt, log.LvlTrace)
+	rt := wasmer.NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlTrace)
 
 	kp, err := sr25519.GenerateKeypair()
 	require.Nil(t, err)

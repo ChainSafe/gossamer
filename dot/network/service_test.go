@@ -21,26 +21,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
-	"github.com/ChainSafe/gossamer/lib/common/variadic"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
 )
 
 var TestProtocolID = "/gossamer/test/0"
-
-// arbitrary block request message
-var TestMessage = &BlockRequestMessage{
-	ID:            1,
-	RequestedData: 1,
-	// TODO: investigate starting block mismatch with different slice length
-	StartingBlock: variadic.NewUint64OrHashFromBytes([]byte{1, 1, 1, 1, 1, 1, 1, 1, 1}),
-	EndBlockHash:  optional.NewHash(true, common.Hash{}),
-	Direction:     1,
-	Max:           optional.NewUint32(true, 1),
-}
 
 // maximum wait time for non-status message to be handled
 var TestMessageTimeout = time.Second
@@ -56,11 +43,11 @@ func failedToDial(err error) bool {
 // helper method to create and start a new network service
 func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	if cfg.BlockState == nil {
-		cfg.BlockState = &MockBlockState{}
+		cfg.BlockState = newMockBlockState(nil)
 	}
 
-	if cfg.NetworkState == nil {
-		cfg.NetworkState = &MockNetworkState{}
+	if cfg.TransactionHandler == nil {
+		cfg.TransactionHandler = newMockTransactionHandler()
 	}
 
 	if cfg.TransactionHandler == nil {
@@ -79,6 +66,8 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 
 	srvc, err := NewService(cfg)
 	require.NoError(t, err)
+
+	srvc.noDiscover = true
 
 	err = srvc.Start()
 	require.NoError(t, err)
@@ -108,14 +97,6 @@ func TestStartService(t *testing.T) {
 	node.Stop()
 }
 
-type MockMessageHandler struct {
-	Message Message
-}
-
-func (m *MockMessageHandler) HandleMessage(msg Message) {
-	m.Message = msg
-}
-
 // test broacast messages from core service
 func TestBroadcastMessages(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
@@ -133,32 +114,25 @@ func TestBroadcastMessages(t *testing.T) {
 
 	nodeA := createTestService(t, configA)
 	defer nodeA.Stop()
-
 	nodeA.noGossip = true
-	nodeA.noStatus = true
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
-
-	mmhB := new(MockMessageHandler)
 	configB := &Config{
-		BasePath:       basePathB,
-		Port:           7002,
-		RandSeed:       2,
-		NoBootstrap:    true,
-		NoMDNS:         true,
-		MessageHandler: mmhB,
+		BasePath:    basePathB,
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true,
+		NoMDNS:      true,
 	}
 
 	nodeB := createTestService(t, configB)
 	defer nodeB.Stop()
-
 	nodeB.noGossip = true
-	nodeB.noStatus = true
+	handler := newTestStreamHandler(testBlockAnnounceMessageDecoder)
+	nodeB.host.registerStreamHandler(blockAnnounceID, handler.handleStream)
 
 	addrInfosB, err := nodeB.host.addrInfos()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	err = nodeA.host.connect(*addrInfosB[0])
 	// retry connect if "failed to dial" error
@@ -169,10 +143,9 @@ func TestBroadcastMessages(t *testing.T) {
 	require.NoError(t, err)
 
 	// simulate message sent from core service
-	nodeA.SendMessage(TestMessage)
+	nodeA.SendMessage(testBlockAnnounceMessage)
 	time.Sleep(time.Second)
-
-	require.Equal(t, TestMessage, mmhB.Message)
+	require.NotNil(t, nodeB.syncing[nodeA.host.id()])
 }
 
 func TestHandleSyncMessage_BlockResponse(t *testing.T) {
@@ -185,23 +158,17 @@ func TestHandleSyncMessage_BlockResponse(t *testing.T) {
 		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		NoStatus:    true,
 	}
 
 	s := createTestService(t, config)
 
 	peerID := peer.ID("noot")
-	msgID := uint64(17)
-	msg := &BlockResponseMessage{
-		ID: msgID,
-	}
+	msg := &BlockResponseMessage{}
+	s.syncing[peerID] = struct{}{}
 
-	s.requestTracker.addRequestedBlockID(msgID)
 	s.handleSyncMessage(peerID, msg)
-
-	if s.requestTracker.hasRequestedBlockID(msgID) {
-		t.Fatal("Fail: should have removed ID")
-	}
+	_, isSyncing := s.syncing[peerID]
+	require.False(t, isSyncing)
 }
 
 func TestService_NodeRoles(t *testing.T) {
@@ -226,14 +193,13 @@ func TestService_Health(t *testing.T) {
 		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		NoStatus:    true,
 	}
 	s := createTestService(t, config)
 
 	require.Equal(t, s.Health().IsSyncing, true)
 	mockSync := s.syncer.(*mockSyncer)
 
-	mockSync.SetSyncedState(true)
+	mockSync.setSyncedState(true)
 	require.Equal(t, s.Health().IsSyncing, false)
 }
 
@@ -247,7 +213,6 @@ func TestHandleLightMessage_Response(t *testing.T) {
 		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
-		NoStatus:    true,
 	}
 	s := createTestService(t, config)
 
@@ -294,4 +259,186 @@ func TestHandleLightMessage_Response(t *testing.T) {
 	}
 	err = s.handleLightSyncMsg(peerID, msg)
 	require.Error(t, err, expectedErr, msg.String())
+}
+
+func TestDecodeSyncMessage(t *testing.T) {
+	s := &Service{
+		syncing: make(map[peer.ID]struct{}),
+	}
+
+	testPeer := peer.ID("noot")
+
+	testBlockResponseMessage := &BlockResponseMessage{
+		BlockData: []*types.BlockData{},
+	}
+
+	reqEnc, err := testBlockRequestMessage.Encode()
+	require.NoError(t, err)
+
+	msg, err := s.decodeSyncMessage(reqEnc, testPeer)
+	require.NoError(t, err)
+
+	req, ok := msg.(*BlockRequestMessage)
+	require.True(t, ok)
+	require.Equal(t, testBlockRequestMessage, req)
+
+	s.syncing[testPeer] = struct{}{}
+
+	respEnc, err := testBlockResponseMessage.Encode()
+	require.NoError(t, err)
+
+	msg, err = s.decodeSyncMessage(respEnc, testPeer)
+	require.NoError(t, err)
+	resp, ok := msg.(*BlockResponseMessage)
+	require.True(t, ok)
+	require.Equal(t, testBlockResponseMessage, resp)
+}
+
+func TestDecodeLightMessage(t *testing.T) {
+	s := &Service{
+		lightRequest: make(map[peer.ID]struct{}),
+	}
+
+	testPeer := peer.ID("noot")
+
+	testLightRequest := NewLightRequest()
+	testLightResponse := NewLightResponse()
+
+	reqEnc, err := testLightRequest.Encode()
+	require.NoError(t, err)
+
+	msg, err := s.decodeLightMessage(reqEnc, testPeer)
+	require.NoError(t, err)
+
+	req, ok := msg.(*LightRequest)
+	require.True(t, ok)
+	resEnc, err := req.Encode()
+	require.NoError(t, err)
+	require.Equal(t, reqEnc, resEnc)
+
+	s.lightRequest[testPeer] = struct{}{}
+
+	respEnc, err := testLightResponse.Encode()
+	require.NoError(t, err)
+
+	msg, err = s.decodeLightMessage(respEnc, testPeer)
+	require.NoError(t, err)
+	resp, ok := msg.(*LightResponse)
+	require.True(t, ok)
+	resEnc, err = resp.Encode()
+	require.NoError(t, err)
+	require.Equal(t, respEnc, resEnc)
+}
+
+func TestBeginDiscovery(t *testing.T) {
+	configA := &Config{
+		BasePath:    utils.NewTestBasePath(t, "nodeA"),
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeA := createTestService(t, configA)
+	nodeA.noGossip = true
+
+	configB := &Config{
+		BasePath:    utils.NewTestBasePath(t, "nodeB"),
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeB := createTestService(t, configB)
+	nodeB.noGossip = true
+
+	addrInfosB, err := nodeB.host.addrInfos()
+	require.NoError(t, err)
+
+	err = nodeA.host.connect(*addrInfosB[0])
+	if failedToDial(err) {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(*addrInfosB[0])
+	}
+	require.NoError(t, err)
+
+	err = nodeA.beginDiscovery()
+	require.NoError(t, err)
+
+	err = nodeB.beginDiscovery()
+	require.NoError(t, err)
+}
+
+func TestBeginDiscovery_ThreeNodes(t *testing.T) {
+	configA := &Config{
+		BasePath:    utils.NewTestBasePath(t, "nodeA"),
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeA := createTestService(t, configA)
+	nodeA.noGossip = true
+
+	configB := &Config{
+		BasePath:    utils.NewTestBasePath(t, "nodeB"),
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeB := createTestService(t, configB)
+	nodeB.noGossip = true
+
+	configC := &Config{
+		BasePath:    utils.NewTestBasePath(t, "nodeC"),
+		Port:        7003,
+		RandSeed:    3,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeC := createTestService(t, configC)
+	nodeC.noGossip = true
+
+	// connect A and B
+	addrInfosB, err := nodeB.host.addrInfos()
+	require.NoError(t, err)
+
+	err = nodeA.host.connect(*addrInfosB[0])
+	if failedToDial(err) {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(*addrInfosB[0])
+	}
+	require.NoError(t, err)
+
+	// connect A and C
+	addrInfosC, err := nodeC.host.addrInfos()
+	require.NoError(t, err)
+
+	err = nodeA.host.connect(*addrInfosC[0])
+	if failedToDial(err) {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(*addrInfosC[0])
+	}
+	require.NoError(t, err)
+
+	// begin advertising and discovery for all nodes
+	err = nodeA.beginDiscovery()
+	require.NoError(t, err)
+
+	err = nodeB.beginDiscovery()
+	require.NoError(t, err)
+
+	err = nodeC.beginDiscovery()
+	require.NoError(t, err)
+
+	time.Sleep(time.Millisecond * 500)
+
+	// assert B and C can discover each other
+	addrs := nodeB.host.h.Peerstore().Addrs(nodeC.host.id())
+	require.NotEqual(t, 0, len(addrs))
 }

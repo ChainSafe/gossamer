@@ -139,6 +139,6 @@ func (bs *BlockState) notifyFinalized(hash common.Hash) {
 }
 
 func generateID() byte {
-	id := rand.Intn(256)
+	id := rand.Intn(256) //nolint
 	return byte(id)
 }

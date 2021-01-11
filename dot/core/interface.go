@@ -85,7 +85,7 @@ type FinalityGadget interface {
 // BlockProducer is the interface that a block production service must implement
 type BlockProducer interface {
 	GetBlockChannel() <-chan types.Block
-	SetRuntime(runtime.LegacyInstance)
+	SetRuntime(runtime.Instance)
 	SetOnDisabled(authorityIndex uint64)
 }
 
@@ -96,7 +96,7 @@ type Verifier interface {
 
 // Network is the interface for the network service
 type Network interface {
-	SendMessage(network.Message)
+	SendMessage(network.NotificationsMessage)
 }
 
 // EpochState is the interface for state.EpochState

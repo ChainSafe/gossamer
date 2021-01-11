@@ -1,6 +1,6 @@
 {
-  "name": "ksmcc",
-  "id": "ksmcc",
+  "name": "Kusama",
+  "id": "ksmcc3",
   "bootNodes": [
     "/dns4/p2p.cc3-0.kusama.network/tcp/30100/p2p/12D3KooWDgtynm4S9M3m6ZZhXYu2RrWKdvkCSScc25xKDVSg1Sjd",
     "/dns4/p2p.cc3-1.kusama.network/tcp/30100/p2p/12D3KooWNpGriWPmf621Lza9UWU9eLLBdCFaErf6d4HSK7Bcqnv4",
@@ -12,10 +12,10 @@
     "/dns4/kusama-bootnode-0.paritytech.net/tcp/30334/ws/p2p/12D3KooWSueCPH3puP2PcvqPJdNaDNF3jMZjtJtDiSy35pWrbt5h",
     "/dns4/kusama-bootnode-1.paritytech.net/tcp/30333/p2p/12D3KooWQKqane1SqWJNWMQkbia9qiMWXkcHtAdfW5eVF8hbwEDw"
   ],
-  "protocolId": "/gossamer/ksmcc/0",
+  "protocolId": "ksmcc3",
   "genesis": {
-    "raw": [
-      {
+    "raw": {
+     "top": {
         "0x9c5d795d0297be56027a4b2464e333979c5d795d0297be56027a4b2464e33397974a8f6e094002e424b603628718939b060c4c6305a73d36a014468c29b8b7d7": "0x00c0e1d0612100000000000000000000",
         "0x9c5d795d0297be56027a4b2464e333979c5d795d0297be56027a4b2464e33397997f7003f78328f30c57e6ce10b1956c77d2187fe08441845cc0c18273852039": "0x00703874580800000000000000000000",
         "0xc2261276cc9d1f8598ea4b6a74b15c2f6482b9ade7bc6657aaca787ba1add3b41a7b36634518c4bd258451d3afca781ef41c43e2cc13767ade6d58216bb4b54e": "0x0000c52ebca2b1000000000000000000",
@@ -3436,7 +3436,7 @@
         "0x9c5d795d0297be56027a4b2464e333979c5d795d0297be56027a4b2464e33397a95fc10899f9939fe9f376f90b678d436e6cbd6cfbad752e1d16e1bd207970fd": "0x00aa8af681571e000000000000000000",
         "0x9c5d795d0297be56027a4b2464e333979c5d795d0297be56027a4b2464e33397be0013089e49d5187af79a902767da35cf39652bf8ee558f7780d185a484dd3c": "0x007202ee615f09000000000000000000"
       },
-      {}
-    ]
+      "childrenDefault":{}
+    }
   }
 }

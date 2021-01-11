@@ -27,10 +27,10 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/services"
 
 	database "github.com/ChainSafe/chaindb"
@@ -92,7 +92,7 @@ func InitNode(cfg *Config) error {
 	}
 
 	// create genesis runtime
-	r, err := genesis.NewRuntimeFromGenesis(gen, genTrie) //nolint
+	r, err := wasmer.NewRuntimeFromGenesis(gen, genTrie) //nolint
 	if err != nil {
 		return fmt.Errorf("failed to create genesis runtime: %w", err)
 	}
@@ -105,14 +105,14 @@ func InitNode(cfg *Config) error {
 
 	r.Stop()
 
-	// TODO: this should be set in the genesis file, not the config
-	if cfg.Core.BabeThreshold == babe.MaxThreshold {
-		babeCfg.C1 = 1
-		babeCfg.C2 = 1
-	}
-
 	// declare genesis data
 	data := gen.GenesisData()
+
+	// TODO: this should be set in the genesis file, not the config
+	if cfg.Core.BabeThresholdDenominator != 0 {
+		babeCfg.C1 = cfg.Core.BabeThresholdNumerator
+		babeCfg.C2 = cfg.Core.BabeThresholdDenominator
+	}
 
 	// set genesis data using configuration values (assumes the genesis values
 	// have already been set for the configuration, which allows for us to take
@@ -136,6 +136,7 @@ func InitNode(cfg *Config) error {
 		"basepath", cfg.Global.BasePath,
 		"genesis-raw", cfg.Init.GenesisRaw,
 		"block", header.Number,
+		"genesis hash", header.Hash(),
 	)
 
 	return nil

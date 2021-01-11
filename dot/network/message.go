@@ -17,174 +17,61 @@
 package network
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
-	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
-	"github.com/ChainSafe/gossamer/lib/scale"
-
-	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-//nolint
+// Message types for notifications protocol messages. Used internally to map message to protocol.
 const (
-	StatusMsgType        byte = 0
-	BlockRequestMsgType  byte = 1
-	BlockResponseMsgType byte = 2
 	BlockAnnounceMsgType byte = 3
 	TransactionMsgType   byte = 4
 	ConsensusMsgType     byte = 5
-	LightRequestType     byte = 6
-	LightResponseType    byte = 7
-	ChainSpecificMsgType byte = 255
 )
 
-// Message interface
+// Message must be implemented by all network messages
 type Message interface {
 	Encode() ([]byte, error)
 	Decode(io.Reader) error
 	String() string
+}
+
+// NotificationsMessage must be implemented by all messages sent over a notifications protocol
+type NotificationsMessage interface {
+	Message
 	Type() byte
-	IDString() string // TODO: this can be removed
+	Hash() common.Hash
 	IsHandshake() bool
 }
 
-// decodeMessage decodes the message based on message type
-func decodeMessage(r io.Reader) (m Message, err error) {
-	msgType, err := common.ReadByte(r)
-	if err != nil {
-		return nil, err
-	}
+// nolint
+const (
+	RequestedDataHeader        = byte(1)
+	RequestedDataBody          = byte(2)
+	RequestedDataReceipt       = byte(4)
+	RequestedDataMessageQueue  = byte(8)
+	RequestedDataJustification = byte(16)
+)
 
-	switch msgType {
-	case StatusMsgType:
-		m = new(StatusMessage)
-		err = m.Decode(r)
-	case BlockRequestMsgType:
-		m = new(BlockRequestMessage)
-		err = m.Decode(r)
-	case BlockResponseMsgType:
-		m = new(BlockResponseMessage)
-		err = m.Decode(r)
-	case LightRequestType:
-		m = new(LightRequest)
-		err = m.Decode(r)
-	case LightResponseType:
-		m = new(LightResponse)
-		err = m.Decode(r)
-	default:
-		return nil, fmt.Errorf("unsupported message type %d", msgType)
-	}
+var _ Message = &BlockRequestMessage{}
 
-	return m, err
-}
-
-// decodeMessageBytes decodes the message based on message type
-func decodeMessageBytes(in []byte, _ peer.ID) (m Message, err error) {
-	r := &bytes.Buffer{}
-	_, err = r.Write(in)
-	if err != nil {
-		return nil, err
-	}
-
-	return decodeMessage(r)
-}
-
-// StatusMessage struct
-type StatusMessage struct {
-	ProtocolVersion     uint32
-	MinSupportedVersion uint32
-	Roles               byte
-	BestBlockNumber     uint64
-	BestBlockHash       common.Hash
-	GenesisHash         common.Hash
-	ChainStatus         []byte
-}
-
-// Type returns StatusMsgType
-func (sm *StatusMessage) Type() byte {
-	return StatusMsgType
-}
-
-// String formats a StatusMessage as a string
-func (sm *StatusMessage) String() string {
-	return fmt.Sprintf("StatusMessage ProtocolVersion=%d MinSupportedVersion=%d Roles=%d BestBlockNumber=%d BestBlockHash=0x%x GenesisHash=0x%x ChainStatus=0x%x",
-		sm.ProtocolVersion,
-		sm.MinSupportedVersion,
-		sm.Roles,
-		sm.BestBlockNumber,
-		sm.BestBlockHash,
-		sm.GenesisHash,
-		sm.ChainStatus)
-}
-
-// Encode encodes a status message using SCALE and appends the type byte to the start
-func (sm *StatusMessage) Encode() ([]byte, error) {
-	enc, err := scale.Encode(sm)
-	if err != nil {
-		return enc, err
-	}
-	return append([]byte{StatusMsgType}, enc...), nil
-}
-
-// Decode the message into a StatusMessage, it assumes the type byte has been removed
-func (sm *StatusMessage) Decode(r io.Reader) error {
-	sd := scale.Decoder{Reader: r}
-	_, err := sd.Decode(sm)
-	return err
-}
-
-// IDString Returns an empty string to ensure we don't rebroadcast it
-func (sm *StatusMessage) IDString() string {
-	return ""
-}
-
-// IsHandshake returns false
-func (sm *StatusMessage) IsHandshake() bool {
-	return false
-}
-
-// BlockRequestMessage for optionals, if first byte is 0, then it is None
-// otherwise it is Some
+// BlockRequestMessage is sent to request some blocks from a peer
 type BlockRequestMessage struct {
-	ID            uint64
 	RequestedData byte
 	StartingBlock *variadic.Uint64OrHash // first byte 0 = block hash (32 byte), first byte 1 = block number (int64)
 	EndBlockHash  *optional.Hash
-	Direction     byte
+	Direction     byte // 0 = ascending, 1 = descending
 	Max           *optional.Uint32
-}
-
-// RequestedDataHeader flag for requesting header data
-const RequestedDataHeader = byte(1)
-
-// RequestedDataBody flag for requesting body data
-const RequestedDataBody = byte(2)
-
-// RequestedDataReceipt flag for requesting receipt data
-const RequestedDataReceipt = byte(4)
-
-// RequestedDataMessageQueue flag for requesting message queue data
-const RequestedDataMessageQueue = byte(8)
-
-// RequestedDataJustification flag for requesting justification data
-const RequestedDataJustification = byte(16)
-
-// Type returns BlockRequestMsgType
-func (bm *BlockRequestMessage) Type() byte {
-	return BlockRequestMsgType
 }
 
 // String formats a BlockRequestMessage as a string
 func (bm *BlockRequestMessage) String() string {
-	return fmt.Sprintf("BlockRequestMessage ID=%d RequestedData=%d StartingBlock=0x%x EndBlockHash=0x%s Direction=%d Max=%s",
-		bm.ID,
+	return fmt.Sprintf("BlockRequestMessage RequestedData=%d StartingBlock=0x%x EndBlockHash=0x%s Direction=%d Max=%s",
 		bm.RequestedData,
 		bm.StartingBlock,
 		bm.EndBlockHash.String(),
@@ -192,15 +79,9 @@ func (bm *BlockRequestMessage) String() string {
 		bm.Max.String())
 }
 
-// Encode encodes a block request message using SCALE and appends the type byte to the start
+// Encode encodes a block request message using SCALE
 func (bm *BlockRequestMessage) Encode() ([]byte, error) {
-	encMsg := []byte{BlockRequestMsgType}
-
-	encID := make([]byte, 8)
-	binary.LittleEndian.PutUint64(encID, bm.ID)
-	encMsg = append(encMsg, encID...)
-
-	encMsg = append(encMsg, bm.RequestedData)
+	encMsg := []byte{bm.RequestedData}
 
 	startingBlockArray, err := bm.StartingBlock.Encode()
 	if err != nil || len(startingBlockArray) == 0 {
@@ -228,14 +109,9 @@ func (bm *BlockRequestMessage) Encode() ([]byte, error) {
 	return encMsg, nil
 }
 
-// Decode the message into a BlockRequestMessage, it assumes the type byte has been removed
+// Decode the message into a BlockRequestMessage
 func (bm *BlockRequestMessage) Decode(r io.Reader) error {
 	var err error
-
-	bm.ID, err = common.ReadUint64(r)
-	if err != nil {
-		return err
-	}
 
 	bm.RequestedData, err = common.ReadByte(r)
 	if err != nil {
@@ -291,200 +167,30 @@ func (bm *BlockRequestMessage) Decode(r io.Reader) error {
 	return nil
 }
 
-// IDString Returns the ID of the block
-func (bm *BlockRequestMessage) IDString() string {
-	return fmt.Sprintf("%d", bm.ID)
-}
+var _ Message = &BlockResponseMessage{}
 
-// IsHandshake returns false
-func (bm *BlockRequestMessage) IsHandshake() bool {
-	return false
-}
-
-// BlockAnnounceMessage is a state block header
-type BlockAnnounceMessage struct {
-	ParentHash     common.Hash
-	Number         *big.Int
-	StateRoot      common.Hash
-	ExtrinsicsRoot common.Hash
-	Digest         [][]byte // any additional block info eg. logs, seal
-}
-
-// Type returns BlockAnnounceMsgType
-func (bm *BlockAnnounceMessage) Type() byte {
-	return BlockAnnounceMsgType
-}
-
-// string formats a BlockAnnounceMessage as a string
-func (bm *BlockAnnounceMessage) String() string {
-	return fmt.Sprintf("BlockAnnounceMessage ParentHash=%s Number=%d StateRoot=%sx ExtrinsicsRoot=%s Digest=%v",
-		bm.ParentHash,
-		bm.Number,
-		bm.StateRoot,
-		bm.ExtrinsicsRoot,
-		bm.Digest)
-}
-
-// Encode a BlockAnnounce Msg Type containing the BlockAnnounceMessage using scale.Encode
-func (bm *BlockAnnounceMessage) Encode() ([]byte, error) {
-	enc, err := scale.Encode(bm)
-	if err != nil {
-		return enc, err
-	}
-	return enc, nil
-}
-
-// Decode the message into a BlockAnnounceMessage, it assumes the type byte has been removed
-func (bm *BlockAnnounceMessage) Decode(r io.Reader) error {
-	sd := scale.Decoder{Reader: r}
-	_, err := sd.Decode(bm)
-	return err
-}
-
-// IDString returns the hash of the block
-func (bm *BlockAnnounceMessage) IDString() string {
-	// scale encode each extrinsic
-	encMsg, err := bm.Encode()
-	if err != nil {
-		return ""
-	}
-	hash, err := common.Blake2bHash(encMsg)
-	if err != nil {
-		return ""
-	}
-	return hash.String()
-}
-
-// IsHandshake returns false
-func (bm *BlockAnnounceMessage) IsHandshake() bool {
-	return false
-}
-
-// BlockResponseMessage struct
+// BlockResponseMessage is sent in response to a BlockRequestMessage
 type BlockResponseMessage struct {
-	ID        uint64
 	BlockData []*types.BlockData
-}
-
-// Type returns BlockResponseMsgType
-func (bm *BlockResponseMessage) Type() byte {
-	return BlockResponseMsgType
 }
 
 // String formats a BlockResponseMessage as a string
 func (bm *BlockResponseMessage) String() string {
-	return fmt.Sprintf("BlockResponseMessage ID=%d BlockData=%v", bm.ID, bm.BlockData)
+	return fmt.Sprintf("BlockResponseMessage BlockData=%v", bm.BlockData)
 }
 
-// Encode encodes a block response message using SCALE and appends the type byte to the start
+// Encode encodes a block response message using SCALE
 func (bm *BlockResponseMessage) Encode() ([]byte, error) {
-	encMsg := []byte{BlockResponseMsgType}
-
-	encID := make([]byte, 8)
-	binary.LittleEndian.PutUint64(encID, bm.ID)
-	encMsg = append(encMsg, encID...)
-
-	encData, err := types.EncodeBlockDataArray(bm.BlockData)
-	if err != nil {
-		return nil, err
-	}
-
-	return append(encMsg, encData...), nil
+	return types.EncodeBlockDataArray(bm.BlockData)
 }
 
-// Decode the message into a BlockResponseMessage, it assumes the type byte has been removed
-func (bm *BlockResponseMessage) Decode(r io.Reader) error {
-	var err error
-	bm.ID, err = common.ReadUint64(r)
-	if err != nil {
-		return err
-	}
-
+// Decode the message into a BlockResponseMessage
+func (bm *BlockResponseMessage) Decode(r io.Reader) (err error) {
 	bm.BlockData, err = types.DecodeBlockDataArray(r)
 	return err
 }
 
-// IDString returns the ID of BlockResponseMessage
-func (bm *BlockResponseMessage) IDString() string {
-	return fmt.Sprintf("%d", bm.ID)
-}
-
-// IsHandshake returns false
-func (bm *BlockResponseMessage) IsHandshake() bool {
-	return false
-}
-
-// TransactionMessage is a struct that holds reference to Extrinsics
-type TransactionMessage struct {
-	Extrinsics []types.Extrinsic
-}
-
-// Type returns TransactionMsgType
-func (tm *TransactionMessage) Type() byte {
-	return TransactionMsgType
-}
-
-// String returns the TransactionMessage extrinsics
-func (tm *TransactionMessage) String() string {
-	return fmt.Sprintf("TransactionMessage extrinsics=%x", tm.Extrinsics)
-}
-
-// Encode will encode TransactionMessage using scale.Encode
-func (tm *TransactionMessage) Encode() ([]byte, error) {
-	// scale encode each extrinsic
-	var encodedExtrinsics = make([]byte, 0)
-	for _, extrinsic := range tm.Extrinsics {
-		encExt, err := scale.Encode([]byte(extrinsic))
-		if err != nil {
-			return nil, err
-		}
-		encodedExtrinsics = append(encodedExtrinsics, encExt...)
-	}
-
-	// scale encode the set of all extrinsics
-	return scale.Encode(encodedExtrinsics)
-}
-
-// Decode the message into a TransactionMessage, it assumes the type byte han been removed
-func (tm *TransactionMessage) Decode(r io.Reader) error {
-	sd := scale.Decoder{Reader: r}
-	decodedMessage, err := sd.Decode([]byte{})
-	if err != nil {
-		return err
-	}
-	messageSize := len(decodedMessage.([]byte))
-	bytesProcessed := 0
-	// loop through the message decoding extrinsics until they have all been decoded
-	for bytesProcessed < messageSize {
-		decodedExtrinsic, err := scale.Decode(decodedMessage.([]byte)[bytesProcessed:], []byte{})
-		if err != nil {
-			return err
-		}
-		bytesProcessed = bytesProcessed + len(decodedExtrinsic.([]byte)) + 1 // add 1 to processed since the first decode byte is consumed during decoding
-		tm.Extrinsics = append(tm.Extrinsics, decodedExtrinsic.([]byte))
-	}
-
-	return nil
-}
-
-// IDString returns the Hash of TransactionMessage
-func (tm *TransactionMessage) IDString() string {
-	// scale encode each extrinsic
-	encMsg, err := tm.Encode()
-	if err != nil {
-		return ""
-	}
-	hash, err := common.Blake2bHash(encMsg)
-	if err != nil {
-		return ""
-	}
-	return hash.String()
-}
-
-// IsHandshake returns false
-func (tm *TransactionMessage) IsHandshake() bool {
-	return false
-}
+var _ NotificationsMessage = &ConsensusMessage{}
 
 // ConsensusMessage is mostly opaque to us
 type ConsensusMessage struct {
@@ -504,13 +210,13 @@ func (cm *ConsensusMessage) String() string {
 	return fmt.Sprintf("ConsensusMessage ConsensusEngineID=%d, DATA=%x", cm.ConsensusEngineID, cm.Data)
 }
 
-// Encode encodes a block response message using SCALE and appends the type byte to the start
+// Encode encodes a block response message using SCALE
 func (cm *ConsensusMessage) Encode() ([]byte, error) {
 	encMsg := cm.ConsensusEngineID.ToBytes()
 	return append(encMsg, cm.Data...), nil
 }
 
-// Decode the message into a ConsensusMessage, it assumes the type byte has been removed
+// Decode the message into a ConsensusMessage
 func (cm *ConsensusMessage) Decode(r io.Reader) error {
 	buf := make([]byte, 4)
 	_, err := r.Read(buf)
@@ -530,18 +236,12 @@ func (cm *ConsensusMessage) Decode(r io.Reader) error {
 	return nil
 }
 
-// IDString returns the Hash of ConsensusMessage
-func (cm *ConsensusMessage) IDString() string {
+// Hash returns the Hash of ConsensusMessage
+func (cm *ConsensusMessage) Hash() common.Hash {
 	// scale encode each extrinsic
-	encMsg, err := cm.Encode()
-	if err != nil {
-		return ""
-	}
-	hash, err := common.Blake2bHash(encMsg)
-	if err != nil {
-		return ""
-	}
-	return hash.String()
+	encMsg, _ := cm.Encode()
+	hash, _ := common.Blake2bHash(encMsg)
+	return hash
 }
 
 // IsHandshake returns false

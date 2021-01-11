@@ -85,13 +85,13 @@ func (bp *mockBlockProducer) GetBlockChannel() <-chan types.Block {
 }
 
 // SetRuntime mocks setting runtime
-func (bp *mockBlockProducer) SetRuntime(rt runtime.LegacyInstance) {}
+func (bp *mockBlockProducer) SetRuntime(rt runtime.Instance) {}
 
 type mockNetwork struct {
 	Message network.Message
 }
 
-func (n *mockNetwork) SendMessage(m network.Message) {
+func (n *mockNetwork) SendMessage(m network.NotificationsMessage) {
 	n.Message = m
 }
 
@@ -127,7 +127,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	}
 
 	if cfg.Runtime == nil {
-		cfg.Runtime = wasmer.NewTestLegacyInstance(t, runtime.LEGACY_NODE_RUNTIME)
+		cfg.Runtime = wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
 	}
 
 	if cfg.Keystore == nil {
@@ -201,10 +201,6 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 // helper method to create and start a new network service
 func createTestNetworkService(t *testing.T, cfg *network.Config) (srvc *network.Service) {
-	if cfg.NetworkState == nil {
-		cfg.NetworkState = &network.MockNetworkState{}
-	}
-
 	if cfg.LogLvl == 0 {
 		cfg.LogLvl = 3
 	}
@@ -243,22 +239,17 @@ func (s *mockSyncer) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) *net
 		s.highestSeen = msg.Number
 	}
 
-	return &network.BlockRequestMessage{
-		ID: 99,
-	}
+	return &network.BlockRequestMessage{}
 }
 
 func (s *mockSyncer) HandleBlockResponse(msg *network.BlockResponseMessage) *network.BlockRequestMessage {
 	return nil
 }
 
-func (s *mockSyncer) HandleSeenBlocks(num *big.Int) *network.BlockRequestMessage {
-	if num.Cmp(s.highestSeen) > 0 {
-		s.highestSeen = num
-	}
-	return nil
-}
-
 func (s *mockSyncer) IsSynced() bool {
 	return false
+}
+
+func (s *mockSyncer) HandleBlockAnnounceHandshake(num *big.Int) *network.BlockRequestMessage {
+	return nil
 }

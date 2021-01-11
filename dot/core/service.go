@@ -18,7 +18,6 @@ package core
 import (
 	"bytes"
 	"context"
-	"math/big"
 	"os"
 	"sync"
 
@@ -53,7 +52,7 @@ type Service struct {
 	transactionState TransactionState
 
 	// Current runtime and hash of the current runtime code
-	rt       runtime.LegacyInstance
+	rt       runtime.Instance
 	codeHash common.Hash
 
 	// Block production variables
@@ -89,15 +88,14 @@ type Config struct {
 	TransactionState    TransactionState
 	Network             Network
 	Keystore            *keystore.GlobalKeystore
-	Runtime             runtime.LegacyInstance
+	Runtime             runtime.Instance
 	BlockProducer       BlockProducer
 	IsBlockProducer     bool
 	FinalityGadget      FinalityGadget
 	IsFinalityAuthority bool
 	Verifier            Verifier
 
-	NewBlocks     chan types.Block // only used for testing purposes
-	BabeThreshold *big.Int         // used by Verifier, for development purposes
+	NewBlocks chan types.Block // only used for testing purposes
 }
 
 // NewService returns a new core service that connects the runtime, BABE
@@ -185,15 +183,12 @@ func (s *Service) Start() error {
 	// so all the child contexts should also be canceled. potentially update if there is a better way to do this
 
 	// start receiving blocks from BABE session
-	ctx, _ := context.WithCancel(s.ctx) //nolint
-	go s.receiveBlocks(ctx)
+	go s.receiveBlocks(s.ctx)
 
 	// start receiving messages from network service
-	ctx, _ = context.WithCancel(s.ctx) //nolint
 
 	// start handling imported blocks
-	ctx, _ = context.WithCancel(s.ctx) //nolint
-	go s.handleBlocks(ctx)
+	go s.handleBlocks(s.ctx)
 
 	return nil
 }
@@ -270,22 +265,6 @@ func (s *Service) receiveBlocks(ctx context.Context) {
 	}
 }
 
-// HandleMessage handles network messages that are passed to it
-func (s *Service) HandleMessage(message network.Message) {
-	if message == nil {
-		return
-	}
-
-	if s.ctx.Err() != nil {
-		return
-	}
-
-	err := s.handleReceivedMessage(message)
-	if err != nil {
-		logger.Trace("failed to handle message from network service", "err", err)
-	}
-}
-
 // handleReceivedBlock handles blocks from the BABE session
 func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
 	if s.blockState == nil {
@@ -313,19 +292,6 @@ func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
 
 	s.net.SendMessage(msg)
 	return nil
-}
-
-// handleReceivedMessage handles messages from the network service
-// TODO: delete this once all sub-protocols are updated
-func (s *Service) handleReceivedMessage(msg network.Message) (err error) {
-	msgType := msg.Type()
-
-	switch msgType {
-	default:
-		err = ErrUnsupportedMsgType(msgType)
-	}
-
-	return err
 }
 
 // handleRuntimeChanges checks if changes to the runtime code have occurred; if so, load the new runtime

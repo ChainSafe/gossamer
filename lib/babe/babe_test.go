@@ -61,9 +61,11 @@ var genesisBABEConfig = &types.BabeConfiguration{
 }
 
 func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
+	wasmer.DefaultTestLogLvl = 1
+
 	var err error
 	tt := trie.NewEmptyTrie()
-	rt := wasmer.NewTestLegacyInstanceWithTrie(t, runtime.LEGACY_NODE_RUNTIME, tt, log.LvlCrit)
+	rt := wasmer.NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlCrit)
 
 	if cfg == nil {
 		cfg = &ServiceConfig{
@@ -121,6 +123,20 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	babeService, err := NewService(cfg)
 	require.NoError(t, err)
 	return babeService
+}
+
+func TestMain(m *testing.M) {
+	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
+	if err != nil {
+		log.Error("failed to generate runtime wasm file", err)
+		os.Exit(1)
+	}
+
+	// Start all tests
+	code := m.Run()
+
+	runtime.RemoveFiles(wasmFilePaths)
+	os.Exit(code)
 }
 
 func TestRunEpochLengthConfig(t *testing.T) {
@@ -190,6 +206,7 @@ func TestCalculateThreshold_Failing(t *testing.T) {
 
 func TestRunLottery(t *testing.T) {
 	babeService := createTestService(t, nil)
+
 	babeService.epochData.threshold = maxThreshold
 
 	outAndProof, err := babeService.runLottery(0)
@@ -281,8 +298,9 @@ func TestGetAuthorityIndex(t *testing.T) {
 	}
 
 	bs := &Service{
-		keypair: kpA,
-		logger:  log.New("BABE"),
+		keypair:   kpA,
+		logger:    log.New("BABE"),
+		authority: true,
 	}
 
 	idx, err := bs.getAuthorityIndex(authData)
@@ -290,8 +308,9 @@ func TestGetAuthorityIndex(t *testing.T) {
 	require.Equal(t, uint64(0), idx)
 
 	bs = &Service{
-		keypair: kpB,
-		logger:  log.New("BABE"),
+		keypair:   kpB,
+		logger:    log.New("BABE"),
+		authority: true,
 	}
 
 	idx, err = bs.getAuthorityIndex(authData)

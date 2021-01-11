@@ -19,8 +19,6 @@ package network
 import (
 	"errors"
 	"path"
-	"strconv"
-	"strings"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p-core/crypto"
@@ -41,9 +39,6 @@ const DefaultRandSeed = int64(0)
 // DefaultProtocolID the default value for Config.ProtocolID
 const DefaultProtocolID = "/gossamer/gssmr/0"
 
-// DefaultProtocolVersion the default value for Config.ProtocolVersion
-const DefaultProtocolVersion = 0
-
 // DefaultRoles the default value for Config.Roles (0 = no network, 1 = full node)
 const DefaultRoles = byte(1)
 
@@ -61,11 +56,8 @@ type Config struct {
 	// Roles a bitmap value that represents the different roles for the sender node (see Table D.2)
 	Roles byte
 
-	// BlockState the block state's interface
-	BlockState BlockState
-	// NetworkState the network state's interface
-	NetworkState NetworkState
-
+	// Service interfaces
+	BlockState         BlockState
 	Syncer             Syncer
 	TransactionHandler TransactionHandler
 
@@ -77,18 +69,10 @@ type Config struct {
 	Bootnodes []string
 	// ProtocolID the protocol ID for network messages
 	ProtocolID string
-	// ProtocolVersion the protocol version for network messages (the third item in the ProtocolID)
-	ProtocolVersion uint32
-	// MinSupportedVersion the minimum supported protocol version (defaults to current ProtocolVersion)
-	MinSupportedVersion uint32
 	// NoBootstrap disables bootstrapping
 	NoBootstrap bool
 	// NoMDNS disables MDNS discovery
 	NoMDNS bool
-	// NoStatus disables the status message exchange protocol
-	NoStatus bool
-
-	MessageHandler MessageHandler
 
 	// privateKey the private key for the network p2p identity
 	privateKey crypto.PrivKey
@@ -138,12 +122,8 @@ func (c *Config) build() error {
 
 func (c *Config) checkState() (err error) {
 	// set NoStatus to true if we don't need BlockState
-	if c.BlockState == nil && !c.NoStatus {
+	if c.BlockState == nil {
 		err = errors.New("failed to build configuration: BlockState required")
-	}
-
-	if c.NetworkState == nil {
-		err = errors.New("failed to build configuration: NetworkState required")
 	}
 
 	return err
@@ -208,34 +188,9 @@ func (c *Config) buildProtocol() error {
 		c.ProtocolID = DefaultProtocolID
 	}
 
-	if c.ProtocolVersion == 0 {
-		s := strings.Split(c.ProtocolID, "/")
-		// expecting the default protocol format ("/gossamer/gssmr/0")
-		if len(s) != 4 {
-			c.logger.Warn(
-				"Unable to parse ProtocolID, using DefaultProtocolVersion",
-				"DefaultProtocolVersion", DefaultProtocolVersion,
-			)
-		} else {
-			// get the last item in the slice ("0" in the default protocol format)
-			i, err := strconv.Atoi(s[len(s)-1])
-			if err != nil {
-				c.logger.Warn(
-					"Unable to parse ProtocolID, using DefaultProtocolVersion",
-					"DefaultProtocolVersion", DefaultProtocolVersion,
-				)
-			} else {
-				c.ProtocolVersion = uint32(i)
-			}
-		}
-	}
-
-	if c.MinSupportedVersion < c.ProtocolVersion {
-		c.logger.Warn(
-			"MinSupportedVersion less than ProtocolVersion, using ProtocolVersion",
-			"ProtocolVersion", c.ProtocolVersion,
-		)
-		c.MinSupportedVersion = c.ProtocolVersion
+	// append "/" to front of protocol ID, if not already there
+	if c.ProtocolID[:1] != "/" {
+		c.ProtocolID = "/" + c.ProtocolID
 	}
 
 	return nil

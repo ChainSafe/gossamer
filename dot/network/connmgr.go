@@ -32,16 +32,15 @@ import (
 // ConnManager implements connmgr.ConnManager
 type ConnManager struct {
 	max int // maximum number of peers
-	// closeHandlerMap contains all close handlers corresponding to a protocol.
-	// If there are multiple sub-protocols of a protocol, it can contain multiple close handlers.
-	closeHandlerMap map[protocol.ID][]func(peerID peer.ID)
+	// closeHandlerMap contains close handler corresponding to a protocol.
+	closeHandlerMap map[protocol.ID]func(peerID peer.ID)
 	sync.Mutex
 }
 
 func newConnManager(max int) *ConnManager {
 	return &ConnManager{
 		max:             max,
-		closeHandlerMap: make(map[protocol.ID][]func(peerID peer.ID)),
+		closeHandlerMap: make(map[protocol.ID]func(peerID peer.ID)),
 	}
 }
 
@@ -117,7 +116,8 @@ func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 	cm.Lock()
 	defer cm.Unlock()
 	if len(n.Peers()) > cm.max {
-		i := rand.Intn(len(n.Peers()))
+		// TODO: change to crypto/rand
+		i := rand.Intn(len(n.Peers())) //nolint
 		peers := n.Peers()
 		logger.Trace("Over max peer count, disconnecting from random peer", "peer", peers[i])
 		err := n.ClosePeer(peers[i])
@@ -148,7 +148,7 @@ func (cm *ConnManager) OpenedStream(n network.Network, s network.Stream) {
 
 // RegisterCloseHandler is called to register additional close stream handler
 func (cm *ConnManager) RegisterCloseHandler(protocolID protocol.ID, cb func(id peer.ID)) {
-	cm.closeHandlerMap[protocolID] = append(cm.closeHandlerMap[protocolID], cb)
+	cm.closeHandlerMap[protocolID] = cb
 }
 
 // ClosedStream is called when a stream closed
@@ -162,9 +162,7 @@ func (cm *ConnManager) ClosedStream(n network.Network, s network.Stream) {
 
 	cm.Lock()
 	defer cm.Unlock()
-	if cbs, ok := cm.closeHandlerMap[s.Protocol()]; ok {
-		for _, cb := range cbs {
-			cb(s.Conn().RemotePeer())
-		}
+	if closeCB, ok := cm.closeHandlerMap[s.Protocol()]; ok {
+		closeCB(s.Conn().RemotePeer())
 	}
 }
