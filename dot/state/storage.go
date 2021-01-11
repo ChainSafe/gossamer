@@ -395,47 +395,6 @@ func (s *StorageState) GetBalance(hash *common.Hash, key [32]byte) (uint64, erro
 	return binary.LittleEndian.Uint64(bal), nil
 }
 
-// setStorage set the storage value for a given key in the trie. only for testing
-//func (s *StorageState) setStorage(hash *common.Hash, key []byte, value []byte) error {
-//	if hash == nil {
-//		sr, err := s.blockState.BestBlockStateRoot()
-//		if err != nil {
-//			return err
-//		}
-//		hash = &sr
-//	}
-//
-//	s.lock.Lock()
-//	defer s.lock.Unlock()
-//	//kv := &KeyValue{
-//	//	Key:   key,
-//	//	Value: value,
-//	//}
-//
-//	if s.tries[*hash] == nil {
-//		return errTrieDoesNotExist(*hash)
-//	}
-//
-//	err := s.tries[*hash].Put(key, value)
-//	if err != nil {
-//		return err
-//	}
-//	//s.notifyChanged(kv) // TODO: what is this used for? needs to be updated to work with new StorageState/TrieState API
-//	return nil
-//}
-
-//// setBalance sets the balance for an account with the given public key. only for testing
-//func (s *StorageState) setBalance(hash *common.Hash, key [32]byte, balance uint64) error {
-//	skey, err := common.BalanceKey(key)
-//	if err != nil {
-//		return err
-//	}
-//
-//	bb := make([]byte, 8)
-//	binary.LittleEndian.PutUint64(bb, balance)
-//
-//	return s.setStorage(hash, skey, bb)
-//}
 
 func (s *StorageState) pruneStorage(closeCh chan interface{}) {
 	for {
@@ -447,31 +406,3 @@ func (s *StorageState) pruneStorage(closeCh chan interface{}) {
 		}
 	}
 }
-
-// todo ed remove
-//Subscribe to listen for changes made to storage of the given prefix
-//func (s *StorageState) Subscribe(prefixes []byte) {
-//	// todo ed implement this
-//	// todo ed consider implementing with callback
-//	// Create the context here so we can cancel it after sending the writes.
-//	ctx, _ := context.WithCancel(context.Background())
-//	//defer cancel()
-//	//prefix := []byte{}
-//	prefix := common.MustHexToBytes("0x26aa394eea5630e07c48ae0c9558cef70a98fdbe9ce6c55837576c60c7af3850")
-//
-//	go func() {
-//		//defer wg.Done()
-//		cb := func(kvs *badger.KVList) error {
-//			for _, kv := range kvs.Kv {
-//				fmt.Printf("%x is now set\n", kv.Key)
-//			}
-//			return nil
-//		}
-//		if err := s.db.Subscribe(ctx, cb, prefix); err != nil && err != context.Canceled {
-//			log.Fatal(err)
-//		}
-//		log.Printf("subscription closed")
-//	}()
-//
-//	fmt.Printf("Subscribe storage from websocket")
-//}
