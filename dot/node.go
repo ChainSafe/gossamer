@@ -136,6 +136,7 @@ func InitNode(cfg *Config) error {
 		"basepath", cfg.Global.BasePath,
 		"genesis-raw", cfg.Init.GenesisRaw,
 		"block", header.Number,
+		"genesis hash", header.Hash(),
 	)
 
 	return nil

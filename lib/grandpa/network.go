@@ -105,7 +105,7 @@ func (s *Service) decodeHandshake(r io.Reader) (Handshake, error) {
 	return hs, err
 }
 
-func (s *Service) validateHandshake(_ Handshake) error {
+func (s *Service) validateHandshake(_ peer.ID, _ Handshake) error {
 	return nil
 }
 

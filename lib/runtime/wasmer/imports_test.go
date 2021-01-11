@@ -18,7 +18,7 @@ package wasmer
 
 import (
 	"bytes"
-	"sort"
+	"os"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -29,12 +29,27 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
 
 var testChildKey = []byte("childKey")
 var testKey = []byte("key")
 var testValue = []byte("value")
+
+func TestMain(m *testing.M) {
+	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
+	if err != nil {
+		log.Error("failed to generate runtime wasm file", err)
+		os.Exit(1)
+	}
+
+	// Start all tests
+	code := m.Run()
+
+	runtime.RemoveFiles(wasmFilePaths)
+	os.Exit(code)
+}
 
 func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
@@ -347,7 +362,7 @@ func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 	require.Equal(t, 0, inst.inst.ctx.Keystore.Size())
 
-	var expectedPubKeys [][]byte
+	var expectedPubKeys []byte
 	numKps := 5
 
 	for i := 0; i < numKps; i++ {
@@ -356,8 +371,7 @@ func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
 			t.Fatal(err)
 		}
 		inst.inst.ctx.Keystore.Insert(kp)
-		expectedKey := kp.Public().Encode()
-		expectedPubKeys = append(expectedPubKeys, expectedKey)
+		expectedPubKeys = append(expectedPubKeys, kp.Public().Encode()...)
 	}
 
 	idData := []byte{2, 2, 2, 2}
@@ -368,17 +382,13 @@ func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
 	out, err := scale.Decode(res, []byte{})
 	require.NoError(t, err)
 
-	pubKeyData := out.([]byte)
-	var pubKeys [][]byte
-	for i := 0; i < numKps; i++ {
-		kpData := pubKeyData[i*32 : (i+1)*32]
-		pubKeys = append(pubKeys, kpData)
-	}
+	buf := &bytes.Buffer{}
+	buf.Write(out.([]byte))
 
-	sort.Slice(expectedPubKeys, func(i, j int) bool { return bytes.Compare(expectedPubKeys[i], expectedPubKeys[j]) < 0 })
-	sort.Slice(pubKeys, func(i, j int) bool { return bytes.Compare(pubKeys[i], pubKeys[j]) < 0 })
+	value, err := new(optional.Bytes).Decode(buf)
+	require.NoError(t, err)
 
-	require.Equal(t, expectedPubKeys, pubKeys)
+	require.Equal(t, expectedPubKeys, value.Value())
 }
 
 func Test_ext_crypto_ed25519_sign_version_1(t *testing.T) {
@@ -405,9 +415,8 @@ func Test_ext_crypto_ed25519_sign_version_1(t *testing.T) {
 	out, err := scale.Decode(res, []byte{})
 	require.NoError(t, err)
 
-	val := out.([]byte)
 	buf := &bytes.Buffer{}
-	buf.Write(val)
+	buf.Write(out.([]byte))
 
 	value, err := new(optional.Bytes).Decode(buf)
 	require.NoError(t, err)
@@ -504,9 +513,8 @@ func Test_ext_crypto_secp256k1_ecdsa_recover_version_1(t *testing.T) {
 	out, err := scale.Decode(ret, []byte{})
 	require.NoError(t, err)
 
-	val := out.([]byte)
 	buf := &bytes.Buffer{}
-	buf.Write(val)
+	buf.Write(out.([]byte))
 
 	uncomPubKey, err := new(optional.Bytes).Decode(buf)
 	require.NoError(t, err)
@@ -524,7 +532,7 @@ func Test_ext_crypto_sr25519_public_keys_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 	require.Equal(t, 0, inst.inst.ctx.Keystore.Size())
 
-	var expectedPubKeys [][]byte
+	var expectedPubKeys []byte
 	numKps := 5
 
 	for i := 0; i < numKps; i++ {
@@ -533,8 +541,7 @@ func Test_ext_crypto_sr25519_public_keys_version_1(t *testing.T) {
 			t.Fatal(err)
 		}
 		inst.inst.ctx.Keystore.Insert(kp)
-		expectedKey := kp.Public().Encode()
-		expectedPubKeys = append(expectedPubKeys, expectedKey)
+		expectedPubKeys = append(expectedPubKeys, kp.Public().Encode()...)
 	}
 
 	idData := []byte{2, 2, 2, 2}
@@ -545,17 +552,13 @@ func Test_ext_crypto_sr25519_public_keys_version_1(t *testing.T) {
 	out, err := scale.Decode(res, []byte{})
 	require.NoError(t, err)
 
-	pubKeyData := out.([]byte)
-	var pubKeys [][]byte
-	for i := 0; i < numKps; i++ {
-		kpData := pubKeyData[i*32 : (i+1)*32]
-		pubKeys = append(pubKeys, kpData)
-	}
+	buf := &bytes.Buffer{}
+	buf.Write(out.([]byte))
 
-	sort.Slice(expectedPubKeys, func(i, j int) bool { return bytes.Compare(expectedPubKeys[i], expectedPubKeys[j]) < 0 })
-	sort.Slice(pubKeys, func(i, j int) bool { return bytes.Compare(pubKeys[i], pubKeys[j]) < 0 })
+	value, err := new(optional.Bytes).Decode(buf)
+	require.NoError(t, err)
 
-	require.Equal(t, expectedPubKeys, pubKeys)
+	require.Equal(t, expectedPubKeys, value.Value())
 }
 
 func Test_ext_crypto_sr25519_sign_version_1(t *testing.T) {
@@ -582,9 +585,8 @@ func Test_ext_crypto_sr25519_sign_version_1(t *testing.T) {
 	out, err := scale.Decode(res, []byte{})
 	require.NoError(t, err)
 
-	val := out.([]byte)
 	buf := &bytes.Buffer{}
-	buf.Write(val)
+	buf.Write(out.([]byte))
 
 	value, err := new(optional.Bytes).Decode(buf)
 	require.NoError(t, err)

@@ -116,15 +116,12 @@ import (
 )
 
 //export ext_logging_log_version_1
-func ext_logging_log_version_1(context unsafe.Pointer, level C.int32_t, targetData, msgData C.int64_t) {
+func ext_logging_log_version_1(context unsafe.Pointer, level C.int32_t, targetData C.int64_t, msgData C.int64_t) {
 	logger.Trace("[ext_logging_log_version_1] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
-	memory := instanceContext.Memory().Data()
 
-	targetPtr, targetSize := int64ToPointerAndSize(int64(targetData))
-	target := fmt.Sprintf("%s", memory[targetPtr:targetPtr+targetSize])
-	msgPtr, msgSize := int64ToPointerAndSize(int64(msgData))
-	msg := fmt.Sprintf("%s", memory[msgPtr:msgPtr+msgSize])
+	target := fmt.Sprintf("%s", asMemorySlice(instanceContext, targetData))
+	msg := fmt.Sprintf("%s", asMemorySlice(instanceContext, msgData))
 
 	switch int(level) {
 	case 0:
@@ -137,6 +134,8 @@ func ext_logging_log_version_1(context unsafe.Pointer, level C.int32_t, targetDa
 		logger.Debug("[ext_logging_log_version_1]", "target", target, "message", msg)
 	case 4:
 		logger.Trace("[ext_logging_log_version_1]", "target", target, "message", msg)
+	default:
+		logger.Error("[ext_logging_log_version_1]", "level", int(level), "target", target, "message", msg)
 	}
 }
 
@@ -210,7 +209,7 @@ func ext_crypto_ed25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 	var kp crypto.Keypair
 
 	if seed.Exists() {
-		//TODO needs to be updated to use BIP39 derivation
+		// TODO: Use BIP39 mnemonic as seed to derive the key.
 		kp, err = ed25519.NewKeypairFromSeed(seedBytes)
 	} else {
 		kp, err = ed25519.GenerateKeypair()
@@ -239,33 +238,20 @@ func ext_crypto_ed25519_public_keys_version_1(context unsafe.Pointer, keyTypeID 
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
-	//memory := instanceContext.Memory().Data()
 
 	keys := runtimeCtx.Keystore.Ed25519PublicKeys()
 
-	var encodedKeys [][]byte
-	for i, key := range keys {
-		encodedKeys[i] = key.Encode()
+	var encodedKeys []byte
+	for _, key := range keys {
+		encodedKeys = append(encodedKeys, key.Encode()...)
 	}
 
-	var ret int64
-	//ret, err := toWasmMemorySized(instanceContext, encodedKeys, uint32(len(encodedKeys)))
-	//if err != nil {
-	//	logger.Error("[ext_crypto_ed25519_public_keys_version_1] failed to allocate memory", err)
-	//	return 0
-	//}
-
-	//ptr, err := runtimeCtx.Allocator.Allocate(uint32(len(encodedKeys)))
-	//if err != nil {
-	//	logger.Error("[ext_crypto_ed25519_public_keys_version_1]", "error", err)
-	//	return 0
-	//}
-
-	//for i, key := range keys {
-	//	copy(memory[ptr+uint32(i*32):ptr+uint32((i+1)*32)], key.Encode())
-	//}
-
-	//	ret := pointerAndSizeToInt64(int32(ptr), int32(len(keys)*32))
+	ret, err := toWasmMemoryOptional(instanceContext, encodedKeys)
+	if err != nil {
+		logger.Error("[ext_crypto_ed25519_public_keys_version_1] failed to allocate memory", err)
+		ret, _ = toWasmMemoryOptional(instanceContext, nil)
+		return C.int64_t(ret)
+	}
 
 	return C.int64_t(ret)
 }
@@ -281,7 +267,7 @@ func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeID C.int32
 	pubKeyData := memory[key : key+32]
 	pubKey, err := ed25519.NewPublicKey(pubKeyData)
 	if err != nil {
-		logger.Error("[ext_crypto_ed25519_sign_version_1]", "error", err)
+		logger.Error("[ext_crypto_ed25519_sign_version_1] failed to get public keys", "error", err)
 		return 0
 	}
 
@@ -337,7 +323,7 @@ func ext_crypto_ed25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 			KeyTypeID: crypto.Ed25519Type,
 		}
 		signVerify.Add(&signature)
-		return 0
+		return 1
 	}
 
 	if ok, err := pubKey.Verify(message, signature); err != nil || !ok {
@@ -378,6 +364,7 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, m
 	message := memory[msg : msg+32]
 	signature := memory[sig : sig+65]
 
+	// TODO: Verify the return in spec.
 	pub, err := secp256k1.RecoverPublicKey(message, signature)
 	if err != nil {
 		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_version_1] failed to recover public key", "error", err)
@@ -422,7 +409,7 @@ func ext_crypto_sr25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 
 	var kp crypto.Keypair
 	if seed.Exists() {
-		//TODO needs to be updated to use BIP39 derivation
+		// TODO: Use BIP39 mnemonic as seed to derive the key.
 		kp, err = sr25519.NewKeypairFromSeed(seedBytes)
 	} else {
 		kp, err = sr25519.GenerateKeypair()
@@ -450,27 +437,18 @@ func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, keyTypeID 
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
-	//memory := instanceContext.Memory().Data()
 
 	keys := runtimeCtx.Keystore.Sr25519PublicKeys()
-
-	var encodedKeys [][]byte
+	var encodedKeys []byte
 	for i := 0; i <= len(keys)-1; i++ {
-		encodedKeys[i] = keys[i].Encode()
+		encodedKeys = append(encodedKeys, keys[i].Encode()...)
 	}
 
-	ptr, err := runtimeCtx.Allocator.Allocate(uint32(len(encodedKeys)))
+	ret, err := toWasmMemoryOptional(instanceContext, encodedKeys)
 	if err != nil {
-		logger.Error("[ext_crypto_ed25519_public_keys_version_1]", "error", err)
+		logger.Warn("[ext_crypto_ed25519_generate_version_1] failed to allocate memory", "error", err)
 		return 0
 	}
-
-	//memory[ptr+uint32(32):ptr+uint32(32+1)] =  encodedKeys
-	//
-	//
-	//toWasmMemorySized(instanceContext,encodedKeys,len(encodedKeys))
-
-	ret := pointerAndSizeToInt64(int32(ptr), int32(len(keys)*32))
 	return C.int64_t(ret)
 }
 
@@ -481,34 +459,32 @@ func ext_crypto_sr25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 	memory := instanceContext.Memory().Data()
 
+	emptyRet, _ := toWasmMemoryOptional(instanceContext, nil)
+
+	var ret int64
 	pubKey, err := sr25519.NewPublicKey(memory[key : key+32])
 	if err != nil {
 		logger.Error("[ext_crypto_sr25519_sign_version_1] failed to get public key", "error", err)
-		return 0
+		return C.int64_t(emptyRet)
 	}
 
-	var ret int64
 	signingKey := runtimeCtx.Keystore.GetKeypair(pubKey)
 	if signingKey == nil {
 		logger.Error("[ext_crypto_sr25519_sign_version_1] could not find public key in keystore", "error", pubKey)
-		ret, err = toWasmMemoryOptional(instanceContext, nil)
-		if err != nil {
-			logger.Error("[ext_crypto_sr25519_sign_version_1] failed to allocate memory", "error", err)
-			return 0
-		}
-		return C.int64_t(ret)
+		return C.int64_t(emptyRet)
 	}
 
 	msgData := asMemorySlice(instanceContext, msg)
 	sig, err := signingKey.Sign(msgData)
 	if err != nil {
 		logger.Error("[ext_crypto_sr25519_sign_version_1] could not sign message", "error", err)
+		return C.int64_t(emptyRet)
 	}
 
 	ret, err = toWasmMemoryOptional(instanceContext, sig)
 	if err != nil {
 		logger.Error("[ext_crypto_sr25519_sign_version_1] failed to allocate memory", "error", err)
-		return 0
+		return C.int64_t(emptyRet)
 	}
 
 	return C.int64_t(ret)
@@ -538,7 +514,7 @@ func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 			KeyTypeID: crypto.Sr25519Type,
 		}
 		signVerify.Add(&signature)
-		return 0
+		return 1
 	}
 
 	if ok, err := pub.Verify(message, signature); err != nil || !ok {
@@ -571,7 +547,7 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 			KeyTypeID: crypto.Sr25519Type,
 		}
 		signVerify.Add(&signature)
-		return 0
+		return 1
 	}
 
 	if ok, err := pub.Verify(message, signature); err != nil || !ok {
@@ -700,22 +676,26 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 //export ext_misc_print_hex_version_1
 func ext_misc_print_hex_version_1(context unsafe.Pointer, dataSpan C.int64_t) {
 	logger.Trace("[ext_misc_print_hex_version_1] executing...")
+
 	instanceContext := wasm.IntoInstanceContext(context)
 	data := asMemorySlice(instanceContext, dataSpan)
-	logger.Info("[ext_misc_print_hex_version_1]", "data", fmt.Sprintf("0x%x", data))
+	logger.Debug("[ext_misc_print_hex_version_1]", "hex", fmt.Sprintf("0x%x", data))
 }
 
 //export ext_misc_print_num_version_1
 func ext_misc_print_num_version_1(context unsafe.Pointer, data C.int64_t) {
 	logger.Trace("[ext_misc_print_num_version_1] executing...")
-	logger.Debug("[ext_print_num]", "message", fmt.Sprintf("%d", int64(data)))
+
+	logger.Debug("[ext_misc_print_num_version_1]", "num", fmt.Sprintf("%d", int64(data)))
 }
 
 //export ext_misc_print_utf8_version_1
-func ext_misc_print_utf8_version_1(context unsafe.Pointer, data C.int64_t) {
+func ext_misc_print_utf8_version_1(context unsafe.Pointer, dataSpan C.int64_t) {
 	logger.Trace("[ext_misc_print_utf8_version_1] executing...")
-	ptr, size := int64ToPointerAndSize(int64(data))
-	ext_print_utf8(context, C.int32_t(ptr), C.int32_t(size))
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	data := asMemorySlice(instanceContext, dataSpan)
+	logger.Debug("[ext_misc_print_utf8_version_1]", "utf8", fmt.Sprintf("%s", data))
 }
 
 //export ext_misc_runtime_version_version_1
