@@ -119,16 +119,6 @@ func TestFormatKey(t *testing.T) {
 	require.Equal(t, out, fmt.Sprintf("0x%x", runtime.BABEAuthoritiesKey()))
 }
 
-func TestFormatKey2(t *testing.T) {
-	kv := &keyValue{
-		key: []string{"System", "EventCount"},
-	}
-
-	out, err := formatKey(kv)
-	require.NoError(t, err)
-	require.Equal(t, out, fmt.Sprintf("0x%x", runtime.SystemAccountPrefix()))
-}
-
 func TestNewTrieFromGenesis(t *testing.T) {
 	var rawGenesis = &Genesis{}
 	raw := make(map[string]map[string]string)
