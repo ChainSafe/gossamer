@@ -95,7 +95,7 @@ func InitNode(cfg *Config) error {
 	rtCfg := &wasmer.Config{}
 	rtCfg.Storage = genTrie
 
-	r, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg) //nolint
+	r, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg)
 	if err != nil {
 		return fmt.Errorf("failed to create genesis runtime: %w", err)
 	}

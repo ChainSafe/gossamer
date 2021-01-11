@@ -143,7 +143,6 @@ func (trs *TestRuntimeStorage) Get(key []byte) ([]byte, error) {
 
 // Root ...
 func (trs *TestRuntimeStorage) Root() (common.Hash, error) {
-	//return trs.trie.Hash()
 	tt := trie.NewEmptyTrie()
 	iter := trs.db.NewIterator()
 
@@ -185,17 +184,15 @@ func (trs *TestRuntimeStorage) Delete(key []byte) error {
 
 // Entries ...
 func (trs *TestRuntimeStorage) Entries() map[string][]byte {
-	return trs.trie.Entries()
+	iter := trs.db.NewIterator()
 
-	// iter := trs.db.NewIterator()
+	entries := make(map[string][]byte)
+	for iter.Next() {
+		entries[string(iter.Key())] = iter.Value()
+	}
 
-	// entries := make(map[string][]byte)
-	// for iter.Next() {
-	// 	entries[string(iter.Key())] = iter.Value()
-	// }
-
-	// iter.Release()
-	// return entries
+	iter.Release()
+	return entries
 }
 
 // SetBalance ...
