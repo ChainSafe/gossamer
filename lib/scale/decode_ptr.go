@@ -21,11 +21,24 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"math/big"
 	"reflect"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 )
+
+func canDecodeCustom(t interface{}) bool {
+	method := reflect.ValueOf(t).MethodByName("Decode")
+	if !method.IsValid() {
+		return false
+	}
+
+	// check that first parameter is io.Reader
+	readerType := reflect.TypeOf((*io.Reader)(nil)).Elem()
+	param := method.Type().In(0)
+	return param.Implements(readerType)
+}
 
 // DecodeCustom check if interface has method Decode, if so use that, otherwise use regular scale decoding
 func DecodeCustom(in []byte, t interface{}) error {
@@ -59,13 +72,18 @@ func DecodePtr(in []byte, t interface{}) error {
 
 // DecodeCustom check if interface has method Decode(io.Reader), if so use that, otherwise use regular scale decoding
 func (sd *Decoder) DecodeCustom(t interface{}) (interface{}, error) {
+	ok := canDecodeCustom(t)
+	if !ok {
+		return nil, errors.New("cannot call custom decode func")
+	}
+
 	someType := reflect.TypeOf(t)
 	val := reflect.ValueOf(t)
 	if val.IsNil() {
 		n := reflect.New(someType.Elem())
 		t = n.Interface()
 	}
-	_, ok := someType.MethodByName("Decode")
+	_, ok = someType.MethodByName("Decode")
 	if ok {
 		meth := reflect.ValueOf(t).MethodByName("Decode")
 		inVal := []reflect.Value{reflect.ValueOf(sd.Reader)}

@@ -29,6 +29,10 @@ clean:
 format:
 	./scripts/goimports.sh
 
+proto:
+	go install google.golang.org/protobuf/cmd/protoc-gen-go
+	protoc -I=./dot/network/proto --go_out=./dot/network/proto dot/network/proto/api.v1.proto
+
 ## test: Runs `go test` on project test files.
 test:
 	@echo "  >  \033[32mRunning tests...\033[0m "
