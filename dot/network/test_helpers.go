@@ -2,8 +2,11 @@ package network
 
 import (
 	"bufio"
+	"bytes"
+	"errors"
 	"math/big"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 
@@ -24,7 +27,7 @@ func newMockSyncer() *mockSyncer {
 }
 
 func (s *mockSyncer) CreateBlockResponse(msg *BlockRequestMessage) (*BlockResponseMessage, error) {
-	return nil, nil
+	return nil, errors.New("unimplemented")
 }
 
 func (s *mockSyncer) HandleBlockResponse(msg *BlockResponseMessage) *BlockRequestMessage {
@@ -38,7 +41,19 @@ func (s *mockSyncer) HandleBlockAnnounce(msg *BlockAnnounceMessage) *BlockReques
 
 	startBlock, _ := variadic.NewUint64OrHash(1)
 	return &BlockRequestMessage{
-		ID:            99,
+		StartingBlock: startBlock,
+		Max:           optional.NewUint32(false, 0),
+	}
+}
+
+func (s *mockSyncer) HandleBlockAnnounceHandshake(num *big.Int) *BlockRequestMessage {
+	if num.Cmp(s.highestSeen) > 0 {
+		s.highestSeen = num
+	}
+
+	startBlock, _ := variadic.NewUint64OrHash(1)
+
+	return &BlockRequestMessage{
 		StartingBlock: startBlock,
 		Max:           optional.NewUint32(false, 0),
 	}
@@ -48,17 +63,19 @@ func (s *mockSyncer) IsSynced() bool {
 	return s.synced
 }
 
-func (s *mockSyncer) SetSyncedState(newState bool) {
+func (s *mockSyncer) setSyncedState(newState bool) {
 	s.synced = newState
 }
 
 type testStreamHandler struct {
 	messages map[peer.ID]Message
+	decoder  messageDecoder
 }
 
-func newTestStreamHandler() *testStreamHandler {
+func newTestStreamHandler(decoder messageDecoder) *testStreamHandler {
 	return &testStreamHandler{
 		messages: make(map[peer.ID]Message),
+		decoder:  decoder,
 	}
 }
 
@@ -70,7 +87,7 @@ func (s *testStreamHandler) handleStream(stream libp2pnetwork.Stream) {
 	}
 
 	peer := conn.RemotePeer()
-	s.readStream(stream, peer, decodeMessageBytes, s.handleMessage)
+	s.readStream(stream, peer, s.decoder, s.handleMessage)
 }
 
 func (s *testStreamHandler) handleMessage(peer peer.ID, msg Message) error {
@@ -130,4 +147,40 @@ func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream, peer peer.ID
 			return
 		}
 	}
+}
+
+var testBlockRequestMessage = &BlockRequestMessage{
+	RequestedData: 1,
+	StartingBlock: variadic.NewUint64OrHashFromBytes([]byte{1, 1, 1, 1, 1, 1, 1, 1, 1}),
+	EndBlockHash:  optional.NewHash(true, common.Hash{}),
+	Direction:     1,
+	Max:           optional.NewUint32(true, 1),
+}
+
+func testBlockRequestMessageDecoder(in []byte, _ peer.ID) (Message, error) {
+	r := &bytes.Buffer{}
+	_, err := r.Write(in)
+	if err != nil {
+		return nil, err
+	}
+
+	msg := new(BlockRequestMessage)
+	err = msg.Decode(r)
+	return msg, err
+}
+
+var testBlockAnnounceMessage = &BlockAnnounceMessage{
+	Number: big.NewInt(99),
+}
+
+func testBlockAnnounceMessageDecoder(in []byte, _ peer.ID) (Message, error) {
+	r := &bytes.Buffer{}
+	_, err := r.Write(in)
+	if err != nil {
+		return nil, err
+	}
+
+	msg := new(BlockAnnounceMessage)
+	err = msg.Decode(r)
+	return msg, err
 }

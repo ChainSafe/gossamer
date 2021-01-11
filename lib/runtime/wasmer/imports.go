@@ -113,15 +113,12 @@ import (
 )
 
 //export ext_logging_log_version_1
-func ext_logging_log_version_1(context unsafe.Pointer, level C.int32_t, targetData, msgData C.int64_t) {
+func ext_logging_log_version_1(context unsafe.Pointer, level C.int32_t, targetData C.int64_t, msgData C.int64_t) {
 	logger.Trace("[ext_logging_log_version_1] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
-	memory := instanceContext.Memory().Data()
 
-	targetPtr, targetSize := int64ToPointerAndSize(int64(targetData))
-	target := fmt.Sprintf("%s", memory[targetPtr:targetPtr+targetSize])
-	msgPtr, msgSize := int64ToPointerAndSize(int64(msgData))
-	msg := fmt.Sprintf("%s", memory[msgPtr:msgPtr+msgSize])
+	target := fmt.Sprintf("%s", asMemorySlice(instanceContext, targetData))
+	msg := fmt.Sprintf("%s", asMemorySlice(instanceContext, msgData))
 
 	switch int(level) {
 	case 0:
@@ -134,6 +131,8 @@ func ext_logging_log_version_1(context unsafe.Pointer, level C.int32_t, targetDa
 		logger.Debug("[ext_logging_log_version_1]", "target", target, "message", msg)
 	case 4:
 		logger.Trace("[ext_logging_log_version_1]", "target", target, "message", msg)
+	default:
+		logger.Error("[ext_logging_log_version_1]", "level", int(level), "target", target, "message", msg)
 	}
 }
 
@@ -379,29 +378,65 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 //export ext_misc_print_hex_version_1
 func ext_misc_print_hex_version_1(context unsafe.Pointer, dataSpan C.int64_t) {
 	logger.Trace("[ext_misc_print_hex_version_1] executing...")
+
 	instanceContext := wasm.IntoInstanceContext(context)
 	data := asMemorySlice(instanceContext, dataSpan)
-	logger.Info("[ext_misc_print_hex_version_1]", "data", fmt.Sprintf("0x%x", data))
+	logger.Debug("[ext_misc_print_hex_version_1]", "hex", fmt.Sprintf("0x%x", data))
 }
 
 //export ext_misc_print_num_version_1
-func ext_misc_print_num_version_1(context unsafe.Pointer, a C.int64_t) {
+func ext_misc_print_num_version_1(context unsafe.Pointer, data C.int64_t) {
 	logger.Trace("[ext_misc_print_num_version_1] executing...")
-	logger.Warn("[ext_misc_print_num_version_1] unimplemented")
+
+	logger.Debug("[ext_misc_print_num_version_1]", "num", fmt.Sprintf("%d", int64(data)))
 }
 
 //export ext_misc_print_utf8_version_1
-func ext_misc_print_utf8_version_1(context unsafe.Pointer, data C.int64_t) {
+func ext_misc_print_utf8_version_1(context unsafe.Pointer, dataSpan C.int64_t) {
 	logger.Trace("[ext_misc_print_utf8_version_1] executing...")
-	ptr, size := int64ToPointerAndSize(int64(data))
-	ext_print_utf8(context, C.int32_t(ptr), C.int32_t(size))
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	data := asMemorySlice(instanceContext, dataSpan)
+	logger.Debug("[ext_misc_print_utf8_version_1]", "utf8", fmt.Sprintf("%s", data))
 }
 
 //export ext_misc_runtime_version_version_1
-func ext_misc_runtime_version_version_1(context unsafe.Pointer, z C.int64_t) C.int64_t {
+func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int64_t {
 	logger.Trace("[ext_misc_runtime_version_version_1] executing...")
-	logger.Warn("[ext_misc_runtime_version_version_1] unimplemented")
-	return 0
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	data := asMemorySlice(instanceContext, dataSpan)
+
+	cfg := &Config{
+		Imports: ImportsNodeRuntime,
+	}
+	cfg.Storage = instanceContext.Data().(*runtime.Context).Storage
+
+	instance, err := NewInstance(data, cfg)
+	if err != nil {
+		logger.Error("[ext_misc_runtime_version_version_1] failed to create instance", "error", err)
+		return 0
+	}
+
+	version, err := instance.Version()
+	if err != nil {
+		logger.Error("[ext_misc_runtime_version_version_1] failed to fetch version", "error", err)
+		return 0
+	}
+
+	encodedData, err := scale.Encode(version.RuntimeVersion)
+	if err != nil {
+		logger.Error("[ext_misc_runtime_version_version_1] failed to encode result", "error", err)
+		return 0
+	}
+
+	out, err := toWasmMemoryOptional(instanceContext, encodedData)
+	if err != nil {
+		logger.Error("[ext_misc_runtime_version_version_1] failed to allocate", "error", err)
+		return 0
+	}
+
+	return C.int64_t(out)
 }
 
 //export ext_default_child_storage_read_version_1
@@ -435,37 +470,54 @@ func ext_default_child_storage_read_version_1(context unsafe.Pointer, childStora
 }
 
 //export ext_default_child_storage_clear_version_1
-func ext_default_child_storage_clear_version_1(context unsafe.Pointer, childStorageKey, key C.int64_t) {
+func ext_default_child_storage_clear_version_1(context unsafe.Pointer, childStorageKey, keySpan C.int64_t) {
 	logger.Trace("[ext_default_child_storage_clear_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
-	storage := instanceContext.Data().(*runtime.Context).Storage
+	ctx := instanceContext.Data().(*runtime.Context)
+	storage := ctx.Storage
 
-	err := storage.ClearChildStorage(asMemorySlice(instanceContext, childStorageKey), asMemorySlice(instanceContext, key))
+	keyToChild := asMemorySlice(instanceContext, childStorageKey)
+	key := asMemorySlice(instanceContext, keySpan)
+
+	if ctx.TransactionStorageChanges != nil {
+		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
+			Operation:  runtime.ClearOp,
+			KeyToChild: keyToChild,
+			Key:        key,
+		})
+		return
+	}
+
+	err := storage.ClearChildStorage(keyToChild, key)
 	if err != nil {
 		logger.Error("[ext_default_child_storage_clear_version_1] failed to clear child storage", "error", err)
 	}
 }
 
 //export ext_default_child_storage_clear_prefix_version_1
-func ext_default_child_storage_clear_prefix_version_1(context unsafe.Pointer, childStorageKey C.int64_t, prefix C.int64_t) {
+func ext_default_child_storage_clear_prefix_version_1(context unsafe.Pointer, childStorageKey C.int64_t, prefixSpan C.int64_t) {
 	logger.Trace("[ext_default_child_storage_clear_prefix_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
-	storage := instanceContext.Data().(*runtime.Context).Storage
+	ctx := instanceContext.Data().(*runtime.Context)
+	storage := ctx.Storage
 
-	keys, err := storage.GetChildByPrefix(asMemorySlice(instanceContext, childStorageKey), asMemorySlice(instanceContext, prefix))
-	if err != nil {
-		logger.Error("[ext_default_child_storage_clear_prefix_version_1] failed to get child by prefix", "error", err)
+	keyToChild := asMemorySlice(instanceContext, childStorageKey)
+	prefix := asMemorySlice(instanceContext, prefixSpan)
+
+	if ctx.TransactionStorageChanges != nil {
+		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
+			Operation:  runtime.ClearPrefixOp,
+			KeyToChild: keyToChild,
+			Prefix:     prefix,
+		})
 		return
 	}
 
-	for _, v := range keys {
-		err := storage.ClearChildStorage(asMemorySlice(instanceContext, childStorageKey), v)
-		if err != nil {
-			logger.Error("[ext_default_child_storage_clear_prefix_version_1] failed to clear child storage by prefix", "error", err)
-			continue
-		}
+	err := storage.ClearPrefixInChild(keyToChild, prefix)
+	if err != nil {
+		logger.Error("[ext_default_child_storage_clear_prefix_version_1] failed to clear prefix in child", "error", err)
 	}
 }
 
@@ -560,13 +612,28 @@ func ext_default_child_storage_root_version_1(context unsafe.Pointer, childStora
 }
 
 //export ext_default_child_storage_set_version_1
-func ext_default_child_storage_set_version_1(context unsafe.Pointer, childStorageKey, key, value C.int64_t) {
+func ext_default_child_storage_set_version_1(context unsafe.Pointer, childStorageKeySpan, keySpan, valueSpan C.int64_t) {
 	logger.Trace("[ext_default_child_storage_set_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
-	storage := instanceContext.Data().(*runtime.Context).Storage
+	ctx := instanceContext.Data().(*runtime.Context)
+	storage := ctx.Storage
 
-	err := storage.SetChildStorage(asMemorySlice(instanceContext, childStorageKey), asMemorySlice(instanceContext, key), asMemorySlice(instanceContext, value))
+	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
+	key := asMemorySlice(instanceContext, keySpan)
+	value := asMemorySlice(instanceContext, valueSpan)
+
+	if ctx.TransactionStorageChanges != nil {
+		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
+			Operation:  runtime.SetOp,
+			KeyToChild: childStorageKey,
+			Key:        key,
+			Value:      value,
+		})
+		return
+	}
+
+	err := storage.SetChildStorage(childStorageKey, key, value)
 	if err != nil {
 		logger.Error("[ext_default_child_storage_set_version_1] failed to set value in child storage", "error", err)
 		return
@@ -574,13 +641,24 @@ func ext_default_child_storage_set_version_1(context unsafe.Pointer, childStorag
 }
 
 //export ext_default_child_storage_storage_kill_version_1
-func ext_default_child_storage_storage_kill_version_1(context unsafe.Pointer, childStorageKey C.int64_t) {
+func ext_default_child_storage_storage_kill_version_1(context unsafe.Pointer, childStorageKeySpan C.int64_t) {
 	logger.Trace("[ext_default_child_storage_storage_kill_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
-	storage := instanceContext.Data().(*runtime.Context).Storage
+	ctx := instanceContext.Data().(*runtime.Context)
+	storage := ctx.Storage
 
-	err := storage.DeleteChildStorage(asMemorySlice(instanceContext, childStorageKey))
+	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
+
+	if ctx.TransactionStorageChanges != nil {
+		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
+			Operation:  runtime.DeleteChildOp,
+			KeyToChild: childStorageKey,
+		})
+		return
+	}
+
+	err := storage.DeleteChildStorage(childStorageKey)
 	if err != nil {
 		logger.Error("[ext_default_child_storage_storage_kill_version_1] failed to delete child storage from trie", "error", err)
 		return
@@ -786,25 +864,14 @@ func ext_offchain_submit_transaction_version_1(context unsafe.Pointer, z C.int64
 	return 0
 }
 
-//export ext_storage_append_version_1
-func ext_storage_append_version_1(context unsafe.Pointer, keySpan, valueSpan C.int64_t) {
-	logger.Trace("[ext_storage_append_version_1] executing...")
-	instanceContext := wasm.IntoInstanceContext(context)
-	storage := instanceContext.Data().(*runtime.Context).Storage
-
-	key := asMemorySlice(instanceContext, keySpan)
-	logger.Trace("[ext_storage_append_version_1]", "key", fmt.Sprintf("0x%x", key))
-	valueAppend := asMemorySlice(instanceContext, valueSpan)
-
+func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 	valueCurr, err := storage.Get(key)
 	if err != nil {
-		logger.Error("[ext_storage_append_version_1]", "error", err)
-		return
+		return err
 	}
 
 	if len(valueCurr) == 0 {
-		_ = storage.Set(key, valueAppend)
-		return
+		return storage.Set(key, valueToAppend)
 	}
 
 	// remove length prefix from existing value
@@ -814,29 +881,53 @@ func ext_storage_append_version_1(context unsafe.Pointer, keySpan, valueSpan C.i
 	_, err = dec.DecodeUnsignedInteger()
 	if err != nil {
 		logger.Trace("[ext_storage_append_version_1] item in storage is not SCALE encoded, overwriting", "key", key)
-		_ = storage.Set(key, valueAppend)
-		return
+		return storage.Set(key, valueToAppend)
 	}
 
 	// remove length prefix from value to append
 	rAppend := &bytes.Buffer{}
-	_, _ = rAppend.Write(valueAppend)
+	_, _ = rAppend.Write(valueToAppend)
 	dec = &scale.Decoder{Reader: rAppend}
 	_, err = dec.DecodeUnsignedInteger()
 	if err != nil {
-		logger.Trace("[ext_storage_append_version_1] value to append is not SCALE encoded", "key", key, "value to append", valueAppend)
+		logger.Trace("[ext_storage_append_version_1] value to append is not SCALE encoded", "key", key, "value to append", valueToAppend)
 	} else {
-		valueAppend = rAppend.Bytes()
+		valueToAppend = rAppend.Bytes()
 	}
 
-	valueRes := append(r.Bytes(), valueAppend...)
+	valueRes := append(r.Bytes(), valueToAppend...)
 	finalVal, err := scale.Encode(valueRes)
 	if err != nil {
-		logger.Error("[ext_storage_append_version_1]", "error", err)
+		return err
+	}
+
+	return storage.Set(key, finalVal)
+}
+
+//export ext_storage_append_version_1
+func ext_storage_append_version_1(context unsafe.Pointer, keySpan, valueSpan C.int64_t) {
+	logger.Trace("[ext_storage_append_version_1] executing...")
+	instanceContext := wasm.IntoInstanceContext(context)
+	ctx := instanceContext.Data().(*runtime.Context)
+	storage := ctx.Storage
+
+	key := asMemorySlice(instanceContext, keySpan)
+	logger.Trace("[ext_storage_append_version_1]", "key", fmt.Sprintf("0x%x", key))
+	valueAppend := asMemorySlice(instanceContext, valueSpan)
+
+	if ctx.TransactionStorageChanges != nil {
+		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
+			Operation: runtime.AppendOp,
+			Key:       key,
+			Value:     valueAppend,
+		})
 		return
 	}
 
-	_ = storage.Set(key, finalVal)
+	err := storageAppend(storage, key, valueAppend)
+	if err != nil {
+		logger.Error("[ext_storage_append_version_1]", "error", err)
+	}
 }
 
 //export ext_storage_changes_root_version_1
@@ -859,11 +950,21 @@ func ext_storage_changes_root_version_1(context unsafe.Pointer, parentHashSpan C
 func ext_storage_clear_version_1(context unsafe.Pointer, keySpan C.int64_t) {
 	logger.Trace("[ext_storage_clear_version_1] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
-	storage := instanceContext.Data().(*runtime.Context).Storage
+	ctx := instanceContext.Data().(*runtime.Context)
+	storage := ctx.Storage
 
 	key := asMemorySlice(instanceContext, keySpan)
 
 	logger.Trace("[ext_storage_clear_version_1]", "key", fmt.Sprintf("0x%x", key))
+
+	if ctx.TransactionStorageChanges != nil {
+		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
+			Operation: runtime.ClearOp,
+			Key:       key,
+		})
+		return
+	}
+
 	_ = storage.Delete(key)
 }
 
@@ -871,23 +972,39 @@ func ext_storage_clear_version_1(context unsafe.Pointer, keySpan C.int64_t) {
 func ext_storage_clear_prefix_version_1(context unsafe.Pointer, prefixSpan C.int64_t) {
 	logger.Trace("[ext_storage_clear_prefix_version_1] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
-	storage := instanceContext.Data().(*runtime.Context).Storage
+	ctx := instanceContext.Data().(*runtime.Context)
+	storage := ctx.Storage
 
 	prefix := asMemorySlice(instanceContext, prefixSpan)
 	logger.Trace("[ext_storage_clear_prefix_version_1]", "prefix", fmt.Sprintf("0x%x", prefix))
+
+	if ctx.TransactionStorageChanges != nil {
+		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
+			Operation: runtime.ClearPrefixOp,
+			Prefix:    prefix,
+		})
+		return
+	}
+
 	storage.ClearPrefix(prefix)
 }
 
-//export ext_storage_commit_transaction_version_1
-func ext_storage_commit_transaction_version_1(context unsafe.Pointer) {
-	logger.Trace("[ext_storage_commit_transaction_version_1] executing...")
-	logger.Warn("[ext_storage_commit_transaction_version_1] unimplemented")
-}
-
 //export ext_storage_exists_version_1
-func ext_storage_exists_version_1(context unsafe.Pointer, a C.int64_t) C.int32_t {
+func ext_storage_exists_version_1(context unsafe.Pointer, keySpan C.int64_t) C.int32_t {
 	logger.Trace("[ext_storage_exists_version_1] executing...")
-	logger.Warn("[ext_storage_exists_version_1] unimplemented")
+	instanceContext := wasm.IntoInstanceContext(context)
+	storage := instanceContext.Data().(*runtime.Context).Storage
+
+	key := asMemorySlice(instanceContext, keySpan)
+	val, err := storage.Get(key)
+	if err != nil {
+		return 0
+	}
+
+	if len(val) > 0 {
+		return 1
+	}
+
 	return 0
 }
 
@@ -976,12 +1093,6 @@ func ext_storage_read_version_1(context unsafe.Pointer, keySpan, valueOut C.int6
 	return C.int64_t(sizeSpan)
 }
 
-//export ext_storage_rollback_transaction_version_1
-func ext_storage_rollback_transaction_version_1(context unsafe.Pointer) {
-	logger.Trace("[ext_storage_rollback_transaction_version_1] executing...")
-	logger.Warn("[ext_storage_rollback_transaction_version_1] unimplemented")
-}
-
 //export ext_storage_root_version_1
 func ext_storage_root_version_1(context unsafe.Pointer) C.int64_t {
 	logger.Trace("[ext_storage_root_version_1] executing...")
@@ -1011,10 +1122,20 @@ func ext_storage_set_version_1(context unsafe.Pointer, keySpan C.int64_t, valueS
 	logger.Trace("[ext_storage_set_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
-	storage := instanceContext.Data().(*runtime.Context).Storage
+	ctx := instanceContext.Data().(*runtime.Context)
+	storage := ctx.Storage
 
 	key := asMemorySlice(instanceContext, keySpan)
 	value := asMemorySlice(instanceContext, valueSpan)
+
+	if ctx.TransactionStorageChanges != nil {
+		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
+			Operation: runtime.SetOp,
+			Key:       key,
+			Value:     value,
+		})
+		return
+	}
 
 	logger.Trace("[ext_storage_set_version_1]", "key", fmt.Sprintf("0x%x", key), "val", value)
 	err := storage.Set(key, value)
@@ -1027,7 +1148,82 @@ func ext_storage_set_version_1(context unsafe.Pointer, keySpan C.int64_t, valueS
 //export ext_storage_start_transaction_version_1
 func ext_storage_start_transaction_version_1(context unsafe.Pointer) {
 	logger.Trace("[ext_storage_start_transaction_version_1] executing...")
-	logger.Warn("[ext_storage_start_transaction_version_1] unimplemented")
+	instanceContext := wasm.IntoInstanceContext(context)
+	instanceContext.Data().(*runtime.Context).TransactionStorageChanges = []*runtime.TransactionStorageChange{}
+}
+
+//export ext_storage_rollback_transaction_version_1
+func ext_storage_rollback_transaction_version_1(context unsafe.Pointer) {
+	logger.Trace("[ext_storage_rollback_transaction_version_1] executing...")
+	instanceContext := wasm.IntoInstanceContext(context)
+	instanceContext.Data().(*runtime.Context).TransactionStorageChanges = nil
+}
+
+//export ext_storage_commit_transaction_version_1
+func ext_storage_commit_transaction_version_1(context unsafe.Pointer) {
+	logger.Trace("[ext_storage_commit_transaction_version_1] executing...")
+	instanceContext := wasm.IntoInstanceContext(context)
+	ctx := instanceContext.Data().(*runtime.Context)
+	changes := ctx.TransactionStorageChanges
+	storage := ctx.Storage
+
+	if changes == nil {
+		panic("ext_storage_start_transaction_version_1 was not called before ext_storage_commit_transaction_version_1")
+	}
+
+	for _, change := range changes {
+		switch change.Operation {
+		case runtime.SetOp:
+			if change.KeyToChild != nil {
+				err := storage.SetChildStorage(change.KeyToChild, change.Key, change.Value)
+				if err != nil {
+					logger.Error("[ext_default_child_storage_set_version_1] failed to set value in child storage", "error", err)
+				}
+
+				continue
+			}
+
+			err := storage.Set(change.Key, change.Value)
+			if err != nil {
+				logger.Error("[ext_storage_commit_transaction_version_1] failed to set key", "key", change.Key, "error", err)
+			}
+		case runtime.ClearOp:
+			if change.KeyToChild != nil {
+				err := storage.ClearChildStorage(change.KeyToChild, change.Key)
+				if err != nil {
+					logger.Error("[ext_default_child_storage_clear_version_1] failed to clear child storage", "error", err)
+				}
+
+				continue
+			}
+
+			err := storage.Delete(change.Key)
+			if err != nil {
+				logger.Error("[ext_storage_commit_transaction_version_1] failed to clear key", "key", change.Key, "error", err)
+			}
+		case runtime.ClearPrefixOp:
+			if change.KeyToChild != nil {
+				err := storage.ClearPrefixInChild(change.KeyToChild, change.Prefix)
+				if err != nil {
+					logger.Error("[ext_storage_commit_transaction_version_1] failed to clear prefix in child", "error", err)
+				}
+
+				continue
+			}
+
+			storage.ClearPrefix(change.Prefix)
+		case runtime.AppendOp:
+			err := storageAppend(storage, change.Key, change.Value)
+			if err != nil {
+				logger.Error("[ext_storage_commit_transaction_version_1] failed to append to storage", "key", change.Key, "error", err)
+			}
+		case runtime.DeleteChildOp:
+			err := storage.DeleteChildStorage(change.KeyToChild)
+			if err != nil {
+				logger.Error("[ext_storage_commit_transaction_version_1] failed to delete child from trie", "error", err)
+			}
+		}
+	}
 }
 
 // Convert 64bit wasm span descriptor to Go memory slice

@@ -313,7 +313,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
-	//t.Skip() // TODO: complete this
+	t.Skip() // TODO: complete this
 	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/polkadot/genesis-raw.json")
 	require.NoError(t, err)
 
@@ -323,46 +323,12 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	// set state to genesis state
 	genState := runtime.NewTestRuntimeStorage(t, genTrie)
 
-	// // why dont roots match :(
-	// genfields := make(map[string]string)
-	// for k, v := range genState.Entries() {
-	// 	key := fmt.Sprintf("0x%x", k)
-	// 	val := fmt.Sprintf("0x%x", v)
-	// 	genfields[key] = val
-	// }
-
-	// require.Equal(t, gen.GenesisFields().Raw["top"], genfields)
-
-	// outgen := genesis.Fields{
-	// 	Raw: make(map[string]map[string]string),
-	// }
-	// outgen.Raw["top"] = genfields
-	// outgen.Raw["childrenDefault"] = make(map[string]string)
-	// outfullgen := &genesis.Genesis{
-	// 	Genesis: outgen,
-	// }
-	// out, err := json.MarshalIndent(outfullgen, "", "  ")
-	// require.NoError(t, err)
-	// err = ioutil.WriteFile("./gen-out.json", out, 0644)
-	// require.NoError(t, err)
-
-	// check that genesis state root is correct ie. matches polkadot genesis block
-	// hash, err := genState.Root()
-	// require.NoError(t, err)
-	// expected := common.MustHexToHash("0x29d0d972cd27cbc511e9589fcb7a4506d5eb6a9e8df205f00472e5ab354a4e17")
-	// require.Equal(t, expected, hash)
-
 	cfg := &Config{}
 	cfg.Storage = genState
 	cfg.LogLvl = 5
 
 	instance, err := NewRuntimeFromGenesis(gen, cfg)
 	require.NoError(t, err)
-
-	//  digestBytes := common.MustHexToBytes("0x0c0642414245b501010000000093decc0f00000000362ed8d6055645487fe42e9c8640be651f70a3a2a03658046b2b43f021665704501af9b1ca6e974c257e3d26609b5f68b5b0a1da53f7f252bbe5d94948c39705c98ffa4b869dd44ac29528e3723d619cc7edf1d3f7b7a57a957f6a7e9bdb270a044241424549040118fa3437b10f6e7af8f31362df3a179b991a8c56313d1bcd6307a4d0c734c1ae310100000000000000d2419bc8835493ac89eb09d5985281f5dff4bc6c7a7ea988fd23af05f301580a0100000000000000ccb6bef60defc30724545d57440394ed1c71ea7ee6d880ed0e79871a05b5e40601000000000000005e67b64cf07d4d258a47df63835121423551712844f5b67de68e36bb9a21e12701000000000000006236877b05370265640c133fec07e64d7ca823db1dc56f2d3584b3d7c0f1615801000000000000006c52d02d95c30aa567fda284acf25025ca7470f0b0c516ddf94475a1807c4d250100000000000000000000000000000000000000000000000000000000000000000000000000000005424142450101d468680c844b19194d4dfbdc6697a35bf2b494bda2c5a6961d4d4eacfbf74574379ba0d97b5bb650c2e8670a63791a727943bcb699dc7a228bdb9e0a98c9d089")
-	// digest, err := scale.Decode(digestBytes, [][]byte{})
-	// require.NoError(t, err)
-	// t.Log(digest.([][]byte))
 
 	// block data is received from querying a polkadot node
 	body := []byte{8, 40, 4, 3, 0, 11, 80, 149, 160, 81, 114, 1, 16, 4, 20, 0, 0}

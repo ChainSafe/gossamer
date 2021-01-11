@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -89,5 +90,51 @@ func TestHandleBlockAnnounceMessage(t *testing.T) {
 	}
 
 	s.handleBlockAnnounceMessage(peerID, msg)
-	require.True(t, s.requestTracker.hasRequestedBlockID(99))
+	require.NotNil(t, s.syncing[peerID])
+}
+
+func TestValidateBlockAnnounceHandshake(t *testing.T) {
+	configA := &Config{
+		BasePath:    utils.NewTestBasePath(t, "nodeA"),
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeA := createTestService(t, configA)
+	nodeA.noGossip = true
+
+	configB := &Config{
+		BasePath:    utils.NewTestBasePath(t, "nodeB"),
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeB := createTestService(t, configB)
+	nodeB.noGossip = true
+
+	handler := newTestStreamHandler(testBlockRequestMessageDecoder)
+	nodeB.host.registerStreamHandler(syncID, handler.handleStream)
+
+	addrInfosB, err := nodeB.host.addrInfos()
+	require.NoError(t, err)
+
+	err = nodeA.host.connect(*addrInfosB[0])
+	if failedToDial(err) {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(*addrInfosB[0])
+	}
+	require.NoError(t, err)
+
+	err = nodeA.validateBlockAnnounceHandshake(nodeB.host.id(), &BlockAnnounceHandshake{
+		BestBlockNumber: 100,
+		GenesisHash:     nodeB.blockState.GenesisHash(),
+	})
+	require.NoError(t, err)
+
+	time.Sleep(TestMessageTimeout)
+	require.NotNil(t, handler.messages[nodeA.host.id()], "node B timeout waiting for message from node A")
 }

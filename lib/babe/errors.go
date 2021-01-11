@@ -47,3 +47,6 @@ var ErrAuthorityAlreadyDisabled = errors.New("authority has already been disable
 
 // ErrAuthorityDisabled is returned when attempting to verify a block produced by a disabled authority
 var ErrAuthorityDisabled = errors.New("authority has been disabled for the remaining slots in the epoch")
+
+// ErrNotAuthority is returned when trying to perform authority functions when not an authority
+var ErrNotAuthority = errors.New("node is not an authority")

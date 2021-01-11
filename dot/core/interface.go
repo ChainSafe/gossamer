@@ -96,7 +96,7 @@ type Verifier interface {
 
 // Network is the interface for the network service
 type Network interface {
-	SendMessage(network.Message)
+	SendMessage(network.NotificationsMessage)
 }
 
 // EpochState is the interface for state.EpochState

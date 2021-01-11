@@ -91,7 +91,7 @@ type mockNetwork struct {
 	Message network.Message
 }
 
-func (n *mockNetwork) SendMessage(m network.Message) {
+func (n *mockNetwork) SendMessage(m network.NotificationsMessage) {
 	n.Message = m
 }
 
@@ -239,9 +239,7 @@ func (s *mockSyncer) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) *net
 		s.highestSeen = msg.Number
 	}
 
-	return &network.BlockRequestMessage{
-		ID: 99,
-	}
+	return &network.BlockRequestMessage{}
 }
 
 func (s *mockSyncer) HandleBlockResponse(msg *network.BlockResponseMessage) *network.BlockRequestMessage {
@@ -250,4 +248,8 @@ func (s *mockSyncer) HandleBlockResponse(msg *network.BlockResponseMessage) *net
 
 func (s *mockSyncer) IsSynced() bool {
 	return false
+}
+
+func (s *mockSyncer) HandleBlockAnnounceHandshake(num *big.Int) *network.BlockRequestMessage {
+	return nil
 }

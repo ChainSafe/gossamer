@@ -89,7 +89,67 @@ func newTestSyncer(t *testing.T) *Service {
 	return syncer
 }
 
+func TestHandleBlockAnnounceHandshake(t *testing.T) {
+	syncer := newTestSyncer(t)
+	number := big.NewInt(12)
+	req := syncer.HandleBlockAnnounceHandshake(number)
+	require.NotNil(t, req)
+	require.Equal(t, uint64(1), req.StartingBlock.Value().(uint64))
+	require.Equal(t, number, syncer.highestSeenBlock)
+}
+
+func TestHandleBlockAnnounceHandshake_NotHighestSeen(t *testing.T) {
+	syncer := newTestSyncer(t)
+
+	number := big.NewInt(12)
+	req := syncer.HandleBlockAnnounceHandshake(number)
+	require.NotNil(t, req)
+	require.Equal(t, number, syncer.highestSeenBlock)
+
+	lower := big.NewInt(11)
+	req = syncer.HandleBlockAnnounceHandshake(lower)
+	require.Nil(t, req)
+	require.Equal(t, number, syncer.highestSeenBlock)
+}
+
+func TestHandleBlockAnnounceHandshake_GreaterThanHighestSeen_NotSynced(t *testing.T) {
+	syncer := newTestSyncer(t)
+
+	number := big.NewInt(12)
+	req := syncer.HandleBlockAnnounceHandshake(number)
+	require.NotNil(t, req)
+	require.Equal(t, number, syncer.highestSeenBlock)
+
+	number = big.NewInt(16)
+	req = syncer.HandleBlockAnnounceHandshake(number)
+	require.NotNil(t, req)
+	require.Equal(t, number, syncer.highestSeenBlock)
+	require.Equal(t, req.StartingBlock.Value().(uint64), uint64(12))
+}
+
+func TestHandleBlockAnnounceHandshake_GreaterThanHighestSeen_Synced(t *testing.T) {
+	syncer := newTestSyncer(t)
+
+	number := big.NewInt(12)
+	req := syncer.HandleBlockAnnounceHandshake(number)
+	require.NotNil(t, req)
+	require.Equal(t, number, syncer.highestSeenBlock)
+
+	// synced to block 12
+	syncer.synced = true
+
+	number = big.NewInt(16)
+	req = syncer.HandleBlockAnnounceHandshake(number)
+	require.NotNil(t, req)
+	require.Equal(t, number, syncer.highestSeenBlock)
+	require.Equal(t, uint64(13), req.StartingBlock.Value().(uint64))
+}
+
 func TestHandleBlockResponse(t *testing.T) {
+	if testing.Short() {
+		t.Skip() // this test takes around 4min to run
+	}
+
 	syncer := newTestSyncer(t)
 	syncer.highestSeenBlock = big.NewInt(132)
 
@@ -109,7 +169,6 @@ func TestHandleBlockResponse(t *testing.T) {
 	require.NoError(t, err)
 
 	req := &network.BlockRequestMessage{
-		ID:            1,
 		RequestedData: 3,
 		StartingBlock: start,
 	}
@@ -161,7 +220,6 @@ func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
 	require.NoError(t, err)
 
 	req := &network.BlockRequestMessage{
-		ID:            1,
 		RequestedData: 3,
 		StartingBlock: start,
 	}
@@ -210,7 +268,6 @@ func TestRemoveIncludedExtrinsics(t *testing.T) {
 func TestHandleBlockResponse_NoBlockData(t *testing.T) {
 	syncer := newTestSyncer(t)
 	msg := &network.BlockResponseMessage{
-		ID:        0,
 		BlockData: nil,
 	}
 	low, high, err := syncer.processBlockResponseData(msg)
@@ -235,7 +292,6 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 		Justification: nil,
 	}}
 	msg := &network.BlockResponseMessage{
-		ID:        0,
 		BlockData: bd,
 	}
 	low, high, err := syncer.processBlockResponseData(msg)

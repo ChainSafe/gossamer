@@ -241,16 +241,17 @@ func (trs *TestRuntimeStorage) NextKey(in []byte) []byte {
 	return trs.trie.NextKey(in)
 }
 
-// GetChildByPrefix ...
-func (trs *TestRuntimeStorage) GetChildByPrefix(keyToChild, prefix []byte) ([][]byte, error) {
+// ClearPrefixInChild ...
+func (trs *TestRuntimeStorage) ClearPrefixInChild(keyToChild, prefix []byte) error {
 	child, err := trs.GetChild(keyToChild)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if child == nil {
-		return nil, nil
+		return nil
 	}
-	return child.GetKeysWithPrefix(prefix), nil
+	child.ClearPrefix(prefix)
+	return nil
 }
 
 // GetChildNextKey ...
@@ -290,6 +291,18 @@ func (trs *TestRuntimeStorage) ClearPrefix(prefix []byte) {
 	iter.Release()
 }
 
+// GetKeysWithPrefixFromChild ...
+func (trs *TestRuntimeStorage) GetKeysWithPrefixFromChild(keyToChild, prefix []byte) ([][]byte, error) {
+	child, err := trs.GetChild(keyToChild)
+	if err != nil {
+		return nil, err
+	}
+	if child == nil {
+		return nil, nil
+	}
+	return child.GetKeysWithPrefix(prefix), nil
+}
+
 // TestRuntimeNetwork ...
 type TestRuntimeNetwork struct {
 }
@@ -307,4 +320,30 @@ func (trn *TestRuntimeNetwork) NetworkState() common.NetworkState {
 		PeerID:     "12D3KooWDcCNBqAemRvguPa7rtmsbn2hpgLqAz8KsMMFsF2rdCUP",
 		Multiaddrs: testAddrs,
 	}
+}
+
+// GenerateRuntimeWasmFile generates all runtime wasm files.
+func GenerateRuntimeWasmFile() ([]string, error) {
+	var wasmFilePaths []string
+	runtimes := []string{HOST_API_TEST_RUNTIME, LEGACY_NODE_RUNTIME, POLKADOT_RUNTIME, NODE_RUNTIME, SUBSTRATE_TEST_RUNTIME, TEST_RUNTIME}
+	for _, rt := range runtimes {
+		testRuntimeFilePath, testRuntimeURL := GetRuntimeVars(rt)
+		wasmFilePaths = append(wasmFilePaths, testRuntimeFilePath)
+		_, err := GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return wasmFilePaths, nil
+}
+
+// RemoveFiles removes multiple files.
+func RemoveFiles(files []string) error {
+	for _, file := range files {
+		err := os.Remove(file)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
