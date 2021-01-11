@@ -71,7 +71,7 @@ func NewLegacyRuntimeFromGenesis(g *genesis.Genesis, cfg *Config) (runtime.Legac
 }
 
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data
-func NewRuntimeFromGenesis(g *genesis.Genesis, cfg *Config) (runtime.Instance, error) {
+func NewRuntimeFromGenesis(g *genesis.Genesis, cfg *Config) (runtime.Instance, error) { // TODO: simplify, get :code from storage
 	codeStr := g.GenesisFields().Raw["top"][common.BytesToHex(common.CodeKey)]
 	if codeStr == "" {
 		return nil, fmt.Errorf("cannot find :code in genesis")
