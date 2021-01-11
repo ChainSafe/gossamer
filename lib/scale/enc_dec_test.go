@@ -181,6 +181,10 @@ func TestEncodeDecodeCustom_Array(t *testing.T) {
 
 func TestEncodeDecode_Array(t *testing.T) {
 	withCustom = false
+	defer func() {
+		withCustom = true
+	}()
+
 	b := [64]byte{1, 2, 3, 4}
 	enc, err := Encode(b)
 	require.NoError(t, err)
