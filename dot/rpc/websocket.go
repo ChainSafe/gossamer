@@ -256,33 +256,36 @@ type Listener interface {
 
 // StorageChangeListener for listening to state change channels
 type StorageChangeListener struct {
-	channel chan *state.KeyValue
-	filter  map[string]bool
+	channel chan *state.SubscriptionResult
 	wsconn  *WSConn
 	chanID  byte
 	subID   int
 }
 
 func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (int, error) {
-
 	scl := &StorageChangeListener{
-		channel: make(chan *state.KeyValue),
-		filter:  make(map[string]bool),
+		channel: make(chan *state.SubscriptionResult),
 		wsconn:  c,
 	}
+	sub := &state.StorageSubscription{
+		Filter:   make(map[string]bool),
+		Listener: scl.channel,
+	}
+
 	pA := params.([]interface{})
 	for _, param := range pA {
 		switch p := param.(type) {
 		case []interface{}:
 			for _, pp := range param.([]interface{}) {
-				scl.filter[pp.(string)] = true
+				sub.Filter[pp.(string)] = true
 			}
 		case string:
-			scl.filter[p] = true
+			sub.Filter[p] = true
 		default:
 			return 0, fmt.Errorf("unknow parameter type")
 		}
 	}
+
 	if c.storageAPI == nil {
 		err := c.safeSendError(reqID, nil, "error StorageAPI not set")
 		if err != nil {
@@ -290,14 +293,8 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (i
 		}
 		return 0, fmt.Errorf("error StorageAPI not set")
 	}
-	for k := range scl.filter {
-		fmt.Printf("Key %v", k)
 
-		//c.storageAPI.Subscribe(common.MustHexToBytes("0x2388746d7026aa394eea5630e07c48ae0c9558cef734abf5cb34d6244378cddbf18e849d96"))
-		c.storageAPI.Subscribe(common.MustHexToBytes(k))
-	}
-
-	chanID, err := c.storageAPI.RegisterStorageChangeChannel(scl.channel)
+	chanID, err := c.storageAPI.RegisterStorageChangeChannel(*sub)
 	if err != nil {
 		return 0, err
 	}
@@ -323,14 +320,17 @@ func (l *StorageChangeListener) Listen() {
 			continue
 		}
 
-		//check if change key is in subscription filter
-		cKey := common.BytesToHex(change.Key)
-		if len(l.filter) > 0 && !l.filter[cKey] {
-			continue
+		result := make(map[string]interface{})
+		result["block"] = change.Hash.String()
+		changes := [][]string{}
+		for _, v := range change.Changes {
+			kv := []string{common.BytesToHex(v.Key), common.BytesToHex(v.Value)}
+			changes = append(changes, kv)
 		}
+		result["changes"] = changes
 
 		changeM := make(map[string]interface{})
-		changeM["result"] = []string{cKey, common.BytesToHex(change.Value)}
+		changeM["result"] = result
 		changeM["subscription"] = l.subID
 		res := newSubcriptionBaseResponseJSON()
 		res.Method = "state_storage"
@@ -339,7 +339,6 @@ func (l *StorageChangeListener) Listen() {
 		if err != nil {
 			logger.Error("error sending websocket message", "error", err)
 		}
-
 	}
 }
 

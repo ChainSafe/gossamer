@@ -26,27 +26,34 @@ import (
 	"time"
 
 	"github.com/ChainSafe/chaindb"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/dgraph-io/badger/v2"
-	"github.com/golang/snappy"
 	"github.com/stretchr/testify/require"
 )
 
 func TestStorageState_RegisterStorageChangeChannel(t *testing.T) {
 	ss := newTestStorageState(t)
 
-	ch := make(chan *KeyValue, 3)
-	id, err := ss.RegisterStorageChangeChannel(ch)
+	ts, err := ss.TrieState(nil)
+	require.NoError(t, err)
+
+	ch := make(chan *SubscriptionResult)
+	sub := StorageSubscription{
+		Filter:   make(map[string]bool),
+		Listener: ch,
+	}
+	id, err := ss.RegisterStorageChangeChannel(sub)
 	require.NoError(t, err)
 
 	defer ss.UnregisterStorageChangeChannel(id)
 
-	// three storage change events
-	ss.setStorage(nil, []byte("mackcom"), []byte("wuz here"))
-	ss.setStorage(nil, []byte("key1"), []byte("value1"))
-	ss.setStorage(nil, []byte("key1"), []byte("value2"))
+	root, err := ts.Root()
+	require.NoError(t, err)
 
-	for i := 0; i < 3; i++ {
+	ts.Set([]byte("mackcom"), []byte("wuz here"))
+	err = ss.StoreInDB(root)
+	require.NoError(t, err)
+
+	for i := 0; i < 1; i++ {
 		select {
 		case <-ch:
 		case <-time.After(testMessageTimeout):
@@ -57,30 +64,41 @@ func TestStorageState_RegisterStorageChangeChannel(t *testing.T) {
 
 func TestStorageState_RegisterStorageChangeChannel_Multi(t *testing.T) {
 	ss := newTestStorageState(t)
+	ts, err := ss.TrieState(nil)
+	require.NoError(t, err)
 
 	num := 5
-	chs := make([]chan *KeyValue, num)
+	chs := make([]chan *SubscriptionResult, num)
 	ids := make([]byte, num)
 
-	var err error
 	for i := 0; i < num; i++ {
-		chs[i] = make(chan *KeyValue)
-		ids[i], err = ss.RegisterStorageChangeChannel(chs[i])
+		chs[i] = make(chan *SubscriptionResult)
+		sub := StorageSubscription{
+			Listener: chs[i],
+		}
+		ids[i], err = ss.RegisterStorageChangeChannel(sub)
 		require.NoError(t, err)
 	}
 
-	key1 := []byte("key1")
-	ss.setStorage(nil, key1, []byte("value1"))
+	root, err := ts.Root()
+	require.NoError(t, err)
+
+	key1 := []byte("mackcom")
+
+	ts.Set(key1, []byte("value1"))
+	time.Sleep(time.Second)
+	err = ss.StoreInDB(root)
+	require.NoError(t, err)
 
 	var wg sync.WaitGroup
 	wg.Add(num)
 
 	for i, ch := range chs {
 
-		go func(i int, ch chan *KeyValue) {
+		go func(i int, ch chan *SubscriptionResult) {
 			select {
 			case c := <-ch:
-				require.Equal(t, key1, c.Key)
+				require.NotNil(t, c.Hash)
 				wg.Done()
 			case <-time.After(testMessageTimeout):
 				t.Error("did not receive storage change: ch=", i)
@@ -122,7 +140,8 @@ func ExampleDB_Subscribe() {
 			log.Fatal(err)
 		}
 	}()
-	db, err := badger.Open(badger.DefaultOptions(dir))
+	//db, err := badger.Open(badger.DefaultOptions(dir))
+	db, err := chaindb.NewBadgerDB(dir)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -150,245 +169,21 @@ func ExampleDB_Subscribe() {
 	}()
 
 	// Write both keys, but only one should be printed in the Output.
-	err = db.Update(func(txn *badger.Txn) error { return txn.Set(aKey, aValue) })
+	err = db.Put(aKey, aValue)
+	//err = db.Update(func(txn *badger.Txn) error { return txn.Set(aKey, aValue) })
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = db.Update(func(txn *badger.Txn) error { return txn.Set(bKey, bValue) })
+	err = db.Put(bKey, bValue)
+	//err = db.Update(func(txn *badger.Txn) error { return txn.Set(bKey, bValue) })
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	time.Sleep(time.Second)
 	log.Printf("stopping subscription")
 	cancel()
 	log.Printf("waiting for subscription to close")
 	wg.Wait()
 	// Output:
 	// a-key is now set to a-value
-}
-
-func Test_Subscribe_A(t *testing.T) {
-	prefix := []byte{}
-
-	// Both these keys should be printed since prefix is empty
-	aKey := []byte("a-key")
-	aValue := []byte("a-value")
-
-	bKey := []byte("b-key")
-	bValue := []byte("b-value")
-
-	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
-	require.NoError(t, err)
-
-	db, err := chaindb.NewBadgerDB(testDatadirPath)
-	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		_ = db.Close()
-		_ = os.RemoveAll(testDatadirPath)
-	})
-
-	// create TrieState to handle storage
-	s, err := NewTrieState(db, trie.NewEmptyTrie())
-	require.NoError(t, err)
-
-	// Create the context here so we can cancel it after sending the writes.
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// Use the WaitGroup to make sure we wait for the subscription to stop before continuing.
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		cb := func(kvs *badger.KVList) error {
-			for _, kv := range kvs.Kv {
-				log.Printf("%s is now set to %s\n", kv.Key, kv.Value)
-			}
-			return nil
-		}
-		if err = db.Subscribe(ctx, cb, prefix); err != nil && err != context.Canceled {
-			log.Fatal(err)
-		}
-		log.Printf("subscription closed")
-	}()
-
-	// Write both keys, both should be printed since prefix is empty
-	err = s.Set(aKey, aValue)
-	require.NoError(t, err)
-
-	err = s.Set(bKey, bValue)
-	require.NoError(t, err)
-
-	// print results of key lookup (to confirm they were stored)
-	res, err := s.Get(aKey)
-	require.NoError(t, err)
-	log.Printf("a-key stored value %s\n", res)
-
-	res, err = s.Get(bKey)
-	require.NoError(t, err)
-	log.Printf("b-key stored value %s\n", res)
-
-	log.Printf("stopping subscription")
-	cancel()
-	log.Printf("waiting for subscription to close")
-	wg.Wait()
-}
-
-func Test_Subscribe_B(t *testing.T) {
-	prefix := []byte{'a'}
-
-	// This key should be printed, since it matches the prefix.
-	aKey := []byte("a-key")
-	aValue := []byte("a-value")
-
-	// This key should not be printed.
-	bKey := []byte("b-key")
-	bValue := []byte("b-value")
-
-	//  NOTE: none of the keys are printed because when they are stored the key (and value)
-	// are snappy.Encode, but the subscribe prefix is not See Test_Substribe_C for encode prefix test
-
-	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
-	require.NoError(t, err)
-
-	db, err := chaindb.NewBadgerDB(testDatadirPath)
-	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		_ = db.Close()
-		_ = os.RemoveAll(testDatadirPath)
-	})
-
-	// create TrieState to handle storage
-	s, err := NewTrieState(db, trie.NewEmptyTrie())
-	require.NoError(t, err)
-
-	// Create the context here so we can cancel it after sending the writes.
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// Use the WaitGroup to make sure we wait for the subscription to stop before continuing.
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		cb := func(kvs *badger.KVList) error {
-			for _, kv := range kvs.Kv {
-				log.Printf("%s is now set to %s\n", kv.Key, kv.Value)
-			}
-			return nil
-		}
-		if err = db.Subscribe(ctx, cb, prefix); err != nil && err != context.Canceled {
-			log.Fatal(err)
-		}
-		log.Printf("subscription closed")
-	}()
-
-	// Write both keys, both should be printed since prefix is empty
-	err = s.Set(aKey, aValue)
-	require.NoError(t, err)
-
-	err = s.Set(bKey, bValue)
-	require.NoError(t, err)
-
-	// print results of key lookup (to confirm they were stored)
-	res, err := s.Get(aKey)
-	require.NoError(t, err)
-	log.Printf("a-key stored value %s\n", res)
-
-	res, err = s.Get(bKey)
-	require.NoError(t, err)
-	log.Printf("b-key stored value %s\n", res)
-
-	log.Printf("stopping subscription")
-	cancel()
-	log.Printf("waiting for subscription to close")
-	wg.Wait()
-}
-
-func Test_Subscribe_C(t *testing.T) {
-	prefix := snappy.Encode(nil, []byte("a"))
-
-	// This key should be printed, since it matches the prefix.
-	aKey := []byte("a-key")
-	aValue := []byte("a-value")
-
-	// This key should not be printed.
-	bKey := []byte("b-key")
-	bValue := []byte("b-value")
-
-	//  NOTE: none of the keys are printed because when they are stored the key (and value)
-	// are snappy.Encode, even tho we snappy.Encode the prefix it still doen't print these because
-	// of the way snappy.Encode works (see Test_SnappyEncode)
-
-	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
-	require.NoError(t, err)
-
-	db, err := chaindb.NewBadgerDB(testDatadirPath)
-	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		_ = db.Close()
-		_ = os.RemoveAll(testDatadirPath)
-	})
-
-	// create TrieState to handle storage
-	s, err := NewTrieState(db, trie.NewEmptyTrie())
-	require.NoError(t, err)
-
-	// Create the context here so we can cancel it after sending the writes.
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// Use the WaitGroup to make sure we wait for the subscription to stop before continuing.
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		cb := func(kvs *badger.KVList) error {
-			for _, kv := range kvs.Kv {
-				log.Printf("%s is now set to %s\n", kv.Key, kv.Value)
-			}
-			return nil
-		}
-		if err = db.Subscribe(ctx, cb, prefix); err != nil && err != context.Canceled {
-			log.Fatal(err)
-		}
-		log.Printf("subscription closed")
-	}()
-
-	// Write both keys, both should be printed since prefix is empty
-	err = s.Set(aKey, aValue)
-	require.NoError(t, err)
-
-	err = s.Set(bKey, bValue)
-	require.NoError(t, err)
-
-	// print results of key lookup (to confirm they were stored)
-	res, err := s.Get(aKey)
-	require.NoError(t, err)
-	log.Printf("a-key stored value %s\n", res)
-
-	res, err = s.Get(bKey)
-	require.NoError(t, err)
-	log.Printf("b-key stored value %s\n", res)
-
-	log.Printf("stopping subscription")
-	cancel()
-	log.Printf("waiting for subscription to close")
-	wg.Wait()
-}
-
-func Test_SnappyEncode(t *testing.T) {
-	encA := snappy.Encode(nil, []byte("a"))
-	fmt.Printf("encode     a: %v\n", encA)
-
-	encAkey := snappy.Encode(nil, []byte("a-key"))
-	fmt.Printf("encode a-key: %v\n", encAkey)
-
-	// this is why db.Subscribe is not working as expected, since the keys are snappy.Encode
-	// when stored the prefix changes, so when I subscribe with prefix a, the system is looking
-	// for key changes that start with a (97), but all the keys were stored with a different
-	// prefix since they were encoded.
 }

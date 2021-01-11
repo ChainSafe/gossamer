@@ -17,6 +17,8 @@ package state
 
 import (
 	"errors"
+
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 // KeyValue struct to hold key value pairs
@@ -25,18 +27,30 @@ type KeyValue struct {
 	Value []byte
 }
 
+//SubscriptionResult holds results of storage changes
+type SubscriptionResult struct {
+	Hash    common.Hash
+	Changes []KeyValue
+}
+
+//StorageSubscription holds data for Subscription to Storage
+type StorageSubscription struct {
+	Filter   map[string]bool
+	Listener chan<- *SubscriptionResult
+}
+
 // RegisterStorageChangeChannel function to register storage change channels
-func (s *StorageState) RegisterStorageChangeChannel(ch chan<- *KeyValue) (byte, error) {
+func (s *StorageState) RegisterStorageChangeChannel(sub StorageSubscription) (byte, error) {
 	s.changedLock.RLock()
 
-	if len(s.changed) == 256 {
-		return 0, errors.New("channel limit reached")
+	if len(s.subscriptions) == 256 {
+		return 0, errors.New("storage subscriptions limit reached")
 	}
 
 	var id byte
 	for {
 		id = generateID()
-		if s.changed[id] == nil {
+		if s.subscriptions[id] == nil {
 			break
 		}
 	}
@@ -44,7 +58,7 @@ func (s *StorageState) RegisterStorageChangeChannel(ch chan<- *KeyValue) (byte, 
 	s.changedLock.RUnlock()
 
 	s.changedLock.Lock()
-	s.changed[id] = ch
+	s.subscriptions[id] = &sub
 	s.changedLock.Unlock()
 	return id, nil
 }
@@ -55,22 +69,22 @@ func (s *StorageState) UnregisterStorageChangeChannel(id byte) {
 	s.changedLock.Lock()
 	defer s.changedLock.Unlock()
 
-	delete(s.changed, id)
+	delete(s.subscriptions, id)
 }
 
-func (s *StorageState) notifyChanged(change *KeyValue) {
+func (s *StorageState) notifyChanged(change *SubscriptionResult) {
 	s.changedLock.RLock()
 	defer s.changedLock.RUnlock()
 
-	if len(s.changed) == 0 {
+	if len(s.subscriptions) == 0 {
 		return
 	}
 
-	logger.Trace("notifying changed storage chans...", "chans", s.changed)
+	logger.Trace("notifying changed storage chans...", "chans", s.subscriptions)
 
-	for _, ch := range s.changed {
-		go func(ch chan<- *KeyValue) {
+	for _, ch := range s.subscriptions {
+		go func(ch chan<- *SubscriptionResult) {
 			ch <- change
-		}(ch)
+		}(ch.Listener)
 	}
 }
