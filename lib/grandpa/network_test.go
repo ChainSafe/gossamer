@@ -17,7 +17,6 @@
 package grandpa
 
 import (
-	"bytes"
 	"testing"
 	"time"
 
@@ -33,17 +32,13 @@ func TestGrandpaHandshake_Encode(t *testing.T) {
 	enc, err := hs.Encode()
 	require.NoError(t, err)
 
-	buf := &bytes.Buffer{}
-	buf.Write(enc)
-
 	res := new(GrandpaHandshake)
-	err = res.Decode(buf)
+	err = res.Decode(enc)
 	require.NoError(t, err)
 	require.Equal(t, hs, res)
 
-	buf.Write(enc)
 	s := &Service{}
-	res2, err := s.decodeHandshake(buf)
+	res2, err := s.decodeHandshake(enc)
 	require.NoError(t, err)
 	require.Equal(t, hs, res2)
 }

@@ -77,6 +77,42 @@ func (x *Uint64OrHash) Value() interface{} {
 	return x.value
 }
 
+// IsHash returns true if the value is a hash
+func (x *Uint64OrHash) IsHash() bool {
+	if x == nil {
+		return false
+	}
+	_, is := x.value.(common.Hash)
+	return is
+}
+
+// Hash returns the value as a common.Hash. it panics if the value is not a hash.
+func (x *Uint64OrHash) Hash() common.Hash {
+	if !x.IsHash() {
+		panic("value is not common.Hash")
+	}
+
+	return x.value.(common.Hash)
+}
+
+// IsUint64 returns true if the value is a hash
+func (x *Uint64OrHash) IsUint64() bool {
+	if x == nil {
+		return false
+	}
+	_, is := x.value.(uint64)
+	return is
+}
+
+// Uint64 returns the value as a uint64. it panics if the value is not a hash.
+func (x *Uint64OrHash) Uint64() uint64 {
+	if !x.IsUint64() {
+		panic("value is not uint64")
+	}
+
+	return x.value.(uint64)
+}
+
 // Encode will encode a uint64 or hash into the SCALE spec
 func (x *Uint64OrHash) Encode() ([]byte, error) {
 	var encMsg []byte
