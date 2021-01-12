@@ -2,7 +2,6 @@ package network
 
 import (
 	"bufio"
-	"bytes"
 	"errors"
 	"math/big"
 
@@ -158,14 +157,8 @@ var testBlockRequestMessage = &BlockRequestMessage{
 }
 
 func testBlockRequestMessageDecoder(in []byte, _ peer.ID) (Message, error) {
-	r := &bytes.Buffer{}
-	_, err := r.Write(in)
-	if err != nil {
-		return nil, err
-	}
-
 	msg := new(BlockRequestMessage)
-	err = msg.Decode(r)
+	err := msg.Decode(in)
 	return msg, err
 }
 
@@ -174,13 +167,7 @@ var testBlockAnnounceMessage = &BlockAnnounceMessage{
 }
 
 func testBlockAnnounceMessageDecoder(in []byte, _ peer.ID) (Message, error) {
-	r := &bytes.Buffer{}
-	_, err := r.Write(in)
-	if err != nil {
-		return nil, err
-	}
-
 	msg := new(BlockAnnounceMessage)
-	err = msg.Decode(r)
+	err := msg.Decode(in)
 	return msg, err
 }
