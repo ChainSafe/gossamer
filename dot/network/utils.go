@@ -157,7 +157,6 @@ func readLEB128ToUint64(r io.Reader) (uint64, error) {
 			return 0, err
 		}
 		b := buffer[0]
-		logger.Info("readLEB128ToUint64", "read byte", b)
 		out |= uint64(0x7F&b) << shift
 		if b&0x80 == 0 {
 			break

@@ -23,6 +23,8 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+
+	"github.com/stretchr/testify/require"
 )
 
 var byteArray32 = [32]byte{}

@@ -100,7 +100,7 @@ func (bm *BlockRequestMessage) Encode() ([]byte, error) {
 	}
 
 	msg := &pb.BlockRequest{
-		Fields:    uint32(bm.RequestedData),
+		Fields:    uint32(bm.RequestedData) << 24, // put byte in most significant byte of uint32
 		ToBlock:   toBlock,
 		Direction: pb.Direction(bm.Direction),
 		MaxBlocks: max,
@@ -163,7 +163,7 @@ func (bm *BlockRequestMessage) Decode(in []byte) error {
 		max = optional.NewUint32(false, 0)
 	}
 
-	bm.RequestedData = byte(msg.Fields)
+	bm.RequestedData = byte(msg.Fields >> 24)
 	bm.StartingBlock = startingBlock
 	bm.EndBlockHash = endBlockHash
 	bm.Direction = byte(msg.Direction)
@@ -181,6 +181,10 @@ type BlockResponseMessage struct {
 
 // String formats a BlockResponseMessage as a string
 func (bm *BlockResponseMessage) String() string {
+	if bm == nil {
+		return fmt.Sprintf("BlockResponseMessage=nil")
+	}
+
 	return fmt.Sprintf("BlockResponseMessage BlockData=%v", bm.BlockData)
 }
 
@@ -206,11 +210,15 @@ func (bm *BlockResponseMessage) Encode() ([]byte, error) {
 
 // Decode decodes the protobuf encoded input to a BlockResponseMessage
 func (bm *BlockResponseMessage) Decode(in []byte) (err error) {
+	logger.Info("decoding BlockResponseMessage protobuf")
+
 	msg := &pb.BlockResponse{}
 	err = proto.Unmarshal(in, msg)
 	if err != nil {
 		return err
 	}
+
+	logger.Info("decoded BlockResponseMessage protobuf", "msg", fmt.Sprintf("%x", msg.Blocks[0].Header))
 
 	bm.BlockData = make([]*types.BlockData, len(msg.Blocks))
 

@@ -21,7 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
+	//"io"
 	"os"
 	"sync"
 	"time"
@@ -34,8 +34,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	discovery "github.com/libp2p/go-libp2p-discovery"
-
-	"github.com/golang/protobuf/proto"
+	//"github.com/golang/protobuf/proto"
 )
 
 const (
@@ -451,65 +450,45 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 	)
 
 	for {
-		if stream.Protocol() == s.host.protocolID+syncID {
-			//logger.Info("got sync msg")
-			tot = 0
-			msgBytes = make([]byte, 6000)
-			for {
-				n, err := r.Read(msgBytes[tot:])
-				tot += uint64(n)
-				if n == 0 || err == io.EOF {
-					if tot > 0 {
-						len, varintLen := proto.DecodeVarint(msgBytes)
-						logger.Info("proto varint", "msg length", len, "varint length", varintLen)
+		length, err := readLEB128ToUint64(r)
+		if err != nil {
+			logger.Error("Failed to read LEB128 encoding", "protocol", stream.Protocol(), "error", err)
+			_ = stream.Close()
+			s.errCh <- err
+			return
+		}
 
-						buf := proto.NewBuffer(msgBytes)
-						buf.DebugPrint("debugging", msgBytes)
-					}
-					break
-				}
-			}
-		} else {
-			length, err := readLEB128ToUint64(r)
+		if length == 0 {
+			continue
+		}
+
+		msgBytes = make([]byte, length)
+		tot = uint64(0)
+		for i := 0; i < maxReads; i++ {
+			n, err := r.Read(msgBytes[tot:]) //nolint
 			if err != nil {
-				logger.Error("Failed to read LEB128 encoding", "protocol", stream.Protocol(), "error", err)
+				logger.Error("Failed to read message from stream", "error", err)
 				_ = stream.Close()
 				s.errCh <- err
 				return
 			}
 
-			if length == 0 {
-				continue
+			tot += uint64(n)
+			if tot == length {
+				break
 			}
+		}
 
-			msgBytes = make([]byte, length)
-			tot = uint64(0)
-			for i := 0; i < maxReads; i++ {
-				n, err := r.Read(msgBytes[tot:]) //nolint
-				if err != nil {
-					logger.Error("Failed to read message from stream", "error", err)
-					_ = stream.Close()
-					s.errCh <- err
-					return
-				}
-
-				tot += uint64(n)
-				if tot == length {
-					break
-				}
-			}
-
-			if tot != length {
-				logger.Error("Failed to read entire message", "length", length, "read" /*n*/, tot)
-				continue
-			}
+		if tot != length {
+			logger.Error("Failed to read entire message", "length", length, "read" /*n*/, tot)
+			continue
 		}
 
 		if tot == 0 {
 			continue
 		}
 
-		logger.Trace("message raw bytes", "len", tot, "bytes", msgBytes[:tot], "hex", fmt.Sprintf("%x", msgBytes[:tot]))
+		logger.Trace("message raw bytes", "len", tot, "bytes", msgBytes[:tot]) //, "hex", fmt.Sprintf("%x", msgBytes[:tot]))
 
 		// decode message based on message type
 		msg, err := decoder(msgBytes[:tot], peer)
@@ -523,7 +502,6 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 			"host", s.host.id(),
 			"peer", peer,
 			"msg", msg.String(),
-			//"raw", common.BytesToHex(msgBytes),
 		)
 
 		// handle message based on peer status and message type

@@ -314,31 +314,21 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	}
 
 	// check for valid seal by verifying signature
-	preDigestBytes := header.Digest[0]
-	sealBytes := header.Digest[len(header.Digest)-1]
+	preDigestItem := header.Digest[0]
+	sealItem := header.Digest[len(header.Digest)-1]
 
-	digestItem, err := types.DecodeDigestItem(preDigestBytes)
-	if err != nil {
-		return err
-	}
-
-	preDigest, ok := digestItem.(*types.PreRuntimeDigest)
+	preDigest, ok := preDigestItem.(*types.PreRuntimeDigest)
 	if !ok {
 		return fmt.Errorf("first digest item is not pre-digest")
 	}
 
-	digestItem, err = types.DecodeDigestItem(sealBytes)
-	if err != nil {
-		return err
-	}
-
-	seal, ok := digestItem.(*types.SealDigest)
+	seal, ok := sealItem.(*types.SealDigest)
 	if !ok {
 		return fmt.Errorf("last digest item is not seal")
 	}
 
 	babeHeader := new(types.BabeHeader)
-	err = babeHeader.Decode(preDigest.Data)
+	err := babeHeader.Decode(preDigest.Data)
 	if err != nil {
 		return fmt.Errorf("cannot decode babe header from pre-digest: %s", err)
 	}
@@ -406,20 +396,15 @@ func getBlockProducerIndex(header *types.Header) (uint64, error) {
 		return 0, fmt.Errorf("no digest provided")
 	}
 
-	preDigestBytes := header.Digest[0]
-
-	digestItem, err := types.DecodeDigestItem(preDigestBytes)
-	if err != nil {
-		return 0, err
-	}
+	digestItem := header.Digest[0]
 
 	preDigest, ok := digestItem.(*types.PreRuntimeDigest)
 	if !ok {
-		return 0, err
+		return 0, fmt.Errorf("first digest item is not pre-runtime digest")
 	}
 
 	babeHeader := new(types.BabeHeader)
-	err = babeHeader.Decode(preDigest.Data)
+	err := babeHeader.Decode(preDigest.Data)
 	if err != nil {
 		return 0, err
 	}

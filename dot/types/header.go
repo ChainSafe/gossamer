@@ -33,12 +33,12 @@ type Header struct {
 	Number         *big.Int    `json:"number"`
 	StateRoot      common.Hash `json:"stateRoot"`
 	ExtrinsicsRoot common.Hash `json:"extrinsicsRoot"`
-	Digest         [][]byte    `json:"digest"`
+	Digest         Digest      `json:"digest"`
 	hash           common.Hash
 }
 
 // NewHeader creates a new block header and sets its hash field
-func NewHeader(parentHash common.Hash, number *big.Int, stateRoot common.Hash, extrinsicsRoot common.Hash, digest [][]byte) (*Header, error) {
+func NewHeader(parentHash common.Hash, number *big.Int, stateRoot common.Hash, extrinsicsRoot common.Hash, digest []DigestItem) (*Header, error) {
 	if number == nil {
 		// Hash() will panic if number is nil
 		return nil, errors.New("cannot have nil block number")
@@ -60,25 +60,27 @@ func NewHeader(parentHash common.Hash, number *big.Int, stateRoot common.Hash, e
 func NewEmptyHeader() *Header {
 	return &Header{
 		Number: big.NewInt(0),
-		Digest: [][]byte{},
+		Digest: []DigestItem{},
 	}
 }
 
 // DeepCopy returns a deep copy of the header to prevent side effects down the road
 func (bh *Header) DeepCopy() *Header {
-	//copy everything but pointers / array
-	safeCopyHeader := *bh
-	//copy number ptr
+	cp := NewEmptyHeader()
+	copy(cp.ParentHash[:], bh.ParentHash[:])
+	copy(cp.StateRoot[:], bh.StateRoot[:])
+	copy(cp.ExtrinsicsRoot[:], bh.ExtrinsicsRoot[:])
+
 	if bh.Number != nil {
-		safeCopyHeader.Number = new(big.Int).Set(bh.Number)
-	}
-	//copy digest byte array
-	if len(bh.Digest) > 0 {
-		safeCopyHeader.Digest = make([][]byte, len(bh.Digest))
-		copy(safeCopyHeader.Digest, bh.Digest)
+		cp.Number = new(big.Int).Set(bh.Number)
 	}
 
-	return &safeCopyHeader
+	if len(bh.Digest) > 0 {
+		cp.Digest = make([]DigestItem, len(bh.Digest))
+		//copy(safeCopyHeader.Digest, bh.Digest) TODO: copy
+	}
+
+	return cp
 }
 
 // String returns the formatted header as a string
@@ -125,8 +127,45 @@ func (bh *Header) MustEncode() []byte {
 // Decode decodes the SCALE encoded input into this header
 func (bh *Header) Decode(r io.Reader) (*Header, error) {
 	sd := scale.Decoder{Reader: r}
-	_, err := sd.Decode(bh)
-	return bh, err
+	// _, err := sd.Decode(bh)
+	// return bh, err
+
+	ph, err := sd.Decode(common.Hash{})
+	if err != nil {
+		fmt.Println("failed to decode ParentHash")
+		return nil, err
+	}
+
+	num, err := sd.Decode(big.NewInt(0))
+	if err != nil {
+		fmt.Println("failed to decode Number")
+		return nil, err
+	}
+
+	sr, err := sd.Decode(common.Hash{})
+	if err != nil {
+		fmt.Println("failed to decode StateRoot")
+		return nil, err
+	}
+
+	er, err := sd.Decode(common.Hash{})
+	if err != nil {
+		fmt.Println("failed to decode ExtrinsicsRoot")
+		return nil, err
+	}
+
+	d, err := DecodeDigest(r)
+	if err != nil {
+		fmt.Println("failed to decode Digest")
+		return nil, err
+	}
+
+	bh.ParentHash = ph.(common.Hash)
+	bh.Number = num.(*big.Int)
+	bh.StateRoot = sr.(common.Hash)
+	bh.ExtrinsicsRoot = er.(common.Hash)
+	bh.Digest = d
+	return bh, nil
 }
 
 // AsOptional returns the Header as an optional.Header
@@ -158,7 +197,7 @@ func NewHeaderFromOptional(oh *optional.Header) (*Header, error) {
 		Number:         h.Number,
 		StateRoot:      h.StateRoot,
 		ExtrinsicsRoot: h.ExtrinsicsRoot,
-		Digest:         h.Digest,
+		Digest:         h.Digest.(Digest),
 	}
 
 	bh.Hash()
@@ -180,7 +219,7 @@ func decodeOptionalHeader(r io.Reader) (*optional.Header, error) {
 			Number:         big.NewInt(0),
 			StateRoot:      common.Hash{},
 			ExtrinsicsRoot: common.Hash{},
-			Digest:         [][]byte{},
+			Digest:         Digest{},
 		}
 		_, err = sd.Decode(header)
 		if err != nil {

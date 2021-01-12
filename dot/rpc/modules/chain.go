@@ -260,7 +260,11 @@ func HeaderToJSON(header types.Header) ChainBlockHeaderResponse {
 		res.Number = common.BytesToHex(header.Number.Bytes())
 	}
 	for _, item := range header.Digest {
-		res.Digest.Logs = append(res.Digest.Logs, common.BytesToHex(item))
+		enc, err := item.Encode()
+		if err != nil {
+			panic(err) // TODO
+		}
+		res.Digest.Logs = append(res.Digest.Logs, common.BytesToHex(enc))
 	}
 	return res
 }

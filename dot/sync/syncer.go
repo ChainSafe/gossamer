@@ -277,11 +277,11 @@ func (s *Service) createBlockRequest(startInt int64) *network.BlockRequestMessag
 	s.logger.Debug("sending block request", "start", start)
 
 	blockRequest := &network.BlockRequestMessage{
-		RequestedData: network.RequestedDataHeader + network.RequestedDataBody, // + network.RequestedDataJustification, // block header + body + justification
+		RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification, // block header + body + justification
 		StartingBlock: start,
 		EndBlockHash:  optional.NewHash(false, common.Hash{}),
 		Direction:     0, // ascending
-		Max:           optional.NewUint32(true, uint32(maxResponseSize)),
+		Max:           optional.NewUint32(true, uint32(1)),
 	}
 
 	s.benchmarker.begin(uint64(startInt))
@@ -459,18 +459,13 @@ func (s *Service) handleBlock(block *types.Block) error {
 
 func (s *Service) handleDigests(header *types.Header) error {
 	for _, d := range header.Digest {
-		dg, err := types.DecodeDigestItem(d)
-		if err != nil {
-			return err
-		}
-
-		if dg.Type() == types.ConsensusDigestType {
-			cd, ok := dg.(*types.ConsensusDigest)
+		if d.Type() == types.ConsensusDigestType {
+			cd, ok := d.(*types.ConsensusDigest)
 			if !ok {
 				return errors.New("cannot cast invalid consensus digest item")
 			}
 
-			err = s.digestHandler.HandleConsensusDigest(cd, header)
+			err := s.digestHandler.HandleConsensusDigest(cd, header)
 			if err != nil {
 				return err
 			}

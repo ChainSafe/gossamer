@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/scale"
 
@@ -38,7 +39,7 @@ type BlockAnnounceMessage struct {
 	Number         *big.Int
 	StateRoot      common.Hash
 	ExtrinsicsRoot common.Hash
-	Digest         [][]byte // any additional block info eg. logs, seal
+	Digest         types.Digest // any additional block info eg. logs, seal
 }
 
 // Type returns BlockAnnounceMsgType

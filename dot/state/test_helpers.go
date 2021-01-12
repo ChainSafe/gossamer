@@ -18,6 +18,7 @@ package state
 
 import (
 	"fmt"
+	"io"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -29,6 +30,32 @@ import (
 
 	"github.com/stretchr/testify/require"
 )
+
+type mockDigestItem struct {
+	i int
+	j int
+	r byte
+}
+
+func newMockDigestItem(i, j int, r byte) *mockDigestItem {
+	return &mockDigestItem{
+		i: i,
+		j: j,
+		r: r,
+	}
+}
+
+func (d *mockDigestItem) Type() byte {
+	return byte(d.i)
+}
+
+func (d *mockDigestItem) Encode() ([]byte, error) {
+	return []byte{byte(d.i), byte(d.j), d.r}, nil
+}
+
+func (d *mockDigestItem) Decode(_ io.Reader) error {
+	return nil
+}
 
 // branch tree randomly
 type testBranch struct {
@@ -91,7 +118,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 					ParentHash: previousHash,
 					Number:     big.NewInt(int64(i) + 1),
 					StateRoot:  trie.EmptyHash,
-					Digest:     [][]byte{{byte(i)}},
+					Digest:     types.Digest{newMockDigestItem(i, 0, 0)},
 				},
 				Body: &types.Body{},
 			}
@@ -162,7 +189,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 					ParentHash: previousHash,
 					Number:     big.NewInt(int64(i)),
 					StateRoot:  trie.EmptyHash,
-					Digest:     [][]byte{{byte(i), byte(j), r}},
+					Digest:     types.Digest{newMockDigestItem(i, j, r)},
 				},
 				Body: &types.Body{},
 			}

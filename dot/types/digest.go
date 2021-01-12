@@ -17,11 +17,45 @@
 package types
 
 import (
+	//"bytes"
 	"errors"
+	"fmt"
+	"io"
+	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
+
+type Digest []DigestItem
+
+func NewEmptyDigest() Digest {
+	return []DigestItem{}
+}
+
+func (d Digest) Encode() ([]byte, error) {
+	enc, err := scale.Encode(big.NewInt(int64(len(d))))
+	if err != nil {
+		return nil, err
+	}
+
+	for _, item := range d {
+		encItem, err := item.Encode()
+		if err != nil {
+			return nil, err
+		}
+
+		enc = append(enc, encItem...)
+	}
+
+	return enc, nil
+}
+
+func (d Digest) Decode(r io.Reader) error {
+	var err error
+	d, err = DecodeDigest(r)
+	return err
+}
 
 // ConsensusEngineID is a 4-character identifier of the consensus engine that produced the digest.
 type ConsensusEngineID [4]byte
@@ -58,28 +92,55 @@ var ConsensusDigestType = byte(4)
 // SealDigestType is the byte representation of SealDigest
 var SealDigestType = byte(5)
 
-// DecodeDigestItem will decode byte array to DigestItem
-func DecodeDigestItem(in []byte) (DigestItem, error) {
-	if len(in) < 2 {
-		return nil, errors.New("cannot decode invalid digest encoding")
+func DecodeDigest(r io.Reader) (Digest, error) {
+	// r := &bytes.Buffer{}
+	// _, err := r.Write(in)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	sd := scale.Decoder{Reader: r}
+
+	num, err := sd.Decode(big.NewInt(0))
+	if err != nil {
+		return nil, fmt.Errorf("could not decode length of digest items: %w", err)
 	}
 
-	switch in[0] {
+	digest := make([]DigestItem, num.(*big.Int).Uint64())
+
+	for i := 0; i < len(digest); i++ {
+		digest[i], err = DecodeDigestItem(r)
+		if err != nil {
+			return nil, fmt.Errorf("could not decode digest item %d: %w", i, err)
+		}
+	}
+
+	return digest, nil
+}
+
+// DecodeDigestItem will decode byte array to DigestItem
+func DecodeDigestItem(r io.Reader) (DigestItem, error) {
+	typ, err := common.ReadByte(r)
+	if err != nil {
+		return nil, err
+	}
+
+	switch typ {
 	case ChangesTrieRootDigestType:
 		d := new(ChangesTrieRootDigest)
-		err := d.Decode(in[1:])
+		err := d.Decode(r)
 		return d, err
 	case PreRuntimeDigestType:
 		d := new(PreRuntimeDigest)
-		err := d.Decode(in[1:])
+		err := d.Decode(r)
 		return d, err
 	case ConsensusDigestType:
 		d := new(ConsensusDigest)
-		err := d.Decode(in[1:])
+		err := d.Decode(r)
 		return d, err
 	case SealDigestType:
 		d := new(SealDigest)
-		err := d.Decode(in[1:])
+		err := d.Decode(r)
 		return d, err
 	}
 
@@ -91,7 +152,7 @@ func DecodeDigestItem(in []byte) (DigestItem, error) {
 type DigestItem interface {
 	Type() byte
 	Encode() ([]byte, error)
-	Decode([]byte) error // Decode assumes the type byte (first byte) has been removed from the encoding.
+	Decode(io.Reader) error // Decode assumes the type byte (first byte) has been removed from the encoding.
 }
 
 // ChangesTrieRootDigest contains the root of the changes trie at a given block, if the runtime supports it.
@@ -110,12 +171,13 @@ func (d *ChangesTrieRootDigest) Encode() ([]byte, error) {
 }
 
 // Decode will decode into ChangesTrieRootDigest Hash
-func (d *ChangesTrieRootDigest) Decode(in []byte) error {
-	if len(in) < 32 {
-		return errors.New("input is too short: need 32 bytes")
+func (d *ChangesTrieRootDigest) Decode(r io.Reader) error {
+	hash, err := common.ReadHash(r)
+	if err != nil {
+		return err
 	}
 
-	copy(d.Hash[:], in)
+	copy(d.Hash[:], hash[:])
 	return nil
 }
 
@@ -134,6 +196,7 @@ func (d *PreRuntimeDigest) Type() byte {
 func (d *PreRuntimeDigest) Encode() ([]byte, error) {
 	enc := []byte{PreRuntimeDigestType}
 	enc = append(enc, d.ConsensusEngineID[:]...)
+
 	// encode data
 	output, err := scale.Encode(d.Data)
 	if err != nil {
@@ -144,17 +207,20 @@ func (d *PreRuntimeDigest) Encode() ([]byte, error) {
 }
 
 // Decode will decode PreRuntimeDigest ConsensusEngineID and Data
-func (d *PreRuntimeDigest) Decode(in []byte) error {
-	if len(in) < 4 {
-		return errors.New("input is too short: need at least 4 bytes")
-	}
-
-	copy(d.ConsensusEngineID[:], in[:4])
-	// decode data
-	output, err := scale.Decode(in[4:], []byte{})
+func (d *PreRuntimeDigest) Decode(r io.Reader) error {
+	id, err := common.Read4Bytes(r)
 	if err != nil {
 		return err
 	}
+
+	copy(d.ConsensusEngineID[:], id)
+
+	sd := scale.Decoder{Reader: r}
+	output, err := sd.Decode([]byte{})
+	if err != nil {
+		return err
+	}
+
 	d.Data = output.([]byte)
 	return nil
 }
@@ -184,17 +250,20 @@ func (d *ConsensusDigest) Encode() ([]byte, error) {
 }
 
 // Decode will decode into ConsensusEngineID and Data
-func (d *ConsensusDigest) Decode(in []byte) error {
-	if len(in) < 4 {
-		return errors.New("input is too short: need at least 4 bytes")
-	}
-
-	copy(d.ConsensusEngineID[:], in[:4])
-	// decode data
-	output, err := scale.Decode(in[4:], []byte{})
+func (d *ConsensusDigest) Decode(r io.Reader) error {
+	id, err := common.Read4Bytes(r)
 	if err != nil {
 		return err
 	}
+
+	copy(d.ConsensusEngineID[:], id)
+
+	sd := scale.Decoder{Reader: r}
+	output, err := sd.Decode([]byte{})
+	if err != nil {
+		return err
+	}
+
 	d.Data = output.([]byte)
 	return nil
 }
@@ -228,17 +297,22 @@ func (d *SealDigest) Encode() ([]byte, error) {
 }
 
 // Decode will decode into  SealDigest ConsensusEngineID and Data
-func (d *SealDigest) Decode(in []byte) error {
-	if len(in) < 4 {
-		return errors.New("input is too short: need at least 4 bytes")
-	}
-
-	copy(d.ConsensusEngineID[:], in[:4])
-	// decode data
-	output, err := scale.Decode(in[4:], []byte{})
+func (d *SealDigest) Decode(r io.Reader) error {
+	id, err := common.Read4Bytes(r)
 	if err != nil {
 		return err
 	}
+
+	copy(d.ConsensusEngineID[:], id)
+
+	// decode data
+	sd := scale.Decoder{Reader: r}
+
+	output, err := sd.Decode([]byte{})
+	if err != nil {
+		return err
+	}
+
 	d.Data = output.([]byte)
 	return nil
 }
