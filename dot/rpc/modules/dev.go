@@ -85,7 +85,7 @@ func (m *DevModule) SlotDuration(r *http.Request, req *EmptyRequest, res *string
 }
 
 // EpochLength Dev RPC to return epoch length
-func (m *DevModule) EpochLength(r *http.Request, req *[]string, res *string) error {
+func (m *DevModule) EpochLength(r *http.Request, req *EmptyRequest, res *string) error {
 	var err error
 	buffer := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buffer, m.blockProducerAPI.EpochLength())
