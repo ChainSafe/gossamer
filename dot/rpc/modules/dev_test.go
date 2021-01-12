@@ -2,7 +2,6 @@ package modules
 
 import (
 	"encoding/binary"
-	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
@@ -92,7 +91,7 @@ func TestDevControl_SlotDuration(t *testing.T) {
 	err := m.SlotDuration(nil, &EmptyRequest{}, &res)
 	require.NoError(t, err)
 
-	slotLengthFetched := binary.LittleEndian.Uint64(common.MustHexToBytes(fmt.Sprintf("%s", res)))
+	slotLengthFetched := binary.LittleEndian.Uint64(common.MustHexToBytes(res))
 	require.Equal(t, slotDurationSource, slotLengthFetched)
 }
 
@@ -106,6 +105,6 @@ func TestDevControl_EpochLength(t *testing.T) {
 	err := m.EpochLength(nil, &EmptyRequest{}, &res)
 	require.NoError(t, err)
 
-	epochLengthFetched := binary.LittleEndian.Uint64(common.MustHexToBytes(fmt.Sprintf("%s", res)))
+	epochLengthFetched := binary.LittleEndian.Uint64(common.MustHexToBytes(res))
 	require.Equal(t, epochLengthSource, epochLengthFetched)
 }
