@@ -156,8 +156,6 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 
 		predigest := d.(*types.PreRuntimeDigest)
 
-		logger.Info("GetEpochForBlock", "predigest", predigest)
-
 		babeHeader := new(types.BabeHeader)
 		err := babeHeader.Decode(predigest.Data)
 		if err != nil {

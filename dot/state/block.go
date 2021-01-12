@@ -647,12 +647,6 @@ func (bs *BlockState) GetSlotForBlock(hash common.Hash) (uint64, error) {
 	}
 
 	digestItem := header.Digest[0]
-
-	// digestItem, err := types.DecodeDigestItem(preDigestBytes)
-	// if err != nil {
-	// 	return 0, err
-	// }
-
 	preDigest, ok := digestItem.(*types.PreRuntimeDigest)
 	if !ok {
 		return 0, fmt.Errorf("first digest item is not pre-digest")

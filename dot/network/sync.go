@@ -9,7 +9,6 @@ import (
 
 // handleSyncStream handles streams with the <protocol-id>/sync/2 protocol ID
 func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
-	logger.Info("handling sync stream")
 	conn := stream.Conn()
 	if conn == nil {
 		logger.Error("Failed to get connection from stream")

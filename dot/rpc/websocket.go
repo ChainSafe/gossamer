@@ -377,14 +377,17 @@ func (l *BlockListener) Listen() {
 		if block == nil {
 			continue
 		}
-		head := modules.HeaderToJSON(*block.Header)
+		head, err := modules.HeaderToJSON(*block.Header)
+		if err != nil {
+			logger.Error("failed to convert header to JSON", "error", err)
+		}
 		headM := make(map[string]interface{})
 		headM["result"] = head
 		headM["subscription"] = l.subID
 		res := newSubcriptionBaseResponseJSON()
 		res.Method = "chain_newHead"
 		res.Params = headM
-		err := l.wsconn.safeSend(res)
+		err = l.wsconn.safeSend(res)
 		if err != nil {
 			logger.Error("error sending websocket message", "error", err)
 		}
@@ -436,14 +439,17 @@ func (l *BlockFinalizedListener) Listen() {
 		if header == nil {
 			continue
 		}
-		head := modules.HeaderToJSON(*header)
+		head, err := modules.HeaderToJSON(*header)
+		if err != nil {
+			logger.Error("failed to convert header to JSON", "error", err)
+		}
 		headM := make(map[string]interface{})
 		headM["result"] = head
 		headM["subscription"] = l.subID
 		res := newSubcriptionBaseResponseJSON()
 		res.Method = "chain_finalizedHead"
 		res.Params = headM
-		err := l.wsconn.safeSend(res)
+		err = l.wsconn.safeSend(res)
 		if err != nil {
 			logger.Error("error sending websocket message", "error", err)
 		}

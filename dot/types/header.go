@@ -77,7 +77,7 @@ func (bh *Header) DeepCopy() *Header {
 
 	if len(bh.Digest) > 0 {
 		cp.Digest = make([]DigestItem, len(bh.Digest))
-		//copy(safeCopyHeader.Digest, bh.Digest) TODO: copy
+		copy(cp.Digest[:], bh.Digest[:])
 	}
 
 	return cp
@@ -127,8 +127,6 @@ func (bh *Header) MustEncode() []byte {
 // Decode decodes the SCALE encoded input into this header
 func (bh *Header) Decode(r io.Reader) (*Header, error) {
 	sd := scale.Decoder{Reader: r}
-	// _, err := sd.Decode(bh)
-	// return bh, err
 
 	ph, err := sd.Decode(common.Hash{})
 	if err != nil {

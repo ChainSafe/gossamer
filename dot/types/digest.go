@@ -54,15 +54,14 @@ func (d Digest) Encode() ([]byte, error) {
 	return enc, nil
 }
 
-// Decode decodes a SCALE encoded digest
+// Decode decodes a SCALE encoded digest and appends it to the given Digest
 func (d Digest) Decode(r io.Reader) error {
 	var err error
 	digest, err := DecodeDigest(r)
 	if err != nil {
 		return err
 	}
-	d = make([]DigestItem, len(digest))
-	copy(d[:], digest[:])
+	d = append(d, digest...)
 	return nil
 }
 
