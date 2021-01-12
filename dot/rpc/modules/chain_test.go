@@ -252,7 +252,7 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 	require.Equal(t, common.BytesToHex(testhash[:]), res)
 }
 
-var genesisHeader, _ = types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, [][]byte{})
+var genesisHeader, _ = types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, types.Digest{})
 
 var genesisBABEConfig = &types.BabeConfiguration{
 	SlotDuration:       1000,
@@ -295,7 +295,7 @@ func loadTestBlocks(gh common.Hash, bs *state.BlockState) error {
 	// Create header
 	header0 := &types.Header{
 		Number:     big.NewInt(0),
-		Digest:     [][]byte{},
+		Digest:     types.Digest{},
 		ParentHash: gh,
 		StateRoot:  trie.EmptyHash,
 	}
@@ -317,7 +317,7 @@ func loadTestBlocks(gh common.Hash, bs *state.BlockState) error {
 	// Create header & blockData for block 1
 	header1 := &types.Header{
 		Number:     big.NewInt(1),
-		Digest:     [][]byte{},
+		Digest:     types.Digest{},
 		ParentHash: blockHash0,
 		StateRoot:  trie.EmptyHash,
 	}

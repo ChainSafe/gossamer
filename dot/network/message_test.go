@@ -104,7 +104,7 @@ func TestEncodeBlockResponseMessage_WithHeader(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      testHash,
 		ExtrinsicsRoot: testHash,
-		Digest:         [][]byte{{0xe, 0xf}},
+		Digest:         types.Digest{},
 	}
 
 	bd := &types.BlockData{
@@ -138,7 +138,7 @@ func TestEncodeBlockResponseMessage_WithBody(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      testHash,
 		ExtrinsicsRoot: testHash,
-		Digest:         [][]byte{{0xe, 0xf}},
+		Digest:         types.Digest{},
 	}
 
 	exts := [][]byte{{1, 3, 5, 7}, {9, 1, 2}, {3, 4, 5}}
@@ -176,7 +176,7 @@ func TestEncodeBlockResponseMessage_WithAll(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      testHash,
 		ExtrinsicsRoot: testHash,
-		Digest:         [][]byte{{0xe, 0xf}},
+		Digest:         types.Digest{},
 	}
 
 	exts := [][]byte{{1, 3, 5, 7}, {9, 1, 2}, {3, 4, 5}}
@@ -231,7 +231,7 @@ func TestEncodeBlockAnnounceMessage(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
-		Digest:         [][]byte{{}},
+		Digest:         types.Digest{},
 	}
 	encMsg, err := bhm.Encode()
 	require.Nil(t, err)
@@ -262,7 +262,7 @@ func TestDecode_BlockAnnounceMessage(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
-		Digest:         [][]byte{},
+		Digest:         types.Digest{},
 	}
 
 	require.Equal(t, expected, bhm)

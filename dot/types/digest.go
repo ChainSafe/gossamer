@@ -187,6 +187,13 @@ type PreRuntimeDigest struct {
 	Data              []byte
 }
 
+func NewBABEPreRuntimeDigest(data []byte) *PreRuntimeDigest {
+	return &PreRuntimeDigest{
+		ConsensusEngineID: BabeEngineID,
+		Data:              data,
+	}
+}
+
 func (d *PreRuntimeDigest) String() string {
 	return fmt.Sprintf("PreRuntimeDigest ConsensusEngineID=%s Data=0x%x", d.ConsensusEngineID, d.Data)
 }

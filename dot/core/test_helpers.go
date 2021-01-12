@@ -17,6 +17,7 @@
 package core
 
 import (
+	"io"
 	"math/big"
 	"testing"
 	"time"
@@ -251,5 +252,27 @@ func (s *mockSyncer) IsSynced() bool {
 }
 
 func (s *mockSyncer) HandleBlockAnnounceHandshake(num *big.Int) *network.BlockRequestMessage {
+	return nil
+}
+
+type mockDigestItem struct {
+	i int
+}
+
+func newMockDigestItem(i int) *mockDigestItem {
+	return &mockDigestItem{
+		i: i,
+	}
+}
+
+func (d *mockDigestItem) Type() byte {
+	return byte(d.i)
+}
+
+func (d *mockDigestItem) Encode() ([]byte, error) {
+	return []byte{byte(d.i)}, nil
+}
+
+func (d *mockDigestItem) Decode(_ io.Reader) error {
 	return nil
 }

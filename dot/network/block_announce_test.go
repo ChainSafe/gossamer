@@ -20,6 +20,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
@@ -33,7 +34,7 @@ func TestBlockAnnounce_Encode(t *testing.T) {
 		Number:         big.NewInt(77),
 		StateRoot:      common.Hash{2},
 		ExtrinsicsRoot: common.Hash{3},
-		Digest:         [][]byte{},
+		Digest:         types.Digest{},
 	}
 
 	enc, err := testBlockAnnounce.Encode()
@@ -67,7 +68,7 @@ func TestDecodeBlockAnnounceMessage(t *testing.T) {
 		Number:         big.NewInt(77),
 		StateRoot:      common.Hash{2},
 		ExtrinsicsRoot: common.Hash{3},
-		Digest:         [][]byte{},
+		Digest:         types.Digest{},
 	}
 
 	enc, err := testBlockAnnounce.Encode()

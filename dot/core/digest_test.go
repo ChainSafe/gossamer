@@ -352,11 +352,8 @@ func createHeaderWithPreDigest(t *testing.T, slotNumber uint64) *types.Header {
 		Data: enc,
 	}
 
-	encDigest, err := digest.Encode()
-	require.NoError(t, err)
-
 	return &types.Header{
-		Digest: [][]byte{encDigest},
+		Digest: types.Digest{digest},
 	}
 }
 
