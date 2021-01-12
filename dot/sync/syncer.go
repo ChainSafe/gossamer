@@ -330,7 +330,7 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 			}
 		}
 
-		if bd.Body.Exists && !hasBody {
+		if bd.Body.Exists() && !hasBody {
 			body, err := types.NewBodyFromOptional(bd.Body)
 			if err != nil {
 				return start, end, err
@@ -342,7 +342,7 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 			}
 		}
 
-		if bd.Header.Exists() && bd.Body.Exists {
+		if bd.Header.Exists() && bd.Body.Exists() {
 			header, err := types.NewHeaderFromOptional(bd.Header)
 			if err != nil {
 				return 0, 0, err
