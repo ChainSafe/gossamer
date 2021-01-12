@@ -19,6 +19,7 @@ package state
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -155,10 +156,12 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 
 		predigest := d.(*types.PreRuntimeDigest)
 
+		logger.Info("GetEpochForBlock", "predigest", predigest)
+
 		babeHeader := new(types.BabeHeader)
 		err := babeHeader.Decode(predigest.Data)
 		if err != nil {
-			return 0, err
+			return 0, fmt.Errorf("failed to decode babe header: %w", err)
 		}
 
 		return (babeHeader.SlotNumber / s.epochLength) + 1, nil

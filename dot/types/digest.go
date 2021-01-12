@@ -187,6 +187,10 @@ type PreRuntimeDigest struct {
 	Data              []byte
 }
 
+func (d *PreRuntimeDigest) String() string {
+	return fmt.Sprintf("PreRuntimeDigest ConsensusEngineID=%s Data=0x%x", d.ConsensusEngineID, d.Data)
+}
+
 // Type will return PreRuntimeDigestType
 func (d *PreRuntimeDigest) Type() byte {
 	return PreRuntimeDigestType

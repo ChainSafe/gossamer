@@ -163,6 +163,5 @@ func readLEB128ToUint64(r io.Reader) (uint64, error) {
 		}
 		shift += 7
 	}
-	logger.Info("readLEB128ToUint64", "length", out)
 	return out, nil
 }

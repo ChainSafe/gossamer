@@ -210,15 +210,11 @@ func (bm *BlockResponseMessage) Encode() ([]byte, error) {
 
 // Decode decodes the protobuf encoded input to a BlockResponseMessage
 func (bm *BlockResponseMessage) Decode(in []byte) (err error) {
-	logger.Info("decoding BlockResponseMessage protobuf")
-
 	msg := &pb.BlockResponse{}
 	err = proto.Unmarshal(in, msg)
 	if err != nil {
 		return err
 	}
-
-	logger.Info("decoded BlockResponseMessage protobuf", "msg", fmt.Sprintf("%x", msg.Blocks[0].Header))
 
 	bm.BlockData = make([]*types.BlockData, len(msg.Blocks))
 

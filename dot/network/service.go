@@ -21,7 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	//"io"
+	"io"
 	"os"
 	"sync"
 	"time"
@@ -34,7 +34,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	discovery "github.com/libp2p/go-libp2p-discovery"
-	//"github.com/golang/protobuf/proto"
 )
 
 const (
@@ -71,7 +70,6 @@ type Service struct {
 	host   *host
 	mdns   *mdns
 	gossip *gossip
-	errCh  chan<- error
 
 	notificationsProtocols map[byte]*notificationsProtocol // map of sub-protocol msg ID to protocol info
 	notificationsMu        sync.RWMutex
@@ -128,7 +126,6 @@ func NewService(cfg *Config) (*Service, error) {
 		noBootstrap:            cfg.NoBootstrap,
 		noMDNS:                 cfg.NoMDNS,
 		syncer:                 cfg.Syncer,
-		errCh:                  cfg.ErrChan,
 		notificationsProtocols: make(map[byte]*notificationsProtocol),
 		syncing:                make(map[peer.ID]struct{}),
 		lightRequest:           make(map[peer.ID]struct{}),
@@ -451,10 +448,11 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 
 	for {
 		length, err := readLEB128ToUint64(r)
-		if err != nil {
+		if err == io.EOF {
+			continue
+		} else if err != nil {
 			logger.Error("Failed to read LEB128 encoding", "protocol", stream.Protocol(), "error", err)
 			_ = stream.Close()
-			s.errCh <- err
 			return
 		}
 
@@ -469,7 +467,6 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 			if err != nil {
 				logger.Error("Failed to read message from stream", "error", err)
 				_ = stream.Close()
-				s.errCh <- err
 				return
 			}
 
@@ -487,8 +484,6 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		if tot == 0 {
 			continue
 		}
-
-		logger.Trace("message raw bytes", "len", tot, "bytes", msgBytes[:tot]) //, "hex", fmt.Sprintf("%x", msgBytes[:tot]))
 
 		// decode message based on message type
 		msg, err := decoder(msgBytes[:tot], peer)
@@ -509,7 +504,6 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		if err != nil {
 			logger.Error("Failed to handle message from stream", "message", msg, "error", err)
 			_ = stream.Close()
-			s.errCh <- err
 			return
 		}
 	}

@@ -219,7 +219,6 @@ func (s *Service) HandleBlockResponse(msg *network.BlockResponseMessage) *networ
 	// it's set to 0 if err != nil
 	var start int64
 	low, high, err := s.processBlockResponseData(msg)
-	s.logger.Debug("received BlockResponse", "start", low, "end", high)
 
 	// if we cannot find the parent block in our blocktree, we are missing some blocks, and need to request
 	// blocks from farther back in the chain
@@ -239,6 +238,8 @@ func (s *Service) HandleBlockResponse(msg *network.BlockResponseMessage) *networ
 		s.logger.Error("failed to process block response", "error", err)
 		return nil
 	}
+
+	s.logger.Debug("received BlockResponse", "start", low, "end", high)
 
 	// TODO: max retries before unlocking BlockProducer, in case no response is received
 	bestNum, err := s.blockState.BestBlockNumber()
@@ -316,6 +317,8 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 				return 0, 0, err
 			}
 
+			s.logger.Info("processing block", "header", header)
+
 			err = s.handleHeader(header)
 			if err != nil {
 				return start, end, err
@@ -370,6 +373,9 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 
 // handleHeader handles headers included in BlockResponses
 func (s *Service) handleHeader(header *types.Header) error {
+	// TODO: BABE header format changed?
+	return nil
+
 	err := s.verifier.VerifyBlock(header)
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrInvalidBlock, err.Error())

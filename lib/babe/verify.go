@@ -403,10 +403,12 @@ func getBlockProducerIndex(header *types.Header) (uint64, error) {
 		return 0, fmt.Errorf("first digest item is not pre-runtime digest")
 	}
 
+	logger.Info("getBlockProducerIndex", "header", header, "predigest", preDigest)
+
 	babeHeader := new(types.BabeHeader)
 	err := babeHeader.Decode(preDigest.Data)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("cannot decode babe header from pre-digest: %s", err)
 	}
 
 	return babeHeader.BlockProducerIndex, nil
