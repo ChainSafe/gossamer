@@ -151,7 +151,7 @@ func (k *PublicKey) Verify(msg, sig []byte) (bool, error) {
 	return secp256k1.VerifySignature(k.Encode(), msg, sig), nil
 }
 
-// UnmarshalPubkey converts bytes to a secp256k1 public key.
+// UnmarshalPubkey converts [65]byte to a secp256k1 public key.
 func (k *PublicKey) UnmarshalPubkey(pub []byte) error {
 	pubKey, err := secp256k1.UnmarshalPubkey(pub)
 	if err != nil {

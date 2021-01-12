@@ -19,6 +19,7 @@ package wasmer
 import (
 	"bytes"
 	"os"
+	"sort"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -362,16 +363,21 @@ func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 	require.Equal(t, 0, inst.inst.ctx.Keystore.Size())
 
-	var expectedPubKeys []byte
-	numKps := 5
-
-	for i := 0; i < numKps; i++ {
+	var pubKeys [][]byte
+	for i := 0; i < 5; i++ {
 		kp, err := ed25519.GenerateKeypair()
 		if err != nil {
 			t.Fatal(err)
 		}
 		inst.inst.ctx.Keystore.Insert(kp)
-		expectedPubKeys = append(expectedPubKeys, kp.Public().Encode()...)
+		pubKeys = append(pubKeys, kp.Public().Encode())
+	}
+
+	sort.Slice(pubKeys, func(i int, j int) bool { return bytes.Compare(pubKeys[i], pubKeys[j]) < 0 })
+
+	var expectedPubKeys []byte
+	for _, key := range pubKeys {
+		expectedPubKeys = append(expectedPubKeys, key...)
 	}
 
 	idData := []byte{2, 2, 2, 2}
@@ -516,7 +522,7 @@ func Test_ext_crypto_secp256k1_ecdsa_recover_version_1(t *testing.T) {
 	buf := &bytes.Buffer{}
 	buf.Write(out.([]byte))
 
-	uncomPubKey, err := new(optional.Bytes).Decode(buf)
+	uncomPubKey, err := new(optional.Result).Decode(buf)
 	require.NoError(t, err)
 
 	publicKey := new(secp256k1.PublicKey)
@@ -532,21 +538,24 @@ func Test_ext_crypto_sr25519_public_keys_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 	require.Equal(t, 0, inst.inst.ctx.Keystore.Size())
 
-	var expectedPubKeys []byte
-	numKps := 5
-
-	for i := 0; i < numKps; i++ {
+	var pubKeys [][]byte
+	for i := 0; i < 5; i++ {
 		kp, err := sr25519.GenerateKeypair()
 		if err != nil {
 			t.Fatal(err)
 		}
 		inst.inst.ctx.Keystore.Insert(kp)
-		expectedPubKeys = append(expectedPubKeys, kp.Public().Encode()...)
+		pubKeys = append(pubKeys, kp.Public().Encode())
 	}
 
-	idData := []byte{2, 2, 2, 2}
+	sort.Slice(pubKeys, func(i int, j int) bool { return bytes.Compare(pubKeys[i], pubKeys[j]) < 0 })
 
-	res, err := inst.Exec("rtm_ext_crypto_sr25519_public_keys_version_1", idData)
+	var expectedPubKeys []byte
+	for _, key := range pubKeys {
+		expectedPubKeys = append(expectedPubKeys, key...)
+	}
+
+	res, err := inst.Exec("rtm_ext_crypto_sr25519_public_keys_version_1", []byte{2, 2, 2, 2})
 	require.NoError(t, err)
 
 	out, err := scale.Decode(res, []byte{})
@@ -569,8 +578,6 @@ func Test_ext_crypto_sr25519_sign_version_1(t *testing.T) {
 
 	inst.inst.ctx.Keystore.Insert(kp)
 
-	idData := []byte{2, 2, 2, 2}
-
 	pubKeyData := kp.Public().Encode()
 	encPubKey, err := scale.Encode(pubKeyData)
 	require.NoError(t, err)
@@ -578,6 +585,8 @@ func Test_ext_crypto_sr25519_sign_version_1(t *testing.T) {
 	msgData := []byte("Hello world!")
 	encMsg, err := scale.Encode(msgData)
 	require.NoError(t, err)
+
+	idData := []byte{2, 2, 2, 2}
 
 	res, err := inst.Exec("rtm_ext_crypto_sr25519_sign_version_1", append(append(idData, encPubKey...), encMsg...))
 	require.NoError(t, err)

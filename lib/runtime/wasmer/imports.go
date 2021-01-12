@@ -101,6 +101,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"sort"
 	"unsafe"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -240,6 +241,7 @@ func ext_crypto_ed25519_public_keys_version_1(context unsafe.Pointer, keyTypeID 
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 
 	keys := runtimeCtx.Keystore.Ed25519PublicKeys()
+	sort.Slice(keys, func(i int, j int) bool { return bytes.Compare(keys[i].Encode(), keys[j].Encode()) < 0 })
 
 	var encodedKeys []byte
 	for _, key := range keys {
@@ -371,7 +373,7 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, m
 		return 0
 	}
 
-	ret, err := toWasmMemoryOptional(instanceContext, pub)
+	ret, err := toWasmMemoryResult(instanceContext, pub)
 	if err != nil {
 		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_version_1] failed to allocate memory", "error", err)
 		return 0
@@ -439,6 +441,8 @@ func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, keyTypeID 
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 
 	keys := runtimeCtx.Keystore.Sr25519PublicKeys()
+	sort.Slice(keys, func(i int, j int) bool { return bytes.Compare(keys[i].Encode(), keys[j].Encode()) < 0 })
+
 	var encodedKeys []byte
 	for i := 0; i <= len(keys)-1; i++ {
 		encodedKeys = append(encodedKeys, keys[i].Encode()...)
@@ -1566,7 +1570,7 @@ func toWasmMemorySized(context wasm.InstanceContext, data []byte, size uint32) (
 	return out, nil
 }
 
-// Wraps slice in optional and copies result to wasm memory. Returns resulting 64bit span descriptor
+// Wraps slice in optional.Bytes and copies result to wasm memory. Returns resulting 64bit span descriptor
 func toWasmMemoryOptional(context wasm.InstanceContext, data []byte) (int64, error) {
 	var opt *optional.Bytes
 	if len(data) == 0 {
@@ -1576,6 +1580,23 @@ func toWasmMemoryOptional(context wasm.InstanceContext, data []byte) (int64, err
 	}
 
 	enc, err := opt.Encode()
+	if err != nil {
+		return 0, err
+	}
+
+	return toWasmMemory(context, enc)
+}
+
+// Wraps slice in Result type and copies result to wasm memory. Returns resulting 64bit span descriptor
+func toWasmMemoryResult(context wasm.InstanceContext, data []byte) (int64, error) {
+	var res *optional.Result
+	if len(data) == 0 {
+		res = optional.NewResult(byte(1), nil)
+	} else {
+		res = optional.NewResult(byte(0), data)
+	}
+
+	enc, err := res.Encode()
 	if err != nil {
 		return 0, err
 	}

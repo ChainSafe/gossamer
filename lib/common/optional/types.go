@@ -351,3 +351,72 @@ func (x *Body) Set(exists bool, value CoreBody) {
 	x.Exists = exists
 	x.Value = value
 }
+
+// Result represents a Result type.
+type Result struct {
+	state byte // If data exists then state stores byte(0), otherwise byte(1)
+	data  []byte
+}
+
+// NewResult returns a new Result type
+func NewResult(state byte, data []byte) *Result {
+	return &Result{
+		state: state,
+		data:  data,
+	}
+}
+
+// Encode returns the SCALE encoded Result
+func (r *Result) Encode() ([]byte, error) {
+	if r == nil || r.state == 1 {
+		return []byte{1}, nil
+	}
+
+	value, err := scale.Encode(r.data)
+	if err != nil {
+		return nil, err
+	}
+
+	return append([]byte{0}, value...), nil
+}
+
+// Decode return a Result from scale encoded data
+func (r *Result) Decode(reader io.Reader) (*Result, error) {
+	exists, err := common.ReadByte(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	if exists > 1 {
+		return nil, ErrInvalidOptional
+	}
+
+	r.state = exists
+
+	if r.state == 0 {
+		sd := scale.Decoder{Reader: reader}
+		value, err := sd.DecodeByteArray()
+		if err != nil {
+			return nil, err
+		}
+		r.data = value
+	}
+
+	return r, nil
+}
+
+// Set sets the state and data fields of Result.
+func (r *Result) Set(state byte, value []byte) {
+	r.state = state
+	r.data = value
+}
+
+// Exists returns byte(0) if the state is 0, byte(1) if it is state is 1.
+func (r *Result) Exists() byte {
+	return r.state
+}
+
+// Value returns the []byte data. It returns nil if it is Result.None.
+func (r *Result) Value() []byte {
+	return r.data
+}
