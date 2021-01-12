@@ -19,7 +19,6 @@ package network
 import (
 	"errors"
 	"fmt"
-	"io"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -64,10 +63,9 @@ func (tm *TransactionMessage) Encode() ([]byte, error) {
 	return scale.Encode(encodedExtrinsics)
 }
 
-// Decode the message into a TransactionMessage, it assumes the type byte han been removed
-func (tm *TransactionMessage) Decode(r io.Reader) error {
-	sd := scale.Decoder{Reader: r}
-	decodedMessage, err := sd.Decode([]byte{})
+// Decode the message into a TransactionMessage
+func (tm *TransactionMessage) Decode(in []byte) error {
+	decodedMessage, err := scale.Decode(in, []byte{})
 	if err != nil {
 		return err
 	}
@@ -114,10 +112,13 @@ func (hs *transactionHandshake) Encode() ([]byte, error) {
 }
 
 // Decode the message into a transactionHandshake
-func (hs *transactionHandshake) Decode(r io.Reader) error {
-	sd := scale.Decoder{Reader: r}
-	_, err := sd.Decode(hs)
-	return err
+func (hs *transactionHandshake) Decode(in []byte) error {
+	msg, err := scale.Decode(in, hs)
+	if err != nil {
+		return err
+	}
+	hs.Roles = msg.(*transactionHandshake).Roles
+	return nil
 }
 
 // Type ...
@@ -141,24 +142,23 @@ func (s *Service) getTransactionHandshake() (Handshake, error) {
 	}, nil
 }
 
-func decodeTransactionHandshake(r io.Reader) (Handshake, error) {
-	roles, err := common.ReadByte(r)
-	if err != nil {
-		return nil, err
+func decodeTransactionHandshake(in []byte) (Handshake, error) {
+	if len(in) < 1 {
+		return nil, errors.New("invalid handshake")
 	}
 
 	return &transactionHandshake{
-		Roles: roles,
+		Roles: in[0],
 	}, nil
 }
 
-func validateTransactionHandshake(_ peer.ID, _ Handshake) error {
-	return nil
+func validateTransactionHandshake(_ Handshake) (Message, error) {
+	return nil, nil
 }
 
-func decodeTransactionMessage(r io.Reader) (NotificationsMessage, error) {
+func decodeTransactionMessage(in []byte) (NotificationsMessage, error) {
 	msg := new(TransactionMessage)
-	err := msg.Decode(r)
+	err := msg.Decode(in)
 	return msg, err
 }
 

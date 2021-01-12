@@ -370,7 +370,7 @@ func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
 	bs.lock.Lock()
 	defer bs.lock.Unlock()
 
-	err := bs.db.Put(blockBodyKey(hash), body.AsOptional().Value)
+	err := bs.db.Put(blockBodyKey(hash), body.AsOptional().Value())
 	return err
 }
 
@@ -545,7 +545,7 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ui
 		}
 	}
 
-	err = bs.SetBlockBody(block.Header.Hash(), types.NewBody(block.Body.AsOptional().Value))
+	err = bs.SetBlockBody(block.Header.Hash(), types.NewBody(block.Body.AsOptional().Value()))
 	if err != nil {
 		return err
 	}

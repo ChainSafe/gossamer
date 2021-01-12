@@ -17,7 +17,6 @@
 package network
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -37,10 +36,7 @@ func TestDecodeTransactionHandshake(t *testing.T) {
 	enc, err := testHandshake.Encode()
 	require.NoError(t, err)
 
-	buf := &bytes.Buffer{}
-	buf.Write(enc)
-
-	msg, err := decodeTransactionHandshake(buf)
+	msg, err := decodeTransactionHandshake(enc)
 	require.NoError(t, err)
 	require.Equal(t, testHandshake, msg)
 }
@@ -53,10 +49,7 @@ func TestDecodeTransactionMessage(t *testing.T) {
 	enc, err := testTxMsg.Encode()
 	require.NoError(t, err)
 
-	buf := &bytes.Buffer{}
-	buf.Write(enc)
-
-	msg, err := decodeTransactionMessage(buf)
+	msg, err := decodeTransactionMessage(enc)
 	require.NoError(t, err)
 	require.Equal(t, testTxMsg, msg)
 }
