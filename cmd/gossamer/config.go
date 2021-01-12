@@ -153,6 +153,10 @@ func createInitConfig(ctx *cli.Context) (*dot.Config, error) {
 	// ensure configuration values match genesis and overwrite with genesis
 	updateDotConfigFromGenesisJSONRaw(ctx, *tomlCfg, cfg)
 
+	// set network config here otherwise it's values will be overwritten when starting the node.
+	// See /cmd/gossamer/main.go L192.
+	setDotNetworkConfig(ctx, tomlCfg.Network, &cfg.Network)
+
 	return cfg, nil
 }
 
