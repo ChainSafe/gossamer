@@ -173,7 +173,7 @@ func (bh *Header) AsOptional() *optional.Header {
 		Number:         bh.Number,
 		StateRoot:      bh.StateRoot,
 		ExtrinsicsRoot: bh.ExtrinsicsRoot,
-		Digest:         bh.Digest,
+		Digest:         &bh.Digest,
 	})
 }
 
@@ -195,7 +195,7 @@ func NewHeaderFromOptional(oh *optional.Header) (*Header, error) {
 		Number:         h.Number,
 		StateRoot:      h.StateRoot,
 		ExtrinsicsRoot: h.ExtrinsicsRoot,
-		Digest:         h.Digest.(Digest),
+		Digest:         *(h.Digest.(*Digest)),
 	}
 
 	bh.Hash()

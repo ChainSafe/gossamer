@@ -36,13 +36,13 @@ func NewEmptyDigest() Digest {
 }
 
 // Encode returns the SCALE encoded digest
-func (d Digest) Encode() ([]byte, error) {
-	enc, err := scale.Encode(big.NewInt(int64(len(d))))
+func (d *Digest) Encode() ([]byte, error) {
+	enc, err := scale.Encode(big.NewInt(int64(len(*d))))
 	if err != nil {
 		return nil, err
 	}
 
-	for _, item := range d {
+	for _, item := range *d {
 		encItem, err := item.Encode()
 		if err != nil {
 			return nil, err
@@ -55,13 +55,13 @@ func (d Digest) Encode() ([]byte, error) {
 }
 
 // Decode decodes a SCALE encoded digest and appends it to the given Digest
-func (d Digest) Decode(r io.Reader) error {
+func (d *Digest) Decode(r io.Reader) error {
 	var err error
 	digest, err := DecodeDigest(r)
 	if err != nil {
 		return err
 	}
-	d = append(d, digest...)
+	*d = digest
 	return nil
 }
 

@@ -104,7 +104,7 @@ func TestEncodeBlockResponseMessage_WithHeader(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      testHash,
 		ExtrinsicsRoot: testHash,
-		Digest:         types.Digest{},
+		Digest:         &types.Digest{},
 	}
 
 	bd := &types.BlockData{
@@ -138,7 +138,7 @@ func TestEncodeBlockResponseMessage_WithBody(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      testHash,
 		ExtrinsicsRoot: testHash,
-		Digest:         types.Digest{},
+		Digest:         &types.Digest{},
 	}
 
 	exts := [][]byte{{1, 3, 5, 7}, {9, 1, 2}, {3, 4, 5}}
@@ -176,7 +176,7 @@ func TestEncodeBlockResponseMessage_WithAll(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      testHash,
 		ExtrinsicsRoot: testHash,
-		Digest:         types.Digest{},
+		Digest:         &types.Digest{},
 	}
 
 	exts := [][]byte{{1, 3, 5, 7}, {9, 1, 2}, {3, 4, 5}}

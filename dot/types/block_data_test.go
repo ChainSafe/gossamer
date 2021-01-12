@@ -28,7 +28,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var testDigest = Digest{
+var testDigest = &Digest{
 	&PreRuntimeDigest{
 		ConsensusEngineID: BabeEngineID,
 		Data:              []byte{1, 2, 3},
