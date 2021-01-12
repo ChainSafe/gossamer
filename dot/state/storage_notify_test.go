@@ -26,7 +26,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/chaindb"
-	"github.com/dgraph-io/badger/v2"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -83,11 +83,13 @@ func TestStorageState_RegisterStorageChangeChannel_Multi(t *testing.T) {
 	root, err := ts.Root()
 	require.NoError(t, err)
 
-	key1 := []byte("mackcom")
+	key1 := []byte("key1")
+	value1 := []byte("value1")
 
-	ts.Set(key1, []byte("value1"))
-	time.Sleep(time.Second)
-	err = ss.StoreInDB(root)
+	ts.Set(key1, value1)
+	ts.Commit()
+
+	err = ss.StoreTrie(root, ts)
 	require.NoError(t, err)
 
 	var wg sync.WaitGroup
@@ -99,6 +101,8 @@ func TestStorageState_RegisterStorageChangeChannel_Multi(t *testing.T) {
 			select {
 			case c := <-ch:
 				require.NotNil(t, c.Hash)
+				require.Equal(t, key1, c.Changes[0].Key)
+				require.Equal(t, value1, c.Changes[0].Value)
 				wg.Done()
 			case <-time.After(testMessageTimeout):
 				t.Error("did not receive storage change: ch=", i)
@@ -114,12 +118,68 @@ func TestStorageState_RegisterStorageChangeChannel_Multi(t *testing.T) {
 	}
 }
 
-func ExampleDB_Subscribe() {
+func TestStorageState_RegisterStorageChangeChannel_Multi_Filter(t *testing.T) {
+	ss := newTestStorageState(t)
+	ts, err := ss.TrieState(nil)
+	require.NoError(t, err)
+
+	key1 := []byte("key1")
+	value1 := []byte("value1")
+
+	num := 5
+	chs := make([]chan *SubscriptionResult, num)
+	ids := make([]byte, num)
+	subFilter := make(map[string]bool)
+	subFilter[common.BytesToHex(key1)] = true
+
+	for i := 0; i < num; i++ {
+		chs[i] = make(chan *SubscriptionResult)
+		sub := StorageSubscription{
+			Filter:   subFilter,
+			Listener: chs[i],
+		}
+		ids[i], err = ss.RegisterStorageChangeChannel(sub)
+		require.NoError(t, err)
+	}
+
+	root, err := ts.Root()
+	require.NoError(t, err)
+
+	ts.Set(key1, value1)
+	ts.Commit()
+
+	err = ss.StoreTrie(root, ts)
+	require.NoError(t, err)
+
+	var wg sync.WaitGroup
+	wg.Add(num)
+
+	for i, ch := range chs {
+
+		go func(i int, ch chan *SubscriptionResult) {
+			select {
+			case c := <-ch:
+				require.NotNil(t, c.Hash)
+				require.Equal(t, key1, c.Changes[0].Key)
+				require.Equal(t, value1, c.Changes[0].Value)
+				wg.Done()
+			case <-time.After(testMessageTimeout):
+				t.Error("did not receive storage change: ch=", i)
+			}
+		}(i, ch)
+
+	}
+
+	wg.Wait()
+
+	for _, id := range ids {
+		ss.UnregisterStorageChangeChannel(id)
+	}
+}
+
+func Example() {
 	// this is a working example of how to use db.Subscribe taken from
 	// https://github.com/dgraph-io/badger/blob/f50343ff404d8198df6dc83755ec2eab863d5ff2/db_test.go#L1939-L1948
-	// Note, this works as expected, however when I change db to use chaindb (ChainSafe's badger fork)
-	// it fails (See TestSubscribe_A, B and C).  The issue seems to be related to snappy.Encode
-	// of keys when they are stored when using chaindb.
 	prefix := []byte{'a'}
 
 	// This key should be printed, since it matches the prefix.
@@ -156,7 +216,7 @@ func ExampleDB_Subscribe() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		cb := func(kvs *badger.KVList) error {
+		cb := func(kvs *chaindb.KVList) error {
 			for _, kv := range kvs.Kv {
 				fmt.Printf("%s is now set to %s\n", kv.Key, kv.Value)
 			}

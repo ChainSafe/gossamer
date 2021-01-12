@@ -1,13 +1,13 @@
 module github.com/ChainSafe/gossamer
 
 require (
-	github.com/ChainSafe/chaindb v0.1.5-0.20210107190358-653bcae37ced
+	github.com/ChainSafe/chaindb v0.1.5-0.20210112170640-08c8f45c6f42
 	github.com/ChainSafe/go-schnorrkel v0.0.0-20200405005733-88cbf1b4c40d
 	github.com/ChainSafe/log15 v1.0.0
 	github.com/OneOfOne/xxhash v1.2.5
 	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
 	github.com/bytecodealliance/wasmtime-go v0.20.0
-	github.com/dgraph-io/badger/v2 v2.2007.2
+	github.com/dgraph-io/badger/v2 v2.2007.2 // indirect
 	github.com/disiqueira/gotree v1.0.0
 	github.com/docker/docker v1.13.1
 	github.com/ethereum/go-ethereum v1.9.6
@@ -38,7 +38,7 @@ require (
 	github.com/wasmerio/go-ext-wasm v0.3.2-0.20200326095750-0a32be6068ec
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9 // indirect
-	golang.org/x/tools v0.0.0-20200102140908-9497f49d5709
+	golang.org/x/tools v0.0.0-20200102140908-9497f49d5709 // indirect
 	google.golang.org/grpc v1.21.0 // indirect
 	google.golang.org/protobuf v1.23.0
 	gopkg.in/yaml.v2 v2.2.7 // indirect
