@@ -17,6 +17,7 @@
 package network
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"math/big"
@@ -39,7 +40,7 @@ type BlockAnnounceMessage struct {
 	Number         *big.Int
 	StateRoot      common.Hash
 	ExtrinsicsRoot common.Hash
-	Digest         types.Digest // any additional block info eg. logs, seal
+	Digest         types.Digest
 }
 
 // SubProtocol returns the block-announces sub-protocol
@@ -73,16 +74,18 @@ func (bm *BlockAnnounceMessage) Encode() ([]byte, error) {
 
 // Decode the message into a BlockAnnounceMessage
 func (bm *BlockAnnounceMessage) Decode(in []byte) error {
-	msg, err := scale.Decode(in, bm)
+	r := &bytes.Buffer{}
+	_, _ = r.Write(in)
+	h, err := types.NewEmptyHeader().Decode(r)
 	if err != nil {
 		return err
 	}
 
-	bm.ParentHash = msg.(*BlockAnnounceMessage).ParentHash
-	bm.Number = msg.(*BlockAnnounceMessage).Number
-	bm.StateRoot = msg.(*BlockAnnounceMessage).StateRoot
-	bm.ExtrinsicsRoot = msg.(*BlockAnnounceMessage).ExtrinsicsRoot
-	bm.Digest = msg.(*BlockAnnounceMessage).Digest
+	bm.ParentHash = h.ParentHash
+	bm.Number = h.Number
+	bm.StateRoot = h.StateRoot
+	bm.ExtrinsicsRoot = h.ExtrinsicsRoot
+	bm.Digest = h.Digest
 	return nil
 }
 
@@ -109,12 +112,13 @@ func decodeBlockAnnounceHandshake(in []byte) (Handshake, error) {
 }
 
 func decodeBlockAnnounceMessage(in []byte) (NotificationsMessage, error) {
-	msg, err := scale.Decode(in, new(BlockAnnounceMessage))
+	msg := new(BlockAnnounceMessage)
+	err := msg.Decode(in)
 	if err != nil {
 		return nil, err
 	}
 
-	return msg.(*BlockAnnounceMessage), err
+	return msg, nil
 }
 
 // BlockAnnounceHandshake is exchanged by nodes that are beginning the BlockAnnounce protocol
