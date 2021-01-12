@@ -106,6 +106,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
+	"github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
@@ -366,11 +367,16 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, m
 	message := memory[msg : msg+32]
 	signature := memory[sig : sig+65]
 
-	// TODO: Verify the return in spec.
 	pub, err := secp256k1.RecoverPublicKey(message, signature)
 	if err != nil {
 		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_version_1] failed to recover public key", "error", err)
-		return 0
+		var ret int64
+		ret, err = toWasmMemoryResult(instanceContext, nil)
+		if err != nil {
+			logger.Error("[ext_crypto_secp256k1_ecdsa_recover_version_1] failed to allocate memory", "error", err)
+			return 0
+		}
+		return C.int64_t(ret)
 	}
 
 	ret, err := toWasmMemoryResult(instanceContext, pub)
@@ -1589,11 +1595,11 @@ func toWasmMemoryOptional(context wasm.InstanceContext, data []byte) (int64, err
 
 // Wraps slice in Result type and copies result to wasm memory. Returns resulting 64bit span descriptor
 func toWasmMemoryResult(context wasm.InstanceContext, data []byte) (int64, error) {
-	var res *optional.Result
+	var res *types.Result
 	if len(data) == 0 {
-		res = optional.NewResult(byte(1), nil)
+		res = types.NewResult(byte(1), nil)
 	} else {
-		res = optional.NewResult(byte(0), data)
+		res = types.NewResult(byte(0), data)
 	}
 
 	enc, err := res.Encode()

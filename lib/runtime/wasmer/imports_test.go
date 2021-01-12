@@ -24,6 +24,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
+	"github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -522,7 +523,7 @@ func Test_ext_crypto_secp256k1_ecdsa_recover_version_1(t *testing.T) {
 	buf := &bytes.Buffer{}
 	buf.Write(out.([]byte))
 
-	uncomPubKey, err := new(optional.Result).Decode(buf)
+	uncomPubKey, err := new(types.Result).Decode(buf)
 	require.NoError(t, err)
 
 	publicKey := new(secp256k1.PublicKey)
