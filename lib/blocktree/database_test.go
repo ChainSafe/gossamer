@@ -55,7 +55,7 @@ func createTestBlockTree(header *types.Header, depth int, db database.Database) 
 				Header: &types.Header{
 					ParentHash: previousHash,
 					Number:     big.NewInt(int64(i)),
-					Digest:     [][]byte{{byte(rand.Intn(256))}},
+					Digest:     types.Digest{newMockDigestItem(rand.Intn(256))},
 				},
 				Body: &types.Body{},
 			}

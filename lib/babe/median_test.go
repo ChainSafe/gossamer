@@ -28,30 +28,19 @@ import (
 func TestMedian_OddLength(t *testing.T) {
 	us := []uint64{3, 2, 1, 4, 5}
 	res, err := median(us)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	var expected uint64 = 3
-
-	if res != expected {
-		t.Errorf("Fail: got %v expected %v\n", res, expected)
-	}
+	require.Equal(t, expected, res)
 }
 
 func TestMedian_EvenLength(t *testing.T) {
 	us := []uint64{1, 4, 2, 4, 5, 6}
 	res, err := median(us)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	var expected uint64 = 4
-
-	if res != expected {
-		t.Errorf("Fail: got %v expected %v\n", res, expected)
-	}
-
+	require.Equal(t, expected, res)
 }
 
 func TestSlotOffset_Failing(t *testing.T) {
@@ -59,10 +48,7 @@ func TestSlotOffset_Failing(t *testing.T) {
 	var se uint64 = 1000000
 
 	_, err := slotOffset(st, se)
-	if err == nil {
-		t.Fatal("Fail: did not err for c>1")
-	}
-
+	require.NotNil(t, err)
 }
 
 func TestSlotOffset(t *testing.T) {
@@ -70,15 +56,10 @@ func TestSlotOffset(t *testing.T) {
 	var se uint64 = 1000001
 
 	res, err := slotOffset(st, se)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	var expected uint64 = 1
-
-	if res != expected {
-		t.Errorf("Fail: got %v expected %v\n", res, expected)
-	}
+	require.Equal(t, expected, res)
 }
 
 func addBlocksToState(t *testing.T, babeService *Service, depth int, blockState BlockState, startTime uint64) {
@@ -86,20 +67,14 @@ func addBlocksToState(t *testing.T, babeService *Service, depth int, blockState 
 	previousAT := startTime
 
 	for i := 1; i <= depth; i++ {
-
 		// create proof that we can authorize this block
 		babeService.epochData.threshold = maxThreshold
 		babeService.epochData.authorityIndex = 0
 		slotNumber := uint64(i)
 
 		outAndProof, err := babeService.runLottery(slotNumber)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if outAndProof == nil {
-			t.Fatal("proof was nil when over threshold")
-		}
+		require.NoError(t, err)
+		require.NotNil(t, outAndProof, "proof was nil when over threshold")
 
 		babeService.slotToProof[slotNumber] = outAndProof
 
@@ -111,18 +86,13 @@ func addBlocksToState(t *testing.T, babeService *Service, depth int, blockState 
 		}
 
 		predigest, err := babeService.buildBlockPreDigest(slot)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		pdEnc, err := predigest.Encode()
 		require.NoError(t, err)
 
 		block := &types.Block{
 			Header: &types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)),
-				Digest:     [][]byte{pdEnc},
+				Digest:     types.Digest{predigest},
 			},
 			Body: &types.Body{},
 		}
@@ -132,9 +102,7 @@ func addBlocksToState(t *testing.T, babeService *Service, depth int, blockState 
 		previousAT = arrivalTime
 
 		err = blockState.AddBlockWithArrivalTime(block, arrivalTime)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 	}
 }
 
@@ -143,15 +111,10 @@ func TestSlotTime(t *testing.T) {
 	addBlocksToState(t, babeService, 100, babeService.blockState, uint64(0))
 
 	res, err := babeService.slotTime(103, 20)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	expected := uint64(129)
-
-	if res != expected {
-		t.Errorf("Fail: got %v expected %v\n", res, expected)
-	}
+	require.Equal(t, expected, res)
 }
 
 func TestEstimateCurrentSlot(t *testing.T) {
@@ -162,13 +125,8 @@ func TestEstimateCurrentSlot(t *testing.T) {
 	slotNumber := uint64(17)
 
 	outAndProof, err := babeService.runLottery(slotNumber)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if outAndProof == nil {
-		t.Fatal("proof was nil when over threshold")
-	}
+	require.NoError(t, err)
+	require.NotNil(t, outAndProof, "proof was nil when over threshold")
 
 	babeService.slotToProof[slotNumber] = outAndProof
 
@@ -180,18 +138,13 @@ func TestEstimateCurrentSlot(t *testing.T) {
 	}
 
 	predigest, err := babeService.buildBlockPreDigest(slot)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	pdEnc, err := predigest.Encode()
 	require.NoError(t, err)
 
 	block := &types.Block{
 		Header: &types.Header{
 			ParentHash: genesisHeader.Hash(),
 			Number:     big.NewInt(int64(1)),
-			Digest:     [][]byte{pdEnc},
+			Digest:     types.Digest{predigest},
 		},
 		Body: &types.Body{},
 	}
@@ -199,18 +152,11 @@ func TestEstimateCurrentSlot(t *testing.T) {
 	arrivalTime := uint64(time.Now().Unix()) - slot.duration
 
 	err = babeService.blockState.AddBlockWithArrivalTime(block, arrivalTime)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	estimatedSlot, err := babeService.estimateCurrentSlot()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if estimatedSlot != slotNumber+1 {
-		t.Fatalf("Fail: got %d expected %d", estimatedSlot, slotNumber+1)
-	}
+	require.NoError(t, err)
+	require.Equal(t, slotNumber+1, estimatedSlot)
 }
 
 func TestGetCurrentSlot(t *testing.T) {
@@ -220,9 +166,7 @@ func TestGetCurrentSlot(t *testing.T) {
 	addBlocksToState(t, babeService, 100, babeService.blockState, uint64(time.Now().Unix())-(babeService.slotDuration/10))
 
 	res, err := babeService.getCurrentSlot()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	expected := uint64(162)
 

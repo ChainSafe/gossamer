@@ -299,7 +299,6 @@ func TestGetAuthorityIndex(t *testing.T) {
 
 	bs := &Service{
 		keypair:   kpA,
-		logger:    log.New("BABE"),
 		authority: true,
 	}
 
@@ -309,7 +308,6 @@ func TestGetAuthorityIndex(t *testing.T) {
 
 	bs = &Service{
 		keypair:   kpB,
-		logger:    log.New("BABE"),
 		authority: true,
 	}
 

@@ -42,6 +42,11 @@ type BlockAnnounceMessage struct {
 	Digest         types.Digest // any additional block info eg. logs, seal
 }
 
+// SubProtocol returns the block-announces sub-protocol
+func (bm *BlockAnnounceMessage) SubProtocol() string {
+	return blockAnnounceID
+}
+
 // Type returns BlockAnnounceMsgType
 func (bm *BlockAnnounceMessage) Type() byte {
 	return BlockAnnounceMsgType
@@ -118,6 +123,11 @@ type BlockAnnounceHandshake struct {
 	BestBlockNumber uint32
 	BestBlockHash   common.Hash
 	GenesisHash     common.Hash
+}
+
+// SubProtocol returns the block-announces sub-protocol
+func (hs *BlockAnnounceHandshake) SubProtocol() string {
+	return blockAnnounceID
 }
 
 // String formats a BlockAnnounceHandshake as a string

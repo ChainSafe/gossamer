@@ -347,9 +347,7 @@ var reverseByteTests = []reverseByteTest{
 func TestReverseBytes(t *testing.T) {
 	for _, test := range reverseByteTests {
 		output := reverseBytes(test.val)
-		if !bytes.Equal(output, test.output) {
-			t.Errorf("Fail: got %d expected %d", output, test.output)
-		}
+		require.Equal(t, test.output, output)
 	}
 }
 

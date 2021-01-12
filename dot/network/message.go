@@ -40,6 +40,7 @@ const (
 
 // Message must be implemented by all network messages
 type Message interface {
+	SubProtocol() string
 	Encode() ([]byte, error)
 	Decode([]byte) error
 	String() string
@@ -71,6 +72,11 @@ type BlockRequestMessage struct {
 	EndBlockHash  *optional.Hash
 	Direction     byte // 0 = ascending, 1 = descending
 	Max           *optional.Uint32
+}
+
+// SubProtocol returns the sync sub-protocol
+func (bm *BlockRequestMessage) SubProtocol() string {
+	return syncID
 }
 
 // String formats a BlockRequestMessage as a string
@@ -177,6 +183,11 @@ var _ Message = &BlockResponseMessage{}
 // BlockResponseMessage is sent in response to a BlockRequestMessage
 type BlockResponseMessage struct {
 	BlockData []*types.BlockData
+}
+
+// SubProtocol returns the sync sub-protocol
+func (bm *BlockResponseMessage) SubProtocol() string {
+	return syncID
 }
 
 // String formats a BlockResponseMessage as a string
@@ -332,6 +343,11 @@ type ConsensusMessage struct {
 	ConsensusEngineID types.ConsensusEngineID
 	// Message payload.
 	Data []byte
+}
+
+// SubProtocol returns the empty, since consensus message sub-protocol is determined by the package using it
+func (cm *ConsensusMessage) SubProtocol() string {
+	return ""
 }
 
 // Type returns ConsensusMsgType

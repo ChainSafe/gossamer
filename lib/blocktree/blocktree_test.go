@@ -18,6 +18,7 @@ package blocktree
 
 import (
 	"bytes"
+	"io"
 	"math/big"
 	"reflect"
 	"testing"
@@ -33,6 +34,28 @@ var zeroHash, _ = common.HexToHash("0x00")
 var testHeader = &types.Header{
 	ParentHash: zeroHash,
 	Number:     big.NewInt(0),
+}
+
+type mockDigestItem struct {
+	i int
+}
+
+func newMockDigestItem(i int) *mockDigestItem {
+	return &mockDigestItem{
+		i: i,
+	}
+}
+
+func (d *mockDigestItem) Type() byte {
+	return byte(d.i)
+}
+
+func (d *mockDigestItem) Encode() ([]byte, error) {
+	return []byte{byte(d.i)}, nil
+}
+
+func (d *mockDigestItem) Decode(_ io.Reader) error {
+	return nil
 }
 
 func newBlockTreeFromNode(head *node, db database.Database) *BlockTree {
@@ -268,7 +291,7 @@ func TestBlockTree_GetAllBlocksAtDepth(t *testing.T) {
 			Header: &types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)),
-				Digest:     [][]byte{{9}},
+				Digest:     types.Digest{newMockDigestItem(9)},
 			},
 			Body: &types.Body{},
 		}
@@ -290,7 +313,7 @@ func TestBlockTree_GetAllBlocksAtDepth(t *testing.T) {
 			Header: &types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)),
-				Digest:     [][]byte{{7}},
+				Digest:     types.Digest{newMockDigestItem(7)},
 			},
 			Body: &types.Body{},
 		}
