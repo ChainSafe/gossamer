@@ -50,7 +50,6 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 			return nil
 		}
 
-		logger.Info("sending BlockResponse to syncer")
 		req := s.syncer.HandleBlockResponse(resp)
 		if req != nil {
 			s.syncing[peer] = struct{}{}

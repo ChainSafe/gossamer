@@ -27,12 +27,15 @@ import (
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
+// Digest represents the block digest. It consists of digest items.
 type Digest []DigestItem
 
+// NewEmptyDigest returns an empty digest
 func NewEmptyDigest() Digest {
 	return []DigestItem{}
 }
 
+// Encode returns the SCALE encoded digest
 func (d Digest) Encode() ([]byte, error) {
 	enc, err := scale.Encode(big.NewInt(int64(len(d))))
 	if err != nil {
@@ -51,10 +54,16 @@ func (d Digest) Encode() ([]byte, error) {
 	return enc, nil
 }
 
+// Decode decodes a SCALE encoded digest
 func (d Digest) Decode(r io.Reader) error {
 	var err error
-	d, err = DecodeDigest(r)
-	return err
+	digest, err := DecodeDigest(r)
+	if err != nil {
+		return err
+	}
+	d = make([]DigestItem, len(digest))
+	copy(d[:], digest[:])
+	return nil
 }
 
 // ConsensusEngineID is a 4-character identifier of the consensus engine that produced the digest.
@@ -92,13 +101,8 @@ var ConsensusDigestType = byte(4)
 // SealDigestType is the byte representation of SealDigest
 var SealDigestType = byte(5)
 
+// DecodeDigest decodes the input into a Digest
 func DecodeDigest(r io.Reader) (Digest, error) {
-	// r := &bytes.Buffer{}
-	// _, err := r.Write(in)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	sd := scale.Decoder{Reader: r}
 
 	num, err := sd.Decode(big.NewInt(0))
@@ -150,6 +154,7 @@ func DecodeDigestItem(r io.Reader) (DigestItem, error) {
 // DigestItem can be of one of four types of digest: ChangesTrieRootDigest, PreRuntimeDigest, ConsensusDigest, or SealDigest.
 // see https://github.com/paritytech/substrate/blob/f548309478da3935f72567c2abc2eceec3978e9f/primitives/runtime/src/generic/digest.rs#L77
 type DigestItem interface {
+	String() string
 	Type() byte
 	Encode() ([]byte, error)
 	Decode(io.Reader) error // Decode assumes the type byte (first byte) has been removed from the encoding.
@@ -158,6 +163,11 @@ type DigestItem interface {
 // ChangesTrieRootDigest contains the root of the changes trie at a given block, if the runtime supports it.
 type ChangesTrieRootDigest struct {
 	Hash common.Hash
+}
+
+// String returns the digest as a string
+func (d *ChangesTrieRootDigest) String() string {
+	return fmt.Sprintf("ChangesTrieRootDigest Hash=%s", d.Hash)
 }
 
 // Type returns the type
@@ -187,6 +197,7 @@ type PreRuntimeDigest struct {
 	Data              []byte
 }
 
+// NewBABEPreRuntimeDigest returns a PreRuntimeDigest with the BABE consensus ID
 func NewBABEPreRuntimeDigest(data []byte) *PreRuntimeDigest {
 	return &PreRuntimeDigest{
 		ConsensusEngineID: BabeEngineID,
@@ -194,6 +205,7 @@ func NewBABEPreRuntimeDigest(data []byte) *PreRuntimeDigest {
 	}
 }
 
+// String returns the digest as a string
 func (d *PreRuntimeDigest) String() string {
 	return fmt.Sprintf("PreRuntimeDigest ConsensusEngineID=%s Data=0x%x", d.ConsensusEngineID, d.Data)
 }
@@ -242,6 +254,11 @@ type ConsensusDigest struct {
 	Data              []byte
 }
 
+// String returns the digest as a string
+func (d *ConsensusDigest) String() string {
+	return fmt.Sprintf("ConsensusDigest ConsensusEngineID=%s Data=0x%x", d.ConsensusEngineID, d.Data)
+}
+
 // Type returns the ConsensusDigest type
 func (d *ConsensusDigest) Type() byte {
 	return ConsensusDigestType
@@ -288,6 +305,11 @@ func (d *ConsensusDigest) DataType() byte {
 type SealDigest struct {
 	ConsensusEngineID ConsensusEngineID
 	Data              []byte
+}
+
+// String returns the digest as a string
+func (d *SealDigest) String() string {
+	return fmt.Sprintf("SealDigest ConsensusEngineID=%s Data=0x%x", d.ConsensusEngineID, d.Data)
 }
 
 // Type will return SealDigest type

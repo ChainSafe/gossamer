@@ -193,7 +193,7 @@ func (bm *BlockResponseMessage) SubProtocol() string {
 // String formats a BlockResponseMessage as a string
 func (bm *BlockResponseMessage) String() string {
 	if bm == nil {
-		return fmt.Sprintf("BlockResponseMessage=nil")
+		return "BlockResponseMessage=nil"
 	}
 
 	return fmt.Sprintf("BlockResponseMessage BlockData=%v", bm.BlockData)

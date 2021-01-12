@@ -266,6 +266,7 @@ func (x *Hash) Set(exists bool, value common.Hash) {
 	x.value = value
 }
 
+// Digest is the interface implemented by the block digest
 type Digest interface {
 	Encode() ([]byte, error)
 	Decode(io.Reader) error // Decode assumes the type byte (first byte) has been removed from the encoding.
@@ -321,7 +322,7 @@ func (x *Header) String() string {
 	if !x.exists || x.value == nil {
 		return none
 	}
-	return fmt.Sprintf("%s", x.value)
+	return x.value.String()
 }
 
 // Set sets the exists and value fields.

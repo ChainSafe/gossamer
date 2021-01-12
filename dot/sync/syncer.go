@@ -317,7 +317,7 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 				return 0, 0, err
 			}
 
-			s.logger.Info("processing block", "header", header)
+			s.logger.Trace("processing block", "header", header)
 
 			err = s.handleHeader(header)
 			if err != nil {
@@ -373,9 +373,7 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 
 // handleHeader handles headers included in BlockResponses
 func (s *Service) handleHeader(header *types.Header) error {
-	// TODO: BABE header format changed?
-	return nil
-
+	// TODO: update BABE pre-runtime digest types
 	err := s.verifier.VerifyBlock(header)
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrInvalidBlock, err.Error())

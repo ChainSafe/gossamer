@@ -446,7 +446,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		}
 
 		if tot != length {
-			logger.Error("Failed to read entire message", "length", length, "read" /*n*/, tot)
+			logger.Debug("Failed to read entire message", "length", length, "read" /*n*/, tot)
 			continue
 		}
 
@@ -457,7 +457,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		// decode message based on message type
 		msg, err := decoder(msgBytes[:tot], peer)
 		if err != nil {
-			logger.Error("Failed to decode message from peer", "peer", peer, "err", err)
+			logger.Debug("Failed to decode message from peer", "peer", peer, "err", err)
 			continue
 		}
 

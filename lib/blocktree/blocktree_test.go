@@ -46,6 +46,10 @@ func newMockDigestItem(i int) *mockDigestItem {
 	}
 }
 
+func (d *mockDigestItem) String() string {
+	return ""
+}
+
 func (d *mockDigestItem) Type() byte {
 	return byte(d.i)
 }
