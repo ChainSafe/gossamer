@@ -25,6 +25,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
 	"github.com/stretchr/testify/require"
@@ -178,7 +179,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 	}
 }
 
-func generateBlockWithRandomTrie(t *testing.T, serv *Service, parent *common.Hash) (*types.Block, *TrieState) {
+func generateBlockWithRandomTrie(t *testing.T, serv *Service, parent *common.Hash) (*types.Block, *runtime.TrieState) {
 	trieState, err := serv.Storage.TrieState(&trie.EmptyHash)
 	require.NoError(t, err)
 

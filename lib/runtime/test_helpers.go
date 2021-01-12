@@ -17,18 +17,18 @@
 package runtime
 
 import (
-	"bytes"
-	"encoding/binary"
+	//"bytes"
+	//"encoding/binary"
 	"io"
-	"io/ioutil"
+	//"io/ioutil"
 	"net/http"
 	"os"
 	"path"
-	"testing"
+	//"testing"
 
-	"github.com/ChainSafe/chaindb"
+	//"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	//"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	ma "github.com/multiformats/go-multiaddr"
@@ -93,212 +93,226 @@ func GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL string) (n int64, err er
 	return n, err
 }
 
-// TestRuntimeStorage implements the Storage interface
-type TestRuntimeStorage struct {
-	db   chaindb.Database
-	trie *trie.Trie
-}
+// // TestRuntimeStorage implements the Storage interface
+// type TestRuntimeStorage struct {
+// 	st *state.TrieState
+// }
 
-// NewTestRuntimeStorage returns an empty, initialized TestRuntimeStorage
-func NewTestRuntimeStorage(t *testing.T, tr *trie.Trie) *TestRuntimeStorage {
-	if tr == nil {
-		tr = trie.NewEmptyTrie()
-	}
+// // NewTestRuntimeStorage returns an empty, initialized TestRuntimeStorage
+// func NewTestRuntimeStorage(t *testing.T, tr *trie.Trie) *TestRuntimeStorage {
+// 	if tr == nil {
+// 		tr = trie.NewEmptyTrie()
+// 	}
 
-	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
-	db, err := chaindb.NewBadgerDB(testDatadirPath)
-	if err != nil {
-		t.Fatal("failed to create TestRuntimeStorage database")
-	}
+// 	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
+// 	db, err := chaindb.NewBadgerDB(testDatadirPath)
+// 	if err != nil {
+// 		t.Fatal("failed to create TestRuntimeStorage database")
+// 	}
 
-	t.Cleanup(func() {
-		_ = db.Close()
-		_ = os.RemoveAll(testDatadirPath)
-	})
+// 	t.Cleanup(func() {
+// 		_ = db.Close()
+// 		_ = os.RemoveAll(testDatadirPath)
+// 	})
 
-	return &TestRuntimeStorage{
-		db:   db,
-		trie: tr,
-	}
-}
+// 	st := state.NewTrieState(db, tr)
 
-// Set ...
-func (trs *TestRuntimeStorage) Set(key []byte, value []byte) error {
-	err := trs.db.Put(key, value)
-	if err != nil {
-		return err
-	}
+// 	return &TestRuntimeStorage{
+// 		st: st,
+// 	}
+// }
 
-	return trs.trie.Put(key, value)
-}
+// // Set ...
+// func (trs *TestRuntimeStorage) Set(key []byte, value []byte) error {
+// 	// err := trs.db.Put(key, value)
+// 	// if err != nil {
+// 	// 	return err
+// 	// }
 
-// Get ...
-func (trs *TestRuntimeStorage) Get(key []byte) ([]byte, error) {
-	if has, _ := trs.db.Has(key); has {
-		return trs.db.Get(key)
-	}
+// 	// return trs.trie.Put(key, value)
+// 	return trs.st.Set(key, value)
+// }
 
-	return trs.trie.Get(key)
-}
+// // Get ...
+// func (trs *TestRuntimeStorage) Get(key []byte) ([]byte, error) {
+// 	// if has, _ := trs.db.Has(key); has {
+// 	// 	return trs.db.Get(key)
+// 	// }
 
-// Root ...
-func (trs *TestRuntimeStorage) Root() (common.Hash, error) {
-	tt := trie.NewEmptyTrie()
-	iter := trs.db.NewIterator()
+// 	// return trs.trie.Get(key)
+// 	return trs.st.Get(key)
+// }
 
-	for iter.Next() {
-		err := tt.Put(iter.Key(), iter.Value())
-		if err != nil {
-			return common.Hash{}, err
-		}
-	}
+// // Root ...
+// func (trs *TestRuntimeStorage) Root() (common.Hash, error) {
+// 	// tt := trie.NewEmptyTrie()
+// 	// iter := trs.db.NewIterator()
 
-	iter.Release()
-	return tt.Hash()
-}
+// 	// for iter.Next() {
+// 	// 	err := tt.Put(iter.Key(), iter.Value())
+// 	// 	if err != nil {
+// 	// 		return common.Hash{}, err
+// 	// 	}
+// 	// }
 
-// SetChild ...
-func (trs *TestRuntimeStorage) SetChild(keyToChild []byte, child *trie.Trie) error {
-	return trs.trie.PutChild(keyToChild, child)
-}
+// 	// iter.Release()
+// 	// return tt.Hash()
+// 	return trs.st.Root()
+// }
 
-// SetChildStorage ...
-func (trs *TestRuntimeStorage) SetChildStorage(keyToChild, key, value []byte) error {
-	return trs.trie.PutIntoChild(keyToChild, key, value)
-}
+// // SetChild ...
+// func (trs *TestRuntimeStorage) SetChild(keyToChild []byte, child *trie.Trie) error {
+// 	//return trs.trie.PutChild(keyToChild, child)
+// 	return trs.st.SetChild(keyToChild, child)
+// }
 
-// GetChildStorage ...
-func (trs *TestRuntimeStorage) GetChildStorage(keyToChild, key []byte) ([]byte, error) {
-	return trs.trie.GetFromChild(keyToChild, key)
-}
+// // SetChildStorage ...
+// func (trs *TestRuntimeStorage) SetChildStorage(keyToChild, key, value []byte) error {
+// 	//return trs.trie.PutIntoChild(keyToChild, key, value)
+// 	return trs.st.PutIntoChild(keyToChild, key, value)
+// }
 
-// Delete ...
-func (trs *TestRuntimeStorage) Delete(key []byte) error {
-	err := trs.db.Del(key)
-	if err != nil {
-		return err
-	}
+// // GetChildStorage ...
+// func (trs *TestRuntimeStorage) GetChildStorage(keyToChild, key []byte) ([]byte, error) {
+// 	//return trs.trie.GetFromChild(keyToChild, key)
+// 	return trs.st.GetChildStorage(keyToChild, key)
+// }
 
-	return trs.trie.Delete(key)
-}
+// // Delete ...
+// func (trs *TestRuntimeStorage) Delete(key []byte) error {
+// 	// err := trs.db.Del(key)
+// 	// if err != nil {
+// 	// 	return err
+// 	// }
 
-// Entries ...
-func (trs *TestRuntimeStorage) Entries() map[string][]byte {
-	iter := trs.db.NewIterator()
+// 	// return trs.trie.Delete(key)
+// 	return trs.st.Delete(key)
+// }
 
-	entries := make(map[string][]byte)
-	for iter.Next() {
-		entries[string(iter.Key())] = iter.Value()
-	}
+// // Entries ...
+// func (trs *TestRuntimeStorage) Entries() map[string][]byte {
+// 	// iter := trs.db.NewIterator()
 
-	iter.Release()
-	return entries
-}
+// 	// entries := make(map[string][]byte)
+// 	// for iter.Next() {
+// 	// 	entries[string(iter.Key())] = iter.Value()
+// 	// }
 
-// SetBalance ...
-func (trs *TestRuntimeStorage) SetBalance(key [32]byte, balance uint64) error {
-	skey, err := common.BalanceKey(key)
-	if err != nil {
-		return err
-	}
+// 	// iter.Release()
+// 	// return entries
+// 	return trs.st.Entries(key)
+// }
 
-	bb := make([]byte, 8)
-	binary.LittleEndian.PutUint64(bb, balance)
+// // // SetBalance ...
+// // func (trs *TestRuntimeStorage) SetBalance(key [32]byte, balance uint64) error {
+// // 	skey, err := common.BalanceKey(key)
+// // 	if err != nil {
+// // 		return err
+// // 	}
 
-	return trs.Set(skey, bb)
-}
+// // 	bb := make([]byte, 8)
+// // 	binary.LittleEndian.PutUint64(bb, balance)
 
-// GetBalance ...
-func (trs *TestRuntimeStorage) GetBalance(key [32]byte) (uint64, error) {
-	skey, err := common.BalanceKey(key)
-	if err != nil {
-		return 0, err
-	}
+// // 	return trs.Set(skey, bb)
+// // }
 
-	bal, err := trs.Get(skey)
-	if err != nil {
-		return 0, err
-	}
+// // // GetBalance ...
+// // func (trs *TestRuntimeStorage) GetBalance(key [32]byte) (uint64, error) {
+// // 	skey, err := common.BalanceKey(key)
+// // 	if err != nil {
+// // 		return 0, err
+// // 	}
 
-	return binary.LittleEndian.Uint64(bal), nil
-}
+// // 	bal, err := trs.Get(skey)
+// // 	if err != nil {
+// // 		return 0, err
+// // 	}
 
-// DeleteChildStorage ...
-func (trs *TestRuntimeStorage) DeleteChildStorage(key []byte) error {
-	return trs.trie.DeleteFromChild(key)
-}
+// // 	return binary.LittleEndian.Uint64(bal), nil
+// // }
 
-// ClearChildStorage ...
-func (trs *TestRuntimeStorage) ClearChildStorage(keyToChild, key []byte) error {
-	return trs.trie.ClearFromChild(keyToChild, key)
-}
+// // DeleteChildStorage ...
+// func (trs *TestRuntimeStorage) DeleteChildStorage(key []byte) error {
+// 	//return trs.trie.DeleteFromChild(key)
+// 	return trs.st.DeleteFromChild(key)
+// }
 
-// NextKey ...
-func (trs *TestRuntimeStorage) NextKey(in []byte) []byte {
-	return trs.trie.NextKey(in)
-}
+// // ClearChildStorage ...
+// func (trs *TestRuntimeStorage) ClearChildStorage(keyToChild, key []byte) error {
+// 	//return trs.trie.ClearFromChild(keyToChild, key)
+// 	return trs.st.ClearFromChild(keyToChild, key)
+// }
 
-// ClearPrefixInChild ...
-func (trs *TestRuntimeStorage) ClearPrefixInChild(keyToChild, prefix []byte) error {
-	child, err := trs.GetChild(keyToChild)
-	if err != nil {
-		return err
-	}
-	if child == nil {
-		return nil
-	}
-	child.ClearPrefix(prefix)
-	return nil
-}
+// // NextKey ...
+// func (trs *TestRuntimeStorage) NextKey(in []byte) []byte {
+// 	return trs.st.NextKey(in)
+// }
 
-// GetChildNextKey ...
-func (trs *TestRuntimeStorage) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
-	child, err := trs.GetChild(keyToChild)
-	if err != nil {
-		return nil, err
-	}
-	if child == nil {
-		return nil, nil
-	}
-	return child.NextKey(key), nil
-}
+// // ClearPrefixInChild ...
+// func (trs *TestRuntimeStorage) ClearPrefixInChild(keyToChild, prefix []byte) error {
+// 	// child, err := trs.GetChild(keyToChild)
+// 	// if err != nil {
+// 	// 	return err
+// 	// }
+// 	// if child == nil {
+// 	// 	return nil
+// 	// }
+// 	// child.ClearPrefix(prefix)
+// 	// return nil
+// 	return trs.st.ClearPrefixInChild(keyToChild, prefix)
+// }
 
-// GetChild ...
-func (trs *TestRuntimeStorage) GetChild(keyToChild []byte) (*trie.Trie, error) {
-	return trs.trie.GetChild(keyToChild)
-}
+// // GetChildNextKey ...
+// func (trs *TestRuntimeStorage) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
+// 	// child, err := trs.GetChild(keyToChild)
+// 	// if err != nil {
+// 	// 	return nil, err
+// 	// }
+// 	// if child == nil {
+// 	// 	return nil, nil
+// 	// }
+// 	// return child.NextKey(key), nil
+// 	return trs.st.GetChildNextKey(keyToChild, key)
+// }
 
-// ClearPrefix ...
-func (trs *TestRuntimeStorage) ClearPrefix(prefix []byte) {
-	trs.trie.ClearPrefix(prefix)
+// // GetChild ...
+// func (trs *TestRuntimeStorage) GetChild(keyToChild []byte) (*trie.Trie, error) {
+// 	//return trs.trie.GetChild(keyToChild)
+// 	return trs.st.GetChild(keyToChild)
+// }
 
-	iter := trs.db.NewIterator()
+// // ClearPrefix ...
+// func (trs *TestRuntimeStorage) ClearPrefix(prefix []byte) {
+// 	// trs.trie.ClearPrefix(prefix)
 
-	for iter.Next() {
-		key := iter.Key()
-		if len(key) < len(prefix) {
-			continue
-		}
+// 	// iter := trs.db.NewIterator()
 
-		if bytes.Equal(key[:len(prefix)], prefix) {
-			_ = trs.Delete(key)
-		}
-	}
+// 	// for iter.Next() {
+// 	// 	key := iter.Key()
+// 	// 	if len(key) < len(prefix) {
+// 	// 		continue
+// 	// 	}
 
-	iter.Release()
-}
+// 	// 	if bytes.Equal(key[:len(prefix)], prefix) {
+// 	// 		_ = trs.Delete(key)
+// 	// 	}
+// 	// }
 
-// GetKeysWithPrefixFromChild ...
-func (trs *TestRuntimeStorage) GetKeysWithPrefixFromChild(keyToChild, prefix []byte) ([][]byte, error) {
-	child, err := trs.GetChild(keyToChild)
-	if err != nil {
-		return nil, err
-	}
-	if child == nil {
-		return nil, nil
-	}
-	return child.GetKeysWithPrefix(prefix), nil
-}
+// 	// iter.Release()
+// 	return trs.st.ClearPrefix(prefix)
+// }
+
+// // GetKeysWithPrefixFromChild ...
+// func (trs *TestRuntimeStorage) GetKeysWithPrefixFromChild(keyToChild, prefix []byte) ([][]byte, error) {
+// 	child, err := trs.st.GetChild(keyToChild)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	if child == nil {
+// 		return nil, nil
+// 	}
+// 	return child.GetKeysWithPrefix(prefix), nil
+// }
 
 // TestRuntimeNetwork ...
 type TestRuntimeNetwork struct {

@@ -24,6 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	log "github.com/ChainSafe/log15"
@@ -111,7 +112,7 @@ func setupConfig(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Lvl,
 	_, err := runtime.GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
 	require.Nil(t, err, "Fail: could not get runtime", "targetRuntime", targetRuntime)
 
-	s := runtime.NewTestRuntimeStorage(t, tt)
+	s := storage.NewTestTrieState(t, tt)
 
 	fp, err := filepath.Abs(testRuntimeFilePath)
 	require.Nil(t, err, "could not create testRuntimeFilePath", "targetRuntime", targetRuntime)

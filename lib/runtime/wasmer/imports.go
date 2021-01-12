@@ -1130,6 +1130,12 @@ func ext_storage_clear_prefix_version_1(context unsafe.Pointer, prefixSpan C.int
 	}
 
 	storage.ClearPrefix(prefix)
+
+	// sanity check
+	next := storage.NextKey(prefix)
+	if len(next) >= len(prefix) && bytes.Equal(prefix, next[:len(prefix)]) {
+		panic("did not clear prefix")
+	}
 }
 
 //export ext_storage_exists_version_1
@@ -1216,6 +1222,11 @@ func ext_storage_read_version_1(context unsafe.Pointer, keySpan, valueOut C.int6
 
 	logger.Trace("[ext_storage_get_version_1]", "value", value)
 	if value == nil {
+		ret, _ := toWasmMemoryOptional(instanceContext, []byte{})
+		return C.int64_t(ret)
+	}
+
+	if int(offset) > len(value) {
 		ret, _ := toWasmMemoryOptional(instanceContext, []byte{})
 		return C.int64_t(ret)
 	}

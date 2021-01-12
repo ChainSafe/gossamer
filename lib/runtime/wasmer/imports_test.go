@@ -24,6 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	log "github.com/ChainSafe/log15"
@@ -171,6 +172,31 @@ func Test_ext_storage_clear_version_1(t *testing.T) {
 	val, err := inst.inst.ctx.Storage.Get(testkey)
 	require.NoError(t, err)
 	require.Nil(t, val)
+}
+
+func Test_ext_storage_clear_prefix_version_1_hostAPI(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("static")
+	err := inst.inst.ctx.Storage.Set(testkey, []byte("Inverse"))
+	require.NoError(t, err)
+	testkey2 := []byte("even-keeled")
+	err = inst.inst.ctx.Storage.Set(testkey2, []byte("Future-proofed"))
+	require.NoError(t, err)
+
+	enc, err := scale.Encode(testkey[:3])
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_storage_clear_prefix_version_1", enc)
+	require.NoError(t, err)
+
+	val, err := inst.inst.ctx.Storage.Get(testkey)
+	require.NoError(t, err)
+	require.Nil(t, val)
+
+	val, err = inst.inst.ctx.Storage.Get(testkey2)
+	require.NoError(t, err)
+	require.NotNil(t, val)
 }
 
 func Test_ext_storage_clear_prefix_version_1(t *testing.T) {
@@ -419,7 +445,7 @@ func Test_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {
 	}
 
 	// Confirm if value is set
-	keys, err := inst.inst.ctx.Storage.(*runtime.TestRuntimeStorage).GetKeysWithPrefixFromChild(testChildKey, prefix)
+	keys, err := inst.inst.ctx.Storage.(*storage.TrieState).GetKeysWithPrefixFromChild(testChildKey, prefix)
 	require.NoError(t, err)
 	require.Equal(t, 3, len(keys))
 
@@ -432,7 +458,7 @@ func Test_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_default_child_storage_clear_prefix_version_1", append(encChildKey, encPrefix...))
 	require.NoError(t, err)
 
-	keys, err = inst.inst.ctx.Storage.(*runtime.TestRuntimeStorage).GetKeysWithPrefixFromChild(testChildKey, prefix)
+	keys, err = inst.inst.ctx.Storage.(*storage.TrieState).GetKeysWithPrefixFromChild(testChildKey, prefix)
 	require.NoError(t, err)
 	require.Equal(t, 0, len(keys))
 }
@@ -786,7 +812,7 @@ func TestStartTransaction_ext_default_child_storage_clear_prefix_version_1(t *te
 	}
 
 	// Confirm if value is set
-	keys, err := inst.inst.ctx.Storage.(*runtime.TestRuntimeStorage).GetKeysWithPrefixFromChild(testChildKey, prefix)
+	keys, err := inst.inst.ctx.Storage.(*storage.TrieState).GetKeysWithPrefixFromChild(testChildKey, prefix)
 	require.NoError(t, err)
 	require.Equal(t, 3, len(keys))
 
@@ -799,7 +825,7 @@ func TestStartTransaction_ext_default_child_storage_clear_prefix_version_1(t *te
 	_, err = inst.Exec("rtm_ext_default_child_storage_clear_prefix_version_1", append(encChildKey, encPrefix...))
 	require.NoError(t, err)
 
-	keys, err = inst.inst.ctx.Storage.(*runtime.TestRuntimeStorage).GetKeysWithPrefixFromChild(testChildKey, prefix)
+	keys, err = inst.inst.ctx.Storage.(*storage.TrieState).GetKeysWithPrefixFromChild(testChildKey, prefix)
 	require.NoError(t, err)
 	require.Equal(t, 3, len(keys))
 

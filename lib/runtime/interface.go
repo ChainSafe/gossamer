@@ -75,8 +75,8 @@ type Storage interface {
 	GetChildStorage(keyToChild, key []byte) ([]byte, error)
 	Delete(key []byte) error
 	Entries() map[string][]byte
-	SetBalance(key [32]byte, balance uint64) error
-	GetBalance(key [32]byte) (uint64, error)
+	// SetBalance(key [32]byte, balance uint64) error
+	// GetBalance(key [32]byte) (uint64, error)
 	DeleteChildStorage(key []byte) error
 	ClearChildStorage(keyToChild, key []byte) error
 	NextKey([]byte) []byte
