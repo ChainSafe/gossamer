@@ -1,6 +1,6 @@
 {
-  "name": "ksmcc",
-  "id": "ksmcc",
+  "name": "Kusama",
+  "id": "ksmcc3",
   "bootNodes": [
     "/dns4/p2p.cc3-0.kusama.network/tcp/30100/p2p/12D3KooWDgtynm4S9M3m6ZZhXYu2RrWKdvkCSScc25xKDVSg1Sjd",
     "/dns4/p2p.cc3-1.kusama.network/tcp/30100/p2p/12D3KooWNpGriWPmf621Lza9UWU9eLLBdCFaErf6d4HSK7Bcqnv4",
@@ -12,7 +12,7 @@
     "/dns4/kusama-bootnode-0.paritytech.net/tcp/30334/ws/p2p/12D3KooWSueCPH3puP2PcvqPJdNaDNF3jMZjtJtDiSy35pWrbt5h",
     "/dns4/kusama-bootnode-1.paritytech.net/tcp/30333/p2p/12D3KooWQKqane1SqWJNWMQkbia9qiMWXkcHtAdfW5eVF8hbwEDw"
   ],
-  "protocolId": "/gossamer/ksmcc/0",
+  "protocolId": "ksmcc3",
   "genesis": {
     "raw": {
      "top": {

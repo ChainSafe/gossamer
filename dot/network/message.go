@@ -18,13 +18,17 @@ package network
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
-	"io"
 
+	pb "github.com/ChainSafe/gossamer/dot/network/proto"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
+	"github.com/ChainSafe/gossamer/lib/scale"
+
+	"google.golang.org/protobuf/proto"
 )
 
 // Message types for notifications protocol messages. Used internally to map message to protocol.
@@ -37,7 +41,7 @@ const (
 // Message must be implemented by all network messages
 type Message interface {
 	Encode() ([]byte, error)
-	Decode(io.Reader) error
+	Decode([]byte) error
 	String() string
 }
 
@@ -71,7 +75,7 @@ type BlockRequestMessage struct {
 
 // String formats a BlockRequestMessage as a string
 func (bm *BlockRequestMessage) String() string {
-	return fmt.Sprintf("BlockRequestMessage RequestedData=%d StartingBlock=0x%x EndBlockHash=0x%s Direction=%d Max=%s",
+	return fmt.Sprintf("BlockRequestMessage RequestedData=%d StartingBlock=0x%x EndBlockHash=%s Direction=%d Max=%s",
 		bm.RequestedData,
 		bm.StartingBlock,
 		bm.EndBlockHash.String(),
@@ -79,90 +83,91 @@ func (bm *BlockRequestMessage) String() string {
 		bm.Max.String())
 }
 
-// Encode encodes a block request message using SCALE
+// Encode returns the protobuf encoded BlockRequestMessage
 func (bm *BlockRequestMessage) Encode() ([]byte, error) {
-	encMsg := []byte{bm.RequestedData}
+	var (
+		toBlock []byte
+		max     uint32
+	)
 
-	startingBlockArray, err := bm.StartingBlock.Encode()
-	if err != nil || len(startingBlockArray) == 0 {
-		return nil, fmt.Errorf("invalid BlockRequestMessage")
+	if bm.EndBlockHash.Exists() {
+		hash := bm.EndBlockHash.Value()
+		toBlock = hash[:]
 	}
-	encMsg = append(encMsg, startingBlockArray...)
 
-	if bm.EndBlockHash == nil || !bm.EndBlockHash.Exists() {
-		encMsg = append(encMsg, []byte{0, 0}...)
+	if bm.Max.Exists() {
+		max = bm.Max.Value()
+	}
+
+	msg := &pb.BlockRequest{
+		Fields:    uint32(bm.RequestedData),
+		ToBlock:   toBlock,
+		Direction: pb.Direction(bm.Direction),
+		MaxBlocks: max,
+	}
+
+	if bm.StartingBlock.IsHash() {
+		hash := bm.StartingBlock.Hash()
+		msg.FromBlock = &pb.BlockRequest_Hash{
+			Hash: hash[:],
+		}
+	} else if bm.StartingBlock.IsUint64() {
+		buf := make([]byte, 8)
+		binary.LittleEndian.PutUint64(buf, bm.StartingBlock.Uint64())
+		msg.FromBlock = &pb.BlockRequest_Number{
+			Number: buf,
+		}
 	} else {
-		val := bm.EndBlockHash.Value()
-		encMsg = append(encMsg, append([]byte{1}, val[:]...)...)
+		return nil, errors.New("invalid StartingBlock in messsage")
 	}
 
-	encMsg = append(encMsg, bm.Direction)
-
-	if !bm.Max.Exists() {
-		encMsg = append(encMsg, []byte{0, 0}...)
-	} else {
-		max := make([]byte, 4)
-		binary.LittleEndian.PutUint32(max, bm.Max.Value())
-		encMsg = append(encMsg, append([]byte{1}, max...)...)
-	}
-
-	return encMsg, nil
+	return proto.Marshal(msg)
 }
 
-// Decode the message into a BlockRequestMessage
-func (bm *BlockRequestMessage) Decode(r io.Reader) error {
-	var err error
-
-	bm.RequestedData, err = common.ReadByte(r)
+// Decode decodes the protobuf encoded input to a BlockRequestMessage
+func (bm *BlockRequestMessage) Decode(in []byte) error {
+	msg := &pb.BlockRequest{}
+	err := proto.Unmarshal(in, msg)
 	if err != nil {
 		return err
 	}
 
-	bm.StartingBlock = &variadic.Uint64OrHash{}
-	err = bm.StartingBlock.Decode(r)
+	var (
+		startingBlock *variadic.Uint64OrHash
+		endBlockHash  *optional.Hash
+		max           *optional.Uint32
+	)
+
+	switch from := msg.FromBlock.(type) {
+	case *pb.BlockRequest_Hash:
+		startingBlock, err = variadic.NewUint64OrHash(common.BytesToHash(from.Hash))
+	case *pb.BlockRequest_Number:
+		startingBlock, err = variadic.NewUint64OrHash(binary.LittleEndian.Uint64(from.Number))
+	default:
+		err = errors.New("invalid FromBlock")
+	}
+
 	if err != nil {
 		return err
 	}
 
-	// EndBlockHash is an optional type, if next byte is 0 it doesn't exist
-	endBlockHashExists, err := common.ReadByte(r)
-	if err != nil {
-		return err
-	}
-
-	// if endBlockHash was None, then just set Direction and Max
-	if endBlockHashExists == 0 {
-		bm.EndBlockHash = optional.NewHash(false, common.Hash{})
+	if len(msg.ToBlock) != 0 {
+		endBlockHash = optional.NewHash(true, common.BytesToHash(msg.ToBlock))
 	} else {
-		var endBlockHash common.Hash
-		endBlockHash, err = common.ReadHash(r)
-		if err != nil {
-			return err
-		}
-		bm.EndBlockHash = optional.NewHash(true, endBlockHash)
-	}
-	dir, err := common.ReadByte(r)
-	if err != nil {
-		return err
+		endBlockHash = optional.NewHash(false, common.Hash{})
 	}
 
-	bm.Direction = dir
-
-	// Max is an optional type, if next byte is 0 it doesn't exist
-	maxExists, err := common.ReadByte(r)
-	if err != nil {
-		return err
-	}
-
-	if maxExists == 0 {
-		bm.Max = optional.NewUint32(false, 0)
+	if msg.MaxBlocks != 0 {
+		max = optional.NewUint32(true, msg.MaxBlocks)
 	} else {
-		max, err := common.ReadUint32(r)
-		if err != nil {
-			return err
-		}
-		bm.Max = optional.NewUint32(true, max)
+		max = optional.NewUint32(false, 0)
 	}
+
+	bm.RequestedData = byte(msg.Fields)
+	bm.StartingBlock = startingBlock
+	bm.EndBlockHash = endBlockHash
+	bm.Direction = byte(msg.Direction)
+	bm.Max = max
 
 	return nil
 }
@@ -179,15 +184,140 @@ func (bm *BlockResponseMessage) String() string {
 	return fmt.Sprintf("BlockResponseMessage BlockData=%v", bm.BlockData)
 }
 
-// Encode encodes a block response message using SCALE
+// Encode returns the protobuf encoded BlockResponseMessage
 func (bm *BlockResponseMessage) Encode() ([]byte, error) {
-	return types.EncodeBlockDataArray(bm.BlockData)
+	var (
+		err error
+	)
+
+	msg := &pb.BlockResponse{
+		Blocks: make([]*pb.BlockData, len(bm.BlockData)),
+	}
+
+	for i, bd := range bm.BlockData {
+		msg.Blocks[i], err = blockDataToProtobuf(bd)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return proto.Marshal(msg)
 }
 
-// Decode the message into a BlockResponseMessage
-func (bm *BlockResponseMessage) Decode(r io.Reader) (err error) {
-	bm.BlockData, err = types.DecodeBlockDataArray(r)
-	return err
+// Decode decodes the protobuf encoded input to a BlockResponseMessage
+func (bm *BlockResponseMessage) Decode(in []byte) (err error) {
+	msg := &pb.BlockResponse{}
+	err = proto.Unmarshal(in, msg)
+	if err != nil {
+		return err
+	}
+
+	bm.BlockData = make([]*types.BlockData, len(msg.Blocks))
+
+	for i, bd := range msg.Blocks {
+		bm.BlockData[i], err = protobufToBlockData(bd)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// blockDataToProtobuf converts a gossamer BlockData to a protobuf-defined BlockData
+func blockDataToProtobuf(bd *types.BlockData) (*pb.BlockData, error) {
+	p := &pb.BlockData{
+		Hash: bd.Hash[:],
+	}
+
+	if bd.Header != nil && bd.Header.Exists() {
+		header, err := types.NewHeaderFromOptional(bd.Header)
+		if err != nil {
+			return nil, err
+		}
+
+		p.Header, err = header.Encode()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if bd.Body != nil && bd.Body.Exists() {
+		body := types.Body(bd.Body.Value())
+		exts, err := body.AsExtrinsics()
+		if err != nil {
+			return nil, err
+		}
+
+		p.Body = types.ExtrinsicsArrayToBytesArray(exts)
+	}
+
+	if bd.Receipt != nil && bd.Receipt.Exists() {
+		p.Receipt = bd.Receipt.Value()
+	}
+
+	if bd.MessageQueue != nil && bd.MessageQueue.Exists() {
+		p.MessageQueue = bd.MessageQueue.Value()
+	}
+
+	if bd.Justification != nil && bd.Justification.Exists() {
+		p.Justification = bd.Justification.Value()
+		if len(bd.Justification.Value()) == 0 {
+			p.IsEmptyJustification = true
+		}
+	}
+
+	return p, nil
+}
+
+func protobufToBlockData(pbd *pb.BlockData) (*types.BlockData, error) {
+	bd := &types.BlockData{
+		Hash: common.BytesToHash(pbd.Hash),
+	}
+
+	if pbd.Header != nil {
+		header, err := scale.Decode(pbd.Header, types.NewEmptyHeader())
+		if err != nil {
+			return nil, err
+		}
+
+		bd.Header = header.(*types.Header).AsOptional()
+	}
+
+	if pbd.Body != nil {
+		body, err := types.NewBodyFromBytes(pbd.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		bd.Body = body.AsOptional()
+	} else {
+		bd.Body = optional.NewBody(false, nil)
+	}
+
+	if pbd.Receipt != nil {
+		bd.Receipt = optional.NewBytes(true, pbd.Receipt)
+	} else {
+		bd.Receipt = optional.NewBytes(false, nil)
+	}
+
+	if pbd.MessageQueue != nil {
+		bd.MessageQueue = optional.NewBytes(true, pbd.MessageQueue)
+	} else {
+		bd.MessageQueue = optional.NewBytes(false, nil)
+	}
+
+	if pbd.Justification != nil {
+		bd.Justification = optional.NewBytes(true, pbd.Justification)
+	} else {
+		bd.Justification = optional.NewBytes(false, nil)
+	}
+
+	if pbd.Justification == nil && pbd.IsEmptyJustification {
+		bd.Justification = optional.NewBytes(true, []byte{})
+	}
+
+	return bd, nil
 }
 
 var _ NotificationsMessage = &ConsensusMessage{}
@@ -217,22 +347,13 @@ func (cm *ConsensusMessage) Encode() ([]byte, error) {
 }
 
 // Decode the message into a ConsensusMessage
-func (cm *ConsensusMessage) Decode(r io.Reader) error {
-	buf := make([]byte, 4)
-	_, err := r.Read(buf)
-	if err != nil {
-		return err
-	}
-	cm.ConsensusEngineID = types.NewConsensusEngineID(buf)
-	for {
-		b, err := common.ReadByte(r)
-		if err != nil {
-			break
-		}
-
-		cm.Data = append(cm.Data, b)
+func (cm *ConsensusMessage) Decode(in []byte) error {
+	if len(in) < 5 {
+		return errors.New("cannot decode ConsensusMessage: encoding is too short")
 	}
 
+	cm.ConsensusEngineID = types.NewConsensusEngineID(in[:4])
+	cm.Data = in[4:]
 	return nil
 }
 

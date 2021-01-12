@@ -108,6 +108,7 @@ func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 	setDotGlobalConfig(ctx, tomlCfg, &cfg.Global)
 
 	// set remaining cli configuration values
+	setDotInitConfig(ctx, tomlCfg.Init, &cfg.Init)
 	setDotAccountConfig(ctx, tomlCfg.Account, &cfg.Account)
 	setDotCoreConfig(ctx, tomlCfg.Core, &cfg.Core)
 	setDotNetworkConfig(ctx, tomlCfg.Network, &cfg.Network)
