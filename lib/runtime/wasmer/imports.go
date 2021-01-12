@@ -101,12 +101,16 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"math/rand"
+	"reflect"
 	"unsafe"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
@@ -743,10 +747,20 @@ func ext_hashing_keccak_256_version_1(context unsafe.Pointer, dataSpan C.int64_t
 }
 
 //export ext_hashing_sha2_256_version_1
-func ext_hashing_sha2_256_version_1(context unsafe.Pointer, z C.int64_t) C.int32_t {
+func ext_hashing_sha2_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
 	logger.Trace("[ext_hashing_sha2_256_version_1] executing...")
-	logger.Warn("[ext_hashing_sha2_256_version_1] unimplemented")
-	return 0
+	instanceContext := wasm.IntoInstanceContext(context)
+
+	data := asMemorySlice(instanceContext, dataSpan)
+	hash := common.Sha256(data)
+
+	out, err := toWasmMemorySized(instanceContext, hash[:], 32)
+	if err != nil {
+		logger.Error("[ext_hashing_sha2_256_version_1] failed to allocate", "error", err)
+		return 0
+	}
+
+	return C.int32_t(out)
 }
 
 //export ext_hashing_twox_256_version_1
@@ -818,49 +832,178 @@ func ext_offchain_index_set_version_1(context unsafe.Pointer, a, b C.int64_t) {
 //export ext_offchain_is_validator_version_1
 func ext_offchain_is_validator_version_1(context unsafe.Pointer) C.int32_t {
 	logger.Trace("[ext_offchain_is_validator_version_1] executing...")
-	logger.Warn("[ext_offchain_is_validator_version_1] unimplemented")
+	instanceContext := wasm.IntoInstanceContext(context)
+
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+	if runtimeCtx.Validator {
+		return 1
+	}
 	return 0
 }
 
 //export ext_offchain_local_storage_compare_and_set_version_1
-func ext_offchain_local_storage_compare_and_set_version_1(context unsafe.Pointer, a C.int32_t, x, y, z C.int64_t) C.int32_t {
+func ext_offchain_local_storage_compare_and_set_version_1(context unsafe.Pointer, kind C.int32_t, key, oldValue, newValue C.int64_t) C.int32_t {
 	logger.Trace("[ext_offchain_local_storage_compare_and_set_version_1] executing...")
-	logger.Warn("[ext_offchain_local_storage_compare_and_set_version_1] unimplemented")
-	return 0
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+
+	storageKey := asMemorySlice(instanceContext, key)
+
+	var storedValue []byte
+	var err error
+
+	switch runtime.NodeStorageType(kind) {
+	case runtime.NodeStorageTypePersistent:
+		storedValue, err = runtimeCtx.NodeStorage.PersistentStorage.Get(storageKey)
+	case runtime.NodeStorageTypeLocal:
+		storedValue, err = runtimeCtx.NodeStorage.LocalStorage.Get(storageKey)
+	}
+
+	if err != nil {
+		logger.Error("[ext_offchain_local_storage_compare_and_set_version_1] failed to get value from storage", "error", err)
+		return 0
+	}
+
+	oldVal := asMemorySlice(instanceContext, oldValue)
+	newVal := asMemorySlice(instanceContext, newValue)
+	if reflect.DeepEqual(storedValue, oldVal) {
+		err = runtimeCtx.NodeStorage.LocalStorage.Put(storageKey, newVal)
+		if err != nil {
+			logger.Error("[ext_offchain_local_storage_compare_and_set_version_1] failed to set value in storage", "error", err)
+			return 0
+		}
+	}
+
+	return 1
 }
 
 //export ext_offchain_local_storage_get_version_1
-func ext_offchain_local_storage_get_version_1(context unsafe.Pointer, a C.int32_t, x C.int64_t) C.int64_t {
+func ext_offchain_local_storage_get_version_1(context unsafe.Pointer, kind C.int32_t, key C.int64_t) C.int64_t {
 	logger.Trace("[ext_offchain_local_storage_get_version_1] executing...")
-	logger.Warn("[ext_offchain_local_storage_get_version_1] unimplemented")
-	return 0
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+	storageKey := asMemorySlice(instanceContext, key)
+
+	var res []byte
+	var err error
+
+	switch runtime.NodeStorageType(kind) {
+	case runtime.NodeStorageTypePersistent:
+		res, err = runtimeCtx.NodeStorage.PersistentStorage.Get(storageKey)
+	case runtime.NodeStorageTypeLocal:
+		res, err = runtimeCtx.NodeStorage.LocalStorage.Get(storageKey)
+	}
+
+	if err != nil {
+		logger.Error("[ext_offchain_local_storage_get_version_1] failed to get value from storage", "error", err)
+	}
+	// allocate memory for value and copy value to memory
+	ptr, err := toWasmMemoryOptional(instanceContext, res)
+	if err != nil {
+		logger.Error("[ext_offchain_local_storage_get_version_1] failed to allocate memory", "error", err)
+		return 0
+	}
+	return C.int64_t(ptr)
 }
 
 //export ext_offchain_local_storage_set_version_1
-func ext_offchain_local_storage_set_version_1(context unsafe.Pointer, a C.int32_t, x, y C.int64_t) {
+func ext_offchain_local_storage_set_version_1(context unsafe.Pointer, kind C.int32_t, key, value C.int64_t) {
 	logger.Trace("[ext_offchain_local_storage_set_version_1] executing...")
-	logger.Warn("[ext_offchain_local_storage_set_version_1] unimplemented")
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+	storageKey := asMemorySlice(instanceContext, key)
+	newValue := asMemorySlice(instanceContext, value)
+
+	var err error
+	switch runtime.NodeStorageType(kind) {
+	case runtime.NodeStorageTypePersistent:
+		err = runtimeCtx.NodeStorage.PersistentStorage.Put(storageKey, newValue)
+	case runtime.NodeStorageTypeLocal:
+		err = runtimeCtx.NodeStorage.LocalStorage.Put(storageKey, newValue)
+	}
+
+	if err != nil {
+		logger.Error("[ext_offchain_local_storage_set_version_1] failed to set value in storage", "error", err)
+	}
 }
 
 //export ext_offchain_network_state_version_1
 func ext_offchain_network_state_version_1(context unsafe.Pointer) C.int64_t {
 	logger.Trace("[ext_offchain_network_state_version_1] executing...")
-	logger.Warn("[ext_offchain_network_state_version_1] unimplemented")
-	return 0
+	instanceContext := wasm.IntoInstanceContext(context)
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+	if runtimeCtx.Network == nil {
+		return 0
+	}
+
+	nsEnc, err := scale.Encode(runtimeCtx.Network.NetworkState())
+	if err != nil {
+		logger.Error("[ext_offchain_network_state_version_1] failed at encoding network state", "error", err)
+		return 0
+	}
+
+	// copy network state length to memory writtenOut location
+	nsEncLen := uint32(len(nsEnc))
+	buf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(buf, nsEncLen)
+
+	// allocate memory for value and copy value to memory
+	ptr, err := toWasmMemorySized(instanceContext, nsEnc, nsEncLen)
+	if err != nil {
+		logger.Error("[ext_offchain_network_state_version_1] failed to allocate memory", "error", err)
+		return 0
+	}
+
+	return C.int64_t(ptr)
 }
 
 //export ext_offchain_random_seed_version_1
 func ext_offchain_random_seed_version_1(context unsafe.Pointer) C.int32_t {
 	logger.Trace("[ext_offchain_random_seed_version_1] executing...")
-	logger.Warn("[ext_offchain_random_seed_version_1] unimplemented")
-	return 0
+	instanceContext := wasm.IntoInstanceContext(context)
+
+	seed := make([]byte, 32)
+	_, err := rand.Read(seed)
+	if err != nil {
+		logger.Error("[ext_offchain_random_seed_version_1] failed to generate random seed", "error", err)
+	}
+	ptr, err := toWasmMemorySized(instanceContext, seed, 32)
+	if err != nil {
+		logger.Error("[ext_offchain_random_seed_version_1] failed to allocate memory", "error", err)
+	}
+	return C.int32_t(ptr)
 }
 
 //export ext_offchain_submit_transaction_version_1
-func ext_offchain_submit_transaction_version_1(context unsafe.Pointer, z C.int64_t) C.int64_t {
+func ext_offchain_submit_transaction_version_1(context unsafe.Pointer, data C.int64_t) C.int64_t {
 	logger.Trace("[ext_offchain_submit_transaction_version_1] executing...")
-	logger.Warn("[ext_offchain_submit_transaction_version_1] unimplemented")
-	return 0
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	extBytes := asMemorySlice(instanceContext, data)
+
+	var decExt interface{}
+	decExt, err := scale.Decode(extBytes, decExt)
+	if err != nil {
+		logger.Error("[ext_offchain_submit_transaction_version_1] failed to decode extrinsic data", "error", err)
+	}
+
+	extrinsic := types.Extrinsic(decExt.([]byte))
+
+	// validate the transaction
+	txv := transaction.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false)
+	vtx := transaction.NewValidTransaction(extrinsic, txv)
+
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+	runtimeCtx.Transaction.AddToPool(vtx)
+
+	ptr, err := toWasmMemoryOptional(instanceContext, nil)
+	if err != nil {
+		logger.Error("[ext_offchain_submit_transaction_version_1] failed to allocate memory", "error", err)
+	}
+	return C.int64_t(ptr)
 }
 
 func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
