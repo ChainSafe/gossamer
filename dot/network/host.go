@@ -191,6 +191,7 @@ func (h *host) sendBytes(p peer.ID, sub protocol.ID, msg []byte) (err error) {
 	s := h.getStream(p, sub)
 
 	// check if stream needs to be opened
+	// TODO: if stream has not been opened, begin handler for the newly opened stream
 	if s == nil {
 
 		// open outbound stream with host protocol id
