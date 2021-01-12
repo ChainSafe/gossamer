@@ -17,6 +17,7 @@
 package common
 
 import (
+	"crypto/sha256"
 	"encoding/binary"
 
 	"github.com/OneOfOne/xxhash"
@@ -125,4 +126,10 @@ func Twox256(in []byte) (Hash, error) {
 	binary.LittleEndian.PutUint64(hash3, res3)
 
 	return NewHash(append(append(append(hash0, hash1...), hash2...), hash3...)), nil
+}
+
+// Sha256 returns the SHA2-256 hash of the input data
+func Sha256(in []byte) Hash {
+	hash := sha256.Sum256(in)
+	return Hash(hash)
 }

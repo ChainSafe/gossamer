@@ -747,10 +747,20 @@ func ext_hashing_keccak_256_version_1(context unsafe.Pointer, dataSpan C.int64_t
 }
 
 //export ext_hashing_sha2_256_version_1
-func ext_hashing_sha2_256_version_1(context unsafe.Pointer, z C.int64_t) C.int32_t {
+func ext_hashing_sha2_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
 	logger.Trace("[ext_hashing_sha2_256_version_1] executing...")
-	logger.Warn("[ext_hashing_sha2_256_version_1] unimplemented")
-	return 0
+	instanceContext := wasm.IntoInstanceContext(context)
+
+	data := asMemorySlice(instanceContext, dataSpan)
+	hash := common.Sha256(data)
+
+	out, err := toWasmMemorySized(instanceContext, hash[:], 32)
+	if err != nil {
+		logger.Error("[ext_hashing_sha2_256_version_1] failed to allocate", "error", err)
+		return 0
+	}
+
+	return C.int32_t(out)
 }
 
 //export ext_hashing_twox_256_version_1
