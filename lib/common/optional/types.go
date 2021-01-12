@@ -256,7 +256,8 @@ func (x *Hash) String() string {
 	if !x.exists {
 		return none
 	}
-	return fmt.Sprintf("%x", x.value)
+
+	return x.value.String()
 }
 
 // Set sets the exists and value fields.
@@ -323,33 +324,45 @@ func (x *Header) Set(exists bool, value *CoreHeader) {
 type CoreBody []byte
 
 // Body represents an optional types.Body.
-// The fields need to be exported since it's JSON encoded by the state service.
-// TODO: when we change the state service's encoding to SCALE, these fields should become unexported.
 type Body struct {
-	Exists bool
-	Value  CoreBody
+	exists bool
+	value  CoreBody
 }
 
 // NewBody returns a new optional.Body
 func NewBody(exists bool, value CoreBody) *Body {
 	return &Body{
-		Exists: exists,
-		Value:  value,
+		exists: exists,
+		value:  value,
 	}
 }
 
 // String returns the value as a string.
 func (x *Body) String() string {
-	if !x.Exists {
+	if !x.exists {
 		return none
 	}
-	return fmt.Sprintf("%v", x.Value)
+	return fmt.Sprintf("%v", x.value)
 }
 
 // Set sets the exists and value fields.
 func (x *Body) Set(exists bool, value CoreBody) {
-	x.Exists = exists
-	x.Value = value
+	x.exists = exists
+	x.value = value
+}
+
+// Value returns the value as []byte if it exists
+func (x *Body) Value() []byte {
+	if x == nil || !x.exists {
+		return nil
+	}
+
+	return []byte(x.value)
+}
+
+// Exists returns true if the value is Some, false if it is None.
+func (x *Body) Exists() bool {
+	return x.exists
 }
 
 // Result represents a Result type.

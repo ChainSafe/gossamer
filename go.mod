@@ -11,6 +11,7 @@ require (
 	github.com/docker/docker v1.13.1
 	github.com/ethereum/go-ethereum v1.9.6
 	github.com/go-playground/validator/v10 v10.4.1
+	github.com/golang/protobuf v1.4.0
 	github.com/gorilla/mux v1.7.4
 	github.com/gorilla/rpc v1.2.0
 	github.com/gorilla/websocket v1.4.2
@@ -37,6 +38,8 @@ require (
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9 // indirect
 	google.golang.org/grpc v1.21.0 // indirect
+	google.golang.org/protobuf v1.23.0
+	gopkg.in/yaml.v2 v2.2.7 // indirect
 )
 
 go 1.15

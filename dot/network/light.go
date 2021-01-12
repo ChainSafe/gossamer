@@ -2,7 +2,6 @@ package network
 
 import (
 	"fmt"
-	"io"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
@@ -42,10 +41,18 @@ func (l *LightRequest) Encode() ([]byte, error) {
 }
 
 // Decode the message into a LightRequest, it assumes the type byte has been removed
-func (l *LightRequest) Decode(r io.Reader) error {
-	sd := scale.Decoder{Reader: r}
-	_, err := sd.Decode(l)
-	return err
+func (l *LightRequest) Decode(in []byte) error {
+	msg, err := scale.Decode(in, l)
+	if err != nil {
+		return err
+	}
+
+	l.RmtCallRequest = msg.(*LightRequest).RmtCallRequest
+	l.RmtReadRequest = msg.(*LightRequest).RmtReadRequest
+	l.RmtHeaderRequest = msg.(*LightRequest).RmtHeaderRequest
+	l.RmtReadChildRequest = msg.(*LightRequest).RmtReadChildRequest
+	l.RmtChangesRequest = msg.(*LightRequest).RmtChangesRequest
+	return nil
 }
 
 // String formats a LightRequest as a string
@@ -80,10 +87,17 @@ func (l *LightResponse) Encode() ([]byte, error) {
 }
 
 // Decode the message into a LightResponse, it assumes the type byte has been removed
-func (l *LightResponse) Decode(r io.Reader) error {
-	sd := scale.Decoder{Reader: r}
-	_, err := sd.Decode(l)
-	return err
+func (l *LightResponse) Decode(in []byte) error {
+	msg, err := scale.Decode(in, l)
+	if err != nil {
+		return err
+	}
+
+	l.RmtCallResponse = msg.(*LightResponse).RmtCallResponse
+	l.RmtReadResponse = msg.(*LightResponse).RmtReadResponse
+	l.RmtHeaderResponse = msg.(*LightResponse).RmtHeaderResponse
+	l.RmtChangeResponse = msg.(*LightResponse).RmtChangeResponse
+	return nil
 }
 
 // String formats a RemoteReadRequest as a string
