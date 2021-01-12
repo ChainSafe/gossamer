@@ -163,6 +163,7 @@ func GssmrConfig() *Config {
 		},
 		System: types.SystemInfo{
 			NodeName:         gssmr.DefaultName,
+			ChainType:        gssmr.DefaultChainType,
 			SystemProperties: make(map[string]interface{}),
 		},
 	}

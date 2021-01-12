@@ -86,4 +86,9 @@ var (
 	DefaultRPCModules = []string{"system", "author", "chain", "state", "rpc"}
 	// DefaultRPCWSPort rpc websocket port
 	DefaultRPCWSPort = uint32(8546)
+
+	// SystemConfig
+
+	//DefaultChainType chain type
+	DefaultChainType = string("development")
 )
