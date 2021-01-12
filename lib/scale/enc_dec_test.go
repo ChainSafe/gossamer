@@ -181,6 +181,10 @@ func TestEncodeDecodeCustom_Array(t *testing.T) {
 
 func TestEncodeDecode_Array(t *testing.T) {
 	withCustom = false
+	defer func() {
+		withCustom = true
+	}()
+
 	b := [64]byte{1, 2, 3, 4}
 	enc, err := Encode(b)
 	require.NoError(t, err)
@@ -188,4 +192,57 @@ func TestEncodeDecode_Array(t *testing.T) {
 	dec, err := Decode(enc, [64]byte{})
 	require.NoError(t, err)
 	require.Equal(t, b, dec)
+}
+
+func TestEncodeDecodeSliceStruct(t *testing.T) {
+	type SimpleStruct struct {
+		A int64
+		B bool
+	}
+
+	a := []SimpleStruct{{A: 1, B: false}, {A: 2, B: true}}
+
+	enc, err := Encode(a)
+	require.NoError(t, err)
+
+	dec, err := Decode(enc, []SimpleStruct{})
+	require.NoError(t, err)
+	require.Equal(t, a, dec)
+}
+
+func TestEncodeDecodeSliceComplexStruct(t *testing.T) {
+	type ComplexStruct struct {
+		A []byte
+		B []string
+		C []int
+		D [][]byte
+		E *MyType
+		F common.Hash
+	}
+
+	csArray := []ComplexStruct{
+		{
+			A: []byte("Hello"),
+			B: []string{"Hello", "abc"},
+			C: []int{1, 2, 3, 4},
+			D: [][]byte{[]byte("ascasc")},
+			E: &MyType{1, 2, 3, 4},
+			F: common.Hash{},
+		},
+		{
+			A: []byte("Hello"),
+			B: []string{"Hello", "abc"},
+			C: []int{1, 2, 3, 4},
+			D: [][]byte{[]byte("ascasc")},
+			E: &MyType{1, 2, 3, 4, 5},
+			F: common.NewHash([]byte("Hello")),
+		},
+	}
+
+	enc, err := Encode(csArray)
+	require.NoError(t, err)
+
+	dec, err := Decode(enc, []ComplexStruct{})
+	require.NoError(t, err)
+	require.Equal(t, csArray, dec)
 }
