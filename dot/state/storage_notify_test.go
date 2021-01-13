@@ -177,7 +177,11 @@ func TestStorageState_RegisterStorageChangeChannel_Multi_Filter(t *testing.T) {
 	}
 }
 
-func Example() {
+func Test_Example(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping subscription example")
+	}
+
 	// this is a working example of how to use db.Subscribe taken from
 	// https://github.com/dgraph-io/badger/blob/f50343ff404d8198df6dc83755ec2eab863d5ff2/db_test.go#L1939-L1948
 	prefix := []byte{'a'}
