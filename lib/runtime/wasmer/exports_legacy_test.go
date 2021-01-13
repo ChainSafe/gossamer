@@ -372,7 +372,7 @@ func TestValidateTransaction_AuthoritiesChange(t *testing.T) {
 }
 
 func TestValidateTransaction_IncludeData(t *testing.T) {
-	rt := NewTestLegacyInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)
+	rt := NewTestLegacyInstance(t, runtime.NODE_RUNTIME)
 
 	ext := extrinsic.NewIncludeDataExt([]byte("nootwashere"))
 	tx, err := ext.Encode()
