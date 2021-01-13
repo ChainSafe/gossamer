@@ -391,5 +391,5 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 		Body: types.NewBody(body),
 	}
 
-	_, _ = instance.ExecuteBlock(block) // TODO: complete this
+	_, _ = instance.ExecuteBlock(block) // TODO: complete this'
 }

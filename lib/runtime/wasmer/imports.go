@@ -1216,31 +1216,33 @@ func ext_storage_read_version_1(context unsafe.Pointer, keySpan, valueOut C.int6
 	key := asMemorySlice(instanceContext, keySpan)
 	value, err := storage.Get(key)
 	if err != nil {
-		logger.Error("[ext_storage_get_version_1]", "error", err)
-		return 0
+		logger.Error("[ext_storage_read_version_1]", "error", err)
+		ret, _ := toWasmMemoryOptional(instanceContext, []byte{})
+		return C.int64_t(ret)
 	}
 
-	logger.Trace("[ext_storage_get_version_1]", "value", value)
+	logger.Trace("[ext_storage_read_version_1]", "value", value)
 	if value == nil {
 		ret, _ := toWasmMemoryOptional(instanceContext, []byte{})
 		return C.int64_t(ret)
 	}
 
+	var size uint32
+
 	if int(offset) > len(value) {
-		ret, _ := toWasmMemoryOptional(instanceContext, []byte{})
-		return C.int64_t(ret)
+		size = uint32(0)
+	} else {
+		size = uint32(len(value[offset:]))
+		valueBuf, valueLen := int64ToPointerAndSize(int64(valueOut))
+		copy(memory[valueBuf:valueBuf+valueLen], value[offset:])
 	}
 
-	valueBuf, valueLen := int64ToPointerAndSize(int64(valueOut))
-	copy(memory[valueBuf:valueBuf+valueLen], value[offset:])
-
-	size := uint32(len(value[offset:]))
 	sizeBuf := make([]byte, 4)
 	binary.LittleEndian.PutUint32(sizeBuf, size)
 
 	sizeSpan, err := toWasmMemoryOptional(instanceContext, sizeBuf)
 	if err != nil {
-		logger.Error("[ext_storage_get_version_1] failed to allocate", "error", err)
+		logger.Error("[ext_storage_read_version_1] failed to allocate", "error", err)
 		return 0
 	}
 
