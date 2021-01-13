@@ -392,5 +392,4 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	}
 
 	_, _ = instance.ExecuteBlock(block) // TODO: complete this
-	//require.NoError(t, err)
 }

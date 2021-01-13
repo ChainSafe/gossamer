@@ -269,37 +269,37 @@ func (s *TrieState) Entries() map[string][]byte {
 	return entries
 }
 
-// // SetBalance sets the balance for a given public key
-// func (s *TrieState) SetBalance(key [32]byte, balance uint64) error {
-// 	skey, err := common.BalanceKey(key)
-// 	if err != nil {
-// 		return err
-// 	}
+// SetBalance sets the balance for a given public key
+func (s *TrieState) SetBalance(key [32]byte, balance uint64) error {
+	skey, err := common.BalanceKey(key)
+	if err != nil {
+		return err
+	}
 
-// 	bb := make([]byte, 8)
-// 	binary.LittleEndian.PutUint64(bb, balance)
+	bb := make([]byte, 8)
+	binary.LittleEndian.PutUint64(bb, balance)
 
-// 	return s.Set(skey, bb)
-// }
+	return s.Set(skey, bb)
+}
 
-// // GetBalance returns the balance for a given public key
-// func (s *TrieState) GetBalance(key [32]byte) (uint64, error) {
-// 	skey, err := common.BalanceKey(key)
-// 	if err != nil {
-// 		return 0, err
-// 	}
+// GetBalance returns the balance for a given public key
+func (s *TrieState) GetBalance(key [32]byte) (uint64, error) {
+	skey, err := common.BalanceKey(key)
+	if err != nil {
+		return 0, err
+	}
 
-// 	bal, err := s.Get(skey)
-// 	if err != nil {
-// 		return 0, err
-// 	}
+	bal, err := s.Get(skey)
+	if err != nil {
+		return 0, err
+	}
 
-// 	if len(bal) != 8 {
-// 		return 0, nil
-// 	}
+	if len(bal) != 8 {
+		return 0, nil
+	}
 
-// 	return binary.LittleEndian.Uint64(bal), nil
-// }
+	return binary.LittleEndian.Uint64(bal), nil
+}
 
 // DeleteChildStorage deletes child storage from the trie
 func (s *TrieState) DeleteChildStorage(key []byte) error {
