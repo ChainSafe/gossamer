@@ -110,7 +110,7 @@ func (s *TrieState) Copy() (*TrieState, error) {
 }
 
 // Commit ensures that the TrieState's trie and database match
-// The database is the source of truth due to the runtime interpreter's undefined behaviour regarding the trie
+// The database is the source of truth due to the runtime interpreter's undefined behavior regarding the trie
 func (s *TrieState) Commit() error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -147,7 +147,7 @@ func (s *TrieState) WriteTrieToDB() error {
 
 // Close should be called once this trie state is no longer needed to close and delete the database
 func (s *TrieState) Close() {
-	os.RemoveAll(s.db.Path())
+	_ = os.RemoveAll(s.db.Path())
 }
 
 // Set sets a key-value pair in the trie
