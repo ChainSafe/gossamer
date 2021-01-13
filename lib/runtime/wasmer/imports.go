@@ -1008,6 +1008,8 @@ func ext_offchain_submit_transaction_version_1(context unsafe.Pointer, data C.in
 }
 
 func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
+	// this function assumes the item in storage is a SCALE encoded array of items
+	// the valueToAppend is a new item, so it appends the item and increases the length prefix by 1
 	valueCurr, err := storage.Get(key)
 	if err != nil {
 		return err
@@ -1021,29 +1023,24 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 	r := &bytes.Buffer{}
 	_, _ = r.Write(valueCurr)
 	dec := &scale.Decoder{Reader: r}
-	_, err = dec.DecodeUnsignedInteger()
+	currLength, err := dec.DecodeBigInt()
 	if err != nil {
 		logger.Trace("[ext_storage_append_version_1] item in storage is not SCALE encoded, overwriting", "key", key)
 		return storage.Set(key, valueToAppend)
 	}
 
-	// remove length prefix from value to append
-	rAppend := &bytes.Buffer{}
-	_, _ = rAppend.Write(valueToAppend)
-	dec = &scale.Decoder{Reader: rAppend}
-	_, err = dec.DecodeUnsignedInteger()
-	if err != nil {
-		logger.Trace("[ext_storage_append_version_1] value to append is not SCALE encoded", "key", key, "value to append", valueToAppend)
-	} else {
-		valueToAppend = rAppend.Bytes()
-	}
-
+	// append new item
 	valueRes := append(r.Bytes(), valueToAppend...)
-	finalVal, err := scale.Encode(valueRes)
+
+	// increase length by 1
+	nextLength := big.NewInt(0).Add(currLength, big.NewInt(1))
+	lengthEnc, err := scale.Encode(nextLength)
 	if err != nil {
-		return err
+		logger.Trace("[ext_storage_append_version_1] failed to encode new length", "error", err)
 	}
 
+	// append new length prefix to start of items array
+	finalVal := append(lengthEnc, valueRes...)
 	return storage.Set(key, finalVal)
 }
 
