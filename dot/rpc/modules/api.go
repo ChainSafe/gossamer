@@ -7,6 +7,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
@@ -19,6 +20,7 @@ type StorageAPI interface {
 	RegisterStorageChangeChannel(sub state.StorageSubscription) (byte, error)
 	UnregisterStorageChangeChannel(id byte)
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
+	GetGenesisData() (*genesis.Data, error)
 }
 
 // BlockAPI is the interface for the block state
@@ -87,6 +89,5 @@ type SystemAPI interface {
 	SystemName() string
 	SystemVersion() string
 	NodeName() string
-	ChainType() string
 	Properties() map[string]interface{}
 }

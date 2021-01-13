@@ -22,9 +22,13 @@ import (
 	"path"
 	"testing"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/require"
 )
 
@@ -96,7 +100,7 @@ func newNetworkService(t *testing.T) *network.Service {
 // Test RPC's System.Health() response
 func TestSystemModule_Health(t *testing.T) {
 	net := newNetworkService(t)
-	sys := NewSystemModule(net, nil)
+	sys := NewSystemModule(net, nil, nil)
 
 	res := &SystemHealthResponse{}
 	err := sys.Health(nil, nil, res)
@@ -110,7 +114,7 @@ func TestSystemModule_Health(t *testing.T) {
 // Test RPC's System.NetworkState() response
 func TestSystemModule_NetworkState(t *testing.T) {
 	net := newNetworkService(t)
-	sys := NewSystemModule(net, nil)
+	sys := NewSystemModule(net, nil, nil)
 
 	res := &SystemNetworkStateResponse{}
 	err := sys.NetworkState(nil, nil, res)
@@ -126,7 +130,7 @@ func TestSystemModule_NetworkState(t *testing.T) {
 // Test RPC's System.Peers() response
 func TestSystemModule_Peers(t *testing.T) {
 	net := newNetworkService(t)
-	sys := NewSystemModule(net, nil)
+	sys := NewSystemModule(net, nil, nil)
 
 	res := &SystemPeersResponse{}
 	err := sys.Peers(nil, nil, res)
@@ -139,7 +143,7 @@ func TestSystemModule_Peers(t *testing.T) {
 
 func TestSystemModule_NodeRoles(t *testing.T) {
 	net := newNetworkService(t)
-	sys := NewSystemModule(net, nil)
+	sys := NewSystemModule(net, nil, nil)
 	expected := []interface{}{"Full"}
 
 	var res []interface{}
@@ -150,7 +154,6 @@ func TestSystemModule_NodeRoles(t *testing.T) {
 
 var testSystemInfo = &types.SystemInfo{
 	SystemName:       "gossamer",
-	ChainType:        "Local",
 	SystemVersion:    "0",
 	NodeName:         "gssmr",
 	SystemProperties: make(map[string]interface{}),
@@ -178,16 +181,12 @@ func (api *mockSystemAPI) NodeName() string {
 	return api.info.NodeName
 }
 
-func (api *mockSystemAPI) ChainType() string {
-	return api.info.ChainType
-}
-
 func (api *mockSystemAPI) Properties() map[string]interface{} {
 	return api.info.SystemProperties
 }
 
 func TestSystemModule_Chain(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI())
+	sys := NewSystemModule(nil, newMockSystemAPI(), nil)
 
 	res := new(string)
 	err := sys.Chain(nil, nil, res)
@@ -196,16 +195,24 @@ func TestSystemModule_Chain(t *testing.T) {
 }
 
 func TestSystemModule_ChainType(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI())
+	testGenesisData := &genesis.Data{
+		ChainType: "Local",
+	}
+	db := chaindb.NewMemDatabase()
+	state.StoreGenesisData(db, testGenesisData)
+
+	stoState, err := state.NewStorageState(db, nil, trie.NewEmptyTrie())
+	require.NoError(t, err)
+	sys := NewSystemModule(nil, newMockSystemAPI(), stoState)
 
 	res := new(string)
-	err := sys.ChainType(nil, nil, res)
+	err = sys.ChainType(nil, nil, res)
 	require.NoError(t, err)
-	require.Equal(t, testSystemInfo.ChainType, *res)
+	require.Equal(t, testGenesisData.ChainType, *res)
 }
 
 func TestSystemModule_Name(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI())
+	sys := NewSystemModule(nil, newMockSystemAPI(), nil)
 
 	res := new(string)
 	err := sys.Name(nil, nil, res)
@@ -214,7 +221,7 @@ func TestSystemModule_Name(t *testing.T) {
 }
 
 func TestSystemModule_Version(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI())
+	sys := NewSystemModule(nil, newMockSystemAPI(), nil)
 
 	res := new(string)
 	err := sys.Version(nil, nil, res)
@@ -223,7 +230,7 @@ func TestSystemModule_Version(t *testing.T) {
 }
 
 func TestSystemModule_Properties(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI())
+	sys := NewSystemModule(nil, newMockSystemAPI(), nil)
 
 	res := new(interface{})
 	err := sys.Properties(nil, nil, res)

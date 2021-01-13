@@ -22,11 +22,11 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/trie"
-
-	"github.com/ChainSafe/chaindb"
 )
 
 var storagePrefix = "storage"
@@ -404,4 +404,9 @@ func (s *StorageState) pruneStorage(closeCh chan interface{}) {
 			return
 		}
 	}
+}
+
+// GetGenesisData retrieves current genesis data from database
+func (s *StorageState) GetGenesisData() (*genesis.Data, error) {
+	return LoadGenesisData(s.baseDB)
 }

@@ -26,6 +26,7 @@ import (
 type SystemModule struct {
 	networkAPI NetworkAPI
 	systemAPI  SystemAPI
+	storageAPI StorageAPI
 }
 
 // EmptyRequest represents an RPC request with no fields
@@ -52,10 +53,11 @@ type SystemNetworkStateResponse struct {
 type SystemPeersResponse []common.PeerInfo
 
 // NewSystemModule creates a new API instance
-func NewSystemModule(net NetworkAPI, sys SystemAPI) *SystemModule {
+func NewSystemModule(net NetworkAPI, sys SystemAPI, sto StorageAPI) *SystemModule {
 	return &SystemModule{
 		networkAPI: net, // TODO: migrate to network state
 		systemAPI:  sys,
+		storageAPI: sto,
 	}
 }
 
@@ -73,8 +75,9 @@ func (sm *SystemModule) Name(r *http.Request, req *EmptyRequest, res *string) er
 
 // ChainType returns the chain type
 func (sm *SystemModule) ChainType(r *http.Request, req *EmptyRequest, res *string) error {
-	*res = sm.systemAPI.ChainType()
-	return nil
+	gd, err := sm.storageAPI.GetGenesisData()
+	*res = gd.ChainType
+	return err
 }
 
 // Properties returns the runtime properties

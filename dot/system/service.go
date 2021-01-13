@@ -35,11 +35,6 @@ func (s *Service) SystemName() string {
 	return s.systemInfo.SystemName
 }
 
-// ChainType returns the system's chain type
-func (s *Service) ChainType() string {
-	return s.systemInfo.ChainType
-}
-
 // SystemVersion returns the app version
 func (s *Service) SystemVersion() string {
 	return s.systemInfo.SystemVersion
