@@ -204,12 +204,8 @@ func Test_Example(t *testing.T) {
 			log.Fatal(err)
 		}
 	}()
-	//db, err := badger.Open(badger.DefaultOptions(dir))
-	db, err := chaindb.NewBadgerDB(dir)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
+
+	db := NewInMemoryDB(t)
 
 	// Create the context here so we can cancel it after sending the writes.
 	ctx, cancel := context.WithCancel(context.Background())
@@ -234,12 +230,10 @@ func Test_Example(t *testing.T) {
 
 	// Write both keys, but only one should be printed in the Output.
 	err = db.Put(aKey, aValue)
-	//err = db.Update(func(txn *badger.Txn) error { return txn.Set(aKey, aValue) })
 	if err != nil {
 		log.Fatal(err)
 	}
 	err = db.Put(bKey, bValue)
-	//err = db.Update(func(txn *badger.Txn) error { return txn.Set(bKey, bValue) })
 	if err != nil {
 		log.Fatal(err)
 	}

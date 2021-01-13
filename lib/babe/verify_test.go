@@ -17,6 +17,7 @@
 package babe
 
 import (
+	"io/ioutil"
 	"testing"
 	"time"
 
@@ -32,7 +33,10 @@ import (
 )
 
 func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *VerificationManager {
-	dbSrv := state.NewService("", log.LvlInfo)
+	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
+	require.NoError(t, err)
+
+	dbSrv := state.NewService(testDatadirPath, log.LvlInfo)
 	dbSrv.UseMemDB()
 	genesisData := new(genesis.Data)
 
@@ -40,7 +44,7 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 		genCfg = genesisBABEConfig
 	}
 
-	err := dbSrv.Initialize(genesisData, genesisHeader, trie.NewEmptyTrie(), genCfg)
+	err = dbSrv.Initialize(genesisData, genesisHeader, trie.NewEmptyTrie(), genCfg)
 	require.NoError(t, err)
 
 	err = dbSrv.Start()

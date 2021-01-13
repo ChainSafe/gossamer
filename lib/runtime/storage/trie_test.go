@@ -17,44 +17,11 @@
 package storage
 
 import (
-	"io/ioutil"
-	"os"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/trie"
-
-	"github.com/ChainSafe/chaindb"
 	"github.com/stretchr/testify/require"
 )
-
-func newTestTrieStateWithMemDB(t *testing.T) *TrieState {
-	db := chaindb.NewMemDatabase()
-
-	// make sure non-trie-prefixed keys are ignored by the TrieState
-	err := db.Put([]byte("noot"), []byte("washere"))
-	require.NoError(t, err)
-
-	ts, err := NewTrieState(db, trie.NewEmptyTrie())
-	require.NoError(t, err)
-	return ts
-}
-
-func newTestTrieStateWithBadgerDB(t *testing.T) *TrieState {
-	fp, _ := ioutil.TempDir("/tmp", "test-datadir-*")
-	t.Cleanup(func() {
-		os.RemoveAll(fp)
-	})
-	db, err := chaindb.NewBadgerDB(fp)
-	require.NoError(t, err)
-
-	// make sure non-trie-prefixed keys are ignored by the TrieState
-	err = db.Put([]byte("noot"), []byte("washere"))
-	require.NoError(t, err)
-
-	ts, err := NewTrieState(db, trie.NewEmptyTrie())
-	require.NoError(t, err)
-	return ts
-}
 
 func TestNewTrieState(t *testing.T) {
 	testFunc := func(ts *TrieState) {
@@ -70,9 +37,7 @@ func TestNewTrieState(t *testing.T) {
 		require.Equal(t, entries, dbEntries)
 	}
 
-	ts := newTestTrieStateWithMemDB(t)
-	testFunc(ts)
-	ts = newTestTrieStateWithBadgerDB(t)
+	ts := NewTestTrieState(t, nil)
 	testFunc(ts)
 }
 
@@ -100,9 +65,7 @@ func TestTrieState_Commit(t *testing.T) {
 		require.Equal(t, expected, ts.t.Entries())
 	}
 
-	ts := newTestTrieStateWithMemDB(t)
-	testFunc(ts)
-	ts = newTestTrieStateWithBadgerDB(t)
+	ts := NewTestTrieState(t, nil)
 	testFunc(ts)
 }
 
@@ -119,9 +82,7 @@ func TestTrieState_Free(t *testing.T) {
 		require.False(t, iter.Next())
 	}
 
-	ts := newTestTrieStateWithMemDB(t)
-	testFunc(ts)
-	ts = newTestTrieStateWithBadgerDB(t)
+	ts := NewTestTrieState(t, nil)
 	testFunc(ts)
 }
 
@@ -143,9 +104,7 @@ func TestTrieState_SetGet(t *testing.T) {
 		}
 	}
 
-	ts := newTestTrieStateWithMemDB(t)
-	testFunc(ts)
-	ts = newTestTrieStateWithBadgerDB(t)
+	ts := NewTestTrieState(t, nil)
 	testFunc(ts)
 }
 
@@ -163,9 +122,7 @@ func TestTrieState_Delete(t *testing.T) {
 		require.False(t, has)
 	}
 
-	ts := newTestTrieStateWithMemDB(t)
-	testFunc(ts)
-	ts = newTestTrieStateWithBadgerDB(t)
+	ts := NewTestTrieState(t, nil)
 	testFunc(ts)
 }
 
@@ -184,14 +141,12 @@ func TestTrieState_Root(t *testing.T) {
 		require.Equal(t, expected, ts.MustRoot())
 	}
 
-	ts := newTestTrieStateWithMemDB(t)
-	testFunc(ts)
-	ts = newTestTrieStateWithBadgerDB(t)
+	ts := NewTestTrieState(t, nil)
 	testFunc(ts)
 }
 
 func TestTrieState_ClearPrefixInChild(t *testing.T) {
-	ts := newTestTrieStateWithMemDB(t)
+	ts := NewTestTrieState(t, nil)
 	child := trie.NewEmptyTrie()
 
 	keys := []string{

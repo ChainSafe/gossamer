@@ -30,8 +30,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
-var triePrefix = []byte("tmp")
-
 // TrieState is a wrapper around a transient trie that is used during the course of executing some runtime call.
 // If the execution of the call is successful, the trie will be saved in the StorageState.
 type TrieState struct {
@@ -41,23 +39,34 @@ type TrieState struct {
 }
 
 // NewTrieState returns a new TrieState with the given trie
-func NewTrieState(db chaindb.Database, t *trie.Trie) (*TrieState, error) {
+func NewTrieState(t *trie.Trie) (*TrieState, error) {
 	r := rand.Intn(1 << 16) //nolint
 	buf := make([]byte, 2)
 	binary.LittleEndian.PutUint16(buf, uint16(r))
 
-	tdb := chaindb.NewTable(db, string(append(triePrefix, buf...)))
+	// TODO: dynamically get os.TMPDIR
+	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
+
+	cfg := &chaindb.Config{
+		DataDir:  testDatadirPath,
+		InMemory: true,
+	}
+
+	db, err := chaindb.NewBadgerDB(cfg)
+	if err != nil {
+		return nil, err
+	}
 
 	entries := t.Entries()
 	for k, v := range entries {
-		err := tdb.Put([]byte(k), v)
+		err := db.Put([]byte(k), v)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	ts := &TrieState{
-		db: tdb,
+		db: db,
 		t:  t,
 	}
 	return ts, nil
@@ -69,21 +78,33 @@ func NewTestTrieState(t *testing.T, tr *trie.Trie) *TrieState {
 		tr = trie.NewEmptyTrie()
 	}
 
-	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
-	db, err := chaindb.NewBadgerDB(testDatadirPath)
+	// testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
+
+	// cfg := &chaindb.Config{
+	// 	DataDir: testDatadirPath,
+	// 	InMemory: true,
+	// }
+
+	// db, err := chaindb.NewBadgerDB(cfg)
+	// if err != nil {
+	// 	t.Fatal("failed to create TestRuntimeStorage database")
+	// }
+
+	// return &TrieState{
+	// 	db: db,
+	// 	t:  tr,
+	// }
+	ts, err := NewTrieState(tr)
 	if err != nil {
-		t.Fatal("failed to create TestRuntimeStorage database")
+		t.Fatal("failed to create TrieState: ", err)
 	}
 
 	t.Cleanup(func() {
-		_ = db.Close()
-		_ = os.RemoveAll(testDatadirPath)
+		_ = ts.db.Close()
+		_ = os.RemoveAll(ts.db.Path())
 	})
 
-	return &TrieState{
-		db: db,
-		t:  tr,
-	}
+	return ts
 }
 
 // Trie returns the TrieState's underlying trie

@@ -150,7 +150,7 @@ func (s *StorageState) TrieState(hash *common.Hash) (*rtstorage.TrieState, error
 		return nil, errTrieDoesNotExist(*hash)
 	}
 
-	return rtstorage.NewTrieState(s.baseDB, s.tries[*hash])
+	return rtstorage.NewTrieState(s.tries[*hash])
 }
 
 // StoreInDB encodes the entire trie and writes it to the DB

@@ -17,6 +17,7 @@
 package state
 
 import (
+	"io/ioutil"
 	"math/big"
 	"reflect"
 	"testing"
@@ -50,7 +51,8 @@ func newTestService(t *testing.T) (state *Service) {
 }
 
 func newTestMemDBService() *Service {
-	state := NewService("", log.LvlTrace)
+	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
+	state := NewService(testDatadirPath, log.LvlTrace)
 	state.UseMemDB()
 	return state
 }

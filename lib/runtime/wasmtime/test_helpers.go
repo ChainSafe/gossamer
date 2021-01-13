@@ -20,7 +20,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	database "github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -48,8 +47,8 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, 
 	require.Nil(t, err, "could not create testRuntimeFilePath", "targetRuntime", targetRuntime)
 
 	ns := runtime.NodeStorage{
-		LocalStorage:      database.NewMemDatabase(),
-		PersistentStorage: database.NewMemDatabase(), // we're using a local storage here since this is a test runtime
+		LocalStorage:      runtime.NewInMemoryDB(t),
+		PersistentStorage: runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
 	}
 	cfg := &Config{
 		Imports: importsFunc,
