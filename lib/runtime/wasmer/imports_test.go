@@ -179,14 +179,13 @@ func Test_ext_storage_clear_version_1(t *testing.T) {
 }
 
 func Test_ext_storage_clear_prefix_version_1(t *testing.T) {
-	t.Skip() // TODO: fix prefix clearing
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
 	err := inst.inst.ctx.Storage.Set(testkey, []byte{1})
 	require.NoError(t, err)
 	testkey2 := []byte("spaghet")
-	err = inst.inst.ctx.Storage.Set(testkey2, []byte{1})
+	err = inst.inst.ctx.Storage.Set(testkey2, []byte{2})
 	require.NoError(t, err)
 
 	enc, err := scale.Encode(testkey[:3])

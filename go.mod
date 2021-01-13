@@ -1,12 +1,13 @@
 module github.com/ChainSafe/gossamer
 
 require (
-	github.com/ChainSafe/chaindb v0.1.5-0.20201216022305-705e4f4f2f0d
+	github.com/ChainSafe/chaindb v0.1.5-0.20210112170640-08c8f45c6f42
 	github.com/ChainSafe/go-schnorrkel v0.0.0-20200405005733-88cbf1b4c40d
 	github.com/ChainSafe/log15 v1.0.0
 	github.com/OneOfOne/xxhash v1.2.5
 	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
 	github.com/bytecodealliance/wasmtime-go v0.20.0
+	github.com/dgraph-io/badger/v2 v2.2007.2 // indirect
 	github.com/disiqueira/gotree v1.0.0
 	github.com/docker/docker v1.13.1
 	github.com/ethereum/go-ethereum v1.9.6

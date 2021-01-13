@@ -17,6 +17,7 @@
 package runtime
 
 import (
+	"bytes"
 	"encoding/binary"
 	"io"
 	"io/ioutil"
@@ -273,6 +274,21 @@ func (trs *TestRuntimeStorage) GetChild(keyToChild []byte) (*trie.Trie, error) {
 // ClearPrefix ...
 func (trs *TestRuntimeStorage) ClearPrefix(prefix []byte) {
 	trs.trie.ClearPrefix(prefix)
+
+	iter := trs.db.NewIterator()
+
+	for iter.Next() {
+		key := iter.Key()
+		if len(key) < len(prefix) {
+			continue
+		}
+
+		if bytes.Equal(key[:len(prefix)], prefix) {
+			_ = trs.Delete(key)
+		}
+	}
+
+	iter.Release()
 }
 
 // GetKeysWithPrefixFromChild ...
