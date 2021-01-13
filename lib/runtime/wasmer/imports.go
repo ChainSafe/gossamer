@@ -109,7 +109,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
-	"github.com/ChainSafe/gossamer/lib/common/types"
+	rtype "github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
@@ -1739,11 +1739,11 @@ func toWasmMemoryOptional(context wasm.InstanceContext, data []byte) (int64, err
 
 // Wraps slice in Result type and copies result to wasm memory. Returns resulting 64bit span descriptor
 func toWasmMemoryResult(context wasm.InstanceContext, data []byte) (int64, error) {
-	var res *types.Result
+	var res *rtype.Result
 	if len(data) == 0 {
-		res = types.NewResult(byte(1), nil)
+		res = rtype.NewResult(byte(1), nil)
 	} else {
-		res = types.NewResult(byte(0), data)
+		res = rtype.NewResult(byte(0), data)
 	}
 
 	enc, err := res.Encode()
