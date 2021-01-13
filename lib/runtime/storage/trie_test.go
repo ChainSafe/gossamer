@@ -69,23 +69,6 @@ func TestTrieState_Commit(t *testing.T) {
 	testFunc(ts)
 }
 
-func TestTrieState_Free(t *testing.T) {
-	testFunc := func(ts *TrieState) {
-		for _, tc := range testCases {
-			err := ts.db.Put([]byte(tc), []byte(tc))
-			require.NoError(t, err)
-		}
-
-		err := ts.Free()
-		require.NoError(t, err)
-		iter := ts.db.NewIterator()
-		require.False(t, iter.Next())
-	}
-
-	ts := NewTestTrieState(t, nil)
-	testFunc(ts)
-}
-
 func TestTrieState_SetGet(t *testing.T) {
 	testFunc := func(ts *TrieState) {
 		for _, tc := range testCases {

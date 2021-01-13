@@ -33,6 +33,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// NewInMemoryDB creates a new in-memory database
 func NewInMemoryDB(t *testing.T) chaindb.Database {
 	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
 	require.NoError(t, err)
@@ -43,7 +44,7 @@ func NewInMemoryDB(t *testing.T) chaindb.Database {
 	})
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		db.Close()
+		_ = db.Close()
 	})
 
 	return db

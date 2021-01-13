@@ -78,22 +78,6 @@ func NewTestTrieState(t *testing.T, tr *trie.Trie) *TrieState {
 		tr = trie.NewEmptyTrie()
 	}
 
-	// testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
-
-	// cfg := &chaindb.Config{
-	// 	DataDir: testDatadirPath,
-	// 	InMemory: true,
-	// }
-
-	// db, err := chaindb.NewBadgerDB(cfg)
-	// if err != nil {
-	// 	t.Fatal("failed to create TestRuntimeStorage database")
-	// }
-
-	// return &TrieState{
-	// 	db: db,
-	// 	t:  tr,
-	// }
 	ts, err := NewTrieState(tr)
 	if err != nil {
 		t.Fatal("failed to create TrieState: ", err)
@@ -125,7 +109,6 @@ func (s *TrieState) Copy() (*TrieState, error) {
 	}, nil
 }
 
-//nolint
 // Commit ensures that the TrieState's trie and database match
 // The database is the source of truth due to the runtime interpreter's undefined behaviour regarding the trie
 func (s *TrieState) Commit() error {
@@ -162,22 +145,9 @@ func (s *TrieState) WriteTrieToDB() error {
 	return nil
 }
 
-// Free should be called once this trie state is no longer needed
-func (s *TrieState) Free() error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	iter := s.db.NewIterator()
-
-	for iter.Next() {
-		err := s.db.Del(iter.Key())
-		if err != nil {
-			return err
-		}
-	}
-
-	iter.Release()
-	return nil
+// Close should be called once this trie state is no longer needed to close and delete the database
+func (s *TrieState) Close() {
+	os.RemoveAll(s.db.Path())
 }
 
 // Set sets a key-value pair in the trie
