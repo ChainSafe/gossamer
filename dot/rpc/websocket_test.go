@@ -131,7 +131,7 @@ func (m *MockStorageAPI) Entries(_ *common.Hash) (map[string][]byte, error) {
 func (m *MockStorageAPI) GetStorageByBlockHash(_ common.Hash, key []byte) ([]byte, error) {
 	return nil, nil
 }
-func (m *MockStorageAPI) RegisterStorageChangeChannel(ch chan<- *state.KeyValue) (byte, error) {
+func (m *MockStorageAPI) RegisterStorageChangeChannel(sub state.StorageSubscription) (byte, error) {
 	return 0, nil
 }
 func (m *MockStorageAPI) UnregisterStorageChangeChannel(id byte) {

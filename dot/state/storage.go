@@ -49,8 +49,8 @@ type StorageState struct {
 	lock   sync.RWMutex
 
 	// change notifiers
-	changed     map[byte]chan<- *KeyValue
-	changedLock sync.RWMutex
+	changedLock   sync.RWMutex
+	subscriptions map[byte]*StorageSubscription
 }
 
 // NewStorageState creates a new StorageState backed by the given trie and database located at basePath.
@@ -67,11 +67,11 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie) 
 	tries[t.MustHash()] = t
 
 	return &StorageState{
-		blockState: blockState,
-		tries:      tries,
-		baseDB:     db,
-		db:         chaindb.NewTable(db, storagePrefix),
-		changed:    make(map[byte]chan<- *KeyValue),
+		blockState:    blockState,
+		tries:         tries,
+		baseDB:        db,
+		db:            chaindb.NewTable(db, storagePrefix),
+		subscriptions: make(map[byte]*StorageSubscription),
 	}, nil
 }
 
@@ -162,7 +162,49 @@ func (s *StorageState) StoreInDB(root common.Hash) error {
 		return errTrieDoesNotExist(root)
 	}
 
-	return StoreTrie(s.baseDB, s.tries[root])
+	err := StoreTrie(s.baseDB, s.tries[root])
+	if err != nil {
+		return err
+	}
+
+	// notify subscribers of database changes
+	for _, sub := range s.subscriptions {
+		subRes := &SubscriptionResult{
+			Hash: root,
+		}
+		if len(sub.Filter) == 0 {
+			// no filter, so send all changes
+			ent := s.tries[root].Entries()
+			for k, v := range ent {
+				if k != ":code" {
+					// todo, currently we're ignoring :code since this is a lot of data
+					kv := &KeyValue{
+						Key:   common.MustHexToBytes(fmt.Sprintf("0x%x", k)),
+						Value: v,
+					}
+					subRes.Changes = append(subRes.Changes, *kv)
+				}
+			}
+
+		} else {
+			// filter result to include only interested keys
+			for k := range sub.Filter {
+				value, err := s.tries[root].Get(common.MustHexToBytes(k))
+				if err != nil {
+					logger.Error("Error retrieving value from state tries")
+					continue
+				}
+				kv := &KeyValue{
+					Key:   common.MustHexToBytes(k),
+					Value: value,
+				}
+				subRes.Changes = append(subRes.Changes, *kv)
+			}
+		}
+		s.notifyChanged(subRes)
+	}
+
+	return nil
 }
 
 // LoadFromDB loads an encoded trie from the DB where the key is `root`
@@ -351,48 +393,6 @@ func (s *StorageState) GetBalance(hash *common.Hash, key [32]byte) (uint64, erro
 	}
 
 	return binary.LittleEndian.Uint64(bal), nil
-}
-
-// setStorage set the storage value for a given key in the trie. only for testing
-func (s *StorageState) setStorage(hash *common.Hash, key []byte, value []byte) error {
-	if hash == nil {
-		sr, err := s.blockState.BestBlockStateRoot()
-		if err != nil {
-			return err
-		}
-		hash = &sr
-	}
-
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	kv := &KeyValue{
-		Key:   key,
-		Value: value,
-	}
-
-	if s.tries[*hash] == nil {
-		return errTrieDoesNotExist(*hash)
-	}
-
-	err := s.tries[*hash].Put(key, value)
-	if err != nil {
-		return err
-	}
-	s.notifyChanged(kv) // TODO: what is this used for? needs to be updated to work with new StorageState/TrieState API
-	return nil
-}
-
-// setBalance sets the balance for an account with the given public key. only for testing
-func (s *StorageState) setBalance(hash *common.Hash, key [32]byte, balance uint64) error {
-	skey, err := common.BalanceKey(key)
-	if err != nil {
-		return err
-	}
-
-	bb := make([]byte, 8)
-	binary.LittleEndian.PutUint64(bb, balance)
-
-	return s.setStorage(hash, skey, bb)
 }
 
 func (s *StorageState) pruneStorage(closeCh chan interface{}) {
