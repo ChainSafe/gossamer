@@ -138,6 +138,35 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 	}
 }
 
+func TestSync_MultipleEpoch(t *testing.T) {
+	numNodes = 3 // TODO: increase this when syncing improves
+	utils.SetLogLevel(log.LvlInfo)
+
+	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigDefault)
+	require.NoError(t, err)
+
+	defer func() {
+		errList := utils.StopNodes(t, nodes)
+		require.Len(t, errList, 0)
+	}()
+
+	slotDuration := utils.SlotDuration(t, nodes[0])
+	epochLength := utils.EpochLength(t, nodes[0])
+
+	// Wait for epoch to pass
+	time.Sleep(time.Duration((slotDuration * epochLength) * 3))
+
+	// Just checking that everythings operating as expected
+	header := utils.GetChainHead(t, nodes[0])
+	currentHeight := header.Number.Int64()
+	for i := int64(0); i < currentHeight; i++ {
+		t.Log("comparing...", i)
+		_, err = compareBlocksByNumberWithRetry(t, nodes, strconv.Itoa(int(i)))
+		require.NoError(t, err, i)
+	}
+}
+
 func TestSync_SingleSyncingNode(t *testing.T) {
 	// TODO: Fix this test and enable it.
 	t.Skip("skipping TestSync_SingleSyncingNode")
