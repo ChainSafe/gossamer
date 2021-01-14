@@ -182,7 +182,7 @@ func (c *WSConn) handleComm() {
 			case "state_subscribeStorage":
 				scl, err2 := c.initStorageChangeListener(reqid, params)
 				if err2 != nil {
-					logger.Warn("failed to create state change listener", "error", err)
+					logger.Warn("failed to create state change listener", "error", err2)
 					continue
 				}
 				c.startListener(scl)
@@ -256,8 +256,7 @@ type Listener interface {
 
 // StorageChangeListener for listening to state change channels
 type StorageChangeListener struct {
-	channel chan *state.KeyValue
-	filter  map[string]bool
+	channel chan *state.SubscriptionResult
 	wsconn  *WSConn
 	chanID  byte
 	subID   int
@@ -265,21 +264,28 @@ type StorageChangeListener struct {
 
 func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (int, error) {
 	scl := &StorageChangeListener{
-		channel: make(chan *state.KeyValue),
-		filter:  make(map[string]bool),
+		channel: make(chan *state.SubscriptionResult),
 		wsconn:  c,
 	}
+	sub := &state.StorageSubscription{
+		Filter:   make(map[string]bool),
+		Listener: scl.channel,
+	}
+
 	pA := params.([]interface{})
 	for _, param := range pA {
-		switch param.(type) {
+		switch p := param.(type) {
 		case []interface{}:
-			for _, p := range param.([]interface{}) {
-				scl.filter[p.(string)] = true
+			for _, pp := range param.([]interface{}) {
+				sub.Filter[pp.(string)] = true
 			}
+		case string:
+			sub.Filter[p] = true
 		default:
 			return 0, fmt.Errorf("unknow parameter type")
 		}
 	}
+
 	if c.storageAPI == nil {
 		err := c.safeSendError(reqID, nil, "error StorageAPI not set")
 		if err != nil {
@@ -287,7 +293,8 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (i
 		}
 		return 0, fmt.Errorf("error StorageAPI not set")
 	}
-	chanID, err := c.storageAPI.RegisterStorageChangeChannel(scl.channel)
+
+	chanID, err := c.storageAPI.RegisterStorageChangeChannel(*sub)
 	if err != nil {
 		return 0, err
 	}
@@ -313,14 +320,17 @@ func (l *StorageChangeListener) Listen() {
 			continue
 		}
 
-		//check if change key is in subscription filter
-		cKey := common.BytesToHex(change.Key)
-		if len(l.filter) > 0 && !l.filter[cKey] {
-			continue
+		result := make(map[string]interface{})
+		result["block"] = change.Hash.String()
+		changes := [][]string{}
+		for _, v := range change.Changes {
+			kv := []string{common.BytesToHex(v.Key), common.BytesToHex(v.Value)}
+			changes = append(changes, kv)
 		}
+		result["changes"] = changes
 
 		changeM := make(map[string]interface{})
-		changeM["result"] = []string{cKey, common.BytesToHex(change.Value)}
+		changeM["result"] = result
 		changeM["subscription"] = l.subID
 		res := newSubcriptionBaseResponseJSON()
 		res.Method = "state_storage"
@@ -329,7 +339,6 @@ func (l *StorageChangeListener) Listen() {
 		if err != nil {
 			logger.Error("error sending websocket message", "error", err)
 		}
-
 	}
 }
 

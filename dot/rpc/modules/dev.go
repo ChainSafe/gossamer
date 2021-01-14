@@ -16,8 +16,11 @@
 package modules
 
 import (
+	"encoding/binary"
 	"errors"
 	"net/http"
+
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 var blockProducerStoppedMsg = "babe service stopped"
@@ -57,6 +60,7 @@ func (m *DevModule) Control(r *http.Request, req *[]string, res *string) error {
 			err = m.blockProducerAPI.Resume()
 			*res = blockProducerStartedMsg
 		}
+
 	case "network":
 		switch reqA[1] {
 		case "stop":
@@ -68,4 +72,26 @@ func (m *DevModule) Control(r *http.Request, req *[]string, res *string) error {
 		}
 	}
 	return err
+}
+
+// SlotDuration Dev RPC to return slot duration
+func (m *DevModule) SlotDuration(r *http.Request, req *EmptyRequest, res *string) error {
+	var err error
+	*res = Uint64ToHex(m.blockProducerAPI.SlotDuration())
+	return err
+}
+
+// EpochLength Dev RPC to return epoch length
+func (m *DevModule) EpochLength(r *http.Request, req *EmptyRequest, res *string) error {
+	var err error
+	*res = Uint64ToHex(m.blockProducerAPI.EpochLength())
+	return err
+}
+
+// Uint64ToHex converts a uint64 to a hexed string
+func Uint64ToHex(input uint64) string {
+	buffer := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buffer, input)
+	hexed := common.BytesToHex(buffer)
+	return hexed
 }

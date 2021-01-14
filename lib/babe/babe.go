@@ -217,6 +217,16 @@ func (b *Service) Start() error {
 	return nil
 }
 
+// SlotDuration returns the current service slot duration
+func (b *Service) SlotDuration() uint64 {
+	return b.slotDuration
+}
+
+// EpochLength returns the current service epoch duration
+func (b *Service) EpochLength() uint64 {
+	return b.epochLength
+}
+
 // Pause pauses the service ie. halts block production
 func (b *Service) Pause() error {
 	if b.paused {
