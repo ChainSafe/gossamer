@@ -1170,7 +1170,7 @@ func ext_storage_get_version_1(context unsafe.Pointer, keySpan C.int64_t) C.int6
 		logger.Error("[ext_storage_get_version_1]", "error", err)
 		return 0
 	}
-	logger.Trace("[ext_storage_get_version_1]", "value", value)
+	logger.Trace("[ext_storage_get_version_1]", "value", fmt.Sprintf("0x%x", value))
 
 	valueSpan, err := toWasmMemoryOptional(instanceContext, value)
 	if err != nil {
@@ -1290,7 +1290,7 @@ func ext_storage_set_version_1(context unsafe.Pointer, keySpan C.int64_t, valueS
 		return
 	}
 
-	logger.Trace("[ext_storage_set_version_1]", "key", fmt.Sprintf("0x%x", key), "val", value)
+	logger.Trace("[ext_storage_set_version_1]", "key", fmt.Sprintf("0x%x", key), "val", fmt.Sprintf("0x%x", value))
 	err := storage.Set(key, value)
 	if err != nil {
 		logger.Error("[ext_storage_set_version_1]", "error", err)

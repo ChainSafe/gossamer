@@ -260,6 +260,13 @@ func (s *TrieState) Entries() map[string][]byte {
 	return entries
 }
 
+func (s *TrieState) TrieEntries() map[string][]byte {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	return s.t.Entries()
+}
+
 // SetBalance sets the balance for a given public key
 func (s *TrieState) SetBalance(key [32]byte, balance uint64) error {
 	skey, err := common.BalanceKey(key)

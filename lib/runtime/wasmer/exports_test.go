@@ -1,6 +1,8 @@
 package wasmer
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"math/big"
 	"testing"
 	"time"
@@ -391,5 +393,62 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 		Body: types.NewBody(body),
 	}
 
-	_, _ = instance.ExecuteBlock(block) // TODO: complete this'
+	_, _ = instance.ExecuteBlock(block) // TODO: complete this
+
+	entriesRaw := genState.TrieEntries()
+	entries := make(map[string]string)
+	for k, v := range entriesRaw {
+		key := common.BytesToHex([]byte(k))
+		value := common.BytesToHex(v)
+		entries[key] = value
+	}
+	// str, err := json.MarshalIndent(entries, "", "")
+	// require.NoError(t, err)
+	// t.Logf("%s", str)
+	data, err := ioutil.ReadFile("../../../block1storage.out")
+	require.NoError(t, err)
+	kusamaRPC := make(map[string]interface{})
+	err = json.Unmarshal(data, &kusamaRPC)
+	require.NoError(t, err)
+
+	kusamaPairs := kusamaRPC["result"].([]interface{})
+	//t.Log(kusamaPairs)
+
+	kusamaEntries := make(map[string]string)
+
+	for _, pair := range kusamaPairs {
+		pairArr := pair.([]interface{})
+		kusamaEntries[pairArr[0].(string)] = pairArr[1].(string)
+	}
+
+	//t.Log(kusamaEntries)
+	//require.Equal(t, kusamaEntries, entries)
+
+	if len(kusamaEntries) != len(entries) {
+		t.Logf("len of entries don't match: kusama=%d gossamer=%d", len(kusamaEntries), len(entries))
+	}
+
+	for k, v := range kusamaEntries {
+		gossVal, ok := entries[k]
+		if !ok {
+			t.Logf("gossamer didn't have this entry: [%s: %s]", k, v)
+			continue
+		}
+
+		if gossVal != v {
+			t.Logf("entry mismatch: key=%s\nkusama=%s\ngossamer=%s", k, v, gossVal)
+		}
+	}
+
+	for k, v := range entries {
+		ksmVal, ok := kusamaEntries[k]
+		if !ok {
+			t.Logf("kusama didn't have this entry: [%s: %s]", k, v)
+			continue
+		}
+
+		if ksmVal != v {
+			t.Logf("entry mismatch: key=%s\nkusama=%s\ngossamer=%s", k, ksmVal, v)
+		}
+	}
 }
