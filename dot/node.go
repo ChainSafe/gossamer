@@ -30,6 +30,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/services"
 
@@ -81,7 +82,7 @@ func InitNode(cfg *Config) error {
 	stateSrvc := state.NewService(cfg.Global.BasePath, cfg.Global.LogLvl)
 
 	// load genesis state into database
-	genTrie, err := state.NewTrieState(database.NewMemDatabase(), t) //nolint
+	genTrie, err := rtstorage.NewTrieState(database.NewMemDatabase(), t) //nolint
 	if err != nil {
 		return fmt.Errorf("failed to instantiate TrieState: %w", err)
 	}

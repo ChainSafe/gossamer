@@ -187,7 +187,7 @@ func Test_ServicePruneStorage(t *testing.T) {
 
 		// Store the other blocks that will be pruned.
 		var trieVal *trie.Trie
-		trieVal, err = trieState.t.DeepCopy()
+		trieVal, err = trieState.Trie().DeepCopy()
 		require.NoError(t, err)
 
 		var rootHash common.Hash
