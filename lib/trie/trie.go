@@ -224,14 +224,8 @@ func (t *Trie) Put(key, value []byte) error {
 
 func (t *Trie) tryPut(key, value []byte) (err error) {
 	k := keyToNibbles(key)
-	var n node
 
-	if len(value) > 0 {
-		n, err = t.insert(t.root, k, &leaf{key: nil, value: value, dirty: true})
-	} else {
-		n, err = t.delete(t.root, k)
-	}
-
+	n, err := t.insert(t.root, k, &leaf{key: nil, value: value, dirty: true})
 	if err != nil {
 		return err
 	}

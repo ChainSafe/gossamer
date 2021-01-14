@@ -24,6 +24,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
 	"github.com/ChainSafe/chaindb"
@@ -90,12 +91,12 @@ func (s *StorageState) pruneKey(keyHeader *types.Header) {
 }
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database
-func (s *StorageState) StoreTrie(root common.Hash, ts *TrieState) error {
+func (s *StorageState) StoreTrie(root common.Hash, ts *rtstorage.TrieState) error {
 	var err error
 
 	s.lock.Lock()
 	// make copy of trie since ts.Free will clear the TrieState
-	s.tries[root], err = ts.t.DeepCopy()
+	s.tries[root], err = ts.Trie().DeepCopy()
 	if err != nil {
 		return err
 	}
@@ -133,7 +134,7 @@ func (s *StorageState) StoreTrie(root common.Hash, ts *TrieState) error {
 
 // TrieState returns the TrieState for a given state root.
 // If no state root is provided, it returns the TrieState for the current chain head.
-func (s *StorageState) TrieState(hash *common.Hash) (*TrieState, error) {
+func (s *StorageState) TrieState(hash *common.Hash) (*rtstorage.TrieState, error) {
 	if hash == nil {
 		sr, err := s.blockState.BestBlockStateRoot()
 		if err != nil {
@@ -149,7 +150,7 @@ func (s *StorageState) TrieState(hash *common.Hash) (*TrieState, error) {
 		return nil, errTrieDoesNotExist(*hash)
 	}
 
-	return NewTrieState(s.baseDB, s.tries[*hash])
+	return rtstorage.NewTrieState(s.baseDB, s.tries[*hash])
 }
 
 // StoreInDB encodes the entire trie and writes it to the DB

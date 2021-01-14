@@ -10,6 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
@@ -290,7 +291,7 @@ func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
 	block := buildBlock(t, instance)
 
 	// reset state back to parent state before executing
-	parentState := runtime.NewTestRuntimeStorage(t, nil)
+	parentState := storage.NewTestTrieState(t, nil)
 	instance.SetContext(parentState)
 
 	_, err := instance.ExecuteBlock(block)
@@ -304,7 +305,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 	block := buildBlock(t, instance)
 
 	// reset state back to parent state before executing
-	parentState := runtime.NewTestRuntimeStorage(t, nil)
+	parentState := storage.NewTestTrieState(t, nil)
 	instance.SetContext(parentState)
 
 	_, err := instance.ExecuteBlock(block)
@@ -318,8 +319,11 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
+	expectedGenesisRoot := common.MustHexToHash("0x29d0d972cd27cbc511e9589fcb7a4506d5eb6a9e8df205f00472e5ab354a4e17")
+	require.Equal(t, expectedGenesisRoot, genTrie.MustHash())
+
 	// set state to genesis state
-	genState := runtime.NewTestRuntimeStorage(t, genTrie)
+	genState := storage.NewTestTrieState(t, genTrie)
 
 	cfg := &Config{}
 	cfg.Storage = genState
@@ -347,4 +351,45 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	}
 
 	_, _ = instance.ExecuteBlock(block) // TODO: complete this
+}
+
+func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
+	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/ksmcc/genesis-raw.json")
+	require.NoError(t, err)
+
+	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	expectedGenesisRoot := common.MustHexToHash("0xb0006203c3a6e6bd2c6a17b1d4ae8ca49a31da0f4579da950b127774b44aef6b")
+	require.Equal(t, expectedGenesisRoot, genTrie.MustHash())
+
+	// set state to genesis state
+	genState := storage.NewTestTrieState(t, genTrie)
+
+	cfg := &Config{}
+	cfg.Storage = genState
+	cfg.LogLvl = 5
+
+	instance, err := NewRuntimeFromGenesis(gen, cfg)
+	require.NoError(t, err)
+
+	// block data is received from querying a polkadot node
+	body := []byte{8, 40, 4, 2, 0, 11, 144, 17, 14, 179, 110, 1, 16, 4, 20, 0, 0}
+	exts, err := scale.Decode(body, [][]byte{})
+	require.NoError(t, err)
+	require.Equal(t, 2, len(exts.([][]byte)))
+
+	// kusama block 1, from polkadot.js
+	block := &types.Block{
+		Header: &types.Header{
+			ParentHash:     common.MustHexToHash("0xb0a8d493285c2df73290dfb7e61f870f17b41801197a149ca93654499ea3dafe"),
+			Number:         big.NewInt(1),
+			StateRoot:      common.MustHexToHash("0xfabb0c6e92d29e8bb2167f3c6fb0ddeb956a4278a3cf853661af74a076fc9cb7"),
+			ExtrinsicsRoot: common.MustHexToHash("0xa35fb7f7616f5c979d48222b3d2fa7cb2331ef73954726714d91ca945cc34fd8"),
+			Digest:         [][]byte{},
+		},
+		Body: types.NewBody(body),
+	}
+
+	_, _ = instance.ExecuteBlock(block) // TODO: complete this'
 }

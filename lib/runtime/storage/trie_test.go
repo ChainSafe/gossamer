@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package state
+package storage
 
 import (
 	"io/ioutil"
@@ -26,6 +26,10 @@ import (
 	"github.com/ChainSafe/chaindb"
 	"github.com/stretchr/testify/require"
 )
+
+func TestNewTestTrieState(t *testing.T) {
+	NewTestTrieState(t, nil)
+}
 
 func newTestTrieStateWithMemDB(t *testing.T) *TrieState {
 	db := chaindb.NewMemDatabase()
@@ -188,6 +192,33 @@ func TestTrieState_Root(t *testing.T) {
 	testFunc(ts)
 	ts = newTestTrieStateWithBadgerDB(t)
 	testFunc(ts)
+}
+
+func TestTrieState_ClearPrefix(t *testing.T) {
+	ts := NewTestTrieState(t, nil)
+
+	keys := []string{
+		"noot",
+		"noodle",
+		"other",
+	}
+
+	for i, key := range keys {
+		err := ts.Set([]byte(key), []byte{byte(i)})
+		require.NoError(t, err)
+	}
+
+	ts.ClearPrefix([]byte("noo"))
+
+	for i, key := range keys {
+		val, err := ts.Get([]byte(key))
+		require.NoError(t, err)
+		if i < 2 {
+			require.Nil(t, val)
+		} else {
+			require.NotNil(t, val)
+		}
+	}
 }
 
 func TestTrieState_ClearPrefixInChild(t *testing.T) {
