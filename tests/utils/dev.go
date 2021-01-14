@@ -18,7 +18,6 @@ package utils
 
 import (
 	"encoding/binary"
-	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -33,24 +32,32 @@ func PauseBABE(t *testing.T, node *Node) error {
 
 // SlotDuration Calls dev endpoint for slot duration
 func SlotDuration(t *testing.T, node *Node) uint64 {
-	slotDuration, err := PostRPC("dev_slotDuration", NewEndpoint(node.RPCPort), "")
+	slotDuration, err := PostRPC("dev_slotDuration", NewEndpoint(node.RPCPort), "[]")
 
 	if err != nil {
 		require.NoError(t, err)
 	}
 
-	slotDurationParsed := binary.LittleEndian.Uint64(common.MustHexToBytes(fmt.Sprintf("%s", slotDuration)))
+	slotDurationDecoded := new(string)
+	err = DecodeRPC(t, slotDuration, slotDurationDecoded)
+	require.NoError(t, err)
+
+	slotDurationParsed := binary.LittleEndian.Uint64(common.MustHexToBytes(*slotDurationDecoded))
 	return slotDurationParsed
 }
 
 // EpochLength Calls dev endpoint for epoch length
 func EpochLength(t *testing.T, node *Node) uint64 {
-	epochLength, err := PostRPC("dev_epochLength", NewEndpoint(node.RPCPort), "")
+	epochLength, err := PostRPC("dev_epochLength", NewEndpoint(node.RPCPort), "[]")
 
 	if err != nil {
 		require.NoError(t, err)
 	}
 
-	epochLengthParsed := binary.LittleEndian.Uint64(common.MustHexToBytes(fmt.Sprintf("%s", epochLength)))
+	epochLengthDecoded := new(string)
+	err = DecodeRPC(t, epochLength, epochLengthDecoded)
+	require.NoError(t, err)
+
+	epochLengthParsed := binary.LittleEndian.Uint64(common.MustHexToBytes(*epochLengthDecoded))
 	return epochLengthParsed
 }

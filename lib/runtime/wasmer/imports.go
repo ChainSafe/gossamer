@@ -1016,7 +1016,12 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 	}
 
 	if len(valueCurr) == 0 {
-		return storage.Set(key, valueToAppend)
+		enc, err := scale.Encode([][]byte{valueToAppend}) //nolint
+		if err != nil {
+			logger.Trace("[ext_storage_append_version_1] failed to encode item", "error", err)
+			return err
+		}
+		return storage.Set(key, enc)
 	}
 
 	// remove length prefix from existing value
