@@ -22,7 +22,6 @@ import (
 	"path"
 	"testing"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -198,7 +197,8 @@ func TestSystemModule_ChainType(t *testing.T) {
 	testGenesisData := &genesis.Data{
 		ChainType: "Local",
 	}
-	db := chaindb.NewMemDatabase()
+	db := state.NewInMemoryDB(t)
+
 	state.StoreGenesisData(db, testGenesisData)
 
 	stoState, err := state.NewStorageState(db, nil, trie.NewEmptyTrie())
