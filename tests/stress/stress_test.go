@@ -139,7 +139,8 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 }
 
 func TestSync_MultipleEpoch(t *testing.T) {
-	t.Skip("skipping until err fixed")
+	t.Skip("skipping TestSync_MultipleEpoch until err fixed")
+
 	numNodes = 3 // TODO: increase this when syncing improves
 	utils.SetLogLevel(log.LvlInfo)
 
