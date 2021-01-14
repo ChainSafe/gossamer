@@ -17,7 +17,6 @@
 package types
 
 import (
-	//"bytes"
 	"errors"
 	"fmt"
 	"io"

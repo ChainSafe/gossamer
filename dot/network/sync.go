@@ -82,6 +82,9 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 }
 
 func (s *Service) beginSyncing(peer peer.ID, msg Message) error {
+	s.syncingMu.Lock()
+	defer s.syncingMu.Unlock()
+
 	if _, syncing := s.syncing[peer]; syncing {
 		return errors.New("already syncing with peer")
 	}
