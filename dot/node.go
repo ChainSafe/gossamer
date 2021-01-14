@@ -30,10 +30,11 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/services"
 
-	database "github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/chaindb"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -81,7 +82,7 @@ func InitNode(cfg *Config) error {
 	stateSrvc := state.NewService(cfg.Global.BasePath, cfg.Global.LogLvl)
 
 	// load genesis state into database
-	genTrie, err := state.NewTrieState(database.NewMemDatabase(), t) //nolint
+	genTrie, err := rtstorage.NewTrieState(t)
 	if err != nil {
 		return fmt.Errorf("failed to instantiate TrieState: %w", err)
 	}
@@ -177,7 +178,9 @@ func NodeInitialized(basepath string, expected bool) bool {
 	}
 
 	// initialize database using data directory
-	db, err := database.NewBadgerDB(basepath)
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{
+		DataDir: basepath,
+	})
 	if err != nil {
 		logger.Error(
 			"failed to create database",

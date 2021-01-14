@@ -17,6 +17,7 @@
 package modules
 
 import (
+	"io/ioutil"
 	"math/big"
 	"testing"
 
@@ -25,7 +26,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
 
 	database "github.com/ChainSafe/chaindb"
 	log "github.com/ChainSafe/log15"
@@ -265,16 +265,16 @@ var genesisBABEConfig = &types.BabeConfiguration{
 }
 
 func newTestStateService(t *testing.T) *state.Service {
-	testDir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
-	stateSrvc := state.NewService(testDir, log.LvlInfo)
+	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
+	require.NoError(t, err)
+	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo)
 
 	tr := trie.NewEmptyTrie()
 
 	stateSrvc.UseMemDB()
 	genesisData := new(genesis.Data)
 
-	err := stateSrvc.Initialize(genesisData, genesisHeader, tr, genesisBABEConfig)
+	err = stateSrvc.Initialize(genesisData, genesisHeader, tr, genesisBABEConfig)
 	if err != nil {
 		t.Fatal(err)
 	}

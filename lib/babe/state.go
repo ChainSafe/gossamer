@@ -19,9 +19,9 @@ package babe
 import (
 	"math/big"
 
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
@@ -49,8 +49,8 @@ type BlockState interface {
 
 // StorageState interface for storage state methods
 type StorageState interface {
-	TrieState(hash *common.Hash) (*state.TrieState, error)
-	StoreTrie(root common.Hash, ts *state.TrieState) error
+	TrieState(hash *common.Hash) (*rtstorage.TrieState, error)
+	StoreTrie(root common.Hash, ts *rtstorage.TrieState) error
 }
 
 // TransactionState is the interface for transaction queue methods

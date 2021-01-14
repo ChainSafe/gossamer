@@ -9,12 +9,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/trie"
-
-	database "github.com/ChainSafe/chaindb"
 )
 
 func TestTrie_StoreAndLoadFromDB(t *testing.T) {
-	db := database.NewMemDatabase()
+	db := NewInMemoryDB(t)
 	tt := trie.NewEmptyTrie()
 
 	rt := trie.GenerateRandomTests(t, 1000)
@@ -66,7 +64,7 @@ type test struct {
 }
 
 func TestStoreAndLoadLatestStorageHash(t *testing.T) {
-	db := database.NewMemDatabase()
+	db := NewInMemoryDB(t)
 	tt := trie.NewEmptyTrie()
 
 	tests := []test{
@@ -108,7 +106,7 @@ func TestStoreAndLoadLatestStorageHash(t *testing.T) {
 }
 
 func TestStoreAndLoadGenesisData(t *testing.T) {
-	db := database.NewMemDatabase()
+	db := NewInMemoryDB(t)
 
 	bootnodes := common.StringArrayToBytes([]string{
 		"/ip4/127.0.0.1/tcp/7001/p2p/12D3KooWHHzSeKaY8xuZVzkLbKFfvNgPPeKhFBGrMbNzbm5akpqu",
@@ -138,7 +136,7 @@ func TestStoreAndLoadGenesisData(t *testing.T) {
 }
 
 func TestStoreAndLoadBestBlockHash(t *testing.T) {
-	db := database.NewMemDatabase()
+	db := NewInMemoryDB(t)
 	hash, _ := common.HexToHash("0x3f5a19b9e9507e05276216f3877bb289e47885f8184010c65d0e41580d3663cc")
 
 	err := StoreBestBlockHash(db, hash)

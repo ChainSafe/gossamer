@@ -17,6 +17,7 @@
 package state
 
 import (
+	"io/ioutil"
 	"math/big"
 	"reflect"
 	"testing"
@@ -50,7 +51,8 @@ func newTestService(t *testing.T) (state *Service) {
 }
 
 func newTestMemDBService() *Service {
-	state := NewService("", log.LvlTrace)
+	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
+	state := NewService(testDatadirPath, log.LvlTrace)
 	state.UseMemDB()
 	return state
 }
@@ -187,7 +189,7 @@ func Test_ServicePruneStorage(t *testing.T) {
 
 		// Store the other blocks that will be pruned.
 		var trieVal *trie.Trie
-		trieVal, err = trieState.t.DeepCopy()
+		trieVal, err = trieState.Trie().DeepCopy()
 		require.NoError(t, err)
 
 		var rootHash common.Hash
