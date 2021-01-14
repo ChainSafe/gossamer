@@ -20,6 +20,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"sort"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -312,6 +313,21 @@ func (s *StorageState) Entries(hash *common.Hash) (map[string][]byte, error) {
 	}
 
 	return s.tries[*hash].Entries(), nil
+}
+
+func (s *StorageState) Keys(hash *common.Hash) ([]string, error) {
+	entries, err := s.Entries(hash)
+	if err != nil {
+		return nil, err
+	}
+	keys := make([]string, 0, len(entries))
+
+	for k := range entries {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	return keys, nil
 }
 
 // GetStorageChild return GetChild from the trie

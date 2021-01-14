@@ -18,7 +18,9 @@ package modules
 
 import (
 	"encoding/hex"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -41,7 +43,9 @@ type StateChildStorageRequest struct {
 
 // StateStorageKeyRequest holds json fields
 type StateStorageKeyRequest struct {
-	Key   []byte       `json:"key"`
+	Prefix   string       `json:"prefix"`
+	Qty  uint32 `json:"qty"`
+	AfterKey string `afterKey`
 	Block *common.Hash `json:"block"`
 }
 
@@ -117,7 +121,7 @@ type StateStorageResponse string
 type StatePairResponse []interface{}
 
 // StateStorageKeysResponse field for storage keys
-type StateStorageKeysResponse [][]byte
+type StateStorageKeysResponse []string
 
 // StateMetadataResponse holds the metadata
 //TODO: Determine actual type
@@ -234,9 +238,26 @@ func (sm *StateModule) GetChildStorageSize(r *http.Request, req *StateChildStora
 }
 
 // GetKeys isn't implemented properly yet.
-func (sm *StateModule) GetKeys(r *http.Request, req *StateStorageKeyRequest, res *StateStorageKeysResponse) error {
+func (sm *StateModule) GetKeysPaged(r *http.Request, req *StateStorageKeyRequest, res *StateStorageKeysResponse) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
-	return nil
+	// todo ed, test lookup by block hash
+	// todo ed add unit tests
+	keys, err := sm.storageAPI.Keys(req.Block)
+	resCount := uint32(0)
+	for _, k := range keys {
+		fKey := fmt.Sprintf("0x%x", k)
+		if strings.HasPrefix(fKey, req.Prefix) &&
+			strings.Compare(fKey, req.AfterKey) == 1 {
+			// sm.storageAPI.Keys sorts keys in lexicographical order, so we know that keys where strings.Compare = 1
+			//  are after the requested after key.
+			*res = append(*res, fKey)
+			resCount++
+		}
+		if resCount >= req.Qty {
+			break
+		}
+	}
+	return err
 }
 
 // GetMetadata calls runtime Metadata_metadata function
