@@ -18,15 +18,36 @@ package runtime
 
 import (
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path"
+	"testing"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	ma "github.com/multiformats/go-multiaddr"
+	"github.com/stretchr/testify/require"
 )
+
+// NewInMemoryDB creates a new in-memory database
+func NewInMemoryDB(t *testing.T) chaindb.Database {
+	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
+	require.NoError(t, err)
+
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{
+		DataDir:  testDatadirPath,
+		InMemory: true,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = db.Close()
+	})
+
+	return db
+}
 
 // GetRuntimeVars returns the testRuntimeFilePath and testRuntimeURL
 func GetRuntimeVars(targetRuntime string) (string, string) {

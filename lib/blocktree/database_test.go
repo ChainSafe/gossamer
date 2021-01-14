@@ -1,13 +1,16 @@
 package blocktree
 
 import (
+	"io/ioutil"
 	"math/big"
 	"math/rand"
 	"reflect"
 	"testing"
 
-	database "github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+
+	"github.com/stretchr/testify/require"
 )
 
 type testBranch struct {
@@ -15,7 +18,7 @@ type testBranch struct {
 	depth *big.Int
 }
 
-func createTestBlockTree(header *types.Header, depth int, db database.Database) (*BlockTree, []testBranch) {
+func createTestBlockTree(header *types.Header, depth int, db chaindb.Database) (*BlockTree, []testBranch) {
 	bt := NewBlockTreeFromGenesis(header, db)
 	previousHash := header.Hash()
 
@@ -70,7 +73,7 @@ func createTestBlockTree(header *types.Header, depth int, db database.Database) 
 }
 
 func TestStoreBlockTree(t *testing.T) {
-	db := database.NewMemDatabase()
+	db := newInMemoryDB(t)
 	bt, _ := createTestBlockTree(testHeader, 10, db)
 
 	err := bt.Store()
@@ -93,4 +96,19 @@ func TestStoreBlockTree(t *testing.T) {
 	if !reflect.DeepEqual(btLeafMap, resLeafMap) {
 		t.Fatalf("Fail: got %v expected %v", btLeafMap, resLeafMap)
 	}
+}
+func newInMemoryDB(t *testing.T) chaindb.Database {
+	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
+	require.NoError(t, err)
+
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{
+		DataDir:  testDatadirPath,
+		InMemory: true,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		db.Close()
+	})
+
+	return db
 }

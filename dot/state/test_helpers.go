@@ -18,11 +18,13 @@ package state
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math/big"
 	"math/rand"
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -30,6 +32,23 @@ import (
 
 	"github.com/stretchr/testify/require"
 )
+
+// NewInMemoryDB creates a new in-memory database
+func NewInMemoryDB(t *testing.T) chaindb.Database {
+	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
+	require.NoError(t, err)
+
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{
+		DataDir:  testDatadirPath,
+		InMemory: true,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = db.Close()
+	})
+
+	return db
+}
 
 // branch tree randomly
 type testBranch struct {
