@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -141,7 +142,7 @@ func (in *LegacyInstance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	b := block.DeepCopy()
 
 	// TODO: remove seal digest only
-	b.Header.Digest = [][]byte{}
+	//b.Header.Digest = [][]byte{}
 	bdEnc, err := b.Encode()
 	if err != nil {
 		return nil, err

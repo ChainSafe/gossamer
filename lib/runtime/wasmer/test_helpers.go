@@ -32,7 +32,7 @@ import (
 )
 
 // DefaultTestLogLvl is the log level used for test runtime instances
-var DefaultTestLogLvl = log.LvlTrace
+var DefaultTestLogLvl = log.LvlDebug
 
 // NewTestLegacyInstance will create a new runtime instance using the given target runtime
 func NewTestLegacyInstance(t *testing.T, targetRuntime string) *LegacyInstance {
