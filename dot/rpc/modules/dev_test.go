@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"encoding/binary"
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
@@ -78,4 +79,32 @@ func TestDevControl_Network(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, networkStartedMsg, res)
 	require.False(t, net.IsStopped())
+}
+
+func TestDevControl_SlotDuration(t *testing.T) {
+	bs := newBABEService(t)
+	m := NewDevModule(bs, nil)
+
+	slotDurationSource := m.blockProducerAPI.SlotDuration()
+
+	var res string
+	err := m.SlotDuration(nil, &EmptyRequest{}, &res)
+	require.NoError(t, err)
+
+	slotLengthFetched := binary.LittleEndian.Uint64(common.MustHexToBytes(res))
+	require.Equal(t, slotDurationSource, slotLengthFetched)
+}
+
+func TestDevControl_EpochLength(t *testing.T) {
+	bs := newBABEService(t)
+	m := NewDevModule(bs, nil)
+
+	epochLengthSource := m.blockProducerAPI.EpochLength()
+
+	var res string
+	err := m.EpochLength(nil, &EmptyRequest{}, &res)
+	require.NoError(t, err)
+
+	epochLengthFetched := binary.LittleEndian.Uint64(common.MustHexToBytes(res))
+	require.Equal(t, epochLengthSource, epochLengthFetched)
 }
