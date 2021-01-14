@@ -1016,7 +1016,7 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 	}
 
 	if len(valueCurr) == 0 {
-		enc, err := scale.Encode([][]byte{valueToAppend})
+		enc, err := scale.Encode([][]byte{valueToAppend}) //nolint
 		if err != nil {
 			logger.Trace("[ext_storage_append_version_1] failed to encode item", "error", err)
 			return err
