@@ -76,30 +76,29 @@ func (s *Service) DB() chaindb.Database {
 // This only needs to be called during genesis initialization of the node; it doesn't need to be called during normal startup.
 func (s *Service) Initialize(data *genesis.Data, header *types.Header, t *trie.Trie, babeCfg *types.BabeConfiguration) error {
 	var db chaindb.Database
+	cfg := &chaindb.Config{}
 
 	// check database type
 	if s.isMemDB {
+		cfg.InMemory = true
+	}
 
-		// create memory database
-		db = chaindb.NewMemDatabase()
+	// get data directory from service
+	basepath, err := filepath.Abs(s.dbPath)
+	if err != nil {
+		return fmt.Errorf("failed to read basepath: %s", err)
+	}
 
-	} else {
+	cfg.DataDir = basepath
 
-		// get data directory from service
-		basepath, err := filepath.Abs(s.dbPath)
-		if err != nil {
-			return fmt.Errorf("failed to read basepath: %s", err)
-		}
-
-		// initialize database using data directory
-		db, err = chaindb.NewBadgerDB(basepath)
-		if err != nil {
-			return fmt.Errorf("failed to create database: %s", err)
-		}
+	// initialize database using data directory
+	db, err = chaindb.NewBadgerDB(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to create database: %s", err)
 	}
 
 	// write initial genesis values to database
-	err := s.storeInitialValues(db, data, header, t)
+	err = s.storeInitialValues(db, data, header, t)
 	if err != nil {
 		return fmt.Errorf("failed to write genesis values to database: %s", err)
 	}
@@ -193,8 +192,12 @@ func (s *Service) Start() error {
 			return err
 		}
 
+		cfg := &chaindb.Config{
+			DataDir: basepath,
+		}
+
 		// initialize database
-		db, err = chaindb.NewBadgerDB(basepath)
+		db, err = chaindb.NewBadgerDB(cfg)
 		if err != nil {
 			return err
 		}

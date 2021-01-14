@@ -96,7 +96,9 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	}
 
 	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.EpochState == nil {
-		dbSrv := state.NewService("", log.LvlInfo)
+		testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*") //nolint
+		require.NoError(t, err)
+		dbSrv := state.NewService(testDatadirPath, log.LvlInfo)
 		dbSrv.UseMemDB()
 
 		genesisData := new(genesis.Data)

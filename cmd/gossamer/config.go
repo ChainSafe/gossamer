@@ -21,7 +21,7 @@ import (
 	"strconv"
 	"strings"
 
-	database "github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
@@ -703,9 +703,10 @@ func updateDotConfigFromGenesisJSONRaw(ctx *cli.Context, tomlCfg ctoml.Config, c
 
 // updateDotConfigFromGenesisData updates the configuration from genesis data of an initialized node
 func updateDotConfigFromGenesisData(ctx *cli.Context, cfg *dot.Config) error {
-
 	// initialize database using data directory
-	db, err := database.NewBadgerDB(cfg.Global.BasePath)
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{
+		DataDir: cfg.Global.BasePath,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to create database: %s", err)
 	}

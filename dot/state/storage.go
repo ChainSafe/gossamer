@@ -24,6 +24,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
 	"github.com/ChainSafe/chaindb"
@@ -90,12 +91,17 @@ func (s *StorageState) pruneKey(keyHeader *types.Header) {
 }
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database
-func (s *StorageState) StoreTrie(root common.Hash, ts *TrieState) error {
-	var err error
+func (s *StorageState) StoreTrie(root common.Hash, ts *rtstorage.TrieState) error {
+	// write raw trie key-values stored in db to *trie.Trie
+	err := ts.Commit()
+	if err != nil {
+		logger.Error("failed to write TrieState db values to trie", "state root", root, "error", err)
+		return err
+	}
 
 	s.lock.Lock()
 	// make copy of trie since ts.Free will clear the TrieState
-	s.tries[root], err = ts.t.DeepCopy()
+	s.tries[root], err = ts.Trie().DeepCopy()
 	if err != nil {
 		return err
 	}
@@ -104,22 +110,8 @@ func (s *StorageState) StoreTrie(root common.Hash, ts *TrieState) error {
 
 	logger.Debug("stored trie in storage state", "root", root)
 
-	// TODO: this needs to be optimized
-	// since BABE calls this after building a block, it's unable to proceed to the next block until
-	// this function completes. if this isn't in a goroutine it slows block times, but if it is, then
-	// it causes other problems when the block is handled in core.
-
-	// write raw trie key-values stored in db to *trie.Trie
-	// err = ts.Commit()
-	// if err != nil {
-	// 	logger.Error("failed to write TrieState db values to trie", "state root", root, "error", err)
-	// }
-
-	// delete raw trie key-values from db
-	err = ts.Free()
-	if err != nil {
-		logger.Error("failed to delete TrieState db values", "state root", root, "error", err)
-	}
+	// delete temporary in-memory db
+	ts.Close()
 
 	// store encoded *trie.Trie in database
 	err = s.StoreInDB(root)
@@ -133,7 +125,7 @@ func (s *StorageState) StoreTrie(root common.Hash, ts *TrieState) error {
 
 // TrieState returns the TrieState for a given state root.
 // If no state root is provided, it returns the TrieState for the current chain head.
-func (s *StorageState) TrieState(hash *common.Hash) (*TrieState, error) {
+func (s *StorageState) TrieState(hash *common.Hash) (*rtstorage.TrieState, error) {
 	if hash == nil {
 		sr, err := s.blockState.BestBlockStateRoot()
 		if err != nil {
@@ -149,7 +141,7 @@ func (s *StorageState) TrieState(hash *common.Hash) (*TrieState, error) {
 		return nil, errTrieDoesNotExist(*hash)
 	}
 
-	return NewTrieState(s.baseDB, s.tries[*hash])
+	return rtstorage.NewTrieState(s.tries[*hash])
 }
 
 // StoreInDB encodes the entire trie and writes it to the DB

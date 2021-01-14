@@ -17,6 +17,7 @@
 package grandpa
 
 import (
+	"io/ioutil"
 	"math/big"
 	"math/rand"
 	"sort"
@@ -60,12 +61,15 @@ func (h *mockDigestHandler) NextGrandpaAuthorityChange() uint64 {
 }
 
 func newTestState(t *testing.T) *state.Service {
-	stateSrvc := state.NewService("", log.LvlInfo)
+	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
+	require.NoError(t, err)
+
+	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo)
 	stateSrvc.UseMemDB()
 
 	genesisData := new(genesis.Data)
 
-	err := stateSrvc.Initialize(genesisData, testGenesisHeader, trie.NewEmptyTrie(), genesisBABEConfig)
+	err = stateSrvc.Initialize(genesisData, testGenesisHeader, trie.NewEmptyTrie(), genesisBABEConfig)
 	require.NoError(t, err)
 
 	err = stateSrvc.Start()
