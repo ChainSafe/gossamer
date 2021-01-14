@@ -34,7 +34,7 @@ var testGenesisHeader = &types.Header{
 }
 
 func newTestBlockState(t *testing.T, header *types.Header) *BlockState {
-	db := chaindb.NewMemDatabase()
+	db := NewInMemoryDB(t)
 	if header == nil {
 		return &BlockState{
 			db: chaindb.NewTable(db, blockPrefix),

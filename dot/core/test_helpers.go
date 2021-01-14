@@ -18,6 +18,7 @@ package core
 
 import (
 	"io"
+	"io/ioutil"
 	"math/big"
 	"testing"
 	"time"
@@ -31,7 +32,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
+
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
@@ -150,12 +151,14 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	cfg.LogLvl = 3
 
-	stateSrvc := state.NewService("", log.LvlInfo)
+	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
+	require.NoError(t, err)
+	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo)
 	stateSrvc.UseMemDB()
 
 	genesisData := new(genesis.Data)
 	tt := trie.NewEmptyTrie()
-	err := stateSrvc.Initialize(genesisData, testGenesisHeader, tt, genesisBABEConfig)
+	err = stateSrvc.Initialize(genesisData, testGenesisHeader, tt, genesisBABEConfig)
 	require.Nil(t, err)
 
 	err = stateSrvc.Start()
@@ -174,13 +177,8 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	}
 
 	if cfg.Network == nil {
-		basePath := utils.NewTestBasePath(t, "node")
-
-		// removes all data directories created within test directory
-		defer utils.RemoveTestDir(t)
-
 		config := &network.Config{
-			BasePath:    basePath,
+			BasePath:    testDatadirPath,
 			Port:        7001,
 			RandSeed:    1,
 			NoBootstrap: true,
@@ -214,7 +212,6 @@ func createTestNetworkService(t *testing.T, cfg *network.Config) (srvc *network.
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
-		utils.RemoveTestDir(t)
 		err := srvc.Stop()
 		require.NoError(t, err)
 	})

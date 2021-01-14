@@ -17,6 +17,7 @@
 package core
 
 import (
+	"io/ioutil"
 	"testing"
 	"time"
 
@@ -33,12 +34,14 @@ import (
 )
 
 func newTestDigestHandler(t *testing.T, withBABE, withGrandpa bool) *DigestHandler { //nolint
-	stateSrvc := state.NewService("", log.LvlInfo)
+	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
+	require.NoError(t, err)
+	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo)
 	stateSrvc.UseMemDB()
 
 	genesisData := new(genesis.Data)
 
-	err := stateSrvc.Initialize(genesisData, testGenesisHeader, trie.NewEmptyTrie(), genesisBABEConfig)
+	err = stateSrvc.Initialize(genesisData, testGenesisHeader, trie.NewEmptyTrie(), genesisBABEConfig)
 	require.NoError(t, err)
 
 	err = stateSrvc.Start()
