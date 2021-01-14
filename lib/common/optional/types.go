@@ -17,6 +17,7 @@
 package optional
 
 import (
+	"encoding/binary"
 	"fmt"
 	"io"
 	"math/big"
@@ -66,6 +67,17 @@ func (x *Uint32) String() string {
 func (x *Uint32) Set(exists bool, value uint32) {
 	x.exists = exists
 	x.value = value
+}
+
+// Encode returns the SCALE encoding of the optional.Uint32
+func (x *Uint32) Encode() []byte {
+	if !x.exists {
+		return []byte{0}
+	}
+
+	buf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(buf, x.value)
+	return append([]byte{1}, buf...)
 }
 
 // Bytes represents an optional Bytes type.

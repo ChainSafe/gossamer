@@ -352,7 +352,7 @@ func Test_ext_storage_read_version_1_again(t *testing.T) {
 	read, err := new(optional.Bytes).Decode(buf)
 	require.NoError(t, err)
 	val := read.Value()
-	//require.Equal(t, len(testvalue) - int(testoffset), len(val)) // TODO: fix
+	require.Equal(t, len(testvalue)-int(testoffset), len(val)) // TODO: fix
 	require.Equal(t, testvalue[testoffset:], val[:len(testvalue)-int(testoffset)])
 }
 

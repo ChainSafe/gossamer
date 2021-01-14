@@ -1239,10 +1239,7 @@ func ext_storage_read_version_1(context unsafe.Pointer, keySpan, valueOut C.int6
 		copy(memory[valueBuf:valueBuf+valueLen], value[offset:])
 	}
 
-	sizeBuf := make([]byte, 4)
-	binary.LittleEndian.PutUint32(sizeBuf, size)
-
-	sizeSpan, err := toWasmMemoryOptional(instanceContext, sizeBuf)
+	sizeSpan, err := toWasmMemoryOptionalUint32(instanceContext, &size)
 	if err != nil {
 		logger.Error("[ext_storage_read_version_1] failed to allocate", "error", err)
 		return 0
@@ -1440,6 +1437,19 @@ func toWasmMemoryOptional(context wasm.InstanceContext, data []byte) (int64, err
 		return 0, err
 	}
 
+	return toWasmMemory(context, enc)
+}
+
+// Wraps slice in optional and copies result to wasm memory. Returns resulting 64bit span descriptor
+func toWasmMemoryOptionalUint32(context wasm.InstanceContext, data *uint32) (int64, error) {
+	var opt *optional.Uint32
+	if data == nil {
+		opt = optional.NewUint32(false, 0)
+	} else {
+		opt = optional.NewUint32(true, *data)
+	}
+
+	enc := opt.Encode()
 	return toWasmMemory(context, enc)
 }
 
