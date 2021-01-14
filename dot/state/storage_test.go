@@ -5,14 +5,14 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
-	database "github.com/ChainSafe/chaindb"
 	"github.com/stretchr/testify/require"
 )
 
 func newTestStorageState(t *testing.T) *StorageState {
-	db := database.NewMemDatabase()
+	db := NewInMemoryDB(t)
 	bs := newTestBlockState(t, testGenesisHeader)
 
 	s, err := NewStorageState(db, bs, trie.NewEmptyTrie())
@@ -32,9 +32,9 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 
 	trie, err := storage.LoadFromDB(root)
 	require.NoError(t, err)
-	ts2, err := NewTrieState(storage.baseDB, trie)
+	ts2, err := runtime.NewTrieState(trie)
 	require.NoError(t, err)
-	require.Equal(t, ts.t, ts2.t)
+	require.Equal(t, ts.Trie(), ts2.Trie())
 }
 
 func TestStorage_GetStorageByBlockHash(t *testing.T) {
