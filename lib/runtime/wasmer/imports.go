@@ -1219,13 +1219,13 @@ func ext_storage_read_version_1(context unsafe.Pointer, keySpan, valueOut C.int6
 	value, err := storage.Get(key)
 	if err != nil {
 		logger.Error("[ext_storage_read_version_1]", "error", err)
-		ret, _ := toWasmMemoryOptional(instanceContext, []byte{})
+		ret, _ := toWasmMemoryOptional(instanceContext, nil)
 		return C.int64_t(ret)
 	}
 
 	logger.Trace("[ext_storage_read_version_1]", "value", value)
 	if value == nil {
-		ret, _ := toWasmMemoryOptional(instanceContext, []byte{})
+		ret, _ := toWasmMemoryOptional(instanceContext, nil)
 		return C.int64_t(ret)
 	}
 
@@ -1429,7 +1429,7 @@ func toWasmMemorySized(context wasm.InstanceContext, data []byte, size uint32) (
 // Wraps slice in optional and copies result to wasm memory. Returns resulting 64bit span descriptor
 func toWasmMemoryOptional(context wasm.InstanceContext, data []byte) (int64, error) {
 	var opt *optional.Bytes
-	if len(data) == 0 {
+	if data == nil {
 		opt = optional.NewBytes(false, nil)
 	} else {
 		opt = optional.NewBytes(true, data)
