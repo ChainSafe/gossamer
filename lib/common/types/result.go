@@ -25,7 +25,7 @@ import (
 
 // Result represents a Result type.
 type Result struct {
-	isErr byte // If data exists then isErr stores byte(0), otherwise byte(1)
+	isErr byte // If non-error result then isErr stores byte(0), otherwise byte(1)
 	data  []byte
 }
 
@@ -76,7 +76,7 @@ func (r *Result) Decode(reader io.Reader) (*Result, error) {
 	return r, nil
 }
 
-// Value returns the []byte data. It returns nil if it is Result.None.
+// Value returns the []byte data. It returns nil if isErr is true.
 func (r *Result) Value() []byte {
 	return r.data
 }
