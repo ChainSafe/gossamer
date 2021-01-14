@@ -128,6 +128,33 @@ func TestTrieState_Root(t *testing.T) {
 	testFunc(ts)
 }
 
+func TestTrieState_ClearPrefix(t *testing.T) {
+	ts := NewTestTrieState(t, nil)
+
+	keys := []string{
+		"noot",
+		"noodle",
+		"other",
+	}
+
+	for i, key := range keys {
+		err := ts.Set([]byte(key), []byte{byte(i)})
+		require.NoError(t, err)
+	}
+
+	ts.ClearPrefix([]byte("noo"))
+
+	for i, key := range keys {
+		val, err := ts.Get([]byte(key))
+		require.NoError(t, err)
+		if i < 2 {
+			require.Nil(t, val)
+		} else {
+			require.NotNil(t, val)
+		}
+	}
+}
+
 func TestTrieState_ClearPrefixInChild(t *testing.T) {
 	ts := NewTestTrieState(t, nil)
 	child := trie.NewEmptyTrie()
