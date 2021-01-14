@@ -96,6 +96,7 @@ func (s *StorageState) StoreTrie(root common.Hash, ts *rtstorage.TrieState) erro
 	err := ts.Commit()
 	if err != nil {
 		logger.Error("failed to write TrieState db values to trie", "state root", root, "error", err)
+		return err
 	}
 
 	s.lock.Lock()
