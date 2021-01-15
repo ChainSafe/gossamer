@@ -28,7 +28,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
 )
@@ -139,8 +138,5 @@ func (m *MockStorageAPI) UnregisterStorageChangeChannel(id byte) {
 
 }
 func (m *MockStorageAPI) GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error) {
-	return nil, nil
-}
-func (m *MockStorageAPI) GetGenesisData() (*genesis.Data, error) {
 	return nil, nil
 }
