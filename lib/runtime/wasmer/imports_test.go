@@ -383,7 +383,7 @@ func Test_ext_storage_read_version_1_OffsetLargerThanValue(t *testing.T) {
 	read, err := new(optional.Bytes).Decode(buf)
 	require.NoError(t, err)
 	val := read.Value()
-	require.Equal(t, make([]byte, int(testBufferSize)), val)
+	require.Equal(t, []byte{}, val)
 }
 
 func Test_ext_storage_root_version_1(t *testing.T) {
