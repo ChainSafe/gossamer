@@ -56,7 +56,7 @@ func (mbs *MockBlockState) BestBlockHeader() (*types.Header, error) {
 		Number:         mbs.number,
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
-		Digest:         [][]byte{{}},
+		Digest:         types.Digest{},
 	}, nil
 }
 

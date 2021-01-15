@@ -26,6 +26,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -150,4 +153,22 @@ func DecodeRPC_NT(body []byte, target interface{}) error {
 // NewEndpoint will create a new endpoint string based on utils.HOSTNAME and port
 func NewEndpoint(port string) string {
 	return "http://" + HOSTNAME + ":" + port
+}
+
+func rpcLogsToDigest(t *testing.T, logs []string) types.Digest {
+	digest := types.Digest{}
+
+	for _, l := range logs {
+		itemBytes, err := common.HexToBytes(l)
+		require.NoError(t, err)
+
+		r := &bytes.Buffer{}
+		_, _ = r.Write(itemBytes)
+		item, err := types.DecodeDigestItem(r)
+		require.NoError(t, err)
+
+		digest = append(digest, item)
+	}
+
+	return digest
 }

@@ -81,7 +81,7 @@ func NewGenesisBlockFromTrie(t *trie.Trie) (*types.Header, error) {
 		big.NewInt(0),             // number
 		stateRoot,                 // stateRoot
 		trie.EmptyHash,            // extrinsicsRoot
-		[][]byte{},                // digest
+		types.Digest{},            // digest
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create genesis block header: %s", err)

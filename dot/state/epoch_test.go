@@ -149,15 +149,10 @@ func TestEpochState_GetEpochForBlock(t *testing.T) {
 	}
 
 	enc := babeHeader.Encode()
-	digest := &types.PreRuntimeDigest{
-		Data: enc,
-	}
-
-	encDigest, err := digest.Encode()
-	require.NoError(t, err)
+	digest := types.NewBABEPreRuntimeDigest(enc)
 
 	header := &types.Header{
-		Digest: [][]byte{encDigest},
+		Digest: types.Digest{digest},
 	}
 
 	epoch, err := s.GetEpochForBlock(header)
@@ -169,15 +164,10 @@ func TestEpochState_GetEpochForBlock(t *testing.T) {
 	}
 
 	enc = babeHeader.Encode()
-	digest = &types.PreRuntimeDigest{
-		Data: enc,
-	}
-
-	encDigest, err = digest.Encode()
-	require.NoError(t, err)
+	digest = types.NewBABEPreRuntimeDigest(enc)
 
 	header = &types.Header{
-		Digest: [][]byte{encDigest},
+		Digest: types.Digest{digest},
 	}
 
 	epoch, err = s.GetEpochForBlock(header)
