@@ -315,6 +315,7 @@ func (s *StorageState) Entries(hash *common.Hash) (map[string][]byte, error) {
 	return s.tries[*hash].Entries(), nil
 }
 
+// Keys returns all keys for given hash (or best block state root if hash is nil) in lexicographic order
 func (s *StorageState) Keys(hash *common.Hash) ([]string, error) {
 	entries, err := s.Entries(hash)
 	if err != nil {

@@ -44,9 +44,9 @@ type StateChildStorageRequest struct {
 // StateStorageKeyRequest holds json fields
 type StateStorageKeyRequest struct {
 	Prefix   string       `json:"prefix"`
-	Qty  uint32 `json:"qty"`
-	AfterKey string `afterKey`
-	Block *common.Hash `json:"block"`
+	Qty      uint32       `json:"qty"`
+	AfterKey string       `json:"afterKey"`
+	Block    *common.Hash `json:"block"`
 }
 
 // StateRuntimeMetadataQuery is a hash value
@@ -237,11 +237,8 @@ func (sm *StateModule) GetChildStorageSize(r *http.Request, req *StateChildStora
 	return nil
 }
 
-// GetKeys isn't implemented properly yet.
+// GetKeysPaged Returns the keys with prefix with pagination support.
 func (sm *StateModule) GetKeysPaged(r *http.Request, req *StateStorageKeyRequest, res *StateStorageKeysResponse) error {
-	// TODO implement change storage trie so that block hash parameter works (See issue #834)
-	// todo ed, test lookup by block hash
-	// todo ed add unit tests
 	keys, err := sm.storageAPI.Keys(req.Block)
 	resCount := uint32(0)
 	for _, k := range keys {
@@ -250,11 +247,11 @@ func (sm *StateModule) GetKeysPaged(r *http.Request, req *StateStorageKeyRequest
 			strings.Compare(fKey, req.AfterKey) == 1 {
 			// sm.storageAPI.Keys sorts keys in lexicographical order, so we know that keys where strings.Compare = 1
 			//  are after the requested after key.
+			if resCount >= req.Qty {
+				break
+			}
 			*res = append(*res, fKey)
 			resCount++
-		}
-		if resCount >= req.Qty {
-			break
 		}
 	}
 	return err
