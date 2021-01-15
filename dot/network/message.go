@@ -40,6 +40,7 @@ const (
 
 // Message must be implemented by all network messages
 type Message interface {
+	SubProtocol() string
 	Encode() ([]byte, error)
 	Decode([]byte) error
 	String() string
@@ -73,6 +74,11 @@ type BlockRequestMessage struct {
 	Max           *optional.Uint32
 }
 
+// SubProtocol returns the sync sub-protocol
+func (bm *BlockRequestMessage) SubProtocol() string {
+	return syncID
+}
+
 // String formats a BlockRequestMessage as a string
 func (bm *BlockRequestMessage) String() string {
 	return fmt.Sprintf("BlockRequestMessage RequestedData=%d StartingBlock=0x%x EndBlockHash=%s Direction=%d Max=%s",
@@ -100,7 +106,7 @@ func (bm *BlockRequestMessage) Encode() ([]byte, error) {
 	}
 
 	msg := &pb.BlockRequest{
-		Fields:    uint32(bm.RequestedData),
+		Fields:    uint32(bm.RequestedData) << 24, // put byte in most significant byte of uint32
 		ToBlock:   toBlock,
 		Direction: pb.Direction(bm.Direction),
 		MaxBlocks: max,
@@ -163,7 +169,7 @@ func (bm *BlockRequestMessage) Decode(in []byte) error {
 		max = optional.NewUint32(false, 0)
 	}
 
-	bm.RequestedData = byte(msg.Fields)
+	bm.RequestedData = byte(msg.Fields >> 24)
 	bm.StartingBlock = startingBlock
 	bm.EndBlockHash = endBlockHash
 	bm.Direction = byte(msg.Direction)
@@ -179,8 +185,17 @@ type BlockResponseMessage struct {
 	BlockData []*types.BlockData
 }
 
+// SubProtocol returns the sync sub-protocol
+func (bm *BlockResponseMessage) SubProtocol() string {
+	return syncID
+}
+
 // String formats a BlockResponseMessage as a string
 func (bm *BlockResponseMessage) String() string {
+	if bm == nil {
+		return "BlockResponseMessage=nil"
+	}
+
 	return fmt.Sprintf("BlockResponseMessage BlockData=%v", bm.BlockData)
 }
 
@@ -328,6 +343,11 @@ type ConsensusMessage struct {
 	ConsensusEngineID types.ConsensusEngineID
 	// Message payload.
 	Data []byte
+}
+
+// SubProtocol returns the empty, since consensus message sub-protocol is determined by the package using it
+func (cm *ConsensusMessage) SubProtocol() string {
+	return ""
 }
 
 // Type returns ConsensusMsgType

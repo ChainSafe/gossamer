@@ -138,7 +138,7 @@ func (in *LegacyInstance) FinalizeBlock() (*types.Header, error) {
 func (in *LegacyInstance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	b := block.DeepCopy()
 
-	b.Header.Digest = [][]byte{}
+	b.Header.Digest = types.Digest{}
 	bdEnc, err := b.Encode()
 	if err != nil {
 		return nil, err

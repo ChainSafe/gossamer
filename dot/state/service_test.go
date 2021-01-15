@@ -61,7 +61,7 @@ func TestService_Start(t *testing.T) {
 	state := newTestService(t)
 	defer utils.RemoveTestDir(t)
 
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, [][]byte{})
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, types.Digest{})
 	require.NoError(t, err)
 
 	tr := trie.NewEmptyTrie()
@@ -81,7 +81,7 @@ func TestService_Start(t *testing.T) {
 func TestMemDB_Start(t *testing.T) {
 	state := newTestMemDBService()
 
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, [][]byte{})
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, types.Digest{})
 	require.NoError(t, err)
 
 	tr := trie.NewEmptyTrie()
@@ -106,7 +106,7 @@ func TestService_BlockTree(t *testing.T) {
 
 	stateA := NewService(testDir, log.LvlTrace)
 
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, [][]byte{})
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, types.Digest{})
 	require.NoError(t, err)
 
 	genesisData := new(genesis.Data)

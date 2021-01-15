@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
@@ -77,7 +78,7 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 		Number:         big.NewInt(77),
 		StateRoot:      common.Hash{2},
 		ExtrinsicsRoot: common.Hash{3},
-		Digest:         [][]byte{},
+		Digest:         types.Digest{},
 	}
 
 	enc, err = testBlockAnnounce.Encode()
