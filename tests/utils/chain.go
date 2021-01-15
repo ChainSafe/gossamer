@@ -134,16 +134,7 @@ func GetBlock(t *testing.T, node *Node, hash common.Hash) *types.Block {
 	extrinsicsRoot, err := common.HexToHash(header.ExtrinsicsRoot)
 	require.NoError(t, err)
 
-	digest := [][]byte{}
-
-	for _, l := range header.Digest.Logs {
-		var d []byte
-		d, err = common.HexToBytes(l)
-		require.NoError(t, err)
-		digest = append(digest, d)
-	}
-
-	h, err := types.NewHeader(parentHash, number, stateRoot, extrinsicsRoot, digest)
+	h, err := types.NewHeader(parentHash, number, stateRoot, extrinsicsRoot, rpcLogsToDigest(t, header.Digest.Logs))
 	require.NoError(t, err)
 
 	b, err := types.NewBodyFromExtrinsicStrings(block.Block.Body)

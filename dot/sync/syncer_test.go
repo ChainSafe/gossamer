@@ -305,7 +305,7 @@ func buildBlock(t *testing.T, instance runtime.Instance, parent *types.Header) *
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     big.NewInt(0).Add(parent.Number, big.NewInt(1)),
-		Digest:     [][]byte{},
+		Digest:     types.Digest{},
 	}
 
 	err := instance.InitializeBlock(header)

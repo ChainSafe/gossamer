@@ -24,7 +24,20 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
+
+	"github.com/stretchr/testify/require"
 )
+
+var testDigest = &Digest{
+	&PreRuntimeDigest{
+		ConsensusEngineID: BabeEngineID,
+		Data:              []byte{1, 2, 3},
+	},
+	&SealDigest{
+		ConsensusEngineID: BabeEngineID,
+		Data:              []byte{4, 5, 6, 7},
+	},
+}
 
 func TestBlockDataEncodeEmpty(t *testing.T) {
 	hash := common.NewHash([]byte{0})
@@ -60,7 +73,7 @@ func TestBlockDataEncodeHeader(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      testHash,
 		ExtrinsicsRoot: testHash,
-		Digest:         [][]byte{{0xe, 0xf}},
+		Digest:         testDigest,
 	}
 
 	bd := &BlockData{
@@ -72,19 +85,16 @@ func TestBlockDataEncodeHeader(t *testing.T) {
 		Justification: optional.NewBytes(false, nil),
 	}
 
-	expected, err := common.HexToBytes("0x000000000000000000000000000000000000000000000000000000000000000001000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f04000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f04080e0f00000000")
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	enc, err := bd.Encode()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	if !bytes.Equal(expected, enc) {
-		t.Fatalf("Fail: got %x expected %x", enc, expected)
-	}
+	r := &bytes.Buffer{}
+	_, _ = r.Write(enc)
+
+	res := new(BlockData)
+	err = res.Decode(r)
+	require.NoError(t, err)
+	require.Equal(t, bd, res)
 }
 
 func TestBlockDataEncodeBody(t *testing.T) {
@@ -152,7 +162,7 @@ func TestBlockDataDecodeHeader(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      testHash,
 		ExtrinsicsRoot: testHash,
-		Digest:         [][]byte{{0xe, 0xf}},
+		Digest:         testDigest,
 	}
 
 	expected := &BlockData{
@@ -164,21 +174,15 @@ func TestBlockDataDecodeHeader(t *testing.T) {
 		Justification: optional.NewBytes(false, nil),
 	}
 
-	enc, err := common.HexToBytes("0x000000000000000000000000000000000000000000000000000000000000000001000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f04000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f04080e0f00000000")
-
-	//enc, err := common.HexToBytes("0x000000000000000000000000000000000000000000000000000000000000000001000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f04000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f0400000000")
-	if err != nil {
-		t.Fatal(err)
-	}
+	enc, err := expected.Encode()
+	require.NoError(t, err)
 
 	res := new(BlockData)
 	r := &bytes.Buffer{}
 	r.Write(enc)
 
 	err = res.Decode(r)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	if !reflect.DeepEqual(res, expected) {
 		t.Fatalf("Fail: got %v expected %v", res, expected)
@@ -259,7 +263,7 @@ func TestBlockDataArrayEncodeAndDecode(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      testHash,
 		ExtrinsicsRoot: testHash,
-		Digest:         [][]byte{},
+		Digest:         testDigest,
 	}
 
 	expected := []*BlockData{{

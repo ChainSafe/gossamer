@@ -278,6 +278,12 @@ func (x *Hash) Set(exists bool, value common.Hash) {
 	x.value = value
 }
 
+// Digest is the interface implemented by the block digest
+type Digest interface {
+	Encode() ([]byte, error)
+	Decode(io.Reader) error // Decode assumes the type byte (first byte) has been removed from the encoding.
+}
+
 // CoreHeader is a state block header
 // This is copied from core/types since core/types imports this package, we cannot import core/types.
 type CoreHeader struct {
@@ -285,7 +291,12 @@ type CoreHeader struct {
 	Number         *big.Int    `json:"number"`
 	StateRoot      common.Hash `json:"stateRoot"`
 	ExtrinsicsRoot common.Hash `json:"extrinsicsRoot"`
-	Digest         [][]byte    `json:"digest"`
+	Digest         Digest      `json:"digest"`
+}
+
+func (h *CoreHeader) String() string {
+	return fmt.Sprintf("ParentHash=%s Number=%d StateRoot=%s ExtrinsicsRoot=%s Digest=%v",
+		h.ParentHash, h.Number, h.StateRoot, h.ExtrinsicsRoot, h.Digest)
 }
 
 // Header represents an optional header type
@@ -320,10 +331,10 @@ func (x *Header) Value() *CoreHeader {
 
 // String returns the value as a string.
 func (x *Header) String() string {
-	if !x.exists {
+	if !x.exists || x.value == nil {
 		return none
 	}
-	return fmt.Sprintf("%v", x.value)
+	return x.value.String()
 }
 
 // Set sets the exists and value fields.

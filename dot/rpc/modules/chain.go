@@ -91,7 +91,10 @@ func (cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *Cha
 		return err
 	}
 
-	res.Block.Header = HeaderToJSON(*block.Header)
+	res.Block.Header, err = HeaderToJSON(*block.Header)
+	if err != nil {
+		return err
+	}
 
 	if *block.Body != nil {
 		ext, err := block.Body.AsExtrinsics()
@@ -160,8 +163,8 @@ func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *Ch
 		return err
 	}
 
-	*res = HeaderToJSON(*header)
-	return nil
+	*res, err = HeaderToJSON(*header)
+	return err
 }
 
 // SubscribeFinalizedHeads handled by websocket handler, but this func should remain
@@ -247,7 +250,7 @@ func (cm *ChainModule) lookupHashByInterface(i interface{}) (string, error) {
 }
 
 // HeaderToJSON converts types.Header to ChainBlockHeaderResponse
-func HeaderToJSON(header types.Header) ChainBlockHeaderResponse {
+func HeaderToJSON(header types.Header) (ChainBlockHeaderResponse, error) {
 	res := ChainBlockHeaderResponse{
 		ParentHash:     header.ParentHash.String(),
 		StateRoot:      header.StateRoot.String(),
@@ -260,7 +263,11 @@ func HeaderToJSON(header types.Header) ChainBlockHeaderResponse {
 		res.Number = common.BytesToHex(header.Number.Bytes())
 	}
 	for _, item := range header.Digest {
-		res.Digest.Logs = append(res.Digest.Logs, common.BytesToHex(item))
+		enc, err := item.Encode()
+		if err != nil {
+			return ChainBlockHeaderResponse{}, err
+		}
+		res.Digest.Logs = append(res.Digest.Logs, common.BytesToHex(enc))
 	}
-	return res
+	return res, nil
 }
