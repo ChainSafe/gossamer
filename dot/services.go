@@ -20,8 +20,9 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"path/filepath"
 
-	database "github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/chaindb"
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -41,6 +42,13 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmtime"
 )
+
+func newInMemoryDB(path string) (chaindb.Database, error) {
+	return chaindb.NewBadgerDB(&chaindb.Config{
+		DataDir:  filepath.Join(path, "local_storage"),
+		InMemory: true,
+	})
+}
 
 // State Service
 
@@ -87,9 +95,14 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore,
 		return nil, err
 	}
 
+	localStorage, err := newInMemoryDB(st.DB().Path())
+	if err != nil {
+		return nil, err
+	}
+
 	ns := runtime.NodeStorage{
-		LocalStorage:      database.NewMemDatabase(),
-		PersistentStorage: database.NewTable(st.DB(), "offlinestorage"),
+		LocalStorage:      localStorage,
+		PersistentStorage: chaindb.NewTable(st.DB(), "offlinestorage"),
 	}
 
 	var rt runtime.Instance

@@ -39,7 +39,7 @@ func (b *Service) BuildBlock(parent *types.Header, slot Slot) (*types.Block, err
 
 // construct a block for this slot with the given parent
 func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, error) {
-	b.logger.Trace("build block", "parent", parent, "slot", slot)
+	logger.Trace("build block", "parent", parent, "slot", slot)
 
 	// create pre-digest
 	preDigest, err := b.buildBlockPreDigest(slot)
@@ -47,11 +47,11 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 		return nil, err
 	}
 
-	b.logger.Trace("built pre-digest")
+	logger.Trace("built pre-digest")
 
 	// create new block header
 	number := big.NewInt(0).Add(parent.Number, big.NewInt(1))
-	header, err := types.NewHeader(parent.Hash(), number, common.Hash{}, common.Hash{}, [][]byte{})
+	header, err := types.NewHeader(parent.Hash(), number, common.Hash{}, common.Hash{}, types.NewEmptyDigest())
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 		return nil, err
 	}
 
-	b.logger.Trace("initialized block")
+	logger.Trace("initialized block")
 
 	// add block inherents
 	inherents, err := b.buildBlockInherents(slot)
@@ -70,12 +70,12 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 		return nil, fmt.Errorf("cannot build inherents: %s", err)
 	}
 
-	b.logger.Trace("built block inherents", "encoded inherents", inherents)
+	logger.Trace("built block inherents", "encoded inherents", inherents)
 
 	// add block extrinsics
 	included := b.buildBlockExtrinsics(slot)
 
-	b.logger.Trace("built block extrinsics")
+	logger.Trace("built block extrinsics")
 
 	// finalize block
 	header, err = b.rt.FinalizeBlock()
@@ -84,17 +84,13 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 		return nil, fmt.Errorf("cannot finalize block: %s", err)
 	}
 
-	b.logger.Trace("finalized block")
+	logger.Trace("finalized block")
 
 	header.ParentHash = parent.Hash()
 	header.Number.Add(parent.Number, big.NewInt(1))
 
 	// add BABE header to digest
-	pdEnc, err := preDigest.Encode()
-	if err != nil {
-		return nil, err
-	}
-	header.Digest = append(header.Digest, pdEnc)
+	header.Digest = append(header.Digest, preDigest)
 
 	// create seal and add to digest
 	seal, err := b.buildBlockSeal(header)
@@ -102,13 +98,9 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 		return nil, err
 	}
 
-	sEnc, err := seal.Encode()
-	if err != nil {
-		return nil, err
-	}
-	header.Digest = append(header.Digest, sEnc)
+	header.Digest = append(header.Digest, seal)
 
-	b.logger.Trace("built block seal")
+	logger.Trace("built block seal")
 
 	body, err := extrinsicsToBody(inherents, included)
 	if err != nil {
@@ -182,12 +174,12 @@ func (b *Service) buildBlockExtrinsics(slot Slot) []*transaction.ValidTransactio
 	included := []*transaction.ValidTransaction{}
 
 	for !hasSlotEnded(slot) && next != nil {
-		b.logger.Trace("build block", "applying extrinsic", next)
+		logger.Trace("build block", "applying extrinsic", next)
 
 		t := b.transactionState.Pop()
 		ret, err := b.rt.ApplyExtrinsic(next)
 		if err != nil {
-			b.logger.Warn("failed to apply extrinsic", "error", err, "extrinsic", next)
+			logger.Warn("failed to apply extrinsic", "error", err, "extrinsic", next)
 			next = b.nextReadyExtrinsic()
 			continue
 		}
@@ -197,16 +189,16 @@ func (b *Service) buildBlockExtrinsics(slot Slot) []*transaction.ValidTransactio
 			errTxt, err := determineError(ret)
 			// remove invalid extrinsic from queue
 			if err == nil {
-				b.logger.Warn("failed to interpret extrinsic error", "error", ret, "extrinsic", next)
+				logger.Warn("failed to interpret extrinsic error", "error", ret, "extrinsic", next)
 			} else {
-				b.logger.Warn("failed to apply extrinsic", "error", errTxt, "extrinsic", next)
+				logger.Warn("failed to apply extrinsic", "error", errTxt, "extrinsic", next)
 			}
 
 			next = b.nextReadyExtrinsic()
 			continue
 		}
 
-		b.logger.Debug("build block applied extrinsic", "extrinsic", next)
+		logger.Debug("build block applied extrinsic", "extrinsic", next)
 
 		included = append(included, t)
 		next = b.nextReadyExtrinsic()
@@ -287,9 +279,9 @@ func (b *Service) addToQueue(txs []*transaction.ValidTransaction) {
 	for _, t := range txs {
 		hash, err := b.transactionState.Push(t)
 		if err != nil {
-			b.logger.Trace("Failed to add transaction to queue", "error", err)
+			logger.Trace("Failed to add transaction to queue", "error", err)
 		} else {
-			b.logger.Trace("Added transaction to queue", "hash", hash)
+			logger.Trace("Added transaction to queue", "hash", hash)
 		}
 	}
 }

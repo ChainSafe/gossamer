@@ -34,7 +34,7 @@ var testGenesisHeader = &types.Header{
 }
 
 func newTestBlockState(t *testing.T, header *types.Header) *BlockState {
-	db := chaindb.NewMemDatabase()
+	db := NewInMemoryDB(t)
 	if header == nil {
 		return &BlockState{
 			db: chaindb.NewTable(db, blockPrefix),
@@ -52,7 +52,7 @@ func TestSetAndGetHeader(t *testing.T) {
 	header := &types.Header{
 		Number:    big.NewInt(0),
 		StateRoot: trie.EmptyHash,
-		Digest:    [][]byte{},
+		Digest:    types.Digest{},
 	}
 
 	err := bs.SetHeader(header)
@@ -69,7 +69,7 @@ func TestHasHeader(t *testing.T) {
 	header := &types.Header{
 		Number:    big.NewInt(0),
 		StateRoot: trie.EmptyHash,
-		Digest:    [][]byte{},
+		Digest:    types.Digest{},
 	}
 
 	err := bs.SetHeader(header)
@@ -86,7 +86,7 @@ func TestGetBlockByNumber(t *testing.T) {
 	blockHeader := &types.Header{
 		ParentHash: testGenesisHeader.Hash(),
 		Number:     big.NewInt(1),
-		Digest:     [][]byte{},
+		Digest:     types.Digest{},
 	}
 
 	block := &types.Block{
@@ -109,7 +109,7 @@ func TestAddBlock(t *testing.T) {
 	// Create header
 	header0 := &types.Header{
 		Number:     big.NewInt(0),
-		Digest:     [][]byte{},
+		Digest:     types.Digest{},
 		ParentHash: testGenesisHeader.Hash(),
 	}
 	// Create blockHash
@@ -129,7 +129,7 @@ func TestAddBlock(t *testing.T) {
 	// Create header & blockData for block 1
 	header1 := &types.Header{
 		Number:     big.NewInt(1),
-		Digest:     [][]byte{},
+		Digest:     types.Digest{},
 		ParentHash: blockHash0,
 	}
 	blockHash1 := header1.Hash()
@@ -174,22 +174,24 @@ func TestAddBlock(t *testing.T) {
 
 func TestGetSlotForBlock(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
+	expectedSlot := uint64(77)
 
-	preDigest, err := common.HexToBytes("0x0642414245c138e93dcef2efc275b72b4fa748332dc4c9f13be1125909cf90c8e9109c45da16b04bc5fdf9fe06a4f35e4ae4ed7e251ff9ee3d0d840c8237c9fb9057442dbf00f210d697a7b4959f792a81b948ff88937e30bf9709a8ab1314f71284da89a40000000000000000001100000000000000")
-	require.NoError(t, err)
-
-	expectedSlot := uint64(0)
+	babeHeader := &types.BabeHeader{
+		SlotNumber: expectedSlot,
+	}
+	data := babeHeader.Encode()
+	preDigest := types.NewBABEPreRuntimeDigest(data)
 
 	block := &types.Block{
 		Header: &types.Header{
 			ParentHash: testGenesisHeader.Hash(),
 			Number:     big.NewInt(int64(1)),
-			Digest:     [][]byte{preDigest},
+			Digest:     types.Digest{preDigest},
 		},
 		Body: &types.Body{},
 	}
 
-	err = bs.AddBlock(block)
+	err := bs.AddBlock(block)
 	require.NoError(t, err)
 
 	res, err := bs.GetSlotForBlock(block.Header.Hash())

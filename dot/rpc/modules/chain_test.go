@@ -17,6 +17,7 @@
 package modules
 
 import (
+	"io/ioutil"
 	"math/big"
 	"testing"
 
@@ -25,7 +26,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/lib/utils"
 
 	database "github.com/ChainSafe/chaindb"
 	log "github.com/ChainSafe/log15"
@@ -252,7 +252,7 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 	require.Equal(t, common.BytesToHex(testhash[:]), res)
 }
 
-var genesisHeader, _ = types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, [][]byte{})
+var genesisHeader, _ = types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, types.Digest{})
 
 var genesisBABEConfig = &types.BabeConfiguration{
 	SlotDuration:       1000,
@@ -265,16 +265,16 @@ var genesisBABEConfig = &types.BabeConfiguration{
 }
 
 func newTestStateService(t *testing.T) *state.Service {
-	testDir := utils.NewTestDir(t)
-	defer utils.RemoveTestDir(t)
-	stateSrvc := state.NewService(testDir, log.LvlInfo)
+	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
+	require.NoError(t, err)
+	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo)
 
 	tr := trie.NewEmptyTrie()
 
 	stateSrvc.UseMemDB()
 	genesisData := new(genesis.Data)
 
-	err := stateSrvc.Initialize(genesisData, genesisHeader, tr, genesisBABEConfig)
+	err = stateSrvc.Initialize(genesisData, genesisHeader, tr, genesisBABEConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -295,7 +295,7 @@ func loadTestBlocks(gh common.Hash, bs *state.BlockState) error {
 	// Create header
 	header0 := &types.Header{
 		Number:     big.NewInt(0),
-		Digest:     [][]byte{},
+		Digest:     types.Digest{},
 		ParentHash: gh,
 		StateRoot:  trie.EmptyHash,
 	}
@@ -317,7 +317,7 @@ func loadTestBlocks(gh common.Hash, bs *state.BlockState) error {
 	// Create header & blockData for block 1
 	header1 := &types.Header{
 		Number:     big.NewInt(1),
-		Digest:     [][]byte{},
+		Digest:     types.Digest{},
 		ParentHash: blockHash0,
 		StateRoot:  trie.EmptyHash,
 	}

@@ -140,7 +140,7 @@ func (b *Service) runLottery(slot uint64) (*VrfOutputAndProof, error) {
 		copy(outbytes[:], output)
 		proofbytes := [sr25519.VrfProofLength]byte{}
 		copy(proofbytes[:], proof)
-		b.logger.Trace("lottery", "won slot", slot)
+		logger.Trace("lottery", "won slot", slot)
 		return &VrfOutputAndProof{
 			output: outbytes,
 			proof:  proofbytes,
@@ -153,12 +153,7 @@ func (b *Service) runLottery(slot uint64) (*VrfOutputAndProof, error) {
 func getVRFOutput(header *types.Header) ([sr25519.VrfOutputLength]byte, error) {
 	var bh *types.BabeHeader
 
-	for _, d := range header.Digest {
-		digest, err := types.DecodeDigestItem(d)
-		if err != nil {
-			continue
-		}
-
+	for _, digest := range header.Digest {
 		if digest.Type() == types.PreRuntimeDigestType {
 			prd, ok := digest.(*types.PreRuntimeDigest)
 			if !ok {
@@ -166,7 +161,7 @@ func getVRFOutput(header *types.Header) ([sr25519.VrfOutputLength]byte, error) {
 			}
 
 			tbh := new(types.BabeHeader)
-			err = tbh.Decode(prd.Data)
+			err := tbh.Decode(prd.Data)
 			if err != nil {
 				continue
 			}

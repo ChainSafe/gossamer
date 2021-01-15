@@ -28,6 +28,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -304,7 +305,7 @@ func buildBlock(t *testing.T, instance runtime.Instance, parent *types.Header) *
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     big.NewInt(0).Add(parent.Number, big.NewInt(1)),
-		Digest:     [][]byte{},
+		Digest:     types.Digest{},
 	}
 
 	err := instance.InitializeBlock(header)
@@ -359,7 +360,7 @@ func TestSyncer_ExecuteBlock(t *testing.T) {
 	block := buildBlock(t, syncer.runtime, parent)
 
 	// set parentState, which is the test genesis state ie. empty state
-	parentState := runtime.NewTestRuntimeStorage(t, nil)
+	parentState := rtstorage.NewTestTrieState(t, nil)
 	syncer.runtime.SetContext(parentState)
 
 	_, err = syncer.runtime.ExecuteBlock(block)

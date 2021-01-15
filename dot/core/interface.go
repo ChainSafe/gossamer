@@ -20,10 +20,10 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
@@ -61,7 +61,7 @@ type StorageState interface {
 	StoreInDB(root common.Hash) error
 	LoadCode(root *common.Hash) ([]byte, error)
 	LoadCodeHash(root *common.Hash) (common.Hash, error)
-	TrieState(root *common.Hash) (*state.TrieState, error)
+	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 }
 

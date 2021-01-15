@@ -18,17 +18,37 @@ package state
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math/big"
 	"math/rand"
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
 	"github.com/stretchr/testify/require"
 )
+
+// NewInMemoryDB creates a new in-memory database
+func NewInMemoryDB(t *testing.T) chaindb.Database {
+	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
+	require.NoError(t, err)
+
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{
+		DataDir:  testDatadirPath,
+		InMemory: true,
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = db.Close()
+	})
+
+	return db
+}
 
 // branch tree randomly
 type testBranch struct {
@@ -91,7 +111,11 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 					ParentHash: previousHash,
 					Number:     big.NewInt(int64(i) + 1),
 					StateRoot:  trie.EmptyHash,
-					Digest:     [][]byte{{byte(i)}},
+					Digest: types.Digest{
+						&types.PreRuntimeDigest{
+							Data: []byte{byte(i)},
+						},
+					},
 				},
 				Body: &types.Body{},
 			}
@@ -162,7 +186,11 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 					ParentHash: previousHash,
 					Number:     big.NewInt(int64(i)),
 					StateRoot:  trie.EmptyHash,
-					Digest:     [][]byte{{byte(i), byte(j), r}},
+					Digest: types.Digest{
+						&types.PreRuntimeDigest{
+							Data: []byte{byte(i), byte(j), r},
+						},
+					},
 				},
 				Body: &types.Body{},
 			}
@@ -178,7 +206,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 	}
 }
 
-func generateBlockWithRandomTrie(t *testing.T, serv *Service, parent *common.Hash) (*types.Block, *TrieState) {
+func generateBlockWithRandomTrie(t *testing.T, serv *Service, parent *common.Hash) (*types.Block, *runtime.TrieState) {
 	trieState, err := serv.Storage.TrieState(&trie.EmptyHash)
 	require.NoError(t, err)
 

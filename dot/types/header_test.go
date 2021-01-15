@@ -27,7 +27,7 @@ import (
 )
 
 func TestDecodeHeader(t *testing.T) {
-	header, err := NewHeader(common.Hash{}, big.NewInt(0), common.Hash{}, common.Hash{}, [][]byte{{}})
+	header, err := NewHeader(common.Hash{}, big.NewInt(0), common.Hash{}, common.Hash{}, Digest{})
 	require.NoError(t, err)
 
 	enc, err := header.Encode()
@@ -42,12 +42,23 @@ func TestDecodeHeader(t *testing.T) {
 }
 
 func TestMustEncodeHeader(t *testing.T) {
-	bh1, err := NewHeader(common.Hash{}, big.NewInt(0), common.Hash{}, common.Hash{}, [][]byte{{}})
+	bh1, err := NewHeader(common.Hash{}, big.NewInt(0), common.Hash{}, common.Hash{}, Digest{})
 	require.NoError(t, err)
 	enc, err := bh1.Encode()
 	require.NoError(t, err)
 
-	bh2, err := NewHeader(common.Hash{}, big.NewInt(0), common.Hash{}, common.Hash{}, [][]byte{{0, 0}, {1, 2}, {2, 4}, {3, 6}, {4, 8}})
+	testDigest := Digest{
+		&PreRuntimeDigest{
+			ConsensusEngineID: BabeEngineID,
+			Data:              []byte{1, 2, 3},
+		},
+		&SealDigest{
+			ConsensusEngineID: BabeEngineID,
+			Data:              []byte{4, 5, 6, 7},
+		},
+	}
+
+	bh2, err := NewHeader(common.Hash{}, big.NewInt(0), common.Hash{}, common.Hash{}, testDigest)
 	require.NoError(t, err)
 	enc2, err := bh2.Encode()
 	require.NoError(t, err)
