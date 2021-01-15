@@ -163,13 +163,34 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 		// special case for block 1 - the network doesn't necessarily start in epoch 1.
 		// if this happens, the database will be missing info for epochs before the first block.
 		if header.Number.Cmp(big.NewInt(1)) == 0 {
-			info, err = v.getVerifierInfo(1) // TODO: fast forward current epoch
+			// fast forward current epoch
+			err = v.epochState.SetCurrentEpoch(epoch)
+			if err != nil {
+				logger.Warn("failed to set current epoch after receiving block 1")
+				return err
+			}
+
+			var epochData *types.EpochData
+			epochData, err = v.epochState.GetEpochData(1)
+			if err != nil {
+				logger.Warn("failed to get epoch data for epoch 1")
+				return err
+			}
+
+			err = v.epochState.SetEpochData(epoch, epochData)
+			if err != nil {
+				logger.Warn("failed to set current epoch to epoch 1 epoch data")
+				return err
+			}
+
+			info, err = v.getVerifierInfo(1)
 		} else {
 			info, err = v.getVerifierInfo(epoch)
 		}
 
 		if err != nil {
 			v.lock.Unlock()
+			logger.Warn("failed to get verifier info for block")
 			return err
 		}
 
@@ -180,15 +201,18 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 
 	isDisabled, err := v.isDisabled(epoch, header)
 	if err != nil {
+		logger.Warn("failed to check if authority is disabled")
 		return err
 	}
 
 	if isDisabled {
+		logger.Warn("authority is disabled")
 		return ErrAuthorityDisabled
 	}
 
 	verifier, err := newVerifier(v.blockState, info)
 	if err != nil {
+		logger.Warn("failed to create new verifier")
 		return err
 	}
 
@@ -234,16 +258,19 @@ func (v *VerificationManager) isDisabled(epoch uint64, header *types.Header) (bo
 func (v *VerificationManager) getVerifierInfo(epoch uint64) (*verifierInfo, error) {
 	epochData, err := v.epochState.GetEpochData(epoch)
 	if err != nil {
+		logger.Warn("failed to get epoch data")
 		return nil, err
 	}
 
 	configData, err := v.getConfigData(epoch)
 	if err != nil {
+		logger.Warn("failed to get config data")
 		return nil, err
 	}
 
 	threshold, err := CalculateThreshold(configData.C1, configData.C2, len(epochData.Authorities))
 	if err != nil {
+		logger.Warn("failed to calculate threshold")
 		return nil, err
 	}
 

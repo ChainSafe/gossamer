@@ -120,28 +120,35 @@ func (s *StorageState) StoreTrie(root common.Hash, ts *rtstorage.TrieState) erro
 		return err
 	}
 
+	logger.Info("stored trie in database", "root", root)
+
 	return nil
 }
 
 // TrieState returns the TrieState for a given state root.
 // If no state root is provided, it returns the TrieState for the current chain head.
-func (s *StorageState) TrieState(hash *common.Hash) (*rtstorage.TrieState, error) {
-	if hash == nil {
+func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error) {
+	if root == nil {
 		sr, err := s.blockState.BestBlockStateRoot()
 		if err != nil {
 			return nil, err
 		}
-		hash = &sr
+		root = &sr
 	}
 
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	if s.tries[*hash] == nil {
-		return nil, errTrieDoesNotExist(*hash)
+	if s.tries[*root] != nil {
+		return rtstorage.NewTrieState(s.tries[*root])
 	}
 
-	return rtstorage.NewTrieState(s.tries[*hash])
+	tr, err := s.LoadFromDB(*root)
+	if err != nil {
+		return nil, err
+	}
+
+	return rtstorage.NewTrieState(tr)
 }
 
 // StoreInDB encodes the entire trie and writes it to the DB

@@ -261,14 +261,14 @@ func ext_crypto_sr25519_sign_version_1(context unsafe.Pointer, a, z C.int32_t, y
 func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, a C.int32_t, z C.int64_t, y C.int32_t) C.int32_t {
 	logger.Trace("[ext_crypto_sr25519_verify_version_1] executing...")
 	logger.Warn("[ext_crypto_sr25519_verify_version_1] unimplemented")
-	return 0
+	return 1
 }
 
 //export ext_crypto_sr25519_verify_version_2
 func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, a C.int32_t, z C.int64_t, y C.int32_t) C.int32_t {
 	logger.Trace("[ext_crypto_sr25519_verify_version_2] executing...")
 	logger.Warn("[ext_crypto_sr25519_verify_version_2] unimplemented")
-	return 0
+	return 1
 }
 
 //export ext_crypto_start_batch_verify_version_1

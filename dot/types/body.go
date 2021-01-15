@@ -19,6 +19,7 @@ package types
 import (
 	"errors"
 	"io"
+	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
@@ -47,13 +48,16 @@ func NewBodyFromBytes(exts [][]byte) (*Body, error) {
 
 // NewBodyFromEncodedBytes returns a new Body from a slice of byte slices that are SCALE encoded extrinsics
 func NewBodyFromEncodedBytes(exts [][]byte) (*Body, error) {
-	sl := []byte{}
-
-	for _, ext := range exts {
-		sl = append(sl, ext...)
+	enc, err := scale.Encode(big.NewInt(int64(len(exts))))
+	if err != nil {
+		return nil, err
 	}
 
-	body := Body(sl)
+	for _, ext := range exts {
+		enc = append(enc, ext...)
+	}
+
+	body := Body(enc)
 	return &body, nil
 }
 
