@@ -45,6 +45,18 @@ func NewBodyFromBytes(exts [][]byte) (*Body, error) {
 	return &body, nil
 }
 
+// NewBodyFromEncodedBytes returns a new Body from a slice of byte slices that are SCALE encoded extrinsics
+func NewBodyFromEncodedBytes(exts [][]byte) (*Body, error) {
+	sl := []byte{}
+
+	for _, ext := range exts {
+		sl = append(sl, ext...)
+	}
+
+	body := Body(sl)
+	return &body, nil
+}
+
 // NewBodyFromExtrinsics creates a block body given an array of extrinsics.
 func NewBodyFromExtrinsics(exts []Extrinsic) (*Body, error) {
 	enc, err := scale.Encode(ExtrinsicsArrayToBytesArray(exts))

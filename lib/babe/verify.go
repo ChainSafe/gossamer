@@ -163,7 +163,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 		// special case for block 1 - the network doesn't necessarily start in epoch 1.
 		// if this happens, the database will be missing info for epochs before the first block.
 		if header.Number.Cmp(big.NewInt(1)) == 0 {
-			info, err = v.getVerifierInfo(1)
+			info, err = v.getVerifierInfo(1) // TODO: fast forward current epoch
 		} else {
 			info, err = v.getVerifierInfo(epoch)
 		}

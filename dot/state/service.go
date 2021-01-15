@@ -211,7 +211,7 @@ func (s *Service) Start() error {
 		return fmt.Errorf("failed to get best block hash: %w", err)
 	}
 
-	logger.Trace("start", "best block hash", fmt.Sprintf("0x%x", bestHash))
+	logger.Trace("start", "best block hash", bestHash)
 
 	// load blocktree
 	bt := blocktree.NewEmptyBlockTree(db)
