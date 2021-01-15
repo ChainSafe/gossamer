@@ -34,13 +34,19 @@ type ConnManager struct {
 	max int // maximum number of peers
 	// closeHandlerMap contains close handler corresponding to a protocol.
 	closeHandlerMap map[protocol.ID]func(peerID peer.ID)
+
+	protectedPeerMapMu sync.RWMutex
+	// protectedPeerMap contains a list of peers that are protected from pruning
+	// when we reach the maximum numbers of peers.
+	protectedPeerMap map[peer.ID]struct{}
 	sync.Mutex
 }
 
 func newConnManager(max int) *ConnManager {
 	return &ConnManager{
-		max:             max,
-		closeHandlerMap: make(map[protocol.ID]func(peerID peer.ID)),
+		max:              max,
+		closeHandlerMap:  make(map[protocol.ID]func(peerID peer.ID)),
+		protectedPeerMap: make(map[peer.ID]struct{}),
 	}
 }
 
@@ -73,18 +79,40 @@ func (*ConnManager) GetTagInfo(peer.ID) *connmgr.TagInfo { return &connmgr.TagIn
 // TrimOpenConns peer
 func (*ConnManager) TrimOpenConns(ctx context.Context) {}
 
-// Protect peer
-func (*ConnManager) Protect(peer.ID, string) {}
+// Protect peer will add the given peer to the protectedPeerMap wich will
+// protect the peer from pruning.
+func (cm *ConnManager) Protect(id peer.ID, tag string) {
+	cm.protectedPeerMapMu.Lock()
+	defer cm.protectedPeerMapMu.Unlock()
 
-// Unprotect peer
-func (*ConnManager) Unprotect(peer.ID, string) bool { return false }
+	cm.protectedPeerMap[id] = struct{}{}
+}
+
+// Unprotect peer will remove the given peer from prune protection.
+// returns true if we have successfully removed the peer from the
+// protectedPeerMap. False otherwise.
+func (cm *ConnManager) Unprotect(id peer.ID, tag string) bool {
+	cm.protectedPeerMapMu.Lock()
+	defer cm.protectedPeerMapMu.Unlock()
+
+	_, ok := cm.protectedPeerMap[id]
+	if ok {
+		delete(cm.protectedPeerMap, id)
+		return true
+	}
+	return false
+}
 
 // Close peer
 func (*ConnManager) Close() error { return nil }
 
-// IsProtected ...
-func (*ConnManager) IsProtected(id peer.ID, tag string) (protected bool) {
-	return false
+// IsProtected returns whether the given peer is protected from pruning or not.
+func (cm *ConnManager) IsProtected(id peer.ID, tag string) (protected bool) {
+	cm.protectedPeerMapMu.RLock()
+	defer cm.protectedPeerMapMu.RUnlock()
+
+	_, ok := cm.protectedPeerMap[id]
+	return ok
 }
 
 // Listen is called when network starts listening on an address
@@ -105,6 +133,17 @@ func (cm *ConnManager) ListenClose(n network.Network, addr ma.Multiaddr) {
 	)
 }
 
+// returns a slice of peers that are unprotected and may be pruned.
+func (cm *ConnManager) unprotectedPeers(peers []peer.ID) []peer.ID {
+	unprot := []peer.ID{}
+	for _, id := range peers {
+		if !cm.IsProtected(id, "") {
+			unprot = append(unprot, id)
+		}
+	}
+	return unprot
+}
+
 // Connected is called when a connection opened
 func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 	logger.Trace(
@@ -115,14 +154,18 @@ func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 
 	cm.Lock()
 	defer cm.Unlock()
+
 	if len(n.Peers()) > cm.max {
-		// TODO: change to crypto/rand
-		i := rand.Intn(len(n.Peers())) //nolint
-		peers := n.Peers()
-		logger.Trace("Over max peer count, disconnecting from random peer", "peer", peers[i])
-		err := n.ClosePeer(peers[i])
+		var (
+			unprotPeers = cm.unprotectedPeers(n.Peers())
+			// TODO: change to crypto/rand
+			i = rand.Intn(len(unprotPeers)) //nolint
+		)
+
+		logger.Trace("Over max peer count, disconnecting from random unprotected peer", "peer", unprotPeers[i])
+		err := n.ClosePeer(unprotPeers[i])
 		if err != nil {
-			logger.Debug("failed to close connection to peer", "peer", peers[i], "num peers", len(n.Peers()))
+			logger.Debug("failed to close connection to peer", "peer", unprotPeers[i], "num peers", len(n.Peers()))
 		}
 	}
 }

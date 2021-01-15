@@ -560,9 +560,13 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 			if err != nil {
 				logger.Error("failed to send BlockRequest message", "peer", peer)
 			}
+			// protect this peer cause we are syncing with it.
+			s.host.h.ConnManager().Protect(peer, "")
 		} else {
 			// we are done syncing
 			delete(s.syncing, peer)
+			// peer can be unprotected cause syncing is done.
+			s.host.h.ConnManager().Unprotect(peer, "")
 			// TODO: close stream
 		}
 	}
