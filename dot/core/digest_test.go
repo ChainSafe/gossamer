@@ -345,7 +345,7 @@ func TestDigestHandler_HandleBABEOnDisabled(t *testing.T) {
 	require.Equal(t, uint64(7), handler.babe.(*mockBlockProducer).disabled)
 }
 
-func createHeaderWithPreDigest(t *testing.T, slotNumber uint64) *types.Header {
+func createHeaderWithPreDigest(slotNumber uint64) *types.Header {
 	babeHeader := &types.BabeHeader{
 		SlotNumber: slotNumber,
 	}
@@ -355,11 +355,8 @@ func createHeaderWithPreDigest(t *testing.T, slotNumber uint64) *types.Header {
 		Data: enc,
 	}
 
-	encDigest, err := digest.Encode()
-	require.NoError(t, err)
-
 	return &types.Header{
-		Digest: [][]byte{encDigest},
+		Digest: types.Digest{digest},
 	}
 }
 
@@ -394,7 +391,7 @@ func TestDigestHandler_HandleNextEpochData(t *testing.T) {
 		Data:              data,
 	}
 
-	header := createHeaderWithPreDigest(t, 10)
+	header := createHeaderWithPreDigest(10)
 
 	err = handler.HandleConsensusDigest(d, header)
 	require.NoError(t, err)
@@ -425,7 +422,7 @@ func TestDigestHandler_HandleNextConfigData(t *testing.T) {
 		Data:              data,
 	}
 
-	header := createHeaderWithPreDigest(t, 10)
+	header := createHeaderWithPreDigest(10)
 
 	err = handler.HandleConsensusDigest(d, header)
 	require.NoError(t, err)

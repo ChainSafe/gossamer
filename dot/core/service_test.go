@@ -55,7 +55,7 @@ func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, dept
 			Header: &types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
-				Digest:     [][]byte{},
+				Digest:     types.Digest{},
 			},
 			Body: &types.Body{},
 		}
@@ -168,7 +168,7 @@ func TestHandleRuntimeChanges(t *testing.T) {
 		ParentHash: s.blockState.BestBlockHash(),
 		Number:     big.NewInt(1),
 		StateRoot:  root,
-		Digest:     [][]byte{},
+		Digest:     types.Digest{},
 	}
 
 	err = s.blockState.AddBlock(&types.Block{
@@ -281,7 +281,9 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 		Header: &types.Header{
 			ParentHash: ancestor.Header.Hash(),
 			Number:     big.NewInt(0).Add(ancestor.Header.Number, big.NewInt(1)),
-			Digest:     [][]byte{{1}},
+			Digest: types.Digest{
+				newMockDigestItem(1),
+			},
 		},
 		Body: body,
 	}

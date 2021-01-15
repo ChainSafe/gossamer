@@ -54,7 +54,7 @@ func TestEncodeBlock(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
-		Digest:         [][]byte{},
+		Digest:         Digest{},
 	}
 
 	block := NewBlock(header, NewBody([]byte{4, 1}))
@@ -100,7 +100,7 @@ func TestDecodeBlock(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
-		Digest:         [][]byte{},
+		Digest:         Digest{},
 	}
 	expected := NewBlock(header, NewBody(nil))
 
@@ -126,13 +126,13 @@ func TestDeepCopyBlock(t *testing.T) {
 }
 
 func TestMustEncodeBlock(t *testing.T) {
-	h1, err := NewHeader(common.Hash{}, big.NewInt(0), common.Hash{}, common.Hash{}, [][]byte{{}})
+	h1, err := NewHeader(common.Hash{}, big.NewInt(0), common.Hash{}, common.Hash{}, Digest{})
 	require.NoError(t, err)
 	b1 := NewBlock(h1, NewBody([]byte{}))
 	enc, err := b1.Encode()
 	require.NoError(t, err)
 
-	h2, err := NewHeader(common.Hash{0x1, 0x2}, big.NewInt(0), common.Hash{}, common.Hash{}, [][]byte{{}})
+	h2, err := NewHeader(common.Hash{0x1, 0x2}, big.NewInt(0), common.Hash{}, common.Hash{}, Digest{})
 	require.NoError(t, err)
 	b2 := NewBlock(h2, NewBody([]byte{0xa, 0xb}))
 	enc2, err := b2.Encode()
