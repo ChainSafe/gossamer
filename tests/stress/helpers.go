@@ -37,7 +37,6 @@ import (
 )
 
 var (
-	numNodes    = 3
 	maxRetries  = 32
 	testTimeout = time.Minute * 2
 	logger      = log.New("pkg", "tests/stress")

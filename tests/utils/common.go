@@ -31,8 +31,6 @@ var (
 	HOSTNAME = os.Getenv("HOSTNAME")
 	PORT     = os.Getenv("PORT")
 
-	NETWORK_SIZE = os.Getenv("NETWORK_SIZE")
-
 	ContentTypeJSON   = "application/json"
 	dialTimeout       = 60 * time.Second
 	httpClientTimeout = 120 * time.Second

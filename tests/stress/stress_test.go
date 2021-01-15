@@ -37,14 +37,6 @@ func TestMain(m *testing.M) {
 		return
 	}
 
-	if utils.NETWORK_SIZE != "" {
-		var err error
-		numNodes, err = strconv.Atoi(utils.NETWORK_SIZE)
-		if err == nil {
-			_, _ = fmt.Fprintf(os.Stdout, "using custom network size %d\n", numNodes)
-		}
-	}
-
 	if utils.HOSTNAME == "" {
 		utils.HOSTNAME = "localhost"
 	}
@@ -70,7 +62,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestRestartNode(t *testing.T) {
-	numNodes = 1
+	numNodes := 1
 	nodes, err := utils.InitNodes(numNodes, utils.ConfigDefault)
 	require.NoError(t, err)
 
@@ -87,21 +79,9 @@ func TestRestartNode(t *testing.T) {
 	require.Len(t, errList, 0)
 }
 
-func TestSync_Basic(t *testing.T) {
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigDefault)
-	require.NoError(t, err)
-
-	defer func() {
-		errList := utils.StopNodes(t, nodes)
-		require.Len(t, errList, 0)
-	}()
-
-	err = compareChainHeadsWithRetry(t, nodes)
-	require.NoError(t, err)
-}
-
 func TestSync_SingleBlockProducer(t *testing.T) {
-	numNodes = 9 // TODO: increase this when syncing improves
+	//time.Sleep(time.Second)
+	numNodes := 9 // TODO: increase this when syncing improves
 	utils.SetLogLevel(log.LvlInfo)
 
 	// start block producing node first
@@ -138,9 +118,22 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 	}
 }
 
+func TestSync_Basic(t *testing.T) {
+	nodes, err := utils.InitializeAndStartNodes(t, 3, utils.GenesisDefault, utils.ConfigDefault)
+	require.NoError(t, err)
+
+	defer func() {
+		errList := utils.StopNodes(t, nodes)
+		require.Len(t, errList, 0)
+	}()
+
+	err = compareChainHeadsWithRetry(t, nodes)
+	require.NoError(t, err)
+}
+
 func TestSync_MultipleEpoch(t *testing.T) {
-	t.Skip("skipping until err fixed")
-	numNodes = 3 // TODO: increase this when syncing improves
+	t.Skip("skipping TestSync_MultipleEpoch")
+	numNodes := 3 // TODO: increase this when syncing improves
 	utils.SetLogLevel(log.LvlInfo)
 
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
@@ -171,8 +164,6 @@ func TestSync_MultipleEpoch(t *testing.T) {
 func TestSync_SingleSyncingNode(t *testing.T) {
 	// TODO: Fix this test and enable it.
 	t.Skip("skipping TestSync_SingleSyncingNode")
-
-	numNodes = 2
 	utils.SetLogLevel(log.LvlInfo)
 
 	// start block producing node
@@ -203,7 +194,7 @@ func TestSync_ManyProducers(t *testing.T) {
 	// this means when each node is connected to 8 other nodes, too much memory is being used.
 	t.Skip()
 
-	numNodes = 9 // 9 block producers
+	numNodes := 9 // 9 block producers
 	utils.SetLogLevel(log.LvlInfo)
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigDefault)
 	require.NoError(t, err)
@@ -223,7 +214,6 @@ func TestSync_ManyProducers(t *testing.T) {
 }
 
 func TestSync_Bench(t *testing.T) {
-	numNodes = 2
 	utils.SetLogLevel(log.LvlInfo)
 	numBlocks := 64
 
@@ -298,7 +288,7 @@ func TestSync_Bench(t *testing.T) {
 func TestSync_Restart(t *testing.T) {
 	// TODO: Fix this test and enable it.
 	t.Skip("skipping TestSync_Restart")
-	numNodes = 3
+	numNodes := 3
 	utils.SetLogLevel(log.LvlInfo)
 
 	// start block producing node first
