@@ -33,7 +33,7 @@ type BabePreRuntimeDigest interface {
 	Type() byte
 	Encode() []byte
 	Decode(r io.Reader) error
-	AuthorityIndex() uint64
+	AuthorityIndex() uint32
 	SlotNumber() uint64
 }
 
@@ -68,14 +68,14 @@ func DecodeBabePreDigest(r io.Reader) (BabePreRuntimeDigest, error) {
 
 // BabePrimaryPreDigest as defined in Polkadot RE Spec, definition 5.10 in section 5.1.4
 type BabePrimaryPreDigest struct {
-	authorityIndex uint64
+	authorityIndex uint32
 	slotNumber     uint64
 	vrfOutput      [sr25519.VrfOutputLength]byte
 	vrfProof       [sr25519.VrfProofLength]byte
 }
 
 // NewBabePrimaryPreDigest returns a new BabePrimaryPreDigest
-func NewBabePrimaryPreDigest(authorityIndex, slotNumber uint64, vrfOutput [sr25519.VrfOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) *BabePrimaryPreDigest {
+func NewBabePrimaryPreDigest(authorityIndex uint32, slotNumber uint64, vrfOutput [sr25519.VrfOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) *BabePrimaryPreDigest {
 	return &BabePrimaryPreDigest{
 		vrfOutput:      vrfOutput,
 		vrfProof:       vrfProof,
@@ -92,9 +92,12 @@ func (d *BabePrimaryPreDigest) Type() byte {
 // Encode performs SCALE encoding of a BABEPrimaryPreDigest
 func (d *BabePrimaryPreDigest) Encode() []byte {
 	enc := []byte{BabePrimaryPreDigestType}
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, d.authorityIndex)
+
+	buf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(buf, d.authorityIndex)
 	enc = append(enc, buf...)
+
+	buf = make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, d.slotNumber)
 	enc = append(enc, buf...)
 	enc = append(enc, d.vrfOutput[:]...)
@@ -104,7 +107,7 @@ func (d *BabePrimaryPreDigest) Encode() []byte {
 
 // Decode performs SCALE decoding of an encoded BabePrimaryPreDigest, assuming type byte is removed
 func (d *BabePrimaryPreDigest) Decode(r io.Reader) (err error) {
-	d.authorityIndex, err = common.ReadUint64(r)
+	d.authorityIndex, err = common.ReadUint32(r)
 	if err != nil {
 		return err
 	}
@@ -127,7 +130,7 @@ func (d *BabePrimaryPreDigest) Decode(r io.Reader) (err error) {
 }
 
 // AuthorityIndex returns the digest's authority index
-func (d *BabePrimaryPreDigest) AuthorityIndex() uint64 {
+func (d *BabePrimaryPreDigest) AuthorityIndex() uint32 {
 	return d.authorityIndex
 }
 
@@ -148,12 +151,12 @@ func (d *BabePrimaryPreDigest) VrfProof() [sr25519.VrfProofLength]byte {
 
 // BabeSecondaryPlainPreDigest is included in a block built by a secondary slot authorized producer
 type BabeSecondaryPlainPreDigest struct {
-	authorityIndex uint64
+	authorityIndex uint32
 	slotNumber     uint64
 }
 
 // NewBabeSecondaryPlainPreDigest returns a new BabeSecondaryPlainPreDigest
-func NewBabeSecondaryPlainPreDigest(authorityIndex, slotNumber uint64) *BabeSecondaryPlainPreDigest {
+func NewBabeSecondaryPlainPreDigest(authorityIndex uint32, slotNumber uint64) *BabeSecondaryPlainPreDigest {
 	return &BabeSecondaryPlainPreDigest{
 		authorityIndex: authorityIndex,
 		slotNumber:     slotNumber,
@@ -168,9 +171,12 @@ func (d *BabeSecondaryPlainPreDigest) Type() byte {
 // Encode performs SCALE encoding of a BabeSecondaryPlainPreDigest
 func (d *BabeSecondaryPlainPreDigest) Encode() []byte {
 	enc := []byte{BabeSecondaryPlainPreDigestType}
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, d.authorityIndex)
+
+	buf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(buf, d.authorityIndex)
 	enc = append(enc, buf...)
+
+	buf = make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, d.slotNumber)
 	enc = append(enc, buf...)
 	return enc
@@ -178,7 +184,7 @@ func (d *BabeSecondaryPlainPreDigest) Encode() []byte {
 
 // Decode performs SCALE decoding of an encoded BabeSecondaryPlainPreDigest
 func (d *BabeSecondaryPlainPreDigest) Decode(r io.Reader) (err error) {
-	d.authorityIndex, err = common.ReadUint64(r)
+	d.authorityIndex, err = common.ReadUint32(r)
 	if err != nil {
 		return err
 	}
@@ -192,7 +198,7 @@ func (d *BabeSecondaryPlainPreDigest) Decode(r io.Reader) (err error) {
 }
 
 // AuthorityIndex returns the digest's authority index
-func (d *BabeSecondaryPlainPreDigest) AuthorityIndex() uint64 {
+func (d *BabeSecondaryPlainPreDigest) AuthorityIndex() uint32 {
 	return d.authorityIndex
 }
 
@@ -203,14 +209,14 @@ func (d *BabeSecondaryPlainPreDigest) SlotNumber() uint64 {
 
 // BabeSecondaryVRFPreDigest is included in a block built by a secondary slot authorized producer
 type BabeSecondaryVRFPreDigest struct {
-	authorityIndex uint64
+	authorityIndex uint32
 	slotNumber     uint64
 	vrfOutput      [sr25519.VrfOutputLength]byte
 	vrfProof       [sr25519.VrfProofLength]byte
 }
 
 // NewBabeSecondaryVRFPreDigest returns a new NewBabeSecondaryVRFPreDigest
-func NewBabeSecondaryVRFPreDigest(authorityIndex, slotNumber uint64, vrfOutput [sr25519.VrfOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) *BabeSecondaryVRFPreDigest {
+func NewBabeSecondaryVRFPreDigest(authorityIndex uint32, slotNumber uint64, vrfOutput [sr25519.VrfOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) *BabeSecondaryVRFPreDigest {
 	return &BabeSecondaryVRFPreDigest{
 		vrfOutput:      vrfOutput,
 		vrfProof:       vrfProof,
@@ -227,11 +233,15 @@ func (d *BabeSecondaryVRFPreDigest) Type() byte {
 // Encode performs SCALE encoding of a BABEPrimaryPreDigest
 func (d *BabeSecondaryVRFPreDigest) Encode() []byte {
 	enc := []byte{BabeSecondaryVRFPreDigestType}
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, d.authorityIndex)
+
+	buf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(buf, d.authorityIndex)
 	enc = append(enc, buf...)
+
+	buf = make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, d.slotNumber)
 	enc = append(enc, buf...)
+
 	enc = append(enc, d.vrfOutput[:]...)
 	enc = append(enc, d.vrfProof[:]...)
 	return enc
@@ -239,7 +249,7 @@ func (d *BabeSecondaryVRFPreDigest) Encode() []byte {
 
 // Decode performs SCALE decoding of an encoded BabeSecondaryVRFPreDigest, assuming type byte is removed
 func (d *BabeSecondaryVRFPreDigest) Decode(r io.Reader) (err error) {
-	d.authorityIndex, err = common.ReadUint64(r)
+	d.authorityIndex, err = common.ReadUint32(r)
 	if err != nil {
 		return err
 	}
@@ -262,7 +272,7 @@ func (d *BabeSecondaryVRFPreDigest) Decode(r io.Reader) (err error) {
 }
 
 // AuthorityIndex returns the digest's authority index
-func (d *BabeSecondaryVRFPreDigest) AuthorityIndex() uint64 {
+func (d *BabeSecondaryVRFPreDigest) AuthorityIndex() uint32 {
 	return d.authorityIndex
 }
 

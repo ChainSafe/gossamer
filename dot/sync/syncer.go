@@ -222,7 +222,7 @@ func (s *Service) HandleBlockResponse(msg *network.BlockResponseMessage) *networ
 
 	// if we cannot find the parent block in our blocktree, we are missing some blocks, and need to request
 	// blocks from farther back in the chain
-	if err == blocktree.ErrParentNotFound || err == chaindb.ErrKeyNotFound {
+	if err == blocktree.ErrParentNotFound || errors.Is(err, chaindb.ErrKeyNotFound) {
 		s.logger.Debug("got ErrParentNotFound or ErrKeyNotFound; need to request earlier blocks")
 		bestNum, err := s.blockState.BestBlockNumber() //nolint
 		if err != nil {
@@ -317,12 +317,14 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 				return 0, 0, err
 			}
 
-			s.logger.Trace("processing block", "header", header)
+			s.logger.Trace("processing header", "header", header)
 
 			err = s.handleHeader(header)
 			if err != nil {
 				return start, end, err
 			}
+
+			s.logger.Trace("header processed")
 
 			if header.Number.Int64() < start {
 				start = header.Number.Int64()
@@ -339,10 +341,14 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 				return start, end, err
 			}
 
+			s.logger.Trace("processing body")
+
 			err = s.handleBody(body)
 			if err != nil {
 				return start, end, err
 			}
+
+			s.logger.Trace("body processed")
 		}
 
 		if bd.Header.Exists() && bd.Body.Exists() {
@@ -361,10 +367,14 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 				Body:   body,
 			}
 
+			s.logger.Trace("processing block")
+
 			err = s.handleBlock(block)
 			if err != nil {
 				return start, end, err
 			}
+
+			s.logger.Trace("block processed")
 		}
 	}
 

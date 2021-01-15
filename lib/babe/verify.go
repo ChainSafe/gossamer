@@ -53,7 +53,7 @@ type VerificationManager struct {
 	epochState EpochState
 	epochInfo  map[uint64]*verifierInfo // map of epoch number -> info needed for verification
 	// there may be different OnDisabled digests on different branches of the chain, so we need to keep track of all of them.
-	onDisabled map[uint64]map[uint64][]*onDisabledInfo // map of epoch number -> block producer index -> block number and hash
+	onDisabled map[uint64]map[uint32][]*onDisabledInfo // map of epoch number -> block producer index -> block number and hash
 }
 
 // NewVerificationManager returns a new NewVerificationManager
@@ -70,12 +70,12 @@ func NewVerificationManager(blockState BlockState, epochState EpochState) (*Veri
 		epochState: epochState,
 		blockState: blockState,
 		epochInfo:  make(map[uint64]*verifierInfo),
-		onDisabled: make(map[uint64]map[uint64][]*onDisabledInfo),
+		onDisabled: make(map[uint64]map[uint32][]*onDisabledInfo),
 	}, nil
 }
 
 // SetOnDisabled sets the BABE authority with the given index as disabled for the rest of the epoch
-func (v *VerificationManager) SetOnDisabled(index uint64, header *types.Header) error {
+func (v *VerificationManager) SetOnDisabled(index uint32, header *types.Header) error {
 	epoch, err := v.epochState.GetEpochForBlock(header)
 	if err != nil {
 		return err
@@ -94,13 +94,13 @@ func (v *VerificationManager) SetOnDisabled(index uint64, header *types.Header) 
 	}
 
 	// check that index is valid
-	if index >= uint64(len(v.epochInfo[epoch].authorities)) {
+	if index >= uint32(len(v.epochInfo[epoch].authorities)) {
 		return ErrInvalidBlockProducerIndex
 	}
 
 	// no authorities have been disabled yet this epoch, init map
 	if _, has := v.onDisabled[epoch]; !has {
-		v.onDisabled[epoch] = make(map[uint64][]*onDisabledInfo)
+		v.onDisabled[epoch] = make(map[uint32][]*onDisabledInfo)
 	}
 
 	disabledProducers := v.onDisabled[epoch]
@@ -142,10 +142,14 @@ func (v *VerificationManager) SetOnDisabled(index uint64, header *types.Header) 
 // VerifyBlock verifies that the block producer for the given block was authorized to produce it.
 // It returns an error if the block is invalid.
 func (v *VerificationManager) VerifyBlock(header *types.Header) error {
+	logger.Info("VerifyBlock")
 	epoch, err := v.epochState.GetEpochForBlock(header)
 	if err != nil {
+		logger.Info("cannot GetEpochForBlock ")
 		return err
 	}
+
+	logger.Info(" GetEpochForBlock ", "epoch", epoch)
 
 	var (
 		info *verifierInfo
@@ -155,7 +159,15 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 	v.lock.Lock()
 
 	if info, has = v.epochInfo[epoch]; !has {
-		info, err = v.getVerifierInfo(epoch)
+
+		// special case for block 1 - the network doesn't necessarily start in epoch 1.
+		// if this happens, the database will be missing info for epochs before the first block.
+		if header.Number.Cmp(big.NewInt(1)) == 0 {
+			info, err = v.getVerifierInfo(1)
+		} else {
+			info, err = v.getVerifierInfo(epoch)
+		}
+
 		if err != nil {
 			v.lock.Unlock()
 			return err
@@ -287,6 +299,8 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 		return fmt.Errorf("block header is missing digest items")
 	}
 
+	logger.Info("verifyAuthorshipRight")
+
 	// check for valid seal by verifying signature
 	preDigestItem := header.Digest[0]
 	sealItem := header.Digest[len(header.Digest)-1]
@@ -306,7 +320,10 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 		return fmt.Errorf("failed to verify pre-runtime digest: %w", err)
 	}
 
+	logger.Info("verifyAuthorshipRight babePreDigest verified")
+
 	authorPub := b.authorities[babePreDigest.AuthorityIndex()].Key
+	logger.Info("verifyAuthorshipRight", "auth key", authorPub.Encode())
 
 	// remove seal before verifying signature
 	header.Digest = header.Digest[:len(header.Digest)-1]
@@ -320,7 +337,12 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	}
 
 	// verify the seal is valid
-	ok, err = authorPub.Verify(encHeader, seal.Data)
+	hash, err := common.Blake2bHash(encHeader)
+	if err != nil {
+		return err
+	}
+
+	ok, err = authorPub.Verify(hash[:], seal.Data)
 	if err != nil {
 		return err
 	}
@@ -361,6 +383,8 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 		return nil, err
 	}
 
+	logger.Info("verifyPreRuntimeDigest", "len(b.authorities)", len(b.authorities), "AuthorityIndex", babePreDigest.AuthorityIndex())
+
 	if len(b.authorities) <= int(babePreDigest.AuthorityIndex()) {
 		return nil, ErrInvalidBlockProducerIndex
 	}
@@ -377,11 +401,10 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 	case *types.BabeSecondaryPlainPreDigest:
 		// TODO: implement BABE secondary slot assignment
 		logger.Warn("not validating BabeSecondaryPlainPreDigest: BABE secondary slot assignment not implemented")
-		return nil, nil
+		return babePreDigest, nil
 	}
 
 	// verify that they are the slot winner
-	// ok, err = b.verifySlotWinner(slot, babeHeader)
 	if err != nil {
 		return nil, err
 	}
@@ -394,16 +417,7 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 }
 
 // verifySlotWinner verifies the claim for a slot
-func (b *verifier) verifySlotWinner(authorityIndex, slot uint64, vrfOutput [sr25519.VrfOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) (bool, error) {
-	// if len(b.authorities) <= int(header.AuthorityIndex()) {
-	// 	return false, ErrInvalidBlockProducerIndex
-	// }
-
-	// check that vrf output is under threshold
-	// if not, then return an error
-	// vrfOutput := header.VrfOutput()
-	// vrfProof := header.VrfProof()
-
+func (b *verifier) verifySlotWinner(authorityIndex uint32, slot uint64, vrfOutput [sr25519.VrfOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) (bool, error) {
 	output := big.NewInt(0).SetBytes(vrfOutput[:])
 	if output.Cmp(b.threshold) >= 0 {
 		return false, ErrVRFOutputOverThreshold
@@ -423,7 +437,7 @@ func (b *verifier) verifySlotWinner(authorityIndex, slot uint64, vrfOutput [sr25
 	return pk.VrfVerify(vrfInput, vrfOutput[:], vrfProof[:])
 }
 
-func getAuthorityIndex(header *types.Header) (uint64, error) {
+func getAuthorityIndex(header *types.Header) (uint32, error) {
 	if len(header.Digest) == 0 {
 		return 0, fmt.Errorf("no digest provided")
 	}
@@ -434,8 +448,6 @@ func getAuthorityIndex(header *types.Header) (uint64, error) {
 	if !ok {
 		return 0, fmt.Errorf("first digest item is not pre-runtime digest")
 	}
-
-	logger.Info("getAuthorityIndex", "header", header, "predigest", preDigest)
 
 	r := &bytes.Buffer{}
 	_, _ = r.Write(preDigest.Data)

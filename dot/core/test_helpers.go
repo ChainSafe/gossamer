@@ -58,13 +58,13 @@ var genesisBABEConfig = &types.BabeConfiguration{
 
 type mockVerifier struct{}
 
-func (v *mockVerifier) SetOnDisabled(_ uint64, _ *types.Header) error {
+func (v *mockVerifier) SetOnDisabled(_ uint32, _ *types.Header) error {
 	return nil
 }
 
 // mockBlockProducer implements the BlockProducer interface
 type mockBlockProducer struct {
-	disabled uint64
+	disabled uint32
 }
 
 // Start mocks starting
@@ -77,7 +77,7 @@ func (bp *mockBlockProducer) Stop() error {
 	return nil
 }
 
-func (bp *mockBlockProducer) SetOnDisabled(idx uint64) {
+func (bp *mockBlockProducer) SetOnDisabled(idx uint32) {
 	bp.disabled = idx
 }
 

@@ -86,12 +86,12 @@ type FinalityGadget interface {
 type BlockProducer interface {
 	GetBlockChannel() <-chan types.Block
 	SetRuntime(runtime.Instance)
-	SetOnDisabled(authorityIndex uint64)
+	SetOnDisabled(authorityIndex uint32)
 }
 
 // Verifier is the interface for the block verifier
 type Verifier interface {
-	SetOnDisabled(authorityIndex uint64, block *types.Header) error
+	SetOnDisabled(authorityIndex uint32, block *types.Header) error
 }
 
 // Network is the interface for the network service
