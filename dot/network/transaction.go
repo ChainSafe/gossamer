@@ -37,6 +37,11 @@ type TransactionMessage struct {
 	Extrinsics []types.Extrinsic
 }
 
+// SubProtocol returns the transactions sub-protocol
+func (tm *TransactionMessage) SubProtocol() string {
+	return transactionsID
+}
+
 // Type returns TransactionMsgType
 func (tm *TransactionMessage) Type() byte {
 	return TransactionMsgType
@@ -100,6 +105,11 @@ type transactionHandshake struct {
 	Roles byte
 }
 
+// SubProtocol returns the transactions sub-protocol
+func (hs *transactionHandshake) SubProtocol() string {
+	return transactionsID
+}
+
 // String formats a transactionHandshake as a string
 func (hs *transactionHandshake) String() string {
 	return fmt.Sprintf("transactionHandshake Roles=%d",
@@ -123,7 +133,7 @@ func (hs *transactionHandshake) Decode(in []byte) error {
 
 // Type ...
 func (hs *transactionHandshake) Type() byte {
-	return 0
+	return 1
 }
 
 // Hash ...
