@@ -17,6 +17,7 @@
 package babe
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -192,7 +193,7 @@ func (v *VerificationManager) isDisabled(epoch uint64, header *types.Header) (bo
 	}
 
 	// if authorities have been disabled, check which ones
-	idx, err := getBlockProducerIndex(header)
+	idx, err := getAuthorityIndex(header)
 	if err != nil {
 		return false, err
 	}
@@ -278,33 +279,6 @@ func newVerifier(blockState BlockState, info *verifierInfo) (*verifier, error) {
 	}, nil
 }
 
-// verifySlotWinner verifies the claim for a slot, given the BABEPrimaryPreDigest for that slot.
-func (b *verifier) verifySlotWinner(slot uint64, header *types.BabePrimaryPreDigest) (bool, error) {
-	if len(b.authorities) <= int(header.BlockProducerIndex) {
-		return false, ErrInvalidBlockProducerIndex
-	}
-
-	// check that vrf output is under threshold
-	// if not, then return an error
-	output := big.NewInt(0).SetBytes(header.VrfOutput[:])
-	if output.Cmp(b.threshold) >= 0 {
-		return false, ErrVRFOutputOverThreshold
-	}
-
-	pub := b.authorities[header.BlockProducerIndex].Key
-
-	slotBytes := make([]byte, 8)
-	binary.LittleEndian.PutUint64(slotBytes, slot)
-	vrfInput := append(slotBytes, b.randomness[:]...)
-
-	sr25519PK, err := sr25519.NewPublicKey(pub.Encode())
-	if err != nil {
-		return false, err
-	}
-
-	return sr25519PK.VrfVerify(vrfInput, header.VrfOutput[:], header.VrfProof[:])
-}
-
 // verifyAuthorshipRight verifies that the authority that produced a block was authorized to produce it.
 func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	// header should have 2 digest items (possibly more in the future)
@@ -327,34 +301,22 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 		return fmt.Errorf("last digest item is not seal")
 	}
 
-	babeHeader := new(types.BabePrimaryPreDigest)
-	err := babeHeader.Decode(preDigest.Data)
+	babePreDigest, err := b.verifyPreRuntimeDigest(preDigest)
 	if err != nil {
-		return fmt.Errorf("cannot decode babe header from pre-digest: %s", err)
+		return fmt.Errorf("failed to verify pre-runtime digest: %w", err)
 	}
 
-	if len(b.authorities) <= int(babeHeader.BlockProducerIndex) {
-		return ErrInvalidBlockProducerIndex
-	}
+	authorPub := b.authorities[babePreDigest.AuthorityIndex()].Key
 
-	slot := babeHeader.SlotNumber
-
-	authorPub := b.authorities[babeHeader.BlockProducerIndex].Key
-	// remove seal before verifying
+	// remove seal before verifying signature
 	header.Digest = header.Digest[:len(header.Digest)-1]
+	defer func() {
+		header.Digest = append(header.Digest, sealItem)
+	}()
+
 	encHeader, err := header.Encode()
 	if err != nil {
 		return err
-	}
-
-	// verify that they are the slot winner
-	ok, err = b.verifySlotWinner(slot, babeHeader)
-	if err != nil {
-		return err
-	}
-
-	if !ok {
-		return ErrBadSlotClaim
 	}
 
 	// verify the seal is valid
@@ -376,12 +338,12 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 			continue
 		}
 
-		currentBlockProducerIndex, err := getBlockProducerIndex(currentHeader)
+		currentBlockProducerIndex, err := getAuthorityIndex(currentHeader)
 		if err != nil {
 			continue
 		}
 
-		existingBlockProducerIndex := babeHeader.BlockProducerIndex
+		existingBlockProducerIndex := babePreDigest.AuthorityIndex()
 
 		if currentBlockProducerIndex == existingBlockProducerIndex && hash != header.Hash() {
 			return ErrProducerEquivocated
@@ -391,7 +353,77 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	return nil
 }
 
-func getBlockProducerIndex(header *types.Header) (uint64, error) {
+func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types.BabePreRuntimeDigest, error) {
+	r := &bytes.Buffer{}
+	_, _ = r.Write(digest.Data)
+	babePreDigest, err := types.DecodeBabePreDigest(r)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(b.authorities) <= int(babePreDigest.AuthorityIndex()) {
+		return nil, ErrInvalidBlockProducerIndex
+	}
+
+	var (
+		ok bool
+	)
+
+	switch d := babePreDigest.(type) {
+	case *types.BabePrimaryPreDigest:
+		ok, err = b.verifySlotWinner(d.AuthorityIndex(), d.SlotNumber(), d.VrfOutput(), d.VrfProof())
+	case *types.BabeSecondaryVRFPreDigest:
+		ok, err = b.verifySlotWinner(d.AuthorityIndex(), d.SlotNumber(), d.VrfOutput(), d.VrfProof())
+	case *types.BabeSecondaryPlainPreDigest:
+		// TODO: implement BABE secondary slot assignment
+		logger.Warn("not validating BabeSecondaryPlainPreDigest: BABE secondary slot assignment not implemented")
+		return nil, nil
+	}
+
+	// verify that they are the slot winner
+	// ok, err = b.verifySlotWinner(slot, babeHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	if !ok {
+		return nil, ErrBadSlotClaim
+	}
+
+	return babePreDigest, nil
+}
+
+// verifySlotWinner verifies the claim for a slot
+func (b *verifier) verifySlotWinner(authorityIndex, slot uint64, vrfOutput [sr25519.VrfOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) (bool, error) {
+	// if len(b.authorities) <= int(header.AuthorityIndex()) {
+	// 	return false, ErrInvalidBlockProducerIndex
+	// }
+
+	// check that vrf output is under threshold
+	// if not, then return an error
+	// vrfOutput := header.VrfOutput()
+	// vrfProof := header.VrfProof()
+
+	output := big.NewInt(0).SetBytes(vrfOutput[:])
+	if output.Cmp(b.threshold) >= 0 {
+		return false, ErrVRFOutputOverThreshold
+	}
+
+	pub := b.authorities[authorityIndex].Key
+
+	slotBytes := make([]byte, 8)
+	binary.LittleEndian.PutUint64(slotBytes, slot)
+	vrfInput := append(slotBytes, b.randomness[:]...)
+
+	pk, err := sr25519.NewPublicKey(pub.Encode())
+	if err != nil {
+		return false, err
+	}
+
+	return pk.VrfVerify(vrfInput, vrfOutput[:], vrfProof[:])
+}
+
+func getAuthorityIndex(header *types.Header) (uint64, error) {
 	if len(header.Digest) == 0 {
 		return 0, fmt.Errorf("no digest provided")
 	}
@@ -403,13 +435,14 @@ func getBlockProducerIndex(header *types.Header) (uint64, error) {
 		return 0, fmt.Errorf("first digest item is not pre-runtime digest")
 	}
 
-	logger.Info("getBlockProducerIndex", "header", header, "predigest", preDigest)
+	logger.Info("getAuthorityIndex", "header", header, "predigest", preDigest)
 
-	babeHeader := new(types.BabePrimaryPreDigest)
-	err := babeHeader.Decode(preDigest.Data)
+	r := &bytes.Buffer{}
+	_, _ = r.Write(preDigest.Data)
+	babePreDigest, err := types.DecodeBabePreDigest(r)
 	if err != nil {
 		return 0, fmt.Errorf("cannot decode babe header from pre-digest: %s", err)
 	}
 
-	return babeHeader.BlockProducerIndex, nil
+	return babePreDigest.AuthorityIndex(), nil
 }

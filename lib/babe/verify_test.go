@@ -17,6 +17,7 @@
 package babe
 
 import (
+	"errors"
 	"io/ioutil"
 	"testing"
 	"time"
@@ -255,7 +256,7 @@ func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T)
 	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1)
 
 	err = vm.VerifyBlock(block.Header)
-	require.Equal(t, ErrVRFOutputOverThreshold, err)
+	require.Equal(t, ErrVRFOutputOverThreshold, errors.Unwrap(err))
 }
 
 func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
@@ -274,7 +275,7 @@ func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
 	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1)
 
 	err = vm.VerifyBlock(block.Header)
-	require.Equal(t, ErrInvalidBlockProducerIndex, err)
+	require.Equal(t, ErrInvalidBlockProducerIndex, errors.Unwrap(err))
 }
 
 func TestVerifySlotWinner(t *testing.T) {
@@ -317,7 +318,7 @@ func TestVerifySlotWinner(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	ok, err := verifier.verifySlotWinner(slot.number, babeHeader)
+	ok, err := verifier.verifySlotWinner(babeHeader.AuthorityIndex(), slot.number, babeHeader.VrfOutput(), babeHeader.VrfProof())
 	require.NoError(t, err)
 	require.True(t, ok)
 }

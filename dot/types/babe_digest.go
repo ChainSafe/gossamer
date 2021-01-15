@@ -66,18 +66,18 @@ func DecodeBabePreDigest(r io.Reader) (BabePreRuntimeDigest, error) {
 
 // BabePrimaryPreDigest as defined in Polkadot RE Spec, definition 5.10 in section 5.1.4
 type BabePrimaryPreDigest struct {
-	authorityIndex 	uint64
-	slotNumber         uint64
-	vrfOutput          [sr25519.VrfOutputLength]byte
-	vrfProof           [sr25519.VrfProofLength]byte
+	authorityIndex uint64
+	slotNumber     uint64
+	vrfOutput      [sr25519.VrfOutputLength]byte
+	vrfProof       [sr25519.VrfProofLength]byte
 }
 
-func NewBabePrimaryPreDigest(vrfOutput [sr25519.VrfOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte, authorityIndex, slotNumber uint64) *BabePrimaryPreDigest {
+func NewBabePrimaryPreDigest(authorityIndex, slotNumber uint64, vrfOutput [sr25519.VrfOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) *BabePrimaryPreDigest {
 	return &BabePrimaryPreDigest{
-		vrfOutput: vrfOutput,
-		vrfProof: vrfProof,
+		vrfOutput:      vrfOutput,
+		vrfProof:       vrfProof,
 		authorityIndex: authorityIndex,
-		slotNumber: slotNumber,
+		slotNumber:     slotNumber,
 	}
 }
 
@@ -130,15 +130,23 @@ func (d *BabePrimaryPreDigest) SlotNumber() uint64 {
 	return d.slotNumber
 }
 
-type BabeSecondaryPlainPreDigest struct{
+func (d *BabePrimaryPreDigest) VrfOutput() [sr25519.VrfOutputLength]byte {
+	return d.vrfOutput
+}
+
+func (d *BabePrimaryPreDigest) VrfProof() [sr25519.VrfProofLength]byte {
+	return d.vrfProof
+}
+
+type BabeSecondaryPlainPreDigest struct {
 	authorityIndex uint64
-	slotNumber uint64
+	slotNumber     uint64
 }
 
 func NewBabeSecondaryPlainPreDigest(authorityIndex, slotNumber uint64) *BabeSecondaryPlainPreDigest {
 	return &BabeSecondaryPlainPreDigest{
 		authorityIndex: authorityIndex,
-		slotNumber: slotNumber,
+		slotNumber:     slotNumber,
 	}
 }
 
@@ -146,7 +154,7 @@ func (d *BabeSecondaryPlainPreDigest) Type() byte {
 	return BabeSecondaryPlainPreDigestType
 }
 
-// Encode performs SCALE encoding of a BABEPrimaryPreDigest
+// Encode performs SCALE encoding of a BabeSecondaryPlainPreDigest
 func (d *BabeSecondaryPlainPreDigest) Encode() []byte {
 	enc := []byte{BabeSecondaryPlainPreDigestType}
 	buf := make([]byte, 8)
@@ -157,7 +165,7 @@ func (d *BabeSecondaryPlainPreDigest) Encode() []byte {
 	return enc
 }
 
-// Decode performs SCALE decoding of an encoded BABEPrimaryPreDigest
+// Decode performs SCALE decoding of an encoded BabeSecondaryPlainPreDigest
 func (d *BabeSecondaryPlainPreDigest) Decode(r io.Reader) (err error) {
 	d.authorityIndex, err = common.ReadUint64(r)
 	if err != nil {
@@ -180,19 +188,19 @@ func (d *BabeSecondaryPlainPreDigest) SlotNumber() uint64 {
 	return d.slotNumber
 }
 
-type BabeSecondaryVRFPreDigest struct{
-	authorityIndex 	uint64
-	slotNumber         uint64
-	vrfOutput          [sr25519.VrfOutputLength]byte
-	vrfProof           [sr25519.VrfProofLength]byte
+type BabeSecondaryVRFPreDigest struct {
+	authorityIndex uint64
+	slotNumber     uint64
+	vrfOutput      [sr25519.VrfOutputLength]byte
+	vrfProof       [sr25519.VrfProofLength]byte
 }
 
-func NewBabeSecondaryVRFPreDigest(vrfOutput [sr25519.VrfOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte, authorityIndex, slotNumber uint64) *BabeSecondaryVRFPreDigest {
+func NewBabeSecondaryVRFPreDigest(authorityIndex, slotNumber uint64, vrfOutput [sr25519.VrfOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) *BabeSecondaryVRFPreDigest {
 	return &BabeSecondaryVRFPreDigest{
-		vrfOutput: vrfOutput,
-		vrfProof: vrfProof,
+		vrfOutput:      vrfOutput,
+		vrfProof:       vrfProof,
 		authorityIndex: authorityIndex,
-		slotNumber: slotNumber,
+		slotNumber:     slotNumber,
 	}
 }
 
@@ -213,7 +221,7 @@ func (d *BabeSecondaryVRFPreDigest) Encode() []byte {
 	return enc
 }
 
-// Decode performs SCALE decoding of an encoded BabePrimaryPreDigest, assuming type byte is removed
+// Decode performs SCALE decoding of an encoded BabeSecondaryVRFPreDigest, assuming type byte is removed
 func (d *BabeSecondaryVRFPreDigest) Decode(r io.Reader) (err error) {
 	d.authorityIndex, err = common.ReadUint64(r)
 	if err != nil {
@@ -243,4 +251,12 @@ func (d *BabeSecondaryVRFPreDigest) AuthorityIndex() uint64 {
 
 func (d *BabeSecondaryVRFPreDigest) SlotNumber() uint64 {
 	return d.slotNumber
+}
+
+func (d *BabeSecondaryVRFPreDigest) VrfOutput() [sr25519.VrfOutputLength]byte {
+	return d.vrfOutput
+}
+
+func (d *BabeSecondaryVRFPreDigest) VrfProof() [sr25519.VrfProofLength]byte {
+	return d.vrfProof
 }

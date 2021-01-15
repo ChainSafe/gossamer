@@ -176,9 +176,7 @@ func TestGetSlotForBlock(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 	expectedSlot := uint64(77)
 
-	babeHeader := &types.BabePrimaryPreDigest{
-		SlotNumber: expectedSlot,
-	}
+	babeHeader := types.NewBabePrimaryPreDigest(0, expectedSlot, [32]byte{}, [64]byte{})
 	data := babeHeader.Encode()
 	preDigest := types.NewBABEPreRuntimeDigest(data)
 

@@ -144,10 +144,7 @@ func TestEpochState_ConfigData(t *testing.T) {
 func TestEpochState_GetEpochForBlock(t *testing.T) {
 	s := newEpochStateFromGenesis(t)
 
-	babeHeader := &types.BabePrimaryPreDigest{
-		SlotNumber: 10,
-	}
-
+	babeHeader := types.NewBabePrimaryPreDigest(0, 10, [32]byte{}, [64]byte{})
 	enc := babeHeader.Encode()
 	digest := types.NewBABEPreRuntimeDigest(enc)
 
@@ -159,10 +156,7 @@ func TestEpochState_GetEpochForBlock(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), epoch)
 
-	babeHeader = &types.BabePrimaryPreDigest{
-		SlotNumber: 210,
-	}
-
+	babeHeader = types.NewBabePrimaryPreDigest(0, 210, [32]byte{}, [64]byte{})
 	enc = babeHeader.Encode()
 	digest = types.NewBABEPreRuntimeDigest(enc)
 

@@ -158,12 +158,12 @@ func (b *Service) buildBlockBABEPrimaryPreDigest(slot Slot) (*types.BabePrimaryP
 	}
 
 	outAndProof := b.slotToProof[slot.number]
-	return &types.BabePrimaryPreDigest{
-		VrfOutput:          outAndProof.output,
-		VrfProof:           outAndProof.proof,
-		BlockProducerIndex: b.epochData.authorityIndex,
-		SlotNumber:         slot.number,
-	}, nil
+	return types.NewBabePrimaryPreDigest(
+		b.epochData.authorityIndex,
+		slot.number,
+		outAndProof.output,
+		outAndProof.proof,
+	), nil
 }
 
 // buildBlockExtrinsics applies extrinsics to the block. it returns an array of included extrinsics.
