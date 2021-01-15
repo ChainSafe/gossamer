@@ -33,9 +33,10 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
+var logger log.Logger
+
 // Service contains the VRF keys for the validator, as well as BABE configuation data
 type Service struct {
-	logger    log.Logger
 	ctx       context.Context
 	cancel    context.CancelFunc
 	paused    bool
@@ -105,7 +106,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		return nil, errors.New("runtime is nil")
 	}
 
-	logger := log.New("pkg", "babe")
+	logger = log.New("pkg", "babe")
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
 	h = log.CallerFileHandler(h)
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
@@ -113,7 +114,6 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	babeService := &Service{
-		logger:           logger,
 		ctx:              ctx,
 		cancel:           cancel,
 		blockState:       cfg.BlockState,
@@ -202,14 +202,14 @@ func (b *Service) setEpochData(cfg *ServiceConfig, genCfg *types.BabeConfigurati
 func (b *Service) Start() error {
 	epoch, err := b.epochState.GetCurrentEpoch()
 	if err != nil {
-		b.logger.Error("failed to get current epoch", "error", err)
+		logger.Error("failed to get current epoch", "error", err)
 		return err
 	}
 
 	// TODO: initiateEpoch sigabrts w/ non authority node epoch > 1. fix this!!
 	err = b.initiateEpoch(epoch, b.startSlot)
 	if err != nil {
-		b.logger.Error("failed to initiate epoch", "error", err)
+		logger.Error("failed to initiate epoch", "error", err)
 		return err
 	}
 
@@ -235,7 +235,7 @@ func (b *Service) Pause() error {
 
 	select {
 	case b.pause <- struct{}{}:
-		b.logger.Info("service paused")
+		logger.Info("service paused")
 	default:
 	}
 
@@ -251,7 +251,7 @@ func (b *Service) Resume() error {
 
 	go b.initiate()
 	b.paused = false
-	b.logger.Info("service resumed")
+	logger.Info("service resumed")
 	return nil
 }
 
@@ -305,7 +305,7 @@ func (b *Service) IsPaused() bool {
 func (b *Service) safeSend(msg types.Block) error {
 	defer func() {
 		if err := recover(); err != nil {
-			b.logger.Error("recovered from panic", "error", err)
+			logger.Error("recovered from panic", "error", err)
 		}
 	}()
 
@@ -342,19 +342,19 @@ func (b *Service) getSlotDuration() time.Duration {
 
 func (b *Service) initiate() {
 	if b.blockState == nil {
-		b.logger.Error("block authoring", "error", "blockState is nil")
+		logger.Error("block authoring", "error", "blockState is nil")
 		return
 	}
 
 	if b.storageState == nil {
-		b.logger.Error("block authoring", "error", "storageState is nil")
+		logger.Error("block authoring", "error", "storageState is nil")
 		return
 	}
 
 	slotNum := b.startSlot
 	bestNum, err := b.blockState.BestBlockNumber()
 	if err != nil {
-		b.logger.Error("Failed to get best block number", "error", err)
+		logger.Error("Failed to get best block number", "error", err)
 		return
 	}
 
@@ -364,40 +364,40 @@ func (b *Service) initiate() {
 		if bestNum.Cmp(big.NewInt(int64(slotTail))) != -1 {
 			slotNum, err = b.getCurrentSlot()
 			if err != nil {
-				b.logger.Error("cannot get current slot", "error", err)
+				logger.Error("cannot get current slot", "error", err)
 				return
 			}
 		} else {
-			b.logger.Warn("cannot use median algorithm, not enough blocks synced")
+			logger.Warn("cannot use median algorithm, not enough blocks synced")
 
 			slotNum, err = b.estimateCurrentSlot()
 			if err != nil {
-				b.logger.Error("cannot get current slot", "error", err)
+				logger.Error("cannot get current slot", "error", err)
 				return
 			}
 		}
 	}
 
-	b.logger.Debug("calculated slot", "number", slotNum)
+	logger.Debug("calculated slot", "number", slotNum)
 	b.invokeBlockAuthoring(slotNum)
 }
 
 func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 	currEpoch, err := b.epochState.GetCurrentEpoch()
 	if err != nil {
-		b.logger.Error("failed to get current epoch", "error", err)
+		logger.Error("failed to get current epoch", "error", err)
 		return
 	}
 
 	// get start slot for current epoch
 	epochStart, err := b.epochState.GetStartSlotForEpoch(0)
 	if err != nil {
-		b.logger.Error("failed to get start slot for current epoch", "epoch", currEpoch, "error", err)
+		logger.Error("failed to get start slot for current epoch", "epoch", currEpoch, "error", err)
 		return
 	}
 
 	intoEpoch := startSlot - epochStart
-	b.logger.Info("current epoch", "epoch", currEpoch, "slots into epoch", intoEpoch)
+	logger.Info("current epoch", "epoch", currEpoch, "slots into epoch", intoEpoch)
 
 	// starting slot for next epoch
 	nextStartSlot := startSlot + b.epochLength - intoEpoch
@@ -421,10 +421,10 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 			slotNum := startSlot + uint64(i)
 			err = b.handleSlot(slotNum)
 			if err == ErrNotAuthorized {
-				b.logger.Debug("not authorized to produce a block in this slot", "slot", slotNum)
+				logger.Debug("not authorized to produce a block in this slot", "slot", slotNum)
 				continue
 			} else if err != nil {
-				b.logger.Warn("failed to handle slot", "slot", slotNum, "error", err)
+				logger.Warn("failed to handle slot", "slot", slotNum, "error", err)
 				continue
 			}
 		}
@@ -433,15 +433,15 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 	// setup next epoch, re-invoke block authoring
 	next, err := b.incrementEpoch()
 	if err != nil {
-		b.logger.Error("failed to increment epoch", "error", err)
+		logger.Error("failed to increment epoch", "error", err)
 		return
 	}
 
-	b.logger.Info("initiating epoch", "number", next, "start slot", nextStartSlot)
+	logger.Info("initiating epoch", "number", next, "start slot", nextStartSlot)
 
 	err = b.initiateEpoch(next, nextStartSlot)
 	if err != nil {
-		b.logger.Error("failed to initiate epoch", "epoch", next, "error", err)
+		logger.Error("failed to initiate epoch", "epoch", next, "error", err)
 		return
 	}
 
@@ -457,12 +457,12 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		// if we don't have a proof already set, re-run lottery.
 		proof, err := b.runLottery(slotNum)
 		if err != nil {
-			b.logger.Warn("failed to run lottery", "slot", slotNum)
+			logger.Warn("failed to run lottery", "slot", slotNum)
 			return errors.New("failed to run lottery")
 		}
 
 		if proof == nil {
-			b.logger.Debug("not authorized to produce block", "slot", slotNum)
+			logger.Debug("not authorized to produce block", "slot", slotNum)
 			return ErrNotAuthorized
 		}
 
@@ -471,12 +471,12 @@ func (b *Service) handleSlot(slotNum uint64) error {
 
 	parentHeader, err := b.blockState.BestBlockHeader()
 	if err != nil {
-		b.logger.Error("block authoring", "error", err)
+		logger.Error("block authoring", "error", err)
 		return err
 	}
 
 	if parentHeader == nil {
-		b.logger.Error("block authoring", "error", "parent header is nil")
+		logger.Error("block authoring", "error", "parent header is nil")
 		return err
 	}
 
@@ -490,26 +490,26 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		number:   slotNum,
 	}
 
-	b.logger.Debug("going to build block", "parent", parent)
+	logger.Debug("going to build block", "parent", parent)
 
 	// set runtime trie before building block
 	// if block building is successful, store the resulting trie in the storage state
 	ts, err := b.storageState.TrieState(&parent.StateRoot)
 	if err != nil || ts == nil {
-		b.logger.Error("failed to get parent trie", "parent state root", parent.StateRoot, "error", err)
+		logger.Error("failed to get parent trie", "parent state root", parent.StateRoot, "error", err)
 		return err
 	}
 
 	tsCopy, err := ts.Copy()
 	if err != nil {
-		b.logger.Error("failed to copy parent storage trie", "error", err)
+		logger.Error("failed to copy parent storage trie", "error", err)
 	}
 
 	b.rt.SetContext(tsCopy)
 
 	block, err := b.buildBlock(parent, currentSlot)
 	if err != nil {
-		b.logger.Error("block authoring", "error", err)
+		logger.Error("block authoring", "error", err)
 		return nil
 	}
 
@@ -517,16 +517,16 @@ func (b *Service) handleSlot(slotNum uint64) error {
 	// TODO: why does StateRoot not match the root of the trie after building a block?
 	err = b.storageState.StoreTrie(block.Header.StateRoot, tsCopy)
 	if err != nil {
-		b.logger.Error("failed to store trie in storage state", "error", err)
+		logger.Error("failed to store trie in storage state", "error", err)
 	}
 
 	hash := block.Header.Hash()
-	b.logger.Info("built block", "hash", hash.String(), "number", block.Header.Number, "slot", slotNum)
-	b.logger.Debug("built block", "header", block.Header, "body", block.Body, "parent", parent.Hash())
+	logger.Info("built block", "hash", hash.String(), "number", block.Header.Number, "slot", slotNum)
+	logger.Debug("built block", "header", block.Header, "body", block.Body, "parent", parent.Hash())
 
 	err = b.safeSend(*block)
 	if err != nil {
-		b.logger.Error("failed to send block to core", "error", err)
+		logger.Error("failed to send block to core", "error", err)
 		return err
 	}
 	return nil

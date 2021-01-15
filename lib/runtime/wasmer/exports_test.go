@@ -1,6 +1,7 @@
 package wasmer
 
 import (
+	"bytes"
 	"math/big"
 	"testing"
 	"time"
@@ -197,7 +198,7 @@ func TestInstance_InitializeBlock_NodeRuntime(t *testing.T) {
 
 	header := &types.Header{
 		Number: big.NewInt(1),
-		Digest: [][]byte{},
+		Digest: types.Digest{},
 	}
 
 	err := rt.InitializeBlock(header)
@@ -209,7 +210,7 @@ func TestInstance_InitializeBlock_PolkadotRuntime(t *testing.T) {
 
 	header := &types.Header{
 		Number: big.NewInt(1),
-		Digest: [][]byte{},
+		Digest: types.Digest{},
 	}
 
 	err := rt.InitializeBlock(header)
@@ -220,7 +221,7 @@ func buildBlock(t *testing.T, instance runtime.Instance) *types.Block {
 	header := &types.Header{
 		ParentHash: trie.EmptyHash,
 		Number:     big.NewInt(77),
-		Digest:     [][]byte{},
+		Digest:     types.Digest{},
 	}
 
 	err := instance.InitializeBlock(header)
@@ -265,7 +266,7 @@ func buildBlock(t *testing.T, instance runtime.Instance) *types.Block {
 	expected := &types.Header{
 		ParentHash: header.ParentHash,
 		Number:     big.NewInt(77),
-		Digest:     [][]byte{},
+		Digest:     types.Digest{},
 	}
 
 	require.Equal(t, expected.ParentHash, res.ParentHash)
@@ -338,6 +339,13 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 2, len(exts.([][]byte)))
 
+	// digest data received from querying polkadot node
+	digestBytes := common.MustHexToBytes("0x0c0642414245b501010000000093decc0f00000000362ed8d6055645487fe42e9c8640be651f70a3a2a03658046b2b43f021665704501af9b1ca6e974c257e3d26609b5f68b5b0a1da53f7f252bbe5d94948c39705c98ffa4b869dd44ac29528e3723d619cc7edf1d3f7b7a57a957f6a7e9bdb270a044241424549040118fa3437b10f6e7af8f31362df3a179b991a8c56313d1bcd6307a4d0c734c1ae310100000000000000d2419bc8835493ac89eb09d5985281f5dff4bc6c7a7ea988fd23af05f301580a0100000000000000ccb6bef60defc30724545d57440394ed1c71ea7ee6d880ed0e79871a05b5e40601000000000000005e67b64cf07d4d258a47df63835121423551712844f5b67de68e36bb9a21e12701000000000000006236877b05370265640c133fec07e64d7ca823db1dc56f2d3584b3d7c0f1615801000000000000006c52d02d95c30aa567fda284acf25025ca7470f0b0c516ddf94475a1807c4d250100000000000000000000000000000000000000000000000000000000000000000000000000000005424142450101d468680c844b19194d4dfbdc6697a35bf2b494bda2c5a6961d4d4eacfbf74574379ba0d97b5bb650c2e8670a63791a727943bcb699dc7a228bdb9e0a98c9d089")
+	r := &bytes.Buffer{}
+	_, _ = r.Write(digestBytes)
+	digest, err := types.DecodeDigest(r)
+	require.NoError(t, err)
+
 	// polkadot block 1, from polkadot.js
 	block := &types.Block{
 		Header: &types.Header{
@@ -345,7 +353,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 			Number:         big.NewInt(1),
 			StateRoot:      common.MustHexToHash("0xc56fcd6e7a757926ace3e1ecff9b4010fc78b90d459202a339266a7f6360002f"),
 			ExtrinsicsRoot: common.MustHexToHash("0x9a87f6af64ef97aff2d31bebfdd59f8fe2ef6019278b634b2515a38f1c4c2420"),
-			Digest:         [][]byte{},
+			Digest:         digest,
 		},
 		Body: types.NewBody(body),
 	}
@@ -386,10 +394,10 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 			Number:         big.NewInt(1),
 			StateRoot:      common.MustHexToHash("0xfabb0c6e92d29e8bb2167f3c6fb0ddeb956a4278a3cf853661af74a076fc9cb7"),
 			ExtrinsicsRoot: common.MustHexToHash("0xa35fb7f7616f5c979d48222b3d2fa7cb2331ef73954726714d91ca945cc34fd8"),
-			Digest:         [][]byte{},
+			Digest:         types.Digest{},
 		},
 		Body: types.NewBody(body),
 	}
 
-	_, _ = instance.ExecuteBlock(block) // TODO: complete this'
+	_, _ = instance.ExecuteBlock(block) // TODO: complete this
 }

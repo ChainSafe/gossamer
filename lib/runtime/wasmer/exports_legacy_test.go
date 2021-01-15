@@ -279,7 +279,7 @@ func TestInstance_FinalizeBlock_LegacyNodeRuntime(t *testing.T) {
 	header := &types.Header{
 		ParentHash: trie.EmptyHash,
 		Number:     big.NewInt(77),
-		Digest:     [][]byte{},
+		Digest:     types.Digest{},
 	}
 
 	err := instance.InitializeBlock(header)
@@ -324,7 +324,7 @@ func TestInstance_FinalizeBlock_LegacyNodeRuntime(t *testing.T) {
 	expected := &types.Header{
 		ParentHash: header.ParentHash,
 		Number:     big.NewInt(77),
-		Digest:     [][]byte{},
+		Digest:     types.Digest{},
 	}
 
 	require.Equal(t, expected.ParentHash, res.ParentHash)
