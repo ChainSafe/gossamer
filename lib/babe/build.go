@@ -123,7 +123,12 @@ func (b *Service) buildBlockSeal(header *types.Header) (*types.SealDigest, error
 		return nil, err
 	}
 
-	sig, err := b.keypair.Sign(encHeader)
+	hash, err := common.Blake2bHash(encHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	sig, err := b.keypair.Sign(hash[:])
 	if err != nil {
 		return nil, err
 	}
