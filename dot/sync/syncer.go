@@ -219,7 +219,6 @@ func (s *Service) HandleBlockResponse(msg *network.BlockResponseMessage) *networ
 	// it's set to 0 if err != nil
 	var start int64
 	low, high, err := s.processBlockResponseData(msg)
-	s.logger.Debug("received BlockResponse", "start", low, "end", high)
 
 	// if we cannot find the parent block in our blocktree, we are missing some blocks, and need to request
 	// blocks from farther back in the chain
@@ -239,6 +238,8 @@ func (s *Service) HandleBlockResponse(msg *network.BlockResponseMessage) *networ
 		s.logger.Error("failed to process block response", "error", err)
 		return nil
 	}
+
+	s.logger.Debug("received BlockResponse", "start", low, "end", high)
 
 	// TODO: max retries before unlocking BlockProducer, in case no response is received
 	bestNum, err := s.blockState.BestBlockNumber()
@@ -280,8 +281,8 @@ func (s *Service) createBlockRequest(startInt int64) *network.BlockRequestMessag
 		RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification, // block header + body + justification
 		StartingBlock: start,
 		EndBlockHash:  optional.NewHash(false, common.Hash{}),
-		Direction:     1,
-		Max:           optional.NewUint32(false, 0),
+		Direction:     0, // ascending
+		Max:           optional.NewUint32(true, uint32(1)),
 	}
 
 	s.benchmarker.begin(uint64(startInt))
@@ -315,6 +316,8 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 			if err != nil {
 				return 0, 0, err
 			}
+
+			s.logger.Trace("processing block", "header", header)
 
 			err = s.handleHeader(header)
 			if err != nil {
@@ -370,6 +373,7 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 
 // handleHeader handles headers included in BlockResponses
 func (s *Service) handleHeader(header *types.Header) error {
+	// TODO: update BABE pre-runtime digest types
 	err := s.verifier.VerifyBlock(header)
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrInvalidBlock, err.Error())
@@ -459,18 +463,13 @@ func (s *Service) handleBlock(block *types.Block) error {
 
 func (s *Service) handleDigests(header *types.Header) error {
 	for _, d := range header.Digest {
-		dg, err := types.DecodeDigestItem(d)
-		if err != nil {
-			return err
-		}
-
-		if dg.Type() == types.ConsensusDigestType {
-			cd, ok := dg.(*types.ConsensusDigest)
+		if d.Type() == types.ConsensusDigestType {
+			cd, ok := d.(*types.ConsensusDigest)
 			if !ok {
 				return errors.New("cannot cast invalid consensus digest item")
 			}
 
-			err = s.digestHandler.HandleConsensusDigest(cd, header)
+			err := s.digestHandler.HandleConsensusDigest(cd, header)
 			if err != nil {
 				return err
 			}

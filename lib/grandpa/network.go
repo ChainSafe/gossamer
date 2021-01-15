@@ -49,6 +49,11 @@ type GrandpaHandshake struct { //nolint
 	Roles byte
 }
 
+// SubProtocol returns the grandpa sub-protocol
+func (hs *GrandpaHandshake) SubProtocol() string {
+	return string(grandpaID)
+}
+
 // String formats a BlockAnnounceHandshake as a string
 func (hs *GrandpaHandshake) String() string {
 	return fmt.Sprintf("GrandpaHandshake Roles=%d", hs.Roles)

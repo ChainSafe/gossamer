@@ -165,6 +165,16 @@ func ReadByte(r io.Reader) (byte, error) {
 	return buf[0], nil
 }
 
+// Read4Bytes reads 4 bytes from the reader and returns it
+func Read4Bytes(r io.Reader) ([]byte, error) {
+	buf := make([]byte, 4)
+	_, err := r.Read(buf)
+	if err != nil {
+		return nil, err
+	}
+	return buf, nil
+}
+
 // ReadUint32 reads a 4-byte uint32 from the reader and returns it
 func ReadUint32(r io.Reader) (uint32, error) {
 	buf := make([]byte, 4)
