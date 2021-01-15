@@ -37,12 +37,14 @@ type BabePreRuntimeDigest interface {
 	SlotNumber() uint64
 }
 
+//nolint
 var (
 	BabePrimaryPreDigestType        = byte(1)
 	BabeSecondaryPlainPreDigestType = byte(2)
 	BabeSecondaryVRFPreDigestType   = byte(3)
 )
 
+// DecodeBabePreDigest decodes the input into a BabePreRuntimeDigest
 func DecodeBabePreDigest(r io.Reader) (BabePreRuntimeDigest, error) {
 	typ, err := common.ReadByte(r)
 	if err != nil {
@@ -72,6 +74,7 @@ type BabePrimaryPreDigest struct {
 	vrfProof       [sr25519.VrfProofLength]byte
 }
 
+// NewBabePrimaryPreDigest returns a new BabePrimaryPreDigest
 func NewBabePrimaryPreDigest(authorityIndex, slotNumber uint64, vrfOutput [sr25519.VrfOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) *BabePrimaryPreDigest {
 	return &BabePrimaryPreDigest{
 		vrfOutput:      vrfOutput,
@@ -81,6 +84,7 @@ func NewBabePrimaryPreDigest(authorityIndex, slotNumber uint64, vrfOutput [sr255
 	}
 }
 
+// Type returns BabePrimaryPreDigestType
 func (d *BabePrimaryPreDigest) Type() byte {
 	return BabePrimaryPreDigestType
 }
@@ -122,27 +126,33 @@ func (d *BabePrimaryPreDigest) Decode(r io.Reader) (err error) {
 	return nil
 }
 
+// AuthorityIndex returns the digest's authority index
 func (d *BabePrimaryPreDigest) AuthorityIndex() uint64 {
 	return d.authorityIndex
 }
 
+// SlotNumber returns the digest's slot number
 func (d *BabePrimaryPreDigest) SlotNumber() uint64 {
 	return d.slotNumber
 }
 
+// VrfOutput returns the digest's VRF output
 func (d *BabePrimaryPreDigest) VrfOutput() [sr25519.VrfOutputLength]byte {
 	return d.vrfOutput
 }
 
+// VrfProof returns the digest's VRF proof
 func (d *BabePrimaryPreDigest) VrfProof() [sr25519.VrfProofLength]byte {
 	return d.vrfProof
 }
 
+// BabeSecondaryPlainPreDigest is included in a block built by a secondary slot authorized producer
 type BabeSecondaryPlainPreDigest struct {
 	authorityIndex uint64
 	slotNumber     uint64
 }
 
+// NewBabeSecondaryPlainPreDigest returns a new BabeSecondaryPlainPreDigest
 func NewBabeSecondaryPlainPreDigest(authorityIndex, slotNumber uint64) *BabeSecondaryPlainPreDigest {
 	return &BabeSecondaryPlainPreDigest{
 		authorityIndex: authorityIndex,
@@ -150,6 +160,7 @@ func NewBabeSecondaryPlainPreDigest(authorityIndex, slotNumber uint64) *BabeSeco
 	}
 }
 
+// Type returns BabeSecondaryPlainPreDigestType
 func (d *BabeSecondaryPlainPreDigest) Type() byte {
 	return BabeSecondaryPlainPreDigestType
 }
@@ -180,14 +191,17 @@ func (d *BabeSecondaryPlainPreDigest) Decode(r io.Reader) (err error) {
 	return nil
 }
 
+// AuthorityIndex returns the digest's authority index
 func (d *BabeSecondaryPlainPreDigest) AuthorityIndex() uint64 {
 	return d.authorityIndex
 }
 
+// SlotNumber returns the digest's slot number
 func (d *BabeSecondaryPlainPreDigest) SlotNumber() uint64 {
 	return d.slotNumber
 }
 
+// BabeSecondaryVRFPreDigest is included in a block built by a secondary slot authorized producer
 type BabeSecondaryVRFPreDigest struct {
 	authorityIndex uint64
 	slotNumber     uint64
@@ -195,6 +209,7 @@ type BabeSecondaryVRFPreDigest struct {
 	vrfProof       [sr25519.VrfProofLength]byte
 }
 
+// NewBabeSecondaryVRFPreDigest returns a new NewBabeSecondaryVRFPreDigest
 func NewBabeSecondaryVRFPreDigest(authorityIndex, slotNumber uint64, vrfOutput [sr25519.VrfOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) *BabeSecondaryVRFPreDigest {
 	return &BabeSecondaryVRFPreDigest{
 		vrfOutput:      vrfOutput,
@@ -204,6 +219,7 @@ func NewBabeSecondaryVRFPreDigest(authorityIndex, slotNumber uint64, vrfOutput [
 	}
 }
 
+// Type returns BabeSecondaryVRFPreDigestType
 func (d *BabeSecondaryVRFPreDigest) Type() byte {
 	return BabeSecondaryVRFPreDigestType
 }
@@ -245,18 +261,22 @@ func (d *BabeSecondaryVRFPreDigest) Decode(r io.Reader) (err error) {
 	return nil
 }
 
+// AuthorityIndex returns the digest's authority index
 func (d *BabeSecondaryVRFPreDigest) AuthorityIndex() uint64 {
 	return d.authorityIndex
 }
 
+// SlotNumber returns the digest's slot number
 func (d *BabeSecondaryVRFPreDigest) SlotNumber() uint64 {
 	return d.slotNumber
 }
 
+// VrfOutput returns the digest's VRF output
 func (d *BabeSecondaryVRFPreDigest) VrfOutput() [sr25519.VrfOutputLength]byte {
 	return d.vrfOutput
 }
 
+// VrfProof returns the digest's VRF proof
 func (d *BabeSecondaryVRFPreDigest) VrfProof() [sr25519.VrfProofLength]byte {
 	return d.vrfProof
 }
