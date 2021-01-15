@@ -317,8 +317,14 @@ func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Serv
 
 // System service
 // creates a service for providing system related information
-func createSystemService(cfg *types.SystemInfo) *system.Service {
-	return system.NewService(cfg)
+func createSystemService(cfg *types.SystemInfo, stateSrvc *state.Service) (*system.Service, error) {
+	genesisData, err := stateSrvc.Storage.GetGenesisData()
+	if err != nil {
+		return nil, err
+	}
+	// TODO: use data from genesisData for SystemInfo once they are in database (See issue #1248)
+	cfg.ChainType = genesisData.ChainType
+	return system.NewService(cfg), nil
 }
 
 // createGRANDPAService creates a new GRANDPA service
