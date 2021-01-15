@@ -151,7 +151,7 @@ func (b *Service) runLottery(slot uint64) (*VrfOutputAndProof, error) {
 }
 
 func getVRFOutput(header *types.Header) ([sr25519.VrfOutputLength]byte, error) {
-	var bh *types.BABEPrimaryPreDigest
+	var bh *types.BabePrimaryPreDigest
 
 	for _, digest := range header.Digest {
 		if digest.Type() == types.PreRuntimeDigestType {
@@ -160,7 +160,7 @@ func getVRFOutput(header *types.Header) ([sr25519.VrfOutputLength]byte, error) {
 				continue
 			}
 
-			tbh := new(types.BABEPrimaryPreDigest)
+			tbh := new(types.BabePrimaryPreDigest)
 			err := tbh.Decode(prd.Data)
 			if err != nil {
 				continue

@@ -152,13 +152,13 @@ func (b *Service) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, error
 
 // buildBlockBABEPrimaryPreDigest creates the BABE header for the slot.
 // the BABE header includes the proof of authorship right for this slot.
-func (b *Service) buildBlockBABEPrimaryPreDigest(slot Slot) (*types.BABEPrimaryPreDigest, error) {
+func (b *Service) buildBlockBABEPrimaryPreDigest(slot Slot) (*types.BabePrimaryPreDigest, error) {
 	if b.slotToProof[slot.number] == nil {
 		return nil, ErrNotAuthorized
 	}
 
 	outAndProof := b.slotToProof[slot.number]
-	return &types.BABEPrimaryPreDigest{
+	return &types.BabePrimaryPreDigest{
 		VrfOutput:          outAndProof.output,
 		VrfProof:           outAndProof.proof,
 		BlockProducerIndex: b.epochData.authorityIndex,

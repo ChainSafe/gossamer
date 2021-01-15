@@ -156,7 +156,7 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 
 		predigest := d.(*types.PreRuntimeDigest)
 
-		babeHeader := new(types.BABEPrimaryPreDigest)
+		babeHeader := new(types.BabePrimaryPreDigest)
 		err := babeHeader.Decode(predigest.Data)
 		if err != nil {
 			return 0, fmt.Errorf("failed to decode babe header: %w", err)
