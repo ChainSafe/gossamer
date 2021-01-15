@@ -278,8 +278,8 @@ func newVerifier(blockState BlockState, info *verifierInfo) (*verifier, error) {
 	}, nil
 }
 
-// verifySlotWinner verifies the claim for a slot, given the BabeHeader for that slot.
-func (b *verifier) verifySlotWinner(slot uint64, header *types.BabeHeader) (bool, error) {
+// verifySlotWinner verifies the claim for a slot, given the BABEPrimaryPreDigest for that slot.
+func (b *verifier) verifySlotWinner(slot uint64, header *types.BABEPrimaryPreDigest) (bool, error) {
 	if len(b.authorities) <= int(header.BlockProducerIndex) {
 		return false, ErrInvalidBlockProducerIndex
 	}
@@ -327,7 +327,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 		return fmt.Errorf("last digest item is not seal")
 	}
 
-	babeHeader := new(types.BabeHeader)
+	babeHeader := new(types.BABEPrimaryPreDigest)
 	err := babeHeader.Decode(preDigest.Data)
 	if err != nil {
 		return fmt.Errorf("cannot decode babe header from pre-digest: %s", err)
@@ -405,7 +405,7 @@ func getBlockProducerIndex(header *types.Header) (uint64, error) {
 
 	logger.Info("getBlockProducerIndex", "header", header, "predigest", preDigest)
 
-	babeHeader := new(types.BabeHeader)
+	babeHeader := new(types.BABEPrimaryPreDigest)
 	err := babeHeader.Decode(preDigest.Data)
 	if err != nil {
 		return 0, fmt.Errorf("cannot decode babe header from pre-digest: %s", err)

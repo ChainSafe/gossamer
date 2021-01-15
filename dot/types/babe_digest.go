@@ -23,16 +23,30 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
 
-// BabeHeader as defined in Polkadot RE Spec, definition 5.10 in section 5.1.4
-type BabeHeader struct {
+type BabePreRuntimeDigest interface {
+	Type() byte
+	Encode() ([]byte, error)
+	Decode(in []byte) error
+	AuthorityIndex() uint64
+	SlotNumber() uint64
+}
+
+var (
+	BABEPrimaryPreDigestType        = byte(1)
+	BABESecondaryPlainPreDigestType = byte(2)
+	BABESecondaryVRFPreDigestType   = byte(3)
+)
+
+// BABEPrimaryPreDigest as defined in Polkadot RE Spec, definition 5.10 in section 5.1.4
+type BABEPrimaryPreDigest struct {
 	VrfOutput          [sr25519.VrfOutputLength]byte
 	VrfProof           [sr25519.VrfProofLength]byte
 	BlockProducerIndex uint64
 	SlotNumber         uint64
 }
 
-// Encode performs SCALE encoding of a BabeHeader
-func (bh *BabeHeader) Encode() []byte {
+// Encode performs SCALE encoding of a BABEPrimaryPreDigest
+func (bh *BABEPrimaryPreDigest) Encode() []byte {
 	enc := []byte{}
 	enc = append(enc, bh.VrfOutput[:]...)
 	enc = append(enc, bh.VrfProof[:]...)
@@ -44,8 +58,8 @@ func (bh *BabeHeader) Encode() []byte {
 	return enc
 }
 
-// Decode performs SCALE decoding of an encoded BabeHeader
-func (bh *BabeHeader) Decode(in []byte) error {
+// Decode performs SCALE decoding of an encoded BABEPrimaryPreDigest
+func (bh *BABEPrimaryPreDigest) Decode(in []byte) error {
 	if len(in) < sr25519.VrfOutputLength+sr25519.VrfProofLength+16 {
 		return errors.New("input is too short: need at least VrfOutputLength (32) + VrfProofLength (64) + 16")
 	}
@@ -56,3 +70,7 @@ func (bh *BabeHeader) Decode(in []byte) error {
 	bh.SlotNumber = binary.LittleEndian.Uint64(in[sr25519.VrfOutputLength+sr25519.VrfProofLength+8 : sr25519.VrfOutputLength+sr25519.VrfProofLength+16])
 	return nil
 }
+
+type BABESecondaryPlainPreDigest struct{}
+
+type BABESecondaryVRFPreDigest struct{}

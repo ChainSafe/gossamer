@@ -652,7 +652,7 @@ func (bs *BlockState) GetSlotForBlock(hash common.Hash) (uint64, error) {
 		return 0, fmt.Errorf("first digest item is not pre-digest")
 	}
 
-	babeHeader := new(types.BabeHeader)
+	babeHeader := new(types.BABEPrimaryPreDigest)
 	err = babeHeader.Decode(preDigest.Data)
 	if err != nil {
 		return 0, fmt.Errorf("cannot decode babe header from pre-digest: %s", err)

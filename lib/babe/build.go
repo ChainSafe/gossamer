@@ -137,28 +137,28 @@ func (b *Service) buildBlockSeal(header *types.Header) (*types.SealDigest, error
 // buildBlockPreDigest creates the pre-digest for the slot.
 // the pre-digest consists of the ConsensusEngineID and the encoded BABE header for the slot.
 func (b *Service) buildBlockPreDigest(slot Slot) (*types.PreRuntimeDigest, error) {
-	babeHeader, err := b.buildBlockBabeHeader(slot)
+	babeHeader, err := b.buildBlockBABEPrimaryPreDigest(slot)
 	if err != nil {
 		return nil, err
 	}
 
-	encBabeHeader := babeHeader.Encode()
+	encBABEPrimaryPreDigest := babeHeader.Encode()
 
 	return &types.PreRuntimeDigest{
 		ConsensusEngineID: types.BabeEngineID,
-		Data:              encBabeHeader,
+		Data:              encBABEPrimaryPreDigest,
 	}, nil
 }
 
-// buildBlockBabeHeader creates the BABE header for the slot.
+// buildBlockBABEPrimaryPreDigest creates the BABE header for the slot.
 // the BABE header includes the proof of authorship right for this slot.
-func (b *Service) buildBlockBabeHeader(slot Slot) (*types.BabeHeader, error) {
+func (b *Service) buildBlockBABEPrimaryPreDigest(slot Slot) (*types.BABEPrimaryPreDigest, error) {
 	if b.slotToProof[slot.number] == nil {
 		return nil, ErrNotAuthorized
 	}
 
 	outAndProof := b.slotToProof[slot.number]
-	return &types.BabeHeader{
+	return &types.BABEPrimaryPreDigest{
 		VrfOutput:          outAndProof.output,
 		VrfProof:           outAndProof.proof,
 		BlockProducerIndex: b.epochData.authorityIndex,

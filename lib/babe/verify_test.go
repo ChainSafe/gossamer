@@ -301,7 +301,7 @@ func TestVerifySlotWinner(t *testing.T) {
 	}
 
 	// create babe header
-	babeHeader, err := babeService.buildBlockBabeHeader(slot)
+	babeHeader, err := babeService.buildBlockBABEPrimaryPreDigest(slot)
 	require.NoError(t, err)
 
 	Authorities := make([]*types.Authority, 1)
