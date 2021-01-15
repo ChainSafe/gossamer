@@ -70,14 +70,15 @@ jobs:
         id: docker_build
         uses: docker/build-push-action@v2
         with:
+          load: true
           file: ./Dockerfile
           platforms: linux/amd64
           push: false
-          tags: chainsafe/gossamer:latest
+          tags: chainsafe/gossamer:test
       -
         name: Run stable tests
         run: |
-          docker run chainsafe/gossamer:latest sh -c "make it-stable"
+          docker run chainsafe/gossamer:test sh -c "make it-stable"
   docker-rpc-tests:
     runs-on: ubuntu-latest
     steps:
@@ -92,14 +93,15 @@ jobs:
         id: docker_build
         uses: docker/build-push-action@v2
         with:
+          load: true
           file: ./Dockerfile
           platforms: linux/amd64
           push: false
-          tags: chainsafe/gossamer:latest
+          tags: chainsafe/gossamer:test
       -
         name: Run rpc tests
         run: |
-          docker run chainsafe/gossamer:latest sh -c "make it-rpc"
+          docker run chainsafe/gossamer:test sh -c "make it-rpc"
   docker-stress-tests:
     runs-on: ubuntu-latest
     steps:
@@ -114,14 +116,15 @@ jobs:
         id: docker_build
         uses: docker/build-push-action@v2
         with:
+          load: true
           file: ./Dockerfile
           platforms: linux/amd64
           push: false
-          tags: chainsafe/gossamer:latest
+          tags: chainsafe/gossamer:test
       -
         name: Run stress
         run: |
-          docker run chainsafe/gossamer:latest sh -c "make it-stress"
+          docker run chainsafe/gossamer:test sh -c "make it-stress"
   docker-grandpa-tests:
     runs-on: ubuntu-latest
     steps:
@@ -136,11 +139,12 @@ jobs:
         id: docker_build
         uses: docker/build-push-action@v2
         with:
+          load: true
           file: ./Dockerfile
           platforms: linux/amd64
           push: false
-          tags: chainsafe/gossamer:latest
+          tags: chainsafe/gossamer:test
       -
         name: Run stress
         run: |
-          docker run chainsafe/gossamer:latest sh -c "make it-grandpa"
+          docker run chainsafe/gossamer:test sh -c "make it-grandpa"
