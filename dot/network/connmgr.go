@@ -141,6 +141,7 @@ func (cm *ConnManager) unprotectedPeers(peers []peer.ID) []peer.ID {
 			unprot = append(unprot, id)
 		}
 	}
+
 	return unprot
 }
 
@@ -156,11 +157,13 @@ func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 	defer cm.Unlock()
 
 	if len(n.Peers()) > cm.max {
-		var (
-			unprotPeers = cm.unprotectedPeers(n.Peers())
-			// TODO: change to crypto/rand
-			i = rand.Intn(len(unprotPeers)) //nolint
-		)
+		unprotPeers := cm.unprotectedPeers(n.Peers())
+		if len(unprotPeers) == 0 {
+			return
+		}
+
+		// TODO: change to crypto/rand
+		i := rand.Intn(len(unprotPeers)) //nolint
 
 		logger.Trace("Over max peer count, disconnecting from random unprotected peer", "peer", unprotPeers[i])
 		err := n.ClosePeer(unprotPeers[i])
