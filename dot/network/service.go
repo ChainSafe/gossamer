@@ -517,57 +517,8 @@ func (s *Service) handleLightMsg(peer peer.ID, msg Message) error {
 	return err
 }
 
-// handleSyncMessage handles synchronization message types (BlockRequest and BlockResponse)
-func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
-	if msg == nil {
-		return nil
-	}
-
-	if resp, ok := msg.(*BlockResponseMessage); ok {
-		if _, isSyncing := s.syncing[peer]; !isSyncing {
-			logger.Debug("not currently syncing with peer", "peer", peer)
-			return nil
-		}
-
-		req := s.syncer.HandleBlockResponse(resp)
-		if req != nil {
-			s.syncing[peer] = struct{}{}
-			err := s.host.send(peer, syncID, req)
-			if err != nil {
-				logger.Error("failed to send BlockRequest message", "peer", peer)
-			}
-			// protect this peer cause we are syncing with it.
-			s.host.h.ConnManager().Protect(peer, "")
-		} else {
-			// we are done syncing
-			delete(s.syncing, peer)
-			// peer can be unprotected cause syncing is done.
-			s.host.h.ConnManager().Unprotect(peer, "")
-			// TODO: close stream
-		}
-	}
-
-	// if it's a BlockRequest, call core for processing
-	if req, ok := msg.(*BlockRequestMessage); ok {
-		resp, err := s.syncer.CreateBlockResponse(req)
-		if err != nil {
-			logger.Debug("cannot create response for request")
-			// TODO: close stream
-			return nil
-		}
-
-		err = s.host.send(peer, syncID, resp)
-		if err != nil {
-			logger.Error("failed to send BlockResponse message", "peer", peer)
-		}
-	}
-
-	return nil
-}
-
 // Health returns information about host needed for the rpc server
 func (s *Service) Health() common.Health {
-
 	return common.Health{
 		Peers:           s.host.peerCount(),
 		IsSyncing:       !s.syncer.IsSynced(),
