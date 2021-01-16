@@ -53,7 +53,7 @@ func TestGetSet_ReceiptMessageQueue_Justification(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
-		Digest:         [][]byte{},
+		Digest:         types.Digest{},
 	}
 
 	bds := []*types.BlockData{{

@@ -33,7 +33,7 @@ func TestConcurrencySetHeader(t *testing.T) {
 	threads := runtime.NumCPU()
 	dbs := make([]chaindb.Database, threads)
 	for i := 0; i < threads; i++ {
-		dbs[i] = chaindb.NewMemDatabase()
+		dbs[i] = NewInMemoryDB(t)
 	}
 
 	pend := new(sync.WaitGroup)
@@ -49,7 +49,7 @@ func TestConcurrencySetHeader(t *testing.T) {
 			header := &types.Header{
 				Number:    big.NewInt(0),
 				StateRoot: trie.EmptyHash,
-				Digest:    [][]byte{},
+				Digest:    types.Digest{},
 			}
 
 			err := bs.SetHeader(header)

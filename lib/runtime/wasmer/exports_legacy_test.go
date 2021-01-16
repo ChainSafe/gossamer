@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/extrinsic"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -278,7 +279,7 @@ func TestInstance_FinalizeBlock_LegacyNodeRuntime(t *testing.T) {
 	header := &types.Header{
 		ParentHash: trie.EmptyHash,
 		Number:     big.NewInt(77),
-		Digest:     [][]byte{},
+		Digest:     types.Digest{},
 	}
 
 	err := instance.InitializeBlock(header)
@@ -323,7 +324,7 @@ func TestInstance_FinalizeBlock_LegacyNodeRuntime(t *testing.T) {
 	expected := &types.Header{
 		ParentHash: header.ParentHash,
 		Number:     big.NewInt(77),
-		Digest:     [][]byte{},
+		Digest:     types.Digest{},
 	}
 
 	require.Equal(t, expected.ParentHash, res.ParentHash)
@@ -608,7 +609,7 @@ func TestApplyExtrinsic_Transfer_WithBalance(t *testing.T) {
 	bb := [32]byte{}
 	copy(bb[:], bob)
 
-	rt.ctx.Storage.SetBalance(ab, 2000)
+	rt.ctx.Storage.(*storage.TrieState).SetBalance(ab, 2000)
 
 	transfer := extrinsic.NewTransfer(ab, bb, 1000, 0)
 	ext, err := transfer.AsSignedExtrinsic(kr.Alice().Private().(*sr25519.PrivateKey))
@@ -624,11 +625,11 @@ func TestApplyExtrinsic_Transfer_WithBalance(t *testing.T) {
 	require.Equal(t, []byte{0, 0}, res)
 
 	// TODO: not sure if alice's balance is getting decremented properly, seems like it's always getting set to the transfer amount
-	bal, err := rt.ctx.Storage.GetBalance(ab)
+	bal, err := rt.ctx.Storage.(*storage.TrieState).GetBalance(ab)
 	require.NoError(t, err)
 	require.Equal(t, uint64(1000), bal)
 
-	bal, err = rt.ctx.Storage.GetBalance(bb)
+	bal, err = rt.ctx.Storage.(*storage.TrieState).GetBalance(bb)
 	require.NoError(t, err)
 	require.Equal(t, uint64(1000), bal)
 }

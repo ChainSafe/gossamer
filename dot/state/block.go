@@ -646,13 +646,7 @@ func (bs *BlockState) GetSlotForBlock(hash common.Hash) (uint64, error) {
 		return 0, fmt.Errorf("chain head missing digest")
 	}
 
-	preDigestBytes := header.Digest[0]
-
-	digestItem, err := types.DecodeDigestItem(preDigestBytes)
-	if err != nil {
-		return 0, err
-	}
-
+	digestItem := header.Digest[0]
 	preDigest, ok := digestItem.(*types.PreRuntimeDigest)
 	if !ok {
 		return 0, fmt.Errorf("first digest item is not pre-digest")

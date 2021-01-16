@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"sync"
 	"time"
@@ -69,7 +70,6 @@ type Service struct {
 	host   *host
 	mdns   *mdns
 	gossip *gossip
-	errCh  chan<- error
 
 	notificationsProtocols map[byte]*notificationsProtocol // map of sub-protocol msg ID to protocol info
 	notificationsMu        sync.RWMutex
@@ -126,7 +126,6 @@ func NewService(cfg *Config) (*Service, error) {
 		noBootstrap:            cfg.NoBootstrap,
 		noMDNS:                 cfg.NoMDNS,
 		syncer:                 cfg.Syncer,
-		errCh:                  cfg.ErrChan,
 		notificationsProtocols: make(map[byte]*notificationsProtocol),
 		syncing:                make(map[peer.ID]struct{}),
 		lightRequest:           make(map[peer.ID]struct{}),
@@ -330,7 +329,7 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 		s.readStream(stream, p, decoder, handlerWithValidate)
 	})
 
-	logger.Info("registered notifications sub-protocol", "sub-protocol", sub)
+	logger.Info("registered notifications sub-protocol", "protocol", s.host.protocolID+sub)
 	return nil
 }
 
@@ -377,36 +376,6 @@ func (s *Service) SendMessage(msg NotificationsMessage) {
 	s.host.broadcast(msg)
 }
 
-// handleSyncStream handles streams with the <protocol-id>/sync/2 protocol ID
-func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
-	conn := stream.Conn()
-	if conn == nil {
-		logger.Error("Failed to get connection from stream")
-		return
-	}
-
-	peer := conn.RemotePeer()
-	s.readStream(stream, peer, s.decodeSyncMessage, s.handleSyncMessage)
-}
-
-func (s *Service) decodeSyncMessage(in []byte, peer peer.ID) (Message, error) {
-	s.syncingMu.RLock()
-	defer s.syncingMu.RUnlock()
-
-	// check if we are the requester
-	if _, requested := s.syncing[peer]; requested {
-		// if we are, decode the bytes as a BlockResponseMessage
-		msg := new(BlockResponseMessage)
-		err := msg.Decode(in)
-		return msg, err
-	}
-
-	// otherwise, decode bytes as BlockRequestMessage
-	msg := new(BlockRequestMessage)
-	err := msg.Decode(in)
-	return msg, err
-}
-
 // handleLightStream handles streams with the <protocol-id>/light/2 protocol ID
 func (s *Service) handleLightStream(stream libp2pnetwork.Stream) {
 	conn := stream.Conn()
@@ -416,7 +385,7 @@ func (s *Service) handleLightStream(stream libp2pnetwork.Stream) {
 	}
 
 	peer := conn.RemotePeer()
-	s.readStream(stream, peer, s.decodeLightMessage, s.handleLightSyncMsg)
+	s.readStream(stream, peer, s.decodeLightMessage, s.handleLightMsg)
 }
 
 func (s *Service) decodeLightMessage(in []byte, peer peer.ID) (Message, error) {
@@ -441,12 +410,18 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 	// create buffer stream for non-blocking read
 	r := bufio.NewReader(stream)
 
+	var (
+		msgBytes []byte
+		tot      uint64
+	)
+
 	for {
 		length, err := readLEB128ToUint64(r)
-		if err != nil {
+		if err == io.EOF {
+			continue
+		} else if err != nil {
 			logger.Error("Failed to read LEB128 encoding", "protocol", stream.Protocol(), "error", err)
 			_ = stream.Close()
-			s.errCh <- err
 			return
 		}
 
@@ -454,14 +429,13 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 			continue
 		}
 
-		msgBytes := make([]byte, length)
-		tot := uint64(0)
+		msgBytes = make([]byte, length)
+		tot = uint64(0)
 		for i := 0; i < maxReads; i++ {
 			n, err := r.Read(msgBytes[tot:]) //nolint
 			if err != nil {
 				logger.Error("Failed to read message from stream", "error", err)
 				_ = stream.Close()
-				s.errCh <- err
 				return
 			}
 
@@ -472,14 +446,18 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		}
 
 		if tot != length {
-			logger.Error("Failed to read entire message", "length", length, "read" /*n*/, tot)
+			logger.Debug("Failed to read entire message", "length", length, "read" /*n*/, tot)
+			continue
+		}
+
+		if tot == 0 {
 			continue
 		}
 
 		// decode message based on message type
-		msg, err := decoder(msgBytes, peer)
+		msg, err := decoder(msgBytes[:tot], peer)
 		if err != nil {
-			logger.Error("Failed to decode message from peer", "peer", peer, "err", err)
+			logger.Debug("Failed to decode message from peer", "peer", peer, "err", err)
 			continue
 		}
 
@@ -488,7 +466,6 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 			"host", s.host.id(),
 			"peer", peer,
 			"msg", msg.String(),
-			"raw", common.BytesToHex(msgBytes),
 		)
 
 		// handle message based on peer status and message type
@@ -496,12 +473,11 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		if err != nil {
 			logger.Error("Failed to handle message from stream", "message", msg, "error", err)
 			_ = stream.Close()
-			s.errCh <- err
 			return
 		}
 	}
 }
-func (s *Service) handleLightSyncMsg(peer peer.ID, msg Message) error {
+func (s *Service) handleLightMsg(peer peer.ID, msg Message) error {
 	lr, ok := msg.(*LightRequest)
 	if !ok {
 		logger.Error("failed to get the request message from peer ", peer)

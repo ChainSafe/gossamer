@@ -17,6 +17,7 @@
 package types
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -32,6 +33,32 @@ type BlockData struct {
 	Receipt       *optional.Bytes
 	MessageQueue  *optional.Bytes
 	Justification *optional.Bytes
+}
+
+func (bd *BlockData) String() string {
+	str := fmt.Sprintf("Hash=%s ", bd.Hash)
+
+	if bd.Header.Exists() {
+		str = str + fmt.Sprintf("Header=%s ", bd.Header)
+	}
+
+	if bd.Body.Exists() {
+		str = str + fmt.Sprintf("Body=%s ", bd.Body)
+	}
+
+	if bd.Receipt.Exists() {
+		str = str + fmt.Sprintf("Receipt=0x%x ", bd.Receipt)
+	}
+
+	if bd.MessageQueue.Exists() {
+		str = str + fmt.Sprintf("MessageQueue=0x%x ", bd.MessageQueue)
+	}
+
+	if bd.Justification.Exists() {
+		str = str + fmt.Sprintf("Justification=0x%x ", bd.Justification)
+	}
+
+	return str
 }
 
 // Encode performs SCALE encoding of the BlockData

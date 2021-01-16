@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"testing"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -18,7 +17,7 @@ import (
 )
 
 func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
-	db := chaindb.NewMemDatabase()
+	db := state.NewInMemoryDB(t)
 	bs, err := state.NewBlockStateFromGenesis(db, genesisHeader)
 	require.NoError(t, err)
 	es, err := state.NewEpochStateFromGenesis(db, genesisBABEConfig)

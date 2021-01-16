@@ -177,7 +177,11 @@ func TestStorageState_RegisterStorageChangeChannel_Multi_Filter(t *testing.T) {
 	}
 }
 
-func Example() {
+func Test_Example(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping subscription example")
+	}
+
 	// this is a working example of how to use db.Subscribe taken from
 	// https://github.com/dgraph-io/badger/blob/f50343ff404d8198df6dc83755ec2eab863d5ff2/db_test.go#L1939-L1948
 	prefix := []byte{'a'}
@@ -200,12 +204,8 @@ func Example() {
 			log.Fatal(err)
 		}
 	}()
-	//db, err := badger.Open(badger.DefaultOptions(dir))
-	db, err := chaindb.NewBadgerDB(dir)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer db.Close()
+
+	db := NewInMemoryDB(t)
 
 	// Create the context here so we can cancel it after sending the writes.
 	ctx, cancel := context.WithCancel(context.Background())
@@ -230,12 +230,10 @@ func Example() {
 
 	// Write both keys, but only one should be printed in the Output.
 	err = db.Put(aKey, aValue)
-	//err = db.Update(func(txn *badger.Txn) error { return txn.Set(aKey, aValue) })
 	if err != nil {
 		log.Fatal(err)
 	}
 	err = db.Put(bKey, bValue)
-	//err = db.Update(func(txn *badger.Txn) error { return txn.Set(bKey, bValue) })
 	if err != nil {
 		log.Fatal(err)
 	}
