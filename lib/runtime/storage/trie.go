@@ -244,7 +244,7 @@ func (s *TrieState) GetChildStorage(keyToChild, key []byte) ([]byte, error) {
 	return s.t.GetFromChild(keyToChild, key)
 }
 
-// Entries returns every key-value pair in the trie
+// Entries returns every key-value pair in the database
 func (s *TrieState) Entries() map[string][]byte {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
@@ -258,6 +258,14 @@ func (s *TrieState) Entries() map[string][]byte {
 
 	iter.Release()
 	return entries
+}
+
+// TrieEntries returns every key-value pair in the trie
+func (s *TrieState) TrieEntries() map[string][]byte {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	return s.t.Entries()
 }
 
 // SetBalance sets the balance for a given public key
