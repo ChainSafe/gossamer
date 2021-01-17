@@ -18,7 +18,9 @@ package utils
 
 import (
 	"encoding/binary"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
@@ -31,7 +33,7 @@ func PauseBABE(t *testing.T, node *Node) error {
 }
 
 // SlotDuration Calls dev endpoint for slot duration
-func SlotDuration(t *testing.T, node *Node) uint64 {
+func SlotDuration(t *testing.T, node *Node) time.Duration {
 	slotDuration, err := PostRPC("dev_slotDuration", NewEndpoint(node.RPCPort), "[]")
 
 	if err != nil {
@@ -43,7 +45,9 @@ func SlotDuration(t *testing.T, node *Node) uint64 {
 	require.NoError(t, err)
 
 	slotDurationParsed := binary.LittleEndian.Uint64(common.MustHexToBytes(*slotDurationDecoded))
-	return slotDurationParsed
+	duration, err := time.ParseDuration(strconv.Itoa(int(slotDurationParsed)) + "ms")
+	require.NoError(t, err)
+	return duration
 }
 
 // EpochLength Calls dev endpoint for epoch length
