@@ -79,7 +79,7 @@ func (*ConnManager) GetTagInfo(peer.ID) *connmgr.TagInfo { return &connmgr.TagIn
 // TrimOpenConns peer
 func (*ConnManager) TrimOpenConns(ctx context.Context) {}
 
-// Protect peer will add the given peer to the protectedPeerMap wich will
+// Protect peer will add the given peer to the protectedPeerMap which will
 // protect the peer from pruning.
 func (cm *ConnManager) Protect(id peer.ID, tag string) {
 	cm.protectedPeerMapMu.Lock()
