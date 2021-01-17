@@ -90,7 +90,7 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
 	// all nodes vote for different blocks.
-	time.Sleep(time.Second * 5)
+	time.Sleep(time.Second * 20)
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDefault, utils.ConfigNoBABE)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
