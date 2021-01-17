@@ -145,8 +145,6 @@ func TestEncodeBlockResponseMessage_WithBody(t *testing.T) {
 	body, err := types.NewBodyFromBytes(exts)
 	require.NoError(t, err)
 
-	t.Log(body)
-
 	bd := &types.BlockData{
 		Hash:          hash,
 		Header:        optional.NewHeader(true, header),

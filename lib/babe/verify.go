@@ -142,14 +142,10 @@ func (v *VerificationManager) SetOnDisabled(index uint32, header *types.Header) 
 // VerifyBlock verifies that the block producer for the given block was authorized to produce it.
 // It returns an error if the block is invalid.
 func (v *VerificationManager) VerifyBlock(header *types.Header) error {
-	logger.Info("VerifyBlock")
 	epoch, err := v.epochState.GetEpochForBlock(header)
 	if err != nil {
-		logger.Info("cannot GetEpochForBlock ")
-		return err
+		return fmt.Errorf("failed to get epoch for block header: %w", err)
 	}
-
-	logger.Info(" GetEpochForBlock ", "epoch", epoch)
 
 	var (
 		info *verifierInfo
@@ -166,21 +162,18 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 			// fast forward current epoch
 			err = v.epochState.SetCurrentEpoch(epoch)
 			if err != nil {
-				logger.Warn("failed to set current epoch after receiving block 1")
-				return err
+				return fmt.Errorf("failed to set current epoch after receiving block 1: %w", err)
 			}
 
 			var epochData *types.EpochData
 			epochData, err = v.epochState.GetEpochData(1)
 			if err != nil {
-				logger.Warn("failed to get epoch data for epoch 1")
-				return err
+				return fmt.Errorf("failed to get epoch data for epoch 1: %w", err)
 			}
 
 			err = v.epochState.SetEpochData(epoch, epochData)
 			if err != nil {
-				logger.Warn("failed to set current epoch to epoch 1 epoch data")
-				return err
+				return fmt.Errorf("failed to set current epoch to epoch 1 epoch data: %w", err)
 			}
 
 			info, err = v.getVerifierInfo(1)
@@ -190,8 +183,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 
 		if err != nil {
 			v.lock.Unlock()
-			logger.Warn("failed to get verifier info for block")
-			return err
+			return fmt.Errorf("failed to get verifier info for block: %w", err)
 		}
 
 		v.epochInfo[epoch] = info
@@ -201,19 +193,16 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 
 	isDisabled, err := v.isDisabled(epoch, header)
 	if err != nil {
-		logger.Warn("failed to check if authority is disabled")
-		return err
+		return fmt.Errorf("failed to check if authority is disabled: %w", err)
 	}
 
 	if isDisabled {
-		logger.Warn("authority is disabled")
 		return ErrAuthorityDisabled
 	}
 
 	verifier, err := newVerifier(v.blockState, info)
 	if err != nil {
-		logger.Warn("failed to create new verifier")
-		return err
+		return fmt.Errorf("failed to create new BABE verifier: %w", err)
 	}
 
 	return verifier.verifyAuthorshipRight(header)
@@ -258,20 +247,17 @@ func (v *VerificationManager) isDisabled(epoch uint64, header *types.Header) (bo
 func (v *VerificationManager) getVerifierInfo(epoch uint64) (*verifierInfo, error) {
 	epochData, err := v.epochState.GetEpochData(epoch)
 	if err != nil {
-		logger.Warn("failed to get epoch data")
-		return nil, err
+		return nil, fmt.Errorf("failed to get epoch data: %w", err)
 	}
 
 	configData, err := v.getConfigData(epoch)
 	if err != nil {
-		logger.Warn("failed to get config data")
-		return nil, err
+		return nil, fmt.Errorf("failed to get config data: %w", err)
 	}
 
 	threshold, err := CalculateThreshold(configData.C1, configData.C2, len(epochData.Authorities))
 	if err != nil {
-		logger.Warn("failed to calculate threshold")
-		return nil, err
+		return nil, fmt.Errorf("failed to calculate threshold: %w", err)
 	}
 
 	return &verifierInfo{
@@ -326,7 +312,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 		return fmt.Errorf("block header is missing digest items")
 	}
 
-	logger.Info("verifyAuthorshipRight")
+	logger.Trace("beginning BABE authorship right verification", "block", header.Hash())
 
 	// check for valid seal by verifying signature
 	preDigestItem := header.Digest[0]
@@ -347,10 +333,9 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 		return fmt.Errorf("failed to verify pre-runtime digest: %w", err)
 	}
 
-	logger.Info("verifyAuthorshipRight babePreDigest verified")
+	logger.Trace("verified block BABE pre-runtime digest", "block", header.Hash())
 
 	authorPub := b.authorities[babePreDigest.AuthorityIndex()].Key
-	logger.Info("verifyAuthorshipRight", "auth key", authorPub.Encode())
 
 	// remove seal before verifying signature
 	header.Digest = header.Digest[:len(header.Digest)-1]
@@ -409,8 +394,6 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 	if err != nil {
 		return nil, err
 	}
-
-	logger.Info("verifyPreRuntimeDigest", "len(b.authorities)", len(b.authorities), "AuthorityIndex", babePreDigest.AuthorityIndex())
 
 	if len(b.authorities) <= int(babePreDigest.AuthorityIndex()) {
 		return nil, ErrInvalidBlockProducerIndex

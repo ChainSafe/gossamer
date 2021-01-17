@@ -156,8 +156,6 @@ func (in *LegacyInstance) ExecuteBlock(block *types.Block) ([]byte, error) {
 		return nil, err
 	}
 
-	logger.Info("execute block", "encblock", fmt.Sprintf("0x%x", bdEnc))
-
 	return in.exec(runtime.CoreExecuteBlock, bdEnc)
 }
 

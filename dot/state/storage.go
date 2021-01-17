@@ -108,7 +108,7 @@ func (s *StorageState) StoreTrie(root common.Hash, ts *rtstorage.TrieState) erro
 
 	s.lock.Unlock()
 
-	logger.Debug("stored trie in storage state", "root", root)
+	logger.Trace("stored trie in storage state", "root", root)
 
 	// delete temporary in-memory db
 	ts.Close()
@@ -120,7 +120,7 @@ func (s *StorageState) StoreTrie(root common.Hash, ts *rtstorage.TrieState) erro
 		return err
 	}
 
-	logger.Info("stored trie in database", "root", root)
+	logger.Trace("stored trie in database", "root", root)
 
 	return nil
 }
