@@ -92,6 +92,7 @@ func compareBlocksByNumber(t *testing.T, nodes []*utils.Node, num string) (map[c
 
 	for _, node := range nodes {
 		go func(node *utils.Node) {
+			logger.Info("chain_getBlockHash", "node", node.Idx)
 			hash, err := utils.GetBlockHash(t, node, num)
 			mapMu.Lock()
 			defer mapMu.Unlock()
@@ -100,13 +101,23 @@ func compareBlocksByNumber(t *testing.T, nodes []*utils.Node, num string) (map[c
 				wg.Done()
 				return
 			}
-			logger.Debug("getting hash from node", "hash", hash, "node", node.Key)
+			logger.Info("got hash from node", "hash", hash, "node", node.Key)
 
 			hashes[hash] = append(hashes[hash], node.Key)
 			wg.Done()
 		}(node)
 	}
-	wg.Wait()
+
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-time.After(time.Second * 30):
+	case <-done:
+	}
 
 	var err error
 	if len(errs) != 0 {
@@ -130,18 +141,25 @@ func compareBlocksByNumberWithRetry(t *testing.T, nodes []*utils.Node, num strin
 	var err error
 
 	timeout := time.After(30 * time.Second)
+	logger.Crit("starting doneBlockProduction")
 doneBlockProduction:
 	for {
+		time.Sleep(time.Second)
 		select {
 		case <-timeout:
+			logger.Crit("timeout")
 			break doneBlockProduction
 		default:
+			logger.Crit("calling compareBlocksByNumber")
 			hashes, err = compareBlocksByNumber(t, nodes, num)
 			if err == nil {
 				break doneBlockProduction
+			} else {
+				logger.Crit("calling compareBlocksByNumber", "error", err)
 			}
 		}
 	}
+	logger.Crit("returning from doneBlockProduction")
 
 	if err != nil {
 		err = fmt.Errorf("%w: hashes=%v", err, hashes)
