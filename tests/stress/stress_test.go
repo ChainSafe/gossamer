@@ -145,11 +145,13 @@ func TestSync_MultipleEpoch(t *testing.T) {
 		require.Len(t, errList, 0)
 	}()
 
+	time.Sleep(time.Second * 10)
+
 	slotDuration := utils.SlotDuration(t, nodes[0])
 	epochLength := utils.EpochLength(t, nodes[0])
 
 	// Wait for epoch to pass
-	time.Sleep(time.Duration((slotDuration * epochLength) * 3))
+	time.Sleep(time.Duration(uint64(slotDuration.Nanoseconds()) * epochLength))
 
 	// Just checking that everythings operating as expected
 	header := utils.GetChainHead(t, nodes[0])
