@@ -110,6 +110,32 @@ func (b *Body) AsExtrinsics() ([]Extrinsic, error) {
 	return BytesArrayToExtrinsics(dec.([][]byte)), nil
 }
 
+// AsEncodedExtrinsics decodes the body into an array of SCALE encoded extrinsics
+func (b *Body) AsEncodedExtrinsics() ([]Extrinsic, error) {
+	exts := [][]byte{}
+
+	if len(*b) == 0 {
+		return []Extrinsic{}, nil
+	}
+
+	dec, err := scale.Decode(*b, exts)
+	if err != nil {
+		return nil, err
+	}
+
+	decodedExts := dec.([][]byte)
+	ret := make([][]byte, len(decodedExts))
+
+	for i, ext := range decodedExts {
+		ret[i], err = scale.Encode(ext)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return BytesArrayToExtrinsics(ret), nil
+}
+
 // NewBodyFromOptional returns a Body given an optional.Body. If the optional.Body is None, an error is returned.
 func NewBodyFromOptional(ob *optional.Body) (*Body, error) {
 	if !ob.Exists() {

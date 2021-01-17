@@ -141,9 +141,11 @@ func TestEncodeBlockResponseMessage_WithBody(t *testing.T) {
 		Digest:         &types.Digest{},
 	}
 
-	exts := [][]byte{{16, 1, 3, 5, 7}, {12, 9, 1, 2}, {12, 3, 4, 5}}
-	body, err := types.NewBodyFromEncodedBytes(exts)
+	exts := [][]byte{{1, 3, 5, 7}, {9, 1, 2}, {3, 4, 5}}
+	body, err := types.NewBodyFromBytes(exts)
 	require.NoError(t, err)
+
+	t.Log(body)
 
 	bd := &types.BlockData{
 		Hash:          hash,
