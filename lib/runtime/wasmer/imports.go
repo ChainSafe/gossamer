@@ -804,7 +804,7 @@ func ext_hashing_twox_128_version_1(context unsafe.Pointer, dataSpan C.int64_t) 
 
 	hash, err := common.Twox128Hash(data)
 	if err != nil {
-		logger.Error("[ext_hashing_twox_64_version_1]", "error", err)
+		logger.Error("[ext_hashing_twox_128_version_1]", "error", err)
 		return 0
 	}
 
@@ -812,7 +812,7 @@ func ext_hashing_twox_128_version_1(context unsafe.Pointer, dataSpan C.int64_t) 
 
 	out, err := toWasmMemorySized(instanceContext, hash, 16)
 	if err != nil {
-		logger.Error("[ext_hashing_twox_64_version_1] failed to allocate", "error", err)
+		logger.Error("[ext_hashing_twox_128_version_1] failed to allocate", "error", err)
 		return 0
 	}
 
