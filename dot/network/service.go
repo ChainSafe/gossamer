@@ -519,7 +519,6 @@ func (s *Service) handleLightMsg(peer peer.ID, msg Message) error {
 
 // Health returns information about host needed for the rpc server
 func (s *Service) Health() common.Health {
-
 	return common.Health{
 		Peers:           s.host.peerCount(),
 		IsSyncing:       !s.syncer.IsSynced(),

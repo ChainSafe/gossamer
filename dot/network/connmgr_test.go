@@ -55,3 +55,28 @@ func TestMaxPeers(t *testing.T) {
 	p := nodes[0].host.h.Peerstore().Peers()
 	require.LessOrEqual(t, defaultMaxPeerCount, len(p))
 }
+
+func TestProtectUnprotectPeer(t *testing.T) {
+	cm := newConnManager(4)
+	require.Zero(t, len(cm.protectedPeerMap))
+
+	p1 := peer.ID("a")
+	p2 := peer.ID("b")
+	p3 := peer.ID("c")
+	p4 := peer.ID("d")
+
+	cm.Protect(p1, "")
+	cm.Protect(p2, "")
+
+	require.True(t, cm.IsProtected(p1, ""))
+	require.True(t, cm.IsProtected(p2, ""))
+
+	unprot := cm.unprotectedPeers([]peer.ID{p1, p2, p3, p4})
+	require.Equal(t, unprot, []peer.ID{p3, p4})
+
+	cm.Unprotect(p1, "")
+	cm.Unprotect(p2, "")
+
+	unprot = cm.unprotectedPeers([]peer.ID{p1, p2, p3, p4})
+	require.Equal(t, unprot, []peer.ID{p1, p2, p3, p4})
+}
