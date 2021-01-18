@@ -27,7 +27,7 @@ import (
 )
 
 func TestNetwork_MaxPeers(t *testing.T) {
-	numNodes = 9 // 9 block producers
+	numNodes := 9 // 9 block producers
 	utils.SetLogLevel(log.LvlInfo)
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigDefault)
 	require.NoError(t, err)
