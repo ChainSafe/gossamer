@@ -81,7 +81,7 @@ func TestRestartNode(t *testing.T) {
 
 func TestSync_SingleBlockProducer(t *testing.T) {
 	//time.Sleep(time.Second)
-	numNodes := 9 // TODO: increase this when syncing improves
+	numNodes := 6 // TODO: increase this when syncing improves
 	utils.SetLogLevel(log.LvlInfo)
 
 	// start block producing node first
@@ -112,7 +112,7 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 
 		// there will only be one key in the mapping
 		for _, nodesWithHash := range hashes {
-			// allow 1 node to potentially not have synced. this is due to the runtime bug :(
+			// allow 1 node to potentially not have synced. this is due to the need to increase max peer count
 			require.GreaterOrEqual(t, len(nodesWithHash), numNodes-1)
 		}
 	}
