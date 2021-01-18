@@ -21,7 +21,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/rand"
-	//"sync"
+	"sync"
 	"testing"
 	"time"
 
@@ -86,41 +86,41 @@ func compareChainHeadsWithRetry(t *testing.T, nodes []*utils.Node) error {
 func compareBlocksByNumber(t *testing.T, nodes []*utils.Node, num string) (map[common.Hash][]string, error) {
 	hashes := make(map[common.Hash][]string)
 	var errs []error
-	// var mapMu sync.Mutex
-	// var wg sync.WaitGroup
-	//wg.Add(len(nodes))
+	var mapMu sync.Mutex
+	var wg sync.WaitGroup
+	wg.Add(len(nodes))
 
 	for _, node := range nodes {
 		logger.Info("compareBlocksByNumber loop", "node", node.Idx)
-		//go func(node *utils.Node) {
-		logger.Info("chain_getBlockHash", "node", node.Idx)
-		hash, err := utils.GetBlockHash(t, node, num)
-		// mapMu.Lock()
-		// defer func() {
-		// 	mapMu.Unlock()
-		// 	wg.Done()
-		// }()
-		if err != nil {
-			errs = append(errs, err)
-			//return
-			continue
-		}
-		logger.Info("got hash from node", "hash", hash, "node", node.Key)
+		go func(node *utils.Node) {
+			logger.Info("chain_getBlockHash", "node", node.Idx)
+			hash, err := utils.GetBlockHash(t, node, num)
+			mapMu.Lock()
+			defer func() {
+				mapMu.Unlock()
+				wg.Done()
+			}()
+			if err != nil {
+				errs = append(errs, err)
+				return
+				//continue
+			}
+			logger.Info("got hash from node", "hash", hash, "node", node.Key)
 
-		hashes[hash] = append(hashes[hash], node.Key)
-		//}(node)
+			hashes[hash] = append(hashes[hash], node.Key)
+		}(node)
 	}
 
-	// done := make(chan struct{})
-	// go func() {
-	// 	wg.Wait()
-	// 	close(done)
-	// }()
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
 
-	// select {
-	// case <-time.After(time.Second * 30):
-	// case <-done:
-	// }
+	select {
+	case <-time.After(time.Second * 30):
+	case <-done:
+	}
 
 	var err error
 	if len(errs) != 0 {
