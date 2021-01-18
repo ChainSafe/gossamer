@@ -634,6 +634,7 @@ func ext_trie_blake2_256_root_version_1(context unsafe.Pointer, dataSpan C.int64
 		return 0
 	}
 
+	logger.Debug("[ext_trie_blake2_256_root_version_1]", "root", hash)
 	copy(memory[ptr:ptr+32], hash[:])
 	return C.int32_t(ptr)
 }
@@ -684,6 +685,7 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 		return 0
 	}
 
+	logger.Debug("[ext_trie_blake2_256_ordered_root_version_1]", "root", hash)
 	copy(memory[ptr:ptr+32], hash[:])
 	return C.int32_t(ptr)
 }
@@ -1025,6 +1027,8 @@ func ext_hashing_blake2_256_version_1(context unsafe.Pointer, dataSpan C.int64_t
 		return 0
 	}
 
+	logger.Debug("[ext_hashing_blake2_256_version_1]", "data", data, "hash", hash)
+
 	out, err := toWasmMemorySized(instanceContext, hash[:], 32)
 	if err != nil {
 		logger.Error("[ext_hashing_blake2_256_version_1] failed to allocate", "error", err)
@@ -1047,6 +1051,8 @@ func ext_hashing_keccak_256_version_1(context unsafe.Pointer, dataSpan C.int64_t
 		return 0
 	}
 
+	logger.Debug("[ext_hashing_keccak_256_version_1]", "data", data, "hash", hash)
+
 	out, err := toWasmMemorySized(instanceContext, hash[:], 32)
 	if err != nil {
 		logger.Error("[ext_hashing_keccak_256_version_1] failed to allocate", "error", err)
@@ -1063,6 +1069,8 @@ func ext_hashing_sha2_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) 
 
 	data := asMemorySlice(instanceContext, dataSpan)
 	hash := common.Sha256(data)
+
+	logger.Debug("[ext_hashing_sha2_256_version_1]", "data", data, "hash", hash)
 
 	out, err := toWasmMemorySized(instanceContext, hash[:], 32)
 	if err != nil {
@@ -1086,6 +1094,8 @@ func ext_hashing_twox_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) 
 		return 0
 	}
 
+	logger.Debug("[ext_hashing_twox_256_version_1]", "data", data, "hash", hash)
+
 	out, err := toWasmMemorySized(instanceContext, hash[:], 32)
 	if err != nil {
 		logger.Error("[ext_hashing_twox_256_version_1] failed to allocate", "error", err)
@@ -1096,18 +1106,25 @@ func ext_hashing_twox_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) 
 }
 
 //export ext_hashing_twox_128_version_1
-func ext_hashing_twox_128_version_1(context unsafe.Pointer, data C.int64_t) C.int32_t {
+func ext_hashing_twox_128_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
 	logger.Trace("[ext_hashing_twox_128_version_1] executing...")
-	ptr, size := int64ToPointerAndSize(int64(data))
-
 	instanceContext := wasm.IntoInstanceContext(context)
-	ctx := instanceContext.Data().(*runtime.Context)
-	out, err := ctx.Allocator.Allocate(16)
+	data := asMemorySlice(instanceContext, dataSpan)
+
+	hash, err := common.Twox128Hash(data)
+	if err != nil {
+		logger.Error("[ext_hashing_twox_128_version_1]", "error", err)
+		return 0
+	}
+
+	logger.Debug("[ext_hashing_twox_128_version_1]", "data", fmt.Sprintf("%s", data), "hash", fmt.Sprintf("0x%x", hash))
+
+	out, err := toWasmMemorySized(instanceContext, hash, 16)
 	if err != nil {
 		logger.Error("[ext_hashing_twox_128_version_1] failed to allocate", "error", err)
 		return 0
 	}
-	ext_twox_128(context, C.int32_t(ptr), C.int32_t(size), C.int32_t(out))
+
 	return C.int32_t(out)
 }
 
@@ -1123,6 +1140,8 @@ func ext_hashing_twox_64_version_1(context unsafe.Pointer, dataSpan C.int64_t) C
 		logger.Error("[ext_hashing_twox_64_version_1]", "error", err)
 		return 0
 	}
+
+	logger.Debug("[ext_hashing_twox_64_version_1]", "data", data, "hash", hash)
 
 	out, err := toWasmMemorySized(instanceContext, hash, 8)
 	if err != nil {
@@ -1355,6 +1374,7 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 
 	// append new length prefix to start of items array
 	finalVal := append(lengthEnc, valueRes...)
+	logger.Debug("[ext_storage_append_version_1]", "resulting value", fmt.Sprintf("0x%x", finalVal))
 	return storage.Set(key, finalVal)
 }
 
@@ -1366,7 +1386,7 @@ func ext_storage_append_version_1(context unsafe.Pointer, keySpan, valueSpan C.i
 	storage := ctx.Storage
 
 	key := asMemorySlice(instanceContext, keySpan)
-	logger.Trace("[ext_storage_append_version_1]", "key", fmt.Sprintf("0x%x", key))
+	logger.Debug("[ext_storage_append_version_1]", "key", fmt.Sprintf("0x%x", key))
 	valueAppend := asMemorySlice(instanceContext, valueSpan)
 
 	if ctx.TransactionStorageChanges != nil {
@@ -1387,7 +1407,7 @@ func ext_storage_append_version_1(context unsafe.Pointer, keySpan, valueSpan C.i
 //export ext_storage_changes_root_version_1
 func ext_storage_changes_root_version_1(context unsafe.Pointer, parentHashSpan C.int64_t) C.int64_t {
 	logger.Trace("[ext_storage_changes_root_version_1] executing...")
-	logger.Trace("[ext_storage_changes_root_version_1] returning None")
+	logger.Debug("[ext_storage_changes_root_version_1] returning None")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 
@@ -1409,7 +1429,7 @@ func ext_storage_clear_version_1(context unsafe.Pointer, keySpan C.int64_t) {
 
 	key := asMemorySlice(instanceContext, keySpan)
 
-	logger.Trace("[ext_storage_clear_version_1]", "key", fmt.Sprintf("0x%x", key))
+	logger.Debug("[ext_storage_clear_version_1]", "key", fmt.Sprintf("0x%x", key))
 
 	if ctx.TransactionStorageChanges != nil {
 		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
@@ -1430,7 +1450,7 @@ func ext_storage_clear_prefix_version_1(context unsafe.Pointer, prefixSpan C.int
 	storage := ctx.Storage
 
 	prefix := asMemorySlice(instanceContext, prefixSpan)
-	logger.Trace("[ext_storage_clear_prefix_version_1]", "prefix", fmt.Sprintf("0x%x", prefix))
+	logger.Debug("[ext_storage_clear_prefix_version_1]", "prefix", fmt.Sprintf("0x%x", prefix))
 
 	if ctx.TransactionStorageChanges != nil {
 		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
@@ -1456,6 +1476,8 @@ func ext_storage_exists_version_1(context unsafe.Pointer, keySpan C.int64_t) C.i
 	storage := instanceContext.Data().(*runtime.Context).Storage
 
 	key := asMemorySlice(instanceContext, keySpan)
+	logger.Debug("[ext_storage_exists_version_1]", "key", fmt.Sprintf("0x%x", key))
+
 	val, err := storage.Get(key)
 	if err != nil {
 		return 0
@@ -1476,15 +1498,15 @@ func ext_storage_get_version_1(context unsafe.Pointer, keySpan C.int64_t) C.int6
 	storage := instanceContext.Data().(*runtime.Context).Storage
 
 	key := asMemorySlice(instanceContext, keySpan)
-
-	logger.Trace("[ext_storage_get_version_1]", "key", fmt.Sprintf("0x%x", key))
+	logger.Debug("[ext_storage_get_version_1]", "key", fmt.Sprintf("0x%x", key))
 
 	value, err := storage.Get(key)
 	if err != nil {
 		logger.Error("[ext_storage_get_version_1]", "error", err)
 		return 0
 	}
-	logger.Trace("[ext_storage_get_version_1]", "value", value)
+
+	logger.Debug("[ext_storage_get_version_1]", "value", fmt.Sprintf("0x%x", value))
 
 	valueSpan, err := toWasmMemoryOptional(instanceContext, value)
 	if err != nil {
@@ -1505,7 +1527,7 @@ func ext_storage_next_key_version_1(context unsafe.Pointer, keySpan C.int64_t) C
 	key := asMemorySlice(instanceContext, keySpan)
 
 	next := storage.NextKey(key)
-	logger.Trace("[ext_storage_next_key_version_1]", "next", next)
+	logger.Debug("[ext_storage_next_key_version_1]", "key", key, "next", next)
 
 	nextSpan, err := toWasmMemoryOptional(instanceContext, next)
 	if err != nil {
@@ -1528,13 +1550,14 @@ func ext_storage_read_version_1(context unsafe.Pointer, keySpan, valueOut C.int6
 	value, err := storage.Get(key)
 	if err != nil {
 		logger.Error("[ext_storage_read_version_1]", "error", err)
-		ret, _ := toWasmMemoryOptional(instanceContext, []byte{})
+		ret, _ := toWasmMemoryOptional(instanceContext, nil)
 		return C.int64_t(ret)
 	}
 
-	logger.Trace("[ext_storage_read_version_1]", "value", value)
+	logger.Debug("[ext_storage_read_version_1]", "key", fmt.Sprintf("0x%x", key), "value", fmt.Sprintf("0x%x", value))
+
 	if value == nil {
-		ret, _ := toWasmMemoryOptional(instanceContext, []byte{})
+		ret, _ := toWasmMemoryOptional(instanceContext, nil)
 		return C.int64_t(ret)
 	}
 
@@ -1548,10 +1571,7 @@ func ext_storage_read_version_1(context unsafe.Pointer, keySpan, valueOut C.int6
 		copy(memory[valueBuf:valueBuf+valueLen], value[offset:])
 	}
 
-	sizeBuf := make([]byte, 4)
-	binary.LittleEndian.PutUint32(sizeBuf, size)
-
-	sizeSpan, err := toWasmMemoryOptional(instanceContext, sizeBuf)
+	sizeSpan, err := toWasmMemoryOptionalUint32(instanceContext, &size)
 	if err != nil {
 		logger.Error("[ext_storage_read_version_1] failed to allocate", "error", err)
 		return 0
@@ -1573,7 +1593,7 @@ func ext_storage_root_version_1(context unsafe.Pointer) C.int64_t {
 		return 0
 	}
 
-	logger.Trace("[ext_storage_root_version_1]", "root", root)
+	logger.Debug("[ext_storage_root_version_1]", "root", root)
 
 	rootSpan, err := toWasmMemory(instanceContext, root[:])
 	if err != nil {
@@ -1604,7 +1624,8 @@ func ext_storage_set_version_1(context unsafe.Pointer, keySpan C.int64_t, valueS
 		return
 	}
 
-	logger.Trace("[ext_storage_set_version_1]", "key", fmt.Sprintf("0x%x", key), "val", value)
+	logger.Debug("[ext_storage_set_version_1]", "key", fmt.Sprintf("0x%x", key), "val", fmt.Sprintf("0x%x", value))
+
 	err := storage.Set(key, value)
 	if err != nil {
 		logger.Error("[ext_storage_set_version_1]", "error", err)
@@ -1738,7 +1759,7 @@ func toWasmMemorySized(context wasm.InstanceContext, data []byte, size uint32) (
 // Wraps slice in optional.Bytes and copies result to wasm memory. Returns resulting 64bit span descriptor
 func toWasmMemoryOptional(context wasm.InstanceContext, data []byte) (int64, error) {
 	var opt *optional.Bytes
-	if len(data) == 0 {
+	if data == nil {
 		opt = optional.NewBytes(false, nil)
 	} else {
 		opt = optional.NewBytes(true, data)
@@ -1766,6 +1787,19 @@ func toWasmMemoryResult(context wasm.InstanceContext, data []byte) (int64, error
 		return 0, err
 	}
 
+	return toWasmMemory(context, enc)
+}
+
+// Wraps slice in optional and copies result to wasm memory. Returns resulting 64bit span descriptor
+func toWasmMemoryOptionalUint32(context wasm.InstanceContext, data *uint32) (int64, error) {
+	var opt *optional.Uint32
+	if data == nil {
+		opt = optional.NewUint32(false, 0)
+	} else {
+		opt = optional.NewUint32(true, *data)
+	}
+
+	enc := opt.Encode()
 	return toWasmMemory(context, enc)
 }
 
@@ -1836,7 +1870,6 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
 	if err != nil {
 		return nil, err
 	}
-
 	_, err = imports.Append("ext_default_child_storage_clear_version_1", ext_default_child_storage_clear_version_1, C.ext_default_child_storage_clear_version_1)
 	if err != nil {
 		return nil, err
