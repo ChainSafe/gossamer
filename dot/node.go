@@ -308,7 +308,10 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	// System Service
 
 	// create system service and append to node services
-	sysSrvc := createSystemService(&cfg.System)
+	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create system service: %s", err)
+	}
 	nodeSrvcs = append(nodeSrvcs, sysSrvc)
 
 	// RPC Service
