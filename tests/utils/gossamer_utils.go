@@ -468,7 +468,7 @@ func generateConfigBabeMaxThreshold() *ctoml.Config {
 	cfg := generateDefaultConfig()
 	cfg.Log = ctoml.LogConfig{
 		SyncLvl:          "trace",
-		NetworkLvl:       "debug",
+		NetworkLvl:       "trace",
 		BlockProducerLvl: "info",
 	}
 	cfg.Core = ctoml.CoreConfig{
@@ -512,7 +512,7 @@ func generateConfigNoBabe() *ctoml.Config {
 	cfg.Global.LogLvl = "info"
 	cfg.Log = ctoml.LogConfig{
 		SyncLvl:    "trace",
-		NetworkLvl: "debug",
+		NetworkLvl: "trace",
 	}
 	cfg.Core.BabeThresholdNumerator = 1
 	cfg.Core.BabeThresholdDenominator = 1
