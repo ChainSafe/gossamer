@@ -706,11 +706,63 @@ func Test_ext_storage_append_version_1(t *testing.T) {
 	require.NoError(t, err)
 	encVal, err := scale.Encode(testvalue)
 	require.NoError(t, err)
+	doubleEncVal, err := scale.Encode(encVal)
+	require.NoError(t, err)
+
 	encArr, err := scale.Encode([][]byte{testvalue})
 	require.NoError(t, err)
 
 	// place SCALE encoded value in storage
-	_, err = inst.Exec("rtm_ext_storage_append_version_1", append(encKey, encVal...))
+	_, err = inst.Exec("rtm_ext_storage_append_version_1", append(encKey, doubleEncVal...))
+	require.NoError(t, err)
+
+	val, err := inst.inst.ctx.Storage.Get(testkey)
+	require.NoError(t, err)
+	require.Equal(t, encArr, val)
+
+	encValueAppend, err := scale.Encode(testvalueAppend)
+	require.NoError(t, err)
+	doubleEncValueAppend, err := scale.Encode(encValueAppend)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_storage_append_version_1", append(encKey, doubleEncValueAppend...))
+	require.NoError(t, err)
+
+	ret, err := inst.inst.ctx.Storage.Get(testkey)
+	require.NoError(t, err)
+	dec, err := scale.Decode(ret, [][]byte{})
+	require.NoError(t, err)
+
+	res := dec.([][]byte)
+	require.Equal(t, 2, len(res))
+	require.Equal(t, testvalue, res[0])
+	require.Equal(t, testvalueAppend, res[1])
+
+	expected, err := scale.Encode([][]byte{testvalue, testvalueAppend})
+	require.NoError(t, err)
+	require.Equal(t, expected, ret)
+}
+
+func Test_ext_storage_append_version_1_again(t *testing.T) {
+	DefaultTestLogLvl = 5
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("noot")
+	testvalue := []byte("abc")
+	testvalueAppend := []byte("def")
+
+	encKey, err := scale.Encode(testkey)
+	require.NoError(t, err)
+	encVal, err := scale.Encode(testvalue)
+	require.NoError(t, err)
+	doubleEncVal, err := scale.Encode(encVal)
+	require.NoError(t, err)
+
+	encArr, err := scale.Encode([][]byte{testvalue})
+	require.NoError(t, err)
+
+	// place SCALE encoded value in storage
+	_, err = inst.Exec("rtm_ext_storage_append_version_1", append(encKey, doubleEncVal...))
 	require.NoError(t, err)
 
 	val, err := inst.inst.ctx.Storage.Get(testkey)
