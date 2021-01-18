@@ -239,12 +239,18 @@ func (sm *StateModule) GetChildStorageSize(r *http.Request, req *StateChildStora
 
 // GetKeysPaged Returns the keys with prefix with pagination support.
 func (sm *StateModule) GetKeysPaged(r *http.Request, req *StateStorageKeyRequest, res *StateStorageKeysResponse) error {
-	keys, err := sm.storageAPI.Keys(req.Block)
+	if len(req.Prefix) == 0 {
+		req.Prefix = "0x"
+	}
+	hPrefix, err := common.HexToBytes(req.Prefix)
+	if err != nil {
+		return err
+	}
+	keys, err := sm.storageAPI.GetKeysWithPrefix(req.Block, hPrefix)
 	resCount := uint32(0)
 	for _, k := range keys {
 		fKey := fmt.Sprintf("0x%x", k)
-		if strings.HasPrefix(fKey, req.Prefix) &&
-			strings.Compare(fKey, req.AfterKey) == 1 {
+		if strings.Compare(fKey, req.AfterKey) == 1 {
 			// sm.storageAPI.Keys sorts keys in lexicographical order, so we know that keys where strings.Compare = 1
 			//  are after the requested after key.
 			if resCount >= req.Qty {

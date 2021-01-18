@@ -379,10 +379,14 @@ func (t *Trie) Load(data map[string]string) error {
 
 // GetKeysWithPrefix returns all keys in the trie that have the given prefix
 func (t *Trie) GetKeysWithPrefix(prefix []byte) [][]byte {
-	p := keyToNibbles(prefix)
-	if p[len(p)-1] == 0 {
-		p = p[:len(p)-1]
+	p := []byte{}
+	if len(prefix) != 0 {
+		p = keyToNibbles(prefix)
+		if p[len(p)-1] == 0 {
+			p = p[:len(p)-1]
+		}
 	}
+
 	return t.getKeysWithPrefix(t.root, []byte{}, p, [][]byte{})
 }
 

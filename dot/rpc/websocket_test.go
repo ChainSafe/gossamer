@@ -140,6 +140,6 @@ func (m *MockStorageAPI) UnregisterStorageChangeChannel(id byte) {
 func (m *MockStorageAPI) GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error) {
 	return nil, nil
 }
-func (m *MockStorageAPI) Keys(root *common.Hash) ([]string, error) {
+func (m *MockStorageAPI) GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error) {
 	return nil, nil
 }

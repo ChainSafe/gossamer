@@ -553,6 +553,8 @@ func TestGetKeysWithPrefix(t *testing.T) {
 		{key: []byte{0x07, 0x3a}, value: []byte("ramen"), op: PUT},
 		{key: []byte{0x07, 0x3b}, value: []byte("noodles"), op: PUT},
 		{key: []byte{0xf2}, value: []byte("pho"), op: PUT},
+		{key: []byte(":key1"), value: []byte("value1"), op: PUT},
+		{key: []byte(":key2"), value: []byte("value2"), op: PUT},
 	}
 
 	for _, test := range tests {
@@ -573,6 +575,12 @@ func TestGetKeysWithPrefix(t *testing.T) {
 
 	expected = [][]byte{{0x07, 0x3a}, {0x07, 0x3b}}
 	keys = trie.GetKeysWithPrefix([]byte{0x07, 0x30})
+	if !reflect.DeepEqual(keys, expected) {
+		t.Fatalf("Fail: got %v expected %v", keys, expected)
+	}
+
+	expected = [][]byte{}
+	keys = trie.GetKeysWithPrefix([]byte(":key1"))
 	if !reflect.DeepEqual(keys, expected) {
 		t.Fatalf("Fail: got %v expected %v", keys, expected)
 	}

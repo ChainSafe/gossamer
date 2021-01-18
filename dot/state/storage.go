@@ -20,7 +20,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"sort"
 	"sync"
 
 	"github.com/ChainSafe/chaindb"
@@ -315,20 +314,17 @@ func (s *StorageState) Entries(hash *common.Hash) (map[string][]byte, error) {
 	return s.tries[*hash].Entries(), nil
 }
 
-// Keys returns all keys for given hash (or best block state root if hash is nil) in lexicographic order
-func (s *StorageState) Keys(hash *common.Hash) ([]string, error) {
-	entries, err := s.Entries(hash)
-	if err != nil {
-		return nil, err
+// GetKeysWithPrefix returns all that match the given prefix for the given hash (or best block state root if hash is nil) in lexicographic order
+func (s *StorageState) GetKeysWithPrefix(hash *common.Hash, prefix []byte) ([][]byte, error) {
+	if hash == nil {
+		sr, err := s.blockState.BestBlockStateRoot()
+		if err != nil {
+			return nil, err
+		}
+		hash = &sr
 	}
-	keys := make([]string, 0, len(entries))
 
-	for k := range entries {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	return keys, nil
+	return s.tries[*hash].GetKeysWithPrefix(prefix), nil
 }
 
 // GetStorageChild return GetChild from the trie
