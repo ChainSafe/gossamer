@@ -35,7 +35,7 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
-var defaultMaxPeerCount = 8
+var defaultMaxPeerCount = 6
 
 // host wraps libp2p host with network host configuration and services
 type host struct {
