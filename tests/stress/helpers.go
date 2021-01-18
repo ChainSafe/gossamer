@@ -91,20 +91,22 @@ func compareBlocksByNumber(t *testing.T, nodes []*utils.Node, num string) (map[c
 	wg.Add(len(nodes))
 
 	for _, node := range nodes {
+		logger.Info("compareBlocksByNumber loop", "node", node.Idx)
 		go func(node *utils.Node) {
 			logger.Info("chain_getBlockHash", "node", node.Idx)
 			hash, err := utils.GetBlockHash(t, node, num)
 			mapMu.Lock()
-			defer mapMu.Unlock()
+			defer func() {
+				mapMu.Unlock()
+				wg.Done()
+			}()
 			if err != nil {
 				errs = append(errs, err)
-				wg.Done()
 				return
 			}
 			logger.Info("got hash from node", "hash", hash, "node", node.Key)
 
 			hashes[hash] = append(hashes[hash], node.Key)
-			wg.Done()
 		}(node)
 	}
 
