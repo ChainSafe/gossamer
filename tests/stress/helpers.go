@@ -37,7 +37,6 @@ import (
 )
 
 var (
-	numNodes    = 3
 	maxRetries  = 32
 	testTimeout = time.Minute * 2
 	logger      = log.New("pkg", "tests/stress")
@@ -93,21 +92,33 @@ func compareBlocksByNumber(t *testing.T, nodes []*utils.Node, num string) (map[c
 
 	for _, node := range nodes {
 		go func(node *utils.Node) {
+			logger.Debug("calling chain_getBlockHash", "node", node.Idx)
 			hash, err := utils.GetBlockHash(t, node, num)
 			mapMu.Lock()
-			defer mapMu.Unlock()
+			defer func() {
+				mapMu.Unlock()
+				wg.Done()
+			}()
 			if err != nil {
 				errs = append(errs, err)
-				wg.Done()
 				return
 			}
-			logger.Debug("getting hash from node", "hash", hash, "node", node.Key)
+			logger.Debug("got hash from node", "hash", hash, "node", node.Key)
 
 			hashes[hash] = append(hashes[hash], node.Key)
-			wg.Done()
 		}(node)
 	}
-	wg.Wait()
+
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-time.After(time.Second * 30):
+	case <-done:
+	}
 
 	var err error
 	if len(errs) != 0 {
@@ -133,6 +144,7 @@ func compareBlocksByNumberWithRetry(t *testing.T, nodes []*utils.Node, num strin
 	timeout := time.After(30 * time.Second)
 doneBlockProduction:
 	for {
+		time.Sleep(time.Second)
 		select {
 		case <-timeout:
 			break doneBlockProduction
