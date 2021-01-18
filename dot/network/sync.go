@@ -51,15 +51,15 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 
 		req := s.syncer.HandleBlockResponse(resp)
 		if req != nil {
-			s.syncing[peer] = struct{}{}
-			err := s.host.send(peer, syncID, req)
-			if err != nil {
+			if err := s.setSyncingPeer(peer); err != nil {
+				return err
+			}
+			if err := s.host.send(peer, syncID, req); err != nil {
 				logger.Error("failed to send BlockRequest message", "peer", peer)
 			}
 		} else {
 			// we are done syncing
-			delete(s.syncing, peer)
-			// TODO: close stream
+			s.unsetSyncingPeer(peer)
 		}
 	}
 
@@ -81,16 +81,33 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 	return nil
 }
 
-func (s *Service) beginSyncing(peer peer.ID, msg Message) error {
+func (s *Service) setSyncingPeer(peer peer.ID) error {
 	s.syncingMu.Lock()
 	defer s.syncingMu.Unlock()
 
 	if _, syncing := s.syncing[peer]; syncing {
 		return errors.New("already syncing with peer")
 	}
+	s.syncing[peer] = struct{}{}
+	s.host.h.ConnManager().Protect(peer, "")
+
+	return nil
+}
+
+func (s *Service) unsetSyncingPeer(peer peer.ID) {
+	s.syncingMu.Lock()
+	defer s.syncingMu.Unlock()
+
+	delete(s.syncing, peer)
+	s.host.h.ConnManager().Unprotect(peer, "")
+}
+
+func (s *Service) beginSyncing(peer peer.ID, msg Message) error {
+	if err := s.setSyncingPeer(peer); err != nil {
+		return err
+	}
 
 	logger.Trace("beginning sync with peer", "peer", peer, "msg", msg)
-	s.syncing[peer] = struct{}{}
 	err := s.host.send(peer, syncID, msg)
 	if err != nil {
 		return err
