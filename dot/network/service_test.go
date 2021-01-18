@@ -148,6 +148,28 @@ func TestBroadcastMessages(t *testing.T) {
 	require.NotNil(t, nodeB.syncing[nodeA.host.id()])
 }
 
+func TestBeginSyncingProtectsPeer(t *testing.T) {
+	basePath := utils.NewTestBasePath(t, "node_a")
+	defer utils.RemoveTestDir(t)
+
+	config := &Config{
+		BasePath:    basePath,
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	var (
+		s      = createTestService(t, config)
+		peerID = peer.ID("rudolf")
+		msg    = &BlockResponseMessage{}
+	)
+
+	s.beginSyncing(peerID, msg)
+	require.True(t, s.host.h.ConnManager().IsProtected(peerID, ""))
+}
+
 func TestHandleSyncMessage_BlockResponse(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "nodeA")
 	defer utils.RemoveTestDir(t)
@@ -169,6 +191,7 @@ func TestHandleSyncMessage_BlockResponse(t *testing.T) {
 	s.handleSyncMessage(peerID, msg)
 	_, isSyncing := s.syncing[peerID]
 	require.False(t, isSyncing)
+	require.False(t, s.host.h.ConnManager().IsProtected(peerID, ""))
 }
 
 func TestService_NodeRoles(t *testing.T) {
