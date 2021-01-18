@@ -3,8 +3,8 @@ package types
 // SystemInfo struct to hold system related information
 type SystemInfo struct {
 	SystemName       string
-	ChainType        string
 	SystemVersion    string
 	NodeName         string
+	ChainType        string
 	SystemProperties map[string]interface{}
 }
