@@ -1028,7 +1028,7 @@ func ext_offchain_submit_transaction_version_1(context unsafe.Pointer, data C.in
 
 func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 	nextLength := big.NewInt(1)
-	valueRes := []byte{}
+	var valueRes []byte
 
 	// this function assumes the item in storage is a SCALE encoded array of items
 	// the valueToAppend is a new item, so it appends the item and increases the length prefix by 1
@@ -1044,10 +1044,10 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 		r := &bytes.Buffer{}
 		_, _ = r.Write(valueCurr)
 		dec := &scale.Decoder{Reader: r}
-		currLength, err := dec.DecodeBigInt()
+		currLength, err := dec.DecodeBigInt() //nolint
 		if err != nil {
 			logger.Trace("[ext_storage_append_version_1] item in storage is not SCALE encoded, overwriting", "key", key)
-			return storage.Set(key, valueToAppend)
+			return storage.Set(key, append([]byte{4}, valueToAppend...))
 		}
 
 		// append new item
