@@ -235,9 +235,10 @@ func (s *Service) handleBlockAnnounceMessage(peer peer.ID, msg NotificationsMess
 	if an, ok := msg.(*BlockAnnounceMessage); ok {
 		req := s.syncer.HandleBlockAnnounce(an)
 		if req != nil {
-			s.syncing[peer] = struct{}{}
-			err := s.host.send(peer, syncID, req)
-			if err != nil {
+			if err := s.setSyncingPeer(peer); err != nil {
+				return err
+			}
+			if err := s.host.send(peer, syncID, req); err != nil {
 				logger.Error("failed to send BlockRequest message", "peer", peer)
 			}
 		}
