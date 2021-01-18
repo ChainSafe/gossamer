@@ -325,6 +325,37 @@ func Test_ext_storage_read_version_1(t *testing.T) {
 	require.Equal(t, testvalue[testoffset:], val[:len(testvalue)-int(testoffset)])
 }
 
+func Test_ext_storage_read_version_1_again(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testkey := []byte("noot")
+	testvalue := []byte("_was_here_")
+	err := inst.inst.ctx.Storage.Set(testkey, testvalue)
+	require.NoError(t, err)
+
+	testoffset := uint32(8)
+	testBufferSize := uint32(5)
+
+	encKey, err := scale.Encode(testkey)
+	require.NoError(t, err)
+	encOffset, err := scale.Encode(testoffset)
+	require.NoError(t, err)
+	encBufferSize, err := scale.Encode(testBufferSize)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_storage_read_version_1", append(append(encKey, encOffset...), encBufferSize...))
+	require.NoError(t, err)
+
+	buf := &bytes.Buffer{}
+	buf.Write(ret)
+
+	read, err := new(optional.Bytes).Decode(buf)
+	require.NoError(t, err)
+	val := read.Value()
+	require.Equal(t, len(testvalue)-int(testoffset), len(val)) // TODO: fix
+	require.Equal(t, testvalue[testoffset:], val[:len(testvalue)-int(testoffset)])
+}
+
 func Test_ext_storage_read_version_1_OffsetLargerThanValue(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
@@ -352,7 +383,7 @@ func Test_ext_storage_read_version_1_OffsetLargerThanValue(t *testing.T) {
 	read, err := new(optional.Bytes).Decode(buf)
 	require.NoError(t, err)
 	val := read.Value()
-	require.Equal(t, make([]byte, int(testBufferSize)), val)
+	require.Equal(t, []byte{}, val)
 }
 
 func Test_ext_storage_root_version_1(t *testing.T) {
