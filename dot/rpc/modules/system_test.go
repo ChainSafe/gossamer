@@ -150,10 +150,10 @@ func TestSystemModule_NodeRoles(t *testing.T) {
 
 var testSystemInfo = &types.SystemInfo{
 	SystemName:       "gossamer",
-	ChainType:        "Local",
 	SystemVersion:    "0",
 	NodeName:         "gssmr",
 	SystemProperties: make(map[string]interface{}),
+	ChainType:        "Local",
 }
 
 type mockSystemAPI struct {
@@ -178,12 +178,12 @@ func (api *mockSystemAPI) NodeName() string {
 	return api.info.NodeName
 }
 
-func (api *mockSystemAPI) ChainType() string {
-	return api.info.ChainType
-}
-
 func (api *mockSystemAPI) Properties() map[string]interface{} {
 	return api.info.SystemProperties
+}
+
+func (api *mockSystemAPI) ChainType() string {
+	return api.info.ChainType
 }
 
 func TestSystemModule_Chain(t *testing.T) {
@@ -196,12 +196,13 @@ func TestSystemModule_Chain(t *testing.T) {
 }
 
 func TestSystemModule_ChainType(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI())
+	api := newMockSystemAPI()
+
+	sys := NewSystemModule(nil, api)
 
 	res := new(string)
-	err := sys.ChainType(nil, nil, res)
-	require.NoError(t, err)
-	require.Equal(t, testSystemInfo.ChainType, *res)
+	sys.ChainType(nil, nil, res)
+	require.Equal(t, api.info.ChainType, *res)
 }
 
 func TestSystemModule_Name(t *testing.T) {

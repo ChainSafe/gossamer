@@ -1241,14 +1241,14 @@ func ext_storage_read_version_1(context unsafe.Pointer, keySpan, valueOut C.int6
 	value, err := storage.Get(key)
 	if err != nil {
 		logger.Error("[ext_storage_read_version_1]", "error", err)
-		ret, _ := toWasmMemoryOptional(instanceContext, []byte{})
+		ret, _ := toWasmMemoryOptional(instanceContext, nil)
 		return C.int64_t(ret)
 	}
 
 	logger.Debug("[ext_storage_read_version_1]", "key", fmt.Sprintf("0x%x", key), "value", fmt.Sprintf("0x%x", value))
 
 	if value == nil {
-		ret, _ := toWasmMemoryOptional(instanceContext, []byte{})
+		ret, _ := toWasmMemoryOptional(instanceContext, nil)
 		return C.int64_t(ret)
 	}
 
@@ -1262,10 +1262,7 @@ func ext_storage_read_version_1(context unsafe.Pointer, keySpan, valueOut C.int6
 		copy(memory[valueBuf:valueBuf+valueLen], value[offset:])
 	}
 
-	sizeBuf := make([]byte, 4)
-	binary.LittleEndian.PutUint32(sizeBuf, size)
-
-	sizeSpan, err := toWasmMemoryOptional(instanceContext, sizeBuf)
+	sizeSpan, err := toWasmMemoryOptionalUint32(instanceContext, &size)
 	if err != nil {
 		logger.Error("[ext_storage_read_version_1] failed to allocate", "error", err)
 		return 0
@@ -1453,7 +1450,7 @@ func toWasmMemorySized(context wasm.InstanceContext, data []byte, size uint32) (
 // Wraps slice in optional and copies result to wasm memory. Returns resulting 64bit span descriptor
 func toWasmMemoryOptional(context wasm.InstanceContext, data []byte) (int64, error) {
 	var opt *optional.Bytes
-	if len(data) == 0 {
+	if data == nil {
 		opt = optional.NewBytes(false, nil)
 	} else {
 		opt = optional.NewBytes(true, data)
@@ -1464,6 +1461,19 @@ func toWasmMemoryOptional(context wasm.InstanceContext, data []byte) (int64, err
 		return 0, err
 	}
 
+	return toWasmMemory(context, enc)
+}
+
+// Wraps slice in optional and copies result to wasm memory. Returns resulting 64bit span descriptor
+func toWasmMemoryOptionalUint32(context wasm.InstanceContext, data *uint32) (int64, error) {
+	var opt *optional.Uint32
+	if data == nil {
+		opt = optional.NewUint32(false, 0)
+	} else {
+		opt = optional.NewUint32(true, *data)
+	}
+
+	enc := opt.Encode()
 	return toWasmMemory(context, enc)
 }
 
