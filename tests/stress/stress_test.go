@@ -80,7 +80,6 @@ func TestRestartNode(t *testing.T) {
 }
 
 func TestSync_SingleBlockProducer(t *testing.T) {
-	//time.Sleep(time.Second)
 	numNodes := 6 // TODO: increase this when syncing improves
 	utils.SetLogLevel(log.LvlInfo)
 
