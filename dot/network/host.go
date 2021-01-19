@@ -193,10 +193,12 @@ func (h *host) sendBytes(p peer.ID, sub protocol.ID, msg []byte) (err error) {
 	// check if stream needs to be opened
 	// TODO: if stream has not been opened, begin handler for the newly opened stream
 	if s == nil {
+		logger.Debug("opening new stream with peer", "peer", p, "sub-protocol", sub)
 
 		// open outbound stream with host protocol id
 		s, err = h.h.NewStream(h.ctx, p, h.protocolID+sub)
 		if err != nil {
+			logger.Debug("failed to open new stream with peer", "peer", p, "sub-protocol", sub, "error", err)
 			return err
 		}
 

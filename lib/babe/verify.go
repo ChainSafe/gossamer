@@ -426,6 +426,7 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 	return babePreDigest, nil
 }
 
+//nolint
 // verifySlotWinner verifies the claim for a slot
 func (b *verifier) verifySlotWinner(authorityIndex uint32, slot uint64, vrfOutput [sr25519.VrfOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) (bool, error) {
 	return true, nil // TODO: fix threshold calculation and vrf verification
