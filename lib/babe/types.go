@@ -61,7 +61,7 @@ func (d Authorities) String() string {
 // epochData contains the current epoch information
 type epochData struct {
 	randomness     [types.RandomnessLength]byte
-	authorityIndex uint64
+	authorityIndex uint32
 	authorities    []*types.Authority
 	threshold      *big.Int
 }

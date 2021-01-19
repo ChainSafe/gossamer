@@ -17,6 +17,7 @@
 package wasmer
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -139,16 +140,19 @@ func (in *LegacyInstance) FinalizeBlock() (*types.Header, error) {
 func (in *LegacyInstance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	// copy block since we're going to modify it
 	b := block.DeepCopy()
-
 	b.Header.Digest = types.NewEmptyDigest()
 
-	// remove seal digest only
-	for _, d := range block.Header.Digest {
-		if d.Type() == types.SealDigestType {
-			continue
-		}
+	// TODO: hack since substrate node_runtime can't seem to handle BABE pre-runtime digests
+	// with type prefix (ie Primary, Secondary...)
+	if bytes.Equal(in.version.RuntimeVersion.Spec_name, []byte("kusama")) {
+		// remove seal digest only
+		for _, d := range block.Header.Digest {
+			if d.Type() == types.SealDigestType {
+				continue
+			}
 
-		b.Header.Digest = append(b.Header.Digest, d)
+			b.Header.Digest = append(b.Header.Digest, d)
+		}
 	}
 
 	bdEnc, err := b.Encode()

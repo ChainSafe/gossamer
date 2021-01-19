@@ -49,6 +49,46 @@ func TestInstance_Version_PolkadotRuntime(t *testing.T) {
 	require.Equal(t, expected, version.RuntimeVersion)
 }
 
+func TestInstance_Version_KusamaRuntime(t *testing.T) {
+	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/ksmcc/genesis-raw.json")
+	require.NoError(t, err)
+
+	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	expectedGenesisRoot := common.MustHexToHash("0xb0006203c3a6e6bd2c6a17b1d4ae8ca49a31da0f4579da950b127774b44aef6b")
+	require.Equal(t, expectedGenesisRoot, genTrie.MustHash())
+
+	// set state to genesis state
+	genState := storage.NewTestTrieState(t, genTrie)
+
+	cfg := &Config{}
+	cfg.Storage = genState
+	cfg.LogLvl = 4
+
+	instance, err := NewRuntimeFromGenesis(gen, cfg)
+	require.NoError(t, err)
+
+	expected := &runtime.Version{
+		Spec_name:         []byte("kusama"),
+		Impl_name:         []byte("parity-kusama"),
+		Authoring_version: 2,
+		Spec_version:      1020,
+		Impl_version:      0,
+	}
+
+	version, err := instance.Version()
+	require.NoError(t, err)
+
+	t.Logf("Spec_name: %s\n", version.RuntimeVersion.Spec_name)
+	t.Logf("Impl_name: %s\n", version.RuntimeVersion.Impl_name)
+	t.Logf("Authoring_version: %d\n", version.RuntimeVersion.Authoring_version)
+	t.Logf("Spec_version: %d\n", version.RuntimeVersion.Spec_version)
+	t.Logf("Impl_version: %d\n", version.RuntimeVersion.Impl_version)
+
+	require.Equal(t, expected, version.RuntimeVersion)
+}
+
 func TestInstance_Version_NodeRuntime(t *testing.T) {
 	expected := &runtime.Version{
 		Spec_name:         []byte("node"),
@@ -263,10 +303,15 @@ func buildBlock(t *testing.T, instance runtime.Instance) *types.Block {
 
 	res.Number = header.Number
 
+	babeDigest := types.NewBabePrimaryPreDigest(0, 1, [32]byte{}, [64]byte{})
+	data := babeDigest.Encode()
+	preDigest := types.NewBABEPreRuntimeDigest(data)
+	res.Digest = types.Digest{preDigest}
+
 	expected := &types.Header{
 		ParentHash: header.ParentHash,
 		Number:     big.NewInt(77),
-		Digest:     types.Digest{},
+		Digest:     types.Digest{preDigest},
 	}
 
 	require.Equal(t, expected.ParentHash, res.ParentHash)

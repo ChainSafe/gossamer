@@ -149,31 +149,3 @@ func (b *Service) runLottery(slot uint64) (*VrfOutputAndProof, error) {
 
 	return nil, nil
 }
-
-func getVRFOutput(header *types.Header) ([sr25519.VrfOutputLength]byte, error) {
-	var bh *types.BabeHeader
-
-	for _, digest := range header.Digest {
-		if digest.Type() == types.PreRuntimeDigestType {
-			prd, ok := digest.(*types.PreRuntimeDigest)
-			if !ok {
-				continue
-			}
-
-			tbh := new(types.BabeHeader)
-			err := tbh.Decode(prd.Data)
-			if err != nil {
-				continue
-			}
-
-			bh = tbh
-			break
-		}
-	}
-
-	if bh == nil {
-		return [sr25519.VrfOutputLength]byte{}, fmt.Errorf("block %d: %w", header.Number, ErrNoBABEHeader)
-	}
-
-	return bh.VrfOutput, nil
-}

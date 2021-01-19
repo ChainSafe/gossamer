@@ -67,3 +67,13 @@ func TestNewBodyFromExtrinsicStrings_Mixed(t *testing.T) {
 		require.Equal(t, []byte(e), b)
 	}
 }
+
+func TestBody_EncodedExtrinsics(t *testing.T) {
+	exts := [][]byte{{16, 1, 3, 5, 7}, {12, 9, 1, 2}, {12, 3, 4, 5}}
+	body, err := NewBodyFromEncodedBytes(exts)
+	require.NoError(t, err)
+
+	res, err := body.AsEncodedExtrinsics()
+	require.NoError(t, err)
+	require.Equal(t, BytesArrayToExtrinsics(exts), res)
+}
