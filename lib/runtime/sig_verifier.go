@@ -27,6 +27,8 @@ type SignatureVerifier struct {
 	invalid bool // Set to true if any signature verification fails.
 	closeCh chan struct{}
 	sync.RWMutex
+	sync.Once
+	sync.WaitGroup
 }
 
 // NewSignatureVerifier initializes SignatureVerifier which does background verification of signatures.
@@ -36,7 +38,7 @@ type SignatureVerifier struct {
 func NewSignatureVerifier() *SignatureVerifier {
 	return &SignatureVerifier{
 		batch:   make([]*Signature, 0),
-		init:    true,
+		init:    false,
 		invalid: false,
 		RWMutex: sync.RWMutex{},
 		closeCh: make(chan struct{}),
@@ -45,20 +47,22 @@ func NewSignatureVerifier() *SignatureVerifier {
 
 // Start signature verification in batch.
 func (sv *SignatureVerifier) Start() {
+	sv.WaitGroup.Add(1)
+	defer sv.Done()
+
+	// Update the init state.
+	sv.Lock()
+	sv.init = true
+	sv.Unlock()
 	for {
 		select {
 		case <-sv.closeCh:
 			return
 		default:
-			if sv.IsEmpty() {
+			sign := sv.Remove()
+			if sign == nil {
 				continue
 			}
-
-			sv.Lock()
-			sign := sv.batch[0]
-			sv.batch = sv.batch[1:len(sv.batch)]
-			sv.Unlock()
-
 			err := sign.verify()
 			if err != nil {
 				log.Error("[ext_crypto_start_batch_verify_version_1]", "error", err)
@@ -101,20 +105,45 @@ func (sv *SignatureVerifier) Add(s *Signature) {
 	sv.batch = append(sv.batch, s)
 }
 
-// Finish waits till batch is finished. Returns true if all the signatures are valid, Otherwise returns false.
-func (sv *SignatureVerifier) Finish() bool {
-	for !sv.IsEmpty() && !sv.IsInvalid() {
-		time.Sleep(100 * time.Millisecond)
+// Remove returns the first signature from the batch. Returns nil if batch is empty.
+func (sv *SignatureVerifier) Remove() *Signature {
+	sv.Lock()
+	defer sv.Unlock()
+	if len(sv.batch) == 0 {
+		return nil
 	}
-	close(sv.closeCh)
-	return !sv.IsInvalid()
+	sign := sv.batch[0]
+	sv.batch = sv.batch[1:len(sv.batch)]
+	return sign
 }
 
-// IsEmpty ...
-func (sv *SignatureVerifier) IsEmpty() bool {
-	sv.RLock()
-	defer sv.RUnlock()
-	return len(sv.batch) == 0
+// Reset reset the signature verifier for reuse.
+func (sv *SignatureVerifier) Reset() {
+	sv.Lock()
+	defer sv.Unlock()
+	sv.init = false
+	sv.batch = make([]*Signature, 0)
+	sv.invalid = false
+	sv.closeCh = make(chan struct{})
+}
+
+// Finish waits till batch is finished. Returns true if all the signatures are valid, Otherwise returns false.
+func (sv *SignatureVerifier) Finish() bool {
+	for {
+		time.Sleep(100 * time.Millisecond)
+		sv.Lock()
+		if sv.invalid || len(sv.batch) == 0 {
+			close(sv.closeCh)
+			sv.Unlock()
+			break
+		}
+		sv.RUnlock()
+	}
+	// Wait till start function to finish and then reset it.
+	sv.Wait()
+	isInvalid := sv.IsInvalid()
+	sv.Reset()
+	return !isInvalid
 }
 
 func (sig *Signature) verify() error {

@@ -25,8 +25,25 @@ func TestBackgroundSignVerification(t *testing.T) {
 
 	// Wait for background go routine to verify signature.
 	time.Sleep(1 * time.Second)
-	require.True(t, signVerify.IsEmpty())
 	require.False(t, signVerify.IsInvalid())
+}
+
+func TestBackgroundSignVerificationMultipleStart(t *testing.T) {
+	signs := generateEd25519Signatures(t, 2)
+	signVerify := NewSignatureVerifier()
+
+	for ii := 0; ii < 5; ii++ {
+		require.False(t, signVerify.IsStarted())
+		go signVerify.Start()
+		time.Sleep(1 * time.Second)
+		require.True(t, signVerify.IsStarted())
+
+		for _, sig := range signs {
+			signVerify.Add(sig)
+		}
+		require.True(t, signVerify.Finish())
+		require.False(t, signVerify.IsStarted())
+	}
 }
 
 func TestInvalidSignatureBatch(t *testing.T) {
