@@ -119,25 +119,31 @@ func NewService(cfg *Config) (*Service, error) {
 
 // HandleBlockAnnounceHandshake handles a block that a peer claims to have through a HandleBlockAnnounceHandshake
 func (s *Service) HandleBlockAnnounceHandshake(blockNum *big.Int) *network.BlockRequestMessage {
-	if blockNum == nil || s.highestSeenBlock.Cmp(blockNum) != -1 {
+	bestNum, err := s.blockState.BestBlockNumber()
+	if err != nil {
+		s.logger.Error("failed to get best block number", "error", err)
+		return nil // TODO: handle this / panic?
+	}
+
+	if blockNum == nil || bestNum.Cmp(blockNum) != -1 {
 		return nil
 	}
 
+	// if our head is lower than peer's
+	s.highestSeenBlock = blockNum
+
 	// need to sync
-	var start int64
+	start := new(big.Int).Add(bestNum, big.NewInt(1)).Int64()
+
 	if s.synced {
-		start = s.highestSeenBlock.Add(s.highestSeenBlock, big.NewInt(1)).Int64()
 		s.synced = false
 
 		err := s.blockProducer.Pause()
 		if err != nil {
 			s.logger.Warn("failed to pause block production")
 		}
-	} else {
-		start = s.highestSeenBlock.Int64()
 	}
 
-	s.highestSeenBlock = blockNum
 	return s.createBlockRequest(start)
 }
 
@@ -264,7 +270,8 @@ func (s *Service) HandleBlockResponse(msg *network.BlockResponseMessage) *networ
 	}
 
 	// not yet synced, send another block request for the following blocks
-	start = high + 1
+	start = bestNum.Int64() + 1
+	s.logger.Info("HandleBlockResponse", "best block number", bestNum)
 	return s.createBlockRequest(start)
 }
 

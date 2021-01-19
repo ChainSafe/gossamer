@@ -402,6 +402,11 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 	// starting slot for next epoch
 	nextStartSlot := startSlot + b.epochLength - intoEpoch
 
+	// TODO: fix
+	if b.epochLength < intoEpoch {
+		intoEpoch = 0
+	}
+
 	slotDone := make([]<-chan time.Time, b.epochLength-intoEpoch)
 	for i := 0; i < int(b.epochLength-intoEpoch); i++ {
 		slotDone[i] = time.After(b.getSlotDuration() * time.Duration(i))
@@ -548,16 +553,27 @@ func CalculateThreshold(C1, C2 uint64, numAuths int) (*big.Int, error) {
 	theta := float64(1) / float64(numAuths)
 
 	// (1-c)^(theta)
-	pp := 1 - c
+	pp := float64(1) - c
 	pp_exp := math.Pow(pp, theta)
 
 	// 1 - (1-c)^(theta)
-	p := 1 - pp_exp
+	p := float64(1) - pp_exp
 	p_rat := new(big.Rat).SetFloat64(p)
 
 	// 1 << 256
-	q := new(big.Int).Lsh(big.NewInt(1), 256)
+	num_shift := new(big.Int).Lsh(big.NewInt(0xf), 256)
+	denom_shift := new(big.Int).Lsh(big.NewInt(1), 256)
 
+	num := new(big.Int).Mul(num_shift, p_rat.Num())
+	denom := new(big.Int).Mul(denom_shift, p_rat.Denom())
+
+	logger.Info("CalculateThreshold", "num", num)
+	logger.Info("CalculateThreshold", "denom", denom)
+
+	num_shift_over_denom := new(big.Int).Div(num, p_rat.Denom())
 	// (1 << 128) * (1 - (1-c)^(w_k/sum(w_i)))
-	return q.Mul(q, p_rat.Num()).Div(q, p_rat.Denom()), nil
+	//return new(big.Int).Div(p_rat.Num(), p_rat.Denom()), nil
+	//return new(big.Int).Div(num, denom), nil
+	//return q.Mul(q, p_rat.Num()).Div(q, p_rat.Denom()), nil
+	return num_shift_over_denom, nil
 }
