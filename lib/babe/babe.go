@@ -561,19 +561,10 @@ func CalculateThreshold(C1, C2 uint64, numAuths int) (*big.Int, error) {
 	p_rat := new(big.Rat).SetFloat64(p)
 
 	// 1 << 256
-	num_shift := new(big.Int).Lsh(big.NewInt(0xf), 256)
-	denom_shift := new(big.Int).Lsh(big.NewInt(1), 256)
+	shift := new(big.Int).Lsh(big.NewInt(0x1), 256)
+	num := new(big.Int).Mul(shift, p_rat.Num())
 
-	num := new(big.Int).Mul(num_shift, p_rat.Num())
-	denom := new(big.Int).Mul(denom_shift, p_rat.Denom())
-
-	logger.Info("CalculateThreshold", "num", num)
-	logger.Info("CalculateThreshold", "denom", denom)
-
+	// (1 << 256) * (1 - (1-c)^(w_k/sum(w_i)))
 	num_shift_over_denom := new(big.Int).Div(num, p_rat.Denom())
-	// (1 << 128) * (1 - (1-c)^(w_k/sum(w_i)))
-	//return new(big.Int).Div(p_rat.Num(), p_rat.Denom()), nil
-	//return new(big.Int).Div(num, denom), nil
-	//return q.Mul(q, p_rat.Num()).Div(q, p_rat.Denom()), nil
 	return num_shift_over_denom, nil
 }

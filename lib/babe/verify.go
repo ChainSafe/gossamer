@@ -406,12 +406,10 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 	switch d := babePreDigest.(type) {
 	case *types.BabePrimaryPreDigest:
 		ok, err = b.verifySlotWinner(d.AuthorityIndex(), d.SlotNumber(), d.VrfOutput(), d.VrfProof())
-	case *types.BabeSecondaryVRFPreDigest:
-		//ok, err = b.verifySlotWinner(d.AuthorityIndex(), d.SlotNumber(), d.VrfOutput(), d.VrfProof())
+	case *types.BabeSecondaryVRFPreDigest: // TODO: implement BABE secondary slot assignment
 		logger.Warn("not validating BabeSecondaryVRFPreDigest: BABE secondary slot assignment not implemented")
 		return babePreDigest, nil
-	case *types.BabeSecondaryPlainPreDigest:
-		// TODO: implement BABE secondary slot assignment
+	case *types.BabeSecondaryPlainPreDigest: // TODO: implement BABE secondary slot assignment
 		logger.Warn("not validating BabeSecondaryPlainPreDigest: BABE secondary slot assignment not implemented")
 		return babePreDigest, nil
 	}
@@ -421,19 +419,18 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 		return nil, err
 	}
 
-	// if !ok {
-	// 	return nil, ErrBadSlotClaim
-	// }
-
-	logger.Info("verifyPreRuntimeDigest", "ok", ok)
+	if !ok {
+		return nil, ErrBadSlotClaim
+	}
 
 	return babePreDigest, nil
 }
 
 // verifySlotWinner verifies the claim for a slot
 func (b *verifier) verifySlotWinner(authorityIndex uint32, slot uint64, vrfOutput [sr25519.VrfOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) (bool, error) {
+	return true, nil // TODO: fix threshold calculation and vrf verification
+
 	output := big.NewInt(0).SetBytes(vrfOutput[:])
-	logger.Info("verifySlotWinner", "block output", output, "bytes", vrfOutput, "b.threshold", b.threshold, "bytes", b.threshold.Bytes(), "len", len(b.threshold.Bytes()))
 	if b.threshold.Cmp(output) < 0 {
 		return false, ErrVRFOutputOverThreshold
 	}
@@ -473,6 +470,3 @@ func getAuthorityIndex(header *types.Header) (uint32, error) {
 
 	return babePreDigest.AuthorityIndex(), nil
 }
-
-//b.threshold= 1382326573366724346992210459428937849963628280865247719168406684574481488281600
-//output=        65297135086444628572878644365675077650843726047004898890787818538659011578989
