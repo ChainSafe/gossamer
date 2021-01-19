@@ -301,6 +301,9 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 
 	connMgr := s.host.h.ConnManager().(*ConnManager)
 	connMgr.RegisterCloseHandler(s.host.protocolID+sub, func(peerID peer.ID) {
+		np.mapMu.Lock()
+		defer np.mapMu.Unlock()
+
 		if _, ok := np.handshakeData[peerID]; ok {
 			logger.Trace(
 				"Cleaning up handshake data",
