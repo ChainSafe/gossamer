@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
@@ -371,8 +372,19 @@ func TestValidateTransaction_AuthoritiesChange(t *testing.T) {
 	require.Equal(t, expected, validity)
 }
 
-func TestValidateTransaction_IncludeData(t *testing.T) {
+func TestValidationTransaction(t *testing.T) {
 	rt := NewTestLegacyInstance(t, runtime.NODE_RUNTIME)
+	extBytes, err := common.HexToBytes("0x2d0284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d019ca3f50f6f48e7169e3553cc63af92f58fa85f221b55f9663535a8b4ece7b731e34cf1f05e7e2d87b2bd3dfff999baa05ea9c68f7120a72e36eb143620ee7a8b0000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48e5c0")
+	require.NoError(t, err)
+
+	ext := types.Extrinsic(append([]byte{byte(modules.TxnExternal)}, extBytes...))
+
+	_, err = rt.ValidateTransaction(ext)
+	require.NoError(t, err)
+}
+
+func TestValidateTransaction_IncludeData(t *testing.T) {
+	rt := NewTestLegacyInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)
 
 	ext := extrinsic.NewIncludeDataExt([]byte("nootwashere"))
 	tx, err := ext.Encode()
