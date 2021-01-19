@@ -17,6 +17,7 @@
 package state
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -156,13 +157,14 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 
 		predigest := d.(*types.PreRuntimeDigest)
 
-		babeHeader := new(types.BabeHeader)
-		err := babeHeader.Decode(predigest.Data)
+		r := &bytes.Buffer{}
+		_, _ = r.Write(predigest.Data)
+		digest, err := types.DecodeBabePreDigest(r)
 		if err != nil {
 			return 0, fmt.Errorf("failed to decode babe header: %w", err)
 		}
 
-		return (babeHeader.SlotNumber / s.epochLength) + 1, nil
+		return (digest.SlotNumber() / s.epochLength) + 1, nil
 	}
 
 	return 0, errors.New("header does not contain pre-runtime digest")

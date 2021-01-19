@@ -281,7 +281,7 @@ func (b *Service) GetBlockChannel() <-chan types.Block {
 
 // SetOnDisabled sets the block producer with the given index as disabled
 // If this is our node, we stop producing blocks
-func (b *Service) SetOnDisabled(authorityIndex uint64) {
+func (b *Service) SetOnDisabled(authorityIndex uint32) {
 	if authorityIndex == b.epochData.authorityIndex {
 		b.isDisabled = true
 	}
@@ -320,7 +320,7 @@ func (b *Service) safeSend(msg types.Block) error {
 	return nil
 }
 
-func (b *Service) getAuthorityIndex(Authorities []*types.Authority) (uint64, error) {
+func (b *Service) getAuthorityIndex(Authorities []*types.Authority) (uint32, error) {
 	if !b.authority {
 		return 0, ErrNotAuthority
 	}
@@ -329,7 +329,7 @@ func (b *Service) getAuthorityIndex(Authorities []*types.Authority) (uint64, err
 
 	for i, auth := range Authorities {
 		if bytes.Equal(pub.Encode(), auth.Key.Encode()) {
-			return uint64(i), nil
+			return uint32(i), nil
 		}
 	}
 

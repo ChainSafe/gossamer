@@ -222,7 +222,7 @@ func (s *Service) HandleBlockResponse(msg *network.BlockResponseMessage) *networ
 
 	// if we cannot find the parent block in our blocktree, we are missing some blocks, and need to request
 	// blocks from farther back in the chain
-	if err == blocktree.ErrParentNotFound || err == chaindb.ErrKeyNotFound {
+	if err == blocktree.ErrParentNotFound || errors.Is(err, chaindb.ErrKeyNotFound) {
 		s.logger.Debug("got ErrParentNotFound or ErrKeyNotFound; need to request earlier blocks")
 		bestNum, err := s.blockState.BestBlockNumber() //nolint
 		if err != nil {
@@ -278,11 +278,11 @@ func (s *Service) createBlockRequest(startInt int64) *network.BlockRequestMessag
 	s.logger.Debug("sending block request", "start", start)
 
 	blockRequest := &network.BlockRequestMessage{
-		RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification, // block header + body + justification
+		RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification,
 		StartingBlock: start,
 		EndBlockHash:  optional.NewHash(false, common.Hash{}),
 		Direction:     0, // ascending
-		Max:           optional.NewUint32(true, uint32(1)),
+		Max:           optional.NewUint32(true, uint32(16)),
 	}
 
 	s.benchmarker.begin(uint64(startInt))
@@ -300,6 +300,8 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 	end := int64(0)
 
 	for _, bd := range blockData {
+		s.logger.Trace("starting processing of block", "hash", bd.Hash)
+
 		err := s.blockState.CompareAndSetBlockData(bd)
 		if err != nil {
 			return start, end, err
@@ -308,6 +310,7 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 		hasHeader, _ := s.blockState.HasHeader(bd.Hash)
 		hasBody, _ := s.blockState.HasBlockBody(bd.Hash)
 		if hasHeader && hasBody {
+			s.logger.Trace("skipping block, already have", "hash", bd.Hash)
 			continue
 		}
 
@@ -317,12 +320,14 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 				return 0, 0, err
 			}
 
-			s.logger.Trace("processing block", "header", header)
+			s.logger.Trace("processing header", "hash", header.Hash(), "number", header.Number)
 
 			err = s.handleHeader(header)
 			if err != nil {
 				return start, end, err
 			}
+
+			s.logger.Trace("header processed", "hash", bd.Hash)
 
 			if header.Number.Int64() < start {
 				start = header.Number.Int64()
@@ -339,10 +344,14 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 				return start, end, err
 			}
 
+			s.logger.Trace("processing body", "hash", bd.Hash)
+
 			err = s.handleBody(body)
 			if err != nil {
 				return start, end, err
 			}
+
+			s.logger.Trace("body processed", "hash", bd.Hash)
 		}
 
 		if bd.Header.Exists() && bd.Body.Exists() {
@@ -361,10 +370,14 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 				Body:   body,
 			}
 
+			s.logger.Trace("processing block", "hash", bd.Hash)
+
 			err = s.handleBlock(block)
 			if err != nil {
 				return start, end, err
 			}
+
+			s.logger.Trace("block processed", "hash", bd.Hash)
 		}
 	}
 
@@ -384,17 +397,20 @@ func (s *Service) handleHeader(header *types.Header) error {
 
 // handleHeader handles block bodies included in BlockResponses
 func (s *Service) handleBody(body *types.Body) error {
-	exts, err := body.AsExtrinsics()
-	if err != nil {
-		s.logger.Error("cannot parse body as extrinsics", "error", err)
-		return err
-	}
+	return nil
 
-	for _, ext := range exts {
-		s.transactionState.RemoveExtrinsic(ext)
-	}
+	// TODO: this causes out of memory panic. fix and re-enable
+	// exts, err := body.AsExtrinsics() //nolint
+	// if err != nil {
+	// 	s.logger.Error("cannot parse body as extrinsics", "error", err)
+	// 	return err
+	// }
 
-	return err
+	// for _, ext := range exts {
+	// 	s.transactionState.RemoveExtrinsic(ext)
+	// }
+
+	// return err
 }
 
 // handleHeader handles blocks (header+body) included in BlockResponses
@@ -422,7 +438,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 
 	s.runtime.SetContext(ts)
 
-	s.logger.Debug("going to execute block", "block", block, "exts", block.Body)
+	s.logger.Trace("going to execute block", "block", block, "exts", block.Body)
 
 	_, err = s.runtime.ExecuteBlock(block)
 	if err != nil {

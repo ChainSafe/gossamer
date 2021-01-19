@@ -259,7 +259,7 @@ func blockDataToProtobuf(bd *types.BlockData) (*pb.BlockData, error) {
 
 	if bd.Body != nil && bd.Body.Exists() {
 		body := types.Body(bd.Body.Value())
-		exts, err := body.AsExtrinsics()
+		exts, err := body.AsEncodedExtrinsics()
 		if err != nil {
 			return nil, err
 		}
@@ -300,7 +300,7 @@ func protobufToBlockData(pbd *pb.BlockData) (*types.BlockData, error) {
 	}
 
 	if pbd.Body != nil {
-		body, err := types.NewBodyFromBytes(pbd.Body)
+		body, err := types.NewBodyFromEncodedBytes(pbd.Body)
 		if err != nil {
 			return nil, err
 		}

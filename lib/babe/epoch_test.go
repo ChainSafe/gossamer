@@ -112,14 +112,6 @@ func TestInitiateEpoch(t *testing.T) {
 	require.Equal(t, int(testEpochLength*3), len(bs.slotToProof))
 }
 
-func TestGetVRFOutput(t *testing.T) {
-	bs := createTestService(t, nil)
-	block, _ := createTestBlock(t, bs, genesisHeader, nil, 1)
-	out, err := getVRFOutput(block.Header)
-	require.NoError(t, err)
-	require.Equal(t, bs.slotToProof[1].output, out)
-}
-
 func TestIncrementEpoch(t *testing.T) {
 	bs := createTestService(t, nil)
 	next, err := bs.incrementEpoch()

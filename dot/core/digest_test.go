@@ -342,13 +342,11 @@ func TestDigestHandler_HandleBABEOnDisabled(t *testing.T) {
 
 	err = handler.HandleConsensusDigest(d, nil)
 	require.NoError(t, err)
-	require.Equal(t, uint64(7), handler.babe.(*mockBlockProducer).disabled)
+	require.Equal(t, uint32(7), handler.babe.(*mockBlockProducer).disabled)
 }
 
 func createHeaderWithPreDigest(slotNumber uint64) *types.Header {
-	babeHeader := &types.BabeHeader{
-		SlotNumber: slotNumber,
-	}
+	babeHeader := types.NewBabePrimaryPreDigest(0, slotNumber, [32]byte{}, [64]byte{})
 
 	enc := babeHeader.Encode()
 	digest := &types.PreRuntimeDigest{

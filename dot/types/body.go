@@ -19,6 +19,7 @@ package types
 import (
 	"errors"
 	"io"
+	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
@@ -39,6 +40,21 @@ func NewBodyFromBytes(exts [][]byte) (*Body, error) {
 	enc, err := scale.Encode(exts)
 	if err != nil {
 		return nil, err
+	}
+
+	body := Body(enc)
+	return &body, nil
+}
+
+// NewBodyFromEncodedBytes returns a new Body from a slice of byte slices that are SCALE encoded extrinsics
+func NewBodyFromEncodedBytes(exts [][]byte) (*Body, error) {
+	enc, err := scale.Encode(big.NewInt(int64(len(exts))))
+	if err != nil {
+		return nil, err
+	}
+
+	for _, ext := range exts {
+		enc = append(enc, ext...)
 	}
 
 	body := Body(enc)
@@ -92,6 +108,32 @@ func (b *Body) AsExtrinsics() ([]Extrinsic, error) {
 	}
 
 	return BytesArrayToExtrinsics(dec.([][]byte)), nil
+}
+
+// AsEncodedExtrinsics decodes the body into an array of SCALE encoded extrinsics
+func (b *Body) AsEncodedExtrinsics() ([]Extrinsic, error) {
+	exts := [][]byte{}
+
+	if len(*b) == 0 {
+		return []Extrinsic{}, nil
+	}
+
+	dec, err := scale.Decode(*b, exts)
+	if err != nil {
+		return nil, err
+	}
+
+	decodedExts := dec.([][]byte)
+	ret := make([][]byte, len(decodedExts))
+
+	for i, ext := range decodedExts {
+		ret[i], err = scale.Encode(ext)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return BytesArrayToExtrinsics(ret), nil
 }
 
 // NewBodyFromOptional returns a Body given an optional.Body. If the optional.Body is None, an error is returned.
