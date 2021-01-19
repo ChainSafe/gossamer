@@ -103,16 +103,21 @@ import (
 	"math/big"
 	"math/rand"
 	"reflect"
+	"sort"
 	"unsafe"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
+	rtype "github.com/ChainSafe/gossamer/lib/common/types"
+	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
-
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
@@ -188,45 +193,203 @@ func ext_sandbox_memory_teardown_version_1(context unsafe.Pointer, a C.int32_t) 
 }
 
 //export ext_crypto_ed25519_generate_version_1
-func ext_crypto_ed25519_generate_version_1(context unsafe.Pointer, a C.int32_t, z C.int64_t) C.int32_t {
+func ext_crypto_ed25519_generate_version_1(context unsafe.Pointer, keyTypeID C.int32_t, seedSpan C.int64_t) C.int32_t {
 	logger.Trace("[ext_crypto_ed25519_generate_version_1] executing...")
-	logger.Warn("[ext_crypto_ed25519_generate_version_1] unimplemented")
-	return 0
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+
+	// TODO: key types not yet implemented
+	// id := memory[idData:idData+4]
+
+	seedBytes := asMemorySlice(instanceContext, seedSpan)
+	buf := &bytes.Buffer{}
+	buf.Write(seedBytes)
+
+	seed, err := optional.NewBytes(false, nil).Decode(buf)
+	if err != nil {
+		logger.Warn("[ext_crypto_ed25519_generate_version_1] cannot generate key", "error", err)
+		return 0
+	}
+
+	var kp crypto.Keypair
+
+	if seed.Exists() {
+		// TODO: Use BIP39 mnemonic as seed to derive the key.
+		kp, err = ed25519.NewKeypairFromSeed(seedBytes)
+	} else {
+		kp, err = ed25519.GenerateKeypair()
+	}
+
+	if err != nil {
+		logger.Warn("[ext_crypto_ed25519_generate_version_1] cannot generate key", "error", err)
+		return 0
+	}
+
+	runtimeCtx.Keystore.Insert(kp)
+
+	ret, err := toWasmMemorySized(instanceContext, kp.Public().Encode(), 32)
+	if err != nil {
+		logger.Warn("[ext_crypto_ed25519_generate_version_1] failed to allocate memory", "error", err)
+		return 0
+	}
+
+	logger.Debug("[ext_crypto_ed25519_generate_version_1] generated ed25519 keypair", "public", kp.Public().Hex())
+	return C.int32_t(ret)
 }
 
 //export ext_crypto_ed25519_public_keys_version_1
-func ext_crypto_ed25519_public_keys_version_1(context unsafe.Pointer, a C.int32_t) C.int64_t {
+func ext_crypto_ed25519_public_keys_version_1(context unsafe.Pointer, keyTypeID C.int32_t) C.int64_t {
 	logger.Trace("[ext_crypto_ed25519_public_keys_version_1] executing...")
-	logger.Warn("[ext_crypto_ed25519_public_keys_version_1] unimplemented")
-	return 0
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+
+	keys := runtimeCtx.Keystore.Ed25519PublicKeys()
+	sort.Slice(keys, func(i int, j int) bool { return bytes.Compare(keys[i].Encode(), keys[j].Encode()) < 0 })
+
+	var encodedKeys []byte
+	for _, key := range keys {
+		encodedKeys = append(encodedKeys, key.Encode()...)
+	}
+
+	ret, err := toWasmMemoryOptional(instanceContext, encodedKeys)
+	if err != nil {
+		logger.Error("[ext_crypto_ed25519_public_keys_version_1] failed to allocate memory", err)
+		ret, _ = toWasmMemoryOptional(instanceContext, nil)
+		return C.int64_t(ret)
+	}
+
+	return C.int64_t(ret)
 }
 
 //export ext_crypto_ed25519_sign_version_1
-func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, a, z C.int32_t, y C.int64_t) C.int64_t {
+func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeID C.int32_t, key C.int32_t, msg C.int64_t) C.int64_t {
 	logger.Trace("[ext_crypto_ed25519_sign_version_1] executing...")
-	logger.Warn("[ext_crypto_ed25519_sign_version_1] unimplemented")
-	return 0
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+	memory := instanceContext.Memory().Data()
+
+	pubKeyData := memory[key : key+32]
+	pubKey, err := ed25519.NewPublicKey(pubKeyData)
+	if err != nil {
+		logger.Error("[ext_crypto_ed25519_sign_version_1] failed to get public keys", "error", err)
+		return 0
+	}
+
+	var ret int64
+	signingKey := runtimeCtx.Keystore.GetKeypair(pubKey)
+	if signingKey == nil {
+		logger.Error("[ext_crypto_ed25519_sign_version_1] could not find public key in keystore", "error", pubKey)
+		ret, err = toWasmMemoryOptional(instanceContext, nil)
+		if err != nil {
+			logger.Error("[ext_crypto_ed25519_sign_version_1] failed to allocate memory", err)
+			return 0
+		}
+		return C.int64_t(ret)
+	}
+
+	sig, err := signingKey.Sign(asMemorySlice(instanceContext, msg))
+	if err != nil {
+		logger.Error("[ext_crypto_ed25519_sign_version_1] could not sign message")
+	}
+
+	ret, err = toWasmMemoryOptional(instanceContext, sig)
+	if err != nil {
+		logger.Error("[ext_crypto_ed25519_sign_version_1] failed to allocate memory", err)
+		return 0
+	}
+
+	return C.int64_t(ret)
 }
 
 //export ext_crypto_ed25519_verify_version_1
-func ext_crypto_ed25519_verify_version_1(context unsafe.Pointer, a C.int32_t, z C.int64_t, y C.int32_t) C.int32_t {
+func ext_crypto_ed25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, msg C.int64_t, key C.int32_t) C.int32_t {
 	logger.Trace("[ext_crypto_ed25519_verify_version_1] executing...")
-	logger.Warn("[ext_crypto_ed25519_verify_version_1] unimplemented")
-	return 0
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+	signVerify := instanceContext.Data().(*runtime.Context).SigVerifier
+
+	signature := memory[sig : sig+64]
+	message := asMemorySlice(instanceContext, msg)
+	pubKeyData := memory[key : key+32]
+
+	pubKey, err := ed25519.NewPublicKey(pubKeyData)
+	if err != nil {
+		logger.Error("[ext_crypto_ed25519_verify_version_1] failed to access public Key")
+		return 0
+	}
+
+	if signVerify.IsStarted() {
+		signature := runtime.Signature{
+			PubKey:    pubKey.Encode(),
+			Sign:      signature,
+			Msg:       message,
+			KeyTypeID: crypto.Ed25519Type,
+		}
+		signVerify.Add(&signature)
+		return 1
+	}
+
+	if ok, err := pubKey.Verify(message, signature); err != nil || !ok {
+		logger.Error("[ext_crypto_ed25519_verify_version_1] failed to verify")
+		return 0
+	}
+
+	return 1
 }
 
 //export ext_crypto_finish_batch_verify_version_1
 func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t {
 	logger.Trace("[ext_crypto_finish_batch_verify_version_1] executing...")
-	logger.Warn("[ext_crypto_finish_batch_verify_version_1] unimplemented")
-	return 1
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	signVerify := instanceContext.Data().(*runtime.Context).SigVerifier
+
+	if !signVerify.IsStarted() {
+		logger.Error("[ext_crypto_finish_batch_verify_version_1] batch verification is not started", "error")
+		panic("batch verification is not started")
+	}
+
+	if signVerify.Finish() {
+		return 1
+	}
+	return 0
 }
 
 //export ext_crypto_secp256k1_ecdsa_recover_version_1
-func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, a, z C.int32_t) C.int64_t {
+func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, msg C.int32_t) C.int64_t {
 	logger.Trace("[ext_crypto_secp256k1_ecdsa_recover_version_1] executing...")
-	logger.Warn("[ext_crypto_secp256k1_ecdsa_recover_version_1] unimplemented")
-	return 0
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+
+	// msg must be the 32-byte hash of the message to be signed.
+	// sig must be a 65-byte compact ECDSA signature containing the
+	// recovery id as the last element
+	message := memory[msg : msg+32]
+	signature := memory[sig : sig+65]
+
+	pub, err := secp256k1.RecoverPublicKey(message, signature)
+	if err != nil {
+		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_version_1] failed to recover public key", "error", err)
+		var ret int64
+		ret, err = toWasmMemoryResult(instanceContext, nil)
+		if err != nil {
+			logger.Error("[ext_crypto_secp256k1_ecdsa_recover_version_1] failed to allocate memory", "error", err)
+			return 0
+		}
+		return C.int64_t(ret)
+	}
+
+	ret, err := toWasmMemoryResult(instanceContext, pub)
+	if err != nil {
+		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_version_1] failed to allocate memory", "error", err)
+		return 0
+	}
+
+	return C.int64_t(ret)
 }
 
 //export ext_crypto_secp256k1_ecdsa_recover_compressed_version_1
@@ -237,44 +400,190 @@ func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context unsafe.Poin
 }
 
 //export ext_crypto_sr25519_generate_version_1
-func ext_crypto_sr25519_generate_version_1(context unsafe.Pointer, a C.int32_t, z C.int64_t) C.int32_t {
+func ext_crypto_sr25519_generate_version_1(context unsafe.Pointer, keyTypeID C.int32_t, seedSpan C.int64_t) C.int32_t {
 	logger.Trace("[ext_crypto_sr25519_generate_version_1] executing...")
-	logger.Warn("[ext_crypto_sr25519_generate_version_1] unimplemented")
-	return 0
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+
+	// TODO: key types not yet implemented
+	// id := asMemorySlice(instanceContext,keyTypeID)
+
+	seedBytes := asMemorySlice(instanceContext, seedSpan)
+	buf := &bytes.Buffer{}
+	buf.Write(seedBytes)
+
+	seed, err := optional.NewBytes(false, nil).Decode(buf)
+	if err != nil {
+		logger.Warn("[ext_crypto_ed25519_generate_version_1] cannot generate key", "error", err)
+		return 0
+	}
+
+	var kp crypto.Keypair
+	if seed.Exists() {
+		// TODO: Use BIP39 mnemonic as seed to derive the key.
+		kp, err = sr25519.NewKeypairFromSeed(seedBytes)
+	} else {
+		kp, err = sr25519.GenerateKeypair()
+	}
+
+	if err != nil {
+		logger.Trace("[ext_crypto_sr25519_generate_version_1] cannot generate key", "error", err)
+		panic(err)
+	}
+
+	runtimeCtx.Keystore.Insert(kp)
+	ret, err := toWasmMemorySized(instanceContext, kp.Public().Encode(), 32)
+	if err != nil {
+		logger.Error("[ext_crypto_sr25519_generate_version_1] failed to allocate memory", "error", err)
+		return 0
+	}
+
+	logger.Debug("[ext_crypto_sr25519_generate_version_1] generated sr25519 keypair", "public", kp.Public().Hex())
+	return C.int32_t(ret)
 }
 
 //export ext_crypto_sr25519_public_keys_version_1
-func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, a C.int32_t) C.int64_t {
+func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, keyTypeID C.int32_t) C.int64_t {
 	logger.Trace("[ext_crypto_sr25519_public_keys_version_1] executing...")
-	logger.Warn("[ext_crypto_sr25519_public_keys_version_1] unimplemented")
-	return 0
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+
+	keys := runtimeCtx.Keystore.Sr25519PublicKeys()
+	sort.Slice(keys, func(i int, j int) bool { return bytes.Compare(keys[i].Encode(), keys[j].Encode()) < 0 })
+
+	var encodedKeys []byte
+	for i := 0; i <= len(keys)-1; i++ {
+		encodedKeys = append(encodedKeys, keys[i].Encode()...)
+	}
+
+	ret, err := toWasmMemoryOptional(instanceContext, encodedKeys)
+	if err != nil {
+		logger.Warn("[ext_crypto_ed25519_generate_version_1] failed to allocate memory", "error", err)
+		return 0
+	}
+	return C.int64_t(ret)
 }
 
 //export ext_crypto_sr25519_sign_version_1
-func ext_crypto_sr25519_sign_version_1(context unsafe.Pointer, a, z C.int32_t, y C.int64_t) C.int64_t {
+func ext_crypto_sr25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.int32_t, msg C.int64_t) C.int64_t {
 	logger.Trace("[ext_crypto_sr25519_sign_version_1] executing...")
-	logger.Warn("[ext_crypto_sr25519_sign_version_1] unimplemented")
-	return 0
+	instanceContext := wasm.IntoInstanceContext(context)
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+	memory := instanceContext.Memory().Data()
+
+	emptyRet, _ := toWasmMemoryOptional(instanceContext, nil)
+
+	var ret int64
+	pubKey, err := sr25519.NewPublicKey(memory[key : key+32])
+	if err != nil {
+		logger.Error("[ext_crypto_sr25519_sign_version_1] failed to get public key", "error", err)
+		return C.int64_t(emptyRet)
+	}
+
+	signingKey := runtimeCtx.Keystore.GetKeypair(pubKey)
+	if signingKey == nil {
+		logger.Error("[ext_crypto_sr25519_sign_version_1] could not find public key in keystore", "error", pubKey)
+		return C.int64_t(emptyRet)
+	}
+
+	msgData := asMemorySlice(instanceContext, msg)
+	sig, err := signingKey.Sign(msgData)
+	if err != nil {
+		logger.Error("[ext_crypto_sr25519_sign_version_1] could not sign message", "error", err)
+		return C.int64_t(emptyRet)
+	}
+
+	ret, err = toWasmMemoryOptional(instanceContext, sig)
+	if err != nil {
+		logger.Error("[ext_crypto_sr25519_sign_version_1] failed to allocate memory", "error", err)
+		return C.int64_t(emptyRet)
+	}
+
+	return C.int64_t(ret)
 }
 
 //export ext_crypto_sr25519_verify_version_1
-func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, a C.int32_t, z C.int64_t, y C.int32_t) C.int32_t {
+func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, msg C.int64_t, key C.int32_t) C.int32_t {
 	logger.Trace("[ext_crypto_sr25519_verify_version_1] executing...")
-	logger.Warn("[ext_crypto_sr25519_verify_version_1] unimplemented")
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+	signVerify := instanceContext.Data().(*runtime.Context).SigVerifier
+
+	message := asMemorySlice(instanceContext, msg)
+	signature := memory[sig : sig+64]
+
+	pub, err := sr25519.NewPublicKey(memory[key : key+32])
+	if err != nil {
+		return 0
+	}
+
+	if signVerify.IsStarted() {
+		signature := runtime.Signature{
+			PubKey:    pub.Encode(),
+			Sign:      signature,
+			Msg:       message,
+			KeyTypeID: crypto.Sr25519Type,
+		}
+		signVerify.Add(&signature)
+		return 1
+	}
+
+	if ok, err := pub.Verify(message, signature); err != nil || !ok {
+		return 0
+	}
 	return 1
 }
 
 //export ext_crypto_sr25519_verify_version_2
-func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, a C.int32_t, z C.int64_t, y C.int32_t) C.int32_t {
+func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, msg C.int64_t, key C.int32_t) C.int32_t {
 	logger.Trace("[ext_crypto_sr25519_verify_version_2] executing...")
-	logger.Warn("[ext_crypto_sr25519_verify_version_2] unimplemented")
-	return 1
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+	signVerify := instanceContext.Data().(*runtime.Context).SigVerifier
+
+	message := asMemorySlice(instanceContext, msg)
+	signature := memory[sig : sig+64]
+
+	pub, err := sr25519.NewPublicKey(memory[key : key+32])
+	if err != nil {
+		return 0
+	}
+
+	if signVerify.IsStarted() {
+		signature := runtime.Signature{
+			PubKey:    pub.Encode(),
+			Sign:      signature,
+			Msg:       message,
+			KeyTypeID: crypto.Sr25519Type,
+		}
+		signVerify.Add(&signature)
+		return 1
+	}
+
+	if ok, err := pub.Verify(message, signature); err != nil || !ok {
+		return 0
+	}
+
+	return C.int32_t(1)
 }
 
 //export ext_crypto_start_batch_verify_version_1
 func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
 	logger.Trace("[ext_crypto_start_batch_verify_version_1] executing...")
-	logger.Warn("[ext_crypto_start_batch_verify_version_1] unimplemented")
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	sigVerify := instanceContext.Data().(*runtime.Context).SigVerifier
+
+	if sigVerify.IsStarted() {
+		logger.Error("[ext_crypto_start_batch_verify_version_1] previous batch verification is not finished")
+		return
+	}
+
+	go sigVerify.Start()
 }
 
 //export ext_trie_blake2_256_root_version_1
@@ -1447,7 +1756,7 @@ func toWasmMemorySized(context wasm.InstanceContext, data []byte, size uint32) (
 	return out, nil
 }
 
-// Wraps slice in optional and copies result to wasm memory. Returns resulting 64bit span descriptor
+// Wraps slice in optional.Bytes and copies result to wasm memory. Returns resulting 64bit span descriptor
 func toWasmMemoryOptional(context wasm.InstanceContext, data []byte) (int64, error) {
 	var opt *optional.Bytes
 	if data == nil {
@@ -1457,6 +1766,23 @@ func toWasmMemoryOptional(context wasm.InstanceContext, data []byte) (int64, err
 	}
 
 	enc, err := opt.Encode()
+	if err != nil {
+		return 0, err
+	}
+
+	return toWasmMemory(context, enc)
+}
+
+// Wraps slice in Result type and copies result to wasm memory. Returns resulting 64bit span descriptor
+func toWasmMemoryResult(context wasm.InstanceContext, data []byte) (int64, error) {
+	var res *rtype.Result
+	if len(data) == 0 {
+		res = rtype.NewResult(byte(1), nil)
+	} else {
+		res = rtype.NewResult(byte(0), data)
+	}
+
+	enc, err := res.Encode()
 	if err != nil {
 		return 0, err
 	}
@@ -1544,7 +1870,6 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
 	if err != nil {
 		return nil, err
 	}
-
 	_, err = imports.Append("ext_default_child_storage_clear_version_1", ext_default_child_storage_clear_version_1, C.ext_default_child_storage_clear_version_1)
 	if err != nil {
 		return nil, err

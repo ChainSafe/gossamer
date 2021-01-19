@@ -23,7 +23,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
-
 	secp256k1 "github.com/ethereum/go-ethereum/crypto"
 )
 
@@ -45,6 +44,11 @@ type Keypair struct {
 // PublicKey struct for PublicKey
 type PublicKey struct {
 	key ecdsa.PublicKey
+}
+
+// RecoverPublicKey returns the uncompressed public key that created the given signature.
+func RecoverPublicKey(msg, sig []byte) ([]byte, error) {
+	return secp256k1.Ecrecover(msg, sig)
 }
 
 // PrivateKey struct for PrivateKey
@@ -145,6 +149,17 @@ func (k *PublicKey) Verify(msg, sig []byte) (bool, error) {
 	}
 
 	return secp256k1.VerifySignature(k.Encode(), msg, sig), nil
+}
+
+// UnmarshalPubkey converts [65]byte to a secp256k1 public key.
+func (k *PublicKey) UnmarshalPubkey(pub []byte) error {
+	pubKey, err := secp256k1.UnmarshalPubkey(pub)
+	if err != nil {
+		return err
+	}
+
+	k.key = *pubKey
+	return nil
 }
 
 // Encode will encode to []byte

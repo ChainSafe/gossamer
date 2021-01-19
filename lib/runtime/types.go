@@ -21,7 +21,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/scale"
-
 	log "github.com/ChainSafe/log15"
 )
 
@@ -81,7 +80,7 @@ type Context struct {
 	NodeStorage NodeStorage
 	Network     BasicNetwork
 	Transaction TransactionState
-
+	SigVerifier *SignatureVerifier
 	// TransactionStorageChanges is used by ext_storage_start_transaction to keep track of
 	// changes made after it's called. The next call to ext_storage_commit_transaction will
 	// commit all the changes, or if ext_storage_rollback_transaction is called, the changes
