@@ -205,7 +205,7 @@ func NewBABEPreRuntimeDigest(data []byte) *PreRuntimeDigest {
 
 // String returns the digest as a string
 func (d *PreRuntimeDigest) String() string {
-	return fmt.Sprintf("PreRuntimeDigest ConsensusEngineID=%s Data=0x%x", d.ConsensusEngineID, d.Data)
+	return fmt.Sprintf("PreRuntimeDigest ConsensusEngineID=%s Data=0x%x", d.ConsensusEngineID.ToBytes(), d.Data)
 }
 
 // Type will return PreRuntimeDigestType
@@ -254,7 +254,7 @@ type ConsensusDigest struct {
 
 // String returns the digest as a string
 func (d *ConsensusDigest) String() string {
-	return fmt.Sprintf("ConsensusDigest ConsensusEngineID=%s Data=0x%x", d.ConsensusEngineID, d.Data)
+	return fmt.Sprintf("ConsensusDigest ConsensusEngineID=%s Data=0x%x", d.ConsensusEngineID.ToBytes(), d.Data)
 }
 
 // Type returns the ConsensusDigest type
@@ -307,7 +307,7 @@ type SealDigest struct {
 
 // String returns the digest as a string
 func (d *SealDigest) String() string {
-	return fmt.Sprintf("SealDigest ConsensusEngineID=%s Data=0x%x", d.ConsensusEngineID, d.Data)
+	return fmt.Sprintf("SealDigest ConsensusEngineID=%s Data=0x%x", d.ConsensusEngineID.ToBytes(), d.Data)
 }
 
 // Type will return SealDigest type
