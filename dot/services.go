@@ -117,7 +117,6 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore,
 		rtCfg.NodeStorage = ns
 		rtCfg.Network = net
 		rtCfg.Role = cfg.Core.Roles
-
 		// create runtime executor
 		rt, err = wasmer.NewInstance(code, rtCfg)
 		if err != nil {

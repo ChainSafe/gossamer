@@ -210,6 +210,7 @@ func newLegacyInstance(code []byte, cfg *Config) (*LegacyInstance, error) {
 		NodeStorage: cfg.NodeStorage,
 		Network:     cfg.Network,
 		Transaction: cfg.Transaction,
+		SigVerifier: runtime.NewSignatureVerifier(),
 	}
 
 	logger.Debug("NewInstance", "runtimeCtx", runtimeCtx)
@@ -308,5 +309,5 @@ func int64ToPointerAndSize(in int64) (ptr int32, length int32) {
 
 // pointerAndSizeToInt64 converts int32 pointer and size to a int64
 func pointerAndSizeToInt64(ptr, size int32) int64 {
-	return int64(ptr) + (int64(size) << 32)
+	return int64(ptr) | (int64(size) << 32)
 }

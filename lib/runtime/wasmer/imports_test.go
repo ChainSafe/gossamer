@@ -19,10 +19,15 @@ package wasmer
 import (
 	"bytes"
 	"os"
+	"sort"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
+	"github.com/ChainSafe/gossamer/lib/common/types"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/scale"
@@ -416,6 +421,326 @@ func Test_ext_storage_set_version_1(t *testing.T) {
 	val, err := inst.inst.ctx.Storage.Get(testkey)
 	require.NoError(t, err)
 	require.Equal(t, testvalue, val)
+}
+
+func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	require.Equal(t, 0, inst.inst.ctx.Keystore.Size())
+
+	idData := []byte{2, 2, 2, 2}
+
+	// TODO: we currently don't provide a seed since the spec says the seed is an optional BIP-39 seed
+	// clarify whether this is a mnemonic or not
+	data := optional.NewBytes(false, nil)
+	seedData, err := data.Encode()
+	require.NoError(t, err)
+
+	params := append(idData, seedData...)
+
+	// we manually store and call the runtime function here since inst.exec assumes
+	// the data returned from the function is a pointer-size, but for ext_crypto_ed25519_generate_version_1,
+	// it's just a pointer
+	ptr, err := inst.inst.malloc(uint32(len(params)))
+	require.NoError(t, err)
+
+	inst.inst.store(params, int32(ptr))
+	dataLen := int32(len(params))
+
+	runtimeFunc, ok := inst.inst.vm.Exports["rtm_ext_crypto_ed25519_generate_version_1"]
+	require.True(t, ok)
+
+	ret, err := runtimeFunc(int32(ptr), dataLen)
+	require.NoError(t, err)
+
+	mem := inst.inst.vm.Memory.Data()
+	// TODO: why is this SCALE encoded? it should just be a 32 byte buffer. may be due to way test runtime is written.
+	pubKeyBytes := mem[ret.ToI32()+1 : ret.ToI32()+1+32]
+	pubKey, err := ed25519.NewPublicKey(pubKeyBytes)
+	require.NoError(t, err)
+
+	require.Equal(t, 1, inst.inst.ctx.Keystore.Size())
+	kp := inst.inst.ctx.Keystore.GetKeypair(pubKey)
+	require.NotNil(t, kp)
+}
+
+func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	require.Equal(t, 0, inst.inst.ctx.Keystore.Size())
+
+	var pubKeys [][]byte
+	for i := 0; i < 5; i++ {
+		kp, err := ed25519.GenerateKeypair()
+		if err != nil {
+			t.Fatal(err)
+		}
+		inst.inst.ctx.Keystore.Insert(kp)
+		pubKeys = append(pubKeys, kp.Public().Encode())
+	}
+
+	sort.Slice(pubKeys, func(i int, j int) bool { return bytes.Compare(pubKeys[i], pubKeys[j]) < 0 })
+
+	var expectedPubKeys []byte
+	for _, key := range pubKeys {
+		expectedPubKeys = append(expectedPubKeys, key...)
+	}
+
+	idData := []byte{2, 2, 2, 2}
+
+	res, err := inst.Exec("rtm_ext_crypto_ed25519_public_keys_version_1", idData)
+	require.NoError(t, err)
+
+	out, err := scale.Decode(res, []byte{})
+	require.NoError(t, err)
+
+	buf := &bytes.Buffer{}
+	buf.Write(out.([]byte))
+
+	value, err := new(optional.Bytes).Decode(buf)
+	require.NoError(t, err)
+
+	require.Equal(t, expectedPubKeys, value.Value())
+}
+
+func Test_ext_crypto_ed25519_sign_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	kp, err := ed25519.GenerateKeypair()
+	require.NoError(t, err)
+
+	inst.inst.ctx.Keystore.Insert(kp)
+
+	idData := []byte{2, 2, 2, 2}
+
+	pubKeyData := kp.Public().Encode()
+	encPubKey, err := scale.Encode(pubKeyData)
+	require.NoError(t, err)
+
+	msgData := []byte("Hello world!")
+	encMsg, err := scale.Encode(msgData)
+	require.NoError(t, err)
+
+	res, err := inst.Exec("rtm_ext_crypto_ed25519_sign_version_1", append(append(idData, encPubKey...), encMsg...))
+	require.NoError(t, err)
+
+	out, err := scale.Decode(res, []byte{})
+	require.NoError(t, err)
+
+	buf := &bytes.Buffer{}
+	buf.Write(out.([]byte))
+
+	value, err := new(optional.Bytes).Decode(buf)
+	require.NoError(t, err)
+
+	ok, err := kp.Public().Verify(msgData, value.Value())
+	require.NoError(t, err)
+
+	require.True(t, ok)
+}
+
+func Test_ext_crypto_ed25519_verify_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	kp, err := ed25519.GenerateKeypair()
+	require.NoError(t, err)
+
+	inst.inst.ctx.Keystore.Insert(kp)
+
+	pubKeyData := kp.Public().Encode()
+	encPubKey, err := scale.Encode(pubKeyData)
+	require.NoError(t, err)
+
+	msgData := []byte("Hello world!")
+	encMsg, err := scale.Encode(msgData)
+	require.NoError(t, err)
+
+	sign, err := kp.Private().Sign(msgData)
+	require.NoError(t, err)
+	encSign, err := scale.Encode(sign)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_crypto_ed25519_verify_version_1", append(append(encSign, encMsg...), encPubKey...))
+	require.NoError(t, err)
+
+	buf := &bytes.Buffer{}
+	buf.Write(ret)
+
+	read, err := new(optional.Bytes).Decode(buf)
+	require.NoError(t, err)
+
+	require.True(t, read.Exists())
+}
+
+func Test_ext_crypto_sr25519_generate_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	require.Equal(t, 0, inst.inst.ctx.Keystore.Size())
+
+	idData := []byte{2, 2, 2, 2}
+
+	data := optional.NewBytes(false, nil)
+	seedData, err := data.Encode()
+	require.NoError(t, err)
+
+	params := append(idData, seedData...)
+
+	ret, err := inst.Exec("rtm_ext_crypto_sr25519_generate_version_1", params)
+	require.NoError(t, err)
+
+	out, err := scale.Decode(ret, []byte{})
+	require.NoError(t, err)
+
+	pubKey, err := ed25519.NewPublicKey(out.([]byte))
+	require.NoError(t, err)
+	require.Equal(t, 1, inst.inst.ctx.Keystore.Size())
+
+	kp := inst.inst.ctx.Keystore.GetKeypair(pubKey)
+	require.NotNil(t, kp)
+}
+
+func Test_ext_crypto_secp256k1_ecdsa_recover_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	msgData := []byte("Hello world!")
+	blakeHash, err := common.Blake2bHash(msgData)
+	require.NoError(t, err)
+
+	kp, err := secp256k1.GenerateKeypair()
+	require.NoError(t, err)
+
+	inst.inst.ctx.Keystore.Insert(kp)
+	sigData, err := kp.Private().Sign(blakeHash.ToBytes())
+	require.NoError(t, err)
+
+	expectedPubKey := kp.Public().Encode()
+
+	encSign, err := scale.Encode(sigData)
+	require.NoError(t, err)
+	encMsg, err := scale.Encode(blakeHash.ToBytes())
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_crypto_secp256k1_ecdsa_recover_version_1", append(encSign, encMsg...))
+	require.NoError(t, err)
+
+	out, err := scale.Decode(ret, []byte{})
+	require.NoError(t, err)
+
+	buf := &bytes.Buffer{}
+	buf.Write(out.([]byte))
+
+	uncomPubKey, err := new(types.Result).Decode(buf)
+	require.NoError(t, err)
+
+	publicKey := new(secp256k1.PublicKey)
+
+	// Generates [33]byte compressed key from uncompressed [65]byte public key.
+	err = publicKey.UnmarshalPubkey(uncomPubKey.Value())
+	require.NoError(t, err)
+
+	require.Equal(t, expectedPubKey, publicKey.Encode())
+}
+
+func Test_ext_crypto_sr25519_public_keys_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	require.Equal(t, 0, inst.inst.ctx.Keystore.Size())
+
+	var pubKeys [][]byte
+	for i := 0; i < 5; i++ {
+		kp, err := sr25519.GenerateKeypair()
+		if err != nil {
+			t.Fatal(err)
+		}
+		inst.inst.ctx.Keystore.Insert(kp)
+		pubKeys = append(pubKeys, kp.Public().Encode())
+	}
+
+	sort.Slice(pubKeys, func(i int, j int) bool { return bytes.Compare(pubKeys[i], pubKeys[j]) < 0 })
+
+	var expectedPubKeys []byte
+	for _, key := range pubKeys {
+		expectedPubKeys = append(expectedPubKeys, key...)
+	}
+
+	res, err := inst.Exec("rtm_ext_crypto_sr25519_public_keys_version_1", []byte{2, 2, 2, 2})
+	require.NoError(t, err)
+
+	out, err := scale.Decode(res, []byte{})
+	require.NoError(t, err)
+
+	buf := &bytes.Buffer{}
+	buf.Write(out.([]byte))
+
+	value, err := new(optional.Bytes).Decode(buf)
+	require.NoError(t, err)
+
+	require.Equal(t, expectedPubKeys, value.Value())
+}
+
+func Test_ext_crypto_sr25519_sign_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	kp, err := sr25519.GenerateKeypair()
+	require.NoError(t, err)
+
+	inst.inst.ctx.Keystore.Insert(kp)
+
+	pubKeyData := kp.Public().Encode()
+	encPubKey, err := scale.Encode(pubKeyData)
+	require.NoError(t, err)
+
+	msgData := []byte("Hello world!")
+	encMsg, err := scale.Encode(msgData)
+	require.NoError(t, err)
+
+	idData := []byte{2, 2, 2, 2}
+
+	res, err := inst.Exec("rtm_ext_crypto_sr25519_sign_version_1", append(append(idData, encPubKey...), encMsg...))
+	require.NoError(t, err)
+
+	out, err := scale.Decode(res, []byte{})
+	require.NoError(t, err)
+
+	buf := &bytes.Buffer{}
+	buf.Write(out.([]byte))
+
+	value, err := new(optional.Bytes).Decode(buf)
+	require.NoError(t, err)
+
+	ok, err := kp.Public().Verify(msgData, value.Value())
+	require.NoError(t, err)
+
+	require.True(t, ok)
+}
+
+func Test_ext_crypto_sr25519_verify_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	kp, err := sr25519.GenerateKeypair()
+	require.NoError(t, err)
+
+	inst.inst.ctx.Keystore.Insert(kp)
+
+	pubKeyData := kp.Public().Encode()
+	encPubKey, err := scale.Encode(pubKeyData)
+	require.NoError(t, err)
+
+	msgData := []byte("Hello world!")
+	encMsg, err := scale.Encode(msgData)
+	require.NoError(t, err)
+
+	sign, err := kp.Private().Sign(msgData)
+	require.NoError(t, err)
+	encSign, err := scale.Encode(sign)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_crypto_sr25519_verify_version_1", append(append(encSign, encMsg...), encPubKey...))
+	require.NoError(t, err)
+
+	buf := &bytes.Buffer{}
+	buf.Write(ret)
+
+	read, err := new(optional.Bytes).Decode(buf)
+	require.NoError(t, err)
+
+	require.True(t, read.Exists())
 }
 
 func Test_ext_default_child_storage_read_version_1(t *testing.T) {
