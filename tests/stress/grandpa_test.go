@@ -30,7 +30,7 @@ func TestStress_Grandpa_OneAuthority(t *testing.T) {
 	utils.GenerateGenesisOneAuth()
 	defer os.Remove(utils.GenesisOneAuth)
 
-	numNodes = 1
+	numNodes := 1
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisOneAuth, utils.ConfigBABEMaxThreshold)
 	require.NoError(t, err)
 
@@ -55,7 +55,7 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 	utils.GenerateGenesisThreeAuth()
 	defer os.Remove(utils.GenesisThreeAuths)
 
-	numNodes = 3
+	numNodes := 3
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisThreeAuths, utils.ConfigDefault)
 	require.NoError(t, err)
 
@@ -77,7 +77,7 @@ func TestStress_Grandpa_SixAuthorities(t *testing.T) {
 	utils.GenerateGenesisSixAuth()
 	defer os.Remove(utils.GenesisSixAuths)
 
-	numNodes = 6
+	numNodes := 6
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisSixAuths, utils.ConfigDefault)
 	require.NoError(t, err)
 
@@ -102,7 +102,7 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 	utils.CreateConfigLogGrandpa()
 	defer os.Remove(utils.ConfigLogGrandpa)
 
-	numNodes = 9
+	numNodes := 9
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDefault, utils.ConfigLogGrandpa)
 	require.NoError(t, err)
 
@@ -127,7 +127,7 @@ func TestStress_Grandpa_CatchUp(t *testing.T) {
 	utils.GenerateGenesisSixAuth()
 	defer os.Remove(utils.GenesisSixAuths)
 
-	numNodes = 6
+	numNodes := 6
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisSixAuths, utils.ConfigDefault)
 	require.NoError(t, err)
 
