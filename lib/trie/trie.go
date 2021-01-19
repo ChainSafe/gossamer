@@ -401,6 +401,12 @@ func (t *Trie) getKeysWithPrefix(parent node, prefix, key []byte, keys [][]byte)
 			return keys
 		}
 
+		if len(key) <= len(p.key) {
+			// no prefixed keys to be found here, return
+			return keys
+		}
+
+		key = key[len(p.key):]
 		keys = t.getKeysWithPrefix(p.children[key[0]], append(append(prefix, p.key...), key[0]), key[1:], keys)
 	case *leaf:
 		keys = append(keys, nibblesToKeyLE(append(prefix, p.key...)))
