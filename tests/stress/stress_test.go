@@ -34,7 +34,7 @@ import (
 func TestMain(m *testing.M) {
 	if utils.MODE != "stress" {
 		_, _ = fmt.Fprintln(os.Stdout, "Skipping stress test")
-		return
+		//return
 	}
 
 	if utils.HOSTNAME == "" {

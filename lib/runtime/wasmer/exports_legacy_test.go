@@ -1,6 +1,7 @@
 package wasmer
 
 import (
+	"fmt"
 	"math/big"
 	"reflect"
 	"testing"
@@ -371,8 +372,23 @@ func TestValidateTransaction_AuthoritiesChange(t *testing.T) {
 	require.Equal(t, expected, validity)
 }
 
-func TestValidateTransaction_IncludeData(t *testing.T) {
+func TestValidationTransaction(t *testing.T) {
 	rt := NewTestLegacyInstance(t, runtime.NODE_RUNTIME)
+	extBytes, err := common.HexToBytes("0x2d0284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0138ff00be2805cfb430300a6d7dfd0d8e5e73aca8f9f1de5f85ff3b4c6794077c29b6ef02f34c33ff9ca69dccd614e450f8f250362159b1612dbb4ca7ed9e00820000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48e5c0")
+	require.NoError(t, err)
+
+	var params = []byte{uint8(2)}
+	params = append(params, extBytes...)
+
+	ext := types.Extrinsic(params)
+	hash, err := rt.ValidateTransaction(ext)
+	require.NoError(t, err)
+
+	fmt.Println(hash)
+}
+
+func TestValidateTransaction_IncludeData(t *testing.T) {
+	rt := NewTestLegacyInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)
 
 	ext := extrinsic.NewIncludeDataExt([]byte("nootwashere"))
 	tx, err := ext.Encode()

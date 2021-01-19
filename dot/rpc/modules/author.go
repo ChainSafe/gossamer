@@ -28,6 +28,29 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
+const (
+	// InBlock indicates transaction is already included in block.
+	//
+	// This means that we can't really tell where the transaction is coming from,
+	// since it's already in the received block. Note that the custom validation logic
+	// using either `Local` or `External` should most likely just allow `InBlock`
+	// transactions as well.
+	InBlock = uint8(iota)
+
+	// Local indicates transaction is coming from a local source.
+	//
+	// This means that the transaction was produced internally by the node
+	// (for instance an Off-Chain Worker, or an Off-Chain Call), as opposed
+	// to being received over the network.
+	Local
+
+	// External indicates transaction has been received externally.
+	//
+	// This means the transaction has been received from (usually) "untrusted" source,
+	// for instance received over the network or RPC.
+	External
+)
+
 // AuthorModule holds a pointer to the API
 type AuthorModule struct {
 	logger     log.Logger
@@ -40,7 +63,15 @@ type AuthorModule struct {
 type KeyInsertRequest []string
 
 // Extrinsic represents a hex-encoded extrinsic
-type Extrinsic string
+type Extrinsic struct {
+	Data string
+}
+
+// TransactionSource represents source of Transaction
+// `InBlock`,
+type TransactionSource struct {
+	Source uint8
+}
 
 // ExtrinsicOrHash is a type for Hash and Extrinsic array of bytes
 type ExtrinsicOrHash struct {
@@ -163,14 +194,19 @@ func (cm *AuthorModule) SubmitAndWatchExtrinsic(r *http.Request, req *Extrinsic,
 
 // SubmitExtrinsic Submit a fully formatted extrinsic for block inclusion
 func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *ExtrinsicHashResponse) error {
-	extBytes, err := common.HexToBytes(string(*req))
+	extBytes, err := common.HexToBytes(req.Data)
 	if err != nil {
 		return err
 	}
 
 	cm.logger.Trace("[rpc]", "extrinsic", extBytes)
 
-	ext := types.Extrinsic(extBytes)
+	// For RPC calls `External`
+	ts := TransactionSource{External}
+	var params = []byte{ts.Source}
+	params = append(params, extBytes...)
+
+	ext := types.Extrinsic(params)
 	// validate the transaction
 	txv, err := cm.runtimeAPI.ValidateTransaction(ext)
 	if err != nil {
