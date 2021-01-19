@@ -26,8 +26,9 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/utils"
-
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/require"
 )
@@ -124,6 +125,27 @@ func (trn *TestRuntimeNetwork) NetworkState() common.NetworkState {
 		PeerID:     "12D3KooWDcCNBqAemRvguPa7rtmsbn2hpgLqAz8KsMMFsF2rdCUP",
 		Multiaddrs: testAddrs,
 	}
+}
+
+func generateEd25519Signatures(t *testing.T, n int) []*Signature {
+	t.Helper()
+	signs := make([]*Signature, n)
+	for i := 0; i < n; i++ {
+		msg := []byte("Hello")
+		key, err := ed25519.GenerateKeypair()
+		require.NoError(t, err)
+
+		sign, err := key.Private().Sign(msg)
+		require.NoError(t, err)
+
+		signs[i] = &Signature{
+			PubKey:    key.Public().Encode(),
+			Sign:      sign,
+			Msg:       msg,
+			KeyTypeID: crypto.Ed25519Type,
+		}
+	}
+	return signs
 }
 
 // GenerateRuntimeWasmFile generates all runtime wasm files.
