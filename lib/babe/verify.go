@@ -18,7 +18,6 @@ package babe
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"math/big"
@@ -200,7 +199,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 		return ErrAuthorityDisabled
 	}
 
-	verifier, err := newVerifier(v.blockState, info)
+	verifier, err := newVerifier(v.blockState, epoch, info)
 	if err != nil {
 		return fmt.Errorf("failed to create new BABE verifier: %w", err)
 	}
@@ -285,13 +284,14 @@ func (v *VerificationManager) getConfigData(epoch uint64) (*types.ConfigData, er
 // verifier is a BABE verifier for a specific authority set, randomness, and threshold
 type verifier struct {
 	blockState  BlockState
+	epoch       uint64
 	authorities []*types.Authority
 	randomness  [types.RandomnessLength]byte
 	threshold   *big.Int
 }
 
 // newVerifier returns a Verifier for the epoch described by the given descriptor
-func newVerifier(blockState BlockState, info *verifierInfo) (*verifier, error) {
+func newVerifier(blockState BlockState, epoch uint64, info *verifierInfo) (*verifier, error) {
 	if blockState == nil {
 		return nil, ErrNilBlockState
 	}
@@ -435,16 +435,17 @@ func (b *verifier) verifySlotWinner(authorityIndex uint32, slot uint64, vrfOutpu
 
 	pub := b.authorities[authorityIndex].Key
 
-	slotBytes := make([]byte, 8)
-	binary.LittleEndian.PutUint64(slotBytes, slot)
-	vrfInput := append(slotBytes, b.randomness[:]...)
+	// slotBytes := make([]byte, 8)
+	// binary.LittleEndian.PutUint64(slotBytes, slot)
+	// vrfInput := append(slotBytes, b.randomness[:]...)
 
 	pk, err := sr25519.NewPublicKey(pub.Encode())
 	if err != nil {
 		return false, err
 	}
 
-	return pk.VrfVerify(vrfInput, vrfOutput[:], vrfProof[:])
+	t := makeTranscript(b.randomness, slot, b.epoch)
+	return pk.VrfVerify(t, vrfOutput[:], vrfProof[:])
 }
 
 func getAuthorityIndex(header *types.Header) (uint32, error) {

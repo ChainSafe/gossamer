@@ -14,7 +14,7 @@ type VRFTranscriptData struct {
 
 // VRFTranscriptValue represents a value to be added to a transcript
 type VRFTranscriptValue struct { // TODO: turn this into a variadic type
-	Bytes []byte 
+	Bytes  []byte
 	Uint64 *uint64
 }
 
@@ -26,13 +26,18 @@ func MakeTranscript(data *VRFTranscriptData) *merlin.Transcript {
 		if val.Bytes != nil {
 			t.AppendMessage([]byte(label), val.Bytes)
 		} else if val.Uint64 != nil {
-			buf := make([]byte, 8)
-			binary.LittleEndian.PutUint64(buf, *val.Uint64)
-			t.AppendMessage([]byte(label), buf)
+			AppendUint64(t, []byte(label), *val.Uint64)
 		} else {
 			panic("invalid VRFTranscriptValue")
 		}
 	}
 
+	return t
+}
+
+func AppendUint64(t *merlin.Transcript, label []byte, n uint64) *merlin.Transcript {
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, n)
+	t.AppendMessage(label, buf)
 	return t
 }

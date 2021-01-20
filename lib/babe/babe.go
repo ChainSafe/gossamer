@@ -453,21 +453,21 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		return ErrNotAuthorized
 	}
 
-	if b.slotToProof[slotNum] == nil {
-		// if we don't have a proof already set, re-run lottery.
-		proof, err := b.runLottery(slotNum)
-		if err != nil {
-			logger.Warn("failed to run lottery", "slot", slotNum)
-			return errors.New("failed to run lottery")
-		}
+	// if b.slotToProof[slotNum] == nil {
+	// 	// if we don't have a proof already set, re-run lottery.
+	// 	proof, err := b.runLottery(slotNum)
+	// 	if err != nil {
+	// 		logger.Warn("failed to run lottery", "slot", slotNum)
+	// 		return errors.New("failed to run lottery")
+	// 	}
 
-		if proof == nil {
-			logger.Debug("not authorized to produce block", "slot", slotNum)
-			return ErrNotAuthorized
-		}
+	// 	if proof == nil {
+	// 		logger.Debug("not authorized to produce block", "slot", slotNum)
+	// 		return ErrNotAuthorized
+	// 	}
 
-		b.slotToProof[slotNum] = proof
-	}
+	// 	b.slotToProof[slotNum] = proof
+	// }
 
 	parentHeader, err := b.blockState.BestBlockHeader()
 	if err != nil {
@@ -532,10 +532,6 @@ func (b *Service) handleSlot(slotNum uint64) error {
 	return nil
 }
 
-func (b *Service) vrfSign(input []byte) (out []byte, proof []byte, err error) {
-	return b.keypair.VrfSign(input)
-}
-
 // CalculateThreshold calculates the slot lottery threshold
 // equation: threshold = 2^128 * (1 - (1-c)^(1/len(authorities))
 func CalculateThreshold(C1, C2 uint64, numAuths int) (*big.Int, error) {
@@ -555,9 +551,10 @@ func CalculateThreshold(C1, C2 uint64, numAuths int) (*big.Int, error) {
 	p := 1 - pp_exp
 	p_rat := new(big.Rat).SetFloat64(p)
 
-	// 1 << 256
-	q := new(big.Int).Lsh(big.NewInt(1), 256)
+	// 1 << 128
+	shift := new(big.Int).Lsh(big.NewInt(1), 128)
+	num_shift := new(big.Int).Mul(shift, p_rat.Num())
 
 	// (1 << 128) * (1 - (1-c)^(w_k/sum(w_i)))
-	return q.Mul(q, p_rat.Num()).Div(q, p_rat.Denom()), nil
+	return new(big.Int).Div(num_shift, p_rat.Denom()), nil
 }

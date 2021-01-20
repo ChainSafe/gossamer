@@ -24,6 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto"
 
 	sr25519 "github.com/ChainSafe/go-schnorrkel"
+	"github.com/gtank/merlin"
 )
 
 //nolint
@@ -182,8 +183,8 @@ func (kp *Keypair) Private() crypto.PrivateKey {
 }
 
 // VrfSign creates a VRF output and proof from a message and private key
-func (kp *Keypair) VrfSign(msg []byte) ([]byte, []byte, error) {
-	return kp.private.VrfSign(msg)
+func (kp *Keypair) VrfSign(t *merlin.Transcript) ([VrfOutputLength]byte, [VrfProofLength]byte, error) {
+	return kp.private.VrfSign(t)
 }
 
 // Sign uses the private key to sign the message using the sr25519 signature algorithm
@@ -201,15 +202,15 @@ func (k *PrivateKey) Sign(msg []byte) ([]byte, error) {
 }
 
 // VrfSign creates a VRF output and proof from a message and private key
-func (k *PrivateKey) VrfSign(msg []byte) ([]byte, []byte, error) {
-	t := sr25519.NewSigningContext(SigningContext, msg)
+func (k *PrivateKey) VrfSign(t *merlin.Transcript) ([VrfOutputLength]byte, [VrfProofLength]byte, error) {
+	//t := sr25519.NewSigningContext(SigningContext, msg)
 	inout, proof, err := k.key.VrfSign(t)
 	if err != nil {
-		return nil, nil, err
+		return [32]byte{}, [64]byte{}, err
 	}
 	out := inout.Output().Encode()
 	proofb := proof.Encode()
-	return out[:], proofb[:], nil
+	return out, proofb, nil
 }
 
 // Public returns the public key corresponding to this private key
@@ -278,7 +279,7 @@ func (k *PublicKey) Verify(msg, sig []byte) (bool, error) {
 }
 
 // VrfVerify confirms that the output and proof are valid given a message and public key
-func (k *PublicKey) VrfVerify(msg []byte, out []byte, proof []byte) (bool, error) {
+func (k *PublicKey) VrfVerify(t *merlin.Transcript, out []byte, proof []byte) (bool, error) {
 	if len(out) != VrfOutputLength {
 		return false, errors.New("invalid output length")
 	}
@@ -292,7 +293,7 @@ func (k *PublicKey) VrfVerify(msg []byte, out []byte, proof []byte) (bool, error
 	proofb := [64]byte{}
 	copy(proofb[:], proof)
 
-	t := sr25519.NewSigningContext(SigningContext, msg)
+	//t := sr25519.NewSigningContext(SigningContext, msg)
 	o := new(sr25519.VrfOutput)
 	err := o.Decode(outb)
 	if err != nil {
@@ -347,4 +348,15 @@ func (k *PublicKey) Hex() string {
 // AsBytes returns the key as a [PublicKeyLength]byte
 func (k *PublicKey) AsBytes() [PublicKeyLength]byte {
 	return k.key.Encode()
+}
+
+// AttachInput wraps schnorrkel *VrfOutput.AttachInput
+func AttachInput(output [VrfOutputLength]byte, pub *PublicKey, t *merlin.Transcript) *sr25519.VrfInOut {
+	out := sr25519.NewOutput(output)
+	return out.AttachInput(pub.key, t)
+}
+
+// MakeBytes wraps schnorrkel *VrfInOut.MakeBytes
+func MakeBytes(inout *sr25519.VrfInOut, size int, context []byte) []byte {
+	return inout.MakeBytes(size, context)
 }
