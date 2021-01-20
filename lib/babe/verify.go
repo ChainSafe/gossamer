@@ -299,6 +299,7 @@ func newVerifier(blockState BlockState, epoch uint64, info *verifierInfo) (*veri
 
 	return &verifier{
 		blockState:  blockState,
+		epoch:       epoch,
 		authorities: info.authorities,
 		randomness:  info.randomness,
 		threshold:   info.threshold,

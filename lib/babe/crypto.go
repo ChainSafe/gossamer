@@ -39,17 +39,6 @@ func makeTranscript(randomness [types.RandomnessLength]byte, slot, epoch uint64)
 	return t
 }
 
-func makeTranscriptData(randomness [types.RandomnessLength]byte, slot, epoch uint64) *crypto.VRFTranscriptData {
-	return &crypto.VRFTranscriptData{
-		Label: string(types.BabeEngineID[:]),
-		Items: map[string]*crypto.VRFTranscriptValue{
-			"slot number":      &crypto.VRFTranscriptValue{Uint64: &slot},
-			"current epoch":    &crypto.VRFTranscriptValue{Uint64: &epoch},
-			"chain randomness": &crypto.VRFTranscriptValue{Bytes: randomness[:]},
-		},
-	}
-}
-
 // claimPrimarySlot checks if a slot can be claimed. if it can be, then a *VrfOutputAndProof is returned, otherwise nil.
 // https://github.com/paritytech/substrate/blob/master/client/consensus/babe/src/authorship.rs#L239
 func claimPrimarySlot(randomness [types.RandomnessLength]byte,
@@ -69,9 +58,6 @@ func claimPrimarySlot(randomness [types.RandomnessLength]byte,
 		return nil, nil
 	}
 
-	// logger.Crit("claimPrimarySlot", "pub", keypair.Public().Encode(), "randomness", randomness, "slot", slot, "epoch", epoch,
-	// "output", out, "proof", proof)
-
 	return &VrfOutputAndProof{
 		output: out,
 		proof:  proof,
@@ -90,11 +76,7 @@ func checkPrimaryThreshold(randomness [types.RandomnessLength]byte,
 	res := sr25519.MakeBytes(inout, 16, babe_vrf_prefix)
 
 	inoutUint := commontypes.Uint128FromLEBytes(res)
-	if inoutUint.Cmp(threshold) < 0 {
-		return true
-	}
-
-	return false
+	return inoutUint.Cmp(threshold) < 0
 }
 
 // CalculateThreshold calculates the slot lottery threshold
