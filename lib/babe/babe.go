@@ -360,21 +360,10 @@ func (b *Service) initiate() {
 
 	// check if we are starting at genesis, if not, need to calculate slot
 	if bestNum.Cmp(big.NewInt(0)) == 1 && slotNum == 0 {
-		// if we have at least slotTail blocks, we can run the slotTime algorithm
-		if bestNum.Cmp(big.NewInt(int64(slotTail))) != -1 {
-			slotNum, err = b.getCurrentSlot()
-			if err != nil {
-				logger.Error("cannot get current slot", "error", err)
-				return
-			}
-		} else {
-			logger.Warn("cannot use median algorithm, not enough blocks synced")
-
-			slotNum, err = b.estimateCurrentSlot()
-			if err != nil {
-				logger.Error("cannot get current slot", "error", err)
-				return
-			}
+		slotNum, err = b.estimateCurrentSlot()
+		if err != nil {
+			logger.Error("cannot get current slot", "error", err)
+			return
 		}
 	}
 
@@ -402,9 +391,12 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 	// starting slot for next epoch
 	nextStartSlot := startSlot + b.epochLength - intoEpoch
 
-	// TODO: fix
+	// if the calculated amount of slots "into the epoch" is greater than the epoch length,
+	// we've been offline for more than an epoch, and need to sync. pause BABE for now, syncer will
+	// resume it when ready
 	if b.epochLength < intoEpoch {
-		intoEpoch = 0
+		b.paused = true
+		return
 	}
 
 	slotDone := make([]<-chan time.Time, b.epochLength-intoEpoch)

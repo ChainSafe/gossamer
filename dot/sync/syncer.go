@@ -271,7 +271,6 @@ func (s *Service) HandleBlockResponse(msg *network.BlockResponseMessage) *networ
 
 	// not yet synced, send another block request for the following blocks
 	start = bestNum.Int64() + 1
-	s.logger.Info("HandleBlockResponse", "best block number", bestNum)
 	return s.createBlockRequest(start)
 }
 
