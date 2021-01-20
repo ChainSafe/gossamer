@@ -121,11 +121,13 @@ func TestHandleBlockAnnounceHandshake_GreaterThanHighestSeen_NotSynced(t *testin
 	require.NotNil(t, req)
 	require.Equal(t, number, syncer.highestSeenBlock)
 
+	_, _ = state.AddBlocksToState(t, syncer.blockState.(*state.BlockState), 12)
+
 	number = big.NewInt(16)
 	req = syncer.HandleBlockAnnounceHandshake(number)
 	require.NotNil(t, req)
 	require.Equal(t, number, syncer.highestSeenBlock)
-	require.Equal(t, req.StartingBlock.Value().(uint64), uint64(12))
+	require.Equal(t, req.StartingBlock.Value().(uint64), uint64(13))
 }
 
 func TestHandleBlockAnnounceHandshake_GreaterThanHighestSeen_Synced(t *testing.T) {
@@ -138,6 +140,7 @@ func TestHandleBlockAnnounceHandshake_GreaterThanHighestSeen_Synced(t *testing.T
 
 	// synced to block 12
 	syncer.synced = true
+	_, _ = state.AddBlocksToState(t, syncer.blockState.(*state.BlockState), 12)
 
 	number = big.NewInt(16)
 	req = syncer.HandleBlockAnnounceHandshake(number)

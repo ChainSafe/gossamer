@@ -125,11 +125,10 @@ func (s *Service) HandleBlockAnnounceHandshake(blockNum *big.Int) *network.Block
 		return nil // TODO: handle this / panic?
 	}
 
-	if blockNum == nil || bestNum.Cmp(blockNum) != -1 {
+	if blockNum == nil || bestNum.Cmp(blockNum) != -1 || s.highestSeenBlock.Cmp(blockNum) >= 0 {
 		return nil
 	}
 
-	// if our head is lower than peer's
 	s.highestSeenBlock = blockNum
 
 	// need to sync
