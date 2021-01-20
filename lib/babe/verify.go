@@ -18,7 +18,6 @@ package babe
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"math/big"
