@@ -203,7 +203,6 @@ func (k *PrivateKey) Sign(msg []byte) ([]byte, error) {
 
 // VrfSign creates a VRF output and proof from a message and private key
 func (k *PrivateKey) VrfSign(t *merlin.Transcript) ([VrfOutputLength]byte, [VrfProofLength]byte, error) {
-	//t := sr25519.NewSigningContext(SigningContext, msg)
 	inout, proof, err := k.key.VrfSign(t)
 	if err != nil {
 		return [32]byte{}, [64]byte{}, err

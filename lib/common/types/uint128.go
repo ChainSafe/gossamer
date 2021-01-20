@@ -66,6 +66,14 @@ func Uint128FromLEBytes(in []byte) *Uint128 {
 	}
 }
 
+// String returns the Uint128 as a decimal string
+func (u *Uint128) String() string {
+	upper := big.NewInt(int64(u.upper))
+	upper = new(big.Int).Lsh(upper, 64)
+	lower := big.NewInt(int64(u.lower))
+	return new(big.Int).Or(upper, lower).String()
+}
+
 // ToLEBytes returns the Uint128 as a little endian byte slice
 func (u *Uint128) ToLEBytes() []byte {
 	buf := make([]byte, 16)

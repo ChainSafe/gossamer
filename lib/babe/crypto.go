@@ -76,6 +76,15 @@ func checkPrimaryThreshold(randomness [types.RandomnessLength]byte,
 	res := sr25519.MakeBytes(inout, 16, babe_vrf_prefix)
 
 	inoutUint := commontypes.Uint128FromLEBytes(res)
+
+	logger.Trace("checkPrimaryThreshold", "pub", pub.Encode(),
+		"randomness", randomness,
+		"slot", slot,
+		"epoch", epoch,
+		"threshold", threshold,
+		"inout", inoutUint,
+	)
+
 	return inoutUint.Cmp(threshold) < 0
 }
 

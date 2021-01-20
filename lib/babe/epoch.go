@@ -17,12 +17,9 @@
 package babe
 
 import (
-	//"encoding/binary"
 	"fmt"
-	//"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	//"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
 
 // initiateEpoch sets the randomness for the given epoch, runs the lottery for the slots in the epoch,
@@ -94,13 +91,6 @@ func (b *Service) initiateEpoch(epoch, startSlot uint64) error {
 	var err error
 	for i := startSlot; i < startSlot+b.epochLength; i++ {
 		b.slotToProof[i], err = b.runLottery(i, epoch)
-		// b.slotToProof[i], err = claimPrimarySlot(
-		// 	b.epochData.randomness,
-		// 	i,
-		// 	epoch,
-		// 	b.epochData.threshold,
-		// 	b.keypair,
-		// )
 		if err != nil {
 			return fmt.Errorf("error running slot lottery at slot %d: error %s", i, err)
 		}
@@ -131,30 +121,6 @@ func (b *Service) incrementEpoch() (uint64, error) {
 // returns an encoded VrfOutput and VrfProof if validator is authorized to produce a block for that slot, nil otherwise
 // output = return[0:32]; proof = return[32:96]
 func (b *Service) runLottery(slot, epoch uint64) (*VrfOutputAndProof, error) {
-	// slotBytes := make([]byte, 8)
-	// binary.LittleEndian.PutUint64(slotBytes, slot)
-	// vrfInput := append(slotBytes, b.epochData.randomness[:]...)
-
-	// output, proof, err := b.vrfSign(vrfInput)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// outputInt := big.NewInt(0).SetBytes(output[:])
-
-	// if outputInt.Cmp(b.epochData.threshold) < 0 {
-	// 	outbytes := [sr25519.VrfOutputLength]byte{}
-	// 	copy(outbytes[:], output)
-	// 	proofbytes := [sr25519.VrfProofLength]byte{}
-	// 	copy(proofbytes[:], proof)
-	// 	logger.Trace("lottery", "won slot", slot)
-	// 	return &VrfOutputAndProof{
-	// 		output: outbytes,
-	// 		proof:  proofbytes,
-	// 	}, nil
-	// }
-
-	// return nil, nil
 	return claimPrimarySlot(
 		b.epochData.randomness,
 		slot,

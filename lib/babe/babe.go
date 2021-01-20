@@ -205,7 +205,6 @@ func (b *Service) Start() error {
 		return err
 	}
 
-	// TODO: initiateEpoch sigabrts w/ non authority node epoch > 1. fix this!!
 	err = b.initiateEpoch(epoch, b.startSlot)
 	if err != nil {
 		logger.Error("failed to initiate epoch", "error", err)
@@ -401,6 +400,14 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 	// starting slot for next epoch
 	nextStartSlot := startSlot + b.epochLength - intoEpoch
 
+	// if the calculated amount of slots "into the epoch" is greater than the epoch length,
+	// we've been offline for more than an epoch, and need to sync. pause BABE for now, syncer will
+	// resume it when ready
+	if b.epochLength < intoEpoch {
+		b.paused = true
+		return
+	}
+
 	slotDone := make([]<-chan time.Time, b.epochLength-intoEpoch)
 	for i := 0; i < int(b.epochLength-intoEpoch); i++ {
 		slotDone[i] = time.After(b.getSlotDuration() * time.Duration(i))
@@ -451,22 +458,6 @@ func (b *Service) handleSlot(slotNum uint64) error {
 	if b.isDisabled {
 		return ErrNotAuthorized
 	}
-
-	// if b.slotToProof[slotNum] == nil {
-	// 	// if we don't have a proof already set, re-run lottery.
-	// 	proof, err := b.runLottery(slotNum)
-	// 	if err != nil {
-	// 		logger.Warn("failed to run lottery", "slot", slotNum)
-	// 		return errors.New("failed to run lottery")
-	// 	}
-
-	// 	if proof == nil {
-	// 		logger.Debug("not authorized to produce block", "slot", slotNum)
-	// 		return ErrNotAuthorized
-	// 	}
-
-	// 	b.slotToProof[slotNum] = proof
-	// }
 
 	parentHeader, err := b.blockState.BestBlockHeader()
 	if err != nil {
