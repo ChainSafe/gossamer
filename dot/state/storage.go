@@ -330,8 +330,11 @@ func (s *StorageState) GetKeysWithPrefix(hash *common.Hash, prefix []byte) ([][]
 		}
 		hash = &sr
 	}
-
-	return s.tries[*hash].GetKeysWithPrefix(prefix), nil
+	t := s.tries[*hash]
+	if t == nil {
+		return nil, fmt.Errorf("unable to retrieve trie with hash %x", *hash)
+	}
+	return t.GetKeysWithPrefix(prefix), nil
 }
 
 // GetStorageChild return GetChild from the trie
