@@ -431,23 +431,23 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 func (b *verifier) verifySlotWinner(authorityIndex uint32, slot uint64, vrfOutput [sr25519.VrfOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) (bool, error) {
 	return true, nil // TODO: fix threshold calculation and vrf verification
 
-	output := big.NewInt(0).SetBytes(vrfOutput[:])
-	if b.threshold.Cmp(output) < 0 {
-		return false, ErrVRFOutputOverThreshold
-	}
+	// output := big.NewInt(0).SetBytes(vrfOutput[:])
+	// if b.threshold.Cmp(output) < 0 {
+	// 	return false, ErrVRFOutputOverThreshold
+	// }
 
-	pub := b.authorities[authorityIndex].Key
+	// pub := b.authorities[authorityIndex].Key
 
-	slotBytes := make([]byte, 8)
-	binary.LittleEndian.PutUint64(slotBytes, slot)
-	vrfInput := append(slotBytes, b.randomness[:]...)
+	// slotBytes := make([]byte, 8)
+	// binary.LittleEndian.PutUint64(slotBytes, slot)
+	// vrfInput := append(slotBytes, b.randomness[:]...)
 
-	pk, err := sr25519.NewPublicKey(pub.Encode())
-	if err != nil {
-		return false, err
-	}
+	// pk, err := sr25519.NewPublicKey(pub.Encode())
+	// if err != nil {
+	// 	return false, err
+	// }
 
-	return pk.VrfVerify(vrfInput, vrfOutput[:], vrfProof[:])
+	// return pk.VrfVerify(vrfInput, vrfOutput[:], vrfProof[:])
 }
 
 func getAuthorityIndex(header *types.Header) (uint32, error) {
