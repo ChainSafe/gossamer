@@ -129,7 +129,7 @@ func (d *NextEpochData) ToEpochData() (*EpochData, error) {
 
 // BABEOnDisabled represents a GRANDPA authority being disabled
 type BABEOnDisabled struct {
-	ID uint64
+	ID uint32
 }
 
 // Encode returns a SCALE encoded BABEOnDisabled with first type byte

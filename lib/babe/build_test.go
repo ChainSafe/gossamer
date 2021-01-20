@@ -51,10 +51,13 @@ func TestSeal(t *testing.T) {
 	encHeader, err := header.Encode()
 	require.NoError(t, err)
 
+	hash, err := common.Blake2bHash(encHeader)
+	require.NoError(t, err)
+
 	seal, err := babeService.buildBlockSeal(header)
 	require.NoError(t, err)
 
-	ok, err := kp.Public().Verify(encHeader, seal.Data)
+	ok, err := kp.Public().Verify(hash[:], seal.Data)
 	require.NoError(t, err)
 
 	require.True(t, ok, "could not verify seal")

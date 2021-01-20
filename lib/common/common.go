@@ -207,6 +207,28 @@ func Read32Bytes(r io.Reader) ([32]byte, error) {
 	return h, nil
 }
 
+// Read64Bytes reads 64 bytes from the reader and returns it
+func Read64Bytes(r io.Reader) ([64]byte, error) {
+	buf := make([]byte, 64)
+	_, err := r.Read(buf)
+	if err != nil {
+		return [64]byte{}, err
+	}
+	h := [64]byte{}
+	copy(h[:], buf)
+	return h, nil
+}
+
+// ReadBytes reads the given number bytes from the reader and returns it
+func ReadBytes(r io.Reader, n int) ([]byte, error) {
+	buf := make([]byte, n)
+	_, err := r.Read(buf)
+	if err != nil {
+		return nil, err
+	}
+	return buf, nil
+}
+
 // Twox128Hash computes xxHash64 twice with seeds 0 and 1 applied on given byte array
 func Twox128Hash(msg []byte) ([]byte, error) {
 	// compute xxHash64 twice with seeds 0 and 1 applied on given byte array

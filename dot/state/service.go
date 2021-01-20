@@ -97,9 +97,12 @@ func (s *Service) Initialize(data *genesis.Data, header *types.Header, t *trie.T
 		return fmt.Errorf("failed to create database: %s", err)
 	}
 
+	if err = db.ClearAll(); err != nil {
+		return fmt.Errorf("failed to clear database: %s", err)
+	}
+
 	// write initial genesis values to database
-	err = s.storeInitialValues(db, data, header, t)
-	if err != nil {
+	if err = s.storeInitialValues(db, data, header, t); err != nil {
 		return fmt.Errorf("failed to write genesis values to database: %s", err)
 	}
 
@@ -129,7 +132,6 @@ func (s *Service) Initialize(data *genesis.Data, header *types.Header, t *trie.T
 
 	// check database type
 	if s.isMemDB {
-
 		// append memory database to state service
 		s.db = db
 
@@ -138,10 +140,8 @@ func (s *Service) Initialize(data *genesis.Data, header *types.Header, t *trie.T
 		s.Block = blockState
 		s.Epoch = epochState
 	} else {
-
 		// close database
-		err = db.Close()
-		if err != nil {
+		if err = db.Close(); err != nil {
 			return fmt.Errorf("failed to close database: %s", err)
 		}
 	}
@@ -151,28 +151,23 @@ func (s *Service) Initialize(data *genesis.Data, header *types.Header, t *trie.T
 
 // storeInitialValues writes initial genesis values to the state database
 func (s *Service) storeInitialValues(db chaindb.Database, data *genesis.Data, header *types.Header, t *trie.Trie) error {
-
 	// write genesis trie to database
-	err := StoreTrie(db, t)
-	if err != nil {
+	if err := StoreTrie(db, t); err != nil {
 		return fmt.Errorf("failed to write trie to database: %s", err)
 	}
 
 	// write storage hash to database
-	err = StoreLatestStorageHash(db, t.MustHash())
-	if err != nil {
+	if err := StoreLatestStorageHash(db, t.MustHash()); err != nil {
 		return fmt.Errorf("failed to write storage hash to database: %s", err)
 	}
 
 	// write best block hash to state database
-	err = StoreBestBlockHash(db, header.Hash())
-	if err != nil {
+	if err := StoreBestBlockHash(db, header.Hash()); err != nil {
 		return fmt.Errorf("failed to write best block hash to database: %s", err)
 	}
 
 	// write genesis data to state database
-	err = StoreGenesisData(db, data)
-	if err != nil {
+	if err := StoreGenesisData(db, data); err != nil {
 		return fmt.Errorf("failed to write genesis data to database: %s", err)
 	}
 
@@ -211,12 +206,11 @@ func (s *Service) Start() error {
 		return fmt.Errorf("failed to get best block hash: %w", err)
 	}
 
-	logger.Trace("start", "best block hash", fmt.Sprintf("0x%x", bestHash))
+	logger.Trace("start", "best block hash", bestHash)
 
 	// load blocktree
 	bt := blocktree.NewEmptyBlockTree(db)
-	err = bt.Load()
-	if err != nil {
+	if err = bt.Load(); err != nil {
 		return fmt.Errorf("failed to load blocktree: %w", err)
 	}
 
@@ -274,26 +268,22 @@ func (s *Service) Stop() error {
 		return errTrieDoesNotExist(head)
 	}
 
-	err = StoreLatestStorageHash(s.db, head)
-	if err != nil {
+	if err = StoreLatestStorageHash(s.db, head); err != nil {
 		return err
 	}
 
 	logger.Debug("storing latest storage trie", "hash", head)
 
-	err = s.Storage.StoreInDB(head)
-	if err != nil {
+	if err = s.Storage.StoreInDB(head); err != nil {
 		return err
 	}
 
-	err = s.Block.bt.Store()
-	if err != nil {
+	if err = s.Block.bt.Store(); err != nil {
 		return err
 	}
 
 	hash := s.Block.BestBlockHash()
-	err = StoreBestBlockHash(s.db, hash)
-	if err != nil {
+	if err = StoreBestBlockHash(s.db, hash); err != nil {
 		return err
 	}
 
@@ -305,8 +295,7 @@ func (s *Service) Stop() error {
 
 	logger.Debug("stop", "best block hash", hash, "latest state root", thash)
 
-	err = s.db.Flush()
-	if err != nil {
+	if err = s.db.Flush(); err != nil {
 		return err
 	}
 

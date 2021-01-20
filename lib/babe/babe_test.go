@@ -306,7 +306,7 @@ func TestGetAuthorityIndex(t *testing.T) {
 
 	idx, err := bs.getAuthorityIndex(authData)
 	require.NoError(t, err)
-	require.Equal(t, uint64(0), idx)
+	require.Equal(t, uint32(0), idx)
 
 	bs = &Service{
 		keypair:   kpB,
@@ -315,7 +315,7 @@ func TestGetAuthorityIndex(t *testing.T) {
 
 	idx, err = bs.getAuthorityIndex(authData)
 	require.NoError(t, err)
-	require.Equal(t, uint64(1), idx)
+	require.Equal(t, uint32(1), idx)
 }
 
 func TestStartAndStop(t *testing.T) {

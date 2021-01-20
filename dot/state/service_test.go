@@ -78,6 +78,34 @@ func TestService_Start(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestService_Initialize(t *testing.T) {
+	state := newTestService(t)
+	defer utils.RemoveTestDir(t)
+
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, types.Digest{})
+	require.NoError(t, err)
+
+	tr := trie.NewEmptyTrie()
+
+	genesisData := new(genesis.Data)
+
+	err = state.Initialize(genesisData, genesisHeader, tr, genesisBABEConfig)
+	require.NoError(t, err)
+
+	genesisHeader, err = types.NewHeader(common.NewHash([]byte{77}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, types.Digest{})
+	require.NoError(t, err)
+
+	err = state.Initialize(genesisData, genesisHeader, tr, genesisBABEConfig)
+	require.NoError(t, err)
+
+	err = state.Start()
+	require.NoError(t, err)
+
+	head, err := state.Block.BestBlockHeader()
+	require.NoError(t, err)
+	require.Equal(t, genesisHeader, head)
+}
+
 func TestMemDB_Start(t *testing.T) {
 	state := newTestMemDBService()
 

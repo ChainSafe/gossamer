@@ -652,13 +652,14 @@ func (bs *BlockState) GetSlotForBlock(hash common.Hash) (uint64, error) {
 		return 0, fmt.Errorf("first digest item is not pre-digest")
 	}
 
-	babeHeader := new(types.BabeHeader)
-	err = babeHeader.Decode(preDigest.Data)
+	r := &bytes.Buffer{}
+	_, _ = r.Write(preDigest.Data)
+	digest, err := types.DecodeBabePreDigest(r)
 	if err != nil {
-		return 0, fmt.Errorf("cannot decode babe header from pre-digest: %s", err)
+		return 0, fmt.Errorf("cannot decode BabePreDigest from pre-digest: %s", err)
 	}
 
-	return babeHeader.SlotNumber, nil
+	return digest.SlotNumber(), nil
 }
 
 // SubChain returns the sub-blockchain between the starting hash and the ending hash using the block tree

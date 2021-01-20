@@ -48,9 +48,10 @@ type Config struct {
 
 // LegacyInstance represents a v0.6 runtime go-wasmer instance
 type LegacyInstance struct {
-	vm    wasm.Instance
-	ctx   *runtime.Context
-	mutex sync.Mutex
+	vm      wasm.Instance
+	ctx     *runtime.Context
+	mutex   sync.Mutex
+	version *runtime.VersionAPI
 }
 
 // Instance represents a v0.8 runtime go-wasmer instance
@@ -216,10 +217,13 @@ func newLegacyInstance(code []byte, cfg *Config) (*LegacyInstance, error) {
 	logger.Debug("NewInstance", "runtimeCtx", runtimeCtx)
 	instance.SetContextData(runtimeCtx)
 
-	return &LegacyInstance{
+	inst := &LegacyInstance{
 		vm:  instance,
 		ctx: runtimeCtx,
-	}, nil
+	}
+
+	inst.version, _ = inst.Version()
+	return inst, nil
 }
 
 // SetContext sets the runtime's storage. It should be set before calls to the below functions.
