@@ -358,21 +358,10 @@ func (b *Service) initiate() {
 
 	// check if we are starting at genesis, if not, need to calculate slot
 	if bestNum.Cmp(big.NewInt(0)) == 1 && slotNum == 0 {
-		// if we have at least slotTail blocks, we can run the slotTime algorithm
-		if bestNum.Cmp(big.NewInt(int64(slotTail))) != -1 {
-			slotNum, err = b.getCurrentSlot()
-			if err != nil {
-				logger.Error("cannot get current slot", "error", err)
-				return
-			}
-		} else {
-			logger.Warn("cannot use median algorithm, not enough blocks synced")
-
-			slotNum, err = b.estimateCurrentSlot()
-			if err != nil {
-				logger.Error("cannot get current slot", "error", err)
-				return
-			}
+		slotNum, err = b.estimateCurrentSlot()
+		if err != nil {
+			logger.Error("cannot get current slot", "error", err)
+			return
 		}
 	}
 

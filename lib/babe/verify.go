@@ -408,10 +408,10 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 	switch d := babePreDigest.(type) {
 	case *types.BabePrimaryPreDigest:
 		ok, err = b.verifySlotWinner(d.AuthorityIndex(), d.SlotNumber(), d.VrfOutput(), d.VrfProof())
-	case *types.BabeSecondaryVRFPreDigest:
-		ok, err = b.verifySlotWinner(d.AuthorityIndex(), d.SlotNumber(), d.VrfOutput(), d.VrfProof())
-	case *types.BabeSecondaryPlainPreDigest:
-		// TODO: implement BABE secondary slot assignment
+	case *types.BabeSecondaryVRFPreDigest: // TODO: implement BABE secondary slot assignment
+		logger.Warn("not validating BabeSecondaryVRFPreDigest: BABE secondary slot assignment not implemented")
+		return babePreDigest, nil
+	case *types.BabeSecondaryPlainPreDigest: // TODO: implement BABE secondary slot assignment
 		logger.Warn("not validating BabeSecondaryPlainPreDigest: BABE secondary slot assignment not implemented")
 		return babePreDigest, nil
 	}

@@ -48,6 +48,7 @@ type Service struct {
 
 	// State interfaces
 	blockState       BlockState
+	epochState       EpochState
 	storageState     StorageState
 	transactionState TransactionState
 
@@ -84,6 +85,7 @@ type Service struct {
 type Config struct {
 	LogLvl              log.Lvl
 	BlockState          BlockState
+	EpochState          EpochState
 	StorageState        StorageState
 	TransactionState    TransactionState
 	Network             Network
@@ -155,6 +157,7 @@ func NewService(cfg *Config) (*Service, error) {
 		keys:                cfg.Keystore,
 		blkRec:              cfg.NewBlocks,
 		blockState:          cfg.BlockState,
+		epochState:          cfg.EpochState,
 		storageState:        cfg.StorageState,
 		transactionState:    cfg.TransactionState,
 		net:                 cfg.Network,
@@ -229,6 +232,10 @@ func (s *Service) handleBlocks(ctx context.Context) {
 				continue
 			}
 
+			if err := s.handleCurrentSlot(block.Header); err != nil {
+				logger.Warn("failed to handle epoch for block", "block", block.Header.Hash(), "error", err)
+			}
+
 			if err := s.handleChainReorg(prev, block.Header.Hash()); err != nil {
 				logger.Warn("failed to re-add transactions to chain upon re-org", "error", err)
 			}
@@ -244,6 +251,29 @@ func (s *Service) handleBlocks(ctx context.Context) {
 			return
 		}
 	}
+}
+
+func (s *Service) handleCurrentSlot(header *types.Header) error {
+	head := s.blockState.BestBlockHash()
+	if header.Hash() != head {
+		return nil
+	}
+
+	epoch, err := s.epochState.GetEpochForBlock(header)
+	if err != nil {
+		return err
+	}
+
+	currEpoch, err := s.epochState.GetCurrentEpoch()
+	if err != nil {
+		return err
+	}
+
+	if currEpoch == epoch {
+		return nil
+	}
+
+	return s.epochState.SetCurrentEpoch(epoch)
 }
 
 // receiveBlocks starts receiving blocks from the BABE session
