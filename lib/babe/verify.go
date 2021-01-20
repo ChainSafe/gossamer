@@ -25,6 +25,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	commontypes "github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
 
@@ -33,7 +34,7 @@ import (
 type verifierInfo struct {
 	authorities []*types.Authority
 	randomness  [types.RandomnessLength]byte
-	threshold   *big.Int
+	threshold   *commontypes.Uint128
 }
 
 // onDisabledInfo contains information about an authority that's been disabled at a certain
@@ -287,7 +288,7 @@ type verifier struct {
 	epoch       uint64
 	authorities []*types.Authority
 	randomness  [types.RandomnessLength]byte
-	threshold   *big.Int
+	threshold   *commontypes.Uint128
 }
 
 // newVerifier returns a Verifier for the epoch described by the given descriptor
@@ -428,24 +429,31 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 
 // verifySlotWinner verifies the claim for a slot
 func (b *verifier) verifySlotWinner(authorityIndex uint32, slot uint64, vrfOutput [sr25519.VrfOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) (bool, error) {
-	output := big.NewInt(0).SetBytes(vrfOutput[:])
-	if output.Cmp(b.threshold) >= 0 {
-		return false, ErrVRFOutputOverThreshold
-	}
-
 	pub := b.authorities[authorityIndex].Key
-
-	// slotBytes := make([]byte, 8)
-	// binary.LittleEndian.PutUint64(slotBytes, slot)
-	// vrfInput := append(slotBytes, b.randomness[:]...)
 
 	pk, err := sr25519.NewPublicKey(pub.Encode())
 	if err != nil {
 		return false, err
 	}
 
+	// check that VRF output was under threshold
+	ok := checkPrimaryThreshold(b.randomness,
+		slot,
+		b.epoch,
+		vrfOutput,
+		b.threshold,
+		pk,
+	)
+
+	if !ok {
+		return false, ErrVRFOutputOverThreshold
+	}
+
+	// validate VRF proof
+	// logger.Crit("verifySlotWinner", "pub", pub.Encode(), "randomness", b.randomness, "slot", slot, "epoch", b.epoch,
+	// "output", vrfOutput, "proof", vrfProof)
 	t := makeTranscript(b.randomness, slot, b.epoch)
-	return pk.VrfVerify(t, vrfOutput[:], vrfProof[:])
+	return pk.VrfVerify(t, vrfOutput, vrfProof)
 }
 
 func getAuthorityIndex(header *types.Header) (uint32, error) {

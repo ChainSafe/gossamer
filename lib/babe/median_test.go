@@ -72,7 +72,7 @@ func addBlocksToState(t *testing.T, babeService *Service, depth int, blockState 
 		babeService.epochData.authorityIndex = 0
 		slotNumber := uint64(i)
 
-		outAndProof, err := babeService.runLottery(slotNumber)
+		outAndProof, err := babeService.runLottery(slotNumber, testEpochIndex)
 		require.NoError(t, err)
 		require.NotNil(t, outAndProof, "proof was nil when over threshold")
 
@@ -124,7 +124,7 @@ func TestEstimateCurrentSlot(t *testing.T) {
 	babeService.epochData.authorityIndex = 0
 	slotNumber := uint64(17)
 
-	outAndProof, err := babeService.runLottery(slotNumber)
+	outAndProof, err := babeService.runLottery(slotNumber, testEpochIndex)
 	require.NoError(t, err)
 	require.NotNil(t, outAndProof, "proof was nil when over threshold")
 

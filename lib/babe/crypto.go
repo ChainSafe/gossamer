@@ -1,18 +1,35 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 package babe
 
 import (
+	"errors"
+	"math"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	commontypes "github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 
 	"github.com/gtank/merlin"
 )
 
-var babe_vrf_prefix = []byte("substrate-babe-vrf")
-
 // the code in this file is based off https://github.com/paritytech/substrate/blob/89275433863532d797318b75bb5321af098fea7c/primitives/consensus/babe/src/lib.rs#L93
+var babe_vrf_prefix = []byte("substrate-babe-vrf")
 
 func makeTranscript(randomness [types.RandomnessLength]byte, slot, epoch uint64) *merlin.Transcript {
 	t := merlin.NewTranscript(string(types.BabeEngineID[:]))
@@ -33,25 +50,27 @@ func makeTranscriptData(randomness [types.RandomnessLength]byte, slot, epoch uin
 	}
 }
 
+// claimPrimarySlot checks if a slot can be claimed. if it can be, then a *VrfOutputAndProof is returned, otherwise nil.
 // https://github.com/paritytech/substrate/blob/master/client/consensus/babe/src/authorship.rs#L239
 func claimPrimarySlot(randomness [types.RandomnessLength]byte,
 	slot, epoch uint64,
-	threshold *big.Int,
+	threshold *commontypes.Uint128,
 	keypair *sr25519.Keypair,
 ) (*VrfOutputAndProof, error) {
 	transcript := makeTranscript(randomness, slot, epoch)
-	//transcriptData :=  makeTranscriptData(randomness, slot, epoch)
-	transcript2 := makeTranscript(randomness, slot, epoch)
 
 	out, proof, err := keypair.VrfSign(transcript)
 	if err != nil {
 		return nil, err
 	}
 
-	inout := sr25519.AttachInput(out, keypair.Public().(*sr25519.PublicKey), transcript2)
-	res := sr25519.MakeBytes(inout, 16, babe_vrf_prefix)
+	ok := checkPrimaryThreshold(randomness, slot, epoch, out, threshold, keypair.Public().(*sr25519.PublicKey))
+	if !ok {
+		return nil, nil
+	}
 
-	// TODO: uint128 compare
+	// logger.Crit("claimPrimarySlot", "pub", keypair.Public().Encode(), "randomness", randomness, "slot", slot, "epoch", epoch,
+	// "output", out, "proof", proof)
 
 	return &VrfOutputAndProof{
 		output: out,
@@ -59,19 +78,63 @@ func claimPrimarySlot(randomness [types.RandomnessLength]byte,
 	}, nil
 }
 
-func verifySlotClaim(pub *sr25519.PublicKey) {
-
-}
-
+// checkPrimaryThreshold returns true if the authority was authorized to produce a block in the given slot and epoch
 func checkPrimaryThreshold(randomness [types.RandomnessLength]byte,
 	slot, epoch uint64,
 	output [sr25519.VrfOutputLength]byte,
-	threshold *big.Int,
+	threshold *commontypes.Uint128,
 	pub *sr25519.PublicKey,
 ) bool {
 	t := makeTranscript(randomness, slot, epoch)
 	inout := sr25519.AttachInput(output, pub, t)
 	res := sr25519.MakeBytes(inout, 16, babe_vrf_prefix)
-	// TODO: uint128 comparison
+
+	inoutUint := commontypes.Uint128FromLEBytes(res)
+	if inoutUint.Cmp(threshold) < 0 {
+		return true
+	}
+
 	return false
+}
+
+// CalculateThreshold calculates the slot lottery threshold
+// equation: threshold = 2^128 * (1 - (1-c)^(1/len(authorities))
+// see https://github.com/paritytech/substrate/blob/master/client/consensus/babe/src/authorship.rs#L44
+func CalculateThreshold(C1, C2 uint64, numAuths int) (*commontypes.Uint128, error) {
+	c := float64(C1) / float64(C2)
+	if c > 1 {
+		return nil, errors.New("invalid C1/C2: greater than 1")
+	}
+
+	// 1 / len(authorities)
+	theta := float64(1) / float64(numAuths)
+
+	// (1-c)^(theta)
+	pp := 1 - c
+	pp_exp := math.Pow(pp, theta)
+
+	// 1 - (1-c)^(theta)
+	p := 1 - pp_exp
+	p_rat := new(big.Rat).SetFloat64(p)
+
+	// 1 << 128
+	shift := new(big.Int).Lsh(big.NewInt(1), 128)
+	shift_rat := new(big.Rat).SetInt(shift)
+	p_rat = new(big.Rat).Mul(p_rat, shift_rat)
+	numer := p_rat.Num()
+	denom := p_rat.Denom()
+
+	// (1 << 128) * (1 - (1-c)^(w_k/sum(w_i)))
+	threshold_big := new(big.Int).Div(numer, denom)
+
+	// special case where threshold is maximum
+	if threshold_big.Cmp(shift) == 0 {
+		return commontypes.MaxUint128, nil
+	}
+
+	if len(threshold_big.Bytes()) != 16 {
+		return nil, errors.New("threshold must be under or equal to 16 bytes")
+	}
+
+	return commontypes.Uint128FromBigInt(threshold_big), nil
 }

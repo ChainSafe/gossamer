@@ -21,7 +21,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 	"math/big"
 	"os"
 	"sync"
@@ -148,7 +147,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		"epoch length (slots)", babeService.epochLength,
 		"authorities", Authorities(babeService.epochData.authorities),
 		"authority index", babeService.epochData.authorityIndex,
-		"threshold", babeService.epochData.threshold.Bytes(),
+		"threshold", babeService.epochData.threshold.ToLEBytes(),
 	)
 	return babeService, nil
 }
@@ -530,31 +529,4 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		return err
 	}
 	return nil
-}
-
-// CalculateThreshold calculates the slot lottery threshold
-// equation: threshold = 2^128 * (1 - (1-c)^(1/len(authorities))
-func CalculateThreshold(C1, C2 uint64, numAuths int) (*big.Int, error) {
-	c := float64(C1) / float64(C2)
-	if c > 1 {
-		return nil, errors.New("invalid C1/C2: greater than 1")
-	}
-
-	// 1 / len(authorities)
-	theta := float64(1) / float64(numAuths)
-
-	// (1-c)^(theta)
-	pp := 1 - c
-	pp_exp := math.Pow(pp, theta)
-
-	// 1 - (1-c)^(theta)
-	p := 1 - pp_exp
-	p_rat := new(big.Rat).SetFloat64(p)
-
-	// 1 << 128
-	shift := new(big.Int).Lsh(big.NewInt(1), 128)
-	num_shift := new(big.Int).Mul(shift, p_rat.Num())
-
-	// (1 << 128) * (1 - (1-c)^(w_k/sum(w_i)))
-	return new(big.Int).Div(num_shift, p_rat.Denom()), nil
 }

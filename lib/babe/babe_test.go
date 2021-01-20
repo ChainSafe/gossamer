@@ -18,7 +18,6 @@ package babe
 
 import (
 	"io/ioutil"
-	"math"
 	"math/big"
 	"os"
 	"testing"
@@ -26,6 +25,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	commontypes "github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -35,30 +35,34 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var emptyHash = trie.EmptyHash
-var maxThreshold = big.NewInt(0).SetBytes([]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff})
-var testTimeout = time.Second * 5
+var (
+	emptyHash       = trie.EmptyHash
+	testTimeout     = time.Second * 5
+	testEpochIndex  = uint64(0)
+	testEpochLength = uint64(10)
 
-var genesisHeader = &types.Header{
-	Number:    big.NewInt(0),
-	StateRoot: emptyHash,
-}
+	maxThreshold = commontypes.MaxUint128
+	minThreshold = &commontypes.Uint128{}
 
-var emptyHeader = &types.Header{
-	Number: big.NewInt(0),
-}
+	genesisHeader = &types.Header{
+		Number:    big.NewInt(0),
+		StateRoot: emptyHash,
+	}
 
-var testEpochLength = uint64(10)
+	emptyHeader = &types.Header{
+		Number: big.NewInt(0),
+	}
 
-var genesisBABEConfig = &types.BabeConfiguration{
-	SlotDuration:       1000,
-	EpochLength:        200,
-	C1:                 1,
-	C2:                 4,
-	GenesisAuthorities: []*types.AuthorityRaw{},
-	Randomness:         [32]byte{},
-	SecondarySlots:     false,
-}
+	genesisBABEConfig = &types.BabeConfiguration{
+		SlotDuration:       1000,
+		EpochLength:        200,
+		C1:                 1,
+		C2:                 4,
+		GenesisAuthorities: []*types.AuthorityRaw{},
+		Randomness:         [32]byte{},
+		SecondarySlots:     false,
+	}
+)
 
 func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	wasmer.DefaultTestLogLvl = 1
@@ -160,79 +164,6 @@ func TestSlotDuration(t *testing.T) {
 
 	dur := bs.getSlotDuration()
 	require.Equal(t, dur.Milliseconds(), int64(1000))
-}
-
-func TestCalculateThreshold(t *testing.T) {
-	// C = 1
-	var C1 uint64 = 1
-	var C2 uint64 = 1
-
-	expected := new(big.Int).Lsh(big.NewInt(1), 256)
-
-	threshold, err := CalculateThreshold(C1, C2, 3)
-	require.NoError(t, err)
-
-	if threshold.Cmp(expected) != 0 {
-		t.Fatalf("Fail: got %d expected %d", threshold, expected)
-	}
-
-	// C = 1/2
-	C2 = 2
-
-	theta := float64(1) / float64(3)
-	c := float64(C1) / float64(C2)
-	pp := 1 - c
-	pp_exp := math.Pow(pp, theta)
-	p := 1 - pp_exp
-	p_rat := new(big.Rat).SetFloat64(p)
-	q := new(big.Int).Lsh(big.NewInt(1), 256)
-	expected = q.Mul(q, p_rat.Num()).Div(q, p_rat.Denom())
-
-	threshold, err = CalculateThreshold(C1, C2, 3)
-	require.NoError(t, err)
-
-	if threshold.Cmp(expected) != 0 {
-		t.Fatalf("Fail: got %d expected %d", threshold, expected)
-	}
-}
-
-func TestCalculateThreshold_Failing(t *testing.T) {
-	var C1 uint64 = 5
-	var C2 uint64 = 4
-
-	_, err := CalculateThreshold(C1, C2, 3)
-	if err == nil {
-		t.Fatal("Fail: did not err for c>1")
-	}
-}
-
-func TestRunLottery(t *testing.T) {
-	babeService := createTestService(t, nil)
-
-	babeService.epochData.threshold = maxThreshold
-
-	outAndProof, err := babeService.runLottery(0)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if outAndProof == nil {
-		t.Fatal("proof was nil when over threshold")
-	}
-}
-
-func TestRunLottery_False(t *testing.T) {
-	babeService := createTestService(t, nil)
-	babeService.epochData.threshold = big.NewInt(0)
-
-	outAndProof, err := babeService.runLottery(0)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if outAndProof != nil {
-		t.Fatal("proof was not nil when under threshold")
-	}
 }
 
 func TestBabeAnnounceMessage(t *testing.T) {

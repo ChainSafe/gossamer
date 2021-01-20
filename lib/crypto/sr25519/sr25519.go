@@ -279,35 +279,20 @@ func (k *PublicKey) Verify(msg, sig []byte) (bool, error) {
 }
 
 // VrfVerify confirms that the output and proof are valid given a message and public key
-func (k *PublicKey) VrfVerify(t *merlin.Transcript, out []byte, proof []byte) (bool, error) {
-	if len(out) != VrfOutputLength {
-		return false, errors.New("invalid output length")
-	}
-
-	if len(proof) != VrfProofLength {
-		return false, errors.New("invalid proof length")
-	}
-
-	outb := [32]byte{}
-	copy(outb[:], out)
-	proofb := [64]byte{}
-	copy(proofb[:], proof)
-
-	//t := sr25519.NewSigningContext(SigningContext, msg)
+func (k *PublicKey) VrfVerify(t *merlin.Transcript, out [VrfOutputLength]byte, proof [VrfProofLength]byte) (bool, error) {
 	o := new(sr25519.VrfOutput)
-	err := o.Decode(outb)
+	err := o.Decode(out)
 	if err != nil {
 		return false, err
 	}
 
 	p := new(sr25519.VrfProof)
-	err = p.Decode(proofb)
+	err = p.Decode(proof)
 	if err != nil {
 		return false, err
 	}
 
 	inout := o.AttachInput(k.key, t)
-
 	return k.key.VrfVerify(t, inout, p)
 }
 
