@@ -321,6 +321,22 @@ func (s *StorageState) Entries(hash *common.Hash) (map[string][]byte, error) {
 	return s.tries[*hash].Entries(), nil
 }
 
+// GetKeysWithPrefix returns all that match the given prefix for the given hash (or best block state root if hash is nil) in lexicographic order
+func (s *StorageState) GetKeysWithPrefix(hash *common.Hash, prefix []byte) ([][]byte, error) {
+	if hash == nil {
+		sr, err := s.blockState.BestBlockStateRoot()
+		if err != nil {
+			return nil, err
+		}
+		hash = &sr
+	}
+	t := s.tries[*hash]
+	if t == nil {
+		return nil, fmt.Errorf("unable to retrieve trie with hash %x", *hash)
+	}
+	return t.GetKeysWithPrefix(prefix), nil
+}
+
 // GetStorageChild return GetChild from the trie
 func (s *StorageState) GetStorageChild(hash *common.Hash, keyToChild []byte) (*trie.Trie, error) {
 	if hash == nil {

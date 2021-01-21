@@ -18,7 +18,9 @@ package modules
 
 import (
 	"encoding/hex"
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -41,8 +43,10 @@ type StateChildStorageRequest struct {
 
 // StateStorageKeyRequest holds json fields
 type StateStorageKeyRequest struct {
-	Key   []byte       `json:"key"`
-	Block *common.Hash `json:"block"`
+	Prefix   string       `json:"prefix"`
+	Qty      uint32       `json:"qty"`
+	AfterKey string       `json:"afterKey"`
+	Block    *common.Hash `json:"block"`
 }
 
 // StateRuntimeMetadataQuery is a hash value
@@ -117,7 +121,7 @@ type StateStorageResponse string
 type StatePairResponse []interface{}
 
 // StateStorageKeysResponse field for storage keys
-type StateStorageKeysResponse [][]byte
+type StateStorageKeysResponse []string
 
 // StateMetadataResponse holds the metadata
 //TODO: Determine actual type
@@ -233,10 +237,30 @@ func (sm *StateModule) GetChildStorageSize(r *http.Request, req *StateChildStora
 	return nil
 }
 
-// GetKeys isn't implemented properly yet.
-func (sm *StateModule) GetKeys(r *http.Request, req *StateStorageKeyRequest, res *StateStorageKeysResponse) error {
-	// TODO implement change storage trie so that block hash parameter works (See issue #834)
-	return nil
+// GetKeysPaged Returns the keys with prefix with pagination support.
+func (sm *StateModule) GetKeysPaged(r *http.Request, req *StateStorageKeyRequest, res *StateStorageKeysResponse) error {
+	if len(req.Prefix) == 0 {
+		req.Prefix = "0x"
+	}
+	hPrefix, err := common.HexToBytes(req.Prefix)
+	if err != nil {
+		return err
+	}
+	keys, err := sm.storageAPI.GetKeysWithPrefix(req.Block, hPrefix)
+	resCount := uint32(0)
+	for _, k := range keys {
+		fKey := fmt.Sprintf("0x%x", k)
+		if strings.Compare(fKey, req.AfterKey) == 1 {
+			// sm.storageAPI.Keys sorts keys in lexicographical order, so we know that keys where strings.Compare = 1
+			//  are after the requested after key.
+			if resCount >= req.Qty {
+				break
+			}
+			*res = append(*res, fKey)
+			resCount++
+		}
+	}
+	return err
 }
 
 // GetMetadata calls runtime Metadata_metadata function
