@@ -19,6 +19,7 @@ type StorageAPI interface {
 	RegisterStorageChangeChannel(sub state.StorageSubscription) (byte, error)
 	UnregisterStorageChangeChannel(id byte)
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
+	GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error)
 }
 
 // BlockAPI is the interface for the block state
