@@ -552,6 +552,10 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 	if err != nil {
 		return 0
 	}
+	logger.Debug("[ext_crypto_sr25519_verify_version_2]", "pub", pub.Hex(),
+		"message", fmt.Sprintf("0x%x", message),
+		"signature", fmt.Sprintf("0x%x", signature),
+	)
 
 	if signVerify.IsStarted() {
 		signature := runtime.Signature{
@@ -565,9 +569,11 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 	}
 
 	if ok, err := pub.Verify(message, signature); err != nil || !ok {
+		logger.Debug("[ext_crypto_sr25519_verify_version_2] failed to validate signature")
 		return 0
 	}
 
+	logger.Debug("[ext_crypto_sr25519_verify_version_2] validated signature")
 	return C.int32_t(1)
 }
 
@@ -1141,7 +1147,7 @@ func ext_hashing_twox_64_version_1(context unsafe.Pointer, dataSpan C.int64_t) C
 		return 0
 	}
 
-	logger.Debug("[ext_hashing_twox_64_version_1]", "data", data, "hash", hash)
+	logger.Debug("[ext_hashing_twox_64_version_1]", "data", fmt.Sprintf("0x%x", data), "hash", fmt.Sprintf("0x%x", hash))
 
 	out, err := toWasmMemorySized(instanceContext, hash, 8)
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -117,6 +118,22 @@ func TestInstance_Version_NodeRuntime(t *testing.T) {
 	t.Logf("Impl_version: %d\n", version.RuntimeVersion.Impl_version)
 
 	require.Equal(t, expected, version.RuntimeVersion)
+}
+
+func TestNodeRuntime_ValidateTransaction(t *testing.T) {
+	DefaultTestLogLvl = 5
+
+	rt := NewTestInstance(t, runtime.NODE_RUNTIME)
+	extBytes, err := common.HexToBytes("0x2d0284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d019ca3f50f6f48e7169e3553cc63af92f58fa85f221b55f9663535a8b4ece7b731e34cf1f05e7e2d87b2bd3dfff999baa05ea9c68f7120a72e36eb143620ee7a8b0000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48e5c0")
+	require.NoError(t, err)
+
+	_ = buildBlock(t, rt)
+
+	ext := types.Extrinsic(append([]byte{byte(modules.TxnExternal)}, extBytes...))
+
+	t.Log("---------------VALIDATE TRANSACTION-----------------")
+	_, err = rt.ValidateTransaction(ext)
+	require.NoError(t, err)
 }
 
 func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
@@ -260,7 +277,7 @@ func TestInstance_InitializeBlock_PolkadotRuntime(t *testing.T) {
 func buildBlock(t *testing.T, instance runtime.Instance) *types.Block {
 	header := &types.Header{
 		ParentHash: trie.EmptyHash,
-		Number:     big.NewInt(77),
+		Number:     big.NewInt(1),
 		Digest:     types.Digest{},
 	}
 
@@ -310,7 +327,7 @@ func buildBlock(t *testing.T, instance runtime.Instance) *types.Block {
 
 	expected := &types.Header{
 		ParentHash: header.ParentHash,
-		Number:     big.NewInt(77),
+		Number:     big.NewInt(1),
 		Digest:     types.Digest{preDigest},
 	}
 
