@@ -451,7 +451,7 @@ func (b *verifier) verifySlotWinner(authorityIndex uint32, slot uint64, vrfOutpu
 	}
 
 	// validate VRF proof
-	logger.Trace("verifySlotWinner", "pub", pub.Encode(), "randomness", b.randomness, "slot", slot, "epoch", b.epoch, "output", vrfOutput, "proof", vrfProof)
+	logger.Crit("verifySlotWinner", "pub", pub.Encode(), "randomness", b.randomness, "slot", slot, "epoch", b.epoch, "output", vrfOutput, "proof", vrfProof)
 	t := makeTranscript(b.randomness, slot, b.epoch)
 	return pk.VrfVerify(t, vrfOutput, vrfProof)
 }

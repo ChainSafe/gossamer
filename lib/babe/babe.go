@@ -131,7 +131,6 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 
 	var err error
 	genCfg, err := babeService.rt.BabeConfiguration()
-
 	if err != nil {
 		return nil, err
 	}
@@ -148,12 +147,15 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		"authorities", Authorities(babeService.epochData.authorities),
 		"authority index", babeService.epochData.authorityIndex,
 		"threshold", babeService.epochData.threshold.ToLEBytes(),
+		"randomness", babeService.epochData.randomness,
 	)
 	return babeService, nil
 }
 
 func (b *Service) setEpochData(cfg *ServiceConfig, genCfg *types.BabeConfiguration) (err error) {
-	b.epochData = &epochData{}
+	b.epochData = &epochData{
+		randomness: genCfg.Randomness,
+	}
 
 	// if slot duration is set via the config file, overwrite the runtime value
 	if cfg.SlotDuration > 0 {

@@ -63,8 +63,8 @@ func TestSeal(t *testing.T) {
 	require.True(t, ok, "could not verify seal")
 }
 
-func addAuthorshipProof(t *testing.T, babeService *Service, slotNumber uint64) {
-	outAndProof, err := babeService.runLottery(slotNumber, testEpochIndex)
+func addAuthorshipProof(t *testing.T, babeService *Service, slotNumber, epoch uint64) {
+	outAndProof, err := babeService.runLottery(slotNumber, epoch)
 	require.NoError(t, err)
 	require.NotNil(t, outAndProof, "proof was nil when under threshold")
 	babeService.slotToProof[slotNumber] = outAndProof
@@ -74,7 +74,7 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header, e
 	// create proof that we can authorize this block
 	babeService.epochData.authorityIndex = 0
 
-	addAuthorshipProof(t, babeService, slotNumber)
+	addAuthorshipProof(t, babeService, slotNumber, (slotNumber/babeService.epochLength)+1)
 
 	for _, ext := range exts {
 		vtx := transaction.NewValidTransaction(ext, &transaction.Validity{})

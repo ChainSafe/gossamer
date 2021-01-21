@@ -294,7 +294,7 @@ func TestVerifySlotWinner(t *testing.T) {
 	babeService.epochData.authorityIndex = 0
 	var slotNumber uint64 = 1
 
-	addAuthorshipProof(t, babeService, slotNumber)
+	addAuthorshipProof(t, babeService, slotNumber, 1)
 
 	slot := Slot{
 		start:    uint64(time.Now().Unix()),

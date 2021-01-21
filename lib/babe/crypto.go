@@ -53,6 +53,11 @@ func claimPrimarySlot(randomness [types.RandomnessLength]byte,
 		return nil, err
 	}
 
+	logger.Crit("claimPrimarySlot", "pub", keypair.Public().Encode(),
+		"output", out,
+		"proof", proof,
+	)
+
 	ok := checkPrimaryThreshold(randomness, slot, epoch, out, threshold, keypair.Public().(*sr25519.PublicKey))
 	if !ok {
 		return nil, nil
@@ -77,12 +82,12 @@ func checkPrimaryThreshold(randomness [types.RandomnessLength]byte,
 
 	inoutUint := commontypes.Uint128FromLEBytes(res)
 
-	logger.Trace("checkPrimaryThreshold", "pub", pub.Encode(),
+	logger.Crit("checkPrimaryThreshold", "pub", pub.Encode(),
 		"randomness", randomness,
 		"slot", slot,
 		"epoch", epoch,
-		"threshold", threshold,
-		"inout", inoutUint,
+		"threshold", threshold.ToLEBytes(),
+		"inout", inoutUint.ToLEBytes(),
 	)
 
 	return inoutUint.Cmp(threshold) < 0
