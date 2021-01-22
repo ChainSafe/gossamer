@@ -394,7 +394,7 @@ func TestDigestHandler_HandleNextEpochData(t *testing.T) {
 	err = handler.HandleConsensusDigest(d, header)
 	require.NoError(t, err)
 
-	stored, err := handler.epochState.(*state.EpochState).GetEpochData(2)
+	stored, err := handler.epochState.(*state.EpochState).GetEpochData(1)
 	require.NoError(t, err)
 	res, err := digest.ToEpochData()
 	require.NoError(t, err)
@@ -425,7 +425,7 @@ func TestDigestHandler_HandleNextConfigData(t *testing.T) {
 	err = handler.HandleConsensusDigest(d, header)
 	require.NoError(t, err)
 
-	stored, err := handler.epochState.(*state.EpochState).GetConfigData(2)
+	stored, err := handler.epochState.(*state.EpochState).GetConfigData(1)
 	require.NoError(t, err)
 	require.Equal(t, digest.ToConfigData(), stored)
 }
