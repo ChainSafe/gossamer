@@ -161,7 +161,8 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 		if header.Number.Cmp(big.NewInt(1)) == 0 {
 			// set network starting slot
 			// TODO: first slot should be confirmed when block with number=1 is marked final
-			firstSlot, err := types.GetSlotFromHeader(header) //nolint
+			var firstSlot uint64
+			firstSlot, err = types.GetSlotFromHeader(header)
 			if err != nil {
 				return fmt.Errorf("failed to get slot from block 1: %w", err)
 			}
@@ -182,7 +183,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 				return fmt.Errorf("failed to set current epoch to epoch 0 epoch data: %w", err)
 			}
 
-			info, err = v.getVerifierInfo(0) //nolint
+			info, err = v.getVerifierInfo(0)
 		} else {
 			info, err = v.getVerifierInfo(epoch)
 		}
