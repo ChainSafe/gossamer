@@ -17,6 +17,7 @@ package types
 
 import (
 	"encoding/binary"
+	"fmt"
 	"math/big"
 )
 
@@ -37,8 +38,10 @@ func Uint128FromBigInt(in *big.Int) *Uint128 {
 	bytes := in.Bytes()
 
 	if len(bytes) < 16 {
-		bytes = padTo16Bytes(bytes)
+		bytes = padTo16BytesBE(bytes)
 	}
+
+	fmt.Println(bytes)
 
 	// *big.Int returns bytes in big endian format
 	upper := binary.BigEndian.Uint64(bytes[:8])
@@ -54,7 +57,7 @@ func Uint128FromBigInt(in *big.Int) *Uint128 {
 // If the slice is greater than 16 bytes long, it only uses the first 16 bytes
 func Uint128FromLEBytes(in []byte) *Uint128 {
 	if len(in) < 16 {
-		in = padTo16Bytes(in)
+		in = padTo16BytesLE(in)
 	}
 
 	lower := binary.LittleEndian.Uint64(in[:8])
@@ -71,7 +74,15 @@ func (u *Uint128) ToLEBytes() []byte {
 	buf := make([]byte, 16)
 	binary.LittleEndian.PutUint64(buf[:8], u.lower)
 	binary.LittleEndian.PutUint64(buf[8:], u.upper)
-	return buf
+	return trimLEBytes(buf)
+}
+
+// ToBEBytes returns the Uint128 as a big endian byte slice
+func (u *Uint128) ToBEBytes() []byte {
+	buf := make([]byte, 16)
+	binary.BigEndian.PutUint64(buf[:8], u.upper)
+	binary.BigEndian.PutUint64(buf[8:], u.lower)
+	return trimBEBytes(buf)
 }
 
 // Cmp returns 1 if the receiver is greater than other, 0 if they are equal, and -1 otherwise.
@@ -95,9 +106,38 @@ func (u *Uint128) Cmp(other *Uint128) int {
 	return 0
 }
 
-func padTo16Bytes(in []byte) []byte {
+func padTo16BytesLE(in []byte) []byte {
 	for len(in) != 16 {
 		in = append(in, 0)
+	}
+	return in
+}
+
+func padTo16BytesBE(in []byte) []byte {
+	for len(in) != 16 {
+		in = append([]byte{0}, in...)
+	}
+	return in
+}
+
+func trimLEBytes(in []byte) []byte {
+	for {
+		if in[len(in)-1] == 0 {
+			in = in[:len(in)-1]
+		} else {
+			break
+		}
+	}
+	return in
+}
+
+func trimBEBytes(in []byte) []byte {
+	for {
+		if in[0] == 0 {
+			in = in[1:]
+		} else {
+			break
+		}
 	}
 	return in
 }
