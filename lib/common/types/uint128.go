@@ -122,6 +122,10 @@ func padTo16BytesBE(in []byte) []byte {
 
 func trimLEBytes(in []byte) []byte {
 	for {
+		if len(in) == 0 {
+			return in
+		}
+
 		if in[len(in)-1] == 0 {
 			in = in[:len(in)-1]
 		} else {
@@ -133,6 +137,10 @@ func trimLEBytes(in []byte) []byte {
 
 func trimBEBytes(in []byte) []byte {
 	for {
+		if len(in) == 0 {
+			return in
+		}
+
 		if in[0] == 0 {
 			in = in[1:]
 		} else {
