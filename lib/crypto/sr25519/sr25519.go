@@ -291,8 +291,8 @@ func (k *PublicKey) VrfVerify(t *merlin.Transcript, out [VrfOutputLength]byte, p
 		return false, err
 	}
 
-	inout := o.AttachInput(k.key, t)
-	return k.key.VrfVerify(t, inout, p)
+	//inout := o.AttachInput(k.key, t)
+	return k.key.VrfVerify(t, sr25519.NewOutput(out), p)
 }
 
 // Encode returns the 32-byte encoding of the public key

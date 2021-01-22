@@ -53,7 +53,7 @@ type Authorities []*types.Authority
 func (d Authorities) String() string {
 	str := ""
 	for _, di := range []*types.Authority(d) {
-		str = str + fmt.Sprintf("[key=0x%x idx=%d] ", di.Key.Encode(), di.Weight)
+		str = str + fmt.Sprintf("[key=0x%x weight=%d] ", di.Key.Encode(), di.Weight)
 	}
 	return str
 }

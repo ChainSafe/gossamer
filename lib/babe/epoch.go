@@ -25,7 +25,7 @@ import (
 // initiateEpoch sets the randomness for the given epoch, runs the lottery for the slots in the epoch,
 // and stores updated EpochInfo in the database
 func (b *Service) initiateEpoch(epoch, startSlot uint64) error {
-	if epoch > 1 {
+	if epoch > 0 {
 		has, err := b.epochState.HasEpochData(epoch)
 		if err != nil {
 			return err

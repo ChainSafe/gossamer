@@ -31,6 +31,7 @@ var (
 	epochPrefix      = "epoch"
 	epochLengthKey   = []byte("epochlength")
 	currentEpochKey  = []byte("current")
+	firstSlotKey     = []byte("firstslot")
 	epochDataPrefix  = []byte("epochinfo")
 	configDataPrefix = []byte("configinfo")
 )
@@ -49,14 +50,21 @@ func configDataKey(epoch uint64) []byte {
 
 // EpochState tracks information related to each epoch
 type EpochState struct {
+	baseDB      chaindb.Database
 	db          chaindb.Database
 	epochLength uint64 // measured in slots
+	firstSlot   uint64
 }
 
 // NewEpochStateFromGenesis returns a new EpochState given information for the first epoch, fetched from the runtime
 func NewEpochStateFromGenesis(db chaindb.Database, genesisConfig *types.BabeConfiguration) (*EpochState, error) {
+	err := storeFirstSlot(db, 1) // this may change once the first block is imported
+	if err != nil {
+		return nil, err
+	}
+
 	epochDB := chaindb.NewTable(db, epochPrefix)
-	err := epochDB.Put(currentEpochKey, []byte{1, 0, 0, 0, 0, 0, 0, 0})
+	err = epochDB.Put(currentEpochKey, []byte{0, 0, 0, 0, 0, 0, 0, 0})
 	if err != nil {
 		return nil, err
 	}
@@ -66,8 +74,10 @@ func NewEpochStateFromGenesis(db chaindb.Database, genesisConfig *types.BabeConf
 	}
 
 	s := &EpochState{
+		baseDB:      db,
 		db:          epochDB,
 		epochLength: genesisConfig.EpochLength,
+		firstSlot:   1,
 	}
 
 	auths, err := types.BABEAuthorityRawToAuthority(genesisConfig.GenesisAuthorities)
@@ -75,7 +85,7 @@ func NewEpochStateFromGenesis(db chaindb.Database, genesisConfig *types.BabeConf
 		return nil, err
 	}
 
-	err = s.SetEpochData(1, &types.EpochData{
+	err = s.SetEpochData(0, &types.EpochData{
 		Authorities: auths,
 		Randomness:  genesisConfig.Randomness,
 	})
@@ -83,7 +93,7 @@ func NewEpochStateFromGenesis(db chaindb.Database, genesisConfig *types.BabeConf
 		return nil, err
 	}
 
-	err = s.SetConfigData(1, &types.ConfigData{
+	err = s.SetConfigData(0, &types.ConfigData{
 		C1:             genesisConfig.C1,
 		C2:             genesisConfig.C2,
 		SecondarySlots: genesisConfig.SecondarySlots,
@@ -106,9 +116,17 @@ func NewEpochState(db chaindb.Database) (*EpochState, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	firstSlot, err := loadFirstSlot(db)
+	if err != nil {
+		return nil, err
+	}
+
 	return &EpochState{
+		baseDB:      db,
 		db:          chaindb.NewTable(db, epochPrefix),
 		epochLength: epochLength,
+		firstSlot:   firstSlot,
 	}, nil
 }
 
@@ -120,6 +138,21 @@ func storeEpochLength(db chaindb.Database, l uint64) error {
 
 func loadEpochLength(db chaindb.Database) (uint64, error) {
 	data, err := db.Get(epochLengthKey)
+	if err != nil {
+		return 0, err
+	}
+
+	return binary.LittleEndian.Uint64(data), nil
+}
+
+func storeFirstSlot(db chaindb.Database, slot uint64) error {
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, slot)
+	return db.Put(firstSlotKey, buf)
+}
+
+func loadFirstSlot(db chaindb.Database) (uint64, error) {
+	data, err := db.Get(firstSlotKey)
 	if err != nil {
 		return 0, err
 	}
@@ -164,7 +197,7 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 			return 0, fmt.Errorf("failed to decode babe header: %w", err)
 		}
 
-		return (digest.SlotNumber() / s.epochLength) + 1, nil
+		return (digest.SlotNumber() - s.firstSlot) / s.epochLength, nil
 	}
 
 	return 0, errors.New("header does not contain pre-runtime digest")
@@ -240,19 +273,11 @@ func (s *EpochState) HasConfigData(epoch uint64) (bool, error) {
 // GetStartSlotForEpoch returns the first slot in the given epoch.
 // If 0 is passed as the epoch, it returns the start slot for the current epoch.
 func (s *EpochState) GetStartSlotForEpoch(epoch uint64) (uint64, error) {
-	curr, err := s.GetCurrentEpoch()
-	if err != nil {
-		return 0, nil
-	}
+	return s.epochLength*epoch + s.firstSlot, nil
+}
 
-	if epoch == 0 {
-		// epoch 0 doesn't exist, use 0 for latest epoch
-		epoch = curr
-	}
-
-	if epoch == 1 {
-		return 1, nil
-	}
-
-	return s.epochLength*(epoch-1) + 1, nil
+// SetFirstSlot sets the first slot number of the network
+func (s *EpochState) SetFirstSlot(slot uint64) error {
+	s.firstSlot = slot
+	return storeFirstSlot(s.baseDB, slot)
 }

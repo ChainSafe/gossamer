@@ -81,7 +81,7 @@ func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
 	babeService := createTestService(t, cfg)
 
 	vm := newTestVerificationManager(t, nil)
-	vm.epochInfo[1] = &verifierInfo{
+	vm.epochInfo[testEpochIndex] = &verifierInfo{
 		authorities: babeService.epochData.authorities,
 		threshold:   babeService.epochData.threshold,
 		randomness:  babeService.epochData.randomness,
@@ -116,7 +116,7 @@ func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
 	babeService := createTestService(t, cfg)
 
 	vm := newTestVerificationManager(t, nil)
-	vm.epochInfo[1] = &verifierInfo{
+	vm.epochInfo[testEpochIndex] = &verifierInfo{
 		authorities: babeService.epochData.authorities,
 		threshold:   babeService.epochData.threshold,
 		randomness:  babeService.epochData.randomness,
@@ -149,10 +149,11 @@ func TestVerificationManager_VerifyBlock_IsDisabled(t *testing.T) {
 	cfg.GenesisAuthorities = types.AuthoritiesToRaw(babeService.epochData.authorities)
 	cfg.C1 = 1
 	cfg.C2 = 1
+	t.Log("set cfg")
 
 	vm := newTestVerificationManager(t, cfg)
-
 	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1)
+
 	err = vm.blockState.AddBlock(block)
 	require.NoError(t, err)
 
@@ -294,7 +295,7 @@ func TestVerifySlotWinner(t *testing.T) {
 	babeService.epochData.authorityIndex = 0
 	var slotNumber uint64 = 1
 
-	addAuthorshipProof(t, babeService, slotNumber, 1)
+	addAuthorshipProof(t, babeService, slotNumber, testEpochIndex)
 
 	slot := Slot{
 		start:    uint64(time.Now().Unix()),

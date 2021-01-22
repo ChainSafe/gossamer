@@ -17,6 +17,7 @@ package babe
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 
@@ -32,9 +33,9 @@ import (
 var babe_vrf_prefix = []byte("substrate-babe-vrf")
 
 func makeTranscript(randomness [types.RandomnessLength]byte, slot, epoch uint64) *merlin.Transcript {
-	t := merlin.NewTranscript(string(types.BabeEngineID[:]))
-	t = crypto.AppendUint64(t, []byte("slot number"), slot)
-	t = crypto.AppendUint64(t, []byte("current epoch"), epoch)
+	t := merlin.NewTranscript("BABE") //string(types.BabeEngineID[:])
+	crypto.AppendUint64(t, []byte("slot number"), slot)
+	crypto.AppendUint64(t, []byte("current epoch"), epoch)
 	t.AppendMessage([]byte("chain randomness"), randomness[:])
 	return t
 }
@@ -53,7 +54,7 @@ func claimPrimarySlot(randomness [types.RandomnessLength]byte,
 		return nil, err
 	}
 
-	logger.Crit("claimPrimarySlot", "pub", keypair.Public().Encode(),
+	logger.Trace("claimPrimarySlot", "pub", keypair.Public().Hex(),
 		"output", out,
 		"proof", proof,
 	)
@@ -82,12 +83,13 @@ func checkPrimaryThreshold(randomness [types.RandomnessLength]byte,
 
 	inoutUint := commontypes.Uint128FromLEBytes(res)
 
-	logger.Crit("checkPrimaryThreshold", "pub", pub.Encode(),
+	logger.Trace("checkPrimaryThreshold", "pub", pub.Hex(),
 		"randomness", randomness,
 		"slot", slot,
 		"epoch", epoch,
 		"threshold", threshold.ToLEBytes(),
-		"inout", inoutUint.ToLEBytes(),
+		"output", fmt.Sprintf("0x%x", output),
+		"inout", res,
 	)
 
 	return inoutUint.Cmp(threshold) < 0
@@ -115,9 +117,7 @@ func CalculateThreshold(C1, C2 uint64, numAuths int) (*commontypes.Uint128, erro
 
 	// 1 << 128
 	shift := new(big.Int).Lsh(big.NewInt(1), 128)
-	shift_rat := new(big.Rat).SetInt(shift)
-	p_rat = new(big.Rat).Mul(p_rat, shift_rat)
-	numer := p_rat.Num()
+	numer := new(big.Int).Mul(shift, p_rat.Num())
 	denom := p_rat.Denom()
 
 	// (1 << 128) * (1 - (1-c)^(w_k/sum(w_i)))
@@ -128,7 +128,7 @@ func CalculateThreshold(C1, C2 uint64, numAuths int) (*commontypes.Uint128, erro
 		return commontypes.MaxUint128, nil
 	}
 
-	if len(threshold_big.Bytes()) != 16 {
+	if len(threshold_big.Bytes()) > 16 {
 		return nil, errors.New("threshold must be under or equal to 16 bytes")
 	}
 
