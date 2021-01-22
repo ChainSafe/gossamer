@@ -57,7 +57,7 @@ func TestStateModule_GetRuntimeVersion(t *testing.T) {
 		},
 	}
 
-	sm, hash := setupStateModule(t)
+	sm, hash, _ := setupStateModule(t)
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
@@ -98,7 +98,7 @@ func TestStateModule_GetRuntimeVersion(t *testing.T) {
 }
 
 func TestStateModule_GetPairs(t *testing.T) {
-	sm, hash := setupStateModule(t)
+	sm, hash, _ := setupStateModule(t)
 
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
@@ -166,7 +166,7 @@ func TestStateModule_GetPairs(t *testing.T) {
 }
 
 func TestStateModule_GetStorage(t *testing.T) {
-	sm, hash := setupStateModule(t)
+	sm, hash, _ := setupStateModule(t)
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
@@ -216,7 +216,7 @@ func TestStateModule_GetStorage(t *testing.T) {
 }
 
 func TestStateModule_GetStorageHash(t *testing.T) {
-	sm, hash := setupStateModule(t)
+	sm, hash, _ := setupStateModule(t)
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
@@ -268,7 +268,7 @@ func TestStateModule_GetStorageHash(t *testing.T) {
 }
 
 func TestStateModule_GetStorageSize(t *testing.T) {
-	sm, hash := setupStateModule(t)
+	sm, hash, _ := setupStateModule(t)
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
@@ -313,7 +313,7 @@ func TestStateModule_GetStorageSize(t *testing.T) {
 }
 
 func TestStateModule_GetMetadata(t *testing.T) {
-	sm, hash := setupStateModule(t)
+	sm, hash, _ := setupStateModule(t)
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
 
@@ -353,7 +353,68 @@ func TestStateModule_GetMetadata(t *testing.T) {
 	}
 }
 
-func setupStateModule(t *testing.T) (*StateModule, *common.Hash) {
+func TestStateModule_GetKeysPaged(t *testing.T) {
+	sm, _, stateRootHash := setupStateModule(t)
+
+	testCases := []struct {
+		name     string
+		params   StateStorageKeyRequest
+		expected []string
+	}{
+		{name: "allKeysNilBlockHash",
+			params: StateStorageKeyRequest{
+				Qty:   10,
+				Block: nil,
+			}, expected: []string{"0x3a6b657931", "0x3a6b657932"}},
+		{name: "allKeysTestBlockHash",
+			params: StateStorageKeyRequest{
+				Qty:   10,
+				Block: stateRootHash,
+			}, expected: []string{"0x3a6b657931", "0x3a6b657932"}},
+		{name: "prefixMatchAll",
+			params: StateStorageKeyRequest{
+				Prefix: "0x3a6b6579",
+				Qty:    10,
+			}, expected: []string{"0x3a6b657931", "0x3a6b657932"}},
+		{name: "prefixMatchOne",
+			params: StateStorageKeyRequest{
+				Prefix: "0x3a6b657931",
+				Qty:    10,
+			}, expected: []string{"0x3a6b657931"}},
+		{name: "prefixMatchNone",
+			params: StateStorageKeyRequest{
+				Prefix: "0x00",
+				Qty:    10,
+			}, expected: nil},
+		{name: "qtyOne",
+			params: StateStorageKeyRequest{
+				Qty: 1,
+			}, expected: []string{"0x3a6b657931"}},
+		{name: "afterKey",
+			params: StateStorageKeyRequest{
+				Qty:      10,
+				AfterKey: "0x3a6b657931",
+			}, expected: []string{"0x3a6b657932"}},
+	}
+
+	for _, test := range testCases {
+		t.Run(test.name, func(t *testing.T) {
+			var res StateStorageKeysResponse
+
+			err := sm.GetKeysPaged(nil, &test.params, &res)
+			require.NoError(t, err)
+
+			if test.expected == nil {
+				require.Empty(t, res)
+				return
+			}
+
+			require.Equal(t, StateStorageKeysResponse(test.expected), res)
+		})
+	}
+}
+
+func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	// setup service
 	net := newNetworkService(t)
 	chain := newTestStateService(t)
@@ -361,9 +422,9 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash) {
 	ts, err := chain.Storage.TrieState(nil)
 	require.NoError(t, err)
 
-	err = ts.Set([]byte(`:key1`), []byte(`value1`))
-	require.NoError(t, err)
 	err = ts.Set([]byte(`:key2`), []byte(`value2`))
+	require.NoError(t, err)
+	err = ts.Set([]byte(`:key1`), []byte(`value1`))
 	require.NoError(t, err)
 
 	sr1, err := ts.Root()
@@ -383,5 +444,5 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash) {
 
 	hash, _ := chain.Block.GetBlockHash(big.NewInt(2))
 	core := newCoreService(t, chain)
-	return NewStateModule(net, chain.Storage, core), hash
+	return NewStateModule(net, chain.Storage, core), hash, &sr1
 }

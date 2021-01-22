@@ -24,7 +24,6 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -553,6 +552,8 @@ func TestGetKeysWithPrefix(t *testing.T) {
 		{key: []byte{0x07, 0x3a}, value: []byte("ramen"), op: PUT},
 		{key: []byte{0x07, 0x3b}, value: []byte("noodles"), op: PUT},
 		{key: []byte{0xf2}, value: []byte("pho"), op: PUT},
+		{key: []byte(":key1"), value: []byte("value1"), op: PUT},
+		{key: []byte(":key2"), value: []byte("value2"), op: PUT},
 	}
 
 	for _, test := range tests {
@@ -561,21 +562,19 @@ func TestGetKeysWithPrefix(t *testing.T) {
 
 	expected := [][]byte{{0x01, 0x35}, {0x01, 0x35, 0x79}}
 	keys := trie.GetKeysWithPrefix([]byte{0x01})
-	if !reflect.DeepEqual(keys, expected) {
-		t.Fatalf("Fail: got %v expected %v", keys, expected)
-	}
+	require.Equal(t, expected, keys)
 
 	expected = [][]byte{{0x01, 0x35}, {0x01, 0x35, 0x79}, {0x07, 0x3a}, {0x07, 0x3b}}
 	keys = trie.GetKeysWithPrefix([]byte{0x0})
-	if !reflect.DeepEqual(keys, expected) {
-		t.Fatalf("Fail: got %v expected %v", keys, expected)
-	}
+	require.Equal(t, expected, keys)
 
 	expected = [][]byte{{0x07, 0x3a}, {0x07, 0x3b}}
 	keys = trie.GetKeysWithPrefix([]byte{0x07, 0x30})
-	if !reflect.DeepEqual(keys, expected) {
-		t.Fatalf("Fail: got %v expected %v", keys, expected)
-	}
+	require.Equal(t, expected, keys)
+
+	expected = [][]byte{[]byte(":key1")}
+	keys = trie.GetKeysWithPrefix([]byte(":key1"))
+	require.Equal(t, expected, keys)
 }
 
 func TestNextKey(t *testing.T) {

@@ -379,10 +379,14 @@ func (t *Trie) Load(data map[string]string) error {
 
 // GetKeysWithPrefix returns all keys in the trie that have the given prefix
 func (t *Trie) GetKeysWithPrefix(prefix []byte) [][]byte {
-	p := keyToNibbles(prefix)
-	if p[len(p)-1] == 0 {
-		p = p[:len(p)-1]
+	p := []byte{}
+	if len(prefix) != 0 {
+		p = keyToNibbles(prefix)
+		if p[len(p)-1] == 0 {
+			p = p[:len(p)-1]
+		}
 	}
+
 	return t.getKeysWithPrefix(t.root, []byte{}, p, [][]byte{})
 }
 
@@ -397,6 +401,12 @@ func (t *Trie) getKeysWithPrefix(parent node, prefix, key []byte, keys [][]byte)
 			return keys
 		}
 
+		if len(key) <= len(p.key) {
+			// no prefixed keys to be found here, return
+			return keys
+		}
+
+		key = key[len(p.key):]
 		keys = t.getKeysWithPrefix(p.children[key[0]], append(append(prefix, p.key...), key[0]), key[1:], keys)
 	case *leaf:
 		keys = append(keys, nibblesToKeyLE(append(prefix, p.key...)))
