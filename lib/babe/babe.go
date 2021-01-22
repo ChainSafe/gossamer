@@ -360,21 +360,10 @@ func (b *Service) initiate() {
 
 	// check if we are starting at genesis, if not, need to calculate slot
 	if bestNum.Cmp(big.NewInt(0)) == 1 && slotNum == 0 {
-		// if we have at least slotTail blocks, we can run the slotTime algorithm
-		if bestNum.Cmp(big.NewInt(int64(slotTail))) != -1 {
-			slotNum, err = b.getCurrentSlot()
-			if err != nil {
-				logger.Error("cannot get current slot", "error", err)
-				return
-			}
-		} else {
-			logger.Warn("cannot use median algorithm, not enough blocks synced")
-
-			slotNum, err = b.estimateCurrentSlot()
-			if err != nil {
-				logger.Error("cannot get current slot", "error", err)
-				return
-			}
+		slotNum, err = b.estimateCurrentSlot()
+		if err != nil {
+			logger.Error("cannot get current slot", "error", err)
+			return
 		}
 	}
 
@@ -401,6 +390,14 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 
 	// starting slot for next epoch
 	nextStartSlot := startSlot + b.epochLength - intoEpoch
+
+	// if the calculated amount of slots "into the epoch" is greater than the epoch length,
+	// we've been offline for more than an epoch, and need to sync. pause BABE for now, syncer will
+	// resume it when ready
+	if b.epochLength < intoEpoch {
+		b.paused = true
+		return
+	}
 
 	slotDone := make([]<-chan time.Time, b.epochLength-intoEpoch)
 	for i := 0; i < int(b.epochLength-intoEpoch); i++ {
@@ -548,16 +545,18 @@ func CalculateThreshold(C1, C2 uint64, numAuths int) (*big.Int, error) {
 	theta := float64(1) / float64(numAuths)
 
 	// (1-c)^(theta)
-	pp := 1 - c
+	pp := float64(1) - c
 	pp_exp := math.Pow(pp, theta)
 
 	// 1 - (1-c)^(theta)
-	p := 1 - pp_exp
+	p := float64(1) - pp_exp
 	p_rat := new(big.Rat).SetFloat64(p)
 
 	// 1 << 256
-	q := new(big.Int).Lsh(big.NewInt(1), 256)
+	shift := new(big.Int).Lsh(big.NewInt(0x1), 256)
+	num := new(big.Int).Mul(shift, p_rat.Num())
 
-	// (1 << 128) * (1 - (1-c)^(w_k/sum(w_i)))
-	return q.Mul(q, p_rat.Num()).Div(q, p_rat.Denom()), nil
+	// (1 << 256) * (1 - (1-c)^(w_k/sum(w_i)))
+	num_shift_over_denom := new(big.Int).Div(num, p_rat.Denom())
+	return num_shift_over_denom, nil
 }

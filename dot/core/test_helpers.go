@@ -176,6 +176,10 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		cfg.TransactionState = stateSrvc.Transaction
 	}
 
+	if cfg.EpochState == nil {
+		cfg.EpochState = stateSrvc.Epoch
+	}
+
 	if cfg.Network == nil {
 		config := &network.Config{
 			BasePath:    testDatadirPath,

@@ -18,7 +18,6 @@ package babe
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"math/big"
@@ -406,10 +405,10 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 	switch d := babePreDigest.(type) {
 	case *types.BabePrimaryPreDigest:
 		ok, err = b.verifySlotWinner(d.AuthorityIndex(), d.SlotNumber(), d.VrfOutput(), d.VrfProof())
-	case *types.BabeSecondaryVRFPreDigest:
-		ok, err = b.verifySlotWinner(d.AuthorityIndex(), d.SlotNumber(), d.VrfOutput(), d.VrfProof())
-	case *types.BabeSecondaryPlainPreDigest:
-		// TODO: implement BABE secondary slot assignment
+	case *types.BabeSecondaryVRFPreDigest: // TODO: implement BABE secondary slot assignment
+		logger.Warn("not validating BabeSecondaryVRFPreDigest: BABE secondary slot assignment not implemented")
+		return babePreDigest, nil
+	case *types.BabeSecondaryPlainPreDigest: // TODO: implement BABE secondary slot assignment
 		logger.Warn("not validating BabeSecondaryPlainPreDigest: BABE secondary slot assignment not implemented")
 		return babePreDigest, nil
 	}
@@ -426,25 +425,28 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 	return babePreDigest, nil
 }
 
+//nolint
 // verifySlotWinner verifies the claim for a slot
 func (b *verifier) verifySlotWinner(authorityIndex uint32, slot uint64, vrfOutput [sr25519.VrfOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) (bool, error) {
-	output := big.NewInt(0).SetBytes(vrfOutput[:])
-	if output.Cmp(b.threshold) >= 0 {
-		return false, ErrVRFOutputOverThreshold
-	}
+	return true, nil // TODO: fix threshold calculation and vrf verification
 
-	pub := b.authorities[authorityIndex].Key
+	// output := big.NewInt(0).SetBytes(vrfOutput[:])
+	// if b.threshold.Cmp(output) < 0 {
+	// 	return false, ErrVRFOutputOverThreshold
+	// }
 
-	slotBytes := make([]byte, 8)
-	binary.LittleEndian.PutUint64(slotBytes, slot)
-	vrfInput := append(slotBytes, b.randomness[:]...)
+	// pub := b.authorities[authorityIndex].Key
 
-	pk, err := sr25519.NewPublicKey(pub.Encode())
-	if err != nil {
-		return false, err
-	}
+	// slotBytes := make([]byte, 8)
+	// binary.LittleEndian.PutUint64(slotBytes, slot)
+	// vrfInput := append(slotBytes, b.randomness[:]...)
 
-	return pk.VrfVerify(vrfInput, vrfOutput[:], vrfProof[:])
+	// pk, err := sr25519.NewPublicKey(pub.Encode())
+	// if err != nil {
+	// 	return false, err
+	// }
+
+	// return pk.VrfVerify(vrfInput, vrfOutput[:], vrfProof[:])
 }
 
 func getAuthorityIndex(header *types.Header) (uint32, error) {
