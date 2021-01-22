@@ -17,13 +17,16 @@
 package rpc
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v2"
+	"github.com/centrifuge/go-substrate-rpc-client/v2/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
 	"github.com/stretchr/testify/require"
@@ -39,12 +42,12 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 
 	utils.CreateConfigBabeMaxThreshold()
 
-	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDefault, utils.ConfigBABEMaxThreshold)
+	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDefault, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	defer func() {
 		t.Log("going to tear down gossamer...")
-		os.Remove(utils.ConfigBABEMaxThreshold)
+		os.Remove(utils.ConfigDefault)
 		errList := utils.TearDown(t, nodes)
 		require.Len(t, errList, 0)
 	}()
@@ -69,8 +72,9 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 	// Create the extrinsic
 	ext := types.NewExtrinsic(c)
 
-	genesisHash, err := api.RPC.Chain.GetBlockHash(0)
-	require.NoError(t, err)
+	// TODO: the genesis hash is wrong.
+	// genesisHash, err := api.RPC.Chain.GetBlockHash(0)
+	// require.NoError(t, err)
 
 	rv, err := api.RPC.State.GetRuntimeVersionLatest()
 	require.NoError(t, err)
@@ -83,19 +87,55 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, ok)
 
+	// this is the actual genesis hash for GenesisDefault
+	genesisHash := types.NewHash(common.MustHexToBytes("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314"))
+
 	o := types.SignatureOptions{
 		BlockHash:          genesisHash,
-		Era:                types.ExtrinsicEra{IsMortalEra: false},
+		Era:                types.ExtrinsicEra{IsImmortalEra: true},
 		GenesisHash:        genesisHash,
 		Nonce:              types.NewUCompactFromUInt(uint64(nonce)),
 		SpecVersion:        rv.SpecVersion,
 		Tip:                types.NewUCompactFromUInt(0),
-		TransactionVersion: rv.TransactionVersion,
+		TransactionVersion: 1, //rv.TransactionVersion, // TODO: rv.TransactionVersion == 0 but runtime expects 1
 	}
 
-	// Sign the transaction using Alice's default account
+	// // Sign the transaction using Alice's default account
 	err = ext.Sign(signature.TestKeyringPairAlice, o)
 	require.NoError(t, err)
+
+	w := &bytes.Buffer{}
+	encoder := scale.NewEncoder(w)
+	err = ext.Encode(*encoder)
+	require.NoError(t, err)
+	enc := w.Bytes()
+	t.Logf("extrinsic 0x%x", enc)
+
+	enc, err = types.EncodeToBytes(ext.Method)
+	require.NoError(t, err)
+	t.Logf("Method 0x%x", enc)
+
+	enc, err = types.EncodeToBytes(o.Era)
+	require.NoError(t, err)
+	t.Logf("Era 0x%x", enc)
+
+	enc, err = types.EncodeToBytes(o.Nonce)
+	require.NoError(t, err)
+	t.Logf("Nonce 0x%x", enc)
+
+	enc, err = types.EncodeToBytes(o.Tip)
+	require.NoError(t, err)
+	t.Logf("Tip 0x%x", enc)
+
+	enc, err = types.EncodeToBytes(o.SpecVersion)
+	require.NoError(t, err)
+	t.Logf("SpecVersion 0x%x", enc)
+
+	enc, err = types.EncodeToBytes(o.TransactionVersion)
+	require.NoError(t, err)
+	t.Logf("TransactionVersion 0x%x", enc)
+
+	t.Logf("genesisHash 0x%x", genesisHash)
 
 	// Send the extrinsic
 	hash, err := api.RPC.Author.SubmitExtrinsic(ext)

@@ -1011,6 +1011,8 @@ func ext_hashing_blake2_128_version_1(context unsafe.Pointer, dataSpan C.int64_t
 		return 0
 	}
 
+	logger.Debug("[ext_hashing_blake2_128_version_1]", "data", fmt.Sprintf("0x%x", data), "hash", fmt.Sprintf("0x%x", hash))
+
 	out, err := toWasmMemorySized(instanceContext, hash, 16)
 	if err != nil {
 		logger.Error("[ext_hashing_blake2_128_version_1] failed to allocate", "error", err)
