@@ -17,7 +17,6 @@ package types
 
 import (
 	"encoding/binary"
-	"fmt"
 	"math/big"
 )
 
