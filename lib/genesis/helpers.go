@@ -34,6 +34,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	gtypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
 )
 
 // NewGenesisFromJSONRaw parses a JSON formatted genesis-raw file
@@ -278,15 +279,37 @@ func buildBalances(kv *keyValue, res map[string]string) error {
 
 			bKey = append(bKey, kv.iVal[i].([]byte)...)
 
-			// build value
-			bVal := []byte{}
-			zero, err := scale.Encode(uint32(0))
+			type AccountInfo struct {
+				Nonce    gtypes.U32
+				RefCount gtypes.U32
+				Data     struct {
+					Free       gtypes.U128
+					Reserved   gtypes.U128
+					MiscFrozen gtypes.U128
+					FreeFrozen gtypes.U128
+				}
+			}
+
+			accInfo := AccountInfo{
+				Nonce:    0,
+				RefCount: 0,
+				Data: struct {
+					Free       gtypes.U128
+					Reserved   gtypes.U128
+					MiscFrozen gtypes.U128
+					FreeFrozen gtypes.U128
+				}{
+					Free:       gtypes.NewU128(*big.NewInt(1152921504606846976)),
+					Reserved:   gtypes.NewU128(*big.NewInt(0)),
+					MiscFrozen: gtypes.NewU128(*big.NewInt(0)),
+					FreeFrozen: gtypes.NewU128(*big.NewInt(0)),
+				},
+			}
+
+			bVal, err := gtypes.EncodeToBytes(accInfo)
 			if err != nil {
 				return err
 			}
-			bVal = append(bVal, zero...) // u32 for nonce
-			bVal = append(bVal, zero...) // u32 for ref count
-			bVal = append(bVal, kv.iVal[i+1].([]byte)...)
 			res[common.BytesToHex(bKey)] = common.BytesToHex(bVal)
 		}
 
