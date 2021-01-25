@@ -21,7 +21,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 	"math/big"
 	"os"
 	"sync"
@@ -132,7 +131,6 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 
 	var err error
 	genCfg, err := babeService.rt.BabeConfiguration()
-
 	if err != nil {
 		return nil, err
 	}
@@ -148,13 +146,16 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		"epoch length (slots)", babeService.epochLength,
 		"authorities", Authorities(babeService.epochData.authorities),
 		"authority index", babeService.epochData.authorityIndex,
-		"threshold", babeService.epochData.threshold.Bytes(),
+		"threshold", babeService.epochData.threshold.ToLEBytes(),
+		"randomness", babeService.epochData.randomness,
 	)
 	return babeService, nil
 }
 
 func (b *Service) setEpochData(cfg *ServiceConfig, genCfg *types.BabeConfiguration) (err error) {
-	b.epochData = &epochData{}
+	b.epochData = &epochData{
+		randomness: genCfg.Randomness,
+	}
 
 	// if slot duration is set via the config file, overwrite the runtime value
 	if cfg.SlotDuration > 0 {
@@ -206,7 +207,6 @@ func (b *Service) Start() error {
 		return err
 	}
 
-	// TODO: initiateEpoch sigabrts w/ non authority node epoch > 1. fix this!!
 	err = b.initiateEpoch(epoch, b.startSlot)
 	if err != nil {
 		logger.Error("failed to initiate epoch", "error", err)
@@ -450,22 +450,6 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		return ErrNotAuthorized
 	}
 
-	if b.slotToProof[slotNum] == nil {
-		// if we don't have a proof already set, re-run lottery.
-		proof, err := b.runLottery(slotNum)
-		if err != nil {
-			logger.Warn("failed to run lottery", "slot", slotNum)
-			return errors.New("failed to run lottery")
-		}
-
-		if proof == nil {
-			logger.Debug("not authorized to produce block", "slot", slotNum)
-			return ErrNotAuthorized
-		}
-
-		b.slotToProof[slotNum] = proof
-	}
-
 	parentHeader, err := b.blockState.BestBlockHeader()
 	if err != nil {
 		logger.Error("block authoring", "error", err)
@@ -527,36 +511,4 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		return err
 	}
 	return nil
-}
-
-func (b *Service) vrfSign(input []byte) (out []byte, proof []byte, err error) {
-	return b.keypair.VrfSign(input)
-}
-
-// CalculateThreshold calculates the slot lottery threshold
-// equation: threshold = 2^128 * (1 - (1-c)^(1/len(authorities))
-func CalculateThreshold(C1, C2 uint64, numAuths int) (*big.Int, error) {
-	c := float64(C1) / float64(C2)
-	if c > 1 {
-		return nil, errors.New("invalid C1/C2: greater than 1")
-	}
-
-	// 1 / len(authorities)
-	theta := float64(1) / float64(numAuths)
-
-	// (1-c)^(theta)
-	pp := float64(1) - c
-	pp_exp := math.Pow(pp, theta)
-
-	// 1 - (1-c)^(theta)
-	p := float64(1) - pp_exp
-	p_rat := new(big.Rat).SetFloat64(p)
-
-	// 1 << 256
-	shift := new(big.Int).Lsh(big.NewInt(0x1), 256)
-	num := new(big.Int).Mul(shift, p_rat.Num())
-
-	// (1 << 256) * (1 - (1-c)^(w_k/sum(w_i)))
-	num_shift_over_denom := new(big.Int).Div(num, p_rat.Denom())
-	return num_shift_over_denom, nil
 }

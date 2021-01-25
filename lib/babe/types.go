@@ -18,9 +18,9 @@ package babe
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	commontypes "github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
 
@@ -53,7 +53,7 @@ type Authorities []*types.Authority
 func (d Authorities) String() string {
 	str := ""
 	for _, di := range []*types.Authority(d) {
-		str = str + fmt.Sprintf("[key=0x%x idx=%d] ", di.Key.Encode(), di.Weight)
+		str = str + fmt.Sprintf("[key=0x%x weight=%d] ", di.Key.Encode(), di.Weight)
 	}
 	return str
 }
@@ -63,5 +63,5 @@ type epochData struct {
 	randomness     [types.RandomnessLength]byte
 	authorityIndex uint32
 	authorities    []*types.Authority
-	threshold      *big.Int
+	threshold      *commontypes.Uint128
 }

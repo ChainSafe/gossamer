@@ -25,6 +25,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	commontypes "github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
 
@@ -33,7 +34,7 @@ import (
 type verifierInfo struct {
 	authorities []*types.Authority
 	randomness  [types.RandomnessLength]byte
-	threshold   *big.Int
+	threshold   *commontypes.Uint128
 }
 
 // onDisabledInfo contains information about an authority that's been disabled at a certain
@@ -158,24 +159,31 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 		// special case for block 1 - the network doesn't necessarily start in epoch 1.
 		// if this happens, the database will be missing info for epochs before the first block.
 		if header.Number.Cmp(big.NewInt(1)) == 0 {
-			// fast forward current epoch
-			err = v.epochState.SetCurrentEpoch(epoch)
+			// set network starting slot
+			// TODO: first slot should be confirmed when block with number=1 is marked final
+			var firstSlot uint64
+			firstSlot, err = types.GetSlotFromHeader(header)
+			if err != nil {
+				return fmt.Errorf("failed to get slot from block 1: %w", err)
+			}
+
+			err = v.epochState.SetFirstSlot(firstSlot)
 			if err != nil {
 				return fmt.Errorf("failed to set current epoch after receiving block 1: %w", err)
 			}
 
 			var epochData *types.EpochData
-			epochData, err = v.epochState.GetEpochData(1)
+			epochData, err = v.epochState.GetEpochData(0)
 			if err != nil {
-				return fmt.Errorf("failed to get epoch data for epoch 1: %w", err)
+				return fmt.Errorf("failed to get epoch data for epoch 0: %w", err)
 			}
 
 			err = v.epochState.SetEpochData(epoch, epochData)
 			if err != nil {
-				return fmt.Errorf("failed to set current epoch to epoch 1 epoch data: %w", err)
+				return fmt.Errorf("failed to set current epoch to epoch 0 epoch data: %w", err)
 			}
 
-			info, err = v.getVerifierInfo(1)
+			info, err = v.getVerifierInfo(0)
 		} else {
 			info, err = v.getVerifierInfo(epoch)
 		}
@@ -199,7 +207,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 		return ErrAuthorityDisabled
 	}
 
-	verifier, err := newVerifier(v.blockState, info)
+	verifier, err := newVerifier(v.blockState, epoch, info)
 	if err != nil {
 		return fmt.Errorf("failed to create new BABE verifier: %w", err)
 	}
@@ -267,14 +275,14 @@ func (v *VerificationManager) getVerifierInfo(epoch uint64) (*verifierInfo, erro
 }
 
 func (v *VerificationManager) getConfigData(epoch uint64) (*types.ConfigData, error) {
-	for i := epoch; i > 0; i-- {
-		has, err := v.epochState.HasConfigData(i)
+	for i := int(epoch); i >= 0; i-- {
+		has, err := v.epochState.HasConfigData(uint64(i))
 		if err != nil {
 			return nil, err
 		}
 
 		if has {
-			return v.epochState.GetConfigData(i)
+			return v.epochState.GetConfigData(uint64(i))
 		}
 	}
 
@@ -284,19 +292,21 @@ func (v *VerificationManager) getConfigData(epoch uint64) (*types.ConfigData, er
 // verifier is a BABE verifier for a specific authority set, randomness, and threshold
 type verifier struct {
 	blockState  BlockState
+	epoch       uint64
 	authorities []*types.Authority
 	randomness  [types.RandomnessLength]byte
-	threshold   *big.Int
+	threshold   *commontypes.Uint128
 }
 
 // newVerifier returns a Verifier for the epoch described by the given descriptor
-func newVerifier(blockState BlockState, info *verifierInfo) (*verifier, error) {
+func newVerifier(blockState BlockState, epoch uint64, info *verifierInfo) (*verifier, error) {
 	if blockState == nil {
 		return nil, ErrNilBlockState
 	}
 
 	return &verifier{
 		blockState:  blockState,
+		epoch:       epoch,
 		authorities: info.authorities,
 		randomness:  info.randomness,
 		threshold:   info.threshold,
@@ -419,7 +429,8 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 	}
 
 	if !ok {
-		return nil, ErrBadSlotClaim
+		return babePreDigest, nil // TODO: fix VRF proof verification
+		//return nil, ErrBadSlotClaim
 	}
 
 	return babePreDigest, nil
@@ -428,25 +439,39 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 //nolint
 // verifySlotWinner verifies the claim for a slot
 func (b *verifier) verifySlotWinner(authorityIndex uint32, slot uint64, vrfOutput [sr25519.VrfOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) (bool, error) {
-	return true, nil // TODO: fix threshold calculation and vrf verification
+	pub := b.authorities[authorityIndex].Key
 
-	// output := big.NewInt(0).SetBytes(vrfOutput[:])
-	// if b.threshold.Cmp(output) < 0 {
-	// 	return false, ErrVRFOutputOverThreshold
-	// }
+	pk, err := sr25519.NewPublicKey(pub.Encode())
+	if err != nil {
+		return false, err
+	}
 
-	// pub := b.authorities[authorityIndex].Key
+	// check that VRF output was under threshold
+	ok := checkPrimaryThreshold(b.randomness,
+		slot,
+		b.epoch,
+		vrfOutput,
+		b.threshold,
+		pk,
+	)
 
-	// slotBytes := make([]byte, 8)
-	// binary.LittleEndian.PutUint64(slotBytes, slot)
-	// vrfInput := append(slotBytes, b.randomness[:]...)
+	if !ok {
+		return false, ErrVRFOutputOverThreshold
+	}
 
-	// pk, err := sr25519.NewPublicKey(pub.Encode())
-	// if err != nil {
-	// 	return false, err
-	// }
+	// validate VRF proof
+	logger.Trace("verifySlotWinner",
+		"index", authorityIndex,
+		"pub", pub.Hex(),
+		"randomness", b.randomness,
+		"slot", slot,
+		"epoch", b.epoch,
+		"output", fmt.Sprintf("0x%x", vrfOutput),
+		"proof", fmt.Sprintf("0x%x", vrfProof),
+	)
 
-	// return pk.VrfVerify(vrfInput, vrfOutput[:], vrfProof[:])
+	t := makeTranscript(b.randomness, slot, b.epoch)
+	return pk.VrfVerify(t, vrfOutput, vrfProof)
 }
 
 func getAuthorityIndex(header *types.Header) (uint32, error) {
