@@ -171,6 +171,9 @@ func (s *StorageState) StoreInDB(root common.Hash) error {
 	}
 
 	// notify subscribers of database changes
+	s.changedLock.Lock()
+	defer s.changedLock.Unlock()
+
 	for _, sub := range s.subscriptions {
 		subRes := &SubscriptionResult{
 			Hash: root,
@@ -188,7 +191,6 @@ func (s *StorageState) StoreInDB(root common.Hash) error {
 					subRes.Changes = append(subRes.Changes, *kv)
 				}
 			}
-
 		} else {
 			// filter result to include only interested keys
 			for k := range sub.Filter {
