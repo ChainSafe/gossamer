@@ -429,6 +429,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 		return err
 	}
 
+	// TODO: make sure parent state is cached in StorageState
 	parentState, err := s.storageState.TrieState(&parent.StateRoot)
 	if err != nil {
 		return err
@@ -455,6 +456,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 		return err
 	}
 
+	// TODO: batch writes in AddBlock
 	err = s.blockState.AddBlock(block)
 	if err != nil {
 		if err == blocktree.ErrParentNotFound && block.Header.Number.Cmp(big.NewInt(0)) != 0 {
@@ -469,14 +471,14 @@ func (s *Service) handleBlock(block *types.Block) error {
 		s.logger.Debug("imported block", "header", block.Header, "body", block.Body)
 	}
 
-	// TODO: if block is from the next epoch, increment epoch
-
 	// handle consensus digest for authority changes
 	if s.digestHandler != nil {
-		err = s.handleDigests(block.Header)
-		if err != nil {
-			return err
-		}
+		go func() {
+			err = s.handleDigests(block.Header)
+			if err != nil {
+				s.logger.Error("failed to handle block digest", "error", err)
+			}
+		}()
 	}
 
 	return nil
