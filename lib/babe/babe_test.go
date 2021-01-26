@@ -36,10 +36,11 @@ import (
 )
 
 var (
-	emptyHash       = trie.EmptyHash
-	testTimeout     = time.Second * 5
-	testEpochIndex  = uint64(0)
-	testEpochLength = uint64(10)
+	defaultTestLogLvl = log.LvlInfo
+	emptyHash         = trie.EmptyHash
+	testTimeout       = time.Second * 5
+	testEpochIndex    = uint64(0)
+	testEpochLength   = uint64(10)
 
 	maxThreshold = commontypes.MaxUint128
 	minThreshold = &commontypes.Uint128{}
@@ -137,6 +138,11 @@ func TestMain(m *testing.M) {
 		log.Error("failed to generate runtime wasm file", err)
 		os.Exit(1)
 	}
+
+	logger = log.New("pkg", "babe")
+	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	h = log.CallerFileHandler(h)
+	logger.SetHandler(log.LvlFilterHandler(defaultTestLogLvl, h))
 
 	// Start all tests
 	code := m.Run()

@@ -24,6 +24,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
 
+// Randomness is an alias for a byte array with length types.RandomnessLength
+type Randomness = [types.RandomnessLength]byte
+
 // VrfOutputAndProof represents the fields for VRF output and proof
 type VrfOutputAndProof struct {
 	output [sr25519.VrfOutputLength]byte
@@ -60,7 +63,7 @@ func (d Authorities) String() string {
 
 // epochData contains the current epoch information
 type epochData struct {
-	randomness     [types.RandomnessLength]byte
+	randomness     Randomness
 	authorityIndex uint32
 	authorities    []*types.Authority
 	threshold      *commontypes.Uint128
