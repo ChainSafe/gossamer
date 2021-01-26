@@ -159,6 +159,8 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 		// special case for block 1 - the network doesn't necessarily start in epoch 1.
 		// if this happens, the database will be missing info for epochs before the first block.
 		if header.Number.Cmp(big.NewInt(1)) == 0 {
+			epoch = 0
+
 			// set network starting slot
 			// TODO: first slot should be confirmed when block with number=1 is marked final
 			var firstSlot uint64
@@ -429,8 +431,7 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 	}
 
 	if !ok {
-		return babePreDigest, nil // TODO: fix VRF proof verification
-		//return nil, ErrBadSlotClaim
+		return nil, ErrBadSlotClaim
 	}
 
 	return babePreDigest, nil
