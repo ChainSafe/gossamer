@@ -402,20 +402,19 @@ func (s *Service) handleHeader(header *types.Header) error {
 
 // handleHeader handles block bodies included in BlockResponses
 func (s *Service) handleBody(body *types.Body) error {
-	return nil
+	exts, err := body.AsExtrinsics()
+	if err != nil {
+		s.logger.Error("cannot parse body as extrinsics", "error", err)
+		return err
+	}
 
-	// TODO: this causes out of memory panic. fix and re-enable
-	// exts, err := body.AsExtrinsics() //nolint
-	// if err != nil {
-	// 	s.logger.Error("cannot parse body as extrinsics", "error", err)
-	// 	return err
-	// }
+	s.logger.Trace("block extrinsics", "extrinsics", exts)
 
-	// for _, ext := range exts {
-	// 	s.transactionState.RemoveExtrinsic(ext)
-	// }
+	for _, ext := range exts {
+		s.transactionState.RemoveExtrinsic(ext)
+	}
 
-	// return err
+	return err
 }
 
 // handleHeader handles blocks (header+body) included in BlockResponses

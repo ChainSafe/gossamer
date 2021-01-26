@@ -240,7 +240,6 @@ func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
 }
 
 func TestRemoveIncludedExtrinsics(t *testing.T) {
-	t.Skip()
 	syncer := newTestSyncer(t)
 
 	ext := []byte("nootwashere")
