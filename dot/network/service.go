@@ -45,6 +45,7 @@ const (
 	lightID         = "/light/2"
 	blockAnnounceID = "/block-announces/1"
 	transactionsID  = "/transactions/1"
+	finalityProofID = "/finality-proof/1"
 )
 
 var (
@@ -74,10 +75,12 @@ type Service struct {
 	notificationsProtocols map[byte]*notificationsProtocol // map of sub-protocol msg ID to protocol info
 	notificationsMu        sync.RWMutex
 
-	syncing        map[peer.ID]struct{} // set if we have sent a block request message to the given peer
-	syncingMu      sync.RWMutex
-	lightRequest   map[peer.ID]struct{} // set if we have sent a light request message to the given peer
-	lightRequestMu sync.RWMutex
+	syncing                map[peer.ID]struct{} // set if we have sent a block request message to the given peer
+	syncingMu              sync.RWMutex
+	lightRequest           map[peer.ID]struct{} // set if we have sent a light request message to the given peer
+	lightRequestMu         sync.RWMutex
+	finalityProofRequest   map[peer.ID]struct{} // set if we have sent a finality-proof request message to the given peer
+	finalityProofRequestMu sync.RWMutex
 
 	// Service interfaces
 	blockState         BlockState
@@ -160,6 +163,7 @@ func (s *Service) Start() error {
 
 	s.host.registerStreamHandler(syncID, s.handleSyncStream)
 	s.host.registerStreamHandler(lightID, s.handleLightStream)
+	s.host.registerStreamHandler(finalityProofID, s.handleFinalityStream)
 
 	// register block announce protocol
 	err := s.RegisterNotificationsProtocol(
@@ -379,6 +383,54 @@ func (s *Service) SendMessage(msg NotificationsMessage) {
 	s.host.broadcast(msg)
 }
 
+func (s *Service) handleFinalityStream(stream libp2pnetwork.Stream) {
+	conn := stream.Conn()
+	if conn == nil {
+		logger.Error("Failed to get connection from stream")
+		return
+	}
+
+	peer := conn.RemotePeer()
+	s.readStream(stream, peer, s.decodeFinalityProofMessage, s.handleFinalityProofMessage)
+}
+
+func (s *Service) decodeFinalityProofMessage(in []byte, peer peer.ID) (Message, error) {
+	s.finalityProofRequestMu.RLock()
+	defer s.finalityProofRequestMu.RUnlock()
+
+	// Check if we are the requester
+	if _, requested := s.finalityProofRequest[peer]; requested {
+		// We requested, hence expect a response.
+		msg := new(FinalityProofResponse)
+		err := msg.Decode(in)
+		return msg, err
+	}
+
+	// We expecting a request at this point.
+	msg := new(FinalityProofRequest)
+	err := msg.Decode(in)
+	return msg, err
+}
+
+func (s *Service) handleFinalityProofMessage(peer peer.ID, msg Message) error {
+	req, ok := msg.(*FinalityProofRequest)
+	if !ok {
+		logger.Error("expected FinalityRequest from peer %s, got %+v", peer, msg)
+		return nil
+	}
+
+	// WIP
+	_ = req
+	resp := FinalityProofResponse{}
+
+	if err := s.host.send(peer, finalityProofID, &resp); err != nil {
+		logger.Error("failed to send FinalityProofResponse message", "peer", peer, "err", err)
+		return err
+	}
+
+	return nil
+}
+
 // handleLightStream handles streams with the <protocol-id>/light/2 protocol ID
 func (s *Service) handleLightStream(stream libp2pnetwork.Stream) {
 	conn := stream.Conn()
@@ -480,6 +532,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		}
 	}
 }
+
 func (s *Service) handleLightMsg(peer peer.ID, msg Message) error {
 	lr, ok := msg.(*LightRequest)
 	if !ok {
