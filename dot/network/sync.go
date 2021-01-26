@@ -51,11 +51,8 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 
 		req := s.syncer.HandleBlockResponse(resp)
 		if req != nil {
-			if err := s.setSyncingPeer(peer); err != nil {
-				return err
-			}
 			if err := s.host.send(peer, syncID, req); err != nil {
-				logger.Error("failed to send BlockRequest message", "peer", peer)
+				logger.Error("failed to send BlockRequest message", "peer", peer, "error", err)
 			}
 		} else {
 			// we are done syncing

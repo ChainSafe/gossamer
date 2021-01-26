@@ -21,7 +21,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 	"math/big"
 	"os"
 	"sync"
@@ -132,7 +131,6 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 
 	var err error
 	genCfg, err := babeService.rt.BabeConfiguration()
-
 	if err != nil {
 		return nil, err
 	}
@@ -148,13 +146,16 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		"epoch length (slots)", babeService.epochLength,
 		"authorities", Authorities(babeService.epochData.authorities),
 		"authority index", babeService.epochData.authorityIndex,
-		"threshold", babeService.epochData.threshold.Bytes(),
+		"threshold", babeService.epochData.threshold.ToLEBytes(),
+		"randomness", babeService.epochData.randomness,
 	)
 	return babeService, nil
 }
 
 func (b *Service) setEpochData(cfg *ServiceConfig, genCfg *types.BabeConfiguration) (err error) {
-	b.epochData = &epochData{}
+	b.epochData = &epochData{
+		randomness: genCfg.Randomness,
+	}
 
 	// if slot duration is set via the config file, overwrite the runtime value
 	if cfg.SlotDuration > 0 {
@@ -206,7 +207,6 @@ func (b *Service) Start() error {
 		return err
 	}
 
-	// TODO: initiateEpoch sigabrts w/ non authority node epoch > 1. fix this!!
 	err = b.initiateEpoch(epoch, b.startSlot)
 	if err != nil {
 		logger.Error("failed to initiate epoch", "error", err)
@@ -360,21 +360,10 @@ func (b *Service) initiate() {
 
 	// check if we are starting at genesis, if not, need to calculate slot
 	if bestNum.Cmp(big.NewInt(0)) == 1 && slotNum == 0 {
-		// if we have at least slotTail blocks, we can run the slotTime algorithm
-		if bestNum.Cmp(big.NewInt(int64(slotTail))) != -1 {
-			slotNum, err = b.getCurrentSlot()
-			if err != nil {
-				logger.Error("cannot get current slot", "error", err)
-				return
-			}
-		} else {
-			logger.Warn("cannot use median algorithm, not enough blocks synced")
-
-			slotNum, err = b.estimateCurrentSlot()
-			if err != nil {
-				logger.Error("cannot get current slot", "error", err)
-				return
-			}
+		slotNum, err = b.estimateCurrentSlot()
+		if err != nil {
+			logger.Error("cannot get current slot", "error", err)
+			return
 		}
 	}
 
@@ -401,6 +390,14 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 
 	// starting slot for next epoch
 	nextStartSlot := startSlot + b.epochLength - intoEpoch
+
+	// if the calculated amount of slots "into the epoch" is greater than the epoch length,
+	// we've been offline for more than an epoch, and need to sync. pause BABE for now, syncer will
+	// resume it when ready
+	if b.epochLength < intoEpoch {
+		b.paused = true
+		return
+	}
 
 	slotDone := make([]<-chan time.Time, b.epochLength-intoEpoch)
 	for i := 0; i < int(b.epochLength-intoEpoch); i++ {
@@ -451,22 +448,6 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 func (b *Service) handleSlot(slotNum uint64) error {
 	if b.isDisabled {
 		return ErrNotAuthorized
-	}
-
-	if b.slotToProof[slotNum] == nil {
-		// if we don't have a proof already set, re-run lottery.
-		proof, err := b.runLottery(slotNum)
-		if err != nil {
-			logger.Warn("failed to run lottery", "slot", slotNum)
-			return errors.New("failed to run lottery")
-		}
-
-		if proof == nil {
-			logger.Debug("not authorized to produce block", "slot", slotNum)
-			return ErrNotAuthorized
-		}
-
-		b.slotToProof[slotNum] = proof
 	}
 
 	parentHeader, err := b.blockState.BestBlockHeader()
@@ -530,34 +511,4 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		return err
 	}
 	return nil
-}
-
-func (b *Service) vrfSign(input []byte) (out []byte, proof []byte, err error) {
-	return b.keypair.VrfSign(input)
-}
-
-// CalculateThreshold calculates the slot lottery threshold
-// equation: threshold = 2^128 * (1 - (1-c)^(1/len(authorities))
-func CalculateThreshold(C1, C2 uint64, numAuths int) (*big.Int, error) {
-	c := float64(C1) / float64(C2)
-	if c > 1 {
-		return nil, errors.New("invalid C1/C2: greater than 1")
-	}
-
-	// 1 / len(authorities)
-	theta := float64(1) / float64(numAuths)
-
-	// (1-c)^(theta)
-	pp := 1 - c
-	pp_exp := math.Pow(pp, theta)
-
-	// 1 - (1-c)^(theta)
-	p := 1 - pp_exp
-	p_rat := new(big.Rat).SetFloat64(p)
-
-	// 1 << 256
-	q := new(big.Int).Lsh(big.NewInt(1), 256)
-
-	// (1 << 128) * (1 - (1-c)^(w_k/sum(w_i)))
-	return q.Mul(q, p_rat.Num()).Div(q, p_rat.Denom()), nil
 }

@@ -63,8 +63,8 @@ func TestSeal(t *testing.T) {
 	require.True(t, ok, "could not verify seal")
 }
 
-func addAuthorshipProof(t *testing.T, babeService *Service, slotNumber uint64) {
-	outAndProof, err := babeService.runLottery(slotNumber)
+func addAuthorshipProof(t *testing.T, babeService *Service, slotNumber, epoch uint64) {
+	outAndProof, err := babeService.runLottery(slotNumber, epoch)
 	require.NoError(t, err)
 	require.NotNil(t, outAndProof, "proof was nil when under threshold")
 	babeService.slotToProof[slotNumber] = outAndProof
@@ -72,10 +72,9 @@ func addAuthorshipProof(t *testing.T, babeService *Service, slotNumber uint64) {
 
 func createTestBlock(t *testing.T, babeService *Service, parent *types.Header, exts [][]byte, slotNumber uint64) (*types.Block, Slot) { //nolint
 	// create proof that we can authorize this block
-	babeService.epochData.threshold = maxThreshold
 	babeService.epochData.authorityIndex = 0
 
-	addAuthorshipProof(t, babeService, slotNumber)
+	addAuthorshipProof(t, babeService, slotNumber, (slotNumber/babeService.epochLength)+1)
 
 	for _, ext := range exts {
 		vtx := transaction.NewValidTransaction(ext, &transaction.Validity{})
@@ -110,6 +109,7 @@ func TestBuildBlock_ok(t *testing.T) {
 	}
 
 	babeService := createTestService(t, cfg)
+	babeService.epochData.threshold = maxThreshold
 
 	// TODO: re-add extrinsic
 	exts := [][]byte{}
@@ -160,10 +160,10 @@ func TestBuildBlock_failing(t *testing.T) {
 	}
 
 	// create proof that we can authorize this block
-	babeService.epochData.threshold = big.NewInt(0)
+	babeService.epochData.threshold = minThreshold
 	var slotNumber uint64 = 1
 
-	outAndProof, err := babeService.runLottery(slotNumber)
+	outAndProof, err := babeService.runLottery(slotNumber, testEpochIndex)
 	require.NoError(t, err)
 	require.NotNil(t, outAndProof, "proof was nil when over threshold")
 

@@ -116,13 +116,13 @@ func TestIncrementEpoch(t *testing.T) {
 	bs := createTestService(t, nil)
 	next, err := bs.incrementEpoch()
 	require.NoError(t, err)
-	require.Equal(t, uint64(2), next)
+	require.Equal(t, uint64(1), next)
 
 	next, err = bs.incrementEpoch()
 	require.NoError(t, err)
-	require.Equal(t, uint64(3), next)
+	require.Equal(t, uint64(2), next)
 
 	epoch, err := bs.epochState.GetCurrentEpoch()
 	require.NoError(t, err)
-	require.Equal(t, uint64(3), epoch)
+	require.Equal(t, uint64(2), epoch)
 }

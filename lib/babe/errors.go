@@ -16,7 +16,7 @@ package babe
 import "errors"
 
 // ErrBadSlotClaim is returned when a slot claim is invalid
-var ErrBadSlotClaim = errors.New("could not verify slot claim")
+var ErrBadSlotClaim = errors.New("could not verify slot claim VRF proof")
 
 // ErrBadSignature is returned when a seal is invalid
 var ErrBadSignature = errors.New("could not verify signature")

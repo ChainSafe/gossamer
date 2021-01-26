@@ -217,6 +217,7 @@ func createCoreService(cfg *Config, bp core.BlockProducer, fg core.FinalityGadge
 	coreConfig := &core.Config{
 		LogLvl:              cfg.Log.CoreLvl,
 		BlockState:          stateSrvc.Block,
+		EpochState:          stateSrvc.Epoch,
 		StorageState:        stateSrvc.Storage,
 		TransactionState:    stateSrvc.Transaction,
 		BlockProducer:       bp,

@@ -51,18 +51,18 @@ func TestEpochState_CurrentEpoch(t *testing.T) {
 	s := newEpochStateFromGenesis(t)
 	epoch, err := s.GetCurrentEpoch()
 	require.NoError(t, err)
-	require.Equal(t, uint64(1), epoch)
+	require.Equal(t, uint64(0), epoch)
 
-	err = s.SetCurrentEpoch(2)
+	err = s.SetCurrentEpoch(1)
 	require.NoError(t, err)
 	epoch, err = s.GetCurrentEpoch()
 	require.NoError(t, err)
-	require.Equal(t, uint64(2), epoch)
+	require.Equal(t, uint64(1), epoch)
 }
 
 func TestEpochState_EpochData(t *testing.T) {
 	s := newEpochStateFromGenesis(t)
-	has, err := s.HasEpochData(1)
+	has, err := s.HasEpochData(0)
 	require.NoError(t, err)
 	require.True(t, has)
 
@@ -79,9 +79,9 @@ func TestEpochState_EpochData(t *testing.T) {
 		Randomness:  [32]byte{77},
 	}
 
-	err = s.SetEpochData(2, info)
+	err = s.SetEpochData(1, info)
 	require.NoError(t, err)
-	res, err := s.GetEpochData(2)
+	res, err := s.GetEpochData(1)
 	require.NoError(t, err)
 	require.Equal(t, info.Randomness, res.Randomness)
 
@@ -117,11 +117,11 @@ func TestEpochState_GetStartSlotForEpoch(t *testing.T) {
 
 	start, err = s.GetStartSlotForEpoch(1)
 	require.NoError(t, err)
-	require.Equal(t, uint64(1), start)
+	require.Equal(t, uint64(1)+s.epochLength, start)
 
 	start, err = s.GetStartSlotForEpoch(2)
 	require.NoError(t, err)
-	require.Equal(t, genesisBABEConfig.EpochLength+1, start)
+	require.Equal(t, genesisBABEConfig.EpochLength*2+1, start)
 }
 
 func TestEpochState_ConfigData(t *testing.T) {
@@ -144,7 +144,7 @@ func TestEpochState_ConfigData(t *testing.T) {
 func TestEpochState_GetEpochForBlock(t *testing.T) {
 	s := newEpochStateFromGenesis(t)
 
-	babeHeader := types.NewBabePrimaryPreDigest(0, 10, [32]byte{}, [64]byte{})
+	babeHeader := types.NewBabePrimaryPreDigest(0, s.epochLength+2, [32]byte{}, [64]byte{})
 	enc := babeHeader.Encode()
 	digest := types.NewBABEPreRuntimeDigest(enc)
 
@@ -156,7 +156,7 @@ func TestEpochState_GetEpochForBlock(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), epoch)
 
-	babeHeader = types.NewBabePrimaryPreDigest(0, 210, [32]byte{}, [64]byte{})
+	babeHeader = types.NewBabePrimaryPreDigest(0, s.epochLength*2+3, [32]byte{}, [64]byte{})
 	enc = babeHeader.Encode()
 	digest = types.NewBABEPreRuntimeDigest(enc)
 

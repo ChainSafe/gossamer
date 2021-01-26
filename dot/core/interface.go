@@ -104,4 +104,6 @@ type EpochState interface {
 	GetEpochForBlock(header *types.Header) (uint64, error)
 	SetEpochData(epoch uint64, info *types.EpochData) error
 	SetConfigData(epoch uint64, info *types.ConfigData) error
+	SetCurrentEpoch(epoch uint64) error
+	GetCurrentEpoch() (uint64, error)
 }

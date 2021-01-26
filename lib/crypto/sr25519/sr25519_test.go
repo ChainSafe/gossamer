@@ -20,6 +20,8 @@ import (
 	"crypto/rand"
 	"reflect"
 	"testing"
+
+	"github.com/gtank/merlin"
 )
 
 func TestNewKeypairFromSeed(t *testing.T) {
@@ -121,14 +123,15 @@ func TestVrfSignAndVerify(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	msg := []byte("helloworld")
-	out, proof, err := kp.VrfSign(msg)
+	transcript := merlin.NewTranscript("helloworld")
+	out, proof, err := kp.VrfSign(transcript)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	pub := kp.Public().(*PublicKey)
-	ok, err := pub.VrfVerify(msg, out, proof)
+	transcript2 := merlin.NewTranscript("helloworld")
+	ok, err := pub.VrfVerify(transcript2, out, proof)
 	if err != nil {
 		t.Fatal(err)
 	}
