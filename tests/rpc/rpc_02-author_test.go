@@ -69,7 +69,6 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 	// Create the extrinsic
 	ext := types.NewExtrinsic(c)
 
-	// TODO: the genesis hash is wrong.
 	genesisHash, err := api.RPC.Chain.GetBlockHash(0)
 	require.NoError(t, err)
 
@@ -91,7 +90,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 		Nonce:              types.NewUCompactFromUInt(uint64(nonce)),
 		SpecVersion:        rv.SpecVersion,
 		Tip:                types.NewUCompactFromUInt(0),
-		TransactionVersion: 1, //rv.TransactionVersion, // TODO: rv.TransactionVersion == 0 but runtime expects 1
+		TransactionVersion: 1, // TODO: rv.TransactionVersion == 0 but runtime expects 1
 	}
 
 	// Sign the transaction using Alice's default account

@@ -265,17 +265,6 @@ func formatValue(kv *keyValue) (string, error) {
 	}
 }
 
-type AccountInfo struct {
-	Nonce    gtypes.U32
-	RefCount gtypes.U32
-	Data     struct {
-		Free       gtypes.U128
-		Reserved   gtypes.U128
-		MiscFrozen gtypes.U128
-		FreeFrozen gtypes.U128
-	}
-}
-
 func buildBalances(kv *keyValue, res map[string]string) error {
 	for i := range kv.iVal {
 		if i%2 == 0 {
@@ -290,7 +279,7 @@ func buildBalances(kv *keyValue, res map[string]string) error {
 
 			bKey = append(bKey, kv.iVal[i].([]byte)...)
 
-			accInfo := AccountInfo{
+			accInfo := types.AccountInfo{
 				Nonce:    0,
 				RefCount: 0,
 				Data: struct {
@@ -306,11 +295,11 @@ func buildBalances(kv *keyValue, res map[string]string) error {
 				},
 			}
 
-			bVal, err := gtypes.EncodeToBytes(accInfo)
+			encBal, err := gtypes.EncodeToBytes(accInfo)
 			if err != nil {
 				return err
 			}
-			res[common.BytesToHex(bKey)] = common.BytesToHex(bVal)
+			res[common.BytesToHex(bKey)] = common.BytesToHex(encBal)
 		}
 	}
 	return nil
