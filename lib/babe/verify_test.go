@@ -34,8 +34,6 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-var defaultTestLogLvl = log.Lvl(5)
-
 func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *VerificationManager {
 	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
 	require.NoError(t, err)
