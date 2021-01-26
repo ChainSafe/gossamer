@@ -419,10 +419,10 @@ func (s *Service) handleFinalityProofMessage(peer peer.ID, msg Message) error {
 		return nil
 	}
 
-	// WIP
-	_ = req
-	resp := FinalityProofResponse{}
+	// TODO: handle finality-proof request.
+	logger.Info("FinalityProof message %s", req)
 
+	resp := FinalityProofResponse{}
 	if err := s.host.send(peer, finalityProofID, &resp); err != nil {
 		logger.Error("failed to send FinalityProofResponse message", "peer", peer, "err", err)
 		return err
