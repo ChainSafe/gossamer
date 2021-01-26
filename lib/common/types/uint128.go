@@ -17,7 +17,6 @@ package types
 
 import (
 	"encoding/binary"
-	"fmt"
 	"math/big"
 )
 
@@ -40,8 +39,6 @@ func Uint128FromBigInt(in *big.Int) *Uint128 {
 	if len(bytes) < 16 {
 		bytes = padTo16BytesBE(bytes)
 	}
-
-	fmt.Println(bytes)
 
 	// *big.Int returns bytes in big endian format
 	upper := binary.BigEndian.Uint64(bytes[:8])

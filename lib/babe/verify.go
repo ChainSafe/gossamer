@@ -429,8 +429,7 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 	}
 
 	if !ok {
-		return babePreDigest, nil // TODO: fix VRF proof verification
-		//return nil, ErrBadSlotClaim
+		return nil, ErrBadSlotClaim
 	}
 
 	return babePreDigest, nil
