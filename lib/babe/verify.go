@@ -417,7 +417,8 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 		ok, err = b.verifyPrimarySlotWinner(d.AuthorityIndex(), d.SlotNumber(), d.VrfOutput(), d.VrfProof())
 	case *types.BabeSecondaryVRFPreDigest:
 		pub := b.authorities[d.AuthorityIndex()].Key
-		pk, err := sr25519.NewPublicKey(pub.Encode())
+		var pk *sr25519.PublicKey
+		pk, err = sr25519.NewPublicKey(pub.Encode())
 		if err != nil {
 			return nil, err
 		}
