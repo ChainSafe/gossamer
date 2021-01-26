@@ -36,8 +36,12 @@ import (
 	"github.com/urfave/cli"
 )
 
-// DefaultCfg is the default configuration
-var DefaultCfg = dot.GssmrConfig // TODO: investigate default node other than gssmr #776
+//nolint
+var (
+	DefaultCfg              = dot.GssmrConfig
+	defaultGssmrConfigPath  = "./chain/gssmr/config.toml"
+	defaultKusamaConfigPath = "./chain/ksmcc/config.toml"
+)
 
 // loadConfigFile loads a default config file if --chain is specified, a specific
 // config if --config is specified, or the default gossamer config otherwise.
@@ -66,32 +70,32 @@ func loadConfigFile(ctx *cli.Context, cfg *ctoml.Config) (err error) {
 // createDotConfig creates a new dot configuration from the provided flag values
 func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 	tomlCfg := &ctoml.Config{}
+	cfg = DefaultCfg()
+
+	err = loadConfigFile(ctx, tomlCfg)
+	if err != nil {
+		logger.Error("failed to load toml configuration", "error", err)
+		return nil, err
+	}
 
 	// check --chain flag and load configuration from defaults.go
 	if id := ctx.GlobalString(ChainFlag.Name); id != "" {
 		switch id {
 		case "gssmr":
-			logger.Debug("loading default configuration...", "id", id)
-			cfg = dot.GssmrConfig()
-			tomlCfg = dotConfigToToml(cfg)
+			logger.Info("loading toml configuration...", "config path", defaultGssmrConfigPath)
+			tomlCfg = &ctoml.Config{}
+			err = loadConfig(tomlCfg, defaultGssmrConfigPath)
 		case "ksmcc":
-			logger.Debug("loading default configuration...", "id", id)
+			logger.Info("loading toml configuration...", "config path", defaultKusamaConfigPath)
+			tomlCfg = &ctoml.Config{}
 			cfg = dot.KsmccConfig()
-			tomlCfg = dotConfigToToml(cfg)
+			err = loadConfig(tomlCfg, defaultKusamaConfigPath)
 		default:
 			return nil, fmt.Errorf("unknown chain id provided: %s", id)
 		}
 	}
-	// if default configuration not set, load "gssmr" default configuration
-	if cfg == nil {
-		logger.Info("loading default configuration...", "id", "gssmr")
-		cfg = DefaultCfg()
-		tomlCfg = dotConfigToToml(cfg)
-	}
-
-	err = loadConfigFile(ctx, tomlCfg)
 	if err != nil {
-		logger.Error("failed to load toml configuration", "error", err)
+		logger.Error("failed to set chain configuration", "error", err)
 		return nil, err
 	}
 
@@ -123,11 +127,29 @@ func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 // createInitConfig creates the configuration required to initialize a dot node
 func createInitConfig(ctx *cli.Context) (*dot.Config, error) {
 	tomlCfg := &ctoml.Config{}
-	cfg := dot.GssmrConfig()
+	cfg := DefaultCfg()
 
 	err := loadConfigFile(ctx, tomlCfg)
 	if err != nil {
 		logger.Error("failed to load toml configuration", "error", err)
+		return nil, err
+	}
+
+	// check --chain flag and load configuration from defaults.go
+	if id := ctx.GlobalString(ChainFlag.Name); id != "" {
+		switch id {
+		case "gssmr":
+			tomlCfg = &ctoml.Config{}
+			err = loadConfig(tomlCfg, defaultGssmrConfigPath)
+		case "ksmcc":
+			tomlCfg = &ctoml.Config{}
+			err = loadConfig(tomlCfg, defaultKusamaConfigPath)
+		default:
+			return nil, fmt.Errorf("unknown chain id provided: %s", id)
+		}
+	}
+	if err != nil {
+		logger.Error("failed to set chain configuration", "error", err)
 		return nil, err
 	}
 
@@ -656,40 +678,13 @@ func updateDotConfigFromGenesisJSONRaw(ctx *cli.Context, tomlCfg ctoml.Config, c
 		return // exit
 	}
 
-	// check genesis name and use genesis name if configuration does not match
-	if !ctx.GlobalIsSet(NameFlag.Name) && gen.Name != cfg.Global.Name {
-		logger.Warn("genesis mismatch, overwriting", "name", gen.Name)
-		cfg.Global.Name = gen.Name
-	}
+	cfg.Global.Name = gen.Name
+	cfg.Global.ID = gen.ID
+	cfg.Network.Bootnodes = gen.Bootnodes
+	cfg.Network.ProtocolID = gen.ProtocolID
 
-	// check genesis id and use genesis id if configuration does not match
-	if !ctx.GlobalIsSet(ChainFlag.Name) && gen.ID != cfg.Global.ID {
-		logger.Warn("genesis mismatch, overwriting", "id", gen.ID)
-		cfg.Global.ID = gen.ID
-	}
-
-	// ensure matching bootnodes
-	matchingBootnodes := true
-	if len(gen.Bootnodes) != len(cfg.Network.Bootnodes) {
-		matchingBootnodes = false
-	} else {
-		for i, gb := range gen.Bootnodes {
-			if gb != cfg.Network.Bootnodes[i] {
-				matchingBootnodes = false
-			}
-		}
-	}
-
-	// check genesis bootnodes and use genesis bootnodes if configuration does not match
-	if !ctx.GlobalIsSet(BootnodesFlag.Name) && !matchingBootnodes {
-		logger.Warn("genesis mismatch, overwriting", "bootnodes", gen.Bootnodes)
-		cfg.Network.Bootnodes = gen.Bootnodes
-	}
-
-	// check genesis protocol and use genesis protocol if configuration does not match
-	if !ctx.GlobalIsSet(ProtocolFlag.Name) && gen.ProtocolID != cfg.Network.ProtocolID {
-		logger.Warn("genesis mismatch, overwriting", "protocol", gen.ProtocolID)
-		cfg.Network.ProtocolID = gen.ProtocolID
+	if gen.ProtocolID == "" {
+		logger.Crit("empty protocol ID in genesis file, please set it!")
 	}
 
 	logger.Debug(

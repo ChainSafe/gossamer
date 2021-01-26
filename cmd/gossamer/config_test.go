@@ -32,16 +32,6 @@ import (
 	"github.com/urfave/cli"
 )
 
-// TODO: TestSetDotGlobalConfig - add cmd config tests
-
-// TODO: TestSetDotAccountConfig - add cmd config tests
-
-// TODO: TestSetDotCoreConfig - add cmd config tests
-
-// TODO: TestSetDotNetworkConfig - add cmd config tests
-
-// TODO: TestSetDotRPCConfig - add cmd config tests
-
 // TestConfigFromChainFlag tests createDotConfig using the --chain flag
 func TestConfigFromChainFlag(t *testing.T) {
 	testApp := cli.NewApp()
@@ -151,9 +141,9 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 			[]string{"config", "chain"},
 			[]interface{}{testCfgFile.Name(), "ksmcc"},
 			dot.GlobalConfig{
-				Name:     testCfg.Global.Name,
+				Name:     dot.KsmccConfig().Global.Name,
 				ID:       "ksmcc",
-				BasePath: testCfg.Global.BasePath,
+				BasePath: dot.KsmccConfig().Global.BasePath,
 				LogLvl:   log.LvlInfo,
 			},
 		},
