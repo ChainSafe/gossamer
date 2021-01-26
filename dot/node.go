@@ -27,7 +27,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
-	//"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -120,10 +119,6 @@ func InitNode(cfg *Config) error {
 	// into account dynamic genesis values if the corresponding flag values are
 	// provided when using the dot package with the gossamer command)
 	data := gen.GenesisData()
-	// data.Name = cfg.Global.Name
-	// data.ID = cfg.Global.ID
-	// data.Bootnodes = common.StringArrayToBytes(cfg.Network.Bootnodes)
-	// data.ProtocolID = cfg.Network.ProtocolID
 
 	// initialize state service with genesis data, block, and trie
 	err = stateSrvc.Initialize(data, header, t, babeCfg)

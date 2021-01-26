@@ -173,7 +173,7 @@ func createInitConfig(ctx *cli.Context) (*dot.Config, error) {
 	setDotCoreConfig(ctx, tomlCfg.Core, &cfg.Core)
 
 	// ensure configuration values match genesis and overwrite with genesis
-	updateDotConfigFromGenesisJSONRaw(ctx, *tomlCfg, cfg)
+	updateDotConfigFromGenesisJSONRaw(*tomlCfg, cfg)
 
 	// set network config here otherwise it's values will be overwritten when starting the node.
 	// See /cmd/gossamer/main.go L192.
@@ -208,7 +208,7 @@ func createExportConfig(ctx *cli.Context) (*dot.Config, error) {
 	}
 
 	// ensure configuration values match genesis and overwrite with genesis
-	updateDotConfigFromGenesisJSONRaw(ctx, *tomlCfg, cfg)
+	updateDotConfigFromGenesisJSONRaw(*tomlCfg, cfg)
 
 	// set global configuration values
 	setDotGlobalConfig(ctx, tomlCfg, &cfg.Global)
@@ -657,7 +657,7 @@ func setSystemInfoConfig(ctx *cli.Context, cfg *dot.Config) {
 }
 
 // updateDotConfigFromGenesisJSONRaw updates the configuration based on the raw genesis file values
-func updateDotConfigFromGenesisJSONRaw(ctx *cli.Context, tomlCfg ctoml.Config, cfg *dot.Config) {
+func updateDotConfigFromGenesisJSONRaw(tomlCfg ctoml.Config, cfg *dot.Config) {
 	cfg.Account.Key = tomlCfg.Account.Key
 	cfg.Account.Unlock = tomlCfg.Account.Unlock
 	cfg.Core.Roles = tomlCfg.Core.Roles

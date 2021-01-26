@@ -644,7 +644,7 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 	require.Nil(t, err)
 
 	cfg.Init.GenesisRaw = genFile.Name()
-	updateDotConfigFromGenesisJSONRaw(ctx, *dotConfigToToml(testCfg), cfg)
+	updateDotConfigFromGenesisJSONRaw(*dotConfigToToml(testCfg), cfg)
 	require.Equal(t, expected, cfg)
 }
 
@@ -695,7 +695,7 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 
 	cfg, err := createDotConfig(ctx)
 	require.Nil(t, err)
-	updateDotConfigFromGenesisJSONRaw(ctx, *dotConfigToToml(testCfg), cfg)
+	updateDotConfigFromGenesisJSONRaw(*dotConfigToToml(testCfg), cfg)
 	require.Equal(t, expected, cfg)
 }
 
