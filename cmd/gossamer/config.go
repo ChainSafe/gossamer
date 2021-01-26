@@ -352,7 +352,9 @@ func setLogConfig(ctx *cli.Context, cfg *ctoml.Config, globalCfg *dot.GlobalConf
 
 // setDotInitConfig sets dot.InitConfig using flag values from the cli context
 func setDotInitConfig(ctx *cli.Context, tomlCfg ctoml.InitConfig, cfg *dot.InitConfig) {
-	cfg.GenesisRaw = tomlCfg.GenesisRaw
+	if tomlCfg.GenesisRaw != "" {
+		cfg.GenesisRaw = tomlCfg.GenesisRaw
+	}
 
 	// check --genesis-raw flag and update init configuration
 	if genesis := ctx.String(GenesisRawFlag.Name); genesis != "" {
