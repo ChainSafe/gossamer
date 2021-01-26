@@ -70,11 +70,11 @@ func addAuthorshipProof(t *testing.T, babeService *Service, slotNumber, epoch ui
 	babeService.slotToProof[slotNumber] = outAndProof
 }
 
-func createTestBlock(t *testing.T, babeService *Service, parent *types.Header, exts [][]byte, slotNumber uint64) (*types.Block, Slot) { //nolint
+func createTestBlock(t *testing.T, babeService *Service, parent *types.Header, exts [][]byte, slotNumber, epoch uint64) (*types.Block, Slot) { //nolint
 	// create proof that we can authorize this block
 	babeService.epochData.authorityIndex = 0
 
-	addAuthorshipProof(t, babeService, slotNumber, (slotNumber/babeService.epochLength)+1)
+	addAuthorshipProof(t, babeService, slotNumber, epoch)
 
 	for _, ext := range exts {
 		vtx := transaction.NewValidTransaction(ext, &transaction.Validity{})
@@ -114,7 +114,7 @@ func TestBuildBlock_ok(t *testing.T) {
 	// TODO: re-add extrinsic
 	exts := [][]byte{}
 
-	block, slot := createTestBlock(t, babeService, emptyHeader, exts, 1)
+	block, slot := createTestBlock(t, babeService, emptyHeader, exts, 1, testEpochIndex)
 
 	// create pre-digest
 	preDigest, err := babeService.buildBlockPreDigest(slot)
