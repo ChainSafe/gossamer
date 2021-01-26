@@ -139,7 +139,7 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	rt := NewTestInstance(t, runtime.NODE_RUNTIME)
 
 	// balance := uint64(10000)
-	balance := common.MustHexToBytes("0x00000000000000000000000000000010")
+	balance := common.MustHexToBytes("0x000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
 	// encBalance, err := scale.Encode(balance)
 	// require.NoError(t, err)
 
