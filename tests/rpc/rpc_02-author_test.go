@@ -33,7 +33,7 @@ import (
 func TestAuthorSubmitExtrinsic(t *testing.T) {
 	if utils.MODE != rpcSuite {
 		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
-		//return
+		return
 	}
 
 	t.Log("starting gossamer...")
@@ -62,9 +62,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 
 	c, err := types.NewCall(meta, "Balances.transfer", bob, types.NewUCompactFromUInt(12345))
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(t, err)
 
 	// Create the extrinsic
 	ext := types.NewExtrinsic(c)
@@ -101,7 +99,6 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 	hash, err := api.RPC.Author.SubmitExtrinsic(ext)
 	require.NoError(t, err)
 	require.NotEqual(t, hash, common.Hash{})
-
 }
 
 func TestAuthorRPC(t *testing.T) {
