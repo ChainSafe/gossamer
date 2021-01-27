@@ -52,6 +52,7 @@ func NewTrieState(t *trie.Trie) (*TrieState, error) {
 		InMemory: true,
 	}
 
+	// TODO: don't initialize new DB but pass it in
 	db, err := chaindb.NewBadgerDB(cfg)
 	if err != nil {
 		return nil, err

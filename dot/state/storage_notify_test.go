@@ -151,6 +151,8 @@ func TestStorageState_RegisterStorageChangeChannel_Multi_Filter(t *testing.T) {
 	err = ss.StoreTrie(root, ts)
 	require.NoError(t, err)
 
+	time.Sleep(time.Millisecond * 500)
+
 	var wg sync.WaitGroup
 	wg.Add(num)
 
