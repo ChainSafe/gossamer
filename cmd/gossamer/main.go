@@ -19,6 +19,8 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"path/filepath"
 
@@ -116,10 +118,14 @@ func init() {
 
 // main runs the cli application
 func main() {
-	if err := app.Run(os.Args); err != nil {
-		_, _ = fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+	go func() {
+		if err := app.Run(os.Args); err != nil {
+			_, _ = fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+	}()
+
+	http.ListenAndServe(":3000", nil)
 }
 
 // wasmToHexAction converts a .wasm file to a hex string and outputs it to stdout
