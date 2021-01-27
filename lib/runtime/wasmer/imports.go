@@ -531,7 +531,7 @@ func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 		return 1
 	}
 
-	if ok, err := pub.Verify(message, signature); err != nil || !ok {
+	if ok, err := pub.VerifyDeprecated(message, signature); err != nil || !ok {
 		return 0
 	}
 	return 1
