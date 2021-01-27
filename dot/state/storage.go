@@ -114,13 +114,17 @@ func (s *StorageState) StoreTrie(root common.Hash, ts *rtstorage.TrieState) erro
 	ts.Close()
 
 	// store encoded *trie.Trie in database
-	err = s.StoreInDB(root)
-	if err != nil {
-		logger.Error("failed to store encoded trie in database", "state root", root, "error", err)
-		return err
-	}
+	// TODO: add to batch, write when sync is done or a certain amount of blocks are synced?
+	// in the future, should update how storage values are stored
+	go func() {
+		err = s.StoreInDB(root)
+		if err != nil {
+			logger.Error("failed to store encoded trie in database", "state root", root, "error", err)
+			return
+		}
 
-	logger.Trace("stored trie in database", "root", root)
+		logger.Trace("stored trie in database", "root", root)
+	}()
 
 	return nil
 }
@@ -167,6 +171,9 @@ func (s *StorageState) StoreInDB(root common.Hash) error {
 	}
 
 	// notify subscribers of database changes
+	s.changedLock.Lock()
+	defer s.changedLock.Unlock()
+
 	for _, sub := range s.subscriptions {
 		subRes := &SubscriptionResult{
 			Hash: root,
@@ -184,7 +191,6 @@ func (s *StorageState) StoreInDB(root common.Hash) error {
 					subRes.Changes = append(subRes.Changes, *kv)
 				}
 			}
-
 		} else {
 			// filter result to include only interested keys
 			for k := range sub.Filter {
