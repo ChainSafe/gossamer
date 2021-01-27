@@ -90,7 +90,7 @@ func TestExportCommand(t *testing.T) {
 		{
 			"Test gossamer export --config --genesis-raw --bootnodes --log --force",
 			[]string{"config", "genesis-raw", "bootnodes", "name", "force"},
-			[]interface{}{testConfig, genFile.Name(), testBootnode, "gssmr", "true"},
+			[]interface{}{testConfig, genFile.Name(), testBootnode, "Gossamer", "true"},
 			&dot.Config{
 				Global: testCfg.Global,
 				Init: dot.InitConfig{
