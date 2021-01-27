@@ -209,7 +209,7 @@ func buildRawArrayInterface(a []interface{}, kv *keyValue) {
 				//todo determine how to handle this error
 			}
 			kv.value = kv.value + fmt.Sprintf("%x", encVal)
-			kv.iVal = append(kv.iVal, encVal)
+			kv.iVal = append(kv.iVal, big.NewInt(int64(v2)))
 		}
 	}
 }
@@ -279,15 +279,27 @@ func buildBalances(kv *keyValue, res map[string]string) error {
 			bKey = append(bKey, kv.iVal[i].([]byte)...)
 
 			// build value
-			bVal := []byte{}
-			zero, err := scale.Encode(uint32(0))
+			accInfo := types.AccountInfo{
+				Nonce:    0,
+				RefCount: 0,
+				Data: struct {
+				Free       common.Uint128
+				Reserved   common.Uint128
+				MiscFrozen common.Uint128
+				FreeFrozen common.Uint128
+			}{
+				Free:       *common.Uint128FromBigInt(kv.iVal[i+1].(*big.Int)),
+				Reserved:   *common.Uint128FromBigInt(big.NewInt(0)),
+				MiscFrozen: *common.Uint128FromBigInt(big.NewInt(0)),
+				FreeFrozen: *common.Uint128FromBigInt(big.NewInt(0)),
+			},
+			}
+
+			encBal, err := scale.Encode(accInfo)
 			if err != nil {
 				return err
 			}
-			bVal = append(bVal, zero...) // u32 for nonce
-			bVal = append(bVal, zero...) // u32 for ref count
-			bVal = append(bVal, kv.iVal[i+1].([]byte)...)
-			res[common.BytesToHex(bKey)] = common.BytesToHex(bVal)
+			res[common.BytesToHex(bKey)] = common.BytesToHex(encBal)
 		}
 
 	}

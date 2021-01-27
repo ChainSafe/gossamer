@@ -21,10 +21,141 @@ import (
 	"os"
 	"testing"
 	"time"
-
+	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v2"
+	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/stretchr/testify/require"
 )
+
+func TestAuthorSubmitExtrinsic(t *testing.T) {
+	if utils.MODE != rpcSuite {
+		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
+		return
+	}
+
+	t.Log("starting gossamer...")
+
+	utils.CreateConfigBabeMaxThreshold()
+	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDefault, utils.ConfigBABEMaxThreshold)
+	require.NoError(t, err)
+
+	defer func() {
+		t.Log("going to tear down gossamer...")
+		os.Remove(utils.ConfigBABEMaxThreshold)
+		errList := utils.TearDown(t, nodes)
+		require.Len(t, errList, 0)
+	}()
+
+	time.Sleep(5 * time.Second) // wait for server to start
+
+	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("http://localhost:%s", nodes[0].RPCPort))
+	require.NoError(t, err)
+
+	meta, err := api.RPC.State.GetMetadataLatest()
+	require.NoError(t, err)
+
+	// Create a call, transferring 12345 units to Bob
+	bob, err := types.NewAddressFromHexAccountID("0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
+	require.NoError(t, err)
+
+	c, err := types.NewCall(meta, "Balances.transfer", bob, types.NewUCompactFromUInt(12345))
+	require.NoError(t, err)
+
+	// Create the extrinsic
+	ext := types.NewExtrinsic(c)
+
+	genesisHash, err := api.RPC.Chain.GetBlockHash(0)
+	require.NoError(t, err)
+
+	rv, err := api.RPC.State.GetRuntimeVersionLatest()
+	require.NoError(t, err)
+
+	key, err := types.CreateStorageKey(meta, "System", "Account", signature.TestKeyringPairAlice.PublicKey, nil)
+	require.NoError(t, err)
+
+	var nonce uint32
+	ok, err := api.RPC.State.GetStorageLatest(key, &nonce)
+	require.NoError(t, err)
+	require.True(t, ok)
+
+	o := types.SignatureOptions{
+		BlockHash:          genesisHash,
+		Era:                types.ExtrinsicEra{IsImmortalEra: true},
+		GenesisHash:        genesisHash,
+		Nonce:              types.NewUCompactFromUInt(uint64(nonce)),
+		SpecVersion:        rv.SpecVersion,
+		Tip:                types.NewUCompactFromUInt(0),
+		TransactionVersion: 1, // TODO: rv.TransactionVersion == 0 but runtime expects 1
+	}
+
+	// Sign the transaction using Alice's default account
+	err = ext.Sign(signature.TestKeyringPairAlice, o)
+	require.NoError(t, err)
+
+	// Send the extrinsic
+	hash, err := api.RPC.Author.SubmitExtrinsic(ext)
+	require.NoError(t, err)
+	require.NotEqual(t, hash, common.Hash{})
+}
+
+func TestAuthorSubmitExtrinsicLocalNode(t *testing.T) {
+
+	t.Log("gossamer must be started for this test to run")
+
+	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("http://localhost:%s", "8545"))
+	require.NoError(t, err)
+
+	meta, err := api.RPC.State.GetMetadataLatest()
+	require.NoError(t, err)
+
+	// Create a call, transferring 12345 units to Bob
+	bob, err := types.NewAddressFromHexAccountID("0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
+	require.NoError(t, err)
+
+	c, err := types.NewCall(meta, "Balances.transfer", bob, types.NewUCompactFromUInt(12345))
+	require.NoError(t, err)
+
+	// Create the extrinsic
+	ext := types.NewExtrinsic(c)
+
+	genesisHash, err := api.RPC.Chain.GetBlockHash(0)
+	require.NoError(t, err)
+
+	rv, err := api.RPC.State.GetRuntimeVersionLatest()
+	require.NoError(t, err)
+
+	key, err := types.CreateStorageKey(meta, "System", "Account", signature.TestKeyringPairAlice.PublicKey, nil)
+	require.NoError(t, err)
+
+	var nonce uint32
+	ok, err := api.RPC.State.GetStorageLatest(key, &nonce)
+	require.NoError(t, err)
+	require.True(t, ok)
+
+	o := types.SignatureOptions{
+		BlockHash:          genesisHash,
+		Era:                types.ExtrinsicEra{IsImmortalEra: true},
+		GenesisHash:        genesisHash,
+		Nonce:              types.NewUCompactFromUInt(uint64(nonce)),
+		SpecVersion:        rv.SpecVersion,
+		Tip:                types.NewUCompactFromUInt(0),
+		TransactionVersion: 1, // TODO: rv.TransactionVersion == 0 but runtime expects 1
+	}
+
+	// Sign the transaction using Alice's default account
+	err = ext.Sign(signature.TestKeyringPairAlice, o)
+	require.NoError(t, err)
+	extJson, err := ext.MarshalJSON()
+	require.NoError(t, err)
+	fmt.Printf("Signed Ext %v\n", extJson)
+	// Send the extrinsic
+	hash, err := api.RPC.Author.SubmitExtrinsic(ext)
+	//fmt.Printf("Submit Hash %x\n", hash)
+	require.NoError(t, err)
+	require.NotEqual(t, hash, common.Hash{})
+}
 
 func TestAuthorRPC(t *testing.T) {
 	if utils.MODE != rpcSuite {
