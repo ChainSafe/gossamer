@@ -25,7 +25,7 @@ var (
 	// GlobalConfig
 
 	// DefaultName Default node name
-	DefaultName = string("gssmr")
+	DefaultName = string("Gossamer")
 	// DefaultID Default chain ID
 	DefaultID = string("gssmr")
 	// DefaultConfig Default toml configuration path
@@ -67,8 +67,6 @@ var (
 	DefaultNetworkPort = uint32(7001)
 	// DefaultNetworkBootnodes network bootnodes
 	DefaultNetworkBootnodes = []string(nil)
-	// DefaultNetworkProtocolID network protocol
-	DefaultNetworkProtocolID = string("/gossamer/gssmr/0")
 	// DefaultNoBootstrap disables bootstrap
 	DefaultNoBootstrap = false
 	// DefaultNoMDNS disables mDNS discovery

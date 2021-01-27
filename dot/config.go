@@ -150,7 +150,6 @@ func GssmrConfig() *Config {
 		Network: NetworkConfig{
 			Port:        gssmr.DefaultNetworkPort,
 			Bootnodes:   gssmr.DefaultNetworkBootnodes,
-			ProtocolID:  gssmr.DefaultNetworkProtocolID,
 			NoBootstrap: gssmr.DefaultNoBootstrap,
 			NoMDNS:      gssmr.DefaultNoMDNS,
 		},
@@ -200,7 +199,6 @@ func KsmccConfig() *Config {
 		Network: NetworkConfig{
 			Port:        ksmcc.DefaultNetworkPort,
 			Bootnodes:   ksmcc.DefaultNetworkBootnodes,
-			ProtocolID:  ksmcc.DefaultNetworkProtocolID,
 			NoBootstrap: ksmcc.DefaultNoBootstrap,
 			NoMDNS:      ksmcc.DefaultNoMDNS,
 		},

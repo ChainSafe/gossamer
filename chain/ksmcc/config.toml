@@ -1,6 +1,4 @@
 [global]
-name = "ksmcc"
-id = "ksmcc"
 basepath = "~/.gossamer/ksmcc"
 log = "info"
 
@@ -12,6 +10,7 @@ state = ""
 runtime = ""
 babe = ""
 grandpa = ""
+sync = ""
 
 [init]
 genesis-raw = "./chain/ksmcc/genesis-raw.json"
@@ -27,7 +26,6 @@ grandpa-authority = false
 
 [network]
 port = 7001
-bootnodes = []
 nobootstrap = false
 nomdns = false
 
@@ -36,7 +34,7 @@ enabled = false
 external = false
 port = 8545
 host = "localhost"
-modules = ["system", "rpc"]
+modules = ["system", "author", "chain", "state", "rpc"]
 ws-port = 8546
 ws = false
 ws-external = false

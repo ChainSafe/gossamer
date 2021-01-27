@@ -25,7 +25,7 @@ var (
 	// GlobalConfig
 
 	// DefaultName Default node name
-	DefaultName = string("ksmcc")
+	DefaultName = string("Kusama")
 	// DefaultID Default chain ID
 	DefaultID = string("ksmcc")
 	// DefaultConfig Default toml configuration path
@@ -63,8 +63,6 @@ var (
 	DefaultNetworkPort = uint32(7001)
 	// DefaultNetworkBootnodes network bootnodes
 	DefaultNetworkBootnodes = []string(nil)
-	// DefaultNetworkProtocolID network protocol
-	DefaultNetworkProtocolID = string("/gossamer/ksmcc/0")
 	// DefaultNoBootstrap disables bootstrap
 	DefaultNoBootstrap = false
 	// DefaultNoMDNS disables mDNS discovery
@@ -77,7 +75,7 @@ var (
 	// DefaultRPCHTTPPort rpc port
 	DefaultRPCHTTPPort = uint32(8545)
 	// DefaultRPCModules rpc modules
-	DefaultRPCModules = []string{"system", "rpc"}
+	DefaultRPCModules = []string{"system", "author", "chain", "state", "rpc"}
 	// DefaultRPCWSPort rpc websocket port
 	DefaultRPCWSPort = uint32(8546)
 )
