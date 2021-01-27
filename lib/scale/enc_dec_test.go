@@ -24,7 +24,6 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-
 	"github.com/stretchr/testify/require"
 )
 
@@ -245,4 +244,17 @@ func TestEncodeDecodeSliceComplexStruct(t *testing.T) {
 	dec, err := Decode(enc, []ComplexStruct{})
 	require.NoError(t, err)
 	require.Equal(t, csArray, dec)
+}
+
+func TestUint128EncodeDecode(t *testing.T) {
+	i := big.NewInt(12313243)
+	expectedVal := *common.Uint128FromBigInt(i)
+
+	encByts, err := Encode(expectedVal)
+	require.NoError(t, err)
+	require.NotEmpty(t, encByts)
+
+	dec, err := Decode(encByts, common.Uint128{})
+	require.NoError(t, err)
+	require.Equal(t, expectedVal, dec)
 }

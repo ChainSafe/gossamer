@@ -22,7 +22,7 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	commontypes "github.com/ChainSafe/gossamer/lib/common/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 
@@ -44,7 +44,7 @@ func makeTranscript(randomness [types.RandomnessLength]byte, slot, epoch uint64)
 // https://github.com/paritytech/substrate/blob/master/client/consensus/babe/src/authorship.rs#L239
 func claimPrimarySlot(randomness [types.RandomnessLength]byte,
 	slot, epoch uint64,
-	threshold *commontypes.Uint128,
+	threshold *common.Uint128,
 	keypair *sr25519.Keypair,
 ) (*VrfOutputAndProof, error) {
 	transcript := makeTranscript(randomness, slot, epoch)
@@ -74,14 +74,14 @@ func claimPrimarySlot(randomness [types.RandomnessLength]byte,
 func checkPrimaryThreshold(randomness [types.RandomnessLength]byte,
 	slot, epoch uint64,
 	output [sr25519.VrfOutputLength]byte,
-	threshold *commontypes.Uint128,
+	threshold *common.Uint128,
 	pub *sr25519.PublicKey,
 ) bool {
 	t := makeTranscript(randomness, slot, epoch)
 	inout := sr25519.AttachInput(output, pub, t)
 	res := sr25519.MakeBytes(inout, 16, babe_vrf_prefix)
 
-	inoutUint := commontypes.Uint128FromLEBytes(res)
+	inoutUint := common.Uint128FromLEBytes(res)
 
 	logger.Trace("checkPrimaryThreshold", "pub", pub.Hex(),
 		"randomness", randomness,
@@ -98,7 +98,7 @@ func checkPrimaryThreshold(randomness [types.RandomnessLength]byte,
 // CalculateThreshold calculates the slot lottery threshold
 // equation: threshold = 2^128 * (1 - (1-c)^(1/len(authorities))
 // see https://github.com/paritytech/substrate/blob/master/client/consensus/babe/src/authorship.rs#L44
-func CalculateThreshold(C1, C2 uint64, numAuths int) (*commontypes.Uint128, error) {
+func CalculateThreshold(C1, C2 uint64, numAuths int) (*common.Uint128, error) {
 	c := float64(C1) / float64(C2)
 	if c > 1 {
 		return nil, errors.New("invalid C1/C2: greater than 1")
@@ -125,12 +125,12 @@ func CalculateThreshold(C1, C2 uint64, numAuths int) (*commontypes.Uint128, erro
 
 	// special case where threshold is maximum
 	if threshold_big.Cmp(shift) == 0 {
-		return commontypes.MaxUint128, nil
+		return common.MaxUint128, nil
 	}
 
 	if len(threshold_big.Bytes()) > 16 {
 		return nil, errors.New("threshold must be under or equal to 16 bytes")
 	}
 
-	return commontypes.Uint128FromBigInt(threshold_big), nil
+	return common.Uint128FromBigInt(threshold_big), nil
 }

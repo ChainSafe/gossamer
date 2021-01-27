@@ -25,7 +25,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	commontypes "github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
 
@@ -34,7 +33,7 @@ import (
 type verifierInfo struct {
 	authorities []*types.Authority
 	randomness  [types.RandomnessLength]byte
-	threshold   *commontypes.Uint128
+	threshold   *common.Uint128
 }
 
 // onDisabledInfo contains information about an authority that's been disabled at a certain
@@ -295,7 +294,7 @@ type verifier struct {
 	epoch       uint64
 	authorities []*types.Authority
 	randomness  [types.RandomnessLength]byte
-	threshold   *commontypes.Uint128
+	threshold   *common.Uint128
 }
 
 // newVerifier returns a Verifier for the epoch described by the given descriptor

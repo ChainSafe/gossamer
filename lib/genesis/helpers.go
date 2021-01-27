@@ -34,7 +34,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	gtypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
 )
 
 // NewGenesisFromJSONRaw parses a JSON formatted genesis-raw file
@@ -210,7 +209,7 @@ func buildRawArrayInterface(a []interface{}, kv *keyValue) {
 				//todo determine how to handle this error
 			}
 			kv.value = kv.value + fmt.Sprintf("%x", encVal)
-			kv.iVal = append(kv.iVal, *big.NewInt(int64(v2)))
+			kv.iVal = append(kv.iVal, big.NewInt(int64(v2)))
 		}
 	}
 }
@@ -283,19 +282,19 @@ func buildBalances(kv *keyValue, res map[string]string) error {
 				Nonce:    0,
 				RefCount: 0,
 				Data: struct {
-					Free       gtypes.U128
-					Reserved   gtypes.U128
-					MiscFrozen gtypes.U128
-					FreeFrozen gtypes.U128
+					Free       common.Uint128
+					Reserved   common.Uint128
+					MiscFrozen common.Uint128
+					FreeFrozen common.Uint128
 				}{
-					Free:       gtypes.NewU128(kv.iVal[i+1].(big.Int)),
-					Reserved:   gtypes.NewU128(*big.NewInt(0)),
-					MiscFrozen: gtypes.NewU128(*big.NewInt(0)),
-					FreeFrozen: gtypes.NewU128(*big.NewInt(0)),
+					Free:       *common.Uint128FromBigInt(kv.iVal[i+1].(*big.Int)),
+					Reserved:   *common.Uint128FromBigInt(big.NewInt(0)),
+					MiscFrozen: *common.Uint128FromBigInt(big.NewInt(0)),
+					FreeFrozen: *common.Uint128FromBigInt(big.NewInt(0)),
 				},
 			}
 
-			encBal, err := gtypes.EncodeToBytes(accInfo)
+			encBal, err := scale.Encode(accInfo)
 			if err != nil {
 				return err
 			}

@@ -141,15 +141,15 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 		Nonce:    0,
 		RefCount: 0,
 		Data: struct {
-			Free       gtypes.U128
-			Reserved   gtypes.U128
-			MiscFrozen gtypes.U128
-			FreeFrozen gtypes.U128
+			Free       common.Uint128
+			Reserved   common.Uint128
+			MiscFrozen common.Uint128
+			FreeFrozen common.Uint128
 		}{
-			Free:       gtypes.NewU128(*big.NewInt(1152921504606846976)),
-			Reserved:   gtypes.NewU128(*big.NewInt(0)),
-			MiscFrozen: gtypes.NewU128(*big.NewInt(0)),
-			FreeFrozen: gtypes.NewU128(*big.NewInt(0)),
+			Free:       *common.Uint128FromBigInt(big.NewInt(1152921504606846976)),
+			Reserved:   *common.Uint128FromBigInt(big.NewInt(0)),
+			MiscFrozen: *common.Uint128FromBigInt(big.NewInt(0)),
+			FreeFrozen: *common.Uint128FromBigInt(big.NewInt(0)),
 		},
 	}
 

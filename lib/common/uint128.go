@@ -13,24 +13,23 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
-package types
+package common
 
 import (
 	"encoding/binary"
-	"fmt"
 	"math/big"
 )
 
 // Uint128 represents an unsigned 128 bit integer
 type Uint128 struct {
-	upper uint64
-	lower uint64
+	Upper uint64
+	Lower uint64
 }
 
 // MaxUint128 is the maximum uint128 value
 var MaxUint128 = &Uint128{
-	upper: ^uint64(0),
-	lower: ^uint64(0),
+	Upper: ^uint64(0),
+	Lower: ^uint64(0),
 }
 
 // Uint128FromBigInt returns a new Uint128 from a *big.Int
@@ -41,15 +40,13 @@ func Uint128FromBigInt(in *big.Int) *Uint128 {
 		bytes = padTo16BytesBE(bytes)
 	}
 
-	fmt.Println(bytes)
-
 	// *big.Int returns bytes in big endian format
 	upper := binary.BigEndian.Uint64(bytes[:8])
 	lower := binary.BigEndian.Uint64(bytes[8:])
 
 	return &Uint128{
-		upper: upper,
-		lower: lower,
+		Upper: upper,
+		Lower: lower,
 	}
 }
 
@@ -64,42 +61,42 @@ func Uint128FromLEBytes(in []byte) *Uint128 {
 	upper := binary.LittleEndian.Uint64(in[8:])
 
 	return &Uint128{
-		upper: upper,
-		lower: lower,
+		Upper: upper,
+		Lower: lower,
 	}
 }
 
 // ToLEBytes returns the Uint128 as a little endian byte slice
 func (u *Uint128) ToLEBytes() []byte {
 	buf := make([]byte, 16)
-	binary.LittleEndian.PutUint64(buf[:8], u.lower)
-	binary.LittleEndian.PutUint64(buf[8:], u.upper)
+	binary.LittleEndian.PutUint64(buf[:8], u.Lower)
+	binary.LittleEndian.PutUint64(buf[8:], u.Upper)
 	return trimLEBytes(buf)
 }
 
 // ToBEBytes returns the Uint128 as a big endian byte slice
 func (u *Uint128) ToBEBytes() []byte {
 	buf := make([]byte, 16)
-	binary.BigEndian.PutUint64(buf[:8], u.upper)
-	binary.BigEndian.PutUint64(buf[8:], u.lower)
+	binary.BigEndian.PutUint64(buf[:8], u.Upper)
+	binary.BigEndian.PutUint64(buf[8:], u.Lower)
 	return trimBEBytes(buf)
 }
 
 // Cmp returns 1 if the receiver is greater than other, 0 if they are equal, and -1 otherwise.
 func (u *Uint128) Cmp(other *Uint128) int {
-	if u.upper > other.upper {
+	if u.Upper > other.Upper {
 		return 1
 	}
 
-	if u.upper < other.upper {
+	if u.Upper < other.Upper {
 		return -1
 	}
 
-	if u.lower > other.lower {
+	if u.Lower > other.Lower {
 		return 1
 	}
 
-	if u.lower < other.lower {
+	if u.Lower < other.Lower {
 		return -1
 	}
 
