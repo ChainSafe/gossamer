@@ -55,8 +55,10 @@ func claimPrimarySlot(randomness [types.RandomnessLength]byte,
 	}
 
 	logger.Trace("claimPrimarySlot", "pub", keypair.Public().Hex(),
-		"output", out,
-		"proof", proof,
+		"slot", slot,
+		"epoch", epoch,
+		"output", fmt.Sprintf("0x%x", out),
+		"proof", fmt.Sprintf("0x%x", proof),
 	)
 
 	ok := checkPrimaryThreshold(randomness, slot, epoch, out, threshold, keypair.Public().(*sr25519.PublicKey))
