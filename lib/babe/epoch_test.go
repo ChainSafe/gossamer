@@ -28,9 +28,7 @@ import (
 
 func TestInitiateEpoch(t *testing.T) {
 	bs := createTestService(t, nil)
-	bs.epochLength = testEpochLength
-	// bs.Start()
-	// bs.Stop()
+	bs.epochLength = 5
 
 	state.AddBlocksToState(t, bs.blockState.(*state.BlockState), 1)
 
@@ -52,6 +50,7 @@ func TestInitiateEpoch(t *testing.T) {
 		threshold:      threshold,
 	}
 	require.Equal(t, expected, bs.epochData)
+	require.Equal(t, int(bs.epochLength), len(bs.slotToProof))
 
 	// for epoch 2, set EpochData but not ConfigData
 	edata := &types.EpochData{
@@ -73,6 +72,7 @@ func TestInitiateEpoch(t *testing.T) {
 	require.Equal(t, expected.randomness, bs.epochData.randomness)
 	require.Equal(t, expected.authorityIndex, bs.epochData.authorityIndex)
 	require.Equal(t, expected.threshold, bs.epochData.threshold)
+	require.Equal(t, int(bs.epochLength*2), len(bs.slotToProof))
 
 	for i, auth := range bs.epochData.authorities {
 		expAuth, err := expected.authorities[i].Encode() //nolint
@@ -114,7 +114,7 @@ func TestInitiateEpoch(t *testing.T) {
 
 	time.Sleep(time.Second)
 	// assert slot lottery was run for epochs 0, 1 and 2, 3
-	require.Equal(t, int(testEpochLength*2), len(bs.slotToProof))
+	require.Equal(t, int(bs.epochLength*3), len(bs.slotToProof))
 }
 
 func TestIncrementEpoch(t *testing.T) {

@@ -25,6 +25,8 @@ import (
 // initiateEpoch sets the epochData for the given epoch, runs the lottery for the slots in the epoch,
 // and stores updated EpochInfo in the database
 func (b *Service) initiateEpoch(epoch uint64) error {
+	var startSlot uint64
+
 	if epoch > 0 {
 		has, err := b.epochState.HasEpochData(epoch)
 		if err != nil {
@@ -82,9 +84,14 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 				threshold:      b.epochData.threshold,
 			}
 		}
+
+		startSlot, err = b.epochState.GetStartSlotForEpoch(epoch)
+		if err != nil {
+			return err
+		}
 	} else if b.blockState.BestBlockHash() == b.blockState.GenesisHash() {
 		// we are at genesis, set first slot using current time
-		startSlot := getCurrentSlot(b.slotDuration)
+		startSlot = getCurrentSlot(b.slotDuration)
 		err := b.epochState.SetFirstSlot(startSlot)
 		if err != nil {
 			return err
@@ -95,12 +102,13 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 		return nil
 	}
 
-	startSlot, err := b.epochState.GetStartSlotForEpoch(epoch)
-	if err != nil {
-		return err
-	}
+	fmt.Println(startSlot)
+	fmt.Println(b.epochLength)
+
+	var err error
 
 	for i := startSlot; i < startSlot+b.epochLength; i++ {
+		fmt.Println(i)
 		b.slotToProof[i], err = b.runLottery(i, epoch)
 		if err != nil {
 			return fmt.Errorf("error running slot lottery at slot %d: error %s", i, err)

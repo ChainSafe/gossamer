@@ -273,6 +273,8 @@ func (s *EpochState) HasConfigData(epoch uint64) (bool, error) {
 // GetStartSlotForEpoch returns the first slot in the given epoch.
 // If 0 is passed as the epoch, it returns the start slot for the current epoch.
 func (s *EpochState) GetStartSlotForEpoch(epoch uint64) (uint64, error) {
+	fmt.Println(s.epochLength)
+	fmt.Println(s.firstSlot)
 	return s.epochLength*epoch + s.firstSlot, nil
 }
 

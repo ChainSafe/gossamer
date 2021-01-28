@@ -120,7 +120,7 @@ func TestSlotTime(t *testing.T) {
 	require.NoError(t, err)
 
 	expected := time.Now().Add(dur)
-	if int64(res) != expected.Unix() && int64(res) != expected.Unix()+1 {
+	if int64(res) != expected.Unix() && int64(res) != expected.Unix()+1 && int64(res) != expected.Unix()-1 {
 		t.Fatalf("Fail: got %d expected %d", res, expected.Unix())
 	}
 }
