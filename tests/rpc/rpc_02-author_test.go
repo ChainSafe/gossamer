@@ -17,7 +17,9 @@
 package rpc
 
 import (
+	"bytes"
 	"fmt"
+	"github.com/centrifuge/go-substrate-rpc-client/v2/scale"
 	"os"
 	"testing"
 	"time"
@@ -43,7 +45,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 
 	defer func() {
 		t.Log("going to tear down gossamer...")
-		os.Remove(utils.ConfigBABEMaxThreshold)
+		//os.Remove(utils.ConfigBABEMaxThreshold)
 		errList := utils.TearDown(t, nodes)
 		require.Len(t, errList, 0)
 	}()
@@ -136,7 +138,9 @@ func TestAuthorSubmitExtrinsicLocalNode(t *testing.T) {
 
 	o := types.SignatureOptions{
 		BlockHash:          genesisHash,
-		Era:                types.ExtrinsicEra{IsImmortalEra: true},
+		Era:                types.ExtrinsicEra{
+			IsImmortalEra: true,
+		},
 		GenesisHash:        genesisHash,
 		Nonce:              types.NewUCompactFromUInt(uint64(nonce)),
 		SpecVersion:        rv.SpecVersion,
@@ -144,17 +148,40 @@ func TestAuthorSubmitExtrinsicLocalNode(t *testing.T) {
 		TransactionVersion: 1, // TODO: rv.TransactionVersion == 0 but runtime expects 1
 	}
 
+	fmt.Printf("Nonce %v\n", nonce)
+	fmt.Printf("genesisHash %x\n", genesisHash)
 	// Sign the transaction using Alice's default account
 	err = ext.Sign(signature.TestKeyringPairAlice, o)
 	require.NoError(t, err)
-	extJson, err := ext.MarshalJSON()
-	require.NoError(t, err)
-	fmt.Printf("Signed Ext %v\n", extJson)
+	//extJson, err := ext.MarshalJSON()
+	//require.NoError(t, err)
+	fmt.Printf("Signed Ext %+v\n", ext)
+
+	buffer := bytes.Buffer{}
+
+	encoder := scale.NewEncoder(&buffer)
+	ext.Encode(*encoder)
+
+	res := buffer.Bytes()
+
+	fmt.Printf("Ext Encoded %x\n", res)
 	// Send the extrinsic
 	hash, err := api.RPC.Author.SubmitExtrinsic(ext)
 	//fmt.Printf("Submit Hash %x\n", hash)
 	require.NoError(t, err)
 	require.NotEqual(t, hash, common.Hash{})
+}
+
+
+func TestDecodeExt (t *testing.T) {
+	buffer := bytes.Buffer{}
+	decoder := scale.NewDecoder(&buffer)
+	buffer.Write(common.MustHexToBytes("0x2d028400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01709c8e7d422a3cba76b628a05153b7f0c2e9f6546d73a0c72d16fe3abde4011994d0f88f478631e380c22e07c4be151cf98a686962f0a864afe4f4daba80e38c0000000600008eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48e5c0"))
+
+	ext := types.Extrinsic{}
+	err := decoder.Decode(&ext)
+	require.NoError(t, err)
+	fmt.Printf("decoded ext %+v\n", ext)
 }
 
 func TestAuthorRPC(t *testing.T) {
