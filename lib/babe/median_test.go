@@ -181,7 +181,7 @@ func TestGetCurrentSlot(t *testing.T) {
 
 	expected := uint64(167)
 
-	if res != expected && res != expected+1 {
+	if res != expected && res != expected+1 && res != expected-1 {
 		t.Fatalf("Fail: got %d expected %d", res, expected)
 	}
 }
