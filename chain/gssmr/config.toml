@@ -1,6 +1,4 @@
 [global]
-name = "gssmr"
-id = "gssmr"
 basepath = "~/.gossamer/gssmr"
 log = "info"
 
@@ -12,6 +10,7 @@ state = ""
 runtime = ""
 babe = ""
 grandpa = ""
+sync = ""
 
 [init]
 genesis-raw = "./chain/gssmr/genesis-raw.json"
@@ -27,8 +26,6 @@ grandpa-authority = true
 
 [network]
 port = 7001
-bootnodes = []
-protocol = "/gossamer/gssmr/0"
 nobootstrap = false
 nomdns = false
 
