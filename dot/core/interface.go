@@ -18,7 +18,6 @@ package core
 
 import (
 	"math/big"
-	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -38,9 +37,7 @@ type BlockState interface {
 	BestBlock() (*types.Block, error)
 	AddBlock(*types.Block) error
 	GetAllBlocksAtDepth(hash common.Hash) []common.Hash
-	AddBlockWithArrivalTime(*types.Block, time.Time) error
 	GetBlockByHash(common.Hash) (*types.Block, error)
-	GetArrivalTime(common.Hash) (time.Time, error)
 	GenesisHash() common.Hash
 	GetSlotForBlock(common.Hash) (uint64, error)
 	HighestBlockHash() common.Hash
