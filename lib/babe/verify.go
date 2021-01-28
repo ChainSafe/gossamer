@@ -427,6 +427,7 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 
 		ok, err = verifySecondarySlotVRF(d, pk, b.epoch, len(b.authorities), b.randomness)
 	case *types.BabeSecondaryPlainPreDigest:
+		ok = true
 		err = verifySecondarySlotPlain(d.AuthorityIndex(), d.SlotNumber(), len(b.authorities), b.randomness)
 	}
 
