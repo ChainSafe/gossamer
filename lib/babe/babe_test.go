@@ -122,10 +122,6 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		cfg.EpochState = dbSrv.Epoch
 	}
 
-	if cfg.StartSlot == 0 {
-		cfg.StartSlot = 1
-	}
-
 	babeService, err := NewService(cfg)
 	require.NoError(t, err)
 	return babeService
@@ -158,8 +154,11 @@ func TestRunEpochLengthConfig(t *testing.T) {
 }
 
 func TestSlotDuration(t *testing.T) {
+	duration, err := time.ParseDuration("1000ms")
+	require.NoError(t, err)
+
 	bs := &Service{
-		slotDuration: 1000,
+		slotDuration: duration,
 	}
 
 	dur := bs.getSlotDuration()
@@ -182,7 +181,7 @@ func TestBabeAnnounceMessage(t *testing.T) {
 		StorageState:     dbSrv.Storage,
 		EpochState:       dbSrv.Epoch,
 		TransactionState: dbSrv.Transaction,
-		LogLvl:           log.LvlTrace,
+		LogLvl:           log.LvlDebug,
 		Authority:        true,
 	}
 

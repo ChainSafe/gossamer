@@ -34,7 +34,7 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-var defaultTestLogLvl = log.Lvl(5)
+var defaultTestLogLvl = log.Lvl(4)
 
 func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *VerificationManager {
 	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
@@ -304,10 +304,12 @@ func TestVerifySlotWinner(t *testing.T) {
 	var slotNumber uint64 = 1
 
 	addAuthorshipProof(t, babeService, slotNumber, testEpochIndex)
+	duration, err := time.ParseDuration("1s")
+	require.NoError(t, err)
 
 	slot := Slot{
-		start:    uint64(time.Now().Unix()),
-		duration: uint64(10000000),
+		start:    time.Now(),
+		duration: duration,
 		number:   slotNumber,
 	}
 

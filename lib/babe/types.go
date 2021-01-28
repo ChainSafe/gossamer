@@ -18,6 +18,7 @@ package babe
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	commontypes "github.com/ChainSafe/gossamer/lib/common/types"
@@ -32,13 +33,13 @@ type VrfOutputAndProof struct {
 
 // Slot represents a BABE slot
 type Slot struct {
-	start    uint64
-	duration uint64
+	start    time.Time
+	duration time.Duration
 	number   uint64
 }
 
 // NewSlot returns a new Slot
-func NewSlot(start, duration, number uint64) *Slot {
+func NewSlot(start time.Time, duration time.Duration, number uint64) *Slot {
 	return &Slot{
 		start:    start,
 		duration: duration,

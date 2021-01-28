@@ -22,9 +22,9 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 )
 
-// initiateEpoch sets the randomness for the given epoch, runs the lottery for the slots in the epoch,
+// initiateEpoch sets the epochData for the given epoch, runs the lottery for the slots in the epoch,
 // and stores updated EpochInfo in the database
-func (b *Service) initiateEpoch(epoch, startSlot uint64) error {
+func (b *Service) initiateEpoch(epoch uint64) error {
 	if epoch > 0 {
 		has, err := b.epochState.HasEpochData(epoch)
 		if err != nil {
@@ -82,13 +82,24 @@ func (b *Service) initiateEpoch(epoch, startSlot uint64) error {
 				threshold:      b.epochData.threshold,
 			}
 		}
+	} else if b.blockState.BestBlockHash() == b.blockState.GenesisHash() {
+		// we are at genesis, set first slot using current time
+		startSlot := getCurrentSlot(b.slotDuration)
+		err := b.epochState.SetFirstSlot(startSlot)
+		if err != nil {
+			return err
+		}
 	}
 
 	if !b.authority {
 		return nil
 	}
 
-	var err error
+	startSlot, err := b.epochState.GetStartSlotForEpoch(epoch)
+	if err != nil {
+		return err
+	}
+
 	for i := startSlot; i < startSlot+b.epochLength; i++ {
 		b.slotToProof[i], err = b.runLottery(i, epoch)
 		if err != nil {

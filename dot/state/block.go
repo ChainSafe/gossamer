@@ -92,7 +92,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		pruneKeyCh: make(chan *types.Header, pruneKeyBufferSize),
 	}
 
-	err := bs.setArrivalTime(header.Hash(), uint64(time.Now().Unix()))
+	err := bs.setArrivalTime(header.Hash(), time.Now())
 	if err != nil {
 		return nil, err
 	}
@@ -505,18 +505,18 @@ func (bs *BlockState) CompareAndSetBlockData(bd *types.BlockData) error {
 
 // AddBlock adds a block to the blocktree and the DB with arrival time as current unix time
 func (bs *BlockState) AddBlock(block *types.Block) error {
-	return bs.AddBlockWithArrivalTime(block, uint64(time.Now().Unix()))
+	return bs.AddBlockWithArrivalTime(block, time.Now())
 }
 
 // AddBlockWithArrivalTime adds a block to the blocktree and the DB with the given arrival time
-func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime uint64) error {
+func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime time.Time) error {
 	err := bs.setArrivalTime(block.Header.Hash(), arrivalTime)
 	if err != nil {
 		return err
 	}
 
 	// add block to blocktree
-	err = bs.bt.AddBlock(block, arrivalTime)
+	err = bs.bt.AddBlock(block, uint64(arrivalTime.UnixNano()))
 	if err != nil {
 		return err
 	}
@@ -688,18 +688,19 @@ func (bs *BlockState) HasArrivalTime(hash common.Hash) (bool, error) {
 	return bs.db.Has(arrivalTimeKey(hash))
 }
 
-// GetArrivalTime returns the arrival time of a block given its hash
-func (bs *BlockState) GetArrivalTime(hash common.Hash) (uint64, error) {
+// GetArrivalTime returns the arrival time in nanoseconds since the Unix epoch of a block given its hash
+func (bs *BlockState) GetArrivalTime(hash common.Hash) (time.Time, error) {
 	arrivalTime, err := bs.baseDB.Get(arrivalTimeKey(hash))
 	if err != nil {
-		return 0, err
+		return time.Time{}, err
 	}
 
-	return binary.LittleEndian.Uint64(arrivalTime), nil
+	ns := binary.LittleEndian.Uint64(arrivalTime)
+	return time.Unix(0, int64(ns)), nil
 }
 
-func (bs *BlockState) setArrivalTime(hash common.Hash, arrivalTime uint64) error {
+func (bs *BlockState) setArrivalTime(hash common.Hash, arrivalTime time.Time) error {
 	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, arrivalTime)
+	binary.LittleEndian.PutUint64(buf, uint64(arrivalTime.UnixNano()))
 	return bs.baseDB.Put(arrivalTimeKey(hash), buf)
 }

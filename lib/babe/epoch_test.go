@@ -17,11 +17,11 @@
 package babe
 
 import (
-	"testing"
-
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -29,6 +29,10 @@ import (
 func TestInitiateEpoch(t *testing.T) {
 	bs := createTestService(t, nil)
 	bs.epochLength = testEpochLength
+	// bs.Start()
+	// bs.Stop()
+
+	state.AddBlocksToState(t, bs.blockState.(*state.BlockState), 1)
 
 	// epoch 1, check that genesis EpochData and ConfigData was properly set
 	threshold, err := CalculateThreshold(genesisBABEConfig.C1, genesisBABEConfig.C2, 1)
@@ -38,7 +42,7 @@ func TestInitiateEpoch(t *testing.T) {
 		Key:    bs.keypair.Public().(*sr25519.PublicKey),
 		Weight: 1,
 	}
-	err = bs.initiateEpoch(1, 1)
+	err = bs.initiateEpoch(1)
 	require.NoError(t, err)
 
 	expected := &epochData{
@@ -64,7 +68,7 @@ func TestInitiateEpoch(t *testing.T) {
 		authorityIndex: 0,
 		threshold:      bs.epochData.threshold,
 	}
-	err = bs.initiateEpoch(2, testEpochLength+1)
+	err = bs.initiateEpoch(2)
 	require.NoError(t, err)
 	require.Equal(t, expected.randomness, bs.epochData.randomness)
 	require.Equal(t, expected.authorityIndex, bs.epochData.authorityIndex)
@@ -104,12 +108,13 @@ func TestInitiateEpoch(t *testing.T) {
 		authorityIndex: 0,
 		threshold:      threshold,
 	}
-	err = bs.initiateEpoch(3, testEpochLength*2+1)
+	err = bs.initiateEpoch(3)
 	require.NoError(t, err)
 	require.Equal(t, expected, bs.epochData)
 
-	// assert slot lottery was run for epochs 0, 1 and 2
-	require.Equal(t, int(testEpochLength*3), len(bs.slotToProof))
+	time.Sleep(time.Second)
+	// assert slot lottery was run for epochs 0, 1 and 2, 3
+	require.Equal(t, int(testEpochLength*2), len(bs.slotToProof))
 }
 
 func TestIncrementEpoch(t *testing.T) {
