@@ -60,7 +60,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 		}
 
 		if has {
-			cfgData, err := b.epochState.GetConfigData(epoch)
+			cfgData, err := b.epochState.GetConfigData(epoch) //nolint
 			if err != nil {
 				return err
 			}
@@ -102,13 +102,9 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 		return nil
 	}
 
-	fmt.Println(startSlot)
-	fmt.Println(b.epochLength)
-
 	var err error
 
 	for i := startSlot; i < startSlot+b.epochLength; i++ {
-		fmt.Println(i)
 		b.slotToProof[i], err = b.runLottery(i, epoch)
 		if err != nil {
 			return fmt.Errorf("error running slot lottery at slot %d: error %s", i, err)

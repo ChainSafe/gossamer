@@ -302,7 +302,7 @@ func (b *Service) nextReadyExtrinsic() types.Extrinsic {
 
 func hasSlotEnded(slot Slot) bool {
 	slotEnd := slot.start.Add(slot.duration)
-	return time.Now().Sub(slotEnd) >= 0
+	return time.Since(slotEnd) >= 0
 }
 
 func extrinsicsToBody(inherents [][]byte, txs []*transaction.ValidTransaction) (*types.Body, error) {

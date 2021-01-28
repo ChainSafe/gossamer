@@ -36,10 +36,9 @@ import (
 )
 
 var (
-	emptyHash       = trie.EmptyHash
-	testTimeout     = time.Second * 5
-	testEpochIndex  = uint64(0)
-	testEpochLength = uint64(10)
+	emptyHash      = trie.EmptyHash
+	testTimeout    = time.Second * 5
+	testEpochIndex = uint64(0)
 
 	maxThreshold = commontypes.MaxUint128
 	minThreshold = &commontypes.Uint128{}
