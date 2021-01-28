@@ -210,6 +210,8 @@ func TestMain(m *testing.M) {
 	if reexec.Init() {
 		return
 	}
+	defaultGssmrConfigPath = "../../chain/gssmr/config.toml"
+	defaultKusamaConfigPath = "../../chain/ksmcc/config.toml"
 	os.Exit(m.Run())
 }
 
