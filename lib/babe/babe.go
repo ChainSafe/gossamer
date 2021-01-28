@@ -138,7 +138,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 
 	logger.Info("created service",
 		"block producer", cfg.Authority,
-		"slot duration (ms)", babeService.slotDuration,
+		"slot duration", babeService.slotDuration,
 		"epoch length (slots)", babeService.epochLength,
 		"authorities", Authorities(babeService.epochData.authorities),
 		"authority index", babeService.epochData.authorityIndex,
@@ -428,7 +428,7 @@ func (b *Service) invokeBlockAuthoring() {
 }
 
 func (b *Service) handleSlot(slotNum uint64) error {
-	if b.isDisabled {
+	if b.isDisabled || b.slotToProof[slotNum] == nil {
 		return ErrNotAuthorized
 	}
 
@@ -496,5 +496,5 @@ func (b *Service) handleSlot(slotNum uint64) error {
 }
 
 func getCurrentSlot(slotDuration time.Duration) uint64 {
-	return uint64(time.Now().Unix()) / uint64(slotDuration.Seconds())
+	return uint64(time.Now().UnixNano()) / uint64(slotDuration.Nanoseconds())
 }
