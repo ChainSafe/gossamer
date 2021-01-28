@@ -221,8 +221,8 @@ func (sd *Decoder) decodeUint128() (i interface{}, err error) {
 		return nil, err
 	}
 
-	upper := binary.LittleEndian.Uint64(buf[:8])
-	lower := binary.LittleEndian.Uint64(buf[8:])
+	lower := binary.LittleEndian.Uint64(buf[:8])
+	upper := binary.LittleEndian.Uint64(buf[8:])
 
 	return common.Uint128{
 		Upper: upper,
