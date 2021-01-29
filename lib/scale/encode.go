@@ -66,6 +66,8 @@ func (se *Encoder) Encode(b interface{}) (n int, err error) {
 		n, err = se.encodeByteArray(v)
 	case *big.Int:
 		n, err = se.encodeBigInteger(v)
+	case common.Uint128:
+		n, err = se.encodeUint128(v)
 	case int, uint, int8, uint8, int16, uint16, int32, uint32, int64, uint64:
 		n, err = se.encodeFixedWidthInteger(v)
 	case string:
@@ -221,6 +223,15 @@ func (se *Encoder) encodeInteger(i uint) (bytesEncoded int, err error) {
 		bytesEncoded += numBytes
 	}
 
+	return bytesEncoded, err
+}
+
+func (se *Encoder) encodeUint128(i common.Uint128) (bytesEncoded int, err error) {
+	buf := make([]byte, 16)
+	binary.LittleEndian.PutUint64(buf[:8], i.Lower)
+	binary.LittleEndian.PutUint64(buf[8:], i.Upper)
+	err = binary.Write(se.Writer, binary.LittleEndian, buf[:])
+	bytesEncoded += len(buf)
 	return bytesEncoded, err
 }
 
