@@ -113,7 +113,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 }
 
 func TestAuthorSubmitExtrinsicLocalNode(t *testing.T) {
-
+	setSubkeyPath(t)
 	t.Log("gossamer must be started for this test to run")
 
 	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("http://localhost:%s", "8545"))
@@ -165,21 +165,17 @@ func TestAuthorSubmitExtrinsicLocalNode(t *testing.T) {
 	// Sign the transaction using Alice's default account
 	err = ext.Sign(signature.TestKeyringPairAlice, o)
 	require.NoError(t, err)
-	//extJson, err := ext.MarshalJSON()
-	//require.NoError(t, err)
+
 	fmt.Printf("Signed Ext %+v\n", ext)
 
 	buffer := bytes.Buffer{}
-
 	encoder := scale.NewEncoder(&buffer)
 	ext.Encode(*encoder)
-
 	res := buffer.Bytes()
-
 	fmt.Printf("Ext Encoded %x\n", res)
+
 	// Send the extrinsic
 	hash, err := api.RPC.Author.SubmitExtrinsic(ext)
-	//fmt.Printf("Submit Hash %x\n", hash)
 	require.NoError(t, err)
 	require.NotEqual(t, hash, common.Hash{})
 }
@@ -188,7 +184,6 @@ func TestDecodeExt(t *testing.T) {
 	buffer := bytes.Buffer{}
 	decoder := scale.NewDecoder(&buffer)
 	buffer.Write(common.MustHexToBytes("0x2d0284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d015212790fabe9d6ca21948e82767f38a5ee8645b1426b8ef4a678299852dcfa694b8388b1aa76e9b34eeccaa023c5ff2d7207763fbf9eb5dd01b1617adb7350820000000600ff90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22e5c0"))
-	fmt.Printf("amount %v\n", types.NewUCompactFromUInt(12345))
 	ext := types.Extrinsic{}
 	err := decoder.Decode(&ext)
 	require.NoError(t, err)
