@@ -19,10 +19,11 @@ package rpc
 import (
 	"bytes"
 	"fmt"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/scale"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/centrifuge/go-substrate-rpc-client/v2/scale"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/tests/utils"
@@ -38,7 +39,6 @@ func setSubkeyPath(t *testing.T) {
 	err := os.Setenv("PATH", os.Getenv("PATH")+subKeyPath)
 	require.NoError(t, err)
 }
-
 
 func TestAuthorSubmitExtrinsic(t *testing.T) {
 	if utils.MODE != rpcSuite {
@@ -126,7 +126,6 @@ func TestAuthorSubmitExtrinsicLocalNode(t *testing.T) {
 	bob, err := types.NewAddressFromHexAccountID("0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
 	require.NoError(t, err)
 
-
 	c, err := types.NewCall(meta, "Balances.transfer", bob, types.NewUCompactFromUInt(12345))
 	require.NoError(t, err)
 
@@ -150,8 +149,8 @@ func TestAuthorSubmitExtrinsicLocalNode(t *testing.T) {
 	require.True(t, ok)
 
 	o := types.SignatureOptions{
-		BlockHash:          genesisHash,
-		Era:                types.ExtrinsicEra{
+		BlockHash: genesisHash,
+		Era: types.ExtrinsicEra{
 			IsImmortalEra: true,
 		},
 		GenesisHash:        genesisHash,
@@ -185,8 +184,7 @@ func TestAuthorSubmitExtrinsicLocalNode(t *testing.T) {
 	require.NotEqual(t, hash, common.Hash{})
 }
 
-
-func TestDecodeExt (t *testing.T) {
+func TestDecodeExt(t *testing.T) {
 	buffer := bytes.Buffer{}
 	decoder := scale.NewDecoder(&buffer)
 	buffer.Write(common.MustHexToBytes("0x2d0284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d015212790fabe9d6ca21948e82767f38a5ee8645b1426b8ef4a678299852dcfa694b8388b1aa76e9b34eeccaa023c5ff2d7207763fbf9eb5dd01b1617adb7350820000000600ff90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22e5c0"))
@@ -197,7 +195,7 @@ func TestDecodeExt (t *testing.T) {
 	fmt.Printf("decoded ext %+v\n", ext)
 }
 
-func TestEncodeAmount (t *testing.T) {
+func TestEncodeAmount(t *testing.T) {
 	buffer := bytes.Buffer{}
 
 	encoder := scale.NewEncoder(&buffer)

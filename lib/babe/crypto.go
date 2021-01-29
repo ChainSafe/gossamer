@@ -18,14 +18,13 @@ package babe
 import (
 	"errors"
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"math"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-
 	"github.com/gtank/merlin"
 )
 

@@ -15,8 +15,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	gtypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
 	log "github.com/ChainSafe/log15"
+	gtypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
 	"github.com/stretchr/testify/require"
 )
 

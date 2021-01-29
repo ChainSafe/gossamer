@@ -282,17 +282,16 @@ func buildBalances(kv *keyValue, res map[string]string) error {
 				Nonce:    0,
 				RefCount: 0,
 				Data: struct {
-				Free       common.Uint128
-				Reserved   common.Uint128
-				MiscFrozen common.Uint128
-				FreeFrozen common.Uint128
-			}{
-				Free:       *common.Uint128FromBigInt(kv.iVal[i+1].(*big.Int)),
-				Reserved:   *common.Uint128FromBigInt(big.NewInt(0)),
-				MiscFrozen: *common.Uint128FromBigInt(big.NewInt(0)),
-				FreeFrozen: *common.Uint128FromBigInt(big.NewInt(0)),
-			},
-
+					Free       common.Uint128
+					Reserved   common.Uint128
+					MiscFrozen common.Uint128
+					FreeFrozen common.Uint128
+				}{
+					Free:       *common.Uint128FromBigInt(kv.iVal[i+1].(*big.Int)),
+					Reserved:   *common.Uint128FromBigInt(big.NewInt(0)),
+					MiscFrozen: *common.Uint128FromBigInt(big.NewInt(0)),
+					FreeFrozen: *common.Uint128FromBigInt(big.NewInt(0)),
+				},
 			}
 
 			encBal, err := scale.Encode(accInfo)

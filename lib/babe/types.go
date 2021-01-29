@@ -18,6 +18,7 @@ package babe
 
 import (
 	"fmt"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 
 	"github.com/ChainSafe/gossamer/dot/types"
