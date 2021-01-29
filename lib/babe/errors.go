@@ -18,6 +18,9 @@ import "errors"
 // ErrBadSlotClaim is returned when a slot claim is invalid
 var ErrBadSlotClaim = errors.New("could not verify slot claim VRF proof")
 
+// ErrBadSecondarySlotClaim is returned when a slot claim is invalid
+var ErrBadSecondarySlotClaim = errors.New("invalid secondary slot claim")
+
 // ErrBadSignature is returned when a seal is invalid
 var ErrBadSignature = errors.New("could not verify signature")
 

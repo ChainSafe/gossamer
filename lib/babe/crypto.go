@@ -21,7 +21,6 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -31,7 +30,7 @@ import (
 // the code in this file is based off https://github.com/paritytech/substrate/blob/89275433863532d797318b75bb5321af098fea7c/primitives/consensus/babe/src/lib.rs#L93
 var babe_vrf_prefix = []byte("substrate-babe-vrf")
 
-func makeTranscript(randomness [types.RandomnessLength]byte, slot, epoch uint64) *merlin.Transcript {
+func makeTranscript(randomness Randomness, slot, epoch uint64) *merlin.Transcript {
 	t := merlin.NewTranscript("BABE") //string(types.BabeEngineID[:])
 	crypto.AppendUint64(t, []byte("slot number"), slot)
 	crypto.AppendUint64(t, []byte("current epoch"), epoch)
@@ -41,7 +40,7 @@ func makeTranscript(randomness [types.RandomnessLength]byte, slot, epoch uint64)
 
 // claimPrimarySlot checks if a slot can be claimed. if it can be, then a *VrfOutputAndProof is returned, otherwise nil.
 // https://github.com/paritytech/substrate/blob/master/client/consensus/babe/src/authorship.rs#L239
-func claimPrimarySlot(randomness [types.RandomnessLength]byte,
+func claimPrimarySlot(randomness Randomness,
 	slot, epoch uint64,
 	threshold *common.Uint128,
 	keypair *sr25519.Keypair,
@@ -72,7 +71,7 @@ func claimPrimarySlot(randomness [types.RandomnessLength]byte,
 }
 
 // checkPrimaryThreshold returns true if the authority was authorized to produce a block in the given slot and epoch
-func checkPrimaryThreshold(randomness [types.RandomnessLength]byte,
+func checkPrimaryThreshold(randomness Randomness,
 	slot, epoch uint64,
 	output [sr25519.VrfOutputLength]byte,
 	threshold *common.Uint128,
