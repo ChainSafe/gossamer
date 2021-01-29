@@ -73,9 +73,6 @@ func (s *StorageState) UnregisterStorageChangeChannel(id byte) {
 }
 
 func (s *StorageState) notifyChanged(change *SubscriptionResult) {
-	s.changedLock.RLock()
-	defer s.changedLock.RUnlock()
-
 	if len(s.subscriptions) == 0 {
 		return
 	}

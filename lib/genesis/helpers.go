@@ -278,7 +278,6 @@ func buildBalances(kv *keyValue, res map[string]string) error {
 
 			bKey = append(bKey, kv.iVal[i].([]byte)...)
 
-			// build value
 			accInfo := types.AccountInfo{
 				Nonce:    0,
 				RefCount: 0,
@@ -293,6 +292,7 @@ func buildBalances(kv *keyValue, res map[string]string) error {
 				MiscFrozen: *common.Uint128FromBigInt(big.NewInt(0)),
 				FreeFrozen: *common.Uint128FromBigInt(big.NewInt(0)),
 			},
+
 			}
 
 			encBal, err := scale.Encode(accInfo)
@@ -301,7 +301,6 @@ func buildBalances(kv *keyValue, res map[string]string) error {
 			}
 			res[common.BytesToHex(bKey)] = common.BytesToHex(encBal)
 		}
-
 	}
 	return nil
 }

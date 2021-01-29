@@ -211,6 +211,9 @@ func (sd *Decoder) DecodeInteger() (_ int64, err error) {
 	return int64(o), err
 }
 
+// decodeUint128 accepts a byte array representing Scale encoded common.Uint128 and performs SCALE decoding of the Uint128
+// if the encoding is valid, it then returns (i interface{}, nil) where i is the decoded common.Uint128 , otherwise
+// it returns nil and error
 func (sd *Decoder) decodeUint128() (i interface{}, err error) {
 	buf := make([]byte, 16)
 	err = binary.Read(sd.Reader, binary.LittleEndian, buf)

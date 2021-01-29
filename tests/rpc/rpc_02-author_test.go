@@ -23,19 +23,29 @@ import (
 	"os"
 	"testing"
 	"time"
-	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v2"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/tests/utils"
+	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v2"
+	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
+	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
 	"github.com/stretchr/testify/require"
 )
+
+func setSubkeyPath(t *testing.T) {
+	t.Helper()
+	subKeyPath := os.Getenv("PATH") + ":" + os.Getenv("PWD") + "/../../bin"
+	err := os.Setenv("PATH", os.Getenv("PATH")+subKeyPath)
+	require.NoError(t, err)
+}
+
 
 func TestAuthorSubmitExtrinsic(t *testing.T) {
 	if utils.MODE != rpcSuite {
 		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
 		return
 	}
+	setSubkeyPath(t)
 
 	t.Log("starting gossamer...")
 
@@ -45,7 +55,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 
 	defer func() {
 		t.Log("going to tear down gossamer...")
-		//os.Remove(utils.ConfigBABEMaxThreshold)
+		os.Remove(utils.ConfigBABEMaxThreshold)
 		errList := utils.TearDown(t, nodes)
 		require.Len(t, errList, 0)
 	}()

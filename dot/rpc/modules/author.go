@@ -54,7 +54,6 @@ const (
 // TransactionSource represents source of Transaction
 type TransactionSource uint8
 
-
 // AuthorModule holds a pointer to the API
 type AuthorModule struct {
 	logger     log.Logger
@@ -196,7 +195,6 @@ func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 	if err != nil {
 		return err
 	}
-
 	cm.logger.Trace("[rpc]", "extrinsic", extBytes)
 
 	// For RPC request the transaction source is External
