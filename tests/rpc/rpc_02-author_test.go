@@ -116,11 +116,14 @@ func TestAuthorSubmitExtrinsicLocalNode(t *testing.T) {
 	bob, err := types.NewAddressFromHexAccountID("0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
 	require.NoError(t, err)
 
+
 	c, err := types.NewCall(meta, "Balances.transfer", bob, types.NewUCompactFromUInt(12345))
 	require.NoError(t, err)
 
 	// Create the extrinsic
 	ext := types.NewExtrinsic(c)
+
+	fmt.Printf("method args %+v\n", ext.Method.Args)
 
 	genesisHash, err := api.RPC.Chain.GetBlockHash(0)
 	require.NoError(t, err)
@@ -149,7 +152,7 @@ func TestAuthorSubmitExtrinsicLocalNode(t *testing.T) {
 	}
 
 	fmt.Printf("Nonce %v\n", nonce)
-	fmt.Printf("genesisHash %x\n", genesisHash)
+	fmt.Printf("genesisHash %s\n", genesisHash.Hex())
 	// Sign the transaction using Alice's default account
 	err = ext.Sign(signature.TestKeyringPairAlice, o)
 	require.NoError(t, err)
@@ -176,12 +179,26 @@ func TestAuthorSubmitExtrinsicLocalNode(t *testing.T) {
 func TestDecodeExt (t *testing.T) {
 	buffer := bytes.Buffer{}
 	decoder := scale.NewDecoder(&buffer)
-	buffer.Write(common.MustHexToBytes("0x2d028400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01709c8e7d422a3cba76b628a05153b7f0c2e9f6546d73a0c72d16fe3abde4011994d0f88f478631e380c22e07c4be151cf98a686962f0a864afe4f4daba80e38c0000000600008eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48e5c0"))
-
+	buffer.Write(common.MustHexToBytes("0x2d0284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d015212790fabe9d6ca21948e82767f38a5ee8645b1426b8ef4a678299852dcfa694b8388b1aa76e9b34eeccaa023c5ff2d7207763fbf9eb5dd01b1617adb7350820000000600ff90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22e5c0"))
+	fmt.Printf("amount %v\n", types.NewUCompactFromUInt(12345))
 	ext := types.Extrinsic{}
 	err := decoder.Decode(&ext)
 	require.NoError(t, err)
 	fmt.Printf("decoded ext %+v\n", ext)
+}
+
+func TestEncodeAmount (t *testing.T) {
+	buffer := bytes.Buffer{}
+
+	encoder := scale.NewEncoder(&buffer)
+	types.NewUCompactFromUInt(12345).Encode(*encoder)
+	res := buffer.Bytes()
+
+	fmt.Printf("Amt Encoded %x\n", res)
+
+	bob, err := types.NewAddressFromHexAccountID("0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
+	require.NoError(t, err)
+	fmt.Printf("bob %v\n", bob)
 }
 
 func TestAuthorRPC(t *testing.T) {
