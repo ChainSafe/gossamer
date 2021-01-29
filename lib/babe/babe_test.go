@@ -25,7 +25,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
-	commontypes "github.com/ChainSafe/gossamer/lib/common/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -40,8 +40,8 @@ var (
 	testTimeout    = time.Second * 5
 	testEpochIndex = uint64(0)
 
-	maxThreshold = commontypes.MaxUint128
-	minThreshold = &commontypes.Uint128{}
+	maxThreshold = common.MaxUint128
+	minThreshold = &common.Uint128{}
 
 	genesisHeader = &types.Header{
 		Number:    big.NewInt(0),
