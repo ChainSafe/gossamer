@@ -45,7 +45,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
 		return
 	}
-	setSubkeyPath(t)
+	//setSubkeyPath(t)
 
 	t.Log("starting gossamer...")
 
@@ -55,7 +55,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 
 	defer func() {
 		t.Log("going to tear down gossamer...")
-		os.Remove(utils.ConfigBABEMaxThreshold)
+		//os.Remove(utils.ConfigBABEMaxThreshold)
 		errList := utils.TearDown(t, nodes)
 		require.Len(t, errList, 0)
 	}()
@@ -106,6 +106,12 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 	err = ext.Sign(signature.TestKeyringPairAlice, o)
 	require.NoError(t, err)
 
+	buffer := bytes.Buffer{}
+	encoder := scale.NewEncoder(&buffer)
+	ext.Encode(*encoder)
+	res := buffer.Bytes()
+	fmt.Printf("Ext Encoded %x\n", res)
+
 	// Send the extrinsic
 	hash, err := api.RPC.Author.SubmitExtrinsic(ext)
 	require.NoError(t, err)
@@ -113,7 +119,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 }
 
 func TestAuthorSubmitExtrinsicLocalNode(t *testing.T) {
-	setSubkeyPath(t)
+	//setSubkeyPath(t)
 	t.Log("gossamer must be started for this test to run")
 
 	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("http://localhost:%s", "8545"))
