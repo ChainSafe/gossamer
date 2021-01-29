@@ -32,7 +32,7 @@ import (
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/crypto/ssh/terminal" //nolint
 )
 
 // setupLogger sets up the gossamer logger
