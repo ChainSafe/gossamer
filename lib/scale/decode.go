@@ -59,6 +59,8 @@ func (sd *Decoder) Decode(t interface{}) (out interface{}, err error) {
 	switch t.(type) {
 	case *big.Int:
 		out, err = sd.DecodeBigInt()
+	case common.Uint128:
+		out, err = sd.decodeUint128()
 	case int, uint, int8, uint8, int16, uint16, int32, uint32, int64, uint64:
 		out, err = sd.DecodeFixedWidthInt(t)
 	case []byte, string:
@@ -207,6 +209,25 @@ func (sd *Decoder) DecodeInteger() (_ int64, err error) {
 	o, err := sd.DecodeUnsignedInteger()
 
 	return int64(o), err
+}
+
+// decodeUint128 accepts a byte array representing Scale encoded common.Uint128 and performs SCALE decoding of the Uint128
+// if the encoding is valid, it then returns (i interface{}, nil) where i is the decoded common.Uint128 , otherwise
+// it returns nil and error
+func (sd *Decoder) decodeUint128() (i interface{}, err error) {
+	buf := make([]byte, 16)
+	err = binary.Read(sd.Reader, binary.LittleEndian, buf)
+	if err != nil {
+		return nil, err
+	}
+
+	lower := binary.LittleEndian.Uint64(buf[:8])
+	upper := binary.LittleEndian.Uint64(buf[8:])
+
+	return common.Uint128{
+		Upper: upper,
+		Lower: lower,
+	}, nil
 }
 
 // DecodeUnsignedInteger will decode unsigned integer
