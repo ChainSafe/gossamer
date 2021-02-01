@@ -43,7 +43,7 @@ func TestTrie_DatabaseStoreAndLoad(t *testing.T) {
 	trie := &Trie{}
 
 	cases := [][]Test{
-		[]Test{
+		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
 			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
 			{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
@@ -53,7 +53,7 @@ func TestTrie_DatabaseStoreAndLoad(t *testing.T) {
 			{key: []byte{0x07}, value: []byte("ramen")},
 			{key: []byte{0}, value: nil},
 		},
-		[]Test{
+		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
 			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
 			{key: []byte{0x01, 0x35, 0x70}, value: []byte("g")},
@@ -85,7 +85,7 @@ func TestTrie_WriteDirty_Put(t *testing.T) {
 	trie := &Trie{}
 
 	cases := [][]Test{
-		[]Test{
+		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
 			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
 			{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
@@ -95,7 +95,7 @@ func TestTrie_WriteDirty_Put(t *testing.T) {
 			{key: []byte{0x07}, value: []byte("ramen")},
 			{key: []byte{0}, value: nil},
 		},
-		[]Test{
+		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
 			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
 			{key: []byte{0x01, 0x35, 0x70}, value: []byte("g")},
@@ -130,7 +130,7 @@ func TestTrie_WriteDirty_Delete(t *testing.T) {
 	trie := &Trie{}
 
 	cases := [][]Test{
-		[]Test{
+		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
 			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
 			{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
@@ -140,7 +140,7 @@ func TestTrie_WriteDirty_Delete(t *testing.T) {
 			{key: []byte{0x07}, value: []byte("ramen")},
 			{key: []byte{0}, value: nil},
 		},
-		[]Test{
+		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
 			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
 			{key: []byte{0x01, 0x35, 0x70}, value: []byte("g")},
@@ -175,7 +175,7 @@ func TestTrie_WriteDirty_ClearPrefix(t *testing.T) {
 	trie := &Trie{}
 
 	cases := [][]Test{
-		[]Test{
+		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
 			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
 			{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
@@ -185,7 +185,7 @@ func TestTrie_WriteDirty_ClearPrefix(t *testing.T) {
 			{key: []byte{0x07}, value: []byte("ramen")},
 			{key: []byte{0}, value: nil},
 		},
-		[]Test{
+		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
 			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
 			{key: []byte{0x01, 0x35, 0x70}, value: []byte("g")},
@@ -221,7 +221,7 @@ func TestGetFromDB(t *testing.T) {
 	trie := &Trie{}
 
 	cases := [][]Test{
-		[]Test{
+		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
 			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
 			{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
@@ -231,7 +231,7 @@ func TestGetFromDB(t *testing.T) {
 			{key: []byte{0x07}, value: []byte("ramen")},
 			{key: []byte{0}, value: nil},
 		},
-		[]Test{
+		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
 			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
 			{key: []byte{0x01, 0x35, 0x70}, value: []byte("g")},

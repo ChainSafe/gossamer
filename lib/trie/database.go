@@ -102,6 +102,9 @@ func (t *Trie) load(db chaindb.Database, curr node) error {
 			child.setDirty(false)
 			c.children[i] = child
 			err = t.load(db, child)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -151,7 +154,9 @@ func GetFromDB(db chaindb.Database, root common.Hash, key []byte) ([]byte, error
 	return getFromDB(db, rootNode, k)
 }
 
-func getFromDB(db chaindb.Database, parent node, key []byte) (value []byte, err error) {
+func getFromDB(db chaindb.Database, parent node, key []byte) ([]byte, error) {
+	var value []byte
+
 	switch p := parent.(type) {
 	case *branch:
 		length := lenCommonPrefix(p.key, key)
@@ -182,6 +187,9 @@ func getFromDB(db chaindb.Database, parent node, key []byte) (value []byte, err 
 		}
 
 		value, err = getFromDB(db, child, key[length+1:])
+		if err != nil {
+			return nil, err
+		}
 	case *leaf:
 		if bytes.Equal(p.key, key) {
 			return p.value, nil
@@ -190,7 +198,7 @@ func getFromDB(db chaindb.Database, parent node, key []byte) (value []byte, err 
 		return nil, nil
 
 	}
-	return value, err
+	return value, nil
 }
 
 // WriteDirty writes all dirty nodes to the database and sets them to clean

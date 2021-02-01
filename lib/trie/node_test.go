@@ -24,6 +24,8 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/scale"
+
+	"github.com/stretchr/testify/require"
 )
 
 // byteArray makes byte array with length specified; used to test byte array encoding
@@ -269,25 +271,18 @@ func TestBranchDecode(t *testing.T) {
 
 	for _, test := range tests {
 		enc, err := test.encode()
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		res := new(branch)
 		r := &bytes.Buffer{}
 		_, err = r.Write(enc)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		err = res.decode(r, 0)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if !reflect.DeepEqual(res, test) {
-			t.Fatalf("Fail: got %v expected %v encoding %x", res, test, enc)
-		}
+		require.NoError(t, err)
+		require.Equal(t, test.key, res.key)
+		require.Equal(t, test.childrenBitmap(), res.childrenBitmap())
+		require.Equal(t, test.value, res.value)
 	}
 }
 
@@ -305,26 +300,18 @@ func TestLeafDecode(t *testing.T) {
 
 	for _, test := range tests {
 		enc, err := test.encode()
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		res := new(leaf)
 		r := &bytes.Buffer{}
 		_, err = r.Write(enc)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		err = res.decode(r, 0)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		res.hash = nil
-		if !reflect.DeepEqual(res, test) {
-			t.Fatalf("Fail: got %v expected %v encoding %x", res, test, enc)
-		}
+		require.Equal(t, test, res)
 	}
 }
 
@@ -349,27 +336,25 @@ func TestDecode(t *testing.T) {
 
 	for _, test := range tests {
 		enc, err := test.encode()
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		r := &bytes.Buffer{}
 		_, err = r.Write(enc)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		res, err := decode(r)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
-		if l, ok := res.(*leaf); ok {
-			l.hash = nil
-		}
-
-		if !reflect.DeepEqual(res, test) {
-			t.Fatalf("Fail: got %v expected %v encoding %x", res, test, enc)
+		switch n := test.(type) {
+		case *branch:
+			require.Equal(t, n.key, res.(*branch).key)
+			require.Equal(t, n.childrenBitmap(), res.(*branch).childrenBitmap())
+			require.Equal(t, n.value, res.(*branch).value)
+		case *leaf:
+			require.Equal(t, n.key, res.(*leaf).key)
+			require.Equal(t, n.value, res.(*leaf).value)
+		default:
+			t.Fatal("unexpected node")
 		}
 	}
 }
