@@ -45,7 +45,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
 		return
 	}
-	//setSubkeyPath(t)
+	setSubkeyPath(t)
 
 	t.Log("starting gossamer...")
 
