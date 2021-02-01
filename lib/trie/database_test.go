@@ -44,59 +44,147 @@ func newTestDB(t *testing.T) chaindb.Database {
 func TestTrie_DatabaseStoreAndLoad(t *testing.T) {
 	trie := &Trie{}
 
-	tests := []Test{
-		{key: []byte{0x01, 0x35}, value: []byte("pen")},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-		{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
-		{key: []byte{0xf2}, value: []byte("feather")},
-		{key: []byte{0xf2, 0x3}, value: []byte("f")},
-		{key: []byte{0x09, 0xd3}, value: []byte("noot")},
-		{key: []byte{0x07}, value: []byte("ramen")},
-		{key: []byte{0}, value: nil},
+	cases := [][]Test{
+		[]Test{
+			{key: []byte{0x01, 0x35}, value: []byte("pen")},
+			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+			{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
+			{key: []byte{0xf2}, value: []byte("feather")},
+			{key: []byte{0xf2, 0x3}, value: []byte("f")},
+			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+			{key: []byte{0x07}, value: []byte("ramen")},
+			{key: []byte{0}, value: nil},
+		},
+		[]Test{
+			{key: []byte{0x01, 0x35}, value: []byte("pen")},
+			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+			{key: []byte{0x01, 0x35, 0x70}, value: []byte("g")},
+			{key: []byte{0xf2}, value: []byte("feather")},
+			{key: []byte{0xf2, 0x30}, value: []byte("f")},
+			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+			{key: []byte{0x07}, value: []byte("ramen")},
+		},
 	}
 
-	for _, test := range tests {
-		err := trie.Put(test.key, test.value)
+	for _, testCase := range cases {
+		for _, test := range testCase {
+			err := trie.Put(test.key, test.value)
+			require.NoError(t, err)
+		}
+
+		db := newTestDB(t)
+		err := trie.Store(db)
 		require.NoError(t, err)
+
+		res := NewEmptyTrie()
+		err = res.Load(db, trie.MustHash())
+		require.NoError(t, err)
+		require.Equal(t, trie.MustHash(), res.MustHash())
 	}
-
-	db := newTestDB(t)
-	err := trie.Store(db)
-	require.NoError(t, err)
-
-	res := NewEmptyTrie()
-	err = res.Load(db, trie.MustHash())
-	require.NoError(t, err)
 }
 
-func TestTrie_WriteDirty(t *testing.T) {
+func TestTrie_WriteDirty_Put(t *testing.T) {
 	trie := &Trie{}
 
-	tests := []Test{
-		{key: []byte{0x01, 0x35}, value: []byte("pen")},
-		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-		{key: []byte{0x01, 0x35, 0x07}, value: []byte("ggg")},
-		{key: []byte{0xf2}, value: []byte("feather")},
-		{key: []byte{0xf2, 0x3}, value: []byte("fff")},
-		{key: []byte{0x09, 0xd3}, value: []byte("noot")},
-		{key: []byte{0x07}, value: []byte("ramen")},
-		{key: []byte{0}, value: nil},
+	cases := [][]Test{
+		[]Test{
+			{key: []byte{0x01, 0x35}, value: []byte("pen")},
+			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+			{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
+			{key: []byte{0xf2}, value: []byte("feather")},
+			{key: []byte{0xf2, 0x3}, value: []byte("f")},
+			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+			{key: []byte{0x07}, value: []byte("ramen")},
+			{key: []byte{0}, value: nil},
+		},
+		[]Test{
+			{key: []byte{0x01, 0x35}, value: []byte("pen")},
+			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+			{key: []byte{0x01, 0x35, 0x70}, value: []byte("g")},
+			{key: []byte{0xf2}, value: []byte("feather")},
+			{key: []byte{0xf2, 0x30}, value: []byte("f")},
+			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+			{key: []byte{0x07}, value: []byte("ramen")},
+		},
 	}
 
-	for _, test := range tests {
-		err := trie.Put(test.key, test.value)
+	for _, testCase := range cases {
+		for _, test := range testCase {
+			err := trie.Put(test.key, test.value)
+			require.NoError(t, err)
+		}
+
+		db := newTestDB(t)
+		err := trie.Store(db)
 		require.NoError(t, err)
+
+		err = trie.Put([]byte{0x01, 0x35, 0x79}, []byte("notapenguin"))
+		require.NoError(t, err)
+		t.Log(trie)
+
+		err = trie.WriteDirty(db)
+		require.NoError(t, err)
+
+		res := NewEmptyTrie()
+		err = res.Load(db, trie.MustHash())
+		require.NoError(t, err)
+
+		t.Log(res)
+
+		require.Equal(t, trie.MustHash(), res.MustHash())
+	}
+}
+
+func TestTrie_WriteDirty_Delete(t *testing.T) {
+	trie := &Trie{}
+
+	cases := [][]Test{
+		[]Test{
+			{key: []byte{0x01, 0x35}, value: []byte("pen")},
+			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+			{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
+			{key: []byte{0xf2}, value: []byte("feather")},
+			{key: []byte{0xf2, 0x3}, value: []byte("f")},
+			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+			{key: []byte{0x07}, value: []byte("ramen")},
+			{key: []byte{0}, value: nil},
+		},
+		[]Test{
+			{key: []byte{0x01, 0x35}, value: []byte("pen")},
+			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+			{key: []byte{0x01, 0x35, 0x70}, value: []byte("g")},
+			{key: []byte{0xf2}, value: []byte("feather")},
+			{key: []byte{0xf2, 0x30}, value: []byte("f")},
+			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+			{key: []byte{0x07}, value: []byte("ramen")},
+		},
 	}
 
-	db := newTestDB(t)
-	err := trie.Store(db)
-	require.NoError(t, err)
+	for _, testCase := range cases {
+		for _, test := range testCase {
+			err := trie.Put(test.key, test.value)
+			require.NoError(t, err)
+		}
 
-	t.Log(trie)
+		db := newTestDB(t)
+		err := trie.Store(db)
+		require.NoError(t, err)
+		t.Log(trie)
 
-	err = trie.Put([]byte{0x01, 0x35, 0x79}, []byte("notapenguin"))
-	require.NoError(t, err)
+		err = trie.Delete([]byte{0x01, 0x35, 0x79})
+		require.NoError(t, err)
 
-	t.Log(trie)
+		t.Log(trie)
 
+		err = trie.WriteDirty(db)
+		require.NoError(t, err)
+
+		res := NewEmptyTrie()
+		err = res.Load(db, trie.MustHash())
+		require.NoError(t, err)
+
+		t.Log(res)
+
+		require.Equal(t, trie.MustHash(), res.MustHash())
+	}
 }

@@ -330,16 +330,15 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (n node, err erro
 			}
 			p.children[key[length]] = n
 			n = p
+			n.setDirty(true)
 		case nil:
 			// otherwise, add node as child of this branch
 			value.(*leaf).key = key[length+1:]
 			p.children[key[length]] = value
 			n = p
+			n.setDirty(true)
 		}
 
-		if p != nil && n != nil && n.isDirty() {
-			p.setDirty(true)
-		}
 		return n, err
 	}
 
@@ -568,9 +567,11 @@ func (t *Trie) delete(parent node, key []byte) (n node, err error) {
 		}
 
 		n = handleDeletion(p, n, key)
+		n.setDirty(true)
 	case *leaf:
 		if !bytes.Equal(key, p.key) && len(key) != 0 {
 			n = p
+			n.setDirty(true)
 		}
 	case nil:
 		// do nothing

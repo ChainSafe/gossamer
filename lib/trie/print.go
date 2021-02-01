@@ -24,22 +24,26 @@ import (
 
 // String returns the trie stringified through pre-order traversal
 func (t *Trie) String() string {
+	if t.root == nil {
+		return "empty"
+	}
+
 	tree := gotree.New(t.root.String())
-	t.string(tree, t.root)
+	t.string(tree, t.root, 0)
 	return fmt.Sprintf("\n%s", tree.Print())
 }
 
-func (t *Trie) string(tree gotree.Tree, curr node) {
+func (t *Trie) string(tree gotree.Tree, curr node, idx int) {
 	switch c := curr.(type) {
 	case *branch:
-		sub := tree.Add(c.String())
-		for _, child := range c.children {
+		sub := tree.Add(fmt.Sprintf("idx=%d %s", idx, c.String()))
+		for i, child := range c.children {
 			if child != nil {
-				t.string(sub, child)
+				t.string(sub, child, i)
 			}
 		}
 	case *leaf:
-		tree.Add(c.String())
+		tree.Add(fmt.Sprintf("idx=%d %s", idx, c.String()))
 	default:
 		return
 	}

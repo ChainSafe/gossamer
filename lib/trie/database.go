@@ -41,6 +41,8 @@ func (t *Trie) store(db chaindb.Database, curr node) error {
 		return err
 	}
 
+	//fmt.Printf("stored node in db, hash=%x\n", hash)
+
 	switch c := curr.(type) {
 	case *branch:
 		for _, child := range c.children {
@@ -74,11 +76,11 @@ func (t *Trie) Load(db chaindb.Database, root common.Hash) error {
 		return err
 	}
 
-	t.root, err = t.load(db, t.root)
-	return err
+	t.root.setDirty(false)
+	return t.load(db, t.root)
 }
 
-func (t *Trie) load(db chaindb.Database, curr node) (node, error) {
+func (t *Trie) load(db chaindb.Database, curr node) error {
 	switch c := curr.(type) {
 	case *branch:
 		for i, child := range c.children {
@@ -88,33 +90,41 @@ func (t *Trie) load(db chaindb.Database, curr node) (node, error) {
 
 			enc, err := db.Get(child.(*leaf).hash)
 			if err != nil {
-				return nil, fmt.Errorf("failed to find node key=%x: %w", child.(*leaf).hash, err)
+				return fmt.Errorf("failed to find node key=%x: %w", child.(*leaf).hash, err)
 			}
 
 			child, err = decodeBytes(enc)
 			if err != nil {
-				return nil, err
+				return err
 			}
 
-			c.children[i], err = t.load(db, child)
+			child.setDirty(false)
+			c.children[i] = child
+			err = t.load(db, child)
 		}
-	case *leaf:
-		return c, nil
-	default:
-		return nil, nil
 	}
 
-	return nil, nil
+	return nil
 }
 
 // PutInDB puts a value into the trie and writes the updates nodes the database. Since it needs to write all the nodes from the changed node up to the root, it writes these in a batch operation.
 func (t *Trie) PutInDB(db chaindb.Database, key, value []byte) error {
-	return nil
+	err := t.Put(key, value)
+	if err != nil {
+		return err
+	}
+
+	return t.WriteDirty(db)
 }
 
 // DeleteFromDB deletes a value from the trie and writes the updated nodes the database. Since it needs to write all the nodes from the changed node up to the root, it writes these in a batch operation.
 func (t *Trie) DeleteFromDB(db chaindb.Database, key []byte) error {
-	return nil
+	err := t.Delete(key)
+	if err != nil {
+		return err
+	}
+
+	return t.WriteDirty(db)
 }
 
 // ClearPrefixFromDB deletes all keys with the given prefix from the trie and writes the updated nodes the database. Since it needs to write all the nodes from the changed node up to the root, it writes these in a batch operation.
@@ -127,6 +137,7 @@ func (t *Trie) GetFromDB(db chaindb.Database, key []byte) ([]byte, error) {
 	return nil, nil
 }
 
+// WriteDirty writes all dirty nodes to the database and sets them to clean
 func (t *Trie) WriteDirty(db chaindb.Database) error {
 	return t.writeDirty(db, t.root)
 }
@@ -153,7 +164,7 @@ func (t *Trie) writeDirty(db chaindb.Database, curr node) error {
 				continue
 			}
 
-			err = t.store(db, child)
+			err = t.writeDirty(db, child)
 			if err != nil {
 				return err
 			}
