@@ -277,6 +277,39 @@ func (k *PublicKey) Verify(msg, sig []byte) (bool, error) {
 	return k.key.Verify(s, t), nil
 }
 
+// VerifyDeprecated verifies that the public key signed the given message.
+// Deprecated: this is used by ext_crypto_sr25519_verify_version_1 only and should not be used anywhere else.
+// This method does not check that the signature is in fact a schnorrkel signature, and does not
+// distinguish between sr25519 and ed25519 signatures.
+func (k *PublicKey) VerifyDeprecated(msg, sig []byte) (bool, error) {
+	if k.key == nil {
+		return false, errors.New("nil public key")
+	}
+
+	if len(sig) != SignatureLength {
+		return false, errors.New("invalid signature length")
+	}
+
+	b := [SignatureLength]byte{}
+	copy(b[:], sig)
+
+	s := &sr25519.Signature{}
+	err := s.DecodeNotDistinguishedFromEd25519(b)
+	if err != nil {
+		return false, err
+	}
+
+	t := sr25519.NewSigningContext(SigningContext, msg)
+	ok := k.key.Verify(s, t)
+	if ok {
+		return true, nil
+	}
+
+	t = merlin.NewTranscript(string(SigningContext))
+	t.AppendMessage([]byte("sign-bytes"), msg)
+	return k.key.Verify(s, t), nil
+}
+
 // VrfVerify confirms that the output and proof are valid given a message and public key
 func (k *PublicKey) VrfVerify(t *merlin.Transcript, out [VrfOutputLength]byte, proof [VrfProofLength]byte) (bool, error) {
 	o := new(sr25519.VrfOutput)
