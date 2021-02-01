@@ -68,3 +68,35 @@ func TestTrie_DatabaseStoreAndLoad(t *testing.T) {
 	err = res.Load(db, trie.MustHash())
 	require.NoError(t, err)
 }
+
+func TestTrie_WriteDirty(t *testing.T) {
+	trie := &Trie{}
+
+	tests := []Test{
+		{key: []byte{0x01, 0x35}, value: []byte("pen")},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+		{key: []byte{0x01, 0x35, 0x07}, value: []byte("ggg")},
+		{key: []byte{0xf2}, value: []byte("feather")},
+		{key: []byte{0xf2, 0x3}, value: []byte("fff")},
+		{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+		{key: []byte{0x07}, value: []byte("ramen")},
+		{key: []byte{0}, value: nil},
+	}
+
+	for _, test := range tests {
+		err := trie.Put(test.key, test.value)
+		require.NoError(t, err)
+	}
+
+	db := newTestDB(t)
+	err := trie.Store(db)
+	require.NoError(t, err)
+
+	t.Log(trie)
+
+	err = trie.Put([]byte{0x01, 0x35, 0x79}, []byte("notapenguin"))
+	require.NoError(t, err)
+
+	t.Log(trie)
+
+}

@@ -57,6 +57,7 @@ type node interface {
 	isDirty() bool
 	setDirty(dirty bool)
 	setKey(key []byte)
+	String() string
 }
 
 type (
@@ -73,6 +74,14 @@ type (
 		hash  []byte
 	}
 )
+
+func (b *branch) String() string {
+	return fmt.Sprintf("branch key=%x childrenBitmap=%16b value=%x dirty=%v", b.key, b.childrenBitmap(), b.value, b.dirty)
+}
+
+func (l *leaf) String() string {
+	return fmt.Sprintf("leaf key=%x value=%x dirty=%v", l.key, l.value, l.dirty)
+}
 
 func (b *branch) childrenBitmap() uint16 {
 	var bitmap uint16

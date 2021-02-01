@@ -40,7 +40,6 @@ func (t *Trie) store(db chaindb.Database, curr node) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("stored node hash=%x\n", hash)
 
 	switch c := curr.(type) {
 	case *branch:
@@ -54,6 +53,10 @@ func (t *Trie) store(db chaindb.Database, curr node) error {
 				return err
 			}
 		}
+	}
+
+	if curr.isDirty() {
+		curr.setDirty(false)
 	}
 
 	return nil
@@ -122,4 +125,41 @@ func (t *Trie) ClearPrefixFromDB(db chaindb.Database, key []byte) error {
 // GetFromDB retrieves a value from the trie using the database. It recursively descends into the trie using the database starting from the root node until it reaches the node with the given key. It then reads the value from the database.
 func (t *Trie) GetFromDB(db chaindb.Database, key []byte) ([]byte, error) {
 	return nil, nil
+}
+
+func (t *Trie) WriteDirty(db chaindb.Database) error {
+	return t.writeDirty(db, t.root)
+}
+
+func (t *Trie) writeDirty(db chaindb.Database, curr node) error {
+	if !curr.isDirty() {
+		return nil
+	}
+
+	enc, hash, err := curr.encodeAndHash()
+	if err != nil {
+		return err
+	}
+
+	err = db.Put(hash, enc)
+	if err != nil {
+		return err
+	}
+
+	switch c := curr.(type) {
+	case *branch:
+		for _, child := range c.children {
+			if child == nil {
+				continue
+			}
+
+			err = t.store(db, child)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	curr.setDirty(false)
+	return nil
 }

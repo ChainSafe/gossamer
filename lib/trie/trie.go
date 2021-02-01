@@ -252,6 +252,7 @@ func (t *Trie) insert(parent node, key []byte, value node) (n node, err error) {
 		// if a value already exists in the trie at this key, overwrite it with the new value
 		if p.value != nil && bytes.Equal(p.key, key) {
 			p.value = value.(*leaf).value
+			p.dirty = true
 			return p, nil
 		}
 
@@ -294,6 +295,10 @@ func (t *Trie) insert(parent node, key []byte, value node) (n node, err error) {
 		err = errors.New("put error: invalid node")
 	}
 
+	if parent != nil && n != nil && n.isDirty() {
+		parent.setDirty(true)
+	}
+
 	return n, err
 }
 
@@ -307,6 +312,7 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (n node, err erro
 	if length == len(p.key) {
 		// if node has same key as this branch, then update the value at this branch
 		if bytes.Equal(key, p.key) {
+			p.setDirty(true)
 			switch v := value.(type) {
 			case *branch:
 				p.value = v.value
@@ -331,6 +337,9 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (n node, err erro
 			n = p
 		}
 
+		if p != nil && n != nil && n.isDirty() {
+			p.setDirty(true)
+		}
 		return n, err
 	}
 
@@ -340,7 +349,7 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (n node, err erro
 
 	parentIndex := p.key[length]
 	if br.children[parentIndex], err = t.insert(nil, p.key[length+1:], p); err != nil {
-		log.Warn("updateBranch returned not ok for operation 2 insert")
+		log.Warn("updateBranch returned not ok for operation insert")
 	}
 	if err != nil {
 		return nil, err
@@ -354,6 +363,7 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (n node, err erro
 		}
 	}
 
+	br.setDirty(true)
 	return br, err
 }
 

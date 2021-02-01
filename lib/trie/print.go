@@ -18,63 +18,39 @@ package trie
 
 import (
 	"fmt"
+
+	"github.com/disiqueira/gotree"
 )
 
 // String returns the trie stringified through pre-order traversal
 func (t *Trie) String() string {
-	return t.string("", t.root, nil, false)
+	tree := gotree.New(t.root.String())
+	t.string(tree, t.root)
+	return fmt.Sprintf("\n%s", tree.Print())
+}
+
+func (t *Trie) string(tree gotree.Tree, curr node) {
+	switch c := curr.(type) {
+	case *branch:
+		sub := tree.Add(c.String())
+		for _, child := range c.children {
+			if child != nil {
+				t.string(sub, child)
+			}
+		}
+	case *leaf:
+		tree.Add(c.String())
+	default:
+		return
+	}
 }
 
 // StringWithEncoding returns the trie stringified as well as the encoding of each node
 func (t *Trie) StringWithEncoding() string {
-	return t.string("", t.root, nil, true)
-}
-
-func (t *Trie) string(str string, current node, prefix []byte, withEncoding bool) string {
-	h, err := NewHasher()
-	if err != nil {
-		return ""
-	}
-
-	var encoding []byte
-	var hash []byte
-	if withEncoding && current != nil {
-		encoding, err = current.encode()
-		if err != nil {
-			return ""
-		}
-		hash, err = h.Hash(current)
-		if err != nil {
-			return ""
-		}
-	}
-
-	switch c := current.(type) {
-	case *branch:
-		str += fmt.Sprintf("branch prefix %x key %x children %b value %x\n", nibblesToKeyLE(prefix), nibblesToKey(c.key), c.childrenBitmap(), c.value)
-		if withEncoding {
-			str += fmt.Sprintf("branch encoding %x branch hash %x", encoding, hash)
-		}
-
-		for i, child := range c.children {
-			str = t.string(str, child, append(append(prefix, byte(i)), c.key...), withEncoding)
-		}
-	case *leaf:
-		str += fmt.Sprintf("leaf prefix %x key %x value %x\n", nibblesToKeyLE(prefix), nibblesToKeyLE(c.key), c.value)
-		if withEncoding {
-			str += fmt.Sprintf("leaf encoding %x leaf hash %x", encoding, hash)
-		}
-	}
-
-	return str
+	return t.String()
 }
 
 // Print prints the trie through pre-order traversal
 func (t *Trie) Print() {
 	fmt.Println(t.String())
-}
-
-// PrintEncoding prints the trie with node encodings through pre-order traversal
-func (t *Trie) PrintEncoding() {
-	fmt.Println(t.StringWithEncoding())
 }
