@@ -20,8 +20,6 @@ import (
 	"io/ioutil"
 	"testing"
 
-	//"github.com/ChainSafe/gossamer/lib/common"
-
 	"github.com/ChainSafe/chaindb"
 	"github.com/stretchr/testify/require"
 )
@@ -38,7 +36,7 @@ func newTestDB(t *testing.T) chaindb.Database {
 	// TODO: don't initialize new DB but pass it in
 	db, err := chaindb.NewBadgerDB(cfg)
 	require.NoError(t, err)
-	return db
+	return chaindb.NewTable(db, "trie")
 }
 
 func TestTrie_DatabaseStoreAndLoad(t *testing.T) {
@@ -118,19 +116,12 @@ func TestTrie_WriteDirty_Put(t *testing.T) {
 		err := trie.Store(db)
 		require.NoError(t, err)
 
-		err = trie.Put([]byte{0x01, 0x35, 0x79}, []byte("notapenguin"))
-		require.NoError(t, err)
-		t.Log(trie)
-
-		err = trie.WriteDirty(db)
+		err = trie.PutInDB(db, []byte{0x01, 0x35, 0x79}, []byte("notapenguin"))
 		require.NoError(t, err)
 
 		res := NewEmptyTrie()
 		err = res.Load(db, trie.MustHash())
 		require.NoError(t, err)
-
-		t.Log(res)
-
 		require.Equal(t, trie.MustHash(), res.MustHash())
 	}
 }
@@ -169,22 +160,102 @@ func TestTrie_WriteDirty_Delete(t *testing.T) {
 		db := newTestDB(t)
 		err := trie.Store(db)
 		require.NoError(t, err)
-		t.Log(trie)
 
-		err = trie.Delete([]byte{0x01, 0x35, 0x79})
+		err = trie.DeleteFromDB(db, []byte{0x01, 0x35, 0x79})
 		require.NoError(t, err)
 
-		t.Log(trie)
+		res := NewEmptyTrie()
+		err = res.Load(db, trie.MustHash())
+		require.NoError(t, err)
+		require.Equal(t, trie.MustHash(), res.MustHash())
+	}
+}
 
-		err = trie.WriteDirty(db)
+func TestTrie_WriteDirty_ClearPrefix(t *testing.T) {
+	trie := &Trie{}
+
+	cases := [][]Test{
+		[]Test{
+			{key: []byte{0x01, 0x35}, value: []byte("pen")},
+			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+			{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
+			{key: []byte{0xf2}, value: []byte("feather")},
+			{key: []byte{0xf2, 0x3}, value: []byte("f")},
+			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+			{key: []byte{0x07}, value: []byte("ramen")},
+			{key: []byte{0}, value: nil},
+		},
+		[]Test{
+			{key: []byte{0x01, 0x35}, value: []byte("pen")},
+			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+			{key: []byte{0x01, 0x35, 0x70}, value: []byte("g")},
+			{key: []byte{0xf2}, value: []byte("feather")},
+			{key: []byte{0xf2, 0x30}, value: []byte("f")},
+			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+			{key: []byte{0x07}, value: []byte("ramen")},
+		},
+	}
+
+	for _, testCase := range cases {
+		for _, test := range testCase {
+			err := trie.Put(test.key, test.value)
+			require.NoError(t, err)
+		}
+
+		db := newTestDB(t)
+		err := trie.Store(db)
+		require.NoError(t, err)
+
+		err = trie.ClearPrefixFromDB(db, []byte{0x01, 0x35})
 		require.NoError(t, err)
 
 		res := NewEmptyTrie()
 		err = res.Load(db, trie.MustHash())
 		require.NoError(t, err)
 
-		t.Log(res)
-
 		require.Equal(t, trie.MustHash(), res.MustHash())
+	}
+}
+
+func TestGetFromDB(t *testing.T) {
+	trie := &Trie{}
+
+	cases := [][]Test{
+		[]Test{
+			{key: []byte{0x01, 0x35}, value: []byte("pen")},
+			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+			{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
+			{key: []byte{0xf2}, value: []byte("feather")},
+			{key: []byte{0xf2, 0x3}, value: []byte("f")},
+			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+			{key: []byte{0x07}, value: []byte("ramen")},
+			{key: []byte{0}, value: nil},
+		},
+		[]Test{
+			{key: []byte{0x01, 0x35}, value: []byte("pen")},
+			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+			{key: []byte{0x01, 0x35, 0x70}, value: []byte("g")},
+			{key: []byte{0xf2}, value: []byte("feather")},
+			{key: []byte{0xf2, 0x30}, value: []byte("f")},
+			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+			{key: []byte{0x07}, value: []byte("ramen")},
+		},
+	}
+
+	for _, testCase := range cases {
+		for _, test := range testCase {
+			err := trie.Put(test.key, test.value)
+			require.NoError(t, err)
+		}
+
+		db := newTestDB(t)
+		err := trie.Store(db)
+		require.NoError(t, err)
+
+		root := trie.MustHash()
+
+		val, err := GetFromDB(db, root, []byte{0x01, 0x35, 0x79})
+		require.NoError(t, err)
+		require.Equal(t, []byte("penguin"), val)
 	}
 }

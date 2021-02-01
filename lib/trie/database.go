@@ -17,6 +17,7 @@
 package trie
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -30,7 +31,7 @@ func (t *Trie) Store(db chaindb.Database) error {
 	return t.store(db, t.root)
 }
 
-func (t *Trie) store(db chaindb.Database, curr node) error {
+func (t *Trie) store(db chaindb.Database, curr node) error { // TODO: batch!!
 	enc, hash, err := curr.encodeAndHash()
 	if err != nil {
 		return err
@@ -128,13 +129,68 @@ func (t *Trie) DeleteFromDB(db chaindb.Database, key []byte) error {
 }
 
 // ClearPrefixFromDB deletes all keys with the given prefix from the trie and writes the updated nodes the database. Since it needs to write all the nodes from the changed node up to the root, it writes these in a batch operation.
-func (t *Trie) ClearPrefixFromDB(db chaindb.Database, key []byte) error {
-	return nil
+func (t *Trie) ClearPrefixFromDB(db chaindb.Database, prefix []byte) error {
+	t.ClearPrefix(prefix)
+	return t.WriteDirty(db)
 }
 
 // GetFromDB retrieves a value from the trie using the database. It recursively descends into the trie using the database starting from the root node until it reaches the node with the given key. It then reads the value from the database.
-func (t *Trie) GetFromDB(db chaindb.Database, key []byte) ([]byte, error) {
-	return nil, nil
+func GetFromDB(db chaindb.Database, root common.Hash, key []byte) ([]byte, error) {
+	k := keyToNibbles(key)
+
+	enc, err := db.Get(root[:])
+	if err != nil {
+		return nil, fmt.Errorf("failed to find root key=%s: %w", root, err)
+	}
+
+	rootNode, err := decodeBytes(enc)
+	if err != nil {
+		return nil, err
+	}
+
+	return getFromDB(db, rootNode, k)
+}
+
+func getFromDB(db chaindb.Database, parent node, key []byte) (value []byte, err error) {
+	switch p := parent.(type) {
+	case *branch:
+		length := lenCommonPrefix(p.key, key)
+
+		// found the value at this node
+		if bytes.Equal(p.key, key) || len(key) == 0 {
+			return p.value, nil
+		}
+
+		// did not find value
+		if bytes.Equal(p.key[:length], key) && len(key) < len(p.key) {
+			return nil, nil
+		}
+
+		if p.children[key[length]] == nil {
+			return nil, nil
+		}
+
+		// load child with potential value
+		enc, err := db.Get(p.children[key[length]].(*leaf).hash)
+		if err != nil {
+			return nil, err
+		}
+
+		child, err := decodeBytes(enc)
+		if err != nil {
+			return nil, err
+		}
+
+		value, err = getFromDB(db, child, key[length+1:])
+	case *leaf:
+		if bytes.Equal(p.key, key) {
+			return p.value, nil
+		}
+	case nil:
+		return nil, nil
+
+	}
+	return value, err
 }
 
 // WriteDirty writes all dirty nodes to the database and sets them to clean
@@ -142,7 +198,7 @@ func (t *Trie) WriteDirty(db chaindb.Database) error {
 	return t.writeDirty(db, t.root)
 }
 
-func (t *Trie) writeDirty(db chaindb.Database, curr node) error {
+func (t *Trie) writeDirty(db chaindb.Database, curr node) error { // TODO: batch!!
 	if !curr.isDirty() {
 		return nil
 	}
