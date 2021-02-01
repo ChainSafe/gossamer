@@ -302,10 +302,12 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 	var slotNumber uint64 = 1
 
 	addAuthorshipProof(t, babeService, slotNumber, testEpochIndex)
+	duration, err := time.ParseDuration("1s")
+	require.NoError(t, err)
 
 	slot := Slot{
-		start:    uint64(time.Now().Unix()),
-		duration: uint64(10000000),
+		start:    time.Now(),
+		duration: duration,
 		number:   slotNumber,
 	}
 

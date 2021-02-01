@@ -33,6 +33,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var inc, _ = time.ParseDuration("1s")
+
 // NewInMemoryDB creates a new in-memory database
 func NewInMemoryDB(t *testing.T) chaindb.Database {
 	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
@@ -63,7 +65,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 	branches := []testBranch{}
 	r := *rand.New(rand.NewSource(rand.Int63())) //nolint
 
-	arrivalTime := uint64(1)
+	arrivalTime := time.Now()
 	currentChain := []*types.Header{}
 	branchChains := []*types.Header{}
 
@@ -98,7 +100,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 			})
 		}
 
-		arrivalTime++
+		arrivalTime = arrivalTime.Add(inc)
 	}
 
 	// create tree branches
@@ -127,8 +129,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 			require.Nil(t, err)
 
 			previousHash = hash
-
-			arrivalTime++
+			arrivalTime = arrivalTime.Add(inc)
 		}
 	}
 
@@ -140,7 +141,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, depth int, branches map[int]int, r byte) {
 	previousHash := blockState.BestBlockHash()
 	tb := []testBranch{}
-	arrivalTime := uint64(1)
+	arrivalTime := time.Now()
 
 	head, err := blockState.BestBlockHeader()
 	require.NoError(t, err)
@@ -173,7 +174,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 			}
 		}
 
-		arrivalTime++
+		arrivalTime = arrivalTime.Add(inc)
 	}
 
 	// create tree branches
@@ -200,8 +201,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 			require.Nil(t, err)
 
 			previousHash = hash
-
-			arrivalTime++
+			arrivalTime = arrivalTime.Add(inc)
 		}
 	}
 }
