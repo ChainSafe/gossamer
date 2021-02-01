@@ -84,7 +84,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 	auth := setupAuthModule(t, txQueue)
 
 	// create and submit extrinsic
-	ext := Extrinsic(fmt.Sprintf("0x%x", testExt))
+	ext := Extrinsic{fmt.Sprintf("0x%x", testExt)}
 
 	res := new(ExtrinsicHashResponse)
 
@@ -120,7 +120,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 	auth := setupAuthModule(t, txQueue)
 
 	// create and submit extrinsic
-	ext := Extrinsic(fmt.Sprintf("0x%x", testInvalidExt))
+	ext := Extrinsic{fmt.Sprintf("0x%x", testInvalidExt)}
 
 	res := new(ExtrinsicHashResponse)
 
@@ -135,7 +135,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid_input(t *testing.T) {
 	auth := setupAuthModule(t, txQueue)
 
 	// create and submit extrinsic
-	ext := Extrinsic(fmt.Sprintf("%x", "1"))
+	ext := Extrinsic{fmt.Sprintf("%x", "1")}
 
 	res := new(ExtrinsicHashResponse)
 
@@ -151,7 +151,7 @@ func TestAuthorModule_SubmitExtrinsic_InQueue(t *testing.T) {
 	auth := setupAuthModule(t, txQueue)
 
 	// create and submit extrinsic
-	ext := Extrinsic(fmt.Sprintf("0x%x", testExt))
+	ext := Extrinsic{fmt.Sprintf("0x%x", testExt)}
 
 	res := new(ExtrinsicHashResponse)
 

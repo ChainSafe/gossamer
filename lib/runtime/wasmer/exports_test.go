@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -14,6 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	gtypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
@@ -117,6 +119,56 @@ func TestInstance_Version_NodeRuntime(t *testing.T) {
 	t.Logf("Impl_version: %d\n", version.RuntimeVersion.Impl_version)
 
 	require.Equal(t, expected, version.RuntimeVersion)
+}
+
+func balanceKey(t *testing.T, pub []byte) []byte {
+	h0, err := common.Twox128Hash([]byte("System"))
+	require.NoError(t, err)
+	h1, err := common.Twox128Hash([]byte("Account"))
+	require.NoError(t, err)
+	h2, err := common.Blake2b128(pub)
+	require.NoError(t, err)
+	return append(append(append(h0, h1...), h2...), pub...)
+}
+
+func TestNodeRuntime_ValidateTransaction(t *testing.T) {
+	alicePub := common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d")
+	aliceBalanceKey := balanceKey(t, alicePub)
+
+	rt := NewTestInstance(t, runtime.NODE_RUNTIME)
+
+	accInfo := types.AccountInfo{
+		Nonce:    0,
+		RefCount: 0,
+		Data: struct {
+			Free       common.Uint128
+			Reserved   common.Uint128
+			MiscFrozen common.Uint128
+			FreeFrozen common.Uint128
+		}{
+			Free:       *common.Uint128FromBigInt(big.NewInt(1152921504606846976)),
+			Reserved:   *common.Uint128FromBigInt(big.NewInt(0)),
+			MiscFrozen: *common.Uint128FromBigInt(big.NewInt(0)),
+			FreeFrozen: *common.Uint128FromBigInt(big.NewInt(0)),
+		},
+	}
+
+	encBal, err := gtypes.EncodeToBytes(accInfo)
+	require.NoError(t, err)
+
+	err = rt.inst.ctx.Storage.Set(aliceBalanceKey, encBal)
+	require.NoError(t, err)
+
+	extBytes, err := common.HexToBytes("0x2d0284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01ccacd0447dd220241dfb510e6e0554dff73899e79a068c58c7a149f568c71e046893a7e4726b5532af338b7780d0e9a83e9acc00e1610b02468405b2394769840000000600ff90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22e5c0")
+	require.NoError(t, err)
+
+	_ = buildBlock(t, rt)
+
+	ext := types.Extrinsic(append([]byte{byte(modules.TxnExternal)}, extBytes...))
+
+	t.Log("---------------VALIDATE TRANSACTION-----------------")
+	_, err = rt.ValidateTransaction(ext)
+	require.NoError(t, err)
 }
 
 func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
@@ -260,7 +312,7 @@ func TestInstance_InitializeBlock_PolkadotRuntime(t *testing.T) {
 func buildBlock(t *testing.T, instance runtime.Instance) *types.Block {
 	header := &types.Header{
 		ParentHash: trie.EmptyHash,
-		Number:     big.NewInt(77),
+		Number:     big.NewInt(1),
 		Digest:     types.Digest{},
 	}
 
@@ -310,7 +362,7 @@ func buildBlock(t *testing.T, instance runtime.Instance) *types.Block {
 
 	expected := &types.Header{
 		ParentHash: header.ParentHash,
-		Number:     big.NewInt(77),
+		Number:     big.NewInt(1),
 		Digest:     types.Digest{preDigest},
 	}
 
