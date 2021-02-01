@@ -295,11 +295,7 @@ type verifier struct {
 	blockState  BlockState
 	epoch       uint64
 	authorities []*types.Authority
-<<<<<<< Updated upstream
-	randomness  [types.RandomnessLength]byte
-=======
 	randomness  Randomness
->>>>>>> Stashed changes
 	threshold   *common.Uint128
 }
 
