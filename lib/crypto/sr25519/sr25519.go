@@ -278,7 +278,7 @@ func (k *PublicKey) Verify(msg, sig []byte) (bool, error) {
 }
 
 // VerifyDeprecated verifies that the public key signed the given message.
-// NOTE: this is used by ext_crypto_sr25519_verify_version_1 only and should not be used anywhere else.
+// Deprecated: this is used by ext_crypto_sr25519_verify_version_1 only and should not be used anywhere else.
 // This method does not check that the signature is in fact a schnorrkel signature, and does not
 // distinguish between sr25519 and ed25519 signatures.
 func (k *PublicKey) VerifyDeprecated(msg, sig []byte) (bool, error) {
