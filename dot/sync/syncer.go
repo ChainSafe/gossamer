@@ -52,6 +52,7 @@ type Service struct {
 	synced           bool
 	highestSeenBlock *big.Int // highest block number we have seen
 	runtime          runtime.Instance
+	blockRequestSize uint32
 
 	// BABE verification
 	verifier Verifier
@@ -114,11 +115,12 @@ func NewService(cfg *Config) (*Service, error) {
 		verifier:         cfg.Verifier,
 		digestHandler:    cfg.DigestHandler,
 		benchmarker:      newBenchmarker(logger),
+		blockRequestSize: 1,
 	}, nil
 }
 
 // HandleBlockAnnounceHandshake handles a block that a peer claims to have through a HandleBlockAnnounceHandshake
-func (s *Service) HandleBlockAnnounceHandshake(blockNum *big.Int) *network.BlockRequestMessage {
+func (s *Service) HandleBlockAnnounceHandshake(blockNum *big.Int) []*network.BlockRequestMessage {
 	bestNum, err := s.blockState.BestBlockNumber()
 	if err != nil {
 		s.logger.Error("failed to get best block number", "error", err)
@@ -143,7 +145,7 @@ func (s *Service) HandleBlockAnnounceHandshake(blockNum *big.Int) *network.Block
 		}
 	}
 
-	return s.createBlockRequest(start)
+	return s.createBlockRequests(start, s.highestSeenBlock.Int64())
 }
 
 // HandleBlockAnnounce creates a block request message from the block
@@ -273,6 +275,19 @@ func (s *Service) HandleBlockResponse(msg *network.BlockResponseMessage) *networ
 	return s.createBlockRequest(start)
 }
 
+func (s *Service) createBlockRequests(start, end int64) []*network.BlockRequestMessage {
+	numReqs := (end - start) / int64(s.blockRequestSize)
+	if numReqs > 12 {
+		numReqs = 12
+	}
+	reqs := make([]*network.BlockRequestMessage, numReqs)
+	for i := 0; i < int(numReqs); i++ {
+		offset := i * int(s.blockRequestSize)
+		reqs[i] = s.createBlockRequest(start + int64(offset))
+	}
+	return reqs
+}
+
 func (s *Service) createBlockRequest(startInt int64) *network.BlockRequestMessage {
 	start, err := variadic.NewUint64OrHash(uint64(startInt))
 	if err != nil {
@@ -280,14 +295,14 @@ func (s *Service) createBlockRequest(startInt int64) *network.BlockRequestMessag
 		return nil
 	}
 
-	s.logger.Debug("sending block request", "start", start)
+	s.logger.Debug("creating block request", "start", start)
 
 	blockRequest := &network.BlockRequestMessage{
 		RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification,
 		StartingBlock: start,
 		EndBlockHash:  optional.NewHash(false, common.Hash{}),
 		Direction:     0, // ascending
-		Max:           optional.NewUint32(true, uint32(64)),
+		Max:           optional.NewUint32(true, s.blockRequestSize),
 	}
 
 	s.benchmarker.begin(uint64(startInt))

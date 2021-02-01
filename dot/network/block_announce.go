@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -191,41 +192,51 @@ func (s *Service) getBlockAnnounceHandshake() (Handshake, error) {
 	}, nil
 }
 
-func (s *Service) validateBlockAnnounceHandshake(hs Handshake) (Message, error) {
+func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) error {
 	var (
 		bhs *BlockAnnounceHandshake
 		ok  bool
 	)
 
 	if bhs, ok = hs.(*BlockAnnounceHandshake); !ok {
-		return nil, errors.New("invalid handshake type")
+		return errors.New("invalid handshake type")
 	}
 
 	if bhs.GenesisHash != s.blockState.GenesisHash() {
-		return nil, errors.New("genesis hash mismatch")
+		return errors.New("genesis hash mismatch")
 	}
 
 	// if peer has higher best block than us, begin syncing
 	latestHeader, err := s.blockState.BestBlockHeader()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	bestBlockNum := big.NewInt(int64(bhs.BestBlockNumber))
 
 	// check if peer block number is greater than host block number
 	if latestHeader.Number.Cmp(bestBlockNum) >= 0 {
-		return nil, nil
+		return nil
 	}
 
 	// if so, send block request
 	logger.Trace("sending peer highest block to syncer", "number", bhs.BestBlockNumber)
-	req := s.syncer.HandleBlockAnnounceHandshake(bestBlockNum)
-	if req == nil {
-		return nil, nil
+	reqs := s.syncer.HandleBlockAnnounceHandshake(bestBlockNum)
+	if len(reqs) == 0 {
+		return nil
 	}
 
-	return req, nil
+	go func() {
+		time.Sleep(time.Second) // TODO: wait until we send BlockAnnounceHandshake, then begin sync
+		// TODO: start sync queue
+		err := s.beginSyncing(peer, reqs)
+		if err != nil {
+			logger.Error("failed to send response to peer's handshake", "sub-protocol", syncID, "peer", peer, "error", err)
+			//return err
+		}
+	}()
+
+	return nil
 }
 
 // handleBlockAnnounceMessage handles BlockAnnounce messages

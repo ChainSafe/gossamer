@@ -214,6 +214,8 @@ func (s *Service) Start() error {
 		}()
 	}
 
+	time.Sleep(time.Second)
+
 	logger.Info("started network service", "supported protocols", s.host.protocols())
 	return nil
 }
@@ -229,10 +231,10 @@ func (s *Service) beginDiscovery() error {
 	// wait to connect to bootstrap peers
 	time.Sleep(time.Second)
 
-	_, err = rd.Advertise(s.ctx, s.cfg.ProtocolID)
-	if err != nil {
-		return fmt.Errorf("failed to begin advertising: %w", err)
-	}
+	// _, err = rd.Advertise(s.ctx, s.cfg.ProtocolID)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to begin advertising: %w", err)
+	// }
 
 	go func() {
 		peerCh, err := rd.FindPeers(s.ctx, s.cfg.ProtocolID)
@@ -471,13 +473,16 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 			"msg", msg.String(),
 		)
 
-		// handle message based on peer status and message type
-		err = handler(peer, msg)
-		if err != nil {
-			logger.Error("Failed to handle message from stream", "message", msg, "error", err)
-			_ = stream.Close()
-			return
-		}
+		go func() {
+
+			// handle message based on peer status and message type
+			err = handler(peer, msg)
+			if err != nil {
+				logger.Error("Failed to handle message from stream", "message", msg, "error", err)
+				_ = stream.Close()
+				return
+			}
+		}()
 	}
 }
 func (s *Service) handleLightMsg(peer peer.ID, msg Message) error {

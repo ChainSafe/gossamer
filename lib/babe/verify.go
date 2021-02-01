@@ -32,7 +32,7 @@ import (
 // it remains the same for an epoch
 type verifierInfo struct {
 	authorities []*types.Authority
-	randomness  [types.RandomnessLength]byte
+	randomness  Randomness
 	threshold   *common.Uint128
 }
 
@@ -295,7 +295,11 @@ type verifier struct {
 	blockState  BlockState
 	epoch       uint64
 	authorities []*types.Authority
+<<<<<<< Updated upstream
 	randomness  [types.RandomnessLength]byte
+=======
+	randomness  Randomness
+>>>>>>> Stashed changes
 	threshold   *common.Uint128
 }
 
@@ -415,13 +419,19 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 
 	switch d := babePreDigest.(type) {
 	case *types.BabePrimaryPreDigest:
-		ok, err = b.verifySlotWinner(d.AuthorityIndex(), d.SlotNumber(), d.VrfOutput(), d.VrfProof())
-	case *types.BabeSecondaryVRFPreDigest: // TODO: implement BABE secondary slot assignment
-		logger.Warn("not validating BabeSecondaryVRFPreDigest: BABE secondary slot assignment not implemented")
-		return babePreDigest, nil
-	case *types.BabeSecondaryPlainPreDigest: // TODO: implement BABE secondary slot assignment
-		logger.Warn("not validating BabeSecondaryPlainPreDigest: BABE secondary slot assignment not implemented")
-		return babePreDigest, nil
+		ok, err = b.verifyPrimarySlotWinner(d.AuthorityIndex(), d.SlotNumber(), d.VrfOutput(), d.VrfProof())
+	case *types.BabeSecondaryVRFPreDigest:
+		pub := b.authorities[d.AuthorityIndex()].Key
+		var pk *sr25519.PublicKey
+		pk, err = sr25519.NewPublicKey(pub.Encode())
+		if err != nil {
+			return nil, err
+		}
+
+		ok, err = verifySecondarySlotVRF(d, pk, b.epoch, len(b.authorities), b.randomness)
+	case *types.BabeSecondaryPlainPreDigest:
+		ok = true
+		err = verifySecondarySlotPlain(d.AuthorityIndex(), d.SlotNumber(), len(b.authorities), b.randomness)
 	}
 
 	// verify that they are the slot winner
@@ -436,9 +446,8 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 	return babePreDigest, nil
 }
 
-//nolint
-// verifySlotWinner verifies the claim for a slot
-func (b *verifier) verifySlotWinner(authorityIndex uint32, slot uint64, vrfOutput [sr25519.VrfOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) (bool, error) {
+// verifyPrimarySlotWinner verifies the claim for a slot
+func (b *verifier) verifyPrimarySlotWinner(authorityIndex uint32, slot uint64, vrfOutput [sr25519.VrfOutputLength]byte, vrfProof [sr25519.VrfProofLength]byte) (bool, error) {
 	pub := b.authorities[authorityIndex].Key
 
 	pk, err := sr25519.NewPublicKey(pub.Encode())

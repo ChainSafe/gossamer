@@ -35,7 +35,7 @@ type Syncer interface {
 	CreateBlockResponse(*BlockRequestMessage) (*BlockResponseMessage, error)
 
 	// HandleBlockAnnounceHandshake is called upon receiving a BlockAnnounceHandshake from a peer that has a higher chain head than us
-	HandleBlockAnnounceHandshake(*big.Int) *BlockRequestMessage
+	HandleBlockAnnounceHandshake(*big.Int) []*BlockRequestMessage
 
 	// HandleBlockResponse is called upon receipt of BlockResponseMessage to process it.
 	// If another request needs to be sent to the peer, this function will return it.

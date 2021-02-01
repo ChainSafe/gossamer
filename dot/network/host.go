@@ -29,7 +29,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
-	"github.com/libp2p/go-libp2p-kad-dht/dual"
+	//"github.com/libp2p/go-libp2p-kad-dht/dual"
 	noise "github.com/libp2p/go-libp2p-noise"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
@@ -41,7 +41,7 @@ var defaultMaxPeerCount = 5
 type host struct {
 	ctx        context.Context
 	h          libp2phost.Host
-	dht        *dual.DHT
+	dht        *kaddht.IpfsDHT
 	bootnodes  []peer.AddrInfo
 	protocolID protocol.ID
 }
@@ -67,10 +67,15 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		return nil, err
 	}
 
+	// format protocol id
+	pid := protocol.ID(cfg.ProtocolID)
+
 	dhtOpts := []kaddht.Option{
 		kaddht.Datastore(dsync.MutexWrap(ds.NewMapDatastore())), // TODO: use on-disk datastore
 		kaddht.BootstrapPeers(bns...),
 		kaddht.ProtocolPrefix(protocol.ID(cfg.ProtocolID)),
+		kaddht.ProtocolPrefix(pid + "/kad"),
+		kaddht.V1CompatibleMode(true),
 	}
 
 	if cfg.NoMDNS {
@@ -94,16 +99,14 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	}
 
 	// create DHT service
-	dht, err := dual.New(ctx, h, dhtOpts...)
-	if err != nil {
-		return nil, err
-	}
+	// dht, err := dual.New(ctx, h, dhtOpts...)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	dht, err := kaddht.New(ctx, h, dhtOpts...)
 
 	// wrap host and DHT service with routed host
 	h = rhost.Wrap(h, dht)
-
-	// format protocol id
-	pid := protocol.ID(cfg.ProtocolID)
 
 	return &host{
 		ctx:        ctx,

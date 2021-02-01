@@ -252,7 +252,7 @@ func (s *mockSyncer) IsSynced() bool {
 	return false
 }
 
-func (s *mockSyncer) HandleBlockAnnounceHandshake(num *big.Int) *network.BlockRequestMessage {
+func (s *mockSyncer) HandleBlockAnnounceHandshake(num *big.Int) []*network.BlockRequestMessage {
 	return nil
 }
 
