@@ -357,8 +357,8 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (n node, err erro
 	return br, err
 }
 
-// Load data into trie
-func (t *Trie) Load(data map[string]string) error {
+// LoadFromMap loads the given data into trie
+func (t *Trie) LoadFromMap(data map[string]string) error {
 	for key, value := range data {
 		keyBytes, err := common.HexToBytes(key)
 		if err != nil {

@@ -51,6 +51,7 @@ import (
 
 // node is the interface for trie methods
 type node interface {
+	encodeAndHash() ([]byte, []byte, error)
 	encode() ([]byte, error)
 	decode(r io.Reader, h byte) error
 	isDirty() bool
@@ -69,6 +70,7 @@ type (
 		key   []byte // partial key
 		value []byte
 		dirty bool
+		hash  []byte
 	}
 )
 
@@ -133,6 +135,24 @@ func encode(n node) ([]byte, error) {
 	return nil, nil
 }
 
+func (b *branch) encodeAndHash() ([]byte, []byte, error) {
+	enc, err := b.encode()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if len(enc) < 32 {
+		return enc, enc, nil
+	}
+
+	hash, err := common.Blake2bHash(enc)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return enc, hash[:], nil
+}
+
 // Encode encodes a branch with the encoding specified at the top of this package
 func (b *branch) encode() ([]byte, error) {
 	encoding, err := b.header()
@@ -153,13 +173,13 @@ func (b *branch) encode() ([]byte, error) {
 		encoding = append(encoding, buffer.Bytes()...)
 	}
 
+	hasher, err := NewHasher()
+	if err != nil {
+		return nil, err
+	}
+
 	for _, child := range b.children {
 		if child != nil {
-			hasher, err := NewHasher()
-			if err != nil {
-				return nil, err
-			}
-
 			encChild, err := hasher.Hash(child)
 			if err != nil {
 				return encoding, err
@@ -173,6 +193,24 @@ func (b *branch) encode() ([]byte, error) {
 	}
 
 	return encoding, nil
+}
+
+func (l *leaf) encodeAndHash() ([]byte, []byte, error) {
+	enc, err := l.encode()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if len(enc) < 32 {
+		return enc, enc, nil
+	}
+
+	hash, err := common.Blake2bHash(enc)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return enc, hash[:], nil
 }
 
 // Encode encodes a leaf with the encoding specified at the top of this package
@@ -193,6 +231,16 @@ func (l *leaf) encode() ([]byte, error) {
 	encoding = append(encoding, buffer.Bytes()...)
 
 	return encoding, nil
+}
+
+func decodeBytes(in []byte) (node, error) {
+	r := &bytes.Buffer{}
+	_, err := r.Write(in)
+	if err != nil {
+		return nil, err
+	}
+
+	return decode(r)
 }
 
 // Decode wraps the decoding of different node types back into a node
@@ -244,9 +292,10 @@ func (b *branch) decode(r io.Reader, header byte) (err error) {
 		return err
 	}
 
+	sd := &scale.Decoder{Reader: r}
+
 	if nodeType == 3 {
 		// branch w/ value
-		sd := &scale.Decoder{Reader: r}
 		value, err := sd.Decode([]byte{})
 		if err != nil {
 			return err
@@ -256,7 +305,14 @@ func (b *branch) decode(r io.Reader, header byte) (err error) {
 
 	for i := 0; i < 16; i++ {
 		if (childrenBitmap[i/8]>>(i%8))&1 == 1 {
-			b.children[i] = &leaf{}
+			hash, err := sd.Decode([]byte{})
+			if err != nil {
+				return err
+			}
+
+			b.children[i] = &leaf{
+				hash: hash.([]byte),
+			}
 		}
 	}
 

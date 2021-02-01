@@ -118,15 +118,15 @@ func TestLeafHeader(t *testing.T) {
 		br     *leaf
 		header []byte
 	}{
-		{&leaf{nil, nil, true}, []byte{0x40}},
-		{&leaf{[]byte{0x00}, nil, true}, []byte{0x41}},
-		{&leaf{[]byte{0x00, 0x00, 0xf, 0x3}, nil, true}, []byte{0x44}},
-		{&leaf{byteArray(62), nil, true}, []byte{0x7e}},
-		{&leaf{byteArray(63), nil, true}, []byte{0x7f, 0}},
-		{&leaf{byteArray(64), []byte{0x01}, true}, []byte{0x7f, 1}},
+		{&leaf{nil, nil, true, nil}, []byte{0x40}},
+		{&leaf{[]byte{0x00}, nil, true, nil}, []byte{0x41}},
+		{&leaf{[]byte{0x00, 0x00, 0xf, 0x3}, nil, true, nil}, []byte{0x44}},
+		{&leaf{byteArray(62), nil, true, nil}, []byte{0x7e}},
+		{&leaf{byteArray(63), nil, true, nil}, []byte{0x7f, 0}},
+		{&leaf{byteArray(64), []byte{0x01}, true, nil}, []byte{0x7f, 1}},
 
-		{&leaf{byteArray(318), []byte{0x01}, true}, []byte{0x7f, 0xff, 0}},
-		{&leaf{byteArray(573), []byte{0x01}, true}, []byte{0x7f, 0xff, 0xff, 0}},
+		{&leaf{byteArray(318), []byte{0x01}, true, nil}, []byte{0x7f, 0xff, 0}},
+		{&leaf{byteArray(573), []byte{0x01}, true, nil}, []byte{0x7f, 0xff, 0xff, 0}},
 	}
 
 	for i, test := range tests {
@@ -293,14 +293,14 @@ func TestBranchDecode(t *testing.T) {
 
 func TestLeafDecode(t *testing.T) {
 	tests := []*leaf{
-		{[]byte{}, nil, true},
-		{[]byte{0x01}, nil, true},
-		{[]byte{0x00, 0x00, 0xf, 0x3}, nil, true},
-		{byteArray(62), nil, true},
-		{byteArray(63), nil, true},
-		{byteArray(64), []byte{0x01}, true},
-		{byteArray(318), []byte{0x01}, true},
-		{byteArray(573), []byte{0x01}, true},
+		{[]byte{}, nil, true, nil},
+		{[]byte{0x01}, nil, true, nil},
+		{[]byte{0x00, 0x00, 0xf, 0x3}, nil, true, nil},
+		{byteArray(62), nil, true, nil},
+		{byteArray(63), nil, true, nil},
+		{byteArray(64), []byte{0x01}, true, nil},
+		{byteArray(318), []byte{0x01}, true, nil},
+		{byteArray(573), []byte{0x01}, true, nil},
 	}
 
 	for _, test := range tests {
@@ -321,6 +321,7 @@ func TestLeafDecode(t *testing.T) {
 			t.Fatal(err)
 		}
 
+		res.hash = nil
 		if !reflect.DeepEqual(res, test) {
 			t.Fatalf("Fail: got %v expected %v encoding %x", res, test, enc)
 		}
@@ -336,14 +337,14 @@ func TestDecode(t *testing.T) {
 		&branch{[]byte{}, [16]node{&leaf{}}, []byte{0x01}, true},
 		&branch{[]byte{}, [16]node{&leaf{}, nil, &leaf{}}, []byte{0x01}, true},
 		&branch{[]byte{}, [16]node{&leaf{}, nil, &leaf{}, nil, nil, nil, nil, nil, nil, &leaf{}, nil, &leaf{}}, []byte{0x01}, true},
-		&leaf{[]byte{}, nil, true},
-		&leaf{[]byte{0x00}, nil, true},
-		&leaf{[]byte{0x00, 0x00, 0xf, 0x3}, nil, true},
-		&leaf{byteArray(62), nil, true},
-		&leaf{byteArray(63), nil, true},
-		&leaf{byteArray(64), []byte{0x01}, true},
-		&leaf{byteArray(318), []byte{0x01}, true},
-		&leaf{byteArray(573), []byte{0x01}, true},
+		&leaf{[]byte{}, nil, true, nil},
+		&leaf{[]byte{0x00}, nil, true, nil},
+		&leaf{[]byte{0x00, 0x00, 0xf, 0x3}, nil, true, nil},
+		&leaf{byteArray(62), nil, true, nil},
+		&leaf{byteArray(63), nil, true, nil},
+		&leaf{byteArray(64), []byte{0x01}, true, nil},
+		&leaf{byteArray(318), []byte{0x01}, true, nil},
+		&leaf{byteArray(573), []byte{0x01}, true, nil},
 	}
 
 	for _, test := range tests {
@@ -361,6 +362,10 @@ func TestDecode(t *testing.T) {
 		res, err := decode(r)
 		if err != nil {
 			t.Fatal(err)
+		}
+
+		if l, ok := res.(*leaf); ok {
+			l.hash = nil
 		}
 
 		if !reflect.DeepEqual(res, test) {
