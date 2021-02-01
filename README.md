@@ -11,6 +11,9 @@
   <a href="https://goreportcard.com/report/github.com/ChainSafe/gossamer">
     <img alt="go report card" src="https://goreportcard.com/badge/github.com/ChainSafe/gossamer" />
   </a>
+  <a href="https://discord.gg/zy8eRF7FG2">
+    <img alt="Discord" src="https://img.shields.io/discord/593655374469660673.svg?style=flat&label=Discord&logo=discord" />
+  </a>
   <a href="https://github.com/ChainSafe/gossamer/actions">
     <img alt="build status" src="https://github.com/ChainSafe/gossamer/workflows/build/badge.svg?branch=development" />
   </a>
