@@ -39,7 +39,7 @@ type TrieState struct {
 }
 
 // NewTrieState returns a new TrieState with the given trie
-func NewTrieState(t *trie.Trie) (*TrieState, error) {
+func NewTrieState(db chaindb.Database, t *trie.Trie) (*TrieState, error) {
 	r := rand.Intn(1 << 16) //nolint
 	buf := make([]byte, 2)
 	binary.LittleEndian.PutUint16(buf, uint16(r))
@@ -75,6 +75,24 @@ func NewTrieState(t *trie.Trie) (*TrieState, error) {
 
 // NewTestTrieState returns an initialized TrieState
 func NewTestTrieState(t *testing.T, tr *trie.Trie) *TrieState {
+	r := rand.Intn(1 << 16) //nolint
+	buf := make([]byte, 2)
+	binary.LittleEndian.PutUint16(buf, uint16(r))
+
+	// TODO: dynamically get os.TMPDIR
+	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
+
+	cfg := &chaindb.Config{
+		DataDir:  testDatadirPath,
+		InMemory: true,
+	}
+
+	// TODO: don't initialize new DB but pass it in
+	db, err := chaindb.NewBadgerDB(cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	if tr == nil {
 		tr = trie.NewEmptyTrie()
 	}
@@ -110,46 +128,46 @@ func (s *TrieState) Copy() (*TrieState, error) {
 	}, nil
 }
 
-// Commit ensures that the TrieState's trie and database match
-// The database is the source of truth due to the runtime interpreter's undefined behavior regarding the trie
-func (s *TrieState) Commit() error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+// // Commit ensures that the TrieState's trie and database match
+// // The database is the source of truth due to the runtime interpreter's undefined behavior regarding the trie
+// func (s *TrieState) Commit() error {
+// 	s.lock.Lock()
+// 	defer s.lock.Unlock()
 
-	s.t = trie.NewEmptyTrie()
-	iter := s.db.NewIterator()
+// 	s.t = trie.NewEmptyTrie()
+// 	iter := s.db.NewIterator()
 
-	for iter.Next() {
-		key := iter.Key()
-		err := s.t.Put(key, iter.Value())
-		if err != nil {
-			return err
-		}
-	}
+// 	for iter.Next() {
+// 		key := iter.Key()
+// 		err := s.t.Put(key, iter.Value())
+// 		if err != nil {
+// 			return err
+// 		}
+// 	}
 
-	iter.Release()
-	return nil
-}
+// 	iter.Release()
+// 	return nil
+// }
 
-// WriteTrieToDB writes the trie to the database
-func (s *TrieState) WriteTrieToDB() error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+// // WriteTrieToDB writes the trie to the database
+// func (s *TrieState) WriteTrieToDB() error {
+// 	s.lock.Lock()
+// 	defer s.lock.Unlock()
 
-	for k, v := range s.t.Entries() {
-		err := s.db.Put([]byte(k), v)
-		if err != nil {
-			return err
-		}
-	}
+// 	for k, v := range s.t.Entries() {
+// 		err := s.db.Put([]byte(k), v)
+// 		if err != nil {
+// 			return err
+// 		}
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-// Close should be called once this trie state is no longer needed to close and delete the database
-func (s *TrieState) Close() {
-	_ = os.RemoveAll(s.db.Path())
-}
+// // Close should be called once this trie state is no longer needed to close and delete the database
+// func (s *TrieState) Close() {
+// 	_ = os.RemoveAll(s.db.Path())
+// }
 
 // Set sets a key-value pair in the trie
 func (s *TrieState) Set(key []byte, value []byte) error {

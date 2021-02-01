@@ -18,7 +18,6 @@ package trie
 
 import (
 	"bytes"
-	"reflect"
 	"strconv"
 	"testing"
 
