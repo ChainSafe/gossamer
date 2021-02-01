@@ -25,7 +25,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
-	commontypes "github.com/ChainSafe/gossamer/lib/common/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -36,12 +36,13 @@ import (
 )
 
 var (
-	emptyHash      = trie.EmptyHash
-	testTimeout    = time.Second * 5
-	testEpochIndex = uint64(0)
+	defaultTestLogLvl = log.LvlInfo
+	emptyHash         = trie.EmptyHash
+	testTimeout       = time.Second * 5
+	testEpochIndex    = uint64(0)
 
-	maxThreshold = commontypes.MaxUint128
-	minThreshold = &commontypes.Uint128{}
+	maxThreshold = common.MaxUint128
+	minThreshold = &common.Uint128{}
 
 	genesisHeader = &types.Header{
 		Number:    big.NewInt(0),
@@ -132,6 +133,11 @@ func TestMain(m *testing.M) {
 		log.Error("failed to generate runtime wasm file", err)
 		os.Exit(1)
 	}
+
+	logger = log.New("pkg", "babe")
+	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
+	h = log.CallerFileHandler(h)
+	logger.SetHandler(log.LvlFilterHandler(defaultTestLogLvl, h))
 
 	// Start all tests
 	code := m.Run()

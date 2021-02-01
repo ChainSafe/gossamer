@@ -34,8 +34,6 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-var defaultTestLogLvl = log.Lvl(4)
-
 func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *VerificationManager {
 	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
 	require.NoError(t, err)
@@ -288,7 +286,7 @@ func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
 	require.Equal(t, ErrInvalidBlockProducerIndex, errors.Unwrap(err))
 }
 
-func TestVerifySlotWinner(t *testing.T) {
+func TestVerifyPimarySlotWinner(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)
 
@@ -330,7 +328,7 @@ func TestVerifySlotWinner(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	ok, err := verifier.verifySlotWinner(babeHeader.AuthorityIndex(), slot.number, babeHeader.VrfOutput(), babeHeader.VrfProof())
+	ok, err := verifier.verifyPrimarySlotWinner(babeHeader.AuthorityIndex(), slot.number, babeHeader.VrfOutput(), babeHeader.VrfProof())
 	require.NoError(t, err)
 	require.True(t, ok)
 }
