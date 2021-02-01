@@ -18,124 +18,98 @@ package sr25519
 
 import (
 	"crypto/rand"
-	"reflect"
 	"testing"
 
 	"github.com/gtank/merlin"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewKeypairFromSeed(t *testing.T) {
 	seed := make([]byte, 32)
 	_, err := rand.Read(seed)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	kp, err := NewKeypairFromSeed(seed)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if kp.public == nil || kp.private == nil {
-		t.Fatal("key is nil")
-	}
+	require.NoError(t, err)
+	require.NotNil(t, kp.public)
+	require.NotNil(t, kp.private)
 }
 
 func TestSignAndVerify(t *testing.T) {
 	kp, err := GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	msg := []byte("helloworld")
 	sig, err := kp.Sign(msg)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	pub := kp.Public().(*PublicKey)
 	ok, err := pub.Verify(msg, sig)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !ok {
-		t.Fatal("Fail: did not verify sr25519 sig")
-	}
+	require.NoError(t, err)
+	require.True(t, ok)
 }
 
 func TestPublicKeys(t *testing.T) {
 	kp, err := GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	priv := kp.Private().(*PrivateKey)
 	kp2, err := NewKeypair(priv.key)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !reflect.DeepEqual(kp.Public(), kp2.Public()) {
-		t.Fatalf("Fail: pubkeys do not match got %x expected %x", kp2.Public(), kp.Public())
-	}
+	require.NoError(t, err)
+	require.Equal(t, kp.Public(), kp2.Public())
 }
 
 func TestEncodeAndDecodePrivateKey(t *testing.T) {
 	kp, err := GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	enc := kp.Private().Encode()
 	res := new(PrivateKey)
 	err = res.Decode(enc)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	exp := kp.Private().(*PrivateKey).key.Encode()
-	if !reflect.DeepEqual(res.key.Encode(), exp) {
-		t.Fatalf("Fail: got %x expected %x", res.key.Encode(), exp)
-	}
+	require.Equal(t, exp, res.key.Encode())
 }
 
 func TestEncodeAndDecodePublicKey(t *testing.T) {
 	kp, err := GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	enc := kp.Public().Encode()
 	res := new(PublicKey)
 	err = res.Decode(enc)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	exp := kp.Public().(*PublicKey).key.Encode()
-	if !reflect.DeepEqual(res.key.Encode(), exp) {
-		t.Fatalf("Fail: got %v expected %v", res.key, exp)
-	}
+	require.Equal(t, exp, res.key.Encode())
 }
 
 func TestVrfSignAndVerify(t *testing.T) {
 	kp, err := GenerateKeypair()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	transcript := merlin.NewTranscript("helloworld")
 	out, proof, err := kp.VrfSign(transcript)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	pub := kp.Public().(*PublicKey)
 	transcript2 := merlin.NewTranscript("helloworld")
 	ok, err := pub.VrfVerify(transcript2, out, proof)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !ok {
-		t.Fatal("Fail: did not verify vrf")
-	}
+	require.NoError(t, err)
+	require.True(t, ok)
+}
+
+func TestSignAndVerify_Deprecated(t *testing.T) {
+	kp, err := GenerateKeypair()
+	require.NoError(t, err)
+
+	msg := []byte("helloworld")
+	sig, err := kp.Sign(msg)
+	require.NoError(t, err)
+
+	pub := kp.Public().(*PublicKey)
+	ok, err := pub.VerifyDeprecated(msg, sig)
+	require.NoError(t, err)
+	require.True(t, ok)
 }
