@@ -32,6 +32,10 @@ func (t *Trie) Store(db chaindb.Database) error {
 }
 
 func (t *Trie) store(db chaindb.Database, curr node) error { // TODO: batch!!
+	if curr == nil {
+		return nil
+	}
+
 	enc, hash, err := curr.encodeAndHash()
 	if err != nil {
 		return err
@@ -67,6 +71,11 @@ func (t *Trie) store(db chaindb.Database, curr node) error { // TODO: batch!!
 
 // Load reconstructs the trie from the database from the given root hash. Used when restarting the node to load the current state trie.
 func (t *Trie) Load(db chaindb.Database, root common.Hash) error {
+	if root == EmptyHash {
+		t.root = nil
+		return nil
+	}
+
 	enc, err := db.Get(root[:])
 	if err != nil {
 		return fmt.Errorf("failed to find root key=%s: %w", root, err)

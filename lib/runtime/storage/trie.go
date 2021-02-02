@@ -130,10 +130,6 @@ func (s *TrieState) MustRoot() common.Hash {
 
 // Root returns the trie's root hash
 func (s *TrieState) Root() (common.Hash, error) {
-	// s.lock.RLock()
-	// defer s.lock.RUnlock()
-	// return s.t.Hash()
-
 	root, err := s.loadWorkingRoot()
 	if err != nil {
 		return common.Hash{}, err
@@ -174,6 +170,39 @@ func (s *TrieState) Delete(key []byte) error {
 	return s.storeWorkingRoot()
 }
 
+// NextKey returns the next key in the trie in lexicographical order. If it does not exist, it returns nil.
+func (s *TrieState) NextKey(key []byte) []byte {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	return s.t.NextKey(key)
+}
+
+// ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix
+func (s *TrieState) ClearPrefix(prefix []byte) error {
+	keys := s.t.GetKeysWithPrefix(prefix)
+	for _, key := range keys {
+		err := s.t.Delete(key)
+		if err != nil {
+			return err
+		}
+	}
+
+	err := s.t.WriteDirty(s.db)
+	if err != nil {
+		return err
+	}
+
+	return s.storeWorkingRoot()
+}
+
+// TrieEntries returns every key-value pair in the trie
+func (s *TrieState) TrieEntries() map[string][]byte {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	return s.t.Entries()
+}
+
 // SetChild sets the child trie at the given key
 func (s *TrieState) SetChild(keyToChild []byte, child *trie.Trie) error {
 	s.lock.Lock()
@@ -200,46 +229,6 @@ func (s *TrieState) GetChildStorage(keyToChild, key []byte) ([]byte, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 	return s.t.GetFromChild(keyToChild, key)
-}
-
-// TrieEntries returns every key-value pair in the trie
-func (s *TrieState) TrieEntries() map[string][]byte {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-
-	return s.t.Entries()
-}
-
-// SetBalance sets the balance for a given public key
-func (s *TrieState) SetBalance(key [32]byte, balance uint64) error {
-	skey, err := common.BalanceKey(key)
-	if err != nil {
-		return err
-	}
-
-	bb := make([]byte, 8)
-	binary.LittleEndian.PutUint64(bb, balance)
-
-	return s.Set(skey, bb)
-}
-
-// GetBalance returns the balance for a given public key
-func (s *TrieState) GetBalance(key [32]byte) (uint64, error) {
-	skey, err := common.BalanceKey(key)
-	if err != nil {
-		return 0, err
-	}
-
-	bal, err := s.Get(skey)
-	if err != nil {
-		return 0, err
-	}
-
-	if len(bal) != 8 {
-		return 0, nil
-	}
-
-	return binary.LittleEndian.Uint64(bal), nil
 }
 
 // DeleteChildStorage deletes child storage from the trie
@@ -287,31 +276,6 @@ func (s *TrieState) GetChildNextKey(keyToChild, key []byte) ([]byte, error) {
 	return child.NextKey(key), nil
 }
 
-// NextKey returns the next key in the trie in lexicographical order. If it does not exist, it returns nil.
-func (s *TrieState) NextKey(key []byte) []byte {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-	return s.t.NextKey(key)
-}
-
-// ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix
-func (s *TrieState) ClearPrefix(prefix []byte) error {
-	keys := s.t.GetKeysWithPrefix(prefix)
-	for _, key := range keys {
-		err := s.t.Delete(key)
-		if err != nil {
-			return err
-		}
-	}
-
-	err := s.t.WriteDirty(s.db)
-	if err != nil {
-		return err
-	}
-
-	return s.storeWorkingRoot()
-}
-
 // GetKeysWithPrefixFromChild ...
 func (s *TrieState) GetKeysWithPrefixFromChild(keyToChild, prefix []byte) ([][]byte, error) {
 	child, err := s.GetChild(keyToChild)
@@ -322,4 +286,38 @@ func (s *TrieState) GetKeysWithPrefixFromChild(keyToChild, prefix []byte) ([][]b
 		return nil, nil
 	}
 	return child.GetKeysWithPrefix(prefix), nil
+}
+
+// TODO: remove functions below
+
+// SetBalance sets the balance for a given public key
+func (s *TrieState) SetBalance(key [32]byte, balance uint64) error {
+	skey, err := common.BalanceKey(key)
+	if err != nil {
+		return err
+	}
+
+	bb := make([]byte, 8)
+	binary.LittleEndian.PutUint64(bb, balance)
+
+	return s.Set(skey, bb)
+}
+
+// GetBalance returns the balance for a given public key
+func (s *TrieState) GetBalance(key [32]byte) (uint64, error) {
+	skey, err := common.BalanceKey(key)
+	if err != nil {
+		return 0, err
+	}
+
+	bal, err := s.Get(skey)
+	if err != nil {
+		return 0, err
+	}
+
+	if len(bal) != 8 {
+		return 0, nil
+	}
+
+	return binary.LittleEndian.Uint64(bal), nil
 }

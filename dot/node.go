@@ -80,48 +80,8 @@ func InitNode(cfg *Config) error {
 	// create new state service
 	stateSrvc := state.NewService(cfg.Global.BasePath, cfg.Global.LogLvl)
 
-	// load genesis state into database
-	genTrie, err := stateSrvc.Storage.TrieState(nil) //rtstorage.NewTrieState(t)
-	if err != nil {
-		return fmt.Errorf("failed to instantiate TrieState: %w", err)
-	}
-
-	// err = genTrie.WriteTrieToDB()
-	// if err != nil {
-	// 	return fmt.Errorf("failed to write trie to db: %w", err)
-	// }
-
-	// create genesis runtime
-	rtCfg := &wasmer.Config{}
-	rtCfg.Storage = genTrie
-
-	r, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg)
-	if err != nil {
-		return fmt.Errorf("failed to create genesis runtime: %w", err)
-	}
-
-	// load and store initial BABE epoch configuration
-	babeCfg, err := r.BabeConfiguration()
-	if err != nil {
-		return fmt.Errorf("failed to fetch genesis babe configuration: %w", err)
-	}
-
-	r.Stop()
-
-	// TODO: this should be set in the genesis file, not the config
-	if cfg.Core.BabeThresholdDenominator != 0 {
-		babeCfg.C1 = cfg.Core.BabeThresholdNumerator
-		babeCfg.C2 = cfg.Core.BabeThresholdDenominator
-	}
-
-	// set genesis data using configuration values (assumes the genesis values
-	// have already been set for the configuration, which allows for us to take
-	// into account dynamic genesis values if the corresponding flag values are
-	// provided when using the dot package with the gossamer command)
-	data := gen.GenesisData()
-
 	// initialize state service with genesis data, block, and trie
-	err = stateSrvc.Initialize(data, header, t, babeCfg)
+	err = stateSrvc.Initialize(gen, header, t, babeCfg)
 	if err != nil {
 		return fmt.Errorf("failed to initialize state service: %s", err)
 	}
