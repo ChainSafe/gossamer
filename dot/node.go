@@ -29,8 +29,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	//rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/services"
 
 	"github.com/ChainSafe/chaindb"
@@ -81,7 +79,7 @@ func InitNode(cfg *Config) error {
 	stateSrvc := state.NewService(cfg.Global.BasePath, cfg.Global.LogLvl)
 
 	// initialize state service with genesis data, block, and trie
-	err = stateSrvc.Initialize(gen, header, t, babeCfg)
+	err = stateSrvc.Initialize(gen, header, t)
 	if err != nil {
 		return fmt.Errorf("failed to initialize state service: %s", err)
 	}

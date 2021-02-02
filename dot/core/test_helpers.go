@@ -49,7 +49,10 @@ var testGenesisHeader = &types.Header{
 
 func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
 	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis-raw.json")
-	require.NoError(t, err)
+	if err != nil {
+		gen, err = genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis-raw.json")
+		require.NoError(t, err)
+	}
 
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
 	require.NoError(t, err)

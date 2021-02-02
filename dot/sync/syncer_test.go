@@ -25,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -40,9 +41,16 @@ import (
 
 var maxRetries = 8 //nolint
 
-var testGenesisHeader = &types.Header{
-	Number:    big.NewInt(0),
-	StateRoot: trie.EmptyHash,
+func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
+	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis-raw.json")
+	require.NoError(t, err)
+
+	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), genTrie.MustHash(), trie.EmptyHash, types.Digest{})
+	require.NoError(t, err)
+	return gen, genTrie, genesisHeader
 }
 
 func newTestSyncer(t *testing.T) *Service {
@@ -51,12 +59,11 @@ func newTestSyncer(t *testing.T) *Service {
 	cfg := &Config{}
 	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
 	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo)
+	stateSrvc.UseMemDB()
 
-	genesisData := new(genesis.Data)
-	err := stateSrvc.Initialize(genesisData, testGenesisHeader, trie.NewEmptyTrie(), genesisBABEConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
+	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	err := stateSrvc.Initialize(gen, genHeader, genTrie)
+	require.NoError(t, err)
 
 	err = stateSrvc.Start()
 	require.NoError(t, err)

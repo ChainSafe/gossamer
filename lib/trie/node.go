@@ -80,10 +80,16 @@ type (
 )
 
 func (b *branch) String() string {
+	if len(b.value) > 1024 {
+		return fmt.Sprintf("branch key=%x childrenBitmap=%16b value (hashed)=%x dirty=%v", b.key, b.childrenBitmap(), common.MustBlake2bHash(b.value), b.dirty)
+	}
 	return fmt.Sprintf("branch key=%x childrenBitmap=%16b value=%x dirty=%v", b.key, b.childrenBitmap(), b.value, b.dirty)
 }
 
 func (l *leaf) String() string {
+	if len(l.value) > 1024 {
+		return fmt.Sprintf("leaf key=%x value (hashed)=%x dirty=%v valueDirty=%v", l.key, common.MustBlake2bHash(l.value), l.dirty, l.valueDirty)
+	}
 	return fmt.Sprintf("leaf key=%x value=%x dirty=%v valueDirty=%v", l.key, l.value, l.dirty, l.valueDirty)
 }
 
