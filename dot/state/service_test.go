@@ -19,7 +19,6 @@ package state
 import (
 	"io/ioutil"
 	"math/big"
-	"reflect"
 	"testing"
 	"time"
 
@@ -159,11 +158,9 @@ func TestService_BlockTree(t *testing.T) {
 
 	err = stateB.Stop()
 	require.NoError(t, err)
-
-	if !reflect.DeepEqual(stateA.Block.BestBlockHash(), stateB.Block.BestBlockHash()) {
-		t.Fatalf("Fail: got %s expected %s", stateA.Block.BestBlockHash(), stateB.Block.BestBlockHash())
-	}
+	require.Equal(t, stateA.Block.BestBlockHash(), stateB.Block.BestBlockHash())
 }
+
 func Test_ServicePruneStorage(t *testing.T) {
 	testDir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)

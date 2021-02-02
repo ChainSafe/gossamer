@@ -18,6 +18,7 @@ package babe
 
 import (
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -28,7 +29,9 @@ import (
 
 func TestInitiateEpoch(t *testing.T) {
 	bs := createTestService(t, nil)
-	bs.epochLength = testEpochLength
+	bs.epochLength = 5
+
+	state.AddBlocksToState(t, bs.blockState.(*state.BlockState), 1)
 
 	// epoch 1, check that genesis EpochData and ConfigData was properly set
 	threshold, err := CalculateThreshold(genesisBABEConfig.C1, genesisBABEConfig.C2, 1)
@@ -38,7 +41,7 @@ func TestInitiateEpoch(t *testing.T) {
 		Key:    bs.keypair.Public().(*sr25519.PublicKey),
 		Weight: 1,
 	}
-	err = bs.initiateEpoch(1, 1)
+	err = bs.initiateEpoch(1)
 	require.NoError(t, err)
 
 	expected := &epochData{
@@ -48,6 +51,7 @@ func TestInitiateEpoch(t *testing.T) {
 		threshold:      threshold,
 	}
 	require.Equal(t, expected, bs.epochData)
+	require.Equal(t, int(bs.epochLength), len(bs.slotToProof))
 
 	// for epoch 2, set EpochData but not ConfigData
 	edata := &types.EpochData{
@@ -64,11 +68,12 @@ func TestInitiateEpoch(t *testing.T) {
 		authorityIndex: 0,
 		threshold:      bs.epochData.threshold,
 	}
-	err = bs.initiateEpoch(2, testEpochLength+1)
+	err = bs.initiateEpoch(2)
 	require.NoError(t, err)
 	require.Equal(t, expected.randomness, bs.epochData.randomness)
 	require.Equal(t, expected.authorityIndex, bs.epochData.authorityIndex)
 	require.Equal(t, expected.threshold, bs.epochData.threshold)
+	require.Equal(t, int(bs.epochLength*2), len(bs.slotToProof))
 
 	for i, auth := range bs.epochData.authorities {
 		expAuth, err := expected.authorities[i].Encode() //nolint
@@ -104,12 +109,13 @@ func TestInitiateEpoch(t *testing.T) {
 		authorityIndex: 0,
 		threshold:      threshold,
 	}
-	err = bs.initiateEpoch(3, testEpochLength*2+1)
+	err = bs.initiateEpoch(3)
 	require.NoError(t, err)
 	require.Equal(t, expected, bs.epochData)
 
-	// assert slot lottery was run for epochs 0, 1 and 2
-	require.Equal(t, int(testEpochLength*3), len(bs.slotToProof))
+	time.Sleep(time.Second)
+	// assert slot lottery was run for epochs 0, 1 and 2, 3
+	require.Equal(t, int(bs.epochLength*3), len(bs.slotToProof))
 }
 
 func TestIncrementEpoch(t *testing.T) {
