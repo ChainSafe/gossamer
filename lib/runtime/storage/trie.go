@@ -17,13 +17,9 @@
 package storage
 
 import (
-	"bytes"
 	"encoding/binary"
-	"io/ioutil"
-	"math/rand"
-	"os"
+	"fmt"
 	"sync"
-	"testing"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -40,74 +36,12 @@ type TrieState struct {
 
 // NewTrieState returns a new TrieState with the given trie
 func NewTrieState(db chaindb.Database, t *trie.Trie) (*TrieState, error) {
-	r := rand.Intn(1 << 16) //nolint
-	buf := make([]byte, 2)
-	binary.LittleEndian.PutUint16(buf, uint16(r))
-
-	// TODO: dynamically get os.TMPDIR
-	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
-
-	cfg := &chaindb.Config{
-		DataDir:  testDatadirPath,
-		InMemory: true,
-	}
-
-	// TODO: don't initialize new DB but pass it in
-	db, err := chaindb.NewBadgerDB(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	entries := t.Entries()
-	for k, v := range entries {
-		err := db.Put([]byte(k), v)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	ts := &TrieState{
 		db: db,
 		t:  t,
 	}
+
 	return ts, nil
-}
-
-// NewTestTrieState returns an initialized TrieState
-func NewTestTrieState(t *testing.T, tr *trie.Trie) *TrieState {
-	r := rand.Intn(1 << 16) //nolint
-	buf := make([]byte, 2)
-	binary.LittleEndian.PutUint16(buf, uint16(r))
-
-	// TODO: dynamically get os.TMPDIR
-	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
-
-	cfg := &chaindb.Config{
-		DataDir:  testDatadirPath,
-		InMemory: true,
-	}
-
-	// TODO: don't initialize new DB but pass it in
-	db, err := chaindb.NewBadgerDB(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	if tr == nil {
-		tr = trie.NewEmptyTrie()
-	}
-
-	ts, err := NewTrieState(tr)
-	if err != nil {
-		t.Fatal("failed to create TrieState: ", err)
-	}
-
-	t.Cleanup(func() {
-		_ = ts.db.Close()
-		_ = os.RemoveAll(ts.db.Path())
-	})
-
-	return ts
 }
 
 // Trie returns the TrieState's underlying trie
@@ -126,6 +60,22 @@ func (s *TrieState) Copy() (*TrieState, error) {
 		db: s.db,
 		t:  trieCopy,
 	}, nil
+}
+
+func (s *TrieState) storeWorkingRoot() error {
+	root := s.t.MustHash()
+	fmt.Println("stored working root", root)
+	return s.db.Put(common.WorkingStorageHashKey, root[:])
+}
+
+func (s *TrieState) loadWorkingRoot() (common.Hash, error) {
+	root, err := s.db.Get(common.WorkingStorageHashKey)
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("failed to load working root: %w", err)
+	}
+
+	fmt.Println("loaded working root", common.NewHash(root))
+	return common.NewHash(root), nil
 }
 
 // // Commit ensures that the TrieState's trie and database match
@@ -174,11 +124,16 @@ func (s *TrieState) Set(key []byte, value []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	err := s.db.Put(key, value)
+	// err := s.db.Put(key, value)
+	// if err != nil {
+	// 	return err
+	// }
+	err := s.t.PutInDB(s.db, key, value)
 	if err != nil {
 		return err
 	}
-	return s.t.Put(key, value)
+
+	return s.storeWorkingRoot()
 }
 
 // Get gets a value from the trie
@@ -186,16 +141,23 @@ func (s *TrieState) Get(key []byte) ([]byte, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	if has, _ := s.db.Has(key); has {
-		return s.db.Get(key)
+	root, err := s.loadWorkingRoot()
+	if err != nil {
+		return nil, err
 	}
 
-	return s.t.Get(key)
+	return trie.GetFromDB(s.db, root, key)
 }
 
 // MustRoot returns the trie's root hash. It panics if it fails to compute the root.
 func (s *TrieState) MustRoot() common.Hash {
-	root, err := s.Root()
+	// root, err := s.Root()
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// return root
+	root, err := s.loadWorkingRoot()
 	if err != nil {
 		panic(err)
 	}
@@ -205,10 +167,10 @@ func (s *TrieState) MustRoot() common.Hash {
 
 // Root returns the trie's root hash
 func (s *TrieState) Root() (common.Hash, error) {
-	err := s.Commit()
-	if err != nil {
-		return common.Hash{}, err
-	}
+	// err := s.Commit()
+	// if err != nil {
+	// 	return common.Hash{}, err
+	// }
 
 	s.lock.RLock()
 	defer s.lock.RUnlock()
@@ -217,9 +179,12 @@ func (s *TrieState) Root() (common.Hash, error) {
 
 // Has returns whether or not a key exists
 func (s *TrieState) Has(key []byte) (bool, error) {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-	return s.db.Has(key)
+	val, err := s.Get(key)
+	if err != nil {
+		return false, nil
+	}
+
+	return val != nil, nil
 }
 
 // Delete deletes a key from the trie
@@ -227,12 +192,18 @@ func (s *TrieState) Delete(key []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	err := s.db.Del(key)
+	err := s.t.DeleteFromDB(s.db, key)
 	if err != nil {
 		return err
 	}
 
-	return s.t.Delete(key)
+	return s.storeWorkingRoot()
+	// err := s.db.Del(key)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// return s.t.Delete(key)
 }
 
 // SetChild sets the child trie at the given key
@@ -263,21 +234,21 @@ func (s *TrieState) GetChildStorage(keyToChild, key []byte) ([]byte, error) {
 	return s.t.GetFromChild(keyToChild, key)
 }
 
-// Entries returns every key-value pair in the database
-func (s *TrieState) Entries() map[string][]byte {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
+// // Entries returns every key-value pair in the database
+// func (s *TrieState) Entries() map[string][]byte {
+// 	s.lock.RLock()
+// 	defer s.lock.RUnlock()
 
-	iter := s.db.NewIterator()
+// 	iter := s.db.NewIterator()
 
-	entries := make(map[string][]byte)
-	for iter.Next() {
-		entries[string(iter.Key())] = iter.Value()
-	}
+// 	entries := make(map[string][]byte)
+// 	for iter.Next() {
+// 		entries[string(iter.Key())] = iter.Value()
+// 	}
 
-	iter.Release()
-	return entries
-}
+// 	iter.Release()
+// 	return entries
+// }
 
 // TrieEntries returns every key-value pair in the trie
 func (s *TrieState) TrieEntries() map[string][]byte {
@@ -372,25 +343,43 @@ func (s *TrieState) NextKey(key []byte) []byte {
 }
 
 // ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix
-func (s *TrieState) ClearPrefix(prefix []byte) {
-	s.lock.Lock()
-	s.t.ClearPrefix(prefix)
-	s.lock.Unlock()
+func (s *TrieState) ClearPrefix(prefix []byte) error {
+	// s.lock.Lock()
+	// defer s.lock.Unlock()
 
-	iter := s.db.NewIterator()
-
-	for iter.Next() {
-		key := iter.Key()
-		if len(key) < len(prefix) {
-			continue
-		}
-
-		if bytes.Equal(key[:len(prefix)], prefix) {
-			_ = s.Delete(key)
+	keys := s.t.GetKeysWithPrefix(prefix)
+	for _, key := range keys {
+		err := s.t.Delete(key)
+		if err != nil {
+			return err
 		}
 	}
 
-	iter.Release()
+	// err := s.t.ClearPrefixFromDB(s.db, prefix)
+	// if err != nil {
+	// 	return err
+	// }
+
+	err := s.t.WriteDirty(s.db)
+	if err != nil {
+		return err
+	}
+
+	return s.storeWorkingRoot()
+	// iter := s.db.NewIterator()
+
+	// for iter.Next() {
+	// 	key := iter.Key()
+	// 	if len(key) < len(prefix) {
+	// 		continue
+	// 	}
+
+	// 	if bytes.Equal(key[:len(prefix)], prefix) {
+	// 		_ = s.Delete(key)
+	// 	}
+	// }
+
+	// iter.Release()
 }
 
 // GetKeysWithPrefixFromChild ...

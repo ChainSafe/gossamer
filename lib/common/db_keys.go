@@ -29,4 +29,6 @@ var (
 	BlockTreeKey = []byte("block_tree")
 	// LatestFinalizedRoundKey is the key where the last finalized grandpa round is stored
 	LatestFinalizedRoundKey = []byte("latest_finalized_round")
+
+	WorkingStorageHashKey = []byte("working_storage_hash")
 )

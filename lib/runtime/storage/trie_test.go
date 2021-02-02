@@ -17,11 +17,50 @@
 package storage
 
 import (
+	"encoding/binary"
+	"fmt"
+	"io/ioutil"
+	"math/rand"
+	"os"
 	"testing"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/require"
 )
+
+// newTestTrieState returns an initialized TrieState
+func newTestTrieState(t *testing.T, tr *trie.Trie) *TrieState {
+	r := rand.Intn(1 << 16) //nolint
+	buf := make([]byte, 2)
+	binary.LittleEndian.PutUint16(buf, uint16(r))
+
+	// TODO: dynamically get os.TMPDIR
+	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
+
+	cfg := &chaindb.Config{
+		DataDir:  testDatadirPath,
+		InMemory: true,
+	}
+
+	// TODO: don't initialize new DB but pass it in
+	db, err := chaindb.NewBadgerDB(cfg)
+	require.NoError(t, err)
+
+	if tr == nil {
+		tr = trie.NewEmptyTrie()
+	}
+
+	ts, err := NewTrieState(db, tr)
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		_ = ts.db.Close()
+		_ = os.RemoveAll(ts.db.Path())
+	})
+
+	return ts
+}
 
 func TestNewTrieState(t *testing.T) {
 	testFunc := func(ts *TrieState) {
@@ -37,7 +76,7 @@ func TestNewTrieState(t *testing.T) {
 		require.Equal(t, entries, dbEntries)
 	}
 
-	ts := NewTestTrieState(t, nil)
+	ts := newTestTrieState(t, nil)
 	testFunc(ts)
 }
 
@@ -55,17 +94,15 @@ func TestTrieState_Commit(t *testing.T) {
 		expected := make(map[string][]byte)
 
 		for _, tc := range testCases {
-			err := ts.db.Put([]byte(tc), []byte(tc))
+			err := ts.Set([]byte(tc), []byte(tc))
 			require.NoError(t, err)
 			expected[tc] = []byte(tc)
 		}
 
-		err := ts.Commit()
-		require.NoError(t, err)
 		require.Equal(t, expected, ts.t.Entries())
 	}
 
-	ts := NewTestTrieState(t, nil)
+	ts := newTestTrieState(t, nil)
 	testFunc(ts)
 }
 
@@ -76,18 +113,21 @@ func TestTrieState_SetGet(t *testing.T) {
 			require.NoError(t, err)
 		}
 
+		err := ts.t.Store(ts.db)
+		require.NoError(t, err)
+
 		// change a trie value to simulate runtime corruption
-		err := ts.t.Put([]byte(testCases[0]), []byte("noot"))
+		err = ts.t.Put([]byte(testCases[0]), []byte("noot"))
 		require.NoError(t, err)
 
 		for _, tc := range testCases {
 			res, err := ts.Get([]byte(tc))
-			require.NoError(t, err)
+			require.NoError(t, err, fmt.Sprintf("failed to get key %s", tc))
 			require.Equal(t, []byte(tc), res)
 		}
 	}
 
-	ts := NewTestTrieState(t, nil)
+	ts := newTestTrieState(t, nil)
 	testFunc(ts)
 }
 
@@ -98,14 +138,18 @@ func TestTrieState_Delete(t *testing.T) {
 			require.NoError(t, err)
 		}
 
-		err := ts.Delete([]byte(testCases[0]))
+		err := ts.t.Store(ts.db)
 		require.NoError(t, err)
+
+		err = ts.Delete([]byte(testCases[0]))
+		require.NoError(t, err)
+
 		has, err := ts.Has([]byte(testCases[0]))
 		require.NoError(t, err)
 		require.False(t, has)
 	}
 
-	ts := NewTestTrieState(t, nil)
+	ts := newTestTrieState(t, nil)
 	testFunc(ts)
 }
 
@@ -121,15 +165,16 @@ func TestTrieState_Root(t *testing.T) {
 		// change a trie value to simulate runtime corruption
 		err := ts.t.Put([]byte(testCases[0]), []byte("noot"))
 		require.NoError(t, err)
+
 		require.Equal(t, expected, ts.MustRoot())
 	}
 
-	ts := NewTestTrieState(t, nil)
+	ts := newTestTrieState(t, nil)
 	testFunc(ts)
 }
 
 func TestTrieState_ClearPrefix(t *testing.T) {
-	ts := NewTestTrieState(t, nil)
+	ts := newTestTrieState(t, nil)
 
 	keys := []string{
 		"noot",
@@ -142,6 +187,8 @@ func TestTrieState_ClearPrefix(t *testing.T) {
 		require.NoError(t, err)
 	}
 
+	// TODO: the trie structure is incorrect after using trie.ClearPrefix. should be 1 leaf,
+	// instead is 2 branches leading to leaf.
 	ts.ClearPrefix([]byte("noo"))
 
 	for i, key := range keys {
@@ -156,7 +203,7 @@ func TestTrieState_ClearPrefix(t *testing.T) {
 }
 
 func TestTrieState_ClearPrefixInChild(t *testing.T) {
-	ts := NewTestTrieState(t, nil)
+	ts := newTestTrieState(t, nil)
 	child := trie.NewEmptyTrie()
 
 	keys := []string{

@@ -182,17 +182,18 @@ func (b *branch) encode() ([]byte, error) {
 		encoding = append(encoding, buffer.Bytes()...)
 	}
 
-	hasher, err := NewHasher()
-	if err != nil {
-		return nil, err
-	}
-
 	for _, child := range b.children {
 		if child != nil {
+			hasher, err := NewHasher()
+			if err != nil {
+				return nil, err
+			}
+
 			encChild, err := hasher.Hash(child)
 			if err != nil {
 				return encoding, err
 			}
+
 			scEncChild, err := scale.Encode(encChild)
 			if err != nil {
 				return encoding, err
@@ -319,6 +320,7 @@ func (b *branch) decode(r io.Reader, header byte) (err error) {
 				return err
 			}
 
+			//fmt.Printf("child at %d hash=%x\n", i, hash)
 			b.children[i] = &leaf{
 				hash: hash.([]byte),
 			}

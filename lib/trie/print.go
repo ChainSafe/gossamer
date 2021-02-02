@@ -28,7 +28,7 @@ func (t *Trie) String() string {
 		return "empty"
 	}
 
-	tree := gotree.New(t.root.String())
+	tree := gotree.New("Trie")
 	t.string(tree, t.root, 0)
 	return fmt.Sprintf("\n%s", tree.Print())
 }

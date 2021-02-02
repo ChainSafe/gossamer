@@ -250,6 +250,7 @@ func (t *Trie) insert(parent node, key []byte, value node) (n node, err error) {
 		}
 	case *leaf:
 		// if a value already exists in the trie at this key, overwrite it with the new value
+		// TODO: if the values are the same, don't mark node dirty
 		if p.value != nil && bytes.Equal(p.key, key) {
 			p.value = value.(*leaf).value
 			p.dirty = true

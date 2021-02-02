@@ -42,7 +42,7 @@ func (t *Trie) store(db chaindb.Database, curr node) error { // TODO: batch!!
 		return err
 	}
 
-	//fmt.Printf("stored node in db, hash=%x\n", hash)
+	fmt.Printf("stored node in db, node=%s enc=%x hash=%x\n", curr, enc, hash)
 
 	switch c := curr.(type) {
 	case *branch:
@@ -84,6 +84,8 @@ func (t *Trie) Load(db chaindb.Database, root common.Hash) error {
 func (t *Trie) load(db chaindb.Database, curr node) error {
 	switch c := curr.(type) {
 	case *branch:
+		fmt.Println(curr)
+
 		for i, child := range c.children {
 			if child == nil {
 				continue
@@ -91,7 +93,7 @@ func (t *Trie) load(db chaindb.Database, curr node) error {
 
 			enc, err := db.Get(child.(*leaf).hash)
 			if err != nil {
-				return fmt.Errorf("failed to find node key=%x: %w", child.(*leaf).hash, err)
+				return fmt.Errorf("failed to find node key=%x index=%d: %w", child.(*leaf).hash, i, err)
 			}
 
 			child, err = decodeBytes(enc)
@@ -134,6 +136,7 @@ func (t *Trie) DeleteFromDB(db chaindb.Database, key []byte) error {
 // ClearPrefixFromDB deletes all keys with the given prefix from the trie and writes the updated nodes the database. Since it needs to write all the nodes from the changed node up to the root, it writes these in a batch operation.
 func (t *Trie) ClearPrefixFromDB(db chaindb.Database, prefix []byte) error {
 	t.ClearPrefix(prefix)
+	fmt.Println(t)
 	return t.WriteDirty(db)
 }
 
@@ -178,7 +181,7 @@ func getFromDB(db chaindb.Database, parent node, key []byte) ([]byte, error) {
 		// load child with potential value
 		enc, err := db.Get(p.children[key[length]].(*leaf).hash)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to find node in database: %w", err)
 		}
 
 		child, err := decodeBytes(enc)
@@ -216,10 +219,22 @@ func (t *Trie) writeDirty(db chaindb.Database, curr node) error { // TODO: batch
 		return err
 	}
 
+	// always hash root even if encoding is under 32 bytes
+	if curr == t.root {
+		h, err := common.Blake2bHash(enc)
+		if err != nil {
+			return err
+		}
+
+		hash = h[:]
+	}
+
 	err = db.Put(hash, enc)
 	if err != nil {
 		return err
 	}
+
+	fmt.Printf("wrote dirty node in db, node=%s enc=%x hash=%x\n", curr, enc, hash)
 
 	switch c := curr.(type) {
 	case *branch:
