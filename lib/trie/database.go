@@ -166,6 +166,7 @@ func getFromDB(db chaindb.Database, parent node, key []byte) ([]byte, error) {
 
 	switch p := parent.(type) {
 	case *branch:
+		fmt.Printf("getFromDB parent=%s key=%x\n", parent, key)
 		length := lenCommonPrefix(p.key, key)
 
 		// found the value at this node
@@ -183,6 +184,7 @@ func getFromDB(db chaindb.Database, parent node, key []byte) ([]byte, error) {
 		}
 
 		// load child with potential value
+		fmt.Printf("loading child w/ potential val %x\n", p.children[key[length]].(*leaf).hash)
 		enc, err := db.Get(p.children[key[length]].(*leaf).hash)
 		if err != nil {
 			return nil, fmt.Errorf("failed to find node in database: %w", err)
@@ -210,6 +212,7 @@ func getFromDB(db chaindb.Database, parent node, key []byte) ([]byte, error) {
 
 // WriteDirty writes all dirty nodes to the database and sets them to clean
 func (t *Trie) WriteDirty(db chaindb.Database) error {
+	fmt.Println(t)
 	return t.writeDirty(db, t.root)
 }
 
@@ -238,7 +241,7 @@ func (t *Trie) writeDirty(db chaindb.Database, curr node) error { // TODO: batch
 		return err
 	}
 
-	//fmt.Printf("wrote dirty node in db, node=%s enc=%x hash=%x\n", curr, enc, hash)
+	fmt.Printf("wrote dirty node in db, node=%s enc=%x hash=%x\n", curr, enc, hash)
 
 	switch c := curr.(type) {
 	case *branch:

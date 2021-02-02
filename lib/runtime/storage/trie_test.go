@@ -17,67 +17,16 @@
 package storage
 
 import (
-	"encoding/binary"
 	"fmt"
-	"io/ioutil"
-	"math/rand"
-	"os"
 	"testing"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/require"
 )
 
 // newTestTrieState returns an initialized TrieState
 func newTestTrieState(t *testing.T, tr *trie.Trie) *TrieState {
-	r := rand.Intn(1 << 16) //nolint
-	buf := make([]byte, 2)
-	binary.LittleEndian.PutUint16(buf, uint16(r))
-
-	// TODO: dynamically get os.TMPDIR
-	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
-
-	cfg := &chaindb.Config{
-		DataDir:  testDatadirPath,
-		InMemory: true,
-	}
-
-	// TODO: don't initialize new DB but pass it in
-	db, err := chaindb.NewBadgerDB(cfg)
-	require.NoError(t, err)
-
-	if tr == nil {
-		tr = trie.NewEmptyTrie()
-	}
-
-	ts, err := NewTrieState(db, tr)
-	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		_ = ts.db.Close()
-		_ = os.RemoveAll(ts.db.Path())
-	})
-
-	return ts
-}
-
-func TestNewTrieState(t *testing.T) {
-	testFunc := func(ts *TrieState) {
-		entries := ts.t.Entries()
-		iter := ts.db.NewIterator()
-		dbEntries := make(map[string][]byte)
-
-		for iter.Next() {
-			key := iter.Key()
-			dbEntries[string(key)] = iter.Value()
-		}
-
-		require.Equal(t, entries, dbEntries)
-	}
-
-	ts := newTestTrieState(t, nil)
-	testFunc(ts)
+	return NewTestTrieState(t, tr)
 }
 
 var testCases = []string{
@@ -88,23 +37,6 @@ var testCases = []string{
 	"zxcv",
 	"bnm",
 }
-
-// func TestTrieState_Commit(t *testing.T) {
-// 	testFunc := func(ts *TrieState) {
-// 		expected := make(map[string][]byte)
-
-// 		for _, tc := range testCases {
-// 			err := ts.Set([]byte(tc), []byte(tc))
-// 			require.NoError(t, err)
-// 			expected[tc] = []byte(tc)
-// 		}
-
-// 		require.Equal(t, expected, ts.t.Entries())
-// 	}
-
-// 	ts := newTestTrieState(t, nil)
-// 	testFunc(ts)
-// }
 
 func TestTrieState_SetGet(t *testing.T) {
 	testFunc := func(ts *TrieState) {

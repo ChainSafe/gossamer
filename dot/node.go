@@ -29,7 +29,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	//rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/services"
 
@@ -81,15 +81,15 @@ func InitNode(cfg *Config) error {
 	stateSrvc := state.NewService(cfg.Global.BasePath, cfg.Global.LogLvl)
 
 	// load genesis state into database
-	genTrie, err := rtstorage.NewTrieState(t)
+	genTrie, err := stateSrvc.Storage.TrieState(nil) //rtstorage.NewTrieState(t)
 	if err != nil {
 		return fmt.Errorf("failed to instantiate TrieState: %w", err)
 	}
 
-	err = genTrie.WriteTrieToDB()
-	if err != nil {
-		return fmt.Errorf("failed to write trie to db: %w", err)
-	}
+	// err = genTrie.WriteTrieToDB()
+	// if err != nil {
+	// 	return fmt.Errorf("failed to write trie to db: %w", err)
+	// }
 
 	// create genesis runtime
 	rtCfg := &wasmer.Config{}

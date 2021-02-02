@@ -66,12 +66,14 @@ type (
 		children [16]node
 		value    []byte
 		dirty    bool
+		encoding []byte
 	}
 	leaf struct {
-		key   []byte // partial key
-		value []byte
-		dirty bool
-		hash  []byte
+		key      []byte // partial key
+		value    []byte
+		dirty    bool
+		hash     []byte
+		encoding []byte
 	}
 )
 
@@ -145,6 +147,11 @@ func encode(n node) ([]byte, error) {
 }
 
 func (b *branch) encodeAndHash() ([]byte, []byte, error) {
+	if !b.isDirty() && b.encoding != nil {
+		h := common.MustBlake2bHash(b.encoding)
+		return b.encoding, h[:], nil
+	}
+
 	enc, err := b.encode()
 	if err != nil {
 		return nil, nil, err
@@ -159,6 +166,7 @@ func (b *branch) encodeAndHash() ([]byte, []byte, error) {
 		return nil, nil, err
 	}
 
+	b.encoding = enc
 	return enc, hash[:], nil
 }
 
@@ -206,6 +214,11 @@ func (b *branch) encode() ([]byte, error) {
 }
 
 func (l *leaf) encodeAndHash() ([]byte, []byte, error) {
+	if !l.isDirty() && l.encoding != nil {
+		h := common.MustBlake2bHash(l.encoding)
+		return l.encoding, h[:], nil
+	}
+
 	enc, err := l.encode()
 	if err != nil {
 		return nil, nil, err
@@ -220,6 +233,7 @@ func (l *leaf) encodeAndHash() ([]byte, []byte, error) {
 		return nil, nil, err
 	}
 
+	l.encoding = enc
 	return enc, hash[:], nil
 }
 

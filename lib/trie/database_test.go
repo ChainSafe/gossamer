@@ -17,6 +17,7 @@
 package trie
 
 import (
+	"bytes"
 	"io/ioutil"
 	"testing"
 
@@ -62,6 +63,14 @@ func TestTrie_DatabaseStoreAndLoad(t *testing.T) {
 			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
 			{key: []byte{0x07}, value: []byte("ramen")},
 		},
+		{
+			{key: []byte("asdf"), value: []byte("asdf")},
+			{key: []byte("ghjk"), value: []byte("ghjk")},
+			{key: []byte("qwerty"), value: []byte("qwerty")},
+			{key: []byte("uiopl"), value: []byte("uiopl")},
+			{key: []byte("zxcv"), value: []byte("zxcv")},
+			{key: []byte("bnm"), value: []byte("bnm")},
+		},
 	}
 
 	for _, testCase := range cases {
@@ -78,6 +87,12 @@ func TestTrie_DatabaseStoreAndLoad(t *testing.T) {
 		err = res.Load(db, trie.MustHash())
 		require.NoError(t, err)
 		require.Equal(t, trie.MustHash(), res.MustHash())
+
+		for _, test := range testCase {
+			val, err := GetFromDB(db, trie.MustHash(), test.key)
+			require.NoError(t, err)
+			require.Equal(t, test.value, val)
+		}
 	}
 }
 
@@ -125,15 +140,6 @@ func TestTrie_WriteDirty_Put(t *testing.T) {
 		require.NoError(t, err)
 		t.Log(trie)
 
-		// res := NewEmptyTrie()
-		// err = res.Load(db, trie.MustHash())
-		// require.NoError(t, err)
-		// require.Equal(t, trie.MustHash(), res.MustHash())
-
-		// err = trie.Put([]byte{0x01, 0x35, 0x79}, []byte("notapenguin"))
-		// require.NoError(t, err)
-		// t.Log(trie)
-
 		err = trie.Put([]byte("asdf"), []byte("notapenguin"))
 		require.NoError(t, err)
 		t.Log(trie)
@@ -146,6 +152,19 @@ func TestTrie_WriteDirty_Put(t *testing.T) {
 		err = res.Load(db, trie.MustHash())
 		require.NoError(t, err)
 		require.Equal(t, trie.MustHash(), res.MustHash())
+
+		for _, test := range testCase {
+			val, err := GetFromDB(db, trie.MustHash(), test.key)
+			require.NoError(t, err)
+			if bytes.Equal(test.key, []byte("asdf")) {
+				continue
+			}
+			require.Equal(t, test.value, val)
+		}
+
+		val, err := GetFromDB(db, trie.MustHash(), []byte("asdf"))
+		require.NoError(t, err)
+		require.Equal(t, []byte("notapenguin"), val)
 	}
 }
 
@@ -170,27 +189,49 @@ func TestTrie_WriteDirty_Delete(t *testing.T) {
 			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
 			{key: []byte{0x07}, value: []byte("ramen")},
 		},
+		{
+			{key: []byte("asdf"), value: []byte("asdf")},
+			{key: []byte("ghjk"), value: []byte("ghjk")},
+			{key: []byte("qwerty"), value: []byte("qwerty")},
+			{key: []byte("uiopl"), value: []byte("uiopl")},
+			{key: []byte("zxcv"), value: []byte("zxcv")},
+			{key: []byte("bnm"), value: []byte("bnm")},
+		},
 	}
 
 	for _, testCase := range cases {
-		trie := NewEmptyTrie()
+		for _, curr := range testCase {
+			trie := NewEmptyTrie()
 
-		for _, test := range testCase {
-			err := trie.Put(test.key, test.value)
+			for _, test := range testCase {
+				err := trie.Put(test.key, test.value)
+				require.NoError(t, err)
+			}
+
+			db := newTestDB(t)
+			err := trie.Store(db)
 			require.NoError(t, err)
+
+			err = trie.DeleteFromDB(db, curr.key)
+			require.NoError(t, err)
+
+			res := NewEmptyTrie()
+			err = res.Load(db, trie.MustHash())
+			require.NoError(t, err)
+			require.Equal(t, trie.MustHash(), res.MustHash())
+
+			for _, kv := range testCase {
+				val, err := GetFromDB(db, trie.MustHash(), kv.key)
+				require.NoError(t, err)
+
+				if bytes.Equal(kv.key, curr.key) {
+					require.Nil(t, val)
+					continue
+				}
+
+				require.Equal(t, kv.value, val)
+			}
 		}
-
-		db := newTestDB(t)
-		err := trie.Store(db)
-		require.NoError(t, err)
-
-		err = trie.DeleteFromDB(db, []byte{0x01, 0x35, 0x79})
-		require.NoError(t, err)
-
-		res := NewEmptyTrie()
-		err = res.Load(db, trie.MustHash())
-		require.NoError(t, err)
-		require.Equal(t, trie.MustHash(), res.MustHash())
 	}
 }
 
@@ -214,6 +255,14 @@ func TestTrie_WriteDirty_ClearPrefix(t *testing.T) {
 			{key: []byte{0xf2, 0x30}, value: []byte("f")},
 			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
 			{key: []byte{0x07}, value: []byte("ramen")},
+		},
+		{
+			{key: []byte("asdf"), value: []byte("asdf")},
+			{key: []byte("ghjk"), value: []byte("ghjk")},
+			{key: []byte("qwerty"), value: []byte("qwerty")},
+			{key: []byte("uiopl"), value: []byte("uiopl")},
+			{key: []byte("zxcv"), value: []byte("zxcv")},
+			{key: []byte("bnm"), value: []byte("bnm")},
 		},
 	}
 
@@ -240,7 +289,7 @@ func TestTrie_WriteDirty_ClearPrefix(t *testing.T) {
 	}
 }
 
-func TestGetFromDB(t *testing.T) {
+func TestTrie_GetFromDB(t *testing.T) {
 	cases := [][]Test{
 		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
