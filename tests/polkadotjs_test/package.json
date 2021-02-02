@@ -5,8 +5,8 @@
   "main": "test.js",
   "scripts": {
     "test": "mocha ./test",
-    "gossamer:init": "HOSTNAME=0.0.0.0 MODE=rpc go test ../.././tests/rpc/... -timeout=5m -v",
-    "gossamer:start": "cd ../../ && ./bin/gossamer --key alice"
+    "gossamer:start": "cd ../../ && ./bin/gossamer --key alice --roles 4 --rpcmods system,author,chain,state,dev,rpc --ws --wsport 8546 --rpc  --rpchost localhost --rpcport 8545 &",
+    "gossamer:test": "npm run gossamer:start && mocha ./test"
   },
   "author": "",
   "license": "ISC",
