@@ -184,16 +184,16 @@ func TestTrie_WriteDirty_Put(t *testing.T) {
 
 func TestTrie_WriteDirty_PutReplace(t *testing.T) {
 	cases := [][]Test{
-		// {
-		// 	{key: []byte{0x01, 0x35}, value: []byte("pen")},
-		// 	{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
-		// 	{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
-		// 	{key: []byte{0xf2}, value: []byte("feather")},
-		// 	{key: []byte{0xf2, 0x3}, value: []byte("f")},
-		// 	{key: []byte{0x09, 0xd3}, value: []byte("noot")},
-		// 	{key: []byte{0x07}, value: []byte("ramen")},
-		// 	{key: []byte{0}, value: nil},
-		// },
+		{
+			{key: []byte{0x01, 0x35}, value: []byte("pen")},
+			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+			{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
+			{key: []byte{0xf2}, value: []byte("feather")},
+			{key: []byte{0xf2, 0x3}, value: []byte("f")},
+			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+			{key: []byte{0x07}, value: []byte("ramen")},
+			{key: []byte{0}, value: nil},
+		},
 		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
 			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
@@ -203,14 +203,14 @@ func TestTrie_WriteDirty_PutReplace(t *testing.T) {
 			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
 			{key: []byte{0x07}, value: []byte("ramen")},
 		},
-		// {
-		// 	{key: []byte("asdf"), value: []byte("asdf")},
-		// 	{key: []byte("ghjk"), value: []byte("ghjk")},
-		// 	{key: []byte("qwerty"), value: []byte("qwerty")},
-		// 	{key: []byte("uiopl"), value: []byte("uiopl")},
-		// 	{key: []byte("zxcv"), value: []byte("zxcv")},
-		// 	{key: []byte("bnm"), value: []byte("bnm")},
-		// },
+		{
+			{key: []byte("asdf"), value: []byte("asdf")},
+			{key: []byte("ghjk"), value: []byte("ghjk")},
+			{key: []byte("qwerty"), value: []byte("qwerty")},
+			{key: []byte("uiopl"), value: []byte("uiopl")},
+			{key: []byte("zxcv"), value: []byte("zxcv")},
+			{key: []byte("bnm"), value: []byte("bnm")},
+		},
 	}
 
 	for _, testCase := range cases {
@@ -226,7 +226,6 @@ func TestTrie_WriteDirty_PutReplace(t *testing.T) {
 		}
 
 		for _, test := range testCase {
-			fmt.Printf("WRITE key=%x\n", test.key)
 			// overwrite existing values
 			err := trie.Put(test.key, test.key)
 			require.NoError(t, err)

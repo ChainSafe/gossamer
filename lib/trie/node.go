@@ -60,14 +60,6 @@ type node interface {
 	String() string
 }
 
-type nothing interface {
-	foo()
-}
-
-type nothingNode struct{}
-
-func (n *nothingNode) foo() {}
-
 type (
 	branch struct {
 		key      []byte // partial key
@@ -78,8 +70,7 @@ type (
 		encoding []byte
 	}
 	leaf struct {
-		key []byte // partial key
-		//nothing  []byte
+		key        []byte // partial key
 		value      []byte
 		dirty      bool
 		valueDirty bool
