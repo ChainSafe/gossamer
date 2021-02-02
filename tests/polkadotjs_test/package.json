@@ -4,7 +4,9 @@
   "description": "test polkadot js api stuff",
   "main": "test.js",
   "scripts": {
-    "test": "nyc mocha ./test"
+    "test": "mocha ./test",
+    "gossamer:init": "HOSTNAME=0.0.0.0 MODE=rpc go test ../.././tests/rpc/... -timeout=5m -v",
+    "gossamer:start": "cd ../../ && ./bin/gossamer --key alice"
   },
   "author": "",
   "license": "ISC",
@@ -14,7 +16,6 @@
   "devDependencies": {
     "chai": "^4.2.0",
     "mocha": "^8.2.1",
-    "nyc": "^15.1.0",
     "sinon": "^9.2.4"
   }
 }
