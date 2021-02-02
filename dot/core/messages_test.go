@@ -63,7 +63,7 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	newBlocks <- types.Block{
 		Header: &types.Header{
 			Number:     big.NewInt(1),
-			ParentHash: testGenesisHeader.Hash(),
+			ParentHash: s.blockState.BestBlockHash(),
 		},
 		Body: types.NewBody([]byte{}),
 	}

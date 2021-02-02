@@ -78,7 +78,7 @@ func (s *TrieState) Copy() (*TrieState, error) {
 
 func (s *TrieState) storeWorkingRoot() error {
 	root := s.t.MustHash()
-	fmt.Println("stored working root", root)
+	//fmt.Println("stored working root", root)
 	return s.db.Put(common.WorkingStorageHashKey, root[:])
 }
 
@@ -88,7 +88,7 @@ func (s *TrieState) loadWorkingRoot() (common.Hash, error) {
 		return common.Hash{}, fmt.Errorf("failed to load working root: %w", err)
 	}
 
-	fmt.Println("loaded working root", common.NewHash(root))
+	//fmt.Println("loaded working root", common.NewHash(root))
 	return common.NewHash(root), nil
 }
 
