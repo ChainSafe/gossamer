@@ -287,14 +287,14 @@ func TestBranchDecode(t *testing.T) {
 
 func TestLeafDecode(t *testing.T) {
 	tests := []*leaf{
-		{key: []byte{}, value: nil},
-		{key: []byte{0x01}, value: nil},
-		{key: []byte{0x00, 0x00, 0xf, 0x3}, value: nil},
-		{key: byteArray(62), value: nil},
-		{key: byteArray(63), value: nil},
-		{key: byteArray(64), value: []byte{0x01}},
-		{key: byteArray(318), value: []byte{0x01}},
-		{key: byteArray(573), value: []byte{0x01}},
+		{key: []byte{}, value: nil, dirty: true},
+		{key: []byte{0x01}, value: nil, dirty: true},
+		{key: []byte{0x00, 0x00, 0xf, 0x3}, value: nil, dirty: true},
+		{key: byteArray(62), value: nil, dirty: true},
+		{key: byteArray(63), value: nil, dirty: true},
+		{key: byteArray(64), value: []byte{0x01}, dirty: true},
+		{key: byteArray(318), value: []byte{0x01}, dirty: true},
+		{key: byteArray(573), value: []byte{0x01}, dirty: true},
 	}
 
 	for _, test := range tests {

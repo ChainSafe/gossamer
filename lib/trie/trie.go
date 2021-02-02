@@ -225,7 +225,7 @@ func (t *Trie) Put(key, value []byte) error {
 func (t *Trie) tryPut(key, value []byte) (err error) {
 	k := keyToNibbles(key)
 
-	n, err := t.insert(t.root, k, &leaf{key: nil, value: value, dirty: true})
+	n, err := t.insert(t.root, k, &leaf{key: nil, value: value, dirty: true, valueDirty: true})
 	if err != nil {
 		return err
 	}
@@ -250,10 +250,13 @@ func (t *Trie) insert(parent node, key []byte, value node) (n node, err error) {
 		}
 	case *leaf:
 		// if a value already exists in the trie at this key, overwrite it with the new value
-		// TODO: if the values are the same, don't mark node dirty
+		// if the values are the same, don't mark node dirty
 		if p.value != nil && bytes.Equal(p.key, key) {
-			p.value = value.(*leaf).value
-			p.dirty = true
+			if !bytes.Equal(value.(*leaf).value, p.value) {
+				p.value = value.(*leaf).value
+				p.dirty = true
+				p.valueDirty = true
+			}
 			return p, nil
 		}
 
@@ -267,11 +270,13 @@ func (t *Trie) insert(parent node, key []byte, value node) (n node, err error) {
 		// value goes at this branch
 		if len(key) == length {
 			br.value = value.(*leaf).value
+			br.setDirty(true)
 
 			// if we are not replacing previous leaf, then add it as a child to the new branch
 			if len(parentKey) > len(key) {
 				p.key = p.key[length+1:]
 				br.children[parentKey[length]] = p
+				p.setDirty(true)
 			}
 
 			return br, nil
@@ -287,6 +292,7 @@ func (t *Trie) insert(parent node, key []byte, value node) (n node, err error) {
 		} else {
 			// otherwise, make the leaf a child of the branch and update its partial key
 			p.key = p.key[length+1:]
+			p.setDirty(true)
 			br.children[parentKey[length]] = p
 			br.children[key[length]] = value
 		}
@@ -330,8 +336,11 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (n node, err erro
 				break
 			}
 			p.children[key[length]] = n
+			n.setDirty(true)
+
 			n = p
 			n.setDirty(true)
+			return n, nil
 		case nil:
 			// otherwise, add node as child of this branch
 			value.(*leaf).key = key[length+1:]
@@ -564,6 +573,7 @@ func (t *Trie) delete(parent node, key []byte) (n node, err error) {
 			// found the value at this node
 			p.value = nil
 			n = p
+			n.setDirty(true)
 		} else {
 			n, err = t.delete(p.children[key[length]], key[length+1:])
 			if err != nil {
@@ -571,10 +581,11 @@ func (t *Trie) delete(parent node, key []byte) (n node, err error) {
 			}
 			p.children[key[length]] = n
 			n = p
+			n.setDirty(true)
 		}
 
 		n = handleDeletion(p, n, key)
-		n.setDirty(true)
+		//n.setDirty(true)
 	case *leaf:
 		if !bytes.Equal(key, p.key) && len(key) != 0 {
 			n = p
@@ -597,7 +608,7 @@ func handleDeletion(p *branch, n node, key []byte) (nn node) {
 
 	// if branch has no children, just a value, turn it into a leaf
 	if bitmap == 0 && p.value != nil {
-		nn = &leaf{key: key[:length], value: p.value}
+		nn = &leaf{key: key[:length], value: p.value, dirty: true}
 	} else if p.numChildren() == 1 && p.value == nil {
 		// there is only 1 child and no value, combine the child branch with this branch
 		// find index of child
@@ -629,6 +640,7 @@ func handleDeletion(p *branch, n node, key []byte) (nn node) {
 		default:
 			// do nothing
 		}
+		nn.setDirty(true)
 
 	}
 

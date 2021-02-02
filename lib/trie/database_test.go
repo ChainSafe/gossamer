@@ -18,6 +18,7 @@ package trie
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"testing"
 
@@ -41,8 +42,6 @@ func newTestDB(t *testing.T) chaindb.Database {
 }
 
 func TestTrie_DatabaseStoreAndLoad(t *testing.T) {
-	trie := &Trie{}
-
 	cases := [][]Test{
 		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
@@ -74,6 +73,8 @@ func TestTrie_DatabaseStoreAndLoad(t *testing.T) {
 	}
 
 	for _, testCase := range cases {
+		trie := NewEmptyTrie()
+
 		for _, test := range testCase {
 			err := trie.Put(test.key, test.value)
 			require.NoError(t, err)
@@ -129,13 +130,26 @@ func TestTrie_WriteDirty_Put(t *testing.T) {
 
 	for _, testCase := range cases {
 		trie := NewEmptyTrie()
+		db := newTestDB(t)
 
-		for _, test := range testCase {
+		for i, test := range testCase {
 			err := trie.Put(test.key, test.value)
 			require.NoError(t, err)
+
+			err = trie.WriteDirty(db)
+			require.NoError(t, err)
+
+			for j, kv := range testCase {
+				if j > i {
+					break
+				}
+
+				val, err := GetFromDB(db, trie.MustHash(), kv.key)
+				require.NoError(t, err)
+				require.Equal(t, kv.value, val, fmt.Sprintf("key=%x", kv.key))
+			}
 		}
 
-		db := newTestDB(t)
 		err := trie.Store(db)
 		require.NoError(t, err)
 		t.Log(trie)
@@ -168,12 +182,83 @@ func TestTrie_WriteDirty_Put(t *testing.T) {
 	}
 }
 
+func TestTrie_WriteDirty_PutReplace(t *testing.T) {
+	cases := [][]Test{
+		// {
+		// 	{key: []byte{0x01, 0x35}, value: []byte("pen")},
+		// 	{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+		// 	{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
+		// 	{key: []byte{0xf2}, value: []byte("feather")},
+		// 	{key: []byte{0xf2, 0x3}, value: []byte("f")},
+		// 	{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+		// 	{key: []byte{0x07}, value: []byte("ramen")},
+		// 	{key: []byte{0}, value: nil},
+		// },
+		{
+			{key: []byte{0x01, 0x35}, value: []byte("pen")},
+			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+			{key: []byte{0x01, 0x35, 0x70}, value: []byte("g")},
+			{key: []byte{0xf2}, value: []byte("feather")},
+			{key: []byte{0xf2, 0x30}, value: []byte("f")},
+			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+			{key: []byte{0x07}, value: []byte("ramen")},
+		},
+		// {
+		// 	{key: []byte("asdf"), value: []byte("asdf")},
+		// 	{key: []byte("ghjk"), value: []byte("ghjk")},
+		// 	{key: []byte("qwerty"), value: []byte("qwerty")},
+		// 	{key: []byte("uiopl"), value: []byte("uiopl")},
+		// 	{key: []byte("zxcv"), value: []byte("zxcv")},
+		// 	{key: []byte("bnm"), value: []byte("bnm")},
+		// },
+	}
+
+	for _, testCase := range cases {
+		trie := NewEmptyTrie()
+		db := newTestDB(t)
+
+		for _, test := range testCase {
+			err := trie.Put(test.key, test.value)
+			require.NoError(t, err)
+
+			err = trie.WriteDirty(db)
+			require.NoError(t, err)
+		}
+
+		for _, test := range testCase {
+			fmt.Printf("WRITE key=%x\n", test.key)
+			// overwrite existing values
+			err := trie.Put(test.key, test.key)
+			require.NoError(t, err)
+
+			t.Log(trie)
+
+			err = trie.WriteDirty(db)
+			require.NoError(t, err)
+		}
+
+		t.Log(trie)
+
+		res := NewEmptyTrie()
+		err := res.Load(db, trie.MustHash())
+		require.NoError(t, err)
+		require.Equal(t, trie.MustHash(), res.MustHash())
+
+		for _, test := range testCase {
+			val, err := GetFromDB(db, trie.MustHash(), test.key)
+			require.NoError(t, err)
+			require.Equal(t, test.key, val)
+		}
+	}
+}
+
 func TestTrie_WriteDirty_Delete(t *testing.T) {
 	cases := [][]Test{
 		{
 			{key: []byte{0x01, 0x35}, value: []byte("pen")},
 			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
 			{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
+			{key: []byte{0x01, 0x35, 0x99}, value: []byte("g")},
 			{key: []byte{0xf2}, value: []byte("feather")},
 			{key: []byte{0xf2, 0x3}, value: []byte("f")},
 			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
@@ -212,8 +297,12 @@ func TestTrie_WriteDirty_Delete(t *testing.T) {
 			err := trie.Store(db)
 			require.NoError(t, err)
 
+			t.Log(trie)
+
 			err = trie.DeleteFromDB(db, curr.key)
 			require.NoError(t, err)
+
+			t.Log(trie)
 
 			res := NewEmptyTrie()
 			err = res.Load(db, trie.MustHash())
@@ -225,7 +314,7 @@ func TestTrie_WriteDirty_Delete(t *testing.T) {
 				require.NoError(t, err)
 
 				if bytes.Equal(kv.key, curr.key) {
-					require.Nil(t, val)
+					require.Nil(t, val, fmt.Sprintf("key=%x", kv.key))
 					continue
 				}
 

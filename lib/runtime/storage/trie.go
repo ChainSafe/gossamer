@@ -154,10 +154,19 @@ func (s *TrieState) Has(key []byte) (bool, error) {
 
 // Delete deletes a key from the trie
 func (s *TrieState) Delete(key []byte) error {
+	val, err := s.t.Get(key)
+	if err != nil {
+		return err
+	}
+
+	if val == nil {
+		return nil
+	}
+
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	err := s.t.DeleteFromDB(s.db, key)
+	err = s.t.DeleteFromDB(s.db, key)
 	if err != nil {
 		return err
 	}

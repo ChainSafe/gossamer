@@ -60,20 +60,31 @@ type node interface {
 	String() string
 }
 
+type nothing interface {
+	foo()
+}
+
+type nothingNode struct{}
+
+func (n *nothingNode) foo() {}
+
 type (
 	branch struct {
 		key      []byte // partial key
 		children [16]node
 		value    []byte
 		dirty    bool
+		hash     []byte
 		encoding []byte
 	}
 	leaf struct {
-		key      []byte // partial key
-		value    []byte
-		dirty    bool
-		hash     []byte
-		encoding []byte
+		key []byte // partial key
+		//nothing  []byte
+		value      []byte
+		dirty      bool
+		valueDirty bool
+		hash       []byte
+		encoding   []byte
 	}
 )
 
@@ -147,9 +158,8 @@ func encode(n node) ([]byte, error) {
 }
 
 func (b *branch) encodeAndHash() ([]byte, []byte, error) {
-	if !b.isDirty() && b.encoding != nil {
-		h := common.MustBlake2bHash(b.encoding)
-		return b.encoding, h[:], nil
+	if !b.isDirty() && b.encoding != nil && b.hash != nil {
+		return b.encoding, b.hash, nil
 	}
 
 	enc, err := b.encode()
@@ -158,6 +168,8 @@ func (b *branch) encodeAndHash() ([]byte, []byte, error) {
 	}
 
 	if len(enc) < 32 {
+		b.encoding = enc
+		b.hash = enc
 		return enc, enc, nil
 	}
 
@@ -167,11 +179,16 @@ func (b *branch) encodeAndHash() ([]byte, []byte, error) {
 	}
 
 	b.encoding = enc
+	b.hash = hash[:]
 	return enc, hash[:], nil
 }
 
 // Encode encodes a branch with the encoding specified at the top of this package
 func (b *branch) encode() ([]byte, error) {
+	if !b.isDirty() && b.encoding != nil {
+		return b.encoding, nil
+	}
+
 	encoding, err := b.header()
 	if err != nil {
 		return nil, err
@@ -214,9 +231,18 @@ func (b *branch) encode() ([]byte, error) {
 }
 
 func (l *leaf) encodeAndHash() ([]byte, []byte, error) {
-	if !l.isDirty() && l.encoding != nil {
-		h := common.MustBlake2bHash(l.encoding)
-		return l.encoding, h[:], nil
+	if !l.isDirty() && l.encoding != nil && l.hash != nil {
+		return l.encoding, l.hash, nil
+	}
+	// TODO: hack to deal with runtime bug
+	if l.encoding != nil && l.hash != nil && !l.valueDirty {
+		r := &bytes.Buffer{}
+		r.Write(l.encoding)
+		prev, err := decode(r)
+		if err != nil {
+			return nil, nil, err
+		}
+		l.value = prev.(*leaf).value
 	}
 
 	enc, err := l.encode()
@@ -225,6 +251,8 @@ func (l *leaf) encodeAndHash() ([]byte, []byte, error) {
 	}
 
 	if len(enc) < 32 {
+		l.encoding = enc
+		l.hash = enc
 		return enc, enc, nil
 	}
 
@@ -234,11 +262,27 @@ func (l *leaf) encodeAndHash() ([]byte, []byte, error) {
 	}
 
 	l.encoding = enc
+	l.hash = hash[:]
 	return enc, hash[:], nil
 }
 
 // Encode encodes a leaf with the encoding specified at the top of this package
 func (l *leaf) encode() ([]byte, error) {
+	if !l.isDirty() && l.encoding != nil {
+		return l.encoding, nil
+	}
+
+	// TODO: hack to deal with runtime bug
+	if l.encoding != nil && !l.valueDirty {
+		r := &bytes.Buffer{}
+		r.Write(l.encoding)
+		prev, err := decode(r)
+		if err != nil {
+			return nil, err
+		}
+		l.value = prev.(*leaf).value
+	}
+
 	encoding, err := l.header()
 	if err != nil {
 		return nil, err

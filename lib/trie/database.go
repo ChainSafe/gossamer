@@ -176,10 +176,12 @@ func getFromDB(db chaindb.Database, parent node, key []byte) ([]byte, error) {
 
 		// did not find value
 		if bytes.Equal(p.key[:length], key) && len(key) < len(p.key) {
+			fmt.Println("did not find value")
 			return nil, nil
 		}
 
 		if p.children[key[length]] == nil {
+			fmt.Println("did not find value")
 			return nil, nil
 		}
 
@@ -258,5 +260,9 @@ func (t *Trie) writeDirty(db chaindb.Database, curr node) error { // TODO: batch
 	}
 
 	curr.setDirty(false)
+
+	if l, ok := curr.(*leaf); ok {
+		l.valueDirty = false
+	}
 	return nil
 }

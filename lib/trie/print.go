@@ -36,14 +36,14 @@ func (t *Trie) String() string {
 func (t *Trie) string(tree gotree.Tree, curr node, idx int) {
 	switch c := curr.(type) {
 	case *branch:
-		sub := tree.Add(fmt.Sprintf("idx=%d %s", idx, c.String()))
+		sub := tree.Add(fmt.Sprintf("idx=%d %s enc=%x", idx, c.String(), c.encoding))
 		for i, child := range c.children {
 			if child != nil {
 				t.string(sub, child, i)
 			}
 		}
 	case *leaf:
-		tree.Add(fmt.Sprintf("idx=%d %s", idx, c.String()))
+		tree.Add(fmt.Sprintf("idx=%d %s enc=%x", idx, c.String(), c.encoding))
 	default:
 		return
 	}

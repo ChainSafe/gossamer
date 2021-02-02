@@ -2,6 +2,7 @@ package wasmer
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -391,6 +392,9 @@ func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
 	// reset state back to parent state before executing
 	parentState := storage.NewTestTrieState(t, nil)
 	instance.SetContext(parentState)
+
+	fmt.Println("---------EXECUTE BLOCK------------")
+	DefaultTestLogLvl = 5
 
 	_, err := instance.ExecuteBlock(block)
 	require.NoError(t, err)
