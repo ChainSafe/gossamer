@@ -81,7 +81,7 @@ type Storage interface {
 	ClearPrefixInChild(keyToChild, prefix []byte) error
 	GetChildNextKey(keyToChild, key []byte) ([]byte, error)
 	GetChild(keyToChild []byte) (*trie.Trie, error)
-	ClearPrefix(prefix []byte)
+	ClearPrefix(prefix []byte) error
 }
 
 // BasicNetwork interface for functions used by runtime network state function

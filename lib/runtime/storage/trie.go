@@ -36,9 +36,23 @@ type TrieState struct {
 
 // NewTrieState returns a new TrieState with the given trie
 func NewTrieState(db chaindb.Database, t *trie.Trie) (*TrieState, error) {
+	if t == nil {
+		t = trie.NewEmptyTrie()
+	}
+
 	ts := &TrieState{
 		db: db,
 		t:  t,
+	}
+
+	err := t.WriteDirty(db)
+	if err != nil {
+		return nil, err
+	}
+
+	err = ts.storeWorkingRoot()
+	if err != nil {
+		return nil, err
 	}
 
 	return ts, nil
@@ -78,56 +92,11 @@ func (s *TrieState) loadWorkingRoot() (common.Hash, error) {
 	return common.NewHash(root), nil
 }
 
-// // Commit ensures that the TrieState's trie and database match
-// // The database is the source of truth due to the runtime interpreter's undefined behavior regarding the trie
-// func (s *TrieState) Commit() error {
-// 	s.lock.Lock()
-// 	defer s.lock.Unlock()
-
-// 	s.t = trie.NewEmptyTrie()
-// 	iter := s.db.NewIterator()
-
-// 	for iter.Next() {
-// 		key := iter.Key()
-// 		err := s.t.Put(key, iter.Value())
-// 		if err != nil {
-// 			return err
-// 		}
-// 	}
-
-// 	iter.Release()
-// 	return nil
-// }
-
-// // WriteTrieToDB writes the trie to the database
-// func (s *TrieState) WriteTrieToDB() error {
-// 	s.lock.Lock()
-// 	defer s.lock.Unlock()
-
-// 	for k, v := range s.t.Entries() {
-// 		err := s.db.Put([]byte(k), v)
-// 		if err != nil {
-// 			return err
-// 		}
-// 	}
-
-// 	return nil
-// }
-
-// // Close should be called once this trie state is no longer needed to close and delete the database
-// func (s *TrieState) Close() {
-// 	_ = os.RemoveAll(s.db.Path())
-// }
-
 // Set sets a key-value pair in the trie
 func (s *TrieState) Set(key []byte, value []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	// err := s.db.Put(key, value)
-	// if err != nil {
-	// 	return err
-	// }
 	err := s.t.PutInDB(s.db, key, value)
 	if err != nil {
 		return err
@@ -151,12 +120,6 @@ func (s *TrieState) Get(key []byte) ([]byte, error) {
 
 // MustRoot returns the trie's root hash. It panics if it fails to compute the root.
 func (s *TrieState) MustRoot() common.Hash {
-	// root, err := s.Root()
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// return root
 	root, err := s.loadWorkingRoot()
 	if err != nil {
 		panic(err)
@@ -167,14 +130,16 @@ func (s *TrieState) MustRoot() common.Hash {
 
 // Root returns the trie's root hash
 func (s *TrieState) Root() (common.Hash, error) {
-	// err := s.Commit()
-	// if err != nil {
-	// 	return common.Hash{}, err
-	// }
+	// s.lock.RLock()
+	// defer s.lock.RUnlock()
+	// return s.t.Hash()
 
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-	return s.t.Hash()
+	root, err := s.loadWorkingRoot()
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	return root, nil
 }
 
 // Has returns whether or not a key exists
@@ -198,12 +163,6 @@ func (s *TrieState) Delete(key []byte) error {
 	}
 
 	return s.storeWorkingRoot()
-	// err := s.db.Del(key)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// return s.t.Delete(key)
 }
 
 // SetChild sets the child trie at the given key
@@ -233,22 +192,6 @@ func (s *TrieState) GetChildStorage(keyToChild, key []byte) ([]byte, error) {
 	defer s.lock.RUnlock()
 	return s.t.GetFromChild(keyToChild, key)
 }
-
-// // Entries returns every key-value pair in the database
-// func (s *TrieState) Entries() map[string][]byte {
-// 	s.lock.RLock()
-// 	defer s.lock.RUnlock()
-
-// 	iter := s.db.NewIterator()
-
-// 	entries := make(map[string][]byte)
-// 	for iter.Next() {
-// 		entries[string(iter.Key())] = iter.Value()
-// 	}
-
-// 	iter.Release()
-// 	return entries
-// }
 
 // TrieEntries returns every key-value pair in the trie
 func (s *TrieState) TrieEntries() map[string][]byte {
@@ -344,9 +287,6 @@ func (s *TrieState) NextKey(key []byte) []byte {
 
 // ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix
 func (s *TrieState) ClearPrefix(prefix []byte) error {
-	// s.lock.Lock()
-	// defer s.lock.Unlock()
-
 	keys := s.t.GetKeysWithPrefix(prefix)
 	for _, key := range keys {
 		err := s.t.Delete(key)
@@ -355,31 +295,12 @@ func (s *TrieState) ClearPrefix(prefix []byte) error {
 		}
 	}
 
-	// err := s.t.ClearPrefixFromDB(s.db, prefix)
-	// if err != nil {
-	// 	return err
-	// }
-
 	err := s.t.WriteDirty(s.db)
 	if err != nil {
 		return err
 	}
 
 	return s.storeWorkingRoot()
-	// iter := s.db.NewIterator()
-
-	// for iter.Next() {
-	// 	key := iter.Key()
-	// 	if len(key) < len(prefix) {
-	// 		continue
-	// 	}
-
-	// 	if bytes.Equal(key[:len(prefix)], prefix) {
-	// 		_ = s.Delete(key)
-	// 	}
-	// }
-
-	// iter.Release()
 }
 
 // GetKeysWithPrefixFromChild ...

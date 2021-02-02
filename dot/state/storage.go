@@ -92,39 +92,34 @@ func (s *StorageState) pruneKey(keyHeader *types.Header) {
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database
 func (s *StorageState) StoreTrie(root common.Hash, ts *rtstorage.TrieState) error {
-	// write raw trie key-values stored in db to *trie.Trie
-	err := ts.Commit()
-	if err != nil {
-		logger.Error("failed to write TrieState db values to trie", "state root", root, "error", err)
-		return err
-	}
+	// // write raw trie key-values stored in db to *trie.Trie
+	// err := ts.Commit()
+	// if err != nil {
+	// 	logger.Error("failed to write TrieState db values to trie", "state root", root, "error", err)
+	// 	return err
+	// }
 
 	s.lock.Lock()
-	// make copy of trie since ts.Free will clear the TrieState
-	s.tries[root], err = ts.Trie().DeepCopy()
-	if err != nil {
-		return err
-	}
-
+	s.tries[root] = ts.Trie()
 	s.lock.Unlock()
 
 	logger.Trace("stored trie in storage state", "root", root)
 
-	// delete temporary in-memory db
-	ts.Close()
+	// // delete temporary in-memory db
+	// ts.Close()
 
-	// store encoded *trie.Trie in database
-	// TODO: add to batch, write when sync is done or a certain amount of blocks are synced?
-	// in the future, should update how storage values are stored
-	go func() {
-		err = s.StoreInDB(root)
-		if err != nil {
-			logger.Error("failed to store encoded trie in database", "state root", root, "error", err)
-			return
-		}
+	// // store encoded *trie.Trie in database
+	// // TODO: add to batch, write when sync is done or a certain amount of blocks are synced?
+	// // in the future, should update how storage values are stored
+	// go func() {
+	// 	err = s.StoreInDB(root)
+	// 	if err != nil {
+	// 		logger.Error("failed to store encoded trie in database", "state root", root, "error", err)
+	// 		return
+	// 	}
 
-		logger.Trace("stored trie in database", "root", root)
-	}()
+	// 	logger.Trace("stored trie in database", "root", root)
+	// }()
 
 	return nil
 }
@@ -144,7 +139,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 	defer s.lock.RUnlock()
 
 	if s.tries[*root] != nil {
-		return rtstorage.NewTrieState(s.tries[*root])
+		return rtstorage.NewTrieState(s.db, s.tries[*root])
 	}
 
 	tr, err := s.LoadFromDB(*root)
@@ -152,7 +147,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		return nil, err
 	}
 
-	return rtstorage.NewTrieState(tr)
+	return rtstorage.NewTrieState(s.db, tr)
 }
 
 // StoreInDB encodes the entire trie and writes it to the DB

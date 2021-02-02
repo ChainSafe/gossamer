@@ -89,22 +89,22 @@ var testCases = []string{
 	"bnm",
 }
 
-func TestTrieState_Commit(t *testing.T) {
-	testFunc := func(ts *TrieState) {
-		expected := make(map[string][]byte)
+// func TestTrieState_Commit(t *testing.T) {
+// 	testFunc := func(ts *TrieState) {
+// 		expected := make(map[string][]byte)
 
-		for _, tc := range testCases {
-			err := ts.Set([]byte(tc), []byte(tc))
-			require.NoError(t, err)
-			expected[tc] = []byte(tc)
-		}
+// 		for _, tc := range testCases {
+// 			err := ts.Set([]byte(tc), []byte(tc))
+// 			require.NoError(t, err)
+// 			expected[tc] = []byte(tc)
+// 		}
 
-		require.Equal(t, expected, ts.t.Entries())
-	}
+// 		require.Equal(t, expected, ts.t.Entries())
+// 	}
 
-	ts := newTestTrieState(t, nil)
-	testFunc(ts)
-}
+// 	ts := newTestTrieState(t, nil)
+// 	testFunc(ts)
+// }
 
 func TestTrieState_SetGet(t *testing.T) {
 	testFunc := func(ts *TrieState) {

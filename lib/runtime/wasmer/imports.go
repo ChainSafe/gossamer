@@ -1510,7 +1510,8 @@ func ext_storage_get_version_1(context unsafe.Pointer, keySpan C.int64_t) C.int6
 	value, err := storage.Get(key)
 	if err != nil {
 		logger.Error("[ext_storage_get_version_1]", "error", err)
-		return 0
+		ptr, _ := toWasmMemoryOptional(instanceContext, nil)
+		return C.int64_t(ptr)
 	}
 
 	logger.Debug("[ext_storage_get_version_1]", "value", fmt.Sprintf("0x%x", value))
@@ -1518,7 +1519,8 @@ func ext_storage_get_version_1(context unsafe.Pointer, keySpan C.int64_t) C.int6
 	valueSpan, err := toWasmMemoryOptional(instanceContext, value)
 	if err != nil {
 		logger.Error("[ext_storage_get_version_1] failed to allocate", "error", err)
-		return 0
+		ptr, _ := toWasmMemoryOptional(instanceContext, nil)
+		return C.int64_t(ptr)
 	}
 
 	return C.int64_t(valueSpan)
