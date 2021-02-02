@@ -93,7 +93,7 @@ func (b *branch) String() string {
 }
 
 func (l *leaf) String() string {
-	return fmt.Sprintf("leaf key=%x value=%x dirty=%v", l.key, l.value, l.dirty)
+	return fmt.Sprintf("leaf key=%x value=%x dirty=%v valueDirty=%v", l.key, l.value, l.dirty, l.valueDirty)
 }
 
 func (b *branch) childrenBitmap() uint16 {

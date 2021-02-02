@@ -394,7 +394,7 @@ func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
 	instance.SetContext(parentState)
 
 	fmt.Println("---------EXECUTE BLOCK------------")
-	DefaultTestLogLvl = 5
+	DefaultTestLogLvl = 4
 
 	_, err := instance.ExecuteBlock(block)
 	require.NoError(t, err)
