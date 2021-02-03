@@ -37,9 +37,7 @@ type BlockState interface {
 	BestBlock() (*types.Block, error)
 	AddBlock(*types.Block) error
 	GetAllBlocksAtDepth(hash common.Hash) []common.Hash
-	AddBlockWithArrivalTime(*types.Block, uint64) error
 	GetBlockByHash(common.Hash) (*types.Block, error)
-	GetArrivalTime(common.Hash) (uint64, error)
 	GenesisHash() common.Hash
 	GetSlotForBlock(common.Hash) (uint64, error)
 	HighestBlockHash() common.Hash

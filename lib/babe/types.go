@@ -18,11 +18,15 @@ package babe
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	commontypes "github.com/ChainSafe/gossamer/lib/common/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 )
+
+// Randomness is an alias for a byte array with length types.RandomnessLength
+type Randomness = [types.RandomnessLength]byte
 
 // VrfOutputAndProof represents the fields for VRF output and proof
 type VrfOutputAndProof struct {
@@ -32,13 +36,13 @@ type VrfOutputAndProof struct {
 
 // Slot represents a BABE slot
 type Slot struct {
-	start    uint64
-	duration uint64
+	start    time.Time
+	duration time.Duration
 	number   uint64
 }
 
 // NewSlot returns a new Slot
-func NewSlot(start, duration, number uint64) *Slot {
+func NewSlot(start time.Time, duration time.Duration, number uint64) *Slot {
 	return &Slot{
 		start:    start,
 		duration: duration,
@@ -60,8 +64,8 @@ func (d Authorities) String() string {
 
 // epochData contains the current epoch information
 type epochData struct {
-	randomness     [types.RandomnessLength]byte
+	randomness     Randomness
 	authorityIndex uint32
 	authorities    []*types.Authority
-	threshold      *commontypes.Uint128
+	threshold      *common.Uint128
 }

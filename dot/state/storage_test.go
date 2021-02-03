@@ -3,6 +3,7 @@ package state
 import (
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -29,6 +30,8 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 	require.NoError(t, err)
 	err = storage.StoreTrie(root, ts)
 	require.NoError(t, err)
+
+	time.Sleep(time.Millisecond * 100)
 
 	trie, err := storage.LoadFromDB(root)
 	require.NoError(t, err)
