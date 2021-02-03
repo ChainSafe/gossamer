@@ -1,0 +1,37 @@
+[global]
+basepath = "~/.gossamer/polkadot"
+log = "info"
+
+[log]
+core = ""
+network = ""
+rpc = ""
+state = ""
+runtime = ""
+babe = ""
+grandpa = ""
+sync = ""
+
+[init]
+genesis-raw = "./chain/polkadot/genesis-raw.json"
+
+[account]
+key = ""
+unlock = ""
+
+[core]
+roles = 4
+babe-authority = false
+grandpa-authority = false
+
+[network]
+port = 7001
+nobootstrap = false
+nomdns = false
+
+[rpc]
+enabled = false
+port = 8545
+host = "localhost"
+modules = ["system", "author", "chain", "state", "rpc"]
+ws-port = 8546

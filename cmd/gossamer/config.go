@@ -38,9 +38,10 @@ import (
 
 //nolint
 var (
-	DefaultCfg              = dot.GssmrConfig
-	defaultGssmrConfigPath  = "./chain/gssmr/config.toml"
-	defaultKusamaConfigPath = "./chain/ksmcc/config.toml"
+	DefaultCfg                = dot.GssmrConfig
+	defaultGssmrConfigPath    = "./chain/gssmr/config.toml"
+	defaultKusamaConfigPath   = "./chain/ksmcc/config.toml"
+	defaultPolkadotConfigPath = "./chain/polkadot/config.toml"
 )
 
 // loadConfigFile loads a default config file if --chain is specified, a specific
@@ -90,6 +91,11 @@ func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 			tomlCfg = &ctoml.Config{}
 			cfg = dot.KsmccConfig()
 			err = loadConfig(tomlCfg, defaultKusamaConfigPath)
+		case "polkadot":
+			logger.Info("loading toml configuration...", "config path", defaultPolkadotConfigPath)
+			tomlCfg = &ctoml.Config{}
+			cfg = dot.PolkadotConfig()
+			err = loadConfig(tomlCfg, defaultPolkadotConfigPath)
 		default:
 			return nil, fmt.Errorf("unknown chain id provided: %s", id)
 		}
@@ -145,6 +151,9 @@ func createInitConfig(ctx *cli.Context) (*dot.Config, error) {
 		case "ksmcc":
 			tomlCfg = &ctoml.Config{}
 			err = loadConfig(tomlCfg, defaultKusamaConfigPath)
+		case "polkadot":
+			tomlCfg = &ctoml.Config{}
+			err = loadConfig(tomlCfg, defaultPolkadotConfigPath)
 		default:
 			return nil, fmt.Errorf("unknown chain id provided: %s", id)
 		}
