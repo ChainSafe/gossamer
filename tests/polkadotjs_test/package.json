@@ -6,7 +6,8 @@
   "scripts": {
     "test": "mocha ./test",
     "gossamer:start": "cd ../../ && ./bin/gossamer --key alice --roles 4 --rpcmods system,author,chain,state,dev,rpc --ws --wsport 8546 --rpc  --rpchost localhost --rpcport 8545 &",
-    "gossamer:test": "npm run gossamer:start && mocha ./test"
+    "gossamer:test": "npm run gossamer:start && mocha ./test",
+    "gtest": "mocha ./test"
   },
   "author": "",
   "license": "ISC",

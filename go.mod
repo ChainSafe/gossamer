@@ -46,7 +46,7 @@ require (
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9 // indirect
 	golang.org/x/sys v0.0.0-20201221093633-bc327ba9c2f0 // indirect
 	golang.org/x/text v0.3.3 // indirect
-	golang.org/x/tools v0.0.0-20200221224223-e1da425f72fd // indirect
+	golang.org/x/tools v0.0.0-20200221224223-e1da425f72fd
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/grpc v1.27.1 // indirect
 	google.golang.org/protobuf v1.25.0
