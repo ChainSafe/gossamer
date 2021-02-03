@@ -386,7 +386,6 @@ func (b *branch) decode(r io.Reader, header byte) (err error) {
 				return err
 			}
 
-			//fmt.Printf("child at %d hash=%x\n", i, hash)
 			b.children[i] = &leaf{
 				hash: hash.([]byte),
 			}
