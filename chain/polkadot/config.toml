@@ -20,7 +20,7 @@ key = ""
 unlock = ""
 
 [core]
-roles = 4
+roles = 1
 babe-authority = false
 grandpa-authority = false
 
