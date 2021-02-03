@@ -42,7 +42,6 @@ func NewTestTrieState(t *testing.T, tr *trie.Trie) *TrieState {
 		InMemory: true,
 	}
 
-	// TODO: don't initialize new DB but pass it in
 	db, err := chaindb.NewBadgerDB(cfg)
 	require.NoError(t, err)
 

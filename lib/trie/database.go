@@ -256,7 +256,7 @@ func (t *Trie) writeDirty(db chaindb.Batch, curr node) error { // TODO: batch!!
 
 	// always hash root even if encoding is under 32 bytes
 	if curr == t.root {
-		h, err := common.Blake2bHash(enc)
+		h, err := common.Blake2bHash(enc) //nolint
 		if err != nil {
 			return err
 		}

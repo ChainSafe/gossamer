@@ -28,11 +28,10 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
-	log "github.com/ChainSafe/log15"
+	"github.com/ChainSafe/chaindb"
 	"github.com/stretchr/testify/require"
 )
 
@@ -42,16 +41,6 @@ var testGenesisHeader = &types.Header{
 	StateRoot: trie.EmptyHash,
 }
 
-// var genesisBABEConfig = &types.BabeConfiguration{
-// 	SlotDuration:       1000,
-// 	EpochLength:        200,
-// 	C1:                 1,
-// 	C2:                 4,
-// 	GenesisAuthorities: []*types.AuthorityRaw{},
-// 	Randomness:         [32]byte{},
-// 	SecondarySlots:     false,
-// }
-
 var kr, _ = keystore.NewEd25519Keyring()
 
 type mockDigestHandler struct{}
@@ -60,37 +49,24 @@ func (h *mockDigestHandler) NextGrandpaAuthorityChange() uint64 {
 	return 2 ^ 64 - 1
 }
 
-func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
-	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis-raw.json")
-	if err != nil {
-		gen, err = genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis-raw.json")
-		require.NoError(t, err)
-	}
-
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
-	require.NoError(t, err)
-
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), genTrie.MustHash(), trie.EmptyHash, types.Digest{})
-	require.NoError(t, err)
-	return gen, genTrie, genesisHeader
-}
-
 func newTestState(t *testing.T) *state.Service {
 	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
 	require.NoError(t, err)
 
-	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo)
-	stateSrvc.UseMemDB()
+	cfg := &chaindb.Config{
+		DataDir:  testDatadirPath,
+		InMemory: true,
+	}
 
-	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
-
-	err = stateSrvc.Initialize(gen, genHeader, genTrie)
+	db, err := chaindb.NewBadgerDB(cfg)
 	require.NoError(t, err)
 
-	err = stateSrvc.Start()
+	block, err := state.NewBlockStateFromGenesis(db, testGenesisHeader)
 	require.NoError(t, err)
 
-	return stateSrvc
+	return &state.Service{
+		Block: block,
+	}
 }
 
 func newTestVoters() []*Voter {

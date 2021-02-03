@@ -25,8 +25,8 @@ import (
 )
 
 // newTestTrieState returns an initialized TrieState
-func newTestTrieState(t *testing.T, tr *trie.Trie) *TrieState {
-	return NewTestTrieState(t, tr)
+func newTestTrieState(t *testing.T) *TrieState {
+	return NewTestTrieState(t, nil)
 }
 
 var testCases = []string{
@@ -59,7 +59,7 @@ func TestTrieState_SetGet(t *testing.T) {
 		}
 	}
 
-	ts := newTestTrieState(t, nil)
+	ts := newTestTrieState(t)
 	testFunc(ts)
 }
 
@@ -81,7 +81,7 @@ func TestTrieState_Delete(t *testing.T) {
 		require.False(t, has)
 	}
 
-	ts := newTestTrieState(t, nil)
+	ts := newTestTrieState(t)
 	testFunc(ts)
 }
 
@@ -101,12 +101,12 @@ func TestTrieState_Root(t *testing.T) {
 		require.Equal(t, expected, ts.MustRoot())
 	}
 
-	ts := newTestTrieState(t, nil)
+	ts := newTestTrieState(t)
 	testFunc(ts)
 }
 
 func TestTrieState_ClearPrefix(t *testing.T) {
-	ts := newTestTrieState(t, nil)
+	ts := newTestTrieState(t)
 
 	keys := []string{
 		"noot",
@@ -135,7 +135,7 @@ func TestTrieState_ClearPrefix(t *testing.T) {
 }
 
 func TestTrieState_ClearPrefixInChild(t *testing.T) {
-	ts := newTestTrieState(t, nil)
+	ts := newTestTrieState(t)
 	child := trie.NewEmptyTrie()
 
 	keys := []string{

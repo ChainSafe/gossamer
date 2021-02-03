@@ -84,7 +84,7 @@ func newTestSyncer(t *testing.T) *Service {
 		rtCfg.Storage = genState
 		rtCfg.LogLvl = 4
 
-		instance, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg)
+		instance, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg) //nolint
 		require.NoError(t, err)
 		cfg.Runtime = instance
 	}
@@ -396,7 +396,7 @@ func TestSyncer_ExecuteBlock(t *testing.T) {
 	require.NoError(t, err)
 	ts, err = parentState.Copy()
 	require.NoError(t, err)
-	syncer.runtime.SetContext(parentState)
+	syncer.runtime.SetContext(ts)
 
 	_, err = syncer.runtime.ExecuteBlock(block)
 	require.NoError(t, err)

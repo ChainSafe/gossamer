@@ -311,7 +311,7 @@ func newTestGenesisWithTrieAndHeader() (*genesis.Genesis, *trie.Trie, *types.Hea
 		panic(err)
 	}
 
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), genTrie.MustHash(), trie.EmptyHash, types.Digest{})
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), genTrie.MustHash(), trie.EmptyHash, types.Digest{}) //nolint
 	if err != nil {
 		panic(err)
 	}

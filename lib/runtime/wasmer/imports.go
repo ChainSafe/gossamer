@@ -1467,7 +1467,10 @@ func ext_storage_clear_prefix_version_1(context unsafe.Pointer, prefixSpan C.int
 		return
 	}
 
-	storage.ClearPrefix(prefix)
+	err := storage.ClearPrefix(prefix)
+	if err != nil {
+		logger.Error("[ext_storage_clear_prefix_version_1]", "error", err)
+	}
 
 	// sanity check
 	next := storage.NextKey(prefix)
@@ -1708,7 +1711,10 @@ func ext_storage_commit_transaction_version_1(context unsafe.Pointer) {
 				continue
 			}
 
-			storage.ClearPrefix(change.Prefix)
+			err := storage.ClearPrefix(change.Prefix)
+			if err != nil {
+				logger.Error("[ext_storage_commit_transaction_version_1] failed to clear prefix", "error", err)
+			}
 		case runtime.AppendOp:
 			err := storageAppend(storage, change.Key, change.Value)
 			if err != nil {

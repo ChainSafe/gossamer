@@ -46,12 +46,8 @@ var (
 	maxThreshold = common.MaxUint128
 	minThreshold = &common.Uint128{}
 
-	genesisHeader = &types.Header{
-		Number:    big.NewInt(0),
-		StateRoot: emptyHash,
-	}
-
-	emptyHeader = &types.Header{
+	genesisHeader *types.Header
+	emptyHeader   = &types.Header{
 		Number: big.NewInt(0),
 	}
 
@@ -76,7 +72,7 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), genTrie.MustHash(), trie.EmptyHash, types.Digest{})
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), genTrie.MustHash(), trie.EmptyHash, types.Digest{}) //nolint
 	require.NoError(t, err)
 	return gen, genTrie, genesisHeader
 }
@@ -139,7 +135,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	if cfg.Runtime == nil {
 		rtCfg := &wasmer.Config{}
 		rtCfg.Storage = rtstorage.NewTestTrieState(t, genTrie)
-		rt, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg)
+		rt, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg) //nolint
 		require.NoError(t, err)
 		cfg.Runtime = rt
 	}

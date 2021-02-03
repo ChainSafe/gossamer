@@ -168,7 +168,7 @@ func TestTrie_WriteDirty_Put(t *testing.T) {
 		require.Equal(t, trie.MustHash(), res.MustHash())
 
 		for _, test := range testCase {
-			val, err := GetFromDB(db, trie.MustHash(), test.key)
+			val, err := GetFromDB(db, trie.MustHash(), test.key) //nolint
 			require.NoError(t, err)
 			if bytes.Equal(test.key, []byte("asdf")) {
 				continue
