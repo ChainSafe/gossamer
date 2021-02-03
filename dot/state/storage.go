@@ -105,6 +105,7 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
 	s.lock.Unlock()
 
 	logger.Trace("cached trie in storage state", "root", root)
+	go s.notifyStorageSubscriptions(root)
 	return nil
 }
 
@@ -136,17 +137,13 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 
 // StoreInDB encodes the entire trie and writes it to the DB
 // The key to the DB entry is the root hash of the trie
-func (s *StorageState) StoreInDB(root common.Hash) error {
+func (s *StorageState) notifyStorageSubscriptions(root common.Hash) error {
 	s.lock.RLock()
-	defer s.lock.RUnlock()
+	t := s.tries[root]
+	s.lock.RUnlock()
 
-	if s.tries[root] == nil {
+	if t == nil {
 		return errTrieDoesNotExist(root)
-	}
-
-	err := StoreTrie(s.db, s.tries[root])
-	if err != nil {
-		return err
 	}
 
 	// notify subscribers of database changes
@@ -159,7 +156,7 @@ func (s *StorageState) StoreInDB(root common.Hash) error {
 		}
 		if len(sub.Filter) == 0 {
 			// no filter, so send all changes
-			ent := s.tries[root].Entries()
+			ent := t.Entries()
 			for k, v := range ent {
 				if k != ":code" {
 					// todo, currently we're ignoring :code since this is a lot of data
@@ -173,7 +170,7 @@ func (s *StorageState) StoreInDB(root common.Hash) error {
 		} else {
 			// filter result to include only interested keys
 			for k := range sub.Filter {
-				value, err := s.tries[root].Get(common.MustHexToBytes(k))
+				value, err := t.Get(common.MustHexToBytes(k))
 				if err != nil {
 					logger.Error("Error retrieving value from state tries")
 					continue

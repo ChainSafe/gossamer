@@ -320,9 +320,9 @@ func (s *Service) Stop() error {
 		return err
 	}
 
-	logger.Debug("storing latest storage trie", "hash", head)
+	logger.Debug("storing latest storage trie", "root", head)
 
-	if err = s.Storage.StoreInDB(head); err != nil {
+	if err := StoreTrie(s.Storage.db, t); err != nil {
 		return err
 	}
 
