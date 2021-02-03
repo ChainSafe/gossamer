@@ -38,7 +38,7 @@ func (t *Trie) Store(db chaindb.Database) error {
 	return batch.Flush()
 }
 
-func (t *Trie) store(db chaindb.Batch, curr node) error { // TODO: batch!!
+func (t *Trie) store(db chaindb.Batch, curr node) error {
 	if curr == nil {
 		return nil
 	}
@@ -105,7 +105,7 @@ func (t *Trie) load(db chaindb.Database, curr node) error {
 				continue
 			}
 
-			hash := child.(*leaf).hash // TODO: add getHash to node
+			hash := child.getHash()
 			enc, err := db.Get(hash)
 			if err != nil {
 				return fmt.Errorf("failed to find node key=%x index=%d: %w", child.(*leaf).hash, i, err)
@@ -236,7 +236,7 @@ func (t *Trie) WriteDirty(db chaindb.Database) error {
 	return batch.Flush()
 }
 
-func (t *Trie) writeDirty(db chaindb.Batch, curr node) error { // TODO: batch!!
+func (t *Trie) writeDirty(db chaindb.Batch, curr node) error {
 	if curr == nil || !curr.isDirty() {
 		return nil
 	}

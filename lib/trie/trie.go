@@ -612,12 +612,7 @@ func handleDeletion(p *branch, n node, key []byte) (nn node) {
 	if bitmap == 0 && p.value != nil {
 		// TODO: hack to get around runtime bug
 		if p.encoding != nil {
-			r := &bytes.Buffer{}
-			r.Write(p.encoding)
-			prev, err := decode(r)
-			if err == nil {
-				p.value = prev.(*branch).value
-			}
+			p.setValueFromEncoding()
 		}
 
 		nn = &leaf{key: key[:length], value: p.value, dirty: true}
@@ -637,24 +632,14 @@ func handleDeletion(p *branch, n node, key []byte) (nn node) {
 		case *leaf:
 			// TODO: hack to get around runtime bug
 			if c.encoding != nil {
-				r := &bytes.Buffer{}
-				r.Write(c.encoding)
-				prev, err := decode(r)
-				if err == nil {
-					c.value = prev.(*leaf).value
-				}
+				c.setValueFromEncoding()
 			}
 
 			nn = &leaf{key: append(append(p.key, []byte{byte(i)}...), c.key...), value: c.value}
 		case *branch:
 			// TODO: hack to get around runtime bug
 			if c.encoding != nil {
-				r := &bytes.Buffer{}
-				r.Write(c.encoding)
-				prev, err := decode(r)
-				if err == nil {
-					c.value = prev.(*branch).value
-				}
+				c.setValueFromEncoding()
 			}
 
 			br := new(branch)

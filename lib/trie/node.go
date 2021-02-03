@@ -59,6 +59,8 @@ type node interface {
 	setKey(key []byte)
 	String() string
 	setEncodingAndHash([]byte, []byte)
+	getHash() []byte
+	setValueFromEncoding() // this is used as a hack to get around the runtime bug where the node values get corrupted
 }
 
 type (
@@ -88,6 +90,34 @@ func (b *branch) setEncodingAndHash(enc, hash []byte) {
 func (l *leaf) setEncodingAndHash(enc, hash []byte) {
 	l.encoding = enc
 	l.hash = hash
+}
+
+func (b *branch) setValueFromEncoding() {
+	r := &bytes.Buffer{}
+	_, _ = r.Write(b.encoding)
+	prev, err := decode(r)
+	if err != nil {
+		panic(err)
+	}
+	b.value = prev.(*branch).value
+}
+
+func (l *leaf) setValueFromEncoding() {
+	r := &bytes.Buffer{}
+	_, _ = r.Write(l.encoding)
+	prev, err := decode(r)
+	if err != nil {
+		panic(err)
+	}
+	l.value = prev.(*leaf).value
+}
+
+func (b *branch) getHash() []byte {
+	return b.hash
+}
+
+func (l *leaf) getHash() []byte {
+	return l.hash
 }
 
 func (b *branch) String() string {
@@ -244,13 +274,7 @@ func (l *leaf) encodeAndHash() ([]byte, []byte, error) {
 	}
 	// TODO: hack to deal with runtime bug
 	if l.encoding != nil && l.hash != nil && !l.valueDirty {
-		r := &bytes.Buffer{}
-		r.Write(l.encoding)
-		prev, err := decode(r)
-		if err != nil {
-			return nil, nil, err
-		}
-		l.value = prev.(*leaf).value
+		l.setValueFromEncoding()
 	}
 
 	enc, err := l.encode()
@@ -282,13 +306,7 @@ func (l *leaf) encode() ([]byte, error) {
 
 	// TODO: hack to deal with runtime bug
 	if l.encoding != nil && !l.valueDirty {
-		r := &bytes.Buffer{}
-		r.Write(l.encoding)
-		prev, err := decode(r)
-		if err != nil {
-			return nil, err
-		}
-		l.value = prev.(*leaf).value
+		l.setValueFromEncoding()
 	}
 
 	encoding, err := l.header()

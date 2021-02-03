@@ -34,8 +34,7 @@ func NewTestTrieState(t *testing.T, tr *trie.Trie) *TrieState {
 	buf := make([]byte, 2)
 	binary.LittleEndian.PutUint16(buf, uint16(r))
 
-	// TODO: dynamically get os.TMPDIR
-	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
+	testDatadirPath, _ := ioutil.TempDir(os.TempDir(), "test-datadir-*")
 
 	cfg := &chaindb.Config{
 		DataDir:  testDatadirPath,

@@ -311,13 +311,9 @@ func (s *Service) Stop() error {
 		return err
 	}
 
-	logger.Info("stored latest trie")
-
 	if err = s.Block.bt.Store(); err != nil {
 		return err
 	}
-
-	logger.Info("stored blocktree")
 
 	hash := s.Block.BestBlockHash()
 	if err = StoreBestBlockHash(s.db, hash); err != nil {
