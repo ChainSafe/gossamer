@@ -2,7 +2,6 @@ package wasmer
 
 import (
 	"bytes"
-	"fmt"
 	"math/big"
 	"testing"
 	"time"
