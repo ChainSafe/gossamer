@@ -322,7 +322,7 @@ func (s *Service) Stop() error {
 
 	logger.Debug("storing latest storage trie", "root", head)
 
-	if err := StoreTrie(s.Storage.db, t); err != nil {
+	if err = StoreTrie(s.Storage.db, t); err != nil {
 		return err
 	}
 

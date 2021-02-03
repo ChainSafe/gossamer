@@ -105,7 +105,12 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
 	s.lock.Unlock()
 
 	logger.Trace("cached trie in storage state", "root", root)
-	go s.notifyStorageSubscriptions(root)
+
+	go func() {
+		if err := s.notifyStorageSubscriptions(root); err != nil {
+			logger.Warn("failed to notify storage subscriptions", "error", err)
+		}
+	}()
 	return nil
 }
 
