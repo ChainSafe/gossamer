@@ -18,6 +18,7 @@ package babe
 
 import (
 	"math/big"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -34,11 +35,10 @@ type BlockState interface {
 	SubChain(start, end common.Hash) ([]common.Hash, error)
 	AddBlock(*types.Block) error
 	GetAllBlocksAtDepth(hash common.Hash) []common.Hash
-	AddBlockWithArrivalTime(*types.Block, uint64) error
 	GetHeader(common.Hash) (*types.Header, error)
 	GetBlockByNumber(*big.Int) (*types.Block, error)
 	GetBlockByHash(common.Hash) (*types.Block, error)
-	GetArrivalTime(common.Hash) (uint64, error)
+	GetArrivalTime(common.Hash) (time.Time, error)
 	GenesisHash() common.Hash
 	GetSlotForBlock(common.Hash) (uint64, error)
 	HighestBlockHash() common.Hash
@@ -50,7 +50,7 @@ type BlockState interface {
 // StorageState interface for storage state methods
 type StorageState interface {
 	TrieState(hash *common.Hash) (*rtstorage.TrieState, error)
-	StoreTrie( /*root common.Hash, */ ts *rtstorage.TrieState) error
+	StoreTrie(ts *rtstorage.TrieState) error
 }
 
 // TransactionState is the interface for transaction queue methods

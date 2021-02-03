@@ -588,7 +588,6 @@ func (t *Trie) delete(parent node, key []byte) (n node, err error) {
 		}
 
 		n = handleDeletion(p, n, key)
-		//n.setDirty(true)
 	case *leaf:
 		if !bytes.Equal(key, p.key) && len(key) != 0 {
 			n = p

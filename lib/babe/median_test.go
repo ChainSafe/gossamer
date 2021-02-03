@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/stretchr/testify/require"
 )
@@ -62,9 +63,11 @@ func TestSlotOffset(t *testing.T) {
 	require.Equal(t, expected, res)
 }
 
-func addBlocksToState(t *testing.T, babeService *Service, depth int, blockState BlockState, startTime uint64) {
+func addBlocksToState(t *testing.T, babeService *Service, depth int, blockState BlockState, startTime time.Time) {
 	previousHash := blockState.BestBlockHash()
 	previousAT := startTime
+	duration, err := time.ParseDuration("1s")
+	require.NoError(t, err)
 
 	for i := 1; i <= depth; i++ {
 		// create proof that we can authorize this block
@@ -80,8 +83,8 @@ func addBlocksToState(t *testing.T, babeService *Service, depth int, blockState 
 
 		// create pre-digest
 		slot := Slot{
-			start:    uint64(time.Now().Unix()),
-			duration: uint64(1000),
+			start:    time.Now(),
+			duration: duration,
 			number:   slotNumber,
 		}
 
@@ -97,24 +100,29 @@ func addBlocksToState(t *testing.T, babeService *Service, depth int, blockState 
 			Body: &types.Body{},
 		}
 
-		arrivalTime := previousAT + uint64(1)
+		arrivalTime := previousAT.Add(duration)
 		previousHash = block.Header.Hash()
 		previousAT = arrivalTime
 
-		err = blockState.AddBlockWithArrivalTime(block, arrivalTime)
+		err = blockState.(*state.BlockState).AddBlockWithArrivalTime(block, arrivalTime)
 		require.NoError(t, err)
 	}
 }
 
 func TestSlotTime(t *testing.T) {
 	babeService := createTestService(t, nil)
-	addBlocksToState(t, babeService, 100, babeService.blockState, uint64(0))
+	addBlocksToState(t, babeService, 100, babeService.blockState, time.Now())
 
 	res, err := babeService.slotTime(103, 20)
 	require.NoError(t, err)
 
-	expected := uint64(129)
-	require.Equal(t, expected, res)
+	dur, err := time.ParseDuration("127s")
+	require.NoError(t, err)
+
+	expected := time.Now().Add(dur)
+	if int64(res) > expected.Unix()+3 && int64(res) < expected.Unix()-3 {
+		t.Fatalf("Fail: got %d expected %d", res, expected.Unix())
+	}
 }
 
 func TestEstimateCurrentSlot(t *testing.T) {
@@ -132,7 +140,7 @@ func TestEstimateCurrentSlot(t *testing.T) {
 
 	// create pre-digest
 	slot := Slot{
-		start:    uint64(time.Now().Unix()),
+		start:    time.Now(),
 		duration: babeService.slotDuration,
 		number:   slotNumber,
 	}
@@ -149,9 +157,9 @@ func TestEstimateCurrentSlot(t *testing.T) {
 		Body: &types.Body{},
 	}
 
-	arrivalTime := uint64(time.Now().Unix()) - slot.duration
+	arrivalTime := time.Now().UnixNano() - slot.duration.Nanoseconds()
 
-	err = babeService.blockState.AddBlockWithArrivalTime(block, arrivalTime)
+	err = babeService.blockState.(*state.BlockState).AddBlockWithArrivalTime(block, time.Unix(0, arrivalTime))
 	require.NoError(t, err)
 
 	estimatedSlot, err := babeService.estimateCurrentSlot()
@@ -162,15 +170,18 @@ func TestEstimateCurrentSlot(t *testing.T) {
 func TestGetCurrentSlot(t *testing.T) {
 	babeService := createTestService(t, nil)
 
-	// 100 blocks / 1000 ms/s
-	addBlocksToState(t, babeService, 100, babeService.blockState, uint64(time.Now().Unix())-(babeService.slotDuration/10))
+	before, err := time.ParseDuration("300s")
+	require.NoError(t, err)
+	beforeSecs := time.Now().Unix() - int64(before.Seconds())
+
+	addBlocksToState(t, babeService, 100, babeService.blockState, time.Unix(beforeSecs, 0))
 
 	res, err := babeService.getCurrentSlot()
 	require.NoError(t, err)
 
-	expected := uint64(162)
+	expected := uint64(167)
 
-	if res != expected && res != expected+1 {
+	if res != expected && res != expected+1 && res != expected-1 {
 		t.Fatalf("Fail: got %d expected %d", res, expected)
 	}
 }

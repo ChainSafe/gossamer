@@ -152,15 +152,12 @@ func TestTrie_WriteDirty_Put(t *testing.T) {
 
 		err := trie.Store(db)
 		require.NoError(t, err)
-		t.Log(trie)
 
 		err = trie.Put([]byte("asdf"), []byte("notapenguin"))
 		require.NoError(t, err)
-		t.Log(trie)
 
 		err = trie.WriteDirty(db)
 		require.NoError(t, err)
-		t.Log(trie)
 
 		res := NewEmptyTrie()
 		err = res.Load(db, trie.MustHash())
@@ -230,13 +227,9 @@ func TestTrie_WriteDirty_PutReplace(t *testing.T) {
 			err := trie.Put(test.key, test.key)
 			require.NoError(t, err)
 
-			t.Log(trie)
-
 			err = trie.WriteDirty(db)
 			require.NoError(t, err)
 		}
-
-		t.Log(trie)
 
 		res := NewEmptyTrie()
 		err := res.Load(db, trie.MustHash())
@@ -296,12 +289,8 @@ func TestTrie_WriteDirty_Delete(t *testing.T) {
 			err := trie.Store(db)
 			require.NoError(t, err)
 
-			t.Log(trie)
-
 			err = trie.DeleteFromDB(db, curr.key)
 			require.NoError(t, err)
-
-			t.Log(trie)
 
 			res := NewEmptyTrie()
 			err = res.Load(db, trie.MustHash())

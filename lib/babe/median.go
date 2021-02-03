@@ -38,7 +38,7 @@ func (b *Service) estimateCurrentSlot() (uint64, error) {
 		return 0, fmt.Errorf("cannot get slot for head of chain: %s", err)
 	}
 
-	// find arrival time of chain head
+	// get arrival time of chain head in unix nanoseconds
 	// note: this assumes that the block arrived within the slot it was produced, may be off
 	arrivalTime, err := b.blockState.GetArrivalTime(head)
 	if err != nil {
@@ -47,14 +47,12 @@ func (b *Service) estimateCurrentSlot() (uint64, error) {
 
 	// use slot duration to count up
 	for {
-		at := time.Unix(int64(arrivalTime), 0)
-
-		if time.Since(at) <= b.getSlotDuration() {
+		if time.Since(arrivalTime) <= b.getSlotDuration() {
 			return slot, nil
 		}
 
 		// increment slot, slot time
-		arrivalTime += b.slotDuration
+		arrivalTime = arrivalTime.Add(b.slotDuration)
 		slot++
 	}
 }
@@ -111,7 +109,7 @@ func (b *Service) slotTime(slot uint64, slotTail uint64) (uint64, error) {
 
 	var currSlot uint64
 	var so uint64
-	var arrivalTime uint64
+	var arrivalTime time.Time
 
 	subchain, err := b.blockState.SubChain(start.Header.Hash(), deepestBlock.Hash())
 	if err != nil {
@@ -134,7 +132,7 @@ func (b *Service) slotTime(slot uint64, slotTail uint64) (uint64, error) {
 			return 0, err
 		}
 
-		st := arrivalTime + (so * sd)
+		st := uint64(arrivalTime.Unix()) + (so * sd)
 		at = append(at, st)
 	}
 

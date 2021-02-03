@@ -448,7 +448,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 		return err
 	}
 
-	err = s.storageState.StoreTrie( /*block.Header.StateRoot, */ ts)
+	err = s.storageState.StoreTrie(ts)
 	if err != nil {
 		return err
 	}

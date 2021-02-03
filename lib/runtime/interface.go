@@ -74,7 +74,6 @@ type Storage interface {
 	SetChildStorage(keyToChild, key, value []byte) error
 	GetChildStorage(keyToChild, key []byte) ([]byte, error)
 	Delete(key []byte) error
-	//Entries() map[string][]byte
 	DeleteChildStorage(key []byte) error
 	ClearChildStorage(keyToChild, key []byte) error
 	NextKey([]byte) []byte

@@ -81,16 +81,17 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header, e
 		_, _ = babeService.transactionState.Push(vtx)
 	}
 
+	duration, err := time.ParseDuration("1s")
+	require.NoError(t, err)
+
 	slot := Slot{
-		start:    uint64(time.Now().Unix()),
-		duration: uint64(10000000),
+		start:    time.Now(),
+		duration: duration,
 		number:   slotNumber,
 	}
 
 	// build block
 	var block *types.Block
-	var err error
-
 	for i := 0; i < 1; i++ { // retry if error
 		block, err = babeService.buildBlock(parent, slot)
 		if err == nil {
@@ -185,9 +186,12 @@ func TestBuildBlock_failing(t *testing.T) {
 		Number:     big.NewInt(0),
 	}
 
+	duration, err := time.ParseDuration("1s")
+	require.NoError(t, err)
+
 	slot := Slot{
-		start:    uint64(time.Now().Unix()),
-		duration: uint64(10000000),
+		start:    time.Now(),
+		duration: duration,
 		number:   slotNumber,
 	}
 

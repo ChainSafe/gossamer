@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	//"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -167,7 +166,6 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 
 	ext := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, extBytes...))
 
-	t.Log("---------------VALIDATE TRANSACTION-----------------")
 	_, err = rt.ValidateTransaction(ext)
 	require.NoError(t, err)
 }

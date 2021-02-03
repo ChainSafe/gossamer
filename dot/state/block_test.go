@@ -199,7 +199,7 @@ func TestGetSlotForBlock(t *testing.T) {
 
 func TestIsBlockOnCurrentChain(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
-	currChain, branchChains := AddBlocksToState(t, bs, 8)
+	currChain, branchChains := AddBlocksToState(t, bs, 3)
 
 	for _, header := range currChain {
 		onChain, err := bs.isBlockOnCurrentChain(header)

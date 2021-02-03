@@ -41,7 +41,6 @@ var (
 	emptyHash         = trie.EmptyHash
 	testTimeout       = time.Second * 5
 	testEpochIndex    = uint64(0)
-	testEpochLength   = uint64(10)
 
 	maxThreshold = common.MaxUint128
 	minThreshold = &common.Uint128{}
@@ -128,10 +127,6 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		cfg.EpochState = dbSrv.Epoch
 	}
 
-	if cfg.StartSlot == 0 {
-		cfg.StartSlot = 1
-	}
-
 	if cfg.Runtime == nil {
 		rtCfg := &wasmer.Config{}
 		rtCfg.Storage = rtstorage.NewTestTrieState(t, genTrie)
@@ -177,8 +172,11 @@ func TestRunEpochLengthConfig(t *testing.T) {
 }
 
 func TestSlotDuration(t *testing.T) {
+	duration, err := time.ParseDuration("1000ms")
+	require.NoError(t, err)
+
 	bs := &Service{
-		slotDuration: 1000,
+		slotDuration: duration,
 	}
 
 	dur := bs.getSlotDuration()
@@ -186,31 +184,7 @@ func TestSlotDuration(t *testing.T) {
 }
 
 func TestBabeAnnounceMessage(t *testing.T) {
-	// // this test uses a real database because it sets the runtime Storage context, which
-	// // must be backed by a non-memory database
-	// datadir, _ := ioutil.TempDir("/tmp", "test-datadir-*")
-	// dbSrv := state.NewService(datadir, log.LvlInfo)
-	// genesisData := new(genesis.Data)
-	// err := dbSrv.Initialize(genesisData, genesisHeader, trie.NewEmptyTrie(), genesisBABEConfig)
-	// require.NoError(t, err)
-	// err = dbSrv.Start()
-	// require.NoError(t, err)
-
-	// cfg := &ServiceConfig{
-	// 	BlockState:       dbSrv.Block,
-	// 	StorageState:     dbSrv.Storage,
-	// 	EpochState:       dbSrv.Epoch,
-	// 	TransactionState: dbSrv.Transaction,
-	// 	LogLvl:           log.LvlTrace,
-	// 	Authority:        true,
-	// }
-
 	babeService := createTestService(t, nil)
-	// t.Cleanup(func() {
-	// 	_ = dbSrv.Stop()
-	// 	os.RemoveAll(datadir)
-	// 	_ = babeService.Stop()
-	// })
 
 	babeService.epochData.authorityIndex = 0
 	babeService.epochData.authorities = []*types.Authority{

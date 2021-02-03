@@ -53,8 +53,6 @@ func (t *Trie) store(db chaindb.Batch, curr node) error { // TODO: batch!!
 		return err
 	}
 
-	//fmt.Printf("stored node in db, node=%s hash=%x\n", curr, hash)
-
 	switch c := curr.(type) {
 	case *branch:
 		for _, child := range c.children {
@@ -155,7 +153,6 @@ func (t *Trie) DeleteFromDB(db chaindb.Database, key []byte) error {
 // ClearPrefixFromDB deletes all keys with the given prefix from the trie and writes the updated nodes the database. Since it needs to write all the nodes from the changed node up to the root, it writes these in a batch operation.
 func (t *Trie) ClearPrefixFromDB(db chaindb.Database, prefix []byte) error {
 	t.ClearPrefix(prefix)
-	//fmt.Println(t)
 	return t.WriteDirty(db)
 }
 
@@ -185,7 +182,6 @@ func getFromDB(db chaindb.Database, parent node, key []byte) ([]byte, error) {
 
 	switch p := parent.(type) {
 	case *branch:
-		//fmt.Printf("getFromDB parent=%s key=%x\n", parent, key)
 		length := lenCommonPrefix(p.key, key)
 
 		// found the value at this node
@@ -195,17 +191,14 @@ func getFromDB(db chaindb.Database, parent node, key []byte) ([]byte, error) {
 
 		// did not find value
 		if bytes.Equal(p.key[:length], key) && len(key) < len(p.key) {
-			//fmt.Println("did not find value")
 			return nil, nil
 		}
 
 		if p.children[key[length]] == nil {
-			//fmt.Println("did not find value")
 			return nil, nil
 		}
 
 		// load child with potential value
-		//fmt.Printf("loading child w/ potential val %x\n", p.children[key[length]].(*leaf).hash)
 		enc, err := db.Get(p.children[key[length]].(*leaf).hash)
 		if err != nil {
 			return nil, fmt.Errorf("failed to find node in database: %w", err)
@@ -233,7 +226,6 @@ func getFromDB(db chaindb.Database, parent node, key []byte) ([]byte, error) {
 
 // WriteDirty writes all dirty nodes to the database and sets them to clean
 func (t *Trie) WriteDirty(db chaindb.Database) error {
-	//fmt.Println(t)
 	batch := db.NewBatch()
 	err := t.writeDirty(batch, t.root)
 	if err != nil {
@@ -268,8 +260,6 @@ func (t *Trie) writeDirty(db chaindb.Batch, curr node) error { // TODO: batch!!
 	if err != nil {
 		return err
 	}
-
-	//fmt.Printf("wrote dirty node in db, node=%s hash=%x\n", curr, hash)
 
 	switch c := curr.(type) {
 	case *branch:
