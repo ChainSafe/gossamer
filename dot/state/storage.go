@@ -91,9 +91,17 @@ func (s *StorageState) pruneKey(keyHeader *types.Header) {
 }
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database
-func (s *StorageState) StoreTrie(root common.Hash, ts *rtstorage.TrieState) error {
+// TODO: rename to CacheTrie
+func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
+	root := ts.MustRoot()
+
 	s.lock.Lock()
-	s.tries[root] = ts.Trie()
+	t := trie.NewEmptyTrie()
+	err := LoadTrie(s.db, t, root)
+	if err != nil {
+		return err
+	}
+	s.tries[root] = t //ts.Trie()
 	s.lock.Unlock()
 
 	logger.Trace("cached trie in storage state", "root", root)

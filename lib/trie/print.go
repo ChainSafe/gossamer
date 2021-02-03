@@ -19,6 +19,8 @@ package trie
 import (
 	"fmt"
 
+	"github.com/ChainSafe/gossamer/lib/common"
+
 	"github.com/disiqueira/gotree"
 )
 
@@ -36,22 +38,29 @@ func (t *Trie) String() string {
 func (t *Trie) string(tree gotree.Tree, curr node, idx int) {
 	switch c := curr.(type) {
 	case *branch:
-		sub := tree.Add(fmt.Sprintf("idx=%d %s enc=%x", idx, c.String(), c.encoding))
+		var bstr string
+		if len(c.encoding) > 1024 {
+			bstr = fmt.Sprintf("idx=%d %s hash=%x", idx, c.String(), common.MustBlake2bHash(c.encoding))
+		} else {
+			bstr = fmt.Sprintf("idx=%d %s enc=%x", idx, c.String(), c.encoding)
+		}
+		sub := tree.Add(bstr)
 		for i, child := range c.children {
 			if child != nil {
 				t.string(sub, child, i)
 			}
 		}
 	case *leaf:
-		tree.Add(fmt.Sprintf("idx=%d %s enc=%x", idx, c.String(), c.encoding))
+		var bstr string
+		if len(c.encoding) > 1024 {
+			bstr = fmt.Sprintf("idx=%d %s hash=%x", idx, c.String(), common.MustBlake2bHash(c.encoding))
+		} else {
+			bstr = fmt.Sprintf("idx=%d %s enc=%x", idx, c.String(), c.encoding)
+		}
+		tree.Add(bstr)
 	default:
 		return
 	}
-}
-
-// StringWithEncoding returns the trie stringified as well as the encoding of each node
-func (t *Trie) StringWithEncoding() string {
-	return t.String()
 }
 
 // Print prints the trie through pre-order traversal

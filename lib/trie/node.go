@@ -58,6 +58,7 @@ type node interface {
 	setDirty(dirty bool)
 	setKey(key []byte)
 	String() string
+	setEncodingAndHash([]byte, []byte)
 }
 
 type (
@@ -78,6 +79,16 @@ type (
 		encoding   []byte
 	}
 )
+
+func (b *branch) setEncodingAndHash(enc, hash []byte) {
+	b.encoding = enc
+	b.hash = hash
+}
+
+func (l *leaf) setEncodingAndHash(enc, hash []byte) {
+	l.encoding = enc
+	l.hash = hash
+}
 
 func (b *branch) String() string {
 	if len(b.value) > 1024 {

@@ -45,12 +45,12 @@ func NewTrieState(db chaindb.Database, t *trie.Trie) (*TrieState, error) {
 		t:  t,
 	}
 
-	err := t.WriteDirty(db)
-	if err != nil {
-		return nil, err
-	}
+	// err := t.WriteDirty(db)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	err = ts.storeWorkingRoot()
+	err := ts.storeWorkingRoot()
 	if err != nil {
 		return nil, err
 	}

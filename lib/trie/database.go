@@ -28,10 +28,17 @@ import (
 // Store stores each trie node in the database, where the key is the hash of the encoded node and the value is the encoded node.
 // Generally, this will only be used for the genesis trie.
 func (t *Trie) Store(db chaindb.Database) error {
-	return t.store(db, t.root)
+	batch := db.NewBatch()
+	err := t.store(batch, t.root)
+	if err != nil {
+		batch.Reset()
+		return err
+	}
+
+	return batch.Flush()
 }
 
-func (t *Trie) store(db chaindb.Database, curr node) error { // TODO: batch!!
+func (t *Trie) store(db chaindb.Batch, curr node) error { // TODO: batch!!
 	if curr == nil {
 		return nil
 	}
@@ -46,7 +53,7 @@ func (t *Trie) store(db chaindb.Database, curr node) error { // TODO: batch!!
 		return err
 	}
 
-	//fmt.Printf("stored node in db, node=%s enc=%x hash=%x\n", curr, enc, hash)
+	//fmt.Printf("stored node in db, node=%s hash=%x\n", curr, hash)
 
 	switch c := curr.(type) {
 	case *branch:
@@ -87,20 +94,21 @@ func (t *Trie) Load(db chaindb.Database, root common.Hash) error {
 	}
 
 	t.root.setDirty(false)
+	t.root.setEncodingAndHash(enc, root[:])
+
 	return t.load(db, t.root)
 }
 
 func (t *Trie) load(db chaindb.Database, curr node) error {
 	switch c := curr.(type) {
 	case *branch:
-		//fmt.Println(curr)
-
 		for i, child := range c.children {
 			if child == nil {
 				continue
 			}
 
-			enc, err := db.Get(child.(*leaf).hash)
+			hash := child.(*leaf).hash // TODO: add getHash to node
+			enc, err := db.Get(hash)
 			if err != nil {
 				return fmt.Errorf("failed to find node key=%x index=%d: %w", child.(*leaf).hash, i, err)
 			}
@@ -111,6 +119,8 @@ func (t *Trie) load(db chaindb.Database, curr node) error {
 			}
 
 			child.setDirty(false)
+			child.setEncodingAndHash(enc, hash)
+
 			c.children[i] = child
 			err = t.load(db, child)
 			if err != nil {
@@ -224,10 +234,17 @@ func getFromDB(db chaindb.Database, parent node, key []byte) ([]byte, error) {
 // WriteDirty writes all dirty nodes to the database and sets them to clean
 func (t *Trie) WriteDirty(db chaindb.Database) error {
 	//fmt.Println(t)
-	return t.writeDirty(db, t.root)
+	batch := db.NewBatch()
+	err := t.writeDirty(batch, t.root)
+	if err != nil {
+		batch.Reset()
+		return err
+	}
+
+	return batch.Flush()
 }
 
-func (t *Trie) writeDirty(db chaindb.Database, curr node) error { // TODO: batch!!
+func (t *Trie) writeDirty(db chaindb.Batch, curr node) error { // TODO: batch!!
 	if curr == nil || !curr.isDirty() {
 		return nil
 	}
@@ -252,7 +269,7 @@ func (t *Trie) writeDirty(db chaindb.Database, curr node) error { // TODO: batch
 		return err
 	}
 
-	//fmt.Printf("wrote dirty node in db, node=%s enc=%x hash=%x\n", curr, enc, hash)
+	//fmt.Printf("wrote dirty node in db, node=%s hash=%x\n", curr, hash)
 
 	switch c := curr.(type) {
 	case *branch:

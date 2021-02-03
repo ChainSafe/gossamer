@@ -17,6 +17,7 @@
 package sync
 
 import (
+	"fmt"
 	"io/ioutil"
 	"math/big"
 	"testing"
@@ -54,7 +55,7 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie
 }
 
 func newTestSyncer(t *testing.T) *Service {
-	wasmer.DefaultTestLogLvl = 0
+	wasmer.DefaultTestLogLvl = 4
 
 	cfg := &Config{}
 	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
@@ -77,7 +78,16 @@ func newTestSyncer(t *testing.T) *Service {
 	}
 
 	if cfg.Runtime == nil {
-		cfg.Runtime = wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
+		// set state to genesis state
+		genState := rtstorage.NewTestTrieState(t, genTrie)
+
+		rtCfg := &wasmer.Config{}
+		rtCfg.Storage = genState
+		rtCfg.LogLvl = 4
+
+		instance, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg)
+		require.NoError(t, err)
+		cfg.Runtime = instance
 	}
 
 	if cfg.TransactionState == nil {
@@ -292,6 +302,12 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
+
+	parentState, err := syncer.storageState.TrieState(&parent.StateRoot)
+	require.NoError(t, err)
+	ts, err := parentState.Copy()
+	require.NoError(t, err)
+	syncer.runtime.SetContext(ts)
 	block := buildBlock(t, syncer.runtime, parent)
 
 	bd := []*types.BlockData{{
@@ -305,6 +321,8 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 	msg := &network.BlockResponseMessage{
 		BlockData: bd,
 	}
+	fmt.Println("-------------PROCESSING BLOCK------------")
+
 	low, high, err := syncer.processBlockResponseData(msg)
 	require.Nil(t, err)
 	require.Equal(t, int64(1), low)
@@ -312,6 +330,8 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 }
 
 func buildBlock(t *testing.T, instance runtime.Instance, parent *types.Header) *types.Block {
+	fmt.Println("-------------BUILDING BLOCK------------")
+
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     big.NewInt(0).Add(parent.Number, big.NewInt(1)),
@@ -354,6 +374,14 @@ func buildBlock(t *testing.T, instance runtime.Instance, parent *types.Header) *
 
 	res, err := instance.FinalizeBlock()
 	require.NoError(t, err)
+	res.Number = header.Number
+
+	// babeDigest := types.NewBabePrimaryPreDigest(0, 1, [32]byte{}, [64]byte{})
+	// data := babeDigest.Encode()
+	// preDigest := types.NewBABEPreRuntimeDigest(data)
+	// res.Digest = types.Digest{preDigest}
+
+	fmt.Println("parent block", res)
 
 	return &types.Block{
 		Header: res,

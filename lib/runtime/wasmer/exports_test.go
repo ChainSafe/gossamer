@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	//"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -165,7 +165,7 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 
 	_ = buildBlock(t, rt)
 
-	ext := types.Extrinsic(append([]byte{byte(modules.TxnExternal)}, extBytes...))
+	ext := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, extBytes...))
 
 	t.Log("---------------VALIDATE TRANSACTION-----------------")
 	_, err = rt.ValidateTransaction(ext)
@@ -394,9 +394,36 @@ func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
 	instance.SetContext(parentState)
 
 	fmt.Println("---------EXECUTE BLOCK------------")
-	DefaultTestLogLvl = 4
 
 	_, err := instance.ExecuteBlock(block)
+	require.NoError(t, err)
+}
+
+func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
+	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis-raw.json")
+	require.NoError(t, err)
+
+	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	// set state to genesis state
+	genState := storage.NewTestTrieState(t, genTrie)
+
+	cfg := &Config{}
+	cfg.Storage = genState
+	cfg.LogLvl = 4
+
+	instance, err := NewRuntimeFromGenesis(gen, cfg)
+	require.NoError(t, err)
+	block := buildBlock(t, instance)
+
+	// reset state back to parent state before executing
+	parentState := storage.NewTestTrieState(t, genTrie)
+	instance.SetContext(parentState)
+
+	fmt.Println("---------EXECUTE BLOCK------------")
+
+	_, err = instance.ExecuteBlock(block)
 	require.NoError(t, err)
 }
 
