@@ -44,6 +44,10 @@ type Service struct {
 	Transaction *TransactionState
 	Epoch       *EpochState
 	closeCh     chan interface{}
+
+	// Below are for testing only.
+	BabeThresholdNumerator   uint64
+	BabeThresholdDenominator uint64
 }
 
 // NewService create a new instance of Service
@@ -103,7 +107,11 @@ func (s *Service) Initialize(gen *genesis.Genesis, header *types.Header, t *trie
 		return fmt.Errorf("failed to clear database: %s", err)
 	}
 
-	babeCfg, err := loadBabeConfigurationFromRuntime(t, db, gen)
+	if err = t.Store(chaindb.NewTable(db, storagePrefix)); err != nil {
+		return fmt.Errorf("failed to write genesis trie to database: %w", err)
+	}
+
+	babeCfg, err := s.loadBabeConfigurationFromRuntime(t, db, gen)
 	if err != nil {
 		return err
 	}
@@ -156,7 +164,7 @@ func (s *Service) Initialize(gen *genesis.Genesis, header *types.Header, t *trie
 	return nil
 }
 
-func loadBabeConfigurationFromRuntime(t *trie.Trie, db chaindb.Database, gen *genesis.Genesis) (*types.BabeConfiguration, error) {
+func (s *Service) loadBabeConfigurationFromRuntime(t *trie.Trie, db chaindb.Database, gen *genesis.Genesis) (*types.BabeConfiguration, error) {
 	// load genesis state into database
 	genTrie, err := rtstorage.NewTrieState(chaindb.NewTable(db, storagePrefix), t)
 	if err != nil {
@@ -166,6 +174,7 @@ func loadBabeConfigurationFromRuntime(t *trie.Trie, db chaindb.Database, gen *ge
 	// create genesis runtime
 	rtCfg := &wasmer.Config{}
 	rtCfg.Storage = genTrie
+	rtCfg.LogLvl = 4
 
 	r, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg)
 	if err != nil {
@@ -179,6 +188,12 @@ func loadBabeConfigurationFromRuntime(t *trie.Trie, db chaindb.Database, gen *ge
 	}
 
 	r.Stop()
+
+	if s.BabeThresholdDenominator != 0 {
+		babeCfg.C1 = s.BabeThresholdNumerator
+		babeCfg.C2 = s.BabeThresholdDenominator
+	}
+
 	return babeCfg, nil
 }
 

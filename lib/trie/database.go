@@ -71,6 +71,10 @@ func (t *Trie) store(db chaindb.Batch, curr node) error {
 		curr.setDirty(false)
 	}
 
+	if l, ok := curr.(*leaf); ok {
+		l.valueDirty = false
+	}
+
 	return nil
 }
 

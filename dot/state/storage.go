@@ -101,7 +101,7 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
 	if err != nil {
 		return err
 	}
-	s.tries[root] = t //ts.Trie()
+	s.tries[root] = t
 	s.lock.Unlock()
 
 	logger.Trace("cached trie in storage state", "root", root)

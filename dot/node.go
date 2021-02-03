@@ -78,6 +78,11 @@ func InitNode(cfg *Config) error {
 	// create new state service
 	stateSrvc := state.NewService(cfg.Global.BasePath, cfg.Global.LogLvl)
 
+	if cfg.Core.BabeThresholdDenominator != 0 {
+		stateSrvc.BabeThresholdNumerator = cfg.Core.BabeThresholdNumerator
+		stateSrvc.BabeThresholdDenominator = cfg.Core.BabeThresholdDenominator
+	}
+
 	// initialize state service with genesis data, block, and trie
 	err = stateSrvc.Initialize(gen, header, t)
 	if err != nil {
