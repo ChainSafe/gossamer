@@ -615,10 +615,9 @@ func handleDeletion(p *branch, n node, key []byte) (nn node) {
 			r := &bytes.Buffer{}
 			r.Write(p.encoding)
 			prev, err := decode(r)
-			if err != nil {
-				// TODO: handle
+			if err == nil {
+				p.value = prev.(*branch).value
 			}
-			p.value = prev.(*branch).value
 		}
 
 		nn = &leaf{key: key[:length], value: p.value, dirty: true}
@@ -641,10 +640,9 @@ func handleDeletion(p *branch, n node, key []byte) (nn node) {
 				r := &bytes.Buffer{}
 				r.Write(c.encoding)
 				prev, err := decode(r)
-				if err != nil {
-					// TODO: handle
+				if err == nil {
+					c.value = prev.(*leaf).value
 				}
-				c.value = prev.(*leaf).value
 			}
 
 			nn = &leaf{key: append(append(p.key, []byte{byte(i)}...), c.key...), value: c.value}
@@ -654,10 +652,9 @@ func handleDeletion(p *branch, n node, key []byte) (nn node) {
 				r := &bytes.Buffer{}
 				r.Write(c.encoding)
 				prev, err := decode(r)
-				if err != nil {
-					// TODO: handle
+				if err == nil {
+					c.value = prev.(*branch).value
 				}
-				c.value = prev.(*branch).value
 			}
 
 			br := new(branch)
