@@ -81,15 +81,12 @@ func TestStorageState_RegisterStorageChangeChannel_Multi(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	root, err := ts.Root()
-	require.NoError(t, err)
-
 	key1 := []byte("key1")
 	value1 := []byte("value1")
 
 	ts.Set(key1, value1)
 
-	err = ss.StoreTrie(root, ts)
+	err = ss.StoreTrie(ts)
 	require.NoError(t, err)
 
 	var wg sync.WaitGroup
@@ -144,12 +141,9 @@ func TestStorageState_RegisterStorageChangeChannel_Multi_Filter(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	root, err := ts.Root()
-	require.NoError(t, err)
-
 	ts.Set(key1, value1)
 
-	err = ss.StoreTrie(root, ts)
+	err = ss.StoreTrie(ts)
 	require.NoError(t, err)
 
 	time.Sleep(time.Millisecond * 500)

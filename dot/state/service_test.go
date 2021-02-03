@@ -171,7 +171,7 @@ func TestService_PruneStorage(t *testing.T) {
 		err = serv.Storage.blockState.AddBlock(block)
 		require.NoError(t, err)
 
-		err = serv.Storage.StoreTrie(block.Header.StateRoot, trieState)
+		err = serv.Storage.StoreTrie(trieState)
 		require.NoError(t, err)
 
 		// Only finalize a block at height 3
@@ -189,7 +189,7 @@ func TestService_PruneStorage(t *testing.T) {
 		err = serv.Storage.blockState.AddBlock(block)
 		require.NoError(t, err)
 
-		err = serv.Storage.StoreTrie(block.Header.StateRoot, trieState)
+		err = serv.Storage.StoreTrie(trieState)
 		require.NoError(t, err)
 
 		// Store the other blocks that will be pruned.

@@ -17,7 +17,6 @@
 package sync
 
 import (
-	"fmt"
 	"io/ioutil"
 	"math/big"
 	"testing"
@@ -321,7 +320,6 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 	msg := &network.BlockResponseMessage{
 		BlockData: bd,
 	}
-	fmt.Println("-------------PROCESSING BLOCK------------")
 
 	low, high, err := syncer.processBlockResponseData(msg)
 	require.Nil(t, err)
@@ -330,8 +328,6 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 }
 
 func buildBlock(t *testing.T, instance runtime.Instance, parent *types.Header) *types.Block {
-	fmt.Println("-------------BUILDING BLOCK------------")
-
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     big.NewInt(0).Add(parent.Number, big.NewInt(1)),
@@ -376,13 +372,6 @@ func buildBlock(t *testing.T, instance runtime.Instance, parent *types.Header) *
 	require.NoError(t, err)
 	res.Number = header.Number
 
-	// babeDigest := types.NewBabePrimaryPreDigest(0, 1, [32]byte{}, [64]byte{})
-	// data := babeDigest.Encode()
-	// preDigest := types.NewBABEPreRuntimeDigest(data)
-	// res.Digest = types.Digest{preDigest}
-
-	fmt.Println("parent block", res)
-
 	return &types.Block{
 		Header: res,
 		Body:   types.NewBody(inherentExts),
@@ -395,10 +384,18 @@ func TestSyncer_ExecuteBlock(t *testing.T) {
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
+	parentState, err := syncer.storageState.TrieState(&parent.StateRoot)
+	require.NoError(t, err)
+	ts, err := parentState.Copy()
+	require.NoError(t, err)
+	syncer.runtime.SetContext(ts)
 	block := buildBlock(t, syncer.runtime, parent)
 
-	// set parentState, which is the test genesis state ie. empty state
-	parentState := rtstorage.NewTestTrieState(t, nil)
+	// reset parentState
+	parentState, err = syncer.storageState.TrieState(&parent.StateRoot)
+	require.NoError(t, err)
+	ts, err = parentState.Copy()
+	require.NoError(t, err)
 	syncer.runtime.SetContext(parentState)
 
 	_, err = syncer.runtime.ExecuteBlock(block)
