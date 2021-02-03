@@ -50,6 +50,9 @@ func NewTestTrieState(t *testing.T, tr *trie.Trie) *TrieState {
 		tr = trie.NewEmptyTrie()
 	}
 
+	err = tr.WriteDirty(db)
+	require.NoError(t, err)
+
 	ts, err := NewTrieState(db, tr)
 	require.NoError(t, err)
 

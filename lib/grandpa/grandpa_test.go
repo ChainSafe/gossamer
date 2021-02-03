@@ -42,15 +42,15 @@ var testGenesisHeader = &types.Header{
 	StateRoot: trie.EmptyHash,
 }
 
-var genesisBABEConfig = &types.BabeConfiguration{
-	SlotDuration:       1000,
-	EpochLength:        200,
-	C1:                 1,
-	C2:                 4,
-	GenesisAuthorities: []*types.AuthorityRaw{},
-	Randomness:         [32]byte{},
-	SecondarySlots:     false,
-}
+// var genesisBABEConfig = &types.BabeConfiguration{
+// 	SlotDuration:       1000,
+// 	EpochLength:        200,
+// 	C1:                 1,
+// 	C2:                 4,
+// 	GenesisAuthorities: []*types.AuthorityRaw{},
+// 	Randomness:         [32]byte{},
+// 	SecondarySlots:     false,
+// }
 
 var kr, _ = keystore.NewEd25519Keyring()
 
@@ -60,6 +60,21 @@ func (h *mockDigestHandler) NextGrandpaAuthorityChange() uint64 {
 	return 2 ^ 64 - 1
 }
 
+func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
+	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis-raw.json")
+	if err != nil {
+		gen, err = genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis-raw.json")
+		require.NoError(t, err)
+	}
+
+	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), genTrie.MustHash(), trie.EmptyHash, types.Digest{})
+	require.NoError(t, err)
+	return gen, genTrie, genesisHeader
+}
+
 func newTestState(t *testing.T) *state.Service {
 	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
 	require.NoError(t, err)
@@ -67,9 +82,9 @@ func newTestState(t *testing.T) *state.Service {
 	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo)
 	stateSrvc.UseMemDB()
 
-	genesisData := new(genesis.Data)
+	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
 
-	err = stateSrvc.Initialize(genesisData, testGenesisHeader, trie.NewEmptyTrie(), genesisBABEConfig)
+	err = stateSrvc.Initialize(gen, genHeader, genTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.Start()
