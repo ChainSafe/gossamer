@@ -18,12 +18,13 @@ package trie
 
 import (
 	"bytes"
-	"reflect"
 	"strconv"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/scale"
+
+	"github.com/stretchr/testify/require"
 )
 
 // byteArray makes byte array with length specified; used to test byte array encoding
@@ -66,24 +67,24 @@ func TestBranchHeader(t *testing.T) {
 		br     *branch
 		header []byte
 	}{
-		{&branch{nil, [16]node{}, nil, true}, []byte{0x80}},
-		{&branch{[]byte{0x00}, [16]node{}, nil, true}, []byte{0x81}},
-		{&branch{[]byte{0x00, 0x00, 0xf, 0x3}, [16]node{}, nil, true}, []byte{0x84}},
+		{&branch{key: nil, children: [16]node{}, value: nil}, []byte{0x80}},
+		{&branch{key: []byte{0x00}, children: [16]node{}, value: nil}, []byte{0x81}},
+		{&branch{key: []byte{0x00, 0x00, 0xf, 0x3}, children: [16]node{}, value: nil}, []byte{0x84}},
 
-		{&branch{nil, [16]node{}, []byte{0x01}, true}, []byte{0xc0}},
-		{&branch{[]byte{0x00}, [16]node{}, []byte{0x01}, true}, []byte{0xc1}},
-		{&branch{[]byte{0x00, 0x00}, [16]node{}, []byte{0x01}, true}, []byte{0xc2}},
-		{&branch{[]byte{0x00, 0x00, 0xf}, [16]node{}, []byte{0x01}, true}, []byte{0xc3}},
+		{&branch{key: nil, children: [16]node{}, value: []byte{0x01}}, []byte{0xc0}},
+		{&branch{key: []byte{0x00}, children: [16]node{}, value: []byte{0x01}}, []byte{0xc1}},
+		{&branch{key: []byte{0x00, 0x00}, children: [16]node{}, value: []byte{0x01}}, []byte{0xc2}},
+		{&branch{key: []byte{0x00, 0x00, 0xf}, children: [16]node{}, value: []byte{0x01}}, []byte{0xc3}},
 
-		{&branch{byteArray(62), [16]node{}, nil, true}, []byte{0xbe}},
-		{&branch{byteArray(62), [16]node{}, []byte{0x00}, true}, []byte{0xfe}},
-		{&branch{byteArray(63), [16]node{}, nil, true}, []byte{0xbf, 0}},
-		{&branch{byteArray(64), [16]node{}, nil, true}, []byte{0xbf, 1}},
-		{&branch{byteArray(64), [16]node{}, []byte{0x01}, true}, []byte{0xff, 1}},
+		{&branch{key: byteArray(62), children: [16]node{}, value: nil}, []byte{0xbe}},
+		{&branch{key: byteArray(62), children: [16]node{}, value: []byte{0x00}}, []byte{0xfe}},
+		{&branch{key: byteArray(63), children: [16]node{}, value: nil}, []byte{0xbf, 0}},
+		{&branch{key: byteArray(64), children: [16]node{}, value: nil}, []byte{0xbf, 1}},
+		{&branch{key: byteArray(64), children: [16]node{}, value: []byte{0x01}}, []byte{0xff, 1}},
 
-		{&branch{byteArray(317), [16]node{}, []byte{0x01}, true}, []byte{255, 254}},
-		{&branch{byteArray(318), [16]node{}, []byte{0x01}, true}, []byte{255, 255, 0}},
-		{&branch{byteArray(573), [16]node{}, []byte{0x01}, true}, []byte{255, 255, 255, 0}},
+		{&branch{key: byteArray(317), children: [16]node{}, value: []byte{0x01}}, []byte{255, 254}},
+		{&branch{key: byteArray(318), children: [16]node{}, value: []byte{0x01}}, []byte{255, 255, 0}},
+		{&branch{key: byteArray(573), children: [16]node{}, value: []byte{0x01}}, []byte{255, 255, 255, 0}},
 	}
 
 	for _, test := range tests {
@@ -102,7 +103,7 @@ func TestFailingPk(t *testing.T) {
 		br     *branch
 		header []byte
 	}{
-		{&branch{byteArray(2 << 16), [16]node{}, []byte{0x01}, true}, []byte{255, 254}},
+		{&branch{key: byteArray(2 << 16), children: [16]node{}, value: []byte{0x01}}, []byte{255, 254}},
 	}
 
 	for _, test := range tests {
@@ -118,15 +119,15 @@ func TestLeafHeader(t *testing.T) {
 		br     *leaf
 		header []byte
 	}{
-		{&leaf{nil, nil, true}, []byte{0x40}},
-		{&leaf{[]byte{0x00}, nil, true}, []byte{0x41}},
-		{&leaf{[]byte{0x00, 0x00, 0xf, 0x3}, nil, true}, []byte{0x44}},
-		{&leaf{byteArray(62), nil, true}, []byte{0x7e}},
-		{&leaf{byteArray(63), nil, true}, []byte{0x7f, 0}},
-		{&leaf{byteArray(64), []byte{0x01}, true}, []byte{0x7f, 1}},
+		{&leaf{key: nil, value: nil}, []byte{0x40}},
+		{&leaf{key: []byte{0x00}, value: nil}, []byte{0x41}},
+		{&leaf{key: []byte{0x00, 0x00, 0xf, 0x3}, value: nil}, []byte{0x44}},
+		{&leaf{key: byteArray(62), value: nil}, []byte{0x7e}},
+		{&leaf{key: byteArray(63), value: nil}, []byte{0x7f, 0}},
+		{&leaf{key: byteArray(64), value: []byte{0x01}}, []byte{0x7f, 1}},
 
-		{&leaf{byteArray(318), []byte{0x01}, true}, []byte{0x7f, 0xff, 0}},
-		{&leaf{byteArray(573), []byte{0x01}, true}, []byte{0x7f, 0xff, 0xff, 0}},
+		{&leaf{key: byteArray(318), value: []byte{0x01}}, []byte{0x7f, 0xff, 0}},
+		{&leaf{key: byteArray(573), value: []byte{0x01}}, []byte{0x7f, 0xff, 0xff, 0}},
 	}
 
 	for i, test := range tests {
@@ -252,119 +253,107 @@ func TestEncodeRoot(t *testing.T) {
 
 func TestBranchDecode(t *testing.T) {
 	tests := []*branch{
-		{[]byte{}, [16]node{}, nil, true},
-		{[]byte{0x00}, [16]node{}, nil, true},
-		{[]byte{0x00, 0x00, 0xf, 0x3}, [16]node{}, nil, true},
-		{[]byte{}, [16]node{}, []byte{0x01}, true},
-		{[]byte{}, [16]node{&leaf{}}, []byte{0x01}, true},
-		{[]byte{}, [16]node{&leaf{}, nil, &leaf{}}, []byte{0x01}, true},
-		{[]byte{}, [16]node{&leaf{}, nil, &leaf{}, nil, nil, nil, nil, nil, nil, &leaf{}, nil, &leaf{}}, []byte{0x01}, true},
-		{byteArray(62), [16]node{}, nil, true},
-		{byteArray(63), [16]node{}, nil, true},
-		{byteArray(64), [16]node{}, nil, true},
-		{byteArray(317), [16]node{}, []byte{0x01}, true},
-		{byteArray(318), [16]node{}, []byte{0x01}, true},
-		{byteArray(573), [16]node{}, []byte{0x01}, true},
+		{key: []byte{}, children: [16]node{}, value: nil},
+		{key: []byte{0x00}, children: [16]node{}, value: nil},
+		{key: []byte{0x00, 0x00, 0xf, 0x3}, children: [16]node{}, value: nil},
+		{key: []byte{}, children: [16]node{}, value: []byte{0x01}},
+		{key: []byte{}, children: [16]node{&leaf{}}, value: []byte{0x01}},
+		{key: []byte{}, children: [16]node{&leaf{}, nil, &leaf{}}, value: []byte{0x01}},
+		{key: []byte{}, children: [16]node{&leaf{}, nil, &leaf{}, nil, nil, nil, nil, nil, nil, &leaf{}, nil, &leaf{}}, value: []byte{0x01}},
+		{key: byteArray(62), children: [16]node{}, value: nil},
+		{key: byteArray(63), children: [16]node{}, value: nil},
+		{key: byteArray(64), children: [16]node{}, value: nil},
+		{key: byteArray(317), children: [16]node{}, value: []byte{0x01}},
+		{key: byteArray(318), children: [16]node{}, value: []byte{0x01}},
+		{key: byteArray(573), children: [16]node{}, value: []byte{0x01}},
 	}
 
 	for _, test := range tests {
 		enc, err := test.encode()
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		res := new(branch)
 		r := &bytes.Buffer{}
 		_, err = r.Write(enc)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		err = res.decode(r, 0)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if !reflect.DeepEqual(res, test) {
-			t.Fatalf("Fail: got %v expected %v encoding %x", res, test, enc)
-		}
+		require.NoError(t, err)
+		require.Equal(t, test.key, res.key)
+		require.Equal(t, test.childrenBitmap(), res.childrenBitmap())
+		require.Equal(t, test.value, res.value)
 	}
 }
 
 func TestLeafDecode(t *testing.T) {
 	tests := []*leaf{
-		{[]byte{}, nil, true},
-		{[]byte{0x01}, nil, true},
-		{[]byte{0x00, 0x00, 0xf, 0x3}, nil, true},
-		{byteArray(62), nil, true},
-		{byteArray(63), nil, true},
-		{byteArray(64), []byte{0x01}, true},
-		{byteArray(318), []byte{0x01}, true},
-		{byteArray(573), []byte{0x01}, true},
+		{key: []byte{}, value: nil, dirty: true},
+		{key: []byte{0x01}, value: nil, dirty: true},
+		{key: []byte{0x00, 0x00, 0xf, 0x3}, value: nil, dirty: true},
+		{key: byteArray(62), value: nil, dirty: true},
+		{key: byteArray(63), value: nil, dirty: true},
+		{key: byteArray(64), value: []byte{0x01}, dirty: true},
+		{key: byteArray(318), value: []byte{0x01}, dirty: true},
+		{key: byteArray(573), value: []byte{0x01}, dirty: true},
 	}
 
 	for _, test := range tests {
 		enc, err := test.encode()
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		res := new(leaf)
 		r := &bytes.Buffer{}
 		_, err = r.Write(enc)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		err = res.decode(r, 0)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
-		if !reflect.DeepEqual(res, test) {
-			t.Fatalf("Fail: got %v expected %v encoding %x", res, test, enc)
-		}
+		res.hash = nil
+		require.Equal(t, test, res)
 	}
 }
 
 func TestDecode(t *testing.T) {
 	tests := []node{
-		&branch{[]byte{}, [16]node{}, nil, true},
-		&branch{[]byte{0x00}, [16]node{}, nil, true},
-		&branch{[]byte{0x00, 0x00, 0xf, 0x3}, [16]node{}, nil, true},
-		&branch{[]byte{}, [16]node{}, []byte{0x01}, true},
-		&branch{[]byte{}, [16]node{&leaf{}}, []byte{0x01}, true},
-		&branch{[]byte{}, [16]node{&leaf{}, nil, &leaf{}}, []byte{0x01}, true},
-		&branch{[]byte{}, [16]node{&leaf{}, nil, &leaf{}, nil, nil, nil, nil, nil, nil, &leaf{}, nil, &leaf{}}, []byte{0x01}, true},
-		&leaf{[]byte{}, nil, true},
-		&leaf{[]byte{0x00}, nil, true},
-		&leaf{[]byte{0x00, 0x00, 0xf, 0x3}, nil, true},
-		&leaf{byteArray(62), nil, true},
-		&leaf{byteArray(63), nil, true},
-		&leaf{byteArray(64), []byte{0x01}, true},
-		&leaf{byteArray(318), []byte{0x01}, true},
-		&leaf{byteArray(573), []byte{0x01}, true},
+		&branch{key: []byte{}, children: [16]node{}, value: nil},
+		&branch{key: []byte{0x00}, children: [16]node{}, value: nil},
+		&branch{key: []byte{0x00, 0x00, 0xf, 0x3}, children: [16]node{}, value: nil},
+		&branch{key: []byte{}, children: [16]node{}, value: []byte{0x01}},
+		&branch{key: []byte{}, children: [16]node{&leaf{}}, value: []byte{0x01}},
+		&branch{key: []byte{}, children: [16]node{&leaf{}, nil, &leaf{}}, value: []byte{0x01}},
+		&branch{key: []byte{}, children: [16]node{&leaf{}, nil, &leaf{}, nil, nil, nil, nil, nil, nil, &leaf{}, nil, &leaf{}}, value: []byte{0x01}},
+		&leaf{key: []byte{}, value: nil},
+		&leaf{key: []byte{0x00}, value: nil},
+		&leaf{key: []byte{0x00, 0x00, 0xf, 0x3}, value: nil},
+		&leaf{key: byteArray(62), value: nil},
+		&leaf{key: byteArray(63), value: nil},
+		&leaf{key: byteArray(64), value: []byte{0x01}},
+		&leaf{key: byteArray(318), value: []byte{0x01}},
+		&leaf{key: byteArray(573), value: []byte{0x01}},
 	}
 
 	for _, test := range tests {
 		enc, err := test.encode()
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		r := &bytes.Buffer{}
 		_, err = r.Write(enc)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		res, err := decode(r)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
-		if !reflect.DeepEqual(res, test) {
-			t.Fatalf("Fail: got %v expected %v encoding %x", res, test, enc)
+		switch n := test.(type) {
+		case *branch:
+			require.Equal(t, n.key, res.(*branch).key)
+			require.Equal(t, n.childrenBitmap(), res.(*branch).childrenBitmap())
+			require.Equal(t, n.value, res.(*branch).value)
+		case *leaf:
+			require.Equal(t, n.key, res.(*leaf).key)
+			require.Equal(t, n.value, res.(*leaf).value)
+		default:
+			t.Fatal("unexpected node")
 		}
 	}
 }

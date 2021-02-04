@@ -28,8 +28,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/trie"
 
 	log "github.com/ChainSafe/log15"
 )
@@ -40,16 +38,18 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 
 	dbSrv := state.NewService(testDatadirPath, log.LvlInfo)
 	dbSrv.UseMemDB()
-	genesisData := new(genesis.Data)
 
 	if genCfg == nil {
 		genCfg = genesisBABEConfig
 	}
 
-	err = dbSrv.Initialize(genesisData, genesisHeader, trie.NewEmptyTrie(), genCfg)
+	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	err = dbSrv.Initialize(gen, genHeader, genTrie)
 	require.NoError(t, err)
 
 	err = dbSrv.Start()
+	require.NoError(t, err)
+	dbSrv.Epoch, err = state.NewEpochStateFromGenesis(dbSrv.DB(), genCfg)
 	require.NoError(t, err)
 
 	logger = log.New("pkg", "babe")

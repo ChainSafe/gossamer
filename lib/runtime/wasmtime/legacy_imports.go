@@ -17,7 +17,6 @@
 package wasmtime
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"math/big"
@@ -201,16 +200,7 @@ func ext_clear_prefix(c *wasmtime.Caller, prefixData, prefixLen int32) {
 	memory := m.UnsafeData()
 
 	prefix := memory[prefixData : prefixData+prefixLen]
-	entries := ctx.Storage.Entries()
-	for k := range entries {
-		if bytes.Equal([]byte(k)[:prefixLen], prefix) {
-			err := ctx.Storage.Delete([]byte(k))
-			if err != nil {
-				logger.Error("[ext_clear_prefix]", "err", err)
-			}
-		}
-	}
-
+	_ = ctx.Storage.ClearPrefix(prefix)
 	runtime.KeepAlive(memory)
 }
 

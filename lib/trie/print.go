@@ -18,63 +18,52 @@ package trie
 
 import (
 	"fmt"
+
+	"github.com/ChainSafe/gossamer/lib/common"
+
+	"github.com/disiqueira/gotree"
 )
 
 // String returns the trie stringified through pre-order traversal
 func (t *Trie) String() string {
-	return t.string("", t.root, nil, false)
-}
-
-// StringWithEncoding returns the trie stringified as well as the encoding of each node
-func (t *Trie) StringWithEncoding() string {
-	return t.string("", t.root, nil, true)
-}
-
-func (t *Trie) string(str string, current node, prefix []byte, withEncoding bool) string {
-	h, err := NewHasher()
-	if err != nil {
-		return ""
+	if t.root == nil {
+		return "empty"
 	}
 
-	var encoding []byte
-	var hash []byte
-	if withEncoding && current != nil {
-		encoding, err = current.encode()
-		if err != nil {
-			return ""
-		}
-		hash, err = h.Hash(current)
-		if err != nil {
-			return ""
-		}
-	}
+	tree := gotree.New(fmt.Sprintf("Trie root=0x%x", t.root.getHash()))
+	t.string(tree, t.root, 0)
+	return fmt.Sprintf("\n%s", tree.Print())
+}
 
-	switch c := current.(type) {
+func (t *Trie) string(tree gotree.Tree, curr node, idx int) {
+	switch c := curr.(type) {
 	case *branch:
-		str += fmt.Sprintf("branch prefix %x key %x children %b value %x\n", nibblesToKeyLE(prefix), nibblesToKey(c.key), c.childrenBitmap(), c.value)
-		if withEncoding {
-			str += fmt.Sprintf("branch encoding %x branch hash %x", encoding, hash)
+		var bstr string
+		if len(c.encoding) > 1024 {
+			bstr = fmt.Sprintf("idx=%d %s hash=%x", idx, c.String(), common.MustBlake2bHash(c.encoding))
+		} else {
+			bstr = fmt.Sprintf("idx=%d %s enc=%x", idx, c.String(), c.encoding)
 		}
-
+		sub := tree.Add(bstr)
 		for i, child := range c.children {
-			str = t.string(str, child, append(append(prefix, byte(i)), c.key...), withEncoding)
+			if child != nil {
+				t.string(sub, child, i)
+			}
 		}
 	case *leaf:
-		str += fmt.Sprintf("leaf prefix %x key %x value %x\n", nibblesToKeyLE(prefix), nibblesToKeyLE(c.key), c.value)
-		if withEncoding {
-			str += fmt.Sprintf("leaf encoding %x leaf hash %x", encoding, hash)
+		var bstr string
+		if len(c.encoding) > 1024 {
+			bstr = fmt.Sprintf("idx=%d %s hash=%x", idx, c.String(), common.MustBlake2bHash(c.encoding))
+		} else {
+			bstr = fmt.Sprintf("idx=%d %s enc=%x", idx, c.String(), c.encoding)
 		}
+		tree.Add(bstr)
+	default:
+		return
 	}
-
-	return str
 }
 
 // Print prints the trie through pre-order traversal
 func (t *Trie) Print() {
 	fmt.Println(t.String())
-}
-
-// PrintEncoding prints the trie with node encodings through pre-order traversal
-func (t *Trie) PrintEncoding() {
-	fmt.Println(t.StringWithEncoding())
 }
