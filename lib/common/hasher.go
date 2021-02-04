@@ -58,6 +58,16 @@ func Blake2bHash(in []byte) (Hash, error) {
 	return buf, nil
 }
 
+// MustBlake2bHash returns the 256-bit blake2b hash of the input data. It panics if it fails to hash.
+func MustBlake2bHash(in []byte) Hash {
+	hash, err := Blake2bHash(in)
+	if err != nil {
+		panic(err)
+	}
+
+	return hash
+}
+
 // Keccak256 returns the keccak256 hash of the input data
 func Keccak256(in []byte) (Hash, error) {
 	h := sha3.NewLegacyKeccak256()

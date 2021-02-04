@@ -85,29 +85,10 @@ func LoadLatestStorageHash(db database.Database) (common.Hash, error) {
 // StoreTrie encodes the entire trie and writes it to the DB
 // The key to the DB entry is the root hash of the trie
 func StoreTrie(db database.Database, t *trie.Trie) error {
-	enc, err := t.Encode()
-	if err != nil {
-		return err
-	}
-
-	roothash, err := t.Hash()
-	if err != nil {
-		return err
-	}
-
-	if has, err := db.Has(roothash[:]); err == nil && has {
-		return nil
-	}
-
-	return db.Put(roothash[:], enc)
+	return t.Store(db)
 }
 
 // LoadTrie loads an encoded trie from the DB where the key is `root`
 func LoadTrie(db database.Database, t *trie.Trie, root common.Hash) error {
-	enctrie, err := db.Get(root[:])
-	if err != nil {
-		return err
-	}
-
-	return t.Decode(enctrie)
+	return t.Load(db, root)
 }

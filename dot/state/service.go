@@ -24,6 +24,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
 	"github.com/ChainSafe/chaindb"
@@ -42,6 +44,10 @@ type Service struct {
 	Transaction *TransactionState
 	Epoch       *EpochState
 	closeCh     chan interface{}
+
+	// Below are for testing only.
+	BabeThresholdNumerator   uint64
+	BabeThresholdDenominator uint64
 }
 
 // NewService create a new instance of Service
@@ -74,7 +80,7 @@ func (s *Service) DB() chaindb.Database {
 
 // Initialize initializes the genesis state of the DB using the given storage trie. The trie should be loaded with the genesis storage state.
 // This only needs to be called during genesis initialization of the node; it doesn't need to be called during normal startup.
-func (s *Service) Initialize(data *genesis.Data, header *types.Header, t *trie.Trie, babeCfg *types.BabeConfiguration) error {
+func (s *Service) Initialize(gen *genesis.Genesis, header *types.Header, t *trie.Trie) error {
 	var db chaindb.Database
 	cfg := &chaindb.Config{}
 
@@ -101,8 +107,17 @@ func (s *Service) Initialize(data *genesis.Data, header *types.Header, t *trie.T
 		return fmt.Errorf("failed to clear database: %s", err)
 	}
 
+	if err = t.Store(chaindb.NewTable(db, storagePrefix)); err != nil {
+		return fmt.Errorf("failed to write genesis trie to database: %w", err)
+	}
+
+	babeCfg, err := s.loadBabeConfigurationFromRuntime(t, db, gen)
+	if err != nil {
+		return err
+	}
+
 	// write initial genesis values to database
-	if err = s.storeInitialValues(db, data, header, t); err != nil {
+	if err = s.storeInitialValues(db, gen.GenesisData(), header, t); err != nil {
 		return fmt.Errorf("failed to write genesis values to database: %s", err)
 	}
 
@@ -149,10 +164,43 @@ func (s *Service) Initialize(data *genesis.Data, header *types.Header, t *trie.T
 	return nil
 }
 
+func (s *Service) loadBabeConfigurationFromRuntime(t *trie.Trie, db chaindb.Database, gen *genesis.Genesis) (*types.BabeConfiguration, error) {
+	// load genesis state into database
+	genTrie, err := rtstorage.NewTrieState(chaindb.NewTable(db, storagePrefix), t)
+	if err != nil {
+		return nil, fmt.Errorf("failed to instantiate TrieState: %w", err)
+	}
+
+	// create genesis runtime
+	rtCfg := &wasmer.Config{}
+	rtCfg.Storage = genTrie
+	rtCfg.LogLvl = 4
+
+	r, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create genesis runtime: %w", err)
+	}
+
+	// load and store initial BABE epoch configuration
+	babeCfg, err := r.BabeConfiguration()
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch genesis babe configuration: %w", err)
+	}
+
+	r.Stop()
+
+	if s.BabeThresholdDenominator != 0 {
+		babeCfg.C1 = s.BabeThresholdNumerator
+		babeCfg.C2 = s.BabeThresholdDenominator
+	}
+
+	return babeCfg, nil
+}
+
 // storeInitialValues writes initial genesis values to the state database
 func (s *Service) storeInitialValues(db chaindb.Database, data *genesis.Data, header *types.Header, t *trie.Trie) error {
 	// write genesis trie to database
-	if err := StoreTrie(db, t); err != nil {
+	if err := StoreTrie(chaindb.NewTable(db, storagePrefix), t); err != nil {
 		return fmt.Errorf("failed to write trie to database: %s", err)
 	}
 
@@ -236,7 +284,7 @@ func (s *Service) Start() error {
 	// load current storage state
 	_, err = s.Storage.LoadFromDB(stateRoot)
 	if err != nil {
-		return fmt.Errorf("failed to get load storage trie from database: %w", err)
+		return fmt.Errorf("failed to load storage trie from database: %w", err)
 	}
 
 	// create transaction queue
@@ -272,9 +320,9 @@ func (s *Service) Stop() error {
 		return err
 	}
 
-	logger.Debug("storing latest storage trie", "hash", head)
+	logger.Debug("storing latest storage trie", "root", head)
 
-	if err = s.Storage.StoreInDB(head); err != nil {
+	if err = StoreTrie(s.Storage.db, t); err != nil {
 		return err
 	}
 

@@ -173,17 +173,6 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 				return fmt.Errorf("failed to set current epoch after receiving block 1: %w", err)
 			}
 
-			var epochData *types.EpochData
-			epochData, err = v.epochState.GetEpochData(0)
-			if err != nil {
-				return fmt.Errorf("failed to get epoch data for epoch 0: %w", err)
-			}
-
-			err = v.epochState.SetEpochData(epoch, epochData)
-			if err != nil {
-				return fmt.Errorf("failed to set current epoch to epoch 0 epoch data: %w", err)
-			}
-
 			info, err = v.getVerifierInfo(0)
 		} else {
 			info, err = v.getVerifierInfo(epoch)
@@ -406,6 +395,7 @@ func (b *verifier) verifyPreRuntimeDigest(digest *types.PreRuntimeDigest) (types
 	}
 
 	if len(b.authorities) <= int(babePreDigest.AuthorityIndex()) {
+		logger.Trace("verifyPreRuntimeDigest", "invalid auth index", babePreDigest.AuthorityIndex(), "our auths", len(b.authorities))
 		return nil, ErrInvalidBlockProducerIndex
 	}
 

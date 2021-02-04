@@ -25,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -40,23 +41,29 @@ import (
 
 var maxRetries = 8 //nolint
 
-var testGenesisHeader = &types.Header{
-	Number:    big.NewInt(0),
-	StateRoot: trie.EmptyHash,
+func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
+	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis-raw.json")
+	require.NoError(t, err)
+
+	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), genTrie.MustHash(), trie.EmptyHash, types.Digest{})
+	require.NoError(t, err)
+	return gen, genTrie, genesisHeader
 }
 
 func newTestSyncer(t *testing.T) *Service {
-	wasmer.DefaultTestLogLvl = 0
+	wasmer.DefaultTestLogLvl = 4
 
 	cfg := &Config{}
 	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
 	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo)
+	stateSrvc.UseMemDB()
 
-	genesisData := new(genesis.Data)
-	err := stateSrvc.Initialize(genesisData, testGenesisHeader, trie.NewEmptyTrie(), genesisBABEConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
+	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	err := stateSrvc.Initialize(gen, genHeader, genTrie)
+	require.NoError(t, err)
 
 	err = stateSrvc.Start()
 	require.NoError(t, err)
@@ -70,7 +77,16 @@ func newTestSyncer(t *testing.T) *Service {
 	}
 
 	if cfg.Runtime == nil {
-		cfg.Runtime = wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
+		// set state to genesis state
+		genState := rtstorage.NewTestTrieState(t, genTrie)
+
+		rtCfg := &wasmer.Config{}
+		rtCfg.Storage = genState
+		rtCfg.LogLvl = 4
+
+		instance, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg) //nolint
+		require.NoError(t, err)
+		cfg.Runtime = instance
 	}
 
 	if cfg.TransactionState == nil {
@@ -285,6 +301,12 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
+
+	parentState, err := syncer.storageState.TrieState(&parent.StateRoot)
+	require.NoError(t, err)
+	ts, err := parentState.Copy()
+	require.NoError(t, err)
+	syncer.runtime.SetContext(ts)
 	block := buildBlock(t, syncer.runtime, parent)
 
 	bd := []*types.BlockData{{
@@ -298,6 +320,7 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 	msg := &network.BlockResponseMessage{
 		BlockData: bd,
 	}
+
 	low, high, err := syncer.processBlockResponseData(msg)
 	require.Nil(t, err)
 	require.Equal(t, int64(1), low)
@@ -347,6 +370,7 @@ func buildBlock(t *testing.T, instance runtime.Instance, parent *types.Header) *
 
 	res, err := instance.FinalizeBlock()
 	require.NoError(t, err)
+	res.Number = header.Number
 
 	return &types.Block{
 		Header: res,
@@ -360,11 +384,19 @@ func TestSyncer_ExecuteBlock(t *testing.T) {
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
+	parentState, err := syncer.storageState.TrieState(&parent.StateRoot)
+	require.NoError(t, err)
+	ts, err := parentState.Copy()
+	require.NoError(t, err)
+	syncer.runtime.SetContext(ts)
 	block := buildBlock(t, syncer.runtime, parent)
 
-	// set parentState, which is the test genesis state ie. empty state
-	parentState := rtstorage.NewTestTrieState(t, nil)
-	syncer.runtime.SetContext(parentState)
+	// reset parentState
+	parentState, err = syncer.storageState.TrieState(&parent.StateRoot)
+	require.NoError(t, err)
+	ts, err = parentState.Copy()
+	require.NoError(t, err)
+	syncer.runtime.SetContext(ts)
 
 	_, err = syncer.runtime.ExecuteBlock(block)
 	require.NoError(t, err)

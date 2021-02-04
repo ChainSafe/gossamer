@@ -429,7 +429,7 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 
 	sr1, err := ts.Root()
 	require.NoError(t, err)
-	err = chain.Storage.StoreTrie(sr1, ts)
+	err = chain.Storage.StoreTrie(ts)
 	require.NoError(t, err)
 
 	err = chain.Block.AddBlock(&types.Block{

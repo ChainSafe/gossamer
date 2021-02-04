@@ -51,11 +51,16 @@ import (
 
 // node is the interface for trie methods
 type node interface {
+	encodeAndHash() ([]byte, []byte, error)
 	encode() ([]byte, error)
 	decode(r io.Reader, h byte) error
 	isDirty() bool
 	setDirty(dirty bool)
 	setKey(key []byte)
+	String() string
+	setEncodingAndHash([]byte, []byte)
+	getHash() []byte
+	setValueFromEncoding() // this is used as a hack to get around the runtime bug where the node values get corrupted
 }
 
 type (
@@ -64,13 +69,70 @@ type (
 		children [16]node
 		value    []byte
 		dirty    bool
+		hash     []byte
+		encoding []byte
 	}
 	leaf struct {
-		key   []byte // partial key
-		value []byte
-		dirty bool
+		key        []byte // partial key
+		value      []byte
+		dirty      bool
+		valueDirty bool
+		hash       []byte
+		encoding   []byte
 	}
 )
+
+func (b *branch) setEncodingAndHash(enc, hash []byte) {
+	b.encoding = enc
+	b.hash = hash
+}
+
+func (l *leaf) setEncodingAndHash(enc, hash []byte) {
+	l.encoding = enc
+	l.hash = hash
+}
+
+func (b *branch) setValueFromEncoding() {
+	r := &bytes.Buffer{}
+	_, _ = r.Write(b.encoding)
+	prev, err := decode(r)
+	if err != nil {
+		panic(err)
+	}
+	b.value = prev.(*branch).value
+}
+
+func (l *leaf) setValueFromEncoding() {
+	r := &bytes.Buffer{}
+	_, _ = r.Write(l.encoding)
+	prev, err := decode(r)
+	if err != nil {
+		panic(err)
+	}
+	l.value = prev.(*leaf).value
+}
+
+func (b *branch) getHash() []byte {
+	return b.hash
+}
+
+func (l *leaf) getHash() []byte {
+	return l.hash
+}
+
+func (b *branch) String() string {
+	if len(b.value) > 1024 {
+		return fmt.Sprintf("branch key=%x childrenBitmap=%16b value (hashed)=%x dirty=%v", b.key, b.childrenBitmap(), common.MustBlake2bHash(b.value), b.dirty)
+	}
+	return fmt.Sprintf("branch key=%x childrenBitmap=%16b value=%x dirty=%v", b.key, b.childrenBitmap(), b.value, b.dirty)
+}
+
+func (l *leaf) String() string {
+	if len(l.value) > 1024 {
+		return fmt.Sprintf("leaf key=%x value (hashed)=%x dirty=%v valueDirty=%v", l.key, common.MustBlake2bHash(l.value), l.dirty, l.valueDirty)
+	}
+	return fmt.Sprintf("leaf key=%x value=%x dirty=%v valueDirty=%v", l.key, l.value, l.dirty, l.valueDirty)
+}
 
 func (b *branch) childrenBitmap() uint16 {
 	var bitmap uint16
@@ -133,8 +195,38 @@ func encode(n node) ([]byte, error) {
 	return nil, nil
 }
 
+func (b *branch) encodeAndHash() ([]byte, []byte, error) {
+	if !b.isDirty() && b.encoding != nil && b.hash != nil {
+		return b.encoding, b.hash, nil
+	}
+
+	enc, err := b.encode()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if len(enc) < 32 {
+		b.encoding = enc
+		b.hash = enc
+		return enc, enc, nil
+	}
+
+	hash, err := common.Blake2bHash(enc)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	b.encoding = enc
+	b.hash = hash[:]
+	return enc, hash[:], nil
+}
+
 // Encode encodes a branch with the encoding specified at the top of this package
 func (b *branch) encode() ([]byte, error) {
+	if !b.isDirty() && b.encoding != nil {
+		return b.encoding, nil
+	}
+
 	encoding, err := b.header()
 	if err != nil {
 		return nil, err
@@ -164,6 +256,7 @@ func (b *branch) encode() ([]byte, error) {
 			if err != nil {
 				return encoding, err
 			}
+
 			scEncChild, err := scale.Encode(encChild)
 			if err != nil {
 				return encoding, err
@@ -175,8 +268,47 @@ func (b *branch) encode() ([]byte, error) {
 	return encoding, nil
 }
 
+func (l *leaf) encodeAndHash() ([]byte, []byte, error) {
+	if !l.isDirty() && l.encoding != nil && l.hash != nil {
+		return l.encoding, l.hash, nil
+	}
+	// TODO: hack to deal with runtime bug
+	if l.encoding != nil && l.hash != nil && !l.valueDirty {
+		l.setValueFromEncoding()
+	}
+
+	enc, err := l.encode()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if len(enc) < 32 {
+		l.encoding = enc
+		l.hash = enc
+		return enc, enc, nil
+	}
+
+	hash, err := common.Blake2bHash(enc)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	l.encoding = enc
+	l.hash = hash[:]
+	return enc, hash[:], nil
+}
+
 // Encode encodes a leaf with the encoding specified at the top of this package
 func (l *leaf) encode() ([]byte, error) {
+	if !l.isDirty() && l.encoding != nil {
+		return l.encoding, nil
+	}
+
+	// TODO: hack to deal with runtime bug
+	if l.encoding != nil && !l.valueDirty {
+		l.setValueFromEncoding()
+	}
+
 	encoding, err := l.header()
 	if err != nil {
 		return nil, err
@@ -193,6 +325,16 @@ func (l *leaf) encode() ([]byte, error) {
 	encoding = append(encoding, buffer.Bytes()...)
 
 	return encoding, nil
+}
+
+func decodeBytes(in []byte) (node, error) {
+	r := &bytes.Buffer{}
+	_, err := r.Write(in)
+	if err != nil {
+		return nil, err
+	}
+
+	return decode(r)
 }
 
 // Decode wraps the decoding of different node types back into a node
@@ -244,9 +386,10 @@ func (b *branch) decode(r io.Reader, header byte) (err error) {
 		return err
 	}
 
+	sd := &scale.Decoder{Reader: r}
+
 	if nodeType == 3 {
 		// branch w/ value
-		sd := &scale.Decoder{Reader: r}
 		value, err := sd.Decode([]byte{})
 		if err != nil {
 			return err
@@ -256,7 +399,14 @@ func (b *branch) decode(r io.Reader, header byte) (err error) {
 
 	for i := 0; i < 16; i++ {
 		if (childrenBitmap[i/8]>>(i%8))&1 == 1 {
-			b.children[i] = &leaf{}
+			hash, err := sd.Decode([]byte{})
+			if err != nil {
+				return err
+			}
+
+			b.children[i] = &leaf{
+				hash: hash.([]byte),
+			}
 		}
 	}
 

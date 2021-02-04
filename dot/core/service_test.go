@@ -111,21 +111,17 @@ func TestAnnounceBlock(t *testing.T) {
 	require.Nil(t, err)
 	defer s.Stop()
 
-	parent := &types.Header{
-		Number:    big.NewInt(0),
-		StateRoot: trie.EmptyHash,
-	}
-
 	// simulate block sent from BABE session
 	newBlocks <- types.Block{
 		Header: &types.Header{
-			ParentHash: parent.Hash(),
+			ParentHash: s.blockState.BestBlockHash(),
 			Number:     big.NewInt(1),
 		},
 		Body: &types.Body{},
 	}
 
 	time.Sleep(testMessageTimeout)
+	require.NotNil(t, net.Message)
 	require.Equal(t, network.BlockAnnounceMsgType, net.Message.(network.NotificationsMessage).Type())
 }
 
@@ -163,7 +159,7 @@ func TestHandleRuntimeChanges(t *testing.T) {
 	root, err := ts.Root()
 	require.NoError(t, err)
 
-	s.storageState.(*state.StorageState).StoreTrie(root, ts)
+	s.storageState.(*state.StorageState).StoreTrie(ts)
 	head := &types.Header{
 		ParentHash: s.blockState.BestBlockHash(),
 		Number:     big.NewInt(1),
