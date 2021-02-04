@@ -31,17 +31,11 @@ import (
 // Name represents the name of the interpreter
 const Name = "life"
 
-// PageSize represents page size in bytes
-const PageSize = 512
-
 // Check that runtime interfaces are satisfied
 var (
-	//_ runtime.Instance       = (*Instance)(nil)
-	//_ runtime.Memory         = (*wasm.Memory)(nil)
-
-	logger = log.New("pkg", "runtime", "module", "perlin/life")
-
-	ctx *runtime.Context
+	_      runtime.Instance = (*Instance)(nil)
+	logger                  = log.New("pkg", "runtime", "module", "perlin/life")
+	ctx    *runtime.Context
 )
 
 // Config represents a life configuration
@@ -82,28 +76,6 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 		logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
 	}
 
-	// imports, err := cfg.Imports()
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// // Provide importable memory for newer runtimes
-	// memory, err := wasm.NewMemory(20, 0)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// _, err = imports.AppendMemory("memory", memory)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// // Instantiates the WebAssembly module.
-	// instance, err := wasm.NewInstanceWithImports(code, imports)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	instance, err := exec.NewVirtualMachine(code, exec.VMConfig{
 		DefaultMemoryPages: 20,
 	}, cfg.Resolver, nil)
@@ -112,15 +84,8 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 	}
 
 	memory := &Memory{
-		memory: instance.Memory, //make([]byte, PageSize * 20),
+		memory: instance.Memory,
 	}
-
-	// // Assume imported memory is used if runtime does not export any
-	// if instance.Memory == nil {
-	// 	instance.Memory = memory.memory
-	// } else {
-	// 	memory.memory = instance.Memory
-	// }
 
 	allocator := runtime.NewAllocator(memory, 0)
 
@@ -135,17 +100,15 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 		SigVerifier: runtime.NewSignatureVerifier(),
 	}
 
-	logger.Debug("NewInstance", "runtimeCtx", runtimeCtx)
+	logger.Debug("creating new runtime instance", "context", runtimeCtx)
 
 	inst := &Instance{
 		vm: instance,
-		//ctx: runtimeCtx,
 	}
 
-	//inst.SetContextStorage(runtimeCtx.Storage)
-	//inst.version, _ = inst.Version()
 	ctx = runtimeCtx
-	return inst, nil
+	inst.version, err = inst.Version()
+	return inst, err
 }
 
 // Memory is a thin wrapper around life's memory to support
@@ -189,12 +152,27 @@ func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 
 	ret, err := in.vm.Run(fnc, int64(ptr), int64(len(data)))
 	if err != nil {
-		in.vm.PrintStackTrace()
+		fmt.Println(in.vm.StackTrace)
 		return nil, err
 	}
 
 	offset, length := int64ToPointerAndSize(ret)
 	return in.vm.Memory[offset : offset+length], nil
+}
+
+// Stop ...
+func (in *Instance) Stop() {
+	return
+}
+
+// NodeStorage to get reference to runtime node service
+func (in *Instance) NodeStorage() runtime.NodeStorage {
+	return ctx.NodeStorage
+}
+
+// NetworkService to get referernce to runtime network service
+func (in *Instance) NetworkService() runtime.BasicNetwork {
+	return ctx.Network
 }
 
 // TODO: move below to lib/runtime

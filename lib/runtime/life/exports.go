@@ -1,12 +1,31 @@
 package life
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 )
+
+// ValidateTransaction runs the extrinsic through runtime function TaggedTransactionQueue_validate_transaction and returns *Validity
+func (in *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error) {
+	ret, err := in.Exec(runtime.TaggedTransactionQueueValidateTransaction, e)
+	if err != nil {
+		return nil, err
+	}
+
+	if ret[0] != 0 {
+		return nil, runtime.NewValidateTransactionError(ret)
+	}
+
+	v := transaction.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false)
+	_, err = scale.Decode(ret[1:], v)
+
+	return v, err
+}
 
 // Version calls runtime function Core_Version
 func (in *Instance) Version() (*runtime.VersionAPI, error) {
@@ -28,6 +47,11 @@ func (in *Instance) Version() (*runtime.VersionAPI, error) {
 	return version, nil
 }
 
+// Metadata calls runtime function Metadata_metadata
+func (in *Instance) Metadata() ([]byte, error) {
+	return in.Exec(runtime.Metadata, []byte{})
+}
+
 // BabeConfiguration gets the configuration data for BABE from the runtime
 func (in *Instance) BabeConfiguration() (*types.BabeConfiguration, error) {
 	data, err := in.Exec(runtime.BabeAPIConfiguration, []byte{})
@@ -42,6 +66,21 @@ func (in *Instance) BabeConfiguration() (*types.BabeConfiguration, error) {
 	}
 
 	return bc, nil
+}
+
+// GrandpaAuthorities returns the genesis authorities from the runtime
+func (in *Instance) GrandpaAuthorities() ([]*types.Authority, error) {
+	ret, err := in.Exec(runtime.GrandpaAuthorities, []byte{})
+	if err != nil {
+		return nil, err
+	}
+
+	adr, err := scale.Decode(ret, []*types.GrandpaAuthoritiesRaw{})
+	if err != nil {
+		return nil, err
+	}
+
+	return types.GrandpaAuthoritiesRawToAuthorities(adr.([]*types.GrandpaAuthoritiesRaw))
 }
 
 // InitializeBlock calls runtime API function Core_initialize_block
@@ -80,3 +119,35 @@ func (in *Instance) FinalizeBlock() (*types.Header, error) {
 
 	return bh, nil
 }
+
+// ExecuteBlock calls runtime function Core_execute_block
+func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
+	// copy block since we're going to modify it
+	b := block.DeepCopy()
+	b.Header.Digest = types.NewEmptyDigest()
+
+	// TODO: hack since substrate node_runtime can't seem to handle BABE pre-runtime digests
+	// with type prefix (ie Primary, Secondary...)
+	if bytes.Equal(in.version.RuntimeVersion.Spec_name, []byte("kusama")) {
+		// remove seal digest only
+		for _, d := range block.Header.Digest {
+			if d.Type() == types.SealDigestType {
+				continue
+			}
+
+			b.Header.Digest = append(b.Header.Digest, d)
+		}
+	}
+
+	bdEnc, err := b.Encode()
+	if err != nil {
+		return nil, err
+	}
+
+	return in.Exec(runtime.CoreExecuteBlock, bdEnc)
+}
+
+func (in *Instance) CheckInherents()      {} //nolint
+func (in *Instance) RandomSeed()          {} //nolint
+func (in *Instance) OffchainWorker()      {} //nolint
+func (in *Instance) GenerateSessionKeys() {} //nolint

@@ -21,19 +21,18 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 	switch module {
 	case "env":
 		switch field {
-		case "ext_print_utf8":
-			// return func(vm *exec.VirtualMachine) int64 {
-			// 	ptr := int(uint32(vm.GetCurrentFrame().Locals[0]))
-			// 	msgLen := int(uint32(vm.GetCurrentFrame().Locals[1]))
-			// 	msg := vm.Memory[ptr : ptr+msgLen]
-			// 	fmt.Printf("[ext_print_utf8] %s\n", string(msg))
-			// 	return 0
-			// }
-			return ext_print_utf8
+		case "ext_logging_log_version_1":
+			return ext_logging_log_version_1
+		case "ext_misc_print_utf8_version_1":
+			return ext_misc_print_utf8_version_1
+		case "ext_misc_print_hex_version_1":
+			return ext_misc_print_hex_version_1
 		case "ext_allocator_malloc_version_1":
 			return ext_allocator_malloc_version_1
 		case "ext_allocator_free_version_1":
 			return ext_allocator_free_version_1
+		case "ext_hashing_blake2_256_version_1":
+			return ext_hashing_blake2_256_version_1
 		case "ext_hashing_twox_128_version_1":
 			return ext_hashing_twox_128_version_1
 		case "ext_storage_get_version_1":
@@ -58,6 +57,10 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 			return ext_storage_root_version_1
 		case "ext_storage_changes_root_version_1":
 			return ext_storage_changes_root_version_1
+		case "ext_crypto_start_batch_verify_version_1":
+			return ext_crypto_start_batch_verify_version_1
+		case "ext_crypto_finish_batch_verify_version_1":
+			return ext_crypto_finish_batch_verify_version_1
 		default:
 			panic(fmt.Errorf("unknown import resolved: %s", field))
 		}
@@ -70,11 +73,46 @@ func (r *Resolver) ResolveGlobal(module, field string) int64 {
 	panic("we're not resolving global variables for now")
 }
 
-func ext_print_utf8(vm *exec.VirtualMachine) int64 {
-	ptr := int(uint32(vm.GetCurrentFrame().Locals[0]))
-	msgLen := int(uint32(vm.GetCurrentFrame().Locals[1]))
-	msg := vm.Memory[ptr : ptr+msgLen]
-	fmt.Printf("[ext_print_utf8] %s\n", string(msg))
+func ext_logging_log_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_logging_log_version_1] executing...")
+	level := int32(vm.GetCurrentFrame().Locals[0])
+	targetData := int64(vm.GetCurrentFrame().Locals[1])
+	msgData := int64(vm.GetCurrentFrame().Locals[2])
+
+	target := fmt.Sprintf("%s", asMemorySlice(vm.Memory, targetData))
+	msg := fmt.Sprintf("%s", asMemorySlice(vm.Memory, msgData))
+
+	switch int(level) {
+	case 0:
+		logger.Crit("[ext_logging_log_version_1]", "target", target, "message", msg)
+	case 1:
+		logger.Warn("[ext_logging_log_version_1]", "target", target, "message", msg)
+	case 2:
+		logger.Info("[ext_logging_log_version_1]", "target", target, "message", msg)
+	case 3:
+		logger.Debug("[ext_logging_log_version_1]", "target", target, "message", msg)
+	case 4:
+		logger.Trace("[ext_logging_log_version_1]", "target", target, "message", msg)
+	default:
+		logger.Error("[ext_logging_log_version_1]", "level", int(level), "target", target, "message", msg)
+	}
+
+	return 0
+}
+
+func ext_misc_print_utf8_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_misc_print_utf8_version_1] executing...")
+	dataSpan := int64(vm.GetCurrentFrame().Locals[0])
+	data := asMemorySlice(vm.Memory, dataSpan)
+	logger.Debug("[ext_misc_print_utf8_version_1]", "utf8", fmt.Sprintf("%s", data))
+	return 0
+}
+
+func ext_misc_print_hex_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_misc_print_hex_version_1] executing...")
+	dataSpan := int64(vm.GetCurrentFrame().Locals[0])
+	data := asMemorySlice(vm.Memory, dataSpan)
+	logger.Debug("[ext_misc_print_hex_version_1]", "hex", fmt.Sprintf("0x%x", data))
 	return 0
 }
 
@@ -104,6 +142,30 @@ func ext_allocator_free_version_1(vm *exec.VirtualMachine) int64 {
 	}
 
 	return 0
+}
+
+func ext_hashing_blake2_256_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_hashing_blake2_256_version_1] executing...")
+	//instanceContext := wasm.IntoInstanceContext(context)
+	dataSpan := int64(vm.GetCurrentFrame().Locals[0])
+
+	data := asMemorySlice(vm.Memory, dataSpan)
+
+	hash, err := common.Blake2bHash(data)
+	if err != nil {
+		logger.Error("[ext_hashing_blake2_256_version_1]", "error", err)
+		return 0
+	}
+
+	logger.Debug("[ext_hashing_blake2_256_version_1]", "data", data, "hash", hash)
+
+	out, err := toWasmMemorySized(vm.Memory, hash[:], 32)
+	if err != nil {
+		logger.Error("[ext_hashing_blake2_256_version_1] failed to allocate", "error", err)
+		return 0
+	}
+
+	return int64(out)
 }
 
 func ext_hashing_twox_128_version_1(vm *exec.VirtualMachine) int64 {
@@ -495,6 +557,16 @@ func ext_storage_changes_root_version_1(vm *exec.VirtualMachine) int64 {
 	}
 
 	return int64(rootSpan)
+}
+
+func ext_crypto_start_batch_verify_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_crypto_start_batch_verify_version_1] executing...")
+	return 0
+}
+
+func ext_crypto_finish_batch_verify_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_crypto_finish_batch_verify_version_1] executing...")
+	return 1
 }
 
 // Convert 64bit wasm span descriptor to Go memory slice
