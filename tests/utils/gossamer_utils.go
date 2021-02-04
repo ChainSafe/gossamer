@@ -511,8 +511,9 @@ func generateConfigNoBabe() *ctoml.Config {
 	cfg := generateDefaultConfig()
 	cfg.Global.LogLvl = "info"
 	cfg.Log = ctoml.LogConfig{
-		SyncLvl:    "trace",
-		NetworkLvl: "trace",
+		SyncLvl:          "debug",
+		NetworkLvl:       "info",
+		BlockProducerLvl: "trace",
 	}
 	cfg.Core.BabeThresholdNumerator = 1
 	cfg.Core.BabeThresholdDenominator = 1
