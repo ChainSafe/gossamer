@@ -531,7 +531,7 @@ func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 		return 1
 	}
 
-	if ok, err := pub.Verify(message, signature); err != nil || !ok {
+	if ok, err := pub.VerifyDeprecated(message, signature); err != nil || !ok {
 		return 0
 	}
 	return 1
@@ -1467,7 +1467,10 @@ func ext_storage_clear_prefix_version_1(context unsafe.Pointer, prefixSpan C.int
 		return
 	}
 
-	storage.ClearPrefix(prefix)
+	err := storage.ClearPrefix(prefix)
+	if err != nil {
+		logger.Error("[ext_storage_clear_prefix_version_1]", "error", err)
+	}
 
 	// sanity check
 	next := storage.NextKey(prefix)
@@ -1510,7 +1513,8 @@ func ext_storage_get_version_1(context unsafe.Pointer, keySpan C.int64_t) C.int6
 	value, err := storage.Get(key)
 	if err != nil {
 		logger.Error("[ext_storage_get_version_1]", "error", err)
-		return 0
+		ptr, _ := toWasmMemoryOptional(instanceContext, nil)
+		return C.int64_t(ptr)
 	}
 
 	logger.Debug("[ext_storage_get_version_1]", "value", fmt.Sprintf("0x%x", value))
@@ -1518,7 +1522,8 @@ func ext_storage_get_version_1(context unsafe.Pointer, keySpan C.int64_t) C.int6
 	valueSpan, err := toWasmMemoryOptional(instanceContext, value)
 	if err != nil {
 		logger.Error("[ext_storage_get_version_1] failed to allocate", "error", err)
-		return 0
+		ptr, _ := toWasmMemoryOptional(instanceContext, nil)
+		return C.int64_t(ptr)
 	}
 
 	return C.int64_t(valueSpan)
@@ -1706,7 +1711,10 @@ func ext_storage_commit_transaction_version_1(context unsafe.Pointer) {
 				continue
 			}
 
-			storage.ClearPrefix(change.Prefix)
+			err := storage.ClearPrefix(change.Prefix)
+			if err != nil {
+				logger.Error("[ext_storage_commit_transaction_version_1] failed to clear prefix", "error", err)
+			}
 		case runtime.AppendOp:
 			err := storageAppend(storage, change.Key, change.Value)
 			if err != nil {

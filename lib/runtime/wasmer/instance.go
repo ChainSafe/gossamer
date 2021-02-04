@@ -17,6 +17,7 @@
 package wasmer
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"sync"
@@ -167,6 +168,10 @@ func (in *Instance) NetworkService() runtime.BasicNetwork {
 }
 
 func newLegacyInstance(code []byte, cfg *Config) (*LegacyInstance, error) {
+	if len(code) == 0 {
+		return nil, errors.New("code is empty")
+	}
+
 	// if cfg.LogLvl set to < 0, then don't change package log level
 	if cfg.LogLvl >= 0 {
 		h := log.StreamHandler(os.Stdout, log.TerminalFormat())

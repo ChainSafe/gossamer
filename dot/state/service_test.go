@@ -19,7 +19,6 @@ package state
 import (
 	"io/ioutil"
 	"math/big"
-	"reflect"
 	"testing"
 	"time"
 
@@ -33,14 +32,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var genesisBABEConfig = &types.BabeConfiguration{
-	SlotDuration:       1000,
-	EpochLength:        200,
-	C1:                 1,
-	C2:                 4,
-	GenesisAuthorities: []*types.AuthorityRaw{},
-	Randomness:         [32]byte{},
-	SecondarySlots:     false,
+func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
+	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis-raw.json")
+	require.NoError(t, err)
+
+	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), genTrie.MustHash(), trie.EmptyHash, types.Digest{})
+	require.NoError(t, err)
+	return gen, genTrie, genesisHeader
 }
 
 // helper method to create and start test state service
@@ -61,14 +62,8 @@ func TestService_Start(t *testing.T) {
 	state := newTestService(t)
 	defer utils.RemoveTestDir(t)
 
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, types.Digest{})
-	require.NoError(t, err)
-
-	tr := trie.NewEmptyTrie()
-
-	genesisData := new(genesis.Data)
-
-	err = state.Initialize(genesisData, genesisHeader, tr, genesisBABEConfig)
+	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	err := state.Initialize(genData, genesisHeader, genTrie)
 	require.NoError(t, err)
 
 	err = state.Start()
@@ -82,20 +77,14 @@ func TestService_Initialize(t *testing.T) {
 	state := newTestService(t)
 	defer utils.RemoveTestDir(t)
 
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, types.Digest{})
+	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	err := state.Initialize(genData, genesisHeader, genTrie)
 	require.NoError(t, err)
 
-	tr := trie.NewEmptyTrie()
-
-	genesisData := new(genesis.Data)
-
-	err = state.Initialize(genesisData, genesisHeader, tr, genesisBABEConfig)
+	genesisHeader, err = types.NewHeader(common.NewHash([]byte{77}), big.NewInt(0), genTrie.MustHash(), trie.EmptyHash, types.Digest{})
 	require.NoError(t, err)
 
-	genesisHeader, err = types.NewHeader(common.NewHash([]byte{77}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, types.Digest{})
-	require.NoError(t, err)
-
-	err = state.Initialize(genesisData, genesisHeader, tr, genesisBABEConfig)
+	err = state.Initialize(genData, genesisHeader, genTrie)
 	require.NoError(t, err)
 
 	err = state.Start()
@@ -109,14 +98,8 @@ func TestService_Initialize(t *testing.T) {
 func TestMemDB_Start(t *testing.T) {
 	state := newTestMemDBService()
 
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, types.Digest{})
-	require.NoError(t, err)
-
-	tr := trie.NewEmptyTrie()
-
-	genesisData := new(genesis.Data)
-
-	err = state.Initialize(genesisData, genesisHeader, tr, genesisBABEConfig)
+	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	err := state.Initialize(genData, genesisHeader, genTrie)
 	require.NoError(t, err)
 
 	err = state.Start()
@@ -134,13 +117,8 @@ func TestService_BlockTree(t *testing.T) {
 
 	stateA := NewService(testDir, log.LvlTrace)
 
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, types.Digest{})
-	require.NoError(t, err)
-
-	genesisData := new(genesis.Data)
-
-	tr := trie.NewEmptyTrie()
-	err = stateA.Initialize(genesisData, genesisHeader, tr, genesisBABEConfig)
+	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	err := stateA.Initialize(genData, genesisHeader, genTrie)
 	require.NoError(t, err)
 
 	err = stateA.Start()
@@ -159,22 +137,18 @@ func TestService_BlockTree(t *testing.T) {
 
 	err = stateB.Stop()
 	require.NoError(t, err)
-
-	if !reflect.DeepEqual(stateA.Block.BestBlockHash(), stateB.Block.BestBlockHash()) {
-		t.Fatalf("Fail: got %s expected %s", stateA.Block.BestBlockHash(), stateB.Block.BestBlockHash())
-	}
+	require.Equal(t, stateA.Block.BestBlockHash(), stateB.Block.BestBlockHash())
 }
-func Test_ServicePruneStorage(t *testing.T) {
+
+func TestService_PruneStorage(t *testing.T) {
 	testDir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
 
 	serv := NewService(testDir, log.LvlTrace)
 	serv.UseMemDB()
 
-	genesisData := new(genesis.Data)
-
-	tr := trie.NewEmptyTrie()
-	err := serv.Initialize(genesisData, testGenesisHeader, tr, genesisBABEConfig)
+	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	err := serv.Initialize(genData, genesisHeader, genTrie)
 	require.NoError(t, err)
 
 	err = serv.Start()
@@ -194,7 +168,7 @@ func Test_ServicePruneStorage(t *testing.T) {
 		err = serv.Storage.blockState.AddBlock(block)
 		require.NoError(t, err)
 
-		err = serv.Storage.StoreTrie(block.Header.StateRoot, trieState)
+		err = serv.Storage.StoreTrie(trieState)
 		require.NoError(t, err)
 
 		// Only finalize a block at height 3
@@ -212,7 +186,7 @@ func Test_ServicePruneStorage(t *testing.T) {
 		err = serv.Storage.blockState.AddBlock(block)
 		require.NoError(t, err)
 
-		err = serv.Storage.StoreTrie(block.Header.StateRoot, trieState)
+		err = serv.Storage.StoreTrie(trieState)
 		require.NoError(t, err)
 
 		// Store the other blocks that will be pruned.

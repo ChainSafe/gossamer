@@ -46,11 +46,8 @@ func TestStorageState_RegisterStorageChangeChannel(t *testing.T) {
 
 	defer ss.UnregisterStorageChangeChannel(id)
 
-	root, err := ts.Root()
-	require.NoError(t, err)
-
 	ts.Set([]byte("mackcom"), []byte("wuz here"))
-	err = ss.StoreInDB(root)
+	err = ss.StoreTrie(ts)
 	require.NoError(t, err)
 
 	for i := 0; i < 1; i++ {
@@ -63,6 +60,7 @@ func TestStorageState_RegisterStorageChangeChannel(t *testing.T) {
 }
 
 func TestStorageState_RegisterStorageChangeChannel_Multi(t *testing.T) {
+	//t.Skip()
 	ss := newTestStorageState(t)
 	ts, err := ss.TrieState(nil)
 	require.NoError(t, err)
@@ -80,16 +78,12 @@ func TestStorageState_RegisterStorageChangeChannel_Multi(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	root, err := ts.Root()
-	require.NoError(t, err)
-
 	key1 := []byte("key1")
 	value1 := []byte("value1")
 
 	ts.Set(key1, value1)
-	ts.Commit()
 
-	err = ss.StoreTrie(root, ts)
+	err = ss.StoreTrie(ts)
 	require.NoError(t, err)
 
 	var wg sync.WaitGroup
@@ -103,10 +97,10 @@ func TestStorageState_RegisterStorageChangeChannel_Multi(t *testing.T) {
 				require.NotNil(t, c.Hash)
 				require.Equal(t, key1, c.Changes[0].Key)
 				require.Equal(t, value1, c.Changes[0].Value)
-				wg.Done()
 			case <-time.After(testMessageTimeout):
 				t.Error("did not receive storage change: ch=", i)
 			}
+			wg.Done()
 		}(i, ch)
 
 	}
@@ -142,13 +136,9 @@ func TestStorageState_RegisterStorageChangeChannel_Multi_Filter(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	root, err := ts.Root()
-	require.NoError(t, err)
-
 	ts.Set(key1, value1)
-	ts.Commit()
 
-	err = ss.StoreTrie(root, ts)
+	err = ss.StoreTrie(ts)
 	require.NoError(t, err)
 
 	time.Sleep(time.Millisecond * 500)

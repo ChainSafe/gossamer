@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -15,6 +16,16 @@ import (
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
+
+var genesisBABEConfig = &types.BabeConfiguration{
+	SlotDuration:       1000,
+	EpochLength:        200,
+	C1:                 1,
+	C2:                 4,
+	GenesisAuthorities: []*types.AuthorityRaw{},
+	Randomness:         [32]byte{},
+	SecondarySlots:     false,
+}
 
 func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
 	db := state.NewInMemoryDB(t)

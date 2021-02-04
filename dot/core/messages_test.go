@@ -53,7 +53,7 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 
 	expected := &network.BlockAnnounceMessage{
 		Number:         big.NewInt(1),
-		ParentHash:     testGenesisHeader.Hash(),
+		ParentHash:     s.blockState.BestBlockHash(),
 		StateRoot:      common.Hash{},
 		ExtrinsicsRoot: common.Hash{},
 		Digest:         nil,
@@ -63,12 +63,13 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	newBlocks <- types.Block{
 		Header: &types.Header{
 			Number:     big.NewInt(1),
-			ParentHash: testGenesisHeader.Hash(),
+			ParentHash: s.blockState.BestBlockHash(),
 		},
 		Body: types.NewBody([]byte{}),
 	}
 
 	time.Sleep(testMessageTimeout)
+	require.NotNil(t, net.Message)
 	require.Equal(t, network.BlockAnnounceMsgType, net.Message.(network.NotificationsMessage).Type())
 	require.Equal(t, expected, net.Message)
 }

@@ -194,11 +194,11 @@ func runTests(t *testing.T, trie *Trie, tests []Test) {
 	}
 }
 
-func TestLoadTrie(t *testing.T) {
+func TestLoadTrieFromMap(t *testing.T) {
 	data := map[string]string{"0x1234": "0x5678", "0xaabbcc": "0xddeeff"}
 	testTrie := &Trie{}
 
-	err := testTrie.Load(data)
+	err := testTrie.LoadFromMap(data)
 	if err != nil {
 		t.Fatal(err)
 	}

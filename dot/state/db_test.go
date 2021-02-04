@@ -3,12 +3,13 @@ package state
 import (
 	"bytes"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/trie"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestTrie_StoreAndLoadFromDB(t *testing.T) {
@@ -32,30 +33,17 @@ func TestTrie_StoreAndLoadFromDB(t *testing.T) {
 	}
 
 	err := StoreTrie(db, tt)
-	if err != nil {
-		t.Fatalf("Fail: could not write trie to DB: %s", err)
-	}
+	require.NoError(t, err)
 
 	encroot, err := tt.Hash()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	expected := trie.NewTrie(tt.RootNode())
+	expected := tt.MustHash()
 
 	tt = trie.NewEmptyTrie()
 	err = LoadTrie(db, tt, encroot)
-	if err != nil {
-		t.Errorf("Fail: could not load trie from DB: %s", err)
-	}
-
-	if strings.Compare(expected.String(), tt.String()) != 0 {
-		t.Errorf("Fail: got\n %s expected\n %s", expected.String(), tt.String())
-	}
-
-	if !reflect.DeepEqual(expected.RootNode(), tt.RootNode()) {
-		t.Errorf("Fail: got\n %s expected\n %s", expected.RootNode(), tt.RootNode())
-	}
+	require.NoError(t, err)
+	require.Equal(t, expected, tt.MustHash())
 }
 
 type test struct {

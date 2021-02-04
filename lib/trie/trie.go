@@ -225,7 +225,7 @@ func (t *Trie) Put(key, value []byte) error {
 func (t *Trie) tryPut(key, value []byte) (err error) {
 	k := keyToNibbles(key)
 
-	n, err := t.insert(t.root, k, &leaf{key: nil, value: value, dirty: true})
+	n, err := t.insert(t.root, k, &leaf{key: nil, value: value, dirty: true, valueDirty: true})
 	if err != nil {
 		return err
 	}
@@ -250,8 +250,13 @@ func (t *Trie) insert(parent node, key []byte, value node) (n node, err error) {
 		}
 	case *leaf:
 		// if a value already exists in the trie at this key, overwrite it with the new value
+		// if the values are the same, don't mark node dirty
 		if p.value != nil && bytes.Equal(p.key, key) {
-			p.value = value.(*leaf).value
+			if !bytes.Equal(value.(*leaf).value, p.value) {
+				p.value = value.(*leaf).value
+				p.dirty = true
+				p.valueDirty = true
+			}
 			return p, nil
 		}
 
@@ -265,11 +270,13 @@ func (t *Trie) insert(parent node, key []byte, value node) (n node, err error) {
 		// value goes at this branch
 		if len(key) == length {
 			br.value = value.(*leaf).value
+			br.setDirty(true)
 
 			// if we are not replacing previous leaf, then add it as a child to the new branch
 			if len(parentKey) > len(key) {
 				p.key = p.key[length+1:]
 				br.children[parentKey[length]] = p
+				p.setDirty(true)
 			}
 
 			return br, nil
@@ -285,6 +292,7 @@ func (t *Trie) insert(parent node, key []byte, value node) (n node, err error) {
 		} else {
 			// otherwise, make the leaf a child of the branch and update its partial key
 			p.key = p.key[length+1:]
+			p.setDirty(true)
 			br.children[parentKey[length]] = p
 			br.children[key[length]] = value
 		}
@@ -292,6 +300,10 @@ func (t *Trie) insert(parent node, key []byte, value node) (n node, err error) {
 		return br, nil
 	default:
 		err = errors.New("put error: invalid node")
+	}
+
+	if parent != nil && n != nil && n.isDirty() {
+		parent.setDirty(true)
 	}
 
 	return n, err
@@ -307,6 +319,7 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (n node, err erro
 	if length == len(p.key) {
 		// if node has same key as this branch, then update the value at this branch
 		if bytes.Equal(key, p.key) {
+			p.setDirty(true)
 			switch v := value.(type) {
 			case *branch:
 				p.value = v.value
@@ -323,12 +336,20 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (n node, err erro
 				break
 			}
 			p.children[key[length]] = n
+			n.setDirty(true)
+			if l, ok := n.(*leaf); ok {
+				l.valueDirty = true
+			}
+
 			n = p
+			n.setDirty(true)
+			return n, nil
 		case nil:
 			// otherwise, add node as child of this branch
 			value.(*leaf).key = key[length+1:]
 			p.children[key[length]] = value
 			n = p
+			n.setDirty(true)
 		}
 
 		return n, err
@@ -340,7 +361,7 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (n node, err erro
 
 	parentIndex := p.key[length]
 	if br.children[parentIndex], err = t.insert(nil, p.key[length+1:], p); err != nil {
-		log.Warn("updateBranch returned not ok for operation 2 insert")
+		log.Warn("updateBranch returned not ok for operation insert")
 	}
 	if err != nil {
 		return nil, err
@@ -354,11 +375,12 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (n node, err erro
 		}
 	}
 
+	br.setDirty(true)
 	return br, err
 }
 
-// Load data into trie
-func (t *Trie) Load(data map[string]string) error {
+// LoadFromMap loads the given data into trie
+func (t *Trie) LoadFromMap(data map[string]string) error {
 	for key, value := range data {
 		keyBytes, err := common.HexToBytes(key)
 		if err != nil {
@@ -467,7 +489,7 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 
 		// found the value at this node
 		if bytes.Equal(p.key, key) || len(key) == 0 {
-			return &leaf{key: p.key, value: p.value, dirty: true}, nil
+			return &leaf{key: p.key, value: p.value, dirty: false}, nil
 		}
 
 		// did not find value
@@ -491,41 +513,47 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 // ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix
 func (t *Trie) ClearPrefix(prefix []byte) {
 	p := keyToNibbles(prefix)
-	t.root = t.clearPrefix(t.root, p)
+	t.root, _ = t.clearPrefix(t.root, p)
 }
 
-func (t *Trie) clearPrefix(curr node, prefix []byte) node {
+func (t *Trie) clearPrefix(curr node, prefix []byte) (n node, wasUpdated bool) {
 	switch c := curr.(type) {
 	case *branch:
 		length := lenCommonPrefix(c.key, prefix)
 
 		if length == len(prefix) {
 			// found prefix at this branch, delete it
-			return nil
+			return nil, true
 		}
 
 		if len(prefix) == len(c.key)+1 {
 			// found prefix at child index, delete child
 			c.children[len(c.key)+int(prefix[0])] = nil
-			return c
+			c.setDirty(true)
+			return c, true
 		}
 
 		if len(prefix) <= len(c.key) {
 			// this node doesn't have the prefix, return
-			return c
+			return c, false
 		}
 
 		for i, child := range c.children {
-			c.children[i] = t.clearPrefix(child, prefix[len(c.key)+1:])
+			c.children[i], wasUpdated = t.clearPrefix(child, prefix[len(c.key)+1:])
+			if wasUpdated {
+				c.setDirty(true)
+			}
 		}
 	case *leaf:
 		length := lenCommonPrefix(c.key, prefix)
 		if length == len(prefix) {
-			return nil
+			return nil, true
 		}
+	case nil:
+		return nil, false
 	}
 
-	return curr
+	return curr, curr.isDirty()
 }
 
 // Delete removes any existing value for key from the trie.
@@ -548,6 +576,7 @@ func (t *Trie) delete(parent node, key []byte) (n node, err error) {
 			// found the value at this node
 			p.value = nil
 			n = p
+			n.setDirty(true)
 		} else {
 			n, err = t.delete(p.children[key[length]], key[length+1:])
 			if err != nil {
@@ -555,12 +584,14 @@ func (t *Trie) delete(parent node, key []byte) (n node, err error) {
 			}
 			p.children[key[length]] = n
 			n = p
+			n.setDirty(true)
 		}
 
 		n = handleDeletion(p, n, key)
 	case *leaf:
 		if !bytes.Equal(key, p.key) && len(key) != 0 {
 			n = p
+			n.setDirty(true)
 		}
 	case nil:
 		// do nothing
@@ -579,7 +610,12 @@ func handleDeletion(p *branch, n node, key []byte) (nn node) {
 
 	// if branch has no children, just a value, turn it into a leaf
 	if bitmap == 0 && p.value != nil {
-		nn = &leaf{key: key[:length], value: p.value}
+		// TODO: hack to get around runtime bug
+		if p.encoding != nil {
+			p.setValueFromEncoding()
+		}
+
+		nn = &leaf{key: key[:length], value: p.value, dirty: true}
 	} else if p.numChildren() == 1 && p.value == nil {
 		// there is only 1 child and no value, combine the child branch with this branch
 		// find index of child
@@ -594,8 +630,18 @@ func handleDeletion(p *branch, n node, key []byte) (nn node) {
 		child := p.children[i]
 		switch c := child.(type) {
 		case *leaf:
+			// TODO: hack to get around runtime bug
+			if c.encoding != nil {
+				c.setValueFromEncoding()
+			}
+
 			nn = &leaf{key: append(append(p.key, []byte{byte(i)}...), c.key...), value: c.value}
 		case *branch:
+			// TODO: hack to get around runtime bug
+			if c.encoding != nil {
+				c.setValueFromEncoding()
+			}
+
 			br := new(branch)
 			br.key = append(p.key, append([]byte{byte(i)}, c.key...)...)
 
@@ -611,6 +657,7 @@ func handleDeletion(p *branch, n node, key []byte) (nn node) {
 		default:
 			// do nothing
 		}
+		nn.setDirty(true)
 
 	}
 

@@ -21,7 +21,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/big"
 	"os"
 	"sync"
 	"time"
@@ -55,9 +54,8 @@ type Service struct {
 	rt runtime.Instance
 
 	// Epoch configuration data
-	slotDuration uint64 // in milliseconds
+	slotDuration time.Duration
 	epochData    *epochData
-	startSlot    uint64
 	slotToProof  map[uint64]*VrfOutputAndProof // for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
 	isDisabled   bool
 
@@ -83,7 +81,6 @@ type ServiceConfig struct {
 	ThresholdDenominator uint64 // for development purposes
 	SlotDuration         uint64 // for development purposes; in milliseconds
 	EpochLength          uint64 // for development purposes; in slots
-	StartSlot            uint64 // slot to start at
 	Authority            bool
 }
 
@@ -124,7 +121,6 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		transactionState: cfg.TransactionState,
 		slotToProof:      make(map[uint64]*VrfOutputAndProof),
 		blockChan:        make(chan types.Block),
-		startSlot:        cfg.StartSlot,
 		pause:            make(chan struct{}),
 		authority:        cfg.Authority,
 	}
@@ -142,7 +138,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 
 	logger.Info("created service",
 		"block producer", cfg.Authority,
-		"slot duration (ms)", babeService.slotDuration,
+		"slot duration", babeService.slotDuration,
 		"epoch length (slots)", babeService.epochLength,
 		"authorities", Authorities(babeService.epochData.authorities),
 		"authority index", babeService.epochData.authorityIndex,
@@ -159,9 +155,12 @@ func (b *Service) setEpochData(cfg *ServiceConfig, genCfg *types.BabeConfigurati
 
 	// if slot duration is set via the config file, overwrite the runtime value
 	if cfg.SlotDuration > 0 {
-		b.slotDuration = cfg.SlotDuration
+		b.slotDuration, err = time.ParseDuration(fmt.Sprintf("%dms", cfg.SlotDuration))
 	} else {
-		b.slotDuration = genCfg.SlotDuration
+		b.slotDuration, err = time.ParseDuration(fmt.Sprintf("%dms", genCfg.SlotDuration))
+	}
+	if err != nil {
+		return err
 	}
 
 	if cfg.AuthData == nil {
@@ -207,7 +206,7 @@ func (b *Service) Start() error {
 		return err
 	}
 
-	err = b.initiateEpoch(epoch, b.startSlot)
+	err = b.initiateEpoch(epoch)
 	if err != nil {
 		logger.Error("failed to initiate epoch", "error", err)
 		return err
@@ -217,9 +216,9 @@ func (b *Service) Start() error {
 	return nil
 }
 
-// SlotDuration returns the current service slot duration
+// SlotDuration returns the current service slot duration in milliseconds
 func (b *Service) SlotDuration() uint64 {
-	return b.slotDuration
+	return uint64(b.slotDuration.Milliseconds())
 }
 
 // EpochLength returns the current service epoch duration
@@ -337,7 +336,7 @@ func (b *Service) getAuthorityIndex(Authorities []*types.Authority) (uint32, err
 }
 
 func (b *Service) getSlotDuration() time.Duration {
-	return time.Duration(b.slotDuration * 1000000) // SlotDuration in ms, time.Duration in ns
+	return b.slotDuration
 }
 
 func (b *Service) initiate() {
@@ -351,27 +350,10 @@ func (b *Service) initiate() {
 		return
 	}
 
-	slotNum := b.startSlot
-	bestNum, err := b.blockState.BestBlockNumber()
-	if err != nil {
-		logger.Error("Failed to get best block number", "error", err)
-		return
-	}
-
-	// check if we are starting at genesis, if not, need to calculate slot
-	if bestNum.Cmp(big.NewInt(0)) == 1 && slotNum == 0 {
-		slotNum, err = b.estimateCurrentSlot()
-		if err != nil {
-			logger.Error("cannot get current slot", "error", err)
-			return
-		}
-	}
-
-	logger.Debug("calculated slot", "number", slotNum)
-	b.invokeBlockAuthoring(slotNum)
+	b.invokeBlockAuthoring()
 }
 
-func (b *Service) invokeBlockAuthoring(startSlot uint64) {
+func (b *Service) invokeBlockAuthoring() {
 	currEpoch, err := b.epochState.GetCurrentEpoch()
 	if err != nil {
 		logger.Error("failed to get current epoch", "error", err)
@@ -385,11 +367,11 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 		return
 	}
 
+	// calculate current slot
+	startSlot := getCurrentSlot(b.slotDuration)
+
 	intoEpoch := startSlot - epochStart
 	logger.Info("current epoch", "epoch", currEpoch, "slots into epoch", intoEpoch)
-
-	// starting slot for next epoch
-	nextStartSlot := startSlot + b.epochLength - intoEpoch
 
 	// if the calculated amount of slots "into the epoch" is greater than the epoch length,
 	// we've been offline for more than an epoch, and need to sync. pause BABE for now, syncer will
@@ -434,19 +416,19 @@ func (b *Service) invokeBlockAuthoring(startSlot uint64) {
 		return
 	}
 
-	logger.Info("initiating epoch", "number", next, "start slot", nextStartSlot)
+	logger.Info("initiating epoch", "number", next, "start slot", startSlot+b.epochLength)
 
-	err = b.initiateEpoch(next, nextStartSlot)
+	err = b.initiateEpoch(next)
 	if err != nil {
 		logger.Error("failed to initiate epoch", "epoch", next, "error", err)
 		return
 	}
 
-	b.invokeBlockAuthoring(nextStartSlot)
+	b.invokeBlockAuthoring()
 }
 
 func (b *Service) handleSlot(slotNum uint64) error {
-	if b.isDisabled {
+	if b.isDisabled || b.slotToProof[slotNum] == nil {
 		return ErrNotAuthorized
 	}
 
@@ -466,7 +448,7 @@ func (b *Service) handleSlot(slotNum uint64) error {
 	parent := parentHeader.DeepCopy()
 
 	currentSlot := Slot{
-		start:    uint64(time.Now().Unix()),
+		start:    time.Now(),
 		duration: b.slotDuration,
 		number:   slotNum,
 	}
@@ -495,8 +477,7 @@ func (b *Service) handleSlot(slotNum uint64) error {
 	}
 
 	// block built successfully, store resulting trie in storage state
-	// TODO: why does StateRoot not match the root of the trie after building a block?
-	err = b.storageState.StoreTrie(block.Header.StateRoot, tsCopy)
+	err = b.storageState.StoreTrie(tsCopy)
 	if err != nil {
 		logger.Error("failed to store trie in storage state", "error", err)
 	}
@@ -511,4 +492,8 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		return err
 	}
 	return nil
+}
+
+func getCurrentSlot(slotDuration time.Duration) uint64 {
+	return uint64(time.Now().UnixNano()) / uint64(slotDuration.Nanoseconds())
 }

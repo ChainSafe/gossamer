@@ -29,6 +29,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	log "github.com/ChainSafe/log15"
@@ -37,20 +38,15 @@ import (
 
 var (
 	defaultTestLogLvl = log.LvlInfo
-	emptyHash       = trie.EmptyHash
-	testTimeout     = time.Second * 5
-	testEpochIndex  = uint64(0)
-	testEpochLength = uint64(10)
+	emptyHash         = trie.EmptyHash
+	testTimeout       = time.Second * 5
+	testEpochIndex    = uint64(0)
 
 	maxThreshold = common.MaxUint128
 	minThreshold = &common.Uint128{}
 
-	genesisHeader = &types.Header{
-		Number:    big.NewInt(0),
-		StateRoot: emptyHash,
-	}
-
-	emptyHeader = &types.Header{
+	genesisHeader *types.Header
+	emptyHeader   = &types.Header{
 		Number: big.NewInt(0),
 	}
 
@@ -65,22 +61,32 @@ var (
 	}
 )
 
+func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
+	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis-raw.json")
+	if err != nil {
+		gen, err = genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis-raw.json")
+		require.NoError(t, err)
+	}
+
+	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), genTrie.MustHash(), trie.EmptyHash, types.Digest{}) //nolint
+	require.NoError(t, err)
+	return gen, genTrie, genesisHeader
+}
+
 func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	wasmer.DefaultTestLogLvl = 1
 
+	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	genesisHeader = genHeader
 	var err error
-	tt := trie.NewEmptyTrie()
-	rt := wasmer.NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlCrit)
 
 	if cfg == nil {
 		cfg = &ServiceConfig{
-			Runtime:   rt,
 			Authority: true,
 		}
-	}
-
-	if cfg.Runtime == nil {
-		cfg.Runtime = rt
 	}
 
 	if cfg.Keypair == nil {
@@ -106,13 +112,11 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		dbSrv := state.NewService(testDatadirPath, log.LvlInfo)
 		dbSrv.UseMemDB()
 
-		genesisData := new(genesis.Data)
-
 		if cfg.EpochLength > 0 {
 			genesisBABEConfig.EpochLength = cfg.EpochLength
 		}
 
-		err = dbSrv.Initialize(genesisData, genesisHeader, tt, genesisBABEConfig)
+		err = dbSrv.Initialize(gen, genHeader, genTrie)
 		require.NoError(t, err)
 
 		err = dbSrv.Start()
@@ -123,8 +127,12 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		cfg.EpochState = dbSrv.Epoch
 	}
 
-	if cfg.StartSlot == 0 {
-		cfg.StartSlot = 1
+	if cfg.Runtime == nil {
+		rtCfg := &wasmer.Config{}
+		rtCfg.Storage = rtstorage.NewTestTrieState(t, genTrie)
+		rt, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg) //nolint
+		require.NoError(t, err)
+		cfg.Runtime = rt
 	}
 
 	babeService, err := NewService(cfg)
@@ -164,8 +172,11 @@ func TestRunEpochLengthConfig(t *testing.T) {
 }
 
 func TestSlotDuration(t *testing.T) {
+	duration, err := time.ParseDuration("1000ms")
+	require.NoError(t, err)
+
 	bs := &Service{
-		slotDuration: 1000,
+		slotDuration: duration,
 	}
 
 	dur := bs.getSlotDuration()
@@ -173,31 +184,7 @@ func TestSlotDuration(t *testing.T) {
 }
 
 func TestBabeAnnounceMessage(t *testing.T) {
-	// this test uses a real database because it sets the runtime Storage context, which
-	// must be backed by a non-memory database
-	datadir, _ := ioutil.TempDir("/tmp", "test-datadir-*")
-	dbSrv := state.NewService(datadir, log.LvlInfo)
-	genesisData := new(genesis.Data)
-	err := dbSrv.Initialize(genesisData, genesisHeader, trie.NewEmptyTrie(), genesisBABEConfig)
-	require.NoError(t, err)
-	err = dbSrv.Start()
-	require.NoError(t, err)
-
-	cfg := &ServiceConfig{
-		BlockState:       dbSrv.Block,
-		StorageState:     dbSrv.Storage,
-		EpochState:       dbSrv.Epoch,
-		TransactionState: dbSrv.Transaction,
-		LogLvl:           log.LvlTrace,
-		Authority:        true,
-	}
-
-	babeService := createTestService(t, cfg)
-	t.Cleanup(func() {
-		_ = dbSrv.Stop()
-		os.RemoveAll(datadir)
-		_ = babeService.Stop()
-	})
+	babeService := createTestService(t, nil)
 
 	babeService.epochData.authorityIndex = 0
 	babeService.epochData.authorities = []*types.Authority{
@@ -209,7 +196,7 @@ func TestBabeAnnounceMessage(t *testing.T) {
 	babeService.epochData.threshold = maxThreshold
 	blockNumber := big.NewInt(int64(1))
 
-	err = babeService.Start()
+	err := babeService.Start()
 	require.NoError(t, err)
 
 	newBlocks := babeService.GetBlockChannel()
