@@ -62,15 +62,18 @@ type Sr25519Keyring struct {
 	KeyGeorge  *sr25519.Keypair
 	KeyHeather *sr25519.Keypair
 	KeyIan     *sr25519.Keypair
+
+	Keys []*sr25519.Keypair
 }
 
 // NewSr25519Keyring returns an initialized sr25519 Keyring
 func NewSr25519Keyring() (*Sr25519Keyring, error) {
 	kr := new(Sr25519Keyring)
+	kr.Keys = []*sr25519.Keypair{}
 
 	v := reflect.ValueOf(kr).Elem()
 
-	for i := 0; i < v.NumField(); i++ {
+	for i := 0; i < v.NumField()-1; i++ {
 		who := v.Field(i)
 		h, err := common.HexToBytes(privateKeys[i])
 		if err != nil {
@@ -83,6 +86,8 @@ func NewSr25519Keyring() (*Sr25519Keyring, error) {
 		}
 
 		who.Set(reflect.ValueOf(kp))
+
+		kr.Keys = append(kr.Keys, kp)
 	}
 
 	return kr, nil
