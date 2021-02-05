@@ -91,6 +91,25 @@ func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {
 	require.Equal(t, expected, cfg)
 }
 
+func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
+	instance := newInstanceFromGenesis(t)
+	auths, err := instance.GrandpaAuthorities()
+	require.NoError(t, err)
+
+	kr, _ := keystore.NewEd25519Keyring()
+
+	expected := []*types.Authority{}
+
+	for _, kp := range kr.Keys {
+		expected = append(expected, &types.Authority{
+			Key:    kp.Public(),
+			Weight: 1,
+		})
+	}
+
+	require.Equal(t, expected, auths)
+}
+
 func buildBlock(t *testing.T, instance *Instance) *types.Block {
 	header := &types.Header{
 		ParentHash: trie.EmptyHash,

@@ -29,6 +29,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/runtime/life"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmtime"
 
@@ -502,6 +503,8 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 		cfg.WasmInterpreter = wasmer.Name
 	case wasmtime.Name:
 		cfg.WasmInterpreter = wasmtime.Name
+	case life.Name:
+		cfg.WasmInterpreter = life.Name
 	case "":
 		cfg.WasmInterpreter = gssmr.DefaultWasmInterpreter
 	default:

@@ -288,7 +288,6 @@ func (t *Trie) insert(parent node, key []byte, value node) (n node, err error) {
 			// value the value at this branch
 			br.value = p.value
 			br.children[key[length]] = value
-			//br.setDirty(true)
 		} else {
 			// otherwise, make the leaf a child of the branch and update its partial key
 			p.key = p.key[length+1:]
@@ -605,11 +604,6 @@ func handleDeletion(p *branch, n node, key []byte) (nn node) {
 
 	// if branch has no children, just a value, turn it into a leaf
 	if bitmap == 0 && p.value != nil {
-		// TODO: hack to get around runtime bug
-		// if p.encoding != nil {
-		// 	p.setValueFromEncoding()
-		// }
-
 		nn = &leaf{key: key[:length], value: p.value, dirty: true}
 	} else if p.numChildren() == 1 && p.value == nil {
 		// there is only 1 child and no value, combine the child branch with this branch
@@ -625,18 +619,8 @@ func handleDeletion(p *branch, n node, key []byte) (nn node) {
 		child := p.children[i]
 		switch c := child.(type) {
 		case *leaf:
-			// TODO: hack to get around runtime bug
-			// if c.encoding != nil {
-			// 	c.setValueFromEncoding()
-			// }
-
 			nn = &leaf{key: append(append(p.key, []byte{byte(i)}...), c.key...), value: c.value}
 		case *branch:
-			// TODO: hack to get around runtime bug
-			// if c.encoding != nil {
-			// 	c.setValueFromEncoding()
-			// }
-
 			br := new(branch)
 			br.key = append(p.key, append([]byte{byte(i)}, c.key...)...)
 

@@ -18,7 +18,7 @@ package storage
 
 import (
 	"encoding/binary"
-	"fmt"
+	//"fmt"
 	"sync"
 
 	"github.com/ChainSafe/chaindb"
@@ -29,7 +29,7 @@ import (
 // TrieState is a wrapper around a transient trie that is used during the course of executing some runtime call.
 // If the execution of the call is successful, the trie will be saved in the StorageState.
 type TrieState struct {
-	db     chaindb.Database
+	//db     chaindb.Database
 	t      *trie.Trie
 	lock   sync.RWMutex
 	WithDB bool
@@ -42,14 +42,14 @@ func NewTrieState(db chaindb.Database, t *trie.Trie) (*TrieState, error) {
 	}
 
 	ts := &TrieState{
-		db: db,
-		t:  t,
+		//db: db,
+		t: t,
 	}
 
-	err := ts.storeWorkingRoot()
-	if err != nil {
-		return nil, err
-	}
+	// err := ts.storeWorkingRoot()
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	return ts, nil
 }
@@ -67,40 +67,40 @@ func (s *TrieState) Copy() (*TrieState, error) {
 	}
 
 	return &TrieState{
-		db: s.db,
-		t:  trieCopy,
+		//db: s.db,
+		t: trieCopy,
 	}, nil
 }
 
-func (s *TrieState) storeWorkingRoot() error {
-	root := s.t.MustHash()
-	return s.db.Put(common.WorkingStorageHashKey, root[:])
-}
+// func (s *TrieState) storeWorkingRoot() error {
+// 	root := s.t.MustHash()
+// 	return s.db.Put(common.WorkingStorageHashKey, root[:])
+// }
 
-func (s *TrieState) loadWorkingRoot() (common.Hash, error) {
-	root, err := s.db.Get(common.WorkingStorageHashKey)
-	if err != nil {
-		return common.Hash{}, fmt.Errorf("failed to load working root: %w", err)
-	}
+// func (s *TrieState) loadWorkingRoot() (common.Hash, error) {
+// 	root, err := s.db.Get(common.WorkingStorageHashKey)
+// 	if err != nil {
+// 		return common.Hash{}, fmt.Errorf("failed to load working root: %w", err)
+// 	}
 
-	return common.NewHash(root), nil
-}
+// 	return common.NewHash(root), nil
+// }
 
 // Set sets a key-value pair in the trie
 func (s *TrieState) Set(key []byte, value []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	if !s.WithDB {
-		return s.t.Put(key, value)
-	}
+	//if !s.WithDB {
+	return s.t.Put(key, value)
+	//}
 
-	err := s.t.PutInDB(s.db, key, value)
-	if err != nil {
-		return err
-	}
+	// err := s.t.PutInDB(s.db, key, value)
+	// if err != nil {
+	// 	return err
+	// }
 
-	return s.storeWorkingRoot()
+	// return s.storeWorkingRoot()
 }
 
 // Get gets a value from the trie
@@ -108,44 +108,44 @@ func (s *TrieState) Get(key []byte) ([]byte, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	if !s.WithDB {
-		return s.t.Get(key)
-	}
+	//if !s.WithDB {
+	return s.t.Get(key)
+	//}
 
-	root, err := s.loadWorkingRoot()
-	if err != nil {
-		return nil, err
-	}
+	// root, err := s.loadWorkingRoot()
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	return trie.GetFromDB(s.db, root, key)
+	// return trie.GetFromDB(s.db, root, key)
 }
 
 // MustRoot returns the trie's root hash. It panics if it fails to compute the root.
 func (s *TrieState) MustRoot() common.Hash {
-	if !s.WithDB {
-		return s.t.MustHash()
-	}
+	//if !s.WithDB {
+	return s.t.MustHash()
+	// }
 
-	root, err := s.loadWorkingRoot()
-	if err != nil {
-		panic(err)
-	}
+	// root, err := s.loadWorkingRoot()
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	return root
+	// return root
 }
 
 // Root returns the trie's root hash
 func (s *TrieState) Root() (common.Hash, error) {
-	if !s.WithDB {
-		return s.t.Hash()
-	}
+	//if !s.WithDB {
+	return s.t.Hash()
+	// }
 
-	root, err := s.loadWorkingRoot()
-	if err != nil {
-		return common.Hash{}, err
-	}
+	// root, err := s.loadWorkingRoot()
+	// if err != nil {
+	// 	return common.Hash{}, err
+	// }
 
-	return root, nil
+	// return root, nil
 }
 
 // Has returns whether or not a key exists
@@ -172,16 +172,16 @@ func (s *TrieState) Delete(key []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	if !s.WithDB {
-		return s.t.Delete(key)
-	}
+	//if !s.WithDB {
+	return s.t.Delete(key)
+	// }
 
-	err = s.t.DeleteFromDB(s.db, key)
-	if err != nil {
-		return err
-	}
+	// err = s.t.DeleteFromDB(s.db, key)
+	// if err != nil {
+	// 	return err
+	// }
 
-	return s.storeWorkingRoot()
+	// return s.storeWorkingRoot()
 }
 
 // NextKey returns the next key in the trie in lexicographical order. If it does not exist, it returns nil.
@@ -201,16 +201,18 @@ func (s *TrieState) ClearPrefix(prefix []byte) error {
 		}
 	}
 
-	if !s.WithDB {
-		return nil
-	}
+	return nil
 
-	err := s.t.WriteDirty(s.db)
-	if err != nil {
-		return err
-	}
+	// if !s.WithDB {
+	// 	return nil
+	// }
 
-	return s.storeWorkingRoot()
+	// err := s.t.WriteDirty(s.db)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// return s.storeWorkingRoot()
 }
 
 // TrieEntries returns every key-value pair in the trie

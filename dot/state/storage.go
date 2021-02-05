@@ -95,11 +95,6 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
 	root := ts.MustRoot()
 
 	s.lock.Lock()
-	// t := trie.NewEmptyTrie()
-	// err := LoadTrie(s.db, t, root)
-	// if err != nil {
-	// 	return err
-	// }
 	s.tries[root] = ts.Trie()
 	s.lock.Unlock()
 

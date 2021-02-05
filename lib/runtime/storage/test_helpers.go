@@ -17,47 +17,47 @@
 package storage
 
 import (
-	"encoding/binary"
-	"io/ioutil"
-	"math/rand"
-	"os"
+	// "encoding/binary"
+	// "io/ioutil"
+	// "math/rand"
+	// "os"
 	"testing"
 
-	"github.com/ChainSafe/chaindb"
+	//"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/require"
 )
 
 // NewTestTrieState returns an initialized TrieState
 func NewTestTrieState(t *testing.T, tr *trie.Trie) *TrieState {
-	r := rand.Intn(1 << 16) //nolint
-	buf := make([]byte, 2)
-	binary.LittleEndian.PutUint16(buf, uint16(r))
+	// r := rand.Intn(1 << 16) //nolint
+	// buf := make([]byte, 2)
+	// binary.LittleEndian.PutUint16(buf, uint16(r))
 
-	testDatadirPath, _ := ioutil.TempDir(os.TempDir(), "test-datadir-*")
+	// testDatadirPath, _ := ioutil.TempDir(os.TempDir(), "test-datadir-*")
 
-	cfg := &chaindb.Config{
-		DataDir:  testDatadirPath,
-		InMemory: true,
-	}
+	// cfg := &chaindb.Config{
+	// 	DataDir:  testDatadirPath,
+	// 	InMemory: true,
+	// }
 
-	db, err := chaindb.NewBadgerDB(cfg)
-	require.NoError(t, err)
+	// db, err := chaindb.NewBadgerDB(cfg)
+	// require.NoError(t, err)
 
 	if tr == nil {
 		tr = trie.NewEmptyTrie()
 	}
 
-	err = tr.WriteDirty(db)
+	// err = tr.WriteDirty(db)
+	// require.NoError(t, err)
+
+	ts, err := NewTrieState(nil, tr)
 	require.NoError(t, err)
 
-	ts, err := NewTrieState(db, tr)
-	require.NoError(t, err)
-
-	t.Cleanup(func() {
-		_ = ts.db.Close()
-		_ = os.RemoveAll(ts.db.Path())
-	})
+	// t.Cleanup(func() {
+	// 	_ = ts.db.Close()
+	// 	_ = os.RemoveAll(ts.db.Path())
+	// })
 
 	return ts
 }

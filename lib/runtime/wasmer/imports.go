@@ -944,17 +944,20 @@ func ext_default_child_storage_set_version_1(context unsafe.Pointer, childStorag
 	key := asMemorySlice(instanceContext, keySpan)
 	value := asMemorySlice(instanceContext, valueSpan)
 
+	cp := make([]byte, len(value))
+	copy(cp, value)
+
 	if ctx.TransactionStorageChanges != nil {
 		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
 			Operation:  runtime.SetOp,
 			KeyToChild: childStorageKey,
 			Key:        key,
-			Value:      value,
+			Value:      cp,
 		})
 		return
 	}
 
-	err := storage.SetChildStorage(childStorageKey, key, value)
+	err := storage.SetChildStorage(childStorageKey, key, cp)
 	if err != nil {
 		logger.Error("[ext_default_child_storage_set_version_1] failed to set value in child storage", "error", err)
 		return
@@ -1205,7 +1208,9 @@ func ext_offchain_local_storage_compare_and_set_version_1(context unsafe.Pointer
 	oldVal := asMemorySlice(instanceContext, oldValue)
 	newVal := asMemorySlice(instanceContext, newValue)
 	if reflect.DeepEqual(storedValue, oldVal) {
-		err = runtimeCtx.NodeStorage.LocalStorage.Put(storageKey, newVal)
+		cp := make([]byte, len(newVal))
+		copy(cp, newVal)
+		err = runtimeCtx.NodeStorage.LocalStorage.Put(storageKey, cp)
 		if err != nil {
 			logger.Error("[ext_offchain_local_storage_compare_and_set_version_1] failed to set value in storage", "error", err)
 			return 0
@@ -1253,13 +1258,15 @@ func ext_offchain_local_storage_set_version_1(context unsafe.Pointer, kind C.int
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 	storageKey := asMemorySlice(instanceContext, key)
 	newValue := asMemorySlice(instanceContext, value)
+	cp := make([]byte, len(newValue))
+	copy(cp, newValue)
 
 	var err error
 	switch runtime.NodeStorageType(kind) {
 	case runtime.NodeStorageTypePersistent:
-		err = runtimeCtx.NodeStorage.PersistentStorage.Put(storageKey, newValue)
+		err = runtimeCtx.NodeStorage.PersistentStorage.Put(storageKey, cp)
 	case runtime.NodeStorageTypeLocal:
-		err = runtimeCtx.NodeStorage.LocalStorage.Put(storageKey, newValue)
+		err = runtimeCtx.NodeStorage.LocalStorage.Put(storageKey, cp)
 	}
 
 	if err != nil {
