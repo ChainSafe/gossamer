@@ -237,7 +237,7 @@ func TestInstance_BabeConfiguration_NodeRuntime_NoAuthorities(t *testing.T) {
 		C2:                 4,
 		GenesisAuthorities: nil,
 		Randomness:         [32]byte{},
-		SecondarySlots:     true,
+		SecondarySlots:     1,
 	}
 
 	require.Equal(t, expected, cfg)
@@ -277,7 +277,7 @@ func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {
 		C2:                 4,
 		GenesisAuthorities: expectedAuthData,
 		Randomness:         [32]byte{1},
-		SecondarySlots:     true,
+		SecondarySlots:     1,
 	}
 
 	require.Equal(t, expected, cfg)

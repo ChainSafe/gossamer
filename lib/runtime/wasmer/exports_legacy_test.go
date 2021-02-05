@@ -131,7 +131,7 @@ func TestInstance_BabeConfiguration_LegacyNodeRuntime_NoAuthorities(t *testing.T
 		C2:                 4,
 		GenesisAuthorities: nil,
 		Randomness:         [32]byte{},
-		SecondarySlots:     true,
+		SecondarySlots:     1,
 	}
 
 	if !reflect.DeepEqual(cfg, expected) {
@@ -197,7 +197,7 @@ func TestInstance_BabeConfiguration_LegacyNodeRuntime_WithAuthorities(t *testing
 		C2:                 4,
 		GenesisAuthorities: expectedAuthData,
 		Randomness:         [32]byte{1},
-		SecondarySlots:     true,
+		SecondarySlots:     1,
 	}
 
 	if !reflect.DeepEqual(cfg, expected) {

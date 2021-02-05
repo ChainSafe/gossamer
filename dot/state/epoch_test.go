@@ -32,7 +32,7 @@ var genesisBABEConfig = &types.BabeConfiguration{
 	C2:                 4,
 	GenesisAuthorities: []*types.AuthorityRaw{},
 	Randomness:         [32]byte{},
-	SecondarySlots:     false,
+	SecondarySlots:     0,
 }
 
 func newEpochStateFromGenesis(t *testing.T) *EpochState {
@@ -140,7 +140,7 @@ func TestEpochState_ConfigData(t *testing.T) {
 	data := &types.ConfigData{
 		C1:             1,
 		C2:             8,
-		SecondarySlots: true,
+		SecondarySlots: 1,
 	}
 
 	err := s.SetConfigData(1, data)
