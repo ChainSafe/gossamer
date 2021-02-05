@@ -41,16 +41,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var genesisBABEConfig = &types.BabeConfiguration{
-	SlotDuration:       1000,
-	EpochLength:        200,
-	C1:                 1,
-	C2:                 4,
-	GenesisAuthorities: []*types.AuthorityRaw{},
-	Randomness:         [32]byte{},
-	SecondarySlots:     false,
-}
-
 // TestInitNode
 func TestInitNode(t *testing.T) {
 	cfg := NewTestConfig(t)
@@ -212,16 +202,16 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 
 	stateSrvc := state.NewService(cfg.Global.BasePath, log.LvlTrace)
 
-	header := &types.Header{
-		Number:         big.NewInt(0),
-		StateRoot:      trie.EmptyHash,
-		ExtrinsicsRoot: trie.EmptyHash,
-	}
-
 	gen, err := genesis.NewGenesisFromJSONRaw(genPath)
 	require.NoError(t, err)
 
-	err = stateSrvc.Initialize(gen.GenesisData(), header, trie.NewEmptyTrie(), genesisBABEConfig)
+	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), genTrie.MustHash(), trie.EmptyHash, types.Digest{})
+	require.NoError(t, err)
+
+	err = stateSrvc.Initialize(gen, genesisHeader, genTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.Start()
@@ -245,7 +235,7 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	}
 	require.Equal(t, expected, gendata)
 
-	genesisHeader, err := stateSrvc.Block.BestBlockHeader()
+	genesisHeader, err = stateSrvc.Block.BestBlockHeader()
 	require.NoError(t, err)
 
 	stateRoot := genesisHeader.StateRoot
@@ -288,7 +278,7 @@ func TestInitNode_LoadStorageRoot(t *testing.T) {
 	}
 
 	expected := &trie.Trie{}
-	err = expected.Load(gen.GenesisFields().Raw["top"])
+	err = expected.LoadFromMap(gen.GenesisFields().Raw["top"])
 	require.NoError(t, err)
 
 	expectedRoot, err := expected.Hash()

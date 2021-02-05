@@ -25,9 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/trie"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
@@ -39,9 +37,8 @@ func newTestDigestHandler(t *testing.T, withBABE, withGrandpa bool) *DigestHandl
 	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo)
 	stateSrvc.UseMemDB()
 
-	genesisData := new(genesis.Data)
-
-	err = stateSrvc.Initialize(genesisData, testGenesisHeader, trie.NewEmptyTrie(), genesisBABEConfig)
+	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	err = stateSrvc.Initialize(gen, genHeader, genTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.Start()

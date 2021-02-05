@@ -477,8 +477,7 @@ func (b *Service) handleSlot(slotNum uint64) error {
 	}
 
 	// block built successfully, store resulting trie in storage state
-	// TODO: why does StateRoot not match the root of the trie after building a block?
-	err = b.storageState.StoreTrie(block.Header.StateRoot, tsCopy)
+	err = b.storageState.StoreTrie(tsCopy)
 	if err != nil {
 		logger.Error("failed to store trie in storage state", "error", err)
 	}

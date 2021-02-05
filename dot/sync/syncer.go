@@ -287,7 +287,7 @@ func (s *Service) createBlockRequest(startInt int64) *network.BlockRequestMessag
 		StartingBlock: start,
 		EndBlockHash:  optional.NewHash(false, common.Hash{}),
 		Direction:     0, // ascending
-		Max:           optional.NewUint32(true, uint32(64)),
+		Max:           optional.NewUint32(true, uint32(256)),
 	}
 
 	s.benchmarker.begin(uint64(startInt))
@@ -428,7 +428,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 		return err
 	}
 
-	// TODO: make sure parent state is cached in StorageState
+	s.logger.Trace("getting parent state", "root", parent.StateRoot)
 	parentState, err := s.storageState.TrieState(&parent.StateRoot)
 	if err != nil {
 		return err
@@ -440,9 +440,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 	}
 
 	s.logger.Trace("copied parent state", "parent state root", parentState.MustRoot(), "copy state root", ts.MustRoot())
-
 	s.runtime.SetContext(ts)
-
 	s.logger.Trace("going to execute block", "block", block, "exts", block.Body)
 
 	_, err = s.runtime.ExecuteBlock(block)
@@ -450,10 +448,11 @@ func (s *Service) handleBlock(block *types.Block) error {
 		return err
 	}
 
-	err = s.storageState.StoreTrie(block.Header.StateRoot, ts)
+	err = s.storageState.StoreTrie(ts)
 	if err != nil {
 		return err
 	}
+	s.logger.Trace("stored resulting state", "state root", ts.MustRoot())
 
 	// TODO: batch writes in AddBlock
 	err = s.blockState.AddBlock(block)

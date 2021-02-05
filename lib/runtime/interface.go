@@ -74,14 +74,13 @@ type Storage interface {
 	SetChildStorage(keyToChild, key, value []byte) error
 	GetChildStorage(keyToChild, key []byte) ([]byte, error)
 	Delete(key []byte) error
-	Entries() map[string][]byte
 	DeleteChildStorage(key []byte) error
 	ClearChildStorage(keyToChild, key []byte) error
 	NextKey([]byte) []byte
 	ClearPrefixInChild(keyToChild, prefix []byte) error
 	GetChildNextKey(keyToChild, key []byte) ([]byte, error)
 	GetChild(keyToChild []byte) (*trie.Trie, error)
-	ClearPrefix(prefix []byte)
+	ClearPrefix(prefix []byte) error
 }
 
 // BasicNetwork interface for functions used by runtime network state function

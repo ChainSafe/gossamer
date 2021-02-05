@@ -73,7 +73,6 @@ package wasmer
 import "C"
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 	"math/big"
@@ -354,15 +353,7 @@ func ext_clear_prefix(context unsafe.Pointer, prefixData, prefixLen C.int32_t) {
 	s := runtimeCtx.Storage
 
 	prefix := memory[prefixData : prefixData+prefixLen]
-	entries := s.Entries()
-	for k := range entries {
-		if bytes.Equal([]byte(k)[:prefixLen], prefix) {
-			err := s.Delete([]byte(k))
-			if err != nil {
-				logger.Error("[ext_clear_prefix]", "err", err)
-			}
-		}
-	}
+	_ = s.ClearPrefix(prefix)
 }
 
 // accepts an array of values, puts them into a trie, and returns the root

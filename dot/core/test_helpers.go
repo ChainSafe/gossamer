@@ -26,6 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -54,6 +55,21 @@ var genesisBABEConfig = &types.BabeConfiguration{
 	GenesisAuthorities: []*types.AuthorityRaw{},
 	Randomness:         [32]byte{},
 	SecondarySlots:     0,
+}
+
+func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
+	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis-raw.json")
+	if err != nil {
+		gen, err = genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis-raw.json")
+		require.NoError(t, err)
+	}
+
+	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), genTrie.MustHash(), trie.EmptyHash, types.Digest{})
+	require.NoError(t, err)
+	return gen, genTrie, genesisHeader
 }
 
 type mockVerifier struct{}
@@ -156,9 +172,8 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo)
 	stateSrvc.UseMemDB()
 
-	genesisData := new(genesis.Data)
-	tt := trie.NewEmptyTrie()
-	err = stateSrvc.Initialize(genesisData, testGenesisHeader, tt, genesisBABEConfig)
+	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	err = stateSrvc.Initialize(gen, genHeader, genTrie)
 	require.Nil(t, err)
 
 	err = stateSrvc.Start()
