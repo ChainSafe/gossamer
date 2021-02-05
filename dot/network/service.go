@@ -158,6 +158,7 @@ func (s *Service) Start() error {
 		s.ctx, s.cancel = context.WithCancel(context.Background())
 	}
 
+	//s.host.registerConnHandler(s.handleConn)
 	s.host.registerStreamHandler(syncID, s.handleSyncStream)
 	s.host.registerStreamHandler(lightID, s.handleLightStream)
 
@@ -214,10 +215,45 @@ func (s *Service) Start() error {
 		}()
 	}
 
-	time.Sleep(time.Second)
+	time.Sleep(time.Millisecond * 500)
 
 	logger.Info("started network service", "supported protocols", s.host.protocols())
+
+	go s.logPeerCount()
 	return nil
+}
+
+func (s *Service) logPeerCount() {
+	for {
+		logger.Debug("peer count", "num", s.host.peerCount())
+		time.Sleep(time.Second * 30)
+	}
+}
+
+func (s *Service) handleConn(conn libp2pnetwork.Conn) {
+	s.notificationsMu.Lock()
+	defer s.notificationsMu.Unlock()
+
+	blockAnnounceData := s.notificationsProtocols[BlockAnnounceMsgType]
+	handshakeData := blockAnnounceData.handshakeData[conn.RemotePeer()]
+
+	if handshakeData != nil {
+		return
+	}
+
+	hs, err := blockAnnounceData.getHandshake()
+	if err != nil {
+		logger.Error("failed to get BlockAnnounceHandshake", "error", err)
+		return
+	}
+
+	err = s.host.send(conn.RemotePeer(), blockAnnounceID, hs)
+	if err != nil {
+		logger.Error("failed to send BlockAnnounceHandshake", "error", err)
+		return
+	}
+
+	logger.Debug("sent BlockAnnounceHandshake to peer", "peer", conn.RemotePeer())
 }
 
 func (s *Service) beginDiscovery() error {
@@ -231,11 +267,6 @@ func (s *Service) beginDiscovery() error {
 	// wait to connect to bootstrap peers
 	time.Sleep(time.Second)
 
-	// _, err = rd.Advertise(s.ctx, s.cfg.ProtocolID)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to begin advertising: %w", err)
-	// }
-
 	go func() {
 		peerCh, err := rd.FindPeers(s.ctx, s.cfg.ProtocolID)
 		if err != nil {
@@ -243,16 +274,25 @@ func (s *Service) beginDiscovery() error {
 		}
 
 		for peer := range peerCh {
+			if peer.ID == s.host.id() {
+				return
+			}
+
 			logger.Debug("found new peer via DHT", "peer", peer.ID)
-			// found a peer, try to connect
-			err = s.host.connect(peer) // TODO: check if it's own our peer ID
-			if err != nil {
-				logger.Debug("failed to connect to discovered peer", "peer", peer.ID, "err", err)
+
+			// found a peer, try to connect if we need more peers
+			if s.host.peerCount() < highWater {
+				err = s.host.connect(peer) // TODO: check if it's own our peer ID
+				if err != nil {
+					logger.Debug("failed to connect to discovered peer", "peer", peer.ID, "err", err)
+				}
+			} else {
+				s.host.addToPeerstore(peer)
 			}
 		}
 	}()
 
-	logger.Info("DHT discovery started!")
+	logger.Debug("DHT discovery started!")
 	return nil
 }
 
@@ -466,7 +506,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 			continue
 		}
 
-		logger.Trace(
+		logger.Debug(
 			"Received message from peer",
 			"host", s.host.id(),
 			"peer", peer,
@@ -474,7 +514,6 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		)
 
 		go func() {
-
 			// handle message based on peer status and message type
 			err = handler(peer, msg)
 			if err != nil {

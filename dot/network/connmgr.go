@@ -29,11 +29,18 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
+var (
+	lowWater  = 5
+	highWater = 50
+)
+
 // ConnManager implements connmgr.ConnManager
 type ConnManager struct {
 	max int // maximum number of peers
 	// closeHandlerMap contains close handler corresponding to a protocol.
 	closeHandlerMap map[protocol.ID]func(peerID peer.ID)
+
+	connHandler func(network.Conn)
 
 	protectedPeerMapMu sync.RWMutex
 	// protectedPeerMap contains a list of peers that are protected from pruning
@@ -156,7 +163,7 @@ func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 	cm.Lock()
 	defer cm.Unlock()
 
-	if len(n.Peers()) > cm.max {
+	if len(n.Peers()) > highWater {
 		unprotPeers := cm.unprotectedPeers(n.Peers())
 		if len(unprotPeers) == 0 {
 			return

@@ -289,7 +289,7 @@ func (s *Service) createBlockRequest(startInt int64) *network.BlockRequestMessag
 		StartingBlock: start,
 		EndBlockHash:  optional.NewHash(false, common.Hash{}),
 		Direction:     0, // ascending
-		Max:           optional.NewUint32(true, s.blockRequestSize),
+		//Max:           optional.NewUint32(true, s.blockRequestSize),
 	}
 
 	s.benchmarker.begin(uint64(startInt))
