@@ -61,7 +61,6 @@ func loadConfigFile(ctx *cli.Context, cfg *ctoml.Config) (err error) {
 		}
 		err = loadConfig(cfg, cfgPath) // load toml values into configuration
 	} else {
-		logger.Info("loading toml configuration...", "config path", defaultGssmrConfigPath)
 		err = loadConfig(cfg, defaultGssmrConfigPath)
 	}
 
