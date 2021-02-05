@@ -30,7 +30,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
-	//noise "github.com/libp2p/go-libp2p-noise"
 	secio "github.com/libp2p/go-libp2p-secio"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
@@ -75,15 +74,9 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	dhtOpts := []dual.Option{
 		dual.DHTOption(kaddht.Datastore(dsync.MutexWrap(ds.NewMapDatastore()))), // TODO: use on-disk datastore
 		dual.DHTOption(kaddht.BootstrapPeers(bns...)),
-		//kaddht.ProtocolPrefix(protocol.ID(cfg.ProtocolID)),
-		//kaddht.ProtocolPrefix(pid + "/kad"),
 		dual.DHTOption(kaddht.V1ProtocolOverride(pid + "/kad")),
 		dual.DHTOption(kaddht.Mode(kaddht.ModeAutoServer)),
 	}
-
-	// if cfg.NoMDNS {
-	// 	dhtOpts = append(dhtOpts, kaddht.Mode(kaddht.ModeAutoServer))
-	// }
 
 	// set libp2p host options
 	opts := []libp2p.Option{
@@ -92,8 +85,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		libp2p.Identity(cfg.privateKey),
 		libp2p.NATPortMap(),
 		libp2p.ConnectionManager(cm),
-		//libp2p.ChainOptions(libp2p.DefaultSecurity, libp2p.Security(noise.ID, noise.New)),
-		libp2p.ChainOptions(libp2p.DefaultSecurity, libp2p.Security(secio.ID, secio.New)),
+		libp2p.ChainOptions(libp2p.DefaultSecurity, libp2p.Security(secio.ID, secio.New)), // TODO: deprecate secio?
 	}
 
 	// create libp2p host instance

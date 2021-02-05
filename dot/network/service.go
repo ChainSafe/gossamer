@@ -158,7 +158,6 @@ func (s *Service) Start() error {
 		s.ctx, s.cancel = context.WithCancel(context.Background())
 	}
 
-	//s.host.registerConnHandler(s.handleConn)
 	s.host.registerStreamHandler(syncID, s.handleSyncStream)
 	s.host.registerStreamHandler(lightID, s.handleLightStream)
 
@@ -228,32 +227,6 @@ func (s *Service) logPeerCount() {
 		logger.Debug("peer count", "num", s.host.peerCount())
 		time.Sleep(time.Second * 30)
 	}
-}
-
-func (s *Service) handleConn(conn libp2pnetwork.Conn) {
-	s.notificationsMu.Lock()
-	defer s.notificationsMu.Unlock()
-
-	blockAnnounceData := s.notificationsProtocols[BlockAnnounceMsgType]
-	handshakeData := blockAnnounceData.handshakeData[conn.RemotePeer()]
-
-	if handshakeData != nil {
-		return
-	}
-
-	hs, err := blockAnnounceData.getHandshake()
-	if err != nil {
-		logger.Error("failed to get BlockAnnounceHandshake", "error", err)
-		return
-	}
-
-	err = s.host.send(conn.RemotePeer(), blockAnnounceID, hs)
-	if err != nil {
-		logger.Error("failed to send BlockAnnounceHandshake", "error", err)
-		return
-	}
-
-	logger.Debug("sent BlockAnnounceHandshake to peer", "peer", conn.RemotePeer())
 }
 
 func (s *Service) beginDiscovery() error {

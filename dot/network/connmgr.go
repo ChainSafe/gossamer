@@ -30,7 +30,7 @@ import (
 )
 
 var (
-	lowWater  = 5
+	//lowWater  = 5
 	highWater = 50
 )
 
@@ -39,8 +39,6 @@ type ConnManager struct {
 	max int // maximum number of peers
 	// closeHandlerMap contains close handler corresponding to a protocol.
 	closeHandlerMap map[protocol.ID]func(peerID peer.ID)
-
-	connHandler func(network.Conn)
 
 	protectedPeerMapMu sync.RWMutex
 	// protectedPeerMap contains a list of peers that are protected from pruning
