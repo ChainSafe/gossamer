@@ -104,6 +104,7 @@ import (
 	"math/rand"
 	"reflect"
 	"sort"
+	"time"
 	"unsafe"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -590,6 +591,7 @@ func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
 	}
 
 	go sigVerify.Start()
+	time.Sleep(time.Millisecond * 10) // TODO: it seems like finish_batch_verify is being called before this is marked as started
 }
 
 //export ext_trie_blake2_256_root_version_1
