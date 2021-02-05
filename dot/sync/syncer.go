@@ -120,7 +120,7 @@ func NewService(cfg *Config) (*Service, error) {
 }
 
 // HandleBlockAnnounceHandshake handles a block that a peer claims to have through a HandleBlockAnnounceHandshake
-func (s *Service) HandleBlockAnnounceHandshake(blockNum *big.Int) []*network.BlockRequestMessage {
+func (s *Service) HandleBlockAnnounceHandshake(blockNum *big.Int) *network.BlockRequestMessage {
 	bestNum, err := s.blockState.BestBlockNumber()
 	if err != nil {
 		s.logger.Error("failed to get best block number", "error", err)
@@ -145,7 +145,7 @@ func (s *Service) HandleBlockAnnounceHandshake(blockNum *big.Int) []*network.Blo
 		}
 	}
 
-	return s.createBlockRequests(start, s.highestSeenBlock.Int64())
+	return s.createBlockRequest(start)
 }
 
 // HandleBlockAnnounce creates a block request message from the block
@@ -273,19 +273,6 @@ func (s *Service) HandleBlockResponse(msg *network.BlockResponseMessage) *networ
 	// not yet synced, send another block request for the following blocks
 	start = bestNum.Int64() + 1
 	return s.createBlockRequest(start)
-}
-
-func (s *Service) createBlockRequests(start, end int64) []*network.BlockRequestMessage {
-	numReqs := (end - start) / int64(s.blockRequestSize)
-	if numReqs > 12 {
-		numReqs = 12
-	}
-	reqs := make([]*network.BlockRequestMessage, numReqs)
-	for i := 0; i < int(numReqs); i++ {
-		offset := i * int(s.blockRequestSize)
-		reqs[i] = s.createBlockRequest(start + int64(offset))
-	}
-	return reqs
 }
 
 func (s *Service) createBlockRequest(startInt int64) *network.BlockRequestMessage {

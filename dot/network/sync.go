@@ -2,7 +2,6 @@ package network
 
 import (
 	"errors"
-	"time"
 
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -10,6 +9,10 @@ import (
 
 // handleSyncStream handles streams with the <protocol-id>/sync/2 protocol ID
 func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
+	if stream == nil {
+		return
+	}
+
 	conn := stream.Conn()
 	if conn == nil {
 		logger.Error("Failed to get connection from stream")
@@ -100,8 +103,8 @@ func (s *Service) unsetSyncingPeer(peer peer.ID) {
 	s.host.h.ConnManager().Unprotect(peer, "")
 }
 
-func (s *Service) beginSyncing(peer peer.ID, msgs []*BlockRequestMessage) error {
-	if len(msgs) == 0 {
+func (s *Service) beginSyncing(peer peer.ID, msg *BlockRequestMessage) error {
+	if msg == nil {
 		return nil
 	}
 
@@ -111,21 +114,10 @@ func (s *Service) beginSyncing(peer peer.ID, msgs []*BlockRequestMessage) error 
 
 	logger.Trace("beginning sync with peer", "peer", peer)
 
-	go func() {
-		for _, msg := range msgs {
-			logger.Trace("sending sync msg to peer", "peer", peer, "msg", msg)
-			err := s.host.send(peer, syncID, msg)
-			if err != nil {
-				logger.Error("failed to send msg to peer", "peer", peer, "msg", msg, "error", err)
-				return
-				//return err
-			}
-
-			//time.Sleep(time.Millisecond*100 )
-		}
-	}()
-
-	time.Sleep(time.Millisecond * 100)
+	err := s.host.send(peer, syncID, msg)
+	if err != nil {
+		return err
+	}
 
 	go s.handleSyncStream(s.host.getStream(peer, syncID))
 	return nil

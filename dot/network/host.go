@@ -29,7 +29,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
-	//"github.com/libp2p/go-libp2p-kad-dht/dual"
+	"github.com/libp2p/go-libp2p-kad-dht/dual"
 	noise "github.com/libp2p/go-libp2p-noise"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
@@ -39,9 +39,10 @@ var defaultMaxPeerCount = 5
 
 // host wraps libp2p host with network host configuration and services
 type host struct {
-	ctx        context.Context
-	h          libp2phost.Host
-	dht        *kaddht.IpfsDHT
+	ctx context.Context
+	h   libp2phost.Host
+	//dht        *kaddht.IpfsDHT
+	dht        *dual.DHT
 	bootnodes  []peer.AddrInfo
 	protocolID protocol.ID
 }
@@ -99,11 +100,10 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	}
 
 	// create DHT service
-	// dht, err := dual.New(ctx, h, dhtOpts...)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	dht, err := kaddht.New(ctx, h, dhtOpts...)
+	dht, err := dual.New(ctx, h, dhtOpts...)
+	if err != nil {
+		return nil, err
+	}
 
 	// wrap host and DHT service with routed host
 	h = rhost.Wrap(h, dht)

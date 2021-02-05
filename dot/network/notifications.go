@@ -57,9 +57,10 @@ type notificationsProtocol struct {
 }
 
 type handshakeData struct {
-	received    bool
-	validated   bool
-	outboundMsg NotificationsMessage
+	received       bool
+	validated      bool
+	outboundMsg    NotificationsMessage
+	responseSentCh chan struct{} // this channel is created and closed when
 }
 
 func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecoder, messageDecoder MessageDecoder) messageDecoder {
@@ -107,20 +108,19 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			// if we are the receiver and haven't received the handshake already, validate it
 			if _, has := info.handshakeData[peer]; !has {
 				logger.Trace("receiver: validating handshake", "sub-protocol", info.subProtocol)
+				info.handshakeData[peer] = &handshakeData{
+					validated:      false,
+					received:       true,
+					responseSentCh: make(chan struct{}),
+				}
+
 				err := handshakeValidator(peer, hs)
 				if err != nil {
 					logger.Error("failed to validate handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
-					info.handshakeData[peer] = &handshakeData{
-						validated: false,
-						received:  true,
-					}
 					return errCannotValidateHandshake
 				}
 
-				info.handshakeData[peer] = &handshakeData{
-					validated: true,
-					received:  true,
-				}
+				info.handshakeData[peer].validated = true
 
 				// once validated, send back a handshake
 				resp, err := info.getHandshake()
@@ -135,6 +135,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 					return err
 				}
 				logger.Trace("receiver: sent handshake", "sub-protocol", info.subProtocol, "peer", peer)
+				close(info.handshakeData[peer].responseSentCh)
 			}
 
 			// if we are the initiator and haven't received the handshake already, validate it
