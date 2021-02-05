@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -540,16 +541,27 @@ func (s *Service) NetworkState() common.NetworkState {
 // Peers returns information about connected peers needed for the rpc server
 func (s *Service) Peers() []common.PeerInfo {
 	peers := []common.PeerInfo{}
+	handshake, err := s.getBlockAnnounceHandshake()
+	err = handshake.Decode(handshake.Hash().ToBytes())
+	protocolVersion, err := strconv.ParseUint(s.cfg.ProtocolID, 16, 32)
 
 	for _, p := range s.host.peers() {
-		// TODO: update this based on BlockAnnounce handshake info
-		peers = append(peers, common.PeerInfo{
-			PeerID: p.String(),
-			// Roles:           msg.Roles,
-			// ProtocolVersion: msg.ProtocolVersion,
-			// BestHash:        msg.BestBlockHash,
-			// BestNumber:      msg.BestBlockNumber,
-		})
+
+		if err != nil {
+			logger.Error("failed to get additional peer data", "peer", p, "err", err)
+			peers = append(peers, common.PeerInfo{
+				PeerID: p.String(),
+			})
+		} else {
+			peers = append(peers, common.PeerInfo{
+				PeerID:          p.String(),
+				Roles:           handshake.(*BlockAnnounceHandshake).Roles,
+				ProtocolVersion: uint32(protocolVersion),
+				BestHash:        handshake.(*BlockAnnounceHandshake).BestBlockHash,
+				BestNumber:      uint64(handshake.(*BlockAnnounceHandshake).BestBlockNumber),
+			})
+		}
+
 	}
 	return peers
 }
