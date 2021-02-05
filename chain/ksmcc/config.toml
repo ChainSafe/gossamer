@@ -4,13 +4,13 @@ log = "info"
 
 [log]
 core = ""
-network = "trace"
+network = ""
 rpc = ""
 state = ""
 runtime = ""
 babe = ""
 grandpa = ""
-sync = "debug"
+sync = ""
 
 [init]
 genesis-raw = "./chain/ksmcc/genesis-raw.json"

@@ -186,29 +186,6 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 	}
 }
 
-// // handleHandshakeResponse handles a potential response to a peer's handshake.
-// // this is currently only used for syncing (ie. if we received a BlockAnnounceHandhsake where the peer has a higher chain head
-// // than us, we want to begin syncing with them.)
-// func (s *Service) handleHandshakeResponse(peer peer.ID, msg Message) error {
-// 	if msg == nil {
-// 		return nil
-// 	}
-
-// 	logger.Debug("sending message to peer in response to handshake", "peer", peer, "msg", msg)
-// 	switch msg.SubProtocol() {
-// 	case syncID:
-// 		err := s.beginSyncing(peer, msg)
-// 		if err != nil {
-// 			logger.Error("failed to send response to peer's handshake", "sub-protocol", syncID, "peer", peer, "error", err)
-// 			return err
-// 		}
-// 	default:
-// 		return errors.New("unsupported handshake response")
-// 	}
-
-// 	return nil
-// }
-
 // broadcastExcluding sends a message to each connected peer except the given peer
 // Used for notifications sub-protocols to gossip a message
 func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer.ID, msg NotificationsMessage) {

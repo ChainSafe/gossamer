@@ -41,7 +41,6 @@ var defaultMaxPeerCount = 5
 type host struct {
 	ctx context.Context
 	h   libp2phost.Host
-	//dht        *kaddht.IpfsDHT
 	dht        *dual.DHT
 	bootnodes  []peer.AddrInfo
 	protocolID protocol.ID
