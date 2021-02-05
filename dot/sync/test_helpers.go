@@ -27,7 +27,7 @@ var genesisBABEConfig = &types.BabeConfiguration{
 	C2:                 4,
 	GenesisAuthorities: []*types.AuthorityRaw{},
 	Randomness:         [32]byte{},
-	SecondarySlots:     false,
+	SecondarySlots:     0,
 }
 
 // mockVerifier implements the Verifier interface
