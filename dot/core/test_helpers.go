@@ -47,16 +47,6 @@ var testGenesisHeader = &types.Header{
 	StateRoot: trie.EmptyHash,
 }
 
-var genesisBABEConfig = &types.BabeConfiguration{
-	SlotDuration:       1000,
-	EpochLength:        200,
-	C1:                 1,
-	C2:                 4,
-	GenesisAuthorities: []*types.AuthorityRaw{},
-	Randomness:         [32]byte{},
-	SecondarySlots:     0,
-}
-
 func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
 	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis-raw.json")
 	if err != nil {
