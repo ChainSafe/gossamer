@@ -25,6 +25,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var genesisBABEConfig = &types.BabeConfiguration{
+	SlotDuration:       1000,
+	EpochLength:        200,
+	C1:                 1,
+	C2:                 4,
+	GenesisAuthorities: []*types.AuthorityRaw{},
+	Randomness:         [32]byte{},
+	SecondarySlots:     false,
+}
+
 func newEpochStateFromGenesis(t *testing.T) *EpochState {
 	db := NewInMemoryDB(t)
 	s, err := NewEpochStateFromGenesis(db, genesisBABEConfig)

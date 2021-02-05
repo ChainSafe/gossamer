@@ -20,16 +20,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 )
 
-var genesisBABEConfig = &types.BabeConfiguration{
-	SlotDuration:       1000,
-	EpochLength:        200,
-	C1:                 1,
-	C2:                 4,
-	GenesisAuthorities: []*types.AuthorityRaw{},
-	Randomness:         [32]byte{},
-	SecondarySlots:     false,
-}
-
 // mockVerifier implements the Verifier interface
 type mockVerifier struct{}
 

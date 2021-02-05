@@ -121,6 +121,12 @@ func decodeRecursive(r io.Reader, prev node) error {
 					return fmt.Errorf("could not decode child at %d: %s", i, err)
 				}
 
+				b.children[i].setDirty(true)
+
+				if l, ok := b.children[i].(*leaf); ok {
+					l.valueDirty = true
+				}
+
 				err = decodeRecursive(r, b.children[i])
 				if err != nil {
 					return err
