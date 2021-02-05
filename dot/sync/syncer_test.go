@@ -78,7 +78,7 @@ func newTestSyncer(t *testing.T) *Service {
 
 	if cfg.Runtime == nil {
 		// set state to genesis state
-		genState, err := rtstorage.NewTrieState(genTrie)
+		genState, err := rtstorage.NewTrieState(genTrie) //nolint
 		require.NoError(t, err)
 
 		rtCfg := &wasmer.Config{}
