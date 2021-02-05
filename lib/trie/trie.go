@@ -225,7 +225,7 @@ func (t *Trie) Put(key, value []byte) error {
 func (t *Trie) tryPut(key, value []byte) (err error) {
 	k := keyToNibbles(key)
 
-	n, err := t.insert(t.root, k, &leaf{key: nil, value: value, dirty: true, valueDirty: true})
+	n, err := t.insert(t.root, k, &leaf{key: nil, value: value, dirty: true})
 	if err != nil {
 		return err
 	}
@@ -255,7 +255,6 @@ func (t *Trie) insert(parent node, key []byte, value node) (n node, err error) {
 			if !bytes.Equal(value.(*leaf).value, p.value) {
 				p.value = value.(*leaf).value
 				p.dirty = true
-				p.valueDirty = true
 			}
 			return p, nil
 		}
@@ -338,18 +337,12 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (n node, err erro
 			}
 			p.children[key[length]] = n
 			n.setDirty(true)
-			if l, ok := n.(*leaf); ok {
-				l.valueDirty = true
-			}
-
-			n = p
-			n.setDirty(true)
-			return n, nil
+			p.setDirty(true)
+			return p, nil
 		case nil:
 			// otherwise, add node as child of this branch
 			value.(*leaf).key = key[length+1:]
 			p.children[key[length]] = value
-			//n = p
 			p.setDirty(true)
 			return p, nil
 		}

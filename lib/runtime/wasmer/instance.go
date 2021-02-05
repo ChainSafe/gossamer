@@ -137,7 +137,7 @@ func (in *Instance) Legacy() *LegacyInstance {
 	return in.inst
 }
 
-// SetContext sets the runtime's storage. It should be set before calls to the below functions.
+// SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.
 func (in *Instance) SetContextStorage(s runtime.Storage) {
 	in.inst.SetContextStorage(s)
 }
@@ -231,7 +231,7 @@ func newLegacyInstance(code []byte, cfg *Config) (*LegacyInstance, error) {
 	return inst, nil
 }
 
-// SetContext sets the runtime's storage. It should be set before calls to the below functions.
+// SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.
 func (in *LegacyInstance) SetContextStorage(s runtime.Storage) {
 	in.ctx.Storage = s
 	in.vm.SetContextData(in.ctx)

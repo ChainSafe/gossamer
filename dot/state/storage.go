@@ -95,18 +95,18 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
 	root := ts.MustRoot()
 
 	s.lock.Lock()
-	t := trie.NewEmptyTrie()
-	err := LoadTrie(s.db, t, root)
-	if err != nil {
-		return err
-	}
-	s.tries[root] = t
+	// t := trie.NewEmptyTrie()
+	// err := LoadTrie(s.db, t, root)
+	// if err != nil {
+	// 	return err
+	// }
+	s.tries[root] = ts.Trie()
 	s.lock.Unlock()
 
 	logger.Trace("cached trie in storage state", "root", root)
 
 	go func() {
-		if err := ts.Trie().WriteDirty(); err != nil {
+		if err := ts.Trie().WriteDirty(s.db); err != nil {
 			logger.Warn("failed to write trie to database", "root", root, "error", err)
 		}
 	}()

@@ -127,7 +127,7 @@ func (m Memory) Length() uint32 {
 	return uint32(len(m.memory))
 }
 
-// SetContext sets the runtime's storage. It should be set before calls to the below functions.
+// SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.
 func (in *Instance) SetContextStorage(s runtime.Storage) {
 	ctx.Storage = s
 }
@@ -161,9 +161,7 @@ func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 }
 
 // Stop ...
-func (in *Instance) Stop() {
-	return
-}
+func (in *Instance) Stop() {}
 
 // NodeStorage to get reference to runtime node service
 func (in *Instance) NodeStorage() runtime.NodeStorage {

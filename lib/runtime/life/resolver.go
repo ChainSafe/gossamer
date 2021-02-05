@@ -15,8 +15,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
+// Resolver resolves the imports for life
 type Resolver struct{} // TODO: move context inside resolver
 
+// ResolveFunc ...
 func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 	switch module {
 	case "env":
@@ -69,6 +71,7 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 	}
 }
 
+// ResolveGlobal ...
 func (r *Resolver) ResolveGlobal(module, field string) int64 {
 	panic("we're not resolving global variables for now")
 }
@@ -76,8 +79,8 @@ func (r *Resolver) ResolveGlobal(module, field string) int64 {
 func ext_logging_log_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_logging_log_version_1] executing...")
 	level := int32(vm.GetCurrentFrame().Locals[0])
-	targetData := int64(vm.GetCurrentFrame().Locals[1])
-	msgData := int64(vm.GetCurrentFrame().Locals[2])
+	targetData := vm.GetCurrentFrame().Locals[1]
+	msgData := vm.GetCurrentFrame().Locals[2]
 
 	target := fmt.Sprintf("%s", asMemorySlice(vm.Memory, targetData))
 	msg := fmt.Sprintf("%s", asMemorySlice(vm.Memory, msgData))
@@ -102,7 +105,7 @@ func ext_logging_log_version_1(vm *exec.VirtualMachine) int64 {
 
 func ext_misc_print_utf8_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_misc_print_utf8_version_1] executing...")
-	dataSpan := int64(vm.GetCurrentFrame().Locals[0])
+	dataSpan := vm.GetCurrentFrame().Locals[0]
 	data := asMemorySlice(vm.Memory, dataSpan)
 	logger.Debug("[ext_misc_print_utf8_version_1]", "utf8", fmt.Sprintf("%s", data))
 	return 0
@@ -110,7 +113,7 @@ func ext_misc_print_utf8_version_1(vm *exec.VirtualMachine) int64 {
 
 func ext_misc_print_hex_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_misc_print_hex_version_1] executing...")
-	dataSpan := int64(vm.GetCurrentFrame().Locals[0])
+	dataSpan := vm.GetCurrentFrame().Locals[0]
 	data := asMemorySlice(vm.Memory, dataSpan)
 	logger.Debug("[ext_misc_print_hex_version_1]", "hex", fmt.Sprintf("0x%x", data))
 	return 0
@@ -135,7 +138,7 @@ func ext_allocator_free_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_allocator_free_version_1] executing...", "addr", addr)
 
 	// Deallocate memory
-	err := ctx.Allocator.Deallocate(uint32(addr))
+	err := ctx.Allocator.Deallocate(addr)
 	if err != nil {
 		logger.Error("[ext_allocator_free_version_1]", "error", err)
 		panic(err)
@@ -146,7 +149,7 @@ func ext_allocator_free_version_1(vm *exec.VirtualMachine) int64 {
 
 func ext_hashing_blake2_256_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_hashing_blake2_256_version_1] executing...")
-	dataSpan := int64(vm.GetCurrentFrame().Locals[0])
+	dataSpan := vm.GetCurrentFrame().Locals[0]
 
 	data := asMemorySlice(vm.Memory, dataSpan)
 
@@ -169,7 +172,7 @@ func ext_hashing_blake2_256_version_1(vm *exec.VirtualMachine) int64 {
 
 func ext_hashing_twox_128_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_hashing_twox_128_version_1] executing...")
-	dataSpan := int64(vm.GetCurrentFrame().Locals[0])
+	dataSpan := vm.GetCurrentFrame().Locals[0]
 	data := asMemorySlice(vm.Memory, dataSpan)
 
 	hash, err := common.Twox128Hash(data)
@@ -191,7 +194,7 @@ func ext_hashing_twox_128_version_1(vm *exec.VirtualMachine) int64 {
 
 func ext_hashing_twox_64_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_hashing_twox_64_version_1] executing...")
-	dataSpan := int64(vm.GetCurrentFrame().Locals[0])
+	dataSpan := vm.GetCurrentFrame().Locals[0]
 	data := asMemorySlice(vm.Memory, dataSpan)
 
 	hash, err := common.Twox64(data)
@@ -213,7 +216,7 @@ func ext_hashing_twox_64_version_1(vm *exec.VirtualMachine) int64 {
 
 func ext_storage_get_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_storage_get_version_1] executing...")
-	keySpan := int64(vm.GetCurrentFrame().Locals[0])
+	keySpan := vm.GetCurrentFrame().Locals[0]
 	storage := ctx.Storage
 
 	key := asMemorySlice(vm.Memory, keySpan)
@@ -223,7 +226,7 @@ func ext_storage_get_version_1(vm *exec.VirtualMachine) int64 {
 	if err != nil {
 		logger.Error("[ext_storage_get_version_1]", "error", err)
 		ptr, _ := toWasmMemoryOptional(vm.Memory, nil)
-		return int64(ptr)
+		return ptr
 	}
 
 	logger.Debug("[ext_storage_get_version_1]", "value", fmt.Sprintf("0x%x", value))
@@ -232,7 +235,7 @@ func ext_storage_get_version_1(vm *exec.VirtualMachine) int64 {
 	if err != nil {
 		logger.Error("[ext_storage_get_version_1] failed to allocate", "error", err)
 		ptr, _ := toWasmMemoryOptional(vm.Memory, nil)
-		return int64(ptr)
+		return ptr
 	}
 
 	return valueSpan
@@ -240,8 +243,8 @@ func ext_storage_get_version_1(vm *exec.VirtualMachine) int64 {
 
 func ext_storage_set_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_storage_set_version_1] executing...")
-	keySpan := int64(vm.GetCurrentFrame().Locals[0])
-	valueSpan := int64(vm.GetCurrentFrame().Locals[1])
+	keySpan := vm.GetCurrentFrame().Locals[0]
+	valueSpan := vm.GetCurrentFrame().Locals[1]
 	storage := ctx.Storage
 
 	key := asMemorySlice(vm.Memory, keySpan)
@@ -271,7 +274,7 @@ func ext_storage_set_version_1(vm *exec.VirtualMachine) int64 {
 
 func ext_storage_next_key_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_storage_next_key_version_1] executing...")
-	keySpan := int64(vm.GetCurrentFrame().Locals[0])
+	keySpan := vm.GetCurrentFrame().Locals[0]
 	storage := ctx.Storage
 
 	key := asMemorySlice(vm.Memory, keySpan)
@@ -290,7 +293,7 @@ func ext_storage_next_key_version_1(vm *exec.VirtualMachine) int64 {
 
 func ext_storage_clear_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_storage_clear_version_1] executing...")
-	keySpan := int64(vm.GetCurrentFrame().Locals[0])
+	keySpan := vm.GetCurrentFrame().Locals[0]
 	storage := ctx.Storage
 
 	key := asMemorySlice(vm.Memory, keySpan)
@@ -312,7 +315,7 @@ func ext_storage_clear_version_1(vm *exec.VirtualMachine) int64 {
 func ext_storage_clear_prefix_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_storage_clear_prefix_version_1] executing...")
 	storage := ctx.Storage
-	prefixSpan := int64(vm.GetCurrentFrame().Locals[0])
+	prefixSpan := vm.GetCurrentFrame().Locals[0]
 
 	prefix := asMemorySlice(vm.Memory, prefixSpan)
 	logger.Debug("[ext_storage_clear_prefix_version_1]", "prefix", fmt.Sprintf("0x%x", prefix))
@@ -341,8 +344,8 @@ func ext_storage_clear_prefix_version_1(vm *exec.VirtualMachine) int64 {
 
 func ext_storage_read_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_storage_read_version_1] executing...")
-	keySpan := int64(vm.GetCurrentFrame().Locals[0])
-	valueOut := int64(vm.GetCurrentFrame().Locals[1])
+	keySpan := vm.GetCurrentFrame().Locals[0]
+	valueOut := vm.GetCurrentFrame().Locals[1]
 	offset := int32(vm.GetCurrentFrame().Locals[2])
 	storage := ctx.Storage
 	memory := vm.Memory
@@ -352,14 +355,14 @@ func ext_storage_read_version_1(vm *exec.VirtualMachine) int64 {
 	if err != nil {
 		logger.Error("[ext_storage_read_version_1]", "error", err)
 		ret, _ := toWasmMemoryOptional(memory, nil)
-		return int64(ret)
+		return ret
 	}
 
 	logger.Debug("[ext_storage_read_version_1]", "key", fmt.Sprintf("0x%x", key), "value", fmt.Sprintf("0x%x", value))
 
 	if value == nil {
 		ret, _ := toWasmMemoryOptional(memory, nil)
-		return int64(ret)
+		return ret
 	}
 
 	var size uint32
@@ -368,7 +371,7 @@ func ext_storage_read_version_1(vm *exec.VirtualMachine) int64 {
 		size = uint32(0)
 	} else {
 		size = uint32(len(value[offset:]))
-		valueBuf, valueLen := int64ToPointerAndSize(int64(valueOut))
+		valueBuf, valueLen := int64ToPointerAndSize(valueOut)
 		copy(memory[valueBuf:valueBuf+valueLen], value[offset:])
 	}
 
@@ -378,7 +381,7 @@ func ext_storage_read_version_1(vm *exec.VirtualMachine) int64 {
 		return 0
 	}
 
-	return int64(sizeSpan)
+	return sizeSpan
 }
 
 func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
@@ -426,8 +429,8 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 func ext_storage_append_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_storage_append_version_1] executing...")
 	storage := ctx.Storage
-	keySpan := int64(vm.GetCurrentFrame().Locals[0])
-	valueSpan := int64(vm.GetCurrentFrame().Locals[0])
+	keySpan := vm.GetCurrentFrame().Locals[0]
+	valueSpan := vm.GetCurrentFrame().Locals[0]
 
 	key := asMemorySlice(vm.Memory, keySpan)
 	logger.Debug("[ext_storage_append_version_1]", "key", fmt.Sprintf("0x%x", key))
@@ -452,7 +455,7 @@ func ext_storage_append_version_1(vm *exec.VirtualMachine) int64 {
 
 func ext_trie_blake2_256_ordered_root_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_trie_blake2_256_ordered_root_version_1] executing...")
-	dataSpan := int64(vm.GetCurrentFrame().Locals[0])
+	dataSpan := vm.GetCurrentFrame().Locals[0]
 	memory := vm.Memory
 	data := asMemorySlice(memory, dataSpan)
 
@@ -516,7 +519,7 @@ func ext_storage_root_version_1(vm *exec.VirtualMachine) int64 {
 		return 0
 	}
 
-	return int64(rootSpan)
+	return rootSpan
 }
 
 func ext_storage_changes_root_version_1(vm *exec.VirtualMachine) int64 {
@@ -529,7 +532,7 @@ func ext_storage_changes_root_version_1(vm *exec.VirtualMachine) int64 {
 		return 0
 	}
 
-	return int64(rootSpan)
+	return rootSpan
 }
 
 func ext_crypto_start_batch_verify_version_1(vm *exec.VirtualMachine) int64 {
@@ -544,7 +547,7 @@ func ext_crypto_finish_batch_verify_version_1(vm *exec.VirtualMachine) int64 {
 
 // Convert 64bit wasm span descriptor to Go memory slice
 func asMemorySlice(memory []byte, span int64) []byte {
-	ptr, size := int64ToPointerAndSize(int64(span))
+	ptr, size := int64ToPointerAndSize(span)
 	return memory[ptr : ptr+size]
 }
 
@@ -561,8 +564,7 @@ func toWasmMemorySized(memory, data []byte, size uint32) (uint32, error) {
 	}
 
 	copy(memory[out:out+size], data[:])
-
-	return uint32(out), nil
+	return out, nil
 }
 
 // Wraps slice in optional.Bytes and copies result to wasm memory. Returns resulting 64bit span descriptor
@@ -584,9 +586,7 @@ func toWasmMemoryOptional(memory, data []byte) (int64, error) {
 
 // Copy a byte slice to wasm memory and return the resulting 64bit span descriptor
 func toWasmMemory(memory, data []byte) (int64, error) {
-	//memory := context.Memory().Data()
 	allocator := ctx.Allocator
-
 	size := uint32(len(data))
 
 	out, err := allocator.Allocate(size)
