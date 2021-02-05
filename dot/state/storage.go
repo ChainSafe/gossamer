@@ -129,7 +129,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 	defer s.lock.RUnlock()
 
 	if s.tries[*root] != nil {
-		return rtstorage.NewTrieState(s.db, s.tries[*root])
+		return rtstorage.NewTrieState(s.tries[*root])
 	}
 
 	tr, err := s.LoadFromDB(*root)
@@ -137,7 +137,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		return nil, err
 	}
 
-	return rtstorage.NewTrieState(s.db, tr)
+	return rtstorage.NewTrieState(tr)
 }
 
 // StoreInDB encodes the entire trie and writes it to the DB

@@ -111,7 +111,7 @@ func (s *Service) Initialize(gen *genesis.Genesis, header *types.Header, t *trie
 		return fmt.Errorf("failed to write genesis trie to database: %w", err)
 	}
 
-	babeCfg, err := s.loadBabeConfigurationFromRuntime(t, db, gen)
+	babeCfg, err := s.loadBabeConfigurationFromRuntime(t, gen)
 	if err != nil {
 		return err
 	}
@@ -164,9 +164,9 @@ func (s *Service) Initialize(gen *genesis.Genesis, header *types.Header, t *trie
 	return nil
 }
 
-func (s *Service) loadBabeConfigurationFromRuntime(t *trie.Trie, db chaindb.Database, gen *genesis.Genesis) (*types.BabeConfiguration, error) {
+func (s *Service) loadBabeConfigurationFromRuntime(t *trie.Trie, gen *genesis.Genesis) (*types.BabeConfiguration, error) {
 	// load genesis state into database
-	genTrie, err := rtstorage.NewTrieState(chaindb.NewTable(db, storagePrefix), t)
+	genTrie, err := rtstorage.NewTrieState(t)
 	if err != nil {
 		return nil, fmt.Errorf("failed to instantiate TrieState: %w", err)
 	}

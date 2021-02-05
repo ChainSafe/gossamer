@@ -53,7 +53,8 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, 
 	cfg := &Config{
 		Imports: importsFunc,
 	}
-	cfg.Storage = storage.NewTestTrieState(t, tt)
+	cfg.Storage, err = storage.NewTrieState(tt)
+	require.NoError(t, err)
 	cfg.Keystore = keystore.NewGenericKeystore("test")
 	cfg.LogLvl = lvl
 	cfg.NodeStorage = ns

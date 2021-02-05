@@ -61,7 +61,8 @@ func TestInstance_Version_KusamaRuntime(t *testing.T) {
 	require.Equal(t, expectedGenesisRoot, genTrie.MustHash())
 
 	// set state to genesis state
-	genState := storage.NewTestTrieState(t, genTrie)
+	genState, err := storage.NewTrieState(genTrie)
+	require.NoError(t, err)
 
 	cfg := &Config{}
 	cfg.Storage = genState
@@ -387,10 +388,11 @@ func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
 	block := buildBlock(t, instance)
 
 	// reset state back to parent state before executing
-	parentState := storage.NewTestTrieState(t, nil)
+	parentState, err := storage.NewTrieState(nil)
+	require.NoError(t, err)
 	instance.SetContextStorage(parentState)
 
-	_, err := instance.ExecuteBlock(block)
+	_, err = instance.ExecuteBlock(block)
 	require.NoError(t, err)
 }
 
@@ -403,7 +405,8 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 	require.NoError(t, err)
 
 	// set state to genesis state
-	genState := storage.NewTestTrieState(t, genTrie)
+	genState, err := storage.NewTrieState(genTrie)
+	require.NoError(t, err)
 
 	cfg := &Config{}
 	cfg.Storage = genState
@@ -414,7 +417,8 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 	block := buildBlock(t, instance)
 
 	// reset state back to parent state before executing
-	parentState := storage.NewTestTrieState(t, genTrie)
+	parentState, err := storage.NewTrieState(genTrie)
+	require.NoError(t, err)
 	instance.SetContextStorage(parentState)
 
 	_, err = instance.ExecuteBlock(block)
@@ -428,10 +432,11 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 	block := buildBlock(t, instance)
 
 	// reset state back to parent state before executing
-	parentState := storage.NewTestTrieState(t, nil)
+	parentState, err := storage.NewTrieState(nil)
+	require.NoError(t, err)
 	instance.SetContextStorage(parentState)
 
-	_, err := instance.ExecuteBlock(block)
+	_, err = instance.ExecuteBlock(block)
 	require.NoError(t, err)
 }
 
@@ -446,7 +451,8 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	require.Equal(t, expectedGenesisRoot, genTrie.MustHash())
 
 	// set state to genesis state
-	genState := storage.NewTestTrieState(t, genTrie)
+	genState, err := storage.NewTrieState(genTrie)
+	require.NoError(t, err)
 
 	cfg := &Config{}
 	cfg.Storage = genState
@@ -494,7 +500,8 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	require.Equal(t, expectedGenesisRoot, genTrie.MustHash())
 
 	// set state to genesis state
-	genState := storage.NewTestTrieState(t, genTrie)
+	genState, err := storage.NewTrieState(genTrie)
+	require.NoError(t, err)
 
 	cfg := &Config{}
 	cfg.Storage = genState
