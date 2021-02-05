@@ -80,33 +80,28 @@ func (s *StorageState) pruneKey(keyHeader *types.Header) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	tr, ok := s.tries[keyHeader.StateRoot]
+	_, ok := s.tries[keyHeader.StateRoot]
 	if !ok {
 		return
 	}
 
-	hash, _ := tr.Hash()
-	_ = s.db.Del(hash[:])
 	delete(s.tries, keyHeader.StateRoot)
+	// TODO: database pruning needs to be refactored since the trie is now stored by nodes
 }
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database
 func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
-	root := ts.MustRoot()
-
 	s.lock.Lock()
+	root := ts.MustRoot()
 	s.tries[root] = ts.Trie()
 	s.lock.Unlock()
 
 	logger.Trace("cached trie in storage state", "root", root)
 
-	go func() {
-		s.lock.Lock()
-		defer s.lock.Unlock()
-		if err := ts.Trie().WriteDirty(s.db); err != nil {
-			logger.Warn("failed to write trie to database", "root", root, "error", err)
-		}
-	}()
+	if err := ts.Trie().WriteDirty(s.db); err != nil {
+		logger.Warn("failed to write trie to database", "root", root, "error", err)
+		return err
+	}
 
 	go func() {
 		if err := s.notifyStorageSubscriptions(root); err != nil {
