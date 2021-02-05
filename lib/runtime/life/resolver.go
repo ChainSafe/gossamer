@@ -146,7 +146,6 @@ func ext_allocator_free_version_1(vm *exec.VirtualMachine) int64 {
 
 func ext_hashing_blake2_256_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_hashing_blake2_256_version_1] executing...")
-	//instanceContext := wasm.IntoInstanceContext(context)
 	dataSpan := int64(vm.GetCurrentFrame().Locals[0])
 
 	data := asMemorySlice(vm.Memory, dataSpan)
@@ -192,9 +191,7 @@ func ext_hashing_twox_128_version_1(vm *exec.VirtualMachine) int64 {
 
 func ext_hashing_twox_64_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_hashing_twox_64_version_1] executing...")
-	//instanceContext := wasm.IntoInstanceContext(context)
 	dataSpan := int64(vm.GetCurrentFrame().Locals[0])
-
 	data := asMemorySlice(vm.Memory, dataSpan)
 
 	hash, err := common.Twox64(data)
@@ -217,8 +214,6 @@ func ext_hashing_twox_64_version_1(vm *exec.VirtualMachine) int64 {
 func ext_storage_get_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_storage_get_version_1] executing...")
 	keySpan := int64(vm.GetCurrentFrame().Locals[0])
-
-	//instanceContext := wasm.IntoInstanceContext(context)
 	storage := ctx.Storage
 
 	key := asMemorySlice(vm.Memory, keySpan)
@@ -247,9 +242,6 @@ func ext_storage_set_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_storage_set_version_1] executing...")
 	keySpan := int64(vm.GetCurrentFrame().Locals[0])
 	valueSpan := int64(vm.GetCurrentFrame().Locals[1])
-
-	//instanceContext := wasm.IntoInstanceContext(context)
-	//ctx := instanceContext.Data().(*runtime.Context)
 	storage := ctx.Storage
 
 	key := asMemorySlice(vm.Memory, keySpan)
@@ -280,8 +272,6 @@ func ext_storage_set_version_1(vm *exec.VirtualMachine) int64 {
 func ext_storage_next_key_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_storage_next_key_version_1] executing...")
 	keySpan := int64(vm.GetCurrentFrame().Locals[0])
-
-	//instanceContext := wasm.IntoInstanceContext(context)
 	storage := ctx.Storage
 
 	key := asMemorySlice(vm.Memory, keySpan)
@@ -300,8 +290,6 @@ func ext_storage_next_key_version_1(vm *exec.VirtualMachine) int64 {
 
 func ext_storage_clear_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_storage_clear_version_1] executing...")
-	// instanceContext := wasm.IntoInstanceContext(context)
-	// ctx := instanceContext.Data().(*runtime.Context)
 	keySpan := int64(vm.GetCurrentFrame().Locals[0])
 	storage := ctx.Storage
 
@@ -323,8 +311,6 @@ func ext_storage_clear_version_1(vm *exec.VirtualMachine) int64 {
 
 func ext_storage_clear_prefix_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_storage_clear_prefix_version_1] executing...")
-	// instanceContext := wasm.IntoInstanceContext(context)
-	// ctx := instanceContext.Data().(*runtime.Context)
 	storage := ctx.Storage
 	prefixSpan := int64(vm.GetCurrentFrame().Locals[0])
 
@@ -358,12 +344,8 @@ func ext_storage_read_version_1(vm *exec.VirtualMachine) int64 {
 	keySpan := int64(vm.GetCurrentFrame().Locals[0])
 	valueOut := int64(vm.GetCurrentFrame().Locals[1])
 	offset := int32(vm.GetCurrentFrame().Locals[2])
-
-	//instanceContext := wasm.IntoInstanceContext(context)
-	//storage := instanceContext.Data().(*runtime.Context).Storage
 	storage := ctx.Storage
 	memory := vm.Memory
-	//memory := instanceContext.Memory().Data()
 
 	key := asMemorySlice(memory, keySpan)
 	value, err := storage.Get(key)
@@ -443,8 +425,6 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 
 func ext_storage_append_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_storage_append_version_1] executing...")
-	//instanceContext := wasm.IntoInstanceContext(context)
-	//ctx := instanceContext.Data().(*runtime.Context)
 	storage := ctx.Storage
 	keySpan := int64(vm.GetCurrentFrame().Locals[0])
 	valueSpan := int64(vm.GetCurrentFrame().Locals[0])
@@ -473,10 +453,7 @@ func ext_storage_append_version_1(vm *exec.VirtualMachine) int64 {
 func ext_trie_blake2_256_ordered_root_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_trie_blake2_256_ordered_root_version_1] executing...")
 	dataSpan := int64(vm.GetCurrentFrame().Locals[0])
-
-	//instanceContext := wasm.IntoInstanceContext(context)
 	memory := vm.Memory
-	//runtimeCtx := instanceContext.Data().(*runtime.Context)
 	data := asMemorySlice(memory, dataSpan)
 
 	t := trie.NewEmptyTrie()
@@ -523,9 +500,6 @@ func ext_trie_blake2_256_ordered_root_version_1(vm *exec.VirtualMachine) int64 {
 
 func ext_storage_root_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_storage_root_version_1] executing...")
-
-	//instanceContext := wasm.IntoInstanceContext(context)
-	//storage := instanceContext.Data().(*runtime.Context).Storage
 	storage := ctx.Storage
 
 	root, err := storage.Root()
@@ -548,9 +522,6 @@ func ext_storage_root_version_1(vm *exec.VirtualMachine) int64 {
 func ext_storage_changes_root_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_storage_changes_root_version_1] executing...")
 	logger.Debug("[ext_storage_changes_root_version_1] returning None")
-	//parentHashSpan := int64(vm.GetCurrentFrame().Locals[0])
-
-	//instanceContext := wasm.IntoInstanceContext(context)
 
 	rootSpan, err := toWasmMemoryOptional(vm.Memory, nil)
 	if err != nil {
@@ -573,7 +544,6 @@ func ext_crypto_finish_batch_verify_version_1(vm *exec.VirtualMachine) int64 {
 
 // Convert 64bit wasm span descriptor to Go memory slice
 func asMemorySlice(memory []byte, span int64) []byte {
-	//memory := context.Memory().Data()
 	ptr, size := int64ToPointerAndSize(int64(span))
 	return memory[ptr : ptr+size]
 }
@@ -584,9 +554,7 @@ func toWasmMemorySized(memory, data []byte, size uint32) (uint32, error) {
 		return 0, errors.New("internal byte array size missmatch")
 	}
 
-	//memory := context.Memory().Data()
 	allocator := ctx.Allocator
-
 	out, err := allocator.Allocate(size)
 	if err != nil {
 		return 0, err

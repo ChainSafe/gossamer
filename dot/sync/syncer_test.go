@@ -306,7 +306,7 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 	require.NoError(t, err)
 	ts, err := parentState.Copy()
 	require.NoError(t, err)
-	syncer.runtime.SetContext(ts)
+	syncer.runtime.SetContextStorage(ts)
 	block := buildBlock(t, syncer.runtime, parent)
 
 	bd := []*types.BlockData{{
@@ -388,7 +388,7 @@ func TestSyncer_ExecuteBlock(t *testing.T) {
 	require.NoError(t, err)
 	ts, err := parentState.Copy()
 	require.NoError(t, err)
-	syncer.runtime.SetContext(ts)
+	syncer.runtime.SetContextStorage(ts)
 	block := buildBlock(t, syncer.runtime, parent)
 
 	// reset parentState
@@ -396,7 +396,7 @@ func TestSyncer_ExecuteBlock(t *testing.T) {
 	require.NoError(t, err)
 	ts, err = parentState.Copy()
 	require.NoError(t, err)
-	syncer.runtime.SetContext(ts)
+	syncer.runtime.SetContextStorage(ts)
 
 	_, err = syncer.runtime.ExecuteBlock(block)
 	require.NoError(t, err)

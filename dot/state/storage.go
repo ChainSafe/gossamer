@@ -91,7 +91,6 @@ func (s *StorageState) pruneKey(keyHeader *types.Header) {
 }
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database
-// TODO: rename to CacheTrie
 func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
 	root := ts.MustRoot()
 
@@ -105,6 +104,12 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
 	s.lock.Unlock()
 
 	logger.Trace("cached trie in storage state", "root", root)
+
+	go func() {
+		if err := ts.Trie().WriteDirty(); err != nil {
+			logger.Warn("failed to write trie to database", "root", root, "error", err)
+		}
+	}()
 
 	go func() {
 		if err := s.notifyStorageSubscriptions(root); err != nil {
