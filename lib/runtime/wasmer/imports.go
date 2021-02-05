@@ -1396,16 +1396,19 @@ func ext_storage_append_version_1(context unsafe.Pointer, keySpan, valueSpan C.i
 	logger.Debug("[ext_storage_append_version_1]", "key", fmt.Sprintf("0x%x", key))
 	valueAppend := asMemorySlice(instanceContext, valueSpan)
 
+	cp := make([]byte, len(valueAppend))
+	copy(cp, valueAppend)
+
 	if ctx.TransactionStorageChanges != nil {
 		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
 			Operation: runtime.AppendOp,
 			Key:       key,
-			Value:     valueAppend,
+			Value:     cp,
 		})
 		return
 	}
 
-	err := storageAppend(storage, key, valueAppend)
+	err := storageAppend(storage, key, cp)
 	if err != nil {
 		logger.Error("[ext_storage_append_version_1]", "error", err)
 	}
@@ -1627,18 +1630,21 @@ func ext_storage_set_version_1(context unsafe.Pointer, keySpan C.int64_t, valueS
 	key := asMemorySlice(instanceContext, keySpan)
 	value := asMemorySlice(instanceContext, valueSpan)
 
+	cp := make([]byte, len(value))
+	copy(cp, value)
+
 	if ctx.TransactionStorageChanges != nil {
 		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
 			Operation: runtime.SetOp,
 			Key:       key,
-			Value:     value,
+			Value:     cp,
 		})
 		return
 	}
 
 	logger.Debug("[ext_storage_set_version_1]", "key", fmt.Sprintf("0x%x", key), "val", fmt.Sprintf("0x%x", value))
 
-	err := storage.Set(key, value)
+	err := storage.Set(key, cp)
 	if err != nil {
 		logger.Error("[ext_storage_set_version_1]", "error", err)
 		return

@@ -29,9 +29,10 @@ import (
 // TrieState is a wrapper around a transient trie that is used during the course of executing some runtime call.
 // If the execution of the call is successful, the trie will be saved in the StorageState.
 type TrieState struct {
-	db   chaindb.Database
-	t    *trie.Trie
-	lock sync.RWMutex
+	db     chaindb.Database
+	t      *trie.Trie
+	lock   sync.RWMutex
+	WithDB bool
 }
 
 // NewTrieState returns a new TrieState with the given trie
@@ -90,6 +91,10 @@ func (s *TrieState) Set(key []byte, value []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
+	if !s.WithDB {
+		return s.t.Put(key, value)
+	}
+
 	err := s.t.PutInDB(s.db, key, value)
 	if err != nil {
 		return err
@@ -103,6 +108,10 @@ func (s *TrieState) Get(key []byte) ([]byte, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
+	if !s.WithDB {
+		return s.t.Get(key)
+	}
+
 	root, err := s.loadWorkingRoot()
 	if err != nil {
 		return nil, err
@@ -113,6 +122,10 @@ func (s *TrieState) Get(key []byte) ([]byte, error) {
 
 // MustRoot returns the trie's root hash. It panics if it fails to compute the root.
 func (s *TrieState) MustRoot() common.Hash {
+	if !s.WithDB {
+		return s.t.MustHash()
+	}
+
 	root, err := s.loadWorkingRoot()
 	if err != nil {
 		panic(err)
@@ -123,6 +136,10 @@ func (s *TrieState) MustRoot() common.Hash {
 
 // Root returns the trie's root hash
 func (s *TrieState) Root() (common.Hash, error) {
+	if !s.WithDB {
+		return s.t.Hash()
+	}
+
 	root, err := s.loadWorkingRoot()
 	if err != nil {
 		return common.Hash{}, err
@@ -155,6 +172,10 @@ func (s *TrieState) Delete(key []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
+	if !s.WithDB {
+		return s.t.Delete(key)
+	}
+
 	err = s.t.DeleteFromDB(s.db, key)
 	if err != nil {
 		return err
@@ -180,6 +201,10 @@ func (s *TrieState) ClearPrefix(prefix []byte) error {
 		}
 	}
 
+	if !s.WithDB {
+		return nil
+	}
+
 	err := s.t.WriteDirty(s.db)
 	if err != nil {
 		return err
@@ -192,7 +217,6 @@ func (s *TrieState) ClearPrefix(prefix []byte) error {
 func (s *TrieState) TrieEntries() map[string][]byte {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
-
 	return s.t.Entries()
 }
 

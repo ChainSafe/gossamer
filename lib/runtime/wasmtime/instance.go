@@ -151,8 +151,8 @@ func (in *Instance) Legacy() *LegacyInstance {
 }
 
 // SetContext sets the runtime's storage. It should be set before calls to the below functions.
-func (in *Instance) SetContext(s gssmrruntime.Storage) {
-	in.inst.SetContext(s)
+func (in *Instance) SetContextStorage(s gssmrruntime.Storage) {
+	in.inst.SetContextStorage(s)
 }
 
 // Stop func
@@ -181,7 +181,7 @@ func (in *Instance) NetworkService() gssmrruntime.BasicNetwork {
 }
 
 // SetContext sets the runtime context's Storage
-func (in *LegacyInstance) SetContext(s gssmrruntime.Storage) {
+func (in *LegacyInstance) SetContextStorage(s gssmrruntime.Storage) {
 	ctx.Storage = s
 }
 

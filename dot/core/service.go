@@ -499,7 +499,7 @@ func (s *Service) GetRuntimeVersion(bhash *common.Hash) (*runtime.VersionAPI, er
 		return nil, err
 	}
 
-	s.rt.SetContext(ts)
+	s.rt.SetContextStorage(ts)
 	return s.rt.Version()
 }
 
@@ -538,6 +538,6 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 		return nil, err
 	}
 
-	s.rt.SetContext(ts)
+	s.rt.SetContextStorage(ts)
 	return s.rt.Metadata()
 }

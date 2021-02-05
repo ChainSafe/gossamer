@@ -273,9 +273,9 @@ func (l *leaf) encodeAndHash() ([]byte, []byte, error) {
 		return l.encoding, l.hash, nil
 	}
 	// TODO: hack to deal with runtime bug
-	if l.encoding != nil && l.hash != nil && !l.valueDirty {
-		l.setValueFromEncoding()
-	}
+	// if l.encoding != nil && l.hash != nil && !l.valueDirty {
+	// 	l.setValueFromEncoding()
+	// }
 
 	enc, err := l.encode()
 	if err != nil {
@@ -305,9 +305,9 @@ func (l *leaf) encode() ([]byte, error) {
 	}
 
 	// TODO: hack to deal with runtime bug
-	if l.encoding != nil && !l.valueDirty {
-		l.setValueFromEncoding()
-	}
+	// if l.encoding != nil && !l.valueDirty {
+	// 	l.setValueFromEncoding()
+	// }
 
 	encoding, err := l.header()
 	if err != nil {
@@ -323,7 +323,7 @@ func (l *leaf) encode() ([]byte, error) {
 		return encoding, err
 	}
 	encoding = append(encoding, buffer.Bytes()...)
-
+	l.encoding = encoding
 	return encoding, nil
 }
 

@@ -15,7 +15,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
-type Resolver struct{}
+type Resolver struct{} // TODO: move context inside resolver
 
 func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 	switch module {
@@ -266,7 +266,9 @@ func ext_storage_set_version_1(vm *exec.VirtualMachine) int64 {
 
 	logger.Debug("[ext_storage_set_version_1]", "key", fmt.Sprintf("0x%x", key), "val", fmt.Sprintf("0x%x", value))
 
-	err := storage.Set(key, value)
+	cp := make([]byte, len(value))
+	copy(cp, value)
+	err := storage.Set(key, cp)
 	if err != nil {
 		logger.Error("[ext_storage_set_version_1]", "error", err)
 		return 0
