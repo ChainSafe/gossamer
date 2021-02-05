@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newInstanceFromGenesis(t *testing.T) *Instance {
+func newInstanceFromGenesis(t *testing.T) runtime.Instance {
 	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis-raw.json")
 	require.NoError(t, err)
 
@@ -111,7 +111,7 @@ func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
 	require.Equal(t, expected, auths)
 }
 
-func buildBlock(t *testing.T, instance *Instance) *types.Block {
+func buildBlock(t *testing.T, instance runtime.Instance) *types.Block {
 	header := &types.Header{
 		ParentHash: trie.EmptyHash,
 		Number:     big.NewInt(1),
@@ -272,10 +272,6 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	cfg.LogLvl = 5
 
 	instance, err := NewRuntimeFromGenesis(gen, cfg)
-	require.NoError(t, err)
-
-	// TODO: set this in NewInstance
-	instance.version, err = instance.Version()
 	require.NoError(t, err)
 
 	// block data is received from querying a polkadot node

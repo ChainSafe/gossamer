@@ -52,7 +52,7 @@ type Instance struct {
 }
 
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data
-func NewRuntimeFromGenesis(g *genesis.Genesis, cfg *Config) ( /*runtime.Instance*/ *Instance, error) { // TODO: simplify, get :code from storage
+func NewRuntimeFromGenesis(g *genesis.Genesis, cfg *Config) (runtime.Instance, error) { // TODO: simplify, get :code from storage
 	codeStr := g.GenesisFields().Raw["top"][common.BytesToHex(common.CodeKey)]
 	if codeStr == "" {
 		return nil, fmt.Errorf("cannot find :code in genesis")
@@ -64,7 +64,7 @@ func NewRuntimeFromGenesis(g *genesis.Genesis, cfg *Config) ( /*runtime.Instance
 }
 
 // NewInstance ...
-func NewInstance(code []byte, cfg *Config) (*Instance, error) {
+func NewInstance(code []byte, cfg *Config) (runtime.Instance, error) {
 	if len(code) == 0 {
 		return nil, errors.New("code is empty")
 	}

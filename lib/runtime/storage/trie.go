@@ -27,9 +27,8 @@ import (
 // TrieState is a wrapper around a transient trie that is used during the course of executing some runtime call.
 // If the execution of the call is successful, the trie will be saved in the StorageState.
 type TrieState struct {
-	t      *trie.Trie
-	lock   sync.RWMutex
-	WithDB bool
+	t    *trie.Trie
+	lock sync.RWMutex
 }
 
 // NewTrieState returns a new TrieState with the given trie
