@@ -4,10 +4,7 @@
   "description": "test polkadot js api stuff",
   "main": "test.js",
   "scripts": {
-    "test": "mocha ./test",
-    "gossamer:start": "cd ../../ && ./bin/gossamer --key alice --roles 4 --rpcmods system,author,chain,state,dev,rpc --ws --wsport 8546 --rpc  --rpchost localhost --rpcport 8545 &",
-    "gossamer:test": "npm run gossamer:start && mocha ./test",
-    "gtest": "mocha ./test"
+    "test": "mocha ./test"
   },
   "author": "",
   "license": "ISC",
@@ -16,7 +13,6 @@
   },
   "devDependencies": {
     "chai": "^4.2.0",
-    "mocha": "^8.2.1",
-    "sinon": "^9.2.4"
+    "mocha": "^8.2.1"
   }
 }
