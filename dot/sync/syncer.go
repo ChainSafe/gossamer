@@ -52,7 +52,6 @@ type Service struct {
 	synced           bool
 	highestSeenBlock *big.Int // highest block number we have seen
 	runtime          runtime.Instance
-	blockRequestSize uint32
 
 	// BABE verification
 	verifier Verifier
@@ -115,7 +114,6 @@ func NewService(cfg *Config) (*Service, error) {
 		verifier:         cfg.Verifier,
 		digestHandler:    cfg.DigestHandler,
 		benchmarker:      newBenchmarker(logger),
-		blockRequestSize: 1,
 	}, nil
 }
 
@@ -289,7 +287,6 @@ func (s *Service) createBlockRequest(startInt int64) *network.BlockRequestMessag
 		StartingBlock: start,
 		EndBlockHash:  optional.NewHash(false, common.Hash{}),
 		Direction:     0, // ascending
-		//Max:           optional.NewUint32(true, s.blockRequestSize),
 	}
 
 	s.benchmarker.begin(uint64(startInt))

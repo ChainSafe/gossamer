@@ -114,6 +114,20 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
+	if cfg.MinPeers == 0 {
+		cfg.MinPeers = DefaultMinPeerCount
+	}
+
+	if cfg.MaxPeers == 0 {
+		cfg.MaxPeers = DefaultMaxPeerCount
+	}
+
+	if cfg.MinPeers > cfg.MaxPeers {
+		logger.Warn("min peers higher than max peers; setting to default")
+		cfg.MinPeers = DefaultMinPeerCount
+		cfg.MaxPeers = DefaultMaxPeerCount
+	}
+
 	network := &Service{
 		ctx:                    ctx,
 		cancel:                 cancel,
@@ -224,7 +238,7 @@ func (s *Service) Start() error {
 
 func (s *Service) logPeerCount() {
 	for {
-		logger.Debug("peer count", "num", s.host.peerCount())
+		logger.Debug("peer count", "num", s.host.peerCount(), "min", s.cfg.MinPeers, "max", s.cfg.MaxPeers)
 		time.Sleep(time.Second * 30)
 	}
 }
@@ -254,8 +268,8 @@ func (s *Service) beginDiscovery() error {
 			logger.Debug("found new peer via DHT", "peer", peer.ID)
 
 			// found a peer, try to connect if we need more peers
-			if s.host.peerCount() < highWater {
-				err = s.host.connect(peer) // TODO: check if it's own our peer ID
+			if s.host.peerCount() < s.cfg.MaxPeers {
+				err = s.host.connect(peer)
 				if err != nil {
 					logger.Debug("failed to connect to discovered peer", "peer", peer.ID, "err", err)
 				}

@@ -19,9 +19,11 @@ package network
 import (
 	"context"
 	"fmt"
+	"path"
 
-	ds "github.com/ipfs/go-datastore"
-	dsync "github.com/ipfs/go-datastore/sync"
+	//ds "github.com/ipfs/go-datastore"
+	dsb "github.com/ipfs/go-ds-badger"
+	//dsync "github.com/ipfs/go-datastore/sync"
 	"github.com/libp2p/go-libp2p"
 	libp2phost "github.com/libp2p/go-libp2p-core/host"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
@@ -30,12 +32,11 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
+	"github.com/libp2p/go-libp2p-peerstore/pstoreds"
 	secio "github.com/libp2p/go-libp2p-secio"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
 )
-
-var defaultMaxPeerCount = 5
 
 // host wraps libp2p host with network host configuration and services
 type host struct {
@@ -60,10 +61,26 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	}
 
 	// create connection manager
-	cm := newConnManager(defaultMaxPeerCount)
+	cm := newConnManager(cfg.MinPeers, cfg.MaxPeers)
 
 	// format bootnodes
 	bns, err := stringsToAddrInfos(cfg.Bootnodes)
+	if err != nil {
+		return nil, err
+	}
+
+	dso := dsb.DefaultOptions
+	ds, err := dsb.NewDatastore(path.Join(cfg.BasePath, "libp2p-peerstore"), &dso)
+	if err != nil {
+		return nil, err
+	}
+
+	dsDht, err := dsb.NewDatastore(path.Join(cfg.BasePath, "libp2p-dht"), &dso)
+	if err != nil {
+		return nil, err
+	}
+
+	ps, err := pstoreds.NewPeerstore(ctx, ds, pstoreds.DefaultOpts())
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +89,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	pid := protocol.ID(cfg.ProtocolID)
 
 	dhtOpts := []dual.Option{
-		dual.DHTOption(kaddht.Datastore(dsync.MutexWrap(ds.NewMapDatastore()))), // TODO: use on-disk datastore
+		dual.DHTOption(kaddht.Datastore(dsDht)),
 		dual.DHTOption(kaddht.BootstrapPeers(bns...)),
 		dual.DHTOption(kaddht.V1ProtocolOverride(pid + "/kad")),
 		dual.DHTOption(kaddht.Mode(kaddht.ModeAutoServer)),
@@ -80,6 +97,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 
 	// set libp2p host options
 	opts := []libp2p.Option{
+		libp2p.Peerstore(ps),
 		libp2p.ListenAddrs(addr),
 		libp2p.DisableRelay(),
 		libp2p.Identity(cfg.privateKey),
