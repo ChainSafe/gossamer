@@ -2,44 +2,32 @@ package polkadotjs_test
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/tests/utils"
 	"github.com/stretchr/testify/require"
+	"os"
 	"os/exec"
 	"strings"
 	"testing"
 )
 
-//func TestMain(m *testing.M) {
-//	_, _ = fmt.Fprintln(os.Stdout, "Going to start RPC suite test")
-//
-//	utils.CreateDefaultConfig()
-//	defer os.Remove(utils.ConfigDefault)
-//
-//	// Start all tests
-//	//code := m.Run()
-//	//os.Exit(code)
-//	m.Run()
-//}
-//var stopChan = make (chan string)
-
 func TestStartGossamer(t *testing.T) {
-	//t.Log("starting gossamer...")
-	//utils.CreateDefaultConfig()
-	//	defer os.Remove(utils.ConfigDefault)
-	//
-	//nodes, err := utils.InitializeAndStartNodes(t, 3, utils.GenesisDefault, utils.ConfigDefault)
-	//fmt.Printf("nodes: %v\n error %v\n", nodes, err)
-	//for {
-	//	stop := <- stopChan
-	//	fmt.Printf("stop %v\n", stop)
-	//}
+	t.Log("starting gossamer for polkadot.js/api tests...")
 
-	command := "npm test --prefix tests/polkadotjs_test/"
+	utils.CreateDefaultConfig()
+	defer os.Remove(utils.ConfigDefault)
+
+	nodes, err := utils.InitializeAndStartNodesWebsocket(t, 1, utils.GenesisDefault, utils.ConfigDefault)
+	require.NoError(t, err)
+
+	command := "yarn run mocha"
 	parts := strings.Fields(command)
 	data, err := exec.Command(parts[0], parts[1:]...).Output()
-	require.NoError(t, err)
-	fmt.Printf("data %s\n", data)
-}
+	require.NoError(t, err, fmt.Sprintf("%s", data))
 
-func TestStopGossamer(t *testing.T) {
-	//stopChan <- "foo"
+	// uncomment this to see log results from javascript tests
+	//fmt.Printf("data %s\n", data)
+
+	t.Log("going to tear down gossamer...")
+	errList := utils.TearDown(t, nodes)
+	require.Len(t, errList, 0)
 }
