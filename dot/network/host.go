@@ -19,7 +19,6 @@ package network
 import (
 	"context"
 	"fmt"
-	//"path"
 
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"

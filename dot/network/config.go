@@ -43,8 +43,10 @@ const (
 	// DefaultRoles the default value for Config.Roles (0 = no network, 1 = full node)
 	DefaultRoles = byte(1)
 
-	//nolint
+	// DefaultMinPeerCount is the default minimum peer count
 	DefaultMinPeerCount = 5
+
+	// DefaultMaxPeerCount is the default maximum peer count
 	DefaultMaxPeerCount = 50
 )
 
