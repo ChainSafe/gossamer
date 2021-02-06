@@ -136,11 +136,7 @@ func (s *Service) HandleBlockAnnounceHandshake(blockNum *big.Int) *network.Block
 
 	if s.synced {
 		s.synced = false
-
-		err := s.blockProducer.Pause()
-		if err != nil {
-			s.logger.Warn("failed to pause block production")
-		}
+		_ = s.blockProducer.Pause()
 	}
 
 	return s.createBlockRequest(start)
