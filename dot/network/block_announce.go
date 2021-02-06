@@ -242,13 +242,15 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 		case <-s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].responseSentCh:
 			time.Sleep(time.Millisecond * 500) // TODO: it seems if we immediately send the request we fail to read the response
 			err := s.beginSyncing(peer, req)
-			if err != nil {
-				logger.Error("failed to send response to peer's handshake", "sub-protocol", syncID, "peer", peer, "error", err)
+			if err == nil {
+				break
 			}
 		case <-time.After(time.Second * 3):
-			logger.Error("failed to send response to peer's handshake", "sub-protocol", syncID, "peer", peer, "error", "timeout")
+			err = errors.New("timeout")
 		}
 
+		logger.Debug("failed to send response to peer's handshake", "sub-protocol", syncID, "peer", peer, "error", err)
+		s.attemptSyncWithRandomPeer(req)
 	}()
 
 	return nil

@@ -57,13 +57,7 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 		if req != nil {
 			if err := s.host.send(peer, syncID, req); err != nil {
 				logger.Debug("failed to send BlockRequest message; trying other peers", "peer", peer, "error", err)
-
-				peers := s.host.peers()
-				for _, otherPeer := range peers {
-					if err = s.host.send(otherPeer, syncID, req); err == nil {
-						break
-					}
-				}
+				s.attemptSyncWithRandomPeer(req)
 			}
 		} else {
 			// we are done syncing
@@ -87,6 +81,17 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 	}
 
 	return nil
+}
+
+func (s *Service) attemptSyncWithRandomPeer(req *BlockRequestMessage) {
+	peers := s.host.peers()
+	for _, peer := range peers {
+		if err := s.host.send(peer, syncID, req); err == nil {
+			go s.handleSyncStream(s.host.getStream(peer, syncID))
+			s.setSyncingPeer(peer)
+			break
+		}
+	}
 }
 
 func (s *Service) setSyncingPeer(peer peer.ID) error {
