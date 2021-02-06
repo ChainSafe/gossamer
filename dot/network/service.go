@@ -187,6 +187,7 @@ func (s *Service) Start() error {
 	)
 	if err != nil {
 		logger.Error("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
+		return err
 	}
 
 	// register transactions protocol
@@ -201,6 +202,7 @@ func (s *Service) Start() error {
 	)
 	if err != nil {
 		logger.Error("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
+		return err
 	}
 
 	// log listening addresses to console
@@ -452,7 +454,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		if err == io.EOF {
 			continue
 		} else if err != nil {
-			logger.Error("Failed to read LEB128 encoding", "protocol", stream.Protocol(), "error", err)
+			logger.Debug("Failed to read LEB128 encoding", "protocol", stream.Protocol(), "error", err)
 			_ = stream.Close()
 			return
 		}
@@ -466,7 +468,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		for i := 0; i < maxReads; i++ {
 			n, err := r.Read(msgBytes[tot:]) //nolint
 			if err != nil {
-				logger.Error("Failed to read message from stream", "error", err)
+				logger.Warn("Failed to read message from stream", "error", err)
 				_ = stream.Close()
 				return
 			}
@@ -504,7 +506,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 			// handle message based on peer status and message type
 			err = handler(peer, msg)
 			if err != nil {
-				logger.Error("Failed to handle message from stream", "message", msg, "error", err)
+				logger.Warn("Failed to handle message from stream", "message", msg, "error", err)
 				_ = stream.Close()
 				return
 			}
@@ -514,7 +516,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 func (s *Service) handleLightMsg(peer peer.ID, msg Message) error {
 	lr, ok := msg.(*LightRequest)
 	if !ok {
-		logger.Error("failed to get the request message from peer ", peer)
+		logger.Warn("failed to get the request message from peer ", peer)
 		return nil
 	}
 
@@ -532,7 +534,7 @@ func (s *Service) handleLightMsg(peer peer.ID, msg Message) error {
 	case lr.RmtReadChildRequest != nil:
 		resp.RmtReadResponse, err = remoteReadChildResp(peer, lr.RmtReadChildRequest)
 	default:
-		logger.Error("ignoring request without request data from peer {}", peer)
+		logger.Warn("ignoring request without request data from peer {}", peer)
 		return nil
 	}
 
@@ -546,7 +548,7 @@ func (s *Service) handleLightMsg(peer peer.ID, msg Message) error {
 
 	err = s.host.send(peer, lightID, &resp)
 	if err != nil {
-		logger.Error("failed to send LightResponse message", "peer", peer, "err", err)
+		logger.Warn("failed to send LightResponse message", "peer", peer, "err", err)
 	}
 	return err
 }
