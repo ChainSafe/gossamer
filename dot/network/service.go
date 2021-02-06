@@ -107,13 +107,6 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err //nolint
 	}
 
-	// create a new host instance
-	host, err := newHost(ctx, cfg)
-	if err != nil {
-		cancel()
-		return nil, err
-	}
-
 	if cfg.MinPeers == 0 {
 		cfg.MinPeers = DefaultMinPeerCount
 	}
@@ -126,6 +119,13 @@ func NewService(cfg *Config) (*Service, error) {
 		logger.Warn("min peers higher than max peers; setting to default")
 		cfg.MinPeers = DefaultMinPeerCount
 		cfg.MaxPeers = DefaultMaxPeerCount
+	}
+
+	// create a new host instance
+	host, err := newHost(ctx, cfg)
+	if err != nil {
+		cancel()
+		return nil, err
 	}
 
 	network := &Service{
