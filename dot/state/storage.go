@@ -244,12 +244,6 @@ func (s *StorageState) GetStorage(root *common.Hash, key []byte) ([]byte, error)
 	}
 
 	return trie.GetFromDB(s.db, *root, key)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to load trie from database: %w", err)
-	// }
-
-	// s.tries[*root] = t
-	// return t.Get(key)
 }
 
 // GetStorageByBlockHash returns the value at the given key at the given block hash
