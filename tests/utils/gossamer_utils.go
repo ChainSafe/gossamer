@@ -448,6 +448,7 @@ func generateDefaultConfig() *ctoml.Config {
 			ProtocolID:  "/gossamer/gssmr/0",
 			NoBootstrap: false,
 			NoMDNS:      false,
+			MaxPeers:    5,
 		},
 		RPC: ctoml.RPCConfig{
 			Enabled: false,
