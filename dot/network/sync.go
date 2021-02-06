@@ -88,7 +88,7 @@ func (s *Service) attemptSyncWithRandomPeer(req *BlockRequestMessage) {
 	for _, peer := range peers {
 		if err := s.host.send(peer, syncID, req); err == nil {
 			go s.handleSyncStream(s.host.getStream(peer, syncID))
-			s.setSyncingPeer(peer)
+			_ = s.setSyncingPeer(peer)
 			break
 		}
 	}
