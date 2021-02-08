@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strconv"
 	"sync"
 	"time"
 
@@ -543,10 +542,11 @@ func (s *Service) Peers() []common.PeerInfo {
 	peers := []common.PeerInfo{}
 	handshake, err := s.getBlockAnnounceHandshake()
 	err = handshake.Decode(handshake.Hash().ToBytes())
-	protocolVersion, err := strconv.ParseUint(s.cfg.ProtocolID, 16, 32)
 
 	for _, p := range s.host.peers() {
-
+		// Load up a node/entity from peer id
+		// Query data directly 
+		s.host.
 		if err != nil {
 			logger.Error("failed to get additional peer data", "peer", p, "err", err)
 			peers = append(peers, common.PeerInfo{
@@ -556,7 +556,7 @@ func (s *Service) Peers() []common.PeerInfo {
 			peers = append(peers, common.PeerInfo{
 				PeerID:          p.String(),
 				Roles:           handshake.(*BlockAnnounceHandshake).Roles,
-				ProtocolVersion: uint32(protocolVersion),
+				// ProtocolVersion: uint32(protocolVersion),
 				BestHash:        handshake.(*BlockAnnounceHandshake).BestBlockHash,
 				BestNumber:      uint64(handshake.(*BlockAnnounceHandshake).BestBlockNumber),
 			})
