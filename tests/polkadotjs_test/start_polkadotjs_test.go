@@ -29,6 +29,8 @@ import (
 func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 	t.Log("starting gossamer for polkadot.js/api tests...")
 
+	utils.CreateDefaultConfig()
+	defer os.Remove(utils.ConfigDefault)
 	utils.GenerateGenesisOneAuth()
 	defer os.Remove(utils.GenesisOneAuth)
 	utils.CreateConfigBabeMaxThreshold()
