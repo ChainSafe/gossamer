@@ -291,7 +291,7 @@ func (sm *StateModule) GetRuntimeVersion(r *http.Request, req *StateRuntimeVersi
 	res.AuthoringVersion = rtVersion.RuntimeVersion.Authoring_version
 	res.SpecVersion = rtVersion.RuntimeVersion.Spec_version
 	res.ImplVersion = rtVersion.RuntimeVersion.Impl_version
-	res.TransactionVersion = rtVersion.RuntimeVersion.Transaction_version
+	res.TransactionVersion = rtVersion.Transaction_version
 	res.Apis = convertAPIs(rtVersion.API)
 
 	return nil
@@ -407,7 +407,7 @@ func (sm *StateModule) SubscribeStorage(r *http.Request, req *StateStorageQueryR
 func convertAPIs(in []*runtime.API_Item) []interface{} {
 	ret := make([]interface{}, 0)
 	for _, item := range in {
-		encStr := hex.EncodeToString(item.Name)
+		encStr := hex.EncodeToString(item.Name[:])
 		ret = append(ret, []interface{}{"0x" + encStr, item.Ver})
 	}
 	return ret
