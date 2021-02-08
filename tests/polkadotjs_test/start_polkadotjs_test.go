@@ -26,7 +26,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var polkadotSuite    = "polkadot"
+
 func TestStartGossamerAndPolkadotAPI(t *testing.T) {
+	if utils.MODE != polkadotSuite {
+		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
+		return
+	}
 	t.Log("starting gossamer for polkadot.js/api tests...")
 
 	utils.CreateDefaultConfig()
