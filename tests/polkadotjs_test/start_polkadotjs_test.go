@@ -26,7 +26,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var polkadotSuite    = "polkadot"
+var polkadotSuite = "polkadot"
 
 func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 	if utils.MODE != polkadotSuite {
