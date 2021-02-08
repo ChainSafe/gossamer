@@ -141,12 +141,13 @@ type StorageKey []byte
 
 // StateRuntimeVersionResponse is the runtime version response
 type StateRuntimeVersionResponse struct {
-	SpecName         string        `json:"specName"`
-	ImplName         string        `json:"implName"`
-	AuthoringVersion int32         `json:"authoringVersion"`
-	SpecVersion      int32         `json:"specVersion"`
-	ImplVersion      int32         `json:"implVersion"`
-	Apis             []interface{} `json:"apis"`
+	SpecName           string        `json:"specName"`
+	ImplName           string        `json:"implName"`
+	AuthoringVersion   uint32        `json:"authoringVersion"`
+	SpecVersion        uint32        `json:"specVersion"`
+	ImplVersion        uint32        `json:"implVersion"`
+	TransactionVersion uint32        `json:"transactionVersion"`
+	Apis               []interface{} `json:"apis"`
 }
 
 // StateModule is an RPC module providing access to storage API points.
@@ -290,6 +291,7 @@ func (sm *StateModule) GetRuntimeVersion(r *http.Request, req *StateRuntimeVersi
 	res.AuthoringVersion = rtVersion.RuntimeVersion.Authoring_version
 	res.SpecVersion = rtVersion.RuntimeVersion.Spec_version
 	res.ImplVersion = rtVersion.RuntimeVersion.Impl_version
+	res.TransactionVersion = rtVersion.RuntimeVersion.Transaction_version
 	res.Apis = convertAPIs(rtVersion.API)
 
 	return nil

@@ -27,6 +27,7 @@ func TestInstance_Version_PolkadotRuntime(t *testing.T) {
 		Authoring_version: 0,
 		Spec_version:      25,
 		Impl_version:      0,
+		//Transaction_version: 1,
 	}
 
 	instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME)
@@ -76,6 +77,7 @@ func TestInstance_Version_KusamaRuntime(t *testing.T) {
 		Authoring_version: 2,
 		Spec_version:      1020,
 		Impl_version:      0,
+		//Transaction_version: 1,
 	}
 
 	version, err := instance.Version()
@@ -90,8 +92,10 @@ func TestInstance_Version_KusamaRuntime(t *testing.T) {
 	require.Equal(t, expected, version.RuntimeVersion)
 }
 
+// 0x106e6f6465387375627374726174652d6e6f64650a000000040100000000000030df6acb689907609b0300000037e397fc7c91f5e40100000040fe3ad401f8959a04000000d2bc9897eed08f1502000000f78b278be53f454c02000000ed99c5acb25eedf502000000cbca25e39f14238702000000687ad44ad37f03c201000000bc9d89904f5b923f0100000068b66ba122c93fa70100000037c8bb1350a9a2a801000000ab3c0572291feb8b0100000001000000
+
 func TestInstance_Version_NodeRuntime(t *testing.T) {
-	expected := &runtime.Version{
+	expectedVersion := &runtime.Version{
 		Spec_name:         []byte("node"),
 		Impl_name:         []byte("substrate-node"),
 		Authoring_version: 10,
@@ -99,16 +103,15 @@ func TestInstance_Version_NodeRuntime(t *testing.T) {
 		Impl_version:      0,
 	}
 
+	expected := &runtime.VersionAPI{
+		RuntimeVersion:      expectedVersion,
+		API:                 nil,
+		Transaction_version: 1,
+	}
+
 	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
 
-	ret, err := instance.exec(runtime.CoreVersion, []byte{})
-	require.Nil(t, err)
-
-	version := &runtime.VersionAPI{
-		RuntimeVersion: &runtime.Version{},
-		API:            nil,
-	}
-	version.Decode(ret)
+	version, err := instance.Version()
 	require.Nil(t, err)
 
 	t.Logf("Spec_name: %s\n", version.RuntimeVersion.Spec_name)
@@ -116,8 +119,11 @@ func TestInstance_Version_NodeRuntime(t *testing.T) {
 	t.Logf("Authoring_version: %d\n", version.RuntimeVersion.Authoring_version)
 	t.Logf("Spec_version: %d\n", version.RuntimeVersion.Spec_version)
 	t.Logf("Impl_version: %d\n", version.RuntimeVersion.Impl_version)
+	t.Logf("Transaction_version: %d\n", version.Transaction_version)
 
-	require.Equal(t, expected, version.RuntimeVersion)
+	require.Equal(t, expected.RuntimeVersion, version.RuntimeVersion)
+	require.Equal(t, expected.Transaction_version, version.Transaction_version)
+	require.NotNil(t, version.API)
 }
 
 func balanceKey(t *testing.T, pub []byte) []byte {

@@ -45,16 +45,17 @@ func (in *LegacyInstance) ValidateTransaction(e types.Extrinsic) (*transaction.V
 
 // Version calls runtime function Core_Version
 func (in *LegacyInstance) Version() (*runtime.VersionAPI, error) {
-	//TODO ed, change this so that it can lookup runtime by block hash
 	version := &runtime.VersionAPI{
 		RuntimeVersion: &runtime.Version{},
 		API:            nil,
 	}
+	//version := &runtime.Version{}
 
 	ret, err := in.exec(runtime.CoreVersion, []byte{})
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("0x%x\n", ret)
 	err = version.Decode(ret)
 	if err != nil {
 		return nil, err

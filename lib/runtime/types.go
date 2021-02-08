@@ -19,6 +19,7 @@ package runtime
 import (
 	"bytes"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	log "github.com/ChainSafe/log15"
@@ -92,55 +93,76 @@ type Context struct {
 type Version struct {
 	Spec_name         []byte
 	Impl_name         []byte
-	Authoring_version int32
-	Spec_version      int32
-	Impl_version      int32
+	Authoring_version uint32
+	Spec_version      uint32
+	Impl_version      uint32
+	//Apis  	[]*VersionAPI
 }
 
 // VersionAPI struct that holds Runtime Version info and API array
 type VersionAPI struct {
-	RuntimeVersion *Version
-	API            []*API_Item
+	RuntimeVersion      *Version
+	API                 []*API_Item
+	Transaction_version uint32
 }
 
 // API_Item struct to hold runtime API Name and Version
 type API_Item struct {
-	Name []byte
-	Ver  int32
+	Name [8]byte
+	Ver  uint32
 }
 
 // Decode to scale decode []byte to VersionAPI struct
 func (v *VersionAPI) Decode(in []byte) error {
+	r := &bytes.Buffer{}
+	r.Write(in)
+	sd := scale.Decoder{Reader: r}
+
 	// decode runtime version
-	_, err := scale.Decode(in, v.RuntimeVersion)
+	_, err := sd.Decode(v.RuntimeVersion)
 	if err != nil {
 		return err
 	}
 
 	// 1 + len(Spec_name) + 1 + len(Impl_name) + 12 for  3 int32's - 1 (zero index)
-	index := len(v.RuntimeVersion.Spec_name) + len(v.RuntimeVersion.Impl_name) + 14
+	//index := len(v.RuntimeVersion.Spec_name) + len(v.RuntimeVersion.Impl_name) + 14
 
 	// read byte at index for qty of apis
-	sd := scale.Decoder{Reader: bytes.NewReader(in[index : index+1])}
+	//sd := scale.Decoder{Reader: bytes.NewReader(in[index : index+1])}
 	numApis, err := sd.DecodeInteger()
 	if err != nil {
 		return err
 	}
 	// put index on first value
-	index++
+	//index++
 	// load api_item objects
 	for i := 0; i < int(numApis); i++ {
-		ver, err := scale.Decode(in[index+8+(i*12):index+12+(i*12)], int32(0))
+		name, err := common.Read8Bytes(r)
 		if err != nil {
 			return err
 		}
+
+		version, err := common.ReadUint32(r)
+		if err != nil {
+			return err
+		}
+
 		v.API = append(v.API, &API_Item{
-			Name: in[index+(i*12) : index+8+(i*12)],
-			Ver:  ver.(int32),
+			Name: name,
+			Ver:  version,
 		})
+		// ver, err := scale.Decode(in[index+8+(i*12):index+12+(i*12)], int32(0))
+		// if err != nil {
+		// 	return err
+		// }
+		// v.API = append(v.API, &API_Item{
+		// 	Name: in[index+(i*12) : index+8+(i*12)],
+		// 	Ver:  ver.(int32),
+		// })
 	}
 
-	return nil
+	v.Transaction_version, err = common.ReadUint32(r)
+	return err
 }
 
 // NewValidateTransactionError returns an error based on a return value from TaggedTransactionQueueValidateTransaction
