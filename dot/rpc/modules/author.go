@@ -28,32 +28,6 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-const (
-	// TxnInBlock indicates transaction is already included in block.
-	//
-	// This means that we can't really tell where the transaction is coming from,
-	// since it's already in the received block. Note that the custom validation logic
-	// using either `Local` or `External` should most likely just allow `InBlock`
-	// transactions as well.
-	TxnInBlock TransactionSource = iota
-
-	// TxnLocal indicates transaction is coming from a local source.
-	//
-	// This means that the transaction was produced internally by the node
-	// (for instance an Off-Chain Worker, or an Off-Chain Call), as opposed
-	// to being received over the network.
-	TxnLocal
-
-	// TxnExternal indicates transaction has been received externally.
-	//
-	// This means the transaction has been received from (usually) "untrusted" source,
-	// for instance received over the network or RPC.
-	TxnExternal
-)
-
-// TransactionSource represents source of Transaction
-type TransactionSource uint8
-
 // AuthorModule holds a pointer to the API
 type AuthorModule struct {
 	logger     log.Logger
@@ -198,7 +172,7 @@ func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 	cm.logger.Trace("[rpc]", "extrinsic", extBytes)
 
 	// For RPC request the transaction source is External
-	ext := types.Extrinsic(append([]byte{byte(TxnExternal)}, extBytes...))
+	ext := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, extBytes...))
 
 	// validate the transaction
 	txv, err := cm.runtimeAPI.ValidateTransaction(ext)

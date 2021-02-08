@@ -33,45 +33,50 @@ import (
 )
 
 func TestChainGetHeader_Genesis(t *testing.T) {
-	chain := newTestStateService(t)
-	svc := NewChainModule(chain.Block)
+	state := newTestStateService(t)
+	svc := NewChainModule(state.Block)
+
+	header, err := state.Block.BestBlockHeader()
+	require.NoError(t, err)
 
 	expected := &ChainBlockHeaderResponse{
-		ParentHash:     "0x0000000000000000000000000000000000000000000000000000000000000000",
-		Number:         "0x00",
-		StateRoot:      trie.EmptyHash.String(),
-		ExtrinsicsRoot: trie.EmptyHash.String(),
+		ParentHash:     header.ParentHash.String(),
+		Number:         common.BytesToHex(header.Number.Bytes()),
+		StateRoot:      header.StateRoot.String(),
+		ExtrinsicsRoot: header.ExtrinsicsRoot.String(),
 		Digest:         ChainBlockHeaderDigest{},
 	}
 
-	bhash, err := common.HexToHash("0xc375f478c6887dbcc2d1a4dbcc25f330b3df419325ece49cddfe5a0555663b7e")
-	require.NoError(t, err)
+	hash := state.Block.BestBlockHash()
 
 	res := &ChainBlockHeaderResponse{}
-	req := &ChainHashRequest{Bhash: &bhash}
+	req := &ChainHashRequest{Bhash: &hash}
 
 	err = svc.GetHeader(nil, req, res)
-	require.Nil(t, err)
-
+	require.NoError(t, err)
 	require.Equal(t, expected, res)
 }
 
 func TestChainGetHeader_Latest(t *testing.T) {
-	chain := newTestStateService(t)
-	svc := NewChainModule(chain.Block)
+	state := newTestStateService(t)
+	svc := NewChainModule(state.Block)
+
+	header, err := state.Block.BestBlockHeader()
+	require.NoError(t, err)
+
 	expected := &ChainBlockHeaderResponse{
-		ParentHash:     "0x8b38e3b4dda30540c1245eab842b8d5ceefd8abcb46c5752348f5b0742e49d21",
-		Number:         "0x01",
-		StateRoot:      trie.EmptyHash.String(),
-		ExtrinsicsRoot: "0x0000000000000000000000000000000000000000000000000000000000000000",
+		ParentHash:     header.ParentHash.String(),
+		Number:         common.BytesToHex(header.Number.Bytes()),
+		StateRoot:      header.StateRoot.String(),
+		ExtrinsicsRoot: header.ExtrinsicsRoot.String(),
 		Digest:         ChainBlockHeaderDigest{},
 	}
+
 	res := &ChainBlockHeaderResponse{}
 	req := &ChainHashRequest{} // empty request should return latest hash
 
-	err := svc.GetHeader(nil, req, res)
-	require.Nil(t, err)
-
+	err = svc.GetHeader(nil, req, res)
+	require.NoError(t, err)
 	require.Equal(t, expected, res)
 }
 
@@ -90,27 +95,31 @@ func TestChainGetHeader_NotFound(t *testing.T) {
 }
 
 func TestChainGetBlock_Genesis(t *testing.T) {
-	chain := newTestStateService(t)
-	svc := NewChainModule(chain.Block)
-	header := &ChainBlockHeaderResponse{
-		ParentHash:     "0x0000000000000000000000000000000000000000000000000000000000000000",
-		Number:         "0x00",
-		StateRoot:      trie.EmptyHash.String(),
-		ExtrinsicsRoot: trie.EmptyHash.String(),
+	state := newTestStateService(t)
+	svc := NewChainModule(state.Block)
+
+	header, err := state.Block.BestBlockHeader()
+	require.NoError(t, err)
+
+	expectedHeader := &ChainBlockHeaderResponse{
+		ParentHash:     header.ParentHash.String(),
+		Number:         common.BytesToHex(header.Number.Bytes()),
+		StateRoot:      header.StateRoot.String(),
+		ExtrinsicsRoot: header.ExtrinsicsRoot.String(),
 		Digest:         ChainBlockHeaderDigest{},
 	}
+
+	hash := state.Block.BestBlockHash()
+
 	expected := &ChainBlockResponse{
 		Block: ChainBlock{
-			Header: *header,
+			Header: *expectedHeader,
 			Body:   nil,
 		},
 	}
 
-	bhash, err := common.HexToHash("0xc375f478c6887dbcc2d1a4dbcc25f330b3df419325ece49cddfe5a0555663b7e")
-	require.NoError(t, err)
-
 	res := &ChainBlockResponse{}
-	req := &ChainHashRequest{Bhash: &bhash}
+	req := &ChainHashRequest{Bhash: &hash}
 
 	err = svc.GetBlock(nil, req, res)
 	require.Nil(t, err)
@@ -119,18 +128,23 @@ func TestChainGetBlock_Genesis(t *testing.T) {
 }
 
 func TestChainGetBlock_Latest(t *testing.T) {
-	chain := newTestStateService(t)
-	svc := NewChainModule(chain.Block)
-	header := &ChainBlockHeaderResponse{
-		ParentHash:     "0x8b38e3b4dda30540c1245eab842b8d5ceefd8abcb46c5752348f5b0742e49d21",
-		Number:         "0x01",
-		StateRoot:      trie.EmptyHash.String(),
-		ExtrinsicsRoot: "0x0000000000000000000000000000000000000000000000000000000000000000",
+	state := newTestStateService(t)
+	svc := NewChainModule(state.Block)
+
+	header, err := state.Block.BestBlockHeader()
+	require.NoError(t, err)
+
+	expectedHeader := &ChainBlockHeaderResponse{
+		ParentHash:     header.ParentHash.String(),
+		Number:         common.BytesToHex(header.Number.Bytes()),
+		StateRoot:      header.StateRoot.String(),
+		ExtrinsicsRoot: header.ExtrinsicsRoot.String(),
 		Digest:         ChainBlockHeaderDigest{},
 	}
+
 	expected := &ChainBlockResponse{
 		Block: ChainBlock{
-			Header: *header,
+			Header: *expectedHeader,
 			Body:   nil,
 		},
 	}
@@ -138,15 +152,14 @@ func TestChainGetBlock_Latest(t *testing.T) {
 	res := &ChainBlockResponse{}
 	req := &ChainHashRequest{} // empty request should return latest block
 
-	err := svc.GetBlock(nil, req, res)
-	require.Nil(t, err)
-
+	err = svc.GetBlock(nil, req, res)
+	require.NoError(t, err)
 	require.Equal(t, expected, res)
 }
 
 func TestChainGetBlock_NoFound(t *testing.T) {
-	chain := newTestStateService(t)
-	svc := NewChainModule(chain.Block)
+	state := newTestStateService(t)
+	svc := NewChainModule(state.Block)
 
 	bhash, err := common.HexToHash("0xea374832a2c3997280d2772c10e6e5b0b493ccd3d09c0ab14050320e34076c2c")
 	require.NoError(t, err)
@@ -159,8 +172,8 @@ func TestChainGetBlock_NoFound(t *testing.T) {
 }
 
 func TestChainGetBlockHash_Latest(t *testing.T) {
-	chain := newTestStateService(t)
-	svc := NewChainModule(chain.Block)
+	state := newTestStateService(t)
+	svc := NewChainModule(state.Block)
 
 	resString := string("")
 	res := ChainHashResponse(resString)
@@ -169,13 +182,13 @@ func TestChainGetBlockHash_Latest(t *testing.T) {
 	err := svc.GetBlockHash(nil, &req, &res)
 	require.Nil(t, err)
 
-	expected := chain.Block.BestBlockHash()
+	expected := state.Block.BestBlockHash()
 	require.Equal(t, expected.String(), res)
 }
 
 func TestChainGetBlockHash_ByNumber(t *testing.T) {
-	chain := newTestStateService(t)
-	svc := NewChainModule(chain.Block)
+	state := newTestStateService(t)
+	svc := NewChainModule(state.Block)
 
 	resString := string("")
 	res := ChainHashResponse(resString)
@@ -184,26 +197,30 @@ func TestChainGetBlockHash_ByNumber(t *testing.T) {
 	err := svc.GetBlockHash(nil, &req, &res)
 	require.Nil(t, err)
 
-	require.Equal(t, "0x12ee07bf9e9f12e8edc7ec24e323debe693c04b40d121ae23bcd6fcf2a7dcc3b", res)
+	expected, err := state.Block.GetBlockByNumber(big.NewInt(1))
+	require.NoError(t, err)
+	require.Equal(t, expected.Header.Hash().String(), res)
 }
 
 func TestChainGetBlockHash_ByHex(t *testing.T) {
-	chain := newTestStateService(t)
-	svc := NewChainModule(chain.Block)
+	state := newTestStateService(t)
+	svc := NewChainModule(state.Block)
 
 	resString := string("")
 	res := ChainHashResponse(resString)
 	req := ChainBlockNumberRequest{"0x01"}
 
 	err := svc.GetBlockHash(nil, &req, &res)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
-	require.Equal(t, "0x12ee07bf9e9f12e8edc7ec24e323debe693c04b40d121ae23bcd6fcf2a7dcc3b", res)
+	expected, err := state.Block.GetBlockByNumber(big.NewInt(1))
+	require.NoError(t, err)
+	require.Equal(t, expected.Header.Hash().String(), res)
 }
 
 func TestChainGetBlockHash_Array(t *testing.T) {
-	chain := newTestStateService(t)
-	svc := NewChainModule(chain.Block)
+	state := newTestStateService(t)
+	svc := NewChainModule(state.Block)
 
 	resString := string("")
 	res := ChainHashResponse(resString)
@@ -216,12 +233,18 @@ func TestChainGetBlockHash_Array(t *testing.T) {
 	err := svc.GetBlockHash(nil, &req, &res)
 	require.Nil(t, err)
 
-	require.Equal(t, []string{"0x8b38e3b4dda30540c1245eab842b8d5ceefd8abcb46c5752348f5b0742e49d21", "0x12ee07bf9e9f12e8edc7ec24e323debe693c04b40d121ae23bcd6fcf2a7dcc3b"}, res)
+	expected0, err := state.Block.GetBlockByNumber(big.NewInt(0))
+	require.NoError(t, err)
+	expected1, err := state.Block.GetBlockByNumber(big.NewInt(1))
+	require.NoError(t, err)
+	expected := []string{expected0.Header.Hash().String(), expected1.Header.Hash().String()}
+
+	require.Equal(t, expected, res)
 }
 
 func TestChainGetFinalizedHead(t *testing.T) {
-	chain := newTestStateService(t)
-	svc := NewChainModule(chain.Block)
+	state := newTestStateService(t)
+	svc := NewChainModule(state.Block)
 
 	var res ChainHashResponse
 	err := svc.GetFinalizedHead(nil, &EmptyRequest{}, &res)
@@ -232,8 +255,8 @@ func TestChainGetFinalizedHead(t *testing.T) {
 }
 
 func TestChainGetFinalizedHeadByRound(t *testing.T) {
-	chain := newTestStateService(t)
-	svc := NewChainModule(chain.Block)
+	state := newTestStateService(t)
+	svc := NewChainModule(state.Block)
 
 	var res ChainHashResponse
 	req := ChainFinalizedHeadRequest{0, 0}
@@ -243,7 +266,7 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 	require.Equal(t, common.BytesToHex(expected[:]), res)
 
 	testhash := common.Hash{1, 2, 3, 4}
-	err = chain.Block.SetFinalizedHash(testhash, 77, 1)
+	err = state.Block.SetFinalizedHash(testhash, 77, 1)
 	require.NoError(t, err)
 
 	req = ChainFinalizedHeadRequest{77, 1}
@@ -252,29 +275,15 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 	require.Equal(t, common.BytesToHex(testhash[:]), res)
 }
 
-var genesisHeader, _ = types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), trie.EmptyHash, trie.EmptyHash, types.Digest{})
-
-var genesisBABEConfig = &types.BabeConfiguration{
-	SlotDuration:       1000,
-	EpochLength:        200,
-	C1:                 1,
-	C2:                 4,
-	GenesisAuthorities: []*types.AuthorityRaw{},
-	Randomness:         [32]byte{},
-	SecondarySlots:     false,
-}
+var gen, genTrie, genesisHeader = newTestGenesisWithTrieAndHeader()
 
 func newTestStateService(t *testing.T) *state.Service {
 	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
 	require.NoError(t, err)
 	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo)
-
-	tr := trie.NewEmptyTrie()
-
 	stateSrvc.UseMemDB()
-	genesisData := new(genesis.Data)
 
-	err = stateSrvc.Initialize(genesisData, genesisHeader, tr, genesisBABEConfig)
+	err = stateSrvc.Initialize(gen, genesisHeader, genTrie)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -289,6 +298,24 @@ func newTestStateService(t *testing.T) *state.Service {
 		t.Fatal(err)
 	}
 	return stateSrvc
+}
+
+func newTestGenesisWithTrieAndHeader() (*genesis.Genesis, *trie.Trie, *types.Header) {
+	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis-raw.json")
+	if err != nil {
+		panic(err)
+	}
+
+	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	if err != nil {
+		panic(err)
+	}
+
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), genTrie.MustHash(), trie.EmptyHash, types.Digest{}) //nolint
+	if err != nil {
+		panic(err)
+	}
+	return gen, genTrie, genesisHeader
 }
 
 func loadTestBlocks(gh common.Hash, bs *state.BlockState) error {

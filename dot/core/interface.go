@@ -37,9 +37,7 @@ type BlockState interface {
 	BestBlock() (*types.Block, error)
 	AddBlock(*types.Block) error
 	GetAllBlocksAtDepth(hash common.Hash) []common.Hash
-	AddBlockWithArrivalTime(*types.Block, uint64) error
 	GetBlockByHash(common.Hash) (*types.Block, error)
-	GetArrivalTime(common.Hash) (uint64, error)
 	GenesisHash() common.Hash
 	GetSlotForBlock(common.Hash) (uint64, error)
 	HighestBlockHash() common.Hash
@@ -58,7 +56,6 @@ type BlockState interface {
 
 // StorageState interface for storage state methods
 type StorageState interface {
-	StoreInDB(root common.Hash) error
 	LoadCode(root *common.Hash) ([]byte, error)
 	LoadCodeHash(root *common.Hash) (common.Hash, error)
 	TrieState(root *common.Hash) (*rtstorage.TrieState, error)

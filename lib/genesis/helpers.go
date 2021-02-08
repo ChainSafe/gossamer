@@ -58,7 +58,7 @@ func NewTrieFromGenesis(g *Genesis) (*trie.Trie, error) {
 
 	r := g.GenesisFields().Raw["top"]
 
-	err := t.Load(r)
+	err := t.LoadFromMap(r)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create trie from genesis: %s", err)
 	}

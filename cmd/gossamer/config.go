@@ -59,12 +59,12 @@ func loadConfigFile(ctx *cli.Context, cfg *ctoml.Config) (err error) {
 			)
 		}
 		err = loadConfig(cfg, cfgPath) // load toml values into configuration
-		if err != nil {
-			return err
-		}
+	} else {
+		logger.Info("loading toml configuration...", "config path", defaultGssmrConfigPath)
+		err = loadConfig(cfg, defaultGssmrConfigPath)
 	}
 
-	return nil
+	return err
 }
 
 // createDotConfig creates a new dot configuration from the provided flag values
@@ -94,6 +94,7 @@ func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 			return nil, fmt.Errorf("unknown chain id provided: %s", id)
 		}
 	}
+
 	if err != nil {
 		logger.Error("failed to set chain configuration", "error", err)
 		return nil, err

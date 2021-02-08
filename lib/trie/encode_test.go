@@ -17,8 +17,7 @@
 package trie
 
 import (
-	"reflect"
-	"strings"
+	"bytes"
 	"testing"
 )
 
@@ -55,11 +54,9 @@ func TestEncodeAndDecode(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if strings.Compare(testTrie.String(), trie.String()) != 0 {
-		t.Errorf("Fail: got\n %s expected\n %s", testTrie.String(), trie.String())
-	}
-
-	if !reflect.DeepEqual(testTrie.root, trie.root) {
+	expected := trie.MustHash()
+	res := testTrie.MustHash()
+	if !bytes.Equal(expected[:], res[:]) {
 		t.Errorf("Fail: got\n %s expected\n %s", testTrie.String(), trie.String())
 	}
 }

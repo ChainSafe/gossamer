@@ -81,16 +81,17 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header, e
 		_, _ = babeService.transactionState.Push(vtx)
 	}
 
+	duration, err := time.ParseDuration("1s")
+	require.NoError(t, err)
+
 	slot := Slot{
-		start:    uint64(time.Now().Unix()),
-		duration: uint64(10000000),
+		start:    time.Now(),
+		duration: duration,
 		number:   slotNumber,
 	}
 
 	// build block
 	var block *types.Block
-	var err error
-
 	for i := 0; i < 1; i++ { // retry if error
 		block, err = babeService.buildBlock(parent, slot)
 		if err == nil {
@@ -123,20 +124,16 @@ func TestBuildBlock_ok(t *testing.T) {
 	expectedBlockHeader := &types.Header{
 		ParentHash: emptyHeader.Hash(),
 		Number:     big.NewInt(1),
-		StateRoot:  emptyHash,
 		Digest:     types.Digest{preDigest},
 	}
 
 	// remove seal from built block, since we can't predict the signature
 	block.Header.Digest = block.Header.Digest[:1]
-	header, err := babeService.blockState.BestBlockHeader()
-	require.NoError(t, err)
-
-	// reset StateRoot and ExtrinsicRoot, since it has randomness aspects in it
-	// TODO: where does this randomness come from?
-	block.Header.ExtrinsicsRoot = header.ExtrinsicsRoot
-	block.Header.StateRoot = header.StateRoot
-	require.Equal(t, block.Header, expectedBlockHeader)
+	require.Equal(t, expectedBlockHeader.ParentHash, block.Header.ParentHash)
+	require.Equal(t, expectedBlockHeader.Number, block.Header.Number)
+	require.NotEqual(t, block.Header.StateRoot, emptyHash)
+	require.NotEqual(t, block.Header.ExtrinsicsRoot, emptyHash)
+	require.Equal(t, expectedBlockHeader.Digest, block.Header.Digest)
 
 	// confirm block body is correct
 	extsRes, err := block.Body.AsExtrinsics()
@@ -189,9 +186,12 @@ func TestBuildBlock_failing(t *testing.T) {
 		Number:     big.NewInt(0),
 	}
 
+	duration, err := time.ParseDuration("1s")
+	require.NoError(t, err)
+
 	slot := Slot{
-		start:    uint64(time.Now().Unix()),
-		duration: uint64(10000000),
+		start:    time.Now(),
+		duration: duration,
 		number:   slotNumber,
 	}
 
