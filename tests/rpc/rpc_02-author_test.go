@@ -41,9 +41,6 @@ func setSubkeyPath(t *testing.T) {
 }
 
 func TestAuthorSubmitExtrinsic(t *testing.T) {
-	// TODO (ed), this is currently t.Skip() because it's failing with Error: validator: (nil *modules.Extrinsic)
-	//  haven't been able to determine cause
-	t.Skip()
 	if utils.MODE != rpcSuite {
 		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
 		return
@@ -58,7 +55,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 
 	defer func() {
 		t.Log("going to tear down gossamer...")
-		//os.Remove(utils.ConfigBABEMaxThreshold)
+		os.Remove(utils.ConfigBABEMaxThreshold)
 		errList := utils.TearDown(t, nodes)
 		require.Len(t, errList, 0)
 	}()
@@ -102,7 +99,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 		Nonce:              types.NewUCompactFromUInt(uint64(nonce)),
 		SpecVersion:        rv.SpecVersion,
 		Tip:                types.NewUCompactFromUInt(0),
-		TransactionVersion: 1, // TODO: rv.TransactionVersion == 0 but runtime expects 1
+		TransactionVersion: rv.TransactionVersion,
 	}
 
 	// Sign the transaction using Alice's default account

@@ -147,8 +147,6 @@ func (h *HTTPServer) Start() error {
 
 	validateHandler := func(r *rpc.RequestInfo, v interface{}) error {
 		err := validate.Struct(v)
-		fmt.Printf("Method %v\n", r.Method)
-		fmt.Printf("Value  %v\n", v)
 		if err != nil {
 			return err
 		}
