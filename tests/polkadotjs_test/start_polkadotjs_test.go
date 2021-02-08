@@ -37,9 +37,19 @@ func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 	nodes, err := utils.InitializeAndStartNodesWebsocket(t, 1, utils.GenesisOneAuth, utils.ConfigBABEMaxThreshold)
 	require.NoError(t, err)
 
-	command := "yarn run test"
-	parts := strings.Fields(command)
-	data, err := exec.Command(parts[0], parts[1:]...).Output()
+	command := "yarn"
+	parts := strings.Fields(command);
+	data, err := exec.Command(parts[0], parts[1:]...).Output();
+	require.NoError(t, err)
+
+	command = "yarn install"
+	parts = strings.Fields(command);
+	data, err = exec.Command(parts[0], parts[1:]...).Output();
+	require.NoError(t, err)
+
+	command = "yarn run test"
+	parts = strings.Fields(command)
+	data, err = exec.Command(parts[0], parts[1:]...).Output()
 	require.NoError(t, err, fmt.Sprintf("%s", data))
 
 	// uncomment this to see log results from javascript tests

@@ -1,8 +1,9 @@
-const {describe} = require('mocha');
-const {expect} = require('chai');
+const { describe } = require('mocha');
+const { expect } = require('chai');
 const { ApiPromise, WsProvider } = require('@polkadot/api');
-const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay))
-const {Keyring } = require('@polkadot/keyring');
+const { Keyring } = require('@polkadot/keyring');
+
+const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay));
 
 describe('Testing polkadot.js/api calls:', function () {
     let api;
