@@ -109,7 +109,6 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 	buffer := bytes.Buffer{}
 	encoder := scale.NewEncoder(&buffer)
 	ext.Encode(*encoder)
-	res := buffer.Bytes()
 
 	// Send the extrinsic
 	hash, err := api.RPC.Author.SubmitExtrinsic(ext)
