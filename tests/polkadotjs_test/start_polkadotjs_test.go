@@ -38,18 +38,18 @@ func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 	require.NoError(t, err)
 
 	command := "yarn"
-	parts := strings.Fields(command);
-	data, err := exec.Command(parts[0], parts[1:]...).Output();
+	parts := strings.Fields(command)
+	_, err = exec.Command(parts[0], parts[1:]...).Output()
 	require.NoError(t, err)
 
 	command = "yarn install"
-	parts = strings.Fields(command);
-	data, err = exec.Command(parts[0], parts[1:]...).Output();
+	parts = strings.Fields(command)
+	_, err = exec.Command(parts[0], parts[1:]...).Output()
 	require.NoError(t, err)
 
 	command = "yarn run test"
 	parts = strings.Fields(command)
-	data, err = exec.Command(parts[0], parts[1:]...).Output()
+	data, err := exec.Command(parts[0], parts[1:]...).Output()
 	require.NoError(t, err, fmt.Sprintf("%s", data))
 
 	// uncomment this to see log results from javascript tests
