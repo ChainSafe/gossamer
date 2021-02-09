@@ -107,6 +107,20 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err //nolint
 	}
 
+	if cfg.MinPeers == 0 {
+		cfg.MinPeers = DefaultMinPeerCount
+	}
+
+	if cfg.MaxPeers == 0 {
+		cfg.MaxPeers = DefaultMaxPeerCount
+	}
+
+	if cfg.MinPeers > cfg.MaxPeers {
+		logger.Warn("min peers higher than max peers; setting to default")
+		cfg.MinPeers = DefaultMinPeerCount
+		cfg.MaxPeers = DefaultMaxPeerCount
+	}
+
 	// create a new host instance
 	host, err := newHost(ctx, cfg)
 	if err != nil {
@@ -173,6 +187,7 @@ func (s *Service) Start() error {
 	)
 	if err != nil {
 		logger.Error("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
+		return err
 	}
 
 	// register transactions protocol
@@ -187,6 +202,7 @@ func (s *Service) Start() error {
 	)
 	if err != nil {
 		logger.Error("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
+		return err
 	}
 
 	// log listening addresses to console
@@ -214,8 +230,19 @@ func (s *Service) Start() error {
 		}()
 	}
 
+	time.Sleep(time.Millisecond * 500)
+
 	logger.Info("started network service", "supported protocols", s.host.protocols())
+
+	go s.logPeerCount()
 	return nil
+}
+
+func (s *Service) logPeerCount() {
+	for {
+		logger.Debug("peer count", "num", s.host.peerCount(), "min", s.cfg.MinPeers, "max", s.cfg.MaxPeers)
+		time.Sleep(time.Second * 30)
+	}
 }
 
 func (s *Service) beginDiscovery() error {
@@ -229,11 +256,6 @@ func (s *Service) beginDiscovery() error {
 	// wait to connect to bootstrap peers
 	time.Sleep(time.Second)
 
-	_, err = rd.Advertise(s.ctx, s.cfg.ProtocolID)
-	if err != nil {
-		return fmt.Errorf("failed to begin advertising: %w", err)
-	}
-
 	go func() {
 		peerCh, err := rd.FindPeers(s.ctx, s.cfg.ProtocolID)
 		if err != nil {
@@ -241,16 +263,25 @@ func (s *Service) beginDiscovery() error {
 		}
 
 		for peer := range peerCh {
+			if peer.ID == s.host.id() {
+				return
+			}
+
 			logger.Debug("found new peer via DHT", "peer", peer.ID)
-			// found a peer, try to connect
-			err = s.host.connect(peer) // TODO: check if it's own our peer ID
-			if err != nil {
-				logger.Debug("failed to connect to discovered peer", "peer", peer.ID, "err", err)
+
+			// found a peer, try to connect if we need more peers
+			if s.host.peerCount() < s.cfg.MaxPeers {
+				err = s.host.connect(peer)
+				if err != nil {
+					logger.Debug("failed to connect to discovered peer", "peer", peer.ID, "err", err)
+				}
+			} else {
+				s.host.addToPeerstore(peer)
 			}
 		}
 	}()
 
-	logger.Info("DHT discovery started!")
+	logger.Debug("DHT discovery started!")
 	return nil
 }
 
@@ -423,7 +454,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		if err == io.EOF {
 			continue
 		} else if err != nil {
-			logger.Error("Failed to read LEB128 encoding", "protocol", stream.Protocol(), "error", err)
+			logger.Debug("Failed to read LEB128 encoding", "protocol", stream.Protocol(), "error", err)
 			_ = stream.Close()
 			return
 		}
@@ -437,7 +468,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		for i := 0; i < maxReads; i++ {
 			n, err := r.Read(msgBytes[tot:]) //nolint
 			if err != nil {
-				logger.Error("Failed to read message from stream", "error", err)
+				logger.Warn("Failed to read message from stream", "error", err)
 				_ = stream.Close()
 				return
 			}
@@ -464,26 +495,28 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 			continue
 		}
 
-		logger.Trace(
+		logger.Debug(
 			"Received message from peer",
 			"host", s.host.id(),
 			"peer", peer,
 			"msg", msg.String(),
 		)
 
-		// handle message based on peer status and message type
-		err = handler(peer, msg)
-		if err != nil {
-			logger.Error("Failed to handle message from stream", "message", msg, "error", err)
-			_ = stream.Close()
-			return
-		}
+		go func() {
+			// handle message based on peer status and message type
+			err = handler(peer, msg)
+			if err != nil {
+				logger.Warn("Failed to handle message from stream", "message", msg, "error", err)
+				_ = stream.Close()
+				return
+			}
+		}()
 	}
 }
 func (s *Service) handleLightMsg(peer peer.ID, msg Message) error {
 	lr, ok := msg.(*LightRequest)
 	if !ok {
-		logger.Error("failed to get the request message from peer ", peer)
+		logger.Warn("failed to get the request message from peer ", peer)
 		return nil
 	}
 
@@ -501,7 +534,7 @@ func (s *Service) handleLightMsg(peer peer.ID, msg Message) error {
 	case lr.RmtReadChildRequest != nil:
 		resp.RmtReadResponse, err = remoteReadChildResp(peer, lr.RmtReadChildRequest)
 	default:
-		logger.Error("ignoring request without request data from peer {}", peer)
+		logger.Warn("ignoring request without request data from peer {}", peer)
 		return nil
 	}
 
@@ -515,7 +548,7 @@ func (s *Service) handleLightMsg(peer peer.ID, msg Message) error {
 
 	err = s.host.send(peer, lightID, &resp)
 	if err != nil {
-		logger.Error("failed to send LightResponse message", "peer", peer, "err", err)
+		logger.Warn("failed to send LightResponse message", "peer", peer, "err", err)
 	}
 	return err
 }

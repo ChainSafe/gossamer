@@ -80,7 +80,7 @@ func TestRestartNode(t *testing.T) {
 }
 
 func TestSync_SingleBlockProducer(t *testing.T) {
-	numNodes := 6 // TODO: increase this when syncing improves
+	numNodes := 3
 	utils.SetLogLevel(log.LvlInfo)
 
 	// start block producing node first
@@ -132,7 +132,7 @@ func TestSync_Basic(t *testing.T) {
 
 func TestSync_MultipleEpoch(t *testing.T) {
 	t.Skip("skipping TestSync_MultipleEpoch")
-	numNodes := 3 // TODO: increase this when syncing improves
+	numNodes := 3
 	utils.SetLogLevel(log.LvlInfo)
 
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since

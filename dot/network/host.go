@@ -30,12 +30,10 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
-	noise "github.com/libp2p/go-libp2p-noise"
+	secio "github.com/libp2p/go-libp2p-secio"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
 )
-
-var defaultMaxPeerCount = 5
 
 // host wraps libp2p host with network host configuration and services
 type host struct {
@@ -44,6 +42,7 @@ type host struct {
 	dht        *dual.DHT
 	bootnodes  []peer.AddrInfo
 	protocolID protocol.ID
+	cm         *ConnManager
 }
 
 // newHost creates a host wrapper with a new libp2p host instance
@@ -59,7 +58,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	}
 
 	// create connection manager
-	cm := newConnManager(defaultMaxPeerCount)
+	cm := newConnManager(cfg.MinPeers, cfg.MaxPeers)
 
 	// format bootnodes
 	bns, err := stringsToAddrInfos(cfg.Bootnodes)
@@ -67,14 +66,14 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		return nil, err
 	}
 
-	dhtOpts := []kaddht.Option{
-		kaddht.Datastore(dsync.MutexWrap(ds.NewMapDatastore())), // TODO: use on-disk datastore
-		kaddht.BootstrapPeers(bns...),
-		kaddht.ProtocolPrefix(protocol.ID(cfg.ProtocolID)),
-	}
+	// format protocol id
+	pid := protocol.ID(cfg.ProtocolID)
 
-	if cfg.NoMDNS {
-		dhtOpts = append(dhtOpts, kaddht.Mode(kaddht.ModeAutoServer))
+	dhtOpts := []dual.Option{
+		dual.DHTOption(kaddht.Datastore(dsync.MutexWrap(ds.NewMapDatastore()))), // TODO: use on-disk datastore
+		dual.DHTOption(kaddht.BootstrapPeers(bns...)),
+		dual.DHTOption(kaddht.V1ProtocolOverride(pid + "/kad")),
+		dual.DHTOption(kaddht.Mode(kaddht.ModeAutoServer)),
 	}
 
 	// set libp2p host options
@@ -84,7 +83,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		libp2p.Identity(cfg.privateKey),
 		libp2p.NATPortMap(),
 		libp2p.ConnectionManager(cm),
-		libp2p.ChainOptions(libp2p.DefaultSecurity, libp2p.Security(noise.ID, noise.New)),
+		libp2p.ChainOptions(libp2p.DefaultSecurity, libp2p.Security(secio.ID, secio.New)), // TODO: deprecate secio?
 	}
 
 	// create libp2p host instance
@@ -102,15 +101,13 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	// wrap host and DHT service with routed host
 	h = rhost.Wrap(h, dht)
 
-	// format protocol id
-	pid := protocol.ID(cfg.ProtocolID)
-
 	return &host{
 		ctx:        ctx,
 		h:          h,
 		dht:        dht,
 		bootnodes:  bns,
 		protocolID: pid,
+		cm:         cm,
 	}, nil
 
 }
@@ -150,6 +147,10 @@ func (h *host) connect(p peer.AddrInfo) (err error) {
 	h.h.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
 	err = h.h.Connect(h.ctx, p)
 	return err
+}
+
+func (h *host) addToPeerstore(p peer.AddrInfo) {
+	h.h.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
 }
 
 // bootstrap connects the host to the configured bootnodes

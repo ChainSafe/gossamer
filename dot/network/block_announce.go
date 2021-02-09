@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -191,41 +192,68 @@ func (s *Service) getBlockAnnounceHandshake() (Handshake, error) {
 	}, nil
 }
 
-func (s *Service) validateBlockAnnounceHandshake(hs Handshake) (Message, error) {
+func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) error {
 	var (
 		bhs *BlockAnnounceHandshake
 		ok  bool
 	)
 
 	if bhs, ok = hs.(*BlockAnnounceHandshake); !ok {
-		return nil, errors.New("invalid handshake type")
+		return errors.New("invalid handshake type")
 	}
 
 	if bhs.GenesisHash != s.blockState.GenesisHash() {
-		return nil, errors.New("genesis hash mismatch")
+		return errors.New("genesis hash mismatch")
 	}
 
 	// if peer has higher best block than us, begin syncing
 	latestHeader, err := s.blockState.BestBlockHeader()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	bestBlockNum := big.NewInt(int64(bhs.BestBlockNumber))
 
 	// check if peer block number is greater than host block number
 	if latestHeader.Number.Cmp(bestBlockNum) >= 0 {
-		return nil, nil
+		return nil
 	}
 
 	// if so, send block request
 	logger.Trace("sending peer highest block to syncer", "number", bhs.BestBlockNumber)
 	req := s.syncer.HandleBlockAnnounceHandshake(bestBlockNum)
 	if req == nil {
-		return nil, nil
+		return nil
 	}
 
-	return req, nil
+	go func() {
+		if s.notificationsProtocols[BlockAnnounceMsgType] == nil {
+			logger.Error("s.notificationsProtocols[BlockAnnounceMsgType] is nil")
+			return
+		}
+
+		if s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer] == nil {
+			logger.Error("peer handshake data is nil")
+			return
+		}
+
+		// wait until we send BlockAnnounceHandshake, then begin sync
+		select {
+		case <-s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].responseSentCh:
+			time.Sleep(time.Millisecond * 500) // TODO: it seems if we immediately send the request we fail to read the response
+			err = s.beginSyncing(peer, req)
+			if err == nil {
+				break
+			}
+		case <-time.After(time.Second * 3):
+			err = errors.New("timeout")
+		}
+
+		logger.Debug("failed to send response to peer's handshake", "sub-protocol", syncID, "peer", peer, "error", err)
+		s.attemptSyncWithRandomPeer(req)
+	}()
+
+	return nil
 }
 
 // handleBlockAnnounceMessage handles BlockAnnounce messages

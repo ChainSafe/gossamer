@@ -448,6 +448,7 @@ func generateDefaultConfig() *ctoml.Config {
 			ProtocolID:  "/gossamer/gssmr/0",
 			NoBootstrap: false,
 			NoMDNS:      false,
+			MaxPeers:    3,
 		},
 		RPC: ctoml.RPCConfig{
 			Enabled: false,
@@ -467,8 +468,8 @@ func CreateDefaultConfig() {
 func generateConfigBabeMaxThreshold() *ctoml.Config {
 	cfg := generateDefaultConfig()
 	cfg.Log = ctoml.LogConfig{
-		SyncLvl:          "trace",
-		NetworkLvl:       "trace",
+		SyncLvl:          "debug",
+		NetworkLvl:       "debug",
 		BlockProducerLvl: "info",
 	}
 	cfg.Core = ctoml.CoreConfig{
@@ -511,8 +512,8 @@ func generateConfigNoBabe() *ctoml.Config {
 	cfg := generateDefaultConfig()
 	cfg.Global.LogLvl = "info"
 	cfg.Log = ctoml.LogConfig{
-		SyncLvl:    "trace",
-		NetworkLvl: "trace",
+		SyncLvl:    "debug",
+		NetworkLvl: "debug",
 	}
 	cfg.Core.BabeThresholdNumerator = 1
 	cfg.Core.BabeThresholdDenominator = 1
