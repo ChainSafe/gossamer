@@ -135,3 +135,7 @@ func (sm *SystemModule) NodeRoles(r *http.Request, req *EmptyRequest, res *[]int
 	*res = resultArray
 	return nil
 }
+
+func (sm *SystemModule) AccountNextIndex(r *http.Request, req *EmptyRequest, res *[]interface{}) error {
+	return nil
+}
