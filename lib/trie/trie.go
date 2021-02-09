@@ -32,37 +32,114 @@ var EmptyHash, _ = NewEmptyTrie().Hash()
 // The zero value is an empty trie with no database.
 // Use NewTrie to create a trie that sits on top of a database.
 type Trie struct {
-	root     node
-	children map[common.Hash]*Trie
+	generation uint64
+	root       node
+	children   map[common.Hash]*Trie // Used to store the child trie.
 }
 
 // NewEmptyTrie creates a trie with a nil root
 func NewEmptyTrie() *Trie {
-	return &Trie{
-		root:     nil,
-		children: make(map[common.Hash]*Trie),
-	}
+	return NewTrie(nil)
 }
 
 // NewTrie creates a trie with an existing root node
 func NewTrie(root node) *Trie {
 	return &Trie{
-		root:     root,
-		children: make(map[common.Hash]*Trie),
+		root:       root,
+		children:   make(map[common.Hash]*Trie),
+		generation: 0, // Initially zero but increases after every snapshot.
 	}
+}
+
+// Snapshot created a copy of the trie.
+func (t *Trie) Snapshot() *Trie {
+	oldTrie := &Trie{
+		generation: t.generation,
+		root:       t.root,
+		children:   t.children,
+	}
+	t.generation++
+	return oldTrie
+}
+
+func (t *Trie) maybeUpdateLeafGeneration(n *leaf) *leaf {
+	// Make a copy if the generation is updated.
+	if n.getGeneration() < t.generation {
+		// Insert a new leaf node in the current generation.
+		newLeaf := n.copy()
+		newLeaf.generation = t.generation
+		return newLeaf
+	}
+	return n
+}
+
+func (t *Trie) maybeUpdateBranchGeneration(n *branch) *branch {
+	// Make a copy if the generation is updated.
+	if n.getGeneration() < t.generation {
+		// Insert a new branch node in the current generation.
+		newBranch := n.copy()
+		newBranch.generation = t.generation
+		return newBranch
+	}
+	return n
 }
 
 // DeepCopy makes a new trie and copies over the existing trie into the new trie
 func (t *Trie) DeepCopy() (*Trie, error) {
 	cp := NewEmptyTrie()
 	for k, v := range t.Entries() {
-		err := cp.Put([]byte(k), v)
+		keyCp := make([]byte, len(k))
+		copy(keyCp, k)
+		valCp := make([]byte, len(v))
+		copy(valCp, v)
+
+		err := cp.Put(keyCp, valCp)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	return cp, nil
+}
+
+func isSimilar(tNode node, trieNode node) bool {
+	tBranch, ok := tNode.(*branch)
+	trieBranch, trieOk := trieNode.(*branch)
+	if ok && trieOk {
+		if tBranch.value != nil && trieBranch.value != nil {
+			if !bytes.Equal(tBranch.value, trieBranch.value) {
+				return false
+			}
+		}
+		for tKey, child := range tBranch.children {
+			if child != nil && trieBranch.children[tKey] != nil {
+				if !isSimilar(child, trieBranch.children[tKey]) {
+					return false
+				}
+				continue
+			} else if child == nil && trieBranch.children[tKey] == nil {
+				continue
+			}
+			return false
+		}
+		return true
+	}
+	tLeaf, ok := tNode.(*leaf)
+	trieLeaf, trieOk := trieNode.(*leaf)
+	if ok && trieOk {
+		if tLeaf.value == nil && trieLeaf.value == nil {
+			return true
+		} else if tLeaf.value != nil && trieLeaf.value != nil {
+			return bytes.Equal(tLeaf.value, trieLeaf.value)
+		}
+		return false
+	}
+	return false
+}
+
+// Equal returns true if both tries are same.
+func (t *Trie) Equal(trie *Trie) bool {
+	return isSimilar(t.root, trie.root)
 }
 
 // RootNode returns the root of the trie
@@ -225,30 +302,38 @@ func (t *Trie) Put(key, value []byte) error {
 func (t *Trie) tryPut(key, value []byte) (err error) {
 	k := keyToNibbles(key)
 
-	n, err := t.insert(t.root, k, &leaf{key: nil, value: value, dirty: true, valueDirty: true})
-	if err != nil {
-		return err
-	}
-
-	t.root = n
+	t.root = t.insert(t.root, k, &leaf{key: nil, value: value, dirty: true, valueDirty: true, generation: t.generation})
 	return nil
 }
 
 // TryPut attempts to insert a key with value into the trie
-func (t *Trie) insert(parent node, key []byte, value node) (n node, err error) {
+func (t *Trie) insert(parent node, key []byte, value node) node {
 	switch p := parent.(type) {
 	case *branch:
-		n, err = t.updateBranch(p, key, value)
+		p = t.maybeUpdateBranchGeneration(p)
+		n := t.updateBranch(p, key, value)
+
+		if p != nil && n != nil && n.isDirty() {
+			p.setDirty(true)
+		}
+		return n
 	case nil:
+		// We are creating new node so it will always have the latest generation.
+		// TODO: Sanity check. Can be removed later.
+		if t.generation != value.getGeneration() {
+			log.Error("node with invalid generation inserted")
+		}
 		switch v := value.(type) {
 		case *branch:
 			v.key = key
-			n = v
+			return v
 		case *leaf:
 			v.key = key
-			n = v
+			return v
 		}
 	case *leaf:
+		p = t.maybeUpdateLeafGeneration(p)
+
 		// if a value already exists in the trie at this key, overwrite it with the new value
 		// if the values are the same, don't mark node dirty
 		if p.value != nil && bytes.Equal(p.key, key) {
@@ -257,14 +342,12 @@ func (t *Trie) insert(parent node, key []byte, value node) (n node, err error) {
 				p.dirty = true
 				p.valueDirty = true
 			}
-			return p, nil
+			return p
 		}
-
-		// need to convert this leaf into a branch
-		br := &branch{dirty: true}
 		length := lenCommonPrefix(key, p.key)
 
-		br.key = key[:length]
+		// need to convert this leaf into a branch
+		br := &branch{key: key[:length], dirty: true, generation: t.generation}
 		parentKey := p.key
 
 		// value goes at this branch
@@ -279,7 +362,7 @@ func (t *Trie) insert(parent node, key []byte, value node) (n node, err error) {
 				p.setDirty(true)
 			}
 
-			return br, nil
+			return br
 		}
 
 		value.setKey(key[length+1:])
@@ -297,22 +380,16 @@ func (t *Trie) insert(parent node, key []byte, value node) (n node, err error) {
 			br.children[key[length]] = value
 		}
 
-		return br, nil
-	default:
-		err = errors.New("put error: invalid node")
+		return br
 	}
-
-	if parent != nil && n != nil && n.isDirty() {
-		parent.setDirty(true)
-	}
-
-	return n, err
+	// This will never happen.
+	return nil
 }
 
 // updateBranch attempts to add the value node to a branch
 // inserts the value node as the branch's child at the index that's
 // the first nibble of the key
-func (t *Trie) updateBranch(p *branch, key []byte, value node) (n node, err error) {
+func (t *Trie) updateBranch(p *branch, key []byte, value node) (n node) {
 	length := lenCommonPrefix(key, p.key)
 
 	// whole parent key matches
@@ -326,15 +403,12 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (n node, err erro
 			case *leaf:
 				p.value = v.value
 			}
-			return p, nil
+			return p
 		}
 
 		switch c := p.children[key[length]].(type) {
 		case *branch, *leaf:
-			if n, err = t.insert(c, key[length+1:], value); err != nil {
-				log.Warn("updateBranch returned err for operation insert")
-				break
-			}
+			n = t.insert(c, key[length+1:], value)
 			p.children[key[length]] = n
 			n.setDirty(true)
 			if l, ok := n.(*leaf); ok {
@@ -343,7 +417,7 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (n node, err erro
 
 			n = p
 			n.setDirty(true)
-			return n, nil
+			return n
 		case nil:
 			// otherwise, add node as child of this branch
 			value.(*leaf).key = key[length+1:]
@@ -352,31 +426,24 @@ func (t *Trie) updateBranch(p *branch, key []byte, value node) (n node, err erro
 			n.setDirty(true)
 		}
 
-		return n, err
+		return n
 	}
 
 	// we need to branch out at the point where the keys diverge
 	// update partial keys, new branch has key up to matching length
-	br := &branch{key: key[:length], dirty: true}
+	br := &branch{key: key[:length], dirty: true, generation: t.generation}
 
 	parentIndex := p.key[length]
-	if br.children[parentIndex], err = t.insert(nil, p.key[length+1:], p); err != nil {
-		log.Warn("updateBranch returned not ok for operation insert")
-	}
-	if err != nil {
-		return nil, err
-	}
+	br.children[parentIndex] = t.insert(nil, p.key[length+1:], p)
 
 	if len(key) <= length {
 		br.value = value.(*leaf).value
 	} else {
-		if br.children[key[length]], err = t.insert(nil, key[length+1:], value); err != nil {
-			log.Warn("updateBranch returned not ok for operation insert")
-		}
+		br.children[key[length]] = t.insert(nil, key[length+1:], value)
 	}
 
 	br.setDirty(true)
-	return br, err
+	return br
 }
 
 // LoadFromMap loads the given data into trie
@@ -666,13 +733,13 @@ func handleDeletion(p *branch, n node, key []byte) (nn node) {
 
 // lenCommonPrefix returns the length of the common prefix between two keys
 func lenCommonPrefix(a, b []byte) int {
-	var length, max = 0, len(a)
+	var length, min = 0, len(a)
 
 	if len(a) > len(b) {
-		max = len(b)
+		min = len(b)
 	}
 
-	for ; length < max; length++ {
+	for ; length < min; length++ {
 		if a[length] != b[length] {
 			break
 		}
