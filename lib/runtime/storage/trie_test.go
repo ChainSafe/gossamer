@@ -119,8 +119,6 @@ func TestTrieState_ClearPrefix(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	// TODO: the trie structure is incorrect after using trie.ClearPrefix. should be 1 leaf,
-	// instead is 2 branches leading to leaf.
 	ts.ClearPrefix([]byte("noo"))
 
 	for i, key := range keys {

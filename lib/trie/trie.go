@@ -543,6 +543,8 @@ func (t *Trie) clearPrefix(curr node, prefix []byte) (n node, wasUpdated bool) {
 			if wasUpdated {
 				c.setDirty(true)
 			}
+
+			curr = handleDeletion(c, c, prefix)
 		}
 	case *leaf:
 		length := lenCommonPrefix(c.key, prefix)
