@@ -578,9 +578,9 @@ func (s *Service) Peers() []common.PeerInfo {
 
 	for _, p := range s.host.peers() {
 		// Load up a node/entity from peer id
-		// Query data directly 
-		validateData := s.validateBlockAnnounceHandshake(handshake)
-		p.
+		// Query data directly
+		peerHandshake := s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[p]
+		peerHandshake.outboundMsg.Decode(peerHandshake.outboundMsg)
 		if err != nil {
 			logger.Error("failed to get additional peer data", "peer", p, "err", err)
 			peers = append(peers, common.PeerInfo{
@@ -588,11 +588,11 @@ func (s *Service) Peers() []common.PeerInfo {
 			})
 		} else {
 			peers = append(peers, common.PeerInfo{
-				PeerID:          p.String(),
-				Roles:           handshake.(*BlockAnnounceHandshake).Roles,
+				PeerID: p.String(),
+				Roles:  peerHandshake.outboundMsg.(*BlockAnnounceHandshake).Roles,
 				// ProtocolVersion: uint32(protocolVersion),
-				BestHash:        handshake.(*BlockAnnounceHandshake).BestBlockHash,
-				BestNumber:      uint64(handshake.(*BlockAnnounceHandshake).BestBlockNumber),
+				BestHash:   handshake.(*BlockAnnounceHandshake).BestBlockHash,
+				BestNumber: uint64(handshake.(*BlockAnnounceHandshake).BestBlockNumber),
 			})
 		}
 
