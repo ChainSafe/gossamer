@@ -17,7 +17,6 @@
 package modules
 
 import (
-	"github.com/ChainSafe/gossamer/lib/scale"
 	"math/big"
 	"os"
 	"path"
@@ -26,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/stretchr/testify/require"
 )
 
@@ -237,7 +237,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 	sys := setupSystemModule(t)
 	expected := U64Response(uint64(10))
 
-	res := new (U64Response)
+	res := new(U64Response)
 	req := StringRequest{
 		String: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
 	}
@@ -248,7 +248,7 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 
 }
 
-func setupSystemModule(t *testing.T) (*SystemModule) {
+func setupSystemModule(t *testing.T) *SystemModule {
 	// setup service
 	net := newNetworkService(t)
 	chain := newTestStateService(t)
@@ -262,11 +262,11 @@ func setupSystemModule(t *testing.T) (*SystemModule) {
 		Nonce:    10,
 		RefCount: 0,
 		Data: struct {
-    Free       common.Uint128
-    Reserved   common.Uint128
-    MiscFrozen common.Uint128
-    FreeFrozen common.Uint128
-}{},
+			Free       common.Uint128
+			Reserved   common.Uint128
+			MiscFrozen common.Uint128
+			FreeFrozen common.Uint128
+		}{},
 	}
 	aliceAcctEncoded, err := scale.Encode(aliceAcctInfo)
 	require.NoError(t, err)
@@ -277,5 +277,5 @@ func setupSystemModule(t *testing.T) (*SystemModule) {
 	require.NoError(t, err)
 
 	core := newCoreService(t, chain)
-	return NewSystemModule(net, nil, core,  chain.Storage)
+	return NewSystemModule(net, nil, core, chain.Storage)
 }

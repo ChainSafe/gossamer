@@ -18,18 +18,19 @@ package modules
 
 import (
 	"errors"
+	"net/http"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
-	"net/http"
 )
 
 // SystemModule is an RPC module providing access to core API points
 type SystemModule struct {
 	networkAPI NetworkAPI
 	systemAPI  SystemAPI
-	coreAPI CoreAPI
+	coreAPI    CoreAPI
 	storageAPI StorageAPI
 }
 
@@ -56,8 +57,10 @@ type SystemNetworkStateResponse struct {
 // SystemPeersResponse struct to marshal json
 type SystemPeersResponse []common.PeerInfo
 
+// U64Response holds U64 response
 type U64Response uint64
 
+// StringRequest holds string request
 type StringRequest struct {
 	String string
 }
@@ -67,7 +70,7 @@ func NewSystemModule(net NetworkAPI, sys SystemAPI, core CoreAPI, storage Storag
 	return &SystemModule{
 		networkAPI: net, // TODO: migrate to network state
 		systemAPI:  sys,
-		coreAPI: core,
+		coreAPI:    core,
 		storageAPI: storage,
 	}
 }
@@ -149,6 +152,7 @@ func (sm *SystemModule) NodeRoles(r *http.Request, req *EmptyRequest, res *[]int
 	return nil
 }
 
+// AccountNextIndex Returns the next valid index (aka. nonce) for given account.
 func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, res *U64Response) error {
 	// todo (ed) check pending transactions
 
@@ -178,9 +182,15 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 	}
 
 	accountRaw, err := sm.storageAPI.GetStorage(nil, storageKey)
+	if err != nil {
+		return err
+	}
 
 	var accountInfo types.AccountInfo
-	types.DecodeFromBytes(accountRaw, &accountInfo)
+	err = types.DecodeFromBytes(accountRaw, &accountInfo)
+	if err != nil {
+		return err
+	}
 
 	*res = U64Response(accountInfo.Nonce)
 	return nil
