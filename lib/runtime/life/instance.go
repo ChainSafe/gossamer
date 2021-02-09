@@ -76,9 +76,11 @@ func NewInstance(code []byte, cfg *Config) (runtime.Instance, error) {
 		logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
 	}
 
-	instance, err := exec.NewVirtualMachine(code, exec.VMConfig{
+	vmCfg := exec.VMConfig{
 		DefaultMemoryPages: 20,
-	}, cfg.Resolver, nil)
+	}
+
+	instance, err := exec.NewVirtualMachine(code, vmCfg, cfg.Resolver, nil)
 	if err != nil {
 		return nil, err
 	}
