@@ -126,7 +126,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 				resp, err := info.getHandshake()
 				if err != nil {
 					logger.Error("failed to get handshake", "sub-protocol", info.subProtocol, "error", err)
-					return nil
+					return err
 				}
 
 				err = s.host.send(peer, info.subProtocol, resp)
@@ -151,6 +151,9 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 				info.handshakeData[peer].validated = true
 				info.handshakeData[peer].received = true
 				logger.Trace("sender: validated handshake", "sub-protocol", info.subProtocol, "peer", peer)
+
+				info.handshakeData[peer].responseSentCh = make(chan struct{})
+				close(info.handshakeData[peer].responseSentCh)
 			} else if hsData.received {
 				return nil
 			}

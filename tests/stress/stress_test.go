@@ -80,7 +80,7 @@ func TestRestartNode(t *testing.T) {
 }
 
 func TestSync_SingleBlockProducer(t *testing.T) {
-	numNodes := 3
+	numNodes := 4
 	utils.SetLogLevel(log.LvlInfo)
 
 	// start block producing node first

@@ -65,6 +65,10 @@ func (t *Trie) DeepCopy() (*Trie, error) {
 		if err != nil {
 			return nil, err
 		}
+		// err := cp.Put([]byte(k), v)
+		// if err != nil {
+		// 	return nil, err
+		// }
 	}
 
 	return cp, nil
