@@ -57,7 +57,7 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 		if req != nil {
 			if err := s.host.send(peer, syncID, req); err != nil {
 				logger.Debug("failed to send BlockRequest message; trying other peers", "peer", peer, "error", err)
-				//s.attemptSyncWithRandomPeer(req)
+				s.attemptSyncWithRandomPeer(req)
 			}
 		} else {
 			// we are done syncing
@@ -83,8 +83,7 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 	return nil
 }
 
-// TODO: re-enable this in #1370
-func (s *Service) attemptSyncWithRandomPeer(req *BlockRequestMessage) { //nolint
+func (s *Service) attemptSyncWithRandomPeer(req *BlockRequestMessage) {
 	peers := s.host.peers()
 	for _, peer := range peers {
 		if err := s.host.send(peer, syncID, req); err == nil {

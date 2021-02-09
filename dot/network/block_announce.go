@@ -250,7 +250,7 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 		}
 
 		logger.Debug("failed to send response to peer's handshake", "sub-protocol", syncID, "peer", peer, "error", err)
-		//s.attemptSyncWithRandomPeer(req)
+		s.attemptSyncWithRandomPeer(req)
 	}()
 
 	return nil
