@@ -17,15 +17,20 @@
 package modules
 
 import (
-	"net/http"
-
+	"errors"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	"net/http"
 )
 
 // SystemModule is an RPC module providing access to core API points
 type SystemModule struct {
 	networkAPI NetworkAPI
 	systemAPI  SystemAPI
+	coreAPI CoreAPI
+	storageAPI StorageAPI
 }
 
 // EmptyRequest represents an RPC request with no fields
@@ -51,11 +56,19 @@ type SystemNetworkStateResponse struct {
 // SystemPeersResponse struct to marshal json
 type SystemPeersResponse []common.PeerInfo
 
+type U64Response uint64
+
+type StringRequest struct {
+	String string
+}
+
 // NewSystemModule creates a new API instance
-func NewSystemModule(net NetworkAPI, sys SystemAPI) *SystemModule {
+func NewSystemModule(net NetworkAPI, sys SystemAPI, core CoreAPI, storage StorageAPI) *SystemModule {
 	return &SystemModule{
 		networkAPI: net, // TODO: migrate to network state
 		systemAPI:  sys,
+		coreAPI: core,
+		storageAPI: storage,
 	}
 }
 
@@ -136,6 +149,39 @@ func (sm *SystemModule) NodeRoles(r *http.Request, req *EmptyRequest, res *[]int
 	return nil
 }
 
-func (sm *SystemModule) AccountNextIndex(r *http.Request, req *EmptyRequest, res *[]interface{}) error {
+func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, res *U64Response) error {
+	// todo (ed) check pending transactions
+
+	// get metadata to build storage storageKey
+	rawMeta, err := sm.coreAPI.GetMetadata(nil)
+	if err != nil {
+		return err
+	}
+	sdMeta, err := scale.Decode(rawMeta, []byte{})
+	if err != nil {
+		return err
+	}
+	var metadata types.Metadata
+	err = types.DecodeFromBytes(sdMeta.([]byte), &metadata)
+	if err != nil {
+		return err
+	}
+
+	if req == nil || len(req.String) == 0 {
+		return errors.New("Account address must be valid")
+	}
+	addressPubKey := crypto.PublicAddressToByteArray(common.Address(req.String))
+
+	storageKey, err := types.CreateStorageKey(&metadata, "System", "Account", addressPubKey, nil)
+	if err != nil {
+		return err
+	}
+
+	accountRaw, err := sm.storageAPI.GetStorage(nil, storageKey)
+
+	var accountInfo types.AccountInfo
+	types.DecodeFromBytes(accountRaw, &accountInfo)
+
+	*res = U64Response(accountInfo.Nonce)
 	return nil
 }

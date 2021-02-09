@@ -17,6 +17,7 @@
 package modules
 
 import (
+	"github.com/ChainSafe/gossamer/lib/scale"
 	"math/big"
 	"os"
 	"path"
@@ -96,7 +97,7 @@ func newNetworkService(t *testing.T) *network.Service {
 // Test RPC's System.Health() response
 func TestSystemModule_Health(t *testing.T) {
 	net := newNetworkService(t)
-	sys := NewSystemModule(net, nil)
+	sys := NewSystemModule(net, nil, nil, nil)
 
 	res := &SystemHealthResponse{}
 	err := sys.Health(nil, nil, res)
@@ -110,7 +111,7 @@ func TestSystemModule_Health(t *testing.T) {
 // Test RPC's System.NetworkState() response
 func TestSystemModule_NetworkState(t *testing.T) {
 	net := newNetworkService(t)
-	sys := NewSystemModule(net, nil)
+	sys := NewSystemModule(net, nil, nil, nil)
 
 	res := &SystemNetworkStateResponse{}
 	err := sys.NetworkState(nil, nil, res)
@@ -126,7 +127,7 @@ func TestSystemModule_NetworkState(t *testing.T) {
 // Test RPC's System.Peers() response
 func TestSystemModule_Peers(t *testing.T) {
 	net := newNetworkService(t)
-	sys := NewSystemModule(net, nil)
+	sys := NewSystemModule(net, nil, nil, nil)
 
 	res := &SystemPeersResponse{}
 	err := sys.Peers(nil, nil, res)
@@ -139,7 +140,7 @@ func TestSystemModule_Peers(t *testing.T) {
 
 func TestSystemModule_NodeRoles(t *testing.T) {
 	net := newNetworkService(t)
-	sys := NewSystemModule(net, nil)
+	sys := NewSystemModule(net, nil, nil, nil)
 	expected := []interface{}{"Full"}
 
 	var res []interface{}
@@ -187,7 +188,7 @@ func (api *mockSystemAPI) ChainType() string {
 }
 
 func TestSystemModule_Chain(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI())
+	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil)
 
 	res := new(string)
 	err := sys.Chain(nil, nil, res)
@@ -198,7 +199,7 @@ func TestSystemModule_Chain(t *testing.T) {
 func TestSystemModule_ChainType(t *testing.T) {
 	api := newMockSystemAPI()
 
-	sys := NewSystemModule(nil, api)
+	sys := NewSystemModule(nil, api, nil, nil)
 
 	res := new(string)
 	sys.ChainType(nil, nil, res)
@@ -206,7 +207,7 @@ func TestSystemModule_ChainType(t *testing.T) {
 }
 
 func TestSystemModule_Name(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI())
+	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil)
 
 	res := new(string)
 	err := sys.Name(nil, nil, res)
@@ -215,7 +216,7 @@ func TestSystemModule_Name(t *testing.T) {
 }
 
 func TestSystemModule_Version(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI())
+	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil)
 
 	res := new(string)
 	err := sys.Version(nil, nil, res)
@@ -224,10 +225,57 @@ func TestSystemModule_Version(t *testing.T) {
 }
 
 func TestSystemModule_Properties(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI())
+	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil)
 
 	res := new(interface{})
 	err := sys.Properties(nil, nil, res)
 	require.NoError(t, err)
 	require.Equal(t, testSystemInfo.SystemProperties, *res)
+}
+
+func TestSystemModule_AccountNextIndex(t *testing.T) {
+	sys := setupSystemModule(t)
+	expected := U64Response(uint64(10))
+
+	res := new (U64Response)
+	req := StringRequest{
+		String: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+	}
+	err := sys.AccountNextIndex(nil, &req, res)
+	require.NoError(t, err)
+
+	require.Equal(t, expected, *res)
+
+}
+
+func setupSystemModule(t *testing.T) (*SystemModule) {
+	// setup service
+	net := newNetworkService(t)
+	chain := newTestStateService(t)
+	// init storage with test data
+	ts, err := chain.Storage.TrieState(nil)
+	require.NoError(t, err)
+
+	aliceAcctStoKey, err := common.HexToBytes("0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9de1e86a9a8c739864cf3cc5ec2bea59fd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d")
+	require.NoError(t, err)
+	aliceAcctInfo := types.AccountInfo{
+		Nonce:    10,
+		RefCount: 0,
+		Data: struct {
+    Free       common.Uint128
+    Reserved   common.Uint128
+    MiscFrozen common.Uint128
+    FreeFrozen common.Uint128
+}{},
+	}
+	aliceAcctEncoded, err := scale.Encode(aliceAcctInfo)
+	require.NoError(t, err)
+	err = ts.Set(aliceAcctStoKey, aliceAcctEncoded)
+	require.NoError(t, err)
+
+	err = chain.Storage.StoreTrie(ts)
+	require.NoError(t, err)
+
+	core := newCoreService(t, chain)
+	return NewSystemModule(net, nil, core,  chain.Storage)
 }
