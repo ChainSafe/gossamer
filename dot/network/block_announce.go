@@ -220,6 +220,8 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 	}
 
 	// if so, send block request
+	s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].handshakeMessage = hs
+
 	logger.Trace("sending peer highest block to syncer", "number", bhs.BestBlockNumber)
 	req := s.syncer.HandleBlockAnnounceHandshake(bestBlockNum)
 	if req == nil {

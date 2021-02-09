@@ -577,14 +577,29 @@ func (s *Service) Peers() []common.PeerInfo {
 	for _, p := range s.host.peers() {
 		// Load up a node/entity from peer id
 		// Query data directly
-		peerHandshake := s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[p]
-		peers = append(peers, common.PeerInfo{
-			PeerID:     p.String(),
-			Roles:      peerHandshake.outboundMsg.(*BlockAnnounceHandshake).Roles,
-			BestHash:   peerHandshake.outboundMsg.(*BlockAnnounceHandshake).BestBlockHash,
-			BestNumber: uint64(peerHandshake.outboundMsg.(*BlockAnnounceHandshake).BestBlockNumber),
-			// ProtocolVersion: uint32(protocolVersion),
-		})
+		if s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[p] == nil {
+			peers = append(peers, common.PeerInfo{
+				PeerID: p.String(),
+			})
+
+			continue
+		}
+		peerHandshakeMessage := s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[p].handshakeMessage
+
+		if peerHandshakeMessage != nil {
+			peers = append(peers, common.PeerInfo{
+				PeerID:     p.String(),
+				Roles:      peerHandshakeMessage.(*BlockAnnounceHandshake).Roles,
+				BestHash:   peerHandshakeMessage.(*BlockAnnounceHandshake).BestBlockHash,
+				BestNumber: uint64(peerHandshakeMessage.(*BlockAnnounceHandshake).BestBlockNumber),
+				// ProtocolVersion: uint32(protocolVersion),
+			})
+		} else {
+			peers = append(peers, common.PeerInfo{
+				PeerID: p.String(),
+			})
+		}
+
 	}
 	return peers
 }
