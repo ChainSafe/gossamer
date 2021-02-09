@@ -48,7 +48,7 @@ type Config struct {
 type Instance struct {
 	vm      *exec.VirtualMachine
 	mu      sync.Mutex
-	version *runtime.VersionAPI
+	version runtime.Version
 }
 
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data

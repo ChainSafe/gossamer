@@ -39,26 +39,35 @@ func newInstanceFromGenesis(t *testing.T) runtime.Instance {
 }
 
 func TestInstance_Version_NodeRuntime(t *testing.T) {
-	expected := &runtime.Version{
-		Spec_name:         []byte("node"),
-		Impl_name:         []byte("substrate-node"),
-		Authoring_version: 10,
-		Spec_version:      260,
-		Impl_version:      0,
-	}
+	expected := runtime.NewVersionData(
+		[]byte("node"),
+		[]byte("substrate-node"),
+		10,
+		260,
+		0,
+		nil,
+		1,
+	)
 
 	instance := newInstanceFromGenesis(t)
 
 	version, err := instance.Version()
 	require.NoError(t, err)
 
-	t.Logf("Spec_name: %s\n", version.RuntimeVersion.Spec_name)
-	t.Logf("Impl_name: %s\n", version.RuntimeVersion.Impl_name)
-	t.Logf("Authoring_version: %d\n", version.RuntimeVersion.Authoring_version)
-	t.Logf("Spec_version: %d\n", version.RuntimeVersion.Spec_version)
-	t.Logf("Impl_version: %d\n", version.RuntimeVersion.Impl_version)
+	t.Logf("SpecName: %s\n", version.SpecName())
+	t.Logf("ImplName: %s\n", version.ImplName())
+	t.Logf("AuthoringVersion: %d\n", version.AuthoringVersion())
+	t.Logf("SpecVersion: %d\n", version.SpecVersion())
+	t.Logf("ImplVersion: %d\n", version.ImplVersion())
+	t.Logf("TransactionVersion: %d\n", version.TransactionVersion())
 
-	require.Equal(t, expected, version.RuntimeVersion)
+	require.Equal(t, 12, len(version.APIItems()))
+	require.Equal(t, expected.SpecName(), version.SpecName())
+	require.Equal(t, expected.ImplName(), version.ImplName())
+	require.Equal(t, expected.AuthoringVersion(), version.AuthoringVersion())
+	require.Equal(t, expected.SpecVersion(), version.SpecVersion())
+	require.Equal(t, expected.ImplVersion(), version.ImplVersion())
+	require.Equal(t, expected.TransactionVersion(), version.TransactionVersion())
 }
 
 func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {

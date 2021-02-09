@@ -3,6 +3,7 @@ package life
 import (
 	"bytes"
 	"fmt"
+	"io"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -28,19 +29,20 @@ func (in *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validit
 }
 
 // Version calls runtime function Core_Version
-func (in *Instance) Version() (*runtime.VersionAPI, error) {
+func (in *Instance) Version() (runtime.Version, error) {
 	res, err := in.Exec(runtime.CoreVersion, []byte{})
 	if err != nil {
 		return nil, err
 	}
 
-	version := &runtime.VersionAPI{
-		RuntimeVersion: &runtime.Version{},
-		API:            nil,
-	}
-
+	version := &runtime.VersionData{}
 	err = version.Decode(res)
-	if err != nil {
+	if err == io.EOF {
+		// TODO: kusama seems to use the legacy version format
+		lversion := &runtime.LegacyVersionData{}
+		err = lversion.Decode(res)
+		return lversion, err
+	} else if err != nil {
 		return nil, err
 	}
 
@@ -128,7 +130,7 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 
 	// TODO: hack since substrate node_runtime can't seem to handle BABE pre-runtime digests
 	// with type prefix (ie Primary, Secondary...)
-	if bytes.Equal(in.version.RuntimeVersion.Spec_name, []byte("kusama")) {
+	if bytes.Equal(in.version.SpecName(), []byte("kusama")) {
 		// remove seal digest only
 		for _, d := range block.Header.Digest {
 			if d.Type() == types.SealDigestType {
