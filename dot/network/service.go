@@ -546,7 +546,8 @@ func (s *Service) Peers() []common.PeerInfo {
 	for _, p := range s.host.peers() {
 		// Load up a node/entity from peer id
 		// Query data directly 
-		s.host.
+		validateData := s.validateBlockAnnounceHandshake(handshake)
+		p.
 		if err != nil {
 			logger.Error("failed to get additional peer data", "peer", p, "err", err)
 			peers = append(peers, common.PeerInfo{
