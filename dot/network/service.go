@@ -573,29 +573,18 @@ func (s *Service) NetworkState() common.NetworkState {
 // Peers returns information about connected peers needed for the rpc server
 func (s *Service) Peers() []common.PeerInfo {
 	peers := []common.PeerInfo{}
-	handshake, err := s.getBlockAnnounceHandshake()
-	err = handshake.Decode(handshake.Hash().ToBytes())
 
 	for _, p := range s.host.peers() {
 		// Load up a node/entity from peer id
 		// Query data directly
 		peerHandshake := s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[p]
-		peerHandshake.outboundMsg.Decode(peerHandshake.outboundMsg)
-		if err != nil {
-			logger.Error("failed to get additional peer data", "peer", p, "err", err)
-			peers = append(peers, common.PeerInfo{
-				PeerID: p.String(),
-			})
-		} else {
-			peers = append(peers, common.PeerInfo{
-				PeerID: p.String(),
-				Roles:  peerHandshake.outboundMsg.(*BlockAnnounceHandshake).Roles,
-				// ProtocolVersion: uint32(protocolVersion),
-				BestHash:   handshake.(*BlockAnnounceHandshake).BestBlockHash,
-				BestNumber: uint64(handshake.(*BlockAnnounceHandshake).BestBlockNumber),
-			})
-		}
-
+		peers = append(peers, common.PeerInfo{
+			PeerID:     p.String(),
+			Roles:      peerHandshake.outboundMsg.(*BlockAnnounceHandshake).Roles,
+			BestHash:   peerHandshake.outboundMsg.(*BlockAnnounceHandshake).BestBlockHash,
+			BestNumber: uint64(peerHandshake.outboundMsg.(*BlockAnnounceHandshake).BestBlockNumber),
+			// ProtocolVersion: uint32(protocolVersion),
+		})
 	}
 	return peers
 }
