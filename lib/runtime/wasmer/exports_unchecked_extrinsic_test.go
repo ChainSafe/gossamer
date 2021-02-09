@@ -14,14 +14,7 @@ import (
 
 func TestApplyExtrinsic_Transfer_NoBalance_UncheckedExt(t *testing.T) {
 	rt := NewTestLegacyInstance(t, runtime.LEGACY_NODE_RUNTIME)
-	rtVerB, err := rt.exec(runtime.CoreVersion, []byte{})
-	require.Nil(t, err)
-
-	rtVer := &runtime.VersionAPI{
-		RuntimeVersion: &runtime.Version{},
-		API:            nil,
-	}
-	rtVer.Decode(rtVerB)
+	rtVer, err := rt.Version()
 	require.Nil(t, err)
 
 	// genesisHash from runtime must match genesisHash used in transfer payload message signing
@@ -62,7 +55,7 @@ func TestApplyExtrinsic_Transfer_NoBalance_UncheckedExt(t *testing.T) {
 		SpecVersion      uint32
 		GenesisHash      common.Hash
 		CurrentBlockHash common.Hash
-	}{uint32(rtVer.RuntimeVersion.Spec_version), genesisHash, genesisHash}
+	}{rtVer.SpecVersion(), genesisHash, genesisHash}
 
 	ux, err := extrinsic.CreateUncheckedExtrinsic(transferF, new(big.Int).SetUint64(nonce), kr.Alice(), additional)
 	require.NoError(t, err)
@@ -79,14 +72,7 @@ func TestApplyExtrinsic_Transfer_NoBalance_UncheckedExt(t *testing.T) {
 func TestApplyExtrinsic_Transfer_WithBalance_UncheckedExtrinsic(t *testing.T) {
 	t.Skip()
 	rt := NewTestLegacyInstance(t, runtime.LEGACY_NODE_RUNTIME)
-	rtVerB, err := rt.exec(runtime.CoreVersion, []byte{})
-	require.Nil(t, err)
-
-	rtVer := &runtime.VersionAPI{
-		RuntimeVersion: &runtime.Version{},
-		API:            nil,
-	}
-	rtVer.Decode(rtVerB)
+	rtVer, err := rt.Version()
 	require.Nil(t, err)
 
 	genesisBytes := []byte{83, 121, 115, 116, 101, 109, 32, 66, 108, 111, 99, 107, 72, 97, 115, 104, 0, 0, 0, 0, 101, 117, 101, 50, 54, 188, 7, 185, 79, 198, 211, 234}
@@ -130,7 +116,7 @@ func TestApplyExtrinsic_Transfer_WithBalance_UncheckedExtrinsic(t *testing.T) {
 		SpecVersion      uint32
 		GenesisHash      common.Hash
 		CurrentBlockHash common.Hash
-	}{uint32(rtVer.RuntimeVersion.Spec_version), genesisHash, genesisHash}
+	}{rtVer.SpecVersion(), genesisHash, genesisHash}
 
 	ux, err := extrinsic.CreateUncheckedExtrinsic(transferF, new(big.Int).SetUint64(nonce), kr.Alice(), additional)
 	require.NoError(t, err)

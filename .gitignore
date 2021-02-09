@@ -21,3 +21,4 @@ tmp
 
 tests/utils/config*
 tests/utils/genesis*
+tests/polkadotjs_test/node_modules

@@ -52,7 +52,7 @@ type LegacyInstance struct {
 	vm      wasm.Instance
 	ctx     *runtime.Context
 	mutex   sync.Mutex
-	version *runtime.VersionAPI
+	version runtime.Version
 }
 
 // Instance represents a v0.8 runtime go-wasmer instance

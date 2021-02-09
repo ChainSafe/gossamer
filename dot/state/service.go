@@ -161,6 +161,7 @@ func (s *Service) Initialize(gen *genesis.Genesis, header *types.Header, t *trie
 		}
 	}
 
+	logger.Info("state", "genesis hash", blockState.genesisHash)
 	return nil
 }
 

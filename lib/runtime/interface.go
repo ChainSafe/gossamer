@@ -53,7 +53,7 @@ type InstanceAPI interface {
 
 // LegacyRuntimeAPI is the interface that a legacy runtime instance must implement
 type LegacyRuntimeAPI interface {
-	Version() (*VersionAPI, error)
+	Version() (Version, error)
 	Metadata() ([]byte, error)
 	BabeConfiguration() (*types.BabeConfiguration, error)
 	GrandpaAuthorities() ([]*types.Authority, error)
