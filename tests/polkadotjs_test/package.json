@@ -9,6 +9,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@polkadot/api": "^2.10.1"
+    "@polkadot/api": "2.8.1"
   }
 }
