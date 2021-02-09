@@ -120,13 +120,10 @@ func (s *TrieState) NextKey(key []byte) []byte {
 
 // ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix
 func (s *TrieState) ClearPrefix(prefix []byte) error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	s.t.ClearPrefix(prefix)
-	err := s.t.WriteDirty(s.db)
-	if err != nil {
-		return err
-	}
-
-	return s.storeWorkingRoot()
+	return nil
 }
 
 // TrieEntries returns every key-value pair in the trie
