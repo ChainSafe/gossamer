@@ -479,7 +479,7 @@ func generateConfigBabeMaxThreshold() *ctoml.Config {
 		BabeThresholdDenominator: 1,
 		SlotDuration:             500,
 	}
-	cfg.RPC.Modules = []string{"system", "author", "chain", "state", "dev"}
+	cfg.RPC.Modules = []string{"system", "author", "chain", "state", "dev", "rpc"}
 	return cfg
 }
 

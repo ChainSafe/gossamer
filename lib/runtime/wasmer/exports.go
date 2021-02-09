@@ -44,17 +44,13 @@ func (in *LegacyInstance) ValidateTransaction(e types.Extrinsic) (*transaction.V
 }
 
 // Version calls runtime function Core_Version
-func (in *LegacyInstance) Version() (*runtime.VersionAPI, error) {
-	//TODO ed, change this so that it can lookup runtime by block hash
-	version := &runtime.VersionAPI{
-		RuntimeVersion: &runtime.Version{},
-		API:            nil,
-	}
-
+func (in *LegacyInstance) Version() (runtime.Version, error) {
+	version := new(runtime.LegacyVersionData)
 	ret, err := in.exec(runtime.CoreVersion, []byte{})
 	if err != nil {
 		return nil, err
 	}
+
 	err = version.Decode(ret)
 	if err != nil {
 		return nil, err
@@ -144,7 +140,7 @@ func (in *LegacyInstance) ExecuteBlock(block *types.Block) ([]byte, error) {
 
 	// TODO: hack since substrate node_runtime can't seem to handle BABE pre-runtime digests
 	// with type prefix (ie Primary, Secondary...)
-	if bytes.Equal(in.version.RuntimeVersion.Spec_name, []byte("kusama")) {
+	if bytes.Equal(in.version.SpecName(), []byte("kusama")) {
 		// remove seal digest only
 		for _, d := range block.Header.Digest {
 			if d.Type() == types.SealDigestType {
@@ -169,8 +165,19 @@ func (in *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validit
 }
 
 // Version calls runtime function Core_Version
-func (in *Instance) Version() (*runtime.VersionAPI, error) {
-	return in.inst.Version()
+func (in *Instance) Version() (runtime.Version, error) {
+	version := new(runtime.VersionData)
+	ret, err := in.exec(runtime.CoreVersion, []byte{})
+	if err != nil {
+		return nil, err
+	}
+
+	err = version.Decode(ret)
+	if err != nil {
+		return nil, err
+	}
+
+	return version, nil
 }
 
 // Metadata calls runtime function Metadata_metadata

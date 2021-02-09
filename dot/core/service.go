@@ -483,7 +483,7 @@ func (s *Service) HasKey(pubKeyStr string, keyType string) (bool, error) {
 }
 
 // GetRuntimeVersion gets the current RuntimeVersion
-func (s *Service) GetRuntimeVersion(bhash *common.Hash) (*runtime.VersionAPI, error) {
+func (s *Service) GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error) {
 	var stateRootHash *common.Hash
 	// If block hash is not nil then fetch the state root corresponding to the block.
 	if bhash != nil {

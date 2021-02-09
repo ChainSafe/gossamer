@@ -747,7 +747,8 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 		return 0
 	}
 
-	encodedData, err := scale.Encode(version.RuntimeVersion)
+	// TODO: custom encode for runtime.Version
+	encodedData, err := scale.Encode(version)
 	if err != nil {
 		logger.Error("[ext_misc_runtime_version_version_1] failed to encode result", "error", err)
 		return 0

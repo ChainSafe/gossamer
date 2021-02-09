@@ -31,17 +31,13 @@ func (in *LegacyInstance) Metadata() ([]byte, error) {
 }
 
 // Version calls runtime function Core_Version
-func (in *LegacyInstance) Version() (*runtime.VersionAPI, error) {
+func (in *LegacyInstance) Version() (runtime.Version, error) {
 	res, err := in.exec(runtime.CoreVersion, []byte{})
 	if err != nil {
 		return nil, err
 	}
 
-	version := &runtime.VersionAPI{
-		RuntimeVersion: &runtime.Version{},
-		API:            nil,
-	}
-
+	version := new(runtime.LegacyVersionData)
 	err = version.Decode(res)
 	if err != nil {
 		return nil, err
@@ -153,8 +149,19 @@ func (in *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validit
 }
 
 // Version calls runtime function Core_Version
-func (in *Instance) Version() (*runtime.VersionAPI, error) {
-	return in.inst.Version()
+func (in *Instance) Version() (runtime.Version, error) {
+	res, err := in.exec(runtime.CoreVersion, []byte{})
+	if err != nil {
+		return nil, err
+	}
+
+	version := new(runtime.VersionData)
+	err = version.Decode(res)
+	if err != nil {
+		return nil, err
+	}
+
+	return version, nil
 }
 
 // Metadata calls runtime function Metadata_metadata
