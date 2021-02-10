@@ -48,6 +48,8 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 	}
 
 	if resp, ok := msg.(*BlockResponseMessage); ok {
+		s.syncingMu.RLock()
+		defer s.syncingMu.RUnlock()
 		if _, isSyncing := s.syncing[peer]; !isSyncing {
 			logger.Debug("not currently syncing with peer", "peer", peer)
 			return nil
@@ -86,18 +88,20 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 func (s *Service) attemptSyncWithRandomPeer(req *BlockRequestMessage) {
 	peers := s.host.peers()
 	for _, peer := range peers {
+		s.syncingMu.Lock()
 		if err := s.host.send(peer, syncID, req); err == nil {
 			go s.handleSyncStream(s.host.getStream(peer, syncID))
 			_ = s.setSyncingPeer(peer)
+			s.syncingMu.Unlock()
 			break
 		}
+		s.syncingMu.Unlock()
 	}
 }
 
 func (s *Service) setSyncingPeer(peer peer.ID) error {
-	s.syncingMu.Lock()
-	defer s.syncingMu.Unlock()
-
+	// this function needs to occur atomically with the sending of the block request,
+	// otherwise there is a chance multiple requests can be sent.
 	if _, syncing := s.syncing[peer]; syncing {
 		return errors.New("already syncing with peer")
 	}
@@ -120,6 +124,8 @@ func (s *Service) beginSyncing(peer peer.ID, msg *BlockRequestMessage) error {
 		return nil
 	}
 
+	s.syncingMu.Lock()
+	defer s.syncingMu.Unlock()
 	if err := s.setSyncingPeer(peer); err != nil {
 		return err
 	}

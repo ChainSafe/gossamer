@@ -440,7 +440,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 
 	_, err = s.runtime.ExecuteBlock(block)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)
 	}
 
 	err = s.storageState.StoreTrie(ts)

@@ -89,10 +89,12 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
 	// all nodes vote for different blocks.
-	time.Sleep(time.Second * 20)
+	time.Sleep(time.Second * 15)
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDefault, utils.ConfigNoBABE)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
+
+	time.Sleep(time.Second * 20)
 
 	defer func() {
 		errList := utils.StopNodes(t, nodes)
@@ -215,7 +217,7 @@ func TestSync_ManyProducers(t *testing.T) {
 }
 
 func TestSync_Bench(t *testing.T) {
-	t.Skip() // TODO: fix this test
+	//t.Skip() // TODO: fix this test
 	utils.SetLogLevel(log.LvlInfo)
 	numBlocks := 64
 
