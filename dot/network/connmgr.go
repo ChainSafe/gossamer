@@ -31,7 +31,8 @@ import (
 
 // ConnManager implements connmgr.ConnManager
 type ConnManager struct {
-	max int // maximum number of peers
+	min, max int
+
 	// closeHandlerMap contains close handler corresponding to a protocol.
 	closeHandlerMap map[protocol.ID]func(peerID peer.ID)
 
@@ -42,8 +43,9 @@ type ConnManager struct {
 	sync.Mutex
 }
 
-func newConnManager(max int) *ConnManager {
+func newConnManager(min, max int) *ConnManager {
 	return &ConnManager{
+		min:              min,
 		max:              max,
 		closeHandlerMap:  make(map[protocol.ID]func(peerID peer.ID)),
 		protectedPeerMap: make(map[peer.ID]struct{}),
@@ -180,6 +182,8 @@ func (cm *ConnManager) Disconnected(n network.Network, c network.Conn) {
 		"host", c.LocalPeer(),
 		"peer", c.RemotePeer(),
 	)
+
+	// TODO: if number of peers falls below the min desired peer count, we should try to connect to previously discovered peers
 }
 
 // OpenedStream is called when a stream opened
