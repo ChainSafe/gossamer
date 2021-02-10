@@ -14,26 +14,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package utils
-
-//nolint
-var (
-	// CHAIN METHODS
-	ChainGetBlock                = "chain_getBlock"
-	ChainGetHeader               = "chain_getHeader"
-	ChainGetFinalizedHead        = "chain_getFinalizedHead"
-	ChainGetFinalizedHeadByRound = "chain_getFinalizedHeadByRound"
-	ChainGetBlockHash            = "chain_getBlockHash"
-
-	// AUTHOR METHODS
-	AuthorSubmitExtrinsic = "author_submitExtrinsic"
-
-	// STATE METHODS
-	StateGetStorage = "state_getStorage"
-
-	// DEV METHODS
-	DevControl = "dev_control"
-
-	// GRANDPA
-	GrandpaProveFinality = "grandpa_proveFinality"
-)
+func ProveFinalityRPC (blockHashBeginning: *common.Hash, blockhashEnd: *common.Hash, authoritySetId: uint64) hex: string {
+	
+}
