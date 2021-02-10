@@ -2,6 +2,7 @@ package network
 
 import (
 	"errors"
+	"math/rand"
 
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -88,6 +89,8 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 
 func (s *Service) attemptSyncWithRandomPeer(req *BlockRequestMessage) {
 	peers := s.host.peers()
+	rand.Shuffle(len(peers), func(i, j int) { peers[i], peers[j] = peers[j], peers[i] })
+
 	for _, peer := range peers {
 		s.syncingMu.Lock()
 		if err := s.host.send(peer, syncID, req); err == nil {
