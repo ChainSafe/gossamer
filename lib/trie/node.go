@@ -66,21 +66,21 @@ type node interface {
 
 type (
 	branch struct {
-		key      []byte // partial key
-		children [16]node
-		value    []byte
-		dirty    bool
-		hash     []byte
-		encoding []byte
+		key        []byte // partial key
+		children   [16]node
+		value      []byte
+		dirty      bool
+		hash       []byte
+		encoding   []byte
 		generation uint64
 		sync.RWMutex
 	}
 	leaf struct {
-		key      []byte // partial key
-		value    []byte
-		dirty    bool
-		hash     []byte
-		encoding []byte
+		key        []byte // partial key
+		value      []byte
+		dirty      bool
+		hash       []byte
+		encoding   []byte
 		generation uint64
 		sync.RWMutex
 	}
