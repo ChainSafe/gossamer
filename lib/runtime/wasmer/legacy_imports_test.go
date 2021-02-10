@@ -295,10 +295,7 @@ func TestExt_clear_prefix(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		e := runtime.ctx.Storage.Set(test.key, test.value)
-		if e != nil {
-			t.Fatal(e)
-		}
+		runtime.ctx.Storage.Set(test.key, test.value)
 	}
 
 	// we are going to delete prefix 0x0135

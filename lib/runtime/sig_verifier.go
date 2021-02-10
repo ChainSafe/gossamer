@@ -47,13 +47,13 @@ func NewSignatureVerifier() *SignatureVerifier {
 
 // Start signature verification in batch.
 func (sv *SignatureVerifier) Start() {
-	sv.WaitGroup.Add(1)
-	defer sv.Done()
-
 	// Update the init state.
 	sv.Lock()
 	sv.init = true
 	sv.Unlock()
+
+	sv.WaitGroup.Add(1)
+	defer sv.Done()
 	for {
 		select {
 		case <-sv.closeCh:

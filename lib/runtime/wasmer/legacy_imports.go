@@ -197,7 +197,10 @@ func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLe
 	key := memory[keyData : keyData+keyLen]
 	val := memory[valueData : valueData+valueLen]
 	logger.Trace("[ext_set_storage]", "key", fmt.Sprintf("0x%x", key), "val", val)
-	err := s.Set(key, val)
+
+	cp := make([]byte, len(val))
+	copy(cp, val)
+	err := s.Set(key, cp)
 	if err != nil {
 		logger.Error("[ext_set_storage]", "error", err)
 		return
@@ -217,7 +220,9 @@ func ext_set_child_storage(context unsafe.Pointer, storageKeyData, storageKeyLen
 	key := memory[keyData : keyData+keyLen]
 	value := memory[valueData : valueData+valueLen]
 
-	err := s.SetChildStorage(keyToChild, key, value)
+	cp := make([]byte, len(value))
+	copy(cp, value)
+	err := s.SetChildStorage(keyToChild, key, cp)
 	if err != nil {
 		logger.Error("[ext_set_child_storage]", "error", err)
 	}

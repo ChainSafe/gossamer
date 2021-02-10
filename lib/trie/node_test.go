@@ -307,6 +307,7 @@ func TestLeafDecode(t *testing.T) {
 		require.NoError(t, err)
 
 		res.hash = nil
+		test.encoding = nil
 		require.Equal(t, test, res)
 	}
 }
