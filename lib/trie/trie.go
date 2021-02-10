@@ -91,10 +91,7 @@ func (t *Trie) DeepCopy() (*Trie, error) {
 		valCp := make([]byte, len(v))
 		copy(valCp, v)
 
-		err := cp.Put(keyCp, valCp)
-		if err != nil {
-			return nil, err
-		}
+		cp.Put(keyCp, valCp)
 	}
 
 	return cp, nil
@@ -249,19 +246,14 @@ func returnFirstKey(prefix []byte, n node) []byte {
 }
 
 // Put inserts a key with value into the trie
-func (t *Trie) Put(key, value []byte) error {
-	if err := t.tryPut(key, value); err != nil {
-		return err
-	}
-
-	return nil
+func (t *Trie) Put(key, value []byte) {
+	t.tryPut(key, value)
 }
 
-func (t *Trie) tryPut(key, value []byte) (err error) {
+func (t *Trie) tryPut(key, value []byte) {
 	k := keyToNibbles(key)
 
 	t.root = t.insert(t.root, k, &leaf{key: nil, value: value, dirty: true, valueDirty: true, generation: t.generation})
-	return nil
 }
 
 // TryPut attempts to insert a key with value into the trie
@@ -411,10 +403,7 @@ func (t *Trie) LoadFromMap(data map[string]string) error {
 		if err != nil {
 			return err
 		}
-		err = t.Put(keyBytes, valueBytes)
-		if err != nil {
-			return err
-		}
+		t.Put(keyBytes, valueBytes)
 	}
 
 	return nil

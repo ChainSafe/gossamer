@@ -188,8 +188,7 @@ func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
 	value, err := common.HexToBytes("0x0108eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000")
 	require.NoError(t, err)
 
-	err = tt.Put(runtime.GrandpaAuthoritiesKey, value)
-	require.NoError(t, err)
+	tt.Put(runtime.GrandpaAuthoritiesKey, value)
 
 	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlTrace)
 
@@ -216,8 +215,7 @@ func TestInstance_GrandpaAuthorities_PolkadotRuntime(t *testing.T) {
 	value, err := common.HexToBytes("0x0108eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000")
 	require.NoError(t, err)
 
-	err = tt.Put(runtime.GrandpaAuthoritiesKey, value)
-	require.NoError(t, err)
+	tt.Put(runtime.GrandpaAuthoritiesKey, value)
 
 	rt := NewTestInstanceWithTrie(t, runtime.POLKADOT_RUNTIME, tt, log.LvlTrace)
 
@@ -261,14 +259,12 @@ func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {
 
 	rvalue, err := common.HexToHash("0x01")
 	require.NoError(t, err)
-	err = tt.Put(runtime.BABERandomnessKey(), rvalue[:])
-	require.NoError(t, err)
+	tt.Put(runtime.BABERandomnessKey(), rvalue[:])
 
 	avalue, err := common.HexToBytes("0x08eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640100000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000")
 	require.NoError(t, err)
 
-	err = tt.Put(runtime.BABEAuthoritiesKey(), avalue)
-	require.NoError(t, err)
+	tt.Put(runtime.BABEAuthoritiesKey(), avalue)
 
 	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlTrace)
 

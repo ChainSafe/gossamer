@@ -620,11 +620,7 @@ func ext_trie_blake2_256_root_version_1(context unsafe.Pointer, dataSpan C.int64
 	}
 
 	for i := 0; i < len(keyValues); i = i + 2 {
-		err = t.Put(keyValues[i], keyValues[i+1])
-		if err != nil {
-			logger.Error("[ext_trie_blake2_256_root_version_1]", "error", err)
-			return 0
-		}
+		t.Put(keyValues[i], keyValues[i+1])
 	}
 
 	// allocate memory for value and copy value to memory
@@ -671,11 +667,7 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 		}
 		logger.Trace("[ext_trie_blake2_256_ordered_root_version_1]", "key", key, "value", val)
 
-		err = t.Put(key, val)
-		if err != nil {
-			logger.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
-			return 0
-		}
+		t.Put(key, val)
 	}
 
 	// allocate memory for value and copy value to memory

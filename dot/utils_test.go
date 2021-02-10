@@ -108,8 +108,7 @@ func TestDeepCopyVsSnapshot(t *testing.T) {
 	for k, v := range genRaw.Genesis.Raw["top"] {
 		val := []byte(v)
 		ttlLenght += len(val)
-		err = tri.Put([]byte(k), val)
-		require.NoError(t, err)
+		tri.Put([]byte(k), val)
 	}
 
 	testCases := []struct {
@@ -163,8 +162,7 @@ func TestTrieSnapshot(t *testing.T) {
 
 	for k, v := range genRaw.Genesis.Raw["top"] {
 		val := []byte(v)
-		err = tri.Put([]byte(k), val)
-		require.NoError(t, err)
+		tri.Put([]byte(k), val)
 	}
 
 	// DeepCopy the trie.
@@ -190,8 +188,7 @@ func TestTrieSnapshot(t *testing.T) {
 
 	// Modify the current trie.
 	value[0] = 'w'
-	err = tri.Put(key, value)
-	require.NoError(t, err)
+	tri.Put(key, value)
 
 	// Get the updated root hash of all tries.
 	tHash, err = tri.Hash()

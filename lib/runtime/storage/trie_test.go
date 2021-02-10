@@ -49,8 +49,7 @@ func TestTrieState_SetGet(t *testing.T) {
 		require.NoError(t, err)
 
 		// change a trie value to simulate runtime corruption
-		err = ts.t.Put([]byte(testCases[0]), []byte("noot"))
-		require.NoError(t, err)
+		ts.t.Put([]byte(testCases[0]), []byte("noot"))
 
 		for _, tc := range testCases {
 			res, err := ts.Get([]byte(tc))
@@ -95,8 +94,7 @@ func TestTrieState_Root(t *testing.T) {
 		expected := ts.MustRoot()
 
 		// change a trie value to simulate runtime corruption
-		err := ts.t.Put([]byte(testCases[0]), []byte("noot"))
-		require.NoError(t, err)
+		ts.t.Put([]byte(testCases[0]), []byte("noot"))
 
 		require.Equal(t, expected, ts.MustRoot())
 	}
@@ -143,8 +141,7 @@ func TestTrieState_ClearPrefixInChild(t *testing.T) {
 	}
 
 	for i, key := range keys {
-		err := child.Put([]byte(key), []byte{byte(i)})
-		require.NoError(t, err)
+		child.Put([]byte(key), []byte{byte(i)})
 	}
 
 	keyToChild := []byte("keytochild")

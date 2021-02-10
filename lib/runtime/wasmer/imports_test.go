@@ -1378,10 +1378,8 @@ func Test_ext_trie_blake2_256_root_version_1(t *testing.T) {
 	require.NoError(t, err)
 
 	tt := trie.NewEmptyTrie()
-	err = tt.Put([]byte("noot"), []byte("was"))
-	require.NoError(t, err)
-	err = tt.Put([]byte("here"), []byte("??"))
-	require.NoError(t, err)
+	tt.Put([]byte("noot"), []byte("was"))
+	tt.Put([]byte("here"), []byte("??"))
 
 	expected := tt.MustHash()
 	require.Equal(t, expected[:], hash)
