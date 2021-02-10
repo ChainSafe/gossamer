@@ -221,8 +221,8 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 
 	// if so, send block request
 	logger.Trace("sending peer highest block to syncer", "number", bhs.BestBlockNumber)
-	req := s.syncer.HandleBlockAnnounceHandshake(bestBlockNum)
-	if req == nil {
+	reqs := s.syncer.HandleBlockAnnounceHandshake(bestBlockNum)
+	if len(reqs) == 0 {
 		return nil
 	}
 
@@ -241,15 +241,15 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 		select {
 		case <-s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].responseSentCh:
 			time.Sleep(time.Millisecond * 300) // TODO: it seems if we immediately send the request we fail to read the response
-			if err = s.beginSyncing(peer, req); err == nil {
+			if err = s.beginSyncing(peer, reqs); err == nil {
 				return
 			}
 		case <-time.After(time.Second * 3):
 			err = errors.New("timeout")
 		}
 
-		logger.Debug("failed to send response to peer's handshake", "sub-protocol", syncID, "peer", peer, "error", err)
-		s.attemptSyncWithRandomPeer(req)
+		//logger.Debug("failed to send response to peer's handshake", "sub-protocol", syncID, "peer", peer, "error", err)
+		//s.attemptSyncWithRandomPeer(req)
 	}()
 
 	return nil
@@ -262,10 +262,11 @@ func (s *Service) handleBlockAnnounceMessage(peer peer.ID, msg NotificationsMess
 	if an, ok := msg.(*BlockAnnounceMessage); ok {
 		req := s.syncer.HandleBlockAnnounce(an)
 		if req != nil {
-			if err := s.beginSyncing(peer, req); err != nil {
-				logger.Error("failed to send BlockRequest message", "peer", peer)
-				return err
-			}
+			// if err := s.beginSyncing(peer, []*BlockRequestMessage{req}); err != nil {
+			// 	logger.Error("failed to send BlockRequest message", "peer", peer)
+			// 	return err
+			// }
+			s.syncQueue.pushBlockRequest(req)
 		}
 	}
 

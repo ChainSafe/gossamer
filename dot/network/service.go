@@ -66,16 +66,15 @@ type Service struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	cfg    *Config
-	host   *host
-	mdns   *mdns
-	gossip *gossip
+	cfg       *Config
+	host      *host
+	mdns      *mdns
+	gossip    *gossip
+	syncQueue *syncQueue
 
 	notificationsProtocols map[byte]*notificationsProtocol // map of sub-protocol msg ID to protocol info
 	notificationsMu        sync.RWMutex
 
-	syncing        map[peer.ID]struct{} // set if we have sent a block request message to the given peer
-	syncingMu      sync.RWMutex
 	lightRequest   map[peer.ID]struct{} // set if we have sent a light request message to the given peer
 	lightRequestMu sync.RWMutex
 
@@ -141,8 +140,8 @@ func NewService(cfg *Config) (*Service, error) {
 		noMDNS:                 cfg.NoMDNS,
 		syncer:                 cfg.Syncer,
 		notificationsProtocols: make(map[byte]*notificationsProtocol),
-		syncing:                make(map[peer.ID]struct{}),
-		lightRequest:           make(map[peer.ID]struct{}),
+		//syncing:                make(map[peer.ID]struct{}),
+		lightRequest: make(map[peer.ID]struct{}),
 	}
 
 	return network, err

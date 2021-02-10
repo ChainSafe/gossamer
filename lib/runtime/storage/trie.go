@@ -122,7 +122,16 @@ func (s *TrieState) NextKey(key []byte) []byte {
 func (s *TrieState) ClearPrefix(prefix []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	s.t.ClearPrefix(prefix)
+	keys := s.t.GetKeysWithPrefix(prefix)
+	for _, key := range keys {
+		err := s.t.Delete(key)
+		if err != nil {
+			return err
+		}
+	}
+	// TODO: there is an edge case that breaks ClearPrefix - kusama block 595 is unable to sync
+	// fix state_getPairs and look into this.
+	//s.t.ClearPrefix(prefix)
 	return nil
 }
 

@@ -35,7 +35,8 @@ import (
 )
 
 var (
-	maxInt64 = int64(2 ^ 63 - 1)
+	maxInt64                = int64(2 ^ 63 - 1)
+	blockRequestSize uint32 = 128
 )
 
 // Service deals with chain syncing by sending block request messages and watching for responses.
@@ -118,7 +119,7 @@ func NewService(cfg *Config) (*Service, error) {
 }
 
 // HandleBlockAnnounceHandshake handles a block that a peer claims to have through a HandleBlockAnnounceHandshake
-func (s *Service) HandleBlockAnnounceHandshake(blockNum *big.Int) *network.BlockRequestMessage {
+func (s *Service) HandleBlockAnnounceHandshake(blockNum *big.Int) []*network.BlockRequestMessage {
 	bestNum, err := s.blockState.BestBlockNumber()
 	if err != nil {
 		s.logger.Error("failed to get best block number", "error", err)
@@ -139,7 +140,7 @@ func (s *Service) HandleBlockAnnounceHandshake(blockNum *big.Int) *network.Block
 		_ = s.blockProducer.Pause()
 	}
 
-	return s.createBlockRequest(start)
+	return s.createBlockRequests(start, s.highestSeenBlock.Int64())
 }
 
 // HandleBlockAnnounce creates a block request message from the block
@@ -205,7 +206,7 @@ func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) *networ
 			start = bestNum.Int64() + 1
 		}
 
-		return s.createBlockRequest(start)
+		return s.createBlockRequest(start, 1)
 	} else if err != nil {
 		s.logger.Error("failed to handle BlockAnnounce", "error", err)
 	}
@@ -234,7 +235,7 @@ func (s *Service) HandleBlockResponse(msg *network.BlockResponseMessage) *networ
 		}
 
 		s.logger.Debug("retrying block request", "start", start)
-		return s.createBlockRequest(start)
+		return s.createBlockRequest(start, blockRequestSize)
 	} else if err != nil {
 		s.logger.Error("failed to process block response", "error", err)
 		return nil
@@ -266,10 +267,23 @@ func (s *Service) HandleBlockResponse(msg *network.BlockResponseMessage) *networ
 
 	// not yet synced, send another block request for the following blocks
 	start = bestNum.Int64() + 1
-	return s.createBlockRequest(start)
+	return s.createBlockRequest(start, blockRequestSize)
 }
 
-func (s *Service) createBlockRequest(startInt int64) *network.BlockRequestMessage {
+func (s *Service) createBlockRequests(start, end int64) []*network.BlockRequestMessage {
+	numReqs := (end - start) / int64(blockRequestSize)
+	if numReqs > 12 {
+		numReqs = 12
+	}
+	reqs := make([]*network.BlockRequestMessage, numReqs)
+	for i := 0; i < int(numReqs); i++ {
+		offset := i * int(blockRequestSize)
+		reqs[i] = s.createBlockRequest(start+int64(offset), blockRequestSize)
+	}
+	return reqs
+}
+
+func (s *Service) createBlockRequest(startInt int64, size uint32) *network.BlockRequestMessage {
 	start, err := variadic.NewUint64OrHash(uint64(startInt))
 	if err != nil {
 		s.logger.Error("failed to create block request start block", "error", err)
@@ -283,6 +297,7 @@ func (s *Service) createBlockRequest(startInt int64) *network.BlockRequestMessag
 		StartingBlock: start,
 		EndBlockHash:  optional.NewHash(false, common.Hash{}),
 		Direction:     0, // ascending
+		Max:           optional.NewUint32(true, size),
 	}
 
 	s.benchmarker.begin(uint64(startInt))
@@ -435,6 +450,10 @@ func (s *Service) handleBlock(block *types.Block) error {
 	}
 
 	s.logger.Trace("copied parent state", "parent state root", parentState.MustRoot(), "copy state root", ts.MustRoot())
+	// sanity check
+	if parentState.MustRoot() != ts.MustRoot() {
+		panic("parent state root does not match copy's state root")
+	}
 	s.runtime.SetContextStorage(ts)
 	s.logger.Trace("going to execute block", "block", block, "exts", block.Body)
 
