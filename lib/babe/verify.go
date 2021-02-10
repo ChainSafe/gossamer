@@ -180,7 +180,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 
 		if err != nil {
 			v.lock.Unlock()
-			return fmt.Errorf("failed to get verifier info for block: %w", err)
+			return fmt.Errorf("failed to get verifier info for block %d: %w", header.Number, err)
 		}
 
 		v.epochInfo[epoch] = info
@@ -244,7 +244,7 @@ func (v *VerificationManager) isDisabled(epoch uint64, header *types.Header) (bo
 func (v *VerificationManager) getVerifierInfo(epoch uint64) (*verifierInfo, error) {
 	epochData, err := v.epochState.GetEpochData(epoch)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get epoch data: %w", err)
+		return nil, fmt.Errorf("failed to get epoch data for epoch %d: %w", epoch, err)
 	}
 
 	configData, err := v.getConfigData(epoch)

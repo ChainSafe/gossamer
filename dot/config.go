@@ -78,6 +78,8 @@ type NetworkConfig struct {
 	ProtocolID  string
 	NoBootstrap bool
 	NoMDNS      bool
+	MinPeers    int
+	MaxPeers    int
 }
 
 // CoreConfig is to marshal/unmarshal toml core config vars

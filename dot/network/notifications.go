@@ -40,7 +40,7 @@ type (
 	HandshakeDecoder = func([]byte) (Handshake, error)
 
 	// HandshakeValidator validates a handshake. It returns an error if it is invalid
-	HandshakeValidator = func(Handshake) (Message, error)
+	HandshakeValidator = func(peer.ID, Handshake) error
 
 	// MessageDecoder is a custom decoder for a message
 	MessageDecoder = func([]byte) (NotificationsMessage, error)
@@ -57,9 +57,10 @@ type notificationsProtocol struct {
 }
 
 type handshakeData struct {
-	received    bool
-	validated   bool
-	outboundMsg NotificationsMessage
+	received       bool
+	validated      bool
+	outboundMsg    NotificationsMessage
+	responseSentCh chan struct{} // this channel is created and closed when
 }
 
 func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecoder, messageDecoder MessageDecoder) messageDecoder {
@@ -107,26 +108,25 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			// if we are the receiver and haven't received the handshake already, validate it
 			if _, has := info.handshakeData[peer]; !has {
 				logger.Trace("receiver: validating handshake", "sub-protocol", info.subProtocol)
-				handshakeResp, err := handshakeValidator(hs)
+				info.handshakeData[peer] = &handshakeData{
+					validated:      false,
+					received:       true,
+					responseSentCh: make(chan struct{}),
+				}
+
+				err := handshakeValidator(peer, hs)
 				if err != nil {
 					logger.Error("failed to validate handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
-					info.handshakeData[peer] = &handshakeData{
-						validated: false,
-						received:  true,
-					}
 					return errCannotValidateHandshake
 				}
 
-				info.handshakeData[peer] = &handshakeData{
-					validated: true,
-					received:  true,
-				}
+				info.handshakeData[peer].validated = true
 
 				// once validated, send back a handshake
 				resp, err := info.getHandshake()
 				if err != nil {
 					logger.Error("failed to get handshake", "sub-protocol", info.subProtocol, "error", err)
-					return nil
+					return err
 				}
 
 				err = s.host.send(peer, info.subProtocol, resp)
@@ -135,17 +135,13 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 					return err
 				}
 				logger.Trace("receiver: sent handshake", "sub-protocol", info.subProtocol, "peer", peer)
-
-				err = s.handleHandshakeResponse(peer, handshakeResp)
-				if err != nil {
-					return err
-				}
+				close(info.handshakeData[peer].responseSentCh)
 			}
 
 			// if we are the initiator and haven't received the handshake already, validate it
 			if hsData, has := info.handshakeData[peer]; has && !hsData.validated {
 				logger.Trace("sender: validating handshake")
-				handshakeResp, err := handshakeValidator(hs)
+				err := handshakeValidator(peer, hs)
 				if err != nil {
 					logger.Error("failed to validate handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
 					delete(info.handshakeData, peer)
@@ -156,10 +152,8 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 				info.handshakeData[peer].received = true
 				logger.Trace("sender: validated handshake", "sub-protocol", info.subProtocol, "peer", peer)
 
-				err = s.handleHandshakeResponse(peer, handshakeResp)
-				if err != nil {
-					return err
-				}
+				info.handshakeData[peer].responseSentCh = make(chan struct{})
+				close(info.handshakeData[peer].responseSentCh)
 			} else if hsData.received {
 				return nil
 			}
@@ -193,29 +187,6 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 
 		return nil
 	}
-}
-
-// handleHandshakeResponse handles a potential response to a peer's handshake.
-// this is currently only used for syncing (ie. if we received a BlockAnnounceHandhsake where the peer has a higher chain head
-// than us, we want to begin syncing with them.)
-func (s *Service) handleHandshakeResponse(peer peer.ID, msg Message) error {
-	if msg == nil {
-		return nil
-	}
-
-	logger.Debug("sending message to peer in response to handshake", "peer", peer, "msg", msg)
-	switch msg.SubProtocol() {
-	case syncID:
-		err := s.beginSyncing(peer, msg)
-		if err != nil {
-			logger.Error("failed to send response to peer's handshake", "sub-protocol", syncID, "peer", peer, "error", err)
-			return err
-		}
-	default:
-		return errors.New("unsupported handshake response")
-	}
-
-	return nil
 }
 
 // broadcastExcluding sends a message to each connected peer except the given peer

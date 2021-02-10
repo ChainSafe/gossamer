@@ -56,7 +56,12 @@ func NewTrie(root node) *Trie {
 func (t *Trie) DeepCopy() (*Trie, error) {
 	cp := NewEmptyTrie()
 	for k, v := range t.Entries() {
-		err := cp.Put([]byte(k), v)
+		keyCp := make([]byte, len(k))
+		copy(keyCp, []byte(k))
+		valCp := make([]byte, len(v))
+		copy(valCp, v)
+
+		err := cp.Put(keyCp, valCp)
 		if err != nil {
 			return nil, err
 		}

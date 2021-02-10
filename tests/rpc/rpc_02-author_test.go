@@ -60,7 +60,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 		require.Len(t, errList, 0)
 	}()
 
-	time.Sleep(5 * time.Second) // wait for server to start
+	time.Sleep(15 * time.Second) // wait for server to start
 
 	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("http://localhost:%s", nodes[0].RPCPort))
 	require.NoError(t, err)
