@@ -140,11 +140,12 @@ func TestDeepCopyVsSnapshot(t *testing.T) {
 			log.Printf("\nAlloc = %v MB \nTotalAlloc = %v MB \nSys = %v MB \nNumGC = %v \n\n", m.Alloc/(1024*1024), m.TotalAlloc/(1024*1024), m.Sys/(1024*1024), m.NumGC)
 			elapsed := time.Since(start)
 			log.Printf("DeepCopy to trie took %s", elapsed)
+			runtime.GC()
 		})
 	}
 }
 
-func TestSnapshot(t *testing.T) {
+func TestTrieSnapshot(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
@@ -159,36 +160,51 @@ func TestSnapshot(t *testing.T) {
 	tri := trie.NewEmptyTrie()
 	key := []byte("key")
 	value := []byte("value")
-	var ttlLenght int
+
 	for k, v := range genRaw.Genesis.Raw["top"] {
 		val := []byte(v)
-		ttlLenght += len(val)
 		err = tri.Put([]byte(k), val)
 		require.NoError(t, err)
 	}
 
-	expectedOldValue := make([]byte, len(value))
-	copy(expectedOldValue, value)
+	// DeepCopy the trie.
+	dcTrie, err := tri.DeepCopy()
+	require.NoError(t, err)
+
+	// Take Snapshot of the trie.
+	ssTrie := tri.Snapshot()
+
+	// Get the Trie root hash for all the 3 tries.
+	tHash, err := tri.Hash()
+	require.NoError(t, err)
+
+	dcTrieHash, err := dcTrie.Hash()
+	require.NoError(t, err)
+
+	ssTrieHash, err := ssTrie.Hash()
+	require.NoError(t, err)
+
+	// Root hash for all the 3 tries should be equal.
+	require.Equal(t, tHash, dcTrieHash)
+	require.Equal(t, dcTrieHash, ssTrieHash)
+
+	// Modify the current trie.
+	value[0] = 'w'
 	err = tri.Put(key, value)
 	require.NoError(t, err)
 
-	dcTrie, err := tri.DeepCopy()
+	// Get the updated root hash of all tries.
+	tHash, err = tri.Hash()
 	require.NoError(t, err)
-	require.True(t, tri.Equal(dcTrie))
 
-	sTrie := tri.Snapshot()
-	require.True(t, tri.Equal(sTrie))
-
-	val, err := dcTrie.Get(key)
+	dcTrieHash, err = dcTrie.Hash()
 	require.NoError(t, err)
-	require.Equal(t, value, val)
 
-	val[0] = 'w'
-	err = dcTrie.Put(key, val)
+	ssTrieHash, err = ssTrie.Hash()
 	require.NoError(t, err)
-	require.False(t, tri.Equal(dcTrie))
 
-	sTrie = tri.Snapshot()
-	require.True(t, tri.Equal(sTrie))
-	require.False(t, dcTrie.Equal(sTrie))
+	// Only the current trie should have a different root hash since it is updated.
+	require.NotEqual(t, tHash, dcTrieHash)
+	require.NotEqual(t, tHash, ssTrieHash)
+	require.Equal(t, dcTrieHash, ssTrieHash)
 }

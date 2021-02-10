@@ -21,8 +21,6 @@ import (
 	"errors"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-
-	log "github.com/ChainSafe/log15"
 )
 
 //nolint
@@ -34,7 +32,7 @@ var EmptyHash, _ = NewEmptyTrie().Hash()
 type Trie struct {
 	generation uint64
 	root       node
-	children   map[common.Hash]*Trie // Used to store the child trie.
+	children   map[common.Hash]*Trie // Used to store the child tries.
 }
 
 // NewEmptyTrie creates a trie with a nil root
@@ -100,46 +98,6 @@ func (t *Trie) DeepCopy() (*Trie, error) {
 	}
 
 	return cp, nil
-}
-
-func isSimilar(tNode node, trieNode node) bool {
-	tBranch, ok := tNode.(*branch)
-	trieBranch, trieOk := trieNode.(*branch)
-	if ok && trieOk {
-		if tBranch.value != nil && trieBranch.value != nil {
-			if !bytes.Equal(tBranch.value, trieBranch.value) {
-				return false
-			}
-		}
-		for tKey, child := range tBranch.children {
-			if child != nil && trieBranch.children[tKey] != nil {
-				if !isSimilar(child, trieBranch.children[tKey]) {
-					return false
-				}
-				continue
-			} else if child == nil && trieBranch.children[tKey] == nil {
-				continue
-			}
-			return false
-		}
-		return true
-	}
-	tLeaf, ok := tNode.(*leaf)
-	trieLeaf, trieOk := trieNode.(*leaf)
-	if ok && trieOk {
-		if tLeaf.value == nil && trieLeaf.value == nil {
-			return true
-		} else if tLeaf.value != nil && trieLeaf.value != nil {
-			return bytes.Equal(tLeaf.value, trieLeaf.value)
-		}
-		return false
-	}
-	return false
-}
-
-// Equal returns true if both tries are same.
-func (t *Trie) Equal(trie *Trie) bool {
-	return isSimilar(t.root, trie.root)
 }
 
 // RootNode returns the root of the trie
@@ -319,10 +277,6 @@ func (t *Trie) insert(parent node, key []byte, value node) node {
 		return n
 	case nil:
 		// We are creating new node so it will always have the latest generation.
-		// TODO: Sanity check. Can be removed later.
-		if t.generation != value.getGeneration() {
-			log.Error("node with invalid generation inserted")
-		}
 		switch v := value.(type) {
 		case *branch:
 			v.key = key
