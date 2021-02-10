@@ -49,11 +49,12 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 
 	if resp, ok := msg.(*BlockResponseMessage); ok {
 		s.syncingMu.RLock()
-		defer s.syncingMu.RUnlock()
 		if _, isSyncing := s.syncing[peer]; !isSyncing {
 			logger.Debug("not currently syncing with peer", "peer", peer)
+			s.syncingMu.RUnlock()
 			return nil
 		}
+		s.syncingMu.RUnlock()
 
 		req := s.syncer.HandleBlockResponse(resp)
 		if req != nil {

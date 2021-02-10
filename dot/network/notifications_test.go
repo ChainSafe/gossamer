@@ -107,6 +107,30 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 
 	s := createTestService(t, config)
 
+	configB := &Config{
+		BasePath:    utils.NewTestBasePath(t, "nodeB"),
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	b := createTestService(t, configB)
+
+	// don't set handshake data ie. this stream has just been opened
+	testPeerID := b.host.id()
+
+	// connect nodes
+	addrInfosB, err := b.host.addrInfos()
+	require.NoError(t, err)
+
+	err = s.host.connect(*addrInfosB[0])
+	if failedToDial(err) {
+		time.Sleep(TestBackoffTimeout)
+		err = s.host.connect(*addrInfosB[0])
+	}
+	require.NoError(t, err)
+
 	// create info and handler
 	info := &notificationsProtocol{
 		subProtocol:   blockAnnounceID,
@@ -116,7 +140,6 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 	handler := s.createNotificationsMessageHandler(info, s.validateBlockAnnounceHandshake, s.handleBlockAnnounceMessage)
 
 	// set handshake data to received
-	testPeerID := peer.ID("QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ")
 	info.handshakeData[testPeerID] = &handshakeData{
 		received:  true,
 		validated: true,
@@ -125,7 +148,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 		Number: big.NewInt(10),
 	}
 
-	err := handler(testPeerID, msg)
+	err = handler(testPeerID, msg)
 	require.NoError(t, err)
 	require.NotNil(t, s.syncing[testPeerID])
 }
