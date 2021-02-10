@@ -104,6 +104,7 @@ import (
 	"math/rand"
 	"reflect"
 	"sort"
+	"time"
 	"unsafe"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -343,7 +344,7 @@ func ext_crypto_ed25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 
 //export ext_crypto_finish_batch_verify_version_1
 func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t {
-	logger.Trace("[ext_crypto_finish_batch_verify_version_1] executing...")
+	logger.Debug("[ext_crypto_finish_batch_verify_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	signVerify := instanceContext.Data().(*runtime.Context).SigVerifier
@@ -579,7 +580,7 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 
 //export ext_crypto_start_batch_verify_version_1
 func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
-	logger.Trace("[ext_crypto_start_batch_verify_version_1] executing...")
+	logger.Debug("[ext_crypto_start_batch_verify_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	sigVerify := instanceContext.Data().(*runtime.Context).SigVerifier
@@ -590,6 +591,7 @@ func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
 	}
 
 	go sigVerify.Start()
+	time.Sleep(time.Millisecond * 10) // TODO: it seems like finish_batch_verify is being called before this is marked as started
 }
 
 //export ext_trie_blake2_256_root_version_1
@@ -945,17 +947,20 @@ func ext_default_child_storage_set_version_1(context unsafe.Pointer, childStorag
 	key := asMemorySlice(instanceContext, keySpan)
 	value := asMemorySlice(instanceContext, valueSpan)
 
+	cp := make([]byte, len(value))
+	copy(cp, value)
+
 	if ctx.TransactionStorageChanges != nil {
 		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
 			Operation:  runtime.SetOp,
 			KeyToChild: childStorageKey,
 			Key:        key,
-			Value:      value,
+			Value:      cp,
 		})
 		return
 	}
 
-	err := storage.SetChildStorage(childStorageKey, key, value)
+	err := storage.SetChildStorage(childStorageKey, key, cp)
 	if err != nil {
 		logger.Error("[ext_default_child_storage_set_version_1] failed to set value in child storage", "error", err)
 		return
@@ -1206,7 +1211,9 @@ func ext_offchain_local_storage_compare_and_set_version_1(context unsafe.Pointer
 	oldVal := asMemorySlice(instanceContext, oldValue)
 	newVal := asMemorySlice(instanceContext, newValue)
 	if reflect.DeepEqual(storedValue, oldVal) {
-		err = runtimeCtx.NodeStorage.LocalStorage.Put(storageKey, newVal)
+		cp := make([]byte, len(newVal))
+		copy(cp, newVal)
+		err = runtimeCtx.NodeStorage.LocalStorage.Put(storageKey, cp)
 		if err != nil {
 			logger.Error("[ext_offchain_local_storage_compare_and_set_version_1] failed to set value in storage", "error", err)
 			return 0
@@ -1254,13 +1261,15 @@ func ext_offchain_local_storage_set_version_1(context unsafe.Pointer, kind C.int
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 	storageKey := asMemorySlice(instanceContext, key)
 	newValue := asMemorySlice(instanceContext, value)
+	cp := make([]byte, len(newValue))
+	copy(cp, newValue)
 
 	var err error
 	switch runtime.NodeStorageType(kind) {
 	case runtime.NodeStorageTypePersistent:
-		err = runtimeCtx.NodeStorage.PersistentStorage.Put(storageKey, newValue)
+		err = runtimeCtx.NodeStorage.PersistentStorage.Put(storageKey, cp)
 	case runtime.NodeStorageTypeLocal:
-		err = runtimeCtx.NodeStorage.LocalStorage.Put(storageKey, newValue)
+		err = runtimeCtx.NodeStorage.LocalStorage.Put(storageKey, cp)
 	}
 
 	if err != nil {
@@ -1397,16 +1406,19 @@ func ext_storage_append_version_1(context unsafe.Pointer, keySpan, valueSpan C.i
 	logger.Debug("[ext_storage_append_version_1]", "key", fmt.Sprintf("0x%x", key))
 	valueAppend := asMemorySlice(instanceContext, valueSpan)
 
+	cp := make([]byte, len(valueAppend))
+	copy(cp, valueAppend)
+
 	if ctx.TransactionStorageChanges != nil {
 		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
 			Operation: runtime.AppendOp,
 			Key:       key,
-			Value:     valueAppend,
+			Value:     cp,
 		})
 		return
 	}
 
-	err := storageAppend(storage, key, valueAppend)
+	err := storageAppend(storage, key, cp)
 	if err != nil {
 		logger.Error("[ext_storage_append_version_1]", "error", err)
 	}
@@ -1628,18 +1640,21 @@ func ext_storage_set_version_1(context unsafe.Pointer, keySpan C.int64_t, valueS
 	key := asMemorySlice(instanceContext, keySpan)
 	value := asMemorySlice(instanceContext, valueSpan)
 
+	cp := make([]byte, len(value))
+	copy(cp, value)
+
 	if ctx.TransactionStorageChanges != nil {
 		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
 			Operation: runtime.SetOp,
 			Key:       key,
-			Value:     value,
+			Value:     cp,
 		})
 		return
 	}
 
 	logger.Debug("[ext_storage_set_version_1]", "key", fmt.Sprintf("0x%x", key), "val", fmt.Sprintf("0x%x", value))
 
-	err := storage.Set(key, value)
+	err := storage.Set(key, cp)
 	if err != nil {
 		logger.Error("[ext_storage_set_version_1]", "error", err)
 		return
