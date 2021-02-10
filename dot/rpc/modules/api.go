@@ -66,7 +66,7 @@ type TransactionStateAPI interface {
 type CoreAPI interface {
 	InsertKey(kp crypto.Keypair)
 	HasKey(pubKeyStr string, keyType string) (bool, error)
-	GetRuntimeVersion(bhash *common.Hash) (*runtime.VersionAPI, error)
+	GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error)
 	IsBlockProducer() bool
 	HandleSubmittedExtrinsic(types.Extrinsic) error
 	GetMetadata(bhash *common.Hash) ([]byte, error)

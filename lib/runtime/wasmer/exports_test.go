@@ -14,40 +14,41 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	gtypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
-
 	log "github.com/ChainSafe/log15"
+	gtypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
 	"github.com/stretchr/testify/require"
 )
 
 func TestInstance_Version_PolkadotRuntime(t *testing.T) {
-	expected := &runtime.Version{
-		Spec_name:         []byte("polkadot"),
-		Impl_name:         []byte("parity-polkadot"),
-		Authoring_version: 0,
-		Spec_version:      25,
-		Impl_version:      0,
-	}
+	expected := runtime.NewVersionData(
+		[]byte("polkadot"),
+		[]byte("parity-polkadot"),
+		0,
+		25,
+		0,
+		nil,
+		5,
+	)
 
 	instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME)
 
-	ret, err := instance.exec(runtime.CoreVersion, []byte{})
+	version, err := instance.Version()
 	require.Nil(t, err)
 
-	version := &runtime.VersionAPI{
-		RuntimeVersion: &runtime.Version{},
-		API:            nil,
-	}
-	version.Decode(ret)
-	require.Nil(t, err)
+	t.Logf("SpecName: %s\n", version.SpecName())
+	t.Logf("ImplName: %s\n", version.ImplName())
+	t.Logf("AuthoringVersion: %d\n", version.AuthoringVersion())
+	t.Logf("SpecVersion: %d\n", version.SpecVersion())
+	t.Logf("ImplVersion: %d\n", version.ImplVersion())
+	t.Logf("TransactionVersion: %d\n", version.TransactionVersion())
 
-	t.Logf("Spec_name: %s\n", version.RuntimeVersion.Spec_name)
-	t.Logf("Impl_name: %s\n", version.RuntimeVersion.Impl_name)
-	t.Logf("Authoring_version: %d\n", version.RuntimeVersion.Authoring_version)
-	t.Logf("Spec_version: %d\n", version.RuntimeVersion.Spec_version)
-	t.Logf("Impl_version: %d\n", version.RuntimeVersion.Impl_version)
-
-	require.Equal(t, expected, version.RuntimeVersion)
+	require.Equal(t, 12, len(version.APIItems()))
+	require.Equal(t, expected.SpecName(), version.SpecName())
+	require.Equal(t, expected.ImplName(), version.ImplName())
+	require.Equal(t, expected.AuthoringVersion(), version.AuthoringVersion())
+	require.Equal(t, expected.SpecVersion(), version.SpecVersion())
+	require.Equal(t, expected.ImplVersion(), version.ImplVersion())
+	require.Equal(t, expected.TransactionVersion(), version.TransactionVersion())
 }
 
 func TestInstance_Version_KusamaRuntime(t *testing.T) {
@@ -70,54 +71,66 @@ func TestInstance_Version_KusamaRuntime(t *testing.T) {
 	instance, err := NewRuntimeFromGenesis(gen, cfg)
 	require.NoError(t, err)
 
-	expected := &runtime.Version{
-		Spec_name:         []byte("kusama"),
-		Impl_name:         []byte("parity-kusama"),
-		Authoring_version: 2,
-		Spec_version:      1020,
-		Impl_version:      0,
-	}
+	expected := runtime.NewVersionData(
+		[]byte("kusama"),
+		[]byte("parity-kusama"),
+		2,
+		1020,
+		0,
+		nil,
+		0,
+	)
 
-	version, err := instance.Version()
+	// TODO: why does kusama seem to use the old runtime version format?
+	version, err := instance.(*Instance).inst.Version()
 	require.NoError(t, err)
 
-	t.Logf("Spec_name: %s\n", version.RuntimeVersion.Spec_name)
-	t.Logf("Impl_name: %s\n", version.RuntimeVersion.Impl_name)
-	t.Logf("Authoring_version: %d\n", version.RuntimeVersion.Authoring_version)
-	t.Logf("Spec_version: %d\n", version.RuntimeVersion.Spec_version)
-	t.Logf("Impl_version: %d\n", version.RuntimeVersion.Impl_version)
+	t.Logf("SpecName: %s\n", version.SpecName())
+	t.Logf("ImplName: %s\n", version.ImplName())
+	t.Logf("AuthoringVersion: %d\n", version.AuthoringVersion())
+	t.Logf("SpecVersion: %d\n", version.SpecVersion())
+	t.Logf("ImplVersion: %d\n", version.ImplVersion())
+	t.Logf("TransactionVersion: %d\n", version.TransactionVersion())
 
-	require.Equal(t, expected, version.RuntimeVersion)
+	require.Equal(t, 12, len(version.APIItems()))
+	require.Equal(t, expected.SpecName(), version.SpecName())
+	require.Equal(t, expected.ImplName(), version.ImplName())
+	require.Equal(t, expected.AuthoringVersion(), version.AuthoringVersion())
+	require.Equal(t, expected.SpecVersion(), version.SpecVersion())
+	require.Equal(t, expected.ImplVersion(), version.ImplVersion())
+	require.Equal(t, expected.TransactionVersion(), version.TransactionVersion())
 }
 
 func TestInstance_Version_NodeRuntime(t *testing.T) {
-	expected := &runtime.Version{
-		Spec_name:         []byte("node"),
-		Impl_name:         []byte("substrate-node"),
-		Authoring_version: 10,
-		Spec_version:      260,
-		Impl_version:      0,
-	}
+	expected := runtime.NewVersionData(
+		[]byte("node"),
+		[]byte("substrate-node"),
+		10,
+		260,
+		0,
+		nil,
+		1,
+	)
 
 	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
 
-	ret, err := instance.exec(runtime.CoreVersion, []byte{})
+	version, err := instance.Version()
 	require.Nil(t, err)
 
-	version := &runtime.VersionAPI{
-		RuntimeVersion: &runtime.Version{},
-		API:            nil,
-	}
-	version.Decode(ret)
-	require.Nil(t, err)
+	t.Logf("SpecName: %s\n", version.SpecName())
+	t.Logf("ImplName: %s\n", version.ImplName())
+	t.Logf("AuthoringVersion: %d\n", version.AuthoringVersion())
+	t.Logf("SpecVersion: %d\n", version.SpecVersion())
+	t.Logf("ImplVersion: %d\n", version.ImplVersion())
+	t.Logf("TransactionVersion: %d\n", version.TransactionVersion())
 
-	t.Logf("Spec_name: %s\n", version.RuntimeVersion.Spec_name)
-	t.Logf("Impl_name: %s\n", version.RuntimeVersion.Impl_name)
-	t.Logf("Authoring_version: %d\n", version.RuntimeVersion.Authoring_version)
-	t.Logf("Spec_version: %d\n", version.RuntimeVersion.Spec_version)
-	t.Logf("Impl_version: %d\n", version.RuntimeVersion.Impl_version)
-
-	require.Equal(t, expected, version.RuntimeVersion)
+	require.Equal(t, 12, len(version.APIItems()))
+	require.Equal(t, expected.SpecName(), version.SpecName())
+	require.Equal(t, expected.ImplName(), version.ImplName())
+	require.Equal(t, expected.AuthoringVersion(), version.AuthoringVersion())
+	require.Equal(t, expected.SpecVersion(), version.SpecVersion())
+	require.Equal(t, expected.ImplVersion(), version.ImplVersion())
+	require.Equal(t, expected.TransactionVersion(), version.TransactionVersion())
 }
 
 func balanceKey(t *testing.T, pub []byte) []byte {

@@ -65,6 +65,8 @@ type NetworkConfig struct {
 	ProtocolID  string   `toml:"protocol,omitempty"`
 	NoBootstrap bool     `toml:"nobootstrap,omitempty"`
 	NoMDNS      bool     `toml:"nomdns,omitempty"`
+	MinPeers    int      `toml:"min-peers,omitempty"`
+	MaxPeers    int      `toml:"max-peers,omitempty"`
 }
 
 // CoreConfig is to marshal/unmarshal toml core config vars

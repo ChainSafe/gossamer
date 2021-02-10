@@ -247,6 +247,8 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Servi
 		ProtocolID:  cfg.Network.ProtocolID,
 		NoBootstrap: cfg.Network.NoBootstrap,
 		NoMDNS:      cfg.Network.NoMDNS,
+		MinPeers:    cfg.Network.MinPeers,
+		MaxPeers:    cfg.Network.MaxPeers,
 	}
 
 	networkSrvc, err := network.NewService(&networkConfig)

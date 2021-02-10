@@ -27,64 +27,62 @@ var kr, _ = keystore.NewSr25519Keyring()
 var maxRetries = 10
 
 func TestInstance_Version_LegacyNodeRuntime(t *testing.T) {
-	expected := &runtime.Version{
-		Spec_name:         []byte("node"),
-		Impl_name:         []byte("substrate-node"),
-		Authoring_version: 10,
-		Spec_version:      193,
-		Impl_version:      193,
-	}
+	expected := runtime.NewLegacyVersionData(
+		[]byte("node"),
+		[]byte("substrate-node"),
+		10,
+		193,
+		193,
+		nil,
+	)
 
 	instance := NewTestLegacyInstance(t, runtime.LEGACY_NODE_RUNTIME)
 
-	ret, err := instance.exec(runtime.CoreVersion, []byte{})
+	version, err := instance.Version()
 	require.Nil(t, err)
 
-	version := &runtime.VersionAPI{
-		RuntimeVersion: &runtime.Version{},
-		API:            nil,
-	}
-	version.Decode(ret)
-	require.Nil(t, err)
+	t.Logf("SpecName: %s\n", version.SpecName())
+	t.Logf("ImplName: %s\n", version.ImplName())
+	t.Logf("AuthoringVersion: %d\n", version.AuthoringVersion())
+	t.Logf("SpecVersion: %d\n", version.SpecVersion())
+	t.Logf("ImplVersion: %d\n", version.ImplVersion())
 
-	t.Logf("Spec_name: %s\n", version.RuntimeVersion.Spec_name)
-	t.Logf("Impl_name: %s\n", version.RuntimeVersion.Impl_name)
-	t.Logf("Authoring_version: %d\n", version.RuntimeVersion.Authoring_version)
-	t.Logf("Spec_version: %d\n", version.RuntimeVersion.Spec_version)
-	t.Logf("Impl_version: %d\n", version.RuntimeVersion.Impl_version)
-
-	require.Equal(t, expected, version.RuntimeVersion)
+	require.Equal(t, 11, len(version.APIItems()))
+	require.Equal(t, expected.SpecName(), version.SpecName())
+	require.Equal(t, expected.ImplName(), version.ImplName())
+	require.Equal(t, expected.AuthoringVersion(), version.AuthoringVersion())
+	require.Equal(t, expected.SpecVersion(), version.SpecVersion())
+	require.Equal(t, expected.ImplVersion(), version.ImplVersion())
 }
 
 func TestInstance_Version_TestRuntime(t *testing.T) {
 	// https://github.com/paritytech/substrate/blob/7b1d822446982013fa5b7ad5caff35ca84f8b7d0/core/test-runtime/src/lib.rs#L73
-	expected := &runtime.Version{
-		Spec_name:         []byte("test"),
-		Impl_name:         []byte("parity-test"),
-		Authoring_version: 1,
-		Spec_version:      1,
-		Impl_version:      1,
-	}
+	expected := runtime.NewLegacyVersionData(
+		[]byte("test"),
+		[]byte("parity-test"),
+		1,
+		1,
+		1,
+		nil,
+	)
 
 	instance := NewTestLegacyInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)
 
-	ret, err := instance.exec(runtime.CoreVersion, []byte{})
+	version, err := instance.Version()
 	require.Nil(t, err)
 
-	version := &runtime.VersionAPI{
-		RuntimeVersion: &runtime.Version{},
-		API:            nil,
-	}
-	version.Decode(ret)
-	require.Nil(t, err)
+	t.Logf("SpecName: %s\n", version.SpecName())
+	t.Logf("ImplName: %s\n", version.ImplName())
+	t.Logf("AuthoringVersion: %d\n", version.AuthoringVersion())
+	t.Logf("SpecVersion: %d\n", version.SpecVersion())
+	t.Logf("ImplVersion: %d\n", version.ImplVersion())
 
-	t.Logf("Spec_name: %s\n", version.RuntimeVersion.Spec_name)
-	t.Logf("Impl_name: %s\n", version.RuntimeVersion.Impl_name)
-	t.Logf("Authoring_version: %d\n", version.RuntimeVersion.Authoring_version)
-	t.Logf("Spec_version: %d\n", version.RuntimeVersion.Spec_version)
-	t.Logf("Impl_version: %d\n", version.RuntimeVersion.Impl_version)
-
-	require.Equal(t, expected, version.RuntimeVersion)
+	require.Equal(t, 9, len(version.APIItems()))
+	require.Equal(t, expected.SpecName(), version.SpecName())
+	require.Equal(t, expected.ImplName(), version.ImplName())
+	require.Equal(t, expected.AuthoringVersion(), version.AuthoringVersion())
+	require.Equal(t, expected.SpecVersion(), version.SpecVersion())
+	require.Equal(t, expected.ImplVersion(), version.ImplVersion())
 }
 
 func TestInstance_GrandpaAuthorities_LegacyNodeRuntime(t *testing.T) {
