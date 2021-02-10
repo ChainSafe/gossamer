@@ -530,6 +530,8 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 	cfg.ProtocolID = tomlCfg.ProtocolID
 	cfg.NoBootstrap = tomlCfg.NoBootstrap
 	cfg.NoMDNS = tomlCfg.NoMDNS
+	cfg.MinPeers = tomlCfg.MinPeers
+	cfg.MaxPeers = tomlCfg.MaxPeers
 
 	// check --port flag and update node configuration
 	if port := ctx.GlobalUint(PortFlag.Name); port != 0 {
@@ -568,6 +570,8 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 		"protocol", cfg.ProtocolID,
 		"nobootstrap", cfg.NoBootstrap,
 		"nomdns", cfg.NoMDNS,
+		"minpeers", cfg.MinPeers,
+		"maxpeers", cfg.MaxPeers,
 	)
 }
 

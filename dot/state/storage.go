@@ -224,23 +224,23 @@ func (s *StorageState) ExistsStorage(hash *common.Hash, key []byte) (bool, error
 
 // GetStorage gets the object from the trie using the given key and storage hash
 // If no hash is provided, the current chain head is used
-func (s *StorageState) GetStorage(hash *common.Hash, key []byte) ([]byte, error) {
-	if hash == nil {
+func (s *StorageState) GetStorage(root *common.Hash, key []byte) ([]byte, error) {
+	if root == nil {
 		sr, err := s.blockState.BestBlockStateRoot()
 		if err != nil {
 			return nil, err
 		}
-		hash = &sr
+		root = &sr
 	}
 
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	if s.tries[*hash] == nil {
-		return nil, errTrieDoesNotExist(*hash)
+	if s.tries[*root] != nil {
+		return s.tries[*root].Get(key)
 	}
 
-	return s.tries[*hash].Get(key)
+	return trie.GetFromDB(s.db, *root, key)
 }
 
 // GetStorageByBlockHash returns the value at the given key at the given block hash

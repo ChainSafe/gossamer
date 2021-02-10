@@ -164,7 +164,9 @@ func TestEstimateCurrentSlot(t *testing.T) {
 
 	estimatedSlot, err := babeService.estimateCurrentSlot()
 	require.NoError(t, err)
-	require.Equal(t, slotNumber+1, estimatedSlot)
+	if estimatedSlot != slotNumber && estimatedSlot != slotNumber+1 {
+		t.Fatalf("Fail: got %d expected %d", estimatedSlot, slotNumber)
+	}
 }
 
 func TestGetCurrentSlot(t *testing.T) {

@@ -163,7 +163,7 @@ func TestBeginSyncingProtectsPeer(t *testing.T) {
 	var (
 		s      = createTestService(t, config)
 		peerID = peer.ID("rudolf")
-		msg    = &BlockResponseMessage{}
+		msg    = &BlockRequestMessage{}
 	)
 
 	s.beginSyncing(peerID, msg)

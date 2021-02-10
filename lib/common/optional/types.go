@@ -44,11 +44,19 @@ func NewUint32(exists bool, value uint32) *Uint32 {
 
 // Exists returns true if the value is Some, false if it is None.
 func (x *Uint32) Exists() bool {
+	if x == nil {
+		return false
+	}
+
 	return x.exists
 }
 
 // Value returns the uint32 value. It returns 0 if it is None.
 func (x *Uint32) Value() uint32 {
+	if x == nil {
+		return 0
+	}
+
 	return x.value
 }
 
