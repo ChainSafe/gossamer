@@ -32,7 +32,7 @@ type BabeConfiguration struct {
 	C2                 uint64
 	GenesisAuthorities []*AuthorityRaw
 	Randomness         [32]byte
-	SecondarySlots     bool
+	SecondarySlots     byte
 }
 
 // BABEAuthorityRawToAuthority turns a slice of BABE AuthorityRaw into a slice of Authority
@@ -95,7 +95,7 @@ func (d *EpochDataRaw) ToEpochData() (*EpochData, error) {
 type ConfigData struct {
 	C1             uint64
 	C2             uint64
-	SecondarySlots bool
+	SecondarySlots byte
 }
 
 // GetSlotFromHeader returns the BABE slot from the given header
