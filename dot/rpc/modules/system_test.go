@@ -167,7 +167,8 @@ type mockSystemAPI struct {
 
 func newMockSystemAPI() *mockSystemAPI {
 	return &mockSystemAPI{
-		info: testSystemInfo,
+		info:    testSystemInfo,
+		genData: testGenesisData,
 	}
 }
 
@@ -230,9 +231,9 @@ func TestSystemModule_Version(t *testing.T) {
 
 func TestSystemModule_Properties(t *testing.T) {
 	sys := NewSystemModule(nil, newMockSystemAPI())
-
+	expected := map[string]interface{}(nil)
 	res := new(interface{})
 	err := sys.Properties(nil, nil, res)
 	require.NoError(t, err)
-	require.Equal(t, nil, *res)
+	require.Equal(t, expected, *res)
 }
