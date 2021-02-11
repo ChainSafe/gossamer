@@ -23,14 +23,14 @@ import (
 
 // Service struct to hold rpc service data
 type Service struct {
-	systemInfo *types.SystemInfo
+	systemInfo  *types.SystemInfo
 	genesisData *genesis.Data
 }
 
 // NewService create a new instance of Service
 func NewService(si *types.SystemInfo, gd *genesis.Data) *Service {
 	return &Service{
-		systemInfo: si,
+		systemInfo:  si,
 		genesisData: gd,
 	}
 }

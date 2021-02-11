@@ -17,7 +17,6 @@
 package modules
 
 import (
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"math/big"
 	"os"
 	"path"
@@ -26,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/stretchr/testify/require"
 )
 
@@ -150,18 +150,18 @@ func TestSystemModule_NodeRoles(t *testing.T) {
 }
 
 var testSystemInfo = &types.SystemInfo{
-	SystemName:       "gossamer",
-	SystemVersion:    "0",
+	SystemName:    "gossamer",
+	SystemVersion: "0",
 }
 
 var testGenesisData = &genesis.Data{
-	Name:       "Gossamer",
-	ID:         "gssmr",
-	ChainType:  "Local",
+	Name:      "Gossamer",
+	ID:        "gssmr",
+	ChainType: "Local",
 }
 
 type mockSystemAPI struct {
-	info *types.SystemInfo
+	info    *types.SystemInfo
 	genData *genesis.Data
 }
 

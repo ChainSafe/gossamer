@@ -61,22 +61,6 @@ func TestNewGenesisRawFromJSON(t *testing.T) {
 	require.Equal(t, expected, genesis)
 }
 
-func TestNewGenesisRawFromFile(t *testing.T) {
-	// Create temp file
-	file, err := os.Open("../../chain/gssmr/genesis-raw.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-
-	genesis, err := NewGenesisFromJSONRaw(file.Name())
-	if err != nil {
-		t.Fatal(err)
-	}
-fmt.Printf("genesis %v\n", genesis.Properties)
-}
-
-
 func TestNewGenesisFromJSON(t *testing.T) {
 	var expectedGenesis = &Genesis{}
 

@@ -18,10 +18,10 @@ package dot
 
 import (
 	"encoding/json"
-	"github.com/ChainSafe/gossamer/dot/types"
 
 	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/chain/ksmcc"
+	"github.com/ChainSafe/gossamer/dot/types"
 	log "github.com/ChainSafe/log15"
 )
 
