@@ -5,11 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"reflect"
 	"sort"
 	"sync"
 	"time"
-
-	//"github.com/ChainSafe/gossamer/lib/common"
 
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -96,11 +95,9 @@ type syncResponse struct {
 }
 
 type syncQueue struct {
-	s      *Service
-	ctx    context.Context
-	cancel context.CancelFunc
-
-	// TODO: look into scoring for syncing
+	s         *Service
+	ctx       context.Context
+	cancel    context.CancelFunc
 	peerScore map[peer.ID]int // peers we have successfully synced from before -> their score; score increases on successful response; decreases otherwise.
 
 	syncing   map[peer.ID]struct{} // set if we have sent a block request message to the given peer
@@ -115,7 +112,7 @@ type syncQueue struct {
 	responseLock sync.RWMutex
 }
 
-func newSyncQueue(s *Service /*, p peer.ID, reqs []*BlockRequestMessage*/) *syncQueue {
+func newSyncQueue(s *Service) *syncQueue {
 	ctx, cancel := context.WithCancel(s.ctx)
 
 	return &syncQueue{
@@ -134,7 +131,9 @@ func newSyncQueue(s *Service /*, p peer.ID, reqs []*BlockRequestMessage*/) *sync
 func (q *syncQueue) start() {
 	go func() {
 		for {
-			if q.ctx.Err() != nil {
+			select {
+			case <-time.After(time.Second):
+			case <-q.ctx.Done():
 				return
 			}
 
@@ -143,12 +142,9 @@ func (q *syncQueue) start() {
 				continue
 			}
 
-			time.Sleep(time.Millisecond * 1000)
-
 			q.requestLock.Lock()
-			logger.Info("request queue", "queue", q.stringifyRequestQueue())
+			logger.Debug("sync request queue", "queue", q.stringifyRequestQueue())
 			q.requestCh <- q.requests[0]
-			logger.Debug("put request in requestCh", "start", q.requests[0].req.StartingBlock.Uint64())
 			q.requests = q.requests[1:]
 			q.requestLock.Unlock()
 		}
@@ -156,11 +152,11 @@ func (q *syncQueue) start() {
 
 	go func() {
 		for {
-			if q.ctx.Err() != nil {
+			select {
+			case <-time.After(time.Second):
+			case <-q.ctx.Done():
 				return
 			}
-
-			time.Sleep(time.Millisecond * 1000)
 
 			head, err := q.s.blockState.BestBlockNumber()
 			if err != nil {
@@ -170,22 +166,21 @@ func (q *syncQueue) start() {
 			// if we have block requests to send, put them into requestCh
 			q.responseLock.Lock()
 			if len(q.responses) == 0 {
-				logger.Info("responseQueue was empty")
 				q.responseLock.Unlock()
 				continue
 			}
 
 			if q.responses[0].end <= head.Int64() {
-				logger.Info("responseQueue end was less than head+1, removing", "queue end", q.responses[0].end, "head+1", head.Int64()+1)
+				// this assumes responses are always in ascending order, which should be true as long as other nodes respect our requested direction
+				logger.Debug("response end was less than head+1, removing", "queue end", q.responses[0].end, "head+1", head.Int64()+1)
 				q.responses = q.responses[1:]
 				q.responseLock.Unlock()
 				continue
 			}
 
-			logger.Info("response queue", "queue", q.stringifyResponseQueue())
+			logger.Debug("sync response queue", "queue", q.stringifyResponseQueue())
 			q.responseCh <- q.responses[0]
 			q.responses = q.responses[1:]
-			logger.Debug("put responses in responseCh")
 			q.responseLock.Unlock()
 		}
 	}()
@@ -303,9 +298,8 @@ func (q *syncQueue) pushBlockResponse(resp *BlockResponseMessage, pid peer.ID) {
 		end:   end,
 	})
 
-	logger.Debug("pushed block response to queue", "start", start, "end", end)
+	logger.Debug("pushed block response to queue", "start", start, "end", end, "queue", q.stringifyResponseQueue())
 	sortResponses(q.responses)
-	logger.Info("pushBlockResponse response queue", "queue", q.stringifyResponseQueue())
 }
 
 func (q *syncQueue) processBlockRequest() {
@@ -331,19 +325,17 @@ func (q *syncQueue) processBlockResponses() {
 	for {
 		select {
 		case resp := <-q.responseCh:
-			//go func(resp *syncResponse) {
+			// TODO: change peerScore to sync.Map, currently this is the only place it's used
 			q.peerScore[resp.pid]++
 			logger.Debug("sending response to syncer", "start", resp.start, "end", resp.end)
 			req := q.s.syncer.HandleBlockResponse(resp.resp)
 			if req == nil {
 				// we are done syncing
 				q.unsetSyncingPeer(resp.pid)
-				//return
 				continue
 			}
 
 			q.pushBlockRequest(req, resp.pid)
-			//}(resp)
 		case <-q.ctx.Done():
 			return
 		}
@@ -377,8 +369,6 @@ func (q *syncQueue) beginSyncingWithPeer(peer peer.ID, req *BlockRequestMessage)
 
 	q.syncing[peer] = struct{}{}
 	q.s.host.h.ConnManager().Protect(peer, "")
-
-	logger.Debug("beginning sync with peer", "peer", peer)
 
 	err := q.s.host.send(peer, syncID, req)
 	if err != nil {
@@ -417,7 +407,7 @@ func sortRequests(reqs []*syncRequest) {
 			return
 		}
 
-		if reqs[i].req.StartingBlock.Uint64() == reqs[i+1].req.StartingBlock.Uint64() { // TODO: check size
+		if reqs[i].req.StartingBlock.Uint64() == reqs[i+1].req.StartingBlock.Uint64() && reflect.DeepEqual(reqs[i].req.Max, reqs[i+1].req.Max) {
 			reqs = append(reqs[:i], reqs[i+1:]...)
 		}
 
@@ -436,8 +426,15 @@ func sortResponses(resps []*syncResponse) {
 			return
 		}
 
-		if resps[i].start == resps[i+1].start { // TODO: check size
+		if resps[i].start == resps[i+1].start && resps[i].end <= resps[i+1].end {
 			resps = append(resps[:i], resps[i+1:]...)
+		} else if resps[i].start == resps[i+1].start && resps[i].end > resps[i+1].end {
+			if len(resps) == i+1 {
+				resps = resps[:i+1]
+				continue
+			}
+
+			resps = append(resps[:i+1], resps[i+2:]...)
 		}
 
 		i++
