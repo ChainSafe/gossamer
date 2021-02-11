@@ -141,12 +141,13 @@ type StorageKey []byte
 
 // StateRuntimeVersionResponse is the runtime version response
 type StateRuntimeVersionResponse struct {
-	SpecName         string        `json:"specName"`
-	ImplName         string        `json:"implName"`
-	AuthoringVersion int32         `json:"authoringVersion"`
-	SpecVersion      int32         `json:"specVersion"`
-	ImplVersion      int32         `json:"implVersion"`
-	Apis             []interface{} `json:"apis"`
+	SpecName           string        `json:"specName"`
+	ImplName           string        `json:"implName"`
+	AuthoringVersion   uint32        `json:"authoringVersion"`
+	SpecVersion        uint32        `json:"specVersion"`
+	ImplVersion        uint32        `json:"implVersion"`
+	TransactionVersion uint32        `json:"transactionVersion"`
+	Apis               []interface{} `json:"apis"`
 }
 
 // StateModule is an RPC module providing access to storage API points.
@@ -285,12 +286,13 @@ func (sm *StateModule) GetRuntimeVersion(r *http.Request, req *StateRuntimeVersi
 		return err
 	}
 
-	res.SpecName = string(rtVersion.RuntimeVersion.Spec_name)
-	res.ImplName = string(rtVersion.RuntimeVersion.Impl_name)
-	res.AuthoringVersion = rtVersion.RuntimeVersion.Authoring_version
-	res.SpecVersion = rtVersion.RuntimeVersion.Spec_version
-	res.ImplVersion = rtVersion.RuntimeVersion.Impl_version
-	res.Apis = convertAPIs(rtVersion.API)
+	res.SpecName = string(rtVersion.SpecName())
+	res.ImplName = string(rtVersion.ImplName())
+	res.AuthoringVersion = rtVersion.AuthoringVersion()
+	res.SpecVersion = rtVersion.SpecVersion()
+	res.ImplVersion = rtVersion.ImplVersion()
+	res.TransactionVersion = rtVersion.TransactionVersion()
+	res.Apis = convertAPIs(rtVersion.APIItems())
 
 	return nil
 }
@@ -402,10 +404,10 @@ func (sm *StateModule) SubscribeStorage(r *http.Request, req *StateStorageQueryR
 	return nil
 }
 
-func convertAPIs(in []*runtime.API_Item) []interface{} {
+func convertAPIs(in []*runtime.APIItem) []interface{} {
 	ret := make([]interface{}, 0)
 	for _, item := range in {
-		encStr := hex.EncodeToString(item.Name)
+		encStr := hex.EncodeToString(item.Name[:])
 		ret = append(ret, []interface{}{"0x" + encStr, item.Ver})
 	}
 	return ret

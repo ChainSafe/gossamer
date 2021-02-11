@@ -243,14 +243,22 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 		return nil
 	}
 
+	if s.notificationsProtocols[BlockAnnounceMsgType] == nil {
+		logger.Error("s.notificationsProtocols[BlockAnnounceMsgType] is nil")
+	}
+
+	if s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer] == nil {
+		logger.Error("peer handshake data is nil")
+	}
+
 	go func() {
 		// wait until we send BlockAnnounceHandshake, then begin sync
 		select {
 		case <-s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].responseSentCh:
-			time.Sleep(time.Millisecond * 500) // TODO: it seems if we immediately send the request we fail to read the response
+			time.Sleep(time.Millisecond * 300) // TODO: it seems if we immediately send the request we fail to read the response
 			err = s.beginSyncing(peer, req)
 			if err == nil {
-				break
+				return
 			}
 		case <-time.After(time.Second * 3):
 			err = errors.New("timeout")
@@ -273,11 +281,9 @@ func (s *Service) handleBlockAnnounceMessage(peer peer.ID, msg NotificationsMess
 	if an, ok := msg.(*BlockAnnounceMessage); ok {
 		req := s.syncer.HandleBlockAnnounce(an)
 		if req != nil {
-			if err := s.setSyncingPeer(peer); err != nil {
-				return err
-			}
-			if err := s.host.send(peer, syncID, req); err != nil {
+			if err := s.beginSyncing(peer, req); err != nil {
 				logger.Error("failed to send BlockRequest message", "peer", peer)
+				return err
 			}
 		}
 	}

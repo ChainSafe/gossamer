@@ -448,6 +448,7 @@ func generateDefaultConfig() *ctoml.Config {
 			ProtocolID:  "/gossamer/gssmr/0",
 			NoBootstrap: false,
 			NoMDNS:      false,
+			MinPeers:    1,
 			MaxPeers:    3,
 		},
 		RPC: ctoml.RPCConfig{
@@ -478,9 +479,9 @@ func generateConfigBabeMaxThreshold() *ctoml.Config {
 		GrandpaAuthority:         true,
 		BabeThresholdNumerator:   1,
 		BabeThresholdDenominator: 1,
-		SlotDuration:             500,
+		SlotDuration:             1000,
 	}
-	cfg.RPC.Modules = []string{"system", "author", "chain", "state", "dev"}
+	cfg.RPC.Modules = []string{"system", "author", "chain", "state", "dev", "rpc"}
 	return cfg
 }
 

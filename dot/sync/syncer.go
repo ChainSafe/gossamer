@@ -435,12 +435,12 @@ func (s *Service) handleBlock(block *types.Block) error {
 	}
 
 	s.logger.Trace("copied parent state", "parent state root", parentState.MustRoot(), "copy state root", ts.MustRoot())
-	s.runtime.SetContext(ts)
+	s.runtime.SetContextStorage(ts)
 	s.logger.Trace("going to execute block", "block", block, "exts", block.Body)
 
 	_, err = s.runtime.ExecuteBlock(block)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)
 	}
 
 	err = s.storageState.StoreTrie(ts)

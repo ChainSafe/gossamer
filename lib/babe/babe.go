@@ -468,7 +468,7 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		logger.Error("failed to copy parent storage trie", "error", err)
 	}
 
-	b.rt.SetContext(tsCopy)
+	b.rt.SetContextStorage(tsCopy)
 
 	block, err := b.buildBlock(parent, currentSlot)
 	if err != nil {
