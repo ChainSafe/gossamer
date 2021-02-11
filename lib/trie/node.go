@@ -44,6 +44,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/scale"
@@ -60,7 +61,6 @@ type node interface {
 	String() string
 	setEncodingAndHash([]byte, []byte)
 	getHash() []byte
-	setValueFromEncoding() // this is used as a hack to get around the runtime bug where the node values get corrupted
 }
 
 type (
@@ -71,14 +71,15 @@ type (
 		dirty    bool
 		hash     []byte
 		encoding []byte
+		sync.RWMutex
 	}
 	leaf struct {
-		key        []byte // partial key
-		value      []byte
-		dirty      bool
-		valueDirty bool
-		hash       []byte
-		encoding   []byte
+		key      []byte // partial key
+		value    []byte
+		dirty    bool
+		hash     []byte
+		encoding []byte
+		sync.RWMutex
 	}
 )
 
@@ -90,26 +91,6 @@ func (b *branch) setEncodingAndHash(enc, hash []byte) {
 func (l *leaf) setEncodingAndHash(enc, hash []byte) {
 	l.encoding = enc
 	l.hash = hash
-}
-
-func (b *branch) setValueFromEncoding() {
-	r := &bytes.Buffer{}
-	_, _ = r.Write(b.encoding)
-	prev, err := decode(r)
-	if err != nil {
-		panic(err)
-	}
-	b.value = prev.(*branch).value
-}
-
-func (l *leaf) setValueFromEncoding() {
-	r := &bytes.Buffer{}
-	_, _ = r.Write(l.encoding)
-	prev, err := decode(r)
-	if err != nil {
-		panic(err)
-	}
-	l.value = prev.(*leaf).value
 }
 
 func (b *branch) getHash() []byte {
@@ -129,9 +110,9 @@ func (b *branch) String() string {
 
 func (l *leaf) String() string {
 	if len(l.value) > 1024 {
-		return fmt.Sprintf("leaf key=%x value (hashed)=%x dirty=%v valueDirty=%v", l.key, common.MustBlake2bHash(l.value), l.dirty, l.valueDirty)
+		return fmt.Sprintf("leaf key=%x value (hashed)=%x dirty=%v", l.key, common.MustBlake2bHash(l.value), l.dirty)
 	}
-	return fmt.Sprintf("leaf key=%x value=%x dirty=%v valueDirty=%v", l.key, l.value, l.dirty, l.valueDirty)
+	return fmt.Sprintf("leaf key=%x value=%x dirty=%v", l.key, l.value, l.dirty)
 }
 
 func (b *branch) childrenBitmap() uint16 {
@@ -196,7 +177,7 @@ func encode(n node) ([]byte, error) {
 }
 
 func (b *branch) encodeAndHash() ([]byte, []byte, error) {
-	if !b.isDirty() && b.encoding != nil && b.hash != nil {
+	if !b.dirty && b.encoding != nil && b.hash != nil {
 		return b.encoding, b.hash, nil
 	}
 
@@ -223,7 +204,7 @@ func (b *branch) encodeAndHash() ([]byte, []byte, error) {
 
 // Encode encodes a branch with the encoding specified at the top of this package
 func (b *branch) encode() ([]byte, error) {
-	if !b.isDirty() && b.encoding != nil {
+	if !b.dirty && b.encoding != nil {
 		return b.encoding, nil
 	}
 
@@ -272,10 +253,6 @@ func (l *leaf) encodeAndHash() ([]byte, []byte, error) {
 	if !l.isDirty() && l.encoding != nil && l.hash != nil {
 		return l.encoding, l.hash, nil
 	}
-	// TODO: hack to deal with runtime bug
-	if l.encoding != nil && l.hash != nil && !l.valueDirty {
-		l.setValueFromEncoding()
-	}
 
 	enc, err := l.encode()
 	if err != nil {
@@ -300,13 +277,8 @@ func (l *leaf) encodeAndHash() ([]byte, []byte, error) {
 
 // Encode encodes a leaf with the encoding specified at the top of this package
 func (l *leaf) encode() ([]byte, error) {
-	if !l.isDirty() && l.encoding != nil {
+	if !l.dirty && l.encoding != nil {
 		return l.encoding, nil
-	}
-
-	// TODO: hack to deal with runtime bug
-	if l.encoding != nil && !l.valueDirty {
-		l.setValueFromEncoding()
 	}
 
 	encoding, err := l.header()
@@ -323,7 +295,7 @@ func (l *leaf) encode() ([]byte, error) {
 		return encoding, err
 	}
 	encoding = append(encoding, buffer.Bytes()...)
-
+	l.encoding = encoding
 	return encoding, nil
 }
 

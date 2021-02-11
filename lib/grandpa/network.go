@@ -113,8 +113,8 @@ func (s *Service) decodeHandshake(in []byte) (Handshake, error) {
 	return hs, err
 }
 
-func (s *Service) validateHandshake(_ Handshake) (network.Message, error) {
-	return nil, nil
+func (s *Service) validateHandshake(_ peer.ID, _ Handshake) error {
+	return nil
 }
 
 func (s *Service) decodeMessage(in []byte) (NotificationsMessage, error) {

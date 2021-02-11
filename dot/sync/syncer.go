@@ -136,11 +136,7 @@ func (s *Service) HandleBlockAnnounceHandshake(blockNum *big.Int) *network.Block
 
 	if s.synced {
 		s.synced = false
-
-		err := s.blockProducer.Pause()
-		if err != nil {
-			s.logger.Warn("failed to pause block production")
-		}
+		_ = s.blockProducer.Pause()
 	}
 
 	return s.createBlockRequest(start)
@@ -280,14 +276,13 @@ func (s *Service) createBlockRequest(startInt int64) *network.BlockRequestMessag
 		return nil
 	}
 
-	s.logger.Debug("sending block request", "start", start)
+	s.logger.Debug("creating block request", "start", start)
 
 	blockRequest := &network.BlockRequestMessage{
 		RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification,
 		StartingBlock: start,
 		EndBlockHash:  optional.NewHash(false, common.Hash{}),
 		Direction:     0, // ascending
-		Max:           optional.NewUint32(true, uint32(256)),
 	}
 
 	s.benchmarker.begin(uint64(startInt))
@@ -440,12 +435,12 @@ func (s *Service) handleBlock(block *types.Block) error {
 	}
 
 	s.logger.Trace("copied parent state", "parent state root", parentState.MustRoot(), "copy state root", ts.MustRoot())
-	s.runtime.SetContext(ts)
+	s.runtime.SetContextStorage(ts)
 	s.logger.Trace("going to execute block", "block", block, "exts", block.Body)
 
 	_, err = s.runtime.ExecuteBlock(block)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)
 	}
 
 	err = s.storageState.StoreTrie(ts)
