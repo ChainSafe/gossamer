@@ -63,3 +63,7 @@ func (mbs *MockBlockState) BestBlockHeader() (*types.Header, error) {
 func (mbs *MockBlockState) GenesisHash() common.Hash {
 	return common.NewHash([]byte{})
 }
+
+func (mbs *MockBlockState) BestBlockNumber() (*big.Int, error) {
+	return big.NewInt(1), nil
+}

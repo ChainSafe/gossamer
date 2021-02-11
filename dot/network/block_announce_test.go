@@ -104,7 +104,7 @@ func TestHandleBlockAnnounceMessage(t *testing.T) {
 	}
 
 	s.handleBlockAnnounceMessage(peerID, msg)
-	require.NotNil(t, s.syncing[peerID])
+	require.NotNil(t, s.syncQueue.isSyncing(peerID))
 }
 
 func TestValidateBlockAnnounceHandshake(t *testing.T) {
@@ -135,10 +135,7 @@ func TestValidateBlockAnnounceHandshake(t *testing.T) {
 	require.NoError(t, err)
 	close(done)
 
-	nodeA.syncingMu.Lock()
-	defer nodeA.syncingMu.Unlock()
-
-	if _, syncing := nodeA.syncing[testPeerID]; syncing {
+	if syncing := nodeA.syncQueue.isSyncing(testPeerID); syncing {
 		require.True(t, syncing)
 	}
 }

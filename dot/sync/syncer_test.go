@@ -54,7 +54,7 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie
 }
 
 func newTestSyncer(t *testing.T) *Service {
-	wasmer.DefaultTestLogLvl = 4
+	wasmer.DefaultTestLogLvl = 3
 
 	cfg := &Config{}
 	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
@@ -83,7 +83,7 @@ func newTestSyncer(t *testing.T) *Service {
 
 		rtCfg := &wasmer.Config{}
 		rtCfg.Storage = genState
-		rtCfg.LogLvl = 4
+		rtCfg.LogLvl = 3
 
 		instance, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg) //nolint
 		require.NoError(t, err)
@@ -110,9 +110,10 @@ func newTestSyncer(t *testing.T) *Service {
 func TestHandleBlockAnnounceHandshake(t *testing.T) {
 	syncer := newTestSyncer(t)
 	number := big.NewInt(12)
-	req := syncer.HandleBlockAnnounceHandshake(number)
-	require.NotNil(t, req)
-	require.Equal(t, uint64(1), req.StartingBlock.Value().(uint64))
+	reqs := syncer.HandleBlockAnnounceHandshake(number)
+	require.NotNil(t, reqs)
+	require.Equal(t, 1, len(reqs))
+	require.Equal(t, uint64(1), reqs[0].StartingBlock.Value().(uint64))
 	require.Equal(t, number, syncer.highestSeenBlock)
 }
 
@@ -134,25 +135,26 @@ func TestHandleBlockAnnounceHandshake_GreaterThanHighestSeen_NotSynced(t *testin
 	syncer := newTestSyncer(t)
 
 	number := big.NewInt(12)
-	req := syncer.HandleBlockAnnounceHandshake(number)
-	require.NotNil(t, req)
+	reqs := syncer.HandleBlockAnnounceHandshake(number)
+	require.NotNil(t, reqs)
 	require.Equal(t, number, syncer.highestSeenBlock)
 
 	_, _ = state.AddBlocksToState(t, syncer.blockState.(*state.BlockState), 12)
 
 	number = big.NewInt(16)
-	req = syncer.HandleBlockAnnounceHandshake(number)
-	require.NotNil(t, req)
+	reqs = syncer.HandleBlockAnnounceHandshake(number)
+	require.NotNil(t, reqs)
+	require.Equal(t, 1, len(reqs))
 	require.Equal(t, number, syncer.highestSeenBlock)
-	require.Equal(t, req.StartingBlock.Value().(uint64), uint64(13))
+	require.Equal(t, reqs[0].StartingBlock.Value().(uint64), uint64(13))
 }
 
 func TestHandleBlockAnnounceHandshake_GreaterThanHighestSeen_Synced(t *testing.T) {
 	syncer := newTestSyncer(t)
 
 	number := big.NewInt(12)
-	req := syncer.HandleBlockAnnounceHandshake(number)
-	require.NotNil(t, req)
+	reqs := syncer.HandleBlockAnnounceHandshake(number)
+	require.NotNil(t, reqs)
 	require.Equal(t, number, syncer.highestSeenBlock)
 
 	// synced to block 12
@@ -160,10 +162,11 @@ func TestHandleBlockAnnounceHandshake_GreaterThanHighestSeen_Synced(t *testing.T
 	_, _ = state.AddBlocksToState(t, syncer.blockState.(*state.BlockState), 12)
 
 	number = big.NewInt(16)
-	req = syncer.HandleBlockAnnounceHandshake(number)
-	require.NotNil(t, req)
+	reqs = syncer.HandleBlockAnnounceHandshake(number)
+	require.NotNil(t, reqs)
+	require.Equal(t, 1, len(reqs))
 	require.Equal(t, number, syncer.highestSeenBlock)
-	require.Equal(t, uint64(13), req.StartingBlock.Value().(uint64))
+	require.Equal(t, uint64(13), reqs[0].StartingBlock.Value().(uint64))
 }
 
 func TestHandleBlockResponse(t *testing.T) {

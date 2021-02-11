@@ -175,18 +175,12 @@ func (q *syncQueue) start() {
 				continue
 			}
 
-			if q.responses[0].start <= head.Int64() {
-				logger.Info("responseQueue start was less than head+1, removing", "queue start", q.responses[0].start, "head+1", head.Int64()+1)
+			if q.responses[0].end <= head.Int64() {
+				logger.Info("responseQueue end was less than head+1, removing", "queue end", q.responses[0].end, "head+1", head.Int64()+1)
 				q.responses = q.responses[1:]
 				q.responseLock.Unlock()
 				continue
 			}
-
-			// if q.responses[0].start > head.Int64()+1 {
-			// 	logger.Info("responseQueue start was greater than head+1", "queue start", q.responses[0].start, "head+1", head.Int64()+1)
-			// 	q.responseLock.Unlock()
-			// 	continue
-			// }
 
 			logger.Info("response queue", "queue", q.stringifyResponseQueue())
 			q.responseCh <- q.responses[0]

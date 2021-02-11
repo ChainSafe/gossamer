@@ -37,7 +37,7 @@ import (
 var (
 	maxInt64                     = int64(2 ^ 63 - 1)
 	blockRequestSize      uint32 = 128
-	blockRequestQueueSize int    = 3
+	blockRequestQueueSize int64  = 3
 )
 
 // Service deals with chain syncing by sending block request messages and watching for responses.
@@ -275,6 +275,10 @@ func (s *Service) createBlockRequests(start, end int64) []*network.BlockRequestM
 	numReqs := (end - start) / int64(blockRequestSize)
 	if numReqs > blockRequestQueueSize {
 		numReqs = blockRequestQueueSize
+	}
+
+	if end-start < int64(blockRequestSize) {
+		numReqs = 1
 	}
 
 	reqs := make([]*network.BlockRequestMessage, numReqs)

@@ -17,6 +17,8 @@
 package network
 
 import (
+	"context"
+	"math/big"
 	"strings"
 	"testing"
 	"time"
@@ -145,7 +147,7 @@ func TestBroadcastMessages(t *testing.T) {
 	// simulate message sent from core service
 	nodeA.SendMessage(testBlockAnnounceMessage)
 	time.Sleep(time.Second)
-	require.NotNil(t, nodeB.syncing[nodeA.host.id()])
+	require.NotNil(t, nodeB.syncQueue.isSyncing(nodeA.host.id()))
 }
 
 func TestBeginSyncingProtectsPeer(t *testing.T) {
@@ -166,7 +168,7 @@ func TestBeginSyncingProtectsPeer(t *testing.T) {
 		msg    = &BlockRequestMessage{}
 	)
 
-	s.beginSyncing(peerID, msg)
+	s.syncQueue.beginSyncingWithPeer(peerID, msg)
 	require.True(t, s.host.h.ConnManager().IsProtected(peerID, ""))
 }
 
@@ -184,13 +186,23 @@ func TestHandleSyncMessage_BlockResponse(t *testing.T) {
 
 	s := createTestService(t, config)
 
+	testHeader := types.Header{
+		Number: big.NewInt(77),
+	}
+
 	peerID := peer.ID("noot")
-	msg := &BlockResponseMessage{}
-	s.syncing[peerID] = struct{}{}
+	msg := &BlockResponseMessage{
+		BlockData: []*types.BlockData{
+			{
+				Header: testHeader.AsOptional(),
+			},
+		},
+	}
+
+	s.syncQueue.syncing[peerID] = struct{}{}
 
 	s.handleSyncMessage(peerID, msg)
-	_, isSyncing := s.syncing[peerID]
-	require.False(t, isSyncing)
+	require.Equal(t, 1, len(s.syncQueue.responses))
 	require.False(t, s.host.h.ConnManager().IsProtected(peerID, ""))
 }
 
@@ -228,8 +240,10 @@ func TestService_Health(t *testing.T) {
 
 func TestDecodeSyncMessage(t *testing.T) {
 	s := &Service{
-		syncing: make(map[peer.ID]struct{}),
+		ctx: context.Background(),
 	}
+
+	s.syncQueue = newSyncQueue(s)
 
 	testPeer := peer.ID("noot")
 
@@ -247,7 +261,7 @@ func TestDecodeSyncMessage(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, testBlockRequestMessage, req)
 
-	s.syncing[testPeer] = struct{}{}
+	s.syncQueue.syncing[testPeer] = struct{}{}
 
 	respEnc, err := testBlockResponseMessage.Encode()
 	require.NoError(t, err)
