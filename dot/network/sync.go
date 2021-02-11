@@ -182,11 +182,11 @@ func (q *syncQueue) start() {
 				continue
 			}
 
-			if q.responses[0].start > head.Int64()+1 {
-				logger.Info("responseQueue start was greater than head+1", "queue start", q.responses[0].start, "head+1", head.Int64()+1)
-				q.responseLock.Unlock()
-				continue
-			}
+			// if q.responses[0].start > head.Int64()+1 {
+			// 	logger.Info("responseQueue start was greater than head+1", "queue start", q.responses[0].start, "head+1", head.Int64()+1)
+			// 	q.responseLock.Unlock()
+			// 	continue
+			// }
 
 			logger.Info("response queue", "queue", q.stringifyResponseQueue())
 			q.responseCh <- q.responses[0]
@@ -203,7 +203,7 @@ func (q *syncQueue) start() {
 func (q *syncQueue) stringifyRequestQueue() string {
 	str := ""
 	for _, req := range q.requests {
-		str = str + fmt.Sprintf("[start=%d] ", req.req.StartingBlock.Uint64())
+		str = str + fmt.Sprintf("[start=%d end=%d] ", req.req.StartingBlock.Uint64(), req.req.StartingBlock.Uint64()+128)
 	}
 	return str
 }
@@ -246,7 +246,17 @@ func (q *syncQueue) pushBlockRequests(reqs []*BlockRequestMessage, pid peer.ID) 
 	q.requestLock.Lock()
 	defer q.requestLock.Unlock()
 
+	var currLastRequestedBlock uint64
+	if len(q.requests) > 0 {
+		currLastRequestedBlock = q.requests[len(q.requests)-1].req.StartingBlock.Uint64()
+	}
+
 	for _, req := range reqs {
+		// don't add requests that are already covered by existing requests
+		if req.StartingBlock.Uint64() <= currLastRequestedBlock {
+			continue
+		}
+
 		q.requests = append(q.requests, &syncRequest{
 			pid: pid,
 			req: req,
@@ -258,6 +268,16 @@ func (q *syncQueue) pushBlockRequests(reqs []*BlockRequestMessage, pid peer.ID) 
 func (q *syncQueue) pushBlockRequest(req *BlockRequestMessage, pid peer.ID) {
 	q.requestLock.Lock()
 	defer q.requestLock.Unlock()
+
+	var currLastRequestedBlock uint64
+	if len(q.requests) > 0 {
+		currLastRequestedBlock = q.requests[len(q.requests)-1].req.StartingBlock.Uint64()
+	}
+
+	// don't add requests that are already covered by existing requests
+	if req.StartingBlock.Uint64() <= currLastRequestedBlock {
+		return
+	}
 
 	q.requests = append(q.requests, &syncRequest{
 		pid: pid,
@@ -279,6 +299,11 @@ func (q *syncQueue) pushBlockResponse(resp *BlockResponseMessage, pid peer.ID) {
 
 	q.responseLock.Lock()
 	defer q.responseLock.Unlock()
+
+	if len(q.responses) > 0 && start >= q.responses[0].start && end <= q.responses[len(q.responses)-1].end {
+		logger.Debug("response is duplicate of others, discarding", "start", start, "end", end, "queue", q.stringifyResponseQueue())
+		return
+	}
 
 	q.responses = append(q.responses, &syncResponse{
 		pid:   pid,
@@ -315,19 +340,19 @@ func (q *syncQueue) processBlockResponses() {
 	for {
 		select {
 		case resp := <-q.responseCh:
-			go func(resp *syncResponse) {
-				q.peerScore[resp.pid]++
-				logger.Debug("sending response to syncer", "start", resp.start, "end", resp.end)
-				req := q.s.syncer.HandleBlockResponse(resp.resp)
-				if req == nil {
-					// we are done syncing
-					q.unsetSyncingPeer(resp.pid)
-					return
-					//continue
-				}
+			//go func(resp *syncResponse) {
+			q.peerScore[resp.pid]++
+			logger.Debug("sending response to syncer", "start", resp.start, "end", resp.end)
+			req := q.s.syncer.HandleBlockResponse(resp.resp)
+			if req == nil {
+				// we are done syncing
+				q.unsetSyncingPeer(resp.pid)
+				//return
+				continue
+			}
 
-				q.pushBlockRequest(req, resp.pid)
-			}(resp)
+			q.pushBlockRequest(req, resp.pid)
+			//}(resp)
 		case <-q.ctx.Done():
 			return
 		}
