@@ -21,6 +21,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/chain/ksmcc"
+	"github.com/ChainSafe/gossamer/chain/polkadot"
 	"github.com/ChainSafe/gossamer/dot/types"
 	log "github.com/ChainSafe/log15"
 )
@@ -205,6 +206,55 @@ func KsmccConfig() *Config {
 			Host:    ksmcc.DefaultRPCHTTPHost,
 			Modules: ksmcc.DefaultRPCModules,
 			WSPort:  ksmcc.DefaultRPCWSPort,
+		},
+	}
+}
+
+// PolkadotConfig returns a "polkadot" node configuration
+func PolkadotConfig() *Config {
+	return &Config{
+		Global: GlobalConfig{
+			Name:     polkadot.DefaultName,
+			ID:       polkadot.DefaultID,
+			BasePath: polkadot.DefaultBasePath,
+			LogLvl:   polkadot.DefaultLvl,
+		},
+		Log: LogConfig{
+			CoreLvl:           polkadot.DefaultLvl,
+			SyncLvl:           polkadot.DefaultLvl,
+			NetworkLvl:        polkadot.DefaultLvl,
+			RPCLvl:            polkadot.DefaultLvl,
+			StateLvl:          polkadot.DefaultLvl,
+			RuntimeLvl:        polkadot.DefaultLvl,
+			BlockProducerLvl:  polkadot.DefaultLvl,
+			FinalityGadgetLvl: polkadot.DefaultLvl,
+		},
+		Init: InitConfig{
+			GenesisRaw: polkadot.DefaultGenesisRaw,
+		},
+		Account: AccountConfig{
+			Key:    polkadot.DefaultKey,
+			Unlock: polkadot.DefaultUnlock,
+		},
+		Core: CoreConfig{
+			Roles:           polkadot.DefaultRoles,
+			WasmInterpreter: polkadot.DefaultWasmInterpreter,
+		},
+		Network: NetworkConfig{
+			Port:        polkadot.DefaultNetworkPort,
+			Bootnodes:   polkadot.DefaultNetworkBootnodes,
+			NoBootstrap: polkadot.DefaultNoBootstrap,
+			NoMDNS:      polkadot.DefaultNoMDNS,
+		},
+		RPC: RPCConfig{
+			Port:    polkadot.DefaultRPCHTTPPort,
+			Host:    polkadot.DefaultRPCHTTPHost,
+			Modules: polkadot.DefaultRPCModules,
+			WSPort:  polkadot.DefaultRPCWSPort,
+		},
+		System: types.SystemInfo{
+			NodeName:         polkadot.DefaultName,
+			SystemProperties: make(map[string]interface{}),
 		},
 	}
 }

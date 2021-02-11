@@ -55,6 +55,12 @@ func TestConfigFromChainFlag(t *testing.T) {
 			[]interface{}{"ksmcc"},
 			dot.KsmccConfig(),
 		},
+		{
+			"Test gossamer --chain polkadot",
+			[]string{"chain"},
+			[]interface{}{"polkadot"},
+			dot.PolkadotConfig(),
+		},
 	}
 
 	for _, c := range testcases {
