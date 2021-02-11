@@ -53,24 +53,27 @@ func (sv *SignatureVerifier) Start() {
 	sv.Unlock()
 
 	sv.WaitGroup.Add(1)
-	defer sv.Done()
-	for {
-		select {
-		case <-sv.closeCh:
-			return
-		default:
-			sign := sv.Remove()
-			if sign == nil {
-				continue
-			}
-			err := sign.verify()
-			if err != nil {
-				log.Error("[ext_crypto_start_batch_verify_version_1]", "error", err)
-				sv.Invalid()
+
+	go func() {
+		defer sv.Done()
+		for {
+			select {
+			case <-sv.closeCh:
 				return
+			default:
+				sign := sv.Remove()
+				if sign == nil {
+					continue
+				}
+				err := sign.verify()
+				if err != nil {
+					log.Error("[ext_crypto_start_batch_verify_version_1]", "error", err)
+					sv.Invalid()
+					return
+				}
 			}
 		}
-	}
+	}()
 }
 
 // IsStarted ...
