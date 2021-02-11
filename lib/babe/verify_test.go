@@ -277,6 +277,7 @@ func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
 
 	cfg.C1 = 1
 	cfg.C2 = 1
+	cfg.GenesisAuthorities = []*types.AuthorityRaw{}
 
 	vm := newTestVerificationManager(t, cfg)
 

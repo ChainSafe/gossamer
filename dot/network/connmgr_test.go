@@ -24,7 +24,8 @@ import (
 )
 
 func TestMaxPeers(t *testing.T) {
-	nodes := make([]*Service, defaultMaxPeerCount+2)
+	max := 3
+	nodes := make([]*Service, max+2)
 
 	for i := range nodes {
 		config := &Config{
@@ -32,6 +33,7 @@ func TestMaxPeers(t *testing.T) {
 			RandSeed:    1 + int64(i),
 			NoBootstrap: true,
 			NoMDNS:      true,
+			MaxPeers:    max,
 		}
 		node := createTestService(t, config)
 		defer node.Stop()
@@ -53,11 +55,11 @@ func TestMaxPeers(t *testing.T) {
 	}
 
 	p := nodes[0].host.h.Peerstore().Peers()
-	require.LessOrEqual(t, defaultMaxPeerCount, len(p))
+	require.LessOrEqual(t, max, len(p))
 }
 
 func TestProtectUnprotectPeer(t *testing.T) {
-	cm := newConnManager(4)
+	cm := newConnManager(1, 4)
 	require.Zero(t, len(cm.protectedPeerMap))
 
 	p1 := peer.ID("a")

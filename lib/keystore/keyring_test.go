@@ -33,7 +33,7 @@ func TestNewSr25519Keyring(t *testing.T) {
 	}
 
 	v := reflect.ValueOf(kr).Elem()
-	for i := 0; i < v.NumField(); i++ {
+	for i := 0; i < v.NumField()-1; i++ {
 		pub := v.Field(i).Interface().(*sr25519.Keypair).Public().Hex()
 
 		switch i {

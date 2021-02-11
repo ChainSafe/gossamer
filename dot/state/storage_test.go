@@ -35,7 +35,7 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 
 	trie, err := storage.LoadFromDB(root)
 	require.NoError(t, err)
-	ts2, err := runtime.NewTrieState(storage.db, trie)
+	ts2, err := runtime.NewTrieState(trie)
 	require.NoError(t, err)
 	require.Equal(t, ts.Trie(), ts2.Trie())
 }
