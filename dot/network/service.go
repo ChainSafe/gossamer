@@ -171,6 +171,9 @@ func (s *Service) Start() error {
 		s.ctx, s.cancel = context.WithCancel(context.Background())
 	}
 
+	s.syncQueue = newSyncQueue(s)
+	s.syncQueue.start()
+
 	s.host.registerStreamHandler(syncID, s.handleSyncStream)
 	s.host.registerStreamHandler(lightID, s.handleLightStream)
 
@@ -288,6 +291,7 @@ func (s *Service) beginDiscovery() error {
 // the message channel from the network service to the core service (services that
 // are dependent on the host instance should be closed first)
 func (s *Service) Stop() error {
+	s.syncQueue.stop()
 	s.cancel()
 
 	// close mDNS discovery service
@@ -494,7 +498,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 			continue
 		}
 
-		logger.Debug(
+		logger.Trace(
 			"Received message from peer",
 			"host", s.host.id(),
 			"peer", peer,

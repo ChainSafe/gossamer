@@ -26,6 +26,7 @@ import (
 // BlockState interface for block state methods
 type BlockState interface {
 	BestBlockHeader() (*types.Header, error)
+	BestBlockNumber() (*big.Int, error)
 	GenesisHash() common.Hash
 }
 

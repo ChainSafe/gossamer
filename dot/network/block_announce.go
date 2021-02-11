@@ -241,9 +241,10 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 		select {
 		case <-s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].responseSentCh:
 			time.Sleep(time.Millisecond * 300) // TODO: it seems if we immediately send the request we fail to read the response
-			if err = s.beginSyncing(peer, reqs); err == nil {
-				return
-			}
+			// if err = s.beginSyncing(peer, reqs); err == nil {
+			// 	return
+			// }
+			s.syncQueue.pushBlockRequests(reqs, peer)
 		case <-time.After(time.Second * 3):
 			err = errors.New("timeout")
 		}
@@ -266,7 +267,7 @@ func (s *Service) handleBlockAnnounceMessage(peer peer.ID, msg NotificationsMess
 			// 	logger.Error("failed to send BlockRequest message", "peer", peer)
 			// 	return err
 			// }
-			s.syncQueue.pushBlockRequest(req)
+			s.syncQueue.pushBlockRequest(req, peer)
 		}
 	}
 

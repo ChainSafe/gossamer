@@ -272,8 +272,8 @@ func (s *Service) HandleBlockResponse(msg *network.BlockResponseMessage) *networ
 
 func (s *Service) createBlockRequests(start, end int64) []*network.BlockRequestMessage {
 	numReqs := (end - start) / int64(blockRequestSize)
-	if numReqs > 12 {
-		numReqs = 12
+	if numReqs > 6 { // TODO: configure this somewhere
+		numReqs = 6
 	}
 	reqs := make([]*network.BlockRequestMessage, numReqs)
 	for i := 0; i < int(numReqs); i++ {
@@ -315,7 +315,7 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 	end := int64(0)
 
 	for _, bd := range blockData {
-		s.logger.Trace("starting processing of block", "hash", bd.Hash)
+		s.logger.Debug("starting processing of block", "hash", bd.Hash)
 
 		err := s.blockState.CompareAndSetBlockData(bd)
 		if err != nil {
@@ -325,7 +325,7 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 		hasHeader, _ := s.blockState.HasHeader(bd.Hash)
 		hasBody, _ := s.blockState.HasBlockBody(bd.Hash)
 		if hasHeader && hasBody {
-			s.logger.Trace("skipping block, already have", "hash", bd.Hash)
+			s.logger.Debug("skipping block, already have", "hash", bd.Hash)
 			continue
 		}
 
@@ -385,14 +385,14 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 				Body:   body,
 			}
 
-			s.logger.Trace("processing block", "hash", bd.Hash)
+			s.logger.Debug("processing block", "hash", bd.Hash)
 
 			err = s.handleBlock(block)
 			if err != nil {
 				return start, end, err
 			}
 
-			s.logger.Trace("block processed", "hash", bd.Hash)
+			s.logger.Debug("block processed", "hash", bd.Hash)
 		}
 	}
 

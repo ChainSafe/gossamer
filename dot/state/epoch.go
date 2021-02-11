@@ -235,6 +235,15 @@ func (s *EpochState) GetEpochData(epoch uint64) (*types.EpochData, error) {
 	return raw.ToEpochData()
 }
 
+func (s *EpochState) GetLatestEpochData() (*types.EpochData, error) {
+	curr, err := s.GetCurrentEpoch()
+	if err != nil {
+		return nil, err
+	}
+
+	return s.GetEpochData(curr)
+}
+
 // HasEpochData returns whether epoch data exists for a given epoch
 func (s *EpochState) HasEpochData(epoch uint64) (bool, error) {
 	return s.db.Has(epochDataKey(epoch))
