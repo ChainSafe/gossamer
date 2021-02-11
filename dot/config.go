@@ -18,10 +18,10 @@ package dot
 
 import (
 	"encoding/json"
+	"github.com/ChainSafe/gossamer/dot/types"
 
 	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/chain/ksmcc"
-	"github.com/ChainSafe/gossamer/dot/types"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -161,10 +161,6 @@ func GssmrConfig() *Config {
 			Modules: gssmr.DefaultRPCModules,
 			WSPort:  gssmr.DefaultRPCWSPort,
 		},
-		System: types.SystemInfo{
-			NodeName:         gssmr.DefaultName,
-			SystemProperties: make(map[string]interface{}),
-		},
 	}
 }
 
@@ -209,10 +205,6 @@ func KsmccConfig() *Config {
 			Host:    ksmcc.DefaultRPCHTTPHost,
 			Modules: ksmcc.DefaultRPCModules,
 			WSPort:  ksmcc.DefaultRPCWSPort,
-		},
-		System: types.SystemInfo{
-			NodeName:         ksmcc.DefaultName,
-			SystemProperties: make(map[string]interface{}),
 		},
 	}
 }

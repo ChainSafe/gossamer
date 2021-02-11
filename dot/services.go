@@ -324,8 +324,7 @@ func createSystemService(cfg *types.SystemInfo, stateSrvc *state.Service) (*syst
 		return nil, err
 	}
 	// TODO: use data from genesisData for SystemInfo once they are in database (See issue #1248)
-	cfg.ChainType = genesisData.ChainType
-	return system.NewService(cfg), nil
+	return system.NewService(cfg, genesisData), nil
 }
 
 // createGRANDPAService creates a new GRANDPA service

@@ -115,7 +115,7 @@ func (s *Service) Initialize(gen *genesis.Genesis, header *types.Header, t *trie
 	if err != nil {
 		return err
 	}
-
+fmt.Printf("gen data %v\n", gen.GenesisData())
 	// write initial genesis values to database
 	if err = s.storeInitialValues(db, gen.GenesisData(), header, t); err != nil {
 		return fmt.Errorf("failed to write genesis values to database: %s", err)

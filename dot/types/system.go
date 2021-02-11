@@ -4,7 +4,4 @@ package types
 type SystemInfo struct {
 	SystemName       string
 	SystemVersion    string
-	NodeName         string
-	ChainType        string
-	SystemProperties map[string]interface{}
 }

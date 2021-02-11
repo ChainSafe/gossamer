@@ -423,7 +423,7 @@ func GenerateGenesisSixAuth() {
 func generateDefaultConfig() *ctoml.Config {
 	return &ctoml.Config{
 		Global: ctoml.GlobalConfig{
-			Name:   "gssmr",
+			Name:   "Gossamer",
 			ID:     "gssmr",
 			LogLvl: "crit",
 		},

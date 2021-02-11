@@ -17,6 +17,7 @@
 package modules
 
 import (
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"math/big"
 	"os"
 	"path"
@@ -151,13 +152,17 @@ func TestSystemModule_NodeRoles(t *testing.T) {
 var testSystemInfo = &types.SystemInfo{
 	SystemName:       "gossamer",
 	SystemVersion:    "0",
-	NodeName:         "gssmr",
-	SystemProperties: make(map[string]interface{}),
-	ChainType:        "Local",
+}
+
+var testGenesisData = &genesis.Data{
+	Name:       "Gossamer",
+	ID:         "gssmr",
+	ChainType:  "Local",
 }
 
 type mockSystemAPI struct {
 	info *types.SystemInfo
+	genData *genesis.Data
 }
 
 func newMockSystemAPI() *mockSystemAPI {
@@ -175,15 +180,15 @@ func (api *mockSystemAPI) SystemVersion() string {
 }
 
 func (api *mockSystemAPI) NodeName() string {
-	return api.info.NodeName
+	return api.genData.Name
 }
 
 func (api *mockSystemAPI) Properties() map[string]interface{} {
-	return api.info.SystemProperties
+	return nil
 }
 
 func (api *mockSystemAPI) ChainType() string {
-	return api.info.ChainType
+	return api.genData.ChainType
 }
 
 func TestSystemModule_Chain(t *testing.T) {
@@ -192,7 +197,7 @@ func TestSystemModule_Chain(t *testing.T) {
 	res := new(string)
 	err := sys.Chain(nil, nil, res)
 	require.NoError(t, err)
-	require.Equal(t, testSystemInfo.NodeName, *res)
+	require.Equal(t, testGenesisData.Name, *res)
 }
 
 func TestSystemModule_ChainType(t *testing.T) {
@@ -202,7 +207,7 @@ func TestSystemModule_ChainType(t *testing.T) {
 
 	res := new(string)
 	sys.ChainType(nil, nil, res)
-	require.Equal(t, api.info.ChainType, *res)
+	require.Equal(t, api.genData.ChainType, *res)
 }
 
 func TestSystemModule_Name(t *testing.T) {
@@ -229,5 +234,5 @@ func TestSystemModule_Properties(t *testing.T) {
 	res := new(interface{})
 	err := sys.Properties(nil, nil, res)
 	require.NoError(t, err)
-	require.Equal(t, testSystemInfo.SystemProperties, *res)
+	require.Equal(t, nil, *res)
 }

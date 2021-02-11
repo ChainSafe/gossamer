@@ -82,7 +82,7 @@ describe('Testing polkadot.js/api calls:', function () {
     describe('api system', () => {
         it('call api.rpc.system.chain()', async function () {
             const chain = await api.rpc.system.chain();
-            expect(chain).to.contain('gssmr');
+            expect(chain).to.contain('Gossamer');
         });
 
         it('call api.rpc.system.properties()', async function () {
