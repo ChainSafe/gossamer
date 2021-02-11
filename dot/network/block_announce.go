@@ -214,31 +214,36 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 
 	bestBlockNum := big.NewInt(int64(bhs.BestBlockNumber))
 
+	np, ok := s.notificationsProtocols[BlockAnnounceMsgType]
+	if !ok {
+		logger.Error("s.notificationsProtocols[BlockAnnounceMsgType] is nil")
+	}
+
+	_, ok = np.handshakeData[peer]
+	if !ok {
+		logger.Error("peer handshake data is nil")
+	}
+
 	// check if peer block number is greater than host block number
 	if latestHeader.Number.Cmp(bestBlockNum) >= 0 {
+		if ok {
+			s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].handshake = hs
+		}
+
 		return nil
 	}
 
 	// if so, send block request
-	s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].handshakeMessage = hs
-
 	logger.Trace("sending peer highest block to syncer", "number", bhs.BestBlockNumber)
 	req := s.syncer.HandleBlockAnnounceHandshake(bestBlockNum)
 	if req == nil {
+		if ok {
+			s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].handshake = hs
+		}
 		return nil
 	}
 
 	go func() {
-		if s.notificationsProtocols[BlockAnnounceMsgType] == nil {
-			logger.Error("s.notificationsProtocols[BlockAnnounceMsgType] is nil")
-			return
-		}
-
-		if s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer] == nil {
-			logger.Error("peer handshake data is nil")
-			return
-		}
-
 		// wait until we send BlockAnnounceHandshake, then begin sync
 		select {
 		case <-s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].responseSentCh:
@@ -255,6 +260,9 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 		s.attemptSyncWithRandomPeer(req)
 	}()
 
+	if ok {
+		s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].handshake = hs
+	}
 	return nil
 }
 

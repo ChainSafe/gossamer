@@ -584,7 +584,7 @@ func (s *Service) Peers() []common.PeerInfo {
 
 			continue
 		}
-		peerHandshakeMessage := s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[p].handshakeMessage
+		peerHandshakeMessage := s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[p].handshake
 
 		if peerHandshakeMessage != nil {
 			peers = append(peers, common.PeerInfo{

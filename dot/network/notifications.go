@@ -57,11 +57,11 @@ type notificationsProtocol struct {
 }
 
 type handshakeData struct {
-	received         bool
-	validated        bool
-	handshakeMessage Handshake
-	outboundMsg      NotificationsMessage
-	responseSentCh   chan struct{} // this channel is created and closed when
+	received       bool
+	validated      bool
+	handshake      Handshake
+	outboundMsg    NotificationsMessage
+	responseSentCh chan struct{} // this channel is created and closed when
 }
 
 func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecoder, messageDecoder MessageDecoder) messageDecoder {
