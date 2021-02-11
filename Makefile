@@ -64,7 +64,7 @@ it-sync: build
 ## test: Runs `go test -race` on project test files.
 test-state-race:
 	@echo "  >  \033[32mRunning race tests...\033[0m "
-	go test ./dot/state/... -short -v -race -timeout=5m
+	go test ./dot/state/... -short -race -timeout=5m
 
 ## deps: Install missing dependencies. Runs `go mod download` internally.
 deps:

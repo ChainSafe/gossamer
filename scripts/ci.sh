@@ -19,9 +19,9 @@
 set -e
 
 echo ">> Running tests..."
-go test -short -v -coverprofile c.out ./... -timeout=15m
+go test -short -coverprofile c.out ./... -timeout=15m
 #./cc-test-reporter after-build --exit-code $?
 # echo ">> Running race condition test on runtime"
 # go test -short -race ./lib/runtime
 echo ">> Running race condition test on priority queue"
-go test -short -v -race ./lib/transaction/
+go test -short -race ./lib/transaction/
