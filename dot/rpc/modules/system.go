@@ -156,6 +156,10 @@ func (sm *SystemModule) NodeRoles(r *http.Request, req *EmptyRequest, res *[]int
 func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, res *U64Response) error {
 	// todo (ed) check pending transactions
 
+	if req == nil || len(req.String) == 0 {
+		return errors.New("Account address must be valid")
+	}
+
 	// get metadata to build storage storageKey
 	rawMeta, err := sm.coreAPI.GetMetadata(nil)
 	if err != nil {
@@ -171,9 +175,6 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 		return err
 	}
 
-	if req == nil || len(req.String) == 0 {
-		return errors.New("Account address must be valid")
-	}
 	addressPubKey := crypto.PublicAddressToByteArray(common.Address(req.String))
 
 	storageKey, err := types.CreateStorageKey(&metadata, "System", "Account", addressPubKey, nil)
