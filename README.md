@@ -3,27 +3,33 @@
 </div>
 <div align="center">
   <a href="https://www.gnu.org/licenses/gpl-3.0">
-    <img alt="License: GPL v3" src="https://img.shields.io/badge/License-GPLv3-blue.svg" />
+    <img alt="License: GPL v3" src="https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge&label=License" height="20"/>
+  </a>
+    <a href="https://github.com/ChainSafe/gossamer/actions">
+    <img alt="build status" src="https://img.shields.io/github/workflow/status/ChainSafe/gossamer/build?branch=development&style=for-the-badge&logo=github&label=build" height="20"/>
   </a>
   <a href="https://godoc.org/github.com/ChainSafe/gossamer">
-    <img alt="go doc" src="https://godoc.org/github.com/ChainSafe/gossamer?status.svg" />
+    <img alt="go doc" src="http://img.shields.io/badge/godoc-reference-5272B4.svg?style=for-the-badge" height="20" />
   </a>
   <a href="https://goreportcard.com/report/github.com/ChainSafe/gossamer">
-    <img alt="go report card" src="https://goreportcard.com/badge/github.com/ChainSafe/gossamer" />
-  </a>
-  <a href="https://discord.gg/zy8eRF7FG2">
-    <img alt="Discord" src="https://img.shields.io/discord/593655374469660673.svg?style=flat&label=Discord&logo=discord" />
-  </a>
-  <a href="https://github.com/ChainSafe/gossamer/actions">
-    <img alt="build status" src="https://github.com/ChainSafe/gossamer/workflows/build/badge.svg?branch=development" />
+    <img alt="go report card" src="https://goreportcard.com/badge/github.com/ChainSafe/gossamer?style=for-the-badge" height="20" />
   </a>
 </div>
 <div align="center">
   <a href="https://codeclimate.com/github/ChainSafe/gossamer/badges">
-    <img alt="maintainability" src="https://api.codeclimate.com/v1/badges/933c7bb58eee9aba85eb/maintainability" />
+    <img alt="maintainability" src="https://img.shields.io/codeclimate/maintainability/ChainSafe/gossamer?style=for-the-badge" height="20" />
   </a>
   <a href="https://codeclimate.com/github/ChainSafe/gossamer/test_coverage">
-    <img alt="Test Coverage" src="https://api.codeclimate.com/v1/badges/933c7bb58eee9aba85eb/test_coverage" />
+    <img alt="Test Coverage" src="https://img.shields.io/codeclimate/coverage/ChainSafe/gossamer?style=for-the-badge" height="20" />
+  </a>
+    <a href="https://discord.gg/zy8eRF7FG2">
+    <img alt="Discord" src="https://img.shields.io/discord/593655374469660673.svg?style=for-the-badge&label=Discord&logo=discord" height="20"/>
+  </a>
+  <a href="https://medium.com/chainsafe-systems/tagged/polkadot">
+    <img alt="Gossamer Blog" src="https://img.shields.io/badge/Medium-grey?style=for-the-badge&logo=medium" height="20" />
+  </a>
+    <a href="https://medium.com/chainsafe-systems/tagged/polkadot">
+    <img alt="Gossamer Blog" src="https://img.shields.io/twitter/follow/chainsafeth?color=blue&label=follow&logo=twitter&style=for-the-badge" height="20"/>
   </a>
 </div>
 <br />
@@ -40,7 +46,7 @@ For more information about Gossamer, the Polkadot ecosystem, and how to use Goss
 
 ### Prerequisites
 
-install go version `>=1.14`
+install go version `>=1.15`
 
 ### Installation
 
