@@ -406,7 +406,7 @@ func TestDigestHandler_HandleNextConfigData(t *testing.T) {
 	digest := &types.NextConfigData{
 		C1:             1,
 		C2:             8,
-		SecondarySlots: true,
+		SecondarySlots: 1,
 	}
 
 	data, err := digest.Encode()
