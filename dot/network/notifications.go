@@ -131,7 +131,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 
 				err = s.host.send(peer, info.subProtocol, resp)
 				if err != nil {
-					logger.Error("failed to send handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
+					logger.Debug("failed to send handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
 					return err
 				}
 				logger.Trace("receiver: sent handshake", "sub-protocol", info.subProtocol, "peer", peer)
@@ -143,7 +143,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 				logger.Trace("sender: validating handshake")
 				err := handshakeValidator(peer, hs)
 				if err != nil {
-					logger.Error("failed to validate handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
+					logger.Debug("failed to validate handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
 					delete(info.handshakeData, peer)
 					return errCannotValidateHandshake
 				}
@@ -163,7 +163,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 				logger.Trace("sender: sending message", "sub-protocol", info.subProtocol)
 				err := s.host.send(peer, info.subProtocol, hsData.outboundMsg)
 				if err != nil {
-					logger.Error("failed to send message", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
+					logger.Debug("failed to send message", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
 					return err
 				}
 				return nil
