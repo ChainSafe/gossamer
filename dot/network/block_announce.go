@@ -243,15 +243,15 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 		return nil
 	}
 
-	if s.notificationsProtocols[BlockAnnounceMsgType] == nil {
-		logger.Error("s.notificationsProtocols[BlockAnnounceMsgType] is nil")
-	}
-
-	if s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer] == nil {
-		logger.Error("peer handshake data is nil")
-	}
-
 	go func() {
+		if s.notificationsProtocols[BlockAnnounceMsgType] == nil {
+			return
+		}
+
+		if s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer] == nil {
+			return
+		}
+
 		// wait until we send BlockAnnounceHandshake, then begin sync
 		select {
 		case <-s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].responseSentCh:
@@ -264,7 +264,7 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 			err = errors.New("timeout")
 		}
 
-		logger.Debug("failed to send response to peer's handshake", "sub-protocol", syncID, "peer", peer, "error", err)
+		logger.Error("failed to send response to peer's handshake", "sub-protocol", syncID, "peer", peer, "error", err)
 		s.attemptSyncWithRandomPeer(req)
 	}()
 

@@ -454,7 +454,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		if err == io.EOF {
 			continue
 		} else if err != nil {
-			logger.Debug("Failed to read LEB128 encoding", "protocol", stream.Protocol(), "error", err)
+			logger.Warn("Failed to read LEB128 encoding", "protocol", stream.Protocol(), "error", err)
 			_ = stream.Close()
 			return
 		}
