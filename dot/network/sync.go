@@ -79,7 +79,7 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 	return nil
 }
 
-type syncPeer struct {
+type syncPeer struct { //nolint
 	pid   peer.ID
 	score int
 }
@@ -214,7 +214,8 @@ func (q *syncQueue) stop() {
 	q.cancel()
 }
 
-func (q *syncQueue) getSortedPeers() []*syncPeer {
+// TODO: use this to determine who to try to sync from first
+func (q *syncQueue) getSortedPeers() []*syncPeer { //nolint
 	peers := make([]*syncPeer, len(q.peerScore))
 	i := 0
 	for pid, score := range q.peerScore {
@@ -226,11 +227,7 @@ func (q *syncQueue) getSortedPeers() []*syncPeer {
 	}
 
 	sort.Slice(peers, func(i, j int) bool {
-		if peers[i].score < peers[j].score {
-			return true
-		}
-
-		return false
+		return peers[i].score < peers[j].score
 	})
 
 	return peers
@@ -407,11 +404,7 @@ func (q *syncQueue) isSyncing(peer peer.ID) bool {
 
 func sortRequests(reqs []*syncRequest) {
 	sort.Slice(reqs, func(i, j int) bool {
-		if reqs[i].req.StartingBlock.Uint64() < reqs[j].req.StartingBlock.Uint64() {
-			return true
-		}
-
-		return false
+		return reqs[i].req.StartingBlock.Uint64() < reqs[j].req.StartingBlock.Uint64()
 	})
 
 	if len(reqs) <= 1 {
@@ -434,11 +427,7 @@ func sortRequests(reqs []*syncRequest) {
 
 func sortResponses(resps []*syncResponse) {
 	sort.Slice(resps, func(i, j int) bool {
-		if resps[i].start < resps[j].start {
-			return true
-		}
-
-		return false
+		return resps[i].start < resps[j].start
 	})
 
 	i := 0

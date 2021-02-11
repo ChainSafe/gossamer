@@ -235,6 +235,7 @@ func (s *EpochState) GetEpochData(epoch uint64) (*types.EpochData, error) {
 	return raw.ToEpochData()
 }
 
+// GetLatestEpochData returns the EpochData for the current epoch
 func (s *EpochState) GetLatestEpochData() (*types.EpochData, error) {
 	curr, err := s.GetCurrentEpoch()
 	if err != nil {
