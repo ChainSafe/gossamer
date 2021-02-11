@@ -742,3 +742,20 @@ func TestClearPrefix(t *testing.T) {
 		}
 	}
 }
+
+func TestClearPrefix_Small(t *testing.T) {
+	keys := []string{
+		"noot",
+		"noodle",
+		"other",
+	}
+
+	trie := NewEmptyTrie()
+
+	for _, key := range keys {
+		trie.Put([]byte(key), []byte(key))
+	}
+
+	trie.ClearPrefix([]byte("noo"))
+	require.Equal(t, trie.root, &leaf{key: keyToNibbles([]byte("other")), value: []byte("other"), dirty: true})
+}

@@ -63,8 +63,10 @@ async function main() {
     // Simple transaction
     // TODO Issue:  This currently fails with error: RPC-CORE: submitExtrinsic(extrinsic: Extrinsic): Hash:: -32000: validator: (nil *modules.Extrinsic): null
     const keyring = new Keyring({type: 'sr25519' });
-    const aliceKey = keyring.addFromUri('//Alice');
-    const ADDR_Bob = '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty';
+    const aliceKey = keyring.addFromUri('//Alice',  { name: 'Alice default' });
+    console.log(`${aliceKey.meta.name}: has address ${aliceKey.address} with publicKey [${aliceKey.publicKey}]`);
+
+    const ADDR_Bob = '0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22';
 
     const transfer = await api.tx.balances.transfer(ADDR_Bob, 12345)
         .signAndSend(aliceKey);

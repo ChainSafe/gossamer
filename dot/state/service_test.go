@@ -212,9 +212,5 @@ func TestService_PruneStorage(t *testing.T) {
 		_, ok := serv.Storage.tries[v.hash]
 		serv.Storage.lock.Unlock()
 		require.Equal(t, false, ok)
-
-		ok, err = serv.Storage.baseDB.Has(v.dbKey)
-		require.NoError(t, err)
-		require.Equal(t, false, ok)
 	}
 }

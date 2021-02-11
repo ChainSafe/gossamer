@@ -26,7 +26,9 @@ import (
 
 // newTestTrieState returns an initialized TrieState
 func newTestTrieState(t *testing.T) *TrieState {
-	return NewTestTrieState(t, nil)
+	ts, err := NewTrieState(nil)
+	require.NoError(t, err)
+	return ts
 }
 
 var testCases = []string{
@@ -44,13 +46,6 @@ func TestTrieState_SetGet(t *testing.T) {
 			err := ts.Set([]byte(tc), []byte(tc))
 			require.NoError(t, err)
 		}
-
-		err := ts.t.Store(ts.db)
-		require.NoError(t, err)
-
-		// change a trie value to simulate runtime corruption
-		err = ts.t.Put([]byte(testCases[0]), []byte("noot"))
-		require.NoError(t, err)
 
 		for _, tc := range testCases {
 			res, err := ts.Get([]byte(tc))
@@ -70,10 +65,7 @@ func TestTrieState_Delete(t *testing.T) {
 			require.NoError(t, err)
 		}
 
-		err := ts.t.Store(ts.db)
-		require.NoError(t, err)
-
-		err = ts.Delete([]byte(testCases[0]))
+		err := ts.Delete([]byte(testCases[0]))
 		require.NoError(t, err)
 
 		has, err := ts.Has([]byte(testCases[0]))
@@ -93,11 +85,6 @@ func TestTrieState_Root(t *testing.T) {
 		}
 
 		expected := ts.MustRoot()
-
-		// change a trie value to simulate runtime corruption
-		err := ts.t.Put([]byte(testCases[0]), []byte("noot"))
-		require.NoError(t, err)
-
 		require.Equal(t, expected, ts.MustRoot())
 	}
 
@@ -119,8 +106,6 @@ func TestTrieState_ClearPrefix(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	// TODO: the trie structure is incorrect after using trie.ClearPrefix. should be 1 leaf,
-	// instead is 2 branches leading to leaf.
 	ts.ClearPrefix([]byte("noo"))
 
 	for i, key := range keys {

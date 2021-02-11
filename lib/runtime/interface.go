@@ -48,12 +48,12 @@ type InstanceAPI interface {
 	NetworkService() BasicNetwork
 
 	Exec(function string, data []byte) ([]byte, error)
-	SetContext(s Storage) // used to set the TrieState before a runtime call
+	SetContextStorage(s Storage) // used to set the TrieState before a runtime call
 }
 
 // LegacyRuntimeAPI is the interface that a legacy runtime instance must implement
 type LegacyRuntimeAPI interface {
-	Version() (*VersionAPI, error)
+	Version() (Version, error)
 	Metadata() ([]byte, error)
 	BabeConfiguration() (*types.BabeConfiguration, error)
 	GrandpaAuthorities() ([]*types.Authority, error)

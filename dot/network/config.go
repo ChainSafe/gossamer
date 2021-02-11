@@ -24,23 +24,31 @@ import (
 	"github.com/libp2p/go-libp2p-core/crypto"
 )
 
-// DefaultKeyFile the default value for KeyFile
-const DefaultKeyFile = "node.key"
+const (
+	// DefaultKeyFile the default value for KeyFile
+	DefaultKeyFile = "node.key"
 
-// DefaultBasePath the default value for Config.BasePath
-const DefaultBasePath = "~/.gossamer/gssmr"
+	// DefaultBasePath the default value for Config.BasePath
+	DefaultBasePath = "~/.gossamer/gssmr"
 
-// DefaultPort the default value for Config.Port
-const DefaultPort = uint32(7000)
+	// DefaultPort the default value for Config.Port
+	DefaultPort = uint32(7000)
 
-// DefaultRandSeed the default value for Config.RandSeed (0 = non-deterministic)
-const DefaultRandSeed = int64(0)
+	// DefaultRandSeed the default value for Config.RandSeed (0 = non-deterministic)
+	DefaultRandSeed = int64(0)
 
-// DefaultProtocolID the default value for Config.ProtocolID
-const DefaultProtocolID = "/gossamer/gssmr/0"
+	// DefaultProtocolID the default value for Config.ProtocolID
+	DefaultProtocolID = "/gossamer/gssmr/0"
 
-// DefaultRoles the default value for Config.Roles (0 = no network, 1 = full node)
-const DefaultRoles = byte(1)
+	// DefaultRoles the default value for Config.Roles (0 = no network, 1 = full node)
+	DefaultRoles = byte(1)
+
+	// DefaultMinPeerCount is the default minimum peer count
+	DefaultMinPeerCount = 5
+
+	// DefaultMaxPeerCount is the default maximum peer count
+	DefaultMaxPeerCount = 50
+)
 
 // DefaultBootnodes the default value for Config.Bootnodes
 var DefaultBootnodes = []string(nil)
@@ -73,6 +81,9 @@ type Config struct {
 	NoBootstrap bool
 	// NoMDNS disables MDNS discovery
 	NoMDNS bool
+
+	MinPeers int
+	MaxPeers int
 
 	// privateKey the private key for the network p2p identity
 	privateKey crypto.PrivKey
