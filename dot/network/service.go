@@ -140,8 +140,7 @@ func NewService(cfg *Config) (*Service, error) {
 		noMDNS:                 cfg.NoMDNS,
 		syncer:                 cfg.Syncer,
 		notificationsProtocols: make(map[byte]*notificationsProtocol),
-		//syncing:                make(map[peer.ID]struct{}),
-		lightRequest: make(map[peer.ID]struct{}),
+		lightRequest:           make(map[peer.ID]struct{}),
 	}
 
 	return network, err
@@ -188,8 +187,7 @@ func (s *Service) Start() error {
 		s.handleBlockAnnounceMessage,
 	)
 	if err != nil {
-		logger.Error("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
-		return err
+		logger.Warn("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
 	}
 
 	// register transactions protocol
@@ -203,8 +201,7 @@ func (s *Service) Start() error {
 		s.handleTransactionMessage,
 	)
 	if err != nil {
-		logger.Error("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
-		return err
+		logger.Warn("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
 	}
 
 	// log listening addresses to console

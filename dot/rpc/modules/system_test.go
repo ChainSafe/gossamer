@@ -51,7 +51,7 @@ func (s *mockSyncer) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) *net
 	return nil
 }
 
-func (s *mockSyncer) HandleBlockAnnounceHandshake(num *big.Int) *network.BlockRequestMessage {
+func (s *mockSyncer) HandleBlockAnnounceHandshake(num *big.Int) []*network.BlockRequestMessage {
 	return nil
 }
 
@@ -59,6 +59,10 @@ type mockBlockState struct{}
 
 func (s *mockBlockState) BestBlockHeader() (*types.Header, error) {
 	return genesisHeader, nil
+}
+
+func (s *mockBlockState) BestBlockNumber() (*big.Int, error) {
+	return big.NewInt(0), nil
 }
 
 func (s *mockBlockState) GenesisHash() common.Hash {
@@ -89,6 +93,13 @@ func newNetworkService(t *testing.T) *network.Service {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	err = srv.Start()
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		_ = srv.Stop()
+	})
 
 	return srv
 }

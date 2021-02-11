@@ -187,12 +187,13 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	if cfg.Network == nil {
 		config := &network.Config{
-			BasePath:    testDatadirPath,
-			Port:        7001,
-			RandSeed:    1,
-			NoBootstrap: true,
-			NoMDNS:      true,
-			BlockState:  stateSrvc.Block,
+			BasePath:           testDatadirPath,
+			Port:               7001,
+			RandSeed:           1,
+			NoBootstrap:        true,
+			NoMDNS:             true,
+			BlockState:         stateSrvc.Block,
+			TransactionHandler: &mockTransactionHandler{},
 		}
 		cfg.Network = createTestNetworkService(t, config)
 	}
@@ -218,6 +219,9 @@ func createTestNetworkService(t *testing.T, cfg *network.Config) (srvc *network.
 	}
 
 	srvc, err := network.NewService(cfg)
+	require.NoError(t, err)
+
+	err = srvc.Start()
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
@@ -284,5 +288,11 @@ func (d *mockDigestItem) Encode() ([]byte, error) {
 }
 
 func (d *mockDigestItem) Decode(_ io.Reader) error {
+	return nil
+}
+
+type mockTransactionHandler struct{}
+
+func (h *mockTransactionHandler) HandleTransactionMessage(_ *network.TransactionMessage) error {
 	return nil
 }
