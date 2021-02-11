@@ -128,7 +128,7 @@ func TestDeepCopyVsSnapshot(t *testing.T) {
 			trieMap := make(map[int]*trie.Trie)
 			start := time.Now()
 			var m runtime.MemStats
-			for i := 0; i <= 1000; i++ {
+			for i := 0; i <= 200; i++ {
 				newTrie, err := tc.fn(tri)
 				require.NoError(t, err)
 
