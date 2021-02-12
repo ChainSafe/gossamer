@@ -551,7 +551,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
-	gossTrie3783 := newTrieFromPairs(t, "../../../block3783_gossamer.out")
+	gossTrie3783 := newTrieFromPairs(t, "../test_data/block3783_gossamer.out")
 	expectedRoot := common.MustHexToHash("0x948338bc0976aee78879d559a1f42385407e5a481b05a91d2a9386aa7507e7a0")
 	require.Equal(t, expectedRoot, gossTrie3783.MustHash())
 
