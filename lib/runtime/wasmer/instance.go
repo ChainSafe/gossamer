@@ -25,6 +25,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/trie"
+
 	log "github.com/ChainSafe/log15"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
@@ -98,6 +100,21 @@ func NewLegacyInstanceFromFile(fp string, cfg *Config) (*LegacyInstance, error) 
 // NewLegacyInstance instantiates a legacy runtime from raw wasm bytecode
 func NewLegacyInstance(code []byte, cfg *Config) (*LegacyInstance, error) {
 	return newLegacyInstance(code, cfg)
+}
+
+// NewInstanceFromTrie returns a new runtime instance with the code provided in the given trie
+func NewInstanceFromTrie(t *trie.Trie, cfg *Config) (*Instance, error) {
+	code, err := t.Get(common.CodeKey)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(code) == 0 {
+		return nil, fmt.Errorf("cannot find :code in trie")
+	}
+
+	cfg.Imports = ImportsNodeRuntime
+	return NewInstance(code, cfg)
 }
 
 // NewInstanceFromFile instantiates a runtime from a .wasm file
