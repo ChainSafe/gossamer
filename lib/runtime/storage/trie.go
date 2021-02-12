@@ -65,7 +65,8 @@ func (s *TrieState) Copy() (*TrieState, error) {
 func (s *TrieState) Set(key []byte, value []byte) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	return s.t.Put(key, value)
+	s.t.Put(key, value)
+	return nil
 }
 
 // Get gets a value from the trie

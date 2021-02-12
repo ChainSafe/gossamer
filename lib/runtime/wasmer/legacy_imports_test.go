@@ -295,10 +295,7 @@ func TestExt_clear_prefix(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		e := runtime.ctx.Storage.Set(test.key, test.value)
-		if e != nil {
-			t.Fatal(e)
-		}
+		runtime.ctx.Storage.Set(test.key, test.value)
 	}
 
 	// we are going to delete prefix 0x0135
@@ -313,10 +310,7 @@ func TestExt_clear_prefix(t *testing.T) {
 	expectedTrie := &trie.Trie{}
 
 	for _, test := range expected {
-		e := expectedTrie.Put(test.key, test.value)
-		if e != nil {
-			t.Fatal(e)
-		}
+		expectedTrie.Put(test.key, test.value)
 	}
 
 	// copy prefix we want to delete to wasm memory
@@ -529,8 +523,7 @@ func TestExt_blake2_256_enumerated_trie_root(t *testing.T) {
 		encodedKey, err2 := scale.Encode(keyBigInt)
 		require.Nil(t, err2)
 
-		e := expectedTrie.Put(encodedKey, test.value)
-		require.Nil(t, e)
+		expectedTrie.Put(encodedKey, test.value)
 
 		// construct array of values
 		valuesArray = append(valuesArray, test.value...)

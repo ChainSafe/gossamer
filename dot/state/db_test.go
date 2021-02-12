@@ -17,14 +17,10 @@ func TestTrie_StoreAndLoadFromDB(t *testing.T) {
 	tt := trie.NewEmptyTrie()
 
 	rt := trie.GenerateRandomTests(t, 1000)
-	var val []byte
 	for _, test := range rt {
-		err := tt.Put(test.Key(), test.Value())
-		if err != nil {
-			t.Errorf("Fail to put with key %x and value %x: %s", test.Key(), test.Value(), err.Error())
-		}
+		tt.Put(test.Key(), test.Value())
 
-		val, err = tt.Get(test.Key())
+		val, err := tt.Get(test.Key())
 		if err != nil {
 			t.Errorf("Fail to get key %x: %s", test.Key(), err.Error())
 		} else if !bytes.Equal(val, test.Value()) {
@@ -67,10 +63,7 @@ func TestStoreAndLoadLatestStorageHash(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		err := tt.Put(test.key, test.value)
-		if err != nil {
-			t.Fatal(err)
-		}
+		tt.Put(test.key, test.value)
 	}
 
 	expected, err := tt.Hash()

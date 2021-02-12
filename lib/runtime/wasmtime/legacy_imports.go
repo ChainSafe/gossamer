@@ -244,11 +244,7 @@ func ext_blake2_256_enumerated_trie_root(c *wasmtime.Caller, valuesData, lensDat
 			return
 		}
 		logger.Trace("[ext_blake2_256_enumerated_trie_root]", "key", i, "key value", encodedOutput)
-		err = t.Put(encodedOutput, value)
-		if err != nil {
-			logger.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
-			return
-		}
+		t.Put(encodedOutput, value)
 	}
 	root, err := t.Hash()
 	if err != nil {
