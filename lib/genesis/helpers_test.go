@@ -129,8 +129,7 @@ func TestNewTrieFromGenesis(t *testing.T) {
 	}
 
 	expTrie := trie.NewEmptyTrie()
-	err := expTrie.Put([]byte(`:code`), []byte{1, 2})
-	require.NoError(t, err)
+	expTrie.Put([]byte(`:code`), []byte{1, 2})
 
 	trie, err := NewTrieFromGenesis(rawGenesis)
 	require.NoError(t, err)
