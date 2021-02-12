@@ -854,13 +854,13 @@ func TestClearPrefix_Small(t *testing.T) {
 
 func TestTrie_ClearPrefixVsDelete(t *testing.T) {
 	prefixes := [][]byte{
-		{},
-		{0x0},
-		{0x01},
-		{0x01, 0x35},
-		{0xf},
-		{0xf2},
-		{0x01, 0x30},
+		//{},
+		// {0x0},
+		// {0x01},
+		// {0x01, 0x35},
+		// {0xf},
+		// {0xf2},
+		// {0x01, 0x30},
 		{0x01, 0x35, 0x70},
 		{0x01, 0x35, 0x77},
 		{0xf2, 0x0},
@@ -909,6 +909,9 @@ func TestTrie_ClearPrefixVsDelete(t *testing.T) {
 				trieDelete.Put(test.key, test.value)
 				trieClearPrefix.Put(test.key, test.value)
 			}
+
+			t.Log(trieClearPrefix)
+			t.Log(trieDelete)
 
 			prefixedKeys := trieDelete.GetKeysWithPrefix(prefix)
 			for _, key := range prefixedKeys {

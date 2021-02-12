@@ -547,7 +547,8 @@ func (t *Trie) clearPrefix(curr node, prefix []byte) (node, bool) {
 			// found prefix at child index, delete child
 			c.children[len(c.key)+int(prefix[0])] = nil
 			c.setDirty(true)
-			return c, true
+			curr = handleDeletion(c, prefix)
+			return curr, true
 		}
 
 		if len(prefix) <= len(c.key) {
