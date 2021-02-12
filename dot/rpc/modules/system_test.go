@@ -97,7 +97,7 @@ func newNetworkService(t *testing.T) *network.Service {
 // Test RPC's System.Health() response
 func TestSystemModule_Health(t *testing.T) {
 	net := newNetworkService(t)
-	sys := NewSystemModule(net, nil, nil, nil)
+	sys := NewSystemModule(net, nil, nil, nil, nil)
 
 	res := &SystemHealthResponse{}
 	err := sys.Health(nil, nil, res)
@@ -111,7 +111,7 @@ func TestSystemModule_Health(t *testing.T) {
 // Test RPC's System.NetworkState() response
 func TestSystemModule_NetworkState(t *testing.T) {
 	net := newNetworkService(t)
-	sys := NewSystemModule(net, nil, nil, nil)
+	sys := NewSystemModule(net, nil, nil, nil, nil)
 
 	res := &SystemNetworkStateResponse{}
 	err := sys.NetworkState(nil, nil, res)
@@ -127,7 +127,7 @@ func TestSystemModule_NetworkState(t *testing.T) {
 // Test RPC's System.Peers() response
 func TestSystemModule_Peers(t *testing.T) {
 	net := newNetworkService(t)
-	sys := NewSystemModule(net, nil, nil, nil)
+	sys := NewSystemModule(net, nil, nil, nil, nil)
 
 	res := &SystemPeersResponse{}
 	err := sys.Peers(nil, nil, res)
@@ -140,7 +140,7 @@ func TestSystemModule_Peers(t *testing.T) {
 
 func TestSystemModule_NodeRoles(t *testing.T) {
 	net := newNetworkService(t)
-	sys := NewSystemModule(net, nil, nil, nil)
+	sys := NewSystemModule(net, nil, nil, nil, nil)
 	expected := []interface{}{"Full"}
 
 	var res []interface{}
@@ -188,7 +188,7 @@ func (api *mockSystemAPI) ChainType() string {
 }
 
 func TestSystemModule_Chain(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil)
+	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil)
 
 	res := new(string)
 	err := sys.Chain(nil, nil, res)
@@ -199,7 +199,7 @@ func TestSystemModule_Chain(t *testing.T) {
 func TestSystemModule_ChainType(t *testing.T) {
 	api := newMockSystemAPI()
 
-	sys := NewSystemModule(nil, api, nil, nil)
+	sys := NewSystemModule(nil, api, nil, nil, nil)
 
 	res := new(string)
 	sys.ChainType(nil, nil, res)
@@ -207,7 +207,7 @@ func TestSystemModule_ChainType(t *testing.T) {
 }
 
 func TestSystemModule_Name(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil)
+	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil)
 
 	res := new(string)
 	err := sys.Name(nil, nil, res)
@@ -216,7 +216,7 @@ func TestSystemModule_Name(t *testing.T) {
 }
 
 func TestSystemModule_Version(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil)
+	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil)
 
 	res := new(string)
 	err := sys.Version(nil, nil, res)
@@ -225,7 +225,7 @@ func TestSystemModule_Version(t *testing.T) {
 }
 
 func TestSystemModule_Properties(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil)
+	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil)
 
 	res := new(interface{})
 	err := sys.Properties(nil, nil, res)
@@ -277,5 +277,5 @@ func setupSystemModule(t *testing.T) *SystemModule {
 	require.NoError(t, err)
 
 	core := newCoreService(t, chain)
-	return NewSystemModule(net, nil, core, chain.Storage)
+	return NewSystemModule(net, nil, core, chain.Storage, nil)
 }

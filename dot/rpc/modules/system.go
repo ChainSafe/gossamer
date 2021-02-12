@@ -32,6 +32,7 @@ type SystemModule struct {
 	systemAPI  SystemAPI
 	coreAPI    CoreAPI
 	storageAPI StorageAPI
+	txStateAPI TransactionStateAPI
 }
 
 // EmptyRequest represents an RPC request with no fields
@@ -66,12 +67,14 @@ type StringRequest struct {
 }
 
 // NewSystemModule creates a new API instance
-func NewSystemModule(net NetworkAPI, sys SystemAPI, core CoreAPI, storage StorageAPI) *SystemModule {
+func NewSystemModule(net NetworkAPI, sys SystemAPI, core CoreAPI,
+	storage StorageAPI, txAPI TransactionStateAPI) *SystemModule {
 	return &SystemModule{
 		networkAPI: net, // TODO: migrate to network state
 		systemAPI:  sys,
 		coreAPI:    core,
 		storageAPI: storage,
+		txStateAPI: txAPI,
 	}
 }
 
@@ -159,6 +162,7 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 	if req == nil || len(req.String) == 0 {
 		return errors.New("Account address must be valid")
 	}
+	addressPubKey := crypto.PublicAddressToByteArray(common.Address(req.String))
 
 	// get metadata to build storage storageKey
 	rawMeta, err := sm.coreAPI.GetMetadata(nil)
@@ -174,8 +178,6 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 	if err != nil {
 		return err
 	}
-
-	addressPubKey := crypto.PublicAddressToByteArray(common.Address(req.String))
 
 	storageKey, err := types.CreateStorageKey(&metadata, "System", "Account", addressPubKey, nil)
 	if err != nil {
