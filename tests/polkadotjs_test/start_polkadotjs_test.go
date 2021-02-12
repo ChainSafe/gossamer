@@ -30,7 +30,7 @@ var polkadotSuite = "polkadot"
 
 func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 	if utils.MODE != polkadotSuite {
-		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
+		_, _ = fmt.Fprintln(os.Stdout, "Going to skip polkadot.js/api suite tests")
 		return
 	}
 	t.Log("starting gossamer for polkadot.js/api tests...")
@@ -45,22 +45,12 @@ func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 	nodes, err := utils.InitializeAndStartNodesWebsocket(t, 1, utils.GenesisOneAuth, utils.ConfigBABEMaxThreshold)
 	require.NoError(t, err)
 
-	command := "yarn"
+	command := "npx mocha ./test"
 	parts := strings.Fields(command)
-	_, err = exec.Command(parts[0], parts[1:]...).Output()
-	require.NoError(t, err)
-
-	command = "yarn install"
-	parts = strings.Fields(command)
-	_, err = exec.Command(parts[0], parts[1:]...).Output()
-	require.NoError(t, err)
-
-	command = "yarn run test"
-	parts = strings.Fields(command)
 	data, err := exec.Command(parts[0], parts[1:]...).Output()
 	require.NoError(t, err, fmt.Sprintf("%s", data))
 
-	// uncomment this to see log results from javascript tests
+	//uncomment this to see log results from javascript tests
 	//fmt.Printf("%s\n", data)
 
 	t.Log("going to tear down gossamer...")

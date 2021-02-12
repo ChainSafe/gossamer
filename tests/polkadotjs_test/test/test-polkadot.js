@@ -133,8 +133,7 @@ describe('Testing polkadot.js/api calls:', function () {
         });
     });
     describe('api tx', () => {
-        //TODO enable this test once balances.transfer is working
-        xit('call api.tx.balances.transfer(ADDR_Bob, 12345).signAndSend(aliceKey)', async function () {
+        it('call api.tx.balances.transfer(ADDR_Bob, 12345).signAndSend(aliceKey)', async function () {
             this.timeout(5000);
             const keyring = new Keyring({type: 'sr25519' });
             const aliceKey = keyring.addFromUri('//Alice');
@@ -143,7 +142,8 @@ describe('Testing polkadot.js/api calls:', function () {
             const transfer = await api.tx.balances.transfer(ADDR_Bob, 12345)
                 .signAndSend(aliceKey);
 
-            console.log(`hxHash ${transfer}`);
+            expect(transfer).to.be.not.null;
+            expect(transfer).to.have.lengthOf(32);
         });
     });
 
