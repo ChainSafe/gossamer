@@ -529,6 +529,8 @@ func (t *Trie) clearPrefix(curr node, prefix []byte) (node, bool) {
 			// found prefix at this branch, delete it
 			return nil, true
 		}
+
+		// Store the current node and return it, if the trie is not updated.
 		currN := c
 		c = t.maybeUpdateBranchGeneration(c)
 
@@ -570,8 +572,7 @@ func (t *Trie) clearPrefix(curr node, prefix []byte) (node, bool) {
 // Delete removes any existing value for key from the trie.
 func (t *Trie) Delete(key []byte) error {
 	k := keyToNibbles(key)
-	n, _ := t.delete(t.root, k)
-	t.root = n
+	t.root, _ = t.delete(t.root, k)
 	// TODO: Remove error from result.
 	return nil
 }
@@ -579,8 +580,10 @@ func (t *Trie) Delete(key []byte) error {
 func (t *Trie) delete(parent node, key []byte) (node, bool) {
 	switch p := parent.(type) {
 	case *branch:
+		// Store the current node and return it, if the trie is not updated.
 		currP := p
 		p = t.maybeUpdateBranchGeneration(p)
+
 		length := lenCommonPrefix(p.key, key)
 		if bytes.Equal(p.key, key) || len(key) == 0 {
 			// found the value at this node
@@ -594,7 +597,9 @@ func (t *Trie) delete(parent node, key []byte) (node, bool) {
 			// If nothing was deleted then don't copy the path.
 			return currP, false
 		}
+
 		p.children[key[length]] = n
+
 		n = p
 		n.setDirty(true)
 		n = handleDeletion(p, n, key)
