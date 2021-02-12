@@ -132,11 +132,7 @@ func (t *Trie) load(db chaindb.Database, curr node) error {
 
 // PutInDB puts a value into the trie and writes the updates nodes the database. Since it needs to write all the nodes from the changed node up to the root, it writes these in a batch operation.
 func (t *Trie) PutInDB(db chaindb.Database, key, value []byte) error {
-	err := t.Put(key, value)
-	if err != nil {
-		return err
-	}
-
+	t.Put(key, value)
 	return t.WriteDirty(db)
 }
 
