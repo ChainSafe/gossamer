@@ -44,6 +44,19 @@ func failedToDial(err error) bool {
 
 // helper method to create and start a new network service
 func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
+	if cfg == nil {
+		basePath := utils.NewTestBasePath(t, "node")
+
+		cfg = &Config{
+			BasePath:    basePath,
+			Port:        7001,
+			RandSeed:    1,
+			NoBootstrap: true,
+			NoMDNS:      true,
+			LogLvl:      4,
+		}
+	}
+
 	if cfg.BlockState == nil {
 		cfg.BlockState = newMockBlockState(nil)
 	}
@@ -83,29 +96,13 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 
 // test network service starts
 func TestStartService(t *testing.T) {
-	basePath := utils.NewTestBasePath(t, "node")
-
-	// removes all data directories created within test directory
-	defer utils.RemoveTestDir(t)
-
-	config := &Config{
-		BasePath:    basePath,
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true,
-		NoMDNS:      true,
-	}
-	node := createTestService(t, config)
+	node := createTestService(t, nil)
 	node.Stop()
 }
 
 // test broacast messages from core service
 func TestBroadcastMessages(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
-
-	// removes all data directories created within test directory
-	defer utils.RemoveTestDir(t)
-
 	configA := &Config{
 		BasePath:    basePathA,
 		Port:        7001,
@@ -152,8 +149,6 @@ func TestBroadcastMessages(t *testing.T) {
 
 func TestBeginSyncingProtectsPeer(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "node_a")
-	defer utils.RemoveTestDir(t)
-
 	config := &Config{
 		BasePath:    basePath,
 		Port:        7001,
@@ -174,8 +169,6 @@ func TestBeginSyncingProtectsPeer(t *testing.T) {
 
 func TestHandleSyncMessage_BlockResponse(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "nodeA")
-	defer utils.RemoveTestDir(t)
-
 	config := &Config{
 		BasePath:    basePath,
 		Port:        7001,
@@ -200,7 +193,6 @@ func TestHandleSyncMessage_BlockResponse(t *testing.T) {
 	}
 
 	s.syncQueue.syncing[peerID] = struct{}{}
-
 	s.handleSyncMessage(peerID, msg)
 	require.Equal(t, 1, len(s.syncQueue.responses))
 	require.False(t, s.host.h.ConnManager().IsProtected(peerID, ""))
@@ -220,8 +212,6 @@ func TestService_NodeRoles(t *testing.T) {
 
 func TestService_Health(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "nodeA")
-	defer utils.RemoveTestDir(t)
-
 	config := &Config{
 		BasePath:    basePath,
 		Port:        7001,

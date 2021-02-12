@@ -255,12 +255,19 @@ func (h *host) getStream(p peer.ID, sub protocol.ID) (stream libp2pnetwork.Strea
 		for _, stream := range streams {
 
 			// return stream with matching host protocol id and stream direction outbound
-			if stream.Protocol() == h.protocolID+sub && stream.Stat().Direction == libp2pnetwork.DirOutbound {
+			if stream.Protocol() == h.protocolID+sub /*&& stream.Stat().Direction == libp2pnetwork.DirOutbound*/ {
 				return stream
 			}
 		}
 	}
 	return nil
+}
+
+func (h *host) closeStream(p peer.ID, sub protocol.ID) {
+	stream := h.getStream(p, syncID)
+	if stream != nil {
+		_ = stream.Close()
+	}
 }
 
 // closePeer closes the peer connection

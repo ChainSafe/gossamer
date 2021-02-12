@@ -188,7 +188,7 @@ func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) *networ
 		s.synced = false
 		err = s.blockProducer.Pause()
 		if err != nil {
-			s.logger.Warn("failed to pause block production")
+			s.logger.Debug("failed to pause block production")
 		}
 
 		// create block request to send

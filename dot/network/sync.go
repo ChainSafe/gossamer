@@ -23,6 +23,7 @@ func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 	conn := stream.Conn()
 	if conn == nil {
 		logger.Error("Failed to get connection from stream")
+		_ = stream.Close()
 		return
 	}
 
@@ -48,12 +49,14 @@ func (s *Service) decodeSyncMessage(in []byte, peer peer.ID) (Message, error) {
 // handleSyncMessage handles synchronization message types (BlockRequest and BlockResponse)
 func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 	if msg == nil {
+		s.host.closeStream(peer, syncID)
 		return nil
 	}
 
 	if resp, ok := msg.(*BlockResponseMessage); ok {
 		if isSyncing := s.syncQueue.isSyncing(peer); !isSyncing {
 			logger.Debug("not currently syncing with peer", "peer", peer)
+			s.host.closeStream(peer, syncID)
 			return nil
 		}
 
@@ -65,13 +68,14 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 		resp, err := s.syncer.CreateBlockResponse(req)
 		if err != nil {
 			logger.Debug("cannot create response for request")
-			// TODO: close stream
+			s.host.closeStream(peer, syncID)
 			return nil
 		}
 
 		err = s.host.send(peer, syncID, resp)
 		if err != nil {
 			logger.Error("failed to send BlockResponse message", "peer", peer)
+			s.host.closeStream(peer, syncID)
 		}
 	}
 
@@ -110,6 +114,8 @@ type syncQueue struct {
 	responses    []*syncResponse
 	responseCh   chan *syncResponse
 	responseLock sync.RWMutex
+
+	currStart, currEnd int64 // the start and end of the BlockResponse we are currently handling; 0 and 0 if we are not currently handling any
 }
 
 func newSyncQueue(s *Service) *syncQueue {
@@ -185,7 +191,7 @@ func (q *syncQueue) start() {
 		}
 	}()
 
-	go q.processBlockRequest()
+	go q.processBlockRequests()
 	go q.processBlockResponses()
 }
 
@@ -238,6 +244,10 @@ func (q *syncQueue) pushBlockRequests(reqs []*BlockRequestMessage, pid peer.ID) 
 	}
 
 	for _, req := range reqs {
+		if req.StartingBlock.Uint64() <= uint64(q.currEnd) {
+			return
+		}
+
 		// don't add requests that are already covered by existing requests
 		if req.StartingBlock.Uint64() <= currLastRequestedBlock {
 			continue
@@ -262,6 +272,11 @@ func (q *syncQueue) pushBlockRequest(req *BlockRequestMessage, pid peer.ID) {
 
 	// don't add requests that are already covered by existing requests
 	if req.StartingBlock.Uint64() <= currLastRequestedBlock {
+		return
+	}
+
+	// reject request that oerlaps with blocks we are currently syncing
+	if req.StartingBlock.Uint64() <= uint64(q.currEnd) {
 		return
 	}
 
@@ -302,16 +317,17 @@ func (q *syncQueue) pushBlockResponse(resp *BlockResponseMessage, pid peer.ID) {
 	sortResponses(q.responses)
 }
 
-func (q *syncQueue) processBlockRequest() {
+func (q *syncQueue) processBlockRequests() {
 	for {
 		select {
 		case req := <-q.requestCh:
-			if req.pid == "" {
+			if len(req.pid) == 0 {
 				q.attemptSyncWithRandomPeer(req.req)
 				continue
 			}
 
 			if err := q.beginSyncingWithPeer(req.pid, req.req); err != nil {
+				q.unsetSyncingPeer(req.pid)
 				logger.Debug("failed to send block request to peer, trying other peers", "peer", req.pid)
 				q.attemptSyncWithRandomPeer(req.req)
 			}
@@ -328,6 +344,8 @@ func (q *syncQueue) processBlockResponses() {
 			// TODO: change peerScore to sync.Map, currently this is the only place it's used
 			q.peerScore[resp.pid]++
 			logger.Debug("sending response to syncer", "start", resp.start, "end", resp.end)
+			q.currStart = resp.start
+			q.currEnd = resp.end
 			req := q.s.syncer.HandleBlockResponse(resp.resp)
 			if req == nil {
 				// we are done syncing
