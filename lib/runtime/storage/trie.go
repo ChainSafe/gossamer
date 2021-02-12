@@ -109,7 +109,8 @@ func (s *TrieState) Delete(key []byte) error {
 
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	return s.t.Delete(key)
+	_ = s.t.Delete(key)
+	return nil
 }
 
 // NextKey returns the next key in the trie in lexicographical order. If it does not exist, it returns nil.

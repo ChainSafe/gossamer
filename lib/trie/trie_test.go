@@ -493,25 +493,47 @@ func TestDelete(t *testing.T) {
 		trie.Put(test.key, test.value)
 	}
 
+	// DeepCopy the trie.
+	dcTrie, err := trie.DeepCopy()
+	require.NoError(t, err)
+
+	// Take Snapshot of the trie.
+	ssTrie := trie.Snapshot()
+
+	// Get the Trie root hash for all the 3 tries.
+	tHash, err := trie.Hash()
+	require.NoError(t, err)
+
+	dcTrieHash, err := dcTrie.Hash()
+	require.NoError(t, err)
+
+	ssTrieHash, err := ssTrie.Hash()
+	require.NoError(t, err)
+
+	// Root hash for all the 3 tries should be equal.
+	require.Equal(t, tHash, dcTrieHash)
+	require.Equal(t, dcTrieHash, ssTrieHash)
+
 	for i, test := range rt {
 		test := test
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			r := rand.Int() % 2
+			var val []byte
 			switch r {
 			case 0:
-				err := trie.Delete(test.key)
+				err = trie.Delete(test.key)
 				if err != nil {
 					t.Errorf("Fail to delete key %x: %s", test.key, err.Error())
 				}
 
-				val, err := trie.Get(test.key)
+				val, err = trie.Get(test.key)
 				if err != nil {
 					t.Errorf("Error when attempting to get deleted key %x: %s", test.key, err.Error())
 				} else if val != nil {
 					t.Errorf("Fail to delete key %x with value %x: got %x", test.key, test.value, val)
 				}
 			case 1:
-				val, err := trie.Get(test.key)
+				val, err = trie.Get(test.key)
 				if err != nil {
 					t.Errorf("Error when attempting to get key %x: %s", test.key, err.Error())
 				} else if !bytes.Equal(test.value, val) {
@@ -520,6 +542,21 @@ func TestDelete(t *testing.T) {
 			}
 		})
 	}
+
+	// Get the updated root hash of all tries.
+	tHash, err = trie.Hash()
+	require.NoError(t, err)
+
+	dcTrieHash, err = dcTrie.Hash()
+	require.NoError(t, err)
+
+	ssTrieHash, err = ssTrie.Hash()
+	require.NoError(t, err)
+
+	// Only the current trie should have a different root hash since it is updated.
+	require.NotEqual(t, tHash, dcTrieHash)
+	require.NotEqual(t, tHash, ssTrieHash)
+	require.Equal(t, dcTrieHash, ssTrieHash)
 }
 
 func TestGetKeysWithPrefix(t *testing.T) {
@@ -703,11 +740,34 @@ func TestClearPrefix(t *testing.T) {
 
 	for _, prefix := range testCases {
 		trie := buildTrie()
+
+		// DeepCopy the trie.
+		dcTrie, err := trie.DeepCopy()
+		require.NoError(t, err)
+
+		// Take Snapshot of the trie.
+		ssTrie := trie.Snapshot()
+
+		// Get the Trie root hash for all the 3 tries.
+		tHash, err := trie.Hash()
+		require.NoError(t, err)
+
+		dcTrieHash, err := dcTrie.Hash()
+		require.NoError(t, err)
+
+		ssTrieHash, err := ssTrie.Hash()
+		require.NoError(t, err)
+
+		// Root hash for all the 3 tries should be equal.
+		require.Equal(t, tHash, dcTrieHash)
+		require.Equal(t, dcTrieHash, ssTrieHash)
+
 		trie.ClearPrefix(prefix)
 		prefixNibbles := keyToNibbles(prefix)
 
 		for _, test := range tests {
-			res, err := trie.Get(test.key)
+			var res []byte
+			res, err = trie.Get(test.key)
 			require.NoError(t, err)
 
 			keyNibbles := keyToNibbles(test.key)
@@ -719,6 +779,21 @@ func TestClearPrefix(t *testing.T) {
 				require.Equal(t, test.value, res)
 			}
 		}
+
+		// Get the updated root hash of all tries.
+		tHash, err = trie.Hash()
+		require.NoError(t, err)
+
+		dcTrieHash, err = dcTrie.Hash()
+		require.NoError(t, err)
+
+		ssTrieHash, err = ssTrie.Hash()
+		require.NoError(t, err)
+
+		// Only the current trie should have a different root hash since it is updated.
+		require.NotEqual(t, tHash, dcTrieHash)
+		require.NotEqual(t, tHash, ssTrieHash)
+		require.Equal(t, dcTrieHash, ssTrieHash)
 	}
 }
 
@@ -731,10 +806,46 @@ func TestClearPrefix_Small(t *testing.T) {
 
 	trie := NewEmptyTrie()
 
+	// DeepCopy the trie.
+	dcTrie, err := trie.DeepCopy()
+	require.NoError(t, err)
+
+	// Take Snapshot of the trie.
+	ssTrie := trie.Snapshot()
+
+	// Get the Trie root hash for all the 3 tries.
+	tHash, err := trie.Hash()
+	require.NoError(t, err)
+
+	dcTrieHash, err := dcTrie.Hash()
+	require.NoError(t, err)
+
+	ssTrieHash, err := ssTrie.Hash()
+	require.NoError(t, err)
+
+	// Root hash for all the 3 tries should be equal.
+	require.Equal(t, tHash, dcTrieHash)
+	require.Equal(t, dcTrieHash, ssTrieHash)
+
 	for _, key := range keys {
 		trie.Put([]byte(key), []byte(key))
 	}
 
 	trie.ClearPrefix([]byte("noo"))
 	require.Equal(t, trie.root, &leaf{key: keyToNibbles([]byte("other")), value: []byte("other"), dirty: true})
+
+	// Get the updated root hash of all tries.
+	tHash, err = trie.Hash()
+	require.NoError(t, err)
+
+	dcTrieHash, err = dcTrie.Hash()
+	require.NoError(t, err)
+
+	ssTrieHash, err = ssTrie.Hash()
+	require.NoError(t, err)
+
+	// Only the current trie should have a different root hash since it is updated.
+	require.NotEqual(t, tHash, dcTrieHash)
+	require.NotEqual(t, tHash, ssTrieHash)
+	require.Equal(t, dcTrieHash, ssTrieHash)
 }
