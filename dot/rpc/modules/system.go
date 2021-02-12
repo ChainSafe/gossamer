@@ -17,13 +17,16 @@
 package modules
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
+	"math/big"
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/scale"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
 )
 
 // SystemModule is an RPC module providing access to core API points
@@ -157,13 +160,40 @@ func (sm *SystemModule) NodeRoles(r *http.Request, req *EmptyRequest, res *[]int
 
 // AccountNextIndex Returns the next valid index (aka. nonce) for given account.
 func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, res *U64Response) error {
-	// todo (ed) check pending transactions
-
 	if req == nil || len(req.String) == 0 {
 		return errors.New("Account address must be valid")
 	}
 	addressPubKey := crypto.PublicAddressToByteArray(common.Address(req.String))
 
+	// check pending transactions for extrinsics singed by addressPubKey
+	pending := sm.txStateAPI.Pending()
+	nonce := uint64(0)
+	found := false
+	for _, v := range pending {
+		var ext ctypes.Extrinsic
+		err := ctypes.DecodeFromBytes(v.Extrinsic[1:], &ext)
+		if err != nil {
+			return err
+		}
+		extSigner, err := common.HexToBytes(fmt.Sprintf("0x%x", ext.Signature.Signer.AsAccountID))
+		if err != nil {
+			return err
+		}
+		if bytes.Equal(extSigner, addressPubKey) {
+			found = true
+			sigNonce := big.Int(ext.Signature.Nonce)
+			if sigNonce.Uint64() > nonce {
+				nonce = sigNonce.Uint64()
+			}
+		}
+	}
+
+	if found {
+		*res = U64Response(nonce)
+		return nil
+	}
+
+	// no extrinsic signed by request found in pending transactions, so look in storage
 	// get metadata to build storage storageKey
 	rawMeta, err := sm.coreAPI.GetMetadata(nil)
 	if err != nil {
@@ -173,13 +203,13 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 	if err != nil {
 		return err
 	}
-	var metadata types.Metadata
-	err = types.DecodeFromBytes(sdMeta.([]byte), &metadata)
+	var metadata ctypes.Metadata
+	err = ctypes.DecodeFromBytes(sdMeta.([]byte), &metadata)
 	if err != nil {
 		return err
 	}
 
-	storageKey, err := types.CreateStorageKey(&metadata, "System", "Account", addressPubKey, nil)
+	storageKey, err := ctypes.CreateStorageKey(&metadata, "System", "Account", addressPubKey, nil)
 	if err != nil {
 		return err
 	}
@@ -189,8 +219,8 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 		return err
 	}
 
-	var accountInfo types.AccountInfo
-	err = types.DecodeFromBytes(accountRaw, &accountInfo)
+	var accountInfo ctypes.AccountInfo
+	err = ctypes.DecodeFromBytes(accountRaw, &accountInfo)
 	if err != nil {
 		return err
 	}
