@@ -435,7 +435,10 @@ func (t *Trie) getKeysWithPrefix(parent node, prefix, key []byte, keys [][]byte)
 		key = key[len(p.key):]
 		keys = t.getKeysWithPrefix(p.children[key[0]], append(append(prefix, p.key...), key[0]), key[1:], keys)
 	case *leaf:
-		keys = append(keys, nibblesToKeyLE(append(prefix, p.key...)))
+		length := lenCommonPrefix(p.key, key)
+		if bytes.Equal(p.key[:length], key) || len(key) == 0 {
+			keys = append(keys, nibblesToKeyLE(append(prefix, p.key...)))
+		}
 	case nil:
 		return keys
 	}
@@ -545,7 +548,8 @@ func (t *Trie) clearPrefix(curr node, prefix []byte) (node, bool) {
 
 		if len(prefix) == len(c.key)+1 {
 			// found prefix at child index, delete child
-			c.children[len(c.key)+int(prefix[0])] = nil
+			i := prefix[len(c.key)]
+			c.children[i] = nil
 			c.setDirty(true)
 			curr = handleDeletion(c, prefix)
 			return curr, true
@@ -557,15 +561,15 @@ func (t *Trie) clearPrefix(curr node, prefix []byte) (node, bool) {
 		}
 
 		var wasUpdated bool
-		for i, child := range c.children {
-			c.children[i], wasUpdated = t.clearPrefix(child, prefix[len(c.key)+1:])
-			if wasUpdated {
-				c.setDirty(true)
-			}
-
+		//for i, child := range c.children {
+		i := prefix[len(c.key)]
+		c.children[i], wasUpdated = t.clearPrefix(c.children[i], prefix[len(c.key)+1:])
+		if wasUpdated {
+			c.setDirty(true)
 			curr = handleDeletion(c, prefix)
+			//break
 		}
-
+		//}
 		return curr, curr.isDirty()
 	case *leaf:
 		length := lenCommonPrefix(c.key, prefix)
