@@ -76,8 +76,7 @@ func TestTrie_DatabaseStoreAndLoad(t *testing.T) {
 		trie := NewEmptyTrie()
 
 		for _, test := range testCase {
-			err := trie.Put(test.key, test.value)
-			require.NoError(t, err)
+			trie.Put(test.key, test.value)
 		}
 
 		db := newTestDB(t)
@@ -133,10 +132,8 @@ func TestTrie_WriteDirty_Put(t *testing.T) {
 		db := newTestDB(t)
 
 		for i, test := range testCase {
-			err := trie.Put(test.key, test.value)
-			require.NoError(t, err)
-
-			err = trie.WriteDirty(db)
+			trie.Put(test.key, test.value)
+			err := trie.WriteDirty(db)
 			require.NoError(t, err)
 
 			for j, kv := range testCase {
@@ -153,9 +150,7 @@ func TestTrie_WriteDirty_Put(t *testing.T) {
 		err := trie.Store(db)
 		require.NoError(t, err)
 
-		err = trie.Put([]byte("asdf"), []byte("notapenguin"))
-		require.NoError(t, err)
-
+		trie.Put([]byte("asdf"), []byte("notapenguin"))
 		err = trie.WriteDirty(db)
 		require.NoError(t, err)
 
@@ -215,19 +210,17 @@ func TestTrie_WriteDirty_PutReplace(t *testing.T) {
 		db := newTestDB(t)
 
 		for _, test := range testCase {
-			err := trie.Put(test.key, test.value)
-			require.NoError(t, err)
+			trie.Put(test.key, test.value)
 
-			err = trie.WriteDirty(db)
+			err := trie.WriteDirty(db)
 			require.NoError(t, err)
 		}
 
 		for _, test := range testCase {
 			// overwrite existing values
-			err := trie.Put(test.key, test.key)
-			require.NoError(t, err)
+			trie.Put(test.key, test.key)
 
-			err = trie.WriteDirty(db)
+			err := trie.WriteDirty(db)
 			require.NoError(t, err)
 		}
 
@@ -281,8 +274,7 @@ func TestTrie_WriteDirty_Delete(t *testing.T) {
 			trie := NewEmptyTrie()
 
 			for _, test := range testCase {
-				err := trie.Put(test.key, test.value)
-				require.NoError(t, err)
+				trie.Put(test.key, test.value)
 			}
 
 			db := newTestDB(t)
@@ -347,8 +339,7 @@ func TestTrie_WriteDirty_ClearPrefix(t *testing.T) {
 		trie := NewEmptyTrie()
 
 		for _, test := range testCase {
-			err := trie.Put(test.key, test.value)
-			require.NoError(t, err)
+			trie.Put(test.key, test.value)
 		}
 
 		db := newTestDB(t)
@@ -401,8 +392,7 @@ func TestTrie_GetFromDB(t *testing.T) {
 		trie := NewEmptyTrie()
 
 		for _, test := range testCase {
-			err := trie.Put(test.key, test.value)
-			require.NoError(t, err)
+			trie.Put(test.key, test.value)
 		}
 
 		db := newTestDB(t)

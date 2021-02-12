@@ -100,7 +100,10 @@ func (v *LegacyVersionData) TransactionVersion() uint32 {
 // Decode to scale decode []byte to VersionAPI struct
 func (v *LegacyVersionData) Decode(in []byte) error {
 	r := &bytes.Buffer{}
-	r.Write(in)
+	_, err := r.Write(in)
+	if err != nil {
+		return err
+	}
 	sd := scale.Decoder{Reader: r}
 
 	type Info struct {
@@ -211,7 +214,10 @@ func (v *VersionData) TransactionVersion() uint32 {
 // Decode to scale decode []byte to VersionAPI struct
 func (v *VersionData) Decode(in []byte) error {
 	r := &bytes.Buffer{}
-	r.Write(in)
+	_, err := r.Write(in)
+	if err != nil {
+		return err
+	}
 	sd := scale.Decoder{Reader: r}
 
 	type Info struct {
