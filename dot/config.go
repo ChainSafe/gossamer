@@ -252,9 +252,5 @@ func PolkadotConfig() *Config {
 			Modules: polkadot.DefaultRPCModules,
 			WSPort:  polkadot.DefaultRPCWSPort,
 		},
-		System: types.SystemInfo{
-			NodeName:         polkadot.DefaultName,
-			SystemProperties: make(map[string]interface{}),
-		},
 	}
 }
