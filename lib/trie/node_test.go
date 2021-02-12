@@ -231,10 +231,7 @@ func TestEncodeRoot(t *testing.T) {
 	for i := 0; i < 20; i++ {
 		rt := GenerateRandomTests(t, 16)
 		for _, test := range rt {
-			err := trie.Put(test.key, test.value)
-			if err != nil {
-				t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
-			}
+			trie.Put(test.key, test.value)
 
 			val, err := trie.Get(test.key)
 			if err != nil {

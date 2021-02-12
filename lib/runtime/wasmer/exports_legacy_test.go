@@ -91,9 +91,7 @@ func TestInstance_GrandpaAuthorities_LegacyNodeRuntime(t *testing.T) {
 	value, err := common.HexToBytes("0x0108eea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d714103640000000000000000b64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d7170100000000000000")
 	require.NoError(t, err)
 
-	err = tt.Put(runtime.GrandpaAuthoritiesKey, value)
-	require.NoError(t, err)
-
+	tt.Put(runtime.GrandpaAuthoritiesKey, value)
 	rt := NewTestLegacyInstanceWithTrie(t, runtime.LEGACY_NODE_RUNTIME, tt, log.LvlTrace)
 
 	auths, err := rt.GrandpaAuthorities()
@@ -151,10 +149,7 @@ func TestInstance_BabeConfiguration_LegacyNodeRuntime_WithAuthorities(t *testing
 		t.Fatal(err)
 	}
 
-	err = tt.Put(rkey, rvalue[:])
-	if err != nil {
-		t.Fatal(err)
-	}
+	tt.Put(rkey, rvalue[:])
 
 	// authorities key
 	akey, err := common.HexToBytes("0x886726f904d8372fdabb7707870c2fad")
@@ -167,10 +162,7 @@ func TestInstance_BabeConfiguration_LegacyNodeRuntime_WithAuthorities(t *testing
 		t.Fatal(err)
 	}
 
-	err = tt.Put(akey, avalue)
-	if err != nil {
-		t.Fatal(err)
-	}
+	tt.Put(akey, avalue)
 
 	rt := NewTestLegacyInstanceWithTrie(t, runtime.LEGACY_NODE_RUNTIME, tt, log.LvlTrace)
 

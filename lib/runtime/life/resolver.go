@@ -476,11 +476,7 @@ func ext_trie_blake2_256_ordered_root_version_1(vm *exec.VirtualMachine) int64 {
 		}
 		logger.Trace("[ext_trie_blake2_256_ordered_root_version_1]", "key", key, "value", val)
 
-		err = t.Put(key, val)
-		if err != nil {
-			logger.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
-			return 0
-		}
+		t.Put(key, val)
 	}
 
 	// allocate memory for value and copy value to memory
