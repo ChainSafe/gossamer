@@ -561,15 +561,14 @@ func (t *Trie) clearPrefix(curr node, prefix []byte) (node, bool) {
 		}
 
 		var wasUpdated bool
-		//for i, child := range c.children {
 		i := prefix[len(c.key)]
+
 		c.children[i], wasUpdated = t.clearPrefix(c.children[i], prefix[len(c.key)+1:])
 		if wasUpdated {
 			c.setDirty(true)
 			curr = handleDeletion(c, prefix)
-			//break
 		}
-		//}
+
 		return curr, curr.isDirty()
 	case *leaf:
 		length := lenCommonPrefix(c.key, prefix)
