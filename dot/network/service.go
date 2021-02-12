@@ -415,6 +415,7 @@ func (s *Service) handleLightStream(stream libp2pnetwork.Stream) {
 	conn := stream.Conn()
 	if conn == nil {
 		logger.Error("Failed to get connection from stream")
+		_ = stream.Close()
 		return
 	}
 
@@ -549,6 +550,7 @@ func (s *Service) handleLightMsg(peer peer.ID, msg Message) error {
 	err = s.host.send(peer, lightID, &resp)
 	if err != nil {
 		logger.Warn("failed to send LightResponse message", "peer", peer, "err", err)
+		s.host.closeStream(peer, lightID)
 	}
 	return err
 }

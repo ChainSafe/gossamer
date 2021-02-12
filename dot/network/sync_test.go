@@ -73,6 +73,7 @@ func newTestSyncQueue(t *testing.T) *syncQueue {
 
 func TestSyncQueue_PushBlockRequest(t *testing.T) {
 	q := newTestSyncQueue(t)
+
 	req := createBlockRequest(t, 1, blockRequestSize)
 	testPeerID := peer.ID("noot")
 	q.pushBlockRequest(req, testPeerID)
@@ -94,6 +95,31 @@ func TestSyncQueue_PushBlockRequest(t *testing.T) {
 }
 
 func TestSyncQueue_PushBlockRequest_ShouldReject(t *testing.T) {
+	q := newTestSyncQueue(t)
+	q.stop()
+
+	q.currEnd = 2
+	req := createBlockRequest(t, 1, blockRequestSize)
+	testPeerID := peer.ID("noot")
+	q.pushBlockRequest(req, testPeerID)
+	require.Equal(t, 0, len(q.requests))
+
+	q.requests = append(q.requests, &syncRequest{req: req})
+	q.pushBlockRequest(req, testPeerID)
+	require.Equal(t, 1, len(q.requests))
+}
+
+func TestSyncQueue_PushBlockRequests(t *testing.T) {
+	q := newTestSyncQueue(t)
+	q.stop()
+
+	reqs := createBlockRequests(t, 1, 1+int64(blockRequestSize)*blockRequestQueueSize)
+	testPeerID := peer.ID("noot")
+	q.pushBlockRequests(reqs, testPeerID)
+	require.Equal(t, int(blockRequestQueueSize), len(q.requests))
+}
+
+func TestSyncQueue_PushBlockRequests_ShouldReject(t *testing.T) {
 	q := newTestSyncQueue(t)
 	q.stop()
 

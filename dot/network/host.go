@@ -264,7 +264,7 @@ func (h *host) getStream(p peer.ID, sub protocol.ID) (stream libp2pnetwork.Strea
 }
 
 func (h *host) closeStream(p peer.ID, sub protocol.ID) {
-	stream := h.getStream(p, syncID)
+	stream := h.getStream(p, sub)
 	if stream != nil {
 		_ = stream.Close()
 	}
