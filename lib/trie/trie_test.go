@@ -93,10 +93,7 @@ func TestEntries(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		err := trie.Put(test.key, test.value)
-		if err != nil {
-			t.Fatal(err)
-		}
+		trie.Put(test.key, test.value)
 	}
 
 	entries := trie.Entries()
@@ -135,7 +132,7 @@ func writeToTestFile(tests []Test) error {
 	return nil
 }
 
-func buildSmallTrie(t *testing.T) *Trie {
+func buildSmallTrie() *Trie {
 	trie := NewEmptyTrie()
 
 	tests := []Test{
@@ -148,10 +145,7 @@ func buildSmallTrie(t *testing.T) *Trie {
 	}
 
 	for _, test := range tests {
-		err := trie.Put(test.key, test.value)
-		if err != nil {
-			t.Fatal(err)
-		}
+		trie.Put(test.key, test.value)
 	}
 
 	return trie
@@ -162,10 +156,7 @@ func runTests(t *testing.T, trie *Trie, tests []Test) {
 		test := test
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			if test.op == PUT {
-				err := trie.Put(test.key, test.value)
-				if err != nil {
-					t.Errorf("Fail to put key %x with value %x: %s", test.key, test.value, err)
-				}
+				trie.Put(test.key, test.value)
 			} else if test.op == GET {
 				val, err := trie.Get(test.key)
 				if err != nil {
@@ -214,10 +205,7 @@ func TestLoadTrieFromMap(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		err = expectedTrie.Put(keyBytes, valueBytes)
-		if err != nil {
-			t.Fatal(err)
-		}
+		expectedTrie.Put(keyBytes, valueBytes)
 	}
 
 	testhash, err := testTrie.Hash()
@@ -277,10 +265,7 @@ func TestPutAndGet(t *testing.T) {
 		trie := NewEmptyTrie()
 		rt := GenerateRandomTests(t, 10000)
 		for _, test := range rt {
-			err := trie.Put(test.key, test.value)
-			if err != nil {
-				t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
-			}
+			trie.Put(test.key, test.value)
 
 			val, err := trie.Get(test.key)
 			if err != nil {
@@ -331,10 +316,7 @@ func TestFailingTests(t *testing.T) {
 	rt := tests
 	for i, test := range rt {
 		if len(test.key) != 0 {
-			err := trie.Put(test.key, test.value)
-			if err != nil {
-				t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
-			}
+			trie.Put(test.key, test.value)
 
 			val, err := trie.Get(test.key)
 			if err != nil {
@@ -399,7 +381,7 @@ func TestGetPartialKey(t *testing.T) {
 }
 
 func TestDeleteSmall(t *testing.T) {
-	trie := buildSmallTrie(t)
+	trie := buildSmallTrie()
 
 	tests := []Test{
 		{key: []byte{}, value: []byte("floof"), op: DEL},
@@ -443,7 +425,7 @@ func TestDeleteSmall(t *testing.T) {
 }
 
 func TestDeleteCombineBranch(t *testing.T) {
-	trie := buildSmallTrie(t)
+	trie := buildSmallTrie()
 
 	tests := []Test{
 		{key: []byte{0x01, 0x35, 0x46}, value: []byte("raccoon"), op: PUT},
@@ -508,10 +490,7 @@ func TestDelete(t *testing.T) {
 
 	rt := GenerateRandomTests(t, 100)
 	for _, test := range rt {
-		err := trie.Put(test.key, test.value)
-		if err != nil {
-			t.Errorf("Fail to put with key %x and value %x: %s", test.key, test.value, err.Error())
-		}
+		trie.Put(test.key, test.value)
 	}
 
 	for i, test := range rt {
