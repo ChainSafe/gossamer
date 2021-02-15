@@ -62,6 +62,7 @@ type handshakeData struct {
 	handshake      Handshake
 	outboundMsg    NotificationsMessage
 	responseSentCh chan struct{} // this channel is created and closed when
+	mutex          sync.RWMutex
 }
 
 func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecoder, messageDecoder MessageDecoder) messageDecoder {

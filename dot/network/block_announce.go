@@ -216,13 +216,34 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 
 	np, ok := s.notificationsProtocols[BlockAnnounceMsgType]
 	if !ok {
-		logger.Error("s.notificationsProtocols[BlockAnnounceMsgType] is nil")
+		err = s.RegisterNotificationsProtocol(
+			blockAnnounceID,
+			BlockAnnounceMsgType,
+			s.getBlockAnnounceHandshake,
+			decodeBlockAnnounceHandshake,
+			s.validateBlockAnnounceHandshake,
+			decodeBlockAnnounceMessage,
+			s.handleBlockAnnounceMessage,
+		)
+		if err != nil {
+			return errors.New("failed to register blockannounce protocol")
+		}
 	}
+
+	np.mapMu.Lock()
+	defer np.mapMu.Unlock()
 
 	_, ok = np.handshakeData[peer]
 	if !ok {
 		logger.Error("peer handshake data is nil")
+		np.handshakeData[peer] = &handshakeData{
+			validated:      false,
+			received:       true,
+			responseSentCh: make(chan struct{}),
+		}
 	}
+	np.handshakeData[peer].mutex.Lock()
+	defer np.handshakeData[peer].mutex.Unlock()
 
 	// check if peer block number is greater than host block number
 	if latestHeader.Number.Cmp(bestBlockNum) >= 0 {
