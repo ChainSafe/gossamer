@@ -130,8 +130,7 @@ func TestTrieState_ClearPrefixInChild(t *testing.T) {
 	}
 
 	for i, key := range keys {
-		err := child.Put([]byte(key), []byte{byte(i)})
-		require.NoError(t, err)
+		child.Put([]byte(key), []byte{byte(i)})
 	}
 
 	keyToChild := []byte("keytochild")

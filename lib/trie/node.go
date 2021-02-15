@@ -61,27 +61,63 @@ type node interface {
 	String() string
 	setEncodingAndHash([]byte, []byte)
 	getHash() []byte
+	getGeneration() uint64
 }
 
 type (
 	branch struct {
-		key      []byte // partial key
-		children [16]node
-		value    []byte
-		dirty    bool
-		hash     []byte
-		encoding []byte
+		key        []byte // partial key
+		children   [16]node
+		value      []byte
+		dirty      bool
+		hash       []byte
+		encoding   []byte
+		generation uint64
 		sync.RWMutex
 	}
 	leaf struct {
-		key      []byte // partial key
-		value    []byte
-		dirty    bool
-		hash     []byte
-		encoding []byte
+		key        []byte // partial key
+		value      []byte
+		dirty      bool
+		hash       []byte
+		encoding   []byte
+		generation uint64
 		sync.RWMutex
 	}
 )
+
+func (b *branch) copy() *branch {
+	cpy := &branch{
+		key:        make([]byte, len(b.key)),
+		children:   b.children,
+		value:      make([]byte, len(b.value)),
+		dirty:      b.dirty,
+		hash:       make([]byte, len(b.hash)),
+		encoding:   make([]byte, len(b.encoding)),
+		generation: b.generation,
+	}
+	copy(cpy.key, b.key)
+	copy(cpy.value, b.value)
+	copy(cpy.hash, b.hash)
+	copy(cpy.encoding, b.encoding)
+	return cpy
+}
+
+func (l *leaf) copy() *leaf {
+	cpy := &leaf{
+		key:        make([]byte, len(l.key)),
+		value:      make([]byte, len(l.value)),
+		dirty:      l.dirty,
+		hash:       make([]byte, len(l.hash)),
+		encoding:   make([]byte, len(l.encoding)),
+		generation: l.generation,
+	}
+	copy(cpy.key, l.key)
+	copy(cpy.value, l.value)
+	copy(cpy.hash, l.hash)
+	copy(cpy.encoding, l.encoding)
+	return cpy
+}
 
 func (b *branch) setEncodingAndHash(enc, hash []byte) {
 	b.encoding = enc
@@ -95,6 +131,14 @@ func (l *leaf) setEncodingAndHash(enc, hash []byte) {
 
 func (b *branch) getHash() []byte {
 	return b.hash
+}
+
+func (b *branch) getGeneration() uint64 {
+	return b.generation
+}
+
+func (l *leaf) getGeneration() uint64 {
+	return l.generation
 }
 
 func (l *leaf) getHash() []byte {

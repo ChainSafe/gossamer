@@ -104,7 +104,6 @@ import (
 	"math/rand"
 	"reflect"
 	"sort"
-	"time"
 	"unsafe"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -311,7 +310,7 @@ func ext_crypto_ed25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
-	signVerify := instanceContext.Data().(*runtime.Context).SigVerifier
+	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
 
 	signature := memory[sig : sig+64]
 	message := asMemorySlice(instanceContext, msg)
@@ -323,14 +322,14 @@ func ext_crypto_ed25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 		return 0
 	}
 
-	if signVerify.IsStarted() {
+	if sigVerifier.IsStarted() {
 		signature := runtime.Signature{
 			PubKey:    pubKey.Encode(),
 			Sign:      signature,
 			Msg:       message,
 			KeyTypeID: crypto.Ed25519Type,
 		}
-		signVerify.Add(&signature)
+		sigVerifier.Add(&signature)
 		return 1
 	}
 
@@ -347,14 +346,14 @@ func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t 
 	logger.Debug("[ext_crypto_finish_batch_verify_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
-	signVerify := instanceContext.Data().(*runtime.Context).SigVerifier
+	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
 
-	if !signVerify.IsStarted() {
+	if !sigVerifier.IsStarted() {
 		logger.Error("[ext_crypto_finish_batch_verify_version_1] batch verification is not started", "error")
 		panic("batch verification is not started")
 	}
 
-	if signVerify.Finish() {
+	if sigVerifier.Finish() {
 		return 1
 	}
 	return 0
@@ -511,7 +510,7 @@ func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
-	signVerify := instanceContext.Data().(*runtime.Context).SigVerifier
+	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
 
 	message := asMemorySlice(instanceContext, msg)
 	signature := memory[sig : sig+64]
@@ -521,14 +520,14 @@ func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 		return 0
 	}
 
-	if signVerify.IsStarted() {
+	if sigVerifier.IsStarted() {
 		signature := runtime.Signature{
 			PubKey:    pub.Encode(),
 			Sign:      signature,
 			Msg:       message,
 			KeyTypeID: crypto.Sr25519Type,
 		}
-		signVerify.Add(&signature)
+		sigVerifier.Add(&signature)
 		return 1
 	}
 
@@ -544,7 +543,7 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
-	signVerify := instanceContext.Data().(*runtime.Context).SigVerifier
+	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
 
 	message := asMemorySlice(instanceContext, msg)
 	signature := memory[sig : sig+64]
@@ -558,14 +557,14 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 		"signature", fmt.Sprintf("0x%x", signature),
 	)
 
-	if signVerify.IsStarted() {
+	if sigVerifier.IsStarted() {
 		signature := runtime.Signature{
 			PubKey:    pub.Encode(),
 			Sign:      signature,
 			Msg:       message,
 			KeyTypeID: crypto.Sr25519Type,
 		}
-		signVerify.Add(&signature)
+		sigVerifier.Add(&signature)
 		return 1
 	}
 
@@ -583,15 +582,14 @@ func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
 	logger.Debug("[ext_crypto_start_batch_verify_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
-	sigVerify := instanceContext.Data().(*runtime.Context).SigVerifier
+	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
 
-	if sigVerify.IsStarted() {
+	if sigVerifier.IsStarted() {
 		logger.Error("[ext_crypto_start_batch_verify_version_1] previous batch verification is not finished")
 		return
 	}
 
-	go sigVerify.Start()
-	time.Sleep(time.Millisecond * 10) // TODO: it seems like finish_batch_verify is being called before this is marked as started
+	sigVerifier.Start()
 }
 
 //export ext_trie_blake2_256_root_version_1
@@ -622,11 +620,7 @@ func ext_trie_blake2_256_root_version_1(context unsafe.Pointer, dataSpan C.int64
 	}
 
 	for i := 0; i < len(keyValues); i = i + 2 {
-		err = t.Put(keyValues[i], keyValues[i+1])
-		if err != nil {
-			logger.Error("[ext_trie_blake2_256_root_version_1]", "error", err)
-			return 0
-		}
+		t.Put(keyValues[i], keyValues[i+1])
 	}
 
 	// allocate memory for value and copy value to memory
@@ -673,11 +667,7 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 		}
 		logger.Trace("[ext_trie_blake2_256_ordered_root_version_1]", "key", key, "value", val)
 
-		err = t.Put(key, val)
-		if err != nil {
-			logger.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
-			return 0
-		}
+		t.Put(key, val)
 	}
 
 	// allocate memory for value and copy value to memory
