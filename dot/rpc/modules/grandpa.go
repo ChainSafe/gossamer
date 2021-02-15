@@ -23,18 +23,21 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
+// GrandpaModule init parameters
 type GrandpaModule struct {
-	logger log.Logger
+	logger   log.Logger
+	blockAPI BlockAPI
 }
 
 // NewGrandpaModule creates a new Grandpa rpc module.
-func NewGrandpaModule(logger log.Logger) *GrandpaModule {
+func NewGrandpaModule(logger log.Logger, api BlockAPI) *GrandpaModule {
 	if logger == nil {
 		logger = log.New("service", "RPC", "module", "grandpa")
 	}
 
 	return &GrandpaModule{
-		logger: logger.New("module", "grandpa"),
+		logger:   logger.New("module", "grandpa"),
+		blockAPI: api,
 	}
 }
 
@@ -51,5 +54,6 @@ type ProveFinalityResponse string
 // ProveFinality for the provided block range. Returns NULL if there are no known finalized blocks in the range. If no authorities set is provided, the current one will be attempted.
 func (gm *GrandpaModule) ProveFinality(r *http.Request, req *ProveFinalityRequest, res *ProveFinalityResponse) error {
 	// TODO: extract request data
+	gm.blockAPI.GetBlockByHash(req.blockHashStart)
 	return nil
 }
