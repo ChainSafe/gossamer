@@ -764,6 +764,9 @@ func TestClearPrefix(t *testing.T) {
 
 		trie.ClearPrefix(prefix)
 		prefixNibbles := keyToNibbles(prefix)
+		if len(prefixNibbles) > 0 && prefixNibbles[len(prefixNibbles)-1] == 0 {
+			prefixNibbles = prefixNibbles[:len(prefixNibbles)-1]
+		}
 
 		for _, test := range tests {
 			var res []byte
@@ -771,7 +774,6 @@ func TestClearPrefix(t *testing.T) {
 			require.NoError(t, err)
 
 			keyNibbles := keyToNibbles(test.key)
-
 			length := lenCommonPrefix(keyNibbles, prefixNibbles)
 			if length == len(prefixNibbles) {
 				require.Nil(t, res)
@@ -848,4 +850,76 @@ func TestClearPrefix_Small(t *testing.T) {
 	require.NotEqual(t, tHash, dcTrieHash)
 	require.NotEqual(t, tHash, ssTrieHash)
 	require.Equal(t, dcTrieHash, ssTrieHash)
+}
+
+func TestTrie_ClearPrefixVsDelete(t *testing.T) {
+	prefixes := [][]byte{
+		{},
+		{0x0},
+		{0x01},
+		{0x01, 0x35},
+		{0xf},
+		{0xf2},
+		{0x01, 0x30},
+		{0x01, 0x35, 0x70},
+		{0x01, 0x35, 0x77},
+		{0xf2, 0x0},
+		{0x07},
+		{0x09},
+		[]byte("a"),
+	}
+
+	cases := [][]Test{
+		{
+			{key: []byte{0x01, 0x35}, value: []byte("pen")},
+			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+			{key: []byte{0x01, 0x35, 0x7}, value: []byte("g")},
+			{key: []byte{0x01, 0x35, 0x99}, value: []byte("h")},
+			{key: []byte{0xf2}, value: []byte("feather")},
+			{key: []byte{0xf2, 0x3}, value: []byte("f")},
+			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+			{key: []byte{0x07}, value: []byte("ramen")},
+			{key: []byte{0}, value: nil},
+		},
+		{
+			{key: []byte{0x01, 0x35}, value: []byte("pen")},
+			{key: []byte{0x01, 0x35, 0x79}, value: []byte("penguin")},
+			{key: []byte{0x01, 0x35, 0x70}, value: []byte("g")},
+			{key: []byte{0xf2}, value: []byte("feather")},
+			{key: []byte{0xf2, 0x30}, value: []byte("f")},
+			{key: []byte{0x09, 0xd3}, value: []byte("noot")},
+			{key: []byte{0x07}, value: []byte("ramen")},
+		},
+		{
+			{key: []byte("asdf"), value: []byte("asdf")},
+			{key: []byte("ghjk"), value: []byte("ghjk")},
+			{key: []byte("qwerty"), value: []byte("qwerty")},
+			{key: []byte("uiopl"), value: []byte("uiopl")},
+			{key: []byte("zxcv"), value: []byte("zxcv")},
+			{key: []byte("bnm"), value: []byte("bnm")},
+		},
+	}
+
+	for _, testCase := range cases {
+		for _, prefix := range prefixes {
+			trieDelete := NewEmptyTrie()
+			trieClearPrefix := NewEmptyTrie()
+
+			for _, test := range testCase {
+				trieDelete.Put(test.key, test.value)
+				trieClearPrefix.Put(test.key, test.value)
+			}
+
+			prefixedKeys := trieDelete.GetKeysWithPrefix(prefix)
+			for _, key := range prefixedKeys {
+				trieDelete.Delete(key)
+			}
+
+			trieClearPrefix.ClearPrefix(prefix)
+
+			require.Equal(t, trieClearPrefix.MustHash(), trieDelete.MustHash(),
+				fmt.Sprintf("tries not equal! prefix=0x%x\n, %s, %s", prefix, trieClearPrefix, trieDelete),
+			)
+		}
+	}
 }

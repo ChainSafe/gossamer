@@ -435,7 +435,10 @@ func (t *Trie) getKeysWithPrefix(parent node, prefix, key []byte, keys [][]byte)
 		key = key[len(p.key):]
 		keys = t.getKeysWithPrefix(p.children[key[0]], append(append(prefix, p.key...), key[0]), key[1:], keys)
 	case *leaf:
-		keys = append(keys, nibblesToKeyLE(append(prefix, p.key...)))
+		length := lenCommonPrefix(p.key, key)
+		if bytes.Equal(p.key[:length], key) || len(key) == 0 {
+			keys = append(keys, nibblesToKeyLE(append(prefix, p.key...)))
+		}
 	case nil:
 		return keys
 	}
@@ -516,7 +519,16 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 
 // ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix
 func (t *Trie) ClearPrefix(prefix []byte) {
+	if len(prefix) == 0 {
+		t.root = nil
+		return
+	}
+
 	p := keyToNibbles(prefix)
+	if p[len(p)-1] == 0 {
+		p = p[:len(p)-1]
+	}
+
 	t.root, _ = t.clearPrefix(t.root, p)
 }
 
@@ -536,9 +548,11 @@ func (t *Trie) clearPrefix(curr node, prefix []byte) (node, bool) {
 
 		if len(prefix) == len(c.key)+1 {
 			// found prefix at child index, delete child
-			c.children[len(c.key)+int(prefix[0])] = nil
+			i := prefix[len(c.key)]
+			c.children[i] = nil
 			c.setDirty(true)
-			return c, true
+			curr = handleDeletion(c, prefix)
+			return curr, true
 		}
 
 		if len(prefix) <= len(c.key) {
@@ -547,14 +561,14 @@ func (t *Trie) clearPrefix(curr node, prefix []byte) (node, bool) {
 		}
 
 		var wasUpdated bool
-		for i, child := range c.children {
-			c.children[i], wasUpdated = t.clearPrefix(child, prefix[len(c.key)+1:])
-			if wasUpdated {
-				c.setDirty(true)
-			}
+		i := prefix[len(c.key)]
 
-			curr = handleDeletion(c, c, prefix)
+		c.children[i], wasUpdated = t.clearPrefix(c.children[i], prefix[len(c.key)+1:])
+		if wasUpdated {
+			c.setDirty(true)
+			curr = handleDeletion(c, prefix)
 		}
+
 		return curr, curr.isDirty()
 	case *leaf:
 		length := lenCommonPrefix(c.key, prefix)
@@ -589,7 +603,7 @@ func (t *Trie) delete(parent node, key []byte) (node, bool) {
 			// found the value at this node
 			p.value = nil
 			p.setDirty(true)
-			return handleDeletion(p, p, key), true
+			return handleDeletion(p, key), true
 		}
 
 		n, del := t.delete(p.children[key[length]], key[length+1:])
@@ -599,10 +613,8 @@ func (t *Trie) delete(parent node, key []byte) (node, bool) {
 		}
 
 		p.children[key[length]] = n
-
-		n = p
-		n.setDirty(true)
-		n = handleDeletion(p, n, key)
+		p.setDirty(true)
+		n = handleDeletion(p, key)
 		return n, true
 	case *leaf:
 		if bytes.Equal(key, p.key) || len(key) == 0 {
@@ -621,7 +633,8 @@ func (t *Trie) delete(parent node, key []byte) (node, bool) {
 // handleDeletion is called when a value is deleted from a branch
 // if the updated branch only has 1 child, it should be combined with that child
 // if the updated branch only has a value, it should be turned into a leaf
-func handleDeletion(p *branch, n node, key []byte) node {
+func handleDeletion(p *branch, key []byte) node {
+	var n node = p
 	length := lenCommonPrefix(p.key, key)
 	bitmap := p.childrenBitmap()
 
