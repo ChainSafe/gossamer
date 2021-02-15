@@ -53,7 +53,19 @@ type ProveFinalityResponse string
 
 // ProveFinality for the provided block range. Returns NULL if there are no known finalized blocks in the range. If no authorities set is provided, the current one will be attempted.
 func (gm *GrandpaModule) ProveFinality(r *http.Request, req *ProveFinalityRequest, res *ProveFinalityResponse) error {
-	// TODO: extract request data
-	gm.blockAPI.GetBlockByHash(req.blockHashStart)
+
+	// TODO: #1378; iterate over blocks from start to end collecting items to return
+	var justificationsRaw [][]byte
+	hasJustification, _ := gm.blockAPI.HasJustification(req.blockHashStart)
+	if hasJustification {
+		justification, err := gm.blockAPI.GetJustification(req.blockHashStart)
+		if err != nil {
+			// TODO: #1378; Skip?
+		} else {
+			// TODO: #1378; append to
+			justificationsRaw = append(justificationsRaw, justification)
+		}
+	}
+
 	return nil
 }

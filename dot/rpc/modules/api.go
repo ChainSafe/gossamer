@@ -29,6 +29,8 @@ type BlockAPI interface {
 	GetBlockByHash(hash common.Hash) (*types.Block, error)
 	GetBlockHash(blockNumber *big.Int) (*common.Hash, error)
 	GetFinalizedHash(uint64, uint64) (common.Hash, error)
+	HasJustification(hash common.Hash) (bool, error)
+	GetJustification(hash common.Hash) ([]byte, error)
 	RegisterImportedChannel(ch chan<- *types.Block) (byte, error)
 	UnregisterImportedChannel(id byte)
 	RegisterFinalizedChannel(ch chan<- *types.Header) (byte, error)
