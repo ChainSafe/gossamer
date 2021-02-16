@@ -163,16 +163,19 @@ func (q *syncQueue) start() {
 			}
 
 			// if we have block requests to send, put them into requestCh
+			q.requestLock.Lock()
 			if len(q.requests) == 0 {
 				if q.goal == head.Int64() {
+					q.requestLock.Unlock()
 					continue
 				}
 
 				reqs := createBlockRequests(head.Int64()+1, q.goal)
+				q.requestLock.Unlock()
 				q.pushBlockRequests(reqs, "")
+				q.requestLock.Lock()
 			}
 
-			q.requestLock.Lock()
 			logger.Debug("sync request queue", "queue", q.stringifyRequestQueue())
 			q.requestCh <- q.requests[0]
 			q.requests = q.requests[1:]
@@ -200,7 +203,7 @@ func (q *syncQueue) start() {
 				continue
 			}
 
-			if q.responses[0].start != head.Int64()+1 {
+			if q.responses[0].start > head.Int64()+1 {
 				logger.Debug("response start isn't head+1, waiting", "queue start", q.responses[0].start, "head+1", head.Int64()+1)
 				q.responseLock.Unlock()
 				continue
@@ -298,9 +301,9 @@ func (q *syncQueue) pushBlockRequests(reqs []*BlockRequestMessage, pid peer.ID) 
 	// }
 	//
 	for _, req := range reqs {
-		if req.StartingBlock.Uint64() <= uint64(q.currEnd) {
-			return
-		}
+		// if req.StartingBlock.Uint64() <= uint64(q.currEnd) {
+		// 	return
+		// }
 
 		// // don't add requests that are already covered by existing requests
 		// if req.StartingBlock.Uint64() <= currLastRequestedBlock {
@@ -402,7 +405,7 @@ func (q *syncQueue) processBlockResponses() {
 			q.currEnd = resp.end
 			err := q.s.syncer.HandleBlockResponse(resp.resp)
 			if err != nil {
-				logger.Debug("failed to handle block request; re-adding to queue", "start", resp.start, "error", err)
+				logger.Error("failed to handle block request; re-adding to queue", "start", resp.start, "error", err)
 				req := createBlockRequest(resp.start, 1)
 				q.pushBlockRequest(req, resp.pid)
 				continue
@@ -499,9 +502,9 @@ func sortResponses(resps []*syncResponse) {
 			return
 		}
 
-		if resps[i].start == resps[i+1].start && resps[i].end <= resps[i+1].end {
+		if i > 0 && (resps[i].start >= resps[i-1].end || resps[i].start == resps[i+1].start) && resps[i].end <= resps[i+1].start {
 			resps = append(resps[:i], resps[i+1:]...)
-		} else if resps[i].start == resps[i+1].start && resps[i].end > resps[i+1].end {
+		} else if resps[i].start == resps[i+1].start && resps[i].end >= resps[i+1].end {
 			if len(resps) == i+1 {
 				resps = resps[:i+1]
 				continue
@@ -608,7 +611,7 @@ func createBlockRequests(start, end int64) []*BlockRequestMessage {
 
 func createBlockRequest(startInt int64, size uint32) *BlockRequestMessage {
 	start, _ := variadic.NewUint64OrHash(uint64(startInt))
-	logger.Debug("creating block request", "start", start)
+	//logger.Debug("creating block request", "start", start)
 
 	blockRequest := &BlockRequestMessage{
 		RequestedData: RequestedDataHeader + RequestedDataBody + RequestedDataJustification,
