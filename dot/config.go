@@ -162,10 +162,6 @@ func GssmrConfig() *Config {
 			Modules: gssmr.DefaultRPCModules,
 			WSPort:  gssmr.DefaultRPCWSPort,
 		},
-		System: types.SystemInfo{
-			NodeName:         gssmr.DefaultName,
-			SystemProperties: make(map[string]interface{}),
-		},
 	}
 }
 
@@ -211,10 +207,6 @@ func KsmccConfig() *Config {
 			Modules: ksmcc.DefaultRPCModules,
 			WSPort:  ksmcc.DefaultRPCWSPort,
 		},
-		System: types.SystemInfo{
-			NodeName:         ksmcc.DefaultName,
-			SystemProperties: make(map[string]interface{}),
-		},
 	}
 }
 
@@ -259,10 +251,6 @@ func PolkadotConfig() *Config {
 			Host:    polkadot.DefaultRPCHTTPHost,
 			Modules: polkadot.DefaultRPCModules,
 			WSPort:  polkadot.DefaultRPCWSPort,
-		},
-		System: types.SystemInfo{
-			NodeName:         polkadot.DefaultName,
-			SystemProperties: make(map[string]interface{}),
 		},
 	}
 }

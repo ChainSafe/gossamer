@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/stretchr/testify/require"
 )
 
@@ -44,10 +45,7 @@ func TestService_SystemVersion(t *testing.T) {
 }
 
 func TestService_Properties(t *testing.T) {
-	expected := make(map[string]interface{})
-	expected["ss58Format"] = 2
-	expected["tokenDecimals"] = 12
-	expected["tokenSymbol"] = "KSM"
+	expected := map[string]interface{}(nil)
 
 	svc := newTestService()
 	props := svc.Properties()
@@ -67,16 +65,13 @@ func TestService_Stop(t *testing.T) {
 }
 
 func newTestService() *Service {
-	sysProps := make(map[string]interface{})
-	sysProps["ss58Format"] = 2
-	sysProps["tokenDecimals"] = 12
-	sysProps["tokenSymbol"] = "KSM"
 
 	sysInfo := &types.SystemInfo{
-		SystemName:       "gossamer",
-		SystemVersion:    "0.0.1",
-		NodeName:         "gssmr",
-		SystemProperties: sysProps,
+		SystemName:    "gossamer",
+		SystemVersion: "0.0.1",
 	}
-	return NewService(sysInfo)
+	genData := &genesis.Data{
+		Name: "gssmr",
+	}
+	return NewService(sysInfo, genData)
 }
