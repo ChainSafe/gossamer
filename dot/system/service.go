@@ -16,17 +16,22 @@
 
 package system
 
-import "github.com/ChainSafe/gossamer/dot/types"
+import (
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/genesis"
+)
 
 // Service struct to hold rpc service data
 type Service struct {
-	systemInfo *types.SystemInfo
+	systemInfo  *types.SystemInfo
+	genesisData *genesis.Data
 }
 
 // NewService create a new instance of Service
-func NewService(si *types.SystemInfo) *Service {
+func NewService(si *types.SystemInfo, gd *genesis.Data) *Service {
 	return &Service{
-		systemInfo: si,
+		systemInfo:  si,
+		genesisData: gd,
 	}
 }
 
@@ -37,7 +42,7 @@ func (s *Service) SystemName() string {
 
 // ChainType returns the system's chain type
 func (s *Service) ChainType() string {
-	return s.systemInfo.ChainType
+	return s.genesisData.ChainType
 }
 
 // SystemVersion returns the app version
@@ -47,12 +52,13 @@ func (s *Service) SystemVersion() string {
 
 // NodeName returns the nodeName (chain name)
 func (s *Service) NodeName() string {
-	return s.systemInfo.NodeName
+	return s.genesisData.Name
 }
 
 // Properties Get a custom set of properties as a JSON object, defined in the chain spec.
 func (s *Service) Properties() map[string]interface{} {
-	return s.systemInfo.SystemProperties
+	// TODO (ed) add fields Properties (see issue #1248) (See issue #865)
+	return nil
 }
 
 // Start implements Service interface
