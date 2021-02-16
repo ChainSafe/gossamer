@@ -353,7 +353,7 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, m
 	// recovery id as the last element
 	message := memory[msg : msg+32]
 	signature := memory[sig : sig+65]
-	//signature[64] += 27
+
 	if signature[64] == 27 {
 		signature[64] = 0
 	}
