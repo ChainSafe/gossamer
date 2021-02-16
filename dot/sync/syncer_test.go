@@ -39,8 +39,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var maxRetries = 8 //nolint
-
 func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
 	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis-raw.json")
 	require.NoError(t, err)
@@ -305,12 +303,6 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
-
-	parentState, err := syncer.storageState.TrieState(&parent.StateRoot)
-	require.NoError(t, err)
-	ts, err := parentState.Copy()
-	require.NoError(t, err)
-	syncer.runtime.SetContextStorage(ts)
 	block := buildBlock(t, syncer.runtime, parent)
 
 	bd := []*types.BlockData{{
@@ -387,18 +379,12 @@ func TestSyncer_ExecuteBlock(t *testing.T) {
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
-
-	parentState, err := syncer.storageState.TrieState(&parent.StateRoot)
-	require.NoError(t, err)
-	ts, err := parentState.Copy()
-	require.NoError(t, err)
-	syncer.runtime.SetContextStorage(ts)
 	block := buildBlock(t, syncer.runtime, parent)
 
 	// reset parentState
-	parentState, err = syncer.storageState.TrieState(&parent.StateRoot)
+	parentState, err := syncer.storageState.TrieState(&parent.StateRoot)
 	require.NoError(t, err)
-	ts, err = parentState.Copy()
+	ts, err := parentState.Copy()
 	require.NoError(t, err)
 	syncer.runtime.SetContextStorage(ts)
 
