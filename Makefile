@@ -61,6 +61,10 @@ it-sync: build
 	@echo "  >  \033[32mRunning Integration Tests sync mode...\033[0m "
 	HOSTNAME=0.0.0.0 MODE=sync go test ./tests/sync/... -timeout=5m -v
 
+it-polkadotjs: build
+	@echo "  >  \033[32mRunning Integration Tests polkadot.js/api mode...\033[0m "
+	HOSTNAME=0.0.0.0 MODE=polkadot go test ./tests/polkadotjs_test/... -timeout=5m -v
+
 ## test: Runs `go test -race` on project test files.
 test-state-race:
 	@echo "  >  \033[32mRunning race tests...\033[0m "
@@ -83,7 +87,7 @@ build-debug:
 
 ## init: Initialize gossamer using the default genesis and toml configuration files
 init:
-	./bin/gossamer --key alice init --genesis chain/gssmr/genesis.json
+	./bin/gossamer --key alice init --genesis-raw chain/gssmr/genesis-raw.json --force
 
 ## init-repo: Set initial configuration for the repo
 init-repo:

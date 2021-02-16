@@ -21,4 +21,6 @@ tmp
 
 tests/utils/config*
 tests/utils/genesis*
+
+# node_modules used by polkadot.js/api tests
 tests/polkadotjs_test/node_modules

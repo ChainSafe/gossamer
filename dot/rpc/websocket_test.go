@@ -50,7 +50,7 @@ func TestHTTPServer_ServeHTTP(t *testing.T) {
 	si := &types.SystemInfo{
 		SystemName: "gossamer",
 	}
-	sysAPI := system.NewService(si)
+	sysAPI := system.NewService(si, nil)
 	bAPI := new(MockBlockAPI)
 	sAPI := new(MockStorageAPI)
 	cfg := &HTTPServerConfig{
