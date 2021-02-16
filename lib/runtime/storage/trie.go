@@ -51,11 +51,7 @@ func (s *TrieState) Trie() *trie.Trie {
 
 // Copy performs a deep copy of the TrieState
 func (s *TrieState) Copy() (*TrieState, error) {
-	trieCopy, err := s.t.DeepCopy()
-	if err != nil {
-		return nil, err
-	}
-
+	trieCopy, _ := s.t.DeepCopy()
 	return &TrieState{
 		t: trieCopy,
 	}, nil
