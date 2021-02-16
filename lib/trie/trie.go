@@ -435,7 +435,10 @@ func (t *Trie) getKeysWithPrefix(parent node, prefix, key []byte, keys [][]byte)
 		key = key[len(p.key):]
 		keys = t.getKeysWithPrefix(p.children[key[0]], append(append(prefix, p.key...), key[0]), key[1:], keys)
 	case *leaf:
-		keys = append(keys, nibblesToKeyLE(append(prefix, p.key...)))
+		length := lenCommonPrefix(p.key, key)
+		if bytes.Equal(p.key[:length], key) || len(key) == 0 {
+			keys = append(keys, nibblesToKeyLE(append(prefix, p.key...)))
+		}
 	case nil:
 		return keys
 	}
@@ -516,11 +519,20 @@ func (t *Trie) retrieve(parent node, key []byte) (value *leaf, err error) {
 
 // ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix
 func (t *Trie) ClearPrefix(prefix []byte) {
+	if len(prefix) == 0 {
+		t.root = nil
+		return
+	}
+
 	p := keyToNibbles(prefix)
+	if p[len(p)-1] == 0 {
+		p = p[:len(p)-1]
+	}
+
 	t.root, _ = t.clearPrefix(t.root, p)
 }
 
-func (t *Trie) clearPrefix(curr node, prefix []byte) (n node, wasUpdated bool) {
+func (t *Trie) clearPrefix(curr node, prefix []byte) (node, bool) {
 	switch c := curr.(type) {
 	case *branch:
 		length := lenCommonPrefix(c.key, prefix)
@@ -530,93 +542,105 @@ func (t *Trie) clearPrefix(curr node, prefix []byte) (n node, wasUpdated bool) {
 			return nil, true
 		}
 
+		// Store the current node and return it, if the trie is not updated.
+		currN := c
+		c = t.maybeUpdateBranchGeneration(c)
+
 		if len(prefix) == len(c.key)+1 {
 			// found prefix at child index, delete child
-			c.children[len(c.key)+int(prefix[0])] = nil
+			i := prefix[len(c.key)]
+			c.children[i] = nil
 			c.setDirty(true)
-			return c, true
+			curr = handleDeletion(c, prefix)
+			return curr, true
 		}
 
 		if len(prefix) <= len(c.key) {
 			// this node doesn't have the prefix, return
-			return c, false
+			return currN, false
 		}
 
-		for i, child := range c.children {
-			c.children[i], wasUpdated = t.clearPrefix(child, prefix[len(c.key)+1:])
-			if wasUpdated {
-				c.setDirty(true)
-			}
+		var wasUpdated bool
+		i := prefix[len(c.key)]
 
-			curr = handleDeletion(c, c, prefix)
+		c.children[i], wasUpdated = t.clearPrefix(c.children[i], prefix[len(c.key)+1:])
+		if wasUpdated {
+			c.setDirty(true)
+			curr = handleDeletion(c, prefix)
 		}
+
+		return curr, curr.isDirty()
 	case *leaf:
 		length := lenCommonPrefix(c.key, prefix)
 		if length == len(prefix) {
 			return nil, true
 		}
+		return c, false
 	case nil:
 		return nil, false
 	}
-
-	return curr, curr.isDirty()
+	// This should never happen.
+	return nil, false
 }
 
 // Delete removes any existing value for key from the trie.
 func (t *Trie) Delete(key []byte) error {
 	k := keyToNibbles(key)
-	n, err := t.delete(t.root, k)
-	if err != nil {
-		return err
-	}
-	t.root = n
+	t.root, _ = t.delete(t.root, k)
+	// TODO: Remove error from result.
 	return nil
 }
 
-func (t *Trie) delete(parent node, key []byte) (n node, err error) {
+func (t *Trie) delete(parent node, key []byte) (node, bool) {
 	switch p := parent.(type) {
 	case *branch:
-		length := lenCommonPrefix(p.key, key)
+		// Store the current node and return it, if the trie is not updated.
+		currP := p
+		p = t.maybeUpdateBranchGeneration(p)
 
+		length := lenCommonPrefix(p.key, key)
 		if bytes.Equal(p.key, key) || len(key) == 0 {
 			// found the value at this node
 			p.value = nil
-			n = p
-			n.setDirty(true)
-		} else {
-			n, err = t.delete(p.children[key[length]], key[length+1:])
-			if err != nil {
-				return p, err
-			}
-			p.children[key[length]] = n
-			n = p
-			n.setDirty(true)
+			p.setDirty(true)
+			return handleDeletion(p, key), true
 		}
 
-		n = handleDeletion(p, n, key)
-	case *leaf:
-		if !bytes.Equal(key, p.key) && len(key) != 0 {
-			n = p
-			n.setDirty(true)
+		n, del := t.delete(p.children[key[length]], key[length+1:])
+		if !del {
+			// If nothing was deleted then don't copy the path.
+			return currP, false
 		}
+
+		p.children[key[length]] = n
+		p.setDirty(true)
+		n = handleDeletion(p, key)
+		return n, true
+	case *leaf:
+		if bytes.Equal(key, p.key) || len(key) == 0 {
+			// Key exists. Delete it.
+			return nil, true
+		}
+		// Key doesn't exist.
+		return p, false
 	case nil:
 		// do nothing
 	}
-
-	return n, err
+	// This should never happen.
+	return nil, false
 }
 
 // handleDeletion is called when a value is deleted from a branch
 // if the updated branch only has 1 child, it should be combined with that child
 // if the updated branch only has a value, it should be turned into a leaf
-func handleDeletion(p *branch, n node, key []byte) (nn node) {
-	nn = n
+func handleDeletion(p *branch, key []byte) node {
+	var n node = p
 	length := lenCommonPrefix(p.key, key)
 	bitmap := p.childrenBitmap()
 
 	// if branch has no children, just a value, turn it into a leaf
 	if bitmap == 0 && p.value != nil {
-		nn = &leaf{key: key[:length], value: p.value, dirty: true}
+		n = &leaf{key: key[:length], value: p.value, dirty: true}
 	} else if p.numChildren() == 1 && p.value == nil {
 		// there is only 1 child and no value, combine the child branch with this branch
 		// find index of child
@@ -631,7 +655,7 @@ func handleDeletion(p *branch, n node, key []byte) (nn node) {
 		child := p.children[i]
 		switch c := child.(type) {
 		case *leaf:
-			nn = &leaf{key: append(append(p.key, []byte{byte(i)}...), c.key...), value: c.value}
+			n = &leaf{key: append(append(p.key, []byte{byte(i)}...), c.key...), value: c.value}
 		case *branch:
 			br := new(branch)
 			br.key = append(p.key, append([]byte{byte(i)}, c.key...)...)
@@ -644,15 +668,13 @@ func handleDeletion(p *branch, n node, key []byte) (nn node) {
 			}
 
 			br.value = c.value
-			nn = br
+			n = br
 		default:
 			// do nothing
 		}
-		nn.setDirty(true)
-
+		n.setDirty(true)
 	}
-
-	return nn
+	return n
 }
 
 // lenCommonPrefix returns the length of the common prefix between two keys
