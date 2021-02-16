@@ -28,6 +28,7 @@ type BlockState interface {
 	BestBlockHeader() (*types.Header, error)
 	BestBlockNumber() (*big.Int, error)
 	GenesisHash() common.Hash
+	HasBlockBody(common.Hash) (bool, error)
 }
 
 // Syncer is implemented by the syncing service
@@ -36,15 +37,15 @@ type Syncer interface {
 	CreateBlockResponse(*BlockRequestMessage) (*BlockResponseMessage, error)
 
 	// HandleBlockAnnounceHandshake is called upon receiving a BlockAnnounceHandshake from a peer that has a higher chain head than us
-	HandleBlockAnnounceHandshake(*big.Int) []*BlockRequestMessage
+	//HandleBlockAnnounceHandshake(*big.Int) []*BlockRequestMessage
 
 	// HandleBlockResponse is called upon receipt of BlockResponseMessage to process it.
 	// If another request needs to be sent to the peer, this function will return it.
-	HandleBlockResponse(*BlockResponseMessage) *BlockRequestMessage
+	HandleBlockResponse(*BlockResponseMessage) error
 
 	// HandleBlockAnnounce is called upon receipt of a BlockAnnounceMessage to process it.
 	// If a request needs to be sent to the peer to retrieve the full block, this function will return it.
-	HandleBlockAnnounce(*BlockAnnounceMessage) *BlockRequestMessage
+	HandleBlockAnnounce(*BlockAnnounceMessage) error
 
 	// IsSynced exposes the internal synced state
 	IsSynced() bool

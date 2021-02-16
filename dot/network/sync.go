@@ -10,6 +10,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/common/optional"
+	"github.com/ChainSafe/gossamer/lib/common/variadic"
+
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
@@ -82,6 +87,11 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 	return nil
 }
 
+var (
+	blockRequestSize      uint32 = 128
+	blockRequestQueueSize int64  = 3
+)
+
 type syncPeer struct { //nolint
 	pid   peer.ID
 	score int
@@ -115,22 +125,26 @@ type syncQueue struct {
 	responseCh   chan *syncResponse
 	responseLock sync.RWMutex
 
+	goal               int64 // goal block number we are trying to sync to
 	currStart, currEnd int64 // the start and end of the BlockResponse we are currently handling; 0 and 0 if we are not currently handling any
+
+	benchmarker *syncBenchmarker
 }
 
 func newSyncQueue(s *Service) *syncQueue {
 	ctx, cancel := context.WithCancel(s.ctx)
 
 	return &syncQueue{
-		s:          s,
-		ctx:        ctx,
-		cancel:     cancel,
-		peerScore:  make(map[peer.ID]int),
-		syncing:    make(map[peer.ID]struct{}),
-		requests:   []*syncRequest{},
-		requestCh:  make(chan *syncRequest),
-		responses:  []*syncResponse{},
-		responseCh: make(chan *syncResponse),
+		s:           s,
+		ctx:         ctx,
+		cancel:      cancel,
+		peerScore:   make(map[peer.ID]int),
+		syncing:     make(map[peer.ID]struct{}),
+		requests:    []*syncRequest{},
+		requestCh:   make(chan *syncRequest),
+		responses:   []*syncResponse{},
+		responseCh:  make(chan *syncResponse),
+		benchmarker: newSyncBenchmarker(),
 	}
 }
 
@@ -143,9 +157,19 @@ func (q *syncQueue) start() {
 				return
 			}
 
+			head, err := q.s.blockState.BestBlockNumber()
+			if err != nil {
+				continue
+			}
+
 			// if we have block requests to send, put them into requestCh
 			if len(q.requests) == 0 {
-				continue
+				if q.goal == head.Int64() {
+					continue
+				}
+
+				reqs := createBlockRequests(head.Int64()+1, q.goal)
+				q.pushBlockRequests(reqs, "")
 			}
 
 			q.requestLock.Lock()
@@ -176,6 +200,12 @@ func (q *syncQueue) start() {
 				continue
 			}
 
+			if q.responses[0].start != head.Int64()+1 {
+				logger.Debug("response start isn't head+1, waiting", "queue start", q.responses[0].start, "head+1", head.Int64()+1)
+				q.responseLock.Unlock()
+				continue
+			}
+
 			if q.responses[0].end <= head.Int64() {
 				// this assumes responses are always in ascending order, which should be true as long as other nodes respect our requested direction
 				logger.Debug("response end was less than head+1, removing", "queue end", q.responses[0].end, "head+1", head.Int64()+1)
@@ -193,6 +223,30 @@ func (q *syncQueue) start() {
 
 	go q.processBlockRequests()
 	go q.processBlockResponses()
+	go q.benchmark()
+}
+
+func (q *syncQueue) benchmark() {
+	for {
+		head, err := q.s.blockState.BestBlockNumber()
+		if err != nil {
+			logger.Error("failed to get best block number", "error", err)
+			return // TODO: handle this / panic?
+		}
+
+		q.benchmarker.begin(head.Uint64())
+		time.Sleep(time.Minute)
+
+		head, err = q.s.blockState.BestBlockNumber()
+		if err != nil {
+			logger.Error("failed to get best block number", "error", err)
+			return // TODO: handle this / panic?
+		}
+
+		q.benchmarker.end(head.Uint64())
+		avg := q.benchmarker.average()
+		logger.Info("🚣 currently syncing", "average blocks/second", avg)
+	}
 }
 
 func (q *syncQueue) stringifyRequestQueue() string {
@@ -238,20 +292,20 @@ func (q *syncQueue) pushBlockRequests(reqs []*BlockRequestMessage, pid peer.ID) 
 	q.requestLock.Lock()
 	defer q.requestLock.Unlock()
 
-	var currLastRequestedBlock uint64
-	if len(q.requests) > 0 {
-		currLastRequestedBlock = q.requests[len(q.requests)-1].req.StartingBlock.Uint64()
-	}
-
+	//var currLastRequestedBlock uint64
+	// if len(q.requests) > 0 {
+	// 	currLastRequestedBlock = q.requests[len(q.requests)-1].req.StartingBlock.Uint64()
+	// }
+	//
 	for _, req := range reqs {
 		if req.StartingBlock.Uint64() <= uint64(q.currEnd) {
 			return
 		}
 
-		// don't add requests that are already covered by existing requests
-		if req.StartingBlock.Uint64() <= currLastRequestedBlock {
-			continue
-		}
+		// // don't add requests that are already covered by existing requests
+		// if req.StartingBlock.Uint64() <= currLastRequestedBlock {
+		// 	continue
+		// }
 
 		q.requests = append(q.requests, &syncRequest{
 			pid: pid,
@@ -346,14 +400,15 @@ func (q *syncQueue) processBlockResponses() {
 			logger.Debug("sending response to syncer", "start", resp.start, "end", resp.end)
 			q.currStart = resp.start
 			q.currEnd = resp.end
-			req := q.s.syncer.HandleBlockResponse(resp.resp)
-			if req == nil {
-				// we are done syncing
-				q.unsetSyncingPeer(resp.pid)
+			err := q.s.syncer.HandleBlockResponse(resp.resp)
+			if err != nil {
+				logger.Debug("failed to handle block request; re-adding to queue", "start", resp.start, "error", err)
+				req := createBlockRequest(resp.start, 1)
+				q.pushBlockRequest(req, resp.pid)
 				continue
 			}
 
-			q.pushBlockRequest(req, resp.pid)
+			q.unsetSyncingPeer(resp.pid)
 		case <-q.ctx.Done():
 			return
 		}
@@ -457,4 +512,111 @@ func sortResponses(resps []*syncResponse) {
 
 		i++
 	}
+}
+
+// handleBlockAnnounceHandshake handles a block that a peer claims to have through a HandleBlockAnnounceHandshake
+func (q *syncQueue) handleBlockAnnounceHandshake(blockNum uint32, from peer.ID) {
+	// if len(q.requests) > int(blockRequestQueueSize) {
+	// 	return
+	// }
+
+	bestNum, err := q.s.blockState.BestBlockNumber()
+	if err != nil {
+		logger.Error("failed to get best block number", "error", err)
+		return // TODO: handle this / panic?
+	}
+
+	if bestNum.Int64() >= int64(blockNum) || q.goal >= int64(blockNum) {
+		return
+	}
+
+	q.goal = int64(blockNum)
+
+	var start int64
+	if q.currEnd != 0 {
+		start = q.currEnd + 1
+	} else {
+		start = bestNum.Int64() + 1
+	}
+
+	reqs := createBlockRequests(start, q.goal)
+	q.pushBlockRequests(reqs, from)
+}
+
+func (q *syncQueue) handleBlockAnnounce(msg *BlockAnnounceMessage, from peer.ID) {
+	// if len(q.requests) > int(blockRequestQueueSize) {
+	// 	return
+	// }
+
+	// create block request to send
+	bestNum, err := q.s.blockState.BestBlockNumber() //nolint
+	if err != nil {
+		logger.Error("failed to get best block number", "error", err)
+		return
+	}
+
+	header, err := types.NewHeader(
+		msg.ParentHash,
+		msg.Number,
+		msg.StateRoot,
+		msg.ExtrinsicsRoot,
+		msg.Digest,
+	)
+	if err != nil {
+		logger.Error("failed to create header from BlockAnnounce", "error", err)
+		return
+	}
+
+	has, _ := q.s.blockState.HasBlockBody(header.Hash())
+	if has {
+		return
+	}
+
+	if header.Number.Int64() > q.goal {
+		q.goal = header.Number.Int64()
+	}
+
+	// if we already have blocks up to the BlockAnnounce number, only request the block in the BlockAnnounce
+	var start int64
+	if bestNum.Cmp(header.Number) > 0 {
+		start = header.Number.Int64()
+	} else {
+		start = bestNum.Int64() + 1
+	}
+
+	reqs := createBlockRequests(start, q.goal)
+	q.pushBlockRequests(reqs, from)
+}
+
+func createBlockRequests(start, end int64) []*BlockRequestMessage {
+	numReqs := (end - start) / int64(blockRequestSize)
+	if numReqs > blockRequestQueueSize {
+		numReqs = blockRequestQueueSize
+	}
+
+	if end-start < int64(blockRequestSize) {
+		numReqs = 1
+	}
+
+	reqs := make([]*BlockRequestMessage, numReqs)
+	for i := 0; i < int(numReqs); i++ {
+		offset := i * int(blockRequestSize)
+		reqs[i] = createBlockRequest(start+int64(offset), blockRequestSize)
+	}
+	return reqs
+}
+
+func createBlockRequest(startInt int64, size uint32) *BlockRequestMessage {
+	start, _ := variadic.NewUint64OrHash(uint64(startInt))
+	logger.Debug("creating block request", "start", start)
+
+	blockRequest := &BlockRequestMessage{
+		RequestedData: RequestedDataHeader + RequestedDataBody + RequestedDataJustification,
+		StartingBlock: start,
+		EndBlockHash:  optional.NewHash(false, common.Hash{}),
+		Direction:     0, // ascending
+		Max:           optional.NewUint32(true, size),
+	}
+
+	return blockRequest
 }

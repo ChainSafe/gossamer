@@ -25,12 +25,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
-	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 
-	"github.com/ChainSafe/chaindb"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -60,9 +56,6 @@ type Service struct {
 
 	// Consensus digest handling
 	digestHandler DigestHandler
-
-	// Benchmarker
-	benchmarker *benchmarker
 }
 
 // Config is the configuration for the sync Service.
@@ -115,39 +108,38 @@ func NewService(cfg *Config) (*Service, error) {
 		runtime:          cfg.Runtime,
 		verifier:         cfg.Verifier,
 		digestHandler:    cfg.DigestHandler,
-		benchmarker:      newBenchmarker(logger),
 	}, nil
 }
 
-// HandleBlockAnnounceHandshake handles a block that a peer claims to have through a HandleBlockAnnounceHandshake
-func (s *Service) HandleBlockAnnounceHandshake(blockNum *big.Int) []*network.BlockRequestMessage {
-	bestNum, err := s.blockState.BestBlockNumber()
-	if err != nil {
-		s.logger.Error("failed to get best block number", "error", err)
-		return nil // TODO: handle this / panic?
-	}
+// // HandleBlockAnnounceHandshake handles a block that a peer claims to have through a HandleBlockAnnounceHandshake
+// func (s *Service) HandleBlockAnnounceHandshake(blockNum *big.Int) []*network.BlockRequestMessage {
+// 	bestNum, err := s.blockState.BestBlockNumber()
+// 	if err != nil {
+// 		s.logger.Error("failed to get best block number", "error", err)
+// 		return nil // TODO: handle this / panic?
+// 	}
 
-	if blockNum == nil || bestNum.Cmp(blockNum) != -1 || s.highestSeenBlock.Cmp(blockNum) >= 0 {
-		return nil
-	}
+// 	if blockNum == nil || bestNum.Cmp(blockNum) != -1 || s.highestSeenBlock.Cmp(blockNum) >= 0 {
+// 		return nil
+// 	}
 
-	s.highestSeenBlock = blockNum
+// 	s.highestSeenBlock = blockNum
 
-	// need to sync
-	start := new(big.Int).Add(bestNum, big.NewInt(1)).Int64()
+// 	// need to sync
+// 	start := new(big.Int).Add(bestNum, big.NewInt(1)).Int64()
 
-	if s.synced {
-		s.synced = false
-		_ = s.blockProducer.Pause()
-	}
+// 	if s.synced {
+// 		s.synced = false
+// 		_ = s.blockProducer.Pause()
+// 	}
 
-	return s.createBlockRequests(start, s.highestSeenBlock.Int64())
-}
+// 	return s.createBlockRequests(start, s.highestSeenBlock.Int64())
+// }
 
 // HandleBlockAnnounce creates a block request message from the block
 // announce messages (block announce messages include the header but the full
 // block is required to execute `core_execute_block`).
-func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) *network.BlockRequestMessage {
+func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) error {
 	s.logger.Debug("received BlockAnnounceMessage")
 
 	// create header from message
@@ -159,21 +151,20 @@ func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) *networ
 		msg.Digest,
 	)
 	if err != nil {
-		s.logger.Error("failed to handle BlockAnnounce", "error", err)
-		return nil
+		return err
 	}
 
 	// check if block header is stored in block state
 	has, err := s.blockState.HasHeader(header.Hash())
 	if err != nil {
-		s.logger.Error("failed to handle BlockAnnounce", "error", err)
+		return err
 	}
 
 	// save block header if we don't have it already
 	if !has {
 		err = s.blockState.SetHeader(header)
 		if err != nil {
-			s.logger.Error("failed to handle BlockAnnounce", "error", err)
+			return err
 		}
 		s.logger.Debug(
 			"saved block header to block state",
@@ -182,133 +173,135 @@ func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) *networ
 		)
 	}
 
-	// check if block body is stored in block state (ie. if we have the full block already)
-	has, _ = s.blockState.HasBlockBody(header.Hash())
-	if !has {
-		s.synced = false
-		err = s.blockProducer.Pause()
-		if err != nil {
-			s.logger.Debug("failed to pause block production")
-		}
+	// // check if block body is stored in block state (ie. if we have the full block already)
+	// has, _ = s.blockState.HasBlockBody(header.Hash())
+	// if !has {
+	// 	s.synced = false
+	// 	err = s.blockProducer.Pause()
+	// 	if err != nil {
+	// 		s.logger.Debug("failed to pause block production")
+	// 	}
 
-		// create block request to send
-		bestNum, err := s.blockState.BestBlockNumber() //nolint
-		if err != nil {
-			s.logger.Error("failed to get best block number", "error", err)
-			bestNum = big.NewInt(0)
-		}
+	// 	// create block request to send
+	// 	bestNum, err := s.blockState.BestBlockNumber() //nolint
+	// 	if err != nil {
+	// 		s.logger.Error("failed to get best block number", "error", err)
+	// 		bestNum = big.NewInt(0)
+	// 	}
 
-		// if we already have blocks up to the BlockAnnounce number, only request the block in the BlockAnnounce
-		var start int64
-		if bestNum.Cmp(header.Number) > 0 {
-			start = header.Number.Int64()
-		} else {
-			s.highestSeenBlock = header.Number
-			start = bestNum.Int64() + 1
-		}
+	// 	// if we already have blocks up to the BlockAnnounce number, only request the block in the BlockAnnounce
+	// 	var start int64
+	// 	if bestNum.Cmp(header.Number) > 0 {
+	// 		start = header.Number.Int64()
+	// 	} else {
+	// 		s.highestSeenBlock = header.Number
+	// 		start = bestNum.Int64() + 1
+	// 	}
 
-		return s.createBlockRequest(start, 1)
-	} else if err != nil {
-		s.logger.Error("failed to handle BlockAnnounce", "error", err)
-	}
+	// 	return s.createBlockRequest(start, 1)
+	// } else if err != nil {
+	// 	s.logger.Error("failed to handle BlockAnnounce", "error", err)
+	// }
 
 	return nil
 }
 
 // HandleBlockResponse handles a BlockResponseMessage by processing the blocks found in it and adding them to the BlockState if necessary.
 // If the node is still not synced after processing, it creates and returns the next BlockRequestMessage to send.
-func (s *Service) HandleBlockResponse(msg *network.BlockResponseMessage) *network.BlockRequestMessage {
+func (s *Service) HandleBlockResponse(msg *network.BlockResponseMessage) error {
 	// highestInResp will be the highest block in the response
 	// it's set to 0 if err != nil
-	var start int64
-	low, high, err := s.processBlockResponseData(msg)
+	_, _, err := s.processBlockResponseData(msg)
+	return err
+	// var start int64
+	// low, high, err := s.processBlockResponseData(msg)
 
-	// if we cannot find the parent block in our blocktree, we are missing some blocks, and need to request
-	// blocks from farther back in the chain
-	if err == blocktree.ErrParentNotFound || errors.Is(err, chaindb.ErrKeyNotFound) {
-		s.logger.Debug("got ErrParentNotFound or ErrKeyNotFound; need to request earlier blocks")
-		bestNum, err := s.blockState.BestBlockNumber() //nolint
-		if err != nil {
-			s.logger.Error("failed to get best block number", "error", err)
-			start = low - maxResponseSize
-		} else {
-			start = bestNum.Int64() + 1
-		}
+	// // if we cannot find the parent block in our blocktree, we are missing some blocks, and need to request
+	// // blocks from farther back in the chain
+	// if err == blocktree.ErrParentNotFound || errors.Is(err, chaindb.ErrKeyNotFound) {
+	// 	s.logger.Debug("got ErrParentNotFound or ErrKeyNotFound; need to request earlier blocks")
+	// 	bestNum, err := s.blockState.BestBlockNumber() //nolint
+	// 	if err != nil {
+	// 		s.logger.Error("failed to get best block number", "error", err)
+	// 		start = low - maxResponseSize
+	// 	} else {
+	// 		start = bestNum.Int64() + 1
+	// 	}
 
-		s.logger.Debug("retrying block request", "start", start)
-		return s.createBlockRequest(start, blockRequestSize)
-	} else if err != nil {
-		s.logger.Error("failed to process block response", "error", err)
-		return nil
-	}
+	// 	s.logger.Debug("retrying block request", "start", start)
+	// 	return s.createBlockRequest(start, blockRequestSize)
+	// } else if err != nil {
+	// 	s.logger.Error("failed to process block response", "error", err)
+	// 	return nil
+	// }
 
-	s.logger.Debug("received BlockResponse", "start", low, "end", high)
+	// s.logger.Debug("received BlockResponse", "start", low, "end", high)
 
-	// TODO: max retries before unlocking BlockProducer, in case no response is received
-	bestNum, err := s.blockState.BestBlockNumber()
-	if err != nil {
-		s.logger.Error("failed to get best block number", "error", err)
-		bestNum = big.NewInt(0)
-	}
+	// // TODO: max retries before unlocking BlockProducer, in case no response is received
+	// bestNum, err := s.blockState.BestBlockNumber()
+	// if err != nil {
+	// 	s.logger.Error("failed to get best block number", "error", err)
+	// 	bestNum = big.NewInt(0)
+	// }
 
-	// check if we are synced or not
-	if bestNum.Cmp(s.highestSeenBlock) >= 0 && bestNum.Cmp(big.NewInt(0)) != 0 {
-		s.logger.Debug("all synced up!", "number", bestNum)
-		s.benchmarker.end(uint64(bestNum.Int64()))
+	// // check if we are synced or not
+	// if bestNum.Cmp(s.highestSeenBlock) >= 0 && bestNum.Cmp(big.NewInt(0)) != 0 {
+	// 	s.logger.Debug("all synced up!", "number", bestNum)
+	// 	s.benchmarker.end(uint64(bestNum.Int64()))
 
-		if !s.synced {
-			err = s.blockProducer.Resume()
-			if err != nil {
-				s.logger.Warn("failed to resume block production")
-			}
-			s.synced = true
-		}
-		return nil
-	}
+	// 	if !s.synced {
+	// 		err = s.blockProducer.Resume()
+	// 		if err != nil {
+	// 			s.logger.Warn("failed to resume block production")
+	// 		}
+	// 		s.synced = true
+	// 	}
+	// 	return nil
+	// }
 
-	// not yet synced, send another block request for the following blocks
-	start = bestNum.Int64() + 1
-	return s.createBlockRequest(start, blockRequestSize)
+	// // not yet synced, send another block request for the following blocks
+	// start = bestNum.Int64() + 1
+	// return s.createBlockRequest(start, blockRequestSize)
 }
 
-func (s *Service) createBlockRequests(start, end int64) []*network.BlockRequestMessage {
-	numReqs := (end - start) / int64(blockRequestSize)
-	if numReqs > blockRequestQueueSize {
-		numReqs = blockRequestQueueSize
-	}
+// func (s *Service) createBlockRequests(start, end int64) []*network.BlockRequestMessage {
+// 	numReqs := (end - start) / int64(blockRequestSize)
+// 	if numReqs > blockRequestQueueSize {
+// 		numReqs = blockRequestQueueSize
+// 	}
 
-	if end-start < int64(blockRequestSize) {
-		numReqs = 1
-	}
+// 	if end-start < int64(blockRequestSize) {
+// 		numReqs = 1
+// 	}
 
-	reqs := make([]*network.BlockRequestMessage, numReqs)
-	for i := 0; i < int(numReqs); i++ {
-		offset := i * int(blockRequestSize)
-		reqs[i] = s.createBlockRequest(start+int64(offset), blockRequestSize)
-	}
-	return reqs
-}
+// 	reqs := make([]*network.BlockRequestMessage, numReqs)
+// 	for i := 0; i < int(numReqs); i++ {
+// 		offset := i * int(blockRequestSize)
+// 		reqs[i] = s.createBlockRequest(start+int64(offset), blockRequestSize)
+// 	}
+// 	return reqs
+// }
 
-func (s *Service) createBlockRequest(startInt int64, size uint32) *network.BlockRequestMessage {
-	start, err := variadic.NewUint64OrHash(uint64(startInt))
-	if err != nil {
-		s.logger.Error("failed to create block request start block", "error", err)
-		return nil
-	}
+// func (s *Service) createBlockRequest(startInt int64, size uint32) *network.BlockRequestMessage {
+// 	start, err := variadic.NewUint64OrHash(uint64(startInt))
+// 	if err != nil {
+// 		s.logger.Error("failed to create block request start block", "error", err)
+// 		return nil
+// 	}
 
-	s.logger.Debug("creating block request", "start", start)
+// 	s.logger.Debug("creating block request", "start", start)
 
-	blockRequest := &network.BlockRequestMessage{
-		RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification,
-		StartingBlock: start,
-		EndBlockHash:  optional.NewHash(false, common.Hash{}),
-		Direction:     0, // ascending
-		Max:           optional.NewUint32(true, size),
-	}
+// 	blockRequest := &network.BlockRequestMessage{
+// 		RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification,
+// 		StartingBlock: start,
+// 		EndBlockHash:  optional.NewHash(false, common.Hash{}),
+// 		Direction:     0, // ascending
+// 		Max:           optional.NewUint32(true, size),
+// 	}
 
-	s.benchmarker.begin(uint64(startInt))
-	return blockRequest
-}
+// 	s.benchmarker.begin(uint64(startInt))
+// 	return blockRequest
+// }
 
 // processBlockResponseData processes the BlockResponse and returns the start and end blocks in the response
 func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (int64, int64, error) {

@@ -219,12 +219,12 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 		return nil
 	}
 
-	// if so, send block request
-	logger.Trace("sending peer highest block to syncer", "number", bhs.BestBlockNumber)
-	reqs := s.syncer.HandleBlockAnnounceHandshake(bestBlockNum)
-	if len(reqs) == 0 {
-		return nil
-	}
+	// // if so, send block request
+	// logger.Trace("sending peer highest block to syncer", "number", bhs.BestBlockNumber)
+	// reqs := s.syncer.HandleBlockAnnounceHandshake(bestBlockNum)
+	// if len(reqs) == 0 {
+	// 	return nil
+	// }
 
 	go func() {
 		if s.notificationsProtocols[BlockAnnounceMsgType] == nil {
@@ -240,7 +240,7 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 		// wait until we send BlockAnnounceHandshake, then begin sync
 		select {
 		case <-s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].responseSentCh:
-			s.syncQueue.pushBlockRequests(reqs, peer)
+			s.syncQueue.handleBlockAnnounceHandshake(bhs.BestBlockNumber, peer)
 		case <-time.After(time.Second * 3):
 			err = errors.New("timeout")
 		}
@@ -254,9 +254,10 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 // with its peer and send a BlockRequest message
 func (s *Service) handleBlockAnnounceMessage(peer peer.ID, msg NotificationsMessage) error {
 	if an, ok := msg.(*BlockAnnounceMessage); ok {
-		req := s.syncer.HandleBlockAnnounce(an)
-		if req != nil {
-			s.syncQueue.pushBlockRequest(req, peer)
+		s.syncQueue.handleBlockAnnounce(an, peer)
+		err := s.syncer.HandleBlockAnnounce(an)
+		if err != nil {
+			return err
 		}
 	}
 

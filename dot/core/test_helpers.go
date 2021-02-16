@@ -245,24 +245,16 @@ func (s *mockSyncer) CreateBlockResponse(msg *network.BlockRequestMessage) (*net
 	return nil, nil
 }
 
-func (s *mockSyncer) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) *network.BlockRequestMessage {
-	if msg.Number.Cmp(s.highestSeen) > 0 {
-		s.highestSeen = msg.Number
-	}
-
-	return &network.BlockRequestMessage{}
+func (s *mockSyncer) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) error {
+	return nil
 }
 
-func (s *mockSyncer) HandleBlockResponse(msg *network.BlockResponseMessage) *network.BlockRequestMessage {
+func (s *mockSyncer) HandleBlockResponse(msg *network.BlockResponseMessage) error {
 	return nil
 }
 
 func (s *mockSyncer) IsSynced() bool {
 	return false
-}
-
-func (s *mockSyncer) HandleBlockAnnounceHandshake(num *big.Int) []*network.BlockRequestMessage {
-	return nil
 }
 
 type mockDigestItem struct {
