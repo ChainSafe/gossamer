@@ -35,6 +35,7 @@ type BlockAPI interface {
 	UnregisterImportedChannel(id byte)
 	RegisterFinalizedChannel(ch chan<- *types.Header) (byte, error)
 	UnregisterFinalizedChannel(id byte)
+	SubChain(start, end common.Hash) ([]common.Hash, error)
 }
 
 // NetworkAPI interface for network state methods

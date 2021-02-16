@@ -49,21 +49,26 @@ type ProveFinalityRequest struct {
 }
 
 // ProveFinalityResponse is an optional SCALE encoded proof array
-type ProveFinalityResponse string
+type ProveFinalityResponse [][]byte
 
 // ProveFinality for the provided block range. Returns NULL if there are no known finalized blocks in the range. If no authorities set is provided, the current one will be attempted.
 func (gm *GrandpaModule) ProveFinality(r *http.Request, req *ProveFinalityRequest, res *ProveFinalityResponse) error {
+	blocksToCheck, err := gm.blockAPI.SubChain(req.blockHashStart, req.blockHashEnd)
+	if err != nil {
+		gm.logger.Warn("error executing subchain via block api", req.blockHashStart, req.blockHashEnd, "")
+		return err
+	}
 
-	// TODO: #1378; iterate over blocks from start to end collecting items to return
-	var justificationsRaw [][]byte
-	hasJustification, _ := gm.blockAPI.HasJustification(req.blockHashStart)
-	if hasJustification {
-		justification, err := gm.blockAPI.GetJustification(req.blockHashStart)
-		if err != nil {
-			// TODO: #1378; Skip?
-		} else {
-			// TODO: #1378; append to
-			justificationsRaw = append(justificationsRaw, justification)
+	for _, block := range blocksToCheck {
+		hasJustification, _ := gm.blockAPI.HasJustification(block)
+		if hasJustification {
+			justification, err := gm.blockAPI.GetJustification(block)
+			if err != nil {
+				// TODO: 1378; Append nil value?
+				continue
+			} else {
+				*res = append(*res, justification)
+			}
 		}
 	}
 
