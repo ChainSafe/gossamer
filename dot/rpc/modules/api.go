@@ -9,6 +9,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // StorageAPI is the interface for the storage state
@@ -44,6 +45,7 @@ type NetworkAPI interface {
 	Stop() error
 	Start() error
 	IsStopped() bool
+	AddToPeerstore(peer peer.AddrInfo)
 }
 
 // BlockProducerAPI is the interface for BlockProducer methods

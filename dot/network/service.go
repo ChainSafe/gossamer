@@ -591,3 +591,8 @@ func (s *Service) Peers() []common.PeerInfo {
 func (s *Service) NodeRoles() byte {
 	return s.cfg.Roles
 }
+
+// AddToPeerstore adds this address to the peerstore's AddrBook
+func (s *Service) AddToPeerstore(peer peer.AddrInfo) {
+	s.host.addToPeerstore(peer)
+}

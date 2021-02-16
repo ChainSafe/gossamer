@@ -17,9 +17,13 @@
 package modules
 
 import (
+	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/libp2p/go-libp2p-core/peer"
+	ma "github.com/multiformats/go-multiaddr"
 )
 
 // SystemModule is an RPC module providing access to core API points
@@ -30,6 +34,11 @@ type SystemModule struct {
 
 // EmptyRequest represents an RPC request with no fields
 type EmptyRequest struct{}
+
+// StringRequest holds string request
+type StringRequest struct {
+	String string
+}
 
 // StringResponse holds the string response
 type StringResponse string
@@ -134,4 +143,25 @@ func (sm *SystemModule) NodeRoles(r *http.Request, req *EmptyRequest, res *[]int
 
 	*res = resultArray
 	return nil
+}
+
+// AddReservedPeer Adds a reserved peer. The string parameter should encode a p2p multiaddr.
+func (sm *SystemModule) AddReservedPeer(r *http.Request, req *StringRequest, res *[]interface{}) error {
+	addressParts := strings.Split(req.String, "/p2p/")
+	if len(addressParts) != 2 {
+		return errors.New("error parsing address string")
+	}
+	maddr, err := ma.NewMultiaddr(addressParts[0])
+	if err != nil {
+		return err
+	}
+	addrs := []ma.Multiaddr{}
+	addrs = append(addrs, maddr)
+	addr := &peer.AddrInfo{
+		ID:    peer.ID(addressParts[1]),
+		Addrs: addrs,
+	}
+
+	sm.networkAPI.AddToPeerstore(*addr)
+	return err
 }
