@@ -448,7 +448,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 	var (
 		msgBytes       []byte
 		tot            uint64
-		maxMessageSize uint64 = 1024 * 40
+		maxMessageSize uint64 = 1024 * 64 // TODO: determine actual max message size
 	)
 
 	for {
