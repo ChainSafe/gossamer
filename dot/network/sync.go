@@ -218,11 +218,9 @@ func (q *syncQueue) start() {
 				logger.Debug("response start isn't head+1, waiting", "queue start", q.responses[0].Number().Int64(), "head+1", head.Int64()+1)
 				q.responseLock.Unlock()
 
-				// q.requestLock.Lock()
-				// if len(q.requests) == 0 && !q.waitingForResp {
-				// 	q.setBlockRequests("")
-				// }
-				// q.requestLock.Unlock()
+				q.requestLock.Lock()
+				q.setBlockRequests("")
+				q.requestLock.Unlock()
 				continue
 			}
 
@@ -256,8 +254,7 @@ func (q *syncQueue) benchmark() {
 		}
 
 		q.benchmarker.end(head.Uint64())
-		avg := q.benchmarker.average()
-		logger.Info("🚣 currently syncing", "average blocks/second", avg)
+		logger.Info("🚣 currently syncing", "average blocks/second", q.benchmarker.mostRecentAverage(), "overall average", q.benchmarker.average())
 	}
 }
 
@@ -321,29 +318,8 @@ func (q *syncQueue) setBlockRequests(pid peer.ID) {
 
 	reqs := createBlockRequests(start, q.goal)
 
-	// q.requestLock.Lock()
-	// defer q.requestLock.Unlock()
-
-	//var currLastRequestedBlock uint64
-	// if len(q.requests) > 0 {
-	// 	currLastRequestedBlock = q.requests[len(q.requests)-1].req.StartingBlock.Uint64()
-	// }
-	//
-
 	q.requests = []*syncRequest{}
 	for _, req := range reqs {
-		// if req.StartingBlock.Uint64() + uint64(blockRequestSize) <= uint64(q.currEnd) {
-		// 	return
-		// }
-
-		// // // don't add requests that are already covered by existing requests
-		// // if req.StartingBlock.Uint64() <= currLastRequestedBlock {
-		// // 	continue
-		// // }
-		// if req.StartingBlock.Uint64() + uint64(blockRequestSize) > q.requestedTo {
-		// 	q.requestedTo = req.StartingBlock.Uint64() + uint64(blockRequestSize)
-		// }
-
 		q.requests = append(q.requests, &syncRequest{
 			pid: pid,
 			req: req,
@@ -352,36 +328,6 @@ func (q *syncQueue) setBlockRequests(pid peer.ID) {
 	sortRequests(q.requests)
 	logger.Debug("sync request queue", "queue", q.stringifyRequestQueue())
 }
-
-// func (q *syncQueue) pushBlockRequest(req *BlockRequestMessage, pid peer.ID) {
-// 	q.requestLock.Lock()
-// 	defer q.requestLock.Unlock()
-
-// 	var currLastRequestedBlock uint64
-// 	if len(q.requests) > 0 {
-// 		currLastRequestedBlock = q.requests[len(q.requests)-1].req.StartingBlock.Uint64()
-// 	}
-
-// 	// don't add requests that are already covered by existing requests
-// 	if req.StartingBlock.Uint64() <= currLastRequestedBlock {
-// 		return
-// 	}
-
-// 	// reject request that oerlaps with blocks we are currently syncing
-// 	if req.StartingBlock.Uint64() <= uint64(q.currEnd) {
-// 		return
-// 	}
-
-// 	if req.StartingBlock.Uint64() + uint64(blockRequestSize) > q.requestedTo {
-// 		q.requestedTo = req.StartingBlock.Uint64() + uint64(blockRequestSize)
-// 	}
-
-// 	q.requests = append(q.requests, &syncRequest{
-// 		pid: pid,
-// 		req: req,
-// 	})
-// 	sortRequests(q.requests)
-// }
 
 func (q *syncQueue) pushBlockResponse(resp *BlockResponseMessage, pid peer.ID) {
 	//q.waitingForResp = nil
@@ -431,19 +377,7 @@ func (q *syncQueue) processBlockRequests() {
 	for {
 		select {
 		case req := <-q.requestCh:
-			//q.waitingForResp = true
 			q.ensureResponseReceived(req)
-
-			// if len(req.pid) == 0 {
-			// 	q.attemptSyncWithRandomPeer(req.req)
-			// 	continue
-			// }
-
-			// if err := q.beginSyncingWithPeer(req.pid, req.req); err != nil {
-			// 	q.unsetSyncingPeer(req.pid)
-			// 	logger.Debug("failed to send block request to peer, trying other peers", "peer", req.pid)
-			// 	q.attemptSyncWithRandomPeer(req.req)
-			// }
 		case <-q.ctx.Done():
 			return
 		}
@@ -452,8 +386,14 @@ func (q *syncQueue) processBlockRequests() {
 
 func (q *syncQueue) ensureResponseReceived(req *syncRequest) {
 	var attemptToSyncFunc func(*BlockRequestMessage) = q.attemptSyncWithPreferedPeers
+	numRetries := 5
+	i := 0
 
 	for {
+		if i == numRetries {
+			return
+		}
+
 		logger.Debug("beginning to send out request", "start", req.req.StartingBlock.Uint64())
 		if len(req.pid) == 0 {
 			attemptToSyncFunc(req.req)
@@ -466,6 +406,8 @@ func (q *syncQueue) ensureResponseReceived(req *syncRequest) {
 			}
 
 		}
+
+		i++
 
 		select {
 		case resp := <-q.gotRespCh:

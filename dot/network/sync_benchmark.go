@@ -49,3 +49,7 @@ func (b *syncBenchmarker) average() float64 {
 	}
 	return sum / float64(len(b.blocksPerSecond))
 }
+
+func (b *syncBenchmarker) mostRecentAverage() float64 {
+	return b.blocksPerSecond[len(b.blocksPerSecond)-1]
+}
