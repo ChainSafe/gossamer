@@ -17,11 +17,110 @@
 package network
 
 import (
+	"context"
+	"math/big"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
 )
+
+func TestDecodeSyncMessage(t *testing.T) {
+	s := &Service{
+		ctx: context.Background(),
+	}
+
+	s.syncQueue = newSyncQueue(s)
+
+	testPeer := peer.ID("noot")
+
+	testBlockResponseMessage := &BlockResponseMessage{
+		BlockData: []*types.BlockData{},
+	}
+
+	reqEnc, err := testBlockRequestMessage.Encode()
+	require.NoError(t, err)
+
+	msg, err := s.decodeSyncMessage(reqEnc, testPeer)
+	require.NoError(t, err)
+
+	req, ok := msg.(*BlockRequestMessage)
+	require.True(t, ok)
+	require.Equal(t, testBlockRequestMessage, req)
+
+	s.syncQueue.syncing[testPeer] = struct{}{}
+
+	respEnc, err := testBlockResponseMessage.Encode()
+	require.NoError(t, err)
+
+	msg, err = s.decodeSyncMessage(respEnc, testPeer)
+	require.NoError(t, err)
+	resp, ok := msg.(*BlockResponseMessage)
+	require.True(t, ok)
+	require.Equal(t, testBlockResponseMessage, resp)
+}
+
+func TestBeginSyncingProtectsPeer(t *testing.T) {
+	basePath := utils.NewTestBasePath(t, "node_a")
+	config := &Config{
+		BasePath:    basePath,
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	var (
+		s      = createTestService(t, config)
+		peerID = peer.ID("rudolf")
+		msg    = &BlockRequestMessage{}
+	)
+
+	s.syncQueue.beginSyncingWithPeer(peerID, msg)
+	require.True(t, s.host.h.ConnManager().IsProtected(peerID, ""))
+}
+
+func TestHandleSyncMessage_BlockResponse(t *testing.T) {
+	basePath := utils.NewTestBasePath(t, "nodeA")
+	config := &Config{
+		BasePath:    basePath,
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	s := createTestService(t, config)
+
+	testHeader := types.Header{
+		Number: big.NewInt(77),
+	}
+
+	peerID := peer.ID("noot")
+	msg := &BlockResponseMessage{
+		BlockData: []*types.BlockData{
+			{
+				Header: testHeader.AsOptional(),
+			},
+		},
+	}
+
+	var br *blockRange
+	go func() {
+		br = <-s.syncQueue.gotRespCh
+	}()
+
+	s.syncQueue.syncing[peerID] = struct{}{}
+	s.handleSyncMessage(peerID, msg)
+	require.Equal(t, 1, len(s.syncQueue.responses))
+	require.Equal(t, &blockRange{
+		start: 77,
+		end:   77,
+	}, br)
+}
 
 func newTestSyncQueue(t *testing.T) *syncQueue {
 	s := createTestService(t, nil)

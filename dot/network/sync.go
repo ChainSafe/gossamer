@@ -90,10 +90,10 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 var (
 	blockRequestSize      uint32 = 128
 	blockRequestQueueSize int64  = 5
-	blockDataQueueSize    int64  = 256
+	blockDataQueueSize    int64  = 512
 )
 
-type syncPeer struct { //nolint
+type syncPeer struct {
 	pid   peer.ID
 	score int
 }

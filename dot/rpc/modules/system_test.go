@@ -44,11 +44,11 @@ func (s *mockSyncer) CreateBlockResponse(msg *network.BlockRequestMessage) (*net
 	return nil, nil
 }
 
-func (s *mockSyncer) HandleBlockResponse(msg *network.BlockResponseMessage) *network.BlockRequestMessage {
+func (s *mockSyncer) ProcessBlockData(_ []*types.BlockData) error {
 	return nil
 }
 
-func (s *mockSyncer) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) *network.BlockRequestMessage {
+func (s *mockSyncer) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) error {
 	return nil
 }
 
@@ -68,6 +68,10 @@ func (s *mockBlockState) BestBlockNumber() (*big.Int, error) {
 
 func (s *mockBlockState) GenesisHash() common.Hash {
 	return genesisHeader.Hash()
+}
+
+func (s *mockBlockState) HasBlockBody(_ common.Hash) (bool, error) {
+	return false, nil
 }
 
 func (s *mockSyncer) IsSynced() bool {

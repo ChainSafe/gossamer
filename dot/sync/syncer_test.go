@@ -200,7 +200,7 @@ func TestHandleBlockResponse(t *testing.T) {
 	resp, err := responder.CreateBlockResponse(req)
 	require.NoError(t, err)
 
-	err = syncer.HandleBlockResponse(resp)
+	err = syncer.ProcessBlockData(resp.BlockData)
 	require.NoError(t, err)
 
 	// msg should contain blocks 1 to 129 (maxResponseSize # of blocks)
@@ -208,7 +208,7 @@ func TestHandleBlockResponse(t *testing.T) {
 
 	resp2, err := responder.CreateBlockResponse(req)
 	require.NoError(t, err)
-	syncer.HandleBlockResponse(resp2)
+	syncer.ProcessBlockData(resp2.BlockData)
 	// response should contain blocks 13 to 20, and we should be synced
 	require.True(t, syncer.synced)
 }
@@ -254,7 +254,7 @@ func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
 
 	// request should start from block 5 (best block number + 1)
 	syncer.synced = false
-	err = syncer.HandleBlockResponse(resp)
+	err = syncer.ProcessBlockData(resp.BlockData)
 	require.True(t, errors.Is(err, chaindb.ErrKeyNotFound))
 }
 
@@ -281,7 +281,7 @@ func TestRemoveIncludedExtrinsics(t *testing.T) {
 		BlockData: []*types.BlockData{bd},
 	}
 
-	err = syncer.HandleBlockResponse(msg)
+	err = syncer.ProcessBlockData(msg.BlockData)
 	require.NoError(t, err)
 
 	inQueue := syncer.transactionState.(*state.TransactionState).Pop()
@@ -290,10 +290,7 @@ func TestRemoveIncludedExtrinsics(t *testing.T) {
 
 func TestHandleBlockResponse_NoBlockData(t *testing.T) {
 	syncer := newTestSyncer(t)
-	msg := &network.BlockResponseMessage{
-		BlockData: nil,
-	}
-	err := syncer.HandleBlockResponse(msg)
+	err := syncer.ProcessBlockData(nil)
 	require.Equal(t, ErrNilBlockData, err)
 }
 
@@ -316,7 +313,7 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 		BlockData: bd,
 	}
 
-	err = syncer.HandleBlockResponse(msg)
+	err = syncer.ProcessBlockData(msg.BlockData)
 	require.Nil(t, err)
 }
 
