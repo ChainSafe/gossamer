@@ -19,7 +19,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -44,8 +43,6 @@ func main() {
 		install(false)
 	case "install-debug":
 		install(true)
-	case "test":
-		test()
 	default:
 		log.Fatal("cmd not found", os.Args[1])
 	}
@@ -81,29 +78,6 @@ func install(debug bool) {
 		log.Fatal("Error: Could not build Gossamer. ", "error: ", err, ", cmd: ", cmd)
 	}
 
-}
-
-func test() {
-
-	verbose := flag.Bool("v", false, "Whether to log verbosely")
-
-	packages := []string{"./..."}
-	argsInstall := append([]string{"test"})
-	cmd := exec.Command(filepath.Join(runtime.GOROOT(), "bin", "go"), argsInstall...)
-	cmd.Args = append(cmd.Args, "-p", "1", "-timeout", "5m")
-
-	if *verbose {
-		cmd.Args = append(cmd.Args, "-v")
-	}
-
-	cmd.Args = append(cmd.Args, packages...)
-
-	fmt.Println("Test Gossamer", strings.Join(cmd.Args, " \\\n"))
-	cmd.Stderr, cmd.Stdout = os.Stderr, os.Stdout
-
-	if err := cmd.Run(); err != nil {
-		log.Fatal("Error: Could not test Gossamer. ", "error: ", err, ", cmd: ", cmd)
-	}
 }
 
 // GOBIN returns the GOBIN environment variable
