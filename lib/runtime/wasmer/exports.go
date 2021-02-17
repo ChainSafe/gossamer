@@ -166,6 +166,10 @@ func (in *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validit
 
 // Version calls runtime function Core_Version
 func (in *Instance) Version() (runtime.Version, error) {
+	if in.inst.version != nil && bytes.Equal(in.inst.version.SpecName(), []byte("kusama")) {
+		return in.inst.version, nil
+	}
+
 	version := new(runtime.VersionData)
 	ret, err := in.exec(runtime.CoreVersion, []byte{})
 	if err != nil {
