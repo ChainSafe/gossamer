@@ -17,6 +17,7 @@
 package modules
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -32,20 +33,22 @@ func TestGrandpaProveFinality(t *testing.T) {
 	state.Block.SetJustification(blockHash1, make([]byte, 10))
 	state.Block.SetJustification(blockHash2, make([]byte, 11))
 
+	var expectedResponse ProveFinalityResponse
+	expectedResponse = append(expectedResponse, make([]byte, 10), make([]byte, 11))
+
 	res := new(ProveFinalityResponse)
-	gmSvc.ProveFinality(nil, &ProveFinalityRequest{
+	err := gmSvc.ProveFinality(nil, &ProveFinalityRequest{
 		blockHashStart: blockHash1,
 		blockHashEnd:   blockHash2,
 	}, res)
 
-	println(res)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	// expected := &ProveFinalityResponse{
-	// 	ParentHash:     header.ParentHash.String(),
-	// 	Number:         common.BytesToHex(header.Number.Bytes()),
-	// 	StateRoot:      header.StateRoot.String(),
-	// 	ExtrinsicsRoot: header.ExtrinsicsRoot.String(),
-	// 	Digest:         ChainBlockHeaderDigest{},
-	// }
+	println(res)
+	if !reflect.DeepEqual(*res, expectedResponse) {
+		t.Errorf("Fail: expected: %+v got: %+v\n", res, &expectedResponse)
+	}
 
 }
