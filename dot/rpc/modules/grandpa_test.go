@@ -17,42 +17,30 @@
 package modules
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/dot/state"
 )
 
 func TestGrandpaProveFinality(t *testing.T) {
-	state := newTestStateService(t)
-	bestBlock1, err := state.Block.BestBlock()
-	println(fmt.Sprintf("%s", bestBlock1.Header.Hash()))
+	testStateService := newTestStateService(t)
 
-	state.Block.AddBlock(types.NewBlock(types.NewEmptyHeader(), types.NewBody(make([]byte, 0))))
-	bestBlock2, err := state.Block.BestBlock()
-	println(fmt.Sprintf("%s", bestBlock2.Header.Hash()))
+	state.AddBlocksToState(t, testStateService.Block, 3)
+	bestBlock, err := testStateService.Block.BestBlock()
 
-	state.Block.AddBlock(types.NewBlock(types.NewEmptyHeader(), types.NewBody(make([]byte, 0))))
-	bestBlock3, err := state.Block.BestBlock()
-	println(fmt.Sprintf("%s", bestBlock3.Header.Hash()))
+	gmSvc := NewGrandpaModule(testStateService.Block)
 
-	gmSvc := NewGrandpaModule(state.Block)
-
-	blockHash1, _ := common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000")
-	blockHash2, _ := common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000001")
-
-	state.Block.SetJustification(bestBlock2.Header.Hash(), make([]byte, 10))
-	state.Block.SetJustification(bestBlock3.Header.Hash(), make([]byte, 11))
+	testStateService.Block.SetJustification(bestBlock.Header.ParentHash, make([]byte, 10))
+	testStateService.Block.SetJustification(bestBlock.Header.Hash(), make([]byte, 11))
 
 	var expectedResponse ProveFinalityResponse
 	expectedResponse = append(expectedResponse, make([]byte, 10), make([]byte, 11))
 
 	res := new(ProveFinalityResponse)
 	err = gmSvc.ProveFinality(nil, &ProveFinalityRequest{
-		blockHashStart: blockHash1,
-		blockHashEnd:   blockHash2,
+		blockHashStart: bestBlock.Header.ParentHash,
+		blockHashEnd:   bestBlock.Header.Hash(),
 	}, res)
 
 	if err != nil {
@@ -62,5 +50,4 @@ func TestGrandpaProveFinality(t *testing.T) {
 	if !reflect.DeepEqual(*res, expectedResponse) {
 		t.Errorf("Fail: expected: %+v got: %+v\n", res, &expectedResponse)
 	}
-
 }

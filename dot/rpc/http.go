@@ -109,7 +109,7 @@ func (h *HTTPServer) RegisterModules(mods []string) {
 		case "chain":
 			srvc = modules.NewChainModule(h.serverConfig.BlockAPI)
 		case "grandpa":
-			srvc = modules.NewGrandpaModule(h.logger, h.serverConfig.BlockAPI)
+			srvc = modules.NewGrandpaModule(h.serverConfig.BlockAPI)
 		case "state":
 			srvc = modules.NewStateModule(h.serverConfig.NetworkAPI, h.serverConfig.StorageAPI, h.serverConfig.CoreAPI)
 		case "rpc":
