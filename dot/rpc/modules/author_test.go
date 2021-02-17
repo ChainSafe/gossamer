@@ -128,7 +128,7 @@ func TestAuthorModule_SubmitExtrinsic_invalid(t *testing.T) {
 	require.EqualError(t, err, runtime.ErrInvalidTransaction.Message)
 }
 
-func TestAuthorModule_SubmitExtrinsic_invalid_input(t *testing.T) {
+func TestAuthorModule_SubmitExtrinsic_Invalid_Input(t *testing.T) {
 	// setup service
 	// setup auth module
 	txQueue := state.NewTransactionState()

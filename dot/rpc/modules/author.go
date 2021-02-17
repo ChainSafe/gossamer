@@ -185,7 +185,7 @@ func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 	if cm.coreAPI.IsBlockProducer() {
 		hash := cm.txStateAPI.AddToPool(vtx)
 		*res = ExtrinsicHashResponse(hash.String())
-		cm.logger.Trace("submitted extrinsic", "tx ", vtx, "hash", hash.String())
+		cm.logger.Trace("submitted extrinsic", "tx", vtx, "hash", hash.String())
 	}
 
 	//broadcast
