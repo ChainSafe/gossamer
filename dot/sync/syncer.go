@@ -312,7 +312,7 @@ func (s *Service) HandleBlockResponse(msg *network.BlockResponseMessage) error {
 // ProcessBlockData processes the BlockResponse and returns the index of the last BlockData it successfully handled.
 func (s *Service) ProcessBlockData(data []*types.BlockData) error {
 	if len(data) == 0 {
-		return errors.New("got nil BlockData")
+		return ErrNilBlockData
 	}
 
 	// TODO: return number of last successful block that was processed
