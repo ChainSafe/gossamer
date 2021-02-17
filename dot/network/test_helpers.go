@@ -2,7 +2,6 @@ package network
 
 import (
 	"bufio"
-	"errors"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -13,6 +12,54 @@ import (
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
+
+func testBlockResponseMessage() *BlockResponseMessage {
+	testHeader0 := types.Header{
+		Number: big.NewInt(77),
+		Digest: types.Digest{},
+	}
+
+	testHeader1 := types.Header{
+		Number: big.NewInt(78),
+		Digest: types.Digest{},
+	}
+
+	testHeader2 := types.Header{
+		Number: big.NewInt(79),
+		Digest: types.Digest{},
+	}
+
+	data := []*types.BlockData{
+		{
+			Hash:          testHeader0.Hash(),
+			Header:        testHeader0.AsOptional(),
+			Body:          optional.NewBody(false, nil),
+			Receipt:       optional.NewBytes(false, nil),
+			MessageQueue:  optional.NewBytes(false, nil),
+			Justification: optional.NewBytes(false, nil),
+		},
+		{
+			Hash:          testHeader1.Hash(),
+			Header:        testHeader1.AsOptional(),
+			Body:          optional.NewBody(false, nil),
+			Receipt:       optional.NewBytes(false, nil),
+			MessageQueue:  optional.NewBytes(false, nil),
+			Justification: optional.NewBytes(false, nil),
+		},
+		{
+			Hash:          testHeader2.Hash(),
+			Header:        testHeader2.AsOptional(),
+			Body:          optional.NewBody(false, nil),
+			Receipt:       optional.NewBytes(false, nil),
+			MessageQueue:  optional.NewBytes(false, nil),
+			Justification: optional.NewBytes(false, nil),
+		},
+	}
+
+	return &BlockResponseMessage{
+		BlockData: data,
+	}
+}
 
 type mockSyncer struct {
 	highestSeen *big.Int
@@ -27,7 +74,7 @@ func newMockSyncer() *mockSyncer {
 }
 
 func (s *mockSyncer) CreateBlockResponse(msg *BlockRequestMessage) (*BlockResponseMessage, error) {
-	return nil, errors.New("unimplemented")
+	return testBlockResponseMessage(), nil
 }
 
 func (s *mockSyncer) HandleBlockAnnounce(msg *BlockAnnounceMessage) error {

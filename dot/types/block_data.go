@@ -48,23 +48,23 @@ func (bd *BlockData) Number() *big.Int {
 func (bd *BlockData) String() string {
 	str := fmt.Sprintf("Hash=%s ", bd.Hash)
 
-	if bd.Header.Exists() {
+	if bd.Header != nil && bd.Header.Exists() {
 		str = str + fmt.Sprintf("Header=%s ", bd.Header)
 	}
 
-	if bd.Body.Exists() {
+	if bd.Body != nil && bd.Body.Exists() {
 		str = str + fmt.Sprintf("Body=%s ", bd.Body)
 	}
 
-	if bd.Receipt.Exists() {
+	if bd.Receipt != nil && bd.Receipt.Exists() {
 		str = str + fmt.Sprintf("Receipt=0x%x ", bd.Receipt)
 	}
 
-	if bd.MessageQueue.Exists() {
+	if bd.MessageQueue != nil && bd.MessageQueue.Exists() {
 		str = str + fmt.Sprintf("MessageQueue=0x%x ", bd.MessageQueue)
 	}
 
-	if bd.Justification.Exists() {
+	if bd.Justification != nil && bd.Justification.Exists() {
 		str = str + fmt.Sprintf("Justification=0x%x ", bd.Justification)
 	}
 

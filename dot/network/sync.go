@@ -105,6 +105,7 @@ type syncRequest struct {
 
 type blockRange struct {
 	start, end int64
+	from       peer.ID
 }
 
 type syncQueue struct {
@@ -302,7 +303,7 @@ func (q *syncQueue) setBlockRequests(to peer.ID) {
 			req: req,
 		})
 	}
-	sortRequests(q.requests)
+	q.requests = sortRequests(q.requests)
 	logger.Debug("sync request queue", "queue", q.stringifyRequestQueue())
 }
 
@@ -339,12 +340,13 @@ func (q *syncQueue) pushBlockResponse(resp *BlockResponseMessage, pid peer.ID) {
 	q.gotRespCh <- &blockRange{
 		start: start,
 		end:   end,
+		from:  pid,
 	}
 
 	q.responseLock.Lock()
 	defer q.responseLock.Unlock()
 
-	sortResponses(q.responses)
+	q.responses = sortResponses(q.responses)
 	logger.Debug("pushed block data to queue", "start", start, "end", end, "queue", q.stringifyResponseQueue())
 }
 
@@ -374,13 +376,11 @@ func (q *syncQueue) ensureResponseReceived(req *syncRequest) {
 			// no peer specified, send to scored/random peers
 			attemptToSyncFunc(req.req)
 		} else {
-
 			if err := q.beginSyncingWithPeer(req.to, req.req); err != nil {
 				q.unsetSyncingPeer(req.to)
 				logger.Debug("failed to send block request to peer, trying other peers", "peer", req.to)
 				attemptToSyncFunc(req.req)
 			}
-
 		}
 
 		i++
@@ -388,11 +388,12 @@ func (q *syncQueue) ensureResponseReceived(req *syncRequest) {
 		select {
 		case resp := <-q.gotRespCh:
 			if resp.start != int64(req.req.StartingBlock.Uint64()) {
-				logger.Debug("received response that we didn't request!!", "got", resp.start, "expecting", req.req.StartingBlock.Uint64())
+				logger.Debug("received response that we didn't request!", "got", resp.start, "expecting", req.req.StartingBlock.Uint64())
 				continue
 			}
 
-			logger.Debug("response received", "start", resp.start, "end", resp.end)
+			logger.Debug("response received", "start", resp.start, "end", resp.end, "from", resp.from)
+			q.unsetSyncingPeer(resp.from)
 			return
 		case <-time.After(time.Second * 5):
 			logger.Debug("haven't received a response in a while...", "start", req.req.StartingBlock.Uint64())
@@ -414,19 +415,18 @@ func (q *syncQueue) processBlockResponses() {
 			q.currStart = 0
 			q.currEnd = 0
 			if err != nil {
-				logger.Error("failed to handle block data; re-adding to queue", "start", q.currStart, "end", q.currEnd, "error", err)
+				logger.Warn("failed to handle block data; re-adding to queue", "start", q.currStart, "end", q.currEnd, "error", err)
 				q.setBlockRequests("")
 				continue
 			}
-
-			// TODO: re-add this somehow
-			//q.unsetSyncingPeer(pid)
 		case <-q.ctx.Done():
 			return
 		}
 	}
 }
 
+// attempt to sync with peers by using their score. peers with higher score are prioritized. peers with a score of zero or
+// below are not used.
 func (q *syncQueue) attemptSyncWithPreferedPeers(req *BlockRequestMessage) {
 	var peers []peer.ID
 	for _, p := range q.getSortedPeers() {
@@ -452,7 +452,7 @@ func (q *syncQueue) attemptSyncWithPeers(peers []peer.ID, req *BlockRequestMessa
 		q.unsetSyncingPeer(peer)
 	}
 
-	logger.Warn("failed to begin sync with any peer")
+	logger.Warn("failed to send BlockRequest to any peer")
 
 	// re-add request to queue, since we failed to send it to any peer
 	q.setBlockRequests("")
@@ -548,7 +548,9 @@ func createBlockRequests(start, end int64) []*BlockRequestMessage {
 	}
 
 	if end-start < int64(blockRequestSize) {
-		numReqs = 1
+		// +1 because we want to include the block w/ the ending number
+		req := createBlockRequest(start, uint32(end-start)+1)
+		return []*BlockRequestMessage{req}
 	}
 
 	reqs := make([]*BlockRequestMessage, numReqs)
@@ -573,19 +575,19 @@ func createBlockRequest(startInt int64, size uint32) *BlockRequestMessage {
 	return blockRequest
 }
 
-func sortRequests(reqs []*syncRequest) {
+func sortRequests(reqs []*syncRequest) []*syncRequest {
+	if len(reqs) == 0 {
+		return reqs
+	}
+
 	sort.Slice(reqs, func(i, j int) bool {
 		return reqs[i].req.StartingBlock.Uint64() < reqs[j].req.StartingBlock.Uint64()
 	})
 
-	if len(reqs) <= 1 {
-		return
-	}
-
 	i := 0
 	for {
 		if i >= len(reqs)-1 {
-			return
+			return reqs
 		}
 
 		if reqs[i].req.StartingBlock.Uint64() == reqs[i+1].req.StartingBlock.Uint64() && reflect.DeepEqual(reqs[i].req.Max, reqs[i+1].req.Max) {
@@ -596,7 +598,7 @@ func sortRequests(reqs []*syncRequest) {
 	}
 }
 
-func sortResponses(resps []*types.BlockData) {
+func sortResponses(resps []*types.BlockData) []*types.BlockData {
 	sort.Slice(resps, func(i, j int) bool {
 		return resps[i].Number().Int64() < resps[j].Number().Int64()
 	})
@@ -605,8 +607,8 @@ func sortResponses(resps []*types.BlockData) {
 
 	i := 0
 	for {
-		if i >= len(resps)-1 {
-			return
+		if i > len(resps)-1 {
+			return resps
 		}
 
 		if _, has := hasData[resps[i].Hash]; !has {

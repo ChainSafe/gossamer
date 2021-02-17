@@ -19,7 +19,9 @@ package network
 import (
 	"context"
 	"math/big"
+	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -119,7 +121,132 @@ func TestHandleSyncMessage_BlockResponse(t *testing.T) {
 	require.Equal(t, &blockRange{
 		start: 77,
 		end:   77,
+		from:  peerID,
 	}, br)
+}
+
+func TestSortRequests(t *testing.T) {
+	reqs := createBlockRequests(1, int64(blockRequestSize*5)+1)
+	sreqs := []*syncRequest{}
+	for _, req := range reqs {
+		sreqs = append(sreqs, &syncRequest{
+			req: req,
+		})
+	}
+
+	expected := make([]*syncRequest, len(sreqs))
+	copy(expected, sreqs)
+
+	rand.Shuffle(len(sreqs), func(i, j int) { sreqs[i], sreqs[j] = sreqs[j], sreqs[i] })
+	sortRequests(sreqs)
+	require.Equal(t, expected, sreqs)
+}
+
+func TestSortRequests_RemoveDuplicates(t *testing.T) {
+	reqs := createBlockRequests(1, int64(blockRequestSize*5)+1)
+	sreqs := []*syncRequest{}
+	for _, req := range reqs {
+		sreqs = append(sreqs, &syncRequest{
+			req: req,
+		})
+	}
+
+	expected := make([]*syncRequest, len(sreqs))
+	copy(expected, sreqs)
+
+	dup := createBlockRequest(1, blockRequestSize)
+	sreqs = append(sreqs, &syncRequest{req: dup})
+
+	rand.Shuffle(len(sreqs), func(i, j int) { sreqs[i], sreqs[j] = sreqs[j], sreqs[i] })
+	sreqs = sortRequests(sreqs)
+	require.Equal(t, expected, sreqs)
+}
+
+func TestSortResponses(t *testing.T) {
+	testHeader0 := types.Header{
+		Number: big.NewInt(77),
+	}
+
+	testHeader1 := types.Header{
+		Number: big.NewInt(78),
+	}
+
+	testHeader2 := types.Header{
+		Number: big.NewInt(79),
+	}
+
+	data := []*types.BlockData{
+		{
+			Hash:   testHeader2.Hash(),
+			Header: testHeader2.AsOptional(),
+		},
+		{
+			Hash:   testHeader0.Hash(),
+			Header: testHeader0.AsOptional(),
+		},
+		{
+			Hash:   testHeader1.Hash(),
+			Header: testHeader1.AsOptional(),
+		},
+	}
+
+	expected := []*types.BlockData{
+		{
+			Hash:   testHeader0.Hash(),
+			Header: testHeader0.AsOptional(),
+		},
+		{
+			Hash:   testHeader1.Hash(),
+			Header: testHeader1.AsOptional(),
+		},
+		{
+			Hash:   testHeader2.Hash(),
+			Header: testHeader2.AsOptional(),
+		},
+	}
+
+	data = sortResponses(data)
+	require.Equal(t, expected, data)
+}
+
+func TestSortResponses_RemoveDuplicated(t *testing.T) {
+	testHeader0 := types.Header{
+		Number: big.NewInt(77),
+	}
+
+	testHeader1 := types.Header{
+		Number: big.NewInt(78),
+	}
+
+	testHeader2 := types.Header{
+		Number: big.NewInt(79),
+	}
+
+	data := []*types.BlockData{
+		{
+			Hash:   testHeader0.Hash(),
+			Header: testHeader2.AsOptional(),
+		},
+		{
+			Hash:   testHeader0.Hash(),
+			Header: testHeader0.AsOptional(),
+		},
+		{
+			Hash:   testHeader0.Hash(),
+			Header: testHeader1.AsOptional(),
+		},
+	}
+
+	// should keep first block in sorted slice w/ duplicated hash
+	expected := []*types.BlockData{
+		{
+			Hash:   testHeader0.Hash(),
+			Header: testHeader0.AsOptional(),
+		},
+	}
+
+	data = sortResponses(data)
+	require.Equal(t, expected, data)
 }
 
 func newTestSyncQueue(t *testing.T) *syncQueue {
@@ -145,4 +272,111 @@ func TestSyncQueue_SetBlockRequests(t *testing.T) {
 	testPeerID := peer.ID("noot")
 	q.setBlockRequests(testPeerID)
 	require.Equal(t, int(blockRequestQueueSize), len(q.requests))
+}
+
+func TestSyncQueue_HandleBlockAnnounceHandshake(t *testing.T) {
+	q := newTestSyncQueue(t)
+	q.stop()
+
+	testNum := int64(99)
+
+	testPeerID := peer.ID("noot")
+	q.handleBlockAnnounceHandshake(uint32(testNum), testPeerID)
+	require.Equal(t, 1, q.peerScore[testPeerID])
+	require.Equal(t, testNum, q.goal)
+	require.Equal(t, 1, len(q.requests))
+
+	head, err := q.s.blockState.BestBlockNumber()
+	require.NoError(t, err)
+	expected := createBlockRequest(head.Int64()+1, uint32(testNum)-uint32(head.Int64()))
+	require.Equal(t, &syncRequest{req: expected, to: testPeerID}, q.requests[0])
+}
+
+func TestSyncQueue_HandleBlockAnnounce(t *testing.T) {
+	q := newTestSyncQueue(t)
+	q.stop()
+
+	testPeerID := peer.ID("noot")
+	q.handleBlockAnnounce(testBlockAnnounceMessage, testPeerID)
+	require.Equal(t, 1, q.peerScore[testPeerID])
+	require.Equal(t, testBlockAnnounceMessage.Number.Int64(), q.goal)
+	require.Equal(t, 1, len(q.requests))
+
+	head, err := q.s.blockState.BestBlockNumber()
+	require.NoError(t, err)
+	expected := createBlockRequest(head.Int64()+1, uint32(testBlockAnnounceMessage.Number.Int64())-uint32(head.Int64()))
+	require.Equal(t, &syncRequest{req: expected, to: testPeerID}, q.requests[0])
+}
+
+func TestSyncQueue_ProcessBlockRequests(t *testing.T) {
+	configA := &Config{
+		BasePath:    utils.NewTestBasePath(t, "nodeA"),
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true,
+		NoMDNS:      true,
+		LogLvl:      4,
+	}
+
+	nodeA := createTestService(t, configA)
+	nodeA.noGossip = true
+
+	configB := &Config{
+		BasePath:    utils.NewTestBasePath(t, "nodeB"),
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true,
+		NoMDNS:      true,
+		LogLvl:      4,
+	}
+
+	nodeB := createTestService(t, configB)
+	nodeB.noGossip = true
+
+	configC := &Config{
+		BasePath:    utils.NewTestBasePath(t, "nodeC"),
+		Port:        7003,
+		RandSeed:    3,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeC := createTestService(t, configC)
+	nodeC.noGossip = true
+
+	// connect A and B
+	addrInfosB, err := nodeB.host.addrInfos()
+	require.NoError(t, err)
+
+	err = nodeA.host.connect(*addrInfosB[0])
+	if failedToDial(err) {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(*addrInfosB[0])
+	}
+	require.NoError(t, err)
+
+	// connect A and C
+	addrInfosC, err := nodeC.host.addrInfos()
+	require.NoError(t, err)
+
+	err = nodeA.host.connect(*addrInfosC[0])
+	if failedToDial(err) {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(*addrInfosC[0])
+	}
+	require.NoError(t, err)
+
+	nodeA.syncQueue.stop()
+	time.Sleep(time.Second * 3)
+
+	nodeA.syncQueue.peerScore[nodeB.host.id()] = 1 // expect to try to sync with nodeB first
+	go nodeA.syncQueue.processBlockRequests()
+	nodeA.syncQueue.requestCh <- &syncRequest{
+		req: testBlockRequestMessage,
+	}
+
+	time.Sleep(time.Second)
+	require.Equal(t, 3, len(nodeA.syncQueue.responses))
+	testResp := testBlockResponseMessage()
+	require.Equal(t, testResp.BlockData, nodeA.syncQueue.responses)
 }
