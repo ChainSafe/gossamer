@@ -468,7 +468,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		if length > maxMessageSize {
 			logger.Warn("received message with size greater than max, discarding", "length", length)
 			for {
-				_, err = r.Discard(maxMessageSize)
+				_, err = r.Discard(int(maxMessageSize))
 				if err != nil {
 					break
 				}
