@@ -423,7 +423,7 @@ func GenerateGenesisSixAuth() {
 func generateDefaultConfig() *ctoml.Config {
 	return &ctoml.Config{
 		Global: ctoml.GlobalConfig{
-			Name:   "gssmr",
+			Name:   "Gossamer",
 			ID:     "gssmr",
 			LogLvl: "crit",
 		},
@@ -479,7 +479,7 @@ func generateConfigBabeMaxThreshold() *ctoml.Config {
 		GrandpaAuthority:         true,
 		BabeThresholdNumerator:   1,
 		BabeThresholdDenominator: 1,
-		SlotDuration:             1000,
+		SlotDuration:             3000,
 	}
 	cfg.RPC.Modules = []string{"system", "author", "chain", "state", "dev", "rpc"}
 	return cfg

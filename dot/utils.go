@@ -168,7 +168,6 @@ func NewTestConfig(t *testing.T) *Config {
 		Core:    GssmrConfig().Core,
 		Network: GssmrConfig().Network,
 		RPC:     GssmrConfig().RPC,
-		System:  GssmrConfig().System,
 	}
 
 	return cfg

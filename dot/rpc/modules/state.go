@@ -181,7 +181,7 @@ func (sm *StateModule) GetPairs(r *http.Request, req *StatePairRequest, res *Sta
 		}
 	}
 
-	if req.Prefix == nil || *req.Prefix == "" {
+	if req.Prefix == nil || *req.Prefix == "" || *req.Prefix == "0x" {
 		pairs, err := sm.storageAPI.Entries(stateRootHash)
 		if err != nil {
 			return err
