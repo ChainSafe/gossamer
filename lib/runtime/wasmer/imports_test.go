@@ -628,13 +628,14 @@ func Test_ext_crypto_secp256k1_ecdsa_recover_version_1(t *testing.T) {
 
 	uncomPubKey, err := new(types.Result).Decode(buf)
 	require.NoError(t, err)
+	rawPub := uncomPubKey.Value()
+	require.Equal(t, 64, len(rawPub))
 
 	publicKey := new(secp256k1.PublicKey)
 
 	// Generates [33]byte compressed key from uncompressed [65]byte public key.
-	err = publicKey.UnmarshalPubkey(uncomPubKey.Value())
+	err = publicKey.UnmarshalPubkey(append([]byte{4}, rawPub...))
 	require.NoError(t, err)
-
 	require.Equal(t, expectedPubKey, publicKey.Encode())
 }
 
@@ -1378,10 +1379,8 @@ func Test_ext_trie_blake2_256_root_version_1(t *testing.T) {
 	require.NoError(t, err)
 
 	tt := trie.NewEmptyTrie()
-	err = tt.Put([]byte("noot"), []byte("was"))
-	require.NoError(t, err)
-	err = tt.Put([]byte("here"), []byte("??"))
-	require.NoError(t, err)
+	tt.Put([]byte("noot"), []byte("was"))
+	tt.Put([]byte("here"), []byte("??"))
 
 	expected := tt.MustHash()
 	require.Equal(t, expected[:], hash)

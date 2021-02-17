@@ -29,6 +29,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/runtime/life"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmtime"
 
@@ -38,9 +39,10 @@ import (
 
 //nolint
 var (
-	DefaultCfg              = dot.GssmrConfig
-	defaultGssmrConfigPath  = "./chain/gssmr/config.toml"
-	defaultKusamaConfigPath = "./chain/ksmcc/config.toml"
+	DefaultCfg                = dot.GssmrConfig
+	defaultGssmrConfigPath    = "./chain/gssmr/config.toml"
+	defaultKusamaConfigPath   = "./chain/ksmcc/config.toml"
+	defaultPolkadotConfigPath = "./chain/polkadot/config.toml"
 )
 
 // loadConfigFile loads a default config file if --chain is specified, a specific
@@ -60,7 +62,6 @@ func loadConfigFile(ctx *cli.Context, cfg *ctoml.Config) (err error) {
 		}
 		err = loadConfig(cfg, cfgPath) // load toml values into configuration
 	} else {
-		logger.Info("loading toml configuration...", "config path", defaultGssmrConfigPath)
 		err = loadConfig(cfg, defaultGssmrConfigPath)
 	}
 
@@ -90,6 +91,11 @@ func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 			tomlCfg = &ctoml.Config{}
 			cfg = dot.KsmccConfig()
 			err = loadConfig(tomlCfg, defaultKusamaConfigPath)
+		case "polkadot":
+			logger.Info("loading toml configuration...", "config path", defaultPolkadotConfigPath)
+			tomlCfg = &ctoml.Config{}
+			cfg = dot.PolkadotConfig()
+			err = loadConfig(tomlCfg, defaultPolkadotConfigPath)
 		default:
 			return nil, fmt.Errorf("unknown chain id provided: %s", id)
 		}
@@ -145,6 +151,9 @@ func createInitConfig(ctx *cli.Context) (*dot.Config, error) {
 		case "ksmcc":
 			tomlCfg = &ctoml.Config{}
 			err = loadConfig(tomlCfg, defaultKusamaConfigPath)
+		case "polkadot":
+			tomlCfg = &ctoml.Config{}
+			err = loadConfig(tomlCfg, defaultPolkadotConfigPath)
 		default:
 			return nil, fmt.Errorf("unknown chain id provided: %s", id)
 		}
@@ -502,6 +511,8 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 		cfg.WasmInterpreter = wasmer.Name
 	case wasmtime.Name:
 		cfg.WasmInterpreter = wasmtime.Name
+	case life.Name:
+		cfg.WasmInterpreter = life.Name
 	case "":
 		cfg.WasmInterpreter = gssmr.DefaultWasmInterpreter
 	default:
@@ -656,11 +667,6 @@ func setSystemInfoConfig(ctx *cli.Context, cfg *dot.Config) {
 		cfg.System.SystemName = ctx.App.Name
 		cfg.System.SystemVersion = ctx.App.Version
 	}
-
-	// TODO lookup system properties from genesis file and set here (See issue #865)
-	cfg.System.NodeName = cfg.Global.Name
-	props := make(map[string]interface{})
-	cfg.System.SystemProperties = props
 }
 
 // updateDotConfigFromGenesisJSONRaw updates the configuration based on the raw genesis file values

@@ -33,7 +33,7 @@ func TestNewHTTPServer(t *testing.T) {
 	si := &types.SystemInfo{
 		SystemName: "gossamer",
 	}
-	sysAPI := system.NewService(si)
+	sysAPI := system.NewService(si, nil)
 	cfg := &HTTPServerConfig{
 		Modules:   []string{"system"},
 		RPCPort:   8545,

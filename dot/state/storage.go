@@ -80,31 +80,28 @@ func (s *StorageState) pruneKey(keyHeader *types.Header) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	tr, ok := s.tries[keyHeader.StateRoot]
+	_, ok := s.tries[keyHeader.StateRoot]
 	if !ok {
 		return
 	}
 
-	hash, _ := tr.Hash()
-	_ = s.db.Del(hash[:])
 	delete(s.tries, keyHeader.StateRoot)
+	// TODO: database pruning needs to be refactored since the trie is now stored by nodes
 }
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database
-// TODO: rename to CacheTrie
 func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
-	root := ts.MustRoot()
-
 	s.lock.Lock()
-	t := trie.NewEmptyTrie()
-	err := LoadTrie(s.db, t, root)
-	if err != nil {
-		return err
-	}
-	s.tries[root] = t
+	root := ts.MustRoot()
+	s.tries[root] = ts.Trie()
 	s.lock.Unlock()
 
 	logger.Trace("cached trie in storage state", "root", root)
+
+	if err := ts.Trie().WriteDirty(s.db); err != nil {
+		logger.Warn("failed to write trie to database", "root", root, "error", err)
+		return err
+	}
 
 	go func() {
 		if err := s.notifyStorageSubscriptions(root); err != nil {
@@ -129,7 +126,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 	defer s.lock.RUnlock()
 
 	if s.tries[*root] != nil {
-		return rtstorage.NewTrieState(s.db, s.tries[*root])
+		return rtstorage.NewTrieState(s.tries[*root])
 	}
 
 	tr, err := s.LoadFromDB(*root)
@@ -137,7 +134,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		return nil, err
 	}
 
-	return rtstorage.NewTrieState(s.db, tr)
+	return rtstorage.NewTrieState(tr)
 }
 
 // StoreInDB encodes the entire trie and writes it to the DB
@@ -288,24 +285,29 @@ func (s *StorageState) EnumeratedTrieRoot(values [][]byte) {
 	panic("not implemented")
 }
 
-// Entries returns Entries from the trie
-func (s *StorageState) Entries(hash *common.Hash) (map[string][]byte, error) {
-	if hash == nil {
+// Entries returns Entries from the trie with the given state root
+func (s *StorageState) Entries(root *common.Hash) (map[string][]byte, error) {
+	if root == nil {
 		head, err := s.blockState.BestBlockStateRoot()
 		if err != nil {
 			return nil, err
 		}
-		hash = &head
+		root = &head
 	}
 
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	if s.tries[*hash] == nil {
-		return nil, errTrieDoesNotExist(*hash)
+	if s.tries[*root] != nil {
+		return s.tries[*root].Entries(), nil
 	}
 
-	return s.tries[*hash].Entries(), nil
+	tr, err := s.LoadFromDB(*root)
+	if err != nil {
+		return nil, err
+	}
+
+	return tr.Entries(), nil
 }
 
 // GetKeysWithPrefix returns all that match the given prefix for the given hash (or best block state root if hash is nil) in lexicographic order

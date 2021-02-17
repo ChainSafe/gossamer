@@ -16,8 +16,7 @@ func TestBackgroundSignVerification(t *testing.T) {
 	signs := generateEd25519Signatures(t, 2)
 	signVerify := NewSignatureVerifier()
 
-	go signVerify.Start()
-	time.Sleep(1 * time.Second)
+	signVerify.Start()
 
 	for _, sig := range signs {
 		signVerify.Add(sig)
@@ -34,8 +33,7 @@ func TestBackgroundSignVerificationMultipleStart(t *testing.T) {
 
 	for ii := 0; ii < 5; ii++ {
 		require.False(t, signVerify.IsStarted())
-		go signVerify.Start()
-		time.Sleep(1 * time.Second)
+		signVerify.Start()
 		require.True(t, signVerify.IsStarted())
 
 		for _, sig := range signs {
@@ -67,8 +65,7 @@ func TestInvalidSignatureBatch(t *testing.T) {
 	signs = append(signs, signature)
 
 	signVerify := NewSignatureVerifier()
-	go signVerify.Start()
-	time.Sleep(1 * time.Second)
+	signVerify.Start()
 
 	for _, sig := range signs {
 		signVerify.Add(sig)
@@ -80,8 +77,7 @@ func TestValidSignatureBatch(t *testing.T) {
 	signs := generateEd25519Signatures(t, 2)
 	signVerify := NewSignatureVerifier()
 
-	go signVerify.Start()
-	time.Sleep(1 * time.Second)
+	signVerify.Start()
 
 	for _, sig := range signs {
 		signVerify.Add(sig)
@@ -126,8 +122,7 @@ func TestAllCryptoTypeSignature(t *testing.T) {
 
 	signVerify := NewSignatureVerifier()
 
-	go signVerify.Start()
-	time.Sleep(1 * time.Second)
+	signVerify.Start()
 
 	signVerify.Add(edSignatures[0])
 	signVerify.Add(srSignature)

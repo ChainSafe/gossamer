@@ -94,7 +94,7 @@ func TestInstance_BabeConfiguration_LegacyNodeRuntime(t *testing.T) {
 		C1:                 1,
 		C2:                 4,
 		GenesisAuthorities: nil,
-		SecondarySlots:     true,
+		SecondarySlots:     1,
 	}
 
 	instance := NewTestInstance(t, runtime.LEGACY_NODE_RUNTIME)

@@ -57,7 +57,7 @@ var (
 		C2:                 4,
 		GenesisAuthorities: []*types.AuthorityRaw{},
 		Randomness:         [32]byte{},
-		SecondarySlots:     false,
+		SecondarySlots:     0,
 	}
 )
 
@@ -129,7 +129,8 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 
 	if cfg.Runtime == nil {
 		rtCfg := &wasmer.Config{}
-		rtCfg.Storage = rtstorage.NewTestTrieState(t, genTrie)
+		rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
+		require.NoError(t, err)
 		rt, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg) //nolint
 		require.NoError(t, err)
 		cfg.Runtime = rt

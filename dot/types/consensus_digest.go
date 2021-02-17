@@ -147,7 +147,7 @@ func (od *BABEOnDisabled) Encode() ([]byte, error) {
 type NextConfigData struct {
 	C1             uint64
 	C2             uint64
-	SecondarySlots bool
+	SecondarySlots byte
 }
 
 // Encode returns a SCALE encoded NextConfigData with first type byte

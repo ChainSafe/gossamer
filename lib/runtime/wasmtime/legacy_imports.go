@@ -110,7 +110,10 @@ func ext_set_storage(c *wasmtime.Caller, keyData, keyLen, valueData, valueLen in
 	key := memory[keyData : keyData+keyLen]
 	val := memory[valueData : valueData+valueLen]
 	logger.Trace("[ext_set_storage]", "key", fmt.Sprintf("0x%x", key), "val", val)
-	err := ctx.Storage.Set(key, val)
+
+	cp := make([]byte, len(val))
+	copy(cp, val)
+	err := ctx.Storage.Set(key, cp)
 	if err != nil {
 		logger.Error("[ext_set_storage]", "error", err)
 		return
@@ -241,11 +244,7 @@ func ext_blake2_256_enumerated_trie_root(c *wasmtime.Caller, valuesData, lensDat
 			return
 		}
 		logger.Trace("[ext_blake2_256_enumerated_trie_root]", "key", i, "key value", encodedOutput)
-		err = t.Put(encodedOutput, value)
-		if err != nil {
-			logger.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
-			return
-		}
+		t.Put(encodedOutput, value)
 	}
 	root, err := t.Hash()
 	if err != nil {

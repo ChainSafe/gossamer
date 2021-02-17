@@ -23,7 +23,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/ChainSafe/gossamer/packages/rpc/json2"
+	"github.com/ChainSafe/gossamer/dot/rpc/json2"
 	"github.com/gorilla/rpc/v2"
 )
 

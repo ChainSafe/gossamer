@@ -21,6 +21,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/chain/ksmcc"
+	"github.com/ChainSafe/gossamer/chain/polkadot"
 	"github.com/ChainSafe/gossamer/dot/types"
 	log "github.com/ChainSafe/log15"
 )
@@ -161,10 +162,6 @@ func GssmrConfig() *Config {
 			Modules: gssmr.DefaultRPCModules,
 			WSPort:  gssmr.DefaultRPCWSPort,
 		},
-		System: types.SystemInfo{
-			NodeName:         gssmr.DefaultName,
-			SystemProperties: make(map[string]interface{}),
-		},
 	}
 }
 
@@ -210,9 +207,50 @@ func KsmccConfig() *Config {
 			Modules: ksmcc.DefaultRPCModules,
 			WSPort:  ksmcc.DefaultRPCWSPort,
 		},
-		System: types.SystemInfo{
-			NodeName:         ksmcc.DefaultName,
-			SystemProperties: make(map[string]interface{}),
+	}
+}
+
+// PolkadotConfig returns a "polkadot" node configuration
+func PolkadotConfig() *Config {
+	return &Config{
+		Global: GlobalConfig{
+			Name:     polkadot.DefaultName,
+			ID:       polkadot.DefaultID,
+			BasePath: polkadot.DefaultBasePath,
+			LogLvl:   polkadot.DefaultLvl,
+		},
+		Log: LogConfig{
+			CoreLvl:           polkadot.DefaultLvl,
+			SyncLvl:           polkadot.DefaultLvl,
+			NetworkLvl:        polkadot.DefaultLvl,
+			RPCLvl:            polkadot.DefaultLvl,
+			StateLvl:          polkadot.DefaultLvl,
+			RuntimeLvl:        polkadot.DefaultLvl,
+			BlockProducerLvl:  polkadot.DefaultLvl,
+			FinalityGadgetLvl: polkadot.DefaultLvl,
+		},
+		Init: InitConfig{
+			GenesisRaw: polkadot.DefaultGenesisRaw,
+		},
+		Account: AccountConfig{
+			Key:    polkadot.DefaultKey,
+			Unlock: polkadot.DefaultUnlock,
+		},
+		Core: CoreConfig{
+			Roles:           polkadot.DefaultRoles,
+			WasmInterpreter: polkadot.DefaultWasmInterpreter,
+		},
+		Network: NetworkConfig{
+			Port:        polkadot.DefaultNetworkPort,
+			Bootnodes:   polkadot.DefaultNetworkBootnodes,
+			NoBootstrap: polkadot.DefaultNoBootstrap,
+			NoMDNS:      polkadot.DefaultNoMDNS,
+		},
+		RPC: RPCConfig{
+			Port:    polkadot.DefaultRPCHTTPPort,
+			Host:    polkadot.DefaultRPCHTTPHost,
+			Modules: polkadot.DefaultRPCModules,
+			WSPort:  polkadot.DefaultRPCWSPort,
 		},
 	}
 }

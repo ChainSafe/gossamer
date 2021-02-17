@@ -38,6 +38,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/life"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmtime"
 )
@@ -134,6 +135,22 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore,
 
 		// create runtime executor
 		rt, err = wasmtime.NewInstance(code, rtCfg)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create runtime executor: %s", err)
+		}
+	case life.Name:
+		rtCfg := &life.Config{
+			Resolver: new(life.Resolver),
+		}
+		rtCfg.Storage = ts
+		rtCfg.Keystore = ks
+		rtCfg.LogLvl = cfg.Log.RuntimeLvl
+		rtCfg.NodeStorage = ns
+		rtCfg.Network = net
+		rtCfg.Role = cfg.Core.Roles
+
+		// create runtime executor
+		rt, err = life.NewInstance(code, rtCfg)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create runtime executor: %s", err)
 		}
@@ -307,8 +324,7 @@ func createSystemService(cfg *types.SystemInfo, stateSrvc *state.Service) (*syst
 		return nil, err
 	}
 	// TODO: use data from genesisData for SystemInfo once they are in database (See issue #1248)
-	cfg.ChainType = genesisData.ChainType
-	return system.NewService(cfg), nil
+	return system.NewService(cfg, genesisData), nil
 }
 
 // createGRANDPAService creates a new GRANDPA service

@@ -25,6 +25,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/trie"
+
 	log "github.com/ChainSafe/log15"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
@@ -100,6 +102,21 @@ func NewLegacyInstance(code []byte, cfg *Config) (*LegacyInstance, error) {
 	return newLegacyInstance(code, cfg)
 }
 
+// NewInstanceFromTrie returns a new runtime instance with the code provided in the given trie
+func NewInstanceFromTrie(t *trie.Trie, cfg *Config) (*Instance, error) {
+	code, err := t.Get(common.CodeKey)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(code) == 0 {
+		return nil, fmt.Errorf("cannot find :code in trie")
+	}
+
+	cfg.Imports = ImportsNodeRuntime
+	return NewInstance(code, cfg)
+}
+
 // NewInstanceFromFile instantiates a runtime from a .wasm file
 func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
 	// Reads the WebAssembly module as bytes.
@@ -137,9 +154,9 @@ func (in *Instance) Legacy() *LegacyInstance {
 	return in.inst
 }
 
-// SetContext sets the runtime's storage. It should be set before calls to the below functions.
-func (in *Instance) SetContext(s runtime.Storage) {
-	in.inst.SetContext(s)
+// SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.
+func (in *Instance) SetContextStorage(s runtime.Storage) {
+	in.inst.SetContextStorage(s)
 }
 
 // Stop func
@@ -231,8 +248,8 @@ func newLegacyInstance(code []byte, cfg *Config) (*LegacyInstance, error) {
 	return inst, nil
 }
 
-// SetContext sets the runtime's storage. It should be set before calls to the below functions.
-func (in *LegacyInstance) SetContext(s runtime.Storage) {
+// SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.
+func (in *LegacyInstance) SetContextStorage(s runtime.Storage) {
 	in.ctx.Storage = s
 	in.vm.SetContextData(in.ctx)
 }
