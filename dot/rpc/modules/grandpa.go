@@ -30,13 +30,8 @@ type GrandpaModule struct {
 }
 
 // NewGrandpaModule creates a new Grandpa rpc module.
-func NewGrandpaModule(logger log.Logger, api BlockAPI) *GrandpaModule {
-	if logger == nil {
-		logger = log.New("service", "RPC", "module", "grandpa")
-	}
-
+func NewGrandpaModule(api BlockAPI) *GrandpaModule {
 	return &GrandpaModule{
-		logger:   logger.New("module", "grandpa"),
 		blockAPI: api,
 	}
 }
@@ -55,7 +50,6 @@ type ProveFinalityResponse [][]byte
 func (gm *GrandpaModule) ProveFinality(r *http.Request, req *ProveFinalityRequest, res *ProveFinalityResponse) error {
 	blocksToCheck, err := gm.blockAPI.SubChain(req.blockHashStart, req.blockHashEnd)
 	if err != nil {
-		gm.logger.Warn("error executing subchain via block api", req.blockHashStart, req.blockHashEnd, "")
 		return err
 	}
 
@@ -64,7 +58,6 @@ func (gm *GrandpaModule) ProveFinality(r *http.Request, req *ProveFinalityReques
 		if hasJustification {
 			justification, err := gm.blockAPI.GetJustification(block)
 			if err != nil {
-				// TODO: 1378; Append nil value?
 				continue
 			} else {
 				*res = append(*res, justification)

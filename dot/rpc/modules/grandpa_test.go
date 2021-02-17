@@ -17,27 +17,40 @@
 package modules
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 func TestGrandpaProveFinality(t *testing.T) {
 	state := newTestStateService(t)
-	gmSvc := NewGrandpaModule(nil, state.Block)
+	bestBlock1, err := state.Block.BestBlock()
+	println(fmt.Sprintf("%s", bestBlock1.Header.Hash()))
+
+	state.Block.AddBlock(types.NewBlock(types.NewEmptyHeader(), types.NewBody(make([]byte, 0))))
+	bestBlock2, err := state.Block.BestBlock()
+	println(fmt.Sprintf("%s", bestBlock2.Header.Hash()))
+
+	state.Block.AddBlock(types.NewBlock(types.NewEmptyHeader(), types.NewBody(make([]byte, 0))))
+	bestBlock3, err := state.Block.BestBlock()
+	println(fmt.Sprintf("%s", bestBlock3.Header.Hash()))
+
+	gmSvc := NewGrandpaModule(state.Block)
 
 	blockHash1, _ := common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000000")
 	blockHash2, _ := common.HexToHash("0x0000000000000000000000000000000000000000000000000000000000000001")
 
-	state.Block.SetJustification(blockHash1, make([]byte, 10))
-	state.Block.SetJustification(blockHash2, make([]byte, 11))
+	state.Block.SetJustification(bestBlock2.Header.Hash(), make([]byte, 10))
+	state.Block.SetJustification(bestBlock3.Header.Hash(), make([]byte, 11))
 
 	var expectedResponse ProveFinalityResponse
 	expectedResponse = append(expectedResponse, make([]byte, 10), make([]byte, 11))
 
 	res := new(ProveFinalityResponse)
-	err := gmSvc.ProveFinality(nil, &ProveFinalityRequest{
+	err = gmSvc.ProveFinality(nil, &ProveFinalityRequest{
 		blockHashStart: blockHash1,
 		blockHashEnd:   blockHash2,
 	}, res)
@@ -46,7 +59,6 @@ func TestGrandpaProveFinality(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	println(res)
 	if !reflect.DeepEqual(*res, expectedResponse) {
 		t.Errorf("Fail: expected: %+v got: %+v\n", res, &expectedResponse)
 	}
