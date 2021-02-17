@@ -243,7 +243,7 @@ func TestSystemModule_Properties(t *testing.T) {
 	require.Equal(t, expected, *res)
 }
 
-func TestSystemModule_AccountNextIndex(t *testing.T) {
+func TestSystemModule_AccountNextIndex_StoragePending(t *testing.T) {
 	sys := setupSystemModule(t)
 	expectedStored := U64Response(uint64(3))
 
@@ -266,6 +266,41 @@ func TestSystemModule_AccountNextIndex(t *testing.T) {
 	sys.txStateAPI.AddToPool(vtx)
 
 	err = sys.AccountNextIndex(nil, &req, res)
+	require.NoError(t, err)
+	require.Equal(t, expectedPending, *res)
+}
+
+func TestSystemModule_AccountNextIndex_Storage(t *testing.T) {
+	sys := setupSystemModule(t)
+	expectedStored := U64Response(uint64(3))
+
+	res := new(U64Response)
+	req := StringRequest{
+		String: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+	}
+	err := sys.AccountNextIndex(nil, &req, res)
+	require.NoError(t, err)
+
+	require.Equal(t, expectedStored, *res)
+}
+
+func TestSystemModule_AccountNextIndex_Pending(t *testing.T) {
+	sys := setupSystemModule(t)
+	res := new(U64Response)
+	req := StringRequest{
+		String: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+	}
+
+	// extrinsic for transfer signed by alice, nonce 4 (created with polkadot.js/api test_transaction)
+	signedExt := common.MustHexToBytes("0x022d0284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d018c35943da8a04f06a36db9fadc7b2f02ccdef38dd89f88835c0af16b5fce816b117d8073aca078984d5b81bcf86e89cfa3195e5ec3c457d4282370b854f430850010000600ff90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22e5c0")
+	vtx := &transaction.ValidTransaction{
+		Extrinsic: types.NewExtrinsic(signedExt),
+		Validity:  new(transaction.Validity),
+	}
+	expectedPending := U64Response(uint64(4))
+	sys.txStateAPI.AddToPool(vtx)
+
+	err := sys.AccountNextIndex(nil, &req, res)
 	require.NoError(t, err)
 	require.Equal(t, expectedPending, *res)
 }
