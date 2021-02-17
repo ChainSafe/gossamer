@@ -103,11 +103,6 @@ type syncRequest struct {
 	pid peer.ID // rename to "to"?
 }
 
-// type syncResponse struct {
-// 	data       *types.BlockData
-// 	pid        peer.ID // rename to "from"?
-// }
-
 type blockRange struct {
 	start, end int64
 }
@@ -129,7 +124,6 @@ type syncQueue struct {
 	responseCh   chan []*types.BlockData
 	responseLock sync.RWMutex
 
-	waitingForResp     *blockRange
 	gotRespCh          chan *blockRange
 	goal               int64 // goal block number we are trying to sync to
 	currStart, currEnd int64 // the start and end of the BlockResponse we are currently handling; 0 and 0 if we are not currently handling any
@@ -164,20 +158,11 @@ func (q *syncQueue) start() {
 				return
 			}
 
-			// head, err := q.s.blockState.BestBlockNumber()
-			// if err != nil {
-			// 	continue
-			// }
-
 			// if we have block requests to send, put them into requestCh
 			q.requestLock.Lock()
 			if len(q.requests) == 0 {
-				//if q.goal == head.Int64() || q.goal == 0 {
 				q.requestLock.Unlock()
 				continue
-				// }
-
-				// q.setBlockRequests("")
 			}
 
 			logger.Debug("sync request queue", "queue", q.stringifyRequestQueue())
@@ -203,14 +188,6 @@ func (q *syncQueue) start() {
 			q.responseLock.Lock()
 			if len(q.responses) == 0 {
 				q.responseLock.Unlock()
-
-				// if head.Int64() < q.goal {
-				// 	q.requestLock.Lock()
-				// 	if len(q.requests) == 0 && !q.waitingForResp {
-				// 		q.setBlockRequests("")
-				// 	}
-				// 	q.requestLock.Unlock()
-				// }
 				continue
 			}
 
@@ -277,8 +254,8 @@ func (q *syncQueue) stop() {
 	q.cancel()
 }
 
-// TODO: use this to determine who to try to sync from first
-func (q *syncQueue) getSortedPeers() []*syncPeer { //nolint
+// getSortedPeers is used to determine who to try to sync from first
+func (q *syncQueue) getSortedPeers() []*syncPeer {
 	peers := make([]*syncPeer, len(q.peerScore))
 	i := 0
 	for pid, score := range q.peerScore {
@@ -330,8 +307,6 @@ func (q *syncQueue) setBlockRequests(pid peer.ID) {
 }
 
 func (q *syncQueue) pushBlockResponse(resp *BlockResponseMessage, pid peer.ID) {
-	//q.waitingForResp = nil
-
 	if len(resp.BlockData) == 0 || len(q.responses)+len(resp.BlockData) >= int(blockDataQueueSize) {
 		return
 	}
@@ -359,7 +334,7 @@ func (q *syncQueue) pushBlockResponse(resp *BlockResponseMessage, pid peer.ID) {
 	}
 	q.responseLock.Unlock()
 
-	// TODO: change peerScore to sync.Map, currently this is the only place it's used
+	// TODO: change peerScore to sync.Map
 	q.peerScore[pid]++
 	q.gotRespCh <- &blockRange{
 		start: start,
@@ -386,7 +361,7 @@ func (q *syncQueue) processBlockRequests() {
 
 func (q *syncQueue) ensureResponseReceived(req *syncRequest) {
 	var attemptToSyncFunc func(*BlockRequestMessage) = q.attemptSyncWithPreferedPeers
-	numRetries := 5
+	numRetries := 3
 	i := 0
 
 	for {
@@ -430,8 +405,6 @@ func (q *syncQueue) processBlockResponses() {
 	for {
 		select {
 		case data := <-q.responseCh:
-			//q.waitingForResp = false
-
 			q.currStart = data[0].Number().Int64()
 			q.currEnd = data[len(data)-1].Number().Int64()
 			logger.Debug("sending block data to syncer", "start", q.currStart, "end", q.currEnd)
@@ -445,6 +418,7 @@ func (q *syncQueue) processBlockResponses() {
 				continue
 			}
 
+			// TODO: re-add this somehow
 			//q.unsetSyncingPeer(pid)
 		case <-q.ctx.Done():
 			return
@@ -490,7 +464,6 @@ func (q *syncQueue) attemptSyncWithPeers(peers []peer.ID, req *BlockRequestMessa
 	// re-add request to queue, since we failed to send it to any peer
 	//q.pushBlockRequest(req, "")
 	q.setBlockRequests("")
-	//q.waitingForResp = true
 }
 
 func (q *syncQueue) beginSyncingWithPeer(peer peer.ID, req *BlockRequestMessage) error {
@@ -573,10 +546,6 @@ func sortResponses(resps []*types.BlockData) {
 
 // handleBlockAnnounceHandshake handles a block that a peer claims to have through a HandleBlockAnnounceHandshake
 func (q *syncQueue) handleBlockAnnounceHandshake(blockNum uint32, from peer.ID) {
-	// if len(q.requests) > int(blockRequestQueueSize) {
-	// 	return
-	// }
-
 	q.peerScore[from]++
 
 	bestNum, err := q.s.blockState.BestBlockNumber()
@@ -590,38 +559,11 @@ func (q *syncQueue) handleBlockAnnounceHandshake(blockNum uint32, from peer.ID) 
 	}
 
 	q.goal = int64(blockNum)
-
-	// if len(q.requests) >= int(blockRequestQueueSize) {
-	// 	return
-	// }
-
-	// var start int64
-	// if q.currEnd != 0 && len(q.responses) == 0 {
-	// 	start = q.currEnd + 1
-	// } else if len(q.responses) != 0 {
-	// 	start = q.responses[len(q.responses)-1].Number().Int64()
-	// } else {
-	// 	start = bestNum.Int64() + 1
-	// }
-
-	// reqs := createBlockRequests(start, q.goal)
-	// q.pushBlockRequests(reqs, from)
 	q.setBlockRequests(from)
 }
 
 func (q *syncQueue) handleBlockAnnounce(msg *BlockAnnounceMessage, from peer.ID) {
 	q.peerScore[from]++
-
-	// if len(q.requests) > int(blockRequestQueueSize) {
-	// 	return
-	// }
-
-	// create block request to send
-	// bestNum, err := q.s.blockState.BestBlockNumber() //nolint
-	// if err != nil {
-	// 	logger.Error("failed to get best block number", "error", err)
-	// 	return
-	// }
 
 	header, err := types.NewHeader(
 		msg.ParentHash,
@@ -640,28 +582,11 @@ func (q *syncQueue) handleBlockAnnounce(msg *BlockAnnounceMessage, from peer.ID)
 		return
 	}
 
-	if header.Number.Int64() > q.goal {
-		q.goal = header.Number.Int64()
+	if header.Number.Int64() <= q.goal {
+		return
 	}
 
-	// if len(q.requests) >= int(blockRequestQueueSize) {
-	// 	return
-	// }
-
-	// if we already have blocks up to the BlockAnnounce number, only request the block in the BlockAnnounce
-	// var start int64
-	// if bestNum.Cmp(header.Number) > 0 {
-	// 	start = header.Number.Int64()
-	// } else if q.currEnd != 0 && len(q.responses) == 0 {
-	// 	start = q.currEnd + 1
-	// } else if len(q.responses) != 0 {
-	// 	start = q.responses[len(q.responses)-1].Number().Int64()
-	// } else {
-	// 	start = bestNum.Int64() + 1
-	// }
-
-	// reqs := createBlockRequests(start, q.goal)
-	// q.pushBlockRequests(reqs, from)
+	q.goal = header.Number.Int64()
 	q.setBlockRequests(from)
 }
 
@@ -685,7 +610,6 @@ func createBlockRequests(start, end int64) []*BlockRequestMessage {
 
 func createBlockRequest(startInt int64, size uint32) *BlockRequestMessage {
 	start, _ := variadic.NewUint64OrHash(uint64(startInt))
-	//logger.Debug("creating block request", "start", start)
 
 	blockRequest := &BlockRequestMessage{
 		RequestedData: RequestedDataHeader + RequestedDataBody + RequestedDataJustification,

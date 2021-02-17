@@ -446,8 +446,9 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 	r := bufio.NewReader(stream)
 
 	var (
-		msgBytes []byte
-		tot      uint64
+		msgBytes       []byte
+		tot            uint64
+		maxMessageSize uint64 = 1024 * 40
 	)
 
 	for {
@@ -461,6 +462,17 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		}
 
 		if length == 0 {
+			continue
+		}
+
+		if length > maxMessageSize {
+			logger.Warn("received message with size greater than max, discarding", "length", length)
+			for {
+				_, err = r.Discard(int(length))
+				if err != nil {
+					break
+				}
+			}
 			continue
 		}
 

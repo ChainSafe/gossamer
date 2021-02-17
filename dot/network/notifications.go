@@ -18,6 +18,7 @@ package network
 
 import (
 	"errors"
+	"math/rand"
 	"sync"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -178,18 +179,18 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 		}
 
 		// TODO: improve this by keeping track of who you've received/sent messages from
-		// if !s.noGossip {
-		// 	seen := s.gossip.hasSeen(msg)
-		// 	if !seen {
-		// 		s.broadcastExcluding(info, peer, msg)
-		// 	}
-		// }
+		if !s.noGossip {
+			seen := s.gossip.hasSeen(msg)
+			if !seen {
+				s.broadcastExcluding(info, peer, msg)
+			}
+		}
 
 		return nil
 	}
 }
 
-// broadcastExcluding sends a message to each connected peer except the given peer
+// gossipExcluding sends a message to each connected peer except the given peer
 // Used for notifications sub-protocols to gossip a message
 func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer.ID, msg NotificationsMessage) {
 	logger.Trace(
@@ -203,7 +204,14 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 		return
 	}
 
-	for _, peer := range s.host.peers() { // TODO: check if stream is open, if not, open and send handshake
+	peers := s.host.peers()
+	rand.Shuffle(len(peers), func(i, j int) { peers[i], peers[j] = peers[j], peers[i] })
+
+	for i, peer := range peers { // TODO: check if stream is open, if not, open and send handshake
+		if i > len(peers)/3 {
+			return
+		}
+
 		if peer == excluding {
 			continue
 		}
