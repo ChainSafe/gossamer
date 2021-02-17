@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
@@ -29,36 +30,32 @@ func (s *mockSyncer) CreateBlockResponse(msg *BlockRequestMessage) (*BlockRespon
 	return nil, errors.New("unimplemented")
 }
 
-func (s *mockSyncer) HandleBlockResponse(msg *BlockResponseMessage) *BlockRequestMessage {
+// func (s *mockSyncer) HandleBlockResponse(msg *BlockResponseMessage) *BlockRequestMessage {
+// 	return nil
+// }
+
+func (s *mockSyncer) HandleBlockAnnounce(msg *BlockAnnounceMessage) error {
 	return nil
 }
 
-func (s *mockSyncer) HandleBlockAnnounce(msg *BlockAnnounceMessage) *BlockRequestMessage {
-	if msg.Number.Cmp(s.highestSeen) > 0 {
-		s.highestSeen = msg.Number
-	}
-
-	startBlock, _ := variadic.NewUint64OrHash(1)
-	return &BlockRequestMessage{
-		StartingBlock: startBlock,
-		Max:           optional.NewUint32(false, 0),
-	}
+func (s *mockSyncer) ProcessBlockData(data []*types.BlockData) error {
+	return nil
 }
 
-func (s *mockSyncer) HandleBlockAnnounceHandshake(num *big.Int) []*BlockRequestMessage {
-	if num.Cmp(s.highestSeen) > 0 {
-		s.highestSeen = num
-	}
+// func (s *mockSyncer) HandleBlockAnnounceHandshake(num *big.Int) []*BlockRequestMessage {
+// 	if num.Cmp(s.highestSeen) > 0 {
+// 		s.highestSeen = num
+// 	}
 
-	startBlock, _ := variadic.NewUint64OrHash(1)
+// 	startBlock, _ := variadic.NewUint64OrHash(1)
 
-	return []*BlockRequestMessage{
-		{
-			StartingBlock: startBlock,
-			Max:           optional.NewUint32(false, 0),
-		},
-	}
-}
+// 	return []*BlockRequestMessage{
+// 		{
+// 			StartingBlock: startBlock,
+// 			Max:           optional.NewUint32(false, 0),
+// 		},
+// 	}
+// }
 
 func (s *mockSyncer) IsSynced() bool {
 	return s.synced

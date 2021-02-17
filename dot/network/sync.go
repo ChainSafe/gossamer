@@ -591,6 +591,10 @@ func (q *syncQueue) handleBlockAnnounce(msg *BlockAnnounceMessage, from peer.ID)
 }
 
 func createBlockRequests(start, end int64) []*BlockRequestMessage {
+	if start > end {
+		return nil
+	}
+
 	numReqs := (end - start) / int64(blockRequestSize)
 	if numReqs > blockRequestQueueSize {
 		numReqs = blockRequestQueueSize

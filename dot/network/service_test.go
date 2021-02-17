@@ -195,7 +195,7 @@ func TestHandleSyncMessage_BlockResponse(t *testing.T) {
 	s.syncQueue.syncing[peerID] = struct{}{}
 	s.handleSyncMessage(peerID, msg)
 	require.Equal(t, 1, len(s.syncQueue.responses))
-	require.False(t, s.host.h.ConnManager().IsProtected(peerID, ""))
+	require.True(t, s.host.h.ConnManager().IsProtected(peerID, ""))
 }
 
 func TestService_NodeRoles(t *testing.T) {

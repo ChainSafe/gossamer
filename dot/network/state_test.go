@@ -67,3 +67,7 @@ func (mbs *MockBlockState) GenesisHash() common.Hash {
 func (mbs *MockBlockState) BestBlockNumber() (*big.Int, error) {
 	return big.NewInt(1), nil
 }
+
+func (mbs *MockBlockState) HasBlockBody(common.Hash) (bool, error) {
+	return false, nil
+}

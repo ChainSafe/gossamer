@@ -41,7 +41,7 @@ type Syncer interface {
 
 	// HandleBlockResponse is called upon receipt of BlockResponseMessage to process it.
 	// If another request needs to be sent to the peer, this function will return it.
-	HandleBlockResponse(*BlockResponseMessage) error
+	//HandleBlockResponse(*BlockResponseMessage) error
 
 	ProcessBlockData(data []*types.BlockData) error
 
