@@ -20,7 +20,6 @@ import (
 	"io"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
 // Result represents a Result type.
@@ -43,12 +42,7 @@ func (r *Result) Encode() ([]byte, error) {
 		return []byte{1}, nil
 	}
 
-	value, err := scale.Encode(r.data)
-	if err != nil {
-		return nil, err
-	}
-
-	return append([]byte{0}, value...), nil
+	return append([]byte{0}, r.data...), nil
 }
 
 // Decode return a Result from scale encoded data
@@ -64,13 +58,19 @@ func (r *Result) Decode(reader io.Reader) (*Result, error) {
 
 	r.isErr = exists
 
-	if r.isErr == 0 {
-		sd := scale.Decoder{Reader: reader}
-		value, err := sd.DecodeByteArray()
+	if r.isErr == 1 {
+		return r, nil
+	}
+
+	r.data = []byte{}
+
+	for {
+		b, err := common.ReadByte(reader)
 		if err != nil {
-			return nil, err
+			break
 		}
-		r.data = value
+
+		r.data = append(r.data, b)
 	}
 
 	return r, nil
