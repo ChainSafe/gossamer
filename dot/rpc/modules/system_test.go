@@ -23,9 +23,12 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/stretchr/testify/require"
 )
 
@@ -112,7 +115,7 @@ func newNetworkService(t *testing.T) *network.Service {
 // Test RPC's System.Health() response
 func TestSystemModule_Health(t *testing.T) {
 	net := newNetworkService(t)
-	sys := NewSystemModule(net, nil)
+	sys := NewSystemModule(net, nil, nil, nil, nil)
 
 	res := &SystemHealthResponse{}
 	err := sys.Health(nil, nil, res)
@@ -126,7 +129,7 @@ func TestSystemModule_Health(t *testing.T) {
 // Test RPC's System.NetworkState() response
 func TestSystemModule_NetworkState(t *testing.T) {
 	net := newNetworkService(t)
-	sys := NewSystemModule(net, nil)
+	sys := NewSystemModule(net, nil, nil, nil, nil)
 
 	res := &SystemNetworkStateResponse{}
 	err := sys.NetworkState(nil, nil, res)
@@ -142,7 +145,7 @@ func TestSystemModule_NetworkState(t *testing.T) {
 // Test RPC's System.Peers() response
 func TestSystemModule_Peers(t *testing.T) {
 	net := newNetworkService(t)
-	sys := NewSystemModule(net, nil)
+	sys := NewSystemModule(net, nil, nil, nil, nil)
 
 	res := &SystemPeersResponse{}
 	err := sys.Peers(nil, nil, res)
@@ -155,7 +158,7 @@ func TestSystemModule_Peers(t *testing.T) {
 
 func TestSystemModule_NodeRoles(t *testing.T) {
 	net := newNetworkService(t)
-	sys := NewSystemModule(net, nil)
+	sys := NewSystemModule(net, nil, nil, nil, nil)
 	expected := []interface{}{"Full"}
 
 	var res []interface{}
@@ -208,7 +211,7 @@ func (api *mockSystemAPI) ChainType() string {
 }
 
 func TestSystemModule_Chain(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI())
+	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil)
 
 	res := new(string)
 	err := sys.Chain(nil, nil, res)
@@ -219,7 +222,7 @@ func TestSystemModule_Chain(t *testing.T) {
 func TestSystemModule_ChainType(t *testing.T) {
 	api := newMockSystemAPI()
 
-	sys := NewSystemModule(nil, api)
+	sys := NewSystemModule(nil, api, nil, nil, nil)
 
 	res := new(string)
 	sys.ChainType(nil, nil, res)
@@ -227,7 +230,7 @@ func TestSystemModule_ChainType(t *testing.T) {
 }
 
 func TestSystemModule_Name(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI())
+	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil)
 
 	res := new(string)
 	err := sys.Name(nil, nil, res)
@@ -236,7 +239,7 @@ func TestSystemModule_Name(t *testing.T) {
 }
 
 func TestSystemModule_Version(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI())
+	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil)
 
 	res := new(string)
 	err := sys.Version(nil, nil, res)
@@ -245,10 +248,108 @@ func TestSystemModule_Version(t *testing.T) {
 }
 
 func TestSystemModule_Properties(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI())
+	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil)
+
 	expected := map[string]interface{}(nil)
+
 	res := new(interface{})
 	err := sys.Properties(nil, nil, res)
 	require.NoError(t, err)
 	require.Equal(t, expected, *res)
+}
+
+func TestSystemModule_AccountNextIndex_StoragePending(t *testing.T) {
+	sys := setupSystemModule(t)
+	expectedStored := U64Response(uint64(3))
+
+	res := new(U64Response)
+	req := StringRequest{
+		String: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+	}
+	err := sys.AccountNextIndex(nil, &req, res)
+	require.NoError(t, err)
+
+	require.Equal(t, expectedStored, *res)
+
+	// extrinsic for transfer signed by alice, nonce 4 (created with polkadot.js/api test_transaction)
+	signedExt := common.MustHexToBytes("0x022d0284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d018c35943da8a04f06a36db9fadc7b2f02ccdef38dd89f88835c0af16b5fce816b117d8073aca078984d5b81bcf86e89cfa3195e5ec3c457d4282370b854f430850010000600ff90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22e5c0")
+	vtx := &transaction.ValidTransaction{
+		Extrinsic: types.NewExtrinsic(signedExt),
+		Validity:  new(transaction.Validity),
+	}
+	expectedPending := U64Response(uint64(4))
+	sys.txStateAPI.AddToPool(vtx)
+
+	err = sys.AccountNextIndex(nil, &req, res)
+	require.NoError(t, err)
+	require.Equal(t, expectedPending, *res)
+}
+
+func TestSystemModule_AccountNextIndex_Storage(t *testing.T) {
+	sys := setupSystemModule(t)
+	expectedStored := U64Response(uint64(3))
+
+	res := new(U64Response)
+	req := StringRequest{
+		String: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+	}
+	err := sys.AccountNextIndex(nil, &req, res)
+	require.NoError(t, err)
+
+	require.Equal(t, expectedStored, *res)
+}
+
+func TestSystemModule_AccountNextIndex_Pending(t *testing.T) {
+	sys := setupSystemModule(t)
+	res := new(U64Response)
+	req := StringRequest{
+		String: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+	}
+
+	// extrinsic for transfer signed by alice, nonce 4 (created with polkadot.js/api test_transaction)
+	signedExt := common.MustHexToBytes("0x022d0284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d018c35943da8a04f06a36db9fadc7b2f02ccdef38dd89f88835c0af16b5fce816b117d8073aca078984d5b81bcf86e89cfa3195e5ec3c457d4282370b854f430850010000600ff90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22e5c0")
+	vtx := &transaction.ValidTransaction{
+		Extrinsic: types.NewExtrinsic(signedExt),
+		Validity:  new(transaction.Validity),
+	}
+	expectedPending := U64Response(uint64(4))
+	sys.txStateAPI.AddToPool(vtx)
+
+	err := sys.AccountNextIndex(nil, &req, res)
+	require.NoError(t, err)
+	require.Equal(t, expectedPending, *res)
+}
+
+func setupSystemModule(t *testing.T) *SystemModule {
+	// setup service
+	net := newNetworkService(t)
+	chain := newTestStateService(t)
+	// init storage with test data
+	ts, err := chain.Storage.TrieState(nil)
+	require.NoError(t, err)
+
+	aliceAcctStoKey, err := common.HexToBytes("0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9de1e86a9a8c739864cf3cc5ec2bea59fd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d")
+	require.NoError(t, err)
+	aliceAcctInfo := types.AccountInfo{
+		Nonce:    3,
+		RefCount: 0,
+		Data: struct {
+			Free       common.Uint128
+			Reserved   common.Uint128
+			MiscFrozen common.Uint128
+			FreeFrozen common.Uint128
+		}{},
+	}
+	aliceAcctEncoded, err := scale.Encode(aliceAcctInfo)
+	require.NoError(t, err)
+	err = ts.Set(aliceAcctStoKey, aliceAcctEncoded)
+	require.NoError(t, err)
+
+	err = chain.Storage.StoreTrie(ts)
+	require.NoError(t, err)
+
+	core := newCoreService(t, chain)
+	// TODO (ed) add transactions to txQueue and add test for those
+	txQueue := state.NewTransactionState()
+	return NewSystemModule(net, nil, core, chain.Storage, txQueue)
 }
