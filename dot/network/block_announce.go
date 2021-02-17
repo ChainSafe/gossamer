@@ -218,13 +218,6 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 		return nil
 	}
 
-	// // if so, send block request
-	// logger.Trace("sending peer highest block to syncer", "number", bhs.BestBlockNumber)
-	// reqs := s.syncer.HandleBlockAnnounceHandshake(bestBlockNum)
-	// if len(reqs) == 0 {
-	// 	return nil
-	// }
-
 	go func() {
 		if s.notificationsProtocols[BlockAnnounceMsgType] == nil {
 			logger.Error("s.notificationsProtocols[BlockAnnounceMsgType] is nil")
@@ -236,13 +229,7 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 			return
 		}
 
-		// wait until we send BlockAnnounceHandshake, then begin sync
-		// select {
-		// case <-s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].responseSentCh:
 		s.syncQueue.handleBlockAnnounceHandshake(bhs.BestBlockNumber, peer)
-		// case <-time.After(time.Second * 3):
-		// 	err = errors.New("timeout")
-		//}
 	}()
 
 	return nil

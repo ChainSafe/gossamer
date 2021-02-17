@@ -58,10 +58,9 @@ type notificationsProtocol struct {
 }
 
 type handshakeData struct {
-	received       bool
-	validated      bool
-	outboundMsg    NotificationsMessage
-	responseSentCh chan struct{} // this channel is created and closed when
+	received    bool
+	validated   bool
+	outboundMsg NotificationsMessage
 }
 
 func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecoder, messageDecoder MessageDecoder) messageDecoder {
@@ -110,9 +109,8 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			if _, has := info.handshakeData[peer]; !has {
 				logger.Trace("receiver: validating handshake", "sub-protocol", info.subProtocol)
 				info.handshakeData[peer] = &handshakeData{
-					validated:      false,
-					received:       true,
-					responseSentCh: make(chan struct{}),
+					validated: false,
+					received:  true,
 				}
 
 				err := handshakeValidator(peer, hs)
@@ -136,7 +134,6 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 					return err
 				}
 				logger.Trace("receiver: sent handshake", "sub-protocol", info.subProtocol, "peer", peer)
-				close(info.handshakeData[peer].responseSentCh)
 			}
 
 			// if we are the initiator and haven't received the handshake already, validate it
@@ -152,9 +149,6 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 				info.handshakeData[peer].validated = true
 				info.handshakeData[peer].received = true
 				logger.Trace("sender: validated handshake", "sub-protocol", info.subProtocol, "peer", peer)
-
-				info.handshakeData[peer].responseSentCh = make(chan struct{})
-				close(info.handshakeData[peer].responseSentCh)
 			} else if hsData.received {
 				return nil
 			}
@@ -208,6 +202,7 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 	rand.Shuffle(len(peers), func(i, j int) { peers[i], peers[j] = peers[j], peers[i] })
 
 	for i, peer := range peers { // TODO: check if stream is open, if not, open and send handshake
+		// TODO: configure this and determine ideal ratio, as well as when to use broadcast vs gossip
 		if i > len(peers)/3 {
 			return
 		}

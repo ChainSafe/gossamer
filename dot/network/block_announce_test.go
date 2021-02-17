@@ -123,19 +123,9 @@ func TestValidateBlockAnnounceHandshake(t *testing.T) {
 	}
 
 	testPeerID := peer.ID("noot")
-	done := make(chan struct{})
-	nodeA.notificationsProtocols[BlockAnnounceMsgType].handshakeData[testPeerID] = &handshakeData{
-		responseSentCh: done,
-	}
-
 	err := nodeA.validateBlockAnnounceHandshake(testPeerID, &BlockAnnounceHandshake{
 		BestBlockNumber: 100,
 		GenesisHash:     nodeA.blockState.GenesisHash(),
 	})
 	require.NoError(t, err)
-	close(done)
-
-	if syncing := nodeA.syncQueue.isSyncing(testPeerID); syncing {
-		require.True(t, syncing)
-	}
 }

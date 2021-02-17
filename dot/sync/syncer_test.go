@@ -107,68 +107,6 @@ func newTestSyncer(t *testing.T) *Service {
 	return syncer
 }
 
-// func TestHandleBlockAnnounceHandshake(t *testing.T) {
-// 	syncer := newTestSyncer(t)
-// 	number := big.NewInt(12)
-// 	reqs := syncer.HandleBlockAnnounceHandshake(number)
-// 	require.NotNil(t, reqs)
-// 	require.Equal(t, 1, len(reqs))
-// 	require.Equal(t, uint64(1), reqs[0].StartingBlock.Value().(uint64))
-// 	require.Equal(t, number, syncer.highestSeenBlock)
-// }
-
-// func TestHandleBlockAnnounceHandshake_NotHighestSeen(t *testing.T) {
-// 	syncer := newTestSyncer(t)
-
-// 	number := big.NewInt(12)
-// 	req := syncer.HandleBlockAnnounceHandshake(number)
-// 	require.NotNil(t, req)
-// 	require.Equal(t, number, syncer.highestSeenBlock)
-
-// 	lower := big.NewInt(11)
-// 	req = syncer.HandleBlockAnnounceHandshake(lower)
-// 	require.Nil(t, req)
-// 	require.Equal(t, number, syncer.highestSeenBlock)
-// }
-
-// func TestHandleBlockAnnounceHandshake_GreaterThanHighestSeen_NotSynced(t *testing.T) {
-// 	syncer := newTestSyncer(t)
-
-// 	number := big.NewInt(12)
-// 	reqs := syncer.HandleBlockAnnounceHandshake(number)
-// 	require.NotNil(t, reqs)
-// 	require.Equal(t, number, syncer.highestSeenBlock)
-
-// 	_, _ = state.AddBlocksToState(t, syncer.blockState.(*state.BlockState), 12)
-
-// 	number = big.NewInt(16)
-// 	reqs = syncer.HandleBlockAnnounceHandshake(number)
-// 	require.NotNil(t, reqs)
-// 	require.Equal(t, 1, len(reqs))
-// 	require.Equal(t, number, syncer.highestSeenBlock)
-// 	require.Equal(t, reqs[0].StartingBlock.Value().(uint64), uint64(13))
-// }
-
-// func TestHandleBlockAnnounceHandshake_GreaterThanHighestSeen_Synced(t *testing.T) {
-// 	syncer := newTestSyncer(t)
-
-// 	number := big.NewInt(12)
-// 	reqs := syncer.HandleBlockAnnounceHandshake(number)
-// 	require.NotNil(t, reqs)
-// 	require.Equal(t, number, syncer.highestSeenBlock)
-
-// 	// synced to block 12
-// 	syncer.synced = true
-// 	_, _ = state.AddBlocksToState(t, syncer.blockState.(*state.BlockState), 12)
-
-// 	number = big.NewInt(16)
-// 	reqs = syncer.HandleBlockAnnounceHandshake(number)
-// 	require.NotNil(t, reqs)
-// 	require.Equal(t, 1, len(reqs))
-// 	require.Equal(t, number, syncer.highestSeenBlock)
-// 	require.Equal(t, uint64(13), reqs[0].StartingBlock.Value().(uint64))
-// }
-
 func TestHandleBlockResponse(t *testing.T) {
 	if testing.Short() {
 		t.Skip() // this test takes around 4min to run
@@ -202,9 +140,6 @@ func TestHandleBlockResponse(t *testing.T) {
 
 	err = syncer.ProcessBlockData(resp.BlockData)
 	require.NoError(t, err)
-
-	// msg should contain blocks 1 to 129 (maxResponseSize # of blocks)
-	//require.Equal(t, uint64(startNum+int(maxResponseSize)), req2.StartingBlock.Value().(uint64))
 
 	resp2, err := responder.CreateBlockResponse(req)
 	require.NoError(t, err)
