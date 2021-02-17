@@ -43,6 +43,8 @@ type Syncer interface {
 	// If another request needs to be sent to the peer, this function will return it.
 	HandleBlockResponse(*BlockResponseMessage) error
 
+	ProcessBlockData(data []*types.BlockData) error
+
 	// HandleBlockAnnounce is called upon receipt of a BlockAnnounceMessage to process it.
 	// If a request needs to be sent to the peer to retrieve the full block, this function will return it.
 	HandleBlockAnnounce(*BlockAnnounceMessage) error

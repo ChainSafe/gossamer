@@ -211,8 +211,14 @@ func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) error {
 func (s *Service) HandleBlockResponse(msg *network.BlockResponseMessage) error {
 	// highestInResp will be the highest block in the response
 	// it's set to 0 if err != nil
-	_, _, err := s.processBlockResponseData(msg)
-	return err
+	//for _, bd := range msg.BlockData {
+	err := s.ProcessBlockData(msg.BlockData)
+	if err != nil {
+		return err
+	}
+	//}
+
+	return nil
 	// var start int64
 	// low, high, err := s.processBlockResponseData(msg)
 
@@ -303,66 +309,63 @@ func (s *Service) HandleBlockResponse(msg *network.BlockResponseMessage) error {
 // 	return blockRequest
 // }
 
-// processBlockResponseData processes the BlockResponse and returns the start and end blocks in the response
-func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (int64, int64, error) {
-	if msg == nil {
-		return 0, 0, errors.New("got nil BlockResponseMessage")
+// ProcessBlockData processes the BlockResponse and returns the index of the last BlockData it successfully handled.
+func (s *Service) ProcessBlockData(data []*types.BlockData) error {
+	if len(data) == 0 {
+		return errors.New("got nil BlockData")
 	}
 
-	blockData := msg.BlockData
-	start := maxInt64
-	end := int64(0)
-
-	for _, bd := range blockData {
+	// TODO: return number of last successful block that was processed
+	for _, bd := range data {
 		s.logger.Debug("starting processing of block", "hash", bd.Hash)
 
 		err := s.blockState.CompareAndSetBlockData(bd)
 		if err != nil {
-			return start, end, err
+			return err
 		}
 
 		hasHeader, _ := s.blockState.HasHeader(bd.Hash)
 		hasBody, _ := s.blockState.HasBlockBody(bd.Hash)
 		if hasHeader && hasBody {
 			s.logger.Debug("skipping block, already have", "hash", bd.Hash)
-			continue
+			return nil
 		}
 
 		if bd.Header.Exists() && !hasHeader {
 			header, err := types.NewHeaderFromOptional(bd.Header)
 			if err != nil {
-				return 0, 0, err
+				return err
 			}
 
 			s.logger.Trace("processing header", "hash", header.Hash(), "number", header.Number)
 
 			err = s.handleHeader(header)
 			if err != nil {
-				return start, end, err
+				return err
 			}
 
 			s.logger.Trace("header processed", "hash", bd.Hash)
 
-			if header.Number.Int64() < start {
-				start = header.Number.Int64()
-			}
+			// if header.Number.Int64() < start {
+			// 	start = header.Number.Int64()
+			// }
 
-			if header.Number.Int64() > end {
-				end = header.Number.Int64()
-			}
+			// if header.Number.Int64() > end {
+			// 	end = header.Number.Int64()
+			// }
 		}
 
 		if bd.Body.Exists() && !hasBody {
 			body, err := types.NewBodyFromOptional(bd.Body)
 			if err != nil {
-				return start, end, err
+				return err
 			}
 
 			s.logger.Trace("processing body", "hash", bd.Hash)
 
 			err = s.handleBody(body)
 			if err != nil {
-				return start, end, err
+				return err
 			}
 
 			s.logger.Trace("body processed", "hash", bd.Hash)
@@ -371,12 +374,12 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 		if bd.Header.Exists() && bd.Body.Exists() {
 			header, err := types.NewHeaderFromOptional(bd.Header)
 			if err != nil {
-				return 0, 0, err
+				return err
 			}
 
 			body, err := types.NewBodyFromOptional(bd.Body)
 			if err != nil {
-				return 0, 0, err
+				return err
 			}
 
 			block := &types.Block{
@@ -388,14 +391,14 @@ func (s *Service) processBlockResponseData(msg *network.BlockResponseMessage) (i
 
 			err = s.handleBlock(block)
 			if err != nil {
-				return start, end, err
+				return err
 			}
 
 			s.logger.Debug("block processed", "hash", bd.Hash)
 		}
 	}
 
-	return start, end, nil
+	return nil
 }
 
 // handleHeader handles headers included in BlockResponses

@@ -253,6 +253,10 @@ func (s *mockSyncer) HandleBlockResponse(msg *network.BlockResponseMessage) erro
 	return nil
 }
 
+func (s *mockSyncer) ProcessBlockData(_ []*types.BlockData) error {
+	return nil
+}
+
 func (s *mockSyncer) IsSynced() bool {
 	return false
 }

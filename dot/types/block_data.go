@@ -19,6 +19,7 @@ package types
 import (
 	"fmt"
 	"io"
+	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
@@ -33,6 +34,14 @@ type BlockData struct {
 	Receipt       *optional.Bytes
 	MessageQueue  *optional.Bytes
 	Justification *optional.Bytes
+}
+
+func (bd *BlockData) Number() *big.Int {
+	if bd == nil || !bd.Header.Exists() {
+		return nil
+	}
+
+	return bd.Header.Value().Number
 }
 
 func (bd *BlockData) String() string {
