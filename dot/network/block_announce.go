@@ -21,7 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"time"
+	//"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -238,12 +238,12 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 		}
 
 		// wait until we send BlockAnnounceHandshake, then begin sync
-		select {
-		case <-s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].responseSentCh:
-			s.syncQueue.handleBlockAnnounceHandshake(bhs.BestBlockNumber, peer)
-		case <-time.After(time.Second * 3):
-			err = errors.New("timeout")
-		}
+		// select {
+		// case <-s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].responseSentCh:
+		s.syncQueue.handleBlockAnnounceHandshake(bhs.BestBlockNumber, peer)
+		// case <-time.After(time.Second * 3):
+		// 	err = errors.New("timeout")
+		//}
 	}()
 
 	return nil

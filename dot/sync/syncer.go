@@ -328,7 +328,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) error {
 		hasBody, _ := s.blockState.HasBlockBody(bd.Hash)
 		if hasHeader && hasBody {
 			s.logger.Debug("skipping block, already have", "hash", bd.Hash)
-			return nil
+			continue
 		}
 
 		if bd.Header.Exists() && !hasHeader {

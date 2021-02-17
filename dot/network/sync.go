@@ -108,6 +108,10 @@ type syncRequest struct {
 // 	pid        peer.ID // rename to "from"?
 // }
 
+type blockRange struct {
+	start, end int64
+}
+
 type syncQueue struct {
 	s         *Service
 	ctx       context.Context
@@ -123,10 +127,10 @@ type syncQueue struct {
 
 	responses    []*types.BlockData
 	responseCh   chan []*types.BlockData
-	from         map[int64]peer.ID // map of starting response number -> from peer ID
 	responseLock sync.RWMutex
 
-	waitingForResp     bool
+	waitingForResp     *blockRange
+	gotRespCh          chan *blockRange
 	goal               int64 // goal block number we are trying to sync to
 	currStart, currEnd int64 // the start and end of the BlockResponse we are currently handling; 0 and 0 if we are not currently handling any
 
@@ -146,7 +150,7 @@ func newSyncQueue(s *Service) *syncQueue {
 		requestCh:   make(chan *syncRequest),
 		responses:   []*types.BlockData{},
 		responseCh:  make(chan []*types.BlockData),
-		from:        make(map[int64]peer.ID),
+		gotRespCh:   make(chan *blockRange),
 		benchmarker: newSyncBenchmarker(),
 	}
 }
@@ -199,6 +203,14 @@ func (q *syncQueue) start() {
 			q.responseLock.Lock()
 			if len(q.responses) == 0 {
 				q.responseLock.Unlock()
+
+				// if head.Int64() < q.goal {
+				// 	q.requestLock.Lock()
+				// 	if len(q.requests) == 0 && !q.waitingForResp {
+				// 		q.setBlockRequests("")
+				// 	}
+				// 	q.requestLock.Unlock()
+				// }
 				continue
 			}
 
@@ -206,11 +218,11 @@ func (q *syncQueue) start() {
 				logger.Debug("response start isn't head+1, waiting", "queue start", q.responses[0].Number().Int64(), "head+1", head.Int64()+1)
 				q.responseLock.Unlock()
 
-				q.requestLock.Lock()
-				if len(q.requests) == 0 && !q.waitingForResp && q.currEnd == 0 {
-					q.setBlockRequests("")
-				}
-				q.requestLock.Unlock()
+				// q.requestLock.Lock()
+				// if len(q.requests) == 0 && !q.waitingForResp {
+				// 	q.setBlockRequests("")
+				// }
+				// q.requestLock.Unlock()
 				continue
 			}
 
@@ -372,7 +384,7 @@ func (q *syncQueue) setBlockRequests(pid peer.ID) {
 // }
 
 func (q *syncQueue) pushBlockResponse(resp *BlockResponseMessage, pid peer.ID) {
-	q.waitingForResp = false
+	//q.waitingForResp = nil
 
 	if len(resp.BlockData) == 0 || len(q.responses)+len(resp.BlockData) >= int(blockDataQueueSize) {
 		return
@@ -401,7 +413,12 @@ func (q *syncQueue) pushBlockResponse(resp *BlockResponseMessage, pid peer.ID) {
 	}
 	q.responseLock.Unlock()
 
-	q.from[start] = pid
+	// TODO: change peerScore to sync.Map, currently this is the only place it's used
+	q.peerScore[pid]++
+	q.gotRespCh <- &blockRange{
+		start: start,
+		end:   end,
+	}
 
 	q.responseLock.Lock()
 	defer q.responseLock.Unlock()
@@ -414,20 +431,55 @@ func (q *syncQueue) processBlockRequests() {
 	for {
 		select {
 		case req := <-q.requestCh:
-			q.waitingForResp = true
+			//q.waitingForResp = true
+			q.ensureResponseReceived(req)
 
-			if len(req.pid) == 0 {
-				q.attemptSyncWithRandomPeer(req.req)
-				continue
-			}
+			// if len(req.pid) == 0 {
+			// 	q.attemptSyncWithRandomPeer(req.req)
+			// 	continue
+			// }
+
+			// if err := q.beginSyncingWithPeer(req.pid, req.req); err != nil {
+			// 	q.unsetSyncingPeer(req.pid)
+			// 	logger.Debug("failed to send block request to peer, trying other peers", "peer", req.pid)
+			// 	q.attemptSyncWithRandomPeer(req.req)
+			// }
+		case <-q.ctx.Done():
+			return
+		}
+	}
+}
+
+func (q *syncQueue) ensureResponseReceived(req *syncRequest) {
+	var attemptToSyncFunc func(*BlockRequestMessage) = q.attemptSyncWithPreferedPeers
+
+	for {
+		logger.Debug("beginning to send out request", "start", req.req.StartingBlock.Uint64())
+		if len(req.pid) == 0 {
+			attemptToSyncFunc(req.req)
+		} else {
 
 			if err := q.beginSyncingWithPeer(req.pid, req.req); err != nil {
 				q.unsetSyncingPeer(req.pid)
 				logger.Debug("failed to send block request to peer, trying other peers", "peer", req.pid)
-				q.attemptSyncWithRandomPeer(req.req)
+				attemptToSyncFunc(req.req)
 			}
-		case <-q.ctx.Done():
+
+		}
+
+		select {
+		case resp := <-q.gotRespCh:
+			if resp.start != int64(req.req.StartingBlock.Uint64()) {
+				logger.Error("received response that we didn't request!!")
+				continue
+			}
+
+			logger.Debug("response received", "start", resp.start, "end", resp.end)
 			return
+		case <-time.After(time.Second * 5):
+			logger.Warn("haven't received a response in a while...", "start", req.req.StartingBlock.Uint64())
+			attemptToSyncFunc = q.attemptSyncWithRandomPeer
+			continue
 		}
 	}
 }
@@ -436,10 +488,7 @@ func (q *syncQueue) processBlockResponses() {
 	for {
 		select {
 		case data := <-q.responseCh:
-			q.waitingForResp = false
-			pid := q.from[data[0].Number().Int64()]
-			// TODO: change peerScore to sync.Map, currently this is the only place it's used
-			q.peerScore[pid]++
+			//q.waitingForResp = false
 
 			q.currStart = data[0].Number().Int64()
 			q.currEnd = data[len(data)-1].Number().Int64()
@@ -450,25 +499,45 @@ func (q *syncQueue) processBlockResponses() {
 			q.currEnd = 0
 			if err != nil {
 				logger.Error("failed to handle block data; re-adding to queue", "start", q.currStart, "end", q.currEnd, "error", err)
-				q.setBlockRequests(pid)
+				q.setBlockRequests("")
 				continue
 			}
 
-			q.unsetSyncingPeer(pid)
+			//q.unsetSyncingPeer(pid)
 		case <-q.ctx.Done():
 			return
 		}
 	}
 }
 
+func (q *syncQueue) attemptSyncWithPreferedPeers(req *BlockRequestMessage) {
+	var peers []peer.ID
+	for _, p := range q.getSortedPeers() {
+		peers = append(peers, p.pid)
+	}
+
+	q.attemptSyncWithPeers(peers, req)
+}
+
 func (q *syncQueue) attemptSyncWithRandomPeer(req *BlockRequestMessage) {
+	// var peers []peer.ID
+	// for pid := range q.peerScore {
+	// 	peers = append(peers, pid)
+	// }
+
 	// TODO: when scoring is improved, try peers cached in syncQueue before random
+	//if len(peers) == 0 {
 	peers := q.s.host.peers()
+	//}
 	rand.Shuffle(len(peers), func(i, j int) { peers[i], peers[j] = peers[j], peers[i] })
 
+	q.attemptSyncWithPeers(peers, req)
+}
+
+func (q *syncQueue) attemptSyncWithPeers(peers []peer.ID, req *BlockRequestMessage) {
 	for _, peer := range peers {
 		if err := q.beginSyncingWithPeer(peer, req); err == nil {
-			logger.Debug("successfully began sync with peer", "peer", peer)
+			logger.Debug("successfully sent BlockRequest to peer", "peer", peer)
 			return
 		} else {
 			q.unsetSyncingPeer(peer)
@@ -479,7 +548,7 @@ func (q *syncQueue) attemptSyncWithRandomPeer(req *BlockRequestMessage) {
 	// re-add request to queue, since we failed to send it to any peer
 	//q.pushBlockRequest(req, "")
 	q.setBlockRequests("")
-	q.waitingForResp = true
+	//q.waitingForResp = true
 }
 
 func (q *syncQueue) beginSyncingWithPeer(peer peer.ID, req *BlockRequestMessage) error {
@@ -566,6 +635,8 @@ func (q *syncQueue) handleBlockAnnounceHandshake(blockNum uint32, from peer.ID) 
 	// 	return
 	// }
 
+	q.peerScore[from]++
+
 	bestNum, err := q.s.blockState.BestBlockNumber()
 	if err != nil {
 		logger.Error("failed to get best block number", "error", err)
@@ -597,6 +668,8 @@ func (q *syncQueue) handleBlockAnnounceHandshake(blockNum uint32, from peer.ID) 
 }
 
 func (q *syncQueue) handleBlockAnnounce(msg *BlockAnnounceMessage, from peer.ID) {
+	q.peerScore[from]++
+
 	// if len(q.requests) > int(blockRequestQueueSize) {
 	// 	return
 	// }
