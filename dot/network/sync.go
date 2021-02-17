@@ -46,7 +46,7 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 	if msg == nil {
 		return nil
 	}
-	// TODO #1291
+
 	if resp, ok := msg.(*BlockResponseMessage); ok {
 		s.syncingMu.RLock()
 		if _, isSyncing := s.syncing[peer]; !isSyncing {

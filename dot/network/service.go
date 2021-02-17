@@ -454,7 +454,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		if err == io.EOF {
 			continue
 		} else if err != nil {
-			logger.Warn("Failed to read LEB128 encoding", "protocol", stream.Protocol(), "error", err)
+			logger.Debug("Failed to read LEB128 encoding", "protocol", stream.Protocol(), "error", err)
 			_ = stream.Close()
 			return
 		}
@@ -585,21 +585,21 @@ func (s *Service) Peers() []common.PeerInfo {
 			continue
 		}
 		peerHandshakeMessage := s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[p].handshake
-
-		if peerHandshakeMessage != nil {
-			peers = append(peers, common.PeerInfo{
-				PeerID:     p.String(),
-				Roles:      peerHandshakeMessage.(*BlockAnnounceHandshake).Roles,
-				BestHash:   peerHandshakeMessage.(*BlockAnnounceHandshake).BestBlockHash,
-				BestNumber: uint64(peerHandshakeMessage.(*BlockAnnounceHandshake).BestBlockNumber),
-				// ProtocolVersion: uint32(protocolVersion),
-			})
-		} else {
+		if peerHandshakeMessage == nil {
 			peers = append(peers, common.PeerInfo{
 				PeerID: p.String(),
 			})
+			continue
 		}
 
+		// peerHandshakeMessage != nil logic here
+		peers = append(peers, common.PeerInfo{
+			PeerID:     p.String(),
+			Roles:      peerHandshakeMessage.(*BlockAnnounceHandshake).Roles,
+			BestHash:   peerHandshakeMessage.(*BlockAnnounceHandshake).BestBlockHash,
+			BestNumber: uint64(peerHandshakeMessage.(*BlockAnnounceHandshake).BestBlockNumber),
+			// ProtocolVersion: uint32(protocolVersion),
+		})
 	}
 	return peers
 }

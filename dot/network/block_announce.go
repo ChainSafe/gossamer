@@ -226,30 +226,21 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 			s.handleBlockAnnounceMessage,
 		)
 		if err != nil {
-			return errors.New("failed to register blockannounce protocol")
+			return err
 		}
 	}
 
-	np.mapMu.Lock()
-	defer np.mapMu.Unlock()
+	np.mapMu.RLock()
+	defer np.mapMu.RUnlock()
 
 	_, ok = np.handshakeData[peer]
 	if !ok {
-		logger.Error("peer handshake data is nil")
-		np.handshakeData[peer] = &handshakeData{
-			validated:      false,
-			received:       true,
-			responseSentCh: make(chan struct{}),
-		}
+		return errors.New("peer handshake data is nil")
 	}
-	np.handshakeData[peer].mutex.Lock()
-	defer np.handshakeData[peer].mutex.Unlock()
 
 	// check if peer block number is greater than host block number
 	if latestHeader.Number.Cmp(bestBlockNum) >= 0 {
-		if ok {
-			s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].handshake = hs
-		}
+		s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].handshake = hs
 
 		return nil
 	}
@@ -258,9 +249,7 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 	logger.Trace("sending peer highest block to syncer", "number", bhs.BestBlockNumber)
 	req := s.syncer.HandleBlockAnnounceHandshake(bestBlockNum)
 	if req == nil {
-		if ok {
-			s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].handshake = hs
-		}
+		s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].handshake = hs
 		return nil
 	}
 
@@ -285,13 +274,11 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 			err = errors.New("timeout")
 		}
 
-		logger.Error("failed to send response to peer's handshake", "sub-protocol", syncID, "peer", peer, "error", err)
+		logger.Debug("failed to send response to peer's handshake", "sub-protocol", syncID, "peer", peer, "error", err)
 		s.attemptSyncWithRandomPeer(req)
 	}()
 
-	if ok {
-		s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].handshake = hs
-	}
+	s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].handshake = hs
 	return nil
 }
 
