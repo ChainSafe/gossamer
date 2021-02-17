@@ -37,6 +37,7 @@ var logger = log.New("pkg", "state")
 // Service is the struct that holds storage, block and network states
 type Service struct {
 	dbPath      string
+	logLvl      log.Lvl
 	db          chaindb.Database
 	isMemDB     bool // set to true if using an in-memory database; only used for testing.
 	Storage     *StorageState
@@ -58,6 +59,7 @@ func NewService(path string, lvl log.Lvl) *Service {
 
 	return &Service{
 		dbPath:  path,
+		logLvl:  lvl,
 		db:      nil,
 		isMemDB: false,
 		Storage: nil,
@@ -175,7 +177,7 @@ func (s *Service) loadBabeConfigurationFromRuntime(t *trie.Trie, gen *genesis.Ge
 	// create genesis runtime
 	rtCfg := &wasmer.Config{}
 	rtCfg.Storage = genTrie
-	rtCfg.LogLvl = 4
+	rtCfg.LogLvl = s.logLvl
 
 	r, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg)
 	if err != nil {

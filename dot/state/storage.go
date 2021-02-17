@@ -285,24 +285,29 @@ func (s *StorageState) EnumeratedTrieRoot(values [][]byte) {
 	panic("not implemented")
 }
 
-// Entries returns Entries from the trie
-func (s *StorageState) Entries(hash *common.Hash) (map[string][]byte, error) {
-	if hash == nil {
+// Entries returns Entries from the trie with the given state root
+func (s *StorageState) Entries(root *common.Hash) (map[string][]byte, error) {
+	if root == nil {
 		head, err := s.blockState.BestBlockStateRoot()
 		if err != nil {
 			return nil, err
 		}
-		hash = &head
+		root = &head
 	}
 
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	if s.tries[*hash] == nil {
-		return nil, errTrieDoesNotExist(*hash)
+	if s.tries[*root] != nil {
+		return s.tries[*root].Entries(), nil
 	}
 
-	return s.tries[*hash].Entries(), nil
+	tr, err := s.LoadFromDB(*root)
+	if err != nil {
+		return nil, err
+	}
+
+	return tr.Entries(), nil
 }
 
 // GetKeysWithPrefix returns all that match the given prefix for the given hash (or best block state root if hash is nil) in lexicographic order

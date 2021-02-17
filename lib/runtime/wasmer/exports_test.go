@@ -2,6 +2,8 @@ package wasmer
 
 import (
 	"bytes"
+	"encoding/json"
+	"io/ioutil"
 	"math/big"
 	"testing"
 	"time"
@@ -546,4 +548,70 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 
 	_, err = instance.ExecuteBlock(block)
 	require.NoError(t, err)
+}
+
+func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
+	gossTrie3783 := newTrieFromPairs(t, "../test_data/block3783_gossamer.out")
+	expectedRoot := common.MustHexToHash("0x948338bc0976aee78879d559a1f42385407e5a481b05a91d2a9386aa7507e7a0")
+	require.Equal(t, expectedRoot, gossTrie3783.MustHash())
+
+	// set state to genesis state
+	state3783, err := storage.NewTrieState(gossTrie3783)
+	require.NoError(t, err)
+
+	cfg := &Config{}
+	cfg.Storage = state3783
+	cfg.LogLvl = 4
+
+	instance, err := NewInstanceFromTrie(gossTrie3783, cfg)
+	require.NoError(t, err)
+
+	// block data is received from querying a polkadot node
+	body := common.MustHexToBytes("0x10280402000bb00d69b46e0114040900193b10041400009101041300eaaec5728cd6ea9160ff92a49bb45972c532d2163241746134726aaa5b2f72129d8650715320f23765c6306503669f69bf684b188dea73b1e247dd1dd166513b1c13daa387c35f24ac918d2fa772b73cffd20204a8875e48a1b11bb3229deb7f00")
+	exts, err := scale.Decode(body, [][]byte{})
+	require.NoError(t, err)
+	require.Equal(t, 4, len(exts.([][]byte)))
+
+	// digest from polkadot.js
+	digestBytes := common.MustHexToBytes("0x080642414245340203000000bd64a50f0000000005424142450101bc0d6850dba8d32ea1dbe26cb4ac56da6cca662c7cc642dc8eed32d2bddd65029f0721436eafeebdf9b4f17d1673c6bc6c3c51fe3dda3121a5fc60c657a5808b")
+	r := &bytes.Buffer{}
+	_, _ = r.Write(digestBytes)
+	digest, err := types.DecodeDigest(r)
+	require.NoError(t, err)
+
+	// kusama block 3784, from polkadot.js
+	block := &types.Block{
+		Header: &types.Header{
+			ParentHash:     common.MustHexToHash("0x4843b4aa38cf2e3e2f6fae401b98dd705bed668a82dd3751dc38f1601c814ca8"),
+			Number:         big.NewInt(3784),
+			StateRoot:      common.MustHexToHash("0xac44cc18ec22f0f3fca39dfe8725c0383af1c982a833e081fbb2540e46eb09a5"),
+			ExtrinsicsRoot: common.MustHexToHash("0x52b7d4852fc648cb8f908901e1e36269593c25050c31718454bca74b69115d12"),
+			Digest:         digest,
+		},
+		Body: types.NewBody(body),
+	}
+
+	_, err = instance.ExecuteBlock(block)
+	require.NoError(t, err)
+}
+
+func newTrieFromPairs(t *testing.T, filename string) *trie.Trie {
+	data, err := ioutil.ReadFile(filename)
+	require.NoError(t, err)
+
+	rpcPairs := make(map[string]interface{})
+	err = json.Unmarshal(data, &rpcPairs)
+	require.NoError(t, err)
+	pairs := rpcPairs["result"].([]interface{})
+
+	entries := make(map[string]string)
+	for _, pair := range pairs {
+		pairArr := pair.([]interface{})
+		entries[pairArr[0].(string)] = pairArr[1].(string)
+	}
+
+	tr := trie.NewEmptyTrie()
+	err = tr.LoadFromMap(entries)
+	require.NoError(t, err)
+	return tr
 }

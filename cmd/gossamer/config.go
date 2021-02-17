@@ -667,11 +667,6 @@ func setSystemInfoConfig(ctx *cli.Context, cfg *dot.Config) {
 		cfg.System.SystemName = ctx.App.Name
 		cfg.System.SystemVersion = ctx.App.Version
 	}
-
-	// TODO lookup system properties from genesis file and set here (See issue #865)
-	cfg.System.NodeName = cfg.Global.Name
-	props := make(map[string]interface{})
-	cfg.System.SystemProperties = props
 }
 
 // updateDotConfigFromGenesisJSONRaw updates the configuration based on the raw genesis file values
