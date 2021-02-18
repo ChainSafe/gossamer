@@ -26,10 +26,10 @@ jobs:
       - name: Install Subkey
         run: |
           wget -P $HOME/.local/bin/ https://chainbridge.ams3.digitaloceanspaces.com/subkey-v2.0.0
-          echo "past download"
-          mv $HOME/.local/bin/subkey-v2.0.0 $HOME/.local/bin/subkey
-          chmod +x $HOME/.local/bin/subkey
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          - run: |
+            mv $HOME/.local/bin/subkey-v2.0.0 $HOME/.local/bin/subkey
+            chmod +x $HOME/.local/bin/subkey
+            echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Run unit tests
         run: ./scripts/ci.sh
