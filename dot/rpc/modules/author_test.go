@@ -300,8 +300,3 @@ func setupAuthModule(t *testing.T, txq *state.TransactionState) *AuthorModule {
 	rt := wasmer.NewTestLegacyInstance(t, runtime.NODE_RUNTIME)
 	return NewAuthorModule(nil, cs, rt, txq)
 }
-
-func TestFakeFunction(t *testing.T) {
-	res := FakeFunction()
-	require.Equal(t, "it worked", res)
-}

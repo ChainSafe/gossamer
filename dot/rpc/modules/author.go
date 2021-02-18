@@ -196,9 +196,3 @@ func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 
 	return err
 }
-
-// FakeFunction was added to trigger CI code check
-func FakeFunction() string {
-	// todo (ed) remove this after it has been merged
-	return "it worked"
-}
