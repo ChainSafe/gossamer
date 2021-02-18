@@ -66,23 +66,49 @@ func TestDecodeSyncMessage(t *testing.T) {
 }
 
 func TestBeginSyncingProtectsPeer(t *testing.T) {
-	basePath := utils.NewTestBasePath(t, "node_a")
-	config := &Config{
-		BasePath:    basePath,
+	configA := &Config{
+		BasePath:    utils.NewTestBasePath(t, "nodeA"),
 		Port:        7001,
 		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
 
+	nodeA := createTestService(t, configA)
+	nodeA.noGossip = true
+	nodeA.syncQueue.stop()
+
+	configB := &Config{
+		BasePath:    utils.NewTestBasePath(t, "nodeB"),
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeB := createTestService(t, configB)
+	nodeB.noGossip = true
+	nodeB.syncQueue.stop()
+
+	// connect A and B
+	addrInfosB, err := nodeB.host.addrInfos()
+	require.NoError(t, err)
+
+	err = nodeA.host.connect(*addrInfosB[0])
+	if failedToDial(err) {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(*addrInfosB[0])
+	}
+	require.NoError(t, err)
+
 	var (
-		s      = createTestService(t, config)
-		peerID = peer.ID("rudolf")
-		msg    = &BlockRequestMessage{}
+		peerID = nodeB.host.id()
+		msg    = testBlockRequestMessage
 	)
 
-	s.syncQueue.beginSyncingWithPeer(peerID, msg)
-	require.True(t, s.host.h.ConnManager().IsProtected(peerID, ""))
+	err = nodeA.syncQueue.beginSyncingWithPeer(peerID, msg)
+	require.NoError(t, err)
+	require.True(t, nodeA.host.h.ConnManager().IsProtected(peerID, ""))
 }
 
 func TestHandleSyncMessage_BlockResponse(t *testing.T) {
