@@ -17,6 +17,7 @@
 package network
 
 import (
+	"bufio"
 	crand "crypto/rand"
 	"encoding/hex"
 	"io"
@@ -147,16 +148,15 @@ func uint64ToLEB128(in uint64) []byte {
 	return out
 }
 
-func readLEB128ToUint64(r io.Reader) (uint64, error) {
-	buffer := make([]byte, 1)
+func readLEB128ToUint64(r *bufio.Reader) (uint64, error) {
 	var out uint64
 	var shift uint
 	for {
-		_, err := io.ReadFull(r, buffer)
+		b, err := r.ReadByte()
 		if err != nil {
 			return 0, err
 		}
-		b := buffer[0]
+
 		out |= uint64(0x7F&b) << shift
 		if b&0x80 == 0 {
 			break
