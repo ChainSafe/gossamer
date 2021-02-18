@@ -70,17 +70,17 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 
 	// if it's a BlockRequest, call core for processing
 	if req, ok := msg.(*BlockRequestMessage); ok {
+		defer s.host.closeStream(peer, syncID)
+
 		resp, err := s.syncer.CreateBlockResponse(req)
 		if err != nil {
 			logger.Debug("cannot create response for request")
-			s.host.closeStream(peer, syncID)
 			return nil
 		}
 
 		err = s.host.send(peer, syncID, resp)
 		if err != nil {
 			logger.Error("failed to send BlockResponse message", "peer", peer)
-			s.host.closeStream(peer, syncID)
 		}
 	}
 
@@ -394,6 +394,7 @@ func (q *syncQueue) ensureResponseReceived(req *syncRequest) {
 
 			logger.Debug("response received", "start", resp.start, "end", resp.end, "from", resp.from)
 			q.unsetSyncingPeer(resp.from)
+			q.s.host.closeStream(resp.from, syncID)
 			return
 		case <-time.After(time.Second * 5):
 			logger.Debug("haven't received a response in a while...", "start", req.req.StartingBlock.Uint64())
@@ -471,6 +472,7 @@ func (q *syncQueue) beginSyncingWithPeer(peer peer.ID, req *BlockRequestMessage)
 
 	err := q.s.host.send(peer, syncID, req)
 	if err != nil {
+		q.s.host.closeStream(peer, syncID)
 		return err
 	}
 
