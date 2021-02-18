@@ -20,12 +20,10 @@ import (
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	log "github.com/ChainSafe/log15"
 )
 
 // GrandpaModule init parameters
 type GrandpaModule struct {
-	logger   log.Logger
 	blockAPI BlockAPI
 }
 
@@ -40,7 +38,7 @@ func NewGrandpaModule(api BlockAPI) *GrandpaModule {
 type ProveFinalityRequest struct {
 	blockHashStart common.Hash
 	blockHashEnd   common.Hash
-	authorityID    uint64
+	// authorityID    uint64
 }
 
 // ProveFinalityResponse is an optional SCALE encoded proof array

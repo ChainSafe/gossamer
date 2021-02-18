@@ -29,6 +29,10 @@ func TestGrandpaProveFinality(t *testing.T) {
 	state.AddBlocksToState(t, testStateService.Block, 3)
 	bestBlock, err := testStateService.Block.BestBlock()
 
+	if err != nil {
+		t.Errorf("Fail: bestblock failed")
+	}
+
 	gmSvc := NewGrandpaModule(testStateService.Block)
 
 	testStateService.Block.SetJustification(bestBlock.Header.ParentHash, make([]byte, 10))
