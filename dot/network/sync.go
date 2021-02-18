@@ -394,7 +394,6 @@ func (q *syncQueue) ensureResponseReceived(req *syncRequest) {
 
 			logger.Debug("response received", "start", resp.start, "end", resp.end, "from", resp.from)
 			q.unsetSyncingPeer(resp.from)
-			q.s.host.closeStream(resp.from, syncID)
 			return
 		case <-time.After(time.Second * 5):
 			logger.Debug("haven't received a response in a while...", "start", req.req.StartingBlock.Uint64())
@@ -473,6 +472,8 @@ func (q *syncQueue) beginSyncingWithPeer(peer peer.ID, req *BlockRequestMessage)
 	err := q.s.host.send(peer, syncID, req)
 	if err != nil {
 		q.s.host.closeStream(peer, syncID)
+		delete(q.syncing, peer)
+		q.s.host.h.ConnManager().Unprotect(peer, "")
 		return err
 	}
 
@@ -481,6 +482,8 @@ func (q *syncQueue) beginSyncingWithPeer(peer peer.ID, req *BlockRequestMessage)
 }
 
 func (q *syncQueue) unsetSyncingPeer(peer peer.ID) {
+	q.s.host.closeStream(peer, syncID)
+
 	q.syncingMu.Lock()
 	defer q.syncingMu.Unlock()
 
