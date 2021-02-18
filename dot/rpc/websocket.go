@@ -337,7 +337,7 @@ func (l *StorageChangeListener) Listen() {
 		res.Params = changeM
 		err := l.wsconn.safeSend(res)
 		if err != nil {
-			logger.Error("error sending websocket message", "error", err)
+			logger.Debug("error sending websocket message", "error", err)
 		}
 	}
 }

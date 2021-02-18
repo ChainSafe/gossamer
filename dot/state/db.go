@@ -17,11 +17,11 @@
 package state
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
 	database "github.com/ChainSafe/chaindb"
@@ -44,7 +44,7 @@ func LoadBestBlockHash(db database.Database) (common.Hash, error) {
 
 // StoreGenesisData stores the given genesis data at the known GenesisDataKey.
 func StoreGenesisData(db database.Database, gen *genesis.Data) error {
-	enc, err := scale.Encode(gen)
+	enc, err := json.Marshal(gen)
 	if err != nil {
 		return fmt.Errorf("cannot scale encode genesis data: %s", err)
 	}
@@ -59,12 +59,13 @@ func LoadGenesisData(db database.Database) (*genesis.Data, error) {
 		return nil, err
 	}
 
-	data, err := scale.Decode(enc, &genesis.Data{})
+	data := &genesis.Data{}
+	err = json.Unmarshal(enc, data)
 	if err != nil {
 		return nil, err
 	}
 
-	return data.(*genesis.Data), nil
+	return data, nil
 }
 
 // StoreLatestStorageHash stores the current root hash in the database at LatestStorageHashKey
