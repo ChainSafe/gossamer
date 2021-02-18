@@ -57,8 +57,7 @@ func (s *Service) NodeName() string {
 
 // Properties Get a custom set of properties as a JSON object, defined in the chain spec.
 func (s *Service) Properties() map[string]interface{} {
-	// TODO (ed) add fields Properties (see issue #1248) (See issue #865)
-	return nil
+	return s.genesisData.Properties
 }
 
 // Start implements Service interface
