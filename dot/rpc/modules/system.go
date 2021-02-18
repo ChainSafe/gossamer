@@ -17,15 +17,25 @@
 package modules
 
 import (
+	"bytes"
+	"errors"
+	"fmt"
+	"math/big"
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/scale"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
 )
 
 // SystemModule is an RPC module providing access to core API points
 type SystemModule struct {
 	networkAPI NetworkAPI
 	systemAPI  SystemAPI
+	coreAPI    CoreAPI
+	storageAPI StorageAPI
+	txStateAPI TransactionStateAPI
 }
 
 // EmptyRequest represents an RPC request with no fields
@@ -51,11 +61,23 @@ type SystemNetworkStateResponse struct {
 // SystemPeersResponse struct to marshal json
 type SystemPeersResponse []common.PeerInfo
 
+// U64Response holds U64 response
+type U64Response uint64
+
+// StringRequest holds string request
+type StringRequest struct {
+	String string
+}
+
 // NewSystemModule creates a new API instance
-func NewSystemModule(net NetworkAPI, sys SystemAPI) *SystemModule {
+func NewSystemModule(net NetworkAPI, sys SystemAPI, core CoreAPI,
+	storage StorageAPI, txAPI TransactionStateAPI) *SystemModule {
 	return &SystemModule{
 		networkAPI: net, // TODO: migrate to network state
 		systemAPI:  sys,
+		coreAPI:    core,
+		storageAPI: storage,
+		txStateAPI: txAPI,
 	}
 }
 
@@ -133,5 +155,76 @@ func (sm *SystemModule) NodeRoles(r *http.Request, req *EmptyRequest, res *[]int
 	}
 
 	*res = resultArray
+	return nil
+}
+
+// AccountNextIndex Returns the next valid index (aka. nonce) for given account.
+func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, res *U64Response) error {
+	if req == nil || len(req.String) == 0 {
+		return errors.New("Account address must be valid")
+	}
+	addressPubKey := crypto.PublicAddressToByteArray(common.Address(req.String))
+
+	// check pending transactions for extrinsics singed by addressPubKey
+	pending := sm.txStateAPI.Pending()
+	nonce := uint64(0)
+	found := false
+	for _, v := range pending {
+		var ext ctypes.Extrinsic
+		err := ctypes.DecodeFromBytes(v.Extrinsic[1:], &ext)
+		if err != nil {
+			return err
+		}
+		extSigner, err := common.HexToBytes(fmt.Sprintf("0x%x", ext.Signature.Signer.AsAccountID))
+		if err != nil {
+			return err
+		}
+		if bytes.Equal(extSigner, addressPubKey) {
+			found = true
+			sigNonce := big.Int(ext.Signature.Nonce)
+			if sigNonce.Uint64() > nonce {
+				nonce = sigNonce.Uint64()
+			}
+		}
+	}
+
+	if found {
+		*res = U64Response(nonce)
+		return nil
+	}
+
+	// no extrinsic signed by request found in pending transactions, so look in storage
+	// get metadata to build storage storageKey
+	rawMeta, err := sm.coreAPI.GetMetadata(nil)
+	if err != nil {
+		return err
+	}
+	sdMeta, err := scale.Decode(rawMeta, []byte{})
+	if err != nil {
+		return err
+	}
+	var metadata ctypes.Metadata
+	err = ctypes.DecodeFromBytes(sdMeta.([]byte), &metadata)
+	if err != nil {
+		return err
+	}
+
+	storageKey, err := ctypes.CreateStorageKey(&metadata, "System", "Account", addressPubKey, nil)
+	if err != nil {
+		return err
+	}
+
+	accountRaw, err := sm.storageAPI.GetStorage(nil, storageKey)
+	if err != nil {
+		return err
+	}
+
+	var accountInfo ctypes.AccountInfo
+	err = ctypes.DecodeFromBytes(accountRaw, &accountInfo)
+	if err != nil {
+		return err
+	}
+
+	*res = U64Response(accountInfo.Nonce)
 	return nil
 }
