@@ -67,3 +67,30 @@ func (gm *GrandpaModule) ProveFinality(r *http.Request, req *ProveFinalityReques
 
 	return nil
 }
+
+// RoundStateRequest does not take a param
+type RoundStateRequest EmptyRequest
+
+// RoundStateResponse a map response of round state structs
+type RoundStateResponse map[string]RoundState
+
+// RoundState is the info on a given round current voting state
+type RoundState struct {
+	round           uint32
+	totalWeight     uint32
+	thresholdWeight uint32
+	prevotes        map[string](*Vote)
+	precommits      map[string](*Vote)
+}
+
+// Vote struct for current voting weights in a given round
+type Vote struct {
+	currentWeight uint32
+	missing       []string
+}
+
+// RoundState returns the state of the current best round state as well as the ongoing background rounds.
+func (gm *GrandpaModule) RoundState(r *http.Request, req *RoundStateRequest, res *RoundStateResponse) error {
+
+	return nil
+}
