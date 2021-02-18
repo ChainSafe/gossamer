@@ -367,6 +367,7 @@ func TestSyncQueue_ProcessBlockRequests(t *testing.T) {
 	require.NoError(t, err)
 
 	nodeA.syncQueue.stop()
+	nodeA.syncQueue.ctx = context.Background()
 	time.Sleep(time.Second * 3)
 
 	nodeA.syncQueue.peerScore[nodeB.host.id()] = 1 // expect to try to sync with nodeB first
