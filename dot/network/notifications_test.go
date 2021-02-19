@@ -131,6 +131,9 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 	}
 	require.NoError(t, err)
 
+	stream, err := s.host.h.NewStream(s.ctx, b.host.id(), s.host.protocolID+blockAnnounceID)
+	require.NoError(t, err)
+
 	// create info and handler
 	info := &notificationsProtocol{
 		subProtocol:   blockAnnounceID,
@@ -148,7 +151,10 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 		Number: big.NewInt(10),
 	}
 
-	err = handler(testPeerID, nil, msg)
+	stream = s.host.getStream(testPeerID, blockAnnounceID)
+	require.NotNil(t, stream)
+
+	err = handler(stream, msg)
 	require.NoError(t, err)
 }
 
@@ -184,19 +190,6 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 	// don't set handshake data ie. this stream has just been opened
 	testPeerID := b.host.id()
 
-	// try invalid handshake
-	testHandshake := &BlockAnnounceHandshake{
-		Roles:           4,
-		BestBlockNumber: 77,
-		BestBlockHash:   common.Hash{1},
-		GenesisHash:     common.Hash{2},
-	}
-
-	err := handler(testPeerID, nil, testHandshake)
-	require.Equal(t, errCannotValidateHandshake, err)
-	require.True(t, info.handshakeData[testPeerID].received)
-	require.False(t, info.handshakeData[testPeerID].validated)
-
 	// connect nodes
 	addrInfosB, err := b.host.addrInfos()
 	require.NoError(t, err)
@@ -208,6 +201,25 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 	}
 	require.NoError(t, err)
 
+	stream, err := s.host.h.NewStream(s.ctx, b.host.id(), s.host.protocolID+blockAnnounceID)
+	require.NoError(t, err)
+
+	// try invalid handshake
+	testHandshake := &BlockAnnounceHandshake{
+		Roles:           4,
+		BestBlockNumber: 77,
+		BestBlockHash:   common.Hash{1},
+		GenesisHash:     common.Hash{2},
+	}
+
+	stream = s.host.getStream(testPeerID, blockAnnounceID)
+	require.NotNil(t, stream)
+
+	err = handler(stream, testHandshake)
+	require.Equal(t, errCannotValidateHandshake, err)
+	require.True(t, info.handshakeData[testPeerID].received)
+	require.False(t, info.handshakeData[testPeerID].validated)
+
 	// try valid handshake
 	testHandshake = &BlockAnnounceHandshake{
 		Roles:           4,
@@ -216,7 +228,10 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 		GenesisHash:     s.blockState.GenesisHash(),
 	}
 
-	err = handler(testPeerID, nil, testHandshake)
+	stream = s.host.getStream(testPeerID, blockAnnounceID)
+	require.NotNil(t, stream)
+
+	err = handler(stream, testHandshake)
 	require.NoError(t, err)
 	require.True(t, info.handshakeData[testPeerID].received)
 	require.True(t, info.handshakeData[testPeerID].validated)

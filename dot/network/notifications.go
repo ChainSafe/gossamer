@@ -81,14 +81,15 @@ func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecode
 }
 
 func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol, handshakeValidator HandshakeValidator, messageHandler NotificationsMessageHandler) messageHandler {
-	return func(peer peer.ID, _ libp2pnetwork.Stream, m Message) error {
+	return func(stream libp2pnetwork.Stream, m Message) error {
 		if m == nil || info == nil || handshakeValidator == nil || messageHandler == nil {
 			return nil
 		}
 
 		var (
-			ok  bool
-			msg NotificationsMessage
+			ok   bool
+			msg  NotificationsMessage
+			peer = stream.Conn().RemotePeer()
 		)
 
 		if msg, ok = m.(NotificationsMessage); !ok {
