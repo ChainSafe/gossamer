@@ -80,11 +80,6 @@ func NewAllocator(mem Memory, ptrOffset uint32) *FreeingBumpHeapAllocator {
 	fbha.ptrOffset = ptrOffset
 	fbha.TotalSize = 0
 
-	// err := fbha.growHeap(32274)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
 	return fbha
 }
 
