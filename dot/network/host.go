@@ -219,6 +219,20 @@ func (h *host) sendBytes(p peer.ID, sub protocol.ID, msg []byte) (err error) {
 	return err
 }
 
+func (h *host) writeToStream(s libp2pnetwork.Stream, msg Message) error {
+	encMsg, err := msg.Encode()
+	if err != nil {
+		return err
+	}	
+
+	msgLen := uint64(len(encMsg))
+	lenBytes := uint64ToLEB128(msgLen)
+	encMsg = append(lenBytes, encMsg...)
+
+	_, err = s.Write(encMsg)
+	return err
+}
+
 // broadcast sends a message to each connected peer
 func (h *host) broadcast(msg Message) {
 	for _, p := range h.peers() {
