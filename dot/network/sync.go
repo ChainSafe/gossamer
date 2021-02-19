@@ -339,74 +339,63 @@ func (q *syncQueue) processBlockRequests() {
 	for {
 		select {
 		case req := <-q.requestCh:
-			q.ensureResponseReceived(req)
+			q.trySync(req)
 		case <-q.ctx.Done():
 			return
 		}
 	}
 }
 
-func (q *syncQueue) ensureResponseReceived(req *syncRequest) {
-	numRetries := 3
-	i := 0
-
-	for {
-		if q.ctx.Err() != nil {
-			return
-		}
-
-		if i == numRetries {
-			logger.Error("failed to sync with any peer after 3 retries")
-			return
-		}
-
-		logger.Debug("beginning to send out request", "start", req.req.StartingBlock.Uint64())
-		if len(req.to) != 0 {
-			resp, err := q.syncWithPeer(req.to, req.req)
-			if err == nil {
-				q.pushBlockResponse(resp, req.to)
-				return
-			}
-
-			logger.Debug("failed to sync with peer", "peer", req.to, "error", err)
-		}
-
-		// try highest scored peers first
-		var peers []peer.ID
-		for _, p := range q.getSortedPeers() {
-			peers = append(peers, p.pid)
-		}
-
-		for _, peer := range peers {
-			resp, err := q.syncWithPeer(peer, req.req)
-			if err != nil {
-				logger.Debug("failed to sync with peer", "peer", peer, "error", err)
-				continue
-			}
-
-			q.pushBlockResponse(resp, peer)
-			return
-		}
-
-		logger.Debug("failed to sync with preferred peers, trying random...")
-
-		peers = q.s.host.peers()
-		rand.Shuffle(len(peers), func(i, j int) { peers[i], peers[j] = peers[j], peers[i] })
-
-		for _, peer := range peers {
-			resp, err := q.syncWithPeer(peer, req.req)
-			if err != nil {
-				logger.Debug("failed to sync with peer", "peer", peer, "error", err)
-				continue
-			}
-
-			q.pushBlockResponse(resp, peer)
-			return
-		}
-
-		logger.Debug("failed to sync with any peer :(")
+func (q *syncQueue) trySync(req *syncRequest) {
+	if q.ctx.Err() != nil {
 		return
 	}
+
+	logger.Debug("beginning to send out request", "start", req.req.StartingBlock.Uint64())
+	if len(req.to) != 0 {
+		resp, err := q.syncWithPeer(req.to, req.req)
+		if err == nil {
+			q.pushBlockResponse(resp, req.to)
+			return
+		}
+
+		logger.Debug("failed to sync with peer", "peer", req.to, "error", err)
+	}
+
+	// try highest scored peers first
+	var peers []peer.ID
+	for _, p := range q.getSortedPeers() {
+		peers = append(peers, p.pid)
+	}
+
+	for _, peer := range peers {
+		resp, err := q.syncWithPeer(peer, req.req)
+		if err != nil {
+			logger.Debug("failed to sync with peer", "peer", peer, "error", err)
+			continue
+		}
+
+		q.pushBlockResponse(resp, peer)
+		return
+	}
+
+	logger.Debug("failed to sync with preferred peers, trying random...")
+
+	peers = q.s.host.peers()
+	rand.Shuffle(len(peers), func(i, j int) { peers[i], peers[j] = peers[j], peers[i] })
+
+	for _, peer := range peers {
+		resp, err := q.syncWithPeer(peer, req.req)
+		if err != nil {
+			logger.Debug("failed to sync with peer", "peer", peer, "error", err)
+			continue
+		}
+
+		q.pushBlockResponse(resp, peer)
+		return
+	}
+
+	logger.Debug("failed to sync with any peer :(")
 }
 
 func (q *syncQueue) syncWithPeer(peer peer.ID, req *BlockRequestMessage) (*BlockResponseMessage, error) {

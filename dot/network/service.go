@@ -520,7 +520,7 @@ func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) error
 
 	err = s.host.writeToStream(stream, &resp)
 	if err != nil {
-		logger.Warn("failed to send LightResponse message", "peer", "", "err", err)
+		logger.Warn("failed to send LightResponse message", "peer", stream.Conn().RemotePeer(), "err", err)
 	}
 	return err
 }
