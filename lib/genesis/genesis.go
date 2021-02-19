@@ -36,12 +36,15 @@ type Genesis struct {
 
 // Data defines the genesis file data formatted for trie storage
 type Data struct {
-	Name       string
-	ID         string
-	ChainType  string
-	Bootnodes  [][]byte
-	ProtocolID string
-	// TODO (ed) add fields Properties, ForkBlocks, BadBlocks, ConsensusEngine here (see issue #1248)
+	Name            string
+	ID              string
+	ChainType       string
+	Bootnodes       [][]byte
+	ProtocolID      string
+	Properties      map[string]interface{}
+	ForkBlocks      []string
+	BadBlocks       []string
+	ConsensusEngine string
 }
 
 // Fields stores genesis raw data, and human readable runtime data
@@ -53,11 +56,15 @@ type Fields struct {
 // GenesisData formats genesis for trie storage
 func (g *Genesis) GenesisData() *Data {
 	return &Data{
-		Name:       g.Name,
-		ID:         g.ID,
-		ChainType:  g.ChainType,
-		Bootnodes:  common.StringArrayToBytes(g.Bootnodes),
-		ProtocolID: g.ProtocolID,
+		Name:            g.Name,
+		ID:              g.ID,
+		ChainType:       g.ChainType,
+		Bootnodes:       common.StringArrayToBytes(g.Bootnodes),
+		ProtocolID:      g.ProtocolID,
+		Properties:      g.Properties,
+		ForkBlocks:      g.ForkBlocks,
+		BadBlocks:       g.BadBlocks,
+		ConsensusEngine: g.ConsensusEngine,
 	}
 }
 
