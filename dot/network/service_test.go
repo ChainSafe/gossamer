@@ -98,8 +98,6 @@ func TestStartService(t *testing.T) {
 
 // test broacast messages from core service
 func TestBroadcastMessages(t *testing.T) {
-	t.Skip() // TODO: fix this
-
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
@@ -125,7 +123,7 @@ func TestBroadcastMessages(t *testing.T) {
 	nodeB := createTestService(t, configB)
 	defer nodeB.Stop()
 	nodeB.noGossip = true
-	handler := newTestStreamHandler(testBlockAnnounceMessageDecoder)
+	handler := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
 	nodeB.host.registerStreamHandler(blockAnnounceID, handler.handleStream)
 
 	addrInfosB, err := nodeB.host.addrInfos()

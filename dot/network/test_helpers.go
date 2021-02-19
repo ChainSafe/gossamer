@@ -116,7 +116,7 @@ func (s *testStreamHandler) handleStream(stream libp2pnetwork.Stream) {
 	s.readStream(stream, peer, s.decoder, s.handleMessage)
 }
 
-func (s *testStreamHandler) handleMessage(peer peer.ID, msg Message) error {
+func (s *testStreamHandler) handleMessage(peer peer.ID, stream libp2pnetwork.Stream, msg Message) error {
 	s.messages[peer] = msg
 	return nil
 }
@@ -137,6 +137,8 @@ func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream, peer peer.ID
 			return
 		}
 
+		logger.Info("got msg", "len", tot, "msg", msgBytes[:tot])
+
 		// decode message based on message type
 		msg, err := decoder(msgBytes[:tot], peer)
 		if err != nil {
@@ -145,7 +147,7 @@ func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream, peer peer.ID
 		}
 
 		// handle message based on peer status and message type
-		err = handler(peer, msg)
+		err = handler(peer, stream, msg)
 		if err != nil {
 			logger.Error("Failed to handle message from stream", "message", msg, "error", err)
 			_ = stream.Close()
@@ -176,6 +178,12 @@ var testBlockAnnounceMessage = &BlockAnnounceMessage{
 
 func testBlockAnnounceMessageDecoder(in []byte, _ peer.ID) (Message, error) {
 	msg := new(BlockAnnounceMessage)
+	err := msg.Decode(in)
+	return msg, err
+}
+
+func testBlockAnnounceHandshakeDecoder(in []byte, _ peer.ID) (Message, error) {
+	msg := new(BlockAnnounceHandshake)
 	err := msg.Decode(in)
 	return msg, err
 }

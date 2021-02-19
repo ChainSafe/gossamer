@@ -21,6 +21,7 @@ import (
 	"math/rand"
 	"sync"
 
+	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 )
@@ -80,7 +81,7 @@ func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecode
 }
 
 func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol, handshakeValidator HandshakeValidator, messageHandler NotificationsMessageHandler) messageHandler {
-	return func(peer peer.ID, m Message) error {
+	return func(peer peer.ID, _ libp2pnetwork.Stream, m Message) error {
 		if m == nil || info == nil || handshakeValidator == nil || messageHandler == nil {
 			return nil
 		}

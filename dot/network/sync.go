@@ -58,7 +58,7 @@ func (s *Service) decodeSyncMessage(in []byte, peer peer.ID) (Message, error) {
 }
 
 // handleSyncMessage handles synchronization message types (BlockRequest and BlockResponse)
-func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
+func (s *Service) handleSyncMessage(peer peer.ID, stream libp2pnetwork.Stream, msg Message) error {
 	if msg == nil {
 		s.host.closeStream(peer, syncID)
 		return nil
@@ -74,7 +74,8 @@ func (s *Service) handleSyncMessage(peer peer.ID, msg Message) error {
 			return nil
 		}
 
-		err = s.host.send(peer, syncID, resp)
+		//err = s.host.send(peer, syncID, resp)
+		err = s.host.writeToStream(stream, resp)
 		if err != nil {
 			logger.Error("failed to send BlockResponse message", "peer", peer)
 		}
@@ -403,6 +404,7 @@ func (q *syncQueue) ensureResponseReceived(req *syncRequest) {
 		}
 
 		logger.Debug("failed to sync with any peer :(")
+		return
 	}
 }
 

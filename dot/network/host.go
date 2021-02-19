@@ -213,6 +213,8 @@ func (h *host) sendBytes(p peer.ID, sub protocol.ID, msg []byte) (err error) {
 
 	msgLen := uint64(len(msg))
 	lenBytes := uint64ToLEB128(msgLen)
+	logger.Info("writing msg to stream", "len", msgLen, "enc", msg)
+
 	msg = append(lenBytes, msg...)
 
 	_, err = s.Write(msg)
@@ -227,6 +229,8 @@ func (h *host) writeToStream(s libp2pnetwork.Stream, msg Message) error {
 
 	msgLen := uint64(len(encMsg))
 	lenBytes := uint64ToLEB128(msgLen)
+	logger.Info("writing msg to stream", "len", msgLen, "msg", msg, "enc", encMsg)
+
 	encMsg = append(lenBytes, encMsg...)
 
 	_, err = s.Write(encMsg)

@@ -57,7 +57,7 @@ type (
 	// since messages are decoded based on context, this is different for every sub-protocol.
 	messageDecoder = func([]byte, peer.ID) (Message, error)
 	// messageHandler is passed on readStream to handle the resulting message. it should return an error only if the stream is to be closed
-	messageHandler = func(peer peer.ID, msg Message) error
+	messageHandler = func(peer peer.ID, stream libp2pnetwork.Stream, msg Message) error
 )
 
 // Service describes a network service
@@ -456,6 +456,8 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 			return
 		}
 
+		logger.Info("got msg", "me", stream.Conn().LocalPeer(), "protocol", stream.Protocol(), "size", tot, "enc", msgBytes[:tot])
+
 		// decode message based on message type
 		msg, err := decoder(msgBytes[:tot], peer)
 		if err != nil {
@@ -472,7 +474,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 
 		go func() {
 			// handle message based on peer status and message type
-			err = handler(peer, msg)
+			err = handler(peer, stream, msg)
 			if err != nil {
 				logger.Warn("Failed to handle message from stream", "message", msg, "error", err)
 				_ = stream.Close()
@@ -482,7 +484,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 	}
 }
 
-func (s *Service) handleLightMsg(peer peer.ID, msg Message) error {
+func (s *Service) handleLightMsg(peer peer.ID, _ libp2pnetwork.Stream, msg Message) error {
 	lr, ok := msg.(*LightRequest)
 	if !ok {
 		logger.Warn("failed to get the request message from peer ", peer)

@@ -61,7 +61,7 @@ func TestHandleLightMessage_Response(t *testing.T) {
 
 	// Testing empty request
 	msg := &LightRequest{}
-	err := s.handleLightMsg(peerID, msg)
+	err := s.handleLightMsg(peerID, nil, msg)
 	require.NoError(t, err)
 
 	expectedErr := "failed to find any peer in table"
@@ -70,34 +70,34 @@ func TestHandleLightMessage_Response(t *testing.T) {
 	msg = &LightRequest{
 		RmtCallRequest: &RemoteCallRequest{},
 	}
-	err = s.handleLightMsg(peerID, msg)
+	err = s.handleLightMsg(peerID, nil, msg)
 	require.Error(t, err, expectedErr, msg.String())
 
 	// Testing remoteHeaderResp()
 	msg = &LightRequest{
 		RmtHeaderRequest: &RemoteHeaderRequest{},
 	}
-	err = s.handleLightMsg(peerID, msg)
+	err = s.handleLightMsg(peerID, nil, msg)
 	require.Error(t, err, expectedErr, msg.String())
 
 	// Testing remoteChangeResp()
 	msg = &LightRequest{
 		RmtChangesRequest: &RemoteChangesRequest{},
 	}
-	err = s.handleLightMsg(peerID, msg)
+	err = s.handleLightMsg(peerID, nil, msg)
 	require.Error(t, err, expectedErr, msg.String())
 
 	// Testing remoteReadResp()
 	msg = &LightRequest{
 		RmtReadRequest: &RemoteReadRequest{},
 	}
-	err = s.handleLightMsg(peerID, msg)
+	err = s.handleLightMsg(peerID, nil, msg)
 	require.Error(t, err, expectedErr, msg.String())
 
 	// Testing remoteReadChildResp()
 	msg = &LightRequest{
 		RmtReadChildRequest: &RemoteReadChildRequest{},
 	}
-	err = s.handleLightMsg(peerID, msg)
+	err = s.handleLightMsg(peerID, nil, msg)
 	require.Error(t, err, expectedErr, msg.String())
 }

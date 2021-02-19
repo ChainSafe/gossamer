@@ -148,7 +148,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 		Number: big.NewInt(10),
 	}
 
-	err = handler(testPeerID, msg)
+	err = handler(testPeerID, nil, msg)
 	require.NoError(t, err)
 }
 
@@ -192,7 +192,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 		GenesisHash:     common.Hash{2},
 	}
 
-	err := handler(testPeerID, testHandshake)
+	err := handler(testPeerID, nil, testHandshake)
 	require.Equal(t, errCannotValidateHandshake, err)
 	require.True(t, info.handshakeData[testPeerID].received)
 	require.False(t, info.handshakeData[testPeerID].validated)
@@ -216,7 +216,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 		GenesisHash:     s.blockState.GenesisHash(),
 	}
 
-	err = handler(testPeerID, testHandshake)
+	err = handler(testPeerID, nil, testHandshake)
 	require.NoError(t, err)
 	require.True(t, info.handshakeData[testPeerID].received)
 	require.True(t, info.handshakeData[testPeerID].validated)
