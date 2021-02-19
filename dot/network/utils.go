@@ -173,7 +173,7 @@ func readStream(stream libp2pnetwork.Stream, buf []byte) (int, error) {
 	r := bufio.NewReader(stream)
 
 	var (
-		tot int = 0
+		tot int
 	)
 
 	length, err := readLEB128ToUint64(r)

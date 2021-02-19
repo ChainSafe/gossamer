@@ -151,9 +151,6 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 		Number: big.NewInt(10),
 	}
 
-	stream = s.host.getStream(testPeerID, blockAnnounceID)
-	require.NotNil(t, stream)
-
 	err = handler(stream, msg)
 	require.NoError(t, err)
 }
@@ -212,9 +209,6 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 		GenesisHash:     common.Hash{2},
 	}
 
-	stream = s.host.getStream(testPeerID, blockAnnounceID)
-	require.NotNil(t, stream)
-
 	err = handler(stream, testHandshake)
 	require.Equal(t, errCannotValidateHandshake, err)
 	require.True(t, info.handshakeData[testPeerID].received)
@@ -227,9 +221,6 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 		BestBlockHash:   common.Hash{1},
 		GenesisHash:     s.blockState.GenesisHash(),
 	}
-
-	stream = s.host.getStream(testPeerID, blockAnnounceID)
-	require.NotNil(t, stream)
 
 	err = handler(stream, testHandshake)
 	require.NoError(t, err)
