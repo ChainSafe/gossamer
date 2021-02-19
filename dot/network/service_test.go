@@ -21,9 +21,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
 )
 
@@ -42,6 +40,19 @@ func failedToDial(err error) bool {
 
 // helper method to create and start a new network service
 func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
+	if cfg == nil {
+		basePath := utils.NewTestBasePath(t, "node")
+
+		cfg = &Config{
+			BasePath:    basePath,
+			Port:        7001,
+			RandSeed:    1,
+			NoBootstrap: true,
+			NoMDNS:      true,
+			LogLvl:      4,
+		}
+	}
+
 	if cfg.BlockState == nil {
 		cfg.BlockState = newMockBlockState(nil)
 	}
@@ -81,29 +92,13 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 
 // test network service starts
 func TestStartService(t *testing.T) {
-	basePath := utils.NewTestBasePath(t, "node")
-
-	// removes all data directories created within test directory
-	defer utils.RemoveTestDir(t)
-
-	config := &Config{
-		BasePath:    basePath,
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true,
-		NoMDNS:      true,
-	}
-	node := createTestService(t, config)
+	node := createTestService(t, nil)
 	node.Stop()
 }
 
 // test broacast messages from core service
 func TestBroadcastMessages(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
-
-	// removes all data directories created within test directory
-	defer utils.RemoveTestDir(t)
-
 	configA := &Config{
 		BasePath:    basePathA,
 		Port:        7001,
@@ -145,53 +140,7 @@ func TestBroadcastMessages(t *testing.T) {
 	// simulate message sent from core service
 	nodeA.SendMessage(testBlockAnnounceMessage)
 	time.Sleep(time.Second)
-	require.NotNil(t, nodeB.syncing[nodeA.host.id()])
-}
-
-func TestBeginSyncingProtectsPeer(t *testing.T) {
-	basePath := utils.NewTestBasePath(t, "node_a")
-	defer utils.RemoveTestDir(t)
-
-	config := &Config{
-		BasePath:    basePath,
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true,
-		NoMDNS:      true,
-	}
-
-	var (
-		s      = createTestService(t, config)
-		peerID = peer.ID("rudolf")
-		msg    = &BlockRequestMessage{}
-	)
-
-	s.beginSyncing(peerID, msg)
-	require.True(t, s.host.h.ConnManager().IsProtected(peerID, ""))
-}
-
-func TestHandleSyncMessage_BlockResponse(t *testing.T) {
-	basePath := utils.NewTestBasePath(t, "nodeA")
-	defer utils.RemoveTestDir(t)
-
-	config := &Config{
-		BasePath:    basePath,
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true,
-		NoMDNS:      true,
-	}
-
-	s := createTestService(t, config)
-
-	peerID := peer.ID("noot")
-	msg := &BlockResponseMessage{}
-	s.syncing[peerID] = struct{}{}
-
-	s.handleSyncMessage(peerID, msg)
-	_, isSyncing := s.syncing[peerID]
-	require.False(t, isSyncing)
-	require.False(t, s.host.h.ConnManager().IsProtected(peerID, ""))
+	require.NotNil(t, nodeB.syncQueue.isSyncing(nodeA.host.id()))
 }
 
 func TestService_NodeRoles(t *testing.T) {
@@ -208,8 +157,6 @@ func TestService_NodeRoles(t *testing.T) {
 
 func TestService_Health(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "nodeA")
-	defer utils.RemoveTestDir(t)
-
 	config := &Config{
 		BasePath:    basePath,
 		Port:        7001,
@@ -224,39 +171,6 @@ func TestService_Health(t *testing.T) {
 
 	mockSync.setSyncedState(true)
 	require.Equal(t, s.Health().IsSyncing, false)
-}
-
-func TestDecodeSyncMessage(t *testing.T) {
-	s := &Service{
-		syncing: make(map[peer.ID]struct{}),
-	}
-
-	testPeer := peer.ID("noot")
-
-	testBlockResponseMessage := &BlockResponseMessage{
-		BlockData: []*types.BlockData{},
-	}
-
-	reqEnc, err := testBlockRequestMessage.Encode()
-	require.NoError(t, err)
-
-	msg, err := s.decodeSyncMessage(reqEnc, testPeer)
-	require.NoError(t, err)
-
-	req, ok := msg.(*BlockRequestMessage)
-	require.True(t, ok)
-	require.Equal(t, testBlockRequestMessage, req)
-
-	s.syncing[testPeer] = struct{}{}
-
-	respEnc, err := testBlockResponseMessage.Encode()
-	require.NoError(t, err)
-
-	msg, err = s.decodeSyncMessage(respEnc, testPeer)
-	require.NoError(t, err)
-	resp, ok := msg.(*BlockResponseMessage)
-	require.True(t, ok)
-	require.Equal(t, testBlockResponseMessage, resp)
 }
 
 func TestBeginDiscovery(t *testing.T) {

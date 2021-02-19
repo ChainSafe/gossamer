@@ -185,6 +185,22 @@ type BlockResponseMessage struct {
 	BlockData []*types.BlockData
 }
 
+func (bm *BlockResponseMessage) getStartAndEnd() (int64, int64, error) {
+	if len(bm.BlockData) == 0 {
+		return 0, 0, errors.New("no BlockData in BlockResponseMessage")
+	}
+
+	if startExists := bm.BlockData[0].Header.Exists(); !startExists {
+		return 0, 0, errors.New("first BlockData in BlockResponseMessage does not contain header")
+	}
+
+	if endExists := bm.BlockData[len(bm.BlockData)-1].Header.Exists(); !endExists {
+		return 0, 0, errors.New("last BlockData in BlockResponseMessage does not contain header")
+	}
+
+	return bm.BlockData[0].Header.Value().Number.Int64(), bm.BlockData[len(bm.BlockData)-1].Header.Value().Number.Int64(), nil
+}
+
 // SubProtocol returns the sync sub-protocol
 func (bm *BlockResponseMessage) SubProtocol() string {
 	return syncID

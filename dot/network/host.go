@@ -263,6 +263,14 @@ func (h *host) getStream(p peer.ID, sub protocol.ID) (stream libp2pnetwork.Strea
 	return nil
 }
 
+// closeStream closes a stream open to the peer with the given sub-protocol, if it exists.
+func (h *host) closeStream(p peer.ID, sub protocol.ID) {
+	stream := h.getStream(p, sub)
+	if stream != nil {
+		_ = stream.Close()
+	}
+}
+
 // closePeer closes the peer connection
 func (h *host) closePeer(peer peer.ID) error { //nolint
 	return h.h.Network().ClosePeer(peer)
