@@ -393,8 +393,28 @@ func (q *syncQueue) ensureResponseReceived(req *syncRequest) {
 			return
 		}
 
-		logger.Warn("failed to sync with any peer :(")
+		logger.Debug("failed to sync with any peer :(")
 	}
+}
+
+func (q *syncQueue) syncWithPeer(peer peer.ID, req *BlockRequestMessage) (*BlockResponseMessage, error) {
+	fullSyncID := q.s.host.protocolID + syncID
+
+	q.s.host.h.ConnManager().Protect(peer, "")
+	defer q.s.host.h.ConnManager().Unprotect(peer, "")
+	defer q.s.host.closeStream(peer, fullSyncID)
+
+	s, err := q.s.host.h.NewStream(q.ctx, peer, fullSyncID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = q.s.host.writeToStream(s, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return q.receiveBlockResponse(s)
 }
 
 func (q *syncQueue) receiveBlockResponse(stream libp2pnetwork.Stream) (*BlockResponseMessage, error) {
@@ -479,26 +499,6 @@ func (q *syncQueue) processBlockResponses() {
 			return
 		}
 	}
-}
-
-func (q *syncQueue) syncWithPeer(peer peer.ID, req *BlockRequestMessage) (*BlockResponseMessage, error) {
-	fullSyncID := q.s.host.protocolID + syncID
-
-	q.s.host.h.ConnManager().Protect(peer, "")
-	defer q.s.host.h.ConnManager().Unprotect(peer, "")
-	defer q.s.host.closeStream(peer, fullSyncID)
-
-	s, err := q.s.host.h.NewStream(q.ctx, peer, fullSyncID)
-	if err != nil {
-		return nil, err
-	}
-
-	err = q.s.host.writeToStream(s, req)
-	if err != nil {
-		return nil, err
-	}
-
-	return q.receiveBlockResponse(s)
 }
 
 // handleBlockAnnounceHandshake handles a block that a peer claims to have through a HandleBlockAnnounceHandshake

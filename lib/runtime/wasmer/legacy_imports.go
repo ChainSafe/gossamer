@@ -111,7 +111,7 @@ func ext_malloc(context unsafe.Pointer, size C.int32_t) C.int32_t {
 	// Allocate memory
 	res, err := runtimeCtx.Allocator.Allocate(uint32(size))
 	if err != nil {
-		logger.Error("[ext_malloc]", "Error:", err)
+		logger.Crit("[ext_malloc]", "error", err)
 		panic(err)
 	}
 

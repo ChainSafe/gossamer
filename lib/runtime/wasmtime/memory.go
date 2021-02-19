@@ -17,6 +17,8 @@
 package wasmtime
 
 import (
+	"errors"
+
 	"github.com/bytecodealliance/wasmtime-go"
 )
 
@@ -34,4 +36,9 @@ func (m Memory) Data() []byte {
 // Length returns the memory's length
 func (m Memory) Length() uint32 {
 	return uint32(m.memory.DataSize())
+}
+
+// Grow ...
+func (m Memory) Grow(numPages uint32) error {
+	return errors.New("wasmtime Memory.Grow unimplemented")
 }
