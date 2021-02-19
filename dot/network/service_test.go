@@ -139,8 +139,8 @@ func TestBroadcastMessages(t *testing.T) {
 
 	// simulate message sent from core service
 	nodeA.SendMessage(testBlockAnnounceMessage)
-	time.Sleep(time.Second)
-	require.NotNil(t, nodeB.syncQueue.isSyncing(nodeA.host.id()))
+	time.Sleep(time.Second * 2)
+	require.NotNil(t, handler.messages[nodeA.host.id()])
 }
 
 func TestService_NodeRoles(t *testing.T) {

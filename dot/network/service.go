@@ -476,7 +476,6 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 			continue
 		}
 
-		//msgBytes = make([]byte, length)
 		tot = uint64(0)
 		for i := 0; i < maxReads; i++ {
 			n, err := r.Read(msgBytes[tot:]) //nolint
@@ -526,6 +525,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		}()
 	}
 }
+
 func (s *Service) handleLightMsg(peer peer.ID, msg Message) error {
 	lr, ok := msg.(*LightRequest)
 	if !ok {

@@ -53,8 +53,6 @@ func TestDecodeSyncMessage(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, testBlockRequestMessage, req)
 
-	s.syncQueue.syncing[testPeer] = struct{}{}
-
 	respEnc, err := testBlockResponseMessage.Encode()
 	require.NoError(t, err)
 
@@ -81,7 +79,7 @@ func TestBeginSyncingProtectsPeer(t *testing.T) {
 		msg    = &BlockRequestMessage{}
 	)
 
-	s.syncQueue.beginSyncingWithPeer(peerID, msg)
+	s.syncQueue.syncWithPeer(peerID, msg)
 	require.True(t, s.host.h.ConnManager().IsProtected(peerID, ""))
 }
 
@@ -110,19 +108,8 @@ func TestHandleSyncMessage_BlockResponse(t *testing.T) {
 		},
 	}
 
-	var br *blockRange
-	go func() {
-		br = <-s.syncQueue.gotRespCh
-	}()
-
-	s.syncQueue.syncing[peerID] = struct{}{}
 	s.handleSyncMessage(peerID, msg)
 	require.Equal(t, 1, len(s.syncQueue.responses))
-	require.Equal(t, &blockRange{
-		start: 77,
-		end:   77,
-		from:  peerID,
-	}, br)
 }
 
 func TestSortRequests(t *testing.T) {

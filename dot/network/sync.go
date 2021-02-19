@@ -73,7 +73,7 @@ var (
 	blockRequestSize      uint32 = 128
 	blockRequestQueueSize int64  = 8
 	blockDataQueueSize    int64  = blockRequestQueueSize * int64(blockRequestSize)
-	maxBlockResponseSize uint64 = 1024 * 256
+	maxBlockResponseSize  uint64 = 1024 * 256
 )
 
 type syncPeer struct {
@@ -105,7 +105,7 @@ type syncQueue struct {
 	responseCh   chan []*types.BlockData
 	responseLock sync.RWMutex
 
-	buf []byte
+	buf                []byte
 	goal               int64 // goal block number we are trying to sync to
 	currStart, currEnd int64 // the start and end of the BlockResponse we are currently handling; 0 and 0 if we are not currently handling any
 
@@ -125,7 +125,7 @@ func newSyncQueue(s *Service) *syncQueue {
 		responses:   []*types.BlockData{},
 		responseCh:  make(chan []*types.BlockData),
 		benchmarker: newSyncBenchmarker(),
-		buf: make([]byte, maxBlockResponseSize),
+		buf:         make([]byte, maxBlockResponseSize),
 	}
 }
 
@@ -341,7 +341,7 @@ func (q *syncQueue) ensureResponseReceived(req *syncRequest) {
 
 	for {
 		if q.ctx.Err() != nil {
-			return 
+			return
 		}
 
 		if i == numRetries {
@@ -355,7 +355,7 @@ func (q *syncQueue) ensureResponseReceived(req *syncRequest) {
 			if err == nil {
 				q.pushBlockResponse(resp, req.to)
 				return
-			} 
+			}
 
 			logger.Debug("failed to sync with peer", "peer", req.to, "error", err)
 		}
@@ -441,7 +441,7 @@ func readStream(stream libp2pnetwork.Stream, buf []byte) (int, error) {
 
 	tot = 0
 	for i := 0; i < maxReads; i++ {
-		n, err := r.Read(buf[tot:]) 
+		n, err := r.Read(buf[tot:])
 		if err != nil {
 			return n + tot, err
 		}
@@ -482,7 +482,7 @@ func (q *syncQueue) processBlockResponses() {
 }
 
 func (q *syncQueue) syncWithPeer(peer peer.ID, req *BlockRequestMessage) (*BlockResponseMessage, error) {
-	fullSyncID := q.s.host.protocolID+syncID
+	fullSyncID := q.s.host.protocolID + syncID
 
 	q.s.host.h.ConnManager().Protect(peer, "")
 	defer q.s.host.h.ConnManager().Unprotect(peer, "")

@@ -223,7 +223,7 @@ func (h *host) writeToStream(s libp2pnetwork.Stream, msg Message) error {
 	encMsg, err := msg.Encode()
 	if err != nil {
 		return err
-	}	
+	}
 
 	msgLen := uint64(len(encMsg))
 	lenBytes := uint64ToLEB128(msgLen)
