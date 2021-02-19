@@ -25,7 +25,7 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-var logger = log.New("pkg", "runtime", "module", "allocator")
+var logger = log.New("pkg", "runtime", "module", "allocator") //nolint
 
 // This module implements a freeing-bump allocator
 // see more details at https://github.com/paritytech/substrate/issues/1615
@@ -34,10 +34,10 @@ var logger = log.New("pkg", "runtime", "module", "allocator")
 const alignment uint32 = 8
 
 // HeadsQty 22
-const HeadsQty = 30 //22
+const HeadsQty = 29 //22
 
 // MaxPossibleAllocation 2^24 bytes
-const MaxPossibleAllocation = (1 << 32) - 1 //16777216 // 2^24 bytes
+const MaxPossibleAllocation = (1 << 31) //16777216 // 2^24 bytes
 
 // FreeingBumpHeapAllocator struct
 type FreeingBumpHeapAllocator struct {
@@ -88,7 +88,7 @@ func NewAllocator(mem Memory, ptrOffset uint32) *FreeingBumpHeapAllocator {
 	return fbha
 }
 
-func (fbha *FreeingBumpHeapAllocator) growHeap(numPages uint32) error {
+func (fbha *FreeingBumpHeapAllocator) growHeap(numPages uint32) error { //nolint
 	logger.Info("attempting to grow heap", "number of pages", numPages)
 	err := fbha.heap.Grow(numPages)
 	if err != nil {

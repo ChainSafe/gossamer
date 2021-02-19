@@ -16,6 +16,7 @@
 
 package runtime
 
+// PageSize is 65kb
 var PageSize uint32 = 1024 * 65 // 65kb
 
 // Memory is a raw memory interface

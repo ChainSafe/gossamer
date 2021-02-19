@@ -86,11 +86,6 @@ type syncRequest struct {
 	to  peer.ID
 }
 
-type blockRange struct {
-	start, end int64
-	from       peer.ID
-}
-
 type syncQueue struct {
 	s         *Service
 	ctx       context.Context
