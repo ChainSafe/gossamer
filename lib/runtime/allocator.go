@@ -19,13 +19,8 @@ package runtime
 import (
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"math/bits"
-
-	log "github.com/ChainSafe/log15"
 )
-
-var logger = log.New("pkg", "runtime", "module", "allocator") //nolint
 
 // This module implements a freeing-bump allocator
 // see more details at https://github.com/paritytech/substrate/issues/1615
@@ -34,10 +29,10 @@ var logger = log.New("pkg", "runtime", "module", "allocator") //nolint
 const alignment uint32 = 8
 
 // HeadsQty 22
-const HeadsQty = 29 //22
+const HeadsQty = 22
 
 // MaxPossibleAllocation 2^24 bytes
-const MaxPossibleAllocation = (1 << 31) //16777216 // 2^24 bytes
+const MaxPossibleAllocation = 16777216 // 2^24 bytes
 
 // FreeingBumpHeapAllocator struct
 type FreeingBumpHeapAllocator struct {
@@ -83,17 +78,6 @@ func NewAllocator(mem Memory, ptrOffset uint32) *FreeingBumpHeapAllocator {
 	return fbha
 }
 
-func (fbha *FreeingBumpHeapAllocator) growHeap(numPages uint32) error { //nolint
-	logger.Info("attempting to grow heap", "number of pages", numPages)
-	err := fbha.heap.Grow(numPages)
-	if err != nil {
-		return err
-	}
-
-	fbha.maxHeapSize += PageSize * numPages
-	return nil
-}
-
 // Allocate determines if there is space available in WASM heap to grow the heap by 'size'.  If there is space
 //   available it grows the heap to fit give 'size'.  The heap grows is chunks of Powers of 2, so the growth becomes
 //   the next highest power of 2 of the requested size.
@@ -106,12 +90,8 @@ func (fbha *FreeingBumpHeapAllocator) Allocate(size uint32) (uint32, error) {
 	itemSize := nextPowerOf2GT8(size)
 
 	if (itemSize + 8 + fbha.TotalSize) > fbha.maxHeapSize {
-		// pagesNeeded := ((itemSize + 8 + fbha.TotalSize) - fbha.maxHeapSize) / PageSize
-		// err := fbha.growHeap(pagesNeeded + 1)
-		// if err != nil {
-		// 	return 0, fmt.Errorf("allocator out of space; failed to grow; %w", err)
-		// }
-		return 0, fmt.Errorf("allocator out of space: want %d, have %d", (itemSize + 8 + fbha.TotalSize), fbha.maxHeapSize)
+		err := errors.New("allocator out of space")
+		return 0, err
 	}
 
 	// get pointer based on list_index
@@ -120,7 +100,7 @@ func (fbha *FreeingBumpHeapAllocator) Allocate(size uint32) (uint32, error) {
 	var ptr uint32
 	if item := fbha.heads[listIndex]; item != 0 {
 		// Something from the free list
-		//item := fbha.heads[listIndex]
+		item := fbha.heads[listIndex]
 		fourBytes := fbha.getHeap4bytes(item)
 		fbha.heads[listIndex] = binary.LittleEndian.Uint32(fourBytes)
 		ptr = item + 8

@@ -129,12 +129,6 @@ func (m Memory) Length() uint32 {
 	return uint32(len(m.memory))
 }
 
-// Grow ...
-func (m Memory) Grow(numPages uint32) error {
-	m.memory = append(m.memory, make([]byte, numPages*runtime.PageSize)...)
-	return nil
-}
-
 // SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.
 func (in *Instance) SetContextStorage(s runtime.Storage) {
 	ctx.Storage = s
