@@ -66,16 +66,15 @@ type Service struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	cfg    *Config
-	host   *host
-	mdns   *mdns
-	gossip *gossip
+	cfg       *Config
+	host      *host
+	mdns      *mdns
+	gossip    *gossip
+	syncQueue *syncQueue
 
 	notificationsProtocols map[byte]*notificationsProtocol // map of sub-protocol msg ID to protocol info
 	notificationsMu        sync.RWMutex
 
-	syncing        map[peer.ID]struct{} // set if we have sent a block request message to the given peer
-	syncingMu      sync.RWMutex
 	lightRequest   map[peer.ID]struct{} // set if we have sent a light request message to the given peer
 	lightRequestMu sync.RWMutex
 
@@ -141,7 +140,6 @@ func NewService(cfg *Config) (*Service, error) {
 		noMDNS:                 cfg.NoMDNS,
 		syncer:                 cfg.Syncer,
 		notificationsProtocols: make(map[byte]*notificationsProtocol),
-		syncing:                make(map[peer.ID]struct{}),
 		lightRequest:           make(map[peer.ID]struct{}),
 	}
 
@@ -172,6 +170,9 @@ func (s *Service) Start() error {
 		s.ctx, s.cancel = context.WithCancel(context.Background())
 	}
 
+	s.syncQueue = newSyncQueue(s)
+	s.syncQueue.start()
+
 	s.host.registerStreamHandler(syncID, s.handleSyncStream)
 	s.host.registerStreamHandler(lightID, s.handleLightStream)
 
@@ -186,8 +187,7 @@ func (s *Service) Start() error {
 		s.handleBlockAnnounceMessage,
 	)
 	if err != nil {
-		logger.Error("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
-		return err
+		logger.Warn("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
 	}
 
 	// register transactions protocol
@@ -201,8 +201,7 @@ func (s *Service) Start() error {
 		s.handleTransactionMessage,
 	)
 	if err != nil {
-		logger.Error("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
-		return err
+		logger.Warn("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
 	}
 
 	// log listening addresses to console
@@ -289,6 +288,7 @@ func (s *Service) beginDiscovery() error {
 // the message channel from the network service to the core service (services that
 // are dependent on the host instance should be closed first)
 func (s *Service) Stop() error {
+	s.syncQueue.stop()
 	s.cancel()
 
 	// close mDNS discovery service
@@ -415,6 +415,7 @@ func (s *Service) handleLightStream(stream libp2pnetwork.Stream) {
 	conn := stream.Conn()
 	if conn == nil {
 		logger.Error("Failed to get connection from stream")
+		_ = stream.Close()
 		return
 	}
 
@@ -445,8 +446,9 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 	r := bufio.NewReader(stream)
 
 	var (
-		msgBytes []byte
-		tot      uint64
+		msgBytes       []byte
+		tot            uint64
+		maxMessageSize uint64 = 1024 * 64 // TODO: determine actual max message size
 	)
 
 	for {
@@ -460,6 +462,17 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		}
 
 		if length == 0 {
+			continue
+		}
+
+		if length > maxMessageSize {
+			logger.Warn("received message with size greater than max, discarding", "length", length)
+			for {
+				_, err = r.Discard(int(maxMessageSize))
+				if err != nil {
+					break
+				}
+			}
 			continue
 		}
 
@@ -495,7 +508,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 			continue
 		}
 
-		logger.Debug(
+		logger.Trace(
 			"Received message from peer",
 			"host", s.host.id(),
 			"peer", peer,
@@ -549,6 +562,7 @@ func (s *Service) handleLightMsg(peer peer.ID, msg Message) error {
 	err = s.host.send(peer, lightID, &resp)
 	if err != nil {
 		logger.Warn("failed to send LightResponse message", "peer", peer, "err", err)
+		s.host.closeStream(peer, lightID)
 	}
 	return err
 }
