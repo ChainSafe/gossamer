@@ -456,8 +456,6 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 			return
 		}
 
-		logger.Info("got msg", "me", stream.Conn().LocalPeer(), "protocol", stream.Protocol(), "size", tot, "enc", msgBytes[:tot])
-
 		// decode message based on message type
 		msg, err := decoder(msgBytes[:tot], peer)
 		if err != nil {
