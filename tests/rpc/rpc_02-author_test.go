@@ -33,19 +33,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setSubkeyPath(t *testing.T) {
-	t.Helper()
-	subKeyPath := os.Getenv("PATH") + ":" + os.Getenv("PWD") + "/../../bin"
-	err := os.Setenv("PATH", os.Getenv("PATH")+subKeyPath)
-	require.NoError(t, err)
-}
-
 func TestAuthorSubmitExtrinsic(t *testing.T) {
 	if utils.MODE != rpcSuite {
 		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
 		return
 	}
-	setSubkeyPath(t)
 
 	t.Log("starting gossamer...")
 

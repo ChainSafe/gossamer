@@ -11,6 +11,11 @@ RUN apt-get update && \
 RUN wget https://dl.google.com/go/go1.15.5.linux-amd64.tar.gz
 RUN tar -C /usr/local -xzf go1.15.5.linux-amd64.tar.gz
 
+# Install subkey
+RUN wget -P /usr/local/bin/ https://chainbridge.ams3.digitaloceanspaces.com/subkey-v2.0.0
+RUN mv /usr/local/bin/subkey-v2.0.0 /usr/local/bin/subkey
+RUN chmod +x /usr/local/bin/subkey
+
 # Configure go env vars
 ENV GO111MODULE=on
 ENV GOPATH=/gocode
