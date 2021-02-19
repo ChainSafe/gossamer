@@ -38,7 +38,7 @@ func NewGrandpaModule(api BlockAPI) *GrandpaModule {
 type ProveFinalityRequest struct {
 	blockHashStart common.Hash
 	blockHashEnd   common.Hash
-	// authorityID    uint64
+	authorityID    uint64
 }
 
 // ProveFinalityResponse is an optional SCALE encoded proof array
@@ -51,16 +51,22 @@ func (gm *GrandpaModule) ProveFinality(r *http.Request, req *ProveFinalityReques
 		return err
 	}
 
+	// Leaving check in for linter
+	if req.authorityID != uint64(0) {
+		// TODO: Check if functionality relevant,
+	}
+
 	for _, block := range blocksToCheck {
 		hasJustification, _ := gm.blockAPI.HasJustification(block)
-		if hasJustification {
-			justification, err := gm.blockAPI.GetJustification(block)
-			if err != nil {
-				continue
-			} else {
-				*res = append(*res, justification)
-			}
+		if !hasJustification {
+			continue
 		}
+
+		justification, err := gm.blockAPI.GetJustification(block)
+		if err != nil {
+			continue
+		}
+		*res = append(*res, justification)
 	}
 
 	return nil
