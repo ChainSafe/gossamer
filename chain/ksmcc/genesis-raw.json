@@ -1,6 +1,7 @@
 {
   "name": "Kusama",
   "id": "ksmcc3",
+  "chainType": "Live",
   "bootNodes": [
     "/dns/p2p.cc3-0.kusama.network/tcp/30100/p2p/12D3KooWDgtynm4S9M3m6ZZhXYu2RrWKdvkCSScc25xKDVSg1Sjd",
     "/dns/p2p.cc3-1.kusama.network/tcp/30100/p2p/12D3KooWNpGriWPmf621Lza9UWU9eLLBdCFaErf6d4HSK7Bcqnv4",
