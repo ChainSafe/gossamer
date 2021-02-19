@@ -17,7 +17,6 @@
 package network
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -442,62 +441,19 @@ func (s *Service) decodeLightMessage(in []byte, peer peer.ID) (Message, error) {
 }
 
 func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder messageDecoder, handler messageHandler) {
-	// create buffer stream for non-blocking read
-	r := bufio.NewReader(stream)
-
 	var (
-		tot            uint64
-		maxMessageSize uint64 = 1024 * 64 // TODO: determine actual max message size
+		maxMessageSize uint64 = maxBlockResponseSize // TODO: determine actual max message size
 		msgBytes              = make([]byte, maxMessageSize)
 	)
 
 	for {
-		length, err := readLEB128ToUint64(r)
+		tot, err := readStream(stream, msgBytes)
 		if err == io.EOF {
 			continue
 		} else if err != nil {
-			logger.Debug("Failed to read LEB128 encoding", "protocol", stream.Protocol(), "error", err)
+			logger.Debug("failed to read from stream", "protocol", stream.Protocol(), "error", err)
 			_ = stream.Close()
 			return
-		}
-
-		if length == 0 {
-			continue
-		}
-
-		if length > maxMessageSize {
-			logger.Warn("received message with size greater than max, discarding", "length", length)
-			for {
-				_, err = r.Discard(int(maxMessageSize))
-				if err != nil {
-					break
-				}
-			}
-			continue
-		}
-
-		tot = uint64(0)
-		for i := 0; i < maxReads; i++ {
-			n, err := r.Read(msgBytes[tot:]) //nolint
-			if err != nil {
-				logger.Warn("Failed to read message from stream", "error", err)
-				_ = stream.Close()
-				return
-			}
-
-			tot += uint64(n)
-			if tot == length {
-				break
-			}
-		}
-
-		if tot != length {
-			logger.Debug("Failed to read entire message", "length", length, "read" /*n*/, tot)
-			continue
-		}
-
-		if tot == 0 {
-			continue
 		}
 
 		// decode message based on message type
