@@ -67,43 +67,36 @@ type FreeingBumpHeapAllocator struct {
 // * returns a pointer to an initilized FreeingBumpHeapAllocator
 func NewAllocator(mem Memory, ptrOffset uint32) *FreeingBumpHeapAllocator {
 	fbha := new(FreeingBumpHeapAllocator)
-	currentSize := mem.Length()
 
 	padding := ptrOffset % alignment
 	if padding != 0 {
 		ptrOffset += alignment - padding
 	}
 
-	if currentSize > ptrOffset {
-		err := mem.Grow(1)
+	if mem.Length() <= ptrOffset {
+		err := mem.Grow((ptrOffset - mem.Length()) / PageSize)
 		if err != nil {
 			panic(err)
 		}
-
-		currentSize = mem.Length()
 	}
-
-	// we don't include offset memory in the heap
-	//heapSize := currentSize - ptrOffset
-	//fmt.Println("currentSize", currentSize)
 
 	fbha.bumper = 0
 	fbha.heap = mem
-	fbha.maxHeapSize = mem.Length() - alignment //heapSize
+	fbha.maxHeapSize = mem.Length() - alignment
 	fbha.ptrOffset = ptrOffset
 	fbha.TotalSize = 0
 
 	return fbha
 }
 
-func (fbha *FreeingBumpHeapAllocator) growHeap(numPages uint32) error { //nolint
+func (fbha *FreeingBumpHeapAllocator) growHeap(numPages uint32) error {
 	logger.Info("attempting to grow heap", "number of pages", numPages)
 	err := fbha.heap.Grow(numPages)
 	if err != nil {
 		return err
 	}
 
-	fbha.maxHeapSize = fbha.heap.Length() - alignment //PageSize * numPages
+	fbha.maxHeapSize = fbha.heap.Length() - alignment
 	return nil
 }
 
@@ -118,8 +111,6 @@ func (fbha *FreeingBumpHeapAllocator) Allocate(size uint32) (uint32, error) {
 	}
 	itemSize := nextPowerOf2GT8(size)
 
-	// fmt.Println("want", itemSize + fbha.TotalSize + fbha.ptrOffset)
-	// fmt.Println("have", fbha.maxHeapSize, fbha.heap.Length())
 	if (itemSize + fbha.TotalSize + fbha.ptrOffset) > fbha.maxHeapSize {
 		pagesNeeded := ((itemSize + fbha.TotalSize + fbha.ptrOffset) - fbha.maxHeapSize) / PageSize
 		err := fbha.growHeap(pagesNeeded + 1)
@@ -142,9 +133,7 @@ func (fbha *FreeingBumpHeapAllocator) Allocate(size uint32) (uint32, error) {
 		ptr = fbha.bump(itemSize+8) + 8
 	}
 
-	fmt.Println("want", ptr+itemSize+fbha.ptrOffset)
-	fmt.Println("have", fbha.maxHeapSize)
-	if ptr+itemSize+fbha.ptrOffset > fbha.maxHeapSize {
+	if (ptr + itemSize + fbha.ptrOffset) > fbha.maxHeapSize {
 		pagesNeeded := (ptr + itemSize + fbha.ptrOffset - fbha.maxHeapSize) / PageSize
 		err := fbha.growHeap(pagesNeeded + 1)
 		if err != nil {
