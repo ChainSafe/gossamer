@@ -19,6 +19,7 @@ package types
 import (
 	"fmt"
 	"io"
+	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
@@ -35,26 +36,35 @@ type BlockData struct {
 	Justification *optional.Bytes
 }
 
+// Number returns the BlockNumber of the BlockData's header, nil if it doesn't exist
+func (bd *BlockData) Number() *big.Int {
+	if bd == nil || !bd.Header.Exists() {
+		return nil
+	}
+
+	return bd.Header.Value().Number
+}
+
 func (bd *BlockData) String() string {
 	str := fmt.Sprintf("Hash=%s ", bd.Hash)
 
-	if bd.Header.Exists() {
+	if bd.Header != nil && bd.Header.Exists() {
 		str = str + fmt.Sprintf("Header=%s ", bd.Header)
 	}
 
-	if bd.Body.Exists() {
+	if bd.Body != nil && bd.Body.Exists() {
 		str = str + fmt.Sprintf("Body=%s ", bd.Body)
 	}
 
-	if bd.Receipt.Exists() {
+	if bd.Receipt != nil && bd.Receipt.Exists() {
 		str = str + fmt.Sprintf("Receipt=0x%x ", bd.Receipt)
 	}
 
-	if bd.MessageQueue.Exists() {
+	if bd.MessageQueue != nil && bd.MessageQueue.Exists() {
 		str = str + fmt.Sprintf("MessageQueue=0x%x ", bd.MessageQueue)
 	}
 
-	if bd.Justification.Exists() {
+	if bd.Justification != nil && bd.Justification.Exists() {
 		str = str + fmt.Sprintf("Justification=0x%x ", bd.Justification)
 	}
 

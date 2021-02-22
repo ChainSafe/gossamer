@@ -17,6 +17,7 @@
 package sync
 
 import (
+	"errors"
 	"io/ioutil"
 	"math/big"
 	"testing"
@@ -35,6 +36,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
+	"github.com/ChainSafe/chaindb"
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
@@ -52,7 +54,7 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie
 }
 
 func newTestSyncer(t *testing.T) *Service {
-	wasmer.DefaultTestLogLvl = 4
+	wasmer.DefaultTestLogLvl = 3
 
 	cfg := &Config{}
 	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
@@ -81,7 +83,7 @@ func newTestSyncer(t *testing.T) *Service {
 
 		rtCfg := &wasmer.Config{}
 		rtCfg.Storage = genState
-		rtCfg.LogLvl = 4
+		rtCfg.LogLvl = 3
 
 		instance, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg) //nolint
 		require.NoError(t, err)
@@ -103,65 +105,6 @@ func newTestSyncer(t *testing.T) *Service {
 	syncer, err := NewService(cfg)
 	require.NoError(t, err)
 	return syncer
-}
-
-func TestHandleBlockAnnounceHandshake(t *testing.T) {
-	syncer := newTestSyncer(t)
-	number := big.NewInt(12)
-	req := syncer.HandleBlockAnnounceHandshake(number)
-	require.NotNil(t, req)
-	require.Equal(t, uint64(1), req.StartingBlock.Value().(uint64))
-	require.Equal(t, number, syncer.highestSeenBlock)
-}
-
-func TestHandleBlockAnnounceHandshake_NotHighestSeen(t *testing.T) {
-	syncer := newTestSyncer(t)
-
-	number := big.NewInt(12)
-	req := syncer.HandleBlockAnnounceHandshake(number)
-	require.NotNil(t, req)
-	require.Equal(t, number, syncer.highestSeenBlock)
-
-	lower := big.NewInt(11)
-	req = syncer.HandleBlockAnnounceHandshake(lower)
-	require.Nil(t, req)
-	require.Equal(t, number, syncer.highestSeenBlock)
-}
-
-func TestHandleBlockAnnounceHandshake_GreaterThanHighestSeen_NotSynced(t *testing.T) {
-	syncer := newTestSyncer(t)
-
-	number := big.NewInt(12)
-	req := syncer.HandleBlockAnnounceHandshake(number)
-	require.NotNil(t, req)
-	require.Equal(t, number, syncer.highestSeenBlock)
-
-	_, _ = state.AddBlocksToState(t, syncer.blockState.(*state.BlockState), 12)
-
-	number = big.NewInt(16)
-	req = syncer.HandleBlockAnnounceHandshake(number)
-	require.NotNil(t, req)
-	require.Equal(t, number, syncer.highestSeenBlock)
-	require.Equal(t, req.StartingBlock.Value().(uint64), uint64(13))
-}
-
-func TestHandleBlockAnnounceHandshake_GreaterThanHighestSeen_Synced(t *testing.T) {
-	syncer := newTestSyncer(t)
-
-	number := big.NewInt(12)
-	req := syncer.HandleBlockAnnounceHandshake(number)
-	require.NotNil(t, req)
-	require.Equal(t, number, syncer.highestSeenBlock)
-
-	// synced to block 12
-	syncer.synced = true
-	_, _ = state.AddBlocksToState(t, syncer.blockState.(*state.BlockState), 12)
-
-	number = big.NewInt(16)
-	req = syncer.HandleBlockAnnounceHandshake(number)
-	require.NotNil(t, req)
-	require.Equal(t, number, syncer.highestSeenBlock)
-	require.Equal(t, uint64(13), req.StartingBlock.Value().(uint64))
 }
 
 func TestHandleBlockResponse(t *testing.T) {
@@ -195,15 +138,12 @@ func TestHandleBlockResponse(t *testing.T) {
 	resp, err := responder.CreateBlockResponse(req)
 	require.NoError(t, err)
 
-	req2 := syncer.HandleBlockResponse(resp)
-	require.NotNil(t, req2)
-
-	// msg should contain blocks 1 to 129 (maxResponseSize # of blocks)
-	require.Equal(t, uint64(startNum+int(maxResponseSize)), req2.StartingBlock.Value().(uint64))
+	err = syncer.ProcessBlockData(resp.BlockData)
+	require.NoError(t, err)
 
 	resp2, err := responder.CreateBlockResponse(req)
 	require.NoError(t, err)
-	syncer.HandleBlockResponse(resp2)
+	syncer.ProcessBlockData(resp2.BlockData)
 	// response should contain blocks 13 to 20, and we should be synced
 	require.True(t, syncer.synced)
 }
@@ -249,9 +189,8 @@ func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
 
 	// request should start from block 5 (best block number + 1)
 	syncer.synced = false
-	req2 := syncer.HandleBlockResponse(resp)
-	require.NotNil(t, req2)
-	require.Equal(t, uint64(5), req2.StartingBlock.Value().(uint64))
+	err = syncer.ProcessBlockData(resp.BlockData)
+	require.True(t, errors.Is(err, chaindb.ErrKeyNotFound))
 }
 
 func TestRemoveIncludedExtrinsics(t *testing.T) {
@@ -277,7 +216,7 @@ func TestRemoveIncludedExtrinsics(t *testing.T) {
 		BlockData: []*types.BlockData{bd},
 	}
 
-	_, _, err = syncer.processBlockResponseData(msg)
+	err = syncer.ProcessBlockData(msg.BlockData)
 	require.NoError(t, err)
 
 	inQueue := syncer.transactionState.(*state.TransactionState).Pop()
@@ -286,13 +225,8 @@ func TestRemoveIncludedExtrinsics(t *testing.T) {
 
 func TestHandleBlockResponse_NoBlockData(t *testing.T) {
 	syncer := newTestSyncer(t)
-	msg := &network.BlockResponseMessage{
-		BlockData: nil,
-	}
-	low, high, err := syncer.processBlockResponseData(msg)
-	require.Nil(t, err)
-	require.Equal(t, int64(0), high)
-	require.Equal(t, maxInt64, low)
+	err := syncer.ProcessBlockData(nil)
+	require.Equal(t, ErrNilBlockData, err)
 }
 
 func TestHandleBlockResponse_BlockData(t *testing.T) {
@@ -314,10 +248,8 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 		BlockData: bd,
 	}
 
-	low, high, err := syncer.processBlockResponseData(msg)
+	err = syncer.ProcessBlockData(msg.BlockData)
 	require.Nil(t, err)
-	require.Equal(t, int64(1), low)
-	require.Equal(t, int64(1), high)
 }
 
 func buildBlock(t *testing.T, instance runtime.Instance, parent *types.Header) *types.Block {

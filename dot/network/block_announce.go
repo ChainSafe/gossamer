@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -241,15 +240,6 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 	// check if peer block number is greater than host block number
 	if latestHeader.Number.Cmp(bestBlockNum) >= 0 {
 		s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].handshake = hs
-
-		return nil
-	}
-
-	// if so, send block request
-	logger.Trace("sending peer highest block to syncer", "number", bhs.BestBlockNumber)
-	req := s.syncer.HandleBlockAnnounceHandshake(bestBlockNum)
-	if req == nil {
-		s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].handshake = hs
 		return nil
 	}
 
@@ -262,20 +252,7 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 			return
 		}
 
-		// wait until we send BlockAnnounceHandshake, then begin sync
-		select {
-		case <-s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].responseSentCh:
-			time.Sleep(time.Millisecond * 300) // TODO: it seems if we immediately send the request we fail to read the response
-			err = s.beginSyncing(peer, req)
-			if err == nil {
-				return
-			}
-		case <-time.After(time.Second * 3):
-			err = errors.New("timeout")
-		}
-
-		logger.Debug("failed to send response to peer's handshake", "sub-protocol", syncID, "peer", peer, "error", err)
-		s.attemptSyncWithRandomPeer(req)
+		s.syncQueue.handleBlockAnnounceHandshake(bhs.BestBlockNumber, peer)
 	}()
 
 	s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].handshake = hs
@@ -287,12 +264,10 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 // with its peer and send a BlockRequest message
 func (s *Service) handleBlockAnnounceMessage(peer peer.ID, msg NotificationsMessage) error {
 	if an, ok := msg.(*BlockAnnounceMessage); ok {
-		req := s.syncer.HandleBlockAnnounce(an)
-		if req != nil {
-			if err := s.beginSyncing(peer, req); err != nil {
-				logger.Error("failed to send BlockRequest message", "peer", peer)
-				return err
-			}
+		s.syncQueue.handleBlockAnnounce(an, peer)
+		err := s.syncer.HandleBlockAnnounce(an)
+		if err != nil {
+			return err
 		}
 	}
 

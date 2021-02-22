@@ -187,12 +187,13 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	if cfg.Network == nil {
 		config := &network.Config{
-			BasePath:    testDatadirPath,
-			Port:        7001,
-			RandSeed:    1,
-			NoBootstrap: true,
-			NoMDNS:      true,
-			BlockState:  stateSrvc.Block,
+			BasePath:           testDatadirPath,
+			Port:               7001,
+			RandSeed:           1,
+			NoBootstrap:        true,
+			NoMDNS:             true,
+			BlockState:         stateSrvc.Block,
+			TransactionHandler: &mockTransactionHandler{},
 		}
 		cfg.Network = createTestNetworkService(t, config)
 	}
@@ -220,6 +221,9 @@ func createTestNetworkService(t *testing.T, cfg *network.Config) (srvc *network.
 	srvc, err := network.NewService(cfg)
 	require.NoError(t, err)
 
+	err = srvc.Start()
+	require.NoError(t, err)
+
 	t.Cleanup(func() {
 		err := srvc.Stop()
 		require.NoError(t, err)
@@ -241,24 +245,16 @@ func (s *mockSyncer) CreateBlockResponse(msg *network.BlockRequestMessage) (*net
 	return nil, nil
 }
 
-func (s *mockSyncer) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) *network.BlockRequestMessage {
-	if msg.Number.Cmp(s.highestSeen) > 0 {
-		s.highestSeen = msg.Number
-	}
-
-	return &network.BlockRequestMessage{}
+func (s *mockSyncer) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) error {
+	return nil
 }
 
-func (s *mockSyncer) HandleBlockResponse(msg *network.BlockResponseMessage) *network.BlockRequestMessage {
+func (s *mockSyncer) ProcessBlockData(_ []*types.BlockData) error {
 	return nil
 }
 
 func (s *mockSyncer) IsSynced() bool {
 	return false
-}
-
-func (s *mockSyncer) HandleBlockAnnounceHandshake(num *big.Int) *network.BlockRequestMessage {
-	return nil
 }
 
 type mockDigestItem struct {
@@ -284,5 +280,11 @@ func (d *mockDigestItem) Encode() ([]byte, error) {
 }
 
 func (d *mockDigestItem) Decode(_ io.Reader) error {
+	return nil
+}
+
+type mockTransactionHandler struct{}
+
+func (h *mockTransactionHandler) HandleTransactionMessage(_ *network.TransactionMessage) error {
 	return nil
 }

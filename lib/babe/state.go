@@ -72,4 +72,5 @@ type EpochState interface {
 	GetStartSlotForEpoch(epoch uint64) (uint64, error)
 	GetEpochForBlock(header *types.Header) (uint64, error)
 	SetFirstSlot(slot uint64) error
+	GetLatestEpochData() (*types.EpochData, error)
 }

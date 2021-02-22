@@ -244,7 +244,11 @@ func (v *VerificationManager) isDisabled(epoch uint64, header *types.Header) (bo
 func (v *VerificationManager) getVerifierInfo(epoch uint64) (*verifierInfo, error) {
 	epochData, err := v.epochState.GetEpochData(epoch)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get epoch data for epoch %d: %w", epoch, err)
+		// TODO: why is the epoch calculated wrong occasionally?
+		epochData, err = v.epochState.GetLatestEpochData()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get epoch data for epoch %d: %w", epoch, err)
+		}
 	}
 
 	configData, err := v.getConfigData(epoch)
