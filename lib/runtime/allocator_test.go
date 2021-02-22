@@ -21,6 +21,8 @@ import (
 	"math"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 // struct to mock memory interface
@@ -29,18 +31,23 @@ type mockMemory struct {
 }
 
 // return mock memory as byte slice
-func (m mockMemory) Data() []byte {
+func (m *mockMemory) Data() []byte {
 	return m.buffer
 }
 
 // return mock memory size
-func (m mockMemory) Length() uint32 {
+func (m *mockMemory) Length() uint32 {
 	return uint32(len(m.buffer))
 }
 
+func (m *mockMemory) Grow(numPages uint32) error {
+	m.buffer = append(m.buffer, make([]byte, PageSize*numPages)...)
+	return nil
+}
+
 // create new mock memory of specified size
-func newMockMemory(size uint32) mockMemory {
-	return mockMemory{buffer: make([]byte, size)}
+func newMockMemory(size uint32) *mockMemory {
+	return &mockMemory{buffer: make([]byte, size)}
 }
 
 // struct to hold data for a round of tests
@@ -331,28 +338,20 @@ func compareState(allocator FreeingBumpHeapAllocator, state allocatorState, resu
 	}
 }
 
-// test that allocator should no allocate memory if the allocate
-//  request is larger than current size
-func TestShouldNotAllocateIfTooLarge(t *testing.T) {
+// test that allocator should grow memory if the allocation request is larger than current size
+func TestShouldGrowMemory(t *testing.T) {
 	mem := newMockMemory(1 << 16)
 	currentSize := mem.Length()
 	fbha := NewAllocator(mem, 0)
 
 	// when
-	_, err := fbha.Allocate(currentSize + 1)
-
-	// then expect error since trying to over Allocate
-	if err == nil {
-		t.Error("Error, expected out of space error, but didn't get one.")
-	}
-	if err != nil && err.Error() != "allocator out of space" {
-		t.Errorf("Error: got unexpected error: %v", err.Error())
-	}
+	_, err := fbha.Allocate(currentSize)
+	require.NoError(t, err)
+	require.Equal(t, (1<<16)+PageSize, int(mem.Length()))
 }
 
-// test that the allocator should not allocate memory if
-//  it's already full
-func TestShouldNotAllocateIfFull(t *testing.T) {
+// test that the allocator should grow memory if it's already full
+func TestShouldGrowMemoryIfFull(t *testing.T) {
 	mem := newMockMemory(1 << 16)
 	currentSize := mem.Length()
 	fbha := NewAllocator(mem, 0)
@@ -365,18 +364,9 @@ func TestShouldNotAllocateIfFull(t *testing.T) {
 		t.Errorf("Expected value of 8")
 	}
 
-	// when
 	_, err = fbha.Allocate(currentSize / 2)
-
-	// then
-	// there is no room after half currentSize including it's 8 byte prefix, so error
-	if err == nil {
-		t.Error("Error, expected out of space error, but didn't get one.")
-	}
-	if err != nil && err.Error() != "allocator out of space" {
-		t.Errorf("Error: got unexpected error: %v", err.Error())
-	}
-
+	require.NoError(t, err)
+	require.Equal(t, (1<<16)+PageSize, int(mem.Length()))
 }
 
 // test to confirm that allocator can allocate the MaxPossibleAllocation
@@ -384,7 +374,7 @@ func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
 	// given, grow heap memory so that we have at least MaxPossibleAllocation available
 	mem := newMockMemory(1 << 16)
 
-	pagesNeeded := (MaxPossibleAllocation / pageSize) - (mem.Length() / pageSize) + 1
+	pagesNeeded := (MaxPossibleAllocation / PageSize) - (mem.Length() / PageSize) + 1
 	mem = newMockMemory(mem.Length() + pagesNeeded*65*1024)
 
 	fbha := NewAllocator(mem, 0)
