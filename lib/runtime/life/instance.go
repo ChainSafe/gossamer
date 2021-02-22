@@ -28,8 +28,6 @@ import (
 	"github.com/perlin-network/life/exec"
 )
 
-//noot
-
 // Name represents the name of the interpreter
 const Name = "life"
 

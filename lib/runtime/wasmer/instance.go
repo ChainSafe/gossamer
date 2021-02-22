@@ -31,8 +31,6 @@ import (
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
-//noot
-
 // Name represents the name of the interpreter
 const Name = "wasmer"
 
@@ -222,7 +220,6 @@ func newLegacyInstance(code []byte, cfg *Config) (*LegacyInstance, error) {
 
 	// TODO: get __heap_base exported value from runtime.
 	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does
-	// heapBase, ok := instance.Exports["__heap_base"]
 	heapBase := runtime.DefaultHeapBase
 
 	// Assume imported memory is used if runtime does not export any
