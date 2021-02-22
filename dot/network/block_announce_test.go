@@ -121,8 +121,9 @@ func TestValidateBlockAnnounceHandshake(t *testing.T) {
 	nodeA.notificationsProtocols[BlockAnnounceMsgType] = &notificationsProtocol{
 		handshakeData: make(map[peer.ID]*handshakeData),
 	}
-
 	testPeerID := peer.ID("noot")
+	nodeA.notificationsProtocols[BlockAnnounceMsgType].handshakeData[testPeerID] = &handshakeData{}
+
 	err := nodeA.validateBlockAnnounceHandshake(testPeerID, &BlockAnnounceHandshake{
 		BestBlockNumber: 100,
 		GenesisHash:     nodeA.blockState.GenesisHash(),
