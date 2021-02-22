@@ -330,8 +330,8 @@ func compareState(allocator FreeingBumpHeapAllocator, state allocatorState, resu
 	if !reflect.DeepEqual(allocator.ptrOffset, state.ptrOffset) {
 		t.Errorf("Fail: got %v expected %v", allocator.ptrOffset, state.ptrOffset)
 	}
-	if !reflect.DeepEqual(allocator.TotalSize, state.totalSize) {
-		t.Errorf("Fail: got %v expected %v", allocator.TotalSize, state.totalSize)
+	if !reflect.DeepEqual(allocator.totalSize, state.totalSize) {
+		t.Errorf("Fail: got %v expected %v", allocator.totalSize, state.totalSize)
 	}
 	if !reflect.DeepEqual(result, output) {
 		t.Errorf("Fail: got %v expected %v", result, output)
