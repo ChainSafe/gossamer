@@ -139,7 +139,6 @@ func (fbha *FreeingBumpHeapAllocator) Allocate(size uint32) (uint32, error) {
 		if err != nil {
 			return 0, fmt.Errorf("allocator out of space; failed to grow heap; %w", err)
 		}
-		fmt.Println("after", fbha.maxHeapSize)
 	}
 
 	// write "header" for allocated memory to heap
