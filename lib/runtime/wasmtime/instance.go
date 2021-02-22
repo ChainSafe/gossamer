@@ -128,6 +128,8 @@ func newLegacyInstanceFromModule(module *wasmtime.Module, engine *wasmtime.Engin
 	}
 
 	mem := instance.GetExport("memory").Memory()
+
+	// TODO: use __heap_base
 	allocator := gssmrruntime.NewAllocator(Memory{mem}, 0)
 
 	ctx = gssmrruntime.Context{

@@ -687,9 +687,9 @@ func TestExt_keccak_256(t *testing.T) {
 // test ext_malloc returns expected pointer value of 8
 func TestExt_malloc(t *testing.T) {
 	// given
-	runtime := NewTestLegacyInstance(t, runtime.TEST_RUNTIME)
+	inst := NewTestLegacyInstance(t, runtime.TEST_RUNTIME)
 
-	testFunc, ok := runtime.vm.Exports["test_ext_malloc"]
+	testFunc, ok := inst.vm.Exports["test_ext_malloc"]
 	if !ok {
 		t.Fatal("could not find exported function")
 	}
@@ -698,7 +698,7 @@ func TestExt_malloc(t *testing.T) {
 	require.Nil(t, err)
 
 	t.Log("[TestExt_malloc]", "pointer", res)
-	if res.ToI64() != 8 {
+	if res.ToI64() != int64(8+runtime.DefaultHeapBase) {
 		t.Errorf("malloc did not return expected pointer value, expected 8, got %v", res)
 	}
 }
@@ -706,9 +706,9 @@ func TestExt_malloc(t *testing.T) {
 // test ext_free, confirm ext_free frees memory without error
 func TestExt_free(t *testing.T) {
 	// given
-	runtime := NewTestLegacyInstance(t, runtime.TEST_RUNTIME)
+	inst := NewTestLegacyInstance(t, runtime.TEST_RUNTIME)
 
-	initFunc, ok := runtime.vm.Exports["test_ext_malloc"]
+	initFunc, ok := inst.vm.Exports["test_ext_malloc"]
 	if !ok {
 		t.Fatal("could not find exported function")
 	}
@@ -716,12 +716,12 @@ func TestExt_free(t *testing.T) {
 	ptr, err := initFunc(1)
 	require.Nil(t, err)
 
-	if ptr.ToI64() != 8 {
+	if ptr.ToI64() != int64(8+runtime.DefaultHeapBase) {
 		t.Errorf("malloc did not return expected pointer value, expected 8, got %v", ptr)
 	}
 
 	// when
-	testFunc, ok := runtime.vm.Exports["test_ext_free"]
+	testFunc, ok := inst.vm.Exports["test_ext_free"]
 	if !ok {
 		t.Fatal("could not find exported function")
 	}

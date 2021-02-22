@@ -42,3 +42,5 @@ func (m Memory) Length() uint32 {
 func (m Memory) Grow(numPages uint32) error {
 	return errors.New("wasmtime Memory.Grow unimplemented")
 }
+
+//noot

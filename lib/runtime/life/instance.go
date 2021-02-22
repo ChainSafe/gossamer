@@ -28,6 +28,8 @@ import (
 	"github.com/perlin-network/life/exec"
 )
 
+//noot
+
 // Name represents the name of the interpreter
 const Name = "life"
 
@@ -89,6 +91,7 @@ func NewInstance(code []byte, cfg *Config) (runtime.Instance, error) {
 		memory: instance.Memory,
 	}
 
+	// TODO: use __heap_base
 	allocator := runtime.NewAllocator(memory, 0)
 
 	runtimeCtx := &runtime.Context{

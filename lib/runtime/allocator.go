@@ -25,19 +25,22 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-var logger = log.New("pkg", "runtime", "module", "allocator") //nolint
+var logger = log.New("pkg", "runtime", "module", "allocator")
 
 // This module implements a freeing-bump allocator
 // see more details at https://github.com/paritytech/substrate/issues/1615
+
+// DefaultHeapBase is the default heap base value (offset) used when the runtime does not provide one
+const DefaultHeapBase = uint32(1290392)
 
 // The pointers need to be aligned to 8 bytes
 const alignment uint32 = 8
 
 // HeadsQty 22
-const HeadsQty = 29 //22
+const HeadsQty = 22
 
 // MaxPossibleAllocation 2^24 bytes
-const MaxPossibleAllocation = (1 << 31) //16777216 // 2^24 bytes
+const MaxPossibleAllocation = (1 << 24)
 
 // FreeingBumpHeapAllocator struct
 type FreeingBumpHeapAllocator struct {
@@ -71,12 +74,22 @@ func NewAllocator(mem Memory, ptrOffset uint32) *FreeingBumpHeapAllocator {
 		ptrOffset += alignment - padding
 	}
 
+	if currentSize > ptrOffset {
+		err := mem.Grow(1)
+		if err != nil {
+			panic(err)
+		}
+
+		currentSize = mem.Length()
+	}
+
 	// we don't include offset memory in the heap
-	heapSize := currentSize - ptrOffset
+	//heapSize := currentSize - ptrOffset
+	//fmt.Println("currentSize", currentSize)
 
 	fbha.bumper = 0
 	fbha.heap = mem
-	fbha.maxHeapSize = heapSize
+	fbha.maxHeapSize = mem.Length() - alignment //heapSize
 	fbha.ptrOffset = ptrOffset
 	fbha.TotalSize = 0
 
@@ -90,7 +103,7 @@ func (fbha *FreeingBumpHeapAllocator) growHeap(numPages uint32) error { //nolint
 		return err
 	}
 
-	fbha.maxHeapSize += PageSize * numPages
+	fbha.maxHeapSize = fbha.heap.Length() - alignment //PageSize * numPages
 	return nil
 }
 
@@ -105,13 +118,14 @@ func (fbha *FreeingBumpHeapAllocator) Allocate(size uint32) (uint32, error) {
 	}
 	itemSize := nextPowerOf2GT8(size)
 
-	if (itemSize + 8 + fbha.TotalSize) > fbha.maxHeapSize {
-		// pagesNeeded := ((itemSize + 8 + fbha.TotalSize) - fbha.maxHeapSize) / PageSize
-		// err := fbha.growHeap(pagesNeeded + 1)
-		// if err != nil {
-		// 	return 0, fmt.Errorf("allocator out of space; failed to grow; %w", err)
-		// }
-		return 0, fmt.Errorf("allocator out of space: want %d, have %d", (itemSize + 8 + fbha.TotalSize), fbha.maxHeapSize)
+	// fmt.Println("want", itemSize + fbha.TotalSize + fbha.ptrOffset)
+	// fmt.Println("have", fbha.maxHeapSize, fbha.heap.Length())
+	if (itemSize + fbha.TotalSize + fbha.ptrOffset) > fbha.maxHeapSize {
+		pagesNeeded := ((itemSize + fbha.TotalSize + fbha.ptrOffset) - fbha.maxHeapSize) / PageSize
+		err := fbha.growHeap(pagesNeeded + 1)
+		if err != nil {
+			return 0, fmt.Errorf("allocator out of space; failed to grow heap; %w", err)
+		}
 	}
 
 	// get pointer based on list_index
@@ -120,13 +134,23 @@ func (fbha *FreeingBumpHeapAllocator) Allocate(size uint32) (uint32, error) {
 	var ptr uint32
 	if item := fbha.heads[listIndex]; item != 0 {
 		// Something from the free list
-		//item := fbha.heads[listIndex]
 		fourBytes := fbha.getHeap4bytes(item)
 		fbha.heads[listIndex] = binary.LittleEndian.Uint32(fourBytes)
 		ptr = item + 8
 	} else {
 		// Nothing te be freed. Bump.
 		ptr = fbha.bump(itemSize+8) + 8
+	}
+
+	fmt.Println("want", ptr+itemSize+fbha.ptrOffset)
+	fmt.Println("have", fbha.maxHeapSize)
+	if ptr+itemSize+fbha.ptrOffset > fbha.maxHeapSize {
+		pagesNeeded := (ptr + itemSize + fbha.ptrOffset - fbha.maxHeapSize) / PageSize
+		err := fbha.growHeap(pagesNeeded + 1)
+		if err != nil {
+			return 0, fmt.Errorf("allocator out of space; failed to grow heap; %w", err)
+		}
+		fmt.Println("after", fbha.maxHeapSize)
 	}
 
 	// write "header" for allocated memory to heap
