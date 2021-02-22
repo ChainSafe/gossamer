@@ -433,11 +433,20 @@ func (q *syncQueue) processBlockResponses() {
 	for {
 		select {
 		case data := <-q.responseCh:
+			bestNum, err := q.s.blockState.BestBlockNumber()
+			if err != nil {
+				panic(err)
+			}
+
+			if data[len(data)-1].Number().Int64() <= bestNum.Int64() {
+				return
+			}
+
 			q.currStart = data[0].Number().Int64()
 			q.currEnd = data[len(data)-1].Number().Int64()
 			logger.Debug("sending block data to syncer", "start", q.currStart, "end", q.currEnd)
 
-			err := q.s.syncer.ProcessBlockData(data)
+			err = q.s.syncer.ProcessBlockData(data)
 			q.currStart = 0
 			q.currEnd = 0
 			if err != nil {
