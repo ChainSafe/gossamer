@@ -166,33 +166,10 @@ func (h *host) bootstrap() {
 // send writes the given message to the outbound message stream for the given
 // peer (gets the already opened outbound message stream or opens a new one).
 func (h *host) send(p peer.ID, sub protocol.ID, msg Message) (err error) {
-	encMsg, err := msg.Encode()
-	if err != nil {
-		return err
-	}
-
-	err = h.sendBytes(p, sub, encMsg)
-	if err != nil {
-		return err
-	}
-
-	logger.Trace(
-		"Sent message to peer",
-		"sub-protocol", sub,
-		"host", h.id(),
-		"peer", p,
-		"message", msg.String(),
-	)
-
-	return nil
-}
-
-func (h *host) sendBytes(p peer.ID, sub protocol.ID, msg []byte) (err error) {
 	// get outbound stream for given peer
 	s := h.getStream(p, sub)
 
 	// check if stream needs to be opened
-	// TODO: if stream has not been opened, begin handler for the newly opened stream
 	if s == nil {
 		logger.Debug("opening new stream with peer", "peer", p, "sub-protocol", sub)
 
@@ -211,12 +188,20 @@ func (h *host) sendBytes(p peer.ID, sub protocol.ID, msg []byte) (err error) {
 		)
 	}
 
-	msgLen := uint64(len(msg))
-	lenBytes := uint64ToLEB128(msgLen)
-	msg = append(lenBytes, msg...)
+	err = h.writeToStream(s, msg)
+	if err != nil {
+		return err
+	}
 
-	_, err = s.Write(msg)
-	return err
+	logger.Trace(
+		"Sent message to peer",
+		"sub-protocol", sub,
+		"host", h.id(),
+		"peer", p,
+		"message", msg.String(),
+	)
+
+	return nil
 }
 
 func (h *host) writeToStream(s libp2pnetwork.Stream, msg Message) error {

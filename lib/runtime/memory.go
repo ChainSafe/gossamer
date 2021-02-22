@@ -16,12 +16,11 @@
 
 package runtime
 
-// PageSize is 65kb
-var PageSize uint32 = 1024 * 65 // 65kb
+const PageSize = 65536
 
 // Memory is a raw memory interface
 type Memory interface {
 	Data() []byte
 	Length() uint32
-	Grow(numPages uint32) error
+	Grow(uint32) error
 }
