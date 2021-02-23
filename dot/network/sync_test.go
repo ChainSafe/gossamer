@@ -266,8 +266,6 @@ func TestSyncQueue_HandleBlockAnnounce(t *testing.T) {
 }
 
 func TestSyncQueue_ProcessBlockRequests(t *testing.T) {
-	//t.Skip() // TODO: fix this
-
 	configA := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeA"),
 		Port:        7001,
