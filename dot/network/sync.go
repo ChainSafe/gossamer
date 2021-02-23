@@ -421,8 +421,9 @@ func (q *syncQueue) syncWithPeer(peer peer.ID, req *BlockRequestMessage) (*Block
 	defer q.s.host.h.ConnManager().Unprotect(peer, "")
 	defer q.s.host.closeStream(peer, fullSyncID)
 
-	ctx, cancel := context.WithTimeout(q.ctx, time.Second*5)
+	ctx, cancel := context.WithTimeout(q.ctx, time.Second*2)
 	defer cancel()
+
 	s, err := q.s.host.h.NewStream(ctx, peer, fullSyncID)
 	if err != nil {
 		return nil, err

@@ -50,7 +50,7 @@ type Node struct {
 func InitNode(cfg *Config) error {
 	setupLogger(cfg)
 	logger.Info(
-		"initializing node...",
+		"🕸️ initializing node...",
 		"name", cfg.Global.Name,
 		"id", cfg.Global.ID,
 		"basepath", cfg.Global.BasePath,
@@ -164,7 +164,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	// Node Services
 
 	logger.Info(
-		"initializing node services...",
+		"🕸️ initializing node services...",
 		"name", cfg.Global.Name,
 		"id", cfg.Global.ID,
 		"basepath", cfg.Global.BasePath,
@@ -286,7 +286,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 
 // Start starts all dot node services
 func (n *Node) Start() error {
-	logger.Info("starting node services...")
+	logger.Info("🕸️ starting node services...")
 
 	// start all dot node services
 	n.Services.StartAll()

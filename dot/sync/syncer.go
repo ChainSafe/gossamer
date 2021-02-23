@@ -321,7 +321,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 			return err
 		}
 	} else {
-		s.logger.Info("imported block", "number", block.Header.Number, "hash", block.Header.Hash())
+		s.logger.Info("🔗 imported block", "number", block.Header.Number, "hash", block.Header.Hash())
 		s.logger.Debug("imported block", "header", block.Header, "body", block.Body)
 	}
 
