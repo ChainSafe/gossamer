@@ -1769,14 +1769,18 @@ func asMemorySlice(context wasm.InstanceContext, span C.int64_t) []byte {
 
 // Copy a byte slice to wasm memory and return the resulting 64bit span descriptor
 func toWasmMemory(context wasm.InstanceContext, data []byte) (int64, error) {
-	memory := context.Memory().Data()
 	allocator := context.Data().(*runtime.Context).Allocator
-
 	size := uint32(len(data))
 
 	out, err := allocator.Allocate(size)
 	if err != nil {
 		return 0, err
+	}
+
+	memory := context.Memory().Data()
+
+	if uint32(len(memory)) < out+size {
+		panic(fmt.Sprintf("length of memory is less than expected, want %d have %d", out+size, len(memory)))
 	}
 
 	copy(memory[out:out+size], data[:])
@@ -1789,7 +1793,6 @@ func toWasmMemorySized(context wasm.InstanceContext, data []byte, size uint32) (
 		return 0, errors.New("internal byte array size missmatch")
 	}
 
-	memory := context.Memory().Data()
 	allocator := context.Data().(*runtime.Context).Allocator
 
 	out, err := allocator.Allocate(size)
@@ -1797,6 +1800,7 @@ func toWasmMemorySized(context wasm.InstanceContext, data []byte, size uint32) (
 		return 0, err
 	}
 
+	memory := context.Memory().Data()
 	copy(memory[out:out+size], data[:])
 
 	return out, nil

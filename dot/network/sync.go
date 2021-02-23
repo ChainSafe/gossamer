@@ -88,7 +88,7 @@ func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) er
 var (
 	blockRequestSize      uint32 = 128
 	blockRequestQueueSize int64  = 8
-	maxBlockResponseSize  uint64 = 1024 * 256
+	maxBlockResponseSize  uint64 = 1024 * 2048 // 2mb
 )
 
 type syncPeer struct {
@@ -251,14 +251,12 @@ func (q *syncQueue) stop() {
 // getSortedPeers is used to determine who to try to sync from first
 func (q *syncQueue) getSortedPeers() []*syncPeer {
 	peers := []*syncPeer{}
-	i := 0
 
 	q.peerScore.Range(func(pid, score interface{}) bool {
-		peers[i] = &syncPeer{
+		peers = append(peers, &syncPeer{
 			pid:   pid.(peer.ID),
 			score: score.(int),
-		}
-		i++
+		})
 		return true
 	})
 
@@ -328,7 +326,11 @@ func (q *syncQueue) pushBlockResponse(resp *BlockResponseMessage, pid peer.ID) {
 		return
 	}
 
+	// update peer's score
+	q.updatePeerScore(pid, 3)
+
 	q.responseLock.Lock()
+	defer q.responseLock.Unlock()
 
 	for _, bd := range resp.BlockData {
 		if bd.Number() == nil || bd.Number().Int64() < head.Int64() {
@@ -337,13 +339,6 @@ func (q *syncQueue) pushBlockResponse(resp *BlockResponseMessage, pid peer.ID) {
 
 		q.responses = append(q.responses, bd)
 	}
-	q.responseLock.Unlock()
-
-	// update peer's score
-	q.updatePeerScore(pid, 3)
-
-	q.responseLock.Lock()
-	defer q.responseLock.Unlock()
 
 	q.responses = sortResponses(q.responses)
 	logger.Debug("pushed block data to queue", "start", start, "end", end, "queue", q.stringifyResponseQueue())
@@ -365,6 +360,8 @@ func (q *syncQueue) trySync(req *syncRequest) {
 		return
 	}
 
+	defer q.setBlockRequests(req.to)
+
 	logger.Debug("beginning to send out request", "start", req.req.StartingBlock.Uint64())
 	if len(req.to) != 0 {
 		resp, err := q.syncWithPeer(req.to, req.req)
@@ -375,6 +372,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 		}
 
 		logger.Debug("failed to sync with peer", "peer", req.to, "error", err)
+		q.updatePeerScore(req.to, -1)
 	}
 
 	// try highest scored peers first
@@ -389,6 +387,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 		resp, err := q.syncWithPeer(peer, req.req)
 		if err != nil {
 			logger.Debug("failed to sync with peer", "peer", peer, "error", err)
+			q.updatePeerScore(peer, -1)
 			continue
 		}
 
@@ -406,6 +405,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 		resp, err := q.syncWithPeer(peer, req.req)
 		if err != nil {
 			logger.Debug("failed to sync with peer", "peer", peer, "error", err)
+			q.updatePeerScore(peer, -1)
 			continue
 		}
 
@@ -460,7 +460,8 @@ func (q *syncQueue) processBlockResponses() {
 			}
 
 			if data[len(data)-1].Number().Int64() <= bestNum.Int64() {
-				return
+				logger.Debug("ignoring block data that is below our head", "got", data[len(data)-1].Number().Int64(), "head", bestNum.Int64())
+				continue
 			}
 
 			q.currStart = data[0].Number().Int64()

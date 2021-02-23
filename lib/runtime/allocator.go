@@ -99,7 +99,6 @@ func (fbha *FreeingBumpHeapAllocator) growHeap(numPages uint32) error {
 //   available it grows the heap to fit give 'size'.  The heap grows is chunks of Powers of 2, so the growth becomes
 //   the next highest power of 2 of the requested size.
 func (fbha *FreeingBumpHeapAllocator) Allocate(size uint32) (uint32, error) {
-	fmt.Println("size", size)
 	// test for space allocation
 	if size > MaxPossibleAllocation {
 		err := errors.New("size too large")
@@ -134,6 +133,9 @@ func (fbha *FreeingBumpHeapAllocator) Allocate(size uint32) (uint32, error) {
 		err := fbha.growHeap(pagesNeeded + 1)
 		if err != nil {
 			return 0, fmt.Errorf("allocator out of space; failed to grow heap; %w", err)
+		}
+		if fbha.maxHeapSize < (ptr + itemSize + fbha.ptrOffset) {
+			panic(fmt.Sprintf("failed to grow heap, want %d have %d", (ptr + itemSize + fbha.ptrOffset), fbha.maxHeapSize))
 		}
 	}
 
