@@ -41,12 +41,6 @@ import (
 // testMessageTimeout is the wait time for messages to be exchanged
 var testMessageTimeout = time.Second
 
-// testGenesisHeader is a test block header
-var testGenesisHeader = &types.Header{
-	Number:    big.NewInt(0),
-	StateRoot: trie.EmptyHash,
-}
-
 func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
 	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis-raw.json")
 	if err != nil {

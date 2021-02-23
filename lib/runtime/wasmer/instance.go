@@ -150,6 +150,7 @@ func NewInstanceFromLegacy(inst *LegacyInstance) *Instance {
 	}
 }
 
+// UpdateRuntimeCode updates the runtime instance to run the given code
 func (in *Instance) UpdateRuntimeCode(code []byte) error {
 	in.inst.Stop()
 
