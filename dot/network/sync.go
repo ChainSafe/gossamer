@@ -88,7 +88,6 @@ func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) er
 var (
 	blockRequestSize      uint32 = 128
 	blockRequestQueueSize int64  = 8
-	blockDataQueueSize    int64  = blockRequestQueueSize * int64(blockRequestSize)
 	maxBlockResponseSize  uint64 = 1024 * 256
 )
 
@@ -106,7 +105,7 @@ type syncQueue struct {
 	s         *Service
 	ctx       context.Context
 	cancel    context.CancelFunc
-	peerScore map[peer.ID]int // peers we have successfully synced from before -> their score; score increases on successful response; decreases otherwise.
+	peerScore *sync.Map // map[peer.ID]int; peers we have successfully synced from before -> their score; score increases on successful response
 
 	requests    []*syncRequest // start block of message -> full message
 	requestCh   chan *syncRequest
@@ -130,7 +129,7 @@ func newSyncQueue(s *Service) *syncQueue {
 		s:           s,
 		ctx:         ctx,
 		cancel:      cancel,
-		peerScore:   make(map[peer.ID]int),
+		peerScore:   new(sync.Map),
 		requests:    []*syncRequest{},
 		requestCh:   make(chan *syncRequest),
 		responses:   []*types.BlockData{},
@@ -212,8 +211,12 @@ func (q *syncQueue) benchmark() {
 			return // TODO: handle this / panic?
 		}
 
+		if head.Int64() >= q.goal {
+			return
+		}
+
 		q.benchmarker.begin(head.Uint64())
-		time.Sleep(time.Second * 15)
+		time.Sleep(time.Second * 10)
 
 		head, err = q.s.blockState.BestBlockNumber()
 		if err != nil {
@@ -222,7 +225,7 @@ func (q *syncQueue) benchmark() {
 		}
 
 		q.benchmarker.end(head.Uint64())
-		logger.Info("🚣 currently syncing", "average blocks/second", q.benchmarker.mostRecentAverage(), "overall average", q.benchmarker.average())
+		logger.Info("🚣 currently syncing", "goal", q.goal, "average blocks/second", q.benchmarker.mostRecentAverage(), "overall average", q.benchmarker.average())
 	}
 }
 
@@ -247,21 +250,32 @@ func (q *syncQueue) stop() {
 
 // getSortedPeers is used to determine who to try to sync from first
 func (q *syncQueue) getSortedPeers() []*syncPeer {
-	peers := make([]*syncPeer, len(q.peerScore))
+	peers := []*syncPeer{}
 	i := 0
-	for pid, score := range q.peerScore {
+
+	q.peerScore.Range(func(pid, score interface{}) bool {
 		peers[i] = &syncPeer{
-			pid:   pid,
-			score: score,
+			pid:   pid.(peer.ID),
+			score: score.(int),
 		}
 		i++
-	}
+		return true
+	})
 
 	sort.Slice(peers, func(i, j int) bool {
 		return peers[i].score < peers[j].score
 	})
 
 	return peers
+}
+
+func (q *syncQueue) updatePeerScore(pid peer.ID, amt int) {
+	score, ok := q.peerScore.Load(pid)
+	if !ok {
+		q.peerScore.Store(pid, 1)
+	} else {
+		q.peerScore.Store(pid, score.(int)+1)
+	}
 }
 
 func (q *syncQueue) setBlockRequests(to peer.ID) {
@@ -298,7 +312,7 @@ func (q *syncQueue) setBlockRequests(to peer.ID) {
 }
 
 func (q *syncQueue) pushBlockResponse(resp *BlockResponseMessage, pid peer.ID) {
-	if len(resp.BlockData) == 0 || len(q.responses)+len(resp.BlockData) >= int(blockDataQueueSize) {
+	if len(resp.BlockData) == 0 {
 		return
 	}
 
@@ -325,8 +339,8 @@ func (q *syncQueue) pushBlockResponse(resp *BlockResponseMessage, pid peer.ID) {
 	}
 	q.responseLock.Unlock()
 
-	// TODO: change peerScore to sync.Map
-	q.peerScore[pid]++
+	// update peer's score
+	q.updatePeerScore(pid, 3)
 
 	q.responseLock.Lock()
 	defer q.responseLock.Unlock()
@@ -355,6 +369,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 	if len(req.to) != 0 {
 		resp, err := q.syncWithPeer(req.to, req.req)
 		if err == nil {
+			logger.Debug("got response!!")
 			q.pushBlockResponse(resp, req.to)
 			return
 		}
@@ -368,6 +383,8 @@ func (q *syncQueue) trySync(req *syncRequest) {
 		peers = append(peers, p.pid)
 	}
 
+	logger.Debug("trying prioritized peers...")
+
 	for _, peer := range peers {
 		resp, err := q.syncWithPeer(peer, req.req)
 		if err != nil {
@@ -375,6 +392,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 			continue
 		}
 
+		logger.Debug("got response!!")
 		q.pushBlockResponse(resp, peer)
 		return
 	}
@@ -391,6 +409,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 			continue
 		}
 
+		logger.Debug("got response!!")
 		q.pushBlockResponse(resp, peer)
 		return
 	}
@@ -405,7 +424,9 @@ func (q *syncQueue) syncWithPeer(peer peer.ID, req *BlockRequestMessage) (*Block
 	defer q.s.host.h.ConnManager().Unprotect(peer, "")
 	defer q.s.host.closeStream(peer, fullSyncID)
 
-	s, err := q.s.host.h.NewStream(q.ctx, peer, fullSyncID)
+	ctx, cancel := context.WithTimeout(q.ctx, time.Second*5)
+	defer cancel()
+	s, err := q.s.host.h.NewStream(ctx, peer, fullSyncID)
 	if err != nil {
 		return nil, err
 	}
@@ -462,7 +483,7 @@ func (q *syncQueue) processBlockResponses() {
 
 // handleBlockAnnounceHandshake handles a block that a peer claims to have through a HandleBlockAnnounceHandshake
 func (q *syncQueue) handleBlockAnnounceHandshake(blockNum uint32, from peer.ID) {
-	q.peerScore[from]++
+	q.updatePeerScore(from, 1)
 
 	bestNum, err := q.s.blockState.BestBlockNumber()
 	if err != nil {
@@ -479,7 +500,7 @@ func (q *syncQueue) handleBlockAnnounceHandshake(blockNum uint32, from peer.ID) 
 }
 
 func (q *syncQueue) handleBlockAnnounce(msg *BlockAnnounceMessage, from peer.ID) {
-	q.peerScore[from]++
+	q.updatePeerScore(from, 1)
 
 	header, err := types.NewHeader(
 		msg.ParentHash,
