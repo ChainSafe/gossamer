@@ -208,11 +208,11 @@ func (q *syncQueue) benchmark() {
 		head, err := q.s.blockState.BestBlockNumber()
 		if err != nil {
 			logger.Error("failed to get best block number", "error", err)
-			return // TODO: handle this / panic?
+			continue // TODO: handle this / panic?
 		}
 
 		if head.Int64() >= q.goal {
-			return
+			continue
 		}
 
 		q.benchmarker.begin(head.Uint64())
@@ -221,7 +221,7 @@ func (q *syncQueue) benchmark() {
 		head, err = q.s.blockState.BestBlockNumber()
 		if err != nil {
 			logger.Error("failed to get best block number", "error", err)
-			return // TODO: handle this / panic?
+			continue // TODO: handle this / panic?
 		}
 
 		q.benchmarker.end(head.Uint64())
@@ -366,7 +366,6 @@ func (q *syncQueue) trySync(req *syncRequest) {
 	if len(req.to) != 0 {
 		resp, err := q.syncWithPeer(req.to, req.req)
 		if err == nil {
-			logger.Debug("got response!!")
 			q.pushBlockResponse(resp, req.to)
 			return
 		}
@@ -391,7 +390,6 @@ func (q *syncQueue) trySync(req *syncRequest) {
 			continue
 		}
 
-		logger.Debug("got response!!")
 		q.pushBlockResponse(resp, peer)
 		return
 	}
@@ -409,7 +407,6 @@ func (q *syncQueue) trySync(req *syncRequest) {
 			continue
 		}
 
-		logger.Debug("got response!!")
 		q.pushBlockResponse(resp, peer)
 		return
 	}
