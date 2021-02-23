@@ -19,11 +19,15 @@ package runtime
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"math/bits"
 )
 
 // This module implements a freeing-bump allocator
 // see more details at https://github.com/paritytech/substrate/issues/1615
+
+// DefaultHeapBase is the default heap base value (offset) used when the runtime does not provide one
+const DefaultHeapBase = uint32(1306768) //uint32(1290392)
 
 // The pointers need to be aligned to 8 bytes
 const alignment uint32 = 8
@@ -32,7 +36,7 @@ const alignment uint32 = 8
 const HeadsQty = 22
 
 // MaxPossibleAllocation 2^24 bytes
-const MaxPossibleAllocation = 16777216 // 2^24 bytes
+const MaxPossibleAllocation = (1 << 24)
 
 // FreeingBumpHeapAllocator struct
 type FreeingBumpHeapAllocator struct {
@@ -41,7 +45,7 @@ type FreeingBumpHeapAllocator struct {
 	heap        Memory
 	maxHeapSize uint32
 	ptrOffset   uint32
-	TotalSize   uint32
+	totalSize   uint32
 }
 
 // NewAllocator Creates a new allocation heap which follows a freeing-bump strategy.
@@ -59,23 +63,36 @@ type FreeingBumpHeapAllocator struct {
 // * returns a pointer to an initilized FreeingBumpHeapAllocator
 func NewAllocator(mem Memory, ptrOffset uint32) *FreeingBumpHeapAllocator {
 	fbha := new(FreeingBumpHeapAllocator)
-	currentSize := mem.Length()
 
 	padding := ptrOffset % alignment
 	if padding != 0 {
 		ptrOffset += alignment - padding
 	}
 
-	// we don't include offset memory in the heap
-	heapSize := currentSize - ptrOffset
+	if mem.Length() <= ptrOffset {
+		err := mem.Grow(((ptrOffset - mem.Length()) / PageSize) + 1)
+		if err != nil {
+			panic(err)
+		}
+	}
 
 	fbha.bumper = 0
 	fbha.heap = mem
-	fbha.maxHeapSize = heapSize
+	fbha.maxHeapSize = mem.Length() - alignment
 	fbha.ptrOffset = ptrOffset
-	fbha.TotalSize = 0
+	fbha.totalSize = 0
 
 	return fbha
+}
+
+func (fbha *FreeingBumpHeapAllocator) growHeap(numPages uint32) error {
+	err := fbha.heap.Grow(numPages)
+	if err != nil {
+		return err
+	}
+
+	fbha.maxHeapSize = fbha.heap.Length() - alignment
+	return nil
 }
 
 // Allocate determines if there is space available in WASM heap to grow the heap by 'size'.  If there is space
@@ -89,9 +106,12 @@ func (fbha *FreeingBumpHeapAllocator) Allocate(size uint32) (uint32, error) {
 	}
 	itemSize := nextPowerOf2GT8(size)
 
-	if (itemSize + 8 + fbha.TotalSize) > fbha.maxHeapSize {
-		err := errors.New("allocator out of space")
-		return 0, err
+	if (itemSize + fbha.totalSize + fbha.ptrOffset) > fbha.maxHeapSize {
+		pagesNeeded := ((itemSize + fbha.totalSize + fbha.ptrOffset) - fbha.maxHeapSize) / PageSize
+		err := fbha.growHeap(pagesNeeded + 1)
+		if err != nil {
+			return 0, fmt.Errorf("allocator out of space; failed to grow heap; %w", err)
+		}
 	}
 
 	// get pointer based on list_index
@@ -100,7 +120,6 @@ func (fbha *FreeingBumpHeapAllocator) Allocate(size uint32) (uint32, error) {
 	var ptr uint32
 	if item := fbha.heads[listIndex]; item != 0 {
 		// Something from the free list
-		item := fbha.heads[listIndex]
 		fourBytes := fbha.getHeap4bytes(item)
 		fbha.heads[listIndex] = binary.LittleEndian.Uint32(fourBytes)
 		ptr = item + 8
@@ -109,12 +128,20 @@ func (fbha *FreeingBumpHeapAllocator) Allocate(size uint32) (uint32, error) {
 		ptr = fbha.bump(itemSize+8) + 8
 	}
 
+	if (ptr + itemSize + fbha.ptrOffset) > fbha.maxHeapSize {
+		pagesNeeded := (ptr + itemSize + fbha.ptrOffset - fbha.maxHeapSize) / PageSize
+		err := fbha.growHeap(pagesNeeded + 1)
+		if err != nil {
+			return 0, fmt.Errorf("allocator out of space; failed to grow heap; %w", err)
+		}
+	}
+
 	// write "header" for allocated memory to heap
 	for i := uint32(1); i <= 8; i++ {
 		fbha.setHeap(ptr-i, 255)
 	}
 	fbha.setHeap(ptr-8, uint8(listIndex))
-	fbha.TotalSize = fbha.TotalSize + itemSize + 8
+	fbha.totalSize = fbha.totalSize + itemSize + 8
 	return fbha.ptrOffset + ptr, nil
 }
 
@@ -136,7 +163,7 @@ func (fbha *FreeingBumpHeapAllocator) Deallocate(pointer uint32) error {
 
 	// update heap total size
 	itemSize := getItemSizeFromIndex(uint(listIndex))
-	fbha.TotalSize = fbha.TotalSize - uint32(itemSize+8)
+	fbha.totalSize = fbha.totalSize - uint32(itemSize+8)
 
 	return nil
 }
@@ -144,7 +171,7 @@ func (fbha *FreeingBumpHeapAllocator) Deallocate(pointer uint32) error {
 // Clear resets the allocator, effectively freeing all allocated memory
 func (fbha *FreeingBumpHeapAllocator) Clear() {
 	fbha.bumper = 0
-	fbha.TotalSize = 0
+	fbha.totalSize = 0
 
 	for i := range fbha.heads {
 		fbha.heads[i] = 0
