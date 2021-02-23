@@ -103,8 +103,8 @@ func TestHandleBlockAnnounceMessage(t *testing.T) {
 		Number: big.NewInt(10),
 	}
 
-	s.handleBlockAnnounceMessage(peerID, msg)
-	require.NotNil(t, s.syncQueue.isSyncing(peerID))
+	err := s.handleBlockAnnounceMessage(peerID, msg)
+	require.NoError(t, err)
 }
 
 func TestValidateBlockAnnounceHandshake(t *testing.T) {

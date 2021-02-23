@@ -6,7 +6,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/scale"
-	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // Pair is a pair of arbitrary bytes.
@@ -263,18 +262,18 @@ func (rh *RemoteHeaderResponse) String() string {
 	return fmt.Sprintf("Header =%s Proof =%s", rh.Header, string(rh.proof))
 }
 
-func remoteCallResp(peer peer.ID, req *RemoteCallRequest) (*RemoteCallResponse, error) {
+func remoteCallResp(req *RemoteCallRequest) (*RemoteCallResponse, error) {
 	return &RemoteCallResponse{}, nil
 }
-func remoteChangeResp(peer peer.ID, req *RemoteChangesRequest) (*RemoteChangesResponse, error) {
+func remoteChangeResp(req *RemoteChangesRequest) (*RemoteChangesResponse, error) {
 	return &RemoteChangesResponse{}, nil
 }
-func remoteHeaderResp(peer peer.ID, req *RemoteHeaderRequest) (*RemoteHeaderResponse, error) {
+func remoteHeaderResp(req *RemoteHeaderRequest) (*RemoteHeaderResponse, error) {
 	return &RemoteHeaderResponse{}, nil
 }
-func remoteReadChildResp(peer peer.ID, req *RemoteReadChildRequest) (*RemoteReadResponse, error) {
+func remoteReadChildResp(req *RemoteReadChildRequest) (*RemoteReadResponse, error) {
 	return &RemoteReadResponse{}, nil
 }
-func remoteReadResp(peer peer.ID, req *RemoteReadRequest) (*RemoteReadResponse, error) {
+func remoteReadResp(req *RemoteReadRequest) (*RemoteReadResponse, error) {
 	return &RemoteReadResponse{}, nil
 }

@@ -36,12 +36,7 @@ func TestDecodeSyncMessage(t *testing.T) {
 	}
 
 	s.syncQueue = newSyncQueue(s)
-
 	testPeer := peer.ID("noot")
-
-	testBlockResponseMessage := &BlockResponseMessage{
-		BlockData: []*types.BlockData{},
-	}
 
 	reqEnc, err := testBlockRequestMessage.Encode()
 	require.NoError(t, err)
@@ -52,66 +47,9 @@ func TestDecodeSyncMessage(t *testing.T) {
 	req, ok := msg.(*BlockRequestMessage)
 	require.True(t, ok)
 	require.Equal(t, testBlockRequestMessage, req)
-
-	s.syncQueue.syncing[testPeer] = struct{}{}
-
-	respEnc, err := testBlockResponseMessage.Encode()
-	require.NoError(t, err)
-
-	msg, err = s.decodeSyncMessage(respEnc, testPeer)
-	require.NoError(t, err)
-	resp, ok := msg.(*BlockResponseMessage)
-	require.True(t, ok)
-	require.Equal(t, testBlockResponseMessage, resp)
 }
 
-func TestBeginSyncingProtectsPeer(t *testing.T) {
-	configA := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeA"),
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true,
-		NoMDNS:      true,
-	}
-
-	nodeA := createTestService(t, configA)
-	nodeA.noGossip = true
-	nodeA.syncQueue.stop()
-
-	configB := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeB"),
-		Port:        7002,
-		RandSeed:    2,
-		NoBootstrap: true,
-		NoMDNS:      true,
-	}
-
-	nodeB := createTestService(t, configB)
-	nodeB.noGossip = true
-	nodeB.syncQueue.stop()
-
-	// connect A and B
-	addrInfosB, err := nodeB.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosB[0])
-	if failedToDial(err) {
-		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosB[0])
-	}
-	require.NoError(t, err)
-
-	var (
-		peerID = nodeB.host.id()
-		msg    = testBlockRequestMessage
-	)
-
-	err = nodeA.syncQueue.beginSyncingWithPeer(peerID, msg)
-	require.NoError(t, err)
-	require.True(t, nodeA.host.h.ConnManager().IsProtected(peerID, ""))
-}
-
-func TestHandleSyncMessage_BlockResponse(t *testing.T) {
+func TestSyncQueue_PushBlockResponse(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "nodeA")
 	config := &Config{
 		BasePath:    basePath,
@@ -136,19 +74,8 @@ func TestHandleSyncMessage_BlockResponse(t *testing.T) {
 		},
 	}
 
-	var br *blockRange
-	go func() {
-		br = <-s.syncQueue.gotRespCh
-	}()
-
-	s.syncQueue.syncing[peerID] = struct{}{}
-	s.handleSyncMessage(peerID, msg)
+	s.syncQueue.pushBlockResponse(msg, peerID)
 	require.Equal(t, 1, len(s.syncQueue.responses))
-	require.Equal(t, &blockRange{
-		start: 77,
-		end:   77,
-		from:  peerID,
-	}, br)
 }
 
 func TestSortRequests(t *testing.T) {
@@ -402,7 +329,7 @@ func TestSyncQueue_ProcessBlockRequests(t *testing.T) {
 		req: testBlockRequestMessage,
 	}
 
-	time.Sleep(time.Second)
+	time.Sleep(time.Second * 2)
 	require.Equal(t, 3, len(nodeA.syncQueue.responses))
 	testResp := testBlockResponseMessage()
 	require.Equal(t, testResp.BlockData, nodeA.syncQueue.responses)
