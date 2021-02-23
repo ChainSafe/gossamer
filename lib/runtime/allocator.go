@@ -134,6 +134,7 @@ func (fbha *FreeingBumpHeapAllocator) Allocate(size uint32) (uint32, error) {
 		if err != nil {
 			return 0, fmt.Errorf("allocator out of space; failed to grow heap; %w", err)
 		}
+
 		if fbha.maxHeapSize < (ptr + itemSize + fbha.ptrOffset) {
 			panic(fmt.Sprintf("failed to grow heap, want %d have %d", (ptr + itemSize + fbha.ptrOffset), fbha.maxHeapSize))
 		}
