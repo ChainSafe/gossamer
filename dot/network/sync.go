@@ -270,9 +270,9 @@ func (q *syncQueue) getSortedPeers() []*syncPeer {
 func (q *syncQueue) updatePeerScore(pid peer.ID, amt int) {
 	score, ok := q.peerScore.Load(pid)
 	if !ok {
-		q.peerScore.Store(pid, 1)
+		q.peerScore.Store(pid, amt)
 	} else {
-		q.peerScore.Store(pid, score.(int)+1)
+		q.peerScore.Store(pid, score.(int)+amt)
 	}
 }
 
