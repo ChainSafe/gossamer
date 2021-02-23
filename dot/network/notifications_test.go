@@ -208,6 +208,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 		err = s.host.connect(*addrInfosB[0])
 	}
 	require.NoError(t, err)
+	s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[testPeerID] = &handshakeData{}
 
 	// try valid handshake
 	testHandshake = &BlockAnnounceHandshake{
@@ -216,7 +217,6 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 		BestBlockHash:   common.Hash{1},
 		GenesisHash:     s.blockState.GenesisHash(),
 	}
-
 	err = handler(testPeerID, testHandshake)
 	require.NoError(t, err)
 	require.True(t, info.handshakeData[testPeerID].received)
