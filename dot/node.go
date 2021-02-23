@@ -119,20 +119,6 @@ func NodeInitialized(basepath string, expected bool) bool {
 		return false
 	}
 
-	// check if manifest exists
-	manifest := path.Join(basepath, "MANIFEST")
-	_, err = os.Stat(manifest)
-	if os.IsNotExist(err) {
-		if expected {
-			logger.Warn(
-				"node has not been initialized",
-				"basepath", basepath,
-				"error", "failed to locate MANIFEST file in data directory",
-			)
-		}
-		return false
-	}
-
 	// initialize database using data directory
 	db, err := chaindb.NewBadgerDB(&chaindb.Config{
 		DataDir: basepath,

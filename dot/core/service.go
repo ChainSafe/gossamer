@@ -16,7 +16,6 @@
 package core
 
 import (
-	"bytes"
 	"context"
 	"os"
 	"sync"
@@ -27,7 +26,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 
@@ -208,6 +206,10 @@ func (s *Service) Stop() error {
 	return nil
 }
 
+func (s *Service) SetRuntime(rt runtime.Instance) {
+	s.rt = rt
+}
+
 // StorageRoot returns the hash of the storage root
 func (s *Service) StorageRoot() (common.Hash, error) {
 	if s.storageState == nil {
@@ -244,9 +246,9 @@ func (s *Service) handleBlocks(ctx context.Context) {
 				logger.Warn("failed to maintain transaction pool", "error", err)
 			}
 
-			if err := s.handleRuntimeChanges(block.Header); err != nil {
-				logger.Warn("failed to handle runtime change for block", "block", block.Header.Hash(), "error", err)
-			}
+			// if err := s.handleRuntimeChanges(block.Header); err != nil {
+			// 	logger.Warn("failed to handle runtime change for block", "block", block.Header.Hash(), "error", err)
+			// }
 		case <-ctx.Done():
 			return
 		}
@@ -324,60 +326,60 @@ func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
 	return nil
 }
 
-// handleRuntimeChanges checks if changes to the runtime code have occurred; if so, load the new runtime
-// It also updates the BABE service and block verifier with the new runtime
-func (s *Service) handleRuntimeChanges(_ *types.Header) error {
-	sr, err := s.blockState.BestBlockStateRoot()
-	if err != nil {
-		return err
-	}
+// // handleRuntimeChanges checks if changes to the runtime code have occurred; if so, load the new runtime
+// // It also updates the BABE service and block verifier with the new runtime
+// func (s *Service) handleRuntimeChanges(_ *types.Header) error {
+// 	sr, err := s.blockState.BestBlockStateRoot()
+// 	if err != nil {
+// 		return err
+// 	}
 
-	currentCodeHash, err := s.storageState.LoadCodeHash(&sr)
-	if err != nil {
-		return err
-	}
+// 	currentCodeHash, err := s.storageState.LoadCodeHash(&sr)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	if !bytes.Equal(currentCodeHash[:], s.codeHash[:]) {
-		logger.Debug("detected runtime code change", "block", s.blockState.BestBlockHash(), "previous code hash", s.codeHash, "new code hash", currentCodeHash)
-		code, err := s.storageState.LoadCode(&sr)
-		if err != nil {
-			return err
-		}
+// 	if !bytes.Equal(currentCodeHash[:], s.codeHash[:]) {
+// 		logger.Debug("detected runtime code change", "block", s.blockState.BestBlockHash(), "previous code hash", s.codeHash, "new code hash", currentCodeHash)
+// 		code, err := s.storageState.LoadCode(&sr)
+// 		if err != nil {
+// 			return err
+// 		}
 
-		if len(code) == 0 {
-			return ErrEmptyRuntimeCode
-		}
+// 		if len(code) == 0 {
+// 			return ErrEmptyRuntimeCode
+// 		}
 
-		s.rt.Stop()
+// 		s.rt.Stop()
 
-		ts, err := s.storageState.TrieState(&sr)
-		if err != nil {
-			return err
-		}
+// 		ts, err := s.storageState.TrieState(&sr)
+// 		if err != nil {
+// 			return err
+// 		}
 
-		cfg := &wasmer.Config{
-			Imports: wasmer.ImportsNodeRuntime,
-		}
-		cfg.Storage = ts
-		cfg.Keystore = s.keys.Acco.(*keystore.GenericKeystore)
-		cfg.LogLvl = -1
-		cfg.NodeStorage = s.rt.NodeStorage()
-		cfg.Network = s.rt.NetworkService()
+// 		cfg := &wasmer.Config{
+// 			Imports: wasmer.ImportsNodeRuntime,
+// 		}
+// 		cfg.Storage = ts
+// 		cfg.Keystore = s.keys.Acco.(*keystore.GenericKeystore)
+// 		cfg.LogLvl = -1
+// 		cfg.NodeStorage = s.rt.NodeStorage()
+// 		cfg.Network = s.rt.NetworkService()
 
-		s.rt, err = wasmer.NewInstance(code, cfg)
-		if err != nil {
-			return err
-		}
+// 		s.rt, err = wasmer.NewInstance(code, cfg)
+// 		if err != nil {
+// 			return err
+// 		}
 
-		if s.isBlockProducer {
-			s.blockProducer.SetRuntime(s.rt)
-		}
+// 		if s.isBlockProducer {
+// 			s.blockProducer.SetRuntime(s.rt)
+// 		}
 
-		// TODO: set syncer runtime
-	}
+// 		// TODO: set syncer runtime
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 // handleChainReorg checks if there is a chain re-org (ie. new chain head is on a different chain than the
 // previous chain head). If there is a re-org, it moves the transactions that were included on the previous

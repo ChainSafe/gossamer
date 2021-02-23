@@ -17,6 +17,7 @@
 package sync
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"math/big"
@@ -26,6 +27,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	//	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 
 	log "github.com/ChainSafe/log15"
 )
@@ -323,6 +326,40 @@ func (s *Service) handleBlock(block *types.Block) error {
 				s.logger.Error("failed to handle block digest", "error", err)
 			}
 		}()
+	}
+
+	return s.handleRuntimeChanges(parentState, ts)
+}
+
+func (s *Service) handleRuntimeChanges(parentState, newState *rtstorage.TrieState) error {
+	prevCodeHash, err := parentState.LoadCodeHash()
+	if err != nil {
+		return err
+	}
+
+	currCodeHash, err := newState.LoadCodeHash()
+	if err != nil {
+		return err
+	}
+
+	if bytes.Equal(prevCodeHash[:], currCodeHash[:]) {
+		return nil
+	}
+
+	s.logger.Info("🔄 detected runtime code change", "block", s.blockState.BestBlockHash(), "previous code hash", prevCodeHash, "new code hash", currCodeHash)
+	code, err := newState.LoadCode()
+	if err != nil {
+		return err
+	}
+
+	if len(code) == 0 {
+		return ErrEmptyRuntimeCode
+	}
+
+	err = s.runtime.UpdateRuntimeCode(code)
+	if err != nil {
+		s.logger.Crit("failed to update runtime code", "error", err)
+		return err
 	}
 
 	return nil

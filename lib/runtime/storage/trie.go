@@ -248,3 +248,18 @@ func (s *TrieState) GetBalance(key [32]byte) (uint64, error) {
 
 	return binary.LittleEndian.Uint64(bal), nil
 }
+
+// LoadCode returns the runtime code (located at :code)
+func (s *TrieState) LoadCode() ([]byte, error) {
+	return s.Get(common.CodeKey)
+}
+
+// LoadCodeHash returns the hash of the runtime code (located at :code)
+func (s *TrieState) LoadCodeHash() (common.Hash, error) {
+	code, err := s.LoadCode()
+	if err != nil {
+		return common.NewHash([]byte{}), err
+	}
+
+	return common.Blake2bHash(code)
+}
