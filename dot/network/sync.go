@@ -330,9 +330,6 @@ func (q *syncQueue) setBlockRequests(to peer.ID) {
 	// we are currently syncing some blocks, don't have any other blocks to process queued
 	if q.currEnd != 0 && len(q.responses) == 0 {
 		start = q.currEnd + 1
-	} else if len(q.responses) != 0 && q.responses[0].Number().Int64() <= q.currEnd {
-		// we have some responses queued, and the next
-		start = q.responses[len(q.responses)-1].Number().Int64()
 	} else {
 		// we aren't syncing anything and don't have anything queued
 		start = head.Int64() + 1
@@ -511,6 +508,8 @@ func (q *syncQueue) processBlockResponses() {
 
 			if data[len(data)-1].Number().Int64() <= bestNum.Int64() {
 				logger.Debug("ignoring block data that is below our head", "got", data[len(data)-1].Number().Int64(), "head", bestNum.Int64())
+				q.currStart = 0
+				q.currEnd = 0
 				continue
 			}
 
