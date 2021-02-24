@@ -68,7 +68,7 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	cfg.ProtocolID = TestProtocolID // default "/gossamer/gssmr/0"
 
 	if cfg.LogLvl == 0 {
-		cfg.LogLvl = 3
+		cfg.LogLvl = 4
 	}
 
 	if cfg.Syncer == nil {
@@ -123,7 +123,7 @@ func TestBroadcastMessages(t *testing.T) {
 	nodeB := createTestService(t, configB)
 	defer nodeB.Stop()
 	nodeB.noGossip = true
-	handler := newTestStreamHandler(testBlockAnnounceMessageDecoder)
+	handler := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
 	nodeB.host.registerStreamHandler(blockAnnounceID, handler.handleStream)
 
 	addrInfosB, err := nodeB.host.addrInfos()
@@ -139,8 +139,8 @@ func TestBroadcastMessages(t *testing.T) {
 
 	// simulate message sent from core service
 	nodeA.SendMessage(testBlockAnnounceMessage)
-	time.Sleep(time.Second)
-	require.NotNil(t, nodeB.syncQueue.isSyncing(nodeA.host.id()))
+	time.Sleep(time.Second * 2)
+	require.NotNil(t, handler.messages[nodeA.host.id()])
 }
 
 func TestService_NodeRoles(t *testing.T) {
