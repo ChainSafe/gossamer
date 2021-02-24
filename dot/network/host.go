@@ -89,7 +89,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 
 	privateIPs := ma.NewFilters()
 	for _, cidr := range privateCIDRs {
-		_, ipnet, err := net.ParseCIDR(cidr)
+		_, ipnet, err := net.ParseCIDR(cidr) //nolint
 		if err != nil {
 			return nil, err
 		}
