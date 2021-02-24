@@ -262,10 +262,7 @@ func (h *DigestHandler) handleScheduledChange(d *types.ConsensusDigest) error {
 	}
 
 	if d.ConsensusEngineID == types.GrandpaEngineID {
-		logger.Debug("handling GrandpaScheduledChange", "digest", d)
-
 		if h.grandpaScheduledChange != nil {
-			//return errors.New("already have scheduled change scheduled")
 			return nil
 		}
 
@@ -279,7 +276,7 @@ func (h *DigestHandler) handleScheduledChange(d *types.ConsensusDigest) error {
 		logger.Debug("handling GrandpaScheduledChange", "data", sc)
 
 		if h.grandpa == nil {
-			// TODO: this should never happen
+			// this should never happen
 			return nil
 		}
 
@@ -324,8 +321,6 @@ func (h *DigestHandler) handleForcedChange(d *types.ConsensusDigest) error {
 }
 
 func (h *DigestHandler) handleGrandpaOnDisabled(d *types.ConsensusDigest, _ *types.Header) error {
-	logger.Debug("handling GrandpaOnDisabled", "digest", d)
-
 	od := &types.GrandpaOnDisabled{}
 	dec, err := scale.Decode(d.Data[1:], od)
 	if err != nil {
@@ -336,7 +331,7 @@ func (h *DigestHandler) handleGrandpaOnDisabled(d *types.ConsensusDigest, _ *typ
 	logger.Debug("handling GrandpaOnDisabled", "data", od)
 
 	if h.grandpa == nil {
-		// TODO: this should never happen
+		// this should never happen
 		return nil
 	}
 
@@ -416,8 +411,6 @@ func newGrandpaChange(raw []*types.GrandpaAuthoritiesRaw, delay uint32, currBloc
 }
 
 func (h *DigestHandler) handleBABEOnDisabled(d *types.ConsensusDigest, header *types.Header) error {
-	logger.Debug("handling BABEOnDisabled", "digest", d)
-
 	od := &types.BABEOnDisabled{}
 	dec, err := scale.Decode(d.Data[1:], od)
 	if err != nil {
@@ -437,8 +430,6 @@ func (h *DigestHandler) handleBABEOnDisabled(d *types.ConsensusDigest, header *t
 }
 
 func (h *DigestHandler) handleNextEpochData(d *types.ConsensusDigest, header *types.Header) error {
-	logger.Debug("handling BABENextEpochData", "digest", d)
-
 	od := &types.NextEpochData{}
 	dec, err := scale.Decode(d.Data[1:], od)
 	if err != nil {
@@ -468,6 +459,8 @@ func (h *DigestHandler) handleNextConfigData(d *types.ConsensusDigest, header *t
 		return err
 	}
 	od = dec.(*types.NextConfigData)
+
+	logger.Debug("handling BABENextConfigData", "data", od)
 
 	currEpoch, err := h.epochState.GetEpochForBlock(header)
 	if err != nil {

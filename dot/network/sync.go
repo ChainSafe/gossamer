@@ -241,7 +241,7 @@ func (q *syncQueue) benchmark() {
 		head, err := q.s.blockState.BestBlockNumber()
 		if err != nil {
 			logger.Error("failed to get best block number", "error", err)
-			continue // TODO: handle this / panic?
+			continue
 		}
 
 		if head.Int64() >= q.goal {
@@ -254,7 +254,7 @@ func (q *syncQueue) benchmark() {
 		head, err = q.s.blockState.BestBlockNumber()
 		if err != nil {
 			logger.Error("failed to get best block number", "error", err)
-			continue // TODO: handle this / panic?
+			continue
 		}
 
 		q.benchmarker.end(head.Uint64())
@@ -352,7 +352,7 @@ func (q *syncQueue) pushBlockResponse(resp *BlockResponseMessage, pid peer.ID) {
 	head, err := q.s.blockState.BestBlockNumber()
 	if err != nil {
 		logger.Error("failed to get best block number", "error", err)
-		return // TODO: handle this / panic?
+		return
 	}
 
 	start, end, err := resp.getStartAndEnd()
@@ -531,7 +531,7 @@ func (q *syncQueue) handleBlockAnnounceHandshake(blockNum uint32, from peer.ID) 
 	bestNum, err := q.s.blockState.BestBlockNumber()
 	if err != nil {
 		logger.Error("failed to get best block number", "error", err)
-		return // TODO: handle this / panic?
+		return
 	}
 
 	if bestNum.Int64() >= int64(blockNum) || q.goal >= int64(blockNum) {
