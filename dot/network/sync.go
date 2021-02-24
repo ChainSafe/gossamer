@@ -378,18 +378,11 @@ func (q *syncQueue) trySync(req *syncRequest) {
 		q.updatePeerScore(req.to, -1)
 	}
 
-	// try highest scored peers first
-	// var peers []peer.ID
-	// for _, p := range q.getSortedPeers() {
-	// 	peers = append(peers, p.pid)
-	// }
-
+	logger.Debug("trying prioritized peers...")
 	syncPeers := q.getSortedPeers()
 
-	logger.Debug("trying prioritized peers...")
-
 	for _, peer := range syncPeers {
-		// if peer doesn't respond once, then ignore them TODO: determine best values for this
+		// if peer doesn't respond multiple times, then ignore them TODO: determine best values for this
 		if peer.score <= -2 {
 			break
 		}
@@ -411,9 +404,11 @@ func (q *syncQueue) trySync(req *syncRequest) {
 	rand.Shuffle(len(peers), func(i, j int) { peers[i], peers[j] = peers[j], peers[i] })
 
 	for _, peer := range peers {
-		// if peer doesn't respond once, then ignore them TODO: determine best values for this
+		// if peer doesn't respond multiple times, then ignore them TODO: determine best values for this
 		score, ok := q.peerScore.Load(peer)
 		if ok && score.(int) <= -2 {
+			// prune peers with low score TODO: maybe do this in a goroutine somehwere?
+			_ = q.s.host.closePeer(peer)
 			continue
 		}
 
@@ -484,13 +479,16 @@ func (q *syncQueue) processBlockResponses() {
 			logger.Debug("sending block data to syncer", "start", q.currStart, "end", q.currEnd)
 
 			err = q.s.syncer.ProcessBlockData(data)
-			q.currStart = 0
-			q.currEnd = 0
 			if err != nil {
 				logger.Warn("failed to handle block data; re-adding to queue", "start", q.currStart, "end", q.currEnd, "error", err)
+				q.currStart = 0
+				q.currEnd = 0
 				q.setBlockRequests("")
 				continue
 			}
+
+			q.currStart = 0
+			q.currEnd = 0
 		case <-q.ctx.Done():
 			return
 		}
