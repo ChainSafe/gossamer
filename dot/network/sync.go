@@ -211,7 +211,7 @@ func (q *syncQueue) prunePeers() {
 		peers := q.getSortedPeers()
 		numPruned := 0
 
-		for i := len(peers) - 1; i >= 0; i++ {
+		for i := len(peers) - 1; i >= 0; i-- {
 			// we're at our minimum peer count, don't disconnect from any more peers
 			// we should discover more peers via dht between now and the next prune iteration
 			if q.s.host.peerCount() <= q.s.cfg.MinPeers {
