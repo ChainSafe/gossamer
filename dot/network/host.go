@@ -19,6 +19,7 @@ package network
 import (
 	"context"
 	"fmt"
+	"net"
 
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
@@ -34,6 +35,16 @@ import (
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
 )
+
+var privateCIDRs = []string{
+	"127.0.0.1/0",
+	"10.0.0.0/8",
+	"172.16.0.0/12",
+	"192.168.0.0/16",
+	"100.64.0.0/10",
+	"198.18.0.0/15",
+	"169.254.0.0/16",
+}
 
 // host wraps libp2p host with network host configuration and services
 type host struct {
@@ -76,6 +87,16 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		dual.DHTOption(kaddht.Mode(kaddht.ModeAutoServer)),
 	}
 
+	privateIPs := ma.NewFilters()
+	for _, cidr := range privateCIDRs {
+		_, ipnet, err := net.ParseCIDR(cidr)
+		if err != nil {
+			return nil, err
+		}
+
+		privateIPs.AddFilter(*ipnet, ma.ActionDeny)
+	}
+
 	// set libp2p host options
 	opts := []libp2p.Option{
 		libp2p.ListenAddrs(addr),
@@ -84,6 +105,15 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		libp2p.NATPortMap(),
 		libp2p.ConnectionManager(cm),
 		libp2p.ChainOptions(libp2p.DefaultSecurity, libp2p.Security(secio.ID, secio.New)), // TODO: deprecate secio?
+		libp2p.AddrsFactory(func(as []ma.Multiaddr) []ma.Multiaddr {
+			ok := []ma.Multiaddr{}
+			for _, addr := range as {
+				if !privateIPs.AddrBlocked(addr) {
+					ok = append(ok, addr)
+				}
+			}
+			return ok
+		}),
 	}
 
 	// create libp2p host instance
