@@ -197,6 +197,11 @@ func (c *WSConn) handleComm() {
 			continue
 		}
 
+		if strings.Contains(fmt.Sprintf("%s", method), "submitAndWatchExtrinsic") {
+			fmt.Printf("Sub and Watch")
+			continue
+		}
+
 		// handle non-subscribe calls
 		client := &http.Client{}
 		buf := &bytes.Buffer{}
