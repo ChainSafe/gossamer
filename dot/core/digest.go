@@ -262,7 +262,7 @@ func (h *DigestHandler) handleScheduledChange(d *types.ConsensusDigest) error {
 	}
 
 	if d.ConsensusEngineID == types.GrandpaEngineID {
-		logger.Info("handling GrandpaScheduledChange", "digest", d)
+		logger.Debug("handling GrandpaScheduledChange", "digest", d)
 
 		if h.grandpaScheduledChange != nil {
 			return errors.New("already have scheduled change scheduled")
@@ -275,7 +275,7 @@ func (h *DigestHandler) handleScheduledChange(d *types.ConsensusDigest) error {
 		}
 		sc = dec.(*types.GrandpaScheduledChange)
 
-		logger.Info("handling GrandpaScheduledChange", "data", sc)
+		logger.Debug("handling GrandpaScheduledChange", "data", sc)
 
 		if h.grandpa == nil {
 			// TODO: this should never happen
@@ -323,7 +323,7 @@ func (h *DigestHandler) handleForcedChange(d *types.ConsensusDigest) error {
 }
 
 func (h *DigestHandler) handleGrandpaOnDisabled(d *types.ConsensusDigest, _ *types.Header) error {
-	logger.Info("handling GrandpaOnDisabled", "digest", d)
+	logger.Debug("handling GrandpaOnDisabled", "digest", d)
 
 	od := &types.GrandpaOnDisabled{}
 	dec, err := scale.Decode(d.Data[1:], od)
@@ -332,7 +332,7 @@ func (h *DigestHandler) handleGrandpaOnDisabled(d *types.ConsensusDigest, _ *typ
 	}
 	od = dec.(*types.GrandpaOnDisabled)
 
-	logger.Info("handling GrandpaOnDisabled", "data", od)
+	logger.Debug("handling GrandpaOnDisabled", "data", od)
 
 	if h.grandpa == nil {
 		// TODO: this should never happen
@@ -415,7 +415,7 @@ func newGrandpaChange(raw []*types.GrandpaAuthoritiesRaw, delay uint32, currBloc
 }
 
 func (h *DigestHandler) handleBABEOnDisabled(d *types.ConsensusDigest, header *types.Header) error {
-	logger.Info("handling BABEOnDisabled", "digest", d)
+	logger.Debug("handling BABEOnDisabled", "digest", d)
 
 	od := &types.BABEOnDisabled{}
 	dec, err := scale.Decode(d.Data[1:], od)
@@ -424,7 +424,7 @@ func (h *DigestHandler) handleBABEOnDisabled(d *types.ConsensusDigest, header *t
 	}
 	od = dec.(*types.BABEOnDisabled)
 
-	logger.Info("handling BABEOnDisabled", "data", od)
+	logger.Debug("handling BABEOnDisabled", "data", od)
 
 	err = h.verifier.SetOnDisabled(od.ID, header)
 	if err != nil {
@@ -436,7 +436,7 @@ func (h *DigestHandler) handleBABEOnDisabled(d *types.ConsensusDigest, header *t
 }
 
 func (h *DigestHandler) handleNextEpochData(d *types.ConsensusDigest, header *types.Header) error {
-	logger.Info("handling BABENextEpochData", "digest", d)
+	logger.Debug("handling BABENextEpochData", "digest", d)
 
 	od := &types.NextEpochData{}
 	dec, err := scale.Decode(d.Data[1:], od)
@@ -445,7 +445,7 @@ func (h *DigestHandler) handleNextEpochData(d *types.ConsensusDigest, header *ty
 	}
 	od = dec.(*types.NextEpochData)
 
-	logger.Info("handling BABENextEpochData", "data", od)
+	logger.Debug("handling BABENextEpochData", "data", od)
 
 	currEpoch, err := h.epochState.GetEpochForBlock(header)
 	if err != nil {
