@@ -86,10 +86,11 @@ func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) er
 }
 
 var (
-	blockRequestSize      uint32 = 128
-	blockRequestQueueSize int64  = 8
-	maxBlockResponseSize  uint64 = 1024 * 1024 * 4 // 4mb
-	badPeerThreshold      int    = -3
+	blockRequestSize       uint32 = 128
+	blockRequestQueueSize  int64  = 8
+	maxBlockResponseSize   uint64 = 1024 * 1024 * 4 // 4mb
+	badPeerThreshold       int    = -3
+	protectedPeerThreshold int    = 4
 )
 
 type syncPeer struct {
@@ -229,6 +230,16 @@ func (q *syncQueue) prunePeers() {
 		}
 
 		logger.Debug("✂️ finished pruning", "pruned count", numPruned, "peer count", q.s.host.peerCount())
+
+		// protect peers with a high score so we don't disconnect from them
+		for i := 0; i < len(peers); i++ {
+			if peers[i].score < protectedPeerThreshold {
+				_ = q.s.host.cm.Unprotect(peers[i].pid, "")
+				continue
+			}
+
+			q.s.host.cm.Protect(peers[i].pid, "")
+		}
 	}
 }
 
