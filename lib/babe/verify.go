@@ -188,14 +188,15 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 
 	v.lock.Unlock()
 
-	isDisabled, err := v.isDisabled(epoch, header)
-	if err != nil {
-		return fmt.Errorf("failed to check if authority is disabled: %w", err)
-	}
+	// TODO: fix and re-add this, seems like we are disabling authorities that aren't actually disabled
+	// isDisabled, err := v.isDisabled(epoch, header)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to check if authority is disabled: %w", err)
+	// }
 
-	if isDisabled {
-		return ErrAuthorityDisabled
-	}
+	// if isDisabled {
+	// 	return ErrAuthorityDisabled
+	// }
 
 	verifier, err := newVerifier(v.blockState, epoch, info)
 	if err != nil {
