@@ -130,31 +130,26 @@ func (bh *Header) Decode(r io.Reader) (*Header, error) {
 
 	ph, err := sd.Decode(common.Hash{})
 	if err != nil {
-		fmt.Println("failed to decode ParentHash")
 		return nil, err
 	}
 
 	num, err := sd.Decode(big.NewInt(0))
 	if err != nil {
-		fmt.Println("failed to decode Number")
 		return nil, err
 	}
 
 	sr, err := sd.Decode(common.Hash{})
 	if err != nil {
-		fmt.Println("failed to decode StateRoot")
 		return nil, err
 	}
 
 	er, err := sd.Decode(common.Hash{})
 	if err != nil {
-		fmt.Println("failed to decode ExtrinsicsRoot")
 		return nil, err
 	}
 
 	d, err := DecodeDigest(r)
 	if err != nil {
-		fmt.Println("failed to decode Digest")
 		return nil, err
 	}
 

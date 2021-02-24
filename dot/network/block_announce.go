@@ -230,16 +230,20 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 	}
 
 	np.mapMu.RLock()
-	defer np.mapMu.RUnlock()
-
-	_, ok = np.handshakeData[peer]
+	data, ok := np.handshakeData[peer]
 	if !ok {
-		return errors.New("peer handshake data is nil")
+		np.handshakeData[peer] = &handshakeData{
+			received:  true,
+			validated: true,
+		}
+		data = np.handshakeData[peer]
 	}
+	np.mapMu.RUnlock()
+
+	data.handshake = hs
 
 	// check if peer block number is greater than host block number
 	if latestHeader.Number.Cmp(bestBlockNum) >= 0 {
-		s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].handshake = hs
 		return nil
 	}
 
@@ -255,7 +259,6 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 		s.syncQueue.handleBlockAnnounceHandshake(bhs.BestBlockNumber, peer)
 	}()
 
-	s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].handshake = hs
 	return nil
 }
 

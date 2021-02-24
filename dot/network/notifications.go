@@ -21,6 +21,7 @@ import (
 	"math/rand"
 	"sync"
 
+	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 )
@@ -81,14 +82,15 @@ func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecode
 }
 
 func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol, handshakeValidator HandshakeValidator, messageHandler NotificationsMessageHandler) messageHandler {
-	return func(peer peer.ID, m Message) error {
+	return func(stream libp2pnetwork.Stream, m Message) error {
 		if m == nil || info == nil || handshakeValidator == nil || messageHandler == nil {
 			return nil
 		}
 
 		var (
-			ok  bool
-			msg NotificationsMessage
+			ok   bool
+			msg  NotificationsMessage
+			peer = stream.Conn().RemotePeer()
 		)
 
 		if msg, ok = m.(NotificationsMessage); !ok {
@@ -143,7 +145,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 				err := handshakeValidator(peer, hs)
 				if err != nil {
 					logger.Debug("failed to validate handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
-					delete(info.handshakeData, peer)
+					info.handshakeData[peer].validated = false
 					return errCannotValidateHandshake
 				}
 

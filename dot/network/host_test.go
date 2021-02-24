@@ -22,70 +22,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
-	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
 	"github.com/stretchr/testify/require"
 )
-
-func TestMessageSize(t *testing.T) {
-	size := 100000
-	msg := make([]byte, size)
-	msg[0] = 77
-
-	nodes := make([]*Service, 2)
-	errs := make([]chan error, 2)
-
-	for i := range nodes {
-		errCh := make(chan error)
-
-		config := &Config{
-			Port:        7000 + uint32(i),
-			RandSeed:    1 + int64(i),
-			NoBootstrap: true,
-			NoMDNS:      true,
-			ErrChan:     errCh,
-			LogLvl:      log.LvlTrace,
-		}
-		node := createTestService(t, config)
-		defer node.Stop()
-		nodes[i] = node
-		errs[i] = errCh
-		handler := newTestStreamHandler(testBlockRequestMessageDecoder)
-		node.host.registerStreamHandler("", handler.handleStream)
-	}
-
-	addrs := nodes[0].host.multiaddrs()
-	ainfo, err := peer.AddrInfoFromP2pAddr(addrs[1])
-	require.NoError(t, err)
-
-	for i, n := range nodes {
-		if i == 0 {
-			// connect other nodes to first node
-			continue
-		}
-
-		err = n.host.connect(*ainfo)
-		require.NoError(t, err, i)
-	}
-
-	err = nodes[0].host.sendBytes(nodes[1].host.id(), "", msg)
-	require.NoError(t, err)
-	time.Sleep(time.Second)
-	err = nodes[1].host.sendBytes(nodes[0].host.id(), "", msg)
-	require.NoError(t, err)
-	time.Sleep(time.Second)
-
-	select {
-	case err := <-errs[0]:
-		t.Fatal("got error", err)
-	case err := <-errs[1]:
-		t.Fatal("got error", err)
-	case <-time.After(time.Millisecond * 100):
-	}
-}
 
 // test host connect method
 func TestConnect(t *testing.T) {
@@ -417,8 +360,8 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
-	handlerA := newTestStreamHandler(testBlockAnnounceMessageDecoder)
-	nodeA.host.registerStreamHandler("", handlerA.handleStream)
+	handlerA := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
+	nodeA.host.registerStreamHandler(blockAnnounceID, handlerA.handleStream)
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
@@ -431,8 +374,8 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 
 	nodeB := createTestService(t, configB)
 	nodeB.noGossip = true
-	handlerB := newTestStreamHandler(testBlockAnnounceMessageDecoder)
-	nodeB.host.registerStreamHandler("", handlerB.handleStream)
+	handlerB := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
+	nodeB.host.registerStreamHandler(blockAnnounceID, handlerB.handleStream)
 
 	addrInfosB, err := nodeB.host.addrInfos()
 	require.NoError(t, err)
@@ -445,11 +388,15 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	stream := nodeA.host.getStream(nodeB.host.id(), blockAnnounceID)
-	require.Nil(t, stream, "node A should not have an outbound stream")
+	testHandshake := &BlockAnnounceHandshake{
+		Roles:           4,
+		BestBlockNumber: 77,
+		BestBlockHash:   common.Hash{1},
+		GenesisHash:     nodeB.blockState.GenesisHash(),
+	}
 
 	// node A opens the stream to send the first message
-	err = nodeA.host.send(addrInfosB[0].ID, blockAnnounceID, testBlockAnnounceMessage)
+	err = nodeA.host.send(nodeB.host.id(), blockAnnounceID, testHandshake)
 	require.NoError(t, err)
 
 	info := nodeA.notificationsProtocols[BlockAnnounceMsgType]
@@ -463,6 +410,8 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	// Verify that handshake data exists.
 	_, ok := info.handshakeData[nodeB.host.id()]
 	require.True(t, ok)
+
+	time.Sleep(time.Second)
 
 	nodeB.host.close()
 

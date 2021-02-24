@@ -150,7 +150,7 @@ func (bm *BlockRequestMessage) Decode(in []byte) error {
 	case *pb.BlockRequest_Number:
 		startingBlock, err = variadic.NewUint64OrHash(binary.LittleEndian.Uint64(from.Number))
 	default:
-		err = errors.New("invalid FromBlock")
+		err = errors.New("invalid StartingBlock")
 	}
 
 	if err != nil {
