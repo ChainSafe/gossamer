@@ -227,7 +227,7 @@ func (v *VerificationManager) isDisabled(epoch uint64, header *types.Header) (bo
 	// this authority has been disabled on some branch, check if we are on that branch
 	producerInfos := v.onDisabled[epoch][idx]
 	for _, info := range producerInfos {
-		isDescendant, err := v.blockState.IsDescendantOf(info.blockHash, header.Hash())
+		isDescendant, err := v.blockState.IsDescendantOf(info.blockHash, header.ParentHash)
 		if err != nil {
 			return false, err
 		}
