@@ -215,47 +215,32 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 
 	np, ok := s.notificationsProtocols[BlockAnnounceMsgType]
 	if !ok {
-		err = s.RegisterNotificationsProtocol(
-			blockAnnounceID,
-			BlockAnnounceMsgType,
-			s.getBlockAnnounceHandshake,
-			decodeBlockAnnounceHandshake,
-			s.validateBlockAnnounceHandshake,
-			decodeBlockAnnounceMessage,
-			s.handleBlockAnnounceMessage,
-		)
-		if err != nil {
-			return err
-		}
+		// this should never happen.
+		return nil
 	}
 
-	np.mapMu.RLock()
-	defer np.mapMu.RUnlock()
-
-	_, ok = np.handshakeData[peer]
+	np.mapMu.Lock()
+	data, ok := np.handshakeData[peer]
 	if !ok {
-		return errors.New("peer handshake data is nil")
+		np.handshakeData[peer] = &handshakeData{
+			received:  true,
+			validated: true,
+		}
+		data = np.handshakeData[peer]
 	}
+	np.mapMu.Unlock()
+
+	data.handshake = hs
 
 	// check if peer block number is greater than host block number
 	if latestHeader.Number.Cmp(bestBlockNum) >= 0 {
-		s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].handshake = hs
 		return nil
 	}
 
 	go func() {
-		if s.notificationsProtocols[BlockAnnounceMsgType] == nil {
-			return
-		}
-
-		if s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer] == nil {
-			return
-		}
-
 		s.syncQueue.handleBlockAnnounceHandshake(bhs.BestBlockNumber, peer)
 	}()
 
-	s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer].handshake = hs
 	return nil
 }
 

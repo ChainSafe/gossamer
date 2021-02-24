@@ -17,7 +17,6 @@
 package network
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -58,7 +57,7 @@ type (
 	// since messages are decoded based on context, this is different for every sub-protocol.
 	messageDecoder = func([]byte, peer.ID) (Message, error)
 	// messageHandler is passed on readStream to handle the resulting message. it should return an error only if the stream is to be closed
-	messageHandler = func(peer peer.ID, msg Message) error
+	messageHandler = func(stream libp2pnetwork.Stream, msg Message) error
 )
 
 // Service describes a network service
@@ -442,63 +441,19 @@ func (s *Service) decodeLightMessage(in []byte, peer peer.ID) (Message, error) {
 }
 
 func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder messageDecoder, handler messageHandler) {
-	// create buffer stream for non-blocking read
-	r := bufio.NewReader(stream)
-
 	var (
-		msgBytes       []byte
-		tot            uint64
-		maxMessageSize uint64 = 1024 * 64 // TODO: determine actual max message size
+		maxMessageSize uint64 = maxBlockResponseSize // TODO: determine actual max message size
+		msgBytes              = make([]byte, maxMessageSize)
 	)
 
 	for {
-		length, err := readLEB128ToUint64(r)
+		tot, err := readStream(stream, msgBytes)
 		if err == io.EOF {
 			continue
 		} else if err != nil {
-			logger.Debug("Failed to read LEB128 encoding", "protocol", stream.Protocol(), "error", err)
+			logger.Debug("failed to read from stream", "protocol", stream.Protocol(), "error", err)
 			_ = stream.Close()
 			return
-		}
-
-		if length == 0 {
-			continue
-		}
-
-		if length > maxMessageSize {
-			logger.Warn("received message with size greater than max, discarding", "length", length)
-			for {
-				_, err = r.Discard(int(maxMessageSize))
-				if err != nil {
-					break
-				}
-			}
-			continue
-		}
-
-		msgBytes = make([]byte, length)
-		tot = uint64(0)
-		for i := 0; i < maxReads; i++ {
-			n, err := r.Read(msgBytes[tot:]) //nolint
-			if err != nil {
-				logger.Warn("Failed to read message from stream", "error", err)
-				_ = stream.Close()
-				return
-			}
-
-			tot += uint64(n)
-			if tot == length {
-				break
-			}
-		}
-
-		if tot != length {
-			logger.Debug("Failed to read entire message", "length", length, "read" /*n*/, tot)
-			continue
-		}
-
-		if tot == 0 {
-			continue
 		}
 
 		// decode message based on message type
@@ -517,7 +472,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 
 		go func() {
 			// handle message based on peer status and message type
-			err = handler(peer, msg)
+			err = handler(stream, msg)
 			if err != nil {
 				logger.Warn("Failed to handle message from stream", "message", msg, "error", err)
 				_ = stream.Close()
@@ -526,10 +481,14 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		}()
 	}
 }
-func (s *Service) handleLightMsg(peer peer.ID, msg Message) error {
+
+func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) error {
+	defer func() {
+		_ = stream.Close()
+	}()
+
 	lr, ok := msg.(*LightRequest)
 	if !ok {
-		logger.Warn("failed to get the request message from peer ", peer)
 		return nil
 	}
 
@@ -537,17 +496,17 @@ func (s *Service) handleLightMsg(peer peer.ID, msg Message) error {
 	var err error
 	switch {
 	case lr.RmtCallRequest != nil:
-		resp.RmtCallResponse, err = remoteCallResp(peer, lr.RmtCallRequest)
+		resp.RmtCallResponse, err = remoteCallResp(lr.RmtCallRequest)
 	case lr.RmtHeaderRequest != nil:
-		resp.RmtHeaderResponse, err = remoteHeaderResp(peer, lr.RmtHeaderRequest)
+		resp.RmtHeaderResponse, err = remoteHeaderResp(lr.RmtHeaderRequest)
 	case lr.RmtChangesRequest != nil:
-		resp.RmtChangeResponse, err = remoteChangeResp(peer, lr.RmtChangesRequest)
+		resp.RmtChangeResponse, err = remoteChangeResp(lr.RmtChangesRequest)
 	case lr.RmtReadRequest != nil:
-		resp.RmtReadResponse, err = remoteReadResp(peer, lr.RmtReadRequest)
+		resp.RmtReadResponse, err = remoteReadResp(lr.RmtReadRequest)
 	case lr.RmtReadChildRequest != nil:
-		resp.RmtReadResponse, err = remoteReadChildResp(peer, lr.RmtReadChildRequest)
+		resp.RmtReadResponse, err = remoteReadChildResp(lr.RmtReadChildRequest)
 	default:
-		logger.Warn("ignoring request without request data from peer {}", peer)
+		logger.Warn("ignoring LightRequest without request data")
 		return nil
 	}
 
@@ -557,12 +516,11 @@ func (s *Service) handleLightMsg(peer peer.ID, msg Message) error {
 	}
 
 	// TODO(arijit): Remove once we implement the internal APIs. Added to increase code coverage.
-	logger.Debug("LightResponse: ", resp.String())
+	logger.Debug("LightResponse", "msg", resp.String())
 
-	err = s.host.send(peer, lightID, &resp)
+	err = s.host.writeToStream(stream, &resp)
 	if err != nil {
-		logger.Warn("failed to send LightResponse message", "peer", peer, "err", err)
-		s.host.closeStream(peer, lightID)
+		logger.Warn("failed to send LightResponse message", "peer", stream.Conn().RemotePeer(), "err", err)
 	}
 	return err
 }
@@ -612,7 +570,6 @@ func (s *Service) Peers() []common.PeerInfo {
 			Roles:      peerHandshakeMessage.(*BlockAnnounceHandshake).Roles,
 			BestHash:   peerHandshakeMessage.(*BlockAnnounceHandshake).BestBlockHash,
 			BestNumber: uint64(peerHandshakeMessage.(*BlockAnnounceHandshake).BestBlockNumber),
-			// ProtocolVersion: uint32(protocolVersion),
 		})
 	}
 	return peers

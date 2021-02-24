@@ -163,8 +163,10 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) error {
 		hasHeader, _ := s.blockState.HasHeader(bd.Hash)
 		hasBody, _ := s.blockState.HasBlockBody(bd.Hash)
 		if hasHeader && hasBody {
-			s.logger.Debug("skipping block, already have", "hash", bd.Hash)
-			continue
+			// TODO: fix this; sometimes when the node shuts down the "best block" isn't stored properly,
+			// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
+			// s.logger.Debug("skipping block, already have", "hash", bd.Hash)
+			// continue
 		}
 
 		if bd.Header.Exists() && !hasHeader {
