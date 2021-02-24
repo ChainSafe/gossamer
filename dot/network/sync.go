@@ -375,31 +375,44 @@ func (q *syncQueue) trySync(req *syncRequest) {
 	}
 
 	// try highest scored peers first
-	var peers []peer.ID
-	for _, p := range q.getSortedPeers() {
-		peers = append(peers, p.pid)
-	}
+	// var peers []peer.ID
+	// for _, p := range q.getSortedPeers() {
+	// 	peers = append(peers, p.pid)
+	// }
+
+	syncPeers := q.getSortedPeers()
 
 	logger.Debug("trying prioritized peers...")
 
-	for _, peer := range peers {
-		resp, err := q.syncWithPeer(peer, req.req)
+	for _, peer := range syncPeers {
+		// if peer doesn't respond once, then ignore them TODO: determine best values for this
+		if peer.score <= -2 {
+			break
+		}
+
+		resp, err := q.syncWithPeer(peer.pid, req.req)
 		if err != nil {
-			logger.Debug("failed to sync with peer", "peer", peer, "error", err)
-			q.updatePeerScore(peer, -1)
+			logger.Debug("failed to sync with peer", "peer", peer.pid, "error", err)
+			q.updatePeerScore(peer.pid, -1)
 			continue
 		}
 
-		q.pushBlockResponse(resp, peer)
+		q.pushBlockResponse(resp, peer.pid)
 		return
 	}
 
 	logger.Debug("failed to sync with preferred peers, trying random...")
 
-	peers = q.s.host.peers()
+	peers := q.s.host.peers()
 	rand.Shuffle(len(peers), func(i, j int) { peers[i], peers[j] = peers[j], peers[i] })
 
 	for _, peer := range peers {
+		// if peer doesn't respond once, then ignore them TODO: determine best values for this
+		score, ok := q.peerScore.Load(peer)
+		if ok && score.(int) <= -2 {
+			continue
+		}
+
 		resp, err := q.syncWithPeer(peer, req.req)
 		if err != nil {
 			logger.Debug("failed to sync with peer", "peer", peer, "error", err)
