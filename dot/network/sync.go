@@ -89,6 +89,7 @@ var (
 	blockRequestSize      uint32 = 128
 	blockRequestQueueSize int64  = 8
 	maxBlockResponseSize  uint64 = 1024 * 1024 * 4 // 4mb
+	badPeerThreshold      int    = -3
 )
 
 type syncPeer struct {
@@ -201,6 +202,38 @@ func (q *syncQueue) start() {
 	go q.processBlockRequests()
 	go q.processBlockResponses()
 	go q.benchmark()
+
+	go q.prunePeers()
+}
+
+// prune peers with low score and connect to new peers
+func (q *syncQueue) prunePeers() {
+	for {
+		time.Sleep(time.Minute)
+		logger.Debug("✂️ pruning peers w/ low score...")
+
+		peers := q.getSortedPeers()
+		numPruned := 0
+
+		for i := len(peers) - 1; i >= 0; i++ {
+			// we're at our minimum peer count, don't disconnect from any more peers
+			// we should discover more peers via dht between now and the next prune iteration
+			if q.s.host.peerCount() <= q.s.cfg.MinPeers {
+				break
+			}
+
+			// peers is a slice sorted from highest peer score to lowest, so we iterate backwards
+			// until we reach peers that aren't low enough to be pruned
+			if peers[i].score > badPeerThreshold {
+				break
+			}
+
+			_ = q.s.host.closePeer(peers[i].pid)
+			numPruned++
+		}
+
+		logger.Debug("✂️ finished pruning", "pruned count", numPruned, "peer count", q.s.host.peerCount())
+	}
 }
 
 func (q *syncQueue) benchmark() {
@@ -383,7 +416,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 
 	for _, peer := range syncPeers {
 		// if peer doesn't respond multiple times, then ignore them TODO: determine best values for this
-		if peer.score <= -2 {
+		if peer.score <= badPeerThreshold {
 			break
 		}
 
@@ -406,9 +439,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 	for _, peer := range peers {
 		// if peer doesn't respond multiple times, then ignore them TODO: determine best values for this
 		score, ok := q.peerScore.Load(peer)
-		if ok && score.(int) <= -2 {
-			// prune peers with low score TODO: maybe do this in a goroutine somehwere?
-			_ = q.s.host.closePeer(peer)
+		if ok && score.(int) <= badPeerThreshold {
 			continue
 		}
 
