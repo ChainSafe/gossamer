@@ -88,7 +88,7 @@ func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) er
 var (
 	blockRequestSize      uint32 = 128
 	blockRequestQueueSize int64  = 8
-	maxBlockResponseSize  uint64 = 1024 * 2048 // 2mb
+	maxBlockResponseSize  uint64 = 1024 * 1024 * 4 // 4mb
 )
 
 type syncPeer struct {
