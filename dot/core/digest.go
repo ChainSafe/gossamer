@@ -265,7 +265,8 @@ func (h *DigestHandler) handleScheduledChange(d *types.ConsensusDigest) error {
 		logger.Debug("handling GrandpaScheduledChange", "digest", d)
 
 		if h.grandpaScheduledChange != nil {
-			return errors.New("already have scheduled change scheduled")
+			//return errors.New("already have scheduled change scheduled")
+			return nil
 		}
 
 		sc := &types.GrandpaScheduledChange{}
