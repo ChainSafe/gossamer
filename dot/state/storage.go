@@ -123,10 +123,12 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 	}
 
 	s.lock.RLock()
-	if s.tries[*root] != nil {
-		return rtstorage.NewTrieState(s.tries[*root])
-	}
+	t := s.tries[*root]
 	s.lock.RUnlock()
+
+	if t != nil {
+		return rtstorage.NewTrieState(t)
+	}
 
 	tr, err := s.LoadFromDB(*root)
 	if err != nil {
