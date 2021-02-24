@@ -108,9 +108,8 @@ type syncQueue struct {
 	cancel    context.CancelFunc
 	peerScore *sync.Map // map[peer.ID]int; peers we have successfully synced from before -> their score; score increases on successful response
 
-	requests    []*syncRequest // start block of message -> full message
-	requestCh   chan *syncRequest
-	requestLock sync.RWMutex
+	requests  []*syncRequest // start block of message -> full message
+	requestCh chan *syncRequest
 
 	responses    []*types.BlockData
 	responseCh   chan []*types.BlockData
@@ -150,16 +149,15 @@ func (q *syncQueue) start() {
 			}
 
 			// if we have block requests to send, put them into requestCh
-			q.requestLock.Lock()
 			if len(q.requests) == 0 {
-				q.requestLock.Unlock()
 				continue
 			}
 
 			logger.Debug("sync request queue", "queue", q.stringifyRequestQueue())
-			q.requestCh <- q.requests[0]
+			head := q.requests[0]
 			q.requests = q.requests[1:]
-			q.requestLock.Unlock()
+
+			q.requestCh <- head
 		}
 	}()
 
@@ -186,9 +184,7 @@ func (q *syncQueue) start() {
 				logger.Debug("response start isn't head+1, waiting", "queue start", q.responses[0].Number().Int64(), "head+1", head.Int64()+1)
 				q.responseLock.Unlock()
 
-				q.requestLock.Lock()
 				q.setBlockRequests("")
-				q.requestLock.Unlock()
 				continue
 			}
 
@@ -335,14 +331,16 @@ func (q *syncQueue) setBlockRequests(to peer.ID) {
 
 	reqs := createBlockRequests(start, q.goal)
 
-	q.requests = []*syncRequest{}
+	newReqs := []*syncRequest{}
 	for _, req := range reqs {
-		q.requests = append(q.requests, &syncRequest{
+		newReqs = append(newReqs, &syncRequest{
 			to:  to,
 			req: req,
 		})
 	}
-	q.requests = sortRequests(q.requests)
+	newReqs = sortRequests(newReqs)
+	q.requests = newReqs
+
 	logger.Debug("sync request queue", "queue", q.stringifyRequestQueue())
 }
 
