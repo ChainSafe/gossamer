@@ -206,7 +206,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 	return verifier.verifyAuthorshipRight(header)
 }
 
-func (v *VerificationManager) isDisabled(epoch uint64, header *types.Header) (bool, error) {
+func (v *VerificationManager) isDisabled(epoch uint64, header *types.Header) (bool, error) { //nolint
 	v.lock.RLock()
 	defer v.lock.RUnlock()
 
