@@ -33,9 +33,8 @@ type NetworkState struct {
 
 // PeerInfo is network information about peers needed for the rpc server
 type PeerInfo struct {
-	PeerID          string
-	Roles           byte
-	ProtocolVersion uint32
-	BestHash        Hash
-	BestNumber      uint64
+	PeerID     string
+	Roles      byte
+	BestHash   Hash
+	BestNumber uint64
 }

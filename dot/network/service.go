@@ -570,7 +570,6 @@ func (s *Service) Peers() []common.PeerInfo {
 			Roles:      peerHandshakeMessage.(*BlockAnnounceHandshake).Roles,
 			BestHash:   peerHandshakeMessage.(*BlockAnnounceHandshake).BestBlockHash,
 			BestNumber: uint64(peerHandshakeMessage.(*BlockAnnounceHandshake).BestBlockNumber),
-			// ProtocolVersion: uint32(protocolVersion),
 		})
 	}
 	return peers
