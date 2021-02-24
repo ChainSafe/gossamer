@@ -205,6 +205,10 @@ func (q *syncQueue) start() {
 
 func (q *syncQueue) benchmark() {
 	for {
+		if q.ctx.Err() != nil {
+			return
+		}
+
 		head, err := q.s.blockState.BestBlockNumber()
 		if err != nil {
 			logger.Error("failed to get best block number", "error", err)
