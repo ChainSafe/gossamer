@@ -50,7 +50,7 @@ type Node struct {
 func InitNode(cfg *Config) error {
 	setupLogger(cfg)
 	logger.Info(
-		"initializing node...",
+		"🕸️ initializing node...",
 		"name", cfg.Global.Name,
 		"id", cfg.Global.ID,
 		"basepath", cfg.Global.BasePath,
@@ -119,20 +119,6 @@ func NodeInitialized(basepath string, expected bool) bool {
 		return false
 	}
 
-	// check if manifest exists
-	manifest := path.Join(basepath, "MANIFEST")
-	_, err = os.Stat(manifest)
-	if os.IsNotExist(err) {
-		if expected {
-			logger.Warn(
-				"node has not been initialized",
-				"basepath", basepath,
-				"error", "failed to locate MANIFEST file in data directory",
-			)
-		}
-		return false
-	}
-
 	// initialize database using data directory
 	db, err := chaindb.NewBadgerDB(&chaindb.Config{
 		DataDir: basepath,
@@ -178,7 +164,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	// Node Services
 
 	logger.Info(
-		"initializing node services...",
+		"🕸️ initializing node services...",
 		"name", cfg.Global.Name,
 		"id", cfg.Global.ID,
 		"basepath", cfg.Global.BasePath,
@@ -246,6 +232,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		return nil, err
 	}
 	nodeSrvcs = append(nodeSrvcs, fg)
+	dh.SetFinalityGadget(fg) // TODO: this should be cleaned up
 
 	// Core Service
 
@@ -300,7 +287,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 
 // Start starts all dot node services
 func (n *Node) Start() error {
-	logger.Info("starting node services...")
+	logger.Info("🕸️ starting node services...")
 
 	// start all dot node services
 	n.Services.StartAll()
