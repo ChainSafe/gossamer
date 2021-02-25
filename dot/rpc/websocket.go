@@ -105,14 +105,14 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// create wsConn
-	wsc := NewWSConn(ws, h.serverConfig, h.authorModule)
+	wsc := NewWSConn(ws, h.serverConfig)
 	h.wsConns = append(h.wsConns, wsc)
 
 	go wsc.handleComm()
 }
 
 // NewWSConn to create new WebSocket Connection struct
-func NewWSConn(conn *websocket.Conn, cfg *HTTPServerConfig, authorMod *modules.AuthorModule) *WSConn {
+func NewWSConn(conn *websocket.Conn, cfg *HTTPServerConfig) *WSConn {
 	rpcHost = fmt.Sprintf("http://%s:%d/", cfg.Host, cfg.RPCPort)
 	c := &WSConn{
 		wsconn:             conn,
@@ -121,7 +121,7 @@ func NewWSConn(conn *websocket.Conn, cfg *HTTPServerConfig, authorMod *modules.A
 		storageSubChannels: make(map[int]byte),
 		storageAPI:         cfg.StorageAPI,
 		blockAPI:           cfg.BlockAPI,
-		authorModule:       authorMod,
+		runtimeAPI:         cfg.RuntimeAPI,
 	}
 	return c
 }
@@ -201,10 +201,11 @@ func (c *WSConn) handleComm() {
 		if strings.Contains(fmt.Sprintf("%s", method), "submitAndWatchExtrinsic") {
 			reqid := msg["id"].(float64)
 			params := msg["params"]
-			_, e := c.initExtrinsicWatch(reqid, params)
+			el, e := c.initExtrinsicWatch(reqid, params)
 			if e != nil {
 				// todo handle this error
 			}
+			c.startListener(el)
 			continue
 		}
 
@@ -476,13 +477,93 @@ func (l *BlockFinalizedListener) Listen() {
 	}
 }
 
-func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (int, error) {
-	ext := &modules.Extrinsic{}
-	pA := params.([]interface{})
-	ext.Data = pA[0].(string)
+// ExtrinsicWatchListener to handle listening for extrinsic events
+type ExtrinsicWatchListener struct {
+	channel chan *types.Block
+	wsconn  *WSConn
+	chanID  byte
+	subID   int
+}
 
-	var extRes modules.ExtrinsicHashResponse
-	err := c.authorModule.SubmitExtrinsic(nil, ext, &extRes)
-	fmt.Printf("error %v\n", err)
-	return 0, nil
+func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (int, error) {
+	pA := params.([]interface{})
+	extBytes, err := common.HexToBytes(pA[0].(string))
+	if err != nil {
+		return 0, err
+	}
+
+	// For RPC request the transaction source is External
+	ext := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, extBytes...))
+
+	// validate the transaction
+	txv, err := c.runtimeAPI.ValidateTransaction(ext)
+	if err != nil {
+		return 0, err
+	}
+
+	c.qtyListeners++
+
+	headM := make(map[string]interface{})
+	headM["result"] = "ready"
+	headM["subscription"] = c.qtyListeners
+	res := newSubcriptionBaseResponseJSON()
+	res.Method = "author_extrinsicUpdate"
+	res.Params = headM
+	err = c.safeSend(res)
+	if err != nil {
+		logger.Error("error sending websocket message", "error", err)
+	}
+
+	fmt.Printf("txv %v\n", txv)
+
+	// listen for built blocks
+	bl := &ExtrinsicWatchListener{
+		channel: make(chan *types.Block),
+		wsconn:  c,
+	}
+
+	if c.blockAPI == nil {
+		e := c.safeSendError(reqID, nil, "error BlockAPI not set")
+		if e != nil {
+			logger.Warn("error sending error message", "error", err)
+		}
+		return 0, fmt.Errorf("error BlockAPI not set")
+	}
+	chanID, err := c.blockAPI.RegisterImportedChannel(bl.channel)
+	if err != nil {
+		return 0, err
+	}
+	bl.chanID = chanID
+	bl.subID = c.qtyListeners
+	c.subscriptions[bl.subID] = bl
+	c.blockSubChannels[bl.subID] = chanID
+	initRes := newSubscriptionResponseJSON(bl.subID, reqID)
+	err = c.safeSend(initRes)
+	if err != nil {
+		return 0, err
+	}
+	return bl.subID, nil
+}
+
+// Listen implementation of Listen interface to listen for channel changes
+func (l *ExtrinsicWatchListener) Listen() {
+	for block := range l.channel {
+		if block == nil {
+			continue
+		}
+		// TODO determine how if extrinsic is in this block
+		headM := make(map[string]interface{})
+		resM := make(map[string]interface{})
+		resM["inBlock"] = block.Header.Hash().String()
+		headM["result"] = resM
+		headM["subscription"] = l.subID
+		res := newSubcriptionBaseResponseJSON()
+		res.Method = "author_extrinsicUpdate"
+		res.Params = headM
+		err := l.wsconn.safeSend(res)
+		if err != nil {
+			logger.Error("error sending websocket message", "error", err)
+		}
+
+	}
 }
