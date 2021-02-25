@@ -20,10 +20,8 @@ func TestTrie_StoreAndLoadFromDB(t *testing.T) {
 	for _, test := range rt {
 		tt.Put(test.Key(), test.Value())
 
-		val, err := tt.Get(test.Key())
-		if err != nil {
-			t.Errorf("Fail to get key %x: %s", test.Key(), err.Error())
-		} else if !bytes.Equal(val, test.Value()) {
+		val := tt.Get(test.Key())
+		if !bytes.Equal(val, test.Value()) {
 			t.Errorf("Fail to get key %x with value %x: got %x", test.Key(), test.Value(), val)
 		}
 	}
