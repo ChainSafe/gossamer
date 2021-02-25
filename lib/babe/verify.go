@@ -188,14 +188,15 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 
 	v.lock.Unlock()
 
-	isDisabled, err := v.isDisabled(epoch, header)
-	if err != nil {
-		return fmt.Errorf("failed to check if authority is disabled: %w", err)
-	}
+	// TODO: fix and re-add this, seems like we are disabling authorities that aren't actually disabled
+	// isDisabled, err := v.isDisabled(epoch, header)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to check if authority is disabled: %w", err)
+	// }
 
-	if isDisabled {
-		return ErrAuthorityDisabled
-	}
+	// if isDisabled {
+	// 	return ErrAuthorityDisabled
+	// }
 
 	verifier, err := newVerifier(v.blockState, epoch, info)
 	if err != nil {
@@ -205,7 +206,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 	return verifier.verifyAuthorshipRight(header)
 }
 
-func (v *VerificationManager) isDisabled(epoch uint64, header *types.Header) (bool, error) {
+func (v *VerificationManager) isDisabled(epoch uint64, header *types.Header) (bool, error) { //nolint
 	v.lock.RLock()
 	defer v.lock.RUnlock()
 
@@ -227,7 +228,7 @@ func (v *VerificationManager) isDisabled(epoch uint64, header *types.Header) (bo
 	// this authority has been disabled on some branch, check if we are on that branch
 	producerInfos := v.onDisabled[epoch][idx]
 	for _, info := range producerInfos {
-		isDescendant, err := v.blockState.IsDescendantOf(info.blockHash, header.Hash())
+		isDescendant, err := v.blockState.IsDescendantOf(info.blockHash, header.ParentHash)
 		if err != nil {
 			return false, err
 		}
@@ -244,11 +245,7 @@ func (v *VerificationManager) isDisabled(epoch uint64, header *types.Header) (bo
 func (v *VerificationManager) getVerifierInfo(epoch uint64) (*verifierInfo, error) {
 	epochData, err := v.epochState.GetEpochData(epoch)
 	if err != nil {
-		// TODO: why is the epoch calculated wrong occasionally?
-		epochData, err = v.epochState.GetLatestEpochData()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get epoch data for epoch %d: %w", epoch, err)
-		}
+		return nil, fmt.Errorf("failed to get epoch data for epoch %d: %w", epoch, err)
 	}
 
 	configData, err := v.getConfigData(epoch)
