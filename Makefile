@@ -36,7 +36,7 @@ proto:
 ## test: Runs `go test` on project test files.
 test:
 	@echo "  >  \033[32mRunning tests...\033[0m "
-	GOBIN=$(PWD)/bin go run scripts/ci.go test
+	GOBIN=$(PWD)/bin go run scripts/ci.go
 	#go test -short -coverprofile c.out ./... -timeout=20m
 
 ## it-stable: Runs Integration Tests Stable mode
