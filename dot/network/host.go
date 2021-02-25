@@ -37,7 +37,6 @@ import (
 )
 
 var privateCIDRs = []string{
-	//"127.0.0.1/0",
 	"10.0.0.0/8",
 	"172.16.0.0/12",
 	"192.168.0.0/16",
@@ -58,7 +57,6 @@ type host struct {
 
 // newHost creates a host wrapper with a new libp2p host instance
 func newHost(ctx context.Context, cfg *Config) (*host, error) {
-
 	// use "p2p" for multiaddress format
 	ma.SwapToP2pMultiaddrs()
 
