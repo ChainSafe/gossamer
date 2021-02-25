@@ -235,7 +235,9 @@ func TestSyncQueue_HandleBlockAnnounceHandshake(t *testing.T) {
 
 	testPeerID := peer.ID("noot")
 	q.handleBlockAnnounceHandshake(uint32(testNum), testPeerID)
-	require.Equal(t, 1, q.peerScore[testPeerID])
+	score, ok := q.peerScore.Load(testPeerID)
+	require.True(t, ok)
+	require.Equal(t, 1, score.(int))
 	require.Equal(t, testNum, q.goal)
 	require.Equal(t, 1, len(q.requests))
 
@@ -251,7 +253,9 @@ func TestSyncQueue_HandleBlockAnnounce(t *testing.T) {
 
 	testPeerID := peer.ID("noot")
 	q.handleBlockAnnounce(testBlockAnnounceMessage, testPeerID)
-	require.Equal(t, 1, q.peerScore[testPeerID])
+	score, ok := q.peerScore.Load(testPeerID)
+	require.True(t, ok)
+	require.Equal(t, 1, score.(int))
 	require.Equal(t, testBlockAnnounceMessage.Number.Int64(), q.goal)
 	require.Equal(t, 1, len(q.requests))
 
@@ -323,7 +327,7 @@ func TestSyncQueue_ProcessBlockRequests(t *testing.T) {
 	nodeA.syncQueue.ctx = context.Background()
 	time.Sleep(time.Second * 3)
 
-	nodeA.syncQueue.peerScore[nodeB.host.id()] = 1 // expect to try to sync with nodeB first
+	nodeA.syncQueue.updatePeerScore(nodeB.host.id(), 1) // expect to try to sync with nodeB first
 	go nodeA.syncQueue.processBlockRequests()
 	nodeA.syncQueue.requestCh <- &syncRequest{
 		req: testBlockRequestMessage,
