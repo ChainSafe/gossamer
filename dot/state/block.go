@@ -551,7 +551,7 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 	}
 
 	go bs.notifyImported(block)
-	return err
+	return bs.baseDB.Flush()
 }
 
 // GetAllBlocksAtDepth returns all hashes with the depth of the given hash plus one

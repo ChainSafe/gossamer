@@ -54,7 +54,7 @@ func newInMemoryDB(path string) (chaindb.Database, error) {
 
 // createStateService creates the state service and initialize state database
 func createStateService(cfg *Config) (*state.Service, error) {
-	logger.Info("creating state service...")
+	logger.Debug("creating state service...")
 	stateSrvc := state.NewService(cfg.Global.BasePath, cfg.Log.StateLvl)
 
 	// start state service (initialize state database)
@@ -207,7 +207,7 @@ func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks k
 
 // createCoreService creates the core service from the provided core configuration
 func createCoreService(cfg *Config, bp core.BlockProducer, fg core.FinalityGadget, verifier *babe.VerificationManager, rt runtime.Instance, ks *keystore.GlobalKeystore, stateSrvc *state.Service, net *network.Service) (*core.Service, error) {
-	logger.Info(
+	logger.Debug(
 		"creating core service...",
 		"authority", cfg.Core.Roles == types.AuthorityRole,
 	)
@@ -243,7 +243,7 @@ func createCoreService(cfg *Config, bp core.BlockProducer, fg core.FinalityGadge
 
 // createNetworkService creates a network service from the command configuration and genesis data
 func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Service, error) {
-	logger.Info(
+	logger.Debug(
 		"creating network service...",
 		"roles", cfg.Core.Roles,
 		"port", cfg.Network.Port,
