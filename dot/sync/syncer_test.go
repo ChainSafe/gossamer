@@ -313,8 +313,6 @@ func TestSyncer_ExecuteBlock(t *testing.T) {
 	// reset parentState
 	parentState, err := syncer.storageState.TrieState(&parent.StateRoot)
 	require.NoError(t, err)
-	// ts, err := parentState.Copy()
-	// require.NoError(t, err)
 	syncer.runtime.SetContextStorage(parentState)
 
 	_, err = syncer.runtime.ExecuteBlock(block)
@@ -335,16 +333,8 @@ func TestSyncer_HandleRuntimeChanges(t *testing.T) {
 
 	prevCodeHash, err := ts.LoadCodeHash()
 	require.NoError(t, err)
-	t.Log(prevCodeHash)
-
-	// newTs, err := ts.Copy()
-	// require.NoError(t, err)
 
 	ts.Set(common.CodeKey, testRuntime)
-
-	// currCodeHash, err := newTs.LoadCodeHash()
-	// require.NoError(t, err)
-	// t.Log(currCodeHash)
 
 	err = syncer.handleRuntimeChanges(ts)
 	require.NoError(t, err)
