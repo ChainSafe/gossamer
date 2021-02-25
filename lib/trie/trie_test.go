@@ -709,8 +709,8 @@ func TestClearPrefix(t *testing.T) {
 		{0x01, 0x35, 0x79},
 		{0x01, 0x35, 0x79, 0xab},
 		{0x07},
-		{0x07, 0x3},
-		{0xf},
+		{0x07, 0x30},
+		{0xf0},
 	}
 
 	for _, prefix := range testCases {
@@ -898,14 +898,35 @@ func TestTrie_ClearPrefixVsDelete(t *testing.T) {
 }
 
 func TestSnapshot(t *testing.T) {
-	trie := buildSmallTrie()
-	oldTrie := trie.Snapshot()
+	tests := []Test{
+		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: PUT},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: PUT},
+		{key: []byte{0x01, 0x35, 0x79, 0xab}, value: []byte("spaghetti"), op: PUT},
+		{key: []byte{0x01, 0x35, 0x79, 0xab, 0x9}, value: []byte("gnocchi"), op: PUT},
+		{key: []byte{0x07, 0x3a}, value: []byte("ramen"), op: PUT},
+		{key: []byte{0x07, 0x3b}, value: []byte("noodles"), op: PUT},
+		{key: []byte{0xf2}, value: []byte("pho"), op: PUT},
+	}
 
-	testkey := []byte("onlyinnewtrie")
-	trie.Put(testkey, testkey)
+	expectedTrie := NewEmptyTrie()
+	for _, test := range tests {
+		expectedTrie.Put(test.key, test.value)
+	}
 
-	val := oldTrie.Get(testkey)
-	require.Nil(t, val)
-	val = trie.Get(testkey)
-	require.Equal(t, testkey, val)
+	// put all keys except first
+	parentTrie := NewEmptyTrie()
+	for i, test := range tests {
+		if i == 0 {
+			continue
+		}
+		parentTrie.Put(test.key, test.value)
+	}
+
+	parentSnapshot := parentTrie.Snapshot()
+
+	newTrie := parentTrie
+	newTrie.Put(tests[0].key, tests[0].value)
+
+	require.Equal(t, expectedTrie.MustHash(), newTrie.MustHash())
+	require.NotEqual(t, parentSnapshot.MustHash(), newTrie.MustHash())
 }

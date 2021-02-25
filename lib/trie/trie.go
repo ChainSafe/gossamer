@@ -519,7 +519,7 @@ func (t *Trie) ClearPrefix(prefix []byte) {
 	}
 
 	p := keyToNibbles(prefix)
-	if p[len(p)-1] == 0 {
+	if len(p) > 0 && p[len(p)-1] == 0 {
 		p = p[:len(p)-1]
 	}
 

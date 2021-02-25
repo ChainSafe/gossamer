@@ -161,6 +161,11 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) error {
 		return ErrNilBlockData
 	}
 
+	bestNum, err := s.blockState.BestBlockNumber()
+	if err != nil {
+		return err
+	}
+
 	// TODO: return number of last successful block that was processed
 	for _, bd := range data {
 		s.logger.Debug("starting processing of block", "hash", bd.Hash)
@@ -172,11 +177,11 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) error {
 
 		hasHeader, _ := s.blockState.HasHeader(bd.Hash)
 		hasBody, _ := s.blockState.HasBlockBody(bd.Hash)
-		if hasHeader && hasBody {
+		if hasHeader && hasBody && bd.Number().Int64() <= bestNum.Int64() {
 			// TODO: fix this; sometimes when the node shuts down the "best block" isn't stored properly,
 			// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
-			// s.logger.Debug("skipping block, already have", "hash", bd.Hash)
-			// continue
+			s.logger.Debug("skipping block, already have", "hash", bd.Hash)
+			continue
 		}
 
 		if bd.Header.Exists() && !hasHeader {
@@ -287,7 +292,11 @@ func (s *Service) handleBlock(block *types.Block) error {
 	}
 
 	ts.Snapshot()
-	s.logger.Trace("copied parent state", "parent state root", parent.StateRoot, "copy state root", ts.MustRoot())
+	root := ts.MustRoot()
+	if !bytes.Equal(parent.StateRoot[:], root[:]) {
+		panic("parent state root does not match snapshot state root")
+	}
+
 	s.runtime.SetContextStorage(ts)
 	s.logger.Trace("going to execute block", "block", block, "exts", block.Body)
 
