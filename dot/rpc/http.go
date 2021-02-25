@@ -37,6 +37,7 @@ type HTTPServer struct {
 	rpcServer    *rpc.Server // Actual RPC call handler
 	serverConfig *HTTPServerConfig
 	wsConns      []*WSConn
+	authorModule *modules.AuthorModule
 }
 
 // HTTPServerConfig configures the HTTPServer
@@ -70,6 +71,7 @@ type WSConn struct {
 	subscriptions      map[int]Listener
 	storageAPI         modules.StorageAPI
 	blockAPI           modules.BlockAPI
+	authorModule       *modules.AuthorModule
 }
 
 var logger log.Logger
@@ -106,7 +108,8 @@ func (h *HTTPServer) RegisterModules(mods []string) {
 			srvc = modules.NewSystemModule(h.serverConfig.NetworkAPI, h.serverConfig.SystemAPI,
 				h.serverConfig.CoreAPI, h.serverConfig.StorageAPI, h.serverConfig.TransactionQueueAPI)
 		case "author":
-			srvc = modules.NewAuthorModule(h.logger, h.serverConfig.CoreAPI, h.serverConfig.RuntimeAPI, h.serverConfig.TransactionQueueAPI)
+			h.authorModule = modules.NewAuthorModule(h.logger, h.serverConfig.CoreAPI, h.serverConfig.RuntimeAPI, h.serverConfig.TransactionQueueAPI)
+			srvc = h.authorModule
 		case "chain":
 			srvc = modules.NewChainModule(h.serverConfig.BlockAPI)
 		case "grandpa":

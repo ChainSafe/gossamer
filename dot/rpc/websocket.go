@@ -105,14 +105,14 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// create wsConn
-	wsc := NewWSConn(ws, h.serverConfig)
+	wsc := NewWSConn(ws, h.serverConfig, h.authorModule)
 	h.wsConns = append(h.wsConns, wsc)
 
 	go wsc.handleComm()
 }
 
 // NewWSConn to create new WebSocket Connection struct
-func NewWSConn(conn *websocket.Conn, cfg *HTTPServerConfig) *WSConn {
+func NewWSConn(conn *websocket.Conn, cfg *HTTPServerConfig, authorMod *modules.AuthorModule) *WSConn {
 	rpcHost = fmt.Sprintf("http://%s:%d/", cfg.Host, cfg.RPCPort)
 	c := &WSConn{
 		wsconn:             conn,
@@ -121,6 +121,7 @@ func NewWSConn(conn *websocket.Conn, cfg *HTTPServerConfig) *WSConn {
 		storageSubChannels: make(map[int]byte),
 		storageAPI:         cfg.StorageAPI,
 		blockAPI:           cfg.BlockAPI,
+		authorModule:       authorMod,
 	}
 	return c
 }
@@ -198,7 +199,12 @@ func (c *WSConn) handleComm() {
 		}
 
 		if strings.Contains(fmt.Sprintf("%s", method), "submitAndWatchExtrinsic") {
-			fmt.Printf("Sub and Watch")
+			reqid := msg["id"].(float64)
+			params := msg["params"]
+			_, e := c.initExtrinsicWatch(reqid, params)
+			if e != nil {
+				// todo handle this error
+			}
 			continue
 		}
 
@@ -468,4 +474,15 @@ func (l *BlockFinalizedListener) Listen() {
 			logger.Error("error sending websocket message", "error", err)
 		}
 	}
+}
+
+func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (int, error) {
+	ext := &modules.Extrinsic{}
+	pA := params.([]interface{})
+	ext.Data = pA[0].(string)
+
+	var extRes modules.ExtrinsicHashResponse
+	err := c.authorModule.SubmitExtrinsic(nil, ext, &extRes)
+	fmt.Printf("error %v\n", err)
+	return 0, nil
 }
