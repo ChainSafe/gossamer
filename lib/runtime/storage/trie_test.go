@@ -17,7 +17,6 @@
 package storage
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -48,8 +47,7 @@ func TestTrieState_SetGet(t *testing.T) {
 		}
 
 		for _, tc := range testCases {
-			res, err := ts.Get([]byte(tc))
-			require.NoError(t, err, fmt.Sprintf("failed to get key %s", tc))
+			res := ts.Get([]byte(tc))
 			require.Equal(t, []byte(tc), res)
 		}
 	}
@@ -65,11 +63,8 @@ func TestTrieState_Delete(t *testing.T) {
 			require.NoError(t, err)
 		}
 
-		err := ts.Delete([]byte(testCases[0]))
-		require.NoError(t, err)
-
-		has, err := ts.Has([]byte(testCases[0]))
-		require.NoError(t, err)
+		ts.Delete([]byte(testCases[0]))
+		has := ts.Has([]byte(testCases[0]))
 		require.False(t, has)
 	}
 
@@ -109,8 +104,7 @@ func TestTrieState_ClearPrefix(t *testing.T) {
 	ts.ClearPrefix([]byte("noo"))
 
 	for i, key := range keys {
-		val, err := ts.Get([]byte(key))
-		require.NoError(t, err)
+		val := ts.Get([]byte(key))
 		if i < 2 {
 			require.Nil(t, val)
 		} else {

@@ -104,11 +104,7 @@ func NewLegacyInstance(code []byte, cfg *Config) (*LegacyInstance, error) {
 
 // NewInstanceFromTrie returns a new runtime instance with the code provided in the given trie
 func NewInstanceFromTrie(t *trie.Trie, cfg *Config) (*Instance, error) {
-	code, err := t.Get(common.CodeKey)
-	if err != nil {
-		return nil, err
-	}
-
+	code := t.Get(common.CodeKey)
 	if len(code) == 0 {
 		return nil, fmt.Errorf("cannot find :code in trie")
 	}

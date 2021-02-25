@@ -172,11 +172,7 @@ func (s *StorageState) notifyStorageSubscriptions(root common.Hash) error {
 		} else {
 			// filter result to include only interested keys
 			for k := range sub.Filter {
-				value, err := t.Get(common.MustHexToBytes(k))
-				if err != nil {
-					logger.Error("Error retrieving value from state tries")
-					continue
-				}
+				value := t.Get(common.MustHexToBytes(k))
 				kv := &KeyValue{
 					Key:   common.MustHexToBytes(k),
 					Value: value,
@@ -218,8 +214,8 @@ func (s *StorageState) ExistsStorage(hash *common.Hash, key []byte) (bool, error
 
 	s.lock.RLock()
 	defer s.lock.RUnlock()
-	val, err := s.tries[*hash].Get(key)
-	return val != nil, err
+	val := s.tries[*hash].Get(key)
+	return val != nil, nil
 }
 
 // GetStorage gets the object from the trie using the given key and storage hash
@@ -237,7 +233,8 @@ func (s *StorageState) GetStorage(root *common.Hash, key []byte) ([]byte, error)
 	defer s.lock.RUnlock()
 
 	if s.tries[*root] != nil {
-		return s.tries[*root].Get(key)
+		val := s.tries[*root].Get(key)
+		return val, nil
 	}
 
 	return trie.GetFromDB(s.db, *root, key)
