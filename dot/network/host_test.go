@@ -19,6 +19,7 @@ package network
 import (
 	"context"
 	"fmt"
+	"net"
 	"testing"
 	"time"
 
@@ -26,8 +27,38 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
 	kbucket "github.com/libp2p/go-libp2p-kbucket"
+	ma "github.com/multiformats/go-multiaddr"
+
 	"github.com/stretchr/testify/require"
 )
+
+func TestExternalAddrs(t *testing.T) {
+	config := &Config{
+		BasePath:    utils.NewTestBasePath(t, "node"),
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	node := createTestService(t, config)
+
+	addrInfos, err := node.host.addrInfos()
+	require.NoError(t, err)
+
+	privateIPs := ma.NewFilters()
+	for _, cidr := range privateCIDRs {
+		_, ipnet, err := net.ParseCIDR(cidr) //nolint
+		require.NoError(t, err)
+		privateIPs.AddFilter(*ipnet, ma.ActionDeny)
+	}
+
+	for _, info := range addrInfos {
+		for _, addr := range info.Addrs {
+			require.False(t, privateIPs.AddrBlocked(addr))
+		}
+	}
+}
 
 // test host connect method
 func TestConnect(t *testing.T) {
