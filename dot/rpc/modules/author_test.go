@@ -304,25 +304,3 @@ func setupAuthModule(t *testing.T, txq *state.TransactionState) *AuthorModule {
 type mockNetwork struct{}
 
 func (n *mockNetwork) SendMessage(_ network.NotificationsMessage) {}
-
-type mockEpochState struct{}
-
-func (s *mockEpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
-	return 0, nil
-}
-
-func (s *mockEpochState) SetEpochData(epoch uint64, info *types.EpochData) error {
-	return nil
-}
-
-func (s *mockEpochState) SetConfigData(epoch uint64, info *types.ConfigData) error {
-	return nil
-}
-
-func (s *mockEpochState) SetCurrentEpoch(epoch uint64) error {
-	return nil
-}
-
-func (s *mockEpochState) GetCurrentEpoch() (uint64, error) {
-	return 0, nil
-}
