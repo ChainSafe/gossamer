@@ -25,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/types"
+	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -429,9 +430,12 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 
 	idData := []byte{2, 2, 2, 2}
 
+	mnemonic, err := crypto.NewBIP39Mnemonic()
+	require.NoError(t, err)
+
 	// TODO: we currently don't provide a seed since the spec says the seed is an optional BIP-39 seed
 	// clarify whether this is a mnemonic or not
-	data := optional.NewBytes(false, nil)
+	data := optional.NewBytes(true, []byte(mnemonic))
 	seedData, err := data.Encode()
 	require.NoError(t, err)
 
@@ -576,7 +580,10 @@ func Test_ext_crypto_sr25519_generate_version_1(t *testing.T) {
 
 	idData := []byte{2, 2, 2, 2}
 
-	data := optional.NewBytes(false, nil)
+	mnemonic, err := crypto.NewBIP39Mnemonic()
+	require.NoError(t, err)
+
+	data := optional.NewBytes(true, []byte(mnemonic))
 	seedData, err := data.Encode()
 	require.NoError(t, err)
 

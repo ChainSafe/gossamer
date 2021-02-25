@@ -21,6 +21,8 @@ import (
 	"testing"
 
 	ed25519 "crypto/ed25519"
+	bip39 "github.com/cosmos/go-bip39"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSignAndVerify(t *testing.T) {
@@ -87,4 +89,15 @@ func TestEncodeAndDecodePublicKey(t *testing.T) {
 	if !reflect.DeepEqual(res, kp.Public()) {
 		t.Fatalf("Fail: got %x expected %x", res, kp.Public())
 	}
+}
+
+func TestNewKeypairFromMnenomic(t *testing.T) {
+	entropy, err := bip39.NewEntropy(128)
+	require.NoError(t, err)
+
+	mnemonic, err := bip39.NewMnemonic(entropy)
+	require.NoError(t, err)
+
+	_, err = NewKeypairFromMnenomic(mnemonic, "")
+	require.NoError(t, err)
 }
