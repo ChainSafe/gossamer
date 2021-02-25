@@ -17,10 +17,10 @@
 package ed25519
 
 import (
+	ed25519 "crypto/ed25519"
 	"reflect"
 	"testing"
 
-	ed25519 "crypto/ed25519"
 	bip39 "github.com/cosmos/go-bip39"
 	"github.com/stretchr/testify/require"
 )
