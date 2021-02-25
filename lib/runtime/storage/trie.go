@@ -146,7 +146,7 @@ func (s *TrieState) GetChildStorage(keyToChild, key []byte) ([]byte, error) {
 	return s.t.GetFromChild(keyToChild, key)
 }
 
-// DeleteChildStorage deletes child storage from the trie
+// DeleteChild deletes a child trie from the main trie
 func (s *TrieState) DeleteChild(key []byte) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
