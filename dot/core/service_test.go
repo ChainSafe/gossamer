@@ -153,8 +153,7 @@ func TestHandleRuntimeChanges(t *testing.T) {
 	ts, err := s.storageState.TrieState(nil)
 	require.NoError(t, err)
 
-	err = ts.Set([]byte(":code"), testRuntime)
-	require.Nil(t, err)
+	ts.Set([]byte(":code"), testRuntime)
 
 	root, err := ts.Root()
 	require.NoError(t, err)

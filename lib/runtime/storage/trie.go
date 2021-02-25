@@ -49,12 +49,10 @@ func (s *TrieState) Trie() *trie.Trie {
 	return s.t
 }
 
-// Copy performs a deep copy of the TrieState
-func (s *TrieState) Copy() (*TrieState, error) {
-	trieCopy := s.t.Snapshot()
-	return &TrieState{
-		t: trieCopy,
-	}, nil
+// Snapshot creates a new "version" of the trie. The trie before Snapshot is called
+// can no longer be modified, all further changes are on a new "version" of the trie.
+func (s *TrieState) Snapshot() {
+	_ = s.t.Snapshot()
 }
 
 // Set sets a key-value pair in the trie

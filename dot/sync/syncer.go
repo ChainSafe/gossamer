@@ -271,21 +271,13 @@ func (s *Service) handleBlock(block *types.Block) error {
 	}
 
 	s.logger.Trace("getting parent state", "root", parent.StateRoot)
-	parentState, err := s.storageState.TrieState(&parent.StateRoot)
+	ts, err := s.storageState.TrieState(&parent.StateRoot)
 	if err != nil {
 		return err
 	}
 
-	ts, err := parentState.Copy()
-	if err != nil {
-		return err
-	}
-
-	s.logger.Trace("copied parent state", "parent state root", parentState.MustRoot(), "copy state root", ts.MustRoot())
-	// sanity check
-	if parentState.MustRoot() != ts.MustRoot() {
-		panic("parent state root does not match copy's state root")
-	}
+	ts.Snapshot()
+	s.logger.Trace("copied parent state", "parent state root", parent.StateRoot, "copy state root", ts.MustRoot())
 	s.runtime.SetContextStorage(ts)
 	s.logger.Trace("going to execute block", "block", block, "exts", block.Body)
 
