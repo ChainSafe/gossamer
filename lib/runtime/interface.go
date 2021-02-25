@@ -33,6 +33,7 @@ type LegacyInstance interface {
 type Instance interface {
 	InstanceAPI
 	LegacyRuntimeAPI
+	UpdateRuntimeCode([]byte) error
 
 	// TODO: parameters and return values for these are undefined in the spec
 	CheckInherents()

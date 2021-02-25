@@ -136,6 +136,11 @@ func (m *Memory) Grow(numPages uint32) error {
 	return nil
 }
 
+// UpdateRuntimeCode ...
+func (in *Instance) UpdateRuntimeCode(_ []byte) error {
+	return errors.New("unimplemented")
+}
+
 // SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.
 func (in *Instance) SetContextStorage(s runtime.Storage) {
 	ctx.Storage = s

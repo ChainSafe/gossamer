@@ -17,6 +17,7 @@
 package sync
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"math/big"
@@ -25,14 +26,17 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 
 	log "github.com/ChainSafe/log15"
 )
 
 // Service deals with chain syncing by sending block request messages and watching for responses.
 type Service struct {
-	logger log.Logger
+	logger   log.Logger
+	codeHash common.Hash // cached hash of runtime code
 
 	// State interfaces
 	blockState       BlockState // retrieve our current head of chain from BlockState
@@ -91,8 +95,14 @@ func NewService(cfg *Config) (*Service, error) {
 	handler = log.CallerFileHandler(handler)
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, handler))
 
+	codeHash, err := cfg.StorageState.LoadCodeHash(nil)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Service{
 		logger:           logger,
+		codeHash:         codeHash,
 		blockState:       cfg.BlockState,
 		storageState:     cfg.StorageState,
 		blockProducer:    cfg.BlockProducer,
@@ -303,7 +313,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 			return err
 		}
 	} else {
-		s.logger.Info("imported block", "number", block.Header.Number, "hash", block.Header.Hash())
+		s.logger.Info("🔗 imported block", "number", block.Header.Number, "hash", block.Header.Hash())
 		s.logger.Debug("imported block", "header", block.Header, "body", block.Body)
 	}
 
@@ -317,6 +327,32 @@ func (s *Service) handleBlock(block *types.Block) error {
 		}()
 	}
 
+	return s.handleRuntimeChanges(ts)
+}
+
+func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {
+	currCodeHash, err := newState.LoadCodeHash()
+	if err != nil {
+		return err
+	}
+
+	if bytes.Equal(s.codeHash[:], currCodeHash[:]) {
+		return nil
+	}
+
+	s.logger.Info("🔄 detected runtime code change, upgrading...", "block", s.blockState.BestBlockHash(), "previous code hash", s.codeHash, "new code hash", currCodeHash)
+	code := newState.LoadCode()
+	if len(code) == 0 {
+		return ErrEmptyRuntimeCode
+	}
+
+	err = s.runtime.UpdateRuntimeCode(code)
+	if err != nil {
+		s.logger.Crit("failed to update runtime code", "error", err)
+		return err
+	}
+
+	s.codeHash = currCodeHash
 	return nil
 }
 

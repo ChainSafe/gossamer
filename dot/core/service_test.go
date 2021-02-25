@@ -17,7 +17,6 @@
 package core
 
 import (
-	"io/ioutil"
 	"math/big"
 	"os"
 	"sort"
@@ -28,13 +27,11 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/extrinsic"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
@@ -123,61 +120,6 @@ func TestAnnounceBlock(t *testing.T) {
 	time.Sleep(testMessageTimeout)
 	require.NotNil(t, net.Message)
 	require.Equal(t, network.BlockAnnounceMsgType, net.Message.(network.NotificationsMessage).Type())
-}
-
-func TestHandleRuntimeChanges(t *testing.T) {
-	tt := trie.NewEmptyTrie()
-	rt := wasmer.NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlTrace)
-
-	kp, err := sr25519.GenerateKeypair()
-	require.Nil(t, err)
-
-	ks := keystore.NewGlobalKeystore()
-	ks.Acco.Insert(kp)
-
-	cfg := &Config{
-		Runtime:          rt,
-		Keystore:         ks,
-		TransactionState: state.NewTransactionState(),
-		IsBlockProducer:  false,
-	}
-
-	s := NewTestService(t, cfg)
-
-	_, err = runtime.GetRuntimeBlob(runtime.HOST_API_TEST_RUNTIME_FP, runtime.HOST_API_TEST_RUNTIME_URL)
-	require.Nil(t, err)
-
-	testRuntime, err := ioutil.ReadFile(runtime.HOST_API_TEST_RUNTIME_FP)
-	require.Nil(t, err)
-
-	ts, err := s.storageState.TrieState(nil)
-	require.NoError(t, err)
-
-	ts.Set([]byte(":code"), testRuntime)
-
-	root, err := ts.Root()
-	require.NoError(t, err)
-
-	s.storageState.(*state.StorageState).StoreTrie(ts)
-	head := &types.Header{
-		ParentHash: s.blockState.BestBlockHash(),
-		Number:     big.NewInt(1),
-		StateRoot:  root,
-		Digest:     types.Digest{},
-	}
-
-	err = s.blockState.AddBlock(&types.Block{
-		Header: head,
-		Body:   types.NewBody([]byte{}),
-	})
-	require.NoError(t, err)
-
-	bestHeader, err := s.blockState.BestBlockHeader()
-	require.NoError(t, err)
-	require.Equal(t, head, bestHeader)
-
-	err = s.handleRuntimeChanges(testGenesisHeader)
-	require.NoError(t, err)
 }
 
 func TestService_HasKey(t *testing.T) {

@@ -136,7 +136,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		return nil, err
 	}
 
-	logger.Info("created service",
+	logger.Debug("created service",
 		"block producer", cfg.Authority,
 		"slot duration", babeService.slotDuration,
 		"epoch length (slots)", babeService.epochLength,
