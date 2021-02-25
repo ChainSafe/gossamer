@@ -201,7 +201,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	if net, ok := cfg.Network.(*network.Service); ok {
 		net.SetTransactionHandler(s)
-		net.Stop()
+		_ = net.Stop()
 	}
 
 	return s
