@@ -120,6 +120,18 @@ func (m *MockBlockAPI) RegisterFinalizedChannel(ch chan<- *types.Header) (byte, 
 }
 func (m *MockBlockAPI) UnregisterFinalizedChannel(id byte) {}
 
+func (m *MockBlockAPI) GetJustification(hash common.Hash) ([]byte, error) {
+	return make([]byte, 10), nil
+}
+
+func (m *MockBlockAPI) HasJustification(hash common.Hash) (bool, error) {
+	return true, nil
+}
+
+func (m *MockBlockAPI) SubChain(start, end common.Hash) ([]common.Hash, error) {
+	return make([]common.Hash, 0), nil
+}
+
 type MockStorageAPI struct{}
 
 func (m *MockStorageAPI) GetStorage(_ *common.Hash, key []byte) ([]byte, error) {
