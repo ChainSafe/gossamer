@@ -120,11 +120,7 @@ func NewKeypairFromPrivateKeyString(in string) (*Keypair, error) {
 
 // NewKeypairFromMnenomic returns a new Keypair using the given mnemonic and password.
 func NewKeypairFromMnenomic(mnemonic, password string) (*Keypair, error) {
-	seed, err := bip39.NewSeed(mnemonic, password)
-	if err != nil {
-		return nil, err
-	}
-
+	seed := bip39.NewSeed(mnemonic, password)
 	return NewKeypairFromSeed(seed[:32])
 }
 
