@@ -19,7 +19,7 @@ help: Makefile
 
 ## lint: Lints project files, go gets golangci-lint if missing. Runs `golangci-lint` on project files.
 .PHONY: lint
-lint: 
+lint:
 	./scripts/install-lint.sh
 	${GOPATH}/bin/golangci-lint run
 
@@ -36,8 +36,8 @@ proto:
 ## test: Runs `go test` on project test files.
 test:
 	@echo "  >  \033[32mRunning tests...\033[0m "
-	#GOBIN=$(PWD)/bin go run scripts/ci.go test
-	go test -short -coverprofile c.out ./... -timeout=20m
+	GOBIN=$(PWD)/bin go run scripts/ci.go test
+	#go test -short -coverprofile c.out ./... -timeout=20m
 
 ## it-stable: Runs Integration Tests Stable mode
 it-stable:
