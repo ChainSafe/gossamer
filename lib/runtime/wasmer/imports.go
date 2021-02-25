@@ -416,8 +416,7 @@ func ext_crypto_sr25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 
 	var kp crypto.Keypair
 	if seed.Exists() {
-		// TODO: Use BIP39 mnemonic as seed to derive the key.
-		kp, err = sr25519.NewKeypairFromSeed(seedBytes)
+		kp, err = sr25519.NewKeypairFromMnenomic(string(seed.Value()), "")
 	} else {
 		kp, err = sr25519.GenerateKeypair()
 	}
