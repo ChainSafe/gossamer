@@ -17,6 +17,7 @@
 package wasmtime
 
 import (
+	"errors"
 	"os"
 	"runtime"
 	"sync"
@@ -145,6 +146,11 @@ func newLegacyInstanceFromModule(module *wasmtime.Module, engine *wasmtime.Engin
 		vm:  instance,
 		mem: mem,
 	}, nil
+}
+
+// UpdateRuntimeCode ...
+func (in *Instance) UpdateRuntimeCode(_ []byte) error {
+	return errors.New("unimplemented")
 }
 
 // Legacy returns the instance as a LegacyInstance

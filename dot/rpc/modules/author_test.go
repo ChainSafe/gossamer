@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/core"
+	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -178,21 +179,16 @@ func TestAuthorModule_SubmitExtrinsic_InQueue(t *testing.T) {
 }
 
 func TestAuthorModule_InsertKey_Valid(t *testing.T) {
-	cs := core.NewTestService(t, nil)
-
-	auth := NewAuthorModule(nil, cs, nil, nil)
+	auth := setupAuthModule(t, nil)
 	req := &KeyInsertRequest{"babe", "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309", "0x6246ddf254e0b4b4e7dffefc8adf69d212b98ac2b579c362b473fec8c40b4c0a"}
 	res := &KeyInsertResponse{}
 	err := auth.InsertKey(nil, req, res)
 	require.Nil(t, err)
-
 	require.Len(t, *res, 0) // zero len result on success
 }
 
 func TestAuthorModule_InsertKey_Valid_gran_keytype(t *testing.T) {
-	cs := core.NewTestService(t, nil)
-
-	auth := NewAuthorModule(nil, cs, nil, nil)
+	auth := setupAuthModule(t, nil)
 	req := &KeyInsertRequest{"gran", "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309b7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309", "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309"}
 	res := &KeyInsertResponse{}
 	err := auth.InsertKey(nil, req, res)
@@ -202,9 +198,7 @@ func TestAuthorModule_InsertKey_Valid_gran_keytype(t *testing.T) {
 }
 
 func TestAuthorModule_InsertKey_InValid(t *testing.T) {
-	cs := core.NewTestService(t, nil)
-
-	auth := NewAuthorModule(nil, cs, nil, nil)
+	auth := setupAuthModule(t, nil)
 	req := &KeyInsertRequest{"babe", "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309", "0x0000000000000000000000000000000000000000000000000000000000000000"}
 	res := &KeyInsertResponse{}
 	err := auth.InsertKey(nil, req, res)
@@ -212,9 +206,7 @@ func TestAuthorModule_InsertKey_InValid(t *testing.T) {
 }
 
 func TestAuthorModule_InsertKey_UnknownKeyType(t *testing.T) {
-	cs := core.NewTestService(t, nil)
-
-	auth := NewAuthorModule(nil, cs, nil, nil)
+	auth := setupAuthModule(t, nil)
 	req := &KeyInsertRequest{"mack", "0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309", "0x6246ddf254e0b4b4e7dffefc8adf69d212b98ac2b579c362b473fec8c40b4c0a"}
 	res := &KeyInsertResponse{}
 	err := auth.InsertKey(nil, req, res)
@@ -273,6 +265,9 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	tt := trie.NewEmptyTrie()
 	rt := wasmer.NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlInfo)
 	ks := keystore.NewGlobalKeystore()
+	t.Cleanup(func() {
+		rt.Stop()
+	})
 
 	// insert alice key for testing
 	kr, err := keystore.NewSr25519Keyring()
@@ -286,10 +281,12 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	cfg := &core.Config{
 		Runtime:          rt,
 		Keystore:         ks,
-		TransactionState: state.NewTransactionState(),
+		TransactionState: srvc.Transaction,
 		IsBlockProducer:  false,
 		BlockState:       srvc.Block,
 		StorageState:     srvc.Storage,
+		EpochState:       srvc.Epoch,
+		Network:          &mockNetwork{},
 	}
 
 	return core.NewTestService(t, cfg)
@@ -298,5 +295,12 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 func setupAuthModule(t *testing.T, txq *state.TransactionState) *AuthorModule {
 	cs := newCoreService(t, nil)
 	rt := wasmer.NewTestLegacyInstance(t, runtime.NODE_RUNTIME)
+	t.Cleanup(func() {
+		rt.Stop()
+	})
 	return NewAuthorModule(nil, cs, rt, txq)
 }
+
+type mockNetwork struct{}
+
+func (n *mockNetwork) SendMessage(_ network.NotificationsMessage) {}

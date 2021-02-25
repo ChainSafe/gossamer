@@ -172,6 +172,7 @@ func (s *Service) Start() error {
 	s.syncQueue = newSyncQueue(s)
 	s.syncQueue.start()
 
+	s.host.h.Network().SetConnHandler(s.handleConn)
 	s.host.registerStreamHandler(syncID, s.handleSyncStream)
 	s.host.registerStreamHandler(lightID, s.handleLightStream)
 
@@ -241,6 +242,11 @@ func (s *Service) logPeerCount() {
 		logger.Debug("peer count", "num", s.host.peerCount(), "min", s.cfg.MinPeers, "max", s.cfg.MaxPeers)
 		time.Sleep(time.Second * 30)
 	}
+}
+
+func (s *Service) handleConn(conn libp2pnetwork.Conn) {
+	// give new peers a slight weight
+	s.syncQueue.updatePeerScore(conn.RemotePeer(), 1)
 }
 
 func (s *Service) beginDiscovery() error {

@@ -21,6 +21,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 )
 
@@ -47,6 +48,7 @@ type BlockState interface {
 type StorageState interface {
 	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
 	StoreTrie(ts *rtstorage.TrieState) error
+	LoadCodeHash(*common.Hash) (common.Hash, error)
 }
 
 // TransactionState is the interface for transaction queue methods
@@ -58,6 +60,7 @@ type TransactionState interface {
 type BlockProducer interface {
 	Pause() error
 	Resume() error
+	SetRuntime(rt runtime.Instance)
 }
 
 // DigestHandler is the interface for the consensus digest handler
