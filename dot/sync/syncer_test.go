@@ -331,11 +331,7 @@ func TestSyncer_HandleRuntimeChanges(t *testing.T) {
 	ts, err := syncer.storageState.TrieState(nil)
 	require.NoError(t, err)
 
-	prevCodeHash, err := ts.LoadCodeHash()
-	require.NoError(t, err)
-
 	ts.Set(common.CodeKey, testRuntime)
-
 	err = syncer.handleRuntimeChanges(ts)
 	require.NoError(t, err)
 }
