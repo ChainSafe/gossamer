@@ -41,12 +41,6 @@ import (
 // testMessageTimeout is the wait time for messages to be exchanged
 var testMessageTimeout = time.Second
 
-// testGenesisHeader is a test block header
-var testGenesisHeader = &types.Header{
-	Number:    big.NewInt(0),
-	StateRoot: trie.EmptyHash,
-}
-
 func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
 	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis-raw.json")
 	if err != nil {
@@ -157,17 +151,21 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	cfg.LogLvl = 3
 
+	var stateSrvc *state.Service
 	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
 	require.NoError(t, err)
-	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo)
-	stateSrvc.UseMemDB()
 
-	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
-	err = stateSrvc.Initialize(gen, genHeader, genTrie)
-	require.Nil(t, err)
+	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.TransactionState == nil || cfg.EpochState == nil {
+		stateSrvc = state.NewService(testDatadirPath, log.LvlInfo)
+		stateSrvc.UseMemDB()
 
-	err = stateSrvc.Start()
-	require.Nil(t, err)
+		gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+		err = stateSrvc.Initialize(gen, genHeader, genTrie)
+		require.Nil(t, err)
+
+		err = stateSrvc.Start()
+		require.Nil(t, err)
+	}
 
 	if cfg.BlockState == nil {
 		cfg.BlockState = stateSrvc.Block
@@ -203,6 +201,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	if net, ok := cfg.Network.(*network.Service); ok {
 		net.SetTransactionHandler(s)
+		_ = net.Stop()
 	}
 
 	return s

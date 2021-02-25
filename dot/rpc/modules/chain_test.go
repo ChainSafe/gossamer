@@ -297,6 +297,10 @@ func newTestStateService(t *testing.T) *state.Service {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	t.Cleanup(func() {
+		stateSrvc.Stop()
+	})
 	return stateSrvc
 }
 
