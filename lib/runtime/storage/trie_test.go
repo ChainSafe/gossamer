@@ -42,8 +42,7 @@ var testCases = []string{
 func TestTrieState_SetGet(t *testing.T) {
 	testFunc := func(ts *TrieState) {
 		for _, tc := range testCases {
-			err := ts.Set([]byte(tc), []byte(tc))
-			require.NoError(t, err)
+			ts.Set([]byte(tc), []byte(tc))
 		}
 
 		for _, tc := range testCases {
@@ -59,8 +58,7 @@ func TestTrieState_SetGet(t *testing.T) {
 func TestTrieState_Delete(t *testing.T) {
 	testFunc := func(ts *TrieState) {
 		for _, tc := range testCases {
-			err := ts.Set([]byte(tc), []byte(tc))
-			require.NoError(t, err)
+			ts.Set([]byte(tc), []byte(tc))
 		}
 
 		ts.Delete([]byte(testCases[0]))
@@ -75,8 +73,7 @@ func TestTrieState_Delete(t *testing.T) {
 func TestTrieState_Root(t *testing.T) {
 	testFunc := func(ts *TrieState) {
 		for _, tc := range testCases {
-			err := ts.Set([]byte(tc), []byte(tc))
-			require.NoError(t, err)
+			ts.Set([]byte(tc), []byte(tc))
 		}
 
 		expected := ts.MustRoot()
@@ -97,8 +94,7 @@ func TestTrieState_ClearPrefix(t *testing.T) {
 	}
 
 	for i, key := range keys {
-		err := ts.Set([]byte(key), []byte{byte(i)})
-		require.NoError(t, err)
+		ts.Set([]byte(key), []byte{byte(i)})
 	}
 
 	ts.ClearPrefix([]byte("noo"))
