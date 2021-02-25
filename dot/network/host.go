@@ -145,7 +145,7 @@ func (h *host) registerStreamHandler(sub protocol.ID, handler func(libp2pnetwork
 // connect connects the host to a specific peer address
 func (h *host) connect(p peer.AddrInfo) (err error) {
 	h.h.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
-	ctx, cancel := context.WithTimeout(h.ctx, time.Second * 2)
+	ctx, cancel := context.WithTimeout(h.ctx, time.Second*2)
 	defer cancel()
 	err = h.h.Connect(ctx, p)
 	return err
