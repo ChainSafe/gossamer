@@ -20,6 +20,7 @@ import (
 	"bufio"
 	crand "crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -170,6 +171,10 @@ func readLEB128ToUint64(r *bufio.Reader) (uint64, error) {
 
 // readStream reads from the stream into the given buffer, returning the number of bytes read
 func readStream(stream libp2pnetwork.Stream, buf []byte) (int, error) {
+	if stream == nil {
+		return 0, errors.New("stream is nil")
+	}
+
 	r := bufio.NewReader(stream)
 
 	var (
