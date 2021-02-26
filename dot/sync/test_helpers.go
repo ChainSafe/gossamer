@@ -18,6 +18,7 @@ package sync
 
 import (
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 )
 
 // mockVerifier implements the Verifier interface
@@ -48,3 +49,5 @@ func (bp *mockBlockProducer) Pause() error {
 func (bp *mockBlockProducer) Resume() error {
 	return nil
 }
+
+func (bp *mockBlockProducer) SetRuntime(_ runtime.Instance) {}
