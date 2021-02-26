@@ -302,7 +302,30 @@ func (s *Service) handleBlock(block *types.Block) error {
 
 	_, err = s.runtime.ExecuteBlock(block)
 	if err != nil {
-		return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)
+		s.logger.Warn("failed to execute block %d, reloading state...", "error", err)
+
+		// retry, load state from db (maybe got corrupted?) TODO: fix this
+		_, err := s.storageState.LoadFromDB(parent.StateRoot)
+		if err != nil {
+			return err
+		}
+
+		ts, err := s.storageState.TrieState(&parent.StateRoot)
+		if err != nil {
+			return err
+		}
+
+		ts.Snapshot()
+		root := ts.MustRoot()
+		if !bytes.Equal(parent.StateRoot[:], root[:]) {
+			panic("parent state root does not match snapshot state root")
+		}
+
+		s.runtime.SetContextStorage(ts)
+		_, err = s.runtime.ExecuteBlock(block)
+		if err != nil {
+			return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)
+		}
 	}
 
 	err = s.storageState.StoreTrie(ts)

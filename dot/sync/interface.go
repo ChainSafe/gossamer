@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
 // BlockState is the interface for the block state
@@ -49,6 +50,7 @@ type StorageState interface {
 	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
 	StoreTrie(ts *rtstorage.TrieState) error
 	LoadCodeHash(*common.Hash) (common.Hash, error)
+	LoadFromDB(root common.Hash) (*trie.Trie, error)
 }
 
 // TransactionState is the interface for transaction queue methods

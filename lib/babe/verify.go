@@ -245,7 +245,11 @@ func (v *VerificationManager) isDisabled(epoch uint64, header *types.Header) (bo
 func (v *VerificationManager) getVerifierInfo(epoch uint64) (*verifierInfo, error) {
 	epochData, err := v.epochState.GetEpochData(epoch)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get epoch data for epoch %d: %w", epoch, err)
+		// TODO: block #539876 tries to get data for epoch 950, but it's the last block of epoch 949
+		epochData, err = v.epochState.GetEpochData(epoch - 1)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get epoch data for epoch %d: %w", epoch, err)
+		}
 	}
 
 	configData, err := v.getConfigData(epoch)
