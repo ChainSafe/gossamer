@@ -192,7 +192,7 @@ func (q *syncQueue) start() {
 			logger.Debug("sync response queue", "queue", q.stringifyResponseQueue())
 			q.responseLock.Unlock()
 			q.responseCh <- q.responses
-			q.responses = q.responses[len(q.responses)-1:]
+			q.responses = []*types.BlockData{}
 		}
 	}()
 
