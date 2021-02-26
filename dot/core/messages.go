@@ -33,11 +33,12 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) erro
 		tx := tx // pin
 
 		// validate each transaction
-		val, err := s.rt.ValidateTransaction(tx)
-		if err != nil {
-			logger.Error("failed to validate transaction", "err", err)
-			return err // exit
-		}
+		// val, err := s.rt.ValidateTransaction(tx)
+		// if err != nil {
+		// 	logger.Error("failed to validate transaction", "err", err)
+		// 	return err // exit
+		// }
+		val := &transaction.Validity{}
 
 		// create new valid transaction
 		vtx := transaction.NewValidTransaction(tx, val)

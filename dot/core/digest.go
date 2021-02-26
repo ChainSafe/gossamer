@@ -449,6 +449,8 @@ func (h *DigestHandler) handleNextEpochData(d *types.ConsensusDigest, header *ty
 	if err != nil {
 		return err
 	}
+
+	logger.Info("setting epoch data", "epoch", currEpoch+1, "data", data)
 	return h.epochState.SetEpochData(currEpoch+1, data)
 }
 
@@ -467,6 +469,7 @@ func (h *DigestHandler) handleNextConfigData(d *types.ConsensusDigest, header *t
 		return err
 	}
 
+	logger.Info("setting BABE config data", "epoch", currEpoch+1, "data", od.ToConfigData())
 	// set EpochState config data for upcoming epoch
 	return h.epochState.SetConfigData(currEpoch+1, od.ToConfigData())
 }

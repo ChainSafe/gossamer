@@ -302,7 +302,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 
 	_, err = s.runtime.ExecuteBlock(block)
 	if err != nil {
-		s.logger.Warn("failed to execute block %d, reloading state...", "error", err)
+		s.logger.Warn("failed to execute block, reloading state...", "number", block.Header.Number, "error", err)
 
 		// retry, load state from db (maybe got corrupted?) TODO: fix this
 		_, err := s.storageState.LoadFromDB(parent.StateRoot)
@@ -351,12 +351,10 @@ func (s *Service) handleBlock(block *types.Block) error {
 
 	// handle consensus digest for authority changes
 	if s.digestHandler != nil {
-		//go func() {
 		err = s.handleDigests(block.Header)
 		if err != nil {
 			s.logger.Crit("failed to handle block digest", "error", err)
 		}
-		//}()
 	}
 
 	return s.handleRuntimeChanges(ts)
