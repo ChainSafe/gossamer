@@ -351,12 +351,12 @@ func (s *Service) handleBlock(block *types.Block) error {
 
 	// handle consensus digest for authority changes
 	if s.digestHandler != nil {
-		go func() {
-			err = s.handleDigests(block.Header)
-			if err != nil {
-				s.logger.Error("failed to handle block digest", "error", err)
-			}
-		}()
+		//go func() {
+		err = s.handleDigests(block.Header)
+		if err != nil {
+			s.logger.Crit("failed to handle block digest", "error", err)
+		}
+		//}()
 	}
 
 	return s.handleRuntimeChanges(ts)
