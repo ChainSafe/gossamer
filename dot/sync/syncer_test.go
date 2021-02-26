@@ -313,10 +313,25 @@ func TestSyncer_ExecuteBlock(t *testing.T) {
 	// reset parentState
 	parentState, err := syncer.storageState.TrieState(&parent.StateRoot)
 	require.NoError(t, err)
-	ts, err := parentState.Copy()
-	require.NoError(t, err)
-	syncer.runtime.SetContextStorage(ts)
+	syncer.runtime.SetContextStorage(parentState)
 
 	_, err = syncer.runtime.ExecuteBlock(block)
+	require.NoError(t, err)
+}
+
+func TestSyncer_HandleRuntimeChanges(t *testing.T) {
+	syncer := newTestSyncer(t)
+
+	_, err := runtime.GetRuntimeBlob(runtime.HOST_API_TEST_RUNTIME_FP, runtime.HOST_API_TEST_RUNTIME_URL)
+	require.NoError(t, err)
+
+	testRuntime, err := ioutil.ReadFile(runtime.HOST_API_TEST_RUNTIME_FP)
+	require.NoError(t, err)
+
+	ts, err := syncer.storageState.TrieState(nil)
+	require.NoError(t, err)
+
+	ts.Set(common.CodeKey, testRuntime)
+	err = syncer.handleRuntimeChanges(ts)
 	require.NoError(t, err)
 }

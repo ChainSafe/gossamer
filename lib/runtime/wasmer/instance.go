@@ -55,6 +55,7 @@ type LegacyInstance struct {
 	ctx     *runtime.Context
 	mutex   sync.Mutex
 	version runtime.Version
+	imports func() (*wasm.Imports, error)
 }
 
 // Instance represents a v0.8 runtime go-wasmer instance
@@ -104,11 +105,7 @@ func NewLegacyInstance(code []byte, cfg *Config) (*LegacyInstance, error) {
 
 // NewInstanceFromTrie returns a new runtime instance with the code provided in the given trie
 func NewInstanceFromTrie(t *trie.Trie, cfg *Config) (*Instance, error) {
-	code, err := t.Get(common.CodeKey)
-	if err != nil {
-		return nil, err
-	}
-
+	code := t.Get(common.CodeKey)
 	if len(code) == 0 {
 		return nil, fmt.Errorf("cannot find :code in trie")
 	}
@@ -147,6 +144,56 @@ func NewInstanceFromLegacy(inst *LegacyInstance) *Instance {
 	return &Instance{
 		inst: inst,
 	}
+}
+
+// UpdateRuntimeCode updates the runtime instance to run the given code
+func (in *Instance) UpdateRuntimeCode(code []byte) error {
+	in.inst.Stop()
+
+	imports, err := in.inst.imports()
+	if err != nil {
+		return err
+	}
+
+	// Provide importable memory for newer runtimes
+	memory, err := wasm.NewMemory(20, 0)
+	if err != nil {
+		return err
+	}
+
+	_, err = imports.AppendMemory("memory", memory)
+	if err != nil {
+		return err
+	}
+
+	// Instantiates the WebAssembly module.
+	instance, err := wasm.NewInstanceWithImports(code, imports)
+	if err != nil {
+		return err
+	}
+
+	// TODO: get __heap_base exported value from runtime.
+	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does
+	heapBase := runtime.DefaultHeapBase
+
+	// Assume imported memory is used if runtime does not export any
+	if !instance.HasMemory() {
+		instance.Memory = memory
+	}
+
+	in.inst.ctx.Allocator = runtime.NewAllocator(instance.Memory, heapBase)
+	instance.SetContextData(in.inst.ctx)
+
+	inst := &LegacyInstance{
+		vm:      instance,
+		ctx:     in.inst.ctx,
+		imports: in.inst.imports,
+	}
+
+	inst.version, _ = inst.Version()
+
+	in.inst = inst
+	return nil
 }
 
 // Legacy returns the instance as a LegacyInstance
@@ -244,8 +291,9 @@ func newLegacyInstance(code []byte, cfg *Config) (*LegacyInstance, error) {
 	instance.SetContextData(runtimeCtx)
 
 	inst := &LegacyInstance{
-		vm:  instance,
-		ctx: runtimeCtx,
+		vm:      instance,
+		ctx:     runtimeCtx,
+		imports: cfg.Imports,
 	}
 
 	inst.version, _ = inst.Version()

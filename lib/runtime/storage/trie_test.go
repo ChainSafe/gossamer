@@ -17,7 +17,6 @@
 package storage
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -43,13 +42,11 @@ var testCases = []string{
 func TestTrieState_SetGet(t *testing.T) {
 	testFunc := func(ts *TrieState) {
 		for _, tc := range testCases {
-			err := ts.Set([]byte(tc), []byte(tc))
-			require.NoError(t, err)
+			ts.Set([]byte(tc), []byte(tc))
 		}
 
 		for _, tc := range testCases {
-			res, err := ts.Get([]byte(tc))
-			require.NoError(t, err, fmt.Sprintf("failed to get key %s", tc))
+			res := ts.Get([]byte(tc))
 			require.Equal(t, []byte(tc), res)
 		}
 	}
@@ -61,15 +58,11 @@ func TestTrieState_SetGet(t *testing.T) {
 func TestTrieState_Delete(t *testing.T) {
 	testFunc := func(ts *TrieState) {
 		for _, tc := range testCases {
-			err := ts.Set([]byte(tc), []byte(tc))
-			require.NoError(t, err)
+			ts.Set([]byte(tc), []byte(tc))
 		}
 
-		err := ts.Delete([]byte(testCases[0]))
-		require.NoError(t, err)
-
-		has, err := ts.Has([]byte(testCases[0]))
-		require.NoError(t, err)
+		ts.Delete([]byte(testCases[0]))
+		has := ts.Has([]byte(testCases[0]))
 		require.False(t, has)
 	}
 
@@ -80,8 +73,7 @@ func TestTrieState_Delete(t *testing.T) {
 func TestTrieState_Root(t *testing.T) {
 	testFunc := func(ts *TrieState) {
 		for _, tc := range testCases {
-			err := ts.Set([]byte(tc), []byte(tc))
-			require.NoError(t, err)
+			ts.Set([]byte(tc), []byte(tc))
 		}
 
 		expected := ts.MustRoot()
@@ -102,15 +94,13 @@ func TestTrieState_ClearPrefix(t *testing.T) {
 	}
 
 	for i, key := range keys {
-		err := ts.Set([]byte(key), []byte{byte(i)})
-		require.NoError(t, err)
+		ts.Set([]byte(key), []byte{byte(i)})
 	}
 
 	ts.ClearPrefix([]byte("noo"))
 
 	for i, key := range keys {
-		val, err := ts.Get([]byte(key))
-		require.NoError(t, err)
+		val := ts.Get([]byte(key))
 		if i < 2 {
 			require.Nil(t, val)
 		} else {

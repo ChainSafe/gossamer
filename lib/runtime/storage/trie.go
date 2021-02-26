@@ -49,24 +49,21 @@ func (s *TrieState) Trie() *trie.Trie {
 	return s.t
 }
 
-// Copy performs a deep copy of the TrieState
-func (s *TrieState) Copy() (*TrieState, error) {
-	trieCopy := s.t.Snapshot()
-	return &TrieState{
-		t: trieCopy,
-	}, nil
+// Snapshot creates a new "version" of the trie. The trie before Snapshot is called
+// can no longer be modified, all further changes are on a new "version" of the trie.
+func (s *TrieState) Snapshot() {
+	_ = s.t.Snapshot()
 }
 
 // Set sets a key-value pair in the trie
-func (s *TrieState) Set(key []byte, value []byte) error {
+func (s *TrieState) Set(key []byte, value []byte) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	s.t.Put(key, value)
-	return nil
 }
 
 // Get gets a value from the trie
-func (s *TrieState) Get(key []byte) ([]byte, error) {
+func (s *TrieState) Get(key []byte) []byte {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 	return s.t.Get(key)
@@ -83,29 +80,20 @@ func (s *TrieState) Root() (common.Hash, error) {
 }
 
 // Has returns whether or not a key exists
-func (s *TrieState) Has(key []byte) (bool, error) {
-	val, err := s.Get(key)
-	if err != nil {
-		return false, nil
-	}
-
-	return val != nil, nil
+func (s *TrieState) Has(key []byte) bool {
+	return s.Get(key) != nil
 }
 
 // Delete deletes a key from the trie
-func (s *TrieState) Delete(key []byte) error {
-	val, err := s.t.Get(key)
-	if err != nil {
-		return err
-	}
-
+func (s *TrieState) Delete(key []byte) {
+	val := s.t.Get(key)
 	if val == nil {
-		return nil
+		return
 	}
 
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	return s.t.Delete(key)
+	s.t.Delete(key)
 }
 
 // NextKey returns the next key in the trie in lexicographical order. If it does not exist, it returns nil.
@@ -158,11 +146,11 @@ func (s *TrieState) GetChildStorage(keyToChild, key []byte) ([]byte, error) {
 	return s.t.GetFromChild(keyToChild, key)
 }
 
-// DeleteChildStorage deletes child storage from the trie
-func (s *TrieState) DeleteChildStorage(key []byte) error {
+// DeleteChild deletes a child trie from the main trie
+func (s *TrieState) DeleteChild(key []byte) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	return s.t.DeleteFromChild(key)
+	s.t.DeleteChild(key)
 }
 
 // ClearChildStorage removes the child storage entry from the trie
@@ -227,7 +215,8 @@ func (s *TrieState) SetBalance(key [32]byte, balance uint64) error {
 	bb := make([]byte, 8)
 	binary.LittleEndian.PutUint64(bb, balance)
 
-	return s.Set(skey, bb)
+	s.Set(skey, bb)
+	return nil
 }
 
 // GetBalance returns the balance for a given public key
@@ -237,14 +226,21 @@ func (s *TrieState) GetBalance(key [32]byte) (uint64, error) {
 		return 0, err
 	}
 
-	bal, err := s.Get(skey)
-	if err != nil {
-		return 0, err
-	}
-
+	bal := s.Get(skey)
 	if len(bal) != 8 {
 		return 0, nil
 	}
 
 	return binary.LittleEndian.Uint64(bal), nil
+}
+
+// LoadCode returns the runtime code (located at :code)
+func (s *TrieState) LoadCode() []byte {
+	return s.Get(common.CodeKey)
+}
+
+// LoadCodeHash returns the hash of the runtime code (located at :code)
+func (s *TrieState) LoadCodeHash() (common.Hash, error) {
+	code := s.LoadCode()
+	return common.Blake2bHash(code)
 }

@@ -33,6 +33,7 @@ type LegacyInstance interface {
 type Instance interface {
 	InstanceAPI
 	LegacyRuntimeAPI
+	UpdateRuntimeCode([]byte) error
 
 	// TODO: parameters and return values for these are undefined in the spec
 	CheckInherents()
@@ -67,14 +68,14 @@ type LegacyRuntimeAPI interface {
 
 // Storage interface
 type Storage interface {
-	Set(key []byte, value []byte) error
-	Get(key []byte) ([]byte, error)
+	Set(key []byte, value []byte)
+	Get(key []byte) []byte
 	Root() (common.Hash, error)
 	SetChild(keyToChild []byte, child *trie.Trie) error
 	SetChildStorage(keyToChild, key, value []byte) error
 	GetChildStorage(keyToChild, key []byte) ([]byte, error)
-	Delete(key []byte) error
-	DeleteChildStorage(key []byte) error
+	Delete(key []byte)
+	DeleteChild(keyToChild []byte)
 	ClearChildStorage(keyToChild, key []byte) error
 	NextKey([]byte) []byte
 	ClearPrefixInChild(keyToChild, prefix []byte) error

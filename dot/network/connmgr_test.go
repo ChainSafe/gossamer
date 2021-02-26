@@ -41,7 +41,7 @@ func TestMaxPeers(t *testing.T) {
 	}
 
 	addrs := nodes[0].host.multiaddrs()
-	ainfo, err := peer.AddrInfoFromP2pAddr(addrs[1])
+	ainfo, err := peer.AddrInfoFromP2pAddr(addrs[0])
 	require.NoError(t, err)
 
 	for i, n := range nodes {

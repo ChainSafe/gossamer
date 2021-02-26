@@ -90,14 +90,20 @@ func (b *branch) copy() *branch {
 	cpy := &branch{
 		key:        make([]byte, len(b.key)),
 		children:   b.children,
-		value:      make([]byte, len(b.value)),
+		value:      nil,
 		dirty:      b.dirty,
 		hash:       make([]byte, len(b.hash)),
 		encoding:   make([]byte, len(b.encoding)),
 		generation: b.generation,
 	}
 	copy(cpy.key, b.key)
-	copy(cpy.value, b.value)
+
+	// nil and []byte{} are encoded differently, watch out!
+	if b.value != nil {
+		cpy.value = make([]byte, len(b.value))
+		copy(cpy.value, b.value)
+	}
+
 	copy(cpy.hash, b.hash)
 	copy(cpy.encoding, b.encoding)
 	return cpy
@@ -149,14 +155,14 @@ func (b *branch) String() string {
 	if len(b.value) > 1024 {
 		return fmt.Sprintf("branch key=%x childrenBitmap=%16b value (hashed)=%x dirty=%v", b.key, b.childrenBitmap(), common.MustBlake2bHash(b.value), b.dirty)
 	}
-	return fmt.Sprintf("branch key=%x childrenBitmap=%16b value=%x dirty=%v", b.key, b.childrenBitmap(), b.value, b.dirty)
+	return fmt.Sprintf("branch key=%x childrenBitmap=%16b value=%v dirty=%v", b.key, b.childrenBitmap(), b.value, b.dirty)
 }
 
 func (l *leaf) String() string {
 	if len(l.value) > 1024 {
 		return fmt.Sprintf("leaf key=%x value (hashed)=%x dirty=%v", l.key, common.MustBlake2bHash(l.value), l.dirty)
 	}
-	return fmt.Sprintf("leaf key=%x value=%x dirty=%v", l.key, l.value, l.dirty)
+	return fmt.Sprintf("leaf key=%x value=%v dirty=%v", l.key, l.value, l.dirty)
 }
 
 func (b *branch) childrenBitmap() uint16 {

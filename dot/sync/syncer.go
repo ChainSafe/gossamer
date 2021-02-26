@@ -17,6 +17,7 @@
 package sync
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"math/big"
@@ -25,14 +26,17 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 
 	log "github.com/ChainSafe/log15"
 )
 
 // Service deals with chain syncing by sending block request messages and watching for responses.
 type Service struct {
-	logger log.Logger
+	logger   log.Logger
+	codeHash common.Hash // cached hash of runtime code
 
 	// State interfaces
 	blockState       BlockState // retrieve our current head of chain from BlockState
@@ -91,8 +95,14 @@ func NewService(cfg *Config) (*Service, error) {
 	handler = log.CallerFileHandler(handler)
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, handler))
 
+	codeHash, err := cfg.StorageState.LoadCodeHash(nil)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Service{
 		logger:           logger,
+		codeHash:         codeHash,
 		blockState:       cfg.BlockState,
 		storageState:     cfg.StorageState,
 		blockProducer:    cfg.BlockProducer,
@@ -151,6 +161,11 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) error {
 		return ErrNilBlockData
 	}
 
+	bestNum, err := s.blockState.BestBlockNumber()
+	if err != nil {
+		return err
+	}
+
 	// TODO: return number of last successful block that was processed
 	for _, bd := range data {
 		s.logger.Debug("starting processing of block", "hash", bd.Hash)
@@ -162,11 +177,11 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) error {
 
 		hasHeader, _ := s.blockState.HasHeader(bd.Hash)
 		hasBody, _ := s.blockState.HasBlockBody(bd.Hash)
-		if hasHeader && hasBody {
+		if hasHeader && hasBody && bd.Number().Int64() <= bestNum.Int64() {
 			// TODO: fix this; sometimes when the node shuts down the "best block" isn't stored properly,
 			// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
-			// s.logger.Debug("skipping block, already have", "hash", bd.Hash)
-			// continue
+			s.logger.Debug("skipping block, already have", "hash", bd.Hash)
+			continue
 		}
 
 		if bd.Header.Exists() && !hasHeader {
@@ -271,21 +286,17 @@ func (s *Service) handleBlock(block *types.Block) error {
 	}
 
 	s.logger.Trace("getting parent state", "root", parent.StateRoot)
-	parentState, err := s.storageState.TrieState(&parent.StateRoot)
+	ts, err := s.storageState.TrieState(&parent.StateRoot)
 	if err != nil {
 		return err
 	}
 
-	ts, err := parentState.Copy()
-	if err != nil {
-		return err
+	ts.Snapshot()
+	root := ts.MustRoot()
+	if !bytes.Equal(parent.StateRoot[:], root[:]) {
+		panic("parent state root does not match snapshot state root")
 	}
 
-	s.logger.Trace("copied parent state", "parent state root", parentState.MustRoot(), "copy state root", ts.MustRoot())
-	// sanity check
-	if parentState.MustRoot() != ts.MustRoot() {
-		panic("parent state root does not match copy's state root")
-	}
 	s.runtime.SetContextStorage(ts)
 	s.logger.Trace("going to execute block", "block", block, "exts", block.Body)
 
@@ -311,7 +322,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 			return err
 		}
 	} else {
-		s.logger.Info("imported block", "number", block.Header.Number, "hash", block.Header.Hash())
+		s.logger.Info("🔗 imported block", "number", block.Header.Number, "hash", block.Header.Hash())
 		s.logger.Debug("imported block", "header", block.Header, "body", block.Body)
 	}
 
@@ -325,6 +336,32 @@ func (s *Service) handleBlock(block *types.Block) error {
 		}()
 	}
 
+	return s.handleRuntimeChanges(ts)
+}
+
+func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {
+	currCodeHash, err := newState.LoadCodeHash()
+	if err != nil {
+		return err
+	}
+
+	if bytes.Equal(s.codeHash[:], currCodeHash[:]) {
+		return nil
+	}
+
+	s.logger.Info("🔄 detected runtime code change, upgrading...", "block", s.blockState.BestBlockHash(), "previous code hash", s.codeHash, "new code hash", currCodeHash)
+	code := newState.LoadCode()
+	if len(code) == 0 {
+		return ErrEmptyRuntimeCode
+	}
+
+	err = s.runtime.UpdateRuntimeCode(code)
+	if err != nil {
+		s.logger.Crit("failed to update runtime code", "error", err)
+		return err
+	}
+
+	s.codeHash = currCodeHash
 	return nil
 }
 
