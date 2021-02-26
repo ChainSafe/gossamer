@@ -163,12 +163,8 @@ func ext_get_storage_into(context unsafe.Pointer, keyData, keyLen, valueData, va
 	s := runtimeCtx.Storage
 
 	key := memory[keyData : keyData+keyLen]
-	val, err := s.Get(key)
-	if err != nil {
-		logger.Warn("[ext_get_storage_into]", "err", err)
-		ret := 1<<32 - 1
-		return C.int32_t(ret)
-	} else if val == nil {
+	val := s.Get(key)
+	if val == nil {
 		logger.Debug("[ext_get_storage_into]", "err", "value is nil")
 		ret := 1<<32 - 1
 		return C.int32_t(ret)
@@ -200,11 +196,7 @@ func ext_set_storage(context unsafe.Pointer, keyData, keyLen, valueData, valueLe
 
 	cp := make([]byte, len(val))
 	copy(cp, val)
-	err := s.Set(key, cp)
-	if err != nil {
-		logger.Error("[ext_set_storage]", "error", err)
-		return
-	}
+	s.Set(key, cp)
 }
 
 //export ext_set_child_storage
@@ -290,13 +282,7 @@ func ext_get_allocated_storage(context unsafe.Pointer, keyData, keyLen, writtenO
 	key := memory[keyData : keyData+keyLen]
 	logger.Trace("[ext_get_allocated_storage]", "key", fmt.Sprintf("0x%x", key))
 
-	val, err := s.Get(key)
-	if err != nil {
-		logger.Error("[ext_get_allocated_storage]", "error", err)
-		copy(memory[writtenOut:writtenOut+4], []byte{0xff, 0xff, 0xff, 0xff})
-		return 0
-	}
-
+	val := s.Get(key)
 	if len(val) >= (1 << 32) {
 		logger.Error("[ext_get_allocated_storage]", "error", "retrieved value length exceeds 2^32")
 		copy(memory[writtenOut:writtenOut+4], []byte{0xff, 0xff, 0xff, 0xff})
@@ -341,10 +327,7 @@ func ext_clear_storage(context unsafe.Pointer, keyData, keyLen C.int32_t) {
 	s := runtimeCtx.Storage
 
 	key := memory[keyData : keyData+keyLen]
-	err := s.Delete(key)
-	if err != nil {
-		logger.Error("[ext_clear_storage]", "error", err)
-	}
+	s.Delete(key)
 }
 
 // deletes all entries in the trie that have a key beginning with the prefix stored at `prefixData`
@@ -876,11 +859,7 @@ func ext_kill_child_storage(context unsafe.Pointer, storageKeyData, storageKeyLe
 	s := runtimeCtx.Storage
 
 	keyToChild := memory[storageKeyData : storageKeyData+storageKeyLen]
-
-	err := s.DeleteChildStorage(keyToChild)
-	if err != nil {
-		logger.Error("[ext_kill_child_storage]", "error", err)
-	}
+	s.DeleteChild(keyToChild)
 }
 
 //export ext_sandbox_memory_new

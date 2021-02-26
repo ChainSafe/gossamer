@@ -38,11 +38,12 @@ func (t *Trie) String() string {
 func (t *Trie) string(tree gotree.Tree, curr node, idx int) {
 	switch c := curr.(type) {
 	case *branch:
+		c.encoding, _ = c.encode()
 		var bstr string
 		if len(c.encoding) > 1024 {
-			bstr = fmt.Sprintf("idx=%d %s hash=%x", idx, c.String(), common.MustBlake2bHash(c.encoding))
+			bstr = fmt.Sprintf("idx=%d %s hash=%x gen=%d", idx, c.String(), common.MustBlake2bHash(c.encoding), c.generation)
 		} else {
-			bstr = fmt.Sprintf("idx=%d %s enc=%x", idx, c.String(), c.encoding)
+			bstr = fmt.Sprintf("idx=%d %s enc=%x gen=%d", idx, c.String(), c.encoding, c.generation)
 		}
 		sub := tree.Add(bstr)
 		for i, child := range c.children {
@@ -51,11 +52,12 @@ func (t *Trie) string(tree gotree.Tree, curr node, idx int) {
 			}
 		}
 	case *leaf:
+		c.encoding, _ = c.encode()
 		var bstr string
 		if len(c.encoding) > 1024 {
-			bstr = fmt.Sprintf("idx=%d %s hash=%x", idx, c.String(), common.MustBlake2bHash(c.encoding))
+			bstr = fmt.Sprintf("idx=%d %s hash=%x gen=%d", idx, c.String(), common.MustBlake2bHash(c.encoding), c.generation)
 		} else {
-			bstr = fmt.Sprintf("idx=%d %s enc=%x", idx, c.String(), c.encoding)
+			bstr = fmt.Sprintf("idx=%d %s enc=%x gen=%d", idx, c.String(), c.encoding, c.generation)
 		}
 		tree.Add(bstr)
 	default:
