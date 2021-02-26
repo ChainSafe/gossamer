@@ -222,13 +222,7 @@ func ext_storage_get_version_1(vm *exec.VirtualMachine) int64 {
 	key := asMemorySlice(vm.Memory, keySpan)
 	logger.Debug("[ext_storage_get_version_1]", "key", fmt.Sprintf("0x%x", key))
 
-	value, err := storage.Get(key)
-	if err != nil {
-		logger.Error("[ext_storage_get_version_1]", "error", err)
-		ptr, _ := toWasmMemoryOptional(vm.Memory, nil)
-		return ptr
-	}
-
+	value := storage.Get(key)
 	logger.Debug("[ext_storage_get_version_1]", "value", fmt.Sprintf("0x%x", value))
 
 	valueSpan, err := toWasmMemoryOptional(vm.Memory, value)
@@ -263,12 +257,7 @@ func ext_storage_set_version_1(vm *exec.VirtualMachine) int64 {
 
 	cp := make([]byte, len(value))
 	copy(cp, value)
-	err := storage.Set(key, cp)
-	if err != nil {
-		logger.Error("[ext_storage_set_version_1]", "error", err)
-		return 0
-	}
-
+	storage.Set(key, cp)
 	return 0
 }
 
@@ -308,7 +297,7 @@ func ext_storage_clear_version_1(vm *exec.VirtualMachine) int64 {
 		return 0
 	}
 
-	_ = storage.Delete(key)
+	storage.Delete(key)
 	return 0
 }
 
@@ -351,13 +340,7 @@ func ext_storage_read_version_1(vm *exec.VirtualMachine) int64 {
 	memory := vm.Memory
 
 	key := asMemorySlice(memory, keySpan)
-	value, err := storage.Get(key)
-	if err != nil {
-		logger.Error("[ext_storage_read_version_1]", "error", err)
-		ret, _ := toWasmMemoryOptional(memory, nil)
-		return ret
-	}
-
+	value := storage.Get(key)
 	logger.Debug("[ext_storage_read_version_1]", "key", fmt.Sprintf("0x%x", key), "value", fmt.Sprintf("0x%x", value))
 
 	if value == nil {
@@ -390,10 +373,7 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 
 	// this function assumes the item in storage is a SCALE encoded array of items
 	// the valueToAppend is a new item, so it appends the item and increases the length prefix by 1
-	valueCurr, err := storage.Get(key)
-	if err != nil {
-		return err
-	}
+	valueCurr := storage.Get(key)
 
 	if len(valueCurr) == 0 {
 		valueRes = valueToAppend
@@ -405,7 +385,8 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 		currLength, err := dec.DecodeBigInt() //nolint
 		if err != nil {
 			logger.Trace("[ext_storage_append_version_1] item in storage is not SCALE encoded, overwriting", "key", key)
-			return storage.Set(key, append([]byte{4}, valueToAppend...))
+			storage.Set(key, append([]byte{4}, valueToAppend...))
+			return nil
 		}
 
 		// append new item
@@ -418,12 +399,14 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 	lengthEnc, err := scale.Encode(nextLength)
 	if err != nil {
 		logger.Trace("[ext_storage_append_version_1] failed to encode new length", "error", err)
+		return err
 	}
 
 	// append new length prefix to start of items array
 	finalVal := append(lengthEnc, valueRes...)
 	logger.Debug("[ext_storage_append_version_1]", "resulting value", fmt.Sprintf("0x%x", finalVal))
-	return storage.Set(key, finalVal)
+	storage.Set(key, finalVal)
+	return nil
 }
 
 func ext_storage_append_version_1(vm *exec.VirtualMachine) int64 {

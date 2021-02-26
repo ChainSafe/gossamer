@@ -233,14 +233,12 @@ func TestEncodeRoot(t *testing.T) {
 		for _, test := range rt {
 			trie.Put(test.key, test.value)
 
-			val, err := trie.Get(test.key)
-			if err != nil {
-				t.Errorf("Fail to get key %x: %s", test.key, err.Error())
-			} else if !bytes.Equal(val, test.value) {
+			val := trie.Get(test.key)
+			if !bytes.Equal(val, test.value) {
 				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
 			}
 
-			_, err = encode(trie.root)
+			_, err := encode(trie.root)
 			if err != nil {
 				t.Errorf("Fail to encode trie root: %s", err)
 			}

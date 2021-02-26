@@ -165,8 +165,7 @@ func Test_ext_storage_clear_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
-	err := inst.inst.ctx.Storage.Set(testkey, []byte{1})
-	require.NoError(t, err)
+	inst.inst.ctx.Storage.Set(testkey, []byte{1})
 
 	enc, err := scale.Encode(testkey)
 	require.NoError(t, err)
@@ -174,8 +173,7 @@ func Test_ext_storage_clear_version_1(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_storage_clear_version_1", enc)
 	require.NoError(t, err)
 
-	val, err := inst.inst.ctx.Storage.Get(testkey)
-	require.NoError(t, err)
+	val := inst.inst.ctx.Storage.Get(testkey)
 	require.Nil(t, val)
 }
 
@@ -183,11 +181,10 @@ func Test_ext_storage_clear_prefix_version_1_hostAPI(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("static")
-	err := inst.inst.ctx.Storage.Set(testkey, []byte("Inverse"))
-	require.NoError(t, err)
+	inst.inst.ctx.Storage.Set(testkey, []byte("Inverse"))
+
 	testkey2 := []byte("even-keeled")
-	err = inst.inst.ctx.Storage.Set(testkey2, []byte("Future-proofed"))
-	require.NoError(t, err)
+	inst.inst.ctx.Storage.Set(testkey2, []byte("Future-proofed"))
 
 	enc, err := scale.Encode(testkey[:3])
 	require.NoError(t, err)
@@ -195,12 +192,10 @@ func Test_ext_storage_clear_prefix_version_1_hostAPI(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_storage_clear_prefix_version_1", enc)
 	require.NoError(t, err)
 
-	val, err := inst.inst.ctx.Storage.Get(testkey)
-	require.NoError(t, err)
+	val := inst.inst.ctx.Storage.Get(testkey)
 	require.Nil(t, val)
 
-	val, err = inst.inst.ctx.Storage.Get(testkey2)
-	require.NoError(t, err)
+	val = inst.inst.ctx.Storage.Get(testkey2)
 	require.NotNil(t, val)
 }
 
@@ -208,11 +203,10 @@ func Test_ext_storage_clear_prefix_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
-	err := inst.inst.ctx.Storage.Set(testkey, []byte{1})
-	require.NoError(t, err)
+	inst.inst.ctx.Storage.Set(testkey, []byte{1})
+
 	testkey2 := []byte("spaghet")
-	err = inst.inst.ctx.Storage.Set(testkey2, []byte{2})
-	require.NoError(t, err)
+	inst.inst.ctx.Storage.Set(testkey2, []byte{2})
 
 	enc, err := scale.Encode(testkey[:3])
 	require.NoError(t, err)
@@ -220,12 +214,10 @@ func Test_ext_storage_clear_prefix_version_1(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_storage_clear_prefix_version_1", enc)
 	require.NoError(t, err)
 
-	val, err := inst.inst.ctx.Storage.Get(testkey)
-	require.NoError(t, err)
+	val := inst.inst.ctx.Storage.Get(testkey)
 	require.Nil(t, val)
 
-	val, err = inst.inst.ctx.Storage.Get(testkey2)
-	require.NoError(t, err)
+	val = inst.inst.ctx.Storage.Get(testkey2)
 	require.NotNil(t, val)
 }
 
@@ -234,8 +226,7 @@ func Test_ext_storage_get_version_1(t *testing.T) {
 
 	testkey := []byte("noot")
 	testvalue := []byte{1, 2}
-	err := inst.inst.ctx.Storage.Set(testkey, testvalue)
-	require.NoError(t, err)
+	inst.inst.ctx.Storage.Set(testkey, testvalue)
 
 	enc, err := scale.Encode(testkey)
 	require.NoError(t, err)
@@ -256,8 +247,7 @@ func Test_ext_storage_exists_version_1(t *testing.T) {
 
 	testkey := []byte("noot")
 	testvalue := []byte{1, 2}
-	err := inst.inst.ctx.Storage.Set(testkey, testvalue)
-	require.NoError(t, err)
+	inst.inst.ctx.Storage.Set(testkey, testvalue)
 
 	enc, err := scale.Encode(testkey)
 	require.NoError(t, err)
@@ -279,12 +269,10 @@ func Test_ext_storage_next_key_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
-	err := inst.inst.ctx.Storage.Set(testkey, []byte{1})
-	require.NoError(t, err)
+	inst.inst.ctx.Storage.Set(testkey, []byte{1})
 
 	nextkey := []byte("oot")
-	err = inst.inst.ctx.Storage.Set(nextkey, []byte{1})
-	require.NoError(t, err)
+	inst.inst.ctx.Storage.Set(nextkey, []byte{1})
 
 	enc, err := scale.Encode(testkey)
 	require.NoError(t, err)
@@ -305,8 +293,7 @@ func Test_ext_storage_read_version_1(t *testing.T) {
 
 	testkey := []byte("noot")
 	testvalue := []byte("washere")
-	err := inst.inst.ctx.Storage.Set(testkey, testvalue)
-	require.NoError(t, err)
+	inst.inst.ctx.Storage.Set(testkey, testvalue)
 
 	testoffset := uint32(2)
 	testBufferSize := uint32(100)
@@ -335,8 +322,7 @@ func Test_ext_storage_read_version_1_again(t *testing.T) {
 
 	testkey := []byte("noot")
 	testvalue := []byte("_was_here_")
-	err := inst.inst.ctx.Storage.Set(testkey, testvalue)
-	require.NoError(t, err)
+	inst.inst.ctx.Storage.Set(testkey, testvalue)
 
 	testoffset := uint32(8)
 	testBufferSize := uint32(5)
@@ -366,8 +352,7 @@ func Test_ext_storage_read_version_1_OffsetLargerThanValue(t *testing.T) {
 
 	testkey := []byte("noot")
 	testvalue := []byte("washere")
-	err := inst.inst.ctx.Storage.Set(testkey, testvalue)
-	require.NoError(t, err)
+	inst.inst.ctx.Storage.Set(testkey, testvalue)
 
 	testoffset := uint32(len(testvalue))
 	testBufferSize := uint32(8)
@@ -418,8 +403,7 @@ func Test_ext_storage_set_version_1(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_storage_set_version_1", append(encKey, encValue...))
 	require.NoError(t, err)
 
-	val, err := inst.inst.ctx.Storage.Get(testkey)
-	require.NoError(t, err)
+	val := inst.inst.ctx.Storage.Get(testkey)
 	require.Equal(t, testvalue, val)
 }
 
@@ -1016,8 +1000,7 @@ func Test_ext_default_child_storage_storage_kill_version_1(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_default_child_storage_storage_kill_version_1", encChildKey)
 	require.NoError(t, err)
 
-	child, err = inst.inst.ctx.Storage.GetChild(testChildKey)
-	require.NoError(t, err)
+	child, _ = inst.inst.ctx.Storage.GetChild(testChildKey)
 	require.Nil(t, child)
 }
 
@@ -1042,8 +1025,7 @@ func Test_ext_storage_append_version_1(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_storage_append_version_1", append(encKey, doubleEncVal...))
 	require.NoError(t, err)
 
-	val, err := inst.inst.ctx.Storage.Get(testkey)
-	require.NoError(t, err)
+	val := inst.inst.ctx.Storage.Get(testkey)
 	require.Equal(t, encArr, val)
 
 	encValueAppend, err := scale.Encode(testvalueAppend)
@@ -1054,8 +1036,8 @@ func Test_ext_storage_append_version_1(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_storage_append_version_1", append(encKey, doubleEncValueAppend...))
 	require.NoError(t, err)
 
-	ret, err := inst.inst.ctx.Storage.Get(testkey)
-	require.NoError(t, err)
+	ret := inst.inst.ctx.Storage.Get(testkey)
+	require.NotNil(t, ret)
 	dec, err := scale.Decode(ret, [][]byte{})
 	require.NoError(t, err)
 
@@ -1091,8 +1073,7 @@ func Test_ext_storage_append_version_1_again(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_storage_append_version_1", append(encKey, doubleEncVal...))
 	require.NoError(t, err)
 
-	val, err := inst.inst.ctx.Storage.Get(testkey)
-	require.NoError(t, err)
+	val := inst.inst.ctx.Storage.Get(testkey)
 	require.Equal(t, encArr, val)
 
 	encValueAppend, err := scale.Encode(testvalueAppend)
@@ -1103,8 +1084,8 @@ func Test_ext_storage_append_version_1_again(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_storage_append_version_1", append(encKey, doubleEncValueAppend...))
 	require.NoError(t, err)
 
-	ret, err := inst.inst.ctx.Storage.Get(testkey)
-	require.NoError(t, err)
+	ret := inst.inst.ctx.Storage.Get(testkey)
+	require.NotNil(t, ret)
 	dec, err := scale.Decode(ret, [][]byte{})
 	require.NoError(t, err)
 
@@ -1134,8 +1115,7 @@ func TestStartTransaction_ext_storage_set_version_1(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_storage_set_version_1", append(encKey, encValue...))
 	require.NoError(t, err)
 
-	val, err := inst.inst.ctx.Storage.Get(testkey)
-	require.NoError(t, err)
+	val := inst.inst.ctx.Storage.Get(testkey)
 	require.Nil(t, val)
 
 	changes := inst.inst.ctx.TransactionStorageChanges
@@ -1150,8 +1130,7 @@ func TestStartTransaction_ext_storage_clear_version_1(t *testing.T) {
 	inst.inst.ctx.TransactionStorageChanges = []*runtime.TransactionStorageChange{}
 
 	testkey := []byte("noot")
-	err := inst.inst.ctx.Storage.Set(testkey, []byte{1})
-	require.NoError(t, err)
+	inst.inst.ctx.Storage.Set(testkey, []byte{1})
 
 	enc, err := scale.Encode(testkey)
 	require.NoError(t, err)
@@ -1159,8 +1138,7 @@ func TestStartTransaction_ext_storage_clear_version_1(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_storage_clear_version_1", enc)
 	require.NoError(t, err)
 
-	val, err := inst.inst.ctx.Storage.Get(testkey)
-	require.NoError(t, err)
+	val := inst.inst.ctx.Storage.Get(testkey)
 	require.NotNil(t, val)
 
 	changes := inst.inst.ctx.TransactionStorageChanges
@@ -1177,8 +1155,7 @@ func TestStartTransaction_ext_storage_append_version_1(t *testing.T) {
 	testvalue := []byte("was")
 	testvalueAppend := []byte("here")
 
-	err := inst.inst.ctx.Storage.Set(testkey, testvalue)
-	require.NoError(t, err)
+	inst.inst.ctx.Storage.Set(testkey, testvalue)
 
 	encKey, err := scale.Encode(testkey)
 	require.NoError(t, err)
@@ -1189,8 +1166,7 @@ func TestStartTransaction_ext_storage_append_version_1(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_storage_append_version_1", append(encKey, encValue...))
 	require.NoError(t, err)
 
-	val, err := inst.inst.ctx.Storage.Get(testkey)
-	require.NoError(t, err)
+	val := inst.inst.ctx.Storage.Get(testkey)
 	require.Equal(t, testvalue, val)
 
 	changes := inst.inst.ctx.TransactionStorageChanges

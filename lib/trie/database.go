@@ -138,11 +138,7 @@ func (t *Trie) PutInDB(db chaindb.Database, key, value []byte) error {
 
 // DeleteFromDB deletes a value from the trie and writes the updated nodes the database. Since it needs to write all the nodes from the changed node up to the root, it writes these in a batch operation.
 func (t *Trie) DeleteFromDB(db chaindb.Database, key []byte) error {
-	err := t.Delete(key)
-	if err != nil {
-		return err
-	}
-
+	t.Delete(key)
 	return t.WriteDirty(db)
 }
 

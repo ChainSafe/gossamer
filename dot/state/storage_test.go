@@ -47,8 +47,7 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 
 	key := []byte("testkey")
 	value := []byte("testvalue")
-	err = ts.Set(key, value)
-	require.NoError(t, err)
+	ts.Set(key, value)
 
 	root, err := ts.Root()
 	require.NoError(t, err)
