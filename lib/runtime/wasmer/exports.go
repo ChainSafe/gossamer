@@ -28,12 +28,7 @@ import (
 
 // ValidateTransaction runs the extrinsic through runtime function TaggedTransactionQueue_validate_transaction and returns *Validity
 func (in *LegacyInstance) ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error) {
-	enc, err := scale.Encode(e)
-	if err != nil {
-		return nil, err
-	}
-
-	ret, err := in.exec(runtime.TaggedTransactionQueueValidateTransaction, enc)
+	ret, err := in.exec(runtime.TaggedTransactionQueueValidateTransaction, e)
 	if err != nil {
 		return nil, err
 	}
