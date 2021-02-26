@@ -843,18 +843,22 @@ func TestExt_ed25519_generate(t *testing.T) {
 
 // test that ext_ed25519_public_keys confirms that we can retrieve our public keys from the keystore
 func TestExt_ed25519_public_keys(t *testing.T) {
-	runtime := NewTestLegacyInstance(t, runtime.TEST_RUNTIME)
+	inst := NewTestLegacyInstance(t, runtime.TEST_RUNTIME)
 
 	testKps := []crypto.Keypair{}
 	expectedPubkeys := [][]byte{}
 	numKps := 12
+
+	idData := []byte(keystore.GranName)
+	ks, _ := inst.ctx.Keystore.GetKeystore(idData)
+	require.Equal(t, 0, ks.Size())
 
 	for i := 0; i < numKps; i++ {
 		kp, err := ed25519.GenerateKeypair()
 		if err != nil {
 			t.Fatal(err)
 		}
-		runtime.ctx.Keystore.Insert(kp)
+		ks.Insert(kp)
 		testKps = append(testKps, kp)
 		expected := testKps[i].Public().Encode()
 		expectedPubkeys = append(expectedPubkeys, expected)
@@ -866,16 +870,18 @@ func TestExt_ed25519_public_keys(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		runtime.ctx.Keystore.Insert(kp)
+		ks.Insert(kp)
 	}
 
-	mem := runtime.vm.Memory.Data()
+	mem := inst.vm.Memory.Data()
 
-	idLoc := 0
+	idLoc := 1
 	resultLoc := 1 << 9
 
+	copy(mem[idLoc:idLoc+4], idData)
+
 	// call wasm function
-	testFunc, ok := runtime.vm.Exports["test_ext_ed25519_public_keys"]
+	testFunc, ok := inst.vm.Exports["test_ext_ed25519_public_keys"]
 	if !ok {
 		t.Fatal("could not find exported function")
 	}
@@ -905,17 +911,21 @@ func TestExt_ed25519_public_keys(t *testing.T) {
 
 // test that ext_sr25519_public_keys confirms that we can retrieve our public keys from the keystore
 func TestExt_sr25519_public_keys(t *testing.T) {
-	runtime := NewTestLegacyInstance(t, runtime.TEST_RUNTIME)
+	inst := NewTestLegacyInstance(t, runtime.TEST_RUNTIME)
 
 	testKps := []crypto.Keypair{}
 	expectedPubkeys := [][]byte{}
 	numKps := 12
 
+	idData := []byte(keystore.BabeName)
+	ks, _ := inst.ctx.Keystore.GetKeystore(idData)
+	require.Equal(t, 0, ks.Size())
+
 	for i := 0; i < numKps; i++ {
 		kp, err := sr25519.GenerateKeypair()
 		require.Nil(t, err)
 
-		runtime.ctx.Keystore.Insert(kp)
+		ks.Insert(kp)
 		testKps = append(testKps, kp)
 		expected := testKps[i].Public().Encode()
 		expectedPubkeys = append(expectedPubkeys, expected)
@@ -926,16 +936,17 @@ func TestExt_sr25519_public_keys(t *testing.T) {
 		kp, err := ed25519.GenerateKeypair()
 		require.Nil(t, err)
 
-		runtime.ctx.Keystore.Insert(kp)
+		ks.Insert(kp)
 	}
 
-	mem := runtime.vm.Memory.Data()
+	mem := inst.vm.Memory.Data()
 
-	idLoc := 0
+	idLoc := 1
 	resultLoc := 1 << 9
+	copy(mem[idLoc:idLoc+4], idData)
 
 	// call wasm function
-	testFunc, ok := runtime.vm.Exports["test_ext_sr25519_public_keys"]
+	testFunc, ok := inst.vm.Exports["test_ext_sr25519_public_keys"]
 	if !ok {
 		t.Fatal("could not find exported function")
 	}
@@ -951,8 +962,6 @@ func TestExt_sr25519_public_keys(t *testing.T) {
 	resultLen := binary.LittleEndian.Uint32(resultLenBytes)
 	pubkeyData := mem[out.ToI32() : out.ToI32()+int32(resultLen*32)]
 
-	t.Log(resultLen)
-
 	pubkeys := [][]byte{}
 	for i := 0; i < numKps; i++ {
 		kpData := pubkeyData[i*32 : i*32+32]
@@ -967,17 +976,20 @@ func TestExt_sr25519_public_keys(t *testing.T) {
 
 // test that ext_ed25519_sign generates and saves a keypair in the keystore
 func TestExt_ed25519_sign(t *testing.T) {
-	runtime := NewTestLegacyInstance(t, runtime.TEST_RUNTIME)
+	inst := NewTestLegacyInstance(t, runtime.TEST_RUNTIME)
+	idData := []byte(keystore.AccoName)
+	ks, _ := inst.ctx.Keystore.GetKeystore(idData)
+	require.Equal(t, 0, ks.Size())
 
-	mem := runtime.vm.Memory.Data()
+	mem := inst.vm.Memory.Data()
 
 	kp, err := ed25519.GenerateKeypair()
 	require.Nil(t, err)
 
-	runtime.ctx.Keystore.Insert(kp)
+	ks.Insert(kp)
 
-	idLoc := 0
-	pubkeyLoc := 0
+	idLoc := 1
+	pubkeyLoc := idLoc + 4
 	pubkeyData := kp.Public().Encode()
 	msgLoc := pubkeyLoc + len(pubkeyData)
 	msgData := []byte("helloworld")
@@ -987,12 +999,13 @@ func TestExt_ed25519_sign(t *testing.T) {
 	msgLenBytes := make([]byte, 4)
 	binary.LittleEndian.PutUint32(msgLenBytes, uint32(len(msgData)))
 
+	copy(mem[idLoc:idLoc+4], idData)
 	copy(mem[pubkeyLoc:pubkeyLoc+len(pubkeyData)], pubkeyData)
 	copy(mem[msgLoc:msgLoc+len(msgData)], msgData)
 	copy(mem[msgLen:msgLen+4], msgLenBytes)
 
 	// call wasm function
-	testFunc, ok := runtime.vm.Exports["test_ext_ed25519_sign"]
+	testFunc, ok := inst.vm.Exports["test_ext_ed25519_sign"]
 	if !ok {
 		t.Fatal("could not find exported function")
 	}
@@ -1012,17 +1025,20 @@ func TestExt_ed25519_sign(t *testing.T) {
 
 // test that ext_sr25519_sign generates and saves a keypair in the keystore
 func TestExt_sr25519_sign(t *testing.T) {
-	runtime := NewTestLegacyInstance(t, runtime.TEST_RUNTIME)
+	inst := NewTestLegacyInstance(t, runtime.TEST_RUNTIME)
+	idData := []byte(keystore.BabeName)
+	ks, _ := inst.ctx.Keystore.GetKeystore(idData)
+	require.Equal(t, 0, ks.Size())
 
-	mem := runtime.vm.Memory.Data()
+	mem := inst.vm.Memory.Data()
 
 	kp, err := sr25519.GenerateKeypair()
 	require.Nil(t, err)
 
-	runtime.ctx.Keystore.Insert(kp)
+	ks.Insert(kp)
 
-	idLoc := 0
-	pubkeyLoc := 0
+	idLoc := 1
+	pubkeyLoc := idLoc + 4
 	pubkeyData := kp.Public().Encode()
 	msgLoc := pubkeyLoc + len(pubkeyData)
 	msgData := []byte("helloworld")
@@ -1032,28 +1048,23 @@ func TestExt_sr25519_sign(t *testing.T) {
 	msgLenBytes := make([]byte, 4)
 	binary.LittleEndian.PutUint32(msgLenBytes, uint32(len(msgData)))
 
+	copy(mem[idLoc:idLoc+4], idData)
 	copy(mem[pubkeyLoc:pubkeyLoc+len(pubkeyData)], pubkeyData)
 	copy(mem[msgLoc:msgLoc+len(msgData)], msgData)
 	copy(mem[msgLen:msgLen+4], msgLenBytes)
 
 	// call wasm function
-	testFunc, ok := runtime.vm.Exports["test_ext_sr25519_sign"]
-	if !ok {
-		t.Fatal("could not find exported function")
-	}
+	testFunc, ok := inst.vm.Exports["test_ext_sr25519_sign"]
+	require.True(t, ok)
 
 	_, err = testFunc(idLoc, pubkeyLoc, msgLoc, msgLen, out)
 	require.Nil(t, err)
 
 	sig := mem[out : out+sr25519.SignatureLength]
-	t.Log(sig)
 
 	ok, err = kp.Public().Verify(msgData, sig)
 	require.Nil(t, err)
-
-	if !ok {
-		t.Fatalf("Fail: did not verify signature")
-	}
+	require.True(t, ok)
 }
 
 // test that ext_get_child_storage_into retrieves a value stored in a child trie

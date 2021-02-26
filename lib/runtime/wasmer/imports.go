@@ -103,7 +103,6 @@ import (
 	"math/big"
 	"math/rand"
 	"reflect"
-	"sort"
 	"unsafe"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -256,28 +255,34 @@ func ext_crypto_ed25519_public_keys_version_1(context unsafe.Pointer, keyTypeID 
 	ks, err := runtimeCtx.Keystore.GetKeystore(id)
 	if err != nil {
 		logger.Warn("[ext_crypto_ed25519_public_keys_version_1]", "name", id, "error", err)
-		ret, _ := toWasmMemoryOptional(instanceContext, nil)
+		ret, _ := toWasmMemory(instanceContext, []byte{0})
 		return C.int64_t(ret)
 	}
 
 	if ks.Type() != crypto.Ed25519Type {
 		logger.Warn("[ext_crypto_ed25519_public_keys_version_1]", "name", id, "error", "keystore type is not ed25519")
-		ret, _ := toWasmMemoryOptional(instanceContext, nil)
+		ret, _ := toWasmMemory(instanceContext, []byte{0})
 		return C.int64_t(ret)
 	}
 
 	keys := ks.PublicKeys()
-	sort.Slice(keys, func(i int, j int) bool { return bytes.Compare(keys[i].Encode(), keys[j].Encode()) < 0 })
 
 	var encodedKeys []byte
 	for _, key := range keys {
 		encodedKeys = append(encodedKeys, key.Encode()...)
 	}
 
-	ret, err := toWasmMemoryOptional(instanceContext, encodedKeys)
+	prefix, err := scale.Encode(big.NewInt(int64(len(keys))))
 	if err != nil {
 		logger.Error("[ext_crypto_ed25519_public_keys_version_1] failed to allocate memory", err)
-		ret, _ = toWasmMemoryOptional(instanceContext, nil)
+		ret, _ := toWasmMemory(instanceContext, []byte{0})
+		return C.int64_t(ret)
+	}
+
+	ret, err := toWasmMemory(instanceContext, append(prefix, encodedKeys...))
+	if err != nil {
+		logger.Error("[ext_crypto_ed25519_public_keys_version_1] failed to allocate memory", err)
+		ret, _ = toWasmMemory(instanceContext, []byte{0})
 		return C.int64_t(ret)
 	}
 
@@ -487,29 +492,37 @@ func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, keyTypeID 
 	ks, err := runtimeCtx.Keystore.GetKeystore(id)
 	if err != nil {
 		logger.Warn("[ext_crypto_sr25519_public_keys_version_1]", "name", id, "error", err)
-		ret, _ := toWasmMemoryOptional(instanceContext, nil)
+		ret, _ := toWasmMemory(instanceContext, []byte{0})
 		return C.int64_t(ret)
 	}
 
 	if ks.Type() != crypto.Sr25519Type {
 		logger.Warn("[ext_crypto_ed25519_public_keys_version_1]", "name", id, "error", "keystore type is not ed25519")
-		ret, _ := toWasmMemoryOptional(instanceContext, nil)
+		ret, _ := toWasmMemory(instanceContext, []byte{0})
 		return C.int64_t(ret)
 	}
 
 	keys := ks.PublicKeys()
-	sort.Slice(keys, func(i int, j int) bool { return bytes.Compare(keys[i].Encode(), keys[j].Encode()) < 0 })
 
 	var encodedKeys []byte
-	for i := 0; i <= len(keys)-1; i++ {
-		encodedKeys = append(encodedKeys, keys[i].Encode()...)
+	for _, key := range keys {
+		encodedKeys = append(encodedKeys, key.Encode()...)
 	}
 
-	ret, err := toWasmMemoryOptional(instanceContext, encodedKeys)
+	prefix, err := scale.Encode(big.NewInt(int64(len(keys))))
 	if err != nil {
-		logger.Warn("[ext_crypto_ed25519_generate_version_1] failed to allocate memory", "error", err)
-		return 0
+		logger.Error("[ext_crypto_ed25519_public_keys_version_1] failed to allocate memory", err)
+		ret, _ := toWasmMemory(instanceContext, []byte{0})
+		return C.int64_t(ret)
 	}
+
+	ret, err := toWasmMemory(instanceContext, append(prefix, encodedKeys...))
+	if err != nil {
+		logger.Error("[ext_crypto_ed25519_public_keys_version_1] failed to allocate memory", err)
+		ret, _ = toWasmMemory(instanceContext, []byte{0})
+		return C.int64_t(ret)
+	}
+
 	return C.int64_t(ret)
 }
 
@@ -522,6 +535,14 @@ func ext_crypto_sr25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.
 
 	emptyRet, _ := toWasmMemoryOptional(instanceContext, nil)
 
+	id := memory[keyTypeID : keyTypeID+4]
+
+	ks, err := runtimeCtx.Keystore.GetKeystore(id)
+	if err != nil {
+		logger.Warn("[ext_crypto_sr25519_public_keys_version_1]", "name", id, "error", err)
+		return C.int64_t(emptyRet)
+	}
+
 	var ret int64
 	pubKey, err := sr25519.NewPublicKey(memory[key : key+32])
 	if err != nil {
@@ -529,7 +550,7 @@ func ext_crypto_sr25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.
 		return C.int64_t(emptyRet)
 	}
 
-	signingKey := runtimeCtx.Keystore.GetKeypair(pubKey)
+	signingKey := ks.GetKeypair(pubKey)
 	if signingKey == nil {
 		logger.Error("[ext_crypto_sr25519_sign_version_1] could not find public key in keystore", "error", pubKey)
 		return C.int64_t(emptyRet)
