@@ -351,11 +351,11 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		}
 
 		for _, ext := range exts {
-			logger.Trace("validating transaction on re-org chain", "extrinsic", ext)
+			logger.Debug("validating transaction on re-org chain", "extrinsic", ext)
 
 			txv, err := s.rt.ValidateTransaction(ext)
 			if err != nil {
-				logger.Trace("failed to validate transaction", "extrinsic", ext)
+				logger.Debug("failed to validate transaction", "extrinsic", ext)
 				continue
 			}
 
