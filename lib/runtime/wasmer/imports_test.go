@@ -28,6 +28,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/scale"
@@ -425,9 +426,10 @@ func Test_ext_storage_set_version_1(t *testing.T) {
 
 func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
-	require.Equal(t, 0, inst.inst.ctx.Keystore.Size())
 
-	idData := []byte{2, 2, 2, 2}
+	idData := []byte(keystore.AccoName)
+	ks, _ := inst.inst.ctx.Keystore.GetKeystore(idData)
+	require.Equal(t, 0, ks)
 
 	// TODO: we currently don't provide a seed since the spec says the seed is an optional BIP-39 seed
 	// clarify whether this is a mnemonic or not
@@ -458,8 +460,8 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 	pubKey, err := ed25519.NewPublicKey(pubKeyBytes)
 	require.NoError(t, err)
 
-	require.Equal(t, 1, inst.inst.ctx.Keystore.Size())
-	kp := inst.inst.ctx.Keystore.GetKeypair(pubKey)
+	require.Equal(t, 1, ks.Size())
+	kp := ks.GetKeypair(pubKey)
 	require.NotNil(t, kp)
 }
 
