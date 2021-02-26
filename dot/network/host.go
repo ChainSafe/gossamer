@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"time"
 
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
@@ -142,7 +143,6 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 
 // close closes host services and the libp2p host (host services first)
 func (h *host) close() error {
-
 	// close DHT service
 	err := h.dht.Close()
 	if err != nil {
@@ -173,7 +173,9 @@ func (h *host) registerStreamHandler(sub protocol.ID, handler func(libp2pnetwork
 // connect connects the host to a specific peer address
 func (h *host) connect(p peer.AddrInfo) (err error) {
 	h.h.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
-	err = h.h.Connect(h.ctx, p)
+	ctx, cancel := context.WithTimeout(h.ctx, time.Second*2)
+	defer cancel()
+	err = h.h.Connect(ctx, p)
 	return err
 }
 
@@ -183,11 +185,16 @@ func (h *host) addToPeerstore(p peer.AddrInfo) {
 
 // bootstrap connects the host to the configured bootnodes
 func (h *host) bootstrap() {
+	failed := 0
 	for _, addrInfo := range h.bootnodes {
 		err := h.connect(addrInfo)
 		if err != nil {
-			logger.Error("Failed to bootstrap peer", "error", err)
+			logger.Debug("failed to bootstrap to peer", "error", err)
+			failed++
 		}
+	}
+	if failed == len(h.bootnodes) {
+		logger.Error("failed to bootstrap to any bootnode")
 	}
 }
 
