@@ -219,16 +219,6 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 	}
 
 	go func() {
-		if s.notificationsProtocols[BlockAnnounceMsgType] == nil {
-			logger.Error("s.notificationsProtocols[BlockAnnounceMsgType] is nil")
-			return
-		}
-
-		if s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[peer] == nil {
-			logger.Error("peer handshake data is nil")
-			return
-		}
-
 		s.syncQueue.handleBlockAnnounceHandshake(bhs.BestBlockNumber, peer)
 	}()
 
