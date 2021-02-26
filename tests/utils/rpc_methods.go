@@ -33,4 +33,7 @@ var (
 
 	// DEV METHODS
 	DevControl = "dev_control"
+
+	// GRANDPA
+	GrandpaProveFinality = "grandpa_proveFinality"
 )
