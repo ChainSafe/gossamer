@@ -44,8 +44,7 @@ func TestExt_get_storage_into(t *testing.T) {
 	// store kv pair in trie
 	key := []byte(":noot")
 	value := []byte{1, 3, 3, 7}
-	err := runtime.ctx.Storage.Set(key, value)
-	require.Nil(t, err)
+	runtime.ctx.Storage.Set(key, value)
 
 	// copy key to position `keyData` in memory
 	keyData := 170
@@ -104,14 +103,10 @@ func TestExt_set_storage(t *testing.T) {
 	require.Nil(t, err)
 
 	// make sure we can get the value from the trie
-	trieValue, err := runtime.ctx.Storage.Get(key)
-	require.Nil(t, err)
-
+	trieValue := runtime.ctx.Storage.Get(key)
 	if !bytes.Equal(value, trieValue) {
 		t.Error("did not store correct value in storage trie")
 	}
-
-	t.Log(trieValue)
 }
 
 // tests that we can retrieve the trie root hash and store it in wasm memory
@@ -205,8 +200,7 @@ func Test_ext_get_allocated_storage(t *testing.T) {
 	// put kv pair in trie
 	key := []byte(":noot")
 	value := []byte{1, 3, 3, 7}
-	err := runtime.ctx.Storage.Set(key, value)
-	require.Nil(t, err)
+	runtime.ctx.Storage.Set(key, value)
 
 	// copy key to `keyData` in memory
 	keyData := 170
@@ -253,8 +247,7 @@ func TestExt_clear_storage(t *testing.T) {
 	// save kv pair in trie
 	key := []byte(":noot")
 	value := []byte{1, 3, 3, 7}
-	err := runtime.ctx.Storage.Set(key, value)
-	require.Nil(t, err)
+	runtime.ctx.Storage.Set(key, value)
 
 	// copy key to wasm memory
 	keyData := 170
@@ -265,13 +258,11 @@ func TestExt_clear_storage(t *testing.T) {
 		t.Fatal("could not find exported function")
 	}
 
-	_, err = testFunc(keyData, len(key))
+	_, err := testFunc(keyData, len(key))
 	require.Nil(t, err)
 
 	// make sure value is deleted
-	ret, err := runtime.ctx.Storage.Get(key)
-	require.Nil(t, err)
-
+	ret := runtime.ctx.Storage.Get(key)
 	if ret != nil {
 		t.Error("did not delete key from storage trie")
 	}

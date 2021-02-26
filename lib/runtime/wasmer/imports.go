@@ -1000,11 +1000,7 @@ func ext_default_child_storage_storage_kill_version_1(context unsafe.Pointer, ch
 		return
 	}
 
-	err := storage.DeleteChildStorage(childStorageKey)
-	if err != nil {
-		logger.Error("[ext_default_child_storage_storage_kill_version_1] failed to delete child storage from trie", "error", err)
-		return
-	}
+	storage.DeleteChild(childStorageKey)
 }
 
 //export ext_allocator_free_version_1
@@ -1374,11 +1370,7 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 
 	// this function assumes the item in storage is a SCALE encoded array of items
 	// the valueToAppend is a new item, so it appends the item and increases the length prefix by 1
-	valueCurr, err := storage.Get(key)
-	if err != nil {
-		return err
-	}
-
+	valueCurr := storage.Get(key)
 	if len(valueCurr) == 0 {
 		valueRes = valueToAppend
 	} else {
@@ -1389,7 +1381,8 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 		currLength, err := dec.DecodeBigInt() //nolint
 		if err != nil {
 			logger.Trace("[ext_storage_append_version_1] item in storage is not SCALE encoded, overwriting", "key", key)
-			return storage.Set(key, append([]byte{4}, valueToAppend...))
+			storage.Set(key, append([]byte{4}, valueToAppend...))
+			return nil
 		}
 
 		// append new item
@@ -1402,12 +1395,14 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 	lengthEnc, err := scale.Encode(nextLength)
 	if err != nil {
 		logger.Trace("[ext_storage_append_version_1] failed to encode new length", "error", err)
+		return err
 	}
 
 	// append new length prefix to start of items array
 	finalVal := append(lengthEnc, valueRes...)
 	logger.Debug("[ext_storage_append_version_1]", "resulting value", fmt.Sprintf("0x%x", finalVal))
-	return storage.Set(key, finalVal)
+	storage.Set(key, finalVal)
+	return nil
 }
 
 //export ext_storage_append_version_1
@@ -1474,7 +1469,7 @@ func ext_storage_clear_version_1(context unsafe.Pointer, keySpan C.int64_t) {
 		return
 	}
 
-	_ = storage.Delete(key)
+	storage.Delete(key)
 }
 
 //export ext_storage_clear_prefix_version_1
@@ -1516,11 +1511,7 @@ func ext_storage_exists_version_1(context unsafe.Pointer, keySpan C.int64_t) C.i
 	key := asMemorySlice(instanceContext, keySpan)
 	logger.Debug("[ext_storage_exists_version_1]", "key", fmt.Sprintf("0x%x", key))
 
-	val, err := storage.Get(key)
-	if err != nil {
-		return 0
-	}
-
+	val := storage.Get(key)
 	if len(val) > 0 {
 		return 1
 	}
@@ -1538,13 +1529,7 @@ func ext_storage_get_version_1(context unsafe.Pointer, keySpan C.int64_t) C.int6
 	key := asMemorySlice(instanceContext, keySpan)
 	logger.Debug("[ext_storage_get_version_1]", "key", fmt.Sprintf("0x%x", key))
 
-	value, err := storage.Get(key)
-	if err != nil {
-		logger.Error("[ext_storage_get_version_1]", "error", err)
-		ptr, _ := toWasmMemoryOptional(instanceContext, nil)
-		return C.int64_t(ptr)
-	}
-
+	value := storage.Get(key)
 	logger.Debug("[ext_storage_get_version_1]", "value", fmt.Sprintf("0x%x", value))
 
 	valueSpan, err := toWasmMemoryOptional(instanceContext, value)
@@ -1587,13 +1572,7 @@ func ext_storage_read_version_1(context unsafe.Pointer, keySpan, valueOut C.int6
 	memory := instanceContext.Memory().Data()
 
 	key := asMemorySlice(instanceContext, keySpan)
-	value, err := storage.Get(key)
-	if err != nil {
-		logger.Error("[ext_storage_read_version_1]", "error", err)
-		ret, _ := toWasmMemoryOptional(instanceContext, nil)
-		return C.int64_t(ret)
-	}
-
+	value := storage.Get(key)
 	logger.Debug("[ext_storage_read_version_1]", "key", fmt.Sprintf("0x%x", key), "value", fmt.Sprintf("0x%x", value))
 
 	if value == nil {
@@ -1668,12 +1647,7 @@ func ext_storage_set_version_1(context unsafe.Pointer, keySpan C.int64_t, valueS
 	}
 
 	logger.Debug("[ext_storage_set_version_1]", "key", fmt.Sprintf("0x%x", key), "val", fmt.Sprintf("0x%x", value))
-
-	err := storage.Set(key, cp)
-	if err != nil {
-		logger.Error("[ext_storage_set_version_1]", "error", err)
-		return
-	}
+	storage.Set(key, cp)
 }
 
 //export ext_storage_start_transaction_version_1
@@ -1714,10 +1688,7 @@ func ext_storage_commit_transaction_version_1(context unsafe.Pointer) {
 				continue
 			}
 
-			err := storage.Set(change.Key, change.Value)
-			if err != nil {
-				logger.Error("[ext_storage_commit_transaction_version_1] failed to set key", "key", change.Key, "error", err)
-			}
+			storage.Set(change.Key, change.Value)
 		case runtime.ClearOp:
 			if change.KeyToChild != nil {
 				err := storage.ClearChildStorage(change.KeyToChild, change.Key)
@@ -1728,10 +1699,7 @@ func ext_storage_commit_transaction_version_1(context unsafe.Pointer) {
 				continue
 			}
 
-			err := storage.Delete(change.Key)
-			if err != nil {
-				logger.Error("[ext_storage_commit_transaction_version_1] failed to clear key", "key", change.Key, "error", err)
-			}
+			storage.Delete(change.Key)
 		case runtime.ClearPrefixOp:
 			if change.KeyToChild != nil {
 				err := storage.ClearPrefixInChild(change.KeyToChild, change.Prefix)
@@ -1752,10 +1720,7 @@ func ext_storage_commit_transaction_version_1(context unsafe.Pointer) {
 				logger.Error("[ext_storage_commit_transaction_version_1] failed to append to storage", "key", change.Key, "error", err)
 			}
 		case runtime.DeleteChildOp:
-			err := storage.DeleteChildStorage(change.KeyToChild)
-			if err != nil {
-				logger.Error("[ext_storage_commit_transaction_version_1] failed to delete child from trie", "error", err)
-			}
+			storage.DeleteChild(change.KeyToChild)
 		}
 	}
 }

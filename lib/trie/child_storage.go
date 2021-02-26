@@ -43,9 +43,9 @@ func (t *Trie) PutChild(keyToChild []byte, child *Trie) error {
 // GetChild returns the child trie at key :child_storage:[keyToChild]
 func (t *Trie) GetChild(keyToChild []byte) (*Trie, error) {
 	key := append(ChildStorageKeyPrefix, keyToChild...)
-	childHash, err := t.Get(key)
-	if err != nil {
-		return nil, err
+	childHash := t.Get(key)
+	if childHash == nil {
+		return nil, fmt.Errorf("child trie does not exist at key %s%s", ChildStorageKeyPrefix, keyToChild)
 	}
 
 	hash := [32]byte{}
@@ -88,13 +88,14 @@ func (t *Trie) GetFromChild(keyToChild, key []byte) ([]byte, error) {
 		return nil, fmt.Errorf("child trie does not exist at key %s%s", ChildStorageKeyPrefix, keyToChild)
 	}
 
-	return child.Get(key)
+	val := child.Get(key)
+	return val, nil
 }
 
-// DeleteFromChild deletes from child storage
-func (t *Trie) DeleteFromChild(keyToChild []byte) error {
+// DeleteChild deletes the child storage trie
+func (t *Trie) DeleteChild(keyToChild []byte) {
 	key := append(ChildStorageKeyPrefix, keyToChild...)
-	return t.Delete(key)
+	t.Delete(key)
 }
 
 // ClearFromChild removes the child storage entry
@@ -106,5 +107,6 @@ func (t *Trie) ClearFromChild(keyToChild, key []byte) error {
 	if child == nil {
 		return fmt.Errorf("child trie does not exist at key %s%s", ChildStorageKeyPrefix, keyToChild)
 	}
-	return child.Delete(key)
+	child.Delete(key)
+	return nil
 }
