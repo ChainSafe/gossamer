@@ -81,12 +81,8 @@ func ext_get_storage_into(c *wasmtime.Caller, keyData, keyLen, valueData, valueL
 	memory := m.UnsafeData()
 
 	key := memory[keyData : keyData+keyLen]
-	val, err := ctx.Storage.Get(key)
-	if err != nil {
-		logger.Warn("[ext_get_storage_into]", "err", err)
-		ret := 1<<32 - 1
-		return int32(ret)
-	} else if val == nil {
+	val := ctx.Storage.Get(key)
+	if val == nil {
 		logger.Debug("[ext_get_storage_into]", "err", "value is nil")
 		ret := 1<<32 - 1
 		return int32(ret)
@@ -113,11 +109,7 @@ func ext_set_storage(c *wasmtime.Caller, keyData, keyLen, valueData, valueLen in
 
 	cp := make([]byte, len(val))
 	copy(cp, val)
-	err := ctx.Storage.Set(key, cp)
-	if err != nil {
-		logger.Error("[ext_set_storage]", "error", err)
-		return
-	}
+	ctx.Storage.Set(key, cp)
 }
 
 func ext_storage_root(c *wasmtime.Caller, resultPtr int32) {
@@ -143,13 +135,7 @@ func ext_get_allocated_storage(c *wasmtime.Caller, keyData, keyLen, writtenOut i
 	key := memory[keyData : keyData+keyLen]
 	logger.Trace("[ext_get_allocated_storage]", "key", fmt.Sprintf("0x%x", key))
 
-	val, err := ctx.Storage.Get(key)
-	if err != nil {
-		logger.Error("[ext_get_allocated_storage]", "error", err)
-		copy(memory[writtenOut:writtenOut+4], []byte{0xff, 0xff, 0xff, 0xff})
-		return 0
-	}
-
+	val := ctx.Storage.Get(key)
 	if len(val) >= (1 << 32) {
 		logger.Error("[ext_get_allocated_storage]", "error", "retrieved value length exceeds 2^32")
 		copy(memory[writtenOut:writtenOut+4], []byte{0xff, 0xff, 0xff, 0xff})
@@ -189,11 +175,7 @@ func ext_clear_storage(c *wasmtime.Caller, keyData, keyLen int32) {
 	memory := m.UnsafeData()
 
 	key := memory[keyData : keyData+keyLen]
-	err := ctx.Storage.Delete(key)
-	if err != nil {
-		logger.Error("[ext_clear_storage]", "error", err)
-	}
-
+	ctx.Storage.Delete(key)
 	runtime.KeepAlive(memory)
 }
 

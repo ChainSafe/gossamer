@@ -158,23 +158,16 @@ func runTests(t *testing.T, trie *Trie, tests []Test) {
 			if test.op == PUT {
 				trie.Put(test.key, test.value)
 			} else if test.op == GET {
-				val, err := trie.Get(test.key)
-				if err != nil {
-					t.Errorf("Error when attempting to get key %x: %s", test.key, err.Error())
-				} else if !bytes.Equal(val, test.value) {
+				val := trie.Get(test.key)
+				if !bytes.Equal(val, test.value) {
 					t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
 				}
 			} else if test.op == DEL {
-				err := trie.Delete(test.key)
-				if err != nil {
-					t.Errorf("Fail to delete key %x: %s", test.key, err.Error())
-				}
+				trie.Delete(test.key)
 			} else if test.op == GETLEAF {
-				leaf, err := trie.getLeaf(test.key)
+				leaf := trie.tryGet(test.key)
 				if leaf == nil {
 					t.Errorf("Fail to get key %x: nil leaf", test.key)
-				} else if err != nil {
-					t.Errorf("Fail to get key %x: %s", test.key, err.Error())
 				} else if !bytes.Equal(leaf.value, test.value) {
 					t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, leaf.value)
 				} else if !bytes.Equal(leaf.key, test.pk) {
@@ -267,19 +260,15 @@ func TestPutAndGet(t *testing.T) {
 		for _, test := range rt {
 			trie.Put(test.key, test.value)
 
-			val, err := trie.Get(test.key)
-			if err != nil {
-				t.Errorf("Fail to get key %x: %s", test.key, err.Error())
-			} else if !bytes.Equal(val, test.value) {
+			val := trie.Get(test.key)
+			if !bytes.Equal(val, test.value) {
 				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
 			}
 		}
 
 		for _, test := range rt {
-			val, err := trie.Get(test.key)
-			if err != nil {
-				t.Errorf("Fail to get key %x: %s", test.key, err.Error())
-			} else if !bytes.Equal(val, test.value) {
+			val := trie.Get(test.key)
+			if !bytes.Equal(val, test.value) {
 				writeToTestFile(rt)
 				t.Fatalf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
 			}
@@ -318,10 +307,8 @@ func TestFailingTests(t *testing.T) {
 		if len(test.key) != 0 {
 			trie.Put(test.key, test.value)
 
-			val, err := trie.Get(test.key)
-			if err != nil {
-				t.Errorf("Fail to get key %x: %s", test.key, err.Error())
-			} else if !bytes.Equal(val, test.value) {
+			val := trie.Get(test.key)
+			if !bytes.Equal(val, test.value) {
 				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
 			}
 
@@ -332,10 +319,8 @@ func TestFailingTests(t *testing.T) {
 				passedFailingTest = true
 			}
 
-			val, err = trie.Get(failingKey)
-			if err != nil {
-				t.Errorf("Fail to get key %x: %s", failingKey, err.Error())
-			} else if !bytes.Equal(val, failingVal) && !hasFailed && passedFailingTest {
+			val = trie.Get(failingKey)
+			if !bytes.Equal(val, failingVal) && !hasFailed && passedFailingTest {
 				t.Errorf("Fail to get key %x with value %x: got %x", failingKey, failingVal, val)
 				t.Logf("test failed at insertion of key %x index %d", test.key, i)
 				hasFailed = true
@@ -345,10 +330,8 @@ func TestFailingTests(t *testing.T) {
 
 	for _, test := range rt {
 		if len(test.key) != 0 {
-			val, err := trie.Get(test.key)
-			if err != nil {
-				t.Errorf("Fail to get key %x: %s", test.key, err.Error())
-			} else if !bytes.Equal(val, test.value) {
+			val := trie.Get(test.key)
+			if !bytes.Equal(val, test.value) {
 				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
 			}
 		}
@@ -521,22 +504,14 @@ func TestDelete(t *testing.T) {
 			var val []byte
 			switch r {
 			case 0:
-				err = trie.Delete(test.key)
-				if err != nil {
-					t.Errorf("Fail to delete key %x: %s", test.key, err.Error())
-				}
-
-				val, err = trie.Get(test.key)
-				if err != nil {
-					t.Errorf("Error when attempting to get deleted key %x: %s", test.key, err.Error())
-				} else if val != nil {
+				trie.Delete(test.key)
+				val = trie.Get(test.key)
+				if val != nil {
 					t.Errorf("Fail to delete key %x with value %x: got %x", test.key, test.value, val)
 				}
 			case 1:
-				val, err = trie.Get(test.key)
-				if err != nil {
-					t.Errorf("Error when attempting to get key %x: %s", test.key, err.Error())
-				} else if !bytes.Equal(test.value, val) {
+				val = trie.Get(test.key)
+				if !bytes.Equal(test.value, val) {
 					t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
 				}
 			}
@@ -734,8 +709,8 @@ func TestClearPrefix(t *testing.T) {
 		{0x01, 0x35, 0x79},
 		{0x01, 0x35, 0x79, 0xab},
 		{0x07},
-		{0x07, 0x3},
-		{0xf},
+		{0x07, 0x30},
+		{0xf0},
 	}
 
 	for _, prefix := range testCases {
@@ -769,9 +744,7 @@ func TestClearPrefix(t *testing.T) {
 		}
 
 		for _, test := range tests {
-			var res []byte
-			res, err = trie.Get(test.key)
-			require.NoError(t, err)
+			res := trie.Get(test.key)
 
 			keyNibbles := keyToNibbles(test.key)
 			length := lenCommonPrefix(keyNibbles, prefixNibbles)
@@ -922,4 +895,38 @@ func TestTrie_ClearPrefixVsDelete(t *testing.T) {
 			)
 		}
 	}
+}
+
+func TestSnapshot(t *testing.T) {
+	tests := []Test{
+		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: PUT},
+		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: PUT},
+		{key: []byte{0x01, 0x35, 0x79, 0xab}, value: []byte("spaghetti"), op: PUT},
+		{key: []byte{0x01, 0x35, 0x79, 0xab, 0x9}, value: []byte("gnocchi"), op: PUT},
+		{key: []byte{0x07, 0x3a}, value: []byte("ramen"), op: PUT},
+		{key: []byte{0x07, 0x3b}, value: []byte("noodles"), op: PUT},
+		{key: []byte{0xf2}, value: []byte("pho"), op: PUT},
+	}
+
+	expectedTrie := NewEmptyTrie()
+	for _, test := range tests {
+		expectedTrie.Put(test.key, test.value)
+	}
+
+	// put all keys except first
+	parentTrie := NewEmptyTrie()
+	for i, test := range tests {
+		if i == 0 {
+			continue
+		}
+		parentTrie.Put(test.key, test.value)
+	}
+
+	parentSnapshot := parentTrie.Snapshot()
+
+	newTrie := parentTrie
+	newTrie.Put(tests[0].key, tests[0].value)
+
+	require.Equal(t, expectedTrie.MustHash(), newTrie.MustHash())
+	require.NotEqual(t, parentSnapshot.MustHash(), newTrie.MustHash())
 }
