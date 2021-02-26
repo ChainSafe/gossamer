@@ -28,6 +28,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -760,11 +761,14 @@ func TestExt_secp256k1_ecdsa_recover(t *testing.T) {
 
 // test that TestExt_sr25519_generate generates and saves a keypair in the keystore
 func TestExt_sr25519_generate(t *testing.T) {
-	runtime := NewTestLegacyInstance(t, runtime.TEST_RUNTIME)
+	inst := NewTestLegacyInstance(t, runtime.TEST_RUNTIME)
 
-	mem := runtime.vm.Memory.Data()
+	mem := inst.vm.Memory.Data()
 
-	idData := []byte{1, 0, 0, 0}
+	idData := []byte(keystore.AccoName)
+	ks, _ := inst.ctx.Keystore.GetKeystore(idData)
+	require.Equal(t, 0, ks.Size())
+
 	seedLen := 32
 
 	seedData := make([]byte, seedLen)
@@ -778,7 +782,7 @@ func TestExt_sr25519_generate(t *testing.T) {
 	copy(mem[idLoc:idLoc+len(idData)], idData)
 
 	// call wasm function
-	testFunc, ok := runtime.vm.Exports["test_ext_sr25519_generate"]
+	testFunc, ok := inst.vm.Exports["test_ext_sr25519_generate"]
 	if !ok {
 		t.Fatal("could not find exported function")
 	}
@@ -790,7 +794,7 @@ func TestExt_sr25519_generate(t *testing.T) {
 	pubkey, err := sr25519.NewPublicKey(pubkeyData)
 	require.Nil(t, err)
 
-	kp := runtime.ctx.Keystore.GetKeypair(pubkey)
+	kp := ks.GetKeypair(pubkey)
 	if kp == nil {
 		t.Fatal("Fail: keypair was not saved in keystore")
 	}
@@ -798,11 +802,14 @@ func TestExt_sr25519_generate(t *testing.T) {
 
 // test that TestExt_ed25519_generate generates and saves a keypair in the keystore
 func TestExt_ed25519_generate(t *testing.T) {
-	runtime := NewTestLegacyInstance(t, runtime.TEST_RUNTIME)
+	inst := NewTestLegacyInstance(t, runtime.TEST_RUNTIME)
 
-	mem := runtime.vm.Memory.Data()
+	mem := inst.vm.Memory.Data()
 
-	idData := []byte{1, 0, 0, 0}
+	idData := []byte(keystore.AccoName)
+	ks, _ := inst.ctx.Keystore.GetKeystore(idData)
+	require.Equal(t, 0, ks.Size())
+
 	seedLen := 32
 
 	seedData := make([]byte, seedLen)
@@ -816,7 +823,7 @@ func TestExt_ed25519_generate(t *testing.T) {
 	copy(mem[idLoc:idLoc+len(idData)], idData)
 
 	// call wasm function
-	testFunc, ok := runtime.vm.Exports["test_ext_ed25519_generate"]
+	testFunc, ok := inst.vm.Exports["test_ext_ed25519_generate"]
 	if !ok {
 		t.Fatal("could not find exported function")
 	}
@@ -828,7 +835,7 @@ func TestExt_ed25519_generate(t *testing.T) {
 	pubkey, err := ed25519.NewPublicKey(pubkeyData)
 	require.Nil(t, err)
 
-	kp := runtime.ctx.Keystore.GetKeypair(pubkey)
+	kp := ks.GetKeypair(pubkey)
 	if kp == nil {
 		t.Fatal("Fail: keypair was not saved in keystore")
 	}
