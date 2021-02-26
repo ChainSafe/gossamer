@@ -125,6 +125,12 @@ func (bt *BlockTree) getNode(h Hash) *node {
 		return bt.head
 	}
 
+	for _, leaf := range bt.leaves.nodes() {
+		if leaf.hash == h {
+			return leaf
+		}
+	}
+
 	for _, child := range bt.head.children {
 		if n := child.getNode(h); n != nil {
 			return n
