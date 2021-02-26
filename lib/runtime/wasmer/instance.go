@@ -334,15 +334,15 @@ func (in *LegacyInstance) exec(function string, data []byte) ([]byte, error) {
 		return nil, runtime.ErrNilStorage
 	}
 
+	in.mutex.Lock()
+	defer in.mutex.Unlock()
+
 	ptr, err := in.malloc(uint32(len(data)))
 	if err != nil {
 		return nil, err
 	}
 
 	defer in.clear()
-
-	in.mutex.Lock()
-	defer in.mutex.Unlock()
 
 	// Store the data into memory
 	in.store(data, int32(ptr))
