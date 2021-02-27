@@ -313,8 +313,18 @@ func (s *Service) Rewind(numBlocks int) error {
 	s.Block.bt.Rewind(numBlocks)
 	newHead := s.Block.BestBlockHash()
 
-	num, _ = s.Block.BestBlockNumber()
-	logger.Info("rewinding state...", "new height", num)
+	header, _ := s.Block.BestBlockHeader()
+	logger.Info("rewinding state...", "new height", header.Number)
+
+	epoch, err := s.Epoch.GetEpochForBlock(header)
+	if err != nil {
+		return err
+	}
+
+	err = s.Epoch.SetCurrentEpoch(epoch)
+	if err != nil {
+		return err
+	}
 
 	return StoreBestBlockHash(s.db, newHead)
 }
