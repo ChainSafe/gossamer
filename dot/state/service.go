@@ -306,6 +306,19 @@ func (s *Service) Start() error {
 	return nil
 }
 
+func (s *Service) Rewind(numBlocks int) error {
+	num, _ := s.Block.BestBlockNumber()
+
+	logger.Info("rewinding state...", "current height", num, "to rewind", numBlocks)
+	s.Block.bt.Rewind(numBlocks)
+	newHead := s.Block.BestBlockHash()
+
+	num, _ = s.Block.BestBlockNumber()
+	logger.Info("rewinding state...", "new height", num)
+
+	return StoreBestBlockHash(s.db, newHead)
+}
+
 // Stop closes each state database
 func (s *Service) Stop() error {
 	head, err := s.Block.BestBlockStateRoot()
