@@ -52,10 +52,9 @@ install go version `>=1.15`
 
 get the [ChainSafe/gossamer](https://github.com/ChainSafe/gossamer) repository:
 ```
-go get -u github.com/ChainSafe/gossamer
+git clone git@github.com:ChainSafe/gossamer
+cd gossamer
 ```
-
-You may encounter a `package github.com/ChainSafe/gossamer: no Go files in ...` message. This is not an error, since there are no go files in the project root. 
 
 build gossamer command:
 ```
@@ -66,50 +65,62 @@ make gossamer
 
 initialize default node:
 ```
-./bin/gossamer init
+./bin/gossamer --chain gssmr init
 ```
 
 start default node:
 ```
-./bin/gossamer --key alice
+./bin/gossamer --chain gssmr --key alice
 ```
 
 The built-in keys available for the node are `alice`, `bob`, `charlie`, `dave`, `eve`, `ferdie`, `george`, and `ian`.
 
-### Run Gossamer Node
+The node will not build blocks every slot by default; it will appear that the node is doing nothing, but it is actually waiting for a slot to build a block. If you wish to force it to build blocks every slot, you update the `[core]` section of `chain/gssmr/config.toml` to the following:
 
-initialize gossamer node:
 ```
-./bin/gossamer --chain gssmr init
+[core]
+roles = 4
+babe-authority = true
+grandpa-authority = true
+babe-threshold-numerator = 1
+babe-threshold-denominator = 1
 ```
 
-start gossamer node:
-```
-./bin/gossamer --chain gssmr --key alice
-```
+Then, re-run the above steps. NOTE: this feature is for testing only; if you wish to change the BABE block production parameters, you need to create a modified runtime.
 
 ### Run Kusama Node (_in development_)
 
 initialize kusama node:
 ```
-./bin/gossamer --chain ksmcc --key alice init
+./bin/gossamer --chain ksmcc init
 ```
 
 start kusama node:
 ```
-./bin/gossamer --chain ksmcc --key alice
+./bin/gossamer --chain ksmcc
 ```
+
+The node may not appear to do anything for the first minute or so (it's bootstrapping to the network.) If you wish to see what is it doing in this time, you can turn on debug logs in `chain/gssmr/config.toml`:
+
+```
+[log]
+network = "debug"
+```
+
+After it's finished bootstrapping, the node should begin to sync. 
 
 ### Run Polkadot Node (_in development_)
 
+NOTE: This is currently not supported.
+
 initialize polkadot node:
 ```
-./bin/gossamer --chain dotcc --key alice init
+./bin/gossamer --chain polkadot init
 ```
 
 start polkadot node:
 ```
-./bin/gossamer --chain dotcc --key alice
+./bin/gossamer --chain polkadot
 ```
 
 ## Contribute

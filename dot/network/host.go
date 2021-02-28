@@ -19,6 +19,8 @@ package network
 import (
 	"context"
 	"fmt"
+	"net"
+	"time"
 
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
@@ -35,6 +37,15 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
+var privateCIDRs = []string{
+	"10.0.0.0/8",
+	"172.16.0.0/12",
+	"192.168.0.0/16",
+	"100.64.0.0/10",
+	"198.18.0.0/15",
+	"169.254.0.0/16",
+}
+
 // host wraps libp2p host with network host configuration and services
 type host struct {
 	ctx        context.Context
@@ -47,7 +58,6 @@ type host struct {
 
 // newHost creates a host wrapper with a new libp2p host instance
 func newHost(ctx context.Context, cfg *Config) (*host, error) {
-
 	// use "p2p" for multiaddress format
 	ma.SwapToP2pMultiaddrs()
 
@@ -76,6 +86,16 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		dual.DHTOption(kaddht.Mode(kaddht.ModeAutoServer)),
 	}
 
+	privateIPs := ma.NewFilters()
+	for _, cidr := range privateCIDRs {
+		_, ipnet, err := net.ParseCIDR(cidr) //nolint
+		if err != nil {
+			return nil, err
+		}
+
+		privateIPs.AddFilter(*ipnet, ma.ActionDeny)
+	}
+
 	// set libp2p host options
 	opts := []libp2p.Option{
 		libp2p.ListenAddrs(addr),
@@ -84,6 +104,15 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		libp2p.NATPortMap(),
 		libp2p.ConnectionManager(cm),
 		libp2p.ChainOptions(libp2p.DefaultSecurity, libp2p.Security(secio.ID, secio.New)), // TODO: deprecate secio?
+		libp2p.AddrsFactory(func(as []ma.Multiaddr) []ma.Multiaddr {
+			ok := []ma.Multiaddr{}
+			for _, addr := range as {
+				if !privateIPs.AddrBlocked(addr) {
+					ok = append(ok, addr)
+				}
+			}
+			return ok
+		}),
 	}
 
 	// create libp2p host instance
@@ -114,7 +143,6 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 
 // close closes host services and the libp2p host (host services first)
 func (h *host) close() error {
-
 	// close DHT service
 	err := h.dht.Close()
 	if err != nil {
@@ -145,7 +173,9 @@ func (h *host) registerStreamHandler(sub protocol.ID, handler func(libp2pnetwork
 // connect connects the host to a specific peer address
 func (h *host) connect(p peer.AddrInfo) (err error) {
 	h.h.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
-	err = h.h.Connect(h.ctx, p)
+	ctx, cancel := context.WithTimeout(h.ctx, time.Second*2)
+	defer cancel()
+	err = h.h.Connect(ctx, p)
 	return err
 }
 
@@ -155,11 +185,16 @@ func (h *host) addToPeerstore(p peer.AddrInfo) {
 
 // bootstrap connects the host to the configured bootnodes
 func (h *host) bootstrap() {
+	failed := 0
 	for _, addrInfo := range h.bootnodes {
 		err := h.connect(addrInfo)
 		if err != nil {
-			logger.Error("Failed to bootstrap peer", "error", err)
+			logger.Debug("failed to bootstrap to peer", "error", err)
+			failed++
 		}
+	}
+	if failed == len(h.bootnodes) {
+		logger.Error("failed to bootstrap to any bootnode")
 	}
 }
 
