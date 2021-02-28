@@ -306,6 +306,8 @@ func (s *Service) Start() error {
 	return nil
 }
 
+// Rewind rewinds the chain by the given number of blocks.
+// If the given number of blocks is greater than the chain height, it will rewind to genesis.
 func (s *Service) Rewind(numBlocks int) error {
 	num, _ := s.Block.BestBlockNumber()
 

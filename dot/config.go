@@ -108,6 +108,7 @@ type RPCConfig struct {
 	WSExternal bool
 }
 
+// StateConfig is the config for the State service
 type StateConfig struct {
 	Rewind int
 }
