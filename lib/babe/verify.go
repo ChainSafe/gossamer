@@ -80,6 +80,9 @@ func (v *VerificationManager) SetOnDisabled(index uint32, header *types.Header) 
 		return err
 	}
 
+	// OnDisabled digest was found in header w/ epoch, disabling authority for epoch + 1
+	epoch = epoch + 1
+
 	v.lock.Lock()
 	defer v.lock.Unlock()
 

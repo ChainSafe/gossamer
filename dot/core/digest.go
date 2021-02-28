@@ -345,7 +345,7 @@ func (h *DigestHandler) handleGrandpaOnDisabled(d *types.ConsensusDigest, _ *typ
 	}
 
 	// TODO: this needs to be updated not to remove the authority from the list,
-	// but to flag them as disabled. thus, if we are disabled, we should stop voting.
+	// but to flag them as disabled. thus, if we are disabled, we should stop voting *in the next epoch*.
 	// if we receive vote or finalization messages, we should ignore anything signed by the
 	// disabled authority
 	h.grandpa.UpdateAuthorities(next)

@@ -281,6 +281,7 @@ func (b *Service) GetBlockChannel() <-chan types.Block {
 // SetOnDisabled sets the block producer with the given index as disabled
 // If this is our node, we stop producing blocks
 func (b *Service) SetOnDisabled(authorityIndex uint32) {
+	// TODO: this should disable us starting at the *next* epoch
 	if authorityIndex == b.epochData.authorityIndex {
 		b.isDisabled = true
 	}
