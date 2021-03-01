@@ -125,6 +125,10 @@ func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 	setDotNetworkConfig(ctx, tomlCfg.Network, &cfg.Network)
 	setDotRPCConfig(ctx, tomlCfg.RPC, &cfg.RPC)
 
+	if rewind := ctx.GlobalInt(RewindFlag.Name); rewind != 0 {
+		cfg.State.Rewind = rewind
+	}
+
 	// set system info
 	setSystemInfoConfig(ctx, cfg)
 
