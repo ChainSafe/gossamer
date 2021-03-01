@@ -81,6 +81,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -467,20 +468,23 @@ func ext_sr25519_generate(context unsafe.Pointer, idData, seed, seedLen, out C.i
 
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 
-	// TODO: key types not yet implemented
-	// id := memory[idData:idData+4]
+	id := memory[idData : idData+4]
+	ks, err := runtimeCtx.Keystore.GetKeystore(id)
+	if err != nil {
+		logger.Warn("[ext_sr25519_generate]", "name", id, "error", err)
+		return
+	}
 
 	seedBytes := memory[seed : seed+seedLen]
 
 	kp, err := sr25519.NewKeypairFromSeed(seedBytes)
 	if err != nil {
 		logger.Trace("ext_sr25519_generate cannot generate key", "error", err)
+		return
 	}
 
 	logger.Trace("ext_sr25519_generate", "address", kp.Public().Address())
-
-	runtimeCtx.Keystore.Insert(kp)
-
+	ks.Insert(kp)
 	copy(memory[out:out+32], kp.Public().Encode())
 }
 
@@ -492,8 +496,20 @@ func ext_ed25519_public_keys(context unsafe.Pointer, idData, resultLen C.int32_t
 
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 
-	keys := runtimeCtx.Keystore.Ed25519PublicKeys()
-	// TODO: when do deallocate?
+	id := memory[idData : idData+4]
+	ks, err := runtimeCtx.Keystore.GetKeystore(id)
+	if err != nil {
+		logger.Warn("[ext_ed25519_public_keys]", "name", id, "error", err)
+		return -1
+	}
+
+	if ks.Type() != crypto.Ed25519Type {
+		logger.Warn("[ext_ed25519_public_keys]", "name", id, "error", "keystore is not ed25519 type")
+		return -1
+	}
+
+	keys := ks.PublicKeys()
+
 	offset, err := runtimeCtx.Allocator.Allocate(uint32(len(keys) * 32))
 	if err != nil {
 		logger.Error("[ext_ed25519_public_keys]", "error", err)
@@ -518,7 +534,19 @@ func ext_sr25519_public_keys(context unsafe.Pointer, idData, resultLen C.int32_t
 
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 
-	keys := runtimeCtx.Keystore.Sr25519PublicKeys()
+	id := memory[idData : idData+4]
+	ks, err := runtimeCtx.Keystore.GetKeystore(id)
+	if err != nil {
+		logger.Warn("[ext_sr25519_public_keys]", "name", id, "error", err)
+		return -1
+	}
+
+	if ks.Type() != crypto.Sr25519Type {
+		logger.Warn("[ext_sr25519_public_keys]", "name", id, "error", "keystore is not sr25519 type")
+		return -1
+	}
+
+	keys := ks.PublicKeys()
 
 	offset, err := runtimeCtx.Allocator.Allocate(uint32(len(keys) * 32))
 	if err != nil {
@@ -544,14 +572,21 @@ func ext_ed25519_sign(context unsafe.Pointer, idData, pubkeyData, msgData, msgLe
 
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 
+	id := memory[idData : idData+4]
+	ks, err := runtimeCtx.Keystore.GetKeystore(id)
+	if err != nil {
+		logger.Warn("[ext_sr25519_public_keys]", "name", id, "error", err)
+		return -1
+	}
+
 	pubkeyBytes := memory[pubkeyData : pubkeyData+32]
 	pubkey, err := ed25519.NewPublicKey(pubkeyBytes)
 	if err != nil {
-		logger.Error("[ext_ed25519_sign]", "error", err)
+		logger.Error("[ext_sr25519_public_keys]", "error", err)
 		return 1
 	}
 
-	signingKey := runtimeCtx.Keystore.GetKeypair(pubkey)
+	signingKey := ks.GetKeypair(pubkey)
 	if signingKey == nil {
 		logger.Error("[ext_ed25519_sign] could not find key in keystore", "public key", pubkey)
 		return 1
@@ -578,6 +613,13 @@ func ext_sr25519_sign(context unsafe.Pointer, idData, pubkeyData, msgData, msgLe
 
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 
+	id := memory[idData : idData+4]
+	ks, err := runtimeCtx.Keystore.GetKeystore(id)
+	if err != nil {
+		logger.Warn("[ext_sr25519_sign]", "name", string(id), "error", err)
+		return -1
+	}
+
 	pubkeyBytes := memory[pubkeyData : pubkeyData+32]
 	pubkey, err := sr25519.NewPublicKey(pubkeyBytes)
 	if err != nil {
@@ -585,7 +627,7 @@ func ext_sr25519_sign(context unsafe.Pointer, idData, pubkeyData, msgData, msgLe
 		return 1
 	}
 
-	signingKey := runtimeCtx.Keystore.GetKeypair(pubkey)
+	signingKey := ks.GetKeypair(pubkey)
 
 	if signingKey == nil {
 		logger.Error("[ext_sr25519_sign] could not find key in keystore", "public key", pubkey)
@@ -634,20 +676,23 @@ func ext_ed25519_generate(context unsafe.Pointer, idData, seed, seedLen, out C.i
 
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 
-	// TODO: key types not yet implemented
-	// id := memory[idData:idData+4]
+	id := memory[idData : idData+4]
+	ks, err := runtimeCtx.Keystore.GetKeystore(id)
+	if err != nil {
+		logger.Warn("[ext_ed25519_generate]", "name", id, "error", err)
+		return
+	}
 
 	seedBytes := memory[seed : seed+seedLen]
 
 	kp, err := ed25519.NewKeypairFromSeed(seedBytes)
 	if err != nil {
 		logger.Trace("ext_ed25519_generate cannot generate key", "error", err)
+		return
 	}
 
 	logger.Trace("ext_ed25519_generate", "address", kp.Public().Address())
-
-	runtimeCtx.Keystore.Insert(kp)
-
+	ks.Insert(kp)
 	copy(memory[out:out+32], kp.Public().Encode())
 }
 
