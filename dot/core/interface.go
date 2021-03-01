@@ -81,7 +81,7 @@ type FinalityGadget interface {
 // BlockProducer is the interface that a block production service must implement
 type BlockProducer interface {
 	GetBlockChannel() <-chan types.Block
-	SetOnDisabled(authorityIndex uint32)
+	SetOnDisabled(epoch uint64, authorityIndex uint32)
 }
 
 // Verifier is the interface for the block verifier

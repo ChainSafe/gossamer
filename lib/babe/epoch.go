@@ -111,9 +111,6 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 		}
 	}
 
-	// TODO: fix this, us nap of epoch -> isDisabled
-	// if we were previously disabled, we are now re-enabled since the epoch changed
-	b.isDisabled = false
 	return nil
 }
 

@@ -420,12 +420,20 @@ func (h *DigestHandler) handleBABEOnDisabled(d *types.ConsensusDigest, header *t
 
 	logger.Debug("handling BABEOnDisabled", "data", od)
 
+	epoch, err := h.epochState.GetEpochForBlock(header)
+	if err != nil {
+		return err
+	}
+
+	// OnDisabled digest was found in header w/ epoch, disabling authority for epoch + 1
+	epoch = epoch + 1
+
 	err = h.verifier.SetOnDisabled(od.ID, header)
 	if err != nil {
 		return err
 	}
 
-	h.babe.SetOnDisabled(od.ID)
+	h.babe.SetOnDisabled(epoch, od.ID)
 	return nil
 }
 

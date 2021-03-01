@@ -57,7 +57,7 @@ type Service struct {
 	slotDuration time.Duration
 	epochData    *epochData
 	slotToProof  map[uint64]*VrfOutputAndProof // for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
-	isDisabled   bool
+	isDisabled   map[uint64]bool               // if we are disabled for a given epoch
 
 	// Channels for inter-process communication
 	blockChan chan types.Block // send blocks to core service
@@ -123,6 +123,8 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		blockChan:        make(chan types.Block),
 		pause:            make(chan struct{}),
 		authority:        cfg.Authority,
+		isDisabled:       make(map[uint64]bool), // TODO: ensure this is loaded correctly on restarts, for example
+		// if we restart in the middle of an epoch where we are disabled.
 	}
 
 	var err error
@@ -280,10 +282,9 @@ func (b *Service) GetBlockChannel() <-chan types.Block {
 
 // SetOnDisabled sets the block producer with the given index as disabled
 // If this is our node, we stop producing blocks
-func (b *Service) SetOnDisabled(authorityIndex uint32) {
-	// TODO: this should disable us starting at the *next* epoch
+func (b *Service) SetOnDisabled(epoch uint64, authorityIndex uint32) {
 	if authorityIndex == b.epochData.authorityIndex {
-		b.isDisabled = true
+		b.isDisabled[epoch] = true
 	}
 }
 
@@ -372,15 +373,19 @@ func (b *Service) invokeBlockAuthoring() {
 	startSlot := getCurrentSlot(b.slotDuration)
 
 	intoEpoch := startSlot - epochStart
-	logger.Info("current epoch", "epoch", currEpoch, "slots into epoch", intoEpoch)
 
 	// if the calculated amount of slots "into the epoch" is greater than the epoch length,
 	// we've been offline for more than an epoch, and need to sync. pause BABE for now, syncer will
 	// resume it when ready
 	if b.epochLength <= intoEpoch {
+		logger.Info("current epoch", "epoch", currEpoch)
 		b.paused = true
 		return
 	}
+
+	logger.Info("current epoch", "epoch", currEpoch, "slots into epoch", intoEpoch)
+
+	isDisabled := b.isDisabled[currEpoch]
 
 	slotDone := make([]<-chan time.Time, b.epochLength-intoEpoch)
 	for i := 0; i < int(b.epochLength-intoEpoch); i++ {
@@ -394,7 +399,7 @@ func (b *Service) invokeBlockAuthoring() {
 		case <-b.pause:
 			return
 		case <-slotDone[i]:
-			if !b.authority {
+			if !b.authority || isDisabled {
 				continue
 			}
 
@@ -429,7 +434,7 @@ func (b *Service) invokeBlockAuthoring() {
 }
 
 func (b *Service) handleSlot(slotNum uint64) error {
-	if b.isDisabled || b.slotToProof[slotNum] == nil {
+	if b.slotToProof[slotNum] == nil {
 		return ErrNotAuthorized
 	}
 
