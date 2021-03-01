@@ -72,6 +72,7 @@ type WSConn struct {
 	storageAPI         modules.StorageAPI
 	blockAPI           modules.BlockAPI
 	runtimeAPI         modules.RuntimeAPI
+	coreAPI modules.CoreAPI
 }
 
 var logger log.Logger

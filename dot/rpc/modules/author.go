@@ -170,7 +170,7 @@ func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 		return err
 	}
 	cm.logger.Trace("[rpc]", "extrinsic", extBytes)
-
+fmt.Printf("SubExt ext %v\n", extBytes)
 	// For RPC request the transaction source is External
 	ext := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, extBytes...))
 

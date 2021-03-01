@@ -122,6 +122,7 @@ func NewWSConn(conn *websocket.Conn, cfg *HTTPServerConfig) *WSConn {
 		storageAPI:         cfg.StorageAPI,
 		blockAPI:           cfg.BlockAPI,
 		runtimeAPI:         cfg.RuntimeAPI,
+		coreAPI: cfg.CoreAPI,
 	}
 	return c
 }
@@ -190,10 +191,17 @@ func (c *WSConn) handleComm() {
 			case "chain_subscribeFinalizedHeads":
 				bfl, err3 := c.initBlockFinalizedListener(reqid)
 				if err3 != nil {
-					logger.Warn("failed to create block finalized", "error", err)
+					logger.Warn("failed to create block finalized", "error", err3)
 					continue
 				}
 				c.startListener(bfl)
+			case "state_subscribeRuntimeVersion":
+				rvl, err4 := c.initRuntimeVersionListener(reqid)
+				if err4 != nil {
+					logger.Warn("failed to create runtime version listener", "error", err4)
+					continue
+				}
+				c.startListener(rvl)
 			}
 			continue
 		}
@@ -551,6 +559,8 @@ func (l *ExtrinsicWatchListener) Listen() {
 		if block == nil {
 			continue
 		}
+		exts, err := block.Body.AsEncodedExtrinsics()
+		fmt.Printf("EXts %v\n", exts)
 		// TODO determine how if extrinsic is in this block
 		headM := make(map[string]interface{})
 		resM := make(map[string]interface{})
@@ -560,10 +570,64 @@ func (l *ExtrinsicWatchListener) Listen() {
 		res := newSubcriptionBaseResponseJSON()
 		res.Method = "author_extrinsicUpdate"
 		res.Params = headM
-		err := l.wsconn.safeSend(res)
+		err = l.wsconn.safeSend(res)
 		if err != nil {
 			logger.Error("error sending websocket message", "error", err)
 		}
 
+	}
+}
+
+// RuntimeVersionListener to handle listening for Runtime Version
+type RuntimeVersionListener struct {
+	wsconn  *WSConn
+	subID   int
+}
+
+func (c *WSConn) initRuntimeVersionListener(reqID float64) (int, error) {
+	rvl := &RuntimeVersionListener{
+		wsconn:  c,
+	}
+	if c.coreAPI == nil {
+		e := c.safeSendError(reqID, nil, "error CoreAPI not set")
+		if e != nil {
+		logger.Warn("error sending error message", "error", e)
+	}
+		return 0, fmt.Errorf("error CoreAPI not set")
+	}
+	c.qtyListeners++
+	rvl.subID = c.qtyListeners
+	c.subscriptions[rvl.subID] = rvl
+	initRes := newSubscriptionResponseJSON(rvl.subID, reqID)
+	err := c.safeSend(initRes)
+	if err != nil {
+		return 0, err
+	}
+	return rvl.subID, nil
+}
+
+func (l *RuntimeVersionListener) Listen() {
+	rtVersion, err := l.wsconn.coreAPI.GetRuntimeVersion(nil)
+	if err != nil {
+		return
+	}
+	result := make(map[string]interface{})
+	ver := 	modules.StateRuntimeVersionResponse{}
+
+	ver.SpecName = string(rtVersion.SpecName())
+	ver.ImplName = string(rtVersion.ImplName())
+	ver.AuthoringVersion = rtVersion.AuthoringVersion()
+	ver.SpecVersion = rtVersion.SpecVersion()
+	ver.ImplVersion = rtVersion.ImplVersion()
+	ver.TransactionVersion = rtVersion.TransactionVersion()
+	ver.Apis = modules.ConvertAPIs(rtVersion.APIItems())
+	result["result"] = ver
+	result["subscription"] = l.subID
+	res := newSubcriptionBaseResponseJSON()
+	res.Method = "state_runtimeVersion"
+	res.Params = result
+	err = l.wsconn.safeSend(res)
+	if err != nil {
+		logger.Error("error sending websocket message", "error", err)
 	}
 }

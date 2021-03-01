@@ -472,6 +472,7 @@ func generateConfigBabeMaxThreshold() *ctoml.Config {
 		SyncLvl:          "debug",
 		NetworkLvl:       "debug",
 		BlockProducerLvl: "info",
+		RPCLvl: "debug",
 	}
 	cfg.Core = ctoml.CoreConfig{
 		Roles:                    4,
