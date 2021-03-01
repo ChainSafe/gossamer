@@ -63,6 +63,13 @@ func createStateService(cfg *Config) (*state.Service, error) {
 		return nil, fmt.Errorf("failed to start state service: %s", err)
 	}
 
+	if cfg.State.Rewind != 0 {
+		err = stateSrvc.Rewind(cfg.State.Rewind)
+		if err != nil {
+			return nil, fmt.Errorf("failed to rewind state: %w", err)
+		}
+	}
+
 	// load most recent state from database
 	latestState, err := state.LoadLatestStorageHash(stateSrvc.DB())
 	if err != nil {
@@ -78,7 +85,7 @@ func createStateService(cfg *Config) (*state.Service, error) {
 	return stateSrvc, nil
 }
 
-func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore, net *network.Service) (runtime.Instance, error) {
+func createRuntime(cfg *Config, st *state.Service, ks *keystore.GlobalKeystore, net *network.Service) (runtime.Instance, error) {
 	logger.Info(
 		"creating runtime...",
 		"interpreter", cfg.Core.WasmInterpreter,

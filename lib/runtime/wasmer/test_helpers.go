@@ -125,7 +125,7 @@ func setupConfig(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Lvl,
 		Imports: importsFunc,
 	}
 	cfg.Storage = s
-	cfg.Keystore = keystore.NewGenericKeystore("test")
+	cfg.Keystore = keystore.NewGlobalKeystore()
 	cfg.LogLvl = lvl
 	cfg.NodeStorage = ns
 	cfg.Network = new(runtime.TestRuntimeNetwork)

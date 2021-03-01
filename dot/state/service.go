@@ -306,6 +306,31 @@ func (s *Service) Start() error {
 	return nil
 }
 
+// Rewind rewinds the chain by the given number of blocks.
+// If the given number of blocks is greater than the chain height, it will rewind to genesis.
+func (s *Service) Rewind(numBlocks int) error {
+	num, _ := s.Block.BestBlockNumber()
+
+	logger.Info("rewinding state...", "current height", num, "to rewind", numBlocks)
+	s.Block.bt.Rewind(numBlocks)
+	newHead := s.Block.BestBlockHash()
+
+	header, _ := s.Block.BestBlockHeader()
+	logger.Info("rewinding state...", "new height", header.Number)
+
+	epoch, err := s.Epoch.GetEpochForBlock(header)
+	if err != nil {
+		return err
+	}
+
+	err = s.Epoch.SetCurrentEpoch(epoch)
+	if err != nil {
+		return err
+	}
+
+	return StoreBestBlockHash(s.db, newHead)
+}
+
 // Stop closes each state database
 func (s *Service) Stop() error {
 	head, err := s.Block.BestBlockStateRoot()

@@ -24,7 +24,7 @@ import (
 // HandleTransactionMessage validates each transaction in the message and
 // adds valid transactions to the transaction queue of the BABE session
 func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) error {
-	logger.Info("received TransactionMessage")
+	logger.Debug("received TransactionMessage")
 	if !s.isBlockProducer {
 		return nil
 	}
