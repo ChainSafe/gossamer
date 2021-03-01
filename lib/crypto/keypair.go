@@ -20,6 +20,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 
 	"github.com/btcsuite/btcutil/base58"
+	bip39 "github.com/cosmos/go-bip39"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -87,4 +88,14 @@ func PublicKeyToAddress(pub PublicKey) common.Address {
 func PublicAddressToByteArray(add common.Address) []byte {
 	k := base58.Decode(string(add))
 	return k[1:33]
+}
+
+// NewBIP39Mnemonic returns a new BIP39-compatible mnemonic
+func NewBIP39Mnemonic() (string, error) {
+	entropy, err := bip39.NewEntropy(128)
+	if err != nil {
+		return "", err
+	}
+
+	return bip39.NewMnemonic(entropy)
 }
