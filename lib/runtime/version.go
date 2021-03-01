@@ -99,6 +99,7 @@ func (v *LegacyVersionData) TransactionVersion() uint32 {
 	return 0
 }
 
+// Encode returns the SCALE encoding of the Version
 func (v *LegacyVersionData) Encode() ([]byte, error) {
 	type Info struct {
 		SpecName         []byte
@@ -254,6 +255,7 @@ func (v *VersionData) TransactionVersion() uint32 {
 	return v.transactionVersion
 }
 
+// Encode returns the SCALE encoding of the Version
 func (v *VersionData) Encode() ([]byte, error) {
 	type Info struct {
 		SpecName         []byte
