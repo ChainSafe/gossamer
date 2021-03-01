@@ -25,6 +25,9 @@ import (
 // adds valid transactions to the transaction queue of the BABE session
 func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) error {
 	logger.Debug("received TransactionMessage")
+	if !s.isBlockProducer {
+		return nil
+	}
 
 	// get transactions from message extrinsics
 	txs := msg.Extrinsics
@@ -36,17 +39,15 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) erro
 		val, err := s.rt.ValidateTransaction(tx)
 		if err != nil {
 			logger.Error("failed to validate transaction", "err", err)
-			return err // exit
+			return err
 		}
 
 		// create new valid transaction
 		vtx := transaction.NewValidTransaction(tx, val)
 
-		if s.isBlockProducer {
-			// push to the transaction queue of BABE session
-			hash := s.transactionState.AddToPool(vtx)
-			logger.Trace("Added transaction to queue", "hash", hash)
-		}
+		// push to the transaction queue of BABE session
+		hash := s.transactionState.AddToPool(vtx)
+		logger.Trace("Added transaction to queue", "hash", hash)
 	}
 
 	return nil
