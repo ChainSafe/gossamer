@@ -104,8 +104,10 @@ func (bt *BlockTree) AddBlock(block *types.Block, arrivalTime uint64) error {
 // it will only rewind until the blocktree has one node.
 func (bt *BlockTree) Rewind(numBlocks int) {
 	for i := 0; i < numBlocks; i++ {
+		deepest := bt.leaves.deepestLeaf()
+
 		for _, leaf := range bt.leaves.nodes() {
-			if leaf.parent == nil {
+			if leaf.parent == nil || leaf.depth.Cmp(deepest.depth) < 0 {
 				continue
 			}
 

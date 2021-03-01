@@ -461,6 +461,7 @@ func equalNodeValue(nd *node, ndCopy *node) bool {
 	}
 	return true
 }
+
 func equalLeave(lm *leafMap, lmCopy *leafMap) bool {
 	lmm := lm.toMap()
 	lmCopyM := lmCopy.toMap()
@@ -469,4 +470,24 @@ func equalLeave(lm *leafMap, lmCopy *leafMap) bool {
 		return equalNodeValue(val, lmCopyVal)
 	}
 	return true
+}
+
+func TestBlockTree_Rewind(t *testing.T) {
+	var bt *BlockTree
+	var branches []testBranch
+
+	rewind := 6
+
+	for {
+		bt, branches = createTestBlockTree(testHeader, 12, nil)
+		if len(branches) > 0 && len(bt.getNode(branches[0].hash).children) > 1 {
+			break
+		}
+	}
+
+	start := bt.leaves.deepestLeaf()
+
+	bt.Rewind(rewind)
+	deepest := bt.leaves.deepestLeaf()
+	require.Equal(t, start.depth.Int64()-int64(rewind), deepest.depth.Int64())
 }

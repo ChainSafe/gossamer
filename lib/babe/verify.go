@@ -176,10 +176,6 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 			info, err = v.getVerifierInfo(0)
 		} else {
 			info, err = v.getVerifierInfo(epoch)
-			if err != nil {
-				epoch = epoch - 1
-				info, err = v.getVerifierInfo(epoch)
-			}
 		}
 
 		if err != nil {
