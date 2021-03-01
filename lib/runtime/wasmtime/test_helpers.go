@@ -55,7 +55,7 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, 
 	}
 	cfg.Storage, err = storage.NewTrieState(tt)
 	require.NoError(t, err)
-	cfg.Keystore = keystore.NewGenericKeystore("test")
+	cfg.Keystore = keystore.NewGlobalKeystore()
 	cfg.LogLvl = lvl
 	cfg.NodeStorage = ns
 	cfg.Network = new(runtime.TestRuntimeNetwork)

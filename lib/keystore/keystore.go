@@ -17,6 +17,8 @@
 package keystore
 
 import (
+	"errors"
+
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 )
@@ -68,5 +70,28 @@ func NewGlobalKeystore() *GlobalKeystore {
 		Imon: NewBasicKeystore(ImonName, crypto.Sr25519Type),
 		Audi: NewBasicKeystore(AudiName, crypto.Sr25519Type),
 		Dumy: NewGenericKeystore(DumyName),
+	}
+}
+
+// GetKeystore returns a keystore given its name
+func (k *GlobalKeystore) GetKeystore(name []byte) (Keystore, error) {
+	nameStr := Name(name[:])
+	switch nameStr {
+	case BabeName:
+		return k.Babe, nil
+	case GranName:
+		return k.Gran, nil
+	case AccoName:
+		return k.Acco, nil
+	case AuraName:
+		return k.Aura, nil
+	case ImonName:
+		return k.Imon, nil
+	case AudiName:
+		return k.Audi, nil
+	case DumyName:
+		return k.Dumy, nil
+	default:
+		return nil, errors.New("invalid keystore name")
 	}
 }
