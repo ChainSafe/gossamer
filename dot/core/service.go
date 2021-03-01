@@ -222,7 +222,7 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 
 func (s *Service) handleBlocks(ctx context.Context) {
 	for {
-		prev := s.blockState.BestBlockHash()
+		//prev := s.blockState.BestBlockHash()
 
 		select {
 		case block := <-s.blockAddCh:
@@ -234,9 +234,10 @@ func (s *Service) handleBlocks(ctx context.Context) {
 				logger.Warn("failed to handle epoch for block", "block", block.Header.Hash(), "error", err)
 			}
 
-			if err := s.handleChainReorg(prev, block.Header.Hash()); err != nil {
-				logger.Warn("failed to re-add transactions to chain upon re-org", "error", err)
-			}
+			// TODO: add inherent check
+			// if err := s.handleChainReorg(prev, block.Header.Hash()); err != nil {
+			// 	logger.Warn("failed to re-add transactions to chain upon re-org", "error", err)
+			// }
 
 			if err := s.maintainTransactionPool(block); err != nil {
 				logger.Warn("failed to maintain transaction pool", "error", err)
@@ -350,12 +351,14 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 			continue
 		}
 
+		// TODO: decode extrinsic and make sure it's not an inherent.
+		// currently we are attempting to re-add inherents, causing lots of "'Bad input data provided to validate_transaction" errors.
 		for _, ext := range exts {
-			logger.Trace("validating transaction on re-org chain", "extrinsic", ext)
+			logger.Debug("validating transaction on re-org chain", "extrinsic", ext)
 
 			txv, err := s.rt.ValidateTransaction(ext)
 			if err != nil {
-				logger.Trace("failed to validate transaction", "extrinsic", ext)
+				logger.Debug("failed to validate transaction", "extrinsic", ext)
 				continue
 			}
 

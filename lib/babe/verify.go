@@ -176,6 +176,10 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 			info, err = v.getVerifierInfo(0)
 		} else {
 			info, err = v.getVerifierInfo(epoch)
+			if err != nil {
+				epoch = epoch - 1
+				info, err = v.getVerifierInfo(epoch)
+			}
 		}
 
 		if err != nil {
@@ -456,7 +460,7 @@ func (b *verifier) verifyPrimarySlotWinner(authorityIndex uint32, slot uint64, v
 	}
 
 	// validate VRF proof
-	logger.Trace("verifySlotWinner",
+	logger.Trace("verifyPrimarySlotWinner",
 		"index", authorityIndex,
 		"pub", pub.Hex(),
 		"randomness", b.randomness,
