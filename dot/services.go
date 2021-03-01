@@ -85,7 +85,7 @@ func createStateService(cfg *Config) (*state.Service, error) {
 	return stateSrvc, nil
 }
 
-func createRuntime(cfg *Config, st *state.Service, ks *keystore.GenericKeystore, net *network.Service) (runtime.Instance, error) {
+func createRuntime(cfg *Config, st *state.Service, ks *keystore.GlobalKeystore, net *network.Service) (runtime.Instance, error) {
 	logger.Info(
 		"creating runtime...",
 		"interpreter", cfg.Core.WasmInterpreter,
