@@ -75,11 +75,13 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 	// create base tree
 	startNum := int(head.Number.Int64())
 	for i := startNum + 1; i <= depth; i++ {
+		d := types.NewBabePrimaryPreDigest(0, uint64(i), [32]byte{}, [64]byte{})
 		block := &types.Block{
 			Header: &types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)),
 				StateRoot:  trie.EmptyHash,
+				Digest:     types.Digest{d.ToPreRuntimeDigest()},
 			},
 			Body: &types.Body{},
 		}

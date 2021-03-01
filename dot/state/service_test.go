@@ -214,3 +214,26 @@ func TestService_PruneStorage(t *testing.T) {
 		require.Equal(t, false, ok)
 	}
 }
+
+func TestService_Rewind(t *testing.T) {
+	testDir := utils.NewTestDir(t)
+	defer utils.RemoveTestDir(t)
+
+	serv := NewService(testDir, log.LvlTrace)
+	serv.UseMemDB()
+
+	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	err := serv.Initialize(genData, genesisHeader, genTrie)
+	require.NoError(t, err)
+
+	err = serv.Start()
+	require.NoError(t, err)
+
+	AddBlocksToState(t, serv.Block, 12)
+	err = serv.Rewind(6)
+	require.NoError(t, err)
+
+	num, err := serv.Block.BestBlockNumber()
+	require.NoError(t, err)
+	require.Equal(t, big.NewInt(6), num)
+}
