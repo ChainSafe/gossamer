@@ -128,6 +128,22 @@ func NewKeypairFromPrivateKeyBytes(in []byte) (*Keypair, error) {
 	}, nil
 }
 
+// NewKeypairFromMnenomic returns a new Keypair using the given mnemonic and password.
+func NewKeypairFromMnenomic(mnemonic, password string) (*Keypair, error) {
+	msc, err := sr25519.MiniSecretFromMnemonic(mnemonic, password)
+	if err != nil {
+		return nil, err
+	}
+
+	priv := msc.ExpandEd25519()
+	pub := msc.Public()
+
+	return &Keypair{
+		public:  &PublicKey{key: pub},
+		private: &PrivateKey{key: priv},
+	}, nil
+}
+
 // NewPrivateKey creates a new private key using the input bytes
 func NewPrivateKey(in []byte) (*PrivateKey, error) {
 	if len(in) != PrivateKeyLength {
