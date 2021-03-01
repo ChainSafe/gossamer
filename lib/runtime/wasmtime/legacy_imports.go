@@ -461,7 +461,16 @@ func ext_ed25519_public_keys(c *wasmtime.Caller, idData, resultLen int32) int32 
 	m := c.GetExport("memory").Memory()
 	memory := m.UnsafeData()
 
-	keys := ctx.Keystore.Ed25519PublicKeys()
+	id := memory[idData : idData+4]
+
+	ks, err := ctx.Keystore.GetKeystore(id)
+	if err != nil {
+		logger.Warn("[ext_ed25519_public_keys]", "name", id, "error", err)
+		return -1
+	}
+
+	keys := ks.PublicKeys()
+
 	// TODO: when do deallocate?
 	offset, err := ctx.Allocator.Allocate(uint32(len(keys) * 32))
 	if err != nil {
@@ -485,6 +494,14 @@ func ext_ed25519_sign(c *wasmtime.Caller, idData, pubkeyData, msgData, msgLen, o
 	m := c.GetExport("memory").Memory()
 	memory := m.UnsafeData()
 
+	id := memory[idData : idData+4]
+
+	ks, err := ctx.Keystore.GetKeystore(id)
+	if err != nil {
+		logger.Warn("[ext_ed25519_sign]", "name", id, "error", err)
+		return -1
+	}
+
 	pubkeyBytes := memory[pubkeyData : pubkeyData+32]
 	pubkey, err := ed25519.NewPublicKey(pubkeyBytes)
 	if err != nil {
@@ -492,7 +509,7 @@ func ext_ed25519_sign(c *wasmtime.Caller, idData, pubkeyData, msgData, msgLen, o
 		return 1
 	}
 
-	signingKey := ctx.Keystore.GetKeypair(pubkey)
+	signingKey := ks.GetKeypair(pubkey)
 	if signingKey == nil {
 		logger.Error("[ext_ed25519_sign] could not find key in keystore", "public key", pubkey)
 		return 1
