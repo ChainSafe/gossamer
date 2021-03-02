@@ -362,8 +362,6 @@ func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {
 
 func (s *Service) handleDigests(header *types.Header) {
 	for i, d := range header.Digest {
-		// for i := len(header.Digest) - 1; i >= 0; i-- {
-		// 	d := header.Digest[i]
 		if d.Type() == types.ConsensusDigestType {
 			cd, ok := d.(*types.ConsensusDigest)
 			if !ok {

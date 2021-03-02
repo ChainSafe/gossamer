@@ -77,7 +77,7 @@ func (bp *mockBlockProducer) Stop() error {
 	return nil
 }
 
-func (bp *mockBlockProducer) SetOnDisabled(idx uint32) {
+func (bp *mockBlockProducer) SetOnDisabled(epoch uint64, idx uint32) {
 	bp.disabled = idx
 }
 
