@@ -86,7 +86,7 @@ func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) er
 
 var (
 	blockRequestSize       uint32 = 128
-	blockRequestQueueSize  int64  = 8
+	blockRequestQueueSize  int64  = 4
 	maxBlockResponseSize   uint64 = 1024 * 1024 * 4 // 4mb
 	badPeerThreshold       int    = -2
 	protectedPeerThreshold int    = 7
@@ -193,7 +193,7 @@ func (q *syncQueue) handleResponseQueue() {
 			logger.Debug("response start is greater than head+1, waiting", "queue start", q.responses[0].Number().Int64(), "head+1", head.Int64()+1)
 			q.responseLock.Unlock()
 
-			q.setBlockRequests("")
+			q.setBlockRequests(head.Int64() + 1, "")
 			continue
 		}
 
@@ -336,22 +336,23 @@ func (q *syncQueue) updatePeerScore(pid peer.ID, amt int) {
 	}
 }
 
-func (q *syncQueue) setBlockRequests(to peer.ID) {
+func (q *syncQueue) setBlockRequests(start int64, to peer.ID) {
 	head, err := q.s.blockState.BestBlockNumber()
 	if err != nil {
 		return
 	}
 
-	var start int64
-	// we are currently syncing some blocks, don't have any other blocks to process queued
-	if q.currEnd != 0 && len(q.responses) == 0 {
-		start = q.currEnd + 1
-	} else if len(q.responses) != 0 && q.responses[0].Number().Int64() == q.currEnd+1 {
-		// we have some responses queued, and the next block data is equal to the data we're currently syncing + 1
-		start = q.responses[len(q.responses)-1].Number().Int64()
-	} else {
-		// we aren't syncing anything and don't have anything queued
-		start = head.Int64() + 1
+	if start == 0 {
+		// we are currently syncing some blocks, don't have any other blocks to process queued
+		if q.currEnd != 0 && len(q.responses) == 0 {
+			start = q.currEnd + 1
+		} else if len(q.responses) != 0 && q.responses[0].Number().Int64() == q.currEnd+1 {
+			// we have some responses queued, and the next block data is equal to the data we're currently syncing + 1
+			start = q.responses[len(q.responses)-1].Number().Int64()
+		} else {
+			// we aren't syncing anything and don't have anything queued
+			start = head.Int64() + 1
+		}	
 	}
 
 	logger.Trace("setting block request queue", "start", start, "goal", q.goal)
@@ -522,10 +523,10 @@ func (q *syncQueue) processBlockResponses() {
 
 			err = q.s.syncer.ProcessBlockData(data)
 			if err != nil {
-				logger.Warn("failed to handle block data; re-adding to queue", "start", q.currStart, "end", q.currEnd, "error", err)
+				logger.Warn("failed to handle block data", "start", q.currStart, "end", q.currEnd, "error", err)
 				q.currStart = 0
 				q.currEnd = 0
-				q.setBlockRequests("")
+				q.setBlockRequests(0, "")
 				continue
 			}
 
@@ -552,7 +553,7 @@ func (q *syncQueue) handleBlockAnnounceHandshake(blockNum uint32, from peer.ID) 
 	}
 
 	q.goal = int64(blockNum)
-	q.setBlockRequests(from)
+	q.setBlockRequests(0, from)
 }
 
 func (q *syncQueue) handleBlockAnnounce(msg *BlockAnnounceMessage, from peer.ID) {
@@ -580,7 +581,7 @@ func (q *syncQueue) handleBlockAnnounce(msg *BlockAnnounceMessage, from peer.ID)
 	}
 
 	q.goal = header.Number.Int64()
-	q.setBlockRequests(from)
+	q.setBlockRequests(0, from)
 }
 
 func createBlockRequests(start, end int64) []*BlockRequestMessage {
