@@ -416,6 +416,14 @@ func (q *syncQueue) processBlockRequests() {
 	}
 }
 
+func logPeerScores(peers []*syncPeer) {
+	str := ""
+	for _, p := range peers {
+		str = str + fmt.Sprintf("[%s: %d]\n", p.pid, p.score)
+	}
+	logger.Debug("peer scores", "scores", str)
+}
+
 func (q *syncQueue) trySync(req *syncRequest) {
 	if q.ctx.Err() != nil {
 		return
@@ -423,7 +431,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 
 	defer q.setBlockRequests(req.to)
 
-	logger.Trace("beginning to send out request", "start", req.req.StartingBlock.Uint64())
+	logger.Debug("beginning to send out request", "start", req.req.StartingBlock.Uint64())
 	if len(req.to) != 0 {
 		resp, err := q.syncWithPeer(req.to, req.req)
 		if err == nil {
@@ -437,6 +445,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 
 	logger.Trace("trying prioritized peers...")
 	syncPeers := q.getSortedPeers()
+	logPeerScores(syncPeers)
 
 	for _, peer := range syncPeers {
 		// if peer doesn't respond multiple times, then ignore them TODO: determine best values for this
