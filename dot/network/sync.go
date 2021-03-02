@@ -89,7 +89,7 @@ var (
 	blockRequestQueueSize  int64  = 8
 	maxBlockResponseSize   uint64 = 1024 * 1024 * 4 // 4mb
 	badPeerThreshold       int    = -2
-	protectedPeerThreshold int    = 10
+	protectedPeerThreshold int    = 7
 )
 
 type syncPeer struct {
