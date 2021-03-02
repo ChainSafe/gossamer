@@ -425,9 +425,6 @@ func (h *DigestHandler) handleBABEOnDisabled(d *types.ConsensusDigest, header *t
 		return err
 	}
 
-	// OnDisabled digest was found in header w/ epoch, disabling authority for epoch + 1
-	epoch = epoch + 1
-
 	err = h.verifier.SetOnDisabled(od.ID, header)
 	if err != nil {
 		return err
