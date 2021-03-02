@@ -594,6 +594,51 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
+	ksmTrie901441 := newTrieFromPairs(t, "../test_data/block901441_kusama.out")
+	expectedRoot := common.MustHexToHash("0x3a2ef7ee032f5810160bb8f3ffe3e3377bb6f2769ee9f79a5425973347acd504")
+	require.Equal(t, expectedRoot, ksmTrie901441.MustHash())
+
+	// set state to genesis state
+	state901441, err := storage.NewTrieState(ksmTrie901441)
+	require.NoError(t, err)
+
+	cfg := &Config{}
+	cfg.Storage = state901441
+	cfg.LogLvl = 4
+
+	instance, err := NewInstanceFromTrie(ksmTrie901441, cfg)
+	require.NoError(t, err)
+
+	body := common.MustHexToBytes("0x0c280402000b207eb80a70011c040900fa0437001004140000")
+	exts, err := scale.Decode(body, [][]byte{})
+	require.NoError(t, err)
+	require.Equal(t, 3, len(exts.([][]byte)))
+
+	// digest from polkadot.js
+	digestBytes := common.MustHexToBytes("0x080642414245340244000000aeffb30f00000000054241424501011cbef2a084a774c34d9990c7bfc6b4d2d5e9f5b59feca792cd2bb89a890c2a6f09668b5e8224879f007f49f299d25fbb3c0f30d94fb8055e07fa8a4ed10f8083")
+	r := &bytes.Buffer{}
+	_, _ = r.Write(digestBytes)
+	digest, err := types.DecodeDigest(r)
+	require.NoError(t, err)
+	require.Equal(t, 2, len(digest))
+
+	// kusama block 901442, from polkadot.js
+	block := &types.Block{
+		Header: &types.Header{
+			ParentHash:     common.MustHexToHash("0x68d9c5f75225f09d7ce493eff8aabac7bae8b65cb81a2fd532a99fbb8c663931"),
+			Number:         big.NewInt(901442),
+			StateRoot:      common.MustHexToHash("0x6ea065f850894c5b58cb1a73ec887e56842851943641149c57cea357cae4f596"),
+			ExtrinsicsRoot: common.MustHexToHash("0x13483a4c148fff5f072e86b5af52bf031556514e9c87ea19f9e31e7b13c0c414"),
+			Digest:         digest,
+		},
+		Body: types.NewBody(body),
+	}
+
+	_, err = instance.ExecuteBlock(block)
+	require.NoError(t, err)
+}
+
 func newTrieFromPairs(t *testing.T, filename string) *trie.Trie {
 	data, err := ioutil.ReadFile(filename)
 	require.NoError(t, err)
