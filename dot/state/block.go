@@ -69,8 +69,12 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 		pruneKeyCh: make(chan *types.Header, pruneKeyBufferSize),
 	}
 
-	bs.genesisHash = bt.GenesisHash()
-	var err error
+	genesisBlock, err := bs.GetBlockByNumber(big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+
+	bs.genesisHash = genesisBlock.Header.Hash()
 
 	// set the current highest block
 	bs.highestBlockHeader, err = bs.BestBlockHeader()
@@ -84,7 +88,7 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 // NewBlockStateFromGenesis initializes a BlockState from a genesis header, saving it to the database located at basePath
 func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*BlockState, error) {
 	bs := &BlockState{
-		bt:         blocktree.NewBlockTreeFromGenesis(header, db),
+		bt:         blocktree.NewBlockTreeFromRoot(header, db),
 		baseDB:     db,
 		db:         chaindb.NewTable(db, blockPrefix),
 		imported:   make(map[byte]chan<- *types.Block),
@@ -487,14 +491,6 @@ func (bs *BlockState) CompareAndSetBlockData(bd *types.BlockData) error {
 	hasMessageQueue, _ := bs.HasMessageQueue(bd.Hash)
 	if bd.MessageQueue != nil && bd.MessageQueue.Exists() && !hasMessageQueue {
 		err := bs.SetMessageQueue(bd.Hash, bd.MessageQueue.Value())
-		if err != nil {
-			return err
-		}
-	}
-
-	hasJustification, _ := bs.HasJustification(bd.Hash)
-	if bd.Justification != nil && bd.Justification.Exists() && !hasJustification {
-		err := bs.SetJustification(bd.Hash, bd.Justification.Value())
 		if err != nil {
 			return err
 		}
