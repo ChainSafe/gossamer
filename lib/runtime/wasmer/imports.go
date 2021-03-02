@@ -114,6 +114,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -243,7 +244,7 @@ func ext_crypto_ed25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 
 //export ext_crypto_ed25519_public_keys_version_1
 func ext_crypto_ed25519_public_keys_version_1(context unsafe.Pointer, keyTypeID C.int32_t) C.int64_t {
-	logger.Trace("[ext_crypto_ed25519_public_keys_version_1] executing...")
+	logger.Debug("[ext_crypto_ed25519_public_keys_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
@@ -290,7 +291,7 @@ func ext_crypto_ed25519_public_keys_version_1(context unsafe.Pointer, keyTypeID 
 
 //export ext_crypto_ed25519_sign_version_1
 func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeID C.int32_t, key C.int32_t, msg C.int64_t) C.int64_t {
-	logger.Trace("[ext_crypto_ed25519_sign_version_1] executing...")
+	logger.Debug("[ext_crypto_ed25519_sign_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
@@ -340,7 +341,7 @@ func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeID C.int32
 
 //export ext_crypto_ed25519_verify_version_1
 func ext_crypto_ed25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, msg C.int64_t, key C.int32_t) C.int32_t {
-	logger.Trace("[ext_crypto_ed25519_verify_version_1] executing...")
+	logger.Debug("[ext_crypto_ed25519_verify_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -479,7 +480,7 @@ func ext_crypto_sr25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 
 //export ext_crypto_sr25519_public_keys_version_1
 func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, keyTypeID C.int32_t) C.int64_t {
-	logger.Trace("[ext_crypto_sr25519_public_keys_version_1] executing...")
+	logger.Debug("[ext_crypto_sr25519_public_keys_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
@@ -526,7 +527,7 @@ func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, keyTypeID 
 
 //export ext_crypto_sr25519_sign_version_1
 func ext_crypto_sr25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.int32_t, msg C.int64_t) C.int64_t {
-	logger.Trace("[ext_crypto_sr25519_sign_version_1] executing...")
+	logger.Debug("[ext_crypto_sr25519_sign_version_1] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 	memory := instanceContext.Memory().Data()
@@ -572,7 +573,7 @@ func ext_crypto_sr25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.
 
 //export ext_crypto_sr25519_verify_version_1
 func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, msg C.int64_t, key C.int32_t) C.int32_t {
-	logger.Trace("[ext_crypto_sr25519_verify_version_1] executing...")
+	logger.Debug("[ext_crypto_sr25519_verify_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -690,7 +691,7 @@ func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t 
 
 //export ext_trie_blake2_256_root_version_1
 func ext_trie_blake2_256_root_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
-	logger.Trace("[ext_trie_blake2_256_root_version_1] executing...")
+	logger.Debug("[ext_trie_blake2_256_root_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -739,7 +740,7 @@ func ext_trie_blake2_256_root_version_1(context unsafe.Pointer, dataSpan C.int64
 
 //export ext_trie_blake2_256_ordered_root_version_1
 func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
-	logger.Trace("[ext_trie_blake2_256_ordered_root_version_1] executing...")
+	logger.Debug("[ext_trie_blake2_256_ordered_root_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	memory := instanceContext.Memory().Data()
@@ -819,7 +820,8 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 	cfg := &Config{
 		Imports: ImportsNodeRuntime,
 	}
-	cfg.Storage = instanceContext.Data().(*runtime.Context).Storage
+	cfg.LogLvl = -1 // don't change log level
+	cfg.Storage, _ = rtstorage.NewTrieState(nil)
 
 	instance, err := NewInstance(data, cfg)
 	if err != nil {
@@ -827,14 +829,11 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 		return 0
 	}
 
-	version, err := instance.Version()
-	if err != nil {
-		logger.Error("[ext_misc_runtime_version_version_1] failed to fetch version", "error", err)
-		return 0
-	}
+	// instance version is set and cached in NewInstance
+	version := instance.inst.version
+	logger.Debug("[ext_misc_runtime_version_version_1]", "version", version)
 
-	// TODO: custom encode for runtime.Version
-	encodedData, err := scale.Encode(version)
+	encodedData, err := version.Encode()
 	if err != nil {
 		logger.Error("[ext_misc_runtime_version_version_1] failed to encode result", "error", err)
 		return 0
@@ -851,7 +850,7 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 
 //export ext_default_child_storage_read_version_1
 func ext_default_child_storage_read_version_1(context unsafe.Pointer, childStorageKey C.int64_t, key C.int64_t, valueOut C.int64_t, offset C.int32_t) C.int64_t {
-	logger.Trace("[ext_default_child_storage_read_version_1] executing...")
+	logger.Debug("[ext_default_child_storage_read_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	storage := instanceContext.Data().(*runtime.Context).Storage
@@ -881,7 +880,7 @@ func ext_default_child_storage_read_version_1(context unsafe.Pointer, childStora
 
 //export ext_default_child_storage_clear_version_1
 func ext_default_child_storage_clear_version_1(context unsafe.Pointer, childStorageKey, keySpan C.int64_t) {
-	logger.Trace("[ext_default_child_storage_clear_version_1] executing...")
+	logger.Debug("[ext_default_child_storage_clear_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	ctx := instanceContext.Data().(*runtime.Context)
@@ -907,7 +906,7 @@ func ext_default_child_storage_clear_version_1(context unsafe.Pointer, childStor
 
 //export ext_default_child_storage_clear_prefix_version_1
 func ext_default_child_storage_clear_prefix_version_1(context unsafe.Pointer, childStorageKey C.int64_t, prefixSpan C.int64_t) {
-	logger.Trace("[ext_default_child_storage_clear_prefix_version_1] executing...")
+	logger.Debug("[ext_default_child_storage_clear_prefix_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	ctx := instanceContext.Data().(*runtime.Context)
@@ -933,7 +932,7 @@ func ext_default_child_storage_clear_prefix_version_1(context unsafe.Pointer, ch
 
 //export ext_default_child_storage_exists_version_1
 func ext_default_child_storage_exists_version_1(context unsafe.Pointer, childStorageKey C.int64_t, key C.int64_t) C.int32_t {
-	logger.Trace("[ext_default_child_storage_exists_version_1] executing...")
+	logger.Debug("[ext_default_child_storage_exists_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	storage := instanceContext.Data().(*runtime.Context).Storage
@@ -951,7 +950,7 @@ func ext_default_child_storage_exists_version_1(context unsafe.Pointer, childSto
 
 //export ext_default_child_storage_get_version_1
 func ext_default_child_storage_get_version_1(context unsafe.Pointer, childStorageKey, key C.int64_t) C.int64_t {
-	logger.Trace("[ext_default_child_storage_get_version_1] executing...")
+	logger.Debug("[ext_default_child_storage_get_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	storage := instanceContext.Data().(*runtime.Context).Storage
@@ -973,7 +972,7 @@ func ext_default_child_storage_get_version_1(context unsafe.Pointer, childStorag
 
 //export ext_default_child_storage_next_key_version_1
 func ext_default_child_storage_next_key_version_1(context unsafe.Pointer, childStorageKey C.int64_t, key C.int64_t) C.int64_t {
-	logger.Trace("[ext_default_child_storage_next_key_version_1] executing...")
+	logger.Debug("[ext_default_child_storage_next_key_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	storage := instanceContext.Data().(*runtime.Context).Storage
@@ -995,7 +994,7 @@ func ext_default_child_storage_next_key_version_1(context unsafe.Pointer, childS
 
 //export ext_default_child_storage_root_version_1
 func ext_default_child_storage_root_version_1(context unsafe.Pointer, childStorageKey C.int64_t) C.int64_t {
-	logger.Trace("[ext_default_child_storage_root_version_1] executing...")
+	logger.Debug("[ext_default_child_storage_root_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	storage := instanceContext.Data().(*runtime.Context).Storage
@@ -1023,7 +1022,7 @@ func ext_default_child_storage_root_version_1(context unsafe.Pointer, childStora
 
 //export ext_default_child_storage_set_version_1
 func ext_default_child_storage_set_version_1(context unsafe.Pointer, childStorageKeySpan, keySpan, valueSpan C.int64_t) {
-	logger.Trace("[ext_default_child_storage_set_version_1] executing...")
+	logger.Debug("[ext_default_child_storage_set_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	ctx := instanceContext.Data().(*runtime.Context)
@@ -1055,7 +1054,7 @@ func ext_default_child_storage_set_version_1(context unsafe.Pointer, childStorag
 
 //export ext_default_child_storage_storage_kill_version_1
 func ext_default_child_storage_storage_kill_version_1(context unsafe.Pointer, childStorageKeySpan C.int64_t) {
-	logger.Trace("[ext_default_child_storage_storage_kill_version_1] executing...")
+	logger.Debug("[ext_default_child_storage_storage_kill_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	ctx := instanceContext.Data().(*runtime.Context)
@@ -1256,7 +1255,7 @@ func ext_offchain_index_set_version_1(context unsafe.Pointer, a, b C.int64_t) {
 
 //export ext_offchain_is_validator_version_1
 func ext_offchain_is_validator_version_1(context unsafe.Pointer) C.int32_t {
-	logger.Trace("[ext_offchain_is_validator_version_1] executing...")
+	logger.Debug("[ext_offchain_is_validator_version_1] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
@@ -1268,7 +1267,7 @@ func ext_offchain_is_validator_version_1(context unsafe.Pointer) C.int32_t {
 
 //export ext_offchain_local_storage_compare_and_set_version_1
 func ext_offchain_local_storage_compare_and_set_version_1(context unsafe.Pointer, kind C.int32_t, key, oldValue, newValue C.int64_t) C.int32_t {
-	logger.Trace("[ext_offchain_local_storage_compare_and_set_version_1] executing...")
+	logger.Debug("[ext_offchain_local_storage_compare_and_set_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
@@ -1307,7 +1306,7 @@ func ext_offchain_local_storage_compare_and_set_version_1(context unsafe.Pointer
 
 //export ext_offchain_local_storage_get_version_1
 func ext_offchain_local_storage_get_version_1(context unsafe.Pointer, kind C.int32_t, key C.int64_t) C.int64_t {
-	logger.Trace("[ext_offchain_local_storage_get_version_1] executing...")
+	logger.Debug("[ext_offchain_local_storage_get_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
@@ -1337,7 +1336,7 @@ func ext_offchain_local_storage_get_version_1(context unsafe.Pointer, kind C.int
 
 //export ext_offchain_local_storage_set_version_1
 func ext_offchain_local_storage_set_version_1(context unsafe.Pointer, kind C.int32_t, key, value C.int64_t) {
-	logger.Trace("[ext_offchain_local_storage_set_version_1] executing...")
+	logger.Debug("[ext_offchain_local_storage_set_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
@@ -1361,7 +1360,7 @@ func ext_offchain_local_storage_set_version_1(context unsafe.Pointer, kind C.int
 
 //export ext_offchain_network_state_version_1
 func ext_offchain_network_state_version_1(context unsafe.Pointer) C.int64_t {
-	logger.Trace("[ext_offchain_network_state_version_1] executing...")
+	logger.Debug("[ext_offchain_network_state_version_1] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	runtimeCtx := instanceContext.Data().(*runtime.Context)
 	if runtimeCtx.Network == nil {
@@ -1391,7 +1390,7 @@ func ext_offchain_network_state_version_1(context unsafe.Pointer) C.int64_t {
 
 //export ext_offchain_random_seed_version_1
 func ext_offchain_random_seed_version_1(context unsafe.Pointer) C.int32_t {
-	logger.Trace("[ext_offchain_random_seed_version_1] executing...")
+	logger.Debug("[ext_offchain_random_seed_version_1] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 
 	seed := make([]byte, 32)
@@ -1408,7 +1407,7 @@ func ext_offchain_random_seed_version_1(context unsafe.Pointer) C.int32_t {
 
 //export ext_offchain_submit_transaction_version_1
 func ext_offchain_submit_transaction_version_1(context unsafe.Pointer, data C.int64_t) C.int64_t {
-	logger.Trace("[ext_offchain_submit_transaction_version_1] executing...")
+	logger.Debug("[ext_offchain_submit_transaction_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	extBytes := asMemorySlice(instanceContext, data)
@@ -1723,21 +1722,21 @@ func ext_storage_set_version_1(context unsafe.Pointer, keySpan C.int64_t, valueS
 
 //export ext_storage_start_transaction_version_1
 func ext_storage_start_transaction_version_1(context unsafe.Pointer) {
-	logger.Trace("[ext_storage_start_transaction_version_1] executing...")
+	logger.Debug("[ext_storage_start_transaction_version_1] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	instanceContext.Data().(*runtime.Context).TransactionStorageChanges = []*runtime.TransactionStorageChange{}
 }
 
 //export ext_storage_rollback_transaction_version_1
 func ext_storage_rollback_transaction_version_1(context unsafe.Pointer) {
-	logger.Trace("[ext_storage_rollback_transaction_version_1] executing...")
+	logger.Debug("[ext_storage_rollback_transaction_version_1] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	instanceContext.Data().(*runtime.Context).TransactionStorageChanges = nil
 }
 
 //export ext_storage_commit_transaction_version_1
 func ext_storage_commit_transaction_version_1(context unsafe.Pointer) {
-	logger.Trace("[ext_storage_commit_transaction_version_1] executing...")
+	logger.Debug("[ext_storage_commit_transaction_version_1] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 	ctx := instanceContext.Data().(*runtime.Context)
 	changes := ctx.TransactionStorageChanges

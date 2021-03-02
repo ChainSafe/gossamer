@@ -18,6 +18,7 @@ package runtime
 
 import (
 	"bytes"
+	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/scale"
@@ -32,6 +33,7 @@ type Version interface {
 	ImplVersion() uint32
 	APIItems() []*APIItem
 	TransactionVersion() uint32
+	Encode() ([]byte, error)
 }
 
 // APIItem struct to hold runtime API Name and Version
@@ -95,6 +97,46 @@ func (v *LegacyVersionData) APIItems() []*APIItem {
 // TransactionVersion returns the transaction version
 func (v *LegacyVersionData) TransactionVersion() uint32 {
 	return 0
+}
+
+// Encode returns the SCALE encoding of the Version
+func (v *LegacyVersionData) Encode() ([]byte, error) {
+	info := &struct {
+		SpecName         []byte
+		ImplName         []byte
+		AuthoringVersion uint32
+		SpecVersion      uint32
+		ImplVersion      uint32
+	}{
+		SpecName:         v.specName,
+		ImplName:         v.implName,
+		AuthoringVersion: v.authoringVersion,
+		SpecVersion:      v.specVersion,
+		ImplVersion:      v.implVersion,
+	}
+
+	enc, err := scale.Encode(info)
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := scale.Encode(big.NewInt(int64(len(v.apiItems))))
+	if err != nil {
+		return nil, err
+	}
+	enc = append(enc, b...)
+
+	for _, apiItem := range v.apiItems {
+		enc = append(enc, apiItem.Name[:]...)
+
+		b, err = scale.Encode(apiItem.Ver)
+		if err != nil {
+			return nil, err
+		}
+		enc = append(enc, b...)
+	}
+
+	return enc, nil
 }
 
 // Decode to scale decode []byte to VersionAPI struct
@@ -209,6 +251,52 @@ func (v *VersionData) APIItems() []*APIItem {
 // TransactionVersion returns the transaction version
 func (v *VersionData) TransactionVersion() uint32 {
 	return v.transactionVersion
+}
+
+// Encode returns the SCALE encoding of the Version
+func (v *VersionData) Encode() ([]byte, error) {
+	info := &struct {
+		SpecName         []byte
+		ImplName         []byte
+		AuthoringVersion uint32
+		SpecVersion      uint32
+		ImplVersion      uint32
+	}{
+		SpecName:         v.specName,
+		ImplName:         v.implName,
+		AuthoringVersion: v.authoringVersion,
+		SpecVersion:      v.specVersion,
+		ImplVersion:      v.implVersion,
+	}
+
+	enc, err := scale.Encode(info)
+	if err != nil {
+		return nil, err
+	}
+
+	b, err := scale.Encode(big.NewInt(int64(len(v.apiItems))))
+	if err != nil {
+		return nil, err
+	}
+	enc = append(enc, b...)
+
+	for _, apiItem := range v.apiItems {
+		enc = append(enc, apiItem.Name[:]...)
+
+		b, err = scale.Encode(apiItem.Ver)
+		if err != nil {
+			return nil, err
+		}
+		enc = append(enc, b...)
+	}
+
+	b, err = scale.Encode(v.transactionVersion)
+	if err != nil {
+		return nil, err
+	}
+	enc = append(enc, b...)
+
+	return enc, nil
 }
 
 // Decode to scale decode []byte to VersionAPI struct
