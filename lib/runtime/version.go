@@ -101,15 +101,13 @@ func (v *LegacyVersionData) TransactionVersion() uint32 {
 
 // Encode returns the SCALE encoding of the Version
 func (v *LegacyVersionData) Encode() ([]byte, error) {
-	type Info struct {
+	info := &struct {
 		SpecName         []byte
 		ImplName         []byte
 		AuthoringVersion uint32
 		SpecVersion      uint32
 		ImplVersion      uint32
-	}
-
-	info := &Info{
+	}{
 		SpecName:         v.specName,
 		ImplName:         v.implName,
 		AuthoringVersion: v.authoringVersion,
@@ -257,15 +255,13 @@ func (v *VersionData) TransactionVersion() uint32 {
 
 // Encode returns the SCALE encoding of the Version
 func (v *VersionData) Encode() ([]byte, error) {
-	type Info struct {
+	info := &struct {
 		SpecName         []byte
 		ImplName         []byte
 		AuthoringVersion uint32
 		SpecVersion      uint32
 		ImplVersion      uint32
-	}
-
-	info := &Info{
+	}{
 		SpecName:         v.specName,
 		ImplName:         v.implName,
 		AuthoringVersion: v.authoringVersion,
