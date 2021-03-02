@@ -39,7 +39,7 @@ type NodeStorage struct {
 // InstanceConfig represents a runtime instance configuration
 type InstanceConfig struct {
 	Storage     Storage
-	Keystore    *keystore.GenericKeystore
+	Keystore    *keystore.GlobalKeystore
 	LogLvl      log.Lvl
 	Role        byte
 	NodeStorage NodeStorage
@@ -72,7 +72,7 @@ type TransactionStorageChange struct {
 type Context struct {
 	Storage     Storage
 	Allocator   *FreeingBumpHeapAllocator
-	Keystore    *keystore.GenericKeystore
+	Keystore    *keystore.GlobalKeystore
 	Validator   bool
 	NodeStorage NodeStorage
 	Network     BasicNetwork

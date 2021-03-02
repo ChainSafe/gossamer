@@ -8,7 +8,7 @@ require (
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/bytecodealliance/wasmtime-go v0.20.0
 	github.com/centrifuge/go-substrate-rpc-client/v2 v2.0.1
-	github.com/cosmos/go-bip39 v1.0.0 // indirect
+	github.com/cosmos/go-bip39 v1.0.0
 	github.com/davidlazar/go-crypto v0.0.0-20190912175916-7055855a373f // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.2 // indirect
 	github.com/disiqueira/gotree v1.0.0

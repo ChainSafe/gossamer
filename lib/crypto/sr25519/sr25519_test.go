@@ -20,6 +20,7 @@ import (
 	"crypto/rand"
 	"testing"
 
+	bip39 "github.com/cosmos/go-bip39"
 	"github.com/gtank/merlin"
 	"github.com/stretchr/testify/require"
 )
@@ -112,4 +113,15 @@ func TestSignAndVerify_Deprecated(t *testing.T) {
 	ok, err := pub.VerifyDeprecated(msg, sig)
 	require.NoError(t, err)
 	require.True(t, ok)
+}
+
+func TestNewKeypairFromMnenomic(t *testing.T) {
+	entropy, err := bip39.NewEntropy(128)
+	require.NoError(t, err)
+
+	mnemonic, err := bip39.NewMnemonic(entropy)
+	require.NoError(t, err)
+
+	_, err = NewKeypairFromMnenomic(mnemonic, "")
+	require.NoError(t, err)
 }

@@ -43,6 +43,11 @@ var (
 		Name:  "roles",
 		Usage: "Roles of the gossamer node",
 	}
+	// RewindFlag rewinds the head of the chain by the given number of blocks. Useful for development
+	RewindFlag = cli.IntFlag{
+		Name:  "rewind",
+		Usage: "Rewind head of chain by given number of blocks",
+	}
 )
 
 // Global node configuration flags
@@ -232,6 +237,7 @@ var (
 		BasePathFlag,
 		CPUProfFlag,
 		MemProfFlag,
+		RewindFlag,
 	}
 
 	// StartupFlags are flags that are valid for use with the root command and the export subcommand

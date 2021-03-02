@@ -197,7 +197,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	}
 
 	// create runtime
-	rt, err := createRuntime(cfg, stateSrvc, ks.Acco.(*keystore.GenericKeystore), networkSrvc)
+	rt, err := createRuntime(cfg, stateSrvc, ks, networkSrvc)
 	if err != nil {
 		return nil, err
 	}

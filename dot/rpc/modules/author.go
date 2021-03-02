@@ -177,6 +177,7 @@ fmt.Printf("SubExt ext %v\n", extBytes)
 	// validate the transaction
 	txv, err := cm.runtimeAPI.ValidateTransaction(ext)
 	if err != nil {
+		cm.logger.Warn("failed to validate transaction", "ext", ext)
 		return err
 	}
 

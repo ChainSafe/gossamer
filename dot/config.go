@@ -39,6 +39,7 @@ type Config struct {
 	Network NetworkConfig
 	RPC     RPCConfig
 	System  types.SystemInfo
+	State   StateConfig
 }
 
 // GlobalConfig is used for every node command
@@ -105,6 +106,11 @@ type RPCConfig struct {
 	WSPort     uint32
 	WS         bool
 	WSExternal bool
+}
+
+// StateConfig is the config for the State service
+type StateConfig struct {
+	Rewind int
 }
 
 // String will return the json representation for a Config
