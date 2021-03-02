@@ -451,7 +451,7 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) {
 	}
 
 	// update peer's score TODO: do this when response data is actually handled
-	q.updatePeerScore(pid, 3)
+	q.updatePeerScore(pid, 1)
 
 	if end < head.Int64() {
 		logger.Trace("throwing away BlockResponseMessage as it's below our head")
@@ -537,6 +537,11 @@ func (q *syncQueue) trySync(req *syncRequest) {
 	}
 
 	logger.Debug("failed to sync with any peer :(")
+	q.requestData.Store(uint64(req.req.StartingBlock.Uint64()), requestData{
+		sent:     true,
+		received: false,
+	})
+
 	req.to = ""
 	q.requestCh <- req
 }
@@ -617,6 +622,7 @@ func (q *syncQueue) processBlockResponses() {
 				logger.Error("can't find request data for response!", "start", start)
 			} else {
 				from = d.(requestData).from
+				q.updatePeerScore(from, 2)
 			}
 
 			q.pushRequest(uint64(q.currEnd+1), blockRequestBufferSize, from)

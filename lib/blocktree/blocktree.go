@@ -169,7 +169,9 @@ func (bt *BlockTree) Prune(finalized Hash) (pruned []Hash) {
 		return pruned
 	}
 
-	return bt.head.prune(n, nil)
+	pruned = bt.head.prune(n, nil)
+	bt.head = n
+	return pruned
 }
 
 // String utilizes github.com/disiqueira/gotree to create a printable tree
