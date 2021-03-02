@@ -91,7 +91,7 @@ var (
 	blockRequestQueueSize  int64  = 8
 	maxBlockResponseSize   uint64 = 1024 * 1024 * 4 // 4mb
 	badPeerThreshold       int    = -2
-	protectedPeerThreshold int    = 4
+	protectedPeerThreshold int    = 6
 )
 
 type syncPeer struct {
@@ -209,7 +209,7 @@ func (q *syncQueue) handleResponseQueue() {
 // prune peers with low score and connect to new peers
 func (q *syncQueue) prunePeers() {
 	for {
-		time.Sleep(time.Minute)
+		time.Sleep(time.Second * 30)
 		logger.Debug("✂️ pruning peers w/ low score...")
 
 		peers := q.getSortedPeers()
@@ -232,9 +232,8 @@ func (q *syncQueue) prunePeers() {
 			numPruned++
 		}
 
-		logger.Debug("✂️ finished pruning", "pruned count", numPruned, "peer count", q.s.host.peerCount())
-
 		// protect peers with a high score so we don't disconnect from them
+		numProtected := 0
 		for i := 0; i < len(peers); i++ {
 			if peers[i].score < protectedPeerThreshold {
 				_ = q.s.host.cm.Unprotect(peers[i].pid, "")
@@ -242,7 +241,10 @@ func (q *syncQueue) prunePeers() {
 			}
 
 			q.s.host.cm.Protect(peers[i].pid, "")
+			numProtected++
 		}
+
+		logger.Debug("✂️ finished pruning", "pruned count", numPruned, "protected count", numProtected, "peer count", q.s.host.peerCount())
 	}
 }
 
