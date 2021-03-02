@@ -75,7 +75,6 @@ func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) er
 			return nil
 		}
 
-		fmt.Println(resp)
 		err = s.host.writeToStream(stream, resp)
 		if err != nil {
 			logger.Error("failed to send BlockResponse message", "peer", stream.Conn().RemotePeer(), "error", err)

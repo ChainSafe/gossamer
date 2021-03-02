@@ -185,7 +185,9 @@ func (cm *ConnManager) Disconnected(n network.Network, c network.Conn) {
 	)
 
 	cm.Unprotect(c.RemotePeer(), "")
-	cm.disconnectHandler(c.RemotePeer())
+	if cm.disconnectHandler != nil {
+		cm.disconnectHandler(c.RemotePeer())
+	}
 	// TODO: if number of peers falls below the min desired peer count, we should try to connect to previously discovered peers
 }
 
