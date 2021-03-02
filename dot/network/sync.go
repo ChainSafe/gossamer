@@ -384,10 +384,19 @@ func (q *syncQueue) pushBlockResponse(resp *BlockResponseMessage, pid peer.ID) {
 	start, end, err := resp.getStartAndEnd()
 	if err != nil {
 		logger.Trace("throwing away BlockResponseMessage as it doesn't contain block headers")
+		// update peer's score
+		q.updatePeerScore(pid, -1)
 		return
 	}
 
-	// update peer's score
+	if resp.BlockData[0].Body == nil || !resp.BlockData[0].Body.Exists() {
+		logger.Trace("throwing away BlockResponseMessage as it doesn't contain block bodies")
+		// update peer's score
+		q.updatePeerScore(pid, -1)
+		return
+	}
+
+	// update peer's score6
 	q.updatePeerScore(pid, 3)
 
 	q.responseLock.Lock()
