@@ -203,7 +203,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) error {
 		}
 
 		if bd.Body.Exists() && !hasBody {
-			body, err := types.NewBodyFromOptional(bd.Body)
+			body, err := types.NewBodyFromOptional(bd.Body) //nolint
 			if err != nil {
 				return err
 			}
@@ -339,7 +339,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 }
 
 func (s *Service) handleJustification(header *types.Header, justification []byte) {
-	if len(justification) == 0 {
+	if len(justification) == 0 || header == nil {
 		return
 	}
 
