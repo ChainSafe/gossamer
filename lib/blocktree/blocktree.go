@@ -33,7 +33,7 @@ type Hash = common.Hash
 
 // BlockTree represents the current state with all possible blocks
 type BlockTree struct {
-	head   *node // genesis node
+	head   *node // root node TODO: rename this!!
 	leaves *leafMap
 	db     database.Database
 }
@@ -47,11 +47,11 @@ func NewEmptyBlockTree(db database.Database) *BlockTree {
 	}
 }
 
-// NewBlockTreeFromGenesis initializes a blocktree with a genesis block.
-// Currently passes in arrival time as a parameter instead of setting it as time of instantiation
-func NewBlockTreeFromGenesis(genesis *types.Header, db database.Database) *BlockTree {
+// NewBlockTreeFromRoot initializes a blocktree with a root block. The root block is always the most recently
+// finalized block (ie the genesis block if the node is just starting.)
+func NewBlockTreeFromRoot(root *types.Header, db database.Database) *BlockTree {
 	head := &node{
-		hash:        genesis.Hash(),
+		hash:        root.Hash(),
 		parent:      nil,
 		children:    []*node{},
 		depth:       big.NewInt(0),
