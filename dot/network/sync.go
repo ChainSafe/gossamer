@@ -432,8 +432,6 @@ func (q *syncQueue) trySync(req *syncRequest) {
 		return
 	}
 
-	//defer q.setBlockRequests(req.to)
-
 	logger.Debug("beginning to send out request", "start", req.req.StartingBlock.Uint64())
 	if len(req.to) != 0 {
 		resp, err := q.syncWithPeer(req.to, req.req)

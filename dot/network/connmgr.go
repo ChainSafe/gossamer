@@ -31,7 +31,8 @@ import (
 
 // ConnManager implements connmgr.ConnManager
 type ConnManager struct {
-	min, max int
+	min, max          int
+	disconnectHandler func(peer.ID)
 
 	// closeHandlerMap contains close handler corresponding to a protocol.
 	closeHandlerMap map[protocol.ID]func(peerID peer.ID)
@@ -184,7 +185,12 @@ func (cm *ConnManager) Disconnected(n network.Network, c network.Conn) {
 	)
 
 	cm.Unprotect(c.RemotePeer(), "")
+	cm.disconnectHandler(c.RemotePeer())
 	// TODO: if number of peers falls below the min desired peer count, we should try to connect to previously discovered peers
+}
+
+func (cm *ConnManager) registerDisconnectHandler(cb func(peer.ID)) {
+	cm.disconnectHandler = cb
 }
 
 // OpenedStream is called when a stream opened
@@ -197,8 +203,7 @@ func (cm *ConnManager) OpenedStream(n network.Network, s network.Stream) {
 	)
 }
 
-// RegisterCloseHandler is called to register additional close stream handler
-func (cm *ConnManager) RegisterCloseHandler(protocolID protocol.ID, cb func(id peer.ID)) {
+func (cm *ConnManager) registerCloseHandler(protocolID protocol.ID, cb func(id peer.ID)) {
 	cm.closeHandlerMap[protocolID] = cb
 }
 
