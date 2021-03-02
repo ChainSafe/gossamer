@@ -441,7 +441,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 			return
 		}
 
-		logger.Trace("failed to sync with peer", "peer", req.to, "error", err)
+		logger.Debug("failed to sync with peer", "peer", req.to, "error", err)
 		q.updatePeerScore(req.to, -1)
 	}
 
