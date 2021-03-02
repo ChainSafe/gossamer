@@ -19,7 +19,6 @@ package network
 import (
 	"context"
 	"fmt"
-	//"math/rand"
 	"reflect"
 	"sort"
 	"sync"
@@ -192,7 +191,7 @@ func (q *syncQueue) handleResponseQueue() {
 		}
 
 		if q.responses[0].Number().Int64() > head.Int64()+1 {
-			logger.Trace("response start is greater than head+1, waiting", "queue start", q.responses[0].Number().Int64(), "head+1", head.Int64()+1)
+			logger.Debug("response start is greater than head+1, waiting", "queue start", q.responses[0].Number().Int64(), "head+1", head.Int64()+1)
 			q.responseLock.Unlock()
 
 			q.setBlockRequests("")
@@ -447,7 +446,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 		q.updatePeerScore(req.to, -1)
 	}
 
-	logger.Debug("trying prioritized peers...")
+	logger.Debug("trying peers in prioritized order...")
 	syncPeers := q.getSortedPeers()
 
 	for _, peer := range syncPeers {
@@ -466,29 +465,6 @@ func (q *syncQueue) trySync(req *syncRequest) {
 		q.pushBlockResponse(resp, peer.pid)
 		return
 	}
-
-	// logger.Debug("failed to sync with preferred peers, trying random...")
-
-	// peers := q.s.host.peers()
-	// rand.Shuffle(len(peers), func(i, j int) { peers[i], peers[j] = peers[j], peers[i] })
-
-	// for _, peer := range peers {
-	// 	// if peer doesn't respond multiple times, then ignore them TODO: determine best values for this
-	// 	score, ok := q.peerScore.Load(peer)
-	// 	if ok && score.(int) <= badPeerThreshold {
-	// 		continue
-	// 	}
-
-	// 	resp, err := q.syncWithPeer(peer, req.req)
-	// 	if err != nil {
-	// 		logger.Trace("failed to sync with peer", "peer", peer, "error", err)
-	// 		q.updatePeerScore(peer, -1)
-	// 		continue
-	// 	}
-
-	// 	q.pushBlockResponse(resp, peer)
-	// 	return
-	// }
 
 	logger.Debug("failed to sync with any peer :(")
 }
