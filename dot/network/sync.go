@@ -72,7 +72,7 @@ func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) er
 
 		resp, err := s.syncer.CreateBlockResponse(req)
 		if err != nil {
-			logger.Debug("cannot create response for request")
+			logger.Trace("cannot create response for request")
 			return nil
 		}
 
@@ -164,7 +164,7 @@ func (q *syncQueue) handleRequestQueue() {
 			continue
 		}
 
-		logger.Debug("sync request queue", "queue", q.stringifyRequestQueue())
+		logger.Trace("sync request queue", "queue", q.stringifyRequestQueue())
 		head := q.requests[0]
 		q.requests = q.requests[1:]
 		q.requestCh <- head
@@ -191,14 +191,14 @@ func (q *syncQueue) handleResponseQueue() {
 		}
 
 		if q.responses[0].Number().Int64() > head.Int64()+1 {
-			logger.Debug("response start isn't head+1, waiting", "queue start", q.responses[0].Number().Int64(), "head+1", head.Int64()+1)
+			logger.Trace("response start isn't head+1, waiting", "queue start", q.responses[0].Number().Int64(), "head+1", head.Int64()+1)
 			q.responseLock.Unlock()
 
 			q.setBlockRequests("")
 			continue
 		}
 
-		logger.Debug("sync response queue", "queue", q.stringifyResponseQueue())
+		logger.Trace("sync response queue", "queue", q.stringifyResponseQueue())
 		q.responseLock.Unlock()
 		q.responseCh <- q.responses
 		q.responses = []*types.BlockData{}
@@ -353,7 +353,7 @@ func (q *syncQueue) setBlockRequests(to peer.ID) {
 		start = head.Int64() + 1
 	}
 
-	logger.Debug("setting block request queue", "start", start, "goal", q.goal)
+	logger.Trace("setting block request queue", "start", start, "goal", q.goal)
 
 	reqs := createBlockRequests(start, q.goal)
 
@@ -367,7 +367,7 @@ func (q *syncQueue) setBlockRequests(to peer.ID) {
 	newReqs = sortRequests(newReqs)
 	q.requests = newReqs
 
-	logger.Debug("sync request queue", "queue", q.stringifyRequestQueue())
+	logger.Trace("sync request queue", "queue", q.stringifyRequestQueue())
 }
 
 func (q *syncQueue) pushBlockResponse(resp *BlockResponseMessage, pid peer.ID) {
@@ -383,7 +383,7 @@ func (q *syncQueue) pushBlockResponse(resp *BlockResponseMessage, pid peer.ID) {
 
 	start, end, err := resp.getStartAndEnd()
 	if err != nil {
-		logger.Debug("throwing away BlockResponseMessage as it doesn't contain block headers")
+		logger.Trace("throwing away BlockResponseMessage as it doesn't contain block headers")
 		return
 	}
 
@@ -402,7 +402,7 @@ func (q *syncQueue) pushBlockResponse(resp *BlockResponseMessage, pid peer.ID) {
 	}
 
 	q.responses = sortResponses(q.responses)
-	logger.Debug("pushed block data to queue", "start", start, "end", end, "queue", q.stringifyResponseQueue())
+	logger.Trace("pushed block data to queue", "start", start, "end", end, "queue", q.stringifyResponseQueue())
 }
 
 func (q *syncQueue) processBlockRequests() {
@@ -423,7 +423,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 
 	defer q.setBlockRequests(req.to)
 
-	logger.Debug("beginning to send out request", "start", req.req.StartingBlock.Uint64())
+	logger.Trace("beginning to send out request", "start", req.req.StartingBlock.Uint64())
 	if len(req.to) != 0 {
 		resp, err := q.syncWithPeer(req.to, req.req)
 		if err == nil {
@@ -431,11 +431,11 @@ func (q *syncQueue) trySync(req *syncRequest) {
 			return
 		}
 
-		logger.Debug("failed to sync with peer", "peer", req.to, "error", err)
+		logger.Trace("failed to sync with peer", "peer", req.to, "error", err)
 		q.updatePeerScore(req.to, -1)
 	}
 
-	logger.Debug("trying prioritized peers...")
+	logger.Trace("trying prioritized peers...")
 	syncPeers := q.getSortedPeers()
 
 	for _, peer := range syncPeers {
@@ -446,7 +446,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 
 		resp, err := q.syncWithPeer(peer.pid, req.req)
 		if err != nil {
-			logger.Debug("failed to sync with peer", "peer", peer.pid, "error", err)
+			logger.Trace("failed to sync with peer", "peer", peer.pid, "error", err)
 			q.updatePeerScore(peer.pid, -1)
 			continue
 		}
@@ -455,7 +455,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 		return
 	}
 
-	logger.Debug("failed to sync with preferred peers, trying random...")
+	logger.Trace("failed to sync with preferred peers, trying random...")
 
 	peers := q.s.host.peers()
 	rand.Shuffle(len(peers), func(i, j int) { peers[i], peers[j] = peers[j], peers[i] })
@@ -469,7 +469,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 
 		resp, err := q.syncWithPeer(peer, req.req)
 		if err != nil {
-			logger.Debug("failed to sync with peer", "peer", peer, "error", err)
+			logger.Trace("failed to sync with peer", "peer", peer, "error", err)
 			q.updatePeerScore(peer, -1)
 			continue
 		}
@@ -478,7 +478,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 		return
 	}
 
-	logger.Debug("failed to sync with any peer :(")
+	logger.Trace("failed to sync with any peer :(")
 }
 
 func (q *syncQueue) syncWithPeer(peer peer.ID, req *BlockRequestMessage) (*BlockResponseMessage, error) {
@@ -525,7 +525,7 @@ func (q *syncQueue) processBlockResponses() {
 			}
 
 			if data[len(data)-1].Number().Int64() <= bestNum.Int64() {
-				logger.Debug("ignoring block data that is below our head", "got", data[len(data)-1].Number().Int64(), "head", bestNum.Int64())
+				logger.Trace("ignoring block data that is below our head", "got", data[len(data)-1].Number().Int64(), "head", bestNum.Int64())
 				q.currStart = 0
 				q.currEnd = 0
 				continue
@@ -533,7 +533,7 @@ func (q *syncQueue) processBlockResponses() {
 
 			q.currStart = data[0].Number().Int64()
 			q.currEnd = data[len(data)-1].Number().Int64()
-			logger.Debug("sending block data to syncer", "start", q.currStart, "end", q.currEnd)
+			logger.Trace("sending block data to syncer", "start", q.currStart, "end", q.currEnd)
 
 			err = q.s.syncer.ProcessBlockData(data)
 			if err != nil {
