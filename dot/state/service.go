@@ -278,7 +278,7 @@ func (s *Service) Start() error {
 	if !bytes.Equal(btHead[:], bestHash[:]) {
 		logger.Info("detected abnormal node shutdown, restoring from last finalized block")
 
-		lastFinalized, err := s.Block.GetFinalizedHeader(0, 0)
+		lastFinalized, err := s.Block.GetFinalizedHeader(0, 0) //nolint
 		if err != nil {
 			return fmt.Errorf("failed to get latest finalized block: %w", err)
 		}
