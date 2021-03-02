@@ -17,6 +17,7 @@
 package state
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -124,7 +125,7 @@ func (s *Service) Initialize(gen *genesis.Genesis, header *types.Header, t *trie
 	}
 
 	// create and store blockree from genesis block
-	bt := blocktree.NewBlockTreeFromGenesis(header, db)
+	bt := blocktree.NewBlockTreeFromRoot(header, db)
 	err = bt.Store()
 	if err != nil {
 		return fmt.Errorf("failed to write blocktree to database: %s", err)
@@ -269,6 +270,20 @@ func (s *Service) Start() error {
 	s.Block, err = NewBlockState(db, bt)
 	if err != nil {
 		return fmt.Errorf("failed to create block state: %w", err)
+	}
+
+	// if blocktree head isn't "best hash", then the node shutdown abnormally.
+	// restore state from last finalized hash.
+	btHead := bt.DeepestBlockHash()
+	if !bytes.Equal(btHead[:], bestHash[:]) {
+		logger.Info("detected abnormal node shutdown, restoring from last finalized block")
+
+		lastFinalized, err := s.Block.GetFinalizedHeader(0, 0) //nolint
+		if err != nil {
+			return fmt.Errorf("failed to get latest finalized block: %w", err)
+		}
+
+		s.Block.bt = blocktree.NewBlockTreeFromRoot(lastFinalized, db)
 	}
 
 	// create storage state

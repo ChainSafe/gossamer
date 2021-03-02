@@ -90,12 +90,5 @@ func TestGetSet_ReceiptMessageQueue_Justification(t *testing.T) {
 			require.Nil(t, err)
 			require.Equal(t, blockdata.MessageQueue.Value(), messageQueue)
 		}
-
-		// test Justification
-		if blockdata.Justification.Exists() {
-			justification, err := s.GetJustification(blockdata.Hash)
-			require.Nil(t, err)
-			require.Equal(t, blockdata.Justification.Value(), justification)
-		}
 	}
 }

@@ -170,7 +170,7 @@ func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 		logger.Trace("Over max peer count, disconnecting from random unprotected peer", "peer", unprotPeers[i])
 		err := n.ClosePeer(unprotPeers[i])
 		if err != nil {
-			logger.Debug("failed to close connection to peer", "peer", unprotPeers[i], "num peers", len(n.Peers()))
+			logger.Trace("failed to close connection to peer", "peer", unprotPeers[i], "num peers", len(n.Peers()))
 		}
 	}
 }

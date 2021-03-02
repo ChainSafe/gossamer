@@ -42,6 +42,8 @@ type BlockState interface {
 	GetReceipt(common.Hash) ([]byte, error)
 	GetMessageQueue(common.Hash) ([]byte, error)
 	GetJustification(common.Hash) ([]byte, error)
+	SetJustification(hash common.Hash, data []byte) error
+	SetFinalizedHash(hash common.Hash, round, setID uint64) error
 }
 
 // StorageState is the interface for the storage state
