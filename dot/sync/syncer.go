@@ -241,6 +241,11 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) error {
 
 			s.logger.Debug("block processed", "hash", bd.Hash)
 		}
+
+		if bd.Justification != nil && bd.Justification.Exists() {
+			s.logger.Info("handling Justification...", "number", bd.Number(), "hash", bd.Hash)
+			s.handleJustification(bd.Hash, bd.Justification.Value())
+		}
 	}
 
 	return nil
@@ -332,6 +337,26 @@ func (s *Service) handleBlock(block *types.Block) error {
 	}
 
 	return s.handleRuntimeChanges(ts)
+}
+
+func (s *Service) handleJustification(hash common.Hash, justification []byte) {
+	if len(justification) == 0 {
+		return
+	}
+
+	err := s.blockState.SetFinalizedHash(hash, 0, 0)
+	if err != nil {
+		s.logger.Error("failed to set finalized hash", "error", err)
+		return
+	}
+
+	err = s.blockState.SetJustification(hash, justification)
+	if err != nil {
+		s.logger.Error("failed tostore justification", "error", err)
+		return
+	}
+
+	s.logger.Info("justification handled!", "hash", hash)
 }
 
 func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {
