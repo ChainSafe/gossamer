@@ -87,7 +87,6 @@ func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) er
 var (
 	blockRequestSize       uint32 = 128
 	blockRequestBufferSize int    = 6
-	//blockResponseBufferSize int    = 12 * blockRequestSize
 
 	maxBlockResponseSize   uint64 = 1024 * 1024 * 4 // 4mb
 	badPeerThreshold       int    = -2
@@ -116,7 +115,6 @@ type syncQueue struct {
 	cancel    context.CancelFunc
 	peerScore *sync.Map // map[peer.ID]int; peers we have successfully synced from before -> their score; score increases on successful response
 
-	//requests  []*syncRequest // start block of message -> full message
 	requestData *sync.Map // map[uint64]requestData; map of start # of request -> requestData
 	requestCh   chan *syncRequest
 
@@ -381,7 +379,7 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) {
 		return
 	}
 
-	// update peer's score TODO: do this when response data is actually handled
+	// update peer's score
 	q.updatePeerScore(pid, 1)
 
 	if end < head.Int64() {
@@ -533,7 +531,6 @@ func (q *syncQueue) processBlockResponses() {
 				q.pushRequest(uint64(q.currStart), 1, "")
 				q.currStart = 0
 				q.currEnd = 0
-				//q.setBlockRequests(0, "")
 				continue
 			}
 
@@ -553,8 +550,6 @@ func (q *syncQueue) processBlockResponses() {
 			}
 
 			q.pushRequest(uint64(q.currEnd+1), blockRequestBufferSize, from)
-
-			// TODO: increase score here, decrease if failed to handle
 			q.currStart = 0
 			q.currEnd = 0
 		case <-q.ctx.Done():
