@@ -430,7 +430,7 @@ func logPeerScores(peers []*syncPeer) {
 	for _, p := range peers {
 		str = str + fmt.Sprintf("[%s: %d]\n", p.pid, p.score)
 	}
-	logger.Debug("peer scores", "scores", str)
+	logger.Trace("peer scores", "scores", str)
 }
 
 func (q *syncQueue) trySync(req *syncRequest) {
