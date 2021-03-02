@@ -122,7 +122,7 @@ type syncQueue struct {
 	peerScore *sync.Map // map[peer.ID]int; peers we have successfully synced from before -> their score; score increases on successful response
 
 	//requests  []*syncRequest // start block of message -> full message
-	requestData map[uint64]requestData
+	requestData *sync.Map // map[uint64]requestData; map of start # of request -> requestData
 	requestCh   chan *syncRequest
 
 	responses    []*types.BlockData
@@ -144,7 +144,7 @@ func newSyncQueue(s *Service) *syncQueue {
 		ctx:         ctx,
 		cancel:      cancel,
 		peerScore:   new(sync.Map),
-		requestData: make(map[uint64]requestData), //[]*syncRequest{},
+		requestData: new(sync.Map),
 		requestCh:   make(chan *syncRequest, blockRequestBufferSize),
 		responses:   []*types.BlockData{},
 		responseCh:  make(chan []*types.BlockData),
@@ -394,17 +394,19 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 	for i := 0; i < numRequests; i++ {
 		req := createBlockRequest(int64(start), blockRequestSize)
 
-		if data, has := q.requestData[start]; has {
-			if data.sent && data.received {
+		if d, has := q.requestData.Load(start); has {
+			data := d.(requestData)
+			// we haven't sent the request out yet, or we've already gotten the response
+			if !data.sent || data.sent && data.received {
 				return
 			}
 		}
 
 		logger.Debug("pushing request to queue", "start", start)
 
-		q.requestData[start] = requestData{
+		q.requestData.Store(uint64(start), requestData{
 			received: false,
-		}
+		})
 
 		q.requestCh <- &syncRequest{
 			req: req,
@@ -435,11 +437,11 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) {
 		return
 	}
 
-	q.requestData[uint64(start)] = requestData{
+	q.requestData.Store(uint64(start), requestData{
 		sent:     true,
 		received: true,
 		from:     pid,
-	}
+	})
 
 	if resp.BlockData[0].Body == nil || !resp.BlockData[0].Body.Exists() {
 		logger.Trace("throwing away BlockResponseMessage as it doesn't contain block bodies")
@@ -483,7 +485,8 @@ func (q *syncQueue) processBlockRequests() {
 				continue
 			}
 
-			if data, has := q.requestData[req.req.StartingBlock.Uint64()]; has {
+			if d, has := q.requestData.Load(req.req.StartingBlock.Uint64()); has {
+				data := d.(requestData)
 				if data.sent && data.received {
 					continue
 				}
@@ -601,6 +604,22 @@ func (q *syncQueue) processBlockResponses() {
 				//q.setBlockRequests(0, "")
 				continue
 			}
+
+			logger.Debug("finished processing block data")
+			m := q.currStart % int64(blockRequestSize)
+			start := q.currStart - m + 1
+
+			var from peer.ID
+
+			d, ok := q.requestData.Load(uint64(start))
+			if !ok {
+				// this probably shouldn't happen
+				logger.Error("can't find request data for response!", "start", start)
+			} else {
+				from = d.(requestData).from
+			}
+
+			q.pushRequest(uint64(q.currEnd+1), blockRequestBufferSize, from)
 
 			// TODO: increase score here, decrease if failed to handle
 			q.currStart = 0
