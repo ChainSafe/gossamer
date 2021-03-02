@@ -184,8 +184,10 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) error {
 			continue
 		}
 
+		var header *types.Header
+
 		if bd.Header.Exists() && !hasHeader {
-			header, err := types.NewHeaderFromOptional(bd.Header)
+			header, err = types.NewHeaderFromOptional(bd.Header)
 			if err != nil {
 				return err
 			}
@@ -243,8 +245,8 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) error {
 		}
 
 		if bd.Justification != nil && bd.Justification.Exists() {
-			s.logger.Info("handling Justification...", "number", bd.Number(), "hash", bd.Hash)
-			s.handleJustification(bd.Hash, bd.Justification.Value())
+			s.logger.Debug("handling Justification...", "number", bd.Number(), "hash", bd.Hash)
+			s.handleJustification(header, bd.Justification.Value())
 		}
 	}
 
@@ -269,8 +271,6 @@ func (s *Service) handleBody(body *types.Body) error {
 		s.logger.Error("cannot parse body as extrinsics", "error", err)
 		return err
 	}
-
-	s.logger.Trace("block extrinsics", "extrinsics", exts)
 
 	for _, ext := range exts {
 		s.transactionState.RemoveExtrinsic(ext)
@@ -303,7 +303,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 	}
 
 	s.runtime.SetContextStorage(ts)
-	s.logger.Trace("going to execute block", "block", block, "exts", block.Body)
+	s.logger.Trace("going to execute block", "header", block.Header, "exts", block.Body)
 
 	_, err = s.runtime.ExecuteBlock(block)
 	if err != nil {
@@ -327,8 +327,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 			return err
 		}
 	} else {
-		s.logger.Info("🔗 imported block", "number", block.Header.Number, "hash", block.Header.Hash())
-		s.logger.Debug("imported block", "header", block.Header, "body", block.Body)
+		s.logger.Debug("🔗 imported block", "number", block.Header.Number, "hash", block.Header.Hash())
 	}
 
 	// handle consensus digest for authority changes
@@ -339,24 +338,24 @@ func (s *Service) handleBlock(block *types.Block) error {
 	return s.handleRuntimeChanges(ts)
 }
 
-func (s *Service) handleJustification(hash common.Hash, justification []byte) {
+func (s *Service) handleJustification(header *types.Header, justification []byte) {
 	if len(justification) == 0 {
 		return
 	}
 
-	err := s.blockState.SetFinalizedHash(hash, 0, 0)
+	err := s.blockState.SetFinalizedHash(header.Hash(), 0, 0)
 	if err != nil {
 		s.logger.Error("failed to set finalized hash", "error", err)
 		return
 	}
 
-	err = s.blockState.SetJustification(hash, justification)
+	err = s.blockState.SetJustification(header.Hash(), justification)
 	if err != nil {
 		s.logger.Error("failed tostore justification", "error", err)
 		return
 	}
 
-	s.logger.Info("justification handled!", "hash", hash)
+	s.logger.Info("🔨 finalized block", "number", header.Number, "hash", header.Hash())
 }
 
 func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {

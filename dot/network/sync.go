@@ -89,7 +89,7 @@ var (
 	blockRequestSize       uint32 = 128
 	blockRequestQueueSize  int64  = 8
 	maxBlockResponseSize   uint64 = 1024 * 1024 * 4 // 4mb
-	badPeerThreshold       int    = -3
+	badPeerThreshold       int    = -2
 	protectedPeerThreshold int    = 4
 )
 
@@ -141,66 +141,68 @@ func newSyncQueue(s *Service) *syncQueue {
 }
 
 func (q *syncQueue) start() {
-	go func() {
-		for {
-			select {
-			case <-time.After(time.Second):
-			case <-q.ctx.Done():
-				return
-			}
-
-			// if we have block requests to send, put them into requestCh
-			if len(q.requests) == 0 {
-				continue
-			}
-
-			logger.Debug("sync request queue", "queue", q.stringifyRequestQueue())
-			head := q.requests[0]
-			q.requests = q.requests[1:]
-
-			q.requestCh <- head
-		}
-	}()
-
-	go func() {
-		for {
-			select {
-			case <-time.After(time.Second):
-			case <-q.ctx.Done():
-				return
-			}
-
-			head, err := q.s.blockState.BestBlockNumber()
-			if err != nil {
-				continue
-			}
-
-			q.responseLock.Lock()
-			if len(q.responses) == 0 {
-				q.responseLock.Unlock()
-				continue
-			}
-
-			if q.responses[0].Number().Int64() > head.Int64()+1 {
-				logger.Debug("response start isn't head+1, waiting", "queue start", q.responses[0].Number().Int64(), "head+1", head.Int64()+1)
-				q.responseLock.Unlock()
-
-				q.setBlockRequests("")
-				continue
-			}
-
-			logger.Debug("sync response queue", "queue", q.stringifyResponseQueue())
-			q.responseLock.Unlock()
-			q.responseCh <- q.responses
-			q.responses = []*types.BlockData{}
-		}
-	}()
+	go q.handleRequestQueue()
+	go q.handleResponseQueue()
 
 	go q.processBlockRequests()
 	go q.processBlockResponses()
-	go q.benchmark()
 
+	go q.benchmark()
 	go q.prunePeers()
+}
+
+func (q *syncQueue) handleRequestQueue() {
+	for {
+		select {
+		case <-time.After(time.Second):
+		case <-q.ctx.Done():
+			return
+		}
+
+		// if we have block requests to send, put them into requestCh
+		if len(q.requests) == 0 {
+			continue
+		}
+
+		logger.Debug("sync request queue", "queue", q.stringifyRequestQueue())
+		head := q.requests[0]
+		q.requests = q.requests[1:]
+		q.requestCh <- head
+	}
+}
+
+func (q *syncQueue) handleResponseQueue() {
+	for {
+		select {
+		case <-time.After(time.Second):
+		case <-q.ctx.Done():
+			return
+		}
+
+		head, err := q.s.blockState.BestBlockNumber()
+		if err != nil {
+			continue
+		}
+
+		q.responseLock.Lock()
+		if len(q.responses) == 0 {
+			q.responseLock.Unlock()
+			continue
+		}
+
+		if q.responses[0].Number().Int64() > head.Int64()+1 {
+			logger.Debug("response start isn't head+1, waiting", "queue start", q.responses[0].Number().Int64(), "head+1", head.Int64()+1)
+			q.responseLock.Unlock()
+
+			q.setBlockRequests("")
+			continue
+		}
+
+		logger.Debug("sync response queue", "queue", q.stringifyResponseQueue())
+		q.responseLock.Unlock()
+		q.responseCh <- q.responses
+		q.responses = []*types.BlockData{}
+	}
 }
 
 // prune peers with low score and connect to new peers
@@ -249,33 +251,46 @@ func (q *syncQueue) benchmark() {
 			return
 		}
 
-		head, err := q.s.blockState.BestBlockNumber()
+		before, err := q.s.blockState.BestBlockHeader()
 		if err != nil {
-			logger.Error("failed to get best block number", "error", err)
+			logger.Error("failed to get best block haeder", "error", err)
 			continue
 		}
 
-		if head.Int64() >= q.goal {
+		if before.Number.Int64() >= q.goal {
 			continue
 		}
 
-		q.benchmarker.begin(head.Uint64())
-		time.Sleep(time.Second * 10)
+		q.benchmarker.begin(before.Number.Uint64())
+		time.Sleep(time.Second * 5)
 
-		head, err = q.s.blockState.BestBlockNumber()
+		after, err := q.s.blockState.BestBlockHeader()
 		if err != nil {
-			logger.Error("failed to get best block number", "error", err)
+			logger.Error("failed to get best block haeder", "error", err)
 			continue
 		}
 
-		q.benchmarker.end(head.Uint64())
-		logger.Info("🚣 currently syncing", "goal", q.goal, "average blocks/second", q.benchmarker.mostRecentAverage(), "overall average", q.benchmarker.average())
+		q.benchmarker.end(after.Number.Uint64())
+
+		logger.Info("🔗 imported blocks", "from", before.Number, "to", after.Number,
+			"hashes", fmt.Sprintf("[%s ... %s]", before.Hash(), after.Hash()),
+		)
+
+		logger.Info("🚣 currently syncing",
+			"goal", q.goal,
+			"average blocks/second", q.benchmarker.mostRecentAverage(),
+			"overall average", q.benchmarker.average(),
+		)
 	}
 }
 
 func (q *syncQueue) stringifyRequestQueue() string {
 	str := ""
 	for _, req := range q.requests {
+		if req == nil || req.req == nil || req.req.StartingBlock == nil {
+			continue
+		}
+
 		str = str + fmt.Sprintf("[start=%d end=%d] ", req.req.StartingBlock.Uint64(), req.req.StartingBlock.Uint64()+128)
 	}
 	return str
