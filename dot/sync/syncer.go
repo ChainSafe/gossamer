@@ -219,11 +219,6 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) error {
 		}
 
 		if bd.Header.Exists() && bd.Body.Exists() {
-			header, err := types.NewHeaderFromOptional(bd.Header)
-			if err != nil {
-				return err
-			}
-
 			body, err := types.NewBodyFromOptional(bd.Body)
 			if err != nil {
 				return err
