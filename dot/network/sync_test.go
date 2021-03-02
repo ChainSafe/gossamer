@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -70,6 +71,7 @@ func TestSyncQueue_PushBlockResponse(t *testing.T) {
 		BlockData: []*types.BlockData{
 			{
 				Header: testHeader.AsOptional(),
+				Body:   optional.NewBody(true, []byte{0}),
 			},
 		},
 	}
