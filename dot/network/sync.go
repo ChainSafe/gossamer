@@ -390,12 +390,12 @@ func (q *syncQueue) pushBlockResponse(resp *BlockResponseMessage, pid peer.ID) {
 		return
 	}
 
-	// if resp.BlockData[0].Body == nil || !resp.BlockData[0].Body.Exists() {
-	// 	logger.Trace("throwing away BlockResponseMessage as it doesn't contain block bodies")
-	// 	// update peer's score
-	// 	q.updatePeerScore(pid, -1)
-	// 	return
-	// }
+	if resp.BlockData[0].Body == nil || !resp.BlockData[0].Body.Exists() {
+		logger.Trace("throwing away BlockResponseMessage as it doesn't contain block bodies")
+		// update peer's score
+		q.updatePeerScore(pid, -1)
+		return
+	}
 
 	// update peer's score
 	q.updatePeerScore(pid, 3)
@@ -412,7 +412,7 @@ func (q *syncQueue) pushBlockResponse(resp *BlockResponseMessage, pid peer.ID) {
 	}
 
 	q.responses = sortResponses(q.responses)
-	logger.Trace("pushed block data to queue", "start", start, "end", end, "queue", q.stringifyResponseQueue())
+	logger.Debug("pushed block data to queue", "start", start, "end", end, "queue", q.stringifyResponseQueue())
 }
 
 func (q *syncQueue) processBlockRequests() {
