@@ -224,7 +224,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) error {
 				return err
 			}
 
-			body, err := types.NewBodyFromOptional(bd.Body)
+			body, err := types.NewBodyFromOptional(bd.Body) //nolint
 			if err != nil {
 				return err
 			}
