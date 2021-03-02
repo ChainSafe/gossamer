@@ -496,14 +496,6 @@ func (bs *BlockState) CompareAndSetBlockData(bd *types.BlockData) error {
 		}
 	}
 
-	// hasJustification, _ := bs.HasJustification(bd.Hash)
-	// if bd.Justification != nil && bd.Justification.Exists() && !hasJustification {
-	// 	err := bs.SetJustification(bd.Hash, bd.Justification.Value())
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
-
 	return nil
 }
 

@@ -170,26 +170,6 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				},
 			},
 		},
-		{
-			description: "test get Justification",
-			value: &network.BlockRequestMessage{
-				RequestedData: 16,
-				StartingBlock: start,
-				EndBlockHash:  optional.NewHash(true, endHash),
-				Direction:     1,
-				Max:           optional.NewUint32(false, 0),
-			},
-			expectedMsgValue: &network.BlockResponseMessage{
-				BlockData: []*types.BlockData{
-					{
-						Hash:          optional.NewHash(true, bestHash).Value(),
-						Header:        optional.NewHeader(false, nil),
-						Body:          optional.NewBody(false, nil),
-						Justification: bds.Justification,
-					},
-				},
-			},
-		},
 	}
 
 	for _, test := range testCases {

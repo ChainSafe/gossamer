@@ -272,10 +272,9 @@ func (s *Service) Start() error {
 		return fmt.Errorf("failed to create block state: %w", err)
 	}
 
-	// TODO: if blocktree head isn't "best hash", then the node shutdown abnormally.
+	// if blocktree head isn't "best hash", then the node shutdown abnormally.
 	// restore state from last finalized hash.
 	btHead := bt.DeepestBlockHash()
-
 	if !bytes.Equal(btHead[:], bestHash[:]) {
 		logger.Info("detected abnormal node shutdown, restoring from last finalized block")
 
