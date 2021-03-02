@@ -89,7 +89,7 @@ var (
 	blockRequestSize       uint32 = 128
 	blockRequestQueueSize  int64  = 8
 	maxBlockResponseSize   uint64 = 1024 * 1024 * 4 // 4mb
-	badPeerThreshold       int    = -2
+	badPeerThreshold       int    = -3
 	protectedPeerThreshold int    = 4
 )
 
