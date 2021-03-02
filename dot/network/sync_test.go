@@ -215,7 +215,7 @@ func TestSyncQueue_SetBlockRequests_ShouldBeEmpty(t *testing.T) {
 	q.goal = 0
 
 	testPeerID := peer.ID("noot")
-	q.setBlockRequests(testPeerID)
+	q.setBlockRequests(0, testPeerID)
 	require.Equal(t, 0, len(q.requests))
 }
 
@@ -225,8 +225,8 @@ func TestSyncQueue_SetBlockRequests(t *testing.T) {
 	q.goal = 10000
 
 	testPeerID := peer.ID("noot")
-	q.setBlockRequests(testPeerID)
-	require.Equal(t, int(blockRequestQueueSize), len(q.requests))
+	q.setBlockRequests(0, testPeerID)
+	require.Equal(t, int(blockRequestQueueSize), len(q.requests)) 
 }
 
 func TestSyncQueue_HandleBlockAnnounceHandshake(t *testing.T) {
