@@ -19,7 +19,7 @@ type testBranch struct {
 }
 
 func createTestBlockTree(header *types.Header, depth int, db chaindb.Database) (*BlockTree, []testBranch) {
-	bt := NewBlockTreeFromGenesis(header, db)
+	bt := NewBlockTreeFromRoot(header, db)
 	previousHash := header.Hash()
 
 	// branch tree randomly
@@ -77,15 +77,11 @@ func TestStoreBlockTree(t *testing.T) {
 	bt, _ := createTestBlockTree(testHeader, 10, db)
 
 	err := bt.Store()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	resBt := NewBlockTreeFromGenesis(testHeader, db)
+	resBt := NewBlockTreeFromRoot(testHeader, db)
 	err = resBt.Load()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	if !reflect.DeepEqual(bt.head, resBt.head) {
 		t.Fatalf("Fail: got %v expected %v", resBt, bt)
