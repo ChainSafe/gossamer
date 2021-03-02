@@ -193,7 +193,7 @@ func (q *syncQueue) handleResponseQueue() {
 			logger.Debug("response start is greater than head+1, waiting", "queue start", q.responses[0].Number().Int64(), "head+1", head.Int64()+1)
 			q.responseLock.Unlock()
 
-			q.setBlockRequests(head.Int64() + 1, "")
+			q.setBlockRequests(head.Int64()+1, "")
 			continue
 		}
 
@@ -352,7 +352,7 @@ func (q *syncQueue) setBlockRequests(start int64, to peer.ID) {
 		} else {
 			// we aren't syncing anything and don't have anything queued
 			start = head.Int64() + 1
-		}	
+		}
 	}
 
 	logger.Trace("setting block request queue", "start", start, "goal", q.goal)

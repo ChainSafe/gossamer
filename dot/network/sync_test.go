@@ -226,7 +226,7 @@ func TestSyncQueue_SetBlockRequests(t *testing.T) {
 
 	testPeerID := peer.ID("noot")
 	q.setBlockRequests(0, testPeerID)
-	require.Equal(t, int(blockRequestQueueSize), len(q.requests)) 
+	require.Equal(t, int(blockRequestQueueSize), len(q.requests))
 }
 
 func TestSyncQueue_HandleBlockAnnounceHandshake(t *testing.T) {
