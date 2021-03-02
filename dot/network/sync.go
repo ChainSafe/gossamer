@@ -320,7 +320,7 @@ func (q *syncQueue) getSortedPeers() []*syncPeer {
 	})
 
 	sort.Slice(peers, func(i, j int) bool {
-		return peers[i].score < peers[j].score
+		return peers[i].score > peers[j].score
 	})
 
 	return peers
