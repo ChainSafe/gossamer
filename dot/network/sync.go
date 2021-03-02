@@ -431,7 +431,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 		return
 	}
 
-	defer q.setBlockRequests(req.to)
+	//defer q.setBlockRequests(req.to)
 
 	logger.Debug("beginning to send out request", "start", req.req.StartingBlock.Uint64())
 	if len(req.to) != 0 {
@@ -535,7 +535,7 @@ func (q *syncQueue) processBlockResponses() {
 			}
 
 			if data[len(data)-1].Number().Int64() <= bestNum.Int64() {
-				logger.Trace("ignoring block data that is below our head", "got", data[len(data)-1].Number().Int64(), "head", bestNum.Int64())
+				logger.Debug("ignoring block data that is below our head", "got", data[len(data)-1].Number().Int64(), "head", bestNum.Int64())
 				q.currStart = 0
 				q.currEnd = 0
 				continue
@@ -543,7 +543,7 @@ func (q *syncQueue) processBlockResponses() {
 
 			q.currStart = data[0].Number().Int64()
 			q.currEnd = data[len(data)-1].Number().Int64()
-			logger.Trace("sending block data to syncer", "start", q.currStart, "end", q.currEnd)
+			logger.Debug("sending block data to syncer", "start", q.currStart, "end", q.currEnd)
 
 			err = q.s.syncer.ProcessBlockData(data)
 			if err != nil {
