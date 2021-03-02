@@ -31,6 +31,30 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func createBlockRequests(start, end int64) []*BlockRequestMessage {
+	if start > end {
+		return nil
+	}
+
+	numReqs := (end - start) / int64(blockRequestSize)
+	if numReqs > int64(blockRequestBufferSize) {
+		numReqs = int64(blockRequestBufferSize)
+	}
+
+	if end-start < int64(blockRequestSize) {
+		// +1 because we want to include the block w/ the ending number
+		req := createBlockRequest(start, uint32(end-start)+1)
+		return []*BlockRequestMessage{req}
+	}
+
+	reqs := make([]*BlockRequestMessage, numReqs)
+	for i := 0; i < int(numReqs); i++ {
+		offset := i * int(blockRequestSize)
+		reqs[i] = createBlockRequest(start+int64(offset), blockRequestSize)
+	}
+	return reqs
+}
+
 func TestDecodeSyncMessage(t *testing.T) {
 	s := &Service{
 		ctx: context.Background(),
@@ -50,7 +74,7 @@ func TestDecodeSyncMessage(t *testing.T) {
 	require.Equal(t, testBlockRequestMessage, req)
 }
 
-func TestSyncQueue_PushBlockResponse(t *testing.T) {
+func TestSyncQueue_PushResponse(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "nodeA")
 	config := &Config{
 		BasePath:    basePath,
@@ -76,7 +100,7 @@ func TestSyncQueue_PushBlockResponse(t *testing.T) {
 		},
 	}
 
-	s.syncQueue.pushBlockResponse(msg, peerID)
+	s.syncQueue.pushResponse(msg, peerID)
 	require.Equal(t, 1, len(s.syncQueue.responses))
 }
 
@@ -209,26 +233,6 @@ func newTestSyncQueue(t *testing.T) *syncQueue {
 	return s.syncQueue
 }
 
-func TestSyncQueue_SetBlockRequests_ShouldBeEmpty(t *testing.T) {
-	q := newTestSyncQueue(t)
-	q.stop()
-	q.goal = 0
-
-	testPeerID := peer.ID("noot")
-	q.setBlockRequests(0, testPeerID)
-	require.Equal(t, 0, len(q.requests))
-}
-
-func TestSyncQueue_SetBlockRequests(t *testing.T) {
-	q := newTestSyncQueue(t)
-	q.stop()
-	q.goal = 10000
-
-	testPeerID := peer.ID("noot")
-	q.setBlockRequests(0, testPeerID)
-	require.Equal(t, int(blockRequestQueueSize), len(q.requests))
-}
-
 func TestSyncQueue_HandleBlockAnnounceHandshake(t *testing.T) {
 	q := newTestSyncQueue(t)
 	q.stop()
@@ -241,12 +245,13 @@ func TestSyncQueue_HandleBlockAnnounceHandshake(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, 1, score.(int))
 	require.Equal(t, testNum, q.goal)
-	require.Equal(t, 1, len(q.requests))
+	require.Equal(t, 6, len(q.requestCh))
 
 	head, err := q.s.blockState.BestBlockNumber()
 	require.NoError(t, err)
-	expected := createBlockRequest(head.Int64()+1, uint32(testNum)-uint32(head.Int64()))
-	require.Equal(t, &syncRequest{req: expected, to: testPeerID}, q.requests[0])
+	expected := createBlockRequest(head.Int64(), blockRequestSize)
+	req := <-q.requestCh
+	require.Equal(t, &syncRequest{req: expected, to: testPeerID}, req)
 }
 
 func TestSyncQueue_HandleBlockAnnounce(t *testing.T) {
@@ -259,12 +264,13 @@ func TestSyncQueue_HandleBlockAnnounce(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, 1, score.(int))
 	require.Equal(t, testBlockAnnounceMessage.Number.Int64(), q.goal)
-	require.Equal(t, 1, len(q.requests))
+	require.Equal(t, 6, len(q.requestCh))
 
 	head, err := q.s.blockState.BestBlockNumber()
 	require.NoError(t, err)
-	expected := createBlockRequest(head.Int64()+1, uint32(testBlockAnnounceMessage.Number.Int64())-uint32(head.Int64()))
-	require.Equal(t, &syncRequest{req: expected, to: testPeerID}, q.requests[0])
+	expected := createBlockRequest(head.Int64(), blockRequestSize)
+	req := <-q.requestCh
+	require.Equal(t, &syncRequest{req: expected, to: testPeerID}, req)
 }
 
 func TestSyncQueue_ProcessBlockRequests(t *testing.T) {

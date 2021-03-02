@@ -79,20 +79,6 @@ func (bm *BlockRequestMessage) SubProtocol() string {
 	return syncID
 }
 
-func (bm *BlockRequestMessage) Hash() common.Hash {
-	enc, err := bm.Encode()
-	if err != nil {
-		panic(err)
-	}
-
-	hash, err := common.Blake2bHash(enc)
-	if err != nil {
-		panic(err)
-	}
-
-	return hash
-}
-
 // String formats a BlockRequestMessage as a string
 func (bm *BlockRequestMessage) String() string {
 	return fmt.Sprintf("BlockRequestMessage RequestedData=%d StartingBlock=0x%x EndBlockHash=%s Direction=%d Max=%s",
