@@ -192,7 +192,7 @@ func (q *syncQueue) handleResponseQueue() {
 		}
 
 		if q.responses[0].Number().Int64() > head.Int64()+1 {
-			logger.Trace("response start isn't head+1, waiting", "queue start", q.responses[0].Number().Int64(), "head+1", head.Int64()+1)
+			logger.Trace("response start is greater than head+1, waiting", "queue start", q.responses[0].Number().Int64(), "head+1", head.Int64()+1)
 			q.responseLock.Unlock()
 
 			q.setBlockRequests("")
