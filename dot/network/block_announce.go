@@ -219,7 +219,8 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 		return nil
 	}
 
-	np.mapMu.Lock()
+	// don't need to lock here, since function is always called inside the func returned by
+	// `createNotificationsMessageHandler` which locks the map beforehand.
 	data, ok := np.handshakeData[peer]
 	if !ok {
 		np.handshakeData[peer] = &handshakeData{
@@ -228,7 +229,6 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 		}
 		data = np.handshakeData[peer]
 	}
-	np.mapMu.Unlock()
 
 	data.handshake = hs
 
