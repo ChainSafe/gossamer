@@ -20,10 +20,12 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"path"
 	"time"
 
 	ds "github.com/ipfs/go-datastore"
 	dsync "github.com/ipfs/go-datastore/sync"
+	badger "github.com/ipfs/go-ds-badger"
 	"github.com/libp2p/go-libp2p"
 	libp2phost "github.com/libp2p/go-libp2p-core/host"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
@@ -32,6 +34,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/protocol"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
+	"github.com/libp2p/go-libp2p-peerstore/pstoreds"
 	secio "github.com/libp2p/go-libp2p-secio"
 	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
@@ -54,6 +57,7 @@ type host struct {
 	bootnodes  []peer.AddrInfo
 	protocolID protocol.ID
 	cm         *ConnManager
+	ds         *badger.Datastore
 }
 
 // newHost creates a host wrapper with a new libp2p host instance
@@ -96,12 +100,23 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		privateIPs.AddFilter(*ipnet, ma.ActionDeny)
 	}
 
+	ds, err := badger.NewDatastore(path.Join(cfg.BasePath, "libp2p-peerstore"), &badger.DefaultOptions)
+	if err != nil {
+		return nil, err
+	}
+
+	ps, err := pstoreds.NewPeerstore(ctx, ds, pstoreds.DefaultOpts())
+	if err != nil {
+		return nil, err
+	}
+
 	// set libp2p host options
 	opts := []libp2p.Option{
 		libp2p.ListenAddrs(addr),
 		libp2p.DisableRelay(),
 		libp2p.Identity(cfg.privateKey),
 		libp2p.NATPortMap(),
+		libp2p.Peerstore(ps),
 		libp2p.ConnectionManager(cm),
 		libp2p.ChainOptions(libp2p.DefaultSecurity, libp2p.Security(secio.ID, secio.New)), // TODO: deprecate secio?
 		libp2p.AddrsFactory(func(as []ma.Multiaddr) []ma.Multiaddr {
@@ -137,6 +152,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		bootnodes:  bns,
 		protocolID: pid,
 		cm:         cm,
+		ds:         ds,
 	}, nil
 
 }
@@ -157,6 +173,17 @@ func (h *host) close() error {
 		return err
 	}
 
+	err = h.h.Peerstore().Close()
+	if err != nil {
+		logger.Error("Failed to close libp2p peerstore", "error", err)
+		return err
+	}
+
+	err = h.ds.Close()
+	if err != nil {
+		logger.Error("Failed to close libp2p host datastore", "error", err)
+		return err
+	}
 	return nil
 }
 

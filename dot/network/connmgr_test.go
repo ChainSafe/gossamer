@@ -25,20 +25,7 @@ import (
 
 func TestMaxPeers(t *testing.T) {
 	max := 3
-	nodes := make([]*Service, max+2)
-
-	for i := range nodes {
-		config := &Config{
-			Port:        7000 + uint32(i),
-			RandSeed:    1 + int64(i),
-			NoBootstrap: true,
-			NoMDNS:      true,
-			MaxPeers:    max,
-		}
-		node := createTestService(t, config)
-		defer node.Stop()
-		nodes[i] = node
-	}
+	nodes := createServiceHelper(t, max+2)
 
 	addrs := nodes[0].host.multiaddrs()
 	ainfo, err := peer.AddrInfoFromP2pAddr(addrs[0])

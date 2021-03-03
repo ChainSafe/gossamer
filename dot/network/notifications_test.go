@@ -32,9 +32,6 @@ import (
 func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "nodeA")
 
-	// removes all data directories created within test directory
-	defer utils.RemoveTestDir(t)
-
 	config := &Config{
 		BasePath:    basePath,
 		Port:        7001,
@@ -93,9 +90,6 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 
 func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "nodeA")
-
-	// removes all data directories created within test directory
-	defer utils.RemoveTestDir(t)
 
 	config := &Config{
 		BasePath:    basePath,
