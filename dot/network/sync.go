@@ -367,12 +367,6 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) {
 		return
 	}
 
-	q.requestData.Store(uint64(start), requestData{
-		sent:     true,
-		received: true,
-		from:     pid,
-	})
-
 	if resp.BlockData[0].Body == nil || !resp.BlockData[0].Body.Exists() {
 		logger.Trace("throwing away BlockResponseMessage as it doesn't contain block bodies")
 		// update peer's score
@@ -380,11 +374,18 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) {
 		return
 	}
 
+	q.requestData.Store(uint64(start), requestData{
+		sent:     true,
+		received: true,
+		from:     pid,
+	})
+
 	// update peer's score
 	q.updatePeerScore(pid, 1)
 
 	if end < head.Int64() {
 		logger.Trace("throwing away BlockResponseMessage as it's below our head")
+		q.requestData.Delete(uint64(start))
 		return
 	}
 
@@ -529,6 +530,10 @@ func (q *syncQueue) processBlockResponses() {
 			err = q.s.syncer.ProcessBlockData(data)
 			if err != nil {
 				logger.Warn("failed to handle block data", "start", q.currStart, "end", q.currEnd, "error", err)
+				q.requestData.Store(uint64(q.currStart), requestData{
+					sent:     true,
+					received: false,
+				})
 				q.pushRequest(uint64(q.currStart), 1, "")
 				q.currStart = 0
 				q.currEnd = 0
@@ -543,11 +548,12 @@ func (q *syncQueue) processBlockResponses() {
 
 			d, ok := q.requestData.Load(uint64(start))
 			if !ok {
-				// this probably shouldn't happen
+				// this shouldn't happen
 				logger.Error("can't find request data for response!", "start", start)
 			} else {
 				from = d.(requestData).from
 				q.updatePeerScore(from, 2)
+				q.requestData.Delete(uint64(start))
 			}
 
 			q.pushRequest(uint64(q.currEnd+1), blockRequestBufferSize, from)
