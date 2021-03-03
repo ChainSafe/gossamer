@@ -335,3 +335,19 @@ func TestSyncer_HandleRuntimeChanges(t *testing.T) {
 	err = syncer.handleRuntimeChanges(ts)
 	require.NoError(t, err)
 }
+
+func TestSyncer_HandleJustification(t *testing.T) {
+	syncer := newTestSyncer(t)
+
+	header := &types.Header{
+		Number: big.NewInt(1),
+	}
+
+	just := []byte("testjustification")
+
+	syncer.handleJustification(header, just)
+
+	res, err := syncer.blockState.GetJustification(header.Hash())
+	require.NoError(t, err)
+	require.Equal(t, just, res)
+}

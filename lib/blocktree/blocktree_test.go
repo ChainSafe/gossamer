@@ -71,7 +71,7 @@ func newBlockTreeFromNode(head *node, db database.Database) *BlockTree {
 }
 
 func createFlatTree(t *testing.T, depth int) (*BlockTree, []common.Hash) {
-	bt := NewBlockTreeFromGenesis(testHeader, nil)
+	bt := NewBlockTreeFromRoot(testHeader, nil)
 	require.NotNil(t, bt)
 
 	previousHash := bt.head.hash
