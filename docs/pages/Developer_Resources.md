@@ -6,7 +6,7 @@ permalink: /developer-resources/
 
 ### Specification
 
-- [Polkadot Host Specification](https://github.com/w3f/polkadot-spec/blob/master/polkadot-host-spec/polkadot_host_spec.pdf)
+- [Polkadot Host Specification](https://github.com/w3f/polkadot-spec/tree/master/host-spec)
 
 ### Cryptography
 
@@ -16,8 +16,8 @@ permalink: /developer-resources/
 
 ### Networking
 
-* [W3F networking research](https://research.web3.foundation/en/latest/polkadot/networking/1-overview/)
-* [libp2p Specs](https://ipfs.io/ipfs/QmVqNrDfr2dxzQUo4VN3zhG4NV78uYFmRpgSktWDc2eeh2/specs/)
+* [W3F networking research](https://w3f-research.readthedocs.io/en/latest/polkadot/networking.html)
+* [libp2p Specs](https://github.com/libp2p/specs)
 * [Kademlia (DHT) White Paper](https://pdos.csail.mit.edu/~petar/papers/maymounkov-kademlia-lncs.pdf)
 * [Kademlia Wiki Page](https://en.wikipedia.org/wiki/Kademlia)
 
@@ -30,7 +30,7 @@ permalink: /developer-resources/
 
 - [Polkadot Wiki](https://wiki.polkadot.network/en/)
 - [Polkadot Consensus Wiki](https://wiki.polkadot.network/en/latest/polkadot/learn/consensus/)
-- [Polkadot Runtime Environment Specification (Section 8.2)](https://github.com/w3f/polkadot-re-spec/blob/master/polkadot_re_spec.pdf)
+- [Polkadot Runtime Specification (Section 8.2)](https://w3f-research.readthedocs.io/en/latest/polkadot/specifications/runtime.html)
 - [Rust Docs: finality_grandpa](https://docs.rs/finality-grandpa/0.1.0/finality_grandpa/)
 - [paritytech/finality_grandpa](https://github.com/paritytech/finality-grandpa)
 - [The State of Crypto Interoperability Explained in Pictures](https://tokeneconomy.co/the-state-of-crypto-interoperability-explained-in-pictures-654cfe4cc167)
@@ -44,7 +44,7 @@ permalink: /developer-resources/
 - [The Path of a Parachain Block (Video)](https://www.youtube.com/watch?v=m0vxqWwFfDs)
 
 **block production & consensus**
-- [BABE Specification](https://research.web3.foundation/en/latest/polkadot/BABE/Babe/)
+- [BABE Specification](https://research.web3.foundation/en/latest/polkadot/block-production/Babe.html)
 - [GRANDPA Specification](https://github.com/w3f/consensus/blob/master/pdf/grandpa.pdf)
 - [Polkadot Consensus Part 1: Introduction](https://medium.com/polkadot-network/polkadot-consensus-part-1-introduction-3e3cd6237243)
 - [Polkadot Consensus Part 2: GRANDPA](https://medium.com/polkadot-network/polkadot-consensus-part-2-grandpa-fb1963ef6c70)
