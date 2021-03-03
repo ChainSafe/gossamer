@@ -213,6 +213,25 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 
 	bestBlockNum := big.NewInt(int64(bhs.BestBlockNumber))
 
+	np, ok := s.notificationsProtocols[BlockAnnounceMsgType]
+	if !ok {
+		// this should never happen.
+		return nil
+	}
+
+	// don't need to lock here, since function is always called inside the func returned by
+	// `createNotificationsMessageHandler` which locks the map beforehand.
+	data, ok := np.handshakeData[peer]
+	if !ok {
+		np.handshakeData[peer] = &handshakeData{
+			received:  true,
+			validated: true,
+		}
+		data = np.handshakeData[peer]
+	}
+
+	data.handshake = hs
+
 	// check if peer block number is greater than host block number
 	if latestHeader.Number.Cmp(bestBlockNum) >= 0 {
 		return nil

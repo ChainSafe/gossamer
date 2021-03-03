@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
@@ -390,8 +391,8 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
-	handlerA := newTestStreamHandler(testBlockAnnounceMessageDecoder)
-	nodeA.host.registerStreamHandler("", handlerA.handleStream)
+	handlerA := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
+	nodeA.host.registerStreamHandler(blockAnnounceID, handlerA.handleStream)
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
@@ -404,8 +405,8 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 
 	nodeB := createTestService(t, configB)
 	nodeB.noGossip = true
-	handlerB := newTestStreamHandler(testBlockAnnounceMessageDecoder)
-	nodeB.host.registerStreamHandler("", handlerB.handleStream)
+	handlerB := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
+	nodeB.host.registerStreamHandler(blockAnnounceID, handlerB.handleStream)
 
 	addrInfosB, err := nodeB.host.addrInfos()
 	require.NoError(t, err)
@@ -418,11 +419,15 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	stream := nodeA.host.getStream(nodeB.host.id(), blockAnnounceID)
-	require.Nil(t, stream, "node A should not have an outbound stream")
+	testHandshake := &BlockAnnounceHandshake{
+		Roles:           4,
+		BestBlockNumber: 77,
+		BestBlockHash:   common.Hash{1},
+		GenesisHash:     nodeB.blockState.GenesisHash(),
+	}
 
 	// node A opens the stream to send the first message
-	err = nodeA.host.send(addrInfosB[0].ID, blockAnnounceID, testBlockAnnounceMessage)
+	err = nodeA.host.send(nodeB.host.id(), blockAnnounceID, testHandshake)
 	require.NoError(t, err)
 
 	info := nodeA.notificationsProtocols[BlockAnnounceMsgType]
@@ -437,6 +442,7 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	_, ok := info.handshakeData[nodeB.host.id()]
 	require.True(t, ok)
 
+	time.Sleep(time.Second)
 	nodeB.host.close()
 
 	// Wait for cleanup
