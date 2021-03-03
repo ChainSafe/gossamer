@@ -181,7 +181,7 @@ fmt.Printf("SubExt ext %v\n", extBytes)
 		return err
 	}
 
-	vtx := transaction.NewValidTransaction(ext, txv)
+	vtx := transaction.NewValidTransaction(extBytes, txv)
 
 	if cm.coreAPI.IsBlockProducer() {
 		hash := cm.txStateAPI.AddToPool(vtx)
@@ -190,7 +190,7 @@ fmt.Printf("SubExt ext %v\n", extBytes)
 	}
 
 	//broadcast
-	err = cm.coreAPI.HandleSubmittedExtrinsic(ext)
+	err = cm.coreAPI.HandleSubmittedExtrinsic(extBytes)
 	if err != nil {
 		cm.logger.Trace("failed to submit extrinsic to network", "error", err)
 	}
