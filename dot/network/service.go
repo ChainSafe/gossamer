@@ -557,14 +557,30 @@ func (s *Service) NetworkState() common.NetworkState {
 func (s *Service) Peers() []common.PeerInfo {
 	peers := []common.PeerInfo{}
 
+	s.notificationsMu.RLock()
+	defer s.notificationsMu.RUnlock()
+
 	for _, p := range s.host.peers() {
-		// TODO: update this based on BlockAnnounce handshake info
+		if s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[p] == nil {
+			peers = append(peers, common.PeerInfo{
+				PeerID: p.String(),
+			})
+
+			continue
+		}
+		peerHandshakeMessage := s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[p].handshake
+		if peerHandshakeMessage == nil {
+			peers = append(peers, common.PeerInfo{
+				PeerID: p.String(),
+			})
+			continue
+		}
+
 		peers = append(peers, common.PeerInfo{
-			PeerID: p.String(),
-			// Roles:           msg.Roles,
-			// ProtocolVersion: msg.ProtocolVersion,
-			// BestHash:        msg.BestBlockHash,
-			// BestNumber:      msg.BestBlockNumber,
+			PeerID:     p.String(),
+			Roles:      peerHandshakeMessage.(*BlockAnnounceHandshake).Roles,
+			BestHash:   peerHandshakeMessage.(*BlockAnnounceHandshake).BestBlockHash,
+			BestNumber: uint64(peerHandshakeMessage.(*BlockAnnounceHandshake).BestBlockNumber),
 		})
 	}
 	return peers
