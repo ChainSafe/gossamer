@@ -17,6 +17,7 @@
 package storage
 
 import (
+	"bytes"
 	"encoding/binary"
 	"sync"
 
@@ -98,9 +99,26 @@ func (s *TrieState) Delete(key []byte) {
 
 // NextKey returns the next key in the trie in lexicographical order. If it does not exist, it returns nil.
 func (s *TrieState) NextKey(key []byte) []byte {
+	entries := s.TrieEntries()
+
 	s.lock.RLock()
 	defer s.lock.RUnlock()
-	return s.t.NextKey(key)
+	keys := s.t.GetKeysWithPrefix([]byte{})
+	if len(keys) != len(entries) {
+		panic("number of keys doesn't match number of entries!!")
+	}
+
+	for i, k := range keys {
+		if i == len(keys)-1 {
+			return nil
+		}
+
+		if bytes.Equal(key, k) {
+			return keys[i+1]
+		}
+	}
+	//return s.t.NextKey(key)
+	return nil
 }
 
 // ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix
