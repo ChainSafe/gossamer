@@ -236,6 +236,7 @@ func newTestSyncQueue(t *testing.T) *syncQueue {
 func TestSyncQueue_HandleBlockAnnounceHandshake(t *testing.T) {
 	q := newTestSyncQueue(t)
 	q.stop()
+	time.Sleep(time.Second)
 
 	testNum := int64(99)
 
@@ -257,6 +258,7 @@ func TestSyncQueue_HandleBlockAnnounceHandshake(t *testing.T) {
 func TestSyncQueue_HandleBlockAnnounce(t *testing.T) {
 	q := newTestSyncQueue(t)
 	q.stop()
+	time.Sleep(time.Second)
 
 	testPeerID := peer.ID("noot")
 	q.handleBlockAnnounce(testBlockAnnounceMessage, testPeerID)
