@@ -38,7 +38,7 @@ type BlockData struct {
 
 // Number returns the BlockNumber of the BlockData's header, nil if it doesn't exist
 func (bd *BlockData) Number() *big.Int {
-	if bd == nil || !bd.Header.Exists() {
+	if bd == nil || bd.Header == nil || !bd.Header.Exists() {
 		return nil
 	}
 
