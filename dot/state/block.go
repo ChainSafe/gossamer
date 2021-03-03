@@ -623,6 +623,10 @@ func (bs *BlockState) BestBlockNumber() (*big.Int, error) {
 		return nil, err
 	}
 
+	if header == nil {
+		return nil, fmt.Errorf("failed to get best block header")
+	}
+
 	return header.Number, nil
 }
 
