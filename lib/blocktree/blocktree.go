@@ -19,6 +19,7 @@ package blocktree
 import (
 	"fmt"
 	"math/big"
+	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -36,6 +37,7 @@ type BlockTree struct {
 	head   *node // root node TODO: rename this!!
 	leaves *leafMap
 	db     database.Database
+	sync.RWMutex
 }
 
 // NewEmptyBlockTree creates a BlockTree with a nil head
@@ -67,12 +69,17 @@ func NewBlockTreeFromRoot(root *types.Header, db database.Database) *BlockTree {
 
 // GenesisHash returns the hash of the genesis block
 func (bt *BlockTree) GenesisHash() Hash {
+	bt.RLock()
+	defer bt.RUnlock()
 	return bt.head.hash
 }
 
 // AddBlock inserts the block as child of its parent node
 // Note: Assumes block has no children
 func (bt *BlockTree) AddBlock(block *types.Block, arrivalTime uint64) error {
+	bt.Lock()
+	defer bt.Unlock()
+
 	parent := bt.getNode(block.Header.ParentHash)
 	if parent == nil {
 		return ErrParentNotFound
@@ -103,6 +110,9 @@ func (bt *BlockTree) AddBlock(block *types.Block, arrivalTime uint64) error {
 // Rewind rewinds the block tree by the given height. If the blocktree is less than the given height,
 // it will only rewind until the blocktree has one node.
 func (bt *BlockTree) Rewind(numBlocks int) {
+	bt.Lock()
+	defer bt.Unlock()
+
 	for i := 0; i < numBlocks; i++ {
 		deepest := bt.leaves.deepestLeaf()
 
@@ -120,6 +130,9 @@ func (bt *BlockTree) Rewind(numBlocks int) {
 // GetAllBlocksAtDepth will return all blocks hashes with the depth of the given hash plus one.
 // To find all blocks at a depth matching a certain block, pass in that block's parent hash
 func (bt *BlockTree) GetAllBlocksAtDepth(hash common.Hash) []common.Hash {
+	bt.RLock()
+	defer bt.RUnlock()
+
 	hashes := []common.Hash{}
 
 	if bt.getNode(hash) == nil {
@@ -160,6 +173,9 @@ func (bt *BlockTree) getNode(h Hash) *node {
 // Prune sets the given hash as the new blocktree root, removing all nodes that are not the new root node or its descendant
 // It returns an array of hashes that have been pruned
 func (bt *BlockTree) Prune(finalized Hash) (pruned []Hash) {
+	bt.Lock()
+	defer bt.Unlock()
+
 	if finalized == bt.head.hash {
 		return pruned
 	}
@@ -178,6 +194,9 @@ func (bt *BlockTree) Prune(finalized Hash) (pruned []Hash) {
 
 // String utilizes github.com/disiqueira/gotree to create a printable tree
 func (bt *BlockTree) String() string {
+	bt.RLock()
+	defer bt.RUnlock()
+
 	// Construct tree
 	tree := gotree.New(bt.head.string())
 
@@ -225,6 +244,9 @@ func (bt *BlockTree) subChain(start Hash, end Hash) ([]*node, error) {
 
 // SubBlockchain returns the path from the node with Hash start to the node with Hash end
 func (bt *BlockTree) SubBlockchain(start Hash, end Hash) ([]Hash, error) {
+	bt.RLock()
+	defer bt.RUnlock()
+
 	sc, err := bt.subChain(start, end)
 	if err != nil {
 		return nil, err
@@ -245,20 +267,27 @@ func (bt *BlockTree) deepestLeaf() *node { //nolint
 // DeepestBlockHash returns the hash of the deepest block in the blocktree
 // If there is multiple deepest blocks, it returns the one with the earliest arrival time.
 func (bt *BlockTree) DeepestBlockHash() Hash {
+	bt.RLock()
+	defer bt.RUnlock()
+
 	if bt.leaves == nil {
 		return Hash{}
 	}
 
-	if bt.leaves.deepestLeaf() == nil {
+	deepest := bt.leaves.deepestLeaf()
+	if deepest == nil {
 		return Hash{}
 	}
 
-	return bt.leaves.deepestLeaf().hash
+	return deepest.hash
 }
 
 // IsDescendantOf returns true if the child is a descendant of parent, false otherwise.
 // it returns an error if either the child or parent are not in the blocktree.
 func (bt *BlockTree) IsDescendantOf(parent, child Hash) (bool, error) {
+	bt.RLock()
+	defer bt.RUnlock()
+
 	pn := bt.getNode(parent)
 	if pn == nil {
 		return false, ErrStartNodeNotFound
@@ -272,6 +301,9 @@ func (bt *BlockTree) IsDescendantOf(parent, child Hash) (bool, error) {
 
 // Leaves returns the leaves of the blocktree as an array
 func (bt *BlockTree) Leaves() []Hash {
+	bt.RLock()
+	defer bt.RUnlock()
+
 	lm := bt.leaves.toMap()
 	la := make([]common.Hash, len(lm))
 	i := 0
@@ -286,6 +318,9 @@ func (bt *BlockTree) Leaves() []Hash {
 
 // HighestCommonAncestor returns the highest block that is a Ancestor to both a and b
 func (bt *BlockTree) HighestCommonAncestor(a, b Hash) (Hash, error) {
+	bt.RLock()
+	defer bt.RUnlock()
+
 	an := bt.getNode(a)
 	if an == nil {
 		return common.Hash{}, ErrNodeNotFound
@@ -300,11 +335,17 @@ func (bt *BlockTree) HighestCommonAncestor(a, b Hash) (Hash, error) {
 
 // GetAllBlocks returns all the blocks in the tree
 func (bt *BlockTree) GetAllBlocks() []Hash {
+	bt.RLock()
+	defer bt.RUnlock()
+
 	return bt.head.getAllDescendants(nil)
 }
 
 // DeepCopy returns a copy of the BlockTree
 func (bt *BlockTree) DeepCopy() *BlockTree {
+	bt.RLock()
+	defer bt.RUnlock()
+
 	btCopy := &BlockTree{
 		db: bt.db,
 	}
