@@ -333,7 +333,7 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 			data := d.(requestData)
 			// we haven't sent the request out yet, or we've already gotten the response
 			if !data.sent || data.sent && data.received {
-				return
+				continue
 			}
 		}
 
