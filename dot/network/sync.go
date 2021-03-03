@@ -164,27 +164,23 @@ func (q *syncQueue) handleResponseQueue() {
 			return
 		}
 
-		logger.Debug("getting best block num...")
 		head, err := q.s.blockState.BestBlockNumber()
 		if err != nil || head == nil {
 			continue
 		}
 
-		logger.Debug("locking...")
 		q.responseLock.Lock()
 		if len(q.responses) == 0 {
 			q.responseLock.Unlock()
 			continue
 		}
 
-		logger.Debug("getting start...")
 		start := q.responses[0].Number()
 		if start == nil {
 			q.responseLock.Unlock()
 			continue
 		}
 
-		logger.Debug("comparing start and head...")
 		if start.Int64() > head.Int64()+1 {
 			logger.Debug("response start is greater than head+1, waiting", "queue start", start.Int64(), "head+1", head.Int64()+1)
 			q.responseLock.Unlock()
@@ -193,9 +189,9 @@ func (q *syncQueue) handleResponseQueue() {
 			continue
 		}
 
-		logger.Debug("pushing to response queue")
+		logger.Debug("pushing to response queue", "start", start)
 		q.responseCh <- q.responses
-		logger.Debug("pushed responses!")
+		logger.Debug("pushed responses!", "start", start)
 		q.responses = []*types.BlockData{}
 		q.responseLock.Unlock()
 	}
