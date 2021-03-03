@@ -1,0 +1,44 @@
+# Copyright 2020 ChainSafe Systems
+# SPDX-License-Identifier: LGPL-3.0-only
+
+site_name: Gossamer Docs
+site_description: The Official Documentation for Gossamer | A Go Implementation of the Polkadot Host
+
+repo_name: chainsafe/gossamer
+repo_url: https://github.com/ChainSafe/gossamer
+
+# Configuration
+markdown_extensions:
+  - meta
+  - admonition
+  - codehilite
+  - toc:
+      permalink: true
+
+theme:
+  name: material
+  palette:
+    primary: black
+  favicon: ../assets/favicon.ico
+
+nav:
+  - Overview: ./index.md
+  - Get Started: ./get-started.md
+  - Command Line: ./command-line.md
+  - Configuration: ./configuration.md
+  - Custom Services: ./custom-services.md
+  - Developer Resources: ./developer-resources.md
+  - General Resources: ./general-resources.md
+  - Host Architecture: ./host-architecture.md
+  - Import Runtime: ./import-runtime.md
+  - Integration Tests: ./integration-tests.md
+  - Official Nodes: ./official-nodes.md
+  - Package Library: .pPackage-library.md
+  - SCALE Examples: ./scale-examples.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github-alt
+      link: https://github.com/ChainSafe/gossamer
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/ChainSafeth
