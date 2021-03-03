@@ -72,10 +72,11 @@ func (ls *leafMap) deepestLeaf() *node {
 
 	var dLeaf *node
 	ls.smap.Range(func(h, n interface{}) bool {
-		node := n.(*node)
-		if node == nil {
+		if n == nil {
 			return true
 		}
+
+		node := n.(*node)
 
 		if max.Cmp(node.depth) < 0 {
 			max = node.depth
