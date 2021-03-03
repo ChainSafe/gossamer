@@ -428,7 +428,7 @@ func TestBlockTree_Prune(t *testing.T) {
 }
 
 func TestBlockTree_DeepCopy(t *testing.T) {
-	bt, _ := createFlatTree(t, 8)
+	bt, _ := createFlatTree(t, 3)
 
 	btCopy := bt.DeepCopy()
 

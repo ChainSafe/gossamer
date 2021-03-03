@@ -171,6 +171,8 @@ func (bt *BlockTree) Prune(finalized Hash) (pruned []Hash) {
 
 	pruned = bt.head.prune(n, nil)
 	bt.head = n
+	bt.leaves = newEmptyLeafMap()
+	bt.leaves.store(n.hash, n)
 	return pruned
 }
 
@@ -303,23 +305,24 @@ func (bt *BlockTree) GetAllBlocks() []Hash {
 
 // DeepCopy returns a copy of the BlockTree
 func (bt *BlockTree) DeepCopy() *BlockTree {
-	// copy everything but pointers / arrays
-	btCopy := *bt
-	// copy head pointers and children array
-	if bt.head != nil {
-		btCopy.head = deepCopy(bt.head)
+	btCopy := &BlockTree{
+		db: bt.db,
 	}
-	// copy leaves
+
+	if bt.head == nil {
+		return btCopy
+	}
+
+	btCopy.head = bt.head.deepCopy(nil)
+
 	if bt.leaves != nil {
 		btCopy.leaves = newEmptyLeafMap()
 
 		lMap := bt.leaves.toMap()
 		for hash, val := range lMap {
-			btCopy.leaves.store(hash, deepCopy(val))
+			btCopy.leaves.store(hash, btCopy.getNode(val.hash))
 		}
 	}
 
-	// copy db
-	btCopy.db = bt.db
-	return &btCopy
+	return btCopy
 }

@@ -510,6 +510,7 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 	if err != nil {
 		return err
 	}
+	fmt.Println("arrival time set", block.Header.Hash())
 
 	// add block to blocktree
 	err = bs.bt.AddBlock(block, uint64(arrivalTime.UnixNano()))
