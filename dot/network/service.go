@@ -552,9 +552,10 @@ func (s *Service) NetworkState() common.NetworkState {
 func (s *Service) Peers() []common.PeerInfo {
 	peers := []common.PeerInfo{}
 
+	s.notificationsMu.RLock()
+	defer s.notificationsMu.RUnlock()
+
 	for _, p := range s.host.peers() {
-		// Load up a node/entity from peer id
-		// Query data directly
 		if s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[p] == nil {
 			peers = append(peers, common.PeerInfo{
 				PeerID: p.String(),
@@ -570,7 +571,6 @@ func (s *Service) Peers() []common.PeerInfo {
 			continue
 		}
 
-		// peerHandshakeMessage != nil logic here
 		peers = append(peers, common.PeerInfo{
 			PeerID:     p.String(),
 			Roles:      peerHandshakeMessage.(*BlockAnnounceHandshake).Roles,
