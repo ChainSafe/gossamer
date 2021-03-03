@@ -23,8 +23,6 @@ import (
 	"path"
 	"time"
 
-	ds "github.com/ipfs/go-datastore"
-	dsync "github.com/ipfs/go-datastore/sync"
 	badger "github.com/ipfs/go-ds-badger"
 	"github.com/libp2p/go-libp2p"
 	libp2phost "github.com/libp2p/go-libp2p-core/host"
@@ -83,8 +81,13 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	// format protocol id
 	pid := protocol.ID(cfg.ProtocolID)
 
+	ds, err := badger.NewDatastore(path.Join(cfg.BasePath, "libp2p-datastore"), &badger.DefaultOptions)
+	if err != nil {
+		return nil, err
+	}
+
 	dhtOpts := []dual.Option{
-		dual.DHTOption(kaddht.Datastore(dsync.MutexWrap(ds.NewMapDatastore()))), // TODO: use on-disk datastore
+		dual.DHTOption(kaddht.Datastore(ds)),
 		dual.DHTOption(kaddht.BootstrapPeers(bns...)),
 		dual.DHTOption(kaddht.V1ProtocolOverride(pid + "/kad")),
 		dual.DHTOption(kaddht.Mode(kaddht.ModeAutoServer)),
@@ -98,11 +101,6 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		}
 
 		privateIPs.AddFilter(*ipnet, ma.ActionDeny)
-	}
-
-	ds, err := badger.NewDatastore(path.Join(cfg.BasePath, "libp2p-peerstore"), &badger.DefaultOptions)
-	if err != nil {
-		return nil, err
 	}
 
 	ps, err := pstoreds.NewPeerstore(ctx, ds, pstoreds.DefaultOpts())
