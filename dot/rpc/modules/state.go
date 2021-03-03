@@ -404,6 +404,7 @@ func (sm *StateModule) SubscribeStorage(r *http.Request, req *StateStorageQueryR
 	return nil
 }
 
+// ConvertAPIs runtime.APIItems to []interface
 func ConvertAPIs(in []*runtime.APIItem) []interface{} {
 	ret := make([]interface{}, 0)
 	for _, item := range in {

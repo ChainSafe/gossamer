@@ -18,7 +18,6 @@ package state
 
 import (
 	"errors"
-	"fmt"
 	"math/rand"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -96,7 +95,7 @@ func (bs *BlockState) UnregisterFinalizedChannel(id byte) {
 func (bs *BlockState) notifyImported(block *types.Block) {
 	bs.importedLock.RLock()
 	defer bs.importedLock.RUnlock()
-	fmt.Printf("IMPORTED %v, %v\n", block.Header.Number, block.Body)
+
 	if len(bs.imported) == 0 {
 		return
 	}

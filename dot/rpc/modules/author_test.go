@@ -2,7 +2,6 @@ package modules
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"os"
 	"reflect"
 	"testing"
@@ -11,6 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
@@ -80,7 +80,7 @@ func TestAuthorModule_Pending(t *testing.T) {
 }
 
 func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
-	//t.Skip()
+	t.Skip()
 	// setup auth module
 	txQueue := state.NewTransactionState()
 

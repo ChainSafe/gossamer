@@ -24,12 +24,14 @@ import (
 	"math/big"
 	"net"
 	"net/http"
+	"reflect"
 	"strings"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/gorilla/websocket"
 )
 
@@ -122,7 +124,8 @@ func NewWSConn(conn *websocket.Conn, cfg *HTTPServerConfig) *WSConn {
 		storageAPI:         cfg.StorageAPI,
 		blockAPI:           cfg.BlockAPI,
 		runtimeAPI:         cfg.RuntimeAPI,
-		coreAPI: cfg.CoreAPI,
+		coreAPI:            cfg.CoreAPI,
+		txStateAPI:         cfg.TransactionQueueAPI,
 	}
 	return c
 }
@@ -487,15 +490,48 @@ func (l *BlockFinalizedListener) Listen() {
 
 // ExtrinsicWatchListener to handle listening for extrinsic events
 type ExtrinsicWatchListener struct {
-	channel chan *types.Block
-	wsconn  *WSConn
-	chanID  byte
-	subID   int
+	channel   chan *types.Block
+	wsconn    *WSConn
+	chanID    byte
+	subID     int
+	extrinsic types.Extrinsic
 }
+
+// AuthorExtrinsicUpdates method name
+const AuthorExtrinsicUpdates = "author_extrinsicUpdate"
 
 func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (int, error) {
 	pA := params.([]interface{})
 	extBytes, err := common.HexToBytes(pA[0].(string))
+	if err != nil {
+		return 0, err
+	}
+
+	// listen for built blocks
+	bl := &ExtrinsicWatchListener{
+		channel:   make(chan *types.Block),
+		wsconn:    c,
+		extrinsic: types.Extrinsic(extBytes),
+	}
+
+	if c.blockAPI == nil {
+		e := c.safeSendError(reqID, nil, "error BlockAPI not set")
+		if e != nil {
+			logger.Warn("error sending error message", "error", err)
+		}
+		return 0, fmt.Errorf("error BlockAPI not set")
+	}
+	chanID, err := c.blockAPI.RegisterImportedChannel(bl.channel)
+	c.qtyListeners++
+	if err != nil {
+		return 0, err
+	}
+	bl.chanID = chanID
+	bl.subID = c.qtyListeners
+	c.subscriptions[bl.subID] = bl
+	c.blockSubChannels[bl.subID] = chanID
+	initRes := newSubscriptionResponseJSON(bl.subID, reqID)
+	err = c.safeSend(initRes)
 	if err != nil {
 		return 0, err
 	}
@@ -509,47 +545,38 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (int, err
 		return 0, err
 	}
 
-	c.qtyListeners++
-
 	headM := make(map[string]interface{})
-	headM["result"] = "ready"
+	headM["result"] = "future"
 	headM["subscription"] = c.qtyListeners
 	res := newSubcriptionBaseResponseJSON()
-	res.Method = "author_extrinsicUpdate"
+	res.Method = AuthorExtrinsicUpdates
 	res.Params = headM
 	err = c.safeSend(res)
 	if err != nil {
 		logger.Error("error sending websocket message", "error", err)
 	}
 
-	fmt.Printf("txv %v\n", txv)
-
-	// listen for built blocks
-	bl := &ExtrinsicWatchListener{
-		channel: make(chan *types.Block),
-		wsconn:  c,
-	}
-
-	if c.blockAPI == nil {
-		e := c.safeSendError(reqID, nil, "error BlockAPI not set")
-		if e != nil {
-			logger.Warn("error sending error message", "error", err)
+	vtx := transaction.NewValidTransaction(extBytes, txv)
+	if c.coreAPI.IsBlockProducer() {
+		c.txStateAPI.AddToPool(vtx)
+		headM := make(map[string]interface{})
+		headM["result"] = "ready"
+		headM["subscription"] = c.qtyListeners
+		res := newSubcriptionBaseResponseJSON()
+		res.Method = AuthorExtrinsicUpdates
+		res.Params = headM
+		err = c.safeSend(res)
+		if err != nil {
+			logger.Error("error sending websocket message", "error", err)
 		}
-		return 0, fmt.Errorf("error BlockAPI not set")
 	}
-	chanID, err := c.blockAPI.RegisterImportedChannel(bl.channel)
+
+	//broadcast
+	err = c.coreAPI.HandleSubmittedExtrinsic(extBytes)
 	if err != nil {
-		return 0, err
+		logger.Warn("failed to submit extrinsic to network", "error", err)
 	}
-	bl.chanID = chanID
-	bl.subID = c.qtyListeners
-	c.subscriptions[bl.subID] = bl
-	c.blockSubChannels[bl.subID] = chanID
-	initRes := newSubscriptionResponseJSON(bl.subID, reqID)
-	err = c.safeSend(initRes)
-	if err != nil {
-		return 0, err
-	}
+
 	return bl.subID, nil
 }
 
@@ -559,40 +586,44 @@ func (l *ExtrinsicWatchListener) Listen() {
 		if block == nil {
 			continue
 		}
-		exts, err := block.Body.AsEncodedExtrinsics()
-		fmt.Printf("EXts %v\n", exts)
-		// TODO determine how if extrinsic is in this block
-		headM := make(map[string]interface{})
-		resM := make(map[string]interface{})
-		resM["inBlock"] = block.Header.Hash().String()
-		headM["result"] = resM
-		headM["subscription"] = l.subID
-		res := newSubcriptionBaseResponseJSON()
-		res.Method = "author_extrinsicUpdate"
-		res.Params = headM
-		err = l.wsconn.safeSend(res)
+		exts, err := block.Body.AsExtrinsics()
 		if err != nil {
-			logger.Error("error sending websocket message", "error", err)
+			fmt.Printf("error %v\n", err)
 		}
-
+		for _, v := range exts {
+			if reflect.DeepEqual(v, l.extrinsic) {
+				headM := make(map[string]interface{})
+				resM := make(map[string]interface{})
+				resM["inBlock"] = block.Header.Hash().String()
+				headM["result"] = resM
+				headM["subscription"] = l.subID
+				res := newSubcriptionBaseResponseJSON()
+				res.Method = AuthorExtrinsicUpdates
+				res.Params = headM
+				err = l.wsconn.safeSend(res)
+				if err != nil {
+					logger.Error("error sending websocket message", "error", err)
+				}
+			}
+		}
 	}
 }
 
 // RuntimeVersionListener to handle listening for Runtime Version
 type RuntimeVersionListener struct {
-	wsconn  *WSConn
-	subID   int
+	wsconn *WSConn
+	subID  int
 }
 
 func (c *WSConn) initRuntimeVersionListener(reqID float64) (int, error) {
 	rvl := &RuntimeVersionListener{
-		wsconn:  c,
+		wsconn: c,
 	}
 	if c.coreAPI == nil {
 		e := c.safeSendError(reqID, nil, "error CoreAPI not set")
 		if e != nil {
-		logger.Warn("error sending error message", "error", e)
-	}
+			logger.Warn("error sending error message", "error", e)
+		}
 		return 0, fmt.Errorf("error CoreAPI not set")
 	}
 	c.qtyListeners++
@@ -606,13 +637,14 @@ func (c *WSConn) initRuntimeVersionListener(reqID float64) (int, error) {
 	return rvl.subID, nil
 }
 
+// Listen implementation of Listen interface to listen for runtime version changes
 func (l *RuntimeVersionListener) Listen() {
 	rtVersion, err := l.wsconn.coreAPI.GetRuntimeVersion(nil)
 	if err != nil {
 		return
 	}
 	result := make(map[string]interface{})
-	ver := 	modules.StateRuntimeVersionResponse{}
+	ver := modules.StateRuntimeVersionResponse{}
 
 	ver.SpecName = string(rtVersion.SpecName())
 	ver.ImplName = string(rtVersion.ImplName())
