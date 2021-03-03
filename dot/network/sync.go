@@ -361,16 +361,25 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) {
 
 	start, end, err := resp.getStartAndEnd()
 	if err != nil {
-		logger.Trace("throwing away BlockResponseMessage as it doesn't contain block headers")
+		logger.Debug("throwing away BlockResponseMessage as it doesn't contain block headers")
 		// update peer's score
 		q.updatePeerScore(pid, -1)
 		return
 	}
 
 	if resp.BlockData[0].Body == nil || !resp.BlockData[0].Body.Exists() {
-		logger.Trace("throwing away BlockResponseMessage as it doesn't contain block bodies")
+		logger.Debug("throwing away BlockResponseMessage as it doesn't contain block bodies")
 		// update peer's score
 		q.updatePeerScore(pid, -1)
+		return
+	}
+
+	// update peer's score
+	q.updatePeerScore(pid, 1)
+
+	if end < head.Int64() {
+		logger.Debug("throwing away BlockResponseMessage as it's below our head", "head", head, "response end", end)
+		q.requestData.Delete(uint64(start))
 		return
 	}
 
@@ -379,15 +388,6 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) {
 		received: true,
 		from:     pid,
 	})
-
-	// update peer's score
-	q.updatePeerScore(pid, 1)
-
-	if end < head.Int64() {
-		logger.Trace("throwing away BlockResponseMessage as it's below our head")
-		q.requestData.Delete(uint64(start))
-		return
-	}
 
 	q.responseLock.Lock()
 	defer q.responseLock.Unlock()
