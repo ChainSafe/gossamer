@@ -457,7 +457,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		if err == io.EOF {
 			continue
 		} else if err != nil {
-			logger.Debug("failed to read from stream", "protocol", stream.Protocol(), "error", err)
+			logger.Trace("failed to read from stream", "protocol", stream.Protocol(), "error", err)
 			_ = stream.Close()
 			return
 		}
@@ -465,7 +465,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		// decode message based on message type
 		msg, err := decoder(msgBytes[:tot], peer)
 		if err != nil {
-			logger.Debug("Failed to decode message from peer", "peer", peer, "err", err)
+			logger.Trace("Failed to decode message from peer", "peer", peer, "err", err)
 			continue
 		}
 
@@ -552,14 +552,30 @@ func (s *Service) NetworkState() common.NetworkState {
 func (s *Service) Peers() []common.PeerInfo {
 	peers := []common.PeerInfo{}
 
+	s.notificationsMu.RLock()
+	defer s.notificationsMu.RUnlock()
+
 	for _, p := range s.host.peers() {
-		// TODO: update this based on BlockAnnounce handshake info
+		if s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[p] == nil {
+			peers = append(peers, common.PeerInfo{
+				PeerID: p.String(),
+			})
+
+			continue
+		}
+		peerHandshakeMessage := s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[p].handshake
+		if peerHandshakeMessage == nil {
+			peers = append(peers, common.PeerInfo{
+				PeerID: p.String(),
+			})
+			continue
+		}
+
 		peers = append(peers, common.PeerInfo{
-			PeerID: p.String(),
-			// Roles:           msg.Roles,
-			// ProtocolVersion: msg.ProtocolVersion,
-			// BestHash:        msg.BestBlockHash,
-			// BestNumber:      msg.BestBlockNumber,
+			PeerID:     p.String(),
+			Roles:      peerHandshakeMessage.(*BlockAnnounceHandshake).Roles,
+			BestHash:   peerHandshakeMessage.(*BlockAnnounceHandshake).BestBlockHash,
+			BestNumber: uint64(peerHandshakeMessage.(*BlockAnnounceHandshake).BestBlockNumber),
 		})
 	}
 	return peers

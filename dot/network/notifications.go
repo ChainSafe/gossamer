@@ -61,6 +61,7 @@ type notificationsProtocol struct {
 type handshakeData struct {
 	received    bool
 	validated   bool
+	handshake   Handshake
 	outboundMsg NotificationsMessage
 }
 
@@ -144,7 +145,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 				err := handshakeValidator(peer, hs)
 				if err != nil {
 					logger.Debug("failed to validate handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
-					delete(info.handshakeData, peer)
+					info.handshakeData[peer].validated = false
 					return errCannotValidateHandshake
 				}
 
