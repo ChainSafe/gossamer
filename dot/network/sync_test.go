@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -70,6 +71,7 @@ func TestSyncQueue_PushBlockResponse(t *testing.T) {
 		BlockData: []*types.BlockData{
 			{
 				Header: testHeader.AsOptional(),
+				Body:   optional.NewBody(true, []byte{0}),
 			},
 		},
 	}
@@ -213,7 +215,7 @@ func TestSyncQueue_SetBlockRequests_ShouldBeEmpty(t *testing.T) {
 	q.goal = 0
 
 	testPeerID := peer.ID("noot")
-	q.setBlockRequests(testPeerID)
+	q.setBlockRequests(0, testPeerID)
 	require.Equal(t, 0, len(q.requests))
 }
 
@@ -223,7 +225,7 @@ func TestSyncQueue_SetBlockRequests(t *testing.T) {
 	q.goal = 10000
 
 	testPeerID := peer.ID("noot")
-	q.setBlockRequests(testPeerID)
+	q.setBlockRequests(0, testPeerID)
 	require.Equal(t, int(blockRequestQueueSize), len(q.requests))
 }
 

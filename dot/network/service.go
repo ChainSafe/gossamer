@@ -172,6 +172,11 @@ func (s *Service) Start() error {
 	s.syncQueue = newSyncQueue(s)
 	s.syncQueue.start()
 
+	connMgr := s.host.h.ConnManager().(*ConnManager)
+	connMgr.registerDisconnectHandler(func(p peer.ID) {
+		s.syncQueue.peerScore.Delete(p)
+	})
+
 	s.host.h.Network().SetConnHandler(s.handleConn)
 	s.host.registerStreamHandler(syncID, s.handleSyncStream)
 	s.host.registerStreamHandler(lightID, s.handleLightStream)
@@ -336,7 +341,7 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 	s.notificationsProtocols[messageID] = np
 
 	connMgr := s.host.h.ConnManager().(*ConnManager)
-	connMgr.RegisterCloseHandler(s.host.protocolID+sub, func(peerID peer.ID) {
+	connMgr.registerCloseHandler(s.host.protocolID+sub, func(peerID peer.ID) {
 		np.mapMu.Lock()
 		defer np.mapMu.Unlock()
 
