@@ -18,24 +18,29 @@ markdown_extensions:
 theme:
   name: material
   palette:
-    primary: black
-  favicon: ../assets/favicon.ico
+    primary: pink
+    accent: indigo
+  favicon: ./assets/favicon.ico
 
 nav:
-  - Overview: ./index.md
-  - Get Started: ./get-started.md
-  - Command Line: ./command-line.md
-  - Configuration: ./configuration.md
-  - Custom Services: ./custom-services.md
-  - Developer Resources: ./developer-resources.md
-  - General Resources: ./general-resources.md
-  - Host Architecture: ./host-architecture.md
-  - Import Runtime: ./import-runtime.md
-  - Integration Tests: ./integration-tests.md
-  - Official Nodes: ./official-nodes.md
-  - Package Library: .pPackage-library.md
-  - SCALE Examples: ./scale-examples.md
-
+  - Welcome to Gossamer:
+    - Overview: ./index.md
+    - Get Started: ./get-started.md
+    - General Resources: ./general-resources.md
+    - Package Library: ./package-library.md
+  - Running Gossamer:
+    - Command Line: ./command-line.md
+    - Configuration: ./configuration.md
+    - Official Nodes: ./official-nodes.md
+  - Building Gossamer: 
+    - Developer Resources: ./developer-resources.md
+    - Host Architecture: ./host-architecture.md
+    - Integration Tests: ./integration-tests.md
+    - Custom Services: ./custom-services.md
+    - Import Runtime: ./import-runtime.md
+    - SCALE Examples: ./scale-examples.md
+extra_css:
+  - stylesheets/extra.css
 extra:
   social:
     - icon: fontawesome/brands/github-alt
