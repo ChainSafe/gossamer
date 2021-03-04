@@ -33,7 +33,7 @@ func testBlockResponseMessage() *BlockResponseMessage {
 		{
 			Hash:          testHeader0.Hash(),
 			Header:        testHeader0.AsOptional(),
-			Body:          optional.NewBody(false, nil),
+			Body:          optional.NewBody(true, []byte{4, 4, 2}),
 			Receipt:       optional.NewBytes(false, nil),
 			MessageQueue:  optional.NewBytes(false, nil),
 			Justification: optional.NewBytes(false, nil),
@@ -41,7 +41,7 @@ func testBlockResponseMessage() *BlockResponseMessage {
 		{
 			Hash:          testHeader1.Hash(),
 			Header:        testHeader1.AsOptional(),
-			Body:          optional.NewBody(false, nil),
+			Body:          optional.NewBody(true, []byte{4, 4, 2}),
 			Receipt:       optional.NewBytes(false, nil),
 			MessageQueue:  optional.NewBytes(false, nil),
 			Justification: optional.NewBytes(false, nil),
@@ -49,7 +49,7 @@ func testBlockResponseMessage() *BlockResponseMessage {
 		{
 			Hash:          testHeader2.Hash(),
 			Header:        testHeader2.AsOptional(),
-			Body:          optional.NewBody(false, nil),
+			Body:          optional.NewBody(true, []byte{4, 4, 2}),
 			Receipt:       optional.NewBytes(false, nil),
 			MessageQueue:  optional.NewBytes(false, nil),
 			Justification: optional.NewBytes(false, nil),
@@ -157,7 +157,7 @@ func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream, peer peer.ID
 var start, _ = variadic.NewUint64OrHash(uint64(1))
 
 var testBlockRequestMessage = &BlockRequestMessage{
-	RequestedData: 1,
+	RequestedData: RequestedDataHeader + RequestedDataBody + RequestedDataJustification,
 	StartingBlock: start,
 	EndBlockHash:  optional.NewHash(true, common.Hash{}),
 	Direction:     1,

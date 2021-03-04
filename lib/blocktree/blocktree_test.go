@@ -435,6 +435,9 @@ func TestBlockTree_DeepCopy(t *testing.T) {
 	require.Equal(t, bt.db, btCopy.db)
 	require.True(t, equalNodeValue(bt.head, btCopy.head), "BlockTree heads not equal")
 	require.True(t, equalLeave(bt.leaves, btCopy.leaves), "BlockTree leaves not equal")
+
+	btCopy.head = &node{}
+	require.NotEqual(t, bt.head, btCopy.head)
 }
 
 func equalNodeValue(nd *node, ndCopy *node) bool {

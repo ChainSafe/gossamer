@@ -184,22 +184,26 @@ func (n *node) getAllDescendants(desc []Hash) []Hash {
 	return desc
 }
 
-// DeepCopy returns a copy of the given node
-func deepCopy(nd *node) *node {
-	nCopy := *nd
-	nCopy.hash = nd.hash
-	nCopy.arrivalTime = nd.arrivalTime
-	if nd.depth != nil {
-		nCopy.depth = new(big.Int).Set(nd.depth)
+// deepCopy returns a copy of the given node
+func (n *node) deepCopy(parent *node) *node {
+	nCopy := new(node)
+	nCopy.hash = n.hash
+	nCopy.arrivalTime = n.arrivalTime
+
+	if n.depth != nil {
+		nCopy.depth = new(big.Int).Set(n.depth)
 	}
-	if len(nd.children) > 0 {
-		nCopy.children = make([]*node, len(nd.children))
-		copy(nCopy.children, nd.children)
+
+	nCopy.children = make([]*node, len(n.children))
+	for i, child := range n.children {
+		nCopy.children[i] = child.deepCopy(n)
 	}
-	if nd.parent != nil {
-		nCopy.parent = deepCopy(nd.parent)
+
+	if n.parent != nil {
+		nCopy.parent = parent
 	}
-	return &nCopy
+
+	return nCopy
 }
 
 func (n *node) prune(finalized *node, pruned []Hash) []Hash {
