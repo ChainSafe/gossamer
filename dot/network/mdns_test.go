@@ -30,9 +30,6 @@ var TestMDNSTimeout = time.Second
 func TestMDNS(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 
-	// removes all data directories created within test directory
-	defer utils.RemoveTestDir(t)
-
 	configA := &Config{
 		BasePath:    basePathA,
 		Port:        7001,

@@ -17,8 +17,10 @@
 package network
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
 )
@@ -26,9 +28,9 @@ import (
 func TestMaxPeers(t *testing.T) {
 	max := 3
 	nodes := make([]*Service, max+2)
-
 	for i := range nodes {
 		config := &Config{
+			BasePath:    utils.NewTestBasePath(t, fmt.Sprintf("node%d", i)),
 			Port:        7000 + uint32(i),
 			RandSeed:    1 + int64(i),
 			NoBootstrap: true,
@@ -36,7 +38,6 @@ func TestMaxPeers(t *testing.T) {
 			MaxPeers:    max,
 		}
 		node := createTestService(t, config)
-		defer node.Stop()
 		nodes[i] = node
 	}
 
