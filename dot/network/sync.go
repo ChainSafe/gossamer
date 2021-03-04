@@ -251,7 +251,6 @@ func (q *syncQueue) benchmark() {
 
 		before, err := q.s.blockState.BestBlockHeader()
 		if err != nil {
-			logger.Error("failed to get best block header", "error", err)
 			continue
 		}
 
@@ -264,7 +263,6 @@ func (q *syncQueue) benchmark() {
 
 		after, err := q.s.blockState.BestBlockHeader()
 		if err != nil {
-			logger.Error("failed to get best block header", "error", err)
 			continue
 		}
 
