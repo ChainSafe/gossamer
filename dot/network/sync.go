@@ -172,6 +172,10 @@ func (q *syncQueue) handleResponseQueue() {
 		q.responseLock.Lock()
 		if len(q.responses) == 0 {
 			q.responseLock.Unlock()
+
+			if len(q.requestCh) == 0 {
+				q.pushRequest(uint64(head.Int64()+1), blockRequestBufferSize, "")
+			}
 			continue
 		}
 
