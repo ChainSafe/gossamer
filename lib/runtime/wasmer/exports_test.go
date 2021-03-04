@@ -136,7 +136,7 @@ func TestInstance_Version_NodeRuntime(t *testing.T) {
 	require.Equal(t, expected.TransactionVersion(), version.TransactionVersion())
 }
 
-func balanceKey(t *testing.T, pub []byte) []byte {
+func balanceKey(t *testing.T, pub []byte) []byte { //nolint
 	h0, err := common.Twox128Hash([]byte("System"))
 	require.NoError(t, err)
 	h1, err := common.Twox128Hash([]byte("Account"))
@@ -736,9 +736,6 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 	}
 
 	_, err = instance.ExecuteBlock(block)
-	if err != nil {
-		compareStateWithFile(t, "../../../block1482003.out", state)
-	}
 	require.NoError(t, err)
 }
 
@@ -761,48 +758,4 @@ func newTrieFromPairs(t *testing.T, filename string) *trie.Trie {
 	err = tr.LoadFromMap(entries)
 	require.NoError(t, err)
 	return tr
-}
-
-func compareStateWithFile(t *testing.T, filename string, state *storage.TrieState) {
-	entriesRaw := state.TrieEntries()
-	entries := make(map[string]string)
-	for k, v := range entriesRaw {
-		key := common.BytesToHex([]byte(k))
-		value := common.BytesToHex(v)
-		entries[key] = value
-	}
-	data, err := ioutil.ReadFile(filename)
-	require.NoError(t, err)
-	kusamaRPC := make(map[string]interface{})
-	err = json.Unmarshal(data, &kusamaRPC)
-	require.NoError(t, err)
-	kusamaPairs := kusamaRPC["result"].([]interface{})
-	kusamaEntries := make(map[string]string)
-	for _, pair := range kusamaPairs {
-		pairArr := pair.([]interface{})
-		kusamaEntries[pairArr[0].(string)] = pairArr[1].(string)
-	}
-	if len(kusamaEntries) != len(entries) {
-		t.Logf("len of entries don't match: kusama=%d gossamer=%d", len(kusamaEntries), len(entries))
-	}
-	for k, v := range kusamaEntries {
-		gossVal, ok := entries[k]
-		if !ok {
-			t.Logf("gossamer didn't have this entry: [%s: %s]", k, v)
-			continue
-		}
-		if gossVal != v {
-			t.Logf("entry mismatch: key=%s\nkusama=%s\ngossamer=%s", k, v, gossVal)
-		}
-	}
-	for k, v := range entries {
-		ksmVal, ok := kusamaEntries[k]
-		if !ok {
-			t.Logf("kusama didn't have this entry: [%s: %s]", k, v)
-			continue
-		}
-		if ksmVal != v {
-			t.Logf("entry mismatch: key=%s\nkusama=%s\ngossamer=%s", k, ksmVal, v)
-		}
-	}
 }
