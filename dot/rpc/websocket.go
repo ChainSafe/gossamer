@@ -31,20 +31,36 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/gorilla/websocket"
 )
 
 // SubscriptionBaseResponseJSON for base json response
 type SubscriptionBaseResponseJSON struct {
-	Jsonrpc string      `json:"jsonrpc"`
-	Method  string      `json:"method"`
-	Params  interface{} `json:"params"`
+	Jsonrpc string             `json:"jsonrpc"`
+	Method  string             `json:"method"`
+	Params  SubscriptionParams `json:"params"`
+}
+
+// SubscriptionParams for json param response
+type SubscriptionParams struct {
+	Result         interface{} `json:"results"`
+	SubscriptionID int         `json:"subscription"`
 }
 
 func newSubcriptionBaseResponseJSON() SubscriptionBaseResponseJSON {
 	return SubscriptionBaseResponseJSON{
 		Jsonrpc: "2.0",
+	}
+}
+
+func newSubscriptionResponse(method string, subID int, result interface{}) SubscriptionBaseResponseJSON {
+	return SubscriptionBaseResponseJSON{
+		Jsonrpc: "2.0",
+		Method:  method,
+		Params: SubscriptionParams{
+			Result:         result,
+			SubscriptionID: subID,
+		},
 	}
 }
 
@@ -130,13 +146,15 @@ func NewWSConn(conn *websocket.Conn, cfg *HTTPServerConfig) *WSConn {
 	return c
 }
 
-func (c *WSConn) safeSend(msg interface{}) error {
+func (c *WSConn) safeSend(msg interface{}) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-
-	return c.wsconn.WriteJSON(msg)
+	err := c.wsconn.WriteJSON(msg)
+	if err != nil {
+		logger.Warn("error sending websocket message", "error", err)
+	}
 }
-func (c *WSConn) safeSendError(reqID float64, errorCode *big.Int, message string) error {
+func (c *WSConn) safeSendError(reqID float64, errorCode *big.Int, message string) {
 	res := &ErrorResponseJSON{
 		Jsonrpc: "2.0",
 		Error: &ErrorMessageJSON{
@@ -147,8 +165,10 @@ func (c *WSConn) safeSendError(reqID float64, errorCode *big.Int, message string
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-
-	return c.wsconn.WriteJSON(res)
+	err := c.wsconn.WriteJSON(res)
+	if err != nil {
+		logger.Warn("error sending websocket message", "error", err)
+	}
 }
 
 func (c *WSConn) handleComm() {
@@ -165,10 +185,7 @@ func (c *WSConn) handleComm() {
 		err = json.Unmarshal(mbytes, &msg)
 		if err != nil {
 			logger.Warn("websocket failed to unmarshal request message", "error", err)
-			err = c.safeSendError(0, big.NewInt(-32600), "Invalid request")
-			if err != nil {
-				logger.Warn("websocket failed write message", "error", err)
-			}
+			c.safeSendError(0, big.NewInt(-32600), "Invalid request")
 			continue
 		}
 		method := msg["method"]
@@ -214,9 +231,10 @@ func (c *WSConn) handleComm() {
 			params := msg["params"]
 			el, e := c.initExtrinsicWatch(reqid, params)
 			if e != nil {
-				// todo handle this error
+				c.safeSendError(reqid, nil, e.Error())
+			} else {
+				c.startListener(el)
 			}
-			c.startListener(el)
 			continue
 		}
 
@@ -261,11 +279,7 @@ func (c *WSConn) handleComm() {
 			return
 		}
 
-		err = c.safeSend(wsSend)
-		if err != nil {
-			logger.Warn("error writing json response", "error", err)
-			return
-		}
+		c.safeSend(wsSend)
 	}
 }
 func (c *WSConn) startListener(lid int) {
@@ -310,10 +324,7 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (i
 	}
 
 	if c.storageAPI == nil {
-		err := c.safeSendError(reqID, nil, "error StorageAPI not set")
-		if err != nil {
-			logger.Warn("error sending error message", "error", err)
-		}
+		c.safeSendError(reqID, nil, "error StorageAPI not set")
 		return 0, fmt.Errorf("error StorageAPI not set")
 	}
 
@@ -329,14 +340,12 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (i
 	c.storageSubChannels[scl.subID] = chanID
 
 	initRes := newSubscriptionResponseJSON(scl.subID, reqID)
-	err = c.safeSend(initRes)
-	if err != nil {
-		return 0, err
-	}
+	c.safeSend(initRes)
+
 	return scl.subID, nil
 }
 
-// Listen implementation of Listen interface to listen for channel changes
+// Listen implementation of Listen interface to listen for importedChan changes
 func (l *StorageChangeListener) Listen() {
 	for change := range l.channel {
 		if change == nil {
@@ -352,20 +361,15 @@ func (l *StorageChangeListener) Listen() {
 		}
 		result["changes"] = changes
 
-		changeM := make(map[string]interface{})
-		changeM["result"] = result
-		changeM["subscription"] = l.subID
 		res := newSubcriptionBaseResponseJSON()
 		res.Method = "state_storage"
-		res.Params = changeM
-		err := l.wsconn.safeSend(res)
-		if err != nil {
-			logger.Debug("error sending websocket message", "error", err)
-		}
+		res.Params.Result = result
+		res.Params.SubscriptionID = l.subID
+		l.wsconn.safeSend(res)
 	}
 }
 
-// BlockListener to handle listening for blocks channel
+// BlockListener to handle listening for blocks importedChan
 type BlockListener struct {
 	channel chan *types.Block
 	wsconn  *WSConn
@@ -380,10 +384,7 @@ func (c *WSConn) initBlockListener(reqID float64) (int, error) {
 	}
 
 	if c.blockAPI == nil {
-		err := c.safeSendError(reqID, nil, "error BlockAPI not set")
-		if err != nil {
-			logger.Warn("error sending error message", "error", err)
-		}
+		c.safeSendError(reqID, nil, "error BlockAPI not set")
 		return 0, fmt.Errorf("error BlockAPI not set")
 	}
 	chanID, err := c.blockAPI.RegisterImportedChannel(bl.channel)
@@ -396,14 +397,12 @@ func (c *WSConn) initBlockListener(reqID float64) (int, error) {
 	c.subscriptions[bl.subID] = bl
 	c.blockSubChannels[bl.subID] = chanID
 	initRes := newSubscriptionResponseJSON(bl.subID, reqID)
-	err = c.safeSend(initRes)
-	if err != nil {
-		return 0, err
-	}
+	c.safeSend(initRes)
+
 	return bl.subID, nil
 }
 
-// Listen implementation of Listen interface to listen for channel changes
+// Listen implementation of Listen interface to listen for importedChan changes
 func (l *BlockListener) Listen() {
 	for block := range l.channel {
 		if block == nil {
@@ -413,17 +412,12 @@ func (l *BlockListener) Listen() {
 		if err != nil {
 			logger.Error("failed to convert header to JSON", "error", err)
 		}
-		headM := make(map[string]interface{})
-		headM["result"] = head
-		headM["subscription"] = l.subID
+
 		res := newSubcriptionBaseResponseJSON()
 		res.Method = "chain_newHead"
-		res.Params = headM
-		err = l.wsconn.safeSend(res)
-		if err != nil {
-			logger.Error("error sending websocket message", "error", err)
-		}
-
+		res.Params.Result = head
+		res.Params.SubscriptionID = l.subID
+		l.wsconn.safeSend(res)
 	}
 }
 
@@ -442,10 +436,7 @@ func (c *WSConn) initBlockFinalizedListener(reqID float64) (int, error) {
 	}
 
 	if c.blockAPI == nil {
-		err := c.safeSendError(reqID, nil, "error BlockAPI not set")
-		if err != nil {
-			logger.Warn("error sending error message", "error", err)
-		}
+		c.safeSendError(reqID, nil, "error BlockAPI not set")
 		return 0, fmt.Errorf("error BlockAPI not set")
 	}
 	chanID, err := c.blockAPI.RegisterFinalizedChannel(bfl.channel)
@@ -458,14 +449,12 @@ func (c *WSConn) initBlockFinalizedListener(reqID float64) (int, error) {
 	c.subscriptions[bfl.subID] = bfl
 	c.blockSubChannels[bfl.subID] = chanID
 	initRes := newSubscriptionResponseJSON(bfl.subID, reqID)
-	err = c.safeSend(initRes)
-	if err != nil {
-		return 0, err
-	}
+	c.safeSend(initRes)
+
 	return bfl.subID, nil
 }
 
-// Listen implementation of Listen interface to listen for channel changes
+// Listen implementation of Listen interface to listen for importedChan changes
 func (l *BlockFinalizedListener) Listen() {
 	for header := range l.channel {
 		if header == nil {
@@ -475,26 +464,25 @@ func (l *BlockFinalizedListener) Listen() {
 		if err != nil {
 			logger.Error("failed to convert header to JSON", "error", err)
 		}
-		headM := make(map[string]interface{})
-		headM["result"] = head
-		headM["subscription"] = l.subID
 		res := newSubcriptionBaseResponseJSON()
 		res.Method = "chain_finalizedHead"
-		res.Params = headM
-		err = l.wsconn.safeSend(res)
-		if err != nil {
-			logger.Error("error sending websocket message", "error", err)
-		}
+		res.Params.Result = head
+		res.Params.SubscriptionID = l.subID
+		l.wsconn.safeSend(res)
 	}
 }
 
-// ExtrinsicWatchListener to handle listening for extrinsic events
-type ExtrinsicWatchListener struct {
-	channel   chan *types.Block
+// ExtrinsicSubmitListener to handle listening for extrinsic events
+type ExtrinsicSubmitListener struct {
 	wsconn    *WSConn
-	chanID    byte
 	subID     int
 	extrinsic types.Extrinsic
+
+	importedChan    chan *types.Block
+	importedChanID  byte
+	importedHash    common.Hash
+	finalizedChan   chan *types.Header
+	finalizedChanID byte
 }
 
 // AuthorExtrinsicUpdates method name
@@ -508,105 +496,81 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (int, err
 	}
 
 	// listen for built blocks
-	bl := &ExtrinsicWatchListener{
-		channel:   make(chan *types.Block),
-		wsconn:    c,
-		extrinsic: types.Extrinsic(extBytes),
+	esl := &ExtrinsicSubmitListener{
+		importedChan:  make(chan *types.Block),
+		wsconn:        c,
+		extrinsic:     types.Extrinsic(extBytes),
+		finalizedChan: make(chan *types.Header),
 	}
 
 	if c.blockAPI == nil {
-		e := c.safeSendError(reqID, nil, "error BlockAPI not set")
-		if e != nil {
-			logger.Warn("error sending error message", "error", err)
-		}
 		return 0, fmt.Errorf("error BlockAPI not set")
 	}
-	chanID, err := c.blockAPI.RegisterImportedChannel(bl.channel)
+	esl.importedChanID, err = c.blockAPI.RegisterImportedChannel(esl.importedChan)
+	if err != nil {
+		return 0, err
+	}
+
+	esl.finalizedChanID, err = c.blockAPI.RegisterFinalizedChannel(esl.finalizedChan)
+	if err != nil {
+		return 0, err
+	}
+
 	c.qtyListeners++
-	if err != nil {
-		return 0, err
-	}
-	bl.chanID = chanID
-	bl.subID = c.qtyListeners
-	c.subscriptions[bl.subID] = bl
-	c.blockSubChannels[bl.subID] = chanID
-	initRes := newSubscriptionResponseJSON(bl.subID, reqID)
-	err = c.safeSend(initRes)
-	if err != nil {
-		return 0, err
-	}
+	esl.subID = c.qtyListeners
+	c.subscriptions[esl.subID] = esl
+	c.blockSubChannels[esl.subID] = esl.importedChanID
 
-	// For RPC request the transaction source is External
-	ext := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, extBytes...))
-
-	// validate the transaction
-	txv, err := c.runtimeAPI.ValidateTransaction(ext)
-	if err != nil {
-		return 0, err
-	}
-
-	headM := make(map[string]interface{})
-	headM["result"] = "future"
-	headM["subscription"] = c.qtyListeners
-	res := newSubcriptionBaseResponseJSON()
-	res.Method = AuthorExtrinsicUpdates
-	res.Params = headM
-	err = c.safeSend(res)
-	if err != nil {
-		logger.Error("error sending websocket message", "error", err)
-	}
-
-	vtx := transaction.NewValidTransaction(extBytes, txv)
-	if c.coreAPI.IsBlockProducer() {
-		c.txStateAPI.AddToPool(vtx)
-		headM := make(map[string]interface{})
-		headM["result"] = "ready"
-		headM["subscription"] = c.qtyListeners
-		res := newSubcriptionBaseResponseJSON()
-		res.Method = AuthorExtrinsicUpdates
-		res.Params = headM
-		err = c.safeSend(res)
-		if err != nil {
-			logger.Error("error sending websocket message", "error", err)
-		}
-	}
-
-	//broadcast
 	err = c.coreAPI.HandleSubmittedExtrinsic(extBytes)
 	if err != nil {
-		logger.Warn("failed to submit extrinsic to network", "error", err)
+		return 0, err
+	}
+	c.safeSend(newSubscriptionResponseJSON(esl.subID, reqID))
+
+	// TODO (ed) since HandleSubmittedExtrinsic has been called we assume the extrinsic is in the tx queue
+	//  should we add a channel to tx queue so we're notified when it's in the queue
+	if c.coreAPI.IsBlockProducer() {
+		c.safeSend(newSubscriptionResponse(AuthorExtrinsicUpdates, esl.subID, "ready"))
 	}
 
-	return bl.subID, nil
+	// todo (ed) determine which peer extrinsic has been broadcast to, and set status
+	return esl.subID, err
 }
 
-// Listen implementation of Listen interface to listen for channel changes
-func (l *ExtrinsicWatchListener) Listen() {
-	for block := range l.channel {
-		if block == nil {
-			continue
-		}
-		exts, err := block.Body.AsExtrinsics()
-		if err != nil {
-			fmt.Printf("error %v\n", err)
-		}
-		for _, v := range exts {
-			if reflect.DeepEqual(v, l.extrinsic) {
-				headM := make(map[string]interface{})
-				resM := make(map[string]interface{})
-				resM["inBlock"] = block.Header.Hash().String()
-				headM["result"] = resM
-				headM["subscription"] = l.subID
-				res := newSubcriptionBaseResponseJSON()
-				res.Method = AuthorExtrinsicUpdates
-				res.Params = headM
-				err = l.wsconn.safeSend(res)
-				if err != nil {
-					logger.Error("error sending websocket message", "error", err)
+// Listen implementation of Listen interface to listen for importedChan changes
+func (l *ExtrinsicSubmitListener) Listen() {
+	// listen for imported blocks with extrinsic
+	go func() {
+		for block := range l.importedChan {
+			if block == nil {
+				continue
+			}
+			exts, err := block.Body.AsExtrinsics()
+			if err != nil {
+				fmt.Printf("error %v\n", err)
+			}
+			for _, v := range exts {
+				if reflect.DeepEqual(v, l.extrinsic) {
+					resM := make(map[string]interface{})
+					resM["inBlock"] = block.Header.Hash().String()
+
+					l.importedHash = block.Header.Hash()
+					l.wsconn.safeSend(newSubscriptionResponse(AuthorExtrinsicUpdates, l.subID, resM))
 				}
 			}
 		}
-	}
+	}()
+
+	// listen for finalized headers
+	go func() {
+		for header := range l.finalizedChan {
+			if reflect.DeepEqual(l.importedHash, header.Hash()) {
+				resM := make(map[string]interface{})
+				resM["finalized"] = header.Hash().String()
+				l.wsconn.safeSend(newSubscriptionResponse(AuthorExtrinsicUpdates, l.subID, resM))
+			}
+		}
+	}()
 }
 
 // RuntimeVersionListener to handle listening for Runtime Version
@@ -620,20 +584,15 @@ func (c *WSConn) initRuntimeVersionListener(reqID float64) (int, error) {
 		wsconn: c,
 	}
 	if c.coreAPI == nil {
-		e := c.safeSendError(reqID, nil, "error CoreAPI not set")
-		if e != nil {
-			logger.Warn("error sending error message", "error", e)
-		}
+		c.safeSendError(reqID, nil, "error CoreAPI not set")
 		return 0, fmt.Errorf("error CoreAPI not set")
 	}
 	c.qtyListeners++
 	rvl.subID = c.qtyListeners
 	c.subscriptions[rvl.subID] = rvl
 	initRes := newSubscriptionResponseJSON(rvl.subID, reqID)
-	err := c.safeSend(initRes)
-	if err != nil {
-		return 0, err
-	}
+	c.safeSend(initRes)
+
 	return rvl.subID, nil
 }
 
@@ -643,7 +602,6 @@ func (l *RuntimeVersionListener) Listen() {
 	if err != nil {
 		return
 	}
-	result := make(map[string]interface{})
 	ver := modules.StateRuntimeVersionResponse{}
 
 	ver.SpecName = string(rtVersion.SpecName())
@@ -653,13 +611,6 @@ func (l *RuntimeVersionListener) Listen() {
 	ver.ImplVersion = rtVersion.ImplVersion()
 	ver.TransactionVersion = rtVersion.TransactionVersion()
 	ver.Apis = modules.ConvertAPIs(rtVersion.APIItems())
-	result["result"] = ver
-	result["subscription"] = l.subID
-	res := newSubcriptionBaseResponseJSON()
-	res.Method = "state_runtimeVersion"
-	res.Params = result
-	err = l.wsconn.safeSend(res)
-	if err != nil {
-		logger.Error("error sending websocket message", "error", err)
-	}
+
+	l.wsconn.safeSend(newSubscriptionResponse("state_runtimeVersion", l.subID, ver))
 }

@@ -18,6 +18,7 @@ package state
 
 import (
 	"errors"
+	"fmt"
 	"math/rand"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -95,7 +96,15 @@ func (bs *BlockState) UnregisterFinalizedChannel(id byte) {
 func (bs *BlockState) notifyImported(block *types.Block) {
 	bs.importedLock.RLock()
 	defer bs.importedLock.RUnlock()
-
+	//fmt.Printf("IMPORTED %v, %v\n", block.Header.Number, block.Body)
+	exts, err := block.Body.AsExtrinsics()
+	if err != nil {
+		fmt.Printf("error %v\n", err)
+	}
+	fmt.Printf("Imported %v\n", block.Header.Hash())
+	for _, v := range exts {
+		fmt.Printf("Ext %v\n", v)
+	}
 	if len(bs.imported) == 0 {
 		return
 	}
@@ -126,7 +135,7 @@ func (bs *BlockState) notifyFinalized(hash common.Hash) {
 	}
 
 	logger.Trace("notifying finalized block chans...", "chans", bs.finalized)
-
+	fmt.Printf("Finalized %v\n", hash)
 	for _, ch := range bs.finalized {
 		go func(ch chan<- *types.Header) {
 			select {

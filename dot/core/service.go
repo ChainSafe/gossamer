@@ -17,6 +17,7 @@ package core
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"sync"
 
@@ -456,6 +457,22 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 		return nil
 	}
 
+	// the transaction source is External
+	// validate the transaction
+	txv, err := s.rt.ValidateTransaction(append([]byte{byte(types.TxnExternal)}, ext...))
+	if err != nil {
+		return err
+	}
+	fmt.Printf("VTX %v\n", txv)
+
+	// add transaction to pool
+	vtx := transaction.NewValidTransaction(ext, txv)
+
+	if s.isBlockProducer {
+		s.transactionState.AddToPool(vtx)
+	}
+
+	// broadcast transaction
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}}
 	s.net.SendMessage(msg)
 	return nil
