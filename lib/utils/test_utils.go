@@ -70,7 +70,7 @@ func NewTestBasePath(t *testing.T, name string) string {
 func RemoveTestDir(t *testing.T) {
 	testDir := path.Join(TestDir, t.Name())
 	err := os.RemoveAll(testDir)
-	if err != nil && !PathExists(testDir) {
+	if err != nil || PathExists(testDir) {
 		fmt.Println(fmt.Errorf("failed to remove test directory: %s", err))
 	}
 }
