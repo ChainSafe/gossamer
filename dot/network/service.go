@@ -172,6 +172,11 @@ func (s *Service) Start() error {
 	s.syncQueue = newSyncQueue(s)
 	s.syncQueue.start()
 
+	connMgr := s.host.h.ConnManager().(*ConnManager)
+	connMgr.registerDisconnectHandler(func(p peer.ID) {
+		s.syncQueue.peerScore.Delete(p)
+	})
+
 	s.host.h.Network().SetConnHandler(s.handleConn)
 	s.host.registerStreamHandler(syncID, s.handleSyncStream)
 	s.host.registerStreamHandler(lightID, s.handleLightStream)
@@ -336,7 +341,7 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 	s.notificationsProtocols[messageID] = np
 
 	connMgr := s.host.h.ConnManager().(*ConnManager)
-	connMgr.RegisterCloseHandler(s.host.protocolID+sub, func(peerID peer.ID) {
+	connMgr.registerCloseHandler(s.host.protocolID+sub, func(peerID peer.ID) {
 		np.mapMu.Lock()
 		defer np.mapMu.Unlock()
 
@@ -552,14 +557,30 @@ func (s *Service) NetworkState() common.NetworkState {
 func (s *Service) Peers() []common.PeerInfo {
 	peers := []common.PeerInfo{}
 
+	s.notificationsMu.RLock()
+	defer s.notificationsMu.RUnlock()
+
 	for _, p := range s.host.peers() {
-		// TODO: update this based on BlockAnnounce handshake info
+		if s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[p] == nil {
+			peers = append(peers, common.PeerInfo{
+				PeerID: p.String(),
+			})
+
+			continue
+		}
+		peerHandshakeMessage := s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[p].handshake
+		if peerHandshakeMessage == nil {
+			peers = append(peers, common.PeerInfo{
+				PeerID: p.String(),
+			})
+			continue
+		}
+
 		peers = append(peers, common.PeerInfo{
-			PeerID: p.String(),
-			// Roles:           msg.Roles,
-			// ProtocolVersion: msg.ProtocolVersion,
-			// BestHash:        msg.BestBlockHash,
-			// BestNumber:      msg.BestBlockNumber,
+			PeerID:     p.String(),
+			Roles:      peerHandshakeMessage.(*BlockAnnounceHandshake).Roles,
+			BestHash:   peerHandshakeMessage.(*BlockAnnounceHandshake).BestBlockHash,
+			BestNumber: uint64(peerHandshakeMessage.(*BlockAnnounceHandshake).BestBlockNumber),
 		})
 	}
 	return peers
