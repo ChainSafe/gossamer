@@ -263,7 +263,7 @@ func TestBroadcast(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	basePathC := utils.NewTestBasePath(t, "")
+	basePathC := utils.NewTestBasePath(t, "nodeC")
 	configC := &Config{
 		BasePath:    basePathC,
 		Port:        7003,
