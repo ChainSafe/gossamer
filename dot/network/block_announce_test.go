@@ -85,9 +85,6 @@ func TestDecodeBlockAnnounceMessage(t *testing.T) {
 func TestHandleBlockAnnounceMessage(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "nodeA")
 
-	// removes all data directories created within test directory
-	defer utils.RemoveTestDir(t)
-
 	config := &Config{
 		BasePath:    basePath,
 		Port:        7001,
