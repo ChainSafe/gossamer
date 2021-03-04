@@ -99,14 +99,9 @@ func (s *TrieState) Delete(key []byte) {
 
 // NextKey returns the next key in the trie in lexicographical order. If it does not exist, it returns nil.
 func (s *TrieState) NextKey(key []byte) []byte {
-	entries := s.TrieEntries()
-
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 	keys := s.t.GetKeysWithPrefix([]byte{})
-	if len(keys) != len(entries) {
-		panic("number of keys doesn't match number of entries!!")
-	}
 
 	for i, k := range keys {
 		if i == len(keys)-1 {
@@ -116,7 +111,14 @@ func (s *TrieState) NextKey(key []byte) []byte {
 		if bytes.Equal(key, k) {
 			return keys[i+1]
 		}
+
+		// `keys` is already is lexigraphical order, so if k is greater than `key`, it's next
+		if bytes.Compare(k, key) == 1 {
+			return k
+		}
 	}
+
+	// TODO: fix this!!
 	//return s.t.NextKey(key)
 	return nil
 }

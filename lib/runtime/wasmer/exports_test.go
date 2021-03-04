@@ -639,12 +639,12 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// {"jsonrpc":"2.0","result":{"block":{"extrinsics":["0x280402000b60c241c07001","0x1004140000"],
-// "header":{"digest":{"logs":["0x0642414245b50101020000008abebb0f00000000045553c32a949242580161bcc35d7c3e492e66defdcf4525d7a338039590012f42660acabf1952a2d5d01725601705404d6ac671507a6aa2cf09840afbdfbb006f48062dae16c56b8dc5c6ea6ffba854b7e8f46e153e98c238cbe7bbb1556f0b",
-// "0x0542414245010136914c6832dd5ba811a975a3b654d76a1ec81684f4b03d115ce2e694feadc96411930438fde4beb008c5f8e26cfa2f5b554fa3814b5b73d31f348446fd4fd688"]},"extrinsicsRoot":"0x7f3ea0ed63b4053d9b75e7ee3e5b3f6ce916e8f59b7b6c5e966b7a56ea0a563a","number":"0x150627","parentHash":"0xca387b3cc045e8848277069d8794cbf077b08218c0b55f74d81dd750b14e768c","stateRoot":"0x7e5569e652c4b1a3cecfcf5e5e64a97fe55071d34bab51e25626ec20cae05a02"}},"justification":null},"id":1}
-
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
-	ksmTrie := newTrieFromPairs(t, "../../../block1377830.out")
+	if testing.Short() {
+		t.Skip("this test takes around 3min to run at the moment")
+	}
+
+	ksmTrie := newTrieFromPairs(t, "../test_data/block1377830_kusama.out")
 	expectedRoot := common.MustHexToHash("0xe4de6fecda9e9e35f937d159665cf984bc1a68048b6c78912de0aeb6bd7f7e99")
 	require.Equal(t, expectedRoot, ksmTrie.MustHash())
 
