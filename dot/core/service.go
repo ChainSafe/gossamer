@@ -17,7 +17,6 @@ package core
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"sync"
 
@@ -463,7 +462,6 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("VTX %v\n", txv)
 
 	// add transaction to pool
 	vtx := transaction.NewValidTransaction(ext, txv)
