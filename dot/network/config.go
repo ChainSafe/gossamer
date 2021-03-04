@@ -87,6 +87,8 @@ type Config struct {
 
 	// privateKey the private key for the network p2p identity
 	privateKey crypto.PrivKey
+
+	PublishMetrics bool
 }
 
 // build checks the configuration, sets up the private key for the network service,

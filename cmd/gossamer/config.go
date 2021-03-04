@@ -575,6 +575,8 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 		cfg.NoMDNS = true
 	}
 
+	cfg.PublishMetrics = ctx.Bool("publish-metrics")
+
 	logger.Debug(
 		"network configuration",
 		"port", cfg.Port,
