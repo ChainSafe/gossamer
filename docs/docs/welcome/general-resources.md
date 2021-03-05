@@ -1,7 +1,7 @@
 ---
 layout: default
 title: General Resources
-permalink: /general-resources/
+permalink: /welcome/general-resources/
 ---
 
 ## Welcome
