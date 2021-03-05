@@ -348,3 +348,66 @@ func TestSyncQueue_ProcessBlockRequests(t *testing.T) {
 	testResp := testBlockResponseMessage()
 	require.Equal(t, testResp.BlockData, nodeA.syncQueue.responses)
 }
+
+func TestSyncQueue_handleResponseQueue_noRequestsOrResponses(t *testing.T) {
+	q := newTestSyncQueue(t)
+	q.stop()
+	time.Sleep(time.Second)
+	q.ctx = context.Background()
+	go q.handleResponseQueue()
+	time.Sleep(time.Second * 2)
+	require.Equal(t, blockRequestBufferSize, len(q.requestCh))
+}
+
+func TestSyncQueue_handleResponseQueue_responseQueueAhead(t *testing.T) {
+	q := newTestSyncQueue(t)
+	q.stop()
+	time.Sleep(time.Second)
+	q.ctx = context.Background()
+
+	testHeader0 := types.Header{
+		Number: big.NewInt(77),
+		Digest: types.Digest{},
+	}
+	q.responses = append(q.responses, &types.BlockData{
+		Hash:          testHeader0.Hash(),
+		Header:        testHeader0.AsOptional(),
+		Body:          optional.NewBody(true, []byte{4, 4, 2}),
+		Receipt:       optional.NewBytes(false, nil),
+		MessageQueue:  optional.NewBytes(false, nil),
+		Justification: optional.NewBytes(false, nil),
+	})
+
+	go q.handleResponseQueue()
+	time.Sleep(time.Second * 2)
+
+	require.Equal(t, 1, len(q.requestCh))
+}
+
+func TestSyncQueue_processBlockResponses(t *testing.T) {
+	q := newTestSyncQueue(t)
+	q.stop()
+	time.Sleep(time.Second)
+	q.ctx = context.Background()
+
+	testHeader0 := types.Header{
+		Number: big.NewInt(0),
+		Digest: types.Digest{},
+	}
+	go func() {
+		q.responseCh <- []*types.BlockData{
+			{
+				Hash:          testHeader0.Hash(),
+				Header:        testHeader0.AsOptional(),
+				Body:          optional.NewBody(true, []byte{4, 4, 2}),
+				Receipt:       optional.NewBytes(false, nil),
+				MessageQueue:  optional.NewBytes(false, nil),
+				Justification: optional.NewBytes(false, nil),
+			},
+		}
+	}()
+
+	go q.processBlockResponses()
+	time.Sleep(time.Second)
+	require.Equal(t, blockRequestBufferSize, len(q.requestCh))
+}
