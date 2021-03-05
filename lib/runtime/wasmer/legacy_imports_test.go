@@ -691,7 +691,7 @@ func TestExt_malloc(t *testing.T) {
 
 	t.Log("[TestExt_malloc]", "pointer", res)
 	if res.ToI64() != int64(8+runtime.DefaultHeapBase) {
-		t.Errorf("malloc did not return expected pointer value, expected 8, got %v", res)
+		t.Errorf("malloc did not return expected pointer value, expected %d, got %v", int64(8+runtime.DefaultHeapBase), res)
 	}
 }
 
@@ -709,7 +709,7 @@ func TestExt_free(t *testing.T) {
 	require.Nil(t, err)
 
 	if ptr.ToI64() != int64(8+runtime.DefaultHeapBase) {
-		t.Errorf("malloc did not return expected pointer value, expected 8, got %v", ptr)
+		t.Errorf("malloc did not return expected pointer value, expected %d, got %v", int64(8+runtime.DefaultHeapBase), ptr)
 	}
 
 	// when
