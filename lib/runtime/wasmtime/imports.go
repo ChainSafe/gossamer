@@ -17,12 +17,19 @@
 package wasmtime
 
 import (
+	"fmt"
+
 	"github.com/bytecodealliance/wasmtime-go"
 )
 
+// int64ToPointerAndSize converts an int64 into a int32 pointer and a int32 length
+func int64ToPointerAndSize(in int64) (ptr int32, length int32) {
+	return int32(in), int32(in >> 32)
+}
+
 // Convert 64bit wasm span descriptor to Go memory slice
-func asMemorySlice(memory []byte, span C.int64_t) []byte {
-	ptr, size := int64ToPointerAndSize(int64(span))
+func asMemorySlice(memory []byte, span int64) []byte {
+	ptr, size := int64ToPointerAndSize(span)
 	return memory[ptr : ptr+size]
 }
 
@@ -357,7 +364,10 @@ func ImportNodeRuntime(store *wasmtime.Store, memory *wasmtime.Memory) (*wasmtim
 	}
 
 	linker := wasmtime.NewLinker(store)
-	linker.Define("env", "memory", memory)
+	if err := linker.Define("env", "memory", memory); err != nil {
+		return nil, err
+	}
+
 	for _, f := range fns {
 		if err := linker.DefineFunc("env", f.name, f.fn); err != nil {
 			return nil, err
