@@ -43,13 +43,16 @@ import (
 	wasm "github.com/wasmerio/wasmer-go/wasmer"
 )
 
-//export ext_logging_log_version_1
-func ext_logging_log_version_1(context unsafe.Pointer, level C.int32_t, targetData C.int64_t, msgData C.int64_t) {
+func ext_logging_log_version_1(env interface{}, levelValue, targetDataValue, msgDataValue wasm.Value) {
 	logger.Trace("[ext_logging_log_version_1] executing...")
-	instanceContext := wasm.IntoInstanceContext(context)
+	ctx := env.(*runtime.Context)
 
-	target := fmt.Sprintf("%s", asMemorySlice(instanceContext, targetData))
-	msg := fmt.Sprintf("%s", asMemorySlice(instanceContext, msgData))
+	level := levelValue.I32()
+	targetData := targetDataValue.I64()
+	msgData := msgDataValue.I64()
+
+	target := fmt.Sprintf("%s", asMemorySlice(ctx, targetData))
+	msg := fmt.Sprintf("%s", asMemorySlice(ctx, msgData))
 
 	switch int(level) {
 	case 0:
@@ -67,63 +70,57 @@ func ext_logging_log_version_1(context unsafe.Pointer, level C.int32_t, targetDa
 	}
 }
 
-//export ext_sandbox_instance_teardown_version_1
-func ext_sandbox_instance_teardown_version_1(context unsafe.Pointer, a C.int32_t) {
+func ext_sandbox_instance_teardown_version_1(_ interface{}, _ wasm.Value) {
 	logger.Trace("[ext_sandbox_instance_teardown_version_1] executing...")
 	logger.Warn("[ext_sandbox_instance_teardown_version_1] unimplemented")
 }
 
-//export ext_sandbox_instantiate_version_1
-func ext_sandbox_instantiate_version_1(context unsafe.Pointer, a C.int32_t, x, y C.int64_t, z C.int32_t) C.int32_t {
+func ext_sandbox_instantiate_version_1(_ interface{}, _, _, _, _ wasm.Value) wasm.Value {
 	logger.Trace("[ext_sandbox_instantiate_version_1] executing...")
 	logger.Warn("[ext_sandbox_instantiate_version_1] unimplemented")
-	return 0
+	return wasm.NewI32(0)
 }
 
-//export ext_sandbox_invoke_version_1
-func ext_sandbox_invoke_version_1(context unsafe.Pointer, a C.int32_t, x, y C.int64_t, z, d, e C.int32_t) C.int32_t {
+func ext_sandbox_invoke_version_1(_ interface{}, _, _, _, _, _, _ wasm.Value) wasm.Value {
 	logger.Trace("[ext_sandbox_invoke_version_1] executing...")
 	logger.Warn("[ext_sandbox_invoke_version_1] unimplemented")
-	return 0
+	return wasm.NewI32(0)
 }
 
-//export ext_sandbox_memory_get_version_1
-func ext_sandbox_memory_get_version_1(context unsafe.Pointer, a, z, d, e C.int32_t) C.int32_t {
+func ext_sandbox_memory_get_version_1(_ interface{}, _, _, _, _ wasm.Value) wasm.Value {
 	logger.Trace("[ext_sandbox_memory_get_version_1] executing...")
 	logger.Warn("[ext_sandbox_memory_get_version_1] unimplemented")
-	return 0
+	return wasm.NewI32(0)
 }
 
-//export ext_sandbox_memory_new_version_1
-func ext_sandbox_memory_new_version_1(context unsafe.Pointer, a, z C.int32_t) C.int32_t {
+func ext_sandbox_memory_new_version_1(_ interface{}, _, _ wasm.Value) wasm.Value {
 	logger.Trace("[ext_sandbox_memory_new_version_1] executing...")
 	logger.Warn("[ext_sandbox_memory_new_version_1] unimplemented")
-	return 0
+	return wasm.NewI32(0)
 }
 
-//export ext_sandbox_memory_set_version_1
-func ext_sandbox_memory_set_version_1(context unsafe.Pointer, a, z, d, e C.int32_t) C.int32_t {
+func ext_sandbox_memory_set_version_1(_ interface{}, _, _, _, _ wasm.Value) wasm.Value {
 	logger.Trace("[ext_sandbox_memory_set_version_1] executing...")
 	logger.Warn("[ext_sandbox_memory_set_version_1] unimplemented")
-	return 0
+	return wasm.NewI32(0)
 }
 
-//export ext_sandbox_memory_teardown_version_1
-func ext_sandbox_memory_teardown_version_1(context unsafe.Pointer, a C.int32_t) {
+func ext_sandbox_memory_teardown_version_1(_ interface{}, _ wasm.Value) {
 	logger.Trace("[ext_sandbox_memory_teardown_version_1] executing...")
 	logger.Warn("[ext_sandbox_memory_teardown_version_1] unimplemented")
 }
 
-//export ext_crypto_ed25519_generate_version_1
-func ext_crypto_ed25519_generate_version_1(context unsafe.Pointer, keyTypeID C.int32_t, seedSpan C.int64_t) C.int32_t {
+func ext_crypto_ed25519_generate_version_1(env interface{}, keyTypeIDValue, seedSpanValue wasm.Value) wasm.Value {
 	logger.Trace("[ext_crypto_ed25519_generate_version_1] executing...")
 
-	instanceContext := wasm.IntoInstanceContext(context)
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
-	memory := instanceContext.Memory().Data()
+	ctx := env.(*runtime.Context)
+	memory := ctx.Memory.Data()
+
+	keyTypeID := keyTypeIDValue.I32()
+	seedSpan := seedSpanValue.I64()
 
 	id := memory[keyTypeID : keyTypeID+4]
-	seedBytes := asMemorySlice(instanceContext, seedSpan)
+	seedBytes := asMemorySlice(ctx, seedSpan)
 	buf := &bytes.Buffer{}
 	buf.Write(seedBytes)
 
@@ -154,37 +151,36 @@ func ext_crypto_ed25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 
 	ks.Insert(kp)
 
-	ret, err := toWasmMemorySized(instanceContext, kp.Public().Encode(), 32)
+	ret, err := toWasmMemorySized(ctx, kp.Public().Encode(), 32)
 	if err != nil {
 		logger.Warn("[ext_crypto_ed25519_generate_version_1] failed to allocate memory", "error", err)
 		return 0
 	}
 
 	logger.Debug("[ext_crypto_ed25519_generate_version_1] generated ed25519 keypair", "public", kp.Public().Hex())
-	return C.int32_t(ret)
+	return wasm.NewI32(ret)
 }
 
-//export ext_crypto_ed25519_public_keys_version_1
-func ext_crypto_ed25519_public_keys_version_1(context unsafe.Pointer, keyTypeID C.int32_t) C.int64_t {
+func ext_crypto_ed25519_public_keys_version_1(env interface{}, keyTypeIDValue wasm.Value) wasm.Value {
 	logger.Debug("[ext_crypto_ed25519_public_keys_version_1] executing...")
 
-	instanceContext := wasm.IntoInstanceContext(context)
-	runtimeCtx := instanceContext.Data().(*runtime.Context)
-	memory := instanceContext.Memory().Data()
+	ctx := env.(*runtime.Context)
+	memory := ctx.Memory.Data()
 
+	keyTypeID := keyTypeIDValue.I32()
 	id := memory[keyTypeID : keyTypeID+4]
 
 	ks, err := runtimeCtx.Keystore.GetKeystore(id)
 	if err != nil {
 		logger.Warn("[ext_crypto_ed25519_public_keys_version_1]", "name", id, "error", err)
-		ret, _ := toWasmMemory(instanceContext, []byte{0})
-		return C.int64_t(ret)
+		ret, _ := toWasmMemory(ctx, []byte{0})
+		return wasm.NewI64(ret)
 	}
 
 	if ks.Type() != crypto.Ed25519Type {
 		logger.Warn("[ext_crypto_ed25519_public_keys_version_1]", "name", id, "error", "keystore type is not ed25519")
-		ret, _ := toWasmMemory(instanceContext, []byte{0})
-		return C.int64_t(ret)
+		ret, _ := toWasmMemory(ctx, []byte{0})
+		return wasm.NewI64(ret)
 	}
 
 	keys := ks.PublicKeys()
@@ -197,22 +193,22 @@ func ext_crypto_ed25519_public_keys_version_1(context unsafe.Pointer, keyTypeID 
 	prefix, err := scale.Encode(big.NewInt(int64(len(keys))))
 	if err != nil {
 		logger.Error("[ext_crypto_ed25519_public_keys_version_1] failed to allocate memory", err)
-		ret, _ := toWasmMemory(instanceContext, []byte{0})
-		return C.int64_t(ret)
+		ret, _ := toWasmMemory(ctx, []byte{0})
+		return wasm.NewI64(ret)
 	}
 
-	ret, err := toWasmMemory(instanceContext, append(prefix, encodedKeys...))
+	ret, err := toWasmMemory(ctx, append(prefix, encodedKeys...))
 	if err != nil {
 		logger.Error("[ext_crypto_ed25519_public_keys_version_1] failed to allocate memory", err)
-		ret, _ = toWasmMemory(instanceContext, []byte{0})
-		return C.int64_t(ret)
+		ret, _ = toWasmMemory(ctx, []byte{0})
+		return wasm.NewI64(ret)
 	}
 
-	return C.int64_t(ret)
+	return wasm.NewI64(ret)
 }
 
-//export ext_crypto_ed25519_sign_version_1
-func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeID C.int32_t, key C.int32_t, msg C.int64_t) C.int64_t {
+//func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeID C.int32_t, key C.int32_t, msg C.int64_t) C.int64_t {
+func ext_crypto_ed25519_sign_version_1(env interface{}, keyTypeIDValue, keyValue, msgValue wasm.Value) wasm.Value {
 	logger.Debug("[ext_crypto_ed25519_sign_version_1] executing...")
 
 	instanceContext := wasm.IntoInstanceContext(context)
@@ -261,7 +257,6 @@ func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeID C.int32
 	return C.int64_t(ret)
 }
 
-//export ext_crypto_ed25519_verify_version_1
 func ext_crypto_ed25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, msg C.int64_t, key C.int32_t) C.int32_t {
 	logger.Debug("[ext_crypto_ed25519_verify_version_1] executing...")
 

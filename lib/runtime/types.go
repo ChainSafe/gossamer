@@ -83,6 +83,7 @@ type Context struct {
 	// commit all the changes, or if ext_storage_rollback_transaction is called, the changes
 	// will be discarded.
 	TransactionStorageChanges []*TransactionStorageChange
+	Memory                    Memory
 }
 
 // NewValidateTransactionError returns an error based on a return value from TaggedTransactionQueueValidateTransaction

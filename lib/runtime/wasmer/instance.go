@@ -134,6 +134,8 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does
 	heapBase := runtime.DefaultHeapBase
 
+	mem := &Memory{memory}
+
 	ctx := &runtime.Context{
 		Storage: cfg.Storage,
 		//Allocator:   allocator,
@@ -143,10 +145,11 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 		Network:     cfg.Network,
 		Transaction: cfg.Transaction,
 		SigVerifier: runtime.NewSignatureVerifier(),
+		Memory:      mem,
 	}
 
 	imports := cfg.Imports(store, memory, ctx)
-	ctx.Allocator = runtime.NewAllocator(Memory{memory}, heapBase)
+	ctx.Allocator = runtime.NewAllocator(*mem, heapBase)
 
 	module, err := wasm.NewModule(store, code)
 	if err != nil {
