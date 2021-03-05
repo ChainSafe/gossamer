@@ -820,7 +820,6 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 	cfg := &Config{
 		Imports: ImportsNodeRuntime,
 	}
-	cfg.Kusama = instanceContext.Data().(*runtime.Context).Kusama
 	cfg.LogLvl = -1 // don't change log level
 	cfg.Storage, _ = rtstorage.NewTrieState(nil)
 
@@ -833,6 +832,12 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 	// instance version is set and cached in NewInstance
 	version := instance.version
 	logger.Debug("[ext_misc_runtime_version_version_1]", "version", version)
+
+	if version == nil {
+		logger.Error("[ext_misc_runtime_version_version_1] failed to get runtime version")
+		out, _ := toWasmMemoryOptional(instanceContext, nil)
+		return C.int64_t(out)
+	}
 
 	encodedData, err := version.Encode()
 	if err != nil {

@@ -18,6 +18,7 @@ package wasmtime
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -37,19 +38,13 @@ func (in *Instance) Version() (runtime.Version, error) {
 		return nil, err
 	}
 
-	if in.kusama {
-		version := new(runtime.LegacyVersionData)
-		err = version.Decode(res)
-		if err != nil {
-			return nil, err
-		}
-
-		return version, nil
-	}
-
 	version := new(runtime.VersionData)
-	err = version.Decode(res)
-	if err != nil {
+	if err == io.EOF {
+		// TODO: kusama seems to use the legacy version format
+		lversion := &runtime.LegacyVersionData{}
+		err = lversion.Decode(res)
+		return lversion, err
+	} else if err != nil {
 		return nil, err
 	}
 

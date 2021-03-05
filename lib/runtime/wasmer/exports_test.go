@@ -518,7 +518,6 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	cfg := &Config{}
 	cfg.Storage = genState
 	cfg.LogLvl = 4
-	cfg.Kusama = true
 
 	instance, err := NewRuntimeFromGenesis(gen, cfg)
 	require.NoError(t, err)
@@ -564,7 +563,6 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
 	cfg := &Config{}
 	cfg.Storage = state3783
 	cfg.LogLvl = 4
-	cfg.Kusama = true
 
 	instance, err := NewInstanceFromTrie(gossTrie3783, cfg)
 	require.NoError(t, err)
@@ -610,7 +608,6 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
 	cfg := &Config{}
 	cfg.Storage = state901441
 	cfg.LogLvl = 4
-	cfg.Kusama = true
 
 	instance, err := NewInstanceFromTrie(ksmTrie901441, cfg)
 	require.NoError(t, err)
@@ -660,7 +657,6 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
 	cfg := &Config{}
 	cfg.Storage = state
 	cfg.LogLvl = 4
-	cfg.Kusama = true
 
 	instance, err := NewInstanceFromTrie(ksmTrie, cfg)
 	require.NoError(t, err)
@@ -706,7 +702,6 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 	cfg := &Config{}
 	cfg.Storage = state
 	cfg.LogLvl = 4
-	cfg.Kusama = true
 
 	instance, err := NewInstanceFromTrie(ksmTrie, cfg)
 	require.NoError(t, err)

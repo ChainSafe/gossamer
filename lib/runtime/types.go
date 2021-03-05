@@ -45,7 +45,6 @@ type InstanceConfig struct {
 	NodeStorage NodeStorage
 	Network     BasicNetwork
 	Transaction TransactionState
-	Kusama      bool
 }
 
 // StorageChangeOperation represents a storage change operation
@@ -75,7 +74,6 @@ type Context struct {
 	Allocator   *FreeingBumpHeapAllocator
 	Keystore    *keystore.GlobalKeystore
 	Validator   bool
-	Kusama      bool
 	NodeStorage NodeStorage
 	Network     BasicNetwork
 	Transaction TransactionState

@@ -154,7 +154,6 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 		Network:     cfg.Network,
 		Transaction: cfg.Transaction,
 		SigVerifier: runtime.NewSignatureVerifier(),
-		Kusama:      cfg.Kusama,
 	}
 
 	logger.Debug("NewInstance", "runtimeCtx", runtimeCtx)
@@ -164,7 +163,6 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 		vm:      instance,
 		ctx:     runtimeCtx,
 		imports: cfg.Imports,
-		kusama:  cfg.Kusama,
 	}
 
 	inst.version, _ = inst.Version()

@@ -49,10 +49,9 @@ type Config struct {
 
 // Instance represents a v0.8 runtime go-wasmtime instance
 type Instance struct {
-	vm     *wasmtime.Instance
-	mu     sync.Mutex
-	mem    *wasmtime.Memory
-	kusama bool
+	vm  *wasmtime.Instance
+	mu  sync.Mutex
+	mem *wasmtime.Memory
 }
 
 // NewInstanceFromFile instantiates a runtime from a .wasm file
