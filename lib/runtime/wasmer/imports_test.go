@@ -436,15 +436,16 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 	inst.store(params, int32(ptr))
 	dataLen := int32(len(params))
 
-	runtimeFunc, ok := inst.vm.Exports["rtm_ext_crypto_ed25519_generate_version_1"]
-	require.True(t, ok)
+	runtimeFunc, err := inst.vm.Exports.GetFunction("rtm_ext_crypto_ed25519_generate_version_1")
+	require.NoError(t, err)
 
 	ret, err := runtimeFunc(int32(ptr), dataLen)
 	require.NoError(t, err)
 
-	mem := inst.vm.Memory.Data()
+	//	mem := inst.vm.Memory.Data()
 	// TODO: why is this SCALE encoded? it should just be a 32 byte buffer. may be due to way test runtime is written.
-	pubKeyBytes := mem[ret.ToI32()+1 : ret.ToI32()+1+32]
+	pubKeyBytes := inst.load(ret.(int32)+1, 32)
+	//pubKeyBytes := mem[ret.ToI32()+1 : ret.ToI32()+1+32]
 	pubKey, err := ed25519.NewPublicKey(pubKeyBytes)
 	require.NoError(t, err)
 

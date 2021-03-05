@@ -73,7 +73,6 @@ func TestInstance_Version_KusamaRuntime(t *testing.T) {
 
 	instance, err := NewRuntimeFromGenesis(gen, cfg)
 	require.NoError(t, err)
-	instance.(*Instance).kusama = true
 
 	expected := runtime.NewVersionData(
 		[]byte("kusama"),

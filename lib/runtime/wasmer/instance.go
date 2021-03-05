@@ -19,6 +19,7 @@ package wasmer
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"sync"
 
@@ -28,7 +29,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 
 	log "github.com/ChainSafe/log15"
-	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
+	wasm "github.com/wasmerio/wasmer-go/wasmer"
 )
 
 // Name represents the name of the interpreter
@@ -37,25 +38,26 @@ const Name = "wasmer"
 // Check that runtime interfaces are satisfied
 var (
 	_ runtime.Instance = (*Instance)(nil)
-	_ runtime.Memory   = (*wasm.Memory)(nil)
+	_ runtime.Memory   = (*Memory)(nil)
 
 	logger = log.New("pkg", "runtime", "module", "go-wasmer")
 )
 
+type ImportsFunc func(*wasm.Store, *wasm.Memory, *runtime.Context) *wasm.ImportObject
+
 // Config represents a wasmer configuration
 type Config struct {
 	runtime.InstanceConfig
-	Imports func() (*wasm.Imports, error)
+	Imports ImportsFunc
 }
 
 // Instance represents a v0.8 runtime go-wasmer instance
 type Instance struct {
-	vm      wasm.Instance
+	vm      *wasm.Instance
 	ctx     *runtime.Context
 	mutex   sync.Mutex
-	kusama  bool
 	version runtime.Version
-	imports func() (*wasm.Imports, error)
+	imports ImportsFunc
 }
 
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data
@@ -84,7 +86,7 @@ func NewInstanceFromTrie(t *trie.Trie, cfg *Config) (*Instance, error) {
 // NewInstanceFromFile instantiates a runtime from a .wasm file
 func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
 	// Reads the WebAssembly module as bytes.
-	bytes, err := wasm.ReadBytes(fp)
+	bytes, err := ioutil.ReadFile(fp)
 	if err != nil {
 		return nil, err
 	}
@@ -110,44 +112,31 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 		logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
 	}
 
-	imports, err := cfg.Imports()
-	if err != nil {
-		return nil, err
-	}
+	engine := wasm.NewEngine()
+	store := wasm.NewStore(engine)
 
 	// Provide importable memory for newer runtimes
 	// TODO: determine memory descriptor size that the runtime wants from the wasm.
 	// should be doable w/ wasmer 1.0.0.
-	memory, err := wasm.NewMemory(23, 0)
+	lim, err := wasm.NewLimits(23, 0)
 	if err != nil {
 		return nil, err
 	}
+	memType := wasm.NewMemoryType(lim)
+	memory := wasm.NewMemory(store, memType)
 
-	_, err = imports.AppendMemory("memory", memory)
-	if err != nil {
-		return nil, err
-	}
-
-	// Instantiates the WebAssembly module.
-	instance, err := wasm.NewInstanceWithImports(code, imports)
-	if err != nil {
-		return nil, err
-	}
+	// _, err = imports.AppendMemory("memory", memory)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	// TODO: get __heap_base exported value from runtime.
 	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does
 	heapBase := runtime.DefaultHeapBase
 
-	// Assume imported memory is used if runtime does not export any
-	if !instance.HasMemory() {
-		instance.Memory = memory
-	}
-
-	allocator := runtime.NewAllocator(instance.Memory, heapBase)
-
-	runtimeCtx := &runtime.Context{
-		Storage:     cfg.Storage,
-		Allocator:   allocator,
+	ctx := &runtime.Context{
+		Storage: cfg.Storage,
+		//Allocator:   allocator,
 		Keystore:    cfg.Keystore,
 		Validator:   cfg.Role == byte(4),
 		NodeStorage: cfg.NodeStorage,
@@ -156,12 +145,32 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 		SigVerifier: runtime.NewSignatureVerifier(),
 	}
 
-	logger.Debug("NewInstance", "runtimeCtx", runtimeCtx)
-	instance.SetContextData(runtimeCtx)
+	imports := cfg.Imports(store, memory, ctx)
+	ctx.Allocator = runtime.NewAllocator(Memory{memory}, heapBase)
+
+	module, err := wasm.NewModule(store, code)
+	if err != nil {
+		return nil, err
+	}
+
+	instance, err := wasm.NewInstance(module, imports)
+	if err != nil {
+		return nil, err
+	}
+
+	// // Assume imported memory is used if runtime does not export any
+	// if !instance.HasMemory() {
+	// 	instance.Memory = memory
+	// }
+
+	// allocator := runtime.NewAllocator(instance.Memory, heapBase)
+
+	logger.Debug("NewInstance", "ctx", ctx)
+	//instance.SetContextData(ctx)
 
 	inst := &Instance{
 		vm:      instance,
-		ctx:     runtimeCtx,
+		ctx:     ctx,
 		imports: cfg.Imports,
 	}
 
@@ -173,24 +182,35 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 func (in *Instance) UpdateRuntimeCode(code []byte) error {
 	in.Stop()
 
-	imports, err := in.imports()
-	if err != nil {
-		return err
-	}
+	// TODO: can we re-use engine and store?
+	engine := wasm.NewEngine()
+	store := wasm.NewStore(engine)
 
 	// Provide importable memory for newer runtimes
-	memory, err := wasm.NewMemory(23, 0)
+	// memory, err := wasm.NewMemory(23, 0)
+	// if err != nil {
+	// 	return err
+	// }
+	lim, err := wasm.NewLimits(23, 0)
+	if err != nil {
+		return err
+	}
+	memType := wasm.NewMemoryType(lim)
+	memory := wasm.NewMemory(store, memType)
+
+	imports := in.imports(store, memory, in.ctx)
+
+	// _, err = imports.AppendMemory("memory", memory)
+	// if err != nil {
+	// 	return err
+	// }
+
+	module, err := wasm.NewModule(store, code)
 	if err != nil {
 		return err
 	}
 
-	_, err = imports.AppendMemory("memory", memory)
-	if err != nil {
-		return err
-	}
-
-	// Instantiates the WebAssembly module.
-	instance, err := wasm.NewInstanceWithImports(code, imports)
+	instance, err := wasm.NewInstance(module, imports)
 	if err != nil {
 		return err
 	}
@@ -200,18 +220,17 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 	heapBase := runtime.DefaultHeapBase
 
 	// Assume imported memory is used if runtime does not export any
-	if !instance.HasMemory() {
-		instance.Memory = memory
-	}
+	// if !instance.HasMemory() {
+	// 	instance.Memory = memory
+	// }
 
-	in.ctx.Allocator = runtime.NewAllocator(instance.Memory, heapBase)
-	instance.SetContextData(in.ctx)
+	in.ctx.Allocator = runtime.NewAllocator(Memory{memory}, heapBase)
+	//instance.SetContextData(in.ctx)
 
 	inst := &Instance{
 		vm:      instance,
 		ctx:     in.ctx,
 		imports: in.imports,
-		kusama:  in.kusama,
 	}
 
 	inst.version, _ = inst.Version()
@@ -221,23 +240,35 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 // SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.
 func (in *Instance) SetContextStorage(s runtime.Storage) {
 	in.ctx.Storage = s
-	in.vm.SetContextData(in.ctx)
+	//in.vm.SetContextData(in.ctx)
 }
 
 // Stop func
 func (in *Instance) Stop() {
-	in.vm.Close()
+	//in.vm.Close()
 }
 
 // Store func
 func (in *Instance) store(data []byte, location int32) {
-	mem := in.vm.Memory.Data()
+	// TODO: can we store the memory we initialized in `in`?
+	memory, err := in.vm.Exports.GetMemory("memory")
+	if err != nil {
+		panic(err)
+	}
+
+	mem := memory.Data()
 	copy(mem[location:location+int32(len(data))], data)
 }
 
 // Load load
 func (in *Instance) load(location, length int32) []byte {
-	mem := in.vm.Memory.Data()
+	// TODO: can we store the memory we initialized in `in`?
+	memory, err := in.vm.Exports.GetMemory("memory")
+	if err != nil {
+		panic(err)
+	}
+
+	mem := memory.Data()
 	return mem[location : location+length]
 }
 
@@ -266,9 +297,9 @@ func (in *Instance) exec(function string, data []byte) ([]byte, error) {
 	in.store(data, int32(ptr))
 	datalen := int32(len(data))
 
-	runtimeFunc, ok := in.vm.Exports[function]
-	if !ok {
-		return nil, fmt.Errorf("could not find exported function %s", function)
+	runtimeFunc, err := in.vm.Exports.GetFunction(function)
+	if err != nil {
+		return nil, fmt.Errorf("could not find exported function %s: %w", function, err)
 	}
 
 	res, err := runtimeFunc(int32(ptr), datalen)
@@ -276,7 +307,7 @@ func (in *Instance) exec(function string, data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	offset, length := int64ToPointerAndSize(res.ToI64())
+	offset, length := int64ToPointerAndSize(res.(int64)) // TODO: are all returns int64?
 	return in.load(offset, length), nil
 }
 

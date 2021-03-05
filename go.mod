@@ -41,9 +41,9 @@ require (
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
 	github.com/onsi/ginkgo v1.14.0 // indirect
 	github.com/perlin-network/life v0.0.0-20191203030451-05c0e0f7eaea
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	github.com/urfave/cli v1.20.0
-	github.com/wasmerio/go-ext-wasm v0.3.2-0.20200326095750-0a32be6068ec
+	github.com/wasmerio/wasmer-go v1.0.3
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/mod v0.1.1-0.20191209134235-331c550502dd // indirect
 	golang.org/x/net v0.0.0-20200822124328-c89045814202 // indirect

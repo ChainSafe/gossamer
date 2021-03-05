@@ -26,9 +26,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
+
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
-	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
 // DefaultTestLogLvl is the log level used for test runtime instances
@@ -57,22 +57,9 @@ func NewTestInstanceWithRole(t *testing.T, targetRuntime string, role byte) *Ins
 	return r
 }
 
-// GetRuntimeImports ...
-func GetRuntimeImports(targetRuntime string) func() (*wasm.Imports, error) {
-	var registerImports func() (*wasm.Imports, error)
-
-	switch targetRuntime {
-	case runtime.NODE_RUNTIME:
-		registerImports = ImportsNodeRuntime
-	case runtime.POLKADOT_RUNTIME:
-		registerImports = ImportsNodeRuntime
-	case runtime.HOST_API_TEST_RUNTIME:
-		registerImports = ImportsNodeRuntime
-	default:
-		registerImports = ImportsNodeRuntime
-	}
-
-	return registerImports
+// GetRuntimeImports ... TODO: remove this
+func GetRuntimeImports(targetRuntime string) ImportsFunc {
+	return ImportsNodeRuntime
 }
 
 func setupConfig(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Lvl, role byte) (string, *Config) {
