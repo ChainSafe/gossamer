@@ -36,9 +36,8 @@ const Name = "wasmer"
 
 // Check that runtime interfaces are satisfied
 var (
-	_ runtime.LegacyInstance = (*LegacyInstance)(nil)
-	_ runtime.Instance       = (*Instance)(nil)
-	_ runtime.Memory         = (*wasm.Memory)(nil)
+	_ runtime.Instance = (*Instance)(nil)
+	_ runtime.Memory   = (*wasm.Memory)(nil)
 
 	logger = log.New("pkg", "runtime", "module", "go-wasmer")
 )
@@ -49,30 +48,14 @@ type Config struct {
 	Imports func() (*wasm.Imports, error)
 }
 
-// LegacyInstance represents a v0.6 runtime go-wasmer instance
-type LegacyInstance struct {
+// Instance represents a v0.8 runtime go-wasmer instance
+type Instance struct {
 	vm      wasm.Instance
 	ctx     *runtime.Context
 	mutex   sync.Mutex
+	kusama  bool
 	version runtime.Version
 	imports func() (*wasm.Imports, error)
-}
-
-// Instance represents a v0.8 runtime go-wasmer instance
-type Instance struct {
-	inst *LegacyInstance
-}
-
-// NewLegacyRuntimeFromGenesis creates a runtime instance from the genesis data
-func NewLegacyRuntimeFromGenesis(g *genesis.Genesis, cfg *Config) (runtime.LegacyInstance, error) {
-	codeStr := g.GenesisFields().Raw["top"][common.BytesToHex(common.CodeKey)]
-	if codeStr == "" {
-		return nil, fmt.Errorf("cannot find :code in genesis")
-	}
-
-	code := common.MustHexToBytes(codeStr)
-	cfg.Imports = ImportsLegacyNodeRuntime
-	return NewLegacyInstance(code, cfg)
 }
 
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data
@@ -85,22 +68,6 @@ func NewRuntimeFromGenesis(g *genesis.Genesis, cfg *Config) (runtime.Instance, e
 	code := common.MustHexToBytes(codeStr)
 	cfg.Imports = ImportsNodeRuntime
 	return NewInstance(code, cfg)
-}
-
-// NewLegacyInstanceFromFile instantiates a runtime from a .wasm file
-func NewLegacyInstanceFromFile(fp string, cfg *Config) (*LegacyInstance, error) {
-	// Reads the WebAssembly module as bytes.
-	bytes, err := wasm.ReadBytes(fp)
-	if err != nil {
-		return nil, err
-	}
-
-	return NewLegacyInstance(bytes, cfg)
-}
-
-// NewLegacyInstance instantiates a legacy runtime from raw wasm bytecode
-func NewLegacyInstance(code []byte, cfg *Config) (*LegacyInstance, error) {
-	return newLegacyInstance(code, cfg)
 }
 
 // NewInstanceFromTrie returns a new runtime instance with the code provided in the given trie
@@ -127,30 +94,15 @@ func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
 
 // NewInstance instantiates a runtime from raw wasm bytecode
 func NewInstance(code []byte, cfg *Config) (*Instance, error) {
-	inst, err := newLegacyInstance(code, cfg)
-	if err != nil {
-		return nil, err
-	}
-
 	// TODO: verify that v0.8 specific funcs are available
-	return &Instance{
-		inst: inst,
-	}, nil
-}
-
-// NewInstanceFromLegacy instantiates a runtime from legacy runtime
-// NOTE: this is unsafe and should be removed once all tests are upgraded to v0.8
-func NewInstanceFromLegacy(inst *LegacyInstance) *Instance {
-	return &Instance{
-		inst: inst,
-	}
+	return newInstance(code, cfg)
 }
 
 // UpdateRuntimeCode updates the runtime instance to run the given code
 func (in *Instance) UpdateRuntimeCode(code []byte) error {
-	in.inst.Stop()
+	in.Stop()
 
-	imports, err := in.inst.imports()
+	imports, err := in.imports()
 	if err != nil {
 		return err
 	}
@@ -181,57 +133,51 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 		instance.Memory = memory
 	}
 
-	in.inst.ctx.Allocator = runtime.NewAllocator(instance.Memory, heapBase)
-	instance.SetContextData(in.inst.ctx)
+	in.ctx.Allocator = runtime.NewAllocator(instance.Memory, heapBase)
+	instance.SetContextData(in.ctx)
 
-	inst := &LegacyInstance{
+	inst := &Instance{
 		vm:      instance,
-		ctx:     in.inst.ctx,
-		imports: in.inst.imports,
+		ctx:     in.ctx,
+		imports: in.imports,
+		kusama:  in.kusama,
 	}
 
 	inst.version, _ = inst.Version()
-
-	in.inst = inst
 	return nil
 }
 
-// Legacy returns the instance as a LegacyInstance
-func (in *Instance) Legacy() *LegacyInstance {
-	return in.inst
-}
+// // SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.
+// func (in *Instance) SetContextStorage(s runtime.Storage) {
+// 	in.inst.SetContextStorage(s)
+// }
 
-// SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.
-func (in *Instance) SetContextStorage(s runtime.Storage) {
-	in.inst.SetContextStorage(s)
-}
+// // Stop func
+// func (in *Instance) Stop() {
+// 	in.inst.Stop()
+// }
 
-// Stop func
-func (in *Instance) Stop() {
-	in.inst.Stop()
-}
+// // Exec calls the given function with the given data
+// func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
+// 	return in.inst.Exec(function, data)
+// }
 
-// Exec calls the given function with the given data
-func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
-	return in.inst.Exec(function, data)
-}
+// // Exec func
+// func (in *Instance) exec(function string, data []byte) ([]byte, error) { //nolint
+// 	return in.inst.exec(function, data)
+// }
 
-// Exec func
-func (in *Instance) exec(function string, data []byte) ([]byte, error) { //nolint
-	return in.inst.exec(function, data)
-}
+// // NodeStorage to get reference to runtime node service
+// func (in *Instance) NodeStorage() runtime.NodeStorage {
+// 	return in.inst.ctx.NodeStorage
+// }
 
-// NodeStorage to get reference to runtime node service
-func (in *Instance) NodeStorage() runtime.NodeStorage {
-	return in.inst.ctx.NodeStorage
-}
+// // NetworkService to get referernce to runtime network service
+// func (in *Instance) NetworkService() runtime.BasicNetwork {
+// 	return in.inst.ctx.Network
+// }
 
-// NetworkService to get referernce to runtime network service
-func (in *Instance) NetworkService() runtime.BasicNetwork {
-	return in.inst.ctx.Network
-}
-
-func newLegacyInstance(code []byte, cfg *Config) (*LegacyInstance, error) {
+func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	if len(code) == 0 {
 		return nil, errors.New("code is empty")
 	}
@@ -287,15 +233,17 @@ func newLegacyInstance(code []byte, cfg *Config) (*LegacyInstance, error) {
 		Network:     cfg.Network,
 		Transaction: cfg.Transaction,
 		SigVerifier: runtime.NewSignatureVerifier(),
+		Kusama:      cfg.Kusama,
 	}
 
 	logger.Debug("NewInstance", "runtimeCtx", runtimeCtx)
 	instance.SetContextData(runtimeCtx)
 
-	inst := &LegacyInstance{
+	inst := &Instance{
 		vm:      instance,
 		ctx:     runtimeCtx,
 		imports: cfg.Imports,
+		kusama:  cfg.Kusama,
 	}
 
 	inst.version, _ = inst.Version()
@@ -303,35 +251,35 @@ func newLegacyInstance(code []byte, cfg *Config) (*LegacyInstance, error) {
 }
 
 // SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.
-func (in *LegacyInstance) SetContextStorage(s runtime.Storage) {
+func (in *Instance) SetContextStorage(s runtime.Storage) {
 	in.ctx.Storage = s
 	in.vm.SetContextData(in.ctx)
 }
 
 // Stop func
-func (in *LegacyInstance) Stop() {
+func (in *Instance) Stop() {
 	in.vm.Close()
 }
 
 // Store func
-func (in *LegacyInstance) store(data []byte, location int32) {
+func (in *Instance) store(data []byte, location int32) {
 	mem := in.vm.Memory.Data()
 	copy(mem[location:location+int32(len(data))], data)
 }
 
 // Load load
-func (in *LegacyInstance) load(location, length int32) []byte {
+func (in *Instance) load(location, length int32) []byte {
 	mem := in.vm.Memory.Data()
 	return mem[location : location+length]
 }
 
 // Exec calls the given function with the given data
-func (in *LegacyInstance) Exec(function string, data []byte) ([]byte, error) {
+func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 	return in.exec(function, data)
 }
 
 // Exec func
-func (in *LegacyInstance) exec(function string, data []byte) ([]byte, error) {
+func (in *Instance) exec(function string, data []byte) ([]byte, error) {
 	if in.ctx.Storage == nil {
 		return nil, runtime.ErrNilStorage
 	}
@@ -364,21 +312,21 @@ func (in *LegacyInstance) exec(function string, data []byte) ([]byte, error) {
 	return in.load(offset, length), nil
 }
 
-func (in *LegacyInstance) malloc(size uint32) (uint32, error) {
+func (in *Instance) malloc(size uint32) (uint32, error) {
 	return in.ctx.Allocator.Allocate(size)
 }
 
-func (in *LegacyInstance) clear() {
+func (in *Instance) clear() {
 	in.ctx.Allocator.Clear()
 }
 
 // NodeStorage to get reference to runtime node service
-func (in *LegacyInstance) NodeStorage() runtime.NodeStorage {
+func (in *Instance) NodeStorage() runtime.NodeStorage {
 	return in.ctx.NodeStorage
 }
 
 // NetworkService to get referernce to runtime network service
-func (in *LegacyInstance) NetworkService() runtime.BasicNetwork {
+func (in *Instance) NetworkService() runtime.BasicNetwork {
 	return in.ctx.Network
 }
 
