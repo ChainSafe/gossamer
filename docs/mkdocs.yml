@@ -31,7 +31,7 @@ nav:
   - Running Gossamer:
     - Command Line: ./running-gossamer/command-line.md
     - Configuration: ./running-gossamer/configuration.md
-    - Connect to Poklkadot.js: ./running-gossamer/connect-to-polkadot-js.md
+    - Connect to Polkadot.js: ./running-gossamer/connect-to-polkadot-js.md
     - Official Nodes: ./running-gossamer/official-nodes.md
   - Building Gossamer: 
     - Host Architecture: ./building-gossamer/host-architecture.md
