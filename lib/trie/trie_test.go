@@ -545,6 +545,8 @@ func TestGetKeysWithPrefix(t *testing.T) {
 		{key: []byte{0xf2}, value: []byte("pho"), op: PUT},
 		{key: []byte(":key1"), value: []byte("value1"), op: PUT},
 		{key: []byte(":key2"), value: []byte("value2"), op: PUT},
+		{key: []byte{0xff, 0xee, 0xdd, 0xcc, 0xbb, 0x11}, value: []byte("asd"), op: PUT},
+		{key: []byte{0xff, 0xee, 0xdd, 0xcc, 0xaa, 0x11}, value: []byte("fgh"), op: PUT},
 	}
 
 	for _, test := range tests {
@@ -565,6 +567,10 @@ func TestGetKeysWithPrefix(t *testing.T) {
 
 	expected = [][]byte{[]byte(":key1")}
 	keys = trie.GetKeysWithPrefix([]byte(":key1"))
+	require.Equal(t, expected, keys)
+
+	expected = [][]byte{}
+	keys = trie.GetKeysWithPrefix([]byte{0xff, 0xee, 0xbb, 0xcc, 0xbb, 0x11})
 	require.Equal(t, expected, keys)
 }
 
@@ -686,6 +692,8 @@ func TestClearPrefix(t *testing.T) {
 		{key: []byte{0x07, 0x3a}, value: []byte("ramen"), op: PUT},
 		{key: []byte{0x07, 0x3b}, value: []byte("noodles"), op: PUT},
 		{key: []byte{0xf2}, value: []byte("pho"), op: PUT},
+		{key: []byte{0xff, 0xee, 0xdd, 0xcc, 0xbb, 0x11}, value: []byte("asd"), op: PUT},
+		{key: []byte{0xff, 0xee, 0xdd, 0xcc, 0xaa, 0x11}, value: []byte("fgh"), op: PUT},
 	}
 
 	buildTrie := func() *Trie {
@@ -711,6 +719,7 @@ func TestClearPrefix(t *testing.T) {
 		{0x07},
 		{0x07, 0x30},
 		{0xf0},
+		{0xff, 0xee, 0xdd, 0xcc, 0xbb, 0x11},
 	}
 
 	for _, prefix := range testCases {

@@ -1622,7 +1622,7 @@ func ext_storage_next_key_version_1(context unsafe.Pointer, keySpan C.int64_t) C
 	key := asMemorySlice(instanceContext, keySpan)
 
 	next := storage.NextKey(key)
-	logger.Debug("[ext_storage_next_key_version_1]", "key", key, "next", next)
+	logger.Debug("[ext_storage_next_key_version_1]", "key", fmt.Sprintf("0x%x", key), "next", fmt.Sprintf("0x%x", next))
 
 	nextSpan, err := toWasmMemoryOptional(instanceContext, next)
 	if err != nil {

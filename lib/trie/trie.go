@@ -427,7 +427,7 @@ func (t *Trie) getKeysWithPrefix(parent node, prefix, key []byte, keys [][]byte)
 			return keys
 		}
 
-		if len(key) <= len(p.key) {
+		if len(key) <= len(p.key) || length < len(p.key) {
 			// no prefixed keys to be found here, return
 			return keys
 		}
@@ -539,7 +539,7 @@ func (t *Trie) clearPrefix(curr node, prefix []byte) (node, bool) {
 		// Store the current node and return it, if the trie is not updated.
 		nn := t.maybeUpdateBranchGeneration(c)
 
-		if len(prefix) == len(nn.key)+1 {
+		if len(prefix) == len(nn.key)+1 && length == len(prefix)-1 {
 			// found prefix at child index, delete child
 			i := prefix[len(nn.key)]
 			nn.children[i] = nil
@@ -548,7 +548,7 @@ func (t *Trie) clearPrefix(curr node, prefix []byte) (node, bool) {
 			return curr, true
 		}
 
-		if len(prefix) <= len(c.key) {
+		if len(prefix) <= len(c.key) || length < len(c.key) {
 			// this node doesn't have the prefix, return
 			return c, false
 		}
