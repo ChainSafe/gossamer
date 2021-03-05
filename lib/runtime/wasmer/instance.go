@@ -98,85 +98,6 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 	return newInstance(code, cfg)
 }
 
-// UpdateRuntimeCode updates the runtime instance to run the given code
-func (in *Instance) UpdateRuntimeCode(code []byte) error {
-	in.Stop()
-
-	imports, err := in.imports()
-	if err != nil {
-		return err
-	}
-
-	// Provide importable memory for newer runtimes
-	memory, err := wasm.NewMemory(23, 0)
-	if err != nil {
-		return err
-	}
-
-	_, err = imports.AppendMemory("memory", memory)
-	if err != nil {
-		return err
-	}
-
-	// Instantiates the WebAssembly module.
-	instance, err := wasm.NewInstanceWithImports(code, imports)
-	if err != nil {
-		return err
-	}
-
-	// TODO: get __heap_base exported value from runtime.
-	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does
-	heapBase := runtime.DefaultHeapBase
-
-	// Assume imported memory is used if runtime does not export any
-	if !instance.HasMemory() {
-		instance.Memory = memory
-	}
-
-	in.ctx.Allocator = runtime.NewAllocator(instance.Memory, heapBase)
-	instance.SetContextData(in.ctx)
-
-	inst := &Instance{
-		vm:      instance,
-		ctx:     in.ctx,
-		imports: in.imports,
-		kusama:  in.kusama,
-	}
-
-	inst.version, _ = inst.Version()
-	return nil
-}
-
-// // SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.
-// func (in *Instance) SetContextStorage(s runtime.Storage) {
-// 	in.inst.SetContextStorage(s)
-// }
-
-// // Stop func
-// func (in *Instance) Stop() {
-// 	in.inst.Stop()
-// }
-
-// // Exec calls the given function with the given data
-// func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
-// 	return in.inst.Exec(function, data)
-// }
-
-// // Exec func
-// func (in *Instance) exec(function string, data []byte) ([]byte, error) { //nolint
-// 	return in.inst.exec(function, data)
-// }
-
-// // NodeStorage to get reference to runtime node service
-// func (in *Instance) NodeStorage() runtime.NodeStorage {
-// 	return in.inst.ctx.NodeStorage
-// }
-
-// // NetworkService to get referernce to runtime network service
-// func (in *Instance) NetworkService() runtime.BasicNetwork {
-// 	return in.inst.ctx.Network
-// }
-
 func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	if len(code) == 0 {
 		return nil, errors.New("code is empty")
@@ -248,6 +169,55 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 
 	inst.version, _ = inst.Version()
 	return inst, nil
+}
+
+// UpdateRuntimeCode updates the runtime instance to run the given code
+func (in *Instance) UpdateRuntimeCode(code []byte) error {
+	in.Stop()
+
+	imports, err := in.imports()
+	if err != nil {
+		return err
+	}
+
+	// Provide importable memory for newer runtimes
+	memory, err := wasm.NewMemory(23, 0)
+	if err != nil {
+		return err
+	}
+
+	_, err = imports.AppendMemory("memory", memory)
+	if err != nil {
+		return err
+	}
+
+	// Instantiates the WebAssembly module.
+	instance, err := wasm.NewInstanceWithImports(code, imports)
+	if err != nil {
+		return err
+	}
+
+	// TODO: get __heap_base exported value from runtime.
+	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does
+	heapBase := runtime.DefaultHeapBase
+
+	// Assume imported memory is used if runtime does not export any
+	if !instance.HasMemory() {
+		instance.Memory = memory
+	}
+
+	in.ctx.Allocator = runtime.NewAllocator(instance.Memory, heapBase)
+	instance.SetContextData(in.ctx)
+
+	inst := &Instance{
+		vm:      instance,
+		ctx:     in.ctx,
+		imports: in.imports,
+		kusama:  in.kusama,
+	}
+
+	inst.version, _ = inst.Version()
+	return nil
 }
 
 // SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.
