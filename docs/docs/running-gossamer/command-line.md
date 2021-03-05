@@ -4,10 +4,6 @@ title: Command-Line
 permalink: /command-line/
 ---
 
-- _TODO: update "Command-Line" document [#868](https://github.com/ChainSafe/gossamer/issues/868)_
-
----
-
 ## Gossamer Command
 
 The `gossamer` command is the root command for the `gossamer` package (`cmd/gossamer`). The root command starts the node (and initializes the node if the node has not already been initialized). 
