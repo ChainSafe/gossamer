@@ -54,7 +54,10 @@ These are the local flags that can be used with the `gossamer` command
 --rpchost value    HTTP-RPC server listening hostname
 --rpcport value    HTTP-RPC server listening port (default: 0)
 --rpcmods value    API modules to enable via HTTP-RPC, comma separated list
---unlock value     Unlock an account. eg. --unlock=0,2 to unlock accounts 0 and 2. Can be used with --password=[password] to avoid prompt. For multiple passwords, do --password=password1,password2
+--unlock value     Unlock an account. 
+                   eg. --unlock=0,2 to unlock accounts 0 and 2. 
+                   Can be used with --password=[password] to avoid prompt. 
+                   For multiple passwords, do --password=password1,password2
 --ws-external      Enable the external websockets server
 --wsport value     Websockets server listening port (default: 0)
 --version, -v      print the version
@@ -67,10 +70,10 @@ List of available ***subcommands***:
 
 ```
 SUBCOMMANDS:
-    help, h     Shows a list of commands or help for one command
-    account     Create and manage node keystore accounts
-    export      Export configuration values to TOML configuration file
-    init        Initialize node databases and load genesis data to state
+    help, h        Shows a list of commands or help for one command
+    account        Create and manage node keystore accounts
+    export         Export configuration values to TOML configuration file
+    init           Initialize node databases and load genesis data to state
 ```
 
 List of ***local flags*** for `init` subcommand:
