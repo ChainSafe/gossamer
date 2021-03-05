@@ -694,11 +694,6 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 	expectedRoot := common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb")
 	require.Equal(t, expectedRoot, ksmTrie.MustHash())
 
-	key := common.MustHexToBytes("0x5f3e4907f716ac89b6347d15ececedcaad811cd65a470ddc5f1d628ff05509823ba10e87535597f44b0e2dc7401b730625010895ab378b442273b1bc6ba8f5a0")
-	val := ksmTrie.Get(key)
-	t.Log(val)
-	//return
-
 	// set state to genesis state
 	state, err := storage.NewTrieState(ksmTrie)
 	require.NoError(t, err)
