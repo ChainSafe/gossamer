@@ -284,14 +284,7 @@ func ext_offchain_index_set_version_1(c *wasmtime.Caller, a, b int64) {
 }
 
 // ImportNodeRuntime adds the imports for the v0.8 runtime to linker
-func ImportNodeRuntime(store *wasmtime.Store) (*wasmtime.Linker, error) {
-	lim := wasmtime.Limits{
-		Min: 20,
-		Max: wasmtime.LimitsMaxNone,
-	}
-
-	mem := wasmtime.NewMemory(store, wasmtime.NewMemoryType(lim))
-
+func ImportNodeRuntime(store *wasmtime.Store, memory *wasmtime.Memory) (*wasmtime.Linker, error) {
 	fns := []struct {
 		name string
 		fn   interface{}
@@ -351,10 +344,10 @@ func ImportNodeRuntime(store *wasmtime.Store) (*wasmtime.Linker, error) {
 		{"ext_storage_set_version_1", ext_storage_set_version_1},
 		{"ext_storage_start_transaction_version_1", ext_storage_start_transaction_version_1},
 		{"ext_offchain_index_set_version_1", ext_offchain_index_set_version_1},
-		{"mem", mem},
 	}
 
 	linker := wasmtime.NewLinker(store)
+	linker.Define("env", "memory", memory)
 	for _, f := range fns {
 		if err := linker.DefineFunc("env", f.name, f.fn); err != nil {
 			return nil, err

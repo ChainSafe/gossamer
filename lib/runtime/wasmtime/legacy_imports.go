@@ -16,6 +16,7 @@
 
 package wasmtime
 
+/*
 import (
 	"encoding/binary"
 	"fmt"
@@ -655,3 +656,4 @@ func ImportHostHandler(store *wasmtime.Store) (*wasmtime.Linker, error) {
 
 	return linker, nil
 }
+*/
