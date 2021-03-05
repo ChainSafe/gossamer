@@ -10,12 +10,12 @@ permalink: /official-nodes/
 
 ## `chain/gssmr`
 
-- The **gssmr** directory includes configuration files for the ***gssmr node*** implementation - an official node implementation for the Gossamer Testnet (see [Official Nodes](../host-architecture#official-nodes)).
+- The **gssmr** directory includes configuration files for the ***gssmr node*** implementation - an official node implementation for the Gossamer Testnet (see [Official Nodes](/building-gossamer/host-architecture#official-nodes)).
 
 ## `chain/ksmcc`
 
-- The **ksmcc** directory includes configuration files for the ***ksmcc node*** implementation - an official node implementation for the Kusama Network (see [Official Nodes](../host-architecture#official-nodes)).
+- The **ksmcc** directory includes configuration files for the ***ksmcc node*** implementation - an official node implementation for the Kusama Network (see [Official Nodes](/building-gossamer/host-architecture#official-nodes)).
 
 ## `chain/dotcc`
 
-- The **dotcc** directory includes configuration files for the ***dotcc node*** implementation - an official node implementation for the Polkadot Network (see [Official Nodes](../host-architecture#official-nodes)).
+- The **dotcc** directory includes configuration files for the ***dotcc node*** implementation - an official node implementation for the Polkadot Network (see [Official Nodes](/building-gossamer/host-architecture#official-nodes)).

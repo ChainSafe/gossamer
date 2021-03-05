@@ -39,7 +39,7 @@ The **node services** are the main components of the **host node**:
 
 Each **node service** adheres to a common interface:
 
-```go=
+```go
 type Service interface {
 	Start() error
 	Stop() error
@@ -68,7 +68,7 @@ The **network service** is responsible for coordinating network host and peer in
 
 The **host submodule** is a wrapper for the libp2p host. This is used to abstract away the details of libp2p and to provide a simple reusable interface for the network host.
 
-```go=
+```go
 type host struct {
 	ctx        context.Context
 	h          libp2phost.Host
@@ -82,7 +82,7 @@ type host struct {
 
 The **status submodule** implements the protocol for the status message exchange.
 
-```go=
+```go
 type status struct {
 	host          *host
 	hostMessage   *StatusMessage
@@ -95,7 +95,7 @@ type status struct {
 
 The **gossip submodule** stores information about past messages to effectively determine which messages to propagate and which to ignore.
 
-```go=
+```go
 type gossip struct {
 	host    *host
 	hasSeen *sync.Map
@@ -106,7 +106,7 @@ type gossip struct {
 
 The **syncer submodule** tracks requested blocks and coordinates syncing with the **core service**.
 
-```go=
+```go
 type syncer struct {
 	host              *host
 	blockState        BlockState

@@ -8,11 +8,11 @@ permalink: /welcome/get-started/
 
 ## Prerequisites
 
-Install go version `>=1.15`
+Install <a target="_blank" rel="noopener noreferrer" href="https://golang.org/">Go</a> version `>=1.15`
 
 ## Installation
 
-Get the [ChainSafe/gossamer](https://github.com/ChainSafe/gossamer) repository:
+Get the <a target="_blank" rel="noopener noreferrer" href="https://github.com/ChainSafe/gossamer">ChainSafe/gossamer</a> repository:
 ```
 git clone git@github.com:ChainSafe/gossamer
 cd gossamer

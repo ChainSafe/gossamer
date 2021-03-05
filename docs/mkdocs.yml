@@ -34,12 +34,12 @@ nav:
     - Connect to Poklkadot.js: ./running-gossamer/connect-to-polkadot-js.md
     - Official Nodes: ./running-gossamer/official-nodes.md
   - Building Gossamer: 
-    - Developer Resources: ./building-gossamer/developer-resources.md
     - Host Architecture: ./building-gossamer/host-architecture.md
     - Integration Tests: ./building-gossamer/integration-tests.md
     - Custom Services: ./building-gossamer/custom-services.md
     - Import Runtime: ./building-gossamer/import-runtime.md
     - SCALE Examples: ./building-gossamer/scale-examples.md
+    - Developer Resources: ./building-gossamer/developer-resources.md
 extra_css:
   - stylesheets/extra.css
 extra:

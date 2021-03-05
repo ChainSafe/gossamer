@@ -8,7 +8,7 @@ permalink: /welcome/package-library/
 
 Gossamer is a ***modular blockchain framework***; it was designed with a package structure that makes it possible to reuse Gossamer packages to build and run custom nodes and node services.
 
-This document provides an overview of the packages that make up the Gossamer framework - more detailed information about each package can be found at [pkg.go.dev/ChainSafe/gossamer](https://pkg.go.dev/github.com/ChainSafe/gossamer).
+This document provides an overview of the packages that make up the Gossamer framework - more detailed information about each package can be found at <a target="_blank" rel="noopener noreferrer" href="https://pkg.go.dev/github.com/ChainSafe/gossamer">pkg.go.dev/ChainSafe/gossamer</a>.
 
 Gossamer packages can be categorized into **four package types**:
 
@@ -38,23 +38,23 @@ Gossamer packages can be categorized into **four package types**:
 
 #### `host`
 
-- The **host package** implements the shared base protocol for all node implementations operating within the Polkadot ecosystem. The **host package** implements the [Host Node](../host-architecture#host-node); it is the base node implementation for all [Official Nodes](../host-architecture#official-nodes) and [Custom Services](../host-architecture#custom-services) built with Gossamer.
+- The **host package** implements the shared base protocol for all node implementations operating within the Polkadot ecosystem. The **host package** implements the [Host Node](/building-gossamer/host-architecture#host-node); it is the base node implementation for all [Official Nodes](/building-gossamer/host-architecture#official-nodes) and [Custom Services](/building-gossamer/host-architecture#custom-services) built with Gossamer.
 
 #### `host/core`
 
-- The **core package** implements the [Core Service](../host-architecture#core-service) -  responsible for block production and block finalization (consensus) and processing messages received from the [Network Service](../host-architecture#network-service).
+- The **core package** implements the [Core Service](/building-gossamer/host-architecture#core-service) -  responsible for block production and block finalization (consensus) and processing messages received from the [Network Service](/building-gossamer/host-architecture/#network-service).
 
 #### `host/network`
 
-- The **network package** implements the [Network Service](../host-architecture#network-service) - responsible for coordinating network host and peer interactions. It manages peer connections, receives and parses messages from connected peers and handles each message based on its type.
+- The **network package** implements the [Network Service](/building-gossamer/host-architecture/#network-service) - responsible for coordinating network host and peer interactions. It manages peer connections, receives and parses messages from connected peers and handles each message based on its type.
 
 #### `host/state`
 
-- The **state package** implements the [State Service](../host-architecture#state-service) - the source of truth for all chain and node state that is made accessible to all node services.
+- The **state package** implements the [State Service](/building-gossamer/host-architecture#state-service) - the source of truth for all chain and node state that is made accessible to all node services.
 
 #### `host/rpc`
 
-- The **rpc package** implements the [RPC Service](../host-architecture#rpc-service) - an HTTP server that handles state interactions.
+- The **rpc package** implements the [RPC Service](/building-gossamer/host-architecture#rpc-service) - an HTTP server that handles state interactions.
 
 #### `host/types`
 
@@ -113,3 +113,9 @@ Gossamer packages can be categorized into **four package types**:
 #### `lib/utils`
 
 - the **utils package** is used to manage node and test directories
+
+## test packages
+
+#### `?`
+
+- TODO: Fillout
