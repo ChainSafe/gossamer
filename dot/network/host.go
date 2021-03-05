@@ -23,7 +23,7 @@ import (
 	"path"
 	"time"
 
-	badger "github.com/ipfs/go-ds-badger"
+	badger "github.com/ipfs/go-ds-badger2"
 	"github.com/libp2p/go-libp2p"
 	libp2phost "github.com/libp2p/go-libp2p-core/host"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
