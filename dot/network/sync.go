@@ -172,6 +172,10 @@ func (q *syncQueue) handleResponseQueue() {
 		q.responseLock.Lock()
 		if len(q.responses) == 0 {
 			q.responseLock.Unlock()
+
+			if len(q.requestCh) == 0 {
+				q.pushRequest(uint64(head.Int64()+1), blockRequestBufferSize, "")
+			}
 			continue
 		}
 
@@ -247,7 +251,6 @@ func (q *syncQueue) benchmark() {
 
 		before, err := q.s.blockState.BestBlockHeader()
 		if err != nil {
-			logger.Error("failed to get best block header", "error", err)
 			continue
 		}
 
@@ -260,7 +263,6 @@ func (q *syncQueue) benchmark() {
 
 		after, err := q.s.blockState.BestBlockHeader()
 		if err != nil {
-			logger.Error("failed to get best block header", "error", err)
 			continue
 		}
 
@@ -516,15 +518,19 @@ func (q *syncQueue) processBlockResponses() {
 				panic(err)
 			}
 
-			if data[len(data)-1].Number().Int64() <= bestNum.Int64() {
-				logger.Debug("ignoring block data that is below our head", "got", data[len(data)-1].Number().Int64(), "head", bestNum.Int64())
+			end := data[len(data)-1].Number().Int64()
+
+			if end <= bestNum.Int64() {
+				logger.Debug("ignoring block data that is below our head", "got", end, "head", bestNum.Int64())
+				q.pushRequest(uint64(end+1), blockRequestBufferSize, "")
 				q.currStart = 0
 				q.currEnd = 0
 				continue
 			}
 
 			q.currStart = data[0].Number().Int64()
-			q.currEnd = data[len(data)-1].Number().Int64()
+			q.currEnd = end
+
 			logger.Debug("sending block data to syncer", "start", q.currStart, "end", q.currEnd)
 
 			err = q.s.syncer.ProcessBlockData(data)
