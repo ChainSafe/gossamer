@@ -22,7 +22,7 @@ require (
 	github.com/gorilla/rpc v1.2.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/gtank/merlin v0.1.1
-	github.com/ipfs/go-ds-badger v0.2.3
+	github.com/ipfs/go-ds-badger2 v0.1.0
 	github.com/jcelliott/lumber v0.0.0-20160324203708-dd349441af25 // indirect
 	github.com/jpillora/ipfilter v1.2.2
 	github.com/libp2p/go-libp2p v0.12.0
