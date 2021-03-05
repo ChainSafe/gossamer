@@ -12,32 +12,6 @@ permalink: /command-line/
 
 The `gossamer` command is the root command for the `gossamer` package (`cmd/gossamer`). The root command starts the node (and initializes the node if the node has not already been initialized). 
 
-The `gossamer` command accepts the following ***local flags*** and ***global flags***:
-
-```
---log value        Supports levels crit (silent) to trce (trace) (default: "info")
---name value       Node implementation name
---chain value      Node implementation id used to load default node configuration
---config value     TOML configuration file
---base-path value  Data directory for the node
---key value        Specify a test keyring account to use: eg --key=alice
---unlock value     Unlock an account. eg. --unlock=0,2 to unlock accounts 0 and 2. Can be used with --password=[password] to avoid prompt. For multiple passwords, do --password=password1,password2
---port value       Set network listening port (default: 0)
---bootnodes value  Comma separated enode URLs for network discovery bootstrap
---protocol value   Set protocol id
---roles value      Roles of the gossamer node
---nobootstrap      Disables network bootstrapping (mdns still enabled)
---nomdns           Disables network mdns discovery
---rpc-external     Enable the external HTTP-RPC server
---rpchost value    HTTP-RPC server listening hostname
---rpcport value    HTTP-RPC server listening port (default: 0)
---rpcmods value    API modules to enable via HTTP-RPC, comma separated list
---ws-external      Enable the external websockets server
---wsport value     Websockets server listening port (default: 0)
---help, -h         show help
---version, -v      print the version
-```
-
 ### Accepted Formats
 
 ```
@@ -47,6 +21,44 @@ gossamer [--global-flags] [--local-flags]
 ```
 gossamer [--local-flags] [--global-flags] 
 ```
+
+### Global flags
+
+The global flags can be used in conjunction with any Gossamer command
+
+```
+--basepath value   Data directory for the node 
+--chain value      Node implementation id used to load default node configuration
+--config value     TOML configuration file
+--cpuprof          File to write CPU profile to
+--log value        Supports levels crit (silent) to trce (trace) (default: "info")
+--memprof          File to write memory profile to
+--name value       Node implementation name
+--rewind value     Rewind head of chain by given number of blocks
+```
+
+### Local flags
+
+```
+--bootnodes value  Comma separated enode URLs for network discovery bootstrap
+
+--key value        Specify a test keyring account to use: eg --key=alice
+--help, -h         show help
+--nobootstrap      Disables network bootstrapping (mdns still enabled)
+--nomdns           Disables network mdns discovery
+--port value       Set network listening port (default: 0)
+--protocol value   Set protocol id
+--roles value      Roles of the gossamer node
+--rpc-external     Enable the external HTTP-RPC server
+--rpchost value    HTTP-RPC server listening hostname
+--rpcport value    HTTP-RPC server listening port (default: 0)
+--rpcmods value    API modules to enable via HTTP-RPC, comma separated list
+--unlock value     Unlock an account. eg. --unlock=0,2 to unlock accounts 0 and 2. Can be used with --password=[password] to avoid prompt. For multiple passwords, do --password=password1,password2
+--ws-external      Enable the external websockets server
+--wsport value     Websockets server listening port (default: 0)
+--version, -v      print the version
+```
+
 
 ## Gossamer Subcommands
 
@@ -65,11 +77,6 @@ List of ***local flags*** for `init` subcommand:
 ```
 --force            Disable all confirm prompts (the same as answering "Y" to all)
 --genesis value    Path to genesis JSON file
---log value        Supports levels crit (silent) to trce (trace) (default: "info")
---name value       Node implementation name
---chain value      Node implementation id used to load default node configuration
---config value     TOML configuration file
---base-path value  Data directory for the node
 ```
 
 List of ***local flags*** for `account` subcommand:
@@ -78,15 +85,11 @@ List of ***local flags*** for `account` subcommand:
 --generate         Generate a new keypair. If type is not specified, defaults to sr25519
 --password value   Password used to encrypt the keystore. Used with --generate or --unlock
 --import value     Import encrypted keystore file generated with gossamer
+--import-raw value Imports a raw private key
 --list             List node keys
 --ed25519          Specify account type as ed25519
 --sr25519          Specify account type as sr25519
 --secp256k1        Specify account type as secp256k1
---log value        Supports levels crit (silent) to trce (trace) (default: "info")
---name value       Node implementation name
---chain value      Node implementation id used to load default node configuration
---config value     TOML configuration file
---base-path value  Data directory for the node
 ```
 
 List of ***local flag*** options for `export` subcommand:
@@ -94,11 +97,6 @@ List of ***local flag*** options for `export` subcommand:
 ```
 --force            Disable all confirm prompts (the same as answering "Y" to all)
 --genesis value    Path to genesis JSON file
---log value        Supports levels crit (silent) to trce (trace) (default: "info")
---name value       Node implementation name
---chain value      Node implementation id used to load default node configuration
---config value     TOML configuration file
---base-path value  Data directory for the node
 --key value        Specify a test keyring account to use: eg --key=alice
 --unlock value     Unlock an account. eg. --unlock=0,2 to unlock accounts 0 and 2. Can be used with --password=[password] to avoid prompt. For multiple passwords, do --password=password1,password2
 --port value       Set network listening port (default: 0)

@@ -14,17 +14,17 @@ To start, it would be extremely beneficial to have an understanding of the Polka
 
 ### Additional Resources
 
-#### docs
+#### Docs
 
 - <a target="_blank" rel="noopener noreferrer" href="https://wiki.polkadot.network/en/">Polkadot Wiki</a>
 
 - <a target="_blank" rel="noopener noreferrer" href="https://polkadot.network/PolkaDotPaper.pdf">Polkadot Paper</a>
 
-#### articles
+#### Articles
 
 - <a target="_blank" rel="noopener noreferrer" href="https://medium.com/polkadot-network/how-polkadot-tackles-the-biggest-problems-facing-blockchain-innovators-1affc1309b0f">How Polkadot tackles the biggest problems facing blockchain innovators</a> - June 7th 2018
 
-#### block explorers
+#### Block explorers
 
 - <a target="_blank" rel="noopener noreferrer" href="https://polkadot.js.org/apps/#/explorer">Polkadot Explorer</a>
 
