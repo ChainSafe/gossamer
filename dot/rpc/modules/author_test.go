@@ -294,7 +294,7 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 
 func setupAuthModule(t *testing.T, txq *state.TransactionState) *AuthorModule {
 	cs := newCoreService(t, nil)
-	rt := wasmer.NewTestLegacyInstance(t, runtime.NODE_RUNTIME)
+	rt := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
 	t.Cleanup(func() {
 		rt.Stop()
 	})

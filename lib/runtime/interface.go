@@ -23,21 +23,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
-// // LegacyInstance is the interface a legacy (v0.6) runtime instance must implement
-// type LegacyInstance interface {
-// 	InstanceAPI
-// 	LegacyRuntimeAPI
-// }
-
 // Instance is the interface a v0.8 runtime instance must implement
 type Instance interface {
-	// InstanceAPI
-	// LegacyRuntimeAPI
 	UpdateRuntimeCode([]byte) error
 	Stop()
 	NodeStorage() NodeStorage
 	NetworkService() BasicNetwork
-
 	Exec(function string, data []byte) ([]byte, error)
 	SetContextStorage(s Storage) // used to set the TrieState before a runtime call
 
@@ -58,30 +49,6 @@ type Instance interface {
 	OffchainWorker()
 	GenerateSessionKeys()
 }
-
-// // InstanceAPI is the interface that any runtime instance must implement
-// type InstanceAPI interface {
-// 	Stop()
-// 	NodeStorage() NodeStorage
-// 	NetworkService() BasicNetwork
-
-// 	Exec(function string, data []byte) ([]byte, error)
-// 	SetContextStorage(s Storage) // used to set the TrieState before a runtime call
-// }
-
-// // LegacyRuntimeAPI is the interface that a legacy runtime instance must implement
-// type LegacyRuntimeAPI interface {
-// 	Version() (Version, error)
-// 	Metadata() ([]byte, error)
-// 	BabeConfiguration() (*types.BabeConfiguration, error)
-// 	GrandpaAuthorities() ([]*types.Authority, error)
-// 	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
-// 	InitializeBlock(header *types.Header) error
-// 	InherentExtrinsics(data []byte) ([]byte, error)
-// 	ApplyExtrinsic(data types.Extrinsic) ([]byte, error)
-// 	FinalizeBlock() (*types.Header, error)
-// 	ExecuteBlock(block *types.Block) ([]byte, error)
-// }
 
 // Storage interface
 type Storage interface {

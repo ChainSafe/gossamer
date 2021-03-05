@@ -20,6 +20,12 @@ import (
 	"github.com/bytecodealliance/wasmtime-go"
 )
 
+// Convert 64bit wasm span descriptor to Go memory slice
+func asMemorySlice(memory []byte, span C.int64_t) []byte {
+	ptr, size := int64ToPointerAndSize(int64(span))
+	return memory[ptr : ptr+size]
+}
+
 func ext_logging_log_version_1(c *wasmtime.Caller, level int32, target, msg int64) {
 	logger.Trace("[ext_logging_log_version_1] executing...")
 }
@@ -110,12 +116,16 @@ func ext_misc_print_hex_version_1(c *wasmtime.Caller, a int64) {
 	logger.Trace("[ext_misc_print_hex_version_1] executing...")
 }
 
-func ext_misc_print_num_version_1(c *wasmtime.Caller, a int64) {
+func ext_misc_print_num_version_1(c *wasmtime.Caller, data int64) {
 	logger.Trace("[ext_misc_print_num_version_1] executing...")
+	logger.Info("[ext_print_num]", "message", fmt.Sprintf("%d", data))
 }
 
-func ext_misc_print_utf8_version_1(c *wasmtime.Caller, a int64) {
+func ext_misc_print_utf8_version_1(c *wasmtime.Caller, dataSpan int64) {
 	logger.Trace("[ext_misc_print_utf8_version_1] executing...")
+	m := c.GetExport("memory").Memory()
+	data := asMemorySlice(m.UnsafeData(), dataSpan)
+	logger.Info("[ext_print_utf8]", "message", fmt.Sprintf("%s", data))
 }
 
 func ext_misc_runtime_version_version_1(c *wasmtime.Caller, z int64) int64 {

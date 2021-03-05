@@ -32,7 +32,6 @@ import (
 const Name = "wasmtime"
 
 var (
-	//_ gssmrruntime.LegacyInstance = (*LegacyInstance)(nil)
 	_ gssmrruntime.Instance = (*Instance)(nil)
 
 	ctx    gssmrruntime.Context

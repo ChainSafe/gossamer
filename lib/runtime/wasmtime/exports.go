@@ -32,12 +32,12 @@ func (in *Instance) Metadata() ([]byte, error) {
 
 // Version calls runtime function Core_Version
 func (in *Instance) Version() (runtime.Version, error) {
-	if in.kusama {
-		res, err := in.exec(runtime.CoreVersion, []byte{})
-		if err != nil {
-			return nil, err
-		}
+	res, err := in.exec(runtime.CoreVersion, []byte{})
+	if err != nil {
+		return nil, err
+	}
 
+	if in.kusama {
 		version := new(runtime.LegacyVersionData)
 		err = version.Decode(res)
 		if err != nil {
@@ -45,11 +45,6 @@ func (in *Instance) Version() (runtime.Version, error) {
 		}
 
 		return version, nil
-	}
-
-	res, err := in.exec(runtime.CoreVersion, []byte{})
-	if err != nil {
-		return nil, err
 	}
 
 	version := new(runtime.VersionData)
