@@ -39,9 +39,10 @@ The global flags can be used in conjunction with any Gossamer command
 
 ### Local flags
 
+These are the local flags that can be used with the `gossamer` command
+
 ```
 --bootnodes value  Comma separated enode URLs for network discovery bootstrap
-
 --key value        Specify a test keyring account to use: eg --key=alice
 --help, -h         show help
 --nobootstrap      Disables network bootstrapping (mdns still enabled)
