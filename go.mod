@@ -13,7 +13,8 @@ require (
 	github.com/dgraph-io/badger/v2 v2.2007.2 // indirect
 	github.com/disiqueira/gotree v1.0.0
 	github.com/docker/docker v1.13.1
-	github.com/ethereum/go-ethereum v1.9.20
+	github.com/elastic/gosigar v0.14.0 // indirect
+	github.com/ethereum/go-ethereum v1.9.7
 	github.com/go-playground/validator/v10 v10.4.1
 	github.com/golang/groupcache v0.0.0-20191227052852-215e87163ea7 // indirect
 	github.com/golang/protobuf v1.4.3
@@ -28,6 +29,7 @@ require (
 	github.com/ipfs/go-ds-badger2 v0.1.0
 	github.com/jcelliott/lumber v0.0.0-20160324203708-dd349441af25 // indirect
 	github.com/jpillora/ipfilter v1.2.2
+	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/libp2p/go-libp2p v0.12.0
 	github.com/libp2p/go-libp2p-core v0.7.0
 	github.com/libp2p/go-libp2p-discovery v0.5.0
@@ -40,12 +42,13 @@ require (
 	github.com/mattn/go-isatty v0.0.11 // indirect
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/nanobox-io/golang-scribble v0.0.0-20190309225732-aa3e7c118975
+	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
 	github.com/perlin-network/life v0.0.0-20191203030451-05c0e0f7eaea
 	github.com/rs/cors v1.7.0 // indirect
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.1-0.20200815110645-5c35d600f0ca // indirect
-	github.com/urfave/cli v1.22.1
+	github.com/urfave/cli v1.20.0
 	github.com/wasmerio/go-ext-wasm v0.3.2-0.20200326095750-0a32be6068ec
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/lint v0.0.0-20191125180803-fdd1cda4f05f // indirect
