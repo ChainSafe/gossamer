@@ -293,7 +293,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 }
 
 func publishMetrics(cfg *Config) {
-	address := fmt.Sprintf("%s:%d", metrics.DefaultConfig.HTTP, cfg.Network.Port+11)
+	address := fmt.Sprintf("%s:%d", cfg.RPC.Host, cfg.Network.MetricsPort)
 	log.Info("Enabling stand-alone metrics HTTP endpoint", "address", address)
 	setupMetricsServer(address)
 

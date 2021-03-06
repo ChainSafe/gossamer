@@ -67,6 +67,7 @@ type NetworkConfig struct {
 	NoMDNS      bool     `toml:"nomdns,omitempty"`
 	MinPeers    int      `toml:"min-peers,omitempty"`
 	MaxPeers    int      `toml:"max-peers,omitempty"`
+	MetricsPort uint32   `toml:"metrics-port,omitempty"`
 }
 
 // CoreConfig is to marshal/unmarshal toml core config vars

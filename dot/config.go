@@ -83,6 +83,7 @@ type NetworkConfig struct {
 	MinPeers       int
 	MaxPeers       int
 	PublishMetrics bool
+	MetricsPort    uint32
 }
 
 // CoreConfig is to marshal/unmarshal toml core config vars
@@ -162,6 +163,7 @@ func GssmrConfig() *Config {
 			Bootnodes:   gssmr.DefaultNetworkBootnodes,
 			NoBootstrap: gssmr.DefaultNoBootstrap,
 			NoMDNS:      gssmr.DefaultNoMDNS,
+			MetricsPort: gssmr.DefaultMetricsPort,
 		},
 		RPC: RPCConfig{
 			Port:    gssmr.DefaultRPCHTTPPort,

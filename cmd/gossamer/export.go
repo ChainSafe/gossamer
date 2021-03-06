@@ -121,6 +121,7 @@ func dotConfigToToml(dcfg *dot.Config) *ctoml.Config {
 		ProtocolID:  dcfg.Network.ProtocolID,
 		NoBootstrap: dcfg.Network.NoBootstrap,
 		NoMDNS:      dcfg.Network.NoMDNS,
+		MetricsPort: dcfg.Network.MetricsPort,
 	}
 
 	cfg.RPC = ctoml.RPCConfig{

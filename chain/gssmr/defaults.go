@@ -71,6 +71,8 @@ var (
 	DefaultNoBootstrap = false
 	// DefaultNoMDNS disables mDNS discovery
 	DefaultNoMDNS = false
+	// DefaultMetricsPort is the metrics server port
+	DefaultMetricsPort = uint32(9876)
 
 	// RPCConfig
 
