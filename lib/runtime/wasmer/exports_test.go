@@ -447,6 +447,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 	require.NoError(t, err)
 	instance.SetContextStorage(parentState)
 
+	block.Header.Digest = types.Digest{}
 	_, err = instance.ExecuteBlock(block)
 	require.NoError(t, err)
 }

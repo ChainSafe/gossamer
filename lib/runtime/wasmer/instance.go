@@ -164,10 +164,7 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 		imports: cfg.Imports,
 	}
 
-	inst.version, err = inst.Version()
-	if err != nil {
-		return nil, err
-	}
+	inst.version, _ = inst.Version()
 	return inst, nil
 }
 
