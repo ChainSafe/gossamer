@@ -17,6 +17,8 @@
 package storage
 
 import (
+	"bytes"
+	"sort"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -138,6 +140,27 @@ func TestTrieState_ClearPrefixInChild(t *testing.T) {
 			require.Nil(t, val)
 		} else {
 			require.NotNil(t, val)
+		}
+	}
+}
+
+func TestTrieState_NextKey(t *testing.T) {
+	ts := newTestTrieState(t)
+
+	for _, tc := range testCases {
+		ts.Set([]byte(tc), []byte(tc))
+	}
+
+	sort.Slice(testCases, func(i, j int) bool {
+		return bytes.Compare([]byte(testCases[i]), []byte(testCases[j])) == -1
+	})
+
+	for i, tc := range testCases {
+		next := ts.NextKey([]byte(tc))
+		if i == len(testCases)-1 {
+			require.Nil(t, next)
+		} else {
+			require.Equal(t, []byte(testCases[i+1]), next)
 		}
 	}
 }

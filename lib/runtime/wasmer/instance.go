@@ -156,7 +156,7 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 	}
 
 	// Provide importable memory for newer runtimes
-	memory, err := wasm.NewMemory(20, 0)
+	memory, err := wasm.NewMemory(23, 0)
 	if err != nil {
 		return err
 	}
@@ -249,7 +249,9 @@ func newLegacyInstance(code []byte, cfg *Config) (*LegacyInstance, error) {
 	}
 
 	// Provide importable memory for newer runtimes
-	memory, err := wasm.NewMemory(20, 0)
+	// TODO: determine memory descriptor size that the runtime wants from the wasm.
+	// should be doable w/ wasmer 1.0.0.
+	memory, err := wasm.NewMemory(23, 0)
 	if err != nil {
 		return nil, err
 	}

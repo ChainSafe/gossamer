@@ -27,7 +27,7 @@ import (
 // see more details at https://github.com/paritytech/substrate/issues/1615
 
 // DefaultHeapBase is the default heap base value (offset) used when the runtime does not provide one
-const DefaultHeapBase = uint32(1306768) //uint32(1290392)
+const DefaultHeapBase = uint32(1469576)
 
 // The pointers need to be aligned to 8 bytes
 const alignment uint32 = 8
