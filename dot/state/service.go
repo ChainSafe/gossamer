@@ -19,6 +19,7 @@ package state
 import (
 	"bytes"
 	"fmt"
+	"math/big"
 	"os"
 	"path/filepath"
 
@@ -327,7 +328,13 @@ func (s *Service) Rewind(numBlocks int) error {
 	num, _ := s.Block.BestBlockNumber()
 
 	logger.Info("rewinding state...", "current height", num, "to rewind", numBlocks)
-	s.Block.bt.Rewind(numBlocks)
+	//s.Block.bt.Rewind(numBlocks)
+	root, err := s.Block.GetBlockByNumber(big.NewInt(0).Sub(num, big.NewInt(int64(numBlocks))))
+	if err != nil {
+		return err
+	}
+
+	s.Block.bt = blocktree.NewBlockTreeFromRoot(root.Header, s.db)
 	newHead := s.Block.BestBlockHash()
 
 	header, _ := s.Block.BestBlockHeader()
