@@ -53,7 +53,6 @@ type Instance struct {
 	vm      wasm.Instance
 	ctx     *runtime.Context
 	mutex   sync.Mutex
-	kusama  bool
 	version runtime.Version
 	imports func() (*wasm.Imports, error)
 }
@@ -211,7 +210,6 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 		vm:      instance,
 		ctx:     in.ctx,
 		imports: in.imports,
-		kusama:  in.kusama,
 	}
 
 	inst.version, _ = inst.Version()
