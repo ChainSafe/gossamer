@@ -497,7 +497,8 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 		Body: types.NewBody(body),
 	}
 
-	_, _ = instance.ExecuteBlock(block) // TODO: complete
+	_, err = instance.ExecuteBlock(block)
+	require.NoError(t, err)
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {

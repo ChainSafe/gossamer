@@ -164,7 +164,10 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 		imports: cfg.Imports,
 	}
 
-	inst.version, _ = inst.Version()
+	inst.version, err = inst.Version()
+	if err != nil {
+		return nil, err
+	}
 	return inst, nil
 }
 
@@ -212,7 +215,11 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 		imports: in.imports,
 	}
 
-	inst.version, _ = inst.Version()
+	inst.version, err = inst.Version()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
