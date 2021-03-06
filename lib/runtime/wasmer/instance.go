@@ -210,7 +210,7 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 	instance.SetContextData(in.ctx)
 
 	in.vm = instance
-	inst.version, err = inst.Version()
+	in.version, err = in.Version()
 	if err != nil {
 		return err
 	}
