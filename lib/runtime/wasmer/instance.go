@@ -209,12 +209,7 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 	in.ctx.Allocator = runtime.NewAllocator(instance.Memory, heapBase)
 	instance.SetContextData(in.ctx)
 
-	inst := &Instance{
-		vm:      instance,
-		ctx:     in.ctx,
-		imports: in.imports,
-	}
-
+	in.vm = instance
 	inst.version, err = inst.Version()
 	if err != nil {
 		return err
@@ -226,7 +221,7 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 // SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.
 func (in *Instance) SetContextStorage(s runtime.Storage) {
 	in.ctx.Storage = s
-	//in.vm.SetContextData(in.ctx)
+	in.vm.SetContextData(in.ctx)
 }
 
 // Stop func
