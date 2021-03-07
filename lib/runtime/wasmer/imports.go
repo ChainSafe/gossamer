@@ -118,6 +118,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
+
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
@@ -444,21 +446,18 @@ func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context unsafe.Poin
 
 	logger.Debug("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1]", "sig", fmt.Sprintf("0x%x", signature))
 
-	pub, err := secp256k1.RecoverPublicKey(message, signature)
+	// pub, err := secp256k1.RecoverPublicKey(message, signature)
+	pub, err := ethcrypto.SigToPub(message, signature)
 	if err != nil {
 		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1] failed to recover public key", "error", err)
-		var ret int64
-		ret, err = toWasmMemoryResult(instanceContext, nil)
-		if err != nil {
-			logger.Error("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1] failed to allocate memory", "error", err)
-			return 0
-		}
+		ret, _ := toWasmMemoryResult(instanceContext, nil)
 		return C.int64_t(ret)
 	}
 
-	logger.Debug("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1]", "len", len(pub), "recovered public key", fmt.Sprintf("0x%x", pub))
+	cpub := ethcrypto.CompressPubkey(pub)
+	logger.Debug("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1]", "len", len(cpub), "recovered public key", fmt.Sprintf("0x%x", cpub))
 
-	ret, err := toWasmMemoryResult(instanceContext, pub[:33])
+	ret, err := toWasmMemoryResult(instanceContext, cpub)
 	if err != nil {
 		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1] failed to allocate memory", "error", err)
 		return 0
@@ -665,7 +664,7 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 
 	pub, err := sr25519.NewPublicKey(memory[key : key+32])
 	if err != nil {
-		logger.Error("[ext_crypto_sr25519_verify_version_2] failed to verify sr25519 signature")
+		logger.Error("[ext_crypto_sr25519_verify_version_2] invalid sr25519 public key")
 		return 0
 	}
 
