@@ -97,8 +97,8 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			return errors.New("message is not NotificationsMessage")
 		}
 
-		logger.Trace("received message on notifications sub-protocol", "sub-protocol", info.subProtocol, 
-			"message", msg, 
+		logger.Trace("received message on notifications sub-protocol", "sub-protocol", info.subProtocol,
+			"message", msg,
 			"peer", stream.Conn().RemotePeer(),
 		)
 
