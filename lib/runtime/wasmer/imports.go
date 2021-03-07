@@ -687,8 +687,8 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 	}
 
 	if ok, err := pub.Verify(message, signature); err != nil || !ok {
-		logger.Debug("[ext_crypto_sr25519_verify_version_2] failed to validate signature")
-		return 0
+		logger.Error("[ext_crypto_sr25519_verify_version_2] failed to validate signature")
+		return 1
 	}
 
 	logger.Debug("[ext_crypto_sr25519_verify_version_2] validated signature")
@@ -725,8 +725,8 @@ func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t 
 	if sigVerifier.Finish() {
 		return 1
 	}
-	//return 0
-	return 1 // TODO: fix sr25519_verify
+	logger.Error("[ext_crypto_finish_batch_verify_version_1] failed to batch verify; invalid signature")
+	return 0
 }
 
 //export ext_trie_blake2_256_root_version_1
