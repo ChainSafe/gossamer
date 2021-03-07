@@ -595,6 +595,52 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3876(t *testing.T) {
+	gossTrie3783 := newTrieFromPairs(t, "../test_data/block3875.out")
+	expectedRoot := common.MustHexToHash("0x058f3e90714d23db7ee3dd3a8a2cbf26f7cccaeb077f797e3806f1574f848b9d")
+	require.Equal(t, expectedRoot, gossTrie3783.MustHash())
+
+	// set state to genesis state
+	state3783, err := storage.NewTrieState(gossTrie3783)
+	require.NoError(t, err)
+
+	cfg := &Config{}
+	cfg.Storage = state3783
+	cfg.LogLvl = 4
+
+	instance, err := NewInstanceFromTrie(gossTrie3783, cfg)
+	require.NoError(t, err)
+
+	// block data is received from querying a polkadot node
+	body := common.MustHexToBytes("0x1c280402000bf07971b46e0114040900893c1004140000d10284ff022a075d439622b2f100ac4174bd1af71e64e0913c7a7230924ae4f71b2c2a420184206c27a685953e2769c7403ba94db5d17768d5af12abe122b3c64ffdb85d333ac0881fec6d5c8a85842923e5f5c2e8ceba3d85fbd08fe6aa691576f2802d0f0000001802ff04c6871f21173e22bbcc9902a1ba41a513cc5fff797c948a36927cef70148c300600fffa303123d4a01528c86dfd52a70cde317982f1364a94b924a400231d869aa35d0b00104769031e00d10284ff022a075d439622b2f100ac4174bd1af71e64e0913c7a7230924ae4f71b2c2a420138640b3b26e98e78d8091462d0d4371262a0611c40a64adb3f41bdb79eaf9e6171081960f86ac235a844c26d0e4ad4387cf5a0d1b5a17e50483fa25ba978b8020004001802ffca5bc1915da74aba3aadd7ce7b809045d5eb5b73559259755fdcd85a40a5dc6e0600ffca5bc1915da74aba3aadd7ce7b809045d5eb5b73559259755fdcd85a40a5dc6e0b0037ae8d740e01b10484ff022a075d439622b2f100ac4174bd1af71e64e0913c7a7230924ae4f71b2c2a42014e9a401fd0b946925c9bdffd5fc1cbb8929f06f0244b6700255f83ab51d8233decd87cf609ff8f3868c1b406a1a0e64a41641b5c9fe25c1d44e450826b6c35030008001802ffca5bc1915da74aba3aadd7ce7b809045d5eb5b73559259755fdcd85a40a5dc6e0800661d857b305b46e476f90ce6ac8694e57ad035e6072ff8c2f93eee4a75b1ec7c7d80f114e9ec25b6ece928d1dbfe9319bf65263699ed6242db86be35048ecd0fca7a134f9161bf99dcd10d27e26ce33e917e2078357d9924f98f917be072a609d897a477c95ec7a8a5422c665825f4a14d744d6fbb36088c727a739f19bf266f000000000000000000000000000000000000000000000000000000000000000000310284ff022a075d439622b2f100ac4174bd1af71e64e0913c7a7230924ae4f71b2c2a420168953868203f63a9194189b447d5749013f18b6b2243b46586bb399eabd1da144bed1a4515b5728195b034061d59c8ba11dc9507ecd1a58752b9f71d1983b103000c001802ffca5bc1915da74aba3aadd7ce7b809045d5eb5b73559259755fdcd85a40a5dc6e060400")
+	exts, err := scale.Decode(body, [][]byte{})
+	require.NoError(t, err)
+	require.Equal(t, 7, len(exts.([][]byte)))
+
+	// digest from polkadot.js
+	digestBytes := common.MustHexToBytes("0x0806424142453402030000001965a50f00000000054241424501012417d6a8d20844564a8132b687f409c5634fd9fb48ca716e9a1b9602fa394419fb3fb35bc8820435e6b83e98522a9d13c5a963361659e3096570ac069a66f58f")
+	r := &bytes.Buffer{}
+	_, _ = r.Write(digestBytes)
+	digest, err := types.DecodeDigest(r)
+	require.NoError(t, err)
+	require.Equal(t, 2, len(digest))
+
+	// kusama block 3784, from polkadot.js
+	block := &types.Block{
+		Header: &types.Header{
+			ParentHash:     common.MustHexToHash("0x5fa501c8301e842a2d55dec9ed0e28bc05891e571936b46b028069da282c3fb2"),
+			Number:         big.NewInt(3876),
+			StateRoot:      common.MustHexToHash("0xbe077df68f5e2a35a263d9bbffd72cf2fa91dc9afe09c588c1a95ed345b64956"),
+			ExtrinsicsRoot: common.MustHexToHash("0x5c46100b340f3b7955d48c84534dfd8c9c4e100996bf5689017ca45988c71a53"),
+			Digest:         digest,
+		},
+		Body: types.NewBody(body),
+	}
+
+	_, err = instance.ExecuteBlock(block)
+	require.NoError(t, err)
+}
+
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
 	ksmTrie901441 := newTrieFromPairs(t, "../test_data/block901441_kusama.out")
 	expectedRoot := common.MustHexToHash("0x3a2ef7ee032f5810160bb8f3ffe3e3377bb6f2769ee9f79a5425973347acd504")
