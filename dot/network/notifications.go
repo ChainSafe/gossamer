@@ -119,6 +119,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 				err := handshakeValidator(peer, hs)
 				if err != nil {
 					logger.Debug("failed to validate handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
+					_ = stream.Conn().Close()
 					return errCannotValidateHandshake
 				}
 
@@ -134,6 +135,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 				err = s.host.send(peer, info.subProtocol, resp)
 				if err != nil {
 					logger.Debug("failed to send handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
+					_ = stream.Conn().Close()
 					return err
 				}
 				logger.Trace("receiver: sent handshake", "sub-protocol", info.subProtocol, "peer", peer)
@@ -146,6 +148,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 				if err != nil {
 					logger.Debug("failed to validate handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
 					info.handshakeData[peer].validated = false
+					_ = stream.Conn().Close()
 					return errCannotValidateHandshake
 				}
 
