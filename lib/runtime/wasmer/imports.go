@@ -423,10 +423,48 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, m
 }
 
 //export ext_crypto_secp256k1_ecdsa_recover_compressed_version_1
-func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context unsafe.Pointer, a, z C.int32_t) C.int64_t {
+func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context unsafe.Pointer, sig, msg C.int32_t) C.int64_t {
 	logger.Trace("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1] executing...")
-	logger.Warn("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1] unimplemented")
-	return 0
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+
+	// msg must be the 32-byte hash of the message to be signed.
+	// sig must be a 65-byte compact ECDSA signature containing the
+	// recovery id as the last element
+	message := memory[msg : msg+32]
+	signature := memory[sig : sig+65]
+
+	if signature[64] == 27 {
+		signature[64] = 0
+	}
+
+	if signature[64] == 28 {
+		signature[64] = 1
+	}
+
+	logger.Debug("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1]", "sig", fmt.Sprintf("0x%x", signature))
+
+	pub, err := secp256k1.RecoverPublicKey(message, signature)
+	if err != nil {
+		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1] failed to recover public key", "error", err)
+		var ret int64
+		ret, err = toWasmMemoryResult(instanceContext, nil)
+		if err != nil {
+			logger.Error("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1] failed to allocate memory", "error", err)
+			return 0
+		}
+		return C.int64_t(ret)
+	}
+
+	logger.Debug("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1]", "len", len(pub), "recovered public key", fmt.Sprintf("0x%x", pub))
+
+	ret, err := toWasmMemoryResult(instanceContext, pub[:33])
+	if err != nil {
+		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1] failed to allocate memory", "error", err)
+		return 0
+	}
+
+	return C.int64_t(ret)
 }
 
 //export ext_crypto_sr25519_generate_version_1
@@ -637,13 +675,14 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 	)
 
 	if sigVerifier.IsStarted() {
-		signature := runtime.Signature{
-			PubKey:    pub.Encode(),
-			Sign:      signature,
-			Msg:       message,
-			KeyTypeID: crypto.Sr25519Type,
-		}
-		sigVerifier.Add(&signature)
+		// TODO: fix sr25519 verification and re-enable this
+		// signature := runtime.Signature{
+		// 	PubKey:    pub.Encode(),
+		// 	Sign:      signature,
+		// 	Msg:       message,
+		// 	KeyTypeID: crypto.Sr25519Type,
+		// }
+		// sigVerifier.Add(&signature)
 		return 1
 	}
 
@@ -659,7 +698,6 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 //export ext_crypto_start_batch_verify_version_1
 func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
 	logger.Debug("[ext_crypto_start_batch_verify_version_1] executing...")
-	return
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
@@ -675,7 +713,6 @@ func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
 //export ext_crypto_finish_batch_verify_version_1
 func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t {
 	logger.Debug("[ext_crypto_finish_batch_verify_version_1] executing...")
-	return 1
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
