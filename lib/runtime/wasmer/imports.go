@@ -360,13 +360,14 @@ func ext_crypto_ed25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 	}
 
 	if sigVerifier.IsStarted() {
-		signature := runtime.Signature{
-			PubKey:    pubKey.Encode(),
-			Sign:      signature,
-			Msg:       message,
-			KeyTypeID: crypto.Ed25519Type,
-		}
-		sigVerifier.Add(&signature)
+		// TODO: fix and re-enable this
+		// signature := runtime.Signature{
+		// 	PubKey:    pubKey.Encode(),
+		// 	Sign:      signature,
+		// 	Msg:       message,
+		// 	KeyTypeID: crypto.Ed25519Type,
+		// }
+		// sigVerifier.Add(&signature)
 		return 1
 	}
 
