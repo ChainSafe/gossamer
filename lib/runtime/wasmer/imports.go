@@ -698,35 +698,35 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 //export ext_crypto_start_batch_verify_version_1
 func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
 	logger.Debug("[ext_crypto_start_batch_verify_version_1] executing...")
+	return
+	// instanceContext := wasm.IntoInstanceContext(context)
+	// sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
 
-	instanceContext := wasm.IntoInstanceContext(context)
-	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
+	// if sigVerifier.IsStarted() {
+	// 	logger.Error("[ext_crypto_start_batch_verify_version_1] previous batch verification is not finished")
+	// 	return
+	// }
 
-	if sigVerifier.IsStarted() {
-		logger.Error("[ext_crypto_start_batch_verify_version_1] previous batch verification is not finished")
-		return
-	}
-
-	sigVerifier.Start()
+	// sigVerifier.Start()
 }
 
 //export ext_crypto_finish_batch_verify_version_1
 func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t {
 	logger.Debug("[ext_crypto_finish_batch_verify_version_1] executing...")
+	return 1
+	// instanceContext := wasm.IntoInstanceContext(context)
+	// sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
 
-	instanceContext := wasm.IntoInstanceContext(context)
-	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
+	// if !sigVerifier.IsStarted() {
+	// 	logger.Error("[ext_crypto_finish_batch_verify_version_1] batch verification is not started", "error")
+	// 	panic("batch verification is not started")
+	// }
 
-	if !sigVerifier.IsStarted() {
-		logger.Error("[ext_crypto_finish_batch_verify_version_1] batch verification is not started", "error")
-		panic("batch verification is not started")
-	}
-
-	if sigVerifier.Finish() {
-		return 1
-	}
-	logger.Error("[ext_crypto_finish_batch_verify_version_1] failed to batch verify; invalid signature")
-	return 0
+	// if sigVerifier.Finish() {
+	// 	return 1
+	// }
+	// logger.Error("[ext_crypto_finish_batch_verify_version_1] failed to batch verify; invalid signature")
+	// return 0
 }
 
 //export ext_trie_blake2_256_root_version_1
