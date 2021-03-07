@@ -698,7 +698,7 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 //export ext_crypto_start_batch_verify_version_1
 func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
 	logger.Debug("[ext_crypto_start_batch_verify_version_1] executing...")
-	return
+	
 	// instanceContext := wasm.IntoInstanceContext(context)
 	// sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
 
