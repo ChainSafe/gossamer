@@ -85,7 +85,7 @@ func TestInstance_Version_KusamaRuntime(t *testing.T) {
 	)
 
 	// TODO: why does kusama seem to use the old runtime version format?
-	version, err := instance.(*Instance).inst.Version()
+	version, err := instance.(*Instance).Version()
 	require.NoError(t, err)
 
 	t.Logf("SpecName: %s\n", version.SpecName())
@@ -172,7 +172,7 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	encBal, err := gtypes.EncodeToBytes(accInfo)
 	require.NoError(t, err)
 
-	rt.inst.ctx.Storage.Set(aliceBalanceKey, encBal)
+	rt.ctx.Storage.Set(aliceBalanceKey, encBal)
 
 	extBytes, err := common.HexToBytes("0x2d0284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01ccacd0447dd220241dfb510e6e0554dff73899e79a068c58c7a149f568c71e046893a7e4726b5532af338b7780d0e9a83e9acc00e1610b02468405b2394769840000000600ff90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22e5c0")
 	require.NoError(t, err)
@@ -447,6 +447,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 	require.NoError(t, err)
 	instance.SetContextStorage(parentState)
 
+	block.Header.Digest = types.Digest{}
 	_, err = instance.ExecuteBlock(block)
 	require.NoError(t, err)
 }
@@ -497,7 +498,8 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 		Body: types.NewBody(body),
 	}
 
-	_, _ = instance.ExecuteBlock(block) // TODO: complete
+	_, err = instance.ExecuteBlock(block)
+	require.NoError(t, err)
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {

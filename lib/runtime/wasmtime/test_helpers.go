@@ -26,7 +26,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 
 	log "github.com/ChainSafe/log15"
-	"github.com/bytecodealliance/wasmtime-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -67,12 +66,10 @@ func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, 
 }
 
 // GetRuntimeImports ...
-func GetRuntimeImports(t *testing.T, targetRuntime string) func(*wasmtime.Store) (*wasmtime.Linker, error) {
-	var imports func(*wasmtime.Store) (*wasmtime.Linker, error)
+func GetRuntimeImports(t *testing.T, targetRuntime string) ImportsFunc {
+	var imports ImportsFunc
 
 	switch targetRuntime {
-	case runtime.LEGACY_NODE_RUNTIME:
-		imports = ImportLegacyNodeRuntime
 	case runtime.NODE_RUNTIME:
 		imports = ImportNodeRuntime
 	default:
