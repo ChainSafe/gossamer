@@ -142,6 +142,8 @@ func NewService(cfg *Config) (*Service, error) {
 		lightRequest:           make(map[peer.ID]struct{}),
 	}
 
+	network.syncQueue = newSyncQueue(network)
+
 	return network, err
 }
 
@@ -168,9 +170,6 @@ func (s *Service) Start() error {
 	if s.IsStopped() {
 		s.ctx, s.cancel = context.WithCancel(context.Background())
 	}
-
-	s.syncQueue = newSyncQueue(s)
-	s.syncQueue.start()
 
 	connMgr := s.host.h.ConnManager().(*ConnManager)
 	connMgr.registerDisconnectHandler(func(p peer.ID) {
@@ -218,9 +217,6 @@ func (s *Service) Start() error {
 		s.host.bootstrap()
 	}
 
-	// TODO: ensure bootstrap has connected to bootnodes and addresses have been
-	// registered by the host before mDNS attempts to connect to bootnodes
-
 	if !s.noMDNS {
 		s.mdns.start()
 	}
@@ -237,6 +233,7 @@ func (s *Service) Start() error {
 	time.Sleep(time.Millisecond * 500)
 
 	logger.Info("started network service", "supported protocols", s.host.protocols())
+	s.syncQueue.start()
 
 	go s.logPeerCount()
 	return nil
