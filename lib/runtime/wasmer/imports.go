@@ -696,7 +696,7 @@ func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
 	// beginBatchVerify(context)
 }
 
-func beginBatchVerify(context unsafe.Pointer) {
+func beginBatchVerify(context unsafe.Pointer) { //nolint
 	instanceContext := wasm.IntoInstanceContext(context)
 	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
 
@@ -717,7 +717,7 @@ func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t 
 	return 1
 }
 
-func finishBatchVerify(context unsafe.Pointer) C.int32_t {
+func finishBatchVerify(context unsafe.Pointer) C.int32_t { //nolint
 	instanceContext := wasm.IntoInstanceContext(context)
 	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
 
