@@ -596,19 +596,19 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3876(t *testing.T) {
-	gossTrie3783 := newTrieFromPairs(t, "../test_data/block3875.out")
+	ksmTrie := newTrieFromPairs(t, "../test_data/block3875.out")
 	expectedRoot := common.MustHexToHash("0x058f3e90714d23db7ee3dd3a8a2cbf26f7cccaeb077f797e3806f1574f848b9d")
-	require.Equal(t, expectedRoot, gossTrie3783.MustHash())
+	require.Equal(t, expectedRoot, ksmTrie.MustHash())
 
 	// set state to genesis state
-	state3783, err := storage.NewTrieState(gossTrie3783)
+	state, err := storage.NewTrieState(ksmTrie)
 	require.NoError(t, err)
 
 	cfg := &Config{}
-	cfg.Storage = state3783
+	cfg.Storage = state
 	cfg.LogLvl = 4
 
-	instance, err := NewInstanceFromTrie(gossTrie3783, cfg)
+	instance, err := NewInstanceFromTrie(ksmTrie, cfg)
 	require.NoError(t, err)
 
 	// block data is received from querying a polkadot node
