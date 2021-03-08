@@ -240,54 +240,6 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 	return nil
 }
 
-// UpdateRuntimeCode updates the runtime instance to run the given code
-func (in *Instance) UpdateRuntimeCode(code []byte) error {
-	in.Stop()
-
-	imports, err := in.imports()
-	if err != nil {
-		return err
-	}
-
-	// TODO: determine memory descriptor size that the runtime wants from the wasm.
-	// should be doable w/ wasmer 1.0.0.
-	memory, err := wasm.NewMemory(23, 0)
-	if err != nil {
-		return err
-	}
-
-	_, err = imports.AppendMemory("memory", memory)
-	if err != nil {
-		return err
-	}
-
-	// Instantiates the WebAssembly module.
-	instance, err := wasm.NewInstanceWithImports(code, imports)
-	if err != nil {
-		return err
-	}
-
-	// TODO: get __heap_base exported value from runtime.
-	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does
-	heapBase := runtime.DefaultHeapBase
-
-	// Assume imported memory is used if runtime does not export any
-	if !instance.HasMemory() {
-		instance.Memory = memory
-	}
-
-	in.ctx.Allocator = runtime.NewAllocator(instance.Memory, heapBase)
-	instance.SetContextData(in.ctx)
-
-	in.vm = instance
-	in.version, err = in.Version()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.
 func (in *Instance) SetContextStorage(s runtime.Storage) {
 	in.ctx.Storage = s
