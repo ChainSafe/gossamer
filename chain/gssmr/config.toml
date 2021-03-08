@@ -1,6 +1,7 @@
 [global]
 basepath = "~/.gossamer/gssmr"
 log = "info"
+metrics-port = 9876
 
 [log]
 core = ""
@@ -28,7 +29,6 @@ grandpa-authority = true
 port = 7001
 nobootstrap = false
 nomdns = false
-metrics-port = 9876
 
 [rpc]
 enabled = false

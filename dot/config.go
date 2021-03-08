@@ -44,10 +44,12 @@ type Config struct {
 
 // GlobalConfig is used for every node command
 type GlobalConfig struct {
-	Name     string
-	ID       string
-	BasePath string
-	LogLvl   log.Lvl
+	Name           string
+	ID             string
+	BasePath       string
+	LogLvl         log.Lvl
+	PublishMetrics bool
+	MetricsPort    uint32
 }
 
 // LogConfig represents the log levels for individual packages
@@ -75,15 +77,13 @@ type AccountConfig struct {
 
 // NetworkConfig is to marshal/unmarshal toml network config vars
 type NetworkConfig struct {
-	Port           uint32
-	Bootnodes      []string
-	ProtocolID     string
-	NoBootstrap    bool
-	NoMDNS         bool
-	MinPeers       int
-	MaxPeers       int
-	PublishMetrics bool
-	MetricsPort    uint32
+	Port        uint32
+	Bootnodes   []string
+	ProtocolID  string
+	NoBootstrap bool
+	NoMDNS      bool
+	MinPeers    int
+	MaxPeers    int
 }
 
 // CoreConfig is to marshal/unmarshal toml core config vars
@@ -130,10 +130,11 @@ func networkServiceEnabled(cfg *Config) bool {
 func GssmrConfig() *Config {
 	return &Config{
 		Global: GlobalConfig{
-			Name:     gssmr.DefaultName,
-			ID:       gssmr.DefaultID,
-			BasePath: gssmr.DefaultBasePath,
-			LogLvl:   gssmr.DefaultLvl,
+			Name:        gssmr.DefaultName,
+			ID:          gssmr.DefaultID,
+			BasePath:    gssmr.DefaultBasePath,
+			LogLvl:      gssmr.DefaultLvl,
+			MetricsPort: gssmr.DefaultMetricsPort,
 		},
 		Log: LogConfig{
 			CoreLvl:           gssmr.DefaultLvl,
@@ -163,7 +164,6 @@ func GssmrConfig() *Config {
 			Bootnodes:   gssmr.DefaultNetworkBootnodes,
 			NoBootstrap: gssmr.DefaultNoBootstrap,
 			NoMDNS:      gssmr.DefaultNoMDNS,
-			MetricsPort: gssmr.DefaultMetricsPort,
 		},
 		RPC: RPCConfig{
 			Port:    gssmr.DefaultRPCHTTPPort,
@@ -178,10 +178,11 @@ func GssmrConfig() *Config {
 func KsmccConfig() *Config {
 	return &Config{
 		Global: GlobalConfig{
-			Name:     ksmcc.DefaultName,
-			ID:       ksmcc.DefaultID,
-			BasePath: ksmcc.DefaultBasePath,
-			LogLvl:   ksmcc.DefaultLvl,
+			Name:        ksmcc.DefaultName,
+			ID:          ksmcc.DefaultID,
+			BasePath:    ksmcc.DefaultBasePath,
+			LogLvl:      ksmcc.DefaultLvl,
+			MetricsPort: ksmcc.DefaultMetricsPort,
 		},
 		Log: LogConfig{
 			CoreLvl:           ksmcc.DefaultLvl,

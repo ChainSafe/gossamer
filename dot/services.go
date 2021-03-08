@@ -262,18 +262,17 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Servi
 
 	// network service configuation
 	networkConfig := network.Config{
-		LogLvl:         cfg.Log.NetworkLvl,
-		BlockState:     stateSrvc.Block,
-		BasePath:       cfg.Global.BasePath,
-		Roles:          cfg.Core.Roles,
-		Port:           cfg.Network.Port,
-		Bootnodes:      cfg.Network.Bootnodes,
-		ProtocolID:     cfg.Network.ProtocolID,
-		NoBootstrap:    cfg.Network.NoBootstrap,
-		NoMDNS:         cfg.Network.NoMDNS,
-		MinPeers:       cfg.Network.MinPeers,
-		MaxPeers:       cfg.Network.MaxPeers,
-		PublishMetrics: cfg.Network.PublishMetrics,
+		LogLvl:      cfg.Log.NetworkLvl,
+		BlockState:  stateSrvc.Block,
+		BasePath:    cfg.Global.BasePath,
+		Roles:       cfg.Core.Roles,
+		Port:        cfg.Network.Port,
+		Bootnodes:   cfg.Network.Bootnodes,
+		ProtocolID:  cfg.Network.ProtocolID,
+		NoBootstrap: cfg.Network.NoBootstrap,
+		NoMDNS:      cfg.Network.NoMDNS,
+		MinPeers:    cfg.Network.MinPeers,
+		MaxPeers:    cfg.Network.MaxPeers,
 	}
 
 	networkSrvc, err := network.NewService(&networkConfig)

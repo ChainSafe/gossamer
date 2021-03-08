@@ -1,4 +1,4 @@
-package network
+package metrics
 
 import (
 	"runtime"
@@ -8,8 +8,9 @@ import (
 )
 
 const (
-	refresh     = time.Second * 10
-	refreshFreq = int64(refresh / time.Second)
+	// Refresh is the refresh time for publishing metrics.
+	Refresh     = time.Second * 10
+	refreshFreq = int64(Refresh / time.Second)
 )
 
 // CollectProcessMetrics periodically collects various metrics about the running process.
@@ -55,6 +56,6 @@ func CollectProcessMetrics() {
 		memHeld.Update(int64(memStats[location1].HeapSys - memStats[location1].HeapReleased))
 		memUsed.Update(int64(memStats[location1].Alloc))
 
-		time.Sleep(refresh)
+		time.Sleep(Refresh)
 	}
 }

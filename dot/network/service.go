@@ -25,6 +25,7 @@ import (
 	"sync"
 	"time"
 
+	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ethereum/go-ethereum/metrics"
@@ -266,7 +267,7 @@ func (s *Service) collectNetworkMetrics() {
 			syncedBlocks.Update(num.Int64())
 		}
 
-		time.Sleep(refresh)
+		time.Sleep(gssmrmetrics.Refresh)
 	}
 }
 

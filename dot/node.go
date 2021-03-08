@@ -25,6 +25,7 @@ import (
 	"sync"
 	"syscall"
 
+	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -285,7 +286,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		node.Services.RegisterService(srvc)
 	}
 
-	if cfg.Network.PublishMetrics {
+	if cfg.Global.PublishMetrics {
 		publishMetrics(cfg)
 	}
 
@@ -293,12 +294,12 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 }
 
 func publishMetrics(cfg *Config) {
-	address := fmt.Sprintf("%s:%d", cfg.RPC.Host, cfg.Network.MetricsPort)
+	address := fmt.Sprintf("%s:%d", cfg.RPC.Host, cfg.Global.MetricsPort)
 	log.Info("Enabling stand-alone metrics HTTP endpoint", "address", address)
 	setupMetricsServer(address)
 
 	// Start system runtime metrics collection
-	go network.CollectProcessMetrics()
+	go gssmrmetrics.CollectProcessMetrics()
 }
 
 // setupMetricsServer starts a dedicated metrics server at the given address.

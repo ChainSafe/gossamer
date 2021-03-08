@@ -399,6 +399,8 @@ func setDotGlobalConfig(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.Global
 		if tomlCfg.Global.LogLvl != "" {
 			cfg.LogLvl, _ = log.LvlFromString(tomlCfg.Global.LogLvl)
 		}
+
+		cfg.MetricsPort = tomlCfg.Global.MetricsPort
 	}
 
 	// check --name flag and update node configuration
@@ -425,6 +427,13 @@ func setDotGlobalConfig(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.Global
 		cfg.LogLvl = log.Lvl(lvlToInt)
 	} else if lvl, err := log.LvlFromString(ctx.String(LogFlag.Name)); err == nil {
 		cfg.LogLvl = lvl
+	}
+
+	cfg.PublishMetrics = ctx.Bool("publish-metrics")
+
+	// check --metrics-port flag and update node configuration
+	if metricsPort := ctx.GlobalUint(MetricsPortFlag.Name); metricsPort != 0 {
+		cfg.MetricsPort = uint32(metricsPort)
 	}
 
 	logger.Debug(
@@ -544,7 +553,6 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 	cfg.NoMDNS = tomlCfg.NoMDNS
 	cfg.MinPeers = tomlCfg.MinPeers
 	cfg.MaxPeers = tomlCfg.MaxPeers
-	cfg.MetricsPort = tomlCfg.MetricsPort
 
 	// check --port flag and update node configuration
 	if port := ctx.GlobalUint(PortFlag.Name); port != 0 {
@@ -576,13 +584,6 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 		cfg.NoMDNS = true
 	}
 
-	cfg.PublishMetrics = ctx.Bool("publish-metrics")
-
-	// check --metrics-port flag and update node configuration
-	if metricsPort := ctx.GlobalUint(MetricsPortFlag.Name); metricsPort != 0 {
-		cfg.MetricsPort = uint32(metricsPort)
-	}
-
 	logger.Debug(
 		"network configuration",
 		"port", cfg.Port,
@@ -592,7 +593,6 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 		"nomdns", cfg.NoMDNS,
 		"minpeers", cfg.MinPeers,
 		"maxpeers", cfg.MaxPeers,
-		"metric-port", cfg.MetricsPort,
 	)
 }
 

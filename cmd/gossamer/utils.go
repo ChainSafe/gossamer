@@ -88,10 +88,12 @@ func newTestConfig(t *testing.T) *dot.Config {
 
 	cfg := &dot.Config{
 		Global: dot.GlobalConfig{
-			Name:     dot.GssmrConfig().Global.Name,
-			ID:       dot.GssmrConfig().Global.ID,
-			BasePath: dir,
-			LogLvl:   log.LvlInfo,
+			Name:           dot.GssmrConfig().Global.Name,
+			ID:             dot.GssmrConfig().Global.ID,
+			BasePath:       dir,
+			LogLvl:         log.LvlInfo,
+			PublishMetrics: dot.GssmrConfig().Global.PublishMetrics,
+			MetricsPort:    dot.GssmrConfig().Global.MetricsPort,
 		},
 		Log: dot.LogConfig{
 			CoreLvl:           log.LvlInfo,

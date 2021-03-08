@@ -57,10 +57,12 @@ func TestExportCommand(t *testing.T) {
 			[]interface{}{testConfig, genFile.Name(), testDir, testName, log.LvlInfo.String(), "true"},
 			&dot.Config{
 				Global: dot.GlobalConfig{
-					Name:     testName,
-					ID:       testCfg.Global.ID,
-					BasePath: testCfg.Global.BasePath,
-					LogLvl:   log.LvlInfo,
+					Name:           testName,
+					ID:             testCfg.Global.ID,
+					BasePath:       testCfg.Global.BasePath,
+					LogLvl:         log.LvlInfo,
+					PublishMetrics: testCfg.Global.PublishMetrics,
+					MetricsPort:    testCfg.Global.MetricsPort,
 				},
 				Log: dot.LogConfig{
 					CoreLvl:           log.LvlInfo,
@@ -78,13 +80,11 @@ func TestExportCommand(t *testing.T) {
 				Account: testCfg.Account,
 				Core:    testCfg.Core,
 				Network: dot.NetworkConfig{
-					Port:           testCfg.Network.Port,
-					Bootnodes:      testCfg.Network.Bootnodes, // TODO: improve cmd tests #687
-					ProtocolID:     testCfg.Network.ProtocolID,
-					NoBootstrap:    testCfg.Network.NoBootstrap,
-					NoMDNS:         testCfg.Network.NoMDNS,
-					PublishMetrics: testCfg.Network.PublishMetrics,
-					MetricsPort:    testCfg.Network.MetricsPort,
+					Port:        testCfg.Network.Port,
+					Bootnodes:   testCfg.Network.Bootnodes, // TODO: improve cmd tests #687
+					ProtocolID:  testCfg.Network.ProtocolID,
+					NoBootstrap: testCfg.Network.NoBootstrap,
+					NoMDNS:      testCfg.Network.NoMDNS,
 				},
 				RPC: testCfg.RPC,
 			},
@@ -111,13 +111,11 @@ func TestExportCommand(t *testing.T) {
 				Account: testCfg.Account,
 				Core:    testCfg.Core,
 				Network: dot.NetworkConfig{
-					Port:           testCfg.Network.Port,
-					Bootnodes:      []string{testBootnode},
-					ProtocolID:     testCfg.Network.ProtocolID,
-					NoBootstrap:    testCfg.Network.NoBootstrap,
-					NoMDNS:         testCfg.Network.NoMDNS,
-					PublishMetrics: testCfg.Network.PublishMetrics,
-					MetricsPort:    testCfg.Network.MetricsPort,
+					Port:        testCfg.Network.Port,
+					Bootnodes:   []string{testBootnode},
+					ProtocolID:  testCfg.Network.ProtocolID,
+					NoBootstrap: testCfg.Network.NoBootstrap,
+					NoMDNS:      testCfg.Network.NoMDNS,
 				},
 				RPC: testCfg.RPC,
 			},
@@ -144,13 +142,11 @@ func TestExportCommand(t *testing.T) {
 				Account: testCfg.Account,
 				Core:    testCfg.Core,
 				Network: dot.NetworkConfig{
-					Port:           testCfg.Network.Port,
-					Bootnodes:      []string{testBootnode}, // TODO: improve cmd tests #687
-					ProtocolID:     testProtocol,
-					NoBootstrap:    testCfg.Network.NoBootstrap,
-					NoMDNS:         testCfg.Network.NoMDNS,
-					PublishMetrics: testCfg.Network.PublishMetrics,
-					MetricsPort:    testCfg.Network.MetricsPort,
+					Port:        testCfg.Network.Port,
+					Bootnodes:   []string{testBootnode}, // TODO: improve cmd tests #687
+					ProtocolID:  testProtocol,
+					NoBootstrap: testCfg.Network.NoBootstrap,
+					NoMDNS:      testCfg.Network.NoMDNS,
 				},
 				RPC: testCfg.RPC,
 			},

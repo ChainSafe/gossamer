@@ -33,6 +33,9 @@ var (
 	// DefaultBasePath Default node base directory path
 	DefaultBasePath = string("~/.gossamer/gssmr")
 
+	// DefaultMetricsPort is the metrics server port
+	DefaultMetricsPort = uint32(9876)
+
 	// DefaultLvl is the default log level
 	DefaultLvl = log.LvlInfo
 
@@ -71,8 +74,6 @@ var (
 	DefaultNoBootstrap = false
 	// DefaultNoMDNS disables mDNS discovery
 	DefaultNoMDNS = false
-	// DefaultMetricsPort is the metrics server port
-	DefaultMetricsPort = uint32(9876)
 
 	// RPCConfig
 
