@@ -625,7 +625,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3876(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 2, len(digest))
 
-	// kusama block 3784, from polkadot.js
+	// kusama block 3876, from polkadot.js
 	block := &types.Block{
 		Header: &types.Header{
 			ParentHash:     common.MustHexToHash("0x5fa501c8301e842a2d55dec9ed0e28bc05891e571936b46b028069da282c3fb2"),
