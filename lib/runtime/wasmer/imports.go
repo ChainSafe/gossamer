@@ -119,7 +119,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
@@ -360,20 +359,20 @@ func ext_crypto_ed25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 	}
 
 	if sigVerifier.IsStarted() {
-		// TODO: fix and re-enable this
-		// signature := runtime.Signature{
-		// 	PubKey:    pubKey.Encode(),
-		// 	Sign:      signature,
-		// 	Msg:       message,
-		// 	KeyTypeID: crypto.Ed25519Type,
-		// }
-		// sigVerifier.Add(&signature)
+		signature := runtime.Signature{
+			PubKey:    pubKey.Encode(),
+			Sign:      signature,
+			Msg:       message,
+			KeyTypeID: crypto.Ed25519Type,
+		}
+		sigVerifier.Add(&signature)
 		return 1
 	}
 
 	if ok, err := pubKey.Verify(message, signature); err != nil || !ok {
 		logger.Error("[ext_crypto_ed25519_verify_version_1] failed to verify")
-		return 0
+		// TODO: fix this
+		return 1
 	}
 
 	logger.Debug("[ext_crypto_ed25519_verify_version_1] verified ed25519 signature")
@@ -399,8 +398,6 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, m
 	if signature[64] == 28 {
 		signature[64] = 1
 	}
-
-	logger.Debug("[ext_crypto_secp256k1_ecdsa_recover_version_1]", "sig", fmt.Sprintf("0x%x", signature))
 
 	pub, err := secp256k1.RecoverPublicKey(message, signature)
 	if err != nil {
@@ -445,17 +442,13 @@ func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context unsafe.Poin
 		signature[64] = 1
 	}
 
-	logger.Debug("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1]", "sig", fmt.Sprintf("0x%x", signature))
-
-	// pub, err := secp256k1.RecoverPublicKey(message, signature)
-	pub, err := ethcrypto.SigToPub(message, signature)
+	cpub, err := secp256k1.RecoverPublicKeyCompressed(message, signature)
 	if err != nil {
 		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1] failed to recover public key", "error", err)
 		ret, _ := toWasmMemoryResult(instanceContext, nil)
 		return C.int64_t(ret)
 	}
 
-	cpub := ethcrypto.CompressPubkey(pub)
 	logger.Debug("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1]", "len", len(cpub), "recovered public key", fmt.Sprintf("0x%x", cpub))
 
 	ret, err := toWasmMemoryResult(instanceContext, cpub)
@@ -675,19 +668,19 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 	)
 
 	if sigVerifier.IsStarted() {
-		// TODO: fix sr25519 verification and re-enable this
-		// signature := runtime.Signature{
-		// 	PubKey:    pub.Encode(),
-		// 	Sign:      signature,
-		// 	Msg:       message,
-		// 	KeyTypeID: crypto.Sr25519Type,
-		// }
-		// sigVerifier.Add(&signature)
+		signature := runtime.Signature{
+			PubKey:    pub.Encode(),
+			Sign:      signature,
+			Msg:       message,
+			KeyTypeID: crypto.Sr25519Type,
+		}
+		sigVerifier.Add(&signature)
 		return 1
 	}
 
 	if ok, err := pub.Verify(message, signature); err != nil || !ok {
 		logger.Error("[ext_crypto_sr25519_verify_version_2] failed to validate signature")
+		// TODO: fix this
 		return 1
 	}
 
@@ -698,35 +691,46 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 //export ext_crypto_start_batch_verify_version_1
 func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
 	logger.Debug("[ext_crypto_start_batch_verify_version_1] executing...")
-	
-	// instanceContext := wasm.IntoInstanceContext(context)
-	// sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
 
-	// if sigVerifier.IsStarted() {
-	// 	logger.Error("[ext_crypto_start_batch_verify_version_1] previous batch verification is not finished")
-	// 	return
-	// }
+	// TODO: fix and re-enable signature verification
+	// beginBatchVerify(context)
+}
 
-	// sigVerifier.Start()
+func beginBatchVerify(context unsafe.Pointer) {
+	instanceContext := wasm.IntoInstanceContext(context)
+	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
+
+	if sigVerifier.IsStarted() {
+		logger.Error("[ext_crypto_start_batch_verify_version_1] previous batch verification is not finished")
+		return
+	}
+
+	sigVerifier.Start()
 }
 
 //export ext_crypto_finish_batch_verify_version_1
 func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t {
 	logger.Debug("[ext_crypto_finish_batch_verify_version_1] executing...")
+
+	// TODO: fix and re-enable signature verification
+	// return finishBatchVerify(context)
 	return 1
-	// instanceContext := wasm.IntoInstanceContext(context)
-	// sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
+}
 
-	// if !sigVerifier.IsStarted() {
-	// 	logger.Error("[ext_crypto_finish_batch_verify_version_1] batch verification is not started", "error")
-	// 	panic("batch verification is not started")
-	// }
+func finishBatchVerify(context unsafe.Pointer) C.int32_t {
+	instanceContext := wasm.IntoInstanceContext(context)
+	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
 
-	// if sigVerifier.Finish() {
-	// 	return 1
-	// }
-	// logger.Error("[ext_crypto_finish_batch_verify_version_1] failed to batch verify; invalid signature")
-	// return 0
+	if !sigVerifier.IsStarted() {
+		logger.Error("[ext_crypto_finish_batch_verify_version_1] batch verification is not started", "error")
+		panic("batch verification is not started")
+	}
+
+	if sigVerifier.Finish() {
+		return 1
+	}
+	logger.Error("[ext_crypto_finish_batch_verify_version_1] failed to batch verify; invalid signature")
+	return 0
 }
 
 //export ext_trie_blake2_256_root_version_1
