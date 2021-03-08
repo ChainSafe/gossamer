@@ -19,6 +19,7 @@ package state
 import (
 	"bytes"
 	"fmt"
+	"math/big"
 	"os"
 	"path/filepath"
 
@@ -321,13 +322,22 @@ func (s *Service) Start() error {
 	return nil
 }
 
-// Rewind rewinds the chain by the given number of blocks.
+// Rewind rewinds the chain to the given block number.
 // If the given number of blocks is greater than the chain height, it will rewind to genesis.
-func (s *Service) Rewind(numBlocks int) error {
+func (s *Service) Rewind(toBlock int64) error {
 	num, _ := s.Block.BestBlockNumber()
+	if toBlock > num.Int64() {
+		return fmt.Errorf("cannot rewind, given height is higher than our current height")
+	}
 
-	logger.Info("rewinding state...", "current height", num, "to rewind", numBlocks)
-	s.Block.bt.Rewind(numBlocks)
+	logger.Info("rewinding state...", "current height", num, "desired height", toBlock)
+
+	root, err := s.Block.GetBlockByNumber(big.NewInt(toBlock))
+	if err != nil {
+		return err
+	}
+
+	s.Block.bt = blocktree.NewBlockTreeFromRoot(root.Header, s.db)
 	newHead := s.Block.BestBlockHash()
 
 	header, _ := s.Block.BestBlockHeader()
