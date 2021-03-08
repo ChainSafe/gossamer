@@ -447,6 +447,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 	require.NoError(t, err)
 	instance.SetContextStorage(parentState)
 
+	block.Header.Digest = types.Digest{}
 	_, err = instance.ExecuteBlock(block)
 	require.NoError(t, err)
 }
@@ -497,7 +498,8 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 		Body: types.NewBody(body),
 	}
 
-	_, _ = instance.ExecuteBlock(block) // TODO: complete
+	_, err = instance.ExecuteBlock(block)
+	require.NoError(t, err)
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {

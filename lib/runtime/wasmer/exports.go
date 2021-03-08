@@ -149,9 +149,17 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	b := block.DeepCopy()
 	b.Header.Digest = types.NewEmptyDigest()
 
+	if in.version == nil {
+		var err error
+		in.version, err = in.Version()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// TODO: hack since substrate node_runtime can't seem to handle BABE pre-runtime digests
 	// with type prefix (ie Primary, Secondary...)
-	if bytes.Equal(in.version.SpecName(), []byte("kusama")) {
+	if bytes.Equal(in.version.SpecName(), []byte("kusama")) || bytes.Equal(in.version.SpecName(), []byte("polkadot")) {
 		// remove seal digest only
 		for _, d := range block.Header.Digest {
 			if d.Type() == types.SealDigestType {

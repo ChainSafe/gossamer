@@ -207,13 +207,12 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 	in.ctx.Allocator = runtime.NewAllocator(instance.Memory, heapBase)
 	instance.SetContextData(in.ctx)
 
-	inst := &Instance{
-		vm:      instance,
-		ctx:     in.ctx,
-		imports: in.imports,
+	in.vm = instance
+	in.version, err = in.Version()
+	if err != nil {
+		return err
 	}
 
-	inst.version, _ = inst.Version()
 	return nil
 }
 
