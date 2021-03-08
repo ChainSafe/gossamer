@@ -25,7 +25,7 @@ import (
 
 // test used for ensuring runtime exec calls can me made concurrently
 func TestConcurrentRuntimeCalls(t *testing.T) {
-	instance := NewTestInstance(t, runtime.TEST_RUNTIME)
+	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
 
 	// execute 2 concurrent calls to the runtime
 	go func() {

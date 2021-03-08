@@ -32,63 +32,37 @@ import (
 const Name = "wasmtime"
 
 var (
-	_ gssmrruntime.LegacyInstance = (*LegacyInstance)(nil)
-	_ gssmrruntime.Instance       = (*Instance)(nil)
+	_ gssmrruntime.Instance = (*Instance)(nil)
 
 	ctx    gssmrruntime.Context
 	logger = log.New("pkg", "runtime", "module", "go-wasmtime")
 )
 
+// ImportsFunc returns a linker with the module imports
+type ImportsFunc func(*wasmtime.Store, *wasmtime.Memory) (*wasmtime.Linker, error)
+
 // Config represents a wasmer configuration
 type Config struct {
 	gssmrruntime.InstanceConfig
-	Imports func(*wasmtime.Store) (*wasmtime.Linker, error)
+	Imports ImportsFunc
 }
 
-// LegacyInstance represents a v0.6 runtime go-wasmtime instance
-type LegacyInstance struct {
+// Instance represents a v0.8 runtime go-wasmtime instance
+type Instance struct {
 	vm  *wasmtime.Instance
 	mu  sync.Mutex
 	mem *wasmtime.Memory
 }
 
-// Instance represents a v0.8 runtime go-wasmtime instance
-type Instance struct {
-	inst *LegacyInstance
-}
-
-// NewLegacyInstance instantiates a runtime from the given wasm bytecode
-func NewLegacyInstance(code []byte, cfg *Config) (*LegacyInstance, error) {
-	engine := wasmtime.NewEngine()
-	module, err := wasmtime.NewModule(engine, code)
-	if err != nil {
-		return nil, err
-	}
-
-	return newLegacyInstanceFromModule(module, engine, cfg)
-}
-
-// NewLegacyInstanceFromFile instantiates a runtime from a .wasm file
-func NewLegacyInstanceFromFile(fp string, cfg *Config) (*LegacyInstance, error) {
+// NewInstanceFromFile instantiates a runtime from a .wasm file
+func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
 	engine := wasmtime.NewEngine()
 	module, err := wasmtime.NewModuleFromFile(engine, fp)
 	if err != nil {
 		return nil, err
 	}
 
-	return newLegacyInstanceFromModule(module, engine, cfg)
-}
-
-// NewInstanceFromFile instantiates a runtime from a .wasm file
-func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
-	inst, err := NewLegacyInstanceFromFile(fp, cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Instance{
-		inst: inst,
-	}, nil
+	return newInstanceFromModule(module, engine, cfg)
 }
 
 // NewInstance instantiates a runtime from the given wasm bytecode
@@ -99,26 +73,25 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 		return nil, err
 	}
 
-	inst, err := newLegacyInstanceFromModule(module, engine, cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Instance{
-		inst: inst,
-	}, nil
+	return newInstanceFromModule(module, engine, cfg)
 }
 
-func newLegacyInstanceFromModule(module *wasmtime.Module, engine *wasmtime.Engine, cfg *Config) (*LegacyInstance, error) {
+func newInstanceFromModule(module *wasmtime.Module, engine *wasmtime.Engine, cfg *Config) (*Instance, error) {
 	// if cfg.LogLvl set to < 0, then don't change package log level
 	if cfg.LogLvl >= 0 {
 		h := log.StreamHandler(os.Stdout, log.TerminalFormat())
 		h = log.CallerFileHandler(h)
 		logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
 	}
-
 	store := wasmtime.NewStore(engine)
-	linker, err := cfg.Imports(store)
+
+	lim := wasmtime.Limits{
+		Min: 20,
+		Max: wasmtime.LimitsMaxNone,
+	}
+	mem := wasmtime.NewMemory(store, wasmtime.NewMemoryType(lim))
+
+	linker, err := cfg.Imports(store, mem)
 	if err != nil {
 		return nil, err
 	}
@@ -127,8 +100,6 @@ func newLegacyInstanceFromModule(module *wasmtime.Module, engine *wasmtime.Engin
 	if err != nil {
 		return nil, err
 	}
-
-	mem := instance.GetExport("memory").Memory()
 
 	// TODO: use __heap_base
 	allocator := gssmrruntime.NewAllocator(Memory{mem}, 0)
@@ -142,7 +113,7 @@ func newLegacyInstanceFromModule(module *wasmtime.Module, engine *wasmtime.Engin
 		Network:     cfg.Network,
 	}
 
-	return &LegacyInstance{
+	return &Instance{
 		vm:  instance,
 		mem: mem,
 	}, nil
@@ -153,65 +124,30 @@ func (in *Instance) UpdateRuntimeCode(_ []byte) error {
 	return errors.New("unimplemented")
 }
 
-// Legacy returns the instance as a LegacyInstance
-func (in *Instance) Legacy() *LegacyInstance {
-	return in.inst
-}
-
-// SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.
-func (in *Instance) SetContextStorage(s gssmrruntime.Storage) {
-	in.inst.SetContextStorage(s)
-}
-
-// Stop func
-func (in *Instance) Stop() {
-	in.inst.Stop()
-}
-
-// Exec calls the given function with the given data
-func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
-	return in.inst.Exec(function, data)
-}
-
-// Exec func
-func (in *Instance) exec(function string, data []byte) ([]byte, error) {
-	return in.inst.exec(function, data)
-}
-
-// NodeStorage to get reference to runtime node service
-func (in *Instance) NodeStorage() gssmrruntime.NodeStorage {
-	return ctx.NodeStorage
-}
-
-// NetworkService to get referernce to runtime network service
-func (in *Instance) NetworkService() gssmrruntime.BasicNetwork {
-	return ctx.Network
-}
-
 // SetContextStorage sets the runtime context's Storage
-func (in *LegacyInstance) SetContextStorage(s gssmrruntime.Storage) {
+func (in *Instance) SetContextStorage(s gssmrruntime.Storage) {
 	ctx.Storage = s
 }
 
 // Stop ...
-func (in *LegacyInstance) Stop() {}
+func (in *Instance) Stop() {}
 
 // NodeStorage returns the context's NodeStorage
-func (in *LegacyInstance) NodeStorage() gssmrruntime.NodeStorage {
+func (in *Instance) NodeStorage() gssmrruntime.NodeStorage {
 	return ctx.NodeStorage
 }
 
 // NetworkService returns the context's NetworkService
-func (in *LegacyInstance) NetworkService() gssmrruntime.BasicNetwork {
+func (in *Instance) NetworkService() gssmrruntime.BasicNetwork {
 	return ctx.Network
 }
 
 // Exec calls the given function with the given data
-func (in *LegacyInstance) Exec(function string, data []byte) ([]byte, error) {
+func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 	return in.exec(function, data)
 }
 
-func (in *LegacyInstance) exec(function string, data []byte) ([]byte, error) {
+func (in *Instance) exec(function string, data []byte) ([]byte, error) {
 	in.mu.Lock()
 	defer in.mu.Unlock()
 

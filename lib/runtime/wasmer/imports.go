@@ -830,8 +830,14 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 	}
 
 	// instance version is set and cached in NewInstance
-	version := instance.inst.version
+	version := instance.version
 	logger.Debug("[ext_misc_runtime_version_version_1]", "version", version)
+
+	if version == nil {
+		logger.Error("[ext_misc_runtime_version_version_1] failed to get runtime version")
+		out, _ := toWasmMemoryOptional(instanceContext, nil)
+		return C.int64_t(out)
+	}
 
 	encodedData, err := version.Encode()
 	if err != nil {
@@ -1076,13 +1082,31 @@ func ext_default_child_storage_storage_kill_version_1(context unsafe.Pointer, ch
 //export ext_allocator_free_version_1
 func ext_allocator_free_version_1(context unsafe.Pointer, addr C.int32_t) {
 	logger.Trace("[ext_allocator_free_version_1] executing...")
-	ext_free(context, addr)
+	instanceContext := wasm.IntoInstanceContext(context)
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+
+	// Deallocate memory
+	err := runtimeCtx.Allocator.Deallocate(uint32(addr))
+	if err != nil {
+		logger.Error("[ext_allocator_free_version_1] failed to free memory", "error", err)
+	}
 }
 
 //export ext_allocator_malloc_version_1
 func ext_allocator_malloc_version_1(context unsafe.Pointer, size C.int32_t) C.int32_t {
 	logger.Trace("[ext_allocator_malloc_version_1] executing...", "size", size)
-	return ext_malloc(context, size)
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	ctx := instanceContext.Data().(*runtime.Context)
+
+	// Allocate memory
+	res, err := ctx.Allocator.Allocate(uint32(size))
+	if err != nil {
+		logger.Crit("[ext_allocator_malloc_version_1] failed to allocate memory", "error", err)
+		panic(err)
+	}
+
+	return C.int32_t(res)
 }
 
 //export ext_hashing_blake2_128_version_1
