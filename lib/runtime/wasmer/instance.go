@@ -177,7 +177,8 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 		return err
 	}
 
-	// Provide importable memory for newer runtimes
+	// TODO: determine memory descriptor size that the runtime wants from the wasm.
+	// should be doable w/ wasmer 1.0.0.
 	memory, err := wasm.NewMemory(23, 0)
 	if err != nil {
 		return err
