@@ -101,8 +101,6 @@ func newInstanceFromModule(module *wasmtime.Module, engine *wasmtime.Engine, cfg
 		return nil, err
 	}
 
-	//mem := instance.GetExport("memory").Memory()
-
 	// TODO: use __heap_base
 	allocator := gssmrruntime.NewAllocator(Memory{mem}, 0)
 
