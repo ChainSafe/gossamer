@@ -86,21 +86,24 @@ func TestSyncQueue_PushResponse(t *testing.T) {
 
 	s := createTestService(t, config)
 
-	testHeader := types.Header{
-		Number: big.NewInt(77),
-	}
-
 	peerID := peer.ID("noot")
 	msg := &BlockResponseMessage{
-		BlockData: []*types.BlockData{
-			{
-				Header: testHeader.AsOptional(),
-				Body:   optional.NewBody(true, []byte{0}),
-			},
-		},
+		BlockData: []*types.BlockData{},
 	}
 
-	s.syncQueue.pushResponse(msg, peerID)
+	for i := 0; i < int(blockRequestSize); i++ {
+		testHeader := types.Header{
+			Number: big.NewInt(int64(77 + i)),
+		}
+
+		msg.BlockData = append(msg.BlockData, &types.BlockData{
+			Header: testHeader.AsOptional(),
+			Body:   optional.NewBody(true, []byte{0}),
+		})
+	}
+
+	err := s.syncQueue.pushResponse(msg, peerID)
+	require.NoError(t, err)
 	require.Equal(t, 1, len(s.syncQueue.responses))
 }
 
@@ -334,7 +337,8 @@ func TestSyncQueue_ProcessBlockRequests(t *testing.T) {
 	require.NoError(t, err)
 
 	nodeA.syncQueue.stop()
-	nodeA.syncQueue.ctx = context.Background()
+	nodeA.syncQueue.ctx, nodeA.syncQueue.cancel = context.WithCancel(context.Background())
+	defer nodeA.syncQueue.cancel()
 	time.Sleep(time.Second * 3)
 
 	nodeA.syncQueue.updatePeerScore(nodeB.host.id(), 1) // expect to try to sync with nodeB first
@@ -344,7 +348,7 @@ func TestSyncQueue_ProcessBlockRequests(t *testing.T) {
 	}
 
 	time.Sleep(time.Second * 2)
-	require.Equal(t, 3, len(nodeA.syncQueue.responses))
+	require.Equal(t, 128, len(nodeA.syncQueue.responses))
 	testResp := testBlockResponseMessage()
 	require.Equal(t, testResp.BlockData, nodeA.syncQueue.responses)
 }
