@@ -88,6 +88,7 @@ type Config struct {
 	// privateKey the private key for the network p2p identity
 	privateKey crypto.PrivKey
 
+	// PublishMetrics enables collection of network metrics
 	PublishMetrics bool
 }
 
