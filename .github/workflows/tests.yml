@@ -24,7 +24,7 @@ jobs:
           restore-keys: ${{ runner.os }}-go-
 
       - name: Run unit tests
-        run: make test
+        run: go test -short ./... -timeout=20m
 
       - name: Test State - Race
         run: make test-state-race
@@ -47,14 +47,12 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
           restore-keys: ${{ runner.os }}-go-
 
-      - name: Publish code coverage
-        uses: paambaati/codeclimate-action@v2.7.5
-        env:
-          CC_TEST_REPORTER_ID: abdad8b2e2ec0bfdd7af57d955c44e9470f4d174e744b824047f3037800f5b40
-        with:
-          coverageCommand: go test -short -coverprofile c.out ./...
-          prefix: github.com/ChainSafe/gossamer
-          debug: true
+      - name: Generate coverage report
+        run: |
+          go test ./... -short -coverprofile=coverage.out -covermode=atomic -timeout=20m
+
+      - name: Upload coverage report
+        run: bash <(curl -s https://codecov.io/bash)
 
   docker-stable-tests:
     runs-on: ubuntu-latest

@@ -1,0 +1,10 @@
+coverage:
+  precision: 2
+  round: down
+  range: "50...90"
+
+ignore:
+  - "docs/**/*"
+  - "tests/**/*"
+  - "scripts/**/*" 
+  - "cmd/gossamer/test_inputs/*"
