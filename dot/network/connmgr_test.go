@@ -30,7 +30,7 @@ func TestMaxPeers(t *testing.T) {
 	nodes := make([]*Service, max+2)
 	for i := range nodes {
 		config := &Config{
-			BasePath:    utils.NewTestBasePath(t, fmt.Sprintf("node%d-x", i)),
+			BasePath:    utils.NewTestBasePath(t, fmt.Sprintf("node%d", i)),
 			Port:        7000 + uint32(i),
 			RandSeed:    1 + int64(i),
 			NoBootstrap: true,

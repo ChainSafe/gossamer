@@ -394,15 +394,7 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) {
 	q.responseLock.Lock()
 	defer q.responseLock.Unlock()
 
-	// for _, bd := range resp.BlockData {
-	// 	if bd.Number() == nil || bd.Number().Int64() < head.Int64() {
-	// 		continue
-	// 	}
-
-	// 	q.responses = append(q.responses, bd)
-	// }
 	q.responses = append(q.responses, resp.BlockData...)
-
 	q.responses = sortResponses(q.responses)
 	logger.Debug("pushed block data to queue", "start", start, "end", end, "queue", q.stringifyResponseQueue())
 }
