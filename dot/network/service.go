@@ -482,7 +482,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 			// handle message based on peer status and message type
 			err = handler(stream, msg)
 			if err != nil {
-				logger.Warn("Failed to handle message from stream", "message", msg, "error", err)
+				logger.Trace("Failed to handle message from stream", "message", msg, "error", err)
 				_ = stream.Close()
 				return
 			}
