@@ -48,6 +48,10 @@ func ImportsNodeRuntime(store *wasm.Store, memory *wasm.Memory, ctx *runtime.Con
 		wasm.NewValueTypes(wasm.I32, wasm.I32, wasm.I64),
 		wasm.NewValueTypes(wasm.I64),
 	), ctx, ext_crypto_ed25519_sign_version_1)
+	importsMap["ext_crypto_ed25519_verify_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I32, wasm.I64, wasm.I32),
+		wasm.NewValueTypes(wasm.I32),
+	), ctx, ext_crypto_ed25519_verify_version_1)
 
 	imports := wasm.NewImportObject()
 	imports.Register("env", importsMap)

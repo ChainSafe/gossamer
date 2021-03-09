@@ -257,16 +257,16 @@ func ext_crypto_ed25519_sign_version_1(env interface{}, args []wasm.Value) ([]wa
 }
 
 //func ext_crypto_ed25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, msg C.int64_t, key C.int32_t) C.int32_t {
-func ext_crypto_ed25519_verify_version_1(env interface{}, sigValue, msgValue, keyValue wasm.Value) wasm.Value {
+func ext_crypto_ed25519_verify_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_crypto_ed25519_verify_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
 	memory := ctx.Memory.Data()
 	sigVerifier := ctx.SigVerifier
 
-	sig := sigValue.I32()
-	msg := msgValue.I64()
-	key := keyValue.I32()
+	sig := args[0].I32()
+	msg := args[1].I64()
+	key := args[2].I32()
 
 	signature := memory[sig : sig+64]
 	message := asMemorySlice(ctx, msg)
@@ -275,7 +275,7 @@ func ext_crypto_ed25519_verify_version_1(env interface{}, sigValue, msgValue, ke
 	pubKey, err := ed25519.NewPublicKey(pubKeyData)
 	if err != nil {
 		logger.Error("[ext_crypto_ed25519_verify_version_1] failed to create public key")
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
 	if sigVerifier.IsStarted() {
@@ -286,16 +286,16 @@ func ext_crypto_ed25519_verify_version_1(env interface{}, sigValue, msgValue, ke
 			KeyTypeID: crypto.Ed25519Type,
 		}
 		sigVerifier.Add(&signature)
-		return wasm.NewI32(1)
+		return []wasm.Value{wasm.NewI32(1)}, nil
 	}
 
 	if ok, err := pubKey.Verify(message, signature); err != nil || !ok {
 		logger.Error("[ext_crypto_ed25519_verify_version_1] failed to verify")
-		return wasm.NewI32(0)
+		return []wasm.Value{wasm.NewI32(0)}, nil
 	}
 
 	logger.Debug("[ext_crypto_ed25519_verify_version_1] verified ed25519 signature")
-	return wasm.NewI32(1)
+	return []wasm.Value{wasm.NewI32(1)}, nil
 }
 
 //func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, msg C.int32_t) C.int64_t {
