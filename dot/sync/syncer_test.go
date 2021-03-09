@@ -322,10 +322,10 @@ func TestSyncer_ExecuteBlock(t *testing.T) {
 func TestSyncer_HandleRuntimeChanges(t *testing.T) {
 	syncer := newTestSyncer(t)
 
-	_, err := runtime.GetRuntimeBlob(runtime.HOST_API_TEST_RUNTIME_FP, runtime.HOST_API_TEST_RUNTIME_URL)
+	_, err := runtime.GetRuntimeBlob(runtime.POLKADOT_RUNTIME_FP, runtime.POLKADOT_RUNTIME_URL)
 	require.NoError(t, err)
 
-	testRuntime, err := ioutil.ReadFile(runtime.HOST_API_TEST_RUNTIME_FP)
+	testRuntime, err := ioutil.ReadFile(runtime.POLKADOT_RUNTIME_FP)
 	require.NoError(t, err)
 
 	ts, err := syncer.storageState.TrieState(nil)

@@ -256,11 +256,11 @@ func (s *mockSyncer) IsSynced() bool {
 	return false
 }
 
-type mockDigestItem struct {
+type mockDigestItem struct { //nolint
 	i int
 }
 
-func newMockDigestItem(i int) *mockDigestItem {
+func newMockDigestItem(i int) *mockDigestItem { //nolint
 	return &mockDigestItem{
 		i: i,
 	}
