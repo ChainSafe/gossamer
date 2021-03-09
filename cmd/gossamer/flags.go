@@ -43,10 +43,10 @@ var (
 		Name:  "roles",
 		Usage: "Roles of the gossamer node",
 	}
-	// RewindFlag rewinds the head of the chain by the given number of blocks. Useful for development
+	// RewindFlag rewinds the head of the chain to the given block number. Useful for development
 	RewindFlag = cli.IntFlag{
 		Name:  "rewind",
-		Usage: "Rewind head of chain by given number of blocks",
+		Usage: "Rewind head of chain to the given block number",
 	}
 )
 

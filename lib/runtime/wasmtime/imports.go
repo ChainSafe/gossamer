@@ -17,8 +17,21 @@
 package wasmtime
 
 import (
+	"fmt"
+
 	"github.com/bytecodealliance/wasmtime-go"
 )
+
+// int64ToPointerAndSize converts an int64 into a int32 pointer and a int32 length
+func int64ToPointerAndSize(in int64) (ptr int32, length int32) {
+	return int32(in), int32(in >> 32)
+}
+
+// Convert 64bit wasm span descriptor to Go memory slice
+func asMemorySlice(memory []byte, span int64) []byte {
+	ptr, size := int64ToPointerAndSize(span)
+	return memory[ptr : ptr+size]
+}
 
 func ext_logging_log_version_1(c *wasmtime.Caller, level int32, target, msg int64) {
 	logger.Trace("[ext_logging_log_version_1] executing...")
@@ -110,12 +123,16 @@ func ext_misc_print_hex_version_1(c *wasmtime.Caller, a int64) {
 	logger.Trace("[ext_misc_print_hex_version_1] executing...")
 }
 
-func ext_misc_print_num_version_1(c *wasmtime.Caller, a int64) {
+func ext_misc_print_num_version_1(c *wasmtime.Caller, data int64) {
 	logger.Trace("[ext_misc_print_num_version_1] executing...")
+	logger.Info("[ext_print_num]", "message", fmt.Sprintf("%d", data))
 }
 
-func ext_misc_print_utf8_version_1(c *wasmtime.Caller, a int64) {
+func ext_misc_print_utf8_version_1(c *wasmtime.Caller, dataSpan int64) {
 	logger.Trace("[ext_misc_print_utf8_version_1] executing...")
+	m := c.GetExport("memory").Memory()
+	data := asMemorySlice(m.UnsafeData(), dataSpan)
+	logger.Info("[ext_print_utf8]", "message", fmt.Sprintf("%s", data))
 }
 
 func ext_misc_runtime_version_version_1(c *wasmtime.Caller, z int64) int64 {
@@ -284,14 +301,7 @@ func ext_offchain_index_set_version_1(c *wasmtime.Caller, a, b int64) {
 }
 
 // ImportNodeRuntime adds the imports for the v0.8 runtime to linker
-func ImportNodeRuntime(store *wasmtime.Store) (*wasmtime.Linker, error) {
-	lim := wasmtime.Limits{
-		Min: 20,
-		Max: wasmtime.LimitsMaxNone,
-	}
-
-	mem := wasmtime.NewMemory(store, wasmtime.NewMemoryType(lim))
-
+func ImportNodeRuntime(store *wasmtime.Store, memory *wasmtime.Memory) (*wasmtime.Linker, error) {
 	fns := []struct {
 		name string
 		fn   interface{}
@@ -351,10 +361,13 @@ func ImportNodeRuntime(store *wasmtime.Store) (*wasmtime.Linker, error) {
 		{"ext_storage_set_version_1", ext_storage_set_version_1},
 		{"ext_storage_start_transaction_version_1", ext_storage_start_transaction_version_1},
 		{"ext_offchain_index_set_version_1", ext_offchain_index_set_version_1},
-		{"mem", mem},
 	}
 
 	linker := wasmtime.NewLinker(store)
+	if err := linker.Define("env", "memory", memory); err != nil {
+		return nil, err
+	}
+
 	for _, f := range fns {
 		if err := linker.DefineFunc("env", f.name, f.fn); err != nil {
 			return nil, err
