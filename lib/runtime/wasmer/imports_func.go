@@ -26,10 +26,6 @@ func ImportsNodeRuntime(store *wasm.Store, memory *wasm.Memory, ctx *runtime.Con
 	importsMap := make(map[string]wasm.IntoExtern)
 
 	importsMap["memory"] = memory
-	importsMap["ext_allocator_malloc_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
-		wasm.NewValueTypes(wasm.I32),
-		wasm.NewValueTypes(wasm.I32),
-	), ctx, ext_allocator_malloc_version_1)
 
 	importsMap["ext_logging_log_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
 		wasm.NewValueTypes(wasm.I32, wasm.I64, wasm.I64),
@@ -52,6 +48,117 @@ func ImportsNodeRuntime(store *wasm.Store, memory *wasm.Memory, ctx *runtime.Con
 		wasm.NewValueTypes(wasm.I32, wasm.I64, wasm.I32),
 		wasm.NewValueTypes(wasm.I32),
 	), ctx, ext_crypto_ed25519_verify_version_1)
+	importsMap["ext_crypto_secp256k1_ecdsa_recover_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I32, wasm.I32),
+		wasm.NewValueTypes(wasm.I64),
+	), ctx, ext_crypto_secp256k1_ecdsa_recover_version_1)
+	importsMap["ext_crypto_secp256k1_ecdsa_recover_compressed_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I32, wasm.I32),
+		wasm.NewValueTypes(wasm.I64),
+	), ctx, ext_crypto_secp256k1_ecdsa_recover_compressed_version_1)
+	importsMap["ext_crypto_sr25519_generate_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I32, wasm.I64),
+		wasm.NewValueTypes(wasm.I32),
+	), ctx, ext_crypto_sr25519_generate_version_1)
+	importsMap["ext_crypto_sr25519_public_keys_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I32),
+		wasm.NewValueTypes(wasm.I64),
+	), ctx, ext_crypto_sr25519_public_keys_version_1)
+	importsMap["ext_crypto_sr25519_sign_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I32, wasm.I32, wasm.I64),
+		wasm.NewValueTypes(wasm.I64),
+	), ctx, ext_crypto_sr25519_sign_version_1)
+	importsMap["ext_crypto_sr25519_verify_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I32, wasm.I64, wasm.I32),
+		wasm.NewValueTypes(wasm.I32),
+	), ctx, ext_crypto_sr25519_verify_version_1)
+	importsMap["ext_crypto_sr25519_verify_version_2"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I32, wasm.I64, wasm.I32),
+		wasm.NewValueTypes(wasm.I32),
+	), ctx, ext_crypto_sr25519_verify_version_2)
+	importsMap["ext_crypto_start_batch_verify_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(),
+		wasm.NewValueTypes(),
+	), ctx, ext_crypto_start_batch_verify_version_1)
+	importsMap["ext_crypto_finish_batch_verify_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(),
+		wasm.NewValueTypes(wasm.I32),
+	), ctx, ext_crypto_finish_batch_verify_version_1)
+
+	importsMap["ext_trie_blake2_256_root_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64),
+		wasm.NewValueTypes(wasm.I32),
+	), ctx, ext_trie_blake2_256_root_version_1)
+	importsMap["ext_trie_blake2_256_ordered_root_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64),
+		wasm.NewValueTypes(wasm.I32),
+	), ctx, ext_trie_blake2_256_ordered_root_version_1)
+
+	importsMap["ext_misc_print_hex_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64),
+		wasm.NewValueTypes(),
+	), ctx, ext_misc_print_hex_version_1)
+	importsMap["ext_misc_print_num_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64),
+		wasm.NewValueTypes(),
+	), ctx, ext_misc_print_num_version_1)
+	importsMap["ext_misc_print_utf8_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64),
+		wasm.NewValueTypes(),
+	), ctx, ext_misc_print_utf8_version_1)
+	importsMap["ext_misc_runtime_version_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64),
+		wasm.NewValueTypes(wasm.I64),
+	), ctx, ext_misc_runtime_version_version_1)
+
+	// TODO: ext_default
+
+	importsMap["ext_allocator_free_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I32),
+		wasm.NewValueTypes(),
+	), ctx, ext_allocator_free_version_1)
+	importsMap["ext_allocator_malloc_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I32),
+		wasm.NewValueTypes(wasm.I32),
+	), ctx, ext_allocator_malloc_version_1)
+
+	importsMap["ext_hashing_blake2_128_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64),
+		wasm.NewValueTypes(wasm.I32),
+	), ctx, ext_hashing_blake2_128_version_1)
+	importsMap["ext_hashing_blake2_256_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64),
+		wasm.NewValueTypes(wasm.I32),
+	), ctx, ext_hashing_blake2_256_version_1)
+	importsMap["ext_hashing_keccak_256_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64),
+		wasm.NewValueTypes(wasm.I32),
+	), ctx, ext_hashing_keccak_256_version_1)
+	importsMap["ext_hashing_sha2_256_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64),
+		wasm.NewValueTypes(wasm.I32),
+	), ctx, ext_hashing_sha2_256_version_1)
+	importsMap["ext_hashing_twox_256_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64),
+		wasm.NewValueTypes(wasm.I32),
+	), ctx, ext_hashing_twox_256_version_1)
+	importsMap["ext_hashing_twox_128_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64),
+		wasm.NewValueTypes(wasm.I32),
+	), ctx, ext_hashing_twox_128_version_1)
+	importsMap["ext_hashing_twox_64_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64),
+		wasm.NewValueTypes(wasm.I32),
+	), ctx, ext_hashing_twox_64_version_1)
+
+	importsMap["ext_offchain_index_set_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64, wasm.I64),
+		wasm.NewValueTypes(),
+	), ctx, ext_offchain_index_set_version_1)
+	importsMap["ext_offchain_is_validator_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(),
+		wasm.NewValueTypes(wasm.I32),
+	), ctx, ext_offchain_is_validator_version_1)
 
 	imports := wasm.NewImportObject()
 	imports.Register("env", importsMap)

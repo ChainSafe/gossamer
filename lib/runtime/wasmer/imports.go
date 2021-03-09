@@ -299,13 +299,13 @@ func ext_crypto_ed25519_verify_version_1(env interface{}, args []wasm.Value) ([]
 }
 
 //func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, msg C.int32_t) C.int64_t {
-func ext_crypto_secp256k1_ecdsa_recover_version_1(env interface{}, sigValue, msgValue wasm.Value) wasm.Value {
+func ext_crypto_secp256k1_ecdsa_recover_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_crypto_secp256k1_ecdsa_recover_version_1] executing...")
 	ctx := env.(*runtime.Context)
 	memory := ctx.Memory.Data()
 
-	sig := sigValue.I32()
-	msg := msgValue.I32()
+	sig := args[0].I32()
+	msg := args[1].I32()
 
 	// msg must be the 32-byte hash of the message to be signed.
 	// sig must be a 65-byte compact ECDSA signature containing the
@@ -327,7 +327,7 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(env interface{}, sigValue, msg
 	if err != nil {
 		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_version_1] failed to recover public key", "error", err)
 		ret, _ := toWasmMemoryResult(ctx, nil)
-		return wasm.NewI64(ret)
+		return []wasm.Value{wasm.NewI64(ret)}, nil
 	}
 
 	logger.Debug("[ext_crypto_secp256k1_ecdsa_recover_version_1]", "len", len(pub), "recovered public key", fmt.Sprintf("0x%x", pub))
@@ -335,27 +335,27 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(env interface{}, sigValue, msg
 	ret, err := toWasmMemoryResult(ctx, pub[1:])
 	if err != nil {
 		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_version_1] failed to allocate memory", "error", err)
-		return wasm.NewI64(0)
+		return nil, err
 	}
 
-	return wasm.NewI64(ret)
+	return []wasm.Value{wasm.NewI64(ret)}, nil
 }
 
 //func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context unsafe.Pointer, a, z C.int32_t) C.int64_t {
-func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(env interface{}, sig, msg wasm.Value) wasm.Value {
+func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1] executing...")
 	logger.Warn("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1] unimplemented")
-	return wasm.NewI64(0)
+	return []wasm.Value{wasm.NewI64(0)}, nil
 }
 
 //func ext_crypto_sr25519_generate_version_1(context unsafe.Pointer, keyTypeID C.int32_t, seedSpan C.int64_t) C.int32_t {
-func ext_crypto_sr25519_generate_version_1(env interface{}, keyTypeIDValue, seedSpanValue wasm.Value) wasm.Value {
+func ext_crypto_sr25519_generate_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_crypto_sr25519_generate_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
 	memory := ctx.Memory.Data()
-	keyTypeID := keyTypeIDValue.I32()
-	seedSpan := seedSpanValue.I64()
+	keyTypeID := args[0].I32()
+	seedSpan := args[1].I64()
 
 	id := memory[keyTypeID : keyTypeID+4]
 
@@ -366,7 +366,7 @@ func ext_crypto_sr25519_generate_version_1(env interface{}, keyTypeIDValue, seed
 	seed, err := optional.NewBytes(false, nil).Decode(buf)
 	if err != nil {
 		logger.Warn("[ext_crypto_sr25519_generate_version_1] cannot generate key", "error", err)
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
 	var kp crypto.Keypair
@@ -378,33 +378,33 @@ func ext_crypto_sr25519_generate_version_1(env interface{}, keyTypeIDValue, seed
 
 	if err != nil {
 		logger.Trace("[ext_crypto_sr25519_generate_version_1] cannot generate key", "error", err)
-		panic(err)
+		return nil, err
 	}
 
 	ks, err := ctx.Keystore.GetKeystore(id)
 	if err != nil {
 		logger.Warn("[ext_crypto_ed25519_sign_version_1]", "name", id, "error", err)
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
 	ks.Insert(kp)
 	ret, err := toWasmMemorySized(ctx, kp.Public().Encode(), 32)
 	if err != nil {
 		logger.Error("[ext_crypto_sr25519_generate_version_1] failed to allocate memory", "error", err)
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
 	logger.Debug("[ext_crypto_sr25519_generate_version_1] generated sr25519 keypair", "public", kp.Public().Hex())
-	return wasm.NewI32(ret)
+	return []wasm.Value{wasm.NewI32(ret)}, nil
 }
 
 //func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, keyTypeID C.int32_t) C.int64_t {
-func ext_crypto_sr25519_public_keys_version_1(env interface{}, keyTypeIDValue wasm.Value) wasm.Value {
+func ext_crypto_sr25519_public_keys_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_crypto_sr25519_public_keys_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
 	memory := ctx.Memory.Data()
-	keyTypeID := keyTypeIDValue.I32()
+	keyTypeID := args[0].I32()
 
 	id := memory[keyTypeID : keyTypeID+4]
 
@@ -412,13 +412,13 @@ func ext_crypto_sr25519_public_keys_version_1(env interface{}, keyTypeIDValue wa
 	if err != nil {
 		logger.Warn("[ext_crypto_sr25519_public_keys_version_1]", "name", id, "error", err)
 		ret, _ := toWasmMemory(ctx, []byte{0})
-		return wasm.NewI64(ret)
+		return []wasm.Value{wasm.NewI64(ret)}, nil
 	}
 
 	if ks.Type() != crypto.Sr25519Type {
 		logger.Warn("[ext_crypto_ed25519_public_keys_version_1]", "name", id, "error", "keystore type is not ed25519")
 		ret, _ := toWasmMemory(ctx, []byte{0})
-		return wasm.NewI64(ret)
+		return []wasm.Value{wasm.NewI64(ret)}, nil
 	}
 
 	keys := ks.PublicKeys()
@@ -430,30 +430,29 @@ func ext_crypto_sr25519_public_keys_version_1(env interface{}, keyTypeIDValue wa
 
 	prefix, err := scale.Encode(big.NewInt(int64(len(keys))))
 	if err != nil {
-		logger.Error("[ext_crypto_ed25519_public_keys_version_1] failed to allocate memory", err)
+		logger.Error("[ext_crypto_ed25519_public_keys_version_1] failed to encode keys", err)
 		ret, _ := toWasmMemory(ctx, []byte{0})
-		return wasm.NewI64(ret)
+		return []wasm.Value{wasm.NewI64(ret)}, nil
 	}
 
 	ret, err := toWasmMemory(ctx, append(prefix, encodedKeys...))
 	if err != nil {
 		logger.Error("[ext_crypto_ed25519_public_keys_version_1] failed to allocate memory", err)
-		ret, _ = toWasmMemory(ctx, []byte{0})
-		return wasm.NewI64(ret)
+		return nil, err
 	}
 
-	return wasm.NewI64(ret)
+	return []wasm.Value{wasm.NewI64(ret)}, nil
 }
 
 //func ext_crypto_sr25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.int32_t, msg C.int64_t) C.int64_t {
-func ext_crypto_sr25519_sign_version_1(env interface{}, keyTypeIDValue, keyValue, msgValue wasm.Value) wasm.Value {
+func ext_crypto_sr25519_sign_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_crypto_sr25519_sign_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
 	memory := ctx.Memory.Data()
-	keyTypeID := keyTypeIDValue.I32()
-	key := keyValue.I32()
-	msg := msgValue.I64()
+	keyTypeID := args[0].I32()
+	key := args[1].I32()
+	msg := args[2].I64()
 
 	emptyRet, _ := toWasmMemoryOptional(ctx, nil)
 
@@ -462,49 +461,48 @@ func ext_crypto_sr25519_sign_version_1(env interface{}, keyTypeIDValue, keyValue
 	ks, err := ctx.Keystore.GetKeystore(id)
 	if err != nil {
 		logger.Warn("[ext_crypto_sr25519_public_keys_version_1]", "name", id, "error", err)
-		return wasm.NewI64(emptyRet)
+		return []wasm.Value{wasm.NewI64(emptyRet)}, nil
 	}
 
 	var ret int64
 	pubKey, err := sr25519.NewPublicKey(memory[key : key+32])
 	if err != nil {
 		logger.Error("[ext_crypto_sr25519_sign_version_1] failed to get public key", "error", err)
-		return wasm.NewI64(emptyRet)
+		return []wasm.Value{wasm.NewI64(emptyRet)}, nil
 	}
 
 	signingKey := ks.GetKeypair(pubKey)
 	if signingKey == nil {
 		logger.Error("[ext_crypto_sr25519_sign_version_1] could not find public key in keystore", "error", pubKey)
-		return wasm.NewI64(emptyRet)
+		return []wasm.Value{wasm.NewI64(emptyRet)}, nil
 	}
 
 	msgData := asMemorySlice(ctx, msg)
 	sig, err := signingKey.Sign(msgData)
 	if err != nil {
 		logger.Error("[ext_crypto_sr25519_sign_version_1] could not sign message", "error", err)
-		return wasm.NewI64(emptyRet)
+		return []wasm.Value{wasm.NewI64(emptyRet)}, nil
 	}
 
 	ret, err = toWasmMemoryOptional(ctx, sig)
 	if err != nil {
-		logger.Error("[ext_crypto_sr25519_sign_version_1] failed to allocate memory", "error", err)
-		return wasm.NewI64(emptyRet)
+		return nil, err
 	}
 
-	return wasm.NewI64(ret)
+	return []wasm.Value{wasm.NewI64(ret)}, nil
 }
 
 //func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, msg C.int64_t, key C.int32_t) C.int32_t {
-func ext_crypto_sr25519_verify_version_1(env interface{}, sigValue, msgValue, keyValue wasm.Value) wasm.Value {
+func ext_crypto_sr25519_verify_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_crypto_sr25519_verify_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
 	memory := ctx.Memory.Data()
 	sigVerifier := ctx.SigVerifier
 
-	sig := sigValue.I32()
-	msg := msgValue.I64()
-	key := keyValue.I32()
+	sig := args[0].I32()
+	msg := args[1].I64()
+	key := args[2].I32()
 
 	message := asMemorySlice(ctx, msg)
 	signature := memory[sig : sig+64]
@@ -512,7 +510,7 @@ func ext_crypto_sr25519_verify_version_1(env interface{}, sigValue, msgValue, ke
 	pub, err := sr25519.NewPublicKey(memory[key : key+32])
 	if err != nil {
 		logger.Error("[ext_crypto_sr25519_verify_version_1] invalid sr25519 public key")
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
 	logger.Debug("[ext_crypto_sr25519_verify_version_1]", "pub", pub.Hex(),
@@ -528,30 +526,30 @@ func ext_crypto_sr25519_verify_version_1(env interface{}, sigValue, msgValue, ke
 			KeyTypeID: crypto.Sr25519Type,
 		}
 		sigVerifier.Add(&signature)
-		return wasm.NewI32(1)
+		return []wasm.Value{wasm.NewI32(1)}, nil
 	}
 
 	if ok, err := pub.VerifyDeprecated(message, signature); err != nil || !ok {
 		logger.Debug("[ext_crypto_sr25519_verify_version_1] failed to verify sr25519 signature")
 		// TODO: fix this, fails at block 3876
-		return wasm.NewI32(1)
+		return []wasm.Value{wasm.NewI32(1)}, nil
 	}
 
 	logger.Debug("[ext_crypto_sr25519_verify_version_1] verified sr25519 signature")
-	return wasm.NewI32(1)
+	return []wasm.Value{wasm.NewI32(1)}, nil
 }
 
 //func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, msg C.int64_t, key C.int32_t) C.int32_t {
-func ext_crypto_sr25519_verify_version_2(env interface{}, sigValue, msgValue, keyValue wasm.Value) wasm.Value {
+func ext_crypto_sr25519_verify_version_2(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_crypto_sr25519_verify_version_2] executing...")
 
 	ctx := env.(*runtime.Context)
 	memory := ctx.Memory.Data()
 	sigVerifier := ctx.SigVerifier
 
-	sig := sigValue.I32()
-	msg := msgValue.I64()
-	key := keyValue.I32()
+	sig := args[0].I32()
+	msg := args[1].I64()
+	key := args[2].I32()
 
 	message := asMemorySlice(ctx, msg)
 	signature := memory[sig : sig+64]
@@ -559,7 +557,7 @@ func ext_crypto_sr25519_verify_version_2(env interface{}, sigValue, msgValue, ke
 	pub, err := sr25519.NewPublicKey(memory[key : key+32])
 	if err != nil {
 		logger.Error("[ext_crypto_sr25519_verify_version_2] failed to verify sr25519 signature")
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
 	logger.Debug("[ext_crypto_sr25519_verify_version_2]", "pub", pub.Hex(),
@@ -575,20 +573,21 @@ func ext_crypto_sr25519_verify_version_2(env interface{}, sigValue, msgValue, ke
 			KeyTypeID: crypto.Sr25519Type,
 		}
 		sigVerifier.Add(&signature)
-		return wasm.NewI32(1)
+		return []wasm.Value{wasm.NewI32(1)}, nil
 	}
 
 	if ok, err := pub.Verify(message, signature); err != nil || !ok {
 		logger.Debug("[ext_crypto_sr25519_verify_version_2] failed to validate signature")
-		return wasm.NewI32(1)
+		// TODO: fix this
+		return []wasm.Value{wasm.NewI32(1)}, nil
 	}
 
 	logger.Debug("[ext_crypto_sr25519_verify_version_2] validated signature")
-	return wasm.NewI32(1)
+	return []wasm.Value{wasm.NewI32(1)}, nil
 }
 
 //func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
-func ext_crypto_start_batch_verify_version_1(env interface{}) {
+func ext_crypto_start_batch_verify_version_1(env interface{}, _ []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_crypto_start_batch_verify_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
@@ -596,14 +595,15 @@ func ext_crypto_start_batch_verify_version_1(env interface{}) {
 
 	if sigVerifier.IsStarted() {
 		logger.Error("[ext_crypto_start_batch_verify_version_1] previous batch verification is not finished")
-		return
+		return nil, nil
 	}
 
 	sigVerifier.Start()
+	return nil, nil
 }
 
 //func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t {
-func ext_crypto_finish_batch_verify_version_1(env interface{}) wasm.Value {
+func ext_crypto_finish_batch_verify_version_1(env interface{}, _ []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_crypto_finish_batch_verify_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
@@ -611,22 +611,22 @@ func ext_crypto_finish_batch_verify_version_1(env interface{}) wasm.Value {
 
 	if !sigVerifier.IsStarted() {
 		logger.Error("[ext_crypto_finish_batch_verify_version_1] batch verification is not started", "error")
-		panic("batch verification is not started")
+		return nil, errors.New("batch verification is not started")
 	}
 
 	if sigVerifier.Finish() {
-		return wasm.NewI32(1)
+		return []wasm.Value{wasm.NewI32(1)}, nil
 	}
-	return wasm.NewI32(0)
+	return []wasm.Value{wasm.NewI32(0)}, nil
 }
 
 //func ext_trie_blake2_256_root_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
-func ext_trie_blake2_256_root_version_1(env interface{}, dataSpanValue wasm.Value) wasm.Value {
+func ext_trie_blake2_256_root_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_trie_blake2_256_root_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
 	memory := ctx.Memory.Data()
-	dataSpan := dataSpanValue.I64()
+	dataSpan := args[0].I64()
 
 	data := asMemorySlice(ctx, dataSpan)
 
@@ -639,7 +639,7 @@ func ext_trie_blake2_256_root_version_1(env interface{}, dataSpanValue wasm.Valu
 	kvs, err := scale.Decode(data, [][]byte{})
 	if err != nil {
 		logger.Error("[ext_trie_blake2_256_root_version_1]", "error", err)
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
 	keyValues := kvs.([][]byte)
@@ -656,27 +656,27 @@ func ext_trie_blake2_256_root_version_1(env interface{}, dataSpanValue wasm.Valu
 	ptr, err := ctx.Allocator.Allocate(32)
 	if err != nil {
 		logger.Error("[ext_trie_blake2_256_root_version_1]", "error", err)
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
 	hash, err := t.Hash()
 	if err != nil {
 		logger.Error("[ext_trie_blake2_256_root_version_1]", "error", err)
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
 	logger.Debug("[ext_trie_blake2_256_root_version_1]", "root", hash)
 	copy(memory[ptr:ptr+32], hash[:])
-	return wasm.NewI32(ptr)
+	return []wasm.Value{wasm.NewI32(ptr)}, nil
 }
 
 //func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
-func ext_trie_blake2_256_ordered_root_version_1(env interface{}, dataSpanValue wasm.Value) wasm.Value {
+func ext_trie_blake2_256_ordered_root_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_trie_blake2_256_ordered_root_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
 	memory := ctx.Memory.Data()
-	dataSpan := dataSpanValue.I64()
+	dataSpan := args[0].I64()
 
 	data := asMemorySlice(ctx, dataSpan)
 
@@ -684,7 +684,7 @@ func ext_trie_blake2_256_ordered_root_version_1(env interface{}, dataSpanValue w
 	v, err := scale.Decode(data, [][]byte{})
 	if err != nil {
 		logger.Error("[ext_trie_blake2_256_ordered_root_version_1]", "error", err)
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
 	values := v.([][]byte)
@@ -693,7 +693,7 @@ func ext_trie_blake2_256_ordered_root_version_1(env interface{}, dataSpanValue w
 		key, err := scale.Encode(big.NewInt(int64(i))) //nolint
 		if err != nil {
 			logger.Error("[ext_blake2_256_enumerated_trie_root]", "error", err)
-			return wasm.NewI32(0)
+			return nil, err
 		}
 		logger.Trace("[ext_trie_blake2_256_ordered_root_version_1]", "key", key, "value", val)
 
@@ -704,55 +704,58 @@ func ext_trie_blake2_256_ordered_root_version_1(env interface{}, dataSpanValue w
 	ptr, err := ctx.Allocator.Allocate(32)
 	if err != nil {
 		logger.Error("[ext_trie_blake2_256_ordered_root_version_1]", "error", err)
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
 	hash, err := t.Hash()
 	if err != nil {
 		logger.Error("[ext_trie_blake2_256_ordered_root_version_1]", "error", err)
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
 	logger.Debug("[ext_trie_blake2_256_ordered_root_version_1]", "root", hash)
 	copy(memory[ptr:ptr+32], hash[:])
-	return wasm.NewI32(ptr)
+	return []wasm.Value{wasm.NewI32(ptr)}, nil
 }
 
 //func ext_misc_print_hex_version_1(context unsafe.Pointer, dataSpan C.int64_t) {
-func ext_misc_print_hex_version_1(env interface{}, dataSpanValue wasm.Value) {
+func ext_misc_print_hex_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_misc_print_hex_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
-	dataSpan := dataSpanValue.I64()
+	dataSpan := args[0].I64()
 
 	data := asMemorySlice(ctx, dataSpan)
 	logger.Debug("[ext_misc_print_hex_version_1]", "hex", fmt.Sprintf("0x%x", data))
+	return nil, nil
 }
 
 //func ext_misc_print_num_version_1(context unsafe.Pointer, data C.int64_t) {
-func ext_misc_print_num_version_1(_ interface{}, dataValue wasm.Value) {
+func ext_misc_print_num_version_1(_ interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_misc_print_num_version_1] executing...")
-	data := dataValue.I64()
+	data := args[0].I64()
 	logger.Debug("[ext_misc_print_num_version_1]", "num", fmt.Sprintf("%d", int64(data)))
+	return nil, nil
 }
 
 //func ext_misc_print_utf8_version_1(context unsafe.Pointer, dataSpan C.int64_t) {
-func ext_misc_print_utf8_version_1(env interface{}, dataSpanValue wasm.Value) {
+func ext_misc_print_utf8_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_misc_print_utf8_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
-	dataSpan := dataSpanValue.I64()
+	dataSpan := args[0].I64()
 
 	data := asMemorySlice(ctx, dataSpan)
 	logger.Debug("[ext_misc_print_utf8_version_1]", "utf8", fmt.Sprintf("%s", data))
+	return nil, nil
 }
 
 //func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int64_t {
-func ext_misc_runtime_version_version_1(env interface{}, dataSpanValue wasm.Value) wasm.Value {
+func ext_misc_runtime_version_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_misc_runtime_version_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
-	dataSpan := dataSpanValue.I64()
+	dataSpan := args[0].I64()
 	data := asMemorySlice(ctx, dataSpan)
 
 	cfg := &Config{
@@ -764,7 +767,7 @@ func ext_misc_runtime_version_version_1(env interface{}, dataSpanValue wasm.Valu
 	instance, err := NewInstance(data, cfg)
 	if err != nil {
 		logger.Error("[ext_misc_runtime_version_version_1] failed to create instance", "error", err)
-		return wasm.NewI64(0)
+		return nil, err
 	}
 
 	// instance version is set and cached in NewInstance
@@ -773,23 +776,22 @@ func ext_misc_runtime_version_version_1(env interface{}, dataSpanValue wasm.Valu
 
 	if version == nil {
 		logger.Error("[ext_misc_runtime_version_version_1] failed to get runtime version")
-		out, _ := toWasmMemoryOptional(ctx, nil)
-		return wasm.NewI64(out)
+		return nil, err
 	}
 
 	encodedData, err := version.Encode()
 	if err != nil {
 		logger.Error("[ext_misc_runtime_version_version_1] failed to encode result", "error", err)
-		return wasm.NewI64(0)
+		return nil, err
 	}
 
 	out, err := toWasmMemoryOptional(ctx, encodedData)
 	if err != nil {
 		logger.Error("[ext_misc_runtime_version_version_1] failed to allocate", "error", err)
-		return wasm.NewI64(0)
+		return nil, err
 	}
 
-	return wasm.NewI64(out)
+	return []wasm.Value{wasm.NewI64(out)}, nil
 }
 
 //func ext_default_child_storage_read_version_1(context unsafe.Pointer, childStorageKey C.int64_t, key C.int64_t, valueOut C.int64_t, offset C.int32_t) C.int64_t {
@@ -1042,16 +1044,18 @@ func ext_default_child_storage_storage_kill_version_1(env interface{}, childStor
 }
 
 //func ext_allocator_free_version_1(context unsafe.Pointer, addr C.int32_t) {
-func ext_allocator_free_version_1(env interface{}, addrValue wasm.Value) {
+func ext_allocator_free_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_allocator_free_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
-	addr := addrValue.I32()
+	addr := args[0].I32()
 
 	err := ctx.Allocator.Deallocate(uint32(addr))
 	if err != nil {
 		logger.Error("[ext_allocator_free_version_1] failed to free memory", "error", err)
 	}
+
+	return nil, nil
 }
 
 //func ext_allocator_malloc_version_1(ctx interface{}, size C.int32_t) C.int32_t {
@@ -1071,18 +1075,18 @@ func ext_allocator_malloc_version_1(env interface{}, args []wasm.Value) ([]wasm.
 }
 
 //func ext_hashing_blake2_128_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
-func ext_hashing_blake2_128_version_1(env interface{}, dataSpanValue wasm.Value) wasm.Value {
+func ext_hashing_blake2_128_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_hashing_blake2_128_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
-	dataSpan := dataSpanValue.I64()
+	dataSpan := args[0].I64()
 
 	data := asMemorySlice(ctx, dataSpan)
 
 	hash, err := common.Blake2b128(data)
 	if err != nil {
 		logger.Error("[ext_hashing_blake2_128_version_1]", "error", err)
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
 	logger.Debug("[ext_hashing_blake2_128_version_1]", "data", fmt.Sprintf("0x%x", data), "hash", fmt.Sprintf("0x%x", hash))
@@ -1090,25 +1094,25 @@ func ext_hashing_blake2_128_version_1(env interface{}, dataSpanValue wasm.Value)
 	out, err := toWasmMemorySized(ctx, hash, 16)
 	if err != nil {
 		logger.Error("[ext_hashing_blake2_128_version_1] failed to allocate", "error", err)
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
-	return wasm.NewI32(out)
+	return []wasm.Value{wasm.NewI32(out)}, nil
 }
 
 //func ext_hashing_blake2_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
-func ext_hashing_blake2_256_version_1(env interface{}, dataSpanValue wasm.Value) wasm.Value {
+func ext_hashing_blake2_256_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_hashing_blake2_256_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
-	dataSpan := dataSpanValue.I64()
+	dataSpan := args[0].I64()
 
 	data := asMemorySlice(ctx, dataSpan)
 
 	hash, err := common.Blake2bHash(data)
 	if err != nil {
 		logger.Error("[ext_hashing_blake2_256_version_1]", "error", err)
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
 	logger.Debug("[ext_hashing_blake2_256_version_1]", "data", fmt.Sprintf("0x%x", data), "hash", hash)
@@ -1116,24 +1120,24 @@ func ext_hashing_blake2_256_version_1(env interface{}, dataSpanValue wasm.Value)
 	out, err := toWasmMemorySized(ctx, hash[:], 32)
 	if err != nil {
 		logger.Error("[ext_hashing_blake2_256_version_1] failed to allocate", "error", err)
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
-	return wasm.NewI32(out)
+	return []wasm.Value{wasm.NewI32(out)}, nil
 }
 
 //func ext_hashing_keccak_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
-func ext_hashing_keccak_256_version_1(env interface{}, dataSpanValue wasm.Value) wasm.Value {
+func ext_hashing_keccak_256_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_hashing_keccak_256_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
-	dataSpan := dataSpanValue.I64()
+	dataSpan := args[0].I64()
 	data := asMemorySlice(ctx, dataSpan)
 
 	hash, err := common.Keccak256(data)
 	if err != nil {
 		logger.Error("[ext_hashing_keccak_256_version_1]", "error", err)
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
 	logger.Debug("[ext_hashing_keccak_256_version_1]", "data", fmt.Sprintf("0x%x", data), "hash", hash)
@@ -1141,18 +1145,18 @@ func ext_hashing_keccak_256_version_1(env interface{}, dataSpanValue wasm.Value)
 	out, err := toWasmMemorySized(ctx, hash[:], 32)
 	if err != nil {
 		logger.Error("[ext_hashing_keccak_256_version_1] failed to allocate", "error", err)
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
-	return wasm.NewI32(out)
+	return []wasm.Value{wasm.NewI32(out)}, nil
 }
 
 //func ext_hashing_sha2_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
-func ext_hashing_sha2_256_version_1(env interface{}, dataSpanValue wasm.Value) wasm.Value {
+func ext_hashing_sha2_256_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_hashing_sha2_256_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
-	dataSpan := dataSpanValue.I64()
+	dataSpan := args[0].I64()
 	data := asMemorySlice(ctx, dataSpan)
 	hash := common.Sha256(data)
 
@@ -1161,24 +1165,24 @@ func ext_hashing_sha2_256_version_1(env interface{}, dataSpanValue wasm.Value) w
 	out, err := toWasmMemorySized(ctx, hash[:], 32)
 	if err != nil {
 		logger.Error("[ext_hashing_sha2_256_version_1] failed to allocate", "error", err)
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
-	return wasm.NewI32(out)
+	return []wasm.Value{wasm.NewI32(out)}, nil
 }
 
 //func ext_hashing_twox_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
-func ext_hashing_twox_256_version_1(env interface{}, dataSpanValue wasm.Value) wasm.Value {
+func ext_hashing_twox_256_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_hashing_twox_256_version_1] executing...")
-	ctx := env.(*runtime.Context)
-	dataSpan := dataSpanValue.I64()
 
+	ctx := env.(*runtime.Context)
+	dataSpan := args[0].I64()
 	data := asMemorySlice(ctx, dataSpan)
 
 	hash, err := common.Twox256(data)
 	if err != nil {
 		logger.Error("[ext_hashing_twox_256_version_1]", "error", err)
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
 	logger.Debug("[ext_hashing_twox_256_version_1]", "data", data, "hash", hash)
@@ -1186,24 +1190,24 @@ func ext_hashing_twox_256_version_1(env interface{}, dataSpanValue wasm.Value) w
 	out, err := toWasmMemorySized(ctx, hash[:], 32)
 	if err != nil {
 		logger.Error("[ext_hashing_twox_256_version_1] failed to allocate", "error", err)
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
-	return wasm.NewI32(out)
+	return []wasm.Value{wasm.NewI32(out)}, nil
 }
 
 //func ext_hashing_twox_128_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
-func ext_hashing_twox_128_version_1(env interface{}, dataSpanValue wasm.Value) wasm.Value {
+func ext_hashing_twox_128_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_hashing_twox_128_version_1] executing...")
-	ctx := env.(*runtime.Context)
-	dataSpan := dataSpanValue.I64()
 
+	ctx := env.(*runtime.Context)
+	dataSpan := args[0].I64()
 	data := asMemorySlice(ctx, dataSpan)
 
 	hash, err := common.Twox128Hash(data)
 	if err != nil {
 		logger.Error("[ext_hashing_twox_128_version_1]", "error", err)
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
 	logger.Debug("[ext_hashing_twox_128_version_1]", "data", fmt.Sprintf("%s", data), "hash", fmt.Sprintf("0x%x", hash))
@@ -1211,24 +1215,24 @@ func ext_hashing_twox_128_version_1(env interface{}, dataSpanValue wasm.Value) w
 	out, err := toWasmMemorySized(ctx, hash, 16)
 	if err != nil {
 		logger.Error("[ext_hashing_twox_128_version_1] failed to allocate", "error", err)
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
-	return wasm.NewI32(out)
+	return []wasm.Value{wasm.NewI32(out)}, nil
 }
 
 //func ext_hashing_twox_64_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
-func ext_hashing_twox_64_version_1(env interface{}, dataSpanValue wasm.Value) wasm.Value {
+func ext_hashing_twox_64_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_hashing_twox_64_version_1] executing...")
-	ctx := env.(*runtime.Context)
-	dataSpan := dataSpanValue.I64()
 
+	ctx := env.(*runtime.Context)
+	dataSpan := args[0].I64()
 	data := asMemorySlice(ctx, dataSpan)
 
 	hash, err := common.Twox64(data)
 	if err != nil {
 		logger.Error("[ext_hashing_twox_64_version_1]", "error", err)
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
 	logger.Debug("[ext_hashing_twox_64_version_1]", "data", fmt.Sprintf("0x%x", data), "hash", fmt.Sprintf("0x%x", hash))
@@ -1236,26 +1240,27 @@ func ext_hashing_twox_64_version_1(env interface{}, dataSpanValue wasm.Value) wa
 	out, err := toWasmMemorySized(ctx, hash, 8)
 	if err != nil {
 		logger.Error("[ext_hashing_twox_64_version_1] failed to allocate", "error", err)
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
-	return wasm.NewI32(out)
+	return []wasm.Value{wasm.NewI32(out)}, nil
 }
 
 //func ext_offchain_index_set_version_1(context unsafe.Pointer, a, b C.int64_t) {
-func ext_offchain_index_set_version_1(env interface{}, _, _ wasm.Value) {
+func ext_offchain_index_set_version_1(env interface{}, _ []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_offchain_index_set_version_1] executing...")
 	logger.Warn("[ext_offchain_index_set_version_1] unimplemented")
+	return nil, nil
 }
 
 //func ext_offchain_is_validator_version_1(context unsafe.Pointer) C.int32_t {
-func ext_offchain_is_validator_version_1(env interface{}) wasm.Value {
+func ext_offchain_is_validator_version_1(env interface{}, _ []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_offchain_is_validator_version_1] executing...")
 	ctx := env.(*runtime.Context)
 	if ctx.Validator {
-		return wasm.NewI32(1)
+		return []wasm.Value{wasm.NewI32(1)}, nil
 	}
-	return wasm.NewI32(0)
+	return []wasm.Value{wasm.NewI32(0)}, nil
 }
 
 //func ext_offchain_local_storage_compare_and_set_version_1(context unsafe.Pointer, kind C.int32_t, key, oldValue, newValue C.int64_t) C.int32_t {
