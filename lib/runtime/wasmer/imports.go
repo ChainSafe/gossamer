@@ -42,13 +42,13 @@ import (
 	wasm "github.com/wasmerio/wasmer-go/wasmer"
 )
 
-func ext_logging_log_version_1(env interface{}, levelValue, targetDataValue, msgDataValue wasm.Value) {
+func ext_logging_log_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_logging_log_version_1] executing...")
 	ctx := env.(*runtime.Context)
 
-	level := levelValue.I32()
-	targetData := targetDataValue.I64()
-	msgData := msgDataValue.I64()
+	level := args[0].I32()
+	targetData := args[1].I64()
+	msgData := args[2].I64()
 
 	target := fmt.Sprintf("%s", asMemorySlice(ctx, targetData))
 	msg := fmt.Sprintf("%s", asMemorySlice(ctx, msgData))
@@ -67,6 +67,8 @@ func ext_logging_log_version_1(env interface{}, levelValue, targetDataValue, msg
 	default:
 		logger.Error("[ext_logging_log_version_1]", "level", int(level), "target", target, "message", msg)
 	}
+
+	return nil, nil
 }
 
 func ext_sandbox_instance_teardown_version_1(_ interface{}, _ wasm.Value) {
@@ -109,14 +111,14 @@ func ext_sandbox_memory_teardown_version_1(_ interface{}, _ wasm.Value) {
 	logger.Warn("[ext_sandbox_memory_teardown_version_1] unimplemented")
 }
 
-func ext_crypto_ed25519_generate_version_1(env interface{}, keyTypeIDValue, seedSpanValue wasm.Value) wasm.Value {
+func ext_crypto_ed25519_generate_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_crypto_ed25519_generate_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
 	memory := ctx.Memory.Data()
 
-	keyTypeID := keyTypeIDValue.I32()
-	seedSpan := seedSpanValue.I64()
+	keyTypeID := args[0].I32()
+	seedSpan := args[1].I64()
 
 	id := memory[keyTypeID : keyTypeID+4]
 	seedBytes := asMemorySlice(ctx, seedSpan)
@@ -126,7 +128,7 @@ func ext_crypto_ed25519_generate_version_1(env interface{}, keyTypeIDValue, seed
 	seed, err := optional.NewBytes(false, nil).Decode(buf)
 	if err != nil {
 		logger.Warn("[ext_crypto_ed25519_generate_version_1] cannot generate key", "error", err)
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
 	var kp crypto.Keypair
@@ -139,13 +141,13 @@ func ext_crypto_ed25519_generate_version_1(env interface{}, keyTypeIDValue, seed
 
 	if err != nil {
 		logger.Warn("[ext_crypto_ed25519_generate_version_1] cannot generate key", "error", err)
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
 	ks, err := ctx.Keystore.GetKeystore(id)
 	if err != nil {
 		logger.Warn("[ext_crypto_ed25519_generate_version_1]", "name", id, "error", err)
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
 	ks.Insert(kp)
@@ -153,33 +155,33 @@ func ext_crypto_ed25519_generate_version_1(env interface{}, keyTypeIDValue, seed
 	ret, err := toWasmMemorySized(ctx, kp.Public().Encode(), 32)
 	if err != nil {
 		logger.Warn("[ext_crypto_ed25519_generate_version_1] failed to allocate memory", "error", err)
-		return wasm.NewI32(0)
+		return nil, err
 	}
 
 	logger.Debug("[ext_crypto_ed25519_generate_version_1] generated ed25519 keypair", "public", kp.Public().Hex())
-	return wasm.NewI32(ret)
+	return []wasm.Value{wasm.NewI32(ret)}, nil
 }
 
-func ext_crypto_ed25519_public_keys_version_1(env interface{}, keyTypeIDValue wasm.Value) wasm.Value {
+func ext_crypto_ed25519_public_keys_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_crypto_ed25519_public_keys_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
 	memory := ctx.Memory.Data()
 
-	keyTypeID := keyTypeIDValue.I32()
+	keyTypeID := args[0].I32()
 	id := memory[keyTypeID : keyTypeID+4]
 
 	ks, err := ctx.Keystore.GetKeystore(id)
 	if err != nil {
 		logger.Warn("[ext_crypto_ed25519_public_keys_version_1]", "name", id, "error", err)
 		ret, _ := toWasmMemory(ctx, []byte{0})
-		return wasm.NewI64(ret)
+		return []wasm.Value{wasm.NewI64(ret)}, nil
 	}
 
 	if ks.Type() != crypto.Ed25519Type {
 		logger.Warn("[ext_crypto_ed25519_public_keys_version_1]", "name", id, "error", "keystore type is not ed25519")
 		ret, _ := toWasmMemory(ctx, []byte{0})
-		return wasm.NewI64(ret)
+		return []wasm.Value{wasm.NewI64(ret)}, nil
 	}
 
 	keys := ks.PublicKeys()
@@ -192,30 +194,28 @@ func ext_crypto_ed25519_public_keys_version_1(env interface{}, keyTypeIDValue wa
 	prefix, err := scale.Encode(big.NewInt(int64(len(keys))))
 	if err != nil {
 		logger.Error("[ext_crypto_ed25519_public_keys_version_1] failed to allocate memory", err)
-		ret, _ := toWasmMemory(ctx, []byte{0})
-		return wasm.NewI64(ret)
+		return nil, err
 	}
 
 	ret, err := toWasmMemory(ctx, append(prefix, encodedKeys...))
 	if err != nil {
 		logger.Error("[ext_crypto_ed25519_public_keys_version_1] failed to allocate memory", err)
-		ret, _ = toWasmMemory(ctx, []byte{0})
-		return wasm.NewI64(ret)
+		return nil, err
 	}
 
-	return wasm.NewI64(ret)
+	return []wasm.Value{wasm.NewI64(ret)}, nil
 }
 
 //func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeID C.int32_t, key C.int32_t, msg C.int64_t) C.int64_t {
-func ext_crypto_ed25519_sign_version_1(env interface{}, keyTypeIDValue, keyValue, msgValue wasm.Value) wasm.Value {
+func ext_crypto_ed25519_sign_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_crypto_ed25519_sign_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
 	memory := ctx.Memory.Data()
 
-	keyTypeID := keyTypeIDValue.I32()
-	key := keyValue.I32()
-	msg := msgValue.I64()
+	keyTypeID := args[0].I32()
+	key := args[1].I32()
+	msg := args[2].I64()
 
 	id := memory[keyTypeID : keyTypeID+4]
 
@@ -224,35 +224,36 @@ func ext_crypto_ed25519_sign_version_1(env interface{}, keyTypeIDValue, keyValue
 	if err != nil {
 		logger.Error("[ext_crypto_ed25519_sign_version_1] failed to get public keys", "error", err)
 		ret, _ := toWasmMemoryOptional(ctx, nil)
-		return wasm.NewI64(ret)
+		return []wasm.Value{wasm.NewI64(ret)}, nil
 	}
 
 	ks, err := ctx.Keystore.GetKeystore(id)
 	if err != nil {
 		logger.Warn("[ext_crypto_ed25519_sign_version_1]", "name", id, "error", err)
 		ret, _ := toWasmMemoryOptional(ctx, nil)
-		return wasm.NewI64(ret)
+		return []wasm.Value{wasm.NewI64(ret)}, nil
 	}
 
 	signingKey := ks.GetKeypair(pubKey)
 	if signingKey == nil {
 		logger.Error("[ext_crypto_ed25519_sign_version_1] could not find public key in keystore", "error", pubKey)
 		ret, _ := toWasmMemoryOptional(ctx, nil)
-		return wasm.NewI64(ret)
+		return []wasm.Value{wasm.NewI64(ret)}, nil
 	}
 
 	sig, err := signingKey.Sign(asMemorySlice(ctx, msg))
 	if err != nil {
 		logger.Error("[ext_crypto_ed25519_sign_version_1] could not sign message")
+		return nil, err
 	}
 
 	ret, err := toWasmMemoryOptional(ctx, sig)
 	if err != nil {
 		logger.Error("[ext_crypto_ed25519_sign_version_1] failed to allocate memory", err)
-		return wasm.NewI64(0)
+		return nil, err
 	}
 
-	return wasm.NewI64(ret)
+	return []wasm.Value{wasm.NewI64(ret)}, nil
 }
 
 //func ext_crypto_ed25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, msg C.int64_t, key C.int32_t) C.int32_t {
@@ -1907,299 +1908,4 @@ func toWasmMemoryOptionalUint32(ctx *runtime.Context, data *uint32) (int64, erro
 
 	enc := opt.Encode()
 	return toWasmMemory(ctx, enc)
-}
-
-// // ImportsNodeRuntime returns the imports for the v0.8 runtime
-// func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
-// 	var err error
-
-// 	imports := wasm.NewImports()
-
-// 	_, err = imports.Append("ext_allocator_free_version_1", ext_allocator_free_version_1, C.ext_allocator_free_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_allocator_malloc_version_1", ext_allocator_malloc_version_1, C.ext_allocator_malloc_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	_, err = imports.Append("ext_crypto_ed25519_generate_version_1", ext_crypto_ed25519_generate_version_1, C.ext_crypto_ed25519_generate_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_crypto_ed25519_public_keys_version_1", ext_crypto_ed25519_public_keys_version_1, C.ext_crypto_ed25519_public_keys_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_crypto_ed25519_sign_version_1", ext_crypto_ed25519_sign_version_1, C.ext_crypto_ed25519_sign_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_crypto_ed25519_verify_version_1", ext_crypto_ed25519_verify_version_1, C.ext_crypto_ed25519_verify_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_crypto_finish_batch_verify_version_1", ext_crypto_finish_batch_verify_version_1, C.ext_crypto_finish_batch_verify_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_crypto_secp256k1_ecdsa_recover_version_1", ext_crypto_secp256k1_ecdsa_recover_version_1, C.ext_crypto_secp256k1_ecdsa_recover_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_crypto_secp256k1_ecdsa_recover_compressed_version_1", ext_crypto_secp256k1_ecdsa_recover_compressed_version_1, C.ext_crypto_secp256k1_ecdsa_recover_compressed_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_crypto_sr25519_generate_version_1", ext_crypto_sr25519_generate_version_1, C.ext_crypto_sr25519_generate_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_crypto_sr25519_public_keys_version_1", ext_crypto_sr25519_public_keys_version_1, C.ext_crypto_sr25519_public_keys_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_crypto_sr25519_sign_version_1", ext_crypto_sr25519_sign_version_1, C.ext_crypto_sr25519_sign_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_crypto_sr25519_verify_version_1", ext_crypto_sr25519_verify_version_1, C.ext_crypto_sr25519_verify_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_crypto_sr25519_verify_version_2", ext_crypto_sr25519_verify_version_2, C.ext_crypto_sr25519_verify_version_2)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_crypto_start_batch_verify_version_1", ext_crypto_start_batch_verify_version_1, C.ext_crypto_start_batch_verify_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_default_child_storage_clear_version_1", ext_default_child_storage_clear_version_1, C.ext_default_child_storage_clear_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_default_child_storage_clear_prefix_version_1", ext_default_child_storage_clear_prefix_version_1, C.ext_default_child_storage_clear_prefix_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_default_child_storage_exists_version_1", ext_default_child_storage_exists_version_1, C.ext_default_child_storage_exists_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_default_child_storage_get_version_1", ext_default_child_storage_get_version_1, C.ext_default_child_storage_get_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_default_child_storage_next_key_version_1", ext_default_child_storage_next_key_version_1, C.ext_default_child_storage_next_key_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_default_child_storage_read_version_1", ext_default_child_storage_read_version_1, C.ext_default_child_storage_read_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_default_child_storage_root_version_1", ext_default_child_storage_root_version_1, C.ext_default_child_storage_root_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_default_child_storage_set_version_1", ext_default_child_storage_set_version_1, C.ext_default_child_storage_set_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_default_child_storage_storage_kill_version_1", ext_default_child_storage_storage_kill_version_1, C.ext_default_child_storage_storage_kill_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	_, err = imports.Append("ext_hashing_blake2_128_version_1", ext_hashing_blake2_128_version_1, C.ext_hashing_blake2_128_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_hashing_blake2_256_version_1", ext_hashing_blake2_256_version_1, C.ext_hashing_blake2_256_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_hashing_keccak_256_version_1", ext_hashing_keccak_256_version_1, C.ext_hashing_keccak_256_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_hashing_sha2_256_version_1", ext_hashing_sha2_256_version_1, C.ext_hashing_sha2_256_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_hashing_twox_256_version_1", ext_hashing_twox_256_version_1, C.ext_hashing_twox_256_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_hashing_twox_128_version_1", ext_hashing_twox_128_version_1, C.ext_hashing_twox_128_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_hashing_twox_64_version_1", ext_hashing_twox_64_version_1, C.ext_hashing_twox_64_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	_, err = imports.Append("ext_logging_log_version_1", ext_logging_log_version_1, C.ext_logging_log_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	_, err = imports.Append("ext_misc_print_hex_version_1", ext_misc_print_hex_version_1, C.ext_misc_print_hex_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_misc_print_num_version_1", ext_misc_print_num_version_1, C.ext_misc_print_num_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_misc_print_utf8_version_1", ext_misc_print_utf8_version_1, C.ext_misc_print_utf8_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_misc_runtime_version_version_1", ext_misc_runtime_version_version_1, C.ext_misc_runtime_version_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	_, err = imports.Append("ext_offchain_index_set_version_1", ext_offchain_index_set_version_1, C.ext_offchain_index_set_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_offchain_is_validator_version_1", ext_offchain_is_validator_version_1, C.ext_offchain_is_validator_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_offchain_local_storage_compare_and_set_version_1", ext_offchain_local_storage_compare_and_set_version_1, C.ext_offchain_local_storage_compare_and_set_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_offchain_local_storage_get_version_1", ext_offchain_local_storage_get_version_1, C.ext_offchain_local_storage_get_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_offchain_local_storage_set_version_1", ext_offchain_local_storage_set_version_1, C.ext_offchain_local_storage_set_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_offchain_network_state_version_1", ext_offchain_network_state_version_1, C.ext_offchain_network_state_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_offchain_random_seed_version_1", ext_offchain_random_seed_version_1, C.ext_offchain_random_seed_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_offchain_submit_transaction_version_1", ext_offchain_submit_transaction_version_1, C.ext_offchain_submit_transaction_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	_, err = imports.Append("ext_sandbox_instance_teardown_version_1", ext_sandbox_instance_teardown_version_1, C.ext_sandbox_instance_teardown_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_sandbox_instantiate_version_1", ext_sandbox_instantiate_version_1, C.ext_sandbox_instantiate_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_sandbox_invoke_version_1", ext_sandbox_invoke_version_1, C.ext_sandbox_invoke_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_sandbox_memory_get_version_1", ext_sandbox_memory_get_version_1, C.ext_sandbox_memory_get_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_sandbox_memory_new_version_1", ext_sandbox_memory_new_version_1, C.ext_sandbox_memory_new_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_sandbox_memory_set_version_1", ext_sandbox_memory_set_version_1, C.ext_sandbox_memory_set_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_sandbox_memory_teardown_version_1", ext_sandbox_memory_teardown_version_1, C.ext_sandbox_memory_teardown_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	_, err = imports.Append("ext_storage_append_version_1", ext_storage_append_version_1, C.ext_storage_append_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_storage_changes_root_version_1", ext_storage_changes_root_version_1, C.ext_storage_changes_root_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_storage_clear_version_1", ext_storage_clear_version_1, C.ext_storage_clear_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_storage_clear_prefix_version_1", ext_storage_clear_prefix_version_1, C.ext_storage_clear_prefix_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_storage_commit_transaction_version_1", ext_storage_commit_transaction_version_1, C.ext_storage_commit_transaction_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_storage_exists_version_1", ext_storage_exists_version_1, C.ext_storage_exists_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_storage_get_version_1", ext_storage_get_version_1, C.ext_storage_get_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_storage_next_key_version_1", ext_storage_next_key_version_1, C.ext_storage_next_key_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_storage_read_version_1", ext_storage_read_version_1, C.ext_storage_read_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_storage_rollback_transaction_version_1", ext_storage_rollback_transaction_version_1, C.ext_storage_rollback_transaction_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_storage_root_version_1", ext_storage_root_version_1, C.ext_storage_root_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_storage_set_version_1", ext_storage_set_version_1, C.ext_storage_set_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_storage_start_transaction_version_1", ext_storage_start_transaction_version_1, C.ext_storage_start_transaction_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	_, err = imports.Append("ext_trie_blake2_256_ordered_root_version_1", ext_trie_blake2_256_ordered_root_version_1, C.ext_trie_blake2_256_ordered_root_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	_, err = imports.Append("ext_trie_blake2_256_root_version_1", ext_trie_blake2_256_root_version_1, C.ext_trie_blake2_256_root_version_1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return imports, nil
-// }
-
-func ImportsNodeRuntime(store *wasm.Store, memory *wasm.Memory, ctx *runtime.Context) *wasm.ImportObject {
-	importsMap := make(map[string]wasm.IntoExtern)
-
-	importsMap["ext_allocator_malloc_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
-		wasm.NewValueTypes(wasm.I32),
-		wasm.NewValueTypes(wasm.I32),
-	), ctx, ext_allocator_malloc_version_1)
-
-	imports := wasm.NewImportObject()
-	imports.Register("env", importsMap)
-	return imports
 }

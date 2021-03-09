@@ -118,7 +118,7 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	// Provide importable memory for newer runtimes
 	// TODO: determine memory descriptor size that the runtime wants from the wasm.
 	// should be doable w/ wasmer 1.0.0.
-	lim, err := wasm.NewLimits(23, 0)
+	lim, err := wasm.NewLimits(23, 256) // TODO: determine maximum
 	if err != nil {
 		return nil, err
 	}
@@ -194,7 +194,7 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 	// if err != nil {
 	// 	return err
 	// }
-	lim, err := wasm.NewLimits(23, 0)
+	lim, err := wasm.NewLimits(23, 256)
 	if err != nil {
 		return err
 	}
