@@ -97,7 +97,10 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			return errors.New("message is not NotificationsMessage")
 		}
 
-		logger.Debug("received message on notifications sub-protocol", "sub-protocol", info.subProtocol, "message", msg)
+		logger.Trace("received message on notifications sub-protocol", "sub-protocol", info.subProtocol,
+			"message", msg,
+			"peer", stream.Conn().RemotePeer(),
+		)
 
 		if msg.IsHandshake() {
 			hs, ok := msg.(Handshake)
@@ -118,7 +121,8 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 
 				err := handshakeValidator(peer, hs)
 				if err != nil {
-					logger.Error("failed to validate handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
+					logger.Trace("failed to validate handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
+					_ = stream.Conn().Close()
 					return errCannotValidateHandshake
 				}
 
@@ -127,13 +131,14 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 				// once validated, send back a handshake
 				resp, err := info.getHandshake()
 				if err != nil {
-					logger.Error("failed to get handshake", "sub-protocol", info.subProtocol, "error", err)
+					logger.Debug("failed to get handshake", "sub-protocol", info.subProtocol, "error", err)
 					return err
 				}
 
 				err = s.host.send(peer, info.subProtocol, resp)
 				if err != nil {
-					logger.Debug("failed to send handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
+					logger.Trace("failed to send handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
+					_ = stream.Conn().Close()
 					return err
 				}
 				logger.Trace("receiver: sent handshake", "sub-protocol", info.subProtocol, "peer", peer)
@@ -144,8 +149,9 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 				logger.Trace("sender: validating handshake")
 				err := handshakeValidator(peer, hs)
 				if err != nil {
-					logger.Debug("failed to validate handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
+					logger.Trace("failed to validate handshake", "sub-protocol", info.subProtocol, "peer", peer, "error", err)
 					info.handshakeData[peer].validated = false
+					_ = stream.Conn().Close()
 					return errCannotValidateHandshake
 				}
 
