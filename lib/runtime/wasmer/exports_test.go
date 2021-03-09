@@ -3,7 +3,6 @@ package wasmer
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"math/big"
 	"testing"
@@ -460,12 +459,18 @@ func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 	require.NoError(t, err)
 	instance.SetContextStorage(parentState)
 
-	ext := types.Extrinsic(common.MustHexToBytes("0x310284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0158b82d5298c0beafd24c2e856d7424cd58aad308a6a09d168ffe16b217d4122d9dbbccf258fd63b48c36c1a6a2f20d11c6c3ab424a981931fe38e0f372b5fb8da60000000600ff90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22e5c0"))
+	//initialize block header
+	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
+	header, err := types.NewHeader(parentHash, big.NewInt(1), common.Hash{}, common.Hash{}, types.NewEmptyDigest())
+	require.NoError(t, err)
+	err = instance.InitializeBlock(header)
+	require.NoError(t, err)
+
+	ext := types.Extrinsic(common.MustHexToBytes("0x410284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d015a3e258da3ea20581b68fe1264a35d1f62d6a0debb1a44e836375eb9921ba33e3d0f265f2da33c9ca4e10490b03918300be902fcb229f806c9cf99af4cc10f8c0000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a480b00c465f14670"))
 
 	res, err := instance.ApplyExtrinsic(ext)
-	// todo (ed) determine how to handle this result
-	fmt.Printf("result %v\n", res)
 	require.NoError(t, err)
+	require.Equal(t, []byte{0, 0}, res)
 }
 
 func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
