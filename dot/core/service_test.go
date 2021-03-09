@@ -349,3 +349,22 @@ func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 	require.Equal(t, 1, len(res))
 	require.Equal(t, res[0], txs[1])
 }
+
+func TestService_GetRuntimeVersion(t *testing.T) {
+	s := NewTestService(t, nil)
+	rtExpected, err := s.rt.Version()
+	require.NoError(t, err)
+
+	rtv, err := s.GetRuntimeVersion(nil)
+	require.NoError(t, err)
+	require.Equal(t, rtExpected, rtv)
+}
+
+func TestService_IsBlockProducer(t *testing.T) {
+	cfg := &Config{
+		IsBlockProducer: false,
+	}
+	s := NewTestService(t, cfg)
+	bp := s.IsBlockProducer()
+	require.Equal(t, false, bp)
+}

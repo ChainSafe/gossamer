@@ -48,8 +48,8 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 	defer func() {
 		t.Log("going to tear down gossamer...")
 		os.Remove(utils.ConfigBABEMaxThreshold)
-		//errList := utils.TearDown(t, nodes)
-		//require.Len(t, errList, 0)
+		errList := utils.TearDown(t, nodes)
+		require.Len(t, errList, 0)
 	}()
 
 	time.Sleep(15 * time.Second) // wait for server to start
