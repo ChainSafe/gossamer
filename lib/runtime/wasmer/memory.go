@@ -19,6 +19,8 @@ package wasmer
 import "C"
 
 import (
+	"errors"
+
 	"github.com/wasmerio/wasmer-go/wasmer"
 )
 
@@ -41,5 +43,9 @@ func (m Memory) Length() uint32 {
 // Grow ...
 func (m Memory) Grow(numPages uint32) error {
 	//return m.memory.Grow(C.wasm_memory_pages_t(numPages))
-	return m.memory.Grow(numPages)
+	ok := m.memory.Grow(wasmer.Pages(numPages))
+	if !ok {
+		return errors.New("failed to grow memory")
+	}
+	return nil
 }

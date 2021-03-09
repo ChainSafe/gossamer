@@ -24,7 +24,7 @@ import (
 )
 
 // TestDir test data directory
-const TestDir = "./test_data"
+var TestDir = os.TempDir() + "/test_data"
 
 // NewTestDir create new test data directory
 func NewTestDir(t *testing.T) string {
