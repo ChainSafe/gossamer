@@ -159,6 +159,75 @@ func ImportsNodeRuntime(store *wasm.Store, memory *wasm.Memory, ctx *runtime.Con
 		wasm.NewValueTypes(),
 		wasm.NewValueTypes(wasm.I32),
 	), ctx, ext_offchain_is_validator_version_1)
+	importsMap["ext_offchain_local_storage_compare_and_set_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I32, wasm.I64, wasm.I64, wasm.I64),
+		wasm.NewValueTypes(wasm.I32),
+	), ctx, ext_offchain_local_storage_compare_and_set_version_1)
+	importsMap["ext_offchain_local_storage_get_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I32, wasm.I64),
+		wasm.NewValueTypes(wasm.I64),
+	), ctx, ext_offchain_local_storage_get_version_1)
+	importsMap["ext_offchain_local_storage_set_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I32, wasm.I64, wasm.I64),
+		wasm.NewValueTypes(),
+	), ctx, ext_offchain_local_storage_set_version_1)
+	importsMap["ext_offchain_network_state_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(),
+		wasm.NewValueTypes(wasm.I64),
+	), ctx, ext_offchain_network_state_version_1)
+	importsMap["ext_offchain_random_seed_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(),
+		wasm.NewValueTypes(wasm.I32),
+	), ctx, ext_offchain_random_seed_version_1)
+	importsMap["ext_offchain_submit_transaction_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64),
+		wasm.NewValueTypes(wasm.I64),
+	), ctx, ext_offchain_submit_transaction_version_1)
+
+	importsMap["ext_storage_append_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64, wasm.I64),
+		wasm.NewValueTypes(),
+	), ctx, ext_storage_append_version_1)
+	importsMap["ext_storage_changes_root_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64),
+		wasm.NewValueTypes(wasm.I64),
+	), ctx, ext_storage_changes_root_version_1)
+	importsMap["ext_storage_clear_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64),
+		wasm.NewValueTypes(),
+	), ctx, ext_storage_clear_version_1)
+	importsMap["ext_storage_clear_prefix_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64),
+		wasm.NewValueTypes(),
+	), ctx, ext_storage_clear_prefix_version_1)
+	importsMap["ext_storage_exists_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64),
+		wasm.NewValueTypes(wasm.I32),
+	), ctx, ext_storage_exists_version_1)
+	importsMap["ext_storage_get_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64),
+		wasm.NewValueTypes(wasm.I64),
+	), ctx, ext_storage_get_version_1)
+	importsMap["ext_storage_next_key_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64),
+		wasm.NewValueTypes(wasm.I64),
+	), ctx, ext_storage_next_key_version_1)
+	importsMap["ext_storage_read_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64, wasm.I64, wasm.I32),
+		wasm.NewValueTypes(wasm.I64),
+	), ctx, ext_storage_read_version_1)
+	importsMap["ext_storage_root_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(),
+		wasm.NewValueTypes(wasm.I64),
+	), ctx, ext_storage_root_version_1)
+	importsMap["ext_storage_set_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(),
+		wasm.NewValueTypes(wasm.I64),
+	), ctx, ext_storage_set_version_1)
+	importsMap["ext_storage_set_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64, wasm.I64),
+		wasm.NewValueTypes(),
+	), ctx, ext_storage_set_version_1)
 
 	imports := wasm.NewImportObject()
 	imports.Register("env", importsMap)

@@ -254,10 +254,12 @@ func (in *Instance) Stop() {
 // Store func
 func (in *Instance) store(data []byte, location int32) {
 	// TODO: can we store the memory we initialized in `in`?
-	memory, err := in.vm.Exports.GetMemory("memory")
-	if err != nil {
-		panic(err)
-	}
+	// memory, err := in.vm.Exports.GetMemory("memory")
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	memory := in.ctx.Memory
 
 	mem := memory.Data()
 	copy(mem[location:location+int32(len(data))], data)
@@ -266,10 +268,11 @@ func (in *Instance) store(data []byte, location int32) {
 // Load load
 func (in *Instance) load(location, length int32) []byte {
 	// TODO: can we store the memory we initialized in `in`?
-	memory, err := in.vm.Exports.GetMemory("memory")
-	if err != nil {
-		panic(err)
-	}
+	// memory, err := in.vm.Exports.GetMemory("memory")
+	// if err != nil {
+	// 	panic(err)
+	// }
+	memory := in.ctx.Memory
 
 	mem := memory.Data()
 	return mem[location : location+length]
