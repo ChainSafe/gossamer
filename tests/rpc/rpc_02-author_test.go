@@ -36,7 +36,7 @@ import (
 func TestAuthorSubmitExtrinsic(t *testing.T) {
 	if utils.MODE != rpcSuite {
 		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
-		return
+		//return
 	}
 
 	t.Log("starting gossamer...")
@@ -79,8 +79,9 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 	key, err := types.CreateStorageKey(meta, "System", "Account", signature.TestKeyringPairAlice.PublicKey, nil)
 	require.NoError(t, err)
 
-	var nonce uint32
-	ok, err := api.RPC.State.GetStorageLatest(key, &nonce)
+	var accInfo types.AccountInfo
+	ok, err := api.RPC.State.GetStorageLatest(key, &accInfo)
+	fmt.Println("accInfo.Data.Free ", accInfo.Data.Free)
 	require.NoError(t, err)
 	require.True(t, ok)
 
@@ -88,7 +89,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 		BlockHash:          genesisHash,
 		Era:                types.ExtrinsicEra{IsImmortalEra: true},
 		GenesisHash:        genesisHash,
-		Nonce:              types.NewUCompactFromUInt(uint64(nonce)),
+		Nonce:              types.NewUCompactFromUInt(uint64(accInfo.Nonce)),
 		SpecVersion:        rv.SpecVersion,
 		Tip:                types.NewUCompactFromUInt(0),
 		TransactionVersion: rv.TransactionVersion,
@@ -106,6 +107,17 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 	hash, err := api.RPC.Author.SubmitExtrinsic(ext)
 	require.NoError(t, err)
 	require.NotEqual(t, hash, common.Hash{})
+
+	var newAccInfo types.AccountInfo
+	ok, err = api.RPC.State.GetStorageLatest(key, &newAccInfo)
+	require.NoError(t, err)
+	require.True(t, ok)
+
+	extrinsic, err := api.RPC.Author.PendingExtrinsics()
+	require.NoError(t, err)
+
+	fmt.Println("newAccInfo.Data.Free ", newAccInfo.Data.Free)
+	fmt.Println("extrinsic ", extrinsic)
 }
 
 // TestDecodeExt is for debugging/decoding extrinsics.  Test with a hex string that was generated (from above tests
