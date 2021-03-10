@@ -172,7 +172,7 @@ func (t *Trie) nextKey(curr node, prefix, key []byte) []byte {
 		}
 
 		// length of key arg is less than branch key, return key of first child (or key of this branch, if it's a branch w/ value)
-		if (cmp > -1 && len(key) == len(fullKey)) || cmp == 1 {
+		if (cmp == 0 && len(key) == len(fullKey)) || cmp == 1 {
 			if c.value != nil && bytes.Compare(fullKey, key) > 0 {
 				return fullKey
 			}
@@ -190,7 +190,7 @@ func (t *Trie) nextKey(curr node, prefix, key []byte) []byte {
 		}
 
 		// node key isn't greater than the arg key, continue to iterate
-		if cmp > -1 && len(key) > len(fullKey) {
+		if cmp < 1 && len(key) > len(fullKey) {
 			idx := key[len(fullKey)]
 			for i, child := range c.children[idx:] {
 				if child == nil {
