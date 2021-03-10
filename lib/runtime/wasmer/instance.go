@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -43,6 +44,7 @@ var (
 	logger = log.New("pkg", "runtime", "module", "go-wasmer")
 )
 
+// ImportsFunc is type that defines a function that should return the runtime imports
 type ImportsFunc func(*wasm.Store, *wasm.Memory, *runtime.Context) *wasm.ImportObject
 
 // Config represents a wasmer configuration
@@ -86,7 +88,7 @@ func NewInstanceFromTrie(t *trie.Trie, cfg *Config) (*Instance, error) {
 // NewInstanceFromFile instantiates a runtime from a .wasm file
 func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
 	// Reads the WebAssembly module as bytes.
-	bytes, err := ioutil.ReadFile(fp)
+	bytes, err := ioutil.ReadFile(filepath.Clean(fp))
 	if err != nil {
 		return nil, err
 	}

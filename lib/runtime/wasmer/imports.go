@@ -18,11 +18,11 @@ package wasmer
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"math/big"
-	"math/rand"
 	"reflect"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -782,7 +782,7 @@ func ext_misc_print_hex_version_1(env interface{}, args []wasm.Value) ([]wasm.Va
 func ext_misc_print_num_version_1(_ interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_misc_print_num_version_1] executing...")
 	data := args[0].I64()
-	logger.Debug("[ext_misc_print_num_version_1]", "num", fmt.Sprintf("%d", int64(data)))
+	logger.Debug("[ext_misc_print_num_version_1]", "num", fmt.Sprintf("%d", data))
 	return nil, nil
 }
 
@@ -861,7 +861,7 @@ func ext_default_child_storage_read_version_1(env interface{}, args []wasm.Value
 		return nil, err
 	}
 
-	valueBuf, valueLen := int64ToPointerAndSize(int64(valueOut))
+	valueBuf, valueLen := int64ToPointerAndSize(valueOut)
 	copy(memory[valueBuf:valueBuf+valueLen], value[offset:])
 
 	size := uint32(len(value[offset:]))
@@ -1117,9 +1117,8 @@ func ext_allocator_free_version_1(env interface{}, args []wasm.Value) ([]wasm.Va
 
 //func ext_allocator_malloc_version_1(ctx interface{}, size C.int32_t) C.int32_t {
 func ext_allocator_malloc_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
+	logger.Trace("[ext_allocator_malloc_version_1] executing...")
 	size := args[0].I32()
-	logger.Trace("[ext_allocator_malloc_version_1] executing...", "size", size)
-
 	ctx := env.(*runtime.Context)
 
 	res, err := ctx.Allocator.Allocate(uint32(size))
@@ -1128,7 +1127,7 @@ func ext_allocator_malloc_version_1(env interface{}, args []wasm.Value) ([]wasm.
 		return nil, err
 	}
 
-	logger.Trace("[ext_allocator_malloc_version_1]", "ptr", res, "memory size", ctx.Memory.Length())
+	logger.Trace("[ext_allocator_malloc_version_1]", "size", size, "ptr", res)
 	return []wasm.Value{wasm.NewI32(int32(res))}, nil
 }
 
@@ -1744,7 +1743,7 @@ func ext_storage_read_version_1(env interface{}, args []wasm.Value) ([]wasm.Valu
 		size = uint32(0)
 	} else {
 		size = uint32(len(value[offset:]))
-		valueBuf, valueLen := int64ToPointerAndSize(int64(valueOut))
+		valueBuf, valueLen := int64ToPointerAndSize(valueOut)
 		copy(memory[valueBuf:valueBuf+valueLen], value[offset:])
 	}
 
@@ -1892,7 +1891,7 @@ func ext_storage_commit_transaction_version_1(env interface{}, _ []wasm.Value) (
 // Convert 64bit wasm span descriptor to Go memory slice
 func asMemorySlice(ctx *runtime.Context, span int64) []byte {
 	memory := ctx.Memory.Data()
-	ptr, size := int64ToPointerAndSize(int64(span))
+	ptr, size := int64ToPointerAndSize(span)
 	return memory[ptr : ptr+size]
 }
 

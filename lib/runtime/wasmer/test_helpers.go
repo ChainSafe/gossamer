@@ -41,7 +41,7 @@ func NewTestInstance(t *testing.T, targetRuntime string) *Instance {
 
 // NewTestInstanceWithTrie will create a new runtime (polkadot/test) with the supplied trie as the storage
 func NewTestInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Lvl) *Instance {
-	fp, cfg := setupConfig(t, targetRuntime, tt, DefaultTestLogLvl, 0)
+	fp, cfg := setupConfig(t, targetRuntime, tt, lvl, 0)
 	r, err := NewInstanceFromFile(fp, cfg)
 	require.NoError(t, err, "Got error when trying to create new VM", "targetRuntime", targetRuntime)
 	require.NotNil(t, r, "Could not create new VM instance", "targetRuntime", targetRuntime)
