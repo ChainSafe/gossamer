@@ -197,10 +197,6 @@ func (t *Trie) nextKey(curr node, prefix, key []byte) []byte {
 					continue
 				}
 
-				// if _, ok := child.(*leaf); ok && i == 0 && !bytes.Equal(fullKey, key[:len(fullKey)]) {
-				// 	continue
-				// }
-
 				next := t.nextKey(child, append(fullKey, byte(i)+idx), key)
 				if len(next) != 0 {
 					return next
