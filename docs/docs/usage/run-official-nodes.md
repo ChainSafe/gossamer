@@ -1,7 +1,7 @@
 ---
 layout: default
-title: Official Nodes
-permalink: /official-nodes/
+title: Run Official Nodes
+permalink: /usage/run-official-nodes/
 ---
 
 - _TODO: update "Official Nodes" document [#916](https://github.com/ChainSafe/gossamer/issues/916)_

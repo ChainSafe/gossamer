@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Host Architecture
-permalink: /host-architecture/
+permalink: /getting-started/overview/host-architecture/
 ---
 
 - _TODO: update "Host Architecture" document [#918](https://github.com/ChainSafe/gossamer/issues/918)_

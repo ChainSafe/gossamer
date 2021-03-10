@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Package Library
-permalink: /welcome/package-library/
+permalink: /getting-started/overview/package-library/
 ---
 
 ## Overview

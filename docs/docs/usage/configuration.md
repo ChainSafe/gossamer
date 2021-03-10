@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Configuration
-permalink: /configuration/
+permalink: /usage/configuration/
 ---
 
 # Configuration

@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Command-Line
-permalink: /command-line/
+permalink: /usage/command-line/
 ---
 
 ## Gossamer Command

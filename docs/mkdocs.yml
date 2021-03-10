@@ -21,25 +21,38 @@ theme:
     primary: pink
     accent: indigo
   favicon: ./assets/favicon.ico
-
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.tabs
+    - navigation.tabs.sticky
 nav:
-  - Welcome to Gossamer:
+
+  - Getting Started:
     - Overview: ./index.md
-    - Get Started: ./welcome/get-started.md
-    - General Resources: ./welcome/general-resources.md
-    - Package Library: ./welcome/package-library.md
-  - Running Gossamer:
-    - Command Line: ./running-gossamer/command-line.md
-    - Configuration: ./running-gossamer/configuration.md
-    - Connect to Polkadot.js: ./running-gossamer/connect-to-polkadot-js.md
-    - Official Nodes: ./running-gossamer/official-nodes.md
-  - Building Gossamer: 
-    - Host Architecture: ./building-gossamer/host-architecture.md
-    - Integration Tests: ./building-gossamer/integration-tests.md
-    - Custom Services: ./building-gossamer/custom-services.md
-    - Import Runtime: ./building-gossamer/import-runtime.md
-    - SCALE Examples: ./building-gossamer/scale-examples.md
-    - Developer Resources: ./building-gossamer/developer-resources.md
+    - Host Architecture: ./getting-started/overview/host-architecture.md
+    - Package Library: ./getting-started/overview/package-library.md
+    - Installation: ./getting-started/installation.md
+    - General Resources: ./getting-started/resources/general-resources.md
+    - Developer Resources: ./getting-started/resources/developer-resources.md
+  - Usage:
+    - Command Line: ./usage/command-line.md
+    - Configuration: ./usage/configuration.md
+    - Run Official Nodes: ./usage/run-official-nodes.md
+    - Import Runtime: ./usage/import-runtime.md
+  - Intergrate:
+    - Connect to Polkadot.js: ./intergrate/connect-to-polkadot-js.md
+  - Tests: 
+    - Debugging: ./testing-and-debugging/debugging.md
+    - Testing: ./testing-and-debugging/testing.md
+    - Integration Tests: ./testing-and-debugging/integration-tests.md
+  - Deployment: 
+    - Docker usage: ./deployment/docker-usage.md
+  - Advanced: 
+    - SCALE Examples: ./advanced/scale-examples.md
+    - Custom Services: ./advanced/custom-services.md
+  - Contributing: ./contributing.md
 extra_css:
   - stylesheets/extra.css
 extra:

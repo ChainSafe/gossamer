@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Developer Resources
-permalink: /developer-resources/
+permalink: /getting-started/resources/developer-resources/
 ---
 
 ### Specification

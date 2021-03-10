@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Connect to Polkadot.js
-permalink: /connect-to-polkadot-js/
+permalink: /integrate/connect-to-polkadot-js/
 ---
 
 # Connecting to Polkadot.js 

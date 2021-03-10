@@ -1,7 +1,7 @@
 ---
 layout: default
-title: Get Started
-permalink: /welcome/get-started/
+title: Installation
+permalink: /getting-started/installation
 ---
 
 # Get Started
