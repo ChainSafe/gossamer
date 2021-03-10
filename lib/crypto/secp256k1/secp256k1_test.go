@@ -21,6 +21,8 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestSignAndVerify(t *testing.T) {
@@ -39,9 +41,6 @@ func TestSignAndVerify(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	t.Log(sig)
-	t.Log(len(sig))
 
 	ok, err := kp.public.Verify(hash[:], sig[:64])
 	if err != nil {
@@ -127,4 +126,44 @@ func TestEncodeAndDecodePub(t *testing.T) {
 	if !reflect.DeepEqual(res.Encode(), exp) {
 		t.Fatalf("Fail: got %v expected %v", res, exp)
 	}
+}
+
+func TestRecoverPublicKey(t *testing.T) {
+	kp, err := GenerateKeypair()
+	require.NoError(t, err)
+
+	msg := []byte("borkbork")
+	hash, err := common.Blake2bHash(msg)
+	require.NoError(t, err)
+
+	sig, err := kp.private.Sign(hash[:])
+	require.NoError(t, err)
+
+	recovered, err := RecoverPublicKey(hash[:], sig)
+	require.NoError(t, err)
+
+	r := new(PublicKey)
+	err = r.UnmarshalPubkey(recovered)
+	require.NoError(t, err)
+	require.Equal(t, kp.Public(), r)
+}
+
+func TestRecoverPublicKeyCompressed(t *testing.T) {
+	kp, err := GenerateKeypair()
+	require.NoError(t, err)
+
+	msg := []byte("borkbork")
+	hash, err := common.Blake2bHash(msg)
+	require.NoError(t, err)
+
+	sig, err := kp.private.Sign(hash[:])
+	require.NoError(t, err)
+
+	recovered, err := RecoverPublicKeyCompressed(hash[:], sig)
+	require.NoError(t, err)
+
+	r := new(PublicKey)
+	err = r.Decode(recovered)
+	require.NoError(t, err)
+	require.Equal(t, kp.Public(), r)
 }

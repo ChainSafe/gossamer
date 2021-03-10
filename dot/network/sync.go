@@ -350,30 +350,27 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 	}
 }
 
-func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) {
+func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error {
 	if len(resp.BlockData) == 0 {
-		return
+		return fmt.Errorf("block data length is zero")
 	}
 
 	head, err := q.s.blockState.BestBlockNumber()
 	if err != nil {
-		logger.Error("failed to get best block number", "error", err)
-		return
+		return fmt.Errorf("failed to get best block number: %w", err)
 	}
 
 	start, end, err := resp.getStartAndEnd()
 	if err != nil {
-		logger.Debug("throwing away BlockResponseMessage as it doesn't contain block headers")
 		// update peer's score
 		q.updatePeerScore(pid, -1)
-		return
+		return fmt.Errorf("response doesn't contain block headers")
 	}
 
 	if resp.BlockData[0].Body == nil || !resp.BlockData[0].Body.Exists() {
-		logger.Debug("throwing away BlockResponseMessage as it doesn't contain block bodies")
 		// update peer's score
 		q.updatePeerScore(pid, -1)
-		return
+		return fmt.Errorf("response doesn't contain block bodies")
 	}
 
 	// update peer's score
@@ -382,7 +379,7 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) {
 	if end < head.Int64() {
 		logger.Debug("throwing away BlockResponseMessage as it's below our head", "head", head, "response end", end)
 		q.requestData.Delete(uint64(start))
-		return
+		return nil
 	}
 
 	q.requestData.Store(uint64(start), requestData{
@@ -404,6 +401,7 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) {
 
 	q.responses = sortResponses(q.responses)
 	logger.Debug("pushed block data to queue", "start", start, "end", end, "queue", q.stringifyResponseQueue())
+	return nil
 }
 
 func (q *syncQueue) processBlockRequests() {
@@ -437,8 +435,10 @@ func (q *syncQueue) trySync(req *syncRequest) {
 	if len(req.to) != 0 {
 		resp, err := q.syncWithPeer(req.to, req.req)
 		if err == nil {
-			q.pushResponse(resp, req.to)
-			return
+			err = q.pushResponse(resp, req.to)
+			if err == nil {
+				return
+			}
 		}
 
 		logger.Debug("failed to sync with peer", "peer", req.to, "error", err)
@@ -461,8 +461,12 @@ func (q *syncQueue) trySync(req *syncRequest) {
 			continue
 		}
 
-		q.pushResponse(resp, peer.pid)
-		return
+		err = q.pushResponse(resp, peer.pid)
+		if err != nil {
+			logger.Debug("failed to push block response", "error", err)
+		} else {
+			return
+		}
 	}
 
 	logger.Debug("failed to sync with any peer :(")

@@ -46,9 +46,20 @@ type PublicKey struct {
 	key ecdsa.PublicKey
 }
 
-// RecoverPublicKey returns the uncompressed public key that created the given signature.
+// RecoverPublicKey returns the 64-byte uncompressed public key that created the given signature.
 func RecoverPublicKey(msg, sig []byte) ([]byte, error) {
 	return secp256k1.Ecrecover(msg, sig)
+}
+
+// RecoverPublicKeyCompressed returns the 33-byte compressed public key that signed the given message.
+func RecoverPublicKeyCompressed(msg, sig []byte) ([]byte, error) {
+	pub, err := secp256k1.SigToPub(msg, sig)
+	if err != nil {
+		return nil, err
+	}
+
+	cpub := secp256k1.CompressPubkey(pub)
+	return cpub, nil
 }
 
 // PrivateKey struct for PrivateKey
