@@ -71,44 +71,46 @@ func ext_logging_log_version_1(env interface{}, args []wasm.Value) ([]wasm.Value
 	return nil, nil
 }
 
-func ext_sandbox_instance_teardown_version_1(_ interface{}, _ wasm.Value) {
+func ext_sandbox_instance_teardown_version_1(_ interface{}, _ []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_sandbox_instance_teardown_version_1] executing...")
 	logger.Warn("[ext_sandbox_instance_teardown_version_1] unimplemented")
+	return nil, nil
 }
 
-func ext_sandbox_instantiate_version_1(_ interface{}, _, _, _, _ wasm.Value) wasm.Value {
+func ext_sandbox_instantiate_version_1(_ interface{}, _ []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_sandbox_instantiate_version_1] executing...")
 	logger.Warn("[ext_sandbox_instantiate_version_1] unimplemented")
-	return wasm.NewI32(0)
+	return []wasm.Value{wasm.NewI32(0)}, nil
 }
 
-func ext_sandbox_invoke_version_1(_ interface{}, _, _, _, _, _, _ wasm.Value) wasm.Value {
+func ext_sandbox_invoke_version_1(_ interface{}, _ []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_sandbox_invoke_version_1] executing...")
 	logger.Warn("[ext_sandbox_invoke_version_1] unimplemented")
-	return wasm.NewI32(0)
+	return []wasm.Value{wasm.NewI32(0)}, nil
 }
 
-func ext_sandbox_memory_get_version_1(_ interface{}, _, _, _, _ wasm.Value) wasm.Value {
+func ext_sandbox_memory_get_version_1(_ interface{}, _ []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_sandbox_memory_get_version_1] executing...")
 	logger.Warn("[ext_sandbox_memory_get_version_1] unimplemented")
-	return wasm.NewI32(0)
+	return []wasm.Value{wasm.NewI32(0)}, nil
 }
 
-func ext_sandbox_memory_new_version_1(_ interface{}, _, _ wasm.Value) wasm.Value {
+func ext_sandbox_memory_new_version_1(_ interface{}, _ []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_sandbox_memory_new_version_1] executing...")
 	logger.Warn("[ext_sandbox_memory_new_version_1] unimplemented")
-	return wasm.NewI32(0)
+	return []wasm.Value{wasm.NewI32(0)}, nil
 }
 
-func ext_sandbox_memory_set_version_1(_ interface{}, _, _, _, _ wasm.Value) wasm.Value {
+func ext_sandbox_memory_set_version_1(_ interface{}, _ []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_sandbox_memory_set_version_1] executing...")
 	logger.Warn("[ext_sandbox_memory_set_version_1] unimplemented")
-	return wasm.NewI32(0)
+	return []wasm.Value{wasm.NewI32(0)}, nil
 }
 
-func ext_sandbox_memory_teardown_version_1(_ interface{}, _ wasm.Value) {
+func ext_sandbox_memory_teardown_version_1(_ interface{}, _ []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_sandbox_memory_teardown_version_1] executing...")
 	logger.Warn("[ext_sandbox_memory_teardown_version_1] unimplemented")
+	return nil, nil
 }
 
 func ext_crypto_ed25519_generate_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
@@ -841,22 +843,22 @@ func ext_misc_runtime_version_version_1(env interface{}, args []wasm.Value) ([]w
 }
 
 //func ext_default_child_storage_read_version_1(context unsafe.Pointer, childStorageKey C.int64_t, key C.int64_t, valueOut C.int64_t, offset C.int32_t) C.int64_t {
-func ext_default_child_storage_read_version_1(env interface{}, childStorageKeyValue, keyValue, valueOutValue, offsetValue wasm.Value) wasm.Value {
+func ext_default_child_storage_read_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_default_child_storage_read_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
 	memory := ctx.Memory.Data()
 	storage := ctx.Storage
 
-	childStorageKey := childStorageKeyValue.I64()
-	key := keyValue.I64()
-	valueOut := valueOutValue.I64()
-	offset := offsetValue.I32()
+	childStorageKey := args[0].I64()
+	key := args[1].I64()
+	valueOut := args[2].I64()
+	offset := args[3].I32()
 
 	value, err := storage.GetChildStorage(asMemorySlice(ctx, childStorageKey), asMemorySlice(ctx, key))
 	if err != nil {
 		logger.Error("[ext_default_child_storage_read_version_1] failed to get child storage", "error", err)
-		return wasm.NewI64(0)
+		return nil, err
 	}
 
 	valueBuf, valueLen := int64ToPointerAndSize(int64(valueOut))
@@ -869,20 +871,20 @@ func ext_default_child_storage_read_version_1(env interface{}, childStorageKeyVa
 	sizeSpan, err := toWasmMemoryOptional(ctx, sizeBuf)
 	if err != nil {
 		logger.Error("[ext_default_child_storage_read_version_1] failed to allocate", "error", err)
-		return wasm.NewI64(0)
+		return nil, err
 	}
 
-	return wasm.NewI64(sizeSpan)
+	return []wasm.Value{wasm.NewI64(sizeSpan)}, nil
 }
 
 //func ext_default_child_storage_clear_version_1(context unsafe.Pointer, childStorageKey, keySpan C.int64_t) {
-func ext_default_child_storage_clear_version_1(env interface{}, childStorageKeyValue, keySpanValue wasm.Value) {
+func ext_default_child_storage_clear_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_default_child_storage_clear_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
 	storage := ctx.Storage
-	childStorageKey := childStorageKeyValue.I64()
-	keySpan := keySpanValue.I64()
+	childStorageKey := args[0].I64()
+	keySpan := args[1].I64()
 
 	keyToChild := asMemorySlice(ctx, childStorageKey)
 	key := asMemorySlice(ctx, keySpan)
@@ -893,24 +895,27 @@ func ext_default_child_storage_clear_version_1(env interface{}, childStorageKeyV
 			KeyToChild: keyToChild,
 			Key:        key,
 		})
-		return
+		return nil, nil
 	}
 
 	err := storage.ClearChildStorage(keyToChild, key)
 	if err != nil {
 		logger.Error("[ext_default_child_storage_clear_version_1] failed to clear child storage", "error", err)
+		return nil, err
 	}
+
+	return nil, nil
 }
 
 //func ext_default_child_storage_clear_prefix_version_1(context unsafe.Pointer, childStorageKey C.int64_t, prefixSpan C.int64_t) {
-func ext_default_child_storage_clear_prefix_version_1(env interface{}, childStorageKeyValue, prefixSpanValue wasm.Value) {
+func ext_default_child_storage_clear_prefix_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_default_child_storage_clear_prefix_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
 	storage := ctx.Storage
 
-	childStorageKey := childStorageKeyValue.I64()
-	prefixSpan := prefixSpanValue.I64()
+	childStorageKey := args[0].I64()
+	prefixSpan := args[1].I64()
 
 	keyToChild := asMemorySlice(ctx, childStorageKey)
 	prefix := asMemorySlice(ctx, prefixSpan)
@@ -921,128 +926,131 @@ func ext_default_child_storage_clear_prefix_version_1(env interface{}, childStor
 			KeyToChild: keyToChild,
 			Prefix:     prefix,
 		})
-		return
+		return nil, nil
 	}
 
 	err := storage.ClearPrefixInChild(keyToChild, prefix)
 	if err != nil {
 		logger.Error("[ext_default_child_storage_clear_prefix_version_1] failed to clear prefix in child", "error", err)
+		return nil, err
 	}
+
+	return nil, nil
 }
 
 //func ext_default_child_storage_exists_version_1(context unsafe.Pointer, childStorageKey C.int64_t, key C.int64_t) C.int32_t {
-func ext_default_child_storage_exists_version_1(env interface{}, childStorageKeyValue, keyValue wasm.Value) wasm.Value {
+func ext_default_child_storage_exists_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_default_child_storage_exists_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
 	storage := ctx.Storage
 
-	childStorageKey := childStorageKeyValue.I64()
-	key := keyValue.I64()
+	childStorageKey := args[0].I64()
+	key := args[1].I64()
 
 	child, err := storage.GetChildStorage(asMemorySlice(ctx, childStorageKey), asMemorySlice(ctx, key))
 	if err != nil {
 		logger.Error("[ext_default_child_storage_exists_version_1] failed to get child from child storage", "error", err)
-		return wasm.NewI32(0)
+		return []wasm.Value{wasm.NewI32(0)}, nil
 	}
 
 	if child != nil {
-		return wasm.NewI32(1)
+		return []wasm.Value{wasm.NewI32(1)}, nil
 	}
 
-	return wasm.NewI32(0)
+	return []wasm.Value{wasm.NewI32(0)}, nil
 }
 
 //func ext_default_child_storage_get_version_1(context unsafe.Pointer, childStorageKey, key C.int64_t) C.int64_t {
-func ext_default_child_storage_get_version_1(env interface{}, childStorageKeyValue, keyValue wasm.Value) wasm.Value {
+func ext_default_child_storage_get_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_default_child_storage_get_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
 	storage := ctx.Storage
 
-	childStorageKey := childStorageKeyValue.I64()
-	key := keyValue.I64()
+	childStorageKey := args[0].I64()
+	key := args[1].I64()
 
 	child, err := storage.GetChildStorage(asMemorySlice(ctx, childStorageKey), asMemorySlice(ctx, key))
 	if err != nil {
 		logger.Error("[ext_default_child_storage_get_version_1] failed to get child from child storage", "error", err)
-		return wasm.NewI64(0)
+		return nil, err
 	}
 
 	value, err := toWasmMemoryOptional(ctx, child)
 	if err != nil {
 		logger.Error("[ext_default_child_storage_get_version_1] failed to allocate", "error", err)
-		return wasm.NewI64(0)
+		return nil, err
 	}
 
-	return wasm.NewI64(value)
+	return []wasm.Value{wasm.NewI64(value)}, nil
 }
 
 //func ext_default_child_storage_next_key_version_1(context unsafe.Pointer, childStorageKey C.int64_t, key C.int64_t) C.int64_t {
-func ext_default_child_storage_next_key_version_1(env interface{}, childStorageKeyValue, keyValue wasm.Value) wasm.Value {
+func ext_default_child_storage_next_key_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_default_child_storage_next_key_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
 	storage := ctx.Storage
 
-	childStorageKey := childStorageKeyValue.I64()
-	key := keyValue.I64()
+	childStorageKey := args[0].I64()
+	key := args[1].I64()
 
 	child, err := storage.GetChildNextKey(asMemorySlice(ctx, childStorageKey), asMemorySlice(ctx, key))
 	if err != nil {
 		logger.Error("[ext_default_child_storage_next_key_version_1] failed to get child's next key", "error", err)
-		return wasm.NewI64(0)
+		return nil, err
 	}
 
 	value, err := toWasmMemoryOptional(ctx, child)
 	if err != nil {
 		logger.Error("[ext_default_child_storage_next_key_version_1] failed to allocate", "error", err)
-		return wasm.NewI64(0)
+		return nil, err
 	}
 
-	return wasm.NewI64(value)
+	return []wasm.Value{wasm.NewI64(value)}, nil
 }
 
 //func ext_default_child_storage_root_version_1(context unsafe.Pointer, childStorageKey C.int64_t) C.int64_t {
-func ext_default_child_storage_root_version_1(env interface{}, childStorageKeyValue wasm.Value) wasm.Value {
+func ext_default_child_storage_root_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_default_child_storage_root_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
 	storage := ctx.Storage
 
-	childStorageKey := childStorageKeyValue.I64()
+	childStorageKey := args[0].I64()
 
 	child, err := storage.GetChild(asMemorySlice(ctx, childStorageKey))
 	if err != nil {
 		logger.Error("[ext_default_child_storage_root_version_1] failed to retrieve child", "error", err)
-		return wasm.NewI64(0)
+		return nil, err
 	}
 
 	childRoot, err := child.Hash()
 	if err != nil {
 		logger.Error("[ext_default_child_storage_root_version_1] failed to encode child root", "error", err)
-		return wasm.NewI64(0)
+		return nil, err
 	}
 
 	root, err := toWasmMemoryOptional(ctx, childRoot[:])
 	if err != nil {
 		logger.Error("[ext_default_child_storage_root_version_1] failed to allocate", "error", err)
-		return wasm.NewI64(0)
+		return nil, err
 	}
 
-	return wasm.NewI64(root)
+	return []wasm.Value{wasm.NewI64(root)}, nil
 }
 
 //func ext_default_child_storage_set_version_1(context unsafe.Pointer, childStorageKeySpan, keySpan, valueSpan C.int64_t) {
-func ext_default_child_storage_set_version_1(env interface{}, childStorageKeySpanValue, keySpanValue, valueSpanValue wasm.Value) {
+func ext_default_child_storage_set_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_default_child_storage_set_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
 	storage := ctx.Storage
 
-	childStorageKeySpan := childStorageKeySpanValue.I64()
-	keySpan := keySpanValue.I64()
-	valueSpan := valueSpanValue.I64()
+	childStorageKeySpan := args[0].I64()
+	keySpan := args[1].I64()
+	valueSpan := args[2].I64()
 
 	childStorageKey := asMemorySlice(ctx, childStorageKeySpan)
 	key := asMemorySlice(ctx, keySpan)
@@ -1058,23 +1066,25 @@ func ext_default_child_storage_set_version_1(env interface{}, childStorageKeySpa
 			Key:        key,
 			Value:      cp,
 		})
-		return
+		return nil, nil
 	}
 
 	err := storage.SetChildStorage(childStorageKey, key, cp)
 	if err != nil {
 		logger.Error("[ext_default_child_storage_set_version_1] failed to set value in child storage", "error", err)
-		return
+		return nil, err
 	}
+
+	return nil, nil
 }
 
 //func ext_default_child_storage_storage_kill_version_1(context unsafe.Pointer, childStorageKeySpan C.int64_t) {
-func ext_default_child_storage_storage_kill_version_1(env interface{}, childStorageKeySpanValue wasm.Value) {
+func ext_default_child_storage_storage_kill_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_default_child_storage_storage_kill_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
 	storage := ctx.Storage
-	childStorageKeySpan := childStorageKeySpanValue.I64()
+	childStorageKeySpan := args[0].I64()
 
 	childStorageKey := asMemorySlice(ctx, childStorageKeySpan)
 
@@ -1083,10 +1093,11 @@ func ext_default_child_storage_storage_kill_version_1(env interface{}, childStor
 			Operation:  runtime.DeleteChildOp,
 			KeyToChild: childStorageKey,
 		})
-		return
+		return nil, nil
 	}
 
 	storage.DeleteChild(childStorageKey)
+	return nil, nil
 }
 
 //func ext_allocator_free_version_1(context unsafe.Pointer, addr C.int32_t) {
@@ -1117,6 +1128,7 @@ func ext_allocator_malloc_version_1(env interface{}, args []wasm.Value) ([]wasm.
 		return nil, err
 	}
 
+	logger.Trace("[ext_allocator_malloc_version_1]", "ptr", res, "memory size", ctx.Memory.Length())
 	return []wasm.Value{wasm.NewI32(int32(res))}, nil
 }
 
@@ -1799,21 +1811,23 @@ func ext_storage_set_version_1(env interface{}, args []wasm.Value) ([]wasm.Value
 }
 
 //func ext_storage_start_transaction_version_1(context unsafe.Pointer) {
-func ext_storage_start_transaction_version_1(env interface{}) {
+func ext_storage_start_transaction_version_1(env interface{}, _ []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_storage_start_transaction_version_1] executing...")
 	ctx := env.(*runtime.Context)
 	ctx.TransactionStorageChanges = []*runtime.TransactionStorageChange{}
+	return nil, nil
 }
 
 //func ext_storage_rollback_transaction_version_1(context unsafe.Pointer) {
-func ext_storage_rollback_transaction_version_1(env interface{}) {
+func ext_storage_rollback_transaction_version_1(env interface{}, _ []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_storage_rollback_transaction_version_1] executing...")
 	ctx := env.(*runtime.Context)
 	ctx.TransactionStorageChanges = nil
+	return nil, nil
 }
 
 //func ext_storage_commit_transaction_version_1(context unsafe.Pointer) {
-func ext_storage_commit_transaction_version_1(env interface{}) {
+func ext_storage_commit_transaction_version_1(env interface{}, _ []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_storage_commit_transaction_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
@@ -1871,6 +1885,8 @@ func ext_storage_commit_transaction_version_1(env interface{}) {
 			storage.DeleteChild(change.KeyToChild)
 		}
 	}
+
+	return nil, nil
 }
 
 // Convert 64bit wasm span descriptor to Go memory slice

@@ -115,7 +115,26 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	engine := wasm.NewEngine()
 	store := wasm.NewStore(engine)
 
-	// Provide importable memory for newer runtimes
+	module, err := wasm.NewModule(store, code)
+	if err != nil {
+		return nil, err
+	}
+
+	// modImports := module.Imports()
+	// var memImport *wasm.ImportType
+	// for _, im := range modImports {
+	// 	fmt.Println(im.Name())
+	// 	if im.Name() == "memory" {
+	// 		memImport = im
+	// 		break
+	// 	}
+	// }
+
+	// if memImport == nil {
+	// 	panic("memImport is nil")
+	// }
+	// memType := memImport.Type().IntoMemoryType()
+
 	// TODO: determine memory descriptor size that the runtime wants from the wasm.
 	// should be doable w/ wasmer 1.0.0.
 	lim, err := wasm.NewLimits(23, 256) // TODO: determine maximum
@@ -124,21 +143,10 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	}
 	memType := wasm.NewMemoryType(lim)
 	memory := wasm.NewMemory(store, memType)
-
-	// _, err = imports.AppendMemory("memory", memory)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// TODO: get __heap_base exported value from runtime.
-	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does
-	heapBase := runtime.DefaultHeapBase
-
 	mem := &Memory{memory}
 
 	ctx := &runtime.Context{
-		Storage: cfg.Storage,
-		//Allocator:   allocator,
+		Storage:     cfg.Storage,
 		Keystore:    cfg.Keystore,
 		Validator:   cfg.Role == byte(4),
 		NodeStorage: cfg.NodeStorage,
@@ -149,24 +157,23 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	}
 
 	imports := cfg.Imports(store, memory, ctx)
-	ctx.Allocator = runtime.NewAllocator(*mem, heapBase)
-
-	module, err := wasm.NewModule(store, code)
-	if err != nil {
-		return nil, err
-	}
 
 	instance, err := wasm.NewInstance(module, imports)
 	if err != nil {
 		return nil, err
 	}
 
-	// // Assume imported memory is used if runtime does not export any
-	// if !instance.HasMemory() {
-	// 	instance.Memory = memory
-	// }
+	heapBase, err := instance.Exports.Get("__heap_base")
+	if err != nil {
+		return nil, err
+	}
 
-	// allocator := runtime.NewAllocator(instance.Memory, heapBase)
+	hb, err := heapBase.IntoGlobal().Get()
+	if err != nil {
+		return nil, err
+	}
+
+	ctx.Allocator = runtime.NewAllocator(*mem, uint32(hb.(int32)))
 
 	logger.Debug("NewInstance", "ctx", ctx)
 	//instance.SetContextData(ctx)
@@ -189,11 +196,6 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 	engine := wasm.NewEngine()
 	store := wasm.NewStore(engine)
 
-	// Provide importable memory for newer runtimes
-	// memory, err := wasm.NewMemory(23, 0)
-	// if err != nil {
-	// 	return err
-	// }
 	lim, err := wasm.NewLimits(23, 256)
 	if err != nil {
 		return err
@@ -202,11 +204,6 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 	memory := wasm.NewMemory(store, memType)
 
 	imports := in.imports(store, memory, in.ctx)
-
-	// _, err = imports.AppendMemory("memory", memory)
-	// if err != nil {
-	// 	return err
-	// }
 
 	module, err := wasm.NewModule(store, code)
 	if err != nil {
@@ -221,11 +218,6 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 	// TODO: get __heap_base exported value from runtime.
 	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does
 	heapBase := runtime.DefaultHeapBase
-
-	// Assume imported memory is used if runtime does not export any
-	// if !instance.HasMemory() {
-	// 	instance.Memory = memory
-	// }
 
 	in.ctx.Allocator = runtime.NewAllocator(Memory{memory}, heapBase)
 	//instance.SetContextData(in.ctx)
@@ -247,33 +239,18 @@ func (in *Instance) SetContextStorage(s runtime.Storage) {
 }
 
 // Stop func
-func (in *Instance) Stop() {
-	//in.vm.Close()
-}
+func (in *Instance) Stop() {}
 
 // Store func
 func (in *Instance) store(data []byte, location int32) {
-	// TODO: can we store the memory we initialized in `in`?
-	// memory, err := in.vm.Exports.GetMemory("memory")
-	// if err != nil {
-	// 	panic(err)
-	// }
-
 	memory := in.ctx.Memory
-
 	mem := memory.Data()
 	copy(mem[location:location+int32(len(data))], data)
 }
 
 // Load load
 func (in *Instance) load(location, length int32) []byte {
-	// TODO: can we store the memory we initialized in `in`?
-	// memory, err := in.vm.Exports.GetMemory("memory")
-	// if err != nil {
-	// 	panic(err)
-	// }
 	memory := in.ctx.Memory
-
 	mem := memory.Data()
 	return mem[location : location+length]
 }

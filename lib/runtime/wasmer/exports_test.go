@@ -69,7 +69,7 @@ func TestInstance_Version_KusamaRuntime(t *testing.T) {
 
 	cfg := &Config{}
 	cfg.Storage = genState
-	cfg.LogLvl = 4
+	cfg.LogLvl = 5
 
 	instance, err := NewRuntimeFromGenesis(gen, cfg)
 	require.NoError(t, err)

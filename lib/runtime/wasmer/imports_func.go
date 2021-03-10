@@ -32,6 +32,35 @@ func ImportsNodeRuntime(store *wasm.Store, memory *wasm.Memory, ctx *runtime.Con
 		wasm.NewValueTypes(),
 	), ctx, ext_logging_log_version_1)
 
+	importsMap["ext_sandbox_instance_teardown_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I32),
+		wasm.NewValueTypes(),
+	), ctx, ext_sandbox_instance_teardown_version_1)
+	importsMap["ext_sandbox_instantiate_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I32, wasm.I64, wasm.I64, wasm.I32),
+		wasm.NewValueTypes(wasm.I32),
+	), ctx, ext_sandbox_instantiate_version_1)
+	importsMap["ext_sandbox_invoke_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I32, wasm.I64, wasm.I64, wasm.I32, wasm.I32, wasm.I32),
+		wasm.NewValueTypes(wasm.I32),
+	), ctx, ext_sandbox_invoke_version_1)
+	importsMap["ext_sandbox_memory_get_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I32, wasm.I32, wasm.I32, wasm.I32),
+		wasm.NewValueTypes(wasm.I32),
+	), ctx, ext_sandbox_memory_get_version_1)
+	importsMap["ext_sandbox_memory_new_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I32, wasm.I32),
+		wasm.NewValueTypes(wasm.I32),
+	), ctx, ext_sandbox_memory_new_version_1)
+	importsMap["ext_sandbox_memory_set_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I32, wasm.I32, wasm.I32, wasm.I32),
+		wasm.NewValueTypes(wasm.I32),
+	), ctx, ext_sandbox_memory_set_version_1)
+	importsMap["ext_sandbox_memory_teardown_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I32),
+		wasm.NewValueTypes(),
+	), ctx, ext_sandbox_memory_teardown_version_1)
+
 	importsMap["ext_crypto_ed25519_generate_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
 		wasm.NewValueTypes(wasm.I32, wasm.I64),
 		wasm.NewValueTypes(wasm.I32),
@@ -111,7 +140,42 @@ func ImportsNodeRuntime(store *wasm.Store, memory *wasm.Memory, ctx *runtime.Con
 		wasm.NewValueTypes(wasm.I64),
 	), ctx, ext_misc_runtime_version_version_1)
 
-	// TODO: ext_default
+	importsMap["ext_default_child_storage_read_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64, wasm.I64, wasm.I64, wasm.I32),
+		wasm.NewValueTypes(wasm.I64),
+	), ctx, ext_default_child_storage_read_version_1)
+	importsMap["ext_default_child_storage_clear_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64, wasm.I64),
+		wasm.NewValueTypes(),
+	), ctx, ext_default_child_storage_clear_version_1)
+	importsMap["ext_default_child_storage_clear_prefix_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64, wasm.I64),
+		wasm.NewValueTypes(),
+	), ctx, ext_default_child_storage_clear_prefix_version_1)
+	importsMap["ext_default_child_storage_exists_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64, wasm.I64),
+		wasm.NewValueTypes(wasm.I32),
+	), ctx, ext_default_child_storage_exists_version_1)
+	importsMap["ext_default_child_storage_get_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64, wasm.I64),
+		wasm.NewValueTypes(wasm.I64),
+	), ctx, ext_default_child_storage_get_version_1)
+	importsMap["ext_default_child_storage_next_key_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64, wasm.I64),
+		wasm.NewValueTypes(wasm.I64),
+	), ctx, ext_default_child_storage_next_key_version_1)
+	importsMap["ext_default_child_storage_root_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64),
+		wasm.NewValueTypes(wasm.I64),
+	), ctx, ext_default_child_storage_root_version_1)
+	importsMap["ext_default_child_storage_set_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64, wasm.I64, wasm.I64),
+		wasm.NewValueTypes(),
+	), ctx, ext_default_child_storage_set_version_1)
+	importsMap["ext_default_child_storage_storage_kill_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(wasm.I64),
+		wasm.NewValueTypes(),
+	), ctx, ext_default_child_storage_storage_kill_version_1)
 
 	importsMap["ext_allocator_free_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
 		wasm.NewValueTypes(wasm.I32),
@@ -221,13 +285,21 @@ func ImportsNodeRuntime(store *wasm.Store, memory *wasm.Memory, ctx *runtime.Con
 		wasm.NewValueTypes(wasm.I64),
 	), ctx, ext_storage_root_version_1)
 	importsMap["ext_storage_set_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
-		wasm.NewValueTypes(),
-		wasm.NewValueTypes(wasm.I64),
-	), ctx, ext_storage_set_version_1)
-	importsMap["ext_storage_set_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
 		wasm.NewValueTypes(wasm.I64, wasm.I64),
 		wasm.NewValueTypes(),
 	), ctx, ext_storage_set_version_1)
+	importsMap["ext_storage_start_transaction_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(),
+		wasm.NewValueTypes(),
+	), ctx, ext_storage_start_transaction_version_1)
+	importsMap["ext_storage_rollback_transaction_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(),
+		wasm.NewValueTypes(),
+	), ctx, ext_storage_rollback_transaction_version_1)
+	importsMap["ext_storage_commit_transaction_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
+		wasm.NewValueTypes(),
+		wasm.NewValueTypes(),
+	), ctx, ext_storage_commit_transaction_version_1)
 
 	imports := wasm.NewImportObject()
 	imports.Register("env", importsMap)

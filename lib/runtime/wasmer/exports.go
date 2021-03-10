@@ -51,11 +51,15 @@ func (in *Instance) Version() (runtime.Version, error) {
 		return in.version, nil
 	}
 
+	fmt.Println("calling core_version...")
+
 	version := new(runtime.VersionData)
 	res, err := in.exec(runtime.CoreVersion, []byte{})
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Println("got version", res)
 
 	err = version.Decode(res)
 	if err == io.EOF {
