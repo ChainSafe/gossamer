@@ -201,7 +201,7 @@ func (t *Trie) nextKey(curr node, prefix, key []byte) []byte {
 				// 	continue
 				// }
 
-				next := t.nextKey(child, append(fullKey, byte(i)+byte(idx)), key)
+				next := t.nextKey(child, append(fullKey, byte(i)+idx), key)
 				if len(next) != 0 {
 					return next
 				}
