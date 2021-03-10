@@ -22,7 +22,7 @@ theme:
     accent: indigo
   favicon: ./assets/favicon.ico
   features:
-    - navigation.instant
+    # - navigation.instant
     - navigation.tracking
     - navigation.sections
     - navigation.tabs
@@ -52,7 +52,8 @@ nav:
   - Advanced: 
     - SCALE Examples: ./advanced/scale-examples.md
     - Custom Services: ./advanced/custom-services.md
-  - Contributing: ./contributing.md
+  - Contributing: 
+    - Overview: ./contributing.md
 extra_css:
   - stylesheets/extra.css
 extra:
