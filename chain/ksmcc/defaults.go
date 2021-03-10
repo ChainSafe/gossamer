@@ -33,6 +33,9 @@ var (
 	// DefaultBasePath Default node base directory path
 	DefaultBasePath = string("~/.gossamer/ksmcc")
 
+	// DefaultMetricsPort is the metrics server port
+	DefaultMetricsPort = uint32(9876)
+
 	// DefaultLvl is the default log level
 	DefaultLvl = log.LvlInfo
 

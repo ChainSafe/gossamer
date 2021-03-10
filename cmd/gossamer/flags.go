@@ -86,6 +86,18 @@ var (
 		Name:  "memprof",
 		Usage: "File to write memory profile to",
 	}
+
+	// PublishMetricsFlag publishes node metrics to prometheus.
+	PublishMetricsFlag = cli.BoolFlag{
+		Name:  "publish-metrics",
+		Usage: "Publish node metrics",
+	}
+
+	// MetricsPortFlag set metric listen port
+	MetricsPortFlag = cli.StringFlag{
+		Name:  "metrics-port",
+		Usage: "Set metric listening port ",
+	}
 )
 
 // Initialization-only flags
@@ -263,6 +275,10 @@ var (
 		WSFlag,
 		WSExternalFlag,
 		WSPortFlag,
+
+		// metrics flag
+		PublishMetricsFlag,
+		MetricsPortFlag,
 	}
 )
 
