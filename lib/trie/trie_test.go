@@ -634,6 +634,7 @@ func TestNextKey_MoreAncestors(t *testing.T) {
 		{key: []byte{0x01, 0x35, 0x79}, value: []byte("gnocchi"), op: PUT},
 		{key: []byte{0x01, 0x35, 0x79, 0xab}, value: []byte("spaghetti"), op: PUT},
 		{key: []byte{0x01, 0x35, 0x79, 0xab, 0x9}, value: []byte("gnocchi"), op: PUT},
+		{key: []byte{0x01, 0x35, 0x79, 0xab, 0xf}, value: []byte("gnocchi"), op: PUT},
 		{key: []byte{0x07, 0x3a}, value: []byte("ramen"), op: PUT},
 		{key: []byte{0x07, 0x3b}, value: []byte("noodles"), op: PUT},
 		{key: []byte{0xf2}, value: []byte("pho"), op: PUT},
@@ -673,13 +674,67 @@ func TestNextKey_MoreAncestors(t *testing.T) {
 		},
 		{
 			tests[6].key,
+			tests[7].key,
+		},
+		{
+			tests[7].key,
 			nil,
+		},
+		{
+			[]byte{},
+			tests[0].key,
+		},
+		{
+			[]byte{0},
+			tests[0].key,
+		},
+		{
+			[]byte{0x01},
+			tests[0].key,
+		},
+		{
+			[]byte{0x02},
+			tests[5].key,
+		},
+		{
+			[]byte{0x05, 0x12, 0x34},
+			tests[5].key,
+		},
+		{
+			[]byte{0xf},
+			tests[7].key,
 		},
 	}
 
 	for _, tc := range testCases {
 		next := trie.NextKey(tc.input)
-		require.Equal(t, tc.expected, next)
+		require.Equal(t, tc.expected, next, common.BytesToHex(tc.input))
+	}
+}
+
+func TestNextKey_Again(t *testing.T) {
+	trie := NewEmptyTrie()
+
+	var testCases = []string{
+		"asdf",
+		"bnm",
+		"ghjk",
+		"qwerty",
+		"uiopl",
+		"zxcv",
+	}
+
+	for _, tc := range testCases {
+		trie.Put([]byte(tc), []byte(tc))
+	}
+
+	for i, tc := range testCases {
+		next := trie.NextKey([]byte(tc))
+		if i == len(testCases)-1 {
+			require.Nil(t, next)
+		} else {
+			require.Equal(t, []byte(testCases[i+1]), next, common.BytesToHex([]byte(tc)))
+		}
 	}
 }
 
