@@ -628,6 +628,48 @@ func Test_ext_crypto_secp256k1_ecdsa_recover_version_1(t *testing.T) {
 	require.Equal(t, expectedPubKey, publicKey.Encode())
 }
 
+func Test_ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(t *testing.T) {
+	t.Skip("host API tester does not yet contain rtm_ext_crypto_secp256k1_ecdsa_recover_compressed_version_1")
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	msgData := []byte("Hello world!")
+	blakeHash, err := common.Blake2bHash(msgData)
+	require.NoError(t, err)
+
+	kp, err := secp256k1.GenerateKeypair()
+	require.NoError(t, err)
+
+	sigData, err := kp.Private().Sign(blakeHash.ToBytes())
+	require.NoError(t, err)
+
+	expectedPubKey := kp.Public().Encode()
+
+	encSign, err := scale.Encode(sigData)
+	require.NoError(t, err)
+	encMsg, err := scale.Encode(blakeHash.ToBytes())
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_crypto_secp256k1_ecdsa_recover_compressed_version_1", append(encSign, encMsg...))
+	require.NoError(t, err)
+
+	out, err := scale.Decode(ret, []byte{})
+	require.NoError(t, err)
+
+	buf := &bytes.Buffer{}
+	buf.Write(out.([]byte))
+
+	uncomPubKey, err := new(types.Result).Decode(buf)
+	require.NoError(t, err)
+	rawPub := uncomPubKey.Value()
+	require.Equal(t, 33, len(rawPub))
+
+	publicKey := new(secp256k1.PublicKey)
+
+	err = publicKey.Decode(rawPub)
+	require.NoError(t, err)
+	require.Equal(t, expectedPubKey, publicKey.Encode())
+}
+
 func Test_ext_crypto_sr25519_public_keys_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
