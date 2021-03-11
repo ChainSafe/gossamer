@@ -152,7 +152,7 @@ func (t *Trie) entries(current node, prefix []byte, kv map[string][]byte) map[st
 func (t *Trie) NextKey(key []byte) []byte {
 	k := keyToNibbles(key)
 
-	next := t.nextKey([]node{}, t.root, nil, k)
+	next := t.nextKey(t.root, nil, k)
 	if next == nil {
 		return nil
 	}
@@ -160,87 +160,68 @@ func (t *Trie) NextKey(key []byte) []byte {
 	return nibblesToKeyLE(next)
 }
 
-func (t *Trie) nextKey(ancestors []node, current node, prefix, target []byte) []byte {
-	switch c := current.(type) {
+func (t *Trie) nextKey(curr node, prefix, key []byte) []byte {
+	switch c := curr.(type) {
 	case *branch:
 		fullKey := append(prefix, c.key...)
+		var cmp int
+		if len(key) < len(fullKey) {
+			// the key is lexicographically less than the current node key. return first key available
+			cmp = 1
+		} else {
+			// if cmp == 1, then node key is lexicographically greater than the key arg
+			cmp = bytes.Compare(fullKey, key[:len(fullKey)])
+		}
 
-		if bytes.Equal(target, fullKey) {
+		// length of key arg is less than branch key, return key of first child (or key of this branch, if it's a branch w/ value)
+		if (cmp == 0 && len(key) == len(fullKey)) || cmp == 1 {
+			if c.value != nil && bytes.Compare(fullKey, key) > 0 {
+				return fullKey
+			}
+
 			for i, child := range c.children {
 				if child == nil {
 					continue
 				}
 
-				// descend and return first key
-				return returnFirstKey(append(fullKey, byte(i)), child)
+				next := t.nextKey(child, append(fullKey, byte(i)), key)
+				if len(next) != 0 {
+					return next
+				}
 			}
 		}
 
-		if len(target) >= len(fullKey) && bytes.Equal(target[:len(fullKey)], fullKey) {
-			for i, child := range c.children {
-				if child == nil || byte(i) != target[len(fullKey)] {
+		// node key isn't greater than the arg key, continue to iterate
+		if cmp < 1 && len(key) > len(fullKey) {
+			idx := key[len(fullKey)]
+			for i, child := range c.children[idx:] {
+				if child == nil {
 					continue
 				}
 
-				return t.nextKey(append([]node{c}, ancestors...), child, append(fullKey, byte(i)), target)
+				next := t.nextKey(child, append(fullKey, byte(i)+idx), key)
+				if len(next) != 0 {
+					return next
+				}
 			}
 		}
 	case *leaf:
 		fullKey := append(prefix, c.key...)
-
-		if bytes.Equal(target, fullKey) {
-			// ancestors are all branches, find one with another child w/ index greater than ours
-			for _, anc := range ancestors {
-				// index of the current node in its parent branch
-				myIdx := prefix[len(prefix)-1]
-
-				br, ok := anc.(*branch)
-				if !ok {
-					return nil
-				}
-
-				prefix = prefix[:len(prefix)-len(br.key)-1]
-
-				if br.childrenBitmap()>>(myIdx+1) == 0 {
-					continue
-				}
-
-				// descend into ancestor's other children
-				for i, child := range br.children[myIdx+1:] {
-					idx := byte(i) + myIdx + 1
-
-					if child == nil {
-						continue
-					}
-
-					return returnFirstKey(append(prefix, append(br.key, idx)...), child)
-				}
-			}
+		var cmp int
+		if len(key) < len(fullKey) {
+			// the key is lexicographically less than the current node key. return first key available
+			cmp = 1
+		} else {
+			// if cmp == 1, then node key is lexicographically greater than the key arg
+			cmp = bytes.Compare(fullKey, key[:len(fullKey)])
 		}
-	}
 
-	return nil
-}
-
-// returnFirstKey descends into a node and returns the first key with an associated value
-func returnFirstKey(prefix []byte, n node) []byte {
-	switch c := n.(type) {
-	case *branch:
-		if c.value != nil {
+		if cmp == 1 {
 			return append(prefix, c.key...)
 		}
-
-		for i, child := range c.children {
-			if child == nil {
-				continue
-			}
-
-			return returnFirstKey(append(prefix, append(c.key, byte(i))...), child)
-		}
-	case *leaf:
-		return append(prefix, c.key...)
+	case nil:
+		return nil
 	}
-
 	return nil
 }
 
