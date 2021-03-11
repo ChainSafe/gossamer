@@ -527,7 +527,7 @@ func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, keyTypeID 
 	}
 
 	if ks.Type() != crypto.Sr25519Type && ks.Type() != crypto.UnknownType {
-		logger.Warn("[ext_crypto_sr25519_public_keys_version_1]", "name", id, "error", "keystore type is not ed25519")
+		logger.Warn("[ext_crypto_sr25519_public_keys_version_1]", "name", id, "error", "keystore type is not sr25519")
 		ret, _ := toWasmMemory(instanceContext, []byte{0})
 		return C.int64_t(ret)
 	}
