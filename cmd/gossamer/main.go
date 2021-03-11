@@ -25,7 +25,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/utils"
-
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
 )
