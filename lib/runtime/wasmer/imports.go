@@ -1632,12 +1632,6 @@ func ext_storage_clear_prefix_version_1(context unsafe.Pointer, prefixSpan C.int
 	if err != nil {
 		logger.Error("[ext_storage_clear_prefix_version_1]", "error", err)
 	}
-
-	// sanity check
-	next := storage.NextKey(prefix)
-	if len(next) >= len(prefix) && bytes.Equal(prefix, next[:len(prefix)]) {
-		panic("did not clear prefix")
-	}
 }
 
 //export ext_storage_exists_version_1

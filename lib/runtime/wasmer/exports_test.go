@@ -643,10 +643,6 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this test takes around 3min to run at the moment")
-	}
-
 	ksmTrie := newTrieFromPairs(t, "../test_data/block1377830_kusama.out")
 	expectedRoot := common.MustHexToHash("0xe4de6fecda9e9e35f937d159665cf984bc1a68048b6c78912de0aeb6bd7f7e99")
 	require.Equal(t, expectedRoot, ksmTrie.MustHash())
