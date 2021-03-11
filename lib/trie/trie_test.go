@@ -1035,7 +1035,7 @@ func TestNextKey_Random(t *testing.T) {
 		})
 
 		for _, tc := range testCases {
-			trie.Put([]byte(tc), []byte(tc))
+			trie.Put(tc, tc)
 		}
 
 		fmt.Println("Iteration: ", i)
