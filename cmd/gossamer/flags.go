@@ -315,6 +315,12 @@ var (
 		Sr25519Flag,
 		Secp256k1Flag,
 	}, GlobalFlags...)
+
+	ImportStateFlags = []cli.Flag{
+		BasePathFlag,
+		ChainFlag,
+		ConfigFlag,
+	}
 )
 
 // FixFlagOrder allow us to use various flag order formats (ie, `gossamer init

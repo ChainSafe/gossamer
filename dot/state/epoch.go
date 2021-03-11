@@ -34,6 +34,7 @@ var (
 	firstSlotKey     = []byte("firstslot")
 	epochDataPrefix  = []byte("epochinfo")
 	configDataPrefix = []byte("configinfo")
+	skipToKey        = []byte("skipto")
 )
 
 func epochDataKey(epoch uint64) []byte {
@@ -290,4 +291,37 @@ func (s *EpochState) GetStartSlotForEpoch(epoch uint64) (uint64, error) {
 func (s *EpochState) SetFirstSlot(slot uint64) error {
 	s.firstSlot = slot
 	return storeFirstSlot(s.baseDB, slot)
+}
+
+func storeSkipToEpoch(db chaindb.Database, epoch uint64) error {
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, epoch)
+	return db.Put(skipToKey, buf)
+}
+
+func loadSkipToEpoch(db chaindb.Database) (uint64, error) {
+	data, err := db.Get(skipToKey)
+	if err != nil {
+		return 0, err
+	}
+
+	return binary.LittleEndian.Uint64(data), nil
+}
+
+func (s *EpochState) SkipVerify(header *types.Header) (bool, error) {
+	skipToEpoch, err := loadSkipToEpoch(s.baseDB)
+	if err != nil {
+		return false, err
+	}
+
+	epoch, err := s.GetEpochForBlock(header)
+	if err != nil {
+		return false, err
+	}
+
+	if epoch <= skipToEpoch {
+		return true, nil
+	}
+
+	return false, nil
 }

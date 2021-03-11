@@ -180,6 +180,18 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 
 		if err != nil {
 			v.lock.Unlock()
+
+			// SkipVerify is set to true only in the case where we have imported a state at a given height,
+			// thus missing the epoch data for previous epochs.
+			skip, err := v.epochState.SkipVerify(header)
+			if err != nil {
+				return fmt.Errorf("failed to check if verification can be skipped: %w", err)
+			}
+
+			if skip {
+				return nil
+			}
+
 			return fmt.Errorf("failed to get verifier info for block %d: %w", header.Number, err)
 		}
 

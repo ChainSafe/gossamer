@@ -163,7 +163,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) error {
 
 	bestNum, err := s.blockState.BestBlockNumber()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get best block number: %w", err)
 	}
 
 	// TODO: return number of last successful block that was processed
@@ -172,12 +172,12 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) error {
 
 		err := s.blockState.CompareAndSetBlockData(bd)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to compare and set data: %w", err)
 		}
 
 		hasHeader, _ := s.blockState.HasHeader(bd.Hash)
 		hasBody, _ := s.blockState.HasBlockBody(bd.Hash)
-		if hasHeader && hasBody && bd.Number().Int64() <= bestNum.Int64() {
+		if hasHeader && hasBody || bd.Number().Int64() <= bestNum.Int64() {
 			// TODO: fix this; sometimes when the node shuts down the "best block" isn't stored properly,
 			// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
 			s.logger.Debug("skipping block, already have", "hash", bd.Hash)
@@ -238,6 +238,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) error {
 
 			err = s.handleBlock(block)
 			if err != nil {
+				s.logger.Error("failed to handle block", "number", block.Header.Number, "error", err)
 				return err
 			}
 
@@ -287,7 +288,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 
 	parent, err := s.blockState.GetHeader(block.Header.ParentHash)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get parent hash: %w", err)
 	}
 
 	s.logger.Trace("getting parent state", "root", parent.StateRoot)

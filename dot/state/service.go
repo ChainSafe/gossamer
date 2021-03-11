@@ -404,3 +404,81 @@ func (s *Service) Stop() error {
 
 	return s.db.Close()
 }
+
+func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) error {
+	cfg := &chaindb.Config{
+		DataDir: s.dbPath,
+	}
+
+	var err error
+	// initialize database using data directory
+	s.db, err = chaindb.NewBadgerDB(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to create database: %s", err)
+	}
+
+	block := &BlockState{
+		db: chaindb.NewTable(s.db, blockPrefix),
+	}
+
+	storage := &StorageState{
+		db: chaindb.NewTable(s.db, storagePrefix),
+	}
+
+	epoch, err := NewEpochState(s.db)
+	if err != nil {
+		return err
+	}
+
+	logger.Info("storing first slot...", "slot", firstSlot)
+	if err := storeFirstSlot(s.db, firstSlot); err != nil {
+		return err
+	}
+
+	blockEpoch, err := epoch.GetEpochForBlock(header)
+	if err != nil {
+		return err
+	}
+
+	if err := storeSkipToEpoch(s.db, blockEpoch); err != nil {
+		return err
+	}
+	logger.Info("skip BABE verification up to epoch", "epoch", blockEpoch)
+
+	root := t.MustHash()
+	if root != header.StateRoot {
+		return fmt.Errorf("trie state root does not equal header state root")
+	}
+
+	if err := StoreLatestStorageHash(s.db, root); err != nil {
+		return err
+	}
+
+	logger.Info("importing storage trie...", "basepath", s.dbPath, "root", root)
+
+	if err := StoreTrie(storage.db, t); err != nil {
+		return err
+	}
+
+	bt := blocktree.NewBlockTreeFromRoot(header, s.db)
+	if err := bt.Store(); err != nil {
+		return err
+	}
+
+	if err := StoreBestBlockHash(s.db, header.Hash()); err != nil {
+		return err
+	}
+
+	if err := block.SetHeader(header); err != nil {
+		return err
+	}
+
+	close(s.closeCh)
+	logger.Debug("Import", "best block hash", header.Hash(), "latest state root", root)
+
+	if err := s.db.Flush(); err != nil {
+		return err
+	}
+
+	return s.db.Close()
+}

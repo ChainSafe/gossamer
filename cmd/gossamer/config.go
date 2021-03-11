@@ -196,6 +196,42 @@ func createInitConfig(ctx *cli.Context) (*dot.Config, error) {
 	return cfg, nil
 }
 
+func createImportStateConfig(ctx *cli.Context) (*dot.Config, error) {
+	tomlCfg := &ctoml.Config{}
+	cfg := DefaultCfg()
+
+	err := loadConfigFile(ctx, tomlCfg)
+	if err != nil {
+		logger.Error("failed to load toml configuration", "error", err)
+		return nil, err
+	}
+
+	// check --chain flag and load configuration from defaults.go
+	if id := ctx.GlobalString(ChainFlag.Name); id != "" {
+		switch id {
+		case "gssmr":
+			tomlCfg = &ctoml.Config{}
+			err = loadConfig(tomlCfg, defaultGssmrConfigPath)
+		case "ksmcc":
+			tomlCfg = &ctoml.Config{}
+			err = loadConfig(tomlCfg, defaultKusamaConfigPath)
+		case "polkadot":
+			tomlCfg = &ctoml.Config{}
+			err = loadConfig(tomlCfg, defaultPolkadotConfigPath)
+		default:
+			return nil, fmt.Errorf("unknown chain id provided: %s", id)
+		}
+	}
+	if err != nil {
+		logger.Error("failed to set chain configuration", "error", err)
+		return nil, err
+	}
+
+	// set global configuration values
+	setDotGlobalConfig(ctx, tomlCfg, &cfg.Global)
+	return cfg, nil
+}
+
 func createBuildSpecConfig(ctx *cli.Context) (*dot.Config, error) {
 	var tomlCfg *ctoml.Config
 	cfg := &dot.Config{}
