@@ -10,6 +10,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
@@ -50,8 +51,8 @@ func TestAuthorModule_Pending(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !reflect.DeepEqual(*res, PendingExtrinsicsResponse([][]byte{})) {
-		t.Errorf("Fail: expected: %+v got: %+v\n", res, &[][]byte{})
+	if !reflect.DeepEqual(*res, *new(PendingExtrinsicsResponse)) {
+		t.Errorf("Fail: expected: %+v got: %+v\n", *res, *new(PendingExtrinsicsResponse))
 	}
 
 	vtx := &transaction.ValidTransaction{
@@ -67,13 +68,10 @@ func TestAuthorModule_Pending(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected, err := vtx.Encode()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !reflect.DeepEqual(*res, PendingExtrinsicsResponse([][]byte{expected})) {
-		t.Errorf("Fail: expected: %+v got: %+v\n", res, &[][]byte{expected})
+	// Remove the first byte which stores the transaction source.
+	expected := common.BytesToHex(vtx.Extrinsic[1:])
+	if !reflect.DeepEqual(*res, PendingExtrinsicsResponse([]string{expected})) {
+		t.Errorf("Fail: expected: %+v got: %+v\n", res, &[]string{expected})
 	}
 }
 

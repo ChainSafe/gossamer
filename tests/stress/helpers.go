@@ -240,7 +240,7 @@ func compareFinalizedHeadsWithRetry(t *testing.T, nodes []*utils.Node, round uin
 	return common.Hash{}, nil
 }
 
-func getPendingExtrinsics(t *testing.T, node *utils.Node) [][]byte { //nolint
+func getPendingExtrinsics(t *testing.T, node *utils.Node) []string { //nolint
 	respBody, err := utils.PostRPC(utils.AuthorSubmitExtrinsic, utils.NewEndpoint(node.RPCPort), "[]")
 	require.NoError(t, err)
 

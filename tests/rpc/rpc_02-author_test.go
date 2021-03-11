@@ -36,7 +36,7 @@ import (
 func TestAuthorSubmitExtrinsic(t *testing.T) {
 	if utils.MODE != rpcSuite {
 		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
-		//return
+		return
 	}
 
 	t.Log("starting gossamer...")
@@ -107,17 +107,6 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 	hash, err := api.RPC.Author.SubmitExtrinsic(ext)
 	require.NoError(t, err)
 	require.NotEqual(t, hash, common.Hash{})
-
-	var newAccInfo types.AccountInfo
-	ok, err = api.RPC.State.GetStorageLatest(key, &newAccInfo)
-	require.NoError(t, err)
-	require.True(t, ok)
-
-	extrinsic, err := api.RPC.Author.PendingExtrinsics()
-	require.NoError(t, err)
-
-	fmt.Println("newAccInfo.Data.Free ", newAccInfo.Data.Free)
-	fmt.Println("extrinsic ", extrinsic)
 }
 
 // TestDecodeExt is for debugging/decoding extrinsics.  Test with a hex string that was generated (from above tests
