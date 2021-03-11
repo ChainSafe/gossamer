@@ -109,6 +109,22 @@ var (
 	}
 )
 
+// ImportState-only flags
+var (
+	StateFlag = cli.StringFlag{
+		Name:  "state",
+		Usage: "Path to JSON file consisting of key-value pairs",
+	}
+	HeaderFlag = cli.StringFlag{
+		Name:  "header",
+		Usage: "Path to JSON file of block header corresponding to the given state",
+	}
+	FirstSlotFlag = cli.StringFlag{
+		Name:  "first-slot",
+		Usage: "The first BABE slot of the network",
+	}
+)
+
 // BuildSpec-only flags
 var (
 	RawFlag = cli.BoolFlag{

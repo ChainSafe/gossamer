@@ -435,15 +435,22 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		return err
 	}
 
+	epoch.firstSlot = firstSlot
 	blockEpoch, err := epoch.GetEpochForBlock(header)
 	if err != nil {
 		return err
 	}
 
-	if err := storeSkipToEpoch(s.db, blockEpoch); err != nil {
+	skipTo := blockEpoch + 1
+
+	if err := storeSkipToEpoch(s.db, skipTo); err != nil {
 		return err
 	}
-	logger.Info("skip BABE verification up to epoch", "epoch", blockEpoch)
+	logger.Info("skip BABE verification up to epoch", "epoch", skipTo)
+
+	if err := epoch.SetCurrentEpoch(blockEpoch); err != nil {
+		return err
+	}
 
 	root := t.MustHash()
 	if root != header.StateRoot {

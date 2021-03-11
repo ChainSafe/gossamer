@@ -55,6 +55,7 @@ type EpochState struct {
 	db          chaindb.Database
 	epochLength uint64 // measured in slots
 	firstSlot   uint64
+	skipToEpoch uint64
 }
 
 // NewEpochStateFromGenesis returns a new EpochState given information for the first epoch, fetched from the runtime
@@ -108,6 +109,10 @@ func NewEpochStateFromGenesis(db chaindb.Database, genesisConfig *types.BabeConf
 		return nil, err
 	}
 
+	if err := storeSkipToEpoch(db, 0); err != nil {
+		return nil, err
+	}
+
 	return s, nil
 }
 
@@ -123,11 +128,17 @@ func NewEpochState(db chaindb.Database) (*EpochState, error) {
 		return nil, err
 	}
 
+	skipToEpoch, err := loadSkipToEpoch(db)
+	if err != nil {
+		return nil, err
+	}
+
 	return &EpochState{
 		baseDB:      db,
 		db:          chaindb.NewTable(db, epochPrefix),
 		epochLength: epochLength,
 		firstSlot:   firstSlot,
+		skipToEpoch: skipToEpoch,
 	}, nil
 }
 
@@ -309,10 +320,7 @@ func loadSkipToEpoch(db chaindb.Database) (uint64, error) {
 }
 
 func (s *EpochState) SkipVerify(header *types.Header) (bool, error) {
-	skipToEpoch, err := loadSkipToEpoch(s.baseDB)
-	if err != nil {
-		return false, err
-	}
+	skipToEpoch := s.skipToEpoch
 
 	epoch, err := s.GetEpochForBlock(header)
 	if err != nil {

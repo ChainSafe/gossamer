@@ -183,8 +183,8 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 
 			// SkipVerify is set to true only in the case where we have imported a state at a given height,
 			// thus missing the epoch data for previous epochs.
-			skip, err := v.epochState.SkipVerify(header)
-			if err != nil {
+			skip, err2 := v.epochState.SkipVerify(header)
+			if err2 != nil {
 				return fmt.Errorf("failed to check if verification can be skipped: %w", err)
 			}
 
