@@ -14,51 +14,27 @@ import (
 )
 
 func testBlockResponseMessage() *BlockResponseMessage {
-	testHeader0 := types.Header{
-		Number: big.NewInt(77),
-		Digest: types.Digest{},
+	msg := &BlockResponseMessage{
+		BlockData: []*types.BlockData{},
 	}
 
-	testHeader1 := types.Header{
-		Number: big.NewInt(78),
-		Digest: types.Digest{},
-	}
+	for i := 0; i < int(blockRequestSize); i++ {
+		testHeader := types.Header{
+			Number: big.NewInt(int64(77 + i)),
+			Digest: types.Digest{},
+		}
 
-	testHeader2 := types.Header{
-		Number: big.NewInt(79),
-		Digest: types.Digest{},
-	}
-
-	data := []*types.BlockData{
-		{
-			Hash:          testHeader0.Hash(),
-			Header:        testHeader0.AsOptional(),
+		msg.BlockData = append(msg.BlockData, &types.BlockData{
+			Hash:          testHeader.Hash(),
+			Header:        testHeader.AsOptional(),
 			Body:          optional.NewBody(true, []byte{4, 4, 2}),
-			Receipt:       optional.NewBytes(false, nil),
 			MessageQueue:  optional.NewBytes(false, nil),
-			Justification: optional.NewBytes(false, nil),
-		},
-		{
-			Hash:          testHeader1.Hash(),
-			Header:        testHeader1.AsOptional(),
-			Body:          optional.NewBody(true, []byte{4, 4, 2}),
 			Receipt:       optional.NewBytes(false, nil),
-			MessageQueue:  optional.NewBytes(false, nil),
 			Justification: optional.NewBytes(false, nil),
-		},
-		{
-			Hash:          testHeader2.Hash(),
-			Header:        testHeader2.AsOptional(),
-			Body:          optional.NewBody(true, []byte{4, 4, 2}),
-			Receipt:       optional.NewBytes(false, nil),
-			MessageQueue:  optional.NewBytes(false, nil),
-			Justification: optional.NewBytes(false, nil),
-		},
+		})
 	}
 
-	return &BlockResponseMessage{
-		BlockData: data,
-	}
+	return msg
 }
 
 type mockSyncer struct {

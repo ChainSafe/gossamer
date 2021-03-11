@@ -43,10 +43,10 @@ var (
 		Name:  "roles",
 		Usage: "Roles of the gossamer node",
 	}
-	// RewindFlag rewinds the head of the chain by the given number of blocks. Useful for development
+	// RewindFlag rewinds the head of the chain to the given block number. Useful for development
 	RewindFlag = cli.IntFlag{
 		Name:  "rewind",
-		Usage: "Rewind head of chain by given number of blocks",
+		Usage: "Rewind head of chain to the given block number",
 	}
 )
 
@@ -85,6 +85,18 @@ var (
 	MemProfFlag = cli.StringFlag{
 		Name:  "memprof",
 		Usage: "File to write memory profile to",
+	}
+
+	// PublishMetricsFlag publishes node metrics to prometheus.
+	PublishMetricsFlag = cli.BoolFlag{
+		Name:  "publish-metrics",
+		Usage: "Publish node metrics",
+	}
+
+	// MetricsPortFlag set metric listen port
+	MetricsPortFlag = cli.StringFlag{
+		Name:  "metrics-port",
+		Usage: "Set metric listening port ",
 	}
 )
 
@@ -263,6 +275,10 @@ var (
 		WSFlag,
 		WSExternalFlag,
 		WSPortFlag,
+
+		// metrics flag
+		PublishMetricsFlag,
+		MetricsPortFlag,
 	}
 )
 

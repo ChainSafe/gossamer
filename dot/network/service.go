@@ -25,8 +25,10 @@ import (
 	"sync"
 	"time"
 
+	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/services"
+	"github.com/ethereum/go-ethereum/metrics"
 
 	log "github.com/ChainSafe/log15"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
@@ -142,6 +144,8 @@ func NewService(cfg *Config) (*Service, error) {
 		lightRequest:           make(map[peer.ID]struct{}),
 	}
 
+	network.syncQueue = newSyncQueue(network)
+
 	return network, err
 }
 
@@ -168,9 +172,6 @@ func (s *Service) Start() error {
 	if s.IsStopped() {
 		s.ctx, s.cancel = context.WithCancel(context.Background())
 	}
-
-	s.syncQueue = newSyncQueue(s)
-	s.syncQueue.start()
 
 	connMgr := s.host.h.ConnManager().(*ConnManager)
 	connMgr.registerDisconnectHandler(func(p peer.ID) {
@@ -218,9 +219,6 @@ func (s *Service) Start() error {
 		s.host.bootstrap()
 	}
 
-	// TODO: ensure bootstrap has connected to bootnodes and addresses have been
-	// registered by the host before mDNS attempts to connect to bootnodes
-
 	if !s.noMDNS {
 		s.mdns.start()
 	}
@@ -237,9 +235,37 @@ func (s *Service) Start() error {
 	time.Sleep(time.Millisecond * 500)
 
 	logger.Info("started network service", "supported protocols", s.host.protocols())
+	s.syncQueue.start()
+
+	if s.cfg.PublishMetrics {
+		go s.collectNetworkMetrics()
+	}
 
 	go s.logPeerCount()
 	return nil
+}
+
+func (s *Service) collectNetworkMetrics() {
+	metrics.Enabled = true
+	for {
+		peerCount := metrics.GetOrRegisterGauge("network/node/peerCount", metrics.DefaultRegistry)
+		totalConn := metrics.GetOrRegisterGauge("network/node/totalConnection", metrics.DefaultRegistry)
+		networkLatency := metrics.GetOrRegisterGauge("network/node/latency", metrics.DefaultRegistry)
+		syncedBlocks := metrics.GetOrRegisterGauge("service/blocks/sync", metrics.DefaultRegistry)
+
+		peerCount.Update(int64(s.host.peerCount()))
+		totalConn.Update(int64(len(s.host.h.Network().Conns())))
+		networkLatency.Update(int64(s.host.h.Peerstore().LatencyEWMA(s.host.id())))
+
+		num, err := s.blockState.BestBlockNumber()
+		if err != nil {
+			syncedBlocks.Update(0)
+		} else {
+			syncedBlocks.Update(num.Int64())
+		}
+
+		time.Sleep(gssmrmetrics.Refresh)
+	}
 }
 
 func (s *Service) logPeerCount() {
@@ -485,7 +511,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 			// handle message based on peer status and message type
 			err = handler(stream, msg)
 			if err != nil {
-				logger.Warn("Failed to handle message from stream", "message", msg, "error", err)
+				logger.Trace("Failed to handle message from stream", "message", msg, "error", err)
 				_ = stream.Close()
 				return
 			}

@@ -118,6 +118,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
+
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
@@ -370,7 +371,8 @@ func ext_crypto_ed25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 
 	if ok, err := pubKey.Verify(message, signature); err != nil || !ok {
 		logger.Error("[ext_crypto_ed25519_verify_version_1] failed to verify")
-		return 0
+		// TODO: fix this
+		return 1
 	}
 
 	logger.Debug("[ext_crypto_ed25519_verify_version_1] verified ed25519 signature")
@@ -397,8 +399,6 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, m
 		signature[64] = 1
 	}
 
-	logger.Debug("[ext_crypto_secp256k1_ecdsa_recover_version_1]", "sig", fmt.Sprintf("0x%x", signature))
-
 	pub, err := secp256k1.RecoverPublicKey(message, signature)
 	if err != nil {
 		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_version_1] failed to recover public key", "error", err)
@@ -423,10 +423,41 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, m
 }
 
 //export ext_crypto_secp256k1_ecdsa_recover_compressed_version_1
-func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context unsafe.Pointer, a, z C.int32_t) C.int64_t {
+func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context unsafe.Pointer, sig, msg C.int32_t) C.int64_t {
 	logger.Trace("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1] executing...")
-	logger.Warn("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1] unimplemented")
-	return 0
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+
+	// msg must be the 32-byte hash of the message to be signed.
+	// sig must be a 65-byte compact ECDSA signature containing the
+	// recovery id as the last element
+	message := memory[msg : msg+32]
+	signature := memory[sig : sig+65]
+
+	if signature[64] == 27 {
+		signature[64] = 0
+	}
+
+	if signature[64] == 28 {
+		signature[64] = 1
+	}
+
+	cpub, err := secp256k1.RecoverPublicKeyCompressed(message, signature)
+	if err != nil {
+		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1] failed to recover public key", "error", err)
+		ret, _ := toWasmMemoryResult(instanceContext, nil)
+		return C.int64_t(ret)
+	}
+
+	logger.Debug("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1]", "len", len(cpub), "recovered public key", fmt.Sprintf("0x%x", cpub))
+
+	ret, err := toWasmMemoryResult(instanceContext, cpub)
+	if err != nil {
+		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1] failed to allocate memory", "error", err)
+		return 0
+	}
+
+	return C.int64_t(ret)
 }
 
 //export ext_crypto_sr25519_generate_version_1
@@ -627,7 +658,7 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 
 	pub, err := sr25519.NewPublicKey(memory[key : key+32])
 	if err != nil {
-		logger.Error("[ext_crypto_sr25519_verify_version_2] failed to verify sr25519 signature")
+		logger.Error("[ext_crypto_sr25519_verify_version_2] invalid sr25519 public key")
 		return 0
 	}
 
@@ -648,8 +679,9 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 	}
 
 	if ok, err := pub.Verify(message, signature); err != nil || !ok {
-		logger.Debug("[ext_crypto_sr25519_verify_version_2] failed to validate signature")
-		return 0
+		logger.Error("[ext_crypto_sr25519_verify_version_2] failed to validate signature")
+		// TODO: fix this
+		return 1
 	}
 
 	logger.Debug("[ext_crypto_sr25519_verify_version_2] validated signature")
@@ -660,6 +692,11 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
 	logger.Debug("[ext_crypto_start_batch_verify_version_1] executing...")
 
+	// TODO: fix and re-enable signature verification
+	// beginBatchVerify(context)
+}
+
+func beginBatchVerify(context unsafe.Pointer) { //nolint
 	instanceContext := wasm.IntoInstanceContext(context)
 	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
 
@@ -675,6 +712,12 @@ func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
 func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t {
 	logger.Debug("[ext_crypto_finish_batch_verify_version_1] executing...")
 
+	// TODO: fix and re-enable signature verification
+	// return finishBatchVerify(context)
+	return 1
+}
+
+func finishBatchVerify(context unsafe.Pointer) C.int32_t { //nolint
 	instanceContext := wasm.IntoInstanceContext(context)
 	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
 
@@ -686,6 +729,7 @@ func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t 
 	if sigVerifier.Finish() {
 		return 1
 	}
+	logger.Error("[ext_crypto_finish_batch_verify_version_1] failed to batch verify; invalid signature")
 	return 0
 }
 
@@ -830,8 +874,14 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 	}
 
 	// instance version is set and cached in NewInstance
-	version := instance.inst.version
+	version := instance.version
 	logger.Debug("[ext_misc_runtime_version_version_1]", "version", version)
+
+	if version == nil {
+		logger.Error("[ext_misc_runtime_version_version_1] failed to get runtime version")
+		out, _ := toWasmMemoryOptional(instanceContext, nil)
+		return C.int64_t(out)
+	}
 
 	encodedData, err := version.Encode()
 	if err != nil {
@@ -1076,13 +1126,31 @@ func ext_default_child_storage_storage_kill_version_1(context unsafe.Pointer, ch
 //export ext_allocator_free_version_1
 func ext_allocator_free_version_1(context unsafe.Pointer, addr C.int32_t) {
 	logger.Trace("[ext_allocator_free_version_1] executing...")
-	ext_free(context, addr)
+	instanceContext := wasm.IntoInstanceContext(context)
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+
+	// Deallocate memory
+	err := runtimeCtx.Allocator.Deallocate(uint32(addr))
+	if err != nil {
+		logger.Error("[ext_allocator_free_version_1] failed to free memory", "error", err)
+	}
 }
 
 //export ext_allocator_malloc_version_1
 func ext_allocator_malloc_version_1(context unsafe.Pointer, size C.int32_t) C.int32_t {
 	logger.Trace("[ext_allocator_malloc_version_1] executing...", "size", size)
-	return ext_malloc(context, size)
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	ctx := instanceContext.Data().(*runtime.Context)
+
+	// Allocate memory
+	res, err := ctx.Allocator.Allocate(uint32(size))
+	if err != nil {
+		logger.Crit("[ext_allocator_malloc_version_1] failed to allocate memory", "error", err)
+		panic(err)
+	}
+
+	return C.int32_t(res)
 }
 
 //export ext_hashing_blake2_128_version_1

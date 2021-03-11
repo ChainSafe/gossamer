@@ -1,6 +1,7 @@
 [global]
 basepath = "~/.gossamer/gssmr"
 log = "info"
+metrics-port = 9876
 
 [log]
 core = ""

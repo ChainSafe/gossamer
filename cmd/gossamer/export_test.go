@@ -57,10 +57,12 @@ func TestExportCommand(t *testing.T) {
 			[]interface{}{testConfig, genFile.Name(), testDir, testName, log.LvlInfo.String(), "true"},
 			&dot.Config{
 				Global: dot.GlobalConfig{
-					Name:     testName,
-					ID:       testCfg.Global.ID,
-					BasePath: testCfg.Global.BasePath,
-					LogLvl:   log.LvlInfo,
+					Name:           testName,
+					ID:             testCfg.Global.ID,
+					BasePath:       testCfg.Global.BasePath,
+					LogLvl:         log.LvlInfo,
+					PublishMetrics: testCfg.Global.PublishMetrics,
+					MetricsPort:    testCfg.Global.MetricsPort,
 				},
 				Log: dot.LogConfig{
 					CoreLvl:           log.LvlInfo,
