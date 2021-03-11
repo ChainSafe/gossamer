@@ -1011,13 +1011,27 @@ func TestNextKey_Random(t *testing.T) {
 		trie := NewEmptyTrie()
 
 		// Generate random test cases.
-		testCases := make([]string, 1000+rand.Intn(10000))
-		for ii := 0; ii < len(testCases); ii++ {
-			testCases[ii] = RandStringBytes(1 + rand.Intn(20))
+		testCaseMap := make(map[string]struct{}) // ensure no duplicate keys
+		size := 1000 + rand.Intn(10000)
+
+		for ii := 0; ii < size; ii++ {
+			str := RandStringBytes(1 + rand.Intn(20))
+			if len(str) == 0 {
+				continue
+			}
+			testCaseMap[str] = struct{}{}
+		}
+
+		testCases := make([][]byte, len(testCaseMap))
+		j := 0
+
+		for k := range testCaseMap {
+			testCases[j] = []byte(k)
+			j++
 		}
 
 		sort.Slice(testCases, func(i, j int) bool {
-			return strings.Compare(testCases[i], testCases[j]) < 0
+			return bytes.Compare(testCases[i], testCases[j]) < 0
 		})
 
 		for _, tc := range testCases {
@@ -1031,7 +1045,7 @@ func TestNextKey_Random(t *testing.T) {
 			if idx == len(testCases)-1 {
 				require.Nil(t, next)
 			} else {
-				require.Equal(t, []byte(testCases[idx+1]), next, common.BytesToHex([]byte(tc)))
+				require.Equal(t, []byte(testCases[idx+1]), next, common.BytesToHex([]byte(tc)), trie)
 			}
 		}
 	}

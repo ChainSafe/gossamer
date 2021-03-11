@@ -166,9 +166,11 @@ func (t *Trie) nextKey(curr node, prefix, key []byte) []byte {
 		fullKey := append(prefix, c.key...)
 		var cmp int
 		if len(key) < len(fullKey) {
-			cmp = 1 // the key is lexigraphically less than the current node key. return first key available
+			// the key is lexicographically less than the current node key. return first key available
+			cmp = 1
 		} else {
-			cmp = bytes.Compare(fullKey, key[:len(fullKey)]) // if cmp == 1, then node key is lexigraphically greater than the key arg
+			// if cmp == 1, then node key is lexicographically greater than the key arg
+			cmp = bytes.Compare(fullKey, key[:len(fullKey)])
 		}
 
 		// length of key arg is less than branch key, return key of first child (or key of this branch, if it's a branch w/ value)
@@ -207,9 +209,11 @@ func (t *Trie) nextKey(curr node, prefix, key []byte) []byte {
 		fullKey := append(prefix, c.key...)
 		var cmp int
 		if len(key) < len(fullKey) {
-			cmp = 1 // the key is lexigraphically less than the current node key. return first key available
+			// the key is lexicographically less than the current node key. return first key available
+			cmp = 1
 		} else {
-			cmp = bytes.Compare(fullKey, key[:len(fullKey)]) // if cmp == 1, then node key is lexigraphically greater than the key arg
+			// if cmp == 1, then node key is lexicographically greater than the key arg
+			cmp = bytes.Compare(fullKey, key[:len(fullKey)])
 		}
 
 		if cmp == 1 {

@@ -17,7 +17,6 @@
 package storage
 
 import (
-	//"bytes"
 	"encoding/binary"
 	"sync"
 
