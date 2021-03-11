@@ -24,6 +24,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -993,4 +994,45 @@ func TestSnapshot(t *testing.T) {
 
 	require.Equal(t, expectedTrie.MustHash(), newTrie.MustHash())
 	require.NotEqual(t, parentSnapshot.MustHash(), newTrie.MustHash())
+}
+
+const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+func RandStringBytes(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return string(b)
+}
+
+func TestNextKey_Random(t *testing.T) {
+	for i := 0; i < 100; i++ {
+		trie := NewEmptyTrie()
+
+		// Generate random test cases.
+		testCases := make([]string, 1000+rand.Intn(10000))
+		for ii := 0; ii < len(testCases); ii++ {
+			testCases[ii] = RandStringBytes(1 + rand.Intn(20))
+		}
+
+		sort.Slice(testCases, func(i, j int) bool {
+			return strings.Compare(testCases[i], testCases[j]) < 0
+		})
+
+		for _, tc := range testCases {
+			trie.Put([]byte(tc), []byte(tc))
+		}
+
+		fmt.Println("Iteration: ", i)
+
+		for idx, tc := range testCases {
+			next := trie.NextKey([]byte(tc))
+			if idx == len(testCases)-1 {
+				require.Nil(t, next)
+			} else {
+				require.Equal(t, []byte(testCases[idx+1]), next, common.BytesToHex([]byte(tc)))
+			}
+		}
+	}
 }
