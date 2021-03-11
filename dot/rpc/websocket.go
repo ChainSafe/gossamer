@@ -43,7 +43,7 @@ type SubscriptionBaseResponseJSON struct {
 
 // SubscriptionParams for json param response
 type SubscriptionParams struct {
-	Result         interface{} `json:"results"`
+	Result         interface{} `json:"result"`
 	SubscriptionID int         `json:"subscription"`
 }
 
