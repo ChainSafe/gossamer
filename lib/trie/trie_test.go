@@ -1041,11 +1041,11 @@ func TestNextKey_Random(t *testing.T) {
 		fmt.Println("Iteration: ", i)
 
 		for idx, tc := range testCases {
-			next := trie.NextKey([]byte(tc))
+			next := trie.NextKey(tc)
 			if idx == len(testCases)-1 {
 				require.Nil(t, next)
 			} else {
-				require.Equal(t, []byte(testCases[idx+1]), next, common.BytesToHex([]byte(tc)), trie)
+				require.Equal(t, testCases[idx+1], next, common.BytesToHex(tc))
 			}
 		}
 	}
