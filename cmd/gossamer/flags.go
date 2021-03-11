@@ -119,7 +119,7 @@ var (
 		Name:  "header",
 		Usage: "Path to JSON file of block header corresponding to the given state",
 	}
-	FirstSlotFlag = cli.StringFlag{
+	FirstSlotFlag = cli.IntFlag{
 		Name:  "first-slot",
 		Usage: "The first BABE slot of the network",
 	}
@@ -336,6 +336,9 @@ var (
 		BasePathFlag,
 		ChainFlag,
 		ConfigFlag,
+		StateFlag,
+		HeaderFlag,
+		FirstSlotFlag,
 	}
 )
 

@@ -319,6 +319,8 @@ func loadSkipToEpoch(db chaindb.Database) (uint64, error) {
 	return binary.LittleEndian.Uint64(data), nil
 }
 
+// SkipVerify returns whether verification for the given header should be skipped or not.
+// Only used in the case of imported state.
 func (s *EpochState) SkipVerify(header *types.Header) (bool, error) {
 	skipToEpoch := s.skipToEpoch
 

@@ -405,6 +405,8 @@ func (s *Service) Stop() error {
 	return s.db.Close()
 }
 
+// Import imports the given state corresponding to the given header and sets the head of the chain
+// to it. Additionally, it uses the first slot to correctly set the epoch number of the block.
 func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) error {
 	cfg := &chaindb.Config{
 		DataDir: s.dbPath,
@@ -431,7 +433,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 	}
 
 	logger.Info("storing first slot...", "slot", firstSlot)
-	if err := storeFirstSlot(s.db, firstSlot); err != nil {
+	if err = storeFirstSlot(s.db, firstSlot); err != nil {
 		return err
 	}
 
@@ -446,7 +448,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 	if err := storeSkipToEpoch(s.db, skipTo); err != nil {
 		return err
 	}
-	logger.Info("skip BABE verification up to epoch", "epoch", skipTo)
+	logger.Debug("skip BABE verification up to epoch", "epoch", skipTo)
 
 	if err := epoch.SetCurrentEpoch(blockEpoch); err != nil {
 		return err
@@ -487,5 +489,6 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		return err
 	}
 
+	logger.Info("finished state import")
 	return s.db.Close()
 }
