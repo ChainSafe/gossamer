@@ -21,6 +21,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/require"
 )
@@ -151,6 +152,7 @@ func TestTrieState_NextKey(t *testing.T) {
 		ts.Set([]byte(tc), []byte(tc))
 	}
 
+	t.Log(ts.t)
 	sort.Slice(testCases, func(i, j int) bool {
 		return bytes.Compare([]byte(testCases[i]), []byte(testCases[j])) == -1
 	})
@@ -160,7 +162,7 @@ func TestTrieState_NextKey(t *testing.T) {
 		if i == len(testCases)-1 {
 			require.Nil(t, next)
 		} else {
-			require.Equal(t, []byte(testCases[i+1]), next)
+			require.Equal(t, []byte(testCases[i+1]), next, common.BytesToHex([]byte(tc)))
 		}
 	}
 }
