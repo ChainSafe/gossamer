@@ -260,7 +260,7 @@ func ext_crypto_ed25519_public_keys_version_1(context unsafe.Pointer, keyTypeID 
 		return C.int64_t(ret)
 	}
 
-	if ks.Type() != crypto.Ed25519Type {
+	if ks.Type() != crypto.Ed25519Type || ks.Type() != crypto.UnknownType {
 		logger.Warn("[ext_crypto_ed25519_public_keys_version_1]", "name", id, "error", "keystore type is not ed25519")
 		ret, _ := toWasmMemory(instanceContext, []byte{0})
 		return C.int64_t(ret)
@@ -526,7 +526,7 @@ func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, keyTypeID 
 		return C.int64_t(ret)
 	}
 
-	if ks.Type() != crypto.Sr25519Type {
+	if ks.Type() != crypto.Sr25519Type || ks.Type() != crypto.UnknownType {
 		logger.Warn("[ext_crypto_ed25519_public_keys_version_1]", "name", id, "error", "keystore type is not ed25519")
 		ret, _ := toWasmMemory(instanceContext, []byte{0})
 		return C.int64_t(ret)
@@ -569,7 +569,7 @@ func ext_crypto_sr25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.
 
 	ks, err := runtimeCtx.Keystore.GetKeystore(id)
 	if err != nil {
-		logger.Warn("[ext_crypto_sr25519_public_keys_version_1]", "name", id, "error", err)
+		logger.Warn("[ext_crypto_sr25519_sign_version_1]", "name", id, "error", err)
 		return C.int64_t(emptyRet)
 	}
 
