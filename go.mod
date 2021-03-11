@@ -13,14 +13,19 @@ require (
 	github.com/dgraph-io/badger/v2 v2.2007.2 // indirect
 	github.com/disiqueira/gotree v1.0.0
 	github.com/docker/docker v1.13.1
+	github.com/elastic/gosigar v0.14.0 // indirect
 	github.com/ethereum/go-ethereum v1.9.7
 	github.com/go-playground/validator/v10 v10.4.1
-	github.com/golang/protobuf v1.4.2
+	github.com/golang/groupcache v0.0.0-20191227052852-215e87163ea7 // indirect
+	github.com/golang/protobuf v1.4.3
 	github.com/golang/snappy v0.0.3-0.20201103224600-674baa8c7fc3 // indirect
+	github.com/google/uuid v1.1.5 // indirect
 	github.com/gorilla/mux v1.7.4
 	github.com/gorilla/rpc v1.2.0
 	github.com/gorilla/websocket v1.4.2
 	github.com/gtank/merlin v0.1.1
+	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d // indirect
+	github.com/huin/goupnp v1.0.1-0.20200620063722-49508fba0031 // indirect
 	github.com/ipfs/go-ds-badger2 v0.1.0
 	github.com/jcelliott/lumber v0.0.0-20160324203708-dd349441af25 // indirect
 	github.com/jpillora/ipfilter v1.2.2
@@ -39,19 +44,20 @@ require (
 	github.com/nanobox-io/golang-scribble v0.0.0-20190309225732-aa3e7c118975
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
-	github.com/onsi/ginkgo v1.14.0 // indirect
 	github.com/perlin-network/life v0.0.0-20191203030451-05c0e0f7eaea
+	github.com/rs/cors v1.7.0 // indirect
 	github.com/stretchr/testify v1.7.0
+	github.com/syndtr/goleveldb v1.0.1-0.20200815110645-5c35d600f0ca // indirect
 	github.com/urfave/cli v1.20.0
 	github.com/wasmerio/wasmer-go v1.0.3
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
+	golang.org/x/lint v0.0.0-20191125180803-fdd1cda4f05f // indirect
 	golang.org/x/mod v0.1.1-0.20191209134235-331c550502dd // indirect
 	golang.org/x/net v0.0.0-20200822124328-c89045814202 // indirect
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9 // indirect
-	golang.org/x/sys v0.0.0-20200824131525-c12d262b63d8 // indirect
-	golang.org/x/text v0.3.3 // indirect
+	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c // indirect
 	golang.org/x/tools v0.0.0-20200221224223-e1da425f72fd // indirect
-	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
+	google.golang.org/appengine v1.6.5 // indirect
 	google.golang.org/protobuf v1.25.0
 )
 

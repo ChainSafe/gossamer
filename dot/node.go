@@ -18,18 +18,22 @@ package dot
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"path"
 	"sync"
 	"syscall"
 
+	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/services"
+	"github.com/ethereum/go-ethereum/metrics"
+	"github.com/ethereum/go-ethereum/metrics/prometheus"
 
 	"github.com/ChainSafe/chaindb"
 	log "github.com/ChainSafe/log15"
@@ -282,7 +286,32 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		node.Services.RegisterService(srvc)
 	}
 
+	if cfg.Global.PublishMetrics {
+		publishMetrics(cfg)
+	}
+
 	return node, nil
+}
+
+func publishMetrics(cfg *Config) {
+	address := fmt.Sprintf("%s:%d", cfg.RPC.Host, cfg.Global.MetricsPort)
+	log.Info("Enabling stand-alone metrics HTTP endpoint", "address", address)
+	setupMetricsServer(address)
+
+	// Start system runtime metrics collection
+	go gssmrmetrics.CollectProcessMetrics()
+}
+
+// setupMetricsServer starts a dedicated metrics server at the given address.
+func setupMetricsServer(address string) {
+	m := http.NewServeMux()
+	m.Handle("/metrics", prometheus.Handler(metrics.DefaultRegistry))
+	log.Info("Starting metrics server", "addr", fmt.Sprintf("http://%s/metrics", address))
+	go func() {
+		if err := http.ListenAndServe(address, m); err != nil {
+			log.Error("Failure in running metrics server", "err", err)
+		}
+	}()
 }
 
 // Start starts all dot node services
