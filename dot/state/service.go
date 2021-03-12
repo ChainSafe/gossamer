@@ -326,9 +326,9 @@ func (s *Service) Start() error {
 // If the given number of blocks is greater than the chain height, it will rewind to genesis.
 func (s *Service) Rewind(toBlock int64) error {
 	num, _ := s.Block.BestBlockNumber()
-	// if toBlock > num.Int64() {
-	// 	return fmt.Errorf("cannot rewind, given height is higher than our current height")
-	// }
+	if toBlock > num.Int64() {
+		return fmt.Errorf("cannot rewind, given height is higher than our current height")
+	}
 
 	logger.Info("rewinding state...", "current height", num, "desired height", toBlock)
 
@@ -341,7 +341,7 @@ func (s *Service) Rewind(toBlock int64) error {
 	newHead := s.Block.BestBlockHash()
 
 	header, _ := s.Block.BestBlockHeader()
-	logger.Info("rewinding state...", "new height", header.Number)
+	logger.Info("rewinding state...", "new height", header.Number, "best block hash", newHead)
 
 	epoch, err := s.Epoch.GetEpochForBlock(header)
 	if err != nil {
