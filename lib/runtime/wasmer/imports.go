@@ -260,8 +260,8 @@ func ext_crypto_ed25519_public_keys_version_1(context unsafe.Pointer, keyTypeID 
 		return C.int64_t(ret)
 	}
 
-	if ks.Type() != crypto.Ed25519Type {
-		logger.Warn("[ext_crypto_ed25519_public_keys_version_1]", "name", id, "error", "keystore type is not ed25519")
+	if ks.Type() != crypto.Ed25519Type && ks.Type() != crypto.UnknownType {
+		logger.Warn("[ext_crypto_ed25519_public_keys_version_1]", "name", id, "error", "keystore type is not ed25519", "type", ks.Type())
 		ret, _ := toWasmMemory(instanceContext, []byte{0})
 		return C.int64_t(ret)
 	}
@@ -526,8 +526,8 @@ func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, keyTypeID 
 		return C.int64_t(ret)
 	}
 
-	if ks.Type() != crypto.Sr25519Type {
-		logger.Warn("[ext_crypto_ed25519_public_keys_version_1]", "name", id, "error", "keystore type is not ed25519")
+	if ks.Type() != crypto.Sr25519Type && ks.Type() != crypto.UnknownType {
+		logger.Warn("[ext_crypto_sr25519_public_keys_version_1]", "name", id, "error", "keystore type is not sr25519")
 		ret, _ := toWasmMemory(instanceContext, []byte{0})
 		return C.int64_t(ret)
 	}
@@ -541,14 +541,14 @@ func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, keyTypeID 
 
 	prefix, err := scale.Encode(big.NewInt(int64(len(keys))))
 	if err != nil {
-		logger.Error("[ext_crypto_ed25519_public_keys_version_1] failed to allocate memory", err)
+		logger.Error("[ext_crypto_sr25519_public_keys_version_1] failed to allocate memory", err)
 		ret, _ := toWasmMemory(instanceContext, []byte{0})
 		return C.int64_t(ret)
 	}
 
 	ret, err := toWasmMemory(instanceContext, append(prefix, encodedKeys...))
 	if err != nil {
-		logger.Error("[ext_crypto_ed25519_public_keys_version_1] failed to allocate memory", err)
+		logger.Error("[ext_crypto_sr25519_public_keys_version_1] failed to allocate memory", err)
 		ret, _ = toWasmMemory(instanceContext, []byte{0})
 		return C.int64_t(ret)
 	}
@@ -569,7 +569,7 @@ func ext_crypto_sr25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.
 
 	ks, err := runtimeCtx.Keystore.GetKeystore(id)
 	if err != nil {
-		logger.Warn("[ext_crypto_sr25519_public_keys_version_1]", "name", id, "error", err)
+		logger.Warn("[ext_crypto_sr25519_sign_version_1]", "name", id, "error", err)
 		return C.int64_t(emptyRet)
 	}
 
