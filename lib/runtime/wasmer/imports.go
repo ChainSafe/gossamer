@@ -331,7 +331,7 @@ func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeID C.int32
 		logger.Error("[ext_crypto_ed25519_sign_version_1] could not sign message")
 	}
 
-	ret, err = toWasmMemoryOptional(instanceContext, sig)
+	ret, err = toWasmMemoryFixedSizeOptional(instanceContext, sig)
 	if err != nil {
 		logger.Error("[ext_crypto_ed25519_sign_version_1] failed to allocate memory", err)
 		return 0
@@ -494,7 +494,7 @@ func ext_crypto_sr25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 
 	ks, err := runtimeCtx.Keystore.GetKeystore(id)
 	if err != nil {
-		logger.Warn("[ext_crypto_ed25519_sign_version_1]", "name", id, "error", err)
+		logger.Warn("[ext_crypto_sr25519_generate_version_1]", "name", id, "error", err)
 		return 0
 	}
 
@@ -593,7 +593,7 @@ func ext_crypto_sr25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.
 		return C.int64_t(emptyRet)
 	}
 
-	ret, err = toWasmMemoryOptional(instanceContext, sig)
+	ret, err = toWasmMemoryFixedSizeOptional(instanceContext, sig)
 	if err != nil {
 		logger.Error("[ext_crypto_sr25519_sign_version_1] failed to allocate memory", "error", err)
 		return C.int64_t(emptyRet)
@@ -1632,12 +1632,6 @@ func ext_storage_clear_prefix_version_1(context unsafe.Pointer, prefixSpan C.int
 	if err != nil {
 		logger.Error("[ext_storage_clear_prefix_version_1]", "error", err)
 	}
-
-	// sanity check
-	next := storage.NextKey(prefix)
-	if len(next) >= len(prefix) && bytes.Equal(prefix, next[:len(prefix)]) {
-		panic("did not clear prefix")
-	}
 }
 
 //export ext_storage_exists_version_1
@@ -1953,6 +1947,23 @@ func toWasmMemoryOptionalUint32(context wasm.InstanceContext, data *uint32) (int
 	}
 
 	enc := opt.Encode()
+	return toWasmMemory(context, enc)
+}
+
+// Wraps slice in optional.FixedSizeBytes and copies result to wasm memory. Returns resulting 64bit span descriptor
+func toWasmMemoryFixedSizeOptional(context wasm.InstanceContext, data []byte) (int64, error) {
+	var opt *optional.FixedSizeBytes
+	if data == nil {
+		opt = optional.NewFixedSizeBytes(false, nil)
+	} else {
+		opt = optional.NewFixedSizeBytes(true, data)
+	}
+
+	enc, err := opt.Encode()
+	if err != nil {
+		return 0, err
+	}
+
 	return toWasmMemory(context, enc)
 }
 
