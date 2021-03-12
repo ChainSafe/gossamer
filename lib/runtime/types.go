@@ -47,27 +47,6 @@ type InstanceConfig struct {
 	Transaction TransactionState
 }
 
-// StorageChangeOperation represents a storage change operation
-type StorageChangeOperation byte
-
-//nolint
-const (
-	SetOp         StorageChangeOperation = 0
-	ClearOp       StorageChangeOperation = 1
-	ClearPrefixOp StorageChangeOperation = 2
-	AppendOp      StorageChangeOperation = 3
-	DeleteChildOp StorageChangeOperation = 4
-)
-
-// TransactionStorageChange represents a storage change made after ext_storage_start_transaction is called
-type TransactionStorageChange struct {
-	Operation  StorageChangeOperation
-	Prefix     []byte
-	KeyToChild []byte // key to child trie, if applicable
-	Key        []byte
-	Value      []byte
-}
-
 // Context is the context for the wasm interpreter's imported functions
 type Context struct {
 	Storage     Storage
@@ -78,11 +57,6 @@ type Context struct {
 	Network     BasicNetwork
 	Transaction TransactionState
 	SigVerifier *SignatureVerifier
-	// TransactionStorageChanges is used by ext_storage_start_transaction to keep track of
-	// changes made after it's called. The next call to ext_storage_commit_transaction will
-	// commit all the changes, or if ext_storage_rollback_transaction is called, the changes
-	// will be discarded.
-	TransactionStorageChanges []*TransactionStorageChange
 }
 
 // NewValidateTransactionError returns an error based on a return value from TaggedTransactionQueueValidateTransaction
