@@ -110,8 +110,8 @@ func NewInstance(code []byte, cfg *Config) (runtime.Instance, error) {
 	}
 
 	ctx = runtimeCtx
-	inst.version, err = inst.Version()
-	return inst, err
+	inst.version, _ = inst.Version()
+	return inst, nil
 }
 
 // Memory is a thin wrapper around life's memory to support
