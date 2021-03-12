@@ -19,6 +19,7 @@ package dot
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"math/big"
 	"path/filepath"
@@ -64,6 +65,9 @@ func newTrieFromPairs(filename string) (*trie.Trie, error) {
 	entries := make(map[string]string)
 	for _, pair := range pairs {
 		pairArr := pair.([]interface{})
+		if len(pairArr) != 2 {
+			return nil, errors.New("state file contains invalid pair")
+		}
 		entries[pairArr[0].(string)] = pairArr[1].(string)
 	}
 
@@ -88,20 +92,36 @@ func newHeaderFromFile(filename string) (*types.Header, error) {
 		return nil, err
 	}
 
-	hexNum := jsonHeader["number"].(string)
+	hexNum, ok := jsonHeader["number"].(string)
+	if !ok {
+		return nil, errors.New("invalid number field in header JSON")
+	}
+
 	numBytes := common.MustHexToBytes(hexNum)
 	num := big.NewInt(0).SetBytes(numBytes)
 
-	parentHashStr := jsonHeader["parentHash"].(string)
+	parentHashStr, ok := jsonHeader["parentHash"].(string)
+	if !ok {
+		return nil, errors.New("invalid parentHash field in header JSON")
+	}
 	parentHash := common.MustHexToHash(parentHashStr)
 
-	stateRootStr := jsonHeader["stateRoot"].(string)
+	stateRootStr, ok := jsonHeader["stateRoot"].(string)
+	if !ok {
+		return nil, errors.New("invalid stateRoot field in header JSON")
+	}
 	stateRoot := common.MustHexToHash(stateRootStr)
 
-	extrinsicsRootStr := jsonHeader["extrinsicsRoot"].(string)
+	extrinsicsRootStr, ok := jsonHeader["extrinsicsRoot"].(string)
+	if !ok {
+		return nil, errors.New("invalid extrinsicsRoot field in header JSON")
+	}
 	extrinsicsRoot := common.MustHexToHash(extrinsicsRootStr)
 
-	digestRaw := jsonHeader["digest"].(map[string]interface{})
+	digestRaw, ok := jsonHeader["digest"].(map[string]interface{})
+	if !ok {
+		return nil, errors.New("invalid digest field in header JSON")
+	}
 	logs := digestRaw["logs"].([]interface{})
 
 	digest := types.Digest{}

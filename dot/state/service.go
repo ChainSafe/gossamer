@@ -412,10 +412,11 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		DataDir: s.dbPath,
 	}
 
-	var err error
 	if s.isMemDB {
 		cfg.InMemory = true
 	} else {
+		var err error
+
 		// initialize database using data directory
 		s.db, err = chaindb.NewBadgerDB(cfg)
 		if err != nil {
