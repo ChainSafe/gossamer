@@ -733,7 +733,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_PolkadotBlock1089328(t *testing.T) {
-	dotTrie := newTrieFromPairs(t, "../../../polkadot_block1089327.out")
+	dotTrie := newTrieFromPairs(t, "../test_data/polkadot/block1089327.json")
 	expectedRoot := common.MustHexToHash("0x87ed9ebe7fb645d3b5b0255cc16e78ed022d9fbb52486105436e15a74557535b")
 	require.Equal(t, expectedRoot, dotTrie.MustHash())
 
