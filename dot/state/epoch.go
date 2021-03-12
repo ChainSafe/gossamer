@@ -34,6 +34,7 @@ var (
 	firstSlotKey     = []byte("firstslot")
 	epochDataPrefix  = []byte("epochinfo")
 	configDataPrefix = []byte("configinfo")
+	skipToKey        = []byte("skipto")
 )
 
 func epochDataKey(epoch uint64) []byte {
@@ -54,6 +55,7 @@ type EpochState struct {
 	db          chaindb.Database
 	epochLength uint64 // measured in slots
 	firstSlot   uint64
+	skipToEpoch uint64
 }
 
 // NewEpochStateFromGenesis returns a new EpochState given information for the first epoch, fetched from the runtime
@@ -107,6 +109,10 @@ func NewEpochStateFromGenesis(db chaindb.Database, genesisConfig *types.BabeConf
 		return nil, err
 	}
 
+	if err := storeSkipToEpoch(db, 0); err != nil {
+		return nil, err
+	}
+
 	return s, nil
 }
 
@@ -122,11 +128,17 @@ func NewEpochState(db chaindb.Database) (*EpochState, error) {
 		return nil, err
 	}
 
+	skipToEpoch, err := loadSkipToEpoch(db)
+	if err != nil {
+		return nil, err
+	}
+
 	return &EpochState{
 		baseDB:      db,
 		db:          chaindb.NewTable(db, epochPrefix),
 		epochLength: epochLength,
 		firstSlot:   firstSlot,
+		skipToEpoch: skipToEpoch,
 	}, nil
 }
 
@@ -290,4 +302,34 @@ func (s *EpochState) GetStartSlotForEpoch(epoch uint64) (uint64, error) {
 func (s *EpochState) SetFirstSlot(slot uint64) error {
 	s.firstSlot = slot
 	return storeFirstSlot(s.baseDB, slot)
+}
+
+func storeSkipToEpoch(db chaindb.Database, epoch uint64) error {
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, epoch)
+	return db.Put(skipToKey, buf)
+}
+
+func loadSkipToEpoch(db chaindb.Database) (uint64, error) {
+	data, err := db.Get(skipToKey)
+	if err != nil {
+		return 0, err
+	}
+
+	return binary.LittleEndian.Uint64(data), nil
+}
+
+// SkipVerify returns whether verification for the given header should be skipped or not.
+// Only used in the case of imported state.
+func (s *EpochState) SkipVerify(header *types.Header) (bool, error) {
+	epoch, err := s.GetEpochForBlock(header)
+	if err != nil {
+		return false, err
+	}
+
+	if epoch <= s.skipToEpoch {
+		return true, nil
+	}
+
+	return false, nil
 }
