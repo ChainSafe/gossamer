@@ -180,8 +180,8 @@ func ext_crypto_ed25519_public_keys_version_1(env interface{}, args []wasm.Value
 		return []wasm.Value{wasm.NewI64(ret)}, nil
 	}
 
-	if ks.Type() != crypto.Ed25519Type {
-		logger.Warn("[ext_crypto_ed25519_public_keys_version_1]", "name", id, "error", "keystore type is not ed25519")
+	if ks.Type() != crypto.Ed25519Type && ks.Type() != crypto.UnknownType {
+		logger.Warn("[ext_crypto_ed25519_public_keys_version_1]", "name", id, "error", "keystore type is not ed25519", "type", ks.Type())
 		ret, _ := toWasmMemory(ctx, []byte{0})
 		return []wasm.Value{wasm.NewI64(ret)}, nil
 	}
@@ -249,7 +249,7 @@ func ext_crypto_ed25519_sign_version_1(env interface{}, args []wasm.Value) ([]wa
 		return nil, err
 	}
 
-	ret, err := toWasmMemoryOptional(ctx, sig)
+	ret, err := toWasmMemoryFixedSizeOptional(ctx, sig)
 	if err != nil {
 		logger.Error("[ext_crypto_ed25519_sign_version_1] failed to allocate memory", err)
 		return nil, err
@@ -418,7 +418,7 @@ func ext_crypto_sr25519_generate_version_1(env interface{}, args []wasm.Value) (
 
 	ks, err := ctx.Keystore.GetKeystore(id)
 	if err != nil {
-		logger.Warn("[ext_crypto_ed25519_sign_version_1]", "name", id, "error", err)
+		logger.Warn("[ext_crypto_sr25519_generate_version_1]", "name", id, "error", err)
 		return nil, err
 	}
 
@@ -450,8 +450,8 @@ func ext_crypto_sr25519_public_keys_version_1(env interface{}, args []wasm.Value
 		return []wasm.Value{wasm.NewI64(ret)}, nil
 	}
 
-	if ks.Type() != crypto.Sr25519Type {
-		logger.Warn("[ext_crypto_ed25519_public_keys_version_1]", "name", id, "error", "keystore type is not ed25519")
+	if ks.Type() != crypto.Sr25519Type && ks.Type() != crypto.UnknownType {
+		logger.Warn("[ext_crypto_sr25519_public_keys_version_1]", "name", id, "error", "keystore type is not sr25519")
 		ret, _ := toWasmMemory(ctx, []byte{0})
 		return []wasm.Value{wasm.NewI64(ret)}, nil
 	}
@@ -465,14 +465,14 @@ func ext_crypto_sr25519_public_keys_version_1(env interface{}, args []wasm.Value
 
 	prefix, err := scale.Encode(big.NewInt(int64(len(keys))))
 	if err != nil {
-		logger.Error("[ext_crypto_ed25519_public_keys_version_1] failed to encode keys", err)
+		logger.Error("[ext_crypto_sr25519_public_keys_version_1] failed to encode keys", err)
 		ret, _ := toWasmMemory(ctx, []byte{0})
 		return []wasm.Value{wasm.NewI64(ret)}, nil
 	}
 
 	ret, err := toWasmMemory(ctx, append(prefix, encodedKeys...))
 	if err != nil {
-		logger.Error("[ext_crypto_ed25519_public_keys_version_1] failed to allocate memory", err)
+		logger.Error("[ext_crypto_sr25519_public_keys_version_1] failed to allocate memory", err)
 		return nil, err
 	}
 
@@ -495,7 +495,7 @@ func ext_crypto_sr25519_sign_version_1(env interface{}, args []wasm.Value) ([]wa
 
 	ks, err := ctx.Keystore.GetKeystore(id)
 	if err != nil {
-		logger.Warn("[ext_crypto_sr25519_public_keys_version_1]", "name", id, "error", err)
+		logger.Warn("[ext_crypto_sr25519_sign_version_1]", "name", id, "error", err)
 		return []wasm.Value{wasm.NewI64(emptyRet)}, nil
 	}
 
@@ -519,7 +519,7 @@ func ext_crypto_sr25519_sign_version_1(env interface{}, args []wasm.Value) ([]wa
 		return []wasm.Value{wasm.NewI64(emptyRet)}, nil
 	}
 
-	ret, err = toWasmMemoryOptional(ctx, sig)
+	ret, err = toWasmMemoryFixedSizeOptional(ctx, sig)
 	if err != nil {
 		return nil, err
 	}
@@ -1979,4 +1979,21 @@ func toWasmMemoryOptionalUint32(ctx *runtime.Context, data *uint32) (int64, erro
 
 	enc := opt.Encode()
 	return toWasmMemory(ctx, enc)
+}
+
+// Wraps slice in optional.FixedSizeBytes and copies result to wasm memory. Returns resulting 64bit span descriptor
+func toWasmMemoryFixedSizeOptional(context *runtime.Context, data []byte) (int64, error) {
+	var opt *optional.FixedSizeBytes
+	if data == nil {
+		opt = optional.NewFixedSizeBytes(false, nil)
+	} else {
+		opt = optional.NewFixedSizeBytes(true, data)
+	}
+
+	enc, err := opt.Encode()
+	if err != nil {
+		return 0, err
+	}
+
+	return toWasmMemory(context, enc)
 }
