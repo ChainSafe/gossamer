@@ -38,7 +38,7 @@ func TestStorageState_RegisterStorageChangeChannel(t *testing.T) {
 
 	ch := make(chan *SubscriptionResult)
 	sub := StorageSubscription{
-		Filter:   make(map[string]bool),
+		Filter:   make(map[string][]byte),
 		Listener: ch,
 	}
 	id, err := ss.RegisterStorageChangeChannel(sub)
@@ -60,7 +60,6 @@ func TestStorageState_RegisterStorageChangeChannel(t *testing.T) {
 }
 
 func TestStorageState_RegisterStorageChangeChannel_Multi(t *testing.T) {
-	//t.Skip()
 	ss := newTestStorageState(t)
 	ts, err := ss.TrieState(nil)
 	require.NoError(t, err)
@@ -120,14 +119,18 @@ func TestStorageState_RegisterStorageChangeChannel_Multi_Filter(t *testing.T) {
 	key1 := []byte("key1")
 	value1 := []byte("value1")
 
+	ts.Set(key1, value1)
+	err = ss.StoreTrie(ts)
+	require.NoError(t, err)
+
 	num := 5
 	chs := make([]chan *SubscriptionResult, num)
 	ids := make([]byte, num)
-	subFilter := make(map[string]bool)
-	subFilter[common.BytesToHex(key1)] = true
 
 	for i := 0; i < num; i++ {
 		chs[i] = make(chan *SubscriptionResult)
+		subFilter := make(map[string][]byte)
+		subFilter[common.BytesToHex(key1)] = []byte{}
 		sub := StorageSubscription{
 			Filter:   subFilter,
 			Listener: chs[i],
@@ -135,13 +138,6 @@ func TestStorageState_RegisterStorageChangeChannel_Multi_Filter(t *testing.T) {
 		ids[i], err = ss.RegisterStorageChangeChannel(sub)
 		require.NoError(t, err)
 	}
-
-	ts.Set(key1, value1)
-
-	err = ss.StoreTrie(ts)
-	require.NoError(t, err)
-
-	time.Sleep(time.Millisecond * 500)
 
 	var wg sync.WaitGroup
 	wg.Add(num)
@@ -157,6 +153,7 @@ func TestStorageState_RegisterStorageChangeChannel_Multi_Filter(t *testing.T) {
 				wg.Done()
 			case <-time.After(testMessageTimeout):
 				t.Error("did not receive storage change: ch=", i)
+				wg.Done()
 			}
 		}(i, ch)
 

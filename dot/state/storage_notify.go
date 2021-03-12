@@ -35,7 +35,7 @@ type SubscriptionResult struct {
 
 //StorageSubscription holds data for Subscription to Storage
 type StorageSubscription struct {
-	Filter   map[string]bool
+	Filter   map[string][]byte
 	Listener chan<- *SubscriptionResult
 }
 
@@ -60,6 +60,16 @@ func (s *StorageState) RegisterStorageChangeChannel(sub StorageSubscription) (by
 	s.changedLock.Lock()
 	s.subscriptions[id] = &sub
 	s.changedLock.Unlock()
+	// notifyStorageSubscriptions here to send storage value of current state
+	sr, err := s.blockState.BestBlockStateRoot()
+	if err != nil {
+		logger.Debug("error registering storage change channel", "error", err)
+	}
+	go func() {
+		if err := s.notifyStorageSubscriptions(sr); err != nil {
+			logger.Warn("failed to notify storage subscriptions", "error", err)
+		}
+	}()
 	return id, nil
 }
 
@@ -70,18 +80,4 @@ func (s *StorageState) UnregisterStorageChangeChannel(id byte) {
 	defer s.changedLock.Unlock()
 
 	delete(s.subscriptions, id)
-}
-
-func (s *StorageState) notifyChanged(change *SubscriptionResult) {
-	if len(s.subscriptions) == 0 {
-		return
-	}
-
-	logger.Trace("notifying changed storage chans...", "chans", s.subscriptions)
-
-	for _, ch := range s.subscriptions {
-		go func(ch chan<- *SubscriptionResult) {
-			ch <- change
-		}(ch.Listener)
-	}
 }

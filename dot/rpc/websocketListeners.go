@@ -35,12 +35,17 @@ func (c *WSConn) startListener(lid int) {
 }
 
 func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (int, error) {
+	if c.storageAPI == nil {
+		c.safeSendError(reqID, nil, "error StorageAPI not set")
+		return 0, fmt.Errorf("error StorageAPI not set")
+	}
+
 	scl := &StorageChangeListener{
 		channel: make(chan *state.SubscriptionResult),
 		wsconn:  c,
 	}
 	sub := &state.StorageSubscription{
-		Filter:   make(map[string]bool),
+		Filter:   make(map[string][]byte),
 		Listener: scl.channel,
 	}
 
@@ -49,18 +54,13 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (i
 		switch p := param.(type) {
 		case []interface{}:
 			for _, pp := range param.([]interface{}) {
-				sub.Filter[pp.(string)] = true
+				sub.Filter[pp.(string)] = []byte{}
 			}
 		case string:
-			sub.Filter[p] = true
+			sub.Filter[p] = []byte{}
 		default:
 			return 0, fmt.Errorf("unknow parameter type")
 		}
-	}
-
-	if c.storageAPI == nil {
-		c.safeSendError(reqID, nil, "error StorageAPI not set")
-		return 0, fmt.Errorf("error StorageAPI not set")
 	}
 
 	chanID, err := c.storageAPI.RegisterStorageChangeChannel(*sub)
@@ -76,6 +76,18 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (i
 
 	initRes := newSubscriptionResponseJSON(scl.subID, reqID)
 	c.safeSend(initRes)
+
+	//for k := range sub.Filter {
+	//	fmt.Printf("Lookup Key %v\n", k)
+	//
+	//	res, err := c.storageAPI.GetStorage(nil, common.MustHexToBytes(k))
+	//	if err != nil {
+	//		logger.Debug("error retrieving from storage", "error", err)
+	//	}
+	//	sub.Filter[k] = res
+	//}
+	// respond with current value
+	//res, err := c.storageAPI.GetStorage(nil, sub.)
 
 	return scl.subID, nil
 }

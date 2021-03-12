@@ -20,6 +20,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"reflect"
 	"sync"
 
 	"github.com/ChainSafe/chaindb"
@@ -153,7 +154,7 @@ func (s *StorageState) notifyStorageSubscriptions(root common.Hash) error {
 	s.changedLock.Lock()
 	defer s.changedLock.Unlock()
 
-	for _, sub := range s.subscriptions {
+	for subKey, sub := range s.subscriptions {
 		subRes := &SubscriptionResult{
 			Hash: root,
 		}
@@ -172,18 +173,24 @@ func (s *StorageState) notifyStorageSubscriptions(root common.Hash) error {
 			}
 		} else {
 			// filter result to include only interested keys
-			for k := range sub.Filter {
+			for k, currentValue := range sub.Filter {
 				value := t.Get(common.MustHexToBytes(k))
-				kv := &KeyValue{
-					Key:   common.MustHexToBytes(k),
-					Value: value,
+				if !reflect.DeepEqual(currentValue, value) {
+					kv := &KeyValue{
+						Key:   common.MustHexToBytes(k),
+						Value: value,
+					}
+					subRes.Changes = append(subRes.Changes, *kv)
+					s.subscriptions[subKey].Filter[k] = value
 				}
-				subRes.Changes = append(subRes.Changes, *kv)
 			}
 		}
-		s.notifyChanged(subRes)
+		if len(subRes.Changes) > 0 {
+			go func(ch chan<- *SubscriptionResult) {
+				ch <- subRes
+			}(sub.Listener)
+		}
 	}
-
 	return nil
 }
 
