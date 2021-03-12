@@ -151,7 +151,7 @@ func (c *WSConn) safeSend(msg interface{}) {
 	defer c.mu.Unlock()
 	err := c.wsconn.WriteJSON(msg)
 	if err != nil {
-		logger.Warn("error sending websocket message", "error", err)
+		logger.Debug("error sending websocket message", "error", err)
 	}
 }
 func (c *WSConn) safeSendError(reqID float64, errorCode *big.Int, message string) {
@@ -167,7 +167,7 @@ func (c *WSConn) safeSendError(reqID float64, errorCode *big.Int, message string
 	defer c.mu.Unlock()
 	err := c.wsconn.WriteJSON(res)
 	if err != nil {
-		logger.Warn("error sending websocket message", "error", err)
+		logger.Debug("error sending websocket message", "error", err)
 	}
 }
 
