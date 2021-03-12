@@ -513,7 +513,7 @@ func Test_ext_crypto_ed25519_sign_version_1(t *testing.T) {
 	buf := &bytes.Buffer{}
 	buf.Write(out.([]byte))
 
-	value, err := new(optional.Bytes).Decode(buf)
+	value, err := new(optional.FixedSizeBytes).Decode(buf)
 	require.NoError(t, err)
 
 	ok, err := kp.Public().Verify(msgData, value.Value())
@@ -732,7 +732,7 @@ func Test_ext_crypto_sr25519_sign_version_1(t *testing.T) {
 	buf := &bytes.Buffer{}
 	buf.Write(out.([]byte))
 
-	value, err := new(optional.Bytes).Decode(buf)
+	value, err := new(optional.FixedSizeBytes).Decode(buf)
 	require.NoError(t, err)
 	require.True(t, value.Exists())
 
