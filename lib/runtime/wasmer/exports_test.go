@@ -770,6 +770,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock4939774(t *testing.T) {
+	t.Skip("block4939773.out is too large to be committed")
 	ksmTrie := newTrieFromPairs(t, "../test_data/block4939773.out")
 	expectedRoot := common.MustHexToHash("0xc45748e6e8632b44fc32b04cc4380098a9584cbd63ffbc59adce189574fc36fe")
 	require.Equal(t, expectedRoot, ksmTrie.MustHash())
