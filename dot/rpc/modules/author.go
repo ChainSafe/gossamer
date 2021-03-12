@@ -24,7 +24,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/transaction"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -169,31 +168,10 @@ func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 	if err != nil {
 		return err
 	}
-	cm.logger.Trace("[rpc]", "extrinsic", extBytes)
+	ext := types.Extrinsic(extBytes)
+	cm.logger.Trace("[rpc]", "extrinsic", ext)
 
-	// For RPC request the transaction source is External
-	ext := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, extBytes...))
-
-	// validate the transaction
-	txv, err := cm.runtimeAPI.ValidateTransaction(ext)
-	if err != nil {
-		cm.logger.Warn("failed to validate transaction", "ext", ext)
-		return err
-	}
-
-	vtx := transaction.NewValidTransaction(ext, txv)
-
-	if cm.coreAPI.IsBlockProducer() {
-		hash := cm.txStateAPI.AddToPool(vtx)
-		*res = ExtrinsicHashResponse(hash.String())
-		cm.logger.Trace("submitted extrinsic", "tx", vtx, "hash", hash.String())
-	}
-
-	//broadcast
 	err = cm.coreAPI.HandleSubmittedExtrinsic(ext)
-	if err != nil {
-		cm.logger.Trace("failed to submit extrinsic to network", "error", err)
-	}
-
+	*res = ExtrinsicHashResponse(ext.Hash().String())
 	return err
 }

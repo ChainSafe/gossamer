@@ -70,6 +70,9 @@ type WSConn struct {
 	subscriptions      map[int]Listener
 	storageAPI         modules.StorageAPI
 	blockAPI           modules.BlockAPI
+	runtimeAPI         modules.RuntimeAPI
+	coreAPI            modules.CoreAPI
+	txStateAPI         modules.TransactionStateAPI
 }
 
 var logger log.Logger

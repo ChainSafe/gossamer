@@ -9,7 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@polkadot/api": "2.8.1"
+    "@polkadot/api": "^3.11.1"
   },
   "devDependencies": {
     "chai": "^4.2.0",
