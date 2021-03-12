@@ -463,10 +463,9 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 		return err
 	}
 
-	// add transaction to pool
-	vtx := transaction.NewValidTransaction(ext, txv)
-
 	if s.isBlockProducer {
+		// add transaction to pool
+		vtx := transaction.NewValidTransaction(ext, txv)
 		s.transactionState.AddToPool(vtx)
 	}
 
