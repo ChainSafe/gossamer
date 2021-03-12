@@ -732,25 +732,20 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// {"jsonrpc":"2.0","result":{"block":
-// {"extrinsics":["0x280403000be02ab6d87301","0x1004140000",
-// "0xb90384468e34dbdcc8da24e44b0f0d34d97ccad5ce0281e465db0cc1d8e1423d50d90a018a89185c693f77b050fa35d1f80b19608b72a6e626110e835caedf949668a12b0ad7b786accf2caac0ec874941ccea9825d50b6bb5870e1400f0e56bb4c18b87a5021501001d00862e432e0cf75693899c62691ac0f48967f815add97ae85659dcde8332708551001b000cf4da8aea0e5649a8bedbc1f08e8a8c0febe50cd5b1c9ce0da2164f19aef40f01014a87a7d3673e5c80aec79973682140828a0d1c3899f4f3cc953bd02673e11a022aaa4f269e3f1a90156db29df88f780b1540b610aeb5cd347ee703c5dff48485"],
-// "header":{"digest":{"logs":["","0x0542414245010122041949669a56c8f11b3e3e7c803e477ad24a71ed887bc81c956b59ea8f2b30122e6042494aab60a75e0db8fdff45951e456e6053bd64eb5722600e4a13038b"]},"extrinsicsRoot":"0x950173af1d9fdcd0be5428fc3eaf05d5f34376bd3882d9a61b348fa2dc641012","number":"0x109f30","parentHash":"0x21dc35454805411be396debf3e1d5aad8d6e9d0d7679cce0cc632ba8a647d07c","stateRoot":"0x257b1a7f6bc0287fcbf50676dd29817f2f7ae193cb65b31962e351917406fa23"}},"justification":null},"id":1}
-
 func TestInstance_ExecuteBlock_PolkadotBlock1089328(t *testing.T) {
-	ksmTrie := newTrieFromPairs(t, "../../../polkadot_block1089327.out")
+	dotTrie := newTrieFromPairs(t, "../../../polkadot_block1089327.out")
 	expectedRoot := common.MustHexToHash("0x87ed9ebe7fb645d3b5b0255cc16e78ed022d9fbb52486105436e15a74557535b")
-	require.Equal(t, expectedRoot, ksmTrie.MustHash())
+	require.Equal(t, expectedRoot, dotTrie.MustHash())
 
 	// set state to genesis state
-	state, err := storage.NewTrieState(ksmTrie)
+	state, err := storage.NewTrieState(dotTrie)
 	require.NoError(t, err)
 
 	cfg := &Config{}
 	cfg.Storage = state
 	cfg.LogLvl = 4
 
-	instance, err := NewInstanceFromTrie(ksmTrie, cfg)
+	instance, err := NewInstanceFromTrie(dotTrie, cfg)
 	require.NoError(t, err)
 
 	body := common.MustHexToBytes("0x0c280403000be02ab6d873011004140000b90384468e34dbdcc8da24e44b0f0d34d97ccad5ce0281e465db0cc1d8e1423d50d90a018a89185c693f77b050fa35d1f80b19608b72a6e626110e835caedf949668a12b0ad7b786accf2caac0ec874941ccea9825d50b6bb5870e1400f0e56bb4c18b87a5021501001d00862e432e0cf75693899c62691ac0f48967f815add97ae85659dcde8332708551001b000cf4da8aea0e5649a8bedbc1f08e8a8c0febe50cd5b1c9ce0da2164f19aef40f01014a87a7d3673e5c80aec79973682140828a0d1c3899f4f3cc953bd02673e11a022aaa4f269e3f1a90156db29df88f780b1540b610aeb5cd347ee703c5dff48485")
@@ -779,9 +774,6 @@ func TestInstance_ExecuteBlock_PolkadotBlock1089328(t *testing.T) {
 	}
 
 	_, err = instance.ExecuteBlock(block)
-	if err != nil {
-		compareStateWithFile(t, "../../../polkadot_block1089328.out", state)
-	}
 	require.NoError(t, err)
 }
 
@@ -804,48 +796,4 @@ func newTrieFromPairs(t *testing.T, filename string) *trie.Trie {
 	err = tr.LoadFromMap(entries)
 	require.NoError(t, err)
 	return tr
-}
-
-func compareStateWithFile(t *testing.T, filename string, state *storage.TrieState) {
-	entriesRaw := state.TrieEntries()
-	entries := make(map[string]string)
-	for k, v := range entriesRaw {
-		key := common.BytesToHex([]byte(k))
-		value := common.BytesToHex(v)
-		entries[key] = value
-	}
-	data, err := ioutil.ReadFile(filename)
-	require.NoError(t, err)
-	kusamaRPC := make(map[string]interface{})
-	err = json.Unmarshal(data, &kusamaRPC)
-	require.NoError(t, err)
-	kusamaPairs := kusamaRPC["result"].([]interface{})
-	kusamaEntries := make(map[string]string)
-	for _, pair := range kusamaPairs {
-		pairArr := pair.([]interface{})
-		kusamaEntries[pairArr[0].(string)] = pairArr[1].(string)
-	}
-	if len(kusamaEntries) != len(entries) {
-		t.Logf("len of entries don't match: kusama=%d gossamer=%d", len(kusamaEntries), len(entries))
-	}
-	for k, v := range kusamaEntries {
-		gossVal, ok := entries[k]
-		if !ok {
-			t.Logf("gossamer didn't have this entry: [%s: %s]", k, v)
-			continue
-		}
-		if gossVal != v {
-			t.Logf("entry mismatch: key=%s\nkusama=%s\ngossamer=%s", k, v, gossVal)
-		}
-	}
-	for k, v := range entries {
-		ksmVal, ok := kusamaEntries[k]
-		if !ok {
-			t.Logf("kusama didn't have this entry: [%s: %s]", k, v)
-			continue
-		}
-		if ksmVal != v {
-			t.Logf("entry mismatch: key=%s\nkusama=%s\ngossamer=%s", k, ksmVal, v)
-		}
-	}
 }
