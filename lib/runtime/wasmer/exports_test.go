@@ -602,12 +602,6 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
 	expectedRoot := common.MustHexToHash("0x3a2ef7ee032f5810160bb8f3ffe3e3377bb6f2769ee9f79a5425973347acd504")
 	require.Equal(t, expectedRoot, ksmTrie901441.MustHash())
 
-	blockNumKey, err := common.StorageKey("System", "BlockHash")
-	require.NoError(t, err)
-	blockNum := ksmTrie901441.Get(blockNumKey)
-	t.Log(blockNum)
-	//return
-
 	// set state to genesis state
 	state901441, err := storage.NewTrieState(ksmTrie901441)
 	require.NoError(t, err)

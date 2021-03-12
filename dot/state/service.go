@@ -413,10 +413,14 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 	}
 
 	var err error
-	// initialize database using data directory
-	s.db, err = chaindb.NewBadgerDB(cfg)
-	if err != nil {
-		return fmt.Errorf("failed to create database: %s", err)
+	if s.isMemDB {
+		cfg.InMemory = true
+	} else {
+		// initialize database using data directory
+		s.db, err = chaindb.NewBadgerDB(cfg)
+		if err != nil {
+			return fmt.Errorf("failed to create database: %s", err)
+		}
 	}
 
 	block := &BlockState{
@@ -482,13 +486,15 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		return err
 	}
 
-	close(s.closeCh)
 	logger.Debug("Import", "best block hash", header.Hash(), "latest state root", root)
-
 	if err := s.db.Flush(); err != nil {
 		return err
 	}
 
 	logger.Info("finished state import")
+	if s.isMemDB {
+		return nil
+	}
+
 	return s.db.Close()
 }

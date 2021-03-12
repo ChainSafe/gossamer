@@ -30,16 +30,3 @@ func NonceKey(key [32]byte) ([]byte, error) {
 
 	return hash[:], nil
 }
-
-// StorageKey returns the storage key for the given module and variable name
-func StorageKey(module, name string) ([]byte, error) {
-	h0, err := Twox128Hash([]byte(module))
-	if err != nil {
-		return nil, err
-	}
-	h1, err := Twox128Hash([]byte(name))
-	if err != nil {
-		return nil, err
-	}
-	return append(h0, h1...), nil
-}
