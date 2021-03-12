@@ -590,7 +590,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
-	gossTrie3783 := newTrieFromPairs(t, "../test_data/block3783_gossamer.out")
+	gossTrie3783 := newTrieFromPairs(t, "../test_data/kusama/block3783.out")
 	expectedRoot := common.MustHexToHash("0x948338bc0976aee78879d559a1f42385407e5a481b05a91d2a9386aa7507e7a0")
 	require.Equal(t, expectedRoot, gossTrie3783.MustHash())
 
@@ -635,7 +635,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
-	ksmTrie901441 := newTrieFromPairs(t, "../test_data/block901441_kusama.out")
+	ksmTrie901441 := newTrieFromPairs(t, "../test_data/kusama/block901441.out")
 	expectedRoot := common.MustHexToHash("0x3a2ef7ee032f5810160bb8f3ffe3e3377bb6f2769ee9f79a5425973347acd504")
 	require.Equal(t, expectedRoot, ksmTrie901441.MustHash())
 
@@ -680,7 +680,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
-	ksmTrie := newTrieFromPairs(t, "../test_data/block1377830_kusama.out")
+	ksmTrie := newTrieFromPairs(t, "../test_data/kusama/block1377830.out")
 	expectedRoot := common.MustHexToHash("0xe4de6fecda9e9e35f937d159665cf984bc1a68048b6c78912de0aeb6bd7f7e99")
 	require.Equal(t, expectedRoot, ksmTrie.MustHash())
 
@@ -725,7 +725,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
-	ksmTrie := newTrieFromPairs(t, "../test_data/block1482002.out")
+	ksmTrie := newTrieFromPairs(t, "../test_data/kusama/block1482002.out")
 	expectedRoot := common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb")
 	require.Equal(t, expectedRoot, ksmTrie.MustHash())
 
@@ -770,8 +770,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock4939774(t *testing.T) {
-	t.Skip("block4939773.out is too large to be committed")
-	ksmTrie := newTrieFromPairs(t, "../test_data/block4939773.out")
+	ksmTrie := newTrieFromPairs(t, "../test_data/kusama/block4939773.out")
 	expectedRoot := common.MustHexToHash("0xc45748e6e8632b44fc32b04cc4380098a9584cbd63ffbc59adce189574fc36fe")
 	require.Equal(t, expectedRoot, ksmTrie.MustHash())
 
