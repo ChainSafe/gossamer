@@ -130,7 +130,7 @@ func NewEpochState(db chaindb.Database) (*EpochState, error) {
 
 	skipToEpoch, err := loadSkipToEpoch(db)
 	if err != nil {
-		return nil, err
+		//return nil, err
 	}
 
 	return &EpochState{
