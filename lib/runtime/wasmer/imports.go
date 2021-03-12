@@ -46,7 +46,11 @@ func ext_logging_log_version_1(env interface{}, args []wasm.Value) ([]wasm.Value
 	logger.Trace("[ext_logging_log_version_1] executing...")
 	ctx := env.(*runtime.Context)
 
-	level := args[0].I32()
+	level, ok := args[0].Unwrap().(int32)
+	if !ok {
+		logger.Crit("[ext_logging_log_version_1]", "error", "addr cannot be converted to int32")
+	}
+
 	targetData := args[1].I64()
 	msgData := args[2].I64()
 
@@ -161,7 +165,7 @@ func ext_crypto_ed25519_generate_version_1(env interface{}, args []wasm.Value) (
 	}
 
 	logger.Debug("[ext_crypto_ed25519_generate_version_1] generated ed25519 keypair", "public", kp.Public().Hex())
-	return []wasm.Value{wasm.NewI32(ret)}, nil
+	return []wasm.Value{wasm.NewI32(int32(ret))}, nil
 }
 
 func ext_crypto_ed25519_public_keys_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
@@ -430,7 +434,7 @@ func ext_crypto_sr25519_generate_version_1(env interface{}, args []wasm.Value) (
 	}
 
 	logger.Debug("[ext_crypto_sr25519_generate_version_1] generated sr25519 keypair", "public", kp.Public().Hex())
-	return []wasm.Value{wasm.NewI32(ret)}, nil
+	return []wasm.Value{wasm.NewI32(int32(ret))}, nil
 }
 
 //func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, keyTypeID C.int32_t) C.int64_t {
@@ -715,7 +719,7 @@ func ext_trie_blake2_256_root_version_1(env interface{}, args []wasm.Value) ([]w
 
 	logger.Debug("[ext_trie_blake2_256_root_version_1]", "root", hash)
 	copy(memory[ptr:ptr+32], hash[:])
-	return []wasm.Value{wasm.NewI32(ptr)}, nil
+	return []wasm.Value{wasm.NewI32(int32(ptr))}, nil
 }
 
 //func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
@@ -763,7 +767,7 @@ func ext_trie_blake2_256_ordered_root_version_1(env interface{}, args []wasm.Val
 
 	logger.Debug("[ext_trie_blake2_256_ordered_root_version_1]", "root", hash)
 	copy(memory[ptr:ptr+32], hash[:])
-	return []wasm.Value{wasm.NewI32(ptr)}, nil
+	return []wasm.Value{wasm.NewI32(int32(ptr))}, nil
 }
 
 //func ext_misc_print_hex_version_1(context unsafe.Pointer, dataSpan C.int64_t) {
@@ -1105,7 +1109,10 @@ func ext_allocator_free_version_1(env interface{}, args []wasm.Value) ([]wasm.Va
 	logger.Trace("[ext_allocator_free_version_1] executing...")
 
 	ctx := env.(*runtime.Context)
-	addr := args[0].I32()
+	addr, ok := args[0].Unwrap().(int32)
+	if !ok {
+		logger.Crit("[ext_allocator_free_version_1]", "error", "addr cannot be converted to int32")
+	}
 
 	err := ctx.Allocator.Deallocate(uint32(addr))
 	if err != nil {
@@ -1118,7 +1125,11 @@ func ext_allocator_free_version_1(env interface{}, args []wasm.Value) ([]wasm.Va
 //func ext_allocator_malloc_version_1(ctx interface{}, size C.int32_t) C.int32_t {
 func ext_allocator_malloc_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_allocator_malloc_version_1] executing...")
-	size := args[0].I32()
+	size, ok := args[0].Unwrap().(int32)
+	if !ok {
+		logger.Crit("[ext_allocator_malloc_version_1]", "error", "addr cannot be converted to int32")
+	}
+
 	ctx := env.(*runtime.Context)
 
 	res, err := ctx.Allocator.Allocate(uint32(size))
@@ -1154,7 +1165,7 @@ func ext_hashing_blake2_128_version_1(env interface{}, args []wasm.Value) ([]was
 		return nil, err
 	}
 
-	return []wasm.Value{wasm.NewI32(out)}, nil
+	return []wasm.Value{wasm.NewI32(int32(out))}, nil
 }
 
 //func ext_hashing_blake2_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
@@ -1180,7 +1191,7 @@ func ext_hashing_blake2_256_version_1(env interface{}, args []wasm.Value) ([]was
 		return nil, err
 	}
 
-	return []wasm.Value{wasm.NewI32(out)}, nil
+	return []wasm.Value{wasm.NewI32(int32(out))}, nil
 }
 
 //func ext_hashing_keccak_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
@@ -1205,7 +1216,7 @@ func ext_hashing_keccak_256_version_1(env interface{}, args []wasm.Value) ([]was
 		return nil, err
 	}
 
-	return []wasm.Value{wasm.NewI32(out)}, nil
+	return []wasm.Value{wasm.NewI32(int32(out))}, nil
 }
 
 //func ext_hashing_sha2_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
@@ -1225,7 +1236,7 @@ func ext_hashing_sha2_256_version_1(env interface{}, args []wasm.Value) ([]wasm.
 		return nil, err
 	}
 
-	return []wasm.Value{wasm.NewI32(out)}, nil
+	return []wasm.Value{wasm.NewI32(int32(out))}, nil
 }
 
 //func ext_hashing_twox_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
@@ -1250,7 +1261,7 @@ func ext_hashing_twox_256_version_1(env interface{}, args []wasm.Value) ([]wasm.
 		return nil, err
 	}
 
-	return []wasm.Value{wasm.NewI32(out)}, nil
+	return []wasm.Value{wasm.NewI32(int32(out))}, nil
 }
 
 //func ext_hashing_twox_128_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
@@ -1275,7 +1286,7 @@ func ext_hashing_twox_128_version_1(env interface{}, args []wasm.Value) ([]wasm.
 		return nil, err
 	}
 
-	return []wasm.Value{wasm.NewI32(out)}, nil
+	return []wasm.Value{wasm.NewI32(int32(out))}, nil
 }
 
 //func ext_hashing_twox_64_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
@@ -1300,7 +1311,7 @@ func ext_hashing_twox_64_version_1(env interface{}, args []wasm.Value) ([]wasm.V
 		return nil, err
 	}
 
-	return []wasm.Value{wasm.NewI32(out)}, nil
+	return []wasm.Value{wasm.NewI32(int32(out))}, nil
 }
 
 //func ext_offchain_index_set_version_1(context unsafe.Pointer, a, b C.int64_t) {
@@ -1691,6 +1702,7 @@ func ext_storage_get_version_1(env interface{}, args []wasm.Value) ([]wasm.Value
 		return nil, err
 	}
 
+	logger.Debug("[ext_storage_get_version_1] returning...")
 	return []wasm.Value{wasm.NewI64(valueSpan)}, nil
 }
 
@@ -1726,7 +1738,10 @@ func ext_storage_read_version_1(env interface{}, args []wasm.Value) ([]wasm.Valu
 
 	keySpan := args[0].I64()
 	valueOut := args[1].I64()
-	offset := args[2].I32()
+	offset, ok := args[2].Unwrap().(int32)
+	if !ok {
+		logger.Crit("[ext_storage_read_version_1]", "error", "addr cannot be converted to int32")
+	}
 
 	key := asMemorySlice(ctx, keySpan)
 	value := storage.Get(key)
