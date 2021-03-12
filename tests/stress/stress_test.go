@@ -22,6 +22,7 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -448,4 +449,32 @@ Loop:
 			time.Sleep(500 * time.Millisecond)
 		}
 	}
+
+	var isAdded bool
+	for i := 0; i < 50; i++ {
+		blockHash, err := api.RPC.Chain.GetBlockHash(uint64(i))
+		if err != nil && strings.Contains(err.Error(), "cannot get block") {
+			break
+		}
+		require.NoError(t, err)
+
+		block, err := api.RPC.Chain.GetBlock(blockHash)
+		require.NoError(t, err)
+
+		extLen := len(block.Block.Extrinsics)
+
+		if extLen == 0 {
+			continue
+		}
+
+		for _, blockExt := range block.Block.Extrinsics {
+			encBlockExt, err := types.EncodeToHexString(blockExt)
+			require.NoError(t, err)
+			if extEnc == encBlockExt {
+				isAdded = true
+				break
+			}
+		}
+	}
+	require.True(t, isAdded)
 }
