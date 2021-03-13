@@ -24,7 +24,7 @@ jobs:
           restore-keys: ${{ runner.os }}-go-
 
       - name: Run unit tests
-        run: make test
+        run: go test -short ./... -timeout=20m
 
       - name: Test State - Race
         run: make test-state-race
@@ -33,28 +33,32 @@ jobs:
         run: make build
 
   publish-code-coverage:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/setup-go@v1
-        with:
-          go-version: ${{ matrix.go-version }}
-      - uses: actions/checkout@v2
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/setup-go@v1
+          with:
+            go-version: ${{ matrix.go-version }}
+        - uses: actions/checkout@v2
+          with:
+              ref: ${{ github.event.pull_request.head.sha }}
 
-      - name: Cache go modules
-        uses: actions/cache@v1
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
-          restore-keys: ${{ runner.os }}-go-
+        - name: Cache go modules
+          uses: actions/cache@v1
+          with:
+            path: ~/go/pkg/mod
+            key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
+            restore-keys: ${{ runner.os }}-go-
 
-      - name: Publish code coverage
-        uses: paambaati/codeclimate-action@v2.7.5
-        env:
-          CC_TEST_REPORTER_ID: abdad8b2e2ec0bfdd7af57d955c44e9470f4d174e744b824047f3037800f5b40
-        with:
-          coverageCommand: go test -short -coverprofile c.out ./...
-          prefix: github.com/ChainSafe/gossamer
-          debug: true
+        - name: Generate coverage report
+          run: |
+            go test ./... -short -coverprofile=coverage.out -covermode=atomic -timeout=20m
+        - uses: codecov/codecov-action@v1
+          with:
+            token: "89982880-a53b-4a3a-9bdd-3dc9c78bd190"
+            files: ./coverage.out
+            flags: unittests
+            name: coverage
+            verbose: trues
 
   docker-stable-tests:
     runs-on: ubuntu-latest
