@@ -46,8 +46,6 @@ jobs:
           with:
             go-version: ${{ matrix.go-version }}
         - uses: actions/checkout@v2
-          with:
-              ref: ${{ github.event.pull_request.head.sha }}
 
         - name: Cache go modules
           uses: actions/cache@v1

@@ -19,4 +19,4 @@ name = "go"
 enabled = true
 
 [analyzers.meta]
-import_paths = ["github.com/dutterbutter/gossamer"]
+import_paths = ["github.com/ChainSafe/gossamer"]
