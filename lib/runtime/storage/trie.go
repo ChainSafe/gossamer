@@ -17,7 +17,6 @@
 package storage
 
 import (
-	"bytes"
 	"encoding/binary"
 	"sync"
 
@@ -101,26 +100,7 @@ func (s *TrieState) Delete(key []byte) {
 func (s *TrieState) NextKey(key []byte) []byte {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
-	keys := s.t.GetKeysWithPrefix([]byte{})
-
-	for i, k := range keys {
-		if i == len(keys)-1 {
-			return nil
-		}
-
-		if bytes.Equal(key, k) {
-			return keys[i+1]
-		}
-
-		// `keys` is already is lexigraphical order, so if k is greater than `key`, it's next
-		if bytes.Compare(k, key) == 1 {
-			return k
-		}
-	}
-
-	// TODO: fix this!!
-	//return s.t.NextKey(key)
-	return nil
+	return s.t.NextKey(key)
 }
 
 // ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix

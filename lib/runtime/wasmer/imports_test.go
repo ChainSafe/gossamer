@@ -456,7 +456,7 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	idData := []byte(keystore.GranName)
+	idData := []byte(keystore.DumyName)
 	ks, _ := inst.ctx.Keystore.GetKeystore(idData)
 	require.Equal(t, 0, ks.Size())
 
@@ -513,7 +513,7 @@ func Test_ext_crypto_ed25519_sign_version_1(t *testing.T) {
 	buf := &bytes.Buffer{}
 	buf.Write(out.([]byte))
 
-	value, err := new(optional.Bytes).Decode(buf)
+	value, err := new(optional.FixedSizeBytes).Decode(buf)
 	require.NoError(t, err)
 
 	ok, err := kp.Public().Verify(msgData, value.Value())
@@ -673,7 +673,7 @@ func Test_ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(t *testing.T) 
 func Test_ext_crypto_sr25519_public_keys_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	idData := []byte(keystore.BabeName)
+	idData := []byte(keystore.DumyName)
 	ks, _ := inst.ctx.Keystore.GetKeystore(idData)
 	require.Equal(t, 0, ks.Size())
 
@@ -732,7 +732,7 @@ func Test_ext_crypto_sr25519_sign_version_1(t *testing.T) {
 	buf := &bytes.Buffer{}
 	buf.Write(out.([]byte))
 
-	value, err := new(optional.Bytes).Decode(buf)
+	value, err := new(optional.FixedSizeBytes).Decode(buf)
 	require.NoError(t, err)
 	require.True(t, value.Exists())
 
