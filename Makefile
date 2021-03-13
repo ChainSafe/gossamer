@@ -21,7 +21,7 @@ help: Makefile
 .PHONY: lint
 lint: 
 	./scripts/install-lint.sh
-	${GOPATH}/bin/golangci-lint run --config ./golangci.yml
+	${GOPATH}/bin/golangci-lint run
 
 clean:
 	rm -fr ./bin
