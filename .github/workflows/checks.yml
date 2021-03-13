@@ -14,9 +14,8 @@ jobs:
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2
-        with:
+        with:          
           version: 'latest'
-          args: --config ./golangci.yml
 
   vet-check:
     runs-on: ubuntu-latest
