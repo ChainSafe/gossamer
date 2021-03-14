@@ -320,6 +320,36 @@ func (q *syncQueue) updatePeerScore(pid peer.ID, amt int) {
 }
 
 func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
+	if start > uint64(q.goal) {
+		return
+	}
+
+	// TODO: make q.goal atomic
+	if q.goal-int64(start) < int64(blockRequestSize) {
+		size := uint32(q.goal) - uint32(start)
+		req := createBlockRequest(int64(start), size)
+
+		if d, has := q.requestData.Load(start); has {
+			data := d.(requestData)
+			// we haven't sent the request out yet, or we've already gotten the response
+			if !data.sent || data.sent && data.received {
+				return
+			}
+		}
+
+		logger.Debug("pushing request to queue", "start", start)
+
+		q.requestData.Store(start, requestData{
+			received: false,
+		})
+
+		q.requestCh <- &syncRequest{
+			req: req,
+			to:  to,
+		}
+		return
+	}
+
 	// all requests must start at a multiple of 128 + 1
 	m := start % uint64(blockRequestSize)
 	start = start - m + 1
@@ -329,12 +359,7 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 			return
 		}
 
-		var size *uint32
-		if q.goal-int64(start) >= int64(blockRequestSize) {
-			size = &blockRequestSize
-		}
-
-		req := createBlockRequest(int64(start), size)
+		req := createBlockRequest(int64(start), blockRequestSize)
 
 		if d, has := q.requestData.Load(start); has {
 			data := d.(requestData)
@@ -636,10 +661,10 @@ func (q *syncQueue) handleBlockAnnounce(msg *BlockAnnounceMessage, from peer.ID)
 	q.pushRequest(uint64(bestNum.Int64()+1), blockRequestBufferSize, from)
 }
 
-func createBlockRequest(startInt int64, size *uint32) *BlockRequestMessage {
+func createBlockRequest(startInt int64, size uint32) *BlockRequestMessage {
 	var max *optional.Uint32
-	if size != nil && *size != 0 {
-		max = optional.NewUint32(true, *size)
+	if size != 0 {
+		max = optional.NewUint32(true, size)
 	} else {
 		max = optional.NewUint32(false, 0)
 	}
