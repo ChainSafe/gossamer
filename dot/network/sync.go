@@ -325,7 +325,16 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 	start = start - m + 1
 
 	for i := 0; i < numRequests; i++ {
-		req := createBlockRequest(int64(start), blockRequestSize)
+		if start > uint64(q.goal) {
+			return
+		}
+
+		var size *uint32
+		if q.goal-int64(start) >= int64(blockRequestSize) {
+			size = &blockRequestSize
+		}
+
+		req := createBlockRequest(int64(start), size)
 
 		if d, has := q.requestData.Load(start); has {
 			data := d.(requestData)
@@ -627,7 +636,14 @@ func (q *syncQueue) handleBlockAnnounce(msg *BlockAnnounceMessage, from peer.ID)
 	q.pushRequest(uint64(bestNum.Int64()+1), blockRequestBufferSize, from)
 }
 
-func createBlockRequest(startInt int64, size uint32) *BlockRequestMessage {
+func createBlockRequest(startInt int64, size *uint32) *BlockRequestMessage {
+	var max *optional.Uint32
+	if size != nil && *size != 0 {
+		max = optional.NewUint32(true, *size)
+	} else {
+		max = optional.NewUint32(false, 0)
+	}
+
 	start, _ := variadic.NewUint64OrHash(uint64(startInt))
 
 	blockRequest := &BlockRequestMessage{
@@ -635,7 +651,7 @@ func createBlockRequest(startInt int64, size uint32) *BlockRequestMessage {
 		StartingBlock: start,
 		EndBlockHash:  optional.NewHash(false, common.Hash{}),
 		Direction:     0, // ascending
-		Max:           optional.NewUint32(true, size),
+		Max:           max,
 	}
 
 	return blockRequest
