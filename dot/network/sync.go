@@ -326,6 +326,14 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 
 	// TODO: make q.goal atomic
 	if q.goal-int64(start) < int64(blockRequestSize) {
+		best, err := q.s.blockState.BestBlockNumber()
+		if err != nil {
+			logger.Debug("failed to get best block number", "error", err)
+			return
+		}
+
+		start := best.Int64() + 1
+
 		size := uint32(q.goal) - uint32(start)
 		req := createBlockRequest(int64(start), size)
 
@@ -593,7 +601,7 @@ func (q *syncQueue) processBlockResponses() {
 			d, ok := q.requestData.Load(uint64(start))
 			if !ok {
 				// this shouldn't happen
-				logger.Error("can't find request data for response!", "start", start)
+				logger.Debug("can't find request data for response!", "start", start)
 			} else {
 				from = d.(requestData).from
 				q.updatePeerScore(from, 2)
