@@ -261,6 +261,7 @@ func (q *syncQueue) benchmark() {
 			}
 
 			logger.Info("💤 node waiting", "head", before.Number, "finalized", finalized.Number)
+			time.Sleep(time.Second * 5)
 			continue
 		}
 
