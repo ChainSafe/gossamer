@@ -717,6 +717,7 @@ func (q *syncQueue) handleBlockAnnounce(msg *BlockAnnounceMessage, from peer.ID)
 		return
 	}
 
+	logger.Debug("received BlockAnnounce!", "number", msg.Number, "hash", header.Hash(), "from", from)
 	has, _ := q.s.blockState.HasBlockBody(header.Hash())
 	if has {
 		return
