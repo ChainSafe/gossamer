@@ -570,81 +570,83 @@ func (q *syncQueue) processBlockResponses() {
 	for {
 		select {
 		case data := <-q.responseCh:
-			bestNum, err := q.s.blockState.BestBlockNumber()
-			if err != nil {
-				panic(err)
-			}
-
-			end := data[len(data)-1].Number().Int64()
-
-			if end <= bestNum.Int64() {
-				logger.Debug("ignoring block data that is below our head", "got", end, "head", bestNum.Int64())
-				q.pushRequest(uint64(end+1), blockRequestBufferSize, "")
-				q.currStart = 0
-				q.currEnd = 0
-				continue
-			}
-
-			q.currStart = data[0].Number().Int64()
-			q.currEnd = end
-
-			logger.Debug("sending block data to syncer", "start", q.currStart, "end", q.currEnd)
-
-			idx, err := q.s.syncer.ProcessBlockData(data)
-			if err != nil {
-				logger.Warn("failed to handle block data", "failed on block", q.currStart+int64(idx), "error", err)
-
-				if err.Error() == "failed to get parent hash: Key not found" { // TODO: unwrap err
-					header, err := types.NewHeaderFromOptional(data[idx].Header)
-					if err != nil {
-						logger.Debug("failed to get header from BlockData", "idx", idx, "error", err)
-						// TODO: reset currStart, currEnd
-						continue
-					}
-
-					parentHash := header.ParentHash
-					req := createBlockRequestWithHash(parentHash, 0)
-
-					logger.Debug("pushing request for parent block", "parent", parentHash)
-					q.requestCh <- &syncRequest{
-						req: req,
-					}
-					continue
-				}
-
-				q.requestData.Store(uint64(q.currStart), requestData{
-					sent:     true,
-					received: false,
-				})
-				q.pushRequest(uint64(q.currStart), 1, "")
-				q.currStart = 0
-				q.currEnd = 0
-				continue
-			}
-
-			logger.Debug("finished processing block data")
-			m := q.currStart % int64(blockRequestSize)
-			start := q.currStart - m + 1
-
-			var from peer.ID
-
-			d, ok := q.requestData.Load(uint64(start))
-			if !ok {
-				// this shouldn't happen
-				logger.Debug("can't find request data for response!", "start", start)
-			} else {
-				from = d.(requestData).from
-				q.updatePeerScore(from, 2)
-				q.requestData.Delete(uint64(start))
-			}
-
-			q.pushRequest(uint64(q.currEnd+1), blockRequestBufferSize, from)
-			q.currStart = 0
-			q.currEnd = 0
+			q.handleBlockData(data)
 		case <-q.ctx.Done():
 			return
 		}
 	}
+}
+
+func (q *syncQueue) handleBlockData(data []*types.BlockData) {
+	bestNum, err := q.s.blockState.BestBlockNumber()
+	if err != nil {
+		panic(err) // TODO: don't panic but try again. seems blockState needs better concurrency handling
+	}
+
+	end := data[len(data)-1].Number().Int64()
+	if end <= bestNum.Int64() {
+		logger.Debug("ignoring block data that is below our head", "got", end, "head", bestNum.Int64())
+		q.pushRequest(uint64(end+1), blockRequestBufferSize, "")
+		return
+	}
+
+	defer func() {
+		q.currStart = 0
+		q.currEnd = 0
+	}()
+
+	q.currStart = data[0].Number().Int64()
+	q.currEnd = end
+
+	logger.Debug("sending block data to syncer", "start", q.currStart, "end", q.currEnd)
+
+	idx, err := q.s.syncer.ProcessBlockData(data)
+	if err != nil {
+		q.handleBlockDataFailure(idx, err, data)
+		return
+	}
+
+	logger.Debug("finished processing block data", "start", q.currStart, "end", q.currEnd)
+
+	var from peer.ID
+	d, ok := q.requestData.Load(uint64(q.currStart))
+	if !ok {
+		// this shouldn't happen
+		logger.Debug("can't find request data for response!", "start", q.currStart)
+	} else {
+		from = d.(requestData).from
+		q.updatePeerScore(from, 2)
+		q.requestData.Delete(uint64(q.currStart))
+	}
+
+	q.pushRequest(uint64(q.currEnd+1), blockRequestBufferSize, from)
+}
+
+func (q *syncQueue) handleBlockDataFailure(idx int, err error, data []*types.BlockData) {
+	logger.Warn("failed to handle block data", "failed on block", q.currStart+int64(idx), "error", err)
+
+	if err.Error() == "failed to get parent hash: Key not found" { // TODO: unwrap err
+		header, err := types.NewHeaderFromOptional(data[idx].Header)
+		if err != nil {
+			logger.Debug("failed to get header from BlockData", "idx", idx, "error", err)
+			return
+		}
+
+		parentHash := header.ParentHash
+		req := createBlockRequestWithHash(parentHash, 0)
+
+		logger.Debug("pushing request for parent block", "parent", parentHash)
+		q.requestCh <- &syncRequest{
+			req: req,
+		}
+		return
+	}
+
+	q.requestData.Store(uint64(q.currStart), requestData{
+		sent:     true,
+		received: false,
+	})
+	q.pushRequest(uint64(q.currStart), 1, "")
 }
 
 // handleBlockAnnounceHandshake handles a block that a peer claims to have through a HandleBlockAnnounceHandshake
