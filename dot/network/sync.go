@@ -179,11 +179,13 @@ func (q *syncQueue) syncAtHead() {
 
 		// we aren't at the head yet, sleep
 		if curr.Number.Int64() <= q.goal {
+			prev = curr
 			continue
 		}
 
 		// we have received new blocks since the last check, sleep
 		if prev.Number.Int64() < curr.Number.Int64() {
+			prev = curr
 			continue
 		}
 
