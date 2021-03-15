@@ -169,7 +169,7 @@ func (t *Trie) nextKey(curr node, prefix, key []byte) []byte {
 			if bytes.Compare(key, fullKey[:len(key)]) == 1 { // arg key is greater than full, return nil
 				return nil
 			}
-			
+
 			// the key is lexicographically less than the current node key. return first key available
 			cmp = 1
 		} else {
