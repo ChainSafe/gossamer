@@ -271,19 +271,19 @@ func newMockDigestItem(i int) *mockDigestItem { //nolint
 	}
 }
 
-func (d *mockDigestItem) String() string {
+func (d *mockDigestItem) String() string { //nolint
 	return ""
 }
 
-func (d *mockDigestItem) Type() byte {
+func (d *mockDigestItem) Type() byte { //nolint
 	return byte(d.i)
 }
 
-func (d *mockDigestItem) Encode() ([]byte, error) {
+func (d *mockDigestItem) Encode() ([]byte, error) { //nolint
 	return []byte{byte(d.i)}, nil
 }
 
-func (d *mockDigestItem) Decode(_ io.Reader) error {
+func (d *mockDigestItem) Decode(_ io.Reader) error { //nolint
 	return nil
 }
 
