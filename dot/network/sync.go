@@ -190,7 +190,7 @@ func (q *syncQueue) syncAtHead() {
 		}
 
 		prev = curr
-		q.pushRequest(uint64(curr.Number.Int64()), 1, "")
+		q.pushRequest(uint64(curr.Number.Int64())+1, 1, "")
 	}
 }
 
