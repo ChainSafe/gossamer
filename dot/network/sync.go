@@ -255,7 +255,7 @@ func (q *syncQueue) benchmark() {
 		}
 
 		if before.Number.Int64() >= q.goal {
-			finalized, err := q.s.blockState.GetFinalizedHeader(0, 0)
+			finalized, err := q.s.blockState.GetFinalizedHeader(0, 0) //nolint
 			if err != nil {
 				continue
 			}

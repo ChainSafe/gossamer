@@ -59,6 +59,10 @@ func (s *mockSyncer) HandleBlockAnnounceHandshake(num *big.Int) []*network.Block
 	return nil
 }
 
+func (s *mockSyncer) IsSynced() bool {
+	return false
+}
+
 type mockBlockState struct{}
 
 func (s *mockBlockState) BestBlockHeader() (*types.Header, error) {
@@ -77,8 +81,8 @@ func (s *mockBlockState) HasBlockBody(_ common.Hash) (bool, error) {
 	return false, nil
 }
 
-func (s *mockSyncer) IsSynced() bool {
-	return false
+func (s *mockBlockState) GetFinalizedHeader(_, _ uint64) (*types.Header, error) {
+	return s.BestBlockHeader()
 }
 
 type mockTransactionHandler struct{}
