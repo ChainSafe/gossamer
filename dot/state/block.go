@@ -512,7 +512,7 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 	}
 
 	// add block to blocktree
-	err = bs.bt.AddBlock(block, uint64(arrivalTime.UnixNano()))
+	err = bs.bt.AddBlock(block.Header, uint64(arrivalTime.UnixNano()))
 	if err != nil {
 		return err
 	}
@@ -548,6 +548,16 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 
 	go bs.notifyImported(block)
 	return bs.baseDB.Flush()
+}
+
+// AddBlockToBlockTree adds the given block to the blocktree. It does not write it to the database.
+func (bs *BlockState) AddBlockToBlockTree(header *types.Header) error {
+	arrivalTime, err := bs.GetArrivalTime(header.Hash())
+	if err != nil {
+		arrivalTime = time.Now()
+	}
+
+	return bs.bt.AddBlock(header, uint64(arrivalTime.UnixNano()))
 }
 
 // GetAllBlocksAtDepth returns all hashes with the depth of the given hash plus one
