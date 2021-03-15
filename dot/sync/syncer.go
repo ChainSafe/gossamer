@@ -160,11 +160,6 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) error {
 		return ErrNilBlockData
 	}
 
-	// bestNum, err := s.blockState.BestBlockNumber()
-	// if err != nil {
-	// 	return fmt.Errorf("failed to get best block number: %w", err)
-	// }
-
 	// TODO: return number of last successful block that was processed
 	for _, bd := range data {
 		logger.Debug("starting processing of block", "hash", bd.Hash)
@@ -176,7 +171,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) error {
 
 		hasHeader, _ := s.blockState.HasHeader(bd.Hash)
 		hasBody, _ := s.blockState.HasBlockBody(bd.Hash)
-		if hasHeader && hasBody /*|| (bd.Number() != nil && bd.Number().Int64() <= bestNum.Int64()) */ {
+		if hasHeader && hasBody {
 			// TODO: fix this; sometimes when the node shuts down the "best block" isn't stored properly,
 			// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
 			logger.Debug("skipping block, already have", "hash", bd.Hash)

@@ -573,20 +573,6 @@ func (bs *BlockState) isBlockOnCurrentChain(header *types.Header) (bool, error) 
 	return true, nil
 }
 
-// // HighestBlockHash returns the hash of the block with the highest number we have received
-// // This block may not necessarily be in the blocktree.
-// // TODO: can probably remove this once BlockResponses are implemented
-// func (bs *BlockState) HighestBlockHash() common.Hash {
-// 	return bs.highestBlockHeader.Hash()
-// }
-
-// // HighestBlockNumber returns the largest block number we have seen
-// // This block may not necessarily be in the blocktree.
-// // TODO: can probably remove this once BlockResponses are implemented
-// func (bs *BlockState) HighestBlockNumber() *big.Int {
-// 	return bs.highestBlockHeader.Number
-// }
-
 // BestBlockHash returns the hash of the head of the current chain
 func (bs *BlockState) BestBlockHash() common.Hash {
 	if bs.bt == nil {
