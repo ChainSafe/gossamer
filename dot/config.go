@@ -44,10 +44,12 @@ type Config struct {
 
 // GlobalConfig is used for every node command
 type GlobalConfig struct {
-	Name     string
-	ID       string
-	BasePath string
-	LogLvl   log.Lvl
+	Name           string
+	ID             string
+	BasePath       string
+	LogLvl         log.Lvl
+	PublishMetrics bool
+	MetricsPort    uint32
 }
 
 // LogConfig represents the log levels for individual packages
@@ -128,10 +130,11 @@ func networkServiceEnabled(cfg *Config) bool {
 func GssmrConfig() *Config {
 	return &Config{
 		Global: GlobalConfig{
-			Name:     gssmr.DefaultName,
-			ID:       gssmr.DefaultID,
-			BasePath: gssmr.DefaultBasePath,
-			LogLvl:   gssmr.DefaultLvl,
+			Name:        gssmr.DefaultName,
+			ID:          gssmr.DefaultID,
+			BasePath:    gssmr.DefaultBasePath,
+			LogLvl:      gssmr.DefaultLvl,
+			MetricsPort: gssmr.DefaultMetricsPort,
 		},
 		Log: LogConfig{
 			CoreLvl:           gssmr.DefaultLvl,
@@ -175,10 +178,11 @@ func GssmrConfig() *Config {
 func KsmccConfig() *Config {
 	return &Config{
 		Global: GlobalConfig{
-			Name:     ksmcc.DefaultName,
-			ID:       ksmcc.DefaultID,
-			BasePath: ksmcc.DefaultBasePath,
-			LogLvl:   ksmcc.DefaultLvl,
+			Name:        ksmcc.DefaultName,
+			ID:          ksmcc.DefaultID,
+			BasePath:    ksmcc.DefaultBasePath,
+			LogLvl:      ksmcc.DefaultLvl,
+			MetricsPort: ksmcc.DefaultMetricsPort,
 		},
 		Log: LogConfig{
 			CoreLvl:           ksmcc.DefaultLvl,

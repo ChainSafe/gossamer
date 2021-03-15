@@ -404,3 +404,98 @@ func (s *Service) Stop() error {
 
 	return s.db.Close()
 }
+
+// Import imports the given state corresponding to the given header and sets the head of the chain
+// to it. Additionally, it uses the first slot to correctly set the epoch number of the block.
+func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) error {
+	cfg := &chaindb.Config{
+		DataDir: s.dbPath,
+	}
+
+	if s.isMemDB {
+		cfg.InMemory = true
+	} else {
+		var err error
+
+		// initialize database using data directory
+		s.db, err = chaindb.NewBadgerDB(cfg)
+		if err != nil {
+			return fmt.Errorf("failed to create database: %s", err)
+		}
+	}
+
+	block := &BlockState{
+		db: chaindb.NewTable(s.db, blockPrefix),
+	}
+
+	storage := &StorageState{
+		db: chaindb.NewTable(s.db, storagePrefix),
+	}
+
+	epoch, err := NewEpochState(s.db)
+	if err != nil {
+		return err
+	}
+
+	logger.Info("storing first slot...", "slot", firstSlot)
+	if err = storeFirstSlot(s.db, firstSlot); err != nil {
+		return err
+	}
+
+	epoch.firstSlot = firstSlot
+	blockEpoch, err := epoch.GetEpochForBlock(header)
+	if err != nil {
+		return err
+	}
+
+	skipTo := blockEpoch + 1
+
+	if err := storeSkipToEpoch(s.db, skipTo); err != nil {
+		return err
+	}
+	logger.Debug("skip BABE verification up to epoch", "epoch", skipTo)
+
+	if err := epoch.SetCurrentEpoch(blockEpoch); err != nil {
+		return err
+	}
+
+	root := t.MustHash()
+	if root != header.StateRoot {
+		return fmt.Errorf("trie state root does not equal header state root")
+	}
+
+	if err := StoreLatestStorageHash(s.db, root); err != nil {
+		return err
+	}
+
+	logger.Info("importing storage trie...", "basepath", s.dbPath, "root", root)
+
+	if err := StoreTrie(storage.db, t); err != nil {
+		return err
+	}
+
+	bt := blocktree.NewBlockTreeFromRoot(header, s.db)
+	if err := bt.Store(); err != nil {
+		return err
+	}
+
+	if err := StoreBestBlockHash(s.db, header.Hash()); err != nil {
+		return err
+	}
+
+	if err := block.SetHeader(header); err != nil {
+		return err
+	}
+
+	logger.Debug("Import", "best block hash", header.Hash(), "latest state root", root)
+	if err := s.db.Flush(); err != nil {
+		return err
+	}
+
+	logger.Info("finished state import")
+	if s.isMemDB {
+		return nil
+	}
+
+	return s.db.Close()
+}

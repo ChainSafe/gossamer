@@ -436,6 +436,43 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
+	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis-raw.json")
+	require.NoError(t, err)
+
+	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	// set state to genesis state
+	genState, err := storage.NewTrieState(genTrie)
+	require.NoError(t, err)
+
+	cfg := &Config{}
+	cfg.Storage = genState
+	cfg.LogLvl = 4
+
+	instance, err := NewRuntimeFromGenesis(gen, cfg)
+	require.NoError(t, err)
+
+	// reset state back to parent state before executing
+	parentState, err := storage.NewTrieState(genTrie)
+	require.NoError(t, err)
+	instance.SetContextStorage(parentState)
+
+	//initialize block header
+	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
+	header, err := types.NewHeader(parentHash, big.NewInt(1), common.Hash{}, common.Hash{}, types.NewEmptyDigest())
+	require.NoError(t, err)
+	err = instance.InitializeBlock(header)
+	require.NoError(t, err)
+
+	ext := types.Extrinsic(common.MustHexToBytes("0x410284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d015a3e258da3ea20581b68fe1264a35d1f62d6a0debb1a44e836375eb9921ba33e3d0f265f2da33c9ca4e10490b03918300be902fcb229f806c9cf99af4cc10f8c0000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a480b00c465f14670"))
+
+	res, err := instance.ApplyExtrinsic(ext)
+	require.NoError(t, err)
+	require.Equal(t, []byte{0, 0}, res)
+}
+
 func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 	DefaultTestLogLvl = 0
 
@@ -643,10 +680,6 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this test takes around 3min to run at the moment")
-	}
-
 	ksmTrie := newTrieFromPairs(t, "../test_data/block1377830_kusama.out")
 	expectedRoot := common.MustHexToHash("0xe4de6fecda9e9e35f937d159665cf984bc1a68048b6c78912de0aeb6bd7f7e99")
 	require.Equal(t, expectedRoot, ksmTrie.MustHash())

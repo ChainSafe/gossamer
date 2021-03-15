@@ -168,6 +168,11 @@ func NewBabeSecondaryPlainPreDigest(authorityIndex uint32, slotNumber uint64) *B
 	}
 }
 
+// ToPreRuntimeDigest returns the BabePrimaryPreDigest as a PreRuntimeDigest
+func (d *BabeSecondaryPlainPreDigest) ToPreRuntimeDigest() *PreRuntimeDigest {
+	return NewBABEPreRuntimeDigest(d.Encode())
+}
+
 // Type returns BabeSecondaryPlainPreDigestType
 func (d *BabeSecondaryPlainPreDigest) Type() byte {
 	return BabeSecondaryPlainPreDigestType
