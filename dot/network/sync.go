@@ -148,12 +148,48 @@ func newSyncQueue(s *Service) *syncQueue {
 
 func (q *syncQueue) start() {
 	go q.handleResponseQueue()
+	go q.syncAtHead()
 
 	go q.processBlockRequests()
 	go q.processBlockResponses()
 
 	go q.benchmark()
 	go q.prunePeers()
+}
+
+func (q *syncQueue) syncAtHead() {
+	prev, err := q.s.blockState.BestBlockHeader()
+	if err != nil {
+		logger.Error("failed to get best block header", "error", err)
+		return
+	}
+
+	for {
+		select {
+		// sleep for average block time TODO: make this configurable from slot duration
+		case <-time.After(time.Second * 6):
+		case <-q.ctx.Done():
+			return
+		}
+
+		curr, err := q.s.blockState.BestBlockHeader()
+		if err != nil {
+			continue
+		}
+
+		// we aren't at the head yet, sleep
+		if curr.Number.Int64() <= q.goal {
+			continue
+		}
+
+		// we have received new blocks since the last check, sleep
+		if prev.Number.Int64() < curr.Number.Int64() {
+			continue
+		}
+
+		prev = curr
+		q.pushRequest(uint64(curr.Number.Int64()), 1, "")
+	}
 }
 
 func (q *syncQueue) handleResponseQueue() {
