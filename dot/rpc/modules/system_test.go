@@ -47,8 +47,8 @@ func (s *mockSyncer) CreateBlockResponse(msg *network.BlockRequestMessage) (*net
 	return nil, nil
 }
 
-func (s *mockSyncer) ProcessBlockData(_ []*types.BlockData) error {
-	return nil
+func (s *mockSyncer) ProcessBlockData(_ []*types.BlockData) (int, error) {
+	return 0, nil
 }
 
 func (s *mockSyncer) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) error {

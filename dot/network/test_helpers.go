@@ -57,8 +57,8 @@ func (s *mockSyncer) HandleBlockAnnounce(msg *BlockAnnounceMessage) error {
 	return nil
 }
 
-func (s *mockSyncer) ProcessBlockData(data []*types.BlockData) error {
-	return nil
+func (s *mockSyncer) ProcessBlockData(data []*types.BlockData) (int, error) {
+	return 0, nil
 }
 
 func (s *mockSyncer) IsSynced() bool {
