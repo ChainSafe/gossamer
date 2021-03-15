@@ -38,12 +38,12 @@ const pruneKeyBufferSize = 1000
 
 // BlockState defines fields for manipulating the state of blocks, such as BlockTree, BlockDB and Header
 type BlockState struct {
-	bt                 *blocktree.BlockTree
-	baseDB             chaindb.Database
-	db                 chaindb.Database
-	lock               sync.RWMutex
-	genesisHash        common.Hash
-	highestBlockHeader *types.Header
+	bt          *blocktree.BlockTree
+	baseDB      chaindb.Database
+	db          chaindb.Database
+	lock        sync.RWMutex
+	genesisHash common.Hash
+	//highestBlockHeader *types.Header
 
 	// block notifiers
 	imported      map[byte]chan<- *types.Block
@@ -71,16 +71,16 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 
 	genesisBlock, err := bs.GetBlockByNumber(big.NewInt(0))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get genesis header: %w", err)
 	}
 
 	bs.genesisHash = genesisBlock.Header.Hash()
 
-	// set the current highest block
-	bs.highestBlockHeader, err = bs.BestBlockHeader()
-	if err != nil {
-		return nil, err
-	}
+	// // set the current highest block
+	// bs.highestBlockHeader, err = bs.BestBlockHeader()
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to get best block header: %w", err)
+	// }
 
 	return bs, nil
 }
@@ -333,12 +333,12 @@ func (bs *BlockState) SetHeader(header *types.Header) error {
 
 	hash := header.Hash()
 
-	// if this is the highest block we've seen, save it
-	if bs.highestBlockHeader == nil {
-		bs.highestBlockHeader = header
-	} else if bs.highestBlockHeader.Number.Cmp(header.Number) == -1 {
-		bs.highestBlockHeader = header
-	}
+	// // if this is the highest block we've seen, save it
+	// if bs.highestBlockHeader == nil {
+	// 	bs.highestBlockHeader = header
+	// } else if bs.highestBlockHeader.Number.Cmp(header.Number) == -1 {
+	// 	bs.highestBlockHeader = header
+	// }
 
 	// Write the encoded header
 	bh, err := header.Encode()
@@ -588,19 +588,19 @@ func (bs *BlockState) isBlockOnCurrentChain(header *types.Header) (bool, error) 
 	return true, nil
 }
 
-// HighestBlockHash returns the hash of the block with the highest number we have received
-// This block may not necessarily be in the blocktree.
-// TODO: can probably remove this once BlockResponses are implemented
-func (bs *BlockState) HighestBlockHash() common.Hash {
-	return bs.highestBlockHeader.Hash()
-}
+// // HighestBlockHash returns the hash of the block with the highest number we have received
+// // This block may not necessarily be in the blocktree.
+// // TODO: can probably remove this once BlockResponses are implemented
+// func (bs *BlockState) HighestBlockHash() common.Hash {
+// 	return bs.highestBlockHeader.Hash()
+// }
 
-// HighestBlockNumber returns the largest block number we have seen
-// This block may not necessarily be in the blocktree.
-// TODO: can probably remove this once BlockResponses are implemented
-func (bs *BlockState) HighestBlockNumber() *big.Int {
-	return bs.highestBlockHeader.Number
-}
+// // HighestBlockNumber returns the largest block number we have seen
+// // This block may not necessarily be in the blocktree.
+// // TODO: can probably remove this once BlockResponses are implemented
+// func (bs *BlockState) HighestBlockNumber() *big.Int {
+// 	return bs.highestBlockHeader.Number
+// }
 
 // BestBlockHash returns the hash of the head of the current chain
 func (bs *BlockState) BestBlockHash() common.Hash {
