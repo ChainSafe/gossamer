@@ -590,9 +590,28 @@ func (q *syncQueue) processBlockResponses() {
 
 			logger.Debug("sending block data to syncer", "start", q.currStart, "end", q.currEnd)
 
-			err = q.s.syncer.ProcessBlockData(data)
+			idx, err := q.s.syncer.ProcessBlockData(data)
 			if err != nil {
-				logger.Warn("failed to handle block data", "start", q.currStart, "end", q.currEnd, "error", err)
+				logger.Warn("failed to handle block data", "failed on block", q.currStart+int64(idx), "error", err)
+
+				if err.Error() == "failed to get parent hash: Key not found" { // TODO: unwrap err
+					header, err := types.NewHeaderFromOptional(data[idx].Header)
+					if err != nil {
+						logger.Debug("failed to get header from BlockData", "idx", idx, "error", err)
+						// TODO: reset currStart, currEnd
+						continue
+					}
+
+					parentHash := header.ParentHash
+					req := createBlockRequestWithHash(parentHash, 0)
+
+					logger.Debug("pushing request for parent block", "parent", parentHash)
+					q.requestCh <- &syncRequest{
+						req: req,
+					}
+					continue
+				}
+
 				q.requestData.Store(uint64(q.currStart), requestData{
 					sent:     true,
 					received: false,
@@ -689,6 +708,27 @@ func createBlockRequest(startInt int64, size uint32) *BlockRequestMessage {
 	}
 
 	start, _ := variadic.NewUint64OrHash(uint64(startInt))
+
+	blockRequest := &BlockRequestMessage{
+		RequestedData: RequestedDataHeader + RequestedDataBody + RequestedDataJustification,
+		StartingBlock: start,
+		EndBlockHash:  optional.NewHash(false, common.Hash{}),
+		Direction:     0, // ascending
+		Max:           max,
+	}
+
+	return blockRequest
+}
+
+func createBlockRequestWithHash(startHash common.Hash, size uint32) *BlockRequestMessage {
+	var max *optional.Uint32
+	if size != 0 {
+		max = optional.NewUint32(true, size)
+	} else {
+		max = optional.NewUint32(false, 0)
+	}
+
+	start, _ := variadic.NewUint64OrHash(startHash)
 
 	blockRequest := &BlockRequestMessage{
 		RequestedData: RequestedDataHeader + RequestedDataBody + RequestedDataJustification,

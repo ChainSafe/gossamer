@@ -154,19 +154,19 @@ func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) error {
 	return nil
 }
 
-// ProcessBlockData processes the BlockData from a BlockResponse and returns the index of the last BlockData it successfully handled.
-func (s *Service) ProcessBlockData(data []*types.BlockData) error {
+// ProcessBlockData processes the BlockData from a BlockResponse and returns the index of the last BlockData it handled on success,
+// or the index of the block data that errored on failure.
+func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 	if len(data) == 0 {
-		return ErrNilBlockData
+		return 0, ErrNilBlockData
 	}
 
-	// TODO: return number of last successful block that was processed
-	for _, bd := range data {
+	for i, bd := range data {
 		logger.Debug("starting processing of block", "hash", bd.Hash)
 
 		err := s.blockState.CompareAndSetBlockData(bd)
 		if err != nil {
-			return fmt.Errorf("failed to compare and set data: %w", err)
+			return i, fmt.Errorf("failed to compare and set data: %w", err)
 		}
 
 		hasHeader, _ := s.blockState.HasHeader(bd.Hash)
@@ -179,6 +179,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) error {
 			header, err := s.blockState.GetHeader(bd.Hash) //nolint
 			if err != nil {
 				logger.Debug("failed to get header", "hash", bd.Hash, "error", err)
+				return i, err
 			}
 
 			err = s.blockState.AddBlockToBlockTree(header)
@@ -194,14 +195,14 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) error {
 		if bd.Header.Exists() && !hasHeader {
 			header, err = types.NewHeaderFromOptional(bd.Header)
 			if err != nil {
-				return err
+				return i, err
 			}
 
 			logger.Trace("processing header", "hash", header.Hash(), "number", header.Number)
 
 			err = s.handleHeader(header)
 			if err != nil {
-				return err
+				return i, err
 			}
 
 			logger.Trace("header processed", "hash", bd.Hash)
@@ -210,14 +211,14 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) error {
 		if bd.Body.Exists() && !hasBody {
 			body, err := types.NewBodyFromOptional(bd.Body) //nolint
 			if err != nil {
-				return err
+				return i, err
 			}
 
 			logger.Trace("processing body", "hash", bd.Hash)
 
 			err = s.handleBody(body)
 			if err != nil {
-				return err
+				return i, err
 			}
 
 			logger.Trace("body processed", "hash", bd.Hash)
@@ -226,12 +227,12 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) error {
 		if bd.Header.Exists() && bd.Body.Exists() {
 			header, err = types.NewHeaderFromOptional(bd.Header)
 			if err != nil {
-				return err
+				return i, err
 			}
 
 			body, err := types.NewBodyFromOptional(bd.Body)
 			if err != nil {
-				return err
+				return i, err
 			}
 
 			block := &types.Block{
@@ -244,7 +245,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) error {
 			err = s.handleBlock(block)
 			if err != nil {
 				logger.Error("failed to handle block", "number", block.Header.Number, "error", err)
-				return err
+				return i, err
 			}
 
 			logger.Debug("block processed", "hash", bd.Hash)
@@ -256,7 +257,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) error {
 		}
 	}
 
-	return nil
+	return len(data) - 1, nil
 }
 
 // handleHeader handles headers included in BlockResponses

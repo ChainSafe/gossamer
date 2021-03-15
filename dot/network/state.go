@@ -38,7 +38,7 @@ type Syncer interface {
 	CreateBlockResponse(*BlockRequestMessage) (*BlockResponseMessage, error)
 
 	// ProcessBlockData is called to process BlockData received in a BlockResponseMessage
-	ProcessBlockData(data []*types.BlockData) error
+	ProcessBlockData(data []*types.BlockData) (int, error)
 
 	// HandleBlockAnnounce is called upon receipt of a BlockAnnounceMessage to process it.
 	// If a request needs to be sent to the peer to retrieve the full block, this function will return it.
