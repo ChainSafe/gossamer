@@ -52,7 +52,6 @@ type NotificationsMessage interface {
 	Type() byte
 	Hash() common.Hash
 	IsHandshake() bool
-	//OverwriteProtocolID() bool
 }
 
 // nolint
