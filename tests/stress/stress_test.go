@@ -461,9 +461,7 @@ Loop:
 		block, err := api.RPC.Chain.GetBlock(blockHash)
 		require.NoError(t, err)
 
-		extLen := len(block.Block.Extrinsics)
-
-		if extLen == 0 {
+		if len(block.Block.Extrinsics) == 0 {
 			continue
 		}
 

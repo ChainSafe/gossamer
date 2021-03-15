@@ -137,7 +137,7 @@ func (cm *AuthorModule) PendingExtrinsics(r *http.Request, req *EmptyRequest, re
 	resp := make([]string, len(pending))
 	for idx, tx := range pending {
 		// Remove the first byte which stores the transaction source.
-		resp[idx] = common.BytesToHex(tx.Extrinsic[1:])
+		resp[idx] = common.BytesToHex(tx.Extrinsic)
 	}
 
 	*res = PendingExtrinsicsResponse(resp)
