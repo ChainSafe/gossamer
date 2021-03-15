@@ -43,7 +43,6 @@ type BlockState struct {
 	db          chaindb.Database
 	lock        sync.RWMutex
 	genesisHash common.Hash
-	//highestBlockHeader *types.Header
 
 	// block notifiers
 	imported      map[byte]chan<- *types.Block
@@ -75,13 +74,6 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 	}
 
 	bs.genesisHash = genesisBlock.Header.Hash()
-
-	// // set the current highest block
-	// bs.highestBlockHeader, err = bs.BestBlockHeader()
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to get best block header: %w", err)
-	// }
-
 	return bs, nil
 }
 
@@ -332,13 +324,6 @@ func (bs *BlockState) SetHeader(header *types.Header) error {
 	defer bs.lock.Unlock()
 
 	hash := header.Hash()
-
-	// // if this is the highest block we've seen, save it
-	// if bs.highestBlockHeader == nil {
-	// 	bs.highestBlockHeader = header
-	// } else if bs.highestBlockHeader.Number.Cmp(header.Number) == -1 {
-	// 	bs.highestBlockHeader = header
-	// }
 
 	// Write the encoded header
 	bh, err := header.Encode()
