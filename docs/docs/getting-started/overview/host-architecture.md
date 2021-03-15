@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Host Architecture
-permalink: /getting-started/overview/host-architecture/
+permalink: /host-architecture/
 ---
 
 - _TODO: update "Host Architecture" document [#918](https://github.com/ChainSafe/gossamer/issues/918)_
@@ -22,11 +22,11 @@ The **gssmr node** is an official node implementation for the Gossamer Testnet -
 
 The **ksmcc node** is an official node implementation for the Kusama Network - a configuration file, genesis file, compiled runtime, and runtime imports used with the **host node**.
 
-The **dotcc node** is an official node implementation for the Polkadot Network - a configuration file, genesis file, compiled runtime, and runtime imports used with the **host node**.
+The **polkadot node** is an official node implementation for the Polkadot Network - a configuration file, genesis file, compiled runtime, and runtime imports used with the **host node**.
 
 ### Custom Services
 
-See [Custom Services](../custom-services/) for more information about building custom node implementations.
+See [Custom Services](/advanced/custom-servives) for more information about building custom node implementations.
 
 ## Node Services
 
@@ -78,80 +78,11 @@ type host struct {
 }
 ```
 
-#### Status Submodule
-
-The **status submodule** implements the protocol for the status message exchange.
-
-```go
-type status struct {
-	host          *host
-	hostMessage   *StatusMessage
-	peerConfirmed *sync.Map // map of peer.ID to time.Time
-	peerMessage   *sync.Map // map of peer.ID to *StatusMessage
-}
-```
-
-#### Gossip Submodule
-
-The **gossip submodule** stores information about past messages to effectively determine which messages to propagate and which to ignore.
-
-```go
-type gossip struct {
-	host    *host
-	hasSeen *sync.Map
-}
-```
-
-#### Syncer Submodule
-
-The **syncer submodule** tracks requested blocks and coordinates syncing with the **core service**.
-
-```go
-type syncer struct {
-	host              *host
-	blockState        BlockState
-	requestedBlockIDs *sync.Map       // track requested block id messages
-	syncChan          chan<- *big.Int // chain synchronization channel
-}
-```
 
 ### RPC Service
 
-The **rpc service** is an implementation of the RPC server.
-
-- the **rpc service** only reads from block state
-- the **rpc service** only reads from storage state
-- the **rpc service** only reads from network state
+The **rpc service** is an implementation of the JSON-RPC PSP (TODO: add link).
 
 ### State Service
 
 The **state service** is the source of truth for all chain and node state.
-
-- only the **core service** writes to block state
-- only the **core service** writes to storage state
-- only the **network service** writes to network state
-
-## Node Channels
-
-### Block Channels
-
-_work in progress_
-
-### Message Channels
-
-- `coreMsgs` - messages from the core service
-- `networkMsgs` - messages from the network service
-
-within the core service:
-
-- `msgSend` - send messages to the network service
-- `msgRec` - receive messages from the network service
-
-within the network service:
-
-- `msgSend` - send messages to the core service
-- `msgRec` - receive messages from the core service
-
-### Syncer Channels
-
-_work in progress_

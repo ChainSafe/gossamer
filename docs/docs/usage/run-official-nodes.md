@@ -1,10 +1,10 @@
 ---
 layout: default
-title: Run Official Nodes
+title: Official Nodes
 permalink: /usage/run-official-nodes/
 ---
 
-- _TODO: update "Official Nodes" document [#916](https://github.com/ChainSafe/gossamer/iss  ues/916)_
+- _TODO: update "Official Nodes" document [#916](https://github.com/ChainSafe/gossamer/issues/916)_
 
 ---
 
@@ -16,6 +16,6 @@ permalink: /usage/run-official-nodes/
 
 - The **ksmcc** directory includes configuration files for the ***ksmcc node*** implementation - an official node implementation for the Kusama Network (see [Official Nodes](/building-gossamer/host-architecture#official-nodes)).
 
-## `chain/dotcc`
+## `chain/polkadot`
 
-- The **dotcc** directory includes configuration files for the ***dotcc node*** implementation - an official node implementation for the Polkadot Network (see [Official Nodes](/building-gossamer/host-architecture#official-nodes)).
+- The **polkadot** directory includes configuration files for the ***polkadot node*** implementation - an official node implementation for the Polkadot Network (see [Official Nodes](/building-gossamer/host-architecture#official-nodes)).

@@ -44,9 +44,12 @@ nav:
   - Intergrate:
     - Connect to Polkadot.js: ./intergrate/connect-to-polkadot-js.md
   - Tests: 
-    - Debugging: ./testing-and-debugging/debugging.md
-    - Testing: ./testing-and-debugging/testing.md
     - Integration Tests: ./testing-and-debugging/integration-tests.md
+    - Unit Tests: ./testing-and-debugging/unit-tests.md
+    - Docker Tests: ./testing-and-debugging/docker-tests.md
+    - Testing: ./testing-and-debugging/unit-test.md
+    - Debugging: ./testing-and-debugging/debugging.md
+    - Logger usage: ./testing-and-debugging/logger-usage.md
   - Deployment: 
     - Docker usage: ./deployment/docker-usage.md
   - Advanced: 

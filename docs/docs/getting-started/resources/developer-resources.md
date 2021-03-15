@@ -1,7 +1,7 @@
 ---
 layout: default
 title: Developer Resources
-permalink: /getting-started/resources/developer-resources/
+permalink: /developer-resources/
 ---
 
 ### Specification
@@ -55,4 +55,3 @@ permalink: /getting-started/resources/developer-resources/
 ### Substrate
 
 - <a target="_blank" rel="noopener noreferrer" href="https://substrate.dev/en/">Official Substrate Documentation</a>
-

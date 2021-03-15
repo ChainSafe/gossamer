@@ -1,7 +1,7 @@
 ---
 layout: default
 title: General Resources
-permalink: /getting-started/resources/general-resources/
+permalink: /getting-started/resources/general-resources
 ---
 
 ## Welcome

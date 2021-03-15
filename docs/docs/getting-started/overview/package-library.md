@@ -1,12 +1,12 @@
 ---
 layout: default
 title: Package Library
-permalink: /getting-started/overview/package-library/
+permalink: /welcome/package-library/
 ---
 
 ## Overview
 
-Gossamer is a ***modular blockchain framework***; it was designed with a package structure that makes it possible to reuse Gossamer packages to build and run custom nodes and node services.
+Gossamer is a **modular blockchain framework**; it was designed with a package structure that makes it possible to reuse Gossamer packages to build and run custom nodes and node services.
 
 This document provides an overview of the packages that make up the Gossamer framework - more detailed information about each package can be found at <a target="_blank" rel="noopener noreferrer" href="https://pkg.go.dev/github.com/ChainSafe/gossamer">pkg.go.dev/ChainSafe/gossamer</a>.
 
@@ -14,49 +14,53 @@ Gossamer packages can be categorized into **four package types**:
 
 - **[cmd packages](#cmd-packages)**
 
-    - `cmd/...` - _command packages for running nodes and other services_
+    - `cmd/...` - command-line packages for running nodes and other services
 
 - **[host packages](#host-packages)**
 
-    - `host/...` - _the host node package and host node service packages_
+    - `host/...` - the host node package and host node service packages
 
 - **[lib packages](#lib-packages)**
 
-    - `lib/...` - _modular packages for building nodes and other services_
+    - `lib/...` - modular packages for building nodes and other services
 
 - **[test packages](#test-packages)**
 
-    - `tests/...` - _test packages for test framework (ie, integration tests)_
+    - `tests/...` - test packages for integration tests
 
 ## cmd packages
 
-#### `cmd/gossaamer`
+#### `cmd/gossamer`
 
 - The **gossamer package** is used to run nodes built with Gossamer.
 
-## host packages
+## dot packages
 
-#### `host`
+#### `dot`
 
-- The **host package** implements the shared base protocol for all node implementations operating within the Polkadot ecosystem. The **host package** implements the [Host Node](/building-gossamer/host-architecture#host-node); it is the base node implementation for all [Official Nodes](/building-gossamer/host-architecture#official-nodes) and [Custom Services](/building-gossamer/host-architecture#custom-services) built with Gossamer.
+- The **dot package** contains packages that implement the Polkadot Host spec. The **dot package** implements the [Host Node](/building-gossamer/host-architecture#host-node); it is the base node implementation for all [Official Nodes](/building-gossamer/host-architecture#official-nodes) and [Custom Services](/building-gossamer/host-architecture#custom-services) built with Gossamer.
 
-#### `host/core`
+#### `dot/core`
 
 - The **core package** implements the [Core Service](/building-gossamer/host-architecture#core-service) -  responsible for block production and block finalization (consensus) and processing messages received from the [Network Service](/building-gossamer/host-architecture/#network-service).
 
-#### `host/network`
+#### `dot/network`
 
 - The **network package** implements the [Network Service](/building-gossamer/host-architecture/#network-service) - responsible for coordinating network host and peer interactions. It manages peer connections, receives and parses messages from connected peers and handles each message based on its type.
 
-#### `host/state`
+#### `dot/state`
 
 - The **state package** implements the [State Service](/building-gossamer/host-architecture#state-service) - the source of truth for all chain and node state that is made accessible to all node services.
 
-#### `host/rpc`
+#### `dot/sync`
+
+- The **sync package** implements handling of blocks received from the network layer.
+
+#### `dot/rpc`
 
 - The **rpc package** implements the [RPC Service](/building-gossamer/host-architecture#rpc-service) - an HTTP server that handles state interactions.
 
-#### `host/types`
+#### `dot/types`
 
 - The **types package** implements types defined within the Polkadot Host specification.
 
@@ -64,55 +68,51 @@ Gossamer packages can be categorized into **four package types**:
 
 #### `lib/babe`
 
-- the **babe package** implements BABE
+- the **babe package** implements the BABE block production algorithm.
 
 #### `lib/blocktree`
 
-- the **blocktree package** implements blocktree
+- the **blocktree package** implements the blocktree, a data structure which tracks the chain and all its non-finalized forks.
 
 #### `lib/common`
 
-- the **common package** defines common types and functions
+- the **common package** defines common types and functions.
 
 #### `lib/crypto`
 
-- the **crypto package** implements crypto keypairs
-
-#### `lib/database`
-
-- the **database package** is a generic database built with badgerDB
+- the **crypto package** contains the key types used by the node (sr25519, ed25519, secp256k1).
 
 #### `lib/grandpa`
 
-- the **grandpa package** implements GRANDPA
+- the **grandpa package** implements the GRANDPA finality gadget.
 
 #### `lib/keystore`
 
-- the **keystore package** manages the keystore and includes test keyrings
+- the **keystore package** manages the keystore and includes test keyrings.
 
 #### `lib/runtime`
 
-- the **runtime package** implements the WASM runtime using Wasmer
+- the **runtime package** contains various wasm interpreters used to interpret the runtime. It currently contains `life`, `wasmer`, and `wasmtime`; however, `wasmer` is the only interpreter that is fully supported at the moment. In the future, all interpreters will be fully supported.
 
 #### `lib/scale`
 
-- the **scale package** implements the SCALE codec
+- the **scale package** implements the SCALE codec.
 
 #### `lib/services`
 
-- the **services package** implements a common interface for node services
+- the **services package** implements a common interface for node services.
 
 #### `lib/transaction`
 
-- the **transaction package** is used to manage transaction queues
+- the **transaction package** is contains transaction types and the transaction queue data structure.
 
 #### `lib/trie`
 
-- the **trie package** implements a modified merkle-patricia trie
+- the **trie package** implements a modified merkle-patricia trie.
 
 #### `lib/utils`
 
-- the **utils package** is used to manage node and test directories
+- the **utils package** is used to manage node and test directories.
 
 ## test packages
 

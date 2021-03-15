@@ -71,41 +71,35 @@ Our primary focus has been an initial implementation of the Polkadot Host. Once 
 
 ## Table of Contents
 
-<!-- - **Running Gossamer**
-    - [Get Started](./get-started/)
-    - [Command-Line](./command-line/)
-    - [Official Nodes](./official-nodes/)
+- **Getting Started**
+  - [Overview](./)
+  - [Installation](/getting-started/installation) 
+  - [Host Architecture](/getting-started/overview/host-architecture)
+  - [Package lib](getting-started/overview/package-library) 
+- **Resources**
+  - [General Resources](/getting-started/resources/general-resources)
+  - [Developer Resources](/getting-started/resources/developer-resources)
+- **Usage**
+  - [Command line](/usage/command-line)
+  - [Configuration](/usage/configuration)
+  - [Run official nodes](/usage/run-official-nodes)
+  - [Import Runtime](/usage/import-runtime)
+- **Integrate**
+  - [Connect polkadot.js](/integrate/connect-to-polkadot-js)
+- **Testing & Debugging**
+  - [Running intergration tests](/testing-and-debugging/intergration-tests)
+  - [Running unit tests](/testing-and-debugging/unit-tests)
+  - [Running docker tests](/testing-and-debugging/docker-tests)
+  - [Logger usage](/testing-and-debugging/logger-usage)
+  - [Debugging](/testing-and-debugging/debugging)
+- **Deployment**
+  - [Docker usage](/deployment/docker-usage)
+## Advanced
+  - [SCALE](/advanced/scale-examples)
+  - [Custom Services](/advanced/custom-servives)
+## Contributing
+  - [Overview](contibuting.md) - docs/docs/contibuting.md
 
-- **[Build Nodes](./build-nodes/)**
-    - [Configuration](./configuration/)
-    - [Import Runtime](./import-runtime/)
-    - [Custom Services](./custom-services/)
-
-- **[Implementation](./implementation/)**
-    - [Package Library](./package-library/)
-    - [Host Architecture](./host-architecture/)
-    - [Integration Tests](./integration-tests/)
-
-- **[Resources](./resources/)**
-    - [General Resources](./general-resources/)
-    - [Developer Resources](./developer-resources/) -->
- - **Welcome to Gossamer**
-    - [Overview](./)
-    - [Get Started](./welcome/get-started)
-    - [General Resources](./welcome/general-resources)
-    - [Package Library](./welcome/package-library)
-  - **Running Gossamer**
-    - [Command Line](./running-gossamer/command-line)
-    - [Configuration](./running-gossamer/configuration)
-    - [Connect to Poklkadot.js](./running-gossamer/connect-to-polkadot-js)
-    - [Official Nodes](./running-gossamer/official-nodes)
-  - **Building Gossamer**
-    - [Developer Resources](./building-gossamer/developer-resources)
-    - [Host Architecture](./building-gossamer/host-architecture)
-    - [Integration Tests](./building-gossamer/integration-tests)
-    - [Custom Services](./building-gossamer/custom-services)
-    - [Import Runtime](./building-gossamer/import-runtime)
-    - [SCALE Examples](./building-gossamer/scale-examples)
 
 ## Connect
 

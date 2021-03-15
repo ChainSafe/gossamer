@@ -1,7 +1,7 @@
 ---
 layout: default
 title: SCALE Examples
-permalink: /scale-examples/
+permalink: /advanced/scale-examples/
 ---
 
 A byte array `A` is defined as a set of bytes `(b1,...,bn)` st. `n < 2^536`.
