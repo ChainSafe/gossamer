@@ -241,7 +241,7 @@ func TestSyncQueue_HandleBlockAnnounceHandshake(t *testing.T) {
 	q.stop()
 	time.Sleep(time.Second)
 
-	testNum := int64(99)
+	testNum := int64(128 * 7)
 
 	testPeerID := peer.ID("noot")
 	q.handleBlockAnnounceHandshake(uint32(testNum), testPeerID)
@@ -357,6 +357,7 @@ func TestSyncQueue_handleResponseQueue_noRequestsOrResponses(t *testing.T) {
 	q := newTestSyncQueue(t)
 	q.stop()
 	time.Sleep(time.Second)
+	q.goal = int64(blockRequestSize) * 10
 	q.ctx = context.Background()
 	go q.handleResponseQueue()
 	time.Sleep(time.Second * 2)
@@ -367,6 +368,7 @@ func TestSyncQueue_handleResponseQueue_responseQueueAhead(t *testing.T) {
 	q := newTestSyncQueue(t)
 	q.stop()
 	time.Sleep(time.Second)
+	q.goal = int64(blockRequestSize) * 10
 	q.ctx = context.Background()
 
 	testHeader0 := types.Header{
@@ -392,6 +394,7 @@ func TestSyncQueue_processBlockResponses(t *testing.T) {
 	q := newTestSyncQueue(t)
 	q.stop()
 	time.Sleep(time.Second)
+	q.goal = int64(blockRequestSize) * 10
 	q.ctx = context.Background()
 
 	testHeader0 := types.Header{
