@@ -63,7 +63,7 @@ jobs:
             files: ./coverage.out
             flags: unittests
             name: coverage
-            verbose: trues
+            verbose: true
 
   docker-stable-tests:
     runs-on: ubuntu-latest
