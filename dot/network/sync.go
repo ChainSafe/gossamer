@@ -260,7 +260,7 @@ func (q *syncQueue) benchmark() {
 				continue
 			}
 
-			logger.Info("💤 node waiting", "head", before.Number, "finalized", finalized.Number)
+			logger.Info("💤 node waiting", "head", before.Number, "finalized", finalized.Number, "highest seen", q.goal)
 			time.Sleep(time.Second * 5)
 			continue
 		}
@@ -335,7 +335,6 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 		return
 	}
 
-	// TODO: make q.goal atomic
 	if q.goal-int64(start) < int64(blockRequestSize) {
 		best, err := q.s.blockState.BestBlockNumber()
 		if err != nil {
@@ -344,8 +343,6 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 		}
 
 		start := best.Int64() + 1
-
-		//size := uint32(q.goal) - uint32(start)
 		req := createBlockRequest(start, 0)
 
 		if d, has := q.requestData.Load(start); has {
