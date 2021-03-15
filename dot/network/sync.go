@@ -345,8 +345,8 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 
 		start := best.Int64() + 1
 
-		size := uint32(q.goal) - uint32(start)
-		req := createBlockRequest(start, size)
+		//size := uint32(q.goal) - uint32(start)
+		req := createBlockRequest(start, 0)
 
 		if d, has := q.requestData.Load(start); has {
 			data := d.(requestData)
