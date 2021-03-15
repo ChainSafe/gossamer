@@ -1,0 +1,16 @@
+coverage:
+  precision: 2
+  round: down
+  range: "50...90"
+
+ignore:
+  - "docs/**/*"
+  - "tests/**/*"
+  - "scripts/**/*"
+  - "cmd/gossamer/test_inputs/*"
+  - "chain/**/*"
+  - "dot/config/**/*"
+  - "dot/rpc/modules/test_data"
+  - "lib/runtime/test_data" 
+  - "**/errors.go"
+  - "**/*/errors.go"
