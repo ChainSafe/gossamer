@@ -58,16 +58,22 @@ func (s *TrieState) Snapshot() {
 
 // BeginStorageTransaction begins a new nested storage transaction which will either be committed or rolled back at a later time.
 func (s *TrieState) BeginStorageTransaction() {
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	s.oldTrie = s.t.Snapshot()
 }
 
 // CommitStorageTransaction commits all storage changes made since BeginStorageTransaction was called.
 func (s *TrieState) CommitStorageTransaction() {
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	s.oldTrie = nil
 }
 
 // RollbackStorageTransaction rolls back all storage changes made since BeginStorageTransaction was called.
 func (s *TrieState) RollbackStorageTransaction() {
+	s.lock.Lock()
+	defer s.lock.Unlock()
 	s.t = s.oldTrie
 	s.oldTrie = nil
 }
