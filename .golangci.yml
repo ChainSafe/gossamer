@@ -194,7 +194,6 @@ linters:
     - unconvert
     - goconst
     - errcheck
-    - govet
     - staticcheck
     - megacheck
     - goimports
@@ -205,8 +204,7 @@ linters:
     - depguard
     - gocyclo
     - unparam
-#    - maligned
-#    - prealloc
+
   enable-all: false
   disable:
 
@@ -232,6 +230,7 @@ issues:
         - errcheck
         - dupl
         - gosec
+        - ineffassign
 
     # Exclude known linters from partially hard-vendored code,
     # which is impossible to exclude via "nolint" comments.
