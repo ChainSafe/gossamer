@@ -181,7 +181,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) error {
 			// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
 			logger.Debug("skipping block, already have", "hash", bd.Hash)
 
-			header, err := s.blockState.GetHeader(bd.Hash)
+			header, err := s.blockState.GetHeader(bd.Hash) //nolint
 			if err != nil {
 				logger.Debug("failed to get header", "hash", bd.Hash, "error", err)
 			}

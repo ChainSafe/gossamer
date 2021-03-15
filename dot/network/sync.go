@@ -263,6 +263,7 @@ func (q *syncQueue) benchmark() {
 
 		after, err := q.s.blockState.BestBlockHeader()
 		if err != nil {
+			logger.Info("💤 node waiting")
 			continue
 		}
 
@@ -271,6 +272,10 @@ func (q *syncQueue) benchmark() {
 		logger.Info("🔗 imported blocks", "from", before.Number, "to", after.Number,
 			"hashes", fmt.Sprintf("[%s ... %s]", before.Hash(), after.Hash()),
 		)
+
+		if q.goal-before.Number.Int64() < int64(blockRequestSize) {
+			continue
+		}
 
 		logger.Info("🚣 currently syncing",
 			"goal", q.goal,
@@ -335,7 +340,7 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 		start := best.Int64() + 1
 
 		size := uint32(q.goal) - uint32(start)
-		req := createBlockRequest(int64(start), size)
+		req := createBlockRequest(start, size)
 
 		if d, has := q.requestData.Load(start); has {
 			data := d.(requestData)
