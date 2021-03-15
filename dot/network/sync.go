@@ -255,6 +255,12 @@ func (q *syncQueue) benchmark() {
 		}
 
 		if before.Number.Int64() >= q.goal {
+			finalized, err := q.s.blockState.GetFinalizedHeader(0, 0)
+			if err != nil {
+				continue
+			}
+
+			logger.Info("💤 node waiting", "head", before.Number, "finalized", finalized.Number)
 			continue
 		}
 
@@ -263,7 +269,6 @@ func (q *syncQueue) benchmark() {
 
 		after, err := q.s.blockState.BestBlockHeader()
 		if err != nil {
-			logger.Info("💤 node waiting")
 			continue
 		}
 

@@ -29,6 +29,7 @@ type BlockState interface {
 	BestBlockNumber() (*big.Int, error)
 	GenesisHash() common.Hash
 	HasBlockBody(common.Hash) (bool, error)
+	GetFinalizedHeader(round, setID uint64) (*types.Header, error)
 }
 
 // Syncer is implemented by the syncing service
