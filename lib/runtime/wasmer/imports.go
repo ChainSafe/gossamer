@@ -371,8 +371,7 @@ func ext_crypto_ed25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 
 	if ok, err := pubKey.Verify(message, signature); err != nil || !ok {
 		logger.Error("[ext_crypto_ed25519_verify_version_1] failed to verify")
-		// TODO: fix this
-		return 1
+		return 0
 	}
 
 	logger.Debug("[ext_crypto_ed25519_verify_version_1] verified ed25519 signature")
@@ -636,7 +635,7 @@ func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 	}
 
 	if ok, err := pub.VerifyDeprecated(message, signature); err != nil || !ok {
-		logger.Debug("[ext_crypto_sr25519_verify_version_1] failed to verify sr25519 signature")
+		logger.Debug("[ext_crypto_sr25519_verify_version_1] failed to validate signature", "error", err)
 		// TODO: fix this, fails at block 3876
 		return 1
 	}
@@ -679,9 +678,8 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 	}
 
 	if ok, err := pub.Verify(message, signature); err != nil || !ok {
-		logger.Error("[ext_crypto_sr25519_verify_version_2] failed to validate signature")
-		// TODO: fix this
-		return 1
+		logger.Error("[ext_crypto_sr25519_verify_version_2] failed to validate signature", "error", err)
+		return 0
 	}
 
 	logger.Debug("[ext_crypto_sr25519_verify_version_2] validated signature")
