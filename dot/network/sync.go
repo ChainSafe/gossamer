@@ -185,11 +185,13 @@ func (q *syncQueue) syncAtHead() {
 
 		// we have received new blocks since the last check, sleep
 		if prev.Number.Int64() < curr.Number.Int64() {
+			logger.Debug("received new blocks since last check, going back to sleep...")
 			prev = curr
 			continue
 		}
 
 		prev = curr
+		logger.Debug("haven't received new blocks since last check, pushing request", "start", uint64(curr.Number.Int64())+1)
 		q.pushRequest(uint64(curr.Number.Int64())+1, 1, "")
 	}
 }
