@@ -510,7 +510,7 @@ func (q *syncQueue) processBlockRequests() {
 				q.trySync(req)
 				continue
 			}
-			
+
 			if d, has := q.requestData.Load(req.req.StartingBlock.Uint64()); has {
 				data := d.(requestData)
 				if data.sent && data.received {
