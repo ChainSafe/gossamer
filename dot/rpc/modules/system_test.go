@@ -352,6 +352,15 @@ func setupSystemModule(t *testing.T) *SystemModule {
 
 	err = chain.Storage.StoreTrie(ts)
 	require.NoError(t, err)
+	err = chain.Block.AddBlock(&types.Block{
+		Header: &types.Header{
+			Number:     big.NewInt(1),
+			ParentHash: chain.Block.BestBlockHash(),
+			StateRoot:  ts.MustRoot(),
+		},
+		Body: &types.Body{},
+	})
+	require.NoError(t, err)
 
 	core := newCoreService(t, chain)
 	// TODO (ed) add transactions to txQueue and add test for those
