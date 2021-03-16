@@ -190,8 +190,12 @@ func (q *syncQueue) syncAtHead() {
 		}
 
 		prev = curr
-		logger.Debug("haven't received new blocks since last check, pushing request", "start", uint64(curr.Number.Int64())+1)
-		q.pushRequest(uint64(curr.Number.Int64())+1, 1, "")
+		start := uint64(curr.Number.Int64())+1
+		logger.Debug("haven't received new blocks since last check, pushing request", "start", )
+		q.requestData.Store(uint64(start), requestData{
+			sent:     false,
+		})
+		q.pushRequest(start, 1, "")
 	}
 }
 
@@ -445,10 +449,10 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error 
 		return fmt.Errorf("response data is empty")
 	}
 
-	head, err := q.s.blockState.BestBlockNumber()
-	if err != nil {
-		return fmt.Errorf("failed to get best block number: %w", err)
-	}
+	// head, err := q.s.blockState.BestBlockNumber()
+	// if err != nil {
+	// 	return fmt.Errorf("failed to get best block number: %w", err)
+	// }
 
 	start, end, err := resp.getStartAndEnd()
 	if err != nil {
@@ -466,11 +470,11 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error 
 	// update peer's score
 	q.updatePeerScore(pid, 1)
 
-	if end < head.Int64() {
-		logger.Debug("throwing away BlockResponseMessage as it's below our head", "head", head, "response end", end)
-		q.requestData.Delete(uint64(start))
-		return nil
-	}
+	// if end < head.Int64() {
+	// 	logger.Debug("throwing away BlockResponseMessage as it's below our head", "head", head, "response end", end)
+	// 	q.requestData.Delete(uint64(start))
+	// 	return nil
+	// }
 
 	q.requestData.Store(uint64(start), requestData{
 		sent:     true,
