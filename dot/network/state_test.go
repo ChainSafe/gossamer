@@ -71,3 +71,7 @@ func (mbs *MockBlockState) BestBlockNumber() (*big.Int, error) {
 func (mbs *MockBlockState) HasBlockBody(common.Hash) (bool, error) {
 	return false, nil
 }
+
+func (mbs *MockBlockState) GetFinalizedHeader(_, _ uint64) (*types.Header, error) {
+	return mbs.BestBlockHeader()
+}

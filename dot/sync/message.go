@@ -67,7 +67,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 		return nil, err
 	}
 
-	s.logger.Debug("BlockRequestMessage", "start", startHeader.Number, "end", endHeader.Number, "startHash", startHash, "endHash", endHash)
+	logger.Debug("handling BlockRequestMessage", "start", startHeader.Number, "end", endHeader.Number, "startHash", startHash, "endHash", endHash)
 
 	// get sub-chain of block hashes
 	subchain, err := s.blockState.SubChain(startHash, endHash)
@@ -79,7 +79,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 		subchain = subchain[:maxResponseSize]
 	}
 
-	s.logger.Trace("subchain", "start", subchain[0], "end", subchain[len(subchain)-1])
+	logger.Trace("subchain", "start", subchain[0], "end", subchain[len(subchain)-1])
 
 	responseData := []*types.BlockData{}
 
@@ -139,7 +139,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 		responseData = append(responseData, blockData)
 	}
 
-	s.logger.Debug("sending BlockResponseMessage", "start", startHeader.Number, "end", endHeader.Number)
+	logger.Debug("sending BlockResponseMessage", "start", startHeader.Number, "end", endHeader.Number)
 	return &network.BlockResponseMessage{
 		BlockData: responseData,
 	}, nil

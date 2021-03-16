@@ -57,8 +57,8 @@ func (s *mockSyncer) HandleBlockAnnounce(msg *BlockAnnounceMessage) error {
 	return nil
 }
 
-func (s *mockSyncer) ProcessBlockData(data []*types.BlockData) error {
-	return nil
+func (s *mockSyncer) ProcessBlockData(data []*types.BlockData) (int, error) {
+	return 0, nil
 }
 
 func (s *mockSyncer) IsSynced() bool {
@@ -147,7 +147,7 @@ func testBlockRequestMessageDecoder(in []byte, _ peer.ID) (Message, error) {
 }
 
 var testBlockAnnounceMessage = &BlockAnnounceMessage{
-	Number: big.NewInt(99),
+	Number: big.NewInt(128 * 7),
 }
 
 func testBlockAnnounceMessageDecoder(in []byte, _ peer.ID) (Message, error) {
