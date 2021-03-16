@@ -310,8 +310,8 @@ func (s *Service) handleConn(conn libp2pnetwork.Conn) {
 			validated: false,
 		}
 
-		logger.Trace("sending handshake", "protocol", info.subProtocol, "peer", peer, "message", hs)
-		err = s.host.send(peer, info.subProtocol, hs)
+		logger.Trace("sending handshake", "protocol", info.protocolID, "peer", peer, "message", hs)
+		err = s.host.send(peer, info.protocolID, hs)
 		if err != nil {
 			logger.Trace("failed to send block announce handshake to peer", "peer", peer, "error", err)
 		}
