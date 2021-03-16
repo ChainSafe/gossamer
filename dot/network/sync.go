@@ -449,11 +449,6 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error 
 		return fmt.Errorf("response data is empty")
 	}
 
-	// head, err := q.s.blockState.BestBlockNumber()
-	// if err != nil {
-	// 	return fmt.Errorf("failed to get best block number: %w", err)
-	// }
-
 	start, end, err := resp.getStartAndEnd()
 	if err != nil {
 		// update peer's score
@@ -469,13 +464,6 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error 
 
 	// update peer's score
 	q.updatePeerScore(pid, 1)
-
-	// if end < head.Int64() {
-	// 	logger.Debug("throwing away BlockResponseMessage as it's below our head", "head", head, "response end", end)
-	// 	q.requestData.Delete(uint64(start))
-	// 	return nil
-	// }
-
 	q.requestData.Store(uint64(start), requestData{
 		sent:     true,
 		received: true,
