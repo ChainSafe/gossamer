@@ -26,7 +26,9 @@ import (
 	"testing"
 	"time"
 
+	gosstypes "github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v2"
 	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
@@ -353,25 +355,15 @@ func TestPendingExtrinsic(t *testing.T) {
 	utils.CreateConfigBabeMaxThreshold()
 
 	numNodes := 3
+	// index of node to submit tx to
+	idx := numNodes - 1 // TODO: randomize this
 	utils.SetLogLevel(log.LvlInfo)
 
 	// start block producing node first
 	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDefault, utils.ConfigBABEMaxThreshold, false)
 	require.NoError(t, err)
 
-	// wait and start rest of nodes
-	time.Sleep(time.Second * 5)
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDefault, utils.ConfigNoBABE)
-	require.NoError(t, err)
-	nodes = append(nodes, node)
-
-	defer func() {
-		t.Log("going to tear down gossamer...")
-		os.Remove(utils.ConfigBABEMaxThreshold)
-		errList := utils.TearDown(t, nodes)
-		require.Len(t, errList, 0)
-	}()
-
+	// send tx to non-authority node
 	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("http://localhost:%s", node.RPCPort))
 	require.NoError(t, err)
 
@@ -419,60 +411,89 @@ func TestPendingExtrinsic(t *testing.T) {
 	extEnc, err := types.EncodeToHexString(ext)
 	require.NoError(t, err)
 
+	prevHeader := utils.GetChainHead(t, node) // get starting header so that we can lookup blocks by number later
+
 	// Send the extrinsic
 	hash, err := api.RPC.Author.SubmitExtrinsic(ext)
 	require.NoError(t, err)
 	require.NotEqual(t, hash, common.Hash{})
 
-Loop:
-	for {
-		select {
-		case <-time.After(10 * time.Second):
-			t.Fatalf("failed to apply pending extrinsic to block")
-			break Loop
-		default:
-			pendingExt, err := api.RPC.Author.PendingExtrinsics()
-			require.NoError(t, err)
+	// wait and start rest of nodes
+	// TODO: it seems like the non-authority nodes don't sync properly if started before submitting the tx
+	time.Sleep(time.Second * 20)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDefault, utils.ConfigNoBABE)
+	require.NoError(t, err)
+	nodes = append(nodes, node)
 
-			var isPresent bool
-			for _, v := range pendingExt {
-				extrinsicEnc, err := types.EncodeToHexString(v)
-				require.NoError(t, err)
-				if extEnc == extrinsicEnc {
-					isPresent = true
-					break
-				}
-			}
-			if !isPresent {
-				break Loop
-			}
-			time.Sleep(500 * time.Millisecond)
-		}
-	}
+	defer func() {
+		t.Log("going to tear down gossamer...")
+		os.Remove(utils.ConfigBABEMaxThreshold)
+		errList := utils.StopNodes(t, nodes)
+		require.Len(t, errList, 0)
+	}()
 
-	var isAdded bool
-	for i := 0; i < 50; i++ {
-		blockHash, err := api.RPC.Chain.GetBlockHash(uint64(i))
-		if err != nil && strings.Contains(err.Error(), "cannot get block") {
+	time.Sleep(time.Second * 10)
+
+	// wait until there's no more pending extrinsics
+	for i := 0; i < maxRetries; i++ {
+		exts := getPendingExtrinsics(t, nodes[idx])
+		if len(exts) == 0 {
 			break
 		}
-		require.NoError(t, err)
 
-		block, err := api.RPC.Chain.GetBlock(blockHash)
-		require.NoError(t, err)
+		time.Sleep(time.Second)
+	}
 
-		if len(block.Block.Extrinsics) == 0 {
+	header := utils.GetChainHead(t, nodes[idx])
+
+	// search from child -> parent blocks for extrinsic
+	var (
+		resExts    []gosstypes.Extrinsic
+		extInBlock *big.Int
+	)
+
+	for i := 0; i < maxRetries; i++ {
+		block := utils.GetBlock(t, nodes[idx], header.ParentHash)
+		if block == nil {
+			// couldn't get block, increment retry counter
 			continue
 		}
 
-		for _, blockExt := range block.Block.Extrinsics {
-			encBlockExt, err := types.EncodeToHexString(blockExt)
-			require.NoError(t, err)
-			if extEnc == encBlockExt {
-				isAdded = true
+		header = block.Header
+		logger.Info("got block from node", "header", header, "body", block.Body, "node", nodes[idx].Key)
+
+		if block.Body != nil {
+			resExts, err = block.Body.AsExtrinsics()
+			require.NoError(t, err, block.Body)
+
+			logger.Info("extrinsics", "exts", resExts)
+			if len(resExts) >= 2 {
+				extInBlock = block.Header.Number
 				break
 			}
 		}
+
+		if header.Hash() == prevHeader.Hash() {
+			t.Fatal("could not find extrinsic in any blocks")
+		}
 	}
-	require.True(t, isAdded)
+
+	var included bool
+	for _, ext := range resExts {
+		dec, err := scale.Decode(ext, []byte{})
+		require.NoError(t, err)
+		decExt := dec.([]byte)
+		logger.Info("comparing", "expected", extEnc, "in block", common.BytesToHex(decExt))
+		if strings.Compare(extEnc, common.BytesToHex(decExt)) == 0 {
+			included = true
+		}
+	}
+
+	require.True(t, included)
+
+	// wait for nodes to sync
+	// TODO: seems like nodes don't sync properly :/
+	time.Sleep(time.Second * 45)
+	hashes, err := compareBlocksByNumberWithRetry(t, nodes, extInBlock.String())
+	require.NoError(t, err, hashes)
 }
