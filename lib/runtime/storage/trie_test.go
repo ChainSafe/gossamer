@@ -152,7 +152,6 @@ func TestTrieState_NextKey(t *testing.T) {
 		ts.Set([]byte(tc), []byte(tc))
 	}
 
-	t.Log(ts.t)
 	sort.Slice(testCases, func(i, j int) bool {
 		return bytes.Compare([]byte(testCases[i]), []byte(testCases[j])) == -1
 	})
@@ -165,4 +164,36 @@ func TestTrieState_NextKey(t *testing.T) {
 			require.Equal(t, []byte(testCases[i+1]), next, common.BytesToHex([]byte(tc)))
 		}
 	}
+}
+
+func TestTrieState_CommitStorageTransaction(t *testing.T) {
+	ts := newTestTrieState(t)
+
+	for _, tc := range testCases {
+		ts.Set([]byte(tc), []byte(tc))
+	}
+
+	ts.BeginStorageTransaction()
+	testValue := []byte("noot")
+	ts.Set([]byte(testCases[0]), testValue)
+	ts.CommitStorageTransaction()
+
+	val := ts.Get([]byte(testCases[0]))
+	require.Equal(t, testValue, val)
+}
+
+func TestTrieState_RollbackStorageTransaction(t *testing.T) {
+	ts := newTestTrieState(t)
+
+	for _, tc := range testCases {
+		ts.Set([]byte(tc), []byte(tc))
+	}
+
+	ts.BeginStorageTransaction()
+	testValue := []byte("noot")
+	ts.Set([]byte(testCases[0]), testValue)
+	ts.RollbackStorageTransaction()
+
+	val := ts.Get([]byte(testCases[0]))
+	require.Equal(t, []byte(testCases[0]), val)
 }
