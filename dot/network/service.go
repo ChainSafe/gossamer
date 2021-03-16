@@ -190,6 +190,7 @@ func (s *Service) Start() error {
 		s.validateBlockAnnounceHandshake,
 		decodeBlockAnnounceMessage,
 		s.handleBlockAnnounceMessage,
+		false,
 	)
 	if err != nil {
 		logger.Warn("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
@@ -204,6 +205,7 @@ func (s *Service) Start() error {
 		validateTransactionHandshake,
 		decodeTransactionMessage,
 		s.handleTransactionMessage,
+		false,
 	)
 	if err != nil {
 		logger.Warn("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
@@ -387,6 +389,7 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 	handshakeValidator HandshakeValidator,
 	messageDecoder MessageDecoder,
 	messageHandler NotificationsMessageHandler,
+	overwriteProtocol bool,
 ) error {
 	s.notificationsMu.Lock()
 	defer s.notificationsMu.Unlock()
@@ -395,15 +398,22 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 		return errors.New("notifications protocol with message type already exists")
 	}
 
+	var protocolID protocol.ID
+	if overwriteProtocol {
+		protocolID = sub
+	} else {
+		protocolID = s.host.protocolID + sub
+	}
+
 	np := &notificationsProtocol{
-		subProtocol:   sub,
+		protocolID:    protocolID,
 		getHandshake:  handshakeGetter,
 		handshakeData: make(map[peer.ID]*handshakeData),
 	}
 	s.notificationsProtocols[messageID] = np
 
 	connMgr := s.host.h.ConnManager().(*ConnManager)
-	connMgr.registerCloseHandler(s.host.protocolID+sub, func(peerID peer.ID) {
+	connMgr.registerCloseHandler(protocolID, func(peerID peer.ID) {
 		np.mapMu.Lock()
 		defer np.mapMu.Unlock()
 
@@ -411,7 +421,7 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 			logger.Trace(
 				"Cleaning up handshake data",
 				"peer", peerID,
-				"protocol", s.host.protocolID+sub,
+				"protocol", protocolID,
 			)
 			delete(np.handshakeData, peerID)
 		}
@@ -419,7 +429,7 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 
 	info := s.notificationsProtocols[messageID]
 
-	s.host.registerStreamHandler(sub, func(stream libp2pnetwork.Stream) {
+	s.host.registerStreamHandlerWithOverwrite(sub, overwriteProtocol, func(stream libp2pnetwork.Stream) {
 		logger.Trace("received stream", "sub-protocol", sub)
 		conn := stream.Conn()
 		if conn == nil {
@@ -435,7 +445,7 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 		s.readStream(stream, p, decoder, handlerWithValidate)
 	})
 
-	logger.Info("registered notifications sub-protocol", "protocol", s.host.protocolID+sub)
+	logger.Info("registered notifications sub-protocol", "protocol", protocolID)
 	return nil
 }
 
@@ -475,11 +485,7 @@ func (s *Service) SendMessage(msg NotificationsMessage) {
 		return
 	}
 
-	logger.Warn("message not supported by any notifications protocol", "msg type", msg.Type())
-
-	// TODO: deprecate
-	// broadcast message to connected peers
-	s.host.broadcast(msg)
+	logger.Error("message not supported by any notifications protocol", "msg type", msg.Type())
 }
 
 // handleLightStream handles streams with the <protocol-id>/light/2 protocol ID
