@@ -48,12 +48,12 @@ start gossamer node:
 
 initialize kusama node:
 ```
-./bin/gossamer --chain ksmcc --key alice init
+./bin/gossamer --chain kusama --key alice init
 ```
 
 start kusama node:
 ```
-./bin/gossamer --chain ksmcc --key alice
+./bin/gossamer --chain kusama --key alice
 ```
 
 ## Run Polkadot Node (_in development_)

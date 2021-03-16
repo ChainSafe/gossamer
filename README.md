@@ -84,16 +84,16 @@ babe-threshold-denominator = 1
 
 Then, re-run the above steps. NOTE: this feature is for testing only; if you wish to change the BABE block production parameters, you need to create a modified runtime.
 
-### Run Kusama Node (_in development_)
+### Run Kusama Node
 
 initialize kusama node:
 ```
-./bin/gossamer --chain ksmcc init
+./bin/gossamer --chain kusama init
 ```
 
 start kusama node:
 ```
-./bin/gossamer --chain ksmcc
+./bin/gossamer --chain kusama
 ```
 
 The node may not appear to do anything for the first minute or so (it's bootstrapping to the network.) If you wish to see what is it doing in this time, you can turn on debug logs in `chain/gssmr/config.toml`:
@@ -105,9 +105,7 @@ network = "debug"
 
 After it's finished bootstrapping, the node should begin to sync. 
 
-### Run Polkadot Node (_in development_)
-
-NOTE: This is currently not supported.
+### Run Polkadot Node
 
 initialize polkadot node:
 ```

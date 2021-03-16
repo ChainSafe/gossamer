@@ -41,11 +41,11 @@ import (
 var (
 	DefaultCfg                = dot.GssmrConfig
 	defaultGssmrConfigPath    = "./chain/gssmr/config.toml"
-	defaultKusamaConfigPath   = "./chain/ksmcc/config.toml"
+	defaultKusamaConfigPath   = "./chain/kusama/config.toml"
 	defaultPolkadotConfigPath = "./chain/polkadot/config.toml"
 
 	gossamerName = "gssmr"
-	kusamaName   = "ksmcc"
+	kusamaName   = "kusama"
 	polkadotName = "polkadot"
 )
 
@@ -92,7 +92,7 @@ func setupConfigFromChain(ctx *cli.Context) (*ctoml.Config, *dot.Config, error) 
 		case kusamaName:
 			logger.Info("loading toml configuration...", "config path", defaultKusamaConfigPath)
 			tomlCfg = &ctoml.Config{}
-			cfg = dot.KsmccConfig()
+			cfg = dot.KusamaConfig()
 			err = loadConfig(tomlCfg, defaultKusamaConfigPath)
 		case polkadotName:
 			logger.Info("loading toml configuration...", "config path", defaultPolkadotConfigPath)
@@ -408,11 +408,6 @@ func setDotGlobalConfig(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.Global
 	// check --name flag and update node configuration
 	if name := ctx.GlobalString(NameFlag.Name); name != "" {
 		cfg.Name = name
-	}
-
-	// check --chain flag and update node configuration
-	if id := ctx.GlobalString(ChainFlag.Name); id != "" {
-		cfg.ID = id
 	}
 
 	// check --basepath flag and update node configuration

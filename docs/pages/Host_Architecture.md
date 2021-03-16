@@ -20,9 +20,9 @@ The **host node** is the base node implementation. As the base node implementati
 
 The **gssmr node** is an official node implementation for the Gossamer Testnet - a configuration file, genesis file, compiled runtime, and runtime imports used with the **host node**.
 
-The **ksmcc node** is an official node implementation for the Kusama Network - a configuration file, genesis file, compiled runtime, and runtime imports used with the **host node**.
+The **kusama node** is an official node implementation for the Kusama Network - a configuration file, genesis file, compiled runtime, and runtime imports used with the **host node**.
 
-The **dotcc node** is an official node implementation for the Polkadot Network - a configuration file, genesis file, compiled runtime, and runtime imports used with the **host node**.
+The **polkadot node** is an official node implementation for the Polkadot Network - a configuration file, genesis file, compiled runtime, and runtime imports used with the **host node**.
 
 ### Custom Services
 

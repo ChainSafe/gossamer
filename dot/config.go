@@ -20,7 +20,7 @@ import (
 	"encoding/json"
 
 	"github.com/ChainSafe/gossamer/chain/gssmr"
-	"github.com/ChainSafe/gossamer/chain/ksmcc"
+	"github.com/ChainSafe/gossamer/chain/kusama"
 	"github.com/ChainSafe/gossamer/chain/polkadot"
 	"github.com/ChainSafe/gossamer/dot/types"
 	log "github.com/ChainSafe/log15"
@@ -174,48 +174,48 @@ func GssmrConfig() *Config {
 	}
 }
 
-// KsmccConfig returns a "ksmcc" node configuration
-func KsmccConfig() *Config {
+// KusamaConfig returns a kusama node configuration
+func KusamaConfig() *Config {
 	return &Config{
 		Global: GlobalConfig{
-			Name:        ksmcc.DefaultName,
-			ID:          ksmcc.DefaultID,
-			BasePath:    ksmcc.DefaultBasePath,
-			LogLvl:      ksmcc.DefaultLvl,
-			MetricsPort: ksmcc.DefaultMetricsPort,
+			Name:        kusama.DefaultName,
+			ID:          kusama.DefaultID,
+			BasePath:    kusama.DefaultBasePath,
+			LogLvl:      kusama.DefaultLvl,
+			MetricsPort: kusama.DefaultMetricsPort,
 		},
 		Log: LogConfig{
-			CoreLvl:           ksmcc.DefaultLvl,
-			SyncLvl:           ksmcc.DefaultLvl,
-			NetworkLvl:        ksmcc.DefaultLvl,
-			RPCLvl:            ksmcc.DefaultLvl,
-			StateLvl:          ksmcc.DefaultLvl,
-			RuntimeLvl:        ksmcc.DefaultLvl,
-			BlockProducerLvl:  ksmcc.DefaultLvl,
-			FinalityGadgetLvl: ksmcc.DefaultLvl,
+			CoreLvl:           kusama.DefaultLvl,
+			SyncLvl:           kusama.DefaultLvl,
+			NetworkLvl:        kusama.DefaultLvl,
+			RPCLvl:            kusama.DefaultLvl,
+			StateLvl:          kusama.DefaultLvl,
+			RuntimeLvl:        kusama.DefaultLvl,
+			BlockProducerLvl:  kusama.DefaultLvl,
+			FinalityGadgetLvl: kusama.DefaultLvl,
 		},
 		Init: InitConfig{
-			GenesisRaw: ksmcc.DefaultGenesisRaw,
+			GenesisRaw: kusama.DefaultGenesisRaw,
 		},
 		Account: AccountConfig{
-			Key:    ksmcc.DefaultKey,
-			Unlock: ksmcc.DefaultUnlock,
+			Key:    kusama.DefaultKey,
+			Unlock: kusama.DefaultUnlock,
 		},
 		Core: CoreConfig{
-			Roles:           ksmcc.DefaultRoles,
-			WasmInterpreter: ksmcc.DefaultWasmInterpreter,
+			Roles:           kusama.DefaultRoles,
+			WasmInterpreter: kusama.DefaultWasmInterpreter,
 		},
 		Network: NetworkConfig{
-			Port:        ksmcc.DefaultNetworkPort,
-			Bootnodes:   ksmcc.DefaultNetworkBootnodes,
-			NoBootstrap: ksmcc.DefaultNoBootstrap,
-			NoMDNS:      ksmcc.DefaultNoMDNS,
+			Port:        kusama.DefaultNetworkPort,
+			Bootnodes:   kusama.DefaultNetworkBootnodes,
+			NoBootstrap: kusama.DefaultNoBootstrap,
+			NoMDNS:      kusama.DefaultNoMDNS,
 		},
 		RPC: RPCConfig{
-			Port:    ksmcc.DefaultRPCHTTPPort,
-			Host:    ksmcc.DefaultRPCHTTPHost,
-			Modules: ksmcc.DefaultRPCModules,
-			WSPort:  ksmcc.DefaultRPCWSPort,
+			Port:    kusama.DefaultRPCHTTPPort,
+			Host:    kusama.DefaultRPCHTTPHost,
+			Modules: kusama.DefaultRPCModules,
+			WSPort:  kusama.DefaultRPCWSPort,
 		},
 	}
 }
