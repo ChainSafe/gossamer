@@ -15,12 +15,8 @@
     <img alt="go report card" src="https://goreportcard.com/badge/github.com/ChainSafe/gossamer?style=for-the-badge" height="20" />
   </a>
 </div>
-<div align="center">
-  <a href="https://codeclimate.com/github/ChainSafe/gossamer/badges">
-    <img alt="maintainability" src="https://img.shields.io/codeclimate/maintainability/ChainSafe/gossamer?style=for-the-badge" height="20" />
-  </a>
-  <a href="https://codeclimate.com/github/ChainSafe/gossamer/test_coverage">
-    <img alt="Test Coverage" src="https://img.shields.io/codeclimate/coverage/ChainSafe/gossamer?style=for-the-badge" height="20" />
+  <a href="https://app.codecov.io/gh/ChainSafe/gossamer">
+    <img alt="Test Coverage" src="https://img.shields.io/codecov/c/github/ChainSafe/gossamer?flag=unittests&style=for-the-badge&token=89982880-a53b-4a3a-9bdd-3dc9c78bd190" height="20" />
   </a>
     <a href="https://discord.gg/zy8eRF7FG2">
     <img alt="Discord" src="https://img.shields.io/discord/593655374469660673.svg?style=for-the-badge&label=Discord&logo=discord" height="20"/>
@@ -29,7 +25,7 @@
     <img alt="Gossamer Blog" src="https://img.shields.io/badge/Medium-grey?style=for-the-badge&logo=medium" height="20" />
   </a>
     <a href="https://medium.com/chainsafe-systems/tagged/polkadot">
-    <img alt="Gossamer Blog" src="https://img.shields.io/twitter/follow/chainsafeth?color=blue&label=follow&logo=twitter&style=for-the-badge" height="20"/>
+    <img alt="Twitter" src="https://img.shields.io/twitter/follow/chainsafeth?color=blue&label=follow&logo=twitter&style=for-the-badge" height="20"/>
   </a>
 </div>
 <br />
