@@ -190,10 +190,10 @@ func (q *syncQueue) syncAtHead() {
 		}
 
 		prev = curr
-		start := uint64(curr.Number.Int64())+1
-		logger.Debug("haven't received new blocks since last check, pushing request", "start", )
-		q.requestData.Store(uint64(start), requestData{
-			sent:     false,
+		start := uint64(curr.Number.Int64()) + 1
+		logger.Debug("haven't received new blocks since last check, pushing request", "start", start)
+		q.requestData.Store(start, requestData{
+			sent: false,
 		})
 		q.pushRequest(start, 1, "")
 	}
