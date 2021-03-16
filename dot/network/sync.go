@@ -446,7 +446,7 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 
 func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error {
 	if len(resp.BlockData) == 0 {
-		return nil
+		return fmt.Errorf("response data is empty")
 	}
 
 	head, err := q.s.blockState.BestBlockNumber()
@@ -562,7 +562,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 
 		err = q.pushResponse(resp, peer.pid)
 		if err != nil {
-			logger.Debug("failed to push block response", "error", err)
+			logger.Trace("failed to push block response", "error", err)
 		} else {
 			return
 		}
