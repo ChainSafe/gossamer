@@ -50,10 +50,10 @@ func TestConfigFromChainFlag(t *testing.T) {
 			dot.GssmrConfig(),
 		},
 		{
-			"Test gossamer --chain ksmcc",
+			"Test gossamer --chain kusama",
 			[]string{"chain"},
-			[]interface{}{"ksmcc"},
-			dot.KsmccConfig(),
+			[]interface{}{"kusama"},
+			dot.KusamaConfig(),
 		},
 		{
 			"Test gossamer --chain polkadot",
@@ -145,13 +145,13 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 			},
 		},
 		{
-			"Test gossamer --chain",
+			"Test kusama --chain",
 			[]string{"config", "chain"},
-			[]interface{}{testCfgFile.Name(), "ksmcc"},
+			[]interface{}{testCfgFile.Name(), "kusama"},
 			dot.GlobalConfig{
-				Name:           dot.KsmccConfig().Global.Name,
-				ID:             "ksmcc",
-				BasePath:       dot.KsmccConfig().Global.BasePath,
+				Name:           dot.KusamaConfig().Global.Name,
+				ID:             "ksmcc3",
+				BasePath:       dot.KusamaConfig().Global.BasePath,
 				LogLvl:         log.LvlInfo,
 				PublishMetrics: testCfg.Global.PublishMetrics,
 				MetricsPort:    testCfg.Global.MetricsPort,
