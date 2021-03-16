@@ -178,8 +178,8 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) error {
 		hasHeader, _ := s.blockState.HasHeader(bd.Hash)
 		hasBody, _ := s.blockState.HasBlockBody(bd.Hash)
 		if (hasHeader && hasBody) || (bd.Number() != nil && bd.Number().Int64() <= bestNum.Int64()) {
-			// TODO: fix this; sometimes when the node shuts down the "best block" isn't stored properly,
-			// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
+			// TODO: the block should be re-added to the blocktree, since it might not have been stored
+			// properly due to abnormal shutdown
 			s.logger.Debug("skipping block, already have", "hash", bd.Hash)
 			continue
 		}

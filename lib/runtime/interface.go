@@ -66,6 +66,9 @@ type Storage interface {
 	GetChildNextKey(keyToChild, key []byte) ([]byte, error)
 	GetChild(keyToChild []byte) (*trie.Trie, error)
 	ClearPrefix(prefix []byte) error
+	BeginStorageTransaction()
+	CommitStorageTransaction()
+	RollbackStorageTransaction()
 }
 
 // BasicNetwork interface for functions used by runtime network state function
