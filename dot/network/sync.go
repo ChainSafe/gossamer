@@ -213,7 +213,7 @@ func (q *syncQueue) handleResponseQueue() {
 		if len(q.responses) == 0 {
 			q.responseLock.Unlock()
 
-			if len(q.requestCh) == 0 {
+			if len(q.requestCh) == 0 && head.Int64() < q.goal {
 				q.pushRequest(uint64(head.Int64()+1), blockRequestBufferSize, "")
 			}
 			continue
@@ -371,17 +371,21 @@ func (q *syncQueue) updatePeerScore(pid peer.ID, amt int) {
 }
 
 func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
-	if start > uint64(q.goal) {
+	best, err := q.s.blockState.BestBlockNumber()
+	if err != nil {
+		logger.Debug("failed to get best block number", "error", err)
 		return
 	}
 
-	if q.goal-int64(start) < int64(blockRequestSize) {
-		best, err := q.s.blockState.BestBlockNumber()
-		if err != nil {
-			logger.Debug("failed to get best block number", "error", err)
-			return
-		}
+	if q.goal < best.Int64() {
+		q.goal = best.Int64()
+	}
 
+	// if start > uint64(q.goal) {
+	// 	return
+	// }
+
+	if q.goal-int64(start) < int64(blockRequestSize) {
 		start := best.Int64() + 1
 		req := createBlockRequest(start, 0)
 
