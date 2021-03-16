@@ -446,7 +446,7 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 
 func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error {
 	if len(resp.BlockData) == 0 {
-		return fmt.Errorf("block data length is zero")
+		return nil
 	}
 
 	head, err := q.s.blockState.BestBlockNumber()
