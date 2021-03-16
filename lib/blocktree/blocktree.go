@@ -76,17 +76,17 @@ func (bt *BlockTree) GenesisHash() Hash {
 
 // AddBlock inserts the block as child of its parent node
 // Note: Assumes block has no children
-func (bt *BlockTree) AddBlock(block *types.Block, arrivalTime uint64) error {
+func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime uint64) error {
 	bt.Lock()
 	defer bt.Unlock()
 
-	parent := bt.getNode(block.Header.ParentHash)
+	parent := bt.getNode(header.ParentHash)
 	if parent == nil {
 		return ErrParentNotFound
 	}
 
 	// Check if it already exists
-	n := bt.getNode(block.Header.Hash())
+	n := bt.getNode(header.Hash())
 	if n != nil {
 		return ErrBlockExists
 	}
@@ -95,7 +95,7 @@ func (bt *BlockTree) AddBlock(block *types.Block, arrivalTime uint64) error {
 	depth.Add(parent.depth, big.NewInt(1))
 
 	n = &node{
-		hash:        block.Header.Hash(),
+		hash:        header.Hash(),
 		parent:      parent,
 		children:    []*node{},
 		depth:       depth,
@@ -230,7 +230,7 @@ func (bt *BlockTree) longestPath() []*node { //nolint
 }
 
 // subChain returns the path from the node with Hash start to the node with Hash end
-func (bt *BlockTree) subChain(start Hash, end Hash) ([]*node, error) {
+func (bt *BlockTree) subChain(start, end Hash) ([]*node, error) {
 	sn := bt.getNode(start)
 	if sn == nil {
 		return nil, ErrStartNodeNotFound
@@ -243,7 +243,7 @@ func (bt *BlockTree) subChain(start Hash, end Hash) ([]*node, error) {
 }
 
 // SubBlockchain returns the path from the node with Hash start to the node with Hash end
-func (bt *BlockTree) SubBlockchain(start Hash, end Hash) ([]Hash, error) {
+func (bt *BlockTree) SubBlockchain(start, end Hash) ([]Hash, error) {
 	bt.RLock()
 	defer bt.RUnlock()
 

@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package ksmcc
+package kusama
 
 import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
@@ -27,11 +27,11 @@ var (
 	// DefaultName Default node name
 	DefaultName = string("Kusama")
 	// DefaultID Default chain ID
-	DefaultID = string("ksmcc")
+	DefaultID = string("ksmcc3")
 	// DefaultConfig Default toml configuration path
-	DefaultConfig = string("./chain/ksmcc/config.toml")
+	DefaultConfig = string("./chain/kusama/config.toml")
 	// DefaultBasePath Default node base directory path
-	DefaultBasePath = string("~/.gossamer/ksmcc")
+	DefaultBasePath = string("~/.gossamer/kusama")
 
 	// DefaultMetricsPort is the metrics server port
 	DefaultMetricsPort = uint32(9876)
@@ -42,7 +42,7 @@ var (
 	// InitConfig
 
 	// DefaultGenesisRaw Default genesis configuration path
-	DefaultGenesisRaw = string("./chain/ksmcc/genesis-raw.json")
+	DefaultGenesisRaw = string("./chain/kusama/genesis-raw.json")
 
 	// AccountConfig
 
