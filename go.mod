@@ -62,3 +62,5 @@ require (
 )
 
 go 1.15
+
+replace github.com/wasmerio/wasmer-go => ../../noot/wasmer-go
