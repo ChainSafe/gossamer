@@ -18,6 +18,7 @@ package network
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"math/rand"
 	"testing"
@@ -417,4 +418,71 @@ func TestSyncQueue_processBlockResponses(t *testing.T) {
 	go q.processBlockResponses()
 	time.Sleep(time.Second)
 	require.Equal(t, blockRequestBufferSize, len(q.requestCh))
+}
+
+func TestSyncQueue_SyncAtHead(t *testing.T) {
+	q := newTestSyncQueue(t)
+	q.stop()
+	time.Sleep(time.Second)
+	q.ctx = context.Background()
+
+	go q.syncAtHead()
+	time.Sleep(time.Millisecond * 6100)
+	select {
+	case req := <-q.requestCh:
+		require.Equal(t, uint64(2), req.req.StartingBlock.Uint64())
+	case <-time.After(TestMessageTimeout):
+		t.Fatal("did not queue request")
+	}
+}
+
+func TestSyncQueue_PushRequest_NearHead(t *testing.T) {
+	q := newTestSyncQueue(t)
+	q.stop()
+	time.Sleep(time.Second)
+	q.ctx = context.Background()
+	q.goal = 0
+
+	q.pushRequest(1, 1, "")
+	select {
+	case req := <-q.requestCh:
+		require.Equal(t, uint64(2), req.req.StartingBlock.Uint64())
+	case <-time.After(TestMessageTimeout):
+		t.Fatal("did not queue request")
+	}
+}
+
+func TestSyncQueue_handleBlockDataFailure(t *testing.T) {
+	q := newTestSyncQueue(t)
+	q.stop()
+	time.Sleep(time.Second)
+	q.ctx = context.Background()
+	q.currStart = 129
+	q.goal = 1000
+
+	data := testBlockResponseMessage().BlockData
+	q.handleBlockDataFailure(0, fmt.Errorf("some other error"), data)
+	select {
+	case req := <-q.requestCh:
+		require.True(t, req.req.StartingBlock.IsUint64())
+		require.Equal(t, uint64(q.currStart), req.req.StartingBlock.Uint64())
+	case <-time.After(TestMessageTimeout):
+		t.Fatal("did not queue request")
+	}
+}
+
+func TestSyncQueue_handleBlockDataFailure_MissingParent(t *testing.T) {
+	q := newTestSyncQueue(t)
+	q.stop()
+	time.Sleep(time.Second)
+	q.ctx = context.Background()
+
+	data := testBlockResponseMessage().BlockData
+	q.handleBlockDataFailure(0, fmt.Errorf("failed to get parent hash: Key not found"), data)
+	select {
+	case req := <-q.requestCh:
+		require.True(t, req.req.StartingBlock.IsHash())
+	case <-time.After(TestMessageTimeout):
+		t.Fatal("did not queue request")
+	}
 }
