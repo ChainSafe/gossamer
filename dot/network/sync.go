@@ -388,6 +388,7 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 			data := d.(requestData)
 			// we haven't sent the request out yet, or we've already gotten the response
 			if !data.sent || data.sent && data.received {
+				logger.Debug("ignoring request, already received data", "start", start)
 				return
 			}
 		}
@@ -481,7 +482,7 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error 
 	defer q.responseLock.Unlock()
 
 	for _, bd := range resp.BlockData {
-		if bd.Number() == nil || bd.Number().Int64() < head.Int64() {
+		if bd.Number() == nil {
 			continue
 		}
 
