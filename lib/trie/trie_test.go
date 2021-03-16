@@ -739,6 +739,26 @@ func TestNextKey_Again(t *testing.T) {
 	}
 }
 
+func TestNextKey_HostAPI(t *testing.T) {
+	trie := NewEmptyTrie()
+
+	var testCases = []string{
+		":code",
+		":heappages",
+	}
+
+	for _, tc := range testCases {
+		trie.Put([]byte(tc), []byte(tc))
+	}
+
+	nextCases := []string{"Opti", "Option"}
+
+	for _, tc := range nextCases {
+		next := trie.NextKey([]byte(tc))
+		require.Nil(t, next)
+	}
+}
+
 func TestClearPrefix(t *testing.T) {
 	tests := []Test{
 		{key: []byte{0x01, 0x35}, value: []byte("spaghetti"), op: PUT},
