@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package rpc
+package subscription
 
 import (
 	"bytes"
@@ -22,70 +22,37 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/big"
-	"net"
 	"net/http"
 	"strings"
+	"sync"
 
+	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	log "github.com/ChainSafe/log15"
 	"github.com/gorilla/websocket"
 )
 
-var rpcHost string
+var logger = log.New("pkg", "subscription")
 
-// ServeHTTP implemented to handle WebSocket connections
-func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	var upg = websocket.Upgrader{
-		CheckOrigin: func(r *http.Request) bool {
-			if !h.serverConfig.WSExternal {
-				ip, _, error := net.SplitHostPort(r.RemoteAddr)
-				if error != nil {
-					logger.Error("unable to parse IP", "error")
-					return false
-				}
-
-				f := LocalhostFilter()
-				if allowed := f.Allowed(ip); allowed {
-					return true
-				}
-
-				logger.Debug("external websocket request refused", "error")
-				return false
-			}
-			return true
-		},
-	}
-
-	ws, err := upg.Upgrade(w, r, nil)
-	if err != nil {
-		h.logger.Error("websocket upgrade failed", "error", err)
-		return
-	}
-	// create wsConn
-	wsc := NewWSConn(ws, h.serverConfig)
-	h.wsConns = append(h.wsConns, wsc)
-
-	go wsc.handleComm()
+// WSConn struct to hold WebSocket Connection references
+type WSConn struct {
+	Wsconn             *websocket.Conn
+	mu                 sync.Mutex
+	BlockSubChannels   map[int]byte
+	StorageSubChannels map[int]byte
+	qtyListeners       int
+	Subscriptions      map[int]Listener
+	StorageAPI         modules.StorageAPI
+	BlockAPI           modules.BlockAPI
+	RuntimeAPI         modules.RuntimeAPI
+	CoreAPI            modules.CoreAPI
+	TxStateAPI         modules.TransactionStateAPI
+	RPCHost            string
 }
 
-// NewWSConn to create new WebSocket Connection struct
-func NewWSConn(conn *websocket.Conn, cfg *HTTPServerConfig) *WSConn {
-	rpcHost = fmt.Sprintf("http://%s:%d/", cfg.Host, cfg.RPCPort)
-	c := &WSConn{
-		wsconn:             conn,
-		subscriptions:      make(map[int]Listener),
-		blockSubChannels:   make(map[int]byte),
-		storageSubChannels: make(map[int]byte),
-		storageAPI:         cfg.StorageAPI,
-		blockAPI:           cfg.BlockAPI,
-		runtimeAPI:         cfg.RuntimeAPI,
-		coreAPI:            cfg.CoreAPI,
-		txStateAPI:         cfg.TransactionQueueAPI,
-	}
-	return c
-}
-
-func (c *WSConn) handleComm() {
+//HandleComm handles messages received on websocket connections
+func (c *WSConn) HandleComm() {
 	for {
-		_, mbytes, err := c.wsconn.ReadMessage()
+		_, mbytes, err := c.Wsconn.ReadMessage()
 		if err != nil {
 			logger.Warn("websocket failed to read message", "error", err)
 			return
@@ -159,7 +126,7 @@ func (c *WSConn) handleComm() {
 			return
 		}
 
-		req, err := http.NewRequest("POST", rpcHost, buf)
+		req, err := http.NewRequest("POST", c.RPCHost, buf)
 		if err != nil {
 			logger.Warn("failed request to rpc service", "error", err)
 			return

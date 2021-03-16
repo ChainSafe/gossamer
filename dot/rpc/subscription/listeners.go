@@ -13,7 +13,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
-package rpc
+package subscription
 
 import (
 	"fmt"
@@ -31,17 +31,17 @@ type Listener interface {
 }
 
 func (c *WSConn) startListener(lid int) {
-	go c.subscriptions[lid].Listen()
+	go c.Subscriptions[lid].Listen()
 }
 
 func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (int, error) {
 	scl := &StorageChangeListener{
-		channel: make(chan *state.SubscriptionResult),
+		Channel: make(chan *state.SubscriptionResult),
 		wsconn:  c,
 	}
 	sub := &state.StorageSubscription{
 		Filter:   make(map[string]bool),
-		Listener: scl.channel,
+		Listener: scl.Channel,
 	}
 
 	pA := params.([]interface{})
@@ -58,21 +58,21 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (i
 		}
 	}
 
-	if c.storageAPI == nil {
+	if c.StorageAPI == nil {
 		c.safeSendError(reqID, nil, "error StorageAPI not set")
 		return 0, fmt.Errorf("error StorageAPI not set")
 	}
 
-	chanID, err := c.storageAPI.RegisterStorageChangeChannel(*sub)
+	chanID, err := c.StorageAPI.RegisterStorageChangeChannel(*sub)
 	if err != nil {
 		return 0, err
 	}
-	scl.chanID = chanID
+	scl.ChanID = chanID
 
 	c.qtyListeners++
 	scl.subID = c.qtyListeners
-	c.subscriptions[scl.subID] = scl
-	c.storageSubChannels[scl.subID] = chanID
+	c.Subscriptions[scl.subID] = scl
+	c.StorageSubChannels[scl.subID] = chanID
 
 	initRes := newSubscriptionResponseJSON(scl.subID, reqID)
 	c.safeSend(initRes)
@@ -82,15 +82,15 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (i
 
 // StorageChangeListener for listening to state change channels
 type StorageChangeListener struct {
-	channel chan *state.SubscriptionResult
+	Channel chan *state.SubscriptionResult
 	wsconn  *WSConn
-	chanID  byte
+	ChanID  byte
 	subID   int
 }
 
 // Listen implementation of Listen interface to listen for importedChan changes
 func (l *StorageChangeListener) Listen() {
-	for change := range l.channel {
+	for change := range l.Channel {
 		if change == nil {
 			continue
 		}
@@ -114,31 +114,31 @@ func (l *StorageChangeListener) Listen() {
 
 // BlockListener to handle listening for blocks importedChan
 type BlockListener struct {
-	channel chan *types.Block
+	Channel chan *types.Block
 	wsconn  *WSConn
-	chanID  byte
+	ChanID  byte
 	subID   int
 }
 
 func (c *WSConn) initBlockListener(reqID float64) (int, error) {
 	bl := &BlockListener{
-		channel: make(chan *types.Block),
+		Channel: make(chan *types.Block),
 		wsconn:  c,
 	}
 
-	if c.blockAPI == nil {
+	if c.BlockAPI == nil {
 		c.safeSendError(reqID, nil, "error BlockAPI not set")
 		return 0, fmt.Errorf("error BlockAPI not set")
 	}
-	chanID, err := c.blockAPI.RegisterImportedChannel(bl.channel)
+	chanID, err := c.BlockAPI.RegisterImportedChannel(bl.Channel)
 	if err != nil {
 		return 0, err
 	}
-	bl.chanID = chanID
+	bl.ChanID = chanID
 	c.qtyListeners++
 	bl.subID = c.qtyListeners
-	c.subscriptions[bl.subID] = bl
-	c.blockSubChannels[bl.subID] = chanID
+	c.Subscriptions[bl.subID] = bl
+	c.BlockSubChannels[bl.subID] = chanID
 	initRes := newSubscriptionResponseJSON(bl.subID, reqID)
 	c.safeSend(initRes)
 
@@ -147,7 +147,7 @@ func (c *WSConn) initBlockListener(reqID float64) (int, error) {
 
 // Listen implementation of Listen interface to listen for importedChan changes
 func (l *BlockListener) Listen() {
-	for block := range l.channel {
+	for block := range l.Channel {
 		if block == nil {
 			continue
 		}
@@ -178,19 +178,19 @@ func (c *WSConn) initBlockFinalizedListener(reqID float64) (int, error) {
 		wsconn:  c,
 	}
 
-	if c.blockAPI == nil {
+	if c.BlockAPI == nil {
 		c.safeSendError(reqID, nil, "error BlockAPI not set")
 		return 0, fmt.Errorf("error BlockAPI not set")
 	}
-	chanID, err := c.blockAPI.RegisterFinalizedChannel(bfl.channel)
+	chanID, err := c.BlockAPI.RegisterFinalizedChannel(bfl.channel)
 	if err != nil {
 		return 0, err
 	}
 	bfl.chanID = chanID
 	c.qtyListeners++
 	bfl.subID = c.qtyListeners
-	c.subscriptions[bfl.subID] = bfl
-	c.blockSubChannels[bfl.subID] = chanID
+	c.Subscriptions[bfl.subID] = bfl
+	c.BlockSubChannels[bfl.subID] = chanID
 	initRes := newSubscriptionResponseJSON(bfl.subID, reqID)
 	c.safeSend(initRes)
 
@@ -246,25 +246,25 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (int, err
 		finalizedChan: make(chan *types.Header),
 	}
 
-	if c.blockAPI == nil {
+	if c.BlockAPI == nil {
 		return 0, fmt.Errorf("error BlockAPI not set")
 	}
-	esl.importedChanID, err = c.blockAPI.RegisterImportedChannel(esl.importedChan)
+	esl.importedChanID, err = c.BlockAPI.RegisterImportedChannel(esl.importedChan)
 	if err != nil {
 		return 0, err
 	}
 
-	esl.finalizedChanID, err = c.blockAPI.RegisterFinalizedChannel(esl.finalizedChan)
+	esl.finalizedChanID, err = c.BlockAPI.RegisterFinalizedChannel(esl.finalizedChan)
 	if err != nil {
 		return 0, err
 	}
 
 	c.qtyListeners++
 	esl.subID = c.qtyListeners
-	c.subscriptions[esl.subID] = esl
-	c.blockSubChannels[esl.subID] = esl.importedChanID
+	c.Subscriptions[esl.subID] = esl
+	c.BlockSubChannels[esl.subID] = esl.importedChanID
 
-	err = c.coreAPI.HandleSubmittedExtrinsic(extBytes)
+	err = c.CoreAPI.HandleSubmittedExtrinsic(extBytes)
 	if err != nil {
 		return 0, err
 	}
@@ -272,7 +272,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (int, err
 
 	// TODO (ed) since HandleSubmittedExtrinsic has been called we assume the extrinsic is in the tx queue
 	//  should we add a channel to tx queue so we're notified when it's in the queue
-	if c.coreAPI.IsBlockProducer() {
+	if c.CoreAPI.IsBlockProducer() {
 		c.safeSend(newSubscriptionResponse(AuthorExtrinsicUpdates, esl.subID, "ready"))
 	}
 
@@ -326,13 +326,13 @@ func (c *WSConn) initRuntimeVersionListener(reqID float64) (int, error) {
 	rvl := &RuntimeVersionListener{
 		wsconn: c,
 	}
-	if c.coreAPI == nil {
+	if c.CoreAPI == nil {
 		c.safeSendError(reqID, nil, "error CoreAPI not set")
 		return 0, fmt.Errorf("error CoreAPI not set")
 	}
 	c.qtyListeners++
 	rvl.subID = c.qtyListeners
-	c.subscriptions[rvl.subID] = rvl
+	c.Subscriptions[rvl.subID] = rvl
 	initRes := newSubscriptionResponseJSON(rvl.subID, reqID)
 	c.safeSend(initRes)
 
@@ -341,7 +341,7 @@ func (c *WSConn) initRuntimeVersionListener(reqID float64) (int, error) {
 
 // Listen implementation of Listen interface to listen for runtime version changes
 func (l *RuntimeVersionListener) Listen() {
-	rtVersion, err := l.wsconn.coreAPI.GetRuntimeVersion(nil)
+	rtVersion, err := l.wsconn.CoreAPI.GetRuntimeVersion(nil)
 	if err != nil {
 		return
 	}
