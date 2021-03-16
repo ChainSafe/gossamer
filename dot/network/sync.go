@@ -178,7 +178,7 @@ func (q *syncQueue) syncAtHead() {
 		}
 
 		// we aren't at the head yet, sleep
-		if curr.Number.Int64() <= q.goal {
+		if curr.Number.Int64() < q.goal {
 			prev = curr
 			continue
 		}
