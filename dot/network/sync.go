@@ -185,7 +185,6 @@ func (q *syncQueue) syncAtHead() {
 
 		// we have received new blocks since the last check, sleep
 		if prev.Number.Int64() < curr.Number.Int64() {
-			logger.Debug("received new blocks since last check, going back to sleep...")
 			prev = curr
 			continue
 		}
@@ -300,7 +299,7 @@ func (q *syncQueue) benchmark() {
 				continue
 			}
 
-			logger.Info("💤 node waiting", "head", before.Number, "finalized", finalized.Number, "highest seen", q.goal)
+			logger.Info("💤 node waiting", "head", before.Number, "finalized", finalized.Number)
 			time.Sleep(time.Second * 5)
 			continue
 		}
@@ -380,10 +379,6 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 	if q.goal < best.Int64() {
 		q.goal = best.Int64()
 	}
-
-	// if start > uint64(q.goal) {
-	// 	return
-	// }
 
 	if q.goal-int64(start) < int64(blockRequestSize) {
 		start := best.Int64() + 1
