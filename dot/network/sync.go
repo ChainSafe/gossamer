@@ -530,7 +530,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 		return
 	}
 
-	logger.Debug("beginning to send out request", "start", req.req.StartingBlock.Uint64())
+	logger.Debug("beginning to send out request", "start", req.req.StartingBlock.Value())
 	if len(req.to) != 0 {
 		resp, err := q.syncWithPeer(req.to, req.req)
 		if err == nil {
@@ -569,10 +569,12 @@ func (q *syncQueue) trySync(req *syncRequest) {
 	}
 
 	logger.Debug("failed to sync with any peer :(")
-	q.requestData.Store(req.req.StartingBlock.Uint64(), requestData{
-		sent:     true,
-		received: false,
-	})
+	if req.req.StartingBlock.IsUint64() {
+		q.requestData.Store(req.req.StartingBlock.Uint64(), requestData{
+			sent:     true,
+			received: false,
+		})
+	}
 
 	req.to = ""
 	q.requestCh <- req
@@ -796,6 +798,10 @@ func sortRequests(reqs []*syncRequest) []*syncRequest {
 	}
 
 	sort.Slice(reqs, func(i, j int) bool {
+		if !reqs[i].req.StartingBlock.IsUint64() || !reqs[j].req.StartingBlock.IsUint64() {
+			return false
+		}
+
 		return reqs[i].req.StartingBlock.Uint64() < reqs[j].req.StartingBlock.Uint64()
 	})
 
@@ -803,6 +809,11 @@ func sortRequests(reqs []*syncRequest) []*syncRequest {
 	for {
 		if i >= len(reqs)-1 {
 			return reqs
+		}
+
+		if !reqs[i].req.StartingBlock.IsUint64() || !reqs[i+1].req.StartingBlock.IsUint64() {
+			i++
+			continue
 		}
 
 		if reqs[i].req.StartingBlock.Uint64() == reqs[i+1].req.StartingBlock.Uint64() && reflect.DeepEqual(reqs[i].req.Max, reqs[i+1].req.Max) {
