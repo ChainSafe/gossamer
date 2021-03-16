@@ -287,6 +287,8 @@ func (in *Instance) exec(function string, data []byte) ([]byte, error) {
 		return nil, fmt.Errorf("could not find exported function %s: %w", function, err)
 	}
 
+	logger.Info("instance.exec", "ptr", ptr, "datalen", datalen)
+
 	res, err := runtimeFunc(int32(ptr), datalen)
 	if err != nil {
 		return nil, err

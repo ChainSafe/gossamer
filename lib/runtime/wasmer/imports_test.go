@@ -66,6 +66,7 @@ func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
 	ret, err := inst.Exec("rtm_ext_hashing_blake2_128_version_1", enc)
 	require.NoError(t, err)
 
+	t.Log(ret)
 	hash, err := scale.Decode(ret, []byte{})
 	require.NoError(t, err)
 

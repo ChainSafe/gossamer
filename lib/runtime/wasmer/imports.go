@@ -1109,6 +1109,8 @@ func ext_hashing_blake2_128_version_1(env interface{}, args []wasm.Value) ([]was
 
 	ctx := env.(*runtime.Context)
 	dataSpan := args[0].I64()
+	ptr, size := int64ToPointerAndSize(dataSpan)
+	logger.Info("[ext_hashing_blake2_128_version_1]", "ptr", ptr, "datalen", size)
 
 	data := asMemorySlice(ctx, dataSpan)
 
