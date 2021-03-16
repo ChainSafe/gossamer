@@ -480,7 +480,7 @@ func TestPendingExtrinsic(t *testing.T) {
 
 	var included bool
 	for _, ext := range resExts {
-		dec, err := scale.Decode(ext, []byte{})
+		dec, err := scale.Decode(ext, []byte{}) //nolint
 		require.NoError(t, err)
 		decExt := dec.([]byte)
 		logger.Info("comparing", "expected", extEnc, "in block", common.BytesToHex(decExt))
