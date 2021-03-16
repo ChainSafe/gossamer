@@ -341,7 +341,7 @@ func (s *Service) Rewind(toBlock int64) error {
 	newHead := s.Block.BestBlockHash()
 
 	header, _ := s.Block.BestBlockHeader()
-	logger.Info("rewinding state...", "new height", header.Number)
+	logger.Info("rewinding state...", "new height", header.Number, "best block hash", newHead)
 
 	epoch, err := s.Epoch.GetEpochForBlock(header)
 	if err != nil {

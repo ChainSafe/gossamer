@@ -30,7 +30,7 @@ import (
 )
 
 func setupStateFile(t *testing.T) string {
-	filename := "../lib/runtime/test_data/block1482002.out"
+	filename := "../lib/runtime/test_data/kusama/block1482002.out"
 
 	data, err := ioutil.ReadFile(filename)
 	require.NoError(t, err)
