@@ -44,7 +44,7 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 
 	// create info and decoder
 	info := &notificationsProtocol{
-		subProtocol:   blockAnnounceID,
+		protocolID:    s.host.protocolID + blockAnnounceID,
 		getHandshake:  s.getBlockAnnounceHandshake,
 		handshakeData: make(map[peer.ID]*handshakeData),
 	}
@@ -130,7 +130,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 
 	// create info and handler
 	info := &notificationsProtocol{
-		subProtocol:   blockAnnounceID,
+		protocolID:    s.host.protocolID + blockAnnounceID,
 		getHandshake:  s.getBlockAnnounceHandshake,
 		handshakeData: make(map[peer.ID]*handshakeData),
 	}
@@ -162,7 +162,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 
 	// create info and handler
 	info := &notificationsProtocol{
-		subProtocol:   blockAnnounceID,
+		protocolID:    s.host.protocolID + blockAnnounceID,
 		getHandshake:  s.getBlockAnnounceHandshake,
 		handshakeData: make(map[peer.ID]*handshakeData),
 	}
