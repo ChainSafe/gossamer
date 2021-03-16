@@ -53,6 +53,7 @@ func TestInstance_Version_PolkadotRuntime(t *testing.T) {
 	require.Equal(t, expected.TransactionVersion(), version.TransactionVersion())
 }
 
+// TODO: fix
 func TestInstance_Version_KusamaRuntime(t *testing.T) {
 	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/kusama/genesis-raw.json")
 	require.NoError(t, err)
@@ -436,6 +437,7 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// TODO: fix, fails with panic: Host function `43` does not exist
 func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis-raw.json")
 	require.NoError(t, err)
@@ -539,6 +541,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// TODO: fix, fails with panic: Host function `18` does not exist
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/kusama/genesis-raw.json")
 	require.NoError(t, err)
@@ -770,7 +773,10 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock4939774(t *testing.T) {
-	t.Skip("skip for now as block4939773 is too large")
+	if testing.Short() {
+		t.Skip("skip for now as block4939773 is too large")
+	}
+
 	ksmTrie := newTrieFromPairs(t, "../test_data/kusama/block4939773.out")
 	expectedRoot := common.MustHexToHash("0xc45748e6e8632b44fc32b04cc4380098a9584cbd63ffbc59adce189574fc36fe")
 	require.Equal(t, expectedRoot, ksmTrie.MustHash())
