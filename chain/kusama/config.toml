@@ -1,5 +1,5 @@
 [global]
-basepath = "~/.gossamer/ksmcc"
+basepath = "~/.gossamer/kusama"
 log = "info"
 metrics-port = 9876
 
@@ -14,7 +14,7 @@ grandpa = ""
 sync = ""
 
 [init]
-genesis-raw = "./chain/ksmcc/genesis-raw.json"
+genesis-raw = "./chain/kusama/genesis-raw.json"
 
 [account]
 key = ""
