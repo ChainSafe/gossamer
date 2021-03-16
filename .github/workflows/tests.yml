@@ -61,7 +61,7 @@ jobs:
           with:
             token: "89982880-a53b-4a3a-9bdd-3dc9c78bd190"
             files: ./coverage.out
-            flags: unittests
+            flags: unit-tests
             name: coverage
             verbose: true
 
