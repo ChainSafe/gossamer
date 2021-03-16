@@ -230,7 +230,7 @@ func (bt *BlockTree) longestPath() []*node { //nolint
 }
 
 // subChain returns the path from the node with Hash start to the node with Hash end
-func (bt *BlockTree) subChain(start Hash, end Hash) ([]*node, error) {
+func (bt *BlockTree) subChain(start, end Hash) ([]*node, error) {
 	sn := bt.getNode(start)
 	if sn == nil {
 		return nil, ErrStartNodeNotFound
@@ -243,7 +243,7 @@ func (bt *BlockTree) subChain(start Hash, end Hash) ([]*node, error) {
 }
 
 // SubBlockchain returns the path from the node with Hash start to the node with Hash end
-func (bt *BlockTree) SubBlockchain(start Hash, end Hash) ([]Hash, error) {
+func (bt *BlockTree) SubBlockchain(start, end Hash) ([]Hash, error) {
 	bt.RLock()
 	defer bt.RUnlock()
 
