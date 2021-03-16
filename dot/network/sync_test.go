@@ -452,6 +452,28 @@ func TestSyncQueue_PushRequest_NearHead(t *testing.T) {
 	}
 }
 
+func TestSyncQueue_handleBlockData_ok(t *testing.T) {
+	q := newTestSyncQueue(t)
+	q.stop()
+	time.Sleep(time.Second)
+	q.ctx = context.Background()
+	q.currStart = 129
+	q.goal = 1000
+
+	data := testBlockResponseMessage().BlockData
+	q.handleBlockData(data)
+	select {
+	case req := <-q.requestCh:
+		require.True(t, req.req.StartingBlock.IsUint64())
+		require.Equal(t, uint64(129), req.req.StartingBlock.Uint64())
+	case <-time.After(TestMessageTimeout):
+		t.Fatal("did not queue request")
+	}
+
+	require.Equal(t, int64(0), q.currStart)
+	require.Equal(t, int64(0), q.currEnd)
+}
+
 func TestSyncQueue_handleBlockDataFailure(t *testing.T) {
 	q := newTestSyncQueue(t)
 	q.stop()
