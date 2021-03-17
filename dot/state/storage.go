@@ -173,9 +173,9 @@ func (s *StorageState) notifyStorageSubscriptions(root common.Hash) error {
 			}
 		} else {
 			// filter result to include only interested keys
-			for k, currentValue := range sub.Filter {
+			for k, cachedValue := range sub.Filter {
 				value := t.Get(common.MustHexToBytes(k))
-				if !reflect.DeepEqual(currentValue, value) {
+				if !reflect.DeepEqual(cachedValue, value) {
 					kv := &KeyValue{
 						Key:   common.MustHexToBytes(k),
 						Value: value,

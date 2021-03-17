@@ -145,15 +145,14 @@ func TestStorageState_RegisterStorageChangeChannel_Multi_Filter(t *testing.T) {
 	for i, ch := range chs {
 
 		go func(i int, ch chan *SubscriptionResult) {
+			defer wg.Done()
 			select {
 			case c := <-ch:
 				require.NotNil(t, c.Hash)
 				require.Equal(t, key1, c.Changes[0].Key)
 				require.Equal(t, value1, c.Changes[0].Value)
-				wg.Done()
 			case <-time.After(testMessageTimeout):
 				t.Error("did not receive storage change: ch=", i)
-				wg.Done()
 			}
 		}(i, ch)
 

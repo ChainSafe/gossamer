@@ -49,12 +49,19 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (i
 		Listener: scl.channel,
 	}
 
-	pA := params.([]interface{})
+	pA, ok := params.([]interface{})
+	if !ok {
+		return 0, fmt.Errorf("unknow parameter type")
+	}
 	for _, param := range pA {
 		switch p := param.(type) {
 		case []interface{}:
 			for _, pp := range param.([]interface{}) {
-				sub.Filter[pp.(string)] = []byte{}
+				data, ok := pp.(string)
+				if !ok {
+					return 0, fmt.Errorf("unknow parameter type")
+				}
+				sub.Filter[data] = []byte{}
 			}
 		case string:
 			sub.Filter[p] = []byte{}
@@ -77,18 +84,6 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (i
 	initRes := newSubscriptionResponseJSON(scl.subID, reqID)
 	c.safeSend(initRes)
 
-	//for k := range sub.Filter {
-	//	fmt.Printf("Lookup Key %v\n", k)
-	//
-	//	res, err := c.storageAPI.GetStorage(nil, common.MustHexToBytes(k))
-	//	if err != nil {
-	//		logger.Debug("error retrieving from storage", "error", err)
-	//	}
-	//	sub.Filter[k] = res
-	//}
-	// respond with current value
-	//res, err := c.storageAPI.GetStorage(nil, sub.)
-
 	return scl.subID, nil
 }
 
@@ -109,7 +104,7 @@ func (l *StorageChangeListener) Listen() {
 
 		result := make(map[string]interface{})
 		result["block"] = change.Hash.String()
-		changes := [][]string{}
+		changes := make([][]string, len(change.Changes))
 		for _, v := range change.Changes {
 			kv := []string{common.BytesToHex(v.Key), common.BytesToHex(v.Value)}
 			changes = append(changes, kv)
@@ -353,6 +348,8 @@ func (c *WSConn) initRuntimeVersionListener(reqID float64) (int, error) {
 
 // Listen implementation of Listen interface to listen for runtime version changes
 func (l *RuntimeVersionListener) Listen() {
+	// This sends current runtime version once when subscription is created
+	// TODO (ed) add logic to send updates when runtime version changes
 	rtVersion, err := l.wsconn.coreAPI.GetRuntimeVersion(nil)
 	if err != nil {
 		return
