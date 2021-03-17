@@ -71,6 +71,7 @@ func (n *testNetwork) RegisterNotificationsProtocol(sub protocol.ID,
 	handshakeValidator network.HandshakeValidator,
 	messageDecoder network.MessageDecoder,
 	messageHandler network.NotificationsMessageHandler,
+	overwriteProtocol bool,
 ) error {
 	return nil
 }

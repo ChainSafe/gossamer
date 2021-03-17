@@ -211,7 +211,7 @@ func TestMain(m *testing.M) {
 		return
 	}
 	defaultGssmrConfigPath = "../../chain/gssmr/config.toml"
-	defaultKusamaConfigPath = "../../chain/ksmcc/config.toml"
+	defaultKusamaConfigPath = "../../chain/kusama/config.toml"
 	defaultPolkadotConfigPath = "../../chain/polkadot/config.toml"
 	os.Exit(m.Run())
 }
