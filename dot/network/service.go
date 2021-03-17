@@ -286,13 +286,12 @@ func (s *Service) handleConn(conn libp2pnetwork.Conn) {
 	s.notificationsMu.Lock()
 	defer s.notificationsMu.Unlock()
 
-	if _, has := s.notificationsProtocols[BlockAnnounceMsgType]; !has {
+	info, has := s.notificationsProtocols[BlockAnnounceMsgType]
+	if !has {
 		// this shouldn't happen
 		logger.Warn("block announce protocol is not yet registered!")
 		return
 	}
-
-	info := s.notificationsProtocols[BlockAnnounceMsgType]
 
 	// open block announce substream
 	hs, err := info.getHandshake()
