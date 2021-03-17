@@ -178,7 +178,6 @@ func (s *Service) Start() error {
 		s.syncQueue.peerScore.Delete(p)
 	})
 
-	s.host.h.Network().SetConnHandler(s.handleConn)
 	s.host.registerStreamHandler(syncID, s.handleSyncStream)
 	s.host.registerStreamHandler(lightID, s.handleLightStream)
 
@@ -211,6 +210,9 @@ func (s *Service) Start() error {
 	if err != nil {
 		logger.Warn("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
 	}
+
+	// since this opens block announce streams, it should happen after the protocol is registered
+	s.host.h.Network().SetConnHandler(s.handleConn)
 
 	// log listening addresses to console
 	for _, addr := range s.host.multiaddrs() {
@@ -280,6 +282,39 @@ func (s *Service) logPeerCount() {
 func (s *Service) handleConn(conn libp2pnetwork.Conn) {
 	// give new peers a slight weight
 	s.syncQueue.updatePeerScore(conn.RemotePeer(), 1)
+
+	s.notificationsMu.Lock()
+	defer s.notificationsMu.Unlock()
+
+	info, has := s.notificationsProtocols[BlockAnnounceMsgType]
+	if !has {
+		// this shouldn't happen
+		logger.Warn("block announce protocol is not yet registered!")
+		return
+	}
+
+	// open block announce substream
+	hs, err := info.getHandshake()
+	if err != nil {
+		logger.Warn("failed to get handshake", "protocol", blockAnnounceID, "error", err)
+		return
+	}
+
+	info.mapMu.RLock()
+	defer info.mapMu.RUnlock()
+
+	peer := conn.RemotePeer()
+	if hsData, has := info.handshakeData[peer]; !has || !hsData.received {
+		info.handshakeData[peer] = &handshakeData{
+			validated: false,
+		}
+
+		logger.Trace("sending handshake", "protocol", info.protocolID, "peer", peer, "message", hs)
+		err = s.host.send(peer, info.protocolID, hs)
+		if err != nil {
+			logger.Trace("failed to send block announce handshake to peer", "peer", peer, "error", err)
+		}
+	}
 }
 
 func (s *Service) beginDiscovery() error {

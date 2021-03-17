@@ -329,3 +329,56 @@ func TestPersistPeerStore(t *testing.T) {
 	nodeAA := createTestService(t, nodeA.cfg)
 	require.NotEmpty(t, nodeAA.host.h.Peerstore().PeerInfo(nodeB.host.id()).Addrs)
 }
+
+func TestHandleConn(t *testing.T) {
+	configA := &Config{
+		BasePath:    utils.NewTestBasePath(t, "nodeA"),
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeA := createTestService(t, configA)
+
+	configB := &Config{
+		BasePath:    utils.NewTestBasePath(t, "nodeB"),
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeB := createTestService(t, configB)
+
+	addrInfosB, err := nodeB.host.addrInfos()
+	require.NoError(t, err)
+
+	err = nodeA.host.connect(*addrInfosB[0])
+	if failedToDial(err) {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(*addrInfosB[0])
+	}
+	require.NoError(t, err)
+
+	time.Sleep(time.Second)
+
+	bScore, ok := nodeA.syncQueue.peerScore.Load(nodeB.host.id())
+	require.True(t, ok)
+	require.Equal(t, 1, bScore)
+	aScore, ok := nodeB.syncQueue.peerScore.Load(nodeA.host.id())
+	require.True(t, ok)
+	require.Equal(t, 1, aScore)
+
+	infoA := nodeA.notificationsProtocols[BlockAnnounceMsgType]
+	hsDataB, has := infoA.handshakeData[nodeB.host.id()]
+	require.True(t, has)
+	require.True(t, hsDataB.received)
+	require.True(t, hsDataB.validated)
+
+	infoB := nodeB.notificationsProtocols[BlockAnnounceMsgType]
+	hsDataA, has := infoB.handshakeData[nodeA.host.id()]
+	require.True(t, has)
+	require.True(t, hsDataA.received)
+	require.True(t, hsDataA.validated)
+}
