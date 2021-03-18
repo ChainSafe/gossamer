@@ -309,6 +309,7 @@ func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
 		StateRoot:      block.Header.StateRoot,
 		ExtrinsicsRoot: block.Header.ExtrinsicsRoot,
 		Digest:         block.Header.Digest,
+		BestBlock:      true,
 	}
 
 	if s.net == nil {
