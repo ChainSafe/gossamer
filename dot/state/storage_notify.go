@@ -60,13 +60,13 @@ func (s *StorageState) RegisterStorageChangeChannel(sub StorageSubscription) (by
 	s.changedLock.Lock()
 	s.subscriptions[id] = &sub
 	s.changedLock.Unlock()
-	// notifyStorageSubscriptions here to send storage value of current state
+	// notifyStorageSubscription here to send storage value of current state
 	sr, err := s.blockState.BestBlockStateRoot()
 	if err != nil {
 		logger.Debug("error registering storage change channel", "error", err)
 	}
 	go func() {
-		if err := s.notifyStorageSubscriptions(sr); err != nil {
+		if err := s.notifyStorageSubscription(sr, id); err != nil {
 			logger.Warn("failed to notify storage subscriptions", "error", err)
 		}
 	}()

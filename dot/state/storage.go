@@ -139,9 +139,22 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 	return rtstorage.NewTrieState(tr)
 }
 
-// StoreInDB encodes the entire trie and writes it to the DB
-// The key to the DB entry is the root hash of the trie
+// notifyStorageSubscriptions interates StorageState subscrirptions and notifies listener
+//  if the value filter value has changed
 func (s *StorageState) notifyStorageSubscriptions(root common.Hash) error {
+
+	for subKey := range s.subscriptions {
+		err := s.notifyStorageSubscription(root, subKey)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// notifyStorageSubscriptions interates StorageState subscrirptions and notifies listener
+//  if the value filter value has changed
+func (s *StorageState) notifyStorageSubscription(root common.Hash, subID byte) error {
 	s.lock.RLock()
 	t := s.tries[root]
 	s.lock.RUnlock()
@@ -154,43 +167,43 @@ func (s *StorageState) notifyStorageSubscriptions(root common.Hash) error {
 	s.changedLock.Lock()
 	defer s.changedLock.Unlock()
 
-	for subKey, sub := range s.subscriptions {
-		subRes := &SubscriptionResult{
-			Hash: root,
-		}
-		if len(sub.Filter) == 0 {
-			// no filter, so send all changes
-			ent := t.Entries()
-			for k, v := range ent {
-				if k != ":code" {
-					// todo, currently we're ignoring :code since this is a lot of data
-					kv := &KeyValue{
-						Key:   common.MustHexToBytes(fmt.Sprintf("0x%x", k)),
-						Value: v,
-					}
-					subRes.Changes = append(subRes.Changes, *kv)
+	sub := s.subscriptions[subID]
+	subRes := &SubscriptionResult{
+		Hash: root,
+	}
+	if len(sub.Filter) == 0 {
+		// no filter, so send all changes
+		ent := t.Entries()
+		for k, v := range ent {
+			if k != ":code" {
+				// todo, currently we're ignoring :code since this is a lot of data
+				kv := &KeyValue{
+					Key:   common.MustHexToBytes(fmt.Sprintf("0x%x", k)),
+					Value: v,
 				}
-			}
-		} else {
-			// filter result to include only interested keys
-			for k, cachedValue := range sub.Filter {
-				value := t.Get(common.MustHexToBytes(k))
-				if !reflect.DeepEqual(cachedValue, value) {
-					kv := &KeyValue{
-						Key:   common.MustHexToBytes(k),
-						Value: value,
-					}
-					subRes.Changes = append(subRes.Changes, *kv)
-					s.subscriptions[subKey].Filter[k] = value
-				}
+				subRes.Changes = append(subRes.Changes, *kv)
 			}
 		}
-		if len(subRes.Changes) > 0 {
-			go func(ch chan<- *SubscriptionResult) {
-				ch <- subRes
-			}(sub.Listener)
+	} else {
+		// filter result to include only interested keys
+		for k, cachedValue := range sub.Filter {
+			value := t.Get(common.MustHexToBytes(k))
+			if !reflect.DeepEqual(cachedValue, value) {
+				kv := &KeyValue{
+					Key:   common.MustHexToBytes(k),
+					Value: value,
+				}
+				subRes.Changes = append(subRes.Changes, *kv)
+				s.subscriptions[subID].Filter[k] = value
+			}
 		}
 	}
+	if len(subRes.Changes) > 0 {
+		go func(ch chan<- *SubscriptionResult) {
+			ch <- subRes
+		}(sub.Listener)
+	}
+
 	return nil
 }
 
