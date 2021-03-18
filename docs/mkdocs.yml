@@ -39,7 +39,6 @@ nav:
   - Usage:
     - Command Line: ./usage/command-line.md
     - Configuration: ./usage/configuration.md
-    - Run Official Nodes: ./usage/run-official-nodes.md
     - Import Runtime: ./usage/import-runtime.md
   - Intergrate:
     - Connect to Polkadot.js: ./intergrate/connect-to-polkadot-js.md
