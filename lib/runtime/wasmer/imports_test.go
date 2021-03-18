@@ -445,7 +445,7 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 
 	//	mem := inst.vm.Memory.Data()
 	// TODO: why is this SCALE encoded? it should just be a 32 byte buffer. may be due to way test runtime is written.
-	pubKeyBytes := inst.load(ret.(int32)+1, 32)
+	pubKeyBytes := inst.load(int32(ret.(int64))+1, 32)
 	//pubKeyBytes := mem[ret.ToI32()+1 : ret.ToI32()+1+32]
 	pubKey, err := ed25519.NewPublicKey(pubKeyBytes)
 	require.NoError(t, err)

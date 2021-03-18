@@ -1128,6 +1128,7 @@ func ext_hashing_blake2_128_version_1(env interface{}, args []wasm.Value) ([]was
 		return nil, err
 	}
 
+	logger.Info("[ext_hashing_blake2_128_version_1]", "ret", out)
 	return []wasm.Value{wasm.NewI32(int32(out))}, nil
 }
 

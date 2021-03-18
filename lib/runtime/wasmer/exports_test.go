@@ -53,7 +53,6 @@ func TestInstance_Version_PolkadotRuntime(t *testing.T) {
 	require.Equal(t, expected.TransactionVersion(), version.TransactionVersion())
 }
 
-// TODO: fix
 func TestInstance_Version_KusamaRuntime(t *testing.T) {
 	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/kusama/genesis-raw.json")
 	require.NoError(t, err)
@@ -541,7 +540,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TODO: fix, fails with panic: Host function `18` does not exist
+// TODO: fix, fails with panic: Host function `36` does not exist
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/kusama/genesis-raw.json")
 	require.NoError(t, err)
@@ -819,6 +818,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock4939774(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// TODO: fix, fails with panic: Host function `36` does not exist
 func TestInstance_ExecuteBlock_PolkadotBlock1089328(t *testing.T) {
 	dotTrie := newTrieFromPairs(t, "../test_data/polkadot/block1089327.json")
 	expectedRoot := common.MustHexToHash("0x87ed9ebe7fb645d3b5b0255cc16e78ed022d9fbb52486105436e15a74557535b")

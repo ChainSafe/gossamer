@@ -122,6 +122,7 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 		return nil, err
 	}
 
+	// TODO: can we get memory descriptor from module?
 	// modImports := module.Imports()
 	// var memImport *wasm.ImportType
 	// for _, im := range modImports {
@@ -137,15 +138,25 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	// }
 	// memType := memImport.Type().IntoMemoryType()
 
-	// TODO: determine memory descriptor size that the runtime wants from the wasm.
-	// should be doable w/ wasmer 1.0.0.
-	lim, err := wasm.NewLimits(23, 256) // TODO: determine maximum
-	if err != nil {
-		return nil, err
+	hasExportedMemory := false
+	for _, export := range module.Exports() {
+		if export.Name() == "memory" {
+			hasExportedMemory = true
+			break
+		}
 	}
-	memType := wasm.NewMemoryType(lim)
-	memory := wasm.NewMemory(store, memType)
-	mem := &Memory{memory}
+
+	var memory *wasm.Memory
+	if !hasExportedMemory {
+		// TODO: determine memory descriptor size that the runtime wants from the wasm.
+		// should be doable w/ wasmer 1.0.0.
+		lim, err := wasm.NewLimits(23, 256) // TODO: determine maximum
+		if err != nil {
+			return nil, err
+		}
+		memType := wasm.NewMemoryType(lim)
+		memory = wasm.NewMemory(store, memType)
+	}
 
 	ctx := &runtime.Context{
 		Storage:     cfg.Storage,
@@ -155,7 +166,6 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 		Network:     cfg.Network,
 		Transaction: cfg.Transaction,
 		SigVerifier: runtime.NewSignatureVerifier(),
-		Memory:      mem,
 	}
 
 	imports := cfg.Imports(store, memory, ctx)
@@ -164,6 +174,15 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if hasExportedMemory {
+		memory, err = instance.Exports.GetMemory("memory")
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	ctx.Memory = &Memory{memory}
 
 	heapBase, err := instance.Exports.Get("__heap_base")
 	if err != nil {
@@ -175,11 +194,7 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 		return nil, err
 	}
 
-	ctx.Allocator = runtime.NewAllocator(*mem, uint32(hb.(int32)))
-
-	logger.Debug("NewInstance", "ctx", ctx)
-	//instance.SetContextData(ctx)
-
+	ctx.Allocator = runtime.NewAllocator(ctx.Memory, uint32(hb.(int32)))
 	inst := &Instance{
 		vm:      instance,
 		ctx:     ctx,
@@ -198,6 +213,7 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 	engine := wasm.NewEngine()
 	store := wasm.NewStore(engine)
 
+	// TODO: deal w/ exported memory
 	lim, err := wasm.NewLimits(23, 256)
 	if err != nil {
 		return err
@@ -222,8 +238,6 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 	heapBase := runtime.DefaultHeapBase
 
 	in.ctx.Allocator = runtime.NewAllocator(Memory{memory}, heapBase)
-	//instance.SetContextData(in.ctx)
-
 	inst := &Instance{
 		vm:      instance,
 		ctx:     in.ctx,
@@ -237,7 +251,6 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 // SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.
 func (in *Instance) SetContextStorage(s runtime.Storage) {
 	in.ctx.Storage = s
-	//in.vm.SetContextData(in.ctx)
 }
 
 // Stop func
@@ -294,7 +307,11 @@ func (in *Instance) exec(function string, data []byte) ([]byte, error) {
 		return nil, err
 	}
 
+	logger.Info("instance.exec", "res", res)
+
 	offset, length := int64ToPointerAndSize(res.(int64)) // TODO: are all returns int64?
+	logger.Info("instance.exec", "offset", offset, "length", length)
+
 	return in.load(offset, length), nil
 }
 
