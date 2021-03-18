@@ -90,7 +90,7 @@ func (c *WSConn) handleComm() {
 			logger.Warn("websocket failed to read message", "error", err)
 			return
 		}
-		logger.Debug("websocket received", "message", fmt.Sprintf("%s", mbytes))
+		logger.Debug("websocket received", "message", mbytes)
 
 		// determine if request is for subscribe method type
 		var msg map[string]interface{}
