@@ -442,7 +442,10 @@ func ext_crypto_sr25519_public_keys_version_1(env interface{}, args []wasm.Value
 
 	ctx := env.(*runtime.Context)
 	memory := ctx.Memory.Data()
-	keyTypeID := args[0].I32()
+	keyTypeID, ok := args[0].Unwrap().(int32)
+	if !ok {
+		panic("keyTypeID is not int32")
+	}
 
 	id := memory[keyTypeID : keyTypeID+4]
 
@@ -977,8 +980,14 @@ func ext_default_child_storage_next_key_version_1(env interface{}, args []wasm.V
 	ctx := env.(*runtime.Context)
 	storage := ctx.Storage
 
-	childStorageKey := args[0].I64()
-	key := args[1].I64()
+	childStorageKey, ok := args[0].Unwrap().(int64)
+	if !ok {
+		panic("childStorageKey is not int64")
+	}
+	key, ok := args[1].Unwrap().(int64)
+	if !ok {
+		panic("key is not int64")
+	}
 
 	child, err := storage.GetChildNextKey(asMemorySlice(ctx, childStorageKey), asMemorySlice(ctx, key))
 	if err != nil {
