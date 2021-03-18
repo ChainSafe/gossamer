@@ -15,8 +15,9 @@
     <img alt="go report card" src="https://goreportcard.com/badge/github.com/ChainSafe/gossamer?style=for-the-badge" height="20" />
   </a>
 </div>
+<div align="center">
   <a href="https://app.codecov.io/gh/ChainSafe/gossamer">
-    <img alt="Test Coverage" src="https://img.shields.io/codecov/c/github/ChainSafe/gossamer?flag=unittests&style=for-the-badge&token=89982880-a53b-4a3a-9bdd-3dc9c78bd190" height="20" />
+    <img alt="Test Coverage" src="https://img.shields.io/codecov/c/github/ChainSafe/gossamer/development?style=for-the-badge" height="20" />
   </a>
     <a href="https://discord.gg/zy8eRF7FG2">
     <img alt="Discord" src="https://img.shields.io/discord/593655374469660673.svg?style=for-the-badge&label=Discord&logo=discord" height="20"/>
