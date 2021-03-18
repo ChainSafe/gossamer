@@ -150,7 +150,7 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	if !hasExportedMemory {
 		// TODO: determine memory descriptor size that the runtime wants from the wasm.
 		// should be doable w/ wasmer 1.0.0.
-		lim, err := wasm.NewLimits(23, 256) // TODO: determine maximum
+		lim, err := wasm.NewLimits(23, 256) //nolint // TODO: determine maximum
 		if err != nil {
 			return nil, err
 		}

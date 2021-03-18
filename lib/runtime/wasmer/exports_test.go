@@ -490,6 +490,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// TODO: fix, fails with panic: Host function `36` does not exist
 func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/polkadot/genesis-raw.json")
 	require.NoError(t, err)
