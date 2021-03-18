@@ -129,10 +129,10 @@ func TestStorageState_RegisterStorageChangeChannel_Multi_Filter(t *testing.T) {
 
 	for i := 0; i < num; i++ {
 		chs[i] = make(chan *SubscriptionResult)
-		subFilter := make(map[string][]byte)
-		subFilter[common.BytesToHex(key1)] = []byte{}
 		sub := StorageSubscription{
-			Filter:   subFilter,
+			Filter: map[string][]byte{
+				common.BytesToHex(key1): {},
+			},
 			Listener: chs[i],
 		}
 		ids[i], err = ss.RegisterStorageChangeChannel(sub)

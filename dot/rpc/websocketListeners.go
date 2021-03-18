@@ -104,7 +104,7 @@ func (l *StorageChangeListener) Listen() {
 
 		result := make(map[string]interface{})
 		result["block"] = change.Hash.String()
-		changes := make([][]string, len(change.Changes))
+		changes := make([][]string, 0, len(change.Changes))
 		for _, v := range change.Changes {
 			kv := []string{common.BytesToHex(v.Key), common.BytesToHex(v.Value)}
 			changes = append(changes, kv)
