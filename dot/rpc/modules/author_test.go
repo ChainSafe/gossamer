@@ -68,7 +68,6 @@ func TestAuthorModule_Pending(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Remove the first byte which stores the transaction source.
 	expected := common.BytesToHex(vtx.Extrinsic)
 	if !reflect.DeepEqual(*res, PendingExtrinsicsResponse([]string{expected})) {
 		t.Errorf("Fail: expected: %+v got: %+v\n", res, PendingExtrinsicsResponse([]string{expected}))
