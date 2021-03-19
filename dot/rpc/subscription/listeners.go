@@ -17,8 +17,6 @@ package subscription
 
 import (
 	"fmt"
-
-
 	"reflect"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
@@ -32,37 +30,49 @@ type Listener interface {
 	Listen()
 }
 
+// WSConnAPI interface defining methors a WSConn should have
+type WSConnAPI interface {
+	safeSend(interface{})
+}
+
 func (c *WSConn) startListener(lid int) {
 	go c.Subscriptions[lid].Listen()
 }
 
 func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (int, error) {
+	if c.StorageAPI == nil {
+		c.safeSendError(reqID, nil, "error StorageAPI not set")
+		return 0, fmt.Errorf("error StorageAPI not set")
+	}
+
 	scl := &StorageChangeListener{
 		Channel: make(chan *state.SubscriptionResult),
 		wsconn:  c,
 	}
 	sub := &state.StorageSubscription{
-		Filter:   make(map[string]bool),
+		Filter:   make(map[string][]byte),
 		Listener: scl.Channel,
 	}
 
-	pA := params.([]interface{})
+	pA, ok := params.([]interface{})
+	if !ok {
+		return 0, fmt.Errorf("unknow parameter type")
+	}
 	for _, param := range pA {
 		switch p := param.(type) {
 		case []interface{}:
 			for _, pp := range param.([]interface{}) {
-				sub.Filter[pp.(string)] = true
+				data, ok := pp.(string)
+				if !ok {
+					return 0, fmt.Errorf("unknow parameter type")
+				}
+				sub.Filter[data] = []byte{}
 			}
 		case string:
-			sub.Filter[p] = true
+			sub.Filter[p] = []byte{}
 		default:
 			return 0, fmt.Errorf("unknow parameter type")
 		}
-	}
-
-	if c.StorageAPI == nil {
-		c.safeSendError(reqID, nil, "error StorageAPI not set")
-		return 0, fmt.Errorf("error StorageAPI not set")
 	}
 
 	chanID, err := c.StorageAPI.RegisterStorageChangeChannel(*sub)
@@ -85,7 +95,7 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (i
 // StorageChangeListener for listening to state change channels
 type StorageChangeListener struct {
 	Channel chan *state.SubscriptionResult
-	wsconn  *WSConn
+	wsconn  WSConnAPI
 	ChanID  byte
 	subID   int
 }
@@ -99,7 +109,7 @@ func (l *StorageChangeListener) Listen() {
 
 		result := make(map[string]interface{})
 		result["block"] = change.Hash.String()
-		changes := [][]string{}
+		changes := make([][]string, 0, len(change.Changes))
 		for _, v := range change.Changes {
 			kv := []string{common.BytesToHex(v.Key), common.BytesToHex(v.Value)}
 			changes = append(changes, kv)
@@ -117,7 +127,7 @@ func (l *StorageChangeListener) Listen() {
 // BlockListener to handle listening for blocks importedChan
 type BlockListener struct {
 	Channel chan *types.Block
-	wsconn  *WSConn
+	wsconn  WSConnAPI
 	ChanID  byte
 	subID   int
 }
@@ -169,7 +179,7 @@ func (l *BlockListener) Listen() {
 // BlockFinalizedListener to handle listening for finalized blocks
 type BlockFinalizedListener struct {
 	channel chan *types.Header
-	wsconn  *WSConn
+	wsconn  WSConnAPI
 	chanID  byte
 	subID   int
 }
@@ -219,7 +229,7 @@ func (l *BlockFinalizedListener) Listen() {
 
 // ExtrinsicSubmitListener to handle listening for extrinsic events
 type ExtrinsicSubmitListener struct {
-	wsconn    *WSConn
+	wsconn    WSConnAPI
 	subID     int
 	extrinsic types.Extrinsic
 
@@ -343,6 +353,8 @@ func (c *WSConn) initRuntimeVersionListener(reqID float64) (int, error) {
 
 // Listen implementation of Listen interface to listen for runtime version changes
 func (l *RuntimeVersionListener) Listen() {
+	// This sends current runtime version once when subscription is created
+	// TODO (ed) add logic to send updates when runtime version changes
 	rtVersion, err := l.wsconn.CoreAPI.GetRuntimeVersion(nil)
 	if err != nil {
 		return
@@ -358,5 +370,4 @@ func (l *RuntimeVersionListener) Listen() {
 	ver.Apis = modules.ConvertAPIs(rtVersion.APIItems())
 
 	l.wsconn.safeSend(newSubscriptionResponse("state_runtimeVersion", l.subID, ver))
-
 }

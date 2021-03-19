@@ -15,49 +15,47 @@
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 package subscription
 
-import (
-	"math/big"
-)
+import "math/big"
 
-// BaseResponseJSON for base json response
-type BaseResponseJSON struct {
-	Jsonrpc string `json:"jsonrpc"`
-	Method  string `json:"method"`
-	Params  Params `json:"params"`
+// SubscriptionBaseResponseJSON for base json response
+type SubscriptionBaseResponseJSON struct {
+	Jsonrpc string             `json:"jsonrpc"`
+	Method  string             `json:"method"`
+	Params  SubscriptionParams `json:"params"`
 }
 
-// Params for json param response
-type Params struct {
+// SubscriptionParams for json param response
+type SubscriptionParams struct {
 	Result         interface{} `json:"result"`
 	SubscriptionID int         `json:"subscription"`
 }
 
-func newSubcriptionBaseResponseJSON() BaseResponseJSON {
-	return BaseResponseJSON{
+func newSubcriptionBaseResponseJSON() SubscriptionBaseResponseJSON {
+	return SubscriptionBaseResponseJSON{
 		Jsonrpc: "2.0",
 	}
 }
 
-func newSubscriptionResponse(method string, subID int, result interface{}) BaseResponseJSON {
-	return BaseResponseJSON{
+func newSubscriptionResponse(method string, subID int, result interface{}) SubscriptionBaseResponseJSON {
+	return SubscriptionBaseResponseJSON{
 		Jsonrpc: "2.0",
 		Method:  method,
-		Params: Params{
+		Params: SubscriptionParams{
 			Result:         result,
 			SubscriptionID: subID,
 		},
 	}
 }
 
-// ResponseJSON for json subscription responses
-type ResponseJSON struct {
+// SubscriptionResponseJSON for json subscription responses
+type SubscriptionResponseJSON struct {
 	Jsonrpc string  `json:"jsonrpc"`
 	Result  int     `json:"result"`
 	ID      float64 `json:"id"`
 }
 
-func newSubscriptionResponseJSON(subID int, reqID float64) ResponseJSON {
-	return ResponseJSON{
+func newSubscriptionResponseJSON(subID int, reqID float64) SubscriptionResponseJSON {
+	return SubscriptionResponseJSON{
 		Jsonrpc: "2.0",
 		Result:  subID,
 		ID:      reqID,

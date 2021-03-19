@@ -61,26 +61,6 @@ type HTTPServerConfig struct {
 	Modules             []string
 }
 
-// WSConn struct to hold WebSocket Connection references
-type WSConn struct {
-	wsconn             *websocket.Conn
-	mu                 sync.Mutex
-	blockSubChannels   map[int]byte
-	storageSubChannels map[int]byte
-	qtyListeners       int
-	subscriptions      map[int]Listener
-	storageAPI         modules.StorageAPI
-	blockAPI           modules.BlockAPI
-	runtimeAPI         modules.RuntimeAPI
-	coreAPI            modules.CoreAPI
-	txStateAPI         modules.TransactionStateAPI
-}
-
-// WSConnAPI interface defining methors a WSConn should have
-type WSConnAPI interface {
-	safeSend(interface{})
-}
-
 var logger log.Logger
 
 // NewHTTPServer creates a new http server and registers an associated rpc server

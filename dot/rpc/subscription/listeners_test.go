@@ -13,7 +13,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
-package rpc
+package subscription
 
 import (
 	"math/big"
@@ -39,7 +39,7 @@ func TestStorageChangeListener_Listen(t *testing.T) {
 	notifyChan := make(chan *state.SubscriptionResult)
 	mockConnection := &MockWSConnAPI{}
 	scl := StorageChangeListener{
-		channel: notifyChan,
+		Channel: notifyChan,
 		wsconn:  mockConnection,
 	}
 
@@ -76,7 +76,7 @@ func TestBlockListener_Listen(t *testing.T) {
 	notifyChan := make(chan *types.Block)
 	mockConnection := &MockWSConnAPI{}
 	bl := BlockListener{
-		channel: notifyChan,
+		Channel: notifyChan,
 		wsconn:  mockConnection,
 	}
 
