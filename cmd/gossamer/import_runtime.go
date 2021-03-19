@@ -44,5 +44,5 @@ func createGenesisWithRuntime(fp string) (string, error) {
 		return "", err
 	}
 
-	return fmt.Sprintf("%s", bz), nil
+	return string(bz), nil
 }
