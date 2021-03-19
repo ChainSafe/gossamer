@@ -126,7 +126,6 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	// modImports := module.Imports()
 	// var memImport *wasm.ImportType
 	// for _, im := range modImports {
-	// 	fmt.Println(im.Name())
 	// 	if im.Name() == "memory" {
 	// 		memImport = im
 	// 		break

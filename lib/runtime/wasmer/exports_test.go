@@ -84,7 +84,6 @@ func TestInstance_Version_KusamaRuntime(t *testing.T) {
 		0,
 	)
 
-	// TODO: why does kusama seem to use the old runtime version format?
 	version, err := instance.(*Instance).Version()
 	require.NoError(t, err)
 
@@ -436,7 +435,6 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TODO: fix, fails with panic: Host function `43` does not exist
 func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis-raw.json")
 	require.NoError(t, err)
@@ -490,7 +488,6 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TODO: fix, fails with panic: Host function `36` does not exist
 func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/polkadot/genesis-raw.json")
 	require.NoError(t, err)
@@ -541,7 +538,6 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TODO: fix, fails with panic: Host function `36` does not exist
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/kusama/genesis-raw.json")
 	require.NoError(t, err)
@@ -820,7 +816,6 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock4939774(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// TODO: fix, fails with panic: Host function `36` does not exist
 func TestInstance_ExecuteBlock_PolkadotBlock1089328(t *testing.T) {
 	dotTrie := newTrieFromPairs(t, "../test_data/polkadot/block1089327.json")
 	expectedRoot := common.MustHexToHash("0x87ed9ebe7fb645d3b5b0255cc16e78ed022d9fbb52486105436e15a74557535b")
