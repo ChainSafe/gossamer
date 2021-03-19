@@ -57,6 +57,7 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 		StateRoot:      common.Hash{},
 		ExtrinsicsRoot: common.Hash{},
 		Digest:         nil,
+		BestBlock:      true,
 	}
 
 	// simulate block sent from BABE session

@@ -75,6 +75,8 @@ func TestHTTPServer_ServeHTTP(t *testing.T) {
 	err := s.Start()
 	require.Nil(t, err)
 
+	defer s.Stop()
+
 	time.Sleep(time.Second) // give server a second to start
 
 	u := url.URL{Scheme: "ws", Host: *addr, Path: "/"}
