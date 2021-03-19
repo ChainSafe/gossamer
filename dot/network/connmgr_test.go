@@ -52,6 +52,9 @@ func TestMaxPeers(t *testing.T) {
 		}
 
 		err = n.host.connect(*ainfo)
+		if err != nil {
+			err = n.host.connect(*ainfo)
+		}
 		require.NoError(t, err, i)
 	}
 

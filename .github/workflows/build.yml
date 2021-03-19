@@ -26,6 +26,32 @@ jobs:
       
       - name: Run build
         run: make build
+  
+  publish-code-coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v1
+        with:
+          go-version: ${{ matrix.go-version }}
+      - uses: actions/checkout@v2
+
+      - name: Cache go modules
+        uses: actions/cache@v1
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
+          restore-keys: ${{ runner.os }}-go-
+
+      - name: Generate coverage report
+        run: |
+          go test ./... -short -coverprofile=coverage.out -covermode=atomic -timeout=20m
+      - uses: codecov/codecov-action@v1
+        with:
+          token: "89982880-a53b-4a3a-9bdd-3dc9c78bd190"
+          files: ./coverage.out
+          flags: unit-tests
+          name: coverage
+          verbose: true
 
   docker-build-n-push:
     runs-on: ubuntu-latest

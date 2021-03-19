@@ -54,7 +54,7 @@ func TestInstance_Version_PolkadotRuntime(t *testing.T) {
 }
 
 func TestInstance_Version_KusamaRuntime(t *testing.T) {
-	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/ksmcc/genesis-raw.json")
+	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/kusama/genesis-raw.json")
 	require.NoError(t, err)
 
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
@@ -540,7 +540,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
-	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/ksmcc/genesis-raw.json")
+	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/kusama/genesis-raw.json")
 	require.NoError(t, err)
 
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
@@ -590,7 +590,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
-	gossTrie3783 := newTrieFromPairs(t, "../test_data/block3783_gossamer.out")
+	gossTrie3783 := newTrieFromPairs(t, "../test_data/kusama/block3783.out")
 	expectedRoot := common.MustHexToHash("0x948338bc0976aee78879d559a1f42385407e5a481b05a91d2a9386aa7507e7a0")
 	require.Equal(t, expectedRoot, gossTrie3783.MustHash())
 
@@ -635,7 +635,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
-	ksmTrie901441 := newTrieFromPairs(t, "../test_data/block901441_kusama.out")
+	ksmTrie901441 := newTrieFromPairs(t, "../test_data/kusama/block901441.out")
 	expectedRoot := common.MustHexToHash("0x3a2ef7ee032f5810160bb8f3ffe3e3377bb6f2769ee9f79a5425973347acd504")
 	require.Equal(t, expectedRoot, ksmTrie901441.MustHash())
 
@@ -680,7 +680,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
-	ksmTrie := newTrieFromPairs(t, "../test_data/block1377830_kusama.out")
+	ksmTrie := newTrieFromPairs(t, "../test_data/kusama/block1377830.out")
 	expectedRoot := common.MustHexToHash("0xe4de6fecda9e9e35f937d159665cf984bc1a68048b6c78912de0aeb6bd7f7e99")
 	require.Equal(t, expectedRoot, ksmTrie.MustHash())
 
@@ -725,7 +725,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
-	ksmTrie := newTrieFromPairs(t, "../test_data/block1482002.out")
+	ksmTrie := newTrieFromPairs(t, "../test_data/kusama/block1482002.out")
 	expectedRoot := common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb")
 	require.Equal(t, expectedRoot, ksmTrie.MustHash())
 
@@ -760,6 +760,94 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 			Number:         big.NewInt(1482003),
 			StateRoot:      common.MustHexToHash("0xd2de750002f33968437bdd54912dd4f55c3bddc5a391a8e0b8332568e1efea8d"),
 			ExtrinsicsRoot: common.MustHexToHash("0xdf5da95780b77e83ad0bf820d5838f07a0d5131aa95a75f8dfbd01fbccb300bd"),
+			Digest:         digest,
+		},
+		Body: types.NewBody(body),
+	}
+
+	_, err = instance.ExecuteBlock(block)
+	require.NoError(t, err)
+}
+
+func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock4939774(t *testing.T) {
+	t.Skip("skip for now as block4939773 is too large")
+	ksmTrie := newTrieFromPairs(t, "../test_data/kusama/block4939773.out")
+	expectedRoot := common.MustHexToHash("0xc45748e6e8632b44fc32b04cc4380098a9584cbd63ffbc59adce189574fc36fe")
+	require.Equal(t, expectedRoot, ksmTrie.MustHash())
+
+	// set state to genesis state
+	state, err := storage.NewTrieState(ksmTrie)
+	require.NoError(t, err)
+
+	cfg := &Config{}
+	cfg.Storage = state
+	cfg.LogLvl = 4
+
+	instance, err := NewInstanceFromTrie(ksmTrie, cfg)
+	require.NoError(t, err)
+
+	body := common.MustHexToBytes("0x08280402000b80eb3cd17501710984c2292bcf6f34fc2d25f7a1ebaec41c3239536f12f75417c73f7c5aca53308668016ec90c2318ee45af373755527436c4d7a257c481fdc3214634eb4b5c6711ae181827c378843da82c72191647667607ee97e0f0335f14d0876c63503b5f2b8986650304001f010200083e1f2bfd408d3b8d2266ce9b6f2d40acef27b773414537be72576ee3e6108b256eb45e26258d7ac737c3ad3af8cd1b2208d45c472ba19ebfc3e2fb834a6e904d01de574b00010000007506180228040052dac5497bbdd42583d07aa46102790d54aacdcbfac8877189e3b609117a29150b00a0724e180904001cf8853df87ca8588405e30c46a434d636c86561b955b09e2e9b27fc296bf4290b005039278c040400f49db9c8894863a7dd213be93b1c440b145cc19d4927b4c29fe5fa25e8a1667f0b005039278c040400e05f031d874257a24232076830a073a6af6851c07735de201edfc412ca8853180b005039278c0404009289e88ec986066d04f7d93d80f7a3c9794580b5e59d2a7af6b19745dd148f6f0b005039278c0404006c8aff52c496b64b476ca22e58fc54822b435abbbbcaf0c9dd7cf1ab573227790b005039278c04040044e31f7c4afa3b055696923ccb405da2ee2d9eefccf568aa3c6855dbff573e5f0b005039278c040400469ec0f872af2503a9251666fd089d0e84d3f6c8b761ee94b0e868788e0f60500b005039278c040400b41cc00e4ee2945ce9974dbb355265e39c9cf325c176147d7f6b1631af38ce590b005039278c040400d8e2f26a12d4bfc513fd32c1e5a7f14e930c3ef37997bf4e3de2fed51eed515a0b005039278c040048227b8300000000")
+	exts, err := scale.Decode(body, [][]byte{})
+	require.NoError(t, err)
+	require.Equal(t, 2, len(exts.([][]byte)))
+
+	digestBytes := common.MustHexToBytes("0x080642414245b50101ef0100000815f30f000000004014ed1a99f017ea2c0d879d7317f51106938f879b296ff92c64319c0c70fe453d72035395da8d53e885def26e63cf90461ee549d0864f9691a4f401b31c1801730c014bc0641b307e8a30692e7d074b4656993b40d6f08698bc49dea40c11090542414245010192ed24972a8108b9bad1a8785b443efe72d4bc2069ab40eac65519fb01ff04250f44f6202d30ca88c30fee385bc8d7f51df15dddacf4e5d53788d260ce758c89")
+	r := &bytes.Buffer{}
+	_, _ = r.Write(digestBytes)
+	digest, err := types.DecodeDigest(r)
+	require.NoError(t, err)
+	require.Equal(t, 2, len(digest))
+
+	block := &types.Block{
+		Header: &types.Header{
+			ParentHash:     common.MustHexToHash("0xac08290f49cb9760a3a4c5a49351af76ba9432add29178e5cc27d4451f9126c9"),
+			Number:         big.NewInt(4939774),
+			StateRoot:      common.MustHexToHash("0x5d66f43cdbf1740b8ca41f0cd016602f1648fb08b74fe49f5f078845071d0a54"),
+			ExtrinsicsRoot: common.MustHexToHash("0x5d887e118ee6320aca38e49cbd98adc25472c6efbf77a695ab0d6c476a4ec6e9"),
+			Digest:         digest,
+		},
+		Body: types.NewBody(body),
+	}
+
+	_, err = instance.ExecuteBlock(block)
+	require.NoError(t, err)
+}
+
+func TestInstance_ExecuteBlock_PolkadotBlock1089328(t *testing.T) {
+	dotTrie := newTrieFromPairs(t, "../test_data/polkadot/block1089327.json")
+	expectedRoot := common.MustHexToHash("0x87ed9ebe7fb645d3b5b0255cc16e78ed022d9fbb52486105436e15a74557535b")
+	require.Equal(t, expectedRoot, dotTrie.MustHash())
+
+	// set state to genesis state
+	state, err := storage.NewTrieState(dotTrie)
+	require.NoError(t, err)
+
+	cfg := &Config{}
+	cfg.Storage = state
+	cfg.LogLvl = 4
+
+	instance, err := NewInstanceFromTrie(dotTrie, cfg)
+	require.NoError(t, err)
+
+	body := common.MustHexToBytes("0x0c280403000be02ab6d873011004140000b90384468e34dbdcc8da24e44b0f0d34d97ccad5ce0281e465db0cc1d8e1423d50d90a018a89185c693f77b050fa35d1f80b19608b72a6e626110e835caedf949668a12b0ad7b786accf2caac0ec874941ccea9825d50b6bb5870e1400f0e56bb4c18b87a5021501001d00862e432e0cf75693899c62691ac0f48967f815add97ae85659dcde8332708551001b000cf4da8aea0e5649a8bedbc1f08e8a8c0febe50cd5b1c9ce0da2164f19aef40f01014a87a7d3673e5c80aec79973682140828a0d1c3899f4f3cc953bd02673e11a022aaa4f269e3f1a90156db29df88f780b1540b610aeb5cd347ee703c5dff48485")
+	exts, err := scale.Decode(body, [][]byte{})
+	require.NoError(t, err)
+	require.Equal(t, 3, len(exts.([][]byte)))
+
+	// digest from polkadot.js
+	digestBytes := common.MustHexToBytes("0x080642414245b501017b000000428edd0f00000000c4fd75c7535d8eec375d70d21cc62262247b599aa67d8a9cf2f7d1b8cb93cd1f9539f04902c33d4c0fe47f723dfed8505d31de1c04d0036a9df233ff902fce0d70060908faa4b3f481e54cbd6a52dfc20c3faac82f746d84dc03c2f824a89a0d0542414245010122041949669a56c8f11b3e3e7c803e477ad24a71ed887bc81c956b59ea8f2b30122e6042494aab60a75e0db8fdff45951e456e6053bd64eb5722600e4a13038b")
+	r := &bytes.Buffer{}
+	_, _ = r.Write(digestBytes)
+	digest, err := types.DecodeDigest(r)
+	require.NoError(t, err)
+	require.Equal(t, 2, len(digest))
+
+	block := &types.Block{
+		Header: &types.Header{
+			ParentHash:     common.MustHexToHash("0x21dc35454805411be396debf3e1d5aad8d6e9d0d7679cce0cc632ba8a647d07c"),
+			Number:         big.NewInt(1089328),
+			StateRoot:      common.MustHexToHash("0x257b1a7f6bc0287fcbf50676dd29817f2f7ae193cb65b31962e351917406fa23"),
+			ExtrinsicsRoot: common.MustHexToHash("0x950173af1d9fdcd0be5428fc3eaf05d5f34376bd3882d9a61b348fa2dc641012"),
 			Digest:         digest,
 		},
 		Body: types.NewBody(body),

@@ -12,8 +12,8 @@ import (
 const GssmrConfigPath = "../../chain/gssmr/config.toml"
 const GssmrGenesisPath = "../../chain/gssmr/genesis-raw.json"
 
-const KsmccConfigPath = "../../chain/ksmcc/config.toml"
-const KsmccGenesisPath = "../../chain/ksmcc/genesis-raw.json"
+const KusamaConfigPath = "../../chain/kusama/config.toml"
+const KusamaGenesisPath = "../../chain/kusama/genesis-raw.json"
 
 // TestLoadConfig tests loading a toml configuration file
 func TestLoadConfig(t *testing.T) {
@@ -53,20 +53,19 @@ func TestLoadConfigGssmr(t *testing.T) {
 	require.NotNil(t, cfg)
 }
 
-// TestLoadConfigKsmcc tests loading the toml configuration file for ksmcc
-func TestLoadConfigKsmcc(t *testing.T) {
+func TestLoadConfigKusama(t *testing.T) {
 	t.Skip() // TODO: fix by updating kusama runtime
-	cfg := dot.KsmccConfig()
+	cfg := dot.KusamaConfig()
 	require.NotNil(t, cfg)
 
 	cfg.Global.BasePath = utils.NewTestDir(t)
-	cfg.Init.GenesisRaw = KsmccGenesisPath
+	cfg.Init.GenesisRaw = KusamaGenesisPath
 
 	defer utils.RemoveTestDir(t)
 
 	err := dot.InitNode(cfg)
 	require.Nil(t, err)
 
-	err = loadConfig(dotConfigToToml(cfg), KsmccConfigPath)
+	err = loadConfig(dotConfigToToml(cfg), KusamaConfigPath)
 	require.Nil(t, err)
 }
