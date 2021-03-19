@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"strings"
 
+	log "github.com/ChainSafe/log15"
 	"github.com/gorilla/websocket"
 )
 
@@ -68,6 +69,9 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // NewWSConn to create new WebSocket Connection struct
 func NewWSConn(conn *websocket.Conn, cfg *HTTPServerConfig) *WSConn {
+	if logger == nil {
+		logger = log.New("pkg", "rpc")
+	}
 	rpcHost = fmt.Sprintf("http://%s:%d/", cfg.Host, cfg.RPCPort)
 	c := &WSConn{
 		wsconn:             conn,

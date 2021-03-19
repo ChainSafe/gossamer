@@ -76,6 +76,10 @@ type ErrorMessageJSON struct {
 }
 
 func (c *WSConn) safeSend(msg interface{}) {
+	if c.wsconn == nil {
+		logger.Debug("error trying to send message to nil websocket connection")
+		return
+	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	err := c.wsconn.WriteJSON(msg)
@@ -84,6 +88,10 @@ func (c *WSConn) safeSend(msg interface{}) {
 	}
 }
 func (c *WSConn) safeSendError(reqID float64, errorCode *big.Int, message string) {
+	if c.wsconn == nil {
+		logger.Debug("error trying to send message to nil websocket connection")
+		return
+	}
 	res := &ErrorResponseJSON{
 		Jsonrpc: "2.0",
 		Error: &ErrorMessageJSON{

@@ -75,6 +75,11 @@ type WSConn struct {
 	txStateAPI         modules.TransactionStateAPI
 }
 
+// WSConnAPI interface defining methors a WSConn should have
+type WSConnAPI interface {
+	safeSend(interface{})
+}
+
 var logger log.Logger
 
 // NewHTTPServer creates a new http server and registers an associated rpc server

@@ -90,7 +90,7 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (i
 // StorageChangeListener for listening to state change channels
 type StorageChangeListener struct {
 	channel chan *state.SubscriptionResult
-	wsconn  *WSConn
+	wsconn  WSConnAPI
 	chanID  byte
 	subID   int
 }
@@ -122,7 +122,7 @@ func (l *StorageChangeListener) Listen() {
 // BlockListener to handle listening for blocks importedChan
 type BlockListener struct {
 	channel chan *types.Block
-	wsconn  *WSConn
+	wsconn  WSConnAPI
 	chanID  byte
 	subID   int
 }
@@ -174,7 +174,7 @@ func (l *BlockListener) Listen() {
 // BlockFinalizedListener to handle listening for finalized blocks
 type BlockFinalizedListener struct {
 	channel chan *types.Header
-	wsconn  *WSConn
+	wsconn  WSConnAPI
 	chanID  byte
 	subID   int
 }
@@ -224,7 +224,7 @@ func (l *BlockFinalizedListener) Listen() {
 
 // ExtrinsicSubmitListener to handle listening for extrinsic events
 type ExtrinsicSubmitListener struct {
-	wsconn    *WSConn
+	wsconn    WSConnAPI
 	subID     int
 	extrinsic types.Extrinsic
 
