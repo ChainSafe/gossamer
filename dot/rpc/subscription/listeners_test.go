@@ -68,7 +68,7 @@ func TestStorageChangeListener_Listen(t *testing.T) {
 	expectedRespones.Params.Result = expected
 
 	notifyChan <- change
-
+	time.Sleep(time.Millisecond * 10)
 	require.Equal(t, expectedRespones, mockConnection.lastMessage)
 }
 
@@ -93,7 +93,7 @@ func TestBlockListener_Listen(t *testing.T) {
 	go bl.Listen()
 
 	notifyChan <- block
-
+	time.Sleep(time.Millisecond * 10)
 	require.Equal(t, expectedResposnse, mockConnection.lastMessage)
 }
 
@@ -117,7 +117,7 @@ func TestBlockFinalizedListener_Listen(t *testing.T) {
 	go bfl.Listen()
 
 	notifyChan <- header
-
+	time.Sleep(time.Millisecond * 10)
 	require.Equal(t, expectedResponse, mockConnection.lastMessage)
 }
 
@@ -149,11 +149,11 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	go esl.Listen()
 
 	notifyImportedChan <- block
-	time.Sleep(time.Millisecond)
+	time.Sleep(time.Millisecond * 10)
 	require.Equal(t, expectedImportedRespones, mockConnection.lastMessage)
 
 	notifyFinalizedChan <- header
-	time.Sleep(time.Millisecond)
+	time.Sleep(time.Millisecond * 10)
 	resFinalized := map[string]interface{}{"finalized": block.Header.Hash().String()}
 	expectedFinalizedRespones := newSubscriptionResponse(AuthorExtrinsicUpdates, esl.subID, resFinalized)
 	require.Equal(t, expectedFinalizedRespones, mockConnection.lastMessage)
