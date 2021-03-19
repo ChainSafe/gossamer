@@ -28,11 +28,11 @@ import (
 )
 
 type MockWSConnAPI struct {
-	lastMessage SubscriptionBaseResponseJSON
+	lastMessage BaseResponseJSON
 }
 
 func (m *MockWSConnAPI) safeSend(msg interface{}) {
-	m.lastMessage = msg.(SubscriptionBaseResponseJSON)
+	m.lastMessage = msg.(BaseResponseJSON)
 }
 
 func TestStorageChangeListener_Listen(t *testing.T) {

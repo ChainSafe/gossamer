@@ -17,45 +17,45 @@ package subscription
 
 import "math/big"
 
-// SubscriptionBaseResponseJSON for base json response
-type SubscriptionBaseResponseJSON struct {
-	Jsonrpc string             `json:"jsonrpc"`
-	Method  string             `json:"method"`
-	Params  SubscriptionParams `json:"params"`
+// BaseResponseJSON for base json response
+type BaseResponseJSON struct {
+	Jsonrpc string `json:"jsonrpc"`
+	Method  string `json:"method"`
+	Params  Params `json:"params"`
 }
 
-// SubscriptionParams for json param response
-type SubscriptionParams struct {
+// Params for json param response
+type Params struct {
 	Result         interface{} `json:"result"`
 	SubscriptionID int         `json:"subscription"`
 }
 
-func newSubcriptionBaseResponseJSON() SubscriptionBaseResponseJSON {
-	return SubscriptionBaseResponseJSON{
+func newSubcriptionBaseResponseJSON() BaseResponseJSON {
+	return BaseResponseJSON{
 		Jsonrpc: "2.0",
 	}
 }
 
-func newSubscriptionResponse(method string, subID int, result interface{}) SubscriptionBaseResponseJSON {
-	return SubscriptionBaseResponseJSON{
+func newSubscriptionResponse(method string, subID int, result interface{}) BaseResponseJSON {
+	return BaseResponseJSON{
 		Jsonrpc: "2.0",
 		Method:  method,
-		Params: SubscriptionParams{
+		Params: Params{
 			Result:         result,
 			SubscriptionID: subID,
 		},
 	}
 }
 
-// SubscriptionResponseJSON for json subscription responses
-type SubscriptionResponseJSON struct {
+// ResponseJSON for json subscription responses
+type ResponseJSON struct {
 	Jsonrpc string  `json:"jsonrpc"`
 	Result  int     `json:"result"`
 	ID      float64 `json:"id"`
 }
 
-func newSubscriptionResponseJSON(subID int, reqID float64) SubscriptionResponseJSON {
-	return SubscriptionResponseJSON{
+func newSubscriptionResponseJSON(subID int, reqID float64) ResponseJSON {
+	return ResponseJSON{
 		Jsonrpc: "2.0",
 		Result:  subID,
 		ID:      reqID,
