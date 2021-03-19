@@ -725,6 +725,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
 
 	_, err = instance.ExecuteBlock(block)
 	require.NoError(t, err)
+	//instance.Stop()
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {

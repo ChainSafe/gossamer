@@ -25,7 +25,9 @@ import (
 func ImportsNodeRuntime(store *wasm.Store, memory *wasm.Memory, ctx *runtime.Context) *wasm.ImportObject {
 	importsMap := make(map[string]wasm.IntoExtern)
 
-	importsMap["memory"] = memory
+	if memory != nil {
+		importsMap["memory"] = memory
+	}
 
 	importsMap["ext_logging_log_version_1"] = wasm.NewFunctionWithEnvironment(store, wasm.NewFunctionType(
 		wasm.NewValueTypes(wasm.I32, wasm.I64, wasm.I64),
