@@ -103,16 +103,7 @@ func compareBlocksByNumber(t *testing.T, nodes []*utils.Node, num string) (map[c
 		}(node)
 	}
 
-	done := make(chan struct{})
-	go func() {
-		wg.Wait()
-		close(done)
-	}()
-
-	select {
-	case <-time.After(time.Second * 30):
-	case <-done:
-	}
+	wg.Wait()
 
 	var err error
 	if len(errs) != 0 {

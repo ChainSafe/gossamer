@@ -81,7 +81,6 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 
 	var accInfo types.AccountInfo
 	ok, err := api.RPC.State.GetStorageLatest(key, &accInfo)
-	fmt.Println("accInfo.Data.Free ", accInfo.Data.Free)
 	require.NoError(t, err)
 	require.True(t, ok)
 
