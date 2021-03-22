@@ -15,8 +15,6 @@
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 package subscription
 
-import "math/big"
-
 // BaseResponseJSON for base json response
 type BaseResponseJSON struct {
 	Jsonrpc string `json:"jsonrpc"`
@@ -62,40 +60,5 @@ func newSubscriptionResponseJSON(subID int, reqID float64) ResponseJSON {
 	}
 }
 
-// ErrorResponseJSON json for error responses
-type ErrorResponseJSON struct {
-	Jsonrpc string            `json:"jsonrpc"`
-	Error   *ErrorMessageJSON `json:"error"`
-	ID      float64           `json:"id"`
-}
 
-// ErrorMessageJSON json for error messages
-type ErrorMessageJSON struct {
-	Code    *big.Int `json:"code"`
-	Message string   `json:"message"`
-}
 
-func (c *WSConn) safeSend(msg interface{}) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	err := c.Wsconn.WriteJSON(msg)
-	if err != nil {
-		logger.Debug("error sending websocket message", "error", err)
-	}
-}
-func (c *WSConn) safeSendError(reqID float64, errorCode *big.Int, message string) {
-	res := &ErrorResponseJSON{
-		Jsonrpc: "2.0",
-		Error: &ErrorMessageJSON{
-			Code:    errorCode,
-			Message: message,
-		},
-		ID: reqID,
-	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	err := c.Wsconn.WriteJSON(res)
-	if err != nil {
-		logger.Debug("error sending websocket message", "error", err)
-	}
-}
