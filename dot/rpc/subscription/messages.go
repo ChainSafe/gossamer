@@ -59,6 +59,3 @@ func newSubscriptionResponseJSON(subID int, reqID float64) ResponseJSON {
 		ID:      reqID,
 	}
 }
-
-
-

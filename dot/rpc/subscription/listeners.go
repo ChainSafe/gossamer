@@ -35,8 +35,6 @@ type WSConnAPI interface {
 	safeSend(interface{})
 }
 
-
-
 // StorageChangeListener for listening to state change channels
 type StorageChangeListener struct {
 	Channel chan *state.SubscriptionResult

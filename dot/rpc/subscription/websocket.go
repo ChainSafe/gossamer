@@ -20,16 +20,17 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"io/ioutil"
 	"math/big"
 	"net/http"
 	"strings"
 	"sync"
-	log "github.com/ChainSafe/log15"
+
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
+	log "github.com/ChainSafe/log15"
 	"github.com/gorilla/websocket"
 )
 
