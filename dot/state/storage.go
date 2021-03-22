@@ -204,19 +204,9 @@ func (s *StorageState) LoadFromDB(root common.Hash) (*trie.Trie, error) {
 
 // ExistsStorage check if the key exists in the storage trie with the given storage hash
 // If no hash is provided, the current chain head is used
-func (s *StorageState) ExistsStorage(hash *common.Hash, key []byte) (bool, error) {
-	if hash == nil {
-		sr, err := s.blockState.BestBlockStateRoot()
-		if err != nil {
-			return false, err
-		}
-		hash = &sr
-	}
-
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-	val := s.tries[*hash].Get(key)
-	return val != nil, nil
+func (s *StorageState) ExistsStorage(root *common.Hash, key []byte) (bool, error) {
+	val, err := s.GetStorage(root, key)
+	return val != nil, err
 }
 
 // GetStorage gets the object from the trie using the given key and storage hash
@@ -233,8 +223,8 @@ func (s *StorageState) GetStorage(root *common.Hash, key []byte) ([]byte, error)
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	if s.tries[*root] != nil {
-		val := s.tries[*root].Get(key)
+	if trie, ok := s.tries[*root]; ok {
+		val := trie.Get(key)
 		return val, nil
 	}
 
@@ -270,11 +260,15 @@ func (s *StorageState) StorageRoot() (common.Hash, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	if s.tries[sr] == nil {
-		return common.Hash{}, errTrieDoesNotExist(sr)
+	t, ok := s.tries[sr]
+	if !ok {
+		t, err = s.LoadFromDB(sr)
+		if err != nil {
+			return common.Hash{}, errTrieDoesNotExist(sr)
+		}
 	}
 
-	return s.tries[sr].Hash()
+	return t.Hash()
 }
 
 // EnumeratedTrieRoot not implemented
@@ -296,13 +290,13 @@ func (s *StorageState) Entries(root *common.Hash) (map[string][]byte, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	if s.tries[*root] != nil {
-		return s.tries[*root].Entries(), nil
-	}
-
-	tr, err := s.LoadFromDB(*root)
-	if err != nil {
-		return nil, err
+	tr, ok := s.tries[*root]
+	if !ok {
+		var err error
+		tr, err = s.LoadFromDB(*root)
+		if err != nil {
+			return nil, errTrieDoesNotExist(*root)
+		}
 	}
 
 	return tr.Entries(), nil
@@ -317,9 +311,14 @@ func (s *StorageState) GetKeysWithPrefix(hash *common.Hash, prefix []byte) ([][]
 		}
 		hash = &sr
 	}
-	t := s.tries[*hash]
-	if t == nil {
-		return nil, fmt.Errorf("unable to retrieve trie with hash %x", *hash)
+
+	t, ok := s.tries[*hash]
+	if !ok {
+		var err error
+		t, err = s.LoadFromDB(*hash)
+		if err != nil {
+			return nil, errTrieDoesNotExist(*hash)
+		}
 	}
 	return t.GetKeysWithPrefix(prefix), nil
 }
@@ -337,11 +336,16 @@ func (s *StorageState) GetStorageChild(hash *common.Hash, keyToChild []byte) (*t
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	if s.tries[*hash] == nil {
-		return nil, errTrieDoesNotExist(*hash)
+	t, ok := s.tries[*hash]
+	if !ok {
+		var err error
+		t, err = s.LoadFromDB(*hash)
+		if err != nil {
+			return nil, errTrieDoesNotExist(*hash)
+		}
 	}
 
-	return s.tries[*hash].GetChild(keyToChild)
+	return t.GetChild(keyToChild)
 }
 
 // GetStorageFromChild return GetFromChild from the trie
@@ -357,10 +361,16 @@ func (s *StorageState) GetStorageFromChild(hash *common.Hash, keyToChild, key []
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	if s.tries[*hash] == nil {
-		return nil, errTrieDoesNotExist(*hash)
+	t, ok := s.tries[*hash]
+	if !ok {
+		var err error
+		t, err = s.LoadFromDB(*hash)
+		if err != nil {
+			return nil, errTrieDoesNotExist(*hash)
+		}
 	}
-	return s.tries[*hash].GetFromChild(keyToChild, key)
+
+	return t.GetFromChild(keyToChild, key)
 }
 
 // LoadCode returns the runtime code (located at :code)
