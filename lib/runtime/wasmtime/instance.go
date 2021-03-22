@@ -129,9 +129,6 @@ func (in *Instance) SetContextStorage(s gssmrruntime.Storage) {
 	ctx.Storage = s
 }
 
-// Stop ...
-func (in *Instance) Stop() {}
-
 // NodeStorage returns the context's NodeStorage
 func (in *Instance) NodeStorage() gssmrruntime.NodeStorage {
 	return ctx.NodeStorage

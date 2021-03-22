@@ -174,9 +174,6 @@ func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 	return in.vm.Memory[offset : offset+length], nil
 }
 
-// Stop ...
-func (in *Instance) Stop() {}
-
 // NodeStorage to get reference to runtime node service
 func (in *Instance) NodeStorage() runtime.NodeStorage {
 	return ctx.NodeStorage

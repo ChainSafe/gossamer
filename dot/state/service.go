@@ -191,8 +191,6 @@ func (s *Service) loadBabeConfigurationFromRuntime(t *trie.Trie, gen *genesis.Ge
 		return nil, fmt.Errorf("failed to fetch genesis babe configuration: %w", err)
 	}
 
-	r.Stop()
-
 	if s.BabeThresholdDenominator != 0 {
 		babeCfg.C1 = s.BabeThresholdNumerator
 		babeCfg.C2 = s.BabeThresholdDenominator

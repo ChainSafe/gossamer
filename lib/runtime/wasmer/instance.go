@@ -235,9 +235,6 @@ func (in *Instance) SetContextStorage(s runtime.Storage) {
 	in.ctx.Storage = s
 }
 
-// Stop func
-func (in *Instance) Stop() {}
-
 // Store func
 func (in *Instance) store(data []byte, location int32) {
 	memory := in.ctx.Memory
