@@ -79,8 +79,8 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 	key, err := types.CreateStorageKey(meta, "System", "Account", signature.TestKeyringPairAlice.PublicKey, nil)
 	require.NoError(t, err)
 
-	var nonce uint32
-	ok, err := api.RPC.State.GetStorageLatest(key, &nonce)
+	var accInfo types.AccountInfo
+	ok, err := api.RPC.State.GetStorageLatest(key, &accInfo)
 	require.NoError(t, err)
 	require.True(t, ok)
 
@@ -88,7 +88,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 		BlockHash:          genesisHash,
 		Era:                types.ExtrinsicEra{IsImmortalEra: true},
 		GenesisHash:        genesisHash,
-		Nonce:              types.NewUCompactFromUInt(uint64(nonce)),
+		Nonce:              types.NewUCompactFromUInt(uint64(accInfo.Nonce)),
 		SpecVersion:        rv.SpecVersion,
 		Tip:                types.NewUCompactFromUInt(0),
 		TransactionVersion: rv.TransactionVersion,

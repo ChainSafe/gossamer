@@ -515,7 +515,6 @@ func (s *Service) playGrandpaRound() error {
 		// receive messages until current round is completable and previous round is finalizable
 		// and the last finalized block is greater than the best final candidate from the previous round
 		s.receiveMessages(func() bool {
-			//return false
 			if s.paused.Load().(bool) {
 				return true
 			}

@@ -51,8 +51,8 @@ func TestAuthorModule_Pending(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !reflect.DeepEqual(*res, PendingExtrinsicsResponse([][]byte{})) {
-		t.Errorf("Fail: expected: %+v got: %+v\n", res, &[][]byte{})
+	if !reflect.DeepEqual(*res, PendingExtrinsicsResponse([]string{})) {
+		t.Errorf("Fail: expected: %+v got: %+v\n", *res, PendingExtrinsicsResponse([]string{}))
 	}
 
 	vtx := &transaction.ValidTransaction{
@@ -68,13 +68,9 @@ func TestAuthorModule_Pending(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	expected, err := vtx.Encode()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !reflect.DeepEqual(*res, PendingExtrinsicsResponse([][]byte{expected})) {
-		t.Errorf("Fail: expected: %+v got: %+v\n", res, &[][]byte{expected})
+	expected := common.BytesToHex(vtx.Extrinsic)
+	if !reflect.DeepEqual(*res, PendingExtrinsicsResponse([]string{expected})) {
+		t.Errorf("Fail: expected: %+v got: %+v\n", res, PendingExtrinsicsResponse([]string{expected}))
 	}
 }
 
