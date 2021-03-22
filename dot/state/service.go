@@ -178,12 +178,16 @@ func (s *Service) loadBabeConfigurationFromRuntime(t *trie.Trie, gen *genesis.Ge
 	// create genesis runtime
 	rtCfg := &wasmer.Config{}
 	rtCfg.Storage = genTrie
-	rtCfg.LogLvl = s.logLvl
+	rtCfg.LogLvl = 5 // s.logLvl
+
+	logger.Info("creating runtime")
 
 	r, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create genesis runtime: %w", err)
 	}
+
+	logger.Info("created runtime")
 
 	// load and store initial BABE epoch configuration
 	babeCfg, err := r.BabeConfiguration()

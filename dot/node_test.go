@@ -39,7 +39,24 @@ import (
 
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 )
+
+func Test_NewRuntime(t *testing.T) {
+	genFile := "../chain/gssmr/genesis-raw.json"
+
+	gen, err := genesis.NewGenesisFromJSONRaw(genFile)
+	require.NoError(t, err)
+
+	rtCfg := &wasmer.Config{}
+	//rtCfg.Storage = genTrie
+	rtCfg.LogLvl = 5 // s.logLvl
+
+	rt, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg)
+	require.NoError(t, err)
+	require.NotNil(t, rt)
+}
 
 // TestInitNode
 func TestInitNode(t *testing.T) {

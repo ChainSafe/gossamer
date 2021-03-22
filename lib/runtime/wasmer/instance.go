@@ -70,6 +70,11 @@ func NewRuntimeFromGenesis(g *genesis.Genesis, cfg *Config) (runtime.Instance, e
 	}
 
 	code := common.MustHexToBytes(codeStr)
+
+	// code, err := ioutil.ReadFile(filepath.Clean("../kusama_runtime-v2025.compact.wasm"))
+	// if err != nil {
+	// 	return nil, err
+	// }
 	cfg.Imports = ImportsNodeRuntime
 	return NewInstance(code, cfg)
 }
@@ -81,7 +86,7 @@ func NewInstanceFromTrie(t *trie.Trie, cfg *Config) (*Instance, error) {
 		return nil, fmt.Errorf("cannot find :code in trie")
 	}
 
-	cfg.Imports = ImportsNodeRuntime
+	//cfg.Imports = ImportsNodeRuntime
 	return NewInstance(code, cfg)
 }
 
@@ -172,11 +177,14 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	}
 
 	imports := cfg.Imports(store, memory, ctx)
-
+	fmt.Println("imports", imports)
+	fmt.Println("module", module)
 	instance, err := wasm.NewInstance(module, imports)
 	if err != nil {
 		return nil, err
 	}
+
+	logger.Info("instantiated runtime!!!")
 
 	if hasExportedMemory {
 		memory, err = instance.Exports.GetMemory("memory")
@@ -206,6 +214,7 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	}
 
 	inst.version, _ = inst.Version()
+	logger.Info("instatiated runtime", "name", inst.version.SpecName(), "specification version", inst.version.SpecVersion())
 	return inst, nil
 }
 
@@ -216,14 +225,20 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 	}
 	cfg.LogLvl = -1
 	cfg.Storage = in.ctx.Storage
+	cfg.Keystore = in.ctx.Keystore
+	cfg.Role = 1 // TODO: set properly
+	cfg.NodeStorage = in.ctx.NodeStorage
+	cfg.Network = in.ctx.Network
+	cfg.Transaction = in.ctx.Transaction
 
 	next, err := newInstance(code, cfg)
 	if err != nil {
 		return err
 	}
 
-	in.ctx.Allocator = next.ctx.Allocator
-	in.ctx.Memory = next.ctx.Memory
+	// in.ctx.Allocator = next.ctx.Allocator
+	// in.ctx.Memory = next.ctx.Memory
+	in.ctx = next.ctx
 	in.vm = next.vm
 	in.version = next.version
 	logger.Info("updated runtime", "specification version", in.version.SpecVersion())
