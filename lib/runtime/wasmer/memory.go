@@ -40,7 +40,7 @@ func (m Memory) Length() uint32 {
 	return uint32(m.memory.DataSize())
 }
 
-// Grow ...
+// Grow grows the memory by the given number of pages
 func (m Memory) Grow(numPages uint32) error {
 	ok := m.memory.Grow(wasmer.Pages(numPages))
 	if !ok {

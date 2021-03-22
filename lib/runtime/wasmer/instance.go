@@ -122,21 +122,22 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 		return nil, err
 	}
 
-	// TODO: can we get memory descriptor from module?
-	// modImports := module.Imports()
-	// var memImport *wasm.ImportType
-	// for _, im := range modImports {
-	// 	if im.Name() == "memory" {
-	// 		memImport = im
-	// 		break
-	// 	}
-	// }
+	// get memory descriptor from module, if it imports memory
+	modImports := module.Imports()
+	var memImport *wasm.ImportType
+	for _, im := range modImports {
+		if im.Name() == "memory" {
+			memImport = im
+			break
+		}
+	}
 
-	// if memImport == nil {
-	// 	panic("memImport is nil")
-	// }
-	// memType := memImport.Type().IntoMemoryType()
+	var memType *wasm.MemoryType
+	if memImport != nil {
+		memType = memImport.Type().IntoMemoryType()
+	}
 
+	// check if module exports memory
 	hasExportedMemory := false
 	for _, export := range module.Exports() {
 		if export.Name() == "memory" {
@@ -146,14 +147,17 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	}
 
 	var memory *wasm.Memory
+	// create memory to import, if it's expecting imported memory
 	if !hasExportedMemory {
-		// TODO: determine memory descriptor size that the runtime wants from the wasm.
-		// should be doable w/ wasmer 1.0.0.
-		lim, err := wasm.NewLimits(23, 256) //nolint // TODO: determine maximum
-		if err != nil {
-			return nil, err
+		if memType == nil {
+			// values from newer kusama/polkadot runtimes
+			lim, err := wasm.NewLimits(23, 4294967295) //nolint
+			if err != nil {
+				return nil, err
+			}
+			memType = wasm.NewMemoryType(lim)
 		}
-		memType := wasm.NewMemoryType(lim)
+
 		memory = wasm.NewMemory(store, memType)
 	}
 
@@ -183,6 +187,7 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 
 	ctx.Memory = &Memory{memory}
 
+	// set heap base for allocator, start allocating at heap base
 	heapBase, err := instance.Exports.Get("__heap_base")
 	if err != nil {
 		return nil, err
@@ -206,44 +211,22 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 
 // UpdateRuntimeCode updates the runtime instance to run the given code
 func (in *Instance) UpdateRuntimeCode(code []byte) error {
-	in.Stop()
-
-	// TODO: can we re-use engine and store?
-	engine := wasm.NewEngine()
-	store := wasm.NewStore(engine)
-
-	// TODO: deal w/ exported memory
-	lim, err := wasm.NewLimits(23, 256)
-	if err != nil {
-		return err
+	cfg := &Config{
+		Imports: in.imports,
 	}
-	memType := wasm.NewMemoryType(lim)
-	memory := wasm.NewMemory(store, memType)
+	cfg.LogLvl = -1
+	cfg.Storage = in.ctx.Storage
 
-	imports := in.imports(store, memory, in.ctx)
-
-	module, err := wasm.NewModule(store, code)
+	next, err := newInstance(code, cfg)
 	if err != nil {
 		return err
 	}
 
-	instance, err := wasm.NewInstance(module, imports)
-	if err != nil {
-		return err
-	}
-
-	// TODO: get __heap_base exported value from runtime.
-	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does
-	heapBase := runtime.DefaultHeapBase
-
-	in.ctx.Allocator = runtime.NewAllocator(Memory{memory}, heapBase)
-	inst := &Instance{
-		vm:      instance,
-		ctx:     in.ctx,
-		imports: in.imports,
-	}
-
-	inst.version, _ = inst.Version()
+	in.ctx.Allocator = next.ctx.Allocator
+	in.ctx.Memory = next.ctx.Memory
+	in.vm = next.vm
+	in.version = next.version
+	logger.Info("updated runtime", "specification version", in.version.SpecVersion())
 	return nil
 }
 
@@ -299,18 +282,12 @@ func (in *Instance) exec(function string, data []byte) ([]byte, error) {
 		return nil, fmt.Errorf("could not find exported function %s: %w", function, err)
 	}
 
-	logger.Info("instance.exec", "ptr", ptr, "datalen", datalen)
-
 	res, err := runtimeFunc(int32(ptr), datalen)
 	if err != nil {
 		return nil, err
 	}
 
-	logger.Info("instance.exec", "res", res)
-
 	offset, length := int64ToPointerAndSize(res.(int64)) // TODO: are all returns int64?
-	logger.Info("instance.exec", "offset", offset, "length", length)
-
 	return in.load(offset, length), nil
 }
 

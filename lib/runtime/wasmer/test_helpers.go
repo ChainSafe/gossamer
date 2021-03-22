@@ -57,15 +57,8 @@ func NewTestInstanceWithRole(t *testing.T, targetRuntime string, role byte) *Ins
 	return r
 }
 
-// GetRuntimeImports ... TODO: remove this
-func GetRuntimeImports(targetRuntime string) ImportsFunc {
-	return ImportsNodeRuntime
-}
-
 func setupConfig(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Lvl, role byte) (string, *Config) {
 	testRuntimeFilePath, testRuntimeURL := runtime.GetRuntimeVars(targetRuntime)
-	importsFunc := GetRuntimeImports(targetRuntime)
-
 	_, err := runtime.GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
 	require.Nil(t, err, "Fail: could not get runtime", "targetRuntime", targetRuntime)
 
@@ -80,7 +73,7 @@ func setupConfig(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Lvl,
 		PersistentStorage: runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
 	}
 	cfg := &Config{
-		Imports: importsFunc,
+		Imports: ImportsNodeRuntime,
 	}
 	cfg.Storage = s
 	cfg.Keystore = keystore.NewGlobalKeystore()
@@ -92,8 +85,7 @@ func setupConfig(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Lvl,
 	return fp, cfg
 }
 
-type mockTransactionState struct {
-}
+type mockTransactionState struct{}
 
 // AddToPool adds a transaction to the pool
 func (mt *mockTransactionState) AddToPool(vt *transaction.ValidTransaction) common.Hash {

@@ -212,7 +212,6 @@ func ext_crypto_ed25519_public_keys_version_1(env interface{}, args []wasm.Value
 	return []wasm.Value{wasm.NewI64(ret)}, nil
 }
 
-//func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeID C.int32_t, key C.int32_t, msg C.int64_t) C.int64_t {
 func ext_crypto_ed25519_sign_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_crypto_ed25519_sign_version_1] executing...")
 
@@ -262,7 +261,6 @@ func ext_crypto_ed25519_sign_version_1(env interface{}, args []wasm.Value) ([]wa
 	return []wasm.Value{wasm.NewI64(ret)}, nil
 }
 
-//func ext_crypto_ed25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, msg C.int64_t, key C.int32_t) C.int32_t {
 func ext_crypto_ed25519_verify_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_crypto_ed25519_verify_version_1] executing...")
 
@@ -304,7 +302,6 @@ func ext_crypto_ed25519_verify_version_1(env interface{}, args []wasm.Value) ([]
 	return []wasm.Value{wasm.NewI32(1)}, nil
 }
 
-//func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, msg C.int32_t) C.int64_t {
 func ext_crypto_secp256k1_ecdsa_recover_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_crypto_secp256k1_ecdsa_recover_version_1] executing...")
 	ctx := env.(*runtime.Context)
@@ -345,7 +342,6 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(env interface{}, args []wasm.V
 	return []wasm.Value{wasm.NewI64(ret)}, nil
 }
 
-//func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context unsafe.Pointer, a, z C.int32_t) C.int64_t {
 func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1] executing...")
 	ctx := env.(*runtime.Context)
@@ -386,7 +382,6 @@ func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(env interface{}, ar
 	return []wasm.Value{wasm.NewI64(ret)}, nil
 }
 
-//func ext_crypto_sr25519_generate_version_1(context unsafe.Pointer, keyTypeID C.int32_t, seedSpan C.int64_t) C.int32_t {
 func ext_crypto_sr25519_generate_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_crypto_sr25519_generate_version_1] executing...")
 
@@ -436,7 +431,6 @@ func ext_crypto_sr25519_generate_version_1(env interface{}, args []wasm.Value) (
 	return []wasm.Value{wasm.NewI32(int32(ret))}, nil
 }
 
-//func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, keyTypeID C.int32_t) C.int64_t {
 func ext_crypto_sr25519_public_keys_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_crypto_sr25519_public_keys_version_1] executing...")
 
@@ -485,7 +479,6 @@ func ext_crypto_sr25519_public_keys_version_1(env interface{}, args []wasm.Value
 	return []wasm.Value{wasm.NewI64(ret)}, nil
 }
 
-//func ext_crypto_sr25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.int32_t, msg C.int64_t) C.int64_t {
 func ext_crypto_sr25519_sign_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_crypto_sr25519_sign_version_1] executing...")
 
@@ -533,7 +526,6 @@ func ext_crypto_sr25519_sign_version_1(env interface{}, args []wasm.Value) ([]wa
 	return []wasm.Value{wasm.NewI64(ret)}, nil
 }
 
-//func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, msg C.int64_t, key C.int32_t) C.int32_t {
 func ext_crypto_sr25519_verify_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_crypto_sr25519_verify_version_1] executing...")
 
@@ -580,7 +572,6 @@ func ext_crypto_sr25519_verify_version_1(env interface{}, args []wasm.Value) ([]
 	return []wasm.Value{wasm.NewI32(1)}, nil
 }
 
-//func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, msg C.int64_t, key C.int32_t) C.int32_t {
 func ext_crypto_sr25519_verify_version_2(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_crypto_sr25519_verify_version_2] executing...")
 
@@ -626,7 +617,6 @@ func ext_crypto_sr25519_verify_version_2(env interface{}, args []wasm.Value) ([]
 	return []wasm.Value{wasm.NewI32(1)}, nil
 }
 
-//func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
 func ext_crypto_start_batch_verify_version_1(env interface{}, _ []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_crypto_start_batch_verify_version_1] executing...")
 	// TODO: fix and re-enable signature verification
@@ -647,7 +637,6 @@ func beginBatchVerify(env interface{}) ([]wasm.Value, error) { //nolint
 	return nil, nil
 }
 
-//func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t {
 func ext_crypto_finish_batch_verify_version_1(env interface{}, _ []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_crypto_finish_batch_verify_version_1] executing...")
 
@@ -673,7 +662,6 @@ func finishBatchVerify(env interface{}) ([]wasm.Value, error) { //nolint
 	return []wasm.Value{wasm.NewI32(0)}, nil
 }
 
-//func ext_trie_blake2_256_root_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
 func ext_trie_blake2_256_root_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_trie_blake2_256_root_version_1] executing...")
 
@@ -723,7 +711,6 @@ func ext_trie_blake2_256_root_version_1(env interface{}, args []wasm.Value) ([]w
 	return []wasm.Value{wasm.NewI32(int32(ptr))}, nil
 }
 
-//func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
 func ext_trie_blake2_256_ordered_root_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_trie_blake2_256_ordered_root_version_1] executing...")
 
@@ -771,7 +758,6 @@ func ext_trie_blake2_256_ordered_root_version_1(env interface{}, args []wasm.Val
 	return []wasm.Value{wasm.NewI32(int32(ptr))}, nil
 }
 
-//func ext_misc_print_hex_version_1(context unsafe.Pointer, dataSpan C.int64_t) {
 func ext_misc_print_hex_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_misc_print_hex_version_1] executing...")
 
@@ -783,7 +769,6 @@ func ext_misc_print_hex_version_1(env interface{}, args []wasm.Value) ([]wasm.Va
 	return nil, nil
 }
 
-//func ext_misc_print_num_version_1(context unsafe.Pointer, data C.int64_t) {
 func ext_misc_print_num_version_1(_ interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_misc_print_num_version_1] executing...")
 	data := args[0].I64()
@@ -803,7 +788,6 @@ func ext_misc_print_utf8_version_1(env interface{}, args []wasm.Value) ([]wasm.V
 	return nil, nil
 }
 
-//func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int64_t {
 func ext_misc_runtime_version_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_misc_runtime_version_version_1] executing...")
 
@@ -847,7 +831,6 @@ func ext_misc_runtime_version_version_1(env interface{}, args []wasm.Value) ([]w
 	return []wasm.Value{wasm.NewI64(out)}, nil
 }
 
-//func ext_default_child_storage_read_version_1(context unsafe.Pointer, childStorageKey C.int64_t, key C.int64_t, valueOut C.int64_t, offset C.int32_t) C.int64_t {
 func ext_default_child_storage_read_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_default_child_storage_read_version_1] executing...")
 
@@ -882,7 +865,6 @@ func ext_default_child_storage_read_version_1(env interface{}, args []wasm.Value
 	return []wasm.Value{wasm.NewI64(sizeSpan)}, nil
 }
 
-//func ext_default_child_storage_clear_version_1(context unsafe.Pointer, childStorageKey, keySpan C.int64_t) {
 func ext_default_child_storage_clear_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_default_child_storage_clear_version_1] executing...")
 
@@ -903,7 +885,6 @@ func ext_default_child_storage_clear_version_1(env interface{}, args []wasm.Valu
 	return nil, nil
 }
 
-//func ext_default_child_storage_clear_prefix_version_1(context unsafe.Pointer, childStorageKey C.int64_t, prefixSpan C.int64_t) {
 func ext_default_child_storage_clear_prefix_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_default_child_storage_clear_prefix_version_1] executing...")
 
@@ -925,7 +906,6 @@ func ext_default_child_storage_clear_prefix_version_1(env interface{}, args []wa
 	return nil, nil
 }
 
-//func ext_default_child_storage_exists_version_1(context unsafe.Pointer, childStorageKey C.int64_t, key C.int64_t) C.int32_t {
 func ext_default_child_storage_exists_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_default_child_storage_exists_version_1] executing...")
 
@@ -948,7 +928,6 @@ func ext_default_child_storage_exists_version_1(env interface{}, args []wasm.Val
 	return []wasm.Value{wasm.NewI32(0)}, nil
 }
 
-//func ext_default_child_storage_get_version_1(context unsafe.Pointer, childStorageKey, key C.int64_t) C.int64_t {
 func ext_default_child_storage_get_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_default_child_storage_get_version_1] executing...")
 
@@ -973,7 +952,6 @@ func ext_default_child_storage_get_version_1(env interface{}, args []wasm.Value)
 	return []wasm.Value{wasm.NewI64(value)}, nil
 }
 
-//func ext_default_child_storage_next_key_version_1(context unsafe.Pointer, childStorageKey C.int64_t, key C.int64_t) C.int64_t {
 func ext_default_child_storage_next_key_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_default_child_storage_next_key_version_1] executing...")
 
@@ -1004,7 +982,6 @@ func ext_default_child_storage_next_key_version_1(env interface{}, args []wasm.V
 	return []wasm.Value{wasm.NewI64(value)}, nil
 }
 
-//func ext_default_child_storage_root_version_1(context unsafe.Pointer, childStorageKey C.int64_t) C.int64_t {
 func ext_default_child_storage_root_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_default_child_storage_root_version_1] executing...")
 
@@ -1034,7 +1011,6 @@ func ext_default_child_storage_root_version_1(env interface{}, args []wasm.Value
 	return []wasm.Value{wasm.NewI64(root)}, nil
 }
 
-//func ext_default_child_storage_set_version_1(context unsafe.Pointer, childStorageKeySpan, keySpan, valueSpan C.int64_t) {
 func ext_default_child_storage_set_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_default_child_storage_set_version_1] executing...")
 
@@ -1061,7 +1037,6 @@ func ext_default_child_storage_set_version_1(env interface{}, args []wasm.Value)
 	return nil, nil
 }
 
-//func ext_default_child_storage_storage_kill_version_1(context unsafe.Pointer, childStorageKeySpan C.int64_t) {
 func ext_default_child_storage_storage_kill_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_default_child_storage_storage_kill_version_1] executing...")
 
@@ -1074,7 +1049,6 @@ func ext_default_child_storage_storage_kill_version_1(env interface{}, args []wa
 	return nil, nil
 }
 
-//func ext_allocator_free_version_1(context unsafe.Pointer, addr C.int32_t) {
 func ext_allocator_free_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_allocator_free_version_1] executing...")
 
@@ -1092,7 +1066,6 @@ func ext_allocator_free_version_1(env interface{}, args []wasm.Value) ([]wasm.Va
 	return nil, nil
 }
 
-//func ext_allocator_malloc_version_1(ctx interface{}, size C.int32_t) C.int32_t {
 func ext_allocator_malloc_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_allocator_malloc_version_1] executing...")
 	size, ok := args[0].Unwrap().(int32)
@@ -1112,7 +1085,6 @@ func ext_allocator_malloc_version_1(env interface{}, args []wasm.Value) ([]wasm.
 	return []wasm.Value{wasm.NewI32(int32(res))}, nil
 }
 
-//func ext_hashing_blake2_128_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
 func ext_hashing_blake2_128_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_hashing_blake2_128_version_1] executing...")
 
@@ -1141,7 +1113,6 @@ func ext_hashing_blake2_128_version_1(env interface{}, args []wasm.Value) ([]was
 	return []wasm.Value{wasm.NewI32(int32(out))}, nil
 }
 
-//func ext_hashing_blake2_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
 func ext_hashing_blake2_256_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_hashing_blake2_256_version_1] executing...")
 
@@ -1167,7 +1138,6 @@ func ext_hashing_blake2_256_version_1(env interface{}, args []wasm.Value) ([]was
 	return []wasm.Value{wasm.NewI32(int32(out))}, nil
 }
 
-//func ext_hashing_keccak_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
 func ext_hashing_keccak_256_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_hashing_keccak_256_version_1] executing...")
 
@@ -1192,7 +1162,6 @@ func ext_hashing_keccak_256_version_1(env interface{}, args []wasm.Value) ([]was
 	return []wasm.Value{wasm.NewI32(int32(out))}, nil
 }
 
-//func ext_hashing_sha2_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
 func ext_hashing_sha2_256_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_hashing_sha2_256_version_1] executing...")
 
@@ -1212,7 +1181,6 @@ func ext_hashing_sha2_256_version_1(env interface{}, args []wasm.Value) ([]wasm.
 	return []wasm.Value{wasm.NewI32(int32(out))}, nil
 }
 
-//func ext_hashing_twox_256_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
 func ext_hashing_twox_256_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_hashing_twox_256_version_1] executing...")
 
@@ -1237,7 +1205,6 @@ func ext_hashing_twox_256_version_1(env interface{}, args []wasm.Value) ([]wasm.
 	return []wasm.Value{wasm.NewI32(int32(out))}, nil
 }
 
-//func ext_hashing_twox_128_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
 func ext_hashing_twox_128_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_hashing_twox_128_version_1] executing...")
 
@@ -1262,7 +1229,6 @@ func ext_hashing_twox_128_version_1(env interface{}, args []wasm.Value) ([]wasm.
 	return []wasm.Value{wasm.NewI32(int32(out))}, nil
 }
 
-//func ext_hashing_twox_64_version_1(context unsafe.Pointer, dataSpan C.int64_t) C.int32_t {
 func ext_hashing_twox_64_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_hashing_twox_64_version_1] executing...")
 
@@ -1287,14 +1253,12 @@ func ext_hashing_twox_64_version_1(env interface{}, args []wasm.Value) ([]wasm.V
 	return []wasm.Value{wasm.NewI32(int32(out))}, nil
 }
 
-//func ext_offchain_index_set_version_1(context unsafe.Pointer, a, b C.int64_t) {
 func ext_offchain_index_set_version_1(env interface{}, _ []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_offchain_index_set_version_1] executing...")
 	logger.Warn("[ext_offchain_index_set_version_1] unimplemented")
 	return nil, nil
 }
 
-//func ext_offchain_is_validator_version_1(context unsafe.Pointer) C.int32_t {
 func ext_offchain_is_validator_version_1(env interface{}, _ []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_offchain_is_validator_version_1] executing...")
 	ctx := env.(*runtime.Context)
@@ -1304,7 +1268,6 @@ func ext_offchain_is_validator_version_1(env interface{}, _ []wasm.Value) ([]was
 	return []wasm.Value{wasm.NewI32(0)}, nil
 }
 
-//func ext_offchain_local_storage_compare_and_set_version_1(context unsafe.Pointer, kind C.int32_t, key, oldValue, newValue C.int64_t) C.int32_t {
 func ext_offchain_local_storage_compare_and_set_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_offchain_local_storage_compare_and_set_version_1] executing...")
 
@@ -1346,7 +1309,6 @@ func ext_offchain_local_storage_compare_and_set_version_1(env interface{}, args 
 	return []wasm.Value{wasm.NewI32(1)}, nil
 }
 
-//func ext_offchain_local_storage_get_version_1(context unsafe.Pointer, kind C.int32_t, key C.int64_t) C.int64_t {
 func ext_offchain_local_storage_get_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_offchain_local_storage_get_version_1] executing...")
 
@@ -1379,7 +1341,6 @@ func ext_offchain_local_storage_get_version_1(env interface{}, args []wasm.Value
 	return []wasm.Value{wasm.NewI64(ptr)}, nil
 }
 
-//func ext_offchain_local_storage_set_version_1(context unsafe.Pointer, kind C.int32_t, key, value C.int64_t) {
 func ext_offchain_local_storage_set_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_offchain_local_storage_set_version_1] executing...")
 
@@ -1409,7 +1370,6 @@ func ext_offchain_local_storage_set_version_1(env interface{}, args []wasm.Value
 	return nil, nil
 }
 
-//func ext_offchain_network_state_version_1(context unsafe.Pointer) C.int64_t {
 func ext_offchain_network_state_version_1(env interface{}, _ []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_offchain_network_state_version_1] executing...")
 	ctx := env.(*runtime.Context)
@@ -1439,7 +1399,6 @@ func ext_offchain_network_state_version_1(env interface{}, _ []wasm.Value) ([]wa
 	return []wasm.Value{wasm.NewI64(ptr)}, nil
 }
 
-//func ext_offchain_random_seed_version_1(context unsafe.Pointer) C.int32_t {
 func ext_offchain_random_seed_version_1(env interface{}, _ []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_offchain_random_seed_version_1] executing...")
 	ctx := env.(*runtime.Context)
@@ -1460,7 +1419,6 @@ func ext_offchain_random_seed_version_1(env interface{}, _ []wasm.Value) ([]wasm
 	return []wasm.Value{wasm.NewI32(ptr)}, nil
 }
 
-//func ext_offchain_submit_transaction_version_1(context unsafe.Pointer, data C.int64_t) C.int64_t {
 func ext_offchain_submit_transaction_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_offchain_submit_transaction_version_1] executing...")
 
@@ -1533,7 +1491,6 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 	return nil
 }
 
-//func ext_storage_append_version_1(context unsafe.Pointer, keySpan, valueSpan C.int64_t) {
 func ext_storage_append_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_storage_append_version_1] executing...")
 
@@ -1558,7 +1515,6 @@ func ext_storage_append_version_1(env interface{}, args []wasm.Value) ([]wasm.Va
 	return nil, nil
 }
 
-//func ext_storage_changes_root_version_1(context unsafe.Pointer, parentHashSpan C.int64_t) C.int64_t {
 func ext_storage_changes_root_version_1(env interface{}, _ []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_storage_changes_root_version_1] executing...")
 	logger.Debug("[ext_storage_changes_root_version_1] returning None")
@@ -1574,7 +1530,6 @@ func ext_storage_changes_root_version_1(env interface{}, _ []wasm.Value) ([]wasm
 	return []wasm.Value{wasm.NewI64(rootSpan)}, nil
 }
 
-//func ext_storage_clear_version_1(context unsafe.Pointer, keySpan C.int64_t) {
 func ext_storage_clear_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_storage_clear_version_1] executing...")
 
@@ -1589,7 +1544,6 @@ func ext_storage_clear_version_1(env interface{}, args []wasm.Value) ([]wasm.Val
 	return nil, nil
 }
 
-//func ext_storage_clear_prefix_version_1(context unsafe.Pointer, prefixSpan C.int64_t) {
 func ext_storage_clear_prefix_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_storage_clear_prefix_version_1] executing...")
 
@@ -1610,7 +1564,6 @@ func ext_storage_clear_prefix_version_1(env interface{}, args []wasm.Value) ([]w
 	return nil, nil
 }
 
-//func ext_storage_exists_version_1(context unsafe.Pointer, keySpan C.int64_t) C.int32_t {
 func ext_storage_exists_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_storage_exists_version_1] executing...")
 
@@ -1629,7 +1582,6 @@ func ext_storage_exists_version_1(env interface{}, args []wasm.Value) ([]wasm.Va
 	return []wasm.Value{wasm.NewI32(0)}, nil
 }
 
-//func ext_storage_get_version_1(context unsafe.Pointer, keySpan C.int64_t) C.int64_t {
 func ext_storage_get_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_storage_get_version_1] executing...")
 
@@ -1653,7 +1605,6 @@ func ext_storage_get_version_1(env interface{}, args []wasm.Value) ([]wasm.Value
 	return []wasm.Value{wasm.NewI64(valueSpan)}, nil
 }
 
-//func ext_storage_next_key_version_1(context unsafe.Pointer, keySpan C.int64_t) C.int64_t {
 func ext_storage_next_key_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_storage_next_key_version_1] executing...")
 
@@ -1675,7 +1626,6 @@ func ext_storage_next_key_version_1(env interface{}, args []wasm.Value) ([]wasm.
 	return []wasm.Value{wasm.NewI64(nextSpan)}, nil
 }
 
-//func ext_storage_read_version_1(context unsafe.Pointer, keySpan, valueOut C.int64_t, offset C.int32_t) C.int64_t {
 func ext_storage_read_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_storage_read_version_1] executing...")
 
@@ -1718,7 +1668,6 @@ func ext_storage_read_version_1(env interface{}, args []wasm.Value) ([]wasm.Valu
 	return []wasm.Value{wasm.NewI64(sizeSpan)}, nil
 }
 
-//func ext_storage_root_version_1(context unsafe.Pointer) C.int64_t {
 func ext_storage_root_version_1(env interface{}, _ []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_storage_root_version_1] executing...")
 
@@ -1742,7 +1691,6 @@ func ext_storage_root_version_1(env interface{}, _ []wasm.Value) ([]wasm.Value, 
 	return []wasm.Value{wasm.NewI64(rootSpan)}, nil
 }
 
-//func ext_storage_set_version_1(context unsafe.Pointer, keySpan C.int64_t, valueSpan C.int64_t) {
 func ext_storage_set_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_storage_set_version_1] executing...")
 
@@ -1762,7 +1710,6 @@ func ext_storage_set_version_1(env interface{}, args []wasm.Value) ([]wasm.Value
 	return nil, nil
 }
 
-//func ext_storage_start_transaction_version_1(context unsafe.Pointer) {
 func ext_storage_start_transaction_version_1(env interface{}, _ []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_storage_start_transaction_version_1] executing...")
 	ctx := env.(*runtime.Context)
@@ -1770,7 +1717,6 @@ func ext_storage_start_transaction_version_1(env interface{}, _ []wasm.Value) ([
 	return nil, nil
 }
 
-//func ext_storage_rollback_transaction_version_1(context unsafe.Pointer) {
 func ext_storage_rollback_transaction_version_1(env interface{}, _ []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_storage_rollback_transaction_version_1] executing...")
 	ctx := env.(*runtime.Context)
@@ -1778,7 +1724,6 @@ func ext_storage_rollback_transaction_version_1(env interface{}, _ []wasm.Value)
 	return nil, nil
 }
 
-//func ext_storage_commit_transaction_version_1(context unsafe.Pointer) {
 func ext_storage_commit_transaction_version_1(env interface{}, _ []wasm.Value) ([]wasm.Value, error) {
 	logger.Debug("[ext_storage_commit_transaction_version_1] executing...")
 	ctx := env.(*runtime.Context)
