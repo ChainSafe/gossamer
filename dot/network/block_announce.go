@@ -41,6 +41,7 @@ type BlockAnnounceMessage struct {
 	StateRoot      common.Hash
 	ExtrinsicsRoot common.Hash
 	Digest         types.Digest
+	BestBlock      bool
 }
 
 // SubProtocol returns the block-announces sub-protocol
@@ -86,6 +87,12 @@ func (bm *BlockAnnounceMessage) Decode(in []byte) error {
 	bm.StateRoot = h.StateRoot
 	bm.ExtrinsicsRoot = h.ExtrinsicsRoot
 	bm.Digest = h.Digest
+	bestBlock, err := common.ReadByte(r)
+	if err != nil {
+		return err
+	}
+
+	bm.BestBlock = bestBlock == 1
 	return nil
 }
 
