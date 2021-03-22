@@ -42,7 +42,7 @@ var maxRetries = 24
 // SetLogLevel sets the logging level for this package
 func SetLogLevel(lvl log.Lvl) {
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	logger.SetHandler(log.LvlFilterHandler(log.LvlInfo, h))
+	logger.SetHandler(log.LvlFilterHandler(lvl, h))
 }
 
 var (
