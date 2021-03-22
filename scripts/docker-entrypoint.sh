@@ -23,6 +23,7 @@ set -euxo pipefail
 
 if [ ! -f $BASE_PATH/genesis_created ]; then
 	/usr/local/gossamer init --genesis-raw=/gocode/src/github.com/ChainSafe/gossamer/chain/gssmr/genesis-raw.json
+	/usr/local/gossamer --chain gssmr --roles 1
 	touch $BASE_PATH/genesis_created;
 fi;
 
