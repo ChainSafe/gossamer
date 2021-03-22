@@ -31,6 +31,8 @@ var (
 	HOSTNAME = os.Getenv("HOSTNAME")
 	PORT     = os.Getenv("PORT")
 
+	LOGLEVEL = os.Getenv("LOG")
+
 	NETWORK_SIZE = os.Getenv("NETWORK_SIZE")
 
 	ContentTypeJSON   = "application/json"
