@@ -56,7 +56,7 @@ type ExtrinsicOrHashRequest []ExtrinsicOrHash
 type KeyInsertResponse []byte
 
 // PendingExtrinsicsResponse is a bi-dimensional array of bytes for allocating the pending extrisics
-type PendingExtrinsicsResponse [][]byte
+type PendingExtrinsicsResponse []string
 
 // RemoveExtrinsicsResponse is a array of hash used to Remove extrinsics
 type RemoveExtrinsicsResponse []common.Hash
@@ -134,13 +134,9 @@ func (cm *AuthorModule) HasKey(r *http.Request, req *[]string, res *bool) error 
 // PendingExtrinsics Returns all pending extrinsics
 func (cm *AuthorModule) PendingExtrinsics(r *http.Request, req *EmptyRequest, res *PendingExtrinsicsResponse) error {
 	pending := cm.txStateAPI.Pending()
-	resp := [][]byte{}
-	for _, tx := range pending {
-		enc, err := tx.Encode()
-		if err != nil {
-			return err
-		}
-		resp = append(resp, enc)
+	resp := make([]string, len(pending))
+	for idx, tx := range pending {
+		resp[idx] = common.BytesToHex(tx.Extrinsic)
 	}
 
 	*res = PendingExtrinsicsResponse(resp)
