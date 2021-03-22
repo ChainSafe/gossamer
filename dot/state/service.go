@@ -88,6 +88,11 @@ func (s *Service) Initialize(gen *genesis.Genesis, header *types.Header, t *trie
 	var db chaindb.Database
 	cfg := &chaindb.Config{}
 
+	babeCfg, err := s.loadBabeConfigurationFromRuntime(t, gen)
+	if err != nil {
+		return err
+	}
+
 	// check database type
 	if s.isMemDB {
 		cfg.InMemory = true
@@ -113,11 +118,6 @@ func (s *Service) Initialize(gen *genesis.Genesis, header *types.Header, t *trie
 
 	if err = t.Store(chaindb.NewTable(db, storagePrefix)); err != nil {
 		return fmt.Errorf("failed to write genesis trie to database: %w", err)
-	}
-
-	babeCfg, err := s.loadBabeConfigurationFromRuntime(t, gen)
-	if err != nil {
-		return err
 	}
 
 	// write initial genesis values to database
@@ -170,7 +170,6 @@ func (s *Service) Initialize(gen *genesis.Genesis, header *types.Header, t *trie
 }
 
 func (s *Service) loadBabeConfigurationFromRuntime(t *trie.Trie, gen *genesis.Genesis) (*types.BabeConfiguration, error) {
-	// load genesis state into database
 	genTrie, err := rtstorage.NewTrieState(t)
 	if err != nil {
 		return nil, fmt.Errorf("failed to instantiate TrieState: %w", err)

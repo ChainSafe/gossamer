@@ -49,7 +49,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.1-0.20200815110645-5c35d600f0ca // indirect
 	github.com/urfave/cli v1.20.0
-	github.com/wasmerio/wasmer-go v1.0.3
+	github.com/wasmerio/wasmer-go v1.0.4-0.20210322081402-e3df02918776
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/lint v0.0.0-20191125180803-fdd1cda4f05f // indirect
 	golang.org/x/mod v0.1.1-0.20191209134235-331c550502dd // indirect
@@ -63,4 +63,5 @@ require (
 
 go 1.15
 
-replace github.com/wasmerio/wasmer-go => github.com/noot/wasmer-go v1.0.4-0.20210319205810-debe9d2aabf2
+//replace github.com/wasmerio/wasmer-go => github.com/noot/wasmer-go v1.0.4-0.20210319205810-debe9d2aabf2
+replace github.com/wasmerio/wasmer-go => ../../noot/wasmer-go
