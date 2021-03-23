@@ -126,10 +126,8 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 	t := s.tries[*root]
 	s.lock.RUnlock()
 
-	if t != nil {
-		if t.MustHash() != *root {
-			panic("trie does not have expected root")
-		}
+	if t != nil && t.MustHash() != *root {
+		panic("trie does not have expected root")
 	}
 
 	if t == nil {
