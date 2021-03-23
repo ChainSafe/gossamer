@@ -80,7 +80,7 @@ func (s *TrieState) RollbackStorageTransaction() {
 }
 
 // Set sets a key-value pair in the trie
-func (s *TrieState) Set(key []byte, value []byte) {
+func (s *TrieState) Set(key, value []byte) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	s.t.Put(key, value)

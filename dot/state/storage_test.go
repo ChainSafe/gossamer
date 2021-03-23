@@ -70,3 +70,23 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, value, res)
 }
+
+func TestStorage_TrieState(t *testing.T) {
+	storage := newTestStorageState(t)
+	ts, err := storage.TrieState(&trie.EmptyHash)
+	require.NoError(t, err)
+	ts.Set([]byte("noot"), []byte("washere"))
+
+	root, err := ts.Root()
+	require.NoError(t, err)
+	err = storage.StoreTrie(ts)
+	require.NoError(t, err)
+
+	time.Sleep(time.Millisecond * 100)
+
+	// get trie from db
+	delete(storage.tries, root)
+	ts3, err := storage.TrieState(&root)
+	require.NoError(t, err)
+	require.Equal(t, ts.Trie().MustHash(), ts3.Trie().MustHash())
+}
