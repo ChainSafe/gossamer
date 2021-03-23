@@ -7,39 +7,6 @@ permalink: /
   <img alt="Gossamer logo"  src="./assets/Gossamer_Black_Name.svg" width="600" />
 </div>
 <br />
-<br />
-<div align="center">
-  <a href="https://www.gnu.org/licenses/gpl-3.0">
-    <img alt="License: GPL v3" src="https://img.shields.io/badge/License-GPLv3-blue.svg?style=for-the-badge&label=License" height="20"/>
-  </a>
-    <a href="https://github.com/ChainSafe/gossamer/actions">
-    <img alt="build status" src="https://img.shields.io/github/workflow/status/ChainSafe/gossamer/build?branch=development&style=for-the-badge&logo=github&label=build" height="20"/>
-  </a>
-  <a href="https://godoc.org/github.com/ChainSafe/gossamer">
-    <img alt="go doc" src="http://img.shields.io/badge/godoc-reference-5272B4.svg?style=for-the-badge" height="20" />
-  </a>
-  <a href="https://goreportcard.com/report/github.com/ChainSafe/gossamer">
-    <img alt="go report card" src="https://goreportcard.com/badge/github.com/ChainSafe/gossamer?style=for-the-badge" height="20" />
-  </a>
-</div>
-<div align="center">
-  <a href="https://codeclimate.com/github/ChainSafe/gossamer/badges">
-    <img alt="maintainability" src="https://img.shields.io/codeclimate/maintainability/ChainSafe/gossamer?style=for-the-badge" height="20" />
-  </a>
-  <a href="https://codeclimate.com/github/ChainSafe/gossamer/test_coverage">
-    <img alt="Test Coverage" src="https://img.shields.io/codeclimate/coverage/ChainSafe/gossamer?style=for-the-badge" height="20" />
-  </a>
-    <a href="https://discord.gg/zy8eRF7FG2">
-    <img alt="Discord" src="https://img.shields.io/discord/593655374469660673.svg?style=for-the-badge&label=Discord&logo=discord" height="20"/>
-  </a>
-  <a href="https://medium.com/chainsafe-systems/tagged/polkadot">
-    <img alt="Gossamer Blog" src="https://img.shields.io/badge/Medium-grey?style=for-the-badge&logo=medium" height="20" />
-  </a>
-    <a href="https://medium.com/chainsafe-systems/tagged/polkadot">
-    <img alt="Gossamer Blog" src="https://img.shields.io/twitter/follow/chainsafeth?color=blue&label=follow&logo=twitter&style=for-the-badge" height="20"/>
-  </a>
-</div>
-<br />
 
 ## A Go Implementation of the Polkadot Host
 
@@ -84,6 +51,7 @@ Our primary focus has been an initial implementation of the Polkadot Host. Once 
   - [Configuration](/usage/configuration)
   - [Run official nodes](/usage/run-official-nodes)
   - [Import Runtime](/usage/import-runtime)
+  - [Import State](/usage/import-state)
 - **Integrate**
   - [Connect polkadot.js](/integrate/connect-to-polkadot-js)
 - **Testing & Debugging**
@@ -104,7 +72,3 @@ Our primary focus has been an initial implementation of the Polkadot Host. Once 
 ## Connect
 
 Let us know if you have any feedback or ideas that might help us improve our documentation or if you have any resources that you would like to see added. If you are planning to use Gossamer or any of the Gossamer packages, please say hello! You can find us on <a target="_blank" rel="noopener noreferrer" href="https://discord.gg/Xdc5xjE">Discord</a>.
-
-## Contribute
-
-Contributions to this site and it's contents are more than welcome. If you would like to contribute, please read <a target="_blank" rel="noopener noreferrer" href="https://github.com/ChainSafe/gossamer/blob/development/.github/CODE_OF_CONDUCT.md">Code of Conduct </a> and <a target="_blank" rel="noopener noreferrer" href="https://github.com/ChainSafe/gossamer/blob/development/.github/CONTRIBUTING.md">Contributing Guidelines</a> before getting started.

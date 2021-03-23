@@ -40,6 +40,7 @@ nav:
     - Command Line: ./usage/command-line.md
     - Configuration: ./usage/configuration.md
     - Import Runtime: ./usage/import-runtime.md
+    - Import State: ./usage/import-state.md
   - Intergrate:
     - Connect to Polkadot.js: ./intergrate/connect-to-polkadot-js.md
   - Tests: 
