@@ -262,9 +262,6 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	tt := trie.NewEmptyTrie()
 	rt := wasmer.NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlInfo)
 	ks := keystore.NewGlobalKeystore()
-	t.Cleanup(func() {
-		rt.Stop()
-	})
 
 	// insert alice key for testing
 	kr, err := keystore.NewSr25519Keyring()
@@ -292,9 +289,6 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 func setupAuthModule(t *testing.T, txq *state.TransactionState) *AuthorModule {
 	cs := newCoreService(t, nil)
 	rt := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
-	t.Cleanup(func() {
-		rt.Stop()
-	})
 	return NewAuthorModule(nil, cs, rt, txq)
 }
 
