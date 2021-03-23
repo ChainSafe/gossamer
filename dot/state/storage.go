@@ -127,7 +127,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 	s.lock.RUnlock()
 
 	if t != nil { // TODO: figure out why it seems like snapshotted tries are getting modified
-		if t.MustHash() != *root{
+		if t.MustHash() != *root {
 			panic("StorageState trie does not have expected root")
 		}
 
