@@ -115,7 +115,7 @@ func init() {
 	app.Name = "gossamer"
 	app.Usage = "Official gossamer command-line interface"
 	app.Author = "ChainSafe Systems 2019"
-	app.Version = "0.0.1"
+	app.Version = "0.3.2"
 	app.Commands = []cli.Command{
 		exportCommand,
 		initCommand,
