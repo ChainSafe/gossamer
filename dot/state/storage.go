@@ -143,7 +143,9 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		return nil, err
 	}
 
+	s.lock.Lock()
 	s.tries[*root] = curr.Snapshot()
+	s.lock.Unlock()
 	return curr, nil
 }
 
