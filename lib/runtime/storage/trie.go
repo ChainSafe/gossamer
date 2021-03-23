@@ -52,8 +52,9 @@ func (s *TrieState) Trie() *trie.Trie {
 
 // Snapshot creates a new "version" of the trie. The trie before Snapshot is called
 // can no longer be modified, all further changes are on a new "version" of the trie.
-func (s *TrieState) Snapshot() {
-	_ = s.t.Snapshot()
+// It returns the previous version of the trie.
+func (s *TrieState) Snapshot() *trie.Trie {
+	return s.t.Snapshot()
 }
 
 // BeginStorageTransaction begins a new nested storage transaction which will either be committed or rolled back at a later time.

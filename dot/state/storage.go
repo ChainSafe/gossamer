@@ -126,8 +126,18 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 	t := s.tries[*root]
 	s.lock.RUnlock()
 
-	if t != nil && t.MustHash() == *root { // TODO: figure out why it seems like snapshotted tries are getting modified
-		return rtstorage.NewTrieState(t)
+	if t != nil { // TODO: figure out why it seems like snapshotted tries are getting modified
+		if t.MustHash() != *root{
+			panic("StorageState trie does not have expected root")
+		}
+
+		curr, err := rtstorage.NewTrieState(t)
+		if err != nil {
+			return nil, err
+		}
+		prev := curr.Snapshot()
+		s.tries[*root] = prev
+		return curr, nil
 	}
 
 	tr, err := s.LoadFromDB(*root)
@@ -135,7 +145,13 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		return nil, err
 	}
 
-	return rtstorage.NewTrieState(tr)
+	curr, err := rtstorage.NewTrieState(tr)
+	if err != nil {
+		return nil, err
+	}
+	prev := curr.Snapshot()
+	s.tries[*root] = prev
+	return curr, nil
 }
 
 // StoreInDB encodes the entire trie and writes it to the DB
