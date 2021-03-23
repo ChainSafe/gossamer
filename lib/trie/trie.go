@@ -18,6 +18,7 @@ package trie
 
 import (
 	"bytes"
+	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -32,6 +33,7 @@ type Trie struct {
 	generation uint64
 	root       node
 	children   map[common.Hash]*Trie // Used to store the child tries.
+	mutex      sync.Mutex
 }
 
 // NewEmptyTrie creates a trie with a nil root
@@ -128,6 +130,8 @@ func (t *Trie) Hash() (common.Hash, error) {
 
 // Entries returns all the key-value pairs in the trie as a map of keys to values
 func (t *Trie) Entries() map[string][]byte {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
 	return t.entries(t.root, nil, make(map[string][]byte))
 }
 
@@ -239,9 +243,12 @@ func (t *Trie) Put(key, value []byte) {
 }
 
 func (t *Trie) tryPut(key, value []byte) {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
 	k := keyToNibbles(key)
 
 	t.root = t.insert(t.root, k, &leaf{key: nil, value: value, dirty: true, generation: t.generation})
+
 }
 
 // TryPut attempts to insert a key with value into the trie

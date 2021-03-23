@@ -142,7 +142,8 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 // notifyStorageSubscriptions interates StorageState subscrirptions and notifies listener
 //  if the value filter value has changed
 func (s *StorageState) notifyStorageSubscriptions(root common.Hash) error {
-
+	s.changedLock.Lock()
+	defer s.changedLock.Unlock()
 	for subKey := range s.subscriptions {
 		err := s.notifyStorageSubscription(root, subKey)
 		if err != nil {
@@ -157,7 +158,7 @@ func (s *StorageState) notifyStorageSubscriptions(root common.Hash) error {
 func (s *StorageState) notifyStorageSubscription(root common.Hash, subID byte) error {
 	s.lock.RLock()
 	t := s.tries[root]
-	s.lock.RUnlock()
+	defer s.lock.RUnlock()
 
 	if t == nil {
 		return errTrieDoesNotExist(root)
