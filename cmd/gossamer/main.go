@@ -19,9 +19,7 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -71,7 +69,7 @@ var (
 			"\tTo import a keystore file: gossamer account --import=path/to/file\n" +
 			"\tTo list keys: gossamer account --list",
 	}
-	// initCommand defines the "init" subcommand (ie, `gossamer init`)
+	// buildSpecCommand creates a raw genesis file from a human readable genesis file.
 	buildSpecCommand = cli.Command{
 		Action:    FixFlagOrder(buildSpecAction),
 		Name:      "build-spec",
@@ -81,18 +79,20 @@ var (
 		Category:  "BUILD-SPEC",
 		Description: "The build-spec command outputs current genesis JSON data.\n" +
 			"\tUsage: gossamer build-spec\n" +
-			"\tTo generate raw genesis file: gossamer build-spec --raw",
+			"\tTo generate raw genesis file from default: gossamer build-spec --raw > genesis-raw.json" +
+			"\tTo generate raw genesis file from specific genesis file: gossamer build-spec --raw --genesis genesis.json > genesis-raw.json",
 	}
-	// TODO: update this to put the wasm into a genesis file
-	wasmToHexCommand = cli.Command{
-		Action:    FixFlagOrder(wasmToHexAction),
-		Name:      "convert-wasm",
-		Usage:     "Converts a .wasm file to a hex string to be used in a genesis file",
+
+	// importRuntime generates a genesis file given a .wasm runtime binary.
+	importRuntimeCommand = cli.Command{
+		Action:    FixFlagOrder(importRuntimeAction),
+		Name:      "import-runtime",
+		Usage:     "Generates a genesis file given a .wasm runtime binary",
 		ArgsUsage: "",
 		Flags:     RootFlags,
-		Category:  "CONVERT-WASM",
-		Description: "The convert-wasm command converts a .wasm file to a hex string to be used in a genesis file.\n" +
-			"\tUsage: gossamer convert-wasm runtime.wasm\n",
+		Category:  "IMPORT-RUNTIME",
+		Description: "The import-runtime command generates a genesis file given a .wasm runtime binary.\n" +
+			"\tUsage: gossamer import-runtime runtime.wasm > genesis.json\n",
 	}
 
 	importStateCommand = cli.Command{
@@ -115,13 +115,13 @@ func init() {
 	app.Name = "gossamer"
 	app.Usage = "Official gossamer command-line interface"
 	app.Author = "ChainSafe Systems 2019"
-	app.Version = "0.0.1"
+	app.Version = "0.3.2"
 	app.Commands = []cli.Command{
 		exportCommand,
 		initCommand,
 		accountCommand,
 		buildSpecCommand,
-		wasmToHexCommand,
+		importRuntimeCommand,
 		importStateCommand,
 	}
 	app.Flags = RootFlags
@@ -163,20 +163,20 @@ func importStateAction(ctx *cli.Context) error {
 	return dot.ImportState(cfg.Global.BasePath, stateFP, headerFP, uint64(firstSlot))
 }
 
-// wasmToHexAction converts a .wasm file to a hex string and outputs it to stdout
-func wasmToHexAction(ctx *cli.Context) error {
+// importRuntimeAction generates a genesis file given a .wasm runtime binary.
+func importRuntimeAction(ctx *cli.Context) error {
 	arguments := ctx.Args()
 	if len(arguments) == 0 {
 		return fmt.Errorf("no args provided, please provide wasm file")
 	}
 
 	fp := arguments[0]
-	bytes, err := ioutil.ReadFile(filepath.Clean(fp))
+	out, err := createGenesisWithRuntime(fp)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("0x%x", bytes)
+	fmt.Println(out)
 	return nil
 }
 
