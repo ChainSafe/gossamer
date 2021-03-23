@@ -43,7 +43,7 @@ func errTrieDoesNotExist(hash common.Hash) error {
 // StorageState is the struct that holds the trie, db and lock
 type StorageState struct {
 	blockState *BlockState
-	tries      map[common.Hash]*trie.Trie
+	tries      map[common.Hash]*trie.Trie // map of root -> trie
 
 	baseDB chaindb.Database
 	db     chaindb.Database
