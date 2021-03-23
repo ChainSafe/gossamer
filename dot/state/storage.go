@@ -142,8 +142,8 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 	if err != nil {
 		return nil, err
 	}
-	prev := curr.Snapshot()
-	s.tries[*root] = prev
+
+	s.tries[*root] = curr.Snapshot()
 	return curr, nil
 }
 
