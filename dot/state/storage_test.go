@@ -85,7 +85,9 @@ func TestStorage_TrieState(t *testing.T) {
 	time.Sleep(time.Millisecond * 100)
 
 	// get trie from db
+	storage.lock.Lock()
 	delete(storage.tries, root)
+	storage.lock.Unlock()
 	ts3, err := storage.TrieState(&root)
 	require.NoError(t, err)
 	require.Equal(t, ts.Trie().MustHash(), ts3.Trie().MustHash())
