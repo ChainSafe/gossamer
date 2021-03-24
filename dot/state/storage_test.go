@@ -69,3 +69,54 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, value, res)
 }
+
+func TestStorage_LoadFromDB(t *testing.T) {
+	storage := newTestStorageState(t)
+	ts, err := storage.TrieState(&trie.EmptyHash)
+	require.NoError(t, err)
+
+	trieKV := []struct {
+		key   []byte
+		value []byte
+	}{{},
+		{[]byte("key1"), []byte("value1")},
+		{[]byte("key2"), []byte("value2")},
+		{[]byte("xyzKey1"), []byte("xyzValue1")},
+	}
+
+	for _, kv := range trieKV {
+		ts.Set(kv.key, kv.value)
+	}
+
+	root, err := ts.Root()
+	require.NoError(t, err)
+
+	// Write trie to disk.
+	err = storage.StoreTrie(ts)
+	require.NoError(t, err)
+
+	// Clear trie from cache and fetch data from disk.
+	storage.lock.Lock()
+	delete(storage.tries, root)
+	storage.lock.Unlock()
+
+	data, err := storage.GetStorage(&root, trieKV[0].key)
+	require.NoError(t, err)
+	require.Equal(t, trieKV[0].value, data)
+
+	storage.lock.Lock()
+	delete(storage.tries, root)
+	storage.lock.Unlock()
+
+	prefixKeys, err := storage.GetKeysWithPrefix(&root, []byte("ke"))
+	require.NoError(t, err)
+	require.Equal(t, 2, len(prefixKeys))
+
+	storage.lock.Lock()
+	delete(storage.tries, root)
+	storage.lock.Unlock()
+
+	entries, err := storage.Entries(&root)
+	require.NoError(t, err)
+	require.Equal(t, 3, len(entries))
+}
