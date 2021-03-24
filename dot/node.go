@@ -22,21 +22,23 @@ import (
 	"os"
 	"os/signal"
 	"path"
+	"strconv"
 	"sync"
 	"syscall"
+	"time"
 
+	"github.com/ChainSafe/chaindb"
 	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/services"
+	log "github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/metrics/prometheus"
-
-	"github.com/ChainSafe/chaindb"
-	log "github.com/ChainSafe/log15"
 )
 
 var logger = log.New("pkg", "dot")
@@ -289,6 +291,12 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	if cfg.Global.PublishMetrics {
 		publishMetrics(cfg)
 	}
+
+	telemetry.GetInstance().SendConnection(cfg.Core.GrandpaAuthority, sysSrvc.ChainType(), stateSrvc.Block.GenesisHash().String(),
+		sysSrvc.SystemName(), sysSrvc.NodeName(), sysSrvc.SystemVersion(), networkSrvc.NetworkState().PeerID, strconv.FormatInt(time.Now().UnixNano(), 10))
+	// example to connect to wss://telemetry.polkadot.io/submit/
+	//telemetry.GetInstance().SendConnection(false, "Polkadot", "0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3",
+	//	"Parity Polkadot", "Ed Node", "0.8.29-f05fedb3e-x86_64-linux-gnu", networkSrvc.NetworkState().PeerID, strconv.FormatInt(time.Now().UnixNano(), 10))
 
 	return node, nil
 }
