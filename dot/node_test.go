@@ -41,19 +41,24 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	"io/ioutil"
 )
 
 func Test_NewRuntime(t *testing.T) {
-	genFile := "../chain/gssmr/genesis-raw.json"
+	// genFile := "../chain/polkadot/genesis-raw.json"
 
-	gen, err := genesis.NewGenesisFromJSONRaw(genFile)
+	// gen, err := genesis.NewGenesisFromJSONRaw(genFile)
+	// require.NoError(t, err)
+
+	code, err := ioutil.ReadFile("../node_runtime.wat")
 	require.NoError(t, err)
 
 	rtCfg := &wasmer.Config{}
 	//rtCfg.Storage = genTrie
 	rtCfg.LogLvl = 5 // s.logLvl
+	rtCfg.Imports = wasmer.ImportsNodeRuntime
 
-	rt, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg)
+	rt, err := wasmer.NewInstance(code, rtCfg)
 	require.NoError(t, err)
 	require.NotNil(t, rt)
 }

@@ -22,7 +22,6 @@ import (
 	"os"
 	"os/signal"
 	"path"
-	"runtime"
 	"sync"
 	"syscall"
 
@@ -53,9 +52,6 @@ type Node struct {
 // InitNode initializes a new dot node from the provided dot node configuration
 // and JSON formatted genesis file.
 func InitNode(cfg *Config) error {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
 	setupLogger(cfg)
 	logger.Info(
 		"🕸️ initializing node...",
