@@ -249,7 +249,12 @@ func (q *syncQueue) handleResponseQueue() {
 // prune peers with low score and connect to new peers
 func (q *syncQueue) prunePeers() {
 	for {
-		time.Sleep(time.Second * 30)
+		select {
+		case <-time.After(time.Second * 30):
+		case <-q.ctx.Done():
+			return
+		}
+
 		logger.Debug("✂️ pruning peers w/ low score...")
 
 		peers := q.getSortedPeers()
