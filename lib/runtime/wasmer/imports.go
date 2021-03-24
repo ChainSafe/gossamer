@@ -215,7 +215,7 @@ func ext_crypto_ed25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 	var kp crypto.Keypair
 
 	if seed.Exists() {
-		kp, err = ed25519.NewKeypairFromMnenomic(string(seedBytes), "")
+		kp, err = ed25519.NewKeypairFromMnenomic(string(seed.Value()), "")
 	} else {
 		kp, err = ed25519.GenerateKeypair()
 	}
