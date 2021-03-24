@@ -96,19 +96,25 @@ func TestStorage_LoadFromDB(t *testing.T) {
 	require.NoError(t, err)
 
 	// Clear trie from cache and fetch data from disk.
+	storage.lock.Lock()
 	delete(storage.tries, root)
+	storage.lock.Unlock()
 
 	data, err := storage.GetStorage(&root, trieKV[0].key)
 	require.NoError(t, err)
 	require.Equal(t, trieKV[0].value, data)
 
+	storage.lock.Lock()
 	delete(storage.tries, root)
+	storage.lock.Unlock()
 
 	prefixKeys, err := storage.GetKeysWithPrefix(&root, []byte("ke"))
 	require.NoError(t, err)
 	require.Equal(t, 2, len(prefixKeys))
 
+	storage.lock.Lock()
 	delete(storage.tries, root)
+	storage.lock.Unlock()
 
 	entries, err := storage.Entries(&root)
 	require.NoError(t, err)
