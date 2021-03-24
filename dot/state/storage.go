@@ -20,6 +20,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"runtime/debug"
 	"sync"
 
 	"github.com/ChainSafe/chaindb"
@@ -86,6 +87,7 @@ func (s *StorageState) pruneKey(keyHeader *types.Header) {
 	}
 
 	delete(s.tries, keyHeader.StateRoot)
+	debug.FreeOSMemory()
 	// TODO: database pruning needs to be refactored since the trie is now stored by nodes
 }
 
