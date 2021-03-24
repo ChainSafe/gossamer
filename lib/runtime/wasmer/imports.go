@@ -54,8 +54,8 @@ func ext_logging_log_version_1(env interface{}, args []wasm.Value) ([]wasm.Value
 	targetData := args[1].I64()
 	msgData := args[2].I64()
 
-	target := fmt.Sprintf("%s", asMemorySlice(ctx, targetData))
-	msg := fmt.Sprintf("%s", asMemorySlice(ctx, msgData))
+	target := string(asMemorySlice(ctx, targetData))
+	msg := string(asMemorySlice(ctx, msgData))
 
 	switch int(level) {
 	case 0:
@@ -140,7 +140,7 @@ func ext_crypto_ed25519_generate_version_1(env interface{}, args []wasm.Value) (
 	var kp crypto.Keypair
 
 	if seed.Exists() {
-		kp, err = ed25519.NewKeypairFromMnenomic(string(seedBytes), "")
+		kp, err = ed25519.NewKeypairFromMnenomic(string(seed.Value()), "")
 	} else {
 		kp, err = ed25519.GenerateKeypair()
 	}
@@ -779,12 +779,11 @@ func ext_misc_print_num_version_1(_ interface{}, args []wasm.Value) ([]wasm.Valu
 //func ext_misc_print_utf8_version_1(context unsafe.Pointer, dataSpan C.int64_t) {
 func ext_misc_print_utf8_version_1(env interface{}, args []wasm.Value) ([]wasm.Value, error) {
 	logger.Trace("[ext_misc_print_utf8_version_1] executing...")
-
 	ctx := env.(*runtime.Context)
 	dataSpan := args[0].I64()
 
 	data := asMemorySlice(ctx, dataSpan)
-	logger.Debug("[ext_misc_print_utf8_version_1]", "utf8", fmt.Sprintf("%s", data))
+	logger.Debug("[ext_misc_print_utf8_version_1]", "utf8", string(data))
 	return nil, nil
 }
 
@@ -1218,7 +1217,7 @@ func ext_hashing_twox_128_version_1(env interface{}, args []wasm.Value) ([]wasm.
 		return nil, err
 	}
 
-	logger.Debug("[ext_hashing_twox_128_version_1]", "data", fmt.Sprintf("%s", data), "hash", fmt.Sprintf("0x%x", hash))
+	logger.Debug("[ext_hashing_twox_128_version_1]", "data", string(data), "hash", fmt.Sprintf("0x%x", hash))
 
 	out, err := toWasmMemorySized(ctx, hash, 16)
 	if err != nil {
