@@ -178,7 +178,6 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 
 	imports := cfg.Imports(store, memory, ctx)
 	fmt.Println("imports", imports)
-	fmt.Println("module", module)
 	instance, err := wasm.NewInstance(module, imports)
 	if err != nil {
 		return nil, err
