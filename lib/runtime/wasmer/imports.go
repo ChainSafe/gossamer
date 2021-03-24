@@ -127,8 +127,8 @@ func ext_logging_log_version_1(context unsafe.Pointer, level C.int32_t, targetDa
 	logger.Trace("[ext_logging_log_version_1] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 
-	target := fmt.Sprintf("%s", asMemorySlice(instanceContext, targetData))
-	msg := fmt.Sprintf("%s", asMemorySlice(instanceContext, msgData))
+	target := string(asMemorySlice(instanceContext, targetData))
+	msg := string(asMemorySlice(instanceContext, msgData))
 
 	switch int(level) {
 	case 0:
@@ -849,7 +849,7 @@ func ext_misc_print_utf8_version_1(context unsafe.Pointer, dataSpan C.int64_t) {
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	data := asMemorySlice(instanceContext, dataSpan)
-	logger.Debug("[ext_misc_print_utf8_version_1]", "utf8", fmt.Sprintf("%s", data))
+	logger.Debug("[ext_misc_print_utf8_version_1]", "utf8", string(data))
 }
 
 //export ext_misc_runtime_version_version_1
@@ -1241,7 +1241,7 @@ func ext_hashing_twox_128_version_1(context unsafe.Pointer, dataSpan C.int64_t) 
 		return 0
 	}
 
-	logger.Debug("[ext_hashing_twox_128_version_1]", "data", fmt.Sprintf("%s", data), "hash", fmt.Sprintf("0x%x", hash))
+	logger.Debug("[ext_hashing_twox_128_version_1]", "data", string(data), "hash", fmt.Sprintf("0x%x", hash))
 
 	out, err := toWasmMemorySized(instanceContext, hash, 16)
 	if err != nil {
