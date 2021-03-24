@@ -261,6 +261,8 @@ func (s *mockSyncer) IsSynced() bool {
 	return false
 }
 
+func (s *mockSyncer) SetSyncing(bool) {}
+
 type mockDigestItem struct { //nolint
 	i int
 }

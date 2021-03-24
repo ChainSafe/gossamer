@@ -164,6 +164,8 @@ func (q *syncQueue) syncAtHead() {
 		return
 	}
 
+	q.s.syncer.SetSyncing(true)
+
 	for {
 		select {
 		// sleep for average block time TODO: make this configurable from slot duration
@@ -182,6 +184,9 @@ func (q *syncQueue) syncAtHead() {
 			prev = curr
 			continue
 		}
+
+		logger.Info("set syncing to false")
+		q.s.syncer.SetSyncing(false)
 
 		// we have received new blocks since the last check, sleep
 		if prev.Number.Int64() < curr.Number.Int64() {

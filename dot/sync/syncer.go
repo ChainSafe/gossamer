@@ -412,3 +412,8 @@ func (s *Service) handleDigests(header *types.Header) {
 func (s *Service) IsSynced() bool {
 	return s.synced
 }
+
+func (s *Service) SetSyncing(syncing bool) {
+	s.synced = !syncing
+	s.storageState.SetSyncing(syncing)
+}
