@@ -110,6 +110,8 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
 			logger.Warn("failed to notify storage subscriptions", "error", err)
 		}
 	}()
+
+	debug.FreeOSMemory()
 	return nil
 }
 
