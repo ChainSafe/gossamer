@@ -192,10 +192,11 @@ func (q *syncQueue) syncAtHead() {
 		prev = curr
 		start := uint64(curr.Number.Int64()) + 1
 		logger.Debug("haven't received new blocks since last check, pushing request", "start", start)
-		q.requestData.Store(start, requestData{
-			sent:     true,
-			received: false,
-		})
+		// q.requestData.Store(start, requestData{
+		// 	sent:     true,
+		// 	received: false,
+		// })
+		q.requestData.Delete(start)
 		q.pushRequest(start, 1, "")
 	}
 }
