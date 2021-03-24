@@ -413,6 +413,7 @@ func (s *Service) IsSynced() bool {
 	return s.synced
 }
 
+// SetSyncing sets whether the node is currently syncing or not
 func (s *Service) SetSyncing(syncing bool) {
 	s.synced = !syncing
 	s.storageState.SetSyncing(syncing)

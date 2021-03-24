@@ -79,6 +79,7 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie) 
 	}, nil
 }
 
+// SetSyncing sets whether the node is currently syncing or not
 func (s *StorageState) SetSyncing(syncing bool) {
 	s.syncing = syncing
 }
