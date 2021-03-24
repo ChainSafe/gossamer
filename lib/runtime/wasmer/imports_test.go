@@ -419,8 +419,6 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 	mnemonic, err := crypto.NewBIP39Mnemonic()
 	require.NoError(t, err)
 
-	// TODO: we currently don't provide a seed since the spec says the seed is an optional BIP-39 seed
-	// clarify whether this is a mnemonic or not
 	data := optional.NewBytes(true, []byte(mnemonic))
 	seedData, err := data.Encode()
 	require.NoError(t, err)
