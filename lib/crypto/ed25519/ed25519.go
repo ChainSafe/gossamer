@@ -27,7 +27,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 
-	bip39 "github.com/cosmos/go-bip39"
+	"github.com/ChainSafe/go-schnorrkel"
 )
 
 // PublicKeyLength is the fixed Public Key Length
@@ -120,7 +120,10 @@ func NewKeypairFromPrivateKeyString(in string) (*Keypair, error) {
 
 // NewKeypairFromMnenomic returns a new Keypair using the given mnemonic and password.
 func NewKeypairFromMnenomic(mnemonic, password string) (*Keypair, error) {
-	seed := bip39.NewSeed(mnemonic, password)
+	seed, err := schnorrkel.SeedFromMnemonic(mnemonic, password)
+	if err != nil {
+		return nil, err
+	}
 	return NewKeypairFromSeed(seed[:32])
 }
 
