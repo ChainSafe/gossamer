@@ -18,6 +18,7 @@ package network
 
 import (
 	"math/big"
+	"sync"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -116,10 +117,10 @@ func TestValidateBlockAnnounceHandshake(t *testing.T) {
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
 	nodeA.notificationsProtocols[BlockAnnounceMsgType] = &notificationsProtocol{
-		handshakeData: make(map[peer.ID]*handshakeData),
+		handshakeData: new(sync.Map), //make(map[peer.ID]*handshakeData),
 	}
 	testPeerID := peer.ID("noot")
-	nodeA.notificationsProtocols[BlockAnnounceMsgType].handshakeData[testPeerID] = &handshakeData{}
+	nodeA.notificationsProtocols[BlockAnnounceMsgType].handshakeData.Store(testPeerID, &handshakeData{})
 
 	err := nodeA.validateBlockAnnounceHandshake(testPeerID, &BlockAnnounceHandshake{
 		BestBlockNumber: 100,

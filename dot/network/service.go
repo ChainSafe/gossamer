@@ -304,10 +304,10 @@ func (s *Service) handleConn(conn libp2pnetwork.Conn) {
 	defer info.mapMu.RUnlock()
 
 	peer := conn.RemotePeer()
-	if hsData, has := info.handshakeData[peer]; !has || !hsData.received {
-		info.handshakeData[peer] = &handshakeData{
+	if hsData, has := info.getHandshakeData(peer); !has || !hsData.received {
+		info.handshakeData.Store(peer, &handshakeData{
 			validated: false,
-		}
+		})
 
 		logger.Trace("sending handshake", "protocol", info.protocolID, "peer", peer, "message", hs)
 		err = s.host.send(peer, info.protocolID, hs)
@@ -407,7 +407,7 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 	np := &notificationsProtocol{
 		protocolID:    protocolID,
 		getHandshake:  handshakeGetter,
-		handshakeData: make(map[peer.ID]*handshakeData),
+		handshakeData: new(sync.Map), //make(map[peer.ID]*handshakeData),
 	}
 	s.notificationsProtocols[messageID] = np
 
@@ -416,13 +416,13 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 		np.mapMu.Lock()
 		defer np.mapMu.Unlock()
 
-		if _, ok := np.handshakeData[peerID]; ok {
+		if _, ok := np.getHandshakeData(peerID); ok {
 			logger.Trace(
 				"Cleaning up handshake data",
 				"peer", peerID,
 				"protocol", protocolID,
 			)
-			delete(np.handshakeData, peerID)
+			np.handshakeData.Delete(peerID)
 		}
 	})
 
@@ -625,24 +625,20 @@ func (s *Service) Peers() []common.PeerInfo {
 	peers := []common.PeerInfo{}
 
 	s.notificationsMu.RLock()
-	defer s.notificationsMu.RUnlock()
+	np := s.notificationsProtocols[BlockAnnounceMsgType]
+	s.notificationsMu.RUnlock()
 
 	for _, p := range s.host.peers() {
-		if s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[p] == nil {
+		data, has := np.getHandshakeData(p)
+		if !has || data.handshake == nil {
 			peers = append(peers, common.PeerInfo{
 				PeerID: p.String(),
 			})
 
 			continue
 		}
-		peerHandshakeMessage := s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[p].handshake
-		if peerHandshakeMessage == nil {
-			peers = append(peers, common.PeerInfo{
-				PeerID: p.String(),
-			})
-			continue
-		}
 
+		peerHandshakeMessage := data.handshake
 		peers = append(peers, common.PeerInfo{
 			PeerID:     p.String(),
 			Roles:      peerHandshakeMessage.(*BlockAnnounceHandshake).Roles,
@@ -650,6 +646,7 @@ func (s *Service) Peers() []common.PeerInfo {
 			BestNumber: uint64(peerHandshakeMessage.(*BlockAnnounceHandshake).BestBlockNumber),
 		})
 	}
+
 	return peers
 }
 
