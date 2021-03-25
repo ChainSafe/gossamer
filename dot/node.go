@@ -22,6 +22,7 @@ import (
 	"os"
 	"os/signal"
 	"path"
+	"runtime/debug"
 	"sync"
 	"syscall"
 
@@ -158,6 +159,9 @@ func NodeInitialized(basepath string, expected bool) bool {
 
 // NewNode creates a new dot node from a dot node configuration
 func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, error) {
+	// set garbage collection percent to 10%
+	debug.SetGCPercent(10)
+
 	setupLogger(cfg)
 
 	// if authority node, should have at least 1 key in keystore

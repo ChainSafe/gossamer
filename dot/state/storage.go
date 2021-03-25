@@ -20,7 +20,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"runtime/debug"
+	//"runtime/debug"
 	"sync"
 
 	"github.com/ChainSafe/chaindb"
@@ -94,9 +94,9 @@ func (s *StorageState) pruneKey(keyHeader *types.Header) {
 	}
 
 	delete(s.tries, keyHeader.StateRoot)
-	if !s.syncing {
-		debug.FreeOSMemory()
-	}
+	// if !s.syncing {
+	// 	debug.FreeOSMemory()
+	// }
 	// TODO: database pruning needs to be refactored since the trie is now stored by nodes
 }
 
@@ -104,12 +104,12 @@ func (s *StorageState) pruneKey(keyHeader *types.Header) {
 func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
 	s.lock.Lock()
 	root := ts.MustRoot()
-	if s.syncing {
-		// keep only the trie at the head of the chain when syncing
-		for key := range s.tries {
-			delete(s.tries, key)
-		}
-	}
+	// if s.syncing {
+	// 	// keep only the trie at the head of the chain when syncing
+	// 	for key := range s.tries {
+	// 		delete(s.tries, key)
+	// 	}
+	// }
 	s.tries[root] = ts.Trie()
 	s.lock.Unlock()
 
@@ -127,9 +127,9 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
 	}()
 
 	// this is turned on when near the head, since it makes syncing significantly slower
-	if !s.syncing {
-		debug.FreeOSMemory()
-	}
+	// if !s.syncing {
+	// 	debug.FreeOSMemory()
+	// }
 	return nil
 }
 
