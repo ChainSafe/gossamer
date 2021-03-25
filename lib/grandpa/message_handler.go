@@ -60,6 +60,7 @@ func (h *MessageHandler) handleMessage(msg *ConsensusMessage) (*ConsensusMessage
 			h.grandpa.in <- vm
 		}
 	case finalizationType:
+		h.grandpa.logger.Info("got finalization message!!", "msg", msg)
 		if fm, ok := m.(*FinalizationMessage); ok {
 			return h.handleFinalizationMessage(fm)
 		}

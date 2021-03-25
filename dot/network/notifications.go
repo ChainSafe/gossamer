@@ -102,6 +102,13 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			"peer", stream.Conn().RemotePeer(),
 		)
 
+		if info.protocolID == "/paritytech/grandpa/1" {
+			logger.Info("received message on grandpa sub-protocol", "protocol", info.protocolID,
+				"message", msg,
+				"peer", stream.Conn().RemotePeer(),
+			)
+		}
+
 		if msg.IsHandshake() {
 			hs, ok := msg.(Handshake)
 			if !ok {
