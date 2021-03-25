@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"net/url"
 	"sync"
 	"time"
@@ -58,9 +59,10 @@ func GetInstance() *Handler {
 			func() {
 				// TODO (ed) move this so that it can be set by CLI flag
 				u := url.URL{
-					Scheme: "ws",
-					Host:   "127.0.0.1:8000",
-					Path:   "/submit/",
+					Scheme: "wss",
+					//Host:   "127.0.0.1:8000",
+					Host: "telemetry.polkadot.io",
+					Path: "/submit/",
 				}
 				c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 				if err != nil {
@@ -79,11 +81,19 @@ func GetInstance() *Handler {
 }
 
 // SendConnection sends connection request message to telemetry connection
-func (h *Handler) SendConnection(authority bool, chaintype, genesis_hash, system_name, node_name,
+func (h *Handler) SendConnection(authority bool, chain, genesis_hash, system_name, node_name,
 	system_version, network_id, start_time string) {
-	payload := log.Fields{"authority": authority, "chain": chaintype, "config": "", "genesis_hash": genesis_hash,
+	payload := log.Fields{"authority": authority, "chain": chain, "config": "", "genesis_hash": genesis_hash,
 		"implementation": system_name, "msg": "system.connected", "name": node_name, "network_id": network_id, "startup_time": start_time,
 		"version": system_version}
+	h.telemetryLogger = log.WithFields(log.Fields{"id": 1, "payload": payload, "ts": time.Now()})
+	h.telemetryLogger.Print()
+	h.sendTelemtry()
+}
+
+// SendBlockImport sends block imported message to telemetry connection
+func (h *Handler) SendBlockImport(best_hash string, height *big.Int) {
+	payload := log.Fields{"best": best_hash, "height": height.Int64(), "msg": "block.import", "origin": "NetworkInitialSync"}
 	h.telemetryLogger = log.WithFields(log.Fields{"id": 1, "payload": payload, "ts": time.Now()})
 	h.telemetryLogger.Print()
 	h.sendTelemtry()
@@ -96,6 +106,7 @@ func (h *Handler) sendTelemtry() {
 			// TODO (ed) determine how to handle this error
 			fmt.Printf("ERROR connecting to telemetry %v\n", err)
 		}
+		fmt.Printf("SENT %v\n", h.buf.String())
 	}
 	h.buf.Reset()
 }

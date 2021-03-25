@@ -24,12 +24,12 @@ import (
 	"os"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-
 	log "github.com/ChainSafe/log15"
 )
 
@@ -335,6 +335,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 		}
 	} else {
 		logger.Debug("🔗 imported block", "number", block.Header.Number, "hash", block.Header.Hash())
+		telemetry.GetInstance().SendBlockImport(block.Header.Hash().String(), block.Header.Number)
 	}
 
 	// handle consensus digest for authority changes
