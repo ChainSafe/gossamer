@@ -36,6 +36,7 @@ permalink: /developer-resources/
 - <a target="_blank" rel="noopener noreferrer" href="https://tokeneconomy.co/the-state-of-crypto-interoperability-explained-in-pictures-654cfe4cc167">The State of Crypto Interoperability Explained in Pictures</a>
 
 **parachains**
+
 - <a target="_blank" rel="noopener noreferrer" href="https://medium.com/polkadot-network/polkadot-the-parachain-3808040a769a">The Parachain (Blog Post)</a>
 - <a target="_blank" rel="noopener noreferrer" href="https://wiki.polkadot.network/docs/en/learn-parachains">Parachains on Polkadot Wiki</a>
 - <a target="_blank" rel="noopener noreferrer" href="https://polkadot.network/parathreads-parathreads-pay-as-you-go-parachains/">Parathreads (Blog Post)</a>
@@ -44,6 +45,7 @@ permalink: /developer-resources/
 - <a target="_blank" rel="noopener noreferrer" href="https://www.youtube.com/watch?v=m0vxqWwFfDs">The Path of a Parachain Block (Video)</a>
 
 **block production & consensus**
+
 - <a target="_blank" rel="noopener noreferrer" href="https://research.web3.foundation/en/latest/polkadot/BABE/Babe/">BABE Specification</a>
 - <a target="_blank" rel="noopener noreferrer" href="https://github.com/w3f/consensus/blob/master/pdf/grandpa.pdf">GRANDPA Specification</a>
 - <a target="_blank" rel="noopener noreferrer" href="https://medium.com/polkadot-network/polkadot-consensus-part-1-introduction-3e3cd6237243">Polkadot Consensus Part 1: Introduction</a>
@@ -55,3 +57,5 @@ permalink: /developer-resources/
 ### Substrate
 
 - <a target="_blank" rel="noopener noreferrer" href="https://substrate.dev/en/">Official Substrate Documentation</a>
+
+

@@ -18,24 +18,23 @@ git clone git@github.com:ChainSafe/gossamer
 cd gossamer
 ```
 
-Run the following command to build the Gossamer CLI:
+Run the following command to build the Gossamer binary:
 ```
 make gossamer
 ```
 
 ## Run a Gossamer Node
 
-To run default Gossamer node, first initialise the node, this establishes the settings for your node:
+To run default Gossamer node, first initialize the node. This writes the genesis state to the database.
 ```
 ./bin/gossamer --chain gssmr init
 ```
 
-To start the node, run the following command to use a built in key:
+The gossamer node runs as an authority by default. The built-in authorities are `alice`, `bob`, `charlie`, `dave`, `eve`, `ferdie`, `george`, and `ian`. To start the node as an authority, provide it with a built-in key:
 ```
 ./bin/gossamer --chain gssmr --key alice
 ```
 
-The built-in keys available for the node are `alice`, `bob`, `charlie`, `dave`, `eve`, `ferdie`, `george`, and `ian`.
 
 The node will not build blocks every slot by default; it will appear that the node is doing nothing, but it is actually waiting for a slot to build a block. If you wish to force it to build blocks every slot, you update the `[core]` section of `chain/gssmr/config.toml` to the following:
 
@@ -50,19 +49,24 @@ babe-threshold-denominator = 1
 
 Then, re-run the above steps. NOTE: this feature is for testing only; if you wish to change the BABE block production parameters, you need to create a modified runtime.
 
-## Run Kusama Node (_in development_)
+If you wish to run the default node as a non-authority, you can specify `roles=1`:
+```
+./bin/gossamer --chain gssmr --roles 1
+```
+
+## Run Kusama Node
 
 To run a Kusama node, first initialise the node:
 ```
-./bin/gossamer --chain ksmcc init
+./bin/gossamer --chain kusama init
 ```
 
 Then run the node selecting the Kusama chain:
 ```
-./bin/gossamer --chain ksmcc
+./bin/gossamer --chain kusama
 ```
 
-The node may not appear to do anything for the first minute or so (it's bootstrapping to the network.) If you wish to see what is it doing in this time, you can turn on debug logs in `chain/ksmcc/config.toml`:
+The node may not appear to do anything for the first minute or so (it's bootstrapping to the network.) If you wish to see what is it doing in this time, you can turn on debug logs in `chain/kusama/config.toml`:
 
 ```
 [log]
@@ -71,16 +75,47 @@ network = "debug"
 
 After it's finished bootstrapping, the node should begin to sync. 
 
-## Run Polkadot Node (_in development_)
+## Run Polkadot Node 
 
-NOTE: This is currently not supported.
-
-initialize polkadot node:
+Initialize polkadot node:
 ```
 ./bin/gossamer --chain polkadot init
 ```
 
-start polkadot node:
+Start polkadot node:
 ```
 ./bin/gossamer --chain polkadot
+```
+
+## Run Gossamer Node with Docker
+
+Gossamer can also be installed on GNU/Linux, MacOS systems with Docker. 
+
+### Dependencies
+
+- Install the latest release of [Docker](https://docs.docker.com/get-docker/)
+
+Ensure you are running the most recent version of Docker by issuing the command: 
+
+```
+docker -v
+```
+
+Pull the latest Gossamer images from DockerHub Registry: 
+
+```
+docker pull chainsafe/gossamer:latest
+```
+
+The above command will install all required dependencies.  
+
+Next, we need override the default entrypoint so we can run the node as an authority node
+
+```
+docker run -it --entrypoint /bin/bash chainsafe/gossamer:latest
+```
+
+The built-in authorities are `alice`, `bob`, `charlie`, `dave`, `eve`, `ferdie`, `george`, and `ian`. To start the node as an authority, provide it with a built-in key:
+```
+./bin/gossamer --chain gssmr --key alice
 ```

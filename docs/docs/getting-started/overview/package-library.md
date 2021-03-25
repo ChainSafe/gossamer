@@ -38,19 +38,19 @@ Gossamer packages can be categorized into **four package types**:
 
 #### `dot`
 
-- The **dot package** contains packages that implement the Polkadot Host spec. The **dot package** implements the [Host Node](/building-gossamer/host-architecture#host-node); it is the base node implementation for all [Official Nodes](/building-gossamer/host-architecture#official-nodes) and [Custom Services](/building-gossamer/host-architecture#custom-services) built with Gossamer.
+- The **dot package** contains packages that implement the Polkadot Host spec. The **dot package** implements the [Host Node](/getting-started/overview/host-architecture#host-node); it is the base node implementation for all [Official Nodes](/getting-started/overview/host-architecture#official-nodes) and [Custom Services](/getting-started/overview/host-architecture#custom-services) built with Gossamer.
 
 #### `dot/core`
 
-- The **core package** implements the [Core Service](/building-gossamer/host-architecture#core-service) -  responsible for block production and block finalization (consensus) and processing messages received from the [Network Service](/building-gossamer/host-architecture/#network-service).
+- The **core package** implements the [Core Service](/getting-started/overview/host-architecture#core-service) -  responsible for block production and block finalization (consensus) and processing messages received from the [Network Service](/getting-started/overview/host-architecture/#network-service).
 
 #### `dot/network`
 
-- The **network package** implements the [Network Service](/building-gossamer/host-architecture/#network-service) - responsible for coordinating network host and peer interactions. It manages peer connections, receives and parses messages from connected peers and handles each message based on its type.
+- The **network package** implements the [Network Service](/getting-started/overview/host-architecture/#network-service) - responsible for coordinating network host and peer interactions. It manages peer connections, receives and parses messages from connected peers and handles each message based on its type.
 
 #### `dot/state`
 
-- The **state package** implements the [State Service](/building-gossamer/host-architecture#state-service) - the source of truth for all chain and node state that is made accessible to all node services.
+- The **state package** implements the [State Service](/getting-started/overview/host-architecture#state-service) - the source of truth for all chain and node state that is made accessible to all node services.
 
 #### `dot/sync`
 
@@ -58,7 +58,7 @@ Gossamer packages can be categorized into **four package types**:
 
 #### `dot/rpc`
 
-- The **rpc package** implements the [RPC Service](/building-gossamer/host-architecture#rpc-service) - an HTTP server that handles state interactions.
+- The **rpc package** implements the [RPC Service](/getting-started/overview/host-architecture#rpc-service) - an HTTP server that handles state interactions.
 
 #### `dot/types`
 

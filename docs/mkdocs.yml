@@ -41,8 +41,8 @@ nav:
     - Configuration: ./usage/configuration.md
     - Import Runtime: ./usage/import-runtime.md
     - Import State: ./usage/import-state.md
-  - Intergrate:
-    - Connect to Polkadot.js: ./intergrate/connect-to-polkadot-js.md
+  - Integrate:
+    - Connect to Polkadot.js: ./integrate/connect-to-polkadot-js.md
   - Tests: 
     - Integration Tests: ./testing-and-debugging/integration-tests.md
     - Unit Tests: ./testing-and-debugging/unit-tests.md
@@ -50,8 +50,6 @@ nav:
     - Testing: ./testing-and-debugging/unit-test.md
     - Debugging: ./testing-and-debugging/debugging.md
     - Logger usage: ./testing-and-debugging/logger-usage.md
-  - Deployment: 
-    - Docker usage: ./deployment/docker-usage.md
   - Advanced: 
     - SCALE Examples: ./advanced/scale-examples.md
     - Custom Services: ./advanced/custom-services.md

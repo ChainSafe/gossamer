@@ -4,10 +4,6 @@ title: Host Architecture
 permalink: /host-architecture/
 ---
 
-- _TODO: update "Host Architecture" document [#918](https://github.com/ChainSafe/gossamer/issues/918)_
-
----
-
 ## Nodes
 
 Gossamer includes a base node implementation called the **host node** that implements a shared base protocol for all blockchain protocols within the Polkadot ecosystem. The **host node** is used as the foundation for all **official nodes** within Gossamer and all **custom nodes** built with Gossamer.
@@ -24,9 +20,9 @@ The **ksmcc node** is an official node implementation for the Kusama Network - a
 
 The **polkadot node** is an official node implementation for the Polkadot Network - a configuration file, genesis file, compiled runtime, and runtime imports used with the **host node**.
 
-### Custom Services
+<!-- ### Custom Services
 
-See [Custom Services](/advanced/custom-servives) for more information about building custom node implementations.
+See [Custom Services](/advanced/custom-servives) for more information about building custom node implementations. -->
 
 ## Node Services
 
@@ -52,7 +48,7 @@ type Service interface {
 
 ### Core Service
 
-The **core service** is responsible for block production and finalization (consensus) and processing messages received from the **network service**; it initializes BABE sessions and GRANDPA rounds and validates blocks and transactions before committing them to the **state service**. 
+The **core service** is responsible for block production and finalization (consensus) and processing messages received from the **network service**; it initializes <a target="_blank" rel="noopener noreferrer" href="https://research.web3.foundation/en/latest/polkadot/BABE/Babe/">BABE</a> sessions and <a target="_blank" rel="noopener noreferrer" href="https://github.com/w3f/consensus/blob/master/pdf/grandpa.pdf">GRANDPA</a> rounds and validates blocks and transactions before committing them to the **state service**. 
 
 - only the **core service** writes to block state
 - only the **core service** writes to storage state
@@ -81,8 +77,13 @@ type host struct {
 
 ### RPC Service
 
-The **rpc service** is an implementation of the JSON-RPC PSP (TODO: add link).
+The **rpc service** is an implementation of the <a target="_blank" rel="noopener noreferrer" href="https://github.com/w3f/PSPs/blob/master/PSPs/drafts/psp-6.md">JSON-RPC PSP</a>.
 
 ### State Service
 
 The **state service** is the source of truth for all chain and node state.
+
+
+## Block prodution 
+
+TODO: add diagrams

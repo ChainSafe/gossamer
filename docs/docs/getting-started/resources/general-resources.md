@@ -6,7 +6,7 @@ permalink: /getting-started/resources/general-resources
 
 ## Welcome
 
-Here you will find resources to help facilitate your learning about _Polkadot_, the _Polkadot Host_, and _Gossamer_. Don't worry if you are unfamiliar with these [terms](TODO: Fillout), the resources listed here assume no prior knowledge about them. That being said, it would be helpful to have a basic understanding of existing blockchains such as Bitcoin and Ethereum. 
+Here you will find resources to help facilitate your learning about _Polkadot_, the _Polkadot Host_, and _Gossamer_. Don't worry if you are unfamiliar with these <a target="_blank" rel="noopener noreferrer" href="https://wiki.polkadot.network/docs/en/glossary">terms</a>, the resources listed here assume no prior knowledge about them. That being said, it would be helpful to have a basic understanding of existing blockchains such as Bitcoin and Ethereum. 
 
 ## Polkadot
 

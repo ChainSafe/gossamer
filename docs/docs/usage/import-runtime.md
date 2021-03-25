@@ -6,7 +6,7 @@ permalink: /usage/import-runtime/
 
 # Launching a chain with a custom runtime
 
-The main use-case of the Polkadot Host is to create a standalone chain that may be converted to a parachain later.  To do this, you need to have a compiled wasm runtime available for your chain. This can be created using <a target="_blank" rel="noopener noreferrer" href="https://substrate.dev/docs/en/knowledgebase/runtime/frame">FRAME</a>, a domain-specific language used for creating runtimes.
+The main use-case of the Polkadot Host is to create a standalone chain that may be converted to a parachain later.  To do this, you need to have a compiled wasm runtime available for your chain. This can be created using [FRAME](https://substrate.dev/docs/en/knowledgebase/runtime/frame), a domain-specific language used for creating runtimes.
 
 Once you have your runtime ready and compiled into a wasm binary, it is ready to be used with Gossamer.
 
