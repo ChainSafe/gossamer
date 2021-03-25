@@ -185,7 +185,6 @@ func (q *syncQueue) syncAtHead() {
 			continue
 		}
 
-		logger.Info("set syncing to false")
 		q.s.syncer.SetSyncing(false)
 
 		// we have received new blocks since the last check, sleep
