@@ -137,7 +137,6 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 
 				data, _ := info.getHandshakeData(peer)
 				data.validated = true
-				//info.handshakeData.Store(peer, data)
 
 				// once validated, send back a handshake
 				resp, err := info.getHandshake()

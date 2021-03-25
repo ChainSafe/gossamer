@@ -407,7 +407,7 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 	np := &notificationsProtocol{
 		protocolID:    protocolID,
 		getHandshake:  handshakeGetter,
-		handshakeData: new(sync.Map), //make(map[peer.ID]*handshakeData),
+		handshakeData: new(sync.Map),
 	}
 	s.notificationsProtocols[messageID] = np
 

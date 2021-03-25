@@ -117,7 +117,7 @@ func TestValidateBlockAnnounceHandshake(t *testing.T) {
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
 	nodeA.notificationsProtocols[BlockAnnounceMsgType] = &notificationsProtocol{
-		handshakeData: new(sync.Map), //make(map[peer.ID]*handshakeData),
+		handshakeData: new(sync.Map),
 	}
 	testPeerID := peer.ID("noot")
 	nodeA.notificationsProtocols[BlockAnnounceMsgType].handshakeData.Store(testPeerID, &handshakeData{})

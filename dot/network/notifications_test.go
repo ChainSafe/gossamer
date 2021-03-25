@@ -47,7 +47,7 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 	info := &notificationsProtocol{
 		protocolID:    s.host.protocolID + blockAnnounceID,
 		getHandshake:  s.getBlockAnnounceHandshake,
-		handshakeData: new(sync.Map), //make(map[peer.ID]*handshakeData),
+		handshakeData: new(sync.Map),
 	}
 	decoder := createDecoder(info, decodeBlockAnnounceHandshake, decodeBlockAnnounceMessage)
 
