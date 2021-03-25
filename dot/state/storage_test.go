@@ -37,6 +37,7 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 	require.NoError(t, err)
 	ts2, err := runtime.NewTrieState(trie)
 	require.NoError(t, err)
+	ts2.Snapshot()
 	require.Equal(t, ts.Trie(), ts2.Trie())
 }
 
@@ -68,6 +69,28 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 	res, err := storage.GetStorageByBlockHash(block.Header.Hash(), key)
 	require.NoError(t, err)
 	require.Equal(t, value, res)
+}
+
+func TestStorage_TrieState(t *testing.T) {
+	storage := newTestStorageState(t)
+	ts, err := storage.TrieState(&trie.EmptyHash)
+	require.NoError(t, err)
+	ts.Set([]byte("noot"), []byte("washere"))
+
+	root, err := ts.Root()
+	require.NoError(t, err)
+	err = storage.StoreTrie(ts)
+	require.NoError(t, err)
+
+	time.Sleep(time.Millisecond * 100)
+
+	// get trie from db
+	storage.lock.Lock()
+	delete(storage.tries, root)
+	storage.lock.Unlock()
+	ts3, err := storage.TrieState(&root)
+	require.NoError(t, err)
+	require.Equal(t, ts.Trie().MustHash(), ts3.Trie().MustHash())
 }
 
 func TestStorage_LoadFromDB(t *testing.T) {
