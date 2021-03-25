@@ -20,7 +20,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	//"runtime/debug"
 	"sync"
 
 	"github.com/ChainSafe/chaindb"
