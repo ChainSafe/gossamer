@@ -363,13 +363,13 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	info := nodeA.notificationsProtocols[BlockAnnounceMsgType]
 
 	// Set handshake data to received
-	info.handshakeData[nodeB.host.id()] = &handshakeData{
+	info.handshakeData.Store(nodeB.host.id(), &handshakeData{
 		received:  true,
 		validated: true,
-	}
+	})
 
 	// Verify that handshake data exists.
-	_, ok := info.handshakeData[nodeB.host.id()]
+	_, ok := info.getHandshakeData(nodeB.host.id())
 	require.True(t, ok)
 
 	time.Sleep(time.Second)
@@ -379,7 +379,7 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	time.Sleep(time.Second)
 
 	// Verify that handshake data is cleared.
-	_, ok = info.handshakeData[nodeB.host.id()]
+	_, ok = info.getHandshakeData(nodeB.host.id())
 	require.False(t, ok)
 }
 
