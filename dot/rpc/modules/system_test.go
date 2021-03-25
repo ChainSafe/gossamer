@@ -63,6 +63,8 @@ func (s *mockSyncer) IsSynced() bool {
 	return false
 }
 
+func (s *mockSyncer) SetSyncing(_ bool) {}
+
 type mockBlockState struct{}
 
 func (s *mockBlockState) BestBlockHeader() (*types.Header, error) {

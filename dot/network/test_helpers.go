@@ -65,8 +65,8 @@ func (s *mockSyncer) IsSynced() bool {
 	return s.synced
 }
 
-func (s *mockSyncer) setSyncedState(newState bool) {
-	s.synced = newState
+func (s *mockSyncer) SetSyncing(syncing bool) {
+	s.synced = !syncing
 }
 
 type testStreamHandler struct {
