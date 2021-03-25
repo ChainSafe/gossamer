@@ -52,6 +52,8 @@ type StorageState struct {
 	// change notifiers
 	changedLock   sync.RWMutex
 	subscriptions map[byte]*StorageSubscription
+
+	syncing bool
 }
 
 // NewStorageState creates a new StorageState backed by the given trie and database located at basePath.
@@ -76,6 +78,11 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie) 
 	}, nil
 }
 
+// SetSyncing sets whether the node is currently syncing or not
+func (s *StorageState) SetSyncing(syncing bool) {
+	s.syncing = syncing
+}
+
 func (s *StorageState) pruneKey(keyHeader *types.Header) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -93,6 +100,12 @@ func (s *StorageState) pruneKey(keyHeader *types.Header) {
 func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
 	s.lock.Lock()
 	root := ts.MustRoot()
+	if s.syncing {
+		// keep only the trie at the head of the chain when syncing
+		for key := range s.tries {
+			delete(s.tries, key)
+		}
+	}
 	s.tries[root] = ts.Trie()
 	s.lock.Unlock()
 
@@ -108,6 +121,7 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
 			logger.Warn("failed to notify storage subscriptions", "error", err)
 		}
 	}()
+
 	return nil
 }
 
