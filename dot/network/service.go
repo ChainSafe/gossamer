@@ -333,7 +333,7 @@ func (s *Service) handleConn(conn libp2pnetwork.Conn) {
 	grandpaInfo.mapMu.RLock()
 	defer grandpaInfo.mapMu.RUnlock()
 
-	if hsData, has := grandpaInfo.handshakeData[peer]; !has || !hsData.received {
+	if hsData, has := grandpaInfo.handshakeData[peer]; !has || !hsData.received { //nolint
 		grandpaInfo.handshakeData[peer] = &handshakeData{
 			validated: false,
 		}

@@ -104,7 +104,7 @@ func (s *Service) registerProtocol() error {
 
 func (s *Service) getHandshake() (Handshake, error) {
 	return &GrandpaHandshake{
-		Roles: 0, // TODO: are roles returned?
+		Roles: 1, // TODO: don't hard-code this
 	}, nil
 }
 
