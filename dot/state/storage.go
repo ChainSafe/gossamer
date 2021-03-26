@@ -43,7 +43,7 @@ func errTrieDoesNotExist(hash common.Hash) error {
 // StorageState is the struct that holds the trie, db and lock
 type StorageState struct {
 	blockState *BlockState
-	tries      map[common.Hash]*trie.Trie
+	tries      map[common.Hash]*trie.Trie // map of root -> trie
 
 	baseDB chaindb.Database
 	db     chaindb.Database
@@ -52,6 +52,8 @@ type StorageState struct {
 	// change notifiers
 	changedLock   sync.RWMutex
 	subscriptions map[byte]*StorageSubscription
+
+	syncing bool
 }
 
 // NewStorageState creates a new StorageState backed by the given trie and database located at basePath.
@@ -76,6 +78,11 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie) 
 	}, nil
 }
 
+// SetSyncing sets whether the node is currently syncing or not
+func (s *StorageState) SetSyncing(syncing bool) {
+	s.syncing = syncing
+}
+
 func (s *StorageState) pruneKey(keyHeader *types.Header) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -93,6 +100,12 @@ func (s *StorageState) pruneKey(keyHeader *types.Header) {
 func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
 	s.lock.Lock()
 	root := ts.MustRoot()
+	if s.syncing {
+		// keep only the trie at the head of the chain when syncing
+		for key := range s.tries {
+			delete(s.tries, key)
+		}
+	}
 	s.tries[root] = ts.Trie()
 	s.lock.Unlock()
 
@@ -108,6 +121,7 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
 			logger.Warn("failed to notify storage subscriptions", "error", err)
 		}
 	}()
+
 	return nil
 }
 
@@ -126,16 +140,27 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 	t := s.tries[*root]
 	s.lock.RUnlock()
 
-	if t != nil && t.MustHash() == *root { // TODO: figure out why it seems like snapshotted tries are getting modified
-		return rtstorage.NewTrieState(t)
+	if t != nil && t.MustHash() != *root {
+		panic("trie does not have expected root")
 	}
 
-	tr, err := s.LoadFromDB(*root)
+	if t == nil {
+		var err error
+		t, err = s.LoadFromDB(*root)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	curr, err := rtstorage.NewTrieState(t)
 	if err != nil {
 		return nil, err
 	}
 
-	return rtstorage.NewTrieState(tr)
+	s.lock.Lock()
+	s.tries[*root] = curr.Snapshot()
+	s.lock.Unlock()
+	return curr, nil
 }
 
 // StoreInDB encodes the entire trie and writes it to the DB
