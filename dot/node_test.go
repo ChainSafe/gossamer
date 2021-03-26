@@ -18,6 +18,7 @@ package dot
 
 import (
 	"encoding/binary"
+	"io/ioutil"
 	"math/big"
 	"reflect"
 	"sync"
@@ -41,7 +42,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
-	"io/ioutil"
 )
 
 func Test_NewRuntime(t *testing.T) {
