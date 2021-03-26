@@ -60,7 +60,7 @@ func TestSystemRPC(t *testing.T) {
 			expected: modules.SystemHealthResponse{
 
 				Peers:           2,
-				IsSyncing:       false,
+				IsSyncing:       true,
 				ShouldHavePeers: true,
 			},
 			params: "{}",

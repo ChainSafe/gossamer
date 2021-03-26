@@ -187,7 +187,7 @@ func TestService_Health(t *testing.T) {
 	require.Equal(t, s.Health().IsSyncing, true)
 	mockSync := s.syncer.(*mockSyncer)
 
-	mockSync.setSyncedState(true)
+	mockSync.SetSyncing(false)
 	require.Equal(t, s.Health().IsSyncing, false)
 }
 
@@ -371,13 +371,13 @@ func TestHandleConn(t *testing.T) {
 	require.Equal(t, 1, aScore)
 
 	infoA := nodeA.notificationsProtocols[BlockAnnounceMsgType]
-	hsDataB, has := infoA.handshakeData[nodeB.host.id()]
+	hsDataB, has := infoA.getHandshakeData(nodeB.host.id())
 	require.True(t, has)
 	require.True(t, hsDataB.received)
 	require.True(t, hsDataB.validated)
 
 	infoB := nodeB.notificationsProtocols[BlockAnnounceMsgType]
-	hsDataA, has := infoB.handshakeData[nodeA.host.id()]
+	hsDataA, has := infoB.getHandshakeData(nodeA.host.id())
 	require.True(t, has)
 	require.True(t, hsDataA.received)
 	require.True(t, hsDataA.validated)

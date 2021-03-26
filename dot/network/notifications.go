@@ -54,8 +54,17 @@ type (
 type notificationsProtocol struct {
 	protocolID    protocol.ID
 	getHandshake  HandshakeGetter
-	handshakeData map[peer.ID]*handshakeData
+	handshakeData *sync.Map //map[peer.ID]*handshakeData
 	mapMu         sync.RWMutex
+}
+
+func (n *notificationsProtocol) getHandshakeData(pid peer.ID) (*handshakeData, bool) {
+	data, has := n.handshakeData.Load(pid)
+	if !has {
+		return nil, false
+	}
+
+	return data.(*handshakeData), true
 }
 
 type handshakeData struct {
@@ -72,7 +81,7 @@ func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecode
 		info.mapMu.RLock()
 		defer info.mapMu.RUnlock()
 
-		if hsData, has := info.handshakeData[peer]; !has || !hsData.received {
+		if hsData, has := info.getHandshakeData(peer); !has || !hsData.received {
 			return handshakeDecoder(in)
 		}
 
@@ -120,12 +129,12 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			defer info.mapMu.Unlock()
 
 			// if we are the receiver and haven't received the handshake already, validate it
-			if _, has := info.handshakeData[peer]; !has {
+			if _, has := info.getHandshakeData(peer); !has {
 				logger.Trace("receiver: validating handshake", "protocol", info.protocolID)
-				info.handshakeData[peer] = &handshakeData{
+				info.handshakeData.Store(peer, &handshakeData{
 					validated: false,
 					received:  true,
-				}
+				})
 
 				err := handshakeValidator(peer, hs)
 				if err != nil {
@@ -134,7 +143,8 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 					return errCannotValidateHandshake
 				}
 
-				info.handshakeData[peer].validated = true
+				data, _ := info.getHandshakeData(peer)
+				data.validated = true
 
 				// once validated, send back a handshake
 				resp, err := info.getHandshake()
@@ -153,25 +163,25 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			}
 
 			// if we are the initiator and haven't received the handshake already, validate it
-			if hsData, has := info.handshakeData[peer]; has && !hsData.validated {
+			if hsData, has := info.getHandshakeData(peer); has && !hsData.validated {
 				logger.Trace("sender: validating handshake")
 				err := handshakeValidator(peer, hs)
 				if err != nil {
 					logger.Trace("failed to validate handshake", "protocol", info.protocolID, "peer", peer, "error", err)
-					info.handshakeData[peer].validated = false
+					hsData.validated = false
 					_ = stream.Conn().Close()
 					return errCannotValidateHandshake
 				}
 
-				info.handshakeData[peer].validated = true
-				info.handshakeData[peer].received = true
+				hsData.validated = true
+				hsData.received = true
 				logger.Trace("sender: validated handshake", "protocol", info.protocolID, "peer", peer)
 			} else if hsData.received {
 				return nil
 			}
 
 			// if we are the initiator, send the message
-			if hsData, has := info.handshakeData[peer]; has && hsData.validated && hsData.received && hsData.outboundMsg != nil {
+			if hsData, has := info.getHandshakeData(peer); has && hsData.validated && hsData.received && hsData.outboundMsg != nil {
 				logger.Trace("sender: sending message", "protocol", info.protocolID)
 				err := s.host.send(peer, info.protocolID, hsData.outboundMsg)
 				if err != nil {
@@ -231,11 +241,11 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 		info.mapMu.RLock()
 		defer info.mapMu.RUnlock()
 
-		if hsData, has := info.handshakeData[peer]; !has || !hsData.received {
-			info.handshakeData[peer] = &handshakeData{
+		if hsData, has := info.getHandshakeData(peer); !has || !hsData.received {
+			info.handshakeData.Store(peer, &handshakeData{
 				validated:   false,
 				outboundMsg: msg,
-			}
+			})
 
 			logger.Trace("sending handshake", "protocol", info.protocolID, "peer", peer, "message", hs)
 			err = s.host.send(peer, info.protocolID, hs)
