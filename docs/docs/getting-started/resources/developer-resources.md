@@ -35,7 +35,7 @@ permalink: /developer-resources/
 - <a target="_blank" rel="noopener noreferrer" href="https://github.com/paritytech/finality-grandpa">paritytech/finality_grandpa</a>
 - <a target="_blank" rel="noopener noreferrer" href="https://tokeneconomy.co/the-state-of-crypto-interoperability-explained-in-pictures-654cfe4cc167">The State of Crypto Interoperability Explained in Pictures</a>
 
-**parachains**
+#### Parachains
 
 - <a target="_blank" rel="noopener noreferrer" href="https://medium.com/polkadot-network/polkadot-the-parachain-3808040a769a">The Parachain (Blog Post)</a>
 - <a target="_blank" rel="noopener noreferrer" href="https://wiki.polkadot.network/docs/en/learn-parachains">Parachains on Polkadot Wiki</a>
@@ -44,7 +44,7 @@ permalink: /developer-resources/
 - <a target="_blank" rel="noopener noreferrer" href="https://medium.com/polkadot-network/the-path-of-a-parachain-block-47d05765d7a">The Path of a Parachain Block</a>
 - <a target="_blank" rel="noopener noreferrer" href="https://www.youtube.com/watch?v=m0vxqWwFfDs">The Path of a Parachain Block (Video)</a>
 
-**block production & consensus**
+#### Block production & consensus
 
 - <a target="_blank" rel="noopener noreferrer" href="https://research.web3.foundation/en/latest/polkadot/BABE/Babe/">BABE Specification</a>
 - <a target="_blank" rel="noopener noreferrer" href="https://github.com/w3f/consensus/blob/master/pdf/grandpa.pdf">GRANDPA Specification</a>

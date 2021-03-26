@@ -44,15 +44,12 @@ nav:
   - Integrate:
     - Connect to Polkadot.js: ./integrate/connect-to-polkadot-js.md
   - Tests: 
-    - Integration Tests: ./testing-and-debugging/integration-tests.md
-    - Unit Tests: ./testing-and-debugging/unit-tests.md
+    - Tests: ./testing-and-debugging/tests.md
     - Docker Tests: ./testing-and-debugging/docker-tests.md
-    - Testing: ./testing-and-debugging/unit-test.md
     - Debugging: ./testing-and-debugging/debugging.md
     - Logger usage: ./testing-and-debugging/logger-usage.md
   - Advanced: 
     - SCALE Examples: ./advanced/scale-examples.md
-    - Custom Services: ./advanced/custom-services.md
   - Contributing: 
     - Overview: ./contributing.md
 extra_css:
