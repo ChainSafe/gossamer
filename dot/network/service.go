@@ -212,7 +212,7 @@ func (s *Service) Start() error {
 	}
 
 	// since this opens block announce streams, it should happen after the protocol is registered
-	s.host.h.Network().SetConnHandler(s.handleConn)
+	//s.host.h.Network().SetConnHandler(s.handleConn)
 
 	// log listening addresses to console
 	for _, addr := range s.host.multiaddrs() {
@@ -566,7 +566,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		// decode message based on message type
 		msg, err := decoder(msgBytes[:tot], peer)
 		if err != nil {
-			logger.Trace("Failed to decode message from peer", "peer", peer, "err", err)
+			logger.Info("failed to decode message from peer", "protocol", stream.Protocol(), "err", err, "msg bytes", msgBytes[:tot])
 			continue
 		}
 

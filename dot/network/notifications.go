@@ -77,6 +77,7 @@ func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecode
 		}
 
 		// otherwise, assume we are receiving the Message
+		logger.Debug("decoding message", "protocol", info.protocolID)
 		return messageDecoder(in)
 	}
 }

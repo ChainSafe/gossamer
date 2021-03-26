@@ -256,6 +256,7 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 // with its peer and send a BlockRequest message
 func (s *Service) handleBlockAnnounceMessage(peer peer.ID, msg NotificationsMessage) error {
 	if an, ok := msg.(*BlockAnnounceMessage); ok {
+		logger.Info("received BlockAnnounce!", "msg", an)
 		s.syncQueue.handleBlockAnnounce(an, peer)
 		err := s.syncer.HandleBlockAnnounce(an)
 		if err != nil {
