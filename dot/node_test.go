@@ -45,17 +45,11 @@ import (
 )
 
 func Test_NewRuntime(t *testing.T) {
-	// genFile := "../chain/polkadot/genesis-raw.json"
-
-	// gen, err := genesis.NewGenesisFromJSONRaw(genFile)
-	// require.NoError(t, err)
-
 	code, err := ioutil.ReadFile("../node_runtime.wat")
 	require.NoError(t, err)
 
 	rtCfg := &wasmer.Config{}
-	//rtCfg.Storage = genTrie
-	rtCfg.LogLvl = 5 // s.logLvl
+	rtCfg.LogLvl = 5
 	rtCfg.Imports = wasmer.ImportsNodeRuntime
 
 	rt, err := wasmer.NewInstance(code, rtCfg)
