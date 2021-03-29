@@ -84,6 +84,6 @@ The **rpc service** is an implementation of the <a target="_blank" rel="noopener
 The **state service** is the source of truth for all chain and node state.
 
 
-## Block prodution 
+## Block production 
 
 <img src="/assets/img/block_production.png" alt="block production" />

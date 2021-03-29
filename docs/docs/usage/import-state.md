@@ -1,3 +1,9 @@
+---
+layout: default
+title: Import Sate
+permalink: /usage/import-state/
+---
+
 # Gossamer state import
 
 ## Importing state

@@ -20,6 +20,24 @@ theme:
   palette:
     primary: pink
     accent: indigo
+    theme:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: pink
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: pink
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
   favicon: ./assets/favicon.ico
   features:
     # - navigation.instant
@@ -37,6 +55,7 @@ nav:
     - General Resources: ./getting-started/resources/general-resources.md
     - Developer Resources: ./getting-started/resources/developer-resources.md
   - Usage:
+    - Running Nodes: ./usage/running-nodes.md
     - Command Line: ./usage/command-line.md
     - Configuration: ./usage/configuration.md
     - Import Runtime: ./usage/import-runtime.md
@@ -44,7 +63,7 @@ nav:
   - Integrate:
     - Connect to Polkadot.js: ./integrate/connect-to-polkadot-js.md
   - Tests: 
-    - Tests: ./testing-and-debugging/tests.md
+    - Tests: ./testing-and-debugging/testing.md
     - Docker Tests: ./testing-and-debugging/docker-tests.md
     - Debugging: ./testing-and-debugging/debugging.md
     - Logger usage: ./testing-and-debugging/logger-usage.md
