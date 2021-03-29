@@ -102,7 +102,7 @@ func (tm *TransactionMessage) IsHandshake() bool {
 }
 
 type transactionHandshake struct {
-	Roles byte
+	//Roles byte
 }
 
 // SubProtocol returns the transactions sub-protocol
@@ -112,22 +112,22 @@ func (hs *transactionHandshake) SubProtocol() string {
 
 // String formats a transactionHandshake as a string
 func (hs *transactionHandshake) String() string {
-	return fmt.Sprintf("transactionHandshake Roles=%d",
-		hs.Roles)
+	return fmt.Sprintf("transactionHandshake") // Roles=%d", hs.Roles)
 }
 
 // Encode encodes a transactionHandshake message using SCALE
 func (hs *transactionHandshake) Encode() ([]byte, error) {
-	return scale.Encode(hs)
+	//return scale.Encode(hs)
+	return []byte{}, nil
 }
 
 // Decode the message into a transactionHandshake
 func (hs *transactionHandshake) Decode(in []byte) error {
-	msg, err := scale.Decode(in, hs)
-	if err != nil {
-		return err
-	}
-	hs.Roles = msg.(*transactionHandshake).Roles
+	// msg, err := scale.Decode(in, hs)
+	// if err != nil {
+	// 	return err
+	// }
+	// hs.Roles = msg.(*transactionHandshake).Roles
 	return nil
 }
 
@@ -148,18 +148,19 @@ func (hs *transactionHandshake) IsHandshake() bool {
 
 func (s *Service) getTransactionHandshake() (Handshake, error) {
 	return &transactionHandshake{
-		Roles: s.cfg.Roles,
+		//Roles: s.cfg.Roles,
 	}, nil
 }
 
 func decodeTransactionHandshake(in []byte) (Handshake, error) {
-	if len(in) < 1 {
-		return nil, errors.New("invalid handshake")
-	}
+	// if len(in) < 1 {
+	// 	return nil, errors.New("invalid handshake")
+	// }
 
-	return &transactionHandshake{
-		Roles: in[0],
-	}, nil
+	// return &transactionHandshake{
+	// 	Roles: in[0],
+	// }, nil
+	return &transactionHandshake{}, nil
 }
 
 func validateTransactionHandshake(_ peer.ID, _ Handshake) error {

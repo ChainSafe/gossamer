@@ -333,10 +333,10 @@ func (s *Service) handleConn(conn libp2pnetwork.Conn) {
 	grandpaInfo.mapMu.RLock()
 	defer grandpaInfo.mapMu.RUnlock()
 
-	if hsData, has := grandpaInfo.handshakeData[peer]; !has || !hsData.received { //nolint
-		grandpaInfo.handshakeData[peer] = &handshakeData{
+	if hsData, has := grandpaInfo.getHandshakeData(peer); !has || !hsData.received { //nolint
+		grandpaInfo.handshakeData.Store(peer, &handshakeData{
 			validated: false,
-		}
+		})
 
 		logger.Debug("sending handshake", "protocol", grandpaInfo.protocolID, "peer", peer, "message", hs)
 		err = s.host.send(peer, grandpaInfo.protocolID, hs)
@@ -566,7 +566,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		// decode message based on message type
 		msg, err := decoder(msgBytes[:tot], peer)
 		if err != nil {
-			logger.Info("failed to decode message from peer", "protocol", stream.Protocol(), "err", err, "msg bytes", msgBytes[:tot])
+			logger.Info("failed to decode message from peer", "protocol", stream.Protocol(), "err", err, "msg bytes", fmt.Sprintf("0x%x", msgBytes[:tot]))
 			continue
 		}
 

@@ -86,7 +86,6 @@ func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecode
 		}
 
 		// otherwise, assume we are receiving the Message
-		logger.Debug("decoding message", "protocol", info.protocolID)
 		return messageDecoder(in)
 	}
 }
@@ -107,17 +106,17 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			return errors.New("message is not NotificationsMessage")
 		}
 
-		logger.Trace("received message on notifications sub-protocol", "protocol", info.protocolID,
+		logger.Debug("received message on notifications sub-protocol", "protocol", info.protocolID,
 			"message", msg,
 			"peer", stream.Conn().RemotePeer(),
 		)
 
-		if info.protocolID == "/paritytech/grandpa/1" {
-			logger.Info("received message on grandpa sub-protocol", "protocol", info.protocolID,
-				"message", msg,
-				"peer", stream.Conn().RemotePeer(),
-			)
-		}
+		// if info.protocolID == "/paritytech/grandpa/1" {
+		// 	logger.Info("received message on grandpa sub-protocol", "protocol", info.protocolID,
+		// 		"message", msg,
+		// 		"peer", stream.Conn().RemotePeer(),
+		// 	)
+		// }
 
 		if msg.IsHandshake() {
 			hs, ok := msg.(Handshake)
@@ -152,6 +151,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 					logger.Debug("failed to get handshake", "protocol", info.protocolID, "error", err)
 					return err
 				}
+				//resp := hs
 
 				err = s.host.send(peer, info.protocolID, resp)
 				if err != nil {
@@ -159,12 +159,12 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 					_ = stream.Conn().Close()
 					return err
 				}
-				logger.Trace("receiver: sent handshake", "protocol", info.protocolID, "peer", peer)
+				logger.Debug("receiver: sent handshake", "protocol", info.protocolID, "peer", peer)
 			}
 
 			// if we are the initiator and haven't received the handshake already, validate it
 			if hsData, has := info.getHandshakeData(peer); has && !hsData.validated {
-				logger.Trace("sender: validating handshake")
+				logger.Debug("sender: validating handshake")
 				err := handshakeValidator(peer, hs)
 				if err != nil {
 					logger.Trace("failed to validate handshake", "protocol", info.protocolID, "peer", peer, "error", err)
