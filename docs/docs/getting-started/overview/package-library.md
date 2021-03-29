@@ -116,6 +116,17 @@ Gossamer packages can be categorized into **four package types**:
 
 ## test packages
 
-#### `?`
+#### `tests/polkadotjs_test`
+- the **polkadotjs_test section** is a node.js implementation to test interaction with Gossamer's RPC.
 
-- TODO: Fillout
+#### `tests/rpc`
+- the **rpc test collection** comprises tests to cover the RPC's various endpoints and return data.
+
+#### `tests/stress`
+- the **stress test collection** comprises tests to simulate the node running under various high stress scenarios
+
+#### `tests/sync`
+- the **sync test collection** comprises tests to verify the integrity of syncing operations and features
+
+#### `tests/utils`
+- the **utils test collection** comprises tests to validate the function of various utilities throughout the Gossamer stack

@@ -46,7 +46,6 @@ theme:
     - navigation.tabs
     - navigation.tabs.sticky
 nav:
-
   - Getting Started:
     - Overview: ./index.md
     - Host Architecture: ./getting-started/overview/host-architecture.md
@@ -62,11 +61,9 @@ nav:
     - Import State: ./usage/import-state.md
   - Integrate:
     - Connect to Polkadot.js: ./integrate/connect-to-polkadot-js.md
-  - Tests: 
-    - Tests: ./testing-and-debugging/testing.md
-    - Docker Tests: ./testing-and-debugging/docker-tests.md
+  - Testing and Debugging: 
+    - Test Suite: ./testing-and-debugging/test-suite.md
     - Debugging: ./testing-and-debugging/debugging.md
-    - Logger usage: ./testing-and-debugging/logger-usage.md
   - Advanced: 
     - SCALE Examples: ./advanced/scale-examples.md
   - Contributing: 
