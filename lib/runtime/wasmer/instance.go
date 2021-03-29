@@ -71,10 +71,6 @@ func NewRuntimeFromGenesis(g *genesis.Genesis, cfg *Config) (runtime.Instance, e
 
 	code := common.MustHexToBytes(codeStr)
 
-	// code, err := ioutil.ReadFile(filepath.Clean("../kusama_runtime-v2025.compact.wasm"))
-	// if err != nil {
-	// 	return nil, err
-	// }
 	cfg.Imports = ImportsNodeRuntime
 	return NewInstance(code, cfg)
 }
@@ -177,7 +173,6 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	}
 
 	imports := cfg.Imports(store, memory, ctx)
-	fmt.Println("imports", imports)
 	instance, err := wasm.NewInstance(module, imports)
 	if err != nil {
 		return nil, err
