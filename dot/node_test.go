@@ -45,7 +45,7 @@ import (
 )
 
 func Test_NewRuntime(t *testing.T) {
-	code, err := ioutil.ReadFile("../node_runtime.wat")
+	code, err := ioutil.ReadFile("../test_wasm.wasm")
 	require.NoError(t, err)
 
 	rtCfg := &wasmer.Config{}
