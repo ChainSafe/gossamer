@@ -164,6 +164,8 @@ func (q *syncQueue) syncAtHead() {
 		return
 	}
 
+	q.s.syncer.SetSyncing(true)
+
 	for {
 		select {
 		// sleep for average block time TODO: make this configurable from slot duration
@@ -183,6 +185,8 @@ func (q *syncQueue) syncAtHead() {
 			continue
 		}
 
+		q.s.syncer.SetSyncing(false)
+
 		// we have received new blocks since the last check, sleep
 		if prev.Number.Int64() < curr.Number.Int64() {
 			prev = curr
@@ -192,10 +196,7 @@ func (q *syncQueue) syncAtHead() {
 		prev = curr
 		start := uint64(curr.Number.Int64()) + 1
 		logger.Debug("haven't received new blocks since last check, pushing request", "start", start)
-		q.requestData.Store(start, requestData{
-			sent:     true,
-			received: false,
-		})
+		q.requestData.Delete(start)
 		q.pushRequest(start, 1, "")
 	}
 }
@@ -248,7 +249,12 @@ func (q *syncQueue) handleResponseQueue() {
 // prune peers with low score and connect to new peers
 func (q *syncQueue) prunePeers() {
 	for {
-		time.Sleep(time.Second * 30)
+		select {
+		case <-time.After(time.Second * 30):
+		case <-q.ctx.Done():
+			return
+		}
+
 		logger.Debug("✂️ pruning peers w/ low score...")
 
 		peers := q.getSortedPeers()

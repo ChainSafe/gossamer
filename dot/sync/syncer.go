@@ -303,7 +303,6 @@ func (s *Service) handleBlock(block *types.Block) error {
 		return err
 	}
 
-	ts.Snapshot()
 	root := ts.MustRoot()
 	if !bytes.Equal(parent.StateRoot[:], root[:]) {
 		panic("parent state root does not match snapshot state root")
@@ -412,4 +411,10 @@ func (s *Service) handleDigests(header *types.Header) {
 // IsSynced exposes the synced state
 func (s *Service) IsSynced() bool {
 	return s.synced
+}
+
+// SetSyncing sets whether the node is currently syncing or not
+func (s *Service) SetSyncing(syncing bool) {
+	s.synced = !syncing
+	s.storageState.SetSyncing(syncing)
 }

@@ -23,6 +23,7 @@ import (
 	"os/signal"
 	"path"
 	"strconv"
+	"runtime/debug"
 	"sync"
 	"syscall"
 	"time"
@@ -160,6 +161,13 @@ func NodeInitialized(basepath string, expected bool) bool {
 
 // NewNode creates a new dot node from a dot node configuration
 func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, error) {
+	// set garbage collection percent to 10%
+	// can be overwritten by setting the GOGC env veriable, which defaults to 100
+	prev := debug.SetGCPercent(10)
+	if prev != 100 {
+		debug.SetGCPercent(prev)
+	}
+
 	setupLogger(cfg)
 
 	// if authority node, should have at least 1 key in keystore
