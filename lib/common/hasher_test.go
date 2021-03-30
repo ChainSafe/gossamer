@@ -78,3 +78,9 @@ func TestKeccak256(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, expected, h)
 }
+
+func TestTwox128(t *testing.T) {
+	in := []byte("static")
+	_, err := common.Twox128Hash(in)
+	require.NoError(t, err)
+}

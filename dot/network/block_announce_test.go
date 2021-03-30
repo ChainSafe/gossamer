@@ -18,6 +18,7 @@ package network
 
 import (
 	"math/big"
+	"sync"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -85,9 +86,6 @@ func TestDecodeBlockAnnounceMessage(t *testing.T) {
 func TestHandleBlockAnnounceMessage(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "nodeA")
 
-	// removes all data directories created within test directory
-	defer utils.RemoveTestDir(t)
-
 	config := &Config{
 		BasePath:    basePath,
 		Port:        7001,
@@ -119,10 +117,11 @@ func TestValidateBlockAnnounceHandshake(t *testing.T) {
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
 	nodeA.notificationsProtocols[BlockAnnounceMsgType] = &notificationsProtocol{
-		handshakeData: make(map[peer.ID]*handshakeData),
+		handshakeData: new(sync.Map),
 	}
-
 	testPeerID := peer.ID("noot")
+	nodeA.notificationsProtocols[BlockAnnounceMsgType].handshakeData.Store(testPeerID, &handshakeData{})
+
 	err := nodeA.validateBlockAnnounceHandshake(testPeerID, &BlockAnnounceHandshake{
 		BestBlockNumber: 100,
 		GenesisHash:     nodeA.blockState.GenesisHash(),

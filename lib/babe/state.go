@@ -41,8 +41,6 @@ type BlockState interface {
 	GetArrivalTime(common.Hash) (time.Time, error)
 	GenesisHash() common.Hash
 	GetSlotForBlock(common.Hash) (uint64, error)
-	HighestBlockHash() common.Hash
-	HighestBlockNumber() *big.Int
 	GetFinalizedHeader(uint64, uint64) (*types.Header, error)
 	IsDescendantOf(parent, child common.Hash) (bool, error)
 }
@@ -73,4 +71,5 @@ type EpochState interface {
 	GetEpochForBlock(header *types.Header) (uint64, error)
 	SetFirstSlot(slot uint64) error
 	GetLatestEpochData() (*types.EpochData, error)
+	SkipVerify(*types.Header) (bool, error)
 }

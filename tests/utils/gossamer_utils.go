@@ -42,7 +42,7 @@ var maxRetries = 24
 // SetLogLevel sets the logging level for this package
 func SetLogLevel(lvl log.Lvl) {
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
-	logger.SetHandler(log.LvlFilterHandler(log.LvlInfo, h))
+	logger.SetHandler(log.LvlFilterHandler(lvl, h))
 }
 
 var (
@@ -423,9 +423,10 @@ func GenerateGenesisSixAuth() {
 func generateDefaultConfig() *ctoml.Config {
 	return &ctoml.Config{
 		Global: ctoml.GlobalConfig{
-			Name:   "Gossamer",
-			ID:     "gssmr",
-			LogLvl: "crit",
+			Name:        "Gossamer",
+			ID:          "gssmr",
+			LogLvl:      "crit",
+			MetricsPort: 9876,
 		},
 		Log: ctoml.LogConfig{
 			CoreLvl: "info",

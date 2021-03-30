@@ -41,8 +41,12 @@ import (
 var (
 	DefaultCfg                = dot.GssmrConfig
 	defaultGssmrConfigPath    = "./chain/gssmr/config.toml"
-	defaultKusamaConfigPath   = "./chain/ksmcc/config.toml"
+	defaultKusamaConfigPath   = "./chain/kusama/config.toml"
 	defaultPolkadotConfigPath = "./chain/polkadot/config.toml"
+
+	gossamerName = "gssmr"
+	kusamaName   = "kusama"
+	polkadotName = "polkadot"
 )
 
 // loadConfigFile loads a default config file if --chain is specified, a specific
@@ -68,39 +72,49 @@ func loadConfigFile(ctx *cli.Context, cfg *ctoml.Config) (err error) {
 	return err
 }
 
-// createDotConfig creates a new dot configuration from the provided flag values
-func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
+func setupConfigFromChain(ctx *cli.Context) (*ctoml.Config, *dot.Config, error) {
 	tomlCfg := &ctoml.Config{}
-	cfg = DefaultCfg()
+	cfg := DefaultCfg()
 
-	err = loadConfigFile(ctx, tomlCfg)
+	err := loadConfigFile(ctx, tomlCfg)
 	if err != nil {
 		logger.Error("failed to load toml configuration", "error", err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	// check --chain flag and load configuration from defaults.go
 	if id := ctx.GlobalString(ChainFlag.Name); id != "" {
 		switch id {
-		case "gssmr":
+		case gossamerName:
 			logger.Info("loading toml configuration...", "config path", defaultGssmrConfigPath)
 			tomlCfg = &ctoml.Config{}
 			err = loadConfig(tomlCfg, defaultGssmrConfigPath)
-		case "ksmcc":
+		case kusamaName:
 			logger.Info("loading toml configuration...", "config path", defaultKusamaConfigPath)
 			tomlCfg = &ctoml.Config{}
-			cfg = dot.KsmccConfig()
+			cfg = dot.KusamaConfig()
 			err = loadConfig(tomlCfg, defaultKusamaConfigPath)
-		case "polkadot":
+		case polkadotName:
 			logger.Info("loading toml configuration...", "config path", defaultPolkadotConfigPath)
 			tomlCfg = &ctoml.Config{}
 			cfg = dot.PolkadotConfig()
 			err = loadConfig(tomlCfg, defaultPolkadotConfigPath)
 		default:
-			return nil, fmt.Errorf("unknown chain id provided: %s", id)
+			return nil, nil, fmt.Errorf("unknown chain id provided: %s", id)
 		}
 	}
 
+	if err != nil {
+		logger.Error("failed to set chain configuration", "error", err)
+		return nil, nil, err
+	}
+
+	return tomlCfg, cfg, nil
+}
+
+// createDotConfig creates a new dot configuration from the provided flag values
+func createDotConfig(ctx *cli.Context) (*dot.Config, error) {
+	tomlCfg, cfg, err := setupConfigFromChain(ctx)
 	if err != nil {
 		logger.Error("failed to set chain configuration", "error", err)
 		return nil, err
@@ -137,31 +151,7 @@ func createDotConfig(ctx *cli.Context) (cfg *dot.Config, err error) {
 
 // createInitConfig creates the configuration required to initialize a dot node
 func createInitConfig(ctx *cli.Context) (*dot.Config, error) {
-	tomlCfg := &ctoml.Config{}
-	cfg := DefaultCfg()
-
-	err := loadConfigFile(ctx, tomlCfg)
-	if err != nil {
-		logger.Error("failed to load toml configuration", "error", err)
-		return nil, err
-	}
-
-	// check --chain flag and load configuration from defaults.go
-	if id := ctx.GlobalString(ChainFlag.Name); id != "" {
-		switch id {
-		case "gssmr":
-			tomlCfg = &ctoml.Config{}
-			err = loadConfig(tomlCfg, defaultGssmrConfigPath)
-		case "ksmcc":
-			tomlCfg = &ctoml.Config{}
-			err = loadConfig(tomlCfg, defaultKusamaConfigPath)
-		case "polkadot":
-			tomlCfg = &ctoml.Config{}
-			err = loadConfig(tomlCfg, defaultPolkadotConfigPath)
-		default:
-			return nil, fmt.Errorf("unknown chain id provided: %s", id)
-		}
-	}
+	tomlCfg, cfg, err := setupConfigFromChain(ctx)
 	if err != nil {
 		logger.Error("failed to set chain configuration", "error", err)
 		return nil, err
@@ -193,6 +183,18 @@ func createInitConfig(ctx *cli.Context) (*dot.Config, error) {
 	// See /cmd/gossamer/main.go L192.
 	setDotNetworkConfig(ctx, tomlCfg.Network, &cfg.Network)
 
+	return cfg, nil
+}
+
+func createImportStateConfig(ctx *cli.Context) (*dot.Config, error) {
+	tomlCfg, cfg, err := setupConfigFromChain(ctx)
+	if err != nil {
+		logger.Error("failed to set chain configuration", "error", err)
+		return nil, err
+	}
+
+	// set global configuration values
+	setDotGlobalConfig(ctx, tomlCfg, &cfg.Global)
 	return cfg, nil
 }
 
@@ -399,16 +401,13 @@ func setDotGlobalConfig(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.Global
 		if tomlCfg.Global.LogLvl != "" {
 			cfg.LogLvl, _ = log.LvlFromString(tomlCfg.Global.LogLvl)
 		}
+
+		cfg.MetricsPort = tomlCfg.Global.MetricsPort
 	}
 
 	// check --name flag and update node configuration
 	if name := ctx.GlobalString(NameFlag.Name); name != "" {
 		cfg.Name = name
-	}
-
-	// check --chain flag and update node configuration
-	if id := ctx.GlobalString(ChainFlag.Name); id != "" {
-		cfg.ID = id
 	}
 
 	// check --basepath flag and update node configuration
@@ -425,6 +424,13 @@ func setDotGlobalConfig(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.Global
 		cfg.LogLvl = log.Lvl(lvlToInt)
 	} else if lvl, err := log.LvlFromString(ctx.String(LogFlag.Name)); err == nil {
 		cfg.LogLvl = lvl
+	}
+
+	cfg.PublishMetrics = ctx.Bool("publish-metrics")
+
+	// check --metrics-port flag and update node configuration
+	if metricsPort := ctx.GlobalUint(MetricsPortFlag.Name); metricsPort != 0 {
+		cfg.MetricsPort = uint32(metricsPort)
 	}
 
 	logger.Debug(

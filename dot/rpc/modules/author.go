@@ -24,7 +24,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/transaction"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -57,7 +56,7 @@ type ExtrinsicOrHashRequest []ExtrinsicOrHash
 type KeyInsertResponse []byte
 
 // PendingExtrinsicsResponse is a bi-dimensional array of bytes for allocating the pending extrisics
-type PendingExtrinsicsResponse [][]byte
+type PendingExtrinsicsResponse []string
 
 // RemoveExtrinsicsResponse is a array of hash used to Remove extrinsics
 type RemoveExtrinsicsResponse []common.Hash
@@ -135,13 +134,9 @@ func (cm *AuthorModule) HasKey(r *http.Request, req *[]string, res *bool) error 
 // PendingExtrinsics Returns all pending extrinsics
 func (cm *AuthorModule) PendingExtrinsics(r *http.Request, req *EmptyRequest, res *PendingExtrinsicsResponse) error {
 	pending := cm.txStateAPI.Pending()
-	resp := [][]byte{}
-	for _, tx := range pending {
-		enc, err := tx.Encode()
-		if err != nil {
-			return err
-		}
-		resp = append(resp, enc)
+	resp := make([]string, len(pending))
+	for idx, tx := range pending {
+		resp[idx] = common.BytesToHex(tx.Extrinsic)
 	}
 
 	*res = PendingExtrinsicsResponse(resp)
@@ -169,31 +164,10 @@ func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 	if err != nil {
 		return err
 	}
-	cm.logger.Trace("[rpc]", "extrinsic", extBytes)
+	ext := types.Extrinsic(extBytes)
+	cm.logger.Trace("[rpc]", "extrinsic", ext)
 
-	// For RPC request the transaction source is External
-	ext := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, extBytes...))
-
-	// validate the transaction
-	txv, err := cm.runtimeAPI.ValidateTransaction(ext)
-	if err != nil {
-		cm.logger.Warn("failed to validate transaction", "ext", ext)
-		return err
-	}
-
-	vtx := transaction.NewValidTransaction(ext, txv)
-
-	if cm.coreAPI.IsBlockProducer() {
-		hash := cm.txStateAPI.AddToPool(vtx)
-		*res = ExtrinsicHashResponse(hash.String())
-		cm.logger.Trace("submitted extrinsic", "tx", vtx, "hash", hash.String())
-	}
-
-	//broadcast
 	err = cm.coreAPI.HandleSubmittedExtrinsic(ext)
-	if err != nil {
-		cm.logger.Trace("failed to submit extrinsic to network", "error", err)
-	}
-
+	*res = ExtrinsicHashResponse(ext.Hash().String())
 	return err
 }

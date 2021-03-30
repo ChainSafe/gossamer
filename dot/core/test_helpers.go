@@ -31,9 +31,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
-
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
@@ -128,10 +128,6 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		}
 	}
 
-	if cfg.Runtime == nil {
-		cfg.Runtime = wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
-	}
-
 	if cfg.Keystore == nil {
 		cfg.Keystore = keystore.NewGlobalKeystore()
 		kp, err := sr25519.GenerateKeypair()
@@ -155,11 +151,12 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
 	require.NoError(t, err)
 
+	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+
 	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.TransactionState == nil || cfg.EpochState == nil {
 		stateSrvc = state.NewService(testDatadirPath, log.LvlInfo)
 		stateSrvc.UseMemDB()
 
-		gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
 		err = stateSrvc.Initialize(gen, genHeader, genTrie)
 		require.Nil(t, err)
 
@@ -181,6 +178,14 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	if cfg.EpochState == nil {
 		cfg.EpochState = stateSrvc.Epoch
+	}
+
+	if cfg.Runtime == nil {
+		rtCfg := &wasmer.Config{}
+		rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
+		require.NoError(t, err)
+		cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(gen, rtCfg)
+		require.NoError(t, err)
 	}
 
 	if cfg.Network == nil {
@@ -248,37 +253,39 @@ func (s *mockSyncer) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) erro
 	return nil
 }
 
-func (s *mockSyncer) ProcessBlockData(_ []*types.BlockData) error {
-	return nil
+func (s *mockSyncer) ProcessBlockData(_ []*types.BlockData) (int, error) {
+	return 0, nil
 }
 
 func (s *mockSyncer) IsSynced() bool {
 	return false
 }
 
-type mockDigestItem struct {
+func (s *mockSyncer) SetSyncing(bool) {}
+
+type mockDigestItem struct { //nolint
 	i int
 }
 
-func newMockDigestItem(i int) *mockDigestItem {
+func newMockDigestItem(i int) *mockDigestItem { //nolint
 	return &mockDigestItem{
 		i: i,
 	}
 }
 
-func (d *mockDigestItem) String() string {
+func (d *mockDigestItem) String() string { //nolint
 	return ""
 }
 
-func (d *mockDigestItem) Type() byte {
+func (d *mockDigestItem) Type() byte { //nolint
 	return byte(d.i)
 }
 
-func (d *mockDigestItem) Encode() ([]byte, error) {
+func (d *mockDigestItem) Encode() ([]byte, error) { //nolint
 	return []byte{byte(d.i)}, nil
 }
 
-func (d *mockDigestItem) Decode(_ io.Reader) error {
+func (d *mockDigestItem) Decode(_ io.Reader) error { //nolint
 	return nil
 }
 

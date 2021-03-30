@@ -50,10 +50,10 @@ func TestConfigFromChainFlag(t *testing.T) {
 			dot.GssmrConfig(),
 		},
 		{
-			"Test gossamer --chain ksmcc",
+			"Test gossamer --chain kusama",
 			[]string{"chain"},
-			[]interface{}{"ksmcc"},
-			dot.KsmccConfig(),
+			[]interface{}{"kusama"},
+			dot.KusamaConfig(),
 		},
 		{
 			"Test gossamer --chain polkadot",
@@ -136,21 +136,25 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 			[]string{"config"},
 			[]interface{}{testCfgFile.Name()},
 			dot.GlobalConfig{
-				Name:     testCfg.Global.Name,
-				ID:       testCfg.Global.ID,
-				BasePath: testCfg.Global.BasePath,
-				LogLvl:   log.LvlInfo,
+				Name:           testCfg.Global.Name,
+				ID:             testCfg.Global.ID,
+				BasePath:       testCfg.Global.BasePath,
+				LogLvl:         log.LvlInfo,
+				PublishMetrics: testCfg.Global.PublishMetrics,
+				MetricsPort:    testCfg.Global.MetricsPort,
 			},
 		},
 		{
-			"Test gossamer --chain",
+			"Test kusama --chain",
 			[]string{"config", "chain"},
-			[]interface{}{testCfgFile.Name(), "ksmcc"},
+			[]interface{}{testCfgFile.Name(), "kusama"},
 			dot.GlobalConfig{
-				Name:     dot.KsmccConfig().Global.Name,
-				ID:       "ksmcc",
-				BasePath: dot.KsmccConfig().Global.BasePath,
-				LogLvl:   log.LvlInfo,
+				Name:           dot.KusamaConfig().Global.Name,
+				ID:             "ksmcc3",
+				BasePath:       dot.KusamaConfig().Global.BasePath,
+				LogLvl:         log.LvlInfo,
+				PublishMetrics: testCfg.Global.PublishMetrics,
+				MetricsPort:    testCfg.Global.MetricsPort,
 			},
 		},
 		{
@@ -158,10 +162,12 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 			[]string{"config", "name"},
 			[]interface{}{testCfgFile.Name(), "test_name"},
 			dot.GlobalConfig{
-				Name:     "test_name",
-				ID:       testCfg.Global.ID,
-				BasePath: testCfg.Global.BasePath,
-				LogLvl:   log.LvlInfo,
+				Name:           "test_name",
+				ID:             testCfg.Global.ID,
+				BasePath:       testCfg.Global.BasePath,
+				LogLvl:         log.LvlInfo,
+				PublishMetrics: testCfg.Global.PublishMetrics,
+				MetricsPort:    testCfg.Global.MetricsPort,
 			},
 		},
 		{
@@ -169,10 +175,12 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 			[]string{"config", "basepath"},
 			[]interface{}{testCfgFile.Name(), "test_basepath"},
 			dot.GlobalConfig{
-				Name:     testCfg.Global.Name,
-				ID:       testCfg.Global.ID,
-				BasePath: "test_basepath",
-				LogLvl:   log.LvlInfo,
+				Name:           testCfg.Global.Name,
+				ID:             testCfg.Global.ID,
+				BasePath:       "test_basepath",
+				LogLvl:         log.LvlInfo,
+				PublishMetrics: testCfg.Global.PublishMetrics,
+				MetricsPort:    testCfg.Global.MetricsPort,
 			},
 		},
 		{
@@ -180,10 +188,38 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 			[]string{"config", "roles"},
 			[]interface{}{testCfgFile.Name(), "1"},
 			dot.GlobalConfig{
-				Name:     testCfg.Global.Name,
-				ID:       testCfg.Global.ID,
-				BasePath: testCfg.Global.BasePath,
-				LogLvl:   log.LvlInfo,
+				Name:           testCfg.Global.Name,
+				ID:             testCfg.Global.ID,
+				BasePath:       testCfg.Global.BasePath,
+				LogLvl:         log.LvlInfo,
+				PublishMetrics: testCfg.Global.PublishMetrics,
+				MetricsPort:    testCfg.Global.MetricsPort,
+			},
+		},
+		{
+			"Test gossamer --publish-metrics",
+			[]string{"config", "publish-metrics"},
+			[]interface{}{testCfgFile.Name(), true},
+			dot.GlobalConfig{
+				Name:           testCfg.Global.Name,
+				ID:             testCfg.Global.ID,
+				BasePath:       testCfg.Global.BasePath,
+				LogLvl:         log.LvlInfo,
+				PublishMetrics: true,
+				MetricsPort:    testCfg.Global.MetricsPort,
+			},
+		},
+		{
+			"Test gossamer --metrics-port",
+			[]string{"config", "metrics-port"},
+			[]interface{}{testCfgFile.Name(), "9871"},
+			dot.GlobalConfig{
+				Name:           testCfg.Global.Name,
+				ID:             testCfg.Global.ID,
+				BasePath:       testCfg.Global.BasePath,
+				LogLvl:         log.LvlInfo,
+				PublishMetrics: testCfg.Global.PublishMetrics,
+				MetricsPort:    uint32(9871),
 			},
 		},
 	}
@@ -621,10 +657,12 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 
 	expected := &dot.Config{
 		Global: dot.GlobalConfig{
-			Name:     testCfg.Global.Name,
-			ID:       testCfg.Global.ID,
-			BasePath: testCfg.Global.BasePath,
-			LogLvl:   testCfg.Global.LogLvl,
+			Name:           testCfg.Global.Name,
+			ID:             testCfg.Global.ID,
+			BasePath:       testCfg.Global.BasePath,
+			LogLvl:         testCfg.Global.LogLvl,
+			PublishMetrics: testCfg.Global.PublishMetrics,
+			MetricsPort:    testCfg.Global.MetricsPort,
 		},
 		Log: dot.LogConfig{
 			CoreLvl:           log.LvlInfo,
@@ -671,10 +709,12 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 
 	expected := &dot.Config{
 		Global: dot.GlobalConfig{
-			Name:     testCfg.Global.Name,
-			ID:       testCfg.Global.ID,
-			BasePath: testCfg.Global.BasePath,
-			LogLvl:   testCfg.Global.LogLvl,
+			Name:           testCfg.Global.Name,
+			ID:             testCfg.Global.ID,
+			BasePath:       testCfg.Global.BasePath,
+			LogLvl:         testCfg.Global.LogLvl,
+			PublishMetrics: testCfg.Global.PublishMetrics,
+			MetricsPort:    testCfg.Global.MetricsPort,
 		},
 		Log: dot.LogConfig{
 			CoreLvl:           log.LvlInfo,
@@ -720,10 +760,12 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 
 	expected := &dot.Config{
 		Global: dot.GlobalConfig{
-			Name:     testCfg.Global.Name,
-			ID:       testCfg.Global.ID,
-			BasePath: testCfg.Global.BasePath,
-			LogLvl:   testCfg.Global.LogLvl,
+			Name:           testCfg.Global.Name,
+			ID:             testCfg.Global.ID,
+			BasePath:       testCfg.Global.BasePath,
+			LogLvl:         testCfg.Global.LogLvl,
+			PublishMetrics: testCfg.Global.PublishMetrics,
+			MetricsPort:    testCfg.Global.MetricsPort,
 		},
 		Log: dot.LogConfig{
 			CoreLvl:           log.LvlInfo,

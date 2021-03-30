@@ -38,12 +38,11 @@ const pruneKeyBufferSize = 1000
 
 // BlockState defines fields for manipulating the state of blocks, such as BlockTree, BlockDB and Header
 type BlockState struct {
-	bt                 *blocktree.BlockTree
-	baseDB             chaindb.Database
-	db                 chaindb.Database
-	lock               sync.RWMutex
-	genesisHash        common.Hash
-	highestBlockHeader *types.Header
+	bt          *blocktree.BlockTree
+	baseDB      chaindb.Database
+	db          chaindb.Database
+	lock        sync.RWMutex
+	genesisHash common.Hash
 
 	// block notifiers
 	imported      map[byte]chan<- *types.Block
@@ -71,17 +70,10 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 
 	genesisBlock, err := bs.GetBlockByNumber(big.NewInt(0))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get genesis header: %w", err)
 	}
 
 	bs.genesisHash = genesisBlock.Header.Hash()
-
-	// set the current highest block
-	bs.highestBlockHeader, err = bs.BestBlockHeader()
-	if err != nil {
-		return nil, err
-	}
-
 	return bs, nil
 }
 
@@ -333,13 +325,6 @@ func (bs *BlockState) SetHeader(header *types.Header) error {
 
 	hash := header.Hash()
 
-	// if this is the highest block we've seen, save it
-	if bs.highestBlockHeader == nil {
-		bs.highestBlockHeader = header
-	} else if bs.highestBlockHeader.Number.Cmp(header.Number) == -1 {
-		bs.highestBlockHeader = header
-	}
-
 	// Write the encoded header
 	bh, err := header.Encode()
 	if err != nil {
@@ -512,7 +497,7 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 	}
 
 	// add block to blocktree
-	err = bs.bt.AddBlock(block, uint64(arrivalTime.UnixNano()))
+	err = bs.bt.AddBlock(block.Header, uint64(arrivalTime.UnixNano()))
 	if err != nil {
 		return err
 	}
@@ -550,6 +535,16 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 	return bs.baseDB.Flush()
 }
 
+// AddBlockToBlockTree adds the given block to the blocktree. It does not write it to the database.
+func (bs *BlockState) AddBlockToBlockTree(header *types.Header) error {
+	arrivalTime, err := bs.GetArrivalTime(header.Hash())
+	if err != nil {
+		arrivalTime = time.Now()
+	}
+
+	return bs.bt.AddBlock(header, uint64(arrivalTime.UnixNano()))
+}
+
 // GetAllBlocksAtDepth returns all hashes with the depth of the given hash plus one
 func (bs *BlockState) GetAllBlocksAtDepth(hash common.Hash) []common.Hash {
 	return bs.bt.GetAllBlocksAtDepth(hash)
@@ -576,20 +571,6 @@ func (bs *BlockState) isBlockOnCurrentChain(header *types.Header) (bool, error) 
 	}
 
 	return true, nil
-}
-
-// HighestBlockHash returns the hash of the block with the highest number we have received
-// This block may not necessarily be in the blocktree.
-// TODO: can probably remove this once BlockResponses are implemented
-func (bs *BlockState) HighestBlockHash() common.Hash {
-	return bs.highestBlockHeader.Hash()
-}
-
-// HighestBlockNumber returns the largest block number we have seen
-// This block may not necessarily be in the blocktree.
-// TODO: can probably remove this once BlockResponses are implemented
-func (bs *BlockState) HighestBlockNumber() *big.Int {
-	return bs.highestBlockHeader.Number
 }
 
 // BestBlockHash returns the hash of the head of the current chain
@@ -621,6 +602,10 @@ func (bs *BlockState) BestBlockNumber() (*big.Int, error) {
 	header, err := bs.GetHeader(bs.BestBlockHash())
 	if err != nil {
 		return nil, err
+	}
+
+	if header == nil {
+		return nil, fmt.Errorf("failed to get best block header")
 	}
 
 	return header.Number, nil

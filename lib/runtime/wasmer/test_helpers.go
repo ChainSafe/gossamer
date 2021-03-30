@@ -34,29 +34,6 @@ import (
 // DefaultTestLogLvl is the log level used for test runtime instances
 var DefaultTestLogLvl = log.LvlDebug
 
-// NewTestLegacyInstance will create a new runtime instance using the given target runtime
-func NewTestLegacyInstance(t *testing.T, targetRuntime string) *LegacyInstance {
-	return NewTestLegacyInstanceWithTrie(t, targetRuntime, nil, DefaultTestLogLvl)
-}
-
-// NewTestLegacyInstanceWithTrie will create a new runtime (polkadot/test) with the supplied trie as the storage
-func NewTestLegacyInstanceWithTrie(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Lvl) *LegacyInstance {
-	fp, cfg := setupConfig(t, targetRuntime, tt, lvl, 0)
-	r, err := NewLegacyInstanceFromFile(fp, cfg)
-	require.NoError(t, err, "Got error when trying to create new VM", "targetRuntime", targetRuntime)
-	require.NotNil(t, r, "Could not create new VM instance", "targetRuntime", targetRuntime)
-	return r
-}
-
-// NewTestLegacyInstanceWithRole returns a test runtime with given role value
-func NewTestLegacyInstanceWithRole(t *testing.T, targetRuntime string, role byte) *LegacyInstance {
-	fp, cfg := setupConfig(t, targetRuntime, nil, DefaultTestLogLvl, role)
-	r, err := NewLegacyInstanceFromFile(fp, cfg)
-	require.NoError(t, err, "Got error when trying to create new VM", "targetRuntime", targetRuntime)
-	require.NotNil(t, r, "Could not create new VM instance", "targetRuntime", targetRuntime)
-	return r
-}
-
 // NewTestInstance will create a new runtime instance using the given target runtime
 func NewTestInstance(t *testing.T, targetRuntime string) *Instance {
 	return NewTestInstanceWithTrie(t, targetRuntime, nil, DefaultTestLogLvl)
@@ -85,20 +62,14 @@ func GetRuntimeImports(targetRuntime string) func() (*wasm.Imports, error) {
 	var registerImports func() (*wasm.Imports, error)
 
 	switch targetRuntime {
-	case runtime.SUBSTRATE_TEST_RUNTIME:
-		registerImports = ImportsTestRuntime
-	case runtime.LEGACY_NODE_RUNTIME:
-		registerImports = ImportsLegacyNodeRuntime
 	case runtime.NODE_RUNTIME:
 		registerImports = ImportsNodeRuntime
-	case runtime.TEST_RUNTIME:
-		registerImports = ImportsLegacyNodeRuntime
 	case runtime.POLKADOT_RUNTIME:
 		registerImports = ImportsNodeRuntime
 	case runtime.HOST_API_TEST_RUNTIME:
 		registerImports = ImportsNodeRuntime
 	default:
-		registerImports = ImportsLegacyNodeRuntime
+		registerImports = ImportsNodeRuntime
 	}
 
 	return registerImports

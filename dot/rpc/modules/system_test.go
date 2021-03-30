@@ -47,8 +47,8 @@ func (s *mockSyncer) CreateBlockResponse(msg *network.BlockRequestMessage) (*net
 	return nil, nil
 }
 
-func (s *mockSyncer) ProcessBlockData(_ []*types.BlockData) error {
-	return nil
+func (s *mockSyncer) ProcessBlockData(_ []*types.BlockData) (int, error) {
+	return 0, nil
 }
 
 func (s *mockSyncer) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) error {
@@ -58,6 +58,12 @@ func (s *mockSyncer) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) erro
 func (s *mockSyncer) HandleBlockAnnounceHandshake(num *big.Int) []*network.BlockRequestMessage {
 	return nil
 }
+
+func (s *mockSyncer) IsSynced() bool {
+	return false
+}
+
+func (s *mockSyncer) SetSyncing(_ bool) {}
 
 type mockBlockState struct{}
 
@@ -77,8 +83,8 @@ func (s *mockBlockState) HasBlockBody(_ common.Hash) (bool, error) {
 	return false, nil
 }
 
-func (s *mockSyncer) IsSynced() bool {
-	return false
+func (s *mockBlockState) GetFinalizedHeader(_, _ uint64) (*types.Header, error) {
+	return s.BestBlockHeader()
 }
 
 type mockTransactionHandler struct{}
@@ -347,6 +353,15 @@ func setupSystemModule(t *testing.T) *SystemModule {
 	ts.Set(aliceAcctStoKey, aliceAcctEncoded)
 
 	err = chain.Storage.StoreTrie(ts)
+	require.NoError(t, err)
+	err = chain.Block.AddBlock(&types.Block{
+		Header: &types.Header{
+			Number:     big.NewInt(1),
+			ParentHash: chain.Block.BestBlockHash(),
+			StateRoot:  ts.MustRoot(),
+		},
+		Body: &types.Body{},
+	})
 	require.NoError(t, err)
 
 	core := newCoreService(t, chain)

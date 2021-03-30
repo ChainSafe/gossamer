@@ -14,51 +14,27 @@ import (
 )
 
 func testBlockResponseMessage() *BlockResponseMessage {
-	testHeader0 := types.Header{
-		Number: big.NewInt(77),
-		Digest: types.Digest{},
+	msg := &BlockResponseMessage{
+		BlockData: []*types.BlockData{},
 	}
 
-	testHeader1 := types.Header{
-		Number: big.NewInt(78),
-		Digest: types.Digest{},
-	}
+	for i := 0; i < int(blockRequestSize); i++ {
+		testHeader := types.Header{
+			Number: big.NewInt(int64(77 + i)),
+			Digest: types.Digest{},
+		}
 
-	testHeader2 := types.Header{
-		Number: big.NewInt(79),
-		Digest: types.Digest{},
-	}
-
-	data := []*types.BlockData{
-		{
-			Hash:          testHeader0.Hash(),
-			Header:        testHeader0.AsOptional(),
-			Body:          optional.NewBody(false, nil),
-			Receipt:       optional.NewBytes(false, nil),
+		msg.BlockData = append(msg.BlockData, &types.BlockData{
+			Hash:          testHeader.Hash(),
+			Header:        testHeader.AsOptional(),
+			Body:          optional.NewBody(true, []byte{4, 4, 2}),
 			MessageQueue:  optional.NewBytes(false, nil),
-			Justification: optional.NewBytes(false, nil),
-		},
-		{
-			Hash:          testHeader1.Hash(),
-			Header:        testHeader1.AsOptional(),
-			Body:          optional.NewBody(false, nil),
 			Receipt:       optional.NewBytes(false, nil),
-			MessageQueue:  optional.NewBytes(false, nil),
 			Justification: optional.NewBytes(false, nil),
-		},
-		{
-			Hash:          testHeader2.Hash(),
-			Header:        testHeader2.AsOptional(),
-			Body:          optional.NewBody(false, nil),
-			Receipt:       optional.NewBytes(false, nil),
-			MessageQueue:  optional.NewBytes(false, nil),
-			Justification: optional.NewBytes(false, nil),
-		},
+		})
 	}
 
-	return &BlockResponseMessage{
-		BlockData: data,
-	}
+	return msg
 }
 
 type mockSyncer struct {
@@ -81,16 +57,16 @@ func (s *mockSyncer) HandleBlockAnnounce(msg *BlockAnnounceMessage) error {
 	return nil
 }
 
-func (s *mockSyncer) ProcessBlockData(data []*types.BlockData) error {
-	return nil
+func (s *mockSyncer) ProcessBlockData(data []*types.BlockData) (int, error) {
+	return 0, nil
 }
 
 func (s *mockSyncer) IsSynced() bool {
 	return s.synced
 }
 
-func (s *mockSyncer) setSyncedState(newState bool) {
-	s.synced = newState
+func (s *mockSyncer) SetSyncing(syncing bool) {
+	s.synced = !syncing
 }
 
 type testStreamHandler struct {
@@ -157,7 +133,7 @@ func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream, peer peer.ID
 var start, _ = variadic.NewUint64OrHash(uint64(1))
 
 var testBlockRequestMessage = &BlockRequestMessage{
-	RequestedData: 1,
+	RequestedData: RequestedDataHeader + RequestedDataBody + RequestedDataJustification,
 	StartingBlock: start,
 	EndBlockHash:  optional.NewHash(true, common.Hash{}),
 	Direction:     1,
@@ -171,7 +147,7 @@ func testBlockRequestMessageDecoder(in []byte, _ peer.ID) (Message, error) {
 }
 
 var testBlockAnnounceMessage = &BlockAnnounceMessage{
-	Number: big.NewInt(99),
+	Number: big.NewInt(128 * 7),
 }
 
 func testBlockAnnounceMessageDecoder(in []byte, _ peer.ID) (Message, error) {

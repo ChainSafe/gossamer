@@ -60,7 +60,7 @@ func TestSystemRPC(t *testing.T) {
 			expected: modules.SystemHealthResponse{
 
 				Peers:           2,
-				IsSyncing:       false,
+				IsSyncing:       true,
 				ShouldHavePeers: true,
 			},
 			params: "{}",
@@ -141,7 +141,6 @@ func TestSystemRPC(t *testing.T) {
 				for _, vv := range *v {
 					require.NotNil(t, vv.PeerID)
 					require.NotNil(t, vv.Roles)
-					require.NotNil(t, vv.ProtocolVersion)
 					require.NotNil(t, vv.BestHash)
 					require.NotNil(t, vv.BestNumber)
 				}

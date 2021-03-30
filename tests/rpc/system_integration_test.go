@@ -100,7 +100,6 @@ func TestStableNetworkRPC(t *testing.T) {
 				for _, vv := range *v {
 					require.NotNil(t, vv.PeerID)
 					require.NotNil(t, vv.Roles)
-					require.NotNil(t, vv.ProtocolVersion)
 					require.NotNil(t, vv.BestHash)
 					require.NotNil(t, vv.BestNumber)
 				}

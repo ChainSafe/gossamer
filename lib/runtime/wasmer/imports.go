@@ -118,6 +118,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
+
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
@@ -126,8 +127,8 @@ func ext_logging_log_version_1(context unsafe.Pointer, level C.int32_t, targetDa
 	logger.Trace("[ext_logging_log_version_1] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 
-	target := fmt.Sprintf("%s", asMemorySlice(instanceContext, targetData))
-	msg := fmt.Sprintf("%s", asMemorySlice(instanceContext, msgData))
+	target := string(asMemorySlice(instanceContext, targetData))
+	msg := string(asMemorySlice(instanceContext, msgData))
 
 	switch int(level) {
 	case 0:
@@ -214,7 +215,7 @@ func ext_crypto_ed25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 	var kp crypto.Keypair
 
 	if seed.Exists() {
-		kp, err = ed25519.NewKeypairFromMnenomic(string(seedBytes), "")
+		kp, err = ed25519.NewKeypairFromMnenomic(string(seed.Value()), "")
 	} else {
 		kp, err = ed25519.GenerateKeypair()
 	}
@@ -259,8 +260,8 @@ func ext_crypto_ed25519_public_keys_version_1(context unsafe.Pointer, keyTypeID 
 		return C.int64_t(ret)
 	}
 
-	if ks.Type() != crypto.Ed25519Type {
-		logger.Warn("[ext_crypto_ed25519_public_keys_version_1]", "name", id, "error", "keystore type is not ed25519")
+	if ks.Type() != crypto.Ed25519Type && ks.Type() != crypto.UnknownType {
+		logger.Warn("[ext_crypto_ed25519_public_keys_version_1]", "name", id, "error", "keystore type is not ed25519", "type", ks.Type())
 		ret, _ := toWasmMemory(instanceContext, []byte{0})
 		return C.int64_t(ret)
 	}
@@ -330,7 +331,7 @@ func ext_crypto_ed25519_sign_version_1(context unsafe.Pointer, keyTypeID C.int32
 		logger.Error("[ext_crypto_ed25519_sign_version_1] could not sign message")
 	}
 
-	ret, err = toWasmMemoryOptional(instanceContext, sig)
+	ret, err = toWasmMemoryFixedSizeOptional(instanceContext, sig)
 	if err != nil {
 		logger.Error("[ext_crypto_ed25519_sign_version_1] failed to allocate memory", err)
 		return 0
@@ -397,8 +398,6 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, m
 		signature[64] = 1
 	}
 
-	logger.Debug("[ext_crypto_secp256k1_ecdsa_recover_version_1]", "sig", fmt.Sprintf("0x%x", signature))
-
 	pub, err := secp256k1.RecoverPublicKey(message, signature)
 	if err != nil {
 		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_version_1] failed to recover public key", "error", err)
@@ -423,10 +422,41 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(context unsafe.Pointer, sig, m
 }
 
 //export ext_crypto_secp256k1_ecdsa_recover_compressed_version_1
-func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context unsafe.Pointer, a, z C.int32_t) C.int64_t {
+func ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(context unsafe.Pointer, sig, msg C.int32_t) C.int64_t {
 	logger.Trace("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1] executing...")
-	logger.Warn("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1] unimplemented")
-	return 0
+	instanceContext := wasm.IntoInstanceContext(context)
+	memory := instanceContext.Memory().Data()
+
+	// msg must be the 32-byte hash of the message to be signed.
+	// sig must be a 65-byte compact ECDSA signature containing the
+	// recovery id as the last element
+	message := memory[msg : msg+32]
+	signature := memory[sig : sig+65]
+
+	if signature[64] == 27 {
+		signature[64] = 0
+	}
+
+	if signature[64] == 28 {
+		signature[64] = 1
+	}
+
+	cpub, err := secp256k1.RecoverPublicKeyCompressed(message, signature)
+	if err != nil {
+		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1] failed to recover public key", "error", err)
+		ret, _ := toWasmMemoryResult(instanceContext, nil)
+		return C.int64_t(ret)
+	}
+
+	logger.Debug("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1]", "len", len(cpub), "recovered public key", fmt.Sprintf("0x%x", cpub))
+
+	ret, err := toWasmMemoryResult(instanceContext, cpub)
+	if err != nil {
+		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_compressed_version_1] failed to allocate memory", "error", err)
+		return 0
+	}
+
+	return C.int64_t(ret)
 }
 
 //export ext_crypto_sr25519_generate_version_1
@@ -463,7 +493,7 @@ func ext_crypto_sr25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 
 	ks, err := runtimeCtx.Keystore.GetKeystore(id)
 	if err != nil {
-		logger.Warn("[ext_crypto_ed25519_sign_version_1]", "name", id, "error", err)
+		logger.Warn("[ext_crypto_sr25519_generate_version_1]", "name", id, "error", err)
 		return 0
 	}
 
@@ -495,8 +525,8 @@ func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, keyTypeID 
 		return C.int64_t(ret)
 	}
 
-	if ks.Type() != crypto.Sr25519Type {
-		logger.Warn("[ext_crypto_ed25519_public_keys_version_1]", "name", id, "error", "keystore type is not ed25519")
+	if ks.Type() != crypto.Sr25519Type && ks.Type() != crypto.UnknownType {
+		logger.Warn("[ext_crypto_sr25519_public_keys_version_1]", "name", id, "error", "keystore type is not sr25519")
 		ret, _ := toWasmMemory(instanceContext, []byte{0})
 		return C.int64_t(ret)
 	}
@@ -510,14 +540,14 @@ func ext_crypto_sr25519_public_keys_version_1(context unsafe.Pointer, keyTypeID 
 
 	prefix, err := scale.Encode(big.NewInt(int64(len(keys))))
 	if err != nil {
-		logger.Error("[ext_crypto_ed25519_public_keys_version_1] failed to allocate memory", err)
+		logger.Error("[ext_crypto_sr25519_public_keys_version_1] failed to allocate memory", err)
 		ret, _ := toWasmMemory(instanceContext, []byte{0})
 		return C.int64_t(ret)
 	}
 
 	ret, err := toWasmMemory(instanceContext, append(prefix, encodedKeys...))
 	if err != nil {
-		logger.Error("[ext_crypto_ed25519_public_keys_version_1] failed to allocate memory", err)
+		logger.Error("[ext_crypto_sr25519_public_keys_version_1] failed to allocate memory", err)
 		ret, _ = toWasmMemory(instanceContext, []byte{0})
 		return C.int64_t(ret)
 	}
@@ -538,7 +568,7 @@ func ext_crypto_sr25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.
 
 	ks, err := runtimeCtx.Keystore.GetKeystore(id)
 	if err != nil {
-		logger.Warn("[ext_crypto_sr25519_public_keys_version_1]", "name", id, "error", err)
+		logger.Warn("[ext_crypto_sr25519_sign_version_1]", "name", id, "error", err)
 		return C.int64_t(emptyRet)
 	}
 
@@ -562,7 +592,7 @@ func ext_crypto_sr25519_sign_version_1(context unsafe.Pointer, keyTypeID, key C.
 		return C.int64_t(emptyRet)
 	}
 
-	ret, err = toWasmMemoryOptional(instanceContext, sig)
+	ret, err = toWasmMemoryFixedSizeOptional(instanceContext, sig)
 	if err != nil {
 		logger.Error("[ext_crypto_sr25519_sign_version_1] failed to allocate memory", "error", err)
 		return C.int64_t(emptyRet)
@@ -605,7 +635,7 @@ func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 	}
 
 	if ok, err := pub.VerifyDeprecated(message, signature); err != nil || !ok {
-		logger.Debug("[ext_crypto_sr25519_verify_version_1] failed to verify sr25519 signature")
+		logger.Debug("[ext_crypto_sr25519_verify_version_1] failed to validate signature", "error", err)
 		// TODO: fix this, fails at block 3876
 		return 1
 	}
@@ -627,7 +657,7 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 
 	pub, err := sr25519.NewPublicKey(memory[key : key+32])
 	if err != nil {
-		logger.Error("[ext_crypto_sr25519_verify_version_2] failed to verify sr25519 signature")
+		logger.Error("[ext_crypto_sr25519_verify_version_2] invalid sr25519 public key")
 		return 0
 	}
 
@@ -648,7 +678,7 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 	}
 
 	if ok, err := pub.Verify(message, signature); err != nil || !ok {
-		logger.Debug("[ext_crypto_sr25519_verify_version_2] failed to validate signature")
+		logger.Error("[ext_crypto_sr25519_verify_version_2] failed to validate signature", "error", err)
 		return 0
 	}
 
@@ -660,6 +690,11 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
 	logger.Debug("[ext_crypto_start_batch_verify_version_1] executing...")
 
+	// TODO: fix and re-enable signature verification
+	// beginBatchVerify(context)
+}
+
+func beginBatchVerify(context unsafe.Pointer) { //nolint
 	instanceContext := wasm.IntoInstanceContext(context)
 	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
 
@@ -675,6 +710,12 @@ func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
 func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t {
 	logger.Debug("[ext_crypto_finish_batch_verify_version_1] executing...")
 
+	// TODO: fix and re-enable signature verification
+	// return finishBatchVerify(context)
+	return 1
+}
+
+func finishBatchVerify(context unsafe.Pointer) C.int32_t { //nolint
 	instanceContext := wasm.IntoInstanceContext(context)
 	sigVerifier := instanceContext.Data().(*runtime.Context).SigVerifier
 
@@ -686,6 +727,7 @@ func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t 
 	if sigVerifier.Finish() {
 		return 1
 	}
+	logger.Error("[ext_crypto_finish_batch_verify_version_1] failed to batch verify; invalid signature")
 	return 0
 }
 
@@ -807,7 +849,7 @@ func ext_misc_print_utf8_version_1(context unsafe.Pointer, dataSpan C.int64_t) {
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	data := asMemorySlice(instanceContext, dataSpan)
-	logger.Debug("[ext_misc_print_utf8_version_1]", "utf8", fmt.Sprintf("%s", data))
+	logger.Debug("[ext_misc_print_utf8_version_1]", "utf8", string(data))
 }
 
 //export ext_misc_runtime_version_version_1
@@ -830,8 +872,14 @@ func ext_misc_runtime_version_version_1(context unsafe.Pointer, dataSpan C.int64
 	}
 
 	// instance version is set and cached in NewInstance
-	version := instance.inst.version
+	version := instance.version
 	logger.Debug("[ext_misc_runtime_version_version_1]", "version", version)
+
+	if version == nil {
+		logger.Error("[ext_misc_runtime_version_version_1] failed to get runtime version")
+		out, _ := toWasmMemoryOptional(instanceContext, nil)
+		return C.int64_t(out)
+	}
 
 	encodedData, err := version.Encode()
 	if err != nil {
@@ -889,15 +937,6 @@ func ext_default_child_storage_clear_version_1(context unsafe.Pointer, childStor
 	keyToChild := asMemorySlice(instanceContext, childStorageKey)
 	key := asMemorySlice(instanceContext, keySpan)
 
-	if ctx.TransactionStorageChanges != nil {
-		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
-			Operation:  runtime.ClearOp,
-			KeyToChild: keyToChild,
-			Key:        key,
-		})
-		return
-	}
-
 	err := storage.ClearChildStorage(keyToChild, key)
 	if err != nil {
 		logger.Error("[ext_default_child_storage_clear_version_1] failed to clear child storage", "error", err)
@@ -914,15 +953,6 @@ func ext_default_child_storage_clear_prefix_version_1(context unsafe.Pointer, ch
 
 	keyToChild := asMemorySlice(instanceContext, childStorageKey)
 	prefix := asMemorySlice(instanceContext, prefixSpan)
-
-	if ctx.TransactionStorageChanges != nil {
-		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
-			Operation:  runtime.ClearPrefixOp,
-			KeyToChild: keyToChild,
-			Prefix:     prefix,
-		})
-		return
-	}
 
 	err := storage.ClearPrefixInChild(keyToChild, prefix)
 	if err != nil {
@@ -1035,16 +1065,6 @@ func ext_default_child_storage_set_version_1(context unsafe.Pointer, childStorag
 	cp := make([]byte, len(value))
 	copy(cp, value)
 
-	if ctx.TransactionStorageChanges != nil {
-		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
-			Operation:  runtime.SetOp,
-			KeyToChild: childStorageKey,
-			Key:        key,
-			Value:      cp,
-		})
-		return
-	}
-
 	err := storage.SetChildStorage(childStorageKey, key, cp)
 	if err != nil {
 		logger.Error("[ext_default_child_storage_set_version_1] failed to set value in child storage", "error", err)
@@ -1061,28 +1081,37 @@ func ext_default_child_storage_storage_kill_version_1(context unsafe.Pointer, ch
 	storage := ctx.Storage
 
 	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
-
-	if ctx.TransactionStorageChanges != nil {
-		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
-			Operation:  runtime.DeleteChildOp,
-			KeyToChild: childStorageKey,
-		})
-		return
-	}
-
 	storage.DeleteChild(childStorageKey)
 }
 
 //export ext_allocator_free_version_1
 func ext_allocator_free_version_1(context unsafe.Pointer, addr C.int32_t) {
 	logger.Trace("[ext_allocator_free_version_1] executing...")
-	ext_free(context, addr)
+	instanceContext := wasm.IntoInstanceContext(context)
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+
+	// Deallocate memory
+	err := runtimeCtx.Allocator.Deallocate(uint32(addr))
+	if err != nil {
+		logger.Error("[ext_allocator_free_version_1] failed to free memory", "error", err)
+	}
 }
 
 //export ext_allocator_malloc_version_1
 func ext_allocator_malloc_version_1(context unsafe.Pointer, size C.int32_t) C.int32_t {
 	logger.Trace("[ext_allocator_malloc_version_1] executing...", "size", size)
-	return ext_malloc(context, size)
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	ctx := instanceContext.Data().(*runtime.Context)
+
+	// Allocate memory
+	res, err := ctx.Allocator.Allocate(uint32(size))
+	if err != nil {
+		logger.Crit("[ext_allocator_malloc_version_1] failed to allocate memory", "error", err)
+		panic(err)
+	}
+
+	return C.int32_t(res)
 }
 
 //export ext_hashing_blake2_128_version_1
@@ -1212,7 +1241,7 @@ func ext_hashing_twox_128_version_1(context unsafe.Pointer, dataSpan C.int64_t) 
 		return 0
 	}
 
-	logger.Debug("[ext_hashing_twox_128_version_1]", "data", fmt.Sprintf("%s", data), "hash", fmt.Sprintf("0x%x", hash))
+	logger.Debug("[ext_hashing_twox_128_version_1]", "data", string(data), "hash", fmt.Sprintf("0x%x", hash))
 
 	out, err := toWasmMemorySized(instanceContext, hash, 16)
 	if err != nil {
@@ -1483,20 +1512,11 @@ func ext_storage_append_version_1(context unsafe.Pointer, keySpan, valueSpan C.i
 	storage := ctx.Storage
 
 	key := asMemorySlice(instanceContext, keySpan)
-	logger.Debug("[ext_storage_append_version_1]", "key", fmt.Sprintf("0x%x", key))
 	valueAppend := asMemorySlice(instanceContext, valueSpan)
+	logger.Debug("[ext_storage_append_version_1]", "key", fmt.Sprintf("0x%x", key), "value to append", fmt.Sprintf("0x%x", valueAppend))
 
 	cp := make([]byte, len(valueAppend))
 	copy(cp, valueAppend)
-
-	if ctx.TransactionStorageChanges != nil {
-		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
-			Operation: runtime.AppendOp,
-			Key:       key,
-			Value:     cp,
-		})
-		return
-	}
 
 	err := storageAppend(storage, key, cp)
 	if err != nil {
@@ -1530,15 +1550,6 @@ func ext_storage_clear_version_1(context unsafe.Pointer, keySpan C.int64_t) {
 	key := asMemorySlice(instanceContext, keySpan)
 
 	logger.Debug("[ext_storage_clear_version_1]", "key", fmt.Sprintf("0x%x", key))
-
-	if ctx.TransactionStorageChanges != nil {
-		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
-			Operation: runtime.ClearOp,
-			Key:       key,
-		})
-		return
-	}
-
 	storage.Delete(key)
 }
 
@@ -1552,23 +1563,9 @@ func ext_storage_clear_prefix_version_1(context unsafe.Pointer, prefixSpan C.int
 	prefix := asMemorySlice(instanceContext, prefixSpan)
 	logger.Debug("[ext_storage_clear_prefix_version_1]", "prefix", fmt.Sprintf("0x%x", prefix))
 
-	if ctx.TransactionStorageChanges != nil {
-		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
-			Operation: runtime.ClearPrefixOp,
-			Prefix:    prefix,
-		})
-		return
-	}
-
 	err := storage.ClearPrefix(prefix)
 	if err != nil {
 		logger.Error("[ext_storage_clear_prefix_version_1]", "error", err)
-	}
-
-	// sanity check
-	next := storage.NextKey(prefix)
-	if len(next) >= len(prefix) && bytes.Equal(prefix, next[:len(prefix)]) {
-		panic("did not clear prefix")
 	}
 }
 
@@ -1622,7 +1619,7 @@ func ext_storage_next_key_version_1(context unsafe.Pointer, keySpan C.int64_t) C
 	key := asMemorySlice(instanceContext, keySpan)
 
 	next := storage.NextKey(key)
-	logger.Debug("[ext_storage_next_key_version_1]", "key", key, "next", next)
+	logger.Debug("[ext_storage_next_key_version_1]", "key", fmt.Sprintf("0x%x", key), "next", fmt.Sprintf("0x%x", next))
 
 	nextSpan, err := toWasmMemoryOptional(instanceContext, next)
 	if err != nil {
@@ -1707,15 +1704,6 @@ func ext_storage_set_version_1(context unsafe.Pointer, keySpan C.int64_t, valueS
 	cp := make([]byte, len(value))
 	copy(cp, value)
 
-	if ctx.TransactionStorageChanges != nil {
-		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
-			Operation: runtime.SetOp,
-			Key:       key,
-			Value:     cp,
-		})
-		return
-	}
-
 	logger.Debug("[ext_storage_set_version_1]", "key", fmt.Sprintf("0x%x", key), "val", fmt.Sprintf("0x%x", value))
 	storage.Set(key, cp)
 }
@@ -1724,75 +1712,21 @@ func ext_storage_set_version_1(context unsafe.Pointer, keySpan C.int64_t, valueS
 func ext_storage_start_transaction_version_1(context unsafe.Pointer) {
 	logger.Debug("[ext_storage_start_transaction_version_1] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
-	instanceContext.Data().(*runtime.Context).TransactionStorageChanges = []*runtime.TransactionStorageChange{}
+	instanceContext.Data().(*runtime.Context).Storage.BeginStorageTransaction()
 }
 
 //export ext_storage_rollback_transaction_version_1
 func ext_storage_rollback_transaction_version_1(context unsafe.Pointer) {
 	logger.Debug("[ext_storage_rollback_transaction_version_1] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
-	instanceContext.Data().(*runtime.Context).TransactionStorageChanges = nil
+	instanceContext.Data().(*runtime.Context).Storage.RollbackStorageTransaction()
 }
 
 //export ext_storage_commit_transaction_version_1
 func ext_storage_commit_transaction_version_1(context unsafe.Pointer) {
 	logger.Debug("[ext_storage_commit_transaction_version_1] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
-	ctx := instanceContext.Data().(*runtime.Context)
-	changes := ctx.TransactionStorageChanges
-	storage := ctx.Storage
-
-	if changes == nil {
-		panic("ext_storage_start_transaction_version_1 was not called before ext_storage_commit_transaction_version_1")
-	}
-
-	for _, change := range changes {
-		switch change.Operation {
-		case runtime.SetOp:
-			if change.KeyToChild != nil {
-				err := storage.SetChildStorage(change.KeyToChild, change.Key, change.Value)
-				if err != nil {
-					logger.Error("[ext_default_child_storage_set_version_1] failed to set value in child storage", "error", err)
-				}
-
-				continue
-			}
-
-			storage.Set(change.Key, change.Value)
-		case runtime.ClearOp:
-			if change.KeyToChild != nil {
-				err := storage.ClearChildStorage(change.KeyToChild, change.Key)
-				if err != nil {
-					logger.Error("[ext_default_child_storage_clear_version_1] failed to clear child storage", "error", err)
-				}
-
-				continue
-			}
-
-			storage.Delete(change.Key)
-		case runtime.ClearPrefixOp:
-			if change.KeyToChild != nil {
-				err := storage.ClearPrefixInChild(change.KeyToChild, change.Prefix)
-				if err != nil {
-					logger.Error("[ext_storage_commit_transaction_version_1] failed to clear prefix in child", "error", err)
-				}
-
-				continue
-			}
-
-			err := storage.ClearPrefix(change.Prefix)
-			if err != nil {
-				logger.Error("[ext_storage_commit_transaction_version_1] failed to clear prefix", "error", err)
-			}
-		case runtime.AppendOp:
-			err := storageAppend(storage, change.Key, change.Value)
-			if err != nil {
-				logger.Error("[ext_storage_commit_transaction_version_1] failed to append to storage", "key", change.Key, "error", err)
-			}
-		case runtime.DeleteChildOp:
-			storage.DeleteChild(change.KeyToChild)
-		}
-	}
+	instanceContext.Data().(*runtime.Context).Storage.CommitStorageTransaction()
 }
 
 // Convert 64bit wasm span descriptor to Go memory slice
@@ -1885,6 +1819,23 @@ func toWasmMemoryOptionalUint32(context wasm.InstanceContext, data *uint32) (int
 	}
 
 	enc := opt.Encode()
+	return toWasmMemory(context, enc)
+}
+
+// Wraps slice in optional.FixedSizeBytes and copies result to wasm memory. Returns resulting 64bit span descriptor
+func toWasmMemoryFixedSizeOptional(context wasm.InstanceContext, data []byte) (int64, error) {
+	var opt *optional.FixedSizeBytes
+	if data == nil {
+		opt = optional.NewFixedSizeBytes(false, nil)
+	} else {
+		opt = optional.NewFixedSizeBytes(true, data)
+	}
+
+	enc, err := opt.Encode()
+	if err != nil {
+		return 0, err
+	}
+
 	return toWasmMemory(context, enc)
 }
 

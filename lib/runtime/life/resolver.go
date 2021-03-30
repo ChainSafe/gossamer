@@ -244,15 +244,6 @@ func ext_storage_set_version_1(vm *exec.VirtualMachine) int64 {
 	key := asMemorySlice(vm.Memory, keySpan)
 	value := asMemorySlice(vm.Memory, valueSpan)
 
-	if ctx.TransactionStorageChanges != nil {
-		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
-			Operation: runtime.SetOp,
-			Key:       key,
-			Value:     value,
-		})
-		return 0
-	}
-
 	logger.Debug("[ext_storage_set_version_1]", "key", fmt.Sprintf("0x%x", key), "val", fmt.Sprintf("0x%x", value))
 
 	cp := make([]byte, len(value))
@@ -288,15 +279,6 @@ func ext_storage_clear_version_1(vm *exec.VirtualMachine) int64 {
 	key := asMemorySlice(vm.Memory, keySpan)
 
 	logger.Debug("[ext_storage_clear_version_1]", "key", fmt.Sprintf("0x%x", key))
-
-	if ctx.TransactionStorageChanges != nil {
-		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
-			Operation: runtime.ClearOp,
-			Key:       key,
-		})
-		return 0
-	}
-
 	storage.Delete(key)
 	return 0
 }
@@ -308,14 +290,6 @@ func ext_storage_clear_prefix_version_1(vm *exec.VirtualMachine) int64 {
 
 	prefix := asMemorySlice(vm.Memory, prefixSpan)
 	logger.Debug("[ext_storage_clear_prefix_version_1]", "prefix", fmt.Sprintf("0x%x", prefix))
-
-	if ctx.TransactionStorageChanges != nil {
-		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
-			Operation: runtime.ClearPrefixOp,
-			Prefix:    prefix,
-		})
-		return 0
-	}
 
 	err := storage.ClearPrefix(prefix)
 	if err != nil {
@@ -418,15 +392,6 @@ func ext_storage_append_version_1(vm *exec.VirtualMachine) int64 {
 	key := asMemorySlice(vm.Memory, keySpan)
 	logger.Debug("[ext_storage_append_version_1]", "key", fmt.Sprintf("0x%x", key))
 	valueAppend := asMemorySlice(vm.Memory, valueSpan)
-
-	if ctx.TransactionStorageChanges != nil {
-		ctx.TransactionStorageChanges = append(ctx.TransactionStorageChanges, &runtime.TransactionStorageChange{
-			Operation: runtime.AppendOp,
-			Key:       key,
-			Value:     valueAppend,
-		})
-		return 0
-	}
 
 	err := storageAppend(storage, key, valueAppend)
 	if err != nil {

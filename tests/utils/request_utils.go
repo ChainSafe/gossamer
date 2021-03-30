@@ -18,6 +18,7 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -45,9 +46,12 @@ func PostRPC(method, host, params string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	r.Header.Set("Content-Type", ContentTypeJSON)
 	r.Header.Set("Accept", ContentTypeJSON)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	r = r.WithContext(ctx)
 
 	resp, err := httpClient.Do(r)
 	if err != nil {

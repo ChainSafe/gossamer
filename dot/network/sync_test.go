@@ -18,17 +18,43 @@ package network
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
 )
+
+func createBlockRequests(start, end int64) []*BlockRequestMessage {
+	if start > end {
+		return nil
+	}
+
+	numReqs := (end - start) / int64(blockRequestSize)
+	if numReqs > int64(blockRequestBufferSize) {
+		numReqs = int64(blockRequestBufferSize)
+	}
+
+	if end-start < int64(blockRequestSize) {
+		// +1 because we want to include the block w/ the ending number
+		req := createBlockRequest(start, uint32(end-start)+1)
+		return []*BlockRequestMessage{req}
+	}
+
+	reqs := make([]*BlockRequestMessage, numReqs)
+	for i := 0; i < int(numReqs); i++ {
+		offset := i * int(blockRequestSize)
+		reqs[i] = createBlockRequest(start+int64(offset), blockRequestSize)
+	}
+	return reqs
+}
 
 func TestDecodeSyncMessage(t *testing.T) {
 	s := &Service{
@@ -49,7 +75,7 @@ func TestDecodeSyncMessage(t *testing.T) {
 	require.Equal(t, testBlockRequestMessage, req)
 }
 
-func TestSyncQueue_PushBlockResponse(t *testing.T) {
+func TestSyncQueue_PushResponse(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "nodeA")
 	config := &Config{
 		BasePath:    basePath,
@@ -61,20 +87,24 @@ func TestSyncQueue_PushBlockResponse(t *testing.T) {
 
 	s := createTestService(t, config)
 
-	testHeader := types.Header{
-		Number: big.NewInt(77),
-	}
-
 	peerID := peer.ID("noot")
 	msg := &BlockResponseMessage{
-		BlockData: []*types.BlockData{
-			{
-				Header: testHeader.AsOptional(),
-			},
-		},
+		BlockData: []*types.BlockData{},
 	}
 
-	s.syncQueue.pushBlockResponse(msg, peerID)
+	for i := 0; i < int(blockRequestSize); i++ {
+		testHeader := types.Header{
+			Number: big.NewInt(int64(77 + i)),
+		}
+
+		msg.BlockData = append(msg.BlockData, &types.BlockData{
+			Header: testHeader.AsOptional(),
+			Body:   optional.NewBody(true, []byte{0}),
+		})
+	}
+
+	err := s.syncQueue.pushResponse(msg, peerID)
+	require.NoError(t, err)
 	require.Equal(t, 1, len(s.syncQueue.responses))
 }
 
@@ -207,31 +237,12 @@ func newTestSyncQueue(t *testing.T) *syncQueue {
 	return s.syncQueue
 }
 
-func TestSyncQueue_SetBlockRequests_ShouldBeEmpty(t *testing.T) {
-	q := newTestSyncQueue(t)
-	q.stop()
-	q.goal = 0
-
-	testPeerID := peer.ID("noot")
-	q.setBlockRequests(testPeerID)
-	require.Equal(t, 0, len(q.requests))
-}
-
-func TestSyncQueue_SetBlockRequests(t *testing.T) {
-	q := newTestSyncQueue(t)
-	q.stop()
-	q.goal = 10000
-
-	testPeerID := peer.ID("noot")
-	q.setBlockRequests(testPeerID)
-	require.Equal(t, int(blockRequestQueueSize), len(q.requests))
-}
-
 func TestSyncQueue_HandleBlockAnnounceHandshake(t *testing.T) {
 	q := newTestSyncQueue(t)
 	q.stop()
+	time.Sleep(time.Second)
 
-	testNum := int64(99)
+	testNum := int64(128 * 7)
 
 	testPeerID := peer.ID("noot")
 	q.handleBlockAnnounceHandshake(uint32(testNum), testPeerID)
@@ -239,17 +250,19 @@ func TestSyncQueue_HandleBlockAnnounceHandshake(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, 1, score.(int))
 	require.Equal(t, testNum, q.goal)
-	require.Equal(t, 1, len(q.requests))
+	require.Equal(t, 6, len(q.requestCh))
 
 	head, err := q.s.blockState.BestBlockNumber()
 	require.NoError(t, err)
-	expected := createBlockRequest(head.Int64()+1, uint32(testNum)-uint32(head.Int64()))
-	require.Equal(t, &syncRequest{req: expected, to: testPeerID}, q.requests[0])
+	expected := createBlockRequest(head.Int64(), blockRequestSize)
+	req := <-q.requestCh
+	require.Equal(t, &syncRequest{req: expected, to: testPeerID}, req)
 }
 
 func TestSyncQueue_HandleBlockAnnounce(t *testing.T) {
 	q := newTestSyncQueue(t)
 	q.stop()
+	time.Sleep(time.Second)
 
 	testPeerID := peer.ID("noot")
 	q.handleBlockAnnounce(testBlockAnnounceMessage, testPeerID)
@@ -257,12 +270,13 @@ func TestSyncQueue_HandleBlockAnnounce(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, 1, score.(int))
 	require.Equal(t, testBlockAnnounceMessage.Number.Int64(), q.goal)
-	require.Equal(t, 1, len(q.requests))
+	require.Equal(t, 6, len(q.requestCh))
 
 	head, err := q.s.blockState.BestBlockNumber()
 	require.NoError(t, err)
-	expected := createBlockRequest(head.Int64()+1, uint32(testBlockAnnounceMessage.Number.Int64())-uint32(head.Int64()))
-	require.Equal(t, &syncRequest{req: expected, to: testPeerID}, q.requests[0])
+	expected := createBlockRequest(head.Int64(), blockRequestSize)
+	req := <-q.requestCh
+	require.Equal(t, &syncRequest{req: expected, to: testPeerID}, req)
 }
 
 func TestSyncQueue_ProcessBlockRequests(t *testing.T) {
@@ -324,7 +338,8 @@ func TestSyncQueue_ProcessBlockRequests(t *testing.T) {
 	require.NoError(t, err)
 
 	nodeA.syncQueue.stop()
-	nodeA.syncQueue.ctx = context.Background()
+	nodeA.syncQueue.ctx, nodeA.syncQueue.cancel = context.WithCancel(context.Background())
+	defer nodeA.syncQueue.cancel()
 	time.Sleep(time.Second * 3)
 
 	nodeA.syncQueue.updatePeerScore(nodeB.host.id(), 1) // expect to try to sync with nodeB first
@@ -334,7 +349,162 @@ func TestSyncQueue_ProcessBlockRequests(t *testing.T) {
 	}
 
 	time.Sleep(time.Second * 2)
-	require.Equal(t, 3, len(nodeA.syncQueue.responses))
+	require.Equal(t, 128, len(nodeA.syncQueue.responses))
 	testResp := testBlockResponseMessage()
 	require.Equal(t, testResp.BlockData, nodeA.syncQueue.responses)
+}
+
+func TestSyncQueue_handleResponseQueue_noRequestsOrResponses(t *testing.T) {
+	q := newTestSyncQueue(t)
+	q.stop()
+	time.Sleep(time.Second)
+	q.goal = int64(blockRequestSize) * 10
+	q.ctx = context.Background()
+	go q.handleResponseQueue()
+	time.Sleep(time.Second * 2)
+	require.Equal(t, blockRequestBufferSize, len(q.requestCh))
+}
+
+func TestSyncQueue_handleResponseQueue_responseQueueAhead(t *testing.T) {
+	q := newTestSyncQueue(t)
+	q.stop()
+	time.Sleep(time.Second)
+	q.goal = int64(blockRequestSize) * 10
+	q.ctx = context.Background()
+
+	testHeader0 := types.Header{
+		Number: big.NewInt(77),
+		Digest: types.Digest{},
+	}
+	q.responses = append(q.responses, &types.BlockData{
+		Hash:          testHeader0.Hash(),
+		Header:        testHeader0.AsOptional(),
+		Body:          optional.NewBody(true, []byte{4, 4, 2}),
+		Receipt:       optional.NewBytes(false, nil),
+		MessageQueue:  optional.NewBytes(false, nil),
+		Justification: optional.NewBytes(false, nil),
+	})
+
+	go q.handleResponseQueue()
+	time.Sleep(time.Second * 2)
+
+	require.Equal(t, 1, len(q.requestCh))
+}
+
+func TestSyncQueue_processBlockResponses(t *testing.T) {
+	q := newTestSyncQueue(t)
+	q.stop()
+	time.Sleep(time.Second)
+	q.goal = int64(blockRequestSize) * 10
+	q.ctx = context.Background()
+
+	testHeader0 := types.Header{
+		Number: big.NewInt(0),
+		Digest: types.Digest{},
+	}
+	go func() {
+		q.responseCh <- []*types.BlockData{
+			{
+				Hash:          testHeader0.Hash(),
+				Header:        testHeader0.AsOptional(),
+				Body:          optional.NewBody(true, []byte{4, 4, 2}),
+				Receipt:       optional.NewBytes(false, nil),
+				MessageQueue:  optional.NewBytes(false, nil),
+				Justification: optional.NewBytes(false, nil),
+			},
+		}
+	}()
+
+	go q.processBlockResponses()
+	time.Sleep(time.Second)
+	require.Equal(t, blockRequestBufferSize, len(q.requestCh))
+}
+
+func TestSyncQueue_SyncAtHead(t *testing.T) {
+	q := newTestSyncQueue(t)
+	q.stop()
+	time.Sleep(time.Second)
+	q.ctx = context.Background()
+
+	go q.syncAtHead()
+	time.Sleep(time.Millisecond * 6100)
+	select {
+	case req := <-q.requestCh:
+		require.Equal(t, uint64(2), req.req.StartingBlock.Uint64())
+	case <-time.After(TestMessageTimeout):
+		t.Fatal("did not queue request")
+	}
+}
+
+func TestSyncQueue_PushRequest_NearHead(t *testing.T) {
+	q := newTestSyncQueue(t)
+	q.stop()
+	time.Sleep(time.Second)
+	q.ctx = context.Background()
+	q.goal = 0
+
+	q.pushRequest(1, 1, "")
+	select {
+	case req := <-q.requestCh:
+		require.Equal(t, uint64(2), req.req.StartingBlock.Uint64())
+	case <-time.After(TestMessageTimeout):
+		t.Fatal("did not queue request")
+	}
+}
+
+func TestSyncQueue_handleBlockData_ok(t *testing.T) {
+	q := newTestSyncQueue(t)
+	q.stop()
+	time.Sleep(time.Second)
+	q.ctx = context.Background()
+	q.currStart = 129
+	q.goal = 1000
+
+	data := testBlockResponseMessage().BlockData
+	q.handleBlockData(data)
+	select {
+	case req := <-q.requestCh:
+		require.True(t, req.req.StartingBlock.IsUint64())
+		require.Equal(t, uint64(129), req.req.StartingBlock.Uint64())
+	case <-time.After(TestMessageTimeout):
+		t.Fatal("did not queue request")
+	}
+
+	require.Equal(t, int64(0), q.currStart)
+	require.Equal(t, int64(0), q.currEnd)
+}
+
+func TestSyncQueue_handleBlockDataFailure(t *testing.T) {
+	q := newTestSyncQueue(t)
+	q.stop()
+	time.Sleep(time.Second)
+	q.ctx = context.Background()
+	q.currStart = 129
+	q.goal = 1000
+
+	data := testBlockResponseMessage().BlockData
+	q.handleBlockDataFailure(0, fmt.Errorf("some other error"), data)
+	select {
+	case req := <-q.requestCh:
+		require.True(t, req.req.StartingBlock.IsUint64())
+		require.Equal(t, uint64(q.currStart), req.req.StartingBlock.Uint64())
+	case <-time.After(TestMessageTimeout):
+		t.Fatal("did not queue request")
+	}
+}
+
+func TestSyncQueue_handleBlockDataFailure_MissingParent(t *testing.T) {
+	q := newTestSyncQueue(t)
+	q.stop()
+	time.Sleep(time.Second)
+	q.ctx = context.Background()
+
+	data := testBlockResponseMessage().BlockData
+	q.handleBlockDataFailure(0, fmt.Errorf("failed to get parent hash: Key not found"), data)
+	select {
+	case req := <-q.requestCh:
+		require.True(t, req.req.StartingBlock.IsHash())
+	case <-time.After(TestMessageTimeout):
+		t.Fatal("did not queue request")
+	}
 }

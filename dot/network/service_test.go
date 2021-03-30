@@ -17,6 +17,8 @@
 package network
 
 import (
+	"fmt"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -82,12 +84,28 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 
 	err = srvc.Start()
 	require.NoError(t, err)
+	srvc.syncQueue.stop()
 
 	t.Cleanup(func() {
-		utils.RemoveTestDir(t)
 		srvc.Stop()
+		err = os.RemoveAll(cfg.BasePath)
+		if err != nil {
+			fmt.Printf("failed to remove path %s : %s\n", cfg.BasePath, err)
+		}
 	})
 	return srvc
+}
+
+func TestMain(m *testing.M) {
+	// Start all tests
+	code := m.Run()
+
+	// Cleanup test path.
+	err := os.RemoveAll(utils.TestDir)
+	if err != nil {
+		fmt.Printf("failed to remove path %s : %s\n", utils.TestDir, err)
+	}
+	os.Exit(code)
 }
 
 // test network service starts
@@ -169,7 +187,7 @@ func TestService_Health(t *testing.T) {
 	require.Equal(t, s.Health().IsSyncing, true)
 	mockSync := s.syncer.(*mockSyncer)
 
-	mockSync.setSyncedState(true)
+	mockSync.SetSyncing(false)
 	require.Equal(t, s.Health().IsSyncing, false)
 }
 
@@ -284,4 +302,83 @@ func TestBeginDiscovery_ThreeNodes(t *testing.T) {
 	// assert B and C can discover each other
 	addrs := nodeB.host.h.Peerstore().Addrs(nodeC.host.id())
 	require.NotEqual(t, 0, len(addrs))
+}
+
+func TestPersistPeerStore(t *testing.T) {
+	nodes := createServiceHelper(t, 2)
+	nodeA := nodes[0]
+	nodeB := nodes[1]
+
+	addrInfosB, err := nodeB.host.addrInfos()
+	require.NoError(t, err)
+
+	err = nodeA.host.connect(*addrInfosB[0])
+	if failedToDial(err) {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(*addrInfosB[0])
+	}
+	require.NoError(t, err)
+
+	require.NotEmpty(t, nodeA.host.h.Peerstore().PeerInfo(nodeB.host.id()).Addrs)
+
+	// Stop a node and reinitialize a new node with same base path.
+	err = nodeA.Stop()
+	require.NoError(t, err)
+
+	// Since nodeAA uses the persistent peerstore of nodeA, it should be have nodeB in it's peerstore.
+	nodeAA := createTestService(t, nodeA.cfg)
+	require.NotEmpty(t, nodeAA.host.h.Peerstore().PeerInfo(nodeB.host.id()).Addrs)
+}
+
+func TestHandleConn(t *testing.T) {
+	configA := &Config{
+		BasePath:    utils.NewTestBasePath(t, "nodeA"),
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeA := createTestService(t, configA)
+
+	configB := &Config{
+		BasePath:    utils.NewTestBasePath(t, "nodeB"),
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeB := createTestService(t, configB)
+
+	addrInfosB, err := nodeB.host.addrInfos()
+	require.NoError(t, err)
+
+	err = nodeA.host.connect(*addrInfosB[0])
+	if failedToDial(err) {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(*addrInfosB[0])
+	}
+	require.NoError(t, err)
+
+	time.Sleep(time.Second)
+
+	bScore, ok := nodeA.syncQueue.peerScore.Load(nodeB.host.id())
+	require.True(t, ok)
+	require.Equal(t, 1, bScore)
+	aScore, ok := nodeB.syncQueue.peerScore.Load(nodeA.host.id())
+	require.True(t, ok)
+	require.Equal(t, 1, aScore)
+
+	infoA := nodeA.notificationsProtocols[BlockAnnounceMsgType]
+	hsDataB, has := infoA.getHandshakeData(nodeB.host.id())
+	require.True(t, has)
+	require.True(t, hsDataB.received)
+	require.True(t, hsDataB.validated)
+
+	infoB := nodeB.notificationsProtocols[BlockAnnounceMsgType]
+	hsDataA, has := infoB.getHandshakeData(nodeA.host.id())
+	require.True(t, has)
+	require.True(t, hsDataA.received)
+	require.True(t, hsDataA.validated)
 }

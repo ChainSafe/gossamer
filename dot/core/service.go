@@ -309,6 +309,7 @@ func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
 		StateRoot:      block.Header.StateRoot,
 		ExtrinsicsRoot: block.Header.ExtrinsicsRoot,
 		Digest:         block.Header.Digest,
+		BestBlock:      true,
 	}
 
 	if s.net == nil {
@@ -420,7 +421,7 @@ func (s *Service) InsertKey(kp crypto.Keypair) {
 
 // HasKey returns true if given hex encoded public key string is found in keystore, false otherwise, error if there
 //  are issues decoding string
-func (s *Service) HasKey(pubKeyStr string, keyType string) (bool, error) {
+func (s *Service) HasKey(pubKeyStr, keyType string) (bool, error) {
 	return keystore.HasKey(pubKeyStr, keyType, s.keys.Acco)
 }
 
@@ -456,6 +457,20 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 		return nil
 	}
 
+	// the transaction source is External
+	// validate the transaction
+	txv, err := s.rt.ValidateTransaction(append([]byte{byte(types.TxnExternal)}, ext...))
+	if err != nil {
+		return err
+	}
+
+	if s.isBlockProducer {
+		// add transaction to pool
+		vtx := transaction.NewValidTransaction(ext, txv)
+		s.transactionState.AddToPool(vtx)
+	}
+
+	// broadcast transaction
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}}
 	s.net.SendMessage(msg)
 	return nil

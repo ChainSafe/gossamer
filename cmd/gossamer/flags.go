@@ -43,10 +43,10 @@ var (
 		Name:  "roles",
 		Usage: "Roles of the gossamer node",
 	}
-	// RewindFlag rewinds the head of the chain by the given number of blocks. Useful for development
+	// RewindFlag rewinds the head of the chain to the given block number. Useful for development
 	RewindFlag = cli.IntFlag{
 		Name:  "rewind",
-		Usage: "Rewind head of chain by given number of blocks",
+		Usage: "Rewind head of chain to the given block number",
 	}
 )
 
@@ -86,6 +86,18 @@ var (
 		Name:  "memprof",
 		Usage: "File to write memory profile to",
 	}
+
+	// PublishMetricsFlag publishes node metrics to prometheus.
+	PublishMetricsFlag = cli.BoolFlag{
+		Name:  "publish-metrics",
+		Usage: "Publish node metrics",
+	}
+
+	// MetricsPortFlag set metric listen port
+	MetricsPortFlag = cli.StringFlag{
+		Name:  "metrics-port",
+		Usage: "Set metric listening port ",
+	}
 )
 
 // Initialization-only flags
@@ -94,6 +106,22 @@ var (
 	GenesisRawFlag = cli.StringFlag{
 		Name:  "genesis-raw",
 		Usage: "Path to raw genesis JSON file",
+	}
+)
+
+// ImportState-only flags
+var (
+	StateFlag = cli.StringFlag{
+		Name:  "state",
+		Usage: "Path to JSON file consisting of key-value pairs",
+	}
+	HeaderFlag = cli.StringFlag{
+		Name:  "header",
+		Usage: "Path to JSON file of block header corresponding to the given state",
+	}
+	FirstSlotFlag = cli.IntFlag{
+		Name:  "first-slot",
+		Usage: "The first BABE slot of the network",
 	}
 )
 
@@ -263,6 +291,10 @@ var (
 		WSFlag,
 		WSExternalFlag,
 		WSPortFlag,
+
+		// metrics flag
+		PublishMetricsFlag,
+		MetricsPortFlag,
 	}
 )
 
@@ -299,6 +331,15 @@ var (
 		Sr25519Flag,
 		Secp256k1Flag,
 	}, GlobalFlags...)
+
+	ImportStateFlags = []cli.Flag{
+		BasePathFlag,
+		ChainFlag,
+		ConfigFlag,
+		StateFlag,
+		HeaderFlag,
+		FirstSlotFlag,
+	}
 )
 
 // FixFlagOrder allow us to use various flag order formats (ie, `gossamer init

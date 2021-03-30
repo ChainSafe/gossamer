@@ -237,3 +237,58 @@ func TestService_Rewind(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, big.NewInt(6), num)
 }
+
+func TestService_Import(t *testing.T) {
+	testDir := utils.NewTestDir(t)
+	defer utils.RemoveTestDir(t)
+
+	serv := NewService(testDir, log.LvlTrace)
+	serv.UseMemDB()
+
+	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+	err := serv.Initialize(genData, genesisHeader, genTrie)
+	require.NoError(t, err)
+
+	tr := trie.NewEmptyTrie()
+	var testCases = []string{
+		"asdf",
+		"ghjk",
+		"qwerty",
+		"uiopl",
+		"zxcv",
+		"bnm",
+	}
+	for _, tc := range testCases {
+		tr.Put([]byte(tc), []byte(tc))
+	}
+
+	header := &types.Header{
+		Number:    big.NewInt(77),
+		StateRoot: tr.MustHash(),
+		Digest:    types.Digest{types.NewBabeSecondaryPlainPreDigest(0, 177).ToPreRuntimeDigest()},
+	}
+
+	firstSlot := uint64(100)
+
+	err = serv.Import(header, tr, firstSlot)
+	require.NoError(t, err)
+
+	err = serv.Start()
+	require.NoError(t, err)
+
+	bestBlockHeader, err := serv.Block.BestBlockHeader()
+	require.NoError(t, err)
+	require.Equal(t, header, bestBlockHeader)
+
+	root, err := serv.Storage.StorageRoot()
+	require.NoError(t, err)
+	require.Equal(t, header.StateRoot, root)
+
+	require.Equal(t, firstSlot, serv.Epoch.firstSlot)
+	skip, err := serv.Epoch.SkipVerify(header)
+	require.NoError(t, err)
+	require.True(t, skip)
+
+	err = serv.Stop()
+	require.NoError(t, err)
+}

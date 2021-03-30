@@ -74,7 +74,6 @@ func (h *mockTransactionHandler) HandleTransactionMessage(msg *TransactionMessag
 
 func TestHandleTransactionMessage(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "nodeA")
-	defer utils.RemoveTestDir(t)
 
 	handler := newMockTransactionHandler()
 

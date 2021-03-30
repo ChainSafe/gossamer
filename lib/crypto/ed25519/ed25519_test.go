@@ -21,6 +21,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/lib/common"
+
 	bip39 "github.com/cosmos/go-bip39"
 	"github.com/stretchr/testify/require"
 )
@@ -100,4 +102,13 @@ func TestNewKeypairFromMnenomic(t *testing.T) {
 
 	_, err = NewKeypairFromMnenomic(mnemonic, "")
 	require.NoError(t, err)
+}
+
+func TestNewKeypairFromMnenomic_Again(t *testing.T) {
+	mnemonic := "twist sausage october vivid neglect swear crumble hawk beauty fabric egg fragile"
+	kp, err := NewKeypairFromMnenomic(mnemonic, "")
+	require.NoError(t, err)
+
+	expectedPubkey := common.MustHexToBytes("0xf56d9231e7b7badd3f1e10ad15ef8aa08b70839723d0a2d10d7329f0ea2b8c61")
+	require.Equal(t, expectedPubkey, kp.Public().Encode())
 }

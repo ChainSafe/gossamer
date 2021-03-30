@@ -17,19 +17,13 @@
 package stress
 
 import (
-	"bytes"
-	"encoding/hex"
 	"fmt"
-	"math/rand"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/runtime/extrinsic"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/tests/utils"
 
 	log "github.com/ChainSafe/log15"
@@ -109,16 +103,7 @@ func compareBlocksByNumber(t *testing.T, nodes []*utils.Node, num string) (map[c
 		}(node)
 	}
 
-	done := make(chan struct{})
-	go func() {
-		wg.Wait()
-		close(done)
-	}()
-
-	select {
-	case <-time.After(time.Second * 30):
-	case <-done:
-	}
+	wg.Wait()
 
 	var err error
 	if len(errs) != 0 {
@@ -240,8 +225,8 @@ func compareFinalizedHeadsWithRetry(t *testing.T, nodes []*utils.Node, round uin
 	return common.Hash{}, nil
 }
 
-func getPendingExtrinsics(t *testing.T, node *utils.Node) [][]byte { //nolint
-	respBody, err := utils.PostRPC(utils.AuthorSubmitExtrinsic, utils.NewEndpoint(node.RPCPort), "[]")
+func getPendingExtrinsics(t *testing.T, node *utils.Node) []string { //nolint
+	respBody, err := utils.PostRPC(utils.AuthorPendingExtrinsics, utils.NewEndpoint(node.RPCPort), "[]")
 	require.NoError(t, err)
 
 	exts := new(modules.PendingExtrinsicsResponse)
@@ -249,80 +234,4 @@ func getPendingExtrinsics(t *testing.T, node *utils.Node) [][]byte { //nolint
 	require.NoError(t, err)
 
 	return *exts
-}
-
-// submitExtrinsicAssertInclusion submits an extrinsic to a random node and asserts that the extrinsic was included in some block
-// and that the nodes remain synced
-func submitExtrinsicAssertInclusion(t *testing.T, nodes []*utils.Node, ext extrinsic.Extrinsic) { //nolint
-	tx, err := ext.Encode()
-	require.NoError(t, err)
-
-	txStr := hex.EncodeToString(tx)
-	logger.Info("submitting transaction", "tx", txStr)
-
-	// send extrinsic to random node
-	idx := rand.Intn(len(nodes))                    //nolint
-	prevHeader := utils.GetChainHead(t, nodes[idx]) // get starting header so that we can lookup blocks by number later
-	respBody, err := utils.PostRPC(utils.AuthorSubmitExtrinsic, utils.NewEndpoint(nodes[idx].RPCPort), "\"0x"+txStr+"\"")
-	require.NoError(t, err)
-
-	var hash modules.ExtrinsicHashResponse
-	err = utils.DecodeRPC(t, respBody, &hash)
-	require.Nil(t, err)
-	log.Info("submitted transaction", "hash", hash, "node", nodes[idx].Key)
-	t.Logf("submitted transaction to node %s", nodes[idx].Key)
-
-	// wait for nodes to build block + sync, then get headers
-	time.Sleep(time.Second * 10)
-
-	for i := 0; i < maxRetries; i++ {
-		exts := getPendingExtrinsics(t, nodes[idx])
-		if len(exts) == 0 {
-			break
-		}
-
-		time.Sleep(time.Second)
-	}
-
-	header := utils.GetChainHead(t, nodes[idx])
-	logger.Info("got header from node", "header", header, "hash", header.Hash(), "node", nodes[idx].Key)
-
-	// search from child -> parent blocks for extrinsic
-	var resExts []types.Extrinsic
-	i := 0
-	for header.ExtrinsicsRoot == trie.EmptyHash && i != maxRetries {
-		// check all nodes, since it might have been included on any of the block producers
-		var block *types.Block
-
-		for j := 0; j < len(nodes); j++ {
-			block = utils.GetBlock(t, nodes[j], header.ParentHash)
-			if block == nil {
-				// couldn't get block, increment retry counter
-				i++
-				continue
-			}
-
-			header = block.Header
-			logger.Info("got block from node", "hash", header.Hash(), "node", nodes[j].Key)
-			logger.Debug("got block from node", "header", header, "body", block.Body, "hash", header.Hash(), "node", nodes[j].Key)
-
-			if block.Body != nil && !bytes.Equal(*(block.Body), []byte{0}) {
-				resExts, err = block.Body.AsExtrinsics()
-				require.NoError(t, err, block.Body)
-				break
-			}
-
-			if header.Hash() == prevHeader.Hash() && j == len(nodes)-1 {
-				t.Fatal("could not find extrinsic in any blocks")
-			}
-		}
-
-		if block != nil && block.Body != nil && !bytes.Equal(*(block.Body), []byte{0}) {
-			break
-		}
-	}
-
-	// assert that the extrinsic included is the one we submitted
-	require.Equal(t, 1, len(resExts), "did not find extrinsic in block on any node")
-	require.Equal(t, resExts[0], types.Extrinsic(tx))
 }

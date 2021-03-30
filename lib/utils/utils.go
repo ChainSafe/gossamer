@@ -177,10 +177,10 @@ func GetGssmrGenesisPath() string {
 	return fp
 }
 
-// GetKsmccGenesisPath gets the ksmcc genesis path
-func GetKsmccGenesisPath() string {
-	path1 := "../chain/ksmcc/genesis.json"
-	path2 := "../../chain/ksmcc/genesis.json"
+// GetKusamaGenesisPath gets the kusama genesis path
+func GetKusamaGenesisPath() string {
+	path1 := "../chain/kusama/genesis.json"
+	path2 := "../../chain/kusama/genesis.json"
 
 	var fp string
 

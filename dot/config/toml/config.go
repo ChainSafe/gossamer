@@ -29,10 +29,11 @@ type Config struct {
 
 // GlobalConfig is to marshal/unmarshal toml global config vars
 type GlobalConfig struct {
-	Name     string `toml:"name,omitempty"`
-	ID       string `toml:"id,omitempty"`
-	BasePath string `toml:"basepath,omitempty"`
-	LogLvl   string `toml:"log,omitempty"`
+	Name        string `toml:"name,omitempty"`
+	ID          string `toml:"id,omitempty"`
+	BasePath    string `toml:"basepath,omitempty"`
+	LogLvl      string `toml:"log,omitempty"`
+	MetricsPort uint32 `toml:"metrics-port,omitempty"`
 }
 
 // LogConfig represents the log levels for individual packages

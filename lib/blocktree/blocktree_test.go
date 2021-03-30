@@ -78,18 +78,15 @@ func createFlatTree(t *testing.T, depth int) (*BlockTree, []common.Hash) {
 
 	hashes := []common.Hash{bt.head.hash}
 	for i := 1; i <= depth; i++ {
-		block := &types.Block{
-			Header: &types.Header{
-				ParentHash: previousHash,
-				Number:     big.NewInt(int64(i)),
-			},
-			Body: &types.Body{},
+		header := &types.Header{
+			ParentHash: previousHash,
+			Number:     big.NewInt(int64(i)),
 		}
 
-		hash := block.Header.Hash()
+		hash := header.Hash()
 		hashes = append(hashes, hash)
 
-		err := bt.AddBlock(block, 0)
+		err := bt.AddBlock(header, 0)
 		require.Nil(t, err)
 		previousHash = hash
 	}
@@ -132,16 +129,13 @@ func TestBlockTree_GetBlock(t *testing.T) {
 func TestBlockTree_AddBlock(t *testing.T) {
 	bt, hashes := createFlatTree(t, 1)
 
-	block := &types.Block{
-		Header: &types.Header{
-			ParentHash: hashes[1],
-			Number:     big.NewInt(1),
-		},
-		Body: &types.Body{},
+	header := &types.Header{
+		ParentHash: hashes[1],
+		Number:     big.NewInt(1),
 	}
 
-	hash := block.Header.Hash()
-	err := bt.AddBlock(block, 0)
+	hash := header.Hash()
+	err := bt.AddBlock(header, 0)
 	require.Nil(t, err)
 
 	node := bt.getNode(hash)
@@ -177,16 +171,13 @@ func TestBlockTree_LongestPath(t *testing.T) {
 	bt, hashes := createFlatTree(t, 3)
 
 	// Insert a block to create a competing path
-	extraBlock := &types.Block{
-		Header: &types.Header{
-			ParentHash: hashes[0],
-			Number:     big.NewInt(1),
-		},
-		Body: &types.Body{},
+	header := &types.Header{
+		ParentHash: hashes[0],
+		Number:     big.NewInt(1),
 	}
 
-	extraBlock.Header.Hash()
-	err := bt.AddBlock(extraBlock, 0)
+	header.Hash()
+	err := bt.AddBlock(header, 0)
 	require.NotNil(t, err)
 
 	longestPath := bt.longestPath()
@@ -203,15 +194,12 @@ func TestBlockTree_Subchain(t *testing.T) {
 	expectedPath := hashes[1:]
 
 	// Insert a block to create a competing path
-	extraBlock := &types.Block{
-		Header: &types.Header{
-			ParentHash: hashes[0],
-			Number:     big.NewInt(1),
-		},
-		Body: &types.Body{},
+	extraBlock := &types.Header{
+		ParentHash: hashes[0],
+		Number:     big.NewInt(1),
 	}
 
-	extraBlock.Header.Hash()
+	extraBlock.Hash()
 	err := bt.AddBlock(extraBlock, 0)
 	require.NotNil(t, err)
 
@@ -256,16 +244,13 @@ func TestBlockTree_GetNode(t *testing.T) {
 	bt, branches := createTestBlockTree(testHeader, 16, nil)
 
 	for _, branch := range branches {
-		block := &types.Block{
-			Header: &types.Header{
-				ParentHash: branch.hash,
-				Number:     branch.depth,
-				StateRoot:  Hash{0x1},
-			},
-			Body: &types.Body{},
+		header := &types.Header{
+			ParentHash: branch.hash,
+			Number:     branch.depth,
+			StateRoot:  Hash{0x1},
 		}
 
-		err := bt.AddBlock(block, 0)
+		err := bt.AddBlock(header, 0)
 		require.Nil(t, err)
 	}
 }
@@ -291,17 +276,14 @@ func TestBlockTree_GetAllBlocksAtDepth(t *testing.T) {
 	previousHash := btHashes[4]
 
 	for i := 4; i <= btDepth; i++ {
-		block := &types.Block{
-			Header: &types.Header{
-				ParentHash: previousHash,
-				Number:     big.NewInt(int64(i)),
-				Digest:     types.Digest{newMockDigestItem(9)},
-			},
-			Body: &types.Body{},
+		header := &types.Header{
+			ParentHash: previousHash,
+			Number:     big.NewInt(int64(i)),
+			Digest:     types.Digest{newMockDigestItem(9)},
 		}
 
-		hash := block.Header.Hash()
-		bt.AddBlock(block, 0)
+		hash := header.Hash()
+		bt.AddBlock(header, 0)
 		previousHash = hash
 
 		if i == desiredDepth-1 {
@@ -313,17 +295,14 @@ func TestBlockTree_GetAllBlocksAtDepth(t *testing.T) {
 	previousHash = btHashes[2]
 
 	for i := 2; i <= btDepth; i++ {
-		block := &types.Block{
-			Header: &types.Header{
-				ParentHash: previousHash,
-				Number:     big.NewInt(int64(i)),
-				Digest:     types.Digest{newMockDigestItem(7)},
-			},
-			Body: &types.Body{},
+		header := &types.Header{
+			ParentHash: previousHash,
+			Number:     big.NewInt(int64(i)),
+			Digest:     types.Digest{newMockDigestItem(7)},
 		}
 
-		hash := block.Header.Hash()
-		bt.AddBlock(block, 0)
+		hash := header.Hash()
+		bt.AddBlock(header, 0)
 		previousHash = hash
 
 		if i == desiredDepth-1 {
@@ -435,6 +414,9 @@ func TestBlockTree_DeepCopy(t *testing.T) {
 	require.Equal(t, bt.db, btCopy.db)
 	require.True(t, equalNodeValue(bt.head, btCopy.head), "BlockTree heads not equal")
 	require.True(t, equalLeave(bt.leaves, btCopy.leaves), "BlockTree leaves not equal")
+
+	btCopy.head = &node{}
+	require.NotEqual(t, bt.head, btCopy.head)
 }
 
 func equalNodeValue(nd *node, ndCopy *node) bool {

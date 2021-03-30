@@ -23,37 +23,15 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
-// LegacyInstance is the interface a legacy (v0.6) runtime instance must implement
-type LegacyInstance interface {
-	InstanceAPI
-	LegacyRuntimeAPI
-}
-
 // Instance is the interface a v0.8 runtime instance must implement
 type Instance interface {
-	InstanceAPI
-	LegacyRuntimeAPI
 	UpdateRuntimeCode([]byte) error
-
-	// TODO: parameters and return values for these are undefined in the spec
-	CheckInherents()
-	RandomSeed()
-	OffchainWorker()
-	GenerateSessionKeys()
-}
-
-// InstanceAPI is the interface that any runtime instance must implement
-type InstanceAPI interface {
 	Stop()
 	NodeStorage() NodeStorage
 	NetworkService() BasicNetwork
-
 	Exec(function string, data []byte) ([]byte, error)
 	SetContextStorage(s Storage) // used to set the TrieState before a runtime call
-}
 
-// LegacyRuntimeAPI is the interface that a legacy runtime instance must implement
-type LegacyRuntimeAPI interface {
 	Version() (Version, error)
 	Metadata() ([]byte, error)
 	BabeConfiguration() (*types.BabeConfiguration, error)
@@ -64,6 +42,12 @@ type LegacyRuntimeAPI interface {
 	ApplyExtrinsic(data types.Extrinsic) ([]byte, error)
 	FinalizeBlock() (*types.Header, error)
 	ExecuteBlock(block *types.Block) ([]byte, error)
+
+	// TODO: parameters and return values for these are undefined in the spec
+	CheckInherents()
+	RandomSeed()
+	OffchainWorker()
+	GenerateSessionKeys()
 }
 
 // Storage interface
@@ -82,6 +66,9 @@ type Storage interface {
 	GetChildNextKey(keyToChild, key []byte) ([]byte, error)
 	GetChild(keyToChild []byte) (*trie.Trie, error)
 	ClearPrefix(prefix []byte) error
+	BeginStorageTransaction()
+	CommitStorageTransaction()
+	RollbackStorageTransaction()
 }
 
 // BasicNetwork interface for functions used by runtime network state function

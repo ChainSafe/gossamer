@@ -188,9 +188,10 @@ func TestHandleChainReorg_WithReorg_NoTransactions(t *testing.T) {
 }
 
 func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
+	t.Skip() // need to update this test to use a valid transaction
+
 	cfg := &Config{
-		// TODO: change to NODE_RUNTIME once transactions work
-		Runtime: wasmer.NewInstanceFromLegacy(wasmer.NewTestLegacyInstance(t, runtime.SUBSTRATE_TEST_RUNTIME)),
+		Runtime: wasmer.NewTestInstance(t, runtime.NODE_RUNTIME),
 	}
 
 	s := NewTestService(t, cfg)
@@ -348,4 +349,47 @@ func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 	}
 	require.Equal(t, 1, len(res))
 	require.Equal(t, res[0], txs[1])
+}
+
+func TestService_GetRuntimeVersion(t *testing.T) {
+	s := NewTestService(t, nil)
+	rtExpected, err := s.rt.Version()
+	require.NoError(t, err)
+
+	rtv, err := s.GetRuntimeVersion(nil)
+	require.NoError(t, err)
+	require.Equal(t, rtExpected, rtv)
+}
+
+func TestService_IsBlockProducer(t *testing.T) {
+	cfg := &Config{
+		IsBlockProducer: false,
+	}
+	s := NewTestService(t, cfg)
+	bp := s.IsBlockProducer()
+	require.Equal(t, false, bp)
+}
+
+func TestService_HandleSubmittedExtrinsic(t *testing.T) {
+	s := NewTestService(t, nil)
+
+	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
+	header, err := types.NewHeader(parentHash, big.NewInt(1), common.Hash{}, common.Hash{}, types.NewEmptyDigest())
+	require.NoError(t, err)
+
+	//initialize block header
+	err = s.rt.InitializeBlock(header)
+	require.NoError(t, err)
+
+	ext := types.Extrinsic(common.MustHexToBytes("0x410284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d015a3e258da3ea20581b68fe1264a35d1f62d6a0debb1a44e836375eb9921ba33e3d0f265f2da33c9ca4e10490b03918300be902fcb229f806c9cf99af4cc10f8c0000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a480b00c465f14670"))
+
+	err = s.HandleSubmittedExtrinsic(ext)
+	require.NoError(t, err)
+}
+
+func TestService_GetMetadata(t *testing.T) {
+	s := NewTestService(t, nil)
+	res, err := s.GetMetadata(nil)
+	require.NoError(t, err)
+	require.Greater(t, len(res), 10000)
 }

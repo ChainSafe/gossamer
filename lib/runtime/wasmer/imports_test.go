@@ -167,7 +167,7 @@ func Test_ext_storage_clear_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
-	inst.inst.ctx.Storage.Set(testkey, []byte{1})
+	inst.ctx.Storage.Set(testkey, []byte{1})
 
 	enc, err := scale.Encode(testkey)
 	require.NoError(t, err)
@@ -175,7 +175,7 @@ func Test_ext_storage_clear_version_1(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_storage_clear_version_1", enc)
 	require.NoError(t, err)
 
-	val := inst.inst.ctx.Storage.Get(testkey)
+	val := inst.ctx.Storage.Get(testkey)
 	require.Nil(t, val)
 }
 
@@ -183,10 +183,10 @@ func Test_ext_storage_clear_prefix_version_1_hostAPI(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("static")
-	inst.inst.ctx.Storage.Set(testkey, []byte("Inverse"))
+	inst.ctx.Storage.Set(testkey, []byte("Inverse"))
 
 	testkey2 := []byte("even-keeled")
-	inst.inst.ctx.Storage.Set(testkey2, []byte("Future-proofed"))
+	inst.ctx.Storage.Set(testkey2, []byte("Future-proofed"))
 
 	enc, err := scale.Encode(testkey[:3])
 	require.NoError(t, err)
@@ -194,10 +194,10 @@ func Test_ext_storage_clear_prefix_version_1_hostAPI(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_storage_clear_prefix_version_1", enc)
 	require.NoError(t, err)
 
-	val := inst.inst.ctx.Storage.Get(testkey)
+	val := inst.ctx.Storage.Get(testkey)
 	require.Nil(t, val)
 
-	val = inst.inst.ctx.Storage.Get(testkey2)
+	val = inst.ctx.Storage.Get(testkey2)
 	require.NotNil(t, val)
 }
 
@@ -205,10 +205,10 @@ func Test_ext_storage_clear_prefix_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
-	inst.inst.ctx.Storage.Set(testkey, []byte{1})
+	inst.ctx.Storage.Set(testkey, []byte{1})
 
 	testkey2 := []byte("spaghet")
-	inst.inst.ctx.Storage.Set(testkey2, []byte{2})
+	inst.ctx.Storage.Set(testkey2, []byte{2})
 
 	enc, err := scale.Encode(testkey[:3])
 	require.NoError(t, err)
@@ -216,10 +216,10 @@ func Test_ext_storage_clear_prefix_version_1(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_storage_clear_prefix_version_1", enc)
 	require.NoError(t, err)
 
-	val := inst.inst.ctx.Storage.Get(testkey)
+	val := inst.ctx.Storage.Get(testkey)
 	require.Nil(t, val)
 
-	val = inst.inst.ctx.Storage.Get(testkey2)
+	val = inst.ctx.Storage.Get(testkey2)
 	require.NotNil(t, val)
 }
 
@@ -228,7 +228,7 @@ func Test_ext_storage_get_version_1(t *testing.T) {
 
 	testkey := []byte("noot")
 	testvalue := []byte{1, 2}
-	inst.inst.ctx.Storage.Set(testkey, testvalue)
+	inst.ctx.Storage.Set(testkey, testvalue)
 
 	enc, err := scale.Encode(testkey)
 	require.NoError(t, err)
@@ -249,7 +249,7 @@ func Test_ext_storage_exists_version_1(t *testing.T) {
 
 	testkey := []byte("noot")
 	testvalue := []byte{1, 2}
-	inst.inst.ctx.Storage.Set(testkey, testvalue)
+	inst.ctx.Storage.Set(testkey, testvalue)
 
 	enc, err := scale.Encode(testkey)
 	require.NoError(t, err)
@@ -271,10 +271,10 @@ func Test_ext_storage_next_key_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
-	inst.inst.ctx.Storage.Set(testkey, []byte{1})
+	inst.ctx.Storage.Set(testkey, []byte{1})
 
 	nextkey := []byte("oot")
-	inst.inst.ctx.Storage.Set(nextkey, []byte{1})
+	inst.ctx.Storage.Set(nextkey, []byte{1})
 
 	enc, err := scale.Encode(testkey)
 	require.NoError(t, err)
@@ -295,7 +295,7 @@ func Test_ext_storage_read_version_1(t *testing.T) {
 
 	testkey := []byte("noot")
 	testvalue := []byte("washere")
-	inst.inst.ctx.Storage.Set(testkey, testvalue)
+	inst.ctx.Storage.Set(testkey, testvalue)
 
 	testoffset := uint32(2)
 	testBufferSize := uint32(100)
@@ -324,7 +324,7 @@ func Test_ext_storage_read_version_1_again(t *testing.T) {
 
 	testkey := []byte("noot")
 	testvalue := []byte("_was_here_")
-	inst.inst.ctx.Storage.Set(testkey, testvalue)
+	inst.ctx.Storage.Set(testkey, testvalue)
 
 	testoffset := uint32(8)
 	testBufferSize := uint32(5)
@@ -354,7 +354,7 @@ func Test_ext_storage_read_version_1_OffsetLargerThanValue(t *testing.T) {
 
 	testkey := []byte("noot")
 	testvalue := []byte("washere")
-	inst.inst.ctx.Storage.Set(testkey, testvalue)
+	inst.ctx.Storage.Set(testkey, testvalue)
 
 	testoffset := uint32(len(testvalue))
 	testBufferSize := uint32(8)
@@ -405,7 +405,7 @@ func Test_ext_storage_set_version_1(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_storage_set_version_1", append(encKey, encValue...))
 	require.NoError(t, err)
 
-	val := inst.inst.ctx.Storage.Get(testkey)
+	val := inst.ctx.Storage.Get(testkey)
 	require.Equal(t, testvalue, val)
 }
 
@@ -413,14 +413,12 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	idData := []byte(keystore.AccoName)
-	ks, _ := inst.inst.ctx.Keystore.GetKeystore(idData)
+	ks, _ := inst.ctx.Keystore.GetKeystore(idData)
 	require.Equal(t, 0, ks.Size())
 
 	mnemonic, err := crypto.NewBIP39Mnemonic()
 	require.NoError(t, err)
 
-	// TODO: we currently don't provide a seed since the spec says the seed is an optional BIP-39 seed
-	// clarify whether this is a mnemonic or not
 	data := optional.NewBytes(true, []byte(mnemonic))
 	seedData, err := data.Encode()
 	require.NoError(t, err)
@@ -430,19 +428,19 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 	// we manually store and call the runtime function here since inst.exec assumes
 	// the data returned from the function is a pointer-size, but for ext_crypto_ed25519_generate_version_1,
 	// it's just a pointer
-	ptr, err := inst.inst.malloc(uint32(len(params)))
+	ptr, err := inst.malloc(uint32(len(params)))
 	require.NoError(t, err)
 
-	inst.inst.store(params, int32(ptr))
+	inst.store(params, int32(ptr))
 	dataLen := int32(len(params))
 
-	runtimeFunc, ok := inst.inst.vm.Exports["rtm_ext_crypto_ed25519_generate_version_1"]
+	runtimeFunc, ok := inst.vm.Exports["rtm_ext_crypto_ed25519_generate_version_1"]
 	require.True(t, ok)
 
 	ret, err := runtimeFunc(int32(ptr), dataLen)
 	require.NoError(t, err)
 
-	mem := inst.inst.vm.Memory.Data()
+	mem := inst.vm.Memory.Data()
 	// TODO: why is this SCALE encoded? it should just be a 32 byte buffer. may be due to way test runtime is written.
 	pubKeyBytes := mem[ret.ToI32()+1 : ret.ToI32()+1+32]
 	pubKey, err := ed25519.NewPublicKey(pubKeyBytes)
@@ -456,8 +454,8 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	idData := []byte(keystore.GranName)
-	ks, _ := inst.inst.ctx.Keystore.GetKeystore(idData)
+	idData := []byte(keystore.DumyName)
+	ks, _ := inst.ctx.Keystore.GetKeystore(idData)
 	require.Equal(t, 0, ks.Size())
 
 	size := 5
@@ -493,7 +491,7 @@ func Test_ext_crypto_ed25519_sign_version_1(t *testing.T) {
 	require.NoError(t, err)
 
 	idData := []byte(keystore.AccoName)
-	ks, _ := inst.inst.ctx.Keystore.GetKeystore(idData)
+	ks, _ := inst.ctx.Keystore.GetKeystore(idData)
 	ks.Insert(kp)
 
 	pubKeyData := kp.Public().Encode()
@@ -513,7 +511,7 @@ func Test_ext_crypto_ed25519_sign_version_1(t *testing.T) {
 	buf := &bytes.Buffer{}
 	buf.Write(out.([]byte))
 
-	value, err := new(optional.Bytes).Decode(buf)
+	value, err := new(optional.FixedSizeBytes).Decode(buf)
 	require.NoError(t, err)
 
 	ok, err := kp.Public().Verify(msgData, value.Value())
@@ -528,7 +526,7 @@ func Test_ext_crypto_ed25519_verify_version_1(t *testing.T) {
 	require.NoError(t, err)
 
 	idData := []byte(keystore.AccoName)
-	ks, _ := inst.inst.ctx.Keystore.GetKeystore(idData)
+	ks, _ := inst.ctx.Keystore.GetKeystore(idData)
 	ks.Insert(kp)
 
 	pubKeyData := kp.Public().Encode()
@@ -560,7 +558,7 @@ func Test_ext_crypto_sr25519_generate_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	idData := []byte(keystore.AccoName)
-	ks, _ := inst.inst.ctx.Keystore.GetKeystore(idData)
+	ks, _ := inst.ctx.Keystore.GetKeystore(idData)
 	require.Equal(t, 0, ks.Size())
 
 	mnemonic, err := crypto.NewBIP39Mnemonic()
@@ -628,11 +626,53 @@ func Test_ext_crypto_secp256k1_ecdsa_recover_version_1(t *testing.T) {
 	require.Equal(t, expectedPubKey, publicKey.Encode())
 }
 
+func Test_ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(t *testing.T) {
+	t.Skip("host API tester does not yet contain rtm_ext_crypto_secp256k1_ecdsa_recover_compressed_version_1")
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	msgData := []byte("Hello world!")
+	blakeHash, err := common.Blake2bHash(msgData)
+	require.NoError(t, err)
+
+	kp, err := secp256k1.GenerateKeypair()
+	require.NoError(t, err)
+
+	sigData, err := kp.Private().Sign(blakeHash.ToBytes())
+	require.NoError(t, err)
+
+	expectedPubKey := kp.Public().Encode()
+
+	encSign, err := scale.Encode(sigData)
+	require.NoError(t, err)
+	encMsg, err := scale.Encode(blakeHash.ToBytes())
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_crypto_secp256k1_ecdsa_recover_compressed_version_1", append(encSign, encMsg...))
+	require.NoError(t, err)
+
+	out, err := scale.Decode(ret, []byte{})
+	require.NoError(t, err)
+
+	buf := &bytes.Buffer{}
+	buf.Write(out.([]byte))
+
+	uncomPubKey, err := new(types.Result).Decode(buf)
+	require.NoError(t, err)
+	rawPub := uncomPubKey.Value()
+	require.Equal(t, 33, len(rawPub))
+
+	publicKey := new(secp256k1.PublicKey)
+
+	err = publicKey.Decode(rawPub)
+	require.NoError(t, err)
+	require.Equal(t, expectedPubKey, publicKey.Encode())
+}
+
 func Test_ext_crypto_sr25519_public_keys_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	idData := []byte(keystore.BabeName)
-	ks, _ := inst.inst.ctx.Keystore.GetKeystore(idData)
+	idData := []byte(keystore.DumyName)
+	ks, _ := inst.ctx.Keystore.GetKeystore(idData)
 	require.Equal(t, 0, ks.Size())
 
 	size := 5
@@ -668,7 +708,7 @@ func Test_ext_crypto_sr25519_sign_version_1(t *testing.T) {
 	require.NoError(t, err)
 
 	idData := []byte(keystore.AccoName)
-	ks, _ := inst.inst.ctx.Keystore.GetKeystore(idData)
+	ks, _ := inst.ctx.Keystore.GetKeystore(idData)
 	require.Equal(t, 0, ks.Size())
 
 	ks.Insert(kp)
@@ -690,7 +730,7 @@ func Test_ext_crypto_sr25519_sign_version_1(t *testing.T) {
 	buf := &bytes.Buffer{}
 	buf.Write(out.([]byte))
 
-	value, err := new(optional.Bytes).Decode(buf)
+	value, err := new(optional.FixedSizeBytes).Decode(buf)
 	require.NoError(t, err)
 	require.True(t, value.Exists())
 
@@ -706,7 +746,7 @@ func Test_ext_crypto_sr25519_verify_version_1(t *testing.T) {
 	require.NoError(t, err)
 
 	idData := []byte(keystore.AccoName)
-	ks, _ := inst.inst.ctx.Keystore.GetKeystore(idData)
+	ks, _ := inst.ctx.Keystore.GetKeystore(idData)
 	require.Equal(t, 0, ks.Size())
 
 	pubKeyData := kp.Public().Encode()
@@ -737,10 +777,10 @@ func Test_ext_crypto_sr25519_verify_version_1(t *testing.T) {
 func Test_ext_default_child_storage_read_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	err := inst.inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
 	require.NoError(t, err)
 
-	err = inst.inst.ctx.Storage.SetChildStorage(testChildKey, testKey, testValue)
+	err = inst.ctx.Storage.SetChildStorage(testChildKey, testKey, testValue)
 	require.NoError(t, err)
 
 	testOffset := uint32(2)
@@ -774,14 +814,14 @@ func Test_ext_default_child_storage_read_version_1(t *testing.T) {
 func Test_ext_default_child_storage_clear_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	err := inst.inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
 	require.NoError(t, err)
 
-	err = inst.inst.ctx.Storage.SetChildStorage(testChildKey, testKey, testValue)
+	err = inst.ctx.Storage.SetChildStorage(testChildKey, testKey, testValue)
 	require.NoError(t, err)
 
 	// Confirm if value is set
-	val, err := inst.inst.ctx.Storage.GetChildStorage(testChildKey, testKey)
+	val, err := inst.ctx.Storage.GetChildStorage(testChildKey, testKey)
 	require.NoError(t, err)
 	require.Equal(t, testValue, val)
 
@@ -794,7 +834,7 @@ func Test_ext_default_child_storage_clear_version_1(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_default_child_storage_clear_version_1", append(encChildKey, encKey...))
 	require.NoError(t, err)
 
-	val, err = inst.inst.ctx.Storage.GetChildStorage(testChildKey, testKey)
+	val, err = inst.ctx.Storage.GetChildStorage(testChildKey, testKey)
 	require.NoError(t, err)
 	require.Nil(t, val)
 }
@@ -813,16 +853,16 @@ func Test_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {
 		{[]byte("keyThree"), []byte("value3")},
 	}
 
-	err := inst.inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
 	require.NoError(t, err)
 
 	for _, kv := range testKeyValuePair {
-		err = inst.inst.ctx.Storage.SetChildStorage(testChildKey, kv.key, kv.value)
+		err = inst.ctx.Storage.SetChildStorage(testChildKey, kv.key, kv.value)
 		require.NoError(t, err)
 	}
 
 	// Confirm if value is set
-	keys, err := inst.inst.ctx.Storage.(*storage.TrieState).GetKeysWithPrefixFromChild(testChildKey, prefix)
+	keys, err := inst.ctx.Storage.(*storage.TrieState).GetKeysWithPrefixFromChild(testChildKey, prefix)
 	require.NoError(t, err)
 	require.Equal(t, 3, len(keys))
 
@@ -835,7 +875,7 @@ func Test_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_default_child_storage_clear_prefix_version_1", append(encChildKey, encPrefix...))
 	require.NoError(t, err)
 
-	keys, err = inst.inst.ctx.Storage.(*storage.TrieState).GetKeysWithPrefixFromChild(testChildKey, prefix)
+	keys, err = inst.ctx.Storage.(*storage.TrieState).GetKeysWithPrefixFromChild(testChildKey, prefix)
 	require.NoError(t, err)
 	require.Equal(t, 0, len(keys))
 }
@@ -843,10 +883,10 @@ func Test_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {
 func Test_ext_default_child_storage_exists_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	err := inst.inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
 	require.NoError(t, err)
 
-	err = inst.inst.ctx.Storage.SetChildStorage(testChildKey, testKey, testValue)
+	err = inst.ctx.Storage.SetChildStorage(testChildKey, testKey, testValue)
 	require.NoError(t, err)
 
 	encChildKey, err := scale.Encode(testChildKey)
@@ -869,10 +909,10 @@ func Test_ext_default_child_storage_exists_version_1(t *testing.T) {
 func Test_ext_default_child_storage_get_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	err := inst.inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
 	require.NoError(t, err)
 
-	err = inst.inst.ctx.Storage.SetChildStorage(testChildKey, testKey, testValue)
+	err = inst.ctx.Storage.SetChildStorage(testChildKey, testKey, testValue)
 	require.NoError(t, err)
 
 	encChildKey, err := scale.Encode(testChildKey)
@@ -905,11 +945,11 @@ func Test_ext_default_child_storage_next_key_version_1(t *testing.T) {
 
 	key := testKeyValuePair[0].key
 
-	err := inst.inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
 	require.NoError(t, err)
 
 	for _, kv := range testKeyValuePair {
-		err = inst.inst.ctx.Storage.SetChildStorage(testChildKey, kv.key, kv.value)
+		err = inst.ctx.Storage.SetChildStorage(testChildKey, kv.key, kv.value)
 		require.NoError(t, err)
 	}
 
@@ -933,13 +973,13 @@ func Test_ext_default_child_storage_next_key_version_1(t *testing.T) {
 func Test_ext_default_child_storage_root_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	err := inst.inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
 	require.NoError(t, err)
 
-	err = inst.inst.ctx.Storage.SetChildStorage(testChildKey, testKey, testValue)
+	err = inst.ctx.Storage.SetChildStorage(testChildKey, testKey, testValue)
 	require.NoError(t, err)
 
-	child, err := inst.inst.ctx.Storage.GetChild(testChildKey)
+	child, err := inst.ctx.Storage.GetChild(testChildKey)
 	require.NoError(t, err)
 
 	rootHash, err := child.Hash()
@@ -964,11 +1004,11 @@ func Test_ext_default_child_storage_root_version_1(t *testing.T) {
 func Test_ext_default_child_storage_set_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	err := inst.inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
 	require.NoError(t, err)
 
 	// Check if value is not set
-	val, err := inst.inst.ctx.Storage.GetChildStorage(testChildKey, testKey)
+	val, err := inst.ctx.Storage.GetChildStorage(testChildKey, testKey)
 	require.NoError(t, err)
 	require.Nil(t, val)
 
@@ -984,7 +1024,7 @@ func Test_ext_default_child_storage_set_version_1(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_default_child_storage_set_version_1", append(append(encChildKey, encKey...), encVal...))
 	require.NoError(t, err)
 
-	val, err = inst.inst.ctx.Storage.GetChildStorage(testChildKey, testKey)
+	val, err = inst.ctx.Storage.GetChildStorage(testChildKey, testKey)
 	require.NoError(t, err)
 	require.Equal(t, testValue, val)
 }
@@ -992,11 +1032,11 @@ func Test_ext_default_child_storage_set_version_1(t *testing.T) {
 func Test_ext_default_child_storage_storage_kill_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	err := inst.inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
 	require.NoError(t, err)
 
 	// Confirm if value is set
-	child, err := inst.inst.ctx.Storage.GetChild(testChildKey)
+	child, err := inst.ctx.Storage.GetChild(testChildKey)
 	require.NoError(t, err)
 	require.NotNil(t, child)
 
@@ -1006,7 +1046,7 @@ func Test_ext_default_child_storage_storage_kill_version_1(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_default_child_storage_storage_kill_version_1", encChildKey)
 	require.NoError(t, err)
 
-	child, _ = inst.inst.ctx.Storage.GetChild(testChildKey)
+	child, _ = inst.ctx.Storage.GetChild(testChildKey)
 	require.Nil(t, child)
 }
 
@@ -1031,7 +1071,7 @@ func Test_ext_storage_append_version_1(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_storage_append_version_1", append(encKey, doubleEncVal...))
 	require.NoError(t, err)
 
-	val := inst.inst.ctx.Storage.Get(testkey)
+	val := inst.ctx.Storage.Get(testkey)
 	require.Equal(t, encArr, val)
 
 	encValueAppend, err := scale.Encode(testvalueAppend)
@@ -1042,7 +1082,7 @@ func Test_ext_storage_append_version_1(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_storage_append_version_1", append(encKey, doubleEncValueAppend...))
 	require.NoError(t, err)
 
-	ret := inst.inst.ctx.Storage.Get(testkey)
+	ret := inst.ctx.Storage.Get(testkey)
 	require.NotNil(t, ret)
 	dec, err := scale.Decode(ret, [][]byte{})
 	require.NoError(t, err)
@@ -1079,7 +1119,7 @@ func Test_ext_storage_append_version_1_again(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_storage_append_version_1", append(encKey, doubleEncVal...))
 	require.NoError(t, err)
 
-	val := inst.inst.ctx.Storage.Get(testkey)
+	val := inst.ctx.Storage.Get(testkey)
 	require.Equal(t, encArr, val)
 
 	encValueAppend, err := scale.Encode(testvalueAppend)
@@ -1090,7 +1130,7 @@ func Test_ext_storage_append_version_1_again(t *testing.T) {
 	_, err = inst.Exec("rtm_ext_storage_append_version_1", append(encKey, doubleEncValueAppend...))
 	require.NoError(t, err)
 
-	ret := inst.inst.ctx.Storage.Get(testkey)
+	ret := inst.ctx.Storage.Get(testkey)
 	require.NotNil(t, ret)
 	dec, err := scale.Decode(ret, [][]byte{})
 	require.NoError(t, err)
@@ -1103,230 +1143,6 @@ func Test_ext_storage_append_version_1_again(t *testing.T) {
 	expected, err := scale.Encode([][]byte{testvalue, testvalueAppend})
 	require.NoError(t, err)
 	require.Equal(t, expected, ret)
-}
-
-func TestStartTransaction_ext_storage_set_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
-	// instead of committing the change, it should be stored in the context
-	inst.inst.ctx.TransactionStorageChanges = []*runtime.TransactionStorageChange{}
-
-	testkey := []byte("noot")
-	testvalue := []byte("washere")
-
-	encKey, err := scale.Encode(testkey)
-	require.NoError(t, err)
-	encValue, err := scale.Encode(testvalue)
-	require.NoError(t, err)
-
-	_, err = inst.Exec("rtm_ext_storage_set_version_1", append(encKey, encValue...))
-	require.NoError(t, err)
-
-	val := inst.inst.ctx.Storage.Get(testkey)
-	require.Nil(t, val)
-
-	changes := inst.inst.ctx.TransactionStorageChanges
-	require.Equal(t, 1, len(changes))
-	require.Equal(t, runtime.SetOp, changes[0].Operation)
-	require.Equal(t, testkey, changes[0].Key)
-	require.Equal(t, testvalue, changes[0].Value)
-}
-
-func TestStartTransaction_ext_storage_clear_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
-	inst.inst.ctx.TransactionStorageChanges = []*runtime.TransactionStorageChange{}
-
-	testkey := []byte("noot")
-	inst.inst.ctx.Storage.Set(testkey, []byte{1})
-
-	enc, err := scale.Encode(testkey)
-	require.NoError(t, err)
-
-	_, err = inst.Exec("rtm_ext_storage_clear_version_1", enc)
-	require.NoError(t, err)
-
-	val := inst.inst.ctx.Storage.Get(testkey)
-	require.NotNil(t, val)
-
-	changes := inst.inst.ctx.TransactionStorageChanges
-	require.Equal(t, 1, len(changes))
-	require.Equal(t, runtime.ClearOp, changes[0].Operation)
-	require.Equal(t, testkey, changes[0].Key)
-}
-
-func TestStartTransaction_ext_storage_append_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
-	inst.inst.ctx.TransactionStorageChanges = []*runtime.TransactionStorageChange{}
-
-	testkey := []byte("noot")
-	testvalue := []byte("was")
-	testvalueAppend := []byte("here")
-
-	inst.inst.ctx.Storage.Set(testkey, testvalue)
-
-	encKey, err := scale.Encode(testkey)
-	require.NoError(t, err)
-	encValue, err := scale.Encode(testvalueAppend)
-	require.NoError(t, err)
-
-	// place SCALE encoded value in storage
-	_, err = inst.Exec("rtm_ext_storage_append_version_1", append(encKey, encValue...))
-	require.NoError(t, err)
-
-	val := inst.inst.ctx.Storage.Get(testkey)
-	require.Equal(t, testvalue, val)
-
-	changes := inst.inst.ctx.TransactionStorageChanges
-	require.Equal(t, 1, len(changes))
-	require.Equal(t, runtime.AppendOp, changes[0].Operation)
-	require.Equal(t, testkey, changes[0].Key)
-	require.Equal(t, testvalueAppend, changes[0].Value)
-}
-
-func TestStartTransaction_ext_default_child_storage_clear_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
-	inst.inst.ctx.TransactionStorageChanges = []*runtime.TransactionStorageChange{}
-
-	err := inst.inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
-	require.NoError(t, err)
-
-	err = inst.inst.ctx.Storage.SetChildStorage(testChildKey, testKey, testValue)
-	require.NoError(t, err)
-
-	// Confirm if value is set
-	val, err := inst.inst.ctx.Storage.GetChildStorage(testChildKey, testKey)
-	require.NoError(t, err)
-	require.Equal(t, testValue, val)
-
-	encChildKey, err := scale.Encode(testChildKey)
-	require.NoError(t, err)
-
-	encKey, err := scale.Encode(testKey)
-	require.NoError(t, err)
-
-	_, err = inst.Exec("rtm_ext_default_child_storage_clear_version_1", append(encChildKey, encKey...))
-	require.NoError(t, err)
-
-	val, err = inst.inst.ctx.Storage.GetChildStorage(testChildKey, testKey)
-	require.NoError(t, err)
-	require.NotNil(t, val)
-
-	changes := inst.inst.ctx.TransactionStorageChanges
-	require.Equal(t, 1, len(changes))
-	require.Equal(t, runtime.ClearOp, changes[0].Operation)
-	require.Equal(t, testChildKey, changes[0].KeyToChild)
-	require.Equal(t, testKey, changes[0].Key)
-}
-
-func TestStartTransaction_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
-	inst.inst.ctx.TransactionStorageChanges = []*runtime.TransactionStorageChange{}
-
-	prefix := []byte("key")
-
-	testKeyValuePair := []struct {
-		key   []byte
-		value []byte
-	}{
-		{[]byte("keyOne"), []byte("value1")},
-		{[]byte("keyTwo"), []byte("value2")},
-		{[]byte("keyThree"), []byte("value3")},
-	}
-
-	err := inst.inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
-	require.NoError(t, err)
-
-	for _, kv := range testKeyValuePair {
-		err = inst.inst.ctx.Storage.SetChildStorage(testChildKey, kv.key, kv.value)
-		require.NoError(t, err)
-	}
-
-	// Confirm if value is set
-	keys, err := inst.inst.ctx.Storage.(*storage.TrieState).GetKeysWithPrefixFromChild(testChildKey, prefix)
-	require.NoError(t, err)
-	require.Equal(t, 3, len(keys))
-
-	encChildKey, err := scale.Encode(testChildKey)
-	require.NoError(t, err)
-
-	encPrefix, err := scale.Encode(prefix)
-	require.NoError(t, err)
-
-	_, err = inst.Exec("rtm_ext_default_child_storage_clear_prefix_version_1", append(encChildKey, encPrefix...))
-	require.NoError(t, err)
-
-	keys, err = inst.inst.ctx.Storage.(*storage.TrieState).GetKeysWithPrefixFromChild(testChildKey, prefix)
-	require.NoError(t, err)
-	require.Equal(t, 3, len(keys))
-
-	changes := inst.inst.ctx.TransactionStorageChanges
-	require.Equal(t, 1, len(changes))
-	require.Equal(t, runtime.ClearPrefixOp, changes[0].Operation)
-	require.Equal(t, testChildKey, changes[0].KeyToChild)
-	require.Equal(t, prefix, changes[0].Prefix)
-}
-
-func TestStartTransaction_ext_default_child_storage_set_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
-	inst.inst.ctx.TransactionStorageChanges = []*runtime.TransactionStorageChange{}
-
-	err := inst.inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
-	require.NoError(t, err)
-
-	// Check if value is not set
-	val, err := inst.inst.ctx.Storage.GetChildStorage(testChildKey, testKey)
-	require.NoError(t, err)
-	require.Nil(t, val)
-
-	encChildKey, err := scale.Encode(testChildKey)
-	require.NoError(t, err)
-
-	encKey, err := scale.Encode(testKey)
-	require.NoError(t, err)
-
-	encVal, err := scale.Encode(testValue)
-	require.NoError(t, err)
-
-	_, err = inst.Exec("rtm_ext_default_child_storage_set_version_1", append(append(encChildKey, encKey...), encVal...))
-	require.NoError(t, err)
-
-	val, err = inst.inst.ctx.Storage.GetChildStorage(testChildKey, testKey)
-	require.NoError(t, err)
-	require.Nil(t, val)
-
-	changes := inst.inst.ctx.TransactionStorageChanges
-	require.Equal(t, 1, len(changes))
-	require.Equal(t, runtime.SetOp, changes[0].Operation)
-	require.Equal(t, testChildKey, changes[0].KeyToChild)
-	require.Equal(t, testKey, changes[0].Key)
-	require.Equal(t, testValue, changes[0].Value)
-}
-
-func TestStartTransaction_ext_default_child_storage_storage_kill_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
-	inst.inst.ctx.TransactionStorageChanges = []*runtime.TransactionStorageChange{}
-
-	err := inst.inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
-	require.NoError(t, err)
-
-	// Confirm if value is set
-	child, err := inst.inst.ctx.Storage.GetChild(testChildKey)
-	require.NoError(t, err)
-	require.NotNil(t, child)
-
-	encChildKey, err := scale.Encode(testChildKey)
-	require.NoError(t, err)
-
-	_, err = inst.Exec("rtm_ext_default_child_storage_storage_kill_version_1", encChildKey)
-	require.NoError(t, err)
-
-	child, err = inst.inst.ctx.Storage.GetChild(testChildKey)
-	require.NoError(t, err)
-	require.NotNil(t, child)
-
-	changes := inst.inst.ctx.TransactionStorageChanges
-	require.Equal(t, 1, len(changes))
-	require.Equal(t, runtime.DeleteChildOp, changes[0].Operation)
-	require.Equal(t, testChildKey, changes[0].KeyToChild)
 }
 
 func Test_ext_trie_blake2_256_ordered_root_version_1(t *testing.T) {
