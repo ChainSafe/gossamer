@@ -22,8 +22,8 @@ import (
 	"os"
 	"os/signal"
 	"path"
-	"strconv"
 	"runtime/debug"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -300,8 +300,8 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		publishMetrics(cfg)
 	}
 
-	telemetry.GetInstance().SendConnection(cfg.Core.GrandpaAuthority, sysSrvc.NodeName(), stateSrvc.Block.GenesisHash().String(),
-		sysSrvc.SystemName(), "Ed Gossamer Node", sysSrvc.SystemVersion(), networkSrvc.NetworkState().PeerID, strconv.FormatInt(time.Now().UnixNano(), 10))
+	telemetry.GetInstance().SendConnection(cfg.Core.GrandpaAuthority, sysSrvc.ChainName(), stateSrvc.Block.GenesisHash().String(),
+		sysSrvc.SystemName(), cfg.Global.Name, sysSrvc.SystemVersion(), networkSrvc.NetworkState().PeerID, strconv.FormatInt(time.Now().UnixNano(), 10))
 	// example to connect to wss://telemetry.polkadot.io/submit/
 	//telemetry.GetInstance().SendConnection(false, "Polkadot", "0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3",
 	//	"gossamer", "Ed Node", "0.3.2", networkSrvc.NetworkState().PeerID, strconv.FormatInt(time.Now().UnixNano(), 10))

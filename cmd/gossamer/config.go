@@ -405,6 +405,7 @@ func setDotGlobalConfig(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.Global
 		cfg.MetricsPort = tomlCfg.Global.MetricsPort
 	}
 
+	// TODO: generate random name if one is not assigned (see issue #1496)
 	// check --name flag and update node configuration
 	if name := ctx.GlobalString(NameFlag.Name); name != "" {
 		cfg.Name = name

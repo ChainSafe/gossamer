@@ -90,7 +90,8 @@ type RuntimeAPI interface {
 type SystemAPI interface {
 	SystemName() string
 	SystemVersion() string
-	NodeName() string
+	//NodeName() string
 	Properties() map[string]interface{}
 	ChainType() string
+	ChainName() string
 }

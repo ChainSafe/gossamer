@@ -83,7 +83,7 @@ func NewSystemModule(net NetworkAPI, sys SystemAPI, core CoreAPI,
 
 // Chain returns the runtime chain
 func (sm *SystemModule) Chain(r *http.Request, req *EmptyRequest, res *string) error {
-	*res = sm.systemAPI.NodeName()
+	*res = sm.systemAPI.ChainName()
 	return nil
 }
 

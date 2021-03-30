@@ -206,10 +206,9 @@ func (api *mockSystemAPI) SystemVersion() string {
 	return api.info.SystemVersion
 }
 
-func (api *mockSystemAPI) NodeName() string {
+func (api *mockSystemAPI) ChainName() string {
 	return api.genData.Name
 }
-
 func (api *mockSystemAPI) Properties() map[string]interface{} {
 	return nil
 }
