@@ -161,7 +161,7 @@ func (sm *SystemModule) NodeRoles(r *http.Request, req *EmptyRequest, res *[]int
 // AccountNextIndex Returns the next valid index (aka. nonce) for given account.
 func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, res *U64Response) error {
 	if req == nil || len(req.String) == 0 {
-		return errors.New("Account address must be valid")
+		return errors.New("account address must be valid")
 	}
 	addressPubKey := crypto.PublicAddressToByteArray(common.Address(req.String))
 
