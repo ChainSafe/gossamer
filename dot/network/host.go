@@ -237,7 +237,7 @@ func (h *host) bootstrap() {
 // peer (gets the already opened outbound message stream or opens a new one).
 func (h *host) send(p peer.ID, pid protocol.ID, msg Message) (err error) {
 	// get outbound stream for given peer
-	s := h.getStream(p, pid)
+	s := h.getOutboundStream(p, pid)
 
 	// check if stream needs to be opened
 	if s == nil {
@@ -286,10 +286,10 @@ func (h *host) writeToStream(s libp2pnetwork.Stream, msg Message) error {
 	return err
 }
 
-// getStream returns the outbound message stream for the given peer or returns
+// getOutboundStream returns the outbound message stream for the given peer or returns
 // nil if no outbound message stream exists. For each peer, each host opens an
 // outbound message stream and writes to the same stream until closed or reset.
-func (h *host) getStream(p peer.ID, pid protocol.ID) (stream libp2pnetwork.Stream) {
+func (h *host) getOutboundStream(p peer.ID, pid protocol.ID) (stream libp2pnetwork.Stream) {
 	conns := h.h.Network().ConnsToPeer(p)
 
 	// loop through connections (only one for now)
@@ -310,7 +310,7 @@ func (h *host) getStream(p peer.ID, pid protocol.ID) (stream libp2pnetwork.Strea
 
 // closeStream closes a stream open to the peer with the given sub-protocol, if it exists.
 func (h *host) closeStream(p peer.ID, pid protocol.ID) {
-	stream := h.getStream(p, pid)
+	stream := h.getOutboundStream(p, pid)
 	if stream != nil {
 		_ = stream.Close()
 	}

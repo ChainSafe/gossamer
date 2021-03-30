@@ -457,6 +457,9 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 
 	info := s.notificationsProtocols[messageID]
 
+	decoder := createDecoder(info, handshakeDecoder, messageDecoder)
+	handlerWithValidate := s.createNotificationsMessageHandler(info, handshakeValidator, messageHandler)
+
 	s.host.registerStreamHandlerWithOverwrite(sub, overwriteProtocol, func(stream libp2pnetwork.Stream) {
 		logger.Trace("received stream", "sub-protocol", sub)
 		conn := stream.Conn()
@@ -466,10 +469,6 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 		}
 
 		p := conn.RemotePeer()
-
-		decoder := createDecoder(info, handshakeDecoder, messageDecoder)
-		handlerWithValidate := s.createNotificationsMessageHandler(info, handshakeValidator, messageHandler)
-
 		s.readStream(stream, p, decoder, handlerWithValidate)
 	})
 

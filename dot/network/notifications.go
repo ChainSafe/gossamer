@@ -106,17 +106,10 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			return errors.New("message is not NotificationsMessage")
 		}
 
-		logger.Debug("received message on notifications sub-protocol", "protocol", info.protocolID,
+		logger.Trace("received message on notifications sub-protocol", "protocol", info.protocolID,
 			"message", msg,
 			"peer", stream.Conn().RemotePeer(),
 		)
-
-		// if info.protocolID == "/paritytech/grandpa/1" {
-		// 	logger.Info("received message on grandpa sub-protocol", "protocol", info.protocolID,
-		// 		"message", msg,
-		// 		"peer", stream.Conn().RemotePeer(),
-		// 	)
-		// }
 
 		if msg.IsHandshake() {
 			hs, ok := msg.(Handshake)
@@ -151,7 +144,6 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 					logger.Debug("failed to get handshake", "protocol", info.protocolID, "error", err)
 					return err
 				}
-				//resp := hs
 
 				err = s.host.send(peer, info.protocolID, resp)
 				if err != nil {
@@ -193,6 +185,11 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 
 			return nil
 		}
+
+		logger.Debug("received message on notifications sub-protocol", "protocol", info.protocolID,
+			"message", msg,
+			"peer", stream.Conn().RemotePeer(),
+		)
 
 		err := messageHandler(peer, msg)
 		if err != nil {
