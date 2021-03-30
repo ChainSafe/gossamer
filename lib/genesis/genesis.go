@@ -22,29 +22,31 @@ import (
 
 // Genesis stores the data parsed from the genesis configuration file
 type Genesis struct {
-	Name            string                 `json:"name"`
-	ID              string                 `json:"id"`
-	ChainType       string                 `json:"chainType"`
-	Bootnodes       []string               `json:"bootNodes"`
-	ProtocolID      string                 `json:"protocolId"`
-	Genesis         Fields                 `json:"genesis"`
-	Properties      map[string]interface{} `json:"properties"`
-	ForkBlocks      []string               `json:"forkBlocks"`
-	BadBlocks       []string               `json:"badBlocks"`
-	ConsensusEngine string                 `json:"consensusEngine"`
+	Name               string                 `json:"name"`
+	ID                 string                 `json:"id"`
+	ChainType          string                 `json:"chainType"`
+	Bootnodes          []string               `json:"bootNodes"`
+	TelemetryEndpoints []interface{}          `json:"telemetryEndpoints"`
+	ProtocolID         string                 `json:"protocolId"`
+	Genesis            Fields                 `json:"genesis"`
+	Properties         map[string]interface{} `json:"properties"`
+	ForkBlocks         []string               `json:"forkBlocks"`
+	BadBlocks          []string               `json:"badBlocks"`
+	ConsensusEngine    string                 `json:"consensusEngine"`
 }
 
 // Data defines the genesis file data formatted for trie storage
 type Data struct {
-	Name            string
-	ID              string
-	ChainType       string
-	Bootnodes       [][]byte
-	ProtocolID      string
-	Properties      map[string]interface{}
-	ForkBlocks      []string
-	BadBlocks       []string
-	ConsensusEngine string
+	Name               string
+	ID                 string
+	ChainType          string
+	Bootnodes          [][]byte
+	TelemetryEndpoints []interface{}
+	ProtocolID         string
+	Properties         map[string]interface{}
+	ForkBlocks         []string
+	BadBlocks          []string
+	ConsensusEngine    string
 }
 
 // Fields stores genesis raw data, and human readable runtime data
@@ -56,15 +58,16 @@ type Fields struct {
 // GenesisData formats genesis for trie storage
 func (g *Genesis) GenesisData() *Data {
 	return &Data{
-		Name:            g.Name,
-		ID:              g.ID,
-		ChainType:       g.ChainType,
-		Bootnodes:       common.StringArrayToBytes(g.Bootnodes),
-		ProtocolID:      g.ProtocolID,
-		Properties:      g.Properties,
-		ForkBlocks:      g.ForkBlocks,
-		BadBlocks:       g.BadBlocks,
-		ConsensusEngine: g.ConsensusEngine,
+		Name:               g.Name,
+		ID:                 g.ID,
+		ChainType:          g.ChainType,
+		Bootnodes:          common.StringArrayToBytes(g.Bootnodes),
+		TelemetryEndpoints: g.TelemetryEndpoints,
+		ProtocolID:         g.ProtocolID,
+		Properties:         g.Properties,
+		ForkBlocks:         g.ForkBlocks,
+		BadBlocks:          g.BadBlocks,
+		ConsensusEngine:    g.ConsensusEngine,
 	}
 }
 

@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"net/url"
 	"sync"
 	"time"
 
@@ -31,7 +30,7 @@ import (
 // Handler struct for holding telemetry related things
 type Handler struct {
 	buf             bytes.Buffer
-	wsConn          *websocket.Conn
+	wsConn          []*websocket.Conn
 	telemetryLogger *log.Entry
 }
 
@@ -39,7 +38,8 @@ type Handler struct {
 type MyJSONFormatter struct {
 }
 
-// Format function for handling JSON formatting
+// Format function for handling JSON formatting, this overrides default logging formatter to remove
+//  log level, line number and timestamp
 func (f *MyJSONFormatter) Format(entry *log.Entry) ([]byte, error) {
 	serialized, err := json.Marshal(entry.Data)
 	if err != nil {
@@ -49,7 +49,6 @@ func (f *MyJSONFormatter) Format(entry *log.Entry) ([]byte, error) {
 }
 
 var once sync.Once
-
 var handlerInstance *Handler
 
 // GetInstance signleton pattern to for accessing TelemeterHandler
@@ -57,27 +56,25 @@ func GetInstance() *Handler {
 	if handlerInstance == nil {
 		once.Do(
 			func() {
-				// TODO (ed) move this so that it can be set by CLI flag
-				u := url.URL{
-					Scheme: "wss",
-					//Host:   "127.0.0.1:8000",
-					Host: "telemetry.polkadot.io",
-					Path: "/submit/",
-				}
-				c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
-				if err != nil {
-					fmt.Printf("Error %v\n", err)
-				}
-
 				handlerInstance = &Handler{
-					buf:    bytes.Buffer{},
-					wsConn: c,
+					buf: bytes.Buffer{},
 				}
 				log.SetOutput(&handlerInstance.buf)
 				log.SetFormatter(new(MyJSONFormatter))
 			})
 	}
 	return handlerInstance
+}
+
+//AddConnections adds connections to telemetry sever
+func (h *Handler) AddConnections(conns []interface{}) {
+	for _, v := range conns {
+		c, _, err := websocket.DefaultDialer.Dial(fmt.Sprintf("%s", v.([]interface{})[0]), nil)
+		if err != nil {
+			fmt.Printf("Error %v\n", err)
+		}
+		h.wsConn = append(h.wsConn, c)
+	}
 }
 
 // SendConnection sends connection request message to telemetry connection
@@ -100,13 +97,12 @@ func (h *Handler) SendBlockImport(best_hash string, height *big.Int) {
 }
 
 func (h *Handler) sendTelemtry() {
-	if h.wsConn != nil {
-		err := h.wsConn.WriteMessage(websocket.TextMessage, h.buf.Bytes())
+	for _, c := range h.wsConn {
+		err := c.WriteMessage(websocket.TextMessage, h.buf.Bytes())
 		if err != nil {
 			// TODO (ed) determine how to handle this error
 			fmt.Printf("ERROR connecting to telemetry %v\n", err)
 		}
-		fmt.Printf("SENT %v\n", h.buf.String())
 	}
 	h.buf.Reset()
 }
