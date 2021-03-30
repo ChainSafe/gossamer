@@ -87,3 +87,19 @@ The **state service** is the source of truth for all chain and node state.
 ## Block production 
 
 <img src="/assets/img/block_production.png" alt="block production" />
+
+A block is broken down into two sections, **the header** & **the body**.
+
+The first step is to get information about the parent block, for new blocks, this would be the head of the chain.
+
+The **parent hash** and **state root** is added to the block header _(point 1 & 2)_
+
+We then need to process the **extrinsics** _(point 3)_, extrinsics is used to describe any additional information to include in the block that isn't explicitly required to produce a block, such as **signed transactions** from accounts, or additional information added by the block author, like a **timestamp**.
+
+Once processed, we get whats called an **extrinsic root** _(point 4)_, this is used to verify the extrinsics when publishing later on.
+
+Finally, once all the contents of the block are in place, we then create the **digest**_(point 5)_, this is used to verify the blocks contents.
+
+Information regarding the authoring of the block is stored in the **Babe header**, this allows verification of the block producer, the block, and the authority of the producer.
+
+Finally, the last item of the digest, much like trasactions, is a signature known as a **Seal**, this is a **signature of the header** to allow immediate verification of the integrity of a block.
