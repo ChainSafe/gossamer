@@ -102,4 +102,4 @@ Finally, once all the contents of the block are in place, we then create the **d
 
 Information regarding the authoring of the block is stored in the **Babe header**, this allows verification of the block producer, the block, and the authority of the producer.
 
-Finally, the last item of the digest, much like trasactions, is a signature known as a **Seal**, this is a **signature of the header** to allow immediate verification of the integrity of a block.
+Finally, the last item of the digest, much like transactions, is a signature known as a **Seal**, this is a **signature of the header** to allow immediate verification of the integrity of a block.
