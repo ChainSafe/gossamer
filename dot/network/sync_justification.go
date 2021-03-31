@@ -1,3 +1,19 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package network
 
 import (
@@ -15,7 +31,7 @@ func (q *syncQueue) finalizeAtHead() {
 	for {
 		select {
 		// sleep for average block time TODO: make this configurable from slot duration
-		case <-time.After(time.Second * 12):
+		case <-time.After(q.slotDuration * 2):
 		case <-q.ctx.Done():
 			return
 		}
@@ -44,6 +60,8 @@ func (q *syncQueue) finalizeAtHead() {
 		start := head.Uint64() - uint64(blockRequestSize)
 		if curr.Number.Uint64() > start {
 			start = curr.Number.Uint64() + 1
+		} else if int(start) < int(blockRequestSize) {
+			start = 1
 		}
 
 		q.pushJustificationRequest(start)
@@ -60,7 +78,7 @@ func (q *syncQueue) pushJustificationRequest(start uint64) {
 	req := createBlockRequestWithHash(startHash, blockRequestSize)
 	req.RequestedData = RequestedDataJustification
 
-	logger.Debug("pushing justification request to queue", "start", start)
+	logger.Debug("pushing justification request to queue", "start", start, "hash", startHash)
 	q.justificationRequestData.Store(startHash, requestData{
 		received: false,
 	})

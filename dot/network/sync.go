@@ -85,12 +85,15 @@ func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) er
 }
 
 var (
-	blockRequestSize       uint32 = 128
-	blockRequestBufferSize int    = 6
+	blockRequestSize        uint32 = 128
+	blockRequestBufferSize  int    = 6
+	blockResponseBufferSize int    = 6
 
 	maxBlockResponseSize   uint64 = 1024 * 1024 * 4 // 4mb
 	badPeerThreshold       int    = -2
 	protectedPeerThreshold int    = 7
+
+	defaultSlotDuration = time.Duration(time.Second * 6)
 )
 
 var (
@@ -115,10 +118,11 @@ type requestData struct {
 }
 
 type syncQueue struct {
-	s         *Service
-	ctx       context.Context
-	cancel    context.CancelFunc
-	peerScore *sync.Map // map[peer.ID]int; peers we have successfully synced from before -> their score; score increases on successful response
+	s            *Service
+	slotDuration time.Duration
+	ctx          context.Context
+	cancel       context.CancelFunc
+	peerScore    *sync.Map // map[peer.ID]int; peers we have successfully synced from before -> their score; score increases on successful response
 
 	requestData              *sync.Map // map[uint64]requestData; map of start # of request -> requestData
 	justificationRequestData *sync.Map // map[common.Hash]requestData; map of requests of justifications -> requestData
@@ -140,6 +144,7 @@ func newSyncQueue(s *Service) *syncQueue {
 
 	return &syncQueue{
 		s:                        s,
+		slotDuration:             defaultSlotDuration,
 		ctx:                      ctx,
 		cancel:                   cancel,
 		peerScore:                new(sync.Map),
@@ -147,7 +152,7 @@ func newSyncQueue(s *Service) *syncQueue {
 		justificationRequestData: new(sync.Map),
 		requestCh:                make(chan *syncRequest, blockRequestBufferSize),
 		responses:                []*types.BlockData{},
-		responseCh:               make(chan []*types.BlockData),
+		responseCh:               make(chan []*types.BlockData, blockResponseBufferSize),
 		benchmarker:              newSyncBenchmarker(),
 		buf:                      make([]byte, maxBlockResponseSize),
 	}
@@ -177,7 +182,7 @@ func (q *syncQueue) syncAtHead() {
 	for {
 		select {
 		// sleep for average block time TODO: make this configurable from slot duration
-		case <-time.After(time.Second * 6):
+		case <-time.After(q.slotDuration):
 		case <-q.ctx.Done():
 			return
 		}
@@ -403,17 +408,7 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 		start := best.Int64() + 1
 		req := createBlockRequest(start, 0)
 
-		if d, has := q.requestData.Load(start); has {
-			data := d.(requestData)
-			// we haven't sent the request out yet, or we've already gotten the response
-			if !data.sent {
-				logger.Debug("ignoring request, haven't sent out previous", "start", start)
-				return
-			}
-		}
-
 		logger.Debug("pushing request to queue", "start", start)
-
 		q.requestData.Store(start, requestData{
 			received: false,
 		})
@@ -492,12 +487,7 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error 
 		return nil
 	}
 
-	var (
-		start, end int64
-		err        error
-	)
-
-	start, end, err = resp.getStartAndEnd()
+	start, end, err := resp.getStartAndEnd()
 	if err != nil {
 		// update peer's score
 		q.updatePeerScore(pid, -1)
@@ -694,7 +684,7 @@ func (q *syncQueue) handleBlockJustification(data []*types.BlockData) {
 	} else {
 		from = d.(requestData).from
 		q.updatePeerScore(from, 2)
-		q.requestData.Delete(startHash)
+		q.justificationRequestData.Delete(startHash)
 	}
 }
 
