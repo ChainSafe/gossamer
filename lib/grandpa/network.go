@@ -130,7 +130,6 @@ func (s *Service) handleNetworkMessage(_ peer.ID, msg NotificationsMessage) erro
 		return ErrInvalidMessageType
 	}
 
-	s.logger.Info("got grandpa message!", "msg", msg)
 	resp, err := s.messageHandler.handleMessage(cm)
 	if err != nil {
 		return err

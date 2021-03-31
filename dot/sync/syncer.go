@@ -162,7 +162,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 	}
 
 	for i, bd := range data {
-		logger.Info("starting processing of block", "hash", bd.Hash, "justification", bd.Justification)
+		logger.Debug("starting processing of block", "hash", bd.Hash)
 
 		err := s.blockState.CompareAndSetBlockData(bd)
 		if err != nil {
@@ -188,7 +188,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 			}
 
 			if bd.Justification != nil && bd.Justification.Exists() {
-				logger.Info("handling Justification...", "number", header.Number, "hash", bd.Hash)
+				logger.Debug("handling Justification...", "number", header.Number, "hash", bd.Hash)
 				s.handleJustification(header, bd.Justification.Value())
 			}
 
