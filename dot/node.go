@@ -301,7 +301,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	}
 
 	gd, err := stateSrvc.Storage.GetGenesisData()
-	if err == nil {
+	if !cfg.Global.NoTelemetry && err == nil {
 		telemetry.GetInstance().AddConnections(gd.TelemetryEndpoints)
 		telemetry.GetInstance().SendConnection(cfg.Core.GrandpaAuthority, sysSrvc.ChainName(), stateSrvc.Block.GenesisHash().String(),
 			sysSrvc.SystemName(), cfg.Global.Name, sysSrvc.SystemVersion(), networkSrvc.NetworkState().PeerID, strconv.FormatInt(time.Now().UnixNano(), 10))

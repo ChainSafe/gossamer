@@ -50,6 +50,7 @@ type GlobalConfig struct {
 	LogLvl         log.Lvl
 	PublishMetrics bool
 	MetricsPort    uint32
+	NoTelemetry    bool
 }
 
 // LogConfig represents the log levels for individual packages

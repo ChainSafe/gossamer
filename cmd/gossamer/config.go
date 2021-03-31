@@ -434,6 +434,8 @@ func setDotGlobalConfig(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.Global
 		cfg.MetricsPort = uint32(metricsPort)
 	}
 
+	cfg.NoTelemetry = ctx.Bool("no-telemetry")
+
 	logger.Debug(
 		"global configuration",
 		"name", cfg.Name,
