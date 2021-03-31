@@ -60,16 +60,7 @@ func (q *syncQueue) pushJustificationRequest(start uint64) {
 	req := createBlockRequestWithHash(startHash, blockRequestSize)
 	req.RequestedData = RequestedDataJustification
 
-	// if d, has := q.justificationRequestData.Load(startHash); has {
-	// 	data := d.(requestData)
-	// 	// we haven't sent the request out yet, or we've already gotten the response
-	// 	if !data.sent || data.sent && data.received {
-	// 		return
-	// 	}
-	// }
-
 	logger.Debug("pushing justification request to queue", "start", start)
-
 	q.justificationRequestData.Store(startHash, requestData{
 		received: false,
 	})

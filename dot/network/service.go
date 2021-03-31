@@ -304,7 +304,7 @@ func (s *Service) handleConn(conn libp2pnetwork.Conn) {
 	defer info.mapMu.RUnlock()
 
 	peer := conn.RemotePeer()
-	if hsData, has := info.getHandshakeData(peer); !has || !hsData.received {
+	if hsData, has := info.getHandshakeData(peer); !has || !hsData.received { //nolint
 		info.handshakeData.Store(peer, &handshakeData{
 			validated: false,
 		})
@@ -313,35 +313,6 @@ func (s *Service) handleConn(conn libp2pnetwork.Conn) {
 		err = s.host.send(peer, info.protocolID, hs)
 		if err != nil {
 			logger.Trace("failed to send block announce handshake to peer", "peer", peer, "error", err)
-		}
-	}
-
-	grandpaInfo, has := s.notificationsProtocols[ConsensusMsgType]
-	if !has {
-		// this shouldn't happen
-		logger.Warn("consensus protocol is not yet registered!")
-		return
-	}
-
-	// open grandpa  substream
-	hs, err = grandpaInfo.getHandshake()
-	if err != nil {
-		logger.Warn("failed to get handshake", "protocol", grandpaInfo.protocolID, "error", err)
-		return
-	}
-
-	grandpaInfo.mapMu.RLock()
-	defer grandpaInfo.mapMu.RUnlock()
-
-	if hsData, has := grandpaInfo.getHandshakeData(peer); !has || !hsData.received { //nolint
-		grandpaInfo.handshakeData.Store(peer, &handshakeData{
-			validated: false,
-		})
-
-		logger.Debug("sending handshake", "protocol", grandpaInfo.protocolID, "peer", peer, "message", hs)
-		err = s.host.send(peer, grandpaInfo.protocolID, hs)
-		if err != nil {
-			logger.Debug("failed to send grandpa handshake to peer", "peer", peer, "error", err)
 		}
 	}
 }
@@ -565,7 +536,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		// decode message based on message type
 		msg, err := decoder(msgBytes[:tot], peer)
 		if err != nil {
-			logger.Info("failed to decode message from peer", "protocol", stream.Protocol(), "err", err, "msg bytes", fmt.Sprintf("0x%x", msgBytes[:tot]))
+			logger.Trace("failed to decode message from peer", "protocol", stream.Protocol(), "err", err)
 			continue
 		}
 

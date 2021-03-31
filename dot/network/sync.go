@@ -93,6 +93,11 @@ var (
 	protectedPeerThreshold int    = 7
 )
 
+var (
+	errEmptyResponseData      = fmt.Errorf("response data is empty")
+	errEmptyJustificationData = fmt.Errorf("no justifications in response data")
+)
+
 type syncPeer struct {
 	pid   peer.ID
 	score int
@@ -119,10 +124,9 @@ type syncQueue struct {
 	justificationRequestData *sync.Map // map[common.Hash]requestData; map of requests of justifications -> requestData
 	requestCh                chan *syncRequest
 
-	justificationResponses []*types.BlockData
-	responses              []*types.BlockData
-	responseCh             chan []*types.BlockData
-	responseLock           sync.RWMutex
+	responses    []*types.BlockData
+	responseCh   chan []*types.BlockData
+	responseLock sync.RWMutex
 
 	buf                []byte
 	goal               int64 // goal block number we are trying to sync to
@@ -143,7 +147,6 @@ func newSyncQueue(s *Service) *syncQueue {
 		justificationRequestData: new(sync.Map),
 		requestCh:                make(chan *syncRequest, blockRequestBufferSize),
 		responses:                []*types.BlockData{},
-		justificationResponses:   []*types.BlockData{},
 		responseCh:               make(chan []*types.BlockData),
 		benchmarker:              newSyncBenchmarker(),
 		buf:                      make([]byte, maxBlockResponseSize),
@@ -456,21 +459,19 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 	}
 }
 
-var (
-	errEmptyResponseData      = fmt.Errorf("response data is empty")
-	errEmptyJustificationData = fmt.Errorf("no justifications in response data")
-)
-
 func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error {
 	if len(resp.BlockData) == 0 {
 		return errEmptyResponseData
 	}
 
-	if _, has := q.justificationRequestData.Load(resp.BlockData[0].Hash); has && !resp.BlockData[0].Header.Exists() {
+	startHash := resp.BlockData[0].Hash
+	if _, has := q.justificationRequestData.Load(startHash); has && !resp.BlockData[0].Header.Exists() {
 		numJustifications := 0
+		justificationResponses := []*types.BlockData{}
+
 		for _, bd := range resp.BlockData {
 			if bd.Justification.Exists() {
-				q.justificationResponses = append(q.justificationResponses, bd)
+				justificationResponses = append(justificationResponses, bd)
 				numJustifications++
 			}
 		}
@@ -479,9 +480,15 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error 
 			return errEmptyJustificationData
 		}
 
-		logger.Info("pushed justification data to queue", "hash", resp.BlockData[0].Hash)
-		q.responseCh <- q.justificationResponses
-		q.justificationResponses = []*types.BlockData{}
+		q.updatePeerScore(pid, 1)
+		q.justificationRequestData.Store(startHash, requestData{
+			sent:     true,
+			received: true,
+			from:     pid,
+		})
+
+		logger.Info("pushed justification data to queue", "hash", startHash)
+		q.responseCh <- justificationResponses
 		return nil
 	}
 
@@ -546,13 +553,6 @@ func (q *syncQueue) processBlockRequests() {
 					continue
 				}
 			}
-
-			// if d, has := q.justificationRequestData.Load(req.req.StartingBlock.Hash()); has {
-			// 	data := d.(requestData)
-			// 	if data.sent && data.received {
-			// 		continue
-			// 	}
-			// }
 
 			q.trySync(req)
 		case <-q.ctx.Done():
@@ -659,6 +659,7 @@ func (q *syncQueue) processBlockResponses() {
 	for {
 		select {
 		case data := <-q.responseCh:
+			// if the response doesn't contain a header, then it's a justification-only response
 			if !data[0].Header.Exists() {
 				q.handleBlockJustification(data)
 				continue
@@ -672,17 +673,29 @@ func (q *syncQueue) processBlockResponses() {
 }
 
 func (q *syncQueue) handleBlockJustification(data []*types.BlockData) {
-	logger.Debug("sending justification data to syncer", "start", data[0].Hash, "end", data[len(data)-1].Hash)
+	startHash, endHash := data[0].Hash, data[len(data)-1].Hash
+	logger.Debug("sending justification data to syncer", "start", startHash, "end", endHash)
 
 	_, err := q.s.syncer.ProcessBlockData(data)
 	if err != nil {
-		//q.handleBlockDataFailure(idx, err, data)
 		logger.Warn("failed to handle block justifications", "error", err)
 		return
 	}
 
-	logger.Debug("finished processing justification data", "start", data[0].Hash, "end", data[len(data)-1].Hash)
-	// TODO: update peer's score
+	logger.Debug("finished processing justification data", "start", startHash, "end", endHash)
+
+	// update peer's score
+	var from peer.ID
+
+	d, ok := q.justificationRequestData.Load(startHash)
+	if !ok {
+		// this shouldn't happen
+		logger.Debug("can't find request data for response!", "start", startHash)
+	} else {
+		from = d.(requestData).from
+		q.updatePeerScore(from, 2)
+		q.requestData.Delete(startHash)
+	}
 }
 
 func (q *syncQueue) handleBlockData(data []*types.BlockData) {
@@ -886,11 +899,6 @@ func sortRequests(reqs []*syncRequest) []*syncRequest {
 
 func sortResponses(resps []*types.BlockData) []*types.BlockData {
 	sort.Slice(resps, func(i, j int) bool {
-		// TODO: store justification-only BlockData separately?
-		if resps[i].Number() == nil || resps[j].Number() == nil {
-			return false
-		}
-
 		return resps[i].Number().Int64() < resps[j].Number().Int64()
 	})
 
