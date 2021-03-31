@@ -403,14 +403,14 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 		start := best.Int64() + 1
 		req := createBlockRequest(start, 0)
 
-		// if d, has := q.requestData.Load(start); has {
-		// 	data := d.(requestData)
-		// 	// we haven't sent the request out yet, or we've already gotten the response
-		// 	if !data.sent || data.sent && data.received {
-		// 		logger.Debug("ignoring request, already received data", "start", start)
-		// 		return
-		// 	}
-		// }
+		if d, has := q.requestData.Load(start); has {
+			data := d.(requestData)
+			// we haven't sent the request out yet, or we've already gotten the response
+			if !data.sent {
+				logger.Debug("ignoring request, haven't sent out previous", "start", start)
+				return
+			}
+		}
 
 		logger.Debug("pushing request to queue", "start", start)
 
