@@ -41,12 +41,26 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestInitNode
 func TestInitNode(t *testing.T) {
 	cfg := NewTestConfig(t)
 	require.NotNil(t, cfg)
 
 	genFile := NewTestGenesisRawFile(t, cfg)
+	require.NotNil(t, genFile)
+
+	defer utils.RemoveTestDir(t)
+
+	cfg.Init.Genesis = genFile.Name()
+
+	err := InitNode(cfg)
+	require.NoError(t, err)
+}
+
+func TestInitNode_GenesisSpec(t *testing.T) {
+	cfg := NewTestConfig(t)
+	require.NotNil(t, cfg)
+
+	genFile := NewTestGenesisFile(t, cfg)
 	require.NotNil(t, genFile)
 
 	defer utils.RemoveTestDir(t)
