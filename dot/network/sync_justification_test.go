@@ -141,13 +141,13 @@ func TestSyncQueue_finalizeAtHead(t *testing.T) {
 	q.stop()
 	time.Sleep(time.Second)
 	q.ctx = context.Background()
-	q.slotDuration = time.Duration(time.Millisecond * 500)
+	q.slotDuration = time.Millisecond * 200
 
 	hash, err := q.s.blockState.GetHashByNumber(big.NewInt(1))
 	require.NoError(t, err)
 
 	go q.finalizeAtHead()
-	time.Sleep(time.Second * 2)
+	time.Sleep(time.Second)
 
 	data, has := q.justificationRequestData.Load(hash)
 	require.True(t, has)

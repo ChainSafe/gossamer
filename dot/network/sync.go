@@ -93,7 +93,7 @@ var (
 	badPeerThreshold       int    = -2
 	protectedPeerThreshold int    = 7
 
-	defaultSlotDuration = time.Duration(time.Second * 6)
+	defaultSlotDuration = time.Second * 6
 )
 
 var (
