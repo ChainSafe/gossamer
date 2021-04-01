@@ -433,7 +433,7 @@ func generateDefaultConfig() *ctoml.Config {
 			SyncLvl: "info",
 		},
 		Init: ctoml.InitConfig{
-			GenesisRaw: "./chain/gssmr/genesis.json",
+			Genesis: "./chain/gssmr/genesis.json",
 		},
 		Account: ctoml.AccountConfig{
 			Key:    "",
