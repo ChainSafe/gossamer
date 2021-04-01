@@ -151,12 +151,12 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 					_ = stream.Conn().Close()
 					return err
 				}
-				logger.Debug("receiver: sent handshake", "protocol", info.protocolID, "peer", peer)
+				logger.Trace("receiver: sent handshake", "protocol", info.protocolID, "peer", peer)
 			}
 
 			// if we are the initiator and haven't received the handshake already, validate it
 			if hsData, has := info.getHandshakeData(peer); has && !hsData.validated {
-				logger.Debug("sender: validating handshake")
+				logger.Trace("sender: validating handshake")
 				err := handshakeValidator(peer, hs)
 				if err != nil {
 					logger.Trace("failed to validate handshake", "protocol", info.protocolID, "peer", peer, "error", err)
