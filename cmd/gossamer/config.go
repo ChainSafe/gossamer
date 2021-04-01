@@ -689,7 +689,7 @@ func updateDotConfigFromGenesisJSONRaw(tomlCfg ctoml.Config, cfg *dot.Config) {
 
 	// use default genesis file if genesis configuration not provided, for example,
 	// if we load a toml configuration file without a defined genesis init value or
-	// if we pass an empty string as the genesis init value using the --geneis-raw flag
+	// if we pass an empty string as the genesis init value using the --genesis flag
 	if cfg.Init.Genesis == "" {
 		cfg.Init.Genesis = DefaultCfg().Init.Genesis
 	}
