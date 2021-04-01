@@ -6,7 +6,7 @@ permalink: /developer-resources/
 
 ### Specification
 
-- <a target="_blank" rel="noopener noreferrer" href="https://github.com/w3f/polkadot-spec/blob/master/polkadot-host-spec/polkadot_host_spec.pdf">Polkadot Host Specification</a>
+- <a target="_blank" rel="noopener noreferrer" href="https://github.com/w3f/polkadot-spec/tree/master/host-spec">Polkadot Host Specification</a>
 
 ### Cryptography
 
