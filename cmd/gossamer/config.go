@@ -372,7 +372,7 @@ func setDotInitConfig(ctx *cli.Context, tomlCfg ctoml.InitConfig, cfg *dot.InitC
 		cfg.Genesis = tomlCfg.Genesis
 	}
 
-	// check --genesis-raw flag and update init configuration
+	// check --genesis flag and update init configuration
 	if genesis := ctx.String(GenesisFlag.Name); genesis != "" {
 		cfg.Genesis = genesis
 	}
@@ -687,8 +687,8 @@ func updateDotConfigFromGenesisJSONRaw(tomlCfg ctoml.Config, cfg *dot.Config) {
 	cfg.Core.BabeAuthority = tomlCfg.Core.Roles == types.AuthorityRole
 	cfg.Core.GrandpaAuthority = tomlCfg.Core.Roles == types.AuthorityRole
 
-	// use default genesis-raw file if genesis configuration not provided, for example,
-	// if we load a toml configuration file without a defined genesis-raw init value or
+	// use default genesis file if genesis configuration not provided, for example,
+	// if we load a toml configuration file without a defined genesis init value or
 	// if we pass an empty string as the genesis init value using the --geneis-raw flag
 	if cfg.Init.Genesis == "" {
 		cfg.Init.Genesis = DefaultCfg().Init.Genesis
