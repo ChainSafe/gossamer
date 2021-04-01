@@ -59,13 +59,21 @@ func InitNode(cfg *Config) error {
 		"name", cfg.Global.Name,
 		"id", cfg.Global.ID,
 		"basepath", cfg.Global.BasePath,
-		"genesis-raw", cfg.Init.GenesisRaw,
+		"genesis", cfg.Init.Genesis,
 	)
 
 	// create genesis from configuration file
-	gen, err := genesis.NewGenesisFromJSONRaw(cfg.Init.GenesisRaw)
+	gen, err := genesis.NewGenesisFromJSONRaw(cfg.Init.Genesis)
 	if err != nil {
 		return fmt.Errorf("failed to load genesis from file: %w", err)
+	}
+
+	if !gen.IsRaw() {
+		// genesis is human-readable, convert to raw
+		err = gen.ToRaw()
+		if err != nil {
+			return fmt.Errorf("failed to convert genesis-spec to raw genesis: %w", err)
+		}
 	}
 
 	// create trie from genesis
@@ -99,7 +107,7 @@ func InitNode(cfg *Config) error {
 		"name", cfg.Global.Name,
 		"id", cfg.Global.ID,
 		"basepath", cfg.Global.BasePath,
-		"genesis-raw", cfg.Init.GenesisRaw,
+		"genesis", cfg.Init.Genesis,
 		"block", header.Number,
 		"genesis hash", header.Hash(),
 	)

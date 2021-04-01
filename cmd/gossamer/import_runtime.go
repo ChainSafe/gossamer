@@ -25,7 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 )
 
-var defaultGenesisSpecPath = "./chain/gssmr/genesis.json"
+var defaultGenesisSpecPath = "./chain/gssmr/genesis-spec.json"
 
 func createGenesisWithRuntime(fp string) (string, error) {
 	runtime, err := ioutil.ReadFile(filepath.Clean(fp))
