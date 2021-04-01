@@ -51,7 +51,7 @@ func (f *MyJSONFormatter) Format(entry *log.Entry) ([]byte, error) {
 var once sync.Once
 var handlerInstance *Handler
 
-// GetInstance signleton pattern to for accessing TelemeterHandler
+// GetInstance singleton pattern to for accessing TelemetryHandler
 func GetInstance() *Handler {
 	if handlerInstance == nil {
 		once.Do(
@@ -66,7 +66,7 @@ func GetInstance() *Handler {
 	return handlerInstance
 }
 
-//AddConnections adds connections to telemetry sever
+// AddConnections adds connections to telemetry sever
 func (h *Handler) AddConnections(conns []interface{}) {
 	for _, v := range conns {
 		c, _, err := websocket.DefaultDialer.Dial(fmt.Sprintf("%s", v.([]interface{})[0]), nil)
