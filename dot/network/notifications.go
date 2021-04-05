@@ -106,12 +106,12 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			return errors.New("message is not NotificationsMessage")
 		}
 
-		logger.Trace("received message on notifications sub-protocol", "protocol", info.protocolID,
-			"message", msg,
-			"peer", stream.Conn().RemotePeer(),
-		)
-
 		if msg.IsHandshake() {
+			logger.Trace("received handshake on notifications sub-protocol", "protocol", info.protocolID,
+				"message", msg,
+				"peer", stream.Conn().RemotePeer(),
+			)
+
 			hs, ok := msg.(Handshake)
 			if !ok {
 				return errors.New("failed to convert message to Handshake")
@@ -185,6 +185,11 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 
 			return nil
 		}
+
+		logger.Debug("received message on notifications sub-protocol", "protocol", info.protocolID,
+			"message", msg,
+			"peer", stream.Conn().RemotePeer(),
+		)
 
 		err := messageHandler(peer, msg)
 		if err != nil {

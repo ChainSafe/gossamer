@@ -85,12 +85,20 @@ func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) er
 }
 
 var (
-	blockRequestSize       uint32 = 128
-	blockRequestBufferSize int    = 6
+	blockRequestSize        uint32 = 128
+	blockRequestBufferSize  int    = 6
+	blockResponseBufferSize int    = 6
 
 	maxBlockResponseSize   uint64 = 1024 * 1024 * 4 // 4mb
 	badPeerThreshold       int    = -2
 	protectedPeerThreshold int    = 7
+
+	defaultSlotDuration = time.Second * 6
+)
+
+var (
+	errEmptyResponseData      = fmt.Errorf("response data is empty")
+	errEmptyJustificationData = fmt.Errorf("no justifications in response data")
 )
 
 type syncPeer struct {
@@ -110,13 +118,15 @@ type requestData struct {
 }
 
 type syncQueue struct {
-	s         *Service
-	ctx       context.Context
-	cancel    context.CancelFunc
-	peerScore *sync.Map // map[peer.ID]int; peers we have successfully synced from before -> their score; score increases on successful response
+	s            *Service
+	slotDuration time.Duration
+	ctx          context.Context
+	cancel       context.CancelFunc
+	peerScore    *sync.Map // map[peer.ID]int; peers we have successfully synced from before -> their score; score increases on successful response
 
-	requestData *sync.Map // map[uint64]requestData; map of start # of request -> requestData
-	requestCh   chan *syncRequest
+	requestData              *sync.Map // map[uint64]requestData; map of start # of request -> requestData
+	justificationRequestData *sync.Map // map[common.Hash]requestData; map of requests of justifications -> requestData
+	requestCh                chan *syncRequest
 
 	responses    []*types.BlockData
 	responseCh   chan []*types.BlockData
@@ -133,22 +143,25 @@ func newSyncQueue(s *Service) *syncQueue {
 	ctx, cancel := context.WithCancel(s.ctx)
 
 	return &syncQueue{
-		s:           s,
-		ctx:         ctx,
-		cancel:      cancel,
-		peerScore:   new(sync.Map),
-		requestData: new(sync.Map),
-		requestCh:   make(chan *syncRequest, blockRequestBufferSize),
-		responses:   []*types.BlockData{},
-		responseCh:  make(chan []*types.BlockData),
-		benchmarker: newSyncBenchmarker(),
-		buf:         make([]byte, maxBlockResponseSize),
+		s:                        s,
+		slotDuration:             defaultSlotDuration,
+		ctx:                      ctx,
+		cancel:                   cancel,
+		peerScore:                new(sync.Map),
+		requestData:              new(sync.Map),
+		justificationRequestData: new(sync.Map),
+		requestCh:                make(chan *syncRequest, blockRequestBufferSize),
+		responses:                []*types.BlockData{},
+		responseCh:               make(chan []*types.BlockData, blockResponseBufferSize),
+		benchmarker:              newSyncBenchmarker(),
+		buf:                      make([]byte, maxBlockResponseSize),
 	}
 }
 
 func (q *syncQueue) start() {
 	go q.handleResponseQueue()
 	go q.syncAtHead()
+	go q.finalizeAtHead()
 
 	go q.processBlockRequests()
 	go q.processBlockResponses()
@@ -169,7 +182,7 @@ func (q *syncQueue) syncAtHead() {
 	for {
 		select {
 		// sleep for average block time TODO: make this configurable from slot duration
-		case <-time.After(time.Second * 6):
+		case <-time.After(q.slotDuration):
 		case <-q.ctx.Done():
 			return
 		}
@@ -180,7 +193,7 @@ func (q *syncQueue) syncAtHead() {
 		}
 
 		// we aren't at the head yet, sleep
-		if curr.Number.Int64() < q.goal {
+		if curr.Number.Int64() < q.goal && curr.Number.Cmp(prev.Number) > 0 {
 			prev = curr
 			continue
 		}
@@ -395,17 +408,7 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 		start := best.Int64() + 1
 		req := createBlockRequest(start, 0)
 
-		if d, has := q.requestData.Load(start); has {
-			data := d.(requestData)
-			// we haven't sent the request out yet, or we've already gotten the response
-			if !data.sent || data.sent && data.received {
-				logger.Debug("ignoring request, already received data", "start", start)
-				return
-			}
-		}
-
 		logger.Debug("pushing request to queue", "start", start)
-
 		q.requestData.Store(start, requestData{
 			received: false,
 		})
@@ -453,7 +456,35 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 
 func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error {
 	if len(resp.BlockData) == 0 {
-		return fmt.Errorf("response data is empty")
+		return errEmptyResponseData
+	}
+
+	startHash := resp.BlockData[0].Hash
+	if _, has := q.justificationRequestData.Load(startHash); has && !resp.BlockData[0].Header.Exists() {
+		numJustifications := 0
+		justificationResponses := []*types.BlockData{}
+
+		for _, bd := range resp.BlockData {
+			if bd.Justification.Exists() {
+				justificationResponses = append(justificationResponses, bd)
+				numJustifications++
+			}
+		}
+
+		if numJustifications == 0 {
+			return errEmptyJustificationData
+		}
+
+		q.updatePeerScore(pid, 1)
+		q.justificationRequestData.Store(startHash, requestData{
+			sent:     true,
+			received: true,
+			from:     pid,
+		})
+
+		logger.Info("pushed justification data to queue", "hash", startHash)
+		q.responseCh <- justificationResponses
+		return nil
 	}
 
 	start, end, err := resp.getStartAndEnd()
@@ -525,7 +556,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 		return
 	}
 
-	logger.Debug("beginning to send out request", "start", req.req.StartingBlock.Value())
+	logger.Trace("beginning to send out request", "start", req.req.StartingBlock.Value())
 	if len(req.to) != 0 {
 		resp, err := q.syncWithPeer(req.to, req.req)
 		if err == nil {
@@ -535,11 +566,11 @@ func (q *syncQueue) trySync(req *syncRequest) {
 			}
 		}
 
-		logger.Debug("failed to sync with peer", "peer", req.to, "error", err)
+		logger.Trace("failed to sync with peer", "peer", req.to, "error", err)
 		q.updatePeerScore(req.to, -1)
 	}
 
-	logger.Debug("trying peers in prioritized order...")
+	logger.Trace("trying peers in prioritized order...")
 	syncPeers := q.getSortedPeers()
 
 	for _, peer := range syncPeers {
@@ -556,16 +587,21 @@ func (q *syncQueue) trySync(req *syncRequest) {
 		}
 
 		err = q.pushResponse(resp, peer.pid)
-		if err != nil {
-			logger.Trace("failed to push block response", "error", err)
+		if err != nil && err != errEmptyResponseData && err != errEmptyJustificationData {
+			logger.Debug("failed to push block response", "error", err)
 		} else {
 			return
 		}
 	}
 
-	logger.Debug("failed to sync with any peer :(")
-	if req.req.StartingBlock.IsUint64() {
+	logger.Trace("failed to sync with any peer :(")
+	if req.req.StartingBlock.IsUint64() && (req.req.RequestedData&RequestedDataHeader) == 1 {
 		q.requestData.Store(req.req.StartingBlock.Uint64(), requestData{
+			sent:     true,
+			received: false,
+		})
+	} else if req.req.StartingBlock.IsHash() && (req.req.RequestedData&RequestedDataHeader) == 0 {
+		q.justificationRequestData.Store(req.req.StartingBlock.Hash(), requestData{
 			sent:     true,
 			received: false,
 		})
@@ -613,10 +649,42 @@ func (q *syncQueue) processBlockResponses() {
 	for {
 		select {
 		case data := <-q.responseCh:
+			// if the response doesn't contain a header, then it's a justification-only response
+			if !data[0].Header.Exists() {
+				q.handleBlockJustification(data)
+				continue
+			}
+
 			q.handleBlockData(data)
 		case <-q.ctx.Done():
 			return
 		}
+	}
+}
+
+func (q *syncQueue) handleBlockJustification(data []*types.BlockData) {
+	startHash, endHash := data[0].Hash, data[len(data)-1].Hash
+	logger.Debug("sending justification data to syncer", "start", startHash, "end", endHash)
+
+	_, err := q.s.syncer.ProcessBlockData(data)
+	if err != nil {
+		logger.Warn("failed to handle block justifications", "error", err)
+		return
+	}
+
+	logger.Debug("finished processing justification data", "start", startHash, "end", endHash)
+
+	// update peer's score
+	var from peer.ID
+
+	d, ok := q.justificationRequestData.Load(startHash)
+	if !ok {
+		// this shouldn't happen
+		logger.Debug("can't find request data for response!", "start", startHash)
+	} else {
+		from = d.(requestData).from
+		q.updatePeerScore(from, 2)
+		q.justificationRequestData.Delete(startHash)
 	}
 }
 

@@ -38,8 +38,8 @@ var (
 
 	// InitConfig
 
-	// DefaultGenesisRaw Default genesis configuration path
-	DefaultGenesisRaw = string("./chain/polkadot/genesis-raw.json")
+	// DefaultGenesis is the default genesis configuration path
+	DefaultGenesis = string("./chain/polkadot/genesis.json")
 
 	// AccountConfig
 

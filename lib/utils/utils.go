@@ -147,8 +147,8 @@ func KeystoreFilepaths(basepath string) ([]string, error) {
 
 // GetGssmrGenesisRawPath gets the gssmr raw genesis path
 func GetGssmrGenesisRawPath() string {
-	path1 := "../chain/gssmr/genesis-raw.json"
-	path2 := "../../chain/gssmr/genesis-raw.json"
+	path1 := "../chain/gssmr/genesis.json"
+	path2 := "../../chain/gssmr/genesis.json"
 
 	var fp string
 
@@ -163,8 +163,8 @@ func GetGssmrGenesisRawPath() string {
 
 // GetGssmrGenesisPath gets the gssmr human-readable genesis path
 func GetGssmrGenesisPath() string {
-	path1 := "../chain/gssmr/genesis.json"
-	path2 := "../../chain/gssmr/genesis.json"
+	path1 := "../chain/gssmr/genesis-spec.json"
+	path2 := "../../chain/gssmr/genesis-spec.json"
 
 	var fp string
 

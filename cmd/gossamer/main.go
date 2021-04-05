@@ -52,8 +52,8 @@ var (
 		ArgsUsage: "",
 		Flags:     InitFlags,
 		Category:  "INIT",
-		Description: "The init command initializes the node databases and loads the genesis data from the raw genesis configuration file to state.\n" +
-			"\tUsage: gossamer init --genesis-raw genesis.json",
+		Description: "The init command initializes the node databases and loads the genesis data from the genesis file to state.\n" +
+			"\tUsage: gossamer init --genesis genesis.json",
 	}
 	// accountCommand defines the "account" subcommand (ie, `gossamer account`)
 	accountCommand = cli.Command{
@@ -79,8 +79,8 @@ var (
 		Category:  "BUILD-SPEC",
 		Description: "The build-spec command outputs current genesis JSON data.\n" +
 			"\tUsage: gossamer build-spec\n" +
-			"\tTo generate raw genesis file from default: gossamer build-spec --raw > genesis-raw.json" +
-			"\tTo generate raw genesis file from specific genesis file: gossamer build-spec --raw --genesis genesis.json > genesis-raw.json",
+			"\tTo generate raw genesis file from default: gossamer build-spec --raw > genesis.json" +
+			"\tTo generate raw genesis file from specific genesis file: gossamer build-spec --raw --genesis genesis-spec.json > genesis.json",
 	}
 
 	// importRuntime generates a genesis file given a .wasm runtime binary.
@@ -353,7 +353,7 @@ func buildSpecAction(ctx *cli.Context) error {
 	}
 
 	var bs *dot.BuildSpec
-	if genesis := ctx.String(GenesisFlag.Name); genesis != "" {
+	if genesis := ctx.String(GenesisSpecFlag.Name); genesis != "" {
 		bspec, e := dot.BuildFromGenesis(genesis, 0)
 		if e != nil {
 			return e

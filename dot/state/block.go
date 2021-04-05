@@ -264,6 +264,16 @@ func (bs *BlockState) GetHeader(hash common.Hash) (*types.Header, error) {
 	return result, err
 }
 
+// GetHashByNumber returns the block hash given the number
+func (bs *BlockState) GetHashByNumber(num *big.Int) (common.Hash, error) {
+	bh, err := bs.db.Get(headerHashKey(num.Uint64()))
+	if err != nil {
+		return common.Hash{}, fmt.Errorf("cannot get block %d: %s", num, err)
+	}
+
+	return common.NewHash(bh), nil
+}
+
 // GetHeaderByNumber returns a block header given a number
 func (bs *BlockState) GetHeaderByNumber(num *big.Int) (*types.Header, error) {
 	bh, err := bs.db.Get(headerHashKey(num.Uint64()))
