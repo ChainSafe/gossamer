@@ -269,7 +269,7 @@ func TestExistingStream(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	stream := nodeA.host.getStream(nodeB.host.id(), nodeB.host.protocolID)
+	stream := nodeA.host.getOutboundStream(nodeB.host.id(), nodeB.host.protocolID)
 	require.Nil(t, stream, "node A should not have an outbound stream")
 
 	// node A opens the stream to send the first message
@@ -279,7 +279,7 @@ func TestExistingStream(t *testing.T) {
 	time.Sleep(TestMessageTimeout)
 	require.NotNil(t, handlerB.messages[nodeA.host.id()], "node B timeout waiting for message from node A")
 
-	stream = nodeA.host.getStream(nodeB.host.id(), nodeB.host.protocolID)
+	stream = nodeA.host.getOutboundStream(nodeB.host.id(), nodeB.host.protocolID)
 	require.NotNil(t, stream, "node A should have an outbound stream")
 
 	// node A uses the stream to send a second message
@@ -287,7 +287,7 @@ func TestExistingStream(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, handlerB.messages[nodeA.host.id()], "node B timeout waiting for message from node A")
 
-	stream = nodeA.host.getStream(nodeB.host.id(), nodeB.host.protocolID)
+	stream = nodeA.host.getOutboundStream(nodeB.host.id(), nodeB.host.protocolID)
 	require.NotNil(t, stream, "node B should have an outbound stream")
 
 	// node B opens the stream to send the first message
@@ -297,7 +297,7 @@ func TestExistingStream(t *testing.T) {
 	time.Sleep(TestMessageTimeout)
 	require.NotNil(t, handlerA.messages[nodeB.host.id()], "node A timeout waiting for message from node B")
 
-	stream = nodeB.host.getStream(nodeA.host.id(), nodeB.host.protocolID)
+	stream = nodeB.host.getOutboundStream(nodeA.host.id(), nodeB.host.protocolID)
 	require.NotNil(t, stream, "node B should have an outbound stream")
 
 	// node B uses the stream to send a second message
@@ -305,7 +305,7 @@ func TestExistingStream(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, handlerA.messages[nodeB.host.id()], "node A timeout waiting for message from node B")
 
-	stream = nodeB.host.getStream(nodeA.host.id(), nodeB.host.protocolID)
+	stream = nodeB.host.getOutboundStream(nodeA.host.id(), nodeB.host.protocolID)
 	require.NotNil(t, stream, "node B should have an outbound stream")
 }
 

@@ -41,8 +41,8 @@ var (
 
 	// InitConfig
 
-	// DefaultGenesisRaw Default genesis configuration path
-	DefaultGenesisRaw = string("./chain/kusama/genesis-raw.json")
+	// DefaultGenesis is the default genesis configuration path
+	DefaultGenesis = string("./chain/kusama/genesis.json")
 
 	// AccountConfig
 
