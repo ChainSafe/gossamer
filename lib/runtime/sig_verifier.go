@@ -44,7 +44,8 @@ func (sv *SignatureVerifier) Start() {
 	sv.init = true
 	sv.Unlock()
 
-	*sv.ed25519Batch = ed25519consensus.NewBatchVerifier()
+	ed25519Batch := ed25519consensus.NewBatchVerifier()
+	sv.ed25519Batch = &ed25519Batch
 	sv.sr25519Batch = schnorrkel.NewBatchVerifier()
 }
 
@@ -103,6 +104,7 @@ func (sv *SignatureVerifier) reset() {
 
 	sv.ed25519Batch = nil
 	sv.sr25519Batch = nil
+	sv.init = false
 }
 
 // Finish waits till batch is finished. Returns true if all the signatures are valid, Otherwise returns false.

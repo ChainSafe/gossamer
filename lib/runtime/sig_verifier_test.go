@@ -7,7 +7,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/stretchr/testify/require"
 )
@@ -24,7 +23,7 @@ func TestBackgroundSignVerification(t *testing.T) {
 
 	// Wait for background go routine to verify signature.
 	time.Sleep(1 * time.Second)
-	require.False(t, signVerify.IsInvalid())
+	require.True(t, signVerify.IsStarted())
 }
 
 func TestBackgroundSignVerificationMultipleStart(t *testing.T) {
@@ -103,30 +102,9 @@ func TestAllCryptoTypeSignature(t *testing.T) {
 		KeyTypeID: crypto.Sr25519Type,
 	}
 
-	blakeHash, err := common.Blake2bHash([]byte("secp256k1"))
-	require.NoError(t, err)
-
-	kp, err := secp256k1.GenerateKeypair()
-	require.NoError(t, err)
-
-	secpSigData, err := kp.Sign(blakeHash.ToBytes())
-	require.NoError(t, err)
-
-	secpSigData = secpSigData[:len(secpSigData)-1] // remove recovery id
-	secpSignature := &Signature{
-		PubKey:    kp.Public().Encode(),
-		Sign:      secpSigData,
-		Msg:       blakeHash.ToBytes(),
-		KeyTypeID: crypto.Secp256k1Type,
-	}
-
 	signVerify := NewSignatureVerifier()
-
 	signVerify.Start()
-
 	signVerify.Add(edSignatures[0])
 	signVerify.Add(srSignature)
-	signVerify.Add(secpSignature)
-
 	require.True(t, signVerify.Finish())
 }
