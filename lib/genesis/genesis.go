@@ -41,12 +41,18 @@ type Data struct {
 	ID                 string
 	ChainType          string
 	Bootnodes          [][]byte
-	TelemetryEndpoints []interface{}
+	TelemetryEndpoints []TelemetryEndpoint
 	ProtocolID         string
 	Properties         map[string]interface{}
 	ForkBlocks         []string
 	BadBlocks          []string
 	ConsensusEngine    string
+}
+
+// TelemetryEndpoint struct to hold telemetry endpoint information
+type TelemetryEndpoint struct {
+	Endpoint  string
+	Verbosity int
 }
 
 // Fields stores genesis raw data, and human readable runtime data
@@ -62,7 +68,7 @@ func (g *Genesis) GenesisData() *Data {
 		ID:                 g.ID,
 		ChainType:          g.ChainType,
 		Bootnodes:          common.StringArrayToBytes(g.Bootnodes),
-		TelemetryEndpoints: g.TelemetryEndpoints,
+		TelemetryEndpoints: interfaceToTelemetryEndpoint(g.TelemetryEndpoints),
 		ProtocolID:         g.ProtocolID,
 		Properties:         g.Properties,
 		ForkBlocks:         g.ForkBlocks,
@@ -96,4 +102,29 @@ func (g *Genesis) ToRaw() error {
 	g.Genesis.Raw = make(map[string]map[string]string)
 	g.Genesis.Raw["top"] = res
 	return nil
+}
+
+func interfaceToTelemetryEndpoint(endpoints []interface{}) []TelemetryEndpoint {
+	var res []TelemetryEndpoint
+	for _, v := range endpoints {
+		epi, ok := v.([]interface{})
+		if !ok {
+			continue
+		}
+		eps, ok := epi[0].(string)
+		if !ok {
+			continue
+		}
+		epv, ok := epi[1].(float64)
+		if !ok {
+			continue
+		}
+		ep := TelemetryEndpoint{
+			Endpoint:  eps,
+			Verbosity: int(epv),
+		}
+		res = append(res, ep)
+	}
+
+	return res
 }

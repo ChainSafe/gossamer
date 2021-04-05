@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
 )
@@ -23,8 +24,11 @@ func TestMain(m *testing.M) {
 
 	time.Sleep(time.Millisecond)
 	// instantiate telemetry to connect to websocket (test) server
-	var testEndpoints = []interface{}{}
-	var testEndpoint1 = []interface{}{"ws://127.0.0.1:8001/", float64(0)}
+	var testEndpoints []genesis.TelemetryEndpoint
+	var testEndpoint1 = genesis.TelemetryEndpoint{
+		Endpoint:  "ws://127.0.0.1:8001/",
+		Verbosity: 0,
+	}
 	GetInstance().AddConnections(append(testEndpoints, testEndpoint1))
 
 	// Start all tests

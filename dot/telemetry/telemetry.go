@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 )
@@ -48,8 +49,10 @@ func (f *MyJSONFormatter) Format(entry *log.Entry) ([]byte, error) {
 	return append(serialized, '\n'), nil
 }
 
-var once sync.Once
-var handlerInstance *Handler
+var (
+	once            sync.Once
+	handlerInstance *Handler
+)
 
 // GetInstance singleton pattern to for accessing TelemetryHandler
 func GetInstance() *Handler {
@@ -67,11 +70,13 @@ func GetInstance() *Handler {
 }
 
 // AddConnections adds connections to telemetry sever
-func (h *Handler) AddConnections(conns []interface{}) {
+func (h *Handler) AddConnections(conns []genesis.TelemetryEndpoint) {
 	for _, v := range conns {
-		c, _, err := websocket.DefaultDialer.Dial(fmt.Sprintf("%s", v.([]interface{})[0]), nil)
+		fmt.Printf("CONN %v\n", v.Endpoint)
+		c, _, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
 		if err != nil {
 			fmt.Printf("Error %v\n", err)
+			return
 		}
 		h.wsConn = append(h.wsConn, c)
 	}
