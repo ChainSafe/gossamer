@@ -41,7 +41,7 @@ func TestCreateStateService(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
-	cfg.Init.GenesisRaw = genFile.Name()
+	cfg.Init.Genesis = genFile.Name()
 
 	err := InitNode(cfg)
 	require.Nil(t, err)
@@ -67,7 +67,7 @@ func TestCreateCoreService(t *testing.T) {
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
-	cfg.Init.GenesisRaw = genFile.Name()
+	cfg.Init.Genesis = genFile.Name()
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
@@ -107,7 +107,7 @@ func TestCreateBlockVerifier(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
-	cfg.Init.GenesisRaw = genFile.Name()
+	cfg.Init.Genesis = genFile.Name()
 
 	err := InitNode(cfg)
 	require.Nil(t, err)
@@ -130,7 +130,7 @@ func TestCreateSyncService(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
-	cfg.Init.GenesisRaw = genFile.Name()
+	cfg.Init.Genesis = genFile.Name()
 
 	err := InitNode(cfg)
 	require.Nil(t, err)
@@ -162,7 +162,7 @@ func TestCreateNetworkService(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
-	cfg.Init.GenesisRaw = genFile.Name()
+	cfg.Init.Genesis = genFile.Name()
 
 	err := InitNode(cfg)
 	require.Nil(t, err)
@@ -191,7 +191,7 @@ func TestCreateRPCService(t *testing.T) {
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
-	cfg.Init.GenesisRaw = genFile.Name()
+	cfg.Init.Genesis = genFile.Name()
 
 	err := InitNode(cfg)
 	require.Nil(t, err)
@@ -235,7 +235,7 @@ func TestCreateBABEService(t *testing.T) {
 
 	// TODO: improve dot tests #687
 	cfg.Core.Roles = types.FullNodeRole
-	cfg.Init.GenesisRaw = genFile.Name()
+	cfg.Init.Genesis = genFile.Name()
 
 	err := InitNode(cfg)
 	require.Nil(t, err)
@@ -267,7 +267,7 @@ func TestCreateGrandpaService(t *testing.T) {
 
 	// TODO: improve dot tests #687
 	cfg.Core.Roles = types.AuthorityRole
-	cfg.Init.GenesisRaw = genFile.Name()
+	cfg.Init.Genesis = genFile.Name()
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
@@ -315,7 +315,7 @@ func TestNewWebSocketServer(t *testing.T) {
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
-	cfg.Init.GenesisRaw = genFile.Name()
+	cfg.Init.Genesis = genFile.Name()
 	cfg.RPC.External = false
 	cfg.RPC.WS = true
 	cfg.RPC.WSExternal = false

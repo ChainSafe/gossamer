@@ -10,10 +10,10 @@ import (
 )
 
 const GssmrConfigPath = "../../chain/gssmr/config.toml"
-const GssmrGenesisPath = "../../chain/gssmr/genesis-raw.json"
+const GssmrGenesisPath = "../../chain/gssmr/genesis.json"
 
 const KusamaConfigPath = "../../chain/kusama/config.toml"
-const KusamaGenesisPath = "../../chain/kusama/genesis-raw.json"
+const KusamaGenesisPath = "../../chain/kusama/genesis.json"
 
 // TestLoadConfig tests loading a toml configuration file
 func TestLoadConfig(t *testing.T) {
@@ -25,7 +25,7 @@ func TestLoadConfig(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
-	cfg.Init.GenesisRaw = genFile.Name()
+	cfg.Init.Genesis = genFile.Name()
 
 	err := dot.InitNode(cfg)
 	require.Nil(t, err)
@@ -41,7 +41,7 @@ func TestLoadConfigGssmr(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	cfg.Global.BasePath = utils.NewTestDir(t)
-	cfg.Init.GenesisRaw = GssmrGenesisPath
+	cfg.Init.Genesis = GssmrGenesisPath
 
 	defer utils.RemoveTestDir(t)
 
@@ -59,7 +59,7 @@ func TestLoadConfigKusama(t *testing.T) {
 	require.NotNil(t, cfg)
 
 	cfg.Global.BasePath = utils.NewTestDir(t)
-	cfg.Init.GenesisRaw = KusamaGenesisPath
+	cfg.Init.Genesis = KusamaGenesisPath
 
 	defer utils.RemoveTestDir(t)
 
