@@ -72,7 +72,6 @@ func GetInstance() *Handler {
 // AddConnections adds connections to telemetry sever
 func (h *Handler) AddConnections(conns []genesis.TelemetryEndpoint) {
 	for _, v := range conns {
-		fmt.Printf("CONN %v\n", v.Endpoint)
 		c, _, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
 		if err != nil {
 			fmt.Printf("Error %v\n", err)
@@ -82,20 +81,31 @@ func (h *Handler) AddConnections(conns []genesis.TelemetryEndpoint) {
 	}
 }
 
+// ConnectionData struct to hold connection data
+type ConnectionData struct {
+	Authority     bool
+	Chain         string
+	GenesisHash   string
+	SystemName    string
+	NodeName      string
+	SystemVersion string
+	NetworkID     string
+	StartTime     string
+}
+
 // SendConnection sends connection request message to telemetry connection
-func (h *Handler) SendConnection(authority bool, chain, genesis_hash, system_name, node_name,
-	system_version, network_id, start_time string) {
-	payload := log.Fields{"authority": authority, "chain": chain, "config": "", "genesis_hash": genesis_hash,
-		"implementation": system_name, "msg": "system.connected", "name": node_name, "network_id": network_id, "startup_time": start_time,
-		"version": system_version}
+func (h *Handler) SendConnection(data *ConnectionData) {
+	payload := log.Fields{"authority": data.Authority, "chain": data.Chain, "config": "", "genesis_hash": data.GenesisHash,
+		"implementation": data.SystemName, "msg": "system.connected", "name": data.NodeName, "network_id": data.NetworkID, "startup_time": data.StartTime,
+		"version": data.SystemVersion}
 	h.telemetryLogger = log.WithFields(log.Fields{"id": 1, "payload": payload, "ts": time.Now()})
 	h.telemetryLogger.Print()
 	h.sendTelemtry()
 }
 
 // SendBlockImport sends block imported message to telemetry connection
-func (h *Handler) SendBlockImport(best_hash string, height *big.Int) {
-	payload := log.Fields{"best": best_hash, "height": height.Int64(), "msg": "block.import", "origin": "NetworkInitialSync"}
+func (h *Handler) SendBlockImport(bestHash string, height *big.Int) {
+	payload := log.Fields{"best": bestHash, "height": height.Int64(), "msg": "block.import", "origin": "NetworkInitialSync"}
 	h.telemetryLogger = log.WithFields(log.Fields{"id": 1, "payload": payload, "ts": time.Now()})
 	h.telemetryLogger.Print()
 	h.sendTelemtry()

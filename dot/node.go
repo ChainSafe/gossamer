@@ -318,8 +318,17 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	}
 
 	telemetry.GetInstance().AddConnections(gd.TelemetryEndpoints)
-	telemetry.GetInstance().SendConnection(cfg.Core.GrandpaAuthority, sysSrvc.ChainName(), stateSrvc.Block.GenesisHash().String(),
-		sysSrvc.SystemName(), cfg.Global.Name, sysSrvc.SystemVersion(), networkSrvc.NetworkState().PeerID, strconv.FormatInt(time.Now().UnixNano(), 10))
+	data := &telemetry.ConnectionData{
+		Authority:     cfg.Core.GrandpaAuthority,
+		Chain:         sysSrvc.ChainName(),
+		GenesisHash:   stateSrvc.Block.GenesisHash().String(),
+		SystemName:    sysSrvc.SystemName(),
+		NodeName:      cfg.Global.Name,
+		SystemVersion: sysSrvc.SystemVersion(),
+		NetworkID:     networkSrvc.NetworkState().PeerID,
+		StartTime:     strconv.FormatInt(time.Now().UnixNano(), 10),
+	}
+	telemetry.GetInstance().SendConnection(data)
 
 	return node, nil
 }

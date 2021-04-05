@@ -37,8 +37,17 @@ func TestMain(m *testing.M) {
 }
 func TestHandler_SendConnection(t *testing.T) {
 	expected := []byte(`{"id":1,"payload":{"authority":false,"chain":"chain","config":"","genesis_hash":"hash","implementation":"systemName","msg":"system.connected","name":"nodeName","network_id":"netID","startup_time":"startTime","version":"version"},"ts":`)
-	GetInstance().SendConnection(false, "chain", "hash", "systemName", "nodeName",
-		"version", "netID", "startTime")
+	data := &ConnectionData{
+		Authority:     false,
+		Chain:         "chain",
+		GenesisHash:   "hash",
+		SystemName:    "systemName",
+		NodeName:      "nodeName",
+		SystemVersion: "version",
+		NetworkID:     "netID",
+		StartTime:     "startTime",
+	}
+	GetInstance().SendConnection(data)
 	time.Sleep(time.Millisecond)
 	// note, we only check the first 234 bytes because the remaining bytes are the timestamp, which we can't estimate
 	require.Equal(t, expected, lastMessage[:234])
