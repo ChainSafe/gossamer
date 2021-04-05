@@ -102,10 +102,26 @@ var (
 
 // Initialization-only flags
 var (
-	// GenesisRawFlag Path to raw genesis JSON file
-	GenesisRawFlag = cli.StringFlag{
-		Name:  "genesis-raw",
-		Usage: "Path to raw genesis JSON file",
+	// GenesisFlag is the path to a genesis JSON file
+	GenesisFlag = cli.StringFlag{
+		Name:  "genesis",
+		Usage: "Path to genesis JSON file",
+	}
+)
+
+// ImportState-only flags
+var (
+	StateFlag = cli.StringFlag{
+		Name:  "state",
+		Usage: "Path to JSON file consisting of key-value pairs",
+	}
+	HeaderFlag = cli.StringFlag{
+		Name:  "header",
+		Usage: "Path to JSON file of block header corresponding to the given state",
+	}
+	FirstSlotFlag = cli.IntFlag{
+		Name:  "first-slot",
+		Usage: "The first BABE slot of the network",
 	}
 )
 
@@ -115,8 +131,8 @@ var (
 		Name:  "raw",
 		Usage: "Output as raw genesis JSON",
 	}
-	GenesisFlag = cli.StringFlag{
-		Name:  "genesis",
+	GenesisSpecFlag = cli.StringFlag{
+		Name:  "genesis-spec",
 		Usage: "Path to human-readable genesis JSON file",
 	}
 )
@@ -290,18 +306,18 @@ var (
 	// InitFlags are flags that are valid for use with the init subcommand
 	InitFlags = append([]cli.Flag{
 		ForceFlag,
-		GenesisRawFlag,
+		GenesisFlag,
 	}, GlobalFlags...)
 
 	BuildSpecFlags = append([]cli.Flag{
 		RawFlag,
-		GenesisFlag,
+		GenesisSpecFlag,
 	}, GlobalFlags...)
 
 	// ExportFlags are the flags that are valid for use with the export subcommand
 	ExportFlags = append([]cli.Flag{
 		ForceFlag,
-		GenesisRawFlag,
+		GenesisFlag,
 	}, append(GlobalFlags, StartupFlags...)...)
 
 	// AccountFlags are flags that are valid for use with the account subcommand
@@ -315,6 +331,15 @@ var (
 		Sr25519Flag,
 		Secp256k1Flag,
 	}, GlobalFlags...)
+
+	ImportStateFlags = []cli.Flag{
+		BasePathFlag,
+		ChainFlag,
+		ConfigFlag,
+		StateFlag,
+		HeaderFlag,
+		FirstSlotFlag,
+	}
 )
 
 // FixFlagOrder allow us to use various flag order formats (ie, `gossamer init

@@ -36,7 +36,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
-// NewGenesisFromJSONRaw parses a JSON formatted genesis-raw file
+// NewGenesisFromJSONRaw parses a JSON formatted genesis file
 func NewGenesisFromJSONRaw(file string) (*Genesis, error) {
 	fp, err := filepath.Abs(file)
 	if err != nil {
@@ -111,19 +111,7 @@ func trimGenesisAuthority(g *Genesis, authCount int) {
 // NewGenesisFromJSON parses Human Readable JSON formatted genesis file.Name. If authCount > 0,
 // then it keeps only `authCount` number of authorities for babe and grandpa.
 func NewGenesisFromJSON(file string, authCount int) (*Genesis, error) {
-	fp, err := filepath.Abs(file)
-	if err != nil {
-		return nil, err
-	}
-
-	data, err := ioutil.ReadFile(filepath.Clean(fp))
-	if err != nil {
-		return nil, err
-	}
-
-	g := new(Genesis)
-
-	err = json.Unmarshal(data, g)
+	g, err := NewGenesisSpecFromJSON(file)
 	if err != nil {
 		return nil, err
 	}
@@ -142,6 +130,28 @@ func NewGenesisFromJSON(file string, authCount int) (*Genesis, error) {
 	g.Genesis.Raw["top"] = res
 
 	return g, err
+}
+
+// NewGenesisSpecFromJSON returns a new Genesis (without raw fields) from a human-readable genesis file
+func NewGenesisSpecFromJSON(file string) (*Genesis, error) {
+	fp, err := filepath.Abs(file)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := ioutil.ReadFile(filepath.Clean(fp))
+	if err != nil {
+		return nil, err
+	}
+
+	g := new(Genesis)
+
+	err = json.Unmarshal(data, g)
+	if err != nil {
+		return nil, err
+	}
+
+	return g, nil
 }
 
 // keyValue struct to hold data regarding entry

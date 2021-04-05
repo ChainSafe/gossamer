@@ -50,7 +50,7 @@ type LogConfig struct {
 
 // InitConfig is the configuration for the node initialization
 type InitConfig struct {
-	GenesisRaw string `toml:"genesis-raw,omitempty"`
+	Genesis string `toml:"genesis,omitempty"`
 }
 
 // AccountConfig is to marshal/unmarshal account config vars

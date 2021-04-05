@@ -19,7 +19,7 @@ import (
 )
 
 func newInstanceFromGenesis(t *testing.T) runtime.Instance {
-	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis-raw.json")
+	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis.json")
 	require.NoError(t, err)
 
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
@@ -200,7 +200,7 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 	block := buildBlock(t, instance)
 
 	// reset state back to parent state before executing
-	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis-raw.json")
+	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis.json")
 	require.NoError(t, err)
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
@@ -213,7 +213,7 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
-	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/ksmcc/genesis-raw.json")
+	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/kusama/genesis.json")
 	require.NoError(t, err)
 
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
@@ -263,7 +263,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
-	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/polkadot/genesis-raw.json")
+	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/polkadot/genesis.json")
 	require.NoError(t, err)
 
 	genTrie, err := genesis.NewTrieFromGenesis(gen)

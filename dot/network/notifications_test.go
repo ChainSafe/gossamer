@@ -18,6 +18,7 @@ package network
 
 import (
 	"math/big"
+	"sync"
 	"testing"
 	"time"
 
@@ -44,17 +45,17 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 
 	// create info and decoder
 	info := &notificationsProtocol{
-		subProtocol:   blockAnnounceID,
+		protocolID:    s.host.protocolID + blockAnnounceID,
 		getHandshake:  s.getBlockAnnounceHandshake,
-		handshakeData: make(map[peer.ID]*handshakeData),
+		handshakeData: new(sync.Map),
 	}
 	decoder := createDecoder(info, decodeBlockAnnounceHandshake, decodeBlockAnnounceMessage)
 
 	// haven't received handshake from peer
 	testPeerID := peer.ID("QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ")
-	info.handshakeData[testPeerID] = &handshakeData{
+	info.handshakeData.Store(testPeerID, &handshakeData{
 		received: false,
-	}
+	})
 
 	testHandshake := &BlockAnnounceHandshake{
 		Roles:           4,
@@ -82,7 +83,8 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 	require.NoError(t, err)
 
 	// set handshake data to received
-	info.handshakeData[testPeerID].received = true
+	hsData, _ := info.getHandshakeData(testPeerID)
+	hsData.received = true
 	msg, err = decoder(enc, testPeerID)
 	require.NoError(t, err)
 	require.Equal(t, testBlockAnnounce, msg)
@@ -130,17 +132,17 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 
 	// create info and handler
 	info := &notificationsProtocol{
-		subProtocol:   blockAnnounceID,
+		protocolID:    s.host.protocolID + blockAnnounceID,
 		getHandshake:  s.getBlockAnnounceHandshake,
-		handshakeData: make(map[peer.ID]*handshakeData),
+		handshakeData: new(sync.Map),
 	}
 	handler := s.createNotificationsMessageHandler(info, s.validateBlockAnnounceHandshake, s.handleBlockAnnounceMessage)
 
 	// set handshake data to received
-	info.handshakeData[testPeerID] = &handshakeData{
+	info.handshakeData.Store(testPeerID, &handshakeData{
 		received:  true,
 		validated: true,
-	}
+	})
 	msg := &BlockAnnounceMessage{
 		Number: big.NewInt(10),
 	}
@@ -162,9 +164,9 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 
 	// create info and handler
 	info := &notificationsProtocol{
-		subProtocol:   blockAnnounceID,
+		protocolID:    s.host.protocolID + blockAnnounceID,
 		getHandshake:  s.getBlockAnnounceHandshake,
-		handshakeData: make(map[peer.ID]*handshakeData),
+		handshakeData: new(sync.Map),
 	}
 	handler := s.createNotificationsMessageHandler(info, s.validateBlockAnnounceHandshake, s.handleBlockAnnounceMessage)
 
@@ -205,8 +207,10 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 
 	err = handler(stream, testHandshake)
 	require.Equal(t, errCannotValidateHandshake, err)
-	require.True(t, info.handshakeData[testPeerID].received)
-	require.False(t, info.handshakeData[testPeerID].validated)
+	data, has := info.getHandshakeData(testPeerID)
+	require.True(t, has)
+	require.True(t, data.received)
+	require.False(t, data.validated)
 
 	// try valid handshake
 	testHandshake = &BlockAnnounceHandshake{
@@ -218,6 +222,8 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 
 	err = handler(stream, testHandshake)
 	require.NoError(t, err)
-	require.True(t, info.handshakeData[testPeerID].received)
-	require.True(t, info.handshakeData[testPeerID].validated)
+	data, has = info.getHandshakeData(testPeerID)
+	require.True(t, has)
+	require.True(t, data.received)
+	require.True(t, data.validated)
 }

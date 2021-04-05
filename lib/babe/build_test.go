@@ -26,9 +26,12 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-
 	log "github.com/ChainSafe/log15"
+	cscale "github.com/centrifuge/go-substrate-rpc-client/v2/scale"
+	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -141,6 +144,113 @@ func TestBuildBlock_ok(t *testing.T) {
 
 	extsBytes := types.ExtrinsicsArrayToBytesArray(extsRes)
 	require.Equal(t, 1, len(extsBytes))
+}
+
+func TestApplyExtrinsic(t *testing.T) {
+	cfg := &ServiceConfig{
+		TransactionState: state.NewTransactionState(),
+		LogLvl:           log.LvlDebug,
+	}
+
+	babeService := createTestService(t, cfg)
+	babeService.epochData.threshold = maxThreshold
+
+	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
+	header, err := types.NewHeader(parentHash, big.NewInt(1), common.Hash{}, common.Hash{}, types.NewEmptyDigest())
+	require.NoError(t, err)
+
+	//initialize block header
+	err = babeService.rt.InitializeBlock(header)
+	require.NoError(t, err)
+
+	ext := types.Extrinsic(common.MustHexToBytes("0x410284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d015a3e258da3ea20581b68fe1264a35d1f62d6a0debb1a44e836375eb9921ba33e3d0f265f2da33c9ca4e10490b03918300be902fcb229f806c9cf99af4cc10f8c0000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a480b00c465f14670"))
+
+	txVal, err := babeService.rt.ValidateTransaction(append([]byte{byte(types.TxnLocal)}, ext...))
+	require.NoError(t, err)
+
+	vtx := transaction.NewValidTransaction(ext, txVal)
+	babeService.transactionState.Push(vtx)
+
+	// apply extrinsic
+	res, err := babeService.rt.ApplyExtrinsic(ext)
+	require.NoError(t, err)
+	// Expected result for valid ApplyExtrinsic is 0, 0
+	require.Equal(t, []byte{0, 0}, res)
+}
+
+func TestBuildAndApplyExtrinsic(t *testing.T) {
+	// TODO (ed) currently skipping this because it's failing on github with error:
+	//  failed to sign with subkey: fork/exec /Users/runner/.local/bin/subkey: exec format error
+	t.Skip()
+	cfg := &ServiceConfig{
+		TransactionState: state.NewTransactionState(),
+		LogLvl:           log.LvlDebug,
+	}
+
+	babeService := createTestService(t, cfg)
+	babeService.epochData.threshold = maxThreshold
+
+	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
+	header, err := types.NewHeader(parentHash, big.NewInt(1), common.Hash{}, common.Hash{}, types.NewEmptyDigest())
+	require.NoError(t, err)
+
+	//initialize block header
+	err = babeService.rt.InitializeBlock(header)
+	require.NoError(t, err)
+
+	// build extrinsic
+	rawMeta, err := babeService.rt.Metadata()
+	require.NoError(t, err)
+	decoded, err := scale.Decode(rawMeta, []byte{})
+	require.NoError(t, err)
+
+	meta := &ctypes.Metadata{}
+	err = ctypes.DecodeFromBytes(decoded.([]byte), meta)
+	require.NoError(t, err)
+
+	rv, err := babeService.rt.Version()
+	require.NoError(t, err)
+
+	bob, err := ctypes.NewAddressFromHexAccountID("0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
+	require.NoError(t, err)
+
+	call, err := ctypes.NewCall(meta, "Balances.transfer", bob, ctypes.NewUCompactFromUInt(123450000000000))
+	require.NoError(t, err)
+
+	// Create the extrinsic
+	ext := ctypes.NewExtrinsic(call)
+	genHash, err := ctypes.NewHashFromHexString("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
+	require.NoError(t, err)
+
+	o := ctypes.SignatureOptions{
+		BlockHash:          genHash,
+		Era:                ctypes.ExtrinsicEra{IsImmortalEra: true},
+		GenesisHash:        genHash,
+		Nonce:              ctypes.NewUCompactFromUInt(uint64(0)),
+		SpecVersion:        ctypes.U32(rv.SpecVersion()),
+		Tip:                ctypes.NewUCompactFromUInt(0),
+		TransactionVersion: ctypes.U32(rv.TransactionVersion()),
+	}
+
+	// Sign the transaction using Alice's default account
+	err = ext.Sign(signature.TestKeyringPairAlice, o)
+	require.NoError(t, err)
+
+	extEnc := bytes.Buffer{}
+	encoder := cscale.NewEncoder(&extEnc)
+	ext.Encode(*encoder)
+
+	txVal, err := babeService.rt.ValidateTransaction(append([]byte{byte(types.TxnLocal)}, extEnc.Bytes()...))
+	require.NoError(t, err)
+
+	vtx := transaction.NewValidTransaction(extEnc.Bytes(), txVal)
+	babeService.transactionState.Push(vtx)
+
+	// apply extrinsic
+	res, err := babeService.rt.ApplyExtrinsic(extEnc.Bytes())
+	require.NoError(t, err)
+	// Expected result for valid ApplyExtrinsic is 0, 0
+	require.Equal(t, []byte{0, 0}, res)
 }
 
 func TestBuildBlock_failing(t *testing.T) {

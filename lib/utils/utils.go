@@ -147,22 +147,6 @@ func KeystoreFilepaths(basepath string) ([]string, error) {
 
 // GetGssmrGenesisRawPath gets the gssmr raw genesis path
 func GetGssmrGenesisRawPath() string {
-	path1 := "../chain/gssmr/genesis-raw.json"
-	path2 := "../../chain/gssmr/genesis-raw.json"
-
-	var fp string
-
-	if PathExists(path1) {
-		fp, _ = filepath.Abs(path1)
-	} else if PathExists(path2) {
-		fp, _ = filepath.Abs(path2)
-	}
-
-	return fp
-}
-
-// GetGssmrGenesisPath gets the gssmr human-readable genesis path
-func GetGssmrGenesisPath() string {
 	path1 := "../chain/gssmr/genesis.json"
 	path2 := "../../chain/gssmr/genesis.json"
 
@@ -177,10 +161,26 @@ func GetGssmrGenesisPath() string {
 	return fp
 }
 
-// GetKsmccGenesisPath gets the ksmcc genesis path
-func GetKsmccGenesisPath() string {
-	path1 := "../chain/ksmcc/genesis.json"
-	path2 := "../../chain/ksmcc/genesis.json"
+// GetGssmrGenesisPath gets the gssmr human-readable genesis path
+func GetGssmrGenesisPath() string {
+	path1 := "../chain/gssmr/genesis-spec.json"
+	path2 := "../../chain/gssmr/genesis-spec.json"
+
+	var fp string
+
+	if PathExists(path1) {
+		fp, _ = filepath.Abs(path1)
+	} else if PathExists(path2) {
+		fp, _ = filepath.Abs(path2)
+	}
+
+	return fp
+}
+
+// GetKusamaGenesisPath gets the kusama genesis path
+func GetKusamaGenesisPath() string {
+	path1 := "../chain/kusama/genesis.json"
+	path2 := "../../chain/kusama/genesis.json"
 
 	var fp string
 

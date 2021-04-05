@@ -26,7 +26,8 @@ var (
 	ChainGetBlockHash            = "chain_getBlockHash"
 
 	// AUTHOR METHODS
-	AuthorSubmitExtrinsic = "author_submitExtrinsic"
+	AuthorSubmitExtrinsic   = "author_submitExtrinsic"
+	AuthorPendingExtrinsics = "author_pendingExtrinsics"
 
 	// STATE METHODS
 	StateGetStorage = "state_getStorage"

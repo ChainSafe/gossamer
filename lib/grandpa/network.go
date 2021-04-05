@@ -98,12 +98,13 @@ func (s *Service) registerProtocol() error {
 		s.validateHandshake,
 		s.decodeMessage,
 		s.handleNetworkMessage,
+		true,
 	)
 }
 
 func (s *Service) getHandshake() (Handshake, error) {
 	return &GrandpaHandshake{
-		Roles: 0, // TODO: are roles returned?
+		Roles: 1, // TODO: don't hard-code this
 	}, nil
 }
 

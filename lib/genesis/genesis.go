@@ -49,7 +49,7 @@ type Data struct {
 
 // Fields stores genesis raw data, and human readable runtime data
 type Fields struct {
-	Raw     map[string]map[string]string      `json:"raw"`
+	Raw     map[string]map[string]string      `json:"raw,omitempty"`
 	Runtime map[string]map[string]interface{} `json:"runtime,omitempty"`
 }
 
@@ -71,4 +71,26 @@ func (g *Genesis) GenesisData() *Data {
 // GenesisFields returns the genesis fields including genesis raw data
 func (g *Genesis) GenesisFields() Fields {
 	return g.Genesis
+}
+
+// IsRaw returns whether the genesis is raw or not
+func (g *Genesis) IsRaw() bool {
+	return g.Genesis.Raw != nil || g.Genesis.Runtime == nil
+}
+
+// ToRaw converts a non-raw genesis to a raw genesis
+func (g *Genesis) ToRaw() error {
+	if g.IsRaw() {
+		return nil
+	}
+
+	grt := g.Genesis.Runtime
+	res, err := buildRawMap(grt)
+	if err != nil {
+		return err
+	}
+
+	g.Genesis.Raw = make(map[string]map[string]string)
+	g.Genesis.Raw["top"] = res
+	return nil
 }

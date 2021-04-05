@@ -419,8 +419,6 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 	mnemonic, err := crypto.NewBIP39Mnemonic()
 	require.NoError(t, err)
 
-	// TODO: we currently don't provide a seed since the spec says the seed is an optional BIP-39 seed
-	// clarify whether this is a mnemonic or not
 	data := optional.NewBytes(true, []byte(mnemonic))
 	seedData, err := data.Encode()
 	require.NoError(t, err)
@@ -456,7 +454,7 @@ func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
 func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	idData := []byte(keystore.GranName)
+	idData := []byte(keystore.DumyName)
 	ks, _ := inst.ctx.Keystore.GetKeystore(idData)
 	require.Equal(t, 0, ks.Size())
 
@@ -513,7 +511,7 @@ func Test_ext_crypto_ed25519_sign_version_1(t *testing.T) {
 	buf := &bytes.Buffer{}
 	buf.Write(out.([]byte))
 
-	value, err := new(optional.Bytes).Decode(buf)
+	value, err := new(optional.FixedSizeBytes).Decode(buf)
 	require.NoError(t, err)
 
 	ok, err := kp.Public().Verify(msgData, value.Value())
@@ -673,7 +671,7 @@ func Test_ext_crypto_secp256k1_ecdsa_recover_compressed_version_1(t *testing.T) 
 func Test_ext_crypto_sr25519_public_keys_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
-	idData := []byte(keystore.BabeName)
+	idData := []byte(keystore.DumyName)
 	ks, _ := inst.ctx.Keystore.GetKeystore(idData)
 	require.Equal(t, 0, ks.Size())
 
@@ -732,7 +730,7 @@ func Test_ext_crypto_sr25519_sign_version_1(t *testing.T) {
 	buf := &bytes.Buffer{}
 	buf.Write(out.([]byte))
 
-	value, err := new(optional.Bytes).Decode(buf)
+	value, err := new(optional.FixedSizeBytes).Decode(buf)
 	require.NoError(t, err)
 	require.True(t, value.Exists())
 
@@ -1145,230 +1143,6 @@ func Test_ext_storage_append_version_1_again(t *testing.T) {
 	expected, err := scale.Encode([][]byte{testvalue, testvalueAppend})
 	require.NoError(t, err)
 	require.Equal(t, expected, ret)
-}
-
-func TestStartTransaction_ext_storage_set_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
-	// instead of committing the change, it should be stored in the context
-	inst.ctx.TransactionStorageChanges = []*runtime.TransactionStorageChange{}
-
-	testkey := []byte("noot")
-	testvalue := []byte("washere")
-
-	encKey, err := scale.Encode(testkey)
-	require.NoError(t, err)
-	encValue, err := scale.Encode(testvalue)
-	require.NoError(t, err)
-
-	_, err = inst.Exec("rtm_ext_storage_set_version_1", append(encKey, encValue...))
-	require.NoError(t, err)
-
-	val := inst.ctx.Storage.Get(testkey)
-	require.Nil(t, val)
-
-	changes := inst.ctx.TransactionStorageChanges
-	require.Equal(t, 1, len(changes))
-	require.Equal(t, runtime.SetOp, changes[0].Operation)
-	require.Equal(t, testkey, changes[0].Key)
-	require.Equal(t, testvalue, changes[0].Value)
-}
-
-func TestStartTransaction_ext_storage_clear_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
-	inst.ctx.TransactionStorageChanges = []*runtime.TransactionStorageChange{}
-
-	testkey := []byte("noot")
-	inst.ctx.Storage.Set(testkey, []byte{1})
-
-	enc, err := scale.Encode(testkey)
-	require.NoError(t, err)
-
-	_, err = inst.Exec("rtm_ext_storage_clear_version_1", enc)
-	require.NoError(t, err)
-
-	val := inst.ctx.Storage.Get(testkey)
-	require.NotNil(t, val)
-
-	changes := inst.ctx.TransactionStorageChanges
-	require.Equal(t, 1, len(changes))
-	require.Equal(t, runtime.ClearOp, changes[0].Operation)
-	require.Equal(t, testkey, changes[0].Key)
-}
-
-func TestStartTransaction_ext_storage_append_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
-	inst.ctx.TransactionStorageChanges = []*runtime.TransactionStorageChange{}
-
-	testkey := []byte("noot")
-	testvalue := []byte("was")
-	testvalueAppend := []byte("here")
-
-	inst.ctx.Storage.Set(testkey, testvalue)
-
-	encKey, err := scale.Encode(testkey)
-	require.NoError(t, err)
-	encValue, err := scale.Encode(testvalueAppend)
-	require.NoError(t, err)
-
-	// place SCALE encoded value in storage
-	_, err = inst.Exec("rtm_ext_storage_append_version_1", append(encKey, encValue...))
-	require.NoError(t, err)
-
-	val := inst.ctx.Storage.Get(testkey)
-	require.Equal(t, testvalue, val)
-
-	changes := inst.ctx.TransactionStorageChanges
-	require.Equal(t, 1, len(changes))
-	require.Equal(t, runtime.AppendOp, changes[0].Operation)
-	require.Equal(t, testkey, changes[0].Key)
-	require.Equal(t, testvalueAppend, changes[0].Value)
-}
-
-func TestStartTransaction_ext_default_child_storage_clear_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
-	inst.ctx.TransactionStorageChanges = []*runtime.TransactionStorageChange{}
-
-	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
-	require.NoError(t, err)
-
-	err = inst.ctx.Storage.SetChildStorage(testChildKey, testKey, testValue)
-	require.NoError(t, err)
-
-	// Confirm if value is set
-	val, err := inst.ctx.Storage.GetChildStorage(testChildKey, testKey)
-	require.NoError(t, err)
-	require.Equal(t, testValue, val)
-
-	encChildKey, err := scale.Encode(testChildKey)
-	require.NoError(t, err)
-
-	encKey, err := scale.Encode(testKey)
-	require.NoError(t, err)
-
-	_, err = inst.Exec("rtm_ext_default_child_storage_clear_version_1", append(encChildKey, encKey...))
-	require.NoError(t, err)
-
-	val, err = inst.ctx.Storage.GetChildStorage(testChildKey, testKey)
-	require.NoError(t, err)
-	require.NotNil(t, val)
-
-	changes := inst.ctx.TransactionStorageChanges
-	require.Equal(t, 1, len(changes))
-	require.Equal(t, runtime.ClearOp, changes[0].Operation)
-	require.Equal(t, testChildKey, changes[0].KeyToChild)
-	require.Equal(t, testKey, changes[0].Key)
-}
-
-func TestStartTransaction_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
-	inst.ctx.TransactionStorageChanges = []*runtime.TransactionStorageChange{}
-
-	prefix := []byte("key")
-
-	testKeyValuePair := []struct {
-		key   []byte
-		value []byte
-	}{
-		{[]byte("keyOne"), []byte("value1")},
-		{[]byte("keyTwo"), []byte("value2")},
-		{[]byte("keyThree"), []byte("value3")},
-	}
-
-	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
-	require.NoError(t, err)
-
-	for _, kv := range testKeyValuePair {
-		err = inst.ctx.Storage.SetChildStorage(testChildKey, kv.key, kv.value)
-		require.NoError(t, err)
-	}
-
-	// Confirm if value is set
-	keys, err := inst.ctx.Storage.(*storage.TrieState).GetKeysWithPrefixFromChild(testChildKey, prefix)
-	require.NoError(t, err)
-	require.Equal(t, 3, len(keys))
-
-	encChildKey, err := scale.Encode(testChildKey)
-	require.NoError(t, err)
-
-	encPrefix, err := scale.Encode(prefix)
-	require.NoError(t, err)
-
-	_, err = inst.Exec("rtm_ext_default_child_storage_clear_prefix_version_1", append(encChildKey, encPrefix...))
-	require.NoError(t, err)
-
-	keys, err = inst.ctx.Storage.(*storage.TrieState).GetKeysWithPrefixFromChild(testChildKey, prefix)
-	require.NoError(t, err)
-	require.Equal(t, 3, len(keys))
-
-	changes := inst.ctx.TransactionStorageChanges
-	require.Equal(t, 1, len(changes))
-	require.Equal(t, runtime.ClearPrefixOp, changes[0].Operation)
-	require.Equal(t, testChildKey, changes[0].KeyToChild)
-	require.Equal(t, prefix, changes[0].Prefix)
-}
-
-func TestStartTransaction_ext_default_child_storage_set_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
-	inst.ctx.TransactionStorageChanges = []*runtime.TransactionStorageChange{}
-
-	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
-	require.NoError(t, err)
-
-	// Check if value is not set
-	val, err := inst.ctx.Storage.GetChildStorage(testChildKey, testKey)
-	require.NoError(t, err)
-	require.Nil(t, val)
-
-	encChildKey, err := scale.Encode(testChildKey)
-	require.NoError(t, err)
-
-	encKey, err := scale.Encode(testKey)
-	require.NoError(t, err)
-
-	encVal, err := scale.Encode(testValue)
-	require.NoError(t, err)
-
-	_, err = inst.Exec("rtm_ext_default_child_storage_set_version_1", append(append(encChildKey, encKey...), encVal...))
-	require.NoError(t, err)
-
-	val, err = inst.ctx.Storage.GetChildStorage(testChildKey, testKey)
-	require.NoError(t, err)
-	require.Nil(t, val)
-
-	changes := inst.ctx.TransactionStorageChanges
-	require.Equal(t, 1, len(changes))
-	require.Equal(t, runtime.SetOp, changes[0].Operation)
-	require.Equal(t, testChildKey, changes[0].KeyToChild)
-	require.Equal(t, testKey, changes[0].Key)
-	require.Equal(t, testValue, changes[0].Value)
-}
-
-func TestStartTransaction_ext_default_child_storage_storage_kill_version_1(t *testing.T) {
-	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
-	inst.ctx.TransactionStorageChanges = []*runtime.TransactionStorageChange{}
-
-	err := inst.ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
-	require.NoError(t, err)
-
-	// Confirm if value is set
-	child, err := inst.ctx.Storage.GetChild(testChildKey)
-	require.NoError(t, err)
-	require.NotNil(t, child)
-
-	encChildKey, err := scale.Encode(testChildKey)
-	require.NoError(t, err)
-
-	_, err = inst.Exec("rtm_ext_default_child_storage_storage_kill_version_1", encChildKey)
-	require.NoError(t, err)
-
-	child, err = inst.ctx.Storage.GetChild(testChildKey)
-	require.NoError(t, err)
-	require.NotNil(t, child)
-
-	changes := inst.ctx.TransactionStorageChanges
-	require.Equal(t, 1, len(changes))
-	require.Equal(t, runtime.DeleteChildOp, changes[0].Operation)
-	require.Equal(t, testChildKey, changes[0].KeyToChild)
 }
 
 func Test_ext_trie_blake2_256_ordered_root_version_1(t *testing.T) {

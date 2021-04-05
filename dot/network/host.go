@@ -195,6 +195,16 @@ func (h *host) registerStreamHandler(sub protocol.ID, handler func(libp2pnetwork
 	h.h.SetStreamHandler(h.protocolID+sub, handler)
 }
 
+// registerStreamHandlerWithOverwrite registers the stream handler. if overwrite is true, it uses the passed protocol ID
+// for the handler, otherwise it appends the given sub-protocol to the main protocol ID
+func (h *host) registerStreamHandlerWithOverwrite(pid protocol.ID, overwrite bool, handler func(libp2pnetwork.Stream)) {
+	if overwrite {
+		h.h.SetStreamHandler(pid, handler)
+	} else {
+		h.h.SetStreamHandler(h.protocolID+pid, handler)
+	}
+}
+
 // connect connects the host to a specific peer address
 func (h *host) connect(p peer.AddrInfo) (err error) {
 	h.h.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
@@ -225,16 +235,16 @@ func (h *host) bootstrap() {
 
 // send writes the given message to the outbound message stream for the given
 // peer (gets the already opened outbound message stream or opens a new one).
-func (h *host) send(p peer.ID, sub protocol.ID, msg Message) (err error) {
+func (h *host) send(p peer.ID, pid protocol.ID, msg Message) (err error) {
 	// get outbound stream for given peer
-	s := h.getStream(p, sub)
+	s := h.getOutboundStream(p, pid)
 
 	// check if stream needs to be opened
 	if s == nil {
 		// open outbound stream with host protocol id
-		s, err = h.h.NewStream(h.ctx, p, h.protocolID+sub)
+		s, err = h.h.NewStream(h.ctx, p, pid)
 		if err != nil {
-			logger.Trace("failed to open new stream with peer", "peer", p, "sub-protocol", sub, "error", err)
+			logger.Trace("failed to open new stream with peer", "peer", p, "protocol", pid, "error", err)
 			return err
 		}
 
@@ -242,7 +252,7 @@ func (h *host) send(p peer.ID, sub protocol.ID, msg Message) (err error) {
 			"Opened stream",
 			"host", h.id(),
 			"peer", p,
-			"protocol", h.protocolID+sub,
+			"protocol", pid,
 		)
 	}
 
@@ -253,7 +263,7 @@ func (h *host) send(p peer.ID, sub protocol.ID, msg Message) (err error) {
 
 	logger.Trace(
 		"Sent message to peer",
-		"sub-protocol", sub,
+		"protocol", pid,
 		"host", h.id(),
 		"peer", p,
 		"message", msg.String(),
@@ -276,32 +286,10 @@ func (h *host) writeToStream(s libp2pnetwork.Stream, msg Message) error {
 	return err
 }
 
-// broadcast sends a message to each connected peer
-func (h *host) broadcast(msg Message) {
-	for _, p := range h.peers() {
-		err := h.send(p, "", msg)
-		if err != nil {
-			logger.Error("Failed to broadcast message to peer", "peer", p, "error", err)
-		}
-	}
-}
-
-// broadcastExcluding sends a message to each connected peer except specified peer
-func (h *host) broadcastExcluding(msg Message, peer peer.ID) { //nolint
-	for _, p := range h.peers() {
-		if p != peer {
-			err := h.send(p, "", msg)
-			if err != nil {
-				logger.Error("Failed to send message during broadcast", "peer", p, "err", err)
-			}
-		}
-	}
-}
-
-// getStream returns the outbound message stream for the given peer or returns
+// getOutboundStream returns the outbound message stream for the given peer or returns
 // nil if no outbound message stream exists. For each peer, each host opens an
 // outbound message stream and writes to the same stream until closed or reset.
-func (h *host) getStream(p peer.ID, sub protocol.ID) (stream libp2pnetwork.Stream) {
+func (h *host) getOutboundStream(p peer.ID, pid protocol.ID) (stream libp2pnetwork.Stream) {
 	conns := h.h.Network().ConnsToPeer(p)
 
 	// loop through connections (only one for now)
@@ -312,7 +300,7 @@ func (h *host) getStream(p peer.ID, sub protocol.ID) (stream libp2pnetwork.Strea
 		for _, stream := range streams {
 
 			// return stream with matching host protocol id and stream direction outbound
-			if stream.Protocol() == h.protocolID+sub && stream.Stat().Direction == libp2pnetwork.DirOutbound {
+			if stream.Protocol() == pid && stream.Stat().Direction == libp2pnetwork.DirOutbound {
 				return stream
 			}
 		}
@@ -321,8 +309,8 @@ func (h *host) getStream(p peer.ID, sub protocol.ID) (stream libp2pnetwork.Strea
 }
 
 // closeStream closes a stream open to the peer with the given sub-protocol, if it exists.
-func (h *host) closeStream(p peer.ID, sub protocol.ID) {
-	stream := h.getStream(p, sub)
+func (h *host) closeStream(p peer.ID, pid protocol.ID) {
+	stream := h.getOutboundStream(p, pid)
 	if stream != nil {
 		_ = stream.Close()
 	}

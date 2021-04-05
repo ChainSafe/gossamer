@@ -305,7 +305,7 @@ func newTestStateService(t *testing.T) *state.Service {
 }
 
 func newTestGenesisWithTrieAndHeader() (*genesis.Genesis, *trie.Trie, *types.Header) {
-	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis-raw.json")
+	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis.json")
 	if err != nil {
 		panic(err)
 	}

@@ -98,7 +98,7 @@ func dotConfigToToml(dcfg *dot.Config) *ctoml.Config {
 	}
 
 	cfg.Init = ctoml.InitConfig{
-		GenesisRaw: dcfg.Init.GenesisRaw,
+		Genesis: dcfg.Init.Genesis,
 	}
 
 	cfg.Account = ctoml.AccountConfig{

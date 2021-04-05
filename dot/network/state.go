@@ -29,6 +29,8 @@ type BlockState interface {
 	BestBlockNumber() (*big.Int, error)
 	GenesisHash() common.Hash
 	HasBlockBody(common.Hash) (bool, error)
+	GetFinalizedHeader(round, setID uint64) (*types.Header, error)
+	GetHashByNumber(num *big.Int) (common.Hash, error)
 }
 
 // Syncer is implemented by the syncing service
@@ -37,7 +39,7 @@ type Syncer interface {
 	CreateBlockResponse(*BlockRequestMessage) (*BlockResponseMessage, error)
 
 	// ProcessBlockData is called to process BlockData received in a BlockResponseMessage
-	ProcessBlockData(data []*types.BlockData) error
+	ProcessBlockData(data []*types.BlockData) (int, error)
 
 	// HandleBlockAnnounce is called upon receipt of a BlockAnnounceMessage to process it.
 	// If a request needs to be sent to the peer to retrieve the full block, this function will return it.
@@ -45,6 +47,8 @@ type Syncer interface {
 
 	// IsSynced exposes the internal synced state // TODO: use syncQueue for this
 	IsSynced() bool
+
+	SetSyncing(bool)
 }
 
 // TransactionHandler is the interface used by the transactions sub-protocol

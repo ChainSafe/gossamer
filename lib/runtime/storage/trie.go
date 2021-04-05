@@ -17,7 +17,6 @@
 package storage
 
 import (
-	"bytes"
 	"encoding/binary"
 	"sync"
 
@@ -28,8 +27,9 @@ import (
 // TrieState is a wrapper around a transient trie that is used during the course of executing some runtime call.
 // If the execution of the call is successful, the trie will be saved in the StorageState.
 type TrieState struct {
-	t    *trie.Trie
-	lock sync.RWMutex
+	t       *trie.Trie
+	oldTrie *trie.Trie // this is the trie before BeginStorageTransaction is called. set to nil if it isn't called
+	lock    sync.RWMutex
 }
 
 // NewTrieState returns a new TrieState with the given trie
@@ -52,12 +52,35 @@ func (s *TrieState) Trie() *trie.Trie {
 
 // Snapshot creates a new "version" of the trie. The trie before Snapshot is called
 // can no longer be modified, all further changes are on a new "version" of the trie.
-func (s *TrieState) Snapshot() {
-	_ = s.t.Snapshot()
+// It returns the previous version of the trie.
+func (s *TrieState) Snapshot() *trie.Trie {
+	return s.t.Snapshot()
+}
+
+// BeginStorageTransaction begins a new nested storage transaction which will either be committed or rolled back at a later time.
+func (s *TrieState) BeginStorageTransaction() {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.oldTrie = s.t.Snapshot()
+}
+
+// CommitStorageTransaction commits all storage changes made since BeginStorageTransaction was called.
+func (s *TrieState) CommitStorageTransaction() {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.oldTrie = nil
+}
+
+// RollbackStorageTransaction rolls back all storage changes made since BeginStorageTransaction was called.
+func (s *TrieState) RollbackStorageTransaction() {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.t = s.oldTrie
+	s.oldTrie = nil
 }
 
 // Set sets a key-value pair in the trie
-func (s *TrieState) Set(key []byte, value []byte) {
+func (s *TrieState) Set(key, value []byte) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	s.t.Put(key, value)
@@ -101,26 +124,7 @@ func (s *TrieState) Delete(key []byte) {
 func (s *TrieState) NextKey(key []byte) []byte {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
-	keys := s.t.GetKeysWithPrefix([]byte{})
-
-	for i, k := range keys {
-		if i == len(keys)-1 {
-			return nil
-		}
-
-		if bytes.Equal(key, k) {
-			return keys[i+1]
-		}
-
-		// `keys` is already is lexigraphical order, so if k is greater than `key`, it's next
-		if bytes.Compare(k, key) == 1 {
-			return k
-		}
-	}
-
-	// TODO: fix this!!
-	//return s.t.NextKey(key)
-	return nil
+	return s.t.NextKey(key)
 }
 
 // ClearPrefix deletes all key-value pairs from the trie where the key starts with the given prefix

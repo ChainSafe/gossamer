@@ -6,6 +6,7 @@ var (
 )
 
 // BalanceKey returns the storage trie key for the balance of the account with the given public key
+// TODO: deprecate
 func BalanceKey(key [32]byte) ([]byte, error) {
 	accKey := append([]byte("balance:"), key[:]...)
 
@@ -18,6 +19,7 @@ func BalanceKey(key [32]byte) ([]byte, error) {
 }
 
 // NonceKey returns the storage trie key for the nonce of the account with the given public key
+// TODO: deprecate
 func NonceKey(key [32]byte) ([]byte, error) {
 	accKey := append([]byte("nonce:"), key[:]...)
 
