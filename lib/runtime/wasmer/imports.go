@@ -352,21 +352,27 @@ func ext_crypto_ed25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 	message := asMemorySlice(instanceContext, msg)
 	pubKeyData := memory[key : key+32]
 
-	pubKey, err := ed25519.NewPublicKey(pubKeyData)
-	if err != nil {
-		logger.Error("[ext_crypto_ed25519_verify_version_1] failed to create public key")
-		return 0
-	}
-
 	if sigVerifier.IsStarted() {
 		signature := runtime.Signature{
-			PubKey:    pubKey.Encode(),
+			PubKey:    pubKeyData,
 			Sign:      signature,
 			Msg:       message,
 			KeyTypeID: crypto.Ed25519Type,
 		}
-		sigVerifier.Add(&signature)
+
+		err := sigVerifier.Add(&signature)
+		if err != nil {
+			logger.Error("[ext_crypto_ed25519_verify_version_1] failed to add to batch verifier", "error", err)
+			return 0
+		}
+
 		return 1
+	}
+
+	pubKey, err := ed25519.NewPublicKey(pubKeyData)
+	if err != nil {
+		logger.Error("[ext_crypto_ed25519_verify_version_1] failed to create public key")
+		return 0
 	}
 
 	if ok, err := pubKey.Verify(message, signature); err != nil || !ok {
@@ -611,27 +617,33 @@ func ext_crypto_sr25519_verify_version_1(context unsafe.Pointer, sig C.int32_t, 
 
 	message := asMemorySlice(instanceContext, msg)
 	signature := memory[sig : sig+64]
+	pubkey := memory[key : key+32]
 
-	pub, err := sr25519.NewPublicKey(memory[key : key+32])
-	if err != nil {
-		logger.Error("[ext_crypto_sr25519_verify_version_1] invalid sr25519 public key")
-		return 0
-	}
-
-	logger.Debug("[ext_crypto_sr25519_verify_version_1]", "pub", pub.Hex(),
+	logger.Debug("[ext_crypto_sr25519_verify_version_1]", "pub", fmt.Sprintf("0x%x", pubkey),
 		"message", fmt.Sprintf("0x%x", message),
 		"signature", fmt.Sprintf("0x%x", signature),
 	)
 
 	if sigVerifier.IsStarted() {
 		signature := runtime.Signature{
-			PubKey:    pub.Encode(),
+			PubKey:    pubkey,
 			Sign:      signature,
 			Msg:       message,
 			KeyTypeID: crypto.Sr25519Type,
 		}
-		sigVerifier.Add(&signature)
+
+		err := sigVerifier.Add(&signature)
+		if err != nil {
+			logger.Error("[ext_crypto_ed25519_verify_version_1] failed to add to batch verifier", "error", err)
+			return 0
+		}
 		return 1
+	}
+
+	pub, err := sr25519.NewPublicKey(pubkey)
+	if err != nil {
+		logger.Error("[ext_crypto_sr25519_verify_version_1] invalid sr25519 public key")
+		return 0
 	}
 
 	if ok, err := pub.VerifyDeprecated(message, signature); err != nil || !ok {
@@ -654,27 +666,33 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 
 	message := asMemorySlice(instanceContext, msg)
 	signature := memory[sig : sig+64]
+	pubkey := memory[key : key+32]
 
-	pub, err := sr25519.NewPublicKey(memory[key : key+32])
-	if err != nil {
-		logger.Error("[ext_crypto_sr25519_verify_version_2] invalid sr25519 public key")
-		return 0
-	}
-
-	logger.Debug("[ext_crypto_sr25519_verify_version_2]", "pub", pub.Hex(),
+	logger.Debug("[ext_crypto_sr25519_verify_version_2]", "pub", fmt.Sprintf("0x%x", pubkey),
 		"message", fmt.Sprintf("0x%x", message),
 		"signature", fmt.Sprintf("0x%x", signature),
 	)
 
 	if sigVerifier.IsStarted() {
 		signature := runtime.Signature{
-			PubKey:    pub.Encode(),
+			PubKey:    pubkey,
 			Sign:      signature,
 			Msg:       message,
 			KeyTypeID: crypto.Sr25519Type,
 		}
-		sigVerifier.Add(&signature)
+
+		err := sigVerifier.Add(&signature)
+		if err != nil {
+			logger.Error("[ext_crypto_ed25519_verify_version_1] failed to add to batch verifier", "error", err)
+			return 0
+		}
 		return 1
+	}
+
+	pub, err := sr25519.NewPublicKey(pubkey)
+	if err != nil {
+		logger.Error("[ext_crypto_sr25519_verify_version_2] invalid sr25519 public key")
+		return 0
 	}
 
 	if ok, err := pub.Verify(message, signature); err != nil || !ok {

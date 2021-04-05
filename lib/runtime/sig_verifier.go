@@ -97,7 +97,7 @@ func (sv *SignatureVerifier) Add(s *Signature) error {
 	return nil
 }
 
-// Reset reset the signature verifier for reuse.
+// reset resets the signature verifier for reuse.
 func (sv *SignatureVerifier) reset() {
 	sv.Lock()
 	defer sv.Unlock()
