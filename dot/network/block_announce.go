@@ -212,14 +212,6 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 		return errors.New("genesis hash mismatch")
 	}
 
-	// if peer has higher best block than us, begin syncing
-	latestHeader, err := s.blockState.BestBlockHeader()
-	if err != nil {
-		return err
-	}
-
-	bestBlockNum := big.NewInt(int64(bhs.BestBlockNumber))
-
 	np, ok := s.notificationsProtocols[BlockAnnounceMsgType]
 	if !ok {
 		// this should never happen.
@@ -238,6 +230,14 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 	}
 
 	data.handshake = hs
+
+	// if peer has higher best block than us, begin syncing
+	latestHeader, err := s.blockState.BestBlockHeader()
+	if err != nil {
+		return err
+	}
+
+	bestBlockNum := big.NewInt(int64(bhs.BestBlockNumber))
 
 	// check if peer block number is greater than host block number
 	if latestHeader.Number.Cmp(bestBlockNum) >= 0 {

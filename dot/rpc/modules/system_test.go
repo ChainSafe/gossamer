@@ -87,6 +87,10 @@ func (s *mockBlockState) GetFinalizedHeader(_, _ uint64) (*types.Header, error) 
 	return s.BestBlockHeader()
 }
 
+func (s *mockBlockState) GetHashByNumber(_ *big.Int) (common.Hash, error) {
+	return common.Hash{}, nil
+}
+
 type mockTransactionHandler struct{}
 
 func (h *mockTransactionHandler) HandleTransactionMessage(_ *network.TransactionMessage) error {

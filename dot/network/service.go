@@ -304,7 +304,7 @@ func (s *Service) handleConn(conn libp2pnetwork.Conn) {
 	defer info.mapMu.RUnlock()
 
 	peer := conn.RemotePeer()
-	if hsData, has := info.getHandshakeData(peer); !has || !hsData.received {
+	if hsData, has := info.getHandshakeData(peer); !has || !hsData.received { //nolint
 		info.handshakeData.Store(peer, &handshakeData{
 			validated: false,
 		})
@@ -428,6 +428,9 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 
 	info := s.notificationsProtocols[messageID]
 
+	decoder := createDecoder(info, handshakeDecoder, messageDecoder)
+	handlerWithValidate := s.createNotificationsMessageHandler(info, handshakeValidator, messageHandler)
+
 	s.host.registerStreamHandlerWithOverwrite(sub, overwriteProtocol, func(stream libp2pnetwork.Stream) {
 		logger.Trace("received stream", "sub-protocol", sub)
 		conn := stream.Conn()
@@ -437,10 +440,6 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 		}
 
 		p := conn.RemotePeer()
-
-		decoder := createDecoder(info, handshakeDecoder, messageDecoder)
-		handlerWithValidate := s.createNotificationsMessageHandler(info, handshakeValidator, messageHandler)
-
 		s.readStream(stream, p, decoder, handlerWithValidate)
 	})
 
@@ -537,7 +536,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		// decode message based on message type
 		msg, err := decoder(msgBytes[:tot], peer)
 		if err != nil {
-			logger.Trace("Failed to decode message from peer", "peer", peer, "err", err)
+			logger.Trace("failed to decode message from peer", "protocol", stream.Protocol(), "err", err)
 			continue
 		}
 
