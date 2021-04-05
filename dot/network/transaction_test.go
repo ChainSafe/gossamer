@@ -29,9 +29,7 @@ import (
 )
 
 func TestDecodeTransactionHandshake(t *testing.T) {
-	testHandshake := &transactionHandshake{
-		Roles: 4,
-	}
+	testHandshake := &transactionHandshake{}
 
 	enc, err := testHandshake.Encode()
 	require.NoError(t, err)

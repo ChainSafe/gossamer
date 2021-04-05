@@ -187,6 +187,11 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 				logger.Debug("failed to add block to blocktree", "hash", bd.Hash, "error", err)
 			}
 
+			if bd.Justification != nil && bd.Justification.Exists() {
+				logger.Debug("handling Justification...", "number", header.Number, "hash", bd.Hash)
+				s.handleJustification(header, bd.Justification.Value())
+			}
+
 			continue
 		}
 
@@ -251,7 +256,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 			logger.Debug("block processed", "hash", bd.Hash)
 		}
 
-		if bd.Justification != nil && bd.Justification.Exists() {
+		if bd.Justification != nil && bd.Justification.Exists() && header != nil {
 			logger.Debug("handling Justification...", "number", bd.Number(), "hash", bd.Hash)
 			s.handleJustification(header, bd.Justification.Value())
 		}
