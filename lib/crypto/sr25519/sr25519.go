@@ -378,6 +378,7 @@ func (k *PublicKey) Hex() string {
 	return "0x" + h
 }
 
+// Key returns the underlying schnorrkel key
 func (k *PublicKey) Key() *sr25519.PublicKey {
 	return k.key
 }
