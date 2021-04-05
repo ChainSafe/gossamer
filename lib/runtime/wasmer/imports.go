@@ -689,9 +689,7 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 //export ext_crypto_start_batch_verify_version_1
 func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
 	logger.Debug("[ext_crypto_start_batch_verify_version_1] executing...")
-
-	// TODO: fix and re-enable signature verification
-	// beginBatchVerify(context)
+	beginBatchVerify(context)
 }
 
 func beginBatchVerify(context unsafe.Pointer) { //nolint
@@ -709,10 +707,7 @@ func beginBatchVerify(context unsafe.Pointer) { //nolint
 //export ext_crypto_finish_batch_verify_version_1
 func ext_crypto_finish_batch_verify_version_1(context unsafe.Pointer) C.int32_t {
 	logger.Debug("[ext_crypto_finish_batch_verify_version_1] executing...")
-
-	// TODO: fix and re-enable signature verification
-	// return finishBatchVerify(context)
-	return 1
+	return finishBatchVerify(context)
 }
 
 func finishBatchVerify(context unsafe.Pointer) C.int32_t { //nolint

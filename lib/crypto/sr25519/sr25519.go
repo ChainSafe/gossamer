@@ -378,6 +378,10 @@ func (k *PublicKey) Hex() string {
 	return "0x" + h
 }
 
+func (k *PublicKey) Key() *sr25519.PublicKey {
+	return k.key
+}
+
 // AsBytes returns the key as a [PublicKeyLength]byte
 func (k *PublicKey) AsBytes() [PublicKeyLength]byte {
 	return k.key.Encode()

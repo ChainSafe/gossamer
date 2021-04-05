@@ -2,7 +2,7 @@ module github.com/ChainSafe/gossamer
 
 require (
 	github.com/ChainSafe/chaindb v0.1.5-0.20210117220933-15e75f27268f
-	github.com/ChainSafe/go-schnorrkel v0.0.0-20210127175223-0f934d64ecac
+	github.com/ChainSafe/go-schnorrkel v0.0.0-20210222182958-bd440c890782
 	github.com/ChainSafe/log15 v1.0.0
 	github.com/OneOfOne/xxhash v1.2.5
 	github.com/btcsuite/btcutil v1.0.2
@@ -25,6 +25,7 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/gtank/merlin v0.1.1
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d // indirect
+	github.com/hdevalence/ed25519consensus v0.0.0-20210204194344-59a8610d2b87
 	github.com/huin/goupnp v1.0.1-0.20200620063722-49508fba0031 // indirect
 	github.com/ipfs/go-ds-badger2 v0.1.0
 	github.com/jcelliott/lumber v0.0.0-20160324203708-dd349441af25 // indirect
