@@ -70,7 +70,7 @@ func GetInstance() *Handler {
 }
 
 // AddConnections adds connections to telemetry sever
-func (h *Handler) AddConnections(conns []genesis.TelemetryEndpoint) {
+func (h *Handler) AddConnections(conns []*genesis.TelemetryEndpoint) {
 	for _, v := range conns {
 		c, _, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
 		if err != nil {

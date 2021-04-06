@@ -41,7 +41,7 @@ type Data struct {
 	ID                 string
 	ChainType          string
 	Bootnodes          [][]byte
-	TelemetryEndpoints []TelemetryEndpoint
+	TelemetryEndpoints []*TelemetryEndpoint
 	ProtocolID         string
 	Properties         map[string]interface{}
 	ForkBlocks         []string
@@ -104,11 +104,14 @@ func (g *Genesis) ToRaw() error {
 	return nil
 }
 
-func interfaceToTelemetryEndpoint(endpoints []interface{}) []TelemetryEndpoint {
-	var res []TelemetryEndpoint
+func interfaceToTelemetryEndpoint(endpoints []interface{}) []*TelemetryEndpoint {
+	var res []*TelemetryEndpoint
 	for _, v := range endpoints {
 		epi, ok := v.([]interface{})
 		if !ok {
+			continue
+		}
+		if len(epi) != 2 {
 			continue
 		}
 		eps, ok := epi[0].(string)
@@ -119,7 +122,7 @@ func interfaceToTelemetryEndpoint(endpoints []interface{}) []TelemetryEndpoint {
 		if !ok {
 			continue
 		}
-		ep := TelemetryEndpoint{
+		ep := &TelemetryEndpoint{
 			Endpoint:  eps,
 			Verbosity: int(epv),
 		}

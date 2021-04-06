@@ -24,8 +24,8 @@ func TestMain(m *testing.M) {
 
 	time.Sleep(time.Millisecond)
 	// instantiate telemetry to connect to websocket (test) server
-	var testEndpoints []genesis.TelemetryEndpoint
-	var testEndpoint1 = genesis.TelemetryEndpoint{
+	var testEndpoints []*genesis.TelemetryEndpoint
+	var testEndpoint1 = &genesis.TelemetryEndpoint{
 		Endpoint:  "ws://127.0.0.1:8001/",
 		Verbosity: 0,
 	}
