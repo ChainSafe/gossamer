@@ -45,20 +45,20 @@ func TestConfigFromChainFlag(t *testing.T) {
 	}{
 		{
 			"Test gossamer --chain gssmr",
-			[]string{"chain"},
-			[]interface{}{"gssmr"},
+			[]string{"chain", "name"},
+			[]interface{}{"gssmr", dot.GssmrConfig().Global.Name},
 			dot.GssmrConfig(),
 		},
 		{
 			"Test gossamer --chain kusama",
-			[]string{"chain"},
-			[]interface{}{"kusama"},
+			[]string{"chain", "name"},
+			[]interface{}{"kusama", dot.KusamaConfig().Global.Name},
 			dot.KusamaConfig(),
 		},
 		{
 			"Test gossamer --chain polkadot",
-			[]string{"chain"},
-			[]interface{}{"polkadot"},
+			[]string{"chain", "name"},
+			[]interface{}{"polkadot", dot.PolkadotConfig().Global.Name},
 			dot.PolkadotConfig(),
 		},
 	}
