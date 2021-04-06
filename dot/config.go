@@ -77,13 +77,14 @@ type AccountConfig struct {
 
 // NetworkConfig is to marshal/unmarshal toml network config vars
 type NetworkConfig struct {
-	Port        uint32
-	Bootnodes   []string
-	ProtocolID  string
-	NoBootstrap bool
-	NoMDNS      bool
-	MinPeers    int
-	MaxPeers    int
+	Port            uint32
+	Bootnodes       []string
+	ProtocolID      string
+	NoBootstrap     bool
+	NoMDNS          bool
+	MinPeers        int
+	MaxPeers        int
+	PersistentPeers []string
 }
 
 // CoreConfig is to marshal/unmarshal toml core config vars

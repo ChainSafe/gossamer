@@ -550,6 +550,7 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 	cfg.NoMDNS = tomlCfg.NoMDNS
 	cfg.MinPeers = tomlCfg.MinPeers
 	cfg.MaxPeers = tomlCfg.MaxPeers
+	cfg.PersistentPeers = tomlCfg.PersistentPeers
 
 	// check --port flag and update node configuration
 	if port := ctx.GlobalUint(PortFlag.Name); port != 0 {
@@ -581,6 +582,10 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 		cfg.NoMDNS = true
 	}
 
+	if len(cfg.PersistentPeers) == 0 {
+		cfg.PersistentPeers = []string(nil)
+	}
+
 	logger.Debug(
 		"network configuration",
 		"port", cfg.Port,
@@ -590,6 +595,7 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 		"nomdns", cfg.NoMDNS,
 		"minpeers", cfg.MinPeers,
 		"maxpeers", cfg.MaxPeers,
+		"persistent-peers", cfg.PersistentPeers,
 	)
 }
 
