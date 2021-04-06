@@ -36,7 +36,7 @@ func (q *syncQueue) finalizeAtHead() {
 			return
 		}
 
-		head, err := q.s.blockState.BestBlockHeader()
+		head, err := q.s.blockState.BestBlockNumber()
 		if err != nil {
 			continue
 		}
@@ -58,12 +58,6 @@ func (q *syncQueue) finalizeAtHead() {
 		}
 
 		prev = curr
-
-		// no new blocks have been finalized, request block justifications from peers
-		head, err := q.s.blockState.BestBlockNumber()
-		if err != nil {
-			continue
-		}
 
 		start := head.Uint64() - uint64(blockRequestSize)
 		if curr.Number.Uint64() > start {
