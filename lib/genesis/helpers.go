@@ -36,7 +36,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
-// NewGenesisFromJSONRaw parses a JSON formatted genesis-raw file
+// NewGenesisFromJSONRaw parses a JSON formatted genesis file
 func NewGenesisFromJSONRaw(file string) (*Genesis, error) {
 	fp, err := filepath.Abs(file)
 	if err != nil {

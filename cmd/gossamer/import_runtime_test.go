@@ -29,7 +29,7 @@ import (
 )
 
 func TestCreateGenesisWithRuntime(t *testing.T) {
-	defaultGenesisSpecPath = "../../chain/gssmr/genesis.json"
+	defaultGenesisSpecPath = "../../chain/gssmr/genesis-spec.json"
 
 	testCode := []byte("somecode")
 	testHex := common.BytesToHex(testCode)

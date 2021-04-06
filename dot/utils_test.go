@@ -61,7 +61,7 @@ func TestNewTestGenesis(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
-	cfg.Init.GenesisRaw = genFile.Name()
+	cfg.Init.Genesis = genFile.Name()
 }
 
 func TestNewTestGenesisFile(t *testing.T) {

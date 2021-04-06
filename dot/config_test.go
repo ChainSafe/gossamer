@@ -34,7 +34,7 @@ func TestExportConfig(t *testing.T) {
 
 	defer utils.RemoveTestDir(t)
 
-	cfg.Init.GenesisRaw = genFile.Name()
+	cfg.Init.Genesis = genFile.Name()
 
 	err := InitNode(cfg)
 	require.Nil(t, err)

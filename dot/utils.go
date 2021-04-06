@@ -57,7 +57,7 @@ func NewTestGenesis(t *testing.T) *genesis.Genesis {
 	}
 }
 
-// NewTestGenesisRawFile returns a test genesis-raw file using "gssmr" raw data
+// NewTestGenesisRawFile returns a test genesis file using "gssmr" raw data
 func NewTestGenesisRawFile(t *testing.T, cfg *Config) *os.File {
 	dir := utils.NewTestDir(t)
 
