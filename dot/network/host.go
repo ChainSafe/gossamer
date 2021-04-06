@@ -49,13 +49,14 @@ var privateCIDRs = []string{
 
 // host wraps libp2p host with network host configuration and services
 type host struct {
-	ctx        context.Context
-	h          libp2phost.Host
-	dht        *dual.DHT
-	bootnodes  []peer.AddrInfo
-	protocolID protocol.ID
-	cm         *ConnManager
-	ds         *badger.Datastore
+	ctx             context.Context
+	h               libp2phost.Host
+	dht             *dual.DHT
+	bootnodes       []peer.AddrInfo
+	persistentPeers []peer.AddrInfo
+	protocolID      protocol.ID
+	cm              *ConnManager
+	ds              *badger.Datastore
 }
 
 // newHost creates a host wrapper with a new libp2p host instance
@@ -74,6 +75,12 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 
 	// format bootnodes
 	bns, err := stringsToAddrInfos(cfg.Bootnodes)
+	if err != nil {
+		return nil, err
+	}
+
+	// format persistent peers
+	pps, err := stringsToAddrInfos(cfg.PersistentPeers)
 	if err != nil {
 		return nil, err
 	}
@@ -143,16 +150,19 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	// wrap host and DHT service with routed host
 	h = rhost.Wrap(h, dht)
 
-	return &host{
-		ctx:        ctx,
-		h:          h,
-		dht:        dht,
-		bootnodes:  bns,
-		protocolID: pid,
-		cm:         cm,
-		ds:         ds,
-	}, nil
+	host := &host{
+		ctx:             ctx,
+		h:               h,
+		dht:             dht,
+		bootnodes:       bns,
+		protocolID:      pid,
+		cm:              cm,
+		ds:              ds,
+		persistentPeers: pps,
+	}
 
+	cm.host = host
+	return host, nil
 }
 
 // close closes host services and the libp2p host (host services first)
@@ -221,14 +231,15 @@ func (h *host) addToPeerstore(p peer.AddrInfo) {
 // bootstrap connects the host to the configured bootnodes
 func (h *host) bootstrap() {
 	failed := 0
-	for _, addrInfo := range h.bootnodes {
+	all := append(h.bootnodes, h.persistentPeers...)
+	for _, addrInfo := range all {
 		err := h.connect(addrInfo)
 		if err != nil {
 			logger.Debug("failed to bootstrap to peer", "error", err)
 			failed++
 		}
 	}
-	if failed == len(h.bootnodes) {
+	if failed == len(all) {
 		logger.Error("failed to bootstrap to any bootnode")
 	}
 }
