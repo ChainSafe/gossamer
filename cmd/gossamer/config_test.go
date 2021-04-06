@@ -133,8 +133,8 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 	}{
 		{
 			"Test gossamer --config",
-			[]string{"config"},
-			[]interface{}{testCfgFile.Name()},
+			[]string{"config", "name"},
+			[]interface{}{testCfgFile.Name(), testCfg.Global.Name},
 			dot.GlobalConfig{
 				Name:           testCfg.Global.Name,
 				ID:             testCfg.Global.ID,
@@ -146,8 +146,8 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 		},
 		{
 			"Test kusama --chain",
-			[]string{"config", "chain"},
-			[]interface{}{testCfgFile.Name(), "kusama"},
+			[]string{"config", "chain", "name"},
+			[]interface{}{testCfgFile.Name(), "kusama", dot.KusamaConfig().Global.Name},
 			dot.GlobalConfig{
 				Name:           dot.KusamaConfig().Global.Name,
 				ID:             "ksmcc3",
@@ -172,8 +172,8 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 		},
 		{
 			"Test gossamer --basepath",
-			[]string{"config", "basepath"},
-			[]interface{}{testCfgFile.Name(), "test_basepath"},
+			[]string{"config", "basepath", "name"},
+			[]interface{}{testCfgFile.Name(), "test_basepath", testCfg.Global.Name},
 			dot.GlobalConfig{
 				Name:           testCfg.Global.Name,
 				ID:             testCfg.Global.ID,
@@ -185,8 +185,8 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 		},
 		{
 			"Test gossamer --roles",
-			[]string{"config", "roles"},
-			[]interface{}{testCfgFile.Name(), "1"},
+			[]string{"config", "roles", "name"},
+			[]interface{}{testCfgFile.Name(), "1", testCfg.Global.Name},
 			dot.GlobalConfig{
 				Name:           testCfg.Global.Name,
 				ID:             testCfg.Global.ID,
@@ -198,8 +198,8 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 		},
 		{
 			"Test gossamer --publish-metrics",
-			[]string{"config", "publish-metrics"},
-			[]interface{}{testCfgFile.Name(), true},
+			[]string{"config", "publish-metrics", "name"},
+			[]interface{}{testCfgFile.Name(), true, testCfg.Global.Name},
 			dot.GlobalConfig{
 				Name:           testCfg.Global.Name,
 				ID:             testCfg.Global.ID,
@@ -211,8 +211,8 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 		},
 		{
 			"Test gossamer --metrics-port",
-			[]string{"config", "metrics-port"},
-			[]interface{}{testCfgFile.Name(), "9871"},
+			[]string{"config", "metrics-port", "name"},
+			[]interface{}{testCfgFile.Name(), "9871", testCfg.Global.Name},
 			dot.GlobalConfig{
 				Name:           testCfg.Global.Name,
 				ID:             testCfg.Global.ID,
@@ -650,8 +650,8 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 
 	ctx, err := newTestContext(
 		t.Name(),
-		[]string{"config", "genesis"},
-		[]interface{}{testCfgFile.Name(), genFile.Name()},
+		[]string{"config", "genesis", "name"},
+		[]interface{}{testCfgFile.Name(), genFile.Name(), testCfg.Global.Name},
 	)
 	require.Nil(t, err)
 
@@ -702,8 +702,8 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 
 	ctx, err := newTestContext(
 		t.Name(),
-		[]string{"config", "genesis"},
-		[]interface{}{testCfgFile.Name(), ""},
+		[]string{"config", "genesis", "name"},
+		[]interface{}{testCfgFile.Name(), "", testCfg.Global.Name},
 	)
 	require.Nil(t, err)
 
@@ -753,8 +753,8 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 
 	ctx, err := newTestContext(
 		t.Name(),
-		[]string{"config", "genesis"},
-		[]interface{}{testCfgFile.Name(), genFile.Name()},
+		[]string{"config", "genesis", "name"},
+		[]interface{}{testCfgFile.Name(), genFile.Name(), testCfg.Global.Name},
 	)
 	require.Nil(t, err)
 

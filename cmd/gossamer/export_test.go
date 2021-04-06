@@ -122,8 +122,8 @@ func TestExportCommand(t *testing.T) {
 		},
 		{
 			"Test gossamer export --config --genesis --protocol --log --force",
-			[]string{"config", "genesis", "protocol", "force"},
-			[]interface{}{testConfig, genFile.Name(), testProtocol, "true"},
+			[]string{"config", "genesis", "protocol", "force", "name"},
+			[]interface{}{testConfig, genFile.Name(), testProtocol, "true", "Gossamer"},
 			&dot.Config{
 				Global: testCfg.Global,
 				Init: dot.InitConfig{
