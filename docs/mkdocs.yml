@@ -6,6 +6,7 @@ site_description: The Official Documentation for Gossamer | A Go Implementation 
 
 repo_name: chainsafe/gossamer
 repo_url: https://github.com/ChainSafe/gossamer
+edit_uri: edit/development/docs/docs/
 
 # Configuration
 markdown_extensions:
