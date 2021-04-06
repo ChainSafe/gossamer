@@ -36,6 +36,15 @@ func (q *syncQueue) finalizeAtHead() {
 			return
 		}
 
+		head, err := q.s.blockState.BestBlockHeader()
+		if err != nil {
+			continue
+		}
+
+		if head.Int64() < q.goal {
+			continue
+		}
+
 		curr, err := q.s.blockState.GetFinalizedHeader(0, 0)
 		if err != nil {
 			continue
