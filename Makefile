@@ -127,3 +127,10 @@ gossamer: clean
 ## install: install the gossamer binary in $GOPATH/bin
 install:
 	GOBIN=$(GOPATH)/bin go run scripts/ci.go install
+
+build-mkdocs:
+	docker run --rm -it -v ${PWD}:/docs/docs squidfunk/mkdocs-material build
+
+mkdocs:
+	docker run --rm -it -p 8000:8000 -v ${PWD}:/docs/docs squidfunk/mkdocs-material
+
