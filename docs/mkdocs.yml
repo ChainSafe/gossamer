@@ -1,0 +1,79 @@
+# Copyright 2020 ChainSafe Systems
+# SPDX-License-Identifier: LGPL-3.0-only
+
+site_name: Gossamer Docs
+site_description: The Official Documentation for Gossamer | A Go Implementation of the Polkadot Host
+
+repo_name: chainsafe/gossamer
+repo_url: https://github.com/ChainSafe/gossamer
+edit_uri: edit/development/docs/docs/
+
+# Configuration
+markdown_extensions:
+  - meta
+  - admonition
+  - codehilite
+  - toc:
+      permalink: true
+
+theme:
+  name: material
+  palette:
+    primary: pink
+    accent: indigo
+    theme:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: pink
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to dark mode
+
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: pink
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode
+  favicon: ./assets/favicon.ico
+  features:
+    # - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.tabs
+    - navigation.tabs.sticky
+nav:
+  - Getting Started:
+    - Overview: ./index.md
+    - Host Architecture: ./getting-started/overview/host-architecture.md
+    - Package Library: ./getting-started/overview/package-library.md
+    - Installation: ./getting-started/installation.md
+    - General Resources: ./getting-started/resources/general-resources.md
+    - Developer Resources: ./getting-started/resources/developer-resources.md
+  - Usage:
+    - Running Nodes: ./usage/running-nodes.md
+    - Command Line: ./usage/command-line.md
+    - Configuration: ./usage/configuration.md
+    - Import Runtime: ./usage/import-runtime.md
+    - Import State: ./usage/import-state.md
+  - Integrate:
+    - Connect to Polkadot.js: ./integrate/connect-to-polkadot-js.md
+  - Testing and Debugging: 
+    - Test Suite: ./testing-and-debugging/test-suite.md
+    - Debugging: ./testing-and-debugging/debugging.md
+  - Advanced: 
+    - SCALE Examples: ./advanced/scale-examples.md
+  - Contributing: 
+    - Overview: ./contributing.md
+extra_css:
+  - stylesheets/extra.css
+extra:
+  social:
+    - icon: fontawesome/brands/github-alt
+      link: https://github.com/ChainSafe/gossamer
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/ChainSafeth

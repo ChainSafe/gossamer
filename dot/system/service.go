@@ -50,8 +50,8 @@ func (s *Service) SystemVersion() string {
 	return s.systemInfo.SystemVersion
 }
 
-// NodeName returns the nodeName (chain name)
-func (s *Service) NodeName() string {
+// ChainName returns the chain name defined in genesis.json
+func (s *Service) ChainName() string {
 	return s.genesisData.Name
 }
 
