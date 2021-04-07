@@ -64,7 +64,6 @@ func TestMaxPeers(t *testing.T) {
 
 func TestProtectUnprotectPeer(t *testing.T) {
 	cm := newConnManager(1, 4)
-	require.Zero(t, len(cm.protectedPeerMap))
 
 	p1 := peer.ID("a")
 	p2 := peer.ID("b")
