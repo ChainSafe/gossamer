@@ -23,6 +23,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/dgraph-io/ristretto"
 	badger "github.com/ipfs/go-ds-badger2"
 	"github.com/libp2p/go-libp2p"
 	libp2phost "github.com/libp2p/go-libp2p-core/host"
@@ -49,20 +50,18 @@ var privateCIDRs = []string{
 
 // host wraps libp2p host with network host configuration and services
 type host struct {
-	ctx        context.Context
-	h          libp2phost.Host
-	dht        *dual.DHT
-	bootnodes  []peer.AddrInfo
-	protocolID protocol.ID
-	cm         *ConnManager
-	ds         *badger.Datastore
+	ctx          context.Context
+	h            libp2phost.Host
+	dht          *dual.DHT
+	bootnodes    []peer.AddrInfo
+	protocolID   protocol.ID
+	cm           *ConnManager
+	ds           *badger.Datastore
+	messageCache *messageCache
 }
 
 // newHost creates a host wrapper with a new libp2p host instance
 func newHost(ctx context.Context, cfg *Config) (*host, error) {
-	// use "p2p" for multiaddress format
-	ma.SwapToP2pMultiaddrs()
-
 	// create multiaddress (without p2p identity)
 	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", cfg.Port))
 	if err != nil {
@@ -143,14 +142,29 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	// wrap host and DHT service with routed host
 	h = rhost.Wrap(h, dht)
 
+	cacheSize := 64 << 20 // 64 MB
+	config := ristretto.Config{
+		NumCounters: int64(float64(cacheSize) * 0.05 * 2),
+		MaxCost:     int64(float64(cacheSize) * 0.95),
+		BufferItems: 64,
+		Cost: func(value interface{}) int64 {
+			return int64(1)
+		},
+	}
+	msgCache, err := NewMessageCache(config, MsgCacheTTL)
+	if err != nil {
+		return nil, err
+	}
+
 	return &host{
-		ctx:        ctx,
-		h:          h,
-		dht:        dht,
-		bootnodes:  bns,
-		protocolID: pid,
-		cm:         cm,
-		ds:         ds,
+		ctx:          ctx,
+		h:            h,
+		dht:          dht,
+		bootnodes:    bns,
+		protocolID:   pid,
+		cm:           cm,
+		ds:           ds,
+		messageCache: msgCache,
 	}, nil
 
 }
@@ -236,6 +250,17 @@ func (h *host) bootstrap() {
 // send writes the given message to the outbound message stream for the given
 // peer (gets the already opened outbound message stream or opens a new one).
 func (h *host) send(p peer.ID, pid protocol.ID, msg Message) (err error) {
+	if h.messageCache != nil {
+		ok, err := h.messageCache.Put(p, msg.String())
+		if err != nil {
+			return err
+		}
+
+		if !ok {
+			return nil
+		}
+	}
+
 	// get outbound stream for given peer
 	s := h.getOutboundStream(p, pid)
 
