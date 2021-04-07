@@ -85,6 +85,10 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		return nil, err
 	}
 
+	for _, pp := range pps {
+		cm.persistentPeers.Store(pp.ID, struct{}{})
+	}
+
 	// format protocol id
 	pid := protocol.ID(cfg.ProtocolID)
 
