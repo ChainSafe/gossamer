@@ -224,8 +224,8 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 		},
 		{
 			"Test gossamer --no-telemetry",
-			[]string{"config", "no-telemetry"},
-			[]interface{}{testCfgFile.Name(), true},
+			[]string{"config", "no-telemetry", "name"},
+			[]interface{}{testCfgFile.Name(), true, testCfg.Global.Name},
 			dot.GlobalConfig{
 				Name:           testCfg.Global.Name,
 				ID:             testCfg.Global.ID,
