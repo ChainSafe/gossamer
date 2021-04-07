@@ -131,7 +131,7 @@ func (cm *ConnManager) ListenClose(n network.Network, addr ma.Multiaddr) {
 func (cm *ConnManager) unprotectedPeers(peers []peer.ID) []peer.ID {
 	unprot := []peer.ID{}
 	for _, id := range peers {
-		if !cm.IsProtected(id, "") {
+		if !cm.IsProtected(id, "") && !cm.isPersistent(id) {
 			unprot = append(unprot, id)
 		}
 	}
