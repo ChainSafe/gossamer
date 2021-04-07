@@ -222,6 +222,20 @@ func TestGlobalConfigFromFlags(t *testing.T) {
 				MetricsPort:    uint32(9871),
 			},
 		},
+		{
+			"Test gossamer --no-telemetry",
+			[]string{"config", "no-telemetry", "name"},
+			[]interface{}{testCfgFile.Name(), true, testCfg.Global.Name},
+			dot.GlobalConfig{
+				Name:           testCfg.Global.Name,
+				ID:             testCfg.Global.ID,
+				BasePath:       testCfg.Global.BasePath,
+				LogLvl:         log.LvlInfo,
+				PublishMetrics: testCfg.Global.PublishMetrics,
+				MetricsPort:    testCfg.Global.MetricsPort,
+				NoTelemetry:    true,
+			},
+		},
 	}
 
 	for _, c := range testcases {

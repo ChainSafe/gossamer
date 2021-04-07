@@ -98,6 +98,12 @@ var (
 		Name:  "metrics-port",
 		Usage: "Set metric listening port ",
 	}
+
+	// NoTelemetryFlag stops publishing telemetry to default defined in genesis.json
+	NoTelemetryFlag = cli.BoolFlag{
+		Name:  "no-telemetry",
+		Usage: "Disable connecting to the Substrate telemetry server",
+	}
 )
 
 // Initialization-only flags
@@ -295,6 +301,9 @@ var (
 		// metrics flag
 		PublishMetricsFlag,
 		MetricsPortFlag,
+
+		// telemetry flags
+		NoTelemetryFlag,
 	}
 )
 
