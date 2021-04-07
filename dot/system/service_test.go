@@ -24,10 +24,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestService_NodeName(t *testing.T) {
+func TestService_ChainName(t *testing.T) {
 	svc := newTestService()
 
-	name := svc.NodeName()
+	name := svc.ChainName()
 	require.Equal(t, "gssmr", name)
 }
 

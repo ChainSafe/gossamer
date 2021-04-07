@@ -23,21 +23,23 @@ import (
 	"os/signal"
 	"path"
 	"runtime/debug"
+	"strconv"
 	"sync"
 	"syscall"
+	"time"
 
+	"github.com/ChainSafe/chaindb"
 	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/services"
+	log "github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/metrics/prometheus"
-
-	"github.com/ChainSafe/chaindb"
-	log "github.com/ChainSafe/log15"
 )
 
 var logger = log.New("pkg", "dot")
@@ -305,6 +307,28 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	if cfg.Global.PublishMetrics {
 		publishMetrics(cfg)
 	}
+
+	gd, err := stateSrvc.Storage.GetGenesisData()
+	if err != nil {
+		return nil, err
+	}
+
+	if cfg.Global.NoTelemetry {
+		return node, nil
+	}
+
+	telemetry.GetInstance().AddConnections(gd.TelemetryEndpoints)
+	data := &telemetry.ConnectionData{
+		Authority:     cfg.Core.GrandpaAuthority,
+		Chain:         sysSrvc.ChainName(),
+		GenesisHash:   stateSrvc.Block.GenesisHash().String(),
+		SystemName:    sysSrvc.SystemName(),
+		NodeName:      cfg.Global.Name,
+		SystemVersion: sysSrvc.SystemVersion(),
+		NetworkID:     networkSrvc.NetworkState().PeerID,
+		StartTime:     strconv.FormatInt(time.Now().UnixNano(), 10),
+	}
+	telemetry.GetInstance().SendConnection(data)
 
 	return node, nil
 }
