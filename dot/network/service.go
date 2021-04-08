@@ -304,10 +304,10 @@ func (s *Service) handleConn(conn libp2pnetwork.Conn) {
 	defer info.mapMu.RUnlock()
 
 	peer := conn.RemotePeer()
-	if hsData, has := info.handshakeData[peer]; !has || !hsData.received {
-		info.handshakeData[peer] = &handshakeData{
+	if hsData, has := info.getHandshakeData(peer); !has || !hsData.received { //nolint
+		info.handshakeData.Store(peer, &handshakeData{
 			validated: false,
-		}
+		})
 
 		logger.Trace("sending handshake", "protocol", info.protocolID, "peer", peer, "message", hs)
 		err = s.host.send(peer, info.protocolID, hs)
@@ -407,7 +407,7 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 	np := &notificationsProtocol{
 		protocolID:    protocolID,
 		getHandshake:  handshakeGetter,
-		handshakeData: make(map[peer.ID]*handshakeData),
+		handshakeData: new(sync.Map),
 	}
 	s.notificationsProtocols[messageID] = np
 
@@ -416,17 +416,20 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 		np.mapMu.Lock()
 		defer np.mapMu.Unlock()
 
-		if _, ok := np.handshakeData[peerID]; ok {
+		if _, ok := np.getHandshakeData(peerID); ok {
 			logger.Trace(
 				"Cleaning up handshake data",
 				"peer", peerID,
 				"protocol", protocolID,
 			)
-			delete(np.handshakeData, peerID)
+			np.handshakeData.Delete(peerID)
 		}
 	})
 
 	info := s.notificationsProtocols[messageID]
+
+	decoder := createDecoder(info, handshakeDecoder, messageDecoder)
+	handlerWithValidate := s.createNotificationsMessageHandler(info, handshakeValidator, messageHandler)
 
 	s.host.registerStreamHandlerWithOverwrite(sub, overwriteProtocol, func(stream libp2pnetwork.Stream) {
 		logger.Trace("received stream", "sub-protocol", sub)
@@ -437,10 +440,6 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 		}
 
 		p := conn.RemotePeer()
-
-		decoder := createDecoder(info, handshakeDecoder, messageDecoder)
-		handlerWithValidate := s.createNotificationsMessageHandler(info, handshakeValidator, messageHandler)
-
 		s.readStream(stream, p, decoder, handlerWithValidate)
 	})
 
@@ -537,7 +536,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		// decode message based on message type
 		msg, err := decoder(msgBytes[:tot], peer)
 		if err != nil {
-			logger.Trace("Failed to decode message from peer", "peer", peer, "err", err)
+			logger.Trace("failed to decode message from peer", "protocol", stream.Protocol(), "err", err)
 			continue
 		}
 
@@ -625,24 +624,20 @@ func (s *Service) Peers() []common.PeerInfo {
 	peers := []common.PeerInfo{}
 
 	s.notificationsMu.RLock()
-	defer s.notificationsMu.RUnlock()
+	np := s.notificationsProtocols[BlockAnnounceMsgType]
+	s.notificationsMu.RUnlock()
 
 	for _, p := range s.host.peers() {
-		if s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[p] == nil {
+		data, has := np.getHandshakeData(p)
+		if !has || data.handshake == nil {
 			peers = append(peers, common.PeerInfo{
 				PeerID: p.String(),
 			})
 
 			continue
 		}
-		peerHandshakeMessage := s.notificationsProtocols[BlockAnnounceMsgType].handshakeData[p].handshake
-		if peerHandshakeMessage == nil {
-			peers = append(peers, common.PeerInfo{
-				PeerID: p.String(),
-			})
-			continue
-		}
 
+		peerHandshakeMessage := data.handshake
 		peers = append(peers, common.PeerInfo{
 			PeerID:     p.String(),
 			Roles:      peerHandshakeMessage.(*BlockAnnounceHandshake).Roles,
@@ -650,6 +645,7 @@ func (s *Service) Peers() []common.PeerInfo {
 			BestNumber: uint64(peerHandshakeMessage.(*BlockAnnounceHandshake).BestBlockNumber),
 		})
 	}
+
 	return peers
 }
 

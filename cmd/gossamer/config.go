@@ -17,6 +17,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
 	"strconv"
 	"strings"
@@ -32,6 +33,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/life"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmtime"
+	"github.com/cosmos/go-bip39"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
@@ -368,18 +370,18 @@ func setLogConfig(ctx *cli.Context, cfg *ctoml.Config, globalCfg *dot.GlobalConf
 
 // setDotInitConfig sets dot.InitConfig using flag values from the cli context
 func setDotInitConfig(ctx *cli.Context, tomlCfg ctoml.InitConfig, cfg *dot.InitConfig) {
-	if tomlCfg.GenesisRaw != "" {
-		cfg.GenesisRaw = tomlCfg.GenesisRaw
+	if tomlCfg.Genesis != "" {
+		cfg.Genesis = tomlCfg.Genesis
 	}
 
-	// check --genesis-raw flag and update init configuration
-	if genesis := ctx.String(GenesisRawFlag.Name); genesis != "" {
-		cfg.GenesisRaw = genesis
+	// check --genesis flag and update init configuration
+	if genesis := ctx.String(GenesisFlag.Name); genesis != "" {
+		cfg.Genesis = genesis
 	}
 
 	logger.Debug(
 		"init configuration",
-		"genesis-raw", cfg.GenesisRaw,
+		"genesis", cfg.Genesis,
 	)
 }
 
@@ -405,9 +407,17 @@ func setDotGlobalConfig(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.Global
 		cfg.MetricsPort = tomlCfg.Global.MetricsPort
 	}
 
+	// TODO: generate random name if one is not assigned (see issue #1496)
 	// check --name flag and update node configuration
 	if name := ctx.GlobalString(NameFlag.Name); name != "" {
 		cfg.Name = name
+	} else {
+		// generate random name
+		entropy, _ := bip39.NewEntropy(128)
+		randomNamesString, _ := bip39.NewMnemonic(entropy)
+		randomNames := strings.Split(randomNamesString, " ")
+		number := binary.BigEndian.Uint16(entropy)
+		cfg.Name = randomNames[0] + "-" + randomNames[1] + "-" + fmt.Sprint(number)
 	}
 
 	// check --basepath flag and update node configuration
@@ -432,6 +442,8 @@ func setDotGlobalConfig(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.Global
 	if metricsPort := ctx.GlobalUint(MetricsPortFlag.Name); metricsPort != 0 {
 		cfg.MetricsPort = uint32(metricsPort)
 	}
+
+	cfg.NoTelemetry = ctx.Bool("no-telemetry")
 
 	logger.Debug(
 		"global configuration",
@@ -687,21 +699,20 @@ func updateDotConfigFromGenesisJSONRaw(tomlCfg ctoml.Config, cfg *dot.Config) {
 	cfg.Core.BabeAuthority = tomlCfg.Core.Roles == types.AuthorityRole
 	cfg.Core.GrandpaAuthority = tomlCfg.Core.Roles == types.AuthorityRole
 
-	// use default genesis-raw file if genesis configuration not provided, for example,
-	// if we load a toml configuration file without a defined genesis-raw init value or
-	// if we pass an empty string as the genesis init value using the --geneis-raw flag
-	if cfg.Init.GenesisRaw == "" {
-		cfg.Init.GenesisRaw = DefaultCfg().Init.GenesisRaw
+	// use default genesis file if genesis configuration not provided, for example,
+	// if we load a toml configuration file without a defined genesis init value or
+	// if we pass an empty string as the genesis init value using the --genesis flag
+	if cfg.Init.Genesis == "" {
+		cfg.Init.Genesis = DefaultCfg().Init.Genesis
 	}
 
 	// load Genesis from genesis configuration file
-	gen, err := genesis.NewGenesisFromJSONRaw(cfg.Init.GenesisRaw)
+	gen, err := genesis.NewGenesisFromJSONRaw(cfg.Init.Genesis)
 	if err != nil {
 		logger.Error("failed to load genesis from file", "error", err)
 		return // exit
 	}
 
-	cfg.Global.Name = gen.Name
 	cfg.Global.ID = gen.ID
 	cfg.Network.Bootnodes = gen.Bootnodes
 	cfg.Network.ProtocolID = gen.ProtocolID
@@ -733,11 +744,6 @@ func updateDotConfigFromGenesisData(ctx *cli.Context, cfg *dot.Config) error {
 	gen, err := state.LoadGenesisData(db)
 	if err != nil {
 		return fmt.Errorf("failed to load genesis data: %s", err)
-	}
-
-	// check genesis name and use genesis name if --name flag not set
-	if !ctx.GlobalIsSet(NameFlag.Name) {
-		cfg.Global.Name = gen.Name
 	}
 
 	// check genesis id and use genesis id if --chain flag not set

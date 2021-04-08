@@ -185,11 +185,11 @@ func readStream(stream libp2pnetwork.Stream, buf []byte) (int, error) {
 	if err == io.EOF {
 		return 0, err
 	} else if err != nil {
-		return 0, err // TODO: read bytes read from readLEB128ToUint64
+		return 0, err // TODO: return bytes read from readLEB128ToUint64
 	}
 
 	if length == 0 {
-		return 0, err // TODO: read bytes read from readLEB128ToUint64
+		return 0, err // TODO: return bytes read from readLEB128ToUint64
 	}
 
 	// TODO: check if length > len(buf), if so probably log.Crit

@@ -365,3 +365,29 @@ func TestFinalization_DeleteBlock(t *testing.T) {
 		// }
 	}
 }
+
+func TestGetHashByNumber(t *testing.T) {
+	bs := newTestBlockState(t, testGenesisHeader)
+
+	res, err := bs.GetHashByNumber(big.NewInt(0))
+	require.NoError(t, err)
+	require.Equal(t, bs.genesisHash, res)
+
+	header := &types.Header{
+		Number:     big.NewInt(1),
+		Digest:     types.Digest{},
+		ParentHash: testGenesisHeader.Hash(),
+	}
+
+	block := &types.Block{
+		Header: header,
+		Body:   &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+	}
+
+	err = bs.AddBlock(block)
+	require.NoError(t, err)
+
+	res, err = bs.GetHashByNumber(big.NewInt(1))
+	require.NoError(t, err)
+	require.Equal(t, header.Hash(), res)
+}

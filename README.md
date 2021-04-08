@@ -1,5 +1,5 @@
 <div align="center">
-  <img alt="Gossamer logo" src="/docs/assets/img/gossamer_banner.png" width="600" />
+  <img alt="Gossamer logo" src="/docs/docs/assets/img/gossamer_banner.png" width="600" />
 </div>
 <div align="center">
   <a href="https://www.gnu.org/licenses/gpl-3.0">

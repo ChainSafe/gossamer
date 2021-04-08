@@ -54,7 +54,7 @@ func TestInstance_Version_PolkadotRuntime(t *testing.T) {
 }
 
 func TestInstance_Version_KusamaRuntime(t *testing.T) {
-	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/kusama/genesis-raw.json")
+	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/kusama/genesis.json")
 	require.NoError(t, err)
 
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
@@ -409,7 +409,7 @@ func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
 
 func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 	t.Skip() // TODO: fix timestamping issue
-	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis-raw.json")
+	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis.json")
 	require.NoError(t, err)
 
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
@@ -437,7 +437,7 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 }
 
 func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
-	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis-raw.json")
+	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis.json")
 	require.NoError(t, err)
 
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
@@ -490,7 +490,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
-	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/polkadot/genesis-raw.json")
+	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/polkadot/genesis.json")
 	require.NoError(t, err)
 
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
@@ -540,7 +540,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 }
 
 func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
-	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/kusama/genesis-raw.json")
+	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/kusama/genesis.json")
 	require.NoError(t, err)
 
 	genTrie, err := genesis.NewTrieFromGenesis(gen)

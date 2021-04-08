@@ -83,7 +83,7 @@ func NewSystemModule(net NetworkAPI, sys SystemAPI, core CoreAPI,
 
 // Chain returns the runtime chain
 func (sm *SystemModule) Chain(r *http.Request, req *EmptyRequest, res *string) error {
-	*res = sm.systemAPI.NodeName()
+	*res = sm.systemAPI.ChainName()
 	return nil
 }
 
@@ -161,7 +161,7 @@ func (sm *SystemModule) NodeRoles(r *http.Request, req *EmptyRequest, res *[]int
 // AccountNextIndex Returns the next valid index (aka. nonce) for given account.
 func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, res *U64Response) error {
 	if req == nil || len(req.String) == 0 {
-		return errors.New("Account address must be valid")
+		return errors.New("account address must be valid")
 	}
 	addressPubKey := crypto.PublicAddressToByteArray(common.Address(req.String))
 

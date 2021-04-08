@@ -42,9 +42,9 @@ import (
 var testMessageTimeout = time.Second
 
 func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
-	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis-raw.json")
+	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis.json")
 	if err != nil {
-		gen, err = genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis-raw.json")
+		gen, err = genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis.json")
 		require.NoError(t, err)
 	}
 
@@ -260,6 +260,8 @@ func (s *mockSyncer) ProcessBlockData(_ []*types.BlockData) (int, error) {
 func (s *mockSyncer) IsSynced() bool {
 	return false
 }
+
+func (s *mockSyncer) SetSyncing(bool) {}
 
 type mockDigestItem struct { //nolint
 	i int

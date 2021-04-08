@@ -24,12 +24,12 @@ import (
 	"os"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-
 	log "github.com/ChainSafe/log15"
 )
 
@@ -187,6 +187,11 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 				logger.Debug("failed to add block to blocktree", "hash", bd.Hash, "error", err)
 			}
 
+			if bd.Justification != nil && bd.Justification.Exists() {
+				logger.Debug("handling Justification...", "number", header.Number, "hash", bd.Hash)
+				s.handleJustification(header, bd.Justification.Value())
+			}
+
 			continue
 		}
 
@@ -251,7 +256,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 			logger.Debug("block processed", "hash", bd.Hash)
 		}
 
-		if bd.Justification != nil && bd.Justification.Exists() {
+		if bd.Justification != nil && bd.Justification.Exists() && header != nil {
 			logger.Debug("handling Justification...", "number", bd.Number(), "hash", bd.Hash)
 			s.handleJustification(header, bd.Justification.Value())
 		}
@@ -303,7 +308,6 @@ func (s *Service) handleBlock(block *types.Block) error {
 		return err
 	}
 
-	ts.Snapshot()
 	root := ts.MustRoot()
 	if !bytes.Equal(parent.StateRoot[:], root[:]) {
 		panic("parent state root does not match snapshot state root")
@@ -335,6 +339,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 		}
 	} else {
 		logger.Debug("🔗 imported block", "number", block.Header.Number, "hash", block.Header.Hash())
+		telemetry.GetInstance().SendBlockImport(block.Header.Hash().String(), block.Header.Number)
 	}
 
 	// handle consensus digest for authority changes
@@ -411,4 +416,10 @@ func (s *Service) handleDigests(header *types.Header) {
 // IsSynced exposes the synced state
 func (s *Service) IsSynced() bool {
 	return s.synced
+}
+
+// SetSyncing sets whether the node is currently syncing or not
+func (s *Service) SetSyncing(syncing bool) {
+	s.synced = !syncing
+	s.storageState.SetSyncing(syncing)
 }

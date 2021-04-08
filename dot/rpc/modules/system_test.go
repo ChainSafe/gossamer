@@ -63,6 +63,8 @@ func (s *mockSyncer) IsSynced() bool {
 	return false
 }
 
+func (s *mockSyncer) SetSyncing(_ bool) {}
+
 type mockBlockState struct{}
 
 func (s *mockBlockState) BestBlockHeader() (*types.Header, error) {
@@ -83,6 +85,10 @@ func (s *mockBlockState) HasBlockBody(_ common.Hash) (bool, error) {
 
 func (s *mockBlockState) GetFinalizedHeader(_, _ uint64) (*types.Header, error) {
 	return s.BestBlockHeader()
+}
+
+func (s *mockBlockState) GetHashByNumber(_ *big.Int) (common.Hash, error) {
+	return common.Hash{}, nil
 }
 
 type mockTransactionHandler struct{}
@@ -204,10 +210,9 @@ func (api *mockSystemAPI) SystemVersion() string {
 	return api.info.SystemVersion
 }
 
-func (api *mockSystemAPI) NodeName() string {
+func (api *mockSystemAPI) ChainName() string {
 	return api.genData.Name
 }
-
 func (api *mockSystemAPI) Properties() map[string]interface{} {
 	return nil
 }
