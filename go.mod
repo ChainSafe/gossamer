@@ -47,6 +47,7 @@ require (
 	github.com/naoina/toml v0.1.2-0.20170918210437-9fafd6967416
 	github.com/perlin-network/life v0.0.0-20191203030451-05c0e0f7eaea
 	github.com/rs/cors v1.7.0 // indirect
+	github.com/sirupsen/logrus v1.2.0
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.1-0.20200815110645-5c35d600f0ca // indirect
 	github.com/urfave/cli v1.20.0
@@ -57,7 +58,7 @@ require (
 	golang.org/x/net v0.0.0-20200822124328-c89045814202 // indirect
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9 // indirect
 	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c // indirect
-	golang.org/x/tools v0.0.0-20200221224223-e1da425f72fd // indirect
+	golang.org/x/tools v0.0.0-20200221224223-e1da425f72fd
 	google.golang.org/appengine v1.6.5 // indirect
 	google.golang.org/protobuf v1.25.0
 )
