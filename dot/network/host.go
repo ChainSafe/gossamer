@@ -57,7 +57,7 @@ type host struct {
 	protocolID   protocol.ID
 	cm           *ConnManager
 	ds           *badger.Datastore
-	messageCache *messageCache
+	messageCache *MessageCache
 }
 
 // newHost creates a host wrapper with a new libp2p host instance
@@ -250,17 +250,6 @@ func (h *host) bootstrap() {
 // send writes the given message to the outbound message stream for the given
 // peer (gets the already opened outbound message stream or opens a new one).
 func (h *host) send(p peer.ID, pid protocol.ID, msg Message) (err error) {
-	if h.messageCache != nil {
-		ok, err := h.messageCache.Put(p, msg.String())
-		if err != nil {
-			return err
-		}
-
-		if !ok {
-			return nil
-		}
-	}
-
 	// get outbound stream for given peer
 	s := h.getOutboundStream(p, pid)
 

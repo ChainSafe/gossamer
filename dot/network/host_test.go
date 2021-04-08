@@ -19,12 +19,10 @@ package network
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"net"
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -224,76 +222,11 @@ func TestSend(t *testing.T) {
 	require.NoError(t, err)
 
 	time.Sleep(TestMessageTimeout)
-	require.Equal(t, testBlockRequestMessage, handler.messages[nodeA.host.id()])
-}
 
-// test host send duplicate method
-func TestSendDuplicateMessage(t *testing.T) {
-	MsgCacheTTL = 2 * time.Second
-
-	basePathA := utils.NewTestBasePath(t, "nodeA")
-	configA := &Config{
-		BasePath:    basePathA,
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true,
-		NoMDNS:      true,
-	}
-
-	nodeA := createTestService(t, configA)
-	nodeA.noGossip = true
-
-	basePathB := utils.NewTestBasePath(t, "nodeB")
-
-	configB := &Config{
-		BasePath:    basePathB,
-		Port:        7002,
-		RandSeed:    2,
-		NoBootstrap: true,
-		NoMDNS:      true,
-	}
-
-	nodeB := createTestService(t, configB)
-	nodeB.noGossip = true
-	handler := newTestStreamHandler(testBlockAnnounceMessageDecoder)
-	nodeB.host.registerStreamHandler("", handler.handleStream)
-
-	addrInfosB, err := nodeB.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosB[0])
-	// retry connect if "failed to dial" error
-	if failedToDial(err) {
-		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosB[0])
-	}
-	require.NoError(t, err)
-
-	testBlockAnnounce := &BlockAnnounceMessage{
-		ParentHash:     common.Hash{1},
-		Number:         big.NewInt(77),
-		StateRoot:      common.Hash{2},
-		ExtrinsicsRoot: common.Hash{3},
-		Digest:         types.Digest{},
-	}
-
-	for i := 0; i < 5; i++ {
-		err = nodeA.host.send(addrInfosB[0].ID, nodeB.host.protocolID, testBlockAnnounce)
-		require.NoError(t, err)
-	}
-
-	time.Sleep(time.Second)
-	require.Equal(t, 1, len(handler.messages))
-
-	nodeA.host.messageCache = nil
-
-	for i := 0; i < 5; i++ {
-		err = nodeA.host.send(addrInfosB[0].ID, nodeB.host.protocolID, testBlockAnnounce)
-		require.NoError(t, err)
-	}
-
-	time.Sleep(time.Second)
-	require.Equal(t, 5, len(handler.messages))
+	msg, ok := handler.messages[nodeA.host.id()]
+	require.True(t, ok)
+	require.Equal(t, 1, len(msg))
+	require.Equal(t, testBlockRequestMessage, msg[0])
 }
 
 // test host send method with existing stream

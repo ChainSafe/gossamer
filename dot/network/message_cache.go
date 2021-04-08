@@ -8,15 +8,17 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-var MsgCacheTTL = 60 * time.Second
+// MsgCacheTTL is default duration a key-value will be stored in MessageCache.
+var MsgCacheTTL = 5 * time.Minute
 
-type messageCache struct {
+// MessageCache is used to detect duplicated messages per peer.
+type MessageCache struct {
 	cache *ristretto.Cache
 	ttl   time.Duration
 }
 
-// NewMessageCache creates a new messageCache which takes config and TTL duration.
-func NewMessageCache(config ristretto.Config, ttl time.Duration) (*messageCache, error) {
+// NewMessageCache creates a new MessageCache which takes config and TTL duration.
+func NewMessageCache(config ristretto.Config, ttl time.Duration) (*MessageCache, error) {
 	cache, err := ristretto.NewCache(&config)
 	if err != nil {
 		return nil, err
@@ -26,11 +28,11 @@ func NewMessageCache(config ristretto.Config, ttl time.Duration) (*messageCache,
 		ttl = MsgCacheTTL
 	}
 
-	return &messageCache{cache: cache, ttl: ttl}, nil
+	return &MessageCache{cache: cache, ttl: ttl}, nil
 }
 
 // Put appends peer ID, message data and set it to cache with ttl
-func (m *messageCache) Put(peer peer.ID, msg string) (bool, error) {
+func (m *MessageCache) Put(peer peer.ID, msg string) (bool, error) {
 	key, err := generateCacheKey(peer, msg)
 	if err != nil {
 		return false, err
@@ -46,7 +48,7 @@ func (m *messageCache) Put(peer peer.ID, msg string) (bool, error) {
 }
 
 // Exists checks if peer ID, message data exist in cache
-func (m *messageCache) Exists(peer peer.ID, msg string) bool {
+func (m *MessageCache) Exists(peer peer.ID, msg string) bool {
 	key, err := generateCacheKey(peer, msg)
 	if err != nil {
 		return false

@@ -225,18 +225,13 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 	peers := s.host.peers()
 	rand.Shuffle(len(peers), func(i, j int) { peers[i], peers[j] = peers[j], peers[i] })
 
-	for i, peer := range peers { // TODO: check if stream is open, if not, open and send handshake
-		// TODO: configure this and determine ideal ratio, as well as when to use broadcast vs gossip
-		if i > len(peers)/3 {
-			return
-		}
+	info.mapMu.RLock()
+	defer info.mapMu.RUnlock()
 
+	for _, peer := range peers { // TODO: check if stream is open, if not, open and send handshake
 		if peer == excluding {
 			continue
 		}
-
-		info.mapMu.RLock()
-		defer info.mapMu.RUnlock()
 
 		if hsData, has := info.getHandshakeData(peer); !has || !hsData.received {
 			info.handshakeData.Store(peer, &handshakeData{
@@ -247,6 +242,15 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 			logger.Trace("sending handshake", "protocol", info.protocolID, "peer", peer, "message", hs)
 			err = s.host.send(peer, info.protocolID, hs)
 		} else {
+			if s.host.messageCache != nil {
+				var added bool
+				added, err = s.host.messageCache.Put(peer, msg.String())
+				if err != nil || !added {
+					logger.Error("failed to add message to cache", "peer", peer, "error", err)
+					continue
+				}
+			}
+
 			// we've already completed the handshake with the peer, send message directly
 			logger.Trace("sending message", "protocol", info.protocolID, "peer", peer, "message", msg)
 			err = s.host.send(peer, info.protocolID, msg)
