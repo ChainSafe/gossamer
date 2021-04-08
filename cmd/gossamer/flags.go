@@ -98,6 +98,12 @@ var (
 		Name:  "metrics-port",
 		Usage: "Set metric listening port ",
 	}
+
+	// NoTelemetryFlag stops publishing telemetry to default defined in genesis.json
+	NoTelemetryFlag = cli.BoolFlag{
+		Name:  "no-telemetry",
+		Usage: "Disable connecting to the Substrate telemetry server",
+	}
 )
 
 // Initialization-only flags
@@ -230,7 +236,7 @@ var (
 	// ImportRawFlag imports a raw private key
 	ImportRawFlag = cli.StringFlag{
 		Name:  "import-raw",
-		Usage: "Import encrypted keystore file generated with gossamer",
+		Usage: "Import  a raw private key",
 	}
 	// ListFlag List node keys
 	ListFlag = cli.BoolFlag{
@@ -295,6 +301,9 @@ var (
 		// metrics flag
 		PublishMetricsFlag,
 		MetricsPortFlag,
+
+		// telemetry flags
+		NoTelemetryFlag,
 	}
 )
 

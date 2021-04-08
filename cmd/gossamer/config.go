@@ -17,6 +17,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
 	"strconv"
 	"strings"
@@ -32,6 +33,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/life"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmtime"
+	"github.com/cosmos/go-bip39"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
@@ -405,9 +407,17 @@ func setDotGlobalConfig(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.Global
 		cfg.MetricsPort = tomlCfg.Global.MetricsPort
 	}
 
+	// TODO: generate random name if one is not assigned (see issue #1496)
 	// check --name flag and update node configuration
 	if name := ctx.GlobalString(NameFlag.Name); name != "" {
 		cfg.Name = name
+	} else {
+		// generate random name
+		entropy, _ := bip39.NewEntropy(128)
+		randomNamesString, _ := bip39.NewMnemonic(entropy)
+		randomNames := strings.Split(randomNamesString, " ")
+		number := binary.BigEndian.Uint16(entropy)
+		cfg.Name = randomNames[0] + "-" + randomNames[1] + "-" + fmt.Sprint(number)
 	}
 
 	// check --basepath flag and update node configuration
@@ -432,6 +442,8 @@ func setDotGlobalConfig(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.Global
 	if metricsPort := ctx.GlobalUint(MetricsPortFlag.Name); metricsPort != 0 {
 		cfg.MetricsPort = uint32(metricsPort)
 	}
+
+	cfg.NoTelemetry = ctx.Bool("no-telemetry")
 
 	logger.Debug(
 		"global configuration",
@@ -550,6 +562,7 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 	cfg.NoMDNS = tomlCfg.NoMDNS
 	cfg.MinPeers = tomlCfg.MinPeers
 	cfg.MaxPeers = tomlCfg.MaxPeers
+	cfg.PersistentPeers = tomlCfg.PersistentPeers
 
 	// check --port flag and update node configuration
 	if port := ctx.GlobalUint(PortFlag.Name); port != 0 {
@@ -581,6 +594,10 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 		cfg.NoMDNS = true
 	}
 
+	if len(cfg.PersistentPeers) == 0 {
+		cfg.PersistentPeers = []string(nil)
+	}
+
 	logger.Debug(
 		"network configuration",
 		"port", cfg.Port,
@@ -590,6 +607,7 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 		"nomdns", cfg.NoMDNS,
 		"minpeers", cfg.MinPeers,
 		"maxpeers", cfg.MaxPeers,
+		"persistent-peers", cfg.PersistentPeers,
 	)
 }
 
@@ -701,7 +719,6 @@ func updateDotConfigFromGenesisJSONRaw(tomlCfg ctoml.Config, cfg *dot.Config) {
 		return // exit
 	}
 
-	cfg.Global.Name = gen.Name
 	cfg.Global.ID = gen.ID
 	cfg.Network.Bootnodes = gen.Bootnodes
 	cfg.Network.ProtocolID = gen.ProtocolID
@@ -733,11 +750,6 @@ func updateDotConfigFromGenesisData(ctx *cli.Context, cfg *dot.Config) error {
 	gen, err := state.LoadGenesisData(db)
 	if err != nil {
 		return fmt.Errorf("failed to load genesis data: %s", err)
-	}
-
-	// check genesis name and use genesis name if --name flag not set
-	if !ctx.GlobalIsSet(NameFlag.Name) {
-		cfg.Global.Name = gen.Name
 	}
 
 	// check genesis id and use genesis id if --chain flag not set
