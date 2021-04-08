@@ -31,7 +31,7 @@ func NewMessageCache(config ristretto.Config, ttl time.Duration) (*MessageCache,
 	return &MessageCache{cache: cache, ttl: ttl}, nil
 }
 
-// Put appends peer ID, message data and set it to cache with ttl
+// Put appends peer ID and message data and stores it in cache with TTL.
 func (m *MessageCache) Put(peer peer.ID, msg string) (bool, error) {
 	key, err := generateCacheKey(peer, msg)
 	if err != nil {
@@ -47,7 +47,7 @@ func (m *MessageCache) Put(peer peer.ID, msg string) (bool, error) {
 	return ok, nil
 }
 
-// Exists checks if peer ID, message data exist in cache
+// Exists checks if <peer ID, message data> exist in cache.
 func (m *MessageCache) Exists(peer peer.ID, msg string) bool {
 	key, err := generateCacheKey(peer, msg)
 	if err != nil {
