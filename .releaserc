@@ -11,19 +11,6 @@
             }
         ],
         [
-            "@semantic-release/npm",
-            {
-              "npmPublish": false,
-              "tarballDir": "dist"
-           }
-        ],
-        [
-            "@semantic-release/exec",
-            {
-                "prepareCmd": "./prepare-release.sh ${nextRelease.version}"
-            }
-        ],
-        [
             "@semantic-release/git",
             {
                 "assets": [
