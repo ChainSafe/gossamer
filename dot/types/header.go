@@ -38,7 +38,7 @@ type Header struct {
 }
 
 // NewHeader creates a new block header and sets its hash field
-func NewHeader(parentHash common.Hash, number *big.Int, stateRoot common.Hash, extrinsicsRoot common.Hash, digest []DigestItem) (*Header, error) {
+func NewHeader(parentHash, stateRoot, extrinsicsRoot common.Hash, number *big.Int, digest []DigestItem) (*Header, error) {
 	if number == nil {
 		// Hash() will panic if number is nil
 		return nil, errors.New("cannot have nil block number")

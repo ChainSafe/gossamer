@@ -75,7 +75,7 @@ func confirmMessage(msg string) bool {
 	fmt.Print("> ")
 	for {
 		text, _ := reader.ReadString('\n')
-		text = strings.Replace(text, "\n", "", -1)
+		text = strings.ReplaceAll(text, "\n", "")
 		return strings.Compare("Y", text) == 0
 	}
 }

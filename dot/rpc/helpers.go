@@ -34,8 +34,8 @@ func LocalhostFilter() *ipfilter.IPFilter {
 
 // LocalRequestOnly HTTP handler to restrict to only local connections
 func LocalRequestOnly(r *rpc.RequestInfo, i interface{}) error {
-	ip, _, error := net.SplitHostPort(r.Request.RemoteAddr)
-	if error != nil {
+	ip, _, err := net.SplitHostPort(r.Request.RemoteAddr)
+	if err != nil {
 		return errors.New("unable to parse IP")
 	}
 	f := LocalhostFilter()

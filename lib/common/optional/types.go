@@ -244,7 +244,7 @@ type Boolean struct {
 }
 
 // NewBoolean returns a new optional.Boolean
-func NewBoolean(exists bool, value bool) *Boolean {
+func NewBoolean(exists, value bool) *Boolean {
 	return &Boolean{
 		exists: exists,
 		value:  value,

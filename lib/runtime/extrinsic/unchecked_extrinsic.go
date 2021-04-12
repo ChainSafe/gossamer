@@ -192,7 +192,7 @@ type payload struct {
 	AdditionSigned interface{}
 }
 
-func buildPayload(fnc *Function, extra interface{}, additional interface{}) payload {
+func buildPayload(fnc *Function, extra, additional interface{}) payload {
 	return payload{
 		Function:       *fnc,
 		Extra:          extra,

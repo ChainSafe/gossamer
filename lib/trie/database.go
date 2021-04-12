@@ -53,8 +53,7 @@ func (t *Trie) store(db chaindb.Batch, curr node) error {
 		return err
 	}
 
-	switch c := curr.(type) {
-	case *branch:
+	if c, ok := curr.(*branch); ok {
 		for _, child := range c.children {
 			if child == nil {
 				continue
@@ -98,8 +97,7 @@ func (t *Trie) Load(db chaindb.Database, root common.Hash) error {
 }
 
 func (t *Trie) load(db chaindb.Database, curr node) error {
-	switch c := curr.(type) {
-	case *branch:
+	if c, ok := curr.(*branch); ok {
 		for i, child := range c.children {
 			if child == nil {
 				continue
@@ -253,8 +251,7 @@ func (t *Trie) writeDirty(db chaindb.Batch, curr node) error {
 		return err
 	}
 
-	switch c := curr.(type) {
-	case *branch:
+	if c, ok := curr.(*branch); ok {
 		for _, child := range c.children {
 			if child == nil {
 				continue

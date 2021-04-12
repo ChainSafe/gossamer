@@ -75,7 +75,7 @@ func NewGlobalKeystore() *GlobalKeystore {
 
 // GetKeystore returns a keystore given its name
 func (k *GlobalKeystore) GetKeystore(name []byte) (Keystore, error) {
-	nameStr := Name(name[:])
+	nameStr := Name(name)
 	switch nameStr {
 	case BabeName:
 		return k.Babe, nil
