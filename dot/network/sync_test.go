@@ -425,9 +425,10 @@ func TestSyncQueue_SyncAtHead(t *testing.T) {
 	q.stop()
 	time.Sleep(time.Second)
 	q.ctx = context.Background()
+	q.slotDuration = time.Millisecond * 100
 
 	go q.syncAtHead()
-	time.Sleep(time.Millisecond * 6100)
+	time.Sleep(q.slotDuration * 3)
 	select {
 	case req := <-q.requestCh:
 		require.Equal(t, uint64(2), req.req.StartingBlock.Uint64())
