@@ -18,6 +18,7 @@ package network
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"sort"
@@ -29,6 +30,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 
+	"github.com/ChainSafe/chaindb"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
@@ -692,14 +694,14 @@ func (q *syncQueue) handleBlockJustification(data []*types.BlockData) {
 }
 
 func (q *syncQueue) handleBlockData(data []*types.BlockData) {
-	bestNum, err := q.s.blockState.BestBlockNumber()
+	finalized, err := q.s.blockState.GetFinalizedHeader(0, 0)
 	if err != nil {
 		panic(err) // TODO: don't panic but try again. seems blockState needs better concurrency handling
 	}
 
 	end := data[len(data)-1].Number().Int64()
-	if end <= bestNum.Int64() {
-		logger.Debug("ignoring block data that is below our head", "got", end, "head", bestNum.Int64())
+	if end <= finalized.Number.Int64() {
+		logger.Debug("ignoring block data that is below our head", "got", end, "head", finalized.Number.Int64())
 		q.pushRequest(uint64(end+1), blockRequestBufferSize, "")
 		return
 	}
@@ -739,7 +741,7 @@ func (q *syncQueue) handleBlockData(data []*types.BlockData) {
 func (q *syncQueue) handleBlockDataFailure(idx int, err error, data []*types.BlockData) {
 	logger.Warn("failed to handle block data", "failed on block", q.currStart+int64(idx), "error", err)
 
-	if err.Error() == "failed to get parent hash: Key not found" { // TODO: unwrap err
+	if /*err.Error() == "failed to get parent hash: Key not found" ||*/ errors.Is(err, chaindb.ErrKeyNotFound) { // TODO: unwrap err
 		header, err := types.NewHeaderFromOptional(data[idx].Header)
 		if err != nil {
 			logger.Debug("failed to get header from BlockData", "idx", idx, "error", err)
@@ -813,6 +815,8 @@ func (q *syncQueue) handleBlockAnnounce(msg *BlockAnnounceMessage, from peer.ID)
 		return
 	}
 
+	// TODO: if we're at the head, this should request by hash instead of number, since there will
+	// certainly be blocks with the same number.
 	q.pushRequest(uint64(bestNum.Int64()+1), blockRequestBufferSize, from)
 }
 

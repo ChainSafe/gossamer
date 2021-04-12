@@ -326,7 +326,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 	if err != nil {
 		return err
 	}
-	logger.Info("executed block and stored resulting state", "state root", ts.MustRoot())
+	logger.Trace("executed block and stored resulting state", "state root", ts.MustRoot())
 
 	// TODO: batch writes in AddBlock
 	err = s.blockState.AddBlock(block)
