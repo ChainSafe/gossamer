@@ -30,6 +30,10 @@ import (
 	ma "github.com/multiformats/go-multiaddr"
 )
 
+var (
+	maxRetries = 12
+)
+
 // ConnManager implements connmgr.ConnManager
 type ConnManager struct {
 	sync.Mutex
@@ -192,16 +196,15 @@ func (cm *ConnManager) Disconnected(n network.Network, c network.Conn) {
 		Addrs: addrs,
 	}
 
-	var maxRetries = 12
 	for i := 0; i < maxRetries; i++ {
 		err := cm.host.connect(info)
 		if err != nil {
 			logger.Warn("failed to reconnect to persistent peer", "peer", c.RemotePeer(), "error", err)
-		} else {
-			return
+			time.Sleep(time.Minute)
+			continue
 		}
 
-		time.Sleep(time.Second * 10)
+		return
 	}
 
 	// TODO: if number of peers falls below the min desired peer count, we should try to connect to previously discovered peers

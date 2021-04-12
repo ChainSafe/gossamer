@@ -145,7 +145,7 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 
 	network.syncQueue = newSyncQueue(network)
-
+	network.noGossip = true // TODO: remove once duplicate message sending is merged
 	return network, err
 }
 

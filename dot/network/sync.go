@@ -182,7 +182,7 @@ func (q *syncQueue) syncAtHead() {
 	for {
 		select {
 		// sleep for average block time TODO: make this configurable from slot duration
-		case <-time.After(q.slotDuration):
+		case <-time.After(q.slotDuration * 2):
 		case <-q.ctx.Done():
 			return
 		}
@@ -793,7 +793,6 @@ func (q *syncQueue) handleBlockAnnounce(msg *BlockAnnounceMessage, from peer.ID)
 		return
 	}
 
-	logger.Debug("received BlockAnnounce!", "number", msg.Number, "hash", header.Hash(), "from", from)
 	has, _ := q.s.blockState.HasBlockBody(header.Hash())
 	if has {
 		return
@@ -803,13 +802,14 @@ func (q *syncQueue) handleBlockAnnounce(msg *BlockAnnounceMessage, from peer.ID)
 		return
 	}
 
+	q.goal = header.Number.Int64()
+
 	bestNum, err := q.s.blockState.BestBlockNumber()
 	if err != nil {
 		logger.Error("failed to get best block number", "error", err)
 		return
 	}
 
-	q.goal = header.Number.Int64()
 	q.pushRequest(uint64(bestNum.Int64()+1), blockRequestBufferSize, from)
 }
 
