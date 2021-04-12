@@ -279,7 +279,7 @@ func (s *Service) logPeerCount() {
 	}
 }
 
-func (s *Service) handleConn(conn libp2pnetwork.Conn) {
+func (s *Service) handleConn(conn libp2pnetwork.Conn) { //nolint
 	// give new peers a slight weight
 	s.syncQueue.updatePeerScore(conn.RemotePeer(), 1)
 

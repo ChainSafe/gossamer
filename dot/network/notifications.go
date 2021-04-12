@@ -179,7 +179,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			// if we are the initiator, send the message
 			if hsData, has := info.getHandshakeData(peer); has && hsData.validated && hsData.received && hsData.outboundMsg != nil {
 				logger.Trace("sender: sending message", "protocol", info.protocolID)
-				err := s.host.send(peer, info.protocolID, hsData.outboundMsg)
+				err := s.host.writeToStream(stream, hsData.outboundMsg)
 				if err != nil {
 					logger.Debug("failed to send message", "protocol", info.protocolID, "peer", peer, "error", err)
 					return err
@@ -204,6 +204,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 		if !s.noGossip {
 			seen := s.gossip.hasSeen(msg)
 			if !seen {
+				// TODO: update this to write to stream
 				s.broadcastExcluding(info, peer, msg)
 			}
 		}
