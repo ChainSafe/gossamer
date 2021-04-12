@@ -28,6 +28,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
 )
@@ -501,7 +502,7 @@ func TestSyncQueue_handleBlockDataFailure_MissingParent(t *testing.T) {
 	q.ctx = context.Background()
 
 	data := testBlockResponseMessage().BlockData
-	q.handleBlockDataFailure(0, fmt.Errorf("failed to get parent hash: Key not found"), data)
+	q.handleBlockDataFailure(0, fmt.Errorf("some error: %w", chaindb.ErrKeyNotFound), data)
 	select {
 	case req := <-q.requestCh:
 		require.True(t, req.req.StartingBlock.IsHash())
