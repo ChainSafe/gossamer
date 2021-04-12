@@ -147,6 +147,7 @@ func NewGenesisSpecFromJSON(file string) (*Genesis, error) {
 	g := new(Genesis)
 
 	err = json.Unmarshal(data, g)
+
 	if err != nil {
 		return nil, err
 	}

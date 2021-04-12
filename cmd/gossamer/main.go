@@ -353,6 +353,7 @@ func buildSpecAction(ctx *cli.Context) error {
 	}
 
 	var bs *dot.BuildSpec
+
 	if genesis := ctx.String(GenesisSpecFlag.Name); genesis != "" {
 		bspec, e := dot.BuildFromGenesis(genesis, 0)
 		if e != nil {
@@ -378,18 +379,24 @@ func buildSpecAction(ctx *cli.Context) error {
 	if bs == nil {
 		return fmt.Errorf("error building genesis")
 	}
-	res := []byte{} //nolint
+
+	var res []byte
+
 	if ctx.Bool(RawFlag.Name) {
 		res, err = bs.ToJSONRaw()
 	} else {
 		res, err = bs.ToJSON()
 	}
+
 	if err != nil {
 		return err
 	}
-	// TODO implement --output flag so that user can specify redirecting output a file.
-	//   then this can be removed (See issue #1029)
-	fmt.Printf("%s", res)
+
+	if outputPath := ctx.String(OutputSpecFlag.Name); outputPath != "" {
+		dot.WriteConfig(res, outputPath)
+	} else {
+		fmt.Printf("%s", res)
+	}
 
 	return nil
 }

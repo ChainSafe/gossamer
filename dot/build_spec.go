@@ -35,8 +35,10 @@ func (b *BuildSpec) ToJSON() ([]byte, error) {
 	tmpGen := &genesis.Genesis{
 		Name:       b.genesis.Name,
 		ID:         b.genesis.ID,
+		ChainType:  b.genesis.ChainType,
 		Bootnodes:  b.genesis.Bootnodes,
 		ProtocolID: b.genesis.ProtocolID,
+		Properties: b.genesis.Properties,
 		Genesis: genesis.Fields{
 			Runtime: b.genesis.GenesisFields().Runtime,
 		},
@@ -52,6 +54,7 @@ func (b *BuildSpec) ToJSONRaw() ([]byte, error) {
 		ChainType:  b.genesis.ChainType,
 		Bootnodes:  b.genesis.Bootnodes,
 		ProtocolID: b.genesis.ProtocolID,
+		Properties: b.genesis.Properties,
 		Genesis: genesis.Fields{
 			Raw: b.genesis.GenesisFields().Raw,
 		},
