@@ -212,7 +212,7 @@ func (s *Service) Start() error {
 	}
 
 	// since this opens block announce streams, it should happen after the protocol is registered
-	//s.host.h.Network().SetConnHandler(s.handleConn)
+	s.host.h.Network().SetConnHandler(s.handleConn)
 
 	// log listening addresses to console
 	for _, addr := range s.host.multiaddrs() {
@@ -279,42 +279,10 @@ func (s *Service) logPeerCount() {
 	}
 }
 
-func (s *Service) handleConn(conn libp2pnetwork.Conn) { //nolint
+func (s *Service) handleConn(conn libp2pnetwork.Conn) {
 	// give new peers a slight weight
+	// TODO: do this once handshake is received
 	s.syncQueue.updatePeerScore(conn.RemotePeer(), 1)
-
-	s.notificationsMu.Lock()
-	defer s.notificationsMu.Unlock()
-
-	info, has := s.notificationsProtocols[BlockAnnounceMsgType]
-	if !has {
-		// this shouldn't happen
-		logger.Warn("block announce protocol is not yet registered!")
-		return
-	}
-
-	// open block announce substream
-	hs, err := info.getHandshake()
-	if err != nil {
-		logger.Warn("failed to get handshake", "protocol", blockAnnounceID, "error", err)
-		return
-	}
-
-	info.mapMu.RLock()
-	defer info.mapMu.RUnlock()
-
-	peer := conn.RemotePeer()
-	if hsData, has := info.getHandshakeData(peer); !has || !hsData.received { //nolint
-		info.handshakeData.Store(peer, &handshakeData{
-			validated: false,
-		})
-
-		logger.Trace("sending handshake", "protocol", info.protocolID, "peer", peer, "message", hs)
-		err = s.host.send(peer, info.protocolID, hs)
-		if err != nil {
-			logger.Trace("failed to send block announce handshake to peer", "peer", peer, "error", err)
-		}
-	}
 }
 
 func (s *Service) beginDiscovery() error {
@@ -526,17 +494,12 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 	for {
 		tot, err := readStream(stream, msgBytes)
 		if err == io.EOF {
-			if tot != 0 {
-				logger.Debug("stream EOF", "len", tot, "data", fmt.Sprintf("0x%x", msgBytes[:tot]), "peer", stream.Conn().RemotePeer(), "protocol", stream.Protocol())
-			}
 			continue
 		} else if err != nil {
-			logger.Debug("failed to read from stream", "peer", stream.Conn().RemotePeer(), "protocol", stream.Protocol(), "error", err)
+			logger.Trace("failed to read from stream", "peer", stream.Conn().RemotePeer(), "protocol", stream.Protocol(), "error", err)
 			_ = stream.Close()
 			return
 		}
-
-		logger.Debug("got stream data!", "len", tot, "data", fmt.Sprintf("0x%x", msgBytes[:tot]), "peer", stream.Conn().RemotePeer(), "protocol", stream.Protocol())
 
 		// decode message based on message type
 		msg, err := decoder(msgBytes[:tot], peer)
@@ -546,20 +509,18 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		}
 
 		logger.Trace(
-			"Received message from peer",
+			"received message from peer",
 			"host", s.host.id(),
 			"peer", peer,
 			"msg", msg.String(),
 		)
 
-		//go func() {
 		err = handler(stream, msg)
 		if err != nil {
-			logger.Debug("Failed to handle message from stream", "message", msg, "error", err)
+			logger.Debug("failed to handle message from stream", "message", msg, "error", err)
 			_ = stream.Close()
 			return
 		}
-		//}()
 	}
 }
 
