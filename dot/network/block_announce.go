@@ -56,7 +56,7 @@ func (bm *BlockAnnounceMessage) Type() byte {
 
 // string formats a BlockAnnounceMessage as a string
 func (bm *BlockAnnounceMessage) String() string {
-	return fmt.Sprintf("BlockAnnounceMessage ParentHash=%s Number=%d StateRoot=%sx ExtrinsicsRoot=%s Digest=%v",
+	return fmt.Sprintf("BlockAnnounceMessage ParentHash=%s Number=%d StateRoot=%s ExtrinsicsRoot=%s Digest=%v",
 		bm.ParentHash,
 		bm.Number,
 		bm.StateRoot,
