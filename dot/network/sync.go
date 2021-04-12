@@ -194,6 +194,9 @@ func (q *syncQueue) syncAtHead() {
 
 		// we aren't at the head yet, sleep
 		if curr.Number.Int64() < q.goal && curr.Number.Cmp(prev.Number) > 0 {
+			if q.goal-curr.Number.Int64() < int64(blockRequestSize) {
+				q.s.syncer.SetSyncing(false)
+			}
 			prev = curr
 			continue
 		}

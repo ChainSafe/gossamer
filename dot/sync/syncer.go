@@ -139,18 +139,19 @@ func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) error {
 	}
 
 	// save block header if we don't have it already
-	if !has {
-		err = s.blockState.SetHeader(header)
-		if err != nil {
-			return err
-		}
-		logger.Debug(
-			"saved block header to block state",
-			"number", header.Number,
-			"hash", header.Hash(),
-		)
+	if has {
+		return nil
 	}
 
+	err = s.blockState.SetHeader(header)
+	if err != nil {
+		return err
+	}
+	logger.Debug(
+		"saved block header to block state",
+		"number", header.Number,
+		"hash", header.Hash(),
+	)
 	return nil
 }
 
@@ -325,7 +326,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 	if err != nil {
 		return err
 	}
-	logger.Trace("stored resulting state", "state root", ts.MustRoot())
+	logger.Info("executed block and stored resulting state", "state root", ts.MustRoot())
 
 	// TODO: batch writes in AddBlock
 	err = s.blockState.AddBlock(block)

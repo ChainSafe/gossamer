@@ -100,12 +100,12 @@ func (s *StorageState) pruneKey(keyHeader *types.Header) {
 func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
 	s.lock.Lock()
 	root := ts.MustRoot()
-	if s.syncing {
-		// keep only the trie at the head of the chain when syncing
-		for key := range s.tries {
-			delete(s.tries, key)
-		}
-	}
+	// if s.syncing {
+	// 	// keep only the trie at the head of the chain when syncing
+	// 	for key := range s.tries {
+	// 		delete(s.tries, key)
+	// 	}
+	// }
 	s.tries[root] = ts.Trie()
 	s.lock.Unlock()
 
