@@ -57,7 +57,7 @@ type host struct {
 	protocolID   protocol.ID
 	cm           *ConnManager
 	ds           *badger.Datastore
-	messageCache *MessageCache
+	messageCache *messageCache
 }
 
 // newHost creates a host wrapper with a new libp2p host instance
@@ -151,7 +151,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 			return int64(1)
 		},
 	}
-	msgCache, err := NewMessageCache(config, MsgCacheTTL)
+	msgCache, err := newMessageCache(config, msgCacheTTL)
 	if err != nil {
 		return nil, err
 	}

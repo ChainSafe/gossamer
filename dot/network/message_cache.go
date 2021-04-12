@@ -8,31 +8,31 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-// MsgCacheTTL is default duration a key-value will be stored in MessageCache.
-var MsgCacheTTL = 5 * time.Minute
+// msgCacheTTL is default duration a key-value will be stored in messageCache.
+var msgCacheTTL = 5 * time.Minute
 
-// MessageCache is used to detect duplicated messages per peer.
-type MessageCache struct {
+// messageCache is used to detect duplicated messages per peer.
+type messageCache struct {
 	cache *ristretto.Cache
 	ttl   time.Duration
 }
 
-// NewMessageCache creates a new MessageCache which takes config and TTL duration.
-func NewMessageCache(config ristretto.Config, ttl time.Duration) (*MessageCache, error) {
+// newMessageCache creates a new messageCache which takes config and TTL duration.
+func newMessageCache(config ristretto.Config, ttl time.Duration) (*messageCache, error) {
 	cache, err := ristretto.NewCache(&config)
 	if err != nil {
 		return nil, err
 	}
 
 	if ttl == 0 {
-		ttl = MsgCacheTTL
+		ttl = msgCacheTTL
 	}
 
-	return &MessageCache{cache: cache, ttl: ttl}, nil
+	return &messageCache{cache: cache, ttl: ttl}, nil
 }
 
 // Put appends peer ID and message data and stores it in cache with TTL.
-func (m *MessageCache) Put(peer peer.ID, msg string) (bool, error) {
+func (m *messageCache) Put(peer peer.ID, msg []byte) (bool, error) {
 	key, err := generateCacheKey(peer, msg)
 	if err != nil {
 		return false, err
@@ -48,7 +48,7 @@ func (m *MessageCache) Put(peer peer.ID, msg string) (bool, error) {
 }
 
 // Exists checks if <peer ID, message data> exist in cache.
-func (m *MessageCache) Exists(peer peer.ID, msg string) bool {
+func (m *messageCache) Exists(peer peer.ID, msg []byte) bool {
 	key, err := generateCacheKey(peer, msg)
 	if err != nil {
 		return false
@@ -58,13 +58,8 @@ func (m *MessageCache) Exists(peer peer.ID, msg string) bool {
 	return ok
 }
 
-func generateCacheKey(peer peer.ID, msg string) ([]byte, error) {
-	peerBytes, err := peer.Marshal()
-	if err != nil {
-		return nil, err
-	}
-
-	peerMsgHash, err := common.Blake2bHash(append(peerBytes, msg...))
+func generateCacheKey(peer peer.ID, msg []byte) ([]byte, error) {
+	peerMsgHash, err := common.Blake2bHash(append([]byte(peer), msg...))
 	if err != nil {
 		return nil, err
 	}

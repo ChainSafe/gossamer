@@ -11,7 +11,7 @@ import (
 
 func TestMessageCache(t *testing.T) {
 	cacheSize := 64 << 20 // 64 MB
-	msgCache, err := NewMessageCache(ristretto.Config{
+	msgCache, err := newMessageCache(ristretto.Config{
 		NumCounters: int64(float64(cacheSize) * 0.05 * 2),
 		MaxCost:     int64(float64(cacheSize) * 0.95),
 		BufferItems: 64,
@@ -21,7 +21,7 @@ func TestMessageCache(t *testing.T) {
 	}, 800*time.Millisecond)
 
 	peerID := peer.ID("gossamer")
-	msgData := "testData"
+	msgData := []byte("testData")
 	require.NoError(t, err)
 
 	ok, err := msgCache.Put(peerID, msgData)

@@ -162,7 +162,7 @@ func TestBroadcastMessages(t *testing.T) {
 }
 
 func TestBroadcastDuplicateMessage(t *testing.T) {
-	MsgCacheTTL = 2 * time.Second
+	msgCacheTTL = 2 * time.Second
 
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{

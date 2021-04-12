@@ -243,8 +243,15 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 			err = s.host.send(peer, info.protocolID, hs)
 		} else {
 			if s.host.messageCache != nil {
+				var encMsg []byte
+				encMsg, err = msg.Encode()
+				if err != nil {
+					logger.Error("failed to encode message", "peer", peer, "error", err)
+					continue
+				}
+
 				var added bool
-				added, err = s.host.messageCache.Put(peer, msg.String())
+				added, err = s.host.messageCache.Put(peer, encMsg)
 				if err != nil || !added {
 					logger.Error("failed to add message to cache", "peer", peer, "error", err)
 					continue
