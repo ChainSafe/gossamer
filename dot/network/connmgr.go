@@ -20,6 +20,7 @@ import (
 	"context"
 	"math/rand"
 	"sync"
+	"time"
 
 	"github.com/libp2p/go-libp2p-core/connmgr"
 	"github.com/libp2p/go-libp2p-core/network"
@@ -191,9 +192,16 @@ func (cm *ConnManager) Disconnected(n network.Network, c network.Conn) {
 		Addrs: addrs,
 	}
 
-	err := cm.host.connect(info)
-	if err != nil {
-		logger.Warn("failed to reconnect to persistent peer", "peer", c.RemotePeer(), "error", err)
+	var maxRetries = 12
+	for i := 0; i < maxRetries; i++ {
+		err := cm.host.connect(info)
+		if err != nil {
+			logger.Warn("failed to reconnect to persistent peer", "peer", c.RemotePeer(), "error", err)
+		} else {
+			return
+		}
+
+		time.Sleep(time.Second * 10)
 	}
 
 	// TODO: if number of peers falls below the min desired peer count, we should try to connect to previously discovered peers
@@ -207,7 +215,6 @@ func (cm *ConnManager) registerDisconnectHandler(cb func(peer.ID)) {
 func (cm *ConnManager) OpenedStream(n network.Network, s network.Stream) {
 	logger.Trace(
 		"Opened stream",
-		"host", s.Conn().LocalPeer(),
 		"peer", s.Conn().RemotePeer(),
 		"protocol", s.Protocol(),
 	)
@@ -221,7 +228,6 @@ func (cm *ConnManager) registerCloseHandler(protocolID protocol.ID, cb func(id p
 func (cm *ConnManager) ClosedStream(n network.Network, s network.Stream) {
 	logger.Trace(
 		"Closed stream",
-		"host", s.Conn().LocalPeer(),
 		"peer", s.Conn().RemotePeer(),
 		"protocol", s.Protocol(),
 	)

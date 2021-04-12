@@ -18,6 +18,7 @@ package network
 
 import (
 	"errors"
+	"fmt"
 	"math/rand"
 	"sync"
 
@@ -131,7 +132,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 				err := handshakeValidator(peer, hs)
 				if err != nil {
 					logger.Trace("failed to validate handshake", "protocol", info.protocolID, "peer", peer, "error", err)
-					_ = stream.Conn().Close()
+					//_ = stream.Conn().Close()
 					return errCannotValidateHandshake
 				}
 
@@ -145,13 +146,16 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 					return err
 				}
 
-				err = s.host.send(peer, info.protocolID, resp)
+				enc, _ := resp.Encode()
+
+				err = s.host.writeToStream(stream, resp)
 				if err != nil {
-					logger.Trace("failed to send handshake", "protocol", info.protocolID, "peer", peer, "error", err)
+					logger.Debug("failed to send handshake", "data", fmt.Sprintf("0x%x", enc), "protocol", info.protocolID, "peer", peer, "error", err)
 					_ = stream.Conn().Close()
 					return err
 				}
-				logger.Trace("receiver: sent handshake", "protocol", info.protocolID, "peer", peer)
+				logger.Debug("receiver: sent handshake", "data", fmt.Sprintf("0x%x", enc), "protocol", info.protocolID, "peer", peer)
+				return nil
 			}
 
 			// if we are the initiator and haven't received the handshake already, validate it
@@ -225,6 +229,9 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 	peers := s.host.peers()
 	rand.Shuffle(len(peers), func(i, j int) { peers[i], peers[j] = peers[j], peers[i] })
 
+	info.mapMu.RLock()
+	defer info.mapMu.RUnlock()
+
 	for i, peer := range peers { // TODO: check if stream is open, if not, open and send handshake
 		// TODO: configure this and determine ideal ratio, as well as when to use broadcast vs gossip
 		if i > len(peers)/3 {
@@ -234,9 +241,6 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 		if peer == excluding {
 			continue
 		}
-
-		info.mapMu.RLock()
-		defer info.mapMu.RUnlock()
 
 		if hsData, has := info.getHandshakeData(peer); !has || !hsData.received {
 			info.handshakeData.Store(peer, &handshakeData{
