@@ -18,7 +18,6 @@ package network
 
 import (
 	"errors"
-	"fmt"
 	"math/rand"
 	"sync"
 
