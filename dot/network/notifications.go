@@ -201,7 +201,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 
 		seen := s.gossip.hasSeen(msg)
 		if !seen {
-			// TODO: update this to write to stream
+			// TODO: update this to write to stream w/ handshake established
 			s.broadcastExcluding(info, peer, msg)
 		}
 
@@ -229,12 +229,7 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 	info.mapMu.RLock()
 	defer info.mapMu.RUnlock()
 
-	for i, peer := range peers { // TODO: check if stream is open, if not, open and send handshake
-		// TODO: configure this and determine ideal ratio, as well as when to use broadcast vs gossip
-		if i > len(peers)/3 {
-			return
-		}
-
+	for _, peer := range peers { // TODO: check if stream is open, if not, open and send handshake
 		if peer == excluding {
 			continue
 		}
@@ -248,13 +243,26 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 			logger.Trace("sending handshake", "protocol", info.protocolID, "peer", peer, "message", hs)
 			err = s.host.send(peer, info.protocolID, hs)
 		} else {
+			if s.host.messageCache != nil {
+				var added bool
+				added, err = s.host.messageCache.put(peer, msg)
+				if err != nil {
+					logger.Error("failed to add message to cache", "peer", peer, "error", err)
+					continue
+				}
+
+				if !added {
+					continue
+				}
+			}
+
 			// we've already completed the handshake with the peer, send message directly
 			logger.Trace("sending message", "protocol", info.protocolID, "peer", peer, "message", msg)
 			err = s.host.send(peer, info.protocolID, msg)
 		}
 
 		if err != nil {
-			logger.Error("failed to send message to peer", "peer", peer, "error", err)
+			logger.Debug("failed to send message to peer", "peer", peer, "error", err)
 		}
 	}
 }
