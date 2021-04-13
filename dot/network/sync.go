@@ -791,13 +791,7 @@ func (q *syncQueue) handleBlockAnnounceHandshake(blockNum uint32, from peer.ID) 
 func (q *syncQueue) handleBlockAnnounce(msg *BlockAnnounceMessage, from peer.ID) {
 	q.updatePeerScore(from, 1)
 
-	header, err := types.NewHeader(
-		msg.ParentHash,
-		msg.Number,
-		msg.StateRoot,
-		msg.ExtrinsicsRoot,
-		msg.Digest,
-	)
+	header, err := types.NewHeader(msg.ParentHash, msg.StateRoot, msg.ExtrinsicsRoot, msg.Number, msg.Digest)
 	if err != nil {
 		logger.Error("failed to create header from BlockAnnounce", "error", err)
 		return

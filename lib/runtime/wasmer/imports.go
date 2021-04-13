@@ -1752,7 +1752,7 @@ func toWasmMemory(context wasm.InstanceContext, data []byte) (int64, error) {
 		panic(fmt.Sprintf("length of memory is less than expected, want %d have %d", out+size, len(memory)))
 	}
 
-	copy(memory[out:out+size], data[:])
+	copy(memory[out:out+size], data)
 	return pointerAndSizeToInt64(int32(out), int32(size)), nil
 }
 
@@ -1770,7 +1770,7 @@ func toWasmMemorySized(context wasm.InstanceContext, data []byte, size uint32) (
 	}
 
 	memory := context.Memory().Data()
-	copy(memory[out:out+size], data[:])
+	copy(memory[out:out+size], data)
 
 	return out, nil
 }

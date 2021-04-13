@@ -404,10 +404,8 @@ func (s *Service) playGrandpaRound() error {
 
 		end := start.Add(interval * 2)
 
-		completable, err := s.isCompletable()
-		if err != nil {
-			// ignore, since if round isn't completable then this will continue
-		}
+		// ignore err, since if round isn't completable then this will continue
+		completable, _ := s.isCompletable()
 
 		if time.Since(end) >= 0 || completable {
 			return true
@@ -461,10 +459,8 @@ func (s *Service) playGrandpaRound() error {
 	go s.receiveMessages(func() bool {
 		end := start.Add(interval * 4)
 
-		completable, err := s.isCompletable() //nolint
-		if err != nil {
-			// ignore, since if round isn't completable then this will continue
-		}
+		// ignore err, since if round isn't completable then this will continue
+		completable, _ := s.isCompletable()
 
 		if time.Since(end) >= 0 || completable {
 			return true
