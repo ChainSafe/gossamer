@@ -48,7 +48,7 @@ func TestSeal(t *testing.T) {
 	zeroHash, err := common.HexToHash("0x00")
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(zeroHash, big.NewInt(0), zeroHash, zeroHash, types.Digest{})
+	header, err := types.NewHeader(zeroHash, zeroHash, zeroHash, big.NewInt(0), types.Digest{})
 	require.NoError(t, err)
 
 	encHeader, err := header.Encode()
@@ -156,7 +156,7 @@ func TestApplyExtrinsic(t *testing.T) {
 	babeService.epochData.threshold = maxThreshold
 
 	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
-	header, err := types.NewHeader(parentHash, big.NewInt(1), common.Hash{}, common.Hash{}, types.NewEmptyDigest())
+	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewEmptyDigest())
 	require.NoError(t, err)
 
 	//initialize block header
@@ -191,7 +191,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	babeService.epochData.threshold = maxThreshold
 
 	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
-	header, err := types.NewHeader(parentHash, big.NewInt(1), common.Hash{}, common.Hash{}, types.NewEmptyDigest())
+	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewEmptyDigest())
 	require.NoError(t, err)
 
 	//initialize block header

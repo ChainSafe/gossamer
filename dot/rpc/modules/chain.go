@@ -203,7 +203,7 @@ func (cm *ChainModule) unwindRequest(req interface{}) ([]string, error) {
 			if err != nil {
 				return nil, err
 			}
-			res = append(res, u[:]...)
+			res = append(res, u...)
 		}
 	case interface{}:
 		h, err := cm.lookupHashByInterface(x)
