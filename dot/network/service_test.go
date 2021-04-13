@@ -161,6 +161,75 @@ func TestBroadcastMessages(t *testing.T) {
 	require.NotNil(t, handler.messages[nodeA.host.id()])
 }
 
+func TestBroadcastDuplicateMessage(t *testing.T) {
+	msgCacheTTL = 2 * time.Second
+
+	basePathA := utils.NewTestBasePath(t, "nodeA")
+	configA := &Config{
+		BasePath:    basePathA,
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeA := createTestService(t, configA)
+	defer nodeA.Stop()
+	nodeA.noGossip = true
+
+	basePathB := utils.NewTestBasePath(t, "nodeB")
+	configB := &Config{
+		BasePath:    basePathB,
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeB := createTestService(t, configB)
+	defer nodeB.Stop()
+	nodeB.noGossip = true
+
+	handler := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
+	nodeB.host.registerStreamHandler(blockAnnounceID, handler.handleStream)
+
+	addrInfosB, err := nodeB.host.addrInfos()
+	require.NoError(t, err)
+
+	protocol := nodeA.notificationsProtocols[BlockAnnounceMsgType]
+	protocol.handshakeData.Store(nodeB.host.id(), &handshakeData{
+		received:  true,
+		validated: true,
+	})
+
+	err = nodeA.host.connect(*addrInfosB[0])
+	// retry connect if "failed to dial" error
+	if failedToDial(err) {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(*addrInfosB[0])
+	}
+	require.NoError(t, err)
+
+	// Only one message will be sent.
+	for i := 0; i < 5; i++ {
+		nodeA.SendMessage(testBlockAnnounceMessage)
+	}
+
+	time.Sleep(time.Millisecond * 200)
+	require.Equal(t, 1, len(handler.messages[nodeA.host.id()]))
+
+	nodeA.host.messageCache = nil
+
+	// All 5 message will be sent since cache is disabled.
+	for i := 0; i < 5; i++ {
+		nodeA.SendMessage(testBlockAnnounceMessage)
+		require.NoError(t, err)
+	}
+
+	time.Sleep(time.Millisecond * 200)
+	require.Equal(t, 6, len(handler.messages[nodeA.host.id()]))
+}
+
 func TestService_NodeRoles(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "node")
 	cfg := &Config{
@@ -187,7 +256,7 @@ func TestService_Health(t *testing.T) {
 	require.Equal(t, s.Health().IsSyncing, true)
 	mockSync := s.syncer.(*mockSyncer)
 
-	mockSync.setSyncedState(true)
+	mockSync.SetSyncing(false)
 	require.Equal(t, s.Health().IsSyncing, false)
 }
 
@@ -371,13 +440,13 @@ func TestHandleConn(t *testing.T) {
 	require.Equal(t, 1, aScore)
 
 	infoA := nodeA.notificationsProtocols[BlockAnnounceMsgType]
-	hsDataB, has := infoA.handshakeData[nodeB.host.id()]
+	hsDataB, has := infoA.getHandshakeData(nodeB.host.id())
 	require.True(t, has)
 	require.True(t, hsDataB.received)
 	require.True(t, hsDataB.validated)
 
 	infoB := nodeB.notificationsProtocols[BlockAnnounceMsgType]
-	hsDataA, has := infoB.handshakeData[nodeA.host.id()]
+	hsDataA, has := infoB.getHandshakeData(nodeA.host.id())
 	require.True(t, has)
 	require.True(t, hsDataA.received)
 	require.True(t, hsDataA.validated)

@@ -65,18 +65,18 @@ func (s *mockSyncer) IsSynced() bool {
 	return s.synced
 }
 
-func (s *mockSyncer) setSyncedState(newState bool) {
-	s.synced = newState
+func (s *mockSyncer) SetSyncing(syncing bool) {
+	s.synced = !syncing
 }
 
 type testStreamHandler struct {
-	messages map[peer.ID]Message
+	messages map[peer.ID][]Message
 	decoder  messageDecoder
 }
 
 func newTestStreamHandler(decoder messageDecoder) *testStreamHandler {
 	return &testStreamHandler{
-		messages: make(map[peer.ID]Message),
+		messages: make(map[peer.ID][]Message),
 		decoder:  decoder,
 	}
 }
@@ -93,7 +93,8 @@ func (s *testStreamHandler) handleStream(stream libp2pnetwork.Stream) {
 }
 
 func (s *testStreamHandler) handleMessage(stream libp2pnetwork.Stream, msg Message) error {
-	s.messages[stream.Conn().RemotePeer()] = msg
+	msgs := s.messages[stream.Conn().RemotePeer()]
+	s.messages[stream.Conn().RemotePeer()] = append(msgs, msg)
 	return nil
 }
 

@@ -31,7 +31,7 @@ var EmptyHash, _ = NewEmptyTrie().Hash()
 type Trie struct {
 	generation uint64
 	root       node
-	children   map[common.Hash]*Trie // Used to store the child tries.
+	childTries map[common.Hash]*Trie // Used to store the child tries.
 }
 
 // NewEmptyTrie creates a trie with a nil root
@@ -43,7 +43,7 @@ func NewEmptyTrie() *Trie {
 func NewTrie(root node) *Trie {
 	return &Trie{
 		root:       root,
-		children:   make(map[common.Hash]*Trie),
+		childTries: make(map[common.Hash]*Trie),
 		generation: 0, // Initially zero but increases after every snapshot.
 	}
 }
@@ -53,7 +53,7 @@ func (t *Trie) Snapshot() *Trie {
 	oldTrie := &Trie{
 		generation: t.generation,
 		root:       t.root,
-		children:   t.children,
+		childTries: t.childTries,
 	}
 	t.generation++
 	return oldTrie

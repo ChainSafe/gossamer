@@ -52,8 +52,8 @@ func TestExportCommand(t *testing.T) {
 		expected    *dot.Config
 	}{
 		{
-			"Test gossamer export --config --genesis-raw --basepath --name --log --force",
-			[]string{"config", "genesis-raw", "basepath", "name", "log", "force"},
+			"Test gossamer export --config --genesis --basepath --name --log --force",
+			[]string{"config", "genesis", "basepath", "name", "log", "force"},
 			[]interface{}{testConfig, genFile.Name(), testDir, testName, log.LvlInfo.String(), "true"},
 			&dot.Config{
 				Global: dot.GlobalConfig{
@@ -75,7 +75,7 @@ func TestExportCommand(t *testing.T) {
 					FinalityGadgetLvl: log.LvlInfo,
 				},
 				Init: dot.InitConfig{
-					GenesisRaw: genFile.Name(),
+					Genesis: genFile.Name(),
 				},
 				Account: testCfg.Account,
 				Core:    testCfg.Core,
@@ -90,13 +90,13 @@ func TestExportCommand(t *testing.T) {
 			},
 		},
 		{
-			"Test gossamer export --config --genesis-raw --bootnodes --log --force",
-			[]string{"config", "genesis-raw", "bootnodes", "name", "force"},
+			"Test gossamer export --config --genesis --bootnodes --log --force",
+			[]string{"config", "genesis", "bootnodes", "name", "force"},
 			[]interface{}{testConfig, genFile.Name(), testBootnode, "Gossamer", "true"},
 			&dot.Config{
 				Global: testCfg.Global,
 				Init: dot.InitConfig{
-					GenesisRaw: genFile.Name(),
+					Genesis: genFile.Name(),
 				},
 				Log: dot.LogConfig{
 					CoreLvl:           log.LvlInfo,
@@ -121,13 +121,13 @@ func TestExportCommand(t *testing.T) {
 			},
 		},
 		{
-			"Test gossamer export --config --genesis-raw --protocol --log --force",
-			[]string{"config", "genesis-raw", "protocol", "force"},
-			[]interface{}{testConfig, genFile.Name(), testProtocol, "true"},
+			"Test gossamer export --config --genesis --protocol --log --force",
+			[]string{"config", "genesis", "protocol", "force", "name"},
+			[]interface{}{testConfig, genFile.Name(), testProtocol, "true", "Gossamer"},
 			&dot.Config{
 				Global: testCfg.Global,
 				Init: dot.InitConfig{
-					GenesisRaw: genFile.Name(),
+					Genesis: genFile.Name(),
 				},
 				Log: dot.LogConfig{
 					CoreLvl:           log.LvlInfo,

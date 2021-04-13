@@ -463,7 +463,6 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		return err
 	}
 
-	ts.Snapshot()
 	b.rt.SetContextStorage(ts)
 
 	block, err := b.buildBlock(parent, currentSlot)

@@ -17,7 +17,6 @@
 package core
 
 import (
-	"io"
 	"io/ioutil"
 	"math/big"
 	"testing"
@@ -42,16 +41,16 @@ import (
 var testMessageTimeout = time.Second
 
 func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
-	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis-raw.json")
+	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis.json")
 	if err != nil {
-		gen, err = genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis-raw.json")
+		gen, err = genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis.json")
 		require.NoError(t, err)
 	}
 
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), genTrie.MustHash(), trie.EmptyHash, types.Digest{})
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.Digest{})
 	require.NoError(t, err)
 	return gen, genTrie, genesisHeader
 }
@@ -261,31 +260,7 @@ func (s *mockSyncer) IsSynced() bool {
 	return false
 }
 
-type mockDigestItem struct { //nolint
-	i int
-}
-
-func newMockDigestItem(i int) *mockDigestItem { //nolint
-	return &mockDigestItem{
-		i: i,
-	}
-}
-
-func (d *mockDigestItem) String() string { //nolint
-	return ""
-}
-
-func (d *mockDigestItem) Type() byte { //nolint
-	return byte(d.i)
-}
-
-func (d *mockDigestItem) Encode() ([]byte, error) { //nolint
-	return []byte{byte(d.i)}, nil
-}
-
-func (d *mockDigestItem) Decode(_ io.Reader) error { //nolint
-	return nil
-}
+func (s *mockSyncer) SetSyncing(bool) {}
 
 type mockTransactionHandler struct{}
 

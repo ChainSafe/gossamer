@@ -99,7 +99,7 @@ func TestImportState(t *testing.T) {
 
 	genFile := NewTestGenesisRawFile(t, cfg)
 	require.NotNil(t, genFile)
-	cfg.Init.GenesisRaw = genFile.Name()
+	cfg.Init.Genesis = genFile.Name()
 
 	cfg.Global.BasePath = basepath
 	err = InitNode(cfg)

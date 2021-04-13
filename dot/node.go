@@ -22,21 +22,24 @@ import (
 	"os"
 	"os/signal"
 	"path"
+	"runtime/debug"
+	"strconv"
 	"sync"
 	"syscall"
+	"time"
 
+	"github.com/ChainSafe/chaindb"
 	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/services"
+	log "github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/metrics/prometheus"
-
-	"github.com/ChainSafe/chaindb"
-	log "github.com/ChainSafe/log15"
 )
 
 var logger = log.New("pkg", "dot")
@@ -58,13 +61,21 @@ func InitNode(cfg *Config) error {
 		"name", cfg.Global.Name,
 		"id", cfg.Global.ID,
 		"basepath", cfg.Global.BasePath,
-		"genesis-raw", cfg.Init.GenesisRaw,
+		"genesis", cfg.Init.Genesis,
 	)
 
 	// create genesis from configuration file
-	gen, err := genesis.NewGenesisFromJSONRaw(cfg.Init.GenesisRaw)
+	gen, err := genesis.NewGenesisFromJSONRaw(cfg.Init.Genesis)
 	if err != nil {
 		return fmt.Errorf("failed to load genesis from file: %w", err)
+	}
+
+	if !gen.IsRaw() {
+		// genesis is human-readable, convert to raw
+		err = gen.ToRaw()
+		if err != nil {
+			return fmt.Errorf("failed to convert genesis-spec to raw genesis: %w", err)
+		}
 	}
 
 	// create trie from genesis
@@ -98,7 +109,7 @@ func InitNode(cfg *Config) error {
 		"name", cfg.Global.Name,
 		"id", cfg.Global.ID,
 		"basepath", cfg.Global.BasePath,
-		"genesis-raw", cfg.Init.GenesisRaw,
+		"genesis", cfg.Init.Genesis,
 		"block", header.Number,
 		"genesis hash", header.Hash(),
 	)
@@ -158,6 +169,13 @@ func NodeInitialized(basepath string, expected bool) bool {
 
 // NewNode creates a new dot node from a dot node configuration
 func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, error) {
+	// set garbage collection percent to 10%
+	// can be overwritten by setting the GOGC env veriable, which defaults to 100
+	prev := debug.SetGCPercent(10)
+	if prev != 100 {
+		debug.SetGCPercent(prev)
+	}
+
 	setupLogger(cfg)
 
 	// if authority node, should have at least 1 key in keystore
@@ -289,6 +307,28 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	if cfg.Global.PublishMetrics {
 		publishMetrics(cfg)
 	}
+
+	gd, err := stateSrvc.Storage.GetGenesisData()
+	if err != nil {
+		return nil, err
+	}
+
+	if cfg.Global.NoTelemetry {
+		return node, nil
+	}
+
+	telemetry.GetInstance().AddConnections(gd.TelemetryEndpoints)
+	data := &telemetry.ConnectionData{
+		Authority:     cfg.Core.GrandpaAuthority,
+		Chain:         sysSrvc.ChainName(),
+		GenesisHash:   stateSrvc.Block.GenesisHash().String(),
+		SystemName:    sysSrvc.SystemName(),
+		NodeName:      cfg.Global.Name,
+		SystemVersion: sysSrvc.SystemVersion(),
+		NetworkID:     networkSrvc.NetworkState().PeerID,
+		StartTime:     strconv.FormatInt(time.Now().UnixNano(), 10),
+	}
+	telemetry.GetInstance().SendConnection(data)
 
 	return node, nil
 }

@@ -36,7 +36,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
-// NewGenesisFromJSONRaw parses a JSON formatted genesis-raw file
+// NewGenesisFromJSONRaw parses a JSON formatted genesis file
 func NewGenesisFromJSONRaw(file string) (*Genesis, error) {
 	fp, err := filepath.Abs(file)
 	if err != nil {
@@ -76,13 +76,7 @@ func NewGenesisBlockFromTrie(t *trie.Trie) (*types.Header, error) {
 	}
 
 	// create genesis block header
-	header, err := types.NewHeader(
-		common.NewHash([]byte{0}), // parentHash
-		big.NewInt(0),             // number
-		stateRoot,                 // stateRoot
-		trie.EmptyHash,            // extrinsicsRoot
-		types.Digest{},            // digest
-	)
+	header, err := types.NewHeader(common.NewHash([]byte{0}), stateRoot, trie.EmptyHash, big.NewInt(0), types.Digest{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create genesis block header: %s", err)
 	}
@@ -111,19 +105,7 @@ func trimGenesisAuthority(g *Genesis, authCount int) {
 // NewGenesisFromJSON parses Human Readable JSON formatted genesis file.Name. If authCount > 0,
 // then it keeps only `authCount` number of authorities for babe and grandpa.
 func NewGenesisFromJSON(file string, authCount int) (*Genesis, error) {
-	fp, err := filepath.Abs(file)
-	if err != nil {
-		return nil, err
-	}
-
-	data, err := ioutil.ReadFile(filepath.Clean(fp))
-	if err != nil {
-		return nil, err
-	}
-
-	g := new(Genesis)
-
-	err = json.Unmarshal(data, g)
+	g, err := NewGenesisSpecFromJSON(file)
 	if err != nil {
 		return nil, err
 	}
@@ -142,6 +124,28 @@ func NewGenesisFromJSON(file string, authCount int) (*Genesis, error) {
 	g.Genesis.Raw["top"] = res
 
 	return g, err
+}
+
+// NewGenesisSpecFromJSON returns a new Genesis (without raw fields) from a human-readable genesis file
+func NewGenesisSpecFromJSON(file string) (*Genesis, error) {
+	fp, err := filepath.Abs(file)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := ioutil.ReadFile(filepath.Clean(fp))
+	if err != nil {
+		return nil, err
+	}
+
+	g := new(Genesis)
+
+	err = json.Unmarshal(data, g)
+	if err != nil {
+		return nil, err
+	}
+
+	return g, nil
 }
 
 // keyValue struct to hold data regarding entry
@@ -204,10 +208,8 @@ func buildRawArrayInterface(a []interface{}, kv *keyValue) {
 			kv.value = kv.value + fmt.Sprintf("%x", tba)
 			kv.iVal = append(kv.iVal, tba)
 		case float64:
-			encVal, err := scale.Encode(uint64(v2))
-			if err != nil {
-				//todo determine how to handle this error
-			}
+			// TODO: determine how to handle this error
+			encVal, _ := scale.Encode(uint64(v2))
 			kv.value = kv.value + fmt.Sprintf("%x", encVal)
 			kv.iVal = append(kv.iVal, big.NewInt(int64(v2)))
 		}
@@ -215,7 +217,7 @@ func buildRawArrayInterface(a []interface{}, kv *keyValue) {
 }
 
 func formatKey(kv *keyValue) (string, error) {
-	switch true {
+	switch {
 	case reflect.DeepEqual([]string{"grandpa", "authorities"}, kv.key):
 		kb := []byte(`:grandpa_authorities`)
 		return common.BytesToHex(kb), nil
@@ -239,7 +241,7 @@ func formatKey(kv *keyValue) (string, error) {
 }
 
 func formatValue(kv *keyValue) (string, error) {
-	switch true {
+	switch {
 	case reflect.DeepEqual([]string{"grandpa", "authorities"}, kv.key):
 		if kv.valueLen != nil {
 			lenEnc, err := scale.Encode(kv.valueLen)

@@ -23,6 +23,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/dgraph-io/ristretto"
 	badger "github.com/ipfs/go-ds-badger2"
 	"github.com/libp2p/go-libp2p"
 	libp2phost "github.com/libp2p/go-libp2p-core/host"
@@ -49,20 +50,19 @@ var privateCIDRs = []string{
 
 // host wraps libp2p host with network host configuration and services
 type host struct {
-	ctx        context.Context
-	h          libp2phost.Host
-	dht        *dual.DHT
-	bootnodes  []peer.AddrInfo
-	protocolID protocol.ID
-	cm         *ConnManager
-	ds         *badger.Datastore
+	ctx             context.Context
+	h               libp2phost.Host
+	dht             *dual.DHT
+	bootnodes       []peer.AddrInfo
+	persistentPeers []peer.AddrInfo
+	protocolID      protocol.ID
+	cm              *ConnManager
+	ds              *badger.Datastore
+	messageCache    *messageCache
 }
 
 // newHost creates a host wrapper with a new libp2p host instance
 func newHost(ctx context.Context, cfg *Config) (*host, error) {
-	// use "p2p" for multiaddress format
-	ma.SwapToP2pMultiaddrs()
-
 	// create multiaddress (without p2p identity)
 	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", cfg.Port))
 	if err != nil {
@@ -76,6 +76,16 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	bns, err := stringsToAddrInfos(cfg.Bootnodes)
 	if err != nil {
 		return nil, err
+	}
+
+	// format persistent peers
+	pps, err := stringsToAddrInfos(cfg.PersistentPeers)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, pp := range pps {
+		cm.persistentPeers.Store(pp.ID, struct{}{})
 	}
 
 	// format protocol id
@@ -143,16 +153,34 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	// wrap host and DHT service with routed host
 	h = rhost.Wrap(h, dht)
 
-	return &host{
-		ctx:        ctx,
-		h:          h,
-		dht:        dht,
-		bootnodes:  bns,
-		protocolID: pid,
-		cm:         cm,
-		ds:         ds,
-	}, nil
+	cacheSize := 64 << 20 // 64 MB
+	config := ristretto.Config{
+		NumCounters: int64(float64(cacheSize) * 0.05 * 2),
+		MaxCost:     int64(float64(cacheSize) * 0.95),
+		BufferItems: 64,
+		Cost: func(value interface{}) int64 {
+			return int64(1)
+		},
+	}
+	msgCache, err := newMessageCache(config, msgCacheTTL)
+	if err != nil {
+		return nil, err
+	}
 
+	host := &host{
+		ctx:             ctx,
+		h:               h,
+		dht:             dht,
+		bootnodes:       bns,
+		protocolID:      pid,
+		cm:              cm,
+		ds:              ds,
+		persistentPeers: pps,
+		messageCache:    msgCache,
+	}
+
+	cm.host = host
+	return host, nil
 }
 
 // close closes host services and the libp2p host (host services first)
@@ -221,14 +249,15 @@ func (h *host) addToPeerstore(p peer.AddrInfo) {
 // bootstrap connects the host to the configured bootnodes
 func (h *host) bootstrap() {
 	failed := 0
-	for _, addrInfo := range h.bootnodes {
+	all := append(h.bootnodes, h.persistentPeers...)
+	for _, addrInfo := range all {
 		err := h.connect(addrInfo)
 		if err != nil {
 			logger.Debug("failed to bootstrap to peer", "error", err)
 			failed++
 		}
 	}
-	if failed == len(h.bootnodes) {
+	if failed == len(all) {
 		logger.Error("failed to bootstrap to any bootnode")
 	}
 }
@@ -237,7 +266,7 @@ func (h *host) bootstrap() {
 // peer (gets the already opened outbound message stream or opens a new one).
 func (h *host) send(p peer.ID, pid protocol.ID, msg Message) (err error) {
 	// get outbound stream for given peer
-	s := h.getStream(p, pid)
+	s := h.getOutboundStream(p, pid)
 
 	// check if stream needs to be opened
 	if s == nil {
@@ -286,10 +315,10 @@ func (h *host) writeToStream(s libp2pnetwork.Stream, msg Message) error {
 	return err
 }
 
-// getStream returns the outbound message stream for the given peer or returns
+// getOutboundStream returns the outbound message stream for the given peer or returns
 // nil if no outbound message stream exists. For each peer, each host opens an
 // outbound message stream and writes to the same stream until closed or reset.
-func (h *host) getStream(p peer.ID, pid protocol.ID) (stream libp2pnetwork.Stream) {
+func (h *host) getOutboundStream(p peer.ID, pid protocol.ID) (stream libp2pnetwork.Stream) {
 	conns := h.h.Network().ConnsToPeer(p)
 
 	// loop through connections (only one for now)
@@ -310,7 +339,7 @@ func (h *host) getStream(p peer.ID, pid protocol.ID) (stream libp2pnetwork.Strea
 
 // closeStream closes a stream open to the peer with the given sub-protocol, if it exists.
 func (h *host) closeStream(p peer.ID, pid protocol.ID) {
-	stream := h.getStream(p, pid)
+	stream := h.getOutboundStream(p, pid)
 	if stream != nil {
 		_ = stream.Close()
 	}

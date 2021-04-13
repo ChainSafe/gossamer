@@ -212,14 +212,6 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 		return errors.New("genesis hash mismatch")
 	}
 
-	// if peer has higher best block than us, begin syncing
-	latestHeader, err := s.blockState.BestBlockHeader()
-	if err != nil {
-		return err
-	}
-
-	bestBlockNum := big.NewInt(int64(bhs.BestBlockNumber))
-
 	np, ok := s.notificationsProtocols[BlockAnnounceMsgType]
 	if !ok {
 		// this should never happen.
@@ -228,16 +220,24 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 
 	// don't need to lock here, since function is always called inside the func returned by
 	// `createNotificationsMessageHandler` which locks the map beforehand.
-	data, ok := np.handshakeData[peer]
+	data, ok := np.getHandshakeData(peer)
 	if !ok {
-		np.handshakeData[peer] = &handshakeData{
+		np.handshakeData.Store(peer, &handshakeData{
 			received:  true,
 			validated: true,
-		}
-		data = np.handshakeData[peer]
+		})
+		data, _ = np.getHandshakeData(peer)
 	}
 
 	data.handshake = hs
+
+	// if peer has higher best block than us, begin syncing
+	latestHeader, err := s.blockState.BestBlockHeader()
+	if err != nil {
+		return err
+	}
+
+	bestBlockNum := big.NewInt(int64(bhs.BestBlockNumber))
 
 	// check if peer block number is greater than host block number
 	if latestHeader.Number.Cmp(bestBlockNum) >= 0 {

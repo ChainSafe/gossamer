@@ -127,8 +127,8 @@ func ext_logging_log_version_1(context unsafe.Pointer, level C.int32_t, targetDa
 	logger.Trace("[ext_logging_log_version_1] executing...")
 	instanceContext := wasm.IntoInstanceContext(context)
 
-	target := fmt.Sprintf("%s", asMemorySlice(instanceContext, targetData))
-	msg := fmt.Sprintf("%s", asMemorySlice(instanceContext, msgData))
+	target := string(asMemorySlice(instanceContext, targetData))
+	msg := string(asMemorySlice(instanceContext, msgData))
 
 	switch int(level) {
 	case 0:
@@ -215,7 +215,7 @@ func ext_crypto_ed25519_generate_version_1(context unsafe.Pointer, keyTypeID C.i
 	var kp crypto.Keypair
 
 	if seed.Exists() {
-		kp, err = ed25519.NewKeypairFromMnenomic(string(seedBytes), "")
+		kp, err = ed25519.NewKeypairFromMnenomic(string(seed.Value()), "")
 	} else {
 		kp, err = ed25519.GenerateKeypair()
 	}
@@ -849,7 +849,7 @@ func ext_misc_print_utf8_version_1(context unsafe.Pointer, dataSpan C.int64_t) {
 
 	instanceContext := wasm.IntoInstanceContext(context)
 	data := asMemorySlice(instanceContext, dataSpan)
-	logger.Debug("[ext_misc_print_utf8_version_1]", "utf8", fmt.Sprintf("%s", data))
+	logger.Debug("[ext_misc_print_utf8_version_1]", "utf8", string(data))
 }
 
 //export ext_misc_runtime_version_version_1
@@ -1241,7 +1241,7 @@ func ext_hashing_twox_128_version_1(context unsafe.Pointer, dataSpan C.int64_t) 
 		return 0
 	}
 
-	logger.Debug("[ext_hashing_twox_128_version_1]", "data", fmt.Sprintf("%s", data), "hash", fmt.Sprintf("0x%x", hash))
+	logger.Debug("[ext_hashing_twox_128_version_1]", "data", string(data), "hash", fmt.Sprintf("0x%x", hash))
 
 	out, err := toWasmMemorySized(instanceContext, hash, 16)
 	if err != nil {
@@ -1752,7 +1752,7 @@ func toWasmMemory(context wasm.InstanceContext, data []byte) (int64, error) {
 		panic(fmt.Sprintf("length of memory is less than expected, want %d have %d", out+size, len(memory)))
 	}
 
-	copy(memory[out:out+size], data[:])
+	copy(memory[out:out+size], data)
 	return pointerAndSizeToInt64(int32(out), int32(size)), nil
 }
 
@@ -1770,7 +1770,7 @@ func toWasmMemorySized(context wasm.InstanceContext, data []byte, size uint32) (
 	}
 
 	memory := context.Memory().Data()
-	copy(memory[out:out+size], data[:])
+	copy(memory[out:out+size], data)
 
 	return out, nil
 }

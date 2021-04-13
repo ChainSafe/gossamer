@@ -30,6 +30,7 @@ type BlockState interface {
 	GenesisHash() common.Hash
 	HasBlockBody(common.Hash) (bool, error)
 	GetFinalizedHeader(round, setID uint64) (*types.Header, error)
+	GetHashByNumber(num *big.Int) (common.Hash, error)
 }
 
 // Syncer is implemented by the syncing service
@@ -46,6 +47,8 @@ type Syncer interface {
 
 	// IsSynced exposes the internal synced state // TODO: use syncQueue for this
 	IsSynced() bool
+
+	SetSyncing(bool)
 }
 
 // TransactionHandler is the interface used by the transactions sub-protocol

@@ -1,0 +1,24 @@
+{
+  "name": "@chainsafe/gossamer",
+  "version": "1.0.0",
+  "description": "A Go Implementation of the Polkadot Host.",
+  "main": "index.js",
+  "publishConfig": {
+    "access": "public"
+  },
+  "release": {
+    "publish": ["@semantic-release/github"],
+    "branches": [
+      "development",
+      "next"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ChainSafe/gossamer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ChainSafe/gossamer/issues"
+  },
+  "homepage": "https://github.com/ChainSafe/gossamer"
+}

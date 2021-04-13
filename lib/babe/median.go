@@ -82,7 +82,7 @@ func (b *Service) getCurrentSlot() (uint64, error) {
 
 // slotTime calculates the slot time in the form of seconds since the unix epoch
 // for a given slot in seconds, returns 0 and an error if it can't be calculated
-func (b *Service) slotTime(slot uint64, slotTail uint64) (uint64, error) {
+func (b *Service) slotTime(slot, slotTail uint64) (uint64, error) {
 	var at []uint64
 
 	head := b.blockState.BestBlockHash()
@@ -162,7 +162,7 @@ func median(l []uint64) (uint64, error) {
 }
 
 // slotOffset returns the number of slots between slot
-func slotOffset(start uint64, end uint64) (uint64, error) {
+func slotOffset(start, end uint64) (uint64, error) {
 	os := end - start
 	if end < start {
 		return 0, errors.New("cannot have negative Slot Offset")

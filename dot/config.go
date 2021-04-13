@@ -50,6 +50,7 @@ type GlobalConfig struct {
 	LogLvl         log.Lvl
 	PublishMetrics bool
 	MetricsPort    uint32
+	NoTelemetry    bool
 }
 
 // LogConfig represents the log levels for individual packages
@@ -66,7 +67,7 @@ type LogConfig struct {
 
 // InitConfig is the configuration for the node initialization
 type InitConfig struct {
-	GenesisRaw string
+	Genesis string
 }
 
 // AccountConfig is to marshal/unmarshal account config vars
@@ -77,13 +78,14 @@ type AccountConfig struct {
 
 // NetworkConfig is to marshal/unmarshal toml network config vars
 type NetworkConfig struct {
-	Port        uint32
-	Bootnodes   []string
-	ProtocolID  string
-	NoBootstrap bool
-	NoMDNS      bool
-	MinPeers    int
-	MaxPeers    int
+	Port            uint32
+	Bootnodes       []string
+	ProtocolID      string
+	NoBootstrap     bool
+	NoMDNS          bool
+	MinPeers        int
+	MaxPeers        int
+	PersistentPeers []string
 }
 
 // CoreConfig is to marshal/unmarshal toml core config vars
@@ -147,7 +149,7 @@ func GssmrConfig() *Config {
 			FinalityGadgetLvl: gssmr.DefaultLvl,
 		},
 		Init: InitConfig{
-			GenesisRaw: gssmr.DefaultGenesisRaw,
+			Genesis: gssmr.DefaultGenesis,
 		},
 		Account: AccountConfig{
 			Key:    gssmr.DefaultKey,
@@ -195,7 +197,7 @@ func KusamaConfig() *Config {
 			FinalityGadgetLvl: kusama.DefaultLvl,
 		},
 		Init: InitConfig{
-			GenesisRaw: kusama.DefaultGenesisRaw,
+			Genesis: kusama.DefaultGenesis,
 		},
 		Account: AccountConfig{
 			Key:    kusama.DefaultKey,
@@ -240,7 +242,7 @@ func PolkadotConfig() *Config {
 			FinalityGadgetLvl: polkadot.DefaultLvl,
 		},
 		Init: InitConfig{
-			GenesisRaw: polkadot.DefaultGenesisRaw,
+			Genesis: polkadot.DefaultGenesis,
 		},
 		Account: AccountConfig{
 			Key:    polkadot.DefaultKey,

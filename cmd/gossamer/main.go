@@ -19,9 +19,7 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -54,8 +52,8 @@ var (
 		ArgsUsage: "",
 		Flags:     InitFlags,
 		Category:  "INIT",
-		Description: "The init command initializes the node databases and loads the genesis data from the raw genesis configuration file to state.\n" +
-			"\tUsage: gossamer init --genesis-raw genesis.json",
+		Description: "The init command initializes the node databases and loads the genesis data from the genesis file to state.\n" +
+			"\tUsage: gossamer init --genesis genesis.json",
 	}
 	// accountCommand defines the "account" subcommand (ie, `gossamer account`)
 	accountCommand = cli.Command{
@@ -71,7 +69,7 @@ var (
 			"\tTo import a keystore file: gossamer account --import=path/to/file\n" +
 			"\tTo list keys: gossamer account --list",
 	}
-	// initCommand defines the "init" subcommand (ie, `gossamer init`)
+	// buildSpecCommand creates a raw genesis file from a human readable genesis file.
 	buildSpecCommand = cli.Command{
 		Action:    FixFlagOrder(buildSpecAction),
 		Name:      "build-spec",
@@ -81,18 +79,20 @@ var (
 		Category:  "BUILD-SPEC",
 		Description: "The build-spec command outputs current genesis JSON data.\n" +
 			"\tUsage: gossamer build-spec\n" +
-			"\tTo generate raw genesis file: gossamer build-spec --raw",
+			"\tTo generate raw genesis file from default: gossamer build-spec --raw > genesis.json" +
+			"\tTo generate raw genesis file from specific genesis file: gossamer build-spec --raw --genesis genesis-spec.json > genesis.json",
 	}
-	// TODO: update this to put the wasm into a genesis file
-	wasmToHexCommand = cli.Command{
-		Action:    FixFlagOrder(wasmToHexAction),
-		Name:      "convert-wasm",
-		Usage:     "Converts a .wasm file to a hex string to be used in a genesis file",
+
+	// importRuntime generates a genesis file given a .wasm runtime binary.
+	importRuntimeCommand = cli.Command{
+		Action:    FixFlagOrder(importRuntimeAction),
+		Name:      "import-runtime",
+		Usage:     "Generates a genesis file given a .wasm runtime binary",
 		ArgsUsage: "",
 		Flags:     RootFlags,
-		Category:  "CONVERT-WASM",
-		Description: "The convert-wasm command converts a .wasm file to a hex string to be used in a genesis file.\n" +
-			"\tUsage: gossamer convert-wasm runtime.wasm\n",
+		Category:  "IMPORT-RUNTIME",
+		Description: "The import-runtime command generates a genesis file given a .wasm runtime binary.\n" +
+			"\tUsage: gossamer import-runtime runtime.wasm > genesis.json\n",
 	}
 
 	importStateCommand = cli.Command{
@@ -121,7 +121,7 @@ func init() {
 		initCommand,
 		accountCommand,
 		buildSpecCommand,
-		wasmToHexCommand,
+		importRuntimeCommand,
 		importStateCommand,
 	}
 	app.Flags = RootFlags
@@ -163,20 +163,20 @@ func importStateAction(ctx *cli.Context) error {
 	return dot.ImportState(cfg.Global.BasePath, stateFP, headerFP, uint64(firstSlot))
 }
 
-// wasmToHexAction converts a .wasm file to a hex string and outputs it to stdout
-func wasmToHexAction(ctx *cli.Context) error {
+// importRuntimeAction generates a genesis file given a .wasm runtime binary.
+func importRuntimeAction(ctx *cli.Context) error {
 	arguments := ctx.Args()
 	if len(arguments) == 0 {
 		return fmt.Errorf("no args provided, please provide wasm file")
 	}
 
 	fp := arguments[0]
-	bytes, err := ioutil.ReadFile(filepath.Clean(fp))
+	out, err := createGenesisWithRuntime(fp)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("0x%x", bytes)
+	fmt.Println(out)
 	return nil
 }
 
@@ -353,7 +353,7 @@ func buildSpecAction(ctx *cli.Context) error {
 	}
 
 	var bs *dot.BuildSpec
-	if genesis := ctx.String(GenesisFlag.Name); genesis != "" {
+	if genesis := ctx.String(GenesisSpecFlag.Name); genesis != "" {
 		bspec, e := dot.BuildFromGenesis(genesis, 0)
 		if e != nil {
 			return e
@@ -378,7 +378,8 @@ func buildSpecAction(ctx *cli.Context) error {
 	if bs == nil {
 		return fmt.Errorf("error building genesis")
 	}
-	res := []byte{} //nolint
+
+	var res []byte
 	if ctx.Bool(RawFlag.Name) {
 		res, err = bs.ToJSONRaw()
 	} else {

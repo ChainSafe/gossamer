@@ -53,16 +53,16 @@ func (ls *leafMap) store(key Hash, value *node) {
 func (ls *leafMap) load(key Hash) (*node, error) {
 	v, ok := ls.smap.Load(key)
 	if !ok {
-		return nil, errors.New("Key not found")
+		return nil, errors.New("key not found")
 	}
 
 	return v.(*node), nil
 }
 
 // Replace deletes the old node from the map and inserts the new one
-func (ls *leafMap) replace(old, new *node) {
-	ls.smap.Delete(old.hash)
-	ls.store(new.hash, new)
+func (ls *leafMap) replace(oldNode, newNode *node) {
+	ls.smap.Delete(oldNode.hash)
+	ls.store(newNode.hash, newNode)
 }
 
 // DeepestLeaf searches the stored leaves to the find the one with the greatest depth.
