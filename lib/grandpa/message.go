@@ -92,7 +92,7 @@ func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 	}, nil
 }
 
-// NeighbourMessage represents a network-level neighbour message
+// NeighbourMessage represents a network-level neighbor message
 type NeighbourMessage struct {
 	Version byte
 	Round   uint64
