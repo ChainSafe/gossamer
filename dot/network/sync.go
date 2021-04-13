@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
@@ -727,7 +728,7 @@ func (q *syncQueue) handleBlockData(data []*types.BlockData) {
 func (q *syncQueue) handleBlockDataFailure(idx int, err error, data []*types.BlockData) {
 	logger.Warn("failed to handle block data", "failed on block", q.currStart+int64(idx), "error", err)
 
-	if errors.Is(err, chaindb.ErrKeyNotFound) {
+	if errors.Is(err, chaindb.ErrKeyNotFound) || errors.Is(err, blocktree.ErrParentNotFound) {
 		header, err := types.NewHeaderFromOptional(data[idx].Header)
 		if err != nil {
 			logger.Debug("failed to get header from BlockData", "idx", idx, "error", err)
