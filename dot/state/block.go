@@ -584,7 +584,7 @@ func (bs *BlockState) handleAddedBlock(prev, curr common.Hash) error {
 			return err
 		}
 	}
-	
+
 	return batch.Flush()
 }
 
