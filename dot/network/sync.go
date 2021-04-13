@@ -589,7 +589,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 		}
 
 		err = q.pushResponse(resp, peer.pid)
-		if err != nil && err != errEmptyResponseData /*&& err != errEmptyJustificationData*/ {
+		if err != nil && err != errEmptyResponseData && err != errEmptyJustificationData {
 			logger.Debug("failed to push block response", "error", err)
 		} else {
 			return

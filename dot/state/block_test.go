@@ -391,3 +391,111 @@ func TestGetHashByNumber(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, header.Hash(), res)
 }
+
+func TestAddBlock_WithReOrg(t *testing.T) {
+	bs := newTestBlockState(t, testGenesisHeader)
+
+	header1a := &types.Header{
+		Number:     big.NewInt(1),
+		Digest:     types.Digest{},
+		ParentHash: testGenesisHeader.Hash(),
+	}
+
+	block1a := &types.Block{
+		Header: header1a,
+		Body:   &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+	}
+
+	err := bs.AddBlock(block1a)
+	require.NoError(t, err)
+
+	block1hash, err := bs.GetHashByNumber(big.NewInt(1))
+	require.NoError(t, err)
+	require.Equal(t, header1a.Hash(), block1hash)
+
+	header1b := &types.Header{
+		Number:         big.NewInt(1),
+		Digest:         types.Digest{},
+		ParentHash:     testGenesisHeader.Hash(),
+		ExtrinsicsRoot: common.Hash{99},
+	}
+
+	block1b := &types.Block{
+		Header: header1b,
+		Body:   &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+	}
+
+	err = bs.AddBlock(block1b)
+	require.NoError(t, err)
+
+	// should still be hash 1a since it arrived first
+	block1hash, err = bs.GetHashByNumber(big.NewInt(1))
+	require.NoError(t, err)
+	require.Equal(t, header1a.Hash(), block1hash)
+
+	header2b := &types.Header{
+		Number:         big.NewInt(2),
+		Digest:         types.Digest{},
+		ParentHash:     header1b.Hash(),
+		ExtrinsicsRoot: common.Hash{99},
+	}
+
+	block2b := &types.Block{
+		Header: header2b,
+		Body:   &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+	}
+
+	err = bs.AddBlock(block2b)
+	require.NoError(t, err)
+
+	// should now be hash 1b since it's on the longer chain
+	block1hash, err = bs.GetHashByNumber(big.NewInt(1))
+	require.NoError(t, err)
+	require.Equal(t, header1b.Hash(), block1hash)
+
+	block2hash, err := bs.GetHashByNumber(big.NewInt(2))
+	require.NoError(t, err)
+	require.Equal(t, header2b.Hash(), block2hash)
+
+	header2a := &types.Header{
+		Number:     big.NewInt(2),
+		Digest:     types.Digest{},
+		ParentHash: header1a.Hash(),
+	}
+
+	block2a := &types.Block{
+		Header: header2a,
+		Body:   &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+	}
+
+	err = bs.AddBlock(block2a)
+	require.NoError(t, err)
+
+	header3a := &types.Header{
+		Number:     big.NewInt(3),
+		Digest:     types.Digest{},
+		ParentHash: header2a.Hash(),
+	}
+
+	block3a := &types.Block{
+		Header: header3a,
+		Body:   &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+	}
+
+	err = bs.AddBlock(block3a)
+	require.NoError(t, err)
+
+	// should now be hash 1a since it's on the longer chain
+	block1hash, err = bs.GetHashByNumber(big.NewInt(1))
+	require.NoError(t, err)
+	require.Equal(t, header1a.Hash(), block1hash)
+
+	// should now be hash 2a since it's on the longer chain
+	block2hash, err = bs.GetHashByNumber(big.NewInt(2))
+	require.NoError(t, err)
+	require.Equal(t, header2a.Hash(), block2hash)
+
+	block3hash, err := bs.GetHashByNumber(big.NewInt(3))
+	require.NoError(t, err)
+	require.Equal(t, header3a.Hash(), block3hash)
+}

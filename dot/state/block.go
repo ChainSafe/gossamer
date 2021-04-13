@@ -38,10 +38,10 @@ const pruneKeyBufferSize = 1000
 
 // BlockState defines fields for manipulating the state of blocks, such as BlockTree, BlockDB and Header
 type BlockState struct {
-	bt          *blocktree.BlockTree
-	baseDB      chaindb.Database
-	db          chaindb.Database
-	lock        sync.RWMutex
+	bt     *blocktree.BlockTree
+	baseDB chaindb.Database
+	db     chaindb.Database
+	sync.RWMutex
 	genesisHash common.Hash
 
 	// block notifiers
@@ -330,9 +330,6 @@ func (bs *BlockState) GetBlockHash(blockNumber *big.Int) (*common.Hash, error) {
 
 // SetHeader will set the header into DB
 func (bs *BlockState) SetHeader(header *types.Header) error {
-	bs.lock.Lock()
-	defer bs.lock.Unlock()
-
 	hash := header.Hash()
 
 	// Write the encoded header
@@ -366,11 +363,7 @@ func (bs *BlockState) GetBlockBody(hash common.Hash) (*types.Body, error) {
 
 // SetBlockBody will add a block body to the db
 func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
-	bs.lock.Lock()
-	defer bs.lock.Unlock()
-
-	err := bs.db.Put(blockBodyKey(hash), body.AsOptional().Value())
-	return err
+	return bs.db.Put(blockBodyKey(hash), body.AsOptional().Value())
 }
 
 // HasFinalizedBlock returns true if there is a finalized block for a given round and setID, false otherwise
@@ -427,6 +420,9 @@ func (bs *BlockState) GetFinalizedHash(round, setID uint64) (common.Hash, error)
 
 // SetFinalizedHash sets the latest finalized block header
 func (bs *BlockState) SetFinalizedHash(hash common.Hash, round, setID uint64) error {
+	bs.Lock()
+	defer bs.Unlock()
+
 	go bs.notifyFinalized(hash)
 	if round > 0 {
 		err := bs.SetRound(round)
@@ -496,6 +492,8 @@ func (bs *BlockState) CompareAndSetBlockData(bd *types.BlockData) error {
 
 // AddBlock adds a block to the blocktree and the DB with arrival time as current unix time
 func (bs *BlockState) AddBlock(block *types.Block) error {
+	bs.Lock()
+	defer bs.Unlock()
 	return bs.AddBlockWithArrivalTime(block, time.Now())
 }
 
@@ -505,6 +503,8 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 	if err != nil {
 		return err
 	}
+
+	prevHead := bs.bt.DeepestBlockHash()
 
 	// add block to blocktree
 	err = bs.bt.AddBlock(block.Header, uint64(arrivalTime.UnixNano()))
@@ -541,12 +541,62 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 		return err
 	}
 
+	// check if there was a re-org, if so, re-set the canonical number->hash mapping
+	err = bs.handleAddedBlock(prevHead, bs.bt.DeepestBlockHash())
+	if err != nil {
+		return err
+	}
+
 	go bs.notifyImported(block)
 	return bs.baseDB.Flush()
 }
 
+// handleAddedBlock re-sets the canonical number->hash mapping if there was a chain re-org.
+// prev is the previous best block hash before the new block was added to the blocktree.
+// curr is the current best blogetck hash.
+func (bs *BlockState) handleAddedBlock(prev, curr common.Hash) error {
+	logger.Info("handling added block", "prev head", prev, "curr head", curr)
+
+	ancestor, err := bs.HighestCommonAncestor(prev, curr)
+	if err != nil {
+		return err
+	}
+
+	logger.Info("handling added block", "ancestor", ancestor)
+
+	// if the highest common ancestor of the previous chain head and current chain head is the previous chain head,
+	// then the current chain head is the descendant of the previous and thus are on the same chain
+	if ancestor == prev {
+		return nil
+	}
+
+	subchain, err := bs.SubChain(ancestor, curr)
+	if err != nil {
+		return err
+	}
+
+	for _, hash := range subchain {
+		// TODO: set number from ancestor.Number + i ?
+		header, err := bs.GetHeader(hash)
+		if err != nil {
+			return fmt.Errorf("failed to get header in subchain: %w", err)
+		}
+
+		// TODO: batch this
+		err = bs.db.Put(headerHashKey(header.Number.Uint64()), hash.ToBytes())
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // AddBlockToBlockTree adds the given block to the blocktree. It does not write it to the database.
 func (bs *BlockState) AddBlockToBlockTree(header *types.Header) error {
+	bs.Lock()
+	defer bs.Unlock()
+
 	arrivalTime, err := bs.GetArrivalTime(header.Hash())
 	if err != nil {
 		arrivalTime = time.Now()
@@ -567,7 +617,7 @@ func (bs *BlockState) isBlockOnCurrentChain(header *types.Header) (bool, error) 
 	}
 
 	// if the new block is ahead of our best block, then it is on our current chain.
-	if header.Number.Cmp(bestBlock.Number) == 1 {
+	if header.Number.Cmp(bestBlock.Number) > 0 {
 		return true, nil
 	}
 

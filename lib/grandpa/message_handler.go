@@ -103,11 +103,14 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage) error {
 		return err
 	}
 
-	if uint32(head.Int64()) < msg.Number {
+	// add small -2 delay, until we add justification request functionality.
+	// this prevents us from marking the wrong block as final
+	if uint32(head.Int64())-2 < msg.Number {
 		return nil
 	}
 
-	// TODO: is there another way to confirm the hash?
+	// TODO: instead of assuming the finalized hash is the one we currently know about,
+	// request the justification from the network before setting it as finalized.
 	hash, err := h.grandpa.blockState.GetHashByNumber(big.NewInt(int64(msg.Number)))
 	if err != nil {
 		return err
