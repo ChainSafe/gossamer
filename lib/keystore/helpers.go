@@ -171,7 +171,7 @@ func LoadKeystore(key string, ks Keystore) error {
 // ImportKeypair imports a key specified by its filename into a subdirectory
 // by the name "keystore" and saves it under the filename "[publickey].key",
 // returns the absolute path of the imported key file
-func ImportKeypair(fp string, dir string) (string, error) {
+func ImportKeypair(fp, dir string) (string, error) {
 	keyDir, err := utils.KeystoreDir(dir)
 	if err != nil {
 		return "", fmt.Errorf("failed to create keystore directory: %s", err)
@@ -232,7 +232,7 @@ func ImportRawPrivateKey(key, keytype, basepath string, password []byte) (string
 
 // UnlockKeys unlocks keys specified by the --unlock flag with the passwords given by --password
 // and places them into the keystore
-func UnlockKeys(ks Keystore, dir string, unlock string, password string) error {
+func UnlockKeys(ks Keystore, dir, unlock, password string) error {
 	var indices []int
 	var passwords []string
 	var err error
@@ -317,7 +317,7 @@ func DetermineKeyType(t string) crypto.KeyType {
 
 // HasKey returns true if given hex encoded public key string is found in keystore, false otherwise, error if there
 //  are issues decoding string
-func HasKey(pubKeyStr string, keyType string, keystore Keystore) (bool, error) {
+func HasKey(pubKeyStr, keyType string, keystore Keystore) (bool, error) {
 	keyBytes, err := common.HexToBytes(pubKeyStr)
 	if err != nil {
 		return false, err
