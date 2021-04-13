@@ -18,7 +18,6 @@ package dot
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -107,14 +106,15 @@ func TestWriteGenesisSpecFile(t *testing.T) {
 	require.NoError(t, err)
 	defer file.Close()
 
-	genesisBytes, err := io.ReadAll(file)
+	genesisBytes, err := ioutil.ReadAll(file)
 	require.NoError(t, err)
 
 	gen := new(genesis.Genesis)
 	err = json.Unmarshal(genesisBytes, gen)
 	require.NoError(t, err)
 
-	require.Equal(t, expected, gen)
+	require.Equal(t, expected.ChainType, gen.ChainType)
+	require.Equal(t, expected.Properties, gen.Properties)
 }
 
 func TestBuildFromDB(t *testing.T) {
