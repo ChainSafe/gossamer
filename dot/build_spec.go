@@ -18,10 +18,13 @@ package dot
 
 import (
 	"encoding/json"
+	"fmt"
+	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -72,6 +75,24 @@ func BuildFromGenesis(path string, authCount int) (*BuildSpec, error) {
 		genesis: gen,
 	}
 	return bs, nil
+}
+
+// WriteGenesisSpecFile writes the build-spec in the output filepath
+func WriteGenesisSpecFile(data []byte, fp string) error {
+	var err error
+	var absfp string
+
+	if absfp, err = filepath.Abs(filepath.Clean(fp)); err != nil {
+		return err
+	}
+
+	// if file already exists then dont apply any written on it
+	if utils.PathExists(absfp) {
+		return fmt.Errorf("file %s already exists, rename to avoid overwritten", absfp)
+	}
+
+	WriteConfig(data, fp)
+	return nil
 }
 
 // BuildFromDB builds a BuildSpec from the DB located at path

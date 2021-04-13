@@ -17,6 +17,7 @@ package dot
 
 import (
 	"encoding/json"
+	"io"
 	"os"
 	"testing"
 
@@ -29,6 +30,17 @@ func TestBuildFromGenesis(t *testing.T) {
 	defer os.Remove(file)
 	require.NoError(t, err)
 	bs, err := BuildFromGenesis(file, 0)
+
+	expectedChainType := "TESTCHAINTYPE"
+	expectedProperties := map[string]interface{}{
+		"ss58Format":    00,
+		"tokenDecimals": 00,
+		"tokenSymbol":   "TEST",
+	}
+
+	bs.genesis.ChainType = expectedChainType
+	bs.genesis.Properties = expectedProperties
+
 	require.NoError(t, err)
 
 	// confirm human-readable fields
@@ -39,6 +51,8 @@ func TestBuildFromGenesis(t *testing.T) {
 	require.NoError(t, err)
 	genesis.TestGenesis.Genesis = genesis.TestFieldsHR
 	require.Equal(t, genesis.TestGenesis.Genesis.Runtime, jGen.Genesis.Runtime)
+	require.Equal(t, expectedChainType, jGen.ChainType)
+	require.Equal(t, expectedProperties, jGen.Properties)
 
 	// confirm raw fields
 	raw, err := bs.ToJSONRaw()
@@ -48,6 +62,44 @@ func TestBuildFromGenesis(t *testing.T) {
 	require.NoError(t, err)
 	genesis.TestGenesis.Genesis = genesis.TestFieldsRaw
 	require.Equal(t, genesis.TestGenesis.Genesis.Raw, jGenRaw.Genesis.Raw)
+	require.Equal(t, expectedChainType, jGenRaw.ChainType)
+	require.Equal(t, expectedProperties, jGenRaw.Properties)
+}
+
+func TestWriteGenesisSpecFile(t *testing.T) {
+	cfg := NewTestConfig(t)
+	cfg.Init.Genesis = "../chain/gssmr/genesis.json"
+
+	expected, err := genesis.NewGenesisFromJSONRaw(cfg.Init.Genesis)
+	require.NoError(t, err)
+
+	err = InitNode(cfg)
+	require.NoError(t, err)
+
+	bs, err := BuildFromDB(cfg.Global.BasePath)
+	require.NoError(t, err)
+
+	data, err := bs.ToJSONRaw()
+	require.NoError(t, err)
+
+	tmpFile := "/tmp/unique-raw-genesis.json"
+	err = WriteGenesisSpecFile(data, tmpFile)
+	require.NoError(t, err)
+	require.FileExists(t, tmpFile)
+
+	defer os.Remove(tmpFile)
+
+	file, err := os.Open(tmpFile)
+	defer file.Close()
+
+	genesisBytes, err := io.ReadAll(file)
+	require.NoError(t, err)
+
+	gen := new(genesis.Genesis)
+	err = json.Unmarshal(genesisBytes, gen)
+	require.NoError(t, err)
+
+	require.Equal(t, expected, gen)
 }
 
 func TestBuildFromDB(t *testing.T) {
