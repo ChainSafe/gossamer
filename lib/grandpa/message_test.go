@@ -142,3 +142,21 @@ func TestNewCatchUpResponse(t *testing.T) {
 
 	require.Equal(t, expected, resp)
 }
+
+func TestNeighbourMessageToConsensusMessage(t *testing.T) {
+	msg := &NeighbourMessage{
+		Version: 1,
+		Round:   2,
+		SetID:   3,
+		Number:  255,
+	}
+
+	cm, err := msg.ToConsensusMessage()
+	require.NoError(t, err)
+
+	expected := &ConsensusMessage{
+		Data: common.MustHexToBytes("0x020102000000000000000300000000000000ff000000"),
+	}
+
+	require.Equal(t, expected, cm)
+}

@@ -693,16 +693,9 @@ func (q *syncQueue) handleBlockJustification(data []*types.BlockData) {
 func (q *syncQueue) handleBlockData(data []*types.BlockData) {
 	end := data[len(data)-1].Number().Int64()
 
-	var (
-		finalized *types.Header
-		err       error
-	)
-
-	for {
-		finalized, err = q.s.blockState.GetFinalizedHeader(0, 0)
-		if err == nil {
-			break // TODO: seems blockState needs better concurrency handling
-		}
+	finalized, err := q.s.blockState.GetFinalizedHeader(0, 0)
+	if err != nil {
+		panic(err) // this should never happen
 	}
 
 	if end <= finalized.Number.Int64() {
@@ -747,9 +740,19 @@ func (q *syncQueue) handleBlockDataFailure(idx int, err error, data []*types.Blo
 	logger.Warn("failed to handle block data", "failed on block", q.currStart+int64(idx), "error", err)
 
 	if errors.Is(err, chaindb.ErrKeyNotFound) || errors.Is(err, blocktree.ErrParentNotFound) {
+		finalized, err := q.s.blockState.GetFinalizedHeader(0, 0)
+		if err != nil {
+			panic(err)
+		}
+
 		header, err := types.NewHeaderFromOptional(data[idx].Header)
 		if err != nil {
 			logger.Debug("failed to get header from BlockData", "idx", idx, "error", err)
+			return
+		}
+
+		// don't request a chain that's been dropped
+		if header.Number.Int64() <= finalized.Number.Int64() {
 			return
 		}
 

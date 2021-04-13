@@ -268,7 +268,7 @@ func (bs *BlockState) GetHeader(hash common.Hash) (*types.Header, error) {
 func (bs *BlockState) GetHashByNumber(num *big.Int) (common.Hash, error) {
 	bh, err := bs.db.Get(headerHashKey(num.Uint64()))
 	if err != nil {
-		return common.Hash{}, fmt.Errorf("cannot get block %d: %s", num, err)
+		return common.Hash{}, fmt.Errorf("cannot get block %d: %w", num, err)
 	}
 
 	return common.NewHash(bh), nil
@@ -278,7 +278,7 @@ func (bs *BlockState) GetHashByNumber(num *big.Int) (common.Hash, error) {
 func (bs *BlockState) GetHeaderByNumber(num *big.Int) (*types.Header, error) {
 	bh, err := bs.db.Get(headerHashKey(num.Uint64()))
 	if err != nil {
-		return nil, fmt.Errorf("cannot get block %d: %s", num, err)
+		return nil, fmt.Errorf("cannot get block %d: %w", num, err)
 	}
 
 	hash := common.NewHash(bh)
@@ -304,7 +304,7 @@ func (bs *BlockState) GetBlockByNumber(num *big.Int) (*types.Block, error) {
 	// First retrieve the block hash in a byte array based on the block number from the database
 	byteHash, err := bs.db.Get(headerHashKey(num.Uint64()))
 	if err != nil {
-		return nil, fmt.Errorf("cannot get block %d: %s", num, err)
+		return nil, fmt.Errorf("cannot get block %d: %w", num, err)
 	}
 
 	// Then find the block based on the hash
@@ -322,7 +322,7 @@ func (bs *BlockState) GetBlockHash(blockNumber *big.Int) (*common.Hash, error) {
 	// First retrieve the block hash in a byte array based on the block number from the database
 	byteHash, err := bs.db.Get(headerHashKey(blockNumber.Uint64()))
 	if err != nil {
-		return nil, fmt.Errorf("cannot get block %d: %s", blockNumber, err)
+		return nil, fmt.Errorf("cannot get block %d: %w", blockNumber, err)
 	}
 	hash := common.NewHash(byteHash)
 	return &hash, nil
@@ -555,14 +555,10 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 // prev is the previous best block hash before the new block was added to the blocktree.
 // curr is the current best blogetck hash.
 func (bs *BlockState) handleAddedBlock(prev, curr common.Hash) error {
-	logger.Info("handling added block", "prev head", prev, "curr head", curr)
-
 	ancestor, err := bs.HighestCommonAncestor(prev, curr)
 	if err != nil {
 		return err
 	}
-
-	logger.Info("handling added block", "ancestor", ancestor)
 
 	// if the highest common ancestor of the previous chain head and current chain head is the previous chain head,
 	// then the current chain head is the descendant of the previous and thus are on the same chain
@@ -575,6 +571,7 @@ func (bs *BlockState) handleAddedBlock(prev, curr common.Hash) error {
 		return err
 	}
 
+	batch := bs.db.NewBatch()
 	for _, hash := range subchain {
 		// TODO: set number from ancestor.Number + i ?
 		header, err := bs.GetHeader(hash)
@@ -582,13 +579,13 @@ func (bs *BlockState) handleAddedBlock(prev, curr common.Hash) error {
 			return fmt.Errorf("failed to get header in subchain: %w", err)
 		}
 
-		// TODO: batch this
-		err = bs.db.Put(headerHashKey(header.Number.Uint64()), hash.ToBytes())
+		err = batch.Put(headerHashKey(header.Number.Uint64()), hash.ToBytes())
 		if err != nil {
 			return err
 		}
 	}
 
+	batch.Flush()
 	return nil
 }
 

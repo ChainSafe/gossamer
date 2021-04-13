@@ -103,9 +103,9 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage) error {
 		return err
 	}
 
-	// add small -2 delay, until we add justification request functionality.
+	// add -3 delay, until we add justification request functionality.
 	// this prevents us from marking the wrong block as final
-	if uint32(head.Int64())-2 < msg.Number {
+	if uint32(head.Int64())-3 < msg.Number {
 		return nil
 	}
 
@@ -116,13 +116,11 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage) error {
 		return err
 	}
 
-	err = h.grandpa.blockState.SetFinalizedHash(hash, msg.Round, msg.SetID)
-	if err != nil {
+	if err = h.grandpa.blockState.SetFinalizedHash(hash, msg.Round, msg.SetID); err != nil {
 		return err
 	}
 
-	err = h.grandpa.blockState.SetFinalizedHash(hash, 0, 0)
-	if err != nil {
+	if err = h.grandpa.blockState.SetFinalizedHash(hash, 0, 0); err != nil {
 		return err
 	}
 

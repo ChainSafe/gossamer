@@ -17,6 +17,7 @@
 package grandpa
 
 import (
+	"errors"
 	"math/big"
 	"testing"
 	"time"
@@ -28,6 +29,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/scale"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/stretchr/testify/require"
 )
 
@@ -122,6 +124,23 @@ func TestDecodeMessage_FinalizationMessage(t *testing.T) {
 	require.Equal(t, expected, msg)
 }
 
+func TestDecodeMessage_NeighbourMessage(t *testing.T) {
+	cm := &ConsensusMessage{
+		Data: common.MustHexToBytes("0x020102000000000000000300000000000000ff000000"),
+	}
+
+	msg, err := decodeMessage(cm)
+	require.NoError(t, err)
+
+	expected := &NeighbourMessage{
+		Version: 1,
+		Round:   2,
+		SetID:   3,
+		Number:  255,
+	}
+	require.Equal(t, expected, msg)
+}
+
 func TestDecodeMessage_CatchUpRequest(t *testing.T) {
 	cm := &ConsensusMessage{
 		Data: common.MustHexToBytes("0x0311000000000000002200000000000000"),
@@ -164,6 +183,43 @@ func TestMessageHandler_VoteMessage(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("did not receive VoteMessage")
 	}
+}
+
+func TestMessageHandler_NeighbourMessage(t *testing.T) {
+	gs, st := newTestService(t)
+	h := NewMessageHandler(gs, st.Block)
+
+	msg := &NeighbourMessage{
+		Version: 1,
+		Round:   2,
+		SetID:   3,
+		Number:  1,
+	}
+
+	cm, err := msg.ToConsensusMessage()
+	require.NoError(t, err)
+
+	_, err = h.handleMessage(cm)
+	require.True(t, errors.Is(err, chaindb.ErrKeyNotFound))
+
+	block := &types.Block{
+		Header: &types.Header{
+			Number:     big.NewInt(1),
+			ParentHash: st.Block.GenesisHash(),
+		},
+		Body: &types.Body{0},
+	}
+
+	err = st.Block.AddBlock(block)
+	require.NoError(t, err)
+
+	out, err := h.handleMessage(cm)
+	require.NoError(t, err)
+	require.Nil(t, out)
+
+	finalized, err := st.Block.GetFinalizedHash(0, 0)
+	require.NoError(t, err)
+	require.Equal(t, block.Header.Hash(), finalized)
 }
 
 func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
