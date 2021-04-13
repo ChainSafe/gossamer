@@ -113,7 +113,7 @@ func TestWriteGenesisSpecFile(t *testing.T) {
 	err = json.Unmarshal(genesisBytes, gen)
 	require.NoError(t, err)
 
-	require.Equal(t, expected, gen.ChainType)
+	require.Equal(t, expected.ChainType, gen.ChainType)
 	require.Equal(t, expected.Properties, gen.Properties)
 }
 
