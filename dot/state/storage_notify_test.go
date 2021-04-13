@@ -34,10 +34,14 @@ type MockStorageObserver struct {
 	id         int
 	filter     map[string][]byte
 	lastUpdate *SubscriptionResult
+	m          sync.RWMutex
 }
 
 func (m *MockStorageObserver) Update(change *SubscriptionResult) {
+	m.m.Lock()
 	m.lastUpdate = change
+	m.m.Unlock()
+
 }
 func (m *MockStorageObserver) GetID() int {
 	return m.id
@@ -69,10 +73,12 @@ func TestStorageState_RegisterStorageObserver(t *testing.T) {
 		}},
 	}
 	time.Sleep(time.Millisecond)
+	observer.m.RLock()
+	defer observer.m.RUnlock()
 	require.Equal(t, expectedResult, observer.lastUpdate)
 }
 
-func TestStorageState_RegisterStorageChangeChannel_Multi(t *testing.T) {
+func TestStorageState_RegisterStorageObserver_Multi(t *testing.T) {
 	ss := newTestStorageState(t)
 	ts, err := ss.TrieState(nil)
 	require.NoError(t, err)
@@ -98,12 +104,14 @@ func TestStorageState_RegisterStorageChangeChannel_Multi(t *testing.T) {
 	err = ss.StoreTrie(ts)
 	require.NoError(t, err)
 
-	time.Sleep(time.Millisecond)
+	time.Sleep(time.Millisecond * 10)
 
 	for _, observer := range observers {
+		observer.m.RLock()
 		require.NotNil(t, observer.lastUpdate.Hash)
 		require.Equal(t, key1, observer.lastUpdate.Changes[0].Key)
 		require.Equal(t, value1, observer.lastUpdate.Changes[0].Value)
+		observer.m.RUnlock()
 	}
 
 	for _, observer := range observers {
@@ -111,7 +119,7 @@ func TestStorageState_RegisterStorageChangeChannel_Multi(t *testing.T) {
 	}
 }
 
-func TestStorageState_RegisterStorageChangeChannel_Multi_Filter(t *testing.T) {
+func TestStorageState_RegisterStorageObserver_Multi_Filter(t *testing.T) {
 	ss := newTestStorageState(t)
 	ts, err := ss.TrieState(nil)
 	require.NoError(t, err)
@@ -137,14 +145,14 @@ func TestStorageState_RegisterStorageChangeChannel_Multi_Filter(t *testing.T) {
 	err = ss.StoreTrie(ts)
 	require.NoError(t, err)
 
-	time.Sleep(time.Millisecond)
+	time.Sleep(time.Millisecond * 10)
 
 	for _, observer := range observers {
-
+		observer.m.RLock()
 		require.NotNil(t, observer.lastUpdate.Hash)
 		require.Equal(t, key1, observer.lastUpdate.Changes[0].Key)
 		require.Equal(t, value1, observer.lastUpdate.Changes[0].Value)
-
+		observer.m.RUnlock()
 	}
 
 	for _, observer := range observers {

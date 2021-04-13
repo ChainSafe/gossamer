@@ -60,10 +60,12 @@ func (s *StorageState) RegisterStorageObserver(o Observer) {
 
 // UnregisterStorageObserver removes observer from notification list
 func (s *StorageState) UnregisterStorageObserver(o Observer) {
-	s.observerList = removeFromSlice(s.observerList, o)
+	s.observerList = s.removeFromSlice(s.observerList, o)
 }
 
 func (s *StorageState) notifyAll(root common.Hash) {
+	s.changedLock.RLock()
+	defer s.changedLock.RUnlock()
 	for _, observer := range s.observerList {
 		err := s.notifyObserver(root, observer)
 		if err != nil {
@@ -111,7 +113,9 @@ func (s *StorageState) notifyObserver(root common.Hash, o Observer) error {
 			}
 		}
 	}
+
 	if len(subRes.Changes) > 0 {
+		logger.Trace("update observer", "changes", subRes.Changes)
 		go func() {
 			o.Update(subRes)
 		}()
@@ -120,7 +124,9 @@ func (s *StorageState) notifyObserver(root common.Hash, o Observer) error {
 	return nil
 }
 
-func removeFromSlice(observerList []Observer, observerToRemove Observer) []Observer {
+func (s *StorageState) removeFromSlice(observerList []Observer, observerToRemove Observer) []Observer {
+	s.changedLock.Lock()
+	defer s.changedLock.Unlock()
 	observerListLength := len(observerList)
 	for i, observer := range observerList {
 		if observerToRemove.GetID() == observer.GetID() {

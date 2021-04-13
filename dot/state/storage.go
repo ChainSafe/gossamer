@@ -50,6 +50,7 @@ type StorageState struct {
 	lock   sync.RWMutex
 
 	// change notifiers
+	changedLock  sync.RWMutex
 	observerList []Observer
 
 	syncing bool
