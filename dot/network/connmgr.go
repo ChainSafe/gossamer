@@ -196,16 +196,18 @@ func (cm *ConnManager) Disconnected(n network.Network, c network.Conn) {
 		Addrs: addrs,
 	}
 
-	for i := 0; i < maxRetries; i++ {
-		err := cm.host.connect(info)
-		if err != nil {
-			logger.Warn("failed to reconnect to persistent peer", "peer", c.RemotePeer(), "error", err)
-			time.Sleep(time.Minute)
-			continue
-		}
+	go func() {
+		for i := 0; i < maxRetries; i++ {
+			err := cm.host.connect(info)
+			if err != nil {
+				logger.Warn("failed to reconnect to persistent peer", "peer", c.RemotePeer(), "error", err)
+				time.Sleep(time.Minute)
+				continue
+			}
 
-		return
-	}
+			return
+		}
+	}()
 
 	// TODO: if number of peers falls below the min desired peer count, we should try to connect to previously discovered peers
 }

@@ -112,7 +112,7 @@ func TestPersistentPeers(t *testing.T) {
 	require.NotEqual(t, 0, len(conns))
 
 	// if A disconnects from B, B should reconnect
-	nodeA.host.h.Network().ClosePeer(nodeA.host.id())
+	nodeA.host.h.Network().ClosePeer(nodeB.host.id())
 	time.Sleep(time.Millisecond * 500)
 	conns = nodeB.host.h.Network().ConnsToPeer(nodeA.host.id())
 	require.NotEqual(t, 0, len(conns))
