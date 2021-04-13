@@ -9,6 +9,7 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/stretchr/testify/require"
 )
@@ -54,7 +55,7 @@ func createTestBlockTree(header *types.Header, depth int, db chaindb.Database) (
 			header := &types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)),
-				Digest:     types.Digest{newMockDigestItem(rand.Intn(256))},
+				Digest:     types.Digest{utils.NewMockDigestItem(rand.Intn(256))},
 			}
 
 			hash := header.Hash()

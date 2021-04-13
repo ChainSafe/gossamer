@@ -17,7 +17,6 @@
 package core
 
 import (
-	"io"
 	"math/big"
 	"os"
 	"sort"
@@ -33,35 +32,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/extrinsic"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
-
-type mockDigestItem struct {
-	i int
-}
-
-func newMockDigestItem(i int) *mockDigestItem {
-	return &mockDigestItem{
-		i: i,
-	}
-}
-
-func (d *mockDigestItem) String() string {
-	return ""
-}
-
-func (d *mockDigestItem) Type() byte {
-	return byte(d.i)
-}
-
-func (d *mockDigestItem) Encode() ([]byte, error) {
-	return []byte{byte(d.i)}, nil
-}
-
-func (d *mockDigestItem) Decode(_ io.Reader) error {
-	return nil
-}
 
 func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) []*types.Header {
 	return addTestBlocksToStateWithParent(t, blockState.BestBlockHash(), depth, blockState)
@@ -247,7 +221,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 			ParentHash: ancestor.Header.Hash(),
 			Number:     big.NewInt(0).Add(ancestor.Header.Number, big.NewInt(1)),
 			Digest: types.Digest{
-				newMockDigestItem(1),
+				utils.NewMockDigestItem(1),
 			},
 		},
 		Body: body,
