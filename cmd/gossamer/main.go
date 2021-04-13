@@ -381,7 +381,7 @@ func buildSpecAction(ctx *cli.Context) error {
 	}
 
 	var res []byte
-  
+
 	if ctx.Bool(RawFlag.Name) {
 		res, err = bs.ToJSONRaw()
 	} else {
