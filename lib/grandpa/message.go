@@ -28,6 +28,7 @@ import (
 )
 
 // GrandpaMessage is implemented by all GRANDPA network messages
+// TODO: the fields can be un-exported, as can all the message implementations
 type GrandpaMessage interface { //nolint
 	ToConsensusMessage() (*network.ConsensusMessage, error)
 	Type() byte
@@ -35,10 +36,11 @@ type GrandpaMessage interface { //nolint
 
 var (
 	voteType            byte = 0
-	precommitType       byte = 1
-	finalizationType    byte = 2
+	precommitType       byte = 1 // TODO: precommitType is now part of voteType
+	neighbourType       byte = 2
 	catchUpRequestType  byte = 3
 	catchUpResponseType byte = 4
+	finalizationType    byte = 5 // TODO: this is actually 1
 )
 
 // FullVote represents a vote with additional information about the state
@@ -86,9 +88,32 @@ func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 
 	typ := byte(v.Stage)
 	return &ConsensusMessage{
-		ConsensusEngineID: types.GrandpaEngineID,
-		Data:              append([]byte{typ}, enc...),
+		Data: append([]byte{typ}, enc...),
 	}, nil
+}
+
+type NeighbourMessage struct {
+	Version byte
+	Round   uint64
+	SetID   uint64
+	Number  uint32
+}
+
+// ToConsensusMessage converts the NeighbourMessage into a network-level consensus message
+func (m *NeighbourMessage) ToConsensusMessage() (*network.ConsensusMessage, error) {
+	enc, err := scale.Encode(m)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ConsensusMessage{
+		Data: append([]byte{neighbourType}, enc...),
+	}, nil
+}
+
+// Type returns neighbourType
+func (m *NeighbourMessage) Type() byte {
+	return neighbourType
 }
 
 // FinalizationMessage represents a network finalization message
@@ -111,8 +136,7 @@ func (f *FinalizationMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 	}
 
 	return &ConsensusMessage{
-		ConsensusEngineID: types.GrandpaEngineID,
-		Data:              append([]byte{finalizationType}, enc...),
+		Data: append([]byte{finalizationType}, enc...),
 	}, nil
 }
 
@@ -149,8 +173,7 @@ func (r *catchUpRequest) ToConsensusMessage() (*ConsensusMessage, error) {
 	}
 
 	return &ConsensusMessage{
-		ConsensusEngineID: types.GrandpaEngineID,
-		Data:              append([]byte{catchUpRequestType}, enc...),
+		Data: append([]byte{catchUpRequestType}, enc...),
 	}, nil
 }
 
@@ -222,7 +245,6 @@ func (r *catchUpResponse) ToConsensusMessage() (*ConsensusMessage, error) {
 	}
 
 	return &ConsensusMessage{
-		ConsensusEngineID: types.GrandpaEngineID,
-		Data:              append([]byte{catchUpResponseType}, enc...),
+		Data: append([]byte{catchUpResponseType}, enc...),
 	}, nil
 }

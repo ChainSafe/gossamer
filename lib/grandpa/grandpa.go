@@ -34,12 +34,14 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-var interval = time.Second
+var (
+	interval = time.Second
+	logger   = log.New("pkg", "grandpa")
+)
 
 // Service represents the current state of the grandpa protocol
 type Service struct {
 	// preliminaries
-	logger         log.Logger
 	ctx            context.Context
 	cancel         context.CancelFunc
 	blockState     BlockState
@@ -105,7 +107,6 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilNetwork
 	}
 
-	logger := log.New("pkg", "grandpa")
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
 	h = log.CallerFileHandler(h)
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
@@ -126,7 +127,6 @@ func NewService(cfg *Config) (*Service, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	s := &Service{
-		logger:             logger,
 		ctx:                ctx,
 		cancel:             cancel,
 		state:              NewState(cfg.Voters, cfg.SetID, 0), // TODO: determine current round
@@ -166,7 +166,7 @@ func (s *Service) Start() error {
 	go func() {
 		err := s.initiate()
 		if err != nil {
-			s.logger.Error("failed to initiate", "error", err)
+			logger.Error("failed to initiate", "error", err)
 		}
 	}()
 
@@ -247,7 +247,7 @@ func (s *Service) initiate() error {
 	// make sure no votes can be validated while we are incrementing rounds
 	s.roundLock.Lock()
 	s.state.round++
-	s.logger.Trace("incrementing grandpa round", "next round", s.state.round)
+	logger.Trace("incrementing grandpa round", "next round", s.state.round)
 	if s.tracker != nil {
 		s.tracker.stop()
 	}
@@ -266,7 +266,7 @@ func (s *Service) initiate() error {
 			return err
 		}
 		s.tracker.start()
-		s.logger.Trace("started message tracker")
+		logger.Trace("started message tracker")
 	}
 	s.roundLock.Unlock()
 
@@ -377,7 +377,7 @@ func (s *Service) waitForFirstBlock() error {
 // playGrandpaRound executes a round of GRANDPA
 // at the end of this round, a block will be finalized.
 func (s *Service) playGrandpaRound() error {
-	s.logger.Debug("starting round", "round", s.state.round, "setID", s.state.setID)
+	logger.Debug("starting round", "round", s.state.round, "setID", s.state.setID)
 
 	// save start time
 	start := time.Now()
@@ -389,13 +389,13 @@ func (s *Service) playGrandpaRound() error {
 	if bytes.Equal(primary.key.Encode(), s.keypair.Public().Encode()) {
 		msg, err := s.newFinalizationMessage(s.head, s.state.round-1).ToConsensusMessage()
 		if err != nil {
-			s.logger.Error("failed to encode finalization message", "error", err)
+			logger.Error("failed to encode finalization message", "error", err)
 		} else {
 			s.network.SendMessage(msg)
 		}
 	}
 
-	s.logger.Debug("receiving pre-vote messages...")
+	logger.Debug("receiving pre-vote messages...")
 
 	go s.receiveMessages(func() bool {
 		if s.paused.Load().(bool) {
@@ -430,7 +430,7 @@ func (s *Service) playGrandpaRound() error {
 
 	s.mapLock.Lock()
 	s.prevotes[s.publicKeyBytes()] = pv
-	s.logger.Debug("sending pre-vote message...", "vote", pv, "prevotes", s.prevotes)
+	logger.Debug("sending pre-vote message...", "vote", pv, "prevotes", s.prevotes)
 	s.mapLock.Unlock()
 
 	finalized := false
@@ -448,15 +448,15 @@ func (s *Service) playGrandpaRound() error {
 
 			err = s.sendMessage(pv, prevote)
 			if err != nil {
-				s.logger.Error("could not send prevote message", "error", err)
+				logger.Error("could not send prevote message", "error", err)
 			}
 
 			time.Sleep(time.Second * 5)
-			s.logger.Trace("sent pre-vote message...", "vote", pv, "prevotes", s.prevotes)
+			logger.Trace("sent pre-vote message...", "vote", pv, "prevotes", s.prevotes)
 		}
 	}(&finalized)
 
-	s.logger.Debug("receiving pre-commit messages...")
+	logger.Debug("receiving pre-commit messages...")
 
 	go s.receiveMessages(func() bool {
 		end := start.Add(interval * 4)
@@ -487,7 +487,7 @@ func (s *Service) playGrandpaRound() error {
 
 	s.mapLock.Lock()
 	s.precommits[s.publicKeyBytes()] = pc
-	s.logger.Debug("sending pre-commit message...", "vote", pc, "precommits", s.precommits)
+	logger.Debug("sending pre-commit message...", "vote", pc, "precommits", s.precommits)
 	s.mapLock.Unlock()
 
 	// continue to send precommit messages until round is done
@@ -503,11 +503,11 @@ func (s *Service) playGrandpaRound() error {
 
 			err = s.sendMessage(pc, precommit)
 			if err != nil {
-				s.logger.Error("could not send precommit message", "error", err)
+				logger.Error("could not send precommit message", "error", err)
 			}
 
 			time.Sleep(time.Second * 5)
-			s.logger.Trace("sent pre-commit message...", "vote", pc, "precommits", s.precommits)
+			logger.Trace("sent pre-commit message...", "vote", pc, "precommits", s.precommits)
 		}
 	}(&finalized)
 
@@ -586,7 +586,7 @@ func (s *Service) attemptToFinalize() error {
 
 		// if we haven't received a finalization message for this block yet, broadcast a finalization message
 		votes := s.getDirectVotes(precommit)
-		s.logger.Debug("finalized block!!!", "setID", s.state.setID, "round", s.state.round, "hash", s.head.Hash(),
+		logger.Debug("finalized block!!!", "setID", s.state.setID, "round", s.state.round, "hash", s.head.Hash(),
 			"precommits #", pc, "votes for bfc #", votes[*bfc], "total votes for bfc", pc, "precommits", s.precommits)
 		msg, err := s.newFinalizationMessage(s.head, s.state.round).ToConsensusMessage()
 		if err != nil {

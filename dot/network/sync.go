@@ -163,7 +163,6 @@ func newSyncQueue(s *Service) *syncQueue {
 func (q *syncQueue) start() {
 	go q.handleResponseQueue()
 	go q.syncAtHead()
-	go q.finalizeAtHead()
 
 	go q.processBlockRequests()
 	go q.processBlockResponses()
@@ -691,17 +690,17 @@ func (q *syncQueue) handleBlockJustification(data []*types.BlockData) {
 }
 
 func (q *syncQueue) handleBlockData(data []*types.BlockData) {
-	finalized, err := q.s.blockState.GetFinalizedHeader(0, 0)
-	if err != nil {
-		panic(err) // TODO: don't panic but try again. seems blockState needs better concurrency handling
-	}
+	// finalized, err := q.s.blockState.GetFinalizedHeader(0, 0)
+	// if err != nil {
+	// 	panic(err)
+	// }
 
 	end := data[len(data)-1].Number().Int64()
-	if end <= finalized.Number.Int64() {
-		logger.Debug("ignoring block data that is below our head", "got", end, "head", finalized.Number.Int64())
-		q.pushRequest(uint64(end+1), blockRequestBufferSize, "")
-		return
-	}
+	// if end <= finalized.Number.Int64() {
+	// 	logger.Debug("ignoring block data that is below our head", "got", end, "head", finalized.Number.Int64())
+	// 	q.pushRequest(uint64(end+1), blockRequestBufferSize, "")
+	// 	return
+	// }
 
 	defer func() {
 		q.currStart = 0
