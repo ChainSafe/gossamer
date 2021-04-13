@@ -17,7 +17,9 @@ package dot
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"testing"
 
@@ -66,6 +68,18 @@ func TestBuildFromGenesis(t *testing.T) {
 	require.Equal(t, expectedProperties, jGenRaw.Properties)
 }
 
+func TestWriteGenesisSpecFileWhenFileAlreadyExists(t *testing.T) {
+	f, err := ioutil.TempFile("", "existing file data")
+	require.NoError(t, err)
+	defer os.Remove(f.Name())
+
+	someBytes := []byte("Testing some bytes")
+	err = WriteGenesisSpecFile(someBytes, f.Name())
+
+	require.Error(t, err,
+		fmt.Sprintf("file %s already exists, rename to avoid overwritten", f.Name()))
+}
+
 func TestWriteGenesisSpecFile(t *testing.T) {
 	cfg := NewTestConfig(t)
 	cfg.Init.Genesis = "../chain/gssmr/genesis.json"
@@ -90,6 +104,7 @@ func TestWriteGenesisSpecFile(t *testing.T) {
 	defer os.Remove(tmpFile)
 
 	file, err := os.Open(tmpFile)
+	require.NoError(t, err)
 	defer file.Close()
 
 	genesisBytes, err := io.ReadAll(file)
