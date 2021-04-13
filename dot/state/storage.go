@@ -20,7 +20,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"reflect"
 	"sync"
 
 	"github.com/ChainSafe/chaindb"
@@ -51,8 +50,7 @@ type StorageState struct {
 	lock   sync.RWMutex
 
 	// change notifiers
-	changedLock   sync.RWMutex
-	subscriptions map[byte]*StorageSubscription
+	observerList []Observer
 
 	syncing bool
 }
@@ -71,11 +69,10 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie) 
 	tries[t.MustHash()] = t
 
 	return &StorageState{
-		blockState:    blockState,
-		tries:         tries,
-		baseDB:        db,
-		db:            chaindb.NewTable(db, storagePrefix),
-		subscriptions: make(map[byte]*StorageSubscription),
+		blockState: blockState,
+		tries:      tries,
+		baseDB:     db,
+		db:         chaindb.NewTable(db, storagePrefix),
 	}, nil
 }
 
@@ -117,11 +114,7 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
 		return err
 	}
 
-	go func() {
-		if err := s.notifyStorageSubscriptions(root); err != nil {
-			logger.Warn("failed to notify storage subscriptions", "error", err)
-		}
-	}()
+	go s.notifyAll(root)
 
 	return nil
 }
@@ -162,75 +155,6 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 	s.tries[*root] = curr.Snapshot()
 	s.lock.Unlock()
 	return curr, nil
-}
-
-// notifyStorageSubscriptions interates StorageState subscrirptions and notifies listener
-//  if the value filter value has changed
-func (s *StorageState) notifyStorageSubscriptions(root common.Hash) error {
-	s.changedLock.Lock()
-	defer s.changedLock.Unlock()
-	for subKey := range s.subscriptions {
-		err := s.notifyStorageSubscription(root, subKey)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// notifyStorageSubscriptions interates StorageState subscrirptions and notifies listener
-//  if the value filter value has changed
-func (s *StorageState) notifyStorageSubscription(root common.Hash, subID byte) error {
-	s.lock.RLock()
-	t := s.tries[root]
-	defer s.lock.RUnlock()
-
-	if t == nil {
-		return errTrieDoesNotExist(root)
-	}
-
-	// notify subscribers of database changes
-	s.changedLock.Lock()
-	defer s.changedLock.Unlock()
-
-	sub := s.subscriptions[subID]
-	subRes := &SubscriptionResult{
-		Hash: root,
-	}
-	if len(sub.Filter) == 0 {
-		// no filter, so send all changes
-		ent := t.Entries()
-		for k, v := range ent {
-			if k != ":code" {
-				// todo, currently we're ignoring :code since this is a lot of data
-				kv := &KeyValue{
-					Key:   common.MustHexToBytes(fmt.Sprintf("0x%x", k)),
-					Value: v,
-				}
-				subRes.Changes = append(subRes.Changes, *kv)
-			}
-		}
-	} else {
-		// filter result to include only interested keys
-		for k, cachedValue := range sub.Filter {
-			value := t.Get(common.MustHexToBytes(k))
-			if !reflect.DeepEqual(cachedValue, value) {
-				kv := &KeyValue{
-					Key:   common.MustHexToBytes(k),
-					Value: value,
-				}
-				subRes.Changes = append(subRes.Changes, *kv)
-				s.subscriptions[subID].Filter[k] = value
-			}
-		}
-	}
-	if len(subRes.Changes) > 0 {
-		go func(ch chan<- *SubscriptionResult) {
-			ch <- subRes
-		}(sub.Listener)
-	}
-
-	return nil
 }
 
 // LoadFromDB loads an encoded trie from the DB where the key is `root`

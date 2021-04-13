@@ -27,7 +27,6 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	log "github.com/ChainSafe/log15"
@@ -84,12 +83,12 @@ func (c *WSConn) HandleComm() {
 				}
 				c.startListener(bl)
 			case "state_subscribeStorage":
-				scl, err2 := c.initStorageChangeListener(reqid, params)
+				_, err2 := c.initStorageChangeListener(reqid, params)
 				if err2 != nil {
 					logger.Warn("failed to create state change listener", "error", err2)
 					continue
 				}
-				c.startListener(scl)
+
 			case "chain_subscribeFinalizedHeads":
 				bfl, err3 := c.initBlockFinalizedListener(reqid)
 				if err3 != nil {
@@ -171,13 +170,9 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (i
 		return 0, fmt.Errorf("error StorageAPI not set")
 	}
 
-	scl := &StorageChangeListener{
-		Channel: make(chan *state.SubscriptionResult),
-		wsconn:  c,
-	}
-	sub := &state.StorageSubscription{
-		Filter:   make(map[string][]byte),
-		Listener: scl.Channel,
+	myObs := &StorageObserver{
+		filter: make(map[string][]byte),
+		wsconn: c,
 	}
 
 	pA, ok := params.([]interface{})
@@ -192,30 +187,26 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (i
 				if !ok {
 					return 0, fmt.Errorf("unknow parameter type")
 				}
-				sub.Filter[data] = []byte{}
+				myObs.filter[data] = []byte{}
 			}
 		case string:
-			sub.Filter[p] = []byte{}
+			myObs.filter[p] = []byte{}
 		default:
 			return 0, fmt.Errorf("unknow parameter type")
 		}
 	}
 
-	chanID, err := c.StorageAPI.RegisterStorageChangeChannel(*sub)
-	if err != nil {
-		return 0, err
-	}
-	scl.ChanID = chanID
-
 	c.qtyListeners++
-	scl.subID = c.qtyListeners
-	c.Subscriptions[scl.subID] = scl
-	c.StorageSubChannels[scl.subID] = chanID
+	myObs.id = c.qtyListeners
 
-	initRes := newSubscriptionResponseJSON(scl.subID, reqID)
+	c.StorageAPI.RegisterStorageObserver(myObs)
+
+	c.Subscriptions[myObs.id] = myObs
+
+	initRes := newSubscriptionResponseJSON(myObs.id, reqID)
 	c.safeSend(initRes)
 
-	return scl.subID, nil
+	return myObs.id, nil
 }
 
 func (c *WSConn) initBlockListener(reqID float64) (int, error) {

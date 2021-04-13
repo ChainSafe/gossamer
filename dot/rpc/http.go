@@ -177,9 +177,8 @@ func (h *HTTPServer) Stop() error {
 		for _, conn := range h.wsConns {
 			for _, sub := range conn.Subscriptions {
 				switch v := sub.(type) {
-				case *subscription.StorageChangeListener:
-					h.serverConfig.StorageAPI.UnregisterStorageChangeChannel(v.ChanID)
-					close(v.Channel)
+				case *subscription.StorageObserver:
+					h.serverConfig.StorageAPI.UnregisterStorageObserver(v)
 				case *subscription.BlockListener:
 					h.serverConfig.BlockAPI.UnregisterImportedChannel(v.ChanID)
 					close(v.Channel)

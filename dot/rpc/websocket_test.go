@@ -150,11 +150,10 @@ func (m *MockStorageAPI) Entries(_ *common.Hash) (map[string][]byte, error) {
 func (m *MockStorageAPI) GetStorageByBlockHash(_ common.Hash, key []byte) ([]byte, error) {
 	return nil, nil
 }
-func (m *MockStorageAPI) RegisterStorageChangeChannel(sub state.StorageSubscription) (byte, error) {
-	return 0, nil
+func (m *MockStorageAPI) RegisterStorageObserver(observer state.Observer) {
 }
-func (m *MockStorageAPI) UnregisterStorageChangeChannel(id byte) {
 
+func (m *MockStorageAPI) UnregisterStorageObserver(observer state.Observer) {
 }
 func (m *MockStorageAPI) GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error) {
 	return nil, nil

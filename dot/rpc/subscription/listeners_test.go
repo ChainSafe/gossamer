@@ -35,15 +35,12 @@ func (m *MockWSConnAPI) safeSend(msg interface{}) {
 	m.lastMessage = msg.(BaseResponseJSON)
 }
 
-func TestStorageChangeListener_Listen(t *testing.T) {
-	notifyChan := make(chan *state.SubscriptionResult)
+func TestStorageObserver_Update(t *testing.T) {
 	mockConnection := &MockWSConnAPI{}
-	scl := StorageChangeListener{
-		Channel: notifyChan,
-		wsconn:  mockConnection,
+	storageObserver := StorageObserver{
+		id:     0,
+		wsconn: mockConnection,
 	}
-
-	go scl.Listen()
 
 	data := []state.KeyValue{{
 		Key:   []byte("key"),
@@ -67,7 +64,7 @@ func TestStorageChangeListener_Listen(t *testing.T) {
 	expectedRespones.Method = "state_storage"
 	expectedRespones.Params.Result = expected
 
-	notifyChan <- change
+	storageObserver.Update(change)
 	time.Sleep(time.Millisecond * 10)
 	require.Equal(t, expectedRespones, mockConnection.lastMessage)
 }

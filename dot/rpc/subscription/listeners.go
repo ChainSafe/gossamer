@@ -35,37 +35,47 @@ type WSConnAPI interface {
 	safeSend(interface{})
 }
 
-// StorageChangeListener for listening to state change channels
-type StorageChangeListener struct {
-	Channel chan *state.SubscriptionResult
-	wsconn  WSConnAPI
-	ChanID  byte
-	subID   int
+// StorageObserver struct to hold data for observer (Observer Design Pattern)
+type StorageObserver struct {
+	id     int
+	filter map[string][]byte
+	wsconn WSConnAPI
 }
 
-// Listen implementation of Listen interface to listen for importedChan changes
-func (l *StorageChangeListener) Listen() {
-	for change := range l.Channel {
-		if change == nil {
-			continue
-		}
-
-		result := make(map[string]interface{})
-		result["block"] = change.Hash.String()
-		changes := make([][]string, 0, len(change.Changes))
-		for _, v := range change.Changes {
-			kv := []string{common.BytesToHex(v.Key), common.BytesToHex(v.Value)}
-			changes = append(changes, kv)
-		}
-		result["changes"] = changes
-
-		res := newSubcriptionBaseResponseJSON()
-		res.Method = "state_storage"
-		res.Params.Result = result
-		res.Params.SubscriptionID = l.subID
-		l.wsconn.safeSend(res)
+// Update is called to notify observer of new value
+func (s *StorageObserver) Update(change *state.SubscriptionResult) {
+	if change == nil {
+		return
 	}
+
+	result := make(map[string]interface{})
+	result["block"] = change.Hash.String()
+	changes := make([][]string, 0, len(change.Changes))
+	for _, v := range change.Changes {
+		kv := []string{common.BytesToHex(v.Key), common.BytesToHex(v.Value)}
+		changes = append(changes, kv)
+	}
+	result["changes"] = changes
+
+	res := newSubcriptionBaseResponseJSON()
+	res.Method = "state_storage"
+	res.Params.Result = result
+	res.Params.SubscriptionID = s.GetID()
+	s.wsconn.safeSend(res)
 }
+
+// GetID the id for the Observer
+func (s *StorageObserver) GetID() int {
+	return s.id
+}
+
+// GetFilter returns the filter the Observer is using
+func (s *StorageObserver) GetFilter() map[string][]byte {
+	return s.filter
+}
+
+// Listen to satisfy Listener interface (but is no longer used by StorageObserver)
+func (s *StorageObserver) Listen() {}
 
 // BlockListener to handle listening for blocks importedChan
 type BlockListener struct {

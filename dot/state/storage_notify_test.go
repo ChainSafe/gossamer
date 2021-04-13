@@ -30,33 +30,46 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestStorageState_RegisterStorageChangeChannel(t *testing.T) {
+type MockStorageObserver struct {
+	id         int
+	filter     map[string][]byte
+	lastUpdate *SubscriptionResult
+}
+
+func (m *MockStorageObserver) Update(change *SubscriptionResult) {
+	m.lastUpdate = change
+}
+func (m *MockStorageObserver) GetID() int {
+	return m.id
+}
+func (m *MockStorageObserver) GetFilter() map[string][]byte {
+	return m.filter
+}
+
+func TestStorageState_RegisterStorageObserver(t *testing.T) {
 	ss := newTestStorageState(t)
 
 	ts, err := ss.TrieState(nil)
 	require.NoError(t, err)
 
-	ch := make(chan *SubscriptionResult)
-	sub := StorageSubscription{
-		Filter:   make(map[string][]byte),
-		Listener: ch,
-	}
-	id, err := ss.RegisterStorageChangeChannel(sub)
-	require.NoError(t, err)
+	observer := &MockStorageObserver{}
+	ss.RegisterStorageObserver(observer)
 
-	defer ss.UnregisterStorageChangeChannel(id)
+	defer ss.UnregisterStorageObserver(observer)
 
 	ts.Set([]byte("mackcom"), []byte("wuz here"))
 	err = ss.StoreTrie(ts)
 	require.NoError(t, err)
 
-	for i := 0; i < 1; i++ {
-		select {
-		case <-ch:
-		case <-time.After(testMessageTimeout):
-			t.Fatal("did not receive storage change message")
-		}
+	expectedResult := &SubscriptionResult{
+		Hash: ts.MustRoot(),
+		Changes: []KeyValue{{
+			Key:   []byte("mackcom"),
+			Value: []byte("wuz here"),
+		}},
 	}
+	time.Sleep(time.Millisecond)
+	require.Equal(t, expectedResult, observer.lastUpdate)
 }
 
 func TestStorageState_RegisterStorageChangeChannel_Multi(t *testing.T) {
@@ -65,15 +78,15 @@ func TestStorageState_RegisterStorageChangeChannel_Multi(t *testing.T) {
 	require.NoError(t, err)
 
 	num := 5
-	chs := make([]chan *SubscriptionResult, num)
-	ids := make([]byte, num)
+
+	var observers []*MockStorageObserver
 
 	for i := 0; i < num; i++ {
-		chs[i] = make(chan *SubscriptionResult)
-		sub := StorageSubscription{
-			Listener: chs[i],
+		observer := &MockStorageObserver{
+			id: i,
 		}
-		ids[i], err = ss.RegisterStorageChangeChannel(sub)
+		observers = append(observers, observer)
+		ss.RegisterStorageObserver(observer)
 		require.NoError(t, err)
 	}
 
@@ -85,29 +98,16 @@ func TestStorageState_RegisterStorageChangeChannel_Multi(t *testing.T) {
 	err = ss.StoreTrie(ts)
 	require.NoError(t, err)
 
-	var wg sync.WaitGroup
-	wg.Add(num)
+	time.Sleep(time.Millisecond)
 
-	for i, ch := range chs {
-
-		go func(i int, ch chan *SubscriptionResult) {
-			select {
-			case c := <-ch:
-				require.NotNil(t, c.Hash)
-				require.Equal(t, key1, c.Changes[0].Key)
-				require.Equal(t, value1, c.Changes[0].Value)
-			case <-time.After(testMessageTimeout):
-				t.Error("did not receive storage change: ch=", i)
-			}
-			wg.Done()
-		}(i, ch)
-
+	for _, observer := range observers {
+		require.NotNil(t, observer.lastUpdate.Hash)
+		require.Equal(t, key1, observer.lastUpdate.Changes[0].Key)
+		require.Equal(t, value1, observer.lastUpdate.Changes[0].Value)
 	}
 
-	wg.Wait()
-
-	for _, id := range ids {
-		ss.UnregisterStorageChangeChannel(id)
+	for _, observer := range observers {
+		ss.UnregisterStorageObserver(observer)
 	}
 }
 
@@ -119,49 +119,36 @@ func TestStorageState_RegisterStorageChangeChannel_Multi_Filter(t *testing.T) {
 	key1 := []byte("key1")
 	value1 := []byte("value1")
 
+	num := 5
+	var observers []*MockStorageObserver
+
+	for i := 0; i < num; i++ {
+		observer := &MockStorageObserver{
+			id: i,
+			filter: map[string][]byte{
+				common.BytesToHex(key1): {},
+			},
+		}
+		observers = append(observers, observer)
+		ss.RegisterStorageObserver(observer)
+	}
+
 	ts.Set(key1, value1)
 	err = ss.StoreTrie(ts)
 	require.NoError(t, err)
 
-	num := 5
-	chs := make([]chan *SubscriptionResult, num)
-	ids := make([]byte, num)
+	time.Sleep(time.Millisecond)
 
-	for i := 0; i < num; i++ {
-		chs[i] = make(chan *SubscriptionResult)
-		sub := StorageSubscription{
-			Filter: map[string][]byte{
-				common.BytesToHex(key1): {},
-			},
-			Listener: chs[i],
-		}
-		ids[i], err = ss.RegisterStorageChangeChannel(sub)
-		require.NoError(t, err)
-	}
+	for _, observer := range observers {
 
-	var wg sync.WaitGroup
-	wg.Add(num)
-
-	for i, ch := range chs {
-
-		go func(i int, ch chan *SubscriptionResult) {
-			defer wg.Done()
-			select {
-			case c := <-ch:
-				require.NotNil(t, c.Hash)
-				require.Equal(t, key1, c.Changes[0].Key)
-				require.Equal(t, value1, c.Changes[0].Value)
-			case <-time.After(testMessageTimeout):
-				t.Error("did not receive storage change: ch=", i)
-			}
-		}(i, ch)
+		require.NotNil(t, observer.lastUpdate.Hash)
+		require.Equal(t, key1, observer.lastUpdate.Changes[0].Key)
+		require.Equal(t, value1, observer.lastUpdate.Changes[0].Value)
 
 	}
 
-	wg.Wait()
-
-	for _, id := range ids {
-		ss.UnregisterStorageChangeChannel(id)
+	for _, observer := range observers {
+		ss.UnregisterStorageObserver(observer)
 	}
 }
 
