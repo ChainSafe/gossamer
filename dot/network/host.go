@@ -23,6 +23,7 @@ import (
 	"path"
 	"time"
 
+	"github.com/dgraph-io/ristretto"
 	badger "github.com/ipfs/go-ds-badger2"
 	"github.com/libp2p/go-libp2p"
 	libp2phost "github.com/libp2p/go-libp2p-core/host"
@@ -57,13 +58,11 @@ type host struct {
 	protocolID      protocol.ID
 	cm              *ConnManager
 	ds              *badger.Datastore
+	messageCache    *messageCache
 }
 
 // newHost creates a host wrapper with a new libp2p host instance
 func newHost(ctx context.Context, cfg *Config) (*host, error) {
-	// use "p2p" for multiaddress format
-	ma.SwapToP2pMultiaddrs()
-
 	// create multiaddress (without p2p identity)
 	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", cfg.Port))
 	if err != nil {
@@ -154,6 +153,20 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	// wrap host and DHT service with routed host
 	h = rhost.Wrap(h, dht)
 
+	cacheSize := 64 << 20 // 64 MB
+	config := ristretto.Config{
+		NumCounters: int64(float64(cacheSize) * 0.05 * 2),
+		MaxCost:     int64(float64(cacheSize) * 0.95),
+		BufferItems: 64,
+		Cost: func(value interface{}) int64 {
+			return int64(1)
+		},
+	}
+	msgCache, err := newMessageCache(config, msgCacheTTL)
+	if err != nil {
+		return nil, err
+	}
+
 	host := &host{
 		ctx:             ctx,
 		h:               h,
@@ -163,6 +176,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		cm:              cm,
 		ds:              ds,
 		persistentPeers: pps,
+		messageCache:    msgCache,
 	}
 
 	cm.host = host

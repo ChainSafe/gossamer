@@ -27,7 +27,7 @@ import (
 )
 
 func TestDecodeHeader(t *testing.T) {
-	header, err := NewHeader(common.Hash{}, big.NewInt(0), common.Hash{}, common.Hash{}, Digest{})
+	header, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, big.NewInt(0), Digest{})
 	require.NoError(t, err)
 
 	enc, err := header.Encode()
@@ -42,7 +42,7 @@ func TestDecodeHeader(t *testing.T) {
 }
 
 func TestMustEncodeHeader(t *testing.T) {
-	bh1, err := NewHeader(common.Hash{}, big.NewInt(0), common.Hash{}, common.Hash{}, Digest{})
+	bh1, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, big.NewInt(0), Digest{})
 	require.NoError(t, err)
 	enc, err := bh1.Encode()
 	require.NoError(t, err)
@@ -58,7 +58,7 @@ func TestMustEncodeHeader(t *testing.T) {
 		},
 	}
 
-	bh2, err := NewHeader(common.Hash{}, big.NewInt(0), common.Hash{}, common.Hash{}, testDigest)
+	bh2, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, big.NewInt(0), testDigest)
 	require.NoError(t, err)
 	enc2, err := bh2.Encode()
 	require.NoError(t, err)

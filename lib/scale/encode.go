@@ -230,7 +230,7 @@ func (se *Encoder) encodeUint128(i common.Uint128) (bytesEncoded int, err error)
 	buf := make([]byte, 16)
 	binary.LittleEndian.PutUint64(buf[:8], i.Lower)
 	binary.LittleEndian.PutUint64(buf[8:], i.Upper)
-	err = binary.Write(se.Writer, binary.LittleEndian, buf[:])
+	err = binary.Write(se.Writer, binary.LittleEndian, buf)
 	bytesEncoded += len(buf)
 	return bytesEncoded, err
 }
