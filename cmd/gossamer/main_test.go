@@ -285,18 +285,18 @@ func TestGossamerCommand(t *testing.T) {
 }
 
 func TestBuildSpecCommandWithOutput(t *testing.T) {
-	tmpOutputDir := "/tmp/raw-genesis-spec-output.json"
+	tmpOutputfile := "/tmp/raw-genesis-spec-output.json"
 	buildSpecCommand := runTestGossamer(t,
 		"build-spec",
 		"--raw",
 		"--genesis-spec", "../../chain/gssmr/genesis-spec.json",
-		"--output", tmpOutputDir)
+		"--output", tmpOutputfile)
 
-	time.Sleep(10 * time.Second)
+	time.Sleep(5 * time.Second)
 
-	_, err := os.Stat(tmpOutputDir)
+	_, err := os.Stat(tmpOutputfile)
 	require.False(t, os.IsNotExist(err))
-	defer os.Remove(tmpOutputDir)
+	defer os.Remove(tmpOutputfile)
 
 	outb, errb := buildSpecCommand.GetOutput()
 	require.Empty(t, outb)
