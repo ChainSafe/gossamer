@@ -99,8 +99,8 @@ var (
 )
 
 var (
-	errEmptyResponseData      = fmt.Errorf("response data is empty")
-	errEmptyJustificationData = fmt.Errorf("no justifications in response data")
+	errEmptyResponseData = fmt.Errorf("response data is empty")
+	//errEmptyJustificationData = fmt.Errorf("no justifications in response data")
 )
 
 type syncPeer struct {
@@ -126,9 +126,9 @@ type syncQueue struct {
 	cancel       context.CancelFunc
 	peerScore    *sync.Map // map[peer.ID]int; peers we have successfully synced from before -> their score; score increases on successful response
 
-	requestData              *sync.Map // map[uint64]requestData; map of start # of request -> requestData
-	justificationRequestData *sync.Map // map[common.Hash]requestData; map of requests of justifications -> requestData
-	requestCh                chan *syncRequest
+	requestData *sync.Map // map[uint64]requestData; map of start # of request -> requestData
+	//justificationRequestData *sync.Map // map[common.Hash]requestData; map of requests of justifications -> requestData
+	requestCh chan *syncRequest
 
 	responses    []*types.BlockData
 	responseCh   chan []*types.BlockData
@@ -145,18 +145,18 @@ func newSyncQueue(s *Service) *syncQueue {
 	ctx, cancel := context.WithCancel(s.ctx)
 
 	return &syncQueue{
-		s:                        s,
-		slotDuration:             defaultSlotDuration,
-		ctx:                      ctx,
-		cancel:                   cancel,
-		peerScore:                new(sync.Map),
-		requestData:              new(sync.Map),
-		justificationRequestData: new(sync.Map),
-		requestCh:                make(chan *syncRequest, blockRequestBufferSize),
-		responses:                []*types.BlockData{},
-		responseCh:               make(chan []*types.BlockData, blockResponseBufferSize),
-		benchmarker:              newSyncBenchmarker(),
-		buf:                      make([]byte, maxBlockResponseSize),
+		s:            s,
+		slotDuration: defaultSlotDuration,
+		ctx:          ctx,
+		cancel:       cancel,
+		peerScore:    new(sync.Map),
+		requestData:  new(sync.Map),
+		//justificationRequestData: new(sync.Map),
+		requestCh:   make(chan *syncRequest, blockRequestBufferSize),
+		responses:   []*types.BlockData{},
+		responseCh:  make(chan []*types.BlockData, blockResponseBufferSize),
+		benchmarker: newSyncBenchmarker(),
+		buf:         make([]byte, maxBlockResponseSize),
 	}
 }
 
@@ -460,33 +460,33 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error 
 		return errEmptyResponseData
 	}
 
-	startHash := resp.BlockData[0].Hash
-	if _, has := q.justificationRequestData.Load(startHash); has && !resp.BlockData[0].Header.Exists() {
-		numJustifications := 0
-		justificationResponses := []*types.BlockData{}
+	//startHash := resp.BlockData[0].Hash
+	// if _, has := q.justificationRequestData.Load(startHash); has && !resp.BlockData[0].Header.Exists() {
+	// 	numJustifications := 0
+	// 	justificationResponses := []*types.BlockData{}
 
-		for _, bd := range resp.BlockData {
-			if bd.Justification.Exists() {
-				justificationResponses = append(justificationResponses, bd)
-				numJustifications++
-			}
-		}
+	// 	for _, bd := range resp.BlockData {
+	// 		if bd.Justification.Exists() {
+	// 			justificationResponses = append(justificationResponses, bd)
+	// 			numJustifications++
+	// 		}
+	// 	}
 
-		if numJustifications == 0 {
-			return errEmptyJustificationData
-		}
+	// 	if numJustifications == 0 {
+	// 		return errEmptyJustificationData
+	// 	}
 
-		q.updatePeerScore(pid, 1)
-		q.justificationRequestData.Store(startHash, requestData{
-			sent:     true,
-			received: true,
-			from:     pid,
-		})
+	// 	q.updatePeerScore(pid, 1)
+	// 	q.justificationRequestData.Store(startHash, requestData{
+	// 		sent:     true,
+	// 		received: true,
+	// 		from:     pid,
+	// 	})
 
-		logger.Info("pushed justification data to queue", "hash", startHash)
-		q.responseCh <- justificationResponses
-		return nil
-	}
+	// 	logger.Info("pushed justification data to queue", "hash", startHash)
+	// 	q.responseCh <- justificationResponses
+	// 	return nil
+	// }
 
 	start, end, err := resp.getStartAndEnd()
 	if err != nil {
@@ -588,7 +588,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 		}
 
 		err = q.pushResponse(resp, peer.pid)
-		if err != nil && err != errEmptyResponseData && err != errEmptyJustificationData {
+		if err != nil && err != errEmptyResponseData /*&& err != errEmptyJustificationData*/ {
 			logger.Debug("failed to push block response", "error", err)
 		} else {
 			return
@@ -601,12 +601,12 @@ func (q *syncQueue) trySync(req *syncRequest) {
 			sent:     true,
 			received: false,
 		})
-	} else if req.req.StartingBlock.IsHash() && (req.req.RequestedData&RequestedDataHeader) == 0 {
+	} /*else if req.req.StartingBlock.IsHash() && (req.req.RequestedData&RequestedDataHeader) == 0 {
 		q.justificationRequestData.Store(req.req.StartingBlock.Hash(), requestData{
 			sent:     true,
 			received: false,
 		})
-	}
+	}*/
 
 	req.to = ""
 	q.requestCh <- req
@@ -651,10 +651,10 @@ func (q *syncQueue) processBlockResponses() {
 		select {
 		case data := <-q.responseCh:
 			// if the response doesn't contain a header, then it's a justification-only response
-			if !data[0].Header.Exists() {
-				q.handleBlockJustification(data)
-				continue
-			}
+			// if !data[0].Header.Exists() {
+			// 	q.handleBlockJustification(data)
+			// 	continue
+			// }
 
 			q.handleBlockData(data)
 		case <-q.ctx.Done():
@@ -663,44 +663,34 @@ func (q *syncQueue) processBlockResponses() {
 	}
 }
 
-func (q *syncQueue) handleBlockJustification(data []*types.BlockData) {
-	startHash, endHash := data[0].Hash, data[len(data)-1].Hash
-	logger.Debug("sending justification data to syncer", "start", startHash, "end", endHash)
+// func (q *syncQueue) handleBlockJustification(data []*types.BlockData) {
+// 	startHash, endHash := data[0].Hash, data[len(data)-1].Hash
+// 	logger.Debug("sending justification data to syncer", "start", startHash, "end", endHash)
 
-	_, err := q.s.syncer.ProcessBlockData(data)
-	if err != nil {
-		logger.Warn("failed to handle block justifications", "error", err)
-		return
-	}
+// 	_, err := q.s.syncer.ProcessBlockData(data)
+// 	if err != nil {
+// 		logger.Warn("failed to handle block justifications", "error", err)
+// 		return
+// 	}
 
-	logger.Debug("finished processing justification data", "start", startHash, "end", endHash)
+// 	logger.Debug("finished processing justification data", "start", startHash, "end", endHash)
 
-	// update peer's score
-	var from peer.ID
+// 	// update peer's score
+// 	var from peer.ID
 
-	d, ok := q.justificationRequestData.Load(startHash)
-	if !ok {
-		// this shouldn't happen
-		logger.Debug("can't find request data for response!", "start", startHash)
-	} else {
-		from = d.(requestData).from
-		q.updatePeerScore(from, 2)
-		q.justificationRequestData.Delete(startHash)
-	}
-}
+// 	d, ok := q.justificationRequestData.Load(startHash)
+// 	if !ok {
+// 		// this shouldn't happen
+// 		logger.Debug("can't find request data for response!", "start", startHash)
+// 	} else {
+// 		from = d.(requestData).from
+// 		q.updatePeerScore(from, 2)
+// 		q.justificationRequestData.Delete(startHash)
+// 	}
+// }
 
 func (q *syncQueue) handleBlockData(data []*types.BlockData) {
-	// finalized, err := q.s.blockState.GetFinalizedHeader(0, 0)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
 	end := data[len(data)-1].Number().Int64()
-	// if end <= finalized.Number.Int64() {
-	// 	logger.Debug("ignoring block data that is below our head", "got", end, "head", finalized.Number.Int64())
-	// 	q.pushRequest(uint64(end+1), blockRequestBufferSize, "")
-	// 	return
-	// }
 
 	defer func() {
 		q.currStart = 0

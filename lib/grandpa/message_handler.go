@@ -53,7 +53,7 @@ func (h *MessageHandler) handleMessage(msg *ConsensusMessage) (*ConsensusMessage
 		return nil, err
 	}
 
-	logger.Info("handling grandpa message", "msg", m)
+	logger.Debug("handling grandpa message", "msg", m)
 
 	switch m.Type() {
 	case voteType, precommitType:
@@ -72,41 +72,7 @@ func (h *MessageHandler) handleMessage(msg *ConsensusMessage) (*ConsensusMessage
 			return nil, nil
 		}
 
-		currFinalized, err := h.grandpa.blockState.GetFinalizedHeader(0, 0)
-		if err != nil {
-			return nil, err
-		}
-
-		if uint32(currFinalized.Number.Int64()) >= nm.Number {
-			return nil, nil
-		}
-
-		head, err := h.grandpa.blockState.BestBlockNumber()
-		if err != nil {
-			return nil, err
-		}
-
-		if uint32(head.Int64()) < nm.Number {
-			return nil, nil
-		}
-
-		// TODO: is there another way to confirm the hash?
-		hash, err := h.grandpa.blockState.GetHashByNumber(big.NewInt(int64(nm.Number)))
-		if err != nil {
-			return nil, err
-		}
-
-		err = h.grandpa.blockState.SetFinalizedHash(hash, nm.Round, nm.SetID)
-		if err != nil {
-			return nil, err
-		}
-
-		err = h.grandpa.blockState.SetFinalizedHash(hash, 0, 0)
-		if err != nil {
-			return nil, err
-		}
-
-		logger.Info("🔨 finalized block", "number", nm.Number, "hash", hash)
+		return nil, h.handleNeighbourMessage(nm)
 	case catchUpRequestType:
 		if r, ok := m.(*catchUpRequest); ok {
 			return h.handleCatchUpRequest(r)
@@ -120,6 +86,45 @@ func (h *MessageHandler) handleMessage(msg *ConsensusMessage) (*ConsensusMessage
 	}
 
 	return nil, nil
+}
+
+func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage) error {
+	currFinalized, err := h.grandpa.blockState.GetFinalizedHeader(0, 0)
+	if err != nil {
+		return err
+	}
+
+	if uint32(currFinalized.Number.Int64()) >= msg.Number {
+		return nil
+	}
+
+	head, err := h.grandpa.blockState.BestBlockNumber()
+	if err != nil {
+		return err
+	}
+
+	if uint32(head.Int64()) < msg.Number {
+		return nil
+	}
+
+	// TODO: is there another way to confirm the hash?
+	hash, err := h.grandpa.blockState.GetHashByNumber(big.NewInt(int64(msg.Number)))
+	if err != nil {
+		return err
+	}
+
+	err = h.grandpa.blockState.SetFinalizedHash(hash, msg.Round, msg.SetID)
+	if err != nil {
+		return err
+	}
+
+	err = h.grandpa.blockState.SetFinalizedHash(hash, 0, 0)
+	if err != nil {
+		return err
+	}
+
+	logger.Info("🔨 finalized block", "number", msg.Number, "hash", hash)
+	return nil
 }
 
 func (h *MessageHandler) handleFinalizationMessage(msg *FinalizationMessage) (*ConsensusMessage, error) {
