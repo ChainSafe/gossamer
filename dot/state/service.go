@@ -158,11 +158,8 @@ func (s *Service) Initialize(gen *genesis.Genesis, header *types.Header, t *trie
 		s.Storage = storageState
 		s.Block = blockState
 		s.Epoch = epochState
-	} else {
-		// close database
-		if err = db.Close(); err != nil {
-			return fmt.Errorf("failed to close database: %s", err)
-		}
+	} else if err = db.Close(); err != nil {
+		return fmt.Errorf("failed to close database: %s", err)
 	}
 
 	logger.Info("state", "genesis hash", blockState.genesisHash)

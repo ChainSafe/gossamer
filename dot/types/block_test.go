@@ -126,13 +126,13 @@ func TestDeepCopyBlock(t *testing.T) {
 }
 
 func TestMustEncodeBlock(t *testing.T) {
-	h1, err := NewHeader(common.Hash{}, big.NewInt(0), common.Hash{}, common.Hash{}, Digest{})
+	h1, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, big.NewInt(0), Digest{})
 	require.NoError(t, err)
 	b1 := NewBlock(h1, NewBody([]byte{}))
 	enc, err := b1.Encode()
 	require.NoError(t, err)
 
-	h2, err := NewHeader(common.Hash{0x1, 0x2}, big.NewInt(0), common.Hash{}, common.Hash{}, Digest{})
+	h2, err := NewHeader(common.Hash{0x1, 0x2}, common.Hash{}, common.Hash{}, big.NewInt(0), Digest{})
 	require.NoError(t, err)
 	b2 := NewBlock(h2, NewBody([]byte{0xa, 0xb}))
 	enc2, err := b2.Encode()

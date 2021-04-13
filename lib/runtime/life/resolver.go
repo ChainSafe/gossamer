@@ -82,8 +82,8 @@ func ext_logging_log_version_1(vm *exec.VirtualMachine) int64 {
 	targetData := vm.GetCurrentFrame().Locals[1]
 	msgData := vm.GetCurrentFrame().Locals[2]
 
-	target := fmt.Sprintf("%s", asMemorySlice(vm.Memory, targetData))
-	msg := fmt.Sprintf("%s", asMemorySlice(vm.Memory, msgData))
+	target := asMemorySlice(vm.Memory, targetData)
+	msg := asMemorySlice(vm.Memory, msgData)
 
 	switch int(level) {
 	case 0:
@@ -107,7 +107,7 @@ func ext_misc_print_utf8_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_misc_print_utf8_version_1] executing...")
 	dataSpan := vm.GetCurrentFrame().Locals[0]
 	data := asMemorySlice(vm.Memory, dataSpan)
-	logger.Debug("[ext_misc_print_utf8_version_1]", "utf8", fmt.Sprintf("%s", data))
+	logger.Debug("[ext_misc_print_utf8_version_1]", "utf8", data)
 	return 0
 }
 
@@ -181,7 +181,7 @@ func ext_hashing_twox_128_version_1(vm *exec.VirtualMachine) int64 {
 		return 0
 	}
 
-	logger.Debug("[ext_hashing_twox_128_version_1]", "data", fmt.Sprintf("%s", data), "hash", fmt.Sprintf("0x%x", hash))
+	logger.Debug("[ext_hashing_twox_128_version_1]", "data", data, "hash", fmt.Sprintf("0x%x", hash))
 
 	out, err := toWasmMemorySized(vm.Memory, hash, 16)
 	if err != nil {
@@ -507,7 +507,7 @@ func toWasmMemorySized(memory, data []byte, size uint32) (uint32, error) {
 		return 0, err
 	}
 
-	copy(memory[out:out+size], data[:])
+	copy(memory[out:out+size], data)
 	return out, nil
 }
 
@@ -538,7 +538,7 @@ func toWasmMemory(memory, data []byte) (int64, error) {
 		return 0, err
 	}
 
-	copy(memory[out:out+size], data[:])
+	copy(memory[out:out+size], data)
 	return pointerAndSizeToInt64(int32(out), int32(size)), nil
 }
 
