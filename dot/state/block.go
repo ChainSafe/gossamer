@@ -584,9 +584,8 @@ func (bs *BlockState) handleAddedBlock(prev, curr common.Hash) error {
 			return err
 		}
 	}
-
-	batch.Flush()
-	return nil
+	
+	return batch.Flush()
 }
 
 // AddBlockToBlockTree adds the given block to the blocktree. It does not write it to the database.
