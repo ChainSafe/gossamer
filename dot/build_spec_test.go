@@ -34,8 +34,8 @@ func TestBuildFromGenesis(t *testing.T) {
 
 	expectedChainType := "TESTCHAINTYPE"
 	expectedProperties := map[string]interface{}{
-		"ss58Format":    00,
-		"tokenDecimals": 00,
+		"ss58Format":    0.0,
+		"tokenDecimals": 0.0,
 		"tokenSymbol":   "TEST",
 	}
 
@@ -89,7 +89,7 @@ func TestWriteGenesisSpecFile(t *testing.T) {
 	err = InitNode(cfg)
 	require.NoError(t, err)
 
-	bs, err := BuildFromDB(cfg.Global.BasePath)
+	bs, err := BuildFromGenesis(cfg.Init.Genesis, 0)
 	require.NoError(t, err)
 
 	data, err := bs.ToJSONRaw()
@@ -113,7 +113,7 @@ func TestWriteGenesisSpecFile(t *testing.T) {
 	err = json.Unmarshal(genesisBytes, gen)
 	require.NoError(t, err)
 
-	require.Equal(t, expected.ChainType, gen.ChainType)
+	require.Equal(t, expected, gen.ChainType)
 	require.Equal(t, expected.Properties, gen.Properties)
 }
 
