@@ -340,8 +340,6 @@ func TestDecodeTransactionMessageTwoExtrinsics(t *testing.T) {
 }
 
 func TestDecodeConsensusMessage(t *testing.T) {
-	ConsensusEngineID := types.BabeEngineID
-
 	testID := hex.EncodeToString(types.BabeEngineID.ToBytes())
 	testData := "03100405"
 
@@ -358,8 +356,7 @@ func TestDecodeConsensusMessage(t *testing.T) {
 	require.Nil(t, err)
 
 	expected := &ConsensusMessage{
-		ConsensusEngineID: ConsensusEngineID,
-		Data:              out,
+		Data: out,
 	}
 
 	require.Equal(t, expected, m)
