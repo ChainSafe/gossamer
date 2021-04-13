@@ -222,7 +222,11 @@ func TestSend(t *testing.T) {
 	require.NoError(t, err)
 
 	time.Sleep(TestMessageTimeout)
-	require.Equal(t, testBlockRequestMessage, handler.messages[nodeA.host.id()])
+
+	msg, ok := handler.messages[nodeA.host.id()]
+	require.True(t, ok)
+	require.Equal(t, 1, len(msg))
+	require.Equal(t, testBlockRequestMessage, msg[0])
 }
 
 // test host send method with existing stream
