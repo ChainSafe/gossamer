@@ -691,13 +691,12 @@ func (q *syncQueue) handleBlockJustification(data []*types.BlockData) {
 }
 
 func (q *syncQueue) handleBlockData(data []*types.BlockData) {
-	end := data[len(data)-1].Number().Int64()
-
 	finalized, err := q.s.blockState.GetFinalizedHeader(0, 0)
 	if err != nil {
 		panic(err) // this should never happen
 	}
 
+	end := data[len(data)-1].Number().Int64()
 	if end <= finalized.Number.Int64() {
 		logger.Debug("ignoring block data that is below our head", "got", end, "head", finalized.Number.Int64())
 		q.pushRequest(uint64(end+1), blockRequestBufferSize, "")
