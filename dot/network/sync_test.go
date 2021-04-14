@@ -28,6 +28,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
 )
@@ -425,9 +426,10 @@ func TestSyncQueue_SyncAtHead(t *testing.T) {
 	q.stop()
 	time.Sleep(time.Second)
 	q.ctx = context.Background()
+	q.slotDuration = time.Millisecond * 100
 
 	go q.syncAtHead()
-	time.Sleep(time.Millisecond * 6100)
+	time.Sleep(q.slotDuration * 3)
 	select {
 	case req := <-q.requestCh:
 		require.Equal(t, uint64(2), req.req.StartingBlock.Uint64())
@@ -500,7 +502,7 @@ func TestSyncQueue_handleBlockDataFailure_MissingParent(t *testing.T) {
 	q.ctx = context.Background()
 
 	data := testBlockResponseMessage().BlockData
-	q.handleBlockDataFailure(0, fmt.Errorf("failed to get parent hash: Key not found"), data)
+	q.handleBlockDataFailure(0, fmt.Errorf("some error: %w", chaindb.ErrKeyNotFound), data)
 	select {
 	case req := <-q.requestCh:
 		require.True(t, req.req.StartingBlock.IsHash())
