@@ -67,6 +67,12 @@ func TestBuildFromGenesis(t *testing.T) {
 	require.Equal(t, expectedProperties, jGenRaw.Properties)
 }
 
+func TestBuildFromGenesis_WhenGenesisDoesNotExists(t *testing.T) {
+	bs, err := BuildFromGenesis("/not/exists/genesis.json", 0)
+	require.Nil(t, bs)
+	require.Error(t, err, os.ErrNotExist)
+}
+
 func TestWriteGenesisSpecFileWhenFileAlreadyExists(t *testing.T) {
 	f, err := ioutil.TempFile("", "existing file data")
 	require.NoError(t, err)
@@ -137,3 +143,5 @@ func TestBuildFromDB(t *testing.T) {
 
 	require.Equal(t, expected.Genesis.Raw["top"]["0x3a636f6465"], jGen.Genesis.Runtime["system"]["code"])
 }
+
+func TestBuildFromDB_When
