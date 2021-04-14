@@ -103,9 +103,9 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage) error {
 		return err
 	}
 
-	// add -3 delay, until we add justification request functionality.
-	// this prevents us from marking the wrong block as final
-	if uint32(head.Int64())-3 < msg.Number {
+	// don't finalize too close to head, until we add justification request + verification functionality.
+	// this prevents us from marking the wrong block as final and getting stuck on the wrong chain
+	if uint32(head.Int64())-4 < msg.Number {
 		return nil
 	}
 

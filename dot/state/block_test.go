@@ -19,6 +19,7 @@ package state
 import (
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -498,4 +499,21 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 	block3hash, err := bs.GetHashByNumber(big.NewInt(3))
 	require.NoError(t, err)
 	require.Equal(t, header3a.Hash(), block3hash)
+}
+
+func TestAddBlockToBlockTree(t *testing.T) {
+	bs := newTestBlockState(t, testGenesisHeader)
+
+	header := &types.Header{
+		Number:     big.NewInt(1),
+		Digest:     types.Digest{},
+		ParentHash: testGenesisHeader.Hash(),
+	}
+
+	err := bs.setArrivalTime(header.Hash(), time.Now())
+	require.NoError(t, err)
+
+	err = bs.AddBlockToBlockTree(header)
+	require.NoError(t, err)
+	require.Equal(t, bs.BestBlockHash(), header.Hash())
 }
