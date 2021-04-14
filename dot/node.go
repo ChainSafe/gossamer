@@ -125,7 +125,7 @@ func NodeInitialized(basepath string, expected bool) bool {
 	_, err := os.Stat(registry)
 	if os.IsNotExist(err) {
 		if expected {
-			logger.Warn(
+			logger.Debug(
 				"node has not been initialized",
 				"basepath", basepath,
 				"error", "failed to locate KEYREGISTRY file in data directory",
