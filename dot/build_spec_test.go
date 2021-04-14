@@ -101,26 +101,32 @@ func TestWriteGenesisSpecFile(t *testing.T) {
 	data, err := bs.ToJSONRaw()
 	require.NoError(t, err)
 
-	tmpFile := "/tmp/unique-raw-genesis.json"
-	err = WriteGenesisSpecFile(data, tmpFile)
-	require.NoError(t, err)
-	require.FileExists(t, tmpFile)
+	tmpFiles := []string{
+		"/tmp/unique-raw-genesis.json",
+		"./unique-raw-genesis.json",
+	}
 
-	defer os.Remove(tmpFile)
+	for _, tmpFile := range tmpFiles {
+		err = WriteGenesisSpecFile(data, tmpFile)
+		require.NoError(t, err)
+		require.FileExists(t, tmpFile)
 
-	file, err := os.Open(tmpFile)
-	require.NoError(t, err)
-	defer file.Close()
+		defer os.Remove(tmpFile)
 
-	genesisBytes, err := ioutil.ReadAll(file)
-	require.NoError(t, err)
+		file, err := os.Open(tmpFile)
+		require.NoError(t, err)
+		defer file.Close()
 
-	gen := new(genesis.Genesis)
-	err = json.Unmarshal(genesisBytes, gen)
-	require.NoError(t, err)
+		genesisBytes, err := ioutil.ReadAll(file)
+		require.NoError(t, err)
 
-	require.Equal(t, expected.ChainType, gen.ChainType)
-	require.Equal(t, expected.Properties, gen.Properties)
+		gen := new(genesis.Genesis)
+		err = json.Unmarshal(genesisBytes, gen)
+		require.NoError(t, err)
+
+		require.Equal(t, expected.ChainType, gen.ChainType)
+		require.Equal(t, expected.Properties, gen.Properties)
+	}
 }
 
 func TestBuildFromDB(t *testing.T) {
