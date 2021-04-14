@@ -82,7 +82,7 @@ func WriteGenesisSpecFile(data []byte, fp string) error {
 	var err error
 	var absfp string
 
-	if absfp, err = filepath.Abs(filepath.Clean(fp)); err != nil {
+	if absfp, err = filepath.Abs(fp); err != nil {
 		return err
 	}
 
