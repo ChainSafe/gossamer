@@ -143,5 +143,3 @@ func TestBuildFromDB(t *testing.T) {
 
 	require.Equal(t, expected.Genesis.Raw["top"]["0x3a636f6465"], jGen.Genesis.Runtime["system"]["code"])
 }
-
-func TestBuildFromDB_When
