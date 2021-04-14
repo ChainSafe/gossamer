@@ -19,6 +19,8 @@ package dot
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -81,6 +83,10 @@ func WriteGenesisSpecFile(data []byte, fp string) error {
 	// if file already exists then dont apply any written on it
 	if utils.PathExists(fp) {
 		return fmt.Errorf("file %s already exists, rename to avoid overwritten", fp)
+	}
+
+	if err := os.MkdirAll(filepath.Dir(fp), os.ModeDir|os.ModePerm); err != nil {
+		return err
 	}
 
 	WriteConfig(data, fp)
