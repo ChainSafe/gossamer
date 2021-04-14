@@ -82,7 +82,7 @@ func BuildFromGenesis(path string, authCount int) (*BuildSpec, error) {
 func WriteGenesisSpecFile(data []byte, fp string) error {
 	// if file already exists then dont apply any written on it
 	if utils.PathExists(fp) {
-		return fmt.Errorf("file %s already exists, rename to avoid overwritten", fp)
+		return fmt.Errorf("file %s already exists, rename to avoid overwriting", fp)
 	}
 
 	if err := os.MkdirAll(filepath.Dir(fp), os.ModeDir|os.ModePerm); err != nil {
