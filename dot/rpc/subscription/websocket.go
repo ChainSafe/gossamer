@@ -177,7 +177,7 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (i
 
 	pA, ok := params.([]interface{})
 	if !ok {
-		return 0, fmt.Errorf("unknow parameter type")
+		return 0, fmt.Errorf("unknown parameter type")
 	}
 	for _, param := range pA {
 		switch p := param.(type) {
@@ -185,14 +185,14 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (i
 			for _, pp := range param.([]interface{}) {
 				data, ok := pp.(string)
 				if !ok {
-					return 0, fmt.Errorf("unknow parameter type")
+					return 0, fmt.Errorf("unknown parameter type")
 				}
 				myObs.filter[data] = []byte{}
 			}
 		case string:
 			myObs.filter[p] = []byte{}
 		default:
-			return 0, fmt.Errorf("unknow parameter type")
+			return 0, fmt.Errorf("unknown parameter type")
 		}
 	}
 
