@@ -2,12 +2,14 @@ package subscription
 
 import (
 	"log"
+	"math/big"
 	"net/http"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
@@ -17,7 +19,8 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 var wsconn = &WSConn{
-	Subscriptions: make(map[int]Listener),
+	Subscriptions:    make(map[int]Listener),
+	BlockSubChannels: make(map[int]byte),
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -103,11 +106,57 @@ func TestWSConn_HandleComm(t *testing.T) {
     "jsonrpc": "2.0",
     "method": "state_subscribeStorage",
     "params": ["0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9de1e86a9a8c739864cf3cc5ec2bea59fd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"],
-    "id": 7
-}`))
+    "id": 7}`))
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":4,"id":7}`+"\n"), msg)
+
+	// test initBlockListener
+	res, err = wsconn.initBlockListener(1)
+	require.EqualError(t, err, "error BlockAPI not set")
+	require.Equal(t, 0, res)
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}`+"\n"), msg)
+
+	wsconn.BlockAPI = new(MockBlockAPI)
+
+	res, err = wsconn.initBlockListener(1)
+	require.NoError(t, err)
+	require.Equal(t, 5, res)
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":5,"id":1}`+"\n"), msg)
+
+	c.WriteMessage(websocket.TextMessage, []byte(`{
+		"jsonrpc": "2.0",
+		"method": "chain_subscribeNewHeads",
+		"params": [],
+		"id": 8
+	}`))
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":6,"id":8}`+"\n"), msg)
+
+	// test initBlockFinalizedListener
+	wsconn.BlockAPI = nil
+
+	res, err = wsconn.initBlockFinalizedListener(1)
+	require.EqualError(t, err, "error BlockAPI not set")
+	require.Equal(t, 0, res)
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}`+"\n"), msg)
+
+	wsconn.BlockAPI = new(MockBlockAPI)
+
+	res, err = wsconn.initBlockFinalizedListener(1)
+	require.NoError(t, err)
+	require.Equal(t, 7, res)
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":7,"id":1}`+"\n"), msg)
+
 }
 
 type MockStorageAPI struct{}
@@ -131,4 +180,44 @@ func (m *MockStorageAPI) GetStateRootFromBlock(bhash *common.Hash) (*common.Hash
 }
 func (m *MockStorageAPI) GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error) {
 	return nil, nil
+}
+
+type MockBlockAPI struct {
+}
+
+func (m *MockBlockAPI) GetHeader(hash common.Hash) (*types.Header, error) {
+	return nil, nil
+}
+func (m *MockBlockAPI) BestBlockHash() common.Hash {
+	return common.Hash{}
+}
+func (m *MockBlockAPI) GetBlockByHash(hash common.Hash) (*types.Block, error) {
+	return nil, nil
+}
+func (m *MockBlockAPI) GetBlockHash(blockNumber *big.Int) (*common.Hash, error) {
+	return nil, nil
+}
+func (m *MockBlockAPI) GetFinalizedHash(uint64, uint64) (common.Hash, error) {
+	return common.Hash{}, nil
+}
+func (m *MockBlockAPI) RegisterImportedChannel(ch chan<- *types.Block) (byte, error) {
+	return 0, nil
+}
+func (m *MockBlockAPI) UnregisterImportedChannel(id byte) {
+}
+func (m *MockBlockAPI) RegisterFinalizedChannel(ch chan<- *types.Header) (byte, error) {
+	return 0, nil
+}
+func (m *MockBlockAPI) UnregisterFinalizedChannel(id byte) {}
+
+func (m *MockBlockAPI) GetJustification(hash common.Hash) ([]byte, error) {
+	return make([]byte, 10), nil
+}
+
+func (m *MockBlockAPI) HasJustification(hash common.Hash) (bool, error) {
+	return true, nil
+}
+
+func (m *MockBlockAPI) SubChain(start, end common.Hash) ([]common.Hash, error) {
+	return make([]common.Hash, 0), nil
 }
