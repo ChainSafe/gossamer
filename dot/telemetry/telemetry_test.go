@@ -61,6 +61,18 @@ func TestHandler_SendBlockImport(t *testing.T) {
 	require.Equal(t, expected, lastMessage[:101])
 }
 
+func TestHandler_SendNetworkData(t *testing.T) {
+	expected := []byte(`{"id":1,"payload":{"bandwidth_download":2,"bandwidth_upload":3,"msg":"system.interval","peers":1},"ts":`)
+	GetInstance().SendNetworkData(&NetworkData{
+		Peers:   1,
+		RateIn:  2,
+		RateOut: 3,
+	})
+	time.Sleep(time.Millisecond)
+	// note, we only check the first 103 bytes because the remaining bytes are the timestamp, which we can't estimate
+	require.Equal(t, expected, lastMessage[:103])
+}
+
 func listen(w http.ResponseWriter, r *http.Request) {
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {

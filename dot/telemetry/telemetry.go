@@ -100,7 +100,7 @@ func (h *Handler) SendConnection(data *ConnectionData) {
 		"version": data.SystemVersion}
 	h.telemetryLogger = log.WithFields(log.Fields{"id": 1, "payload": payload, "ts": time.Now()})
 	h.telemetryLogger.Print()
-	h.sendTelemtry()
+	h.sendTelemetry()
 }
 
 // SendBlockImport sends block imported message to telemetry connection
@@ -108,10 +108,25 @@ func (h *Handler) SendBlockImport(bestHash string, height *big.Int) {
 	payload := log.Fields{"best": bestHash, "height": height.Int64(), "msg": "block.import", "origin": "NetworkInitialSync"}
 	h.telemetryLogger = log.WithFields(log.Fields{"id": 1, "payload": payload, "ts": time.Now()})
 	h.telemetryLogger.Print()
-	h.sendTelemtry()
+	h.sendTelemetry()
 }
 
-func (h *Handler) sendTelemtry() {
+// NetworkData struct to hold network data telemetry information
+type NetworkData struct {
+	Peers   int
+	RateIn  float64
+	RateOut float64
+}
+
+// SendNetworkData send network data system.interval message to telemetry connection
+func (h *Handler) SendNetworkData(data *NetworkData) {
+	payload := log.Fields{"bandwidth_download": data.RateIn, "bandwidth_upload": data.RateOut, "msg": "system.interval", "peers": data.Peers}
+	h.telemetryLogger = log.WithFields(log.Fields{"id": 1, "payload": payload, "ts": time.Now()})
+	h.telemetryLogger.Print()
+	h.sendTelemetry()
+}
+
+func (h *Handler) sendTelemetry() {
 	for _, c := range h.wsConn {
 		err := c.WriteMessage(websocket.TextMessage, h.buf.Bytes())
 		if err != nil {

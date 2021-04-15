@@ -26,11 +26,11 @@ import (
 	"time"
 
 	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/services"
-	"github.com/ethereum/go-ethereum/metrics"
-
 	log "github.com/ChainSafe/log15"
+	"github.com/ethereum/go-ethereum/metrics"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -246,6 +246,8 @@ func (s *Service) Start() error {
 	}
 
 	go s.logPeerCount()
+	go s.publishNetworkTelemetry()
+
 	return nil
 }
 
@@ -279,6 +281,18 @@ func (s *Service) logPeerCount() {
 	}
 }
 
+func (s *Service) publishNetworkTelemetry() {
+	for {
+		o := s.host.bwc.GetBandwidthTotals()
+
+		telemetry.GetInstance().SendNetworkData(&telemetry.NetworkData{
+			Peers:   s.host.peerCount(),
+			RateIn:  o.RateIn,
+			RateOut: o.RateOut,
+		})
+		time.Sleep(time.Second * 5)
+	}
+}
 func (s *Service) handleConn(conn libp2pnetwork.Conn) {
 	// give new peers a slight weight
 	// TODO: do this once handshake is received
@@ -521,6 +535,9 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 			_ = stream.Close()
 			return
 		}
+
+		// todo (ed) determine if there are other places to capture data received
+		s.host.bwc.LogRecvMessage(int64(tot))
 	}
 }
 
