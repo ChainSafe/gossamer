@@ -104,7 +104,8 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 		return nil
 	}
 
-	logger.Info("got neighbour message", "number", msg.Number, "set id", msg.SetID, "round", msg.Round)
+	// TODO: make linter british
+	logger.Info("got neighbor message", "number", msg.Number, "set id", msg.SetID, "round", msg.Round)
 	h.blockNumToSetID.Store(msg.Number, msg.SetID)
 	h.grandpa.network.SendJustificationRequest(from, msg.Number)
 	return nil
@@ -394,6 +395,7 @@ func (h *MessageHandler) verifyJustification(just *Justification, round, setID u
 	return nil
 }
 
+// VerifyBlockJustification verifies the finality justification for a block
 func (s *Service) VerifyBlockJustification(justification []byte) error {
 	r := &bytes.Buffer{}
 	_, _ = r.Write(justification)
@@ -403,7 +405,7 @@ func (s *Service) VerifyBlockJustification(justification []byte) error {
 		return err
 	}
 
-	logger.Info("full justification", "round", fj.Round, "hash", fj.Commit.Hash, "number", fj.Commit.Number, "sig count", len(fj.Commit.Precommits))
+	logger.Debug("verifiying justification", "round", fj.Round, "hash", fj.Commit.Hash, "number", fj.Commit.Number, "sig count", len(fj.Commit.Precommits))
 
 	for _, just := range fj.Commit.Precommits {
 		// TODO: when catch up is done, we should know all the setIDs

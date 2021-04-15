@@ -152,7 +152,9 @@ func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) error {
 	return nil
 }
 
-func (s *Service) ProcessJustification(data []*types.BlockData) (int, error) {
+// ProcessJustification processes block data containing justifications
+// TODO: use this
+func (s *Service) ProcessJustification(data []*types.BlockData) (int, error) { //nolint
 	if len(data) == 0 {
 		return 0, ErrNilBlockData
 	}
