@@ -13,7 +13,13 @@
 
 package babe
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+
+	"github.com/ChainSafe/gossamer/lib/common/optional"
+	"github.com/ChainSafe/gossamer/lib/scale"
+)
 
 // ErrBadSlotClaim is returned when a slot claim is invalid
 var ErrBadSlotClaim = errors.New("could not verify slot claim VRF proof")
@@ -53,3 +59,89 @@ var ErrAuthorityDisabled = errors.New("authority has been disabled for the remai
 
 // ErrNotAuthority is returned when trying to perform authority functions when not an authority
 var ErrNotAuthority = errors.New("node is not an authority")
+
+func determineCustomModuleErr(res []byte) error {
+	if len(res) < 3 {
+		return errInvalidResult
+	}
+	errMsg, err := optional.NewBytes(false, nil).DecodeBytes(res[2:])
+	if err != nil {
+		return err
+	}
+	return fmt.Errorf("index: %d code: %d message: %s", res[0], res[1], errMsg.String())
+}
+
+func determineDispatchErr(res []byte) error {
+	switch res[0] {
+	case 0:
+		unKnownError, _ := scale.Decode(res[1:], []byte{})
+		return fmt.Errorf("unknown error: %s", string(unKnownError.([]byte)))
+	case 1:
+		return fmt.Errorf("failed lookup")
+	case 2:
+		return fmt.Errorf("bad origin")
+	case 3:
+		return fmt.Errorf("custom module error: %s", determineCustomModuleErr(res[1:]))
+	}
+	return errInvalidResult
+}
+
+func determineInvalidTxnErr(res []byte) error {
+	switch res[0] {
+	case 0:
+		return fmt.Errorf("call of the transaction is not expected")
+	case 1:
+		return fmt.Errorf("invalid payment")
+	case 2:
+		return fmt.Errorf("invalid transaction")
+	case 3:
+		return fmt.Errorf("outdated transaction")
+	case 4:
+		return fmt.Errorf("bad proof")
+	case 5:
+		return fmt.Errorf("ancient birth block")
+	case 6:
+		return fmt.Errorf("exhausts resources")
+	case 7:
+		return fmt.Errorf("unknown error: %d", res[1])
+	case 8:
+		return fmt.Errorf("mandatory dispatch error")
+	case 9:
+		return fmt.Errorf("invalid mandatory dispatch")
+	}
+	return errInvalidResult
+}
+
+func determineUnknownTxnErr(res []byte) error {
+	switch res[0] {
+	case 0:
+		return fmt.Errorf("lookup failed")
+	case 1:
+		return fmt.Errorf("validator not found")
+	case 2:
+		return fmt.Errorf("unknown error: %d", res[1])
+	}
+	return errInvalidResult
+}
+
+func determineErr(res []byte) (bool, error) {
+	switch res[0] {
+	case 0: // DispatchOutcome
+		switch res[1] {
+		case 0:
+			return true, nil
+		case 1:
+			return true, determineDispatchErr(res[2:])
+		default:
+			return true, errInvalidResult
+		}
+	case 1: // TransactionValidityError
+		switch res[1] {
+		case 0:
+			return false, determineInvalidTxnErr(res[2:])
+		case 1:
+			return false, determineUnknownTxnErr(res[2:])
+		}
+	}
+	return false, errInvalidResult
+}
