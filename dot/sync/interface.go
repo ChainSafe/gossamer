@@ -80,5 +80,5 @@ type Verifier interface {
 }
 
 type FinalityGadget interface {
-	VerifyBlockJustification([]byte, *big.Int) error
+	VerifyBlockJustification([]byte) error
 }

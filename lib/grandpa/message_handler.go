@@ -18,9 +18,8 @@ package grandpa
 
 import (
 	"bytes"
-	//"fmt"
-	"math/big"
 	"reflect"
+	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -32,15 +31,17 @@ import (
 
 // MessageHandler handles GRANDPA consensus messages
 type MessageHandler struct {
-	grandpa    *Service
-	blockState BlockState
+	grandpa         *Service
+	blockState      BlockState
+	blockNumToSetID *sync.Map // map[uint32]uint64
 }
 
 // NewMessageHandler returns a new MessageHandler
 func NewMessageHandler(grandpa *Service, blockState BlockState) *MessageHandler {
 	return &MessageHandler{
-		grandpa:    grandpa,
-		blockState: blockState,
+		grandpa:         grandpa,
+		blockState:      blockState,
+		blockNumToSetID: new(sync.Map),
 	}
 }
 
@@ -105,6 +106,8 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 
 	// TODO: handle setID, round as well; track number->(setID, round) ?
 
+	logger.Info("got neighbour message", "number", msg.Number, "set id", msg.SetID, "round", msg.Round)
+	h.blockNumToSetID.Store(msg.Number, msg.SetID)
 	h.grandpa.network.SendJustificationRequest(from, msg.Number)
 
 	// head, err := h.grandpa.blockState.BestBlockNumber()
@@ -421,9 +424,7 @@ func (h *MessageHandler) verifyJustification(just *Justification, round, setID u
 	return nil
 }
 
-func (s *Service) VerifyBlockJustification(justification []byte, number *big.Int) error {
-	logger.Info("verifying block justification" /*"justification", fmt.Sprintf("0x%x", justification), */, "len", len(justification), "number", number)
-
+func (s *Service) VerifyBlockJustification(justification []byte) error {
 	r := &bytes.Buffer{}
 	_, _ = r.Write(justification)
 	fj := new(FullJustification)
@@ -432,6 +433,43 @@ func (s *Service) VerifyBlockJustification(justification []byte, number *big.Int
 		return err
 	}
 
-	logger.Info("full justification", "round", fj.Round, "hash", fj.Commit.Hash, "number", fj.Commit.Number, "number sigs", len(fj.Commit.Precommits))
+	logger.Info("full justification", "round", fj.Round, "hash", fj.Commit.Hash, "number", fj.Commit.Number, "sig count", len(fj.Commit.Precommits))
+
+	for _, just := range fj.Commit.Precommits {
+		// TODO: when catch up is done, we should know all the setIDs
+		s, has := s.messageHandler.blockNumToSetID.Load(fj.Commit.Number)
+		if !has {
+			continue
+		}
+
+		setID := s.(uint64)
+
+		// verify signature for each precommit
+		// TODO: verify authority is in set; this requires updating catch-up to get the right set
+		msg, err := scale.Encode(&FullVote{
+			Stage: precommit,
+			Vote:  just.Vote,
+			Round: fj.Round,
+			SetID: setID,
+		})
+		if err != nil {
+			return err
+		}
+
+		pk, err := ed25519.NewPublicKey(just.AuthorityID[:])
+		if err != nil {
+			return err
+		}
+
+		ok, err := pk.Verify(msg, just.Signature[:])
+		if err != nil {
+			return err
+		}
+
+		if !ok {
+			return ErrInvalidSignature
+		}
+	}
+
 	return nil
 }
