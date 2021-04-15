@@ -269,6 +269,18 @@ func (j FullJustification) Decode(r io.Reader) (FullJustification, error) {
 		return FullJustification{}, err
 	}
 
+	// TODO: this assignment doesn't work, update type
 	j = FullJustification(i.([]*Justification))
 	return j, nil
+}
+
+// DecodeFullJustification returns a SCALE decoded FullJustification
+func DecodeFullJustification(r io.Reader) (FullJustification, error) {
+	sd := &scale.Decoder{Reader: r}
+	i, err := sd.Decode([]*Justification{})
+	if err != nil {
+		return FullJustification{}, err
+	}
+
+	return FullJustification(i.([]*Justification)), nil
 }

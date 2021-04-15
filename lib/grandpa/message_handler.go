@@ -17,12 +17,17 @@
 package grandpa
 
 import (
+	"bytes"
+	"fmt"
 	"math/big"
 	"reflect"
 
+	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/scale"
+
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // MessageHandler handles GRANDPA consensus messages
@@ -42,7 +47,7 @@ func NewMessageHandler(grandpa *Service, blockState BlockState) *MessageHandler 
 // HandleMessage handles a GRANDPA consensus message
 // if it is a FinalizationMessage, it updates the BlockState
 // if it is a VoteMessage, it sends it to the GRANDPA service
-func (h *MessageHandler) handleMessage(msg *ConsensusMessage) (*ConsensusMessage, error) {
+func (h *MessageHandler) handleMessage(from peer.ID, msg *ConsensusMessage) (network.Message, error) {
 	if msg == nil || len(msg.Data) == 0 {
 		logger.Trace("received nil message or message with nil data")
 		return nil, nil
@@ -72,7 +77,7 @@ func (h *MessageHandler) handleMessage(msg *ConsensusMessage) (*ConsensusMessage
 			return nil, nil
 		}
 
-		return nil, h.handleNeighbourMessage(nm)
+		return nil, h.handleNeighbourMessage(from, nm)
 	case catchUpRequestType:
 		if r, ok := m.(*catchUpRequest); ok {
 			return h.handleCatchUpRequest(r)
@@ -88,7 +93,7 @@ func (h *MessageHandler) handleMessage(msg *ConsensusMessage) (*ConsensusMessage
 	return nil, nil
 }
 
-func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage) error {
+func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMessage) error {
 	currFinalized, err := h.grandpa.blockState.GetFinalizedHeader(0, 0)
 	if err != nil {
 		return err
@@ -98,33 +103,37 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage) error {
 		return nil
 	}
 
-	head, err := h.grandpa.blockState.BestBlockNumber()
-	if err != nil {
-		return err
-	}
+	// TODO: handle setID, round as well; track number->(setID, round) ?
 
-	// don't finalize too close to head, until we add justification request + verification functionality.
-	// this prevents us from marking the wrong block as final and getting stuck on the wrong chain
-	if uint32(head.Int64())-4 < msg.Number {
-		return nil
-	}
+	h.grandpa.network.SendJustificationRequest(from, msg.Number)
 
-	// TODO: instead of assuming the finalized hash is the one we currently know about,
-	// request the justification from the network before setting it as finalized.
-	hash, err := h.grandpa.blockState.GetHashByNumber(big.NewInt(int64(msg.Number)))
-	if err != nil {
-		return err
-	}
+	// head, err := h.grandpa.blockState.BestBlockNumber()
+	// if err != nil {
+	// 	return err
+	// }
 
-	if err = h.grandpa.blockState.SetFinalizedHash(hash, msg.Round, msg.SetID); err != nil {
-		return err
-	}
+	// // don't finalize too close to head, until we add justification request + verification functionality.
+	// // this prevents us from marking the wrong block as final and getting stuck on the wrong chain
+	// if uint32(head.Int64())-4 < msg.Number {
+	// 	return nil
+	// }
 
-	if err = h.grandpa.blockState.SetFinalizedHash(hash, 0, 0); err != nil {
-		return err
-	}
+	// // TODO: instead of assuming the finalized hash is the one we currently know about,
+	// // request the justification from the network before setting it as finalized.
+	// hash, err := h.grandpa.blockState.GetHashByNumber(big.NewInt(int64(msg.Number)))
+	// if err != nil {
+	// 	return err
+	// }
 
-	logger.Info("🔨 finalized block", "number", msg.Number, "hash", hash)
+	// if err = h.grandpa.blockState.SetFinalizedHash(hash, msg.Round, msg.SetID); err != nil {
+	// 	return err
+	// }
+
+	// if err = h.grandpa.blockState.SetFinalizedHash(hash, 0, 0); err != nil {
+	// 	return err
+	// }
+
+	// logger.Info("🔨 finalized block", "number", msg.Number, "hash", hash)
 	return nil
 }
 
@@ -300,7 +309,7 @@ func (h *MessageHandler) verifyFinalizationMessageJustification(fm *Finalization
 	// verify justifications
 	count := 0
 	for _, just := range fm.Justification {
-		err := h.verifyJustification(just, just.Vote, fm.Round, h.grandpa.state.setID, precommit)
+		err := h.verifyJustification(just, fm.Round, h.grandpa.state.setID, precommit)
 		if err != nil {
 			continue
 		}
@@ -324,7 +333,7 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *catchUpResponse) (commo
 	votes := make(map[common.Hash]uint64)
 
 	for _, just := range msg.PreVoteJustification {
-		err := h.verifyJustification(just, just.Vote, msg.Round, msg.SetID, prevote)
+		err := h.verifyJustification(just, msg.Round, msg.SetID, prevote)
 		if err != nil {
 			continue
 		}
@@ -351,7 +360,7 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *catchUpResponse) erro
 	// verify pre-commit justification
 	count := 0
 	for _, just := range msg.PreCommitJustification {
-		err := h.verifyJustification(just, just.Vote, msg.Round, msg.SetID, precommit)
+		err := h.verifyJustification(just, msg.Round, msg.SetID, precommit)
 		if err != nil {
 			continue
 		}
@@ -368,11 +377,11 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *catchUpResponse) erro
 	return nil
 }
 
-func (h *MessageHandler) verifyJustification(just *Justification, vote *Vote, round, setID uint64, stage subround) error {
+func (h *MessageHandler) verifyJustification(just *Justification, round, setID uint64, stage subround) error {
 	// verify signature
 	msg, err := scale.Encode(&FullVote{
 		Stage: stage,
-		Vote:  vote,
+		Vote:  just.Vote,
 		Round: round,
 		SetID: setID,
 	})
@@ -409,5 +418,20 @@ func (h *MessageHandler) verifyJustification(just *Justification, vote *Vote, ro
 	if !authFound {
 		return ErrVoterNotFound
 	}
+	return nil
+}
+
+func (s *Service) VerifyBlockJustification(justification []byte, number *big.Int) error {
+	logger.Info("verifying block justification", "justification", fmt.Sprintf("0x%x", justification), "len", len(justification), "number", number)
+
+	r := &bytes.Buffer{}
+	_, _ = r.Write(justification)
+	fj, err := DecodeFullJustification(r)
+	if err != nil {
+		return err
+	}
+
+	logger.Info("full justification", "fj", fj)
+
 	return nil
 }

@@ -78,3 +78,7 @@ type DigestHandler interface {
 type Verifier interface {
 	VerifyBlock(header *types.Header) error
 }
+
+type FinalityGadget interface {
+	VerifyBlockJustification([]byte, *big.Int) error
+}

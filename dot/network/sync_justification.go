@@ -18,59 +18,65 @@ package network
 
 import (
 	"math/big"
-	"time"
+	//"time"
+
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-func (q *syncQueue) finalizeAtHead() {
-	prev, err := q.s.blockState.GetFinalizedHeader(0, 0)
-	if err != nil {
-		logger.Error("failed to get latest finalized block header", "error", err)
-		return
-	}
+// func (q *syncQueue) finalizeAtHead() {
+// 	prev, err := q.s.blockState.GetFinalizedHeader(0, 0)
+// 	if err != nil {
+// 		logger.Error("failed to get latest finalized block header", "error", err)
+// 		return
+// 	}
 
-	for {
-		select {
-		// sleep for average block time TODO: make this configurable from slot duration
-		case <-time.After(q.slotDuration * 2):
-		case <-q.ctx.Done():
-			return
-		}
+// 	for {
+// 		select {
+// 		// sleep for average block time TODO: make this configurable from slot duration
+// 		case <-time.After(q.slotDuration * 2):
+// 		case <-q.ctx.Done():
+// 			return
+// 		}
 
-		head, err := q.s.blockState.BestBlockNumber()
-		if err != nil {
-			continue
-		}
+// 		head, err := q.s.blockState.BestBlockNumber()
+// 		if err != nil {
+// 			continue
+// 		}
 
-		if head.Int64() < q.goal {
-			continue
-		}
+// 		if head.Int64() < q.goal {
+// 			continue
+// 		}
 
-		curr, err := q.s.blockState.GetFinalizedHeader(0, 0)
-		if err != nil {
-			continue
-		}
+// 		curr, err := q.s.blockState.GetFinalizedHeader(0, 0)
+// 		if err != nil {
+// 			continue
+// 		}
 
-		logger.Debug("checking finalized blocks", "curr", curr.Number, "prev", prev.Number)
+// 		logger.Debug("checking finalized blocks", "curr", curr.Number, "prev", prev.Number)
 
-		if curr.Number.Cmp(prev.Number) > 0 {
-			prev = curr
-			continue
-		}
+// 		if curr.Number.Cmp(prev.Number) > 0 {
+// 			prev = curr
+// 			continue
+// 		}
 
-		prev = curr
+// 		prev = curr
 
-		start := head.Uint64() - uint64(blockRequestSize)
-		if curr.Number.Uint64() > start {
-			start = curr.Number.Uint64() + 1
-		} else if int(start) < int(blockRequestSize) {
-			start = 1
-		}
+// 		start := head.Uint64() - uint64(blockRequestSize)
+// 		if curr.Number.Uint64() > start {
+// 			start = curr.Number.Uint64() + 1
+// 		} else if int(start) < int(blockRequestSize) {
+// 			start = 1
+// 		}
 
-		q.pushJustificationRequest(start)
-	}
+// 		q.pushJustificationRequest(start)
+// 	}
+// }
+
+func (s *Service) SendJustificationRequest(to peer.ID, num uint32) {
+	s.syncQueue.pushJustificationRequest(to, uint64(num))
 }
 
-func (q *syncQueue) pushJustificationRequest(start uint64) {
+func (q *syncQueue) pushJustificationRequest(to peer.ID, start uint64) {
 	startHash, err := q.s.blockState.GetHashByNumber(big.NewInt(int64(start)))
 	if err != nil {
 		logger.Error("failed to get hash for block w/ number", "number", start, "error", err)
@@ -87,6 +93,6 @@ func (q *syncQueue) pushJustificationRequest(start uint64) {
 
 	q.requestCh <- &syncRequest{
 		req: req,
-		to:  "",
+		to:  to,
 	}
 }

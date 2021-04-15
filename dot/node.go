@@ -242,12 +242,6 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		return nil, err
 	}
 
-	// Syncer
-	syncer, err := createSyncService(cfg, stateSrvc, bp, dh, ver, rt)
-	if err != nil {
-		return nil, err
-	}
-
 	// create GRANDPA service
 	fg, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran, networkSrvc)
 	if err != nil {
@@ -255,6 +249,12 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	}
 	nodeSrvcs = append(nodeSrvcs, fg)
 	dh.SetFinalityGadget(fg) // TODO: this should be cleaned up
+
+	// Syncer
+	syncer, err := createSyncService(cfg, stateSrvc, bp, fg, dh, ver, rt)
+	if err != nil {
+		return nil, err
+	}
 
 	// Core Service
 
