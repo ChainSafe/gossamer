@@ -18,7 +18,7 @@ package grandpa
 
 import (
 	"bytes"
-	"fmt"
+	//"fmt"
 	"math/big"
 	"reflect"
 
@@ -422,16 +422,16 @@ func (h *MessageHandler) verifyJustification(just *Justification, round, setID u
 }
 
 func (s *Service) VerifyBlockJustification(justification []byte, number *big.Int) error {
-	logger.Info("verifying block justification", "justification", fmt.Sprintf("0x%x", justification), "len", len(justification), "number", number)
+	logger.Info("verifying block justification" /*"justification", fmt.Sprintf("0x%x", justification), */, "len", len(justification), "number", number)
 
 	r := &bytes.Buffer{}
 	_, _ = r.Write(justification)
-	fj, err := DecodeFullJustification(r)
+	fj := new(FullJustification)
+	err := fj.Decode(r)
 	if err != nil {
 		return err
 	}
 
-	logger.Info("full justification", "fj", fj)
-
+	logger.Info("full justification", "round", fj.Round, "hash", fj.Commit.Hash, "number", fj.Commit.Number, "number sigs", len(fj.Commit.Precommits))
 	return nil
 }

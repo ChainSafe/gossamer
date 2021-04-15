@@ -153,11 +153,11 @@ func (s *State) threshold() uint64 {
 // Vote represents a vote for a block with the given hash and number
 type Vote struct {
 	hash   common.Hash
-	number uint64
+	number uint32
 }
 
 // NewVote returns a new Vote given a block hash and number
-func NewVote(hash common.Hash, number uint64) *Vote {
+func NewVote(hash common.Hash, number uint32) *Vote {
 	return &Vote{
 		hash:   hash,
 		number: number,
@@ -168,7 +168,7 @@ func NewVote(hash common.Hash, number uint64) *Vote {
 func NewVoteFromHeader(h *types.Header) *Vote {
 	return &Vote{
 		hash:   h.Hash(),
-		number: uint64(h.Number.Int64()),
+		number: uint32(h.Number.Int64()),
 	}
 }
 
@@ -193,8 +193,8 @@ func NewVoteFromHash(hash common.Hash, blockState BlockState) (*Vote, error) {
 
 // Encode returns the SCALE encoding of a Vote
 func (v *Vote) Encode() ([]byte, error) {
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, v.number)
+	buf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(buf, v.number)
 	return append(v.hash[:], buf...), nil
 }
 
@@ -210,7 +210,7 @@ func (v *Vote) Decode(r io.Reader) (*Vote, error) {
 		return nil, err
 	}
 
-	v.number, err = common.ReadUint64(r)
+	v.number, err = common.ReadUint32(r)
 	if err != nil {
 		return nil, err
 	}
@@ -249,38 +249,44 @@ func (j *Justification) Decode(r io.Reader) (*Justification, error) {
 	return i.(*Justification), err
 }
 
-// FullJustification represents an array of Justifications, used to respond to catch up requests
-type FullJustification []*Justification
+type Commit struct {
+	Hash       common.Hash
+	Number     uint32
+	Precommits []*Justification
+}
 
-func newFullJustification(j []*Justification) FullJustification {
-	return FullJustification(j)
+// FullJustification represents an array of Justifications, used to respond to catch up requests
+type FullJustification struct {
+	Round  uint64
+	Commit *Commit // TODO: rename Justification -> Commit, FullJustification -> Justification
+}
+
+func newFullJustification(round uint64, hash common.Hash, number uint32, j []*Justification) *FullJustification {
+	return &FullJustification{
+		Round: round,
+		Commit: &Commit{
+			Hash:       hash,
+			Number:     number,
+			Precommits: j,
+		},
+	}
 }
 
 // Encode returns the SCALE encoding of a FullJustification
-func (j FullJustification) Encode() ([]byte, error) {
+func (j *FullJustification) Encode() ([]byte, error) {
 	return scale.Encode(j)
 }
 
 // Decode returns a SCALE decoded FullJustification
-func (j FullJustification) Decode(r io.Reader) (FullJustification, error) {
+func (j *FullJustification) Decode(r io.Reader) error {
 	sd := &scale.Decoder{Reader: r}
-	i, err := sd.Decode([]*Justification{})
+	i, err := sd.Decode(&FullJustification{Commit: &Commit{}})
 	if err != nil {
-		return FullJustification{}, err
+		return err
 	}
 
-	// TODO: this assignment doesn't work, update type
-	j = FullJustification(i.([]*Justification))
-	return j, nil
-}
-
-// DecodeFullJustification returns a SCALE decoded FullJustification
-func DecodeFullJustification(r io.Reader) (FullJustification, error) {
-	sd := &scale.Decoder{Reader: r}
-	i, err := sd.Decode([]*Justification{})
-	if err != nil {
-		return FullJustification{}, err
-	}
-
-	return FullJustification(i.([]*Justification)), nil
+	dec := i.(*FullJustification)
+	j.Round = dec.Round
+	j.Commit = dec.Commit
+	return nil
 }

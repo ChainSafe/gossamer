@@ -63,6 +63,7 @@ func (sd *Decoder) Decode(t interface{}) (out interface{}, err error) {
 		out, err = sd.decodeUint128()
 	case int, uint, int8, uint8, int16, uint16, int32, uint32, int64, uint64:
 		out, err = sd.DecodeFixedWidthInt(t)
+		fmt.Println("decoded int", out)
 	case []byte, string:
 		out, err = sd.DecodeByteArray()
 	case bool:

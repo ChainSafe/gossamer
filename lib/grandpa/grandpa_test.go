@@ -263,8 +263,8 @@ func TestGetPossibleSelectedAncestors_SameAncestor(t *testing.T) {
 	}
 
 	votes := gs.getVotes(prevote)
-	prevoted := make(map[common.Hash]uint64)
-	var blocks map[common.Hash]uint64
+	prevoted := make(map[common.Hash]uint32)
+	var blocks map[common.Hash]uint32
 
 	for _, curr := range leaves {
 		blocks, err = gs.getPossibleSelectedAncestors(votes, curr, prevoted, prevote, gs.state.threshold())
@@ -313,8 +313,8 @@ func TestGetPossibleSelectedAncestors_VaryingAncestor(t *testing.T) {
 	}
 
 	votes := gs.getVotes(prevote)
-	prevoted := make(map[common.Hash]uint64)
-	var blocks map[common.Hash]uint64
+	prevoted := make(map[common.Hash]uint32)
+	var blocks map[common.Hash]uint32
 
 	for _, curr := range leaves {
 		blocks, err = gs.getPossibleSelectedAncestors(votes, curr, prevoted, prevote, gs.state.threshold())
@@ -373,8 +373,8 @@ func TestGetPossibleSelectedAncestors_VaryingAncestor_MoreBranches(t *testing.T)
 	}
 
 	votes := gs.getVotes(prevote)
-	prevoted := make(map[common.Hash]uint64)
-	var blocks map[common.Hash]uint64
+	prevoted := make(map[common.Hash]uint32)
+	var blocks map[common.Hash]uint32
 
 	for _, curr := range leaves {
 		blocks, err = gs.getPossibleSelectedAncestors(votes, curr, prevoted, prevote, gs.state.threshold())

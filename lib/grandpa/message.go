@@ -55,7 +55,7 @@ type FullVote struct {
 // SignedMessage represents a block hash and number signed by an authority
 type SignedMessage struct {
 	Hash        common.Hash
-	Number      uint64
+	Number      uint32
 	Signature   [64]byte // ed25519.SignatureLength
 	AuthorityID ed25519.PublicKeyBytes
 }
@@ -181,10 +181,10 @@ func (r *catchUpRequest) ToConsensusMessage() (*ConsensusMessage, error) {
 type catchUpResponse struct {
 	Round                  uint64
 	SetID                  uint64
-	PreVoteJustification   FullJustification
-	PreCommitJustification FullJustification
+	PreVoteJustification   []*Justification
+	PreCommitJustification []*Justification
 	Hash                   common.Hash
-	Number                 uint64
+	Number                 uint32
 }
 
 func (s *Service) newCatchUpResponse(round, setID uint64) (*catchUpResponse, error) {
@@ -208,20 +208,23 @@ func (s *Service) newCatchUpResponse(round, setID uint64) (*catchUpResponse, err
 	}
 
 	r := &bytes.Buffer{}
+	sd := &scale.Decoder{Reader: r}
 	_, err = r.Write(just)
 	if err != nil {
 		return nil, err
 	}
 
-	pvj, err := FullJustification{}.Decode(r)
+	d, err := sd.Decode([]*Justification{})
 	if err != nil {
 		return nil, err
 	}
+	pvj := d.([]*Justification)
 
-	pcj, err := FullJustification{}.Decode(r)
+	d, err = sd.Decode([]*Justification{})
 	if err != nil {
 		return nil, err
 	}
+	pcj := d.([]*Justification)
 
 	return &catchUpResponse{
 		Round:                  round,
@@ -229,7 +232,7 @@ func (s *Service) newCatchUpResponse(round, setID uint64) (*catchUpResponse, err
 		PreVoteJustification:   pvj,
 		PreCommitJustification: pcj,
 		Hash:                   header.Hash(),
-		Number:                 header.Number.Uint64(),
+		Number:                 uint32(header.Number.Uint64()),
 	}, nil
 }
 

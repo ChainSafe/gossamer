@@ -30,6 +30,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 
 	log "github.com/ChainSafe/log15"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/stretchr/testify/require"
 )
@@ -63,6 +64,8 @@ func (n *testNetwork) SendMessage(msg NotificationsMessage) {
 		n.out <- gmsg
 	}
 }
+
+func (n *testNetwork) SendJustificationRequest(_ peer.ID, _ uint32) {}
 
 func (n *testNetwork) RegisterNotificationsProtocol(sub protocol.ID,
 	messageID byte,

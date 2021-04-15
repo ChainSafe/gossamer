@@ -134,8 +134,8 @@ func TestNewCatchUpResponse(t *testing.T) {
 	expected := &catchUpResponse{
 		Round:                  round,
 		SetID:                  setID,
-		PreVoteJustification:   FullJustification(pvj),
-		PreCommitJustification: FullJustification(pcj),
+		PreVoteJustification:   pvj,
+		PreCommitJustification: pcj,
 		Hash:                   v.hash,
 		Number:                 v.number,
 	}

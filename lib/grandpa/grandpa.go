@@ -535,7 +535,7 @@ func (s *Service) playGrandpaRound() error {
 				return false
 			}
 
-			if completable && finalizable && uint64(s.head.Number.Int64()) >= prevBfc.number {
+			if completable && finalizable && uint32(s.head.Number.Int64()) >= prevBfc.number {
 				return true
 			}
 
@@ -574,7 +574,7 @@ func (s *Service) attemptToFinalize() error {
 		return err
 	}
 
-	if bfc.number >= uint64(s.head.Number.Int64()) && pc >= s.state.threshold() {
+	if bfc.number >= uint32(s.head.Number.Int64()) && pc >= s.state.threshold() {
 		err = s.finalize()
 		if err != nil {
 			return err
@@ -608,7 +608,7 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	prm := s.prevotes[s.derivePrimary().PublicKeyBytes()]
 	s.mapLock.Unlock()
 
-	if prm != nil && prm.number >= uint64(s.head.Number.Int64()) {
+	if prm != nil && prm.number >= uint32(s.head.Number.Int64()) {
 		vote = prm
 	} else {
 		header, err := s.blockState.BestBlockHeader()
@@ -620,7 +620,7 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	}
 
 	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
-	if vote.number > nextChange {
+	if vote.number > uint32(nextChange) {
 		header, err := s.blockState.GetHeaderByNumber(big.NewInt(int64(nextChange)))
 		if err != nil {
 			return nil, err
@@ -645,7 +645,7 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 	s.mapLock.Unlock()
 
 	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
-	if pvb.number > nextChange {
+	if pvb.number > uint32(nextChange) {
 		header, err := s.blockState.GetHeaderByNumber(big.NewInt(int64(nextChange)))
 		if err != nil {
 			return nil, err
@@ -728,12 +728,12 @@ func (s *Service) finalize() error {
 	// set justification
 	s.justification[s.state.round] = s.pcJustifications[bfc.hash]
 
-	pvj, err := newFullJustification(s.pvJustifications[bfc.hash]).Encode()
+	pvj, err := newFullJustification(s.state.round, bfc.hash, bfc.number, s.pvJustifications[bfc.hash]).Encode()
 	if err != nil {
 		return err
 	}
 
-	pcj, err := newFullJustification(s.pcJustifications[bfc.hash]).Encode()
+	pcj, err := newFullJustification(s.state.round, bfc.hash, bfc.number, s.pcJustifications[bfc.hash]).Encode()
 	if err != nil {
 		return err
 	}
@@ -897,7 +897,7 @@ func (s *Service) getPreVotedBlock() (Vote, error) {
 
 	// if there are multiple, find the one with the highest number and return it
 	highest := Vote{
-		number: uint64(0),
+		number: uint32(0),
 	}
 	for h, n := range blocks {
 		if n > highest.number {
@@ -916,7 +916,7 @@ func (s *Service) getPreVotedBlock() (Vote, error) {
 func (s *Service) getGrandpaGHOST() (Vote, error) {
 	threshold := s.state.threshold()
 
-	var blocks map[common.Hash]uint64
+	var blocks map[common.Hash]uint32
 	var err error
 
 	for {
@@ -937,7 +937,7 @@ func (s *Service) getGrandpaGHOST() (Vote, error) {
 
 	// if there are multiple, find the one with the highest number and return it
 	highest := Vote{
-		number: uint64(0),
+		number: uint32(0),
 	}
 	for h, n := range blocks {
 		if n > highest.number {
@@ -957,10 +957,10 @@ func (s *Service) getGrandpaGHOST() (Vote, error) {
 // thus, if there are no blocks with >=threshold total votes, but the sum of votes for blocks A and B is >=threshold, then this function returns
 // the first common ancestor of A and B.
 // in general, this function will return the highest block on each chain with >=threshold votes.
-func (s *Service) getPossibleSelectedBlocks(stage subround, threshold uint64) (map[common.Hash]uint64, error) {
+func (s *Service) getPossibleSelectedBlocks(stage subround, threshold uint64) (map[common.Hash]uint32, error) {
 	// get blocks that were directly voted for
 	votes := s.getDirectVotes(stage)
-	blocks := make(map[common.Hash]uint64)
+	blocks := make(map[common.Hash]uint32)
 
 	// check if any of them have >=threshold votes
 	for v := range votes {
@@ -996,7 +996,7 @@ func (s *Service) getPossibleSelectedBlocks(stage subround, threshold uint64) (m
 
 // getPossibleSelectedAncestors recursively searches for ancestors with >=2/3 votes
 // it returns a map of block hash -> number, such that the blocks in the map have >=2/3 votes
-func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash, selected map[common.Hash]uint64, stage subround, threshold uint64) (map[common.Hash]uint64, error) {
+func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash, selected map[common.Hash]uint32, stage subround, threshold uint64) (map[common.Hash]uint32, error) {
 	for _, v := range votes {
 		if v.hash == curr {
 			continue
@@ -1026,7 +1026,7 @@ func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash, s
 				return nil, err
 			}
 
-			selected[pred] = uint64(h.Number.Int64())
+			selected[pred] = uint32(h.Number.Int64())
 		} else {
 			selected, err = s.getPossibleSelectedAncestors(votes, pred, selected, stage, threshold)
 			if err != nil {
@@ -1123,7 +1123,7 @@ func (s *Service) getVotes(stage subround) []Vote {
 }
 
 // findParentWithNumber returns a Vote for an ancestor with number n given an existing Vote
-func (s *Service) findParentWithNumber(v *Vote, n uint64) (*Vote, error) {
+func (s *Service) findParentWithNumber(v *Vote, n uint32) (*Vote, error) {
 	if v.number <= n {
 		return v, nil
 	}
