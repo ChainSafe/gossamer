@@ -161,6 +161,16 @@ func TestWSConn_HandleComm(t *testing.T) {
 
 	// test initExtrinsicWatch
 	wsconn.CoreAPI = new(MockCoreAPI)
+	wsconn.BlockAPI = nil
+	res, err = wsconn.initExtrinsicWatch(0, []interface{}{"NotHex"})
+	require.EqualError(t, err, "could not byteify non 0x prefixed string")
+	require.Equal(t, 0, res)
+
+	res, err = wsconn.initExtrinsicWatch(0, []interface{}{"0x26aa"})
+	require.EqualError(t, err, "error BlockAPI not set")
+	require.Equal(t, 0, res)
+
+	wsconn.BlockAPI = new(MockBlockAPI)
 	res, err = wsconn.initExtrinsicWatch(0, []interface{}{"0x26aa"})
 	require.NoError(t, err)
 	require.Equal(t, 8, res)
