@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
@@ -71,6 +72,20 @@ func TestHandler_SendNetworkData(t *testing.T) {
 	time.Sleep(time.Millisecond)
 	// note, we only check the first 103 bytes because the remaining bytes are the timestamp, which we can't estimate
 	require.Equal(t, expected, lastMessage[:103])
+}
+
+func TestHandler_SendBlockIntervalData(t *testing.T) {
+	expected := []byte(`{"id":1,"payload":{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","finalized_hash":"0x687197c11b4cf95374159843e7f46fbcd63558db981aaef01a8bac2a44a1d6b2","finalized_height":32256,"height":32375,"msg":"system.interval","txcount":2,"used_state_cache_size":1886357},"ts":`)
+	GetInstance().SendBlockIntervalData(&BlockIntervalData{
+		BestHash:           common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6"),
+		BestHeight:         big.NewInt(32375),
+		FinalizedHash:      common.MustHexToHash("0x687197c11b4cf95374159843e7f46fbcd63558db981aaef01a8bac2a44a1d6b2"),
+		FinalizedHeight:    big.NewInt(32256),
+		TXCount:            2,
+		UsedStateCacheSize: 1886357,
+	})
+	time.Sleep(time.Millisecond)
+	require.Equal(t, expected, lastMessage[:295])
 }
 
 func listen(w http.ResponseWriter, r *http.Request) {

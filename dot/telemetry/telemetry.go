@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
@@ -122,6 +123,26 @@ type NetworkData struct {
 // SendNetworkData send network data system.interval message to telemetry connection
 func (h *Handler) SendNetworkData(data *NetworkData) {
 	payload := log.Fields{"bandwidth_download": data.RateIn, "bandwidth_upload": data.RateOut, "msg": "system.interval", "peers": data.Peers}
+	h.telemetryLogger = log.WithFields(log.Fields{"id": 1, "payload": payload, "ts": time.Now()})
+	h.telemetryLogger.Print()
+	h.sendTelemetry()
+}
+
+// BlockIntervalData struct to hold data for block system.interval message
+type BlockIntervalData struct {
+	BestHash           common.Hash
+	BestHeight         *big.Int
+	FinalizedHash      common.Hash
+	FinalizedHeight    *big.Int
+	TXCount            int
+	UsedStateCacheSize int
+}
+
+// SendBlockIntervalData send block data system interval information to telemetry connection
+func (h *Handler) SendBlockIntervalData(data *BlockIntervalData) {
+	payload := log.Fields{"best": data.BestHash.String(), "finalized_hash": data.FinalizedHash.String(),
+		"finalized_height": data.FinalizedHeight, "height": data.BestHeight, "msg": "system.interval", "txcount": data.TXCount,
+		"used_state_cache_size": data.UsedStateCacheSize}
 	h.telemetryLogger = log.WithFields(log.Fields{"id": 1, "payload": payload, "ts": time.Now()})
 	h.telemetryLogger.Print()
 	h.sendTelemetry()
