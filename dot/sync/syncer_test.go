@@ -41,6 +41,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type mockFinalityGadget struct{}
+
+func (m mockFinalityGadget) VerifyBlockJustification(_ []byte) error {
+	return nil
+}
+
 func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
 	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis.json")
 	require.NoError(t, err)
@@ -100,6 +106,10 @@ func newTestSyncer(t *testing.T) *Service {
 
 	if cfg.LogLvl == 0 {
 		cfg.LogLvl = log.LvlDebug
+	}
+
+	if cfg.FinalityGadget == nil {
+		cfg.FinalityGadget = &mockFinalityGadget{}
 	}
 
 	syncer, err := NewService(cfg)

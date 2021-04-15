@@ -130,16 +130,14 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) e
 		return ErrInvalidMessageType
 	}
 
-	_, err := s.messageHandler.handleMessage(from, cm)
+	resp, err := s.messageHandler.handleMessage(from, cm)
 	if err != nil {
 		return err
 	}
 
-	// // this is a bit convoluted, might be nice to just call this in the neighbour message handler
-	// if msg, ok := resp.(*network.BlockRequestMessage); ok {
-	// 	//s.network.SendMessage(resp)
-	// 	s.network.SendJustificationRequest(from, uint32(msg.StartingBlock.Uint64()))
-	// }
+	if resp != nil {
+		s.network.SendMessage(resp)
+	}
 
 	return nil
 }

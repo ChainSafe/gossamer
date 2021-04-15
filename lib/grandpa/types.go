@@ -224,6 +224,7 @@ func (v *Vote) String() string {
 }
 
 // Justification represents a justification for a finalized block
+// TODO: rename to SignedPrecommit
 type Justification struct {
 	Vote        *Vote
 	Signature   [64]byte
@@ -249,6 +250,7 @@ func (j *Justification) Decode(r io.Reader) (*Justification, error) {
 	return i.(*Justification), err
 }
 
+// Commit contains all the signed precommits for a given block
 type Commit struct {
 	Hash       common.Hash
 	Number     uint32

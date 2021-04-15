@@ -48,7 +48,7 @@ func NewMessageHandler(grandpa *Service, blockState BlockState) *MessageHandler 
 // HandleMessage handles a GRANDPA consensus message
 // if it is a FinalizationMessage, it updates the BlockState
 // if it is a VoteMessage, it sends it to the GRANDPA service
-func (h *MessageHandler) handleMessage(from peer.ID, msg *ConsensusMessage) (network.Message, error) {
+func (h *MessageHandler) handleMessage(from peer.ID, msg *ConsensusMessage) (network.NotificationsMessage, error) {
 	if msg == nil || len(msg.Data) == 0 {
 		logger.Trace("received nil message or message with nil data")
 		return nil, nil
@@ -104,39 +104,9 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 		return nil
 	}
 
-	// TODO: handle setID, round as well; track number->(setID, round) ?
-
 	logger.Info("got neighbour message", "number", msg.Number, "set id", msg.SetID, "round", msg.Round)
 	h.blockNumToSetID.Store(msg.Number, msg.SetID)
 	h.grandpa.network.SendJustificationRequest(from, msg.Number)
-
-	// head, err := h.grandpa.blockState.BestBlockNumber()
-	// if err != nil {
-	// 	return err
-	// }
-
-	// // don't finalize too close to head, until we add justification request + verification functionality.
-	// // this prevents us from marking the wrong block as final and getting stuck on the wrong chain
-	// if uint32(head.Int64())-4 < msg.Number {
-	// 	return nil
-	// }
-
-	// // TODO: instead of assuming the finalized hash is the one we currently know about,
-	// // request the justification from the network before setting it as finalized.
-	// hash, err := h.grandpa.blockState.GetHashByNumber(big.NewInt(int64(msg.Number)))
-	// if err != nil {
-	// 	return err
-	// }
-
-	// if err = h.grandpa.blockState.SetFinalizedHash(hash, msg.Round, msg.SetID); err != nil {
-	// 	return err
-	// }
-
-	// if err = h.grandpa.blockState.SetFinalizedHash(hash, 0, 0); err != nil {
-	// 	return err
-	// }
-
-	// logger.Info("🔨 finalized block", "number", msg.Number, "hash", hash)
 	return nil
 }
 

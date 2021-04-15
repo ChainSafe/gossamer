@@ -80,7 +80,7 @@ func TestFullJustification(t *testing.T) {
 		AuthorityID: testAuthorityID,
 	}
 
-	fj := FullJustification{
+	fj := &FullJustification{
 		Round: 99,
 		Commit: &Commit{
 			Precommits: []*Justification{just},
