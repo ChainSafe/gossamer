@@ -105,7 +105,7 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 	}
 
 	// TODO: make linter british
-	logger.Info("got neighbor message", "number", msg.Number, "set id", msg.SetID, "round", msg.Round)
+	logger.Debug("got neighbor message", "number", msg.Number, "set id", msg.SetID, "round", msg.Round)
 	h.blockNumToSetID.Store(msg.Number, msg.SetID)
 	h.grandpa.network.SendJustificationRequest(from, msg.Number)
 	return nil
