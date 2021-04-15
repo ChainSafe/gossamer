@@ -33,6 +33,7 @@ type Handler struct {
 	buf             bytes.Buffer
 	wsConn          []*websocket.Conn
 	telemetryLogger *log.Entry
+	sync.RWMutex
 }
 
 // MyJSONFormatter struct for defining JSON Formatter
@@ -127,6 +128,8 @@ func (h *Handler) SendNetworkData(data *NetworkData) {
 }
 
 func (h *Handler) sendTelemetry() {
+	h.Lock()
+	defer h.Unlock()
 	for _, c := range h.wsConn {
 		err := c.WriteMessage(websocket.TextMessage, h.buf.Bytes())
 		if err != nil {
