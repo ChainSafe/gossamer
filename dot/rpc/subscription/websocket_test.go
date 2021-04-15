@@ -11,6 +11,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
 )
@@ -157,6 +159,12 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":7,"id":1}`+"\n"), msg)
 
+	// test initExtrinsicWatch
+	wsconn.CoreAPI = new(MockCoreAPI)
+	res, err = wsconn.initExtrinsicWatch(0, []interface{}{"0x26aa"})
+	require.NoError(t, err)
+	require.Equal(t, 8, res)
+
 }
 
 type MockStorageAPI struct{}
@@ -220,4 +228,28 @@ func (m *MockBlockAPI) HasJustification(hash common.Hash) (bool, error) {
 
 func (m *MockBlockAPI) SubChain(start, end common.Hash) ([]common.Hash, error) {
 	return make([]common.Hash, 0), nil
+}
+
+type MockCoreAPI struct{}
+
+func (m *MockCoreAPI) InsertKey(kp crypto.Keypair) {}
+
+func (m *MockCoreAPI) HasKey(pubKeyStr string, keyType string) (bool, error) {
+	return false, nil
+}
+
+func (m *MockCoreAPI) GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error) {
+	return nil, nil
+}
+
+func (m *MockCoreAPI) IsBlockProducer() bool {
+	return false
+}
+
+func (m *MockCoreAPI) HandleSubmittedExtrinsic(types.Extrinsic) error {
+	return nil
+}
+
+func (m *MockCoreAPI) GetMetadata(bhash *common.Hash) ([]byte, error) {
+	return nil, nil
 }
