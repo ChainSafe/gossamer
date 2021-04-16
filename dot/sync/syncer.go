@@ -178,8 +178,9 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 			}
 
 			err = s.blockState.AddBlockToBlockTree(header)
-			if err != nil {
-				logger.Debug("failed to add block to blocktree", "hash", bd.Hash, "error", err)
+			if err != nil && !errors.Is(err, blocktree.ErrBlockExists) {
+				logger.Warn("failed to add block to blocktree", "hash", bd.Hash, "error", err)
+				return i, err
 			}
 
 			if bd.Justification != nil && bd.Justification.Exists() {
