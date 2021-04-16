@@ -153,8 +153,7 @@ func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) error {
 }
 
 // ProcessJustification processes block data containing justifications
-// TODO: use this
-func (s *Service) ProcessJustification(data []*types.BlockData) (int, error) { //nolint
+func (s *Service) ProcessJustification(data []*types.BlockData) (int, error) {
 	if len(data) == 0 {
 		return 0, ErrNilBlockData
 	}

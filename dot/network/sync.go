@@ -668,7 +668,7 @@ func (q *syncQueue) handleBlockJustification(data []*types.BlockData) {
 	startHash, endHash := data[0].Hash, data[len(data)-1].Hash
 	logger.Debug("sending justification data to syncer", "start", startHash, "end", endHash)
 
-	_, err := q.s.syncer.ProcessBlockData(data)
+	_, err := q.s.syncer.ProcessJustification(data)
 	if err != nil {
 		logger.Warn("failed to handle block justifications", "error", err)
 		return
