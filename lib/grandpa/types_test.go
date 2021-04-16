@@ -74,7 +74,7 @@ func TestSignedPrecommitArrayEncoding(t *testing.T) {
 	require.Equal(t, just, dec.([]*SignedPrecommit))
 }
 
-func TesJustification(t *testing.T) {
+func TestJustification(t *testing.T) {
 	just := &SignedPrecommit{
 		Vote:        testVote,
 		Signature:   testSignature,
