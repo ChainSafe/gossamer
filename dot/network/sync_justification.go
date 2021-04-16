@@ -30,14 +30,14 @@ func (s *Service) SendJustificationRequest(to peer.ID, num uint32) {
 func (q *syncQueue) pushJustificationRequest(to peer.ID, start uint64) {
 	startHash, err := q.s.blockState.GetHashByNumber(big.NewInt(int64(start)))
 	if err != nil {
-		logger.Error("failed to get hash for block w/ number", "number", start, "error", err)
+		logger.Debug("failed to get hash for block w/ number", "number", start, "error", err)
 		return
 	}
 
 	req := createBlockRequestWithHash(startHash, blockRequestSize)
 	req.RequestedData = RequestedDataJustification
 
-	logger.Debug("pushing justification request to queue", "start", start, "hash", startHash)
+	logger.Info("pushing justification request to queue", "start", start, "hash", startHash)
 	q.justificationRequestData.Store(startHash, requestData{
 		received: false,
 	})

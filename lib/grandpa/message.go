@@ -121,7 +121,7 @@ func (m *NeighbourMessage) Type() byte {
 type FinalizationMessage struct {
 	Round         uint64
 	Vote          *Vote
-	Justification []*Justification
+	Justification []*SignedPrecommit
 }
 
 // Type returns finalizationType
@@ -181,8 +181,8 @@ func (r *catchUpRequest) ToConsensusMessage() (*ConsensusMessage, error) {
 type catchUpResponse struct {
 	Round                  uint64
 	SetID                  uint64
-	PreVoteJustification   []*Justification
-	PreCommitJustification []*Justification
+	PreVoteJustification   []*SignedPrecommit
+	PreCommitJustification []*SignedPrecommit
 	Hash                   common.Hash
 	Number                 uint32
 }
@@ -214,17 +214,17 @@ func (s *Service) newCatchUpResponse(round, setID uint64) (*catchUpResponse, err
 		return nil, err
 	}
 
-	d, err := sd.Decode([]*Justification{})
+	d, err := sd.Decode([]*SignedPrecommit{})
 	if err != nil {
 		return nil, err
 	}
-	pvj := d.([]*Justification)
+	pvj := d.([]*SignedPrecommit)
 
-	d, err = sd.Decode([]*Justification{})
+	d, err = sd.Decode([]*SignedPrecommit{})
 	if err != nil {
 		return nil, err
 	}
-	pcj := d.([]*Justification)
+	pcj := d.([]*SignedPrecommit)
 
 	return &catchUpResponse{
 		Round:                  round,

@@ -666,7 +666,7 @@ func (q *syncQueue) processBlockResponses() {
 
 func (q *syncQueue) handleBlockJustification(data []*types.BlockData) {
 	startHash, endHash := data[0].Hash, data[len(data)-1].Hash
-	logger.Debug("sending justification data to syncer", "start", startHash, "end", endHash)
+	logger.Info("sending justification data to syncer", "start", startHash, "end", endHash)
 
 	_, err := q.s.syncer.ProcessJustification(data)
 	if err != nil {
@@ -674,7 +674,7 @@ func (q *syncQueue) handleBlockJustification(data []*types.BlockData) {
 		return
 	}
 
-	logger.Debug("finished processing justification data", "start", startHash, "end", endHash)
+	logger.Info("finished processing justification data", "start", startHash, "end", endHash)
 
 	// update peer's score
 	var from peer.ID

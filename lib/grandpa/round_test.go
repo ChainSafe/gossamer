@@ -290,8 +290,8 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	for _, fb := range finalized {
 		require.NotNil(t, fb)
 		require.GreaterOrEqual(t, len(fb.Justification), len(kr.Keys)/2)
-		finalized[0].Justification = []*Justification{}
-		fb.Justification = []*Justification{}
+		finalized[0].Justification = []*SignedPrecommit{}
+		fb.Justification = []*SignedPrecommit{}
 		require.Equal(t, finalized[0], fb)
 	}
 }
@@ -388,8 +388,8 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 	for _, fb := range finalized {
 		require.NotNil(t, fb)
 		require.GreaterOrEqual(t, len(fb.Justification), len(kr.Keys)/2)
-		finalized[0].Justification = []*Justification{}
-		fb.Justification = []*Justification{}
+		finalized[0].Justification = []*SignedPrecommit{}
+		fb.Justification = []*SignedPrecommit{}
 		require.Equal(t, finalized[0], fb)
 	}
 }
@@ -485,8 +485,8 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 	for _, fb := range finalized {
 		require.NotNil(t, fb)
 		require.GreaterOrEqual(t, len(fb.Justification), len(kr.Keys)/2)
-		finalized[0].Justification = []*Justification{}
-		fb.Justification = []*Justification{}
+		finalized[0].Justification = []*SignedPrecommit{}
+		fb.Justification = []*SignedPrecommit{}
 		require.Equal(t, finalized[0], fb)
 	}
 }
@@ -568,8 +568,8 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 			require.NotNil(t, fb)
 			require.Equal(t, head, fb.Vote.hash)
 			require.GreaterOrEqual(t, len(fb.Justification), len(kr.Keys)/2)
-			finalized[0].Justification = []*Justification{}
-			fb.Justification = []*Justification{}
+			finalized[0].Justification = []*SignedPrecommit{}
+			fb.Justification = []*SignedPrecommit{}
 			require.Equal(t, finalized[0], fb)
 		}
 

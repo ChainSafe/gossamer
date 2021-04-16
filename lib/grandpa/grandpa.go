@@ -60,8 +60,8 @@ type Service struct {
 	state            *State                             // current state
 	prevotes         map[ed25519.PublicKeyBytes]*Vote   // pre-votes for the current round
 	precommits       map[ed25519.PublicKeyBytes]*Vote   // pre-commits for the current round
-	pvJustifications map[common.Hash][]*Justification   // pre-vote justifications for the current round
-	pcJustifications map[common.Hash][]*Justification   // pre-commit justifications for the current round
+	pvJustifications map[common.Hash][]*SignedPrecommit // pre-vote justifications for the current round
+	pcJustifications map[common.Hash][]*SignedPrecommit // pre-commit justifications for the current round
 	pvEquivocations  map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-vote stage
 	pcEquivocations  map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-commit stage
 	tracker          *tracker                           // tracker of vote messages we may need in the future
@@ -69,9 +69,9 @@ type Service struct {
 	nextAuthorities  []*Voter                           // if not nil, the updated authorities for the next round
 
 	// historical information
-	preVotedBlock      map[uint64]*Vote            // map of round number -> pre-voted block
-	bestFinalCandidate map[uint64]*Vote            // map of round number -> best final candidate
-	justification      map[uint64][]*Justification // map of round number -> precommit round justification
+	preVotedBlock      map[uint64]*Vote              // map of round number -> pre-voted block
+	bestFinalCandidate map[uint64]*Vote              // map of round number -> best final candidate
+	justification      map[uint64][]*SignedPrecommit // map of round number -> precommit round justification
 
 	// channels for communication with other services
 	in chan GrandpaMessage // only used to receive *VoteMessage
@@ -136,13 +136,13 @@ func NewService(cfg *Config) (*Service, error) {
 		authority:          cfg.Authority,
 		prevotes:           make(map[ed25519.PublicKeyBytes]*Vote),
 		precommits:         make(map[ed25519.PublicKeyBytes]*Vote),
-		pvJustifications:   make(map[common.Hash][]*Justification),
-		pcJustifications:   make(map[common.Hash][]*Justification),
+		pvJustifications:   make(map[common.Hash][]*SignedPrecommit),
+		pcJustifications:   make(map[common.Hash][]*SignedPrecommit),
 		pvEquivocations:    make(map[ed25519.PublicKeyBytes][]*Vote),
 		pcEquivocations:    make(map[ed25519.PublicKeyBytes][]*Vote),
 		preVotedBlock:      make(map[uint64]*Vote),
 		bestFinalCandidate: make(map[uint64]*Vote),
-		justification:      make(map[uint64][]*Justification),
+		justification:      make(map[uint64][]*SignedPrecommit),
 		head:               head,
 		in:                 make(chan GrandpaMessage, 128),
 		resumed:            make(chan struct{}),
@@ -256,10 +256,10 @@ func (s *Service) initiate() error {
 		var err error
 		s.prevotes = make(map[ed25519.PublicKeyBytes]*Vote)
 		s.precommits = make(map[ed25519.PublicKeyBytes]*Vote)
-		s.pcJustifications = make(map[common.Hash][]*Justification)
+		s.pcJustifications = make(map[common.Hash][]*SignedPrecommit)
 		s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
 		s.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
-		s.justification = make(map[uint64][]*Justification)
+		s.justification = make(map[uint64][]*SignedPrecommit)
 
 		s.tracker, err = newTracker(s.blockState, s.in)
 		if err != nil {
@@ -728,12 +728,12 @@ func (s *Service) finalize() error {
 	// set justification
 	s.justification[s.state.round] = s.pcJustifications[bfc.hash]
 
-	pvj, err := newFullJustification(s.state.round, bfc.hash, bfc.number, s.pvJustifications[bfc.hash]).Encode()
+	pvj, err := newJustification(s.state.round, bfc.hash, bfc.number, s.pvJustifications[bfc.hash]).Encode()
 	if err != nil {
 		return err
 	}
 
-	pcj, err := newFullJustification(s.state.round, bfc.hash, bfc.number, s.pcJustifications[bfc.hash]).Encode()
+	pcj, err := newJustification(s.state.round, bfc.hash, bfc.number, s.pcJustifications[bfc.hash]).Encode()
 	if err != nil {
 		return err
 	}

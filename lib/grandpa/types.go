@@ -223,16 +223,15 @@ func (v *Vote) String() string {
 	return fmt.Sprintf("hash=%s number=%d", v.hash, v.number)
 }
 
-// Justification represents a justification for a finalized block
-// TODO: rename to SignedPrecommit
-type Justification struct {
+// SignedPrecommit represents a signed precommit message for a finalized block
+type SignedPrecommit struct {
 	Vote        *Vote
 	Signature   [64]byte
 	AuthorityID ed25519.PublicKeyBytes
 }
 
 // Encode returns the SCALE encoded Justification
-func (j *Justification) Encode() ([]byte, error) {
+func (j *SignedPrecommit) Encode() ([]byte, error) {
 	enc, err := j.Vote.Encode()
 	if err != nil {
 		return nil, err
@@ -244,27 +243,35 @@ func (j *Justification) Encode() ([]byte, error) {
 }
 
 // Decode returns the SCALE decoded Justification
-func (j *Justification) Decode(r io.Reader) (*Justification, error) {
+func (j *SignedPrecommit) Decode(r io.Reader) (*SignedPrecommit, error) {
 	sd := &scale.Decoder{Reader: r}
 	i, err := sd.Decode(j)
-	return i.(*Justification), err
+	if err != nil {
+		return nil, err
+	}
+
+	d := i.(*SignedPrecommit)
+	j.Vote = d.Vote
+	j.Signature = d.Signature
+	j.AuthorityID = d.AuthorityID
+	return j, nil
 }
 
 // Commit contains all the signed precommits for a given block
 type Commit struct {
 	Hash       common.Hash
 	Number     uint32
-	Precommits []*Justification
+	Precommits []*SignedPrecommit
 }
 
-// FullJustification represents an array of Justifications, used to respond to catch up requests
-type FullJustification struct {
+// Justification represents a finality justification for a block
+type Justification struct {
 	Round  uint64
-	Commit *Commit // TODO: rename Justification -> Commit, FullJustification -> Justification
+	Commit *Commit
 }
 
-func newFullJustification(round uint64, hash common.Hash, number uint32, j []*Justification) *FullJustification {
-	return &FullJustification{
+func newJustification(round uint64, hash common.Hash, number uint32, j []*SignedPrecommit) *Justification {
+	return &Justification{
 		Round: round,
 		Commit: &Commit{
 			Hash:       hash,
@@ -275,19 +282,19 @@ func newFullJustification(round uint64, hash common.Hash, number uint32, j []*Ju
 }
 
 // Encode returns the SCALE encoding of a FullJustification
-func (j *FullJustification) Encode() ([]byte, error) {
+func (j *Justification) Encode() ([]byte, error) {
 	return scale.Encode(j)
 }
 
 // Decode returns a SCALE decoded FullJustification
-func (j *FullJustification) Decode(r io.Reader) error {
+func (j *Justification) Decode(r io.Reader) error {
 	sd := &scale.Decoder{Reader: r}
-	i, err := sd.Decode(&FullJustification{Commit: &Commit{}})
+	i, err := sd.Decode(&Justification{Commit: &Commit{}})
 	if err != nil {
 		return err
 	}
 
-	dec := i.(*FullJustification)
+	dec := i.(*Justification)
 	j.Round = dec.Round
 	j.Commit = dec.Commit
 	return nil

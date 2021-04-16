@@ -249,7 +249,7 @@ func decodeMessage(msg *ConsensusMessage) (m GrandpaMessage, err error) {
 			return nil, ErrInvalidMessageType
 		}
 	case finalizationType:
-		mi, err = scale.Decode(msg.Data[1:], &FinalizationMessage{})
+		mi, err = scale.Decode(msg.Data[1:], &FinalizationMessage{Justification: []*SignedPrecommit{}})
 		if m, ok = mi.(*FinalizationMessage); !ok {
 			return nil, ErrInvalidMessageType
 		}
@@ -351,7 +351,7 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *catchUpResponse) erro
 	return nil
 }
 
-func (h *MessageHandler) verifyJustification(just *Justification, round, setID uint64, stage subround) error {
+func (h *MessageHandler) verifyJustification(just *SignedPrecommit, round, setID uint64, stage subround) error {
 	// verify signature
 	msg, err := scale.Encode(&FullVote{
 		Stage: stage,
@@ -399,7 +399,7 @@ func (h *MessageHandler) verifyJustification(just *Justification, round, setID u
 func (s *Service) VerifyBlockJustification(justification []byte) error {
 	r := &bytes.Buffer{}
 	_, _ = r.Write(justification)
-	fj := new(FullJustification)
+	fj := new(Justification)
 	err := fj.Decode(r)
 	if err != nil {
 		return err

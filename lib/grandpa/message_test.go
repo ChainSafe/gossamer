@@ -75,7 +75,7 @@ func TestVoteMessageToConsensusMessage(t *testing.T) {
 
 func TestFinalizationMessageToConsensusMessage(t *testing.T) {
 	gs, _ := newTestService(t)
-	gs.justification[77] = []*Justification{
+	gs.justification[77] = []*SignedPrecommit{
 		{
 			Vote:        testVote,
 			Signature:   testSignature,
@@ -114,7 +114,7 @@ func TestNewCatchUpResponse(t *testing.T) {
 	err = gs.blockState.(*state.BlockState).SetHeader(testHeader)
 	require.NoError(t, err)
 
-	pvj := []*Justification{
+	pvj := []*SignedPrecommit{
 		{
 			Vote:        testVote,
 			Signature:   testSignature,
@@ -125,7 +125,7 @@ func TestNewCatchUpResponse(t *testing.T) {
 	pvjEnc, err := scale.Encode(pvj)
 	require.NoError(t, err)
 
-	pcj := []*Justification{
+	pcj := []*SignedPrecommit{
 		{
 			Vote:        testVote2,
 			Signature:   testSignature,
