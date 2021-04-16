@@ -18,6 +18,7 @@ package grandpa
 
 import (
 	"bytes"
+	"math/big"
 	"reflect"
 	"sync"
 
@@ -109,33 +110,35 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 	h.blockNumToSetID.Store(msg.Number, msg.SetID)
 	h.grandpa.network.SendJustificationRequest(from, msg.Number)
 
-	// head, err := h.grandpa.blockState.BestBlockNumber()
-	// if err != nil {
-	// 	return err
-	// }
+	// TODO; determine if there is some reason we don't receive justifications in responses near the head (usually),
+	// and remove the following code if it's fixed.
+	head, err := h.grandpa.blockState.BestBlockNumber()
+	if err != nil {
+		return err
+	}
 
-	// // don't finalize too close to head, until we add justification request + verification functionality.
-	// // this prevents us from marking the wrong block as final and getting stuck on the wrong chain
-	// if uint32(head.Int64())-4 < msg.Number {
-	// 	return nil
-	// }
+	// don't finalize too close to head, until we add justification request + verification functionality.
+	// this prevents us from marking the wrong block as final and getting stuck on the wrong chain
+	if uint32(head.Int64())-4 < msg.Number {
+		return nil
+	}
 
-	// // TODO: instead of assuming the finalized hash is the one we currently know about,
-	// // request the justification from the network before setting it as finalized.
-	// hash, err := h.grandpa.blockState.GetHashByNumber(big.NewInt(int64(msg.Number)))
-	// if err != nil {
-	// 	return err
-	// }
+	// TODO: instead of assuming the finalized hash is the one we currently know about,
+	// request the justification from the network before setting it as finalized.
+	hash, err := h.grandpa.blockState.GetHashByNumber(big.NewInt(int64(msg.Number)))
+	if err != nil {
+		return err
+	}
 
-	// if err = h.grandpa.blockState.SetFinalizedHash(hash, msg.Round, msg.SetID); err != nil {
-	// 	return err
-	// }
+	if err = h.grandpa.blockState.SetFinalizedHash(hash, msg.Round, msg.SetID); err != nil {
+		return err
+	}
 
-	// if err = h.grandpa.blockState.SetFinalizedHash(hash, 0, 0); err != nil {
-	// 	return err
-	// }
+	if err = h.grandpa.blockState.SetFinalizedHash(hash, 0, 0); err != nil {
+		return err
+	}
 
-	// logger.Info("🔨 finalized block", "number", msg.Number, "hash", hash)
+	logger.Info("🔨 finalized block", "number", msg.Number, "hash", hash)
 	return nil
 }
 

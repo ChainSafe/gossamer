@@ -17,7 +17,7 @@
 package grandpa
 
 import (
-	//"errors"
+	"errors"
 	"math/big"
 	"testing"
 	"time"
@@ -29,7 +29,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/scale"
 
-	//"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/chaindb"
 	"github.com/stretchr/testify/require"
 )
 
@@ -199,8 +199,8 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	cm, err := msg.ToConsensusMessage()
 	require.NoError(t, err)
 
-	// _, err = h.handleMessage(cm)
-	// require.True(t, errors.Is(err, chaindb.ErrKeyNotFound))
+	_, err = h.handleMessage("", cm)
+	require.True(t, errors.Is(err, chaindb.ErrKeyNotFound))
 
 	block := &types.Block{
 		Header: &types.Header{
@@ -217,9 +217,9 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, out)
 
-	// finalized, err := st.Block.GetFinalizedHash(0, 0)
-	// require.NoError(t, err)
-	// require.Equal(t, block.Header.Hash(), finalized)
+	finalized, err := st.Block.GetFinalizedHash(0, 0)
+	require.NoError(t, err)
+	require.Equal(t, block.Header.Hash(), finalized)
 }
 
 func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
