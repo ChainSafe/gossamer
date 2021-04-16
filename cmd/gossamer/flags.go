@@ -141,6 +141,10 @@ var (
 		Name:  "genesis-spec",
 		Usage: "Path to human-readable genesis JSON file",
 	}
+	OutputSpecFlag = cli.StringFlag{
+		Name:  "output",
+		Usage: "Path to output the recently created genesis JSON file",
+	}
 )
 
 // Network service configuration flags
@@ -321,6 +325,7 @@ var (
 	BuildSpecFlags = append([]cli.Flag{
 		RawFlag,
 		GenesisSpecFlag,
+		OutputSpecFlag,
 	}, GlobalFlags...)
 
 	// ExportFlags are the flags that are valid for use with the export subcommand
