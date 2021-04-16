@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
@@ -163,7 +164,6 @@ func newSyncQueue(s *Service) *syncQueue {
 func (q *syncQueue) start() {
 	go q.handleResponseQueue()
 	go q.syncAtHead()
-	go q.finalizeAtHead()
 
 	go q.processBlockRequests()
 	go q.processBlockResponses()
@@ -693,7 +693,7 @@ func (q *syncQueue) handleBlockJustification(data []*types.BlockData) {
 func (q *syncQueue) handleBlockData(data []*types.BlockData) {
 	finalized, err := q.s.blockState.GetFinalizedHeader(0, 0)
 	if err != nil {
-		panic(err) // TODO: don't panic but try again. seems blockState needs better concurrency handling
+		panic(err) // this should never happen
 	}
 
 	end := data[len(data)-1].Number().Int64()
@@ -738,10 +738,20 @@ func (q *syncQueue) handleBlockData(data []*types.BlockData) {
 func (q *syncQueue) handleBlockDataFailure(idx int, err error, data []*types.BlockData) {
 	logger.Warn("failed to handle block data", "failed on block", q.currStart+int64(idx), "error", err)
 
-	if errors.Is(err, chaindb.ErrKeyNotFound) {
+	if errors.Is(err, chaindb.ErrKeyNotFound) || errors.Is(err, blocktree.ErrParentNotFound) {
+		finalized, err := q.s.blockState.GetFinalizedHeader(0, 0)
+		if err != nil {
+			panic(err)
+		}
+
 		header, err := types.NewHeaderFromOptional(data[idx].Header)
 		if err != nil {
 			logger.Debug("failed to get header from BlockData", "idx", idx, "error", err)
+			return
+		}
+
+		// don't request a chain that's been dropped
+		if header.Number.Int64() <= finalized.Number.Int64() {
 			return
 		}
 
