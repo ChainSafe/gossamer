@@ -474,6 +474,7 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error 
 		}
 
 		if numJustifications == 0 {
+			logger.Debug("got empty justification data", "start hash", startHash)
 			return errEmptyJustificationData
 		}
 
@@ -484,7 +485,7 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error 
 			from:     pid,
 		})
 
-		logger.Info("pushed justification data to queue", "hash", startHash)
+		logger.Debug("pushed justification data to queue", "hash", startHash)
 		q.responseCh <- justificationResponses
 		return nil
 	}
@@ -666,7 +667,7 @@ func (q *syncQueue) processBlockResponses() {
 
 func (q *syncQueue) handleBlockJustification(data []*types.BlockData) {
 	startHash, endHash := data[0].Hash, data[len(data)-1].Hash
-	logger.Info("sending justification data to syncer", "start", startHash, "end", endHash)
+	logger.Debug("sending justification data to syncer", "start", startHash, "end", endHash)
 
 	_, err := q.s.syncer.ProcessJustification(data)
 	if err != nil {
@@ -674,7 +675,7 @@ func (q *syncQueue) handleBlockJustification(data []*types.BlockData) {
 		return
 	}
 
-	logger.Info("finished processing justification data", "start", startHash, "end", endHash)
+	logger.Debug("finished processing justification data", "start", startHash, "end", endHash)
 
 	// update peer's score
 	var from peer.ID

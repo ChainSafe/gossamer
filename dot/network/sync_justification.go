@@ -37,7 +37,7 @@ func (q *syncQueue) pushJustificationRequest(to peer.ID, start uint64) {
 	req := createBlockRequestWithHash(startHash, blockRequestSize)
 	req.RequestedData = RequestedDataJustification
 
-	logger.Info("pushing justification request to queue", "start", start, "hash", startHash)
+	logger.Debug("pushing justification request to queue", "start", start, "hash", startHash)
 	q.justificationRequestData.Store(startHash, requestData{
 		received: false,
 	})

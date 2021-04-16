@@ -165,7 +165,7 @@ func (s *Service) ProcessJustification(data []*types.BlockData) (int, error) {
 		}
 
 		if bd.Justification != nil && bd.Justification.Exists() {
-			logger.Info("handling Justification...", "number", header.Number, "hash", bd.Hash)
+			logger.Debug("handling Justification...", "number", header.Number, "hash", bd.Hash)
 			s.handleJustification(header, bd.Justification.Value())
 		}
 	}
