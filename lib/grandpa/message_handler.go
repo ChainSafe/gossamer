@@ -17,6 +17,7 @@
 package grandpa
 
 import (
+	"math/big"
 	"reflect"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -43,7 +44,7 @@ func NewMessageHandler(grandpa *Service, blockState BlockState) *MessageHandler 
 // if it is a VoteMessage, it sends it to the GRANDPA service
 func (h *MessageHandler) handleMessage(msg *ConsensusMessage) (*ConsensusMessage, error) {
 	if msg == nil || len(msg.Data) == 0 {
-		h.grandpa.logger.Trace("received nil message or message with nil data")
+		logger.Trace("received nil message or message with nil data")
 		return nil, nil
 	}
 
@@ -51,6 +52,8 @@ func (h *MessageHandler) handleMessage(msg *ConsensusMessage) (*ConsensusMessage
 	if err != nil {
 		return nil, err
 	}
+
+	logger.Debug("handling grandpa message", "msg", m)
 
 	switch m.Type() {
 	case voteType, precommitType:
@@ -63,6 +66,13 @@ func (h *MessageHandler) handleMessage(msg *ConsensusMessage) (*ConsensusMessage
 		if fm, ok := m.(*FinalizationMessage); ok {
 			return h.handleFinalizationMessage(fm)
 		}
+	case neighbourType:
+		nm, ok := m.(*NeighbourMessage)
+		if !ok {
+			return nil, nil
+		}
+
+		return nil, h.handleNeighbourMessage(nm)
 	case catchUpRequestType:
 		if r, ok := m.(*catchUpRequest); ok {
 			return h.handleCatchUpRequest(r)
@@ -78,8 +88,48 @@ func (h *MessageHandler) handleMessage(msg *ConsensusMessage) (*ConsensusMessage
 	return nil, nil
 }
 
+func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage) error {
+	currFinalized, err := h.grandpa.blockState.GetFinalizedHeader(0, 0)
+	if err != nil {
+		return err
+	}
+
+	if uint32(currFinalized.Number.Int64()) >= msg.Number {
+		return nil
+	}
+
+	head, err := h.grandpa.blockState.BestBlockNumber()
+	if err != nil {
+		return err
+	}
+
+	// don't finalize too close to head, until we add justification request + verification functionality.
+	// this prevents us from marking the wrong block as final and getting stuck on the wrong chain
+	if uint32(head.Int64())-4 < msg.Number {
+		return nil
+	}
+
+	// TODO: instead of assuming the finalized hash is the one we currently know about,
+	// request the justification from the network before setting it as finalized.
+	hash, err := h.grandpa.blockState.GetHashByNumber(big.NewInt(int64(msg.Number)))
+	if err != nil {
+		return err
+	}
+
+	if err = h.grandpa.blockState.SetFinalizedHash(hash, msg.Round, msg.SetID); err != nil {
+		return err
+	}
+
+	if err = h.grandpa.blockState.SetFinalizedHash(hash, 0, 0); err != nil {
+		return err
+	}
+
+	logger.Info("🔨 finalized block", "number", msg.Number, "hash", hash)
+	return nil
+}
+
 func (h *MessageHandler) handleFinalizationMessage(msg *FinalizationMessage) (*ConsensusMessage, error) {
-	h.grandpa.logger.Debug("received finalization message", "round", msg.Round, "hash", msg.Vote.hash)
+	logger.Debug("received finalization message", "round", msg.Round, "hash", msg.Vote.hash)
 
 	if has, _ := h.blockState.HasFinalizedBlock(msg.Round, h.grandpa.state.setID); has {
 		return nil, nil
@@ -108,7 +158,7 @@ func (h *MessageHandler) handleFinalizationMessage(msg *FinalizationMessage) (*C
 		h.grandpa.paused.Store(true)
 		h.grandpa.state.round = msg.Round + 1
 		req := newCatchUpRequest(msg.Round, h.grandpa.state.setID)
-		h.grandpa.logger.Debug("sending catch-up request; paused service", "round", msg.Round)
+		logger.Debug("sending catch-up request; paused service", "round", msg.Round)
 		return req.ToConsensusMessage()
 	}
 
@@ -116,7 +166,7 @@ func (h *MessageHandler) handleFinalizationMessage(msg *FinalizationMessage) (*C
 }
 
 func (h *MessageHandler) handleCatchUpRequest(msg *catchUpRequest) (*ConsensusMessage, error) {
-	h.grandpa.logger.Debug("received catch up request", "round", msg.Round, "setID", msg.SetID)
+	logger.Debug("received catch up request", "round", msg.Round, "setID", msg.SetID)
 	if msg.SetID != h.grandpa.state.setID {
 		return nil, ErrSetIDMismatch
 	}
@@ -130,16 +180,16 @@ func (h *MessageHandler) handleCatchUpRequest(msg *catchUpRequest) (*ConsensusMe
 		return nil, err
 	}
 
-	h.grandpa.logger.Debug("sending catch up response", "round", msg.Round, "setID", msg.SetID, "hash", resp.Hash)
+	logger.Debug("sending catch up response", "round", msg.Round, "setID", msg.SetID, "hash", resp.Hash)
 	return resp.ToConsensusMessage()
 }
 
 func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponse) error {
-	h.grandpa.logger.Debug("received catch up response", "round", msg.Round, "setID", msg.SetID, "hash", msg.Hash)
+	logger.Debug("received catch up response", "round", msg.Round, "setID", msg.SetID, "hash", msg.Hash)
 
 	// if we aren't currently expecting a catch up response, return
 	if !h.grandpa.paused.Load().(bool) {
-		h.grandpa.logger.Debug("not currently paused, ignoring catch up response")
+		logger.Debug("not currently paused, ignoring catch up response")
 		return nil
 	}
 
@@ -179,7 +229,7 @@ func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponse) error {
 	close(h.grandpa.resumed)
 	h.grandpa.resumed = make(chan struct{})
 	h.grandpa.paused.Store(false)
-	h.grandpa.logger.Debug("caught up to round; unpaused service", "round", h.grandpa.state.round)
+	logger.Debug("caught up to round; unpaused service", "round", h.grandpa.state.round)
 	return nil
 }
 
@@ -220,6 +270,11 @@ func decodeMessage(msg *ConsensusMessage) (m GrandpaMessage, err error) {
 		if m, ok = mi.(*FinalizationMessage); !ok {
 			return nil, ErrInvalidMessageType
 		}
+	case neighbourType:
+		mi, err = scale.Decode(msg.Data[1:], &NeighbourMessage{})
+		if m, ok = mi.(*NeighbourMessage); !ok {
+			return nil, ErrInvalidMessageType
+		}
 	case catchUpRequestType:
 		mi, err = scale.Decode(msg.Data[1:], &catchUpRequest{})
 		if m, ok = mi.(*catchUpRequest); !ok {
@@ -257,7 +312,7 @@ func (h *MessageHandler) verifyFinalizationMessageJustification(fm *Finalization
 
 	// confirm total # signatures >= grandpa threshold
 	if uint64(count) < h.grandpa.state.threshold() {
-		h.grandpa.logger.Error("minimum votes not met for finalization message", "votes needed", h.grandpa.state.threshold(),
+		logger.Error("minimum votes not met for finalization message", "votes needed", h.grandpa.state.threshold(),
 			"votes", fm.Justification)
 		return ErrMinVotesNotMet
 	}
