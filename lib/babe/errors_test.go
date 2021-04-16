@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestErrors(t *testing.T) {
+func TestApplyExtrinsicErrors(t *testing.T) {
 	testCases := []struct {
 		name     string
 		test     []byte
