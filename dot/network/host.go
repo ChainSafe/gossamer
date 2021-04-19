@@ -264,32 +264,28 @@ func (h *host) bootstrap() {
 
 // send writes the given message to the outbound message stream for the given
 // peer (gets the already opened outbound message stream or opens a new one).
-func (h *host) send(p peer.ID, pid protocol.ID, msg Message) (err error) {
-	// get outbound stream for given peer
-	s := h.getOutboundStream(p, pid)
+func (h *host) send(p peer.ID, pid protocol.ID, msg Message, stream libp2pnetwork.Stream) error {
 
-	// check if stream needs to be opened
-	if s == nil {
+	if stream == nil || h.writeToStream(stream, msg) != nil {
 		// open outbound stream with host protocol id
-		s, err = h.h.NewStream(h.ctx, p, pid)
+		var err error
+		stream, err = h.h.NewStream(h.ctx, p, pid)
 		if err != nil {
 			logger.Trace("failed to open new stream with peer", "peer", p, "protocol", pid, "error", err)
 			return err
 		}
-
 		logger.Trace(
 			"Opened stream",
 			"host", h.id(),
 			"peer", p,
 			"protocol", pid,
 		)
-	}
 
-	err = h.writeToStream(s, msg)
-	if err != nil {
-		return err
+		err = h.writeToStream(stream, msg)
+		if err != nil {
+			return err
+		}
 	}
-
 	logger.Trace(
 		"Sent message to peer",
 		"protocol", pid,

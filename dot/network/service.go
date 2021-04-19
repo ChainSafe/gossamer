@@ -447,7 +447,7 @@ func (s *Service) SendMessage(msg NotificationsMessage) {
 			continue
 		}
 
-		s.broadcastExcluding(prtl, peer.ID(""), msg)
+		s.broadcastExcluding(prtl, peer.ID(""), msg, nil)
 		return
 	}
 

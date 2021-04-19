@@ -22,6 +22,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/scale"
+	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -114,7 +115,7 @@ func (s *Service) decodeHandshake(in []byte) (Handshake, error) {
 	return hs, err
 }
 
-func (s *Service) validateHandshake(_ peer.ID, _ Handshake) error {
+func (s *Service) validateHandshake(_ peer.ID, _ Handshake, _ libp2pnetwork.Stream) error {
 	return nil
 }
 

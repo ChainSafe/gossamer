@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/utils"
-
 	"github.com/stretchr/testify/require"
 )
 
@@ -101,7 +100,7 @@ func TestGossip(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	err = nodeA.host.send(addrInfosB[0].ID, "", testBlockAnnounceMessage)
+	err = nodeA.host.send(addrInfosB[0].ID, "", testBlockAnnounceMessage, nil)
 	require.NoError(t, err)
 
 	time.Sleep(TestMessageTimeout)

@@ -142,6 +142,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 	info.handshakeData.Store(testPeerID, &handshakeData{
 		received:  true,
 		validated: true,
+		stream:    stream,
 	})
 	msg := &BlockAnnounceMessage{
 		Number: big.NewInt(10),

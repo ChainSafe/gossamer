@@ -24,7 +24,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
-
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
 )
@@ -125,6 +124,6 @@ func TestValidateBlockAnnounceHandshake(t *testing.T) {
 	err := nodeA.validateBlockAnnounceHandshake(testPeerID, &BlockAnnounceHandshake{
 		BestBlockNumber: 100,
 		GenesisHash:     nodeA.blockState.GenesisHash(),
-	})
+	}, nil)
 	require.NoError(t, err)
 }

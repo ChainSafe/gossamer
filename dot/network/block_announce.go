@@ -25,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/scale"
+	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 )
@@ -198,7 +199,7 @@ func (s *Service) getBlockAnnounceHandshake() (Handshake, error) {
 	}, nil
 }
 
-func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) error {
+func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake, stream libp2pnetwork.Stream) error {
 	var (
 		bhs *BlockAnnounceHandshake
 		ok  bool
@@ -225,6 +226,7 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 		np.handshakeData.Store(peer, &handshakeData{
 			received:  true,
 			validated: true,
+			stream:    stream,
 		})
 		data, _ = np.getHandshakeData(peer)
 	}

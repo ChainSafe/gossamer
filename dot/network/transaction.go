@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/scale"
+	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 )
@@ -146,7 +147,7 @@ func decodeTransactionHandshake(in []byte) (Handshake, error) {
 	return &transactionHandshake{}, nil
 }
 
-func validateTransactionHandshake(_ peer.ID, _ Handshake) error {
+func validateTransactionHandshake(_ peer.ID, _ Handshake, _ libp2pnetwork.Stream) error {
 	return nil
 }
 
