@@ -21,7 +21,6 @@ import (
 	"math/big"
 	"math/rand"
 	"os"
-	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -365,17 +364,6 @@ func TestPendingExtrinsic(t *testing.T) {
 	numNodes := 3
 	// index of node to submit tx to
 	idx := numNodes - 1
-
-	// Randomize authority node selection.
-	rand.Seed(time.Now().UnixNano())
-	rand.Shuffle(len(utils.KeyList), func(i, j int) { utils.KeyList[i], utils.KeyList[j] = utils.KeyList[j], utils.KeyList[i] })
-
-	defer func() {
-		// Restore the key list.
-		sort.Slice(utils.KeyList, func(i, j int) bool {
-			return utils.KeyList[i] > utils.KeyList[j]
-		})
-	}()
 
 	// start block producing node first
 	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDefault, utils.ConfigBABEMaxThreshold, false)

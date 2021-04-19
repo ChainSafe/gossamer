@@ -201,7 +201,7 @@ func (b *Service) buildBlockExtrinsics(slot Slot) []*transaction.ValidTransactio
 
 		ok, err := determineErr(ret)
 		if err != nil && ok {
-			logger.Warn("failed to interpret extrinsic error", "error", err, "extrinsic", extrinsic)
+			logger.Warn("failed after dispatching extrinsic", "error", err, "extrinsic", extrinsic)
 		} else if err != nil {
 			logger.Warn("failed to apply extrinsic", "error", err, "extrinsic", extrinsic)
 		}

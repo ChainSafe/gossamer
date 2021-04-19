@@ -180,6 +180,8 @@ func (x *Bytes) DecodeBytes(data []byte) (*Bytes, error) {
 			return nil, err
 		}
 		x.value = decData.([]byte)
+	} else {
+		x.value = nil
 	}
 
 	return x, nil
