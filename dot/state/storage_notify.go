@@ -37,7 +37,7 @@ type SubscriptionResult struct {
 // Observer interface defines functions needed for observers, Observer Design Pattern
 type Observer interface {
 	Update(result *SubscriptionResult)
-	GetID() int
+	GetID() uint
 	GetFilter() map[string][]byte
 }
 
@@ -75,9 +75,10 @@ func (s *StorageState) notifyAll(root common.Hash) {
 }
 
 func (s *StorageState) notifyObserver(root common.Hash, o Observer) error {
-	s.lock.RLock()
-	t := s.tries[root]
-	defer s.lock.RUnlock()
+	t, err := s.TrieState(&root)
+	if err != nil {
+		return err
+	}
 
 	if t == nil {
 		return errTrieDoesNotExist(root)
@@ -88,7 +89,7 @@ func (s *StorageState) notifyObserver(root common.Hash, o Observer) error {
 	}
 	if len(o.GetFilter()) == 0 {
 		// no filter, so send all changes
-		ent := t.Entries()
+		ent := t.TrieEntries()
 		for k, v := range ent {
 			if k != ":code" {
 				// todo, currently we're ignoring :code since this is a lot of data
@@ -130,7 +131,7 @@ func (s *StorageState) removeFromSlice(observerList []Observer, observerToRemove
 	observerListLength := len(observerList)
 	for i, observer := range observerList {
 		if observerToRemove.GetID() == observer.GetID() {
-			observerList[observerListLength-1], observerList[i] = observerList[i], observerList[observerListLength-1]
+			observerList[i] = observerList[observerListLength-1]
 			return observerList[:observerListLength-1]
 		}
 	}

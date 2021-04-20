@@ -33,16 +33,16 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var logger = log.New("pkg", "rpc")
+var logger = log.New("pkg", "rpc/subscription")
 
 // WSConn struct to hold WebSocket Connection references
 type WSConn struct {
 	Wsconn             *websocket.Conn
 	mu                 sync.Mutex
-	BlockSubChannels   map[int]byte
+	BlockSubChannels   map[uint]byte
 	StorageSubChannels map[int]byte
-	qtyListeners       int
-	Subscriptions      map[int]Listener
+	qtyListeners       uint
+	Subscriptions      map[uint]Listener
 	StorageAPI         modules.StorageAPI
 	BlockAPI           modules.BlockAPI
 	RuntimeAPI         modules.RuntimeAPI
@@ -164,7 +164,7 @@ fmt.Printf("Method %s\n", mbytes)
 	}
 }
 
-func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (int, error) {
+func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (uint, error) {
 	if c.StorageAPI == nil {
 		c.safeSendError(reqID, nil, "error StorageAPI not set")
 		return 0, fmt.Errorf("error StorageAPI not set")
@@ -209,7 +209,7 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (i
 	return myObs.id, nil
 }
 
-func (c *WSConn) initBlockListener(reqID float64) (int, error) {
+func (c *WSConn) initBlockListener(reqID float64) (uint, error) {
 	bl := &BlockListener{
 		Channel: make(chan *types.Block),
 		wsconn:  c,
@@ -234,7 +234,7 @@ func (c *WSConn) initBlockListener(reqID float64) (int, error) {
 	return bl.subID, nil
 }
 
-func (c *WSConn) initBlockFinalizedListener(reqID float64) (int, error) {
+func (c *WSConn) initBlockFinalizedListener(reqID float64) (uint, error) {
 	bfl := &BlockFinalizedListener{
 		channel: make(chan *types.Header),
 		wsconn:  c,
@@ -259,7 +259,7 @@ func (c *WSConn) initBlockFinalizedListener(reqID float64) (int, error) {
 	return bfl.subID, nil
 }
 
-func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (int, error) {
+func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (uint, error) {
 	pA := params.([]interface{})
 	extBytes, err := common.HexToBytes(pA[0].(string))
 	if err != nil {
@@ -299,7 +299,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (int, err
 	c.safeSend(newSubscriptionResponseJSON(esl.subID, reqID))
 
 	// TODO (ed) since HandleSubmittedExtrinsic has been called we assume the extrinsic is in the tx queue
-	//  should we add a channel to tx queue so we're notified when it's in the queue
+	//  should we add a channel to tx queue so we're notified when it's in the queue (See issue #1535)
 	if c.CoreAPI.IsBlockProducer() {
 		c.safeSend(newSubscriptionResponse(AuthorExtrinsicUpdates, esl.subID, "ready"))
 	}
@@ -308,7 +308,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (int, err
 	return esl.subID, err
 }
 
-func (c *WSConn) initRuntimeVersionListener(reqID float64) (int, error) {
+func (c *WSConn) initRuntimeVersionListener(reqID float64) (uint, error) {
 	rvl := &RuntimeVersionListener{
 		wsconn: c,
 	}
@@ -363,6 +363,6 @@ type ErrorMessageJSON struct {
 	Message string   `json:"message"`
 }
 
-func (c *WSConn) startListener(lid int) {
+func (c *WSConn) startListener(lid uint) {
 	go c.Subscriptions[lid].Listen()
 }

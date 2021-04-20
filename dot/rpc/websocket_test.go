@@ -17,7 +17,6 @@ package rpc
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"math/big"
 	"net/url"
@@ -94,7 +93,6 @@ func TestHTTPServer_ServeHTTP(t *testing.T) {
 
 		_, message, err := c.ReadMessage()
 		require.Nil(t, err)
-		fmt.Printf("ACT MSG %s\n", message)
 		require.Equal(t, item.expected, message)
 	}
 }

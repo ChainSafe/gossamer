@@ -242,7 +242,6 @@ func (t *Trie) tryPut(key, value []byte) {
 	k := keyToNibbles(key)
 
 	t.root = t.insert(t.root, k, &leaf{key: nil, value: value, dirty: true, generation: t.generation})
-
 }
 
 // TryPut attempts to insert a key with value into the trie

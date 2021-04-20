@@ -37,9 +37,15 @@ type WSConnAPI interface {
 
 // StorageObserver struct to hold data for observer (Observer Design Pattern)
 type StorageObserver struct {
-	id     int
+	id     uint
 	filter map[string][]byte
 	wsconn WSConnAPI
+}
+
+type Change [2]string
+type ChangeResult struct {
+	Changes []Change `json:"changes"`
+	Block string `json:"block"`
 }
 
 // Update is called to notify observer of new value
@@ -48,24 +54,23 @@ func (s *StorageObserver) Update(change *state.SubscriptionResult) {
 		return
 	}
 
-	result := make(map[string]interface{})
-	result["block"] = change.Hash.String()
-	changes := make([][]string, 0, len(change.Changes))
-	for _, v := range change.Changes {
-		kv := []string{common.BytesToHex(v.Key), common.BytesToHex(v.Value)}
-		changes = append(changes, kv)
+	changeResult := ChangeResult{
+		Block:   change.Hash.String(),
+		Changes: make([]Change, len(change.Changes)),
 	}
-	result["changes"] = changes
+	for i, v := range change.Changes {
+		changeResult.Changes[i] = Change{common.BytesToHex(v.Key), common.BytesToHex(v.Value)}
+	}
 
 	res := newSubcriptionBaseResponseJSON()
 	res.Method = "state_storage"
-	res.Params.Result = result
+	res.Params.Result = changeResult
 	res.Params.SubscriptionID = s.GetID()
 	s.wsconn.safeSend(res)
 }
 
 // GetID the id for the Observer
-func (s *StorageObserver) GetID() int {
+func (s *StorageObserver) GetID() uint {
 	return s.id
 }
 
@@ -82,7 +87,7 @@ type BlockListener struct {
 	Channel chan *types.Block
 	wsconn  WSConnAPI
 	ChanID  byte
-	subID   int
+	subID   uint
 }
 
 // Listen implementation of Listen interface to listen for importedChan changes
@@ -109,7 +114,7 @@ type BlockFinalizedListener struct {
 	channel chan *types.Header
 	wsconn  WSConnAPI
 	chanID  byte
-	subID   int
+	subID   uint
 }
 
 // Listen implementation of Listen interface to listen for importedChan changes
@@ -133,7 +138,7 @@ func (l *BlockFinalizedListener) Listen() {
 // ExtrinsicSubmitListener to handle listening for extrinsic events
 type ExtrinsicSubmitListener struct {
 	wsconn    WSConnAPI
-	subID     int
+	subID     uint
 	extrinsic types.Extrinsic
 
 	importedChan    chan *types.Block
@@ -185,7 +190,7 @@ func (l *ExtrinsicSubmitListener) Listen() {
 // RuntimeVersionListener to handle listening for Runtime Version
 type RuntimeVersionListener struct {
 	wsconn *WSConn
-	subID  int
+	subID  uint
 }
 
 // Listen implementation of Listen interface to listen for runtime version changes

@@ -13,9 +13,11 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package subscription
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -66,6 +68,7 @@ func TestStorageObserver_Update(t *testing.T) {
 
 	storageObserver.Update(change)
 	time.Sleep(time.Millisecond * 10)
+	fmt.Printf("RES %v\n", mockConnection.lastMessage)
 	require.Equal(t, expectedRespones, mockConnection.lastMessage)
 }
 

@@ -31,7 +31,7 @@ import (
 )
 
 type MockStorageObserver struct {
-	id         int
+	id         uint
 	filter     map[string][]byte
 	lastUpdate *SubscriptionResult
 	m          sync.RWMutex
@@ -43,7 +43,7 @@ func (m *MockStorageObserver) Update(change *SubscriptionResult) {
 	m.m.Unlock()
 
 }
-func (m *MockStorageObserver) GetID() int {
+func (m *MockStorageObserver) GetID() uint {
 	return m.id
 }
 func (m *MockStorageObserver) GetFilter() map[string][]byte {
@@ -89,7 +89,7 @@ func TestStorageState_RegisterStorageObserver_Multi(t *testing.T) {
 
 	for i := 0; i < num; i++ {
 		observer := &MockStorageObserver{
-			id: i,
+			id: uint(i),
 		}
 		observers = append(observers, observer)
 		ss.RegisterStorageObserver(observer)
@@ -132,7 +132,7 @@ func TestStorageState_RegisterStorageObserver_Multi_Filter(t *testing.T) {
 
 	for i := 0; i < num; i++ {
 		observer := &MockStorageObserver{
-			id: i,
+			id: uint(i),
 			filter: map[string][]byte{
 				common.BytesToHex(key1): {},
 			},

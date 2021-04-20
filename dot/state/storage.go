@@ -74,6 +74,7 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie) 
 		tries:      tries,
 		baseDB:     db,
 		db:         chaindb.NewTable(db, storagePrefix),
+		observerList: []Observer{},
 	}, nil
 }
 
