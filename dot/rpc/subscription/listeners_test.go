@@ -17,7 +17,6 @@
 package subscription
 
 import (
-	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -53,14 +52,13 @@ func TestStorageObserver_Update(t *testing.T) {
 		Changes: data,
 	}
 
-	expected := make(map[string]interface{})
-	expected["block"] = change.Hash.String()
-	changes := make([][]string, 0, len(change.Changes))
-	for _, v := range change.Changes {
-		kv := []string{common.BytesToHex(v.Key), common.BytesToHex(v.Value)}
-		changes = append(changes, kv)
+	expected := ChangeResult{
+		Block:   change.Hash.String(),
+		Changes: make([]Change, len(change.Changes)),
 	}
-	expected["changes"] = changes
+	for i, v := range change.Changes {
+		expected.Changes[i] = Change{common.BytesToHex(v.Key), common.BytesToHex(v.Value)}
+	}
 
 	expectedRespones := newSubcriptionBaseResponseJSON()
 	expectedRespones.Method = "state_storage"
@@ -68,7 +66,6 @@ func TestStorageObserver_Update(t *testing.T) {
 
 	storageObserver.Update(change)
 	time.Sleep(time.Millisecond * 10)
-	fmt.Printf("RES %v\n", mockConnection.lastMessage)
 	require.Equal(t, expectedRespones, mockConnection.lastMessage)
 }
 
