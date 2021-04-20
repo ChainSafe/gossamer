@@ -61,7 +61,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 	// test storageChangeListener
 	res, err := wsconn.initStorageChangeListener(1, nil)
 	require.EqualError(t, err, "error StorageAPI not set")
-	require.Equal(t, 0, res)
+	require.Equal(t, uint(0), res)
 	_, msg, err := c.ReadMessage()
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error StorageAPI not set"},"id":1}`+"\n"), msg)
@@ -70,18 +70,18 @@ func TestWSConn_HandleComm(t *testing.T) {
 
 	res, err = wsconn.initStorageChangeListener(1, nil)
 	require.EqualError(t, err, "unknown parameter type")
-	require.Equal(t, 0, res)
+	require.Equal(t, uint(0), res)
 
 	res, err = wsconn.initStorageChangeListener(2, []interface{}{})
 	require.NoError(t, err)
-	require.Equal(t, 1, res)
+	require.Equal(t, uint(1), res)
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":1,"id":2}`+"\n"), msg)
 
 	res, err = wsconn.initStorageChangeListener(3, []interface{}{"0x26aa"})
 	require.NoError(t, err)
-	require.Equal(t, 2, res)
+	require.Equal(t, uint(2), res)
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":2,"id":3}`+"\n"), msg)
@@ -90,7 +90,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 	var testFilter1 = []interface{}{"0x26aa", "0x26a1"}
 	res, err = wsconn.initStorageChangeListener(4, append(testFilters, testFilter1))
 	require.NoError(t, err)
-	require.Equal(t, 3, res)
+	require.Equal(t, uint(3), res)
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":3,"id":4}`+"\n"), msg)
@@ -98,11 +98,11 @@ func TestWSConn_HandleComm(t *testing.T) {
 	var testFilterWrongType = []interface{}{"0x26aa", 1}
 	res, err = wsconn.initStorageChangeListener(5, append(testFilters, testFilterWrongType))
 	require.EqualError(t, err, "unknown parameter type")
-	require.Equal(t, 0, res)
+	require.Equal(t, uint(0), res)
 
 	res, err = wsconn.initStorageChangeListener(6, []interface{}{1})
 	require.EqualError(t, err, "unknown parameter type")
-	require.Equal(t, 0, res)
+	require.Equal(t, uint(0), res)
 
 	c.WriteMessage(websocket.TextMessage, []byte(`{
     "jsonrpc": "2.0",
@@ -116,7 +116,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 	// test initBlockListener
 	res, err = wsconn.initBlockListener(1)
 	require.EqualError(t, err, "error BlockAPI not set")
-	require.Equal(t, 0, res)
+	require.Equal(t, uint(0), res)
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}`+"\n"), msg)
@@ -125,7 +125,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 
 	res, err = wsconn.initBlockListener(1)
 	require.NoError(t, err)
-	require.Equal(t, 5, res)
+	require.Equal(t, uint(5), res)
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":5,"id":1}`+"\n"), msg)
@@ -145,7 +145,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 
 	res, err = wsconn.initBlockFinalizedListener(1)
 	require.EqualError(t, err, "error BlockAPI not set")
-	require.Equal(t, 0, res)
+	require.Equal(t, uint(0), res)
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}`+"\n"), msg)
@@ -154,7 +154,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 
 	res, err = wsconn.initBlockFinalizedListener(1)
 	require.NoError(t, err)
-	require.Equal(t, 7, res)
+	require.Equal(t, uint(7), res)
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":7,"id":1}`+"\n"), msg)
@@ -164,16 +164,16 @@ func TestWSConn_HandleComm(t *testing.T) {
 	wsconn.BlockAPI = nil
 	res, err = wsconn.initExtrinsicWatch(0, []interface{}{"NotHex"})
 	require.EqualError(t, err, "could not byteify non 0x prefixed string")
-	require.Equal(t, 0, res)
+	require.Equal(t, uint(0), res)
 
 	res, err = wsconn.initExtrinsicWatch(0, []interface{}{"0x26aa"})
 	require.EqualError(t, err, "error BlockAPI not set")
-	require.Equal(t, 0, res)
+	require.Equal(t, uint(0), res)
 
 	wsconn.BlockAPI = new(MockBlockAPI)
 	res, err = wsconn.initExtrinsicWatch(0, []interface{}{"0x26aa"})
 	require.NoError(t, err)
-	require.Equal(t, 8, res)
+	require.Equal(t, uint(8), res)
 
 }
 
