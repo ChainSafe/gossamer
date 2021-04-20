@@ -171,8 +171,7 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 	found := false
 	for _, v := range pending {
 		var ext ctypes.Extrinsic
-		//err := ctypes.DecodeFromBytes(v.Extrinsic[1:], &ext)
-		err := ctypes.DecodeFromBytes(v.Extrinsic[:], &ext)
+		err := ctypes.DecodeFromBytes(v.Extrinsic[1:], &ext)
 		if err != nil {
 			return err
 		}

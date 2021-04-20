@@ -3,7 +3,6 @@ package wasmer
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"math/big"
 	"testing"
@@ -182,8 +181,7 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 
 	ext := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, extBytes...))
 
-	res, err := rt.ValidateTransaction(ext)
-	fmt.Printf("ValTrans res %v\n", res)
+	_, err = rt.ValidateTransaction(ext)
 	require.NoError(t, err)
 }
 
