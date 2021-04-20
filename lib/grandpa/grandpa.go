@@ -60,8 +60,8 @@ type Service struct {
 	state            *State                             // current state
 	prevotes         map[ed25519.PublicKeyBytes]*Vote   // pre-votes for the current round
 	precommits       map[ed25519.PublicKeyBytes]*Vote   // pre-commits for the current round
-	pvJustifications map[common.Hash][]*Justification   // pre-vote justifications for the current round
-	pcJustifications map[common.Hash][]*Justification   // pre-commit justifications for the current round
+	pvJustifications map[common.Hash][]*SignedPrecommit // pre-vote justifications for the current round
+	pcJustifications map[common.Hash][]*SignedPrecommit // pre-commit justifications for the current round
 	pvEquivocations  map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-vote stage
 	pcEquivocations  map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-commit stage
 	tracker          *tracker                           // tracker of vote messages we may need in the future
@@ -69,9 +69,9 @@ type Service struct {
 	nextAuthorities  []*Voter                           // if not nil, the updated authorities for the next round
 
 	// historical information
-	preVotedBlock      map[uint64]*Vote            // map of round number -> pre-voted block
-	bestFinalCandidate map[uint64]*Vote            // map of round number -> best final candidate
-	justification      map[uint64][]*Justification // map of round number -> precommit round justification
+	preVotedBlock      map[uint64]*Vote              // map of round number -> pre-voted block
+	bestFinalCandidate map[uint64]*Vote              // map of round number -> best final candidate
+	justification      map[uint64][]*SignedPrecommit // map of round number -> precommit round justification
 
 	// channels for communication with other services
 	in chan GrandpaMessage // only used to receive *VoteMessage
@@ -136,13 +136,13 @@ func NewService(cfg *Config) (*Service, error) {
 		authority:          cfg.Authority,
 		prevotes:           make(map[ed25519.PublicKeyBytes]*Vote),
 		precommits:         make(map[ed25519.PublicKeyBytes]*Vote),
-		pvJustifications:   make(map[common.Hash][]*Justification),
-		pcJustifications:   make(map[common.Hash][]*Justification),
+		pvJustifications:   make(map[common.Hash][]*SignedPrecommit),
+		pcJustifications:   make(map[common.Hash][]*SignedPrecommit),
 		pvEquivocations:    make(map[ed25519.PublicKeyBytes][]*Vote),
 		pcEquivocations:    make(map[ed25519.PublicKeyBytes][]*Vote),
 		preVotedBlock:      make(map[uint64]*Vote),
 		bestFinalCandidate: make(map[uint64]*Vote),
-		justification:      make(map[uint64][]*Justification),
+		justification:      make(map[uint64][]*SignedPrecommit),
 		head:               head,
 		in:                 make(chan GrandpaMessage, 128),
 		resumed:            make(chan struct{}),
@@ -256,10 +256,10 @@ func (s *Service) initiate() error {
 		var err error
 		s.prevotes = make(map[ed25519.PublicKeyBytes]*Vote)
 		s.precommits = make(map[ed25519.PublicKeyBytes]*Vote)
-		s.pcJustifications = make(map[common.Hash][]*Justification)
+		s.pcJustifications = make(map[common.Hash][]*SignedPrecommit)
 		s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
 		s.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
-		s.justification = make(map[uint64][]*Justification)
+		s.justification = make(map[uint64][]*SignedPrecommit)
 
 		s.tracker, err = newTracker(s.blockState, s.in)
 		if err != nil {
@@ -535,7 +535,7 @@ func (s *Service) playGrandpaRound() error {
 				return false
 			}
 
-			if completable && finalizable && uint64(s.head.Number.Int64()) >= prevBfc.number {
+			if completable && finalizable && uint32(s.head.Number.Int64()) >= prevBfc.number {
 				return true
 			}
 
@@ -574,7 +574,7 @@ func (s *Service) attemptToFinalize() error {
 		return err
 	}
 
-	if bfc.number >= uint64(s.head.Number.Int64()) && pc >= s.state.threshold() {
+	if bfc.number >= uint32(s.head.Number.Int64()) && pc >= s.state.threshold() {
 		err = s.finalize()
 		if err != nil {
 			return err
@@ -608,7 +608,7 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	prm := s.prevotes[s.derivePrimary().PublicKeyBytes()]
 	s.mapLock.Unlock()
 
-	if prm != nil && prm.number >= uint64(s.head.Number.Int64()) {
+	if prm != nil && prm.number >= uint32(s.head.Number.Int64()) {
 		vote = prm
 	} else {
 		header, err := s.blockState.BestBlockHeader()
@@ -620,7 +620,7 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	}
 
 	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
-	if vote.number > nextChange {
+	if uint64(vote.number) > nextChange {
 		header, err := s.blockState.GetHeaderByNumber(big.NewInt(int64(nextChange)))
 		if err != nil {
 			return nil, err
@@ -645,7 +645,7 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 	s.mapLock.Unlock()
 
 	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
-	if pvb.number > nextChange {
+	if uint64(pvb.number) > nextChange {
 		header, err := s.blockState.GetHeaderByNumber(big.NewInt(int64(nextChange)))
 		if err != nil {
 			return nil, err
@@ -728,12 +728,12 @@ func (s *Service) finalize() error {
 	// set justification
 	s.justification[s.state.round] = s.pcJustifications[bfc.hash]
 
-	pvj, err := newFullJustification(s.pvJustifications[bfc.hash]).Encode()
+	pvj, err := newJustification(s.state.round, bfc.hash, bfc.number, s.pvJustifications[bfc.hash]).Encode()
 	if err != nil {
 		return err
 	}
 
-	pcj, err := newFullJustification(s.pcJustifications[bfc.hash]).Encode()
+	pcj, err := newJustification(s.state.round, bfc.hash, bfc.number, s.pcJustifications[bfc.hash]).Encode()
 	if err != nil {
 		return err
 	}
@@ -897,7 +897,7 @@ func (s *Service) getPreVotedBlock() (Vote, error) {
 
 	// if there are multiple, find the one with the highest number and return it
 	highest := Vote{
-		number: uint64(0),
+		number: uint32(0),
 	}
 	for h, n := range blocks {
 		if n > highest.number {
@@ -916,7 +916,7 @@ func (s *Service) getPreVotedBlock() (Vote, error) {
 func (s *Service) getGrandpaGHOST() (Vote, error) {
 	threshold := s.state.threshold()
 
-	var blocks map[common.Hash]uint64
+	var blocks map[common.Hash]uint32
 	var err error
 
 	for {
@@ -937,7 +937,7 @@ func (s *Service) getGrandpaGHOST() (Vote, error) {
 
 	// if there are multiple, find the one with the highest number and return it
 	highest := Vote{
-		number: uint64(0),
+		number: uint32(0),
 	}
 	for h, n := range blocks {
 		if n > highest.number {
@@ -957,10 +957,10 @@ func (s *Service) getGrandpaGHOST() (Vote, error) {
 // thus, if there are no blocks with >=threshold total votes, but the sum of votes for blocks A and B is >=threshold, then this function returns
 // the first common ancestor of A and B.
 // in general, this function will return the highest block on each chain with >=threshold votes.
-func (s *Service) getPossibleSelectedBlocks(stage subround, threshold uint64) (map[common.Hash]uint64, error) {
+func (s *Service) getPossibleSelectedBlocks(stage subround, threshold uint64) (map[common.Hash]uint32, error) {
 	// get blocks that were directly voted for
 	votes := s.getDirectVotes(stage)
-	blocks := make(map[common.Hash]uint64)
+	blocks := make(map[common.Hash]uint32)
 
 	// check if any of them have >=threshold votes
 	for v := range votes {
@@ -996,7 +996,7 @@ func (s *Service) getPossibleSelectedBlocks(stage subround, threshold uint64) (m
 
 // getPossibleSelectedAncestors recursively searches for ancestors with >=2/3 votes
 // it returns a map of block hash -> number, such that the blocks in the map have >=2/3 votes
-func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash, selected map[common.Hash]uint64, stage subround, threshold uint64) (map[common.Hash]uint64, error) {
+func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash, selected map[common.Hash]uint32, stage subround, threshold uint64) (map[common.Hash]uint32, error) {
 	for _, v := range votes {
 		if v.hash == curr {
 			continue
@@ -1026,7 +1026,7 @@ func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash, s
 				return nil, err
 			}
 
-			selected[pred] = uint64(h.Number.Int64())
+			selected[pred] = uint32(h.Number.Int64())
 		} else {
 			selected, err = s.getPossibleSelectedAncestors(votes, pred, selected, stage, threshold)
 			if err != nil {
@@ -1123,7 +1123,7 @@ func (s *Service) getVotes(stage subround) []Vote {
 }
 
 // findParentWithNumber returns a Vote for an ancestor with number n given an existing Vote
-func (s *Service) findParentWithNumber(v *Vote, n uint64) (*Vote, error) {
+func (s *Service) findParentWithNumber(v *Vote, n uint32) (*Vote, error) {
 	if v.number <= n {
 		return v, nil
 	}

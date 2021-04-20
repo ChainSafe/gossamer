@@ -184,7 +184,7 @@ func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 	s.mapLock.Lock()
 	defer s.mapLock.Unlock()
 
-	just := &Justification{
+	just := &SignedPrecommit{
 		Vote:        vote,
 		Signature:   m.Message.Signature,
 		AuthorityID: pk.AsBytes(),
