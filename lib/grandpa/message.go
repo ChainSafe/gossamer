@@ -67,12 +67,58 @@ func (m *SignedMessage) String() string {
 	return fmt.Sprintf("hash=%s number=%d authorityID=0x%x", m.Hash, m.Number, m.AuthorityID)
 }
 
+func (m *SignedMessage) Decode(r io.Reader) (err error) {
+	m.Stage, err = subround(0).Decode(r)
+	if err != nil {
+		return err
+	}
+
+	vote, err := new(Vote).Decode(r)
+	if err != nil {
+		return err
+	}
+
+	m.Hash = vote.hash
+	m.Number = vote.number
+
+	sig, err := common.Read64Bytes(r)
+	if err != nil {
+		return err
+	}
+
+	copy(m.Signature[:], sig[:])
+
+	id, err := common.Read32Bytes(r)
+	if err != nil {
+		return err
+	}
+
+	copy(m.AuthorityID[:], id[:])
+	return nil
+}
+
 // VoteMessage represents a network-level vote message
 // https://github.com/paritytech/substrate/blob/master/client/finality-grandpa/src/communication/gossip.rs#L336
 type VoteMessage struct {
 	Round   uint64
 	SetID   uint64
 	Message *SignedMessage
+}
+
+func (v *VoteMessage) Decode(r io.Reader) (err error) {
+	v.Round, err = common.ReadUint64(r)
+	if err != nil {
+		return err
+	}
+
+	v.SetID, err = common.ReadUint64(r)
+	if err != nil {
+		return err
+	}
+
+	v.Message = new(SignedMessage)
+	err = v.Message.Decode(r)
+	return err
 }
 
 // Type returns voteType
@@ -190,22 +236,20 @@ func (f *CommitMessage) Decode(r io.Reader) (err error) {
 	if err != nil {
 		return err
 	}
-	fmt.Println(numAuthData)
 
 	if numAuthData.(*big.Int).Cmp(numPrecommits.(*big.Int)) != 0 {
 		return ErrPrecommitSignatureMismatch
 	}
 
 	f.AuthData = make([]*AuthData, numAuthData.(*big.Int).Int64())
-	fmt.Println(f.AuthData)
 	for i := range f.AuthData {
 		f.AuthData[i] = new(AuthData)
 		err = f.AuthData[i].Decode(r)
 		if err != nil {
 			return err
 		}
-		fmt.Println(f.AuthData[i])
 	}
+
 	return nil
 }
 

@@ -33,7 +33,7 @@ type subround byte
 var (
 	prevote         subround = 0
 	precommit       subround = 1
-	primaryProposal subround = 2 //nolint // TODO: this isn't a subround, maybe rename type, and figure out when it's used
+	primaryProposal subround = 2
 )
 
 func (s subround) Encode() ([]byte, error) {

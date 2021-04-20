@@ -18,7 +18,6 @@ package grandpa
 
 import (
 	"bytes"
-	"fmt"
 	"math/big"
 	"reflect"
 	"sync"
@@ -276,12 +275,9 @@ func decodeMessage(msg *ConsensusMessage) (m GrandpaMessage, err error) {
 
 	switch msg.Data[0] {
 	case voteType:
-		mi, err = scale.Decode(msg.Data[1:], &VoteMessage{Message: new(SignedMessage)})
-		if m, ok = mi.(*VoteMessage); !ok {
-			return nil, ErrInvalidMessageType
-		}
+		m = &VoteMessage{}
+		_, err = scale.Decode(msg.Data[1:], m)
 	case commitType:
-		fmt.Println("decoding commitType")
 		m = &CommitMessage{}
 		_, err = scale.Decode(msg.Data[1:], m)
 	case neighbourType:
