@@ -67,6 +67,7 @@ func (m *SignedMessage) String() string {
 	return fmt.Sprintf("hash=%s number=%d authorityID=0x%x", m.Hash, m.Number, m.AuthorityID)
 }
 
+// Decode SCALE decodes the data into a SignedMessage
 func (m *SignedMessage) Decode(r io.Reader) (err error) {
 	m.Stage, err = subround(0).Decode(r)
 	if err != nil {
@@ -105,6 +106,7 @@ type VoteMessage struct {
 	Message *SignedMessage
 }
 
+// Decode SCALE decodes the data into a VoteMessage
 func (v *VoteMessage) Decode(r io.Reader) (err error) {
 	v.Round, err = common.ReadUint64(r)
 	if err != nil {
