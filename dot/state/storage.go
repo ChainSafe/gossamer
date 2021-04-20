@@ -70,10 +70,10 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie) 
 	tries[t.MustHash()] = t
 
 	return &StorageState{
-		blockState: blockState,
-		tries:      tries,
-		baseDB:     db,
-		db:         chaindb.NewTable(db, storagePrefix),
+		blockState:   blockState,
+		tries:        tries,
+		baseDB:       db,
+		db:           chaindb.NewTable(db, storagePrefix),
 		observerList: []Observer{},
 	}, nil
 }

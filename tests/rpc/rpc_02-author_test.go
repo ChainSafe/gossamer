@@ -86,16 +86,9 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 
 	o := types.SignatureOptions{
 		BlockHash:          genesisHash,
-		//Era:                types.ExtrinsicEra{IsImmortalEra: true},
-		Era:                types.ExtrinsicEra{
-			IsMortalEra:   true,
-			AsMortalEra:   types.MortalEra{
-				First:  132,
-				Second: 1,
-			},
-		},
+		Era:                types.ExtrinsicEra{IsImmortalEra: true},
 		GenesisHash:        genesisHash,
-		//Nonce:              types.NewUCompactFromUInt(uint64(accInfo.Nonce)),
+		Nonce:              types.NewUCompactFromUInt(uint64(accInfo.Nonce)),
 		SpecVersion:        rv.SpecVersion,
 		Tip:                types.NewUCompactFromUInt(0),
 		TransactionVersion: rv.TransactionVersion,
@@ -108,7 +101,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 	buffer := bytes.Buffer{}
 	encoder := scale.NewEncoder(&buffer)
 	ext.Encode(*encoder)
-fmt.Printf("SUBMIT %x\n", buffer.Bytes())
+
 	// Send the extrinsic
 	hash, err := api.RPC.Author.SubmitExtrinsic(ext)
 	require.NoError(t, err)

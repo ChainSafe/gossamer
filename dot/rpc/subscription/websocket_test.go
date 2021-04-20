@@ -21,8 +21,8 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
 var wsconn = &WSConn{
-	Subscriptions:    make(map[int]Listener),
-	BlockSubChannels: make(map[int]byte),
+	Subscriptions:    make(map[uint]Listener),
+	BlockSubChannels: make(map[uint]byte),
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {

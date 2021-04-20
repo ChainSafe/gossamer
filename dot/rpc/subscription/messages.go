@@ -25,7 +25,7 @@ type BaseResponseJSON struct {
 // Params for json param response
 type Params struct {
 	Result         interface{} `json:"result"`
-	SubscriptionID uint         `json:"subscription"`
+	SubscriptionID uint        `json:"subscription"`
 }
 
 func newSubcriptionBaseResponseJSON() BaseResponseJSON {
@@ -48,7 +48,7 @@ func newSubscriptionResponse(method string, subID uint, result interface{}) Base
 // ResponseJSON for json subscription responses
 type ResponseJSON struct {
 	Jsonrpc string  `json:"jsonrpc"`
-	Result  uint     `json:"result"`
+	Result  uint    `json:"result"`
 	ID      float64 `json:"id"`
 }
 

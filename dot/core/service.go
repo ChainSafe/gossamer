@@ -460,8 +460,6 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 	// the transaction source is External
 	// validate the transaction
 	txv, err := s.rt.ValidateTransaction(append([]byte{byte(types.TxnExternal)}, ext...))
-	// todo ed testing validate
-	//txv, err := s.rt.ValidateTransaction(ext)
 	if err != nil {
 		return err
 	}

@@ -233,8 +233,8 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func NewWSConn(conn *websocket.Conn, cfg *HTTPServerConfig) *subscription.WSConn {
 	c := &subscription.WSConn{
 		Wsconn:             conn,
-		Subscriptions:      make(map[int]subscription.Listener),
-		BlockSubChannels:   make(map[int]byte),
+		Subscriptions:      make(map[uint]subscription.Listener),
+		BlockSubChannels:   make(map[uint]byte),
 		StorageSubChannels: make(map[int]byte),
 		StorageAPI:         cfg.StorageAPI,
 		BlockAPI:           cfg.BlockAPI,

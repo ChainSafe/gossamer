@@ -42,10 +42,13 @@ type StorageObserver struct {
 	wsconn WSConnAPI
 }
 
+// Change type defining key value pair representing change
 type Change [2]string
+
+// ChangeResult struct to hold change result data
 type ChangeResult struct {
 	Changes []Change `json:"changes"`
-	Block string `json:"block"`
+	Block   string   `json:"block"`
 }
 
 // Update is called to notify observer of new value
