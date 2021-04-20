@@ -44,8 +44,8 @@ func TestVoteMessageToConsensusMessage(t *testing.T) {
 	expected := &VoteMessage{
 		Round: gs.state.round,
 		SetID: gs.state.setID,
-		Stage: precommit,
 		Message: &SignedMessage{
+			Stage:       precommit,
 			Hash:        v.hash,
 			Number:      v.number,
 			AuthorityID: gs.keypair.Public().(*ed25519.PublicKey).AsBytes(),
@@ -62,8 +62,8 @@ func TestVoteMessageToConsensusMessage(t *testing.T) {
 	expected = &VoteMessage{
 		Round: gs.state.round,
 		SetID: gs.state.setID,
-		Stage: prevote,
 		Message: &SignedMessage{
+			Stage:       prevote,
 			Hash:        v.hash,
 			Number:      v.number,
 			AuthorityID: gs.keypair.Public().(*ed25519.PublicKey).AsBytes(),
@@ -73,7 +73,7 @@ func TestVoteMessageToConsensusMessage(t *testing.T) {
 	require.Equal(t, expected, vm)
 }
 
-func TestFinalizationMessageToConsensusMessage(t *testing.T) {
+func TestCommitMessageToConsensusMessage(t *testing.T) {
 	gs, _ := newTestService(t)
 	gs.justification[77] = []*SignedPrecommit{
 		{
@@ -83,12 +83,14 @@ func TestFinalizationMessageToConsensusMessage(t *testing.T) {
 		},
 	}
 
-	fm := gs.newFinalizationMessage(gs.head, 77)
+	fm := gs.newCommitMessage(gs.head, 77)
+	precommits, authData := justificationToCompact(gs.justification[77])
 
-	expected := &FinalizationMessage{
-		Round:         77,
-		Vote:          NewVoteFromHeader(gs.head),
-		Justification: gs.justification[77],
+	expected := &CommitMessage{
+		Round:      77,
+		Vote:       NewVoteFromHeader(gs.head),
+		Precommits: precommits,
+		AuthData:   authData,
 	}
 
 	require.Equal(t, expected, fm)

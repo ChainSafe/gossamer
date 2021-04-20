@@ -69,8 +69,8 @@ var ErrCannotDecodeSubround = errors.New("cannot decode invalid subround value")
 // ErrInvalidMessageType is returned when a network.Message cannot be decoded
 var ErrInvalidMessageType = errors.New("cannot decode invalid message type")
 
-// ErrNotFinalizationMessage is returned when calling GetFinalizedHash on a message that isn't a FinalizationMessage
-var ErrNotFinalizationMessage = errors.New("cannot get finalized hash from VoteMessage")
+// ErrNotCommitMessage is returned when calling GetFinalizedHash on a message that isn't a CommitMessage
+var ErrNotCommitMessage = errors.New("cannot get finalized hash from VoteMessage")
 
 // ErrNoJustification is returned when no justification can be found for a block, ie. it has not been finalized
 var ErrNoJustification = errors.New("no justification found for block")
@@ -92,3 +92,6 @@ var ErrCatchUpResponseNotCompletable = errors.New("catch up response is not comp
 
 // ErrServicePaused is returned if the service is paused and waiting for catch up messages
 var ErrServicePaused = errors.New("service is paused")
+
+// ErrPrecommitSignatureMismatch is returned when the number of precommits and signatures in a CommitMessage do not match
+var ErrPrecommitSignatureMismatch = errors.New("number of precommits does not match number of signatures")

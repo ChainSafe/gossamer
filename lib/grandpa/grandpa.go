@@ -387,7 +387,7 @@ func (s *Service) playGrandpaRound() error {
 
 	// if primary, broadcast the best final candidate from the previous round
 	if bytes.Equal(primary.key.Encode(), s.keypair.Public().Encode()) {
-		msg, err := s.newFinalizationMessage(s.head, s.state.round-1).ToConsensusMessage()
+		msg, err := s.newCommitMessage(s.head, s.state.round-1).ToConsensusMessage()
 		if err != nil {
 			logger.Error("failed to encode finalization message", "error", err)
 		} else {
@@ -584,7 +584,7 @@ func (s *Service) attemptToFinalize() error {
 		votes := s.getDirectVotes(precommit)
 		logger.Debug("finalized block!!!", "setID", s.state.setID, "round", s.state.round, "hash", s.head.Hash(),
 			"precommits #", pc, "votes for bfc #", votes[*bfc], "total votes for bfc", pc, "precommits", s.precommits)
-		msg, err := s.newFinalizationMessage(s.head, s.state.round).ToConsensusMessage()
+		msg, err := s.newCommitMessage(s.head, s.state.round).ToConsensusMessage()
 		if err != nil {
 			return err
 		}
