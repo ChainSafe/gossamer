@@ -257,7 +257,7 @@ func (h *host) bootstrap() {
 			failed++
 		}
 	}
-	if failed == len(all) {
+	if failed == len(all) && len(all) != 0 {
 		logger.Error("failed to bootstrap to any bootnode")
 	}
 }

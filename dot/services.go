@@ -381,13 +381,14 @@ func createBlockVerifier(st *state.Service) (*babe.VerificationManager, error) {
 	return ver, nil
 }
 
-func createSyncService(cfg *Config, st *state.Service, bp sync.BlockProducer, dh *core.DigestHandler, verifier *babe.VerificationManager, rt runtime.Instance) (*sync.Service, error) {
+func createSyncService(cfg *Config, st *state.Service, bp sync.BlockProducer, fg sync.FinalityGadget, dh *core.DigestHandler, verifier *babe.VerificationManager, rt runtime.Instance) (*sync.Service, error) {
 	syncCfg := &sync.Config{
 		LogLvl:           cfg.Log.SyncLvl,
 		BlockState:       st.Block,
 		StorageState:     st.Storage,
 		TransactionState: st.Transaction,
 		BlockProducer:    bp,
+		FinalityGadget:   fg,
 		Verifier:         verifier,
 		Runtime:          rt,
 		DigestHandler:    dh,

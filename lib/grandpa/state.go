@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 )
 
@@ -60,6 +61,7 @@ type DigestHandler interface {
 // Network is the interface required by GRANDPA for the network
 type Network interface {
 	SendMessage(msg network.NotificationsMessage)
+	SendJustificationRequest(to peer.ID, num uint32)
 	RegisterNotificationsProtocol(sub protocol.ID,
 		messageID byte,
 		handshakeGetter network.HandshakeGetter,

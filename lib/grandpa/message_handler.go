@@ -17,32 +17,39 @@
 package grandpa
 
 import (
+	"bytes"
 	"math/big"
 	"reflect"
+	"sync"
 
+	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/scale"
+
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // MessageHandler handles GRANDPA consensus messages
 type MessageHandler struct {
-	grandpa    *Service
-	blockState BlockState
+	grandpa         *Service
+	blockState      BlockState
+	blockNumToSetID *sync.Map // map[uint32]uint64
 }
 
 // NewMessageHandler returns a new MessageHandler
 func NewMessageHandler(grandpa *Service, blockState BlockState) *MessageHandler {
 	return &MessageHandler{
-		grandpa:    grandpa,
-		blockState: blockState,
+		grandpa:         grandpa,
+		blockState:      blockState,
+		blockNumToSetID: new(sync.Map),
 	}
 }
 
 // HandleMessage handles a GRANDPA consensus message
 // if it is a FinalizationMessage, it updates the BlockState
 // if it is a VoteMessage, it sends it to the GRANDPA service
-func (h *MessageHandler) handleMessage(msg *ConsensusMessage) (*ConsensusMessage, error) {
+func (h *MessageHandler) handleMessage(from peer.ID, msg *ConsensusMessage) (network.NotificationsMessage, error) {
 	if msg == nil || len(msg.Data) == 0 {
 		logger.Trace("received nil message or message with nil data")
 		return nil, nil
@@ -72,7 +79,7 @@ func (h *MessageHandler) handleMessage(msg *ConsensusMessage) (*ConsensusMessage
 			return nil, nil
 		}
 
-		return nil, h.handleNeighbourMessage(nm)
+		return nil, h.handleNeighbourMessage(from, nm)
 	case catchUpRequestType:
 		if r, ok := m.(*catchUpRequest); ok {
 			return h.handleCatchUpRequest(r)
@@ -88,7 +95,7 @@ func (h *MessageHandler) handleMessage(msg *ConsensusMessage) (*ConsensusMessage
 	return nil, nil
 }
 
-func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage) error {
+func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMessage) error {
 	currFinalized, err := h.grandpa.blockState.GetFinalizedHeader(0, 0)
 	if err != nil {
 		return err
@@ -98,6 +105,13 @@ func (h *MessageHandler) handleNeighbourMessage(msg *NeighbourMessage) error {
 		return nil
 	}
 
+	// TODO: make linter british
+	logger.Debug("got neighbor message", "number", msg.Number, "set id", msg.SetID, "round", msg.Round)
+	h.blockNumToSetID.Store(msg.Number, msg.SetID)
+	h.grandpa.network.SendJustificationRequest(from, msg.Number)
+
+	// TODO; determine if there is some reason we don't receive justifications in responses near the head (usually),
+	// and remove the following code if it's fixed.
 	head, err := h.grandpa.blockState.BestBlockNumber()
 	if err != nil {
 		return err
@@ -266,7 +280,7 @@ func decodeMessage(msg *ConsensusMessage) (m GrandpaMessage, err error) {
 			return nil, ErrInvalidMessageType
 		}
 	case finalizationType:
-		mi, err = scale.Decode(msg.Data[1:], &FinalizationMessage{})
+		mi, err = scale.Decode(msg.Data[1:], &FinalizationMessage{Justification: []*SignedPrecommit{}})
 		if m, ok = mi.(*FinalizationMessage); !ok {
 			return nil, ErrInvalidMessageType
 		}
@@ -300,7 +314,7 @@ func (h *MessageHandler) verifyFinalizationMessageJustification(fm *Finalization
 	// verify justifications
 	count := 0
 	for _, just := range fm.Justification {
-		err := h.verifyJustification(just, just.Vote, fm.Round, h.grandpa.state.setID, precommit)
+		err := h.verifyJustification(just, fm.Round, h.grandpa.state.setID, precommit)
 		if err != nil {
 			continue
 		}
@@ -324,7 +338,7 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *catchUpResponse) (commo
 	votes := make(map[common.Hash]uint64)
 
 	for _, just := range msg.PreVoteJustification {
-		err := h.verifyJustification(just, just.Vote, msg.Round, msg.SetID, prevote)
+		err := h.verifyJustification(just, msg.Round, msg.SetID, prevote)
 		if err != nil {
 			continue
 		}
@@ -351,7 +365,7 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *catchUpResponse) erro
 	// verify pre-commit justification
 	count := 0
 	for _, just := range msg.PreCommitJustification {
-		err := h.verifyJustification(just, just.Vote, msg.Round, msg.SetID, precommit)
+		err := h.verifyJustification(just, msg.Round, msg.SetID, precommit)
 		if err != nil {
 			continue
 		}
@@ -368,11 +382,11 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *catchUpResponse) erro
 	return nil
 }
 
-func (h *MessageHandler) verifyJustification(just *Justification, vote *Vote, round, setID uint64, stage subround) error {
+func (h *MessageHandler) verifyJustification(just *SignedPrecommit, round, setID uint64, stage subround) error {
 	// verify signature
 	msg, err := scale.Encode(&FullVote{
 		Stage: stage,
-		Vote:  vote,
+		Vote:  just.Vote,
 		Round: round,
 		SetID: setID,
 	})
@@ -409,5 +423,56 @@ func (h *MessageHandler) verifyJustification(just *Justification, vote *Vote, ro
 	if !authFound {
 		return ErrVoterNotFound
 	}
+	return nil
+}
+
+// VerifyBlockJustification verifies the finality justification for a block
+func (s *Service) VerifyBlockJustification(justification []byte) error {
+	r := &bytes.Buffer{}
+	_, _ = r.Write(justification)
+	fj := new(Justification)
+	err := fj.Decode(r)
+	if err != nil {
+		return err
+	}
+
+	logger.Debug("verifiying justification", "round", fj.Round, "hash", fj.Commit.Hash, "number", fj.Commit.Number, "sig count", len(fj.Commit.Precommits))
+
+	for _, just := range fj.Commit.Precommits {
+		// TODO: when catch up is done, we should know all the setIDs
+		s, has := s.messageHandler.blockNumToSetID.Load(fj.Commit.Number)
+		if !has {
+			continue
+		}
+
+		setID := s.(uint64)
+
+		// verify signature for each precommit
+		// TODO: verify authority is in set; this requires updating catch-up to get the right set
+		msg, err := scale.Encode(&FullVote{
+			Stage: precommit,
+			Vote:  just.Vote,
+			Round: fj.Round,
+			SetID: setID,
+		})
+		if err != nil {
+			return err
+		}
+
+		pk, err := ed25519.NewPublicKey(just.AuthorityID[:])
+		if err != nil {
+			return err
+		}
+
+		ok, err := pk.Verify(msg, just.Signature[:])
+		if err != nil {
+			return err
+		}
+
+		if !ok {
+			return ErrInvalidSignature
+		}
+	}
+
 	return nil
 }
