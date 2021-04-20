@@ -17,11 +17,15 @@
 package modules
 
 import (
-	"github.com/ChainSafe/gossamer/lib/crypto"
-	ctypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
-	"net/http"
-
+	"bytes"
+	"errors"
+	"fmt"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/scale"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	"math/big"
+	"net/http"
 )
 
 // SystemModule is an RPC module providing access to core API points
