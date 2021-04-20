@@ -27,6 +27,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -40,6 +41,12 @@ import (
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
+
+type mockFinalityGadget struct{}
+
+func (m mockFinalityGadget) VerifyBlockJustification(_ []byte) error {
+	return nil
+}
 
 func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
 	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis.json")
@@ -100,6 +107,10 @@ func newTestSyncer(t *testing.T) *Service {
 
 	if cfg.LogLvl == 0 {
 		cfg.LogLvl = log.LvlDebug
+	}
+
+	if cfg.FinalityGadget == nil {
+		cfg.FinalityGadget = &mockFinalityGadget{}
 	}
 
 	syncer, err := NewService(cfg)
@@ -349,6 +360,32 @@ func TestSyncer_HandleJustification(t *testing.T) {
 	syncer.handleJustification(header, just)
 
 	res, err := syncer.blockState.GetJustification(header.Hash())
+	require.NoError(t, err)
+	require.Equal(t, just, res)
+}
+
+func TestSyncer_ProcessJustification(t *testing.T) {
+	syncer := newTestSyncer(t)
+
+	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
+	require.NoError(t, err)
+	block := buildBlock(t, syncer.runtime, parent)
+	err = syncer.blockState.(*state.BlockState).AddBlock(block)
+	require.NoError(t, err)
+
+	just := []byte("testjustification")
+
+	data := []*types.BlockData{
+		{
+			Hash:          syncer.blockState.BestBlockHash(),
+			Justification: optional.NewBytes(true, just),
+		},
+	}
+
+	_, err = syncer.ProcessJustification(data)
+	require.NoError(t, err)
+
+	res, err := syncer.blockState.GetJustification(syncer.blockState.BestBlockHash())
 	require.NoError(t, err)
 	require.Equal(t, just, res)
 }

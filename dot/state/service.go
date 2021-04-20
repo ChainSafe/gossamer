@@ -350,6 +350,11 @@ func (s *Service) Rewind(toBlock int64) error {
 		return err
 	}
 
+	err = s.Block.SetFinalizedHash(header.Hash(), 0, 0)
+	if err != nil {
+		return err
+	}
+
 	return StoreBestBlockHash(s.db, newHead)
 }
 

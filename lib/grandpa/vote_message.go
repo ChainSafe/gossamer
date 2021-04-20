@@ -39,22 +39,22 @@ func (s *Service) receiveMessages(cond func() bool) {
 					continue
 				}
 
-				s.logger.Trace("received vote message", "msg", msg)
+				logger.Trace("received vote message", "msg", msg)
 				vm, ok := msg.(*VoteMessage)
 				if !ok {
-					s.logger.Trace("failed to cast message to VoteMessage")
+					logger.Trace("failed to cast message to VoteMessage")
 					continue
 				}
 
 				v, err := s.validateMessage(vm)
 				if err != nil {
-					s.logger.Trace("failed to validate vote message", "message", vm, "error", err)
+					logger.Trace("failed to validate vote message", "message", vm, "error", err)
 					continue
 				}
 
-				s.logger.Debug("validated vote message", "vote", v, "round", vm.Round, "subround", vm.Stage, "precommits", s.precommits)
+				logger.Debug("validated vote message", "vote", v, "round", vm.Round, "subround", vm.Stage, "precommits", s.precommits)
 			case <-ctx.Done():
-				s.logger.Trace("returning from receiveMessages")
+				logger.Trace("returning from receiveMessages")
 				return
 			}
 		}
@@ -90,7 +90,7 @@ func (s *Service) sendMessage(vote *Vote, stage subround) error {
 	}
 
 	s.network.SendMessage(cm)
-	s.logger.Trace("sent VoteMessage", "msg", msg)
+	logger.Trace("sent VoteMessage", "msg", msg)
 
 	return nil
 }
@@ -184,7 +184,7 @@ func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 	s.mapLock.Lock()
 	defer s.mapLock.Unlock()
 
-	just := &Justification{
+	just := &SignedPrecommit{
 		Vote:        vote,
 		Signature:   m.Message.Signature,
 		AuthorityID: pk.AsBytes(),

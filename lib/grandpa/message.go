@@ -28,6 +28,7 @@ import (
 )
 
 // GrandpaMessage is implemented by all GRANDPA network messages
+// TODO: the fields can be un-exported, as can all the message implementations
 type GrandpaMessage interface { //nolint
 	ToConsensusMessage() (*network.ConsensusMessage, error)
 	Type() byte
@@ -35,10 +36,11 @@ type GrandpaMessage interface { //nolint
 
 var (
 	voteType            byte = 0
-	precommitType       byte = 1
-	finalizationType    byte = 2
+	precommitType       byte = 1 // TODO: precommitType is now part of voteType
+	neighbourType       byte = 2
 	catchUpRequestType  byte = 3
 	catchUpResponseType byte = 4
+	finalizationType    byte = 5 // TODO: this is actually 1
 )
 
 // FullVote represents a vote with additional information about the state
@@ -53,7 +55,7 @@ type FullVote struct {
 // SignedMessage represents a block hash and number signed by an authority
 type SignedMessage struct {
 	Hash        common.Hash
-	Number      uint64
+	Number      uint32
 	Signature   [64]byte // ed25519.SignatureLength
 	AuthorityID ed25519.PublicKeyBytes
 }
@@ -86,16 +88,40 @@ func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 
 	typ := byte(v.Stage)
 	return &ConsensusMessage{
-		ConsensusEngineID: types.GrandpaEngineID,
-		Data:              append([]byte{typ}, enc...),
+		Data: append([]byte{typ}, enc...),
 	}, nil
+}
+
+// NeighbourMessage represents a network-level neighbor message
+type NeighbourMessage struct {
+	Version byte
+	Round   uint64
+	SetID   uint64
+	Number  uint32
+}
+
+// ToConsensusMessage converts the NeighbourMessage into a network-level consensus message
+func (m *NeighbourMessage) ToConsensusMessage() (*network.ConsensusMessage, error) {
+	enc, err := scale.Encode(m)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ConsensusMessage{
+		Data: append([]byte{neighbourType}, enc...),
+	}, nil
+}
+
+// Type returns neighbourType
+func (m *NeighbourMessage) Type() byte {
+	return neighbourType
 }
 
 // FinalizationMessage represents a network finalization message
 type FinalizationMessage struct {
 	Round         uint64
 	Vote          *Vote
-	Justification []*Justification
+	Justification []*SignedPrecommit
 }
 
 // Type returns finalizationType
@@ -111,8 +137,7 @@ func (f *FinalizationMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 	}
 
 	return &ConsensusMessage{
-		ConsensusEngineID: types.GrandpaEngineID,
-		Data:              append([]byte{finalizationType}, enc...),
+		Data: append([]byte{finalizationType}, enc...),
 	}, nil
 }
 
@@ -149,18 +174,17 @@ func (r *catchUpRequest) ToConsensusMessage() (*ConsensusMessage, error) {
 	}
 
 	return &ConsensusMessage{
-		ConsensusEngineID: types.GrandpaEngineID,
-		Data:              append([]byte{catchUpRequestType}, enc...),
+		Data: append([]byte{catchUpRequestType}, enc...),
 	}, nil
 }
 
 type catchUpResponse struct {
 	Round                  uint64
 	SetID                  uint64
-	PreVoteJustification   FullJustification
-	PreCommitJustification FullJustification
+	PreVoteJustification   []*SignedPrecommit
+	PreCommitJustification []*SignedPrecommit
 	Hash                   common.Hash
-	Number                 uint64
+	Number                 uint32
 }
 
 func (s *Service) newCatchUpResponse(round, setID uint64) (*catchUpResponse, error) {
@@ -184,20 +208,23 @@ func (s *Service) newCatchUpResponse(round, setID uint64) (*catchUpResponse, err
 	}
 
 	r := &bytes.Buffer{}
+	sd := &scale.Decoder{Reader: r}
 	_, err = r.Write(just)
 	if err != nil {
 		return nil, err
 	}
 
-	pvj, err := FullJustification{}.Decode(r)
+	d, err := sd.Decode([]*SignedPrecommit{})
 	if err != nil {
 		return nil, err
 	}
+	pvj := d.([]*SignedPrecommit)
 
-	pcj, err := FullJustification{}.Decode(r)
+	d, err = sd.Decode([]*SignedPrecommit{})
 	if err != nil {
 		return nil, err
 	}
+	pcj := d.([]*SignedPrecommit)
 
 	return &catchUpResponse{
 		Round:                  round,
@@ -205,7 +232,7 @@ func (s *Service) newCatchUpResponse(round, setID uint64) (*catchUpResponse, err
 		PreVoteJustification:   pvj,
 		PreCommitJustification: pcj,
 		Hash:                   header.Hash(),
-		Number:                 header.Number.Uint64(),
+		Number:                 uint32(header.Number.Uint64()),
 	}, nil
 }
 
@@ -222,7 +249,6 @@ func (r *catchUpResponse) ToConsensusMessage() (*ConsensusMessage, error) {
 	}
 
 	return &ConsensusMessage{
-		ConsensusEngineID: types.GrandpaEngineID,
-		Data:              append([]byte{catchUpResponseType}, enc...),
+		Data: append([]byte{catchUpResponseType}, enc...),
 	}, nil
 }

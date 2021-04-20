@@ -78,3 +78,8 @@ type DigestHandler interface {
 type Verifier interface {
 	VerifyBlock(header *types.Header) error
 }
+
+// FinalityGadget implements justification verification functionality
+type FinalityGadget interface {
+	VerifyBlockJustification([]byte) error
+}
