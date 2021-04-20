@@ -86,9 +86,16 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 
 	o := types.SignatureOptions{
 		BlockHash:          genesisHash,
-		Era:                types.ExtrinsicEra{IsImmortalEra: true},
+		//Era:                types.ExtrinsicEra{IsImmortalEra: true},
+		Era:                types.ExtrinsicEra{
+			IsMortalEra:   true,
+			AsMortalEra:   types.MortalEra{
+				First:  132,
+				Second: 1,
+			},
+		},
 		GenesisHash:        genesisHash,
-		Nonce:              types.NewUCompactFromUInt(uint64(accInfo.Nonce)),
+		//Nonce:              types.NewUCompactFromUInt(uint64(accInfo.Nonce)),
 		SpecVersion:        rv.SpecVersion,
 		Tip:                types.NewUCompactFromUInt(0),
 		TransactionVersion: rv.TransactionVersion,
@@ -101,7 +108,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 	buffer := bytes.Buffer{}
 	encoder := scale.NewEncoder(&buffer)
 	ext.Encode(*encoder)
-
+fmt.Printf("SUBMIT %x\n", buffer.Bytes())
 	// Send the extrinsic
 	hash, err := api.RPC.Author.SubmitExtrinsic(ext)
 	require.NoError(t, err)
@@ -113,7 +120,14 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 func TestDecodeExt(t *testing.T) {
 	buffer := bytes.Buffer{}
 	decoder := scale.NewDecoder(&buffer)
-	buffer.Write(common.MustHexToBytes("0x410284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01f8efbe48487e57a22abf7e3acd491b7f3528a33a111b1298601554863d27eb129eaa4e718e1365414ff3d028b62bebc651194c6b5001e5c2839b982757e08a8c0000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a480b00c465f14670"))
+	//buffer.Write(common.MustHexToBytes("0x410284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01f8efbe48487e57a22abf7e3acd491b7f3528a33a111b1298601554863d27eb129eaa4e718e1365414ff3d028b62bebc651194c6b5001e5c2839b982757e08a8c0000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a480b00c465f14670"))
+	// todo failing from polkadot.js apps
+	//buffer.Write(common.MustHexToBytes("0x410284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01d42e5b210638ff8823810492dbe4ac6ec356b7cc51275ceeb3a3f80676dba44aa9c26836870d7cf5b5bedb12b977928fe90e4c07ee362c1e57617abaa6828e8b8502000006008eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a480f0090c04bb6db2b"))
+	// todo passing from test_transaction js
+	//buffer.Write(common.MustHexToBytes("0x410284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d015cbead600584b7701b8ab8384fd6550cda9de51525d861c2c7543f5ab323cf631ed69fceb4a93bccc576894f9b0d7ac8ae7b57c75e074b9c01238a72bd08f4830004000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48e5c0"))
+
+	// todo from test_transaction (no options) fails
+	buffer.Write(common.MustHexToBytes("0x410284d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01b2d848cc5ce98c49afa180f7224ab38291e758e40a1d5bd1af9bc0d325c22c2f2d15a59b83791733355d4d4c5161e717334b2793ee6e0d739c175d241c70b98e8602040006038eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a480f0090c04bb6db2b"))
 	ext := types.Extrinsic{}
 	err := decoder.Decode(&ext)
 	require.NoError(t, err)

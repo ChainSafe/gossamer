@@ -33,7 +33,7 @@ func (in *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validit
 	if err != nil {
 		return nil, err
 	}
-
+fmt.Printf("TRAN VALID %v\n", ret)
 	if ret[0] != 0 {
 		return nil, runtime.NewValidateTransactionError(ret)
 	}

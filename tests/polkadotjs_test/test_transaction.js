@@ -19,10 +19,32 @@ async function main() {
     const ADDR_Bob = '0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22';
     // bob 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty
 
-    const transfer = await api.tx.balances.transfer(bobKey.address, 12345)
-        .signAndSend(aliceKey, {era: 0, blockHash: '0x64597c55a052d484d9ff357266be326f62573bb4fbdbb3cd49f219396fcebf78', blockNumber:0,  genesisHash: '0x64597c55a052d484d9ff357266be326f62573bb4fbdbb3cd49f219396fcebf78', nonce: 1, tip: 0, transactionVersion: 1});
+     // const transfer = await api.tx.balances.transfer(bobKey.address, 12345)
+     //     .signAndSend(aliceKey, {era: 0, blockHash: '0x64597c55a052d484d9ff357266be326f62573bb4fbdbb3cd49f219396fcebf78', blockNumber:0,  genesisHash: '0x64597c55a052d484d9ff357266be326f62573bb4fbdbb3cd49f219396fcebf78', nonce: 1, tip: 0, transactionVersion: 1});
 
-    console.log(`hxHash ${transfer}`);
+    // const transfer = await api.tx.balances.transfer(bobKey.address, 12345)
+    //     .signAndSend(aliceKey, {nonce: 1});
+
+    // console.log(`hxHash ${transfer}`);
+
+    // Make a transfer from Alice to BOB, waiting for inclusion
+  // .signAndSend(aliceKey, {era: 0, blockHash: '0x64597c55a052d484d9ff357266be326f62573bb4fbdbb3cd49f219396fcebf78', blockNumber:0,  genesisHash: '0x64597c55a052d484d9ff357266be326f62573bb4fbdbb3cd49f219396fcebf78', nonce: 1, tip: 0, transactionVersion: 1},  ({ events = [], status }) => {
+    const unsub = await api.tx.balances
+        .transfer(bobKey.address, 12345)
+        .signAndSend(aliceKey,   ({ events = [], status }) => {
+            console.log(`Current status is ${status.type}`);
+
+            if (status.isFinalized) {
+                console.log(`Transaction included at blockHash ${status.asFinalized}`);
+
+                // Loop through Vec<EventRecord> to display all events
+                events.forEach(({ phase, event: { data, method, section } }) => {
+                    console.log(`\t' ${phase}: ${section}.${method}:: ${data}`);
+                });
+
+                unsub();
+            }
+        });
 
 }
 

@@ -60,7 +60,7 @@ func (c *WSConn) HandleComm() {
 			return
 		}
 		logger.Debug("websocket received", "message", mbytes)
-
+fmt.Printf("Method %s\n", mbytes)
 		// determine if request is for subscribe method type
 		var msg map[string]interface{}
 		err = json.Unmarshal(mbytes, &msg)
