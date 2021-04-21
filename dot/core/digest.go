@@ -22,6 +22,7 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
@@ -33,13 +34,14 @@ type DigestHandler struct {
 	cancel context.CancelFunc
 
 	// interfaces
-	blockState          BlockState
-	epochState          EpochState
-	grandpa             FinalityGadget
-	babe                BlockProducer
-	verifier            Verifier
-	isFinalityAuthority bool
-	isBlockProducer     bool
+	blockState   BlockState
+	epochState   EpochState
+	grandpaState GrandpaState
+	grandpa      FinalityGadget
+	babe         BlockProducer
+	verifier     Verifier
+	// isFinalityAuthority bool
+	// isBlockProducer     bool
 
 	// block notification channels
 	imported    chan *types.Block
@@ -82,25 +84,25 @@ func NewDigestHandler(blockState BlockState, epochState EpochState, babe BlockPr
 		return nil, err
 	}
 
-	isFinalityAuthority := grandpa != nil
-	isBlockProducer := babe != nil
+	// isFinalityAuthority := grandpa != nil
+	// isBlockProducer := babe != nil
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &DigestHandler{
-		ctx:                 ctx,
-		cancel:              cancel,
-		blockState:          blockState,
-		epochState:          epochState,
-		grandpa:             grandpa,
-		babe:                babe,
-		verifier:            verifier,
-		isFinalityAuthority: isFinalityAuthority,
-		isBlockProducer:     isBlockProducer,
-		imported:            imported,
-		importedID:          iid,
-		finalized:           finalized,
-		finalizedID:         fid,
+		ctx:        ctx,
+		cancel:     cancel,
+		blockState: blockState,
+		epochState: epochState,
+		grandpa:    grandpa,
+		babe:       babe,
+		verifier:   verifier,
+		// isFinalityAuthority: isFinalityAuthority,
+		// isBlockProducer:     isBlockProducer,
+		imported:    imported,
+		importedID:  iid,
+		finalized:   finalized,
+		finalizedID: fid,
 	}, nil
 }
 
@@ -157,7 +159,7 @@ func (h *DigestHandler) HandleConsensusDigest(d *types.ConsensusDigest, header *
 		case types.GrandpaScheduledChangeType:
 			return h.handleScheduledChange(d)
 		case types.GrandpaForcedChangeType:
-			return h.handleForcedChange(d)
+			return h.handleForcedChange(d, header)
 		case types.GrandpaOnDisabledType:
 			return h.handleGrandpaOnDisabled(d, header)
 		case types.GrandpaPauseType:
@@ -193,9 +195,7 @@ func (h *DigestHandler) handleBlockImport(ctx context.Context) {
 				continue
 			}
 
-			if h.isFinalityAuthority {
-				h.handleGrandpaChangesOnImport(block.Header.Number)
-			}
+			h.handleGrandpaChangesOnImport(block.Header.Number)
 		case <-ctx.Done():
 			return
 		}
@@ -210,12 +210,7 @@ func (h *DigestHandler) handleBlockFinalization(ctx context.Context) {
 				continue
 			}
 
-			if h.isFinalityAuthority {
-				h.handleGrandpaChangesOnFinalization(header.Number)
-			}
-
-			// TODO: check if there's a NextEpochData or NextConfigData digest, if there is,
-			// make sure it matches what's in the EpochState for the upcoming epoch
+			h.handleGrandpaChangesOnFinalization(header.Number)
 		case <-ctx.Done():
 			return
 		}
@@ -291,32 +286,35 @@ func (h *DigestHandler) handleScheduledChange(d *types.ConsensusDigest) error {
 	return nil
 }
 
-func (h *DigestHandler) handleForcedChange(d *types.ConsensusDigest) error {
-	curr, err := h.blockState.BestBlockHeader()
+func (h *DigestHandler) handleForcedChange(d *types.ConsensusDigest, header *types.Header) error {
+	if d.ConsensusEngineID != types.GrandpaEngineID {
+		return nil // TODO: maybe error?
+	}
+
+	if h.grandpaForcedChange != nil {
+		return errors.New("already have forced change scheduled")
+	}
+
+	fc := &types.GrandpaForcedChange{}
+	dec, err := scale.Decode(d.Data[1:], fc)
+	if err != nil {
+		return err
+	}
+	fc = dec.(*types.GrandpaForcedChange)
+
+	c, err := newGrandpaChange(fc.Auths, fc.Delay, header.Number)
 	if err != nil {
 		return err
 	}
 
-	if d.ConsensusEngineID == types.GrandpaEngineID {
-		if h.grandpaForcedChange != nil {
-			return errors.New("already have forced change scheduled")
-		}
+	h.grandpaForcedChange = c
 
-		fc := &types.GrandpaForcedChange{}
-		dec, err := scale.Decode(d.Data[1:], fc)
-		if err != nil {
-			return err
-		}
-		fc = dec.(*types.GrandpaForcedChange)
-
-		c, err := newGrandpaChange(fc.Auths, fc.Delay, curr.Number)
-		if err != nil {
-			return err
-		}
-
-		h.grandpaForcedChange = c
+	auths, err := types.GrandpaAuthoritiesRawToAuthorities(fc.Auths)
+	if err != nil {
+		return err
 	}
 
+	h.grandpaState.SetNextChange(grandpa.NewVotersFromAuthorities(auths), big.NewInt(0).Add(header.Number, big.NewInt(int64(fc.Delay))))
 	return nil
 }
 

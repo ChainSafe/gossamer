@@ -22,6 +22,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/grandpa"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -99,4 +100,9 @@ type EpochState interface {
 	SetConfigData(epoch uint64, info *types.ConfigData) error
 	SetCurrentEpoch(epoch uint64) error
 	GetCurrentEpoch() (uint64, error)
+}
+
+type GrandpaState interface {
+	SetNextChange(authorities []*grandpa.Voter, number *big.Int) error
+	//SetSetIDChangeAtBlock(setID uint64, number *big.Int) error
 }
