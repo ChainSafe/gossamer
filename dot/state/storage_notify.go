@@ -49,6 +49,7 @@ func (s *StorageState) RegisterStorageObserver(o Observer) {
 	sr, err := s.blockState.BestBlockStateRoot()
 	if err != nil {
 		logger.Debug("error registering storage change channel", "error", err)
+		return
 	}
 	go func() {
 		if err := s.notifyObserver(sr, o); err != nil {
