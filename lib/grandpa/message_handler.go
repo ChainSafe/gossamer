@@ -278,8 +278,11 @@ func decodeMessage(msg *ConsensusMessage) (m GrandpaMessage, err error) {
 		m = &VoteMessage{}
 		_, err = scale.Decode(msg.Data[1:], m)
 	case commitType:
-		m = &CommitMessage{}
-		_, err = scale.Decode(msg.Data[1:], m)
+		r := &bytes.Buffer{}
+		_, _ = r.Write(msg.Data[1:])
+		cm := &CommitMessage{}
+		err = cm.Decode(r)
+		m = cm
 	case neighbourType:
 		mi, err = scale.Decode(msg.Data[1:], &NeighbourMessage{})
 		if m, ok = mi.(*NeighbourMessage); !ok {
