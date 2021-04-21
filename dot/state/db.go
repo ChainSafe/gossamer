@@ -27,6 +27,21 @@ import (
 	database "github.com/ChainSafe/chaindb"
 )
 
+// StoreNodeGlobalName stores the current node name to avoid create new ones after each initialization
+func StoreNodeGlobalName(db database.Database, nodeName string) error {
+	return db.Put(common.NodeNameKey, []byte(nodeName))
+}
+
+// LoadNodeGlobalName loads the latest stored node global name
+func LoadNodeGlobalName(db database.Database) (string, error) {
+	nodeName, err := db.Get(common.NodeNameKey)
+	if err != nil {
+		return "", err
+	}
+
+	return string(nodeName), nil
+}
+
 // StoreBestBlockHash stores the hash at the BestBlockHashKey
 func StoreBestBlockHash(db database.Database, hash common.Hash) error {
 	return db.Put(common.BestBlockHashKey, hash[:])

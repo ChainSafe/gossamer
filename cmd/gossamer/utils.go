@@ -35,6 +35,8 @@ import (
 	"golang.org/x/crypto/ssh/terminal" //nolint
 )
 
+const confirmCharacter = "Y"
+
 // setupLogger sets up the gossamer logger
 func setupLogger(ctx *cli.Context) (log.Lvl, error) {
 	handler := log.StreamHandler(os.Stdout, log.TerminalFormat())
@@ -76,7 +78,7 @@ func confirmMessage(msg string) bool {
 	for {
 		text, _ := reader.ReadString('\n')
 		text = strings.ReplaceAll(text, "\n", "")
-		return strings.Compare("Y", text) == 0
+		return strings.Compare(confirmCharacter, strings.ToUpper(text)) == 0
 	}
 }
 

@@ -58,7 +58,6 @@ func InitNode(cfg *Config) error {
 	setupLogger(cfg)
 	logger.Info(
 		"🕸️ initializing node...",
-		"name", cfg.Global.Name,
 		"id", cfg.Global.ID,
 		"basepath", cfg.Global.BasePath,
 		"genesis", cfg.Init.Genesis,
@@ -100,12 +99,19 @@ func InitNode(cfg *Config) error {
 
 	// initialize state service with genesis data, block, and trie
 	err = stateSrvc.Initialize(gen, header, t)
+
+	if cfg.Global.Name != "" {
+		if cfg.Global.Name, err = stateSrvc.NodeGlobalName(); err != nil {
+			return err
+		}
+	}
+
 	if err != nil {
 		return fmt.Errorf("failed to initialize state service: %s", err)
 	}
 
 	logger.Info(
-		"node initialized",
+		"🕸️ node initialized",
 		"name", cfg.Global.Name,
 		"id", cfg.Global.ID,
 		"basepath", cfg.Global.BasePath,

@@ -17,7 +17,6 @@
 package main
 
 import (
-	"encoding/binary"
 	"fmt"
 	"strconv"
 	"strings"
@@ -33,7 +32,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/life"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmtime"
-	"github.com/cosmos/go-bip39"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
@@ -407,17 +405,9 @@ func setDotGlobalConfig(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.Global
 		cfg.MetricsPort = tomlCfg.Global.MetricsPort
 	}
 
-	// TODO: generate random name if one is not assigned (see issue #1496)
 	// check --name flag and update node configuration
 	if name := ctx.GlobalString(NameFlag.Name); name != "" {
 		cfg.Name = name
-	} else {
-		// generate random name
-		entropy, _ := bip39.NewEntropy(128)
-		randomNamesString, _ := bip39.NewMnemonic(entropy)
-		randomNames := strings.Split(randomNamesString, " ")
-		number := binary.BigEndian.Uint16(entropy)
-		cfg.Name = randomNames[0] + "-" + randomNames[1] + "-" + fmt.Sprint(number)
 	}
 
 	// check --basepath flag and update node configuration

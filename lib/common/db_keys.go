@@ -31,4 +31,6 @@ var (
 	LatestFinalizedRoundKey = []byte("latest_finalized_round")
 	// WorkingStorageHashKey is the storage key that the runtime uses to store the latest working state root.
 	WorkingStorageHashKey = []byte("working_storage_hash")
+	//NodeNameKey is the storage key to store de current node name and avoid create a new name every initialization
+	NodeNameKey = []byte("node_name")
 )
