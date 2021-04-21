@@ -394,20 +394,20 @@ func (s *Service) playGrandpaRound() error {
 			s.network.SendMessage(msg)
 		}
 
-		// primProposal, err := s.createVoteMessage(&Vote{
-		// 	hash:   s.head.Hash(),
-		// 	number: uint32(s.head.Number.Int64()),
-		// }, primaryProposal, s.keypair)
-		// if err != nil {
-		// 	logger.Error("failed to create primary proposal message", "error", err)
-		// } else {
-		// 	msg, err = primProposal.ToConsensusMessage()
-		// 	if err != nil {
-		// 		logger.Error("failed to encode finalization message", "error", err)
-		// 	} else {
-		// 		s.network.SendMessage(msg)
-		// 	}
-		// }
+		primProposal, err := s.createVoteMessage(&Vote{
+			hash:   s.head.Hash(),
+			number: uint32(s.head.Number.Int64()),
+		}, primaryProposal, s.keypair)
+		if err != nil {
+			logger.Error("failed to create primary proposal message", "error", err)
+		} else {
+			msg, err = primProposal.ToConsensusMessage()
+			if err != nil {
+				logger.Error("failed to encode finalization message", "error", err)
+			} else {
+				s.network.SendMessage(msg)
+			}
+		}
 	}
 
 	logger.Debug("receiving pre-vote messages...")
