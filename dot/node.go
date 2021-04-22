@@ -125,7 +125,7 @@ func NodeInitialized(basepath string, expected bool) bool {
 	_, err := os.Stat(registry)
 	if os.IsNotExist(err) {
 		if expected {
-			logger.Warn(
+			logger.Debug(
 				"node has not been initialized",
 				"basepath", basepath,
 				"error", "failed to locate KEYREGISTRY file in data directory",
@@ -242,12 +242,6 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		return nil, err
 	}
 
-	// Syncer
-	syncer, err := createSyncService(cfg, stateSrvc, bp, dh, ver, rt)
-	if err != nil {
-		return nil, err
-	}
-
 	// create GRANDPA service
 	fg, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran, networkSrvc)
 	if err != nil {
@@ -255,6 +249,12 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	}
 	nodeSrvcs = append(nodeSrvcs, fg)
 	dh.SetFinalityGadget(fg) // TODO: this should be cleaned up
+
+	// Syncer
+	syncer, err := createSyncService(cfg, stateSrvc, bp, fg, dh, ver, rt)
+	if err != nil {
+		return nil, err
+	}
 
 	// Core Service
 

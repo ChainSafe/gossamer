@@ -33,6 +33,7 @@ import (
 )
 
 var addr = flag.String("addr", "localhost:8546", "http service address")
+
 var testCalls = []struct {
 	call     []byte
 	expected []byte
@@ -43,6 +44,8 @@ var testCalls = []struct {
 	{[]byte(`{"jsonrpc":"2.0","method":"chain_subscribeNewHeads","params":[],"id":3}`), []byte(`{"jsonrpc":"2.0","result":1,"id":3}` + "\n")},
 	{[]byte(`{"jsonrpc":"2.0","method":"state_subscribeStorage","params":[],"id":4}`), []byte(`{"jsonrpc":"2.0","result":2,"id":4}` + "\n")},
 	{[]byte(`{"jsonrpc":"2.0","method":"chain_subscribeFinalizedHeads","params":[],"id":5}`), []byte(`{"jsonrpc":"2.0","result":3,"id":5}` + "\n")},
+	{[]byte(`{"jsonrpc":"2.0","method":"author_submitAndWatchExtrinsic","params":["0x010203"],"id":6}`), []byte("{\"jsonrpc\":\"2.0\",\"error\":{\"code\":null,\"message\":\"Failed to call the `TaggedTransactionQueue_validate_transaction` exported function.\"},\"id\":6}\n")},
+	{[]byte(`{"jsonrpc":"2.0","method":"state_subscribeRuntimeVersion","params":[],"id":7}`), []byte("{\"jsonrpc\":\"2.0\",\"result\":5,\"id\":7}\n")},
 }
 
 func TestHTTPServer_ServeHTTP(t *testing.T) {
@@ -145,11 +148,10 @@ func (m *MockStorageAPI) Entries(_ *common.Hash) (map[string][]byte, error) {
 func (m *MockStorageAPI) GetStorageByBlockHash(_ common.Hash, key []byte) ([]byte, error) {
 	return nil, nil
 }
-func (m *MockStorageAPI) RegisterStorageChangeChannel(sub state.StorageSubscription) (byte, error) {
-	return 0, nil
+func (m *MockStorageAPI) RegisterStorageObserver(observer state.Observer) {
 }
-func (m *MockStorageAPI) UnregisterStorageChangeChannel(id byte) {
 
+func (m *MockStorageAPI) UnregisterStorageObserver(observer state.Observer) {
 }
 func (m *MockStorageAPI) GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error) {
 	return nil, nil

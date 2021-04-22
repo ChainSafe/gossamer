@@ -125,13 +125,13 @@ func (s *Service) decodeMessage(in []byte) (NotificationsMessage, error) {
 	return msg, err
 }
 
-func (s *Service) handleNetworkMessage(_ peer.ID, msg NotificationsMessage) error {
+func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) error {
 	cm, ok := msg.(*network.ConsensusMessage)
 	if !ok {
 		return ErrInvalidMessageType
 	}
 
-	resp, err := s.messageHandler.handleMessage(cm)
+	resp, err := s.messageHandler.handleMessage(from, cm)
 	if err != nil {
 		return err
 	}
