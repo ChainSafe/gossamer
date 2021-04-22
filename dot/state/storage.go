@@ -50,8 +50,8 @@ type StorageState struct {
 	lock   sync.RWMutex
 
 	// change notifiers
-	changedLock   sync.RWMutex
-	subscriptions map[byte]*StorageSubscription
+	changedLock  sync.RWMutex
+	observerList []Observer
 
 	syncing bool
 }
@@ -70,11 +70,11 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie) 
 	tries[t.MustHash()] = t
 
 	return &StorageState{
-		blockState:    blockState,
-		tries:         tries,
-		baseDB:        db,
-		db:            chaindb.NewTable(db, storagePrefix),
-		subscriptions: make(map[byte]*StorageSubscription),
+		blockState:   blockState,
+		tries:        tries,
+		baseDB:       db,
+		db:           chaindb.NewTable(db, storagePrefix),
+		observerList: []Observer{},
 	}, nil
 }
 
@@ -116,11 +116,7 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
 		return err
 	}
 
-	go func() {
-		if err := s.notifyStorageSubscriptions(root); err != nil {
-			logger.Warn("failed to notify storage subscriptions", "error", err)
-		}
-	}()
+	go s.notifyAll(root)
 
 	return nil
 }
@@ -161,55 +157,6 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 	s.tries[*root] = curr.Snapshot()
 	s.lock.Unlock()
 	return curr, nil
-}
-
-// StoreInDB encodes the entire trie and writes it to the DB
-// The key to the DB entry is the root hash of the trie
-func (s *StorageState) notifyStorageSubscriptions(root common.Hash) error {
-	s.lock.RLock()
-	t := s.tries[root]
-	s.lock.RUnlock()
-
-	if t == nil {
-		return errTrieDoesNotExist(root)
-	}
-
-	// notify subscribers of database changes
-	s.changedLock.Lock()
-	defer s.changedLock.Unlock()
-
-	for _, sub := range s.subscriptions {
-		subRes := &SubscriptionResult{
-			Hash: root,
-		}
-		if len(sub.Filter) == 0 {
-			// no filter, so send all changes
-			ent := t.Entries()
-			for k, v := range ent {
-				if k != ":code" {
-					// todo, currently we're ignoring :code since this is a lot of data
-					kv := &KeyValue{
-						Key:   common.MustHexToBytes(fmt.Sprintf("0x%x", k)),
-						Value: v,
-					}
-					subRes.Changes = append(subRes.Changes, *kv)
-				}
-			}
-		} else {
-			// filter result to include only interested keys
-			for k := range sub.Filter {
-				value := t.Get(common.MustHexToBytes(k))
-				kv := &KeyValue{
-					Key:   common.MustHexToBytes(k),
-					Value: value,
-				}
-				subRes.Changes = append(subRes.Changes, *kv)
-			}
-		}
-		s.notifyChanged(subRes)
-	}
-
-	return nil
 }
 
 // LoadFromDB loads an encoded trie from the DB where the key is `root`
