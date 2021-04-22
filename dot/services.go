@@ -348,7 +348,7 @@ func createGRANDPAService(cfg *Config, rt runtime.Instance, st *state.Service, d
 		return nil, ErrInvalidKeystoreType
 	}
 
-	voters := grandpa.NewVotersFromAuthorities(ad)
+	voters := types.NewGrandpaVotersFromAuthorities(ad)
 
 	keys := ks.Keypairs()
 	if len(keys) == 0 && cfg.Core.GrandpaAuthority {

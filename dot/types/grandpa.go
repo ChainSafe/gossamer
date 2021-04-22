@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -57,4 +58,48 @@ func GrandpaAuthoritiesRawToAuthorities(adr []*GrandpaAuthoritiesRaw) ([]*Author
 	}
 
 	return ad, nil
+}
+
+// GrandpaVoter represents a GRANDPA voter
+type GrandpaVoter struct {
+	Key *ed25519.PublicKey
+	ID  uint64 //nolint:unused
+}
+
+// PublicKeyBytes returns the voter key as PublicKeyBytes
+func (v *GrandpaVoter) PublicKeyBytes() ed25519.PublicKeyBytes {
+	return v.Key.AsBytes()
+}
+
+// String returns a formatted GrandpaVoter string
+func (v *GrandpaVoter) String() string {
+	return fmt.Sprintf("[key=0x%s id=%d]", v.PublicKeyBytes(), v.ID)
+}
+
+// NewGrandpaVotersFromAuthorities returns an array of GrandpaVoters given an array of GrandpaAuthorities
+func NewGrandpaVotersFromAuthorities(ad []*Authority) []*GrandpaVoter {
+	v := make([]*GrandpaVoter, len(ad))
+
+	for i, d := range ad {
+		if pk, ok := d.Key.(*ed25519.PublicKey); ok {
+			v[i] = &GrandpaVoter{
+				Key: pk,
+				ID:  d.Weight,
+			}
+		}
+	}
+
+	return v
+}
+
+// GrandpaVoters represents []*GrandpaVoter
+type GrandpaVoters []*GrandpaVoter
+
+// String returns a formatted Voters string
+func (v GrandpaVoters) String() string {
+	str := ""
+	for _, w := range v {
+		str = str + w.String() + " "
+	}
+	return str
 }

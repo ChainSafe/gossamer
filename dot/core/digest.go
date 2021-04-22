@@ -22,7 +22,6 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
@@ -86,6 +85,10 @@ func NewDigestHandler(blockState BlockState, epochState EpochState, babe BlockPr
 
 	// isFinalityAuthority := grandpa != nil
 	// isBlockProducer := babe != nil
+
+	if grandpa == nil {
+		return nil, errors.New("grandpa is nil")
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -314,7 +317,7 @@ func (h *DigestHandler) handleForcedChange(d *types.ConsensusDigest, header *typ
 		return err
 	}
 
-	h.grandpaState.SetNextChange(grandpa.NewVotersFromAuthorities(auths), big.NewInt(0).Add(header.Number, big.NewInt(int64(fc.Delay))))
+	h.grandpaState.SetNextChange(types.NewGrandpaVotersFromAuthorities(auths), big.NewInt(0).Add(header.Number, big.NewInt(int64(fc.Delay))))
 	return nil
 }
 

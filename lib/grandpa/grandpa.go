@@ -193,8 +193,8 @@ func (s *Service) Authorities() []*types.Authority {
 	ad := make([]*types.Authority, len(s.state.voters))
 	for i, v := range s.state.voters {
 		ad[i] = &types.Authority{
-			Key:    v.key,
-			Weight: v.id,
+			Key:    v.Key,
+			Weight: v.ID,
 		}
 	}
 
@@ -207,8 +207,8 @@ func (s *Service) UpdateAuthorities(ad []*types.Authority) {
 	for i, a := range ad {
 		if pk, ok := a.Key.(*ed25519.PublicKey); ok {
 			v[i] = &Voter{
-				key: pk,
-				id:  a.Weight,
+				Key: pk,
+				ID:  a.Weight,
 			}
 		}
 	}
@@ -386,7 +386,7 @@ func (s *Service) playGrandpaRound() error {
 	primary := s.derivePrimary()
 
 	// if primary, broadcast the best final candidate from the previous round
-	if bytes.Equal(primary.key.Encode(), s.keypair.Public().Encode()) {
+	if bytes.Equal(primary.Key.Encode(), s.keypair.Public().Encode()) {
 		msg, err := s.newCommitMessage(s.head, s.state.round-1).ToConsensusMessage()
 		if err != nil {
 			logger.Error("failed to encode finalization message", "error", err)

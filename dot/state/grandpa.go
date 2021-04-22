@@ -7,7 +7,7 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	//"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/grandpa"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
@@ -26,7 +26,7 @@ type GrandpaState struct {
 }
 
 // NewGrandpaStateFromGenesis returns a new GrandpaState given the grandpa genesis authorities
-func NewGrandpaStateFromGenesis(db chaindb.Database, genesisAuthorities []*grandpa.Voter) (*GrandpaState, error) {
+func NewGrandpaStateFromGenesis(db chaindb.Database, genesisAuthorities []*types.GrandpaVoter) (*GrandpaState, error) {
 	grandpaDB := chaindb.NewTable(db, grandpaPrefix)
 	s := &GrandpaState{
 		baseDB: db,
@@ -63,7 +63,7 @@ func setIDChangeKey(setID uint64) []byte {
 }
 
 // SetAuthorities sets the authorities for a given setID
-func (s *GrandpaState) SetAuthorities(setID uint64, authorities []*grandpa.Voter) error {
+func (s *GrandpaState) SetAuthorities(setID uint64, authorities []*types.GrandpaVoter) error {
 	enc, err := scale.Encode(authorities)
 	if err != nil {
 		return err
@@ -73,18 +73,18 @@ func (s *GrandpaState) SetAuthorities(setID uint64, authorities []*grandpa.Voter
 }
 
 // GetAuthorities returns the authorities for the given setID
-func (s *GrandpaState) GetAuthorities(setID uint64) ([]*grandpa.Voter, error) {
+func (s *GrandpaState) GetAuthorities(setID uint64) ([]*types.GrandpaVoter, error) {
 	enc, err := s.db.Get(authoritiesKey(setID))
 	if err != nil {
 		return nil, err
 	}
 
-	v, err := scale.Decode(enc, []*grandpa.Voter{})
+	v, err := scale.Decode(enc, []*types.GrandpaVoter{})
 	if err != nil {
 		return nil, err
 	}
 
-	return v.([]*grandpa.Voter), nil
+	return v.([]*types.GrandpaVoter), nil
 }
 
 func (s *GrandpaState) SetCurrentSetID(setID uint64) error {
@@ -107,7 +107,7 @@ func (s *GrandpaState) GetCurrentSetID() (uint64, error) {
 }
 
 // SetNextChange sets the next authority change
-func (s *GrandpaState) SetNextChange(authorities []*grandpa.Voter, number *big.Int) error {
+func (s *GrandpaState) SetNextChange(authorities []*types.GrandpaVoter, number *big.Int) error {
 	currSetID, err := s.GetCurrentSetID()
 	if err != nil {
 		return err
