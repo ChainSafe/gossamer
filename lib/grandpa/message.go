@@ -55,7 +55,7 @@ type FullVote struct {
 
 // SignedMessage represents a block hash and number signed by an authority
 type SignedMessage struct {
-	Stage       subround // // 0 for pre-vote, 1 for pre-commit, 2 for primary proposal
+	Stage       subround // 0 for pre-vote, 1 for pre-commit, 2 for primary proposal
 	Hash        common.Hash
 	Number      uint32
 	Signature   [64]byte // ed25519.SignatureLength
