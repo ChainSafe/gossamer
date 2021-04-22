@@ -52,7 +52,7 @@ func (s *Service) receiveMessages(cond func() bool) {
 					continue
 				}
 
-				logger.Debug("validated vote message", "vote", v, "round", vm.Round, "subround", vm.Stage, "precommits", s.precommits)
+				logger.Debug("validated vote message", "vote", v, "round", vm.Round, "subround", vm.Message.Stage, "precommits", s.precommits)
 			case <-ctx.Done():
 				logger.Trace("returning from receiveMessages")
 				return
@@ -113,6 +113,7 @@ func (s *Service) createVoteMessage(vote *Vote, stage subround, kp crypto.Keypai
 	}
 
 	sm := &SignedMessage{
+		Stage:       stage,
 		Hash:        vote.hash,
 		Number:      vote.number,
 		Signature:   ed25519.NewSignatureBytes(sig),
@@ -122,7 +123,6 @@ func (s *Service) createVoteMessage(vote *Vote, stage subround, kp crypto.Keypai
 	return &VoteMessage{
 		Round:   s.state.round,
 		SetID:   s.state.setID,
-		Stage:   stage,
 		Message: sm,
 	}, nil
 }
@@ -191,20 +191,20 @@ func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 	}
 
 	// add justification before checking for equivocation, since equivocatory vote may still be used in justification
-	if m.Stage == prevote {
+	if m.Message.Stage == prevote {
 		s.pvJustifications[m.Message.Hash] = append(s.pvJustifications[m.Message.Hash], just)
-	} else if m.Stage == precommit {
+	} else if m.Message.Stage == precommit {
 		s.pcJustifications[m.Message.Hash] = append(s.pcJustifications[m.Message.Hash], just)
 	}
 
-	equivocated := s.checkForEquivocation(voter, vote, m.Stage)
+	equivocated := s.checkForEquivocation(voter, vote, m.Message.Stage)
 	if equivocated {
 		return nil, ErrEquivocation
 	}
 
-	if m.Stage == prevote {
+	if m.Message.Stage == prevote {
 		s.prevotes[pk.AsBytes()] = vote
-	} else if m.Stage == precommit {
+	} else if m.Message.Stage == precommit {
 		s.precommits[pk.AsBytes()] = vote
 	}
 
@@ -273,7 +273,7 @@ func (s *Service) validateVote(v *Vote) error {
 
 func validateMessageSignature(pk *ed25519.PublicKey, m *VoteMessage) error {
 	msg, err := scale.Encode(&FullVote{
-		Stage: m.Stage,
+		Stage: m.Message.Stage,
 		Vote:  NewVote(m.Message.Hash, m.Message.Number),
 		Round: m.Round,
 		SetID: m.SetID,
