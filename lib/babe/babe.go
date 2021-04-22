@@ -28,6 +28,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -471,8 +472,15 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		return nil
 	}
 
+	old := ts.Snapshot()
+
 	// block built successfully, store resulting trie in storage state
-	err = b.storageState.StoreTrie(ts)
+	oldTs, err := rtstorage.NewTrieState(old)
+	if err != nil {
+		return err
+	}
+
+	err = b.storageState.StoreTrie(oldTs)
 	if err != nil {
 		logger.Error("failed to store trie in storage state", "error", err)
 	}
