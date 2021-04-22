@@ -16,7 +16,8 @@
 package state
 
 import (
-	"errors"
+	"fmt"
+	"reflect"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -33,55 +34,107 @@ type SubscriptionResult struct {
 	Changes []KeyValue
 }
 
-//StorageSubscription holds data for Subscription to Storage
-type StorageSubscription struct {
-	Filter   map[string]bool
-	Listener chan<- *SubscriptionResult
+// Observer interface defines functions needed for observers, Observer Design Pattern
+type Observer interface {
+	Update(result *SubscriptionResult)
+	GetID() uint
+	GetFilter() map[string][]byte
 }
 
-// RegisterStorageChangeChannel function to register storage change channels
-func (s *StorageState) RegisterStorageChangeChannel(sub StorageSubscription) (byte, error) {
-	s.changedLock.RLock()
+// RegisterStorageObserver to add abserver to notification list
+func (s *StorageState) RegisterStorageObserver(o Observer) {
+	s.observerList = append(s.observerList, o)
 
-	if len(s.subscriptions) == 256 {
-		return 0, errors.New("storage subscriptions limit reached")
+	// notifyObserver here to send storage value of current state
+	sr, err := s.blockState.BestBlockStateRoot()
+	if err != nil {
+		logger.Debug("error registering storage change channel", "error", err)
+		return
+	}
+	go func() {
+		if err := s.notifyObserver(sr, o); err != nil {
+			logger.Warn("failed to notify storage subscriptions", "error", err)
+		}
+	}()
+
+}
+
+// UnregisterStorageObserver removes observer from notification list
+func (s *StorageState) UnregisterStorageObserver(o Observer) {
+	s.observerList = s.removeFromSlice(s.observerList, o)
+}
+
+func (s *StorageState) notifyAll(root common.Hash) {
+	s.changedLock.RLock()
+	defer s.changedLock.RUnlock()
+	for _, observer := range s.observerList {
+		err := s.notifyObserver(root, observer)
+		if err != nil {
+			logger.Warn("failed to notify storage subscriptions", "error", err)
+		}
+	}
+}
+
+func (s *StorageState) notifyObserver(root common.Hash, o Observer) error {
+	t, err := s.TrieState(&root)
+	if err != nil {
+		return err
 	}
 
-	var id byte
-	for {
-		id = generateID()
-		if s.subscriptions[id] == nil {
-			break
+	if t == nil {
+		return errTrieDoesNotExist(root)
+	}
+
+	subRes := &SubscriptionResult{
+		Hash: root,
+	}
+	if len(o.GetFilter()) == 0 {
+		// no filter, so send all changes
+		ent := t.TrieEntries()
+		for k, v := range ent {
+			if k != ":code" {
+				// todo, currently we're ignoring :code since this is a lot of data
+				kv := &KeyValue{
+					Key:   common.MustHexToBytes(fmt.Sprintf("0x%x", k)),
+					Value: v,
+				}
+				subRes.Changes = append(subRes.Changes, *kv)
+			}
+		}
+	} else {
+		// filter result to include only interested keys
+		for k, cachedValue := range o.GetFilter() {
+			value := t.Get(common.MustHexToBytes(k))
+			if !reflect.DeepEqual(cachedValue, value) {
+				kv := &KeyValue{
+					Key:   common.MustHexToBytes(k),
+					Value: value,
+				}
+				subRes.Changes = append(subRes.Changes, *kv)
+				o.GetFilter()[k] = value
+			}
 		}
 	}
 
-	s.changedLock.RUnlock()
+	if len(subRes.Changes) > 0 {
+		logger.Trace("update observer", "changes", subRes.Changes)
+		go func() {
+			o.Update(subRes)
+		}()
+	}
 
-	s.changedLock.Lock()
-	s.subscriptions[id] = &sub
-	s.changedLock.Unlock()
-	return id, nil
+	return nil
 }
 
-// UnregisterStorageChangeChannel removes the storage change notification channel with the given ID.
-// A channel must be unregistered before closing it.
-func (s *StorageState) UnregisterStorageChangeChannel(id byte) {
+func (s *StorageState) removeFromSlice(observerList []Observer, observerToRemove Observer) []Observer {
 	s.changedLock.Lock()
 	defer s.changedLock.Unlock()
-
-	delete(s.subscriptions, id)
-}
-
-func (s *StorageState) notifyChanged(change *SubscriptionResult) {
-	if len(s.subscriptions) == 0 {
-		return
+	observerListLength := len(observerList)
+	for i, observer := range observerList {
+		if observerToRemove.GetID() == observer.GetID() {
+			observerList[i] = observerList[observerListLength-1]
+			return observerList[:observerListLength-1]
+		}
 	}
-
-	logger.Trace("notifying changed storage chans...", "chans", s.subscriptions)
-
-	for _, ch := range s.subscriptions {
-		go func(ch chan<- *SubscriptionResult) {
-			ch <- change
-		}(ch.Listener)
-	}
+	return observerList
 }
