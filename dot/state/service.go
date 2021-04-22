@@ -46,6 +46,7 @@ type Service struct {
 	Block       *BlockState
 	Transaction *TransactionState
 	Epoch       *EpochState
+	Grandpa     *GrandpaState
 	closeCh     chan interface{}
 
 	// Below are for testing only.
@@ -149,6 +150,12 @@ func (s *Service) Initialize(gen *genesis.Genesis, header *types.Header, t *trie
 		return fmt.Errorf("failed to create epoch state: %s", err)
 	}
 
+	// TODO: get authorities from runtime
+	grandpaState, err := NewGrandpaStateFromGenesis(db, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create grandpa state: %s", err)
+	}
+
 	// check database type
 	if s.isMemDB {
 		// append memory database to state service
@@ -158,6 +165,7 @@ func (s *Service) Initialize(gen *genesis.Genesis, header *types.Header, t *trie
 		s.Storage = storageState
 		s.Block = blockState
 		s.Epoch = epochState
+		s.Grandpa = grandpaState
 	} else if err = db.Close(); err != nil {
 		return fmt.Errorf("failed to close database: %s", err)
 	}
@@ -226,7 +234,7 @@ func (s *Service) storeInitialValues(db chaindb.Database, data *genesis.Data, he
 
 // Start initializes the Storage database and the Block database.
 func (s *Service) Start() error {
-	if !s.isMemDB && (s.Storage != nil || s.Block != nil || s.Epoch != nil) {
+	if !s.isMemDB && (s.Storage != nil || s.Block != nil || s.Epoch != nil || s.Grandpa != nil) {
 		return nil
 	}
 
@@ -310,6 +318,11 @@ func (s *Service) Start() error {
 	s.Epoch, err = NewEpochState(db)
 	if err != nil {
 		return fmt.Errorf("failed to create epoch state: %w", err)
+	}
+
+	s.Grandpa, err = NewGrandpaState(db, s.Block)
+	if err != nil {
+		return fmt.Errorf("failed to create grandpa state: %w", err)
 	}
 
 	num, _ := s.Block.BestBlockNumber()

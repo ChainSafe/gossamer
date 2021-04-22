@@ -70,50 +70,6 @@ func (s subround) String() string {
 	return "unknown"
 }
 
-// // Voter represents a GRANDPA voter
-// type Voter struct {
-// 	key *ed25519.PublicKey
-// 	id  uint64 //nolint:unused
-// }
-
-// // PublicKeyBytes returns the voter key as PublicKeyBytes
-// func (v *Voter) PublicKeyBytes() ed25519.PublicKeyBytes {
-// 	return v.key.AsBytes()
-// }
-
-// // String returns a formatted Voter string
-// func (v *Voter) String() string {
-// 	return fmt.Sprintf("[key=0x%s id=%d]", v.PublicKeyBytes(), v.id)
-// }
-
-// // NewVotersFromAuthorities returns an array of Voters given an array of GrandpaAuthorities
-// func NewVotersFromAuthorities(ad []*types.Authority) []*Voter {
-// 	v := make([]*Voter, len(ad))
-
-// 	for i, d := range ad {
-// 		if pk, ok := d.Key.(*ed25519.PublicKey); ok {
-// 			v[i] = &Voter{
-// 				key: pk,
-// 				id:  d.Weight,
-// 			}
-// 		}
-// 	}
-
-// 	return v
-// }
-
-// // Voters represents []*Voter
-// type Voters []*Voter
-
-// // String returns a formatted Voters string
-// func (v Voters) String() string {
-// 	str := ""
-// 	for _, w := range v {
-// 		str = str + w.String() + " "
-// 	}
-// 	return str
-// }
-
 // State represents a GRANDPA state
 type State struct {
 	voters []*Voter // set of voters

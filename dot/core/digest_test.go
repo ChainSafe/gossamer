@@ -18,6 +18,7 @@ package core
 
 import (
 	"io/ioutil"
+	"math/big"
 	"testing"
 	"time"
 
@@ -55,7 +56,7 @@ func newTestDigestHandler(t *testing.T, withBABE, withGrandpa bool) *DigestHandl
 	}
 
 	time.Sleep(time.Second)
-	dh, err := NewDigestHandler(stateSrvc.Block, stateSrvc.Epoch, bp, fg, &mockVerifier{})
+	dh, err := NewDigestHandler(stateSrvc.Block, stateSrvc.Epoch, stateSrvc.Grandpa, bp, fg, &mockVerifier{})
 	require.NoError(t, err)
 	return dh
 }
@@ -129,7 +130,11 @@ func TestDigestHandler_GrandpaForcedChange(t *testing.T) {
 		Data:              data,
 	}
 
-	err = handler.HandleConsensusDigest(d, nil)
+	header := &types.Header{
+		Number: big.NewInt(3),
+	}
+
+	err = handler.HandleConsensusDigest(d, header)
 	require.NoError(t, err)
 
 	addTestBlocksToState(t, 2, handler.blockState)

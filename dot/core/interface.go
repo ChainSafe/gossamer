@@ -104,5 +104,4 @@ type EpochState interface {
 
 type GrandpaState interface {
 	SetNextChange(authorities []*grandpa.Voter, number *big.Int) error
-	//SetSetIDChangeAtBlock(setID uint64, number *big.Int) error
 }

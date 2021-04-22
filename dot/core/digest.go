@@ -39,8 +39,6 @@ type DigestHandler struct {
 	grandpa      FinalityGadget
 	babe         BlockProducer
 	verifier     Verifier
-	// isFinalityAuthority bool
-	// isBlockProducer     bool
 
 	// block notification channels
 	imported    chan *types.Block
@@ -70,7 +68,7 @@ type resume struct {
 }
 
 // NewDigestHandler returns a new DigestHandler
-func NewDigestHandler(blockState BlockState, epochState EpochState, babe BlockProducer, grandpa FinalityGadget, verifier Verifier) (*DigestHandler, error) {
+func NewDigestHandler(blockState BlockState, epochState EpochState, grandpaState GrandpaState, babe BlockProducer, grandpa FinalityGadget, verifier Verifier) (*DigestHandler, error) {
 	imported := make(chan *types.Block, 16)
 	finalized := make(chan *types.Header, 16)
 	iid, err := blockState.RegisterImportedChannel(imported)
@@ -83,9 +81,6 @@ func NewDigestHandler(blockState BlockState, epochState EpochState, babe BlockPr
 		return nil, err
 	}
 
-	// isFinalityAuthority := grandpa != nil
-	// isBlockProducer := babe != nil
-
 	if grandpa == nil {
 		return nil, errors.New("grandpa is nil")
 	}
@@ -93,19 +88,18 @@ func NewDigestHandler(blockState BlockState, epochState EpochState, babe BlockPr
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &DigestHandler{
-		ctx:        ctx,
-		cancel:     cancel,
-		blockState: blockState,
-		epochState: epochState,
-		grandpa:    grandpa,
-		babe:       babe,
-		verifier:   verifier,
-		// isFinalityAuthority: isFinalityAuthority,
-		// isBlockProducer:     isBlockProducer,
-		imported:    imported,
-		importedID:  iid,
-		finalized:   finalized,
-		finalizedID: fid,
+		ctx:          ctx,
+		cancel:       cancel,
+		blockState:   blockState,
+		epochState:   epochState,
+		grandpaState: grandpaState,
+		grandpa:      grandpa,
+		babe:         babe,
+		verifier:     verifier,
+		imported:     imported,
+		importedID:   iid,
+		finalized:    finalized,
+		finalizedID:  fid,
 	}, nil
 }
 
@@ -292,6 +286,10 @@ func (h *DigestHandler) handleScheduledChange(d *types.ConsensusDigest) error {
 func (h *DigestHandler) handleForcedChange(d *types.ConsensusDigest, header *types.Header) error {
 	if d.ConsensusEngineID != types.GrandpaEngineID {
 		return nil // TODO: maybe error?
+	}
+
+	if header == nil {
+		return errors.New("header is nil")
 	}
 
 	if h.grandpaForcedChange != nil {

@@ -63,7 +63,7 @@ func GrandpaAuthoritiesRawToAuthorities(adr []*GrandpaAuthoritiesRaw) ([]*Author
 // GrandpaVoter represents a GRANDPA voter
 type GrandpaVoter struct {
 	Key *ed25519.PublicKey
-	ID  uint64 //nolint:unused
+	ID  uint64
 }
 
 // PublicKeyBytes returns the voter key as PublicKeyBytes
