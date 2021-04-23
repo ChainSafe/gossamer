@@ -536,7 +536,7 @@ func (s *Service) playGrandpaRound() error {
 			}
 
 			round := s.state.round
-			finalisable, err := s.isFinalizable(round)
+			finalisable, err := s.isFinalisable(round)
 			if err != nil {
 				return false
 			}
@@ -672,8 +672,8 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 	return &pvb, nil
 }
 
-// isFinalizable returns true is the round is finalizable, false otherwise.
-func (s *Service) isFinalizable(round uint64) (bool, error) {
+// isFinalisable returns true is the round is finalisable, false otherwise.
+func (s *Service) isFinalisable(round uint64) (bool, error) {
 	var pvb Vote
 	var err error
 

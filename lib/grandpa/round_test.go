@@ -58,7 +58,7 @@ func (n *testNetwork) SendMessage(msg NotificationsMessage) {
 	gmsg, err := decodeMessage(cm)
 	require.NoError(n.t, err)
 
-	if gmsg.Type() == finalizationType {
+	if gmsg.Type() == commitType {
 		n.finalised <- gmsg
 	} else {
 		n.out <- gmsg

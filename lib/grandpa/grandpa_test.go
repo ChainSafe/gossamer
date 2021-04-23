@@ -945,7 +945,7 @@ func TestDeterminePreVote_WithInvalidPrimaryPreVote(t *testing.T) {
 	require.Equal(t, gs.head.Hash(), pv.hash)
 }
 
-func TestIsFinalizable_True(t *testing.T) {
+func TestIsFinalisable_True(t *testing.T) {
 	gs, st := newTestService(t)
 
 	branches := make(map[int]int)
@@ -970,12 +970,12 @@ func TestIsFinalizable_True(t *testing.T) {
 		}
 	}
 
-	finalizable, err := gs.isFinalizable(gs.state.round)
+	finalisable, err := gs.isFinalisable(gs.state.round)
 	require.NoError(t, err)
 	require.True(t, finalizable)
 }
 
-func TestIsFinalizable_False(t *testing.T) {
+func TestIsFinalisable_False(t *testing.T) {
 	gs, st := newTestService(t)
 
 	branches := make(map[int]int)
