@@ -1,12 +1,12 @@
 package state
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"math/big"
 
 	"github.com/ChainSafe/chaindb"
-	//"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
@@ -39,7 +39,7 @@ func NewGrandpaStateFromGenesis(db chaindb.Database, genesisAuthorities []*types
 		return nil, err
 	}
 
-	err = s.SetAuthorities(1, genesisAuthorities)
+	err = s.setAuthorities(1, genesisAuthorities)
 	if err != nil {
 		return nil, err
 	}
@@ -85,12 +85,14 @@ func (s *GrandpaState) GetAuthorities(setID uint64) ([]*types.GrandpaVoter, erro
 		return nil, err
 	}
 
-	v, err := scale.Decode(enc, []*types.GrandpaVoter{})
+	r := &bytes.Buffer{}
+	_, _ = r.Write(enc)
+	v, err := types.DecodeGrandpaVoters(r)
 	if err != nil {
 		return nil, err
 	}
 
-	return v.([]*types.GrandpaVoter), nil
+	return v, nil
 }
 
 // setCurrentSetID sets the current set ID

@@ -86,7 +86,6 @@ type Config struct {
 	DigestHandler DigestHandler
 	Network       Network
 	Voters        []*Voter
-	SetID         uint64
 	Keypair       *ed25519.Keypair
 	Authority     bool
 }
@@ -130,12 +129,16 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	setID, err := cfg.GrandpaState.GetCurrentSetID()
+	if err != nil {
+		return nil, err
+	}
 
+	ctx, cancel := context.WithCancel(context.Background())
 	s := &Service{
 		ctx:                ctx,
 		cancel:             cancel,
-		state:              NewState(cfg.Voters, cfg.SetID, 0), // TODO: determine current round
+		state:              NewState(cfg.Voters, setID, 0), // TODO: determine current round
 		blockState:         cfg.BlockState,
 		grandpaState:       cfg.GrandpaState,
 		digestHandler:      cfg.DigestHandler,
@@ -226,8 +229,8 @@ func (s *Service) updateAuthorities() error {
 	}
 
 	s.state.voters = nextAuthorities
-	s.state.setID++
-	s.state.round = 0
+	s.state.setID = currSetID
+	s.state.round = 1 // round resets to 1 after a set ID change
 	return nil
 }
 
@@ -261,7 +264,6 @@ func (s *Service) initiate() error {
 	}
 
 	if s.authority {
-		var err error
 		s.prevotes = make(map[ed25519.PublicKeyBytes]*Vote)
 		s.precommits = make(map[ed25519.PublicKeyBytes]*Vote)
 		s.pcJustifications = make(map[common.Hash][]*SignedPrecommit)

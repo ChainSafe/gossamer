@@ -50,7 +50,6 @@ type DigestHandler struct {
 	grandpaForcedChange    *grandpaChange
 	grandpaPause           *pause
 	grandpaResume          *resume
-	grandpaAuths           []*types.Authority // saved in case of pause
 }
 
 type grandpaChange struct {

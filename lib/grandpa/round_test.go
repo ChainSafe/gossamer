@@ -97,11 +97,11 @@ func onSameChain(blockState BlockState, a, b common.Hash) bool {
 
 func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (*Service, chan GrandpaMessage, chan GrandpaMessage, chan GrandpaMessage) {
 	st := newTestState(t)
-	voters := newTestVoters()
 	net := newTestNetwork(t)
 
 	cfg := &Config{
 		BlockState:    st.Block,
+		GrandpaState:  st.Grandpa,
 		DigestHandler: &mockDigestHandler{},
 		Voters:        voters,
 		Keypair:       kp,

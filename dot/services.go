@@ -360,7 +360,6 @@ func createGRANDPAService(cfg *Config, rt runtime.Instance, st *state.Service, d
 		BlockState:    st.Block,
 		GrandpaState:  st.Grandpa,
 		DigestHandler: dh,
-		SetID:         1,
 		Voters:        voters,
 		Authority:     cfg.Core.GrandpaAuthority,
 		Network:       net,

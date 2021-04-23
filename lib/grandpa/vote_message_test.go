@@ -30,7 +30,6 @@ import (
 
 func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters()
 	net := newTestNetwork(t)
 
 	kr, err := keystore.NewEd25519Keyring()
@@ -38,6 +37,7 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 
 	cfg := &Config{
 		BlockState:    st.Block,
+		GrandpaState:  st.Grandpa,
 		DigestHandler: &mockDigestHandler{},
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
@@ -62,7 +62,6 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 
 func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters()
 	net := newTestNetwork(t)
 
 	kr, err := keystore.NewEd25519Keyring()
@@ -70,6 +69,7 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 
 	cfg := &Config{
 		BlockState:    st.Block,
+		GrandpaState:  st.Grandpa,
 		DigestHandler: &mockDigestHandler{},
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
@@ -104,7 +104,6 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 
 func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters()
 	net := newTestNetwork(t)
 
 	kr, err := keystore.NewEd25519Keyring()
@@ -112,6 +111,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 
 	cfg := &Config{
 		BlockState:    st.Block,
+		GrandpaState:  st.Grandpa,
 		DigestHandler: &mockDigestHandler{},
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
@@ -161,7 +161,6 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 
 func TestValidateMessage_Valid(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters()
 	net := newTestNetwork(t)
 
 	kr, err := keystore.NewEd25519Keyring()
@@ -169,6 +168,7 @@ func TestValidateMessage_Valid(t *testing.T) {
 
 	cfg := &Config{
 		BlockState:    st.Block,
+		GrandpaState:  st.Grandpa,
 		DigestHandler: &mockDigestHandler{},
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
@@ -192,7 +192,6 @@ func TestValidateMessage_Valid(t *testing.T) {
 
 func TestValidateMessage_InvalidSignature(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters()
 	net := newTestNetwork(t)
 
 	kr, err := keystore.NewEd25519Keyring()
@@ -200,6 +199,7 @@ func TestValidateMessage_InvalidSignature(t *testing.T) {
 
 	cfg := &Config{
 		BlockState:    st.Block,
+		GrandpaState:  st.Grandpa,
 		DigestHandler: &mockDigestHandler{},
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
@@ -231,6 +231,7 @@ func TestValidateMessage_SetIDMismatch(t *testing.T) {
 
 	cfg := &Config{
 		BlockState:    st.Block,
+		GrandpaState:  st.Grandpa,
 		DigestHandler: &mockDigestHandler{},
 		Keypair:       kr.Bob().(*ed25519.Keypair),
 		Network:       net,
@@ -254,7 +255,6 @@ func TestValidateMessage_SetIDMismatch(t *testing.T) {
 
 func TestValidateMessage_Equivocation(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters()
 	net := newTestNetwork(t)
 
 	kr, err := keystore.NewEd25519Keyring()
@@ -262,6 +262,7 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 
 	cfg := &Config{
 		BlockState:    st.Block,
+		GrandpaState:  st.Grandpa,
 		DigestHandler: &mockDigestHandler{},
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
@@ -298,7 +299,6 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 
 func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters()
 	net := newTestNetwork(t)
 
 	kr, err := keystore.NewEd25519Keyring()
@@ -306,6 +306,7 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 
 	cfg := &Config{
 		BlockState:    st.Block,
+		GrandpaState:  st.Grandpa,
 		DigestHandler: &mockDigestHandler{},
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
@@ -331,7 +332,6 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 
 func TestValidateMessage_IsNotDescendant(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters()
 	net := newTestNetwork(t)
 
 	kr, err := keystore.NewEd25519Keyring()
@@ -339,6 +339,7 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 
 	cfg := &Config{
 		BlockState:    st.Block,
+		GrandpaState:  st.Grandpa,
 		DigestHandler: &mockDigestHandler{},
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
