@@ -103,6 +103,10 @@ func (se *Encoder) EncodeCustom(in interface{}) (int, error) {
 	if ok {
 		res := reflect.ValueOf(in).MethodByName("Encode").Call([]reflect.Value{})
 		val := res[0].Interface()
+		if len(res) < 2 {
+			return se.Writer.Write(val.([]byte))
+		}
+
 		err := res[1].Interface()
 		if err != nil {
 			return 0, err.(error)

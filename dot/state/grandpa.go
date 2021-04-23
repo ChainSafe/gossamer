@@ -33,7 +33,12 @@ func NewGrandpaStateFromGenesis(db chaindb.Database, genesisAuthorities []*types
 		db:     grandpaDB,
 	}
 
-	err := s.SetAuthorities(1, genesisAuthorities)
+	err := s.SetCurrentSetID(1)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.SetAuthorities(1, genesisAuthorities)
 	if err != nil {
 		return nil, err
 	}
@@ -87,12 +92,14 @@ func (s *GrandpaState) GetAuthorities(setID uint64) ([]*types.GrandpaVoter, erro
 	return v.([]*types.GrandpaVoter), nil
 }
 
+// SetCurrentSetID sets the current set ID
 func (s *GrandpaState) SetCurrentSetID(setID uint64) error {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, setID)
 	return s.db.Put(currentSetIDKey, buf[:])
 }
 
+// GetCurrentSetID retrieves the current set ID
 func (s *GrandpaState) GetCurrentSetID() (uint64, error) {
 	id, err := s.db.Get(currentSetIDKey)
 	if err != nil {
@@ -124,10 +131,10 @@ func (s *GrandpaState) SetNextChange(authorities []*types.GrandpaVoter, number *
 		return err
 	}
 
-	//return s.SetCurrentSetID(newSetID)
 	return nil
 }
 
+// IncrementSetID increments the set ID
 func (s *GrandpaState) IncrementSetID() error {
 	currSetID, err := s.GetCurrentSetID()
 	if err != nil {

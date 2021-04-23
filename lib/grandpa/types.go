@@ -28,6 +28,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
+//nolint
 type (
 	Voter  = types.GrandpaVoter
 	Voters = types.GrandpaVoters

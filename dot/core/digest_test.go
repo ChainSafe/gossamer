@@ -65,7 +65,6 @@ func TestDigestHandler_GrandpaScheduledChange(t *testing.T) {
 	handler := newTestDigestHandler(t, false, true)
 	handler.Start()
 	defer handler.Stop()
-	//require.True(t, handler.isFinalityAuthority)
 
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
@@ -85,7 +84,11 @@ func TestDigestHandler_GrandpaScheduledChange(t *testing.T) {
 		Data:              data,
 	}
 
-	err = handler.HandleConsensusDigest(d, nil)
+	header := &types.Header{
+		Number: big.NewInt(1),
+	}
+
+	err = handler.HandleConsensusDigest(d, header)
 	require.NoError(t, err)
 
 	headers := addTestBlocksToState(t, 2, handler.blockState)
@@ -131,72 +134,25 @@ func TestDigestHandler_GrandpaForcedChange(t *testing.T) {
 	}
 
 	header := &types.Header{
-		Number: big.NewInt(3),
+		Number: big.NewInt(1),
 	}
 
 	err = handler.HandleConsensusDigest(d, header)
 	require.NoError(t, err)
 
-	addTestBlocksToState(t, 2, handler.blockState)
+	addTestBlocksToState(t, 3, handler.blockState)
 	auths := handler.grandpa.Authorities()
 	require.Nil(t, auths)
 
-	// authorities should change on start of block 3 from start
+	// authorities should change on start of block 4 from start
 	addTestBlocksToState(t, 1, handler.blockState)
 	time.Sleep(time.Millisecond * 100)
 	auths = handler.grandpa.Authorities()
 	require.Equal(t, 1, len(auths))
-}
 
-func TestDigestHandler_GrandpaOnDisabled(t *testing.T) {
-	handler := newTestDigestHandler(t, false, true)
-	handler.Start()
-	defer handler.Stop()
-
-	kr, err := keystore.NewEd25519Keyring()
+	setID, err := handler.grandpaState.(*state.GrandpaState).GetCurrentSetID()
 	require.NoError(t, err)
-
-	handler.grandpa.UpdateAuthorities([]*types.Authority{
-		{Key: kr.Alice().Public().(*ed25519.PublicKey), Weight: 0},
-	})
-
-	// try with ID that doesn't exist
-	od := &types.GrandpaOnDisabled{
-		ID: 1,
-	}
-
-	data, err := od.Encode()
-	require.NoError(t, err)
-
-	d := &types.ConsensusDigest{
-		ConsensusEngineID: types.GrandpaEngineID,
-		Data:              data,
-	}
-
-	err = handler.HandleConsensusDigest(d, nil)
-	require.NoError(t, err)
-
-	auths := handler.grandpa.Authorities()
-	require.Equal(t, 1, len(auths))
-
-	// try with ID that does exist
-	od = &types.GrandpaOnDisabled{
-		ID: 0,
-	}
-
-	data, err = od.Encode()
-	require.NoError(t, err)
-
-	d = &types.ConsensusDigest{
-		ConsensusEngineID: types.GrandpaEngineID,
-		Data:              data,
-	}
-
-	err = handler.HandleConsensusDigest(d, nil)
-	require.NoError(t, err)
-
-	auths = handler.grandpa.Authorities()
-	require.Equal(t, 0, len(auths))
+	require.Equal(t, uint64(2), setID)
 }
 
 func TestDigestHandler_GrandpaPauseAndResume(t *testing.T) {
@@ -274,8 +230,11 @@ func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
 		ConsensusEngineID: types.GrandpaEngineID,
 		Data:              data,
 	}
+	header := &types.Header{
+		Number: big.NewInt(1),
+	}
 
-	err = handler.HandleConsensusDigest(d, nil)
+	err = handler.HandleConsensusDigest(d, header)
 	require.NoError(t, err)
 
 	next := handler.NextGrandpaAuthorityChange()
@@ -287,7 +246,7 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 	handler.Start()
 	defer handler.Stop()
 
-	later := uint32(5)
+	later := uint32(6)
 	sc := &types.GrandpaScheduledChange{
 		Auths: []*types.GrandpaAuthoritiesRaw{},
 		Delay: later,
@@ -301,10 +260,14 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 		Data:              data,
 	}
 
-	err = handler.HandleConsensusDigest(d, nil)
+	header := &types.Header{
+		Number: big.NewInt(1),
+	}
+
+	err = handler.HandleConsensusDigest(d, header)
 	require.NoError(t, err)
 
-	earlier := uint32(3)
+	earlier := uint32(4)
 	fc := &types.GrandpaForcedChange{
 		Auths: []*types.GrandpaAuthoritiesRaw{},
 		Delay: earlier,
@@ -318,11 +281,11 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 		Data:              data,
 	}
 
-	err = handler.HandleConsensusDigest(d, nil)
+	err = handler.HandleConsensusDigest(d, header)
 	require.NoError(t, err)
 
 	next := handler.NextGrandpaAuthorityChange()
-	require.Equal(t, uint64(earlier), next)
+	require.Equal(t, uint64(earlier+1), next)
 }
 
 func TestDigestHandler_HandleBABEOnDisabled(t *testing.T) {

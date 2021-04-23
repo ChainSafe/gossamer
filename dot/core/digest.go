@@ -81,10 +81,6 @@ func NewDigestHandler(blockState BlockState, epochState EpochState, grandpaState
 		return nil, err
 	}
 
-	if grandpa == nil {
-		return nil, errors.New("grandpa is nil")
-	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &DigestHandler{
@@ -154,11 +150,9 @@ func (h *DigestHandler) HandleConsensusDigest(d *types.ConsensusDigest, header *
 	if d.ConsensusEngineID == types.GrandpaEngineID {
 		switch t {
 		case types.GrandpaScheduledChangeType:
-			return h.handleScheduledChange(d)
+			return h.handleScheduledChange(d, header)
 		case types.GrandpaForcedChangeType:
 			return h.handleForcedChange(d, header)
-		case types.GrandpaOnDisabledType:
-			return h.handleGrandpaOnDisabled(d, header)
 		case types.GrandpaPauseType:
 			return h.handlePause(d)
 		case types.GrandpaResumeType:
@@ -223,6 +217,11 @@ func (h *DigestHandler) handleGrandpaChangesOnImport(num *big.Int) {
 
 	fc := h.grandpaForcedChange
 	if fc != nil && num.Cmp(fc.atBlock) == 0 {
+		err := h.grandpaState.IncrementSetID()
+		if err != nil {
+			logger.Error("failed to increment grandpa set ID", "error", err)
+		}
+
 		h.grandpa.UpdateAuthorities(fc.auths)
 		h.grandpaForcedChange = nil
 	}
@@ -239,6 +238,11 @@ func (h *DigestHandler) handleGrandpaChangesOnFinalization(num *big.Int) {
 
 	sc := h.grandpaScheduledChange
 	if sc != nil && num.Cmp(sc.atBlock) == 0 {
+		err := h.grandpaState.IncrementSetID()
+		if err != nil {
+			logger.Error("failed to increment grandpa set ID", "error", err)
+		}
+
 		h.grandpa.UpdateAuthorities(sc.auths)
 		h.grandpaScheduledChange = nil
 	}
@@ -247,40 +251,42 @@ func (h *DigestHandler) handleGrandpaChangesOnFinalization(num *big.Int) {
 	h.grandpaForcedChange = nil
 }
 
-func (h *DigestHandler) handleScheduledChange(d *types.ConsensusDigest) error {
+func (h *DigestHandler) handleScheduledChange(d *types.ConsensusDigest, header *types.Header) error {
 	curr, err := h.blockState.BestBlockHeader()
 	if err != nil {
 		return err
 	}
 
-	if d.ConsensusEngineID == types.GrandpaEngineID {
-		if h.grandpaScheduledChange != nil {
-			return nil
-		}
-
-		sc := &types.GrandpaScheduledChange{}
-		dec, err := scale.Decode(d.Data[1:], sc)
-		if err != nil {
-			return err
-		}
-		sc = dec.(*types.GrandpaScheduledChange)
-
-		logger.Debug("handling GrandpaScheduledChange", "data", sc)
-
-		if h.grandpa == nil {
-			// this should never happen
-			return nil
-		}
-
-		c, err := newGrandpaChange(sc.Auths, sc.Delay, curr.Number)
-		if err != nil {
-			return err
-		}
-
-		h.grandpaScheduledChange = c
+	if d.ConsensusEngineID != types.GrandpaEngineID {
+		return nil
 	}
 
-	return nil
+	if h.grandpaScheduledChange != nil {
+		return nil
+	}
+
+	sc := &types.GrandpaScheduledChange{}
+	dec, err := scale.Decode(d.Data[1:], sc)
+	if err != nil {
+		return err
+	}
+	sc = dec.(*types.GrandpaScheduledChange)
+
+	logger.Debug("handling GrandpaScheduledChange", "data", sc)
+
+	c, err := newGrandpaChange(sc.Auths, sc.Delay, curr.Number)
+	if err != nil {
+		return err
+	}
+
+	h.grandpaScheduledChange = c
+
+	auths, err := types.GrandpaAuthoritiesRawToAuthorities(sc.Auths)
+	if err != nil {
+		return err
+	}
+
+	return h.grandpaState.SetNextChange(types.NewGrandpaVotersFromAuthorities(auths), big.NewInt(0).Add(header.Number, big.NewInt(int64(sc.Delay))))
 }
 
 func (h *DigestHandler) handleForcedChange(d *types.ConsensusDigest, header *types.Header) error {
@@ -315,40 +321,7 @@ func (h *DigestHandler) handleForcedChange(d *types.ConsensusDigest, header *typ
 		return err
 	}
 
-	h.grandpaState.SetNextChange(types.NewGrandpaVotersFromAuthorities(auths), big.NewInt(0).Add(header.Number, big.NewInt(int64(fc.Delay))))
-	return nil
-}
-
-func (h *DigestHandler) handleGrandpaOnDisabled(d *types.ConsensusDigest, _ *types.Header) error {
-	od := &types.GrandpaOnDisabled{}
-	dec, err := scale.Decode(d.Data[1:], od)
-	if err != nil {
-		return err
-	}
-	od = dec.(*types.GrandpaOnDisabled)
-
-	logger.Debug("handling GrandpaOnDisabled", "data", od)
-
-	if h.grandpa == nil {
-		// this should never happen
-		return nil
-	}
-
-	curr := h.grandpa.Authorities()
-	next := []*types.Authority{}
-
-	for _, auth := range curr {
-		if auth.Weight != od.ID {
-			next = append(next, auth)
-		}
-	}
-
-	// TODO: this needs to be updated not to remove the authority from the list,
-	// but to flag them as disabled. thus, if we are disabled, we should stop voting.
-	// if we receive vote or finalization messages, we should ignore anything signed by the
-	// disabled authority
-	h.grandpa.UpdateAuthorities(next)
-	return nil
+	return h.grandpaState.SetNextChange(types.NewGrandpaVotersFromAuthorities(auths), big.NewInt(0).Add(header.Number, big.NewInt(int64(fc.Delay))))
 }
 
 func (h *DigestHandler) handlePause(d *types.ConsensusDigest) error {

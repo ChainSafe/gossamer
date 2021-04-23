@@ -102,6 +102,8 @@ type EpochState interface {
 	GetCurrentEpoch() (uint64, error)
 }
 
+// GrandpaState is the interface for the state.GrandpaState
 type GrandpaState interface {
 	SetNextChange(authorities []*grandpa.Voter, number *big.Int) error
+	IncrementSetID() error
 }

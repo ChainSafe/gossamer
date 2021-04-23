@@ -398,5 +398,5 @@ func createSyncService(cfg *Config, st *state.Service, bp sync.BlockProducer, fg
 }
 
 func createDigestHandler(st *state.Service, bp core.BlockProducer, verifier *babe.VerificationManager) (*core.DigestHandler, error) {
-	return core.NewDigestHandler(st.Block, st.Epoch, bp, nil, verifier)
+	return core.NewDigestHandler(st.Block, st.Epoch, st.Grandpa, bp, nil, verifier)
 }
