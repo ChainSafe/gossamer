@@ -54,7 +54,7 @@ func TestHandleNetworkMessage(t *testing.T) {
 		},
 	}
 
-	fm := gs.newFinalizationMessage(gs.head, 77)
+	fm := gs.newCommitMessage(gs.head, 77)
 	cm, err := fm.ToConsensusMessage()
 	require.NoError(t, err)
 	gs.state.voters = gs.state.voters[:1]
