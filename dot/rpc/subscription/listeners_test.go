@@ -151,7 +151,7 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 
 	notifyFinalizedChan <- header
 	time.Sleep(time.Millisecond * 10)
-	resFinalized := map[string]interface{}{"finalized": block.Header.Hash().String()}
-	expectedFinalizedRespones := newSubscriptionResponse(AuthorExtrinsicUpdates, esl.subID, resFinalized)
+	resFinalised := map[string]interface{}{"finalised": block.Header.Hash().String()}
+	expectedFinalizedRespones := newSubscriptionResponse(AuthorExtrinsicUpdates, esl.subID, resFinalised)
 	require.Equal(t, expectedFinalizedRespones, mockConnection.lastMessage)
 }
