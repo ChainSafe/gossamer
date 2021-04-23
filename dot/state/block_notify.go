@@ -138,6 +138,7 @@ func (bs *BlockState) notifyFinalized(hash common.Hash) {
 }
 
 func generateID() byte {
+	// skipcq: GSC-G404
 	id := rand.Intn(256) //nolint
 	return byte(id)
 }
