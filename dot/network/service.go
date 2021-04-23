@@ -89,6 +89,10 @@ type Service struct {
 	noDiscover  bool
 	noMDNS      bool
 	noGossip    bool // internal option
+
+	// telemetry
+	telemetryInterval    time.Duration
+	doneNetworkTelemetry chan struct{}
 }
 
 // NewService creates a new network service from the configuration and message channels
@@ -142,6 +146,8 @@ func NewService(cfg *Config) (*Service, error) {
 		syncer:                 cfg.Syncer,
 		notificationsProtocols: make(map[byte]*notificationsProtocol),
 		lightRequest:           make(map[peer.ID]struct{}),
+		telemetryInterval:      cfg.telemetryInterval,
+		doneNetworkTelemetry:   make(chan struct{}),
 	}
 
 	network.syncQueue = newSyncQueue(network)
@@ -246,7 +252,8 @@ func (s *Service) Start() error {
 	}
 
 	go s.logPeerCount()
-	go s.publishNetworkTelemetry()
+	go s.publishNetworkTelemetry(s.doneNetworkTelemetry)
+	go s.sentBlockIntervalTelemetry()
 
 	return nil
 }
@@ -281,18 +288,47 @@ func (s *Service) logPeerCount() {
 	}
 }
 
-func (s *Service) publishNetworkTelemetry() {
-	for {
-		o := s.host.bwc.GetBandwidthTotals()
+func (s *Service) publishNetworkTelemetry(done chan struct{}) {
+	ticker := time.NewTicker(s.telemetryInterval)
+	defer ticker.Stop()
 
-		telemetry.GetInstance().SendNetworkData(&telemetry.NetworkData{
-			Peers:   s.host.peerCount(),
-			RateIn:  o.RateIn,
-			RateOut: o.RateOut,
-		})
-		time.Sleep(time.Second * 5)
+main:
+	for {
+		select {
+		case <-done:
+			break main
+
+		case <-ticker.C:
+			o := s.host.bwc.GetBandwidthTotals()
+			telemetry.GetInstance().SendNetworkData(telemetry.NewNetworkData(s.host.peerCount(), o.RateIn, o.RateOut))
+		}
+
 	}
 }
+
+func (s *Service) sentBlockIntervalTelemetry() {
+	for {
+		best, err := s.blockState.BestBlockHeader()
+		if err != nil {
+			continue
+		}
+		finalized, err := s.blockState.GetFinalizedHeader(0, 0) //nolint
+		if err != nil {
+			continue
+		}
+
+		telemetry.GetInstance().SendBlockIntervalData(&telemetry.BlockIntervalData{
+			BestHash:           best.Hash(),
+			BestHeight:         best.Number,
+			FinalizedHash:      finalized.Hash(),
+			FinalizedHeight:    finalized.Number,
+			TXCount:            0, // todo (ed) determine where to get tx count
+			UsedStateCacheSize: 0, // todo (ed) determine where to get used_state_cache_size
+		})
+		time.Sleep(s.telemetryInterval)
+	}
+}
+
 func (s *Service) handleConn(conn libp2pnetwork.Conn) {
 	// give new peers a slight weight
 	// TODO: do this once handshake is received
@@ -357,6 +393,9 @@ func (s *Service) Stop() error {
 	if err != nil {
 		logger.Error("Failed to close host", "error", err)
 	}
+
+	// todo (ed) when this isn't commented out the node freezes on stop (it seems this is called twice)
+	//s.doneNetworkTelemetry <- struct{}{}
 
 	return nil
 }

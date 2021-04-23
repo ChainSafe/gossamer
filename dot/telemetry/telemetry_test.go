@@ -1,10 +1,13 @@
 package telemetry
 
 import (
+	"bytes"
 	"log"
 	"math/big"
 	"net/http"
 	"os"
+	"sort"
+	"sync"
 	"testing"
 	"time"
 
@@ -50,28 +53,61 @@ func TestHandler_SendConnection(t *testing.T) {
 	}
 	GetInstance().SendConnection(data)
 	time.Sleep(time.Millisecond)
-	// note, we only check the first 234 bytes because the remaining bytes are the timestamp, which we can't estimate
-	require.Equal(t, expected, lastMessage[:234])
+	require.Contains(t, string(lastMessage), string(expected))
 }
 
 func TestHandler_SendBlockImport(t *testing.T) {
 	expected := []byte(`{"id":1,"payload":{"best":"hash","height":2,"msg":"block.import","origin":"NetworkInitialSync"},"ts":`)
 	GetInstance().SendBlockImport("hash", big.NewInt(2))
 	time.Sleep(time.Millisecond)
-	// note, we only check the first 101 bytes because the remaining bytes are the timestamp, which we can't estimate
-	require.Equal(t, expected, lastMessage[:101])
+	require.Contains(t, string(lastMessage), string(expected))
+}
+
+var resultCh chan []byte
+
+func TestHandler_SendBlockImport_Race(t *testing.T) {
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	resultCh = make(chan []byte)
+
+	go func() {
+		GetInstance().SendBlockImport("hash", big.NewInt(2))
+		// note, we only check the first 101 bytes because the remaining bytes are the timestamp, which we can't estimate
+		wg.Done()
+	}()
+
+	go func() {
+		GetInstance().SendNetworkData(NewNetworkData(1, 2, 3))
+		// note, we only check the first 103 bytes because the remaining bytes are the timestamp, which we can't estimate
+		wg.Done()
+	}()
+	wg.Wait()
+
+	expected1 := []byte(`{"id":1,"payload":{"bandwidth_download":2,"bandwidth_upload":3,"msg":"system.interval","peers":1},"ts":`)
+	expected2 := []byte(`{"id":1,"payload":{"best":"hash","height":2,"msg":"block.import","origin":"NetworkInitialSync"},"ts":`)
+
+	expected := [][]byte{expected1, expected2}
+	var actual [][]byte
+	for data := range resultCh {
+		actual = append(actual, data)
+		if len(actual) == 2 {
+			break
+		}
+	}
+
+	sort.Slice(actual, func(i, j int) bool {
+		return bytes.Compare(actual[i], actual[j]) < 0
+	})
+	require.Contains(t, string(actual[0]), string(expected[0]))
+	require.Contains(t, string(actual[1]), string(expected[1]))
 }
 
 func TestHandler_SendNetworkData(t *testing.T) {
 	expected := []byte(`{"id":1,"payload":{"bandwidth_download":2,"bandwidth_upload":3,"msg":"system.interval","peers":1},"ts":`)
-	GetInstance().SendNetworkData(&NetworkData{
-		Peers:   1,
-		RateIn:  2,
-		RateOut: 3,
-	})
+	GetInstance().SendNetworkData(NewNetworkData(1, 2, 3))
 	time.Sleep(time.Millisecond)
-	// note, we only check the first 103 bytes because the remaining bytes are the timestamp, which we can't estimate
-	require.Equal(t, expected, lastMessage[:103])
+	require.Contains(t, string(lastMessage), string(expected))
 }
 
 func TestHandler_SendBlockIntervalData(t *testing.T) {
@@ -85,7 +121,7 @@ func TestHandler_SendBlockIntervalData(t *testing.T) {
 		UsedStateCacheSize: 1886357,
 	})
 	time.Sleep(time.Millisecond)
-	require.Equal(t, expected, lastMessage[:295])
+	require.Contains(t, string(lastMessage), string(expected))
 }
 
 func listen(w http.ResponseWriter, r *http.Request) {
@@ -100,6 +136,8 @@ func listen(w http.ResponseWriter, r *http.Request) {
 			log.Printf("read err %v", err)
 			break
 		}
+
 		lastMessage = msg
+		resultCh <- msg
 	}
 }

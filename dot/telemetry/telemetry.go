@@ -73,6 +73,8 @@ func GetInstance() *Handler {
 
 // AddConnections adds connections to telemetry sever
 func (h *Handler) AddConnections(conns []*genesis.TelemetryEndpoint) {
+	h.Lock()
+	defer h.Unlock()
 	for _, v := range conns {
 		c, _, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
 		if err != nil {
@@ -114,15 +116,24 @@ func (h *Handler) SendBlockImport(bestHash string, height *big.Int) {
 }
 
 // NetworkData struct to hold network data telemetry information
-type NetworkData struct {
-	Peers   int
-	RateIn  float64
-	RateOut float64
+type networkData struct {
+	peers   int
+	rateIn  float64
+	rateOut float64
+}
+
+// NewNetworkData creates networkData struct
+func NewNetworkData(peers int, rateIn, rateOut float64) *networkData {
+	return &networkData{
+		peers:   peers,
+		rateIn:  rateIn,
+		rateOut: rateOut,
+	}
 }
 
 // SendNetworkData send network data system.interval message to telemetry connection
-func (h *Handler) SendNetworkData(data *NetworkData) {
-	payload := log.Fields{"bandwidth_download": data.RateIn, "bandwidth_upload": data.RateOut, "msg": "system.interval", "peers": data.Peers}
+func (h *Handler) SendNetworkData(data *networkData) {
+	payload := log.Fields{"bandwidth_download": data.rateIn, "bandwidth_upload": data.rateOut, "msg": "system.interval", "peers": data.peers}
 	h.telemetryLogger = log.WithFields(log.Fields{"id": 1, "payload": payload, "ts": time.Now()})
 	h.telemetryLogger.Print()
 	h.sendTelemetry()
@@ -140,6 +151,8 @@ type BlockIntervalData struct {
 
 // SendBlockIntervalData send block data system interval information to telemetry connection
 func (h *Handler) SendBlockIntervalData(data *BlockIntervalData) {
+	h.Lock()
+	defer h.Unlock()
 	payload := log.Fields{"best": data.BestHash.String(), "finalized_hash": data.FinalizedHash.String(),
 		"finalized_height": data.FinalizedHeight, "height": data.BestHeight, "msg": "system.interval", "txcount": data.TXCount,
 		"used_state_cache_size": data.UsedStateCacheSize}

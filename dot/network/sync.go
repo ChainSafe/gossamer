@@ -25,7 +25,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -171,7 +170,6 @@ func (q *syncQueue) start() {
 
 	go q.benchmark()
 	go q.prunePeers()
-	go q.sentBlockIntervalTelemetry()
 }
 
 func (q *syncQueue) syncAtHead() {
@@ -358,28 +356,6 @@ func (q *syncQueue) benchmark() {
 	}
 }
 
-func (q *syncQueue) sentBlockIntervalTelemetry() {
-	for {
-		best, err := q.s.blockState.BestBlockHeader()
-		if err != nil {
-			continue
-		}
-		finalized, err := q.s.blockState.GetFinalizedHeader(0, 0) //nolint
-		if err != nil {
-			continue
-		}
-
-		telemetry.GetInstance().SendBlockIntervalData(&telemetry.BlockIntervalData{
-			BestHash:           best.Hash(),
-			BestHeight:         best.Number,
-			FinalizedHash:      finalized.Hash(),
-			FinalizedHeight:    finalized.Number,
-			TXCount:            0, // todo (ed) determine where to get tx count
-			UsedStateCacheSize: 0, // todo (ed) determine where to get used_state_cache_size
-		})
-		time.Sleep(time.Second * 5)
-	}
-}
 func (q *syncQueue) stringifyResponseQueue() string {
 	if len(q.responses) == 0 {
 		return "[empty]"

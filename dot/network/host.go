@@ -317,11 +317,13 @@ func (h *host) writeToStream(s libp2pnetwork.Stream, msg Message) error {
 	encMsg = append(lenBytes, encMsg...)
 
 	sent, err := s.Write(encMsg)
-	if err == nil {
-		// todo (ed) determine if there are other places to capture data sent
-		h.bwc.LogSentMessage(int64(sent))
+	if err != nil {
+		return err
 	}
-	return err
+
+	h.bwc.LogSentMessage(int64(sent))
+
+	return nil
 }
 
 // getOutboundStream returns the outbound message stream for the given peer or returns

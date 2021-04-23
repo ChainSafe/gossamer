@@ -19,6 +19,7 @@ package network
 import (
 	"errors"
 	"path"
+	"time"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p-core/crypto"
@@ -93,6 +94,9 @@ type Config struct {
 
 	// PublishMetrics enables collection of network metrics
 	PublishMetrics bool
+
+	// telemetryInterval how often to send telemetry metrics
+	telemetryInterval time.Duration
 }
 
 // build checks the configuration, sets up the private key for the network service,
@@ -132,6 +136,11 @@ func (c *Config) build() error {
 	// check bootnoode configuration
 	if !c.NoBootstrap && len(c.Bootnodes) == 0 {
 		c.logger.Warn("Bootstrap is enabled but no bootstrap nodes are defined")
+	}
+
+	// set telemetryInterval to default
+	if c.telemetryInterval.Microseconds() == 0 {
+		c.telemetryInterval = time.Second * 5
 	}
 
 	return nil
