@@ -42,7 +42,7 @@ Gossamer packages can be categorized into **four package types**:
 
 #### `dot/core`
 
-- The **core package** implements the [Core Service](/getting-started/overview/host-architecture#core-service) -  responsible for block production and block finalization (consensus) and processing messages received from the [Network Service](/getting-started/overview/host-architecture/#network-service).
+- The **core package** implements the [Core Service](/getting-started/overview/host-architecture#core-service) -  responsible for block production and block finalisation (consensus) and processing messages received from the [Network Service](/getting-started/overview/host-architecture/#network-service).
 
 #### `dot/network`
 

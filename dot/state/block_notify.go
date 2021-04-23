@@ -49,7 +49,7 @@ func (bs *BlockState) RegisterImportedChannel(ch chan<- *types.Block) (byte, err
 	return id, nil
 }
 
-// RegisterFinalizedChannel registers a channel for block notification upon block finalization.
+// RegisterFinalizedChannel registers a channel for block notification upon block finalisation.
 // It returns the channel ID (used for unregistering the channel)
 func (bs *BlockState) RegisterFinalizedChannel(ch chan<- *types.Header) (byte, error) {
 	bs.finalisedLock.RLock()
@@ -83,7 +83,7 @@ func (bs *BlockState) UnregisterImportedChannel(id byte) {
 	delete(bs.imported, id)
 }
 
-// UnregisterFinalizedChannel removes the block finalization notification channel with the given ID.
+// UnregisterFinalizedChannel removes the block finalisation notification channel with the given ID.
 // A channel must be unregistered before closing it.
 func (bs *BlockState) UnregisterFinalizedChannel(id byte) {
 	bs.finalisedLock.Lock()

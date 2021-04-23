@@ -389,7 +389,7 @@ func (s *Service) playGrandpaRound() error {
 	if bytes.Equal(primary.key.Encode(), s.keypair.Public().Encode()) {
 		msg, err := s.newCommitMessage(s.head, s.state.round-1).ToConsensusMessage()
 		if err != nil {
-			logger.Error("failed to encode finalization message", "error", err)
+			logger.Error("failed to encode finalisation message", "error", err)
 		} else {
 			s.network.SendMessage(msg)
 		}
@@ -403,7 +403,7 @@ func (s *Service) playGrandpaRound() error {
 		} else {
 			msg, err = primProposal.ToConsensusMessage()
 			if err != nil {
-				logger.Error("failed to encode finalization message", "error", err)
+				logger.Error("failed to encode finalisation message", "error", err)
 			} else {
 				s.network.SendMessage(msg)
 			}
@@ -568,7 +568,7 @@ func (s *Service) playGrandpaRound() error {
 	return nil
 }
 
-// attemptToFinalize loops until the round is finalizable
+// attemptToFinalize loops until the round is finalisable
 func (s *Service) attemptToFinalize() error {
 	if s.paused.Load().(bool) {
 		return ErrServicePaused
@@ -595,7 +595,7 @@ func (s *Service) attemptToFinalize() error {
 			return err
 		}
 
-		// if we haven't received a finalization message for this block yet, broadcast a finalization message
+		// if we haven't received a finalisation message for this block yet, broadcast a finalisation message
 		votes := s.getDirectVotes(precommit)
 		logger.Debug("finalised block!!!", "setID", s.state.setID, "round", s.state.round, "hash", s.head.Hash(),
 			"precommits #", pc, "votes for bfc #", votes[*bfc], "total votes for bfc", pc, "precommits", s.precommits)

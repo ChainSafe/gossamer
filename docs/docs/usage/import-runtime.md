@@ -35,7 +35,7 @@ To create the raw genesis file used by the node, you can use the `gossamer build
 
 This creates a genesis file `genesis.json` that is usable by the node.
 
-### 3. Initialize the node with the genesis file
+### 3. Initialise the node with the genesis file
 
 Next, you will need to write the state in `genesis.json` to the database by initialising the node.
 

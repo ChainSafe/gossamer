@@ -77,7 +77,7 @@ After it's finished bootstrapping, the node should begin to sync.
 
 ## Run Polkadot Node 
 
-Initialize polkadot node:
+Initialise polkadot node:
 ```
 ./bin/gossamer --chain polkadot init
 ```

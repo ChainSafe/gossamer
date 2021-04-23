@@ -6,7 +6,7 @@ permalink: /usage/command-line/
 
 ## Gossamer Command
 
-The `gossamer` command is the root command for the `gossamer` package (`cmd/gossamer`). The root command starts the node (and initialises the node if the node has not already been initialized). 
+The `gossamer` command is the root command for the `gossamer` package (`cmd/gossamer`). The root command starts the node (and initialises the node if the node has not already been initialised). 
 
 ### Accepted Formats
 
@@ -69,7 +69,7 @@ SUBCOMMANDS:
     help, h        Shows a list of commands or help for one command
     account        Create and manage node keystore accounts
     export         Export configuration values to TOML configuration file
-    init           Initialize node databases and load genesis data to state
+    init           Initialise node databases and load genesis data to state
 ```
 
 List of ***local flags*** for `init` subcommand:

@@ -71,7 +71,7 @@ func NewService(path string, lvl log.Lvl) *Service {
 }
 
 // UseMemDB tells the service to use an in-memory key-value store instead of a persistent database.
-// This should be called after NewService, and before Initialize.
+// This should be called after NewService, and before Initialise.
 // This should only be used for testing.
 func (s *Service) UseMemDB() {
 	s.isMemDB = true
@@ -83,7 +83,7 @@ func (s *Service) DB() chaindb.Database {
 }
 
 // Initialise initialises the genesis state of the DB using the given storage trie. The trie should be loaded with the genesis storage state.
-// This only needs to be called during genesis initialization of the node; it doesn't need to be called during normal startup.
+// This only needs to be called during genesis initialisation of the node; it doesn't need to be called during normal startup.
 func (s *Service) Initialize(gen *genesis.Genesis, header *types.Header, t *trie.Trie) error {
 	var db chaindb.Database
 	cfg := &chaindb.Config{}

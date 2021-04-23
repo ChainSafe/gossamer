@@ -972,7 +972,7 @@ func TestIsFinalisable_True(t *testing.T) {
 
 	finalisable, err := gs.isFinalisable(gs.state.round)
 	require.NoError(t, err)
-	require.True(t, finalizable)
+	require.True(t, finalisable)
 }
 
 func TestIsFinalisable_False(t *testing.T) {
@@ -1000,7 +1000,7 @@ func TestIsFinalisable_False(t *testing.T) {
 		}
 	}
 
-	// previous round has finalised block # higher than current, so round is not finalizable
+	// previous round has finalised block # higher than current, so round is not finalisable
 	gs.state.round = 1
 	gs.bestFinalCandidate[0] = &Vote{
 		number: 4,

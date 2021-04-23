@@ -48,7 +48,7 @@ var (
 	initCommand = cli.Command{
 		Action:    FixFlagOrder(initAction),
 		Name:      "init",
-		Usage:     "Initialize node databases and load genesis data to state",
+		Usage:     "Initialise node databases and load genesis data to state",
 		ArgsUsage: "",
 		Flags:     InitFlags,
 		Category:  "INIT",

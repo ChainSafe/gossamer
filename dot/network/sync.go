@@ -59,7 +59,7 @@ func (s *Service) decodeSyncMessage(in []byte, peer peer.ID) (Message, error) {
 	return msg, err
 }
 
-// handleSyncMessage handles synchronization message types (BlockRequest and BlockResponse)
+// handleSyncMessage handles synchronisation message types (BlockRequest and BlockResponse)
 func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) error {
 	if msg == nil {
 		_ = stream.Close()
@@ -573,7 +573,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 		q.updatePeerScore(req.to, -1)
 	}
 
-	logger.Trace("trying peers in prioritized order...")
+	logger.Trace("trying peers in prioritised order...")
 	syncPeers := q.getSortedPeers()
 
 	for _, peer := range syncPeers {

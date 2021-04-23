@@ -194,7 +194,7 @@ func (d *AuthData) Decode(r io.Reader) error {
 	return nil
 }
 
-// CommitMessage represents a network finalization message
+// CommitMessage represents a network finalisation message
 type CommitMessage struct {
 	Round      uint64
 	SetID      uint64
