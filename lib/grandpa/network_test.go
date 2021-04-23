@@ -46,7 +46,7 @@ func TestGrandpaHandshake_Encode(t *testing.T) {
 func TestHandleNetworkMessage(t *testing.T) {
 	gs, st := newTestService(t)
 
-	gs.justification[77] = []*Justification{
+	gs.justification[77] = []*SignedPrecommit{
 		{
 			Vote:        testVote,
 			Signature:   testSignature,
@@ -54,7 +54,7 @@ func TestHandleNetworkMessage(t *testing.T) {
 		},
 	}
 
-	fm := gs.newFinalizationMessage(gs.head, 77)
+	fm := gs.newCommitMessage(gs.head, 77)
 	cm, err := fm.ToConsensusMessage()
 	require.NoError(t, err)
 	gs.state.voters = gs.state.voters[:1]

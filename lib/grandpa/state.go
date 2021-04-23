@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 )
 
@@ -48,6 +49,8 @@ type BlockState interface {
 	SetJustification(hash common.Hash, data []byte) error
 	HasJustification(hash common.Hash) (bool, error)
 	GetJustification(hash common.Hash) ([]byte, error)
+	GetHashByNumber(num *big.Int) (common.Hash, error)
+	BestBlockNumber() (*big.Int, error)
 }
 
 // DigestHandler is the interface required by GRANDPA for the digest handler
@@ -58,6 +61,7 @@ type DigestHandler interface {
 // Network is the interface required by GRANDPA for the network
 type Network interface {
 	SendMessage(msg network.NotificationsMessage)
+	SendJustificationRequest(to peer.ID, num uint32)
 	RegisterNotificationsProtocol(sub protocol.ID,
 		messageID byte,
 		handshakeGetter network.HandshakeGetter,

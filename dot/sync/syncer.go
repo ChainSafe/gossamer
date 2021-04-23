@@ -44,6 +44,7 @@ type Service struct {
 	storageState     StorageState
 	transactionState TransactionState
 	blockProducer    BlockProducer
+	finalityGadget   FinalityGadget
 
 	// Synchronization variables
 	synced           bool
@@ -63,6 +64,7 @@ type Config struct {
 	BlockState       BlockState
 	StorageState     StorageState
 	BlockProducer    BlockProducer
+	FinalityGadget   FinalityGadget
 	TransactionState TransactionState
 	Runtime          runtime.Instance
 	Verifier         Verifier
@@ -105,6 +107,7 @@ func NewService(cfg *Config) (*Service, error) {
 		blockState:       cfg.BlockState,
 		storageState:     cfg.StorageState,
 		blockProducer:    cfg.BlockProducer,
+		finalityGadget:   cfg.FinalityGadget,
 		synced:           true,
 		highestSeenBlock: big.NewInt(0),
 		transactionState: cfg.TransactionState,
@@ -149,6 +152,27 @@ func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) error {
 	return nil
 }
 
+// ProcessJustification processes block data containing justifications
+func (s *Service) ProcessJustification(data []*types.BlockData) (int, error) {
+	if len(data) == 0 {
+		return 0, ErrNilBlockData
+	}
+
+	for i, bd := range data {
+		header, err := s.blockState.GetHeader(bd.Hash)
+		if err != nil {
+			return i, err
+		}
+
+		if bd.Justification != nil && bd.Justification.Exists() {
+			logger.Debug("handling Justification...", "number", header.Number, "hash", bd.Hash)
+			s.handleJustification(header, bd.Justification.Value())
+		}
+	}
+
+	return 0, nil
+}
+
 // ProcessBlockData processes the BlockData from a BlockResponse and returns the index of the last BlockData it handled on success,
 // or the index of the block data that errored on failure.
 func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
@@ -178,8 +202,9 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 			}
 
 			err = s.blockState.AddBlockToBlockTree(header)
-			if err != nil {
-				logger.Debug("failed to add block to blocktree", "hash", bd.Hash, "error", err)
+			if err != nil && !errors.Is(err, blocktree.ErrBlockExists) {
+				logger.Warn("failed to add block to blocktree", "hash", bd.Hash, "error", err)
+				return i, err
 			}
 
 			if bd.Justification != nil && bd.Justification.Exists() {
@@ -350,7 +375,13 @@ func (s *Service) handleJustification(header *types.Header, justification []byte
 		return
 	}
 
-	err := s.blockState.SetFinalizedHash(header.Hash(), 0, 0)
+	err := s.finalityGadget.VerifyBlockJustification(justification)
+	if err != nil {
+		logger.Warn("failed to verify block justification", "hash", header.Hash(), "number", header.Number, "error", err)
+		return
+	}
+
+	err = s.blockState.SetFinalizedHash(header.Hash(), 0, 0)
 	if err != nil {
 		logger.Error("failed to set finalized hash", "error", err)
 		return

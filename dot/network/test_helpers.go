@@ -61,6 +61,10 @@ func (s *mockSyncer) ProcessBlockData(data []*types.BlockData) (int, error) {
 	return 0, nil
 }
 
+func (s *mockSyncer) ProcessJustification(data []*types.BlockData) (int, error) {
+	return 0, nil
+}
+
 func (s *mockSyncer) IsSynced() bool {
 	return s.synced
 }
