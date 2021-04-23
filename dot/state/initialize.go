@@ -17,6 +17,7 @@
 package state
 
 import (
+	"bytes"
 	"fmt"
 	"path/filepath"
 
@@ -103,12 +104,12 @@ func (s *Service) Initialize(gen *genesis.Genesis, header *types.Header, t *trie
 		return fmt.Errorf("failed to create epoch state: %s", err)
 	}
 
-	granpdaAuths, err := loadGrandpaAuthorities(rt)
+	grandpaAuths, err := loadGrandpaAuthorities(t)
 	if err != nil {
 		return fmt.Errorf("failed to load grandpa authorities: %w", err)
 	}
 
-	grandpaState, err := NewGrandpaStateFromGenesis(db, granpdaAuths)
+	grandpaState, err := NewGrandpaStateFromGenesis(db, grandpaAuths)
 	if err != nil {
 		return fmt.Errorf("failed to create grandpa state: %s", err)
 	}
@@ -148,13 +149,15 @@ func (s *Service) loadBabeConfigurationFromRuntime(r runtime.Instance) (*types.B
 	return babeCfg, nil
 }
 
-func loadGrandpaAuthorities(r runtime.Instance) ([]*types.GrandpaVoter, error) {
-	auths, err := r.GrandpaAuthorities()
-	if err != nil {
-		return nil, err
+func loadGrandpaAuthorities(t *trie.Trie) ([]*types.GrandpaVoter, error) {
+	authsRaw := t.Get(runtime.GrandpaAuthoritiesKey)
+	if authsRaw == nil {
+		return []*types.GrandpaVoter{}, nil
 	}
 
-	return types.NewGrandpaVotersFromAuthorities(auths), nil
+	r := &bytes.Buffer{}
+	_, _ = r.Write(authsRaw[1:])
+	return types.DecodeGrandpaVoters(r)
 }
 
 // storeInitialValues writes initial genesis values to the state database

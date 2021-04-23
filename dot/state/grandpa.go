@@ -32,6 +32,8 @@ var (
 	grandpaPrefix     = "grandpa"
 	authoritiesPrefix = []byte("auth")
 	setIDChangePrefix = []byte("change")
+	pauseKey          = []byte("pause")
+	resumeKey         = []byte("resume")
 	currentSetIDKey   = []byte("setID")
 )
 
@@ -170,6 +172,43 @@ func (s *GrandpaState) setSetIDChangeAtBlock(setID uint64, number *big.Int) erro
 // GetSetIDChange returs the block number where the set ID was updated
 func (s *GrandpaState) GetSetIDChange(setID uint64) (*big.Int, error) {
 	num, err := s.db.Get(setIDChangeKey(setID))
+	if err != nil {
+		return nil, err
+	}
+
+	return big.NewInt(0).SetBytes(num), nil
+}
+
+// SetNextPause sets the next grandpa pause at the given block number
+func (s *GrandpaState) SetNextPause(number *big.Int) error {
+	return s.db.Put(pauseKey, number.Bytes())
+}
+
+// GetNextPause returns the block number of the next grandpa pause, nil if there is no upcoming pause
+func (s *GrandpaState) GetNextPause() (*big.Int, error) {
+	num, err := s.db.Get(pauseKey)
+	if err == chaindb.ErrKeyNotFound {
+		return nil, nil
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return big.NewInt(0).SetBytes(num), nil
+}
+
+// SetNextResume sets the next grandpa resume at the given block number
+func (s *GrandpaState) SetNextResume(number *big.Int) error {
+	return s.db.Put(resumeKey, number.Bytes())
+}
+
+// GetNextResume returns the block number of the next grandpa resume, nil if there is no upcoming resume
+func (s *GrandpaState) GetNextResume() (*big.Int, error) {
+	num, err := s.db.Get(resumeKey)
+	if err == chaindb.ErrKeyNotFound {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}

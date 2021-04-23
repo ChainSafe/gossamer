@@ -203,7 +203,6 @@ func (h *DigestHandler) handleBlockFinalization(ctx context.Context) {
 func (h *DigestHandler) handleGrandpaChangesOnImport(num *big.Int) {
 	resume := h.grandpaResume
 	if resume != nil && num.Cmp(resume.atBlock) == 0 {
-		// TODO: update GrandpaState
 		h.grandpaResume = nil
 	}
 
@@ -221,7 +220,6 @@ func (h *DigestHandler) handleGrandpaChangesOnImport(num *big.Int) {
 func (h *DigestHandler) handleGrandpaChangesOnFinalization(num *big.Int) {
 	pause := h.grandpaPause
 	if pause != nil && num.Cmp(pause.atBlock) == 0 {
-		// TODO: update GrandpaState
 		h.grandpaPause = nil
 	}
 
@@ -279,7 +277,7 @@ func (h *DigestHandler) handleScheduledChange(d *types.ConsensusDigest, header *
 
 func (h *DigestHandler) handleForcedChange(d *types.ConsensusDigest, header *types.Header) error {
 	if d.ConsensusEngineID != types.GrandpaEngineID {
-		return nil // TODO: maybe error?
+		return nil
 	}
 
 	if header == nil {
@@ -333,7 +331,7 @@ func (h *DigestHandler) handlePause(d *types.ConsensusDigest) error {
 		atBlock: big.NewInt(-1).Add(curr.Number, delay),
 	}
 
-	return nil
+	return h.grandpaState.SetNextPause(h.grandpaPause.atBlock)
 }
 
 func (h *DigestHandler) handleResume(d *types.ConsensusDigest) error {
@@ -355,7 +353,7 @@ func (h *DigestHandler) handleResume(d *types.ConsensusDigest) error {
 		atBlock: big.NewInt(-1).Add(curr.Number, delay),
 	}
 
-	return nil
+	return h.grandpaState.SetNextResume(h.grandpaResume.atBlock)
 }
 
 func newGrandpaChange(raw []*types.GrandpaAuthoritiesRaw, delay uint32, currBlock *big.Int) (*grandpaChange, error) {

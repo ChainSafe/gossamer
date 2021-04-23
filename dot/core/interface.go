@@ -97,4 +97,6 @@ type EpochState interface {
 type GrandpaState interface {
 	SetNextChange(authorities []*grandpa.Voter, number *big.Int) error
 	IncrementSetID() error
+	SetNextPause(number *big.Int) error
+	SetNextResume(number *big.Int) error
 }

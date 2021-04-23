@@ -58,9 +58,6 @@ type Service struct {
 	blockProducer   BlockProducer
 	isBlockProducer bool
 
-	// Finality gadget variables
-	//isFinalityAuthority bool
-
 	// Block verification
 	verifier Verifier
 
@@ -90,8 +87,7 @@ type Config struct {
 	Runtime          runtime.Instance
 	BlockProducer    BlockProducer
 	IsBlockProducer  bool
-	//IsFinalityAuthority bool
-	Verifier Verifier
+	Verifier         Verifier
 
 	NewBlocks chan types.Block // only used for testing purposes
 }
@@ -156,10 +152,9 @@ func NewService(cfg *Config) (*Service, error) {
 		isBlockProducer:  cfg.IsBlockProducer,
 		blockProducer:    cfg.BlockProducer,
 		verifier:         cfg.Verifier,
-		//isFinalityAuthority: cfg.IsFinalityAuthority,
-		lock:         &sync.Mutex{},
-		blockAddCh:   blockAddCh,
-		blockAddChID: id,
+		lock:             &sync.Mutex{},
+		blockAddCh:       blockAddCh,
+		blockAddChID:     id,
 	}
 
 	if cfg.NewBlocks != nil {

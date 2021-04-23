@@ -175,6 +175,9 @@ func TestDigestHandler_GrandpaPauseAndResume(t *testing.T) {
 
 	err = handler.HandleConsensusDigest(d, nil)
 	require.NoError(t, err)
+	nextPause, err := handler.grandpaState.(*state.GrandpaState).GetNextPause()
+	require.NoError(t, err)
+	require.Equal(t, big.NewInt(int64(p.Delay)), nextPause)
 
 	headers := addTestBlocksToState(t, 3, handler.blockState)
 	for _, h := range headers {
@@ -182,6 +185,7 @@ func TestDigestHandler_GrandpaPauseAndResume(t *testing.T) {
 	}
 
 	time.Sleep(time.Millisecond * 100)
+	require.Nil(t, handler.grandpaPause)
 
 	r := &types.GrandpaResume{
 		Delay: 3,
@@ -200,7 +204,11 @@ func TestDigestHandler_GrandpaPauseAndResume(t *testing.T) {
 
 	addTestBlocksToState(t, 3, handler.blockState)
 	time.Sleep(time.Millisecond * 110)
-	// TODO: add Pause, Resume to GrandpaState
+	require.Nil(t, handler.grandpaResume)
+
+	nextResume, err := handler.grandpaState.(*state.GrandpaState).GetNextResume()
+	require.NoError(t, err)
+	require.Equal(t, big.NewInt(int64(r.Delay)+int64(p.Delay)), nextResume)
 }
 
 func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
