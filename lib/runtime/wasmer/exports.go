@@ -113,7 +113,7 @@ func (in *Instance) InitializeBlock(header *types.Header) error {
 		return fmt.Errorf("cannot encode header: %w", err)
 	}
 
-	_, err = in.exec(runtime.CoreInitialiseBlock, encodedHeader)
+	_, err = in.exec(runtime.CoreInitializeBlock, encodedHeader)
 	return err
 }
 
@@ -127,7 +127,8 @@ func (in *Instance) ApplyExtrinsic(data types.Extrinsic) ([]byte, error) {
 	return in.exec(runtime.BlockBuilderApplyExtrinsic, data)
 }
 
-// FinalizeBlock calls runtime API function BlockBuilder_finalise_block
+//nolint
+// FinalizeBlock calls runtime API function BlockBuilder_finalize_block
 func (in *Instance) FinalizeBlock() (*types.Header, error) {
 	data, err := in.exec(runtime.BlockBuilderFinalizeBlock, []byte{})
 	if err != nil {
