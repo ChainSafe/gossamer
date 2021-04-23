@@ -30,8 +30,11 @@ import (
 
 type subround byte
 
-var prevote subround = 0
-var precommit subround = 1
+var (
+	prevote         subround = 0
+	precommit       subround = 1
+	primaryProposal subround = 2
+)
 
 func (s subround) Encode() ([]byte, error) {
 	return []byte{byte(s)}, nil

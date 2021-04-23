@@ -86,8 +86,8 @@ func TestDecodeMessage_VoteMessage(t *testing.T) {
 	expected := &VoteMessage{
 		Round: 77,
 		SetID: 99,
-		Stage: precommit,
 		Message: &SignedMessage{
+			Stage:       precommit,
 			Hash:        common.MustHexToHash("0x7db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a"),
 			Number:      0x7777,
 			Signature:   sig,
@@ -98,29 +98,29 @@ func TestDecodeMessage_VoteMessage(t *testing.T) {
 	require.Equal(t, expected, msg)
 }
 
-func TestDecodeMessage_FinalizationMessage(t *testing.T) {
-	cm := &ConsensusMessage{
-		Data: common.MustHexToBytes("0x054d000000000000007db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a00000000040a0b0c0d00000000000000000000000000000000000000000000000000000000e70300000102030400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000034602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a691"),
-	}
-
-	msg, err := decodeMessage(cm)
-	require.NoError(t, err)
-
-	expected := &FinalizationMessage{
+func TestDecodeMessage_CommitMessage(t *testing.T) {
+	expected := &CommitMessage{
 		Round: 77,
+		SetID: 1,
 		Vote: &Vote{
 			hash:   common.MustHexToHash("0x7db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a"),
-			number: 0,
+			number: 99,
 		},
-		Justification: []*SignedPrecommit{
+		Precommits: []*Vote{
+			testVote,
+		},
+		AuthData: []*AuthData{
 			{
-				Vote:        testVote,
 				Signature:   testSignature,
 				AuthorityID: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 			},
 		},
 	}
+	cm, err := expected.ToConsensusMessage()
+	require.NoError(t, err)
 
+	msg, err := decodeMessage(cm)
+	require.NoError(t, err)
 	require.Equal(t, expected, msg)
 }
 
@@ -237,14 +237,14 @@ func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
 	require.Equal(t, err, ErrInvalidSignature)
 }
 
-func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
+func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	gs, st := newTestService(t)
 
 	round := uint64(77)
 	gs.state.round = round
 	gs.justification[round] = buildTestJustification(t, int(gs.state.threshold()), round, gs.state.setID, kr, precommit)
 
-	fm := gs.newFinalizationMessage(gs.head, round)
+	fm := gs.newCommitMessage(gs.head, round)
 	fm.Vote = NewVote(testHash, uint32(round))
 	cm, err := fm.ToConsensusMessage()
 	require.NoError(t, err)
@@ -263,7 +263,7 @@ func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_ValidSig(t *testing
 	require.Equal(t, fm.Vote.hash, hash)
 }
 
-func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_MinVoteError(t *testing.T) {
+func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T) {
 	gs, st := newTestService(t)
 
 	round := uint64(77)
@@ -271,7 +271,7 @@ func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_MinVoteError(t *tes
 
 	gs.justification[round] = buildTestJustification(t, int(gs.state.threshold()), round, gs.state.setID, kr, precommit)
 
-	fm := gs.newFinalizationMessage(gs.head, round)
+	fm := gs.newCommitMessage(gs.head, round)
 	cm, err := fm.ToConsensusMessage()
 	require.NoError(t, err)
 
@@ -281,7 +281,7 @@ func TestMessageHandler_FinalizationMessage_NoCatchUpRequest_MinVoteError(t *tes
 	require.Nil(t, out)
 }
 
-func TestMessageHandler_FinalizationMessage_WithCatchUpRequest(t *testing.T) {
+func TestMessageHandler_CommitMessage_WithCatchUpRequest(t *testing.T) {
 	gs, st := newTestService(t)
 
 	gs.justification[77] = []*SignedPrecommit{
@@ -292,7 +292,7 @@ func TestMessageHandler_FinalizationMessage_WithCatchUpRequest(t *testing.T) {
 		},
 	}
 
-	fm := gs.newFinalizationMessage(gs.head, 77)
+	fm := gs.newCommitMessage(gs.head, 77)
 	cm, err := fm.ToConsensusMessage()
 	require.NoError(t, err)
 	gs.state.voters = gs.state.voters[:1]

@@ -16,10 +16,10 @@ type StorageAPI interface {
 	GetStorage(root *common.Hash, key []byte) ([]byte, error)
 	GetStorageByBlockHash(bhash common.Hash, key []byte) ([]byte, error)
 	Entries(root *common.Hash) (map[string][]byte, error)
-	RegisterStorageChangeChannel(sub state.StorageSubscription) (byte, error)
-	UnregisterStorageChangeChannel(id byte)
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 	GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error)
+	RegisterStorageObserver(observer state.Observer)
+	UnregisterStorageObserver(observer state.Observer)
 }
 
 // BlockAPI is the interface for the block state

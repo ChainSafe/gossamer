@@ -259,7 +259,7 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(kr.Keys))
 
-	finalised := make([]*FinalizationMessage, len(kr.Keys))
+	finalised := make([]*CommitMessage, len(kr.Keys))
 
 	for i, fin := range fins {
 		go func(i int, fin <-chan GrandpaMessage) {
@@ -267,7 +267,7 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 			case f := <-fin:
 
 				// receive first message, which is finalised block from previous round
-				if f.(*FinalizationMessage).Round == 0 {
+				if f.(*CommitMessage).Round == 0 {
 					select {
 					case f = <-fin:
 					case <-time.After(testTimeout):
@@ -275,7 +275,7 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 					}
 				}
 
-				finalised[i] = f.(*FinalizationMessage)
+				finalised[i] = f.(*CommitMessage)
 
 			case <-time.After(testTimeout):
 				t.Errorf("did not receive finalised block from %d", i)
@@ -289,9 +289,11 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 
 	for _, fb := range finalised {
 		require.NotNil(t, fb)
-		require.GreaterOrEqual(t, len(fb.Justification), len(kr.Keys)/2)
-		finalised[0].Justification = []*SignedPrecommit{}
-		fb.Justification = []*SignedPrecommit{}
+		require.GreaterOrEqual(t, len(fb.Precommits), len(kr.Keys)/2)
+		finalised[0].Precommits = []*Vote{}
+		finalised[0].AuthData = []*AuthData{}
+		fb.Precommits = []*Vote{}
+		fb.AuthData = []*AuthData{}
 		require.Equal(t, finalised[0], fb)
 	}
 }
@@ -357,7 +359,7 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(kr.Keys))
 
-	finalised := make([]*FinalizationMessage, len(kr.Keys))
+	finalised := make([]*CommitMessage, len(kr.Keys))
 
 	for i, fin := range fins {
 
@@ -366,7 +368,7 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 			case f := <-fin:
 
 				// receive first message, which is finalised block from previous round
-				if f.(*FinalizationMessage).Round == 0 {
+				if f.(*CommitMessage).Round == 0 {
 					select {
 					case f = <-fin:
 					case <-time.After(testTimeout):
@@ -374,7 +376,8 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 					}
 				}
 
-				finalised[i] = f.(*FinalizationMessage)
+				finalised[i] = f.(*CommitMessage)
+
 			case <-time.After(testTimeout):
 				t.Errorf("did not receive finalised block from %d", i)
 			}
@@ -387,9 +390,12 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 
 	for _, fb := range finalised {
 		require.NotNil(t, fb)
-		require.GreaterOrEqual(t, len(fb.Justification), len(kr.Keys)/2)
-		finalised[0].Justification = []*SignedPrecommit{}
-		fb.Justification = []*SignedPrecommit{}
+		require.GreaterOrEqual(t, len(fb.Precommits), len(kr.Keys)/2)
+		require.GreaterOrEqual(t, len(fb.AuthData), len(kr.Keys)/2)
+		finalised[0].Precommits = []*Vote{}
+		finalised[0].AuthData = []*AuthData{}
+		fb.Precommits = []*Vote{}
+		fb.AuthData = []*AuthData{}
 		require.Equal(t, finalised[0], fb)
 	}
 }
@@ -454,7 +460,7 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(kr.Keys))
 
-	finalised := make([]*FinalizationMessage, len(kr.Keys))
+	finalised := make([]*CommitMessage, len(kr.Keys))
 
 	for i, fin := range fins {
 
@@ -463,7 +469,8 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 			case f := <-fin:
 
 				// receive first message, which is finalised block from previous round
-				if f.(*FinalizationMessage).Round == 0 {
+				if f.(*CommitMessage).Round == 0 {
+
 					select {
 					case f = <-fin:
 					case <-time.After(testTimeout):
@@ -471,7 +478,7 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 					}
 				}
 
-				finalised[i] = f.(*FinalizationMessage)
+				finalised[i] = f.(*CommitMessage)
 			case <-time.After(testTimeout):
 				t.Errorf("did not receive finalised block from %d", i)
 			}
@@ -484,9 +491,12 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 
 	for _, fb := range finalised {
 		require.NotNil(t, fb)
-		require.GreaterOrEqual(t, len(fb.Justification), len(kr.Keys)/2)
-		finalised[0].Justification = []*SignedPrecommit{}
-		fb.Justification = []*SignedPrecommit{}
+		require.GreaterOrEqual(t, len(fb.Precommits), len(kr.Keys)/2)
+		require.GreaterOrEqual(t, len(fb.AuthData), len(kr.Keys)/2)
+		finalised[0].Precommits = []*Vote{}
+		finalised[0].AuthData = []*AuthData{}
+		fb.Precommits = []*Vote{}
+		fb.AuthData = []*AuthData{}
 		require.Equal(t, finalised[0], fb)
 	}
 }
@@ -535,7 +545,7 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 		wg := sync.WaitGroup{}
 		wg.Add(len(kr.Keys))
 
-		finalised := make([]*FinalizationMessage, len(kr.Keys))
+		finalised := make([]*CommitMessage, len(kr.Keys))
 
 		for i, fin := range fins {
 
@@ -544,7 +554,7 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 				case f := <-fin:
 
 					// receive first message, which is finalised block from previous round
-					if f.(*FinalizationMessage).Round == uint64(j) {
+					if f.(*CommitMessage).Round == uint64(j) {
 						select {
 						case f = <-fin:
 						case <-time.After(testTimeout):
@@ -552,7 +562,7 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 						}
 					}
 
-					finalised[i] = f.(*FinalizationMessage)
+					finalised[i] = f.(*CommitMessage)
 				case <-time.After(testTimeout):
 					t.Errorf("did not receive finalised block from %d", i)
 				}
@@ -567,9 +577,12 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 		for _, fb := range finalised {
 			require.NotNil(t, fb)
 			require.Equal(t, head, fb.Vote.hash)
-			require.GreaterOrEqual(t, len(fb.Justification), len(kr.Keys)/2)
-			finalised[0].Justification = []*SignedPrecommit{}
-			fb.Justification = []*SignedPrecommit{}
+			require.GreaterOrEqual(t, len(fb.Precommits), len(kr.Keys)/2)
+			require.GreaterOrEqual(t, len(fb.AuthData), len(kr.Keys)/2)
+			finalised[0].Precommits = []*Vote{}
+			finalised[0].AuthData = []*AuthData{}
+			fb.Precommits = []*Vote{}
+			fb.AuthData = []*AuthData{}
 			require.Equal(t, finalised[0], fb)
 		}
 
