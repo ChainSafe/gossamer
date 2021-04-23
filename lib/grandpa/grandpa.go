@@ -67,7 +67,6 @@ type Service struct {
 	pcEquivocations  map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-commit stage
 	tracker          *tracker                           // tracker of vote messages we may need in the future
 	head             *types.Header                      // most recently finalized block
-	//nextAuthorities  []*Voter                           // if not nil, the updated authorities for the next round
 
 	// historical information
 	preVotedBlock      map[uint64]*Vote              // map of round number -> pre-voted block
