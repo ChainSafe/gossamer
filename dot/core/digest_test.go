@@ -101,7 +101,12 @@ func TestDigestHandler_GrandpaScheduledChange(t *testing.T) {
 	setID, err := handler.grandpaState.(*state.GrandpaState).GetCurrentSetID()
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), setID)
-	// TODO: check authorities were set
+
+	auths, err := handler.grandpaState.(*state.GrandpaState).GetAuthorities(setID)
+	require.NoError(t, err)
+	expected, err := types.NewGrandpaVotersFromAuthoritiesRaw(sc.Auths)
+	require.NoError(t, err)
+	require.Equal(t, expected, auths)
 }
 
 func TestDigestHandler_GrandpaForcedChange(t *testing.T) {
@@ -143,6 +148,12 @@ func TestDigestHandler_GrandpaForcedChange(t *testing.T) {
 	setID, err := handler.grandpaState.(*state.GrandpaState).GetCurrentSetID()
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), setID)
+
+	auths, err := handler.grandpaState.(*state.GrandpaState).GetAuthorities(setID)
+	require.NoError(t, err)
+	expected, err := types.NewGrandpaVotersFromAuthoritiesRaw(fc.Auths)
+	require.NoError(t, err)
+	require.Equal(t, expected, auths)
 }
 
 func TestDigestHandler_GrandpaPauseAndResume(t *testing.T) {
@@ -219,12 +230,22 @@ func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
 
 	next := handler.NextGrandpaAuthorityChange()
 	require.Equal(t, uint64(block), next)
+
+	nextSetID := uint64(1)
+	auths, err := handler.grandpaState.(*state.GrandpaState).GetAuthorities(nextSetID)
+	require.NoError(t, err)
+	expected, err := types.NewGrandpaVotersFromAuthoritiesRaw(sc.Auths)
+	require.NoError(t, err)
+	require.Equal(t, expected, auths)
 }
 
 func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 	handler := newTestDigestHandler(t, false, true)
 	handler.Start()
 	defer handler.Stop()
+
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
 
 	later := uint32(6)
 	sc := &types.GrandpaScheduledChange{
@@ -247,9 +268,18 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 	err = handler.HandleConsensusDigest(d, header)
 	require.NoError(t, err)
 
+	nextSetID := uint64(1)
+	auths, err := handler.grandpaState.(*state.GrandpaState).GetAuthorities(nextSetID)
+	require.NoError(t, err)
+	expected, err := types.NewGrandpaVotersFromAuthoritiesRaw(sc.Auths)
+	require.NoError(t, err)
+	require.Equal(t, expected, auths)
+
 	earlier := uint32(4)
 	fc := &types.GrandpaForcedChange{
-		Auths: []*types.GrandpaAuthoritiesRaw{},
+		Auths: []*types.GrandpaAuthoritiesRaw{
+			{Key: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(), ID: 0},
+		},
 		Delay: earlier,
 	}
 
@@ -266,6 +296,12 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 
 	next := handler.NextGrandpaAuthorityChange()
 	require.Equal(t, uint64(earlier+1), next)
+
+	auths, err = handler.grandpaState.(*state.GrandpaState).GetAuthorities(nextSetID)
+	require.NoError(t, err)
+	expected, err = types.NewGrandpaVotersFromAuthoritiesRaw(fc.Auths)
+	require.NoError(t, err)
+	require.Equal(t, expected, auths)
 }
 
 func TestDigestHandler_HandleBABEOnDisabled(t *testing.T) {

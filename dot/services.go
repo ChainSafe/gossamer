@@ -228,13 +228,11 @@ func createCoreService(cfg *Config, bp core.BlockProducer, verifier *babe.Verifi
 		StorageState:     stateSrvc.Storage,
 		TransactionState: stateSrvc.Transaction,
 		BlockProducer:    bp,
-		//FinalityGadget:      fg,
-		Keystore:            ks,
-		Runtime:             rt,
-		IsBlockProducer:     cfg.Core.BabeAuthority,
-		IsFinalityAuthority: cfg.Core.GrandpaAuthority,
-		Verifier:            verifier,
-		Network:             net,
+		Keystore:         ks,
+		Runtime:          rt,
+		IsBlockProducer:  cfg.Core.BabeAuthority,
+		Verifier:         verifier,
+		Network:          net,
 	}
 
 	// create new core service

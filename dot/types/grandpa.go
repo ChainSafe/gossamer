@@ -115,6 +115,25 @@ func NewGrandpaVotersFromAuthorities(ad []*Authority) []*GrandpaVoter {
 	return v
 }
 
+// NewGrandpaVotersFromAuthoritiesRaw returns an array of GrandpaVoters given an array of GrandpaAuthoritiesRaw
+func NewGrandpaVotersFromAuthoritiesRaw(ad []*GrandpaAuthoritiesRaw) ([]*GrandpaVoter, error) {
+	v := make([]*GrandpaVoter, len(ad))
+
+	for i, d := range ad {
+		key, err := ed25519.NewPublicKey(d.Key[:])
+		if err != nil {
+			return nil, err
+		}
+
+		v[i] = &GrandpaVoter{
+			Key: key,
+			ID:  d.ID,
+		}
+	}
+
+	return v, nil
+}
+
 // GrandpaVoters represents []*GrandpaVoter
 type GrandpaVoters []*GrandpaVoter
 

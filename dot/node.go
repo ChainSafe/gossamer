@@ -248,7 +248,6 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		return nil, err
 	}
 	nodeSrvcs = append(nodeSrvcs, fg)
-	//dh.SetFinalityGadget(fg) // TODO: this should be cleaned up
 
 	// Syncer
 	syncer, err := createSyncService(cfg, stateSrvc, bp, fg, dh, ver, rt)

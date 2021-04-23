@@ -297,6 +297,8 @@ func (h *DigestHandler) handleForcedChange(d *types.ConsensusDigest, header *typ
 	}
 	fc = dec.(*types.GrandpaForcedChange)
 
+	logger.Debug("handling GrandpaForcedChange", "data", fc)
+
 	c, err := newGrandpaChange(fc.Auths, fc.Delay, header.Number)
 	if err != nil {
 		return err

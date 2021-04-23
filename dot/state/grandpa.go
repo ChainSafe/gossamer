@@ -1,3 +1,19 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package state
 
 import (
@@ -12,6 +28,7 @@ import (
 )
 
 var (
+	genesisSetID      = uint64(0)
 	grandpaPrefix     = "grandpa"
 	authoritiesPrefix = []byte("auth")
 	setIDChangePrefix = []byte("change")
@@ -20,9 +37,8 @@ var (
 
 // GrandpaState tracks information related to grandpa
 type GrandpaState struct {
-	baseDB     chaindb.Database
-	db         chaindb.Database
-	blockState *BlockState
+	baseDB chaindb.Database
+	db     chaindb.Database
 }
 
 // NewGrandpaStateFromGenesis returns a new GrandpaState given the grandpa genesis authorities
@@ -33,13 +49,12 @@ func NewGrandpaStateFromGenesis(db chaindb.Database, genesisAuthorities []*types
 		db:     grandpaDB,
 	}
 
-	// genesis has set ID 0
-	err := s.setCurrentSetID(0)
+	err := s.setCurrentSetID(genesisSetID)
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.setAuthorities(1, genesisAuthorities)
+	err = s.setAuthorities(genesisSetID, genesisAuthorities)
 	if err != nil {
 		return nil, err
 	}
@@ -48,11 +63,10 @@ func NewGrandpaStateFromGenesis(db chaindb.Database, genesisAuthorities []*types
 }
 
 // NewGrandpaState returns a new GrandpaState
-func NewGrandpaState(db chaindb.Database, blockState *BlockState) (*GrandpaState, error) {
+func NewGrandpaState(db chaindb.Database) (*GrandpaState, error) {
 	return &GrandpaState{
-		baseDB:     db,
-		db:         chaindb.NewTable(db, grandpaPrefix),
-		blockState: blockState,
+		baseDB: db,
+		db:     chaindb.NewTable(db, grandpaPrefix),
 	}, nil
 }
 
