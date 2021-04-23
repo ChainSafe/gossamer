@@ -52,25 +52,25 @@ func (bs *BlockState) RegisterImportedChannel(ch chan<- *types.Block) (byte, err
 // RegisterFinalizedChannel registers a channel for block notification upon block finalization.
 // It returns the channel ID (used for unregistering the channel)
 func (bs *BlockState) RegisterFinalizedChannel(ch chan<- *types.Header) (byte, error) {
-	bs.finalizedLock.RLock()
+	bs.finalisedLock.RLock()
 
-	if len(bs.finalized) == 256 {
+	if len(bs.finalised) == 256 {
 		return 0, errors.New("channel limit reached")
 	}
 
 	var id byte
 	for {
 		id = generateID()
-		if bs.finalized[id] == nil {
+		if bs.finalised[id] == nil {
 			break
 		}
 	}
 
-	bs.finalizedLock.RUnlock()
+	bs.finalisedLock.RUnlock()
 
-	bs.finalizedLock.Lock()
-	bs.finalized[id] = ch
-	bs.finalizedLock.Unlock()
+	bs.finalisedLock.Lock()
+	bs.finalised[id] = ch
+	bs.finalisedLock.Unlock()
 	return id, nil
 }
 
@@ -86,10 +86,10 @@ func (bs *BlockState) UnregisterImportedChannel(id byte) {
 // UnregisterFinalizedChannel removes the block finalization notification channel with the given ID.
 // A channel must be unregistered before closing it.
 func (bs *BlockState) UnregisterFinalizedChannel(id byte) {
-	bs.finalizedLock.Lock()
-	defer bs.finalizedLock.Unlock()
+	bs.finalisedLock.Lock()
+	defer bs.finalisedLock.Unlock()
 
-	delete(bs.finalized, id)
+	delete(bs.finalised, id)
 }
 
 func (bs *BlockState) notifyImported(block *types.Block) {
@@ -112,22 +112,22 @@ func (bs *BlockState) notifyImported(block *types.Block) {
 }
 
 func (bs *BlockState) notifyFinalized(hash common.Hash) {
-	bs.finalizedLock.RLock()
-	defer bs.finalizedLock.RUnlock()
+	bs.finalisedLock.RLock()
+	defer bs.finalisedLock.RUnlock()
 
-	if len(bs.finalized) == 0 {
+	if len(bs.finalised) == 0 {
 		return
 	}
 
 	header, err := bs.GetHeader(hash)
 	if err != nil {
-		logger.Error("failed to get finalized header", "hash", hash, "error", err)
+		logger.Error("failed to get finalised header", "hash", hash, "error", err)
 		return
 	}
 
-	logger.Trace("notifying finalized block chans...", "chans", bs.finalized)
+	logger.Trace("notifying finalised block chans...", "chans", bs.finalised)
 
-	for _, ch := range bs.finalized {
+	for _, ch := range bs.finalised {
 		go func(ch chan<- *types.Header) {
 			select {
 			case ch <- header:

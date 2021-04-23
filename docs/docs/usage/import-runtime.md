@@ -37,7 +37,7 @@ This creates a genesis file `genesis.json` that is usable by the node.
 
 ### 3. Initialize the node with the genesis file
 
-Next, you will need to write the state in `genesis.json` to the database by initializing the node.
+Next, you will need to write the state in `genesis.json` to the database by initialising the node.
 
 ```
 ./bin/gossamer init --genesis genesis.json

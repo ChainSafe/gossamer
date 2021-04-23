@@ -52,12 +52,12 @@ type Node struct {
 	wg       sync.WaitGroup
 }
 
-// InitNode initializes a new dot node from the provided dot node configuration
+// InitNode initialises a new dot node from the provided dot node configuration
 // and JSON formatted genesis file.
 func InitNode(cfg *Config) error {
 	setupLogger(cfg)
 	logger.Info(
-		"🕸️ initializing node...",
+		"🕸️ initialising node...",
 		"name", cfg.Global.Name,
 		"id", cfg.Global.ID,
 		"basepath", cfg.Global.BasePath,
@@ -98,14 +98,14 @@ func InitNode(cfg *Config) error {
 		stateSrvc.BabeThresholdDenominator = cfg.Core.BabeThresholdDenominator
 	}
 
-	// initialize state service with genesis data, block, and trie
+	// initialise state service with genesis data, block, and trie
 	err = stateSrvc.Initialize(gen, header, t)
 	if err != nil {
-		return fmt.Errorf("failed to initialize state service: %s", err)
+		return fmt.Errorf("failed to initialise state service: %s", err)
 	}
 
 	logger.Info(
-		"node initialized",
+		"node initialised",
 		"name", cfg.Global.Name,
 		"id", cfg.Global.ID,
 		"basepath", cfg.Global.BasePath,
@@ -126,7 +126,7 @@ func NodeInitialized(basepath string, expected bool) bool {
 	if os.IsNotExist(err) {
 		if expected {
 			logger.Debug(
-				"node has not been initialized",
+				"node has not been initialised",
 				"basepath", basepath,
 				"error", "failed to locate KEYREGISTRY file in data directory",
 			)
@@ -134,7 +134,7 @@ func NodeInitialized(basepath string, expected bool) bool {
 		return false
 	}
 
-	// initialize database using data directory
+	// initialise database using data directory
 	db, err := chaindb.NewBadgerDB(&chaindb.Config{
 		DataDir: basepath,
 	})
@@ -147,11 +147,11 @@ func NodeInitialized(basepath string, expected bool) bool {
 		return false
 	}
 
-	// load genesis data from initialized node database
+	// load genesis data from initialised node database
 	_, err = state.LoadGenesisData(db)
 	if err != nil {
 		logger.Warn(
-			"node has not been initialized",
+			"node has not been initialised",
 			"basepath", basepath,
 			"error", err,
 		)
@@ -186,7 +186,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	// Node Services
 
 	logger.Info(
-		"🕸️ initializing node services...",
+		"🕸️ initialising node services...",
 		"name", cfg.Global.Name,
 		"id", cfg.Global.ID,
 		"basepath", cfg.Global.BasePath,

@@ -171,13 +171,13 @@ func TestService_PruneStorage(t *testing.T) {
 		err = serv.Storage.StoreTrie(trieState)
 		require.NoError(t, err)
 
-		// Only finalize a block at height 3
+		// Only finalise a block at height 3
 		if i == 2 {
 			toFinalize = block.Header.Hash()
 		}
 	}
 
-	// add some blocks to prune, on a different chain from the finalized block
+	// add some blocks to prune, on a different chain from the finalised block
 	prunedArr := []prunedBlock{}
 	parentHash := serv.Block.GenesisHash()
 	for i := 0; i < 3; i++ {
@@ -202,7 +202,7 @@ func TestService_PruneStorage(t *testing.T) {
 		parentHash = block.Header.Hash()
 	}
 
-	// finalize a block
+	// finalise a block
 	serv.Block.SetFinalizedHash(toFinalize, 0, 0)
 
 	time.Sleep(1 * time.Second)

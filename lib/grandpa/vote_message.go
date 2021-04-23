@@ -246,7 +246,7 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *Vote, stage subround)
 }
 
 // validateVote checks if the block that is being voted for exists, and that it is a descendant of a
-// previously finalized block.
+// previously finalised block.
 func (s *Service) validateVote(v *Vote) error {
 	// check if v.hash corresponds to a valid block
 	has, err := s.blockState.HasHeader(v.hash)
@@ -258,7 +258,7 @@ func (s *Service) validateVote(v *Vote) error {
 		return ErrBlockDoesNotExist
 	}
 
-	// check if the block is an eventual descendant of a previously finalized block
+	// check if the block is an eventual descendant of a previously finalised block
 	isDescendant, err := s.blockState.IsDescendantOf(s.head.Hash(), v.hash)
 	if err != nil {
 		return err

@@ -72,7 +72,7 @@ Gossamer packages can be categorized into **four package types**:
 
 #### `lib/blocktree`
 
-- the **blocktree package** implements the blocktree, a data structure which tracks the chain and all its non-finalized forks.
+- the **blocktree package** implements the blocktree, a data structure which tracks the chain and all its non-finalised forks.
 
 #### `lib/common`
 

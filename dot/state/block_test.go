@@ -311,7 +311,7 @@ func TestFinalization_DeleteBlock(t *testing.T) {
 	// 	require.True(t, has, n)
 	// }
 
-	// pick block to finalize
+	// pick block to finalise
 	fin := leaves[len(leaves)-1]
 	err := bs.SetFinalizedHash(fin, 1, 1)
 	require.NoError(t, err)
@@ -328,7 +328,7 @@ func TestFinalization_DeleteBlock(t *testing.T) {
 		return false
 	}
 
-	// assert that every block except finalized has been deleted
+	// assert that every block except finalised has been deleted
 	for _, b := range before {
 		if b == fin {
 			continue
@@ -338,12 +338,12 @@ func TestFinalization_DeleteBlock(t *testing.T) {
 			continue
 		}
 
-		isFinalized, err := btBefore.IsDescendantOf(b, fin)
+		isFinalised, err := btBefore.IsDescendantOf(b, fin)
 		require.NoError(t, err)
 
 		has, err := bs.HasHeader(b)
 		require.NoError(t, err)
-		if isFinalized {
+		if isFinalised {
 			require.True(t, has)
 		} else {
 			require.False(t, has)
@@ -351,7 +351,7 @@ func TestFinalization_DeleteBlock(t *testing.T) {
 
 		has, err = bs.HasBlockBody(b)
 		require.NoError(t, err)
-		if isFinalized {
+		if isFinalised {
 			require.True(t, has)
 		} else {
 			require.False(t, has)
@@ -359,7 +359,7 @@ func TestFinalization_DeleteBlock(t *testing.T) {
 
 		// has, err = bs.HasArrivalTime(b)
 		// require.NoError(t, err)
-		// if isFinalized && b != bs.genesisHash {
+		// if isFinalised && b != bs.genesisHash {
 		// 	require.True(t, has, b)
 		// } else {
 		// 	require.False(t, has)

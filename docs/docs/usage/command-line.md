@@ -6,7 +6,7 @@ permalink: /usage/command-line/
 
 ## Gossamer Command
 
-The `gossamer` command is the root command for the `gossamer` package (`cmd/gossamer`). The root command starts the node (and initializes the node if the node has not already been initialized). 
+The `gossamer` command is the root command for the `gossamer` package (`cmd/gossamer`). The root command starts the node (and initialises the node if the node has not already been initialized). 
 
 ### Accepted Formats
 
@@ -188,15 +188,15 @@ Available built-in keys:
 ./bin/gossmer --key heather
 ```
 
-## Initializing Nodes
+## initialising Nodes
 
-To initialize or re-initialize a node, use the init subcommand `init`:
+To initialise or re-initialise a node, use the init subcommand `init`:
 ```
 ./bin/gossamer init
 ./bin/gossamer --key alice --roles 4
 ```
 
-`init` can be used with the `--base-path` or `--config` flag to re-initialize a custom node (ie, `bob` from the example above):
+`init` can be used with the `--base-path` or `--config` flag to re-initialise a custom node (ie, `bob` from the example above):
 ```
 ./bin/gossamer --config node/gssmr/bob.toml init
 ```

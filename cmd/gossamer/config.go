@@ -151,7 +151,7 @@ func createDotConfig(ctx *cli.Context) (*dot.Config, error) {
 	return cfg, nil
 }
 
-// createInitConfig creates the configuration required to initialize a dot node
+// createInitConfig creates the configuration required to initialise a dot node
 func createInitConfig(ctx *cli.Context) (*dot.Config, error) {
 	tomlCfg, cfg, err := setupConfigFromChain(ctx)
 	if err != nil {
@@ -736,9 +736,9 @@ func updateDotConfigFromGenesisJSONRaw(tomlCfg ctoml.Config, cfg *dot.Config) {
 	)
 }
 
-// updateDotConfigFromGenesisData updates the configuration from genesis data of an initialized node
+// updateDotConfigFromGenesisData updates the configuration from genesis data of an initialised node
 func updateDotConfigFromGenesisData(ctx *cli.Context, cfg *dot.Config) error {
-	// initialize database using data directory
+	// initialise database using data directory
 	db, err := chaindb.NewBadgerDB(&chaindb.Config{
 		DataDir: cfg.Global.BasePath,
 	})
@@ -746,7 +746,7 @@ func updateDotConfigFromGenesisData(ctx *cli.Context, cfg *dot.Config) error {
 		return fmt.Errorf("failed to create database: %s", err)
 	}
 
-	// load genesis data from initialized node database
+	// load genesis data from initialised node database
 	gen, err := state.LoadGenesisData(db)
 	if err != nil {
 		return fmt.Errorf("failed to load genesis data: %s", err)

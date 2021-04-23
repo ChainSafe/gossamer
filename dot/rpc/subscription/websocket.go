@@ -90,7 +90,7 @@ func (c *WSConn) HandleComm() {
 			case "chain_subscribeFinalizedHeads":
 				bfl, err3 := c.initBlockFinalizedListener(reqid)
 				if err3 != nil {
-					logger.Warn("failed to create block finalized", "error", err3)
+					logger.Warn("failed to create block finalised", "error", err3)
 					continue
 				}
 				c.startListener(bfl)

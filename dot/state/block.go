@@ -46,9 +46,9 @@ type BlockState struct {
 
 	// block notifiers
 	imported      map[byte]chan<- *types.Block
-	finalized     map[byte]chan<- *types.Header
+	finalised     map[byte]chan<- *types.Header
 	importedLock  sync.RWMutex
-	finalizedLock sync.RWMutex
+	finalisedLock sync.RWMutex
 
 	pruneKeyCh chan *types.Header
 }
@@ -64,7 +64,7 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 		baseDB:     db,
 		db:         chaindb.NewTable(db, blockPrefix),
 		imported:   make(map[byte]chan<- *types.Block),
-		finalized:  make(map[byte]chan<- *types.Header),
+		finalised:  make(map[byte]chan<- *types.Header),
 		pruneKeyCh: make(chan *types.Header, pruneKeyBufferSize),
 	}
 
@@ -77,14 +77,14 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 	return bs, nil
 }
 
-// NewBlockStateFromGenesis initializes a BlockState from a genesis header, saving it to the database located at basePath
+// NewBlockStateFromGenesis initialises a BlockState from a genesis header, saving it to the database located at basePath
 func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*BlockState, error) {
 	bs := &BlockState{
 		bt:         blocktree.NewBlockTreeFromRoot(header, db),
 		baseDB:     db,
 		db:         chaindb.NewTable(db, blockPrefix),
 		imported:   make(map[byte]chan<- *types.Block),
-		finalized:  make(map[byte]chan<- *types.Header),
+		finalised:  make(map[byte]chan<- *types.Header),
 		pruneKeyCh: make(chan *types.Header, pruneKeyBufferSize),
 	}
 
@@ -110,7 +110,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 
 	bs.genesisHash = header.Hash()
 
-	// set the latest finalized head to the genesis header
+	// set the latest finalised head to the genesis header
 	err = bs.SetFinalizedHash(bs.genesisHash, 0, 0)
 	if err != nil {
 		return nil, err
@@ -366,7 +366,7 @@ func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
 	return bs.db.Put(blockBodyKey(hash), body.AsOptional().Value())
 }
 
-// HasFinalizedBlock returns true if there is a finalized block for a given round and setID, false otherwise
+// HasFinalizedBlock returns true if there is a finalised block for a given round and setID, false otherwise
 func (bs *BlockState) HasFinalizedBlock(round, setID uint64) (bool, error) {
 	// get current round
 	r, err := bs.GetRound()
@@ -374,15 +374,15 @@ func (bs *BlockState) HasFinalizedBlock(round, setID uint64) (bool, error) {
 		return false, err
 	}
 
-	// round that is being queried for has not yet finalized
+	// round that is being queried for has not yet finalised
 	if round > r {
-		return false, fmt.Errorf("round not yet finalized")
+		return false, fmt.Errorf("round not yet finalised")
 	}
 
 	return bs.db.Has(finalizedHashKey(round, setID))
 }
 
-// GetFinalizedHeader returns the latest finalized block header
+// GetFinalizedHeader returns the latest finalised block header
 func (bs *BlockState) GetFinalizedHeader(round, setID uint64) (*types.Header, error) {
 	h, err := bs.GetFinalizedHash(round, setID)
 	if err != nil {
@@ -397,7 +397,7 @@ func (bs *BlockState) GetFinalizedHeader(round, setID uint64) (*types.Header, er
 	return header, nil
 }
 
-// GetFinalizedHash gets the latest finalized block header
+// GetFinalizedHash gets the latest finalised block header
 func (bs *BlockState) GetFinalizedHash(round, setID uint64) (common.Hash, error) {
 	// get current round
 	r, err := bs.GetRound()
@@ -405,9 +405,9 @@ func (bs *BlockState) GetFinalizedHash(round, setID uint64) (common.Hash, error)
 		return common.Hash{}, err
 	}
 
-	// round that is being queried for has not yet finalized
+	// round that is being queried for has not yet finalised
 	if round > r {
-		return common.Hash{}, fmt.Errorf("round not yet finalized")
+		return common.Hash{}, fmt.Errorf("round not yet finalised")
 	}
 
 	h, err := bs.db.Get(finalizedHashKey(round, setID))
@@ -418,7 +418,7 @@ func (bs *BlockState) GetFinalizedHash(round, setID uint64) (common.Hash, error)
 	return common.NewHash(h), nil
 }
 
-// SetFinalizedHash sets the latest finalized block header
+// SetFinalizedHash sets the latest finalised block header
 func (bs *BlockState) SetFinalizedHash(hash common.Hash, round, setID uint64) error {
 	bs.Lock()
 	defer bs.Unlock()
@@ -450,7 +450,7 @@ func (bs *BlockState) SetFinalizedHash(hash common.Hash, round, setID uint64) er
 	return bs.db.Put(finalizedHashKey(round, setID), hash[:])
 }
 
-// SetRound sets the latest finalized GRANDPA round in the db
+// SetRound sets the latest finalised GRANDPA round in the db
 // TODO: this needs to use both setID and round
 func (bs *BlockState) SetRound(round uint64) error {
 	buf := make([]byte, 8)
@@ -458,7 +458,7 @@ func (bs *BlockState) SetRound(round uint64) error {
 	return bs.db.Put(common.LatestFinalizedRoundKey, buf)
 }
 
-// GetRound gets the latest finalized GRANDPA round from the db
+// GetRound gets the latest finalised GRANDPA round from the db
 func (bs *BlockState) GetRound() (uint64, error) {
 	r, err := bs.db.Get(common.LatestFinalizedRoundKey)
 	if err != nil {

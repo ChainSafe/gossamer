@@ -164,7 +164,7 @@ func (l *BlockListener) Listen() {
 	}
 }
 
-// BlockFinalizedListener to handle listening for finalized blocks
+// BlockFinalizedListener to handle listening for finalised blocks
 type BlockFinalizedListener struct {
 	channel chan *types.Header
 	wsconn  *WSConn
@@ -224,8 +224,8 @@ type ExtrinsicSubmitListener struct {
 	importedChan    chan *types.Block
 	importedChanID  byte
 	importedHash    common.Hash
-	finalizedChan   chan *types.Header
-	finalizedChanID byte
+	finalisedChan   chan *types.Header
+	finalisedChanID byte
 }
 
 // AuthorExtrinsicUpdates method name
@@ -243,7 +243,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (int, err
 		importedChan:  make(chan *types.Block),
 		wsconn:        c,
 		extrinsic:     types.Extrinsic(extBytes),
-		finalizedChan: make(chan *types.Header),
+		finalisedChan: make(chan *types.Header),
 	}
 
 	if c.BlockAPI == nil {
@@ -254,7 +254,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (int, err
 		return 0, err
 	}
 
-	esl.finalizedChanID, err = c.BlockAPI.RegisterFinalizedChannel(esl.finalizedChan)
+	esl.finalisedChanID, err = c.BlockAPI.RegisterFinalizedChannel(esl.finalisedChan)
 	if err != nil {
 		return 0, err
 	}
@@ -304,12 +304,12 @@ func (l *ExtrinsicSubmitListener) Listen() {
 		}
 	}()
 
-	// listen for finalized headers
+	// listen for finalised headers
 	go func() {
-		for header := range l.finalizedChan {
+		for header := range l.finalisedChan {
 			if reflect.DeepEqual(l.importedHash, header.Hash()) {
 				resM := make(map[string]interface{})
-				resM["finalized"] = header.Hash().String()
+				resM["finalised"] = header.Hash().String()
 				l.wsconn.safeSend(newSubscriptionResponse(AuthorExtrinsicUpdates, l.subID, resM))
 			}
 		}

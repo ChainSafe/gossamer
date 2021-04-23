@@ -17,17 +17,17 @@
 package common
 
 var (
-	// BestBlockHashKey is the db location the hash of the best (unfinalized) block header.
+	// BestBlockHashKey is the db location the hash of the best (unfinalised) block header.
 	BestBlockHashKey = []byte("best_hash")
 	// LatestStorageHashKey is the db location of the hash of the latest storage trie.
 	LatestStorageHashKey = []byte("latest_storage_hash")
-	// FinalizedBlockHashKey is the db location of the hash of the latest finalized block header.
+	// FinalizedBlockHashKey is the db location of the hash of the latest finalised block header.
 	FinalizedBlockHashKey = []byte("finalized_head")
 	// GenesisDataKey is the db location of the genesis data.
 	GenesisDataKey = []byte("genesis_data")
 	// BlockTreeKey is the db location of the encoded block tree structure.
 	BlockTreeKey = []byte("block_tree")
-	// LatestFinalizedRoundKey is the key where the last finalized grandpa round is stored
+	// LatestFinalizedRoundKey is the key where the last finalised grandpa round is stored
 	LatestFinalizedRoundKey = []byte("latest_finalized_round")
 	// WorkingStorageHashKey is the storage key that the runtime uses to store the latest working state root.
 	WorkingStorageHashKey = []byte("working_storage_hash")

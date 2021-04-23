@@ -1000,16 +1000,16 @@ func TestIsFinalizable_False(t *testing.T) {
 		}
 	}
 
-	// previous round has finalized block # higher than current, so round is not finalizable
+	// previous round has finalised block # higher than current, so round is not finalizable
 	gs.state.round = 1
 	gs.bestFinalCandidate[0] = &Vote{
 		number: 4,
 	}
 	gs.preVotedBlock[gs.state.round] = voteA
 
-	finalizable, err := gs.isFinalizable(gs.state.round)
+	finalisable, err := gs.isFinalisable(gs.state.round)
 	require.NoError(t, err)
-	require.False(t, finalizable)
+	require.False(t, finalisable)
 }
 
 func TestGetGrandpaGHOST_CommonAncestor(t *testing.T) {

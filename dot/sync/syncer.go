@@ -383,7 +383,7 @@ func (s *Service) handleJustification(header *types.Header, justification []byte
 
 	err = s.blockState.SetFinalizedHash(header.Hash(), 0, 0)
 	if err != nil {
-		logger.Error("failed to set finalized hash", "error", err)
+		logger.Error("failed to set finalised hash", "error", err)
 		return
 	}
 
@@ -393,7 +393,7 @@ func (s *Service) handleJustification(header *types.Header, justification []byte
 		return
 	}
 
-	logger.Info("🔨 finalized block", "number", header.Number, "hash", header.Hash())
+	logger.Info("🔨 finalised block", "number", header.Number, "hash", header.Hash())
 }
 
 func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {

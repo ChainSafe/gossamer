@@ -117,7 +117,7 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 		return err
 	}
 
-	// don't finalize too close to head, until we add justification request + verification functionality.
+	// don't finalise too close to head, until we add justification request + verification functionality.
 	// this prevents us from marking the wrong block as final and getting stuck on the wrong chain
 	if uint32(head.Int64())-4 < msg.Number {
 		return nil

@@ -48,7 +48,7 @@ type Service interface {
 
 ### Core Service
 
-The **core service** is responsible for block production and finalization (consensus) and processing messages received from the **network service**; it initializes <a target="_blank" rel="noopener noreferrer" href="https://research.web3.foundation/en/latest/polkadot/BABE/Babe/">BABE</a> sessions and <a target="_blank" rel="noopener noreferrer" href="https://github.com/w3f/consensus/blob/master/pdf/grandpa.pdf">GRANDPA</a> rounds and validates blocks and transactions before committing them to the **state service**. 
+The **core service** is responsible for block production and finalization (consensus) and processing messages received from the **network service**; it initialises <a target="_blank" rel="noopener noreferrer" href="https://research.web3.foundation/en/latest/polkadot/BABE/Babe/">BABE</a> sessions and <a target="_blank" rel="noopener noreferrer" href="https://github.com/w3f/consensus/blob/master/pdf/grandpa.pdf">GRANDPA</a> rounds and validates blocks and transactions before committing them to the **state service**. 
 
 - only the **core service** writes to block state
 - only the **core service** writes to storage state

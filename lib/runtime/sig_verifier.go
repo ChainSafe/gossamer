@@ -31,7 +31,7 @@ type SignatureVerifier struct {
 	sync.WaitGroup
 }
 
-// NewSignatureVerifier initializes SignatureVerifier which does background verification of signatures.
+// NewSignatureVerifier initialises SignatureVerifier which does background verification of signatures.
 // Start() is called to start the verification process.
 // Finish() is called to stop the verification process.
 // Signatures can be added to the batch using Add().
