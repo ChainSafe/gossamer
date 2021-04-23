@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"net/rpc"
 	"os"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"

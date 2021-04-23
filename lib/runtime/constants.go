@@ -41,8 +41,8 @@ const (
 var (
 	// CoreVersion is the runtime API call Core_version
 	CoreVersion = "Core_version"
-	// CoreInitializeBlock is the runtime API call Core_initialize_block
-	CoreInitializeBlock = "Core_initialize_block"
+	// CoreInitialiseBlock is the runtime API call Core_initialise_block
+	CoreInitialiseBlock = "Core_initialise_block"
 	// CoreExecuteBlock is the runtime API call Core_execute_block
 	CoreExecuteBlock = "Core_execute_block"
 	// Metadata is the runtime API call Metadata_metadata
@@ -57,8 +57,8 @@ var (
 	BlockBuilderInherentExtrinsics = "BlockBuilder_inherent_extrinsics"
 	// BlockBuilderApplyExtrinsic is the runtime API call BlockBuilder_apply_extrinsic
 	BlockBuilderApplyExtrinsic = "BlockBuilder_apply_extrinsic"
-	// BlockBuilderFinalizeBlock is the runtime API call BlockBuilder_finalize_block
-	BlockBuilderFinalizeBlock = "BlockBuilder_finalize_block"
+	// BlockBuilderFinalizeBlock is the runtime API call BlockBuilder_finalise_block
+	BlockBuilderFinalizeBlock = "BlockBuilder_finalise_block"
 )
 
 // GrandpaAuthoritiesKey is the location of GRANDPA authority data in the storage trie for LEGACY_NODE_RUNTIME and NODE_RUNTIME

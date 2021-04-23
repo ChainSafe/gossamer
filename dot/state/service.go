@@ -84,7 +84,7 @@ func (s *Service) DB() chaindb.Database {
 
 // Initialise initialises the genesis state of the DB using the given storage trie. The trie should be loaded with the genesis storage state.
 // This only needs to be called during genesis initialisation of the node; it doesn't need to be called during normal startup.
-func (s *Service) Initialize(gen *genesis.Genesis, header *types.Header, t *trie.Trie) error {
+func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie.Trie) error {
 	var db chaindb.Database
 	cfg := &chaindb.Config{}
 

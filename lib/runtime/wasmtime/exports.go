@@ -98,14 +98,14 @@ func (in *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validit
 	return v, err
 }
 
-// InitializeBlock calls runtime API function Core_initialize_block
+// InitializeBlock calls runtime API function Core_initialise_block
 func (in *Instance) InitializeBlock(header *types.Header) error {
 	encodedHeader, err := scale.Encode(header)
 	if err != nil {
 		return fmt.Errorf("cannot encode header: %s", err)
 	}
 
-	_, err = in.exec(runtime.CoreInitializeBlock, encodedHeader)
+	_, err = in.exec(runtime.CoreInitialiseBlock, encodedHeader)
 	return err
 }
 
@@ -119,7 +119,7 @@ func (in *Instance) ApplyExtrinsic(data types.Extrinsic) ([]byte, error) {
 	return in.exec(runtime.BlockBuilderApplyExtrinsic, data)
 }
 
-// FinalizeBlock calls runtime API function BlockBuilder_finalize_block
+// FinalizeBlock calls runtime API function BlockBuilder_finalise_block
 func (in *Instance) FinalizeBlock() (*types.Header, error) {
 	data, err := in.exec(runtime.BlockBuilderFinalizeBlock, []byte{})
 	if err != nil {

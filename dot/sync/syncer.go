@@ -46,7 +46,7 @@ type Service struct {
 	blockProducer    BlockProducer
 	finalityGadget   FinalityGadget
 
-	// Synchronization variables
+	// Synchronisation variables
 	synced           bool
 	highestSeenBlock *big.Int // highest block number we have seen
 	runtime          runtime.Instance
