@@ -53,8 +53,14 @@ type BlockState interface {
 	BestBlockNumber() (*big.Int, error)
 }
 
+// GrandpaState is the interface required by grandpa into the grandpa state
+type GrandpaState interface {
+	GetCurrentSetID() (uint64, error)
+	GetAuthorities(setID uint64) ([]*types.GrandpaVoter, error)
+}
+
 // DigestHandler is the interface required by GRANDPA for the digest handler
-type DigestHandler interface {
+type DigestHandler interface { // TODO: remove, use GrandpaState
 	NextGrandpaAuthorityChange() uint64
 }
 

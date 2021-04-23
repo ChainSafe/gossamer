@@ -33,7 +33,8 @@ func NewGrandpaStateFromGenesis(db chaindb.Database, genesisAuthorities []*types
 		db:     grandpaDB,
 	}
 
-	err := s.SetCurrentSetID(1)
+	// genesis has set ID 0
+	err := s.setCurrentSetID(0)
 	if err != nil {
 		return nil, err
 	}
@@ -67,8 +68,8 @@ func setIDChangeKey(setID uint64) []byte {
 	return append(setIDChangePrefix, buf...)
 }
 
-// SetAuthorities sets the authorities for a given setID
-func (s *GrandpaState) SetAuthorities(setID uint64, authorities []*types.GrandpaVoter) error {
+// setAuthorities sets the authorities for a given setID
+func (s *GrandpaState) setAuthorities(setID uint64, authorities []*types.GrandpaVoter) error {
 	enc, err := scale.Encode(authorities)
 	if err != nil {
 		return err
@@ -92,8 +93,8 @@ func (s *GrandpaState) GetAuthorities(setID uint64) ([]*types.GrandpaVoter, erro
 	return v.([]*types.GrandpaVoter), nil
 }
 
-// SetCurrentSetID sets the current set ID
-func (s *GrandpaState) SetCurrentSetID(setID uint64) error {
+// setCurrentSetID sets the current set ID
+func (s *GrandpaState) setCurrentSetID(setID uint64) error {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, setID)
 	return s.db.Put(currentSetIDKey, buf[:])
@@ -121,12 +122,12 @@ func (s *GrandpaState) SetNextChange(authorities []*types.GrandpaVoter, number *
 	}
 
 	nextSetID := currSetID + 1
-	err = s.SetAuthorities(nextSetID, authorities)
+	err = s.setAuthorities(nextSetID, authorities)
 	if err != nil {
 		return err
 	}
 
-	err = s.SetSetIDChangeAtBlock(nextSetID, number)
+	err = s.setSetIDChangeAtBlock(nextSetID, number)
 	if err != nil {
 		return err
 	}
@@ -142,11 +143,11 @@ func (s *GrandpaState) IncrementSetID() error {
 	}
 
 	nextSetID := currSetID + 1
-	return s.SetCurrentSetID(nextSetID)
+	return s.setCurrentSetID(nextSetID)
 }
 
-// SetSetIDChangeAtBlock sets a set ID change at a certain block
-func (s *GrandpaState) SetSetIDChangeAtBlock(setID uint64, number *big.Int) error {
+// setSetIDChangeAtBlock sets a set ID change at a certain block
+func (s *GrandpaState) setSetIDChangeAtBlock(setID uint64, number *big.Int) error {
 	return s.db.Put(setIDChangeKey(setID), number.Bytes())
 }
 

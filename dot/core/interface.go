@@ -24,7 +24,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
@@ -67,14 +66,6 @@ type TransactionState interface {
 	RemoveExtrinsic(ext types.Extrinsic)
 	RemoveExtrinsicFromPool(ext types.Extrinsic)
 	PendingInPool() []*transaction.ValidTransaction
-}
-
-// FinalityGadget is the interface that a finality gadget must implement
-type FinalityGadget interface {
-	services.Service
-
-	UpdateAuthorities(ad []*types.Authority)
-	Authorities() []*types.Authority
 }
 
 // BlockProducer is the interface that a block production service must implement

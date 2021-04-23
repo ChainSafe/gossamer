@@ -25,6 +25,9 @@ import (
 // ErrNilBlockState is returned when BlockState is nil
 var ErrNilBlockState = errors.New("cannot have nil BlockState")
 
+// ErrNilGrandpaState is returned when GrandpaState is nil
+var ErrNilGrandpaState = errors.New("cannot have nil GrandpaState")
+
 // ErrNilDigestHandler is returned when DigestHandler is nil
 var ErrNilDigestHandler = errors.New("cannot have nil DigestHandler")
 

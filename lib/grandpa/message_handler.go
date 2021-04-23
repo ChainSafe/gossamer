@@ -418,7 +418,7 @@ func (h *MessageHandler) verifyJustification(just *SignedPrecommit, round, setID
 
 	// verify authority in justification set
 	authFound := false
-	for _, auth := range h.grandpa.Authorities() {
+	for _, auth := range h.grandpa.authorities() {
 		justKey, err := just.AuthorityID.Encode()
 		if err != nil {
 			return err

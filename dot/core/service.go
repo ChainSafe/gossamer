@@ -59,7 +59,7 @@ type Service struct {
 	isBlockProducer bool
 
 	// Finality gadget variables
-	finalityGadget      FinalityGadget
+	//finalityGadget      FinalityGadget
 	isFinalityAuthority bool
 
 	// Block verification
@@ -81,17 +81,17 @@ type Service struct {
 
 // Config holds the configuration for the core Service.
 type Config struct {
-	LogLvl              log.Lvl
-	BlockState          BlockState
-	EpochState          EpochState
-	StorageState        StorageState
-	TransactionState    TransactionState
-	Network             Network
-	Keystore            *keystore.GlobalKeystore
-	Runtime             runtime.Instance
-	BlockProducer       BlockProducer
-	IsBlockProducer     bool
-	FinalityGadget      FinalityGadget
+	LogLvl           log.Lvl
+	BlockState       BlockState
+	EpochState       EpochState
+	StorageState     StorageState
+	TransactionState TransactionState
+	Network          Network
+	Keystore         *keystore.GlobalKeystore
+	Runtime          runtime.Instance
+	BlockProducer    BlockProducer
+	IsBlockProducer  bool
+	//FinalityGadget      FinalityGadget
 	IsFinalityAuthority bool
 	Verifier            Verifier
 
@@ -121,9 +121,9 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilBlockProducer
 	}
 
-	if cfg.IsFinalityAuthority && cfg.FinalityGadget == nil {
-		return nil, ErrNilFinalityGadget
-	}
+	// if cfg.IsFinalityAuthority && cfg.FinalityGadget == nil {
+	// 	return nil, ErrNilFinalityGadget
+	// }
 
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
 	h = log.CallerFileHandler(h)
@@ -148,20 +148,20 @@ func NewService(cfg *Config) (*Service, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	srv := &Service{
-		ctx:                 ctx,
-		cancel:              cancel,
-		rt:                  cfg.Runtime,
-		codeHash:            codeHash,
-		keys:                cfg.Keystore,
-		blkRec:              cfg.NewBlocks,
-		blockState:          cfg.BlockState,
-		epochState:          cfg.EpochState,
-		storageState:        cfg.StorageState,
-		transactionState:    cfg.TransactionState,
-		net:                 cfg.Network,
-		isBlockProducer:     cfg.IsBlockProducer,
-		blockProducer:       cfg.BlockProducer,
-		finalityGadget:      cfg.FinalityGadget,
+		ctx:              ctx,
+		cancel:           cancel,
+		rt:               cfg.Runtime,
+		codeHash:         codeHash,
+		keys:             cfg.Keystore,
+		blkRec:           cfg.NewBlocks,
+		blockState:       cfg.BlockState,
+		epochState:       cfg.EpochState,
+		storageState:     cfg.StorageState,
+		transactionState: cfg.TransactionState,
+		net:              cfg.Network,
+		isBlockProducer:  cfg.IsBlockProducer,
+		blockProducer:    cfg.BlockProducer,
+		//finalityGadget:      cfg.FinalityGadget,
 		verifier:            cfg.Verifier,
 		isFinalityAuthority: cfg.IsFinalityAuthority,
 		lock:                &sync.Mutex{},

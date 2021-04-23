@@ -35,7 +35,7 @@ import (
 )
 
 var (
-	interval = time.Second
+	interval = time.Second // TODO: make this configurable; currently 1s is same as substrate; total round length is then 2s
 	logger   = log.New("pkg", "grandpa")
 )
 
@@ -45,6 +45,7 @@ type Service struct {
 	ctx            context.Context
 	cancel         context.CancelFunc
 	blockState     BlockState
+	grandpaState   GrandpaState
 	digestHandler  DigestHandler
 	keypair        *ed25519.Keypair // TODO: change to grandpa keystore
 	mapLock        sync.Mutex
@@ -66,7 +67,7 @@ type Service struct {
 	pcEquivocations  map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-commit stage
 	tracker          *tracker                           // tracker of vote messages we may need in the future
 	head             *types.Header                      // most recently finalized block
-	nextAuthorities  []*Voter                           // if not nil, the updated authorities for the next round
+	//nextAuthorities  []*Voter                           // if not nil, the updated authorities for the next round
 
 	// historical information
 	preVotedBlock      map[uint64]*Vote              // map of round number -> pre-voted block
@@ -81,6 +82,7 @@ type Service struct {
 type Config struct {
 	LogLvl        log.Lvl
 	BlockState    BlockState
+	GrandpaState  GrandpaState
 	DigestHandler DigestHandler
 	Network       Network
 	Voters        []*Voter
@@ -93,6 +95,10 @@ type Config struct {
 func NewService(cfg *Config) (*Service, error) {
 	if cfg.BlockState == nil {
 		return nil, ErrNilBlockState
+	}
+
+	if cfg.GrandpaState == nil {
+		return nil, ErrNilGrandpaState
 	}
 
 	if cfg.DigestHandler == nil {
@@ -131,6 +137,7 @@ func NewService(cfg *Config) (*Service, error) {
 		cancel:             cancel,
 		state:              NewState(cfg.Voters, cfg.SetID, 0), // TODO: determine current round
 		blockState:         cfg.BlockState,
+		grandpaState:       cfg.GrandpaState,
 		digestHandler:      cfg.DigestHandler,
 		keypair:            cfg.Keypair,
 		authority:          cfg.Authority,
@@ -188,8 +195,8 @@ func (s *Service) Stop() error {
 	return nil
 }
 
-// Authorities returns the current grandpa authorities
-func (s *Service) Authorities() []*types.Authority {
+// authorities returns the current grandpa authorities
+func (s *Service) authorities() []*types.Authority {
 	ad := make([]*types.Authority, len(s.state.voters))
 	for i, v := range s.state.voters {
 		ad[i] = &types.Authority{
@@ -201,29 +208,27 @@ func (s *Service) Authorities() []*types.Authority {
 	return ad
 }
 
-// UpdateAuthorities schedules an update to the grandpa voter set and increments the setID at the end of the current round
-func (s *Service) UpdateAuthorities(ad []*types.Authority) {
-	v := make([]*Voter, len(ad))
-	for i, a := range ad {
-		if pk, ok := a.Key.(*ed25519.PublicKey); ok {
-			v[i] = &Voter{
-				Key: pk,
-				ID:  a.Weight,
-			}
-		}
-	}
-
-	s.nextAuthorities = v
-}
-
 // updateAuthorities updates the grandpa voter set, increments the setID, and resets the round numbers
-func (s *Service) updateAuthorities() {
-	if s.nextAuthorities != nil {
-		s.state.voters = s.nextAuthorities
-		s.state.setID++
-		s.state.round = 0
-		s.nextAuthorities = nil
+func (s *Service) updateAuthorities() error {
+	currSetID, err := s.grandpaState.GetCurrentSetID()
+	if err != nil {
+		return err
 	}
+
+	// set ID hasn't changed, do nothing
+	if currSetID == s.state.setID {
+		return nil
+	}
+
+	nextAuthorities, err := s.grandpaState.GetAuthorities(currSetID)
+	if err != nil {
+		return err
+	}
+
+	s.state.voters = nextAuthorities
+	s.state.setID++
+	s.state.round = 0
+	return nil
 }
 
 func (s *Service) publicKeyBytes() ed25519.PublicKeyBytes {
@@ -233,7 +238,10 @@ func (s *Service) publicKeyBytes() ed25519.PublicKeyBytes {
 // initiate initates a GRANDPA round
 func (s *Service) initiate() error {
 	// if there is an authority change, execute it
-	s.updateAuthorities()
+	err := s.updateAuthorities()
+	if err != nil {
+		return err
+	}
 
 	if s.state.round == 0 {
 		s.chanLock.Lock()

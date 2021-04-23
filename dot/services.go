@@ -214,7 +214,7 @@ func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks k
 // Core Service
 
 // createCoreService creates the core service from the provided core configuration
-func createCoreService(cfg *Config, bp core.BlockProducer, fg core.FinalityGadget, verifier *babe.VerificationManager, rt runtime.Instance, ks *keystore.GlobalKeystore, stateSrvc *state.Service, net *network.Service) (*core.Service, error) {
+func createCoreService(cfg *Config, bp core.BlockProducer, verifier *babe.VerificationManager, rt runtime.Instance, ks *keystore.GlobalKeystore, stateSrvc *state.Service, net *network.Service) (*core.Service, error) {
 	logger.Debug(
 		"creating core service...",
 		"authority", cfg.Core.Roles == types.AuthorityRole,
@@ -222,13 +222,13 @@ func createCoreService(cfg *Config, bp core.BlockProducer, fg core.FinalityGadge
 
 	// set core configuration
 	coreConfig := &core.Config{
-		LogLvl:              cfg.Log.CoreLvl,
-		BlockState:          stateSrvc.Block,
-		EpochState:          stateSrvc.Epoch,
-		StorageState:        stateSrvc.Storage,
-		TransactionState:    stateSrvc.Transaction,
-		BlockProducer:       bp,
-		FinalityGadget:      fg,
+		LogLvl:           cfg.Log.CoreLvl,
+		BlockState:       stateSrvc.Block,
+		EpochState:       stateSrvc.Epoch,
+		StorageState:     stateSrvc.Storage,
+		TransactionState: stateSrvc.Transaction,
+		BlockProducer:    bp,
+		//FinalityGadget:      fg,
 		Keystore:            ks,
 		Runtime:             rt,
 		IsBlockProducer:     cfg.Core.BabeAuthority,
@@ -358,6 +358,7 @@ func createGRANDPAService(cfg *Config, rt runtime.Instance, st *state.Service, d
 	gsCfg := &grandpa.Config{
 		LogLvl:        cfg.Log.FinalityGadgetLvl,
 		BlockState:    st.Block,
+		GrandpaState:  st.Grandpa,
 		DigestHandler: dh,
 		SetID:         1,
 		Voters:        voters,
@@ -398,5 +399,5 @@ func createSyncService(cfg *Config, st *state.Service, bp sync.BlockProducer, fg
 }
 
 func createDigestHandler(st *state.Service, bp core.BlockProducer, verifier *babe.VerificationManager) (*core.DigestHandler, error) {
-	return core.NewDigestHandler(st.Block, st.Epoch, st.Grandpa, bp, nil, verifier)
+	return core.NewDigestHandler(st.Block, st.Epoch, st.Grandpa, bp, verifier)
 }

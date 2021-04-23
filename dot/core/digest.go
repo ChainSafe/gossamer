@@ -36,7 +36,6 @@ type DigestHandler struct {
 	blockState   BlockState
 	epochState   EpochState
 	grandpaState GrandpaState
-	grandpa      FinalityGadget
 	babe         BlockProducer
 	verifier     Verifier
 
@@ -68,7 +67,7 @@ type resume struct {
 }
 
 // NewDigestHandler returns a new DigestHandler
-func NewDigestHandler(blockState BlockState, epochState EpochState, grandpaState GrandpaState, babe BlockProducer, grandpa FinalityGadget, verifier Verifier) (*DigestHandler, error) {
+func NewDigestHandler(blockState BlockState, epochState EpochState, grandpaState GrandpaState, babe BlockProducer, verifier Verifier) (*DigestHandler, error) {
 	imported := make(chan *types.Block, 16)
 	finalized := make(chan *types.Header, 16)
 	iid, err := blockState.RegisterImportedChannel(imported)
@@ -89,7 +88,6 @@ func NewDigestHandler(blockState BlockState, epochState EpochState, grandpaState
 		blockState:   blockState,
 		epochState:   epochState,
 		grandpaState: grandpaState,
-		grandpa:      grandpa,
 		babe:         babe,
 		verifier:     verifier,
 		imported:     imported,
@@ -112,11 +110,6 @@ func (h *DigestHandler) Stop() {
 	h.blockState.UnregisterFinalizedChannel(h.finalizedID)
 	close(h.imported)
 	close(h.finalized)
-}
-
-// SetFinalityGadget sets the digest handler's grandpa instance
-func (h *DigestHandler) SetFinalityGadget(grandpa FinalityGadget) {
-	h.grandpa = grandpa
 }
 
 // NextGrandpaAuthorityChange returns the block number of the next upcoming grandpa authorities change.
@@ -211,7 +204,7 @@ func (h *DigestHandler) handleBlockFinalization(ctx context.Context) {
 func (h *DigestHandler) handleGrandpaChangesOnImport(num *big.Int) {
 	resume := h.grandpaResume
 	if resume != nil && num.Cmp(resume.atBlock) == 0 {
-		h.grandpa.UpdateAuthorities(h.grandpaAuths)
+		// TODO: update GrandpaState
 		h.grandpaResume = nil
 	}
 
@@ -222,7 +215,6 @@ func (h *DigestHandler) handleGrandpaChangesOnImport(num *big.Int) {
 			logger.Error("failed to increment grandpa set ID", "error", err)
 		}
 
-		h.grandpa.UpdateAuthorities(fc.auths)
 		h.grandpaForcedChange = nil
 	}
 }
@@ -230,9 +222,7 @@ func (h *DigestHandler) handleGrandpaChangesOnImport(num *big.Int) {
 func (h *DigestHandler) handleGrandpaChangesOnFinalization(num *big.Int) {
 	pause := h.grandpaPause
 	if pause != nil && num.Cmp(pause.atBlock) == 0 {
-		// save authority data for Resume
-		h.grandpaAuths = h.grandpa.Authorities()
-		h.grandpa.UpdateAuthorities([]*types.Authority{})
+		// TODO: update GrandpaState
 		h.grandpaPause = nil
 	}
 
@@ -243,7 +233,6 @@ func (h *DigestHandler) handleGrandpaChangesOnFinalization(num *big.Int) {
 			logger.Error("failed to increment grandpa set ID", "error", err)
 		}
 
-		h.grandpa.UpdateAuthorities(sc.auths)
 		h.grandpaScheduledChange = nil
 	}
 

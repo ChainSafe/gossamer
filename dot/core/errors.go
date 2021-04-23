@@ -46,7 +46,7 @@ var ErrNilRuntime = errors.New("cannot have nil runtime")
 var ErrNilBlockProducer = errors.New("cannot have nil BlockProducer")
 
 // ErrNilFinalityGadget is returned when trying to instantiate a finalizing Service without a finality gadget
-var ErrNilFinalityGadget = errors.New("cannot have nil FinalityGadget")
+//var ErrNilFinalityGadget = errors.New("cannot have nil FinalityGadget")
 
 // ErrNilConsensusMessageHandler is returned when trying to instantiate a Service without a FinalityMessageHandler
 var ErrNilConsensusMessageHandler = errors.New("cannot have nil ErrNilFinalityMessageHandler")

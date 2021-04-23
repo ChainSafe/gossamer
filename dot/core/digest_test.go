@@ -50,13 +50,8 @@ func newTestDigestHandler(t *testing.T, withBABE, withGrandpa bool) *DigestHandl
 		bp = &mockBlockProducer{}
 	}
 
-	var fg FinalityGadget
-	if withGrandpa {
-		fg = &mockFinalityGadget{}
-	}
-
 	time.Sleep(time.Second)
-	dh, err := NewDigestHandler(stateSrvc.Block, stateSrvc.Epoch, stateSrvc.Grandpa, bp, fg, &mockVerifier{})
+	dh, err := NewDigestHandler(stateSrvc.Block, stateSrvc.Epoch, stateSrvc.Grandpa, bp, &mockVerifier{})
 	require.NoError(t, err)
 	return dh
 }
@@ -96,9 +91,6 @@ func TestDigestHandler_GrandpaScheduledChange(t *testing.T) {
 		handler.blockState.SetFinalizedHash(h.Hash(), 0, 0)
 	}
 
-	auths := handler.grandpa.Authorities()
-	require.Nil(t, auths)
-
 	// authorities should change on start of block 3 from start
 	headers = addTestBlocksToState(t, 1, handler.blockState)
 	for _, h := range headers {
@@ -106,8 +98,10 @@ func TestDigestHandler_GrandpaScheduledChange(t *testing.T) {
 	}
 
 	time.Sleep(time.Millisecond * 100)
-	auths = handler.grandpa.Authorities()
-	require.Equal(t, 1, len(auths))
+	setID, err := handler.grandpaState.(*state.GrandpaState).GetCurrentSetID()
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), setID)
+	// TODO: check authorities were set
 }
 
 func TestDigestHandler_GrandpaForcedChange(t *testing.T) {
@@ -141,31 +135,20 @@ func TestDigestHandler_GrandpaForcedChange(t *testing.T) {
 	require.NoError(t, err)
 
 	addTestBlocksToState(t, 3, handler.blockState)
-	auths := handler.grandpa.Authorities()
-	require.Nil(t, auths)
 
 	// authorities should change on start of block 4 from start
 	addTestBlocksToState(t, 1, handler.blockState)
 	time.Sleep(time.Millisecond * 100)
-	auths = handler.grandpa.Authorities()
-	require.Equal(t, 1, len(auths))
 
 	setID, err := handler.grandpaState.(*state.GrandpaState).GetCurrentSetID()
 	require.NoError(t, err)
-	require.Equal(t, uint64(2), setID)
+	require.Equal(t, uint64(1), setID)
 }
 
 func TestDigestHandler_GrandpaPauseAndResume(t *testing.T) {
 	handler := newTestDigestHandler(t, false, true)
 	handler.Start()
 	defer handler.Stop()
-
-	kr, err := keystore.NewEd25519Keyring()
-	require.NoError(t, err)
-
-	handler.grandpa.UpdateAuthorities([]*types.Authority{
-		{Key: kr.Alice().Public().(*ed25519.PublicKey), Weight: 0},
-	})
 
 	p := &types.GrandpaPause{
 		Delay: 3,
@@ -188,8 +171,6 @@ func TestDigestHandler_GrandpaPauseAndResume(t *testing.T) {
 	}
 
 	time.Sleep(time.Millisecond * 100)
-	auths := handler.grandpa.Authorities()
-	require.Equal(t, 0, len(auths))
 
 	r := &types.GrandpaResume{
 		Delay: 3,
@@ -208,8 +189,7 @@ func TestDigestHandler_GrandpaPauseAndResume(t *testing.T) {
 
 	addTestBlocksToState(t, 3, handler.blockState)
 	time.Sleep(time.Millisecond * 110)
-	auths = handler.grandpa.Authorities()
-	require.Equal(t, 1, len(auths))
+	// TODO: add Pause, Resume to GrandpaState
 }
 
 func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
