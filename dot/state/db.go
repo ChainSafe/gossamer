@@ -27,6 +27,25 @@ import (
 	database "github.com/ChainSafe/chaindb"
 )
 
+// SetupDatabase will return an instance of database based on basepath
+func SetupDatabase(basepath string) (database.Database, error) {
+	// initialize database using data directory
+	db, err := database.NewBadgerDB(&database.Config{
+		DataDir: basepath,
+	})
+
+	if err != nil {
+		logger.Error(
+			"failed to setup database",
+			"basepath", basepath,
+			"error", err,
+		)
+		return nil, err
+	}
+
+	return db, nil
+}
+
 // StoreNodeGlobalName stores the current node name to avoid create new ones after each initialization
 func StoreNodeGlobalName(db database.Database, nodeName string) error {
 	return db.Put(common.NodeNameKey, []byte(nodeName))

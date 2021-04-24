@@ -18,13 +18,10 @@ package state
 
 import (
 	"bytes"
-	"encoding/binary"
-	"errors"
 	"fmt"
 	"math/big"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
@@ -32,7 +29,6 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/cosmos/go-bip39"
 
 	"github.com/ChainSafe/chaindb"
 	log "github.com/ChainSafe/log15"
@@ -84,53 +80,6 @@ func (s *Service) UseMemDB() {
 // DB returns the Service's database
 func (s *Service) DB() chaindb.Database {
 	return s.db
-}
-
-func (s *Service) NodeGlobalName() (string, error) {
-	logger.Info("getting node global name")
-
-	// Load database configs
-	var db chaindb.Database
-	cfg := &chaindb.Config{}
-
-	// check database type
-	if s.isMemDB {
-		cfg.InMemory = true
-	}
-
-	// get data directory from service
-	basepath, err := filepath.Abs(s.dbPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to read basepath: %s", err)
-	}
-
-	cfg.DataDir = basepath
-
-	// initialize database using data directory
-	db, err = chaindb.NewBadgerDB(cfg)
-	if err != nil {
-		return "", err
-	}
-
-	var name string
-	if name, err = s.loadNodeName(db); err != nil {
-
-		return "", err
-	}
-
-	if name == "" {
-		name = generateRandomNodeName()
-
-		if err = s.storeNodeName(db, name); err != nil {
-			return "", err
-		}
-	}
-
-	if err = db.Close(); err != nil {
-		return "", fmt.Errorf("failed to close database: %s", err)
-	}
-
-	return name, nil
 }
 
 // Initialize initializes the genesis state of the DB using the given storage trie. The trie should be loaded with the genesis storage state.
@@ -546,38 +495,4 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 	}
 
 	return s.db.Close()
-}
-
-// storeNodeName persist the global node name on initialization
-func (s *Service) storeNodeName(db chaindb.Database, name string) error {
-	if err := StoreNodeGlobalName(db, name); err != nil {
-		return fmt.Errorf("failed to write node global name to database: %w", err)
-	}
-
-	return nil
-}
-
-// loadNodeName will retrieve the node name on reinitialization
-func (s *Service) loadNodeName(db chaindb.Database) (string, error) {
-	var err error
-	var nodeName string
-
-	if nodeName, err = LoadNodeGlobalName(db); err != nil {
-		if errors.Is(err, chaindb.ErrKeyNotFound) {
-			return "", nil
-		}
-
-		return "", fmt.Errorf("failed to retrieve node global name from database: %w", err)
-	}
-
-	return nodeName, nil
-}
-
-func generateRandomNodeName() string {
-	// generate random name
-	entropy, _ := bip39.NewEntropy(128)
-	randomNamesString, _ := bip39.NewMnemonic(entropy)
-	randomNames := strings.Split(randomNamesString, " ")
-	number := binary.BigEndian.Uint16(entropy)
-	return randomNames[0] + "-" + randomNames[1] + "-" + fmt.Sprint(number)
 }

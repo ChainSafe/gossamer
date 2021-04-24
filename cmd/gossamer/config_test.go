@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
@@ -832,4 +833,63 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 	require.Nil(t, err)
 
 	require.Equal(t, expected, cfg)
+}
+
+func TestGlobalNodeName_WhenNodeAlreadyHasStoredName(t *testing.T) {
+	// Initialize a node with a random name
+	globalName := dot.RandonNodeName()
+
+	cfg := dot.NewTestConfig(t)
+	cfg.Global.Name = globalName
+	require.NotNil(t, cfg)
+
+	genPath := dot.NewTestGenesisAndRuntime(t)
+	require.NotNil(t, genPath)
+
+	defer utils.RemoveTestDir(t)
+
+	cfg.Core.Roles = types.FullNodeRole
+	cfg.Core.BabeAuthority = false
+	cfg.Core.GrandpaAuthority = false
+	cfg.Core.BabeThresholdNumerator = 0
+	cfg.Core.BabeThresholdDenominator = 0
+	cfg.Init.Genesis = genPath
+
+	err := dot.InitNode(cfg)
+	require.NoError(t, err)
+
+	// call another command and test the name
+	testApp := cli.NewApp()
+	testApp.Writer = ioutil.Discard
+
+	testcases := []struct {
+		description string
+		flags       []string
+		values      []interface{}
+		expected    string
+	}{
+		{
+			"Test gossamer --roles --basepath",
+			[]string{"basepath", "roles"},
+			[]interface{}{cfg.Global.BasePath, "4"},
+			globalName,
+		},
+		{
+			"Test gossamer --roles",
+			[]string{"basepath", "roles"},
+			[]interface{}{cfg.Global.BasePath, "0"},
+			globalName,
+		},
+	}
+
+	for _, c := range testcases {
+		c := c // bypass scopelint false positive
+		t.Run(c.description, func(t *testing.T) {
+			ctx, err := newTestContext(c.description, c.flags, c.values)
+			require.Nil(t, err)
+			createdCfg, err := createDotConfig(ctx)
+			require.Nil(t, err)
+			require.Equal(t, c.expected, createdCfg.Global.Name)
+		})
+	}
 }

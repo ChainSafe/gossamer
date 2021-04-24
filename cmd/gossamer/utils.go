@@ -126,7 +126,6 @@ func newTestConfigWithFile(t *testing.T) (*dot.Config, *os.File) {
 	require.NoError(t, err)
 
 	tomlCfg := dotConfigToToml(cfg)
-
 	cfgFile := exportConfig(tomlCfg, file.Name())
 	return cfg, cfgFile
 }

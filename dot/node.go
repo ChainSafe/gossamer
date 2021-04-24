@@ -58,6 +58,7 @@ func InitNode(cfg *Config) error {
 	setupLogger(cfg)
 	logger.Info(
 		"🕸️ initializing node...",
+		"name", cfg.Global.Name,
 		"id", cfg.Global.ID,
 		"basepath", cfg.Global.BasePath,
 		"genesis", cfg.Init.Genesis,
@@ -99,20 +100,17 @@ func InitNode(cfg *Config) error {
 
 	// initialize state service with genesis data, block, and trie
 	err = stateSrvc.Initialize(gen, header, t)
-
-	if cfg.Global.Name != "" {
-		if cfg.Global.Name, err = stateSrvc.NodeGlobalName(); err != nil {
-			return err
-		}
-	}
-
 	if err != nil {
 		return fmt.Errorf("failed to initialize state service: %s", err)
 	}
 
+	err = storeGlobalNodeName(cfg.Global.Name, cfg.Global.BasePath)
+	if err != nil {
+		return fmt.Errorf("failed to store global node name: %s", err)
+	}
+
 	logger.Info(
 		"🕸️ node initialized",
-		"name", cfg.Global.Name,
 		"id", cfg.Global.ID,
 		"basepath", cfg.Global.BasePath,
 		"genesis", cfg.Init.Genesis,
@@ -128,6 +126,7 @@ func InitNode(cfg *Config) error {
 func NodeInitialized(basepath string, expected bool) bool {
 	// check if key registry exists
 	registry := path.Join(basepath, "KEYREGISTRY")
+
 	_, err := os.Stat(registry)
 	if os.IsNotExist(err) {
 		if expected {
@@ -173,6 +172,34 @@ func NodeInitialized(basepath string, expected bool) bool {
 	return true
 }
 
+// LoadGlobalNodeName returns the stored global node name from database
+func LoadGlobalNodeName(basepath string) (string, error) {
+	// initialize database using data directory
+	db, err := state.SetupDatabase(basepath)
+	if err != nil {
+		return "", err
+	}
+
+	name, err := state.LoadNodeGlobalName(db)
+	if err != nil {
+		logger.Warn(
+			"failed to load global node name",
+			"basepath", basepath,
+			"error", err,
+		)
+		return "", nil
+	}
+
+	// close database
+	err = db.Close()
+	if err != nil {
+		logger.Error("failed to close database", "error", err)
+		return "", err
+	}
+
+	return name, nil
+}
+
 // NewNode creates a new dot node from a dot node configuration
 func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, error) {
 	// set garbage collection percent to 10%
@@ -204,6 +231,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 
 	// create state service and append state service to node services
 	stateSrvc, err := createStateService(cfg)
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to create state service: %s", err)
 	}
@@ -358,6 +386,33 @@ func setupMetricsServer(address string) {
 			log.Error("Failure in running metrics server", "err", err)
 		}
 	}()
+}
+
+// stores the global node name to reuse
+func storeGlobalNodeName(name, basepath string) error {
+	db, err := state.SetupDatabase(basepath)
+	if err != nil {
+		return err
+	}
+
+	err = state.StoreNodeGlobalName(db, name)
+	if err != nil {
+		logger.Warn(
+			"failed to store global node name",
+			"basepath", basepath,
+			"error", err,
+		)
+		return nil
+	}
+
+	// close database
+	err = db.Close()
+	if err != nil {
+		logger.Error("failed to close database", "error", err)
+		return err
+	}
+
+	return nil
 }
 
 // Start starts all dot node services
