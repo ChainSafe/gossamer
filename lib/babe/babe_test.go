@@ -116,7 +116,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 			genesisBABEConfig.EpochLength = cfg.EpochLength
 		}
 
-		err = dbSrv.Initialize(gen, genHeader, genTrie)
+		err = dbSrv.Initialise(gen, genHeader, genTrie)
 		require.NoError(t, err)
 
 		err = dbSrv.Start()

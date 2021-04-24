@@ -7,6 +7,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/scale"
 
 	"github.com/stretchr/testify/require"
@@ -38,35 +39,43 @@ func TestVoteMessageToConsensusMessage(t *testing.T) {
 	// test precommit
 	vm, err := gs.createVoteMessage(v, precommit, gs.keypair)
 	require.NoError(t, err)
+	vm.Message.Signature = [64]byte{}
 
-	cm, err := vm.ToConsensusMessage()
-	require.NoError(t, err)
-
-	expected := &ConsensusMessage{
-		ConsensusEngineID: types.GrandpaEngineID,
-		Data:              common.MustHexToBytes("0x014d000000000000006300000000000000017db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a7777000000000000a28633c3a1046351931209fe9182fd530dc659d54ece48e9f88f4277e47f39eb78a84d50e3d37e1b50786d88abafceb5137044b6122fb6b7b5ae8ff62787cc0e34602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a691"),
+	expected := &VoteMessage{
+		Round: gs.state.round,
+		SetID: gs.state.setID,
+		Message: &SignedMessage{
+			Stage:       precommit,
+			Hash:        v.hash,
+			Number:      v.number,
+			AuthorityID: gs.keypair.Public().(*ed25519.PublicKey).AsBytes(),
+		},
 	}
 
-	require.Equal(t, expected, cm)
+	require.Equal(t, expected, vm)
 
 	// test prevote
 	vm, err = gs.createVoteMessage(v, prevote, gs.keypair)
 	require.NoError(t, err)
+	vm.Message.Signature = [64]byte{}
 
-	cm, err = vm.ToConsensusMessage()
-	require.NoError(t, err)
-
-	expected = &ConsensusMessage{
-		ConsensusEngineID: types.GrandpaEngineID,
-		Data:              common.MustHexToBytes("0x004d000000000000006300000000000000007db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a7777000000000000215cea37b45853e63d4cc2f0a04c7a33aec9fc5683ac46b03a01e6c41ce46e4339bb7456667f14d109b49e8af26090f7087991f3b22494df997551ae44a0ef0034602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a691"),
+	expected = &VoteMessage{
+		Round: gs.state.round,
+		SetID: gs.state.setID,
+		Message: &SignedMessage{
+			Stage:       prevote,
+			Hash:        v.hash,
+			Number:      v.number,
+			AuthorityID: gs.keypair.Public().(*ed25519.PublicKey).AsBytes(),
+		},
 	}
 
-	require.Equal(t, expected, cm)
+	require.Equal(t, expected, vm)
 }
 
-func TestFinalizationMessageToConsensusMessage(t *testing.T) {
+func TestCommitMessageToConsensusMessage(t *testing.T) {
 	gs, _ := newTestService(t)
-	gs.justification[77] = []*Justification{
+	gs.justification[77] = []*SignedPrecommit{
 		{
 			Vote:        testVote,
 			Signature:   testSignature,
@@ -74,16 +83,17 @@ func TestFinalizationMessageToConsensusMessage(t *testing.T) {
 		},
 	}
 
-	fm := gs.newFinalizationMessage(gs.head, 77)
-	cm, err := fm.ToConsensusMessage()
-	require.NoError(t, err)
+	fm := gs.newCommitMessage(gs.head, 77)
+	precommits, authData := justificationToCompact(gs.justification[77])
 
-	expected := &ConsensusMessage{
-		ConsensusEngineID: types.GrandpaEngineID,
-		Data:              common.MustHexToBytes("0x024d000000000000007db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a0000000000000000040a0b0c0d00000000000000000000000000000000000000000000000000000000e7030000000000000102030400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000034602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a691"),
+	expected := &CommitMessage{
+		Round:      77,
+		Vote:       NewVoteFromHeader(gs.head),
+		Precommits: precommits,
+		AuthData:   authData,
 	}
 
-	require.Equal(t, expected, cm)
+	require.Equal(t, expected, fm)
 }
 
 func TestNewCatchUpResponse(t *testing.T) {
@@ -106,7 +116,7 @@ func TestNewCatchUpResponse(t *testing.T) {
 	err = gs.blockState.(*state.BlockState).SetHeader(testHeader)
 	require.NoError(t, err)
 
-	pvj := []*Justification{
+	pvj := []*SignedPrecommit{
 		{
 			Vote:        testVote,
 			Signature:   testSignature,
@@ -117,7 +127,7 @@ func TestNewCatchUpResponse(t *testing.T) {
 	pvjEnc, err := scale.Encode(pvj)
 	require.NoError(t, err)
 
-	pcj := []*Justification{
+	pcj := []*SignedPrecommit{
 		{
 			Vote:        testVote2,
 			Signature:   testSignature,
@@ -137,11 +147,29 @@ func TestNewCatchUpResponse(t *testing.T) {
 	expected := &catchUpResponse{
 		Round:                  round,
 		SetID:                  setID,
-		PreVoteJustification:   FullJustification(pvj),
-		PreCommitJustification: FullJustification(pcj),
+		PreVoteJustification:   pvj,
+		PreCommitJustification: pcj,
 		Hash:                   v.hash,
 		Number:                 v.number,
 	}
 
 	require.Equal(t, expected, resp)
+}
+
+func TestNeighbourMessageToConsensusMessage(t *testing.T) {
+	msg := &NeighbourMessage{
+		Version: 1,
+		Round:   2,
+		SetID:   3,
+		Number:  255,
+	}
+
+	cm, err := msg.ToConsensusMessage()
+	require.NoError(t, err)
+
+	expected := &ConsensusMessage{
+		Data: common.MustHexToBytes("0x020102000000000000000300000000000000ff000000"),
+	}
+
+	require.Equal(t, expected, cm)
 }

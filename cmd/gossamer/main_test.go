@@ -250,7 +250,7 @@ func TestGossamerCommand(t *testing.T) {
 	t.Log("init gossamer output, ", "stdout", string(stdout), "stderr", string(stderr))
 
 	expectedMessages := []string{
-		"node initialized",
+		"node initialised",
 	}
 
 	for _, m := range expectedMessages {
@@ -282,6 +282,25 @@ func TestGossamerCommand(t *testing.T) {
 		}
 	}
 
+}
+
+func TestBuildSpecCommandWithOutput(t *testing.T) {
+	tmpOutputfile := "/tmp/raw-genesis-spec-output.json"
+	buildSpecCommand := runTestGossamer(t,
+		"build-spec",
+		"--raw",
+		"--genesis-spec", "../../chain/gssmr/genesis-spec.json",
+		"--output", tmpOutputfile)
+
+	time.Sleep(5 * time.Second)
+
+	_, err := os.Stat(tmpOutputfile)
+	require.False(t, os.IsNotExist(err))
+	defer os.Remove(tmpOutputfile)
+
+	outb, errb := buildSpecCommand.GetOutput()
+	require.Empty(t, outb)
+	require.Empty(t, errb)
 }
 
 // TODO: TestExportCommand test "gossamer export" does not error

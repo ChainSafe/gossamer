@@ -206,8 +206,8 @@ func (n *node) deepCopy(parent *node) *node {
 	return nCopy
 }
 
-func (n *node) prune(finalized *node, pruned []Hash) []Hash {
-	if finalized == nil {
+func (n *node) prune(finalised *node, pruned []Hash) []Hash {
+	if finalised == nil {
 		return pruned
 	}
 
@@ -215,23 +215,23 @@ func (n *node) prune(finalized *node, pruned []Hash) []Hash {
 		pruned = []Hash{}
 	}
 
-	// if this is a descedent of the finalized block, keep it
-	// all descendents of this block will also be descendents of the finalized block,
+	// if this is a descedent of the finalised block, keep it
+	// all descendents of this block will also be descendents of the finalised block,
 	// so don't need to check any of those
-	if n.isDescendantOf(finalized) {
+	if n.isDescendantOf(finalised) {
 		return pruned
 	}
 
-	// if it's not an ancestor the finalized block, prune it
-	if !finalized.isDescendantOf(n) {
+	// if it's not an ancestor the finalised block, prune it
+	if !finalised.isDescendantOf(n) {
 		pruned = append(pruned, n.hash)
 		n.parent.deleteChild(n)
 	}
 
-	// if this is an ancestor of the finalized block, keep it,
+	// if this is an ancestor of the finalised block, keep it,
 	// and check its children
 	for _, child := range n.children {
-		pruned = child.prune(finalized, pruned)
+		pruned = child.prune(finalised, pruned)
 	}
 
 	return pruned

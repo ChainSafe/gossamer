@@ -68,7 +68,7 @@ func TestStress_Grandpa_ThreeAuthorities(t *testing.T) {
 	for i := 1; i < numRounds+1; i++ {
 		fin, err := compareFinalizedHeadsWithRetry(t, nodes, uint64(i))
 		require.NoError(t, err)
-		t.Logf("finalized hash in round %d: %s", i, fin)
+		t.Logf("finalised hash in round %d: %s", i, fin)
 	}
 }
 
@@ -90,7 +90,7 @@ func TestStress_Grandpa_SixAuthorities(t *testing.T) {
 	for i := 1; i < numRounds+1; i++ {
 		fin, err := compareFinalizedHeadsWithRetry(t, nodes, uint64(i))
 		require.NoError(t, err)
-		t.Logf("finalized hash in round %d: %s", i, fin)
+		t.Logf("finalised hash in round %d: %s", i, fin)
 	}
 }
 
@@ -115,7 +115,7 @@ func TestStress_Grandpa_NineAuthorities(t *testing.T) {
 	for i := 1; i < numRounds+1; i++ {
 		fin, err := compareFinalizedHeadsWithRetry(t, nodes, uint64(i))
 		require.NoError(t, err)
-		t.Logf("finalized hash in round %d: %s", i, fin)
+		t.Logf("finalised hash in round %d: %s", i, fin)
 	}
 }
 
@@ -137,7 +137,7 @@ func TestStress_Grandpa_CatchUp(t *testing.T) {
 	}()
 
 	time.Sleep(time.Second * 70) // let some rounds run
-
+	//nolint
 	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisSixAuths, utils.ConfigDefault, false)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
@@ -146,6 +146,6 @@ func TestStress_Grandpa_CatchUp(t *testing.T) {
 	for i := 1; i < numRounds+1; i++ {
 		fin, err := compareFinalizedHeadsWithRetry(t, nodes, uint64(i))
 		require.NoError(t, err)
-		t.Logf("finalized hash in round %d: %s", i, fin)
+		t.Logf("finalised hash in round %d: %s", i, fin)
 	}
 }

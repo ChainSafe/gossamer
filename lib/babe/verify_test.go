@@ -44,7 +44,7 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 	}
 
 	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
-	err = dbSrv.Initialize(gen, genHeader, genTrie)
+	err = dbSrv.Initialise(gen, genHeader, genTrie)
 	require.NoError(t, err)
 
 	err = dbSrv.Start()

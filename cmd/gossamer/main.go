@@ -48,11 +48,11 @@ var (
 	initCommand = cli.Command{
 		Action:    FixFlagOrder(initAction),
 		Name:      "init",
-		Usage:     "Initialize node databases and load genesis data to state",
+		Usage:     "Initialise node databases and load genesis data to state",
 		ArgsUsage: "",
 		Flags:     InitFlags,
 		Category:  "INIT",
-		Description: "The init command initializes the node databases and loads the genesis data from the genesis file to state.\n" +
+		Description: "The init command initialises the node databases and loads the genesis data from the genesis file to state.\n" +
 			"\tUsage: gossamer init --genesis genesis.json",
 	}
 	// accountCommand defines the "account" subcommand (ie, `gossamer account`)
@@ -108,7 +108,7 @@ var (
 	}
 )
 
-// init initializes the cli application
+// init initialises the cli application
 func init() {
 	app.Action = gossamerAction
 	app.Copyright = "Copyright 2019 ChainSafe Systems Authors"
@@ -181,7 +181,7 @@ func importRuntimeAction(ctx *cli.Context) error {
 }
 
 // gossamerAction is the root action for the gossamer command, creates a node
-// configuration, loads the keystore, initializes the node if not initialized,
+// configuration, loads the keystore, initialises the node if not initialised,
 // then creates and starts the node and node services
 func gossamerAction(ctx *cli.Context) error {
 	// check for unknown command arguments
@@ -216,13 +216,13 @@ func gossamerAction(ctx *cli.Context) error {
 	// from createDotConfig because dot config should not include expanded path)
 	cfg.Global.BasePath = utils.ExpandDir(cfg.Global.BasePath)
 
-	// check if node has not been initialized (expected true - add warning log)
+	// check if node has not been initialised (expected true - add warning log)
 	if !dot.NodeInitialized(cfg.Global.BasePath, true) {
 
-		// initialize node (initialize state database and load genesis data)
+		// initialise node (initialise state database and load genesis data)
 		err = dot.InitNode(cfg)
 		if err != nil {
-			logger.Error("failed to initialize node", "error", err)
+			logger.Error("failed to initialise node", "error", err)
 			return err
 		}
 	}
@@ -289,7 +289,7 @@ func gossamerAction(ctx *cli.Context) error {
 	return nil
 }
 
-// initAction is the action for the "init" subcommand, initializes the trie and
+// initAction is the action for the "init" subcommand, initialises the trie and
 // state databases and loads initial state from the configured genesis file
 func initAction(ctx *cli.Context) error {
 	lvl, err := setupLogger(ctx)
@@ -310,31 +310,31 @@ func initAction(ctx *cli.Context) error {
 	// from createDotConfig because dot config should not include expanded path)
 	cfg.Global.BasePath = utils.ExpandDir(cfg.Global.BasePath)
 
-	// check if node has been initialized (expected false - no warning log)
+	// check if node has been initialised (expected false - no warning log)
 	if dot.NodeInitialized(cfg.Global.BasePath, false) {
 
-		// use --force value to force initialize the node
+		// use --force value to force initialise the node
 		force := ctx.Bool(ForceFlag.Name)
 
 		// prompt user to confirm reinitialization
-		if force || confirmMessage("Are you sure you want to reinitialize the node? [Y/n]") {
+		if force || confirmMessage("Are you sure you want to reinitialise the node? [Y/n]") {
 			logger.Info(
-				"reinitializing node...",
+				"reinitialising node...",
 				"basepath", cfg.Global.BasePath,
 			)
 		} else {
 			logger.Warn(
-				"exiting without reinitializing the node",
+				"exiting without reinitialising the node",
 				"basepath", cfg.Global.BasePath,
 			)
 			return nil // exit if reinitialization is not confirmed
 		}
 	}
 
-	// initialize node (initialize state database and load genesis data)
+	// initialise node (initialise state database and load genesis data)
 	err = dot.InitNode(cfg)
 	if err != nil {
-		logger.Error("failed to initialize node", "error", err)
+		logger.Error("failed to initialise node", "error", err)
 		return err
 	}
 
@@ -353,6 +353,7 @@ func buildSpecAction(ctx *cli.Context) error {
 	}
 
 	var bs *dot.BuildSpec
+
 	if genesis := ctx.String(GenesisSpecFlag.Name); genesis != "" {
 		bspec, e := dot.BuildFromGenesis(genesis, 0)
 		if e != nil {
@@ -380,17 +381,24 @@ func buildSpecAction(ctx *cli.Context) error {
 	}
 
 	var res []byte
+
 	if ctx.Bool(RawFlag.Name) {
 		res, err = bs.ToJSONRaw()
 	} else {
 		res, err = bs.ToJSON()
 	}
+
 	if err != nil {
 		return err
 	}
-	// TODO implement --output flag so that user can specify redirecting output a file.
-	//   then this can be removed (See issue #1029)
-	fmt.Printf("%s", res)
+
+	if outputPath := ctx.String(OutputSpecFlag.Name); outputPath != "" {
+		if err = dot.WriteGenesisSpecFile(res, outputPath); err != nil {
+			return err
+		}
+	} else {
+		fmt.Printf("%s", res)
+	}
 
 	return nil
 }

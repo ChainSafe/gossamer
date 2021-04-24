@@ -6,7 +6,7 @@ permalink: /usage/running-nodes/
 
 ## Run a Gossamer Node
 
-To run default Gossamer node, first initialize the node. This writes the genesis state to the database.
+To run default Gossamer node, first initialise the node. This writes the genesis state to the database.
 ```
 ./bin/gossamer --chain gssmr init
 ```
@@ -58,7 +58,7 @@ After it's finished bootstrapping, the node should begin to sync.
 
 ## Run Polkadot Node 
 
-Initialize polkadot node:
+Initialise polkadot node:
 ```
 ./bin/gossamer --chain polkadot init
 ```

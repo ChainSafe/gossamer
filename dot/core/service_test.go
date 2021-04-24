@@ -378,7 +378,7 @@ func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewEmptyDigest())
 	require.NoError(t, err)
 
-	//initialize block header
+	//initialise block header
 	err = s.rt.InitializeBlock(header)
 	require.NoError(t, err)
 

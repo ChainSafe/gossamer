@@ -19,6 +19,7 @@ package state
 import (
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -310,7 +311,7 @@ func TestFinalization_DeleteBlock(t *testing.T) {
 	// 	require.True(t, has, n)
 	// }
 
-	// pick block to finalize
+	// pick block to finalise
 	fin := leaves[len(leaves)-1]
 	err := bs.SetFinalizedHash(fin, 1, 1)
 	require.NoError(t, err)
@@ -327,7 +328,7 @@ func TestFinalization_DeleteBlock(t *testing.T) {
 		return false
 	}
 
-	// assert that every block except finalized has been deleted
+	// assert that every block except finalised has been deleted
 	for _, b := range before {
 		if b == fin {
 			continue
@@ -337,12 +338,12 @@ func TestFinalization_DeleteBlock(t *testing.T) {
 			continue
 		}
 
-		isFinalized, err := btBefore.IsDescendantOf(b, fin)
+		isFinalised, err := btBefore.IsDescendantOf(b, fin)
 		require.NoError(t, err)
 
 		has, err := bs.HasHeader(b)
 		require.NoError(t, err)
-		if isFinalized {
+		if isFinalised {
 			require.True(t, has)
 		} else {
 			require.False(t, has)
@@ -350,7 +351,7 @@ func TestFinalization_DeleteBlock(t *testing.T) {
 
 		has, err = bs.HasBlockBody(b)
 		require.NoError(t, err)
-		if isFinalized {
+		if isFinalised {
 			require.True(t, has)
 		} else {
 			require.False(t, has)
@@ -358,7 +359,7 @@ func TestFinalization_DeleteBlock(t *testing.T) {
 
 		// has, err = bs.HasArrivalTime(b)
 		// require.NoError(t, err)
-		// if isFinalized && b != bs.genesisHash {
+		// if isFinalised && b != bs.genesisHash {
 		// 	require.True(t, has, b)
 		// } else {
 		// 	require.False(t, has)
@@ -390,4 +391,129 @@ func TestGetHashByNumber(t *testing.T) {
 	res, err = bs.GetHashByNumber(big.NewInt(1))
 	require.NoError(t, err)
 	require.Equal(t, header.Hash(), res)
+}
+
+func TestAddBlock_WithReOrg(t *testing.T) {
+	bs := newTestBlockState(t, testGenesisHeader)
+
+	header1a := &types.Header{
+		Number:     big.NewInt(1),
+		Digest:     types.Digest{},
+		ParentHash: testGenesisHeader.Hash(),
+	}
+
+	block1a := &types.Block{
+		Header: header1a,
+		Body:   &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+	}
+
+	err := bs.AddBlock(block1a)
+	require.NoError(t, err)
+
+	block1hash, err := bs.GetHashByNumber(big.NewInt(1))
+	require.NoError(t, err)
+	require.Equal(t, header1a.Hash(), block1hash)
+
+	header1b := &types.Header{
+		Number:         big.NewInt(1),
+		Digest:         types.Digest{},
+		ParentHash:     testGenesisHeader.Hash(),
+		ExtrinsicsRoot: common.Hash{99},
+	}
+
+	block1b := &types.Block{
+		Header: header1b,
+		Body:   &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+	}
+
+	err = bs.AddBlock(block1b)
+	require.NoError(t, err)
+
+	// should still be hash 1a since it arrived first
+	block1hash, err = bs.GetHashByNumber(big.NewInt(1))
+	require.NoError(t, err)
+	require.Equal(t, header1a.Hash(), block1hash)
+
+	header2b := &types.Header{
+		Number:         big.NewInt(2),
+		Digest:         types.Digest{},
+		ParentHash:     header1b.Hash(),
+		ExtrinsicsRoot: common.Hash{99},
+	}
+
+	block2b := &types.Block{
+		Header: header2b,
+		Body:   &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+	}
+
+	err = bs.AddBlock(block2b)
+	require.NoError(t, err)
+
+	// should now be hash 1b since it's on the longer chain
+	block1hash, err = bs.GetHashByNumber(big.NewInt(1))
+	require.NoError(t, err)
+	require.Equal(t, header1b.Hash(), block1hash)
+
+	block2hash, err := bs.GetHashByNumber(big.NewInt(2))
+	require.NoError(t, err)
+	require.Equal(t, header2b.Hash(), block2hash)
+
+	header2a := &types.Header{
+		Number:     big.NewInt(2),
+		Digest:     types.Digest{},
+		ParentHash: header1a.Hash(),
+	}
+
+	block2a := &types.Block{
+		Header: header2a,
+		Body:   &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+	}
+
+	err = bs.AddBlock(block2a)
+	require.NoError(t, err)
+
+	header3a := &types.Header{
+		Number:     big.NewInt(3),
+		Digest:     types.Digest{},
+		ParentHash: header2a.Hash(),
+	}
+
+	block3a := &types.Block{
+		Header: header3a,
+		Body:   &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+	}
+
+	err = bs.AddBlock(block3a)
+	require.NoError(t, err)
+
+	// should now be hash 1a since it's on the longer chain
+	block1hash, err = bs.GetHashByNumber(big.NewInt(1))
+	require.NoError(t, err)
+	require.Equal(t, header1a.Hash(), block1hash)
+
+	// should now be hash 2a since it's on the longer chain
+	block2hash, err = bs.GetHashByNumber(big.NewInt(2))
+	require.NoError(t, err)
+	require.Equal(t, header2a.Hash(), block2hash)
+
+	block3hash, err := bs.GetHashByNumber(big.NewInt(3))
+	require.NoError(t, err)
+	require.Equal(t, header3a.Hash(), block3hash)
+}
+
+func TestAddBlockToBlockTree(t *testing.T) {
+	bs := newTestBlockState(t, testGenesisHeader)
+
+	header := &types.Header{
+		Number:     big.NewInt(1),
+		Digest:     types.Digest{},
+		ParentHash: testGenesisHeader.Hash(),
+	}
+
+	err := bs.setArrivalTime(header.Hash(), time.Now())
+	require.NoError(t, err)
+
+	err = bs.AddBlockToBlockTree(header)
+	require.NoError(t, err)
+	require.Equal(t, bs.BestBlockHash(), header.Hash())
 }

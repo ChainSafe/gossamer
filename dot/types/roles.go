@@ -23,6 +23,6 @@ const (
 	FullNodeRole = byte(1)
 	// LightClientRole runs a light client
 	LightClientRole = byte(2)
-	// AuthorityRole runs the node as a block-producing and finalizing node
+	// AuthorityRole runs the node as a block-producing and finalising node
 	AuthorityRole = byte(4)
 )

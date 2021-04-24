@@ -263,8 +263,8 @@ func TestGetPossibleSelectedAncestors_SameAncestor(t *testing.T) {
 	}
 
 	votes := gs.getVotes(prevote)
-	prevoted := make(map[common.Hash]uint64)
-	var blocks map[common.Hash]uint64
+	prevoted := make(map[common.Hash]uint32)
+	var blocks map[common.Hash]uint32
 
 	for _, curr := range leaves {
 		blocks, err = gs.getPossibleSelectedAncestors(votes, curr, prevoted, prevote, gs.state.threshold())
@@ -277,7 +277,7 @@ func TestGetPossibleSelectedAncestors_SameAncestor(t *testing.T) {
 	// this should return the highest common ancestor of (a, b, c) with >=2/3 votes,
 	// which is the node at depth 6.
 	require.Equal(t, 1, len(blocks))
-	require.Equal(t, uint64(6), blocks[expected])
+	require.Equal(t, uint32(6), blocks[expected])
 }
 
 func TestGetPossibleSelectedAncestors_VaryingAncestor(t *testing.T) {
@@ -313,8 +313,8 @@ func TestGetPossibleSelectedAncestors_VaryingAncestor(t *testing.T) {
 	}
 
 	votes := gs.getVotes(prevote)
-	prevoted := make(map[common.Hash]uint64)
-	var blocks map[common.Hash]uint64
+	prevoted := make(map[common.Hash]uint32)
+	var blocks map[common.Hash]uint32
 
 	for _, curr := range leaves {
 		blocks, err = gs.getPossibleSelectedAncestors(votes, curr, prevoted, prevote, gs.state.threshold())
@@ -330,8 +330,8 @@ func TestGetPossibleSelectedAncestors_VaryingAncestor(t *testing.T) {
 	// this should return the highest common ancestor of (a, b) and (b, c) with >=2/3 votes,
 	// which are the nodes at depth 6 and 7.
 	require.Equal(t, 2, len(blocks))
-	require.Equal(t, uint64(6), blocks[expectedAt6])
-	require.Equal(t, uint64(7), blocks[expectedAt7])
+	require.Equal(t, uint32(6), blocks[expectedAt6])
+	require.Equal(t, uint32(7), blocks[expectedAt7])
 }
 
 func TestGetPossibleSelectedAncestors_VaryingAncestor_MoreBranches(t *testing.T) {
@@ -373,8 +373,8 @@ func TestGetPossibleSelectedAncestors_VaryingAncestor_MoreBranches(t *testing.T)
 	}
 
 	votes := gs.getVotes(prevote)
-	prevoted := make(map[common.Hash]uint64)
-	var blocks map[common.Hash]uint64
+	prevoted := make(map[common.Hash]uint32)
+	var blocks map[common.Hash]uint32
 
 	for _, curr := range leaves {
 		blocks, err = gs.getPossibleSelectedAncestors(votes, curr, prevoted, prevote, gs.state.threshold())
@@ -390,8 +390,8 @@ func TestGetPossibleSelectedAncestors_VaryingAncestor_MoreBranches(t *testing.T)
 	// this should return the highest common ancestor of (a, b) and (b, c) with >=2/3 votes,
 	// which are the nodes at depth 6 and 7.
 	require.Equal(t, 2, len(blocks))
-	require.Equal(t, uint64(6), blocks[expectedAt6])
-	require.Equal(t, uint64(7), blocks[expectedAt7])
+	require.Equal(t, uint32(6), blocks[expectedAt6])
+	require.Equal(t, uint32(7), blocks[expectedAt7])
 }
 
 func TestGetPossibleSelectedBlocks_OneBlock(t *testing.T) {
@@ -462,7 +462,7 @@ func TestGetPossibleSelectedBlocks_EqualVotes_SameAncestor(t *testing.T) {
 
 	// this should return the highest common ancestor of (a, b, c)
 	require.Equal(t, 1, len(blocks))
-	require.Equal(t, uint64(6), blocks[expected])
+	require.Equal(t, uint32(6), blocks[expected])
 }
 
 func TestGetPossibleSelectedBlocks_EqualVotes_VaryingAncestor(t *testing.T) {
@@ -509,8 +509,8 @@ func TestGetPossibleSelectedBlocks_EqualVotes_VaryingAncestor(t *testing.T) {
 	// this should return the highest common ancestor of (a, b) and (b, c) with >=2/3 votes,
 	// which are the nodes at depth 6 and 7.
 	require.Equal(t, 2, len(blocks))
-	require.Equal(t, uint64(6), blocks[expectedAt6])
-	require.Equal(t, uint64(7), blocks[expectedAt7])
+	require.Equal(t, uint32(6), blocks[expectedAt6])
+	require.Equal(t, uint32(7), blocks[expectedAt7])
 }
 
 func TestGetPossibleSelectedBlocks_OneThirdEquivocating(t *testing.T) {
@@ -651,7 +651,7 @@ func TestGetPreVotedBlock_MultipleCandidates(t *testing.T) {
 	block, err := gs.getPreVotedBlock()
 	require.NoError(t, err)
 	require.Equal(t, expected, block.hash)
-	require.Equal(t, uint64(7), block.number)
+	require.Equal(t, uint32(7), block.number)
 }
 
 func TestGetPreVotedBlock_EvenMoreCandidates(t *testing.T) {
@@ -714,7 +714,7 @@ func TestGetPreVotedBlock_EvenMoreCandidates(t *testing.T) {
 	block, err := gs.getPreVotedBlock()
 	require.NoError(t, err)
 	require.Equal(t, expected, block.hash)
-	require.Equal(t, uint64(5), block.number)
+	require.Equal(t, uint32(5), block.number)
 }
 
 func TestIsCompletable(t *testing.T) {
@@ -945,7 +945,7 @@ func TestDeterminePreVote_WithInvalidPrimaryPreVote(t *testing.T) {
 	require.Equal(t, gs.head.Hash(), pv.hash)
 }
 
-func TestIsFinalizable_True(t *testing.T) {
+func TestIsFinalisable_True(t *testing.T) {
 	gs, st := newTestService(t)
 
 	branches := make(map[int]int)
@@ -970,12 +970,12 @@ func TestIsFinalizable_True(t *testing.T) {
 		}
 	}
 
-	finalizable, err := gs.isFinalizable(gs.state.round)
+	finalisable, err := gs.isFinalisable(gs.state.round)
 	require.NoError(t, err)
-	require.True(t, finalizable)
+	require.True(t, finalisable)
 }
 
-func TestIsFinalizable_False(t *testing.T) {
+func TestIsFinalisable_False(t *testing.T) {
 	gs, st := newTestService(t)
 
 	branches := make(map[int]int)
@@ -1000,16 +1000,16 @@ func TestIsFinalizable_False(t *testing.T) {
 		}
 	}
 
-	// previous round has finalized block # higher than current, so round is not finalizable
+	// previous round has finalised block # higher than current, so round is not finalisable
 	gs.state.round = 1
 	gs.bestFinalCandidate[0] = &Vote{
 		number: 4,
 	}
 	gs.preVotedBlock[gs.state.round] = voteA
 
-	finalizable, err := gs.isFinalizable(gs.state.round)
+	finalisable, err := gs.isFinalisable(gs.state.round)
 	require.NoError(t, err)
-	require.False(t, finalizable)
+	require.False(t, finalisable)
 }
 
 func TestGetGrandpaGHOST_CommonAncestor(t *testing.T) {
@@ -1083,7 +1083,7 @@ func TestGetGrandpaGHOST_MultipleCandidates(t *testing.T) {
 	block, err := gs.getGrandpaGHOST()
 	require.NoError(t, err)
 	require.Equal(t, expected, block.hash)
-	require.Equal(t, uint64(3), block.number)
+	require.Equal(t, uint32(3), block.number)
 
 	pv, err := gs.getPreVotedBlock()
 	require.NoError(t, err)

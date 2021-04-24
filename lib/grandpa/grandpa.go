@@ -34,12 +34,14 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-var interval = time.Second
+var (
+	interval = time.Second
+	logger   = log.New("pkg", "grandpa")
+)
 
 // Service represents the current state of the grandpa protocol
 type Service struct {
 	// preliminaries
-	logger         log.Logger
 	ctx            context.Context
 	cancel         context.CancelFunc
 	blockState     BlockState
@@ -58,18 +60,18 @@ type Service struct {
 	state            *State                             // current state
 	prevotes         map[ed25519.PublicKeyBytes]*Vote   // pre-votes for the current round
 	precommits       map[ed25519.PublicKeyBytes]*Vote   // pre-commits for the current round
-	pvJustifications map[common.Hash][]*Justification   // pre-vote justifications for the current round
-	pcJustifications map[common.Hash][]*Justification   // pre-commit justifications for the current round
+	pvJustifications map[common.Hash][]*SignedPrecommit // pre-vote justifications for the current round
+	pcJustifications map[common.Hash][]*SignedPrecommit // pre-commit justifications for the current round
 	pvEquivocations  map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-vote stage
 	pcEquivocations  map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-commit stage
 	tracker          *tracker                           // tracker of vote messages we may need in the future
-	head             *types.Header                      // most recently finalized block
+	head             *types.Header                      // most recently finalised block
 	nextAuthorities  []*Voter                           // if not nil, the updated authorities for the next round
 
 	// historical information
-	preVotedBlock      map[uint64]*Vote            // map of round number -> pre-voted block
-	bestFinalCandidate map[uint64]*Vote            // map of round number -> best final candidate
-	justification      map[uint64][]*Justification // map of round number -> precommit round justification
+	preVotedBlock      map[uint64]*Vote              // map of round number -> pre-voted block
+	bestFinalCandidate map[uint64]*Vote              // map of round number -> best final candidate
+	justification      map[uint64][]*SignedPrecommit // map of round number -> precommit round justification
 
 	// channels for communication with other services
 	in chan GrandpaMessage // only used to receive *VoteMessage
@@ -105,7 +107,6 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilNetwork
 	}
 
-	logger := log.New("pkg", "grandpa")
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
 	h = log.CallerFileHandler(h)
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
@@ -117,7 +118,7 @@ func NewService(cfg *Config) (*Service, error) {
 
 	logger.Debug("creating service", "authority", cfg.Authority, "key", pub, "voter set", Voters(cfg.Voters))
 
-	// get latest finalized header
+	// get latest finalised header
 	head, err := cfg.BlockState.GetFinalizedHeader(0, 0)
 	if err != nil {
 		return nil, err
@@ -126,7 +127,6 @@ func NewService(cfg *Config) (*Service, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	s := &Service{
-		logger:             logger,
 		ctx:                ctx,
 		cancel:             cancel,
 		state:              NewState(cfg.Voters, cfg.SetID, 0), // TODO: determine current round
@@ -136,13 +136,13 @@ func NewService(cfg *Config) (*Service, error) {
 		authority:          cfg.Authority,
 		prevotes:           make(map[ed25519.PublicKeyBytes]*Vote),
 		precommits:         make(map[ed25519.PublicKeyBytes]*Vote),
-		pvJustifications:   make(map[common.Hash][]*Justification),
-		pcJustifications:   make(map[common.Hash][]*Justification),
+		pvJustifications:   make(map[common.Hash][]*SignedPrecommit),
+		pcJustifications:   make(map[common.Hash][]*SignedPrecommit),
 		pvEquivocations:    make(map[ed25519.PublicKeyBytes][]*Vote),
 		pcEquivocations:    make(map[ed25519.PublicKeyBytes][]*Vote),
 		preVotedBlock:      make(map[uint64]*Vote),
 		bestFinalCandidate: make(map[uint64]*Vote),
-		justification:      make(map[uint64][]*Justification),
+		justification:      make(map[uint64][]*SignedPrecommit),
 		head:               head,
 		in:                 make(chan GrandpaMessage, 128),
 		resumed:            make(chan struct{}),
@@ -166,7 +166,7 @@ func (s *Service) Start() error {
 	go func() {
 		err := s.initiate()
 		if err != nil {
-			s.logger.Error("failed to initiate", "error", err)
+			logger.Error("failed to initiate", "error", err)
 		}
 	}()
 
@@ -247,7 +247,7 @@ func (s *Service) initiate() error {
 	// make sure no votes can be validated while we are incrementing rounds
 	s.roundLock.Lock()
 	s.state.round++
-	s.logger.Trace("incrementing grandpa round", "next round", s.state.round)
+	logger.Trace("incrementing grandpa round", "next round", s.state.round)
 	if s.tracker != nil {
 		s.tracker.stop()
 	}
@@ -256,17 +256,17 @@ func (s *Service) initiate() error {
 		var err error
 		s.prevotes = make(map[ed25519.PublicKeyBytes]*Vote)
 		s.precommits = make(map[ed25519.PublicKeyBytes]*Vote)
-		s.pcJustifications = make(map[common.Hash][]*Justification)
+		s.pcJustifications = make(map[common.Hash][]*SignedPrecommit)
 		s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
 		s.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
-		s.justification = make(map[uint64][]*Justification)
+		s.justification = make(map[uint64][]*SignedPrecommit)
 
 		s.tracker, err = newTracker(s.blockState, s.in)
 		if err != nil {
 			return err
 		}
 		s.tracker.start()
-		s.logger.Trace("started message tracker")
+		logger.Trace("started message tracker")
 	}
 	s.roundLock.Unlock()
 
@@ -296,7 +296,7 @@ func (s *Service) initiate() error {
 				return err
 			}
 		} else {
-			// if not a grandpa authority, wait for a block to be finalized in the current round
+			// if not a grandpa authority, wait for a block to be finalised in the current round
 			err = s.waitForFinalizedBlock()
 			if err != nil {
 				return err
@@ -375,9 +375,9 @@ func (s *Service) waitForFirstBlock() error {
 }
 
 // playGrandpaRound executes a round of GRANDPA
-// at the end of this round, a block will be finalized.
+// at the end of this round, a block will be finalised.
 func (s *Service) playGrandpaRound() error {
-	s.logger.Debug("starting round", "round", s.state.round, "setID", s.state.setID)
+	logger.Debug("starting round", "round", s.state.round, "setID", s.state.setID)
 
 	// save start time
 	start := time.Now()
@@ -387,15 +387,30 @@ func (s *Service) playGrandpaRound() error {
 
 	// if primary, broadcast the best final candidate from the previous round
 	if bytes.Equal(primary.key.Encode(), s.keypair.Public().Encode()) {
-		msg, err := s.newFinalizationMessage(s.head, s.state.round-1).ToConsensusMessage()
+		msg, err := s.newCommitMessage(s.head, s.state.round-1).ToConsensusMessage()
 		if err != nil {
-			s.logger.Error("failed to encode finalization message", "error", err)
+			logger.Error("failed to encode finalisation message", "error", err)
 		} else {
 			s.network.SendMessage(msg)
 		}
+
+		primProposal, err := s.createVoteMessage(&Vote{
+			hash:   s.head.Hash(),
+			number: uint32(s.head.Number.Int64()),
+		}, primaryProposal, s.keypair)
+		if err != nil {
+			logger.Error("failed to create primary proposal message", "error", err)
+		} else {
+			msg, err = primProposal.ToConsensusMessage()
+			if err != nil {
+				logger.Error("failed to encode finalisation message", "error", err)
+			} else {
+				s.network.SendMessage(msg)
+			}
+		}
 	}
 
-	s.logger.Debug("receiving pre-vote messages...")
+	logger.Debug("receiving pre-vote messages...")
 
 	go s.receiveMessages(func() bool {
 		if s.paused.Load().(bool) {
@@ -428,33 +443,33 @@ func (s *Service) playGrandpaRound() error {
 
 	s.mapLock.Lock()
 	s.prevotes[s.publicKeyBytes()] = pv
-	s.logger.Debug("sending pre-vote message...", "vote", pv, "prevotes", s.prevotes)
+	logger.Debug("sending pre-vote message...", "vote", pv, "prevotes", s.prevotes)
 	s.mapLock.Unlock()
 
-	finalized := false
+	finalised := false
 
 	// continue to send prevote messages until round is done
-	go func(finalized *bool) {
+	go func(finalised *bool) {
 		for {
 			if s.paused.Load().(bool) {
 				return
 			}
 
-			if *finalized {
+			if *finalised {
 				return
 			}
 
 			err = s.sendMessage(pv, prevote)
 			if err != nil {
-				s.logger.Error("could not send prevote message", "error", err)
+				logger.Error("could not send prevote message", "error", err)
 			}
 
 			time.Sleep(time.Second * 5)
-			s.logger.Trace("sent pre-vote message...", "vote", pv, "prevotes", s.prevotes)
+			logger.Trace("sent pre-vote message...", "vote", pv, "prevotes", s.prevotes)
 		}
-	}(&finalized)
+	}(&finalised)
 
-	s.logger.Debug("receiving pre-commit messages...")
+	logger.Debug("receiving pre-commit messages...")
 
 	go s.receiveMessages(func() bool {
 		end := start.Add(interval * 4)
@@ -483,33 +498,33 @@ func (s *Service) playGrandpaRound() error {
 
 	s.mapLock.Lock()
 	s.precommits[s.publicKeyBytes()] = pc
-	s.logger.Debug("sending pre-commit message...", "vote", pc, "precommits", s.precommits)
+	logger.Debug("sending pre-commit message...", "vote", pc, "precommits", s.precommits)
 	s.mapLock.Unlock()
 
 	// continue to send precommit messages until round is done
-	go func(finalized *bool) {
+	go func(finalised *bool) {
 		for {
 			if s.paused.Load().(bool) {
 				return
 			}
 
-			if *finalized {
+			if *finalised {
 				return
 			}
 
 			err = s.sendMessage(pc, precommit)
 			if err != nil {
-				s.logger.Error("could not send precommit message", "error", err)
+				logger.Error("could not send precommit message", "error", err)
 			}
 
 			time.Sleep(time.Second * 5)
-			s.logger.Trace("sent pre-commit message...", "vote", pc, "precommits", s.precommits)
+			logger.Trace("sent pre-commit message...", "vote", pc, "precommits", s.precommits)
 		}
-	}(&finalized)
+	}(&finalised)
 
 	go func() {
-		// receive messages until current round is completable and previous round is finalizable
-		// and the last finalized block is greater than the best final candidate from the previous round
+		// receive messages until current round is completable and previous round is finalisable
+		// and the last finalised block is greater than the best final candidate from the previous round
 		s.receiveMessages(func() bool {
 			if s.paused.Load().(bool) {
 				return true
@@ -521,7 +536,7 @@ func (s *Service) playGrandpaRound() error {
 			}
 
 			round := s.state.round
-			finalizable, err := s.isFinalizable(round)
+			finalisable, err := s.isFinalisable(round)
 			if err != nil {
 				return false
 			}
@@ -535,7 +550,7 @@ func (s *Service) playGrandpaRound() error {
 				return false
 			}
 
-			if completable && finalizable && uint64(s.head.Number.Int64()) >= prevBfc.number {
+			if completable && finalisable && uint32(s.head.Number.Int64()) >= prevBfc.number {
 				return true
 			}
 
@@ -545,15 +560,15 @@ func (s *Service) playGrandpaRound() error {
 
 	err = s.attemptToFinalize()
 	if err != nil {
-		log.Error("failed to finalize", "error", err)
+		log.Error("failed to finalise", "error", err)
 		return err
 	}
 
-	finalized = true
+	finalised = true
 	return nil
 }
 
-// attemptToFinalize loops until the round is finalizable
+// attemptToFinalize loops until the round is finalisable
 func (s *Service) attemptToFinalize() error {
 	if s.paused.Load().(bool) {
 		return ErrServicePaused
@@ -561,7 +576,7 @@ func (s *Service) attemptToFinalize() error {
 
 	has, _ := s.blockState.HasFinalizedBlock(s.state.round, s.state.setID)
 	if has {
-		return nil // a block was finalized, seems like we missed some messages
+		return nil // a block was finalised, seems like we missed some messages
 	}
 
 	bfc, err := s.getBestFinalCandidate()
@@ -574,17 +589,17 @@ func (s *Service) attemptToFinalize() error {
 		return err
 	}
 
-	if bfc.number >= uint64(s.head.Number.Int64()) && pc >= s.state.threshold() {
-		err = s.finalize()
+	if bfc.number >= uint32(s.head.Number.Int64()) && pc >= s.state.threshold() {
+		err = s.finalise()
 		if err != nil {
 			return err
 		}
 
-		// if we haven't received a finalization message for this block yet, broadcast a finalization message
+		// if we haven't received a finalisation message for this block yet, broadcast a finalisation message
 		votes := s.getDirectVotes(precommit)
-		s.logger.Debug("finalized block!!!", "setID", s.state.setID, "round", s.state.round, "hash", s.head.Hash(),
+		logger.Debug("finalised block!!!", "setID", s.state.setID, "round", s.state.round, "hash", s.head.Hash(),
 			"precommits #", pc, "votes for bfc #", votes[*bfc], "total votes for bfc", pc, "precommits", s.precommits)
-		msg, err := s.newFinalizationMessage(s.head, s.state.round).ToConsensusMessage()
+		msg, err := s.newCommitMessage(s.head, s.state.round).ToConsensusMessage()
 		if err != nil {
 			return err
 		}
@@ -608,7 +623,7 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	prm := s.prevotes[s.derivePrimary().PublicKeyBytes()]
 	s.mapLock.Unlock()
 
-	if prm != nil && prm.number >= uint64(s.head.Number.Int64()) {
+	if prm != nil && prm.number >= uint32(s.head.Number.Int64()) {
 		vote = prm
 	} else {
 		header, err := s.blockState.BestBlockHeader()
@@ -620,7 +635,7 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	}
 
 	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
-	if vote.number > nextChange {
+	if uint64(vote.number) > nextChange {
 		header, err := s.blockState.GetHeaderByNumber(big.NewInt(int64(nextChange)))
 		if err != nil {
 			return nil, err
@@ -645,7 +660,7 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 	s.mapLock.Unlock()
 
 	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
-	if pvb.number > nextChange {
+	if uint64(pvb.number) > nextChange {
 		header, err := s.blockState.GetHeaderByNumber(big.NewInt(int64(nextChange)))
 		if err != nil {
 			return nil, err
@@ -657,8 +672,8 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 	return &pvb, nil
 }
 
-// isFinalizable returns true is the round is finalizable, false otherwise.
-func (s *Service) isFinalizable(round uint64) (bool, error) {
+// isFinalisable returns true is the round is finalisable, false otherwise.
+func (s *Service) isFinalisable(round uint64) (bool, error) {
 	var pvb Vote
 	var err error
 
@@ -704,8 +719,8 @@ func (s *Service) isFinalizable(round uint64) (bool, error) {
 	return false, nil
 }
 
-// finalize finalizes the round by setting the best final candidate for this round
-func (s *Service) finalize() error {
+// finalise finalises the round by setting the best final candidate for this round
+func (s *Service) finalise() error {
 	// get best final candidate
 	bfc, err := s.getBestFinalCandidate()
 	if err != nil {
@@ -728,12 +743,12 @@ func (s *Service) finalize() error {
 	// set justification
 	s.justification[s.state.round] = s.pcJustifications[bfc.hash]
 
-	pvj, err := newFullJustification(s.pvJustifications[bfc.hash]).Encode()
+	pvj, err := newJustification(s.state.round, bfc.hash, bfc.number, s.pvJustifications[bfc.hash]).Encode()
 	if err != nil {
 		return err
 	}
 
-	pcj, err := newFullJustification(s.pcJustifications[bfc.hash]).Encode()
+	pcj, err := newJustification(s.state.round, bfc.hash, bfc.number, s.pcJustifications[bfc.hash]).Encode()
 	if err != nil {
 		return err
 	}
@@ -748,13 +763,13 @@ func (s *Service) finalize() error {
 		return err
 	}
 
-	// set finalized head for round in db
+	// set finalised head for round in db
 	err = s.blockState.SetFinalizedHash(bfc.hash, s.state.round, s.state.setID)
 	if err != nil {
 		return err
 	}
 
-	// set latest finalized head in db
+	// set latest finalised head in db
 	return s.blockState.SetFinalizedHash(bfc.hash, 0, 0)
 }
 
@@ -897,7 +912,7 @@ func (s *Service) getPreVotedBlock() (Vote, error) {
 
 	// if there are multiple, find the one with the highest number and return it
 	highest := Vote{
-		number: uint64(0),
+		number: uint32(0),
 	}
 	for h, n := range blocks {
 		if n > highest.number {
@@ -916,7 +931,7 @@ func (s *Service) getPreVotedBlock() (Vote, error) {
 func (s *Service) getGrandpaGHOST() (Vote, error) {
 	threshold := s.state.threshold()
 
-	var blocks map[common.Hash]uint64
+	var blocks map[common.Hash]uint32
 	var err error
 
 	for {
@@ -937,7 +952,7 @@ func (s *Service) getGrandpaGHOST() (Vote, error) {
 
 	// if there are multiple, find the one with the highest number and return it
 	highest := Vote{
-		number: uint64(0),
+		number: uint32(0),
 	}
 	for h, n := range blocks {
 		if n > highest.number {
@@ -957,10 +972,10 @@ func (s *Service) getGrandpaGHOST() (Vote, error) {
 // thus, if there are no blocks with >=threshold total votes, but the sum of votes for blocks A and B is >=threshold, then this function returns
 // the first common ancestor of A and B.
 // in general, this function will return the highest block on each chain with >=threshold votes.
-func (s *Service) getPossibleSelectedBlocks(stage subround, threshold uint64) (map[common.Hash]uint64, error) {
+func (s *Service) getPossibleSelectedBlocks(stage subround, threshold uint64) (map[common.Hash]uint32, error) {
 	// get blocks that were directly voted for
 	votes := s.getDirectVotes(stage)
-	blocks := make(map[common.Hash]uint64)
+	blocks := make(map[common.Hash]uint32)
 
 	// check if any of them have >=threshold votes
 	for v := range votes {
@@ -996,7 +1011,7 @@ func (s *Service) getPossibleSelectedBlocks(stage subround, threshold uint64) (m
 
 // getPossibleSelectedAncestors recursively searches for ancestors with >=2/3 votes
 // it returns a map of block hash -> number, such that the blocks in the map have >=2/3 votes
-func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash, selected map[common.Hash]uint64, stage subround, threshold uint64) (map[common.Hash]uint64, error) {
+func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash, selected map[common.Hash]uint32, stage subround, threshold uint64) (map[common.Hash]uint32, error) {
 	for _, v := range votes {
 		if v.hash == curr {
 			continue
@@ -1026,7 +1041,7 @@ func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash, s
 				return nil, err
 			}
 
-			selected[pred] = uint64(h.Number.Int64())
+			selected[pred] = uint32(h.Number.Int64())
 		} else {
 			selected, err = s.getPossibleSelectedAncestors(votes, pred, selected, stage, threshold)
 			if err != nil {
@@ -1123,7 +1138,7 @@ func (s *Service) getVotes(stage subround) []Vote {
 }
 
 // findParentWithNumber returns a Vote for an ancestor with number n given an existing Vote
-func (s *Service) findParentWithNumber(v *Vote, n uint64) (*Vote, error) {
+func (s *Service) findParentWithNumber(v *Vote, n uint32) (*Vote, error) {
 	if v.number <= n {
 		return v, nil
 	}
