@@ -26,7 +26,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// newTestTrieState returns an initialized TrieState
+// newTestTrieState returns an initialised TrieState
 func newTestTrieState(t *testing.T) *TrieState {
 	ts, err := NewTrieState(nil)
 	require.NoError(t, err)

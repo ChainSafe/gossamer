@@ -109,7 +109,7 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 
 	stateSrvc := state.NewService(path, log.LvlCrit)
 
-	// start state service (initialize state database)
+	// start state service (initialise state database)
 	err := stateSrvc.Start()
 	if err != nil {
 		return nil, err

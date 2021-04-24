@@ -52,7 +52,7 @@ var ErrEquivocation = errors.New("vote is equivocatory")
 // ErrVoterNotFound is returned when trying to validate a vote for a voter that isn't in the voter set
 var ErrVoterNotFound = errors.New("voter is not in voter set")
 
-// ErrDescendantNotFound is returned when trying to validate a vote for a block that isn't a descendant of the last finalized block
+// ErrDescendantNotFound is returned when trying to validate a vote for a block that isn't a descendant of the last finalised block
 var ErrDescendantNotFound = blocktree.ErrDescendantNotFound
 
 // ErrNoPreVotedBlock is returned when there is no pre-voted block for a round.
@@ -70,9 +70,9 @@ var ErrCannotDecodeSubround = errors.New("cannot decode invalid subround value")
 var ErrInvalidMessageType = errors.New("cannot decode invalid message type")
 
 // ErrNotCommitMessage is returned when calling GetFinalizedHash on a message that isn't a CommitMessage
-var ErrNotCommitMessage = errors.New("cannot get finalized hash from VoteMessage")
+var ErrNotCommitMessage = errors.New("cannot get finalised hash from VoteMessage")
 
-// ErrNoJustification is returned when no justification can be found for a block, ie. it has not been finalized
+// ErrNoJustification is returned when no justification can be found for a block, ie. it has not been finalised
 var ErrNoJustification = errors.New("no justification found for block")
 
 // ErrMinVotesNotMet is returned when the number of votes is less than the required minimum in a Justification
@@ -84,7 +84,7 @@ var ErrInvalidCatchUpRound = errors.New("catch up request is for future round")
 // ErrInvalidCatchUpResponseRound is returned when a catch-up response is received with an invalid round
 var ErrInvalidCatchUpResponseRound = errors.New("catch up response is not for previous round")
 
-// ErrGHOSTlessCatchUp is returned when a catch up response does not contain a valid grandpa-GHOST (ie. finalized block)
+// ErrGHOSTlessCatchUp is returned when a catch up response does not contain a valid grandpa-GHOST (ie. finalised block)
 var ErrGHOSTlessCatchUp = errors.New("catch up response does not contain grandpa-GHOST")
 
 // ErrCatchUpResponseNotCompletable is returned when the round represented by the catch up response is not completable

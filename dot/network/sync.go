@@ -59,7 +59,7 @@ func (s *Service) decodeSyncMessage(in []byte, peer peer.ID) (Message, error) {
 	return msg, err
 }
 
-// handleSyncMessage handles synchronization message types (BlockRequest and BlockResponse)
+// handleSyncMessage handles synchronisation message types (BlockRequest and BlockResponse)
 func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) error {
 	if msg == nil {
 		_ = stream.Close()
@@ -320,12 +320,12 @@ func (q *syncQueue) benchmark() {
 		}
 
 		if before.Number.Int64() >= q.goal {
-			finalized, err := q.s.blockState.GetFinalizedHeader(0, 0) //nolint
+			finalised, err := q.s.blockState.GetFinalizedHeader(0, 0) //nolint
 			if err != nil {
 				continue
 			}
 
-			logger.Info("💤 node waiting", "head", before.Number, "finalized", finalized.Number)
+			logger.Info("💤 node waiting", "head", before.Number, "finalised", finalised.Number)
 			time.Sleep(time.Second * 5)
 			continue
 		}
@@ -573,7 +573,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 		q.updatePeerScore(req.to, -1)
 	}
 
-	logger.Trace("trying peers in prioritized order...")
+	logger.Trace("trying peers in prioritised order...")
 	syncPeers := q.getSortedPeers()
 
 	for _, peer := range syncPeers {
@@ -692,14 +692,14 @@ func (q *syncQueue) handleBlockJustification(data []*types.BlockData) {
 }
 
 func (q *syncQueue) handleBlockData(data []*types.BlockData) {
-	finalized, err := q.s.blockState.GetFinalizedHeader(0, 0)
+	finalised, err := q.s.blockState.GetFinalizedHeader(0, 0)
 	if err != nil {
 		panic(err) // this should never happen
 	}
 
 	end := data[len(data)-1].Number().Int64()
-	if end <= finalized.Number.Int64() {
-		logger.Debug("ignoring block data that is below our head", "got", end, "head", finalized.Number.Int64())
+	if end <= finalised.Number.Int64() {
+		logger.Debug("ignoring block data that is below our head", "got", end, "head", finalised.Number.Int64())
 		q.pushRequest(uint64(end+1), blockRequestBufferSize, "")
 		return
 	}
@@ -740,7 +740,7 @@ func (q *syncQueue) handleBlockDataFailure(idx int, err error, data []*types.Blo
 	logger.Warn("failed to handle block data", "failed on block", q.currStart+int64(idx), "error", err)
 
 	if errors.Is(err, chaindb.ErrKeyNotFound) || errors.Is(err, blocktree.ErrParentNotFound) {
-		finalized, err := q.s.blockState.GetFinalizedHeader(0, 0)
+		finalised, err := q.s.blockState.GetFinalizedHeader(0, 0)
 		if err != nil {
 			panic(err)
 		}
@@ -752,7 +752,7 @@ func (q *syncQueue) handleBlockDataFailure(idx int, err error, data []*types.Blo
 		}
 
 		// don't request a chain that's been dropped
-		if header.Number.Int64() <= finalized.Number.Int64() {
+		if header.Number.Int64() <= finalised.Number.Int64() {
 			return
 		}
 

@@ -72,14 +72,14 @@ var (
 func TestNewEmptyTrie(t *testing.T) {
 	trie := NewEmptyTrie()
 	if trie == nil {
-		t.Error("did not initialize trie")
+		t.Error("did not initialise trie")
 	}
 }
 
 func TestNewTrie(t *testing.T) {
 	trie := NewTrie(&leaf{key: []byte{0}, value: []byte{17}})
 	if trie == nil {
-		t.Error("did not initialize trie")
+		t.Error("did not initialise trie")
 	}
 }
 

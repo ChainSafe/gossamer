@@ -140,7 +140,7 @@ func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 	}, nil
 }
 
-// NeighbourMessage represents a network-level neighbor message
+// NeighbourMessage represents a network-level neighbour message
 type NeighbourMessage struct {
 	Version byte
 	Round   uint64
@@ -194,7 +194,7 @@ func (d *AuthData) Decode(r io.Reader) error {
 	return nil
 }
 
-// CommitMessage represents a network finalization message
+// CommitMessage represents a network finalisation message
 type CommitMessage struct {
 	Round      uint64
 	SetID      uint64

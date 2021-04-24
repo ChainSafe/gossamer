@@ -87,7 +87,7 @@ build-debug:
 	@echo "  >  \033[32mBuilding binary...\033[0m "
 	GOBIN=$(PWD)/bin go run scripts/ci.go install-debug
 
-## init: Initialize gossamer using the default genesis and toml configuration files
+## init: Initialise gossamer using the default genesis and toml configuration files
 init:
 	./bin/gossamer --key alice init --genesis chain/gssmr/genesis.json --force
 

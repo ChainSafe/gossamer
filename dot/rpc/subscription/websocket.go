@@ -92,7 +92,7 @@ func (c *WSConn) HandleComm() {
 			case "chain_subscribeFinalizedHeads":
 				bfl, err3 := c.initBlockFinalizedListener(reqid)
 				if err3 != nil {
-					logger.Warn("failed to create block finalized", "error", err3)
+					logger.Warn("failed to create block finalised", "error", err3)
 					continue
 				}
 				c.startListener(bfl)
@@ -271,7 +271,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (uint, er
 		importedChan:  make(chan *types.Block),
 		wsconn:        c,
 		extrinsic:     types.Extrinsic(extBytes),
-		finalizedChan: make(chan *types.Header),
+		finalisedChan: make(chan *types.Header),
 	}
 
 	if c.BlockAPI == nil {
@@ -282,7 +282,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (uint, er
 		return 0, err
 	}
 
-	esl.finalizedChanID, err = c.BlockAPI.RegisterFinalizedChannel(esl.finalizedChan)
+	esl.finalisedChanID, err = c.BlockAPI.RegisterFinalizedChannel(esl.finalisedChan)
 	if err != nil {
 		return 0, err
 	}

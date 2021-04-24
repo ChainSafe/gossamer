@@ -135,7 +135,7 @@ func TestBuildFromDB(t *testing.T) {
 	cfg.Init.Genesis = "../chain/gssmr/genesis.json"
 	expected, err := genesis.NewGenesisFromJSONRaw(cfg.Init.Genesis)
 	require.NoError(t, err)
-	// initialize node (initialize state database and load genesis data)
+	// initialise node (initialise state database and load genesis data)
 	err = InitNode(cfg)
 	require.NoError(t, err)
 

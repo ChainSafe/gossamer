@@ -148,12 +148,12 @@ doneBlockProduction:
 }
 
 // compareFinalizedHeads calls getFinalizedHeadByRound for each node in the array
-// it returns a map of finalizedHead hashes to node key names, and an error if the hashes don't all match
+// it returns a map of finalisedHead hashes to node key names, and an error if the hashes don't all match
 func compareFinalizedHeads(t *testing.T, nodes []*utils.Node) (map[common.Hash][]string, error) {
 	hashes := make(map[common.Hash][]string)
 	for _, node := range nodes {
 		hash := utils.GetFinalizedHead(t, node)
-		logger.Info("got finalized head from node", "hash", hash, "node", node.Key)
+		logger.Info("got finalised head from node", "hash", hash, "node", node.Key)
 		hashes[hash] = append(hashes[hash], node.Key)
 	}
 
@@ -170,7 +170,7 @@ func compareFinalizedHeads(t *testing.T, nodes []*utils.Node) (map[common.Hash][
 }
 
 // compareFinalizedHeadsByRound calls getFinalizedHeadByRound for each node in the array
-// it returns a map of finalizedHead hashes to node key names, and an error if the hashes don't all match
+// it returns a map of finalisedHead hashes to node key names, and an error if the hashes don't all match
 func compareFinalizedHeadsByRound(t *testing.T, nodes []*utils.Node, round uint64) (map[common.Hash][]string, error) {
 	hashes := make(map[common.Hash][]string)
 	for _, node := range nodes {
@@ -179,7 +179,7 @@ func compareFinalizedHeadsByRound(t *testing.T, nodes []*utils.Node, round uint6
 			return nil, err
 		}
 
-		logger.Info("got finalized head from node", "hash", hash, "node", node.Key, "round", round)
+		logger.Info("got finalised head from node", "hash", hash, "node", node.Key, "round", round)
 		hashes[hash] = append(hashes[hash], node.Key)
 	}
 
@@ -196,7 +196,7 @@ func compareFinalizedHeadsByRound(t *testing.T, nodes []*utils.Node, round uint6
 }
 
 // compareFinalizedHeadsWithRetry calls compareFinalizedHeadsByRound, retrying up to maxRetries times if it errors.
-// it returns the finalized hash if it succeeds
+// it returns the finalised hash if it succeeds
 func compareFinalizedHeadsWithRetry(t *testing.T, nodes []*utils.Node, round uint64) (common.Hash, error) {
 	var hashes map[common.Hash][]string
 	var err error
