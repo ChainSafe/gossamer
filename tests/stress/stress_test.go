@@ -28,7 +28,6 @@ import (
 
 	gosstypes "github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v2"
 	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
@@ -360,9 +359,6 @@ func TestSync_Restart(t *testing.T) {
 }
 
 func TestPendingExtrinsic(t *testing.T) {
-	// TODO: Fix this test and enable it. Node syncing takes time.
-	t.Skip("skipping TestPendingExtrinsic")
-
 	t.Log("starting gossamer...")
 
 	utils.CreateConfigBabeMaxThreshold()
@@ -430,9 +426,7 @@ func TestPendingExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEqual(t, hash, common.Hash{})
 
-	// wait and start rest of nodes
-	// TODO: it seems like the non-authority nodes don't sync properly if started before submitting the tx
-	time.Sleep(time.Second * 20)
+	// Start rest of nodes
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDefault, utils.ConfigNoBABE)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
@@ -492,20 +486,14 @@ func TestPendingExtrinsic(t *testing.T) {
 
 	var included bool
 	for _, ext := range resExts {
-		dec, err := scale.Decode(ext, []byte{}) //nolint
-		require.NoError(t, err)
-		decExt := dec.([]byte)
-		logger.Debug("comparing", "expected", extEnc, "in block", common.BytesToHex(decExt))
-		if strings.Compare(extEnc, common.BytesToHex(decExt)) == 0 {
+		logger.Debug("comparing", "expected", extEnc, "in block", common.BytesToHex(ext))
+		if strings.Compare(extEnc, common.BytesToHex(ext)) == 0 {
 			included = true
 		}
 	}
 
 	require.True(t, included)
 
-	// wait for nodes to sync
-	// TODO: seems like nodes don't sync properly :/
-	time.Sleep(time.Second * 45)
 	hashes, err := compareBlocksByNumberWithRetry(t, nodes, extInBlock.String())
 	require.NoError(t, err, hashes)
 }
