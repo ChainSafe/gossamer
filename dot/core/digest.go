@@ -178,7 +178,10 @@ func (h *DigestHandler) handleBlockImport(ctx context.Context) {
 				continue
 			}
 
-			h.handleGrandpaChangesOnImport(block.Header.Number)
+			err := h.handleGrandpaChangesOnImport(block.Header.Number)
+			if err != nil {
+				logger.Error("failed to handle grandpa changes on block import", "error", err)
+			}
 		case <-ctx.Done():
 			return
 		}
@@ -193,14 +196,17 @@ func (h *DigestHandler) handleBlockFinalization(ctx context.Context) {
 				continue
 			}
 
-			h.handleGrandpaChangesOnFinalization(header.Number)
+			err := h.handleGrandpaChangesOnFinalization(header.Number)
+			if err != nil {
+				logger.Error("failed to handle grandpa changes on block finalization", "error", err)
+			}
 		case <-ctx.Done():
 			return
 		}
 	}
 }
 
-func (h *DigestHandler) handleGrandpaChangesOnImport(num *big.Int) {
+func (h *DigestHandler) handleGrandpaChangesOnImport(num *big.Int) error {
 	resume := h.grandpaResume
 	if resume != nil && num.Cmp(resume.atBlock) == 0 {
 		h.grandpaResume = nil
@@ -210,14 +216,16 @@ func (h *DigestHandler) handleGrandpaChangesOnImport(num *big.Int) {
 	if fc != nil && num.Cmp(fc.atBlock) == 0 {
 		err := h.grandpaState.IncrementSetID()
 		if err != nil {
-			logger.Error("failed to increment grandpa set ID", "error", err)
+			return err
 		}
 
 		h.grandpaForcedChange = nil
 	}
+
+	return nil
 }
 
-func (h *DigestHandler) handleGrandpaChangesOnFinalization(num *big.Int) {
+func (h *DigestHandler) handleGrandpaChangesOnFinalization(num *big.Int) error {
 	pause := h.grandpaPause
 	if pause != nil && num.Cmp(pause.atBlock) == 0 {
 		h.grandpaPause = nil
@@ -227,7 +235,7 @@ func (h *DigestHandler) handleGrandpaChangesOnFinalization(num *big.Int) {
 	if sc != nil && num.Cmp(sc.atBlock) == 0 {
 		err := h.grandpaState.IncrementSetID()
 		if err != nil {
-			logger.Error("failed to increment grandpa set ID", "error", err)
+			return err
 		}
 
 		h.grandpaScheduledChange = nil
@@ -235,6 +243,7 @@ func (h *DigestHandler) handleGrandpaChangesOnFinalization(num *big.Int) {
 
 	// if blocks get finalised before forced change takes place, disregard it
 	h.grandpaForcedChange = nil
+	return nil
 }
 
 func (h *DigestHandler) handleScheduledChange(d *types.ConsensusDigest, header *types.Header) error {
@@ -309,7 +318,10 @@ func (h *DigestHandler) handleForcedChange(d *types.ConsensusDigest, header *typ
 		return err
 	}
 
-	return h.grandpaState.SetNextChange(types.NewGrandpaVotersFromAuthorities(auths), big.NewInt(0).Add(header.Number, big.NewInt(int64(fc.Delay))))
+	return h.grandpaState.SetNextChange(
+		types.NewGrandpaVotersFromAuthorities(auths),
+		big.NewInt(0).Add(header.Number, big.NewInt(int64(fc.Delay))),
+	)
 }
 
 func (h *DigestHandler) handlePause(d *types.ConsensusDigest) error {

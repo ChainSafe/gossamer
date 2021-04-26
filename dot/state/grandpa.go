@@ -102,7 +102,11 @@ func (s *GrandpaState) GetAuthorities(setID uint64) ([]*types.GrandpaVoter, erro
 	}
 
 	r := &bytes.Buffer{}
-	_, _ = r.Write(enc)
+	_, err = r.Write(enc)
+	if err != nil {
+		return nil, err
+	}
+
 	v, err := types.DecodeGrandpaVoters(r)
 	if err != nil {
 		return nil, err
