@@ -31,9 +31,8 @@ import (
 
 // Handler struct for holding telemetry related things
 type Handler struct {
-	buf             bytes.Buffer
-	wsConn          []*websocket.Conn
-	telemetryLogger *log.Entry
+	buf    bytes.Buffer
+	wsConn []*websocket.Conn
 	sync.RWMutex
 }
 
@@ -66,6 +65,7 @@ func GetInstance() *Handler {
 				}
 				log.SetOutput(&handlerInstance.buf)
 				log.SetFormatter(new(MyJSONFormatter))
+				go handlerInstance.sender()
 			})
 	}
 	return handlerInstance
@@ -99,32 +99,34 @@ type ConnectionData struct {
 
 // SendConnection sends connection request message to telemetry connection
 func (h *Handler) SendConnection(data *ConnectionData) {
+	h.Lock()
+	defer h.Unlock()
 	payload := log.Fields{"authority": data.Authority, "chain": data.Chain, "config": "", "genesis_hash": data.GenesisHash,
 		"implementation": data.SystemName, "msg": "system.connected", "name": data.NodeName, "network_id": data.NetworkID, "startup_time": data.StartTime,
 		"version": data.SystemVersion}
-	h.telemetryLogger = log.WithFields(log.Fields{"id": 1, "payload": payload, "ts": time.Now()})
-	h.telemetryLogger.Print()
-	h.sendTelemetry()
+	telemetryLogger := log.WithFields(log.Fields{"id": 1, "payload": payload, "ts": time.Now()})
+	telemetryLogger.Print()
 }
 
 // SendBlockImport sends block imported message to telemetry connection
 func (h *Handler) SendBlockImport(bestHash string, height *big.Int) {
+	h.Lock()
+	defer h.Unlock()
 	payload := log.Fields{"best": bestHash, "height": height.Int64(), "msg": "block.import", "origin": "NetworkInitialSync"}
-	h.telemetryLogger = log.WithFields(log.Fields{"id": 1, "payload": payload, "ts": time.Now()})
-	h.telemetryLogger.Print()
-	h.sendTelemetry()
+	telemetryLogger := log.WithFields(log.Fields{"id": 1, "payload": payload, "ts": time.Now()})
+	telemetryLogger.Print()
 }
 
 // NetworkData struct to hold network data telemetry information
-type networkData struct {
+type NetworkData struct {
 	peers   int
 	rateIn  float64
 	rateOut float64
 }
 
 // NewNetworkData creates networkData struct
-func NewNetworkData(peers int, rateIn, rateOut float64) *networkData {
-	return &networkData{
+func NewNetworkData(peers int, rateIn, rateOut float64) *NetworkData {
+	return &NetworkData{
 		peers:   peers,
 		rateIn:  rateIn,
 		rateOut: rateOut,
@@ -132,11 +134,12 @@ func NewNetworkData(peers int, rateIn, rateOut float64) *networkData {
 }
 
 // SendNetworkData send network data system.interval message to telemetry connection
-func (h *Handler) SendNetworkData(data *networkData) {
+func (h *Handler) SendNetworkData(data *NetworkData) {
+	h.Lock()
+	defer h.Unlock()
 	payload := log.Fields{"bandwidth_download": data.rateIn, "bandwidth_upload": data.rateOut, "msg": "system.interval", "peers": data.peers}
-	h.telemetryLogger = log.WithFields(log.Fields{"id": 1, "payload": payload, "ts": time.Now()})
-	h.telemetryLogger.Print()
-	h.sendTelemetry()
+	telemetryLogger := log.WithFields(log.Fields{"id": 1, "payload": payload, "ts": time.Now()})
+	telemetryLogger.Print()
 }
 
 // BlockIntervalData struct to hold data for block system.interval message
@@ -156,20 +159,27 @@ func (h *Handler) SendBlockIntervalData(data *BlockIntervalData) {
 	payload := log.Fields{"best": data.BestHash.String(), "finalized_hash": data.FinalizedHash.String(),
 		"finalized_height": data.FinalizedHeight, "height": data.BestHeight, "msg": "system.interval", "txcount": data.TXCount,
 		"used_state_cache_size": data.UsedStateCacheSize}
-	h.telemetryLogger = log.WithFields(log.Fields{"id": 1, "payload": payload, "ts": time.Now()})
-	h.telemetryLogger.Print()
-	h.sendTelemetry()
+	telemetryLogger := log.WithFields(log.Fields{"id": 1, "payload": payload, "ts": time.Now()})
+	telemetryLogger.Print()
 }
 
-func (h *Handler) sendTelemetry() {
-	h.Lock()
-	defer h.Unlock()
-	for _, c := range h.wsConn {
-		err := c.WriteMessage(websocket.TextMessage, h.buf.Bytes())
+func (h *Handler) sender() {
+	for {
+		h.RLock()
+		line, err := h.buf.ReadBytes(byte(10))
+		h.RUnlock()
 		if err != nil {
-			// TODO (ed) determine how to handle this error
-			fmt.Printf("ERROR connecting to telemetry %v\n", err)
+			continue
+		}
+
+		for _, c := range h.wsConn {
+			h.Lock()
+			err := c.WriteMessage(websocket.TextMessage, line)
+			h.Unlock()
+			if err != nil {
+				// TODO (ed) determine how to handle this error
+				fmt.Printf("ERROR connecting to telemetry %v\n", err)
+			}
 		}
 	}
-	h.buf.Reset()
 }

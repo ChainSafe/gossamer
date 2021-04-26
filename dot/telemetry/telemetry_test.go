@@ -73,13 +73,11 @@ func TestHandler_SendBlockImport_Race(t *testing.T) {
 
 	go func() {
 		GetInstance().SendBlockImport("hash", big.NewInt(2))
-		// note, we only check the first 101 bytes because the remaining bytes are the timestamp, which we can't estimate
 		wg.Done()
 	}()
 
 	go func() {
 		GetInstance().SendNetworkData(NewNetworkData(1, 2, 3))
-		// note, we only check the first 103 bytes because the remaining bytes are the timestamp, which we can't estimate
 		wg.Done()
 	}()
 	wg.Wait()
