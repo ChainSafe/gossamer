@@ -22,79 +22,81 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 )
 
-// ErrNilBlockState is returned when BlockState is nil
-var ErrNilBlockState = errors.New("cannot have nil BlockState")
+var (
+	ErrNilBlockState    = errors.New("cannot have nil BlockState")
+	ErrNilGrandpaState  = errors.New("cannot have nil GrandpaState")
+	ErrNilDigestHandler = errors.New("cannot have nil DigestHandler")
+	ErrNilKeypair       = errors.New("cannot have nil keypair")
+	ErrNilNetwork       = errors.New("cannot have nil Network")
 
-// ErrNilGrandpaState is returned when GrandpaState is nil
-var ErrNilGrandpaState = errors.New("cannot have nil GrandpaState")
+	// ErrBlockDoesNotExist is returned when trying to validate a vote for a block that doesn't exist
+	ErrBlockDoesNotExist = errors.New("block does not exist")
 
-// ErrNilDigestHandler is returned when DigestHandler is nil
-var ErrNilDigestHandler = errors.New("cannot have nil DigestHandler")
+	// ErrInvalidSignature is returned when trying to validate a vote message with an invalid signature
+	ErrInvalidSignature = errors.New("signature is not valid")
 
-// ErrNilKeypair is returned when the keypair is nil
-var ErrNilKeypair = errors.New("cannot have nil keypair")
+	// ErrSetIDMismatch is returned when trying to validate a vote message with an invalid voter set ID, or when receiving a catch up message with a different set ID
+	ErrSetIDMismatch = errors.New("set IDs do not match")
 
-// ErrNilNetwork is returned when the Network is nil
-var ErrNilNetwork = errors.New("cannot have nil Network")
+	// ErrRoundMismatch is returned when trying to validate a vote message that isn't for the current round
+	ErrRoundMismatch = errors.New("rounds do not match")
 
-// ErrBlockDoesNotExist is returned when trying to validate a vote for a block that doesn't exist
-var ErrBlockDoesNotExist = errors.New("block does not exist")
+	// ErrEquivocation is returned when trying to validate a vote for that is equivocatory
+	ErrEquivocation = errors.New("vote is equivocatory")
 
-// ErrInvalidSignature is returned when trying to validate a vote message with an invalid signature
-var ErrInvalidSignature = errors.New("signature is not valid")
+	// ErrVoterNotFound is returned when trying to validate a vote for a voter that isn't in the voter set
+	ErrVoterNotFound = errors.New("voter is not in voter set")
 
-// ErrSetIDMismatch is returned when trying to validate a vote message with an invalid voter set ID, or when receiving a catch up message with a different set ID
-var ErrSetIDMismatch = errors.New("set IDs do not match")
+	// ErrDescendantNotFound is returned when trying to validate a vote for a block that isn't a descendant of the last finalised block
+	ErrDescendantNotFound = blocktree.ErrDescendantNotFound
 
-// ErrRoundMismatch is returned when trying to validate a vote message that isn't for the current round
-var ErrRoundMismatch = errors.New("rounds do not match")
+	// ErrNoPreVotedBlock is returned when there is no pre-voted block for a round.
+	// this can only happen in the case of > 1/3 byzantine nodes (ie > 1/3 nodes equivocate or don't submit valid votes)
+	ErrNoPreVotedBlock = errors.New("cannot get pre-voted block")
 
-// ErrEquivocation is returned when trying to validate a vote for that is equivocatory
-var ErrEquivocation = errors.New("vote is equivocatory")
+	// ErrNoGHOST is returned when there is no GHOST. the only case where this could happen is if there are no votes
+	// at all, so it shouldn't ever happen.
+	ErrNoGHOST = errors.New("cannot determine grandpa-GHOST")
 
-// ErrVoterNotFound is returned when trying to validate a vote for a voter that isn't in the voter set
-var ErrVoterNotFound = errors.New("voter is not in voter set")
+	// ErrCannotDecodeSubround is returned when a subround value cannot be decoded
+	ErrCannotDecodeSubround = errors.New("cannot decode invalid subround value")
 
-// ErrDescendantNotFound is returned when trying to validate a vote for a block that isn't a descendant of the last finalised block
-var ErrDescendantNotFound = blocktree.ErrDescendantNotFound
+	// ErrInvalidMessageType is returned when a network.Message cannot be decoded
+	ErrInvalidMessageType = errors.New("cannot decode invalid message type")
 
-// ErrNoPreVotedBlock is returned when there is no pre-voted block for a round.
-// this can only happen in the case of > 1/3 byzantine nodes (ie > 1/3 nodes equivocate or don't submit valid votes)
-var ErrNoPreVotedBlock = errors.New("cannot get pre-voted block")
+	// ErrNotCommitMessage is returned when calling GetFinalizedHash on a message that isn't a CommitMessage
+	ErrNotCommitMessage = errors.New("cannot get finalised hash from VoteMessage")
 
-// ErrNoGHOST is returned when there is no GHOST. the only case where this could happen is if there are no votes
-// at all, so it shouldn't ever happen.
-var ErrNoGHOST = errors.New("cannot determine grandpa-GHOST")
+	// ErrNoJustification is returned when no justification can be found for a block, ie. it has not been finalised
+	ErrNoJustification = errors.New("no justification found for block")
 
-// ErrCannotDecodeSubround is returned when a subround value cannot be decoded
-var ErrCannotDecodeSubround = errors.New("cannot decode invalid subround value")
+	// ErrMinVotesNotMet is returned when the number of votes is less than the required minimum in a Justification
+	ErrMinVotesNotMet = errors.New("minimum number of votes not met in a Justification")
 
-// ErrInvalidMessageType is returned when a network.Message cannot be decoded
-var ErrInvalidMessageType = errors.New("cannot decode invalid message type")
+	// ErrInvalidCatchUpRound is returned when a catch-up message is received with an invalid round
+	ErrInvalidCatchUpRound = errors.New("catch up request is for future round")
 
-// ErrNotCommitMessage is returned when calling GetFinalizedHash on a message that isn't a CommitMessage
-var ErrNotCommitMessage = errors.New("cannot get finalised hash from VoteMessage")
+	// ErrInvalidCatchUpResponseRound is returned when a catch-up response is received with an invalid round
+	ErrInvalidCatchUpResponseRound = errors.New("catch up response is not for previous round")
 
-// ErrNoJustification is returned when no justification can be found for a block, ie. it has not been finalised
-var ErrNoJustification = errors.New("no justification found for block")
+	// ErrGHOSTlessCatchUp is returned when a catch up response does not contain a valid grandpa-GHOST (ie. finalised block)
+	ErrGHOSTlessCatchUp = errors.New("catch up response does not contain grandpa-GHOST")
 
-// ErrMinVotesNotMet is returned when the number of votes is less than the required minimum in a Justification
-var ErrMinVotesNotMet = errors.New("minimum number of votes not met in a Justification")
+	// ErrCatchUpResponseNotCompletable is returned when the round represented by the catch up response is not completable
+	ErrCatchUpResponseNotCompletable = errors.New("catch up response is not completable")
 
-// ErrInvalidCatchUpRound is returned when a catch-up message is received with an invalid round
-var ErrInvalidCatchUpRound = errors.New("catch up request is for future round")
+	// ErrServicePaused is returned if the service is paused and waiting for catch up messages
+	ErrServicePaused = errors.New("service is paused")
 
-// ErrInvalidCatchUpResponseRound is returned when a catch-up response is received with an invalid round
-var ErrInvalidCatchUpResponseRound = errors.New("catch up response is not for previous round")
+	// ErrPrecommitSignatureMismatch is returned when the number of precommits and signatures in a CommitMessage do not match
+	ErrPrecommitSignatureMismatch = errors.New("number of precommits does not match number of signatures")
 
-// ErrGHOSTlessCatchUp is returned when a catch up response does not contain a valid grandpa-GHOST (ie. finalised block)
-var ErrGHOSTlessCatchUp = errors.New("catch up response does not contain grandpa-GHOST")
+	// ErrJustificationHashMismatch is returned when a precommit hash within a justification does not match the justification hash
+	ErrJustificationHashMismatch = errors.New("precommit hash does not match justification hash")
 
-// ErrCatchUpResponseNotCompletable is returned when the round represented by the catch up response is not completable
-var ErrCatchUpResponseNotCompletable = errors.New("catch up response is not completable")
+	// ErrJustificationNumberMismatch is returned when a precommit number within a justification does not match the justification number
+	ErrJustificationNumberMismatch = errors.New("precommit number does not match justification number")
 
-// ErrServicePaused is returned if the service is paused and waiting for catch up messages
-var ErrServicePaused = errors.New("service is paused")
-
-// ErrPrecommitSignatureMismatch is returned when the number of precommits and signatures in a CommitMessage do not match
-var ErrPrecommitSignatureMismatch = errors.New("number of precommits does not match number of signatures")
+	// ErrAuthorityNotInSet is returned when a precommit within a justification is signed by a key not in the authority set
+	ErrAuthorityNotInSet = errors.New("authority is not in set")
+)

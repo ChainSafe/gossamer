@@ -18,7 +18,6 @@ package grandpa
 
 import (
 	"bytes"
-	"fmt"
 	"math/big"
 	"reflect"
 
@@ -59,7 +58,7 @@ func (h *MessageHandler) handleMessage(from peer.ID, msg *ConsensusMessage) (net
 		return nil, err
 	}
 
-	logger.Debug("handling grandpa message", "msg", m)
+	logger.Trace("handling grandpa message", "msg", m)
 
 	switch m.Type() {
 	case voteType:
@@ -466,6 +465,14 @@ func (s *Service) VerifyBlockJustification(justification []byte) error {
 	)
 
 	for _, just := range fj.Commit.Precommits {
+		if just.Vote.hash != fj.Commit.Hash {
+			return ErrJustificationHashMismatch
+		}
+
+		if just.Vote.number != fj.Commit.Number {
+			return ErrJustificationNumberMismatch
+		}
+
 		pk, err := ed25519.NewPublicKey(just.AuthorityID[:])
 		if err != nil {
 			return err
@@ -473,7 +480,7 @@ func (s *Service) VerifyBlockJustification(justification []byte) error {
 
 		ok := isInAuthSet(pk, auths)
 		if !ok {
-			return fmt.Errorf("authority is not in set %d", setID)
+			return ErrAuthorityNotInSet
 		}
 
 		// verify signature for each precommit
