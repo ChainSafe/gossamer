@@ -99,7 +99,7 @@ func NewDigestHandler(blockState BlockState, epochState EpochState, grandpaState
 // Start starts the DigestHandler
 func (h *DigestHandler) Start() {
 	go h.handleBlockImport(h.ctx)
-	go h.handleBlockFinalization(h.ctx)
+	go h.handleBlockFinalisation(h.ctx)
 }
 
 // Stop stops the DigestHandler
@@ -188,7 +188,7 @@ func (h *DigestHandler) handleBlockImport(ctx context.Context) {
 	}
 }
 
-func (h *DigestHandler) handleBlockFinalization(ctx context.Context) {
+func (h *DigestHandler) handleBlockFinalisation(ctx context.Context) {
 	for {
 		select {
 		case header := <-h.finalised:
@@ -198,7 +198,7 @@ func (h *DigestHandler) handleBlockFinalization(ctx context.Context) {
 
 			err := h.handleGrandpaChangesOnFinalization(header.Number)
 			if err != nil {
-				logger.Error("failed to handle grandpa changes on block finalization", "error", err)
+				logger.Error("failed to handle grandpa changes on block finalisation", "error", err)
 			}
 		case <-ctx.Done():
 			return
