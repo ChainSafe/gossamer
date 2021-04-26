@@ -69,7 +69,7 @@ func newTestSyncer(t *testing.T) *Service {
 	stateSrvc.UseMemDB()
 
 	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
-	err := stateSrvc.Initialize(gen, genHeader, genTrie)
+	err := stateSrvc.Initialise(gen, genHeader, genTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.Start()

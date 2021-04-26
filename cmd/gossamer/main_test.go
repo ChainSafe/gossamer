@@ -250,7 +250,7 @@ func TestGossamerCommand(t *testing.T) {
 	t.Log("init gossamer output, ", "stdout", string(stdout), "stderr", string(stderr))
 
 	expectedMessages := []string{
-		"node initialized",
+		"node initialised",
 	}
 
 	for _, m := range expectedMessages {

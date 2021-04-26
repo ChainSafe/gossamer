@@ -19,6 +19,8 @@ package optional
 import (
 	"bytes"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewBoolean(t *testing.T) {
@@ -171,4 +173,37 @@ func TestBooleanDecode(t *testing.T) {
 	if decoded.Value() {
 		t.Fatal("decoded value should be false")
 	}
+}
+
+func TestDecodeBytes(t *testing.T) {
+	testByteData := []byte("testData")
+
+	testBytes := NewBytes(false, nil)
+
+	require.False(t, testBytes.Exists(), "exist should be false")
+	require.Equal(t, []byte(nil), testBytes.Value(), "value should be empty")
+
+	testBytes.Set(true, testByteData)
+	require.True(t, testBytes.Exists(), "exist should be true")
+	require.Equal(t, testByteData, testBytes.Value(), "value should be Equal")
+
+	encData, err := testBytes.Encode()
+	require.NoError(t, err)
+	require.NotNil(t, encData)
+
+	newBytes, err := testBytes.DecodeBytes(encData)
+	require.NoError(t, err)
+
+	require.True(t, newBytes.Exists(), "exist should be true")
+	require.Equal(t, testBytes.Value(), newBytes.Value(), "value should be Equal")
+
+	// Invalid data
+	_, err = newBytes.DecodeBytes(nil)
+	require.Equal(t, err, ErrInvalidOptional)
+
+	newBytes, err = newBytes.DecodeBytes([]byte{0})
+	require.NoError(t, err)
+
+	require.False(t, newBytes.Exists(), "exist should be false")
+	require.Equal(t, []byte(nil), newBytes.Value(), "value should be empty")
 }

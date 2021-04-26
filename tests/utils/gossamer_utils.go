@@ -89,7 +89,7 @@ type Node struct {
 	WSPort   string
 }
 
-// InitGossamer initializes given node number and returns node reference
+// InitGossamer initialises given node number and returns node reference
 func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
 	//nolint
 	cmdInit := exec.Command(gossamerCMD, "init",
@@ -100,15 +100,15 @@ func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
 	)
 
 	//add step for init
-	logger.Info("initializing gossamer...", "cmd", cmdInit)
+	logger.Info("initialising gossamer...", "cmd", cmdInit)
 	stdOutInit, err := cmdInit.CombinedOutput()
 	if err != nil {
 		fmt.Printf("%s", stdOutInit)
 		return nil, err
 	}
 
-	// TODO: get init exit code to see if node was successfully initialized
-	logger.Info("initialized gossamer!", "node", idx)
+	// TODO: get init exit code to see if node was successfully initialised
+	logger.Info("initialised gossamer!", "node", idx)
 
 	return &Node{
 		Idx:      idx,
@@ -213,11 +213,11 @@ func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 	return nil
 }
 
-// RunGossamer will initialize and start a gossamer instance
+// RunGossamer will initialise and start a gossamer instance
 func RunGossamer(t *testing.T, idx int, basepath, genesis, config string, websocket bool) (*Node, error) {
 	node, err := InitGossamer(idx, basepath, genesis, config)
 	if err != nil {
-		logger.Crit("could not initialize gossamer", "error", err)
+		logger.Crit("could not initialise gossamer", "error", err)
 		os.Exit(1)
 	}
 
@@ -261,7 +261,7 @@ func KillProcess(t *testing.T, cmd *exec.Cmd) error {
 	return err
 }
 
-// InitNodes initializes given number of nodes
+// InitNodes initialises given number of nodes
 func InitNodes(num int, config string) ([]*Node, error) {
 	var nodes []*Node
 	tempDir, err := ioutil.TempDir("", "gossamer-stress-")

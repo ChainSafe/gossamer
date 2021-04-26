@@ -42,8 +42,8 @@ type DigestHandler struct {
 	// block notification channels
 	imported    chan *types.Block
 	importedID  byte
-	finalized   chan *types.Header
-	finalizedID byte
+	finalised   chan *types.Header
+	finalisedID byte
 
 	// GRANDPA changes
 	grandpaScheduledChange *grandpaChange
@@ -68,13 +68,13 @@ type resume struct {
 // NewDigestHandler returns a new DigestHandler
 func NewDigestHandler(blockState BlockState, epochState EpochState, grandpaState GrandpaState, babe BlockProducer, verifier Verifier) (*DigestHandler, error) {
 	imported := make(chan *types.Block, 16)
-	finalized := make(chan *types.Header, 16)
+	finalised := make(chan *types.Header, 16)
 	iid, err := blockState.RegisterImportedChannel(imported)
 	if err != nil {
 		return nil, err
 	}
 
-	fid, err := blockState.RegisterFinalizedChannel(finalized)
+	fid, err := blockState.RegisterFinalizedChannel(finalised)
 	if err != nil {
 		return nil, err
 	}
@@ -91,8 +91,8 @@ func NewDigestHandler(blockState BlockState, epochState EpochState, grandpaState
 		verifier:     verifier,
 		imported:     imported,
 		importedID:   iid,
-		finalized:    finalized,
-		finalizedID:  fid,
+		finalised:    finalised,
+		finalisedID:  fid,
 	}, nil
 }
 
@@ -106,9 +106,9 @@ func (h *DigestHandler) Start() {
 func (h *DigestHandler) Stop() {
 	h.cancel()
 	h.blockState.UnregisterImportedChannel(h.importedID)
-	h.blockState.UnregisterFinalizedChannel(h.finalizedID)
+	h.blockState.UnregisterFinalizedChannel(h.finalisedID)
 	close(h.imported)
-	close(h.finalized)
+	close(h.finalised)
 }
 
 // NextGrandpaAuthorityChange returns the block number of the next upcoming grandpa authorities change.
@@ -188,7 +188,7 @@ func (h *DigestHandler) handleBlockImport(ctx context.Context) {
 func (h *DigestHandler) handleBlockFinalization(ctx context.Context) {
 	for {
 		select {
-		case header := <-h.finalized:
+		case header := <-h.finalised:
 			if header == nil {
 				continue
 			}
@@ -233,7 +233,7 @@ func (h *DigestHandler) handleGrandpaChangesOnFinalization(num *big.Int) {
 		h.grandpaScheduledChange = nil
 	}
 
-	// if blocks get finalized before forced change takes place, disregard it
+	// if blocks get finalised before forced change takes place, disregard it
 	h.grandpaForcedChange = nil
 }
 

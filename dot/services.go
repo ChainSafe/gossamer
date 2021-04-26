@@ -52,12 +52,12 @@ func newInMemoryDB(path string) (chaindb.Database, error) {
 
 // State Service
 
-// createStateService creates the state service and initialize state database
+// createStateService creates the state service and initialise state database
 func createStateService(cfg *Config) (*state.Service, error) {
 	logger.Debug("creating state service...")
 	stateSrvc := state.NewService(cfg.Global.BasePath, cfg.Log.StateLvl)
 
-	// start state service (initialize state database)
+	// start state service (initialise state database)
 	err := stateSrvc.Start()
 	if err != nil {
 		return nil, fmt.Errorf("failed to start state service: %s", err)
@@ -204,7 +204,7 @@ func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks k
 	// create new BABE service
 	bs, err := babe.NewService(bcfg)
 	if err != nil {
-		logger.Error("failed to initialize BABE service", "error", err)
+		logger.Error("failed to initialise BABE service", "error", err)
 		return nil, err
 	}
 

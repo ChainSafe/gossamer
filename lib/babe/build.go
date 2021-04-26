@@ -18,10 +18,8 @@ package babe
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -56,13 +54,13 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 		return nil, err
 	}
 
-	// initialize block header
+	// initialise block header
 	err = b.rt.InitializeBlock(header)
 	if err != nil {
 		return nil, err
 	}
 
-	logger.Trace("initialized block")
+	logger.Trace("initialised block")
 
 	// add block inherents
 	inherents, err := b.buildBlockInherents(slot)
@@ -77,14 +75,14 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 
 	logger.Trace("built block extrinsics")
 
-	// finalize block
+	// finalise block
 	header, err = b.rt.FinalizeBlock()
 	if err != nil {
 		b.addToQueue(included)
-		return nil, fmt.Errorf("cannot finalize block: %s", err)
+		return nil, fmt.Errorf("cannot finalise block: %s", err)
 	}
 
-	logger.Trace("finalized block")
+	logger.Trace("finalised block")
 
 	header.ParentHash = parent.Hash()
 	header.Number.Add(parent.Number, big.NewInt(1))
@@ -175,38 +173,42 @@ func (b *Service) buildBlockBABEPrimaryPreDigest(slot Slot) (*types.BabePrimaryP
 // for each extrinsic in queue, add it to the block, until the slot ends or the block is full.
 // if any extrinsic fails, it returns an empty array and an error.
 func (b *Service) buildBlockExtrinsics(slot Slot) []*transaction.ValidTransaction {
-	next := b.nextReadyExtrinsic()
-	included := []*transaction.ValidTransaction{}
+	var included []*transaction.ValidTransaction
 
-	for !hasSlotEnded(slot) && next != nil {
-		logger.Trace("build block", "applying extrinsic", next)
+	for !hasSlotEnded(slot) {
+		txn := b.transactionState.Pop()
+		// Transaction queue is empty.
+		if txn == nil {
+			return included
+		}
 
-		t := b.transactionState.Pop()
-		ret, err := b.rt.ApplyExtrinsic(next)
+		// Move to next extrinsic.
+		if txn.Extrinsic == nil {
+			continue
+		}
+
+		extrinsic := txn.Extrinsic
+		logger.Trace("build block", "applying extrinsic", extrinsic)
+
+		ret, err := b.rt.ApplyExtrinsic(extrinsic)
 		if err != nil {
-			logger.Warn("failed to apply extrinsic", "error", err, "extrinsic", next)
-			next = b.nextReadyExtrinsic()
+			logger.Warn("failed to apply extrinsic", "error", err, "extrinsic", extrinsic)
 			continue
 		}
 
-		// if ret == 0x0001, there is a dispatch error; if ret == 0x01, there is an apply error
-		if ret[0] == 1 || bytes.Equal(ret[:2], []byte{0, 1}) {
-			errTxt, err := determineError(ret)
-			// remove invalid extrinsic from queue
-			if err == nil {
-				logger.Warn("failed to interpret extrinsic error", "error", ret, "extrinsic", next)
-			} else {
-				logger.Warn("failed to apply extrinsic", "error", errTxt, "extrinsic", next)
+		err = determineErr(ret)
+		if err != nil {
+			logger.Warn("failed to apply extrinsic", "error", err, "extrinsic", extrinsic)
+
+			// Failure of the module call dispatching doesn't invalidate the extrinsic.
+			// It is included in the block.
+			if _, ok := err.(*DispatchOutcomeError); !ok {
+				continue
 			}
-
-			next = b.nextReadyExtrinsic()
-			continue
 		}
 
-		logger.Debug("build block applied extrinsic", "extrinsic", next)
-
-		included = append(included, t)
-		next = b.nextReadyExtrinsic()
+		logger.Debug("build block applied extrinsic", "extrinsic", extrinsic)
+		included = append(included, txn)
 	}
 
 	return included
@@ -268,12 +270,8 @@ func (b *Service) buildBlockInherents(slot Slot) ([][]byte, error) {
 		}
 
 		if !bytes.Equal(ret, []byte{0, 0}) {
-			errTxt, err := determineError(ret)
-			if err != nil {
-				return nil, err
-			}
-
-			return nil, errors.New("error applying extrinsic: " + errTxt)
+			errTxt := determineErr(ret)
+			return nil, fmt.Errorf("error applying inherent: %s", errTxt)
 		}
 	}
 
@@ -291,15 +289,6 @@ func (b *Service) addToQueue(txs []*transaction.ValidTransaction) {
 	}
 }
 
-// nextReadyExtrinsic peeks from the transaction queue. it does not remove any transactions from the queue
-func (b *Service) nextReadyExtrinsic() types.Extrinsic {
-	transaction := b.transactionState.Peek()
-	if transaction == nil {
-		return nil
-	}
-	return transaction.Extrinsic
-}
-
 func hasSlotEnded(slot Slot) bool {
 	slotEnd := slot.start.Add(slot.duration)
 	return time.Since(slotEnd) >= 0
@@ -309,68 +298,12 @@ func extrinsicsToBody(inherents [][]byte, txs []*transaction.ValidTransaction) (
 	extrinsics := types.BytesArrayToExtrinsics(inherents)
 
 	for _, tx := range txs {
-		extrinsics = append(extrinsics, tx.Extrinsic)
+		decExt, err := scale.Decode(tx.Extrinsic, []byte{})
+		if err != nil {
+			return nil, err
+		}
+		extrinsics = append(extrinsics, decExt.([]byte))
 	}
 
 	return types.NewBodyFromExtrinsics(extrinsics)
-}
-
-func determineError(res []byte) (string, error) {
-	var errTxt strings.Builder
-	var err error
-
-	// when res[0] == 0x01 it is an apply error
-	if res[0] == 1 {
-		_, err = errTxt.WriteString("Apply error, type: ")
-		if bytes.Equal(res[1:], []byte{0}) {
-			_, err = errTxt.WriteString("NoPermission")
-		}
-		if bytes.Equal(res[1:], []byte{1}) {
-			_, err = errTxt.WriteString("BadState")
-		}
-		if bytes.Equal(res[1:], []byte{2}) {
-			_, err = errTxt.WriteString("Validity")
-		}
-		if bytes.Equal(res[1:], []byte{2, 0, 0}) {
-			_, err = errTxt.WriteString("Call")
-		}
-		if bytes.Equal(res[1:], []byte{2, 0, 1}) {
-			_, err = errTxt.WriteString("Payment")
-		}
-		if bytes.Equal(res[1:], []byte{2, 0, 2}) {
-			_, err = errTxt.WriteString("Future")
-		}
-		if bytes.Equal(res[1:], []byte{2, 0, 3}) {
-			_, err = errTxt.WriteString("Stale")
-		}
-		if bytes.Equal(res[1:], []byte{2, 0, 4}) {
-			_, err = errTxt.WriteString("BadProof")
-		}
-		if bytes.Equal(res[1:], []byte{2, 0, 5}) {
-			_, err = errTxt.WriteString("AncientBirthBlock")
-		}
-		if bytes.Equal(res[1:], []byte{2, 0, 6}) {
-			_, err = errTxt.WriteString("ExhaustsResources")
-		}
-		if bytes.Equal(res[1:], []byte{2, 0, 7}) {
-			_, err = errTxt.WriteString("Custom")
-		}
-		if bytes.Equal(res[1:], []byte{2, 1, 0}) {
-			_, err = errTxt.WriteString("CannotLookup")
-		}
-		if bytes.Equal(res[1:], []byte{2, 1, 1}) {
-			_, err = errTxt.WriteString("NoUnsignedValidator")
-		}
-		if bytes.Equal(res[1:], []byte{2, 1, 2}) {
-			_, err = errTxt.WriteString("Custom")
-		}
-	}
-
-	// when res[:2] == 0x0001 it's a dispatch error
-	if bytes.Equal(res[:2], []byte{0, 1}) {
-		mod := res[2:3]
-		errID := res[3:4]
-		_, err = errTxt.WriteString("Dispatch Error, module: " + string(mod) + " error: " + string(errID))
-	}
-	return errTxt.String(), err
 }

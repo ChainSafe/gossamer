@@ -32,9 +32,9 @@ import (
 	"github.com/ChainSafe/chaindb"
 )
 
-// Initialize initializes the genesis state of the DB using the given storage trie. The trie should be loaded with the genesis storage state.
-// This only needs to be called during genesis initialization of the node; it is not called during normal startup.
-func (s *Service) Initialize(gen *genesis.Genesis, header *types.Header, t *trie.Trie) error {
+// Initialise initialises the genesis state of the DB using the given storage trie. The trie should be loaded with the genesis storage state.
+// This only needs to be called during genesis initialisation of the node; it is not called during normal startup.
+func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie.Trie) error {
 	var db chaindb.Database
 	cfg := &chaindb.Config{}
 
@@ -51,7 +51,7 @@ func (s *Service) Initialize(gen *genesis.Genesis, header *types.Header, t *trie
 
 	cfg.DataDir = basepath
 
-	// initialize database using data directory
+	// initialise database using data directory
 	db, err = chaindb.NewBadgerDB(cfg)
 	if err != nil {
 		return fmt.Errorf("failed to create database: %s", err)

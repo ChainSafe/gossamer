@@ -66,7 +66,7 @@ type Service struct {
 	pvEquivocations  map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-vote stage
 	pcEquivocations  map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-commit stage
 	tracker          *tracker                           // tracker of vote messages we may need in the future
-	head             *types.Header                      // most recently finalized block
+	head             *types.Header                      // most recently finalised block
 
 	// historical information
 	preVotedBlock      map[uint64]*Vote              // map of round number -> pre-voted block
@@ -122,7 +122,7 @@ func NewService(cfg *Config) (*Service, error) {
 
 	logger.Debug("creating service", "authority", cfg.Authority, "key", pub, "voter set", Voters(cfg.Voters))
 
-	// get latest finalized header
+	// get latest finalised header
 	head, err := cfg.BlockState.GetFinalizedHeader(0, 0)
 	if err != nil {
 		return nil, err
@@ -305,7 +305,7 @@ func (s *Service) initiate() error {
 				return err
 			}
 		} else {
-			// if not a grandpa authority, wait for a block to be finalized in the current round
+			// if not a grandpa authority, wait for a block to be finalised in the current round
 			err = s.waitForFinalizedBlock()
 			if err != nil {
 				return err
@@ -384,7 +384,7 @@ func (s *Service) waitForFirstBlock() error {
 }
 
 // playGrandpaRound executes a round of GRANDPA
-// at the end of this round, a block will be finalized.
+// at the end of this round, a block will be finalised.
 func (s *Service) playGrandpaRound() error {
 	logger.Debug("starting round", "round", s.state.round, "setID", s.state.setID)
 
@@ -398,7 +398,7 @@ func (s *Service) playGrandpaRound() error {
 	if bytes.Equal(primary.Key.Encode(), s.keypair.Public().Encode()) {
 		msg, err := s.newCommitMessage(s.head, s.state.round-1).ToConsensusMessage()
 		if err != nil {
-			logger.Error("failed to encode finalization message", "error", err)
+			logger.Error("failed to encode finalisation message", "error", err)
 		} else {
 			s.network.SendMessage(msg)
 		}
@@ -412,7 +412,7 @@ func (s *Service) playGrandpaRound() error {
 		} else {
 			msg, err = primProposal.ToConsensusMessage()
 			if err != nil {
-				logger.Error("failed to encode finalization message", "error", err)
+				logger.Error("failed to encode finalisation message", "error", err)
 			} else {
 				s.network.SendMessage(msg)
 			}
@@ -455,16 +455,16 @@ func (s *Service) playGrandpaRound() error {
 	logger.Debug("sending pre-vote message...", "vote", pv, "prevotes", s.prevotes)
 	s.mapLock.Unlock()
 
-	finalized := false
+	finalised := false
 
 	// continue to send prevote messages until round is done
-	go func(finalized *bool) {
+	go func(finalised *bool) {
 		for {
 			if s.paused.Load().(bool) {
 				return
 			}
 
-			if *finalized {
+			if *finalised {
 				return
 			}
 
@@ -476,7 +476,7 @@ func (s *Service) playGrandpaRound() error {
 			time.Sleep(time.Second * 5)
 			logger.Trace("sent pre-vote message...", "vote", pv, "prevotes", s.prevotes)
 		}
-	}(&finalized)
+	}(&finalised)
 
 	logger.Debug("receiving pre-commit messages...")
 
@@ -511,13 +511,13 @@ func (s *Service) playGrandpaRound() error {
 	s.mapLock.Unlock()
 
 	// continue to send precommit messages until round is done
-	go func(finalized *bool) {
+	go func(finalised *bool) {
 		for {
 			if s.paused.Load().(bool) {
 				return
 			}
 
-			if *finalized {
+			if *finalised {
 				return
 			}
 
@@ -529,11 +529,11 @@ func (s *Service) playGrandpaRound() error {
 			time.Sleep(time.Second * 5)
 			logger.Trace("sent pre-commit message...", "vote", pc, "precommits", s.precommits)
 		}
-	}(&finalized)
+	}(&finalised)
 
 	go func() {
-		// receive messages until current round is completable and previous round is finalizable
-		// and the last finalized block is greater than the best final candidate from the previous round
+		// receive messages until current round is completable and previous round is finalisable
+		// and the last finalised block is greater than the best final candidate from the previous round
 		s.receiveMessages(func() bool {
 			if s.paused.Load().(bool) {
 				return true
@@ -545,7 +545,7 @@ func (s *Service) playGrandpaRound() error {
 			}
 
 			round := s.state.round
-			finalizable, err := s.isFinalizable(round)
+			finalisable, err := s.isFinalisable(round)
 			if err != nil {
 				return false
 			}
@@ -559,7 +559,7 @@ func (s *Service) playGrandpaRound() error {
 				return false
 			}
 
-			if completable && finalizable && uint32(s.head.Number.Int64()) >= prevBfc.number {
+			if completable && finalisable && uint32(s.head.Number.Int64()) >= prevBfc.number {
 				return true
 			}
 
@@ -569,15 +569,15 @@ func (s *Service) playGrandpaRound() error {
 
 	err = s.attemptToFinalize()
 	if err != nil {
-		log.Error("failed to finalize", "error", err)
+		log.Error("failed to finalise", "error", err)
 		return err
 	}
 
-	finalized = true
+	finalised = true
 	return nil
 }
 
-// attemptToFinalize loops until the round is finalizable
+// attemptToFinalize loops until the round is finalisable
 func (s *Service) attemptToFinalize() error {
 	if s.paused.Load().(bool) {
 		return ErrServicePaused
@@ -585,7 +585,7 @@ func (s *Service) attemptToFinalize() error {
 
 	has, _ := s.blockState.HasFinalizedBlock(s.state.round, s.state.setID)
 	if has {
-		return nil // a block was finalized, seems like we missed some messages
+		return nil // a block was finalised, seems like we missed some messages
 	}
 
 	bfc, err := s.getBestFinalCandidate()
@@ -599,14 +599,14 @@ func (s *Service) attemptToFinalize() error {
 	}
 
 	if bfc.number >= uint32(s.head.Number.Int64()) && pc >= s.state.threshold() {
-		err = s.finalize()
+		err = s.finalise()
 		if err != nil {
 			return err
 		}
 
-		// if we haven't received a finalization message for this block yet, broadcast a finalization message
+		// if we haven't received a finalisation message for this block yet, broadcast a finalisation message
 		votes := s.getDirectVotes(precommit)
-		logger.Debug("finalized block!!!", "setID", s.state.setID, "round", s.state.round, "hash", s.head.Hash(),
+		logger.Debug("finalised block!!!", "setID", s.state.setID, "round", s.state.round, "hash", s.head.Hash(),
 			"precommits #", pc, "votes for bfc #", votes[*bfc], "total votes for bfc", pc, "precommits", s.precommits)
 		msg, err := s.newCommitMessage(s.head, s.state.round).ToConsensusMessage()
 		if err != nil {
@@ -681,8 +681,8 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 	return &pvb, nil
 }
 
-// isFinalizable returns true is the round is finalizable, false otherwise.
-func (s *Service) isFinalizable(round uint64) (bool, error) {
+// isFinalisable returns true is the round is finalisable, false otherwise.
+func (s *Service) isFinalisable(round uint64) (bool, error) {
 	var pvb Vote
 	var err error
 
@@ -728,8 +728,8 @@ func (s *Service) isFinalizable(round uint64) (bool, error) {
 	return false, nil
 }
 
-// finalize finalizes the round by setting the best final candidate for this round
-func (s *Service) finalize() error {
+// finalise finalises the round by setting the best final candidate for this round
+func (s *Service) finalise() error {
 	// get best final candidate
 	bfc, err := s.getBestFinalCandidate()
 	if err != nil {
@@ -772,13 +772,13 @@ func (s *Service) finalize() error {
 		return err
 	}
 
-	// set finalized head for round in db
+	// set finalised head for round in db
 	err = s.blockState.SetFinalizedHash(bfc.hash, s.state.round, s.state.setID)
 	if err != nil {
 		return err
 	}
 
-	// set latest finalized head in db
+	// set latest finalised head in db
 	return s.blockState.SetFinalizedHash(bfc.hash, 0, 0)
 }
 

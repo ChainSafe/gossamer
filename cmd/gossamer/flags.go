@@ -359,7 +359,7 @@ var (
 // FixFlagOrder allow us to use various flag order formats (ie, `gossamer init
 // --config config.toml` and `gossamer --config config.toml init`). FixFlagOrder
 // only fixes global flags, all local flags must come after the subcommand (ie,
-// `gossamer --force --config config.toml init` will not recognize `--force` but
+// `gossamer --force --config config.toml init` will not recognise `--force` but
 // `gossamer init --force --config config.toml` will work as expected).
 func FixFlagOrder(f func(ctx *cli.Context) error) func(*cli.Context) error {
 	return func(ctx *cli.Context) error {

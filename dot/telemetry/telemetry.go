@@ -13,6 +13,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package telemetry
 
 import (
@@ -42,11 +43,11 @@ type MyJSONFormatter struct {
 // Format function for handling JSON formatting, this overrides default logging formatter to remove
 //  log level, line number and timestamp
 func (f *MyJSONFormatter) Format(entry *log.Entry) ([]byte, error) {
-	serialized, err := json.Marshal(entry.Data)
+	serialised, err := json.Marshal(entry.Data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal fields to JSON, %w", err)
 	}
-	return append(serialized, '\n'), nil
+	return append(serialised, '\n'), nil
 }
 
 var (

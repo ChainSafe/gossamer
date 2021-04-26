@@ -188,7 +188,7 @@ func (v *Vote) String() string {
 	return fmt.Sprintf("hash=%s number=%d", v.hash, v.number)
 }
 
-// SignedPrecommit represents a signed precommit message for a finalized block
+// SignedPrecommit represents a signed precommit message for a finalised block
 type SignedPrecommit struct {
 	Vote        *Vote
 	Signature   [64]byte

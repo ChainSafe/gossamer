@@ -951,7 +951,7 @@ func TestDeterminePreVote_WithInvalidPrimaryPreVote(t *testing.T) {
 	require.Equal(t, gs.head.Hash(), pv.hash)
 }
 
-func TestIsFinalizable_True(t *testing.T) {
+func TestIsFinalisable_True(t *testing.T) {
 	gs, st := newTestService(t)
 
 	branches := make(map[int]int)
@@ -976,12 +976,12 @@ func TestIsFinalizable_True(t *testing.T) {
 		}
 	}
 
-	finalizable, err := gs.isFinalizable(gs.state.round)
+	finalisable, err := gs.isFinalisable(gs.state.round)
 	require.NoError(t, err)
-	require.True(t, finalizable)
+	require.True(t, finalisable)
 }
 
-func TestIsFinalizable_False(t *testing.T) {
+func TestIsFinalisable_False(t *testing.T) {
 	gs, st := newTestService(t)
 
 	branches := make(map[int]int)
@@ -1006,16 +1006,16 @@ func TestIsFinalizable_False(t *testing.T) {
 		}
 	}
 
-	// previous round has finalized block # higher than current, so round is not finalizable
+	// previous round has finalised block # higher than current, so round is not finalisable
 	gs.state.round = 1
 	gs.bestFinalCandidate[0] = &Vote{
 		number: 4,
 	}
 	gs.preVotedBlock[gs.state.round] = voteA
 
-	finalizable, err := gs.isFinalizable(gs.state.round)
+	finalisable, err := gs.isFinalisable(gs.state.round)
 	require.NoError(t, err)
-	require.False(t, finalizable)
+	require.False(t, finalisable)
 }
 
 func TestGetGrandpaGHOST_CommonAncestor(t *testing.T) {

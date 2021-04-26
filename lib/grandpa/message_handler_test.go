@@ -217,9 +217,9 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, out)
 
-	finalized, err := st.Block.GetFinalizedHash(0, 0)
+	finalised, err := st.Block.GetFinalizedHash(0, 0)
 	require.NoError(t, err)
-	require.Equal(t, block.Header.Hash(), finalized)
+	require.Equal(t, block.Header.Hash(), finalised)
 }
 
 func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
