@@ -22,19 +22,31 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/trie"
+	//"github.com/ChainSafe/gossamer/lib/trie"
 
-	database "github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/chaindb"
 )
 
+// BaseState is a wrapper for the chaindb.Database, without any prefixes
+type BaseState struct {
+	db chaindb.Database
+}
+
+// NewBaseState returns a new BaseState
+func NewBaseState(db chaindb.Database) *BaseState {
+	return &BaseState{
+		db: db,
+	}
+}
+
 // StoreBestBlockHash stores the hash at the BestBlockHashKey
-func StoreBestBlockHash(db database.Database, hash common.Hash) error {
-	return db.Put(common.BestBlockHashKey, hash[:])
+func (s *BaseState) StoreBestBlockHash(hash common.Hash) error {
+	return s.db.Put(common.BestBlockHashKey, hash[:])
 }
 
 // LoadBestBlockHash loads the hash stored at BestBlockHashKey
-func LoadBestBlockHash(db database.Database) (common.Hash, error) {
-	hash, err := db.Get(common.BestBlockHashKey)
+func (s *BaseState) LoadBestBlockHash() (common.Hash, error) {
+	hash, err := s.db.Get(common.BestBlockHashKey)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -43,18 +55,18 @@ func LoadBestBlockHash(db database.Database) (common.Hash, error) {
 }
 
 // StoreGenesisData stores the given genesis data at the known GenesisDataKey.
-func StoreGenesisData(db database.Database, gen *genesis.Data) error {
+func (s *BaseState) StoreGenesisData(gen *genesis.Data) error {
 	enc, err := json.Marshal(gen)
 	if err != nil {
 		return fmt.Errorf("cannot scale encode genesis data: %s", err)
 	}
 
-	return db.Put(common.GenesisDataKey, enc)
+	return s.db.Put(common.GenesisDataKey, enc)
 }
 
 // LoadGenesisData retrieves the genesis data stored at the known GenesisDataKey.
-func LoadGenesisData(db database.Database) (*genesis.Data, error) {
-	enc, err := db.Get(common.GenesisDataKey)
+func (s *BaseState) LoadGenesisData() (*genesis.Data, error) {
+	enc, err := s.db.Get(common.GenesisDataKey)
 	if err != nil {
 		return nil, err
 	}
@@ -69,13 +81,13 @@ func LoadGenesisData(db database.Database) (*genesis.Data, error) {
 }
 
 // StoreLatestStorageHash stores the current root hash in the database at LatestStorageHashKey
-func StoreLatestStorageHash(db database.Database, root common.Hash) error {
-	return db.Put(common.LatestStorageHashKey, root[:])
+func (s *BaseState) StoreLatestStorageHash(root common.Hash) error {
+	return s.db.Put(common.LatestStorageHashKey, root[:])
 }
 
 // LoadLatestStorageHash retrieves the hash stored at LatestStorageHashKey from the DB
-func LoadLatestStorageHash(db database.Database) (common.Hash, error) {
-	hashbytes, err := db.Get(common.LatestStorageHashKey)
+func (s *BaseState) LoadLatestStorageHash() (common.Hash, error) {
+	hashbytes, err := s.db.Get(common.LatestStorageHashKey)
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -83,13 +95,13 @@ func LoadLatestStorageHash(db database.Database) (common.Hash, error) {
 	return common.NewHash(hashbytes), nil
 }
 
-// StoreTrie encodes the entire trie and writes it to the DB
-// The key to the DB entry is the root hash of the trie
-func StoreTrie(db database.Database, t *trie.Trie) error {
-	return t.Store(db)
-}
+// // StoreTrie encodes the entire trie and writes it to the DB
+// // The key to the DB entry is the root hash of the trie
+// func (s *BaseState) StoreTrie(t *trie.Trie) error {
+// 	return t.Store(s.db)
+// }
 
-// LoadTrie loads an encoded trie from the DB where the key is `root`
-func LoadTrie(db database.Database, t *trie.Trie, root common.Hash) error {
-	return t.Load(db, root)
-}
+// // LoadTrie loads an encoded trie from the DB where the key is `root`
+// func (s *BaseState) LoadTrie(t *trie.Trie, root common.Hash) error {
+// 	return t.Load(s.db, root)
+// }

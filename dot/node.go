@@ -148,7 +148,7 @@ func NodeInitialized(basepath string, expected bool) bool {
 	}
 
 	// load genesis data from initialised node database
-	_, err = state.LoadGenesisData(db)
+	_, err = state.NewBaseState(db).LoadGenesisData()
 	if err != nil {
 		logger.Warn(
 			"node has not been initialised",
@@ -307,7 +307,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		publishMetrics(cfg)
 	}
 
-	gd, err := stateSrvc.Storage.GetGenesisData()
+	gd, err := stateSrvc.Base.LoadGenesisData()
 	if err != nil {
 		return nil, err
 	}

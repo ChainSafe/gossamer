@@ -56,6 +56,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 	if err != nil {
 		return fmt.Errorf("failed to create database: %s", err)
 	}
+	s.db = db
 
 	if err = db.ClearAll(); err != nil {
 		return fmt.Errorf("failed to clear database: %s", err)
@@ -64,6 +65,8 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 	if err = t.Store(chaindb.NewTable(db, storagePrefix)); err != nil {
 		return fmt.Errorf("failed to write genesis trie to database: %w", err)
 	}
+
+	s.Base = NewBaseState(db)
 
 	rt, err := s.createGenesisRuntime(t, gen)
 	if err != nil {
@@ -76,7 +79,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 	}
 
 	// write initial genesis values to database
-	if err = s.storeInitialValues(db, gen.GenesisData(), header, t); err != nil {
+	if err = s.storeInitialValues(gen.GenesisData(), header, t); err != nil {
 		return fmt.Errorf("failed to write genesis values to database: %s", err)
 	}
 
@@ -161,24 +164,24 @@ func loadGrandpaAuthorities(t *trie.Trie) ([]*types.GrandpaVoter, error) {
 }
 
 // storeInitialValues writes initial genesis values to the state database
-func (s *Service) storeInitialValues(db chaindb.Database, data *genesis.Data, header *types.Header, t *trie.Trie) error {
+func (s *Service) storeInitialValues(data *genesis.Data, header *types.Header, t *trie.Trie) error {
 	// write genesis trie to database
-	if err := StoreTrie(chaindb.NewTable(db, storagePrefix), t); err != nil {
+	if err := t.Store(chaindb.NewTable(s.db, storagePrefix)); err != nil {
 		return fmt.Errorf("failed to write trie to database: %s", err)
 	}
 
 	// write storage hash to database
-	if err := StoreLatestStorageHash(db, t.MustHash()); err != nil {
+	if err := s.Base.StoreLatestStorageHash(t.MustHash()); err != nil {
 		return fmt.Errorf("failed to write storage hash to database: %s", err)
 	}
 
 	// write best block hash to state database
-	if err := StoreBestBlockHash(db, header.Hash()); err != nil {
+	if err := s.Base.StoreBestBlockHash(header.Hash()); err != nil {
 		return fmt.Errorf("failed to write best block hash to database: %s", err)
 	}
 
 	// write genesis data to state database
-	if err := StoreGenesisData(db, data); err != nil {
+	if err := s.Base.StoreGenesisData(data); err != nil {
 		return fmt.Errorf("failed to write genesis data to database: %s", err)
 	}
 

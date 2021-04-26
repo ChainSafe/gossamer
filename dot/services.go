@@ -71,7 +71,7 @@ func createStateService(cfg *Config) (*state.Service, error) {
 	}
 
 	// load most recent state from database
-	latestState, err := state.LoadLatestStorageHash(stateSrvc.DB())
+	latestState, err := stateSrvc.Base.LoadLatestStorageHash()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load latest state root hash: %s", err)
 	}
@@ -327,7 +327,7 @@ func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Serv
 // System service
 // creates a service for providing system related information
 func createSystemService(cfg *types.SystemInfo, stateSrvc *state.Service) (*system.Service, error) {
-	genesisData, err := stateSrvc.Storage.GetGenesisData()
+	genesisData, err := stateSrvc.Base.LoadGenesisData()
 	if err != nil {
 		return nil, err
 	}
