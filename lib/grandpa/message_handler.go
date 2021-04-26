@@ -99,7 +99,7 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 		return err
 	}
 
-	// ignore neighbour messages where our best finalized number is greater than theirs
+	// ignore neighbour messages where our best finalised number is greater than theirs
 	if uint32(currFinalized.Number.Int64()) >= msg.Number {
 		return nil
 	}

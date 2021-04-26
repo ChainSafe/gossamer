@@ -22,6 +22,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 )
 
+//nolint
 var (
 	ErrNilBlockState    = errors.New("cannot have nil BlockState")
 	ErrNilGrandpaState  = errors.New("cannot have nil GrandpaState")

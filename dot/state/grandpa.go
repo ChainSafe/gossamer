@@ -188,6 +188,7 @@ func (s *GrandpaState) GetSetIDChange(setID uint64) (*big.Int, error) {
 	return big.NewInt(0).SetBytes(num), nil
 }
 
+// GetSetIDByBlockNumber returns the set ID for a given block number
 func (s *GrandpaState) GetSetIDByBlockNumber(num *big.Int) (uint64, error) {
 	curr, err := s.GetCurrentSetID()
 	if err != nil {
@@ -208,8 +209,6 @@ func (s *GrandpaState) GetSetIDByBlockNumber(num *big.Int) (uint64, error) {
 
 		curr = curr - 1
 	}
-
-	return 0, nil
 }
 
 // SetNextPause sets the next grandpa pause at the given block number
