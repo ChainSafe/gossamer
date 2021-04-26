@@ -240,9 +240,9 @@ func CreateJSONRawFile(bs *BuildSpec, fp string) *os.File {
 	return WriteConfig(data, fp)
 }
 
-// RandonNodeName generate a new random name
+// RandomNodeName generate a new random name
 // if there is no name configured to the node
-func RandonNodeName() string {
+func RandomNodeName() string {
 	entropy, _ := bip39.NewEntropy(128)
 	randomNamesString, _ := bip39.NewMnemonic(entropy)
 	randomNames := strings.Split(randomNamesString, " ")
