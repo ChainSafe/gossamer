@@ -569,4 +569,12 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	require.NoError(t, err)
 	err = gs.VerifyBlockJustification(data)
 	require.Equal(t, ErrAuthorityNotInSet, err)
+
+	// not enough signatures, shouldn't verify
+	precommits = buildTestJustification(t, 1, round, setID, kr, precommit)
+	just = newJustification(round, testHash, number, precommits)
+	data, err = just.Encode()
+	require.NoError(t, err)
+	err = gs.VerifyBlockJustification(data)
+	require.Equal(t, ErrMinVotesNotMet, err)
 }

@@ -464,6 +464,10 @@ func (s *Service) VerifyBlockJustification(justification []byte) error {
 		"sig count", len(fj.Commit.Precommits),
 	)
 
+	if len(fj.Commit.Precommits) < (2 * len(auths) / 3) {
+		return ErrMinVotesNotMet
+	}
+
 	for _, just := range fj.Commit.Precommits {
 		if just.Vote.hash != fj.Commit.Hash {
 			return ErrJustificationHashMismatch
