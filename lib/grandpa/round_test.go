@@ -30,6 +30,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 
 	log "github.com/ChainSafe/log15"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/stretchr/testify/require"
 )
@@ -39,14 +40,14 @@ var testTimeout = 20 * time.Second
 type testNetwork struct {
 	t         *testing.T
 	out       chan GrandpaMessage
-	finalized chan GrandpaMessage
+	finalised chan GrandpaMessage
 }
 
 func newTestNetwork(t *testing.T) *testNetwork {
 	return &testNetwork{
 		t:         t,
 		out:       make(chan GrandpaMessage, 128),
-		finalized: make(chan GrandpaMessage, 128),
+		finalised: make(chan GrandpaMessage, 128),
 	}
 }
 
@@ -57,12 +58,14 @@ func (n *testNetwork) SendMessage(msg NotificationsMessage) {
 	gmsg, err := decodeMessage(cm)
 	require.NoError(n.t, err)
 
-	if gmsg.Type() == finalizationType {
-		n.finalized <- gmsg
+	if gmsg.Type() == commitType {
+		n.finalised <- gmsg
 	} else {
 		n.out <- gmsg
 	}
 }
+
+func (n *testNetwork) SendJustificationRequest(_ peer.ID, _ uint32) {}
 
 func (n *testNetwork) RegisterNotificationsProtocol(sub protocol.ID,
 	messageID byte,
@@ -109,11 +112,11 @@ func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (*Service, chan GrandpaMess
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	return gs, gs.in, net.out, net.finalized
+	return gs, gs.in, net.out, net.finalised
 }
 
 func TestGrandpa_BaseCase(t *testing.T) {
-	// this is a base test case that asserts that all validators finalize the same block if they all see the
+	// this is a base test case that asserts that all validators finalise the same block if they all see the
 	// same pre-votes and pre-commits, even if their chains are different
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
@@ -137,16 +140,16 @@ func TestGrandpa_BaseCase(t *testing.T) {
 	for _, gs := range gss {
 		precommits[gs.publicKeyBytes()], err = gs.determinePreCommit()
 		require.NoError(t, err)
-		err = gs.finalize()
+		err = gs.finalise()
 		require.NoError(t, err)
 		has, err := gs.blockState.HasJustification(gs.head.Hash())
 		require.NoError(t, err)
 		require.True(t, has)
 	}
 
-	finalized := gss[0].head.Hash()
+	finalised := gss[0].head.Hash()
 	for _, gs := range gss {
-		require.Equal(t, finalized, gs.head.Hash())
+		require.Equal(t, finalised, gs.head.Hash())
 	}
 }
 
@@ -155,7 +158,7 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 		t.Skip()
 	}
 
-	// this asserts that all validators finalize the same block if they all see the
+	// this asserts that all validators finalise the same block if they all see the
 	// same pre-votes and pre-commits, even if their chains are different lengths
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
@@ -187,18 +190,18 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 	for _, gs := range gss {
 		precommits[gs.publicKeyBytes()], err = gs.determinePreCommit()
 		require.NoError(t, err)
-		err = gs.finalize()
+		err = gs.finalise()
 		require.NoError(t, err)
 	}
 
 	t.Log(gss[0].blockState.BlocktreeAsString())
-	finalized := gss[0].head
+	finalised := gss[0].head
 
 	for i, gs := range gss {
 		// TODO: this can be changed to equal once attemptToFinalizeRound is implemented (needs check for >=2/3 precommits)
-		headOk := onSameChain(gss[0].blockState, finalized.Hash(), gs.head.Hash())
-		finalizedOK := onSameChain(gs.blockState, finalized.Hash(), gs.head.Hash())
-		require.True(t, headOk || finalizedOK, "node %d did not match: %s", i, gs.blockState.BlocktreeAsString())
+		headOk := onSameChain(gss[0].blockState, finalised.Hash(), gs.head.Hash())
+		finalisedOK := onSameChain(gs.blockState, finalised.Hash(), gs.head.Hash())
+		require.True(t, headOk || finalisedOK, "node %d did not match: %s", i, gs.blockState.BlocktreeAsString())
 	}
 }
 
@@ -221,7 +224,7 @@ func cleanup(gs *Service, in, out chan GrandpaMessage, done *bool) { //nolint
 }
 
 func TestPlayGrandpaRound_BaseCase(t *testing.T) {
-	// this asserts that all validators finalize the same block if they all see the
+	// this asserts that all validators finalise the same block if they all see the
 	// same pre-votes and pre-commits, even if their chains are different lengths
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
@@ -256,26 +259,26 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(kr.Keys))
 
-	finalized := make([]*FinalizationMessage, len(kr.Keys))
+	finalised := make([]*CommitMessage, len(kr.Keys))
 
 	for i, fin := range fins {
 		go func(i int, fin <-chan GrandpaMessage) {
 			select {
 			case f := <-fin:
 
-				// receive first message, which is finalized block from previous round
-				if f.(*FinalizationMessage).Round == 0 {
+				// receive first message, which is finalised block from previous round
+				if f.(*CommitMessage).Round == 0 {
 					select {
 					case f = <-fin:
 					case <-time.After(testTimeout):
-						t.Errorf("did not receive finalized block from %d", i)
+						t.Errorf("did not receive finalised block from %d", i)
 					}
 				}
 
-				finalized[i] = f.(*FinalizationMessage)
+				finalised[i] = f.(*CommitMessage)
 
 			case <-time.After(testTimeout):
-				t.Errorf("did not receive finalized block from %d", i)
+				t.Errorf("did not receive finalised block from %d", i)
 			}
 			wg.Done()
 		}(i, fin)
@@ -284,12 +287,14 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 
 	wg.Wait()
 
-	for _, fb := range finalized {
+	for _, fb := range finalised {
 		require.NotNil(t, fb)
-		require.GreaterOrEqual(t, len(fb.Justification), len(kr.Keys)/2)
-		finalized[0].Justification = []*Justification{}
-		fb.Justification = []*Justification{}
-		require.Equal(t, finalized[0], fb)
+		require.GreaterOrEqual(t, len(fb.Precommits), len(kr.Keys)/2)
+		finalised[0].Precommits = []*Vote{}
+		finalised[0].AuthData = []*AuthData{}
+		fb.Precommits = []*Vote{}
+		fb.AuthData = []*AuthData{}
+		require.Equal(t, finalised[0], fb)
 	}
 }
 
@@ -298,7 +303,7 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 		t.Skip()
 	}
 
-	// this asserts that all validators finalize the same block if they all see the
+	// this asserts that all validators finalise the same block if they all see the
 	// same pre-votes and pre-commits, even if their chains are different lengths
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
@@ -354,7 +359,7 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(kr.Keys))
 
-	finalized := make([]*FinalizationMessage, len(kr.Keys))
+	finalised := make([]*CommitMessage, len(kr.Keys))
 
 	for i, fin := range fins {
 
@@ -362,18 +367,19 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 			select {
 			case f := <-fin:
 
-				// receive first message, which is finalized block from previous round
-				if f.(*FinalizationMessage).Round == 0 {
+				// receive first message, which is finalised block from previous round
+				if f.(*CommitMessage).Round == 0 {
 					select {
 					case f = <-fin:
 					case <-time.After(testTimeout):
-						t.Errorf("did not receive finalized block from %d", i)
+						t.Errorf("did not receive finalised block from %d", i)
 					}
 				}
 
-				finalized[i] = f.(*FinalizationMessage)
+				finalised[i] = f.(*CommitMessage)
+
 			case <-time.After(testTimeout):
-				t.Errorf("did not receive finalized block from %d", i)
+				t.Errorf("did not receive finalised block from %d", i)
 			}
 			wg.Done()
 		}(i, fin)
@@ -382,12 +388,15 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 
 	wg.Wait()
 
-	for _, fb := range finalized {
+	for _, fb := range finalised {
 		require.NotNil(t, fb)
-		require.GreaterOrEqual(t, len(fb.Justification), len(kr.Keys)/2)
-		finalized[0].Justification = []*Justification{}
-		fb.Justification = []*Justification{}
-		require.Equal(t, finalized[0], fb)
+		require.GreaterOrEqual(t, len(fb.Precommits), len(kr.Keys)/2)
+		require.GreaterOrEqual(t, len(fb.AuthData), len(kr.Keys)/2)
+		finalised[0].Precommits = []*Vote{}
+		finalised[0].AuthData = []*AuthData{}
+		fb.Precommits = []*Vote{}
+		fb.AuthData = []*AuthData{}
+		require.Equal(t, finalised[0], fb)
 	}
 }
 
@@ -396,7 +405,7 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 		t.Skip()
 	}
 
-	// this asserts that all validators finalize the same block even if 1/3 of voters equivocate
+	// this asserts that all validators finalise the same block even if 1/3 of voters equivocate
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
@@ -451,7 +460,7 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(len(kr.Keys))
 
-	finalized := make([]*FinalizationMessage, len(kr.Keys))
+	finalised := make([]*CommitMessage, len(kr.Keys))
 
 	for i, fin := range fins {
 
@@ -459,18 +468,19 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 			select {
 			case f := <-fin:
 
-				// receive first message, which is finalized block from previous round
-				if f.(*FinalizationMessage).Round == 0 {
+				// receive first message, which is finalised block from previous round
+				if f.(*CommitMessage).Round == 0 {
+
 					select {
 					case f = <-fin:
 					case <-time.After(testTimeout):
-						t.Errorf("did not receive finalized block from %d", i)
+						t.Errorf("did not receive finalised block from %d", i)
 					}
 				}
 
-				finalized[i] = f.(*FinalizationMessage)
+				finalised[i] = f.(*CommitMessage)
 			case <-time.After(testTimeout):
-				t.Errorf("did not receive finalized block from %d", i)
+				t.Errorf("did not receive finalised block from %d", i)
 			}
 			wg.Done()
 		}(i, fin)
@@ -479,12 +489,15 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 
 	wg.Wait()
 
-	for _, fb := range finalized {
+	for _, fb := range finalised {
 		require.NotNil(t, fb)
-		require.GreaterOrEqual(t, len(fb.Justification), len(kr.Keys)/2)
-		finalized[0].Justification = []*Justification{}
-		fb.Justification = []*Justification{}
-		require.Equal(t, finalized[0], fb)
+		require.GreaterOrEqual(t, len(fb.Precommits), len(kr.Keys)/2)
+		require.GreaterOrEqual(t, len(fb.AuthData), len(kr.Keys)/2)
+		finalised[0].Precommits = []*Vote{}
+		finalised[0].AuthData = []*AuthData{}
+		fb.Precommits = []*Vote{}
+		fb.AuthData = []*AuthData{}
+		require.Equal(t, finalised[0], fb)
 	}
 }
 
@@ -493,7 +506,7 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 		t.Skip()
 	}
 
-	// this asserts that all validators finalize the same block in successive rounds
+	// this asserts that all validators finalise the same block in successive rounds
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
@@ -532,7 +545,7 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 		wg := sync.WaitGroup{}
 		wg.Add(len(kr.Keys))
 
-		finalized := make([]*FinalizationMessage, len(kr.Keys))
+		finalised := make([]*CommitMessage, len(kr.Keys))
 
 		for i, fin := range fins {
 
@@ -540,18 +553,18 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 				select {
 				case f := <-fin:
 
-					// receive first message, which is finalized block from previous round
-					if f.(*FinalizationMessage).Round == uint64(j) {
+					// receive first message, which is finalised block from previous round
+					if f.(*CommitMessage).Round == uint64(j) {
 						select {
 						case f = <-fin:
 						case <-time.After(testTimeout):
-							t.Errorf("did not receive finalized block from %d", i)
+							t.Errorf("did not receive finalised block from %d", i)
 						}
 					}
 
-					finalized[i] = f.(*FinalizationMessage)
+					finalised[i] = f.(*CommitMessage)
 				case <-time.After(testTimeout):
-					t.Errorf("did not receive finalized block from %d", i)
+					t.Errorf("did not receive finalised block from %d", i)
 				}
 				wg.Done()
 			}(i, fin)
@@ -561,13 +574,16 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 		wg.Wait()
 
 		head := gss[0].blockState.(*state.BlockState).BestBlockHash()
-		for _, fb := range finalized {
+		for _, fb := range finalised {
 			require.NotNil(t, fb)
 			require.Equal(t, head, fb.Vote.hash)
-			require.GreaterOrEqual(t, len(fb.Justification), len(kr.Keys)/2)
-			finalized[0].Justification = []*Justification{}
-			fb.Justification = []*Justification{}
-			require.Equal(t, finalized[0], fb)
+			require.GreaterOrEqual(t, len(fb.Precommits), len(kr.Keys)/2)
+			require.GreaterOrEqual(t, len(fb.AuthData), len(kr.Keys)/2)
+			finalised[0].Precommits = []*Vote{}
+			finalised[0].AuthData = []*AuthData{}
+			fb.Precommits = []*Vote{}
+			fb.AuthData = []*AuthData{}
+			require.Equal(t, finalised[0], fb)
 		}
 
 		for _, gs := range gss {

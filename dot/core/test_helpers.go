@@ -156,7 +156,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		stateSrvc = state.NewService(testDatadirPath, log.LvlInfo)
 		stateSrvc.UseMemDB()
 
-		err = stateSrvc.Initialize(gen, genHeader, genTrie)
+		err = stateSrvc.Initialise(gen, genHeader, genTrie)
 		require.Nil(t, err)
 
 		err = stateSrvc.Start()
@@ -253,6 +253,10 @@ func (s *mockSyncer) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) erro
 }
 
 func (s *mockSyncer) ProcessBlockData(_ []*types.BlockData) (int, error) {
+	return 0, nil
+}
+
+func (s *mockSyncer) ProcessJustification(data []*types.BlockData) (int, error) {
 	return 0, nil
 }
 

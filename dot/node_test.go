@@ -225,7 +225,7 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.Digest{})
 	require.NoError(t, err)
 
-	err = stateSrvc.Initialize(gen, genesisHeader, genTrie)
+	err = stateSrvc.Initialise(gen, genesisHeader, genTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.Start()

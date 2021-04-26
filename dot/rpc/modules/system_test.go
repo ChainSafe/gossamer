@@ -51,6 +51,10 @@ func (s *mockSyncer) ProcessBlockData(_ []*types.BlockData) (int, error) {
 	return 0, nil
 }
 
+func (s *mockSyncer) ProcessJustification(_ []*types.BlockData) (int, error) {
+	return 0, nil
+}
+
 func (s *mockSyncer) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) error {
 	return nil
 }

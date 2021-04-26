@@ -59,18 +59,18 @@ func TestNode_Prune(t *testing.T) {
 
 	copy := bt.DeepCopy()
 
-	// pick some block to finalize
-	finalized := bt.head.children[0].children[0].children[0]
-	pruned := bt.head.prune(finalized, nil)
+	// pick some block to finalise
+	finalised := bt.head.children[0].children[0].children[0]
+	pruned := bt.head.prune(finalised, nil)
 
 	for _, prunedHash := range pruned {
 		prunedNode := copy.getNode(prunedHash)
-		if prunedNode.isDescendantOf(finalized) {
-			t.Fatal("pruned node that's descendant of finalized node!!")
+		if prunedNode.isDescendantOf(finalised) {
+			t.Fatal("pruned node that's descendant of finalised node!!")
 		}
 
-		if finalized.isDescendantOf(prunedNode) {
-			t.Fatal("pruned an ancestor of the finalized node!!")
+		if finalised.isDescendantOf(prunedNode) {
+			t.Fatal("pruned an ancestor of the finalised node!!")
 		}
 	}
 }

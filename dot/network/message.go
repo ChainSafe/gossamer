@@ -359,9 +359,6 @@ var _ NotificationsMessage = &ConsensusMessage{}
 
 // ConsensusMessage is mostly opaque to us
 type ConsensusMessage struct {
-	// Identifies consensus engine.
-	ConsensusEngineID types.ConsensusEngineID
-	// Message payload.
 	Data []byte
 }
 
@@ -377,23 +374,17 @@ func (cm *ConsensusMessage) Type() byte {
 
 // String is the string
 func (cm *ConsensusMessage) String() string {
-	return fmt.Sprintf("ConsensusMessage ConsensusEngineID=%d, DATA=%x", cm.ConsensusEngineID, cm.Data)
+	return fmt.Sprintf("ConsensusMessage Data=%x", cm.Data)
 }
 
 // Encode encodes a block response message using SCALE
 func (cm *ConsensusMessage) Encode() ([]byte, error) {
-	encMsg := cm.ConsensusEngineID.ToBytes()
-	return append(encMsg, cm.Data...), nil
+	return cm.Data, nil
 }
 
 // Decode the message into a ConsensusMessage
 func (cm *ConsensusMessage) Decode(in []byte) error {
-	if len(in) < 5 {
-		return errors.New("cannot decode ConsensusMessage: encoding is too short")
-	}
-
-	cm.ConsensusEngineID = types.NewConsensusEngineID(in[:4])
-	cm.Data = in[4:]
+	cm.Data = in
 	return nil
 }
 

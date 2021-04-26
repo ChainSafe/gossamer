@@ -36,7 +36,7 @@ func NewBlock(header *Header, body *Body) *Block {
 	}
 }
 
-// NewEmptyBlock returns a new Block with an initialized but empty Header and Body
+// NewEmptyBlock returns a new Block with an initialised but empty Header and Body
 func NewEmptyBlock() *Block {
 	return &Block{
 		Header: new(Header),

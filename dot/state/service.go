@@ -71,7 +71,7 @@ func NewService(path string, lvl log.Lvl) *Service {
 }
 
 // UseMemDB tells the service to use an in-memory key-value store instead of a persistent database.
-// This should be called after NewService, and before Initialize.
+// This should be called after NewService, and before Initialise.
 // This should only be used for testing.
 func (s *Service) UseMemDB() {
 	s.isMemDB = true
@@ -82,9 +82,9 @@ func (s *Service) DB() chaindb.Database {
 	return s.db
 }
 
-// Initialize initializes the genesis state of the DB using the given storage trie. The trie should be loaded with the genesis storage state.
-// This only needs to be called during genesis initialization of the node; it doesn't need to be called during normal startup.
-func (s *Service) Initialize(gen *genesis.Genesis, header *types.Header, t *trie.Trie) error {
+// Initialise initialises the genesis state of the DB using the given storage trie. The trie should be loaded with the genesis storage state.
+// This only needs to be called during genesis initialisation of the node; it doesn't need to be called during normal startup.
+func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie.Trie) error {
 	var db chaindb.Database
 	cfg := &chaindb.Config{}
 
@@ -101,7 +101,7 @@ func (s *Service) Initialize(gen *genesis.Genesis, header *types.Header, t *trie
 
 	cfg.DataDir = basepath
 
-	// initialize database using data directory
+	// initialise database using data directory
 	db, err = chaindb.NewBadgerDB(cfg)
 	if err != nil {
 		return fmt.Errorf("failed to create database: %s", err)
@@ -224,7 +224,7 @@ func (s *Service) storeInitialValues(db chaindb.Database, data *genesis.Data, he
 	return nil
 }
 
-// Start initializes the Storage database and the Block database.
+// Start initialises the Storage database and the Block database.
 func (s *Service) Start() error {
 	if !s.isMemDB && (s.Storage != nil || s.Block != nil || s.Epoch != nil) {
 		return nil
@@ -241,7 +241,7 @@ func (s *Service) Start() error {
 			DataDir: basepath,
 		}
 
-		// initialize database
+		// initialise database
 		db, err = chaindb.NewBadgerDB(cfg)
 		if err != nil {
 			return err
@@ -271,17 +271,17 @@ func (s *Service) Start() error {
 	}
 
 	// if blocktree head isn't "best hash", then the node shutdown abnormally.
-	// restore state from last finalized hash.
+	// restore state from last finalised hash.
 	btHead := bt.DeepestBlockHash()
 	if !bytes.Equal(btHead[:], bestHash[:]) {
-		logger.Info("detected abnormal node shutdown, restoring from last finalized block")
+		logger.Info("detected abnormal node shutdown, restoring from last finalised block")
 
-		lastFinalized, err := s.Block.GetFinalizedHeader(0, 0) //nolint
+		lastFinalised, err := s.Block.GetFinalizedHeader(0, 0) //nolint
 		if err != nil {
-			return fmt.Errorf("failed to get latest finalized block: %w", err)
+			return fmt.Errorf("failed to get latest finalised block: %w", err)
 		}
 
-		s.Block.bt = blocktree.NewBlockTreeFromRoot(lastFinalized, db)
+		s.Block.bt = blocktree.NewBlockTreeFromRoot(lastFinalised, db)
 	}
 
 	// create storage state
@@ -350,6 +350,11 @@ func (s *Service) Rewind(toBlock int64) error {
 		return err
 	}
 
+	err = s.Block.SetFinalizedHash(header.Hash(), 0, 0)
+	if err != nil {
+		return err
+	}
+
 	return StoreBestBlockHash(s.db, newHead)
 }
 
@@ -414,7 +419,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 	} else {
 		var err error
 
-		// initialize database using data directory
+		// initialise database using data directory
 		s.db, err = chaindb.NewBadgerDB(cfg)
 		if err != nil {
 			return fmt.Errorf("failed to create database: %s", err)

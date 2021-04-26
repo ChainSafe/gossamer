@@ -283,7 +283,7 @@ func newTestStateService(t *testing.T) *state.Service {
 	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo)
 	stateSrvc.UseMemDB()
 
-	err = stateSrvc.Initialize(gen, genesisHeader, genTrie)
+	err = stateSrvc.Initialise(gen, genesisHeader, genTrie)
 	if err != nil {
 		t.Fatal(err)
 	}

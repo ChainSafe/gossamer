@@ -34,7 +34,7 @@ To start, it would be extremely beneficial to have an understanding of the Polka
 
 ## Polkadot Host
 
-[_Please Note: The "Polkadot Host" was formerly known as the "Polkadot Runtime Enviornment"_]
+[_Please Note: The "Polkadot Host" was formerly known as the "Polkadot Runtime Environment"_]
 
 The Polkadot Host plays two important roles within the Polkadot ecosystem.
 

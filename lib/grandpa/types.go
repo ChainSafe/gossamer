@@ -30,8 +30,11 @@ import (
 
 type subround byte
 
-var prevote subround = 0
-var precommit subround = 1
+var (
+	prevote         subround = 0
+	precommit       subround = 1
+	primaryProposal subround = 2
+)
 
 func (s subround) Encode() ([]byte, error) {
 	return []byte{byte(s)}, nil
@@ -153,11 +156,11 @@ func (s *State) threshold() uint64 {
 // Vote represents a vote for a block with the given hash and number
 type Vote struct {
 	hash   common.Hash
-	number uint64
+	number uint32
 }
 
 // NewVote returns a new Vote given a block hash and number
-func NewVote(hash common.Hash, number uint64) *Vote {
+func NewVote(hash common.Hash, number uint32) *Vote {
 	return &Vote{
 		hash:   hash,
 		number: number,
@@ -168,7 +171,7 @@ func NewVote(hash common.Hash, number uint64) *Vote {
 func NewVoteFromHeader(h *types.Header) *Vote {
 	return &Vote{
 		hash:   h.Hash(),
-		number: uint64(h.Number.Int64()),
+		number: uint32(h.Number.Int64()),
 	}
 }
 
@@ -193,8 +196,8 @@ func NewVoteFromHash(hash common.Hash, blockState BlockState) (*Vote, error) {
 
 // Encode returns the SCALE encoding of a Vote
 func (v *Vote) Encode() ([]byte, error) {
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, v.number)
+	buf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(buf, v.number)
 	return append(v.hash[:], buf...), nil
 }
 
@@ -210,7 +213,7 @@ func (v *Vote) Decode(r io.Reader) (*Vote, error) {
 		return nil, err
 	}
 
-	v.number, err = common.ReadUint64(r)
+	v.number, err = common.ReadUint32(r)
 	if err != nil {
 		return nil, err
 	}
@@ -223,15 +226,15 @@ func (v *Vote) String() string {
 	return fmt.Sprintf("hash=%s number=%d", v.hash, v.number)
 }
 
-// Justification represents a justification for a finalized block
-type Justification struct {
+// SignedPrecommit represents a signed precommit message for a finalised block
+type SignedPrecommit struct {
 	Vote        *Vote
 	Signature   [64]byte
 	AuthorityID ed25519.PublicKeyBytes
 }
 
 // Encode returns the SCALE encoded Justification
-func (j *Justification) Encode() ([]byte, error) {
+func (j *SignedPrecommit) Encode() ([]byte, error) {
 	enc, err := j.Vote.Encode()
 	if err != nil {
 		return nil, err
@@ -243,32 +246,59 @@ func (j *Justification) Encode() ([]byte, error) {
 }
 
 // Decode returns the SCALE decoded Justification
-func (j *Justification) Decode(r io.Reader) (*Justification, error) {
+func (j *SignedPrecommit) Decode(r io.Reader) (*SignedPrecommit, error) {
 	sd := &scale.Decoder{Reader: r}
 	i, err := sd.Decode(j)
-	return i.(*Justification), err
+	if err != nil {
+		return nil, err
+	}
+
+	d := i.(*SignedPrecommit)
+	j.Vote = d.Vote
+	j.Signature = d.Signature
+	j.AuthorityID = d.AuthorityID
+	return j, nil
 }
 
-// FullJustification represents an array of Justifications, used to respond to catch up requests
-type FullJustification []*Justification
+// Commit contains all the signed precommits for a given block
+type Commit struct {
+	Hash       common.Hash
+	Number     uint32
+	Precommits []*SignedPrecommit
+}
 
-func newFullJustification(j []*Justification) FullJustification {
-	return FullJustification(j)
+// Justification represents a finality justification for a block
+type Justification struct {
+	Round  uint64
+	Commit *Commit
+}
+
+func newJustification(round uint64, hash common.Hash, number uint32, j []*SignedPrecommit) *Justification {
+	return &Justification{
+		Round: round,
+		Commit: &Commit{
+			Hash:       hash,
+			Number:     number,
+			Precommits: j,
+		},
+	}
 }
 
 // Encode returns the SCALE encoding of a FullJustification
-func (j FullJustification) Encode() ([]byte, error) {
+func (j *Justification) Encode() ([]byte, error) {
 	return scale.Encode(j)
 }
 
 // Decode returns a SCALE decoded FullJustification
-func (j FullJustification) Decode(r io.Reader) (FullJustification, error) {
+func (j *Justification) Decode(r io.Reader) error {
 	sd := &scale.Decoder{Reader: r}
-	i, err := sd.Decode([]*Justification{})
+	i, err := sd.Decode(&Justification{Commit: &Commit{}})
 	if err != nil {
-		return FullJustification{}, err
+		return err
 	}
 
-	j = FullJustification(i.([]*Justification))
-	return j, nil
+	dec := i.(*Justification)
+	j.Round = dec.Round
+	j.Commit = dec.Commit
+	return nil
 }

@@ -30,10 +30,10 @@ If you're suggesting a change/improvement, tell us how it should work.
 
 <!---
 
-If describing a bug, tell us what happens instead of the expected behavior.
+If describing a bug, tell us what happens instead of the expected behaviour.
 
 If suggesting a change or an improvement, explain the difference between your
-suggestion and current behavior.
+suggestion and current behaviour.
 
 -->
 
@@ -55,7 +55,7 @@ submit a PR and you'll get credit for the whole thing.
 
 
 ## To Reproduce
-Steps to reproduce the behavior:
+Steps to reproduce the behaviour:
 
 1. 
 2. 
