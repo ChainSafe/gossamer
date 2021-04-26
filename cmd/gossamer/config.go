@@ -487,7 +487,7 @@ func setDotGlobalConfigName(ctx *cli.Context, tomlConfig *ctoml.Config, cfg *dot
 			return err
 		}
 
-		// if successfull global node name loaded
+		// if successful global node name loaded
 		if cfg.Name != "" {
 			logger.Debug("load global node name from database", "name", cfg.Name)
 			return nil
