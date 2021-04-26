@@ -115,7 +115,7 @@ func (s *GrandpaState) GetAuthorities(setID uint64) ([]*types.GrandpaVoter, erro
 func (s *GrandpaState) setCurrentSetID(setID uint64) error {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, setID)
-	return s.db.Put(currentSetIDKey, buf[:])
+	return s.db.Put(currentSetIDKey, buf)
 }
 
 // GetCurrentSetID retrieves the current set ID
