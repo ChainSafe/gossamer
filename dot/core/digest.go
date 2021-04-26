@@ -281,7 +281,12 @@ func (h *DigestHandler) handleScheduledChange(d *types.ConsensusDigest, header *
 		return err
 	}
 
-	return h.grandpaState.SetNextChange(types.NewGrandpaVotersFromAuthorities(auths), big.NewInt(0).Add(header.Number, big.NewInt(int64(sc.Delay))))
+	logger.Info("setting GrandpaScheduledChange", "at block", big.NewInt(0).Add(header.Number, big.NewInt(int64(sc.Delay))))
+
+	return h.grandpaState.SetNextChange(
+		types.NewGrandpaVotersFromAuthorities(auths),
+		big.NewInt(0).Add(header.Number, big.NewInt(int64(sc.Delay))),
+	)
 }
 
 func (h *DigestHandler) handleForcedChange(d *types.ConsensusDigest, header *types.Header) error {
@@ -317,6 +322,8 @@ func (h *DigestHandler) handleForcedChange(d *types.ConsensusDigest, header *typ
 	if err != nil {
 		return err
 	}
+
+	logger.Info("setting GrandpaForcedChange", "at block", big.NewInt(0).Add(header.Number, big.NewInt(int64(fc.Delay))))
 
 	return h.grandpaState.SetNextChange(
 		types.NewGrandpaVotersFromAuthorities(auths),

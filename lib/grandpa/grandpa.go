@@ -172,6 +172,12 @@ func (s *Service) Start() error {
 		return err
 	}
 
+	// if we're not an authority, we don't need to worry about the voting process.
+	// the grandpa service is only used to verify incoming block justifications
+	if !s.authority {
+		return nil
+	}
+
 	go func() {
 		err := s.initiate()
 		if err != nil {
@@ -262,21 +268,21 @@ func (s *Service) initiate() error {
 		s.tracker.stop()
 	}
 
-	if s.authority {
-		s.prevotes = make(map[ed25519.PublicKeyBytes]*Vote)
-		s.precommits = make(map[ed25519.PublicKeyBytes]*Vote)
-		s.pcJustifications = make(map[common.Hash][]*SignedPrecommit)
-		s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
-		s.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
-		s.justification = make(map[uint64][]*SignedPrecommit)
+	//if s.authority {
+	s.prevotes = make(map[ed25519.PublicKeyBytes]*Vote)
+	s.precommits = make(map[ed25519.PublicKeyBytes]*Vote)
+	s.pcJustifications = make(map[common.Hash][]*SignedPrecommit)
+	s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
+	s.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
+	s.justification = make(map[uint64][]*SignedPrecommit)
 
-		s.tracker, err = newTracker(s.blockState, s.in)
-		if err != nil {
-			return err
-		}
-		s.tracker.start()
-		logger.Trace("started message tracker")
+	s.tracker, err = newTracker(s.blockState, s.in)
+	if err != nil {
+		return err
 	}
+	s.tracker.start()
+	logger.Trace("started message tracker")
+	//}
 	s.roundLock.Unlock()
 
 	// don't begin grandpa until we are at block 1
@@ -293,24 +299,24 @@ func (s *Service) initiate() error {
 	}
 
 	for {
-		if s.authority {
-			err = s.playGrandpaRound()
-			if err == ErrServicePaused {
-				// wait for service to un-pause
-				<-s.resumed
-				err = s.initiate()
-			}
-
-			if err != nil {
-				return err
-			}
-		} else {
-			// if not a grandpa authority, wait for a block to be finalised in the current round
-			err = s.waitForFinalizedBlock()
-			if err != nil {
-				return err
-			}
+		//if s.authority {
+		err = s.playGrandpaRound()
+		if err == ErrServicePaused {
+			// wait for service to un-pause
+			<-s.resumed
+			err = s.initiate()
 		}
+
+		if err != nil {
+			return err
+		}
+		// } else {
+		// 	// if not a grandpa authority, wait for a block to be finalised in the current round
+		// 	err = s.waitForFinalizedBlock()
+		// 	if err != nil {
+		// 		return err
+		// 	}
+		// }
 
 		if s.ctx.Err() != nil {
 			return nil
