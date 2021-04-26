@@ -365,7 +365,7 @@ func TestPendingExtrinsic(t *testing.T) {
 
 	numNodes := 3
 	// index of node to submit tx to
-	idx := numNodes - 1 // TODO: randomize this
+	idx := numNodes - 1 // TODO: randomise this
 
 	// start block producing node first
 	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDefault, utils.ConfigBABEMaxThreshold, false)
