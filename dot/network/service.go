@@ -575,7 +575,6 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 			return
 		}
 
-		// todo (ed) determine if there are other places to capture data received
 		s.host.bwc.LogRecvMessage(int64(tot))
 	}
 }

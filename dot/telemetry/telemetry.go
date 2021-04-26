@@ -157,8 +157,8 @@ type BlockIntervalData struct {
 func (h *Handler) SendBlockIntervalData(data *BlockIntervalData) {
 	h.Lock()
 	defer h.Unlock()
-	payload := log.Fields{"best": data.BestHash.String(), "finalized_hash": data.FinalizedHash.String(),
-		"finalized_height": data.FinalizedHeight, "height": data.BestHeight, "msg": "system.interval", "txcount": data.TXCount,
+	payload := log.Fields{"best": data.BestHash.String(), "finalized_hash": data.FinalizedHash.String(), // nolint
+		"finalized_height": data.FinalizedHeight, "height": data.BestHeight, "msg": "system.interval", "txcount": data.TXCount, // nolint
 		"used_state_cache_size": data.UsedStateCacheSize}
 	telemetryLogger := log.WithFields(log.Fields{"id": 1, "payload": payload, "ts": time.Now()})
 	telemetryLogger.Print()
