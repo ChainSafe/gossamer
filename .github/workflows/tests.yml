@@ -58,8 +58,7 @@ jobs:
           run: |
             go test ./... -short -coverprofile=coverage.out -covermode=atomic -timeout=20m
         - uses: codecov/codecov-action@v1
-          with:
-            token: "89982880-a53b-4a3a-9bdd-3dc9c78bd190"
+          with:      
             files: ./coverage.out
             flags: unit-tests
             name: coverage
