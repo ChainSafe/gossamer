@@ -18,7 +18,6 @@ package babe
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"math/big"
 	"time"
@@ -28,8 +27,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
-
-var errInvalidResult = errors.New("invalid error value")
 
 // BuildBlock builds a block for the slot with the given parent.
 // TODO: separate block builder logic into separate module. The only reason this is exported is so other packages
@@ -199,17 +196,15 @@ func (b *Service) buildBlockExtrinsics(slot Slot) []*transaction.ValidTransactio
 			continue
 		}
 
-		ok, err := determineErr(ret)
-		if err != nil && ok {
-			logger.Warn("failed after dispatching extrinsic", "error", err, "extrinsic", extrinsic)
-		} else if err != nil {
+		err = determineErr(ret)
+		if err != nil {
 			logger.Warn("failed to apply extrinsic", "error", err, "extrinsic", extrinsic)
-		}
 
-		// Failure of the module call dispatching doesn't invalidate the extrinsic.
-		// It is included in the block.
-		if !ok {
-			continue
+			// Failure of the module call dispatching doesn't invalidate the extrinsic.
+			// It is included in the block.
+			if _, ok := err.(*DispatchOutcomeError); !ok {
+				continue
+			}
 		}
 
 		logger.Debug("build block applied extrinsic", "extrinsic", extrinsic)
@@ -275,7 +270,7 @@ func (b *Service) buildBlockInherents(slot Slot) ([][]byte, error) {
 		}
 
 		if !bytes.Equal(ret, []byte{0, 0}) {
-			_, errTxt := determineErr(ret)
+			errTxt := determineErr(ret)
 			return nil, fmt.Errorf("error applying inherent: %s", errTxt)
 		}
 	}

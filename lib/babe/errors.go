@@ -60,6 +60,26 @@ var ErrAuthorityDisabled = errors.New("authority has been disabled for the remai
 // ErrNotAuthority is returned when trying to perform authority functions when not an authority
 var ErrNotAuthority = errors.New("node is not an authority")
 
+var errInvalidResult = errors.New("invalid error value")
+
+// A DispatchOutcomeError is outcome of dispatching the extrinsic
+type DispatchOutcomeError struct {
+	msg string // description of error
+}
+
+func (e DispatchOutcomeError) Error() string {
+	return fmt.Sprintf("dispatch outcome error: %s", e.msg)
+}
+
+// A TransactionValidityError is possible errors while checking the validity of a transaction
+type TransactionValidityError struct {
+	msg string // description of error
+}
+
+func (e TransactionValidityError) Error() string {
+	return fmt.Sprintf("transaction validity error: %s", e.msg)
+}
+
 func determineCustomModuleErr(res []byte) error {
 	if len(res) < 3 {
 		return errInvalidResult
@@ -75,13 +95,13 @@ func determineDispatchErr(res []byte) error {
 	switch res[0] {
 	case 0:
 		unKnownError, _ := scale.Decode(res[1:], []byte{})
-		return fmt.Errorf("unknown error: %s", string(unKnownError.([]byte)))
+		return &DispatchOutcomeError{fmt.Sprintf("unknown error: %s", string(unKnownError.([]byte)))}
 	case 1:
-		return fmt.Errorf("failed lookup")
+		return &DispatchOutcomeError{"failed lookup"}
 	case 2:
-		return fmt.Errorf("bad origin")
+		return &DispatchOutcomeError{"bad origin"}
 	case 3:
-		return fmt.Errorf("custom module error: %s", determineCustomModuleErr(res[1:]))
+		return &DispatchOutcomeError{fmt.Sprintf("custom module error: %s", determineCustomModuleErr(res[1:]))}
 	}
 	return errInvalidResult
 }
@@ -89,25 +109,25 @@ func determineDispatchErr(res []byte) error {
 func determineInvalidTxnErr(res []byte) error {
 	switch res[0] {
 	case 0:
-		return fmt.Errorf("call of the transaction is not expected")
+		return &TransactionValidityError{"call of the transaction is not expected"}
 	case 1:
-		return fmt.Errorf("invalid payment")
+		return &TransactionValidityError{"invalid payment"}
 	case 2:
-		return fmt.Errorf("invalid transaction")
+		return &TransactionValidityError{"invalid transaction"}
 	case 3:
-		return fmt.Errorf("outdated transaction")
+		return &TransactionValidityError{"outdated transaction"}
 	case 4:
-		return fmt.Errorf("bad proof")
+		return &TransactionValidityError{"bad proof"}
 	case 5:
-		return fmt.Errorf("ancient birth block")
+		return &TransactionValidityError{"ancient birth block"}
 	case 6:
-		return fmt.Errorf("exhausts resources")
+		return &TransactionValidityError{"exhausts resources"}
 	case 7:
-		return fmt.Errorf("unknown error: %d", res[1])
+		return &TransactionValidityError{fmt.Sprintf("unknown error: %d", res[1])}
 	case 8:
-		return fmt.Errorf("mandatory dispatch error")
+		return &TransactionValidityError{"mandatory dispatch error"}
 	case 9:
-		return fmt.Errorf("invalid mandatory dispatch")
+		return &TransactionValidityError{"invalid mandatory dispatch"}
 	}
 	return errInvalidResult
 }
@@ -115,33 +135,33 @@ func determineInvalidTxnErr(res []byte) error {
 func determineUnknownTxnErr(res []byte) error {
 	switch res[0] {
 	case 0:
-		return fmt.Errorf("lookup failed")
+		return &TransactionValidityError{"lookup failed"}
 	case 1:
-		return fmt.Errorf("validator not found")
+		return &TransactionValidityError{"validator not found"}
 	case 2:
-		return fmt.Errorf("unknown error: %d", res[1])
+		return &TransactionValidityError{fmt.Sprintf("unknown error: %d", res[1])}
 	}
 	return errInvalidResult
 }
 
-func determineErr(res []byte) (bool, error) {
+func determineErr(res []byte) error {
 	switch res[0] {
 	case 0: // DispatchOutcome
 		switch res[1] {
 		case 0:
-			return true, nil
+			return nil
 		case 1:
-			return true, determineDispatchErr(res[2:])
+			return determineDispatchErr(res[2:])
 		default:
-			return true, errInvalidResult
+			return errInvalidResult
 		}
 	case 1: // TransactionValidityError
 		switch res[1] {
 		case 0:
-			return false, determineInvalidTxnErr(res[2:])
+			return determineInvalidTxnErr(res[2:])
 		case 1:
-			return false, determineUnknownTxnErr(res[2:])
+			return determineUnknownTxnErr(res[2:])
 		}
 	}
-	return false, errInvalidResult
+	return errInvalidResult
 }
