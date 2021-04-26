@@ -68,7 +68,7 @@ func TestFinalizedChannel(t *testing.T) {
 		select {
 		case <-ch:
 		case <-time.After(testMessageTimeout):
-			t.Fatal("did not receive finalized block")
+			t.Fatal("did not receive finalised block")
 		}
 	}
 }
@@ -138,7 +138,7 @@ func TestFinalizedChannel_Multi(t *testing.T) {
 			select {
 			case <-ch:
 			case <-time.After(testMessageTimeout):
-				t.Error("did not receive finalized block: ch=", i)
+				t.Error("did not receive finalised block: ch=", i)
 			}
 			wg.Done()
 		}(i, ch)

@@ -54,13 +54,13 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 		return nil, err
 	}
 
-	// initialize block header
+	// initialise block header
 	err = b.rt.InitializeBlock(header)
 	if err != nil {
 		return nil, err
 	}
 
-	logger.Trace("initialized block")
+	logger.Trace("initialised block")
 
 	// add block inherents
 	inherents, err := b.buildBlockInherents(slot)
@@ -75,14 +75,14 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 
 	logger.Trace("built block extrinsics")
 
-	// finalize block
+	// finalise block
 	header, err = b.rt.FinalizeBlock()
 	if err != nil {
 		b.addToQueue(included)
-		return nil, fmt.Errorf("cannot finalize block: %s", err)
+		return nil, fmt.Errorf("cannot finalise block: %s", err)
 	}
 
-	logger.Trace("finalized block")
+	logger.Trace("finalised block")
 
 	header.ParentHash = parent.Hash()
 	header.Number.Add(parent.Number, big.NewInt(1))

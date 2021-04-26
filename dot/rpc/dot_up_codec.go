@@ -53,7 +53,7 @@ func (c *DotUpCodec) NewRequest(r *http.Request) rpc.CodecRequest {
 // DotUpCodecRequest decodes and encodes a single request. UpCodecRequest
 // implements gorilla/rpc.CodecRequest interface primarily by embedding
 // the CodecRequest from gorilla/rpc/json. By selectively adding
-// CodecRequest methods to UpCodecRequest, we can modify that behavior
+// CodecRequest methods to UpCodecRequest, we can modify that behaviour
 // while maintaining all the other remaining CodecRequest methods from
 // gorilla's rpc/json implementation
 type DotUpCodecRequest struct {

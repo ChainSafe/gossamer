@@ -107,7 +107,7 @@ func (h *HTTPServer) RegisterModules(mods []string) {
 		case "dev":
 			srvc = modules.NewDevModule(h.serverConfig.BlockProducerAPI, h.serverConfig.NetworkAPI)
 		default:
-			h.logger.Warn("Unrecognized module", "module", mod)
+			h.logger.Warn("Unrecognised module", "module", mod)
 			continue
 		}
 

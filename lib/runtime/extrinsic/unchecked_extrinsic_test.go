@@ -83,7 +83,7 @@ func TestUncheckedExtrinsic_Encode(t *testing.T) {
 func TestMain(m *testing.M) {
 	k, err := keystore.NewSr25519Keyring()
 	if err != nil {
-		log.Fatal(fmt.Errorf("error initializing keyring"))
+		log.Fatal(fmt.Errorf("error initialising keyring"))
 	}
 	kr = *k
 	testTransFunc = createFunction()

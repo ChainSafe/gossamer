@@ -38,10 +38,11 @@ const (
 	HOST_API_TEST_RUNTIME_URL = "https://github.com/noot/polkadot-spec/blob/master/test/hostapi_runtime.compact.wasm?raw=true"
 )
 
+//nolint
 var (
 	// CoreVersion is the runtime API call Core_version
 	CoreVersion = "Core_version"
-	// CoreInitializeBlock is the runtime API call Core_initialize_block
+	// CoreInitialiseBlock is the runtime API call Core_initialize_block
 	CoreInitializeBlock = "Core_initialize_block"
 	// CoreExecuteBlock is the runtime API call Core_execute_block
 	CoreExecuteBlock = "Core_execute_block"

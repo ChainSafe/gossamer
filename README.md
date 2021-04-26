@@ -60,7 +60,7 @@ make gossamer
 
 ### Run Default Node
 
-initialize default node:
+initialise default node:
 ```
 ./bin/gossamer --chain gssmr init
 ```
@@ -87,7 +87,7 @@ Then, re-run the above steps. NOTE: this feature is for testing only; if you wis
 
 ### Run Kusama Node
 
-initialize kusama node:
+initialise kusama node:
 ```
 ./bin/gossamer --chain kusama init
 ```
@@ -108,7 +108,7 @@ After it's finished bootstrapping, the node should begin to sync.
 
 ### Run Polkadot Node
 
-initialize polkadot node:
+initialise polkadot node:
 ```
 ./bin/gossamer --chain polkadot init
 ```

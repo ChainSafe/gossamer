@@ -68,8 +68,8 @@ type KeyRotateResponse []byte
 type ExtrinsicStatus struct {
 	IsFuture    bool
 	IsReady     bool
-	IsFinalized bool
-	AsFinalized common.Hash
+	Isfinalised bool
+	Asfinalised common.Hash
 	IsUsurped   bool
 	AsUsurped   common.Hash
 	IsBroadcast bool
