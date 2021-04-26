@@ -166,6 +166,27 @@ func (x *Bytes) Decode(r io.Reader) (*Bytes, error) {
 	return x, nil
 }
 
+// DecodeBytes return an optional Bytes from scale encoded data
+func (x *Bytes) DecodeBytes(data []byte) (*Bytes, error) {
+	if len(data) == 0 || data[0] > 1 {
+		return nil, ErrInvalidOptional
+	}
+
+	x.exists = data[0] != 0
+
+	if x.exists {
+		decData, err := scale.Decode(data[1:], []byte{})
+		if err != nil {
+			return nil, err
+		}
+		x.value = decData.([]byte)
+	} else {
+		x.value = nil
+	}
+
+	return x, nil
+}
+
 // FixedSizeBytes represents an optional FixedSizeBytes type. It does not length-encode the value when encoding.
 type FixedSizeBytes struct {
 	exists bool
@@ -224,7 +245,7 @@ func (x *FixedSizeBytes) Decode(r io.Reader) (*FixedSizeBytes, error) {
 		return nil, ErrInvalidOptional
 	}
 
-	x.exists = (exists != 0)
+	x.exists = exists != 0
 
 	if x.exists {
 		value, err := ioutil.ReadAll(r)

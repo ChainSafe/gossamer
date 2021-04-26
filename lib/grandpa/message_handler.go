@@ -106,7 +106,7 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 	}
 
 	// TODO: make linter british
-	logger.Debug("got neighbor message", "number", msg.Number, "set id", msg.SetID, "round", msg.Round)
+	logger.Debug("got neighbour message", "number", msg.Number, "set id", msg.SetID, "round", msg.Round)
 	h.blockNumToSetID.Store(msg.Number, msg.SetID)
 	h.grandpa.network.SendJustificationRequest(from, msg.Number)
 
@@ -117,14 +117,14 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 		return err
 	}
 
-	// don't finalize too close to head, until we add justification request + verification functionality.
+	// don't finalise too close to head, until we add justification request + verification functionality.
 	// this prevents us from marking the wrong block as final and getting stuck on the wrong chain
 	if uint32(head.Int64())-4 < msg.Number {
 		return nil
 	}
 
-	// TODO: instead of assuming the finalized hash is the one we currently know about,
-	// request the justification from the network before setting it as finalized.
+	// TODO: instead of assuming the finalised hash is the one we currently know about,
+	// request the justification from the network before setting it as finalised.
 	hash, err := h.grandpa.blockState.GetHashByNumber(big.NewInt(int64(msg.Number)))
 	if err != nil {
 		return err
@@ -138,12 +138,12 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 		return err
 	}
 
-	logger.Info("🔨 finalized block", "number", msg.Number, "hash", hash)
+	logger.Info("🔨 finalised block", "number", msg.Number, "hash", hash)
 	return nil
 }
 
 func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) (*ConsensusMessage, error) {
-	logger.Debug("received finalization message", "round", msg.Round, "hash", msg.Vote.hash)
+	logger.Debug("received finalisation message", "round", msg.Round, "hash", msg.Vote.hash)
 
 	if has, _ := h.blockState.HasFinalizedBlock(msg.Round, h.grandpa.state.setID); has {
 		return nil, nil
@@ -155,13 +155,13 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) (*ConsensusMess
 		return nil, err
 	}
 
-	// set finalized head for round in db
+	// set finalised head for round in db
 	err = h.blockState.SetFinalizedHash(msg.Vote.hash, msg.Round, h.grandpa.state.setID)
 	if err != nil {
 		return nil, err
 	}
 
-	// set latest finalized head in db
+	// set latest finalised head in db
 	err = h.blockState.SetFinalizedHash(msg.Vote.hash, 0, 0)
 	if err != nil {
 		return nil, err
@@ -334,7 +334,7 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 
 	// confirm total # signatures >= grandpa threshold
 	if uint64(count) < h.grandpa.state.threshold() {
-		logger.Error("minimum votes not met for finalization message", "votes needed", h.grandpa.state.threshold(),
+		logger.Error("minimum votes not met for finalisation message", "votes needed", h.grandpa.state.threshold(),
 			"votes received", len(fm.Precommits))
 		return ErrMinVotesNotMet
 	}

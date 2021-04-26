@@ -49,7 +49,7 @@ func TestMain(m *testing.M) {
 	}
 	fw, err := utils.InitFramework(3)
 	if err != nil {
-		log.Fatal(fmt.Errorf("error initializing test framework"))
+		log.Fatal(fmt.Errorf("error initialising test framework"))
 	}
 	framework = *fw
 	// Start all tests

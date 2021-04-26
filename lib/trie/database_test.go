@@ -35,7 +35,7 @@ func newTestDB(t *testing.T) chaindb.Database {
 		InMemory: true,
 	}
 
-	// TODO: don't initialize new DB but pass it in
+	// TODO: don't initialise new DB but pass it in
 	db, err := chaindb.NewBadgerDB(cfg)
 	require.NoError(t, err)
 	return chaindb.NewTable(db, "trie")

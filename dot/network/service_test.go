@@ -390,7 +390,7 @@ func TestPersistPeerStore(t *testing.T) {
 
 	require.NotEmpty(t, nodeA.host.h.Peerstore().PeerInfo(nodeB.host.id()).Addrs)
 
-	// Stop a node and reinitialize a new node with same base path.
+	// Stop a node and reinitialise a new node with same base path.
 	err = nodeA.Stop()
 	require.NoError(t, err)
 

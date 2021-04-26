@@ -66,7 +66,7 @@ type Sr25519Keyring struct {
 	Keys []*sr25519.Keypair
 }
 
-// NewSr25519Keyring returns an initialized sr25519 Keyring
+// NewSr25519Keyring returns an initialised sr25519 Keyring
 func NewSr25519Keyring() (*Sr25519Keyring, error) {
 	kr := new(Sr25519Keyring)
 	v := reflect.ValueOf(kr).Elem()
@@ -152,7 +152,7 @@ type Ed25519Keyring struct {
 	Keys []*ed25519.Keypair
 }
 
-// NewEd25519Keyring returns an initialized ed25519 Keyring
+// NewEd25519Keyring returns an initialised ed25519 Keyring
 func NewEd25519Keyring() (*Ed25519Keyring, error) {
 	kr := new(Ed25519Keyring)
 	v := reflect.ValueOf(kr).Elem()

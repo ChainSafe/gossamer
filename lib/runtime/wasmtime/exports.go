@@ -98,6 +98,7 @@ func (in *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validit
 	return v, err
 }
 
+//nolint
 // InitializeBlock calls runtime API function Core_initialize_block
 func (in *Instance) InitializeBlock(header *types.Header) error {
 	encodedHeader, err := scale.Encode(header)
@@ -119,6 +120,7 @@ func (in *Instance) ApplyExtrinsic(data types.Extrinsic) ([]byte, error) {
 	return in.exec(runtime.BlockBuilderApplyExtrinsic, data)
 }
 
+//nolint
 // FinalizeBlock calls runtime API function BlockBuilder_finalize_block
 func (in *Instance) FinalizeBlock() (*types.Header, error) {
 	data, err := in.exec(runtime.BlockBuilderFinalizeBlock, []byte{})
