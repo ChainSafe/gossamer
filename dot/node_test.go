@@ -384,7 +384,7 @@ func TestNode_StopFunc(t *testing.T) {
 }
 
 func TestNode_PersistGlobalName_WhenInitialize(t *testing.T) {
-	globalName := RandonNodeName()
+	globalName := RandomNodeName()
 
 	cfg := NewTestConfig(t)
 	cfg.Global.Name = globalName

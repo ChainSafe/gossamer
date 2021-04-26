@@ -17,7 +17,6 @@
 package utils
 
 import (
-	"encoding/binary"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -26,8 +25,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-
-	"github.com/cosmos/go-bip39"
 )
 
 // PathExists returns true if the named file or directory exists, otherwise false
@@ -194,13 +191,4 @@ func GetKusamaGenesisPath() string {
 	}
 
 	return fp
-}
-
-// RandomNodeName returns a random name when there is no flag --name
-func RandomNodeName() string {
-	entropy, _ := bip39.NewEntropy(128)
-	randomNamesString, _ := bip39.NewMnemonic(entropy)
-	randomNames := strings.Split(randomNamesString, " ")
-	number := binary.BigEndian.Uint16(entropy)
-	return randomNames[0] + "-" + randomNames[1] + "-" + fmt.Sprint(number)
 }

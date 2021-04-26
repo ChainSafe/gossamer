@@ -502,7 +502,7 @@ func setDotGlobalConfigName(ctx *cli.Context, tomlConfig *ctoml.Config, cfg *dot
 	// defined at toml config file then create a new
 	// random name and set at dot globals config
 	if !initialized && !thereIsNameFlag && !thereIsNameTomlConfig {
-		cfg.Name = dot.RandonNodeName()
+		cfg.Name = dot.RandomNodeName()
 	}
 
 	return nil

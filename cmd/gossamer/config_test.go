@@ -837,7 +837,7 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 
 func TestGlobalNodeName_WhenNodeAlreadyHasStoredName(t *testing.T) {
 	// Initialize a node with a random name
-	globalName := dot.RandonNodeName()
+	globalName := dot.RandomNodeName()
 
 	cfg := dot.NewTestConfig(t)
 	cfg.Global.Name = globalName
