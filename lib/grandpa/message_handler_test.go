@@ -17,7 +17,6 @@
 package grandpa
 
 import (
-	"errors"
 	"math/big"
 	"testing"
 	"time"
@@ -29,7 +28,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/scale"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/stretchr/testify/require"
 )
 
@@ -200,7 +198,7 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = h.handleMessage("", cm)
-	require.True(t, errors.Is(err, chaindb.ErrKeyNotFound))
+	require.NoError(t, err)
 
 	block := &types.Block{
 		Header: &types.Header{
