@@ -52,7 +52,7 @@ func TestHandler_SendConnection(t *testing.T) {
 		StartTime:     "startTime",
 	}
 	GetInstance().SendConnection(data)
-	time.Sleep(time.Millisecond)
+	time.Sleep(time.Millisecond * 5)
 	require.Contains(t, string(lastMessage), string(expected))
 }
 
@@ -65,7 +65,7 @@ func TestHandler_SendBlockImport(t *testing.T) {
 
 var resultCh chan []byte
 
-func TestHandler_SendBlockImport_Race(t *testing.T) {
+func TestHandler_SendMulti(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
@@ -104,7 +104,7 @@ func TestHandler_SendBlockImport_Race(t *testing.T) {
 func TestHandler_SendNetworkData(t *testing.T) {
 	expected := []byte(`{"id":1,"payload":{"bandwidth_download":2,"bandwidth_upload":3,"msg":"system.interval","peers":1},"ts":`)
 	GetInstance().SendNetworkData(NewNetworkData(1, 2, 3))
-	time.Sleep(time.Millisecond)
+	time.Sleep(time.Millisecond * 5)
 	require.Contains(t, string(lastMessage), string(expected))
 }
 
@@ -118,7 +118,7 @@ func TestHandler_SendBlockIntervalData(t *testing.T) {
 		TXCount:            2,
 		UsedStateCacheSize: 1886357,
 	})
-	time.Sleep(time.Millisecond)
+	time.Sleep(time.Millisecond * 5)
 	require.Contains(t, string(lastMessage), string(expected))
 }
 
