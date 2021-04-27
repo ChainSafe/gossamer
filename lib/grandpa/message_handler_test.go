@@ -526,9 +526,10 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 
 	setID, err := st.Grandpa.GetCurrentSetID()
 	require.NoError(t, err)
+	require.Equal(t, uint64(1), setID)
 
-	round := uint64(1)
-	number := uint32(1)
+	round := uint64(2)
+	number := uint32(2)
 	precommits := buildTestJustification(t, 2, round, setID, kr, precommit)
 	just := newJustification(round, testHash, number, precommits)
 	data, err := just.Encode()
