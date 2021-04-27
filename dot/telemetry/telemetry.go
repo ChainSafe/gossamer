@@ -114,10 +114,7 @@ func (h *Handler) SendBlockImport(bestHash string, height *big.Int) {
 
 func (h *Handler) sendTelemtry() {
 	for _, c := range h.wsConn {
-		err := c.WriteMessage(websocket.TextMessage, h.buf.Bytes())
-		if err != nil {
-			// TODO (ed) determine how to handle this error
-		}
+		_ = c.WriteMessage(websocket.TextMessage, h.buf.Bytes())
 	}
 	h.buf.Reset()
 }
