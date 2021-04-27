@@ -274,7 +274,6 @@ func (s *Service) initiate() error {
 	s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
 	s.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
 	s.justification = make(map[uint64][]*SignedPrecommit)
-
 	s.tracker, err = newTracker(s.blockState, s.in)
 	if err != nil {
 		return err
