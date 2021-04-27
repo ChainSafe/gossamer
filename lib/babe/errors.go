@@ -13,7 +13,13 @@
 
 package babe
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+
+	"github.com/ChainSafe/gossamer/lib/common/optional"
+	"github.com/ChainSafe/gossamer/lib/scale"
+)
 
 // ErrBadSlotClaim is returned when a slot claim is invalid
 var ErrBadSlotClaim = errors.New("could not verify slot claim VRF proof")
@@ -53,3 +59,109 @@ var ErrAuthorityDisabled = errors.New("authority has been disabled for the remai
 
 // ErrNotAuthority is returned when trying to perform authority functions when not an authority
 var ErrNotAuthority = errors.New("node is not an authority")
+
+var errInvalidResult = errors.New("invalid error value")
+
+// A DispatchOutcomeError is outcome of dispatching the extrinsic
+type DispatchOutcomeError struct {
+	msg string // description of error
+}
+
+func (e DispatchOutcomeError) Error() string {
+	return fmt.Sprintf("dispatch outcome error: %s", e.msg)
+}
+
+// A TransactionValidityError is possible errors while checking the validity of a transaction
+type TransactionValidityError struct {
+	msg string // description of error
+}
+
+func (e TransactionValidityError) Error() string {
+	return fmt.Sprintf("transaction validity error: %s", e.msg)
+}
+
+func determineCustomModuleErr(res []byte) error {
+	if len(res) < 3 {
+		return errInvalidResult
+	}
+	errMsg, err := optional.NewBytes(false, nil).DecodeBytes(res[2:])
+	if err != nil {
+		return err
+	}
+	return fmt.Errorf("index: %d code: %d message: %s", res[0], res[1], errMsg.String())
+}
+
+func determineDispatchErr(res []byte) error {
+	switch res[0] {
+	case 0:
+		unKnownError, _ := scale.Decode(res[1:], []byte{})
+		return &DispatchOutcomeError{fmt.Sprintf("unknown error: %s", string(unKnownError.([]byte)))}
+	case 1:
+		return &DispatchOutcomeError{"failed lookup"}
+	case 2:
+		return &DispatchOutcomeError{"bad origin"}
+	case 3:
+		return &DispatchOutcomeError{fmt.Sprintf("custom module error: %s", determineCustomModuleErr(res[1:]))}
+	}
+	return errInvalidResult
+}
+
+func determineInvalidTxnErr(res []byte) error {
+	switch res[0] {
+	case 0:
+		return &TransactionValidityError{"call of the transaction is not expected"}
+	case 1:
+		return &TransactionValidityError{"invalid payment"}
+	case 2:
+		return &TransactionValidityError{"invalid transaction"}
+	case 3:
+		return &TransactionValidityError{"outdated transaction"}
+	case 4:
+		return &TransactionValidityError{"bad proof"}
+	case 5:
+		return &TransactionValidityError{"ancient birth block"}
+	case 6:
+		return &TransactionValidityError{"exhausts resources"}
+	case 7:
+		return &TransactionValidityError{fmt.Sprintf("unknown error: %d", res[1])}
+	case 8:
+		return &TransactionValidityError{"mandatory dispatch error"}
+	case 9:
+		return &TransactionValidityError{"invalid mandatory dispatch"}
+	}
+	return errInvalidResult
+}
+
+func determineUnknownTxnErr(res []byte) error {
+	switch res[0] {
+	case 0:
+		return &TransactionValidityError{"lookup failed"}
+	case 1:
+		return &TransactionValidityError{"validator not found"}
+	case 2:
+		return &TransactionValidityError{fmt.Sprintf("unknown error: %d", res[1])}
+	}
+	return errInvalidResult
+}
+
+func determineErr(res []byte) error {
+	switch res[0] {
+	case 0: // DispatchOutcome
+		switch res[1] {
+		case 0:
+			return nil
+		case 1:
+			return determineDispatchErr(res[2:])
+		default:
+			return errInvalidResult
+		}
+	case 1: // TransactionValidityError
+		switch res[1] {
+		case 0:
+			return determineInvalidTxnErr(res[2:])
+		case 1:
+			return determineUnknownTxnErr(res[2:])
+		}
+	}
+	return errInvalidResult
+}
