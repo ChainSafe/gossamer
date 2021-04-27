@@ -184,9 +184,9 @@ func (s *Service) Start() error {
 // If the given number of blocks is greater than the chain height, it will rewind to genesis.
 func (s *Service) Rewind(toBlock int64) error {
 	num, _ := s.Block.BestBlockNumber()
-	if toBlock > num.Int64() {
-		return fmt.Errorf("cannot rewind, given height is higher than our current height")
-	}
+	// if toBlock > num.Int64() {
+	// 	return fmt.Errorf("cannot rewind, given height is higher than our current height")
+	// }
 
 	logger.Info("rewinding state...", "current height", num, "desired height", toBlock)
 
@@ -214,6 +214,30 @@ func (s *Service) Rewind(toBlock int64) error {
 	err = s.Block.SetFinalizedHash(header.Hash(), 0, 0)
 	if err != nil {
 		return err
+	}
+
+	// update the current grandpa set ID
+	prevSetID, err := s.Grandpa.GetCurrentSetID()
+	if err != nil {
+		return err
+	}
+
+	newSetID, err := s.Grandpa.GetSetIDByBlockNumber(header.Number)
+	if err != nil {
+		return err
+	}
+
+	err = s.Grandpa.setCurrentSetID(newSetID)
+	if err != nil {
+		return err
+	}
+
+	// remove previously set grandpa changes, need to go up to prevSetID+1 in case of a scheduled change
+	for i := newSetID + 1; i <= prevSetID+1; i++ {
+		err = s.Grandpa.db.Del(setIDChangeKey(uint64(i)))
+		if err != nil {
+			return err
+		}
 	}
 
 	return StoreBestBlockHash(s.db, newHead)

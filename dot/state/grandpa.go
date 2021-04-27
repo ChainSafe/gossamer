@@ -71,10 +71,12 @@ func NewGrandpaStateFromGenesis(db chaindb.Database, genesisAuthorities []*types
 
 // NewGrandpaState returns a new GrandpaState
 func NewGrandpaState(db chaindb.Database) (*GrandpaState, error) {
-	return &GrandpaState{
+	s := &GrandpaState{
 		baseDB: db,
 		db:     chaindb.NewTable(db, grandpaPrefix),
-	}, nil
+	}
+
+	return s, nil
 }
 
 func authoritiesKey(setID uint64) []byte {
@@ -195,26 +197,39 @@ func (s *GrandpaState) GetSetIDByBlockNumber(num *big.Int) (uint64, error) {
 		return 0, err
 	}
 
-	// take into account possible scheduled changes
-	curr = curr + 1
-
 	for {
-		if curr == 0 {
-			return 0, nil
+		changeUpper, err := s.GetSetIDChange(curr + 1)
+		if err == chaindb.ErrKeyNotFound {
+			if curr == 0 {
+				return 0, nil
+			}
+			curr = curr - 1
+			continue
+		}
+		if err != nil {
+			return 0, err
 		}
 
-		change, err := s.GetSetIDChange(curr)
+		changeLower, err := s.GetSetIDChange(curr)
 		if err != nil {
 			return 0, err
 		}
 
 		// if the given block number is greater or equal to the block number of the set ID change,
 		// return the current set ID
-		if num.Cmp(change) == 1 {
+		if num.Cmp(changeUpper) < 1 && num.Cmp(changeLower) == 1 {
 			return curr, nil
 		}
 
+		if num.Cmp(changeUpper) == 1 {
+			return curr + 1, nil
+		}
+
 		curr = curr - 1
+
+		if int(curr) < 0 {
+			return 0, nil
+		}
 	}
 }
 

@@ -18,6 +18,7 @@ package grandpa
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 	"reflect"
 
@@ -448,12 +449,12 @@ func (s *Service) VerifyBlockJustification(justification []byte) error {
 
 	setID, err := s.grandpaState.GetSetIDByBlockNumber(big.NewInt(int64(fj.Commit.Number)))
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot get set ID from block number: %w", err)
 	}
 
 	auths, err := s.grandpaState.GetAuthorities(setID)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot get authorities for set ID: %w", err)
 	}
 
 	logger.Debug("verifying justification",

@@ -105,4 +105,16 @@ func TestGrandpaState_GetSetIDByBlockNumber(t *testing.T) {
 	setID, err = gs.GetSetIDByBlockNumber(big.NewInt(101))
 	require.NoError(t, err)
 	require.Equal(t, genesisSetID+1, setID)
+
+	err = gs.IncrementSetID()
+	require.NoError(t, err)
+
+	setID, err = gs.GetSetIDByBlockNumber(big.NewInt(100))
+	require.NoError(t, err)
+	require.Equal(t, genesisSetID, setID)
+
+	setID, err = gs.GetSetIDByBlockNumber(big.NewInt(101))
+	require.NoError(t, err)
+	require.Equal(t, genesisSetID+1, setID)
+
 }
