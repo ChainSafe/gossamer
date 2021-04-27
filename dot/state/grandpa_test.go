@@ -46,6 +46,10 @@ func TestNewGrandpaStateFromGenesis(t *testing.T) {
 	auths, err := gs.GetAuthorities(currSetID)
 	require.NoError(t, err)
 	require.Equal(t, testAuths, auths)
+
+	num, err := gs.GetSetIDChange(0)
+	require.NoError(t, err)
+	require.Equal(t, big.NewInt(0), num)
 }
 
 func TestGrandpaState_SetNextChange(t *testing.T) {

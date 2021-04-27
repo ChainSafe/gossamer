@@ -71,12 +71,10 @@ func NewGrandpaStateFromGenesis(db chaindb.Database, genesisAuthorities []*types
 
 // NewGrandpaState returns a new GrandpaState
 func NewGrandpaState(db chaindb.Database) (*GrandpaState, error) {
-	s := &GrandpaState{
+	return &GrandpaState{
 		baseDB: db,
 		db:     chaindb.NewTable(db, grandpaPrefix),
-	}
-
-	return s, nil
+	}, nil
 }
 
 func authoritiesKey(setID uint64) []byte {

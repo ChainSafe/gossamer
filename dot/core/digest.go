@@ -272,9 +272,9 @@ func (h *DigestHandler) handleScheduledChange(d *types.ConsensusDigest, header *
 		return nil
 	}
 
-	// if h.grandpaScheduledChange != nil {
-	// 	return nil
-	// }
+	if h.grandpaScheduledChange != nil {
+		return nil
+	}
 
 	sc := &types.GrandpaScheduledChange{}
 	dec, err := scale.Decode(d.Data[1:], sc)

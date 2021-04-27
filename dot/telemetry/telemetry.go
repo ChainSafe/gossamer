@@ -117,7 +117,6 @@ func (h *Handler) sendTelemtry() {
 		err := c.WriteMessage(websocket.TextMessage, h.buf.Bytes())
 		if err != nil {
 			// TODO (ed) determine how to handle this error
-			//fmt.Printf("ERROR connecting to telemetry %v\n", err)
 		}
 	}
 	h.buf.Reset()
