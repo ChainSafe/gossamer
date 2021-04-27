@@ -248,7 +248,6 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		return nil, err
 	}
 	nodeSrvcs = append(nodeSrvcs, fg)
-	dh.SetFinalityGadget(fg) // TODO: this should be cleaned up
 
 	// Syncer
 	syncer, err := createSyncService(cfg, stateSrvc, bp, fg, dh, ver, rt)
@@ -259,7 +258,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	// Core Service
 
 	// create core service and append core service to node services
-	coreSrvc, err := createCoreService(cfg, bp, fg, ver, rt, ks, stateSrvc, networkSrvc)
+	coreSrvc, err := createCoreService(cfg, bp, ver, rt, ks, stateSrvc, networkSrvc)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create core service: %s", err)
 	}
