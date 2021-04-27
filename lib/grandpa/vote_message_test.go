@@ -30,7 +30,6 @@ import (
 
 func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters()
 	net := newTestNetwork(t)
 
 	kr, err := keystore.NewEd25519Keyring()
@@ -38,6 +37,7 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 
 	cfg := &Config{
 		BlockState:    st.Block,
+		GrandpaState:  st.Grandpa,
 		DigestHandler: &mockDigestHandler{},
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
@@ -62,7 +62,6 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 
 func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters()
 	net := newTestNetwork(t)
 
 	kr, err := keystore.NewEd25519Keyring()
@@ -70,6 +69,7 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 
 	cfg := &Config{
 		BlockState:    st.Block,
+		GrandpaState:  st.Grandpa,
 		DigestHandler: &mockDigestHandler{},
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
@@ -89,7 +89,7 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 
 	voter := voters[0]
 
-	gs.prevotes[voter.key.AsBytes()] = vote1
+	gs.prevotes[voter.Key.AsBytes()] = vote1
 
 	vote2, err := NewVoteFromHash(leaves[1], st.Block)
 	require.NoError(t, err)
@@ -99,12 +99,11 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 
 	require.Equal(t, 0, len(gs.prevotes))
 	require.Equal(t, 1, len(gs.pvEquivocations))
-	require.Equal(t, 2, len(gs.pvEquivocations[voter.key.AsBytes()]))
+	require.Equal(t, 2, len(gs.pvEquivocations[voter.Key.AsBytes()]))
 }
 
 func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters()
 	net := newTestNetwork(t)
 
 	kr, err := keystore.NewEd25519Keyring()
@@ -112,6 +111,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 
 	cfg := &Config{
 		BlockState:    st.Block,
+		GrandpaState:  st.Grandpa,
 		DigestHandler: &mockDigestHandler{},
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
@@ -137,7 +137,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 
 	voter := voters[0]
 
-	gs.prevotes[voter.key.AsBytes()] = vote
+	gs.prevotes[voter.Key.AsBytes()] = vote
 
 	vote2 := NewVoteFromHeader(branches[0])
 	require.NoError(t, err)
@@ -156,12 +156,11 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 
 	require.Equal(t, 0, len(gs.prevotes))
 	require.Equal(t, 1, len(gs.pvEquivocations))
-	require.Equal(t, 3, len(gs.pvEquivocations[voter.key.AsBytes()]))
+	require.Equal(t, 3, len(gs.pvEquivocations[voter.Key.AsBytes()]))
 }
 
 func TestValidateMessage_Valid(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters()
 	net := newTestNetwork(t)
 
 	kr, err := keystore.NewEd25519Keyring()
@@ -169,6 +168,7 @@ func TestValidateMessage_Valid(t *testing.T) {
 
 	cfg := &Config{
 		BlockState:    st.Block,
+		GrandpaState:  st.Grandpa,
 		DigestHandler: &mockDigestHandler{},
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
@@ -192,7 +192,6 @@ func TestValidateMessage_Valid(t *testing.T) {
 
 func TestValidateMessage_InvalidSignature(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters()
 	net := newTestNetwork(t)
 
 	kr, err := keystore.NewEd25519Keyring()
@@ -200,6 +199,7 @@ func TestValidateMessage_InvalidSignature(t *testing.T) {
 
 	cfg := &Config{
 		BlockState:    st.Block,
+		GrandpaState:  st.Grandpa,
 		DigestHandler: &mockDigestHandler{},
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
@@ -231,6 +231,7 @@ func TestValidateMessage_SetIDMismatch(t *testing.T) {
 
 	cfg := &Config{
 		BlockState:    st.Block,
+		GrandpaState:  st.Grandpa,
 		DigestHandler: &mockDigestHandler{},
 		Keypair:       kr.Bob().(*ed25519.Keypair),
 		Network:       net,
@@ -254,7 +255,6 @@ func TestValidateMessage_SetIDMismatch(t *testing.T) {
 
 func TestValidateMessage_Equivocation(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters()
 	net := newTestNetwork(t)
 
 	kr, err := keystore.NewEd25519Keyring()
@@ -262,6 +262,7 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 
 	cfg := &Config{
 		BlockState:    st.Block,
+		GrandpaState:  st.Grandpa,
 		DigestHandler: &mockDigestHandler{},
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
@@ -287,7 +288,7 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 
 	voter := voters[0]
 
-	gs.prevotes[voter.key.AsBytes()] = vote
+	gs.prevotes[voter.Key.AsBytes()] = vote
 
 	msg, err := gs.createVoteMessage(NewVoteFromHeader(branches[0]), prevote, kr.Alice())
 	require.NoError(t, err)
@@ -298,7 +299,6 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 
 func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters()
 	net := newTestNetwork(t)
 
 	kr, err := keystore.NewEd25519Keyring()
@@ -306,6 +306,7 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 
 	cfg := &Config{
 		BlockState:    st.Block,
+		GrandpaState:  st.Grandpa,
 		DigestHandler: &mockDigestHandler{},
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
@@ -331,7 +332,6 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 
 func TestValidateMessage_IsNotDescendant(t *testing.T) {
 	st := newTestState(t)
-	voters := newTestVoters()
 	net := newTestNetwork(t)
 
 	kr, err := keystore.NewEd25519Keyring()
@@ -339,6 +339,7 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 
 	cfg := &Config{
 		BlockState:    st.Block,
+		GrandpaState:  st.Grandpa,
 		DigestHandler: &mockDigestHandler{},
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),

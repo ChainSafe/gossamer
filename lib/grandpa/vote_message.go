@@ -215,7 +215,7 @@ func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 // it returns true if so, false otherwise.
 // additionally, if the vote is equivocatory, it updates the service's votes and equivocations.
 func (s *Service) checkForEquivocation(voter *Voter, vote *Vote, stage subround) bool {
-	v := voter.key.AsBytes()
+	v := voter.Key.AsBytes()
 
 	var eq map[ed25519.PublicKeyBytes][]*Vote
 	var votes map[ed25519.PublicKeyBytes]*Vote
