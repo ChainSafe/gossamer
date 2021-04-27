@@ -303,7 +303,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 
 	s.Base = NewBaseState(s.db)
 
-	if err = storeFirstSlot(s.db, firstSlot); err != nil {
+	if err = s.Base.storeFirstSlot(firstSlot); err != nil {
 		return err
 	}
 
@@ -315,7 +315,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 
 	skipTo := blockEpoch + 1
 
-	if err := storeSkipToEpoch(s.db, skipTo); err != nil {
+	if err := s.Base.storeSkipToEpoch(skipTo); err != nil {
 		return err
 	}
 	logger.Debug("skip BABE verification up to epoch", "epoch", skipTo)

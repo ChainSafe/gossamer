@@ -39,16 +39,14 @@ var (
 
 // GrandpaState tracks information related to grandpa
 type GrandpaState struct {
-	baseDB chaindb.Database
-	db     chaindb.Database
+	db chaindb.Database
 }
 
 // NewGrandpaStateFromGenesis returns a new GrandpaState given the grandpa genesis authorities
 func NewGrandpaStateFromGenesis(db chaindb.Database, genesisAuthorities []*types.GrandpaVoter) (*GrandpaState, error) {
 	grandpaDB := chaindb.NewTable(db, grandpaPrefix)
 	s := &GrandpaState{
-		baseDB: db,
-		db:     grandpaDB,
+		db: grandpaDB,
 	}
 
 	err := s.setCurrentSetID(genesisSetID)
@@ -67,8 +65,7 @@ func NewGrandpaStateFromGenesis(db chaindb.Database, genesisAuthorities []*types
 // NewGrandpaState returns a new GrandpaState
 func NewGrandpaState(db chaindb.Database) (*GrandpaState, error) {
 	return &GrandpaState{
-		baseDB: db,
-		db:     chaindb.NewTable(db, grandpaPrefix),
+		db: chaindb.NewTable(db, grandpaPrefix),
 	}, nil
 }
 

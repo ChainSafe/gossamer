@@ -17,6 +17,7 @@
 package state
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 
@@ -95,13 +96,32 @@ func (s *BaseState) LoadLatestStorageHash() (common.Hash, error) {
 	return common.NewHash(hashbytes), nil
 }
 
-// // StoreTrie encodes the entire trie and writes it to the DB
-// // The key to the DB entry is the root hash of the trie
-// func (s *BaseState) StoreTrie(t *trie.Trie) error {
-// 	return t.Store(s.db)
-// }
+func (s *BaseState) storeSkipToEpoch(epoch uint64) error {
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, epoch)
+	return s.db.Put(skipToKey, buf)
+}
 
-// // LoadTrie loads an encoded trie from the DB where the key is `root`
-// func (s *BaseState) LoadTrie(t *trie.Trie, root common.Hash) error {
-// 	return t.Load(s.db, root)
-// }
+func (s *BaseState) loadSkipToEpoch() (uint64, error) {
+	data, err := s.db.Get(skipToKey)
+	if err != nil {
+		return 0, err
+	}
+
+	return binary.LittleEndian.Uint64(data), nil
+}
+
+func (s *BaseState) storeFirstSlot(slot uint64) error {
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, slot)
+	return s.db.Put(firstSlotKey, buf)
+}
+
+func (s *BaseState) loadFirstSlot() (uint64, error) {
+	data, err := s.db.Get(firstSlotKey)
+	if err != nil {
+		return 0, err
+	}
+
+	return binary.LittleEndian.Uint64(data), nil
+}

@@ -44,9 +44,8 @@ type StorageState struct {
 	blockState *BlockState
 	tries      map[common.Hash]*trie.Trie // map of root -> trie
 
-	baseDB chaindb.Database
-	db     chaindb.Database
-	lock   sync.RWMutex
+	db   chaindb.Database
+	lock sync.RWMutex
 
 	// change notifiers
 	changedLock  sync.RWMutex
@@ -71,7 +70,6 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie) 
 	return &StorageState{
 		blockState:   blockState,
 		tries:        tries,
-		baseDB:       db,
 		db:           chaindb.NewTable(db, storagePrefix),
 		observerList: []Observer{},
 	}, nil
