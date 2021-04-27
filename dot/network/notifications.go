@@ -18,6 +18,7 @@ package network
 
 import (
 	"errors"
+	"io"
 	"math/rand"
 	"sync"
 
@@ -72,6 +73,7 @@ type handshakeData struct {
 	validated   bool
 	handshake   Handshake
 	outboundMsg NotificationsMessage
+	stream      libp2pnetwork.Stream
 }
 
 func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecoder, messageDecoder MessageDecoder) messageDecoder {
@@ -126,6 +128,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 				info.handshakeData.Store(peer, &handshakeData{
 					validated: false,
 					received:  true,
+					stream:    stream,
 				})
 
 				err := handshakeValidator(peer, hs)
@@ -144,7 +147,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 					return err
 				}
 
-				err = s.host.writeToStream(stream, resp)
+				err = s.host.writeToStream(data.stream, resp)
 				if err != nil {
 					logger.Trace("failed to send handshake", "protocol", info.protocolID, "peer", peer, "error", err)
 					return err
@@ -163,8 +166,12 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 					return errCannotValidateHandshake
 				}
 
-				hsData.validated = true
-				hsData.received = true
+				info.handshakeData.Store(peer, &handshakeData{
+					validated: true,
+					received:  true,
+					stream:    stream,
+				})
+
 				logger.Trace("sender: validated handshake", "protocol", info.protocolID, "peer", peer)
 			} else if hsData.received {
 				return nil
@@ -173,7 +180,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			// if we are the initiator, send the message
 			if hsData, has := info.getHandshakeData(peer); has && hsData.validated && hsData.received && hsData.outboundMsg != nil {
 				logger.Trace("sender: sending message", "protocol", info.protocolID)
-				err := s.host.writeToStream(stream, hsData.outboundMsg)
+				err := s.host.writeToStream(hsData.stream, hsData.outboundMsg)
 				if err != nil {
 					logger.Debug("failed to send message", "protocol", info.protocolID, "peer", peer, "error", err)
 					return err
@@ -241,7 +248,35 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 			})
 
 			logger.Trace("sending handshake", "protocol", info.protocolID, "peer", peer, "message", hs)
-			err = s.host.send(peer, info.protocolID, hs)
+
+			var stream libp2pnetwork.Stream
+			stream, err = s.host.send(peer, info.protocolID, hs)
+			if err != nil {
+				logger.Trace("failed to send message to peer", "peer", peer, "error", err)
+				continue
+			}
+
+			// TODO: Implement this for other messages.
+			switch hs.(type) {
+			case *BlockAnnounceHandshake:
+				hs, err = readHandshake(stream)
+				if err != nil {
+					logger.Trace("failed to read blockAnnounceHandshake", "peer", peer, "error", err)
+					continue
+				}
+
+				err = s.validateBlockAnnounceHandshake(peer, hs)
+				if err != nil {
+					logger.Trace("failed to validate blockAnnounceHandshake", "protocol", info.protocolID, "peer", peer, "error", err)
+					continue
+				}
+			}
+
+			info.handshakeData.Store(peer, &handshakeData{
+				validated: true,
+				received:  true,
+				stream:    stream,
+			})
 		} else {
 			if s.host.messageCache != nil {
 				var added bool
@@ -256,13 +291,38 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 				}
 			}
 
+			hsData, has = info.getHandshakeData(peer)
+			if !has {
+				continue
+			}
+
 			// we've already completed the handshake with the peer, send message directly
 			logger.Trace("sending message", "protocol", info.protocolID, "peer", peer, "message", msg)
-			err = s.host.send(peer, info.protocolID, msg)
-		}
 
-		if err != nil {
-			logger.Debug("failed to send message to peer", "peer", peer, "error", err)
+			err = s.host.writeToStream(hsData.stream, msg)
+			if err != nil {
+				logger.Trace("failed to send message to peer", "peer", peer, "error", err)
+			}
 		}
 	}
+}
+
+func readHandshake(stream libp2pnetwork.Stream) (Handshake, error) {
+	msgBytes := make([]byte, maxBlockResponseSize)
+	tot, err := readStream(stream, msgBytes)
+	if err == io.EOF {
+		return nil, io.EOF
+	} else if err != nil {
+		logger.Trace("failed to read handshake from stream", "peer", stream.Conn().RemotePeer(), "protocol", stream.Protocol(), "error", err)
+		_ = stream.Close()
+		return nil, err
+	}
+
+	// TODO: Implement this for other messages.
+	handShake, err := decodeBlockAnnounceHandshake(msgBytes[:tot])
+	if err != nil {
+		logger.Trace("failed to decode handshake message from peer", "protocol", stream.Protocol(), "err", err)
+		return nil, err
+	}
+	return handShake, nil
 }
