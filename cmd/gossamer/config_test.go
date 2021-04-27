@@ -893,3 +893,83 @@ func TestGlobalNodeName_WhenNodeAlreadyHasStoredName(t *testing.T) {
 		})
 	}
 }
+
+func TestGlobalNodeNamePriorityOrder(t *testing.T) {
+	cfg, testCfgFile := newTestConfigWithFile(t)
+	require.NotNil(t, cfg)
+	require.NotNil(t, testCfgFile)
+
+	defer utils.RemoveTestDir(t)
+
+	// call another command and test the name
+	testApp := cli.NewApp()
+	testApp.Writer = ioutil.Discard
+
+	// when name flag is defined
+	whenNameFlagIsDefined := struct {
+		description string
+		flags       []string
+		values      []interface{}
+		expected    string
+	}{
+		"Test gossamer --basepath --name --config",
+		[]string{"basepath", "name", "config"},
+		[]interface{}{cfg.Global.BasePath, "mydefinedname", testCfgFile.Name()},
+		"mydefinedname",
+	}
+
+	c := whenNameFlagIsDefined
+	t.Run(c.description, func(t *testing.T) {
+		ctx, err := newTestContext(c.description, c.flags, c.values)
+		require.Nil(t, err)
+		createdCfg, err := createDotConfig(ctx)
+		require.Nil(t, err)
+		require.Equal(t, c.expected, createdCfg.Global.Name)
+	})
+
+	// when name flag is not defined
+	// then should load name from toml if it exists
+	whenNameIsDefinedOnTomlConfig := struct {
+		description string
+		flags       []string
+		values      []interface{}
+		expected    string
+	}{
+		"Test gossamer --basepath --config",
+		[]string{"basepath", "config"},
+		[]interface{}{cfg.Global.BasePath, testCfgFile.Name()},
+		cfg.Global.Name,
+	}
+
+	c = whenNameIsDefinedOnTomlConfig
+	t.Run(c.description, func(t *testing.T) {
+		ctx, err := newTestContext(c.description, c.flags, c.values)
+		require.Nil(t, err)
+		createdCfg, err := createDotConfig(ctx)
+		require.Nil(t, err)
+		require.Equal(t, c.expected, createdCfg.Global.Name)
+	})
+
+	// when there is no name flag and no name in config
+	// should check the load is initialized or generate a new random name
+	cfg.Global.Name = ""
+
+	whenThereIsNoName := struct {
+		description string
+		flags       []string
+		values      []interface{}
+	}{
+		"Test gossamer --basepath",
+		[]string{"basepath"},
+		[]interface{}{cfg.Global.BasePath},
+	}
+
+	t.Run(c.description, func(t *testing.T) {
+		ctx, err := newTestContext(whenThereIsNoName.description, whenThereIsNoName.flags, whenThereIsNoName.values)
+		require.Nil(t, err)
+		createdCfg, err := createDotConfig(ctx)
+		require.Nil(t, err)
+		require.NotEmpty(t, createdCfg.Global.Name)
+		require.NotEqual(t, cfg.Global.Name, createdCfg.Global.Name)
+	})
+}
