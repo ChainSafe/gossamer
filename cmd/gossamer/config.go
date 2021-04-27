@@ -162,7 +162,8 @@ func createInitConfig(ctx *cli.Context) (*dot.Config, error) {
 	}
 
 	// set global configuration values
-	if err := setDotGlobalConfig(ctx, tomlCfg, &cfg.Global); err != nil {
+	err = setDotGlobalConfig(ctx, tomlCfg, &cfg.Global)
+	if err != nil {
 		logger.Error("failed to set global node configuration", "error", err)
 		return nil, err
 	}
@@ -242,7 +243,8 @@ func createExportConfig(ctx *cli.Context) (*dot.Config, error) {
 	updateDotConfigFromGenesisJSONRaw(*tomlCfg, cfg)
 
 	// set global configuration values
-	if err := setDotGlobalConfig(ctx, tomlCfg, &cfg.Global); err != nil {
+	err = setDotGlobalConfig(ctx, tomlCfg, &cfg.Global)
+	if err != nil {
 		logger.Error("failed to set global node configuration", "error", err)
 		return nil, err
 	}
@@ -469,7 +471,7 @@ func setDotGlobalConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) {
 
 func setDotGlobalConfigName(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.GlobalConfig) error {
 	globalBasePath := utils.ExpandDir(cfg.BasePath)
-	initialized := dot.NodeInitialized(globalBasePath, false)
+	initialised := dot.NodeInitialized(globalBasePath, false)
 
 	thereIsNameTomlConfig := tomlCfg.Global.Name != ""
 	thereIsNameFlag := ctx.GlobalString(NameFlag.Name) != ""
@@ -486,10 +488,10 @@ func setDotGlobalConfigName(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.Gl
 		return nil
 	}
 
-	// if node was previusly initialized
+	// if node was previusly initialised
 	// and the was not the init command
 	// then retrieve the node name from the current database
-	if initialized && ctx.Command.Name != initCommandName {
+	if initialised && ctx.Command.Name != initCommandName {
 		var err error
 		if cfg.Name, err = dot.LoadGlobalNodeName(globalBasePath); err != nil {
 			return err
@@ -502,7 +504,7 @@ func setDotGlobalConfigName(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.Gl
 		}
 	}
 
-	// if the node was not initialized
+	// if the node was not initialised
 	// there is no name flag
 	// there is no name defined at toml config file
 	//then create a new random name and set at dot globals config

@@ -110,7 +110,7 @@ func InitNode(cfg *Config) error {
 	}
 
 	logger.Info(
-    "node initialised",
+		"node initialised",
 		"name", cfg.Global.Name,
 		"id", cfg.Global.ID,
 		"basepath", cfg.Global.BasePath,
@@ -175,7 +175,7 @@ func NodeInitialized(basepath string, expected bool) bool {
 
 // LoadGlobalNodeName returns the stored global node name from database
 func LoadGlobalNodeName(basepath string) (string, error) {
-	// initialize database using data directory
+	// initialise database using data directory
 	db, err := state.SetupDatabase(basepath)
 	if err != nil {
 		return "", err

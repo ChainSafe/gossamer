@@ -836,7 +836,7 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 }
 
 func TestGlobalNodeName_WhenNodeAlreadyHasStoredName(t *testing.T) {
-	// Initialize a node with a random name
+	// Initialise a node with a random name
 	globalName := dot.RandomNodeName()
 
 	cfg := dot.NewTestConfig(t)
@@ -951,7 +951,7 @@ func TestGlobalNodeNamePriorityOrder(t *testing.T) {
 	})
 
 	// when there is no name flag and no name in config
-	// should check the load is initialized or generate a new random name
+	// should check the load is initialised or generate a new random name
 	cfg.Global.Name = ""
 
 	whenThereIsNoName := struct {

@@ -29,7 +29,7 @@ import (
 
 // SetupDatabase will return an instance of database based on basepath
 func SetupDatabase(basepath string) (database.Database, error) {
-	// initialize database using data directory
+	// initialise database using data directory
 	db, err := database.NewBadgerDB(&database.Config{
 		DataDir: basepath,
 	})
