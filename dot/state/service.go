@@ -234,7 +234,7 @@ func (s *Service) Rewind(toBlock int64) error {
 
 	// remove previously set grandpa changes, need to go up to prevSetID+1 in case of a scheduled change
 	for i := newSetID + 1; i <= prevSetID+1; i++ {
-		err = s.Grandpa.db.Del(setIDChangeKey(uint64(i)))
+		err = s.Grandpa.db.Del(setIDChangeKey(i))
 		if err != nil {
 			return err
 		}
