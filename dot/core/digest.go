@@ -220,6 +220,12 @@ func (h *DigestHandler) handleGrandpaChangesOnImport(num *big.Int) error {
 		}
 
 		h.grandpaForcedChange = nil
+		curr, err := h.grandpaState.GetCurrentSetID()
+		if err != nil {
+			return err
+		}
+
+		logger.Info("incremented grandpa set ID", "set ID", curr)
 	}
 
 	return nil
@@ -239,6 +245,12 @@ func (h *DigestHandler) handleGrandpaChangesOnFinalization(num *big.Int) error {
 		}
 
 		h.grandpaScheduledChange = nil
+		curr, err := h.grandpaState.GetCurrentSetID()
+		if err != nil {
+			return err
+		}
+
+		logger.Info("incremented grandpa set ID", "set ID", curr)
 	}
 
 	// if blocks get finalised before forced change takes place, disregard it

@@ -195,7 +195,14 @@ func (s *GrandpaState) GetSetIDByBlockNumber(num *big.Int) (uint64, error) {
 		return 0, err
 	}
 
+	// take into account possible scheduled changes
+	curr = curr + 1
+
 	for {
+		if curr == 0 {
+			return 0, nil
+		}
+
 		change, err := s.GetSetIDChange(curr)
 		if err != nil {
 			return 0, err
@@ -203,7 +210,7 @@ func (s *GrandpaState) GetSetIDByBlockNumber(num *big.Int) (uint64, error) {
 
 		// if the given block number is greater or equal to the block number of the set ID change,
 		// return the current set ID
-		if num.Cmp(change) > -1 {
+		if num.Cmp(change) == 1 {
 			return curr, nil
 		}
 

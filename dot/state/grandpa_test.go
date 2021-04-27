@@ -81,3 +81,28 @@ func TestGrandpaState_IncrementSetID(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, genesisSetID+1, setID)
 }
+
+func TestGrandpaState_GetSetIDByBlockNumber(t *testing.T) {
+	db := NewInMemoryDB(t)
+	gs, err := NewGrandpaStateFromGenesis(db, testAuths)
+	require.NoError(t, err)
+
+	testAuths2 := []*types.GrandpaVoter{
+		{Key: kr.Bob().Public().(*ed25519.PublicKey), ID: 0},
+	}
+
+	err = gs.SetNextChange(testAuths2, big.NewInt(100))
+	require.NoError(t, err)
+
+	setID, err := gs.GetSetIDByBlockNumber(big.NewInt(50))
+	require.NoError(t, err)
+	require.Equal(t, genesisSetID, setID)
+
+	setID, err = gs.GetSetIDByBlockNumber(big.NewInt(100))
+	require.NoError(t, err)
+	require.Equal(t, genesisSetID, setID)
+
+	setID, err = gs.GetSetIDByBlockNumber(big.NewInt(101))
+	require.NoError(t, err)
+	require.Equal(t, genesisSetID+1, setID)
+}
