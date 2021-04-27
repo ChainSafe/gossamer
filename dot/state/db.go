@@ -29,21 +29,9 @@ import (
 
 // SetupDatabase will return an instance of database based on basepath
 func SetupDatabase(basepath string) (database.Database, error) {
-	// initialise database using data directory
-	db, err := database.NewBadgerDB(&database.Config{
+	return database.NewBadgerDB(&database.Config{
 		DataDir: basepath,
 	})
-
-	if err != nil {
-		logger.Error(
-			"failed to setup database",
-			"basepath", basepath,
-			"error", err,
-		)
-		return nil, err
-	}
-
-	return db, nil
 }
 
 // StoreNodeGlobalName stores the current node name to avoid create new ones after each initialization

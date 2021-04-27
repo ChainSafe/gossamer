@@ -473,41 +473,31 @@ func setDotGlobalConfigName(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.Gl
 	globalBasePath := utils.ExpandDir(cfg.BasePath)
 	initialised := dot.NodeInitialized(globalBasePath, false)
 
-	thereIsNameTomlConfig := tomlCfg.Global.Name != ""
-	thereIsNameFlag := ctx.GlobalString(NameFlag.Name) != ""
-
 	// consider the --name flag as higher priority
-	if thereIsNameFlag {
+	if tomlCfg.Global.Name != "" {
 		cfg.Name = ctx.GlobalString(NameFlag.Name)
 		return nil
 	}
 
 	// consider the name on config as a second priority
-	if thereIsNameTomlConfig {
+	if ctx.GlobalString(NameFlag.Name) != "" {
 		cfg.Name = tomlCfg.Global.Name
 		return nil
 	}
 
-	// if node was previusly initialised
-	// and the was not the init command
-	// then retrieve the node name from the current database
+	// if node was previously initialised and is not the init command
 	if initialised && ctx.Command.Name != initCommandName {
 		var err error
 		if cfg.Name, err = dot.LoadGlobalNodeName(globalBasePath); err != nil {
 			return err
 		}
 
-		// if successful global node name loaded
 		if cfg.Name != "" {
 			logger.Debug("load global node name from database", "name", cfg.Name)
 			return nil
 		}
 	}
 
-	// if the node was not initialised
-	// there is no name flag
-	// there is no name defined at toml config file
-	//then create a new random name and set at dot globals config
 	cfg.Name = dot.RandomNodeName()
 	return nil
 }
