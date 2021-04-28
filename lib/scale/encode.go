@@ -108,6 +108,7 @@ func (se *Encoder) EncodeCustom(in interface{}) (int, error) {
 	if len(res) == 0 {
 		return 0, fmt.Errorf("method Encode does not have any return values")
 	}
+
 	val := res[0].Interface()
 	if len(res) < 2 {
 		return se.Writer.Write(val.([]byte))
