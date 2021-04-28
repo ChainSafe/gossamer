@@ -92,7 +92,7 @@ type Service struct {
 
 	// telemetry
 	telemetryInterval    time.Duration
-	doneNetworkTelemetry chan struct{}
+	doneNetworkTelemetry chan interface{}
 }
 
 // NewService creates a new network service from the configuration and message channels
@@ -147,7 +147,7 @@ func NewService(cfg *Config) (*Service, error) {
 		notificationsProtocols: make(map[byte]*notificationsProtocol),
 		lightRequest:           make(map[peer.ID]struct{}),
 		telemetryInterval:      cfg.telemetryInterval,
-		doneNetworkTelemetry:   make(chan struct{}),
+		doneNetworkTelemetry:   make(chan interface{}),
 	}
 
 	network.syncQueue = newSyncQueue(network)
@@ -288,7 +288,7 @@ func (s *Service) logPeerCount() {
 	}
 }
 
-func (s *Service) publishNetworkTelemetry(done chan struct{}) {
+func (s *Service) publishNetworkTelemetry(done chan interface{}) {
 	ticker := time.NewTicker(s.telemetryInterval)
 	defer ticker.Stop()
 
@@ -394,8 +394,12 @@ func (s *Service) Stop() error {
 		logger.Error("Failed to close host", "error", err)
 	}
 
-	// todo (ed) when this isn't commented out the node freezes on stop (it seems this is called twice)
-	//s.doneNetworkTelemetry <- struct{}{}
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Error("failed to close telemetry service")
+		}
+	}()
+	close(s.doneNetworkTelemetry)
 
 	return nil
 }
