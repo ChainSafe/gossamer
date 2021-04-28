@@ -291,11 +291,7 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 				}
 			}
 
-			hsData, has = info.getHandshakeData(peer)
-			if !has {
-				continue
-			}
-
+			hsData, _ = info.getHandshakeData(peer)
 			// we've already completed the handshake with the peer, send message directly
 			logger.Trace("sending message", "protocol", info.protocolID, "peer", peer, "message", msg)
 
@@ -313,7 +309,6 @@ func readHandshake(stream libp2pnetwork.Stream) (Handshake, error) {
 	if err == io.EOF {
 		return nil, io.EOF
 	} else if err != nil {
-		logger.Trace("failed to read handshake from stream", "peer", stream.Conn().RemotePeer(), "protocol", stream.Protocol(), "error", err)
 		_ = stream.Close()
 		return nil, err
 	}
@@ -321,7 +316,6 @@ func readHandshake(stream libp2pnetwork.Stream) (Handshake, error) {
 	// TODO: Implement this for other messages.
 	handShake, err := decodeBlockAnnounceHandshake(msgBytes[:tot])
 	if err != nil {
-		logger.Trace("failed to decode handshake message from peer", "protocol", stream.Protocol(), "err", err)
 		return nil, err
 	}
 	return handShake, nil

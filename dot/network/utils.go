@@ -204,7 +204,6 @@ func readStream(stream libp2pnetwork.Stream, buf []byte) (int, error) {
 		return 0, fmt.Errorf("message size greater than maximum: got %d", length)
 	}
 
-	// TODO: Allocate buffer after reading length. Avoid pre allocation.
 	tot = 0
 	for i := 0; i < maxReads; i++ {
 		n, err := r.Read(buf[tot:])
