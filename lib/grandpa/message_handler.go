@@ -18,11 +18,12 @@ package grandpa
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 	"reflect"
-	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/scale"
@@ -32,17 +33,15 @@ import (
 
 // MessageHandler handles GRANDPA consensus messages
 type MessageHandler struct {
-	grandpa         *Service
-	blockState      BlockState
-	blockNumToSetID *sync.Map // map[uint32]uint64
+	grandpa    *Service
+	blockState BlockState
 }
 
 // NewMessageHandler returns a new MessageHandler
 func NewMessageHandler(grandpa *Service, blockState BlockState) *MessageHandler {
 	return &MessageHandler{
-		grandpa:         grandpa,
-		blockState:      blockState,
-		blockNumToSetID: new(sync.Map),
+		grandpa:    grandpa,
+		blockState: blockState,
 	}
 }
 
@@ -60,7 +59,7 @@ func (h *MessageHandler) handleMessage(from peer.ID, msg *ConsensusMessage) (net
 		return nil, err
 	}
 
-	logger.Debug("handling grandpa message", "msg", m)
+	logger.Trace("handling grandpa message", "msg", m)
 
 	switch m.Type() {
 	case voteType:
@@ -101,14 +100,10 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 		return err
 	}
 
+	// ignore neighbour messages where our best finalised number is greater than theirs
 	if uint32(currFinalized.Number.Int64()) >= msg.Number {
 		return nil
 	}
-
-	// TODO: make linter british
-	logger.Debug("got neighbour message", "number", msg.Number, "set id", msg.SetID, "round", msg.Round)
-	h.blockNumToSetID.Store(msg.Number, msg.SetID)
-	h.grandpa.network.SendJustificationRequest(from, msg.Number)
 
 	// TODO; determine if there is some reason we don't receive justifications in responses near the head (usually),
 	// and remove the following code if it's fixed.
@@ -116,6 +111,14 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 	if err != nil {
 		return err
 	}
+
+	// ignore neighbour messages that are above our head
+	if int64(msg.Number) > head.Int64() {
+		return nil
+	}
+
+	logger.Debug("got neighbour message", "number", msg.Number, "set id", msg.SetID, "round", msg.Round)
+	h.grandpa.network.SendJustificationRequest(from, msg.Number)
 
 	// don't finalise too close to head, until we add justification request + verification functionality.
 	// this prevents us from marking the wrong block as final and getting stuck on the wrong chain
@@ -418,7 +421,7 @@ func (h *MessageHandler) verifyJustification(just *SignedPrecommit, round, setID
 
 	// verify authority in justification set
 	authFound := false
-	for _, auth := range h.grandpa.Authorities() {
+	for _, auth := range h.grandpa.authorities() {
 		justKey, err := just.AuthorityID.Encode()
 		if err != nil {
 			return err
@@ -444,19 +447,48 @@ func (s *Service) VerifyBlockJustification(justification []byte) error {
 		return err
 	}
 
-	logger.Debug("verifiying justification", "round", fj.Round, "hash", fj.Commit.Hash, "number", fj.Commit.Number, "sig count", len(fj.Commit.Precommits))
+	setID, err := s.grandpaState.GetSetIDByBlockNumber(big.NewInt(int64(fj.Commit.Number)))
+	if err != nil {
+		return fmt.Errorf("cannot get set ID from block number: %w", err)
+	}
+
+	auths, err := s.grandpaState.GetAuthorities(setID)
+	if err != nil {
+		return fmt.Errorf("cannot get authorities for set ID: %w", err)
+	}
+
+	logger.Debug("verifying justification",
+		"setID", setID,
+		"round", fj.Round,
+		"hash", fj.Commit.Hash,
+		"number", fj.Commit.Number,
+		"sig count", len(fj.Commit.Precommits),
+	)
+
+	if len(fj.Commit.Precommits) < (2 * len(auths) / 3) {
+		return ErrMinVotesNotMet
+	}
 
 	for _, just := range fj.Commit.Precommits {
-		// TODO: when catch up is done, we should know all the setIDs
-		s, has := s.messageHandler.blockNumToSetID.Load(fj.Commit.Number)
-		if !has {
-			continue
+		if just.Vote.hash != fj.Commit.Hash {
+			return ErrJustificationHashMismatch
 		}
 
-		setID := s.(uint64)
+		if just.Vote.number != fj.Commit.Number {
+			return ErrJustificationNumberMismatch
+		}
+
+		pk, err := ed25519.NewPublicKey(just.AuthorityID[:])
+		if err != nil {
+			return err
+		}
+
+		ok := isInAuthSet(pk, auths)
+		if !ok {
+			return ErrAuthorityNotInSet
+		}
 
 		// verify signature for each precommit
-		// TODO: verify authority is in set; this requires updating catch-up to get the right set
 		msg, err := scale.Encode(&FullVote{
 			Stage: precommit,
 			Vote:  just.Vote,
@@ -467,12 +499,7 @@ func (s *Service) VerifyBlockJustification(justification []byte) error {
 			return err
 		}
 
-		pk, err := ed25519.NewPublicKey(just.AuthorityID[:])
-		if err != nil {
-			return err
-		}
-
-		ok, err := pk.Verify(msg, just.Signature[:])
+		ok, err = pk.Verify(msg, just.Signature[:])
 		if err != nil {
 			return err
 		}
@@ -483,4 +510,14 @@ func (s *Service) VerifyBlockJustification(justification []byte) error {
 	}
 
 	return nil
+}
+
+func isInAuthSet(auth *ed25519.PublicKey, set []*types.GrandpaVoter) bool {
+	for _, a := range set {
+		if bytes.Equal(a.Key.Encode(), auth.Encode()) {
+			return true
+		}
+	}
+
+	return false
 }

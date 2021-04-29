@@ -41,7 +41,10 @@ var testGenesisHeader = &types.Header{
 	StateRoot: trie.EmptyHash,
 }
 
-var kr, _ = keystore.NewEd25519Keyring()
+var (
+	kr, _  = keystore.NewEd25519Keyring()
+	voters = newTestVoters()
+)
 
 type mockDigestHandler struct{}
 
@@ -64,30 +67,34 @@ func newTestState(t *testing.T) *state.Service {
 	block, err := state.NewBlockStateFromGenesis(db, testGenesisHeader)
 	require.NoError(t, err)
 
+	grandpa, err := state.NewGrandpaStateFromGenesis(db, voters)
+	require.NoError(t, err)
+
 	return &state.Service{
-		Block: block,
+		Block:   block,
+		Grandpa: grandpa,
 	}
 }
 
 func newTestVoters() []*Voter {
-	voters := []*Voter{}
+	vs := []*Voter{}
 	for i, k := range kr.Keys {
-		voters = append(voters, &Voter{
-			key: k.Public().(*ed25519.PublicKey),
-			id:  uint64(i),
+		vs = append(vs, &Voter{
+			Key: k.Public().(*ed25519.PublicKey),
+			ID:  uint64(i),
 		})
 	}
 
-	return voters
+	return vs
 }
 
 func newTestService(t *testing.T) (*Service, *state.Service) {
 	st := newTestState(t)
-	voters := newTestVoters()
 	net := newTestNetwork(t)
 
 	cfg := &Config{
 		BlockState:    st.Block,
+		GrandpaState:  st.Grandpa,
 		DigestHandler: &mockDigestHandler{},
 		Voters:        voters,
 		Keypair:       kr.Alice().(*ed25519.Keypair),
@@ -97,31 +104,30 @@ func newTestService(t *testing.T) (*Service, *state.Service) {
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-
 	return gs, st
 }
 
 func TestUpdateAuthorities(t *testing.T) {
 	gs, _ := newTestService(t)
-	gs.UpdateAuthorities([]*types.Authority{
-		{Key: kr.Alice().Public().(*ed25519.PublicKey), Weight: 0},
-	})
+	err := gs.updateAuthorities()
+	require.NoError(t, err)
+	require.Equal(t, uint64(0), gs.state.setID)
 
-	err := gs.Start()
+	next := []*Voter{
+		{Key: kr.Alice().Public().(*ed25519.PublicKey), ID: 0},
+	}
+
+	err = gs.grandpaState.(*state.GrandpaState).SetNextChange(next, big.NewInt(1))
 	require.NoError(t, err)
 
-	time.Sleep(time.Second)
+	err = gs.grandpaState.(*state.GrandpaState).IncrementSetID()
+	require.NoError(t, err)
+
+	err = gs.updateAuthorities()
+	require.NoError(t, err)
+
 	require.Equal(t, uint64(1), gs.state.setID)
-	require.Equal(t, []*Voter{
-		{key: kr.Alice().Public().(*ed25519.PublicKey), id: 0},
-	}, gs.state.voters)
-
-	gs.UpdateAuthorities([]*types.Authority{
-		{Key: kr.Alice().Public().(*ed25519.PublicKey), Weight: 0},
-	})
-
-	err = gs.Stop()
-	require.NoError(t, err)
+	require.Equal(t, next, gs.state.voters)
 }
 
 func TestGetDirectVotes(t *testing.T) {

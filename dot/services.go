@@ -71,7 +71,7 @@ func createStateService(cfg *Config) (*state.Service, error) {
 	}
 
 	// load most recent state from database
-	latestState, err := state.LoadLatestStorageHash(stateSrvc.DB())
+	latestState, err := stateSrvc.Base.LoadLatestStorageHash()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load latest state root hash: %s", err)
 	}
@@ -214,7 +214,7 @@ func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks k
 // Core Service
 
 // createCoreService creates the core service from the provided core configuration
-func createCoreService(cfg *Config, bp core.BlockProducer, fg core.FinalityGadget, verifier *babe.VerificationManager, rt runtime.Instance, ks *keystore.GlobalKeystore, stateSrvc *state.Service, net *network.Service) (*core.Service, error) {
+func createCoreService(cfg *Config, bp core.BlockProducer, verifier *babe.VerificationManager, rt runtime.Instance, ks *keystore.GlobalKeystore, stateSrvc *state.Service, net *network.Service) (*core.Service, error) {
 	logger.Debug(
 		"creating core service...",
 		"authority", cfg.Core.Roles == types.AuthorityRole,
@@ -222,19 +222,17 @@ func createCoreService(cfg *Config, bp core.BlockProducer, fg core.FinalityGadge
 
 	// set core configuration
 	coreConfig := &core.Config{
-		LogLvl:              cfg.Log.CoreLvl,
-		BlockState:          stateSrvc.Block,
-		EpochState:          stateSrvc.Epoch,
-		StorageState:        stateSrvc.Storage,
-		TransactionState:    stateSrvc.Transaction,
-		BlockProducer:       bp,
-		FinalityGadget:      fg,
-		Keystore:            ks,
-		Runtime:             rt,
-		IsBlockProducer:     cfg.Core.BabeAuthority,
-		IsFinalityAuthority: cfg.Core.GrandpaAuthority,
-		Verifier:            verifier,
-		Network:             net,
+		LogLvl:           cfg.Log.CoreLvl,
+		BlockState:       stateSrvc.Block,
+		EpochState:       stateSrvc.Epoch,
+		StorageState:     stateSrvc.Storage,
+		TransactionState: stateSrvc.Transaction,
+		BlockProducer:    bp,
+		Keystore:         ks,
+		Runtime:          rt,
+		IsBlockProducer:  cfg.Core.BabeAuthority,
+		Verifier:         verifier,
+		Network:          net,
 	}
 
 	// create new core service
@@ -329,7 +327,7 @@ func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Serv
 // System service
 // creates a service for providing system related information
 func createSystemService(cfg *types.SystemInfo, stateSrvc *state.Service) (*system.Service, error) {
-	genesisData, err := stateSrvc.Storage.GetGenesisData()
+	genesisData, err := stateSrvc.Base.LoadGenesisData()
 	if err != nil {
 		return nil, err
 	}
@@ -348,7 +346,7 @@ func createGRANDPAService(cfg *Config, rt runtime.Instance, st *state.Service, d
 		return nil, ErrInvalidKeystoreType
 	}
 
-	voters := grandpa.NewVotersFromAuthorities(ad)
+	voters := types.NewGrandpaVotersFromAuthorities(ad)
 
 	keys := ks.Keypairs()
 	if len(keys) == 0 && cfg.Core.GrandpaAuthority {
@@ -358,8 +356,8 @@ func createGRANDPAService(cfg *Config, rt runtime.Instance, st *state.Service, d
 	gsCfg := &grandpa.Config{
 		LogLvl:        cfg.Log.FinalityGadgetLvl,
 		BlockState:    st.Block,
+		GrandpaState:  st.Grandpa,
 		DigestHandler: dh,
-		SetID:         1,
 		Voters:        voters,
 		Authority:     cfg.Core.GrandpaAuthority,
 		Network:       net,
@@ -398,5 +396,5 @@ func createSyncService(cfg *Config, st *state.Service, bp sync.BlockProducer, fg
 }
 
 func createDigestHandler(st *state.Service, bp core.BlockProducer, verifier *babe.VerificationManager) (*core.DigestHandler, error) {
-	return core.NewDigestHandler(st.Block, st.Epoch, bp, nil, verifier)
+	return core.NewDigestHandler(st.Block, st.Epoch, st.Grandpa, bp, verifier)
 }

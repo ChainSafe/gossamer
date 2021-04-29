@@ -35,7 +35,7 @@ import (
 )
 
 var (
-	interval = time.Second
+	interval = time.Second // TODO: make this configurable; currently 1s is same as substrate; total round length is then 2s
 	logger   = log.New("pkg", "grandpa")
 )
 
@@ -45,6 +45,7 @@ type Service struct {
 	ctx            context.Context
 	cancel         context.CancelFunc
 	blockState     BlockState
+	grandpaState   GrandpaState
 	digestHandler  DigestHandler
 	keypair        *ed25519.Keypair // TODO: change to grandpa keystore
 	mapLock        sync.Mutex
@@ -66,7 +67,6 @@ type Service struct {
 	pcEquivocations  map[ed25519.PublicKeyBytes][]*Vote // equivocatory votes for current pre-commit stage
 	tracker          *tracker                           // tracker of vote messages we may need in the future
 	head             *types.Header                      // most recently finalised block
-	nextAuthorities  []*Voter                           // if not nil, the updated authorities for the next round
 
 	// historical information
 	preVotedBlock      map[uint64]*Vote              // map of round number -> pre-voted block
@@ -81,10 +81,10 @@ type Service struct {
 type Config struct {
 	LogLvl        log.Lvl
 	BlockState    BlockState
+	GrandpaState  GrandpaState
 	DigestHandler DigestHandler
 	Network       Network
 	Voters        []*Voter
-	SetID         uint64
 	Keypair       *ed25519.Keypair
 	Authority     bool
 }
@@ -93,6 +93,10 @@ type Config struct {
 func NewService(cfg *Config) (*Service, error) {
 	if cfg.BlockState == nil {
 		return nil, ErrNilBlockState
+	}
+
+	if cfg.GrandpaState == nil {
+		return nil, ErrNilGrandpaState
 	}
 
 	if cfg.DigestHandler == nil {
@@ -124,13 +128,18 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	setID, err := cfg.GrandpaState.GetCurrentSetID()
+	if err != nil {
+		return nil, err
+	}
 
+	ctx, cancel := context.WithCancel(context.Background())
 	s := &Service{
 		ctx:                ctx,
 		cancel:             cancel,
-		state:              NewState(cfg.Voters, cfg.SetID, 0), // TODO: determine current round
+		state:              NewState(cfg.Voters, setID, 0), // TODO: determine current round
 		blockState:         cfg.BlockState,
+		grandpaState:       cfg.GrandpaState,
 		digestHandler:      cfg.DigestHandler,
 		keypair:            cfg.Keypair,
 		authority:          cfg.Authority,
@@ -163,6 +172,12 @@ func (s *Service) Start() error {
 		return err
 	}
 
+	// if we're not an authority, we don't need to worry about the voting process.
+	// the grandpa service is only used to verify incoming block justifications
+	if !s.authority {
+		return nil
+	}
+
 	go func() {
 		err := s.initiate()
 		if err != nil {
@@ -188,42 +203,40 @@ func (s *Service) Stop() error {
 	return nil
 }
 
-// Authorities returns the current grandpa authorities
-func (s *Service) Authorities() []*types.Authority {
+// authorities returns the current grandpa authorities
+func (s *Service) authorities() []*types.Authority {
 	ad := make([]*types.Authority, len(s.state.voters))
 	for i, v := range s.state.voters {
 		ad[i] = &types.Authority{
-			Key:    v.key,
-			Weight: v.id,
+			Key:    v.Key,
+			Weight: v.ID,
 		}
 	}
 
 	return ad
 }
 
-// UpdateAuthorities schedules an update to the grandpa voter set and increments the setID at the end of the current round
-func (s *Service) UpdateAuthorities(ad []*types.Authority) {
-	v := make([]*Voter, len(ad))
-	for i, a := range ad {
-		if pk, ok := a.Key.(*ed25519.PublicKey); ok {
-			v[i] = &Voter{
-				key: pk,
-				id:  a.Weight,
-			}
-		}
-	}
-
-	s.nextAuthorities = v
-}
-
 // updateAuthorities updates the grandpa voter set, increments the setID, and resets the round numbers
-func (s *Service) updateAuthorities() {
-	if s.nextAuthorities != nil {
-		s.state.voters = s.nextAuthorities
-		s.state.setID++
-		s.state.round = 0
-		s.nextAuthorities = nil
+func (s *Service) updateAuthorities() error {
+	currSetID, err := s.grandpaState.GetCurrentSetID()
+	if err != nil {
+		return err
 	}
+
+	// set ID hasn't changed, do nothing
+	if currSetID == s.state.setID {
+		return nil
+	}
+
+	nextAuthorities, err := s.grandpaState.GetAuthorities(currSetID)
+	if err != nil {
+		return err
+	}
+
+	s.state.voters = nextAuthorities
+	s.state.setID = currSetID
+	s.state.round = 1 // round resets to 1 after a set ID change
+	return nil
 }
 
 func (s *Service) publicKeyBytes() ed25519.PublicKeyBytes {
@@ -233,7 +246,10 @@ func (s *Service) publicKeyBytes() ed25519.PublicKeyBytes {
 // initiate initates a GRANDPA round
 func (s *Service) initiate() error {
 	// if there is an authority change, execute it
-	s.updateAuthorities()
+	err := s.updateAuthorities()
+	if err != nil {
+		return err
+	}
 
 	if s.state.round == 0 {
 		s.chanLock.Lock()
@@ -252,22 +268,18 @@ func (s *Service) initiate() error {
 		s.tracker.stop()
 	}
 
-	if s.authority {
-		var err error
-		s.prevotes = make(map[ed25519.PublicKeyBytes]*Vote)
-		s.precommits = make(map[ed25519.PublicKeyBytes]*Vote)
-		s.pcJustifications = make(map[common.Hash][]*SignedPrecommit)
-		s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
-		s.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
-		s.justification = make(map[uint64][]*SignedPrecommit)
-
-		s.tracker, err = newTracker(s.blockState, s.in)
-		if err != nil {
-			return err
-		}
-		s.tracker.start()
-		logger.Trace("started message tracker")
+	s.prevotes = make(map[ed25519.PublicKeyBytes]*Vote)
+	s.precommits = make(map[ed25519.PublicKeyBytes]*Vote)
+	s.pcJustifications = make(map[common.Hash][]*SignedPrecommit)
+	s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
+	s.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*Vote)
+	s.justification = make(map[uint64][]*SignedPrecommit)
+	s.tracker, err = newTracker(s.blockState, s.in)
+	if err != nil {
+		return err
 	}
+	s.tracker.start()
+	logger.Trace("started message tracker")
 	s.roundLock.Unlock()
 
 	// don't begin grandpa until we are at block 1
@@ -284,23 +296,15 @@ func (s *Service) initiate() error {
 	}
 
 	for {
-		if s.authority {
-			err = s.playGrandpaRound()
-			if err == ErrServicePaused {
-				// wait for service to un-pause
-				<-s.resumed
-				err = s.initiate()
-			}
+		err = s.playGrandpaRound()
+		if err == ErrServicePaused {
+			// wait for service to un-pause
+			<-s.resumed
+			err = s.initiate()
+		}
 
-			if err != nil {
-				return err
-			}
-		} else {
-			// if not a grandpa authority, wait for a block to be finalised in the current round
-			err = s.waitForFinalizedBlock()
-			if err != nil {
-				return err
-			}
+		if err != nil {
+			return err
 		}
 
 		if s.ctx.Err() != nil {
@@ -312,36 +316,6 @@ func (s *Service) initiate() error {
 			return err
 		}
 	}
-}
-
-func (s *Service) waitForFinalizedBlock() error {
-	ch := make(chan *types.Header)
-	id, err := s.blockState.RegisterFinalizedChannel(ch)
-	if err != nil {
-		return err
-	}
-
-	defer s.blockState.UnregisterFinalizedChannel(id)
-
-	for {
-		done := false
-
-		select {
-		case header := <-ch:
-			if header != nil && header.Number.Int64() >= s.head.Number.Int64() {
-				s.head = header
-				done = true
-			}
-		case <-s.ctx.Done():
-			return nil
-		}
-
-		if done {
-			break
-		}
-	}
-
-	return nil
 }
 
 func (s *Service) waitForFirstBlock() error {
@@ -386,7 +360,7 @@ func (s *Service) playGrandpaRound() error {
 	primary := s.derivePrimary()
 
 	// if primary, broadcast the best final candidate from the previous round
-	if bytes.Equal(primary.key.Encode(), s.keypair.Public().Encode()) {
+	if bytes.Equal(primary.Key.Encode(), s.keypair.Public().Encode()) {
 		msg, err := s.newCommitMessage(s.head, s.state.round-1).ToConsensusMessage()
 		if err != nil {
 			logger.Error("failed to encode finalisation message", "error", err)
