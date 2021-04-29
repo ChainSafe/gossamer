@@ -35,6 +35,7 @@ import (
 type MessageHandler struct {
 	grandpa    *Service
 	blockState BlockState
+	catchUp    *catchUp
 }
 
 // NewMessageHandler returns a new MessageHandler
@@ -42,6 +43,7 @@ func NewMessageHandler(grandpa *Service, blockState BlockState) *MessageHandler 
 	return &MessageHandler{
 		grandpa:    grandpa,
 		blockState: blockState,
+		catchUp:    newCatchUp(),
 	}
 }
 
@@ -121,7 +123,7 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 	h.grandpa.network.SendJustificationRequest(from, msg.Number)
 
 	// TODO: if we are missing justifications, begin catch-up process
-	resp, err := h.grandpa.network.SendCatchUpRequest(from, network.ConsensusMessageType, &ConsensusMessage{})
+	resp, err := h.grandpa.network.SendCatchUpRequest(from, messageID, &ConsensusMessage{})
 
 	// don't finalise too close to head, until we add justification request + verification functionality.
 	// this prevents us from marking the wrong block as final and getting stuck on the wrong chain
