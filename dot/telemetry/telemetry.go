@@ -74,13 +74,10 @@ func GetInstance() *Handler {
 
 // AddConnections adds connections to telemetry sever
 func (h *Handler) AddConnections(conns []*genesis.TelemetryEndpoint) {
-	h.Lock()
-	defer h.Unlock()
 	for _, v := range conns {
 		c, _, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
 		if err != nil {
 			fmt.Printf("Error %v\n", err)
-			return
 		}
 		h.wsConn = append(h.wsConn, c)
 	}
@@ -167,16 +164,14 @@ func (h *Handler) SendBlockIntervalData(data *BlockIntervalData) {
 func (h *Handler) sender() {
 	for {
 		h.RLock()
-		line, err := h.buf.ReadBytes(byte(10))
+		line, err := h.buf.ReadBytes(byte(10)) // byte 10 is newline character, used as delimiter
 		h.RUnlock()
 		if err != nil {
 			continue
 		}
 
 		for _, c := range h.wsConn {
-			h.Lock()
 			err := c.WriteMessage(websocket.TextMessage, line)
-			h.Unlock()
 			if err != nil {
 				// TODO (ed) determine how to handle this error
 				fmt.Printf("ERROR connecting to telemetry %v\n", err)

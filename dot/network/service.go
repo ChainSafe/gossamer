@@ -394,12 +394,18 @@ func (s *Service) Stop() error {
 		logger.Error("Failed to close host", "error", err)
 	}
 
-	defer func() {
-		if r := recover(); r != nil {
-			logger.Error("failed to close telemetry service")
+	// check if closeCh is closed, if not, close it.
+mainloop:
+	for {
+		select {
+		case _, hasMore := <-s.closeCh:
+			if !hasMore {
+				break mainloop
+			}
+		default:
+			close(s.closeCh)
 		}
-	}()
-	close(s.closeCh)
+	}
 
 	return nil
 }
