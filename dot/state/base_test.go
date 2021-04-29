@@ -2,7 +2,6 @@ package state
 
 import (
 	"bytes"
-	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -26,7 +25,7 @@ func TestTrie_StoreAndLoadFromDB(t *testing.T) {
 		}
 	}
 
-	err := StoreTrie(db, tt)
+	err := tt.Store(db)
 	require.NoError(t, err)
 
 	encroot, err := tt.Hash()
@@ -35,7 +34,7 @@ func TestTrie_StoreAndLoadFromDB(t *testing.T) {
 	expected := tt.MustHash()
 
 	tt = trie.NewEmptyTrie()
-	err = LoadTrie(db, tt, encroot)
+	err = tt.Load(db, encroot)
 	require.NoError(t, err)
 	require.Equal(t, expected, tt.MustHash())
 }
@@ -47,6 +46,7 @@ type test struct {
 
 func TestStoreAndLoadLatestStorageHash(t *testing.T) {
 	db := NewInMemoryDB(t)
+	base := NewBaseState(db)
 	tt := trie.NewEmptyTrie()
 
 	tests := []test{
@@ -65,27 +65,19 @@ func TestStoreAndLoadLatestStorageHash(t *testing.T) {
 	}
 
 	expected, err := tt.Hash()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	err = StoreLatestStorageHash(db, expected)
-	if err != nil {
-		t.Fatal(err)
-	}
+	err = base.StoreLatestStorageHash(expected)
+	require.NoError(t, err)
 
-	hash, err := LoadLatestStorageHash(db)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if hash != expected {
-		t.Fatalf("Fail: got %x expected %x", hash, expected)
-	}
+	hash, err := base.LoadLatestStorageHash()
+	require.NoError(t, err)
+	require.Equal(t, expected, hash)
 }
 
 func TestStoreAndLoadGenesisData(t *testing.T) {
 	db := NewInMemoryDB(t)
+	base := NewBaseState(db)
 
 	bootnodes := common.StringArrayToBytes([]string{
 		"/ip4/127.0.0.1/tcp/7001/p2p/12D3KooWHHzSeKaY8xuZVzkLbKFfvNgPPeKhFBGrMbNzbm5akpqu",
@@ -99,36 +91,24 @@ func TestStoreAndLoadGenesisData(t *testing.T) {
 		ProtocolID: "/gossamer/test/0",
 	}
 
-	err := StoreGenesisData(db, expected)
-	if err != nil {
-		t.Fatal(err)
-	}
+	err := base.StoreGenesisData(expected)
+	require.NoError(t, err)
 
-	gen, err := LoadGenesisData(db)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !reflect.DeepEqual(gen, expected) {
-		t.Fatalf("Fail: got %v expected %v", gen, expected)
-	}
+	gen, err := base.LoadGenesisData()
+	require.NoError(t, err)
+	require.Equal(t, expected, gen)
 }
 
 func TestStoreAndLoadBestBlockHash(t *testing.T) {
 	db := NewInMemoryDB(t)
+	base := NewBaseState(db)
+
 	hash, _ := common.HexToHash("0x3f5a19b9e9507e05276216f3877bb289e47885f8184010c65d0e41580d3663cc")
 
-	err := StoreBestBlockHash(db, hash)
-	if err != nil {
-		t.Fatal(err)
-	}
+	err := base.StoreBestBlockHash(hash)
+	require.NoError(t, err)
 
-	res, err := LoadBestBlockHash(db)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !reflect.DeepEqual(res, hash) {
-		t.Fatalf("Fail: got %x expected %x", res, hash)
-	}
+	res, err := base.LoadBestBlockHash()
+	require.NoError(t, err)
+	require.Equal(t, hash, res)
 }

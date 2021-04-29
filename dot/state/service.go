@@ -39,6 +39,7 @@ type Service struct {
 	logLvl      log.Lvl
 	db          chaindb.Database
 	isMemDB     bool // set to true if using an in-memory database; only used for testing.
+	Base        *BaseState
 	Storage     *StorageState
 	Block       *BlockState
 	Transaction *TransactionState
@@ -104,10 +105,11 @@ func (s *Service) Start() error {
 		}
 
 		s.db = db
+		s.Base = NewBaseState(db)
 	}
 
 	// retrieve latest header
-	bestHash, err := LoadBestBlockHash(db)
+	bestHash, err := s.Base.LoadBestBlockHash()
 	if err != nil {
 		return fmt.Errorf("failed to get best block hash: %w", err)
 	}
@@ -146,7 +148,7 @@ func (s *Service) Start() error {
 		return fmt.Errorf("failed to create storage state: %w", err)
 	}
 
-	stateRoot, err := LoadLatestStorageHash(s.db)
+	stateRoot, err := s.Base.LoadLatestStorageHash()
 	if err != nil {
 		return fmt.Errorf("cannot load latest storage root: %w", err)
 	}
@@ -240,7 +242,7 @@ func (s *Service) Rewind(toBlock int64) error {
 		}
 	}
 
-	return StoreBestBlockHash(s.db, newHead)
+	return s.Base.StoreBestBlockHash(newHead)
 }
 
 // Stop closes each state database
@@ -258,13 +260,13 @@ func (s *Service) Stop() error {
 		return errTrieDoesNotExist(head)
 	}
 
-	if err = StoreLatestStorageHash(s.db, head); err != nil {
+	if err = s.Base.StoreLatestStorageHash(head); err != nil {
 		return err
 	}
 
 	logger.Debug("storing latest storage trie", "root", head)
 
-	if err = StoreTrie(s.Storage.db, t); err != nil {
+	if err = t.Store(s.Storage.db); err != nil {
 		return err
 	}
 
@@ -273,7 +275,7 @@ func (s *Service) Stop() error {
 	}
 
 	hash := s.Block.BestBlockHash()
-	if err = StoreBestBlockHash(s.db, hash); err != nil {
+	if err = s.Base.StoreBestBlockHash(hash); err != nil {
 		return err
 	}
 
@@ -301,14 +303,13 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 
 	if s.isMemDB {
 		cfg.InMemory = true
-	} else {
-		var err error
+	}
 
-		// initialise database using data directory
-		s.db, err = chaindb.NewBadgerDB(cfg)
-		if err != nil {
-			return fmt.Errorf("failed to create database: %s", err)
-		}
+	var err error
+	// initialise database using data directory
+	s.db, err = chaindb.NewBadgerDB(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to create database: %s", err)
 	}
 
 	block := &BlockState{
@@ -324,8 +325,9 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		return err
 	}
 
-	logger.Info("storing first slot...", "slot", firstSlot)
-	if err = storeFirstSlot(s.db, firstSlot); err != nil {
+	s.Base = NewBaseState(s.db)
+
+	if err = s.Base.storeFirstSlot(firstSlot); err != nil {
 		return err
 	}
 
@@ -337,7 +339,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 
 	skipTo := blockEpoch + 1
 
-	if err := storeSkipToEpoch(s.db, skipTo); err != nil {
+	if err := s.Base.storeSkipToEpoch(skipTo); err != nil {
 		return err
 	}
 	logger.Debug("skip BABE verification up to epoch", "epoch", skipTo)
@@ -351,13 +353,13 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		return fmt.Errorf("trie state root does not equal header state root")
 	}
 
-	if err := StoreLatestStorageHash(s.db, root); err != nil {
+	if err := s.Base.StoreLatestStorageHash(root); err != nil {
 		return err
 	}
 
 	logger.Info("importing storage trie...", "basepath", s.dbPath, "root", root)
 
-	if err := StoreTrie(storage.db, t); err != nil {
+	if err := t.Store(storage.db); err != nil {
 		return err
 	}
 
@@ -366,7 +368,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		return err
 	}
 
-	if err := StoreBestBlockHash(s.db, header.Hash()); err != nil {
+	if err := s.Base.StoreBestBlockHash(header.Hash()); err != nil {
 		return err
 	}
 
