@@ -823,7 +823,7 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 	gen, err := genesis.NewGenesisFromJSONRaw(genFile.Name())
 	require.Nil(t, err)
 
-	err = state.StoreGenesisData(db, gen.GenesisData())
+	err = state.NewBaseState(db).StoreGenesisData(gen.GenesisData())
 	require.Nil(t, err)
 
 	err = db.Close()

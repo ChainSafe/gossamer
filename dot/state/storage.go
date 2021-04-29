@@ -25,7 +25,6 @@ import (
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
@@ -45,9 +44,8 @@ type StorageState struct {
 	blockState *BlockState
 	tries      map[common.Hash]*trie.Trie // map of root -> trie
 
-	baseDB chaindb.Database
-	db     chaindb.Database
-	lock   sync.RWMutex
+	db   chaindb.Database
+	lock sync.RWMutex
 
 	// change notifiers
 	changedLock  sync.RWMutex
@@ -72,7 +70,6 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie) 
 	return &StorageState{
 		blockState:   blockState,
 		tries:        tries,
-		baseDB:       db,
 		db:           chaindb.NewTable(db, storagePrefix),
 		observerList: []Observer{},
 	}, nil
@@ -162,7 +159,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 // LoadFromDB loads an encoded trie from the DB where the key is `root`
 func (s *StorageState) LoadFromDB(root common.Hash) (*trie.Trie, error) {
 	t := trie.NewEmptyTrie()
-	err := LoadTrie(s.db, t, root)
+	err := t.Load(s.db, root)
 	if err != nil {
 		return nil, err
 	}
@@ -384,9 +381,4 @@ func (s *StorageState) pruneStorage(closeCh chan interface{}) {
 			return
 		}
 	}
-}
-
-// GetGenesisData retrieves current genesis data from database
-func (s *StorageState) GetGenesisData() (*genesis.Data, error) {
-	return LoadGenesisData(s.baseDB)
 }

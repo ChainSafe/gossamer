@@ -796,7 +796,7 @@ func updateDotConfigFromGenesisData(ctx *cli.Context, cfg *dot.Config) error {
 	}
 
 	// load genesis data from initialised node database
-	gen, err := state.LoadGenesisData(db)
+	gen, err := state.NewBaseState(db).LoadGenesisData()
 	if err != nil {
 		return fmt.Errorf("failed to load genesis data: %s", err)
 	}

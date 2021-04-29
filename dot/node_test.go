@@ -236,7 +236,7 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 		require.NoError(t, err)
 	}()
 
-	gendata, err := state.LoadGenesisData(stateSrvc.DB())
+	gendata, err := stateSrvc.Base.LoadGenesisData()
 	require.NoError(t, err)
 
 	testGenesis := NewTestGenesis(t)

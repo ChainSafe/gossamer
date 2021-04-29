@@ -25,9 +25,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
-	"github.com/ChainSafe/gossamer/lib/genesis"
-	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
 	"github.com/ChainSafe/chaindb"
@@ -42,10 +39,12 @@ type Service struct {
 	logLvl      log.Lvl
 	db          chaindb.Database
 	isMemDB     bool // set to true if using an in-memory database; only used for testing.
+	Base        *BaseState
 	Storage     *StorageState
 	Block       *BlockState
 	Transaction *TransactionState
 	Epoch       *EpochState
+	Grandpa     *GrandpaState
 	closeCh     chan interface{}
 
 	// Below are for testing only.
@@ -82,151 +81,9 @@ func (s *Service) DB() chaindb.Database {
 	return s.db
 }
 
-// Initialise initialises the genesis state of the DB using the given storage trie. The trie should be loaded with the genesis storage state.
-// This only needs to be called during genesis initialisation of the node; it doesn't need to be called during normal startup.
-func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie.Trie) error {
-	var db chaindb.Database
-	cfg := &chaindb.Config{}
-
-	// check database type
-	if s.isMemDB {
-		cfg.InMemory = true
-	}
-
-	// get data directory from service
-	basepath, err := filepath.Abs(s.dbPath)
-	if err != nil {
-		return fmt.Errorf("failed to read basepath: %s", err)
-	}
-
-	cfg.DataDir = basepath
-
-	// initialise database using data directory
-	db, err = chaindb.NewBadgerDB(cfg)
-	if err != nil {
-		return fmt.Errorf("failed to create database: %s", err)
-	}
-
-	if err = db.ClearAll(); err != nil {
-		return fmt.Errorf("failed to clear database: %s", err)
-	}
-
-	if err = t.Store(chaindb.NewTable(db, storagePrefix)); err != nil {
-		return fmt.Errorf("failed to write genesis trie to database: %w", err)
-	}
-
-	babeCfg, err := s.loadBabeConfigurationFromRuntime(t, gen)
-	if err != nil {
-		return err
-	}
-
-	// write initial genesis values to database
-	if err = s.storeInitialValues(db, gen.GenesisData(), header, t); err != nil {
-		return fmt.Errorf("failed to write genesis values to database: %s", err)
-	}
-
-	// create and store blockree from genesis block
-	bt := blocktree.NewBlockTreeFromRoot(header, db)
-	err = bt.Store()
-	if err != nil {
-		return fmt.Errorf("failed to write blocktree to database: %s", err)
-	}
-
-	// create block state from genesis block
-	blockState, err := NewBlockStateFromGenesis(db, header)
-	if err != nil {
-		return fmt.Errorf("failed to create block state from genesis: %s", err)
-	}
-
-	// create storage state from genesis trie
-	storageState, err := NewStorageState(db, blockState, t)
-	if err != nil {
-		return fmt.Errorf("failed to create storage state from trie: %s", err)
-	}
-
-	epochState, err := NewEpochStateFromGenesis(db, babeCfg)
-	if err != nil {
-		return fmt.Errorf("failed to create epoch state: %s", err)
-	}
-
-	// check database type
-	if s.isMemDB {
-		// append memory database to state service
-		s.db = db
-
-		// append storage state and block state to state service
-		s.Storage = storageState
-		s.Block = blockState
-		s.Epoch = epochState
-	} else if err = db.Close(); err != nil {
-		return fmt.Errorf("failed to close database: %s", err)
-	}
-
-	logger.Info("state", "genesis hash", blockState.genesisHash)
-	return nil
-}
-
-func (s *Service) loadBabeConfigurationFromRuntime(t *trie.Trie, gen *genesis.Genesis) (*types.BabeConfiguration, error) {
-	// load genesis state into database
-	genTrie, err := rtstorage.NewTrieState(t)
-	if err != nil {
-		return nil, fmt.Errorf("failed to instantiate TrieState: %w", err)
-	}
-
-	// create genesis runtime
-	rtCfg := &wasmer.Config{}
-	rtCfg.Storage = genTrie
-	rtCfg.LogLvl = s.logLvl
-
-	r, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create genesis runtime: %w", err)
-	}
-
-	// load and store initial BABE epoch configuration
-	babeCfg, err := r.BabeConfiguration()
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch genesis babe configuration: %w", err)
-	}
-
-	r.Stop()
-
-	if s.BabeThresholdDenominator != 0 {
-		babeCfg.C1 = s.BabeThresholdNumerator
-		babeCfg.C2 = s.BabeThresholdDenominator
-	}
-
-	return babeCfg, nil
-}
-
-// storeInitialValues writes initial genesis values to the state database
-func (s *Service) storeInitialValues(db chaindb.Database, data *genesis.Data, header *types.Header, t *trie.Trie) error {
-	// write genesis trie to database
-	if err := StoreTrie(chaindb.NewTable(db, storagePrefix), t); err != nil {
-		return fmt.Errorf("failed to write trie to database: %s", err)
-	}
-
-	// write storage hash to database
-	if err := StoreLatestStorageHash(db, t.MustHash()); err != nil {
-		return fmt.Errorf("failed to write storage hash to database: %s", err)
-	}
-
-	// write best block hash to state database
-	if err := StoreBestBlockHash(db, header.Hash()); err != nil {
-		return fmt.Errorf("failed to write best block hash to database: %s", err)
-	}
-
-	// write genesis data to state database
-	if err := StoreGenesisData(db, data); err != nil {
-		return fmt.Errorf("failed to write genesis data to database: %s", err)
-	}
-
-	return nil
-}
-
 // Start initialises the Storage database and the Block database.
 func (s *Service) Start() error {
-	if !s.isMemDB && (s.Storage != nil || s.Block != nil || s.Epoch != nil) {
+	if !s.isMemDB && (s.Storage != nil || s.Block != nil || s.Epoch != nil || s.Grandpa != nil) {
 		return nil
 	}
 
@@ -248,10 +105,11 @@ func (s *Service) Start() error {
 		}
 
 		s.db = db
+		s.Base = NewBaseState(db)
 	}
 
 	// retrieve latest header
-	bestHash, err := LoadBestBlockHash(db)
+	bestHash, err := s.Base.LoadBestBlockHash()
 	if err != nil {
 		return fmt.Errorf("failed to get best block hash: %w", err)
 	}
@@ -290,7 +148,7 @@ func (s *Service) Start() error {
 		return fmt.Errorf("failed to create storage state: %w", err)
 	}
 
-	stateRoot, err := LoadLatestStorageHash(s.db)
+	stateRoot, err := s.Base.LoadLatestStorageHash()
 	if err != nil {
 		return fmt.Errorf("cannot load latest storage root: %w", err)
 	}
@@ -310,6 +168,11 @@ func (s *Service) Start() error {
 	s.Epoch, err = NewEpochState(db)
 	if err != nil {
 		return fmt.Errorf("failed to create epoch state: %w", err)
+	}
+
+	s.Grandpa, err = NewGrandpaState(db)
+	if err != nil {
+		return fmt.Errorf("failed to create grandpa state: %w", err)
 	}
 
 	num, _ := s.Block.BestBlockNumber()
@@ -355,7 +218,7 @@ func (s *Service) Rewind(toBlock int64) error {
 		return err
 	}
 
-	return StoreBestBlockHash(s.db, newHead)
+	return s.Base.StoreBestBlockHash(newHead)
 }
 
 // Stop closes each state database
@@ -373,13 +236,13 @@ func (s *Service) Stop() error {
 		return errTrieDoesNotExist(head)
 	}
 
-	if err = StoreLatestStorageHash(s.db, head); err != nil {
+	if err = s.Base.StoreLatestStorageHash(head); err != nil {
 		return err
 	}
 
 	logger.Debug("storing latest storage trie", "root", head)
 
-	if err = StoreTrie(s.Storage.db, t); err != nil {
+	if err = t.Store(s.Storage.db); err != nil {
 		return err
 	}
 
@@ -388,7 +251,7 @@ func (s *Service) Stop() error {
 	}
 
 	hash := s.Block.BestBlockHash()
-	if err = StoreBestBlockHash(s.db, hash); err != nil {
+	if err = s.Base.StoreBestBlockHash(hash); err != nil {
 		return err
 	}
 
@@ -416,14 +279,13 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 
 	if s.isMemDB {
 		cfg.InMemory = true
-	} else {
-		var err error
+	}
 
-		// initialise database using data directory
-		s.db, err = chaindb.NewBadgerDB(cfg)
-		if err != nil {
-			return fmt.Errorf("failed to create database: %s", err)
-		}
+	var err error
+	// initialise database using data directory
+	s.db, err = chaindb.NewBadgerDB(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to create database: %s", err)
 	}
 
 	block := &BlockState{
@@ -439,8 +301,9 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		return err
 	}
 
-	logger.Info("storing first slot...", "slot", firstSlot)
-	if err = storeFirstSlot(s.db, firstSlot); err != nil {
+	s.Base = NewBaseState(s.db)
+
+	if err = s.Base.storeFirstSlot(firstSlot); err != nil {
 		return err
 	}
 
@@ -452,7 +315,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 
 	skipTo := blockEpoch + 1
 
-	if err := storeSkipToEpoch(s.db, skipTo); err != nil {
+	if err := s.Base.storeSkipToEpoch(skipTo); err != nil {
 		return err
 	}
 	logger.Debug("skip BABE verification up to epoch", "epoch", skipTo)
@@ -466,13 +329,13 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		return fmt.Errorf("trie state root does not equal header state root")
 	}
 
-	if err := StoreLatestStorageHash(s.db, root); err != nil {
+	if err := s.Base.StoreLatestStorageHash(root); err != nil {
 		return err
 	}
 
 	logger.Info("importing storage trie...", "basepath", s.dbPath, "root", root)
 
-	if err := StoreTrie(storage.db, t); err != nil {
+	if err := t.Store(storage.db); err != nil {
 		return err
 	}
 
@@ -481,7 +344,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		return err
 	}
 
-	if err := StoreBestBlockHash(s.db, header.Hash()); err != nil {
+	if err := s.Base.StoreBestBlockHash(header.Hash()); err != nil {
 		return err
 	}
 

@@ -154,7 +154,7 @@ func NodeInitialized(basepath string, expected bool) bool {
 	}
 
 	// load genesis data from initialised node database
-	_, err = state.LoadGenesisData(db)
+	_, err = state.NewBaseState(db).LoadGenesisData()
 	if err != nil {
 		logger.Warn(
 			"node has not been initialised",
@@ -181,7 +181,9 @@ func LoadGlobalNodeName(basepath string) (string, error) {
 		return "", err
 	}
 
-	name, err := state.LoadNodeGlobalName(db)
+	basestate := state.NewBaseState(db)
+
+	name, err := basestate.LoadNodeGlobalName()
 	if err != nil {
 		logger.Warn(
 			"failed to load global node name",
@@ -283,7 +285,6 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		return nil, err
 	}
 	nodeSrvcs = append(nodeSrvcs, fg)
-	dh.SetFinalityGadget(fg) // TODO: this should be cleaned up
 
 	// Syncer
 	syncer, err := createSyncService(cfg, stateSrvc, bp, fg, dh, ver, rt)
@@ -294,7 +295,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	// Core Service
 
 	// create core service and append core service to node services
-	coreSrvc, err := createCoreService(cfg, bp, fg, ver, rt, ks, stateSrvc, networkSrvc)
+	coreSrvc, err := createCoreService(cfg, bp, ver, rt, ks, stateSrvc, networkSrvc)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create core service: %s", err)
 	}
@@ -343,7 +344,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		publishMetrics(cfg)
 	}
 
-	gd, err := stateSrvc.Storage.GetGenesisData()
+	gd, err := stateSrvc.Base.LoadGenesisData()
 	if err != nil {
 		return nil, err
 	}
@@ -396,7 +397,8 @@ func storeGlobalNodeName(name, basepath string) error {
 		return err
 	}
 
-	err = state.StoreNodeGlobalName(db, name)
+	basestate := state.NewBaseState(db)
+	err = basestate.StoreNodeGlobalName(name)
 	if err != nil {
 		logger.Warn(
 			"failed to store global node name",
