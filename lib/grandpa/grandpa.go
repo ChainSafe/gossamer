@@ -165,8 +165,6 @@ func NewService(cfg *Config) (*Service, error) {
 
 // Start begins the GRANDPA finality service
 func (s *Service) Start() error {
-	// TODO: determine if we need to send a catch-up request
-
 	err := s.registerProtocol()
 	if err != nil {
 		return err
@@ -235,6 +233,7 @@ func (s *Service) updateAuthorities() error {
 
 	s.state.voters = nextAuthorities
 	s.state.setID = currSetID
+	// TODO: should this be 0 since initiate increments?
 	s.state.round = 1 // round resets to 1 after a set ID change
 	return nil
 }

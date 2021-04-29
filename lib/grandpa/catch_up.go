@@ -16,15 +16,29 @@
 
 package grandpa
 
+import (
+	"sync"
+	"sync/atomic"
+)
+
 type catchUp struct {
-	isStarted bool
-	peers     map[peer.ID]struct{}
+	isStarted *atomic.Value
+	peers     *sync.Map //map[peer.ID]struct{}
 }
 
 func newCatchUp() *catchUp {
-	return &catchUp{}
+	isStarted := new(atomic.Value).Store(false)
+
+	return &catchUp{
+		isStarted: isStarted,
+		peers:     new(sync.Map),
+	}
 }
 
-func (c *catchUp) beginCatchUp() {
+func (c *catchUp) addPeer(id peer.ID) {
+	c.peers.Store(id, struct{}{})
+}
 
+func (c *catchUp) beginCatchUp(setID, round uint64) {
+	resp, err := h.grandpa.network.SendCatchUpRequest(from, messageID, &ConsensusMessage{})
 }
