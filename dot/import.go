@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
-	"math/big"
 	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -97,8 +96,7 @@ func newHeaderFromFile(filename string) (*types.Header, error) {
 		return nil, errors.New("invalid number field in header JSON")
 	}
 
-	numBytes := common.MustHexToBytes(hexNum)
-	num := big.NewInt(0).SetBytes(numBytes)
+	num := common.MustHexToBigInt(hexNum)
 
 	parentHashStr, ok := jsonHeader["parentHash"].(string)
 	if !ok {
