@@ -115,12 +115,13 @@ func MustHexToBigInt(in string) *big.Int {
 		panic(ErrNoPrefix)
 	}
 
+	in = in[2:]
+
 	// Ensure we have an even length
 	if len(in)%2 != 0 {
-		in = in[:2] + "0" + in[2:]
+		in = "0" + in
 	}
 
-	in = in[2:]
 	out, err := hex.DecodeString(in)
 	if err != nil {
 		panic(err)
