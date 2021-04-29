@@ -22,6 +22,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -207,4 +208,10 @@ func TestMustHexToBigInt(t *testing.T) {
 		res := MustHexToBigInt(test.in)
 		require.Equal(t, test.out, res)
 	}
+}
+
+func TestMustHexToBigIntPanic(t *testing.T) {
+	assert.Panics(t, func() { MustHexToBigInt("1") }, "should panic for string len < 2")
+	assert.Panics(t, func() { MustHexToBigInt("12") }, "should panic for string not starting with 0x")
+	assert.Panics(t, func() { MustHexToBigInt("0xzz") }, "should panic for string not containing hex characters")
 }
