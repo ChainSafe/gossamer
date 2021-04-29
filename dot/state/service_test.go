@@ -28,6 +28,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
+	"github.com/ChainSafe/chaindb"
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
@@ -229,6 +230,18 @@ func TestService_Rewind(t *testing.T) {
 	err = serv.Start()
 	require.NoError(t, err)
 
+	err = serv.Grandpa.setCurrentSetID(3)
+	require.NoError(t, err)
+
+	err = serv.Grandpa.setSetIDChangeAtBlock(1, big.NewInt(5))
+	require.NoError(t, err)
+
+	err = serv.Grandpa.setSetIDChangeAtBlock(2, big.NewInt(8))
+	require.NoError(t, err)
+
+	err = serv.Grandpa.setSetIDChangeAtBlock(3, big.NewInt(10))
+	require.NoError(t, err)
+
 	AddBlocksToState(t, serv.Block, 12)
 	err = serv.Rewind(6)
 	require.NoError(t, err)
@@ -236,6 +249,19 @@ func TestService_Rewind(t *testing.T) {
 	num, err := serv.Block.BestBlockNumber()
 	require.NoError(t, err)
 	require.Equal(t, big.NewInt(6), num)
+
+	setID, err := serv.Grandpa.GetCurrentSetID()
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), setID)
+
+	_, err = serv.Grandpa.GetSetIDChange(1)
+	require.NoError(t, err)
+
+	_, err = serv.Grandpa.GetSetIDChange(2)
+	require.Equal(t, chaindb.ErrKeyNotFound, err)
+
+	_, err = serv.Grandpa.GetSetIDChange(3)
+	require.Equal(t, chaindb.ErrKeyNotFound, err)
 }
 
 func TestService_Import(t *testing.T) {
