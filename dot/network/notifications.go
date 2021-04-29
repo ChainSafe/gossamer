@@ -72,6 +72,7 @@ type handshakeData struct {
 	validated   bool
 	handshake   Handshake
 	outboundMsg NotificationsMessage
+	stream      libp2pnetwork.Stream
 }
 
 func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecoder, messageDecoder MessageDecoder) messageDecoder {
@@ -126,6 +127,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 				info.handshakeData.Store(peer, &handshakeData{
 					validated: false,
 					received:  true,
+					stream:    stream,
 				})
 
 				err := handshakeValidator(peer, hs)
@@ -165,6 +167,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 
 				hsData.validated = true
 				hsData.received = true
+				hsData.stream = stream
 				logger.Trace("sender: validated handshake", "protocol", info.protocolID, "peer", peer)
 			} else if hsData.received {
 				return nil

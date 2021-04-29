@@ -420,40 +420,6 @@ func (s *Service) IsStopped() bool {
 	return s.ctx.Err() != nil
 }
 
-// SendMessage implementation of interface to handle receiving messages
-func (s *Service) SendMessage(msg NotificationsMessage) {
-	if s.host == nil {
-		return
-	}
-	if s.IsStopped() {
-		return
-	}
-	if msg == nil {
-		logger.Debug("Received nil message from core service")
-		return
-	}
-	logger.Debug(
-		"Broadcasting message from core service",
-		"host", s.host.id(),
-		"type", msg.Type(),
-	)
-
-	// check if the message is part of a notifications protocol
-	s.notificationsMu.Lock()
-	defer s.notificationsMu.Unlock()
-
-	for msgID, prtl := range s.notificationsProtocols {
-		if msg.Type() != msgID || prtl == nil {
-			continue
-		}
-
-		s.broadcastExcluding(prtl, peer.ID(""), msg)
-		return
-	}
-
-	logger.Error("message not supported by any notifications protocol", "msg type", msg.Type())
-}
-
 // handleLightStream handles streams with the <protocol-id>/light/2 protocol ID
 func (s *Service) handleLightStream(stream libp2pnetwork.Stream) {
 	conn := stream.Conn()

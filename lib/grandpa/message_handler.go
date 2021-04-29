@@ -120,6 +120,9 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 	logger.Debug("got neighbour message", "number", msg.Number, "set id", msg.SetID, "round", msg.Round)
 	h.grandpa.network.SendJustificationRequest(from, msg.Number)
 
+	// TODO: if we are missing justifications, begin catch-up process
+	resp, err := h.grandpa.network.SendCatchUpRequest(from, network.ConsensusMessageType, &ConsensusMessage{})
+
 	// don't finalise too close to head, until we add justification request + verification functionality.
 	// this prevents us from marking the wrong block as final and getting stuck on the wrong chain
 	if uint32(head.Int64())-4 < msg.Number {
