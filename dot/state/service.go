@@ -218,6 +218,30 @@ func (s *Service) Rewind(toBlock int64) error {
 		return err
 	}
 
+	// update the current grandpa set ID
+	prevSetID, err := s.Grandpa.GetCurrentSetID()
+	if err != nil {
+		return err
+	}
+
+	newSetID, err := s.Grandpa.GetSetIDByBlockNumber(header.Number)
+	if err != nil {
+		return err
+	}
+
+	err = s.Grandpa.setCurrentSetID(newSetID)
+	if err != nil {
+		return err
+	}
+
+	// remove previously set grandpa changes, need to go up to prevSetID+1 in case of a scheduled change
+	for i := newSetID + 1; i <= prevSetID+1; i++ {
+		err = s.Grandpa.db.Del(setIDChangeKey(i))
+		if err != nil {
+			return err
+		}
+	}
+
 	return s.Base.StoreBestBlockHash(newHead)
 }
 
