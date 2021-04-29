@@ -91,8 +91,8 @@ type Service struct {
 	noGossip    bool // internal option
 
 	// telemetry
-	telemetryInterval    time.Duration
-	doneNetworkTelemetry chan interface{}
+	telemetryInterval time.Duration
+	closeCh           chan interface{}
 }
 
 // NewService creates a new network service from the configuration and message channels
@@ -147,7 +147,7 @@ func NewService(cfg *Config) (*Service, error) {
 		notificationsProtocols: make(map[byte]*notificationsProtocol),
 		lightRequest:           make(map[peer.ID]struct{}),
 		telemetryInterval:      cfg.telemetryInterval,
-		doneNetworkTelemetry:   make(chan interface{}),
+		closeCh:                make(chan interface{}),
 	}
 
 	network.syncQueue = newSyncQueue(network)
@@ -252,7 +252,7 @@ func (s *Service) Start() error {
 	}
 
 	go s.logPeerCount()
-	go s.publishNetworkTelemetry(s.doneNetworkTelemetry)
+	go s.publishNetworkTelemetry(s.closeCh)
 	go s.sentBlockIntervalTelemetry()
 
 	return nil
@@ -399,7 +399,7 @@ func (s *Service) Stop() error {
 			logger.Error("failed to close telemetry service")
 		}
 	}()
-	close(s.doneNetworkTelemetry)
+	close(s.closeCh)
 
 	return nil
 }
