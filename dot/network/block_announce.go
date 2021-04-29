@@ -222,7 +222,7 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 	// `createNotificationsMessageHandler` which locks the map beforehand.
 	data, ok := np.getHandshakeData(peer)
 	if !ok {
-		np.handshakeData.Store(peer, &handshakeData{
+		np.handshakeData.Store(peer, handshakeData{
 			received:  true,
 			validated: true,
 		})
@@ -230,6 +230,7 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 	}
 
 	data.handshake = hs
+	np.handshakeData.Store(peer, data)
 
 	// if peer has higher best block than us, begin syncing
 	latestHeader, err := s.blockState.BestBlockHeader()

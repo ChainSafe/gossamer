@@ -20,7 +20,6 @@ import (
 	"errors"
 	"math/rand"
 	"sync"
-	"time"
 
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -60,13 +59,13 @@ type notificationsProtocol struct {
 	mapMu         sync.RWMutex
 }
 
-func (n *notificationsProtocol) getHandshakeData(pid peer.ID) (*handshakeData, bool) {
+func (n *notificationsProtocol) getHandshakeData(pid peer.ID) (handshakeData, bool) {
 	data, has := n.handshakeData.Load(pid)
 	if !has {
-		return nil, false
+		return handshakeData{}, false
 	}
 
-	return data.(*handshakeData), true
+	return data.(handshakeData), true
 }
 
 type handshakeData struct {
@@ -126,7 +125,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			// if we are the receiver and haven't received the handshake already, validate it
 			if _, has := info.getHandshakeData(peer); !has {
 				logger.Trace("receiver: validating handshake", "protocol", info.protocolID)
-				hsData := &handshakeData{
+				hsData := handshakeData{
 					validated: false,
 					received:  true,
 					stream:    stream,
@@ -140,6 +139,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 				}
 
 				hsData.validated = true
+				info.handshakeData.Store(peer, hsData)
 
 				// once validated, send back a handshake
 				resp, err := info.getHandshake()
@@ -164,18 +164,15 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 				if err != nil {
 					logger.Trace("failed to validate handshake", "protocol", info.protocolID, "peer", peer, "error", err)
 					hsData.validated = false
+					info.handshakeData.Store(peer, hsData)
 					return errCannotValidateHandshake
 				}
 
-				info.handshakeData.Store(peer, &handshakeData{
-					validated: true,
-					received:  true,
-					stream:    stream,
-				})
+				hsData.validated = true
+				hsData.received = true
+				info.handshakeData.Store(peer, hsData)
 
 				logger.Trace("sender: validated handshake", "protocol", info.protocolID, "peer", peer)
-			} else if hsData.received {
-				return nil
 			}
 
 			// if we are the initiator, send the message
@@ -220,12 +217,14 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtocol, msg NotificationsMessage) {
 	var err error
 	hsData, has := info.getHandshakeData(peer)
-	if !has || !hsData.received {
-		info.handshakeData.Store(peer, &handshakeData{
+	if !has || !hsData.received || !hsData.validated {
+		hsData = handshakeData{
 			validated:   false,
+			received:    false,
 			outboundMsg: msg,
-		})
+		}
 
+		info.handshakeData.Store(peer, hsData)
 		logger.Trace("sending handshake", "protocol", info.protocolID, "peer", peer, "message", hs)
 
 		var stream libp2pnetwork.Stream
@@ -235,27 +234,15 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 			return
 		}
 
+		hsData.stream = stream
+		info.handshakeData.Store(peer, hsData)
+
 		if info.streamHandler == nil {
 			return
 		}
 
 		go info.streamHandler(stream, peer)
-
-		curr := time.Now()
-		for {
-			since := time.Since(curr)
-			if since > time.Minute*5 {
-				logger.Debug("failed to validate handshake", "protocol", info.protocolID, "peer", peer)
-				_ = stream.Close()
-				return
-			}
-
-			if hsData, has = info.getHandshakeData(peer); has && hsData != nil && hsData.validated {
-				break
-			}
-
-			time.Sleep(100 * time.Millisecond)
-		}
+		return
 	}
 
 	if s.host.messageCache != nil {

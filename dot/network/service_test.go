@@ -210,7 +210,7 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	require.NotNil(t, stream)
 
 	protocol := nodeA.notificationsProtocols[BlockAnnounceMsgType]
-	protocol.handshakeData.Store(nodeB.host.id(), &handshakeData{
+	protocol.handshakeData.Store(nodeB.host.id(), handshakeData{
 		received:  true,
 		validated: true,
 		stream:    stream,
@@ -219,6 +219,7 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	// Only one message will be sent.
 	for i := 0; i < 5; i++ {
 		nodeA.SendMessage(testBlockAnnounceMessage)
+		time.Sleep(time.Millisecond * 10)
 	}
 
 	time.Sleep(time.Millisecond * 200)
