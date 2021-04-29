@@ -474,13 +474,13 @@ func setDotGlobalConfigName(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.Gl
 	initialised := dot.NodeInitialized(globalBasePath, false)
 
 	// consider the --name flag as higher priority
-	if tomlCfg.Global.Name != "" {
+	if ctx.GlobalString(NameFlag.Name) != "" {
 		cfg.Name = ctx.GlobalString(NameFlag.Name)
 		return nil
 	}
 
 	// consider the name on config as a second priority
-	if ctx.GlobalString(NameFlag.Name) != "" {
+	if tomlCfg.Global.Name != "" {
 		cfg.Name = tomlCfg.Global.Name
 		return nil
 	}
