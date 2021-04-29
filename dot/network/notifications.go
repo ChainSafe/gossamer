@@ -49,13 +49,15 @@ type (
 
 	// NotificationsMessageHandler is called when a (non-handshake) message is received over a notifications stream.
 	NotificationsMessageHandler = func(peer peer.ID, msg NotificationsMessage) error
+
+	streamHandler = func(libp2pnetwork.Stream, peer.ID)
 )
 
 type notificationsProtocol struct {
 	protocolID    protocol.ID
 	getHandshake  HandshakeGetter
 	handshakeData *sync.Map //map[peer.ID]*handshakeData
-	streamHandler func(stream libp2pnetwork.Stream, peerID peer.ID)
+	streamHandler streamHandler
 	mapMu         sync.RWMutex
 }
 
@@ -215,9 +217,8 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 }
 
 func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtocol, msg NotificationsMessage) {
-	var err error
 	hsData, has := info.getHandshakeData(peer)
-	if !has || !hsData.received || !hsData.validated {
+	if !has || !hsData.received {
 		hsData = handshakeData{
 			validated:   false,
 			received:    false,
@@ -227,8 +228,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		info.handshakeData.Store(peer, hsData)
 		logger.Trace("sending handshake", "protocol", info.protocolID, "peer", peer, "message", hs)
 
-		var stream libp2pnetwork.Stream
-		stream, err = s.host.send(peer, info.protocolID, hs)
+		stream, err := s.host.send(peer, info.protocolID, hs)
 		if err != nil {
 			logger.Trace("failed to send message to peer", "peer", peer, "error", err)
 			return
@@ -246,8 +246,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 	}
 
 	if s.host.messageCache != nil {
-		var added bool
-		added, err = s.host.messageCache.put(peer, msg)
+		added, err := s.host.messageCache.put(peer, msg)
 		if err != nil {
 			logger.Error("failed to add message to cache", "peer", peer, "error", err)
 			return
@@ -258,10 +257,15 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		}
 	}
 
+	if hsData.stream == nil {
+		logger.Error("trying to send data through empty stream", "protocol", info.protocolID, "peer", peer, "message", msg)
+		return
+	}
+
 	// we've already completed the handshake with the peer, send message directly
 	logger.Trace("sending message", "protocol", info.protocolID, "peer", peer, "message", msg)
 
-	err = s.host.writeToStream(hsData.stream, msg)
+	err := s.host.writeToStream(hsData.stream, msg)
 	if err != nil {
 		logger.Trace("failed to send message to peer", "peer", peer, "error", err)
 	}
