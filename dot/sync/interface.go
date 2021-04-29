@@ -69,8 +69,6 @@ type BlockProducer interface {
 
 // DigestHandler is the interface for the consensus digest handler
 type DigestHandler interface {
-	Start()
-	Stop()
 	HandleConsensusDigest(*types.ConsensusDigest, *types.Header) error
 }
 

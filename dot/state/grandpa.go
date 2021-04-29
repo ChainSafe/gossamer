@@ -59,6 +59,11 @@ func NewGrandpaStateFromGenesis(db chaindb.Database, genesisAuthorities []*types
 		return nil, err
 	}
 
+	err = s.setSetIDChangeAtBlock(genesisSetID, big.NewInt(0))
+	if err != nil {
+		return nil, err
+	}
+
 	return s, nil
 }
 
@@ -178,6 +183,49 @@ func (s *GrandpaState) GetSetIDChange(setID uint64) (*big.Int, error) {
 	}
 
 	return big.NewInt(0).SetBytes(num), nil
+}
+
+// GetSetIDByBlockNumber returns the set ID for a given block number
+func (s *GrandpaState) GetSetIDByBlockNumber(num *big.Int) (uint64, error) {
+	curr, err := s.GetCurrentSetID()
+	if err != nil {
+		return 0, err
+	}
+
+	for {
+		changeUpper, err := s.GetSetIDChange(curr + 1)
+		if err == chaindb.ErrKeyNotFound {
+			if curr == 0 {
+				return 0, nil
+			}
+			curr = curr - 1
+			continue
+		}
+		if err != nil {
+			return 0, err
+		}
+
+		changeLower, err := s.GetSetIDChange(curr)
+		if err != nil {
+			return 0, err
+		}
+
+		// if the given block number is greater or equal to the block number of the set ID change,
+		// return the current set ID
+		if num.Cmp(changeUpper) < 1 && num.Cmp(changeLower) == 1 {
+			return curr, nil
+		}
+
+		if num.Cmp(changeUpper) == 1 {
+			return curr + 1, nil
+		}
+
+		curr = curr - 1
+
+		if int(curr) < 0 {
+			return 0, nil
+		}
+	}
 }
 
 // SetNextPause sets the next grandpa pause at the given block number

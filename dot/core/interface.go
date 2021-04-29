@@ -99,4 +99,5 @@ type GrandpaState interface {
 	IncrementSetID() error
 	SetNextPause(number *big.Int) error
 	SetNextResume(number *big.Int) error
+	GetCurrentSetID() (uint64, error)
 }

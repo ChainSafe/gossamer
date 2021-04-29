@@ -207,6 +207,11 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 				return i, err
 			}
 
+			// handle consensus digests for authority changes
+			if s.digestHandler != nil {
+				s.handleDigests(header)
+			}
+
 			if bd.Justification != nil && bd.Justification.Exists() {
 				logger.Debug("handling Justification...", "number", header.Number, "hash", bd.Hash)
 				s.handleJustification(header, bd.Justification.Value())
@@ -427,13 +432,13 @@ func (s *Service) handleDigests(header *types.Header) {
 		if d.Type() == types.ConsensusDigestType {
 			cd, ok := d.(*types.ConsensusDigest)
 			if !ok {
-				logger.Error("handleDigests", "index", i, "error", "cannot cast invalid consensus digest item")
+				logger.Error("handleDigests", "block number", header.Number, "index", i, "error", "cannot cast invalid consensus digest item")
 				continue
 			}
 
 			err := s.digestHandler.HandleConsensusDigest(cd, header)
 			if err != nil {
-				logger.Error("handleDigests", "index", i, "digest", cd, "error", err)
+				logger.Error("handleDigests", "block number", header.Number, "index", i, "digest", cd, "error", err)
 			}
 		}
 	}
