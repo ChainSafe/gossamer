@@ -125,7 +125,7 @@ func (bs *BlockState) notifyFinalized(hash common.Hash) {
 		return
 	}
 
-	logger.Trace("notifying finalised block chans...", "chans", bs.finalised)
+	logger.Debug("notifying finalised block chans...", "chans", bs.finalised)
 
 	for _, ch := range bs.finalised {
 		go func(ch chan<- *types.Header) {
