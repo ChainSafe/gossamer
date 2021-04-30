@@ -32,6 +32,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/docker/docker/pkg/reexec"
 	"github.com/stretchr/testify/require"
@@ -281,7 +282,47 @@ func TestGossamerCommand(t *testing.T) {
 			require.NotContains(t, string(stderr), m)
 		}
 	}
+}
 
+func TestInitCommand_RenameNodeWhenCalled(t *testing.T) {
+	genesisPath := utils.GetGssmrGenesisRawPath()
+
+	tempDir, err := ioutil.TempDir("", "gossamer-maintest-")
+	require.Nil(t, err)
+
+	nodeName := dot.RandomNodeName()
+	init := runTestGossamer(t,
+		"init",
+		"--basepath", tempDir,
+		"--genesis", genesisPath,
+		"--name", nodeName,
+		"--config", defaultGssmrConfigPath,
+		"--force",
+	)
+
+	stdout, stderr := init.GetOutput()
+	require.Nil(t, err)
+
+	t.Log("init gossamer output, ", "stdout", string(stdout), "stderr", string(stderr))
+
+	// should contains the name defined in name flag
+	require.Contains(t, string(stdout), nodeName)
+
+	init = runTestGossamer(t,
+		"init",
+		"--basepath", tempDir,
+		"--genesis", genesisPath,
+		"--config", defaultGssmrConfigPath,
+		"--force",
+	)
+
+	stdout, stderr = init.GetOutput()
+	require.Nil(t, err)
+
+	t.Log("init gossamer output, ", "stdout", string(stdout), "stderr", string(stderr))
+
+	// should not contains the name from the last init
+	require.NotContains(t, string(stdout), nodeName)
 }
 
 func TestBuildSpecCommandWithOutput(t *testing.T) {

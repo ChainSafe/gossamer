@@ -28,6 +28,15 @@ import (
 	"github.com/urfave/cli"
 )
 
+const (
+	accountCommandName       = "account"
+	exportCommandName        = "export"
+	initCommandName          = "init"
+	buildSpecCommandName     = "build-spec"
+	importRuntimeCommandName = "import-runtime"
+	importStateCommandName   = "import-state"
+)
+
 // app is the cli application
 var app = cli.NewApp()
 var logger = log.New("pkg", "cmd")
@@ -36,7 +45,7 @@ var (
 	// exportCommand defines the "export" subcommand (ie, `gossamer export`)
 	exportCommand = cli.Command{
 		Action:    FixFlagOrder(exportAction),
-		Name:      "export",
+		Name:      exportCommandName,
 		Usage:     "Export configuration values to TOML configuration file",
 		ArgsUsage: "",
 		Flags:     ExportFlags,
@@ -47,7 +56,7 @@ var (
 	// initCommand defines the "init" subcommand (ie, `gossamer init`)
 	initCommand = cli.Command{
 		Action:    FixFlagOrder(initAction),
-		Name:      "init",
+		Name:      initCommandName,
 		Usage:     "Initialise node databases and load genesis data to state",
 		ArgsUsage: "",
 		Flags:     InitFlags,
@@ -58,7 +67,7 @@ var (
 	// accountCommand defines the "account" subcommand (ie, `gossamer account`)
 	accountCommand = cli.Command{
 		Action:   FixFlagOrder(accountAction),
-		Name:     "account",
+		Name:     accountCommandName,
 		Usage:    "Create and manage node keystore accounts",
 		Flags:    AccountFlags,
 		Category: "ACCOUNT",
@@ -72,7 +81,7 @@ var (
 	// buildSpecCommand creates a raw genesis file from a human readable genesis file.
 	buildSpecCommand = cli.Command{
 		Action:    FixFlagOrder(buildSpecAction),
-		Name:      "build-spec",
+		Name:      buildSpecCommandName,
 		Usage:     "Generates genesis JSON data, and can convert to raw genesis data",
 		ArgsUsage: "",
 		Flags:     BuildSpecFlags,
@@ -86,7 +95,7 @@ var (
 	// importRuntime generates a genesis file given a .wasm runtime binary.
 	importRuntimeCommand = cli.Command{
 		Action:    FixFlagOrder(importRuntimeAction),
-		Name:      "import-runtime",
+		Name:      importRuntimeCommandName,
 		Usage:     "Generates a genesis file given a .wasm runtime binary",
 		ArgsUsage: "",
 		Flags:     RootFlags,
@@ -97,7 +106,7 @@ var (
 
 	importStateCommand = cli.Command{
 		Action:    FixFlagOrder(importStateAction),
-		Name:      "import-state",
+		Name:      importStateCommandName,
 		Usage:     "Import state from a JSON file and set it as the chain head state",
 		ArgsUsage: "",
 		Flags:     ImportStateFlags,
