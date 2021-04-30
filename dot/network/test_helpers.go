@@ -133,7 +133,7 @@ func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream, peer peer.ID
 		}
 
 		// decode message based on message type
-		msg, err := decoder(msgBytes[:tot], peer)
+		msg, err := decoder(msgBytes[:tot], peer, isInbound(stream))
 		if err != nil {
 			logger.Error("Failed to decode message from peer", "peer", peer, "err", err)
 			continue

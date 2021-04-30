@@ -42,18 +42,10 @@ func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 		return
 	}
 
-	conn := stream.Conn()
-	if conn == nil {
-		logger.Error("Failed to get connection from stream")
-		_ = stream.Close()
-		return
-	}
-
-	peer := conn.RemotePeer()
-	s.readStream(stream, peer, s.decodeSyncMessage, s.handleSyncMessage)
+	s.readStream(stream, s.decodeSyncMessage, s.handleSyncMessage)
 }
 
-func (s *Service) decodeSyncMessage(in []byte, peer peer.ID) (Message, error) {
+func (s *Service) decodeSyncMessage(in []byte, peer peer.ID, inbound bool) (Message, error) {
 	msg := new(BlockRequestMessage)
 	err := msg.Decode(in)
 	return msg, err
