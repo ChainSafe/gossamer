@@ -17,7 +17,10 @@
 package scale
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
+	"math/big"
 	"reflect"
 	"sort"
 	"strings"
