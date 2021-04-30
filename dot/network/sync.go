@@ -785,7 +785,7 @@ func (q *syncQueue) handleBlockAnnounceHandshake(blockNum uint32, from peer.ID) 
 
 func (q *syncQueue) handleBlockAnnounce(msg *BlockAnnounceMessage, from peer.ID) {
 	q.updatePeerScore(from, 1)
-	logger.Debug("received BlockAnnounce", "number", msg.Number, "from", from)
+	logger.Info("received BlockAnnounce", "number", msg.Number, "from", from)
 
 	header, err := types.NewHeader(msg.ParentHash, msg.StateRoot, msg.ExtrinsicsRoot, msg.Number, msg.Digest)
 	if err != nil {

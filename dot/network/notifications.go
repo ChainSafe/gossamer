@@ -167,43 +167,6 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 				return nil
 			}
 
-			// // if we are the initiator and haven't received the handshake already, validate it
-			// if hsData, has := info.getHandshakeData(peer); has && !hsData.validated {
-			// 	logger.Trace("sender: validating handshake")
-			// 	err := info.handshakeValidator(peer, hs)
-			// 	if err != nil {
-			// 		logger.Trace("failed to validate handshake", "protocol", info.protocolID, "peer", peer, "error", err)
-			// 		hsData.validated = false
-			// 		info.handshakeData.Store(peer, hsData)
-			// 		return errCannotValidateHandshake
-			// 	}
-
-			// 	hsData.validated = true
-			// 	hsData.received = true
-			// 	info.handshakeData.Store(peer, hsData)
-
-			// 	logger.Trace("sender: validated handshake", "protocol", info.protocolID, "peer", peer)
-			// } else if hsData.received && !hsData.validated {
-			// 	return nil
-			// }
-
-			// // if we are the initiator, send the message
-			// if hsData, has := info.getHandshakeData(peer); has && hsData.validated && hsData.received && hsData.outboundMsg != nil {
-			// 	logger.Trace("sender: sending message", "protocol", info.protocolID)
-
-			// 	if hsData.stream == nil {
-			// 		logger.Error("stream is nil for peer", "protocol ID", info.protocolID, "peer", peer)
-			// 		return nil
-			// 	}
-
-			// 	err := s.host.writeToStream(stream, hsData.outboundMsg)
-			// 	if err != nil {
-			// 		logger.Debug("failed to send message", "protocol", info.protocolID, "peer", peer, "error", err)
-			// 		return err
-			// 	}
-			// 	return nil
-			// }
-
 			return nil
 		}
 
@@ -218,6 +181,11 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 		}
 
 		if s.noGossip {
+			return nil
+		}
+
+		// TODO: we don't want to rebroadcast neighbour messages, so ignore all consensus messages for now
+		if _, isConsensus := msg.(*ConsensusMessage); isConsensus {
 			return nil
 		}
 
@@ -246,7 +214,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		}
 
 		info.outboundHandshakeData.Store(peer, hsData)
-		logger.Trace("sending handshake", "protocol", info.protocolID, "peer", peer, "message", hs)
+		logger.Trace("sending outbound handshake", "protocol", info.protocolID, "peer", peer, "message", hs)
 
 		stream, err := s.host.send(peer, info.protocolID, hs)
 		if err != nil {
@@ -268,6 +236,8 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 			return
 		}
 
+		hsData.received = true
+
 		err = info.handshakeValidator(peer, hs)
 		if err != nil {
 			logger.Trace("failed to validate handshake", "protocol", info.protocolID, "peer", peer, "error", err)
@@ -277,7 +247,6 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		}
 
 		hsData.validated = true
-		hsData.received = true
 		info.outboundHandshakeData.Store(peer, hsData)
 		logger.Trace("sender: validated handshake", "protocol", info.protocolID, "peer", peer)
 	}
@@ -294,7 +263,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		}
 	}
 
-	// we've already completed the handshake with the peer, send message directly
+	// we've completed the handshake with the peer, send message directly
 	logger.Trace("sending message", "protocol", info.protocolID, "peer", peer, "message", msg)
 
 	err := s.host.writeToStream(hsData.stream, msg)
@@ -303,8 +272,9 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 	}
 }
 
-// gossipExcluding sends a message to each connected peer except the given peer
-// Used for notifications sub-protocols to gossip a message
+// broadcastExcluding sends a message to each connected peer except the given peer,
+// and peers that have previously sent us the message or who we have already sent the message to.
+// used for notifications sub-protocols to gossip a message
 func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer.ID, msg NotificationsMessage) {
 	logger.Trace(
 		"broadcasting message from notifications sub-protocol",
