@@ -20,11 +20,9 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
-	"reflect"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/scale"
 
@@ -43,7 +41,7 @@ func NewMessageHandler(grandpa *Service, blockState BlockState) *MessageHandler 
 	return &MessageHandler{
 		grandpa:    grandpa,
 		blockState: blockState,
-		catchUp:    newCatchUp(grandpa.authority, grandpa.network),
+		catchUp:    newCatchUp(grandpa.authority, grandpa, grandpa.network),
 	}
 }
 
@@ -122,12 +120,11 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 	logger.Debug("got neighbour message", "number", msg.Number, "set id", msg.SetID, "round", msg.Round)
 	h.grandpa.network.SendJustificationRequest(from, msg.Number)
 
-	if msg.SetID >= h.grandpa.state.setID && msg.Round >= h.grandpa.state.round+2 {
+	// if the peer reports a higher set ID, or the same set ID but a higher round,
+	// we have fallen behind and need to initiate catch-up.
+	if msg.SetID >= h.grandpa.state.setID || (msg.SetID == h.grandpa.setID && msg.Round >= h.grandpa.state.round+2) {
 		h.catchUp.beginCatchUp(msg.SetID, msg.Round)
 	}
-
-	// if we are missing justifications, begin catch-up process
-	// resp, err := h.grandpa.network.SendCatchUpRequest(from, messageID, &ConsensusMessage{})
 
 	// don't finalise too close to head, until we add justification request + verification functionality.
 	// this prevents us from marking the wrong block as final and getting stuck on the wrong chain

@@ -18,36 +18,41 @@ package grandpa
 
 import (
 	"errors"
+	"reflect"
 	"sync"
 	"sync/atomic"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/scale"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 type catchUp struct {
-	isAuthority bool
-	isStarted   *atomic.Value
-	peers       *sync.Map //map[peer.ID]struct{}
-	state       *State
-	network     Network
+	isAuthority           bool
+	isStarted             *atomic.Value
+	authorityPeers        *sync.Map //map[peer.ID]struct{}
+	highestFinalizedRound uint64    // get this from neighbour messages
+
+	grandpa *Service
+	network Network
 }
 
-func newCatchUp(isAuthority bool, state *State, network Network) *catchUp {
+func newCatchUp(isAuthority bool, grandpa *Service, network Network) *catchUp {
 	isStarted := new(atomic.Value)
 	isStarted.Store(false)
 
 	return &catchUp{
-		isAuthority: isAuthority,
-		isStarted:   isStarted,
-		state:       state,
-		peers:       new(sync.Map),
+		isAuthority:    isAuthority,
+		isStarted:      isStarted,
+		grandpa:        grandpa,
+		authorityPeers: new(sync.Map),
 	}
 }
 
 func (c *catchUp) addPeer(id peer.ID) {
-	c.peers.Store(id, struct{}{}) // TODO: store neighbour message info
+	c.authorityPeers.Store(id, struct{}{}) // TODO: store neighbour message info
 }
 
 func (c *catchUp) doCatchUp(from peer.ID, setID, round uint64) error {
@@ -59,6 +64,18 @@ func (c *catchUp) doCatchUp(from peer.ID, setID, round uint64) error {
 	if c.isStarted.Load().(bool) {
 		return errors.New("already started")
 	}
+
+	currSetID, err := c.grandpa.grandpaState.GetCurrentSetID()
+	if err != nil {
+		return err
+	}
+
+	if setID > currSetID {
+		// TODO: we aren't ready to catch up yet, wait until we've synced enough of the
+		// chain to know the authorities at this set ID
+		return nil
+	}
+
 	c.isStarted.Store(true)
 	msg := newCatchUpRequest(round, setID)
 	cm, err := msg.ToConsensusMessage()
@@ -79,9 +96,15 @@ func (c *catchUp) doCatchUp(from peer.ID, setID, round uint64) error {
 		return err
 	}
 
+	// TODO: make sure grandpa.state.setID and grandpa.state.voters are set correctly before verifying response
 	_ = catchUpResp
 
 	return nil
+}
+
+// TODO: track authority peers and only take into account neighbour messages from them for catch-up
+func (c *catchUp) addNeighbourMessage(from peer.ID, msg *NeighbourMessage) {
+
 }
 
 func (c *catchUp) handleCatchUpResponse(msg *catchUpResponse) error {
@@ -93,13 +116,13 @@ func (c *catchUp) handleCatchUpResponse(msg *catchUpResponse) error {
 	// 	return nil
 	// }
 
-	if msg.SetID != c.state.setID {
+	if msg.SetID != c.grandpa.state.setID {
 		return ErrSetIDMismatch
 	}
 
-	if msg.Round != c.state.round-1 {
-		return ErrInvalidCatchUpResponseRound
-	}
+	// if msg.Round != c.state.round-1 {
+	// 	return ErrInvalidCatchUpResponseRound
+	// }
 
 	prevote, err := c.verifyPreVoteJustification(msg)
 	if err != nil {
@@ -118,18 +141,22 @@ func (c *catchUp) handleCatchUpResponse(msg *catchUpResponse) error {
 		return err
 	}
 
+	if msg.Round != c.highestFinalizedRound+1 {
+		return nil
+	}
+
 	// update state and signal to grandpa we are ready to initiate
-	head, err := h.grandpa.blockState.GetHeader(msg.Hash)
+	head, err := c.grandpa.blockState.GetHeader(msg.Hash)
 	if err != nil {
 		return err
 	}
 
-	h.grandpa.head = head
-	h.grandpa.state.round = msg.Round
-	close(h.grandpa.resumed)
-	h.grandpa.resumed = make(chan struct{})
-	h.grandpa.paused.Store(false)
-	logger.Debug("caught up to round; unpaused service", "round", h.grandpa.state.round)
+	c.grandpa.head = head
+	c.grandpa.state.round = msg.Round
+	close(c.grandpa.resumed)
+	c.grandpa.resumed = make(chan struct{})
+	c.grandpa.paused.Store(false)
+	logger.Debug("caught up to round; unpaused service", "set ID", c.grandpa.state.setID, "round", c.grandpa.state.round)
 	return nil
 }
 
@@ -140,7 +167,7 @@ func (c *catchUp) verifyCatchUpResponseCompletability(prevote, precommit common.
 	}
 
 	// check if the current block is a descendant of prevoted block
-	isDescendant, err := h.grandpa.blockState.IsDescendantOf(prevote, precommit)
+	isDescendant, err := c.grandpa.blockState.IsDescendantOf(prevote, precommit)
 	if err != nil {
 		return err
 	}
@@ -165,7 +192,7 @@ func (c *catchUp) verifyCommitMessageJustification(fm *CommitMessage) error {
 			AuthorityID: fm.AuthData[i].AuthorityID,
 		}
 
-		err := h.verifyJustification(just, fm.Round, h.grandpa.state.setID, precommit)
+		err := c.verifyJustification(just, fm.Round, c.grandpa.state.setID, precommit)
 		if err != nil {
 			continue
 		}
@@ -176,8 +203,8 @@ func (c *catchUp) verifyCommitMessageJustification(fm *CommitMessage) error {
 	}
 
 	// confirm total # signatures >= grandpa threshold
-	if uint64(count) < h.grandpa.state.threshold() {
-		logger.Error("minimum votes not met for finalisation message", "votes needed", h.grandpa.state.threshold(),
+	if uint64(count) < c.grandpa.state.threshold() {
+		logger.Error("minimum votes not met for finalisation message", "votes needed", c.grandpa.state.threshold(),
 			"votes received", len(fm.Precommits))
 		return ErrMinVotesNotMet
 	}
@@ -189,7 +216,7 @@ func (c *catchUp) verifyPreVoteJustification(msg *catchUpResponse) (common.Hash,
 	votes := make(map[common.Hash]uint64)
 
 	for _, just := range msg.PreVoteJustification {
-		err := h.verifyJustification(just, msg.Round, msg.SetID, prevote)
+		err := c.verifyJustification(just, msg.Round, msg.SetID, prevote)
 		if err != nil {
 			continue
 		}
@@ -199,7 +226,7 @@ func (c *catchUp) verifyPreVoteJustification(msg *catchUpResponse) (common.Hash,
 
 	var prevote common.Hash
 	for hash, count := range votes {
-		if count >= h.grandpa.state.threshold() {
+		if count >= c.grandpa.state.threshold() {
 			prevote = hash
 			break
 		}
@@ -216,7 +243,7 @@ func (c *catchUp) verifyPreCommitJustification(msg *catchUpResponse) error {
 	// verify pre-commit justification
 	count := 0
 	for _, just := range msg.PreCommitJustification {
-		err := h.verifyJustification(just, msg.Round, msg.SetID, precommit)
+		err := c.verifyJustification(just, msg.Round, msg.SetID, precommit)
 		if err != nil {
 			continue
 		}
@@ -226,7 +253,7 @@ func (c *catchUp) verifyPreCommitJustification(msg *catchUpResponse) error {
 		}
 	}
 
-	if uint64(count) < h.grandpa.state.threshold() {
+	if uint64(count) < c.grandpa.state.threshold() {
 		return ErrMinVotesNotMet
 	}
 
@@ -261,7 +288,7 @@ func (c *catchUp) verifyJustification(just *SignedPrecommit, round, setID uint64
 
 	// verify authority in justification set
 	authFound := false
-	for _, auth := range h.grandpa.authorities() {
+	for _, auth := range c.grandpa.authorities() {
 		justKey, err := just.AuthorityID.Encode()
 		if err != nil {
 			return err
