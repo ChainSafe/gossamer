@@ -136,7 +136,7 @@ func saveKey(priv crypto.PrivKey, fp string) (err error) {
 }
 
 func uint64ToLEB128(in uint64) []byte {
-	out := []byte{}
+	var out []byte
 	for {
 		b := uint8(in & 0x7f)
 		in >>= 7

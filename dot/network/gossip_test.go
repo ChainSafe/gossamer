@@ -101,7 +101,7 @@ func TestGossip(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	err = nodeA.host.send(addrInfosB[0].ID, "", testBlockAnnounceMessage)
+	_, err = nodeA.host.send(addrInfosB[0].ID, "", testBlockAnnounceMessage)
 	require.NoError(t, err)
 
 	time.Sleep(TestMessageTimeout)

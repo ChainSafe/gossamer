@@ -218,7 +218,7 @@ func TestSend(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	err = nodeA.host.send(addrInfosB[0].ID, nodeB.host.protocolID, testBlockRequestMessage)
+	_, err = nodeA.host.send(addrInfosB[0].ID, nodeB.host.protocolID, testBlockRequestMessage)
 	require.NoError(t, err)
 
 	time.Sleep(TestMessageTimeout)
@@ -273,44 +273,29 @@ func TestExistingStream(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	stream := nodeA.host.getOutboundStream(nodeB.host.id(), nodeB.host.protocolID)
-	require.Nil(t, stream, "node A should not have an outbound stream")
-
 	// node A opens the stream to send the first message
-	err = nodeA.host.send(addrInfosB[0].ID, nodeB.host.protocolID, testBlockRequestMessage)
+	stream, err := nodeA.host.send(addrInfosB[0].ID, nodeB.host.protocolID, testBlockRequestMessage)
 	require.NoError(t, err)
 
 	time.Sleep(TestMessageTimeout)
 	require.NotNil(t, handlerB.messages[nodeA.host.id()], "node B timeout waiting for message from node A")
-
-	stream = nodeA.host.getOutboundStream(nodeB.host.id(), nodeB.host.protocolID)
-	require.NotNil(t, stream, "node A should have an outbound stream")
 
 	// node A uses the stream to send a second message
-	err = nodeA.host.send(addrInfosB[0].ID, nodeB.host.protocolID, testBlockRequestMessage)
+	err = nodeA.host.writeToStream(stream, testBlockRequestMessage)
 	require.NoError(t, err)
 	require.NotNil(t, handlerB.messages[nodeA.host.id()], "node B timeout waiting for message from node A")
 
-	stream = nodeA.host.getOutboundStream(nodeB.host.id(), nodeB.host.protocolID)
-	require.NotNil(t, stream, "node B should have an outbound stream")
-
 	// node B opens the stream to send the first message
-	err = nodeB.host.send(addrInfosA[0].ID, nodeB.host.protocolID, testBlockRequestMessage)
+	stream, err = nodeB.host.send(addrInfosA[0].ID, nodeB.host.protocolID, testBlockRequestMessage)
 	require.NoError(t, err)
 
 	time.Sleep(TestMessageTimeout)
 	require.NotNil(t, handlerA.messages[nodeB.host.id()], "node A timeout waiting for message from node B")
 
-	stream = nodeB.host.getOutboundStream(nodeA.host.id(), nodeB.host.protocolID)
-	require.NotNil(t, stream, "node B should have an outbound stream")
-
 	// node B uses the stream to send a second message
-	err = nodeB.host.send(addrInfosA[0].ID, nodeB.host.protocolID, testBlockRequestMessage)
+	err = nodeB.host.writeToStream(stream, testBlockRequestMessage)
 	require.NoError(t, err)
 	require.NotNil(t, handlerA.messages[nodeB.host.id()], "node A timeout waiting for message from node B")
-
-	stream = nodeB.host.getOutboundStream(nodeA.host.id(), nodeB.host.protocolID)
-	require.NotNil(t, stream, "node B should have an outbound stream")
 }
 
 func TestStreamCloseMetadataCleanup(t *testing.T) {
@@ -361,13 +346,13 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	}
 
 	// node A opens the stream to send the first message
-	err = nodeA.host.send(nodeB.host.id(), nodeB.host.protocolID+blockAnnounceID, testHandshake)
+	_, err = nodeA.host.send(nodeB.host.id(), nodeB.host.protocolID+blockAnnounceID, testHandshake)
 	require.NoError(t, err)
 
 	info := nodeA.notificationsProtocols[BlockAnnounceMsgType]
 
 	// Set handshake data to received
-	info.handshakeData.Store(nodeB.host.id(), &handshakeData{
+	info.handshakeData.Store(nodeB.host.id(), handshakeData{
 		received:  true,
 		validated: true,
 	})
