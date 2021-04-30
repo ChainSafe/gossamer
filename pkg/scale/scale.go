@@ -10,8 +10,13 @@ import (
 	"strings"
 )
 
+// package level cache for fieldScaleIndicies
+var cache = make(fieldScaleIndiciesCache)
+
 func Marshal(v interface{}) (b []byte, err error) {
-	es := encodeState{}
+	es := encodeState{
+		fieldScaleIndiciesCache: cache,
+	}
 	err = es.marshal(v)
 	if err != nil {
 		return
@@ -22,6 +27,7 @@ func Marshal(v interface{}) (b []byte, err error) {
 
 type encodeState struct {
 	bytes.Buffer
+	fieldScaleIndiciesCache
 }
 
 func (es *encodeState) marshal(in interface{}) (err error) {
@@ -267,57 +273,10 @@ func (es *encodeState) encodeFixedWidthInt(i interface{}) (err error) {
 // encodeStruct reads the number of fields in the struct and their types and writes to the buffer each of the struct fields
 // encoded as their respective types
 func (es *encodeState) encodeStruct(in interface{}) (err error) {
-	t := reflect.TypeOf(in)
-	v := reflect.ValueOf(in)
-
-	if !v.IsValid() {
-		err = fmt.Errorf("inputted value is not valid: %v", v)
+	v, indices, err := es.fieldScaleIndicies(in)
+	if err != nil {
 		return
 	}
-
-	type fieldScaleIndex struct {
-		fieldIndex int
-		scaleIndex *string
-	}
-	// Get the type and kind of our user variable
-	indices := make([]fieldScaleIndex, 0)
-
-	// Iterate over all available fields and read the tag value
-	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i)
-
-		// Get the field tag value
-		tag := field.Tag.Get("scale")
-		switch strings.TrimSpace(tag) {
-		case "":
-			indices = append(indices, fieldScaleIndex{
-				fieldIndex: i,
-			})
-		case "-":
-			// ignore this field
-			continue
-		default:
-			indices = append(indices, fieldScaleIndex{
-				fieldIndex: i,
-				scaleIndex: &tag,
-			})
-		}
-	}
-
-	sort.Slice(indices[:], func(i, j int) bool {
-		switch {
-		case indices[i].scaleIndex == nil && indices[j].scaleIndex != nil:
-			return false
-		case indices[i].scaleIndex != nil && indices[j].scaleIndex == nil:
-			return true
-		case indices[i].scaleIndex == nil && indices[j].scaleIndex == nil:
-			return indices[i].fieldIndex < indices[j].fieldIndex
-		case indices[i].scaleIndex != nil && indices[j].scaleIndex != nil:
-			return *indices[i].scaleIndex < *indices[j].scaleIndex
-		}
-		return false
-	})
-
 	for _, i := range indices {
 		field := v.Field(i.fieldIndex)
 		if !field.CanInterface() {
@@ -380,6 +339,69 @@ func (es *encodeState) encodeUint(i uint) (err error) {
 // encodeUint128 encodes a Uint128
 func (es *encodeState) encodeUint128(i Uint128) (err error) {
 	err = binary.Write(es, binary.LittleEndian, i.Bytes())
+	return
+}
+
+type fieldScaleIndex struct {
+	fieldIndex int
+	scaleIndex *string
+}
+type fieldScaleIndicies []fieldScaleIndex
+type fieldScaleIndiciesCache map[string]fieldScaleIndicies
+
+func (fsic fieldScaleIndiciesCache) fieldScaleIndicies(in interface{}) (v reflect.Value, indices fieldScaleIndicies, err error) {
+	t := reflect.TypeOf(in)
+	v = reflect.ValueOf(in)
+	key := fmt.Sprintf("%s.%s", t.PkgPath(), t.Name())
+	if key != "." {
+		var ok bool
+		indices, ok = fsic[key]
+		if ok {
+			return
+		}
+	}
+
+	if !v.IsValid() {
+		err = fmt.Errorf("inputted value is not valid: %v", v)
+		return
+	}
+
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		tag := field.Tag.Get("scale")
+		switch strings.TrimSpace(tag) {
+		case "":
+			indices = append(indices, fieldScaleIndex{
+				fieldIndex: i,
+			})
+		case "-":
+			// ignore this field
+			continue
+		default:
+			indices = append(indices, fieldScaleIndex{
+				fieldIndex: i,
+				scaleIndex: &tag,
+			})
+		}
+	}
+
+	sort.Slice(indices[:], func(i, j int) bool {
+		switch {
+		case indices[i].scaleIndex == nil && indices[j].scaleIndex != nil:
+			return false
+		case indices[i].scaleIndex != nil && indices[j].scaleIndex == nil:
+			return true
+		case indices[i].scaleIndex == nil && indices[j].scaleIndex == nil:
+			return indices[i].fieldIndex < indices[j].fieldIndex
+		case indices[i].scaleIndex != nil && indices[j].scaleIndex != nil:
+			return *indices[i].scaleIndex < *indices[j].scaleIndex
+		}
+		return false
+	})
+
+	// TODO: mutex?
+	fsic[key] = indices
+
 	return
 }
 

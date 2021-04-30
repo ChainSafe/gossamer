@@ -526,6 +526,13 @@ func Test_encodeState_encodeStruct(t *testing.T) {
 			want: []byte{1, 0x04, 0x01, 0x02, 0, 0, 0, 0x01},
 		},
 		{
+			name: "ptrMystruct cache hit",
+			args: args{
+				ptrMystruct,
+			},
+			want: []byte{1, 0x04, 0x01, 0x02, 0, 0, 0, 0x01},
+		},
+		{
 			name: "nilPtrMyStruct2",
 			args: args{
 				nilPtrMyStruct2,
@@ -677,7 +684,7 @@ func Test_encodeState_encodeStruct(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			es := &encodeState{}
+			es := &encodeState{fieldScaleIndiciesCache: cache}
 			err := es.marshal(tt.args.t)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("encodeState.encodeStruct() = %v, wantErr %v", err, tt.wantErr)
