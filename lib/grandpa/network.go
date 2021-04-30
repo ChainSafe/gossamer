@@ -114,7 +114,10 @@ func (s *Service) decodeHandshake(in []byte) (Handshake, error) {
 	return hs, err
 }
 
-func (s *Service) validateHandshake(_ peer.ID, _ Handshake) error {
+func (s *Service) validateHandshake(from peer.ID, hs Handshake) error {
+	if ghs, ok := hs.(*GrandpaHandshake); ok && ghs.Roles == 4 {
+		s.messageHandler.catchUp.addPeer(from)
+	}
 	return nil
 }
 

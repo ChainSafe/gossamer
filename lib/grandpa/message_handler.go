@@ -43,7 +43,7 @@ func NewMessageHandler(grandpa *Service, blockState BlockState) *MessageHandler 
 	return &MessageHandler{
 		grandpa:    grandpa,
 		blockState: blockState,
-		catchUp:    newCatchUp(),
+		catchUp:    newCatchUp(grandpa.authority, grandpa.network),
 	}
 }
 
@@ -87,7 +87,7 @@ func (h *MessageHandler) handleMessage(from peer.ID, msg *ConsensusMessage) (net
 		}
 	case catchUpResponseType:
 		if r, ok := m.(*catchUpResponse); ok {
-			return nil, h.handleCatchUpResponse(r)
+			return nil, h.catchUp.handleCatchUpResponse(r)
 		}
 	default:
 		return nil, ErrInvalidMessageType
@@ -210,74 +210,6 @@ func (h *MessageHandler) handleCatchUpRequest(msg *catchUpRequest) (*ConsensusMe
 	return resp.ToConsensusMessage()
 }
 
-func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponse) error {
-	logger.Debug("received catch up response", "round", msg.Round, "setID", msg.SetID, "hash", msg.Hash)
-
-	// if we aren't currently expecting a catch up response, return
-	if !h.grandpa.paused.Load().(bool) {
-		logger.Debug("not currently paused, ignoring catch up response")
-		return nil
-	}
-
-	if msg.SetID != h.grandpa.state.setID {
-		return ErrSetIDMismatch
-	}
-
-	if msg.Round != h.grandpa.state.round-1 {
-		return ErrInvalidCatchUpResponseRound
-	}
-
-	prevote, err := h.verifyPreVoteJustification(msg)
-	if err != nil {
-		return err
-	}
-
-	if err = h.verifyPreCommitJustification(msg); err != nil {
-		return err
-	}
-
-	if (msg.Hash == common.Hash{}) || msg.Number == 0 {
-		return ErrGHOSTlessCatchUp
-	}
-
-	if err = h.verifyCatchUpResponseCompletability(prevote, msg.Hash); err != nil {
-		return err
-	}
-
-	// update state and signal to grandpa we are ready to initiate
-	head, err := h.grandpa.blockState.GetHeader(msg.Hash)
-	if err != nil {
-		return err
-	}
-
-	h.grandpa.head = head
-	h.grandpa.state.round = msg.Round
-	close(h.grandpa.resumed)
-	h.grandpa.resumed = make(chan struct{})
-	h.grandpa.paused.Store(false)
-	logger.Debug("caught up to round; unpaused service", "round", h.grandpa.state.round)
-	return nil
-}
-
-// verifyCatchUpResponseCompletability verifies that the pre-commit block is a descendant of, or is, the pre-voted block
-func (h *MessageHandler) verifyCatchUpResponseCompletability(prevote, precommit common.Hash) error {
-	if prevote == precommit {
-		return nil
-	}
-
-	// check if the current block is a descendant of prevoted block
-	isDescendant, err := h.grandpa.blockState.IsDescendantOf(prevote, precommit)
-	if err != nil {
-		return err
-	}
-
-	if !isDescendant {
-		return ErrCatchUpResponseNotCompletable
-	}
-
-	return nil
-}
-
 // decodeMessage decodes a network-level consensus message into a GRANDPA VoteMessage or CommitMessage
 func decodeMessage(msg *ConsensusMessage) (m GrandpaMessage, err error) {
 	var (
@@ -321,130 +253,241 @@ func decodeMessage(msg *ConsensusMessage) (m GrandpaMessage, err error) {
 	return m, nil
 }
 
-func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) error {
-	if len(fm.Precommits) != len(fm.AuthData) {
-		return ErrPrecommitSignatureMismatch
-	}
+// func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponse) error {
+// 	logger.Debug("received catch up response", "round", msg.Round, "setID", msg.SetID, "hash", msg.Hash)
 
-	count := 0
-	for i, pc := range fm.Precommits {
-		just := &SignedPrecommit{
-			Vote:        pc,
-			Signature:   fm.AuthData[i].Signature,
-			AuthorityID: fm.AuthData[i].AuthorityID,
-		}
+// 	// if we aren't currently expecting a catch up response, return
+// 	if !h.grandpa.paused.Load().(bool) {
+// 		logger.Debug("not currently paused, ignoring catch up response")
+// 		return nil
+// 	}
 
-		err := h.verifyJustification(just, fm.Round, h.grandpa.state.setID, precommit)
-		if err != nil {
-			continue
-		}
+// 	if msg.SetID != h.grandpa.state.setID {
+// 		return ErrSetIDMismatch
+// 	}
 
-		if just.Vote.hash == fm.Vote.hash && just.Vote.number == fm.Vote.number {
-			count++
-		}
-	}
+// 	if msg.Round != h.grandpa.state.round-1 {
+// 		return ErrInvalidCatchUpResponseRound
+// 	}
 
-	// confirm total # signatures >= grandpa threshold
-	if uint64(count) < h.grandpa.state.threshold() {
-		logger.Error("minimum votes not met for finalisation message", "votes needed", h.grandpa.state.threshold(),
-			"votes received", len(fm.Precommits))
-		return ErrMinVotesNotMet
-	}
-	return nil
-}
+// 	prevote, err := h.verifyPreVoteJustification(msg)
+// 	if err != nil {
+// 		return err
+// 	}
 
-func (h *MessageHandler) verifyPreVoteJustification(msg *catchUpResponse) (common.Hash, error) {
-	// verify pre-vote justification, returning the pre-voted block if there is one
-	votes := make(map[common.Hash]uint64)
+// 	if err = h.verifyPreCommitJustification(msg); err != nil {
+// 		return err
+// 	}
 
-	for _, just := range msg.PreVoteJustification {
-		err := h.verifyJustification(just, msg.Round, msg.SetID, prevote)
-		if err != nil {
-			continue
-		}
+// 	if (msg.Hash == common.Hash{}) || msg.Number == 0 {
+// 		return ErrGHOSTlessCatchUp
+// 	}
 
-		votes[just.Vote.hash]++
-	}
+// 	if err = h.verifyCatchUpResponseCompletability(prevote, msg.Hash); err != nil {
+// 		return err
+// 	}
 
-	var prevote common.Hash
-	for hash, count := range votes {
-		if count >= h.grandpa.state.threshold() {
-			prevote = hash
-			break
-		}
-	}
+// 	// update state and signal to grandpa we are ready to initiate
+// 	head, err := h.grandpa.blockState.GetHeader(msg.Hash)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	if (prevote == common.Hash{}) {
-		return prevote, ErrMinVotesNotMet
-	}
+// 	h.grandpa.head = head
+// 	h.grandpa.state.round = msg.Round
+// 	close(h.grandpa.resumed)
+// 	h.grandpa.resumed = make(chan struct{})
+// 	h.grandpa.paused.Store(false)
+// 	logger.Debug("caught up to round; unpaused service", "round", h.grandpa.state.round)
+// 	return nil
+// }
 
-	return prevote, nil
-}
+// // verifyCatchUpResponseCompletability verifies that the pre-commit block is a descendant of, or is, the pre-voted block
+// func (h *MessageHandler) verifyCatchUpResponseCompletability(prevote, precommit common.Hash) error {
+// 	if prevote == precommit {
+// 		return nil
+// 	}
 
-func (h *MessageHandler) verifyPreCommitJustification(msg *catchUpResponse) error {
-	// verify pre-commit justification
-	count := 0
-	for _, just := range msg.PreCommitJustification {
-		err := h.verifyJustification(just, msg.Round, msg.SetID, precommit)
-		if err != nil {
-			continue
-		}
+// 	// check if the current block is a descendant of prevoted block
+// 	isDescendant, err := h.grandpa.blockState.IsDescendantOf(prevote, precommit)
+// 	if err != nil {
+// 		return err
+// 	}
 
-		if just.Vote.hash == msg.Hash && just.Vote.number == msg.Number {
-			count++
-		}
-	}
+// 	if !isDescendant {
+// 		return ErrCatchUpResponseNotCompletable
+// 	}
 
-	if uint64(count) < h.grandpa.state.threshold() {
-		return ErrMinVotesNotMet
-	}
+// 	return nil
+// }
 
-	return nil
-}
+// // decodeMessage decodes a network-level consensus message into a GRANDPA VoteMessage or CommitMessage
+// func decodeMessage(msg *ConsensusMessage) (m GrandpaMessage, err error) {
+// 	var (
+// 		mi interface{}
+// 		ok bool
+// 	)
 
-func (h *MessageHandler) verifyJustification(just *SignedPrecommit, round, setID uint64, stage subround) error {
-	// verify signature
-	msg, err := scale.Encode(&FullVote{
-		Stage: stage,
-		Vote:  just.Vote,
-		Round: round,
-		SetID: setID,
-	})
-	if err != nil {
-		return err
-	}
+// 	switch msg.Data[0] {
+// 	case voteType:
+// 		m = &VoteMessage{}
+// 		_, err = scale.Decode(msg.Data[1:], m)
+// 	case commitType:
+// 		r := &bytes.Buffer{}
+// 		_, _ = r.Write(msg.Data[1:])
+// 		cm := &CommitMessage{}
+// 		err = cm.Decode(r)
+// 		m = cm
+// 	case neighbourType:
+// 		mi, err = scale.Decode(msg.Data[1:], &NeighbourMessage{})
+// 		if m, ok = mi.(*NeighbourMessage); !ok {
+// 			return nil, ErrInvalidMessageType
+// 		}
+// 	case catchUpRequestType:
+// 		mi, err = scale.Decode(msg.Data[1:], &catchUpRequest{})
+// 		if m, ok = mi.(*catchUpRequest); !ok {
+// 			return nil, ErrInvalidMessageType
+// 		}
+// 	case catchUpResponseType:
+// 		mi, err = scale.Decode(msg.Data[1:], &catchUpResponse{})
+// 		if m, ok = mi.(*catchUpResponse); !ok {
+// 			return nil, ErrInvalidMessageType
+// 		}
+// 	default:
+// 		return nil, ErrInvalidMessageType
+// 	}
 
-	pk, err := ed25519.NewPublicKey(just.AuthorityID[:])
-	if err != nil {
-		return err
-	}
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	ok, err := pk.Verify(msg, just.Signature[:])
-	if err != nil {
-		return err
-	}
+// 	return m, nil
+// }
 
-	if !ok {
-		return ErrInvalidSignature
-	}
+// func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) error {
+// 	if len(fm.Precommits) != len(fm.AuthData) {
+// 		return ErrPrecommitSignatureMismatch
+// 	}
 
-	// verify authority in justification set
-	authFound := false
-	for _, auth := range h.grandpa.authorities() {
-		justKey, err := just.AuthorityID.Encode()
-		if err != nil {
-			return err
-		}
-		if reflect.DeepEqual(auth.Key.Encode(), justKey) {
-			authFound = true
-			break
-		}
-	}
-	if !authFound {
-		return ErrVoterNotFound
-	}
-	return nil
-}
+// 	count := 0
+// 	for i, pc := range fm.Precommits {
+// 		just := &SignedPrecommit{
+// 			Vote:        pc,
+// 			Signature:   fm.AuthData[i].Signature,
+// 			AuthorityID: fm.AuthData[i].AuthorityID,
+// 		}
+
+// 		err := h.verifyJustification(just, fm.Round, h.grandpa.state.setID, precommit)
+// 		if err != nil {
+// 			continue
+// 		}
+
+// 		if just.Vote.hash == fm.Vote.hash && just.Vote.number == fm.Vote.number {
+// 			count++
+// 		}
+// 	}
+
+// 	// confirm total # signatures >= grandpa threshold
+// 	if uint64(count) < h.grandpa.state.threshold() {
+// 		logger.Error("minimum votes not met for finalisation message", "votes needed", h.grandpa.state.threshold(),
+// 			"votes received", len(fm.Precommits))
+// 		return ErrMinVotesNotMet
+// 	}
+// 	return nil
+// }
+
+// func (h *MessageHandler) verifyPreVoteJustification(msg *catchUpResponse) (common.Hash, error) {
+// 	// verify pre-vote justification, returning the pre-voted block if there is one
+// 	votes := make(map[common.Hash]uint64)
+
+// 	for _, just := range msg.PreVoteJustification {
+// 		err := h.verifyJustification(just, msg.Round, msg.SetID, prevote)
+// 		if err != nil {
+// 			continue
+// 		}
+
+// 		votes[just.Vote.hash]++
+// 	}
+
+// 	var prevote common.Hash
+// 	for hash, count := range votes {
+// 		if count >= h.grandpa.state.threshold() {
+// 			prevote = hash
+// 			break
+// 		}
+// 	}
+
+// 	if (prevote == common.Hash{}) {
+// 		return prevote, ErrMinVotesNotMet
+// 	}
+
+// 	return prevote, nil
+// }
+
+// func (h *MessageHandler) verifyPreCommitJustification(msg *catchUpResponse) error {
+// 	// verify pre-commit justification
+// 	count := 0
+// 	for _, just := range msg.PreCommitJustification {
+// 		err := h.verifyJustification(just, msg.Round, msg.SetID, precommit)
+// 		if err != nil {
+// 			continue
+// 		}
+
+// 		if just.Vote.hash == msg.Hash && just.Vote.number == msg.Number {
+// 			count++
+// 		}
+// 	}
+
+// 	if uint64(count) < h.grandpa.state.threshold() {
+// 		return ErrMinVotesNotMet
+// 	}
+
+// 	return nil
+// }
+
+// func (h *MessageHandler) verifyJustification(just *SignedPrecommit, round, setID uint64, stage subround) error {
+// 	// verify signature
+// 	msg, err := scale.Encode(&FullVote{
+// 		Stage: stage,
+// 		Vote:  just.Vote,
+// 		Round: round,
+// 		SetID: setID,
+// 	})
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	pk, err := ed25519.NewPublicKey(just.AuthorityID[:])
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	ok, err := pk.Verify(msg, just.Signature[:])
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	if !ok {
+// 		return ErrInvalidSignature
+// 	}
+
+// 	// verify authority in justification set
+// 	authFound := false
+// 	for _, auth := range h.grandpa.authorities() {
+// 		justKey, err := just.AuthorityID.Encode()
+// 		if err != nil {
+// 			return err
+// 		}
+// 		if reflect.DeepEqual(auth.Key.Encode(), justKey) {
+// 			authFound = true
+// 			break
+// 		}
+// 	}
+// 	if !authFound {
+// 		return ErrVoterNotFound
+// 	}
+// 	return nil
+// }
 
 // VerifyBlockJustification verifies the finality justification for a block
 func (s *Service) VerifyBlockJustification(justification []byte) error {

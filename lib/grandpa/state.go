@@ -78,5 +78,5 @@ type Network interface {
 		messageHandler network.NotificationsMessageHandler,
 		overwriteProtocol bool,
 	) error
-	SendCatchUpRequest(peer peer.ID, msgType byte, req NotificationsMessage) (NotificationsMessage, error)
+	SendCatchUpRequest(peer peer.ID, msgType byte, req NotificationsMessage) (*network.ConsensusMessage, error)
 }
