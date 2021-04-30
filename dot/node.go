@@ -398,6 +398,8 @@ func storeGlobalNodeName(name, basepath string) error {
 		return err
 	}
 
+	defer db.Close()
+
 	basestate := state.NewBaseState(db)
 	err = basestate.StoreNodeGlobalName(name)
 	if err != nil {
@@ -406,13 +408,6 @@ func storeGlobalNodeName(name, basepath string) error {
 			"basepath", basepath,
 			"error", err,
 		)
-		return nil
-	}
-
-	// close database
-	err = db.Close()
-	if err != nil {
-		logger.Error("failed to close database", "error", err)
 		return err
 	}
 
