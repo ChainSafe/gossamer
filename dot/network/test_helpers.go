@@ -159,7 +159,7 @@ var testBlockRequestMessage = &BlockRequestMessage{
 	Max:           optional.NewUint32(true, 1),
 }
 
-func testBlockRequestMessageDecoder(in []byte, _ peer.ID) (Message, error) {
+func testBlockRequestMessageDecoder(in []byte, _ peer.ID, _ bool) (Message, error) {
 	msg := new(BlockRequestMessage)
 	err := msg.Decode(in)
 	return msg, err
@@ -173,13 +173,13 @@ var testBlockAnnounceHandshake = &BlockAnnounceHandshake{
 	BestBlockNumber: 0,
 }
 
-func testBlockAnnounceMessageDecoder(in []byte, _ peer.ID) (Message, error) {
+func testBlockAnnounceMessageDecoder(in []byte, _ peer.ID, _ bool) (Message, error) {
 	msg := new(BlockAnnounceMessage)
 	err := msg.Decode(in)
 	return msg, err
 }
 
-func testBlockAnnounceHandshakeDecoder(in []byte, _ peer.ID) (Message, error) {
+func testBlockAnnounceHandshakeDecoder(in []byte, _ peer.ID, _ bool) (Message, error) {
 	msg := new(BlockAnnounceHandshake)
 	err := msg.Decode(in)
 	return msg, err

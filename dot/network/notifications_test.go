@@ -45,15 +45,17 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 
 	// create info and decoder
 	info := &notificationsProtocol{
-		protocolID:    s.host.protocolID + blockAnnounceID,
-		getHandshake:  s.getBlockAnnounceHandshake,
-		handshakeData: new(sync.Map),
+		protocolID:            s.host.protocolID + blockAnnounceID,
+		getHandshake:          s.getBlockAnnounceHandshake,
+		handshakeValidator:    s.validateBlockAnnounceHandshake,
+		inboundHandshakeData:  new(sync.Map),
+		outboundHandshakeData: new(sync.Map),
 	}
 	decoder := createDecoder(info, decodeBlockAnnounceHandshake, decodeBlockAnnounceMessage)
 
 	// haven't received handshake from peer
 	testPeerID := peer.ID("QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ")
-	info.handshakeData.Store(testPeerID, handshakeData{
+	info.inboundHandshakeData.Store(testPeerID, handshakeData{
 		received: false,
 	})
 
@@ -67,7 +69,7 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 	enc, err := testHandshake.Encode()
 	require.NoError(t, err)
 
-	msg, err := decoder(enc, testPeerID)
+	msg, err := decoder(enc, testPeerID, true)
 	require.NoError(t, err)
 	require.Equal(t, testHandshake, msg)
 
@@ -83,10 +85,10 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 	require.NoError(t, err)
 
 	// set handshake data to received
-	hsData, _ := info.getHandshakeData(testPeerID)
+	hsData, _ := info.getHandshakeData(testPeerID, true)
 	hsData.received = true
-	info.handshakeData.Store(testPeerID, hsData)
-	msg, err = decoder(enc, testPeerID)
+	info.inboundHandshakeData.Store(testPeerID, hsData)
+	msg, err = decoder(enc, testPeerID, true)
 	require.NoError(t, err)
 	require.Equal(t, testBlockAnnounce, msg)
 }
@@ -133,14 +135,16 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 
 	// create info and handler
 	info := &notificationsProtocol{
-		protocolID:    s.host.protocolID + blockAnnounceID,
-		getHandshake:  s.getBlockAnnounceHandshake,
-		handshakeData: new(sync.Map),
+		protocolID:            s.host.protocolID + blockAnnounceID,
+		getHandshake:          s.getBlockAnnounceHandshake,
+		handshakeValidator:    s.validateBlockAnnounceHandshake,
+		inboundHandshakeData:  new(sync.Map),
+		outboundHandshakeData: new(sync.Map),
 	}
-	handler := s.createNotificationsMessageHandler(info, s.validateBlockAnnounceHandshake, s.handleBlockAnnounceMessage)
+	handler := s.createNotificationsMessageHandler(info, s.handleBlockAnnounceMessage)
 
 	// set handshake data to received
-	info.handshakeData.Store(testPeerID, handshakeData{
+	info.inboundHandshakeData.Store(testPeerID, handshakeData{
 		received:  true,
 		validated: true,
 	})
@@ -165,11 +169,13 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 
 	// create info and handler
 	info := &notificationsProtocol{
-		protocolID:    s.host.protocolID + blockAnnounceID,
-		getHandshake:  s.getBlockAnnounceHandshake,
-		handshakeData: new(sync.Map),
+		protocolID:            s.host.protocolID + blockAnnounceID,
+		getHandshake:          s.getBlockAnnounceHandshake,
+		handshakeValidator:    s.validateBlockAnnounceHandshake,
+		inboundHandshakeData:  new(sync.Map),
+		outboundHandshakeData: new(sync.Map),
 	}
-	handler := s.createNotificationsMessageHandler(info, s.validateBlockAnnounceHandshake, s.handleBlockAnnounceMessage)
+	handler := s.createNotificationsMessageHandler(info, s.handleBlockAnnounceMessage)
 
 	configB := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeB"),
@@ -208,7 +214,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 
 	err = handler(stream, testHandshake)
 	require.Equal(t, errCannotValidateHandshake, err)
-	data, has := info.getHandshakeData(testPeerID)
+	data, has := info.getHandshakeData(testPeerID, true)
 	require.True(t, has)
 	require.True(t, data.received)
 	require.False(t, data.validated)
@@ -221,9 +227,11 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 		GenesisHash:     s.blockState.GenesisHash(),
 	}
 
+	info.inboundHandshakeData.Delete(testPeerID)
+
 	err = handler(stream, testHandshake)
 	require.NoError(t, err)
-	data, has = info.getHandshakeData(testPeerID)
+	data, has = info.getHandshakeData(testPeerID, true)
 	require.True(t, has)
 	require.True(t, data.received)
 	require.True(t, data.validated)
