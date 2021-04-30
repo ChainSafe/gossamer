@@ -50,15 +50,12 @@ type (
 
 	// NotificationsMessageHandler is called when a (non-handshake) message is received over a notifications stream.
 	NotificationsMessageHandler = func(peer peer.ID, msg NotificationsMessage) error
-
-	streamHandler = func(libp2pnetwork.Stream, peer.ID)
 )
 
 type notificationsProtocol struct {
 	protocolID         protocol.ID
 	getHandshake       HandshakeGetter
 	handshakeValidator HandshakeValidator
-	handshakeDecoder   HandshakeDecoder
 
 	inboundHandshakeData  *sync.Map //map[peer.ID]*handshakeData
 	outboundHandshakeData *sync.Map //map[peer.ID]*handshakeData
