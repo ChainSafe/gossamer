@@ -17,6 +17,8 @@
 package scale
 
 import (
+	"bytes"
+	"math/big"
 	"reflect"
 	"testing"
 )
