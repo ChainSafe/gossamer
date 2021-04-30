@@ -8,14 +8,88 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"sync"
 )
 
 // package level cache for fieldScaleIndicies
-var cache = make(fieldScaleIndiciesCache)
+var cache = &fieldScaleIndicesCache{
+	cache: make(map[string]fieldScaleIndices),
+}
+
+// fieldScaleIndex is used to map field index to scale index
+type fieldScaleIndex struct {
+	fieldIndex int
+	scaleIndex *string
+}
+type fieldScaleIndices []fieldScaleIndex
+
+// fieldScaleIndic
+type fieldScaleIndicesCache struct {
+	cache map[string]fieldScaleIndices
+	sync.RWMutex
+}
+
+func (fsic *fieldScaleIndicesCache) fieldScaleIndices(in interface{}) (v reflect.Value, indices fieldScaleIndices, err error) {
+	t := reflect.TypeOf(in)
+	v = reflect.ValueOf(in)
+	key := fmt.Sprintf("%s.%s", t.PkgPath(), t.Name())
+	if key != "." {
+		var ok bool
+		fsic.RLock()
+		indices, ok = fsic.cache[key]
+		fsic.RUnlock()
+		if ok {
+			return
+		}
+	}
+
+	if !v.IsValid() {
+		err = fmt.Errorf("inputted value is not valid: %v", v)
+		return
+	}
+
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		tag := field.Tag.Get("scale")
+		switch strings.TrimSpace(tag) {
+		case "":
+			indices = append(indices, fieldScaleIndex{
+				fieldIndex: i,
+			})
+		case "-":
+			// ignore this field
+			continue
+		default:
+			indices = append(indices, fieldScaleIndex{
+				fieldIndex: i,
+				scaleIndex: &tag,
+			})
+		}
+	}
+
+	sort.Slice(indices[:], func(i, j int) bool {
+		switch {
+		case indices[i].scaleIndex == nil && indices[j].scaleIndex != nil:
+			return false
+		case indices[i].scaleIndex != nil && indices[j].scaleIndex == nil:
+			return true
+		case indices[i].scaleIndex == nil && indices[j].scaleIndex == nil:
+			return indices[i].fieldIndex < indices[j].fieldIndex
+		case indices[i].scaleIndex != nil && indices[j].scaleIndex != nil:
+			return *indices[i].scaleIndex < *indices[j].scaleIndex
+		}
+		return false
+	})
+
+	fsic.Lock()
+	fsic.cache[key] = indices
+	fsic.Unlock()
+	return
+}
 
 func Marshal(v interface{}) (b []byte, err error) {
 	es := encodeState{
-		fieldScaleIndiciesCache: cache,
+		fieldScaleIndicesCache: cache,
 	}
 	err = es.marshal(v)
 	if err != nil {
@@ -27,7 +101,7 @@ func Marshal(v interface{}) (b []byte, err error) {
 
 type encodeState struct {
 	bytes.Buffer
-	fieldScaleIndiciesCache
+	*fieldScaleIndicesCache
 }
 
 func (es *encodeState) marshal(in interface{}) (err error) {
@@ -241,7 +315,7 @@ func (es *encodeState) encodeBytes(b []byte) (err error) {
 	return
 }
 
-// encodeFixedWidthInteger encodes an int with size < 2**32 by putting it into little endian byte format
+// encodeFixedWidthInt encodes an int with size < 2**32 by putting it into little endian byte format
 func (es *encodeState) encodeFixedWidthInt(i interface{}) (err error) {
 	switch i := i.(type) {
 	case int8:
@@ -273,7 +347,7 @@ func (es *encodeState) encodeFixedWidthInt(i interface{}) (err error) {
 // encodeStruct reads the number of fields in the struct and their types and writes to the buffer each of the struct fields
 // encoded as their respective types
 func (es *encodeState) encodeStruct(in interface{}) (err error) {
-	v, indices, err := es.fieldScaleIndicies(in)
+	v, indices, err := es.fieldScaleIndices(in)
 	if err != nil {
 		return
 	}
@@ -339,69 +413,6 @@ func (es *encodeState) encodeUint(i uint) (err error) {
 // encodeUint128 encodes a Uint128
 func (es *encodeState) encodeUint128(i Uint128) (err error) {
 	err = binary.Write(es, binary.LittleEndian, i.Bytes())
-	return
-}
-
-type fieldScaleIndex struct {
-	fieldIndex int
-	scaleIndex *string
-}
-type fieldScaleIndicies []fieldScaleIndex
-type fieldScaleIndiciesCache map[string]fieldScaleIndicies
-
-func (fsic fieldScaleIndiciesCache) fieldScaleIndicies(in interface{}) (v reflect.Value, indices fieldScaleIndicies, err error) {
-	t := reflect.TypeOf(in)
-	v = reflect.ValueOf(in)
-	key := fmt.Sprintf("%s.%s", t.PkgPath(), t.Name())
-	if key != "." {
-		var ok bool
-		indices, ok = fsic[key]
-		if ok {
-			return
-		}
-	}
-
-	if !v.IsValid() {
-		err = fmt.Errorf("inputted value is not valid: %v", v)
-		return
-	}
-
-	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i)
-		tag := field.Tag.Get("scale")
-		switch strings.TrimSpace(tag) {
-		case "":
-			indices = append(indices, fieldScaleIndex{
-				fieldIndex: i,
-			})
-		case "-":
-			// ignore this field
-			continue
-		default:
-			indices = append(indices, fieldScaleIndex{
-				fieldIndex: i,
-				scaleIndex: &tag,
-			})
-		}
-	}
-
-	sort.Slice(indices[:], func(i, j int) bool {
-		switch {
-		case indices[i].scaleIndex == nil && indices[j].scaleIndex != nil:
-			return false
-		case indices[i].scaleIndex != nil && indices[j].scaleIndex == nil:
-			return true
-		case indices[i].scaleIndex == nil && indices[j].scaleIndex == nil:
-			return indices[i].fieldIndex < indices[j].fieldIndex
-		case indices[i].scaleIndex != nil && indices[j].scaleIndex != nil:
-			return *indices[i].scaleIndex < *indices[j].scaleIndex
-		}
-		return false
-	})
-
-	// TODO: mutex?
-	fsic[key] = indices
-
 	return
 }
 

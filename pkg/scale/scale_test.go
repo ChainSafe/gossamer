@@ -684,7 +684,7 @@ func Test_encodeState_encodeStruct(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			es := &encodeState{fieldScaleIndiciesCache: cache}
+			es := &encodeState{fieldScaleIndicesCache: cache}
 			err := es.marshal(tt.args.t)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("encodeState.encodeStruct() = %v, wantErr %v", err, tt.wantErr)
