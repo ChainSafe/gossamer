@@ -18,8 +18,12 @@ package common
 
 import (
 	"bytes"
+	"math/big"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStringToInts(t *testing.T) {
@@ -181,4 +185,33 @@ func TestSwapNibbles(t *testing.T) {
 			t.Fatalf("Re-encoding failed. got: %x expected: %x", res, test.key)
 		}
 	}
+}
+
+func TestMustHexToBigInt(t *testing.T) {
+	tests := []struct {
+		in  string
+		out *big.Int
+	}{
+		{"0x0", big.NewInt(0).SetBytes([]byte{0})},
+		{"0x00", big.NewInt(0).SetBytes([]byte{0})},
+		{"0x1", big.NewInt(1)},
+		{"0x01", big.NewInt(1)},
+		{"0xf", big.NewInt(15)},
+		{"0x0f", big.NewInt(15)},
+		{"0x10", big.NewInt(16)},
+		{"0xff", big.NewInt(255)},
+		{"0x50429", big.NewInt(328745)},
+		{"0x050429", big.NewInt(328745)},
+	}
+
+	for _, test := range tests {
+		res := MustHexToBigInt(test.in)
+		require.Equal(t, test.out, res)
+	}
+}
+
+func TestMustHexToBigIntPanic(t *testing.T) {
+	assert.Panics(t, func() { MustHexToBigInt("1") }, "should panic for string len < 2")
+	assert.Panics(t, func() { MustHexToBigInt("12") }, "should panic for string not starting with 0x")
+	assert.Panics(t, func() { MustHexToBigInt("0xzz") }, "should panic for string not containing hex characters")
 }
