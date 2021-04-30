@@ -371,6 +371,18 @@ func TestPendingExtrinsic(t *testing.T) {
 	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDefault, utils.ConfigBABEMaxThreshold, false)
 	require.NoError(t, err)
 
+	// Start rest of nodes
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDefault, utils.ConfigNoBABE)
+	require.NoError(t, err)
+	nodes = append(nodes, node)
+
+	defer func() {
+		t.Log("going to tear down gossamer...")
+		os.Remove(utils.ConfigBABEMaxThreshold)
+		errList := utils.StopNodes(t, nodes)
+		require.Len(t, errList, 0)
+	}()
+
 	// send tx to non-authority node
 	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("http://localhost:%s", node.RPCPort))
 	require.NoError(t, err)
@@ -425,18 +437,6 @@ func TestPendingExtrinsic(t *testing.T) {
 	hash, err := api.RPC.Author.SubmitExtrinsic(ext)
 	require.NoError(t, err)
 	require.NotEqual(t, hash, common.Hash{})
-
-	// Start rest of nodes
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDefault, utils.ConfigNoBABE)
-	require.NoError(t, err)
-	nodes = append(nodes, node)
-
-	defer func() {
-		t.Log("going to tear down gossamer...")
-		os.Remove(utils.ConfigBABEMaxThreshold)
-		errList := utils.StopNodes(t, nodes)
-		require.Len(t, errList, 0)
-	}()
 
 	time.Sleep(time.Second * 10)
 

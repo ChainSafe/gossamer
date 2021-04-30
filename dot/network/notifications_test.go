@@ -53,7 +53,7 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 
 	// haven't received handshake from peer
 	testPeerID := peer.ID("QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ")
-	info.handshakeData.Store(testPeerID, &handshakeData{
+	info.handshakeData.Store(testPeerID, handshakeData{
 		received: false,
 	})
 
@@ -85,6 +85,7 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 	// set handshake data to received
 	hsData, _ := info.getHandshakeData(testPeerID)
 	hsData.received = true
+	info.handshakeData.Store(testPeerID, hsData)
 	msg, err = decoder(enc, testPeerID)
 	require.NoError(t, err)
 	require.Equal(t, testBlockAnnounce, msg)
@@ -139,7 +140,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 	handler := s.createNotificationsMessageHandler(info, s.validateBlockAnnounceHandshake, s.handleBlockAnnounceMessage)
 
 	// set handshake data to received
-	info.handshakeData.Store(testPeerID, &handshakeData{
+	info.handshakeData.Store(testPeerID, handshakeData{
 		received:  true,
 		validated: true,
 	})
