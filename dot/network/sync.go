@@ -190,6 +190,7 @@ func (q *syncQueue) syncAtHead() {
 		// we aren't at the head yet, sleep
 		if curr.Number.Int64() < q.goal && curr.Number.Cmp(prev.Number) > 0 {
 			prev = curr
+			q.s.noGossip = true
 			continue
 		}
 
