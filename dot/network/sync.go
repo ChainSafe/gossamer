@@ -172,6 +172,7 @@ func (q *syncQueue) syncAtHead() {
 	}
 
 	q.s.syncer.SetSyncing(true)
+	q.s.noGossip = true // don't gossip messages until we're at the head
 
 	for {
 		select {
@@ -193,6 +194,7 @@ func (q *syncQueue) syncAtHead() {
 		}
 
 		q.s.syncer.SetSyncing(false)
+		q.s.noGossip = false
 
 		// we have received new blocks since the last check, sleep
 		if prev.Number.Int64() < curr.Number.Int64() {
