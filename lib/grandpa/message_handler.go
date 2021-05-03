@@ -122,8 +122,11 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 
 	// if the peer reports a higher set ID, or the same set ID but a higher round,
 	// we have fallen behind and need to initiate catch-up.
-	if msg.SetID >= h.grandpa.state.setID || (msg.SetID == h.grandpa.setID && msg.Round >= h.grandpa.state.round+2) {
-		h.catchUp.beginCatchUp(msg.SetID, msg.Round)
+	if msg.SetID >= h.grandpa.state.setID || (msg.SetID == h.grandpa.state.setID && msg.Round >= h.grandpa.state.round+2) {
+		err = h.catchUp.doCatchUp(from, msg.SetID, msg.Round)
+		if err != nil {
+			logger.Debug("failed to do catch up", "error", err)
+		}
 	}
 
 	// don't finalise too close to head, until we add justification request + verification functionality.
@@ -248,6 +251,38 @@ func decodeMessage(msg *ConsensusMessage) (m GrandpaMessage, err error) {
 	}
 
 	return m, nil
+}
+
+func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) error {
+	if len(fm.Precommits) != len(fm.AuthData) {
+		return ErrPrecommitSignatureMismatch
+	}
+
+	count := 0
+	for i, pc := range fm.Precommits {
+		just := &SignedPrecommit{
+			Vote:        pc,
+			Signature:   fm.AuthData[i].Signature,
+			AuthorityID: fm.AuthData[i].AuthorityID,
+		}
+
+		err := verifyJustification(h.grandpa.authorities(), just, fm.Round, h.grandpa.state.setID, precommit)
+		if err != nil {
+			continue
+		}
+
+		if just.Vote.hash == fm.Vote.hash && just.Vote.number == fm.Vote.number {
+			count++
+		}
+	}
+
+	// confirm total # signatures >= grandpa threshold
+	if uint64(count) < h.grandpa.state.threshold() {
+		logger.Error("minimum votes not met for finalisation message", "votes needed", h.grandpa.state.threshold(),
+			"votes received", len(fm.Precommits))
+		return ErrMinVotesNotMet
+	}
+	return nil
 }
 
 // func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponse) error {

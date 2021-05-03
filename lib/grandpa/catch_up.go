@@ -22,6 +22,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/scale"
@@ -56,14 +57,16 @@ func (c *catchUp) addPeer(id peer.ID) {
 }
 
 func (c *catchUp) doCatchUp(from peer.ID, setID, round uint64) error {
-	if !c.isAuthority {
-		// only authorities need to participate in catch-up
-		return nil
-	}
+	// if !c.isAuthority {
+	// 	// only authorities need to participate in catch-up
+	// 	return nil
+	// }
 
 	if c.isStarted.Load().(bool) {
 		return errors.New("already started")
 	}
+
+	logger.Debug("beginning catch-up process", "setID", setID, "target round", round)
 
 	currSetID, err := c.grandpa.grandpaState.GetCurrentSetID()
 	if err != nil {
@@ -71,10 +74,14 @@ func (c *catchUp) doCatchUp(from peer.ID, setID, round uint64) error {
 	}
 
 	if setID > currSetID {
-		// TODO: we aren't ready to catch up yet, wait until we've synced enough of the
+		// we aren't ready to catch up yet, wait until we've synced enough of the
 		// chain to know the authorities at this set ID
+		logger.Debug("ignoring catch-up, not at target set ID", "current", currSetID, "target", setID)
 		return nil
 	}
+
+	// pause voting while we do catch-up
+	c.grandpa.paused.Store(true)
 
 	c.isStarted.Store(true)
 	msg := newCatchUpRequest(round, setID)
@@ -89,6 +96,7 @@ func (c *catchUp) doCatchUp(from peer.ID, setID, round uint64) error {
 
 	if resp == nil {
 		// TODO: request from other peers
+		return errors.New("peer did not send catch up response :(")
 	}
 
 	catchUpResp, err := decodeMessage(resp)
@@ -96,10 +104,9 @@ func (c *catchUp) doCatchUp(from peer.ID, setID, round uint64) error {
 		return err
 	}
 
-	// TODO: make sure grandpa.state.setID and grandpa.state.voters are set correctly before verifying response
-	_ = catchUpResp
-
-	return nil
+	// make sure grandpa.state.setID and grandpa.state.voters are set correctly before verifying response
+	c.grandpa.updateAuthorities()
+	return c.handleCatchUpResponse(catchUpResp.(*catchUpResponse))
 }
 
 // TODO: track authority peers and only take into account neighbour messages from them for catch-up
@@ -110,11 +117,11 @@ func (c *catchUp) addNeighbourMessage(from peer.ID, msg *NeighbourMessage) {
 func (c *catchUp) handleCatchUpResponse(msg *catchUpResponse) error {
 	logger.Debug("received catch up response", "round", msg.Round, "setID", msg.SetID, "hash", msg.Hash)
 
-	// // if we aren't currently expecting a catch up response, return
-	// if !h.grandpa.paused.Load().(bool) {
-	// 	logger.Debug("not currently paused, ignoring catch up response")
-	// 	return nil
-	// }
+	// if we aren't currently expecting a catch up response, return
+	if !c.grandpa.paused.Load().(bool) {
+		logger.Debug("not currently paused, ignoring catch up response")
+		return nil
+	}
 
 	if msg.SetID != c.grandpa.state.setID {
 		return ErrSetIDMismatch
@@ -179,44 +186,12 @@ func (c *catchUp) verifyCatchUpResponseCompletability(prevote, precommit common.
 	return nil
 }
 
-func (c *catchUp) verifyCommitMessageJustification(fm *CommitMessage) error {
-	if len(fm.Precommits) != len(fm.AuthData) {
-		return ErrPrecommitSignatureMismatch
-	}
-
-	count := 0
-	for i, pc := range fm.Precommits {
-		just := &SignedPrecommit{
-			Vote:        pc,
-			Signature:   fm.AuthData[i].Signature,
-			AuthorityID: fm.AuthData[i].AuthorityID,
-		}
-
-		err := c.verifyJustification(just, fm.Round, c.grandpa.state.setID, precommit)
-		if err != nil {
-			continue
-		}
-
-		if just.Vote.hash == fm.Vote.hash && just.Vote.number == fm.Vote.number {
-			count++
-		}
-	}
-
-	// confirm total # signatures >= grandpa threshold
-	if uint64(count) < c.grandpa.state.threshold() {
-		logger.Error("minimum votes not met for finalisation message", "votes needed", c.grandpa.state.threshold(),
-			"votes received", len(fm.Precommits))
-		return ErrMinVotesNotMet
-	}
-	return nil
-}
-
 func (c *catchUp) verifyPreVoteJustification(msg *catchUpResponse) (common.Hash, error) {
 	// verify pre-vote justification, returning the pre-voted block if there is one
 	votes := make(map[common.Hash]uint64)
 
 	for _, just := range msg.PreVoteJustification {
-		err := c.verifyJustification(just, msg.Round, msg.SetID, prevote)
+		err := verifyJustification(c.grandpa.authorities(), just, msg.Round, msg.SetID, prevote)
 		if err != nil {
 			continue
 		}
@@ -243,7 +218,7 @@ func (c *catchUp) verifyPreCommitJustification(msg *catchUpResponse) error {
 	// verify pre-commit justification
 	count := 0
 	for _, just := range msg.PreCommitJustification {
-		err := c.verifyJustification(just, msg.Round, msg.SetID, precommit)
+		err := verifyJustification(c.grandpa.authorities(), just, msg.Round, msg.SetID, precommit)
 		if err != nil {
 			continue
 		}
@@ -260,7 +235,7 @@ func (c *catchUp) verifyPreCommitJustification(msg *catchUpResponse) error {
 	return nil
 }
 
-func (c *catchUp) verifyJustification(just *SignedPrecommit, round, setID uint64, stage subround) error {
+func verifyJustification(authorities []*types.Authority, just *SignedPrecommit, round, setID uint64, stage subround) error {
 	// verify signature
 	msg, err := scale.Encode(&FullVote{
 		Stage: stage,
@@ -288,7 +263,7 @@ func (c *catchUp) verifyJustification(just *SignedPrecommit, round, setID uint64
 
 	// verify authority in justification set
 	authFound := false
-	for _, auth := range c.grandpa.authorities() {
+	for _, auth := range authorities {
 		justKey, err := just.AuthorityID.Encode()
 		if err != nil {
 			return err

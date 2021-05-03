@@ -26,7 +26,7 @@ import (
 // SendCatchUpRequest sends a NotificationsMessage to a peer and returns a response, if there is one.
 // Note: this is only used by grandpa at the moment, since it sends catch up requests/responses over the same
 // notifications stream as the rest of the messages.
-func (s *Service) SendCatchUpRequest(peer peer.ID, msgType byte, req NotificationsMessage) (NotificationsMessage, error) {
+func (s *Service) SendCatchUpRequest(peer peer.ID, msgType byte, req *ConsensusMessage) (*ConsensusMessage, error) {
 	s.host.h.ConnManager().Protect(peer, "")
 	defer s.host.h.ConnManager().Unprotect(peer, "")
 

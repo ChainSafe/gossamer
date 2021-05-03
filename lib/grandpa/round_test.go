@@ -79,6 +79,10 @@ func (n *testNetwork) RegisterNotificationsProtocol(sub protocol.ID,
 	return nil
 }
 
+func (n *testNetwork) SendCatchUpRequest(peer peer.ID, msgType byte, req *network.ConsensusMessage) (*network.ConsensusMessage, error) {
+	return nil, nil
+}
+
 func onSameChain(blockState BlockState, a, b common.Hash) bool {
 	descendant, err := blockState.IsDescendantOf(a, b)
 	if err != nil {

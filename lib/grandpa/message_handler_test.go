@@ -221,7 +221,7 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 }
 
 func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
-	gs, st := newTestService(t)
+	gs, _ := newTestService(t)
 	gs.state.round = 77
 
 	just := &SignedPrecommit{
@@ -230,8 +230,7 @@ func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
 		AuthorityID: gs.publicKeyBytes(),
 	}
 
-	h := NewMessageHandler(gs, st.Block)
-	err := h.verifyJustification(just, gs.state.round, gs.state.setID, precommit)
+	err := verifyJustification(gs.authorities(), just, gs.state.round, gs.state.setID, precommit)
 	require.Equal(t, err, ErrInvalidSignature)
 }
 
@@ -391,8 +390,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 }
 
 func TestVerifyJustification(t *testing.T) {
-	gs, st := newTestService(t)
-	h := NewMessageHandler(gs, st.Block)
+	gs, _ := newTestService(t)
 
 	vote := NewVote(testHash, 123)
 	just := &SignedPrecommit{
@@ -401,13 +399,12 @@ func TestVerifyJustification(t *testing.T) {
 		AuthorityID: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err := h.verifyJustification(just, 77, gs.state.setID, precommit)
+	err := verifyJustification(gs.authorities(), just, 77, gs.state.setID, precommit)
 	require.NoError(t, err)
 }
 
 func TestVerifyJustification_InvalidSignature(t *testing.T) {
-	gs, st := newTestService(t)
-	h := NewMessageHandler(gs, st.Block)
+	gs, _ := newTestService(t)
 
 	vote := NewVote(testHash, 123)
 	just := &SignedPrecommit{
@@ -417,13 +414,13 @@ func TestVerifyJustification_InvalidSignature(t *testing.T) {
 		AuthorityID: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err := h.verifyJustification(just, 77, gs.state.setID, precommit)
+	err := verifyJustification(gs.authorities(), just, 77, gs.state.setID, precommit)
 	require.EqualError(t, err, ErrInvalidSignature.Error())
 }
 
 func TestVerifyJustification_InvalidAuthority(t *testing.T) {
-	gs, st := newTestService(t)
-	h := NewMessageHandler(gs, st.Block)
+	gs, _ := newTestService(t)
+
 	// sign vote with key not in authority set
 	fakeKey, err := ed25519.NewKeypairFromPrivateKeyString("0x0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20")
 	require.NoError(t, err)
@@ -435,42 +432,8 @@ func TestVerifyJustification_InvalidAuthority(t *testing.T) {
 		AuthorityID: fakeKey.Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	err = h.verifyJustification(just, 77, gs.state.setID, precommit)
+	err = verifyJustification(gs.authorities(), just, 77, gs.state.setID, precommit)
 	require.EqualError(t, err, ErrVoterNotFound.Error())
-}
-
-func TestMessageHandler_VerifyPreVoteJustification(t *testing.T) {
-	gs, st := newTestService(t)
-	h := NewMessageHandler(gs, st.Block)
-
-	just := buildTestJustification(t, int(gs.state.threshold()), 1, gs.state.setID, kr, prevote)
-	msg := &catchUpResponse{
-		Round:                1,
-		SetID:                gs.state.setID,
-		PreVoteJustification: just,
-	}
-
-	prevote, err := h.verifyPreVoteJustification(msg)
-	require.NoError(t, err)
-	require.Equal(t, testHash, prevote)
-}
-
-func TestMessageHandler_VerifyPreCommitJustification(t *testing.T) {
-	gs, st := newTestService(t)
-	h := NewMessageHandler(gs, st.Block)
-
-	round := uint64(1)
-	just := buildTestJustification(t, int(gs.state.threshold()), round, gs.state.setID, kr, precommit)
-	msg := &catchUpResponse{
-		Round:                  round,
-		SetID:                  gs.state.setID,
-		PreCommitJustification: just,
-		Hash:                   testHash,
-		Number:                 uint32(round),
-	}
-
-	err := h.verifyPreCommitJustification(msg)
-	require.NoError(t, err)
 }
 
 func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
