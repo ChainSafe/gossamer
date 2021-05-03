@@ -28,7 +28,7 @@ import (
 
 var errCannotValidateHandshake = errors.New("failed to validate handshake")
 
-var maxHandshakeSize = unsafe.Sizeof(BlockAnnounceHandshake{})
+var maxHandshakeSize = unsafe.Sizeof(BlockAnnounceHandshake{}) //nolint
 
 // Handshake is the interface all handshakes for notifications protocols must implement
 type Handshake interface {
@@ -85,7 +85,16 @@ type handshakeData struct {
 	validated bool
 	handshake Handshake
 	stream    libp2pnetwork.Stream
-	sync.Mutex
+	mu        *sync.Mutex
+}
+
+func newHandshakeData(received, validated bool, stream libp2pnetwork.Stream) handshakeData {
+	return handshakeData{
+		received:  received,
+		validated: validated,
+		stream:    stream,
+		mu:        new(sync.Mutex),
+	}
 }
 
 func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecoder, messageDecoder MessageDecoder) messageDecoder {
@@ -135,10 +144,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			if _, has := info.getHandshakeData(peer, true); !has {
 				logger.Trace("receiver: validating handshake", "protocol", info.protocolID)
 
-				hsData := handshakeData{
-					validated: false,
-					received:  true,
-				}
+				hsData := newHandshakeData(true, false, stream)
 				info.inboundHandshakeData.Store(peer, hsData)
 
 				err := info.handshakeValidator(peer, hs)
@@ -206,18 +212,13 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 
 	if !has || !hsData.received || hsData.stream == nil {
 		if !has {
-			hsData = handshakeData{
-				validated: false,
-				received:  false,
-			}
+			hsData = newHandshakeData(false, false, nil)
 		}
 
-		hsData.Lock()
-		defer hsData.Unlock()
+		hsData.mu.Lock()
+		defer hsData.mu.Unlock()
 
-		info.outboundHandshakeData.Store(peer, hsData)
 		logger.Trace("sending outbound handshake", "protocol", info.protocolID, "peer", peer, "message", hs)
-
 		stream, err := s.host.send(peer, info.protocolID, hs)
 		if err != nil {
 			logger.Trace("failed to send message to peer", "peer", peer, "error", err)

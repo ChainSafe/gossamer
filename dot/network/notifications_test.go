@@ -30,6 +30,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestHandshake_SizeOf(t *testing.T) {
+	require.Equal(t, uint32(maxHandshakeSize), uint32(72))
+}
+
 func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "nodeA")
 
