@@ -267,32 +267,26 @@ func (h *host) bootstrap() {
 	}
 }
 
-// send writes the given message to the outbound message stream for the given
-// peer (gets the already opened outbound message stream or opens a new one).
-func (h *host) send(p peer.ID, pid protocol.ID, msg Message) (err error) {
-	// get outbound stream for given peer
-	s := h.getOutboundStream(p, pid)
-
-	// check if stream needs to be opened
-	if s == nil {
-		// open outbound stream with host protocol id
-		s, err = h.h.NewStream(h.ctx, p, pid)
-		if err != nil {
-			logger.Trace("failed to open new stream with peer", "peer", p, "protocol", pid, "error", err)
-			return err
-		}
-
-		logger.Trace(
-			"Opened stream",
-			"host", h.id(),
-			"peer", p,
-			"protocol", pid,
-		)
+// send creates a new outbound stream with the given peer and writes the message. It also returns
+// the newly created stream.
+func (h *host) send(p peer.ID, pid protocol.ID, msg Message) (libp2pnetwork.Stream, error) {
+	// open outbound stream with host protocol id
+	stream, err := h.h.NewStream(h.ctx, p, pid)
+	if err != nil {
+		logger.Trace("failed to open new stream with peer", "peer", p, "protocol", pid, "error", err)
+		return nil, err
 	}
 
-	err = h.writeToStream(s, msg)
+	logger.Trace(
+		"Opened stream",
+		"host", h.id(),
+		"peer", p,
+		"protocol", pid,
+	)
+
+	err = h.writeToStream(stream, msg)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	logger.Trace(
@@ -303,7 +297,7 @@ func (h *host) send(p peer.ID, pid protocol.ID, msg Message) (err error) {
 		"message", msg.String(),
 	)
 
-	return nil
+	return stream, nil
 }
 
 func (h *host) writeToStream(s libp2pnetwork.Stream, msg Message) error {

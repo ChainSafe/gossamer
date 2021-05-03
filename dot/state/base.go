@@ -27,6 +27,13 @@ import (
 	"github.com/ChainSafe/chaindb"
 )
 
+// SetupDatabase will return an instance of database based on basepath
+func SetupDatabase(basepath string) (chaindb.Database, error) {
+	return chaindb.NewBadgerDB(&chaindb.Config{
+		DataDir: basepath,
+	})
+}
+
 // BaseState is a wrapper for the chaindb.Database, without any prefixes
 type BaseState struct {
 	db chaindb.Database
@@ -37,6 +44,21 @@ func NewBaseState(db chaindb.Database) *BaseState {
 	return &BaseState{
 		db: db,
 	}
+}
+
+// StoreNodeGlobalName stores the current node name to avoid create new ones after each initialization
+func (s *BaseState) StoreNodeGlobalName(nodeName string) error {
+	return s.db.Put(common.NodeNameKey, []byte(nodeName))
+}
+
+// LoadNodeGlobalName loads the latest stored node global name
+func (s *BaseState) LoadNodeGlobalName() (string, error) {
+	nodeName, err := s.db.Get(common.NodeNameKey)
+	if err != nil {
+		return "", err
+	}
+
+	return string(nodeName), nil
 }
 
 // StoreBestBlockHash stores the hash at the BestBlockHashKey
