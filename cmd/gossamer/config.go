@@ -17,7 +17,6 @@
 package main
 
 import (
-	"encoding/binary"
 	"fmt"
 	"strconv"
 	"strings"
@@ -33,7 +32,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/life"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmtime"
-	"github.com/cosmos/go-bip39"
+	"github.com/ChainSafe/gossamer/lib/utils"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
@@ -132,7 +131,10 @@ func createDotConfig(ctx *cli.Context) (*dot.Config, error) {
 	logger.Info("loaded package log configuration", "cfg", cfg.Log)
 
 	// set global configuration values
-	setDotGlobalConfig(ctx, tomlCfg, &cfg.Global)
+	if err := setDotGlobalConfig(ctx, tomlCfg, &cfg.Global); err != nil {
+		logger.Error("failed to set global node configuration", "error", err)
+		return nil, err
+	}
 
 	// set remaining cli configuration values
 	setDotInitConfig(ctx, tomlCfg.Init, &cfg.Init)
@@ -160,7 +162,11 @@ func createInitConfig(ctx *cli.Context) (*dot.Config, error) {
 	}
 
 	// set global configuration values
-	setDotGlobalConfig(ctx, tomlCfg, &cfg.Global)
+	err = setDotGlobalConfig(ctx, tomlCfg, &cfg.Global)
+	if err != nil {
+		logger.Error("failed to set global node configuration", "error", err)
+		return nil, err
+	}
 
 	// set log config
 	err = setLogConfig(ctx, tomlCfg, &cfg.Global, &cfg.Log)
@@ -196,7 +202,11 @@ func createImportStateConfig(ctx *cli.Context) (*dot.Config, error) {
 	}
 
 	// set global configuration values
-	setDotGlobalConfig(ctx, tomlCfg, &cfg.Global)
+	if err := setDotGlobalConfig(ctx, tomlCfg, &cfg.Global); err != nil {
+		logger.Error("failed to set global node configuration", "error", err)
+		return nil, err
+	}
+
 	return cfg, nil
 }
 
@@ -210,7 +220,11 @@ func createBuildSpecConfig(ctx *cli.Context) (*dot.Config, error) {
 	}
 
 	// set global configuration values
-	setDotGlobalConfig(ctx, tomlCfg, &cfg.Global)
+	if err := setDotGlobalConfig(ctx, tomlCfg, &cfg.Global); err != nil {
+		logger.Error("failed to set global node configuration", "error", err)
+		return nil, err
+	}
+
 	return cfg, nil
 }
 
@@ -229,7 +243,11 @@ func createExportConfig(ctx *cli.Context) (*dot.Config, error) {
 	updateDotConfigFromGenesisJSONRaw(*tomlCfg, cfg)
 
 	// set global configuration values
-	setDotGlobalConfig(ctx, tomlCfg, &cfg.Global)
+	err = setDotGlobalConfig(ctx, tomlCfg, &cfg.Global)
+	if err != nil {
+		logger.Error("failed to set global node configuration", "error", err)
+		return nil, err
+	}
 
 	// set log config
 	err = setLogConfig(ctx, &ctoml.Config{}, &cfg.Global, &cfg.Log)
@@ -385,13 +403,27 @@ func setDotInitConfig(ctx *cli.Context, tomlCfg ctoml.InitConfig, cfg *dot.InitC
 	)
 }
 
-// setDotGlobalConfig sets dot.GlobalConfig using flag values from the cli context
-func setDotGlobalConfig(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.GlobalConfig) {
-	if tomlCfg != nil {
-		if tomlCfg.Global.Name != "" {
-			cfg.Name = tomlCfg.Global.Name
-		}
+func setDotGlobalConfig(ctx *cli.Context, tomlConfig *ctoml.Config, cfg *dot.GlobalConfig) error {
+	setDotGlobalConfigFromToml(tomlConfig, cfg)
+	setDotGlobalConfigFromFlags(ctx, cfg)
 
+	if err := setDotGlobalConfigName(ctx, tomlConfig, cfg); err != nil {
+		return fmt.Errorf("could not set global node name: %w", err)
+	}
+
+	logger.Debug(
+		"global configuration",
+		"name", cfg.Name,
+		"id", cfg.ID,
+		"basepath", cfg.BasePath,
+	)
+
+	return nil
+}
+
+// setDotGlobalConfigFromToml will apply the toml configs to dot global config
+func setDotGlobalConfigFromToml(tomlCfg *ctoml.Config, cfg *dot.GlobalConfig) {
+	if tomlCfg != nil {
 		if tomlCfg.Global.ID != "" {
 			cfg.ID = tomlCfg.Global.ID
 		}
@@ -406,20 +438,10 @@ func setDotGlobalConfig(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.Global
 
 		cfg.MetricsPort = tomlCfg.Global.MetricsPort
 	}
+}
 
-	// TODO: generate random name if one is not assigned (see issue #1496)
-	// check --name flag and update node configuration
-	if name := ctx.GlobalString(NameFlag.Name); name != "" {
-		cfg.Name = name
-	} else {
-		// generate random name
-		entropy, _ := bip39.NewEntropy(128)
-		randomNamesString, _ := bip39.NewMnemonic(entropy)
-		randomNames := strings.Split(randomNamesString, " ")
-		number := binary.BigEndian.Uint16(entropy)
-		cfg.Name = randomNames[0] + "-" + randomNames[1] + "-" + fmt.Sprint(number)
-	}
-
+// setDotGlobalConfigFromFlags sets dot.GlobalConfig using flag values from the cli context
+func setDotGlobalConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) {
 	// check --basepath flag and update node configuration
 	if basepath := ctx.GlobalString(BasePathFlag.Name); basepath != "" {
 		cfg.BasePath = basepath
@@ -429,6 +451,7 @@ func setDotGlobalConfig(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.Global
 	if cfg.BasePath == "" {
 		cfg.BasePath = dot.GssmrConfig().Global.BasePath
 	}
+
 	// check --log flag
 	if lvlToInt, err := strconv.Atoi(ctx.String(LogFlag.Name)); err == nil {
 		cfg.LogLvl = log.Lvl(lvlToInt)
@@ -444,13 +467,39 @@ func setDotGlobalConfig(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.Global
 	}
 
 	cfg.NoTelemetry = ctx.Bool("no-telemetry")
+}
 
-	logger.Debug(
-		"global configuration",
-		"name", cfg.Name,
-		"id", cfg.ID,
-		"basepath", cfg.BasePath,
-	)
+func setDotGlobalConfigName(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.GlobalConfig) error {
+	globalBasePath := utils.ExpandDir(cfg.BasePath)
+	initialised := dot.NodeInitialized(globalBasePath, false)
+
+	// consider the --name flag as higher priority
+	if ctx.GlobalString(NameFlag.Name) != "" {
+		cfg.Name = ctx.GlobalString(NameFlag.Name)
+		return nil
+	}
+
+	// consider the name on config as a second priority
+	if tomlCfg.Global.Name != "" {
+		cfg.Name = tomlCfg.Global.Name
+		return nil
+	}
+
+	// if node was previously initialised and is not the init command
+	if initialised && ctx.Command.Name != initCommandName {
+		var err error
+		if cfg.Name, err = dot.LoadGlobalNodeName(globalBasePath); err != nil {
+			return err
+		}
+
+		if cfg.Name != "" {
+			logger.Debug("load global node name from database", "name", cfg.Name)
+			return nil
+		}
+	}
+
+	cfg.Name = dot.RandomNodeName()
+	return nil
 }
 
 // setDotAccountConfig sets dot.AccountConfig using flag values from the cli context
@@ -747,7 +796,7 @@ func updateDotConfigFromGenesisData(ctx *cli.Context, cfg *dot.Config) error {
 	}
 
 	// load genesis data from initialised node database
-	gen, err := state.LoadGenesisData(db)
+	gen, err := state.NewBaseState(db).LoadGenesisData()
 	if err != nil {
 		return fmt.Errorf("failed to load genesis data: %s", err)
 	}

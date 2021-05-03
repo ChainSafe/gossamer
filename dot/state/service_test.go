@@ -274,6 +274,8 @@ func TestService_Import(t *testing.T) {
 	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 	err := serv.Initialise(genData, genesisHeader, genTrie)
 	require.NoError(t, err)
+	err = serv.db.Close()
+	require.NoError(t, err)
 
 	tr := trie.NewEmptyTrie()
 	var testCases = []string{

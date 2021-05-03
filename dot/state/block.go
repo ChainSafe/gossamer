@@ -38,9 +38,10 @@ const pruneKeyBufferSize = 1000
 
 // BlockState defines fields for manipulating the state of blocks, such as BlockTree, BlockDB and Header
 type BlockState struct {
-	bt     *blocktree.BlockTree
-	baseDB chaindb.Database
-	db     chaindb.Database
+	bt *blocktree.BlockTree
+	//baseDB chaindb.Database
+	baseState *BaseState
+	db        chaindb.Database
 	sync.RWMutex
 	genesisHash common.Hash
 
@@ -61,7 +62,7 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 
 	bs := &BlockState{
 		bt:         bt,
-		baseDB:     db,
+		baseState:  NewBaseState(db),
 		db:         chaindb.NewTable(db, blockPrefix),
 		imported:   make(map[byte]chan<- *types.Block),
 		finalised:  make(map[byte]chan<- *types.Header),
@@ -81,7 +82,7 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*BlockState, error) {
 	bs := &BlockState{
 		bt:         blocktree.NewBlockTreeFromRoot(header, db),
-		baseDB:     db,
+		baseState:  NewBaseState(db),
 		db:         chaindb.NewTable(db, blockPrefix),
 		imported:   make(map[byte]chan<- *types.Block),
 		finalised:  make(map[byte]chan<- *types.Header),
@@ -548,7 +549,7 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 	}
 
 	go bs.notifyImported(block)
-	return bs.baseDB.Flush()
+	return bs.db.Flush()
 }
 
 // handleAddedBlock re-sets the canonical number->hash mapping if there was a chain re-org.
@@ -717,7 +718,7 @@ func (bs *BlockState) BlocktreeAsString() string {
 }
 
 func (bs *BlockState) setBestBlockHashKey(hash common.Hash) error {
-	return StoreBestBlockHash(bs.baseDB, hash)
+	return bs.baseState.StoreBestBlockHash(hash)
 }
 
 // HasArrivalTime returns true if the db contains the block's arrival time
@@ -727,7 +728,7 @@ func (bs *BlockState) HasArrivalTime(hash common.Hash) (bool, error) {
 
 // GetArrivalTime returns the arrival time in nanoseconds since the Unix epoch of a block given its hash
 func (bs *BlockState) GetArrivalTime(hash common.Hash) (time.Time, error) {
-	arrivalTime, err := bs.baseDB.Get(arrivalTimeKey(hash))
+	arrivalTime, err := bs.db.Get(arrivalTimeKey(hash))
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -739,5 +740,5 @@ func (bs *BlockState) GetArrivalTime(hash common.Hash) (time.Time, error) {
 func (bs *BlockState) setArrivalTime(hash common.Hash, arrivalTime time.Time) error {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, uint64(arrivalTime.UnixNano()))
-	return bs.baseDB.Put(arrivalTimeKey(hash), buf)
+	return bs.db.Put(arrivalTimeKey(hash), buf)
 }
