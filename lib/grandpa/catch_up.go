@@ -48,6 +48,7 @@ func newCatchUp(isAuthority bool, grandpa *Service, network Network) *catchUp {
 		isAuthority:    isAuthority,
 		isStarted:      isStarted,
 		grandpa:        grandpa,
+		network:        network,
 		authorityPeers: new(sync.Map),
 	}
 }
@@ -105,7 +106,11 @@ func (c *catchUp) doCatchUp(from peer.ID, setID, round uint64) error {
 	}
 
 	// make sure grandpa.state.setID and grandpa.state.voters are set correctly before verifying response
-	c.grandpa.updateAuthorities()
+	err = c.grandpa.updateAuthorities()
+	if err != nil {
+		return err
+	}
+
 	return c.handleCatchUpResponse(catchUpResp.(*catchUpResponse))
 }
 

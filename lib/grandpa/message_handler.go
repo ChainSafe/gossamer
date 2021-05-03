@@ -118,6 +118,7 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 	}
 
 	logger.Debug("got neighbour message", "number", msg.Number, "set id", msg.SetID, "round", msg.Round)
+	h.catchUp.addNeighbourMessage(from, msg)
 	h.grandpa.network.SendJustificationRequest(from, msg.Number)
 
 	// if the peer reports a higher set ID, or the same set ID but a higher round,
