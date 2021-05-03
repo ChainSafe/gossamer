@@ -49,16 +49,6 @@ func NewMessageHandler(grandpa *Service, blockState BlockState) *MessageHandler 
 // if it is a CommitMessage, it updates the BlockState
 // if it is a VoteMessage, it sends it to the GRANDPA service
 func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.NotificationsMessage, error) {
-	// if msg == nil || len(msg.Data) == 0 {
-	// 	logger.Trace("received nil message or message with nil data")
-	// 	return nil, nil
-	// }
-
-	// m, err := decodeMessage(msg)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	logger.Trace("handling grandpa message", "msg", m)
 
 	switch m.Type() {
