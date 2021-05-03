@@ -136,10 +136,6 @@ type BlockAnnounceHandshake struct {
 	GenesisHash     common.Hash
 }
 
-func (hs *BlockAnnounceHandshake) sizeof() uint32 {
-	return 1 + 4 + 32 + 32
-}
-
 // SubProtocol returns the block-announces sub-protocol
 func (hs *BlockAnnounceHandshake) SubProtocol() string {
 	return blockAnnounceID

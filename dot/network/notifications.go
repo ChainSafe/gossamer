@@ -19,6 +19,7 @@ package network
 import (
 	"errors"
 	"sync"
+	"unsafe"
 
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -27,7 +28,7 @@ import (
 
 var errCannotValidateHandshake = errors.New("failed to validate handshake")
 
-var maxHandshakeSize = new(BlockAnnounceHandshake).sizeof()
+var maxHandshakeSize = unsafe.Sizeof(BlockAnnounceHandshake{})
 
 // Handshake is the interface all handshakes for notifications protocols must implement
 type Handshake interface {
@@ -84,6 +85,7 @@ type handshakeData struct {
 	validated bool
 	handshake Handshake
 	stream    libp2pnetwork.Stream
+	sync.Mutex
 }
 
 func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecoder, messageDecoder MessageDecoder) messageDecoder {
@@ -209,6 +211,9 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 				received:  false,
 			}
 		}
+
+		hsData.Lock()
+		defer hsData.Unlock()
 
 		info.outboundHandshakeData.Store(peer, hsData)
 		logger.Trace("sending outbound handshake", "protocol", info.protocolID, "peer", peer, "message", hs)
