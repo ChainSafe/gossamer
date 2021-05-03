@@ -101,8 +101,9 @@ func TestHandleBlockAnnounceMessage(t *testing.T) {
 		Number: big.NewInt(10),
 	}
 
-	err := s.handleBlockAnnounceMessage(peerID, msg)
+	propagate, err := s.handleBlockAnnounceMessage(peerID, msg)
 	require.NoError(t, err)
+	require.True(t, propagate)
 }
 
 func TestValidateBlockAnnounceHandshake(t *testing.T) {

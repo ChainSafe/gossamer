@@ -156,11 +156,11 @@ func decodeTransactionMessage(in []byte) (NotificationsMessage, error) {
 	return msg, err
 }
 
-func (s *Service) handleTransactionMessage(_ peer.ID, msg NotificationsMessage) error {
+func (s *Service) handleTransactionMessage(_ peer.ID, msg NotificationsMessage) (bool, error) {
 	txMsg, ok := msg.(*TransactionMessage)
 	if !ok {
-		return errors.New("invalid transaction type")
+		return false, errors.New("invalid transaction type")
 	}
 
-	return s.transactionHandler.HandleTransactionMessage(txMsg)
+	return true, s.transactionHandler.HandleTransactionMessage(txMsg)
 }

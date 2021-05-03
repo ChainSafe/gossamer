@@ -48,7 +48,7 @@ type (
 	MessageDecoder = func([]byte) (NotificationsMessage, error)
 
 	// NotificationsMessageHandler is called when a (non-handshake) message is received over a notifications stream.
-	NotificationsMessageHandler = func(peer peer.ID, msg NotificationsMessage) error
+	NotificationsMessageHandler = func(peer peer.ID, msg NotificationsMessage) (propagate bool, err error)
 
 	streamHandler = func(libp2pnetwork.Stream, peer.ID)
 )
@@ -196,13 +196,13 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			"peer", stream.Conn().RemotePeer(),
 		)
 
-		err := messageHandler(peer, msg)
+		propagate, err := messageHandler(peer, msg)
 		if err != nil {
 			return err
 		}
 
 		// TODO: improve this by keeping track of who you've received/sent messages from
-		if s.noGossip {
+		if !propagate || s.noGossip {
 			return nil
 		}
 

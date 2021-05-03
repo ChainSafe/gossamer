@@ -124,20 +124,39 @@ func (s *Service) decodeMessage(in []byte) (NotificationsMessage, error) {
 	return msg, err
 }
 
-func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) error {
-	cm, ok := msg.(*network.ConsensusMessage)
-	if !ok {
-		return ErrInvalidMessageType
+func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (bool, error) {
+	if msg == nil {
+		logger.Trace("received nil message, ignoring")
+		return false, nil
 	}
 
-	resp, err := s.messageHandler.handleMessage(from, cm)
+	cm, ok := msg.(*network.ConsensusMessage)
+	if !ok {
+		return false, ErrInvalidMessageType
+	}
+
+	if len(cm.Data) == 0 {
+		logger.Trace("received message with nil data, ignoring")
+		return false, nil
+	}
+
+	m, err := decodeMessage(cm)
 	if err != nil {
-		return err
+		return false, err
+	}
+
+	resp, err := s.messageHandler.handleMessage(from, m)
+	if err != nil {
+		return false, err
 	}
 
 	if resp != nil {
 		s.network.SendMessage(resp)
 	}
 
-	return nil
+	if m.Type() == neighbourType || m.Type() == catchUpResponseType {
+		return false, nil
+	}
+
+	return true, nil
 }
