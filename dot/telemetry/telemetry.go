@@ -78,6 +78,7 @@ func (h *Handler) AddConnections(conns []*genesis.TelemetryEndpoint) {
 		c, _, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
 		if err != nil {
 			fmt.Printf("Error %v\n", err)
+			continue
 		}
 		h.wsConn = append(h.wsConn, c)
 	}
