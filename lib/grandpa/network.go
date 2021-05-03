@@ -103,8 +103,17 @@ func (s *Service) registerProtocol() error {
 }
 
 func (s *Service) getHandshake() (Handshake, error) {
+	var role byte
+	if s.authority {
+		role = 4
+	} else {
+		role = 1
+	}
+	_ = role
+
 	return &GrandpaHandshake{
-		Roles: 1, // TODO: don't hard-code this
+		//Roles: 1, // TODO: don't hard-code this
+		Roles: 4,
 	}, nil
 }
 

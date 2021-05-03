@@ -33,8 +33,8 @@ import (
 type catchUp struct {
 	isAuthority           bool
 	isStarted             *atomic.Value
-	authorityPeers        *sync.Map //map[peer.ID]struct{}
-	highestFinalizedRound uint64    // get this from neighbour messages
+	authorityPeers        *sync.Map //map[peer.ID]*NeighbourMessage
+	highestFinalizedRound uint64    // TODO: get this from neighbour messages
 
 	grandpa *Service
 	network Network
@@ -54,7 +54,7 @@ func newCatchUp(isAuthority bool, grandpa *Service, network Network) *catchUp {
 }
 
 func (c *catchUp) addPeer(id peer.ID) {
-	c.authorityPeers.Store(id, struct{}{}) // TODO: store neighbour message info
+	c.authorityPeers.Store(id, nil) // TODO: store neighbour message info
 }
 
 func (c *catchUp) doCatchUp(from peer.ID, setID, round uint64) error {
@@ -69,27 +69,30 @@ func (c *catchUp) doCatchUp(from peer.ID, setID, round uint64) error {
 
 	logger.Debug("beginning catch-up process", "setID", setID, "target round", round)
 
-	currSetID, err := c.grandpa.grandpaState.GetCurrentSetID()
-	if err != nil {
-		return err
-	}
+	// currSetID, err := c.grandpa.grandpaState.GetCurrentSetID()
+	// if err != nil {
+	// 	return err
+	// }
 
-	if setID > currSetID {
-		// we aren't ready to catch up yet, wait until we've synced enough of the
-		// chain to know the authorities at this set ID
-		logger.Debug("ignoring catch-up, not at target set ID", "current", currSetID, "target", setID)
-		return nil
-	}
+	// if setID > currSetID {
+	// 	// we aren't ready to catch up yet, wait until we've synced enough of the
+	// 	// chain to know the authorities at this set ID
+	// 	logger.Debug("ignoring catch-up, not at target set ID", "current", currSetID, "target", setID)
+	// 	return nil
+	// }
 
 	// pause voting while we do catch-up
 	c.grandpa.paused.Store(true)
 
 	c.isStarted.Store(true)
+	defer c.isStarted.Store(false)
+
 	msg := newCatchUpRequest(round, setID)
 	cm, err := msg.ToConsensusMessage()
 	if err != nil {
 		return err
 	}
+
 	resp, err := c.network.SendCatchUpRequest(from, messageID, cm)
 	if err != nil {
 		return err
@@ -100,7 +103,9 @@ func (c *catchUp) doCatchUp(from peer.ID, setID, round uint64) error {
 		return errors.New("peer did not send catch up response :(")
 	}
 
-	catchUpResp, err := decodeMessage(resp)
+	logger.Debug("catch up response", "resp", resp)
+
+	grandpaResp, err := decodeMessage(resp)
 	if err != nil {
 		return err
 	}
@@ -111,12 +116,21 @@ func (c *catchUp) doCatchUp(from peer.ID, setID, round uint64) error {
 		return err
 	}
 
-	return c.handleCatchUpResponse(catchUpResp.(*catchUpResponse))
+	catchUpResp, ok := grandpaResp.(*catchUpResponse)
+	if !ok {
+		return errors.New("message is not catch up response")
+	}
+
+	return c.handleCatchUpResponse(catchUpResp)
 }
 
 // TODO: track authority peers and only take into account neighbour messages from them for catch-up
 func (c *catchUp) addNeighbourMessage(from peer.ID, msg *NeighbourMessage) {
+	if msg.SetID == c.grandpa.state.setID && msg.Round > c.highestFinalizedRound {
+		c.highestFinalizedRound = msg.Round
+	}
 
+	c.authorityPeers.Store(from, msg)
 }
 
 func (c *catchUp) handleCatchUpResponse(msg *catchUpResponse) error {

@@ -18,6 +18,7 @@ package network
 
 import (
 	"errors"
+	"time"
 
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -34,14 +35,9 @@ func (s *Service) SendCatchUpRequest(peer peer.ID, msgType byte, req *ConsensusM
 	notifications := s.notificationsProtocols[msgType]
 	s.notificationsMu.RUnlock()
 
-	data, has := notifications.handshakeData.Load(peer)
+	hsData, has := notifications.getHandshakeData(peer)
 	if !has {
-		return nil, errors.New("stream not established with peer")
-	}
-
-	hsData, ok := data.(*handshakeData)
-	if !ok {
-		return nil, errors.New("failed to get handshake data for peer")
+		return nil, errors.New("stream handshake not established with peer")
 	}
 
 	err := s.host.writeToStream(hsData.stream, req)
@@ -49,7 +45,32 @@ func (s *Service) SendCatchUpRequest(peer peer.ID, msgType byte, req *ConsensusM
 		return nil, err
 	}
 
-	return s.receiveResponse(hsData.stream)
+	resCh := make(chan interface{})
+
+	go func() {
+		resp, err := s.receiveResponse(hsData.stream)
+		if err != nil {
+			resCh <- err
+			return
+		}
+
+		resCh <- resp
+	}()
+
+	select {
+	case <-time.After(time.Second * 5):
+		return nil, errors.New("timeout")
+	case res := <-resCh:
+		if msg, ok := res.(*ConsensusMessage); ok {
+			return msg, nil
+		}
+
+		if err, ok := res.(error); ok {
+			return nil, err
+		}
+	}
+
+	return nil, errors.New("failed to receive response")
 }
 
 func (s *Service) receiveResponse(stream libp2pnetwork.Stream) (*ConsensusMessage, error) {
