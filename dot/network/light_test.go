@@ -22,7 +22,7 @@ func TestDecodeLightMessage(t *testing.T) {
 	reqEnc, err := testLightRequest.Encode()
 	require.NoError(t, err)
 
-	msg, err := s.decodeLightMessage(reqEnc, testPeer)
+	msg, err := s.decodeLightMessage(reqEnc, testPeer, true)
 	require.NoError(t, err)
 
 	req, ok := msg.(*LightRequest)
@@ -36,7 +36,7 @@ func TestDecodeLightMessage(t *testing.T) {
 	respEnc, err := testLightResponse.Encode()
 	require.NoError(t, err)
 
-	msg, err = s.decodeLightMessage(respEnc, testPeer)
+	msg, err = s.decodeLightMessage(respEnc, testPeer, true)
 	require.NoError(t, err)
 	resp, ok := msg.(*LightResponse)
 	require.True(t, ok)
