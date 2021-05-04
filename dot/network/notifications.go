@@ -85,7 +85,7 @@ type handshakeData struct {
 	validated bool
 	handshake Handshake
 	stream    libp2pnetwork.Stream
-	mu        *sync.Mutex
+	*sync.Mutex
 }
 
 func newHandshakeData(received, validated bool, stream libp2pnetwork.Stream) handshakeData {
@@ -93,7 +93,7 @@ func newHandshakeData(received, validated bool, stream libp2pnetwork.Stream) han
 		received:  received,
 		validated: validated,
 		stream:    stream,
-		mu:        new(sync.Mutex),
+		Mutex:     new(sync.Mutex),
 	}
 }
 
@@ -215,8 +215,8 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 			hsData = newHandshakeData(false, false, nil)
 		}
 
-		hsData.mu.Lock()
-		defer hsData.mu.Unlock()
+		hsData.Lock()
+		defer hsData.Unlock()
 
 		logger.Trace("sending outbound handshake", "protocol", info.protocolID, "peer", peer, "message", hs)
 		stream, err := s.host.send(peer, info.protocolID, hs)
