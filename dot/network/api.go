@@ -35,14 +35,24 @@ func (s *Service) SendCatchUpRequest(peer peer.ID, msgType byte, req *ConsensusM
 	notifications := s.notificationsProtocols[msgType]
 	s.notificationsMu.RUnlock()
 
-	hsData, has := notifications.getHandshakeData(peer)
-	if !has {
-		return nil, errors.New("stream handshake not established with peer")
-	}
+	// err := s.host.writeToStream(hsData.stream, req)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	err := s.host.writeToStream(hsData.stream, req)
+	hs, err := notifications.getHandshake()
 	if err != nil {
 		return nil, err
+	}
+
+	err = s.sendData(peer, hs, notifications, req)
+	if err != nil {
+		return nil, err
+	}
+
+	hsData, has := notifications.getHandshakeData(peer, true) // get inbound stream to read response from
+	if !has {
+		return nil, errors.New("inbound stream not established with peer")
 	}
 
 	resCh := make(chan interface{})
@@ -75,11 +85,13 @@ func (s *Service) SendCatchUpRequest(peer peer.ID, msgType byte, req *ConsensusM
 
 func (s *Service) receiveResponse(stream libp2pnetwork.Stream) (*ConsensusMessage, error) {
 	// TODO: don't always allocate this
-	buf := make([]byte, maxBlockResponseSize)
+	buf := make([]byte, 1024*1024)
 	n, err := readStream(stream, buf)
 	if err != nil {
 		return nil, err
 	}
+
+	logger.Info("got catch up response!", "data", buf[:n])
 
 	msg := new(ConsensusMessage)
 	err = msg.Decode(buf[:n])
