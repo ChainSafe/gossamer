@@ -220,17 +220,13 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 
 	// don't need to lock here, since function is always called inside the func returned by
 	// `createNotificationsMessageHandler` which locks the map beforehand.
-	data, ok := np.getHandshakeData(peer)
-	if !ok {
-		np.handshakeData.Store(peer, handshakeData{
-			received:  true,
-			validated: true,
-		})
-		data, _ = np.getHandshakeData(peer)
+	data, ok := np.getHandshakeData(peer, true)
+	if ok {
+		data.handshake = hs
+		// TODO: since this is used only for rpc system_peers only,
+		// we can just set the inbound handshake and use that in Peers()
+		np.inboundHandshakeData.Store(peer, data)
 	}
-
-	data.handshake = hs
-	np.handshakeData.Store(peer, data)
 
 	// if peer has higher best block than us, begin syncing
 	latestHeader, err := s.blockState.BestBlockHeader()
@@ -255,10 +251,10 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 // handleBlockAnnounceMessage handles BlockAnnounce messages
 // if some more blocks are required to sync the announced block, the node will open a sync stream
 // with its peer and send a BlockRequest message
-func (s *Service) handleBlockAnnounceMessage(peer peer.ID, msg NotificationsMessage) (bool, error) {
+func (s *Service) handleBlockAnnounceMessage(peer peer.ID, msg NotificationsMessage) (propagate bool, err error) {
 	if an, ok := msg.(*BlockAnnounceMessage); ok {
 		s.syncQueue.handleBlockAnnounce(an, peer)
-		err := s.syncer.HandleBlockAnnounce(an)
+		err = s.syncer.HandleBlockAnnounce(an)
 		if err != nil {
 			return false, err
 		}
