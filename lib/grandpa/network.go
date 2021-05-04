@@ -145,19 +145,13 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) e
 
 func (s *Service) sendNeighbourMessage() {
 	for {
-		var msg *NeighbourMessage
-
 		select {
 		case <-time.After(time.Minute * 5):
-			// TODO: fill out?? cache neighbour msg?
-			msg = &NeighbourMessage{
-				Version: 1,
-				// Round: info.Round,
-				// SetID: info.SetID,
-				// Number: uint32(info.Header.Number.Int64()),
+			if s.neighbourMessage == nil {
+				continue
 			}
 		case info := <-s.finalisedCh:
-			msg = &NeighbourMessage{
+			s.neighbourMessage = &NeighbourMessage{
 				Version: 1,
 				Round:   info.Round,
 				SetID:   info.SetID,
@@ -165,7 +159,7 @@ func (s *Service) sendNeighbourMessage() {
 			}
 		}
 
-		cm, err := msg.ToConsensusMessage()
+		cm, err := s.neighbourMessage.ToConsensusMessage()
 		if err != nil {
 			logger.Warn("failed to convert NeighbourMessage to network message", "error", err)
 			continue

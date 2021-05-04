@@ -74,9 +74,10 @@ type Service struct {
 	justification      map[uint64][]*SignedPrecommit // map of round number -> precommit round justification
 
 	// channels for communication with other services
-	in            chan GrandpaMessage // only used to receive *VoteMessage
-	finalisedCh   chan *types.FinalisationInfo
-	finalisedChID byte
+	in               chan GrandpaMessage // only used to receive *VoteMessage
+	finalisedCh      chan *types.FinalisationInfo
+	finalisedChID    byte
+	neighbourMessage *NeighbourMessage // cached neighbour message
 }
 
 // Config represents a GRANDPA service configuration
@@ -195,6 +196,7 @@ func (s *Service) Start() error {
 		}
 	}()
 
+	go s.sendNeighbourMessage()
 	return nil
 }
 
