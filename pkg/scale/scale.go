@@ -17,15 +17,19 @@
 package scale
 
 import (
-	"bytes"
-	"encoding/binary"
 	"fmt"
-	"math/big"
 	"reflect"
 	"sort"
 	"strings"
 	"sync"
 )
+
+type VaryingDataType []VaryingDataTypeValue
+
+// VaryingDataType is used to represent scale encodable types
+type VaryingDataTypeValue interface {
+	Index() uint
+}
 
 // package level cache for fieldScaleIndicies
 var cache = &fieldScaleIndicesCache{
