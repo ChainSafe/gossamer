@@ -29,8 +29,9 @@ import (
 )
 
 var (
-	grandpaID protocol.ID = "/paritytech/grandpa/1"
-	messageID             = network.ConsensusMsgType
+	grandpaID                protocol.ID = "/paritytech/grandpa/1"
+	messageID                            = network.ConsensusMsgType
+	neighbourMessageInterval             = time.Minute * 5
 )
 
 // Handshake is an alias for network.Handshake
@@ -146,7 +147,7 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) e
 func (s *Service) sendNeighbourMessage() {
 	for {
 		select {
-		case <-time.After(time.Minute * 5):
+		case <-time.After(neighbourMessageInterval):
 			if s.neighbourMessage == nil {
 				continue
 			}
