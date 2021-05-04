@@ -68,7 +68,7 @@ func TestDecodeSyncMessage(t *testing.T) {
 	reqEnc, err := testBlockRequestMessage.Encode()
 	require.NoError(t, err)
 
-	msg, err := s.decodeSyncMessage(reqEnc, testPeer)
+	msg, err := s.decodeSyncMessage(reqEnc, testPeer, true)
 	require.NoError(t, err)
 
 	req, ok := msg.(*BlockRequestMessage)
