@@ -573,7 +573,7 @@ func Test_encodeState_encodeStruct(t *testing.T) {
 			name: "struct {[]byte, int32, bool}",
 			args: args{
 				t: struct {
-					Baz bool   `scale:"3"`
+					Baz bool   `scale:"3,enum"`
 					Bar int32  `scale:"2"`
 					Foo []byte `scale:"1"`
 				}{
