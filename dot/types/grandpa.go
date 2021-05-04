@@ -165,3 +165,10 @@ func DecodeGrandpaVoters(r io.Reader) (GrandpaVoters, error) {
 
 	return voters, nil
 }
+
+// FinalisationInfo represents information about what block was finalized in what round and setID
+type FinalisationInfo struct {
+	Header *Header
+	Round  uint64
+	SetID  uint64
+}

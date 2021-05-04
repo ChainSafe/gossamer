@@ -18,6 +18,7 @@ package grandpa
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -140,4 +141,36 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) e
 	}
 
 	return nil
+}
+
+func (s *Service) sendNeighbourMessage() {
+	for {
+		var msg *NeighbourMessage
+
+		select {
+		case <-time.After(time.Minute * 5):
+			// TODO: fill out?? cache neighbour msg?
+			msg = &NeighbourMessage{
+				Version: 1,
+				// Round: info.Round,
+				// SetID: info.SetID,
+				// Number: uint32(info.Header.Number.Int64()),
+			}
+		case info := <-s.finalisedCh:
+			msg = &NeighbourMessage{
+				Version: 1,
+				Round:   info.Round,
+				SetID:   info.SetID,
+				Number:  uint32(info.Header.Number.Int64()),
+			}
+		}
+
+		cm, err := msg.ToConsensusMessage()
+		if err != nil {
+			logger.Warn("failed to convert NeighbourMessage to network message", "error", err)
+			continue
+		}
+
+		s.network.SendMessage(cm)
+	}
 }
