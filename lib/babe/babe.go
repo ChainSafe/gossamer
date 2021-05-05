@@ -211,13 +211,13 @@ func (b *Service) Start() error {
 		return err
 	}
 
-	err = b.initiateEpoch(epoch)
-	if err != nil {
-		logger.Error("failed to initiate epoch", "error", err)
-		return err
-	}
+	// err = b.initiateEpoch(epoch)
+	// if err != nil {
+	// 	logger.Error("failed to initiate epoch", "error", err)
+	// 	return err
+	// }
 
-	go b.initiate()
+	go b.initiate(epoch)
 	return nil
 }
 
@@ -253,7 +253,13 @@ func (b *Service) Resume() error {
 		return errors.New("service not paused")
 	}
 
-	go b.initiate()
+	epoch, err := b.epochState.GetCurrentEpoch()
+	if err != nil {
+		logger.Error("failed to get current epoch", "error", err)
+		return err
+	}
+
+	go b.initiate(epoch)
 	b.paused = false
 	logger.Info("service resumed")
 	return nil
@@ -344,7 +350,7 @@ func (b *Service) getSlotDuration() time.Duration {
 	return b.slotDuration
 }
 
-func (b *Service) initiate() {
+func (b *Service) initiate(epoch uint64) {
 	if b.blockState == nil {
 		logger.Error("block authoring", "error", "blockState is nil")
 		return
@@ -355,28 +361,40 @@ func (b *Service) initiate() {
 		return
 	}
 
-	b.invokeBlockAuthoring()
+	b.invokeBlockAuthoring(epoch)
 }
 
-func (b *Service) invokeBlockAuthoring() {
-	currEpoch, err := b.epochState.GetCurrentEpoch()
+func (b *Service) invokeBlockAuthoring(epoch uint64) {
+	// calculate current slot
+	startSlot := getCurrentSlot(b.slotDuration)
+
+	head, err := b.blockState.BestBlockHeader()
 	if err != nil {
-		logger.Error("failed to get current epoch", "error", err)
+		logger.Error("failed to get best block header", "error", err)
+		return
+	}
+
+	// if we're at genesis, set the first slot number for the network
+	if head.Number.Cmp(big.NewInt(0)) == 0 {
+		b.epochState.SetFirstSlot(startSlot)
+	}
+
+	logger.Info("initiating epoch", "number", epoch, "start slot", startSlot+b.epochLength)
+	err = b.initiateEpoch(epoch)
+	if err != nil {
+		logger.Error("failed to initiate epoch", "epoch", epoch, "error", err)
 		return
 	}
 
 	// get start slot for current epoch
 	epochStart, err := b.epochState.GetStartSlotForEpoch(0)
 	if err != nil {
-		logger.Error("failed to get start slot for current epoch", "epoch", currEpoch, "error", err)
+		logger.Error("failed to get start slot for current epoch", "epoch", epoch, "error", err)
 		return
 	}
 
-	// calculate current slot
-	startSlot := getCurrentSlot(b.slotDuration)
-
 	intoEpoch := startSlot - epochStart
-	logger.Info("current epoch", "epoch", currEpoch, "slots into epoch", intoEpoch)
+	logger.Info("current epoch", "epoch", epoch, "slots into epoch", intoEpoch)
 
 	// if the calculated amount of slots "into the epoch" is greater than the epoch length,
 	// we've been offline for more than an epoch, and need to sync. pause BABE for now, syncer will
@@ -425,15 +443,7 @@ func (b *Service) invokeBlockAuthoring() {
 		return
 	}
 
-	logger.Info("initiating epoch", "number", next, "start slot", startSlot+b.epochLength)
-
-	err = b.initiateEpoch(next)
-	if err != nil {
-		logger.Error("failed to initiate epoch", "epoch", next, "error", err)
-		return
-	}
-
-	b.invokeBlockAuthoring()
+	b.invokeBlockAuthoring(next)
 }
 
 func (b *Service) handleSlot(slotNum uint64) error {
@@ -501,10 +511,6 @@ func (b *Service) handleSlot(slotNum uint64) error {
 	if err != nil {
 		logger.Error("failed to send block to core", "error", err)
 		return err
-	}
-
-	if block.Header.Number.Cmp(big.NewInt(1)) == 0 {
-		b.epochState.SetFirstSlot(slotNum)
 	}
 
 	return nil

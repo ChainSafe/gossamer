@@ -48,7 +48,7 @@ func TestMain(m *testing.M) {
 	}
 
 	utils.CreateConfigNoBabe()
-	utils.CreateConfigBabeMaxThreshold()
+	//utils.CreateConfigBabeMaxThreshold()
 	utils.CreateDefaultConfig()
 
 	logLvl := log.LvlInfo
@@ -70,7 +70,7 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 
 	os.Remove(utils.ConfigNoBABE)
-	os.Remove(utils.ConfigBABEMaxThreshold)
+	//os.Remove(utils.ConfigBABEMaxThreshold)
 	os.Remove(utils.ConfigDefault)
 	os.Exit(code)
 }

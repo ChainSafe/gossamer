@@ -31,6 +31,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 	)
 
 	if epoch == 0 {
+		logger.Debug("at epoch 0")
 		startSlot, err = b.epochState.GetStartSlotForEpoch(epoch)
 		if err != nil {
 			return err
