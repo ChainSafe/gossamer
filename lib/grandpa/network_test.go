@@ -65,14 +65,23 @@ func TestHandleNetworkMessage(t *testing.T) {
 	h := NewMessageHandler(gs, st.Block)
 	gs.messageHandler = h
 
-	err = gs.handleNetworkMessage(peer.ID(""), cm)
+	propagate, err := gs.handleNetworkMessage(peer.ID(""), cm)
 	require.NoError(t, err)
+	require.True(t, propagate)
 
 	select {
 	case <-gs.network.(*testNetwork).out:
 	case <-time.After(testTimeout):
 		t.Fatal("expected to send message")
 	}
+
+	neighbourMsg := &NeighbourMessage{}
+	cm, err = neighbourMsg.ToConsensusMessage()
+	require.NoError(t, err)
+
+	propagate, err = gs.handleNetworkMessage(peer.ID(""), cm)
+	require.NoError(t, err)
+	require.False(t, propagate)
 }
 
 func TestSendNeighbourMessage(t *testing.T) {
