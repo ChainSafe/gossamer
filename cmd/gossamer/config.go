@@ -17,7 +17,6 @@
 package main
 
 import (
-	"encoding/binary"
 	"fmt"
 	"strconv"
 	"strings"

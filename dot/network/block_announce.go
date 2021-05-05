@@ -236,14 +236,6 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 
 	bestBlockNum := big.NewInt(int64(bhs.BestBlockNumber))
 
-	// if peer has higher best block than us, begin syncing
-	latestHeader, err := s.blockState.BestBlockHeader()
-	if err != nil {
-		return err
-	}
-
-	bestBlockNum := big.NewInt(int64(bhs.BestBlockNumber))
-
 	// check if peer block number is greater than host block number
 	if latestHeader.Number.Cmp(bestBlockNum) >= 0 {
 		return nil
