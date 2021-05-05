@@ -251,14 +251,14 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 // handleBlockAnnounceMessage handles BlockAnnounce messages
 // if some more blocks are required to sync the announced block, the node will open a sync stream
 // with its peer and send a BlockRequest message
-func (s *Service) handleBlockAnnounceMessage(peer peer.ID, msg NotificationsMessage) error {
+func (s *Service) handleBlockAnnounceMessage(peer peer.ID, msg NotificationsMessage) (propagate bool, err error) {
 	if an, ok := msg.(*BlockAnnounceMessage); ok {
 		s.syncQueue.handleBlockAnnounce(an, peer)
-		err := s.syncer.HandleBlockAnnounce(an)
+		err = s.syncer.HandleBlockAnnounce(an)
 		if err != nil {
-			return err
+			return false, err
 		}
 	}
 
-	return nil
+	return true, nil
 }

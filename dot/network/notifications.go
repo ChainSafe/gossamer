@@ -50,7 +50,7 @@ type (
 	MessageDecoder = func([]byte) (NotificationsMessage, error)
 
 	// NotificationsMessageHandler is called when a (non-handshake) message is received over a notifications stream.
-	NotificationsMessageHandler = func(peer peer.ID, msg NotificationsMessage) error
+	NotificationsMessageHandler = func(peer peer.ID, msg NotificationsMessage) (propagate bool, err error)
 )
 
 type notificationsProtocol struct {
@@ -180,17 +180,12 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			"peer", stream.Conn().RemotePeer(),
 		)
 
-		err := messageHandler(peer, msg)
+		propagate, err := messageHandler(peer, msg)
 		if err != nil {
 			return err
 		}
 
-		if s.noGossip {
-			return nil
-		}
-
-		// TODO: we don't want to rebroadcast neighbour messages, so ignore all consensus messages for now
-		if _, isConsensus := msg.(*ConsensusMessage); isConsensus {
+		if !propagate || s.noGossip {
 			return nil
 		}
 
