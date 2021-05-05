@@ -27,11 +27,11 @@ var (
 	// DefaultName Default node name
 	DefaultName = string("Gossamer")
 	// DefaultID Default chain ID
-	DefaultID = string("gssmr")
+	DefaultID = string("dev")
 	// DefaultConfig Default toml configuration path
-	DefaultConfig = string("./chain/gssmr/config.toml")
+	DefaultConfig = string("./chain/dev/config.toml")
 	// DefaultBasePath Default node base directory path
-	DefaultBasePath = string("~/.gossamer/gssmr")
+	DefaultBasePath = string("~/.gossamer/dev")
 
 	// DefaultMetricsPort is the metrics server port
 	DefaultMetricsPort = uint32(9876)
@@ -42,12 +42,12 @@ var (
 	// InitConfig
 
 	// DefaultGenesis is the default genesis configuration path
-	DefaultGenesis = string("./chain/gssmr/genesis.json")
+	DefaultGenesis = string("./chain/dev/genesis-spec.json")
 
 	// AccountConfig
 
 	// DefaultKey Default account key
-	DefaultKey = string("")
+	DefaultKey = string("alice")
 	// DefaultUnlock Default account unlock
 	DefaultUnlock = string("")
 

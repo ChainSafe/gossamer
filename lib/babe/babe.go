@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 	"os"
 	"sync"
 	"time"
@@ -40,6 +41,7 @@ type Service struct {
 	cancel    context.CancelFunc
 	paused    bool
 	authority bool
+	dev       bool
 
 	// Storage interfaces
 	blockState       BlockState
@@ -78,6 +80,7 @@ type ServiceConfig struct {
 	Keypair              *sr25519.Keypair
 	Runtime              runtime.Instance
 	AuthData             []*types.Authority
+	IsDev                bool
 	ThresholdNumerator   uint64 // for development purposes
 	ThresholdDenominator uint64 // for development purposes
 	SlotDuration         uint64 // for development purposes; in milliseconds
@@ -124,6 +127,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		blockChan:        make(chan types.Block),
 		pause:            make(chan struct{}),
 		authority:        cfg.Authority,
+		dev:              cfg.IsDev,
 	}
 
 	var err error
@@ -377,9 +381,13 @@ func (b *Service) invokeBlockAuthoring() {
 	// if the calculated amount of slots "into the epoch" is greater than the epoch length,
 	// we've been offline for more than an epoch, and need to sync. pause BABE for now, syncer will
 	// resume it when ready
-	if b.epochLength <= intoEpoch {
+	if b.epochLength <= intoEpoch && !b.dev {
 		b.paused = true
 		return
+	}
+
+	if b.dev {
+		intoEpoch = intoEpoch % b.epochLength
 	}
 
 	slotDone := make([]<-chan time.Time, b.epochLength-intoEpoch)
@@ -429,7 +437,7 @@ func (b *Service) invokeBlockAuthoring() {
 }
 
 func (b *Service) handleSlot(slotNum uint64) error {
-	if b.isDisabled || b.slotToProof[slotNum] == nil {
+	if b.slotToProof[slotNum] == nil {
 		return ErrNotAuthorized
 	}
 
@@ -494,6 +502,11 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		logger.Error("failed to send block to core", "error", err)
 		return err
 	}
+
+	if block.Header.Number.Cmp(big.NewInt(1)) == 0 {
+		b.epochState.SetFirstSlot(slotNum)
+	}
+
 	return nil
 }
 

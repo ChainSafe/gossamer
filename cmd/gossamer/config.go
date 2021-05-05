@@ -44,10 +44,12 @@ var (
 	defaultGssmrConfigPath    = "./chain/gssmr/config.toml"
 	defaultKusamaConfigPath   = "./chain/kusama/config.toml"
 	defaultPolkadotConfigPath = "./chain/polkadot/config.toml"
+	defaultDevConfigPath      = "./chain/dev/config.toml"
 
 	gossamerName = "gssmr"
 	kusamaName   = "kusama"
 	polkadotName = "polkadot"
+	devName      = "dev"
 )
 
 // loadConfigFile loads a default config file if --chain is specified, a specific
@@ -100,6 +102,11 @@ func setupConfigFromChain(ctx *cli.Context) (*ctoml.Config, *dot.Config, error) 
 			tomlCfg = &ctoml.Config{}
 			cfg = dot.PolkadotConfig()
 			err = loadConfig(tomlCfg, defaultPolkadotConfigPath)
+		case devName:
+			logger.Info("loading toml configuration...", "config path", defaultDevConfigPath)
+			tomlCfg = &ctoml.Config{}
+			cfg = dot.DevConfig()
+			err = loadConfig(tomlCfg, defaultDevConfigPath)
 		default:
 			return nil, nil, fmt.Errorf("unknown chain id provided: %s", id)
 		}
@@ -570,11 +577,6 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 	if cfg.Roles != types.AuthorityRole {
 		cfg.BabeAuthority = false
 		cfg.GrandpaAuthority = false
-	}
-
-	if tomlCfg.BabeThresholdDenominator != 0 {
-		cfg.BabeThresholdDenominator = tomlCfg.BabeThresholdDenominator
-		cfg.BabeThresholdNumerator = tomlCfg.BabeThresholdNumerator
 	}
 
 	switch tomlCfg.WasmInterpreter {

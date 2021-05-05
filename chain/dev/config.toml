@@ -9,7 +9,7 @@ network = ""
 rpc = ""
 state = ""
 runtime = ""
-babe = ""
+babe = "debug"
 grandpa = ""
 sync = ""
 

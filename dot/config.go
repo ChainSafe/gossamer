@@ -19,6 +19,7 @@ package dot
 import (
 	"encoding/json"
 
+	"github.com/ChainSafe/gossamer/chain/dev"
 	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/chain/kusama"
 	"github.com/ChainSafe/gossamer/chain/polkadot"
@@ -263,6 +264,52 @@ func PolkadotConfig() *Config {
 			Host:    polkadot.DefaultRPCHTTPHost,
 			Modules: polkadot.DefaultRPCModules,
 			WSPort:  polkadot.DefaultRPCWSPort,
+		},
+	}
+}
+
+func DevConfig() *Config {
+	return &Config{
+		Global: GlobalConfig{
+			Name:     dev.DefaultName,
+			ID:       dev.DefaultID,
+			BasePath: dev.DefaultBasePath,
+			LogLvl:   dev.DefaultLvl,
+		},
+		Log: LogConfig{
+			CoreLvl:           dev.DefaultLvl,
+			SyncLvl:           dev.DefaultLvl,
+			NetworkLvl:        dev.DefaultLvl,
+			RPCLvl:            dev.DefaultLvl,
+			StateLvl:          dev.DefaultLvl,
+			RuntimeLvl:        dev.DefaultLvl,
+			BlockProducerLvl:  dev.DefaultLvl,
+			FinalityGadgetLvl: dev.DefaultLvl,
+		},
+		Init: InitConfig{
+			Genesis: dev.DefaultGenesis,
+		},
+		Account: AccountConfig{
+			Key:    dev.DefaultKey,
+			Unlock: dev.DefaultUnlock,
+		},
+		Core: CoreConfig{
+			Roles:           dev.DefaultRoles,
+			WasmInterpreter: dev.DefaultWasmInterpreter,
+		},
+		Network: NetworkConfig{
+			Port:        dev.DefaultNetworkPort,
+			Bootnodes:   dev.DefaultNetworkBootnodes,
+			NoBootstrap: dev.DefaultNoBootstrap,
+			NoMDNS:      dev.DefaultNoMDNS,
+		},
+		RPC: RPCConfig{
+			Port:    dev.DefaultRPCHTTPPort,
+			Host:    dev.DefaultRPCHTTPHost,
+			Modules: dev.DefaultRPCModules,
+			WSPort:  dev.DefaultRPCWSPort,
+			Enabled: true,
+			WS:      true,
 		},
 	}
 }
