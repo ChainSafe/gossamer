@@ -42,7 +42,7 @@ type DigestHandler struct {
 	// block notification channels
 	imported    chan *types.Block
 	importedID  byte
-	finalised   chan *types.Header
+	finalised   chan *types.FinalisationInfo
 	finalisedID byte
 
 	// GRANDPA changes
@@ -68,7 +68,7 @@ type resume struct {
 // NewDigestHandler returns a new DigestHandler
 func NewDigestHandler(blockState BlockState, epochState EpochState, grandpaState GrandpaState, babe BlockProducer, verifier Verifier) (*DigestHandler, error) {
 	imported := make(chan *types.Block, 16)
-	finalised := make(chan *types.Header, 16)
+	finalised := make(chan *types.FinalisationInfo, 16)
 	iid, err := blockState.RegisterImportedChannel(imported)
 	if err != nil {
 		return nil, err
@@ -195,12 +195,12 @@ func (h *DigestHandler) handleBlockImport(ctx context.Context) {
 func (h *DigestHandler) handleBlockFinalisation(ctx context.Context) {
 	for {
 		select {
-		case header := <-h.finalised:
-			if header == nil {
+		case info := <-h.finalised:
+			if info == nil || info.Header == nil {
 				continue
 			}
 
-			err := h.handleGrandpaChangesOnFinalization(header.Number)
+			err := h.handleGrandpaChangesOnFinalization(info.Header.Number)
 			if err != nil {
 				logger.Error("failed to handle grandpa changes on block finalisation", "error", err)
 			}

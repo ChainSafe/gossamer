@@ -223,7 +223,7 @@ func (m *MockBlockAPI) RegisterImportedChannel(ch chan<- *types.Block) (byte, er
 }
 func (m *MockBlockAPI) UnregisterImportedChannel(id byte) {
 }
-func (m *MockBlockAPI) RegisterFinalizedChannel(ch chan<- *types.Header) (byte, error) {
+func (m *MockBlockAPI) RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error) {
 	return 0, nil
 }
 func (m *MockBlockAPI) UnregisterFinalizedChannel(id byte) {}
