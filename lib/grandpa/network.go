@@ -18,6 +18,7 @@ package grandpa
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -28,8 +29,9 @@ import (
 )
 
 var (
-	grandpaID protocol.ID = "/paritytech/grandpa/1"
-	messageID             = network.ConsensusMsgType
+	grandpaID                protocol.ID = "/paritytech/grandpa/1"
+	messageID                            = network.ConsensusMsgType
+	neighbourMessageInterval             = time.Minute * 5
 )
 
 // Handshake is an alias for network.Handshake
@@ -159,4 +161,30 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 	}
 
 	return true, nil
+}
+
+func (s *Service) sendNeighbourMessage() {
+	for {
+		select {
+		case <-time.After(neighbourMessageInterval):
+			if s.neighbourMessage == nil {
+				continue
+			}
+		case info := <-s.finalisedCh:
+			s.neighbourMessage = &NeighbourMessage{
+				Version: 1,
+				Round:   info.Round,
+				SetID:   info.SetID,
+				Number:  uint32(info.Header.Number.Int64()),
+			}
+		}
+
+		cm, err := s.neighbourMessage.ToConsensusMessage()
+		if err != nil {
+			logger.Warn("failed to convert NeighbourMessage to network message", "error", err)
+			continue
+		}
+
+		s.network.SendMessage(cm)
+	}
 }
