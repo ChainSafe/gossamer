@@ -80,6 +80,15 @@ func (n *notificationsProtocol) getHandshakeData(pid peer.ID, inbound bool) (han
 	return data.(handshakeData), true
 }
 
+func (n *notificationsProtocol) getHandshakeData(pid peer.ID) (*handshakeData, bool) {
+	data, has := n.handshakeData.Load(pid)
+	if !has {
+		return nil, false
+	}
+
+	return data.(*handshakeData), true
+}
+
 type handshakeData struct {
 	received  bool
 	validated bool
