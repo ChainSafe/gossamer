@@ -167,11 +167,8 @@ func TestMessageHandler_VoteMessage(t *testing.T) {
 	vm, err := gs.createVoteMessage(v, precommit, gs.keypair)
 	require.NoError(t, err)
 
-	cm, err := vm.ToConsensusMessage()
-	require.NoError(t, err)
-
 	h := NewMessageHandler(gs, st.Block)
-	out, err := h.handleMessage("", cm)
+	out, err := h.handleMessage("", vm)
 	require.NoError(t, err)
 	require.Nil(t, out)
 
@@ -194,10 +191,7 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 		Number:  1,
 	}
 
-	cm, err := msg.ToConsensusMessage()
-	require.NoError(t, err)
-
-	_, err = h.handleMessage("", cm)
+	_, err := h.handleMessage("", msg)
 	require.NoError(t, err)
 
 	block := &types.Block{
@@ -211,7 +205,7 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	err = st.Block.AddBlock(block)
 	require.NoError(t, err)
 
-	out, err := h.handleMessage("", cm)
+	out, err := h.handleMessage("", msg)
 	require.NoError(t, err)
 	require.Nil(t, out)
 
@@ -244,11 +238,9 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 
 	fm := gs.newCommitMessage(gs.head, round)
 	fm.Vote = NewVote(testHash, uint32(round))
-	cm, err := fm.ToConsensusMessage()
-	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block)
-	out, err := h.handleMessage("", cm)
+	out, err := h.handleMessage("", fm)
 	require.NoError(t, err)
 	require.Nil(t, out)
 
@@ -270,11 +262,9 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T
 	gs.justification[round] = buildTestJustification(t, int(gs.state.threshold()), round, gs.state.setID, kr, precommit)
 
 	fm := gs.newCommitMessage(gs.head, round)
-	cm, err := fm.ToConsensusMessage()
-	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block)
-	out, err := h.handleMessage("", cm)
+	out, err := h.handleMessage("", fm)
 	require.EqualError(t, err, ErrMinVotesNotMet.Error())
 	require.Nil(t, out)
 }
@@ -291,12 +281,10 @@ func TestMessageHandler_CommitMessage_WithCatchUpRequest(t *testing.T) {
 	}
 
 	fm := gs.newCommitMessage(gs.head, 77)
-	cm, err := fm.ToConsensusMessage()
-	require.NoError(t, err)
 	gs.state.voters = gs.state.voters[:1]
 
 	h := NewMessageHandler(gs, st.Block)
-	out, err := h.handleMessage("", cm)
+	out, err := h.handleMessage("", fm)
 	require.NoError(t, err)
 	require.NotNil(t, out)
 
@@ -308,25 +296,19 @@ func TestMessageHandler_CommitMessage_WithCatchUpRequest(t *testing.T) {
 
 func TestMessageHandler_CatchUpRequest_InvalidRound(t *testing.T) {
 	gs, st := newTestService(t)
-
 	req := newCatchUpRequest(77, 0)
-	cm, err := req.ToConsensusMessage()
-	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block)
-	_, err = h.handleMessage("", cm)
+	_, err := h.handleMessage("", req)
 	require.Equal(t, ErrInvalidCatchUpRound, err)
 }
 
 func TestMessageHandler_CatchUpRequest_InvalidSetID(t *testing.T) {
 	gs, st := newTestService(t)
-
 	req := newCatchUpRequest(1, 77)
-	cm, err := req.ToConsensusMessage()
-	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block)
-	_, err = h.handleMessage("", cm)
+	_, err := h.handleMessage("", req)
 	require.Equal(t, ErrSetIDMismatch, err)
 }
 
@@ -381,11 +363,9 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 
 	// create and handle request
 	req := newCatchUpRequest(round, setID)
-	cm, err := req.ToConsensusMessage()
-	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block)
-	out, err := h.handleMessage("", cm)
+	out, err := h.handleMessage("", req)
 	require.NoError(t, err)
 	require.Equal(t, expected, out)
 }
@@ -495,10 +475,7 @@ func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
 		Number:                 uint32(round),
 	}
 
-	cm, err := msg.ToConsensusMessage()
-	require.NoError(t, err)
-
-	out, err := h.handleMessage("", cm)
+	out, err := h.handleMessage("", msg)
 	require.NoError(t, err)
 	require.Nil(t, out)
 	require.Equal(t, round+1, gs.state.round)
