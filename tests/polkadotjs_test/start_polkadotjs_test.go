@@ -39,10 +39,10 @@ func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 	defer os.Remove(utils.ConfigDefault)
 	utils.GenerateGenesisOneAuth()
 	defer os.Remove(utils.GenesisOneAuth)
-	utils.CreateConfigBabeMaxThreshold()
-	defer os.Remove(utils.ConfigBABEMaxThreshold)
+	// utils.CreateConfigBabeMaxThreshold()
+	// defer os.Remove(utils.ConfigBABEMaxThreshold)
 
-	nodes, err := utils.InitializeAndStartNodesWebsocket(t, 1, utils.GenesisOneAuth, utils.ConfigBABEMaxThreshold)
+	nodes, err := utils.InitializeAndStartNodesWebsocket(t, 1, utils.GenesisOneAuth, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	command := "npx mocha ./test"

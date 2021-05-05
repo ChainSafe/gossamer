@@ -68,7 +68,7 @@ var (
 	// GenesisDefault is the default gssmr genesis file
 	GenesisDefault string = filepath.Join(currentDir, "../..", "chain/gssmr/genesis.json")
 	// GenesisDev is the default dev genesis file
-	GenesisDev string = filepath.Join(currentDir, "../..", "chain/dev/genesis.json")
+	GenesisDev string = filepath.Join(currentDir, "../..", "chain/dev/genesis-spec.json")
 
 	// ConfigDefault is the default config file
 	ConfigDefault string = filepath.Join(currentDir, "../utils/config_default.toml")

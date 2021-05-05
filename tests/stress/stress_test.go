@@ -99,13 +99,13 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 
 	// start block producing node first
 	//nolint
-	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDefault, utils.ConfigBABEMaxThreshold, false)
+	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDev, utils.ConfigDefault, false)
 	require.NoError(t, err)
 
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
 	// all nodes vote for different blocks.
 	time.Sleep(time.Second * 15)
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDefault, utils.ConfigNoBABE)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDev, utils.ConfigNoBABE)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
 
@@ -185,12 +185,12 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 	utils.SetLogLevel(log.LvlInfo)
 
 	// start block producing node
-	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDefault, utils.ConfigBABEMaxThreshold, false)
+	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev, utils.ConfigDefault, false)
 	require.NoError(t, err)
 	time.Sleep(time.Second * 15)
 
 	// start syncing node
-	bob, err := utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDefault, utils.ConfigNoBABE, false)
+	bob, err := utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev, utils.ConfigNoBABE, false)
 	require.NoError(t, err)
 
 	nodes := []*utils.Node{alice, bob}
@@ -237,7 +237,7 @@ func TestSync_Bench(t *testing.T) {
 	numBlocks := 64
 
 	// start block producing node
-	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDefault, utils.ConfigBABEMaxThreshold, false)
+	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev, utils.ConfigDefault, false)
 	require.NoError(t, err)
 
 	for {
@@ -258,7 +258,7 @@ func TestSync_Bench(t *testing.T) {
 	t.Log("BABE paused")
 
 	// start syncing node
-	bob, err := utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDefault, utils.ConfigNoBABE, false)
+	bob, err := utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev, utils.ConfigNoBABE, false)
 	require.NoError(t, err)
 
 	nodes := []*utils.Node{alice, bob}
@@ -312,7 +312,7 @@ func TestSync_Restart(t *testing.T) {
 
 	// start block producing node first
 	//nolint
-	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDefault, utils.ConfigBABEMaxThreshold, false)
+	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDefault, utils.ConfigDefault, false)
 	require.NoError(t, err)
 
 	// wait and start rest of nodes
@@ -358,27 +358,27 @@ func TestSync_Restart(t *testing.T) {
 	close(done)
 }
 
-func TestPendingExtrinsic(t *testing.T) {
+func TestStress_SubmitExtrinsic(t *testing.T) {
 	t.Log("starting gossamer...")
 
-	utils.CreateConfigBabeMaxThreshold()
+	//utils.CreateConfigBabeMaxThreshold()
 
 	numNodes := 3
 	// index of node to submit tx to
 	idx := numNodes - 1 // TODO: randomise this
 
 	// start block producing node first
-	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDefault, utils.ConfigBABEMaxThreshold, false)
+	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDev, utils.ConfigDefault, false)
 	require.NoError(t, err)
 
 	// Start rest of nodes
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDefault, utils.ConfigNoBABE)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDev, utils.ConfigNoBABE)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
 
 	defer func() {
 		t.Log("going to tear down gossamer...")
-		os.Remove(utils.ConfigBABEMaxThreshold)
+		//os.Remove(utils.ConfigBABEMaxThreshold)
 		errList := utils.StopNodes(t, nodes)
 		require.Len(t, errList, 0)
 	}()
