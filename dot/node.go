@@ -164,7 +164,7 @@ func NodeInitialized(basepath string, expected bool) bool {
 	// load genesis data from initialised node database
 	_, err = state.NewBaseState(db).LoadGenesisData()
 	if err != nil {
-		logger.Warn(
+		logger.Debug(
 			"node has not been initialised",
 			"basepath", basepath,
 			"error", err,

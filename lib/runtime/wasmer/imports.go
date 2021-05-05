@@ -57,6 +57,7 @@ package wasmer
 // extern int64_t ext_default_child_storage_root_version_1(void *context, int64_t a);
 // extern void ext_default_child_storage_set_version_1(void *context, int64_t a, int64_t b, int64_t c);
 // extern void ext_default_child_storage_storage_kill_version_1(void *context, int64_t a);
+// extern int32_t ext_default_child_storage_storage_kill_version_2(void *context, int64_t a, int64_t b);
 // extern void ext_default_child_storage_clear_prefix_version_1(void *context, int64_t a, int64_t b);
 // extern int32_t ext_default_child_storage_exists_version_1(void *context, int64_t a, int64_t b);
 //
@@ -1084,6 +1085,20 @@ func ext_default_child_storage_storage_kill_version_1(context unsafe.Pointer, ch
 	storage.DeleteChild(childStorageKey)
 }
 
+//export ext_default_child_storage_storage_kill_version_2
+func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer, a, b C.int64_t) C.int32_t {
+	logger.Debug("[ext_default_child_storage_storage_kill_version_2] executing...")
+	logger.Warn("[ext_default_child_storage_storage_kill_version_2] unimplemented")
+
+	// instanceContext := wasm.IntoInstanceContext(context)
+	// ctx := instanceContext.Data().(*runtime.Context)
+	// storage := ctx.Storage
+
+	// childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
+	// storage.DeleteChild(childStorageKey)
+	return 0
+}
+
 //export ext_allocator_free_version_1
 func ext_allocator_free_version_1(context unsafe.Pointer, addr C.int32_t) {
 	logger.Trace("[ext_allocator_free_version_1] executing...")
@@ -1939,6 +1954,10 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
 		return nil, err
 	}
 	_, err = imports.Append("ext_default_child_storage_storage_kill_version_1", ext_default_child_storage_storage_kill_version_1, C.ext_default_child_storage_storage_kill_version_1)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_default_child_storage_storage_kill_version_2", ext_default_child_storage_storage_kill_version_2, C.ext_default_child_storage_storage_kill_version_2)
 	if err != nil {
 		return nil, err
 	}
