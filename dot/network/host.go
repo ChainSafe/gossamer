@@ -27,6 +27,7 @@ import (
 	badger "github.com/ipfs/go-ds-badger2"
 	"github.com/libp2p/go-libp2p"
 	libp2phost "github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/metrics"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
@@ -59,6 +60,7 @@ type host struct {
 	cm              *ConnManager
 	ds              *badger.Datastore
 	messageCache    *messageCache
+	bwc             *metrics.BandwidthCounter
 }
 
 // newHost creates a host wrapper with a new libp2p host instance
@@ -167,6 +169,8 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		return nil, err
 	}
 
+	bwc := metrics.NewBandwidthCounter()
+
 	host := &host{
 		ctx:             ctx,
 		h:               h,
@@ -177,6 +181,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		ds:              ds,
 		persistentPeers: pps,
 		messageCache:    msgCache,
+		bwc:             bwc,
 	}
 
 	cm.host = host
@@ -305,8 +310,14 @@ func (h *host) writeToStream(s libp2pnetwork.Stream, msg Message) error {
 	lenBytes := uint64ToLEB128(msgLen)
 	encMsg = append(lenBytes, encMsg...)
 
-	_, err = s.Write(encMsg)
-	return err
+	sent, err := s.Write(encMsg)
+	if err != nil {
+		return err
+	}
+
+	h.bwc.LogSentMessage(int64(sent))
+
+	return nil
 }
 
 // getOutboundStream returns the outbound message stream for the given peer or returns
