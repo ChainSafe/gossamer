@@ -17,8 +17,11 @@
 package grandpa
 
 import (
+	"math/big"
 	"testing"
 	"time"
+
+	"github.com/ChainSafe/gossamer/dot/types"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
@@ -62,12 +65,74 @@ func TestHandleNetworkMessage(t *testing.T) {
 	h := NewMessageHandler(gs, st.Block)
 	gs.messageHandler = h
 
-	err = gs.handleNetworkMessage(peer.ID(""), cm)
+	propagate, err := gs.handleNetworkMessage(peer.ID(""), cm)
 	require.NoError(t, err)
+	require.True(t, propagate)
 
 	select {
 	case <-gs.network.(*testNetwork).out:
 	case <-time.After(testTimeout):
 		t.Fatal("expected to send message")
+	}
+
+	neighbourMsg := &NeighbourMessage{}
+	cm, err = neighbourMsg.ToConsensusMessage()
+	require.NoError(t, err)
+
+	propagate, err = gs.handleNetworkMessage(peer.ID(""), cm)
+	require.NoError(t, err)
+	require.False(t, propagate)
+}
+
+func TestSendNeighbourMessage(t *testing.T) {
+	gs, st := newTestService(t)
+	neighbourMessageInterval = time.Second
+	defer func() {
+		neighbourMessageInterval = time.Minute * 5
+	}()
+	go gs.sendNeighbourMessage()
+
+	block := &types.Block{
+		Header: &types.Header{
+			ParentHash: testGenesisHeader.Hash(),
+			Number:     big.NewInt(1),
+		},
+		Body: &types.Body{},
+	}
+
+	err := st.Block.AddBlock(block)
+	require.NoError(t, err)
+
+	hash := block.Header.Hash()
+	round := uint64(7)
+	setID := uint64(33)
+	err = st.Block.SetFinalizedHash(hash, round, setID)
+	require.NoError(t, err)
+
+	expected := &NeighbourMessage{
+		Version: 1,
+		SetID:   setID,
+		Round:   round,
+		Number:  1,
+	}
+
+	select {
+	case <-time.After(time.Second):
+		t.Fatal("did not send message")
+	case msg := <-gs.network.(*testNetwork).out:
+		nm, ok := msg.(*NeighbourMessage)
+		require.True(t, ok)
+		require.Equal(t, expected, nm)
+	}
+
+	require.Equal(t, expected, gs.neighbourMessage)
+
+	select {
+	case <-time.After(time.Second * 2):
+		t.Fatal("did not send message")
+	case msg := <-gs.network.(*testNetwork).out:
+		nm, ok := msg.(*NeighbourMessage)
+		require.True(t, ok)
+		require.Equal(t, expected, nm)
 	}
 }

@@ -114,7 +114,7 @@ func (l *BlockListener) Listen() {
 
 // BlockFinalizedListener to handle listening for finalised blocks
 type BlockFinalizedListener struct {
-	channel chan *types.Header
+	channel chan *types.FinalisationInfo
 	wsconn  WSConnAPI
 	chanID  byte
 	subID   uint
@@ -122,11 +122,11 @@ type BlockFinalizedListener struct {
 
 // Listen implementation of Listen interface to listen for importedChan changes
 func (l *BlockFinalizedListener) Listen() {
-	for header := range l.channel {
-		if header == nil {
+	for info := range l.channel {
+		if info == nil || info.Header == nil {
 			continue
 		}
-		head, err := modules.HeaderToJSON(*header)
+		head, err := modules.HeaderToJSON(*info.Header)
 		if err != nil {
 			logger.Error("failed to convert header to JSON", "error", err)
 		}
@@ -147,7 +147,7 @@ type ExtrinsicSubmitListener struct {
 	importedChan    chan *types.Block
 	importedChanID  byte
 	importedHash    common.Hash
-	finalisedChan   chan *types.Header
+	finalisedChan   chan *types.FinalisationInfo
 	finalisedChanID byte
 }
 
@@ -180,10 +180,10 @@ func (l *ExtrinsicSubmitListener) Listen() {
 
 	// listen for finalised headers
 	go func() {
-		for header := range l.finalisedChan {
-			if reflect.DeepEqual(l.importedHash, header.Hash()) {
+		for info := range l.finalisedChan {
+			if reflect.DeepEqual(l.importedHash, info.Header.Hash()) {
 				resM := make(map[string]interface{})
-				resM["finalised"] = header.Hash().String()
+				resM["finalised"] = info.Header.Hash().String()
 				l.wsconn.safeSend(newSubscriptionResponse(AuthorExtrinsicUpdates, l.subID, resM))
 			}
 		}

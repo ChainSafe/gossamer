@@ -47,7 +47,7 @@ type BlockState struct {
 
 	// block notifiers
 	imported      map[byte]chan<- *types.Block
-	finalised     map[byte]chan<- *types.Header
+	finalised     map[byte]chan<- *types.FinalisationInfo
 	importedLock  sync.RWMutex
 	finalisedLock sync.RWMutex
 
@@ -65,7 +65,7 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 		baseState:  NewBaseState(db),
 		db:         chaindb.NewTable(db, blockPrefix),
 		imported:   make(map[byte]chan<- *types.Block),
-		finalised:  make(map[byte]chan<- *types.Header),
+		finalised:  make(map[byte]chan<- *types.FinalisationInfo),
 		pruneKeyCh: make(chan *types.Header, pruneKeyBufferSize),
 	}
 
@@ -85,7 +85,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		baseState:  NewBaseState(db),
 		db:         chaindb.NewTable(db, blockPrefix),
 		imported:   make(map[byte]chan<- *types.Block),
-		finalised:  make(map[byte]chan<- *types.Header),
+		finalised:  make(map[byte]chan<- *types.FinalisationInfo),
 		pruneKeyCh: make(chan *types.Header, pruneKeyBufferSize),
 	}
 
@@ -424,7 +424,7 @@ func (bs *BlockState) SetFinalizedHash(hash common.Hash, round, setID uint64) er
 	bs.Lock()
 	defer bs.Unlock()
 
-	go bs.notifyFinalized(hash)
+	go bs.notifyFinalized(hash, round, setID)
 	if round > 0 {
 		err := bs.SetRound(round)
 		if err != nil {

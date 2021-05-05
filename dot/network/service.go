@@ -26,11 +26,11 @@ import (
 	"time"
 
 	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/services"
-	"github.com/ethereum/go-ethereum/metrics"
-
 	log "github.com/ChainSafe/log15"
+	"github.com/ethereum/go-ethereum/metrics"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -89,6 +89,10 @@ type Service struct {
 	noDiscover  bool
 	noMDNS      bool
 	noGossip    bool // internal option
+
+	// telemetry
+	telemetryInterval time.Duration
+	closeCh           chan interface{}
 }
 
 // NewService creates a new network service from the configuration and message channels
@@ -142,6 +146,8 @@ func NewService(cfg *Config) (*Service, error) {
 		syncer:                 cfg.Syncer,
 		notificationsProtocols: make(map[byte]*notificationsProtocol),
 		lightRequest:           make(map[peer.ID]struct{}),
+		telemetryInterval:      cfg.telemetryInterval,
+		closeCh:                make(chan interface{}),
 	}
 
 	network.syncQueue = newSyncQueue(network)
@@ -245,6 +251,9 @@ func (s *Service) Start() error {
 	}
 
 	go s.logPeerCount()
+	go s.publishNetworkTelemetry(s.closeCh)
+	go s.sentBlockIntervalTelemetry()
+
 	return nil
 }
 
@@ -275,6 +284,47 @@ func (s *Service) logPeerCount() {
 	for {
 		logger.Debug("peer count", "num", s.host.peerCount(), "min", s.cfg.MinPeers, "max", s.cfg.MaxPeers)
 		time.Sleep(time.Second * 30)
+	}
+}
+
+func (s *Service) publishNetworkTelemetry(done chan interface{}) {
+	ticker := time.NewTicker(s.telemetryInterval)
+	defer ticker.Stop()
+
+main:
+	for {
+		select {
+		case <-done:
+			break main
+
+		case <-ticker.C:
+			o := s.host.bwc.GetBandwidthTotals()
+			telemetry.GetInstance().SendNetworkData(telemetry.NewNetworkData(s.host.peerCount(), o.RateIn, o.RateOut))
+		}
+
+	}
+}
+
+func (s *Service) sentBlockIntervalTelemetry() {
+	for {
+		best, err := s.blockState.BestBlockHeader()
+		if err != nil {
+			continue
+		}
+		finalized, err := s.blockState.GetFinalizedHeader(0, 0) //nolint
+		if err != nil {
+			continue
+		}
+
+		telemetry.GetInstance().SendBlockIntervalData(&telemetry.BlockIntervalData{
+			BestHash:           best.Hash(),
+			BestHeight:         best.Number,
+			FinalizedHash:      finalized.Hash(),
+			FinalizedHeight:    finalized.Number,
+			TXCount:            0, // todo (ed) determine where to get tx count
+			UsedStateCacheSize: 0, // todo (ed) determine where to get used_state_cache_size
+		})
+		time.Sleep(s.telemetryInterval)
 	}
 }
 
@@ -341,6 +391,19 @@ func (s *Service) Stop() error {
 	err = s.host.close()
 	if err != nil {
 		logger.Error("Failed to close host", "error", err)
+	}
+
+	// check if closeCh is closed, if not, close it.
+mainloop:
+	for {
+		select {
+		case _, hasMore := <-s.closeCh:
+			if !hasMore {
+				break mainloop
+			}
+		default:
+			close(s.closeCh)
+		}
 	}
 
 	return nil
@@ -491,6 +554,8 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 			_ = stream.Close()
 			return
 		}
+
+		s.host.bwc.LogRecvMessage(int64(tot))
 	}
 }
 

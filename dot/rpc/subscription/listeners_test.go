@@ -95,7 +95,7 @@ func TestBlockListener_Listen(t *testing.T) {
 }
 
 func TestBlockFinalizedListener_Listen(t *testing.T) {
-	notifyChan := make(chan *types.Header)
+	notifyChan := make(chan *types.FinalisationInfo)
 	mockConnection := &MockWSConnAPI{}
 	bfl := BlockFinalizedListener{
 		channel: notifyChan,
@@ -113,14 +113,16 @@ func TestBlockFinalizedListener_Listen(t *testing.T) {
 
 	go bfl.Listen()
 
-	notifyChan <- header
+	notifyChan <- &types.FinalisationInfo{
+		Header: header,
+	}
 	time.Sleep(time.Millisecond * 10)
 	require.Equal(t, expectedResponse, mockConnection.lastMessage)
 }
 
 func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	notifyImportedChan := make(chan *types.Block)
-	notifyFinalizedChan := make(chan *types.Header)
+	notifyFinalizedChan := make(chan *types.FinalisationInfo)
 
 	mockConnection := &MockWSConnAPI{}
 	esl := ExtrinsicSubmitListener{
@@ -149,7 +151,9 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	time.Sleep(time.Millisecond * 10)
 	require.Equal(t, expectedImportedRespones, mockConnection.lastMessage)
 
-	notifyFinalizedChan <- header
+	notifyFinalizedChan <- &types.FinalisationInfo{
+		Header: header,
+	}
 	time.Sleep(time.Millisecond * 10)
 	resFinalised := map[string]interface{}{"finalised": block.Header.Hash().String()}
 	expectedFinalizedRespones := newSubscriptionResponse(AuthorExtrinsicUpdates, esl.subID, resFinalised)

@@ -153,6 +153,14 @@ func NodeInitialized(basepath string, expected bool) bool {
 		return false
 	}
 
+	defer func() {
+		// close database
+		err = db.Close()
+		if err != nil {
+			logger.Error("failed to close database", "error", err)
+		}
+	}()
+
 	// load genesis data from initialised node database
 	_, err = state.NewBaseState(db).LoadGenesisData()
 	if err != nil {
@@ -162,12 +170,6 @@ func NodeInitialized(basepath string, expected bool) bool {
 			"error", err,
 		)
 		return false
-	}
-
-	// close database
-	err = db.Close()
-	if err != nil {
-		logger.Error("failed to close database", "error", err)
 	}
 
 	return true
