@@ -3,7 +3,9 @@ package scale
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
+	"math/big"
 	"reflect"
 )
 
@@ -27,13 +29,21 @@ func (ds *decodeState) unmarshal(dst interface{}) (err error) {
 	rv := reflect.ValueOf(dst)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
 		err = fmt.Errorf("unsupported dst: %T", dst)
+		return
 	}
 
 	in := rv.Elem().Interface()
 	switch in.(type) {
+	case *big.Int:
+		in, err = ds.decodeBigInt()
+	case *Uint128:
+		in, err = ds.decodeUint128()
 	case int, uint, int8, uint8, int16, uint16, int32, uint32, int64, uint64:
 		in, err = ds.decodeFixedWidthInt(in)
+	case []byte, string:
+		in, err = ds.decodeBytes()
 	}
+
 	if err != nil {
 		return
 	}
@@ -41,7 +51,133 @@ func (ds *decodeState) unmarshal(dst interface{}) (err error) {
 	return
 }
 
-// DdcodeFixedWidthInt decodes integers < 2**32 by reading the bytes in little endian
+// DecodeUnsignedInteger will decode unsigned integer
+func (ds *decodeState) decodeUint() (o uint64, err error) {
+	b, err := ds.ReadByte()
+	if err != nil {
+		return 0, err
+	}
+
+	// check mode of encoding, stored at 2 least significant bits
+	mode := b & 3
+	if mode <= 2 {
+		val, e := ds.decodeSmallInt(b, mode)
+		return uint64(val), e
+	}
+
+	// >4 byte mode
+	topSixBits := b >> 2
+	byteLen := uint(topSixBits) + 4
+
+	buf := make([]byte, byteLen)
+	_, err = ds.Read(buf)
+	if err != nil {
+		return 0, err
+	}
+
+	if byteLen == 4 {
+		o = uint64(binary.LittleEndian.Uint32(buf))
+	} else if byteLen > 4 && byteLen < 8 {
+		tmp := make([]byte, 8)
+		copy(tmp, buf)
+		o = binary.LittleEndian.Uint64(tmp)
+	} else {
+		err = errors.New("could not decode invalid integer")
+	}
+
+	return o, err
+}
+
+// DecodeInteger accepts a byte array representing a SCALE encoded integer and performs SCALE decoding of the int
+// if the encoding is valid, it then returns (o, bytesDecoded, err) where o is the decoded integer, bytesDecoded is the
+// number of input bytes decoded, and err is nil
+// otherwise, it returns 0, 0, and error
+func (ds *decodeState) decodeInt() (_ int64, err error) {
+	o, err := ds.decodeUint()
+
+	return int64(o), err
+}
+
+// DecodeByteArray accepts a byte array representing a SCALE encoded byte array and performs SCALE decoding
+// of the byte array
+// if the encoding is valid, it then returns the decoded byte array, the total number of input bytes decoded, and nil
+// otherwise, it returns nil, 0, and error
+func (ds *decodeState) decodeBytes() (o []byte, err error) {
+	length, err := ds.decodeInt()
+	if err != nil {
+		return nil, err
+	}
+
+	b := make([]byte, length)
+	_, err = ds.Read(b)
+	if err != nil {
+		return nil, errors.New("could not decode invalid byte array: reached early EOF")
+	}
+
+	return b, nil
+}
+
+// decodeSmallInt is used in the DecodeInteger and decodeBigInt functions when the mode is <= 2
+// need to pass in the first byte, since we assume it's already been read
+func (ds *decodeState) decodeSmallInt(firstByte, mode byte) (out int64, err error) {
+	switch mode {
+	case 0:
+		out = int64(firstByte >> 2)
+	case 1:
+		var buf byte
+		buf, err = ds.ReadByte()
+		if err != nil {
+			break
+		}
+		out = int64(binary.LittleEndian.Uint16([]byte{firstByte, buf}) >> 2)
+	case 2:
+		buf := make([]byte, 3)
+		_, err = ds.Read(buf)
+		if err != nil {
+			break
+		}
+		out = int64(binary.LittleEndian.Uint32(append([]byte{firstByte}, buf...)) >> 2)
+	}
+	return
+}
+
+// decodeBigInt decodes a SCALE encoded byte array into a *big.Int
+// Works for all integers, including ints > 2**64
+func (ds *decodeState) decodeBigInt() (output *big.Int, err error) {
+	b, err := ds.ReadByte()
+	if err != nil {
+		return
+	}
+
+	// check mode of encoding, stored at 2 least significant bits
+	mode := b & 0x03
+	switch {
+	case mode <= 2:
+		var tmp int64
+		tmp, err = ds.decodeSmallInt(b, mode)
+		if err != nil {
+			break
+		}
+		output = big.NewInt(tmp)
+
+	default:
+		// >4 byte mode
+		topSixBits := b >> 2
+		byteLen := uint(topSixBits) + 4
+
+		buf := make([]byte, byteLen)
+		_, err = ds.Read(buf)
+		if err == nil {
+			o := reverseBytes(buf)
+			output = big.NewInt(0).SetBytes(o)
+		} else {
+			err = errors.New("could not decode invalid big.Int: reached early EOF")
+		}
+	}
+	return
+}
+
+// decodeFixedWidthInt decodes integers < 2**32 by reading the bytes in little endian
 func (ds *decodeState) decodeFixedWidthInt(in interface{}) (out interface{}, err error) {
 	switch in.(type) {
 	case int8:
@@ -116,4 +252,16 @@ func (ds *decodeState) decodeFixedWidthInt(in interface{}) (out interface{}, err
 		out = uint(binary.LittleEndian.Uint64(buf))
 	}
 	return
+}
+
+// decodeUint128 accepts a byte array representing Scale encoded common.Uint128 and performs SCALE decoding of the Uint128
+// if the encoding is valid, it then returns (i interface{}, nil) where i is the decoded common.Uint128 , otherwise
+// it returns nil and error
+func (ds *decodeState) decodeUint128() (out *Uint128, err error) {
+	buf := make([]byte, 16)
+	err = binary.Read(ds, binary.LittleEndian, buf)
+	if err != nil {
+		return nil, err
+	}
+	return NewUint128(buf)
 }
