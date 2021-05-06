@@ -48,7 +48,6 @@ func TestMain(m *testing.M) {
 	}
 
 	utils.CreateConfigNoBabe()
-	//utils.CreateConfigBabeMaxThreshold()
 	utils.CreateDefaultConfig()
 
 	logLvl := log.LvlInfo
@@ -70,7 +69,6 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 
 	os.Remove(utils.ConfigNoBABE)
-	//os.Remove(utils.ConfigBABEMaxThreshold)
 	os.Remove(utils.ConfigDefault)
 	os.Exit(code)
 }
@@ -232,7 +230,6 @@ func TestSync_ManyProducers(t *testing.T) {
 }
 
 func TestSync_Bench(t *testing.T) {
-	//t.Skip() // TODO: fix this test
 	utils.SetLogLevel(log.LvlInfo)
 	numBlocks := 64
 
@@ -361,8 +358,6 @@ func TestSync_Restart(t *testing.T) {
 func TestSync_SubmitExtrinsic(t *testing.T) {
 	t.Log("starting gossamer...")
 
-	//utils.CreateConfigBabeMaxThreshold()
-
 	numNodes := 3
 	// index of node to submit tx to
 	idx := numNodes - 1 // TODO: randomise this
@@ -378,7 +373,6 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 
 	defer func() {
 		t.Log("going to tear down gossamer...")
-		//os.Remove(utils.ConfigBABEMaxThreshold)
 		errList := utils.StopNodes(t, nodes)
 		require.Len(t, errList, 0)
 	}()

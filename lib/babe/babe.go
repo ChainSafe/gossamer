@@ -211,12 +211,6 @@ func (b *Service) Start() error {
 		return err
 	}
 
-	// err = b.initiateEpoch(epoch)
-	// if err != nil {
-	// 	logger.Error("failed to initiate epoch", "error", err)
-	// 	return err
-	// }
-
 	go b.initiate(epoch)
 	return nil
 }

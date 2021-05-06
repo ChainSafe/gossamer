@@ -76,8 +76,6 @@ var (
 	ConfigLogGrandpa string = filepath.Join(currentDir, "../utils/config_log_grandpa.toml")
 	// ConfigNoBABE is a config file with BABE disabled
 	ConfigNoBABE string = filepath.Join(currentDir, "../utils/config_nobabe.toml")
-	// ConfigBABEMaxThreshold is a config file with BABE threshold set to maximum (node can produce block every slot)
-	//ConfigBABEMaxThreshold string = filepath.Join(currentDir, "../utils/config_babe_max_threshold.toml")
 )
 
 // Node represents a gossamer process
@@ -469,31 +467,6 @@ func CreateDefaultConfig() {
 	_ = dot.ExportTomlConfig(cfg, ConfigDefault)
 }
 
-// func generateConfigBabeMaxThreshold() *ctoml.Config {
-// 	cfg := generateDefaultConfig()
-// 	cfg.Log = ctoml.LogConfig{
-// 		SyncLvl:          "debug",
-// 		NetworkLvl:       "debug",
-// 		BlockProducerLvl: "info",
-// 	}
-// 	cfg.Core = ctoml.CoreConfig{
-// 		Roles:                    4,
-// 		BabeAuthority:            true,
-// 		GrandpaAuthority:         true,
-// 		BabeThresholdNumerator:   1,
-// 		BabeThresholdDenominator: 1,
-// 		SlotDuration:             3000,
-// 	}
-// 	cfg.RPC.Modules = []string{"system", "author", "chain", "state", "dev", "rpc"}
-// 	return cfg
-// }
-
-// // CreateConfigBabeMaxThreshold generates and creates babe max threshold config file.
-// func CreateConfigBabeMaxThreshold() {
-// 	cfg := generateConfigBabeMaxThreshold()
-// 	_ = dot.ExportTomlConfig(cfg, ConfigBABEMaxThreshold)
-// }
-
 func generateConfigLogGrandpa() *ctoml.Config {
 	cfg := generateDefaultConfig()
 	cfg.Log = ctoml.LogConfig{
@@ -519,8 +492,7 @@ func generateConfigNoBabe() *ctoml.Config {
 		SyncLvl:    "debug",
 		NetworkLvl: "debug",
 	}
-	// cfg.Core.BabeThresholdNumerator = 1
-	// cfg.Core.BabeThresholdDenominator = 1
+
 	cfg.Core.BabeAuthority = false
 	return cfg
 }

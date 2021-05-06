@@ -136,8 +136,6 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		cfg.Runtime = rt
 	}
 
-	cfg.LogLvl = 4
-
 	babeService, err := NewService(cfg)
 	require.NoError(t, err)
 	return babeService
