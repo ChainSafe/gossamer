@@ -37,7 +37,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 			return err
 		}
 	} else if epoch > 0 {
-		has, err := b.epochState.HasEpochData(epoch)
+		has, err := b.epochState.HasEpochData(epoch) //nolint
 		if err != nil {
 			return err
 		}
@@ -101,7 +101,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 	} else if b.blockState.BestBlockHash() == b.blockState.GenesisHash() {
 		// we are at genesis, set first slot using current time
 		startSlot = getCurrentSlot(b.slotDuration)
-		err := b.epochState.SetFirstSlot(startSlot)
+		err = b.epochState.SetFirstSlot(startSlot)
 		if err != nil {
 			return err
 		}

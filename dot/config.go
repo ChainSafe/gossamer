@@ -91,14 +91,12 @@ type NetworkConfig struct {
 
 // CoreConfig is to marshal/unmarshal toml core config vars
 type CoreConfig struct {
-	Roles                    byte
-	BabeAuthority            bool
-	GrandpaAuthority         bool
-	BabeThresholdNumerator   uint64
-	BabeThresholdDenominator uint64
-	SlotDuration             uint64
-	EpochLength              uint64
-	WasmInterpreter          string
+	Roles            byte
+	BabeAuthority    bool
+	GrandpaAuthority bool
+	SlotDuration     uint64
+	EpochLength      uint64
+	WasmInterpreter  string
 }
 
 // RPCConfig is to marshal/unmarshal toml RPC config vars
@@ -268,6 +266,7 @@ func PolkadotConfig() *Config {
 	}
 }
 
+// DevConfig returns the configuration for a development chain
 func DevConfig() *Config {
 	return &Config{
 		Global: GlobalConfig{
@@ -308,8 +307,8 @@ func DevConfig() *Config {
 			Host:    dev.DefaultRPCHTTPHost,
 			Modules: dev.DefaultRPCModules,
 			WSPort:  dev.DefaultRPCWSPort,
-			Enabled: true,
-			WS:      true,
+			Enabled: dev.DefaultRPCEnabled,
+			WS:      dev.DefaultWSEnabled,
 		},
 	}
 }

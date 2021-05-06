@@ -376,7 +376,11 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) {
 
 	// if we're at genesis, set the first slot number for the network
 	if head.Number.Cmp(big.NewInt(0)) == 0 {
-		b.epochState.SetFirstSlot(startSlot)
+		err = b.epochState.SetFirstSlot(startSlot)
+		if err != nil {
+			logger.Error("failed to set first slot number", "error", err)
+			return
+		}
 	}
 
 	logger.Info("initiating epoch", "number", epoch, "start slot", startSlot+b.epochLength)

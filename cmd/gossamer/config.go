@@ -598,8 +598,6 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 		"babe-authority", cfg.BabeAuthority,
 		"grandpa-authority", cfg.GrandpaAuthority,
 		"epoch-length", cfg.EpochLength,
-		"babe-threshold-numerator", cfg.BabeThresholdNumerator,
-		"babe-threshold-denominator", cfg.BabeThresholdDenominator,
 		"wasm-interpreter", cfg.WasmInterpreter,
 	)
 }
@@ -674,7 +672,7 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 	cfg.WSExternal = tomlCfg.WSExternal
 
 	// check --rpc flag and update node configuration
-	if enabled := ctx.GlobalBool(RPCEnabledFlag.Name); enabled {
+	if enabled := ctx.GlobalBool(RPCEnabledFlag.Name); enabled || cfg.Enabled {
 		cfg.Enabled = true
 	} else if ctx.IsSet(RPCEnabledFlag.Name) && !enabled {
 		cfg.Enabled = false
@@ -708,7 +706,7 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 		cfg.WSPort = uint32(wsport)
 	}
 
-	if WS := ctx.GlobalBool(WSFlag.Name); WS {
+	if WS := ctx.GlobalBool(WSFlag.Name); WS || cfg.WS {
 		cfg.WS = true
 	} else if ctx.IsSet(WSFlag.Name) && !WS {
 		cfg.WS = false

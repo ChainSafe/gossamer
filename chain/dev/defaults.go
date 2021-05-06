@@ -24,13 +24,13 @@ import (
 var (
 	// GlobalConfig
 
-	// DefaultName Default node name
+	// DefaultName is the node name
 	DefaultName = string("Gossamer")
-	// DefaultID Default chain ID
+	// DefaultID is the chain ID
 	DefaultID = string("dev")
-	// DefaultConfig Default toml configuration path
+	// DefaultConfig is the toml configuration path
 	DefaultConfig = string("./chain/dev/config.toml")
-	// DefaultBasePath Default node base directory path
+	// DefaultBasePath is the node base directory path
 	DefaultBasePath = string("~/.gossamer/dev")
 
 	// DefaultMetricsPort is the metrics server port
@@ -46,9 +46,9 @@ var (
 
 	// AccountConfig
 
-	// DefaultKey Default account key
+	// DefaultKey is the default account key
 	DefaultKey = string("alice")
-	// DefaultUnlock Default account unlock
+	// DefaultUnlock is the account to unlock
 	DefaultUnlock = string("")
 
 	// CoreConfig
@@ -85,4 +85,8 @@ var (
 	DefaultRPCModules = []string{"system", "author", "chain", "state", "rpc", "grandpa"}
 	// DefaultRPCWSPort rpc websocket port
 	DefaultRPCWSPort = uint32(8546)
+	// DefaultRPCEnabled enables the RPC server
+	DefaultRPCEnabled = true
+	// DefaultWSEnabled enables the WS server
+	DefaultWSEnabled = true
 )

@@ -358,7 +358,7 @@ func TestSync_Restart(t *testing.T) {
 	close(done)
 }
 
-func TestStress_SubmitExtrinsic(t *testing.T) {
+func TestSync_SubmitExtrinsic(t *testing.T) {
 	t.Log("starting gossamer...")
 
 	//utils.CreateConfigBabeMaxThreshold()
