@@ -295,7 +295,12 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 			continue
 		}
 
-		go s.sendData(peer, hs, info, msg)
+		go func() {
+			err = s.sendData(peer, hs, info, msg)
+			if err != nil {
+				logger.Debug("failed to send message to peer", "peer", peer, "message", msg, "error", err)
+			}
+		}()
 	}
 }
 
