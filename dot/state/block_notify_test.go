@@ -52,7 +52,7 @@ func TestImportChannel(t *testing.T) {
 func TestFinalizedChannel(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 
-	ch := make(chan *types.Header, 3)
+	ch := make(chan *types.FinalisationInfo, 3)
 	id, err := bs.RegisterFinalizedChannel(ch)
 	require.NoError(t, err)
 
@@ -68,7 +68,7 @@ func TestFinalizedChannel(t *testing.T) {
 		select {
 		case <-ch:
 		case <-time.After(testMessageTimeout):
-			t.Fatal("did not receive finalized block")
+			t.Fatal("did not receive finalised block")
 		}
 	}
 }
@@ -117,12 +117,12 @@ func TestFinalizedChannel_Multi(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 
 	num := 5
-	chs := make([]chan *types.Header, num)
+	chs := make([]chan *types.FinalisationInfo, num)
 	ids := make([]byte, num)
 
 	var err error
 	for i := 0; i < num; i++ {
-		chs[i] = make(chan *types.Header)
+		chs[i] = make(chan *types.FinalisationInfo)
 		ids[i], err = bs.RegisterFinalizedChannel(chs[i])
 		require.NoError(t, err)
 	}
@@ -134,11 +134,11 @@ func TestFinalizedChannel_Multi(t *testing.T) {
 
 	for i, ch := range chs {
 
-		go func(i int, ch chan *types.Header) {
+		go func(i int, ch chan *types.FinalisationInfo) {
 			select {
 			case <-ch:
 			case <-time.After(testMessageTimeout):
-				t.Error("did not receive finalized block: ch=", i)
+				t.Error("did not receive finalised block: ch=", i)
 			}
 			wg.Done()
 		}(i, ch)

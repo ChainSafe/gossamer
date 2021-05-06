@@ -30,119 +30,67 @@ type Listener interface {
 	Listen()
 }
 
-func (c *WSConn) startListener(lid int) {
-	go c.Subscriptions[lid].Listen()
+// WSConnAPI interface defining methors a WSConn should have
+type WSConnAPI interface {
+	safeSend(interface{})
 }
 
-func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (int, error) {
-	scl := &StorageChangeListener{
-		Channel: make(chan *state.SubscriptionResult),
-		wsconn:  c,
-	}
-	sub := &state.StorageSubscription{
-		Filter:   make(map[string]bool),
-		Listener: scl.Channel,
-	}
-
-	pA := params.([]interface{})
-	for _, param := range pA {
-		switch p := param.(type) {
-		case []interface{}:
-			for _, pp := range param.([]interface{}) {
-				sub.Filter[pp.(string)] = true
-			}
-		case string:
-			sub.Filter[p] = true
-		default:
-			return 0, fmt.Errorf("unknow parameter type")
-		}
-	}
-
-	if c.StorageAPI == nil {
-		c.safeSendError(reqID, nil, "error StorageAPI not set")
-		return 0, fmt.Errorf("error StorageAPI not set")
-	}
-
-	chanID, err := c.StorageAPI.RegisterStorageChangeChannel(*sub)
-	if err != nil {
-		return 0, err
-	}
-	scl.ChanID = chanID
-
-	c.qtyListeners++
-	scl.subID = c.qtyListeners
-	c.Subscriptions[scl.subID] = scl
-	c.StorageSubChannels[scl.subID] = chanID
-
-	initRes := newSubscriptionResponseJSON(scl.subID, reqID)
-	c.safeSend(initRes)
-
-	return scl.subID, nil
+// StorageObserver struct to hold data for observer (Observer Design Pattern)
+type StorageObserver struct {
+	id     uint
+	filter map[string][]byte
+	wsconn WSConnAPI
 }
 
-// StorageChangeListener for listening to state change channels
-type StorageChangeListener struct {
-	Channel chan *state.SubscriptionResult
-	wsconn  *WSConn
-	ChanID  byte
-	subID   int
+// Change type defining key value pair representing change
+type Change [2]string
+
+// ChangeResult struct to hold change result data
+type ChangeResult struct {
+	Changes []Change `json:"changes"`
+	Block   string   `json:"block"`
 }
 
-// Listen implementation of Listen interface to listen for importedChan changes
-func (l *StorageChangeListener) Listen() {
-	for change := range l.Channel {
-		if change == nil {
-			continue
-		}
-
-		result := make(map[string]interface{})
-		result["block"] = change.Hash.String()
-		changes := [][]string{}
-		for _, v := range change.Changes {
-			kv := []string{common.BytesToHex(v.Key), common.BytesToHex(v.Value)}
-			changes = append(changes, kv)
-		}
-		result["changes"] = changes
-
-		res := newSubcriptionBaseResponseJSON()
-		res.Method = "state_storage"
-		res.Params.Result = result
-		res.Params.SubscriptionID = l.subID
-		l.wsconn.safeSend(res)
+// Update is called to notify observer of new value
+func (s *StorageObserver) Update(change *state.SubscriptionResult) {
+	if change == nil {
+		return
 	}
+
+	changeResult := ChangeResult{
+		Block:   change.Hash.String(),
+		Changes: make([]Change, len(change.Changes)),
+	}
+	for i, v := range change.Changes {
+		changeResult.Changes[i] = Change{common.BytesToHex(v.Key), common.BytesToHex(v.Value)}
+	}
+
+	res := newSubcriptionBaseResponseJSON()
+	res.Method = "state_storage"
+	res.Params.Result = changeResult
+	res.Params.SubscriptionID = s.GetID()
+	s.wsconn.safeSend(res)
 }
+
+// GetID the id for the Observer
+func (s *StorageObserver) GetID() uint {
+	return s.id
+}
+
+// GetFilter returns the filter the Observer is using
+func (s *StorageObserver) GetFilter() map[string][]byte {
+	return s.filter
+}
+
+// Listen to satisfy Listener interface (but is no longer used by StorageObserver)
+func (s *StorageObserver) Listen() {}
 
 // BlockListener to handle listening for blocks importedChan
 type BlockListener struct {
 	Channel chan *types.Block
-	wsconn  *WSConn
+	wsconn  WSConnAPI
 	ChanID  byte
-	subID   int
-}
-
-func (c *WSConn) initBlockListener(reqID float64) (int, error) {
-	bl := &BlockListener{
-		Channel: make(chan *types.Block),
-		wsconn:  c,
-	}
-
-	if c.BlockAPI == nil {
-		c.safeSendError(reqID, nil, "error BlockAPI not set")
-		return 0, fmt.Errorf("error BlockAPI not set")
-	}
-	chanID, err := c.BlockAPI.RegisterImportedChannel(bl.Channel)
-	if err != nil {
-		return 0, err
-	}
-	bl.ChanID = chanID
-	c.qtyListeners++
-	bl.subID = c.qtyListeners
-	c.Subscriptions[bl.subID] = bl
-	c.BlockSubChannels[bl.subID] = chanID
-	initRes := newSubscriptionResponseJSON(bl.subID, reqID)
-	c.safeSend(initRes)
-
-	return bl.subID, nil
+	subID   uint
 }
 
 // Listen implementation of Listen interface to listen for importedChan changes
@@ -164,46 +112,21 @@ func (l *BlockListener) Listen() {
 	}
 }
 
-// BlockFinalizedListener to handle listening for finalized blocks
+// BlockFinalizedListener to handle listening for finalised blocks
 type BlockFinalizedListener struct {
-	channel chan *types.Header
-	wsconn  *WSConn
+	channel chan *types.FinalisationInfo
+	wsconn  WSConnAPI
 	chanID  byte
-	subID   int
-}
-
-func (c *WSConn) initBlockFinalizedListener(reqID float64) (int, error) {
-	bfl := &BlockFinalizedListener{
-		channel: make(chan *types.Header),
-		wsconn:  c,
-	}
-
-	if c.BlockAPI == nil {
-		c.safeSendError(reqID, nil, "error BlockAPI not set")
-		return 0, fmt.Errorf("error BlockAPI not set")
-	}
-	chanID, err := c.BlockAPI.RegisterFinalizedChannel(bfl.channel)
-	if err != nil {
-		return 0, err
-	}
-	bfl.chanID = chanID
-	c.qtyListeners++
-	bfl.subID = c.qtyListeners
-	c.Subscriptions[bfl.subID] = bfl
-	c.BlockSubChannels[bfl.subID] = chanID
-	initRes := newSubscriptionResponseJSON(bfl.subID, reqID)
-	c.safeSend(initRes)
-
-	return bfl.subID, nil
+	subID   uint
 }
 
 // Listen implementation of Listen interface to listen for importedChan changes
 func (l *BlockFinalizedListener) Listen() {
-	for header := range l.channel {
-		if header == nil {
+	for info := range l.channel {
+		if info == nil || info.Header == nil {
 			continue
 		}
-		head, err := modules.HeaderToJSON(*header)
+		head, err := modules.HeaderToJSON(*info.Header)
 		if err != nil {
 			logger.Error("failed to convert header to JSON", "error", err)
 		}
@@ -217,68 +140,19 @@ func (l *BlockFinalizedListener) Listen() {
 
 // ExtrinsicSubmitListener to handle listening for extrinsic events
 type ExtrinsicSubmitListener struct {
-	wsconn    *WSConn
-	subID     int
+	wsconn    WSConnAPI
+	subID     uint
 	extrinsic types.Extrinsic
 
 	importedChan    chan *types.Block
 	importedChanID  byte
 	importedHash    common.Hash
-	finalizedChan   chan *types.Header
-	finalizedChanID byte
+	finalisedChan   chan *types.FinalisationInfo
+	finalisedChanID byte
 }
 
 // AuthorExtrinsicUpdates method name
 const AuthorExtrinsicUpdates = "author_extrinsicUpdate"
-
-func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (int, error) {
-	pA := params.([]interface{})
-	extBytes, err := common.HexToBytes(pA[0].(string))
-	if err != nil {
-		return 0, err
-	}
-
-	// listen for built blocks
-	esl := &ExtrinsicSubmitListener{
-		importedChan:  make(chan *types.Block),
-		wsconn:        c,
-		extrinsic:     types.Extrinsic(extBytes),
-		finalizedChan: make(chan *types.Header),
-	}
-
-	if c.BlockAPI == nil {
-		return 0, fmt.Errorf("error BlockAPI not set")
-	}
-	esl.importedChanID, err = c.BlockAPI.RegisterImportedChannel(esl.importedChan)
-	if err != nil {
-		return 0, err
-	}
-
-	esl.finalizedChanID, err = c.BlockAPI.RegisterFinalizedChannel(esl.finalizedChan)
-	if err != nil {
-		return 0, err
-	}
-
-	c.qtyListeners++
-	esl.subID = c.qtyListeners
-	c.Subscriptions[esl.subID] = esl
-	c.BlockSubChannels[esl.subID] = esl.importedChanID
-
-	err = c.CoreAPI.HandleSubmittedExtrinsic(extBytes)
-	if err != nil {
-		return 0, err
-	}
-	c.safeSend(newSubscriptionResponseJSON(esl.subID, reqID))
-
-	// TODO (ed) since HandleSubmittedExtrinsic has been called we assume the extrinsic is in the tx queue
-	//  should we add a channel to tx queue so we're notified when it's in the queue
-	if c.CoreAPI.IsBlockProducer() {
-		c.safeSend(newSubscriptionResponse(AuthorExtrinsicUpdates, esl.subID, "ready"))
-	}
-
-	// todo (ed) determine which peer extrinsic has been broadcast to, and set status
-	return esl.subID, err
-}
 
 // Listen implementation of Listen interface to listen for importedChan changes
 func (l *ExtrinsicSubmitListener) Listen() {
@@ -304,12 +178,12 @@ func (l *ExtrinsicSubmitListener) Listen() {
 		}
 	}()
 
-	// listen for finalized headers
+	// listen for finalised headers
 	go func() {
-		for header := range l.finalizedChan {
-			if reflect.DeepEqual(l.importedHash, header.Hash()) {
+		for info := range l.finalisedChan {
+			if reflect.DeepEqual(l.importedHash, info.Header.Hash()) {
 				resM := make(map[string]interface{})
-				resM["finalized"] = header.Hash().String()
+				resM["finalised"] = info.Header.Hash().String()
 				l.wsconn.safeSend(newSubscriptionResponse(AuthorExtrinsicUpdates, l.subID, resM))
 			}
 		}
@@ -319,28 +193,13 @@ func (l *ExtrinsicSubmitListener) Listen() {
 // RuntimeVersionListener to handle listening for Runtime Version
 type RuntimeVersionListener struct {
 	wsconn *WSConn
-	subID  int
-}
-
-func (c *WSConn) initRuntimeVersionListener(reqID float64) (int, error) {
-	rvl := &RuntimeVersionListener{
-		wsconn: c,
-	}
-	if c.CoreAPI == nil {
-		c.safeSendError(reqID, nil, "error CoreAPI not set")
-		return 0, fmt.Errorf("error CoreAPI not set")
-	}
-	c.qtyListeners++
-	rvl.subID = c.qtyListeners
-	c.Subscriptions[rvl.subID] = rvl
-	initRes := newSubscriptionResponseJSON(rvl.subID, reqID)
-	c.safeSend(initRes)
-
-	return rvl.subID, nil
+	subID  uint
 }
 
 // Listen implementation of Listen interface to listen for runtime version changes
 func (l *RuntimeVersionListener) Listen() {
+	// This sends current runtime version once when subscription is created
+	// TODO (ed) add logic to send updates when runtime version changes
 	rtVersion, err := l.wsconn.CoreAPI.GetRuntimeVersion(nil)
 	if err != nil {
 		return

@@ -49,8 +49,8 @@ func NewEmptyBlockTree(db database.Database) *BlockTree {
 	}
 }
 
-// NewBlockTreeFromRoot initializes a blocktree with a root block. The root block is always the most recently
-// finalized block (ie the genesis block if the node is just starting.)
+// NewBlockTreeFromRoot initialises a blocktree with a root block. The root block is always the most recently
+// finalised block (ie the genesis block if the node is just starting.)
 func NewBlockTreeFromRoot(root *types.Header, db database.Database) *BlockTree {
 	head := &node{
 		hash:        root.Hash(),
@@ -172,15 +172,15 @@ func (bt *BlockTree) getNode(h Hash) *node {
 
 // Prune sets the given hash as the new blocktree root, removing all nodes that are not the new root node or its descendant
 // It returns an array of hashes that have been pruned
-func (bt *BlockTree) Prune(finalized Hash) (pruned []Hash) {
+func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 	bt.Lock()
 	defer bt.Unlock()
 
-	if finalized == bt.head.hash {
+	if finalised == bt.head.hash {
 		return pruned
 	}
 
-	n := bt.getNode(finalized)
+	n := bt.getNode(finalised)
 	if n == nil {
 		return pruned
 	}
@@ -192,7 +192,7 @@ func (bt *BlockTree) Prune(finalized Hash) (pruned []Hash) {
 	return pruned
 }
 
-// String utilizes github.com/disiqueira/gotree to create a printable tree
+// String utilises github.com/disiqueira/gotree to create a printable tree
 func (bt *BlockTree) String() string {
 	bt.RLock()
 	defer bt.RUnlock()

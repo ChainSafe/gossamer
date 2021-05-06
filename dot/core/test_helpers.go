@@ -96,29 +96,6 @@ func (n *mockNetwork) SendMessage(m network.NotificationsMessage) {
 	n.Message = m
 }
 
-// mockFinalityGadget implements the FinalityGadget interface
-type mockFinalityGadget struct {
-	auths []*types.Authority
-}
-
-// Start mocks starting
-func (fg *mockFinalityGadget) Start() error {
-	return nil
-}
-
-// Stop mocks stopping
-func (fg *mockFinalityGadget) Stop() error {
-	return nil
-}
-
-func (fg *mockFinalityGadget) UpdateAuthorities(ad []*types.Authority) {
-	fg.auths = ad
-}
-
-func (fg *mockFinalityGadget) Authorities() []*types.Authority {
-	return fg.auths
-}
-
 // NewTestService creates a new test core service
 func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg == nil {
@@ -156,7 +133,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		stateSrvc = state.NewService(testDatadirPath, log.LvlInfo)
 		stateSrvc.UseMemDB()
 
-		err = stateSrvc.Initialize(gen, genHeader, genTrie)
+		err = stateSrvc.Initialise(gen, genHeader, genTrie)
 		require.Nil(t, err)
 
 		err = stateSrvc.Start()
@@ -253,6 +230,10 @@ func (s *mockSyncer) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) erro
 }
 
 func (s *mockSyncer) ProcessBlockData(_ []*types.BlockData) (int, error) {
+	return 0, nil
+}
+
+func (s *mockSyncer) ProcessJustification(data []*types.BlockData) (int, error) {
 	return 0, nil
 }
 

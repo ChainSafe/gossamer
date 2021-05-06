@@ -39,22 +39,22 @@ func (s *Service) receiveMessages(cond func() bool) {
 					continue
 				}
 
-				s.logger.Trace("received vote message", "msg", msg)
+				logger.Trace("received vote message", "msg", msg)
 				vm, ok := msg.(*VoteMessage)
 				if !ok {
-					s.logger.Trace("failed to cast message to VoteMessage")
+					logger.Trace("failed to cast message to VoteMessage")
 					continue
 				}
 
 				v, err := s.validateMessage(vm)
 				if err != nil {
-					s.logger.Trace("failed to validate vote message", "message", vm, "error", err)
+					logger.Trace("failed to validate vote message", "message", vm, "error", err)
 					continue
 				}
 
-				s.logger.Debug("validated vote message", "vote", v, "round", vm.Round, "subround", vm.Stage, "precommits", s.precommits)
+				logger.Debug("validated vote message", "vote", v, "round", vm.Round, "subround", vm.Message.Stage, "precommits", s.precommits)
 			case <-ctx.Done():
-				s.logger.Trace("returning from receiveMessages")
+				logger.Trace("returning from receiveMessages")
 				return
 			}
 		}
@@ -90,7 +90,7 @@ func (s *Service) sendMessage(vote *Vote, stage subround) error {
 	}
 
 	s.network.SendMessage(cm)
-	s.logger.Trace("sent VoteMessage", "msg", msg)
+	logger.Trace("sent VoteMessage", "msg", msg)
 
 	return nil
 }
@@ -113,6 +113,7 @@ func (s *Service) createVoteMessage(vote *Vote, stage subround, kp crypto.Keypai
 	}
 
 	sm := &SignedMessage{
+		Stage:       stage,
 		Hash:        vote.hash,
 		Number:      vote.number,
 		Signature:   ed25519.NewSignatureBytes(sig),
@@ -122,7 +123,6 @@ func (s *Service) createVoteMessage(vote *Vote, stage subround, kp crypto.Keypai
 	return &VoteMessage{
 		Round:   s.state.round,
 		SetID:   s.state.setID,
-		Stage:   stage,
 		Message: sm,
 	}, nil
 }
@@ -184,27 +184,27 @@ func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 	s.mapLock.Lock()
 	defer s.mapLock.Unlock()
 
-	just := &Justification{
+	just := &SignedPrecommit{
 		Vote:        vote,
 		Signature:   m.Message.Signature,
 		AuthorityID: pk.AsBytes(),
 	}
 
 	// add justification before checking for equivocation, since equivocatory vote may still be used in justification
-	if m.Stage == prevote {
+	if m.Message.Stage == prevote {
 		s.pvJustifications[m.Message.Hash] = append(s.pvJustifications[m.Message.Hash], just)
-	} else if m.Stage == precommit {
+	} else if m.Message.Stage == precommit {
 		s.pcJustifications[m.Message.Hash] = append(s.pcJustifications[m.Message.Hash], just)
 	}
 
-	equivocated := s.checkForEquivocation(voter, vote, m.Stage)
+	equivocated := s.checkForEquivocation(voter, vote, m.Message.Stage)
 	if equivocated {
 		return nil, ErrEquivocation
 	}
 
-	if m.Stage == prevote {
+	if m.Message.Stage == prevote {
 		s.prevotes[pk.AsBytes()] = vote
-	} else if m.Stage == precommit {
+	} else if m.Message.Stage == precommit {
 		s.precommits[pk.AsBytes()] = vote
 	}
 
@@ -215,7 +215,7 @@ func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 // it returns true if so, false otherwise.
 // additionally, if the vote is equivocatory, it updates the service's votes and equivocations.
 func (s *Service) checkForEquivocation(voter *Voter, vote *Vote, stage subround) bool {
-	v := voter.key.AsBytes()
+	v := voter.Key.AsBytes()
 
 	var eq map[ed25519.PublicKeyBytes][]*Vote
 	var votes map[ed25519.PublicKeyBytes]*Vote
@@ -246,7 +246,7 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *Vote, stage subround)
 }
 
 // validateVote checks if the block that is being voted for exists, and that it is a descendant of a
-// previously finalized block.
+// previously finalised block.
 func (s *Service) validateVote(v *Vote) error {
 	// check if v.hash corresponds to a valid block
 	has, err := s.blockState.HasHeader(v.hash)
@@ -258,7 +258,7 @@ func (s *Service) validateVote(v *Vote) error {
 		return ErrBlockDoesNotExist
 	}
 
-	// check if the block is an eventual descendant of a previously finalized block
+	// check if the block is an eventual descendant of a previously finalised block
 	isDescendant, err := s.blockState.IsDescendantOf(s.head.Hash(), v.hash)
 	if err != nil {
 		return err
@@ -273,7 +273,7 @@ func (s *Service) validateVote(v *Vote) error {
 
 func validateMessageSignature(pk *ed25519.PublicKey, m *VoteMessage) error {
 	msg, err := scale.Encode(&FullVote{
-		Stage: m.Stage,
+		Stage: m.Message.Stage,
 		Vote:  NewVote(m.Message.Hash, m.Message.Number),
 		Round: m.Round,
 		SetID: m.SetID,

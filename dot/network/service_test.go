@@ -17,6 +17,7 @@
 package network
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -196,12 +197,6 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	addrInfosB, err := nodeB.host.addrInfos()
 	require.NoError(t, err)
 
-	protocol := nodeA.notificationsProtocols[BlockAnnounceMsgType]
-	protocol.handshakeData.Store(nodeB.host.id(), &handshakeData{
-		received:  true,
-		validated: true,
-	})
-
 	err = nodeA.host.connect(*addrInfosB[0])
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
@@ -210,9 +205,21 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	}
 	require.NoError(t, err)
 
+	stream, err := nodeA.host.h.NewStream(context.Background(), nodeB.host.id(), nodeB.host.protocolID+blockAnnounceID)
+	require.NoError(t, err)
+	require.NotNil(t, stream)
+
+	protocol := nodeA.notificationsProtocols[BlockAnnounceMsgType]
+	protocol.outboundHandshakeData.Store(nodeB.host.id(), handshakeData{
+		received:  true,
+		validated: true,
+		stream:    stream,
+	})
+
 	// Only one message will be sent.
 	for i := 0; i < 5; i++ {
 		nodeA.SendMessage(testBlockAnnounceMessage)
+		time.Sleep(time.Millisecond * 10)
 	}
 
 	time.Sleep(time.Millisecond * 200)
@@ -223,10 +230,8 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	// All 5 message will be sent since cache is disabled.
 	for i := 0; i < 5; i++ {
 		nodeA.SendMessage(testBlockAnnounceMessage)
-		require.NoError(t, err)
+		time.Sleep(time.Millisecond * 10)
 	}
-
-	time.Sleep(time.Millisecond * 200)
 	require.Equal(t, 6, len(handler.messages[nodeA.host.id()]))
 }
 
@@ -390,7 +395,7 @@ func TestPersistPeerStore(t *testing.T) {
 
 	require.NotEmpty(t, nodeA.host.h.Peerstore().PeerInfo(nodeB.host.id()).Addrs)
 
-	// Stop a node and reinitialize a new node with same base path.
+	// Stop a node and reinitialise a new node with same base path.
 	err = nodeA.Stop()
 	require.NoError(t, err)
 
@@ -438,16 +443,4 @@ func TestHandleConn(t *testing.T) {
 	aScore, ok := nodeB.syncQueue.peerScore.Load(nodeA.host.id())
 	require.True(t, ok)
 	require.Equal(t, 1, aScore)
-
-	infoA := nodeA.notificationsProtocols[BlockAnnounceMsgType]
-	hsDataB, has := infoA.getHandshakeData(nodeB.host.id())
-	require.True(t, has)
-	require.True(t, hsDataB.received)
-	require.True(t, hsDataB.validated)
-
-	infoB := nodeB.notificationsProtocols[BlockAnnounceMsgType]
-	hsDataA, has := infoB.getHandshakeData(nodeA.host.id())
-	require.True(t, has)
-	require.True(t, hsDataA.received)
-	require.True(t, hsDataA.validated)
 }

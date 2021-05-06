@@ -225,7 +225,7 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.Digest{})
 	require.NoError(t, err)
 
-	err = stateSrvc.Initialize(gen, genesisHeader, genTrie)
+	err = stateSrvc.Initialise(gen, genesisHeader, genTrie)
 	require.NoError(t, err)
 
 	err = stateSrvc.Start()
@@ -236,7 +236,7 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 		require.NoError(t, err)
 	}()
 
-	gendata, err := state.LoadGenesisData(stateSrvc.DB())
+	gendata, err := stateSrvc.Base.LoadGenesisData()
 	require.NoError(t, err)
 
 	testGenesis := NewTestGenesis(t)
@@ -381,4 +381,31 @@ func TestNode_StopFunc(t *testing.T) {
 
 	node.Stop()
 	require.Equal(t, testvar, "after")
+}
+
+func TestNode_PersistGlobalName_WhenInitialize(t *testing.T) {
+	globalName := RandomNodeName()
+
+	cfg := NewTestConfig(t)
+	cfg.Global.Name = globalName
+	require.NotNil(t, cfg)
+
+	genPath := NewTestGenesisAndRuntime(t)
+	require.NotNil(t, genPath)
+
+	defer utils.RemoveTestDir(t)
+
+	cfg.Core.Roles = types.FullNodeRole
+	cfg.Core.BabeAuthority = false
+	cfg.Core.GrandpaAuthority = false
+	cfg.Core.BabeThresholdNumerator = 0
+	cfg.Core.BabeThresholdDenominator = 0
+	cfg.Init.Genesis = genPath
+
+	err := InitNode(cfg)
+	require.NoError(t, err)
+
+	storedName, err := LoadGlobalNodeName(cfg.Global.BasePath)
+	require.Nil(t, err)
+	require.Equal(t, globalName, storedName)
 }

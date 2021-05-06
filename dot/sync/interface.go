@@ -69,12 +69,15 @@ type BlockProducer interface {
 
 // DigestHandler is the interface for the consensus digest handler
 type DigestHandler interface {
-	Start()
-	Stop()
 	HandleConsensusDigest(*types.ConsensusDigest, *types.Header) error
 }
 
 // Verifier deals with block verification
 type Verifier interface {
 	VerifyBlock(header *types.Header) error
+}
+
+// FinalityGadget implements justification verification functionality
+type FinalityGadget interface {
+	VerifyBlockJustification([]byte) error
 }

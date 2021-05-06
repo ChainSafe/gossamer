@@ -32,6 +32,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/docker/docker/pkg/reexec"
 	"github.com/stretchr/testify/require"
@@ -250,7 +251,7 @@ func TestGossamerCommand(t *testing.T) {
 	t.Log("init gossamer output, ", "stdout", string(stdout), "stderr", string(stderr))
 
 	expectedMessages := []string{
-		"node initialized",
+		"node initialised",
 	}
 
 	for _, m := range expectedMessages {
@@ -281,7 +282,66 @@ func TestGossamerCommand(t *testing.T) {
 			require.NotContains(t, string(stderr), m)
 		}
 	}
+}
 
+func TestInitCommand_RenameNodeWhenCalled(t *testing.T) {
+	genesisPath := utils.GetGssmrGenesisRawPath()
+
+	tempDir, err := ioutil.TempDir("", "gossamer-maintest-")
+	require.Nil(t, err)
+
+	nodeName := dot.RandomNodeName()
+	init := runTestGossamer(t,
+		"init",
+		"--basepath", tempDir,
+		"--genesis", genesisPath,
+		"--name", nodeName,
+		"--config", defaultGssmrConfigPath,
+		"--force",
+	)
+
+	stdout, stderr := init.GetOutput()
+	require.Nil(t, err)
+
+	t.Log("init gossamer output, ", "stdout", string(stdout), "stderr", string(stderr))
+
+	// should contains the name defined in name flag
+	require.Contains(t, string(stdout), nodeName)
+
+	init = runTestGossamer(t,
+		"init",
+		"--basepath", tempDir,
+		"--genesis", genesisPath,
+		"--config", defaultGssmrConfigPath,
+		"--force",
+	)
+
+	stdout, stderr = init.GetOutput()
+	require.Nil(t, err)
+
+	t.Log("init gossamer output, ", "stdout", string(stdout), "stderr", string(stderr))
+
+	// should not contains the name from the last init
+	require.NotContains(t, string(stdout), nodeName)
+}
+
+func TestBuildSpecCommandWithOutput(t *testing.T) {
+	tmpOutputfile := "/tmp/raw-genesis-spec-output.json"
+	buildSpecCommand := runTestGossamer(t,
+		"build-spec",
+		"--raw",
+		"--genesis-spec", "../../chain/gssmr/genesis-spec.json",
+		"--output", tmpOutputfile)
+
+	time.Sleep(5 * time.Second)
+
+	_, err := os.Stat(tmpOutputfile)
+	require.False(t, os.IsNotExist(err))
+	defer os.Remove(tmpOutputfile)
+
+	outb, errb := buildSpecCommand.GetOutput()
+	require.Empty(t, outb)
+	require.Empty(t, errb)
 }
 
 // TODO: TestExportCommand test "gossamer export" does not error

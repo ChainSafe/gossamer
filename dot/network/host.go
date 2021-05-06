@@ -27,6 +27,7 @@ import (
 	badger "github.com/ipfs/go-ds-badger2"
 	"github.com/libp2p/go-libp2p"
 	libp2phost "github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/metrics"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
@@ -59,6 +60,7 @@ type host struct {
 	cm              *ConnManager
 	ds              *badger.Datastore
 	messageCache    *messageCache
+	bwc             *metrics.BandwidthCounter
 }
 
 // newHost creates a host wrapper with a new libp2p host instance
@@ -167,6 +169,8 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		return nil, err
 	}
 
+	bwc := metrics.NewBandwidthCounter()
+
 	host := &host{
 		ctx:             ctx,
 		h:               h,
@@ -177,6 +181,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		ds:              ds,
 		persistentPeers: pps,
 		messageCache:    msgCache,
+		bwc:             bwc,
 	}
 
 	cm.host = host
@@ -257,37 +262,31 @@ func (h *host) bootstrap() {
 			failed++
 		}
 	}
-	if failed == len(all) {
+	if failed == len(all) && len(all) != 0 {
 		logger.Error("failed to bootstrap to any bootnode")
 	}
 }
 
-// send writes the given message to the outbound message stream for the given
-// peer (gets the already opened outbound message stream or opens a new one).
-func (h *host) send(p peer.ID, pid protocol.ID, msg Message) (err error) {
-	// get outbound stream for given peer
-	s := h.getOutboundStream(p, pid)
-
-	// check if stream needs to be opened
-	if s == nil {
-		// open outbound stream with host protocol id
-		s, err = h.h.NewStream(h.ctx, p, pid)
-		if err != nil {
-			logger.Trace("failed to open new stream with peer", "peer", p, "protocol", pid, "error", err)
-			return err
-		}
-
-		logger.Trace(
-			"Opened stream",
-			"host", h.id(),
-			"peer", p,
-			"protocol", pid,
-		)
+// send creates a new outbound stream with the given peer and writes the message. It also returns
+// the newly created stream.
+func (h *host) send(p peer.ID, pid protocol.ID, msg Message) (libp2pnetwork.Stream, error) {
+	// open outbound stream with host protocol id
+	stream, err := h.h.NewStream(h.ctx, p, pid)
+	if err != nil {
+		logger.Trace("failed to open new stream with peer", "peer", p, "protocol", pid, "error", err)
+		return nil, err
 	}
 
-	err = h.writeToStream(s, msg)
+	logger.Trace(
+		"Opened stream",
+		"host", h.id(),
+		"peer", p,
+		"protocol", pid,
+	)
+
+	err = h.writeToStream(stream, msg)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	logger.Trace(
@@ -298,7 +297,7 @@ func (h *host) send(p peer.ID, pid protocol.ID, msg Message) (err error) {
 		"message", msg.String(),
 	)
 
-	return nil
+	return stream, nil
 }
 
 func (h *host) writeToStream(s libp2pnetwork.Stream, msg Message) error {
@@ -311,8 +310,14 @@ func (h *host) writeToStream(s libp2pnetwork.Stream, msg Message) error {
 	lenBytes := uint64ToLEB128(msgLen)
 	encMsg = append(lenBytes, encMsg...)
 
-	_, err = s.Write(encMsg)
-	return err
+	sent, err := s.Write(encMsg)
+	if err != nil {
+		return err
+	}
+
+	h.bwc.LogSentMessage(int64(sent))
+
+	return nil
 }
 
 // getOutboundStream returns the outbound message stream for the given peer or returns

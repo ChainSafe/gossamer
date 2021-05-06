@@ -136,7 +136,7 @@ func saveKey(priv crypto.PrivKey, fp string) (err error) {
 }
 
 func uint64ToLEB128(in uint64) []byte {
-	out := []byte{}
+	var out []byte
 	for {
 		b := uint8(in & 0x7f)
 		in >>= 7
@@ -189,7 +189,7 @@ func readStream(stream libp2pnetwork.Stream, buf []byte) (int, error) {
 	}
 
 	if length == 0 {
-		return 0, err // TODO: return bytes read from readLEB128ToUint64
+		return 0, nil // msg length of 0 is allowed, for example transactions handshake
 	}
 
 	// TODO: check if length > len(buf), if so probably log.Crit

@@ -473,7 +473,7 @@ func (sd *Decoder) DecodeSlice(t interface{}) (interface{}, error) {
 }
 
 // DecodeTuple accepts a byte array representing the SCALE encoded tuple and an interface. This interface should be a pointer
-// to a struct which the encoded tuple should be marshaled into. If it is a valid encoding for the struct, it returns the
+// to a struct which the encoded tuple should be marshalled into. If it is a valid encoding for the struct, it returns the
 // decoded struct, otherwise error,
 // Note that we return the same interface that was passed to this function; this is because we are writing directly to the
 // struct that is passed in, using reflect to get each of the fields.

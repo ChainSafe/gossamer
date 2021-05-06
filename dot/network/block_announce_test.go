@@ -101,8 +101,9 @@ func TestHandleBlockAnnounceMessage(t *testing.T) {
 		Number: big.NewInt(10),
 	}
 
-	err := s.handleBlockAnnounceMessage(peerID, msg)
+	propagate, err := s.handleBlockAnnounceMessage(peerID, msg)
 	require.NoError(t, err)
+	require.True(t, propagate)
 }
 
 func TestValidateBlockAnnounceHandshake(t *testing.T) {
@@ -117,10 +118,10 @@ func TestValidateBlockAnnounceHandshake(t *testing.T) {
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
 	nodeA.notificationsProtocols[BlockAnnounceMsgType] = &notificationsProtocol{
-		handshakeData: new(sync.Map),
+		inboundHandshakeData: new(sync.Map),
 	}
 	testPeerID := peer.ID("noot")
-	nodeA.notificationsProtocols[BlockAnnounceMsgType].handshakeData.Store(testPeerID, &handshakeData{})
+	nodeA.notificationsProtocols[BlockAnnounceMsgType].inboundHandshakeData.Store(testPeerID, handshakeData{})
 
 	err := nodeA.validateBlockAnnounceHandshake(testPeerID, &BlockAnnounceHandshake{
 		BestBlockNumber: 100,

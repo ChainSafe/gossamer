@@ -61,6 +61,10 @@ func (s *mockSyncer) ProcessBlockData(data []*types.BlockData) (int, error) {
 	return 0, nil
 }
 
+func (s *mockSyncer) ProcessJustification(data []*types.BlockData) (int, error) {
+	return 0, nil
+}
+
 func (s *mockSyncer) IsSynced() bool {
 	return s.synced
 }
@@ -95,7 +99,21 @@ func (s *testStreamHandler) handleStream(stream libp2pnetwork.Stream) {
 func (s *testStreamHandler) handleMessage(stream libp2pnetwork.Stream, msg Message) error {
 	msgs := s.messages[stream.Conn().RemotePeer()]
 	s.messages[stream.Conn().RemotePeer()] = append(msgs, msg)
-	return nil
+	return s.writeToStream(stream, testBlockAnnounceHandshake)
+}
+
+func (s *testStreamHandler) writeToStream(stream libp2pnetwork.Stream, msg Message) error {
+	encMsg, err := msg.Encode()
+	if err != nil {
+		return err
+	}
+
+	msgLen := uint64(len(encMsg))
+	lenBytes := uint64ToLEB128(msgLen)
+	encMsg = append(lenBytes, encMsg...)
+
+	_, err = stream.Write(encMsg)
+	return err
 }
 
 func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder messageDecoder, handler messageHandler) {
@@ -115,7 +133,7 @@ func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream, peer peer.ID
 		}
 
 		// decode message based on message type
-		msg, err := decoder(msgBytes[:tot], peer)
+		msg, err := decoder(msgBytes[:tot], peer, isInbound(stream))
 		if err != nil {
 			logger.Error("Failed to decode message from peer", "peer", peer, "err", err)
 			continue
@@ -141,7 +159,7 @@ var testBlockRequestMessage = &BlockRequestMessage{
 	Max:           optional.NewUint32(true, 1),
 }
 
-func testBlockRequestMessageDecoder(in []byte, _ peer.ID) (Message, error) {
+func testBlockRequestMessageDecoder(in []byte, _ peer.ID, _ bool) (Message, error) {
 	msg := new(BlockRequestMessage)
 	err := msg.Decode(in)
 	return msg, err
@@ -151,13 +169,17 @@ var testBlockAnnounceMessage = &BlockAnnounceMessage{
 	Number: big.NewInt(128 * 7),
 }
 
-func testBlockAnnounceMessageDecoder(in []byte, _ peer.ID) (Message, error) {
+var testBlockAnnounceHandshake = &BlockAnnounceHandshake{
+	BestBlockNumber: 0,
+}
+
+func testBlockAnnounceMessageDecoder(in []byte, _ peer.ID, _ bool) (Message, error) {
 	msg := new(BlockAnnounceMessage)
 	err := msg.Decode(in)
 	return msg, err
 }
 
-func testBlockAnnounceHandshakeDecoder(in []byte, _ peer.ID) (Message, error) {
+func testBlockAnnounceHandshakeDecoder(in []byte, _ peer.ID, _ bool) (Message, error) {
 	msg := new(BlockAnnounceHandshake)
 	err := msg.Decode(in)
 	return msg, err

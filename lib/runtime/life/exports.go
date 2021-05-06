@@ -85,7 +85,7 @@ func (in *Instance) GrandpaAuthorities() ([]*types.Authority, error) {
 	return types.GrandpaAuthoritiesRawToAuthorities(adr.([]*types.GrandpaAuthoritiesRaw))
 }
 
-// InitializeBlock calls runtime API function Core_initialize_block
+// InitializeBlock calls runtime API function Core_initialise_block
 func (in *Instance) InitializeBlock(header *types.Header) error {
 	encodedHeader, err := scale.Encode(header)
 	if err != nil {
@@ -106,6 +106,7 @@ func (in *Instance) ApplyExtrinsic(data types.Extrinsic) ([]byte, error) {
 	return in.Exec(runtime.BlockBuilderApplyExtrinsic, data)
 }
 
+//nolint
 // FinalizeBlock calls runtime API function BlockBuilder_finalize_block
 func (in *Instance) FinalizeBlock() (*types.Header, error) {
 	data, err := in.Exec(runtime.BlockBuilderFinalizeBlock, []byte{})
