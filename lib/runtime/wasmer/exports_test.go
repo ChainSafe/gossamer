@@ -137,7 +137,6 @@ func TestInstance_Version_NodeRuntime(t *testing.T) {
 }
 
 func TestInstance_Version_DevRuntime(t *testing.T) {
-	t.Skip()
 	expected := runtime.NewVersionData(
 		[]byte("node"),
 		[]byte("gossamer-node"),
@@ -148,23 +147,7 @@ func TestInstance_Version_DevRuntime(t *testing.T) {
 		1,
 	)
 
-	gen, err := genesis.NewGenesisFromJSON("../../../chain/dev/genesis-spec.json", 0)
-	require.NoError(t, err)
-
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
-	require.NoError(t, err)
-
-	// set state to genesis state
-	genState, err := storage.NewTrieState(genTrie)
-	require.NoError(t, err)
-
-	cfg := &Config{}
-	cfg.Storage = genState
-	cfg.LogLvl = 4
-
-	instance, err := NewRuntimeFromGenesis(gen, cfg)
-	require.NoError(t, err)
-	//instance := NewTestInstance(t, runtime.DEV_RUNTIME)
+	instance := NewTestInstance(t, runtime.DEV_RUNTIME)
 
 	version, err := instance.Version()
 	require.Nil(t, err)
@@ -298,6 +281,24 @@ func TestInstance_BabeConfiguration_NodeRuntime_NoAuthorities(t *testing.T) {
 		EpochLength:        200,
 		C1:                 1,
 		C2:                 4,
+		GenesisAuthorities: nil,
+		Randomness:         [32]byte{},
+		SecondarySlots:     1,
+	}
+
+	require.Equal(t, expected, cfg)
+}
+
+func TestInstance_BabeConfiguration_DevRuntime_NoAuthorities(t *testing.T) {
+	rt := NewTestInstance(t, runtime.DEV_RUNTIME)
+	cfg, err := rt.BabeConfiguration()
+	require.NoError(t, err)
+
+	expected := &types.BabeConfiguration{
+		SlotDuration:       3000,
+		EpochLength:        200,
+		C1:                 1,
+		C2:                 1,
 		GenesisAuthorities: nil,
 		Randomness:         [32]byte{},
 		SecondarySlots:     1,
