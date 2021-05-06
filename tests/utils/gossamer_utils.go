@@ -390,15 +390,15 @@ func TestDir(t *testing.T, name string) string {
 	return filepath.Join("/tmp/", t.Name(), name)
 }
 
-// GenerateGenesisOneAuth generates Genesis file with one authority.
-func GenerateGenesisOneAuth() {
-	bs, err := dot.BuildFromGenesis(utils.GetDevGenesisPath(), 1)
-	if err != nil {
-		logger.Error("genesis file not found", "error", err)
-		os.Exit(1)
-	}
-	_ = dot.CreateJSONRawFile(bs, GenesisOneAuth)
-}
+// // GenerateGenesisOneAuth generates Genesis file with one authority.
+// func GenerateGenesisOneAuth() {
+// 	bs, err := dot.BuildFromGenesis(utils.GetDevGenesisPath(), 1)
+// 	if err != nil {
+// 		logger.Error("genesis file not found", "error", err)
+// 		os.Exit(1)
+// 	}
+// 	_ = dot.CreateJSONRawFile(bs, GenesisOneAuth)
+// }
 
 // GenerateGenesisThreeAuth generates Genesis file with three authority.
 func GenerateGenesisThreeAuth() {
