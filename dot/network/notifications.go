@@ -289,18 +289,17 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 		return
 	}
 
-	peers := s.host.peers()
-	for _, peer := range peers {
-		if peer == excluding {
+	for _, p := range s.host.peers() {
+		if p == excluding {
 			continue
 		}
 
-		go func() {
-			err = s.sendData(peer, hs, info, msg)
+		go func(p peer.ID) {
+			err = s.sendData(p, hs, info, msg)
 			if err != nil {
-				logger.Debug("failed to send message to peer", "peer", peer, "message", msg, "error", err)
+				logger.Debug("failed to send message to peer", "peer", p, "message", msg, "error", err)
 			}
-		}()
+		}(p)
 	}
 }
 
