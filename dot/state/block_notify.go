@@ -51,7 +51,7 @@ func (bs *BlockState) RegisterImportedChannel(ch chan<- *types.Block) (byte, err
 
 // RegisterFinalizedChannel registers a channel for block notification upon block finalisation.
 // It returns the channel ID (used for unregistering the channel)
-func (bs *BlockState) RegisterFinalizedChannel(ch chan<- *types.Header) (byte, error) {
+func (bs *BlockState) RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error) {
 	bs.finalisedLock.RLock()
 
 	if len(bs.finalised) == 256 {
@@ -111,7 +111,7 @@ func (bs *BlockState) notifyImported(block *types.Block) {
 	}
 }
 
-func (bs *BlockState) notifyFinalized(hash common.Hash) {
+func (bs *BlockState) notifyFinalized(hash common.Hash, round, setID uint64) {
 	bs.finalisedLock.RLock()
 	defer bs.finalisedLock.RUnlock()
 
@@ -126,11 +126,16 @@ func (bs *BlockState) notifyFinalized(hash common.Hash) {
 	}
 
 	logger.Debug("notifying finalised block chans...", "chans", bs.finalised)
+	info := &types.FinalisationInfo{
+		Header: header,
+		Round:  round,
+		SetID:  setID,
+	}
 
 	for _, ch := range bs.finalised {
-		go func(ch chan<- *types.Header) {
+		go func(ch chan<- *types.FinalisationInfo) {
 			select {
-			case ch <- header:
+			case ch <- info:
 			default:
 			}
 		}(ch)
