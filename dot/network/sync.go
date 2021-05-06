@@ -156,7 +156,6 @@ func newSyncQueue(s *Service) *syncQueue {
 func (q *syncQueue) start() {
 	go q.handleResponseQueue()
 	go q.syncAtHead()
-	go q.finalizeAtHead()
 
 	go q.processBlockRequests()
 	go q.processBlockResponses()
