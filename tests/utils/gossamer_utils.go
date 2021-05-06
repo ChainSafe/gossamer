@@ -76,6 +76,10 @@ var (
 	ConfigLogGrandpa string = filepath.Join(currentDir, "../utils/config_log_grandpa.toml")
 	// ConfigNoBABE is a config file with BABE disabled
 	ConfigNoBABE string = filepath.Join(currentDir, "../utils/config_nobabe.toml")
+	// ConfigNoGrandpa is a config file with grandpa disabled
+	ConfigNoGrandpa string = filepath.Join(currentDir, "../utils/config_nograndpa.toml")
+	// ConfigNotAuthority is a config file with no authority functionality
+	ConfigNotAuthority string = filepath.Join(currentDir, "../utils/config_notauthority.toml")
 )
 
 // Node represents a gossamer process
@@ -501,4 +505,30 @@ func generateConfigNoBabe() *ctoml.Config {
 func CreateConfigNoBabe() {
 	cfg := generateConfigNoBabe()
 	_ = dot.ExportTomlConfig(cfg, ConfigNoBABE)
+}
+
+func generateConfigNoGrandpa() *ctoml.Config {
+	cfg := generateDefaultConfig()
+	cfg.Core.GrandpaAuthority = false
+	return cfg
+}
+
+// CreateConfigNoGrandpa generates and creates no grandpa config file.
+func CreateConfigNoGrandpa() {
+	cfg := generateConfigNoGrandpa()
+	_ = dot.ExportTomlConfig(cfg, ConfigNoGrandpa)
+}
+
+func generateConfigNotAuthority() *ctoml.Config {
+	cfg := generateDefaultConfig()
+	cfg.Core.Roles = 1
+	cfg.Core.BabeAuthority = false
+	cfg.Core.GrandpaAuthority = false
+	return cfg
+}
+
+// CreateConfigNotAuthority generates and creates non-authority config file.
+func CreateConfigNotAuthority() {
+	cfg := generateConfigNotAuthority()
+	_ = dot.ExportTomlConfig(cfg, ConfigNotAuthority)
 }
