@@ -29,11 +29,10 @@ import (
 	gosstypes "github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/tests/utils"
+	log "github.com/ChainSafe/log15"
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v2"
 	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
-
-	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
 
@@ -496,4 +495,26 @@ func TestPendingExtrinsic(t *testing.T) {
 
 	hashes, err := compareBlocksByNumberWithRetry(t, nodes, extInBlock.String())
 	require.NoError(t, err, hashes)
+}
+
+func TestSync_ProduceBlocks(t *testing.T) {
+	utils.CreateConfigBabeMaxThreshold()
+
+	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDefault, utils.ConfigBABEMaxThreshold)
+	require.NoError(t, err)
+
+	header := utils.GetChainHead(t, nodes[0])
+	num := header.Number.Int64()
+	for {
+		header = utils.GetChainHead(t, nodes[0])
+		logger.Info("Block produced number ", "Block Number", header.Number.Int64())
+		if newNum := header.Number.Int64(); newNum >= num+10 {
+			t.Log("going to tear down gossamer...")
+			os.Remove(utils.ConfigBABEMaxThreshold)
+			errList := utils.StopNodes(t, nodes)
+			require.Len(t, errList, 0)
+			break
+		}
+		time.Sleep(time.Second * 2)
+	}
 }

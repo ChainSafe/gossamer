@@ -128,6 +128,26 @@ func (t *Trie) load(db chaindb.Database, curr node) error {
 	return nil
 }
 
+//GetDBKey get hash of each node.
+func (t Trie) GetDBKey(curr node, keys map[common.Hash]interface{}) error {
+	if c, ok := curr.(*branch); ok {
+		for _, child := range c.children {
+			if child == nil {
+				continue
+			}
+
+			hash := child.getHash()
+			keys[common.BytesToHash(hash)] = nil
+
+			err := t.GetDBKey(child, keys)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // PutInDB puts a value into the trie and writes the updates nodes the database. Since it needs to write all the nodes from the changed node up to the root, it writes these in a batch operation.
 func (t *Trie) PutInDB(db chaindb.Database, key, value []byte) error {
 	t.Put(key, value)

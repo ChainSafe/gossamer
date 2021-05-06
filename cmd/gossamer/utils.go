@@ -26,8 +26,10 @@ import (
 	"syscall"
 	"testing"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/dgraph-io/badger/v2"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
@@ -128,4 +130,29 @@ func newTestConfigWithFile(t *testing.T) (*dot.Config, *os.File) {
 	tomlCfg := dotConfigToToml(cfg)
 	cfgFile := exportConfig(tomlCfg, file.Name())
 	return cfg, cfgFile
+}
+
+func loadChainDB(basePath string) (*chaindb.BadgerDB, error) {
+	cfg := &chaindb.Config{
+		DataDir: basePath,
+	}
+
+	// Open already existing DB
+	db, err := chaindb.NewBadgerDB(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
+}
+
+func loadBadgerDB(basePath string) (*badger.DB, error) {
+	opts := badger.DefaultOptions(basePath)
+	// Open already existing DB
+	db, err := badger.Open(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
 }

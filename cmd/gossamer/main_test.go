@@ -26,6 +26,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"testing"
@@ -33,7 +34,9 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/dgraph-io/badger/v2"
 	"github.com/docker/docker/pkg/reexec"
 	"github.com/stretchr/testify/require"
 )
@@ -349,3 +352,81 @@ func TestBuildSpecCommandWithOutput(t *testing.T) {
 // TODO: TestInitCommand test "gossamer init" does not error
 
 // TODO: TestAccountCommand test "gossamer account" does not error
+
+func TestPruneState(t *testing.T) {
+	const (
+		bloomSize      = 256
+		retainBlockNum = 5
+	)
+
+	chainDBPath := "/tmp/TestSync_ProduceBlocks/alice"
+	opts := badger.DefaultOptions(chainDBPath)
+	currDB, err := badger.Open(opts)
+	require.NoError(t, err)
+
+	txn := currDB.NewTransaction(false)
+	itr := txn.NewIterator(badger.DefaultIteratorOptions)
+
+	keyMap := make(map[string]interface{})
+	for itr.Rewind(); itr.Valid(); itr.Next() {
+		key := string(itr.Item().Key())
+
+		if !strings.HasPrefix(key, state.StoragePrefix) {
+			keyMap[key] = nil
+		}
+	}
+
+	t.Log("Total keys in old DB", len(keyMap))
+	currDB.Close()
+
+	pruner, err := newPruner(chainDBPath, bloomSize, retainBlockNum)
+	require.NoError(t, err)
+
+	// key with storage prefix of last 256 blocks
+	err = pruner.setBloomFilter()
+	require.NoError(t, err)
+
+	// close pruner inputDB so it can be used again
+	pruner.inputDB.Close()
+
+	newBadgerDBPath := fmt.Sprintf("%s/%s", t.TempDir(), "badger")
+	_ = runTestGossamer(t,
+		"prune-state",
+		"--basepath", chainDBPath,
+		"--badger-path", newBadgerDBPath,
+		"--bloom-size", "256",
+		"--retain-block", "5")
+
+	time.Sleep(10 * time.Second)
+
+	t.Logf("new badger DB path %s", newBadgerDBPath)
+
+	prunedDB, err := badger.Open(badger.DefaultOptions(newBadgerDBPath))
+	require.NoError(t, err)
+
+	txn = prunedDB.NewTransaction(false)
+	itr = txn.NewIterator(badger.DefaultIteratorOptions)
+
+	storageKeyMap := make(map[string]interface{})
+	otherKeyMap := make(map[string]interface{})
+
+	for itr.Rewind(); itr.Valid(); itr.Next() {
+		key := string(itr.Item().Key())
+		if strings.HasPrefix(key, state.StoragePrefix) {
+			key = strings.TrimPrefix(key, state.StoragePrefix)
+			storageKeyMap[key] = nil
+			continue
+		}
+		otherKeyMap[key] = nil
+	}
+
+	for k := range keyMap {
+		_, ok := otherKeyMap[k]
+		require.True(t, ok)
+	}
+
+	for k := range storageKeyMap {
+		ok := pruner.bloom.contain([]byte(k))
+		require.True(t, ok)
+	}
+}
