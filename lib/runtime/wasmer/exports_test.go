@@ -136,6 +136,55 @@ func TestInstance_Version_NodeRuntime(t *testing.T) {
 	require.Equal(t, expected.TransactionVersion(), version.TransactionVersion())
 }
 
+func TestInstance_Version_DevRuntime(t *testing.T) {
+	t.Skip()
+	expected := runtime.NewVersionData(
+		[]byte("node"),
+		[]byte("gossamer-node"),
+		10,
+		260,
+		0,
+		nil,
+		1,
+	)
+
+	gen, err := genesis.NewGenesisFromJSON("../../../chain/dev/genesis-spec.json", 0)
+	require.NoError(t, err)
+
+	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	// set state to genesis state
+	genState, err := storage.NewTrieState(genTrie)
+	require.NoError(t, err)
+
+	cfg := &Config{}
+	cfg.Storage = genState
+	cfg.LogLvl = 4
+
+	instance, err := NewRuntimeFromGenesis(gen, cfg)
+	require.NoError(t, err)
+	//instance := NewTestInstance(t, runtime.DEV_RUNTIME)
+
+	version, err := instance.Version()
+	require.Nil(t, err)
+
+	t.Logf("SpecName: %s\n", version.SpecName())
+	t.Logf("ImplName: %s\n", version.ImplName())
+	t.Logf("AuthoringVersion: %d\n", version.AuthoringVersion())
+	t.Logf("SpecVersion: %d\n", version.SpecVersion())
+	t.Logf("ImplVersion: %d\n", version.ImplVersion())
+	t.Logf("TransactionVersion: %d\n", version.TransactionVersion())
+
+	require.Equal(t, 12, len(version.APIItems()))
+	require.Equal(t, expected.SpecName(), version.SpecName())
+	require.Equal(t, expected.ImplName(), version.ImplName())
+	require.Equal(t, expected.AuthoringVersion(), version.AuthoringVersion())
+	require.Equal(t, expected.SpecVersion(), version.SpecVersion())
+	require.Equal(t, expected.ImplVersion(), version.ImplVersion())
+	require.Equal(t, expected.TransactionVersion(), version.TransactionVersion())
+}
+
 func balanceKey(t *testing.T, pub []byte) []byte { //nolint
 	h0, err := common.Twox128Hash([]byte("System"))
 	require.NoError(t, err)
