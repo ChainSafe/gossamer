@@ -35,16 +35,12 @@ func (s *Service) SendCatchUpRequest(peer peer.ID, msgType byte, req *ConsensusM
 	notifications := s.notificationsProtocols[msgType]
 	s.notificationsMu.RUnlock()
 
-	// err := s.host.writeToStream(hsData.stream, req)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	hs, err := notifications.getHandshake()
 	if err != nil {
 		return nil, err
 	}
 
+	// write to outbound stream, establish handshake if needed
 	err = s.sendData(peer, hs, notifications, req)
 	if err != nil {
 		return nil, err
@@ -52,6 +48,7 @@ func (s *Service) SendCatchUpRequest(peer peer.ID, msgType byte, req *ConsensusM
 
 	hsData, has := notifications.getHandshakeData(peer, true) // get inbound stream to read response from
 	if !has {
+		// inbound stream should established already, since we received a NeighbourMessage from this peer
 		return nil, errors.New("inbound stream not established with peer")
 	}
 
@@ -98,7 +95,7 @@ func (s *Service) receiveResponse(stream libp2pnetwork.Stream) (*ConsensusMessag
 	return msg, err
 }
 
-// SendMessage ...
+// SendMessage gossips a message to our peers
 func (s *Service) SendMessage(msg NotificationsMessage) {
 	if s.host == nil {
 		return

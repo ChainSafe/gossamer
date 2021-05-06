@@ -123,12 +123,14 @@ func TestStress_Grandpa_CatchUp(t *testing.T) {
 	// if testing.Short() {
 	// 	t.Skip("skipping TestStress_Grandpa_CatchUp")
 	// }
+	utils.CreateConfigLogGrandpa()
+	defer os.Remove(utils.ConfigLogGrandpa)
 
 	utils.GenerateGenesisThreeAuth()
 	defer os.Remove(utils.GenesisThreeAuths)
 
 	numNodes := 3
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisThreeAuths, utils.ConfigDefault)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisThreeAuths, utils.ConfigLogGrandpa)
 	require.NoError(t, err)
 
 	defer func() {
@@ -138,7 +140,7 @@ func TestStress_Grandpa_CatchUp(t *testing.T) {
 
 	time.Sleep(time.Second * 70) // let some rounds run
 	//nolint
-	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisThreeAuths, utils.ConfigDefault, false)
+	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisThreeAuths, utils.ConfigLogGrandpa, false)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
 

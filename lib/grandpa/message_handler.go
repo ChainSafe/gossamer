@@ -103,9 +103,9 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 	}
 
 	// ignore neighbour messages that are above our head
-	// if int64(msg.Number) > head.Int64() {
-	// 	return nil
-	// }
+	if int64(msg.Number) > head.Int64() {
+		return nil
+	}
 
 	logger.Debug("got neighbour message", "number", msg.Number, "set id", msg.SetID, "round", msg.Round)
 	h.catchUp.addNeighbourMessage(from, msg)

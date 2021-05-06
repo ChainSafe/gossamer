@@ -17,7 +17,6 @@
 package network
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -113,126 +112,6 @@ func TestMain(m *testing.M) {
 func TestStartService(t *testing.T) {
 	node := createTestService(t, nil)
 	node.Stop()
-}
-
-// test broacast messages from core service
-func TestBroadcastMessages(t *testing.T) {
-	basePathA := utils.NewTestBasePath(t, "nodeA")
-	configA := &Config{
-		BasePath:    basePathA,
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true,
-		NoMDNS:      true,
-	}
-
-	nodeA := createTestService(t, configA)
-	defer nodeA.Stop()
-	nodeA.noGossip = true
-
-	basePathB := utils.NewTestBasePath(t, "nodeB")
-	configB := &Config{
-		BasePath:    basePathB,
-		Port:        7002,
-		RandSeed:    2,
-		NoBootstrap: true,
-		NoMDNS:      true,
-	}
-
-	nodeB := createTestService(t, configB)
-	defer nodeB.Stop()
-	nodeB.noGossip = true
-	handler := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
-	nodeB.host.registerStreamHandler(blockAnnounceID, handler.handleStream)
-
-	addrInfosB, err := nodeB.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosB[0])
-	// retry connect if "failed to dial" error
-	if failedToDial(err) {
-		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosB[0])
-	}
-	require.NoError(t, err)
-
-	// simulate message sent from core service
-	nodeA.SendMessage(testBlockAnnounceMessage)
-	time.Sleep(time.Second * 2)
-	require.NotNil(t, handler.messages[nodeA.host.id()])
-}
-
-func TestBroadcastDuplicateMessage(t *testing.T) {
-	msgCacheTTL = 2 * time.Second
-
-	basePathA := utils.NewTestBasePath(t, "nodeA")
-	configA := &Config{
-		BasePath:    basePathA,
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true,
-		NoMDNS:      true,
-	}
-
-	nodeA := createTestService(t, configA)
-	defer nodeA.Stop()
-	nodeA.noGossip = true
-
-	basePathB := utils.NewTestBasePath(t, "nodeB")
-	configB := &Config{
-		BasePath:    basePathB,
-		Port:        7002,
-		RandSeed:    2,
-		NoBootstrap: true,
-		NoMDNS:      true,
-	}
-
-	nodeB := createTestService(t, configB)
-	defer nodeB.Stop()
-	nodeB.noGossip = true
-
-	handler := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
-	nodeB.host.registerStreamHandler(blockAnnounceID, handler.handleStream)
-
-	addrInfosB, err := nodeB.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosB[0])
-	// retry connect if "failed to dial" error
-	if failedToDial(err) {
-		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosB[0])
-	}
-	require.NoError(t, err)
-
-	stream, err := nodeA.host.h.NewStream(context.Background(), nodeB.host.id(), nodeB.host.protocolID+blockAnnounceID)
-	require.NoError(t, err)
-	require.NotNil(t, stream)
-
-	protocol := nodeA.notificationsProtocols[BlockAnnounceMsgType]
-	protocol.outboundHandshakeData.Store(nodeB.host.id(), handshakeData{
-		received:  true,
-		validated: true,
-		stream:    stream,
-	})
-
-	// Only one message will be sent.
-	for i := 0; i < 5; i++ {
-		nodeA.SendMessage(testBlockAnnounceMessage)
-		time.Sleep(time.Millisecond * 10)
-	}
-
-	time.Sleep(time.Millisecond * 200)
-	require.Equal(t, 1, len(handler.messages[nodeA.host.id()]))
-
-	nodeA.host.messageCache = nil
-
-	// All 5 message will be sent since cache is disabled.
-	for i := 0; i < 5; i++ {
-		nodeA.SendMessage(testBlockAnnounceMessage)
-		time.Sleep(time.Millisecond * 10)
-	}
-	require.Equal(t, 6, len(handler.messages[nodeA.host.id()]))
 }
 
 func TestService_NodeRoles(t *testing.T) {

@@ -249,7 +249,7 @@ func (s *Service) updateAuthorities() error {
 	s.state.voters = nextAuthorities
 	s.state.setID = currSetID
 	// TODO: should this be 0 since initiate increments?
-	s.state.round = 1 // round resets to 1 after a set ID change
+	s.state.round = 0 // round resets to 1 after a set ID change
 	return nil
 }
 

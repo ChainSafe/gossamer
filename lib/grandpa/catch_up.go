@@ -58,10 +58,10 @@ func (c *catchUp) addPeer(id peer.ID) {
 }
 
 func (c *catchUp) doCatchUp(from peer.ID, setID, round uint64) error {
-	// if !c.isAuthority {
-	// 	// only authorities need to participate in catch-up
-	// 	return nil
-	// }
+	if !c.isAuthority {
+		// only authorities need to participate in catch-up
+		return nil
+	}
 
 	if c.isStarted.Load().(bool) {
 		return errors.New("already started")
@@ -69,17 +69,17 @@ func (c *catchUp) doCatchUp(from peer.ID, setID, round uint64) error {
 
 	logger.Debug("beginning catch-up process", "setID", setID, "target round", round)
 
-	// currSetID, err := c.grandpa.grandpaState.GetCurrentSetID()
-	// if err != nil {
-	// 	return err
-	// }
+	currSetID, err := c.grandpa.grandpaState.GetCurrentSetID()
+	if err != nil {
+		return err
+	}
 
-	// if setID > currSetID {
-	// 	// we aren't ready to catch up yet, wait until we've synced enough of the
-	// 	// chain to know the authorities at this set ID
-	// 	logger.Debug("ignoring catch-up, not at target set ID", "current", currSetID, "target", setID)
-	// 	return nil
-	// }
+	if setID > currSetID {
+		// we aren't ready to catch up yet, wait until we've synced enough of the
+		// chain to know the authorities at this set ID
+		logger.Debug("ignoring catch-up, not at target set ID", "current", currSetID, "target", setID)
+		return nil
+	}
 
 	// pause voting while we do catch-up
 	c.grandpa.paused.Store(true)
@@ -145,10 +145,6 @@ func (c *catchUp) handleCatchUpResponse(msg *catchUpResponse) error {
 	if msg.SetID != c.grandpa.state.setID {
 		return ErrSetIDMismatch
 	}
-
-	// if msg.Round != c.state.round-1 {
-	// 	return ErrInvalidCatchUpResponseRound
-	// }
 
 	prevote, err := c.verifyPreVoteJustification(msg)
 	if err != nil {
