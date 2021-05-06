@@ -31,7 +31,7 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 		err = es.encodeFixedWidthInt(in)
 	case *big.Int:
 		err = es.encodeBigInt(in)
-	case Uint128:
+	case *Uint128:
 		err = es.encodeUint128(in)
 	case []byte:
 		err = es.encodeBytes(in)
@@ -351,7 +351,7 @@ func (es *encodeState) encodeUint(i uint) (err error) {
 }
 
 // encodeUint128 encodes a Uint128
-func (es *encodeState) encodeUint128(i Uint128) (err error) {
+func (es *encodeState) encodeUint128(i *Uint128) (err error) {
 	err = binary.Write(es, binary.LittleEndian, i.Bytes())
 	return
 }
