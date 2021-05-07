@@ -121,7 +121,7 @@ var (
 		Action:    FixFlagOrder(pruneState),
 		Name:      pruningStateCommandName,
 		Usage:     "Prune state will prune the state trie",
-		ArgsUsage: "<root>",
+		ArgsUsage: "",
 		Flags:     PruningFlags,
 		Description: `prune-state <retain-block> will prune historical state data.
 		All trie nodes that do not belong to the specified version state will be deleted from the database.
@@ -448,7 +448,10 @@ func pruneState(ctx *cli.Context) error {
 	}
 
 	// close input DB so we can open reopen it for streaming,
-	_ = pruner.inputDB.Close()
+	err = pruner.inputDB.Close()
+	if err != nil {
+		return fmt.Errorf("failed to closed input db %w", err)
+	}
 
 	prunedDBPath := ctx.String(DBPathFlag.Name)
 	if prunedDBPath == "" {
