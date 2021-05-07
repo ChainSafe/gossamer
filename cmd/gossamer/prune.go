@@ -76,6 +76,7 @@ func newPruner(basePath string, bloomSize uint64, retainBlockNum int64) (*Pruner
 	}, nil
 }
 
+// setBloomFilter loads keys with storage prefix of last `retainBlockNum` blocks into the bloom filter
 func (p *Pruner) setBloomFilter() error {
 	// latest block header
 	header, err := p.blockState.GetHeader(p.bestBlockHash)
@@ -92,9 +93,10 @@ func (p *Pruner) setBloomFilter() error {
 		return fmt.Errorf("not enough block to perform pruning")
 	}
 
-	// loop from latest to last 256
+	// loop from latest to last `retainBlockNum` blocks
 	for blockNum := header.Number.Int64(); blockNum > 0 && blockNum >= latestBlockNum-p.retainBlockNum; {
-		tr, err := p.storageState.LoadFromDB(header.StateRoot)
+		var tr *trie.Trie
+		tr, err = p.storageState.LoadFromDB(header.StateRoot)
 		if err != nil {
 			return err
 		}
@@ -132,7 +134,9 @@ func (p *Pruner) prune(inDBPath, pruneDBPath string) error {
 		return fmt.Errorf("failed to load badger DB %w", err)
 	}
 
-	defer p.prunedDB.Close()
+	defer func() {
+		_ = p.prunedDB.Close()
+	}()
 
 	if err = p.streamDB(pruneDBPath); err != nil {
 		return err
@@ -152,7 +156,9 @@ func (p *Pruner) streamDB(outDir string) error {
 		return fmt.Errorf("cannot open out DB at %s error %w", outDir, err)
 	}
 
-	defer outDB.Close()
+	defer func() {
+		_ = outDB.Close()
+	}()
 
 	writer := outDB.NewStreamWriter()
 	if err = writer.Prepare(); err != nil {

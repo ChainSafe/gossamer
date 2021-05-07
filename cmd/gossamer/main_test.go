@@ -353,80 +353,92 @@ func TestBuildSpecCommandWithOutput(t *testing.T) {
 
 // TODO: TestAccountCommand test "gossamer account" does not error
 
+func iterateDB(db *badger.DB, cb func(*badger.Item)) {
+	txn := db.NewTransaction(false)
+	itr := txn.NewIterator(badger.DefaultIteratorOptions)
+
+	for itr.Rewind(); itr.Valid(); itr.Next() {
+		cb(itr.Item())
+	}
+}
+
 func TestPruneState(t *testing.T) {
 	const (
 		bloomSize      = 256
 		retainBlockNum = 5
 	)
 
-	chainDBPath := "/tmp/TestSync_ProduceBlocks/alice"
-	opts := badger.DefaultOptions(chainDBPath)
-	currDB, err := badger.Open(opts)
+	inDBPath := "../../tests/data/db"
+
+	pruner, err := newPruner(inDBPath, bloomSize, retainBlockNum)
 	require.NoError(t, err)
 
-	txn := currDB.NewTransaction(false)
-	itr := txn.NewIterator(badger.DefaultIteratorOptions)
-
-	keyMap := make(map[string]interface{})
-	for itr.Rewind(); itr.Valid(); itr.Next() {
-		key := string(itr.Item().Key())
-
-		if !strings.HasPrefix(key, state.StoragePrefix) {
-			keyMap[key] = nil
-		}
-	}
-
-	t.Log("Total keys in old DB", len(keyMap))
-	currDB.Close()
-
-	pruner, err := newPruner(chainDBPath, bloomSize, retainBlockNum)
-	require.NoError(t, err)
-
-	// key with storage prefix of last 256 blocks
 	err = pruner.setBloomFilter()
 	require.NoError(t, err)
 
-	// close pruner inputDB so it can be used again
-	pruner.inputDB.Close()
+	nonStorageKeys := make(map[string]interface{})
+	storageKeys := make(map[string]interface{})
+	itr := pruner.inputDB.NewIterator()
+	for itr.Next() {
+		key := string(itr.Key())
+		if !strings.HasPrefix(key, state.StoragePrefix) {
+			nonStorageKeys[key] = nil
+			continue
+		}
+		storageKeys[key] = nil
+	}
+	t.Log("Total keys in input DB", len(storageKeys)+len(nonStorageKeys), "storage keys", len(storageKeys))
 
-	newBadgerDBPath := fmt.Sprintf("%s/%s", t.TempDir(), "badger")
-	_ = runTestGossamer(t,
+	// close the input DB because `prune-state` cmd will open it.
+	err = pruner.inputDB.Close()
+	require.NoError(t, err)
+
+	prunedDBPath := fmt.Sprintf("%s/%s", t.TempDir(), "badger")
+	t.Log("pruned DB path", prunedDBPath)
+
+	tt := runTestGossamer(t,
 		"prune-state",
-		"--basepath", chainDBPath,
-		"--badger-path", newBadgerDBPath,
+		"--basepath", inDBPath,
+		"--pruned-db-path", prunedDBPath,
 		"--bloom-size", "256",
 		"--retain-block", "5")
 
-	time.Sleep(10 * time.Second)
-
-	t.Logf("new badger DB path %s", newBadgerDBPath)
-
-	prunedDB, err := badger.Open(badger.DefaultOptions(newBadgerDBPath))
+	err = tt.cmd.Wait()
 	require.NoError(t, err)
 
-	txn = prunedDB.NewTransaction(false)
-	itr = txn.NewIterator(badger.DefaultIteratorOptions)
+	prunedDB, err := badger.Open(badger.DefaultOptions(prunedDBPath))
+	require.NoError(t, err)
 
-	storageKeyMap := make(map[string]interface{})
-	otherKeyMap := make(map[string]interface{})
-
-	for itr.Rewind(); itr.Valid(); itr.Next() {
-		key := string(itr.Item().Key())
+	storageKeysPruned := make(map[string]interface{})
+	nonStorageKeysPruned := make(map[string]interface{})
+	getKeysPrunedDB := func(item *badger.Item) {
+		key := string(item.Key())
 		if strings.HasPrefix(key, state.StoragePrefix) {
 			key = strings.TrimPrefix(key, state.StoragePrefix)
-			storageKeyMap[key] = nil
-			continue
+			storageKeysPruned[key] = nil
+			return
 		}
-		otherKeyMap[key] = nil
+		nonStorageKeysPruned[key] = nil
 	}
+	iterateDB(prunedDB, getKeysPrunedDB)
+	t.Log("Total keys in pruned DB", len(storageKeysPruned)+len(nonStorageKeysPruned), "storage keys", len(storageKeysPruned))
+	require.Equal(t, len(nonStorageKeysPruned), len(nonStorageKeys))
 
-	for k := range keyMap {
-		_, ok := otherKeyMap[k]
+	// Check all non storage keys are present.
+	for k := range nonStorageKeys {
+		_, ok := nonStorageKeysPruned[k]
 		require.True(t, ok)
 	}
 
-	for k := range storageKeyMap {
+	// Check required storage keys exist.
+	for k := range storageKeys {
 		ok := pruner.bloom.contain([]byte(k))
-		require.True(t, ok)
+		if ok {
+			_, found := storageKeysPruned[k]
+			require.True(t, found)
+		}
 	}
+
+	err = prunedDB.Close()
+	require.NoError(t, err)
 }

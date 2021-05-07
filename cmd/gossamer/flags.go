@@ -273,9 +273,9 @@ var (
 		Value: 2048,
 	}
 
-	// DBPathFlag data directory for DB, valid for the use with prune-state subcommand
+	// DBPathFlag data directory for pruned DB, valid for the use with prune-state subcommand
 	DBPathFlag = cli.StringFlag{
-		Name:  "badger-path",
+		Name:  "pruned-db-path",
 		Usage: "Data directory for the output DB",
 	}
 
