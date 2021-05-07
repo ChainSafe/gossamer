@@ -172,8 +172,8 @@ func (s *Service) sendNeighbourMessage() {
 			if s.neighbourMessage == nil {
 				continue
 			}
-		case info := <-s.finalisedCh:
-			if info == nil {
+		case info, ok := <-s.finalisedCh:
+			if !ok {
 				// channel was closed
 				return
 			}
