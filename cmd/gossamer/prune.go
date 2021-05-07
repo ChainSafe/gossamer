@@ -14,7 +14,7 @@ import (
 	"github.com/dgraph-io/badger/v2/pb"
 )
 
-//Pruner is an offline tool to prune the stale state with the
+// Pruner is an offline tool to prune the stale state with the help of
 // bloom filter, The workflow of pruner is very simple:
 // - iterate the storage state, reconstruct the relevant state tries
 // - iterate the database, stream all the targeted keys to new DB
@@ -121,8 +121,6 @@ func (p *Pruner) setBloomFilter() error {
 		}
 	}
 
-	fmt.Println("Total keys added in bloom filter", len(keys))
-
 	logger.Info("Total keys added in bloom filter", "keysCount", len(keys))
 	return nil
 }
@@ -171,10 +169,12 @@ func (p *Pruner) streamDB(outDir string) error {
 
 	stream.ChooseKey = func(item *badger.Item) bool {
 		key := string(item.Key())
+		// All the non storage keys will be streamed to new db.
 		if !strings.HasPrefix(key, state.StoragePrefix) {
 			return true
 		}
 
+		// Only keys present in bloom filter will be streamed to new db
 		key = strings.TrimPrefix(key, state.StoragePrefix)
 		exist := p.bloom.contain([]byte(key))
 		return exist
