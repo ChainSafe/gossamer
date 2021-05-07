@@ -153,7 +153,7 @@ jobs:
           push: false
           tags: chainsafe/gossamer:test
       -
-        name: Run stress
+        name: Run grandpa
         run: |
           docker run chainsafe/gossamer:test sh -c "make it-grandpa"
   
