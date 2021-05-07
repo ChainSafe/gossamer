@@ -6,13 +6,6 @@
   "publishConfig": {
     "access": "public"
   },
-  "release": {
-    "publish": ["@semantic-release/github"],
-    "branches": [
-      "development",
-      "next"
-    ]
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ChainSafe/gossamer.git"
