@@ -27,6 +27,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestInitiateEpoch_Epoch0(t *testing.T) {
+	bs := createTestService(t, nil)
+	bs.epochLength = 5
+	startSlot := uint64(1000)
+
+	err := bs.epochState.SetFirstSlot(startSlot)
+	require.NoError(t, err)
+	err = bs.initiateEpoch(0)
+	require.NoError(t, err)
+
+	for i := startSlot; i < startSlot+bs.epochLength; i++ {
+		_, has := bs.slotToProof[i]
+		require.True(t, has)
+	}
+}
+
 func TestInitiateEpoch(t *testing.T) {
 	bs := createTestService(t, nil)
 	bs.epochLength = 5
