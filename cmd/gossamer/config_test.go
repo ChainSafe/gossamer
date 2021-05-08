@@ -44,23 +44,29 @@ func TestConfigFromChainFlag(t *testing.T) {
 		values      []interface{}
 		expected    *dot.Config
 	}{
+		// {
+		// 	"Test gossamer --chain gssmr",
+		// 	[]string{"chain", "name"},
+		// 	[]interface{}{"gssmr", dot.GssmrConfig().Global.Name},
+		// 	dot.GssmrConfig(),
+		// },
+		// {
+		// 	"Test gossamer --chain kusama",
+		// 	[]string{"chain", "name"},
+		// 	[]interface{}{"kusama", dot.KusamaConfig().Global.Name},
+		// 	dot.KusamaConfig(),
+		// },
+		// {
+		// 	"Test gossamer --chain polkadot",
+		// 	[]string{"chain", "name"},
+		// 	[]interface{}{"polkadot", dot.PolkadotConfig().Global.Name},
+		// 	dot.PolkadotConfig(),
+		// },
 		{
-			"Test gossamer --chain gssmr",
+			"Test gossamer --chain dev",
 			[]string{"chain", "name"},
-			[]interface{}{"gssmr", dot.GssmrConfig().Global.Name},
-			dot.GssmrConfig(),
-		},
-		{
-			"Test gossamer --chain kusama",
-			[]string{"chain", "name"},
-			[]interface{}{"kusama", dot.KusamaConfig().Global.Name},
-			dot.KusamaConfig(),
-		},
-		{
-			"Test gossamer --chain polkadot",
-			[]string{"chain", "name"},
-			[]interface{}{"polkadot", dot.PolkadotConfig().Global.Name},
-			dot.PolkadotConfig(),
+			[]interface{}{"dev", dot.DevConfig().Global.Name},
+			dot.DevConfig(),
 		},
 	}
 

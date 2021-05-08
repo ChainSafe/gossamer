@@ -270,10 +270,11 @@ func PolkadotConfig() *Config {
 func DevConfig() *Config {
 	return &Config{
 		Global: GlobalConfig{
-			Name:     dev.DefaultName,
-			ID:       dev.DefaultID,
-			BasePath: dev.DefaultBasePath,
-			LogLvl:   dev.DefaultLvl,
+			Name:        dev.DefaultName,
+			ID:          dev.DefaultID,
+			BasePath:    dev.DefaultBasePath,
+			LogLvl:      dev.DefaultLvl,
+			MetricsPort: dev.DefaultMetricsPort,
 		},
 		Log: LogConfig{
 			CoreLvl:           dev.DefaultLvl,
@@ -293,8 +294,10 @@ func DevConfig() *Config {
 			Unlock: dev.DefaultUnlock,
 		},
 		Core: CoreConfig{
-			Roles:           dev.DefaultRoles,
-			WasmInterpreter: dev.DefaultWasmInterpreter,
+			Roles:            dev.DefaultRoles,
+			BabeAuthority:    dev.DefaultBabeAuthority,
+			GrandpaAuthority: dev.DefaultGrandpaAuthority,
+			WasmInterpreter:  dev.DefaultWasmInterpreter,
 		},
 		Network: NetworkConfig{
 			Port:        dev.DefaultNetworkPort,
