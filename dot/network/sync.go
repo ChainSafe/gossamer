@@ -127,6 +127,7 @@ type syncQueue struct {
 	cancel       context.CancelFunc
 	peerScore    *sync.Map // map[peer.ID]int; peers we have successfully synced from before -> their score; score increases on successful response
 
+	requestDataByHash        *sync.Map // map[common.Hash]requestData; caching requestData by hash
 	requestData              *sync.Map // map[uint64]requestData; map of start # of request -> requestData
 	justificationRequestData *sync.Map // map[common.Hash]requestData; map of requests of justifications -> requestData
 	requestCh                chan *syncRequest
@@ -152,6 +153,7 @@ func newSyncQueue(s *Service) *syncQueue {
 		cancel:                   cancel,
 		peerScore:                new(sync.Map),
 		requestData:              new(sync.Map),
+		requestDataByHash:        new(sync.Map),
 		justificationRequestData: new(sync.Map),
 		requestCh:                make(chan *syncRequest, blockRequestBufferSize),
 		responses:                []*types.BlockData{},
@@ -479,11 +481,14 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error 
 		}
 
 		q.updatePeerScore(pid, 1)
-		q.justificationRequestData.Store(startHash, requestData{
+		reqData := requestData{
 			sent:     true,
 			received: true,
 			from:     pid,
-		})
+		}
+
+		q.justificationRequestData.Store(startHash, reqData)
+		q.requestDataByHash.Store(startHash, reqData)
 
 		logger.Debug("pushed justification data to queue", "hash", startHash)
 		q.responseCh <- justificationResponses
@@ -527,6 +532,28 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error 
 	return nil
 }
 
+func (q *syncQueue) isRequestDataCached(startingBlock *variadic.Uint64OrHash) (*requestData, bool) {
+	if startingBlock == nil {
+		return nil, false
+	}
+
+	if startingBlock.IsHash() {
+		if d, has := q.requestDataByHash.Load(startingBlock.Hash()); has {
+			data := d.(requestData)
+			return &data, true
+		}
+	}
+
+	if startingBlock.IsUint64() {
+		if d, has := q.requestData.Load(startingBlock.Uint64()); has {
+			data := d.(requestData)
+			return &data, true
+		}
+	}
+
+	return nil, false
+}
+
 func (q *syncQueue) processBlockRequests() {
 	for {
 		select {
@@ -535,16 +562,15 @@ func (q *syncQueue) processBlockRequests() {
 				continue
 			}
 
-			if !req.req.StartingBlock.IsUint64() {
+			reqData, ok := q.isRequestDataCached(req.req.StartingBlock)
+
+			if !ok {
 				q.trySync(req)
 				continue
 			}
 
-			if d, has := q.requestData.Load(req.req.StartingBlock.Uint64()); has {
-				data := d.(requestData)
-				if data.sent && data.received {
-					continue
-				}
+			if reqData.sent && reqData.received {
+				continue
 			}
 
 			q.trySync(req)
@@ -604,7 +630,14 @@ func (q *syncQueue) trySync(req *syncRequest) {
 			received: false,
 		})
 	} else if req.req.StartingBlock.IsHash() && (req.req.RequestedData&RequestedDataHeader) == 0 {
-		q.justificationRequestData.Store(req.req.StartingBlock.Hash(), requestData{
+		startingBlockHash := req.req.StartingBlock.Hash()
+
+		q.justificationRequestData.Store(startingBlockHash, requestData{
+			sent:     true,
+			received: false,
+		})
+
+		q.requestDataByHash.Store(startingBlockHash, requestData{
 			sent:     true,
 			received: false,
 		})
