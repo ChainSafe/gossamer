@@ -54,7 +54,8 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 		if startBlock == 0 {
 			startBlock = 1
 		}
-		block, err := s.blockState.GetBlockByNumber(big.NewInt(0).SetUint64(startBlock))
+
+		block, err := s.blockState.GetBlockByNumber(big.NewInt(0).SetUint64(startBlock)) //nolint
 		if err != nil {
 			return nil, err
 		}
@@ -76,8 +77,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 			return nil, err
 		}
 	} else {
-		//endHash = s.blockState.BestBlockHash()
-		endNumber := big.NewInt(0).Add(startHeader.Number, big.NewInt(int64(respSize)))
+		endNumber := big.NewInt(0).Add(startHeader.Number, big.NewInt(int64(respSize-1)))
 		bestBlockNumber, err := s.blockState.BestBlockNumber()
 		if err != nil {
 			return nil, err
@@ -92,86 +92,87 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 			return nil, err
 		}
 		endHeader = endBlock.Header
+		endHash = endHeader.Hash()
 	}
 
-	logger.Info("handling BlockRequestMessage", "start", startHeader.Number, "end", endHeader.Number, "startHash", startHash, "endHash", endHash)
-
-	// get sub-chain of block hashes
-	// subchain, err := s.blockState.SubChain(startHash, endHash)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// if len(subchain) > int(maxResponseSize) {
-	// 	subchain = subchain[:maxResponseSize]
-	// }
-
-	//logger.Trace("subchain", "start", subchain[0], "end", subchain[len(subchain)-1])
+	logger.Debug("handling BlockRequestMessage", "start", startHeader.Number, "end", endHeader.Number, "startHash", startHash, "endHash", endHash)
 
 	responseData := []*types.BlockData{}
 
-	// TODO: check ascending vs descending direction
-	for i := startHeader.Number; i.Cmp(endHeader.Number) == -1; i.Add(i, big.NewInt(1)) {
-		hash, err := s.blockState.GetHashByNumber(i)
-		if err != nil {
-			return nil, err
-		}
-
-		blockData := new(types.BlockData)
-		blockData.Hash = hash
-
-		// set defaults
-		blockData.Header = optional.NewHeader(false, nil)
-		blockData.Body = optional.NewBody(false, nil)
-		blockData.Receipt = optional.NewBytes(false, nil)
-		blockData.MessageQueue = optional.NewBytes(false, nil)
-		blockData.Justification = optional.NewBytes(false, nil)
-
-		// header
-		if (blockRequest.RequestedData & network.RequestedDataHeader) == 1 {
-			retData, err := s.blockState.GetHeader(hash)
-			if err == nil && retData != nil {
-				blockData.Header = retData.AsOptional()
+	// ascending (ie child to parent)
+	if blockRequest.Direction == 0 {
+		for i := endHeader.Number.Int64(); i >= startHeader.Number.Int64(); i-- {
+			blockData, err := s.getBlockData(big.NewInt(i), blockRequest.RequestedData)
+			if err != nil {
+				return nil, err
 			}
+			responseData = append(responseData, blockData)
 		}
-
-		// body
-		if (blockRequest.RequestedData&network.RequestedDataBody)>>1 == 1 {
-			retData, err := s.blockState.GetBlockBody(hash)
-			if err == nil && retData != nil {
-				blockData.Body = retData.AsOptional()
+	} else {
+		// descending (ie parent to child)
+		for i := startHeader.Number.Int64(); i <= endHeader.Number.Int64(); i++ {
+			blockData, err := s.getBlockData(big.NewInt(i), blockRequest.RequestedData)
+			if err != nil {
+				return nil, err
 			}
+			responseData = append(responseData, blockData)
 		}
-
-		// receipt
-		if (blockRequest.RequestedData&network.RequestedDataReceipt)>>2 == 1 {
-			retData, err := s.blockState.GetReceipt(hash)
-			if err == nil && retData != nil {
-				blockData.Receipt = optional.NewBytes(true, retData)
-			}
-		}
-
-		// message queue
-		if (blockRequest.RequestedData&network.RequestedDataMessageQueue)>>3 == 1 {
-			retData, err := s.blockState.GetMessageQueue(hash)
-			if err == nil && retData != nil {
-				blockData.MessageQueue = optional.NewBytes(true, retData)
-			}
-		}
-
-		// justification
-		if (blockRequest.RequestedData&network.RequestedDataJustification)>>4 == 1 {
-			retData, err := s.blockState.GetJustification(hash)
-			if err == nil && retData != nil {
-				blockData.Justification = optional.NewBytes(true, retData)
-			}
-		}
-
-		responseData = append(responseData, blockData)
 	}
 
 	logger.Debug("sending BlockResponseMessage", "start", startHeader.Number, "end", endHeader.Number)
 	return &network.BlockResponseMessage{
 		BlockData: responseData,
 	}, nil
+}
+
+func (s *Service) getBlockData(num *big.Int, requestedData byte) (*types.BlockData, error) {
+	hash, err := s.blockState.GetHashByNumber(num)
+	if err != nil {
+		return nil, err
+	}
+
+	blockData := new(types.BlockData)
+	blockData.Hash = hash
+	blockData.Header = optional.NewHeader(false, nil)
+	blockData.Body = optional.NewBody(false, nil)
+	blockData.Receipt = optional.NewBytes(false, nil)
+	blockData.MessageQueue = optional.NewBytes(false, nil)
+	blockData.Justification = optional.NewBytes(false, nil)
+
+	if (requestedData & network.RequestedDataHeader) == 1 {
+		retData, err := s.blockState.GetHeader(hash)
+		if err == nil && retData != nil {
+			blockData.Header = retData.AsOptional()
+		}
+	}
+
+	if (requestedData&network.RequestedDataBody)>>1 == 1 {
+		retData, err := s.blockState.GetBlockBody(hash)
+		if err == nil && retData != nil {
+			blockData.Body = retData.AsOptional()
+		}
+	}
+
+	if (requestedData&network.RequestedDataReceipt)>>2 == 1 {
+		retData, err := s.blockState.GetReceipt(hash)
+		if err == nil && retData != nil {
+			blockData.Receipt = optional.NewBytes(true, retData)
+		}
+	}
+
+	if (requestedData&network.RequestedDataMessageQueue)>>3 == 1 {
+		retData, err := s.blockState.GetMessageQueue(hash)
+		if err == nil && retData != nil {
+			blockData.MessageQueue = optional.NewBytes(true, retData)
+		}
+	}
+
+	if (requestedData&network.RequestedDataJustification)>>4 == 1 {
+		retData, err := s.blockState.GetJustification(hash)
+		if err == nil && retData != nil {
+			blockData.Justification = optional.NewBytes(true, retData)
+		}
+	}
+
+	return blockData, nil
 }
