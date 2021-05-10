@@ -93,10 +93,6 @@ func (hs *GrandpaHandshake) IsHandshake() bool {
 }
 
 func (s *Service) registerProtocol() error {
-	if !s.authority {
-		return nil
-	}
-
 	return s.network.RegisterNotificationsProtocol(grandpaID,
 		messageID,
 		s.getHandshake,
