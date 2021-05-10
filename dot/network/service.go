@@ -574,7 +574,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 			continue
 		}
 
-		logger.Debug(
+		logger.Trace(
 			"received message from peer",
 			"host", s.host.id(),
 			"peer", peer,
