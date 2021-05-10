@@ -25,15 +25,28 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 )
 
-var maxResponseSize int64 = 128 // maximum number of block datas to reply with in a BlockResponse message.
+var maxResponseSize uint32 = 128 // maximum number of block datas to reply with in a BlockResponse message.
 
 // CreateBlockResponse creates a block response message from a block request message
 func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
-	var startHash common.Hash
-	var endHash common.Hash
+	var (
+		startHash, endHash     common.Hash
+		startHeader, endHeader *types.Header
+		err                    error
+		respSize               uint32
+	)
 
 	if blockRequest.StartingBlock == nil {
 		return nil, ErrInvalidBlockRequest
+	}
+
+	if blockRequest.Max != nil && blockRequest.Max.Exists() {
+		respSize = blockRequest.Max.Value()
+		if respSize > maxResponseSize {
+			respSize = maxResponseSize
+		}
+	} else {
+		respSize = maxResponseSize
 	}
 
 	switch startBlock := blockRequest.StartingBlock.Value().(type) {
@@ -46,45 +59,63 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 			return nil, err
 		}
 
+		startHeader = block.Header
 		startHash = block.Header.Hash()
 	case common.Hash:
 		startHash = startBlock
+		startHeader, err = s.blockState.GetHeader(startHash)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if blockRequest.EndBlockHash != nil && blockRequest.EndBlockHash.Exists() {
 		endHash = blockRequest.EndBlockHash.Value()
+		endHeader, err = s.blockState.GetHeader(endHash)
+		if err != nil {
+			return nil, err
+		}
 	} else {
-		endHash = s.blockState.BestBlockHash()
+		//endHash = s.blockState.BestBlockHash()
+		endNumber := big.NewInt(0).Add(startHeader.Number, big.NewInt(int64(respSize)))
+		bestBlockNumber, err := s.blockState.BestBlockNumber()
+		if err != nil {
+			return nil, err
+		}
+
+		if endNumber.Cmp(bestBlockNumber) == 1 {
+			endNumber = bestBlockNumber
+		}
+
+		endBlock, err := s.blockState.GetBlockByNumber(endNumber)
+		if err != nil {
+			return nil, err
+		}
+		endHeader = endBlock.Header
 	}
 
-	startHeader, err := s.blockState.GetHeader(startHash)
-	if err != nil {
-		return nil, err
-	}
-
-	endHeader, err := s.blockState.GetHeader(endHash)
-	if err != nil {
-		return nil, err
-	}
-
-	logger.Debug("handling BlockRequestMessage", "start", startHeader.Number, "end", endHeader.Number, "startHash", startHash, "endHash", endHash)
+	logger.Info("handling BlockRequestMessage", "start", startHeader.Number, "end", endHeader.Number, "startHash", startHash, "endHash", endHash)
 
 	// get sub-chain of block hashes
-	subchain, err := s.blockState.SubChain(startHash, endHash)
-	if err != nil {
-		return nil, err
-	}
+	// subchain, err := s.blockState.SubChain(startHash, endHash)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	if len(subchain) > int(maxResponseSize) {
-		subchain = subchain[:maxResponseSize]
-	}
+	// if len(subchain) > int(maxResponseSize) {
+	// 	subchain = subchain[:maxResponseSize]
+	// }
 
-	logger.Trace("subchain", "start", subchain[0], "end", subchain[len(subchain)-1])
+	//logger.Trace("subchain", "start", subchain[0], "end", subchain[len(subchain)-1])
 
 	responseData := []*types.BlockData{}
 
 	// TODO: check ascending vs descending direction
-	for _, hash := range subchain {
+	for i := startHeader.Number; i.Cmp(endHeader.Number) == -1; i.Add(i, big.NewInt(1)) {
+		hash, err := s.blockState.GetHashByNumber(i)
+		if err != nil {
+			return nil, err
+		}
 
 		blockData := new(types.BlockData)
 		blockData.Hash = hash

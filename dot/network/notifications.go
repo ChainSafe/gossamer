@@ -217,7 +217,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		logger.Debug("sending outbound handshake", "protocol", info.protocolID, "peer", peer, "message", hs)
 		stream, err := s.host.send(peer, info.protocolID, hs)
 		if err != nil {
-			logger.Trace("failed to send message to peer", "peer", peer, "error", err)
+			logger.Debug("failed to send message to peer", "peer", peer, "error", err)
 			return
 		}
 

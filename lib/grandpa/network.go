@@ -93,6 +93,10 @@ func (hs *GrandpaHandshake) IsHandshake() bool {
 }
 
 func (s *Service) registerProtocol() error {
+	if !s.authority {
+		return nil
+	}
+
 	return s.network.RegisterNotificationsProtocol(grandpaID,
 		messageID,
 		s.getHandshake,
@@ -105,8 +109,16 @@ func (s *Service) registerProtocol() error {
 }
 
 func (s *Service) getHandshake() (Handshake, error) {
+	var roles byte
+
+	if s.authority {
+		roles = 4
+	} else {
+		roles = 1
+	}
+
 	return &GrandpaHandshake{
-		Roles: 1, // TODO: don't hard-code this
+		Roles: roles,
 	}, nil
 }
 

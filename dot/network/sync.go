@@ -58,6 +58,8 @@ func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) er
 		return nil
 	}
 
+	logger.Debug("got sync stream", "msg", msg)
+
 	// if it's a BlockRequest, call core for processing
 	if req, ok := msg.(*BlockRequestMessage); ok {
 		defer func() {
@@ -66,9 +68,11 @@ func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) er
 
 		resp, err := s.syncer.CreateBlockResponse(req)
 		if err != nil {
-			logger.Trace("cannot create response for request")
+			logger.Debug("cannot create response for request", "error", err)
 			return nil
 		}
+
+		logger.Debug("send block response", "Resp", resp)
 
 		err = s.host.writeToStream(stream, resp)
 		if err != nil {
@@ -586,7 +590,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 
 		err = q.pushResponse(resp, peer.pid)
 		if err != nil && err != errEmptyResponseData && err != errEmptyJustificationData {
-			logger.Debug("failed to push block response", "error", err)
+			logger.Trace("failed to push block response", "error", err)
 		} else {
 			return
 		}
