@@ -44,10 +44,12 @@ var (
 	defaultGssmrConfigPath    = "./chain/gssmr/config.toml"
 	defaultKusamaConfigPath   = "./chain/kusama/config.toml"
 	defaultPolkadotConfigPath = "./chain/polkadot/config.toml"
+	defaultDevConfigPath      = "./chain/dev/config.toml"
 
 	gossamerName = "gssmr"
 	kusamaName   = "kusama"
 	polkadotName = "polkadot"
+	devName      = "dev"
 )
 
 // loadConfigFile loads a default config file if --chain is specified, a specific
@@ -100,6 +102,11 @@ func setupConfigFromChain(ctx *cli.Context) (*ctoml.Config, *dot.Config, error) 
 			tomlCfg = &ctoml.Config{}
 			cfg = dot.PolkadotConfig()
 			err = loadConfig(tomlCfg, defaultPolkadotConfigPath)
+		case devName:
+			logger.Info("loading toml configuration...", "config path", defaultDevConfigPath)
+			tomlCfg = &ctoml.Config{}
+			cfg = dot.DevConfig()
+			err = loadConfig(tomlCfg, defaultDevConfigPath)
 		default:
 			return nil, nil, fmt.Errorf("unknown chain id provided: %s", id)
 		}
@@ -572,11 +579,6 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 		cfg.GrandpaAuthority = false
 	}
 
-	if tomlCfg.BabeThresholdDenominator != 0 {
-		cfg.BabeThresholdDenominator = tomlCfg.BabeThresholdDenominator
-		cfg.BabeThresholdNumerator = tomlCfg.BabeThresholdNumerator
-	}
-
 	switch tomlCfg.WasmInterpreter {
 	case wasmer.Name:
 		cfg.WasmInterpreter = wasmer.Name
@@ -596,8 +598,6 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 		"babe-authority", cfg.BabeAuthority,
 		"grandpa-authority", cfg.GrandpaAuthority,
 		"epoch-length", cfg.EpochLength,
-		"babe-threshold-numerator", cfg.BabeThresholdNumerator,
-		"babe-threshold-denominator", cfg.BabeThresholdDenominator,
 		"wasm-interpreter", cfg.WasmInterpreter,
 	)
 }
@@ -672,7 +672,7 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 	cfg.WSExternal = tomlCfg.WSExternal
 
 	// check --rpc flag and update node configuration
-	if enabled := ctx.GlobalBool(RPCEnabledFlag.Name); enabled {
+	if enabled := ctx.GlobalBool(RPCEnabledFlag.Name); enabled || cfg.Enabled {
 		cfg.Enabled = true
 	} else if ctx.IsSet(RPCEnabledFlag.Name) && !enabled {
 		cfg.Enabled = false
@@ -706,7 +706,7 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 		cfg.WSPort = uint32(wsport)
 	}
 
-	if WS := ctx.GlobalBool(WSFlag.Name); WS {
+	if WS := ctx.GlobalBool(WSFlag.Name); WS || cfg.WS {
 		cfg.WS = true
 	} else if ctx.IsSet(WSFlag.Name) && !WS {
 		cfg.WS = false
