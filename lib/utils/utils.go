@@ -25,6 +25,9 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/ChainSafe/chaindb"
+	"github.com/dgraph-io/badger/v2"
 )
 
 // PathExists returns true if the named file or directory exists, otherwise false
@@ -191,4 +194,29 @@ func GetKusamaGenesisPath() string {
 	}
 
 	return fp
+}
+
+func LoadChainDB(basePath string) (*chaindb.BadgerDB, error) {
+	cfg := &chaindb.Config{
+		DataDir: basePath,
+	}
+
+	// Open already existing DB
+	db, err := chaindb.NewBadgerDB(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
+}
+
+func LoadBadgerDB(basePath string) (*badger.DB, error) {
+	opts := badger.DefaultOptions(basePath)
+	// Open already existing DB
+	db, err := badger.Open(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
 }

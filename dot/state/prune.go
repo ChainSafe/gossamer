@@ -1,4 +1,4 @@
-package main
+package state
 
 import (
 	"context"
@@ -6,10 +6,10 @@ import (
 	"strings"
 
 	"github.com/ChainSafe/chaindb"
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/dgraph-io/badger/v2"
 	"github.com/dgraph-io/badger/v2/pb"
 )
@@ -19,9 +19,9 @@ import (
 // - iterate the storage state, reconstruct the relevant state tries
 // - iterate the database, stream all the targeted keys to new DB
 type Pruner struct {
-	inputDB        *chaindb.BadgerDB
-	storageState   *state.StorageState
-	blockState     *state.BlockState
+	InputDB        *chaindb.BadgerDB
+	storageState   *StorageState
+	blockState     *BlockState
 	bloom          *stateBloom
 	bestBlockHash  common.Hash
 	retainBlockNum int64
@@ -29,13 +29,13 @@ type Pruner struct {
 	prunedDB *badger.DB
 }
 
-func newPruner(basePath string, bloomSize uint64, retainBlockNum int64) (*Pruner, error) {
-	db, err := loadChainDB(basePath)
+func NewPruner(basePath string, bloomSize uint64, retainBlockNum int64) (*Pruner, error) {
+	db, err := utils.LoadChainDB(basePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load DB %w", err)
 	}
 
-	base := state.NewBaseState(db)
+	base := NewBaseState(db)
 
 	bestHash, err := base.LoadBestBlockHash()
 	if err != nil {
@@ -49,7 +49,7 @@ func newPruner(basePath string, bloomSize uint64, retainBlockNum int64) (*Pruner
 	}
 
 	// create blockState state
-	blockState, err := state.NewBlockState(db, bt)
+	blockState, err := NewBlockState(db, bt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create block state: %w", err)
 	}
@@ -61,13 +61,13 @@ func newPruner(basePath string, bloomSize uint64, retainBlockNum int64) (*Pruner
 	}
 
 	// load storage state
-	storageState, err := state.NewStorageState(db, blockState, trie.NewEmptyTrie())
+	storageState, err := NewStorageState(db, blockState, trie.NewEmptyTrie())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new storage state %w", err)
 	}
 
 	return &Pruner{
-		inputDB:        db,
+		InputDB:        db,
 		storageState:   storageState,
 		blockState:     blockState,
 		bloom:          bloom,
@@ -76,8 +76,8 @@ func newPruner(basePath string, bloomSize uint64, retainBlockNum int64) (*Pruner
 	}, nil
 }
 
-// setBloomFilter loads keys with storage prefix of last `retainBlockNum` blocks into the bloom filter
-func (p *Pruner) setBloomFilter() error {
+// SetBloomFilter loads keys with storage prefix of last `retainBlockNum` blocks into the bloom filter
+func (p *Pruner) SetBloomFilter() error {
 	// latest block header
 	header, err := p.blockState.GetHeader(p.bestBlockHash)
 	if err != nil {
@@ -85,7 +85,7 @@ func (p *Pruner) setBloomFilter() error {
 	}
 
 	latestBlockNum := header.Number.Int64()
-	keys := make(map[common.Hash]interface{})
+	keys := make(map[common.Hash]struct{})
 
 	logger.Info("Latest block number", "num", latestBlockNum)
 
@@ -125,9 +125,9 @@ func (p *Pruner) setBloomFilter() error {
 	return nil
 }
 
-func (p *Pruner) prune(inDBPath, pruneDBPath string) error {
+func (p *Pruner) Prune(inDBPath, pruneDBPath string) error {
 	var err error
-	p.prunedDB, err = loadBadgerDB(inDBPath)
+	p.prunedDB, err = utils.LoadBadgerDB(inDBPath)
 	if err != nil {
 		return fmt.Errorf("failed to load badger DB %w", err)
 	}
@@ -170,12 +170,12 @@ func (p *Pruner) streamDB(outDir string) error {
 	stream.ChooseKey = func(item *badger.Item) bool {
 		key := string(item.Key())
 		// All the non storage keys will be streamed to new db.
-		if !strings.HasPrefix(key, state.StoragePrefix) {
+		if !strings.HasPrefix(key, StoragePrefix) {
 			return true
 		}
 
 		// Only keys present in bloom filter will be streamed to new db
-		key = strings.TrimPrefix(key, state.StoragePrefix)
+		key = strings.TrimPrefix(key, StoragePrefix)
 		exist := p.bloom.contain([]byte(key))
 		return exist
 	}

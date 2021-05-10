@@ -22,6 +22,7 @@ import (
 	"os"
 
 	"github.com/ChainSafe/gossamer/dot"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
@@ -435,20 +436,20 @@ func pruneState(ctx *cli.Context) error {
 	bloomSize := ctx.Uint64(BloomFilterSizeFlag.Name)
 	retainBlocks := ctx.Int64(RetainBlockNumberFlag.Name)
 
-	pruner, err := newPruner(inputDBPath, bloomSize, retainBlocks)
+	pruner, err := state.NewPruner(inputDBPath, bloomSize, retainBlocks)
 	if err != nil {
 		return err
 	}
 
 	logger.Info("Pruner initialised")
 
-	err = pruner.setBloomFilter()
+	err = pruner.SetBloomFilter()
 	if err != nil {
 		return fmt.Errorf("failed to set keys into bloom filter %w", err)
 	}
 
 	// close input DB so we can open reopen it for streaming,
-	err = pruner.inputDB.Close()
+	err = pruner.InputDB.Close()
 	if err != nil {
 		return fmt.Errorf("failed to closed input db %w", err)
 	}
@@ -458,7 +459,7 @@ func pruneState(ctx *cli.Context) error {
 		return fmt.Errorf("path not specified for badger db")
 	}
 
-	err = pruner.prune(inputDBPath, prunedDBPath)
+	err = pruner.Prune(inputDBPath, prunedDBPath)
 	if err != nil {
 		return fmt.Errorf("failed to prune %w", err)
 	}
