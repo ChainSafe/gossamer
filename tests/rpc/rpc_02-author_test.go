@@ -41,13 +41,11 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 
 	t.Log("starting gossamer...")
 
-	utils.CreateConfigBabeMaxThreshold()
-	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDefault, utils.ConfigBABEMaxThreshold)
+	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDev, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	defer func() {
 		t.Log("going to tear down gossamer...")
-		os.Remove(utils.ConfigBABEMaxThreshold)
 		errList := utils.TearDown(t, nodes)
 		require.Len(t, errList, 0)
 	}()
