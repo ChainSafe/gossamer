@@ -149,7 +149,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 
 				err := info.handshakeValidator(peer, hs)
 				if err != nil {
-					logger.Warn("failed to validate handshake", "protocol", info.protocolID, "peer", peer, "error", err)
+					logger.Trace("failed to validate handshake", "protocol", info.protocolID, "peer", peer, "error", err)
 					return errCannotValidateHandshake
 				}
 
@@ -159,7 +159,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 				// once validated, send back a handshake
 				resp, err := info.getHandshake()
 				if err != nil {
-					logger.Trace("failed to get handshake", "protocol", info.protocolID, "error", err)
+					logger.Warn("failed to get handshake", "protocol", info.protocolID, "error", err)
 					return err
 				}
 
