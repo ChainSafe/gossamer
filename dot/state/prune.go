@@ -29,6 +29,7 @@ type Pruner struct {
 	prunedDB *badger.DB
 }
 
+// NewPruner creates an instance of Pruner.
 func NewPruner(basePath string, bloomSize uint64, retainBlockNum int64) (*Pruner, error) {
 	db, err := utils.LoadChainDB(basePath)
 	if err != nil {
@@ -125,6 +126,7 @@ func (p *Pruner) SetBloomFilter() error {
 	return nil
 }
 
+// Prune starts streaming the data from input db to the pruned db.
 func (p *Pruner) Prune(inDBPath, pruneDBPath string) error {
 	var err error
 	p.prunedDB, err = utils.LoadBadgerDB(inDBPath)

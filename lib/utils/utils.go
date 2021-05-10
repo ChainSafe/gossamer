@@ -196,6 +196,7 @@ func GetKusamaGenesisPath() string {
 	return fp
 }
 
+// LoadChainDB load the db at the given path.
 func LoadChainDB(basePath string) (*chaindb.BadgerDB, error) {
 	cfg := &chaindb.Config{
 		DataDir: basePath,
@@ -210,6 +211,7 @@ func LoadChainDB(basePath string) (*chaindb.BadgerDB, error) {
 	return db, nil
 }
 
+// LoadBadgerDB load the db at the given path.
 func LoadBadgerDB(basePath string) (*badger.DB, error) {
 	opts := badger.DefaultOptions(basePath)
 	// Open already existing DB
