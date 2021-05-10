@@ -62,6 +62,12 @@ func TestConfigFromChainFlag(t *testing.T) {
 			[]interface{}{"polkadot", dot.PolkadotConfig().Global.Name},
 			dot.PolkadotConfig(),
 		},
+		{
+			"Test gossamer --chain dev",
+			[]string{"chain", "name"},
+			[]interface{}{"dev", dot.DevConfig().Global.Name},
+			dot.DevConfig(),
+		},
 	}
 
 	for _, c := range testcases {
