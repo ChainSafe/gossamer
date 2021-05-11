@@ -26,11 +26,11 @@ import (
 	"time"
 
 	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/services"
-	"github.com/ethereum/go-ethereum/metrics"
-
 	log "github.com/ChainSafe/log15"
+	"github.com/ethereum/go-ethereum/metrics"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
@@ -57,7 +57,7 @@ var (
 type (
 	// messageDecoder is passed on readStream to decode the data from the stream into a message.
 	// since messages are decoded based on context, this is different for every sub-protocol.
-	messageDecoder = func([]byte, peer.ID) (Message, error)
+	messageDecoder = func([]byte, peer.ID, bool) (Message, error)
 	// messageHandler is passed on readStream to handle the resulting message. it should return an error only if the stream is to be closed
 	messageHandler = func(stream libp2pnetwork.Stream, msg Message) error
 )
@@ -89,6 +89,10 @@ type Service struct {
 	noDiscover  bool
 	noMDNS      bool
 	noGossip    bool // internal option
+
+	// telemetry
+	telemetryInterval time.Duration
+	closeCh           chan interface{}
 }
 
 // NewService creates a new network service from the configuration and message channels
@@ -142,10 +146,11 @@ func NewService(cfg *Config) (*Service, error) {
 		syncer:                 cfg.Syncer,
 		notificationsProtocols: make(map[byte]*notificationsProtocol),
 		lightRequest:           make(map[peer.ID]struct{}),
+		telemetryInterval:      cfg.telemetryInterval,
+		closeCh:                make(chan interface{}),
 	}
 
 	network.syncQueue = newSyncQueue(network)
-	network.noGossip = true // TODO: remove once duplicate message sending is merged
 	return network, err
 }
 
@@ -246,6 +251,9 @@ func (s *Service) Start() error {
 	}
 
 	go s.logPeerCount()
+	go s.publishNetworkTelemetry(s.closeCh)
+	go s.sentBlockIntervalTelemetry()
+
 	return nil
 }
 
@@ -276,6 +284,47 @@ func (s *Service) logPeerCount() {
 	for {
 		logger.Debug("peer count", "num", s.host.peerCount(), "min", s.cfg.MinPeers, "max", s.cfg.MaxPeers)
 		time.Sleep(time.Second * 30)
+	}
+}
+
+func (s *Service) publishNetworkTelemetry(done chan interface{}) {
+	ticker := time.NewTicker(s.telemetryInterval)
+	defer ticker.Stop()
+
+main:
+	for {
+		select {
+		case <-done:
+			break main
+
+		case <-ticker.C:
+			o := s.host.bwc.GetBandwidthTotals()
+			telemetry.GetInstance().SendNetworkData(telemetry.NewNetworkData(s.host.peerCount(), o.RateIn, o.RateOut))
+		}
+
+	}
+}
+
+func (s *Service) sentBlockIntervalTelemetry() {
+	for {
+		best, err := s.blockState.BestBlockHeader()
+		if err != nil {
+			continue
+		}
+		finalized, err := s.blockState.GetFinalizedHeader(0, 0) //nolint
+		if err != nil {
+			continue
+		}
+
+		telemetry.GetInstance().SendBlockIntervalData(&telemetry.BlockIntervalData{
+			BestHash:           best.Hash(),
+			BestHeight:         best.Number,
+			FinalizedHash:      finalized.Hash(),
+			FinalizedHeight:    finalized.Number,
+			TXCount:            0, // todo (ed) determine where to get tx count
+			UsedStateCacheSize: 0, // todo (ed) determine where to get used_state_cache_size
+		})
+		time.Sleep(s.telemetryInterval)
 	}
 }
 
@@ -344,6 +393,19 @@ func (s *Service) Stop() error {
 		logger.Error("Failed to close host", "error", err)
 	}
 
+	// check if closeCh is closed, if not, close it.
+mainloop:
+	for {
+		select {
+		case _, hasMore := <-s.closeCh:
+			if !hasMore {
+				break mainloop
+			}
+		default:
+			close(s.closeCh)
+		}
+	}
+
 	return nil
 }
 
@@ -373,35 +435,39 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 	}
 
 	np := &notificationsProtocol{
-		protocolID:    protocolID,
-		getHandshake:  handshakeGetter,
-		handshakeData: new(sync.Map),
+		protocolID:            protocolID,
+		getHandshake:          handshakeGetter,
+		handshakeValidator:    handshakeValidator,
+		inboundHandshakeData:  new(sync.Map),
+		outboundHandshakeData: new(sync.Map),
 	}
 	s.notificationsProtocols[messageID] = np
 
 	connMgr := s.host.h.ConnManager().(*ConnManager)
 	connMgr.registerCloseHandler(protocolID, func(peerID peer.ID) {
-		np.mapMu.Lock()
-		defer np.mapMu.Unlock()
-
-		if _, ok := np.getHandshakeData(peerID); ok {
+		if _, ok := np.getHandshakeData(peerID, true); ok {
 			logger.Trace(
-				"Cleaning up handshake data",
+				"Cleaning up inbound handshake data",
 				"peer", peerID,
 				"protocol", protocolID,
 			)
-			np.handshakeData.Delete(peerID)
+			np.inboundHandshakeData.Delete(peerID)
+		}
+
+		if _, ok := np.getHandshakeData(peerID, false); ok {
+			logger.Trace(
+				"Cleaning up outbound handshake data",
+				"peer", peerID,
+				"protocol", protocolID,
+			)
+			np.outboundHandshakeData.Delete(peerID)
 		}
 	})
 
 	info := s.notificationsProtocols[messageID]
 
 	decoder := createDecoder(info, handshakeDecoder, messageDecoder)
-	handlerWithValidate := s.createNotificationsMessageHandler(info, handshakeValidator, messageHandler)
-	streamHandler := func(stream libp2pnetwork.Stream, peerID peer.ID) {
-		s.readStream(stream, peerID, decoder, handlerWithValidate)
-	}
-	np.streamHandler = streamHandler
+	handlerWithValidate := s.createNotificationsMessageHandler(info, messageHandler)
 
 	s.host.registerStreamHandlerWithOverwrite(sub, overwriteProtocol, func(stream libp2pnetwork.Stream) {
 		logger.Trace("received stream", "sub-protocol", sub)
@@ -411,8 +477,7 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 			return
 		}
 
-		p := conn.RemotePeer()
-		streamHandler(stream, p)
+		s.readStream(stream, decoder, handlerWithValidate)
 	})
 
 	logger.Info("registered notifications sub-protocol", "protocol", protocolID)
@@ -460,18 +525,10 @@ func (s *Service) SendMessage(msg NotificationsMessage) {
 
 // handleLightStream handles streams with the <protocol-id>/light/2 protocol ID
 func (s *Service) handleLightStream(stream libp2pnetwork.Stream) {
-	conn := stream.Conn()
-	if conn == nil {
-		logger.Error("Failed to get connection from stream")
-		_ = stream.Close()
-		return
-	}
-
-	peer := conn.RemotePeer()
-	s.readStream(stream, peer, s.decodeLightMessage, s.handleLightMsg)
+	s.readStream(stream, s.decodeLightMessage, s.handleLightMsg)
 }
 
-func (s *Service) decodeLightMessage(in []byte, peer peer.ID) (Message, error) {
+func (s *Service) decodeLightMessage(in []byte, peer peer.ID, _ bool) (Message, error) {
 	s.lightRequestMu.RLock()
 	defer s.lightRequestMu.RUnlock()
 
@@ -489,10 +546,15 @@ func (s *Service) decodeLightMessage(in []byte, peer peer.ID) (Message, error) {
 	return msg, err
 }
 
-func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder messageDecoder, handler messageHandler) {
+func isInbound(stream libp2pnetwork.Stream) bool {
+	return stream.Stat().Direction == libp2pnetwork.DirInbound
+}
+
+func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder, handler messageHandler) {
 	var (
 		maxMessageSize uint64 = maxBlockResponseSize // TODO: determine actual max message size
 		msgBytes              = make([]byte, maxMessageSize)
+		peer                  = stream.Conn().RemotePeer()
 	)
 
 	for {
@@ -506,7 +568,7 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 		}
 
 		// decode message based on message type
-		msg, err := decoder(msgBytes[:tot], peer)
+		msg, err := decoder(msgBytes[:tot], peer, isInbound(stream))
 		if err != nil {
 			logger.Trace("failed to decode message from peer", "protocol", stream.Protocol(), "err", err)
 			continue
@@ -525,6 +587,8 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, peer peer.ID, decoder 
 			_ = stream.Close()
 			return
 		}
+
+		s.host.bwc.LogRecvMessage(int64(tot))
 	}
 }
 
@@ -597,7 +661,7 @@ func (s *Service) Peers() []common.PeerInfo {
 	s.notificationsMu.RUnlock()
 
 	for _, p := range s.host.peers() {
-		data, has := np.getHandshakeData(p)
+		data, has := np.getHandshakeData(p, true)
 		if !has || data.handshake == nil {
 			peers = append(peers, common.PeerInfo{
 				PeerID: p.String(),

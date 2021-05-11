@@ -62,6 +62,12 @@ func TestConfigFromChainFlag(t *testing.T) {
 			[]interface{}{"polkadot", dot.PolkadotConfig().Global.Name},
 			dot.PolkadotConfig(),
 		},
+		{
+			"Test gossamer --chain dev",
+			[]string{"chain", "name"},
+			[]interface{}{"dev", dot.DevConfig().Global.Name},
+			dot.DevConfig(),
+		},
 	}
 
 	for _, c := range testcases {
@@ -751,9 +757,6 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 		System:  testCfg.System,
 	}
 
-	expected.Core.BabeThresholdNumerator = 0
-	expected.Core.BabeThresholdDenominator = 0
-
 	cfg, err := createDotConfig(ctx)
 	require.Nil(t, err)
 	updateDotConfigFromGenesisJSONRaw(*dotConfigToToml(testCfg), cfg)
@@ -812,8 +815,6 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 	require.Nil(t, err)
 
 	cfg.Init.Genesis = genFile.Name()
-	expected.Core.BabeThresholdNumerator = 0
-	expected.Core.BabeThresholdDenominator = 0
 
 	db, err := chaindb.NewBadgerDB(&chaindb.Config{
 		DataDir: cfg.Global.BasePath,
@@ -851,8 +852,6 @@ func TestGlobalNodeName_WhenNodeAlreadyHasStoredName(t *testing.T) {
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
-	cfg.Core.BabeThresholdNumerator = 0
-	cfg.Core.BabeThresholdDenominator = 0
 	cfg.Init.Genesis = genPath
 
 	err := dot.InitNode(cfg)

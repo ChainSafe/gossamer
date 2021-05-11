@@ -62,6 +62,8 @@ func GetRuntimeVars(targetRuntime string) (string, string) {
 		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(POLKADOT_RUNTIME_FP), POLKADOT_RUNTIME_URL
 	case HOST_API_TEST_RUNTIME:
 		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(HOST_API_TEST_RUNTIME_FP), HOST_API_TEST_RUNTIME_URL
+	case DEV_RUNTIME:
+		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(DEV_RUNTIME_FP), DEV_RUNTIME_URL
 	}
 
 	return testRuntimeFilePath, testRuntimeURL
@@ -145,7 +147,6 @@ func generateEd25519Signatures(t *testing.T, n int) []*Signature {
 // GenerateRuntimeWasmFile generates all runtime wasm files.
 func GenerateRuntimeWasmFile() ([]string, error) {
 	var wasmFilePaths []string
-	runtimes := []string{HOST_API_TEST_RUNTIME, POLKADOT_RUNTIME, NODE_RUNTIME}
 	for _, rt := range runtimes {
 		testRuntimeFilePath, testRuntimeURL := GetRuntimeVars(rt)
 		wasmFilePaths = append(wasmFilePaths, testRuntimeFilePath)

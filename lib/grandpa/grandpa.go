@@ -74,7 +74,10 @@ type Service struct {
 	justification      map[uint64][]*SignedPrecommit // map of round number -> precommit round justification
 
 	// channels for communication with other services
-	in chan GrandpaMessage // only used to receive *VoteMessage
+	in               chan GrandpaMessage // only used to receive *VoteMessage
+	finalisedCh      chan *types.FinalisationInfo
+	finalisedChID    byte
+	neighbourMessage *NeighbourMessage // cached neighbour message
 }
 
 // Config represents a GRANDPA service configuration
@@ -133,6 +136,12 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
+	finalisedCh := make(chan *types.FinalisationInfo, 16)
+	fid, err := cfg.BlockState.RegisterFinalizedChannel(finalisedCh)
+	if err != nil {
+		return nil, err
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	s := &Service{
 		ctx:                ctx,
@@ -156,6 +165,8 @@ func NewService(cfg *Config) (*Service, error) {
 		in:                 make(chan GrandpaMessage, 128),
 		resumed:            make(chan struct{}),
 		network:            cfg.Network,
+		finalisedCh:        finalisedCh,
+		finalisedChID:      fid,
 	}
 
 	s.messageHandler = NewMessageHandler(s, s.blockState)
@@ -185,6 +196,7 @@ func (s *Service) Start() error {
 		}
 	}()
 
+	go s.sendNeighbourMessage()
 	return nil
 }
 
@@ -194,6 +206,9 @@ func (s *Service) Stop() error {
 	defer s.chanLock.Unlock()
 
 	s.cancel()
+
+	s.blockState.UnregisterFinalizedChannel(s.finalisedChID)
+	close(s.finalisedCh)
 
 	if !s.authority {
 		return nil
