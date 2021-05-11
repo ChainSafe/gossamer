@@ -70,6 +70,7 @@ func (c *WSConn) HandleComm() {
 			continue
 		}
 		method := msg["method"]
+		logger.Info("ws method called", "method", method)
 		// if method contains subscribe, then register subscription
 		if strings.Contains(fmt.Sprintf("%s", method), "subscribe") {
 			reqid := msg["id"].(float64)

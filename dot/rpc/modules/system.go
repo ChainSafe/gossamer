@@ -228,3 +228,10 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 	*res = U64Response(accountInfo.Nonce)
 	return nil
 }
+
+// Account ...
+func (sm *SystemModule) Account(r *http.Request, req *interface{}, res *string) error {
+	fmt.Println("\t\tsystem_account\n", &req)
+	*res = ""
+	return nil
+}
