@@ -27,6 +27,7 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	log "github.com/ChainSafe/log15"
@@ -103,6 +104,8 @@ func (c *WSConn) HandleComm() {
 					continue
 				}
 				c.startListener(rvl)
+			case "state_unsubscribeStorage":
+				c.unsubscribeStorageListener(params)
 			}
 			continue
 		}
@@ -207,6 +210,12 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (u
 	c.safeSend(initRes)
 
 	return myObs.id, nil
+}
+
+func (c *WSConn) unsubscribeStorageListener(params interface{}) {
+	id := params.([]interface{})[0].(float64)
+	observer := c.Subscriptions[uint(id)].(state.Observer)
+	c.StorageAPI.UnregisterStorageObserver(observer)
 }
 
 func (c *WSConn) initBlockListener(reqID float64) (uint, error) {
