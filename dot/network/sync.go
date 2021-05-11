@@ -637,7 +637,6 @@ func (q *syncQueue) trySync(req *syncRequest) {
 		}
 
 		q.justificationRequestData.Store(startingBlockHash, reqdata)
-		q.requestDataByHash.Store(startingBlockHash, reqdata)
 	}
 
 	req.to = ""
