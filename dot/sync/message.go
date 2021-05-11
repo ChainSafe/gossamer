@@ -17,6 +17,7 @@
 package sync
 
 import (
+	"errors"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -99,8 +100,8 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 
 	responseData := []*types.BlockData{}
 
-	// ascending (ie child to parent)
-	if blockRequest.Direction == 0 {
+	switch blockRequest.Direction {
+	case 0: // ascending (ie child to parent)
 		for i := endHeader.Number.Int64(); i >= startHeader.Number.Int64(); i-- {
 			blockData, err := s.getBlockData(big.NewInt(i), blockRequest.RequestedData)
 			if err != nil {
@@ -108,8 +109,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 			}
 			responseData = append(responseData, blockData)
 		}
-	} else {
-		// descending (ie parent to child)
+	case 1: // descending (ie parent to child)
 		for i := startHeader.Number.Int64(); i <= endHeader.Number.Int64(); i++ {
 			blockData, err := s.getBlockData(big.NewInt(i), blockRequest.RequestedData)
 			if err != nil {
@@ -117,6 +117,8 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 			}
 			responseData = append(responseData, blockData)
 		}
+	default:
+		return nil, errors.New("invalid BlockRequest direction")
 	}
 
 	logger.Debug("sending BlockResponseMessage", "start", startHeader.Number, "end", endHeader.Number)
@@ -131,13 +133,18 @@ func (s *Service) getBlockData(num *big.Int, requestedData byte) (*types.BlockDa
 		return nil, err
 	}
 
-	blockData := new(types.BlockData)
-	blockData.Hash = hash
-	blockData.Header = optional.NewHeader(false, nil)
-	blockData.Body = optional.NewBody(false, nil)
-	blockData.Receipt = optional.NewBytes(false, nil)
-	blockData.MessageQueue = optional.NewBytes(false, nil)
-	blockData.Justification = optional.NewBytes(false, nil)
+	blockData := &types.BlockData{
+		Hash:          hash,
+		Header:        optional.NewHeader(false, nil),
+		Body:          optional.NewBody(false, nil),
+		Receipt:       optional.NewBytes(false, nil),
+		MessageQueue:  optional.NewBytes(false, nil),
+		Justification: optional.NewBytes(false, nil),
+	}
+
+	if requestedData == 0 {
+		return blockData, nil
+	}
 
 	if (requestedData & network.RequestedDataHeader) == 1 {
 		retData, err := s.blockState.GetHeader(hash)
