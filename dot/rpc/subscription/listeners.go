@@ -43,7 +43,7 @@ type StorageObserver struct {
 }
 
 // Change type defining key value pair representing change
-type Change [2]string
+type Change [2]*string
 
 // ChangeResult struct to hold change result data
 type ChangeResult struct {
@@ -62,9 +62,15 @@ func (s *StorageObserver) Update(change *state.SubscriptionResult) {
 		Changes: make([]Change, len(change.Changes)),
 	}
 	for i, v := range change.Changes {
-		changeResult.Changes[i] = Change{common.BytesToHex(v.Key), common.BytesToHex(v.Value)}
-	}
+		keyBytes := common.BytesToHex(v.Key)
+		if v.Value == nil || len(v.Value) == 0 {
+			changeResult.Changes[i] = Change{&keyBytes, nil}
+		} else {
+			valueBytes := common.BytesToHex(v.Value)
+			changeResult.Changes[i] = Change{&keyBytes, &valueBytes}
+		}
 
+	}
 	res := newSubcriptionBaseResponseJSON()
 	res.Method = "state_storage"
 	res.Params.Result = changeResult

@@ -298,12 +298,11 @@ func (sm *StateModule) GetRuntimeVersion(r *http.Request, req *StateRuntimeVersi
 }
 
 // GetStorage Returns a storage entry at a specific block's state. If not block hash is provided, the latest value is returned.
-func (sm *StateModule) GetStorage(r *http.Request, req *StateStorageRequest, res *StateStorageResponse) error {
+func (sm *StateModule) GetStorage(r *http.Request, req *StateStorageRequest, res **StateStorageResponse) error {
 	var (
 		item []byte
 		err  error
 	)
-
 	reqBytes, _ := common.HexToBytes(req.Key) // no need to catch error here
 
 	if req.Bhash != nil {
@@ -319,9 +318,11 @@ func (sm *StateModule) GetStorage(r *http.Request, req *StateStorageRequest, res
 	}
 
 	if len(item) > 0 {
-		*res = StateStorageResponse(common.BytesToHex(item))
+		val := StateStorageResponse(common.BytesToHex(item))
+		*res = &val
+	} else {
+		*res = nil
 	}
-
 	return nil
 }
 

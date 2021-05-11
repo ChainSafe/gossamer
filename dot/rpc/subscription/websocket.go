@@ -115,7 +115,7 @@ func (c *WSConn) HandleComm() {
 			params := msg["params"]
 			el, e := c.initExtrinsicWatch(reqid, params)
 			if e != nil {
-				c.safeSendError(reqid, nil, e.Error())
+				c.safeSendError(reqid, big.NewInt(1010), e.Error())
 			} else {
 				c.startListener(el)
 			}
