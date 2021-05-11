@@ -170,4 +170,15 @@ func TestSendCatchUpRequest(t *testing.T) {
 	nodeB := createTestService(t, configB)
 	defer nodeB.Stop()
 	nodeB.noGossip = true
+
+	req := &ConsensusMessage{
+		// catchUpRequestType = 3
+		// round = 1
+		// setID = 1
+		Data: []byte{3, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0},
+	}
+
+	resp, err := nodeA.SendCatchUpRequest(nodeB.host.id(), ConsensusMsgType, req)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
 }
