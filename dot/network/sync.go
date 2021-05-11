@@ -459,6 +459,7 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error 
 	}
 
 	startHash := resp.BlockData[0].Hash
+
 	if _, has := q.justificationRequestData.Load(startHash); has && !resp.BlockData[0].Header.Exists() {
 		numJustifications := 0
 		justificationResponses := []*types.BlockData{}
@@ -476,14 +477,11 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error 
 		}
 
 		q.updatePeerScore(pid, 1)
-		reqData := requestData{
+		q.justificationRequestData.Store(startHash, requestData{
 			sent:     true,
 			received: true,
 			from:     pid,
-		}
-
-		q.justificationRequestData.Store(startHash, reqData)
-		q.requestDataByHash.Store(startHash, reqData)
+		})
 
 		logger.Debug("pushed justification data to queue", "hash", startHash)
 		q.responseCh <- justificationResponses
@@ -505,11 +503,18 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error 
 
 	// update peer's score
 	q.updatePeerScore(pid, 1)
-	q.requestData.Store(uint64(start), requestData{
+
+	reqdata := requestData{
 		sent:     true,
 		received: true,
 		from:     pid,
-	})
+	}
+
+	if _, has := q.requestDataByHash.Load(startHash); has {
+		q.requestDataByHash.Store(startHash, reqdata)
+	} else {
+		q.requestData.Store(uint64(start), reqdata)
+	}
 
 	q.responseLock.Lock()
 	defer q.responseLock.Unlock()
@@ -626,16 +631,13 @@ func (q *syncQueue) trySync(req *syncRequest) {
 		})
 	} else if req.req.StartingBlock.IsHash() && (req.req.RequestedData&RequestedDataHeader) == 0 {
 		startingBlockHash := req.req.StartingBlock.Hash()
-
-		q.justificationRequestData.Store(startingBlockHash, requestData{
+		reqdata := requestData{
 			sent:     true,
 			received: false,
-		})
+		}
 
-		q.requestDataByHash.Store(startingBlockHash, requestData{
-			sent:     true,
-			received: false,
-		})
+		q.justificationRequestData.Store(startingBlockHash, reqdata)
+		q.requestDataByHash.Store(startingBlockHash, reqdata)
 	}
 
 	req.to = ""
