@@ -18,6 +18,7 @@ package network
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 	"unsafe"
 
@@ -181,6 +182,12 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			"peer", stream.Conn().RemotePeer(),
 		)
 
+		_, err := s.host.messageCache.put(peer, msg)
+		if err != nil {
+			logger.Error("failed to add message to cache", "peer", peer, "error", err)
+			return err
+		}
+
 		propagate, err := messageHandler(peer, msg)
 		if err != nil {
 			return err
@@ -207,6 +214,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 	}
 
 	if !has || !hsData.received || hsData.stream == nil {
+		logger.Info("establishing outbound stream", "peer", peer)
 		if !has {
 			hsData = newHandshakeData(false, false, nil)
 		}
@@ -263,7 +271,8 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 	}
 
 	// we've completed the handshake with the peer, send message directly
-	logger.Trace("sending message", "protocol", info.protocolID, "peer", peer, "message", msg)
+	logger.Debug("sending message", "protocol", info.protocolID, "peer", peer, "message", msg)
+	fmt.Println("sendData", hsData.stream.ID())
 
 	err := s.host.writeToStream(hsData.stream, msg)
 	if err != nil {

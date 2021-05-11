@@ -18,11 +18,14 @@ package network
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
+
+var resCh = make(chan interface{})
 
 // SendCatchUpRequest sends a NotificationsMessage to a peer and returns a response, if there is one.
 // Note: this is only used by grandpa at the moment, since it sends catch up requests/responses over the same
@@ -32,13 +35,20 @@ func (s *Service) SendCatchUpRequest(peer peer.ID, msgType byte, req *ConsensusM
 	defer s.host.h.ConnManager().Unprotect(peer, "")
 
 	s.notificationsMu.RLock()
-	notifications := s.notificationsProtocols[msgType]
+	notifications, has := s.notificationsProtocols[msgType]
 	s.notificationsMu.RUnlock()
+
+	if !has {
+		return nil, errors.New("notifications protocol not registered")
+	}
 
 	hs, err := notifications.getHandshake()
 	if err != nil {
 		return nil, err
 	}
+
+	// TODO: probably remove this, there needs to be a better way to do this.
+	s.host.registerStreamHandlerWithOverwrite(notifications.protocolID, true, s.receiveResponse)
 
 	// write to outbound stream, establish handshake if needed
 	err = s.sendData(peer, hs, notifications, req)
@@ -52,17 +62,17 @@ func (s *Service) SendCatchUpRequest(peer peer.ID, msgType byte, req *ConsensusM
 		return nil, errors.New("inbound stream not established with peer")
 	}
 
-	resCh := make(chan interface{})
+	fmt.Println("SendCatchUpRequest inbound", hsData.stream.ID())
 
-	go func() {
-		resp, err := s.receiveResponse(hsData.stream)
-		if err != nil {
-			resCh <- err
-			return
-		}
+	// go func() {
+	// 	resp, err := s.receiveResponse(hsData.stream)
+	// 	if err != nil {
+	// 		resCh <- err
+	// 		return
+	// 	}
 
-		resCh <- resp
-	}()
+	// 	resCh <- resp
+	// }()
 
 	select {
 	case <-time.After(time.Second * 5):
@@ -80,19 +90,25 @@ func (s *Service) SendCatchUpRequest(peer peer.ID, msgType byte, req *ConsensusM
 	return nil, errors.New("failed to receive response")
 }
 
-func (s *Service) receiveResponse(stream libp2pnetwork.Stream) (*ConsensusMessage, error) {
+func (s *Service) receiveResponse(stream libp2pnetwork.Stream) {
 	// TODO: don't always allocate this
 	buf := make([]byte, 1024*1024)
 	n, err := readStream(stream, buf)
 	if err != nil {
-		return nil, err
+		resCh <- err
+		return
 	}
 
 	logger.Info("got catch up response!", "data", buf[:n])
 
 	msg := new(ConsensusMessage)
 	err = msg.Decode(buf[:n])
-	return msg, err
+	if err != nil {
+		resCh <- err
+		return
+	}
+
+	resCh <- msg
 }
 
 // SendMessage gossips a message to our peers
@@ -108,9 +124,9 @@ func (s *Service) SendMessage(msg NotificationsMessage) {
 		return
 	}
 	logger.Debug(
-		"Broadcasting message from core service",
-		"host", s.host.id(),
+		"gossiping message",
 		"type", msg.Type(),
+		"message", msg,
 	)
 
 	// check if the message is part of a notifications protocol
