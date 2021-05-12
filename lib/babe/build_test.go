@@ -131,12 +131,17 @@ func TestBuildBlock_ok(t *testing.T) {
 	}
 
 	// remove seal from built block, since we can't predict the signature
-	block.Header.Digest = block.Header.Digest[:1]
+	//block.Header.Digest = block.Header.Digest[:1]
 	require.Equal(t, expectedBlockHeader.ParentHash, block.Header.ParentHash)
 	require.Equal(t, expectedBlockHeader.Number, block.Header.Number)
 	require.NotEqual(t, block.Header.StateRoot, emptyHash)
 	require.NotEqual(t, block.Header.ExtrinsicsRoot, emptyHash)
-	require.Equal(t, expectedBlockHeader.Digest, block.Header.Digest)
+	require.Equal(t, 3, len(block.Header.Digest))
+	require.Equal(t, preDigest, block.Header.Digest[0])
+	require.Equal(t, types.PreRuntimeDigestType, block.Header.Digest[0].Type())
+	require.Equal(t, types.ConsensusDigestType, block.Header.Digest[1].Type())
+	require.Equal(t, types.SealDigestType, block.Header.Digest[2].Type())
+	require.Equal(t, types.NextEpochDataType, block.Header.Digest[1].(*types.ConsensusDigest).DataType())
 
 	// confirm block body is correct
 	extsRes, err := block.Body.AsExtrinsics()
