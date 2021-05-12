@@ -19,6 +19,7 @@ package dot
 import (
 	"encoding/json"
 
+	"github.com/ChainSafe/gossamer/chain/dev"
 	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/chain/kusama"
 	"github.com/ChainSafe/gossamer/chain/polkadot"
@@ -90,14 +91,12 @@ type NetworkConfig struct {
 
 // CoreConfig is to marshal/unmarshal toml core config vars
 type CoreConfig struct {
-	Roles                    byte
-	BabeAuthority            bool
-	GrandpaAuthority         bool
-	BabeThresholdNumerator   uint64
-	BabeThresholdDenominator uint64
-	SlotDuration             uint64
-	EpochLength              uint64
-	WasmInterpreter          string
+	Roles            byte
+	BabeAuthority    bool
+	GrandpaAuthority bool
+	SlotDuration     uint64
+	EpochLength      uint64
+	WasmInterpreter  string
 }
 
 // RPCConfig is to marshal/unmarshal toml RPC config vars
@@ -263,6 +262,56 @@ func PolkadotConfig() *Config {
 			Host:    polkadot.DefaultRPCHTTPHost,
 			Modules: polkadot.DefaultRPCModules,
 			WSPort:  polkadot.DefaultRPCWSPort,
+		},
+	}
+}
+
+// DevConfig returns the configuration for a development chain
+func DevConfig() *Config {
+	return &Config{
+		Global: GlobalConfig{
+			Name:        dev.DefaultName,
+			ID:          dev.DefaultID,
+			BasePath:    dev.DefaultBasePath,
+			LogLvl:      dev.DefaultLvl,
+			MetricsPort: dev.DefaultMetricsPort,
+		},
+		Log: LogConfig{
+			CoreLvl:           dev.DefaultLvl,
+			SyncLvl:           dev.DefaultLvl,
+			NetworkLvl:        dev.DefaultLvl,
+			RPCLvl:            dev.DefaultLvl,
+			StateLvl:          dev.DefaultLvl,
+			RuntimeLvl:        dev.DefaultLvl,
+			BlockProducerLvl:  dev.DefaultLvl,
+			FinalityGadgetLvl: dev.DefaultLvl,
+		},
+		Init: InitConfig{
+			Genesis: dev.DefaultGenesis,
+		},
+		Account: AccountConfig{
+			Key:    dev.DefaultKey,
+			Unlock: dev.DefaultUnlock,
+		},
+		Core: CoreConfig{
+			Roles:            dev.DefaultRoles,
+			BabeAuthority:    dev.DefaultBabeAuthority,
+			GrandpaAuthority: dev.DefaultGrandpaAuthority,
+			WasmInterpreter:  dev.DefaultWasmInterpreter,
+		},
+		Network: NetworkConfig{
+			Port:        dev.DefaultNetworkPort,
+			Bootnodes:   dev.DefaultNetworkBootnodes,
+			NoBootstrap: dev.DefaultNoBootstrap,
+			NoMDNS:      dev.DefaultNoMDNS,
+		},
+		RPC: RPCConfig{
+			Port:    dev.DefaultRPCHTTPPort,
+			Host:    dev.DefaultRPCHTTPHost,
+			Modules: dev.DefaultRPCModules,
+			WSPort:  dev.DefaultRPCWSPort,
+			Enabled: dev.DefaultRPCEnabled,
+			WS:      dev.DefaultWSEnabled,
 		},
 	}
 }
