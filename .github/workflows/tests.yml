@@ -179,5 +179,4 @@ jobs:
       -
         name: Run polkadotjs tests
         run: |
-          cd tests/polkadotjs_test && yarn
           docker run chainsafe/gossamer:test sh -c "make it-polkadotjs"
