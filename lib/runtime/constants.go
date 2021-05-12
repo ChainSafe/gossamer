@@ -20,6 +20,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+var runtimes = []string{HOST_API_TEST_RUNTIME, POLKADOT_RUNTIME, NODE_RUNTIME, DEV_RUNTIME}
+
 //nolint
 const (
 	// v0.8 substrate runtime
@@ -36,6 +38,11 @@ const (
 	HOST_API_TEST_RUNTIME     = "hostapi_runtime"
 	HOST_API_TEST_RUNTIME_FP  = "hostapi_runtime.compact.wasm"
 	HOST_API_TEST_RUNTIME_URL = "https://github.com/noot/polkadot-spec/blob/master/test/hostapi_runtime.compact.wasm?raw=true"
+
+	// v0.8 substrate runtime with modified name and babe C=(1, 1)
+	DEV_RUNTIME     = "dev_runtime"
+	DEV_RUNTIME_FP  = "dev_runtime.compact.wasm"
+	DEV_RUNTIME_URL = "https://github.com/noot/substrate/blob/noot/v0.8-dev-runtime/target/wasm32-unknown-unknown/release/wbuild/node-runtime/node_runtime.compact.wasm?raw=true"
 )
 
 //nolint

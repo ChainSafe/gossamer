@@ -25,10 +25,18 @@ import (
 // initiateEpoch sets the epochData for the given epoch, runs the lottery for the slots in the epoch,
 // and stores updated EpochInfo in the database
 func (b *Service) initiateEpoch(epoch uint64) error {
-	var startSlot uint64
+	var (
+		startSlot uint64
+		err       error
+	)
 
-	if epoch > 0 {
-		has, err := b.epochState.HasEpochData(epoch)
+	if epoch == 0 {
+		startSlot, err = b.epochState.GetStartSlotForEpoch(epoch)
+		if err != nil {
+			return err
+		}
+	} else if epoch > 0 {
+		has, err := b.epochState.HasEpochData(epoch) //nolint
 		if err != nil {
 			return err
 		}
@@ -92,7 +100,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 	} else if b.blockState.BestBlockHash() == b.blockState.GenesisHash() {
 		// we are at genesis, set first slot using current time
 		startSlot = getCurrentSlot(b.slotDuration)
-		err := b.epochState.SetFirstSlot(startSlot)
+		err = b.epochState.SetFirstSlot(startSlot)
 		if err != nil {
 			return err
 		}
@@ -102,7 +110,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 		return nil
 	}
 
-	var err error
+	logger.Debug("initiating epoch", "epoch", epoch, "start slot", startSlot)
 
 	for i := startSlot; i < startSlot+b.epochLength; i++ {
 		b.slotToProof[i], err = b.runLottery(i, epoch)
@@ -111,8 +119,6 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 		}
 	}
 
-	// if we were previously disabled, we are now re-enabled since the epoch changed
-	b.isDisabled = false
 	return nil
 }
 

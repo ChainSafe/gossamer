@@ -107,8 +107,6 @@ func TestCreateBlockVerifier(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.NoError(t, err)
 
-	cfg.Core.BabeThresholdNumerator = 0
-	cfg.Core.BabeThresholdDenominator = 0
 	_, err = createBlockVerifier(stateSrvc)
 	require.NoError(t, err)
 }
@@ -135,8 +133,6 @@ func TestCreateSyncService(t *testing.T) {
 	rt, err := createRuntime(cfg, stateSrvc, ks, &network.Service{})
 	require.NoError(t, err)
 
-	cfg.Core.BabeThresholdNumerator = 0
-	cfg.Core.BabeThresholdDenominator = 0
 	ver, err := createBlockVerifier(stateSrvc)
 	require.NoError(t, err)
 

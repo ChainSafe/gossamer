@@ -162,11 +162,7 @@ func TestStateRPCAPI(t *testing.T) {
 	}
 
 	t.Log("starting gossamer...")
-
-	utils.CreateConfigBabeMaxThreshold()
-	defer os.Remove(utils.ConfigBABEMaxThreshold)
-
-	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDefault, utils.ConfigBABEMaxThreshold)
+	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDefault, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	defer func() {
@@ -367,11 +363,7 @@ func TestRPCStructParamUnmarshal(t *testing.T) {
 	}
 
 	t.Log("starting gossamer...")
-
-	utils.CreateConfigBabeMaxThreshold()
-	defer os.Remove(utils.ConfigBABEMaxThreshold)
-
-	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDefault, utils.ConfigBABEMaxThreshold)
+	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDev, utils.ConfigDefault)
 	require.Nil(t, err)
 
 	defer func() {
