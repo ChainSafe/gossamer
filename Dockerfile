@@ -6,7 +6,8 @@ RUN apt-get update && \
     gcc \
     cmake \
     wget \
-    yarn
+    curl \
+    npm 
 
 # Install node source for polkadotjs tests
 RUN curl -sL https://deb.nodesource.com/setup_14.x | bash -
