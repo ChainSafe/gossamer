@@ -130,8 +130,6 @@ func TestBuildBlock_ok(t *testing.T) {
 		Digest:     types.Digest{preDigest},
 	}
 
-	// remove seal from built block, since we can't predict the signature
-	//block.Header.Digest = block.Header.Digest[:1]
 	require.Equal(t, expectedBlockHeader.ParentHash, block.Header.ParentHash)
 	require.Equal(t, expectedBlockHeader.Number, block.Header.Number)
 	require.NotEqual(t, block.Header.StateRoot, emptyHash)
