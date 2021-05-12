@@ -453,6 +453,7 @@ func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
 	require.NoError(t, err)
 	instance.SetContextStorage(parentState)
 
+	block.Header.Digest = types.NewEmptyDigest()
 	_, err = instance.ExecuteBlock(block)
 	require.NoError(t, err)
 }
