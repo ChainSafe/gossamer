@@ -36,7 +36,7 @@ func NewEmptyDigest() Digest {
 
 // NewDigest returns a new Digest from the given DigestItems
 func NewDigest(items ...DigestItem) Digest {
-	return Digest(items)
+	return items
 }
 
 // Encode returns the SCALE encoded digest
