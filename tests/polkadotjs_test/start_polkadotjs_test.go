@@ -17,12 +17,13 @@ package polkadotjs_test
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/tests/utils"
-	"github.com/stretchr/testify/require"
 	"os"
 	"os/exec"
 	"strings"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/tests/utils"
+	"github.com/stretchr/testify/require"
 )
 
 var polkadotSuite = "polkadot"
