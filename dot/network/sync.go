@@ -335,19 +335,19 @@ func (q *syncQueue) benchmark() {
 
 		q.benchmarker.end(after.Number.Uint64())
 
-		logger.Info("🔗 imported blocks", "from", before.Number, "to", after.Number,
-			"hashes", fmt.Sprintf("[%s ... %s]", before.Hash(), after.Hash()),
-		)
-
-		if q.goal-before.Number.Int64() < int64(blockRequestSize) {
-			continue
-		}
+		// if q.goal-before.Number.Int64() < int64(blockRequestSize) {
+		// 	continue
+		// }
 
 		logger.Info("🚣 currently syncing",
-			"peer count", len(q.s.host.peers()), 
+			"peer count", len(q.s.host.peers()),
 			"goal", q.goal,
 			"average blocks/second", q.benchmarker.mostRecentAverage(),
 			"overall average", q.benchmarker.average(),
+		)
+
+		logger.Info("🔗 imported blocks", "from", before.Number, "to", after.Number,
+			"hashes", fmt.Sprintf("[%s ... %s]", before.Hash(), after.Hash()),
 		)
 	}
 }
