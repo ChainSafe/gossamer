@@ -105,7 +105,8 @@ func (c *WSConn) HandleComm() {
 				}
 				c.startListener(rvl)
 			case "state_unsubscribeStorage":
-				c.unsubscribeStorageListener(params)
+				c.unsubscribeStorageListener(reqid, params)
+
 			}
 			continue
 		}
@@ -212,10 +213,32 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (u
 	return myObs.id, nil
 }
 
-func (c *WSConn) unsubscribeStorageListener(params interface{}) {
-	id := params.([]interface{})[0].(float64)
-	observer := c.Subscriptions[uint(id)].(state.Observer)
+func (c *WSConn) unsubscribeStorageListener(reqID float64, params interface{}) {
+	switch v := params.(type) {
+	case []interface{}:
+		if l := len(v); l < 1 {
+			c.safeSendError(reqID, big.NewInt(-32600), "Invalid request")
+			return
+		}
+	default:
+		c.safeSendError(reqID, big.NewInt(-32600), "Invalid request")
+		return
+	}
+
+	id, ok := params.([]interface{})[0].(float64)
+	if !ok {
+		c.safeSendError(reqID, big.NewInt(-32600), "Invalid request")
+		return
+	}
+	observer, ok := c.Subscriptions[uint(id)].(state.Observer)
+	if !ok {
+		initRes := newBooleanResponseJSON(false, reqID)
+		c.safeSend(initRes)
+		return
+	}
+
 	c.StorageAPI.UnregisterStorageObserver(observer)
+	c.safeSend(newBooleanResponseJSON(true, reqID))
 }
 
 func (c *WSConn) initBlockListener(reqID float64) (uint, error) {

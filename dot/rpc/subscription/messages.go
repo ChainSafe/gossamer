@@ -59,3 +59,18 @@ func newSubscriptionResponseJSON(subID uint, reqID float64) ResponseJSON {
 		ID:      reqID,
 	}
 }
+
+// BooleanResponseJSON for responses that return boolean values
+type BooleanResponseJSON struct {
+	Jsonrpc string  `json:"jsonrpc"`
+	Result  bool    `json:"result"`
+	ID      float64 `json:"id"`
+}
+
+func newBooleanResponseJSON(value bool, reqID float64) BooleanResponseJSON {
+	return BooleanResponseJSON{
+		Jsonrpc: "2.0",
+		Result:  value,
+		ID:      reqID,
+	}
+}
