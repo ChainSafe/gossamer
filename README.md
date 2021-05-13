@@ -71,7 +71,7 @@ To start the development node:
 ./bin/gossamer --chain dev
 ```
 
-The development node is configured to produce a block every slot and to finalise a block every round (as there is only one authority set, `alice`.) 
+The development node is configured to produce a block every slot and to finalise a block every round (as there is only one authority, `alice`.) 
 
 ### Run Gossamer Node
 
