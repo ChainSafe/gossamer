@@ -148,7 +148,6 @@ func (in *Instance) FinalizeBlock() (*types.Header, error) {
 func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	// copy block since we're going to modify it
 	b := block.DeepCopy()
-	b.Header.Digest = types.NewEmptyDigest()
 
 	if in.version == nil {
 		var err error
@@ -158,17 +157,14 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 		}
 	}
 
-	// TODO: hack since substrate node_runtime can't seem to handle BABE pre-runtime digests
-	// with type prefix (ie Primary, Secondary...)
-	if bytes.Equal(in.version.SpecName(), []byte("kusama")) || bytes.Equal(in.version.SpecName(), []byte("polkadot")) {
-		// remove seal digest only
-		for _, d := range block.Header.Digest {
-			if d.Type() == types.SealDigestType {
-				continue
-			}
-
-			b.Header.Digest = append(b.Header.Digest, d)
+	// remove seal digest only
+	b.Header.Digest = types.NewEmptyDigest()
+	for _, d := range block.Header.Digest {
+		if d.Type() == types.SealDigestType {
+			continue
 		}
+
+		b.Header.Digest = append(b.Header.Digest, d)
 	}
 
 	bdEnc, err := b.Encode()

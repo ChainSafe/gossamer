@@ -49,7 +49,7 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 
 	// create new block header
 	number := big.NewInt(0).Add(parent.Number, big.NewInt(1))
-	header, err := types.NewHeader(parent.Hash(), common.Hash{}, common.Hash{}, number, types.NewEmptyDigest())
+	header, err := types.NewHeader(parent.Hash(), common.Hash{}, common.Hash{}, number, types.NewDigest(preDigest))
 	if err != nil {
 		return nil, err
 	}
@@ -86,9 +86,6 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 
 	header.ParentHash = parent.Hash()
 	header.Number.Add(parent.Number, big.NewInt(1))
-
-	// add BABE header to digest
-	header.Digest = append(header.Digest, preDigest)
 
 	// create seal and add to digest
 	seal, err := b.buildBlockSeal(header)
