@@ -7,6 +7,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -50,6 +51,92 @@ func TestMain(m *testing.M) {
 
 	runtime.RemoveFiles(wasmFilePaths)
 	os.Exit(code)
+}
+
+func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
+	s := newTestSyncer(t)
+	addTestBlocksToState(t, int(maxResponseSize), s.blockState)
+
+	start, err := variadic.NewUint64OrHash(uint64(1))
+	require.NoError(t, err)
+
+	req := &network.BlockRequestMessage{
+		RequestedData: 3,
+		StartingBlock: start,
+		EndBlockHash:  optional.NewHash(false, common.Hash{}),
+		Direction:     1,
+		Max:           optional.NewUint32(false, 0),
+	}
+
+	resp, err := s.CreateBlockResponse(req)
+	require.NoError(t, err)
+	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
+	require.Equal(t, big.NewInt(1), resp.BlockData[0].Number())
+	require.Equal(t, big.NewInt(128), resp.BlockData[127].Number())
+
+	req = &network.BlockRequestMessage{
+		RequestedData: 3,
+		StartingBlock: start,
+		EndBlockHash:  optional.NewHash(false, common.Hash{}),
+		Direction:     1,
+		Max:           optional.NewUint32(true, maxResponseSize+100),
+	}
+
+	resp, err = s.CreateBlockResponse(req)
+	require.NoError(t, err)
+	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
+	require.Equal(t, big.NewInt(1), resp.BlockData[0].Number())
+	require.Equal(t, big.NewInt(128), resp.BlockData[127].Number())
+}
+
+func TestService_CreateBlockResponse_StartHash(t *testing.T) {
+	s := newTestSyncer(t)
+	addTestBlocksToState(t, int(maxResponseSize), s.blockState)
+
+	startHash, err := s.blockState.GetHashByNumber(big.NewInt(1))
+	require.NoError(t, err)
+
+	start, err := variadic.NewUint64OrHash(startHash)
+	require.NoError(t, err)
+
+	req := &network.BlockRequestMessage{
+		RequestedData: 3,
+		StartingBlock: start,
+		EndBlockHash:  optional.NewHash(false, common.Hash{}),
+		Direction:     1,
+		Max:           optional.NewUint32(false, 0),
+	}
+
+	resp, err := s.CreateBlockResponse(req)
+	require.NoError(t, err)
+	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
+	require.Equal(t, big.NewInt(1), resp.BlockData[0].Number())
+	require.Equal(t, big.NewInt(128), resp.BlockData[127].Number())
+}
+
+func TestService_CreateBlockResponse_Ascending(t *testing.T) {
+	s := newTestSyncer(t)
+	addTestBlocksToState(t, int(maxResponseSize), s.blockState)
+
+	startHash, err := s.blockState.GetHashByNumber(big.NewInt(1))
+	require.NoError(t, err)
+
+	start, err := variadic.NewUint64OrHash(startHash)
+	require.NoError(t, err)
+
+	req := &network.BlockRequestMessage{
+		RequestedData: 3,
+		StartingBlock: start,
+		EndBlockHash:  optional.NewHash(false, common.Hash{}),
+		Direction:     0,
+		Max:           optional.NewUint32(false, 0),
+	}
+
+	resp, err := s.CreateBlockResponse(req)
+	require.NoError(t, err)
+	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
+	require.Equal(t, big.NewInt(128), resp.BlockData[0].Number())
+	require.Equal(t, big.NewInt(1), resp.BlockData[127].Number())
 }
 
 // tests the ProcessBlockRequestMessage method
