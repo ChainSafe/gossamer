@@ -169,7 +169,6 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 					return err
 				}
 				logger.Trace("receiver: sent handshake", "protocol", info.protocolID, "peer", peer)
-				return nil
 			}
 
 			return nil
