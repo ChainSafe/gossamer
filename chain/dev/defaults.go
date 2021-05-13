@@ -42,7 +42,7 @@ var (
 	// InitConfig
 
 	// DefaultGenesis is the default genesis configuration path
-	DefaultGenesis = string("./chain/dev/genesis-spec.json")
+	DefaultGenesis = string("./chain/dev/genesis.json")
 
 	// AccountConfig
 

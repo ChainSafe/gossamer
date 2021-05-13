@@ -60,7 +60,7 @@ func (c *WSConn) HandleComm() {
 			logger.Warn("websocket failed to read message", "error", err)
 			return
 		}
-		logger.Debug("websocket received", "message", mbytes)
+		logger.Trace("websocket received", "message", mbytes)
 
 		// determine if request is for subscribe method type
 		var msg map[string]interface{}
@@ -70,11 +70,14 @@ func (c *WSConn) HandleComm() {
 			c.safeSendError(0, big.NewInt(-32600), "Invalid request")
 			continue
 		}
+
 		method := msg["method"]
+		params := msg["params"]
+		logger.Debug("ws method called", "method", method, "params", params)
+
 		// if method contains subscribe, then register subscription
 		if strings.Contains(fmt.Sprintf("%s", method), "subscribe") {
 			reqid := msg["id"].(float64)
-			params := msg["params"]
 			switch method {
 			case "chain_subscribeNewHeads", "chain_subscribeNewHead":
 				bl, err1 := c.initBlockListener(reqid)
