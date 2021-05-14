@@ -382,7 +382,7 @@ func (s *Service) beginDiscovery() error {
 					}
 				}
 			}
-			
+
 			time.Sleep(time.Second * 10)
 		}
 
