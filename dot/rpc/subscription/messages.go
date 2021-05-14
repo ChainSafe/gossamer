@@ -28,6 +28,12 @@ type Params struct {
 	SubscriptionID uint        `json:"subscription"`
 }
 
+// InvalidRequestCode error code returned for invalid request parameters, value derived from Substrate node output
+const InvalidRequestCode = -32600
+
+// InvalidRequestMessage error message for invalid request parameters
+const InvalidRequestMessage = "Invalid request"
+
 func newSubcriptionBaseResponseJSON() BaseResponseJSON {
 	return BaseResponseJSON{
 		Jsonrpc: "2.0",

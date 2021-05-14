@@ -23,6 +23,7 @@ import (
 	"io/ioutil"
 	"math/big"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -219,21 +220,32 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (u
 func (c *WSConn) unsubscribeStorageListener(reqID float64, params interface{}) {
 	switch v := params.(type) {
 	case []interface{}:
-		if l := len(v); l < 1 {
-			c.safeSendError(reqID, big.NewInt(-32600), "Invalid request")
+		if len(v) == 0 {
+			c.safeSendError(reqID, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
 			return
 		}
 	default:
-		c.safeSendError(reqID, big.NewInt(-32600), "Invalid request")
+		c.safeSendError(reqID, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
 		return
 	}
 
-	id, ok := params.([]interface{})[0].(float64)
-	if !ok {
-		c.safeSendError(reqID, big.NewInt(-32600), "Invalid request")
+	var id uint
+	switch v := params.([]interface{})[0].(type) {
+	case float64:
+		id = uint(v)
+	case string:
+		i, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			c.safeSend(newBooleanResponseJSON(false, reqID))
+			return
+		}
+		id = uint(i)
+	default:
+		c.safeSendError(reqID, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
 		return
 	}
-	observer, ok := c.Subscriptions[uint(id)].(state.Observer)
+
+	observer, ok := c.Subscriptions[id].(state.Observer)
 	if !ok {
 		initRes := newBooleanResponseJSON(false, reqID)
 		c.safeSend(initRes)

@@ -135,11 +135,20 @@ func TestWSConn_HandleComm(t *testing.T) {
 	c.WriteMessage(websocket.TextMessage, []byte(`{
     "jsonrpc": "2.0",
     "method": "state_unsubscribeStorage",
+    "params": ["6"],
+    "id": 7}`))
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":false,"id":7}`+"\n"), msg)
+
+	c.WriteMessage(websocket.TextMessage, []byte(`{
+    "jsonrpc": "2.0",
+    "method": "state_unsubscribeStorage",
     "params": ["4"],
     "id": 7}`))
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
-	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid request"},"id":7}`+"\n"), msg)
+	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":true,"id":7}`+"\n"), msg)
 
 	c.WriteMessage(websocket.TextMessage, []byte(`{
     "jsonrpc": "2.0",
