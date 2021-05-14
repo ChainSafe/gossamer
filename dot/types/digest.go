@@ -34,6 +34,11 @@ func NewEmptyDigest() Digest {
 	return []DigestItem{}
 }
 
+// NewDigest returns a new Digest from the given DigestItems
+func NewDigest(items ...DigestItem) Digest {
+	return items
+}
+
 // Encode returns the SCALE encoded digest
 func (d *Digest) Encode() ([]byte, error) {
 	enc, err := scale.Encode(big.NewInt(int64(len(*d))))
