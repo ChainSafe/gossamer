@@ -102,7 +102,8 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		dual.DHTOption(kaddht.Datastore(ds)),
 		dual.DHTOption(kaddht.BootstrapPeers(bns...)),
 		dual.DHTOption(kaddht.V1ProtocolOverride(pid + "/kad")),
-		dual.DHTOption(kaddht.Mode(kaddht.ModeAutoServer)),
+		//dual.DHTOption(kaddht.Mode(kaddht.ModeAutoServer)),
+		dual.DHTOption(kaddht.Mode(kaddht.ModeServer)),
 	}
 
 	privateIPs := ma.NewFilters()

@@ -345,29 +345,47 @@ func (s *Service) beginDiscovery() error {
 	// wait to connect to bootstrap peers
 	time.Sleep(time.Second)
 
+	peersToTry := make(map[*peer.AddrInfo]struct{})
+
 	go func() {
-		peerCh, err := rd.FindPeers(s.ctx, s.cfg.ProtocolID)
-		if err != nil {
-			logger.Error("failed to begin finding peers via DHT", "err", err)
-		}
-
-		for peer := range peerCh {
-			if peer.ID == s.host.id() {
-				return
+		for {
+			peerCh, err := rd.FindPeers(s.ctx, s.cfg.ProtocolID)
+			if err != nil {
+				logger.Error("failed to begin finding peers via DHT", "err", err)
 			}
 
-			logger.Info("found new peer via DHT", "peer", peer.ID)
-
-			// found a peer, try to connect if we need more peers
-			if s.host.peerCount() < s.cfg.MaxPeers {
-				err = s.host.connect(peer)
-				if err != nil {
-					logger.Info("failed to connect to discovered peer", "peer", peer.ID, "err", err)
+			for peer := range peerCh {
+				if peer.ID == s.host.id() {
+					return
 				}
-			} else {
-				s.host.addToPeerstore(peer)
+
+				logger.Info("found new peer via DHT", "peer", peer.ID)
+
+				// found a peer, try to connect if we need more peers
+				if s.host.peerCount() < s.cfg.MaxPeers {
+					err = s.host.connect(peer)
+					if err != nil {
+						logger.Info("failed to connect to discovered peer", "peer", peer.ID, "err", err)
+					}
+				} else {
+					s.host.addToPeerstore(peer)
+					peersToTry[&peer] = struct{}{}
+				}
 			}
+
+			if s.host.peerCount() < s.cfg.MaxPeers {
+				for p := range peersToTry {
+					logger.Info("trying to connect to cached peer", "peer", p.ID)
+					err = s.host.connect(*p)
+					if err != nil {
+						logger.Info("failed to connect to discovered peer", "peer", p.ID, "err", err)
+					}
+				}
+			}
+			
+			time.Sleep(time.Second * 10)
 		}
+
 	}()
 
 	logger.Info("DHT discovery started!")
