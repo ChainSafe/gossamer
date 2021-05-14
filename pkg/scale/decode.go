@@ -490,7 +490,7 @@ func (ds *decodeState) decodeBytes(dstv reflect.Value) (err error) {
 		return
 	}
 
-	b := make([]byte, length)
+	b = make([]byte, length)
 	_, err = ds.Read(b)
 	if err != nil {
 		return
@@ -651,7 +651,7 @@ func (ds *decodeState) decodeUint128(dstv reflect.Value) (err error) {
 // decodeUint128 accepts a byte array representing Scale encoded common.Uint128 and performs SCALE decoding of the Uint128
 // if the encoding is valid, it then returns (i interface{}, nil) where i is the decoded common.Uint128 , otherwise
 // it returns nil and error
-func (ds *decodeState) decodeUint128() (out *Uint128, err error) {
+func (ds *decodeState) decodeUint128() (ui *Uint128, err error) {
 	buf := make([]byte, 16)
 	err = binary.Read(ds, binary.LittleEndian, buf)
 	if err != nil {
