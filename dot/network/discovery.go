@@ -46,7 +46,7 @@ func (d *discovery) start() error {
 		for {
 			if len(peers) == 0 {
 				logger.Info("no peers yet, waiting to start DHT...")
-				time.Sleep(time.Second * 5) // wait for peers to connect before starting DHT
+				time.Sleep(time.Second * 10) // wait for peers to connect before starting DHT
 			} else {
 				break
 			}
@@ -58,6 +58,8 @@ func (d *discovery) start() error {
 			d.bootnodes = append(d.bootnodes, d.h.Peerstore().PeerInfo(p))
 		}
 	}
+
+	logger.Info("starting DHT...", "bootnodes", d.bootnodes)
 
 	dhtOpts := []dual.Option{
 		dual.DHTOption(kaddht.Datastore(d.ds)),
@@ -94,7 +96,7 @@ func (d *discovery) discoverAndAdvertise() error {
 	peersToTry := make(map[*peer.AddrInfo]struct{})
 
 	go func() {
-		ttl := time.Minute
+		ttl := time.Second * 30
 
 		for {
 			select {
