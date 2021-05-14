@@ -356,13 +356,13 @@ func (s *Service) beginDiscovery() error {
 				return
 			}
 
-			logger.Debug("found new peer via DHT", "peer", peer.ID)
+			logger.Info("found new peer via DHT", "peer", peer.ID)
 
 			// found a peer, try to connect if we need more peers
 			if s.host.peerCount() < s.cfg.MaxPeers {
 				err = s.host.connect(peer)
 				if err != nil {
-					logger.Debug("failed to connect to discovered peer", "peer", peer.ID, "err", err)
+					logger.Info("failed to connect to discovered peer", "peer", peer.ID, "err", err)
 				}
 			} else {
 				s.host.addToPeerstore(peer)
@@ -370,7 +370,7 @@ func (s *Service) beginDiscovery() error {
 		}
 	}()
 
-	logger.Debug("DHT discovery started!")
+	logger.Info("DHT discovery started!")
 	return nil
 }
 
