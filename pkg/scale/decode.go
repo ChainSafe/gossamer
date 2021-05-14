@@ -26,13 +26,14 @@ type decodeState struct {
 }
 
 func (ds *decodeState) unmarshal(dst interface{}) (err error) {
-	rv := reflect.ValueOf(dst)
-	if rv.Kind() != reflect.Ptr || rv.IsNil() {
+	dstv := reflect.ValueOf(dst)
+	if dstv.Kind() != reflect.Ptr || dstv.IsNil() {
 		err = fmt.Errorf("unsupported dst: %T", dst)
 		return
 	}
 
-	in := rv.Elem().Interface()
+	// this needs to be used to handle zero value
+	in := dstv.Elem().Interface()
 	switch in.(type) {
 	case *big.Int:
 		in, err = ds.decodeBigInt()
@@ -46,12 +47,32 @@ func (ds *decodeState) unmarshal(dst interface{}) (err error) {
 		var b []byte
 		b, err = ds.decodeBytes()
 		in = string(b)
+	case bool:
+		in, err = ds.decodeBool()
 	}
 
 	if err != nil {
 		return
 	}
-	rv.Elem().Set(reflect.ValueOf(in))
+	dstv.Elem().Set(reflect.ValueOf(in))
+	return
+}
+
+// decodeBool accepts a byte array representing a SCALE encoded bool and performs SCALE decoding
+// of the bool then returns it. if invalid, return false and an error
+func (ds *decodeState) decodeBool() (b bool, err error) {
+	rb, err := ds.ReadByte()
+	if err != nil {
+		return
+	}
+
+	switch rb {
+	case 0x00:
+	case 0x01:
+		b = true
+	default:
+		err = fmt.Errorf("could not decode invalid bool")
+	}
 	return
 }
 
