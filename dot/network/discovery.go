@@ -131,14 +131,14 @@ func (d *discovery) discoverAndAdvertise() error {
 			select {
 			case <-d.ctx.Done():
 				return
-			case <-time.After(time.Minute):
-				err := d.dht.Bootstrap(d.ctx)
-				if err != nil {
-					logger.Warn("failed to bootstrap DHT", "error", err)
-					continue
-				}
+			// case <-time.After(time.Minute):
+			// 	err := d.dht.Bootstrap(d.ctx)
+			// 	if err != nil {
+			// 		logger.Warn("failed to bootstrap DHT", "error", err)
+			// 		continue
+			// 	}
 
-				_ = d.dht.WAN.RefreshRoutingTable()
+			// 	_ = d.dht.WAN.RefreshRoutingTable()
 			case peer := <-peerCh:
 				if peer.ID == d.h.ID() || peer.ID == "" {
 					continue
