@@ -681,3 +681,120 @@ func Test_decodeState_decodeBigInt(t *testing.T) {
 		})
 	}
 }
+
+func Test_decodeState_decodeBytes(t *testing.T) {
+	var b []byte
+	var s string
+	type args struct {
+		data []byte
+		dst  interface{}
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+		want    interface{}
+	}{
+		{
+			args: args{
+				data: []byte{0x04, 0x01},
+				dst:  &b,
+			},
+			want: []byte{0x01},
+		},
+		{
+			args: args{
+				data: []byte{0x04, 0xff},
+				dst:  &b,
+			},
+			want: []byte{0xff},
+		},
+		{
+			args: args{
+				data: []byte{0x08, 0x01, 0x01},
+				dst:  &b,
+			},
+			want: []byte{0x01, 0x01},
+		},
+		{
+			args: args{
+				data: append([]byte{0x01, 0x01}, byteArray(64)...),
+				dst:  &b,
+			},
+			want: byteArray(64),
+		},
+		{
+			args: args{
+				data: append([]byte{0xfd, 0xff}, byteArray(16383)...),
+				dst:  &b,
+			},
+			want: byteArray(16383),
+		},
+		{
+			args: args{
+				data: append([]byte{0x02, 0x00, 0x01, 0x00}, byteArray(16384)...),
+				dst:  &b,
+			},
+			want: byteArray(16384),
+		},
+		// string
+		{
+			args: args{
+				data: []byte{0x04, 0x01},
+				dst:  &s,
+			},
+			want: string([]byte{0x01}),
+		},
+		{
+			args: args{
+				data: []byte{0x04, 0xff},
+				dst:  &s,
+			},
+			want: string([]byte{0xff}),
+		},
+		{
+			args: args{
+				data: []byte{0x08, 0x01, 0x01},
+				dst:  &s,
+			},
+			want: string([]byte{0x01, 0x01}),
+		},
+		{
+			args: args{
+				data: append([]byte{0x01, 0x01}, byteArray(64)...),
+				dst:  &s,
+			},
+			want: string(byteArray(64)),
+		},
+		{
+			args: args{
+				data: append([]byte{0xfd, 0xff}, byteArray(16383)...),
+				dst:  &s,
+			},
+			want: string(byteArray(16383)),
+		},
+		{
+			args: args{
+				data: append([]byte{0x02, 0x00, 0x01, 0x00}, byteArray(16384)...),
+				dst:  &s,
+			},
+			want: string(byteArray(16384)),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := Unmarshal(tt.args.data, tt.args.dst)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if err != nil {
+				return
+			}
+			got := reflect.ValueOf(tt.args.dst).Elem().Interface()
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("decodeState.unmarshal() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

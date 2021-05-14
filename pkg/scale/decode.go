@@ -40,8 +40,12 @@ func (ds *decodeState) unmarshal(dst interface{}) (err error) {
 		in, err = ds.decodeUint128()
 	case int, uint, int8, uint8, int16, uint16, int32, uint32, int64, uint64:
 		in, err = ds.decodeFixedWidthInt(in)
-	case []byte, string:
+	case []byte:
 		in, err = ds.decodeBytes()
+	case string:
+		var b []byte
+		b, err = ds.decodeBytes()
+		in = string(b)
 	}
 
 	if err != nil {
@@ -88,33 +92,32 @@ func (ds *decodeState) decodeUint() (o uint64, err error) {
 	return o, err
 }
 
-// DecodeInteger accepts a byte array representing a SCALE encoded integer and performs SCALE decoding of the int
+// decodeLength accepts a byte array representing a SCALE encoded integer and performs SCALE decoding of the int
 // if the encoding is valid, it then returns (o, bytesDecoded, err) where o is the decoded integer, bytesDecoded is the
 // number of input bytes decoded, and err is nil
 // otherwise, it returns 0, 0, and error
-func (ds *decodeState) decodeInt() (_ int64, err error) {
-	o, err := ds.decodeUint()
-
-	return int64(o), err
+func (ds *decodeState) decodeLength() (l int, err error) {
+	ui, err := ds.decodeUint()
+	l = int(ui)
+	return
 }
 
 // DecodeByteArray accepts a byte array representing a SCALE encoded byte array and performs SCALE decoding
 // of the byte array
 // if the encoding is valid, it then returns the decoded byte array, the total number of input bytes decoded, and nil
 // otherwise, it returns nil, 0, and error
-func (ds *decodeState) decodeBytes() (o []byte, err error) {
-	length, err := ds.decodeInt()
+func (ds *decodeState) decodeBytes() (b []byte, err error) {
+	length, err := ds.decodeLength()
 	if err != nil {
 		return nil, err
 	}
 
-	b := make([]byte, length)
+	b = make([]byte, length)
 	_, err = ds.Read(b)
 	if err != nil {
 		return nil, errors.New("could not decode invalid byte array: reached early EOF")
 	}
-
-	return b, nil
+	return
 }
 
 // decodeSmallInt is used in the DecodeInteger and decodeBigInt functions when the mode is <= 2
@@ -257,7 +260,7 @@ func (ds *decodeState) decodeFixedWidthInt(in interface{}) (out interface{}, err
 // decodeUint128 accepts a byte array representing Scale encoded common.Uint128 and performs SCALE decoding of the Uint128
 // if the encoding is valid, it then returns (i interface{}, nil) where i is the decoded common.Uint128 , otherwise
 // it returns nil and error
-func (ds *decodeState) decodeUint128() (out *Uint128, err error) {
+func (ds *decodeState) decodeUint128() (ui *Uint128, err error) {
 	buf := make([]byte, 16)
 	err = binary.Read(ds, binary.LittleEndian, buf)
 	if err != nil {
