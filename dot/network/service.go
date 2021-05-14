@@ -392,7 +392,7 @@ func (s *Service) beginDiscovery() error {
 				} else {
 					s.host.addToPeerstore(peer)
 					peersToTry[&peer] = struct{}{}
-				}			
+				}
 			}
 
 			if s.host.peerCount() < s.cfg.MaxPeers {
