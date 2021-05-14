@@ -349,14 +349,16 @@ func (s *Service) beginDiscovery() error {
 
 	go func() {
 		for {
+			logger.Info("attempting to find peers...")
 			peerCh, err := rd.FindPeers(s.ctx, s.cfg.ProtocolID)
 			if err != nil {
 				logger.Error("failed to begin finding peers via DHT", "err", err)
+				continue
 			}
 
 			for peer := range peerCh {
 				if peer.ID == s.host.id() {
-					return
+					continue
 				}
 
 				logger.Info("found new peer via DHT", "peer", peer.ID)
