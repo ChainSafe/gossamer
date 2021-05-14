@@ -348,7 +348,7 @@ func (s *Service) beginDiscovery() error {
 	peersToTry := make(map[*peer.AddrInfo]struct{})
 
 	go func() {
-		ttl := time.Millisecond
+		ttl := time.Minute
 
 		for {
 			select {
@@ -377,7 +377,7 @@ func (s *Service) beginDiscovery() error {
 			case <-s.ctx.Done():
 				return
 			case peer := <-peerCh:
-				if peer.ID == s.host.id() {
+				if peer.ID == s.host.id() || peer.ID == "" {
 					continue
 				}
 
