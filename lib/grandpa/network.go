@@ -105,8 +105,16 @@ func (s *Service) registerProtocol() error {
 }
 
 func (s *Service) getHandshake() (Handshake, error) {
+	var roles byte
+
+	if s.authority {
+		roles = 4
+	} else {
+		roles = 1
+	}
+
 	return &GrandpaHandshake{
-		Roles: 1, // TODO: don't hard-code this
+		Roles: roles,
 	}, nil
 }
 
@@ -166,11 +174,18 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 func (s *Service) sendNeighbourMessage() {
 	for {
 		select {
+		case <-s.ctx.Done():
+			return
 		case <-time.After(neighbourMessageInterval):
 			if s.neighbourMessage == nil {
 				continue
 			}
-		case info := <-s.finalisedCh:
+		case info, ok := <-s.finalisedCh:
+			if !ok {
+				// channel was closed
+				return
+			}
+
 			s.neighbourMessage = &NeighbourMessage{
 				Version: 1,
 				Round:   info.Round,
