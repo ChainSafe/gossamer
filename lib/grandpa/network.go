@@ -18,6 +18,7 @@ package grandpa
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -28,8 +29,9 @@ import (
 )
 
 var (
-	grandpaID protocol.ID = "/paritytech/grandpa/1"
-	messageID             = network.ConsensusMsgType
+	grandpaID                protocol.ID = "/paritytech/grandpa/1"
+	messageID                            = network.ConsensusMsgType
+	neighbourMessageInterval             = time.Minute * 5
 )
 
 // Handshake is an alias for network.Handshake
@@ -103,8 +105,16 @@ func (s *Service) registerProtocol() error {
 }
 
 func (s *Service) getHandshake() (Handshake, error) {
+	var roles byte
+
+	if s.authority {
+		roles = 4
+	} else {
+		roles = 1
+	}
+
 	return &GrandpaHandshake{
-		Roles: 1, // TODO: don't hard-code this
+		Roles: roles,
 	}, nil
 }
 
@@ -124,20 +134,72 @@ func (s *Service) decodeMessage(in []byte) (NotificationsMessage, error) {
 	return msg, err
 }
 
-func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) error {
-	cm, ok := msg.(*network.ConsensusMessage)
-	if !ok {
-		return ErrInvalidMessageType
+func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (bool, error) {
+	if msg == nil {
+		logger.Trace("received nil message, ignoring")
+		return false, nil
 	}
 
-	resp, err := s.messageHandler.handleMessage(from, cm)
+	cm, ok := msg.(*network.ConsensusMessage)
+	if !ok {
+		return false, ErrInvalidMessageType
+	}
+
+	if len(cm.Data) == 0 {
+		logger.Trace("received message with nil data, ignoring")
+		return false, nil
+	}
+
+	m, err := decodeMessage(cm)
 	if err != nil {
-		return err
+		return false, err
+	}
+
+	resp, err := s.messageHandler.handleMessage(from, m)
+	if err != nil {
+		return false, err
 	}
 
 	if resp != nil {
 		s.network.SendMessage(resp)
 	}
 
-	return nil
+	if m.Type() == neighbourType || m.Type() == catchUpResponseType {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (s *Service) sendNeighbourMessage() {
+	for {
+		select {
+		case <-s.ctx.Done():
+			return
+		case <-time.After(neighbourMessageInterval):
+			if s.neighbourMessage == nil {
+				continue
+			}
+		case info, ok := <-s.finalisedCh:
+			if !ok {
+				// channel was closed
+				return
+			}
+
+			s.neighbourMessage = &NeighbourMessage{
+				Version: 1,
+				Round:   info.Round,
+				SetID:   info.SetID,
+				Number:  uint32(info.Header.Number.Int64()),
+			}
+		}
+
+		cm, err := s.neighbourMessage.ToConsensusMessage()
+		if err != nil {
+			logger.Warn("failed to convert NeighbourMessage to network message", "error", err)
+			continue
+		}
+
+		s.network.SendMessage(cm)
+	}
 }

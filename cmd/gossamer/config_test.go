@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
@@ -60,6 +61,12 @@ func TestConfigFromChainFlag(t *testing.T) {
 			[]string{"chain", "name"},
 			[]interface{}{"polkadot", dot.PolkadotConfig().Global.Name},
 			dot.PolkadotConfig(),
+		},
+		{
+			"Test gossamer --chain dev",
+			[]string{"chain", "name"},
+			[]interface{}{"dev", dot.DevConfig().Global.Name},
+			dot.DevConfig(),
 		},
 	}
 
@@ -750,9 +757,6 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 		System:  testCfg.System,
 	}
 
-	expected.Core.BabeThresholdNumerator = 0
-	expected.Core.BabeThresholdDenominator = 0
-
 	cfg, err := createDotConfig(ctx)
 	require.Nil(t, err)
 	updateDotConfigFromGenesisJSONRaw(*dotConfigToToml(testCfg), cfg)
@@ -811,8 +815,6 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 	require.Nil(t, err)
 
 	cfg.Init.Genesis = genFile.Name()
-	expected.Core.BabeThresholdNumerator = 0
-	expected.Core.BabeThresholdDenominator = 0
 
 	db, err := chaindb.NewBadgerDB(&chaindb.Config{
 		DataDir: cfg.Global.BasePath,
@@ -832,4 +834,141 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 	require.Nil(t, err)
 
 	require.Equal(t, expected, cfg)
+}
+
+func TestGlobalNodeName_WhenNodeAlreadyHasStoredName(t *testing.T) {
+	// Initialise a node with a random name
+	globalName := dot.RandomNodeName()
+
+	cfg := dot.NewTestConfig(t)
+	cfg.Global.Name = globalName
+	require.NotNil(t, cfg)
+
+	genPath := dot.NewTestGenesisAndRuntime(t)
+	require.NotNil(t, genPath)
+
+	defer utils.RemoveTestDir(t)
+
+	cfg.Core.Roles = types.FullNodeRole
+	cfg.Core.BabeAuthority = false
+	cfg.Core.GrandpaAuthority = false
+	cfg.Init.Genesis = genPath
+
+	err := dot.InitNode(cfg)
+	require.NoError(t, err)
+
+	// call another command and test the name
+	testApp := cli.NewApp()
+	testApp.Writer = ioutil.Discard
+
+	testcases := []struct {
+		description string
+		flags       []string
+		values      []interface{}
+		expected    string
+	}{
+		{
+			"Test gossamer --roles --basepath",
+			[]string{"basepath", "roles"},
+			[]interface{}{cfg.Global.BasePath, "4"},
+			globalName,
+		},
+		{
+			"Test gossamer --roles",
+			[]string{"basepath", "roles"},
+			[]interface{}{cfg.Global.BasePath, "0"},
+			globalName,
+		},
+	}
+
+	for _, c := range testcases {
+		c := c // bypass scopelint false positive
+		t.Run(c.description, func(t *testing.T) {
+			ctx, err := newTestContext(c.description, c.flags, c.values)
+			require.Nil(t, err)
+			createdCfg, err := createDotConfig(ctx)
+			require.Nil(t, err)
+			require.Equal(t, c.expected, createdCfg.Global.Name)
+		})
+	}
+}
+
+func TestGlobalNodeNamePriorityOrder(t *testing.T) {
+	cfg, testCfgFile := newTestConfigWithFile(t)
+	require.NotNil(t, cfg)
+	require.NotNil(t, testCfgFile)
+
+	defer utils.RemoveTestDir(t)
+
+	// call another command and test the name
+	testApp := cli.NewApp()
+	testApp.Writer = ioutil.Discard
+
+	// when name flag is defined
+	whenNameFlagIsDefined := struct {
+		description string
+		flags       []string
+		values      []interface{}
+		expected    string
+	}{
+		"Test gossamer --basepath --name --config",
+		[]string{"basepath", "name", "config"},
+		[]interface{}{cfg.Global.BasePath, "mydefinedname", testCfgFile.Name()},
+		"mydefinedname",
+	}
+
+	c := whenNameFlagIsDefined
+	t.Run(c.description, func(t *testing.T) {
+		ctx, err := newTestContext(c.description, c.flags, c.values)
+		require.Nil(t, err)
+		createdCfg, err := createDotConfig(ctx)
+		require.Nil(t, err)
+		require.Equal(t, c.expected, createdCfg.Global.Name)
+	})
+
+	// when name flag is not defined
+	// then should load name from toml if it exists
+	whenNameIsDefinedOnTomlConfig := struct {
+		description string
+		flags       []string
+		values      []interface{}
+		expected    string
+	}{
+		"Test gossamer --basepath --config",
+		[]string{"basepath", "config"},
+		[]interface{}{cfg.Global.BasePath, testCfgFile.Name()},
+		cfg.Global.Name,
+	}
+
+	c = whenNameIsDefinedOnTomlConfig
+	t.Run(c.description, func(t *testing.T) {
+		ctx, err := newTestContext(c.description, c.flags, c.values)
+		require.Nil(t, err)
+		createdCfg, err := createDotConfig(ctx)
+		require.Nil(t, err)
+		require.Equal(t, c.expected, createdCfg.Global.Name)
+	})
+
+	// when there is no name flag and no name in config
+	// should check the load is initialised or generate a new random name
+	cfg.Global.Name = ""
+
+	whenThereIsNoName := struct {
+		description string
+		flags       []string
+		values      []interface{}
+	}{
+		"Test gossamer --basepath",
+		[]string{"basepath"},
+		[]interface{}{cfg.Global.BasePath},
+	}
+
+	t.Run(c.description, func(t *testing.T) {
+		ctx, err := newTestContext(whenThereIsNoName.description, whenThereIsNoName.flags, whenThereIsNoName.values)
+		require.Nil(t, err)
+		createdCfg, err := createDotConfig(ctx)
+		require.Nil(t, err)
+		require.NotEmpty(t, createdCfg.Global.Name)
+		require.NotEqual(t, cfg.Global.Name, createdCfg.Global.Name)
+	})
 }

@@ -42,18 +42,10 @@ func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 		return
 	}
 
-	conn := stream.Conn()
-	if conn == nil {
-		logger.Error("Failed to get connection from stream")
-		_ = stream.Close()
-		return
-	}
-
-	peer := conn.RemotePeer()
-	s.readStream(stream, peer, s.decodeSyncMessage, s.handleSyncMessage)
+	s.readStream(stream, s.decodeSyncMessage, s.handleSyncMessage)
 }
 
-func (s *Service) decodeSyncMessage(in []byte, peer peer.ID) (Message, error) {
+func (s *Service) decodeSyncMessage(in []byte, peer peer.ID, inbound bool) (Message, error) {
 	msg := new(BlockRequestMessage)
 	err := msg.Decode(in)
 	return msg, err
@@ -74,7 +66,7 @@ func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) er
 
 		resp, err := s.syncer.CreateBlockResponse(req)
 		if err != nil {
-			logger.Trace("cannot create response for request")
+			logger.Debug("cannot create response for request", "error", err)
 			return nil
 		}
 
@@ -180,6 +172,7 @@ func (q *syncQueue) syncAtHead() {
 	}
 
 	q.s.syncer.SetSyncing(true)
+	q.s.noGossip = true // don't gossip messages until we're at the head
 
 	for {
 		select {
@@ -197,10 +190,12 @@ func (q *syncQueue) syncAtHead() {
 		// we aren't at the head yet, sleep
 		if curr.Number.Int64() < q.goal && curr.Number.Cmp(prev.Number) > 0 {
 			prev = curr
+			q.s.noGossip = true
 			continue
 		}
 
 		q.s.syncer.SetSyncing(false)
+		q.s.noGossip = false
 
 		// we have received new blocks since the last check, sleep
 		if prev.Number.Int64() < curr.Number.Int64() {

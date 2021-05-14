@@ -48,8 +48,16 @@ func TestMain(m *testing.M) {
 	}
 
 	utils.CreateConfigNoBabe()
-	utils.CreateConfigBabeMaxThreshold()
 	utils.CreateDefaultConfig()
+	utils.CreateConfigNoGrandpa()
+	utils.CreateConfigNotAuthority()
+
+	defer func() {
+		os.Remove(utils.ConfigNoBABE)
+		os.Remove(utils.ConfigDefault)
+		os.Remove(utils.ConfigNoGrandpa)
+		os.Remove(utils.ConfigNotAuthority)
+	}()
 
 	logLvl := log.LvlInfo
 	if utils.LOGLEVEL != "" {
@@ -68,10 +76,6 @@ func TestMain(m *testing.M) {
 
 	// Start all tests
 	code := m.Run()
-
-	os.Remove(utils.ConfigNoBABE)
-	os.Remove(utils.ConfigBABEMaxThreshold)
-	os.Remove(utils.ConfigDefault)
 	os.Exit(code)
 }
 
@@ -99,13 +103,13 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 
 	// start block producing node first
 	//nolint
-	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDefault, utils.ConfigBABEMaxThreshold, false)
+	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDev, utils.ConfigNoGrandpa, false)
 	require.NoError(t, err)
 
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
 	// all nodes vote for different blocks.
 	time.Sleep(time.Second * 15)
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDefault, utils.ConfigNoBABE)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDev, utils.ConfigNotAuthority)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
 
@@ -185,12 +189,12 @@ func TestSync_SingleSyncingNode(t *testing.T) {
 	utils.SetLogLevel(log.LvlInfo)
 
 	// start block producing node
-	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDefault, utils.ConfigBABEMaxThreshold, false)
+	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev, utils.ConfigDefault, false)
 	require.NoError(t, err)
 	time.Sleep(time.Second * 15)
 
 	// start syncing node
-	bob, err := utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDefault, utils.ConfigNoBABE, false)
+	bob, err := utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev, utils.ConfigNoBABE, false)
 	require.NoError(t, err)
 
 	nodes := []*utils.Node{alice, bob}
@@ -232,12 +236,11 @@ func TestSync_ManyProducers(t *testing.T) {
 }
 
 func TestSync_Bench(t *testing.T) {
-	//t.Skip() // TODO: fix this test
 	utils.SetLogLevel(log.LvlInfo)
 	numBlocks := 64
 
 	// start block producing node
-	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDefault, utils.ConfigBABEMaxThreshold, false)
+	alice, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev, utils.ConfigNoGrandpa, false)
 	require.NoError(t, err)
 
 	for {
@@ -258,7 +261,7 @@ func TestSync_Bench(t *testing.T) {
 	t.Log("BABE paused")
 
 	// start syncing node
-	bob, err := utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDefault, utils.ConfigNoBABE, false)
+	bob, err := utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev, utils.ConfigNotAuthority, false)
 	require.NoError(t, err)
 
 	nodes := []*utils.Node{alice, bob}
@@ -312,7 +315,7 @@ func TestSync_Restart(t *testing.T) {
 
 	// start block producing node first
 	//nolint
-	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDefault, utils.ConfigBABEMaxThreshold, false)
+	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDefault, utils.ConfigDefault, false)
 	require.NoError(t, err)
 
 	// wait and start rest of nodes
@@ -358,33 +361,36 @@ func TestSync_Restart(t *testing.T) {
 	close(done)
 }
 
-func TestPendingExtrinsic(t *testing.T) {
+func TestSync_SubmitExtrinsic(t *testing.T) {
 	t.Log("starting gossamer...")
 
-	utils.CreateConfigBabeMaxThreshold()
-
-	numNodes := 3
+	//numNodes := 3
 	// index of node to submit tx to
-	idx := numNodes - 1 // TODO: randomise this
+	idx := 0 // TODO: randomise this
 
 	// start block producing node first
-	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDefault, utils.ConfigBABEMaxThreshold, false)
+	node, err := utils.RunGossamer(t, 0, utils.TestDir(t, utils.KeyList[0]), utils.GenesisDev, utils.ConfigNoGrandpa, false)
 	require.NoError(t, err)
+	nodes := []*utils.Node{node}
 
 	// Start rest of nodes
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDefault, utils.ConfigNoBABE)
+	// nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDev, utils.ConfigNoBABE)
+	// require.NoError(t, err)
+	node, err = utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev, utils.ConfigNotAuthority, false)
+	require.NoError(t, err)
+	nodes = append(nodes, node)
+	node, err = utils.RunGossamer(t, 2, utils.TestDir(t, utils.KeyList[2]), utils.GenesisDev, utils.ConfigNotAuthority, false)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
 
 	defer func() {
 		t.Log("going to tear down gossamer...")
-		os.Remove(utils.ConfigBABEMaxThreshold)
 		errList := utils.StopNodes(t, nodes)
 		require.Len(t, errList, 0)
 	}()
 
 	// send tx to non-authority node
-	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("http://localhost:%s", node.RPCPort))
+	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("http://localhost:%s", nodes[idx].RPCPort))
 	require.NoError(t, err)
 
 	meta, err := api.RPC.State.GetMetadataLatest()
@@ -431,7 +437,7 @@ func TestPendingExtrinsic(t *testing.T) {
 	extEnc, err := types.EncodeToHexString(ext)
 	require.NoError(t, err)
 
-	prevHeader := utils.GetChainHead(t, node) // get starting header so that we can lookup blocks by number later
+	prevHeader := utils.GetChainHead(t, nodes[idx]) // get starting header so that we can lookup blocks by number later
 
 	// Send the extrinsic
 	hash, err := api.RPC.Author.SubmitExtrinsic(ext)

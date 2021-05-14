@@ -149,8 +149,6 @@ func TestNewNode_Authority(t *testing.T) {
 	require.Equal(t, 1, ks.Babe.Size())
 
 	cfg.Core.Roles = types.AuthorityRole
-	cfg.Core.BabeThresholdNumerator = 0
-	cfg.Core.BabeThresholdDenominator = 0
 
 	node, err := NewNode(cfg, ks, nil)
 	require.NoError(t, err)
@@ -325,8 +323,6 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
-	cfg.Core.BabeThresholdNumerator = 0
-	cfg.Core.BabeThresholdDenominator = 0
 	cfg.Init.Genesis = genPath
 
 	err := InitNode(cfg)
@@ -381,4 +377,29 @@ func TestNode_StopFunc(t *testing.T) {
 
 	node.Stop()
 	require.Equal(t, testvar, "after")
+}
+
+func TestNode_PersistGlobalName_WhenInitialize(t *testing.T) {
+	globalName := RandomNodeName()
+
+	cfg := NewTestConfig(t)
+	cfg.Global.Name = globalName
+	require.NotNil(t, cfg)
+
+	genPath := NewTestGenesisAndRuntime(t)
+	require.NotNil(t, genPath)
+
+	defer utils.RemoveTestDir(t)
+
+	cfg.Core.Roles = types.FullNodeRole
+	cfg.Core.BabeAuthority = false
+	cfg.Core.GrandpaAuthority = false
+	cfg.Init.Genesis = genPath
+
+	err := InitNode(cfg)
+	require.NoError(t, err)
+
+	storedName, err := LoadGlobalNodeName(cfg.Global.BasePath)
+	require.Nil(t, err)
+	require.Equal(t, globalName, storedName)
 }
