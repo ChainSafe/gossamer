@@ -19,7 +19,6 @@ package network
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"sync"
@@ -34,7 +33,6 @@ import (
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	discovery "github.com/libp2p/go-libp2p-discovery"
 )
 
 const (
@@ -234,7 +232,7 @@ func (s *Service) Start() error {
 
 	if !s.noDiscover {
 		go func() {
-			err = s.beginDiscovery()
+			err = s.host.discovery.start()
 			if err != nil {
 				logger.Error("failed to begin DHT discovery", "error", err)
 			}
@@ -332,89 +330,6 @@ func (s *Service) handleConn(conn libp2pnetwork.Conn) {
 	// give new peers a slight weight
 	// TODO: do this once handshake is received
 	s.syncQueue.updatePeerScore(conn.RemotePeer(), 1)
-}
-
-func (s *Service) beginDiscovery() error {
-	rd := discovery.NewRoutingDiscovery(s.host.dht)
-
-	err := s.host.dht.Bootstrap(s.ctx)
-	if err != nil {
-		return fmt.Errorf("failed to bootstrap DHT: %w", err)
-	}
-
-	// wait to connect to bootstrap peers
-	time.Sleep(time.Second)
-
-	peersToTry := make(map[*peer.AddrInfo]struct{})
-
-	go func() {
-		ttl := time.Minute
-
-		for {
-			select {
-			case <-time.After(ttl):
-				logger.Info("advertising ourselves in the DHT...")
-				err := s.host.dht.Bootstrap(s.ctx)
-				if err != nil {
-					logger.Warn("failed to bootstrap DHT", "error", err)
-					continue
-				}
-
-				ttl, err = rd.Advertise(s.ctx, s.cfg.ProtocolID)
-				if err != nil {
-					logger.Warn("failed to advertise in the DHT", "error", err)
-				}
-			case <-s.ctx.Done():
-				return
-			}
-		}
-	}()
-
-	go func() {
-		logger.Info("attempting to find peers...")
-		peerCh, err := rd.FindPeers(s.ctx, s.cfg.ProtocolID)
-		if err != nil {
-			logger.Error("failed to begin finding peers via DHT", "err", err)
-			return
-		}
-
-		for {
-			select {
-			case <-s.ctx.Done():
-				return
-			case peer := <-peerCh:
-				if peer.ID == s.host.id() || peer.ID == "" {
-					continue
-				}
-
-				logger.Info("found new peer via DHT", "peer", peer.ID)
-
-				// found a peer, try to connect if we need more peers
-				if s.host.peerCount() < s.cfg.MaxPeers {
-					err = s.host.connect(peer)
-					if err != nil {
-						logger.Info("failed to connect to discovered peer", "peer", peer.ID, "err", err)
-					}
-				} else {
-					s.host.addToPeerstore(peer)
-					peersToTry[&peer] = struct{}{}
-				}
-			}
-
-			if s.host.peerCount() < s.cfg.MaxPeers {
-				for p := range peersToTry {
-					logger.Info("trying to connect to cached peer", "peer", p.ID)
-					err = s.host.connect(*p)
-					if err != nil {
-						logger.Info("failed to connect to discovered peer", "peer", p.ID, "err", err)
-					}
-				}
-			}
-		}
-	}()
-
-	logger.Info("DHT discovery started!")
-	return nil
 }
 
 // Stop closes running instances of the host and network services as well as

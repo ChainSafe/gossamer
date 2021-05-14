@@ -32,11 +32,11 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	kaddht "github.com/libp2p/go-libp2p-kad-dht"
-	"github.com/libp2p/go-libp2p-kad-dht/dual"
+	//kaddht "github.com/libp2p/go-libp2p-kad-dht"
+	//"github.com/libp2p/go-libp2p-kad-dht/dual"
 	"github.com/libp2p/go-libp2p-peerstore/pstoreds"
 	secio "github.com/libp2p/go-libp2p-secio"
-	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
+	//rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
 )
 
@@ -51,9 +51,10 @@ var privateCIDRs = []string{
 
 // host wraps libp2p host with network host configuration and services
 type host struct {
-	ctx             context.Context
-	h               libp2phost.Host
-	dht             *dual.DHT
+	ctx context.Context
+	h   libp2phost.Host
+	//dht             *dual.DHT
+	discovery       *discovery
 	bootnodes       []peer.AddrInfo
 	persistentPeers []peer.AddrInfo
 	protocolID      protocol.ID
@@ -98,13 +99,13 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		return nil, err
 	}
 
-	dhtOpts := []dual.Option{
-		dual.DHTOption(kaddht.Datastore(ds)),
-		dual.DHTOption(kaddht.BootstrapPeers(bns...)),
-		dual.DHTOption(kaddht.V1ProtocolOverride(pid + "/kad")),
-		//dual.DHTOption(kaddht.Mode(kaddht.ModeAutoServer)),
-		dual.DHTOption(kaddht.Mode(kaddht.ModeServer)),
-	}
+	// dhtOpts := []dual.Option{
+	// 	dual.DHTOption(kaddht.Datastore(ds)),
+	// 	dual.DHTOption(kaddht.BootstrapPeers(bns...)),
+	// 	dual.DHTOption(kaddht.V1ProtocolOverride(pid + "/kad")),
+	// 	dual.DHTOption(kaddht.Mode(kaddht.ModeAutoServer)),
+	// 	//dual.DHTOption(kaddht.Mode(kaddht.ModeServer)),
+	// }
 
 	privateIPs := ma.NewFilters()
 	for _, cidr := range privateCIDRs {
@@ -147,14 +148,14 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		return nil, err
 	}
 
-	// create DHT service
-	dht, err := dual.New(ctx, h, dhtOpts...)
-	if err != nil {
-		return nil, err
-	}
+	// // create DHT service
+	// dht, err := dual.New(ctx, h, dhtOpts...)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	// wrap host and DHT service with routed host
-	h = rhost.Wrap(h, dht)
+	// // wrap host and DHT service with routed host
+	// h = rhost.Wrap(h, dht)
 
 	cacheSize := 64 << 20 // 64 MB
 	config := ristretto.Config{
@@ -171,11 +172,13 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	}
 
 	bwc := metrics.NewBandwidthCounter()
+	discovery := newDiscovery(ctx, h, bns, ds, pid)
 
 	host := &host{
-		ctx:             ctx,
-		h:               h,
-		dht:             dht,
+		ctx: ctx,
+		h:   h,
+		//dht:             dht,
+		discovery:       discovery,
 		bootnodes:       bns,
 		protocolID:      pid,
 		cm:              cm,
@@ -192,7 +195,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 // close closes host services and the libp2p host (host services first)
 func (h *host) close() error {
 	// close DHT service
-	err := h.dht.Close()
+	err := h.discovery.stop()
 	if err != nil {
 		logger.Error("Failed to close DHT service", "error", err)
 		return err

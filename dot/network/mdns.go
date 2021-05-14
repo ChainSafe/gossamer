@@ -22,7 +22,7 @@ import (
 
 	log "github.com/ChainSafe/log15"
 	"github.com/libp2p/go-libp2p-core/peer"
-	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
+	libp2pdiscovery "github.com/libp2p/go-libp2p/p2p/discovery"
 )
 
 // MDNSPeriod is 1 minute
@@ -39,7 +39,7 @@ type Notifee struct {
 type mdns struct {
 	logger log.Logger
 	host   *host
-	mdns   discovery.Service
+	mdns   libp2pdiscovery.Service
 }
 
 // newMDNS creates a new mDNS instance from the host
@@ -60,7 +60,7 @@ func (m *mdns) start() {
 	)
 
 	// create and start service
-	mdns, err := discovery.NewMdnsService(
+	mdns, err := libp2pdiscovery.NewMdnsService(
 		m.host.ctx,
 		m.host.h,
 		MDNSPeriod,
