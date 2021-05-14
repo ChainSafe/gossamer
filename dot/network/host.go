@@ -39,7 +39,7 @@ import (
 	//rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
 
-    "github.com/chyeh/pubip"
+	"github.com/chyeh/pubip"
 )
 
 var privateCIDRs = []string{
@@ -75,16 +75,16 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	}
 
 	var externalAddr ma.Multiaddr
-    ip, err := pubip.Get()
-    if err != nil {
-        logger.Error("failed to get public IP", "error", err)
-    } else {
-        logger.Info("got public IP", "IP", ip)
+	ip, err := pubip.Get()
+	if err != nil {
+		logger.Error("failed to get public IP", "error", err)
+	} else {
+		logger.Info("got public IP", "IP", ip)
 		externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, cfg.Port))
 		if err != nil {
 			return nil, err
 		}
-    }
+	}
 
 	// create connection manager
 	cm := newConnManager(cfg.MinPeers, cfg.MaxPeers)
@@ -186,7 +186,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	}
 
 	bwc := metrics.NewBandwidthCounter()
-	discovery := newDiscovery(ctx, h, bns, ds, pid)
+	discovery := newDiscovery(ctx, h, bns, ds, pid, cfg.MinPeers, cfg.MaxPeers)
 
 	host := &host{
 		ctx: ctx,
