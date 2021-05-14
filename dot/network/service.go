@@ -354,6 +354,11 @@ func (s *Service) beginDiscovery() error {
 			select {
 			case <-time.After(ttl):
 				logger.Info("advertising ourselves in the DHT...")
+				err := s.host.dht.Bootstrap(s.ctx)
+				if err != nil {
+					return fmt.Errorf("failed to bootstrap DHT: %w", err)
+				}
+
 				ttl, err = rd.Advertise(s.ctx, s.cfg.ProtocolID)
 				if err != nil {
 					logger.Warn("failed to advertise in the DHT", "error", err)
