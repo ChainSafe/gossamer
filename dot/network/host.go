@@ -256,6 +256,7 @@ func (h *host) bootstrap() {
 	failed := 0
 	all := append(h.bootnodes, h.persistentPeers...)
 	for _, addrInfo := range all {
+		logger.Info("bootstrapping to peer", "peer", addrInfo.ID)
 		err := h.connect(addrInfo)
 		if err != nil {
 			logger.Debug("failed to bootstrap to peer", "error", err)
