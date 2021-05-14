@@ -19,25 +19,25 @@ import (
 // - iterate the storage state, reconstruct the relevant state tries
 // - iterate the database, stream all the targeted keys to new DB
 type Pruner struct {
-	InputDB        *chaindb.BadgerDB
+	inputDB        *chaindb.BadgerDB
 	storageState   *StorageState
 	blockState     *BlockState
-	bloom          *stateBloom
+	bloom          *bloomState
 	bestBlockHash  common.Hash
 	retainBlockNum int64
 
-	prunedDB *badger.DB
+	inputDBPath  string
+	prunedDBPath string
 }
 
 // NewPruner creates an instance of Pruner.
-func NewPruner(basePath string, bloomSize uint64, retainBlockNum int64) (*Pruner, error) {
-	db, err := utils.LoadChainDB(basePath)
+func NewPruner(inputDBPath, prunedDBPath string, bloomSize uint64, retainBlockNum int64) (*Pruner, error) {
+	db, err := utils.LoadChainDB(inputDBPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load DB %w", err)
 	}
 
 	base := NewBaseState(db)
-
 	bestHash, err := base.LoadBestBlockHash()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get best block hash: %w", err)
@@ -56,7 +56,7 @@ func NewPruner(basePath string, bloomSize uint64, retainBlockNum int64) (*Pruner
 	}
 
 	// create bloom filter
-	bloom, err := newStateBloomWithSize(bloomSize)
+	bloom, err := newBloomState(bloomSize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new bloom filter of size %d %w", bloomSize, err)
 	}
@@ -68,19 +68,26 @@ func NewPruner(basePath string, bloomSize uint64, retainBlockNum int64) (*Pruner
 	}
 
 	return &Pruner{
-		InputDB:        db,
+		inputDB:        db,
 		storageState:   storageState,
 		blockState:     blockState,
 		bloom:          bloom,
 		bestBlockHash:  bestHash,
 		retainBlockNum: retainBlockNum,
+		prunedDBPath:   prunedDBPath,
+		inputDBPath:    inputDBPath,
 	}, nil
 }
 
 // SetBloomFilter loads keys with storage prefix of last `retainBlockNum` blocks into the bloom filter
 func (p *Pruner) SetBloomFilter() error {
-	// latest block header
-	header, err := p.blockState.GetHeader(p.bestBlockHash)
+	defer p.inputDB.Close() // nolint: errcheck
+	finalisedHash, err := p.blockState.GetFinalizedHash(0, 0)
+	if err != nil {
+		return err
+	}
+
+	header, err := p.blockState.GetHeader(finalisedHash)
 	if err != nil {
 		return err
 	}
@@ -102,7 +109,7 @@ func (p *Pruner) SetBloomFilter() error {
 			return err
 		}
 
-		err = tr.GetDBKey(tr.RootNode(), keys)
+		err = tr.GetNodeHashes(tr.RootNode(), keys)
 		if err != nil {
 			return err
 		}
@@ -127,57 +134,37 @@ func (p *Pruner) SetBloomFilter() error {
 }
 
 // Prune starts streaming the data from input db to the pruned db.
-func (p *Pruner) Prune(inDBPath, pruneDBPath string) error {
-	var err error
-	p.prunedDB, err = utils.LoadBadgerDB(inDBPath)
+func (p *Pruner) Prune() error {
+	inputDB, err := utils.LoadBadgerDB(p.inputDBPath)
 	if err != nil {
-		return fmt.Errorf("failed to load badger DB %w", err)
+		return fmt.Errorf("failed to load DB %w", err)
 	}
+	defer inputDB.Close() // nolint: errcheck
 
-	defer func() {
-		_ = p.prunedDB.Close()
-	}()
-
-	if err = p.streamDB(pruneDBPath); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (p *Pruner) streamDB(outDir string) error {
-	outOptions := badger.DefaultOptions(outDir)
-	outOptions.WithInMemory(false)
-	outOptions.Dir = outDir
-
-	// Open output DB.
-	outDB, err := badger.Open(outOptions)
+	prunedDB, err := utils.LoadBadgerDB(p.inputDBPath)
 	if err != nil {
-		return fmt.Errorf("cannot open out DB at %s error %w", outDir, err)
+		return fmt.Errorf("failed to load DB %w", err)
 	}
+	defer prunedDB.Close() // nolint: errcheck
 
-	defer func() {
-		_ = outDB.Close()
-	}()
-
-	writer := outDB.NewStreamWriter()
+	writer := prunedDB.NewStreamWriter()
 	if err = writer.Prepare(); err != nil {
-		return fmt.Errorf("cannot create stream writer in out DB at %s error %w", outDir, err)
+		return fmt.Errorf("cannot create stream writer in out DB at %s error %w", p.prunedDBPath, err)
 	}
 
 	// Stream contents of DB to the output DB.
-	stream := p.prunedDB.NewStream()
-	stream.LogPrefix = fmt.Sprintf("Streaming DB to new DB at %s ", outDir)
+	stream := inputDB.NewStream()
+	stream.LogPrefix = fmt.Sprintf("Streaming DB to new DB at %s ", p.prunedDBPath)
 
 	stream.ChooseKey = func(item *badger.Item) bool {
 		key := string(item.Key())
 		// All the non storage keys will be streamed to new db.
-		if !strings.HasPrefix(key, StoragePrefix) {
+		if !strings.HasPrefix(key, storagePrefix) {
 			return true
 		}
 
 		// Only keys present in bloom filter will be streamed to new db
-		key = strings.TrimPrefix(key, StoragePrefix)
+		key = strings.TrimPrefix(key, storagePrefix)
 		exist := p.bloom.contain([]byte(key))
 		return exist
 	}
@@ -187,7 +174,7 @@ func (p *Pruner) streamDB(outDir string) error {
 	}
 
 	if err = stream.Orchestrate(context.Background()); err != nil {
-		return fmt.Errorf("cannot stream DB to out DB at %s error %w", outDir, err)
+		return fmt.Errorf("cannot stream DB to out DB at %s error %w", p.prunedDBPath, err)
 	}
 
 	if err = writer.Flush(); err != nil {

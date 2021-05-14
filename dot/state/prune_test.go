@@ -38,72 +38,59 @@ func runPruneCmd(t *testing.T, inDBPath, prunedDBPath string) {
 }
 
 func TestPruneState(t *testing.T) {
-	const (
-		bloomSize      = 256
-		retainBlockNum = 5
+	var (
+		inputDBPath  = "../../tests/data/db"
+		prunedDBPath = fmt.Sprintf("%s/%s", t.TempDir(), "pruned")
 	)
 
-	inDBPath := "../../tests/data/db"
-
-	pruner, err := NewPruner(inDBPath, bloomSize, retainBlockNum)
-	require.NoError(t, err)
-
-	err = pruner.SetBloomFilter()
+	inputDB, err := badger.Open(badger.DefaultOptions(inputDBPath).WithReadOnly(true))
 	require.NoError(t, err)
 
 	nonStorageKeys := make(map[string]interface{})
-	storageKeys := make(map[string]interface{})
-	itr := pruner.InputDB.NewIterator()
-	for itr.Next() {
-		key := string(itr.Key())
-		if !strings.HasPrefix(key, StoragePrefix) {
-			nonStorageKeys[key] = nil
-			continue
-		}
-		storageKeys[key] = nil
-	}
-	t.Log("Total keys in input DB", len(storageKeys)+len(nonStorageKeys), "storage keys", len(storageKeys))
+	var numStorageKeys int
 
-	// close the input DB because `prune-state` cmd will open it.
-	err = pruner.InputDB.Close()
+	getKeysInputDB := func(item *badger.Item) {
+		key := string(item.Key())
+		if strings.HasPrefix(key, storagePrefix) {
+			numStorageKeys++
+			return
+		}
+		nonStorageKeys[key] = nil
+	}
+	iterateDB(inputDB, getKeysInputDB)
+
+	err = inputDB.Close()
 	require.NoError(t, err)
 
-	prunedDBPath := fmt.Sprintf("%s/%s", t.TempDir(), "badger")
+	t.Log("Total keys in input DB", numStorageKeys+len(nonStorageKeys), "storage keys", numStorageKeys)
+
 	t.Log("pruned DB path", prunedDBPath)
 
-	runPruneCmd(t, inDBPath, prunedDBPath)
+	runPruneCmd(t, inputDBPath, prunedDBPath)
 
 	prunedDB, err := badger.Open(badger.DefaultOptions(prunedDBPath))
 	require.NoError(t, err)
 
-	storageKeysPruned := make(map[string]interface{})
 	nonStorageKeysPruned := make(map[string]interface{})
+	var numStorageKeysPruned int
+
 	getKeysPrunedDB := func(item *badger.Item) {
 		key := string(item.Key())
-		if strings.HasPrefix(key, StoragePrefix) {
-			key = strings.TrimPrefix(key, StoragePrefix)
-			storageKeysPruned[key] = nil
+		if strings.HasPrefix(key, storagePrefix) {
+			numStorageKeysPruned++
 			return
 		}
 		nonStorageKeysPruned[key] = nil
 	}
 	iterateDB(prunedDB, getKeysPrunedDB)
-	t.Log("Total keys in pruned DB", len(storageKeysPruned)+len(nonStorageKeysPruned), "storage keys", len(storageKeysPruned))
+
+	t.Log("Total keys in pruned DB", len(nonStorageKeysPruned)+numStorageKeysPruned, "storage keys", numStorageKeysPruned)
 	require.Equal(t, len(nonStorageKeysPruned), len(nonStorageKeys))
 
 	// Check all non storage keys are present.
 	for k := range nonStorageKeys {
 		_, ok := nonStorageKeysPruned[k]
 		require.True(t, ok)
-	}
-
-	// Check required storage keys exist.
-	for k := range storageKeys {
-		ok := pruner.bloom.contain([]byte(k))
-		if ok {
-			_, found := storageKeysPruned[k]
-			require.True(t, found)
-		}
 	}
 
 	err = prunedDB.Close()

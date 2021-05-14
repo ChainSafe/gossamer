@@ -317,7 +317,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 	}
 
 	storage := &StorageState{
-		db: chaindb.NewTable(s.db, StoragePrefix),
+		db: chaindb.NewTable(s.db, storagePrefix),
 	}
 
 	epoch, err := NewEpochState(s.db)

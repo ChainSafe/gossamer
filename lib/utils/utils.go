@@ -202,6 +202,8 @@ func LoadChainDB(basePath string) (*chaindb.BadgerDB, error) {
 		DataDir: basePath,
 	}
 
+	// TODO: Open the db in readonly mode.
+
 	// Open already existing DB
 	db, err := chaindb.NewBadgerDB(cfg)
 	if err != nil {
@@ -221,20 +223,4 @@ func LoadBadgerDB(basePath string) (*badger.DB, error) {
 	}
 
 	return db, nil
-}
-
-// GetDevGenesisPath gets the dev genesis path
-func GetDevGenesisPath() string {
-	path1 := "../chain/dev/genesis.json"
-	path2 := "../../chain/dev/genesis.json"
-
-	var fp string
-
-	if PathExists(path1) {
-		fp, _ = filepath.Abs(path1)
-	} else if PathExists(path2) {
-		fp, _ = filepath.Abs(path2)
-	}
-
-	return fp
 }

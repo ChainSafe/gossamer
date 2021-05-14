@@ -128,8 +128,8 @@ func (t *Trie) load(db chaindb.Database, curr node) error {
 	return nil
 }
 
-// GetDBKey return hash of each key of the trie.
-func (t *Trie) GetDBKey(curr node, keys map[common.Hash]struct{}) error {
+// GetNodeHashes return hash of each key of the trie.
+func (t *Trie) GetNodeHashes(curr node, keys map[common.Hash]struct{}) error {
 	if c, ok := curr.(*branch); ok {
 		for _, child := range c.children {
 			if child == nil {
@@ -139,7 +139,7 @@ func (t *Trie) GetDBKey(curr node, keys map[common.Hash]struct{}) error {
 			hash := child.getHash()
 			keys[common.BytesToHash(hash)] = struct{}{}
 
-			err := t.GetDBKey(child, keys)
+			err := t.GetNodeHashes(child, keys)
 			if err != nil {
 				return err
 			}

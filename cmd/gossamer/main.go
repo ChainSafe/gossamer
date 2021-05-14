@@ -433,10 +433,15 @@ func pruneState(ctx *cli.Context) error {
 		inputDBPath = dot.GssmrConfig().Global.BasePath
 	}
 
+	prunedDBPath := ctx.String(DBPathFlag.Name)
+	if prunedDBPath == "" {
+		return fmt.Errorf("path not specified for badger db")
+	}
+
 	bloomSize := ctx.Uint64(BloomFilterSizeFlag.Name)
 	retainBlocks := ctx.Int64(RetainBlockNumberFlag.Name)
 
-	pruner, err := state.NewPruner(inputDBPath, bloomSize, retainBlocks)
+	pruner, err := state.NewPruner(inputDBPath, prunedDBPath, bloomSize, retainBlocks)
 	if err != nil {
 		return err
 	}
@@ -448,18 +453,7 @@ func pruneState(ctx *cli.Context) error {
 		return fmt.Errorf("failed to set keys into bloom filter %w", err)
 	}
 
-	// close input DB so we can open reopen it for streaming,
-	err = pruner.InputDB.Close()
-	if err != nil {
-		return fmt.Errorf("failed to closed input db %w", err)
-	}
-
-	prunedDBPath := ctx.String(DBPathFlag.Name)
-	if prunedDBPath == "" {
-		return fmt.Errorf("path not specified for badger db")
-	}
-
-	err = pruner.Prune(inputDBPath, prunedDBPath)
+	err = pruner.Prune()
 	if err != nil {
 		return fmt.Errorf("failed to prune %w", err)
 	}

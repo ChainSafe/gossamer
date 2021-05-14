@@ -29,8 +29,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
-// StoragePrefix storage key prefix.
-var StoragePrefix = "storage"
+// storagePrefix storage key prefix.
+var storagePrefix = "storage"
 var codeKey = common.CodeKey
 
 // ErrTrieDoesNotExist is returned when attempting to interact with a trie that is not stored in the StorageState
@@ -71,7 +71,7 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie) 
 	return &StorageState{
 		blockState:   blockState,
 		tries:        tries,
-		db:           chaindb.NewTable(db, StoragePrefix),
+		db:           chaindb.NewTable(db, storagePrefix),
 		observerList: []Observer{},
 	}, nil
 }
