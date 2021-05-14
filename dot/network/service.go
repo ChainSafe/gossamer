@@ -348,15 +348,35 @@ func (s *Service) beginDiscovery() error {
 	peersToTry := make(map[*peer.AddrInfo]struct{})
 
 	go func() {
-		for {
-			logger.Info("attempting to find peers...")
-			peerCh, err := rd.FindPeers(s.ctx, s.cfg.ProtocolID)
-			if err != nil {
-				logger.Error("failed to begin finding peers via DHT", "err", err)
-				continue
-			}
+		ttl := time.Millisecond
 
-			for peer := range peerCh {
+		for {
+			select {
+			case <-time.After(ttl):
+				logger.Info("advertising ourselves in the DHT...")
+				ttl, err = rd.Advertise(s.ctx, s.cfg.ProtocolID)
+				if err != nil {
+					logger.Warn("failed to advertise in the DHT", "error", err)
+				}
+			case <-s.ctx.Done():
+				return
+			}
+		}
+	}()
+
+	go func() {
+		logger.Info("attempting to find peers...")
+		peerCh, err := rd.FindPeers(s.ctx, s.cfg.ProtocolID)
+		if err != nil {
+			logger.Error("failed to begin finding peers via DHT", "err", err)
+			return
+		}
+
+		for {
+			select {
+			case <-s.ctx.Done():
+				return
+			case peer := <-peerCh:
 				if peer.ID == s.host.id() {
 					continue
 				}
@@ -372,7 +392,7 @@ func (s *Service) beginDiscovery() error {
 				} else {
 					s.host.addToPeerstore(peer)
 					peersToTry[&peer] = struct{}{}
-				}
+				}			
 			}
 
 			if s.host.peerCount() < s.cfg.MaxPeers {
@@ -384,10 +404,7 @@ func (s *Service) beginDiscovery() error {
 					}
 				}
 			}
-
-			time.Sleep(time.Second * 10)
 		}
-
 	}()
 
 	logger.Info("DHT discovery started!")
