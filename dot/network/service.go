@@ -356,7 +356,8 @@ func (s *Service) beginDiscovery() error {
 				logger.Info("advertising ourselves in the DHT...")
 				err := s.host.dht.Bootstrap(s.ctx)
 				if err != nil {
-					return fmt.Errorf("failed to bootstrap DHT: %w", err)
+					logger.Warn("failed to bootstrap DHT", "error", err)
+					continue
 				}
 
 				ttl, err = rd.Advertise(s.ctx, s.cfg.ProtocolID)
