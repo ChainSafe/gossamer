@@ -38,6 +38,8 @@ import (
 	secio "github.com/libp2p/go-libp2p-secio"
 	//rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
+
+    "github.com/chyeh/pubip"
 )
 
 var privateCIDRs = []string{
@@ -71,6 +73,18 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	var externalAddr ma.Multiaddr
+    ip, err := pubip.Get()
+    if err != nil {
+        logger.Error("failed to get public IP", "error", err)
+    } else {
+        logger.Info("got public IP", "IP", ip)
+		externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, cfg.Port))
+		if err != nil {
+			return nil, err
+		}
+    }
 
 	// create connection manager
 	cm := newConnManager(cfg.MinPeers, cfg.MaxPeers)
@@ -138,7 +152,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 					ok = append(ok, addr)
 				}
 			}
-			return ok
+			return append(ok, externalAddr)
 		}),
 	}
 
