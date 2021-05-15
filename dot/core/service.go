@@ -284,12 +284,7 @@ func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
 		return ErrNilBlockState
 	}
 
-	err = s.blockState.AddBlock(block)
-	if err != nil {
-		return err
-	}
-
-	logger.Debug("added block from BABE", "header", block.Header, "body", block.Body)
+	logger.Debug("got block from BABE", "header", block.Header, "body", block.Body)
 
 	msg := &network.BlockAnnounceMessage{
 		ParentHash:     block.Header.ParentHash,
