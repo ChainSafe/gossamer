@@ -44,7 +44,7 @@ func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 	command := "npx mocha ./test"
 	parts := strings.Fields(command)
 	data, err := exec.Command(parts[0], parts[1:]...).Output()
-	require.NoError(t, err, data)
+	require.NoError(t, err, fmt.Sprintf("%s", data))
 
 	//uncomment this to see log results from javascript tests
 	//fmt.Printf("%s\n", data)
