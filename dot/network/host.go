@@ -32,11 +32,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	//kaddht "github.com/libp2p/go-libp2p-kad-dht"
-	//"github.com/libp2p/go-libp2p-kad-dht/dual"
 	"github.com/libp2p/go-libp2p-peerstore/pstoreds"
 	secio "github.com/libp2p/go-libp2p-secio"
-	//rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
 
 	"github.com/chyeh/pubip"
@@ -265,7 +262,7 @@ func (h *host) connect(p peer.AddrInfo) (err error) {
 	return err
 }
 
-func (h *host) addToPeerstore(p peer.AddrInfo) {
+func (h *host) addToPeerstore(p peer.AddrInfo) { //nolint
 	h.h.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
 }
 
