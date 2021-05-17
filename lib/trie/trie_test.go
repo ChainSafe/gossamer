@@ -29,6 +29,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
 
 	"github.com/stretchr/testify/require"
@@ -467,6 +468,85 @@ func TestDeleteOddKeyLengths(t *testing.T) {
 	}
 
 	runTests(t, trie, tests)
+}
+
+func TestTrieDiff(t *testing.T) {
+	testDataDirPath, _ := ioutil.TempDir(t.TempDir(), "test-badger-datadir")
+	defer os.RemoveAll(testDataDirPath)
+
+	cfg := &chaindb.Config{
+		DataDir:  testDataDirPath,
+		InMemory: false,
+	}
+
+	db, err := chaindb.NewBadgerDB(cfg)
+	require.NoError(t, err)
+
+	defer db.Close()
+	trie := NewEmptyTrie()
+
+	var testKey = []byte{0x01, 0x78}
+	var testValue = []byte("test")
+
+	tests := []Test{
+		{key: testKey, value: testValue},
+		{key: []byte{0x01, 0x78, 0x32}, value: []byte("nootagain")},
+		{key: []byte{0x06, 0xaf, 0xb1}, value: []byte("odd")},
+	}
+
+	for _, test := range tests {
+		trie.Put(test.key, test.value)
+	}
+
+	trie.Delete([]byte{0x01, 0x78, 0x32})
+
+	deleteKeys := trie.deletedKeys
+	oldTrie := trie.Snapshot()
+
+	err = oldTrie.Store(db)
+	require.NoError(t, err)
+
+	// testKey is in both trie have same value for testKey
+	require.Equal(t, oldTrie.Get(testKey), trie.Get(testKey))
+
+	var newTestValue = []byte("test1")
+	tests = []Test{
+		{key: testKey, value: newTestValue},
+		{key: []byte{0x01, 0x78, 0x99}, value: []byte("test2")},
+		{key: []byte{0x01, 0x78, 0x88}, value: []byte("test3")},
+		{key: []byte{0x01, 0x78, 0x88, 0x66}, value: []byte("test4")},
+		{key: []byte{0x06, 0xaf, 0xb1}, value: []byte("even")},
+	}
+
+	for _, test := range tests {
+		trie.Put(test.key, test.value)
+	}
+
+	// testKey value changed in trie
+	require.NotEqual(t, oldTrie.Get(testKey), trie.Get(testKey))
+
+	trie.Delete([]byte{0x01, 0x78, 0x88, 0x66})
+	for _, key := range deleteKeys {
+		trie.Delete(key.ToBytes())
+	}
+
+	expected := []Test{
+		{key: testKey, value: newTestValue},
+		{key: []byte{0x01, 0x78, 0x99}, value: []byte("test2")},
+		{key: []byte{0x01, 0x78, 0x88}, value: []byte("test3")},
+		{key: []byte{0x06, 0xaf, 0xb1}, value: []byte("even")},
+	}
+
+	nodes, err := trie.getInsertedNodeHashes(trie.root)
+	require.NoError(t, err)
+
+	// total inserted keys
+	require.Equal(t, len(tests), len(nodes))
+
+	for _, exp := range expected {
+		val := trie.Get(exp.key)
+		require.Equal(t, val, exp.value)
+	}
 }
 
 func TestDelete(t *testing.T) {

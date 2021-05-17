@@ -12,7 +12,7 @@ require (
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/davidlazar/go-crypto v0.0.0-20190912175916-7055855a373f // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.2
-	github.com/dgraph-io/ristretto v0.0.4-0.20210122082011-bb5d392ed82d
+	github.com/dgraph-io/ristretto v0.0.3-0.20200630154024-f66de99634de
 	github.com/disiqueira/gotree v1.0.0
 	github.com/docker/docker v1.13.1
 	github.com/elastic/gosigar v0.14.0 // indirect

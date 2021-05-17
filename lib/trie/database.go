@@ -287,3 +287,41 @@ func (t *Trie) writeDirty(db chaindb.Batch, curr node) error {
 	curr.setDirty(false)
 	return nil
 }
+
+func (t *Trie) getInsertedNodeHashes(curr node) ([]common.Hash, error) {
+	var nodeHashes []common.Hash
+	if curr == nil || !curr.isDirty() {
+		return nil, nil
+	}
+
+	enc, hash, err := curr.encodeAndHash()
+	if err != nil {
+		return nil, err
+	}
+
+	if curr == t.root {
+		h, err := common.Blake2bHash(enc) //nolint
+		if err != nil {
+			return nil, err
+		}
+
+		hash = h[:]
+	}
+
+	nodeHashes = append(nodeHashes, common.BytesToHash(hash))
+
+	if c, ok := curr.(*branch); ok {
+		for _, child := range c.children {
+			if child == nil {
+				continue
+			}
+			nodes, err := t.getInsertedNodeHashes(child)
+			if err != nil {
+				return nil, err
+			}
+			nodeHashes = append(nodeHashes, nodes...)
+		}
+	}
+
+	return nodeHashes, nil
+}
