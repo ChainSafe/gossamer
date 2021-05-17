@@ -141,7 +141,7 @@ func (p *Pruner) Prune() error {
 	}
 	defer inputDB.Close() // nolint: errcheck
 
-	prunedDB, err := utils.LoadBadgerDB(p.inputDBPath)
+	prunedDB, err := utils.LoadBadgerDB(p.prunedDBPath)
 	if err != nil {
 		return fmt.Errorf("failed to load DB %w", err)
 	}
