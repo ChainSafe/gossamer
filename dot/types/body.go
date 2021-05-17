@@ -184,7 +184,7 @@ func (b *Body) FindExtrinsic(target Extrinsic) (bool, error) {
 		return false, err
 	}
 
-	// goes throught the decreasing order due to the fact that extrinsicsToBody func (lib/babe/build.go)
+	// goes through the decreasing order due to the fact that extrinsicsToBody func (lib/babe/build.go)
 	// appends the valid transaction extrinsic on the end of the body
 	for i := len(exts) - 1; i >= 0; i-- {
 		currext := exts[i]
