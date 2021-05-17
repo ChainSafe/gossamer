@@ -234,7 +234,7 @@ func (c *WSConn) unsubscribeStorageListener(reqID float64, params interface{}) {
 	case float64:
 		id = uint(v)
 	case string:
-		i, err := strconv.ParseUint(v, 10, 64)
+		i, err := strconv.ParseUint(v, 10, 32)
 		if err != nil {
 			c.safeSend(newBooleanResponseJSON(false, reqID))
 			return
