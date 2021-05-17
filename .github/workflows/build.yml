@@ -12,17 +12,30 @@ jobs:
         platform: [macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.platform }}
     steps:
-      - uses: actions/setup-go@v1
+      - id: go-cache-paths
+        run: |
+          echo "::set-output name=go-build::$(go env GOCACHE)"
+          echo "::set-output name=go-mod::$(go env GOMODCACHE)"
+      - uses: actions/setup-go@v2
         with:
           go-version: ${{ matrix.go-version }}
       - uses: actions/checkout@v2
 
+      # cache go build cache
       - name: Cache go modules
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
-          restore-keys: ${{ runner.os }}-go-
+          path: ${{ steps.go-cache-paths.outputs.go-build }}
+          key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-go-build
+
+      # cache go mod cache
+      - name: Cache go modules
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.go-cache-paths.outputs.go-mod }}
+          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-go-mod
       
       - name: Run build
         run: make build
@@ -30,24 +43,36 @@ jobs:
   publish-code-coverage:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v1
+      - id: go-cache-paths
+        run: |
+          echo "::set-output name=go-build::$(go env GOCACHE)"
+          echo "::set-output name=go-mod::$(go env GOMODCACHE)"
+      - uses: actions/setup-go@v2
         with:
           go-version: ${{ matrix.go-version }}
       - uses: actions/checkout@v2
 
+      # cache go build cache
       - name: Cache go modules
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
-          restore-keys: ${{ runner.os }}-go-
+          path: ${{ steps.go-cache-paths.outputs.go-build }}
+          key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-go-build
+
+      # cache go mod cache
+      - name: Cache go modules
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.go-cache-paths.outputs.go-mod }}
+          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-go-mod
 
       - name: Generate coverage report
         run: |
           go test ./... -short -coverprofile=coverage.out -covermode=atomic -timeout=20m
       - uses: codecov/codecov-action@v1
         with:
-          token: "89982880-a53b-4a3a-9bdd-3dc9c78bd190"
           files: ./coverage.out
           flags: unit-tests
           name: coverage
