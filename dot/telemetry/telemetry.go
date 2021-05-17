@@ -177,6 +177,7 @@ func (h *Handler) sender() {
 				// TODO (ed) determine how to handle this error
 				fmt.Printf("ERROR connecting to telemetry %v\n", err)
 			}
+			fmt.Printf("SENDING %s\n", line)
 		}
 	}
 }

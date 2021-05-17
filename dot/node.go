@@ -18,6 +18,7 @@ package dot
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/dot/tel2"
 	"net/http"
 	"os"
 	"os/signal"
@@ -352,6 +353,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	}
 
 	telemetry.GetInstance().AddConnections(gd.TelemetryEndpoints)
+	tel2.GetTelInstance().AddConnections(gd.TelemetryEndpoints)
 	data := &telemetry.ConnectionData{
 		Authority:     cfg.Core.GrandpaAuthority,
 		Chain:         sysSrvc.ChainName(),
@@ -363,6 +365,13 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		StartTime:     strconv.FormatInt(time.Now().UnixNano(), 10),
 	}
 	telemetry.GetInstance().SendConnection(data)
+//todo ed, add test here
+	tel2.GetTelInstance().SendMessage(tel2.NewTelemetryMessage(tel2.NewKeyValue("authority", cfg.Core.GrandpaAuthority),
+		tel2.NewKeyValue("chain", sysSrvc.ChainName()), tel2.NewKeyValue("genesis_hash", stateSrvc.Block.GenesisHash().String()),
+		tel2.NewKeyValue("implementation", sysSrvc.SystemName()), tel2.NewKeyValue("msg", "system.connected"),
+		tel2.NewKeyValue("name", "EdTestNode"), tel2.NewKeyValue("network_id", networkSrvc.NetworkState().PeerID),
+		tel2.NewKeyValue("startup_time", strconv.FormatInt(time.Now().UnixNano(), 10)), tel2.NewKeyValue("version", sysSrvc.SystemVersion())))
+
 
 	return node, nil
 }
