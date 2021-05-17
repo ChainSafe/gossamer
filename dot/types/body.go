@@ -176,9 +176,9 @@ func decodeOptionalBody(r io.Reader) (*optional.Body, error) {
 	return optional.NewBody(false, nil), nil
 }
 
-// FindExtrinsic returns true if body contains target Extrisic
+// HasExtrinsic returns true if body contains target Extrisic
 // returns error when fails to encode decoded extrinsic on body
-func (b *Body) FindExtrinsic(target Extrinsic) (bool, error) {
+func (b *Body) HasExtrinsic(target Extrinsic) (bool, error) {
 	exts, err := b.AsExtrinsics()
 	if err != nil {
 		return false, err

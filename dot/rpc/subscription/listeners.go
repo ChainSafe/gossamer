@@ -162,7 +162,7 @@ func (l *ExtrinsicSubmitListener) Listen() {
 			if block == nil {
 				continue
 			}
-			bodyHasExtrinsic, err := block.Body.FindExtrinsic(l.extrinsic)
+			bodyHasExtrinsic, err := block.Body.HasExtrinsic(l.extrinsic)
 			if err != nil {
 				fmt.Printf("error %v\n", err)
 			}

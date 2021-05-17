@@ -336,7 +336,7 @@ func TestDecodeExtrinsicBody(t *testing.T) {
 	require.NotNil(t, bodyext)
 	require.Len(t, bodyext, 3)
 
-	contains, err := body.FindExtrinsic(ext)
+	contains, err := body.HasExtrinsic(ext)
 	require.Nil(t, err)
 	require.True(t, contains)
 }

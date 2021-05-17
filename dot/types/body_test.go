@@ -106,7 +106,7 @@ func TestBody_FindEncodedExtrinsic(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		res, err := test.body.FindExtrinsic(target)
+		res, err := test.body.HasExtrinsic(target)
 		require.Nil(t, err)
 		require.Equal(t, test.expect, res)
 	}
