@@ -322,7 +322,6 @@ func (s *Service) sentBlockIntervalTelemetry() {
 			telemetry.NewKeyValue("height", best.Number), telemetry.NewKeyValue("msg", "system.interval"),
 			telemetry.NewKeyValue("txcount", 0),                // todo (ed) determine where to get tx count
 			telemetry.NewKeyValue("used_state_cache_size", 0))) // todo (ed) determine where to get used_state_cache_size
-		// todo (ed) check
 		time.Sleep(s.telemetryInterval)
 	}
 }
