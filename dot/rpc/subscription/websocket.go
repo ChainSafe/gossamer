@@ -23,10 +23,12 @@ import (
 	"io/ioutil"
 	"math/big"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	log "github.com/ChainSafe/log15"
@@ -106,6 +108,9 @@ func (c *WSConn) HandleComm() {
 					continue
 				}
 				c.startListener(rvl)
+			case "state_unsubscribeStorage":
+				c.unsubscribeStorageListener(reqid, params)
+
 			}
 			continue
 		}
@@ -206,10 +211,49 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (u
 
 	c.Subscriptions[myObs.id] = myObs
 
-	initRes := newSubscriptionResponseJSON(myObs.id, reqID)
+	initRes := NewSubscriptionResponseJSON(myObs.id, reqID)
 	c.safeSend(initRes)
 
 	return myObs.id, nil
+}
+
+func (c *WSConn) unsubscribeStorageListener(reqID float64, params interface{}) {
+	switch v := params.(type) {
+	case []interface{}:
+		if len(v) == 0 {
+			c.safeSendError(reqID, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
+			return
+		}
+	default:
+		c.safeSendError(reqID, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
+		return
+	}
+
+	var id uint
+	switch v := params.([]interface{})[0].(type) {
+	case float64:
+		id = uint(v)
+	case string:
+		i, err := strconv.ParseUint(v, 10, 32)
+		if err != nil {
+			c.safeSend(newBooleanResponseJSON(false, reqID))
+			return
+		}
+		id = uint(i)
+	default:
+		c.safeSendError(reqID, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
+		return
+	}
+
+	observer, ok := c.Subscriptions[id].(state.Observer)
+	if !ok {
+		initRes := newBooleanResponseJSON(false, reqID)
+		c.safeSend(initRes)
+		return
+	}
+
+	c.StorageAPI.UnregisterStorageObserver(observer)
+	c.safeSend(newBooleanResponseJSON(true, reqID))
 }
 
 func (c *WSConn) initBlockListener(reqID float64) (uint, error) {
@@ -231,7 +275,7 @@ func (c *WSConn) initBlockListener(reqID float64) (uint, error) {
 	bl.subID = c.qtyListeners
 	c.Subscriptions[bl.subID] = bl
 	c.BlockSubChannels[bl.subID] = chanID
-	initRes := newSubscriptionResponseJSON(bl.subID, reqID)
+	initRes := NewSubscriptionResponseJSON(bl.subID, reqID)
 	c.safeSend(initRes)
 
 	return bl.subID, nil
@@ -256,7 +300,7 @@ func (c *WSConn) initBlockFinalizedListener(reqID float64) (uint, error) {
 	bfl.subID = c.qtyListeners
 	c.Subscriptions[bfl.subID] = bfl
 	c.BlockSubChannels[bfl.subID] = chanID
-	initRes := newSubscriptionResponseJSON(bfl.subID, reqID)
+	initRes := NewSubscriptionResponseJSON(bfl.subID, reqID)
 	c.safeSend(initRes)
 
 	return bfl.subID, nil
@@ -299,7 +343,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (uint, er
 	if err != nil {
 		return 0, err
 	}
-	c.safeSend(newSubscriptionResponseJSON(esl.subID, reqID))
+	c.safeSend(NewSubscriptionResponseJSON(esl.subID, reqID))
 
 	// TODO (ed) since HandleSubmittedExtrinsic has been called we assume the extrinsic is in the tx queue
 	//  should we add a channel to tx queue so we're notified when it's in the queue (See issue #1535)
@@ -322,7 +366,7 @@ func (c *WSConn) initRuntimeVersionListener(reqID float64) (uint, error) {
 	c.qtyListeners++
 	rvl.subID = c.qtyListeners
 	c.Subscriptions[rvl.subID] = rvl
-	initRes := newSubscriptionResponseJSON(rvl.subID, reqID)
+	initRes := NewSubscriptionResponseJSON(rvl.subID, reqID)
 	c.safeSend(initRes)
 
 	return rvl.subID, nil
