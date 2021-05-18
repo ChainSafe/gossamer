@@ -31,33 +31,35 @@ type telemetryConnection struct {
 	verbosity int
 }
 
-type telemetryMessage struct {
+// Message struct to hold telemetry message data
+type Message struct {
 	values map[string]interface{}
 }
 
 // Handler struct for holding telemetry related things
-type telHandler struct {
-	msg         chan telemetryMessage
+type Handler struct {
+	msg         chan Message
 	connections []telemetryConnection
 }
 
-type keyValue struct {
+// KeyValue object to hold key value pairs used in telemetry messages
+type KeyValue struct {
 	key   string
 	value interface{}
 }
 
 var (
 	once            sync.Once
-	handlerInstance *telHandler
+	handlerInstance *Handler
 )
 
 // GetInstance singleton pattern to for accessing TelemetryHandler
-func GetInstance() *telHandler { //nolint
+func GetInstance() *Handler { //nolint
 	if handlerInstance == nil {
 		once.Do(
 			func() {
-				handlerInstance = &telHandler{
-					msg: make(chan telemetryMessage, 3),
+				handlerInstance = &Handler{
+					msg: make(chan Message, 10),
 				}
 				go handlerInstance.startListening()
 			})
@@ -66,25 +68,26 @@ func GetInstance() *telHandler { //nolint
 }
 
 // NewTelemetryMessage builds a telemetry message
-func NewTelemetryMessage(values ...keyValue) *telemetryMessage { //nolint
+func NewTelemetryMessage(values ...KeyValue) *Message { //nolint
 	mvals := make(map[string]interface{})
 	for _, v := range values {
 		mvals[v.key] = v.value
 	}
-	return &telemetryMessage{
+	return &Message{
 		values: mvals,
 	}
 }
 
 // NewKeyValue builds a key value pair for telemetry messages
-func NewKeyValue(key string, value interface{}) keyValue { //nolint
-	return keyValue{
+func NewKeyValue(key string, value interface{}) KeyValue { //nolint
+	return KeyValue{
 		key:   key,
 		value: value,
 	}
 }
 
-func (t *telHandler) AddConnections(conns []*genesis.TelemetryEndpoint) {
+// AddConnections adds the given telemetry endpoint as listeners that will receive telemetry data
+func (t *Handler) AddConnections(conns []*genesis.TelemetryEndpoint) {
 	for _, v := range conns {
 		c, _, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
 		if err != nil {
@@ -100,11 +103,12 @@ func (t *telHandler) AddConnections(conns []*genesis.TelemetryEndpoint) {
 	}
 }
 
-func (t *telHandler) SendMessage(msg *telemetryMessage) {
+// SendMessage sends Message to connected telemetry listeners
+func (t *Handler) SendMessage(msg *Message) {
 	t.msg <- *msg
 }
 
-func (t *telHandler) startListening() {
+func (t *Handler) startListening() {
 	for {
 		msg := <-t.msg
 		for _, v := range t.connections {
@@ -113,14 +117,13 @@ func (t *telHandler) startListening() {
 				// TODO (ed) determine how to handle this error
 				fmt.Printf("ERROR connecting to telemetry %v\n", err)
 			}
-			//fmt.Printf("Send to conn %v msg %s\n", v.wsconn.RemoteAddr(), msgToBytes(msg) )
 		}
 	}
 }
 
-func msgToBytes(message telemetryMessage) []byte {
+func msgToBytes(message Message) []byte {
 	res := make(map[string]interface{})
-	res["id"] = 1 // todo determine how this is used
+	res["id"] = 1 // todo (ed) determine how this is used
 	res["payload"] = message.values
 	res["ts"] = time.Now()
 	resB, err := json.Marshal(res)
