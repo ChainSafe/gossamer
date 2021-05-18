@@ -116,29 +116,29 @@ func (d *discovery) discoverAndAdvertise() error {
 	time.Sleep(time.Second)
 	peersToTry := make(map[*peer.AddrInfo]struct{})
 
-	// go func() {
-	// 	ttl := time.Second * 30
+	go func() {
+		ttl := time.Second * 30
 
-	// 	for {
-	// 		select {
-	// 		case <-time.After(ttl):
-	// 			logger.Info("advertising ourselves in the DHT...")
-	// 			err := d.dht.Bootstrap(d.ctx)
-	// 			if err != nil {
-	// 				logger.Warn("failed to bootstrap DHT", "error", err)
-	// 				continue
-	// 			}
+		for {
+			select {
+			case <-time.After(ttl):
+				logger.Info("advertising ourselves in the DHT...")
+				err := d.dht.Bootstrap(d.ctx)
+				if err != nil {
+					logger.Warn("failed to bootstrap DHT", "error", err)
+					continue
+				}
 
-	// 			ttl, err = rd.Advertise(d.ctx, string(d.pid))
-	// 			if err != nil {
-	// 				logger.Warn("failed to advertise in the DHT", "error", err)
-	// 				ttl = time.Minute
-	// 			}
-	// 		case <-d.ctx.Done():
-	// 			return
-	// 		}
-	// 	}
-	// }()
+				ttl, err = rd.Advertise(d.ctx, string(d.pid))
+				if err != nil {
+					logger.Warn("failed to advertise in the DHT", "error", err)
+					ttl = time.Minute
+				}
+			case <-d.ctx.Done():
+				return
+			}
+		}
+	}()
 
 	go func() {
 		logger.Info("attempting to find peers...")
