@@ -28,6 +28,12 @@ type Params struct {
 	SubscriptionID uint        `json:"subscription"`
 }
 
+// InvalidRequestCode error code returned for invalid request parameters, value derived from Substrate node output
+const InvalidRequestCode = -32600
+
+// InvalidRequestMessage error message for invalid request parameters
+const InvalidRequestMessage = "Invalid request"
+
 func newSubcriptionBaseResponseJSON() BaseResponseJSON {
 	return BaseResponseJSON{
 		Jsonrpc: "2.0",
@@ -52,10 +58,26 @@ type ResponseJSON struct {
 	ID      float64 `json:"id"`
 }
 
-func newSubscriptionResponseJSON(subID uint, reqID float64) ResponseJSON {
+// NewSubscriptionResponseJSON builds a Response JSON object
+func NewSubscriptionResponseJSON(subID uint, reqID float64) ResponseJSON {
 	return ResponseJSON{
 		Jsonrpc: "2.0",
 		Result:  subID,
+		ID:      reqID,
+	}
+}
+
+// BooleanResponse for responses that return boolean values
+type BooleanResponse struct {
+	JSONRPC string  `json:"jsonrpc"`
+	Result  bool    `json:"result"`
+	ID      float64 `json:"id"`
+}
+
+func newBooleanResponseJSON(value bool, reqID float64) BooleanResponse {
+	return BooleanResponse{
+		JSONRPC: "2.0",
+		Result:  value,
 		ID:      reqID,
 	}
 }
