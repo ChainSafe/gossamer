@@ -107,6 +107,15 @@ func (d *discovery) stop() error {
 func (d *discovery) discoverAndAdvertise() error {
 	rd := libp2pdiscovery.NewRoutingDiscovery(d.dht)
 
+	err := d.dht.Bootstrap(d.ctx)
+	if err != nil {
+		return fmt.Errorf("failed to bootstrap DHT: %w", err)
+	}
+
+	// wait to connect to bootstrap peers
+	time.Sleep(time.Second)
+	peersToTry := make(map[*peer.AddrInfo]struct{})
+
 	go func() {
 		ttl := time.Millisecond
 
@@ -130,13 +139,6 @@ func (d *discovery) discoverAndAdvertise() error {
 			}
 		}
 	}()
-
-	err := d.dht.Bootstrap(d.ctx)
-	if err != nil {
-		return fmt.Errorf("failed to bootstrap DHT: %w", err)
-	}
-
-	peersToTry := make(map[*peer.AddrInfo]struct{})
 
 	go func() {
 		logger.Debug("attempting to find DHT peers...")
