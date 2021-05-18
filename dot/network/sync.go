@@ -335,10 +335,6 @@ func (q *syncQueue) benchmark() {
 
 		q.benchmarker.end(after.Number.Uint64())
 
-		// if q.goal-before.Number.Int64() < int64(blockRequestSize) {
-		// 	continue
-		// }
-
 		logger.Info("🚣 currently syncing",
 			"peer count", len(q.s.host.peers()),
 			"goal", q.goal,
