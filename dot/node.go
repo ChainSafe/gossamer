@@ -36,6 +36,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/services"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/metrics/prometheus"
@@ -135,7 +136,7 @@ func NodeInitialized(basepath string, expected bool) bool {
 	}
 
 	// initialise database using data directory
-	db, err := state.SetupDatabase(basepath, false)
+	db, err := utils.SetupDatabase(basepath, false)
 	if err != nil {
 		logger.Error(
 			"failed to create database",
@@ -170,7 +171,7 @@ func NodeInitialized(basepath string, expected bool) bool {
 // LoadGlobalNodeName returns the stored global node name from database
 func LoadGlobalNodeName(basepath string) (nodename string, err error) {
 	// initialise database using data directory
-	db, err := state.SetupDatabase(basepath, false)
+	db, err := utils.SetupDatabase(basepath, false)
 	if err != nil {
 		return "", err
 	}
@@ -387,7 +388,7 @@ func setupMetricsServer(address string) {
 
 // stores the global node name to reuse
 func storeGlobalNodeName(name, basepath string) (err error) {
-	db, err := state.SetupDatabase(basepath, false)
+	db, err := utils.SetupDatabase(basepath, false)
 	if err != nil {
 		return err
 	}

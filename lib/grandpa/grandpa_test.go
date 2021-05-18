@@ -30,6 +30,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/stretchr/testify/require"
 )
@@ -55,7 +56,7 @@ func newTestState(t *testing.T) *state.Service {
 	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
 	require.NoError(t, err)
 
-	db, err := state.SetupDatabase(testDatadirPath, true)
+	db, err := utils.SetupDatabase(testDatadirPath, true)
 	require.NoError(t, err)
 
 	block, err := state.NewBlockStateFromGenesis(db, testGenesisHeader)

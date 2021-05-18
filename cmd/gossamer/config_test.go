@@ -815,7 +815,7 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 
 	cfg.Init.Genesis = genFile.Name()
 
-	db, err := state.SetupDatabase(cfg.Global.BasePath, false)
+	db, err := utils.SetupDatabase(cfg.Global.BasePath, false)
 	require.Nil(t, err)
 
 	gen, err := genesis.NewGenesisFromJSONRaw(genFile.Name())

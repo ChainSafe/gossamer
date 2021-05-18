@@ -25,7 +25,19 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/ChainSafe/chaindb"
 )
+
+const defaultDatabaseDir = "storage"
+
+// SetupDatabase will return an instance of database based on basepath
+func SetupDatabase(basepath string, inMemory bool) (chaindb.Database, error) {
+	return chaindb.NewBadgerDB(&chaindb.Config{
+		DataDir:  filepath.Join(basepath, defaultDatabaseDir),
+		InMemory: inMemory,
+	})
+}
 
 // PathExists returns true if the named file or directory exists, otherwise false
 func PathExists(p string) bool {

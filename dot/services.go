@@ -41,10 +41,11 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/life"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmtime"
+	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
 func newInMemoryDB(path string) (chaindb.Database, error) {
-	return state.SetupDatabase(filepath.Join(path, "local_storage"), true)
+	return utils.SetupDatabase(filepath.Join(path, "local_storage"), true)
 }
 
 // State Service

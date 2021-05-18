@@ -28,6 +28,7 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/ChainSafe/chaindb"
 )
@@ -42,7 +43,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 	}
 
 	// initialise database using data directory
-	db, err := SetupDatabase(basepath, s.isMemDB)
+	db, err := utils.SetupDatabase(basepath, s.isMemDB)
 	if err != nil {
 		return fmt.Errorf("failed to create database: %s", err)
 	}
