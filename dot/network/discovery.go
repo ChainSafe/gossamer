@@ -132,7 +132,7 @@ func (d *discovery) discoverAndAdvertise() error {
 				ttl, err = rd.Advertise(d.ctx, string(d.pid))
 				if err != nil {
 					logger.Debug("failed to advertise in the DHT", "error", err)
-					ttl = time.Minute
+					ttl = time.Second * 30
 				}
 			case <-d.ctx.Done():
 				return
