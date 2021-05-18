@@ -31,6 +31,13 @@ import (
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
 )
 
+var (
+	startDHTTimeout             = time.Second * 10
+	initialAdvertisementTimeout = time.Millisecond
+	tryAdvertiseTimeout         = time.Second * 30
+	connectToPeersTimeout       = time.Minute
+)
+
 // discovery handles discovery of new peers via the kademlia DHT
 type discovery struct {
 	ctx                context.Context
@@ -61,11 +68,17 @@ func (d *discovery) start() error {
 		peers := d.h.Network().Peers()
 
 		for {
-			if len(peers) == 0 {
-				logger.Debug("no peers yet, waiting to start DHT...")
-				time.Sleep(time.Second * 10) // wait for peers to connect before starting DHT
-			} else {
+			if len(peers) > 0 {
 				break
+			}
+
+			select {
+			case <-time.After(startDHTTimeout):
+				logger.Debug("no peers yet, waiting to start DHT...")
+				// wait for peers to connect before starting DHT, otherwise DHT bootstrap nodes
+				// will be empty and we will fail to fill the routing table
+			case <-d.ctx.Done():
+				return nil
 			}
 
 			peers = d.h.Network().Peers()
@@ -83,7 +96,6 @@ func (d *discovery) start() error {
 		dual.DHTOption(kaddht.BootstrapPeers(d.bootnodes...)),
 		dual.DHTOption(kaddht.V1ProtocolOverride(d.pid + "/kad")),
 		dual.DHTOption(kaddht.Mode(kaddht.ModeAutoServer)),
-		//dual.DHTOption(kaddht.Mode(kaddht.ModeServer)),
 	}
 
 	// create DHT service
@@ -117,7 +129,7 @@ func (d *discovery) discoverAndAdvertise() error {
 	peersToTry := make(map[*peer.AddrInfo]struct{})
 
 	go func() {
-		ttl := time.Millisecond
+		ttl := initialAdvertisementTimeout
 
 		for {
 			select {
@@ -132,7 +144,7 @@ func (d *discovery) discoverAndAdvertise() error {
 				ttl, err = rd.Advertise(d.ctx, string(d.pid))
 				if err != nil {
 					logger.Debug("failed to advertise in the DHT", "error", err)
-					ttl = time.Second * 30
+					ttl = tryAdvertiseTimeout
 				}
 			case <-d.ctx.Done():
 				return
@@ -152,7 +164,7 @@ func (d *discovery) discoverAndAdvertise() error {
 			select {
 			case <-d.ctx.Done():
 				return
-			case <-time.After(time.Minute):
+			case <-time.After(connectToPeersTimeout):
 				if len(d.h.Network().Peers()) > d.minPeers {
 					continue
 				}
