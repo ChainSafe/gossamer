@@ -188,7 +188,7 @@ Available built-in keys:
 ./bin/gossmer --key heather
 ```
 
-## initialising Nodes
+## Initialising Nodes
 
 To initialise or re-initialise a node, use the init subcommand `init`:
 ```
