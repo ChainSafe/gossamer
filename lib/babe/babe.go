@@ -505,6 +505,11 @@ func (b *Service) handleSlot(slotNum uint64) error {
 	logger.Info("built block", "hash", hash.String(), "number", block.Header.Number, "slot", slotNum)
 	logger.Debug("built block", "header", block.Header, "body", block.Body, "parent", parent.Hash())
 
+	err = b.blockState.AddBlock(block)
+	if err != nil {
+		return err
+	}
+
 	err = b.safeSend(*block)
 	if err != nil {
 		logger.Error("failed to send block to core", "error", err)
