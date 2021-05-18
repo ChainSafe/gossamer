@@ -124,7 +124,7 @@ var (
 		Usage:     "Prune state will prune the state trie",
 		ArgsUsage: "",
 		Flags:     PruningFlags,
-		Description: `prune-state <retain-block> will prune historical state data.
+		Description: `prune-state <retain-blocks> will prune historical state data.
 		All trie nodes that do not belong to the specified version state will be deleted from the database.
 
 		The default pruning target is the HEAD-256 state`,
@@ -433,13 +433,13 @@ func pruneState(ctx *cli.Context) error {
 		inputDBPath = dot.GssmrConfig().Global.BasePath
 	}
 
-	prunedDBPath := ctx.String(DBPathFlag.Name)
+	prunedDBPath := ctx.GlobalString(DBPathFlag.Name)
 	if prunedDBPath == "" {
 		return fmt.Errorf("path not specified for badger db")
 	}
 
-	bloomSize := ctx.Uint64(BloomFilterSizeFlag.Name)
-	retainBlocks := ctx.Int64(RetainBlockNumberFlag.Name)
+	bloomSize := ctx.GlobalUint64(BloomFilterSizeFlag.Name)
+	retainBlocks := ctx.GlobalInt64(RetainBlockNumberFlag.Name)
 
 	pruner, err := state.NewPruner(inputDBPath, prunedDBPath, bloomSize, retainBlocks)
 	if err != nil {

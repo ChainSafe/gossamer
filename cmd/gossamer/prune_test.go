@@ -1,14 +1,12 @@
-package state
+package main
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/dgraph-io/badger/v2"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -20,27 +18,30 @@ func iterateDB(db *badger.DB, cb func(*badger.Item)) {
 		cb(itr.Item())
 	}
 }
-
 func runPruneCmd(t *testing.T, inDBPath, prunedDBPath string) {
-	currPath, err := os.Getwd()
-	require.NoError(t, err)
+	ctx, err := newTestContext(
+		"Test state trie offline pruning  --prune-state",
+		[]string{"basepath", "pruned-db-path", "bloom-size", "retain-blocks"},
+		[]interface{}{inDBPath, prunedDBPath, "256", "5"},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	cmd := exec.Command(filepath.Join(currPath, "../..", "bin/gossamer"), "prune-state",
-		"--basepath", inDBPath,
-		"--pruned-db-path", prunedDBPath,
-		"--bloom-size", "256",
-		"--retain-block", "5")
+	command := pruningCommand
+	err = command.Run(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	logger.Info("running prune command...", "cmd", command)
 
-	logger.Info("running prune command...", "cmd", cmd)
-
-	_, err = cmd.CombinedOutput()
-	require.NoError(t, err)
 }
 
 func TestPruneState(t *testing.T) {
 	var (
-		inputDBPath  = "../../tests/data/db"
-		prunedDBPath = fmt.Sprintf("%s/%s", t.TempDir(), "pruned")
+		inputDBPath   = "../../tests/data/db"
+		prunedDBPath  = fmt.Sprintf("%s/%s", t.TempDir(), "pruned")
+		storagePrefix = "storage"
 	)
 
 	inputDB, err := badger.Open(badger.DefaultOptions(inputDBPath).WithReadOnly(true))

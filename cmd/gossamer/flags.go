@@ -281,7 +281,7 @@ var (
 
 	// RetainBlockNumberFlag retain number of block from latest block while pruning, valid for the use with prune-state subcommand
 	RetainBlockNumberFlag = cli.IntFlag{
-		Name:  "retain-block",
+		Name:  "retain-blocks",
 		Usage: "Retain number of block from latest block while pruning",
 		Value: 256,
 	}
@@ -299,6 +299,9 @@ var (
 		CPUProfFlag,
 		MemProfFlag,
 		RewindFlag,
+		DBPathFlag,
+		BloomFilterSizeFlag,
+		RetainBlockNumberFlag,
 	}
 
 	// StartupFlags are flags that are valid for use with the root command and the export subcommand
@@ -380,8 +383,8 @@ var (
 
 	PruningFlags = []cli.Flag{
 		BasePathFlag,
-		BloomFilterSizeFlag,
 		DBPathFlag,
+		BloomFilterSizeFlag,
 		RetainBlockNumberFlag,
 	}
 )
