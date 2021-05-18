@@ -75,7 +75,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	if err != nil {
 		logger.Error("failed to get public IP", "error", err)
 	} else {
-		logger.Info("got public IP", "IP", ip)
+		logger.Debug("got public IP", "IP", ip)
 		externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, cfg.Port))
 		if err != nil {
 			return nil, err
