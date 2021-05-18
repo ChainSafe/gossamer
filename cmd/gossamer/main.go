@@ -428,11 +428,13 @@ func buildSpecAction(ctx *cli.Context) error {
 }
 
 func pruneState(ctx *cli.Context) error {
-	inputDBPath := ctx.GlobalString(BasePathFlag.Name)
-	if inputDBPath == "" {
-		inputDBPath = dot.GssmrConfig().Global.BasePath
+	tomlCfg, _, err := setupConfigFromChain(ctx)
+	if err != nil {
+		logger.Error("failed to load chain configuration", "error", err)
+		return err
 	}
 
+	inputDBPath := tomlCfg.Global.BasePath
 	prunedDBPath := ctx.GlobalString(DBPathFlag.Name)
 	if prunedDBPath == "" {
 		return fmt.Errorf("path not specified for badger db")

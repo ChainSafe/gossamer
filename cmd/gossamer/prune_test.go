@@ -18,11 +18,11 @@ func iterateDB(db *badger.DB, cb func(*badger.Item)) {
 		cb(itr.Item())
 	}
 }
-func runPruneCmd(t *testing.T, inDBPath, prunedDBPath string) {
+func runPruneCmd(t *testing.T, configFile, prunedDBPath string) {
 	ctx, err := newTestContext(
 		"Test state trie offline pruning  --prune-state",
-		[]string{"basepath", "pruned-db-path", "bloom-size", "retain-blocks"},
-		[]interface{}{inDBPath, prunedDBPath, "256", "5"},
+		[]string{"config", "pruned-db-path", "bloom-size", "retain-blocks"},
+		[]interface{}{configFile, prunedDBPath, "256", "5"},
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -33,13 +33,12 @@ func runPruneCmd(t *testing.T, inDBPath, prunedDBPath string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	logger.Info("running prune command...", "cmd", command)
-
 }
 
 func TestPruneState(t *testing.T) {
 	var (
 		inputDBPath   = "../../tests/data/db"
+		configFile    = "../../tests/data/db/config.toml"
 		prunedDBPath  = fmt.Sprintf("%s/%s", t.TempDir(), "pruned")
 		storagePrefix = "storage"
 	)
@@ -67,7 +66,7 @@ func TestPruneState(t *testing.T) {
 
 	t.Log("pruned DB path", prunedDBPath)
 
-	runPruneCmd(t, inputDBPath, prunedDBPath)
+	runPruneCmd(t, configFile, prunedDBPath)
 
 	prunedDB, err := badger.Open(badger.DefaultOptions(prunedDBPath))
 	require.NoError(t, err)

@@ -382,7 +382,8 @@ var (
 	}
 
 	PruningFlags = []cli.Flag{
-		BasePathFlag,
+		ChainFlag,
+		ConfigFlag,
 		DBPathFlag,
 		BloomFilterSizeFlag,
 		RetainBlockNumberFlag,
