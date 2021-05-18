@@ -107,17 +107,8 @@ func (d *discovery) stop() error {
 func (d *discovery) discoverAndAdvertise() error {
 	rd := libp2pdiscovery.NewRoutingDiscovery(d.dht)
 
-	err := d.dht.Bootstrap(d.ctx)
-	if err != nil {
-		return fmt.Errorf("failed to bootstrap DHT: %w", err)
-	}
-
-	// wait to connect to bootstrap peers
-	time.Sleep(time.Second)
-	peersToTry := make(map[*peer.AddrInfo]struct{})
-
 	go func() {
-		ttl := time.Second * 30
+		ttl := time.Millisecond
 
 		for {
 			select {
@@ -139,6 +130,13 @@ func (d *discovery) discoverAndAdvertise() error {
 			}
 		}
 	}()
+
+	err := d.dht.Bootstrap(d.ctx)
+	if err != nil {
+		return fmt.Errorf("failed to bootstrap DHT: %w", err)
+	}
+
+	peersToTry := make(map[*peer.AddrInfo]struct{})
 
 	go func() {
 		logger.Debug("attempting to find DHT peers...")
@@ -162,6 +160,7 @@ func (d *discovery) discoverAndAdvertise() error {
 					err = d.h.Connect(d.ctx, *p)
 					if err != nil {
 						logger.Trace("failed to connect to discovered peer", "peer", p.ID, "err", err)
+						delete(peersToTry, p)
 					}
 				}
 			case peer := <-peerCh:
