@@ -226,7 +226,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 			return
 		}
 
-		hs, err := readHandshake(stream, decodeBlockAnnounceHandshake)
+		hs, err := s.readHandshake(stream, decodeBlockAnnounceHandshake)
 		if err != nil {
 			logger.Trace("failed to read handshake", "protocol", info.protocolID, "peer", peer, "error", err)
 			_ = stream.Close()
@@ -294,8 +294,19 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 	}
 }
 
-func readHandshake(stream libp2pnetwork.Stream, decoder HandshakeDecoder) (Handshake, error) {
-	msgBytes := make([]byte, maxHandshakeSize)
+func (s *Service) readHandshake(stream libp2pnetwork.Stream, decoder HandshakeDecoder) (Handshake, error) {
+	var msgBytes []byte
+	buf := s.hsBufPool.Get()
+	if msgBytes == nil {
+		msgBytes = make([]byte, maxHandshakeSize)
+	} else {
+		msgBytes = buf.([]byte)
+	}
+
+	defer func() {
+		s.hsBufPool.Put(msgBytes)
+	}()
+
 	tot, err := readStream(stream, msgBytes)
 	if err != nil {
 		return nil, err

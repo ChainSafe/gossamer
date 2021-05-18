@@ -72,6 +72,8 @@ type Service struct {
 	mdns      *mdns
 	gossip    *gossip
 	syncQueue *syncQueue
+	bufPool   *sync.Pool
+	hsBufPool *sync.Pool
 
 	notificationsProtocols map[byte]*notificationsProtocol // map of sub-protocol msg ID to protocol info
 	notificationsMu        sync.RWMutex
@@ -132,6 +134,19 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
+	// create pool of buffers used to read from streams
+	// only need as many as possible inbound streams we have, which should equal max peers times the
+	// number of notifications protocols, which is currently 3
+	bufPool := new(sync.Pool)
+	for i := 0; i < cfg.MaxPeers*3; i++ {
+		bufPool.Put(make([]byte, maxBlockResponseSize))
+	}
+
+	hsBufPool := new(sync.Pool)
+	for i := 0; i < cfg.MaxPeers*3; i++ {
+		hsBufPool.Put(make([]byte, maxHandshakeSize))
+	}
+
 	network := &Service{
 		ctx:                    ctx,
 		cancel:                 cancel,
@@ -148,6 +163,8 @@ func NewService(cfg *Config) (*Service, error) {
 		lightRequest:           make(map[peer.ID]struct{}),
 		telemetryInterval:      cfg.telemetryInterval,
 		closeCh:                make(chan interface{}),
+		bufPool:                bufPool,
+		hsBufPool:              hsBufPool,
 	}
 
 	network.syncQueue = newSyncQueue(network)
@@ -553,9 +570,20 @@ func isInbound(stream libp2pnetwork.Stream) bool {
 func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder, handler messageHandler) {
 	var (
 		maxMessageSize uint64 = maxBlockResponseSize // TODO: determine actual max message size
-		msgBytes              = make([]byte, maxMessageSize)
+		buf                   = s.bufPool.Get()
 		peer                  = stream.Conn().RemotePeer()
+		msgBytes       []byte
 	)
+
+	if buf == nil {
+		msgBytes = make([]byte, maxMessageSize)
+	} else {
+		msgBytes = buf.([]byte)
+	}
+
+	defer func() {
+		s.bufPool.Put(msgBytes)
+	}()
 
 	for {
 		tot, err := readStream(stream, msgBytes)
