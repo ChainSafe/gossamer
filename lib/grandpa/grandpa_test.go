@@ -31,7 +31,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/stretchr/testify/require"
 )
 
@@ -56,12 +55,7 @@ func newTestState(t *testing.T) *state.Service {
 	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
 	require.NoError(t, err)
 
-	cfg := &chaindb.Config{
-		DataDir:  testDatadirPath,
-		InMemory: true,
-	}
-
-	db, err := chaindb.NewBadgerDB(cfg)
+	db, err := state.SetupDatabase(testDatadirPath, true)
 	require.NoError(t, err)
 
 	block, err := state.NewBlockStateFromGenesis(db, testGenesisHeader)

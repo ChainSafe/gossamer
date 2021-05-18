@@ -28,7 +28,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
 	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -136,9 +135,7 @@ func NodeInitialized(basepath string, expected bool) bool {
 	}
 
 	// initialise database using data directory
-	db, err := chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir: basepath,
-	})
+	db, err := state.SetupDatabase(basepath, false)
 	if err != nil {
 		logger.Error(
 			"failed to create database",
@@ -173,7 +170,7 @@ func NodeInitialized(basepath string, expected bool) bool {
 // LoadGlobalNodeName returns the stored global node name from database
 func LoadGlobalNodeName(basepath string) (nodename string, err error) {
 	// initialise database using data directory
-	db, err := state.SetupDatabase(basepath)
+	db, err := state.SetupDatabase(basepath, false)
 	if err != nil {
 		return "", err
 	}
@@ -390,7 +387,7 @@ func setupMetricsServer(address string) {
 
 // stores the global node name to reuse
 func storeGlobalNodeName(name, basepath string) (err error) {
-	db, err := state.SetupDatabase(basepath)
+	db, err := state.SetupDatabase(basepath, false)
 	if err != nil {
 		return err
 	}

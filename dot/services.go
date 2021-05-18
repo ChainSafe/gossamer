@@ -44,10 +44,7 @@ import (
 )
 
 func newInMemoryDB(path string) (chaindb.Database, error) {
-	return chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir:  filepath.Join(path, "local_storage"),
-		InMemory: true,
-	})
+	return state.SetupDatabase(filepath.Join(path, "local_storage"), true)
 }
 
 // State Service

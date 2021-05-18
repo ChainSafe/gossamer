@@ -20,6 +20,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -27,10 +28,13 @@ import (
 	"github.com/ChainSafe/chaindb"
 )
 
+const defaultDatabaseDir = "storage"
+
 // SetupDatabase will return an instance of database based on basepath
-func SetupDatabase(basepath string) (chaindb.Database, error) {
+func SetupDatabase(basepath string, inMemory bool) (chaindb.Database, error) {
 	return chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir: basepath,
+		DataDir:  filepath.Join(basepath, defaultDatabaseDir),
+		InMemory: inMemory,
 	})
 }
 

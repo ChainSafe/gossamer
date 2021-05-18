@@ -21,7 +21,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
@@ -50,6 +49,8 @@ var (
 	kusamaName   = "kusama"
 	polkadotName = "polkadot"
 	devName      = "dev"
+
+	storagePath = "storage"
 )
 
 // loadConfigFile loads a default config file if --chain is specified, a specific
@@ -788,9 +789,7 @@ func updateDotConfigFromGenesisJSONRaw(tomlCfg ctoml.Config, cfg *dot.Config) {
 // updateDotConfigFromGenesisData updates the configuration from genesis data of an initialised node
 func updateDotConfigFromGenesisData(ctx *cli.Context, cfg *dot.Config) error {
 	// initialise database using data directory
-	db, err := chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir: cfg.Global.BasePath,
-	})
+	db, err := state.SetupDatabase(cfg.Global.BasePath, false)
 	if err != nil {
 		return fmt.Errorf("failed to create database: %s", err)
 	}
