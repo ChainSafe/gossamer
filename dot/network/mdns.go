@@ -52,7 +52,7 @@ func newMDNS(host *host) *mdns {
 
 // startMDNS starts a new mDNS discovery service
 func (m *mdns) start() {
-	m.logger.Info(
+	m.logger.Debug(
 		"Starting mDNS discovery service...",
 		"host", m.host.id(),
 		"period", MDNSPeriod,
@@ -83,16 +83,16 @@ func (m *mdns) start() {
 
 // close shuts down the mDNS discovery service
 func (m *mdns) close() error {
-
 	// check if service is running
-	if m.mdns != nil {
+	if m.mdns == nil {
+		return nil
+	}
 
-		// close service
-		err := m.mdns.Close()
-		if err != nil {
-			m.logger.Error("Failed to close mDNS discovery service", "error", err)
-			return err
-		}
+	// close service
+	err := m.mdns.Close()
+	if err != nil {
+		m.logger.Warn("Failed to close mDNS discovery service", "error", err)
+		return err
 	}
 
 	return nil
@@ -100,7 +100,7 @@ func (m *mdns) close() error {
 
 // HandlePeerFound is event handler called when a peer is found
 func (n Notifee) HandlePeerFound(p peer.AddrInfo) {
-	n.logger.Info(
+	n.logger.Debug(
 		"Peer found using mDNS discovery",
 		"host", n.host.id(),
 		"peer", p.ID,

@@ -50,9 +50,8 @@ var privateCIDRs = []string{
 
 // host wraps libp2p host with network host configuration and services
 type host struct {
-	ctx context.Context
-	h   libp2phost.Host
-	//dht             *dual.DHT
+	ctx             context.Context
+	h               libp2phost.Host
 	discovery       *discovery
 	bootnodes       []peer.AddrInfo
 	persistentPeers []peer.AddrInfo
@@ -110,14 +109,6 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		return nil, err
 	}
 
-	// dhtOpts := []dual.Option{
-	// 	dual.DHTOption(kaddht.Datastore(ds)),
-	// 	dual.DHTOption(kaddht.BootstrapPeers(bns...)),
-	// 	dual.DHTOption(kaddht.V1ProtocolOverride(pid + "/kad")),
-	// 	dual.DHTOption(kaddht.Mode(kaddht.ModeAutoServer)),
-	// 	//dual.DHTOption(kaddht.Mode(kaddht.ModeServer)),
-	// }
-
 	privateIPs := ma.NewFilters()
 	for _, cidr := range privateCIDRs {
 		_, ipnet, err := net.ParseCIDR(cidr) //nolint
@@ -158,15 +149,6 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// // create DHT service
-	// dht, err := dual.New(ctx, h, dhtOpts...)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// // wrap host and DHT service with routed host
-	// h = rhost.Wrap(h, dht)
 
 	cacheSize := 64 << 20 // 64 MB
 	config := ristretto.Config{
@@ -271,7 +253,7 @@ func (h *host) bootstrap() {
 	failed := 0
 	all := append(h.bootnodes, h.persistentPeers...)
 	for _, addrInfo := range all {
-		logger.Info("bootstrapping to peer", "peer", addrInfo.ID)
+		logger.Debug("bootstrapping to peer", "peer", addrInfo.ID)
 		err := h.connect(addrInfo)
 		if err != nil {
 			logger.Debug("failed to bootstrap to peer", "error", err)
