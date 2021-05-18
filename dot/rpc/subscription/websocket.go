@@ -211,7 +211,7 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (u
 
 	c.Subscriptions[myObs.id] = myObs
 
-	initRes := newSubscriptionResponseJSON(myObs.id, reqID)
+	initRes := NewSubscriptionResponseJSON(myObs.id, reqID)
 	c.safeSend(initRes)
 
 	return myObs.id, nil
@@ -275,7 +275,7 @@ func (c *WSConn) initBlockListener(reqID float64) (uint, error) {
 	bl.subID = c.qtyListeners
 	c.Subscriptions[bl.subID] = bl
 	c.BlockSubChannels[bl.subID] = chanID
-	initRes := newSubscriptionResponseJSON(bl.subID, reqID)
+	initRes := NewSubscriptionResponseJSON(bl.subID, reqID)
 	c.safeSend(initRes)
 
 	return bl.subID, nil
@@ -300,7 +300,7 @@ func (c *WSConn) initBlockFinalizedListener(reqID float64) (uint, error) {
 	bfl.subID = c.qtyListeners
 	c.Subscriptions[bfl.subID] = bfl
 	c.BlockSubChannels[bfl.subID] = chanID
-	initRes := newSubscriptionResponseJSON(bfl.subID, reqID)
+	initRes := NewSubscriptionResponseJSON(bfl.subID, reqID)
 	c.safeSend(initRes)
 
 	return bfl.subID, nil
@@ -343,7 +343,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (uint, er
 	if err != nil {
 		return 0, err
 	}
-	c.safeSend(newSubscriptionResponseJSON(esl.subID, reqID))
+	c.safeSend(NewSubscriptionResponseJSON(esl.subID, reqID))
 
 	// TODO (ed) since HandleSubmittedExtrinsic has been called we assume the extrinsic is in the tx queue
 	//  should we add a channel to tx queue so we're notified when it's in the queue (See issue #1535)
@@ -366,7 +366,7 @@ func (c *WSConn) initRuntimeVersionListener(reqID float64) (uint, error) {
 	c.qtyListeners++
 	rvl.subID = c.qtyListeners
 	c.Subscriptions[rvl.subID] = rvl
-	initRes := newSubscriptionResponseJSON(rvl.subID, reqID)
+	initRes := NewSubscriptionResponseJSON(rvl.subID, reqID)
 	c.safeSend(initRes)
 
 	return rvl.subID, nil
