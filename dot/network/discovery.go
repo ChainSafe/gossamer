@@ -62,7 +62,7 @@ func (d *discovery) start() error {
 
 		for {
 			if len(peers) == 0 {
-				logger.Info("no peers yet, waiting to start DHT...")
+				logger.Debug("no peers yet, waiting to start DHT...")
 				time.Sleep(time.Second * 10) // wait for peers to connect before starting DHT
 			} else {
 				break
@@ -76,7 +76,7 @@ func (d *discovery) start() error {
 		}
 	}
 
-	logger.Info("starting DHT...", "bootnodes", d.bootnodes)
+	logger.Debug("starting DHT...", "bootnodes", d.bootnodes)
 
 	dhtOpts := []dual.Option{
 		dual.DHTOption(kaddht.Datastore(d.ds)),
@@ -122,7 +122,7 @@ func (d *discovery) discoverAndAdvertise() error {
 		for {
 			select {
 			case <-time.After(ttl):
-				logger.Info("advertising ourselves in the DHT...")
+				logger.Debug("advertising ourselves in the DHT...")
 				err := d.dht.Bootstrap(d.ctx)
 				if err != nil {
 					logger.Warn("failed to bootstrap DHT", "error", err)
@@ -131,7 +131,7 @@ func (d *discovery) discoverAndAdvertise() error {
 
 				ttl, err = rd.Advertise(d.ctx, string(d.pid))
 				if err != nil {
-					logger.Warn("failed to advertise in the DHT", "error", err)
+					logger.Debug("failed to advertise in the DHT", "error", err)
 					ttl = time.Minute
 				}
 			case <-d.ctx.Done():
@@ -141,10 +141,10 @@ func (d *discovery) discoverAndAdvertise() error {
 	}()
 
 	go func() {
-		logger.Info("attempting to find peers...")
+		logger.Debug("attempting to find DHT peers...")
 		peerCh, err := rd.FindPeers(d.ctx, string(d.pid))
 		if err != nil {
-			logger.Error("failed to begin finding peers via DHT", "err", err)
+			logger.Warn("failed to begin finding peers via DHT", "err", err)
 			return
 		}
 
@@ -159,10 +159,9 @@ func (d *discovery) discoverAndAdvertise() error {
 
 				// reconnect to peers if peer count is low
 				for p := range peersToTry {
-					logger.Info("trying to connect to cached peer", "peer", p.ID)
 					err = d.h.Connect(d.ctx, *p)
 					if err != nil {
-						logger.Info("failed to connect to discovered peer", "peer", p.ID, "err", err)
+						logger.Trace("failed to connect to discovered peer", "peer", p.ID, "err", err)
 					}
 				}
 			case peer := <-peerCh:
@@ -170,13 +169,13 @@ func (d *discovery) discoverAndAdvertise() error {
 					continue
 				}
 
-				logger.Info("found new peer via DHT", "peer", peer.ID)
+				logger.Trace("found new peer via DHT", "peer", peer.ID)
 
 				// found a peer, try to connect if we need more peers
 				if len(d.h.Network().Peers()) < d.maxPeers {
 					err = d.h.Connect(d.ctx, peer)
 					if err != nil {
-						logger.Info("failed to connect to discovered peer", "peer", peer.ID, "err", err)
+						logger.Trace("failed to connect to discovered peer", "peer", peer.ID, "err", err)
 					}
 				} else {
 					d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
@@ -186,6 +185,6 @@ func (d *discovery) discoverAndAdvertise() error {
 		}
 	}()
 
-	logger.Info("DHT discovery started!")
+	logger.Debug("DHT discovery started!")
 	return nil
 }
