@@ -29,12 +29,13 @@ import (
 	"github.com/ChainSafe/chaindb"
 )
 
-const defaultDatabaseDir = "storage"
+// DefaultDatabaseDir directory inside baspath where database contents are stored
+const DefaultDatabaseDir = "storage"
 
 // SetupDatabase will return an instance of database based on basepath
 func SetupDatabase(basepath string, inMemory bool) (chaindb.Database, error) {
 	return chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir:  filepath.Join(basepath, defaultDatabaseDir),
+		DataDir:  filepath.Join(basepath, DefaultDatabaseDir),
 		InMemory: inMemory,
 	})
 }

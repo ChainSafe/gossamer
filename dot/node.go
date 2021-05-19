@@ -121,7 +121,7 @@ func InitNode(cfg *Config) error {
 // node, the state database has been created and the genesis data has been loaded
 func NodeInitialized(basepath string, expected bool) bool {
 	// check if key registry exists
-	registry := path.Join(basepath, "KEYREGISTRY")
+	registry := path.Join(basepath, utils.DefaultDatabaseDir, "KEYREGISTRY")
 
 	_, err := os.Stat(registry)
 	if os.IsNotExist(err) {
