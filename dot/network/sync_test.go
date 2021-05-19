@@ -26,6 +26,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
+	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/ChainSafe/chaindb"
@@ -419,6 +420,53 @@ func TestSyncQueue_processBlockResponses(t *testing.T) {
 	go q.processBlockResponses()
 	time.Sleep(time.Second)
 	require.Equal(t, blockRequestBufferSize, len(q.requestCh))
+}
+
+func TestSyncQueue_isRequestDataCached(t *testing.T) {
+	q := newTestSyncQueue(t)
+	q.stop()
+
+	reqdata := requestData{
+		sent:     true,
+		received: false,
+	}
+
+	// generate hash or uint64
+	hashtrack := variadic.NewUint64OrHashFromBytes([]byte{0, 0, 0, 1})
+	uinttrack := variadic.NewUint64OrHashFromBytes([]byte{1, 0, 0, 1})
+	othertrack := variadic.NewUint64OrHashFromBytes([]byte{1, 2, 3, 1})
+
+	tests := []struct {
+		variadic     *variadic.Uint64OrHash
+		reqMessage   BlockRequestMessage
+		expectedOk   bool
+		expectedData *requestData
+	}{
+		{
+			variadic:     hashtrack,
+			expectedOk:   true,
+			expectedData: &reqdata,
+		},
+		{
+			variadic:     uinttrack,
+			expectedOk:   true,
+			expectedData: &reqdata,
+		},
+		{
+			variadic:     othertrack,
+			expectedOk:   false,
+			expectedData: nil,
+		},
+	}
+
+	q.requestDataByHash.Store(hashtrack.Hash(), reqdata)
+	q.requestData.Store(uinttrack.Uint64(), reqdata)
+
+	for _, test := range tests {
+		data, ok := q.isRequestDataCached(test.variadic)
+		require.Equal(t, test.expectedOk, ok)
+		require.Equal(t, test.expectedData, data)
+	}
 }
 
 func TestSyncQueue_SyncAtHead(t *testing.T) {

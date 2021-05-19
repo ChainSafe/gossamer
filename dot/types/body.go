@@ -17,7 +17,9 @@
 package types
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"math/big"
 
@@ -172,4 +174,36 @@ func decodeOptionalBody(r io.Reader) (*optional.Body, error) {
 	}
 
 	return optional.NewBody(false, nil), nil
+}
+
+// HasExtrinsic returns true if body contains target Extrisic
+// returns error when fails to encode decoded extrinsic on body
+func (b *Body) HasExtrinsic(target Extrinsic) (bool, error) {
+	exts, err := b.AsExtrinsics()
+	if err != nil {
+		return false, err
+	}
+
+	// goes through the decreasing order due to the fact that extrinsicsToBody func (lib/babe/build.go)
+	// appends the valid transaction extrinsic on the end of the body
+	for i := len(exts) - 1; i >= 0; i-- {
+		currext := exts[i]
+
+		// if current extrinsic is equal the target then returns true
+		if bytes.Equal(target, currext) {
+			return true, nil
+		}
+
+		//otherwise try to encode and compare
+		encext, err := scale.Encode(currext)
+		if err != nil {
+			return false, fmt.Errorf("fail while scale encode: %w", err)
+		}
+
+		if len(encext) >= len(target) && bytes.Equal(target, encext[:len(target)]) {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
