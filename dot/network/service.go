@@ -73,7 +73,9 @@ type Service struct {
 	gossip    *gossip
 	syncQueue *syncQueue
 	bufPool   *sync.Pool
+	bufMap    map[[maxBlockResponseSize]byte]struct{}
 	hsBufPool *sync.Pool
+	hsBufMap  map[[maxHandshakeSize]byte]struct{}
 
 	notificationsProtocols map[byte]*notificationsProtocol // map of sub-protocol msg ID to protocol info
 	notificationsMu        sync.RWMutex
@@ -138,13 +140,19 @@ func NewService(cfg *Config) (*Service, error) {
 	// only need as many as possible inbound streams we have, which should equal max peers times the
 	// number of notifications protocols, which is currently 3
 	bufPool := new(sync.Pool)
+	bufMap := make(map[[maxBlockResponseSize]byte]struct{})
 	for i := 0; i < cfg.MaxPeers*3; i++ {
-		bufPool.Put(make([]byte, maxBlockResponseSize))
+		buf := [maxBlockResponseSize]byte{}
+		bufPool.Put(buf)
+		bufMap[buf] = struct{}{}
 	}
 
 	hsBufPool := new(sync.Pool)
+	hsBufMap := make(map[[maxHandshakeSize]byte]struct{})
 	for i := 0; i < cfg.MaxPeers*3; i++ {
-		hsBufPool.Put(make([]byte, maxHandshakeSize))
+		buf := [maxHandshakeSize]byte{}
+		hsBufPool.Put(buf)
+		hsBufMap[buf] = struct{}{}
 	}
 
 	network := &Service{

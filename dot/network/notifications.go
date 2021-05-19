@@ -28,7 +28,7 @@ import (
 
 var errCannotValidateHandshake = errors.New("failed to validate handshake")
 
-var maxHandshakeSize = unsafe.Sizeof(BlockAnnounceHandshake{}) //nolint
+const maxHandshakeSize = unsafe.Sizeof(BlockAnnounceHandshake{}) //nolint
 
 // Handshake is the interface all handshakes for notifications protocols must implement
 type Handshake interface {
