@@ -140,6 +140,10 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 					ok = append(ok, addr)
 				}
 			}
+			if externalAddr == nil {
+				return ok
+			}
+
 			return append(ok, externalAddr)
 		}),
 	}
@@ -168,9 +172,8 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	discovery := newDiscovery(ctx, h, bns, ds, pid, cfg.MinPeers, cfg.MaxPeers)
 
 	host := &host{
-		ctx: ctx,
-		h:   h,
-		//dht:             dht,
+		ctx:             ctx,
+		h:               h,
 		discovery:       discovery,
 		bootnodes:       bns,
 		protocolID:      pid,
