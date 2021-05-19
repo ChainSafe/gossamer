@@ -78,6 +78,8 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 		cfg.Syncer = newMockSyncer()
 	}
 
+	cfg.noPreAllocate = true
+
 	srvc, err := NewService(cfg)
 	require.NoError(t, err)
 

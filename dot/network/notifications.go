@@ -295,19 +295,26 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 }
 
 func (s *Service) readHandshake(stream libp2pnetwork.Stream, decoder HandshakeDecoder) (Handshake, error) {
-	var msgBytes []byte
+	var (
+		msgBytes [maxHandshakeSize]byte
+		ok       bool
+	)
+
 	buf := s.hsBufPool.Get()
-	if msgBytes == nil {
-		msgBytes = make([]byte, maxHandshakeSize)
+	if buf == nil {
+		msgBytes = [maxHandshakeSize]byte{}
 	} else {
-		msgBytes = buf.([]byte)
+		msgBytes, ok = buf.([maxHandshakeSize]byte)
+		if !ok {
+			msgBytes = [maxHandshakeSize]byte{}
+		}
 	}
 
 	defer func() {
-		s.hsBufPool.Put(msgBytes)
+		s.hsBufPool.Put(msgBytes) //nolint
 	}()
 
-	tot, err := readStream(stream, msgBytes)
+	tot, err := readStream(stream, msgBytes[:])
 	if err != nil {
 		return nil, err
 	}

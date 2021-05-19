@@ -136,23 +136,31 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
-	// create pool of buffers used to read from streams
-	// only need as many as possible inbound streams we have, which should equal max peers times the
-	// number of notifications protocols, which is currently 3
+	// pre-allocate pool of buffers used to read from streams.
+	// only need as many buffers as possible inbound streams we have, which should equal max peers times the
+	// number of notifications protocols, which is currently 3.
+	//
+	// the purpose of the maps is to keep the reference to the buffers inside the *Service
+	// at all times to prevent the buffers from being garbage collected.
+	// with this addition, they are only garbage collected once the *Service is no longer
+	// used, which is when the node shuts down.
 	bufPool := new(sync.Pool)
-	bufMap := make(map[[maxBlockResponseSize]byte]struct{})
-	for i := 0; i < cfg.MaxPeers*3; i++ {
-		buf := [maxBlockResponseSize]byte{}
-		bufPool.Put(buf)
-		bufMap[buf] = struct{}{}
-	}
-
 	hsBufPool := new(sync.Pool)
+	bufMap := make(map[[maxBlockResponseSize]byte]struct{})
 	hsBufMap := make(map[[maxHandshakeSize]byte]struct{})
-	for i := 0; i < cfg.MaxPeers*3; i++ {
-		buf := [maxHandshakeSize]byte{}
-		hsBufPool.Put(buf)
-		hsBufMap[buf] = struct{}{}
+
+	if !cfg.noPreAllocate {
+		for i := 0; i < cfg.MaxPeers*3; i++ {
+			buf := [maxBlockResponseSize]byte{}
+			bufPool.Put(buf) //nolint
+			bufMap[buf] = struct{}{}
+		}
+
+		for i := 0; i < cfg.MaxPeers*3; i++ {
+			buf := [maxHandshakeSize]byte{}
+			hsBufPool.Put(buf) //nolint
+			hsBufMap[buf] = struct{}{}
+		}
 	}
 
 	network := &Service{
@@ -172,7 +180,9 @@ func NewService(cfg *Config) (*Service, error) {
 		telemetryInterval:      cfg.telemetryInterval,
 		closeCh:                make(chan interface{}),
 		bufPool:                bufPool,
+		bufMap:                 bufMap,
 		hsBufPool:              hsBufPool,
+		hsBufMap:               hsBufMap,
 	}
 
 	network.syncQueue = newSyncQueue(network)
@@ -576,25 +586,30 @@ func isInbound(stream libp2pnetwork.Stream) bool {
 }
 
 func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder, handler messageHandler) {
+	const maxMessageSize uint64 = maxBlockResponseSize // TODO: determine actual max message size
+
 	var (
-		maxMessageSize uint64 = maxBlockResponseSize // TODO: determine actual max message size
-		buf                   = s.bufPool.Get()
-		peer                  = stream.Conn().RemotePeer()
-		msgBytes       []byte
+		buf      = s.bufPool.Get()
+		peer     = stream.Conn().RemotePeer()
+		msgBytes [maxMessageSize]byte
+		ok       bool
 	)
 
 	if buf == nil {
-		msgBytes = make([]byte, maxMessageSize)
+		msgBytes = [maxMessageSize]byte{}
 	} else {
-		msgBytes = buf.([]byte)
+		msgBytes, ok = buf.([maxMessageSize]byte)
+		if !ok {
+			msgBytes = [maxMessageSize]byte{}
+		}
 	}
 
 	defer func() {
-		s.bufPool.Put(msgBytes)
+		s.bufPool.Put(msgBytes) //nolint
 	}()
 
 	for {
-		tot, err := readStream(stream, msgBytes)
+		tot, err := readStream(stream, msgBytes[:])
 		if err == io.EOF {
 			continue
 		} else if err != nil {
