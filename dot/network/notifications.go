@@ -296,22 +296,22 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 
 func (s *Service) readHandshake(stream libp2pnetwork.Stream, decoder HandshakeDecoder) (Handshake, error) {
 	var (
-		msgBytes [maxHandshakeSize]byte
+		msgBytes [maxMessageSize]byte
 		ok       bool
 	)
 
-	buf := s.hsBufPool.Get()
+	buf := s.bufPool.Get()
 	if buf == nil {
-		msgBytes = [maxHandshakeSize]byte{}
+		msgBytes = [maxMessageSize]byte{}
 	} else {
-		msgBytes, ok = buf.([maxHandshakeSize]byte)
+		msgBytes, ok = buf.([maxMessageSize]byte)
 		if !ok {
-			msgBytes = [maxHandshakeSize]byte{}
+			msgBytes = [maxMessageSize]byte{}
 		}
 	}
 
 	defer func() {
-		s.hsBufPool.Put(msgBytes) //nolint
+		s.bufPool.Put(msgBytes) //nolint
 	}()
 
 	tot, err := readStream(stream, msgBytes[:])

@@ -46,6 +46,8 @@ const (
 	lightID         = "/light/2"
 	blockAnnounceID = "/block-announces/1"
 	transactionsID  = "/transactions/1"
+
+	maxMessageSize = maxBlockResponseSize
 )
 
 var (
@@ -73,9 +75,7 @@ type Service struct {
 	gossip    *gossip
 	syncQueue *syncQueue
 	bufPool   *sync.Pool
-	bufMap    map[[maxBlockResponseSize]byte]struct{}
-	hsBufPool *sync.Pool
-	hsBufMap  map[[maxHandshakeSize]byte]struct{}
+	bufMap    map[[maxMessageSize]byte]struct{}
 
 	notificationsProtocols map[byte]*notificationsProtocol // map of sub-protocol msg ID to protocol info
 	notificationsMu        sync.RWMutex
@@ -137,29 +137,24 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 
 	// pre-allocate pool of buffers used to read from streams.
-	// only need as many buffers as possible inbound streams we have, which should equal max peers times the
-	// number of notifications protocols, which is currently 3.
+	// initially allocate as many buffers as minimally necessary which is the number inbound streams we will have,
+	// which should equal min peers times the number of notifications protocols, which is currently 3.
 	//
-	// the purpose of the maps is to keep the reference to the buffers inside the *Service
+	// the purpose of the bufMap is to keep the reference to the buffers inside the *Service
 	// at all times to prevent the buffers from being garbage collected.
 	// with this addition, they are only garbage collected once the *Service is no longer
 	// used, which is when the node shuts down.
 	bufPool := new(sync.Pool)
-	hsBufPool := new(sync.Pool)
+	bufPool.New = func() interface{} {
+		return [maxMessageSize]byte{}
+	}
 	bufMap := make(map[[maxBlockResponseSize]byte]struct{})
-	hsBufMap := make(map[[maxHandshakeSize]byte]struct{})
 
 	if !cfg.noPreAllocate {
-		for i := 0; i < cfg.MaxPeers*3; i++ {
+		for i := 0; i < cfg.MinPeers*3; i++ {
 			buf := [maxBlockResponseSize]byte{}
 			bufPool.Put(buf) //nolint
 			bufMap[buf] = struct{}{}
-		}
-
-		for i := 0; i < cfg.MaxPeers*3; i++ {
-			buf := [maxHandshakeSize]byte{}
-			hsBufPool.Put(buf) //nolint
-			hsBufMap[buf] = struct{}{}
 		}
 	}
 
@@ -181,8 +176,6 @@ func NewService(cfg *Config) (*Service, error) {
 		closeCh:                make(chan interface{}),
 		bufPool:                bufPool,
 		bufMap:                 bufMap,
-		hsBufPool:              hsBufPool,
-		hsBufMap:               hsBufMap,
 	}
 
 	network.syncQueue = newSyncQueue(network)
@@ -586,8 +579,6 @@ func isInbound(stream libp2pnetwork.Stream) bool {
 }
 
 func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder, handler messageHandler) {
-	const maxMessageSize uint64 = maxBlockResponseSize // TODO: determine actual max message size
-
 	var (
 		buf      = s.bufPool.Get()
 		peer     = stream.Conn().RemotePeer()
