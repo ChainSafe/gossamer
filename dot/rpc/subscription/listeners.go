@@ -162,18 +162,17 @@ func (l *ExtrinsicSubmitListener) Listen() {
 			if block == nil {
 				continue
 			}
-			exts, err := block.Body.AsExtrinsics()
+			bodyHasExtrinsic, err := block.Body.HasExtrinsic(l.extrinsic)
 			if err != nil {
 				fmt.Printf("error %v\n", err)
 			}
-			for _, v := range exts {
-				if reflect.DeepEqual(v, l.extrinsic) {
-					resM := make(map[string]interface{})
-					resM["inBlock"] = block.Header.Hash().String()
 
-					l.importedHash = block.Header.Hash()
-					l.wsconn.safeSend(newSubscriptionResponse(AuthorExtrinsicUpdates, l.subID, resM))
-				}
+			if bodyHasExtrinsic {
+				resM := make(map[string]interface{})
+				resM["inBlock"] = block.Header.Hash().String()
+
+				l.importedHash = block.Header.Hash()
+				l.wsconn.safeSend(newSubscriptionResponse(AuthorExtrinsicUpdates, l.subID, resM))
 			}
 		}
 	}()
