@@ -268,3 +268,15 @@ func (s *TrieState) LoadCodeHash() (common.Hash, error) {
 	code := s.LoadCode()
 	return common.Blake2bHash(code)
 }
+
+func (s *TrieState) GetInsertedNodeHashes() ([]*common.Hash, error) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	return s.t.GetInsertedNodeHashes(s.t.RootNode())
+}
+
+func (s *TrieState) GetDeletedNodeHashes() []*common.Hash {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	return s.t.GetDeletedNodeHash()
+}

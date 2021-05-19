@@ -32,7 +32,7 @@ type Trie struct {
 	generation  uint64
 	root        node
 	childTries  map[common.Hash]*Trie // Used to store the child tries.
-	deletedKeys []common.Hash
+	deletedKeys []*common.Hash
 }
 
 // NewEmptyTrie creates a trie with a nil root
@@ -46,7 +46,7 @@ func NewTrie(root node) *Trie {
 		root:        root,
 		childTries:  make(map[common.Hash]*Trie),
 		generation:  0, // Initially zero but increases after every snapshot.
-		deletedKeys: make([]common.Hash, 0),
+		deletedKeys: make([]*common.Hash, 0),
 	}
 }
 
@@ -60,7 +60,7 @@ func (t *Trie) Snapshot() *Trie {
 	}
 
 	t.generation++
-	t.deletedKeys = make([]common.Hash, 0)
+	t.deletedKeys = make([]*common.Hash, 0)
 	return oldTrie
 }
 
@@ -75,7 +75,8 @@ func (t *Trie) maybeUpdateGeneration(n node) node {
 		newNode := n.copy()
 		newNode.setGeneration(t.generation)
 
-		t.deletedKeys = append(t.deletedKeys, common.BytesToHash(n.getHash()))
+		hash := common.BytesToHash(n.getHash())
+		t.deletedKeys = append(t.deletedKeys, &hash)
 		return newNode
 	}
 

@@ -56,6 +56,7 @@ type Service struct {
 
 	// Consensus digest handling
 	digestHandler DigestHandler
+	pruner        *pruner
 }
 
 // Config is the configuration for the sync Service.
@@ -102,6 +103,11 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
+	p, err := newPruner(cfg.StorageState)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Service{
 		codeHash:         codeHash,
 		blockState:       cfg.BlockState,
@@ -114,6 +120,7 @@ func NewService(cfg *Config) (*Service, error) {
 		runtime:          cfg.Runtime,
 		verifier:         cfg.Verifier,
 		digestHandler:    cfg.DigestHandler,
+		pruner:           p,
 	}, nil
 }
 
@@ -346,6 +353,13 @@ func (s *Service) handleBlock(block *types.Block) error {
 		return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)
 	}
 
+	blockHash := block.Header.Hash()
+
+	err = s.pruner.storeJournalRecord(ts, s.storageState, &blockHash, block.Header.Number)
+	if err != nil {
+		return err
+	}
+
 	err = s.storageState.StoreTrie(ts)
 	if err != nil {
 		return err
@@ -371,6 +385,8 @@ func (s *Service) handleBlock(block *types.Block) error {
 	if s.digestHandler != nil {
 		s.handleDigests(block.Header)
 	}
+
+	go s.pruner.pruneOne(s.storageState)
 
 	return s.handleRuntimeChanges(ts)
 }

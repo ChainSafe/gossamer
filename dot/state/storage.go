@@ -26,11 +26,14 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
 // storagePrefix storage key prefix.
 var storagePrefix = "storage"
+var journalPrefix = "journal"
+var lastPruned = "last_pruned"
 var codeKey = common.CodeKey
 
 // ErrTrieDoesNotExist is returned when attempting to interact with a trie that is not stored in the StorageState
@@ -45,8 +48,9 @@ type StorageState struct {
 	blockState *BlockState
 	tries      map[common.Hash]*trie.Trie // map of root -> trie
 
-	db   chaindb.Database
-	lock sync.RWMutex
+	db           chaindb.Database
+	journalDB    chaindb.Database
+	lock         sync.RWMutex
 
 	// change notifiers
 	changedLock  sync.RWMutex
@@ -72,6 +76,8 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie) 
 		blockState:   blockState,
 		tries:        tries,
 		db:           chaindb.NewTable(db, storagePrefix),
+		journalDB:    chaindb.NewTable(db, journalPrefix),
+		//lastPrunedDB: chaindb.NewTable(db, lastPruned),
 		observerList: []Observer{},
 	}, nil
 }
@@ -382,4 +388,87 @@ func (s *StorageState) pruneStorage(closeCh chan interface{}) {
 			return
 		}
 	}
+}
+
+func (s *StorageState) StoreJournal(num uint64, record []byte) error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	encNum,err := scale.Encode(num)
+	if err != nil {
+		return err
+	}
+
+	err = s.journalDB.Put(encNum, record)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *StorageState) GetJournalRecord(num uint64) ([]byte,error) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	encNum,err := scale.Encode(num)
+	if err != nil {
+		return nil,err
+	}
+
+	val,err := s.journalDB.Get(encNum)
+	if err != nil {
+		return nil,err
+	}
+
+	return val,nil
+}
+
+func (s *StorageState) StoreLastPrunedIndex(blockNum uint64)error{
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	encNum,err := scale.Encode(blockNum)
+	if err != nil{
+		return err
+	}
+
+	err = s.journalDB.Put([]byte("lastPruned"),encNum)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *StorageState) GetLastPrunedIndex()(uint64, error){
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	val, err := s.journalDB.Get([]byte("lastPruned"))
+	if err != nil {
+		return  0, err
+	}
+
+	var blockNum uint64
+	_,err = scale.Decode(val,blockNum)
+	if err != nil {
+		return 0,err
+	}
+
+	return blockNum,err
+}
+
+func (s *StorageState) DeleteKeys(nodesHash map[*common.Hash]uint64) error {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	for k := range nodesHash {
+		err := s.db.Del(k.ToBytes())
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

@@ -482,71 +482,59 @@ func TestTrieDiff(t *testing.T) {
 	db, err := chaindb.NewBadgerDB(cfg)
 	require.NoError(t, err)
 
+	storageDB := chaindb.NewTable(db, "storage")
+
 	defer db.Close()
 	trie := NewEmptyTrie()
 
-	var testKey = []byte{0x01, 0x78}
-	var testValue = []byte("test")
+	var testKey = []byte("testKey")
 
 	tests := []Test{
-		{key: testKey, value: testValue},
-		{key: []byte{0x01, 0x78, 0x32}, value: []byte("nootagain")},
-		{key: []byte{0x06, 0xaf, 0xb1}, value: []byte("odd")},
+		{key: testKey, value: testKey},
+		{key: []byte("testKey1"), value: []byte("testKey1")},
+		{key: []byte("testKey2"), value: []byte("testKey2")},
 	}
 
 	for _, test := range tests {
 		trie.Put(test.key, test.value)
 	}
 
-	trie.Delete([]byte{0x01, 0x78, 0x32})
-
-	deleteKeys := trie.deletedKeys
 	oldTrie := trie.Snapshot()
-
-	err = oldTrie.Store(db)
+	err = oldTrie.Store(storageDB)
 	require.NoError(t, err)
 
-	// testKey is in both trie have same value for testKey
-	require.Equal(t, oldTrie.Get(testKey), trie.Get(testKey))
-
-	var newTestValue = []byte("test1")
 	tests = []Test{
-		{key: testKey, value: newTestValue},
-		{key: []byte{0x01, 0x78, 0x99}, value: []byte("test2")},
-		{key: []byte{0x01, 0x78, 0x88}, value: []byte("test3")},
-		{key: []byte{0x01, 0x78, 0x88, 0x66}, value: []byte("test4")},
-		{key: []byte{0x06, 0xaf, 0xb1}, value: []byte("even")},
+		{key: testKey, value: []byte("newTestKey2")},
+		{key: []byte("testKey2"), value: []byte("newKey")},
+		{key: []byte("testKey3"), value: []byte("testKey3")},
+		{key: []byte("testKey4"), value: []byte("testKey2")},
+		{key: []byte("testKey5"), value: []byte("testKey5")},
 	}
 
 	for _, test := range tests {
 		trie.Put(test.key, test.value)
 	}
+	deletedKeys := trie.deletedKeys
 
-	// testKey value changed in trie
-	require.NotEqual(t, oldTrie.Get(testKey), trie.Get(testKey))
-
-	trie.Delete([]byte{0x01, 0x78, 0x88, 0x66})
-	for _, key := range deleteKeys {
-		trie.Delete(key.ToBytes())
-	}
-
-	expected := []Test{
-		{key: testKey, value: newTestValue},
-		{key: []byte{0x01, 0x78, 0x99}, value: []byte("test2")},
-		{key: []byte{0x01, 0x78, 0x88}, value: []byte("test3")},
-		{key: []byte{0x06, 0xaf, 0xb1}, value: []byte("even")},
-	}
-
-	nodes, err := trie.getInsertedNodeHashes(trie.root)
+	err = trie.WriteDirty(storageDB)
 	require.NoError(t, err)
 
-	// total inserted keys
-	require.Equal(t, len(tests), len(nodes))
-
-	for _, exp := range expected {
-		val := trie.Get(exp.key)
-		require.Equal(t, val, exp.value)
+	for _, key := range deletedKeys {
+		err = storageDB.Del(key.ToBytes())
+		require.NoError(t, err)
 	}
+
+	newTrie := NewEmptyTrie()
+	err = newTrie.Load(storageDB, common.BytesToHash(trie.root.getHash()))
+	require.NoError(t, err)
+
+	enc, err := trie.Encode()
+	require.NoError(t, err)
+
+	newEnc, err := newTrie.Encode()
+	require.NoError(t, err)
+
+	require.Equal(t, enc, newEnc)
 }
 
 func TestDelete(t *testing.T) {

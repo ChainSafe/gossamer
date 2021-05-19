@@ -288,8 +288,8 @@ func (t *Trie) writeDirty(db chaindb.Batch, curr node) error {
 	return nil
 }
 
-func (t *Trie) getInsertedNodeHashes(curr node) ([]common.Hash, error) {
-	var nodeHashes []common.Hash
+func (t *Trie) GetInsertedNodeHashes(curr node) ([]*common.Hash, error) {
+	var nodeHashes []*common.Hash
 	if curr == nil || !curr.isDirty() {
 		return nil, nil
 	}
@@ -308,14 +308,15 @@ func (t *Trie) getInsertedNodeHashes(curr node) ([]common.Hash, error) {
 		hash = h[:]
 	}
 
-	nodeHashes = append(nodeHashes, common.BytesToHash(hash))
+	nodeHash := common.BytesToHash(hash)
+	nodeHashes = append(nodeHashes, &nodeHash)
 
 	if c, ok := curr.(*branch); ok {
 		for _, child := range c.children {
 			if child == nil {
 				continue
 			}
-			nodes, err := t.getInsertedNodeHashes(child)
+			nodes, err := t.GetInsertedNodeHashes(child)
 			if err != nil {
 				return nil, err
 			}
@@ -324,4 +325,8 @@ func (t *Trie) getInsertedNodeHashes(curr node) ([]common.Hash, error) {
 	}
 
 	return nodeHashes, nil
+}
+
+func (t *Trie) GetDeletedNodeHash() []*common.Hash {
+	return t.deletedKeys
 }

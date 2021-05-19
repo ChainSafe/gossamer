@@ -57,6 +57,7 @@ type StorageState interface {
 	LoadCodeHash(root *common.Hash) (common.Hash, error)
 	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
+	//StoreJournal(record *JournalRecord)error
 }
 
 // TransactionState is the interface for transaction state methods
