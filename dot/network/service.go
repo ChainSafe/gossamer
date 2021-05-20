@@ -75,7 +75,7 @@ type Service struct {
 	gossip    *gossip
 	syncQueue *syncQueue
 	bufPool   *sync.Pool
-	bufMap    *sync.Map //map[[maxMessageSize]byte]struct{}
+	bufMap    *sync.Map //map[*[maxMessageSize]byte]struct{}
 	bufCount  int
 
 	notificationsProtocols map[byte]*notificationsProtocol // map of sub-protocol msg ID to protocol info
@@ -149,7 +149,7 @@ func NewService(cfg *Config) (*Service, error) {
 	bufPool.New = func() interface{} {
 		return [maxMessageSize]byte{}
 	}
-	bufMap := new(sync.Map) //make(map[[maxBlockResponseSize]byte]struct{})
+	bufMap := new(sync.Map)
 
 	var bufCount int
 	if !cfg.noPreAllocate {
@@ -599,7 +599,7 @@ func (s *Service) getMessageBuffer() [maxMessageSize]byte {
 func (s *Service) cleanupMessageBuffer(buf [maxMessageSize]byte) {
 	s.bufPool.Put(buf) //nolint
 
-	logger.Info("message buffers allocated", "count", s.bufCount)
+	logger.Trace("message buffers allocated", "count", s.bufCount)
 	if s.bufCount >= s.cfg.MaxPeers*3 {
 		return
 	}
