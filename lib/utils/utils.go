@@ -29,8 +29,8 @@ import (
 	"github.com/ChainSafe/chaindb"
 )
 
-// DefaultDatabaseDir directory inside baspath where database contents are stored
-const DefaultDatabaseDir = "storage"
+// DefaultDatabaseDir directory inside basepath where database contents are stored
+const DefaultDatabaseDir = "db"
 
 // SetupDatabase will return an instance of database based on basepath
 func SetupDatabase(basepath string, inMemory bool) (chaindb.Database, error) {
