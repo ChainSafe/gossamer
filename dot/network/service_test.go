@@ -41,6 +41,28 @@ func failedToDial(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "failed to dial")
 }
 
+func createServiceHelper(t *testing.T, num int) []*Service {
+	t.Helper()
+	var srvcs []*Service
+	for i := 0; i < num; i++ {
+		config := &Config{
+			BasePath:    utils.NewTestBasePath(t, fmt.Sprintf("node%d", i)),
+			Port:        uint32(7001 + i),
+			RandSeed:    int64(1 + i),
+			NoBootstrap: true,
+			NoMDNS:      true,
+		}
+
+		srvc := createTestService(t, config)
+		srvc.noGossip = true
+		handler := newTestStreamHandler(testBlockAnnounceMessageDecoder)
+		srvc.host.registerStreamHandler("", handler.handleStream)
+
+		srvcs = append(srvcs, srvc)
+	}
+	return srvcs
+}
+
 // helper method to create and start a new network service
 func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	if cfg == nil {
@@ -263,119 +285,6 @@ func TestService_Health(t *testing.T) {
 
 	mockSync.SetSyncing(false)
 	require.Equal(t, s.Health().IsSyncing, false)
-}
-
-func TestBeginDiscovery(t *testing.T) {
-	configA := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeA"),
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true,
-		NoMDNS:      true,
-	}
-
-	nodeA := createTestService(t, configA)
-	nodeA.noGossip = true
-
-	configB := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeB"),
-		Port:        7002,
-		RandSeed:    2,
-		NoBootstrap: true,
-		NoMDNS:      true,
-	}
-
-	nodeB := createTestService(t, configB)
-	nodeB.noGossip = true
-
-	addrInfosB, err := nodeB.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosB[0])
-	if failedToDial(err) {
-		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosB[0])
-	}
-	require.NoError(t, err)
-
-	err = nodeA.beginDiscovery()
-	require.NoError(t, err)
-
-	err = nodeB.beginDiscovery()
-	require.NoError(t, err)
-}
-
-func TestBeginDiscovery_ThreeNodes(t *testing.T) {
-	configA := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeA"),
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true,
-		NoMDNS:      true,
-	}
-
-	nodeA := createTestService(t, configA)
-	nodeA.noGossip = true
-
-	configB := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeB"),
-		Port:        7002,
-		RandSeed:    2,
-		NoBootstrap: true,
-		NoMDNS:      true,
-	}
-
-	nodeB := createTestService(t, configB)
-	nodeB.noGossip = true
-
-	configC := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeC"),
-		Port:        7003,
-		RandSeed:    3,
-		NoBootstrap: true,
-		NoMDNS:      true,
-	}
-
-	nodeC := createTestService(t, configC)
-	nodeC.noGossip = true
-
-	// connect A and B
-	addrInfosB, err := nodeB.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosB[0])
-	if failedToDial(err) {
-		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosB[0])
-	}
-	require.NoError(t, err)
-
-	// connect A and C
-	addrInfosC, err := nodeC.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosC[0])
-	if failedToDial(err) {
-		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosC[0])
-	}
-	require.NoError(t, err)
-
-	// begin advertising and discovery for all nodes
-	err = nodeA.beginDiscovery()
-	require.NoError(t, err)
-
-	err = nodeB.beginDiscovery()
-	require.NoError(t, err)
-
-	err = nodeC.beginDiscovery()
-	require.NoError(t, err)
-
-	time.Sleep(time.Millisecond * 500)
-
-	// assert B and C can discover each other
-	addrs := nodeB.host.h.Peerstore().Addrs(nodeC.host.id())
-	require.NotEqual(t, 0, len(addrs))
 }
 
 func TestPersistPeerStore(t *testing.T) {
