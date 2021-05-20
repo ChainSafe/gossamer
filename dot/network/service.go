@@ -74,9 +74,7 @@ type Service struct {
 	mdns      *mdns
 	gossip    *gossip
 	syncQueue *syncQueue
-	bufPool   *sync.Pool
-	bufMap    *sync.Map //map[*[maxMessageSize]byte]struct{}
-	bufCount  int
+	bufPool   *sizedBufferPool
 
 	notificationsProtocols map[byte]*notificationsProtocol // map of sub-protocol msg ID to protocol info
 	notificationsMu        sync.RWMutex
@@ -140,25 +138,13 @@ func NewService(cfg *Config) (*Service, error) {
 	// pre-allocate pool of buffers used to read from streams.
 	// initially allocate as many buffers as minimally necessary which is the number inbound streams we will have,
 	// which should equal min peers times the number of notifications protocols, which is currently 3.
-	//
-	// the purpose of the bufMap is to keep the reference to the buffers inside the *Service
-	// at all times to prevent the buffers from being garbage collected.
-	// with this addition, they are only garbage collected once the *Service is no longer
-	// used, which is when the node shuts down.
-	bufPool := new(sync.Pool)
-	bufPool.New = func() interface{} {
-		return [maxMessageSize]byte{}
-	}
-	bufMap := new(sync.Map)
-
-	var bufCount int
+	var bufPool *sizedBufferPool
 	if !cfg.noPreAllocate {
-		for i := 0; i < cfg.MinPeers*3; i++ {
-			buf := [maxBlockResponseSize]byte{}
-			bufPool.Put(buf) //nolint
-			bufMap.Store(&buf, struct{}{})
+		bufPool = &sizedBufferPool{
+			c: make(chan *[maxMessageSize]byte, cfg.MaxPeers*3),
 		}
-		bufCount = cfg.MinPeers * 3
+	} else {
+		bufPool = newSizedBufferPool(cfg.MinPeers*3, cfg.MaxPeers*3)
 	}
 
 	network := &Service{
@@ -178,8 +164,6 @@ func NewService(cfg *Config) (*Service, error) {
 		telemetryInterval:      cfg.telemetryInterval,
 		closeCh:                make(chan interface{}),
 		bufPool:                bufPool,
-		bufMap:                 bufMap,
-		bufCount:               bufCount,
 	}
 
 	network.syncQueue = newSyncQueue(network)
@@ -582,36 +566,10 @@ func isInbound(stream libp2pnetwork.Stream) bool {
 	return stream.Stat().Direction == libp2pnetwork.DirInbound
 }
 
-func (s *Service) getMessageBuffer() [maxMessageSize]byte {
-	buf := s.bufPool.Get()
-	if buf == nil {
-		return [maxMessageSize]byte{}
-	}
-
-	msgBytes, ok := buf.([maxMessageSize]byte)
-	if !ok {
-		return [maxMessageSize]byte{}
-	}
-
-	return msgBytes
-}
-
-func (s *Service) cleanupMessageBuffer(buf [maxMessageSize]byte) {
-	s.bufPool.Put(buf) //nolint
-
-	logger.Trace("message buffers allocated", "count", s.bufCount)
-	if s.bufCount >= s.cfg.MaxPeers*3 {
-		return
-	}
-
-	s.bufMap.Store(&buf, struct{}{})
-	s.bufCount++
-}
-
 func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder, handler messageHandler) {
 	peer := stream.Conn().RemotePeer()
-	msgBytes := s.getMessageBuffer()
-	defer s.cleanupMessageBuffer(msgBytes)
+	msgBytes := s.bufPool.get()
+	defer s.bufPool.put(msgBytes)
 
 	for {
 		tot, err := readStream(stream, msgBytes[:])
