@@ -163,6 +163,7 @@ func (h *Handler) SendBlockIntervalData(data *BlockIntervalData) {
 }
 
 func (h *Handler) sender() {
+	return
 	for {
 		h.RLock()
 		line, err := h.buf.ReadBytes(byte(10)) // byte 10 is newline character, used as delimiter

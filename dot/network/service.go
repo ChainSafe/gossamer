@@ -47,7 +47,7 @@ const (
 	blockAnnounceID = "/block-announces/1"
 	transactionsID  = "/transactions/1"
 
-	maxMessageSize = maxBlockResponseSize
+	maxMessageSize = 1024 * 1024 // 1mb for now
 )
 
 var (
@@ -569,7 +569,7 @@ func isInbound(stream libp2pnetwork.Stream) bool {
 func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder, handler messageHandler) {
 	peer := stream.Conn().RemotePeer()
 	msgBytes := s.bufPool.get()
-	defer s.bufPool.put(msgBytes)
+	defer s.bufPool.put(&msgBytes)
 
 	for {
 		tot, err := readStream(stream, msgBytes[:])

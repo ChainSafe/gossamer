@@ -49,9 +49,9 @@ func (bp *sizedBufferPool) get() [maxMessageSize]byte {
 }
 
 // put returns the given buffer to the sizedBufferPool.
-func (bp *sizedBufferPool) put(b [maxMessageSize]byte) {
+func (bp *sizedBufferPool) put(b *[maxMessageSize]byte) {
 	select {
-	case bp.c <- &b:
+	case bp.c <- b:
 	default: // Discard the buffer if the pool is full.
 	}
 }
