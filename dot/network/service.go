@@ -75,7 +75,8 @@ type Service struct {
 	gossip    *gossip
 	syncQueue *syncQueue
 	bufPool   *sync.Pool
-	bufMap    map[[maxMessageSize]byte]struct{}
+	bufMap    *sync.Map //map[[maxMessageSize]byte]struct{}
+	bufCount  int
 
 	notificationsProtocols map[byte]*notificationsProtocol // map of sub-protocol msg ID to protocol info
 	notificationsMu        sync.RWMutex
@@ -148,14 +149,16 @@ func NewService(cfg *Config) (*Service, error) {
 	bufPool.New = func() interface{} {
 		return [maxMessageSize]byte{}
 	}
-	bufMap := make(map[[maxBlockResponseSize]byte]struct{})
+	bufMap := new(sync.Map) //make(map[[maxBlockResponseSize]byte]struct{})
 
+	var bufCount int
 	if !cfg.noPreAllocate {
 		for i := 0; i < cfg.MinPeers*3; i++ {
 			buf := [maxBlockResponseSize]byte{}
 			bufPool.Put(buf) //nolint
-			bufMap[buf] = struct{}{}
+			bufMap.Store(&buf, struct{}{})
 		}
+		bufCount = cfg.MinPeers * 3
 	}
 
 	network := &Service{
@@ -176,6 +179,7 @@ func NewService(cfg *Config) (*Service, error) {
 		closeCh:                make(chan interface{}),
 		bufPool:                bufPool,
 		bufMap:                 bufMap,
+		bufCount:               bufCount,
 	}
 
 	network.syncQueue = newSyncQueue(network)
@@ -578,26 +582,36 @@ func isInbound(stream libp2pnetwork.Stream) bool {
 	return stream.Stat().Direction == libp2pnetwork.DirInbound
 }
 
-func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder, handler messageHandler) {
-	var (
-		buf      = s.bufPool.Get()
-		peer     = stream.Conn().RemotePeer()
-		msgBytes [maxMessageSize]byte
-		ok       bool
-	)
-
+func (s *Service) getMessageBuffer() [maxMessageSize]byte {
+	buf := s.bufPool.Get()
 	if buf == nil {
-		msgBytes = [maxMessageSize]byte{}
-	} else {
-		msgBytes, ok = buf.([maxMessageSize]byte)
-		if !ok {
-			msgBytes = [maxMessageSize]byte{}
-		}
+		return [maxMessageSize]byte{}
 	}
 
-	defer func() {
-		s.bufPool.Put(msgBytes) //nolint
-	}()
+	msgBytes, ok := buf.([maxMessageSize]byte)
+	if !ok {
+		return [maxMessageSize]byte{}
+	}
+
+	return msgBytes
+}
+
+func (s *Service) cleanupMessageBuffer(buf [maxMessageSize]byte) {
+	s.bufPool.Put(buf) //nolint
+
+	logger.Info("message buffers allocated", "count", s.bufCount)
+	if s.bufCount >= s.cfg.MaxPeers*3 {
+		return
+	}
+
+	s.bufMap.Store(&buf, struct{}{})
+	s.bufCount++
+}
+
+func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder, handler messageHandler) {
+	peer := stream.Conn().RemotePeer()
+	msgBytes := s.getMessageBuffer()
+	defer s.cleanupMessageBuffer(msgBytes)
 
 	for {
 		tot, err := readStream(stream, msgBytes[:])
