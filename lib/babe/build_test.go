@@ -320,3 +320,23 @@ func TestBuildBlock_failing(t *testing.T) {
 		t.Fatal("did not readd valid transaction to queue")
 	}
 }
+
+func TestDecodeExtrinsicBody(t *testing.T) {
+	ext := types.NewExtrinsic([]byte{0x1, 0x2, 0x3})
+	inh := [][]byte{{0x4, 0x5}, {0x6, 0x7}}
+
+	vtx := transaction.NewValidTransaction(ext, &transaction.Validity{})
+
+	body, err := extrinsicsToBody(inh, []*transaction.ValidTransaction{vtx})
+	require.Nil(t, err)
+	require.NotNil(t, body)
+
+	bodyext, err := body.AsExtrinsics()
+	require.Nil(t, err)
+	require.NotNil(t, bodyext)
+	require.Len(t, bodyext, 3)
+
+	contains, err := body.HasExtrinsic(ext)
+	require.Nil(t, err)
+	require.True(t, contains)
+}
