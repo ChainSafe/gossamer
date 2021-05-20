@@ -42,7 +42,8 @@ func TestMessageCache(t *testing.T) {
 	ok = msgCache.exists(peerID, msg)
 	require.True(t, ok)
 
-	time.Sleep(50 * time.Millisecond)
+	// TODO: Cache has issues with timeout. https://discuss.dgraph.io/t/setwithttl-doesnt-work/14192
+	time.Sleep(3 * time.Second)
 
 	ok = msgCache.exists(peerID, msg)
 	require.False(t, ok)

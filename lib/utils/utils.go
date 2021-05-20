@@ -25,6 +25,9 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/ChainSafe/chaindb"
+	"github.com/dgraph-io/badger/v2"
 )
 
 // PathExists returns true if the named file or directory exists, otherwise false
@@ -193,18 +196,31 @@ func GetKusamaGenesisPath() string {
 	return fp
 }
 
-// GetDevGenesisPath gets the dev genesis path
-func GetDevGenesisPath() string {
-	path1 := "../chain/dev/genesis.json"
-	path2 := "../../chain/dev/genesis.json"
-
-	var fp string
-
-	if PathExists(path1) {
-		fp, _ = filepath.Abs(path1)
-	} else if PathExists(path2) {
-		fp, _ = filepath.Abs(path2)
+// LoadChainDB load the db at the given path.
+func LoadChainDB(basePath string) (*chaindb.BadgerDB, error) {
+	cfg := &chaindb.Config{
+		DataDir: basePath,
 	}
 
-	return fp
+	// TODO: Open the db in readonly mode.
+
+	// Open already existing DB
+	db, err := chaindb.NewBadgerDB(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
+}
+
+// LoadBadgerDB load the db at the given path.
+func LoadBadgerDB(basePath string) (*badger.DB, error) {
+	opts := badger.DefaultOptions(basePath)
+	// Open already existing DB
+	db, err := badger.Open(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
 }
