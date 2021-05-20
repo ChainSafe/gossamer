@@ -169,6 +169,8 @@ var (
 			in:   uint(9223372036854775807),
 			want: []byte{0x13, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
 		},
+	}
+	int64Tests = tests{
 		{
 			name: "myCustomUint(9223372036854775807)",
 			in:   myCustomUint(9223372036854775807),
@@ -198,6 +200,8 @@ var (
 			in:   int64(9223372036854775807),
 			want: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
 		},
+	}
+	uint64Tests = tests{
 		{
 			name: "myCustomInt64(9223372036854775807)",
 			in:   myCustomInt64(9223372036854775807),
@@ -225,6 +229,8 @@ var (
 			in:   uint64(9223372036854775807),
 			want: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
 		},
+	}
+	int32Tests = tests{
 		{
 			name: "myCustomUint64(9223372036854775807)",
 			in:   myCustomUint64(9223372036854775807),
@@ -269,6 +275,8 @@ var (
 			in:   uint32(1073741823),
 			want: []byte{0xff, 0xff, 0xff, 0x3f},
 		},
+	}
+	int8Tests = tests{
 		{
 			name: "uint32(1073741823)",
 			in:   myCustomUint32(1073741823),
@@ -293,6 +301,8 @@ var (
 			in:   uint8(1),
 			want: []byte{0x01},
 		},
+	}
+	int16Tests = tests{
 		{
 			name: "myCustomInt8(1)",
 			in:   myCustomUint8(1),
@@ -310,6 +320,8 @@ var (
 			in:   int16(16383),
 			want: []byte{0xff, 0x3f},
 		},
+	}
+	uint16Tests = tests{
 		{
 			name: "myCustomInt16(16383)",
 			in:   myCustomInt16(16383),
