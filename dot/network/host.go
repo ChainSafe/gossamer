@@ -134,17 +134,17 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		libp2p.ConnectionManager(cm),
 		libp2p.ChainOptions(libp2p.DefaultSecurity, libp2p.Security(secio.ID, secio.New)), // TODO: deprecate secio?
 		libp2p.AddrsFactory(func(as []ma.Multiaddr) []ma.Multiaddr {
-			ok := []ma.Multiaddr{}
+			addrs := []ma.Multiaddr{}
 			for _, addr := range as {
 				if !privateIPs.AddrBlocked(addr) {
-					ok = append(ok, addr)
+					addrs = append(addrs, addr)
 				}
 			}
 			if externalAddr == nil {
-				return ok
+				return addrs
 			}
 
-			return append(ok, externalAddr)
+			return append(addrs, externalAddr)
 		}),
 	}
 
@@ -245,10 +245,6 @@ func (h *host) connect(p peer.AddrInfo) (err error) {
 	defer cancel()
 	err = h.h.Connect(ctx, p)
 	return err
-}
-
-func (h *host) addToPeerstore(p peer.AddrInfo) { //nolint
-	h.h.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
 }
 
 // bootstrap connects the host to the configured bootnodes
