@@ -49,6 +49,36 @@ func (ds *decodeState) unmarshal(dst interface{}) (err error) {
 		in = string(b)
 	case bool:
 		in, err = ds.decodeBool()
+	// case VaryingDataType:
+	// 	err = es.encodeVaryingDataType(in)
+	// // TODO: case common.Hash:
+	// // 	n, err = es.Writer.Write(v.ToBytes())
+	default:
+		switch reflect.TypeOf(in).Kind() {
+		case reflect.Ptr:
+			var rb byte
+			rb, err = ds.ReadByte()
+			if err != nil {
+				break
+			}
+			switch rb {
+			case 0x00:
+				in = nil
+			case 0x01:
+				elem := reflect.ValueOf(in).Elem()
+				err = ds.unmarshal(elem)
+			default:
+				err = fmt.Errorf("unsupported Option value: %v", rb)
+			}
+		// case reflect.Struct:
+		// 	err = es.encodeStruct(in)
+		// case reflect.Array:
+		// 	err = es.encodeArray(in)
+		// case reflect.Slice:
+		// 	err = es.encodeSlice(in)
+		default:
+			err = fmt.Errorf("unsupported type: %T", in)
+		}
 	}
 
 	if err != nil {
