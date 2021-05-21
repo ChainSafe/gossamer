@@ -134,15 +134,15 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 
 	// pre-allocate pool of buffers used to read from streams.
-	// initially allocate as many buffers as minimally necessary which is the number inbound streams we will have,
-	// which should equal min peers times the number of notifications protocols, which is currently 3.
+	// initially allocate as many buffers as liekly necessary which is the number inbound streams we will have,
+	// which should equal average number of peers times the number of notifications protocols, which is currently 3.
 	var bufPool *sizedBufferPool
 	if cfg.noPreAllocate {
 		bufPool = &sizedBufferPool{
-			c: make(chan *[maxMessageSize]byte, cfg.MaxPeers*4),
+			c: make(chan *[maxMessageSize]byte, cfg.MaxPeers*3),
 		}
 	} else {
-		bufPool = newSizedBufferPool(cfg.MinPeers*4, cfg.MaxPeers*4)
+		bufPool = newSizedBufferPool((cfg.MaxPeers-cfg.MinPeers)*3/2, (cfg.MaxPeers+1)*3)
 	}
 
 	network := &Service{
