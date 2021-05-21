@@ -27,7 +27,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
-	"github.com/ChainSafe/chaindb"
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
@@ -816,9 +815,7 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 
 	cfg.Init.Genesis = genFile.Name()
 
-	db, err := chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir: cfg.Global.BasePath,
-	})
+	db, err := utils.SetupDatabase(cfg.Global.BasePath, false)
 	require.Nil(t, err)
 
 	gen, err := genesis.NewGenesisFromJSONRaw(genFile.Name())
