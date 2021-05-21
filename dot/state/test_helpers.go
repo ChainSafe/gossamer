@@ -29,6 +29,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/stretchr/testify/require"
 )
@@ -40,10 +41,7 @@ func NewInMemoryDB(t *testing.T) chaindb.Database {
 	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
 	require.NoError(t, err)
 
-	db, err := chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir:  testDatadirPath,
-		InMemory: true,
-	})
+	db, err := utils.SetupDatabase(testDatadirPath, true)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		_ = db.Close()

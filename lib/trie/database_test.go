@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	"github.com/stretchr/testify/require"
 )
 
@@ -30,13 +31,8 @@ func newTestDB(t *testing.T) chaindb.Database {
 	// TODO: dynamically get os.TMPDIR
 	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
 
-	cfg := &chaindb.Config{
-		DataDir:  testDatadirPath,
-		InMemory: true,
-	}
-
 	// TODO: don't initialise new DB but pass it in
-	db, err := chaindb.NewBadgerDB(cfg)
+	db, err := utils.SetupDatabase(testDatadirPath, true)
 	require.NoError(t, err)
 	return chaindb.NewTable(db, "trie")
 }
