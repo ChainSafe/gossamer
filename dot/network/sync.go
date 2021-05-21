@@ -66,7 +66,7 @@ func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) er
 
 		resp, err := s.syncer.CreateBlockResponse(req)
 		if err != nil {
-			logger.Trace("cannot create response for request")
+			logger.Debug("cannot create response for request", "error", err)
 			return nil
 		}
 
@@ -119,6 +119,7 @@ type syncQueue struct {
 	cancel       context.CancelFunc
 	peerScore    *sync.Map // map[peer.ID]int; peers we have successfully synced from before -> their score; score increases on successful response
 
+	requestDataByHash        *sync.Map // map[common.Hash]requestData; caching requestData by hash
 	requestData              *sync.Map // map[uint64]requestData; map of start # of request -> requestData
 	justificationRequestData *sync.Map // map[common.Hash]requestData; map of requests of justifications -> requestData
 	requestCh                chan *syncRequest
@@ -144,6 +145,7 @@ func newSyncQueue(s *Service) *syncQueue {
 		cancel:                   cancel,
 		peerScore:                new(sync.Map),
 		requestData:              new(sync.Map),
+		requestDataByHash:        new(sync.Map),
 		justificationRequestData: new(sync.Map),
 		requestCh:                make(chan *syncRequest, blockRequestBufferSize),
 		responses:                []*types.BlockData{},
@@ -320,7 +322,7 @@ func (q *syncQueue) benchmark() {
 				continue
 			}
 
-			logger.Info("💤 node waiting", "head", before.Number, "finalised", finalised.Number)
+			logger.Info("💤 node waiting", "peer count", len(q.s.host.peers()), "head", before.Number, "finalised", finalised.Number)
 			time.Sleep(time.Second * 5)
 			continue
 		}
@@ -335,18 +337,15 @@ func (q *syncQueue) benchmark() {
 
 		q.benchmarker.end(after.Number.Uint64())
 
-		logger.Info("🔗 imported blocks", "from", before.Number, "to", after.Number,
-			"hashes", fmt.Sprintf("[%s ... %s]", before.Hash(), after.Hash()),
-		)
-
-		if q.goal-before.Number.Int64() < int64(blockRequestSize) {
-			continue
-		}
-
 		logger.Info("🚣 currently syncing",
+			"peer count", len(q.s.host.peers()),
 			"goal", q.goal,
 			"average blocks/second", q.benchmarker.mostRecentAverage(),
 			"overall average", q.benchmarker.average(),
+		)
+
+		logger.Info("🔗 imported blocks", "from", before.Number, "to", after.Number,
+			"hashes", fmt.Sprintf("[%s ... %s]", before.Hash(), after.Hash()),
 		)
 	}
 }
@@ -457,6 +456,7 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error 
 	}
 
 	startHash := resp.BlockData[0].Hash
+
 	if _, has := q.justificationRequestData.Load(startHash); has && !resp.BlockData[0].Header.Exists() {
 		numJustifications := 0
 		justificationResponses := []*types.BlockData{}
@@ -500,11 +500,18 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error 
 
 	// update peer's score
 	q.updatePeerScore(pid, 1)
-	q.requestData.Store(uint64(start), requestData{
+
+	reqdata := requestData{
 		sent:     true,
 		received: true,
 		from:     pid,
-	})
+	}
+
+	if _, has := q.requestDataByHash.Load(startHash); has {
+		q.requestDataByHash.Store(startHash, reqdata)
+	} else {
+		q.requestData.Store(uint64(start), reqdata)
+	}
 
 	q.responseLock.Lock()
 	defer q.responseLock.Unlock()
@@ -522,6 +529,28 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error 
 	return nil
 }
 
+func (q *syncQueue) isRequestDataCached(startingBlock *variadic.Uint64OrHash) (*requestData, bool) {
+	if startingBlock == nil {
+		return nil, false
+	}
+
+	if startingBlock.IsHash() {
+		if d, has := q.requestDataByHash.Load(startingBlock.Hash()); has {
+			data := d.(requestData)
+			return &data, true
+		}
+	}
+
+	if startingBlock.IsUint64() {
+		if d, has := q.requestData.Load(startingBlock.Uint64()); has {
+			data := d.(requestData)
+			return &data, true
+		}
+	}
+
+	return nil, false
+}
+
 func (q *syncQueue) processBlockRequests() {
 	for {
 		select {
@@ -530,16 +559,15 @@ func (q *syncQueue) processBlockRequests() {
 				continue
 			}
 
-			if !req.req.StartingBlock.IsUint64() {
+			reqData, ok := q.isRequestDataCached(req.req.StartingBlock)
+
+			if !ok {
 				q.trySync(req)
 				continue
 			}
 
-			if d, has := q.requestData.Load(req.req.StartingBlock.Uint64()); has {
-				data := d.(requestData)
-				if data.sent && data.received {
-					continue
-				}
+			if reqData.sent && reqData.received {
+				continue
 			}
 
 			q.trySync(req)
@@ -599,10 +627,13 @@ func (q *syncQueue) trySync(req *syncRequest) {
 			received: false,
 		})
 	} else if req.req.StartingBlock.IsHash() && (req.req.RequestedData&RequestedDataHeader) == 0 {
-		q.justificationRequestData.Store(req.req.StartingBlock.Hash(), requestData{
+		startingBlockHash := req.req.StartingBlock.Hash()
+		reqdata := requestData{
 			sent:     true,
 			received: false,
-		})
+		}
+
+		q.justificationRequestData.Store(startingBlockHash, reqdata)
 	}
 
 	req.to = ""

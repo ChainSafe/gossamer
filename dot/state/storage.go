@@ -29,6 +29,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
+// storagePrefix storage key prefix.
 var storagePrefix = "storage"
 var codeKey = common.CodeKey
 
