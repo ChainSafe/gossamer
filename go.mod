@@ -8,6 +8,7 @@ require (
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/bytecodealliance/wasmtime-go v0.20.0
 	github.com/centrifuge/go-substrate-rpc-client/v2 v2.0.1
+	github.com/chyeh/pubip v0.0.0-20170203095919-b7e679cf541c
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/davidlazar/go-crypto v0.0.0-20190912175916-7055855a373f // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.2
@@ -30,6 +31,7 @@ require (
 	github.com/huin/goupnp v1.0.1-0.20200620063722-49508fba0031 // indirect
 	github.com/ipfs/go-ds-badger2 v0.1.0
 	github.com/jcelliott/lumber v0.0.0-20160324203708-dd349441af25 // indirect
+	github.com/jpillora/backoff v1.0.0 // indirect
 	github.com/jpillora/ipfilter v1.2.2
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/libp2p/go-libp2p v0.12.0

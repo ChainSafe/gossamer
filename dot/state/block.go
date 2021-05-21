@@ -38,8 +38,7 @@ const pruneKeyBufferSize = 1000
 
 // BlockState defines fields for manipulating the state of blocks, such as BlockTree, BlockDB and Header
 type BlockState struct {
-	bt *blocktree.BlockTree
-	//baseDB chaindb.Database
+	bt        *blocktree.BlockTree
 	baseState *BaseState
 	db        chaindb.Database
 	sync.RWMutex
