@@ -53,6 +53,7 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 
 }
 
+// nolint
 type BlockBuilder struct {
 	rt                    runtime.Instance
 	keypair               *sr25519.Keypair
@@ -62,18 +63,19 @@ type BlockBuilder struct {
 	currentAuthorityIndex uint32
 }
 
+// nolint
 func NewBuilder(rt runtime.Instance, kp *sr25519.Keypair, ts TransactionState, bs BlockState, sp map[uint64]*VrfOutputAndProof, authidx uint32) (*BlockBuilder, error) {
 	if rt == nil {
-		return nil, errors.New("cannot create block builder; runtime instance is nil.")
+		return nil, errors.New("cannot create block builder; runtime instance is nil")
 	}
 	if ts == nil {
-		return nil, errors.New("cannot create block builder; transaction state is nil.")
+		return nil, errors.New("cannot create block builder; transaction state is nil")
 	}
 	if bs == nil {
-		return nil, errors.New("cannot create block builder; block state is nil.")
+		return nil, errors.New("cannot create block builder; block state is nil")
 	}
 	if sp == nil {
-		return nil, errors.New("cannot create block builder; slot to proff is nil.")
+		return nil, errors.New("cannot create block builder; slot to proff is nil")
 	}
 
 	bb := &BlockBuilder{
