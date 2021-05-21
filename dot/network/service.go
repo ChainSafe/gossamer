@@ -44,6 +44,8 @@ const (
 	lightID         = "/light/2"
 	blockAnnounceID = "/block-announces/1"
 	transactionsID  = "/transactions/1"
+
+	maxMessageSize = 1024 * 1024 // 1mb for now
 )
 
 var (
@@ -70,6 +72,7 @@ type Service struct {
 	mdns      *mdns
 	gossip    *gossip
 	syncQueue *syncQueue
+	bufPool   *sizedBufferPool
 
 	notificationsProtocols map[byte]*notificationsProtocol // map of sub-protocol msg ID to protocol info
 	notificationsMu        sync.RWMutex
@@ -130,6 +133,18 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
+	// pre-allocate pool of buffers used to read from streams.
+	// initially allocate as many buffers as liekly necessary which is the number inbound streams we will have,
+	// which should equal average number of peers times the number of notifications protocols, which is currently 3.
+	var bufPool *sizedBufferPool
+	if cfg.noPreAllocate {
+		bufPool = &sizedBufferPool{
+			c: make(chan *[maxMessageSize]byte, cfg.MaxPeers*3),
+		}
+	} else {
+		bufPool = newSizedBufferPool((cfg.MaxPeers-cfg.MinPeers)*3/2, (cfg.MaxPeers+1)*3)
+	}
+
 	network := &Service{
 		ctx:                    ctx,
 		cancel:                 cancel,
@@ -146,6 +161,7 @@ func NewService(cfg *Config) (*Service, error) {
 		lightRequest:           make(map[peer.ID]struct{}),
 		telemetryInterval:      cfg.telemetryInterval,
 		closeCh:                make(chan interface{}),
+		bufPool:                bufPool,
 	}
 
 	network.syncQueue = newSyncQueue(network)
@@ -509,14 +525,12 @@ func isInbound(stream libp2pnetwork.Stream) bool {
 }
 
 func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder, handler messageHandler) {
-	var (
-		maxMessageSize uint64 = maxBlockResponseSize // TODO: determine actual max message size
-		msgBytes              = make([]byte, maxMessageSize)
-		peer                  = stream.Conn().RemotePeer()
-	)
+	peer := stream.Conn().RemotePeer()
+	msgBytes := s.bufPool.get()
+	defer s.bufPool.put(&msgBytes)
 
 	for {
-		tot, err := readStream(stream, msgBytes)
+		tot, err := readStream(stream, msgBytes[:])
 		if err == io.EOF {
 			continue
 		} else if err != nil {

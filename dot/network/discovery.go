@@ -126,7 +126,6 @@ func (d *discovery) discoverAndAdvertise() error {
 
 	// wait to connect to bootstrap peers
 	time.Sleep(time.Second)
-	peersToTry := make(map[*peer.AddrInfo]struct{})
 
 	go func() {
 		ttl := initialAdvertisementTimeout
@@ -160,6 +159,7 @@ func (d *discovery) discoverAndAdvertise() error {
 			return
 		}
 
+		peersToTry := make(map[*peer.AddrInfo]struct{})
 		for {
 			select {
 			case <-d.ctx.Done():
