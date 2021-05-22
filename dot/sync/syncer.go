@@ -24,6 +24,7 @@ import (
 	"os"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
@@ -56,7 +57,7 @@ type Service struct {
 
 	// Consensus digest handling
 	digestHandler DigestHandler
-	pruner        *pruner
+	pruner        *state.Pruner
 }
 
 // Config is the configuration for the sync Service.
@@ -70,6 +71,8 @@ type Config struct {
 	Runtime          runtime.Instance
 	Verifier         Verifier
 	DigestHandler    DigestHandler
+
+	Pruner *state.Pruner
 }
 
 // NewService returns a new *sync.Service
@@ -103,11 +106,6 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
-	p, err := newPruner(cfg.StorageState)
-	if err != nil {
-		return nil, err
-	}
-
 	return &Service{
 		codeHash:         codeHash,
 		blockState:       cfg.BlockState,
@@ -120,7 +118,7 @@ func NewService(cfg *Config) (*Service, error) {
 		runtime:          cfg.Runtime,
 		verifier:         cfg.Verifier,
 		digestHandler:    cfg.DigestHandler,
-		pruner:           p,
+		pruner:           cfg.Pruner,
 	}, nil
 }
 
@@ -354,8 +352,14 @@ func (s *Service) handleBlock(block *types.Block) error {
 	}
 
 	blockHash := block.Header.Hash()
+	insKeys, err := ts.GetInsertedNodeHashes()
+	if err != nil {
+		logger.Error("failed to get state trie inserted keys: block ", block.Header.Number, err)
+	}
 
-	err = s.pruner.storeJournalRecord(ts, s.storageState, &blockHash, block.Header.Number)
+	delKeys := ts.GetDeletedNodeHashes()
+
+	err = s.pruner.StoreJournalRecord(delKeys, insKeys, &blockHash, block.Header.Number)
 	if err != nil {
 		return err
 	}
@@ -386,7 +390,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 		s.handleDigests(block.Header)
 	}
 
-	go s.pruner.pruneOne(s.storageState)
+	go s.pruner.PruneOne()
 
 	return s.handleRuntimeChanges(ts)
 }

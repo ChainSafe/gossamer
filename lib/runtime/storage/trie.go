@@ -269,12 +269,14 @@ func (s *TrieState) LoadCodeHash() (common.Hash, error) {
 	return common.Blake2bHash(code)
 }
 
+// GetInsertedNodeHashes returns the hash of nodes inserted into state trie since last block produced
 func (s *TrieState) GetInsertedNodeHashes() ([]*common.Hash, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 	return s.t.GetInsertedNodeHashes(s.t.RootNode())
 }
 
+// GetDeletedNodeHashes returns the hash of nodes that are deleted from state trie since last block produced
 func (s *TrieState) GetDeletedNodeHashes() []*common.Hash {
 	s.lock.RLock()
 	defer s.lock.RUnlock()

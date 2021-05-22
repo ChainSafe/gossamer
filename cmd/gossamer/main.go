@@ -234,6 +234,10 @@ func gossamerAction(ctx *cli.Context) error {
 		return err
 	}
 
+	if cfg.Global.RetainBlocks < 256 {
+		return fmt.Errorf("retain blocks cannot be less than 256")
+	}
+
 	cfg.Global.LogLvl = lvl
 
 	// expand data directory and update node configuration (performed separately
@@ -448,7 +452,7 @@ func pruneState(ctx *cli.Context) error {
 		return err
 	}
 
-	logger.Info("Pruner initialised")
+	logger.Info("Offline pruner initialised")
 
 	err = pruner.SetBloomFilter()
 	if err != nil {

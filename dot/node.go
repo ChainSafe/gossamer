@@ -237,6 +237,11 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	// Network Service
 	var networkSrvc *network.Service
 
+	pruner, err := state.CreatePruner(stateSrvc.DB(), cfg.Global.RetainBlocks)
+	if err != nil {
+		logger.Error("failed to create pruner:", err)
+	}
+
 	// check if network service is enabled
 	if enabled := networkServiceEnabled(cfg); enabled {
 		// create network service and append network service to node services
@@ -262,7 +267,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	}
 
 	// create BABE service
-	bp, err := createBABEService(cfg, rt, stateSrvc, ks.Babe)
+	bp, err := createBABEService(cfg, rt, stateSrvc, ks.Babe, pruner)
 	if err != nil {
 		return nil, err
 	}
@@ -283,7 +288,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	nodeSrvcs = append(nodeSrvcs, fg)
 
 	// Syncer
-	syncer, err := createSyncService(cfg, stateSrvc, bp, fg, dh, ver, rt)
+	syncer, err := createSyncService(cfg, stateSrvc, bp, fg, dh, ver, rt, pruner)
 	if err != nil {
 		return nil, err
 	}

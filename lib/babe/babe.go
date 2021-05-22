@@ -26,6 +26,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -49,6 +50,7 @@ type Service struct {
 	transactionState TransactionState
 	epochState       EpochState
 	epochLength      uint64
+	pruner           *state.Pruner
 
 	// BABE authority keypair
 	keypair *sr25519.Keypair // TODO: change to BABE keystore
@@ -86,6 +88,7 @@ type ServiceConfig struct {
 	SlotDuration         uint64 // for development purposes; in milliseconds
 	EpochLength          uint64 // for development purposes; in slots
 	Authority            bool
+	Pruner               *state.Pruner
 }
 
 // NewService returns a new Babe Service using the provided VRF keys and runtime
@@ -128,9 +131,9 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		pause:            make(chan struct{}),
 		authority:        cfg.Authority,
 		dev:              cfg.IsDev,
+		pruner:           cfg.Pruner,
 	}
 
-	var err error
 	genCfg, err := babeService.rt.BabeConfiguration()
 	if err != nil {
 		return nil, err
@@ -411,6 +414,8 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) {
 		slotDone[i] = time.After(b.getSlotDuration() * time.Duration(i))
 	}
 
+	go b.pruner.PruneOne()
+
 	for i := 0; i < int(b.epochLength-intoEpoch); i++ {
 		select {
 		case <-b.ctx.Done():
@@ -486,6 +491,19 @@ func (b *Service) handleSlot(slotNum uint64) error {
 	if err != nil {
 		logger.Error("block authoring", "error", err)
 		return nil
+	}
+
+	blockHash := block.Header.Hash()
+	insKeys, err := ts.GetInsertedNodeHashes()
+	if err != nil {
+		logger.Error("failed to get inserted keys for ", block.Header.Number, err)
+	}
+
+	delKeys := ts.GetDeletedNodeHashes()
+
+	err = b.pruner.StoreJournalRecord(delKeys, insKeys, &blockHash, block.Header.Number)
+	if err != nil {
+		return err
 	}
 
 	old := ts.Snapshot()

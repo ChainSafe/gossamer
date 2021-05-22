@@ -136,7 +136,7 @@ func TestCreateSyncService(t *testing.T) {
 	ver, err := createBlockVerifier(stateSrvc)
 	require.NoError(t, err)
 
-	_, err = createSyncService(cfg, stateSrvc, nil, nil, nil, ver, rt)
+	_, err = createSyncService(cfg, stateSrvc, nil, nil, nil, ver, rt, nil)
 	require.NoError(t, err)
 }
 
@@ -233,7 +233,7 @@ func TestCreateBABEService(t *testing.T) {
 	rt, err := createRuntime(cfg, stateSrvc, ks, &network.Service{})
 	require.NoError(t, err)
 
-	bs, err := createBABEService(cfg, rt, stateSrvc, ks.Babe)
+	bs, err := createBABEService(cfg, rt, stateSrvc, ks.Babe, nil)
 	require.NoError(t, err)
 	require.NotNil(t, bs)
 }

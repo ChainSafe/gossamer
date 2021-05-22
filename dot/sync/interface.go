@@ -54,11 +54,6 @@ type StorageState interface {
 	StoreTrie(ts *rtstorage.TrieState) error
 	LoadCodeHash(*common.Hash) (common.Hash, error)
 	SetSyncing(bool)
-	StoreJournal(uint64, []byte) error
-	GetJournalRecord(uint64) ([]byte, error)
-	StoreLastPrunedIndex(uint64) error
-	GetLastPrunedIndex()(uint64,error)
-	DeleteKeys(keys map[*common.Hash]uint64)error
 }
 
 // TransactionState is the interface for transaction queue methods
