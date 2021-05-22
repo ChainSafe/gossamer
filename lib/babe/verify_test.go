@@ -303,7 +303,7 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 	babeService.epochData.threshold = maxThreshold
 	babeService.epochData.authorityIndex = 0
 
-	builder, _ := NewBuilder(
+	builder, _ := NewBlockBuilder(
 		babeService.rt,
 		babeService.keypair,
 		babeService.transactionState,

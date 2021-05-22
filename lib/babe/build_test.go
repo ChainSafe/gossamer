@@ -45,7 +45,7 @@ func TestSeal(t *testing.T) {
 
 	babeService := createTestService(t, cfg)
 
-	builder, _ := NewBuilder(
+	builder, _ := NewBlockBuilder(
 		babeService.rt,
 		babeService.keypair,
 		babeService.transactionState,
@@ -124,7 +124,7 @@ func TestBuildBlock_ok(t *testing.T) {
 	babeService := createTestService(t, cfg)
 	babeService.epochData.threshold = maxThreshold
 
-	builder, _ := NewBuilder(
+	builder, _ := NewBlockBuilder(
 		babeService.rt,
 		babeService.keypair,
 		babeService.transactionState,

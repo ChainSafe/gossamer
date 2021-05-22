@@ -67,7 +67,7 @@ func addBlocksToState(t *testing.T, babeService *Service, depth int, blockState 
 	previousHash := blockState.BestBlockHash()
 	previousAT := startTime
 	duration, err := time.ParseDuration("1s")
-	builder, _ := NewBuilder(
+	builder, _ := NewBlockBuilder(
 		babeService.rt,
 		babeService.keypair,
 		babeService.transactionState,
@@ -139,7 +139,7 @@ func TestEstimateCurrentSlot(t *testing.T) {
 	babeService.epochData.threshold = maxThreshold
 	babeService.epochData.authorityIndex = 0
 
-	builder, _ := NewBuilder(
+	builder, _ := NewBlockBuilder(
 		babeService.rt,
 		babeService.keypair,
 		babeService.transactionState,

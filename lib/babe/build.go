@@ -34,7 +34,7 @@ import (
 
 // construct a block for this slot with the given parent
 func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, error) {
-	builder, err := NewBuilder(
+	builder, err := NewBlockBuilder(
 		b.rt,
 		b.keypair,
 		b.transactionState,
