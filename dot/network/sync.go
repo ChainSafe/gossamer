@@ -79,7 +79,7 @@ func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) er
 	return nil
 }
 
-var (
+const (
 	blockRequestSize        uint32 = 128
 	blockRequestBufferSize  int    = 6
 	blockResponseBufferSize int    = 6
