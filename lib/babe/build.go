@@ -64,7 +64,7 @@ type BlockBuilder struct {
 }
 
 // nolint
-func NewBuilder(rt runtime.Instance, kp *sr25519.Keypair, ts TransactionState, bs BlockState, sp map[uint64]*VrfOutputAndProof, authidx uint32) (*BlockBuilder, error) {
+func NewBlockBuilder(rt runtime.Instance, kp *sr25519.Keypair, ts TransactionState, bs BlockState, sp map[uint64]*VrfOutputAndProof, authidx uint32) (*BlockBuilder, error) {
 	if rt == nil {
 		return nil, errors.New("cannot create block builder; runtime instance is nil")
 	}
