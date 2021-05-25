@@ -17,6 +17,7 @@
 package telemetry
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sync"
@@ -28,6 +29,7 @@ import (
 
 type telemetryConnection struct {
 	wsconn    *websocket.Conn
+	mtx       sync.Mutex
 	verbosity int
 }
 
@@ -39,6 +41,7 @@ type Message struct {
 // Handler struct for holding telemetry related things
 type Handler struct {
 	msg         chan Message
+	ctx         context.Context
 	connections []telemetryConnection
 }
 
@@ -59,7 +62,8 @@ func GetInstance() *Handler { //nolint
 		once.Do(
 			func() {
 				handlerInstance = &Handler{
-					msg: make(chan Message, 10),
+					msg: make(chan Message, 256),
+					ctx: context.Background(),
 				}
 				go handlerInstance.startListening()
 			})
@@ -68,7 +72,7 @@ func GetInstance() *Handler { //nolint
 }
 
 // NewTelemetryMessage builds a telemetry message
-func NewTelemetryMessage(values ...KeyValue) *Message { //nolint
+func NewTelemetryMessage(values ...*KeyValue) *Message { //nolint
 	mvals := make(map[string]interface{})
 	for _, v := range values {
 		mvals[v.key] = v.value
@@ -79,8 +83,8 @@ func NewTelemetryMessage(values ...KeyValue) *Message { //nolint
 }
 
 // NewKeyValue builds a key value pair for telemetry messages
-func NewKeyValue(key string, value interface{}) KeyValue { //nolint
-	return KeyValue{
+func NewKeyValue(key string, value interface{}) *KeyValue { //nolint
+	return &KeyValue{
 		key:   key,
 		value: value,
 	}
@@ -110,13 +114,20 @@ func (t *Handler) SendMessage(msg *Message) {
 
 func (t *Handler) startListening() {
 	for {
-		msg := <-t.msg
-		for _, v := range t.connections {
-			err := v.wsconn.WriteMessage(websocket.TextMessage, msgToBytes(msg))
-			if err != nil {
-				// TODO (ed) determine how to handle this error
-				fmt.Printf("ERROR connecting to telemetry %v\n", err)
-			}
+		select {
+		case msg := <-t.msg:
+			go func() {
+				for _, v := range t.connections {
+					v.mtx.Lock()
+					err := v.wsconn.WriteMessage(websocket.TextMessage, msgToBytes(msg))
+					v.mtx.Unlock()
+					if err != nil {
+						// TODO (ed) determine how to handle this error
+					}
+				}
+			}()
+		case <-t.ctx.Done():
+			return
 		}
 	}
 }
