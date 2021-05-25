@@ -289,6 +289,7 @@ func (s *EpochState) GetStartSlotForEpoch(epoch uint64) (uint64, error) {
 
 // SetFirstSlot sets the first slot number of the network
 func (s *EpochState) SetFirstSlot(slot uint64) error {
+	logger.Info("EpochState.SetFirstSlot", "slot", s.firstSlot)
 	s.firstSlot = slot
 	return s.baseState.storeFirstSlot(slot)
 }
