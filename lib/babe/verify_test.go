@@ -302,6 +302,16 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 	// create proof that we can authorize this block
 	babeService.epochData.threshold = maxThreshold
 	babeService.epochData.authorityIndex = 0
+
+	builder, _ := NewBlockBuilder(
+		babeService.rt,
+		babeService.keypair,
+		babeService.transactionState,
+		babeService.blockState,
+		babeService.slotToProof,
+		babeService.epochData.authorityIndex,
+	)
+
 	var slotNumber uint64 = 1
 
 	addAuthorshipProof(t, babeService, slotNumber, testEpochIndex)
@@ -315,7 +325,7 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 	}
 
 	// create babe header
-	babeHeader, err := babeService.buildBlockBABEPrimaryPreDigest(slot)
+	babeHeader, err := builder.buildBlockBABEPrimaryPreDigest(slot)
 	require.NoError(t, err)
 
 	Authorities := make([]*types.Authority, 1)
