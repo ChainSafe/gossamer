@@ -67,6 +67,14 @@ func addBlocksToState(t *testing.T, babeService *Service, depth int, blockState 
 	previousHash := blockState.BestBlockHash()
 	previousAT := startTime
 	duration, err := time.ParseDuration("1s")
+	builder, _ := NewBlockBuilder(
+		babeService.rt,
+		babeService.keypair,
+		babeService.transactionState,
+		babeService.blockState,
+		babeService.slotToProof,
+		babeService.epochData.authorityIndex,
+	)
 	require.NoError(t, err)
 
 	for i := 1; i <= depth; i++ {
@@ -88,7 +96,7 @@ func addBlocksToState(t *testing.T, babeService *Service, depth int, blockState 
 			number:   slotNumber,
 		}
 
-		predigest, err := babeService.buildBlockPreDigest(slot)
+		predigest, err := builder.buildBlockPreDigest(slot)
 		require.NoError(t, err)
 
 		block := &types.Block{
@@ -130,6 +138,16 @@ func TestEstimateCurrentSlot(t *testing.T) {
 	// create proof that we can authorize this block
 	babeService.epochData.threshold = maxThreshold
 	babeService.epochData.authorityIndex = 0
+
+	builder, _ := NewBlockBuilder(
+		babeService.rt,
+		babeService.keypair,
+		babeService.transactionState,
+		babeService.blockState,
+		babeService.slotToProof,
+		babeService.epochData.authorityIndex,
+	)
+
 	slotNumber := uint64(17)
 
 	outAndProof, err := babeService.runLottery(slotNumber, testEpochIndex)
@@ -145,7 +163,7 @@ func TestEstimateCurrentSlot(t *testing.T) {
 		number:   slotNumber,
 	}
 
-	predigest, err := babeService.buildBlockPreDigest(slot)
+	predigest, err := builder.buildBlockPreDigest(slot)
 	require.NoError(t, err)
 
 	block := &types.Block{
