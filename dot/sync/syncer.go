@@ -453,4 +453,9 @@ func (s *Service) IsSynced() bool {
 func (s *Service) SetSyncing(syncing bool) {
 	s.synced = !syncing
 	s.storageState.SetSyncing(syncing)
+	if syncing {
+		s.blockProducer.Pause()
+	} else {
+		s.blockProducer.Resume()
+	}
 }
