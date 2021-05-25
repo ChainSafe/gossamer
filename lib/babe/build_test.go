@@ -45,6 +45,15 @@ func TestSeal(t *testing.T) {
 
 	babeService := createTestService(t, cfg)
 
+	builder, _ := NewBlockBuilder(
+		babeService.rt,
+		babeService.keypair,
+		babeService.transactionState,
+		babeService.blockState,
+		babeService.slotToProof,
+		babeService.epochData.authorityIndex,
+	)
+
 	zeroHash, err := common.HexToHash("0x00")
 	require.NoError(t, err)
 
@@ -57,7 +66,7 @@ func TestSeal(t *testing.T) {
 	hash, err := common.Blake2bHash(encHeader)
 	require.NoError(t, err)
 
-	seal, err := babeService.buildBlockSeal(header)
+	seal, err := builder.buildBlockSeal(header)
 	require.NoError(t, err)
 
 	ok, err := kp.Public().Verify(hash[:], seal.Data)
@@ -115,13 +124,22 @@ func TestBuildBlock_ok(t *testing.T) {
 	babeService := createTestService(t, cfg)
 	babeService.epochData.threshold = maxThreshold
 
+	builder, _ := NewBlockBuilder(
+		babeService.rt,
+		babeService.keypair,
+		babeService.transactionState,
+		babeService.blockState,
+		babeService.slotToProof,
+		babeService.epochData.authorityIndex,
+	)
+
 	// TODO: re-add extrinsic
 	exts := [][]byte{}
 
 	block, slot := createTestBlock(t, babeService, emptyHeader, exts, 1, testEpochIndex)
 
 	// create pre-digest
-	preDigest, err := babeService.buildBlockPreDigest(slot)
+	preDigest, err := builder.buildBlockPreDigest(slot)
 	require.NoError(t, err)
 
 	expectedBlockHeader := &types.Header{
