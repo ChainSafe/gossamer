@@ -28,7 +28,7 @@ import (
 
 var errCannotValidateHandshake = errors.New("failed to validate handshake")
 
-var maxHandshakeSize = unsafe.Sizeof(BlockAnnounceHandshake{}) //nolint
+const maxHandshakeSize = unsafe.Sizeof(BlockAnnounceHandshake{}) //nolint
 
 // Handshake is the interface all handshakes for notifications protocols must implement
 type Handshake interface {
@@ -226,7 +226,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 			return
 		}
 
-		hs, err := readHandshake(stream, decodeBlockAnnounceHandshake)
+		hs, err := s.readHandshake(stream, decodeBlockAnnounceHandshake)
 		if err != nil {
 			logger.Trace("failed to read handshake", "protocol", info.protocolID, "peer", peer, "error", err)
 			_ = stream.Close()
@@ -294,9 +294,11 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 	}
 }
 
-func readHandshake(stream libp2pnetwork.Stream, decoder HandshakeDecoder) (Handshake, error) {
-	msgBytes := make([]byte, maxHandshakeSize)
-	tot, err := readStream(stream, msgBytes)
+func (s *Service) readHandshake(stream libp2pnetwork.Stream, decoder HandshakeDecoder) (Handshake, error) {
+	msgBytes := s.bufPool.get()
+	defer s.bufPool.put(&msgBytes)
+
+	tot, err := readStream(stream, msgBytes[:])
 	if err != nil {
 		return nil, err
 	}

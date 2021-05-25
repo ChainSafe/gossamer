@@ -28,6 +28,7 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/ChainSafe/chaindb"
 )
@@ -35,27 +36,18 @@ import (
 // Initialise initialises the genesis state of the DB using the given storage trie. The trie should be loaded with the genesis storage state.
 // This only needs to be called during genesis initialisation of the node; it is not called during normal startup.
 func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie.Trie) error {
-	var db chaindb.Database
-	cfg := &chaindb.Config{}
-
-	// check database type
-	if s.isMemDB {
-		cfg.InMemory = true
-	}
-
 	// get data directory from service
 	basepath, err := filepath.Abs(s.dbPath)
 	if err != nil {
 		return fmt.Errorf("failed to read basepath: %s", err)
 	}
 
-	cfg.DataDir = basepath
-
 	// initialise database using data directory
-	db, err = chaindb.NewBadgerDB(cfg)
+	db, err := utils.SetupDatabase(basepath, s.isMemDB)
 	if err != nil {
 		return fmt.Errorf("failed to create database: %s", err)
 	}
+
 	s.db = db
 
 	if err = db.ClearAll(); err != nil {
@@ -119,9 +111,6 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 
 	// check database type
 	if s.isMemDB {
-		// append memory database to state service
-		s.db = db
-
 		// append storage state and block state to state service
 		s.Storage = storageState
 		s.Block = blockState

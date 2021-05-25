@@ -26,6 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/ChainSafe/chaindb"
 	log "github.com/ChainSafe/log15"
@@ -88,18 +89,15 @@ func (s *Service) Start() error {
 	}
 
 	db := s.db
+
 	if !s.isMemDB {
 		basepath, err := filepath.Abs(s.dbPath)
 		if err != nil {
 			return err
 		}
 
-		cfg := &chaindb.Config{
-			DataDir: basepath,
-		}
-
 		// initialise database
-		db, err = chaindb.NewBadgerDB(cfg)
+		db, err = utils.SetupDatabase(basepath, false)
 		if err != nil {
 			return err
 		}
@@ -297,17 +295,9 @@ func (s *Service) Stop() error {
 // Import imports the given state corresponding to the given header and sets the head of the chain
 // to it. Additionally, it uses the first slot to correctly set the epoch number of the block.
 func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) error {
-	cfg := &chaindb.Config{
-		DataDir: s.dbPath,
-	}
-
-	if s.isMemDB {
-		cfg.InMemory = true
-	}
-
 	var err error
 	// initialise database using data directory
-	s.db, err = chaindb.NewBadgerDB(cfg)
+	s.db, err = utils.SetupDatabase(s.dbPath, s.isMemDB)
 	if err != nil {
 		return fmt.Errorf("failed to create database: %s", err)
 	}
