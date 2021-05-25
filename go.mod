@@ -59,6 +59,7 @@ require (
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/lint v0.0.0-20191125180803-fdd1cda4f05f // indirect
 	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c // indirect
+	golang.org/x/term v0.0.0-20201117132131-f5c789dd3221
 	google.golang.org/appengine v1.6.5 // indirect
 	google.golang.org/protobuf v1.25.0
 )
