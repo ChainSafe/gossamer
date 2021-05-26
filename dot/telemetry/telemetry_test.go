@@ -46,31 +46,41 @@ func TestHandler_SendMulti(t *testing.T) {
 	resultCh = make(chan []byte)
 
 	go func() {
-		GetInstance().SendMessage(NewTelemetryMessage(NewKeyValue("authority", false),
-			NewKeyValue("chain", "chain"), NewKeyValue("genesis_hash", "hash"),
-			NewKeyValue("implementation", "systemName"), NewKeyValue("msg", "system.connected"),
-			NewKeyValue("name", "nodeName"), NewKeyValue("network_id", "netID"),
-			NewKeyValue("startup_time", "startTime"), NewKeyValue("version", "version")))
+		GetInstance().SendMessage(NewTelemetryMessage(
+			NewKeyValue("authority", false),
+			NewKeyValue("chain", "chain"),
+			NewKeyValue("genesis_hash", "hash"),
+			NewKeyValue("implementation", "systemName"),
+			NewKeyValue("msg", "system.connected"),
+			NewKeyValue("name", "nodeName"),
+			NewKeyValue("network_id", "netID"),
+			NewKeyValue("startup_time", "startTime"),
+			NewKeyValue("version", "version")))
 
 		wg.Done()
 	}()
 
 	go func() {
-		GetInstance().SendMessage(NewTelemetryMessage((NewKeyValue("best", "hash")),
-			NewKeyValue("height", big.NewInt(2)), NewKeyValue("msg", "block.import"),
+		GetInstance().SendMessage(NewTelemetryMessage(
+			NewKeyValue("best", "hash"),
+			NewKeyValue("height", big.NewInt(2)),
+			NewKeyValue("msg", "block.import"),
 			NewKeyValue("origin", "NetworkInitialSync")))
 		wg.Done()
 	}()
 
 	go func() {
-		GetInstance().SendMessage(NewTelemetryMessage(NewKeyValue("bandwidth_download", 2),
-			NewKeyValue("bandwidth_upload", 3), NewKeyValue("msg", "system.interval"),
+		GetInstance().SendMessage(NewTelemetryMessage(
+			NewKeyValue("bandwidth_download", 2),
+			NewKeyValue("bandwidth_upload", 3),
+			NewKeyValue("msg", "system.interval"),
 			NewKeyValue("peers", 1)))
 		wg.Done()
 	}()
 
 	go func() {
-		GetInstance().SendMessage(NewTelemetryMessage(NewKeyValue("best", "0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6"),
+		GetInstance().SendMessage(NewTelemetryMessage(
+			NewKeyValue("best", "0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6"),
 			NewKeyValue("finalized_hash", "0x687197c11b4cf95374159843e7f46fbcd63558db981aaef01a8bac2a44a1d6b2"), // nolint
 			NewKeyValue("finalized_height", 32256), NewKeyValue("height", 32375), // nolint
 			NewKeyValue("msg", "system.interval"), NewKeyValue("txcount", 2),

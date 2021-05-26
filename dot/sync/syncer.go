@@ -364,8 +364,10 @@ func (s *Service) handleBlock(block *types.Block) error {
 		}
 	} else {
 		logger.Debug("🔗 imported block", "number", block.Header.Number, "hash", block.Header.Hash())
-		telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage((telemetry.NewKeyValue("best", block.Header.Hash().String())),
-			telemetry.NewKeyValue("height", block.Header.Number.Uint64()), telemetry.NewKeyValue("msg", "block.import"),
+		telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(
+			telemetry.NewKeyValue("best", block.Header.Hash().String()),
+			telemetry.NewKeyValue("height", block.Header.Number.Uint64()),
+			telemetry.NewKeyValue("msg", "block.import"),
 			telemetry.NewKeyValue("origin", "NetworkInitialSync")))
 		// todo(ed) add timer to avoid a lot of sends
 	}

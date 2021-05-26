@@ -351,11 +351,16 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 
 	telemetry.GetInstance().AddConnections(gd.TelemetryEndpoints)
 
-	telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(telemetry.NewKeyValue("authority", cfg.Core.GrandpaAuthority),
-		telemetry.NewKeyValue("chain", sysSrvc.ChainName()), telemetry.NewKeyValue("genesis_hash", stateSrvc.Block.GenesisHash().String()),
-		telemetry.NewKeyValue("implementation", sysSrvc.SystemName()), telemetry.NewKeyValue("msg", "system.connected"),
-		telemetry.NewKeyValue("name", cfg.Global.Name), telemetry.NewKeyValue("network_id", networkSrvc.NetworkState().PeerID),
-		telemetry.NewKeyValue("startup_time", strconv.FormatInt(time.Now().UnixNano(), 10)), telemetry.NewKeyValue("version", sysSrvc.SystemVersion())))
+	telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(
+		telemetry.NewKeyValue("authority", cfg.Core.GrandpaAuthority),
+		telemetry.NewKeyValue("chain", sysSrvc.ChainName()),
+		telemetry.NewKeyValue("genesis_hash", stateSrvc.Block.GenesisHash().String()),
+		telemetry.NewKeyValue("implementation", sysSrvc.SystemName()),
+		telemetry.NewKeyValue("msg", "system.connected"),
+		telemetry.NewKeyValue("name", cfg.Global.Name),
+		telemetry.NewKeyValue("network_id", networkSrvc.NetworkState().PeerID),
+		telemetry.NewKeyValue("startup_time", strconv.FormatInt(time.Now().UnixNano(), 10)),
+		telemetry.NewKeyValue("version", sysSrvc.SystemVersion())))
 
 	return node, nil
 }

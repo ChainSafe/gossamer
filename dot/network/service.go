@@ -313,8 +313,10 @@ main:
 
 		case <-ticker.C:
 			o := s.host.bwc.GetBandwidthTotals()
-			telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(telemetry.NewKeyValue("bandwidth_download", o.RateIn),
-				telemetry.NewKeyValue("bandwidth_upload", o.RateOut), telemetry.NewKeyValue("msg", "system.interval"),
+			telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(
+				telemetry.NewKeyValue("bandwidth_download", o.RateIn),
+				telemetry.NewKeyValue("bandwidth_upload", o.RateOut),
+				telemetry.NewKeyValue("msg", "system.interval"),
 				telemetry.NewKeyValue("peers", s.host.peerCount())))
 		}
 	}
@@ -331,9 +333,12 @@ func (s *Service) sentBlockIntervalTelemetry() {
 			continue
 		}
 
-		telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(telemetry.NewKeyValue("best", best.Hash().String()),
-			telemetry.NewKeyValue("finalized_hash", finalized.Hash().String()), telemetry.NewKeyValue("finalized_height", finalized.Number), //nolint
-			telemetry.NewKeyValue("height", best.Number), telemetry.NewKeyValue("msg", "system.interval"),
+		telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(
+			telemetry.NewKeyValue("best", best.Hash().String()),
+			telemetry.NewKeyValue("finalized_hash", finalized.Hash().String()),  //nolint
+			telemetry.NewKeyValue("finalized_height", finalized.Number), //nolint
+			telemetry.NewKeyValue("height", best.Number),
+			telemetry.NewKeyValue("msg", "system.interval"),
 			telemetry.NewKeyValue("txcount", 0),                // todo (ed) determine where to get tx count
 			telemetry.NewKeyValue("used_state_cache_size", 0))) // todo (ed) determine where to get used_state_cache_size
 		time.Sleep(s.telemetryInterval)
