@@ -113,7 +113,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 	logger.Debug("initiating epoch", "epoch", epoch, "start slot", startSlot)
 
 	for i := startSlot; i < startSlot+b.epochLength; i++ {
-		b.slotToProof[i], err = b.runLottery(i, epoch)
+		b.slotToProof[i], err = b.runLottery(i, epoch) // TODO: make b.slotToProof safe for concurrent use
 		if err != nil {
 			return fmt.Errorf("error running slot lottery at slot %d: error %s", i, err)
 		}

@@ -244,7 +244,7 @@ func (b *Service) Pause() error {
 // Resume resumes the service ie. resumes block production
 func (b *Service) Resume() error {
 	if !b.paused {
-		return errors.New("service not paused")
+		return nil
 	}
 
 	epoch, err := b.epochState.GetCurrentEpoch()
@@ -253,9 +253,9 @@ func (b *Service) Resume() error {
 		return err
 	}
 
-	go b.initiate(epoch)
 	b.paused = false
-	logger.Info("service resumed")
+	go b.initiate(epoch)
+	logger.Info("service resumed", "epoch", epoch)
 	return nil
 }
 
