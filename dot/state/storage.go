@@ -97,6 +97,8 @@ func (s *StorageState) pruneKey(keyHeader *types.Header) {
 // StoreTrie stores the given trie in the StorageState and writes it to the database
 func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
 	s.lock.Lock()
+	defer s.lock.Unlock()
+
 	root := ts.MustRoot()
 	if s.syncing {
 		// keep only the trie at the head of the chain when syncing
@@ -105,7 +107,6 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
 		}
 	}
 	s.tries[root] = ts.Trie().Snapshot()
-	s.lock.Unlock()
 
 	logger.Trace("cached trie in storage state", "root", root)
 
