@@ -17,7 +17,6 @@
 package telemetry
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"sync"
@@ -40,7 +39,6 @@ type Message struct {
 // Handler struct for holding telemetry related things
 type Handler struct {
 	msg         chan Message
-	ctx         context.Context
 	connections []telemetryConnection
 	sync.Mutex
 }
@@ -63,7 +61,6 @@ func GetInstance() *Handler { //nolint
 			func() {
 				handlerInstance = &Handler{
 					msg: make(chan Message, 256),
-					ctx: context.Background(),
 				}
 				go handlerInstance.startListening()
 			})
@@ -114,18 +111,14 @@ func (t *Handler) SendMessage(msg *Message) {
 
 func (t *Handler) startListening() {
 	for {
-		select {
-		case msg := <-t.msg:
-			go func() {
-				t.Lock()
-				for _, v := range t.connections {
-					v.wsconn.WriteMessage(websocket.TextMessage, msgToBytes(msg)) // nolint
-				}
-				t.Unlock()
-			}()
-		case <-t.ctx.Done():
-			return
-		}
+		msg := <-t.msg
+		go func() {
+			t.Lock()
+			for _, v := range t.connections {
+				v.wsconn.WriteMessage(websocket.TextMessage, msgToBytes(msg)) // nolint
+			}
+			t.Unlock()
+		}()
 	}
 }
 
