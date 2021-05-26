@@ -378,6 +378,12 @@ func TestBlockTree_Prune(t *testing.T) {
 			t.Fatal("pruned an ancestor of the finalised node!!")
 		}
 	}
+
+	require.NotEqual(t, 0, len(bt.leaves.nodes()))
+	for _, leaf := range bt.leaves.nodes() {
+		require.NotEqual(t, leaf.hash, finalised.hash)
+		require.True(t, leaf.isDescendantOf(finalised))
+	}
 }
 
 func TestBlockTree_DeepCopy(t *testing.T) {
