@@ -119,7 +119,7 @@ func (t *Handler) startListening() {
 			go func() {
 				t.Lock()
 				for _, v := range t.connections {
-					v.wsconn.WriteMessage(websocket.TextMessage, msgToBytes(msg))  // nolint
+					v.wsconn.WriteMessage(websocket.TextMessage, msgToBytes(msg)) // nolint
 				}
 				t.Unlock()
 			}()
