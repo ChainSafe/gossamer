@@ -42,15 +42,11 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 		b.slotToProof,
 		b.epochData.authorityIndex,
 	)
-
 	if err != nil {
-		return nil, errors.New("There was an error creating block builder - " + err.Error())
+		return nil, fmt.Errorf("failed to create block builder: %w", err)
 	}
 
-	block, err := builder.buildBlock(parent, slot)
-
-	return block, err
-
+	return builder.buildBlock(parent, slot)
 }
 
 // nolint
