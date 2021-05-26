@@ -379,6 +379,7 @@ func TestBlockTree_Prune(t *testing.T) {
 		}
 	}
 
+	require.NotEqual(t, 0, len(bt.leaves.nodes()))
 	for _, leaf := range bt.leaves.nodes() {
 		require.NotEqual(t, leaf.hash, finalised.hash)
 		require.True(t, leaf.isDescendantOf(finalised))
