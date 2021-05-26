@@ -113,6 +113,32 @@ func TestHandler_SendMulti(t *testing.T) {
 	require.Contains(t, string(actual[3]), string(expected[3]))
 }
 
+func TestListenerConcurrency(t *testing.T) {
+	const qty = 1000
+	var wg sync.WaitGroup
+	wg.Add(qty)
+
+	resultCh = make(chan []byte)
+	for i := 0; i < qty; i++ {
+		go func() {
+			GetInstance().SendMessage(NewTelemetryMessage(
+				NewKeyValue("best", "hash"),
+				NewKeyValue("height", big.NewInt(2)),
+				NewKeyValue("msg", "block.import"),
+				NewKeyValue("origin", "NetworkInitialSync")))
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	counter := 0
+	for range resultCh {
+		counter++
+		if counter == qty {
+			break
+		}
+	}
+}
+
 func listen(w http.ResponseWriter, r *http.Request) {
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
