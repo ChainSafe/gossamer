@@ -119,10 +119,7 @@ func (t *Handler) startListening() {
 			go func() {
 				t.Lock()
 				for _, v := range t.connections {
-					err := v.wsconn.WriteMessage(websocket.TextMessage, msgToBytes(msg))
-					if err != nil {
-						// TODO (ed) determine how to handle this error
-					}
+					v.wsconn.WriteMessage(websocket.TextMessage, msgToBytes(msg))  // nolint
 				}
 				t.Unlock()
 			}()
