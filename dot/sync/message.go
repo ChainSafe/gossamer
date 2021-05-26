@@ -105,7 +105,6 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 		for i := endHeader.Number.Int64(); i >= startHeader.Number.Int64(); i-- {
 			blockData, err := s.getBlockData(big.NewInt(i), blockRequest.RequestedData)
 			if err != nil {
-				//return nil, err
 				continue
 			}
 			responseData = append(responseData, blockData)
@@ -114,7 +113,6 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 		for i := startHeader.Number.Int64(); i <= endHeader.Number.Int64(); i++ {
 			blockData, err := s.getBlockData(big.NewInt(i), blockRequest.RequestedData)
 			if err != nil {
-				//return nil, err
 				continue
 			}
 			responseData = append(responseData, blockData)
