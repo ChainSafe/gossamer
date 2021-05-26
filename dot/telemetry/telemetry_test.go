@@ -56,7 +56,6 @@ func TestHandler_SendMulti(t *testing.T) {
 			NewKeyValue("network_id", "netID"),
 			NewKeyValue("startup_time", "startTime"),
 			NewKeyValue("version", "version")))
-
 		wg.Done()
 	}()
 
@@ -82,7 +81,7 @@ func TestHandler_SendMulti(t *testing.T) {
 		GetInstance().SendMessage(NewTelemetryMessage(
 			NewKeyValue("best", "0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6"),
 			NewKeyValue("finalized_hash", "0x687197c11b4cf95374159843e7f46fbcd63558db981aaef01a8bac2a44a1d6b2"), // nolint
-			NewKeyValue("finalized_height", 32256), NewKeyValue("height", 32375), // nolint
+			NewKeyValue("finalized_height", 32256), NewKeyValue("height", 32375),                                // nolint
 			NewKeyValue("msg", "system.interval"), NewKeyValue("txcount", 2),
 			NewKeyValue("used_state_cache_size", 1886357)))
 		wg.Done()

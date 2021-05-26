@@ -335,8 +335,8 @@ func (s *Service) sentBlockIntervalTelemetry() {
 
 		telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(
 			telemetry.NewKeyValue("best", best.Hash().String()),
-			telemetry.NewKeyValue("finalized_hash", finalized.Hash().String()),  //nolint
-			telemetry.NewKeyValue("finalized_height", finalized.Number), //nolint
+			telemetry.NewKeyValue("finalized_hash", finalized.Hash().String()), //nolint
+			telemetry.NewKeyValue("finalized_height", finalized.Number),        //nolint
 			telemetry.NewKeyValue("height", best.Number),
 			telemetry.NewKeyValue("msg", "system.interval"),
 			telemetry.NewKeyValue("txcount", 0),                // todo (ed) determine where to get tx count
