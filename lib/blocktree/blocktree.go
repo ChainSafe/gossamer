@@ -187,8 +187,11 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 
 	pruned = bt.head.prune(n, nil)
 	bt.head = n
+	leaves := n.getLeaves(nil)
 	bt.leaves = newEmptyLeafMap()
-	bt.leaves.store(n.hash, n)
+	for _, leaf := range leaves {
+		bt.leaves.store(leaf.hash, leaf)
+	}
 	return pruned
 }
 
