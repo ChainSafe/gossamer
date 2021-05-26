@@ -10,6 +10,12 @@ import (
 )
 
 func Unmarshal(data []byte, dst interface{}) (err error) {
+	dstv := reflect.ValueOf(dst)
+	if dstv.Kind() != reflect.Ptr || dstv.IsNil() {
+		err = fmt.Errorf("unsupported dst: %T", dst)
+		return
+	}
+
 	buf := &bytes.Buffer{}
 	ds := decodeState{}
 	_, err = buf.Write(data)
@@ -17,7 +23,13 @@ func Unmarshal(data []byte, dst interface{}) (err error) {
 		return
 	}
 	ds.Buffer = *buf
-	err = ds.unmarshal(dst)
+	out, err := ds.unmarshal(dstv.Elem())
+	if err != nil {
+		return
+	}
+	if out != nil {
+		dstv.Elem().Set(reflect.ValueOf(out))
+	}
 	return
 }
 
@@ -25,15 +37,8 @@ type decodeState struct {
 	bytes.Buffer
 }
 
-func (ds *decodeState) unmarshal(dst interface{}) (err error) {
-	dstv := reflect.ValueOf(dst)
-	if dstv.Kind() != reflect.Ptr || dstv.IsNil() {
-		err = fmt.Errorf("unsupported dst: %T", dst)
-		return
-	}
-
-	// this needs to be used to handle zero value
-	in := dstv.Elem().Interface()
+func (ds *decodeState) unmarshal(dstv reflect.Value) (out interface{}, err error) {
+	in := dstv.Interface()
 	switch in.(type) {
 	case *big.Int:
 		in, err = ds.decodeBigInt()
@@ -66,12 +71,17 @@ func (ds *decodeState) unmarshal(dst interface{}) (err error) {
 				in = nil
 			case 0x01:
 				elem := reflect.ValueOf(in).Elem()
-				err = ds.unmarshal(elem)
+				out := elem.Interface()
+				out, err = ds.unmarshal(elem)
+				if err != nil {
+					break
+				}
+				in = &out
 			default:
-				err = fmt.Errorf("unsupported Option value: %v", rb)
+				err = fmt.Errorf("unsupported Option value: %v, bytes: %v", rb, ds.Bytes())
 			}
-		// case reflect.Struct:
-		// 	err = es.encodeStruct(in)
+		case reflect.Struct:
+			in, err = ds.decodeStruct(in)
 		// case reflect.Array:
 		// 	err = es.encodeArray(in)
 		// case reflect.Slice:
@@ -84,7 +94,36 @@ func (ds *decodeState) unmarshal(dst interface{}) (err error) {
 	if err != nil {
 		return
 	}
-	dstv.Elem().Set(reflect.ValueOf(in))
+	out = in
+	return
+}
+
+// decodeStruct comment about this
+func (ds *decodeState) decodeStruct(dst interface{}) (s interface{}, err error) {
+	v, indices, err := cache.fieldScaleIndices(dst)
+	if err != nil {
+		return
+	}
+
+	s = v.Interface()
+	sv := reflect.ValueOf(s)
+	for _, i := range indices {
+		field := sv.Field(i.fieldIndex)
+		if !field.CanInterface() {
+			continue
+		}
+
+		var out interface{}
+		out, err = ds.unmarshal(field)
+		if err != nil {
+			err = fmt.Errorf("%s, field: %+v", err, field)
+			return
+		}
+		if out != nil {
+			continue
+		}
+		field.Set(reflect.ValueOf(out))
+	}
 	return
 }
 

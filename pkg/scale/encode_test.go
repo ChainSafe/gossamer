@@ -333,13 +333,13 @@ var (
 		},
 	}
 
-	nilPtrMyStruct *myStruct
-	ptrMystruct    *myStruct = &myStruct{
+	nilPtrMyStruct *MyStruct
+	ptrMystruct    *MyStruct = &MyStruct{
 		Foo: []byte{0x01},
 		Bar: 2,
 		Baz: true,
 	}
-	nilPtrMyStruct2 *myStruct = nil
+	nilPtrMyStruct2 *MyStruct = nil
 	// nilPtrMyStruct2           = nil
 	structTests = tests{
 		{
@@ -597,7 +597,7 @@ var (
 	)
 )
 
-type myStruct struct {
+type MyStruct struct {
 	Foo []byte
 	Bar int32
 	Baz bool
