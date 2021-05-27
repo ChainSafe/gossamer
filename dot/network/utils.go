@@ -28,8 +28,6 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/ChainSafe/gossamer/lib/common"
-
 	"github.com/libp2p/go-libp2p-core/crypto"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -152,15 +150,20 @@ func uint64ToLEB128(in uint64) []byte {
 	return out
 }
 
-func readLEB128ToUint64(r io.Reader) (uint64, error) {
+func readLEB128ToUint64(r io.Reader, buf []byte) (uint64, error) {
+	if len(buf) == 0 {
+		return 0, errors.New("buffer has length 0")
+	}
+
 	var out uint64
 	var shift uint
 	for {
-		b, err := common.ReadByte(r)
+		_, err := r.Read(buf)
 		if err != nil {
 			return 0, err
 		}
 
+		b := buf[0]
 		out |= uint64(0x7F&b) << shift
 		if b&0x80 == 0 {
 			break
@@ -182,7 +185,7 @@ func readStream(stream libp2pnetwork.Stream, buf []byte) (int, error) {
 		tot int
 	)
 
-	length, err := readLEB128ToUint64(stream)
+	length, err := readLEB128ToUint64(stream, buf)
 	if err == io.EOF {
 		return 0, err
 	} else if err != nil {
@@ -193,22 +196,21 @@ func readStream(stream libp2pnetwork.Stream, buf []byte) (int, error) {
 		return 0, nil // msg length of 0 is allowed, for example transactions handshake
 	}
 
-	// TODO: check if length > len(buf), if so probably log.Crit
+	if length > uint64(len(buf)) {
+		logger.Warn("received message with size greater than allocated message buffer", "length", length, "buffer size", len(buf))
+		_ = stream.Close()
+		return 0, fmt.Errorf("message size greater than allocated message buffer: got %d", length)
+	}
+
 	if length > maxBlockResponseSize {
 		logger.Warn("received message with size greater than maxBlockResponseSize, closing stream", "length", length)
 		_ = stream.Close()
-		// for {
-		// 	_, err = stream.Read(int(maxBlockResponseSize))
-		// 	if err != nil {
-		// 		break
-		// 	}
-		// }
 		return 0, fmt.Errorf("message size greater than maximum: got %d", length)
 	}
 
 	tot = 0
 	for i := 0; i < maxReads; i++ {
-		n, err := stream.Read(buf[tot:]) // TODO: check if length > len(buf)
+		n, err := stream.Read(buf[tot:])
 		if err != nil {
 			return n + tot, err
 		}
