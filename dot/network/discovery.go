@@ -192,8 +192,8 @@ func (d *discovery) discoverAndAdvertise() error {
 						logger.Trace("failed to connect to discovered peer", "peer", peer.ID, "err", err)
 					}
 				} else {
-					d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
-					peersToTry[&peer] = struct{}{}
+					// d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
+					// peersToTry[&peer] = struct{}{}
 				}
 			}
 		}
