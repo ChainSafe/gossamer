@@ -404,7 +404,7 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 		start := best.Int64() + 1
 		req := createBlockRequest(start, 0)
 
-		logger.Debug("pushing request to queue", "start", start)
+		logger.Debug("pushing request to queue", "start", start, "req", req)
 		q.requestData.Store(start, requestData{
 			received: false,
 		})
@@ -582,7 +582,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 		return
 	}
 
-	logger.Trace("beginning to send out request", "start", req.req.StartingBlock.Value())
+	logger.Debug("beginning to send out request", "start", req.req.StartingBlock.Value())
 	if len(req.to) != 0 {
 		resp, err := q.syncWithPeer(req.to, req.req)
 		if err == nil {
