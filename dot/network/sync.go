@@ -559,16 +559,16 @@ func (q *syncQueue) processBlockRequests() {
 				continue
 			}
 
-			reqData, ok := q.isRequestDataCached(req.req.StartingBlock)
+			// reqData, ok := q.isRequestDataCached(req.req.StartingBlock)
 
-			if !ok {
-				q.trySync(req)
-				continue
-			}
+			// if !ok {
+			// 	q.trySync(req)
+			// 	continue
+			// }
 
-			if reqData.sent && reqData.received {
-				continue
-			}
+			// if reqData.sent && reqData.received {
+			// 	continue
+			// }
 
 			q.trySync(req)
 		case <-q.ctx.Done():
