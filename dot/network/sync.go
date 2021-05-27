@@ -451,7 +451,6 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 }
 
 func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error {
-	logger.Debug("got response!!", "resp", resp)
 	if len(resp.BlockData) == 0 {
 		return errEmptyResponseData
 	}
@@ -560,16 +559,16 @@ func (q *syncQueue) processBlockRequests() {
 				continue
 			}
 
-			// reqData, ok := q.isRequestDataCached(req.req.StartingBlock)
+			reqData, ok := q.isRequestDataCached(req.req.StartingBlock)
 
-			// if !ok {
-			// 	q.trySync(req)
-			// 	continue
-			// }
+			if !ok {
+				q.trySync(req)
+				continue
+			}
 
-			// if reqData.sent && reqData.received {
-			// 	continue
-			// }
+			if reqData.sent && reqData.received {
+				continue
+			}
 
 			q.trySync(req)
 		case <-q.ctx.Done():

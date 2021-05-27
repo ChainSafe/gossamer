@@ -139,11 +139,10 @@ func NewService(cfg *Config) (*Service, error) {
 	var bufPool *sizedBufferPool
 	if cfg.noPreAllocate {
 		bufPool = &sizedBufferPool{
-			c: make(chan [maxMessageSize]byte, cfg.MinPeers*3),
+			c: make(chan *[maxMessageSize]byte, cfg.MinPeers*3),
 		}
 	} else {
-		logger.Info("pre-allocating buffer pool")
-		bufPool = newSizedBufferPool(cfg.MaxPeers*3, (cfg.MaxPeers*2)*3)
+		bufPool = newSizedBufferPool(cfg.MinPeers*3, cfg.MaxPeers*3)
 	}
 
 	network := &Service{
@@ -523,7 +522,7 @@ func isInbound(stream libp2pnetwork.Stream) bool {
 func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder, handler messageHandler) {
 	peer := stream.Conn().RemotePeer()
 	msgBytes := s.bufPool.get()
-	defer s.bufPool.put(msgBytes)
+	defer s.bufPool.put(&msgBytes)
 
 	for {
 		tot, err := readStream(stream, msgBytes[:])
