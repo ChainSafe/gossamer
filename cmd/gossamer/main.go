@@ -234,7 +234,7 @@ func gossamerAction(ctx *cli.Context) error {
 		return err
 	}
 
-	if cfg.Global.RetainBlocks < 10 {
+	if cfg.Global.RetainBlocks < 256 {
 		return fmt.Errorf("--%s cannot be less than 256", RetainBlockNumberFlag.Name)
 	}
 
