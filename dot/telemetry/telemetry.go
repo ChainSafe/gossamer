@@ -29,6 +29,7 @@ import (
 type telemetryConnection struct {
 	wsconn    *websocket.Conn
 	verbosity int
+	sync.Mutex
 }
 
 // Message struct to hold telemetry message data
@@ -39,8 +40,7 @@ type Message struct {
 // Handler struct for holding telemetry related things
 type Handler struct {
 	msg         chan Message
-	connections []telemetryConnection
-	sync.Mutex
+	connections []*telemetryConnection
 }
 
 // KeyValue object to hold key value pairs used in telemetry messages
@@ -96,7 +96,7 @@ func (t *Handler) AddConnections(conns []*genesis.TelemetryEndpoint) {
 			fmt.Printf("Error %v\n", err)
 			continue
 		}
-		tConn := telemetryConnection{
+		tConn := &telemetryConnection{
 			wsconn:    c,
 			verbosity: v.Verbosity,
 		}
@@ -113,11 +113,11 @@ func (t *Handler) startListening() {
 	for {
 		msg := <-t.msg
 		go func() {
-			t.Lock()
 			for _, v := range t.connections {
+				v.Lock()
 				v.wsconn.WriteMessage(websocket.TextMessage, msgToBytes(msg)) // nolint
+				v.Unlock()
 			}
-			t.Unlock()
 		}()
 	}
 }
