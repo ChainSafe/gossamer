@@ -24,7 +24,7 @@ import (
 	badger "github.com/ipfs/go-ds-badger2"
 	libp2phost "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/peerstore"
+	//"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	libp2pdiscovery "github.com/libp2p/go-libp2p-discovery"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
@@ -159,7 +159,7 @@ func (d *discovery) discoverAndAdvertise() error {
 			return
 		}
 
-		peersToTry := make(map[*peer.AddrInfo]struct{})
+		//peersToTry := make(map[*peer.AddrInfo]struct{})
 
 		for {
 			select {
