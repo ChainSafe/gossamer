@@ -18,11 +18,11 @@ package telemetry
 
 import (
 	"encoding/json"
-	"fmt"
 	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	log "github.com/ChainSafe/log15"
 	"github.com/gorilla/websocket"
 )
 
@@ -41,6 +41,7 @@ type Message struct {
 type Handler struct {
 	msg         chan Message
 	connections []*telemetryConnection
+	log         log.Logger
 }
 
 // KeyValue object to hold key value pairs used in telemetry messages
@@ -61,6 +62,7 @@ func GetInstance() *Handler { //nolint
 			func() {
 				handlerInstance = &Handler{
 					msg: make(chan Message, 256),
+					log: log.New("pkg", "telemetry"),
 				}
 				go handlerInstance.startListening()
 			})
@@ -93,7 +95,7 @@ func (t *Handler) AddConnections(conns []*genesis.TelemetryEndpoint) {
 		c, _, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
 		if err != nil {
 			// todo (ed) try reconnecting if there is an error connecting
-			fmt.Printf("Error %v\n", err)
+			t.log.Warn("issue adding telemetry connection", err)
 			continue
 		}
 		tConn := &telemetryConnection{
@@ -115,7 +117,10 @@ func (t *Handler) startListening() {
 		go func() {
 			for _, v := range t.connections {
 				v.Lock()
-				v.wsconn.WriteMessage(websocket.TextMessage, msgToBytes(msg)) // nolint
+				err := v.wsconn.WriteMessage(websocket.TextMessage, msgToBytes(msg))
+				if err != nil {
+					t.log.Warn("issue while sending telemetry message", err)
+				}
 				v.Unlock()
 			}
 		}()
