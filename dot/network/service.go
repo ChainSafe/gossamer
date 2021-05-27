@@ -142,7 +142,8 @@ func NewService(cfg *Config) (*Service, error) {
 			c: make(chan *[maxMessageSize]byte, cfg.MaxPeers*3),
 		}
 	} else {
-		bufPool = newSizedBufferPool((cfg.MaxPeers-cfg.MinPeers)*3/2, (cfg.MaxPeers+1)*3)
+		logger.Info("pre-allocating buffer pool")
+		bufPool = newSizedBufferPool(cfg.MaxPeers*3, (cfg.MaxPeers*2)*3)
 	}
 
 	network := &Service{

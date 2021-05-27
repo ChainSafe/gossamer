@@ -40,9 +40,11 @@ func (bp *sizedBufferPool) get() *[maxMessageSize]byte {
 	var buff *[maxMessageSize]byte
 	select {
 	case buff = <-bp.c:
-	// reuse existing buffer
+		// reuse existing buffer
+		logger.Info("using existing buffer", "chsize", len(bp.c))
 	default:
 		// create new buffer
+		logger.Info("creating new buffer")
 		buff = &[maxMessageSize]byte{}
 	}
 	return buff
@@ -52,6 +54,7 @@ func (bp *sizedBufferPool) get() *[maxMessageSize]byte {
 func (bp *sizedBufferPool) put(b *[maxMessageSize]byte) {
 	select {
 	case bp.c <- b:
+		logger.Info("returning buffer", "chsize", len(bp.c))
 	default: // Discard the buffer if the pool is full.
 	}
 }
