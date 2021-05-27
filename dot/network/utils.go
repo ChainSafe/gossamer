@@ -17,7 +17,6 @@
 package network
 
 import (
-	"bufio"
 	crand "crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -28,6 +27,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+
+	"github.com/ChainSafe/gossamer/lib/common"
 
 	"github.com/libp2p/go-libp2p-core/crypto"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
@@ -151,11 +152,11 @@ func uint64ToLEB128(in uint64) []byte {
 	return out
 }
 
-func readLEB128ToUint64(r *bufio.Reader) (uint64, error) {
+func readLEB128ToUint64(r io.Reader) (uint64, error) {
 	var out uint64
 	var shift uint
 	for {
-		b, err := r.ReadByte()
+		b, err := common.ReadByte(r)
 		if err != nil {
 			return 0, err
 		}
@@ -175,13 +176,13 @@ func readStream(stream libp2pnetwork.Stream, buf []byte) (int, error) {
 		return 0, errors.New("stream is nil")
 	}
 
-	r := bufio.NewReader(stream)
+	//r := bufio.NewReader(stream)
 
 	var (
 		tot int
 	)
 
-	length, err := readLEB128ToUint64(r)
+	length, err := readLEB128ToUint64(stream)
 	if err == io.EOF {
 		return 0, err
 	} else if err != nil {
@@ -194,19 +195,20 @@ func readStream(stream libp2pnetwork.Stream, buf []byte) (int, error) {
 
 	// TODO: check if length > len(buf), if so probably log.Crit
 	if length > maxBlockResponseSize {
-		logger.Warn("received message with size greater than maxBlockResponseSize, discarding", "length", length)
-		for {
-			_, err = r.Discard(int(maxBlockResponseSize))
-			if err != nil {
-				break
-			}
-		}
+		logger.Warn("received message with size greater than maxBlockResponseSize, closing stream", "length", length)
+		_ = stream.Close()
+		// for {
+		// 	_, err = stream.Read(int(maxBlockResponseSize))
+		// 	if err != nil {
+		// 		break
+		// 	}
+		// }
 		return 0, fmt.Errorf("message size greater than maximum: got %d", length)
 	}
 
 	tot = 0
 	for i := 0; i < maxReads; i++ {
-		n, err := r.Read(buf[tot:])
+		n, err := stream.Read(buf[tot:]) // TODO: check if length > len(buf)
 		if err != nil {
 			return n + tot, err
 		}
