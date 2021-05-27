@@ -45,7 +45,7 @@ const (
 	blockAnnounceID = "/block-announces/1"
 	transactionsID  = "/transactions/1"
 
-	maxMessageSize = 1024 * 1024 // 1mb for now
+	maxMessageSize = 1024 * 63 // 63kb for now
 )
 
 var (
@@ -139,7 +139,7 @@ func NewService(cfg *Config) (*Service, error) {
 	var bufPool *sizedBufferPool
 	if cfg.noPreAllocate {
 		bufPool = &sizedBufferPool{
-			c: make(chan *[maxMessageSize]byte, cfg.MaxPeers*3),
+			c: make(chan [maxMessageSize]byte, cfg.MinPeers*3),
 		}
 	} else {
 		logger.Info("pre-allocating buffer pool")
