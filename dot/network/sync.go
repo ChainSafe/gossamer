@@ -451,6 +451,7 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 }
 
 func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error {
+	logger.Debug("got response!!", "resp", resp)
 	if len(resp.BlockData) == 0 {
 		return errEmptyResponseData
 	}
@@ -592,11 +593,11 @@ func (q *syncQueue) trySync(req *syncRequest) {
 			}
 		}
 
-		logger.Trace("failed to sync with peer", "peer", req.to, "error", err)
+		logger.Debug("failed to sync with peer", "peer", req.to, "error", err)
 		q.updatePeerScore(req.to, -1)
 	}
 
-	logger.Trace("trying peers in prioritised order...")
+	logger.Debug("trying peers in prioritised order...")
 	syncPeers := q.getSortedPeers()
 
 	for _, peer := range syncPeers {
@@ -607,7 +608,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 
 		resp, err := q.syncWithPeer(peer.pid, req.req)
 		if err != nil {
-			logger.Trace("failed to sync with peer", "peer", peer.pid, "error", err)
+			logger.Debug("failed to sync with peer", "peer", peer.pid, "error", err)
 			q.updatePeerScore(peer.pid, -1)
 			continue
 		}
@@ -620,7 +621,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 		}
 	}
 
-	logger.Trace("failed to sync with any peer :(")
+	logger.Debug("failed to sync with any peer :(")
 	if req.req.StartingBlock.IsUint64() && (req.req.RequestedData&RequestedDataHeader) == 1 {
 		q.requestData.Store(req.req.StartingBlock.Uint64(), requestData{
 			sent:     true,
