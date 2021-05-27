@@ -165,7 +165,7 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GlobalKeystore, 
 	return rt, nil
 }
 
-func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks keystore.Keystore, pruner *state.Pruner) (*babe.Service, error) {
+func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks keystore.Keystore, pruner state.Pruner) (*babe.Service, error) {
 	logger.Info(
 		"creating BABE service...",
 		"authority", cfg.Core.BabeAuthority,
@@ -377,7 +377,7 @@ func createBlockVerifier(st *state.Service) (*babe.VerificationManager, error) {
 	return ver, nil
 }
 
-func createSyncService(cfg *Config, st *state.Service, bp sync.BlockProducer, fg sync.FinalityGadget, dh *core.DigestHandler, verifier *babe.VerificationManager, rt runtime.Instance, pruner *state.Pruner) (*sync.Service, error) {
+func createSyncService(cfg *Config, st *state.Service, bp sync.BlockProducer, fg sync.FinalityGadget, dh *core.DigestHandler, verifier *babe.VerificationManager, rt runtime.Instance, pruner state.Pruner) (*sync.Service, error) {
 	syncCfg := &sync.Config{
 		LogLvl:           cfg.Log.SyncLvl,
 		BlockState:       st.Block,

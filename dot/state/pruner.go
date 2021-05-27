@@ -13,24 +13,24 @@ import (
 
 const (
 	journalPrefix = "journal"
-	lastPruned    = "last_pruned"
+	lastPrunedKey = "last_pruned"
 )
 
-type journalRecord struct {
-	blockHash *common.Hash
-	// Hash of keys that are inserted into state trie of the block
-	insertedKeys []*common.Hash
-	// Hash of keys that are deleted from state trie of the block
-	deletedKeys []*common.Hash
+// Pruner is implemented by FullNodePruner and ArchivalNodePruner.
+type Pruner interface {
+	StoreJournalRecord(deleted, inserted []*common.Hash, blockHash *common.Hash, blockNum *big.Int) error
 }
 
-type deathRow struct {
-	blockHash   *common.Hash
-	deletedKeys map[*common.Hash]int64 // keys hash that will be deleted from DB
+// ArchivalNodePruner is a no-op since we don't prune nodes in archive mode.
+type ArchivalNodePruner struct{}
+
+// StoreJournalRecord for archive node doesn't do anything.
+func (a *ArchivalNodePruner) StoreJournalRecord(deleted, inserted []*common.Hash, blockHash *common.Hash, blockNum *big.Int) error {
+	return nil
 }
 
-// Pruner stores state trie diff and allows online state trie pruning
-type Pruner struct {
+// FullNodePruner stores state trie diff and allows online state trie pruning
+type FullNodePruner struct {
 	deathList     []*deathRow
 	storageDB     chaindb.Database
 	journalDB     chaindb.Database
@@ -38,6 +38,15 @@ type Pruner struct {
 	pendingNumber int64
 	retainBlocks  int64
 	sync.RWMutex
+}
+
+type journalRecord struct {
+	// blockHash of the block corresponding to journal record
+	blockHash *common.Hash
+	// Hash of keys that are inserted into state trie of the block
+	insertedKeys []*common.Hash
+	// Hash of keys that are deleted from state trie of the block
+	deletedKeys []*common.Hash
 }
 
 func newJournalRecord(hash *common.Hash, insertedKeys, deletedKeys []*common.Hash) *journalRecord {
@@ -48,9 +57,14 @@ func newJournalRecord(hash *common.Hash, insertedKeys, deletedKeys []*common.Has
 	}
 }
 
+type deathRow struct {
+	blockHash   *common.Hash
+	deletedKeys map[*common.Hash]int64 // keys hash that will be deleted from DB
+}
+
 // CreatePruner creates a pruner
-func CreatePruner(db chaindb.Database, retainBlocks int64) (*Pruner, error) {
-	p := &Pruner{
+func CreatePruner(db chaindb.Database, retainBlocks int64) (Pruner, error) {
+	p := &FullNodePruner{
 		deathList:    make([]*deathRow, 0),
 		deathIndex:   make(map[*common.Hash]int64),
 		storageDB:    chaindb.NewTable(db, storagePrefix),
@@ -60,12 +74,7 @@ func CreatePruner(db chaindb.Database, retainBlocks int64) (*Pruner, error) {
 
 	blockNum, err := p.getLastPrunedIndex()
 	if err != nil {
-		if err == chaindb.ErrKeyNotFound {
-			blockNum = 0
-		} else {
-			logger.Error("pruner", "failed to get last pruned key", err)
-			return nil, err
-		}
+		return nil, err
 	}
 
 	logger.Info("pruner", "last pruned block", blockNum)
@@ -76,20 +85,15 @@ func CreatePruner(db chaindb.Database, retainBlocks int64) (*Pruner, error) {
 	// load deathList and deathIndex from journalRecord
 	for {
 		record, err := p.getJournalRecord(blockNum)
-		if err != nil {
-			if err == chaindb.ErrKeyNotFound {
-				break
-			}
-			return nil, err
+		if err == chaindb.ErrKeyNotFound {
+			break
 		}
 
-		jr, err := scale.Decode(record, new(journalRecord))
 		if err != nil {
 			return nil, err
 		}
 
-		j := jr.(journalRecord)
-		err = p.addDeathRow(&j, blockNum)
+		err = p.addDeathRow(record, blockNum)
 		if err != nil {
 			return nil, err
 		}
@@ -97,23 +101,21 @@ func CreatePruner(db chaindb.Database, retainBlocks int64) (*Pruner, error) {
 		blockNum++
 	}
 
+	go p.start()
+
 	return p, nil
 }
 
 // StoreJournalRecord stores journal record into DB and add deathRow into deathList
-func (p *Pruner) StoreJournalRecord(deleted, inserted []*common.Hash, blockHash *common.Hash, blockNum *big.Int) error {
+func (p *FullNodePruner) StoreJournalRecord(deleted, inserted []*common.Hash, blockHash *common.Hash, blockNum *big.Int) error {
 	jr := newJournalRecord(blockHash, inserted, deleted)
-	encRecord, err := scale.Encode(jr)
-	if err != nil {
-		return fmt.Errorf("failed to encode journal record %d: %w", blockNum, err)
-	}
 
-	err = p.storeJournal(blockNum.Int64(), encRecord)
+	err := p.storeJournal(blockNum.Int64(), jr)
 	if err != nil {
 		return fmt.Errorf("failed to store journal record for %d: %w", blockNum, err)
 	}
 
-	logger.Info("journal record stored")
+	logger.Info("journal record stored", "block", blockNum.Int64())
 	err = p.addDeathRow(jr, blockNum.Int64())
 	if err != nil {
 		return err
@@ -122,15 +124,15 @@ func (p *Pruner) StoreJournalRecord(deleted, inserted []*common.Hash, blockHash 
 	return nil
 }
 
-func (p *Pruner) addDeathRow(jr *journalRecord, blockNum int64) error {
+func (p *FullNodePruner) addDeathRow(jr *journalRecord, blockNum int64) error {
 	p.Lock()
 	defer p.Unlock()
 
 	// remove re-inserted keys
 	for _, k := range jr.insertedKeys {
 		if num, ok := p.deathIndex[k]; ok {
-			delete(p.deathIndex, k)
 			delete(p.deathList[num-p.pendingNumber].deletedKeys, k)
+			delete(p.deathIndex, k)
 		}
 	}
 
@@ -154,28 +156,28 @@ func (p *Pruner) addDeathRow(jr *journalRecord, blockNum int64) error {
 	return nil
 }
 
-// PruneOne starts online pruning process
-func (p *Pruner) PruneOne() {
+func (p *FullNodePruner) start() {
 	logger.Info("pruning started")
 
 	for {
+		p.Lock()
 		if int64(len(p.deathList)) <= p.retainBlocks {
+			p.Unlock()
 			time.Sleep(2 * time.Second)
 			continue
 		}
 
 		logger.Info("pruner", "pruning block ", p.pendingNumber)
-		p.Lock()
 
 		// pop first element from death list
-		dr := p.deathList[0]
-		err := p.deleteKeys(dr.deletedKeys)
+		row := p.deathList[0]
+		err := p.deleteKeys(row.deletedKeys)
 		if err != nil {
 			logger.Error("pruner", "failed to delete keys for block", p.pendingNumber)
 			continue
 		}
 
-		for k := range dr.deletedKeys {
+		for k := range row.deletedKeys {
 			delete(p.deathIndex, k)
 		}
 
@@ -190,13 +192,18 @@ func (p *Pruner) PruneOne() {
 	}
 }
 
-func (p *Pruner) storeJournal(num int64, record []byte) error {
-	encNum, err := scale.Encode(num)
+func (p *FullNodePruner) storeJournal(blockNum int64, jr *journalRecord) error {
+	encRecord, err := scale.Encode(jr)
+	if err != nil {
+		return fmt.Errorf("failed to encode journal record %d: %w", blockNum, err)
+	}
+
+	encNum, err := scale.Encode(blockNum)
 	if err != nil {
 		return err
 	}
 
-	err = p.journalDB.Put(encNum, record)
+	err = p.journalDB.Put(encNum, encRecord)
 	if err != nil {
 		return err
 	}
@@ -204,7 +211,7 @@ func (p *Pruner) storeJournal(num int64, record []byte) error {
 	return nil
 }
 
-func (p *Pruner) getJournalRecord(num int64) ([]byte, error) {
+func (p *FullNodePruner) getJournalRecord(num int64) (*journalRecord, error) {
 	encNum, err := scale.Encode(num)
 	if err != nil {
 		return nil, err
@@ -215,16 +222,21 @@ func (p *Pruner) getJournalRecord(num int64) ([]byte, error) {
 		return nil, err
 	}
 
-	return val, nil
+	decJR, err := scale.Decode(val, new(journalRecord))
+	if err != nil {
+		return nil, err
+	}
+
+	return decJR.(*journalRecord), nil
 }
 
-func (p *Pruner) storeLastPrunedIndex(blockNum int64) error {
+func (p *FullNodePruner) storeLastPrunedIndex(blockNum int64) error {
 	encNum, err := scale.Encode(blockNum)
 	if err != nil {
 		return err
 	}
 
-	err = p.journalDB.Put([]byte(lastPruned), encNum)
+	err = p.journalDB.Put([]byte(lastPrunedKey), encNum)
 	if err != nil {
 		return err
 	}
@@ -232,8 +244,12 @@ func (p *Pruner) storeLastPrunedIndex(blockNum int64) error {
 	return nil
 }
 
-func (p *Pruner) getLastPrunedIndex() (int64, error) {
-	val, err := p.journalDB.Get([]byte(lastPruned))
+func (p *FullNodePruner) getLastPrunedIndex() (int64, error) {
+	val, err := p.journalDB.Get([]byte(lastPrunedKey))
+	if err == chaindb.ErrKeyNotFound {
+		return 0, nil
+	}
+
 	if err != nil {
 		return 0, err
 	}
@@ -246,7 +262,7 @@ func (p *Pruner) getLastPrunedIndex() (int64, error) {
 	return blockNum.(int64), err
 }
 
-func (p *Pruner) deleteKeys(nodesHash map[*common.Hash]int64) error {
+func (p *FullNodePruner) deleteKeys(nodesHash map[*common.Hash]int64) error {
 	for k := range nodesHash {
 		err := p.storageDB.Del(k.ToBytes())
 		if err != nil {

@@ -289,6 +289,7 @@ func (t *Trie) writeDirty(db chaindb.Batch, curr node) error {
 }
 
 // GetInsertedNodeHashes returns the hash of nodes that are inserted into state trie since last snapshot is called
+// Since inserted  nodesare newly created we need to compute their hash values.
 func (t *Trie) GetInsertedNodeHashes(curr node) ([]*common.Hash, error) {
 	var nodeHashes []*common.Hash
 	if curr == nil || !curr.isDirty() {

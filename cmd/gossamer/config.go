@@ -443,7 +443,9 @@ func setDotGlobalConfigFromToml(tomlCfg *ctoml.Config, cfg *dot.GlobalConfig) {
 		}
 
 		cfg.MetricsPort = tomlCfg.Global.MetricsPort
+
 		cfg.RetainBlocks = tomlCfg.Global.RetainBlocks
+		cfg.GCMode = tomlCfg.Global.GCMode
 	}
 }
 
@@ -473,9 +475,8 @@ func setDotGlobalConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) {
 		cfg.MetricsPort = uint32(metricsPort)
 	}
 
-	// check --retain-blocks flag
 	cfg.RetainBlocks = ctx.GlobalInt64(RetainBlockNumberFlag.Name)
-
+	cfg.GCMode = ctx.GlobalString(GCModeFlag.Name)
 	cfg.NoTelemetry = ctx.Bool("no-telemetry")
 }
 

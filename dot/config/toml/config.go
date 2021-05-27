@@ -35,6 +35,7 @@ type GlobalConfig struct {
 	LogLvl       string `toml:"log,omitempty"`
 	MetricsPort  uint32 `toml:"metrics-port,omitempty"`
 	RetainBlocks int64  `toml:"retain-blocks,omitempty"`
+	GCMode       string `toml:"gc-mode,omitempty"`
 }
 
 // LogConfig represents the log levels for individual packages

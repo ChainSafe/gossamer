@@ -237,9 +237,14 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	// Network Service
 	var networkSrvc *network.Service
 
-	pruner, err := state.CreatePruner(stateSrvc.DB(), cfg.Global.RetainBlocks)
-	if err != nil {
-		logger.Error("failed to create pruner:", err)
+	var pruner state.Pruner
+	if cfg.Global.GCMode == "full" {
+		pruner, err = state.CreatePruner(stateSrvc.DB(), cfg.Global.RetainBlocks)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		pruner = &state.ArchivalNodePruner{}
 	}
 
 	// check if network service is enabled

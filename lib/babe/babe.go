@@ -50,7 +50,7 @@ type Service struct {
 	transactionState TransactionState
 	epochState       EpochState
 	epochLength      uint64
-	pruner           *state.Pruner
+	pruner           state.Pruner
 
 	// BABE authority keypair
 	keypair *sr25519.Keypair // TODO: change to BABE keystore
@@ -88,7 +88,7 @@ type ServiceConfig struct {
 	SlotDuration         uint64 // for development purposes; in milliseconds
 	EpochLength          uint64 // for development purposes; in slots
 	Authority            bool
-	Pruner               *state.Pruner
+	Pruner               state.Pruner
 }
 
 // NewService returns a new Babe Service using the provided VRF keys and runtime
@@ -320,7 +320,7 @@ func (b *Service) safeSend(msg types.Block) error {
 	defer b.lock.Unlock()
 
 	if b.IsStopped() {
-		return errors.New("Service has been stopped")
+		return errors.New("service has been stopped")
 	}
 
 	b.blockChan <- msg
@@ -414,8 +414,6 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) {
 		slotDone[i] = time.After(b.getSlotDuration() * time.Duration(i))
 	}
 
-	go b.pruner.PruneOne()
-
 	for i := 0; i < int(b.epochLength-intoEpoch); i++ {
 		select {
 		case <-b.ctx.Done():
@@ -493,7 +491,6 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		return nil
 	}
 
-	blockHash := block.Header.Hash()
 	insKeys, err := ts.GetInsertedNodeHashes()
 	if err != nil {
 		logger.Error("failed to get inserted keys for ", block.Header.Number, err)
@@ -501,6 +498,7 @@ func (b *Service) handleSlot(slotNum uint64) error {
 
 	delKeys := ts.GetDeletedNodeHashes()
 
+	blockHash := block.Header.Hash()
 	err = b.pruner.StoreJournalRecord(delKeys, insKeys, &blockHash, block.Header.Number)
 	if err != nil {
 		return err

@@ -51,8 +51,6 @@ type Service struct {
 	// Below are for testing only.
 	BabeThresholdNumerator   uint64
 	BabeThresholdDenominator uint64
-
-	pruner *Pruner
 }
 
 // NewService create a new instance of Service
@@ -69,7 +67,6 @@ func NewService(path string, lvl log.Lvl) *Service {
 		Storage: nil,
 		Block:   nil,
 		closeCh: make(chan interface{}),
-		pruner:  nil,
 	}
 }
 
@@ -180,7 +177,6 @@ func (s *Service) Start() error {
 	logger.Info("created state service", "head", s.Block.BestBlockHash(), "highest number", num)
 	// Start background goroutine to GC pruned keys.
 	go s.Storage.pruneStorage(s.closeCh)
-
 	return nil
 }
 

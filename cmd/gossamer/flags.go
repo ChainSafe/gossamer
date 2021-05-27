@@ -285,6 +285,13 @@ var (
 		Usage: "Retain number of block from latest block while pruning",
 		Value: 256,
 	}
+
+	// GCModeFlag sets the blockchain GC mode. It's either full or archive.
+	GCModeFlag = cli.StringFlag{
+		Name:  "gcmode",
+		Usage: `Blockchain garbage collection mode ("full", "archive")`,
+		Value: "full",
+	}
 )
 
 // flag sets that are shared by multiple commands
@@ -302,6 +309,7 @@ var (
 		DBPathFlag,
 		BloomFilterSizeFlag,
 		RetainBlockNumberFlag,
+		GCModeFlag,
 	}
 
 	// StartupFlags are flags that are valid for use with the root command and the export subcommand

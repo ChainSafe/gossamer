@@ -75,8 +75,12 @@ func (t *Trie) maybeUpdateGeneration(n node) node {
 		newNode := n.copy()
 		newNode.setGeneration(t.generation)
 
-		hash := common.BytesToHash(n.getHash())
-		t.deletedKeys = append(t.deletedKeys, &hash)
+		// Hash of old nodes should already be computed since it belongs to older generation.
+		oldNodeHash := n.getHash()
+		if len(oldNodeHash) > 0 {
+			hash := common.BytesToHash(oldNodeHash)
+			t.deletedKeys = append(t.deletedKeys, &hash)
+		}
 		return newNode
 	}
 
@@ -248,9 +252,7 @@ func (t *Trie) tryPut(key, value []byte) {
 
 // TryPut attempts to insert a key with value into the trie
 func (t *Trie) insert(parent node, key []byte, value node) node {
-	parent = t.maybeUpdateGeneration(parent)
-
-	switch p := parent.(type) {
+	switch p := t.maybeUpdateGeneration(parent).(type) {
 	case *branch:
 		n := t.updateBranch(p, key, value)
 
@@ -516,8 +518,8 @@ func (t *Trie) ClearPrefix(prefix []byte) {
 	t.root, _ = t.clearPrefix(t.root, p)
 }
 
-func (t *Trie) clearPrefix(curr node, prefix []byte) (node, bool) {
-	curr = t.maybeUpdateGeneration(curr)
+func (t *Trie) clearPrefix(cn node, prefix []byte) (node, bool) {
+	curr := t.maybeUpdateGeneration(cn)
 	switch c := curr.(type) {
 	case *branch:
 		length := lenCommonPrefix(c.key, prefix)
@@ -574,8 +576,7 @@ func (t *Trie) Delete(key []byte) {
 
 func (t *Trie) delete(parent node, key []byte) (node, bool) {
 	// Store the current node and return it, if the trie is not updated.
-	parent = t.maybeUpdateGeneration(parent)
-	switch p := parent.(type) {
+	switch p := t.maybeUpdateGeneration(parent).(type) {
 	case *branch:
 
 		length := lenCommonPrefix(p.key, key)

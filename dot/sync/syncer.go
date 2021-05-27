@@ -57,7 +57,7 @@ type Service struct {
 
 	// Consensus digest handling
 	digestHandler DigestHandler
-	pruner        *state.Pruner
+	pruner        state.Pruner
 }
 
 // Config is the configuration for the sync Service.
@@ -71,8 +71,7 @@ type Config struct {
 	Runtime          runtime.Instance
 	Verifier         Verifier
 	DigestHandler    DigestHandler
-
-	Pruner *state.Pruner
+	Pruner           state.Pruner
 }
 
 // NewService returns a new *sync.Service
@@ -351,14 +350,14 @@ func (s *Service) handleBlock(block *types.Block) error {
 		return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)
 	}
 
-	blockHash := block.Header.Hash()
 	insKeys, err := ts.GetInsertedNodeHashes()
 	if err != nil {
-		logger.Error("failed to get state trie inserted keys: block ", block.Header.Number, err)
+		return fmt.Errorf("failed to get state trie inserted keys: block %s %w", block.Header.Number, err)
 	}
 
 	delKeys := ts.GetDeletedNodeHashes()
 
+	blockHash := block.Header.Hash()
 	err = s.pruner.StoreJournalRecord(delKeys, insKeys, &blockHash, block.Header.Number)
 	if err != nil {
 		return err
@@ -389,8 +388,6 @@ func (s *Service) handleBlock(block *types.Block) error {
 	if s.digestHandler != nil {
 		s.handleDigests(block.Header)
 	}
-
-	go s.pruner.PruneOne()
 
 	return s.handleRuntimeChanges(ts)
 }

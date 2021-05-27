@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -136,7 +137,7 @@ func TestCreateSyncService(t *testing.T) {
 	ver, err := createBlockVerifier(stateSrvc)
 	require.NoError(t, err)
 
-	_, err = createSyncService(cfg, stateSrvc, nil, nil, nil, ver, rt, nil)
+	_, err = createSyncService(cfg, stateSrvc, nil, nil, nil, ver, rt, &state.ArchivalNodePruner{})
 	require.NoError(t, err)
 }
 
@@ -233,7 +234,7 @@ func TestCreateBABEService(t *testing.T) {
 	rt, err := createRuntime(cfg, stateSrvc, ks, &network.Service{})
 	require.NoError(t, err)
 
-	bs, err := createBABEService(cfg, rt, stateSrvc, ks.Babe, nil)
+	bs, err := createBABEService(cfg, rt, stateSrvc, ks.Babe, &state.ArchivalNodePruner{})
 	require.NoError(t, err)
 	require.NotNil(t, bs)
 }
