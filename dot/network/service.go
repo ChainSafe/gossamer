@@ -465,20 +465,15 @@ func (s *Service) IsStopped() bool {
 
 // SendMessage implementation of interface to handle receiving messages
 func (s *Service) SendMessage(msg NotificationsMessage) {
-	if s.host == nil {
+	if s.host == nil || msg == nil || s.IsStopped() {
 		return
 	}
-	if s.IsStopped() {
-		return
-	}
-	if msg == nil {
-		logger.Debug("Received nil message from core service")
-		return
-	}
+
 	logger.Debug(
-		"Broadcasting message from core service",
+		"gossiping message",
 		"host", s.host.id(),
 		"type", msg.Type(),
+		"message", msg,
 	)
 
 	// check if the message is part of a notifications protocol
@@ -527,7 +522,7 @@ func isInbound(stream libp2pnetwork.Stream) bool {
 func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder, handler messageHandler) {
 	peer := stream.Conn().RemotePeer()
 	msgBytes := s.bufPool.get()
-	defer s.bufPool.put(&msgBytes)
+	defer s.bufPool.put(msgBytes)
 
 	for {
 		tot, err := readStream(stream, msgBytes[:])

@@ -36,7 +36,7 @@ func newSizedBufferPool(min, max int) (bp *sizedBufferPool) {
 
 // get gets a buffer from the sizedBufferPool, or creates a new one if none are
 // available in the pool. Buffers have a pre-allocated capacity.
-func (bp *sizedBufferPool) get() [maxMessageSize]byte {
+func (bp *sizedBufferPool) get() *[maxMessageSize]byte {
 	var buff *[maxMessageSize]byte
 	select {
 	case buff = <-bp.c:
@@ -45,7 +45,7 @@ func (bp *sizedBufferPool) get() [maxMessageSize]byte {
 		// create new buffer
 		buff = &[maxMessageSize]byte{}
 	}
-	return *buff
+	return buff
 }
 
 // put returns the given buffer to the sizedBufferPool.
