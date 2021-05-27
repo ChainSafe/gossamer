@@ -165,19 +165,19 @@ func (d *discovery) discoverAndAdvertise() error {
 			select {
 			case <-d.ctx.Done():
 				return
-			case <-time.After(connectToPeersTimeout):
-				if len(d.h.Network().Peers()) > d.minPeers {
-					continue
-				}
+			// case <-time.After(connectToPeersTimeout):
+			// 	if len(d.h.Network().Peers()) > d.minPeers {
+			// 		continue
+			// 	}
 
-				// reconnect to peers if peer count is low
-				for p := range peersToTry {
-					err = d.h.Connect(d.ctx, *p)
-					if err != nil {
-						logger.Trace("failed to connect to discovered peer", "peer", p.ID, "err", err)
-						delete(peersToTry, p)
-					}
-				}
+			// 	// reconnect to peers if peer count is low
+			// 	for p := range peersToTry {
+			// 		err = d.h.Connect(d.ctx, *p)
+			// 		if err != nil {
+			// 			logger.Trace("failed to connect to discovered peer", "peer", p.ID, "err", err)
+			// 			delete(peersToTry, p)
+			// 		}
+			// 	}
 			case peer := <-peerCh:
 				if peer.ID == d.h.ID() || peer.ID == "" {
 					continue
