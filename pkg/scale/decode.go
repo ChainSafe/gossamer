@@ -27,8 +27,12 @@ func Unmarshal(data []byte, dst interface{}) (err error) {
 	if err != nil {
 		return
 	}
+
+	elem := dstv.Elem()
 	if out != nil {
-		dstv.Elem().Set(reflect.ValueOf(out))
+		elem.Set(reflect.ValueOf(out))
+	} else {
+		elem.Set(reflect.Zero(elem.Type()))
 	}
 	return
 }
@@ -68,6 +72,7 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (out interface{}, err error
 			}
 			switch rb {
 			case 0x00:
+				fmt.Println("in here!")
 				in = nil
 			case 0x01:
 				elem := reflect.ValueOf(in).Elem()
@@ -82,10 +87,10 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (out interface{}, err error
 			}
 		case reflect.Struct:
 			in, err = ds.decodeStruct(in)
-		// case reflect.Array:
-		// 	err = es.encodeArray(in)
-		// case reflect.Slice:
-		// 	err = es.encodeSlice(in)
+		case reflect.Array:
+			in, err = ds.decodeArray(in)
+		case reflect.Slice:
+			in, err = ds.decodeSlice(in)
 		default:
 			err = fmt.Errorf("unsupported type: %T", in)
 		}
@@ -98,17 +103,120 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (out interface{}, err error
 	return
 }
 
+// decodeArray comment about this
+func (ds *decodeState) decodeSlice(dst interface{}) (arr interface{}, err error) {
+	dstv := reflect.ValueOf(dst)
+	// seems redundant since this shouldn't be called unless it is a slice,
+	// but I'll leave this error check in for completeness
+	if dstv.Kind() != reflect.Slice {
+		err = fmt.Errorf("can not decodeSlice dst type: %T", dstv)
+		return
+	}
+
+	l, err := ds.decodeLength()
+	if err != nil {
+		return nil, err
+	}
+
+	switch dst.(type) {
+	case []int:
+		temp := make([]int, l)
+		for i := 0; i < l; i++ {
+			var ui uint64
+			ui, err = ds.decodeUint()
+			if err != nil {
+				return
+			}
+			temp[i] = int(ui)
+		}
+		arr = temp
+	default:
+		temp := reflect.New(reflect.TypeOf(dst))
+		for i := 0; i < l; i++ {
+			tempElemType := reflect.TypeOf(dst).Elem()
+			tempElem := reflect.New(tempElemType).Elem()
+
+			var out interface{}
+			out, err = ds.unmarshal(tempElem)
+			if err != nil {
+				return
+			}
+
+			if reflect.ValueOf(out).IsValid() {
+				tempElem.Set(reflect.ValueOf(out))
+			} else {
+				tempElem.Set(reflect.Zero(tempElem.Type()))
+			}
+			temp.Elem().Set(reflect.Append(temp.Elem(), tempElem))
+		}
+		arr = temp.Elem().Interface()
+	}
+
+	return
+}
+
+// decodeArray comment about this
+func (ds *decodeState) decodeArray(dst interface{}) (arr interface{}, err error) {
+	dstv := reflect.ValueOf(dst)
+	// seems redundant since this shouldn't be called unless it is an array,
+	// but I'll leave this error check in for completeness
+	if dstv.Kind() != reflect.Array {
+		err = fmt.Errorf("can not decodeArray dst type: %T", dstv)
+		return
+	}
+
+	// temp := reflect.New(reflect.Indirect(reflect.ValueOf(dst)).Type())
+	temp := reflect.New(reflect.TypeOf(dst))
+	for i := 0; i < dstv.Len(); i++ {
+		elem := dstv.Index(i)
+		elemIn := elem.Interface()
+
+		var out interface{}
+		switch elemIn.(type) {
+		case int:
+			fmt.Println("calling uint", elemIn)
+			var ui uint64
+			ui, err = ds.decodeUint()
+			out = int(ui)
+		default:
+			fmt.Println("calling unmarshal", elemIn)
+			out, err = ds.unmarshal(elem)
+		}
+		if err != nil {
+			return
+		}
+
+		tempElem := temp.Elem().Index(i)
+		if reflect.ValueOf(out).IsValid() {
+			tempElem.Set(reflect.ValueOf(out))
+		} else {
+			tempElem.Set(reflect.Zero(tempElem.Type()))
+		}
+	}
+
+	arr = temp.Elem().Interface()
+	return
+}
+
 // decodeStruct comment about this
 func (ds *decodeState) decodeStruct(dst interface{}) (s interface{}, err error) {
+	dstv := reflect.ValueOf(dst)
+	// seems redundant since this shouldn't be called unless it is a struct,
+	// but I'll leave this error check in for completeness
+	if dstv.Kind() != reflect.Struct {
+		err = fmt.Errorf("can not decodeStruct dst type: %T", dstv)
+		return
+	}
+
 	v, indices, err := cache.fieldScaleIndices(dst)
 	if err != nil {
 		return
 	}
 
-	s = v.Interface()
-	sv := reflect.ValueOf(s)
+	temp := reflect.New(reflect.TypeOf(dst))
+	// temp := reflect.New(reflect.Indirect(reflect.ValueOf(dst)).Type())
 	for _, i := range indices {
-		field := sv.Field(i.fieldIndex)
+		field := v.Field(i.fieldIndex)
 		if !field.CanInterface() {
 			continue
 		}
@@ -119,11 +227,18 @@ func (ds *decodeState) decodeStruct(dst interface{}) (s interface{}, err error) 
 			err = fmt.Errorf("%s, field: %+v", err, field)
 			return
 		}
-		if out != nil {
+		if out == nil {
 			continue
 		}
-		field.Set(reflect.ValueOf(out))
+
+		tempElem := temp.Elem().Field(i.fieldIndex)
+		if reflect.ValueOf(out).IsValid() {
+			tempElem.Set(reflect.ValueOf(out))
+		} else {
+			tempElem.Set(reflect.Zero(tempElem.Type()))
+		}
 	}
+	s = temp.Elem().Interface()
 	return
 }
 
