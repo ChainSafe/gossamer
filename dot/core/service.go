@@ -367,7 +367,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 				continue
 			}
 
-			vtx := transaction.NewValidTransaction(ext, txv)
+			vtx := transaction.NewValidTransaction(encExt, txv)
 			s.transactionState.AddToPool(vtx)
 		}
 	}
