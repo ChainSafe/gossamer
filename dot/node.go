@@ -350,18 +350,20 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	}
 
 	telemetry.GetInstance().AddConnections(gd.TelemetryEndpoints)
-	data := &telemetry.ConnectionData{
-		Authority:     cfg.Core.GrandpaAuthority,
-		Chain:         sysSrvc.ChainName(),
-		GenesisHash:   stateSrvc.Block.GenesisHash().String(),
-		SystemName:    sysSrvc.SystemName(),
-		NodeName:      cfg.Global.Name,
-		SystemVersion: sysSrvc.SystemVersion(),
-		NetworkID:     networkSrvc.NetworkState().PeerID,
-		StartTime:     strconv.FormatInt(time.Now().UnixNano(), 10),
-	}
-	telemetry.GetInstance().SendConnection(data)
 
+	err = telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(
+		telemetry.NewKeyValue("authority", cfg.Core.GrandpaAuthority),
+		telemetry.NewKeyValue("chain", sysSrvc.ChainName()),
+		telemetry.NewKeyValue("genesis_hash", stateSrvc.Block.GenesisHash().String()),
+		telemetry.NewKeyValue("implementation", sysSrvc.SystemName()),
+		telemetry.NewKeyValue("msg", "system.connected"),
+		telemetry.NewKeyValue("name", cfg.Global.Name),
+		telemetry.NewKeyValue("network_id", networkSrvc.NetworkState().PeerID),
+		telemetry.NewKeyValue("startup_time", strconv.FormatInt(time.Now().UnixNano(), 10)),
+		telemetry.NewKeyValue("version", sysSrvc.SystemVersion())))
+	if err != nil {
+		logger.Debug("problem sending system.connected telemetry message", "err", err)
+	}
 	return node, nil
 }
 
