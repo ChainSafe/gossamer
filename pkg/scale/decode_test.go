@@ -99,7 +99,6 @@ func Test_decodeState_decodeStructManual(t *testing.T) {
 	if !reflect.DeepEqual(dst2, want) {
 		t.Errorf("decodeState.unmarshal() = %v, want %v", dst, want)
 	}
-
 }
 
 func Test_decodeState_decodeStruct(t *testing.T) {
@@ -111,40 +110,6 @@ func Test_decodeState_decodeStruct(t *testing.T) {
 			if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
 				t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			// dstv := reflect.ValueOf(dst)
-			// inv := reflect.ValueOf(tt.in)
-
-			// if dstv.Kind() != inv.Kind() {
-			// 	t.Errorf("decodeState.unmarshal() differing kind = %T, want %T", dst, tt.in)
-			// 	return
-			// }
-
-			// switch inv.Kind() {
-			// case reflect.Ptr:
-			// 	fmt.Println(dst, dstv.Interface(), tt.in, inv.Interface())
-			// 	if inv.IsZero() {
-			// 		fmt.Println(dst, tt.in, dstv.Interface(), inv.Interface())
-			// 		if !reflect.DeepEqual(dstv.Interface(), tt.in) {
-			// 			t.Errorf("decodeState.unmarshal() = %v, want %v", dst, tt.in)
-			// 		}
-			// 	} else if inv.IsNil() {
-			// 		if !reflect.DeepEqual(dst, tt.in) {
-			// 			t.Errorf("decodeState.unmarshal() = %v, want %v", dst, tt.in)
-			// 		}
-			// 	} else {
-			// 		// // have to do this since reflect.DeepEqual won't come back true for different addresses
-			// 		// if !reflect.DeepEqual(reflect.ValueOf(dst).Elem().Interface(), reflect.ValueOf(tt.in).Elem().Interface()) {
-			// 		// 	t.Errorf("decodeState.unmarshal() = %v, want %v", dst, tt.in)
-			// 		// }
-			// 		if !reflect.DeepEqual(dst, inv) {
-			// 			t.Errorf("decodeState.unmarshal() = %v, want %v", dst, tt.in)
-			// 		}
-			// 	}
-			// default:
-			// 	if !reflect.DeepEqual(dst, tt.in) {
-			// 		t.Errorf("decodeState.unmarshal() = %v, want %v", dst, tt.in)
-			// 	}
-			// }
 			if !reflect.DeepEqual(dst, tt.in) {
 				t.Errorf("decodeState.unmarshal() = %v, want %v", dst, tt.in)
 			}
@@ -175,6 +140,39 @@ func Test_decodeState_decodeSlice(t *testing.T) {
 				t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if !reflect.DeepEqual(dst, tt.in) {
+				t.Errorf("decodeState.unmarshal() = %v, want %v", dst, tt.in)
+			}
+		})
+	}
+}
+
+func Test_unmarshal_optionality(t *testing.T) {
+	var ptrTests tests
+	for _, t := range allTests {
+		ptrTest := test{
+			name:    t.name,
+			in:      t.in,
+			wantErr: t.wantErr,
+			want:    t.want,
+		}
+		switch t.in {
+		case nil:
+			// this doesn't actually happen since none of the tests have nil value for tt.in
+			ptrTest.want = []byte{0x00}
+		default:
+			ptrTest.want = append([]byte{0x01}, t.want...)
+		}
+		ptrTests = append(ptrTests, ptrTest)
+	}
+	for _, tt := range ptrTests {
+		t.Run(tt.name, func(t *testing.T) {
+			// this becomes a pointer to a zero value of the underlying value
+			dst := reflect.New(reflect.TypeOf(tt.in)).Interface()
+			// es := &encodeState{fieldScaleIndicesCache: cache}
+			if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
+				t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(dst, &tt.in) {
 				t.Errorf("decodeState.unmarshal() = %v, want %v", dst, tt.in)
 			}
 		})

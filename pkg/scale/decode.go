@@ -58,30 +58,10 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (out interface{}, err error
 		in = string(b)
 	case bool:
 		in, err = ds.decodeBool()
-	// case VaryingDataType:
-	// 	in, err = ds.decodeVaryingDataType()
 	default:
 		switch reflect.TypeOf(in).Kind() {
 		case reflect.Ptr:
-			var rb byte
-			rb, err = ds.ReadByte()
-			if err != nil {
-				break
-			}
-			switch rb {
-			case 0x00:
-				in = nil
-			case 0x01:
-				elem := reflect.ValueOf(in).Elem()
-				out := elem.Interface()
-				out, err = ds.unmarshal(elem)
-				if err != nil {
-					break
-				}
-				in = &out
-			default:
-				err = fmt.Errorf("unsupported Option value: %v, bytes: %v", rb, ds.Bytes())
-			}
+			in, err = ds.decodePointer(in)
 		case reflect.Struct:
 			in, err = ds.decodeStruct(in)
 		case reflect.Array:
@@ -95,7 +75,6 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (out interface{}, err error
 			case false:
 				in, err = ds.decodeSlice(in)
 			}
-
 		default:
 			err = fmt.Errorf("unsupported type: %T", in)
 		}
@@ -105,6 +84,29 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (out interface{}, err error
 		return
 	}
 	out = in
+	return
+}
+
+func (ds *decodeState) decodePointer(in interface{}) (out interface{}, err error) {
+	var rb byte
+	rb, err = ds.ReadByte()
+	if err != nil {
+		return
+	}
+	switch rb {
+	case 0x00:
+		out = nil
+	case 0x01:
+		elem := reflect.ValueOf(in).Elem()
+		temp := elem.Interface()
+		temp, err = ds.unmarshal(elem)
+		if err != nil {
+			break
+		}
+		out = &temp
+	default:
+		err = fmt.Errorf("unsupported Option value: %v, bytes: %v", rb, ds.Bytes())
+	}
 	return
 }
 
