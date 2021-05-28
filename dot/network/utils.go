@@ -179,8 +179,6 @@ func readStream(stream libp2pnetwork.Stream, buf []byte) (int, error) {
 		return 0, errors.New("stream is nil")
 	}
 
-	//r := bufio.NewReader(stream)
-
 	var (
 		tot int
 	)
