@@ -27,6 +27,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -70,11 +74,58 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	require.Equal(t, expected, net.Message)
 }
 
+func createExtrinsics(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) (types.Extrinsic, error) {
+	t.Helper()
+	bob, err := ctypes.NewAddressFromHexAccountID("0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
+	require.NoError(t, err)
+
+	rawMeta, err := rt.Metadata()
+	require.NoError(t, err)
+
+	decoded, err := scale.Decode(rawMeta, []byte{})
+	require.NoError(t, err)
+
+	meta := &ctypes.Metadata{}
+	err = ctypes.DecodeFromBytes(decoded.([]byte), meta)
+	require.NoError(t, err)
+
+	rv, err := rt.Version()
+	require.NoError(t, err)
+
+	c, err := ctypes.NewCall(meta, "Balances.transfer", bob, ctypes.NewUCompactFromUInt(12345))
+	require.NoError(t, err)
+
+	// Create the extrinsic
+	ext := ctypes.NewExtrinsic(c)
+
+	o := ctypes.SignatureOptions{
+		BlockHash:          ctypes.Hash(genHash),
+		Era:                ctypes.ExtrinsicEra{IsImmortalEra: true},
+		GenesisHash:        ctypes.Hash(genHash),
+		Nonce:              ctypes.NewUCompactFromUInt(nonce),
+		SpecVersion:        ctypes.U32(rv.SpecVersion()),
+		Tip:                ctypes.NewUCompactFromUInt(0),
+		TransactionVersion: ctypes.U32(rv.TransactionVersion()),
+	}
+
+	// Sign the transaction using Alice's default account
+	err = ext.Sign(signature.TestKeyringPairAlice, o)
+	if err != nil {
+		return nil, err
+	}
+
+	extEnc, err := ctypes.EncodeToHexString(ext)
+	if err != nil {
+		return nil, err
+	}
+
+	extBytes := types.Extrinsic(common.MustHexToBytes(extEnc))
+	return extBytes, nil
+}
+
 func TestService_HandleTransactionMessage(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
-	require.Nil(t, err)
-
-	// TODO: load BABE authority key
+	require.NoError(t, err)
 
 	ks := keystore.NewGlobalKeystore()
 	ks.Acco.Insert(kp)
@@ -87,23 +138,22 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	}
 
 	s := NewTestService(t, cfg)
-
-	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
-	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewEmptyDigest())
+	genHash := s.blockState.GenesisHash()
+	header, err := types.NewHeader(genHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewEmptyDigest())
 	require.NoError(t, err)
 
 	// initialise block header
 	err = s.rt.InitializeBlock(header)
 	require.NoError(t, err)
 
-	ext := types.Extrinsic(common.MustHexToBytes("0x410284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d015a3e258da3ea20581b68fe1264a35d1f62d6a0debb1a44e836375eb9921ba33e3d0f265f2da33c9ca4e10490b03918300be902fcb229f806c9cf99af4cc10f8c0000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a480b00c465f14670"))
+	extBytes, err := createExtrinsics(t, s.rt, genHash, 0)
+	require.NoError(t, err)
 
-	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}}
-
+	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}}
 	err = s.HandleTransactionMessage(msg)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	pending := s.transactionState.(*state.TransactionState).Pending()
 	require.NotEqual(t, 0, len(pending))
-	require.Equal(t, ext, pending[0].Extrinsic)
+	require.Equal(t, extBytes, pending[0].Extrinsic)
 }
