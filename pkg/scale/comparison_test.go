@@ -130,7 +130,7 @@ func TestOldVsNewEncoding(t *testing.T) {
 		),
 	}
 
-	newEncode, err := Marshal(newDigest)
+	newEncode, err := scale.Marshal(newDigest)
 	if err != nil {
 		t.Errorf("unexpected err: %v", err)
 		return
