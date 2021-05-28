@@ -36,6 +36,7 @@ var (
 	initialAdvertisementTimeout = time.Millisecond
 	tryAdvertiseTimeout         = time.Second * 30
 	connectToPeersTimeout       = time.Minute * 5
+	findPeersTimeout            = time.Minute
 )
 
 // discovery handles discovery of new peers via the kademlia DHT
@@ -48,19 +49,17 @@ type discovery struct {
 	ds                 *badger.Datastore
 	pid                protocol.ID
 	minPeers, maxPeers int
-	cachedPeers        map[*peer.AddrInfo]struct{}
 }
 
 func newDiscovery(ctx context.Context, h libp2phost.Host, bootnodes []peer.AddrInfo, ds *badger.Datastore, pid protocol.ID, min, max int) *discovery {
 	return &discovery{
-		ctx:         ctx,
-		h:           h,
-		bootnodes:   bootnodes,
-		ds:          ds,
-		pid:         pid,
-		minPeers:    min,
-		maxPeers:    max,
-		cachedPeers: make(map[*peer.AddrInfo]struct{}),
+		ctx:       ctx,
+		h:         h,
+		bootnodes: bootnodes,
+		ds:        ds,
+		pid:       pid,
+		minPeers:  min,
+		maxPeers:  max,
 	}
 }
 
@@ -143,7 +142,7 @@ func (d *discovery) advertise() {
 		select {
 		case <-time.After(ttl):
 			logger.Debug("advertising ourselves in the DHT...")
-			err := d.dht.Bootstrap(d.ctx) //nolint
+			err := d.dht.Bootstrap(d.ctx)
 			if err != nil {
 				logger.Warn("failed to bootstrap DHT", "error", err)
 				continue
@@ -160,9 +159,26 @@ func (d *discovery) advertise() {
 	}
 }
 
-func (d *discovery) findPeers() {
+func (d *discovery) checkPeerCount() {
+	for {
+		select {
+		case <-d.ctx.Done():
+			return
+		case <-time.After(connectToPeersTimeout):
+			if len(d.h.Network().Peers()) > d.minPeers {
+				continue
+			}
+
+			ctx, cancel := context.WithTimeout(d.ctx, findPeersTimeout)
+			defer cancel()
+			d.findPeers(ctx)
+		}
+	}
+}
+
+func (d *discovery) findPeers(ctx context.Context) {
 	logger.Debug("attempting to find DHT peers...")
-	peerCh, err := d.rd.FindPeers(d.ctx, string(d.pid)) //nolint
+	peerCh, err := d.rd.FindPeers(d.ctx, string(d.pid))
 	if err != nil {
 		logger.Warn("failed to begin finding peers via DHT", "err", err)
 		return
@@ -170,7 +186,7 @@ func (d *discovery) findPeers() {
 
 	for {
 		select {
-		case <-d.ctx.Done():
+		case <-ctx.Done():
 			return
 		case peer := <-peerCh:
 			if peer.ID == d.h.ID() || peer.ID == "" {
@@ -187,29 +203,7 @@ func (d *discovery) findPeers() {
 				}
 			} else {
 				d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
-				d.cachedPeers[&peer] = struct{}{}
-			}
-		}
-	}
-}
-
-func (d *discovery) checkPeerCount() {
-	for {
-		select {
-		case <-d.ctx.Done():
-			return
-		case <-time.After(connectToPeersTimeout):
-			if len(d.h.Network().Peers()) > d.minPeers {
-				continue
-			}
-
-			// reconnect to peers if peer count is low
-			for p := range d.cachedPeers {
-				err := d.h.Connect(d.ctx, *p)
-				if err != nil {
-					logger.Trace("failed to connect to discovered peer", "peer", p.ID, "err", err)
-					delete(d.cachedPeers, p)
-				}
+				return
 			}
 		}
 	}
