@@ -150,6 +150,8 @@ func (d *discovery) discoverAndAdvertise() error {
 			}
 		}
 	}()
+	
+	peersToTry := make(map[*peer.AddrInfo]struct{})
 
 	go func() {
 		logger.Debug("attempting to find DHT peers...")
@@ -159,25 +161,11 @@ func (d *discovery) discoverAndAdvertise() error {
 			return
 		}
 
-		//peersToTry := make(map[*peer.AddrInfo]struct{})
 
 		for {
 			select {
 			case <-d.ctx.Done():
 				return
-			// case <-time.After(connectToPeersTimeout):
-			// 	if len(d.h.Network().Peers()) > d.minPeers {
-			// 		continue
-			// 	}
-
-			// 	// reconnect to peers if peer count is low
-			// 	for p := range peersToTry {
-			// 		err = d.h.Connect(d.ctx, *p)
-			// 		if err != nil {
-			// 			logger.Trace("failed to connect to discovered peer", "peer", p.ID, "err", err)
-			// 			delete(peersToTry, p)
-			// 		}
-			// 	}
 			case peer := <-peerCh:
 				if peer.ID == d.h.ID() || peer.ID == "" {
 					continue
@@ -193,9 +181,31 @@ func (d *discovery) discoverAndAdvertise() error {
 					}
 				} else {
 					// d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
-					// peersToTry[&peer] = struct{}{}
+					peersToTry[&peer] = struct{}{}
 				}
 			}
+		}
+	}()
+
+	go func() {
+		for {
+			select {
+			case <-d.ctx.Done():
+				return
+			case <-time.After(connectToPeersTimeout):
+				if len(d.h.Network().Peers()) > d.minPeers {
+					continue
+				}
+
+				// reconnect to peers if peer count is low
+				for p := range peersToTry {
+					err = d.h.Connect(d.ctx, *p)
+					if err != nil {
+						logger.Trace("failed to connect to discovered peer", "peer", p.ID, "err", err)
+						delete(peersToTry, p)
+					}
+				}
+			}		
 		}
 	}()
 

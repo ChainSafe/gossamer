@@ -40,7 +40,7 @@ func (bp *sizedBufferPool) get() [maxMessageSize]byte {
 	var buff *[maxMessageSize]byte
 	select {
 	case buff = <-bp.c:
-		// reuse existing buffer
+	// reuse existing buffer
 	default:
 		// create new buffer
 		buff = &[maxMessageSize]byte{}
