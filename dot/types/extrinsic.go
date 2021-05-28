@@ -37,7 +37,7 @@ func NewExtrinsic(e []byte) Extrinsic {
 	return Extrinsic(e)
 }
 
-// DecodeVersion ...
+// DecodeVersion decodes only the version field of the Extrinsic.
 func (e *ExtrinsicData) DecodeVersion(encExt Extrinsic) error {
 	decoder := scale.NewDecoder(bytes.NewReader(encExt))
 	_, err := decoder.DecodeUintCompact()
