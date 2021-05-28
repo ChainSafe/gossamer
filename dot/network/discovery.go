@@ -24,7 +24,7 @@ import (
 	badger "github.com/ipfs/go-ds-badger2"
 	libp2phost "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
-	//"github.com/libp2p/go-libp2p-core/peerstore"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	libp2pdiscovery "github.com/libp2p/go-libp2p-discovery"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
@@ -35,7 +35,7 @@ var (
 	startDHTTimeout             = time.Second * 10
 	initialAdvertisementTimeout = time.Millisecond
 	tryAdvertiseTimeout         = time.Second * 30
-	connectToPeersTimeout       = time.Minute
+	connectToPeersTimeout       = time.Minute * 5
 )
 
 // discovery handles discovery of new peers via the kademlia DHT
@@ -134,7 +134,7 @@ func (d *discovery) discoverAndAdvertise() error {
 			select {
 			case <-time.After(ttl):
 				logger.Debug("advertising ourselves in the DHT...")
-				err := d.dht.Bootstrap(d.ctx)
+				err := d.dht.Bootstrap(d.ctx) //nolint
 				if err != nil {
 					logger.Warn("failed to bootstrap DHT", "error", err)
 					continue
@@ -150,17 +150,16 @@ func (d *discovery) discoverAndAdvertise() error {
 			}
 		}
 	}()
-	
+
 	peersToTry := make(map[*peer.AddrInfo]struct{})
 
 	go func() {
 		logger.Debug("attempting to find DHT peers...")
-		peerCh, err := rd.FindPeers(d.ctx, string(d.pid))
+		peerCh, err := rd.FindPeers(d.ctx, string(d.pid)) //nolint
 		if err != nil {
 			logger.Warn("failed to begin finding peers via DHT", "err", err)
 			return
 		}
-
 
 		for {
 			select {
@@ -180,7 +179,7 @@ func (d *discovery) discoverAndAdvertise() error {
 						logger.Trace("failed to connect to discovered peer", "peer", peer.ID, "err", err)
 					}
 				} else {
-					// d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
+					d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
 					peersToTry[&peer] = struct{}{}
 				}
 			}
@@ -205,7 +204,7 @@ func (d *discovery) discoverAndAdvertise() error {
 						delete(peersToTry, p)
 					}
 				}
-			}		
+			}
 		}
 	}()
 
