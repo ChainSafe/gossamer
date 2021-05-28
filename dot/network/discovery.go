@@ -129,8 +129,8 @@ func (d *discovery) discoverAndAdvertise() error {
 	// wait to connect to bootstrap peers
 	time.Sleep(time.Second)
 	go d.advertise()
-	//go d.findPeers()
 	go d.checkPeerCount()
+
 	logger.Debug("DHT discovery started!")
 	return nil
 }
