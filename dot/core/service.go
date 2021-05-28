@@ -356,12 +356,12 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 				continue
 			}
 
-			encode, err := scale.Encode(ext)
+			encExt, err := scale.Encode(ext)
 			if err != nil {
 				return err
 			}
 
-			txv, err := s.rt.ValidateTransaction(append([]byte{byte(types.TxnExternal)}, encode...))
+			txv, err := s.rt.ValidateTransaction(append([]byte{byte(types.TxnExternal)}, encExt...))
 			if err != nil {
 				logger.Debug("failed to validate transaction", "error", err, "extrinsic", ext)
 				continue
