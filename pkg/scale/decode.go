@@ -59,9 +59,7 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (out interface{}, err error
 	case bool:
 		in, err = ds.decodeBool()
 	// case VaryingDataType:
-	// 	err = es.encodeVaryingDataType(in)
-	// // TODO: case common.Hash:
-	// // 	n, err = es.Writer.Write(v.ToBytes())
+	// 	in, err = ds.decodeVaryingDataType()
 	default:
 		switch reflect.TypeOf(in).Kind() {
 		case reflect.Ptr:
@@ -72,7 +70,6 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (out interface{}, err error
 			}
 			switch rb {
 			case 0x00:
-				fmt.Println("in here!")
 				in = nil
 			case 0x01:
 				elem := reflect.ValueOf(in).Elem()
@@ -90,7 +87,15 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (out interface{}, err error
 		case reflect.Array:
 			in, err = ds.decodeArray(in)
 		case reflect.Slice:
-			in, err = ds.decodeSlice(in)
+			t := reflect.TypeOf(in)
+			// check if this is a convertible to VaryingDataType, if so encode using encodeVaryingDataType
+			switch t.ConvertibleTo(reflect.TypeOf(VaryingDataType{})) {
+			case true:
+				in, err = ds.decodeVaryingDataType(in)
+			case false:
+				in, err = ds.decodeSlice(in)
+			}
+
 		default:
 			err = fmt.Errorf("unsupported type: %T", in)
 		}
@@ -100,6 +105,52 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (out interface{}, err error
 		return
 	}
 	out = in
+	return
+}
+
+func (ds *decodeState) decodeVaryingDataType(dst interface{}) (vdt interface{}, err error) {
+	l, err := ds.decodeLength()
+	if err != nil {
+		return nil, err
+	}
+
+	dstt := reflect.TypeOf(dst)
+	key := fmt.Sprintf("%s.%s", dstt.PkgPath(), dstt.Name())
+	mappedValues, ok := vdtCache[key]
+	if !ok {
+		err = fmt.Errorf("unable to find registered custom VaryingDataType: %T", dst)
+		return
+	}
+
+	temp := reflect.New(dstt)
+	for i := 0; i < l; i++ {
+		var b byte
+		b, err = ds.ReadByte()
+		if err != nil {
+			return
+		}
+
+		val, ok := mappedValues[uint(b)]
+		if !ok {
+			err = fmt.Errorf("unable to find registered VaryingDataTypeValue for type: %T", dst)
+			return
+		}
+
+		tempVal := reflect.New(reflect.TypeOf(val)).Elem()
+		var out interface{}
+		out, err = ds.unmarshal(tempVal)
+		if err != nil {
+			return
+		}
+
+		if reflect.ValueOf(out).IsValid() {
+			tempVal.Set(reflect.ValueOf(out))
+		} else {
+			tempVal.Set(reflect.Zero(tempVal.Type()))
+		}
+		temp.Elem().Set(reflect.Append(temp.Elem(), tempVal))
+	}
+	vdt = temp.Elem().Interface()
 	return
 }
 
@@ -174,16 +225,17 @@ func (ds *decodeState) decodeArray(dst interface{}) (arr interface{}, err error)
 		var out interface{}
 		switch elemIn.(type) {
 		case int:
-			fmt.Println("calling uint", elemIn)
 			var ui uint64
 			ui, err = ds.decodeUint()
+			if err != nil {
+				return
+			}
 			out = int(ui)
 		default:
-			fmt.Println("calling unmarshal", elemIn)
 			out, err = ds.unmarshal(elem)
-		}
-		if err != nil {
-			return
+			if err != nil {
+				return
+			}
 		}
 
 		tempElem := temp.Elem().Index(i)

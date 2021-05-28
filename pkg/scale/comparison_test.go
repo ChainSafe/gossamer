@@ -1,56 +1,13 @@
-package scale
+package scale_test
 
 import (
-	"encoding/binary"
 	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
-
-// BabePrimaryPreDigest as defined in Polkadot RE Spec, definition 5.10 in section 5.1.4
-type BabePrimaryPreDigest struct {
-	AuthorityIndex uint32
-	SlotNumber     uint64
-	VrfOutput      [sr25519.VrfOutputLength]byte
-	VrfProof       [sr25519.VrfProofLength]byte
-}
-
-// Encode performs SCALE encoding of a BABEPrimaryPreDigest
-func (d *BabePrimaryPreDigest) Encode() []byte {
-	enc := []byte{byte(1)}
-
-	buf := make([]byte, 4)
-	binary.LittleEndian.PutUint32(buf, d.AuthorityIndex)
-	enc = append(enc, buf...)
-
-	buf = make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, d.SlotNumber)
-	enc = append(enc, buf...)
-	enc = append(enc, d.VrfOutput[:]...)
-	enc = append(enc, d.VrfProof[:]...)
-	return enc
-}
-
-func TestOldVsNewEncoding(t *testing.T) {
-	bh := &BabePrimaryPreDigest{
-		VrfOutput:      [sr25519.VrfOutputLength]byte{0, 91, 50, 25, 214, 94, 119, 36, 71, 216, 33, 152, 85, 184, 34, 120, 61, 161, 164, 223, 76, 53, 40, 246, 76, 38, 235, 204, 43, 31, 179, 28},
-		VrfProof:       [sr25519.VrfProofLength]byte{120, 23, 235, 159, 115, 122, 207, 206, 123, 232, 75, 243, 115, 255, 131, 181, 219, 241, 200, 206, 21, 22, 238, 16, 68, 49, 86, 99, 76, 139, 39, 0, 102, 106, 181, 136, 97, 141, 187, 1, 234, 183, 241, 28, 27, 229, 133, 8, 32, 246, 245, 206, 199, 142, 134, 124, 226, 217, 95, 30, 176, 246, 5, 3},
-		AuthorityIndex: 17,
-		SlotNumber:     420,
-	}
-	oldEncode := bh.Encode()
-	newEncode, err := Marshal(bh)
-	if err != nil {
-		t.Errorf("unexpected err: %v", err)
-		return
-	}
-	if !reflect.DeepEqual(oldEncode, newEncode) {
-		t.Errorf("encodeState.encodeStruct() = %v, want %v", oldEncode, newEncode)
-	}
-}
 
 // ChangesTrieRootDigest contains the root of the changes trie at a given block, if the runtime supports it.
 type ChangesTrieRootDigest struct {
@@ -91,7 +48,7 @@ func (prd SealDigest) Index() uint {
 	return 5
 }
 
-func TestOldVsNewEncoding2(t *testing.T) {
+func TestOldVsNewEncoding(t *testing.T) {
 	oldDigest := types.Digest{
 		&types.ChangesTrieRootDigest{
 			Hash: common.Hash{0, 91, 50, 25, 214, 94, 119, 36, 71, 216, 33, 152, 85, 184, 34, 120, 61, 161, 164, 223, 76, 53, 40, 246, 76, 38, 235, 204, 43, 31, 179, 28},
@@ -115,7 +72,10 @@ func TestOldVsNewEncoding2(t *testing.T) {
 		return
 	}
 
-	newDigest := VaryingDataType{
+	type Digests scale.VaryingDataType
+	scale.RegisterVaryingDataType(Digests{}, ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
+
+	newDigest := Digests{
 		ChangesTrieRootDigest{
 			Hash: common.Hash{0, 91, 50, 25, 214, 94, 119, 36, 71, 216, 33, 152, 85, 184, 34, 120, 61, 161, 164, 223, 76, 53, 40, 246, 76, 38, 235, 204, 43, 31, 179, 28},
 		},
@@ -133,12 +93,21 @@ func TestOldVsNewEncoding2(t *testing.T) {
 		},
 	}
 
-	newEncode, err := Marshal(newDigest)
+	newEncode, err := scale.Marshal(newDigest)
 	if err != nil {
 		t.Errorf("unexpected err: %v", err)
 		return
 	}
 	if !reflect.DeepEqual(oldEncode, newEncode) {
 		t.Errorf("encodeState.encodeStruct() = %v, want %v", oldEncode, newEncode)
+	}
+
+	var decoded Digests
+	err = scale.Unmarshal(newEncode, &decoded)
+	if err != nil {
+		t.Errorf("unexpected err: %v", err)
+	}
+	if !reflect.DeepEqual(decoded, newDigest) {
+		t.Errorf("Unmarshal() = %v, want %v", decoded, newDigest)
 	}
 }
