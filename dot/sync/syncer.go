@@ -364,12 +364,14 @@ func (s *Service) handleBlock(block *types.Block) error {
 		}
 	} else {
 		logger.Debug("🔗 imported block", "number", block.Header.Number, "hash", block.Header.Hash())
-		telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(
+		err := telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(
 			telemetry.NewKeyValue("best", block.Header.Hash().String()),
 			telemetry.NewKeyValue("height", block.Header.Number.Uint64()),
 			telemetry.NewKeyValue("msg", "block.import"),
 			telemetry.NewKeyValue("origin", "NetworkInitialSync")))
-		// todo(ed) add timer to avoid a lot of sends
+		if err != nil {
+			logger.Debug("problem sending block.import telemetry message", "error", err)
+		}
 	}
 
 	// handle consensus digest for authority changes

@@ -18,6 +18,7 @@ package telemetry
 
 import (
 	"encoding/json"
+	"errors"
 	"sync"
 	"time"
 
@@ -90,48 +91,61 @@ func NewKeyValue(key string, value interface{}) *KeyValue { //nolint
 }
 
 // AddConnections adds the given telemetry endpoint as listeners that will receive telemetry data
-func (t *Handler) AddConnections(conns []*genesis.TelemetryEndpoint) {
+func (h *Handler) AddConnections(conns []*genesis.TelemetryEndpoint) {
 	for _, v := range conns {
 		c, _, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
 		if err != nil {
 			// todo (ed) try reconnecting if there is an error connecting
-			t.log.Warn("issue adding telemetry connection", err)
+			h.log.Debug("issue adding telemetry connection", "error", err)
 			continue
 		}
 		tConn := &telemetryConnection{
 			wsconn:    c,
 			verbosity: v.Verbosity,
 		}
-		t.connections = append(t.connections, tConn)
+		h.connections = append(h.connections, tConn)
 	}
 }
 
 // SendMessage sends Message to connected telemetry listeners
-func (t *Handler) SendMessage(msg *Message) {
-	t.msg <- *msg
+func (h *Handler) SendMessage(msg *Message) error {
+	select {
+	case h.msg <- *msg:
+
+	case <-time.After(time.Second * 1):
+		return errors.New("timeout sending message")
+	}
+	return nil
 }
 
-func (t *Handler) startListening() {
+func (h *Handler) startListening() {
 	for {
-		msg := <-t.msg
+		msg := <-h.msg
 		go func() {
-			for _, v := range t.connections {
-				v.Lock()
-				err := v.wsconn.WriteMessage(websocket.TextMessage, msgToBytes(msg))
+			for _, conn := range h.connections {
+				conn.Lock()
+				err := conn.wsconn.WriteMessage(websocket.TextMessage, msgToBytes(msg))
 				if err != nil {
-					t.log.Warn("issue while sending telemetry message", err)
+					h.log.Warn("issue while sending telemetry message", "error", err)
 				}
-				v.Unlock()
+				conn.Unlock()
 			}
 		}()
 	}
 }
 
+type response struct {
+	ID        int                    `json:"id"`
+	Payload   map[string]interface{} `json:"payload"`
+	Timestamp time.Time              `json:"ts"`
+}
+
 func msgToBytes(message Message) []byte {
-	res := make(map[string]interface{})
-	res["id"] = 1 // todo (ed) determine how this is used
-	res["payload"] = message.values
-	res["ts"] = time.Now()
+	res := response{
+		ID:        1, // todo (ed) determine how this is used
+		Payload:   message.values,
+		Timestamp: time.Now(),
+	}
 	resB, err := json.Marshal(res)
 	if err != nil {
 		return nil

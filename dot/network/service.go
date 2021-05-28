@@ -313,11 +313,14 @@ main:
 
 		case <-ticker.C:
 			o := s.host.bwc.GetBandwidthTotals()
-			telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(
+			err := telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(
 				telemetry.NewKeyValue("bandwidth_download", o.RateIn),
 				telemetry.NewKeyValue("bandwidth_upload", o.RateOut),
 				telemetry.NewKeyValue("msg", "system.interval"),
 				telemetry.NewKeyValue("peers", s.host.peerCount())))
+			if err != nil {
+				logger.Debug("problem sending system.interval telemetry message", "error", err)
+			}
 		}
 	}
 }
@@ -333,7 +336,7 @@ func (s *Service) sentBlockIntervalTelemetry() {
 			continue
 		}
 
-		telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(
+		err = telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(
 			telemetry.NewKeyValue("best", best.Hash().String()),
 			telemetry.NewKeyValue("finalized_hash", finalized.Hash().String()), //nolint
 			telemetry.NewKeyValue("finalized_height", finalized.Number),        //nolint
@@ -341,6 +344,9 @@ func (s *Service) sentBlockIntervalTelemetry() {
 			telemetry.NewKeyValue("msg", "system.interval"),
 			telemetry.NewKeyValue("txcount", 0),                // todo (ed) determine where to get tx count
 			telemetry.NewKeyValue("used_state_cache_size", 0))) // todo (ed) determine where to get used_state_cache_size
+		if err != nil {
+			logger.Debug("problem sending system.interval telemetry message", "error", err)
+		}
 		time.Sleep(s.telemetryInterval)
 	}
 }
