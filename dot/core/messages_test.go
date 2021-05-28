@@ -74,7 +74,7 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	require.Equal(t, expected, net.Message)
 }
 
-func createExtrinsics(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) (types.Extrinsic, error) {
+func createExtrinsics(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic {
 	t.Helper()
 	bob, err := ctypes.NewAddressFromHexAccountID("0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
 	require.NoError(t, err)
@@ -110,17 +110,13 @@ func createExtrinsics(t *testing.T, rt runtime.Instance, genHash common.Hash, no
 
 	// Sign the transaction using Alice's default account
 	err = ext.Sign(signature.TestKeyringPairAlice, o)
-	if err != nil {
-		return nil, err
-	}
+	require.NoError(t, err)
 
 	extEnc, err := ctypes.EncodeToHexString(ext)
-	if err != nil {
-		return nil, err
-	}
+	require.NoError(t, err)
 
 	extBytes := types.Extrinsic(common.MustHexToBytes(extEnc))
-	return extBytes, nil
+	return extBytes
 }
 
 func TestService_HandleTransactionMessage(t *testing.T) {
@@ -146,8 +142,7 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	err = s.rt.InitializeBlock(header)
 	require.NoError(t, err)
 
-	extBytes, err := createExtrinsics(t, s.rt, genHash, 0)
-	require.NoError(t, err)
+	extBytes := createExtrinsics(t, s.rt, genHash, 0)
 
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}}
 	err = s.HandleTransactionMessage(msg)
