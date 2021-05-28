@@ -17,38 +17,38 @@
 package telemetry
 
 import (
-	"bytes"
 	"encoding/json"
-	"fmt"
-	"math/big"
+	"errors"
 	"sync"
 	"time"
 
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	log "github.com/ChainSafe/log15"
 	"github.com/gorilla/websocket"
-	log "github.com/sirupsen/logrus"
 )
+
+type telemetryConnection struct {
+	wsconn    *websocket.Conn
+	verbosity int
+	sync.Mutex
+}
+
+// Message struct to hold telemetry message data
+type Message struct {
+	values map[string]interface{}
+}
 
 // Handler struct for holding telemetry related things
 type Handler struct {
-	buf    bytes.Buffer
-	wsConn []*websocket.Conn
-	sync.RWMutex
+	msg         chan Message
+	connections []*telemetryConnection
+	log         log.Logger
 }
 
-// MyJSONFormatter struct for defining JSON Formatter
-type MyJSONFormatter struct {
-}
-
-// Format function for handling JSON formatting, this overrides default logging formatter to remove
-//  log level, line number and timestamp
-func (f *MyJSONFormatter) Format(entry *log.Entry) ([]byte, error) {
-	serialised, err := json.Marshal(entry.Data)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal fields to JSON, %w", err)
-	}
-	return append(serialised, '\n'), nil
+// KeyValue object to hold key value pairs used in telemetry messages
+type KeyValue struct {
+	key   string
+	value interface{}
 }
 
 var (
@@ -57,126 +57,98 @@ var (
 )
 
 // GetInstance singleton pattern to for accessing TelemetryHandler
-func GetInstance() *Handler {
+func GetInstance() *Handler { //nolint
 	if handlerInstance == nil {
 		once.Do(
 			func() {
 				handlerInstance = &Handler{
-					buf: bytes.Buffer{},
+					msg: make(chan Message, 256),
+					log: log.New("pkg", "telemetry"),
 				}
-				log.SetOutput(&handlerInstance.buf)
-				log.SetFormatter(new(MyJSONFormatter))
-				go handlerInstance.sender()
+				go handlerInstance.startListening()
 			})
 	}
 	return handlerInstance
 }
 
-// AddConnections adds connections to telemetry sever
+// NewTelemetryMessage builds a telemetry message
+func NewTelemetryMessage(values ...*KeyValue) *Message { //nolint
+	mvals := make(map[string]interface{})
+	for _, v := range values {
+		mvals[v.key] = v.value
+	}
+	return &Message{
+		values: mvals,
+	}
+}
+
+// NewKeyValue builds a key value pair for telemetry messages
+func NewKeyValue(key string, value interface{}) *KeyValue { //nolint
+	return &KeyValue{
+		key:   key,
+		value: value,
+	}
+}
+
+// AddConnections adds the given telemetry endpoint as listeners that will receive telemetry data
 func (h *Handler) AddConnections(conns []*genesis.TelemetryEndpoint) {
 	for _, v := range conns {
 		c, _, err := websocket.DefaultDialer.Dial(v.Endpoint, nil)
 		if err != nil {
-			fmt.Printf("Error %v\n", err)
+			// todo (ed) try reconnecting if there is an error connecting
+			h.log.Debug("issue adding telemetry connection", "error", err)
 			continue
 		}
-		h.wsConn = append(h.wsConn, c)
+		tConn := &telemetryConnection{
+			wsconn:    c,
+			verbosity: v.Verbosity,
+		}
+		h.connections = append(h.connections, tConn)
 	}
 }
 
-// ConnectionData struct to hold connection data
-type ConnectionData struct {
-	Authority     bool
-	Chain         string
-	GenesisHash   string
-	SystemName    string
-	NodeName      string
-	SystemVersion string
-	NetworkID     string
-	StartTime     string
-}
+// SendMessage sends Message to connected telemetry listeners
+func (h *Handler) SendMessage(msg *Message) error {
+	select {
+	case h.msg <- *msg:
 
-// SendConnection sends connection request message to telemetry connection
-func (h *Handler) SendConnection(data *ConnectionData) {
-	h.Lock()
-	defer h.Unlock()
-	payload := log.Fields{"authority": data.Authority, "chain": data.Chain, "config": "", "genesis_hash": data.GenesisHash,
-		"implementation": data.SystemName, "msg": "system.connected", "name": data.NodeName, "network_id": data.NetworkID, "startup_time": data.StartTime,
-		"version": data.SystemVersion}
-	telemetryLogger := log.WithFields(log.Fields{"id": 1, "payload": payload, "ts": time.Now()})
-	telemetryLogger.Print()
-}
-
-// SendBlockImport sends block imported message to telemetry connection
-func (h *Handler) SendBlockImport(bestHash string, height *big.Int) {
-	h.Lock()
-	defer h.Unlock()
-	payload := log.Fields{"best": bestHash, "height": height.Int64(), "msg": "block.import", "origin": "NetworkInitialSync"}
-	telemetryLogger := log.WithFields(log.Fields{"id": 1, "payload": payload, "ts": time.Now()})
-	telemetryLogger.Print()
-}
-
-// NetworkData struct to hold network data telemetry information
-type NetworkData struct {
-	peers   int
-	rateIn  float64
-	rateOut float64
-}
-
-// NewNetworkData creates networkData struct
-func NewNetworkData(peers int, rateIn, rateOut float64) *NetworkData {
-	return &NetworkData{
-		peers:   peers,
-		rateIn:  rateIn,
-		rateOut: rateOut,
+	case <-time.After(time.Second * 1):
+		return errors.New("timeout sending message")
 	}
+	return nil
 }
 
-// SendNetworkData send network data system.interval message to telemetry connection
-func (h *Handler) SendNetworkData(data *NetworkData) {
-	h.Lock()
-	defer h.Unlock()
-	payload := log.Fields{"bandwidth_download": data.rateIn, "bandwidth_upload": data.rateOut, "msg": "system.interval", "peers": data.peers}
-	telemetryLogger := log.WithFields(log.Fields{"id": 1, "payload": payload, "ts": time.Now()})
-	telemetryLogger.Print()
-}
-
-// BlockIntervalData struct to hold data for block system.interval message
-type BlockIntervalData struct {
-	BestHash           common.Hash
-	BestHeight         *big.Int
-	FinalizedHash      common.Hash
-	FinalizedHeight    *big.Int
-	TXCount            int
-	UsedStateCacheSize int
-}
-
-// SendBlockIntervalData send block data system interval information to telemetry connection
-func (h *Handler) SendBlockIntervalData(data *BlockIntervalData) {
-	h.Lock()
-	defer h.Unlock()
-	payload := log.Fields{"best": data.BestHash.String(), "finalized_hash": data.FinalizedHash.String(), // nolint
-		"finalized_height": data.FinalizedHeight, "height": data.BestHeight, "msg": "system.interval", "txcount": data.TXCount, // nolint
-		"used_state_cache_size": data.UsedStateCacheSize}
-	telemetryLogger := log.WithFields(log.Fields{"id": 1, "payload": payload, "ts": time.Now()})
-	telemetryLogger.Print()
-}
-
-func (h *Handler) sender() {
+func (h *Handler) startListening() {
 	for {
-		h.RLock()
-		line, err := h.buf.ReadBytes(byte(10)) // byte 10 is newline character, used as delimiter
-		h.RUnlock()
-		if err != nil {
-			continue
-		}
-
-		for _, c := range h.wsConn {
-			err := c.WriteMessage(websocket.TextMessage, line)
-			if err != nil {
-				// TODO (ed) determine how to handle this error
-				fmt.Printf("ERROR connecting to telemetry %v\n", err)
+		msg := <-h.msg
+		go func() {
+			for _, conn := range h.connections {
+				conn.Lock()
+				err := conn.wsconn.WriteMessage(websocket.TextMessage, msgToBytes(msg))
+				if err != nil {
+					h.log.Warn("issue while sending telemetry message", "error", err)
+				}
+				conn.Unlock()
 			}
-		}
+		}()
 	}
+}
+
+type response struct {
+	ID        int                    `json:"id"`
+	Payload   map[string]interface{} `json:"payload"`
+	Timestamp time.Time              `json:"ts"`
+}
+
+func msgToBytes(message Message) []byte {
+	res := response{
+		ID:        1, // todo (ed) determine how this is used
+		Payload:   message.values,
+		Timestamp: time.Now(),
+	}
+	resB, err := json.Marshal(res)
+	if err != nil {
+		return nil
+	}
+	return resB
 }
