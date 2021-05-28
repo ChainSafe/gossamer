@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"log"
 	"math/big"
 	"reflect"
 )
@@ -39,10 +40,6 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 		err = es.encodeBytes([]byte(in))
 	case bool:
 		err = es.encodeBool(in)
-	case VaryingDataType:
-		err = es.encodeVaryingDataType(in)
-	// TODO: case common.Hash:
-	// 	n, err = es.Writer.Write(v.ToBytes())
 	default:
 		switch reflect.TypeOf(in).Kind() {
 		case reflect.Ptr:
@@ -63,7 +60,20 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 		case reflect.Array:
 			err = es.encodeArray(in)
 		case reflect.Slice:
-			err = es.encodeSlice(in)
+			t := reflect.TypeOf(in)
+			// check if this is a convertible to VaryingDataType, if so encode using encodeVaryingDataType
+			switch t.ConvertibleTo(reflect.TypeOf(VaryingDataType{})) {
+			case true:
+				invdt := reflect.ValueOf(in).Convert(reflect.TypeOf(VaryingDataType{}))
+				switch in := invdt.Interface().(type) {
+				case VaryingDataType:
+					err = es.encodeVaryingDataType(in)
+				default:
+					log.Panicf("this should never happen")
+				}
+			case false:
+				err = es.encodeSlice(in)
+			}
 		default:
 			err = fmt.Errorf("unsupported type: %T", in)
 		}
@@ -72,7 +82,6 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 }
 
 func (es *encodeState) encodeVaryingDataType(values VaryingDataType) (err error) {
-	// err = es.encodeLength(len(types))
 	err = es.encodeLength(len(values))
 	if err != nil {
 		return
