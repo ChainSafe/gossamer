@@ -17,8 +17,27 @@
 package sync
 
 import (
+	"io/ioutil"
+	"math/big"
+	"testing"
+	"time"
+
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/babe"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/lib/trie"
+	log "github.com/ChainSafe/log15"
+	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
+	"github.com/stretchr/testify/require"
+
+	subtypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
 )
 
 // mockVerifier implements the Verifier interface
@@ -51,3 +70,201 @@ func (bp *mockBlockProducer) Resume() error {
 }
 
 func (bp *mockBlockProducer) SetRuntime(_ runtime.Instance) {}
+
+type mockFinalityGadget struct{}
+
+func (m mockFinalityGadget) VerifyBlockJustification(_ []byte) error {
+	return nil
+}
+
+// NewTestSyncer ...
+func NewTestSyncer(t *testing.T) *Service {
+	wasmer.DefaultTestLogLvl = 3
+
+	cfg := &Config{}
+	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
+	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo)
+	stateSrvc.UseMemDB()
+
+	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	err := stateSrvc.Initialise(gen, genHeader, genTrie)
+	require.NoError(t, err)
+
+	err = stateSrvc.Start()
+	require.NoError(t, err)
+
+	if cfg.BlockState == nil {
+		cfg.BlockState = stateSrvc.Block
+	}
+
+	if cfg.StorageState == nil {
+		cfg.StorageState = stateSrvc.Storage
+	}
+
+	if cfg.Runtime == nil {
+		// set state to genesis state
+		genState, err := rtstorage.NewTrieState(genTrie) //nolint
+		require.NoError(t, err)
+
+		rtCfg := &wasmer.Config{}
+		rtCfg.Storage = genState
+		rtCfg.LogLvl = 3
+
+		instance, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg) //nolint
+		require.NoError(t, err)
+		cfg.Runtime = instance
+	}
+
+	if cfg.TransactionState == nil {
+		cfg.TransactionState = stateSrvc.Transaction
+	}
+
+	if cfg.Verifier == nil {
+		cfg.Verifier = &mockVerifier{}
+	}
+
+	if cfg.LogLvl == 0 {
+		cfg.LogLvl = log.LvlDebug
+	}
+
+	if cfg.FinalityGadget == nil {
+		cfg.FinalityGadget = &mockFinalityGadget{}
+	}
+
+	syncer, err := NewService(cfg)
+	require.NoError(t, err)
+	return syncer
+}
+
+func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
+	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis.json")
+	require.NoError(t, err)
+
+	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.Digest{})
+	require.NoError(t, err)
+	return gen, genTrie, genesisHeader
+}
+
+// BuildBlock ...
+func BuildBlock(t *testing.T, srv *Service, parent *types.Header, ext types.Extrinsic) *types.Block {
+	header := &types.Header{
+		ParentHash: parent.Hash(),
+		Number:     big.NewInt(0).Add(parent.Number, big.NewInt(1)),
+		Digest:     types.Digest{},
+	}
+
+	instance := srv.runtime
+	err := instance.InitializeBlock(header)
+	require.NoError(t, err)
+
+	idata := types.NewInherentsData()
+	err = idata.SetInt64Inherent(types.Timstap0, uint64(time.Now().Unix()))
+	require.NoError(t, err)
+
+	err = idata.SetInt64Inherent(types.Babeslot, 1)
+	require.NoError(t, err)
+
+	err = idata.SetBigIntInherent(types.Finalnum, big.NewInt(0))
+	require.NoError(t, err)
+
+	ienc, err := idata.Encode()
+	require.NoError(t, err)
+
+	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
+	inherentExts, err := instance.InherentExtrinsics(ienc)
+	require.NoError(t, err)
+
+	// decode inherent extrinsics
+	exts, err := scale.Decode(inherentExts, [][]byte{})
+	require.NoError(t, err)
+
+	inExt := exts.([][]byte)
+
+	var body *types.Body
+	if ext != nil {
+		var txn *transaction.Validity
+		txn, err = instance.ValidateTransaction(append([]byte{byte(types.TxnExternal)}, ext...))
+		require.NoError(t, err)
+
+		vtx := transaction.NewValidTransaction(ext, txn)
+		_, err = instance.ApplyExtrinsic(ext) // TODO: Determine error for ret
+		require.NoError(t, err)
+
+		body, err = babe.ExtrinsicsToBody(inExt, []*transaction.ValidTransaction{vtx})
+		require.NoError(t, err)
+
+	} else {
+		body = types.NewBody(inherentExts)
+	}
+
+	// apply each inherent extrinsic
+	for _, ext := range inExt {
+		in, err := scale.Encode(ext) //nolint
+		require.NoError(t, err)
+
+		ret, err := instance.ApplyExtrinsic(in)
+		require.NoError(t, err)
+		require.Equal(t, ret, []byte{0, 0})
+	}
+
+	res, err := instance.FinalizeBlock()
+	require.NoError(t, err)
+	res.Number = header.Number
+
+	return &types.Block{
+		Header: res,
+		Body:   body,
+	}
+}
+
+// CreateExtrinsic ...
+func CreateExtrinsic(t *testing.T, srv *Service) []byte {
+	t.Helper()
+	rawMeta, err := srv.runtime.Metadata()
+	require.NoError(t, err)
+	decoded, err := scale.Decode(rawMeta, []byte{})
+	require.NoError(t, err)
+
+	metaData := &subtypes.Metadata{}
+	err = subtypes.DecodeFromBytes(decoded.([]byte), metaData)
+	require.NoError(t, err)
+
+	rv, err := srv.runtime.Version()
+	require.NoError(t, err)
+
+	bob, err := subtypes.NewAddressFromHexAccountID("0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
+	require.NoError(t, err)
+
+	call, err := subtypes.NewCall(metaData, "Balances.transfer", bob, subtypes.NewUCompactFromUInt(123450000000000))
+	require.NoError(t, err)
+
+	// Create the extrinsic
+	ext := subtypes.NewExtrinsic(call)
+	genesisHash, err := subtypes.NewHashFromHexString("0x64597c55a052d484d9ff357266be326f62573bb4fbdbb3cd49f219396fcebf78")
+	require.NoError(t, err)
+
+	o := subtypes.SignatureOptions{
+		BlockHash:          genesisHash,
+		Era:                subtypes.ExtrinsicEra{IsImmortalEra: true},
+		GenesisHash:        genesisHash,
+		Nonce:              subtypes.NewUCompactFromUInt(0),
+		SpecVersion:        subtypes.U32(rv.SpecVersion()),
+		Tip:                subtypes.NewUCompactFromUInt(0),
+		TransactionVersion: subtypes.U32(rv.TransactionVersion()),
+	}
+
+	// Sign the transaction using Alice's default account
+	err = ext.Sign(signature.TestKeyringPairAlice, o)
+	require.NoError(t, err)
+
+	enc, err := subtypes.EncodeToHexString(ext)
+	require.NoError(t, err)
+
+	bytes, err := common.HexToBytes(enc)
+	require.NoError(t, err)
+
+	return bytes
+}

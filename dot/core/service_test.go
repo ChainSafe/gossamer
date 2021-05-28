@@ -25,6 +25,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -164,6 +165,58 @@ func TestHandleChainReorg_NoReorg(t *testing.T) {
 
 	err = s.handleChainReorg(head.ParentHash, head.Hash())
 	require.NoError(t, err)
+}
+
+func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
+	s := NewTestService(t, nil)
+
+	bs := s.blockState
+
+	parent, err := bs.BestBlockHeader()
+	require.NoError(t, err)
+
+	syncer := sync.NewTestSyncer(t)
+
+	block1 := sync.BuildBlock(t, syncer, parent, nil)
+	err = bs.AddBlock(block1)
+	require.NoError(t, err)
+
+	block2 := sync.BuildBlock(t, syncer, block1.Header, nil)
+	err = bs.AddBlock(block2)
+	require.NoError(t, err)
+
+	block3 := sync.BuildBlock(t, syncer, block2.Header, nil)
+	err = bs.AddBlock(block3)
+	require.NoError(t, err)
+
+	block4 := sync.BuildBlock(t, syncer, block3.Header, nil)
+	err = bs.AddBlock(block4)
+	require.NoError(t, err)
+
+	block5 := sync.BuildBlock(t, syncer, block4.Header, nil)
+	err = bs.AddBlock(block5)
+	require.NoError(t, err)
+
+	block31 := sync.BuildBlock(t, syncer, block2.Header, nil)
+	err = bs.AddBlock(block31)
+	require.NoError(t, err)
+
+	// Add extrinsic to block `block31`
+	extBytes := sync.CreateExtrinsic(t, syncer)
+	ext := types.Extrinsic(extBytes)
+
+	block41 := sync.BuildBlock(t, syncer, block31.Header, ext)
+	err = bs.AddBlock(block41)
+	require.NoError(t, err)
+
+	err = s.rt.InitializeBlock(block1.Header)
+	require.NoError(t, err)
+
+	err = s.handleChainReorg(block41.Header.Hash(), block5.Header.Hash())
+	require.NoError(t, err)
+
+	pending := s.transactionState.(*state.TransactionState).Pending()
+	require.Equal(t, 1, len(pending))
 }
 
 func TestHandleChainReorg_WithReorg_NoTransactions(t *testing.T) {
