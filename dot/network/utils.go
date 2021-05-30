@@ -200,6 +200,10 @@ func readStream(stream libp2pnetwork.Stream, buf []byte) (int, error) {
 	case <-receivedDataCh:
 	}
 
+	if err != nil {
+		return err
+	}
+
 	if length == 0 {
 		return 0, nil // msg length of 0 is allowed, for example transactions handshake
 	}
