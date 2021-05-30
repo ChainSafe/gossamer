@@ -269,6 +269,7 @@ func (s *Service) Start() error {
 	go s.logPeerCount()
 	go s.publishNetworkTelemetry(s.closeCh)
 	go s.sentBlockIntervalTelemetry()
+	s.streamManager.start()
 
 	return nil
 }
