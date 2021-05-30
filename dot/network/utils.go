@@ -27,6 +27,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"time"
 
 	"github.com/libp2p/go-libp2p-core/crypto"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
@@ -182,15 +183,14 @@ func readStream(stream libp2pnetwork.Stream, buf []byte) (int, error) {
 	}
 
 	var (
-		tot int
+		tot    int
+		length uint64
+		err    error
 	)
 
 	receivedDataCh := make(chan struct{})
 	go func() {
-		length, err := readLEB128ToUint64(stream, buf[:1])
-		if err != nil {
-			return 0, err // TODO: return bytes read from readLEB128ToUint64
-		}
+		length, err = readLEB128ToUint64(stream, buf[:1]) // TODO: return bytes read from readLEB128ToUint64 if error
 		close(receivedDataCh)
 	}()
 
