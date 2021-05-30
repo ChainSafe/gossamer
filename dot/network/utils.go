@@ -27,15 +27,12 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"time"
 
 	"github.com/libp2p/go-libp2p-core/crypto"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/multiformats/go-multiaddr"
 )
-
-var receiveStreamDataTimeout = time.Second * 15
 
 // stringToAddrInfos converts a single string peer id to AddrInfo
 func stringToAddrInfo(s string) (peer.AddrInfo, error) {
@@ -183,31 +180,12 @@ func readStream(stream libp2pnetwork.Stream, buf []byte) (int, error) {
 	}
 
 	var (
-		tot    int
-		length uint64
-		err    error
+		tot int
 	)
 
-	receivedDataCh := make(chan struct{})
-	timeoutCh := make(chan struct{})
-	go func() {
-		length, err = readLEB128ToUint64(stream, buf[:1]) // TODO: return bytes read from readLEB128ToUint64 if error
-		close(receivedDataCh)
-	}()
-
-	go func() {
-		time.Sleep(receiveStreamDataTimeout)
-		close(timeoutCh)
-	}()
-
-	select {
-	case <-timeoutCh:
-		return 0, errors.New("timeout")
-	case <-receivedDataCh:
-	}
-
+	length, err := readLEB128ToUint64(stream, buf[:1])
 	if err != nil {
-		return 0, err
+		return 0, err // TODO: return bytes read from readLEB128ToUint64
 	}
 
 	if length == 0 {
