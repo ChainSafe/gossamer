@@ -58,12 +58,12 @@ func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) er
 		return nil
 	}
 
+	defer func() {
+		_ = stream.Close()
+	}()
+
 	// if it's a BlockRequest, call core for processing
 	if req, ok := msg.(*BlockRequestMessage); ok {
-		defer func() {
-			_ = stream.Close()
-		}()
-
 		resp, err := s.syncer.CreateBlockResponse(req)
 		if err != nil {
 			logger.Debug("cannot create response for request", "error", err)

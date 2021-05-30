@@ -189,13 +189,19 @@ func readStream(stream libp2pnetwork.Stream, buf []byte) (int, error) {
 	)
 
 	receivedDataCh := make(chan struct{})
+	timeoutCh := make(chan struct{})
 	go func() {
 		length, err = readLEB128ToUint64(stream, buf[:1]) // TODO: return bytes read from readLEB128ToUint64 if error
 		close(receivedDataCh)
 	}()
 
+	go func() {
+		time.Sleep(receiveStreamDataTimeout)
+		close(timeoutCh)
+	}()
+
 	select {
-	case <-time.After(receiveStreamDataTimeout):
+	case <-timeoutCh:
 		return 0, errors.New("timeout")
 	case <-receivedDataCh:
 	}
