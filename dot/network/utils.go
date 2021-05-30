@@ -34,6 +34,8 @@ import (
 	"github.com/multiformats/go-multiaddr"
 )
 
+var receiveStreamDataTimeout = time.Second * 15
+
 // stringToAddrInfos converts a single string peer id to AddrInfo
 func stringToAddrInfo(s string) (peer.AddrInfo, error) {
 	maddr, err := multiaddr.NewMultiaddr(s)
@@ -183,11 +185,19 @@ func readStream(stream libp2pnetwork.Stream, buf []byte) (int, error) {
 		tot int
 	)
 
-	length, err := readLEB128ToUint64(stream, buf[:1])
-	if err == io.EOF {
-		return 0, err
-	} else if err != nil {
-		return 0, err // TODO: return bytes read from readLEB128ToUint64
+	receivedDataCh := make(chan struct{})
+	go func() {
+		length, err := readLEB128ToUint64(stream, buf[:1])
+		if err != nil {
+			return 0, err // TODO: return bytes read from readLEB128ToUint64
+		}
+		close(receivedDataCh)
+	}()
+
+	select {
+	case <-time.After(receiveStreamDataTimeout):
+		return 0, errors.New("timeout")
+	case <-receivedDataCh:
 	}
 
 	if length == 0 {
