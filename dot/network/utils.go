@@ -201,7 +201,7 @@ func readStream(stream libp2pnetwork.Stream, buf []byte) (int, error) {
 	}
 
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	if length == 0 {
