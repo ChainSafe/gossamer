@@ -23,10 +23,14 @@ require (
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> fix struct tests and optionality tests
 	github.com/google/go-cmp v0.5.6
 =======
 	github.com/google/go-cmp v0.5.6 // indirect
 >>>>>>> fix struct tests and optionality tests
+<<<<<<< HEAD
 =======
 	github.com/google/go-cmp v0.5.6
 >>>>>>> integrate scale pkg into lib/transaction
@@ -36,6 +40,8 @@ require (
 =======
 	github.com/google/go-cmp v0.5.6
 >>>>>>> integrate scale pkg into lib/transaction
+=======
+>>>>>>> fix struct tests and optionality tests
 	github.com/google/uuid v1.1.5 // indirect
 	github.com/gorilla/mux v1.7.4
 	github.com/gorilla/rpc v1.2.0
