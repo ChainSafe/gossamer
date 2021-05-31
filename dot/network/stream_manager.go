@@ -10,6 +10,9 @@ import (
 
 var cleanupStreamInterval = time.Minute
 
+// streamManager tracks inbound streams and runs a cleanup goroutine every `cleanupStreamInterval` to close streams that
+// we haven't received any data on for the last time period. this prevents keeping stale streams open and continously trying to
+// read from it, which takes up lots of CPU over time.
 type streamManager struct {
 	ctx                 context.Context
 	lastReceivedMessage *sync.Map //map[string]time.Time

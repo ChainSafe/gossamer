@@ -295,6 +295,7 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 }
 
 func (s *Service) readHandshake(stream libp2pnetwork.Stream, decoder HandshakeDecoder) (Handshake, error) {
+	s.streamManager.logNewStream(stream)
 	msgBytes := s.bufPool.get()
 	defer s.bufPool.put(&msgBytes)
 
@@ -302,6 +303,8 @@ func (s *Service) readHandshake(stream libp2pnetwork.Stream, decoder HandshakeDe
 	if err != nil {
 		return nil, err
 	}
+
+	s.streamManager.logMessageReceived(stream.ID())
 
 	hs, err := decoder(msgBytes[:tot])
 	if err != nil {
