@@ -106,7 +106,7 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
 			delete(s.tries, key)
 		}
 	}
-	s.tries[root] = ts.Trie().Snapshot()
+	s.tries[root] = ts.Trie()
 
 	logger.Debug("cached trie in storage state", "root", root)
 
@@ -149,16 +149,14 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		}
 	}
 
-	curr, err := rtstorage.NewTrieState(t)
+	nextTrie := t.Snapshot()
+	next, err := rtstorage.NewTrieState(nextTrie)
 	if err != nil {
 		return nil, err
 	}
 
-	s.lock.Lock()
-	s.tries[*root] = curr.Snapshot()
-	s.lock.Unlock()
-	logger.Debug("returning trie to be modified", "root", root, "curr", curr.MustRoot())
-	return curr, nil
+	logger.Debug("returning trie to be modified", "root", root, "next", next.MustRoot())
+	return new, nil
 }
 
 // LoadFromDB loads an encoded trie from the DB where the key is `root`
