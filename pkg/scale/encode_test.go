@@ -12,6 +12,7 @@ type test struct {
 	in      interface{}
 	wantErr bool
 	want    []byte
+	out     interface{}
 }
 type tests []test
 
@@ -471,21 +472,20 @@ var (
 		},
 		{
 			name: "struct {[]byte, int32, bool} with ignored attributes",
-			in: struct {
-				Baz           bool   `scale:"3"`
-				Bar           int32  `scale:"2"`
-				Foo           []byte `scale:"1"`
-				Ignore        string `scale:"-"`
-				somethingElse *struct {
-					fields int
-				}
-			}{
+			in: MyStructWithIgnore{
 				Foo:    []byte{0x01},
 				Bar:    2,
 				Baz:    true,
 				Ignore: "me",
 			},
 			want: []byte{0x04, 0x01, 0x02, 0, 0, 0, 0x01},
+			out: MyStructWithIgnore{
+				Foo: []byte{0x01},
+				Bar: 2,
+				Baz: true,
+				// zero value of string, since this field is ignored
+				Ignore: "",
+			},
 		},
 	}
 
@@ -595,6 +595,15 @@ type MyStruct struct {
 	Foo []byte
 	Bar int32
 	Baz bool
+}
+type MyStructWithIgnore struct {
+	Baz           bool   `scale:"3"`
+	Bar           int32  `scale:"2"`
+	Foo           []byte `scale:"1"`
+	Ignore        string `scale:"-"`
+	somethingElse *struct {
+		fields int
+	}
 }
 
 func Test_encodeState_encodeFixedWidthInteger(t *testing.T) {
