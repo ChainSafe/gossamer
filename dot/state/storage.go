@@ -156,7 +156,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 	}
 
 	logger.Debug("returning trie to be modified", "root", root, "next", next.MustRoot())
-	return new, nil
+	return next, nil
 }
 
 // LoadFromDB loads an encoded trie from the DB where the key is `root`
