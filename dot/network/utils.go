@@ -185,7 +185,7 @@ func readStream(stream libp2pnetwork.Stream, buf []byte) (int, error) {
 	if err == io.EOF {
 		return 0, err
 	} else if err != nil {
-		return 0, err // TODO: return bytes read from readLEB128ToUint64
+		return int(length), err
 	}
 
 	if length == 0 {
