@@ -505,13 +505,13 @@ func TestDelete(t *testing.T) {
 			var val []byte
 			switch r {
 			case 0:
-				trie.Delete(test.key)
-				val = trie.Get(test.key)
+				ssTrie.Delete(test.key)
+				val = ssTrie.Get(test.key)
 				if val != nil {
 					t.Errorf("Fail to delete key %x with value %x: got %x", test.key, test.value, val)
 				}
 			case 1:
-				val = trie.Get(test.key)
+				val = ssTrie.Get(test.key)
 				if !bytes.Equal(test.value, val) {
 					t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
 				}
@@ -530,9 +530,9 @@ func TestDelete(t *testing.T) {
 	require.NoError(t, err)
 
 	// Only the current trie should have a different root hash since it is updated.
-	require.NotEqual(t, tHash, dcTrieHash)
-	require.NotEqual(t, tHash, ssTrieHash)
-	require.Equal(t, dcTrieHash, ssTrieHash)
+	require.NotEqual(t, ssTrie, dcTrieHash)
+	require.NotEqual(t, ssTrie, tHash)
+	require.Equal(t, dcTrieHash, tHash)
 }
 
 func TestGetKeysWithPrefix(t *testing.T) {
@@ -822,14 +822,14 @@ func TestClearPrefix(t *testing.T) {
 		require.Equal(t, tHash, dcTrieHash)
 		require.Equal(t, dcTrieHash, ssTrieHash)
 
-		trie.ClearPrefix(prefix)
+		ssTrie.ClearPrefix(prefix)
 		prefixNibbles := keyToNibbles(prefix)
 		if len(prefixNibbles) > 0 && prefixNibbles[len(prefixNibbles)-1] == 0 {
 			prefixNibbles = prefixNibbles[:len(prefixNibbles)-1]
 		}
 
 		for _, test := range tests {
-			res := trie.Get(test.key)
+			res := ssTrie.Get(test.key)
 
 			keyNibbles := keyToNibbles(test.key)
 			length := lenCommonPrefix(keyNibbles, prefixNibbles)
@@ -851,9 +851,9 @@ func TestClearPrefix(t *testing.T) {
 		require.NoError(t, err)
 
 		// Only the current trie should have a different root hash since it is updated.
-		require.NotEqual(t, tHash, dcTrieHash)
-		require.NotEqual(t, tHash, ssTrieHash)
-		require.Equal(t, dcTrieHash, ssTrieHash)
+		require.NotEqual(t, ssTrieHash, dcTrieHash)
+		require.NotEqual(t, ssTrieHash, tHash)
+		require.Equal(t, dcTrieHash, tHash)
 	}
 }
 
@@ -888,11 +888,11 @@ func TestClearPrefix_Small(t *testing.T) {
 	require.Equal(t, dcTrieHash, ssTrieHash)
 
 	for _, key := range keys {
-		trie.Put([]byte(key), []byte(key))
+		ssTrie.Put([]byte(key), []byte(key))
 	}
 
-	trie.ClearPrefix([]byte("noo"))
-	require.Equal(t, trie.root, &leaf{key: keyToNibbles([]byte("other")), value: []byte("other"), dirty: true})
+	ssTrie.ClearPrefix([]byte("noo"))
+	require.Equal(t, ssTrie.root, &leaf{key: keyToNibbles([]byte("other")), value: []byte("other"), dirty: true})
 
 	// Get the updated root hash of all tries.
 	tHash, err = trie.Hash()
@@ -905,9 +905,9 @@ func TestClearPrefix_Small(t *testing.T) {
 	require.NoError(t, err)
 
 	// Only the current trie should have a different root hash since it is updated.
-	require.NotEqual(t, tHash, dcTrieHash)
-	require.NotEqual(t, tHash, ssTrieHash)
-	require.Equal(t, dcTrieHash, ssTrieHash)
+	require.NotEqual(t, ssTrie, dcTrieHash)
+	require.NotEqual(t, ssTrie, tHash)
+	require.Equal(t, dcTrieHash, tHash)
 }
 
 func TestTrie_ClearPrefixVsDelete(t *testing.T) {
@@ -1007,13 +1007,11 @@ func TestSnapshot(t *testing.T) {
 		parentTrie.Put(test.key, test.value)
 	}
 
-	parentSnapshot := parentTrie.Snapshot()
-
-	newTrie := parentTrie
+	newTrie := parentTrie.Snapshot()
 	newTrie.Put(tests[0].key, tests[0].value)
 
 	require.Equal(t, expectedTrie.MustHash(), newTrie.MustHash())
-	require.NotEqual(t, parentSnapshot.MustHash(), newTrie.MustHash())
+	require.NotEqual(t, parentTrie.MustHash(), newTrie.MustHash())
 }
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
