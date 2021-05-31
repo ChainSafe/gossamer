@@ -19,7 +19,11 @@ require (
 	github.com/go-playground/validator/v10 v10.4.1
 	github.com/golang/protobuf v1.4.3
 	github.com/golang/snappy v0.0.3-0.20201103224600-674baa8c7fc3 // indirect
+<<<<<<< HEAD
 	github.com/google/go-cmp v0.5.6
+=======
+	github.com/google/go-cmp v0.5.6 // indirect
+>>>>>>> fix struct tests and optionality tests
 	github.com/google/uuid v1.1.5 // indirect
 	github.com/gorilla/mux v1.7.4
 	github.com/gorilla/rpc v1.2.0
