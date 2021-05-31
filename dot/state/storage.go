@@ -108,7 +108,7 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
 	}
 	s.tries[root] = ts.Trie().Snapshot()
 
-	logger.Trace("cached trie in storage state", "root", root)
+	logger.Debug("cached trie in storage state", "root", root)
 
 	if err := s.tries[root].WriteDirty(s.db); err != nil {
 		logger.Warn("failed to write trie to database", "root", root, "error", err)
@@ -131,6 +131,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 	}
 
 	s.lock.RLock()
+	logger.Debug("current cached tries", "map", s.tries)
 	t := s.tries[*root]
 	s.lock.RUnlock()
 
