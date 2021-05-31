@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/libp2p/go-libp2p"
+	libp2phost "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
@@ -14,14 +15,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestStreamManager(t *testing.T) {
+func setupStreamManagerTest(t *testing.T) (context.Context, []libp2phost.Host, []*streamManager) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	cleanupStreamInterval = time.Millisecond * 500
-	defer func() {
+	t.Cleanup(func() {
 		cleanupStreamInterval = time.Minute
 		cancel()
-	}()
+	})
 
 	smA := newStreamManager(ctx)
 	smB := newStreamManager(ctx)
@@ -51,14 +52,22 @@ func TestStreamManager(t *testing.T) {
 
 	hb.SetStreamHandler("", func(stream network.Stream) {
 		smB.logNewStream(stream)
-		smB.start()
 	})
+
+	return ctx, []libp2phost.Host{ha, hb}, []*streamManager{smA, smB}
+}
+
+func TestStreamManager(t *testing.T) {
+	ctx, hosts, sms := setupStreamManagerTest(t)
+	ha, hb := hosts[0], hosts[1]
+	smA, smB := sms[0], sms[1]
 
 	stream, err := ha.NewStream(ctx, hb.ID(), "")
 	require.NoError(t, err)
 
 	smA.logNewStream(stream)
 	smA.start()
+	smB.start()
 
 	time.Sleep(cleanupStreamInterval * 2)
 	connsAToB := ha.Network().ConnsToPeer(hb.ID())
@@ -68,4 +77,26 @@ func TestStreamManager(t *testing.T) {
 	connsBToA := hb.Network().ConnsToPeer(ha.ID())
 	require.Equal(t, 1, len(connsBToA))
 	require.Equal(t, 0, len(connsBToA[0].GetStreams()))
+}
+
+func TestStreamManager_KeepStream(t *testing.T) {
+	ctx, hosts, sms := setupStreamManagerTest(t)
+	ha, hb := hosts[0], hosts[1]
+	smA, smB := sms[0], sms[1]
+
+	stream, err := ha.NewStream(ctx, hb.ID(), "")
+	require.NoError(t, err)
+
+	smA.logNewStream(stream)
+	smA.start()
+	smB.start()
+
+	time.Sleep(cleanupStreamInterval / 2)
+	connsAToB := ha.Network().ConnsToPeer(hb.ID())
+	require.Equal(t, 1, len(connsAToB))
+	require.Equal(t, 1, len(connsAToB[0].GetStreams()))
+
+	connsBToA := hb.Network().ConnsToPeer(ha.ID())
+	require.Equal(t, 1, len(connsBToA))
+	require.Equal(t, 1, len(connsBToA[0].GetStreams()))
 }
