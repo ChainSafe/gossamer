@@ -134,19 +134,9 @@ func (h *Handler) startListening() {
 	}
 }
 
-type response struct {
-	ID        int                    `json:"id"`
-	Payload   map[string]interface{} `json:"payload"`
-	Timestamp time.Time              `json:"ts"`
-}
-
 func msgToBytes(message Message) []byte {
-	res := response{
-		ID:        1, // todo (ed) determine how this is used
-		Payload:   message.values,
-		Timestamp: time.Now(),
-	}
-	resB, err := json.Marshal(res)
+	message.values["ts"] = time.Now()
+	resB, err := json.Marshal(message.values)
 	if err != nil {
 		return nil
 	}

@@ -2,6 +2,7 @@ package telemetry
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"math/big"
 	"net/http"
@@ -89,10 +90,10 @@ func TestHandler_SendMulti(t *testing.T) {
 
 	wg.Wait()
 
-	expected1 := []byte(`{"id":1,"payload":{"bandwidth_download":2,"bandwidth_upload":3,"msg":"system.interval","peers":1},"ts":`)
-	expected2 := []byte(`{"id":1,"payload":{"best":"hash","height":2,"msg":"block.import","origin":"NetworkInitialSync"},"ts":`)
-	expected3 := []byte(`{"id":1,"payload":{"authority":false,"chain":"chain","genesis_hash":"hash","implementation":"systemName","msg":"system.connected","name":"nodeName","network_id":"netID","startup_time":"startTime","version":"version"},"ts":`)
-	expected4 := []byte(`{"id":1,"payload":{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","finalized_hash":"0x687197c11b4cf95374159843e7f46fbcd63558db981aaef01a8bac2a44a1d6b2","finalized_height":32256,"height":32375,"msg":"system.interval","txcount":2,"used_state_cache_size":1886357},"ts":`) // nolint
+	expected1 := []byte(`{"bandwidth_download":2,"bandwidth_upload":3,"msg":"system.interval","peers":1,"ts":`)
+	expected2 := []byte(`{"best":"hash","height":2,"msg":"block.import","origin":"NetworkInitialSync","ts":`)
+	expected3 := []byte(`{"authority":false,"chain":"chain","genesis_hash":"hash","implementation":"systemName","msg":"system.connected","name":"nodeName","network_id":"netID","startup_time":"startTime","ts":`)
+	expected4 := []byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","finalized_hash":"0x687197c11b4cf95374159843e7f46fbcd63558db981aaef01a8bac2a44a1d6b2","finalized_height":32256,"height":32375,"msg":"system.interval","ts":`) // nolint
 
 	expected := [][]byte{expected3, expected1, expected4, expected2}
 
@@ -136,6 +137,16 @@ func TestListenerConcurrency(t *testing.T) {
 		if counter == qty {
 			break
 		}
+	}
+}
+
+// TestInfiniteListener starts loop that print out data received on websocket ws://localhost:8001/
+//  this can be useful to see what data is sent to telemetry server
+func TestInfiniteListener(t *testing.T) {
+	t.Skip()
+	resultCh = make(chan []byte)
+	for data := range resultCh {
+		fmt.Printf("Data %s\n", data)
 	}
 }
 
