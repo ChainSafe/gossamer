@@ -29,7 +29,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	//rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	log "github.com/ChainSafe/log15"
 )
 
