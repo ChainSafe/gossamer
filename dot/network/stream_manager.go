@@ -2,6 +2,7 @@ package network
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/network"
@@ -11,15 +12,15 @@ var cleanupStreamInterval = time.Minute
 
 type streamManager struct {
 	ctx                 context.Context
-	lastReceivedMessage map[string]time.Time
-	streams             map[string]network.Stream
+	lastReceivedMessage *sync.Map //map[string]time.Time
+	streams             *sync.Map //map[string]network.Stream
 }
 
 func newStreamManager(ctx context.Context) *streamManager {
 	return &streamManager{
 		ctx:                 ctx,
-		lastReceivedMessage: make(map[string]time.Time),
-		streams:             make(map[string]network.Stream),
+		lastReceivedMessage: new(sync.Map),
+		streams:             new(sync.Map),
 	}
 }
 
@@ -37,26 +38,28 @@ func (sm *streamManager) start() {
 }
 
 func (sm *streamManager) cleanupStreams() {
-	for id, stream := range sm.streams {
-		lastReceived, has := sm.lastReceivedMessage[id]
+	sm.streams.Range(func(id, stream interface{}) bool {
+		lastReceived, has := sm.lastReceivedMessage.Load(id)
 		if !has {
-			_ = stream.Close()
-			delete(sm.streams, id)
+			_ = stream.(network.Stream).Close()
+			sm.streams.Delete(id)
 		}
 
-		if time.Since(lastReceived) > cleanupStreamInterval {
-			_ = stream.Close()
-			delete(sm.streams, id)
-			delete(sm.lastReceivedMessage, id)
+		if time.Since(lastReceived.(time.Time)) > cleanupStreamInterval {
+			_ = stream.(network.Stream).Close()
+			sm.streams.Delete(id)
+			sm.lastReceivedMessage.Delete(id)
 		}
-	}
+
+		return true
+	})
 }
 
 func (sm *streamManager) logNewStream(stream network.Stream) {
-	sm.lastReceivedMessage[stream.ID()] = time.Now() // prevents closing just opened streams, in case the cleanup goroutine runs at the same time stream is opened
-	sm.streams[stream.ID()] = stream
+	sm.lastReceivedMessage.Store(stream.ID(), time.Now()) // prevents closing just opened streams, in case the cleanup goroutine runs at the same time stream is opened
+	sm.streams.Store(stream.ID(), stream)
 }
 
 func (sm *streamManager) logMessageReceived(streamID string) {
-	sm.lastReceivedMessage[streamID] = time.Now()
+	sm.lastReceivedMessage.Store(streamID, time.Now())
 }
