@@ -157,7 +157,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 	s.lock.Lock()
 	s.tries[*root] = curr.Snapshot()
 	s.lock.Unlock()
-	logger.Debug("returning trie to be modified", "root", root, "curr", curr.MustHash())
+	logger.Debug("returning trie to be modified", "root", root, "curr", curr.MustRoot())
 	return curr, nil
 }
 
