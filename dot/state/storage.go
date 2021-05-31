@@ -131,7 +131,9 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 	}
 
 	s.lock.RLock()
-	logger.Debug("current cached tries", "map", s.tries)
+	for hash := range s.tries {
+		logger.Debug("current cached tries", "root", hash)
+	}
 	t := s.tries[*root]
 	s.lock.RUnlock()
 
@@ -155,6 +157,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 	s.lock.Lock()
 	s.tries[*root] = curr.Snapshot()
 	s.lock.Unlock()
+	logger.Debug("returning trie to be modified", "root", root, "curr", curr.MustHash())
 	return curr, nil
 }
 
