@@ -19,14 +19,14 @@ type streamData struct {
 // we haven't received any data on for the last time period. this prevents keeping stale streams open and continuously trying to
 // read from it, which takes up lots of CPU over time.
 type streamManager struct {
-	ctx        context.Context
-	streamData *sync.Map //map[string]streamData
+	ctx           context.Context
+	streamDataMap *sync.Map //map[string]*streamData
 }
 
 func newStreamManager(ctx context.Context) *streamManager {
 	return &streamManager{
-		ctx:        ctx,
-		streamData: new(sync.Map),
+		ctx:           ctx,
+		streamDataMap: new(sync.Map),
 	}
 }
 
@@ -44,14 +44,14 @@ func (sm *streamManager) start() {
 }
 
 func (sm *streamManager) cleanupStreams() {
-	sm.streamData.Range(func(id, data interface{}) bool {
-		sdata := data.(streamData)
+	sm.streamDataMap.Range(func(id, data interface{}) bool {
+		sdata := data.(*streamData)
 		lastReceived := sdata.lastReceivedMessage
 		stream := sdata.stream
 
 		if time.Since(lastReceived) > cleanupStreamInterval {
 			_ = stream.Close()
-			sm.streamData.Delete(id)
+			sm.streamDataMap.Delete(id)
 		}
 
 		return true
@@ -59,20 +59,20 @@ func (sm *streamManager) cleanupStreams() {
 }
 
 func (sm *streamManager) logNewStream(stream network.Stream) {
-	data := streamData{
+	data := &streamData{
 		lastReceivedMessage: time.Now(), // prevents closing just opened streams, in case the cleanup goroutine runs at the same time stream is opened
 		stream:              stream,
 	}
-	sm.streamData.Store(stream.ID(), data)
+	sm.streamDataMap.Store(stream.ID(), data)
 }
 
 func (sm *streamManager) logMessageReceived(streamID string) {
-	data, has := sm.streamData.Load(streamID)
+	data, has := sm.streamDataMap.Load(streamID)
 	if !has {
 		return
 	}
 
-	sdata := data.(streamData)
+	sdata := data.(*streamData)
 	sdata.lastReceivedMessage = time.Now()
-	sm.streamData.Store(streamID, sdata)
+	sm.streamDataMap.Store(streamID, sdata)
 }
