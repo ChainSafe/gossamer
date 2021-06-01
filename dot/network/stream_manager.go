@@ -45,9 +45,9 @@ func (sm *streamManager) start() {
 
 func (sm *streamManager) cleanupStreams() {
 	sm.streamData.Range(func(id, data interface{}) bool {
-		streamData := data.(streamData)
-		lastReceived := streamData.lastReceivedMessage
-		stream := streamData.stream
+		sdata := data.(streamData)
+		lastReceived := sdata.lastReceivedMessage
+		stream := sdata.stream
 
 		if time.Since(lastReceived) > cleanupStreamInterval {
 			_ = stream.Close()
@@ -72,7 +72,7 @@ func (sm *streamManager) logMessageReceived(streamID string) {
 		return
 	}
 
-	streamData := data.(streamData)
-	streamData.lastReceivedMessage = time.Now()
-	sm.streamData.Store(streamID, streamData)
+	sdata := data.(streamData)
+	sdata.lastReceivedMessage = time.Now()
+	sm.streamData.Store(streamID, sdata)
 }
