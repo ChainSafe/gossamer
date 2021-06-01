@@ -73,8 +73,11 @@ func TestOldVsNewEncoding(t *testing.T) {
 	}
 
 	type Digests scale.VaryingDataType
-	scale.RegisterVaryingDataType(Digests{}, ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
-
+	err = scale.RegisterVaryingDataType(Digests{}, ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
+	if err != nil {
+		t.Errorf("unexpected err: %v", err)
+		return
+	}
 	newDigest := Digests{
 		ChangesTrieRootDigest{
 			Hash: common.Hash{0, 91, 50, 25, 214, 94, 119, 36, 71, 216, 33, 152, 85, 184, 34, 120, 61, 161, 164, 223, 76, 53, 40, 246, 76, 38, 235, 204, 43, 31, 179, 28},

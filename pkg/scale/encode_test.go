@@ -23,6 +23,73 @@ func newTests(ts ...tests) (appended tests) {
 	return
 }
 
+func newWant(wanted ...[]byte) (want []byte) {
+	for _, w := range wanted {
+		want = append(want, w...)
+	}
+	return
+}
+
+func newBigIntPtr(in *big.Int) (ptr **big.Int) {
+	ptr = &in
+	return
+}
+
+func newIntPtr(in int) (ptr *int) {
+	ptr = &in
+	return
+}
+
+func newUintPtr(in uint) (ptr *uint) {
+	ptr = &in
+	return
+}
+
+func newInt8Ptr(in int8) (ptr *int8) {
+	ptr = &in
+	return
+}
+func newUint8Ptr(in uint8) (ptr *uint8) {
+	ptr = &in
+	return
+}
+func newInt16Ptr(in int16) (ptr *int16) {
+	ptr = &in
+	return
+}
+func newUint16Ptr(in uint16) (ptr *uint16) {
+	ptr = &in
+	return
+}
+func newInt32Ptr(in int32) (ptr *int32) {
+	ptr = &in
+	return
+}
+func newUint32Ptr(in uint32) (ptr *uint32) {
+	ptr = &in
+	return
+}
+func newInt64Ptr(in int64) (ptr *int64) {
+	ptr = &in
+	return
+}
+func newUint64Ptr(in uint64) (ptr *uint64) {
+	ptr = &in
+	return
+}
+func newBytesPtr(in []byte) (ptr *[]byte) {
+	ptr = &in
+	return
+}
+func newStringPtr(in string) (ptr *string) {
+	ptr = &in
+	return
+}
+func newBoolPtr(in bool) (ptr *bool) {
+	ptr = &in
+	return
+}
+
 var (
 	intTests = tests{
 		{
@@ -342,40 +409,6 @@ var (
 	}
 	nilPtrMyStruct2 *MyStruct = nil
 	structTests               = tests{
-		// {
-		// 	name: "nilPtrMyStruct",
-		// 	in:   nilPtrMyStruct2,
-		// 	want: []byte{0},
-		// 	dst:  &MyStruct{Baz: true},
-		// },
-		// {
-		// 	name: "ptrMystruct",
-		// 	in:   ptrMystruct,
-		// 	want: []byte{1, 0x04, 0x01, 0x02, 0, 0, 0, 0x01},
-		// 	dst:  &MyStruct{},
-		// },
-		// {
-		// 	name: "ptrMystruct cache hit",
-		// 	in:   ptrMystruct,
-		// 	want: []byte{1, 0x04, 0x01, 0x02, 0, 0, 0, 0x01},
-		// 	dst:  &MyStruct{},
-		// },
-		// {
-		// 	name: "nilPtrMyStruct2",
-		// 	in:   nilPtrMyStruct2,
-		// 	want: []byte{0},
-		// 	dst:  new(MyStruct),
-		// },
-		// {
-		// 	name: "&struct {[]byte, int32}",
-		// 	in: &MyStruct{
-		// 		Foo: []byte{0x01},
-		// 		Bar: 2,
-		// 		Baz: true,
-		// 	},
-		// 	want: []byte{1, 0x04, 0x01, 0x02, 0, 0, 0, 0x01},
-		// 	dst:  &MyStruct{},
-		// },
 		{
 			name: "struct {[]byte, int32}",
 			in: MyStruct{
@@ -456,13 +489,7 @@ var (
 		},
 		{
 			name: "struct {[]byte, int32, bool} with private attributes",
-			in: struct {
-				priv0 string
-				Baz   bool   `scale:"3"`
-				Bar   int32  `scale:"2"`
-				Foo   []byte `scale:"1"`
-				priv1 []byte
-			}{
+			in: MyStructWithPrivate{
 				priv0: "stuff",
 				Foo:   []byte{0x01},
 				Bar:   2,
@@ -486,6 +513,136 @@ var (
 				// zero value of string, since this field is ignored
 				Ignore: "",
 			},
+		},
+		{
+			in: VDTValue{
+				A: big.NewInt(1073741823),
+				B: int(1073741823),
+				C: uint(1073741823),
+				D: int8(1),
+				E: uint8(1),
+				F: int16(16383),
+				G: uint16(16383),
+				H: int32(1073741823),
+				I: uint32(1073741823),
+				J: int64(9223372036854775807),
+				K: uint64(9223372036854775807),
+				L: byteArray(64),
+				M: testStrings[1],
+				N: true,
+			},
+			want: newWant(
+				[]byte{
+					0xfe, 0xff, 0xff, 0xff,
+					0xff, 0xff, 0xff, 0x3f, 0, 0, 0, 0,
+					0xff, 0xff, 0xff, 0x3f, 0, 0, 0, 0,
+					0x01,
+					0x01,
+					0xff, 0x3f,
+					0xff, 0x3f,
+					0xff, 0xff, 0xff, 0x3f,
+					0xff, 0xff, 0xff, 0x3f,
+					0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f,
+					0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f,
+				},
+				append([]byte{0x01, 0x01}, byteArray(64)...),
+				append([]byte{0xC2, 0x02, 0x01, 0x00}, testStrings[1]...),
+				[]byte{0x01},
+			),
+		},
+		{
+			in: VDTValue1{
+				O:  newBigIntPtr(big.NewInt(1073741823)),
+				P:  newIntPtr(int(1073741823)),
+				Q:  newUintPtr(uint(1073741823)),
+				R:  newInt8Ptr(int8(1)),
+				S:  newUint8Ptr(uint8(1)),
+				T:  newInt16Ptr(16383),
+				U:  newUint16Ptr(16383),
+				V:  newInt32Ptr(1073741823),
+				W:  newUint32Ptr(1073741823),
+				X:  newInt64Ptr(9223372036854775807),
+				Y:  newUint64Ptr(9223372036854775807),
+				Z:  newBytesPtr(byteArray(64)),
+				AA: newStringPtr(testStrings[1]),
+				AB: newBoolPtr(true),
+			},
+			want: newWant(
+				[]byte{
+					0x01, 0xfe, 0xff, 0xff, 0xff,
+					0x01, 0xff, 0xff, 0xff, 0x3f, 0, 0, 0, 0,
+					0x01, 0xff, 0xff, 0xff, 0x3f, 0, 0, 0, 0,
+					0x01, 0x01,
+					0x01, 0x01,
+					0x01, 0xff, 0x3f,
+					0x01, 0xff, 0x3f,
+					0x01, 0xff, 0xff, 0xff, 0x3f,
+					0x01, 0xff, 0xff, 0xff, 0x3f,
+					0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f,
+					0x01, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f,
+				},
+				append([]byte{0x01, 0x01, 0x01}, byteArray(64)...),
+				append([]byte{0x01, 0xC2, 0x02, 0x01, 0x00}, testStrings[1]...),
+				[]byte{0x01, 0x01},
+			),
+		},
+		{
+			in: VDTValue2{
+				A: MyStruct{
+					Foo: []byte{0x01},
+					Bar: 2,
+					Baz: true,
+				},
+				B: MyStructWithIgnore{
+					Foo: []byte{0x01},
+					Bar: 2,
+					Baz: true,
+				},
+				C: &MyStruct{
+					Foo: []byte{0x01},
+					Bar: 2,
+					Baz: true,
+				},
+				D: &MyStructWithIgnore{
+					Foo: []byte{0x01},
+					Bar: 2,
+					Baz: true,
+				},
+
+				E: []int{1073741824, 2, 3, 4},
+				F: []bool{true, false, true},
+				G: []*big.Int{big.NewInt(0), big.NewInt(1)},
+				H: [][]int{{0, 1}, {1, 0}},
+				I: [][]byte{{0x00, 0x01}, {0x01, 0x00}},
+
+				J: [4]int{1073741824, 2, 3, 4},
+				K: [3]bool{true, false, true},
+				L: [2][]int{{0, 1}, {1, 0}},
+				M: [2][2]int{{0, 1}, {1, 0}},
+				N: [2]*big.Int{big.NewInt(0), big.NewInt(1)},
+				O: [2][]byte{{0x00, 0x01}, {0x01, 0x00}},
+				P: [2][2]byte{{0x00, 0x01}, {0x01, 0x00}},
+			},
+			want: newWant(
+				[]byte{0x04, 0x01, 0x02, 0, 0, 0, 0x01},
+				[]byte{0x04, 0x01, 0x02, 0, 0, 0, 0x01},
+				[]byte{0x01, 0x04, 0x01, 0x02, 0, 0, 0, 0x01},
+				[]byte{0x01, 0x04, 0x01, 0x02, 0, 0, 0, 0x01},
+
+				[]byte{0x10, 0x03, 0x00, 0x00, 0x00, 0x40, 0x08, 0x0c, 0x10},
+				[]byte{0x0c, 0x01, 0x00, 0x01},
+				[]byte{0x08, 0x00, 0x04},
+				[]byte{0x08, 0x08, 0x00, 0x04, 0x08, 0x04, 0x00},
+				[]byte{0x08, 0x08, 0x00, 0x01, 0x08, 0x01, 0x00},
+
+				[]byte{0x03, 0x00, 0x00, 0x00, 0x40, 0x08, 0x0c, 0x10},
+				[]byte{0x01, 0x00, 0x01},
+				[]byte{0x08, 0x00, 0x04, 0x08, 0x04, 0x00},
+				[]byte{0x00, 0x04, 0x04, 0x00},
+				[]byte{0x00, 0x04},
+				[]byte{0x08, 0x00, 0x01, 0x08, 0x01, 0x00},
+				[]byte{0x00, 0x01, 0x01, 0x00},
+			),
 		},
 	}
 
@@ -604,6 +761,13 @@ type MyStructWithIgnore struct {
 	somethingElse *struct {
 		fields int
 	}
+}
+type MyStructWithPrivate struct {
+	priv0 string
+	Baz   bool   `scale:"3"`
+	Bar   int32  `scale:"2"`
+	Foo   []byte `scale:"1"`
+	priv1 []byte
 }
 
 func Test_encodeState_encodeFixedWidthInteger(t *testing.T) {
