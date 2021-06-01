@@ -65,7 +65,7 @@ func newTestSyncer(t *testing.T) *Service {
 
 	cfg := &Config{}
 	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
-	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo)
+	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo, "", 0)
 	stateSrvc.UseMemDB()
 
 	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)

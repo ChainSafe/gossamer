@@ -62,7 +62,7 @@ func TestStorageState_RegisterStorageObserver(t *testing.T) {
 	defer ss.UnregisterStorageObserver(observer)
 
 	ts.Set([]byte("mackcom"), []byte("wuz here"))
-	err = ss.StoreTrie(ts)
+	err = ss.StoreTrie(ts, nil)
 	require.NoError(t, err)
 
 	expectedResult := &SubscriptionResult{
@@ -101,7 +101,7 @@ func TestStorageState_RegisterStorageObserver_Multi(t *testing.T) {
 
 	ts.Set(key1, value1)
 
-	err = ss.StoreTrie(ts)
+	err = ss.StoreTrie(ts, nil)
 	require.NoError(t, err)
 
 	time.Sleep(time.Millisecond * 10)
@@ -143,7 +143,7 @@ func TestStorageState_RegisterStorageObserver_Multi_Filter(t *testing.T) {
 	}
 
 	ts.Set(key1, value1)
-	err = ss.StoreTrie(ts)
+	err = ss.StoreTrie(ts, nil)
 	require.NoError(t, err)
 
 	time.Sleep(time.Millisecond * 10)

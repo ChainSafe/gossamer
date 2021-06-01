@@ -62,7 +62,7 @@ func NewPruner(inputDBPath, prunedDBPath string, bloomSize uint64, retainBlockNu
 	}
 
 	// load storage state
-	storageState, err := NewStorageState(db, blockState, trie.NewEmptyTrie())
+	storageState, err := NewStorageState(db, blockState, trie.NewEmptyTrie(), "", 0)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new storage state %w", err)
 	}

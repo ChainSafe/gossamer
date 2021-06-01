@@ -130,7 +130,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
 
 	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.TransactionState == nil || cfg.EpochState == nil {
-		stateSrvc = state.NewService(testDatadirPath, log.LvlInfo)
+		stateSrvc = state.NewService(testDatadirPath, log.LvlInfo, "", 0)
 		stateSrvc.UseMemDB()
 
 		err = stateSrvc.Initialise(gen, genHeader, genTrie)

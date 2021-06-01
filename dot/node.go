@@ -91,7 +91,7 @@ func InitNode(cfg *Config) error {
 	}
 
 	// create new state service
-	stateSrvc := state.NewService(cfg.Global.BasePath, cfg.Global.LogLvl)
+	stateSrvc := state.NewService(cfg.Global.BasePath, cfg.Global.LogLvl, "", 0)
 
 	// initialise state service with genesis data, block, and trie
 	err = stateSrvc.Initialise(gen, header, t)
@@ -237,16 +237,6 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	// Network Service
 	var networkSrvc *network.Service
 
-	var pruner state.Pruner
-	if cfg.Global.GCMode == "full" {
-		pruner, err = state.CreatePruner(stateSrvc.DB(), cfg.Global.RetainBlocks)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		pruner = &state.ArchivalNodePruner{}
-	}
-
 	// check if network service is enabled
 	if enabled := networkServiceEnabled(cfg); enabled {
 		// create network service and append network service to node services
@@ -272,7 +262,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	}
 
 	// create BABE service
-	bp, err := createBABEService(cfg, rt, stateSrvc, ks.Babe, pruner)
+	bp, err := createBABEService(cfg, rt, stateSrvc, ks.Babe)
 	if err != nil {
 		return nil, err
 	}
@@ -293,7 +283,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	nodeSrvcs = append(nodeSrvcs, fg)
 
 	// Syncer
-	syncer, err := createSyncService(cfg, stateSrvc, bp, fg, dh, ver, rt, pruner)
+	syncer, err := createSyncService(cfg, stateSrvc, bp, fg, dh, ver, rt)
 	if err != nil {
 		return nil, err
 	}

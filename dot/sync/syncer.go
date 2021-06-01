@@ -350,20 +350,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 		return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)
 	}
 
-	insKeys, err := ts.GetInsertedNodeHashes()
-	if err != nil {
-		return fmt.Errorf("failed to get state trie inserted keys: block %s %w", block.Header.Number, err)
-	}
-
-	delKeys := ts.GetDeletedNodeHashes()
-
-	blockHash := block.Header.Hash()
-	err = s.pruner.StoreJournalRecord(delKeys, insKeys, &blockHash, block.Header.Number)
-	if err != nil {
-		return err
-	}
-
-	err = s.storageState.StoreTrie(ts)
+	err = s.storageState.StoreTrie(ts, block.Header)
 	if err != nil {
 		return err
 	}

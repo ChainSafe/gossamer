@@ -51,12 +51,12 @@ type StorageState struct {
 	// change notifiers
 	changedLock  sync.RWMutex
 	observerList []Observer
-
-	syncing bool
+	pruner       Pruner
+	syncing      bool
 }
 
 // NewStorageState creates a new StorageState backed by the given trie and database located at basePath.
-func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie) (*StorageState, error) {
+func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie, gcMode string, retainBlocks int64) (*StorageState, error) {
 	if db == nil {
 		return nil, fmt.Errorf("cannot have nil database")
 	}
@@ -68,11 +68,23 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie) 
 	tries := make(map[common.Hash]*trie.Trie)
 	tries[t.MustHash()] = t
 
+	var pruner Pruner
+	var err error
+	if gcMode == "full" {
+		pruner, err = CreatePruner(db, retainBlocks)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		pruner = &ArchivalNodePruner{}
+	}
+
 	return &StorageState{
 		blockState:   blockState,
 		tries:        tries,
 		db:           chaindb.NewTable(db, storagePrefix),
 		observerList: []Observer{},
+		pruner:       pruner,
 	}, nil
 }
 
@@ -95,7 +107,7 @@ func (s *StorageState) pruneKey(keyHeader *types.Header) {
 }
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database
-func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
+func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) error {
 	s.lock.Lock()
 	root := ts.MustRoot()
 	if s.syncing {
@@ -106,6 +118,25 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
 	}
 	s.tries[root] = ts.Trie()
 	s.lock.Unlock()
+
+	_, ok := s.pruner.(*FullNodePruner)
+	if header == nil && ok {
+		return fmt.Errorf("block cannot be empty for Full node pruner")
+	}
+
+	if header != nil {
+		insKeys, err := ts.GetInsertedNodeHashes()
+		if err != nil {
+			return fmt.Errorf("failed to get state trie inserted keys: block %s %w", header.Hash(), err)
+		}
+
+		delKeys := ts.GetDeletedNodeHashes()
+
+		err = s.pruner.StoreJournalRecord(delKeys, insKeys, header.Hash(), header.Number.Int64())
+		if err != nil {
+			return err
+		}
+	}
 
 	logger.Trace("cached trie in storage state", "root", root)
 

@@ -89,7 +89,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 	}
 
 	// create storage state from genesis trie
-	storageState, err := NewStorageState(db, blockState, t)
+	storageState, err := NewStorageState(db, blockState, t, "", 0)
 	if err != nil {
 		return fmt.Errorf("failed to create storage state from trie: %s", err)
 	}

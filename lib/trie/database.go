@@ -290,8 +290,8 @@ func (t *Trie) writeDirty(db chaindb.Batch, curr node) error {
 
 // GetInsertedNodeHashes returns the hash of nodes that are inserted into state trie since last snapshot is called
 // Since inserted  nodesare newly created we need to compute their hash values.
-func (t *Trie) GetInsertedNodeHashes(curr node) ([]*common.Hash, error) {
-	var nodeHashes []*common.Hash
+func (t *Trie) GetInsertedNodeHashes(curr node) ([]common.Hash, error) {
+	var nodeHashes []common.Hash
 	if curr == nil || !curr.isDirty() {
 		return nil, nil
 	}
@@ -311,7 +311,7 @@ func (t *Trie) GetInsertedNodeHashes(curr node) ([]*common.Hash, error) {
 	}
 
 	nodeHash := common.BytesToHash(hash)
-	nodeHashes = append(nodeHashes, &nodeHash)
+	nodeHashes = append(nodeHashes, nodeHash)
 
 	if c, ok := curr.(*branch); ok {
 		for _, child := range c.children {
@@ -330,6 +330,6 @@ func (t *Trie) GetInsertedNodeHashes(curr node) ([]*common.Hash, error) {
 }
 
 // GetDeletedNodeHash returns the hash of nodes that are deleted from state trie since last snapshot is called
-func (t *Trie) GetDeletedNodeHash() []*common.Hash {
+func (t *Trie) GetDeletedNodeHash() []common.Hash {
 	return t.deletedKeys
 }

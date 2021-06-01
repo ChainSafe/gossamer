@@ -35,7 +35,7 @@ import (
 func newTestDigestHandler(t *testing.T, withBABE, withGrandpa bool) *DigestHandler { //nolint
 	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
 	require.NoError(t, err)
-	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo)
+	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo, "", 0)
 	stateSrvc.UseMemDB()
 
 	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)

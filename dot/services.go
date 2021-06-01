@@ -53,7 +53,7 @@ func newInMemoryDB(path string) (chaindb.Database, error) {
 // createStateService creates the state service and initialise state database
 func createStateService(cfg *Config) (*state.Service, error) {
 	logger.Debug("creating state service...")
-	stateSrvc := state.NewService(cfg.Global.BasePath, cfg.Log.StateLvl)
+	stateSrvc := state.NewService(cfg.Global.BasePath, cfg.Log.StateLvl, cfg.Global.GCMode, cfg.Global.RetainBlocks)
 
 	// start state service (initialise state database)
 	err := stateSrvc.Start()
@@ -165,7 +165,7 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GlobalKeystore, 
 	return rt, nil
 }
 
-func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks keystore.Keystore, pruner state.Pruner) (*babe.Service, error) {
+func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks keystore.Keystore) (*babe.Service, error) {
 	logger.Info(
 		"creating BABE service...",
 		"authority", cfg.Core.BabeAuthority,
@@ -192,7 +192,6 @@ func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks k
 		SlotDuration:     cfg.Core.SlotDuration, // TODO: remove this, should only be modified via runtime constant
 		Authority:        cfg.Core.BabeAuthority,
 		IsDev:            cfg.Global.ID == "dev",
-		Pruner:           pruner,
 	}
 
 	if cfg.Core.BabeAuthority {
@@ -377,7 +376,7 @@ func createBlockVerifier(st *state.Service) (*babe.VerificationManager, error) {
 	return ver, nil
 }
 
-func createSyncService(cfg *Config, st *state.Service, bp sync.BlockProducer, fg sync.FinalityGadget, dh *core.DigestHandler, verifier *babe.VerificationManager, rt runtime.Instance, pruner state.Pruner) (*sync.Service, error) {
+func createSyncService(cfg *Config, st *state.Service, bp sync.BlockProducer, fg sync.FinalityGadget, dh *core.DigestHandler, verifier *babe.VerificationManager, rt runtime.Instance) (*sync.Service, error) {
 	syncCfg := &sync.Config{
 		LogLvl:           cfg.Log.SyncLvl,
 		BlockState:       st.Block,
@@ -388,7 +387,6 @@ func createSyncService(cfg *Config, st *state.Service, bp sync.BlockProducer, fg
 		Verifier:         verifier,
 		Runtime:          rt,
 		DigestHandler:    dh,
-		Pruner:           pruner,
 	}
 
 	return sync.NewService(syncCfg)
