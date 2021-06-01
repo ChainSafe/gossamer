@@ -17,6 +17,8 @@
 package scale
 
 import (
+	"fmt"
+	"math/big"
 	"reflect"
 	"testing"
 
@@ -172,4 +174,22 @@ func BenchmarkMarshal(b *testing.B) {
 			}
 		}
 	}
+}
+
+func TestSomething(t *testing.T) {
+	i := big.NewInt(0)
+	expectedVal := *common.Uint128FromBigInt(i)
+
+	encByts, err := oldScale.Encode(expectedVal)
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+	encBytes2, err := oldScale.Encode(i)
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+
+	fmt.Printf("%+v, %+v", encByts, encBytes2)
 }

@@ -90,6 +90,7 @@ func NewUint128(in interface{}, order ...binary.ByteOrder) (u *Uint128, err erro
 // Bytes returns the Uint128 in little endian format by default.  A variadic parameter
 // order can be used to specify the binary.ByteOrder used
 func (u *Uint128) Bytes(order ...binary.ByteOrder) (b []byte) {
+	fmt.Println("called bytes!")
 	var o binary.ByteOrder = binary.LittleEndian
 	if len(order) > 0 {
 		o = order[0]
