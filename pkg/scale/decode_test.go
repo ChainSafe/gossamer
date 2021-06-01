@@ -443,9 +443,10 @@ func Test_decodeState_decodeBigInt(t *testing.T) {
 func Test_decodeState_decodeBytes(t *testing.T) {
 	for _, tt := range stringTests {
 		t.Run(tt.name, func(t *testing.T) {
-			dst := reflect.ValueOf(tt.in).Interface()
+			dst := reflect.New(reflect.TypeOf(tt.in)).Elem().Interface()
 			if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
 				t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+				return
 			}
 			if !reflect.DeepEqual(dst, tt.in) {
 				t.Errorf("decodeState.unmarshal() = %v, want %v", dst, tt.in)
