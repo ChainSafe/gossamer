@@ -235,18 +235,20 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		}
 
 		hsTicker := time.NewTicker(handshakeTimeout)
-		defer hsTicker.Stop()
-
 		var hs Handshake
 
 		select {
 		case <-hsTicker.C:
+			hsTicker.Stop()
+
 			logger.Warn("handshake timeout reached", "protocol", info.protocolID, "peer", peer)
 			_ = stream.Close()
 			info.outboundHandshakeData.Delete(peer)
 			return
 
 		case hsResponse := <-s.readHandshake(stream, decodeBlockAnnounceHandshake):
+			hsTicker.Stop()
+
 			if hsResponse.err != nil {
 				logger.Trace("failed to read handshake", "protocol", info.protocolID, "peer", peer, "error", err)
 				_ = stream.Close()
