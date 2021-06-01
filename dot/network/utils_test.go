@@ -73,7 +73,7 @@ func TestGenerateKey(t *testing.T) {
 	require.Equal(t, keyC, keyD)
 }
 
-func TestWriteVarUint64(t *testing.T) {
+func TestReadLEB128ToUint64(t *testing.T) {
 	tests := []struct {
 		input  []byte
 		output uint64
