@@ -32,11 +32,12 @@ func newStreamManager(ctx context.Context) *streamManager {
 
 func (sm *streamManager) start() {
 	go func() {
+        ticker := time.NewTicker(cleanupStreamInterval)
 		for {
 			select {
 			case <-sm.ctx.Done():
 				return
-			case <-time.After(cleanupStreamInterval):
+			case <-ticker.C:
 				sm.cleanupStreams()
 			}
 		}
