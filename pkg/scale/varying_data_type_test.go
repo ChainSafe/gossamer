@@ -4,6 +4,9 @@ import (
 	"math/big"
 	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 type VDTValue struct {
@@ -193,8 +196,8 @@ var VariableDataTypeTests = tests{
 			// encoding of struct
 			[]byte{
 				0xfe, 0xff, 0xff, 0xff,
-				0xff, 0xff, 0xff, 0x3f, 0, 0, 0, 0,
-				0xff, 0xff, 0xff, 0x3f, 0, 0, 0, 0,
+				0xfe, 0xff, 0xff, 0xff,
+				0xfe, 0xff, 0xff, 0xff,
 				0x01,
 				0x01,
 				0xff, 0x3f,
@@ -213,8 +216,8 @@ var VariableDataTypeTests = tests{
 			// encoding of struct
 			[]byte{
 				0x01, 0xfe, 0xff, 0xff, 0xff,
-				0x01, 0xff, 0xff, 0xff, 0x3f, 0, 0, 0, 0,
-				0x01, 0xff, 0xff, 0xff, 0x3f, 0, 0, 0, 0,
+				0x01, 0xfe, 0xff, 0xff, 0xff,
+				0x01, 0xfe, 0xff, 0xff, 0xff,
 				0x01, 0x01,
 				0x01, 0x01,
 				0x01, 0xff, 0x3f,
@@ -280,8 +283,9 @@ func Test_decodeState_decodeVaryingDataType(t *testing.T) {
 				t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(dst, tt.in) {
-				t.Errorf("decodeState.unmarshal() = %v, want %v", dst, tt.in)
+			diff := cmp.Diff(dst, tt.in, cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}))
+			if diff != "" {
+				t.Errorf("decodeState.unmarshal() = %s", diff)
 			}
 		})
 	}
