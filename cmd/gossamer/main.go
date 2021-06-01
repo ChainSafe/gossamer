@@ -452,10 +452,6 @@ func pruneState(ctx *cli.Context) error {
 	bloomSize := ctx.GlobalUint64(BloomFilterSizeFlag.Name)
 	retainBlocks := ctx.GlobalInt64(RetainBlockNumberFlag.Name)
 
-	if retainBlocks < defaultRetainBlocks {
-		return fmt.Errorf("--%s cannot be less than %d", RetainBlockNumberFlag.Name, defaultRetainBlocks)
-	}
-
 	pruner, err := state.NewPruner(inputDBPath, prunedDBPath, bloomSize, retainBlocks)
 	if err != nil {
 		return err
