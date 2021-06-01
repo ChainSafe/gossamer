@@ -23,6 +23,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/libp2p/go-libp2p-core/protocol"
 	ma "github.com/multiformats/go-multiaddr"
 
 	"github.com/stretchr/testify/require"
@@ -365,4 +366,72 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	// Verify that handshake data is cleared.
 	_, ok = info.getHandshakeData(nodeB.host.id(), true)
 	require.False(t, ok)
+}
+
+func Test_PeerSupportsProtocol(t *testing.T) {
+	basePathA := utils.NewTestBasePath(t, "nodeA")
+	configA := &Config{
+		BasePath:    basePathA,
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeA := createTestService(t, configA)
+
+	basePathB := utils.NewTestBasePath(t, "nodeB")
+	configB := &Config{
+		BasePath:    basePathB,
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeB := createTestService(t, configB)
+	nodeB.noGossip = true
+
+	addrInfosB, err := nodeB.host.addrInfos()
+	require.NoError(t, err)
+
+	err = nodeA.host.connect(*addrInfosB[0])
+	// retry connect if "failed to dial" error
+	if failedToDial(err) {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(*addrInfosB[0])
+	}
+	require.NoError(t, err)
+
+	tests := []struct {
+		protocol protocol.ID
+		expect   bool
+	}{
+		{
+			protocol: protocol.ID("/gossamer/test/0/sync/2"),
+			expect:   true,
+		},
+		{
+			protocol: protocol.ID("/gossamer/test/0/light/2"),
+			expect:   true,
+		},
+		{
+			protocol: protocol.ID("/gossamer/test/0/block-announces/1"),
+			expect:   true,
+		},
+		{
+			protocol: protocol.ID("/gossamer/test/0/transactions/1"),
+			expect:   true,
+		},
+		{
+			protocol: protocol.ID("/gossamer/not_supported/protocol"),
+			expect:   false,
+		},
+	}
+
+	for _, test := range tests {
+		output, err := nodeA.host.supportsProtocol(nodeB.host.id(), test.protocol)
+		require.NoError(t, err)
+		require.Equal(t, test.expect, output)
+	}
 }

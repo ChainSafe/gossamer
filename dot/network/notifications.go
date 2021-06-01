@@ -198,6 +198,12 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 }
 
 func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtocol, msg NotificationsMessage) {
+	support, err := s.host.supportsProtocol(peer, info.protocolID)
+	if err != nil || !support {
+		logger.Warn("the peer does not supports the protocol", "protocol", info.protocolID, "peer", peer, "err", err)
+		return
+	}
+
 	hsData, has := info.getHandshakeData(peer, false)
 	if has && !hsData.validated {
 		// peer has sent us an invalid handshake in the past, ignore
@@ -263,7 +269,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 	// we've completed the handshake with the peer, send message directly
 	logger.Trace("sending message", "protocol", info.protocolID, "peer", peer, "message", msg)
 
-	err := s.host.writeToStream(hsData.stream, msg)
+	err = s.host.writeToStream(hsData.stream, msg)
 	if err != nil {
 		logger.Trace("failed to send message to peer", "peer", peer, "error", err)
 	}
