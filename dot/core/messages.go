@@ -18,6 +18,7 @@ package core
 
 import (
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
@@ -33,10 +34,8 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) erro
 	txs := msg.Extrinsics
 
 	for _, tx := range txs {
-		tx := tx // pin
-
 		// validate each transaction
-		val, err := s.rt.ValidateTransaction(tx)
+		val, err := s.rt.ValidateTransaction(append([]byte{byte(types.TxnExternal)}, tx...))
 		if err != nil {
 			logger.Error("failed to validate transaction", "err", err)
 			return err
