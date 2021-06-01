@@ -12,7 +12,7 @@ import (
 func Unmarshal(data []byte, dst interface{}) (err error) {
 	dstv := reflect.ValueOf(dst)
 	if dstv.Kind() != reflect.Ptr || dstv.IsNil() {
-		err = fmt.Errorf("unsupported dst: %T", dst)
+		err = fmt.Errorf("unsupported dst: %T, must be a pointer to a destination", dst)
 		return
 	}
 
@@ -76,7 +76,21 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (out interface{}, err error
 				in, err = ds.decodeSlice(in)
 			}
 		default:
-			err = fmt.Errorf("unsupported type: %T", in)
+			_, ok := in.(VaryingDataTypeValue)
+			switch ok {
+			case true:
+				t := reflect.TypeOf(in)
+				switch t.Kind() {
+				// TODO: support more primitive types.  Do we need to support arrays and slices as well?
+				case reflect.Int:
+					in = reflect.ValueOf(in).Convert(reflect.TypeOf(int(1))).Interface()
+				case reflect.Int16:
+					in = reflect.ValueOf(in).Convert(reflect.TypeOf(int16(1))).Interface()
+				}
+				in, err = ds.unmarshal(reflect.ValueOf(in))
+			default:
+				err = fmt.Errorf("unsupported type: %T", in)
+			}
 		}
 	}
 
@@ -97,13 +111,20 @@ func (ds *decodeState) decodePointer(in interface{}) (out interface{}, err error
 	case 0x00:
 		out = nil
 	case 0x01:
-		elem := reflect.ValueOf(in).Elem()
-		temp := elem.Interface()
-		temp, err = ds.unmarshal(elem)
+		inType := reflect.TypeOf(in)
+		elem := inType.Elem()
+		inCopy := reflect.New(inType)
+		tempElem := reflect.New(elem)
+
+		var temp interface{}
+		temp, err = ds.unmarshal(tempElem.Elem())
 		if err != nil {
 			break
 		}
-		out = &temp
+
+		tempElem.Elem().Set(reflect.ValueOf(temp).Convert(tempElem.Elem().Type()))
+		inCopy.Elem().Set(tempElem)
+		out = inCopy.Elem().Interface()
 	default:
 		err = fmt.Errorf("unsupported Option value: %v, bytes: %v", rb, ds.Bytes())
 	}
@@ -146,7 +167,7 @@ func (ds *decodeState) decodeVaryingDataType(dst interface{}) (vdt interface{}, 
 		}
 
 		if reflect.ValueOf(out).IsValid() {
-			tempVal.Set(reflect.ValueOf(out))
+			tempVal.Set(reflect.ValueOf(out).Convert(tempVal.Type()))
 		} else {
 			tempVal.Set(reflect.Zero(tempVal.Type()))
 		}
@@ -196,7 +217,7 @@ func (ds *decodeState) decodeSlice(dst interface{}) (arr interface{}, err error)
 			}
 
 			if reflect.ValueOf(out).IsValid() {
-				tempElem.Set(reflect.ValueOf(out))
+				tempElem.Set(reflect.ValueOf(out).Convert(tempElem.Type()))
 			} else {
 				tempElem.Set(reflect.Zero(tempElem.Type()))
 			}
@@ -242,7 +263,7 @@ func (ds *decodeState) decodeArray(dst interface{}) (arr interface{}, err error)
 
 		tempElem := temp.Elem().Index(i)
 		if reflect.ValueOf(out).IsValid() {
-			tempElem.Set(reflect.ValueOf(out))
+			tempElem.Set(reflect.ValueOf(out).Convert(tempElem.Type()))
 		} else {
 			tempElem.Set(reflect.Zero(tempElem.Type()))
 		}

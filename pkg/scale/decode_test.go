@@ -111,7 +111,7 @@ func Test_decodeState_decodeStruct(t *testing.T) {
 			if tt.out != nil {
 				diff = cmp.Diff(dst, tt.out, cmpopts.IgnoreUnexported(tt.in))
 			} else {
-				diff = cmp.Diff(dst, tt.in, cmpopts.IgnoreUnexported(tt.in))
+				diff = cmp.Diff(dst, tt.in, cmpopts.IgnoreUnexported(big.Int{}, tt.in, VDTValue2{}, MyStructWithIgnore{}))
 			}
 			if diff != "" {
 				t.Errorf("decodeState.unmarshal() = %s", diff)
@@ -172,28 +172,18 @@ func Test_unmarshal_optionality(t *testing.T) {
 			dst := reflect.New(reflect.TypeOf(tt.in)).Interface()
 			if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
 				t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
-			}
-
-			if tt.wantErr == true {
 				return
 			}
-
-			switch reflect.TypeOf(tt.in).Kind() {
-			case reflect.Struct:
-				var diff string
-				if tt.out != nil {
-					diff = cmp.Diff(dst, &tt.out, cmpopts.IgnoreUnexported(tt.in))
-				} else {
-					diff = cmp.Diff(dst, &tt.in, cmpopts.IgnoreUnexported(tt.in))
-				}
-				if diff != "" {
-					t.Errorf("decodeState.unmarshal() = %s", diff)
-				}
-			default:
-				if !reflect.DeepEqual(dst, &tt.in) {
-					t.Errorf("decodeState.unmarshal() = %v, want %v", dst, tt.in)
-				}
+			var diff string
+			if tt.out != nil {
+				diff = cmp.Diff(reflect.ValueOf(dst).Elem().Interface(), reflect.ValueOf(tt.out).Interface(), cmpopts.IgnoreUnexported(tt.in))
+			} else {
+				diff = cmp.Diff(reflect.ValueOf(dst).Elem().Interface(), reflect.ValueOf(tt.in).Interface(), cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}, MyStructWithPrivate{}))
 			}
+			if diff != "" {
+				t.Errorf("decodeState.unmarshal() = %s", diff)
+			}
+
 		})
 	}
 }
