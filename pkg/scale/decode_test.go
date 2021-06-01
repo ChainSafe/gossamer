@@ -282,41 +282,6 @@ func Test_decodeState_decodeBool(t *testing.T) {
 	}
 }
 
-func Test_decodeState_decodeStructManual(t *testing.T) {
-	// nil case
-	var dst *MyStruct = nil
-	var b = []byte{0}
-	var want *MyStruct = nil
-
-	err := Unmarshal(b, &dst)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if !reflect.DeepEqual(dst, want) {
-		t.Errorf("decodeState.unmarshal() = %v, want %v", dst, want)
-	}
-
-	// zero case MyStruct
-	var dst1 *MyStruct = &MyStruct{}
-	err = Unmarshal(b, &dst1)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if !reflect.DeepEqual(dst1, want) {
-		t.Errorf("decodeState.unmarshal() = %v, want %v", dst, want)
-	}
-
-	// zero case MyStruct
-	var dst2 *MyStruct = &MyStruct{Baz: true}
-	err = Unmarshal(b, &dst2)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if !reflect.DeepEqual(dst2, want) {
-		t.Errorf("decodeState.unmarshal() = %v, want %v", dst, want)
-	}
-}
-
 func Test_decodeState_decodeStruct(t *testing.T) {
 	for _, tt := range structTests {
 		t.Run(tt.name, func(t *testing.T) {

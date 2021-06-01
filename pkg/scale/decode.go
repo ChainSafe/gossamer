@@ -142,14 +142,24 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 			_, ok := in.(VaryingDataTypeValue)
 			switch ok {
 			case true:
+				var temp reflect.Value
 				t := reflect.TypeOf(in)
 				switch t.Kind() {
 				// TODO: support more primitive types.  Do we need to support arrays and slices as well?
 				case reflect.Int:
-					in = reflect.ValueOf(in).Convert(reflect.TypeOf(int(1))).Interface()
+					temp = reflect.New(reflect.TypeOf(int(1)))
+					err = ds.unmarshal(temp.Elem())
+					if err != nil {
+						break
+					}
 				case reflect.Int16:
-					in = reflect.ValueOf(in).Convert(reflect.TypeOf(int16(1))).Interface()
+					temp = reflect.New(reflect.TypeOf(int16(1)))
+					err = ds.unmarshal(temp.Elem())
+					if err != nil {
+						break
+					}
 				}
+				dstv.Set(temp.Elem().Convert(t))
 			default:
 				err = fmt.Errorf("unsupported type: %T", in)
 			}
