@@ -39,8 +39,17 @@ jobs:
 
       - name: Install Subkey
         run: |
-          wget -P $HOME/.local/bin/ https://chainbridge.ams3.digitaloceanspaces.com/subkey-v2.0.0
-          mv $HOME/.local/bin/subkey-v2.0.0 $HOME/.local/bin/subkey
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            wget -P $HOME/.local/bin/ https://chainbridge.ams3.digitaloceanspaces.com/subkey-v2.0.0
+            mv $HOME/.local/bin/subkey-v2.0.0 $HOME/.local/bin/subkey
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            wget -P $HOME/.local/bin/ https://chainbridge.ams3.digitaloceanspaces.com/subkey-v2.0.0-macos
+            mv $HOME/.local/bin/subkey-v2.0.0-macos $HOME/.local/bin/subkey
+          else
+            echo "Subkey for $RUNNER_OS is not supported"
+            exit 1
+          fi
+
           chmod +x $HOME/.local/bin/subkey
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
@@ -80,6 +89,13 @@ jobs:
             path: ${{ steps.go-cache-paths.outputs.go-mod }}
             key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
             restore-keys: ${{ runner.os }}-go-mod
+
+        - name: Install Subkey
+          run: |
+            wget -P $HOME/.local/bin/ https://chainbridge.ams3.digitaloceanspaces.com/subkey-v2.0.0
+            mv $HOME/.local/bin/subkey-v2.0.0 $HOME/.local/bin/subkey
+            chmod +x $HOME/.local/bin/subkey
+            echo "$HOME/.local/bin" >> $GITHUB_PATH
 
         - name: Generate coverage report
           run: |

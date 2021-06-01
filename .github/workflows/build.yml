@@ -68,6 +68,13 @@ jobs:
           key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-go-mod
 
+      - name: Install Subkey
+        run: |
+          wget -P $HOME/.local/bin/ https://chainbridge.ams3.digitaloceanspaces.com/subkey-v2.0.0
+          mv $HOME/.local/bin/subkey-v2.0.0 $HOME/.local/bin/subkey
+          chmod +x $HOME/.local/bin/subkey
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
       - name: Generate coverage report
         run: |
           go test ./... -short -coverprofile=coverage.out -covermode=atomic -timeout=20m
