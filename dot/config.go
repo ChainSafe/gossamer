@@ -53,7 +53,7 @@ type GlobalConfig struct {
 	MetricsPort    uint32
 	NoTelemetry    bool
 	RetainBlocks   int64
-	GCMode         string
+	Pruning        string
 }
 
 // LogConfig represents the log levels for individual packages

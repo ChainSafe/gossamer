@@ -37,6 +37,7 @@ const (
 	importRuntimeCommandName = "import-runtime"
 	importStateCommandName   = "import-state"
 	pruningStateCommandName  = "prune-state"
+	defaultRetainBlocks      = 256
 )
 
 // app is the cli application
@@ -234,12 +235,12 @@ func gossamerAction(ctx *cli.Context) error {
 		return err
 	}
 
-	if cfg.Global.RetainBlocks < 256 {
-		return fmt.Errorf("--%s cannot be less than 256", RetainBlockNumberFlag.Name)
+	if cfg.Global.RetainBlocks < defaultRetainBlocks {
+		return fmt.Errorf("--%s cannot be less than %d", RetainBlockNumberFlag.Name, defaultRetainBlocks)
 	}
 
-	if cfg.Global.GCMode != "full" && cfg.Global.GCMode != "archive" {
-		return fmt.Errorf("--%s must be either 'full' or 'archive'", GCModeFlag.Name)
+	if cfg.Global.Pruning != "full" && cfg.Global.Pruning != "archive" {
+		return fmt.Errorf("--%s must be either 'full' or 'archive'", Pruning.Name)
 	}
 
 	cfg.Global.LogLvl = lvl
@@ -450,6 +451,10 @@ func pruneState(ctx *cli.Context) error {
 
 	bloomSize := ctx.GlobalUint64(BloomFilterSizeFlag.Name)
 	retainBlocks := ctx.GlobalInt64(RetainBlockNumberFlag.Name)
+
+	if retainBlocks < defaultRetainBlocks {
+		return fmt.Errorf("--%s cannot be less than %d", RetainBlockNumberFlag.Name, defaultRetainBlocks)
+	}
 
 	pruner, err := state.NewPruner(inputDBPath, prunedDBPath, bloomSize, retainBlocks)
 	if err != nil {

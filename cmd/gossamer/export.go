@@ -85,7 +85,7 @@ func dotConfigToToml(dcfg *dot.Config) *ctoml.Config {
 		LogLvl:       dcfg.Global.LogLvl.String(),
 		MetricsPort:  dcfg.Global.MetricsPort,
 		RetainBlocks: dcfg.Global.RetainBlocks,
-		GCMode:       dcfg.Global.GCMode,
+		Pruning:      dcfg.Global.Pruning,
 	}
 
 	cfg.Log = ctoml.LogConfig{

@@ -273,7 +273,7 @@ func (s *TrieState) LoadCodeHash() (common.Hash, error) {
 func (s *TrieState) GetInsertedNodeHashes() ([]common.Hash, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
-	return s.t.GetInsertedNodeHashes(s.t.RootNode())
+	return s.t.GetInsertedNodeHashes()
 }
 
 // GetDeletedNodeHashes returns the hash of nodes that are deleted from state trie since last block produced

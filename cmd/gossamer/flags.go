@@ -286,10 +286,11 @@ var (
 		Value: 256,
 	}
 
-	// GCModeFlag sets the blockchain GC mode. It's either full or archive.
-	GCModeFlag = cli.StringFlag{
-		Name:  "gcmode",
-		Usage: `Blockchain garbage collection mode ("full", "archive")`,
+	// Pruning triggers the online pruning of state trie. It's either full or archive. To enable pruning the value
+	// should be set to `full`.
+	Pruning = cli.StringFlag{
+		Name:  "pruning",
+		Usage: `State trie online pruning ("full", "archive")`,
 		Value: "full",
 	}
 )
@@ -309,7 +310,7 @@ var (
 		DBPathFlag,
 		BloomFilterSizeFlag,
 		RetainBlockNumberFlag,
-		GCModeFlag,
+		Pruning,
 	}
 
 	// StartupFlags are flags that are valid for use with the root command and the export subcommand

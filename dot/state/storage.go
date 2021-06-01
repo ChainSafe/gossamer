@@ -69,14 +69,14 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie, 
 	tries[t.MustHash()] = t
 
 	var pruner Pruner
-	var err error
 	if gcMode == "full" {
-		pruner, err = CreatePruner(db, retainBlocks)
+		var err error
+		pruner, err = createPruner(db, retainBlocks)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		pruner = &ArchivalNodePruner{}
+		pruner = &archivalNodePruner{}
 	}
 
 	return &StorageState{
@@ -119,8 +119,7 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 	s.tries[root] = ts.Trie()
 	s.lock.Unlock()
 
-	_, ok := s.pruner.(*FullNodePruner)
-	if header == nil && ok {
+	if _, ok := s.pruner.(*fullNodePruner); header == nil && ok {
 		return fmt.Errorf("block cannot be empty for Full node pruner")
 	}
 
@@ -129,10 +128,12 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 		if err != nil {
 			return fmt.Errorf("failed to get state trie inserted keys: block %s %w", header.Hash(), err)
 		}
+		logger.Debug("inserted keys", len(insKeys), "for block", header.Number)
 
 		delKeys := ts.GetDeletedNodeHashes()
 
-		err = s.pruner.StoreJournalRecord(delKeys, insKeys, header.Hash(), header.Number.Int64())
+		logger.Debug("deleted keys", len(delKeys), "for block", header.Number)
+		err = s.pruner.storeJournalRecord(delKeys, insKeys, header.Hash(), header.Number.Int64())
 		if err != nil {
 			return err
 		}

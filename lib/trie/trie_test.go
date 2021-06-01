@@ -515,6 +515,7 @@ func TestTrieDiff(t *testing.T) {
 		trie.Put(test.key, test.value)
 	}
 	deletedKeys := trie.deletedKeys
+	require.Len(t, deletedKeys, 3)
 
 	err = trie.WriteDirty(storageDB)
 	require.NoError(t, err)

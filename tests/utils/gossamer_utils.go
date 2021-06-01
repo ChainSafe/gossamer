@@ -422,7 +422,7 @@ func generateDefaultConfig() *ctoml.Config {
 			LogLvl:       "crit",
 			MetricsPort:  9876,
 			RetainBlocks: 256,
-			GCMode:       "archive",
+			Pruning:      "archive",
 		},
 		Log: ctoml.LogConfig{
 			CoreLvl: "info",
