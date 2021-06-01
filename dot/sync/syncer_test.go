@@ -47,7 +47,7 @@ func TestHandleBlockResponse(t *testing.T) {
 	require.NoError(t, err)
 
 	for i := 0; i < 130; i++ {
-		block := BuildBlock(t, responder, parent, nil)
+		block := BuildBlock(t, responder.runtime, parent, nil)
 		err = responder.blockState.AddBlock(block)
 		require.NoError(t, err)
 		parent = block.Header
@@ -84,7 +84,7 @@ func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
 	require.NoError(t, err)
 
 	for i := 0; i < 4; i++ {
-		block := BuildBlock(t, syncer, parent, nil)
+		block := BuildBlock(t, syncer.runtime, parent, nil)
 		err = syncer.blockState.AddBlock(block)
 		require.NoError(t, err)
 		parent = block.Header
@@ -96,7 +96,7 @@ func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
 	require.NoError(t, err)
 
 	for i := 0; i < 16; i++ {
-		block := BuildBlock(t, responder, parent, nil)
+		block := BuildBlock(t, responder.runtime, parent, nil)
 		err = responder.blockState.AddBlock(block)
 		require.NoError(t, err)
 		parent = block.Header
@@ -162,7 +162,7 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
-	block := BuildBlock(t, syncer, parent, nil)
+	block := BuildBlock(t, syncer.runtime, parent, nil)
 
 	bd := []*types.BlockData{{
 		Hash:          block.Header.Hash(),
@@ -185,7 +185,7 @@ func TestSyncer_ExecuteBlock(t *testing.T) {
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
-	block := BuildBlock(t, syncer, parent, nil)
+	block := BuildBlock(t, syncer.runtime, parent, nil)
 
 	// reset parentState
 	parentState, err := syncer.storageState.TrieState(&parent.StateRoot)
@@ -234,7 +234,7 @@ func TestSyncer_ProcessJustification(t *testing.T) {
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
-	block := BuildBlock(t, syncer, parent, nil)
+	block := BuildBlock(t, syncer.runtime, parent, nil)
 	err = syncer.blockState.(*state.BlockState).AddBlock(block)
 	require.NoError(t, err)
 

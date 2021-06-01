@@ -175,41 +175,37 @@ func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
 	parent, err := bs.BestBlockHeader()
 	require.NoError(t, err)
 
-	syncer := sync.NewTestSyncer(t)
-
-	block1 := sync.BuildBlock(t, syncer, parent, nil)
+	block1 := sync.BuildBlock(t, s.rt, parent, nil)
 	err = bs.AddBlock(block1)
 	require.NoError(t, err)
 
-	block2 := sync.BuildBlock(t, syncer, block1.Header, nil)
+	block2 := sync.BuildBlock(t, s.rt, block1.Header, nil)
 	err = bs.AddBlock(block2)
 	require.NoError(t, err)
 
-	block3 := sync.BuildBlock(t, syncer, block2.Header, nil)
+	block3 := sync.BuildBlock(t, s.rt, block2.Header, nil)
 	err = bs.AddBlock(block3)
 	require.NoError(t, err)
 
-	block4 := sync.BuildBlock(t, syncer, block3.Header, nil)
+	block4 := sync.BuildBlock(t, s.rt, block3.Header, nil)
 	err = bs.AddBlock(block4)
 	require.NoError(t, err)
 
-	block5 := sync.BuildBlock(t, syncer, block4.Header, nil)
+	block5 := sync.BuildBlock(t, s.rt, block4.Header, nil)
 	err = bs.AddBlock(block5)
 	require.NoError(t, err)
 
-	block31 := sync.BuildBlock(t, syncer, block2.Header, nil)
+	block31 := sync.BuildBlock(t, s.rt, block2.Header, nil)
 	err = bs.AddBlock(block31)
 	require.NoError(t, err)
 
+	nonce := uint64(1)
+
 	// Add extrinsic to block `block31`
-	extBytes := sync.CreateExtrinsic(t, syncer)
-	ext := types.Extrinsic(extBytes)
+	ext := createExtrinsics(t, s.rt, bs.GenesisHash(), nonce)
 
-	block41 := sync.BuildBlock(t, syncer, block31.Header, ext)
+	block41 := sync.BuildBlock(t, s.rt, block31.Header, ext)
 	err = bs.AddBlock(block41)
-	require.NoError(t, err)
-
-	err = s.rt.InitializeBlock(block1.Header)
 	require.NoError(t, err)
 
 	err = s.handleChainReorg(block41.Header.Hash(), block5.Header.Hash())

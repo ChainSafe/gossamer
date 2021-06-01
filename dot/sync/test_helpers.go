@@ -34,10 +34,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	log "github.com/ChainSafe/log15"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
 	"github.com/stretchr/testify/require"
-
-	subtypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
 )
 
 // mockVerifier implements the Verifier interface
@@ -149,14 +146,13 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie
 }
 
 // BuildBlock ...
-func BuildBlock(t *testing.T, srv *Service, parent *types.Header, ext types.Extrinsic) *types.Block {
+func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, ext types.Extrinsic) *types.Block {
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     big.NewInt(0).Add(parent.Number, big.NewInt(1)),
 		Digest:     types.Digest{},
 	}
 
-	instance := srv.runtime
 	err := instance.InitializeBlock(header)
 	require.NoError(t, err)
 
@@ -218,53 +214,4 @@ func BuildBlock(t *testing.T, srv *Service, parent *types.Header, ext types.Extr
 		Header: res,
 		Body:   body,
 	}
-}
-
-// CreateExtrinsic ...
-func CreateExtrinsic(t *testing.T, srv *Service) []byte {
-	t.Helper()
-	rawMeta, err := srv.runtime.Metadata()
-	require.NoError(t, err)
-	decoded, err := scale.Decode(rawMeta, []byte{})
-	require.NoError(t, err)
-
-	metaData := &subtypes.Metadata{}
-	err = subtypes.DecodeFromBytes(decoded.([]byte), metaData)
-	require.NoError(t, err)
-
-	rv, err := srv.runtime.Version()
-	require.NoError(t, err)
-
-	bob, err := subtypes.NewAddressFromHexAccountID("0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
-	require.NoError(t, err)
-
-	call, err := subtypes.NewCall(metaData, "Balances.transfer", bob, subtypes.NewUCompactFromUInt(123450000000000))
-	require.NoError(t, err)
-
-	// Create the extrinsic
-	ext := subtypes.NewExtrinsic(call)
-	genesisHash, err := subtypes.NewHashFromHexString("0x64597c55a052d484d9ff357266be326f62573bb4fbdbb3cd49f219396fcebf78")
-	require.NoError(t, err)
-
-	o := subtypes.SignatureOptions{
-		BlockHash:          genesisHash,
-		Era:                subtypes.ExtrinsicEra{IsImmortalEra: true},
-		GenesisHash:        genesisHash,
-		Nonce:              subtypes.NewUCompactFromUInt(0),
-		SpecVersion:        subtypes.U32(rv.SpecVersion()),
-		Tip:                subtypes.NewUCompactFromUInt(0),
-		TransactionVersion: subtypes.U32(rv.TransactionVersion()),
-	}
-
-	// Sign the transaction using Alice's default account
-	err = ext.Sign(signature.TestKeyringPairAlice, o)
-	require.NoError(t, err)
-
-	enc, err := subtypes.EncodeToHexString(ext)
-	require.NoError(t, err)
-
-	bytes, err := common.HexToBytes(enc)
-	require.NoError(t, err)
-
-	return bytes
 }
