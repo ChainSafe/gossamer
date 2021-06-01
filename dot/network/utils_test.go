@@ -108,9 +108,7 @@ func TestReadLEB128ToUint64(t *testing.T) {
 		b := make([]byte, 2)
 		buf := new(bytes.Buffer)
 		_, err := buf.Write(tc.input)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		ret, err := readLEB128ToUint64(buf, b[:1])
 		require.NoError(t, err)
