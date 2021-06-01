@@ -1,11 +1,14 @@
 package scale_test
 
 import (
+	"fmt"
+	"math/big"
 	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	oldScale "github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -113,4 +116,22 @@ func TestOldVsNewEncoding(t *testing.T) {
 	if !reflect.DeepEqual(decoded, newDigest) {
 		t.Errorf("Unmarshal() = %v, want %v", decoded, newDigest)
 	}
+}
+
+func TestSomething(t *testing.T) {
+	i := big.NewInt(0)
+	expectedVal := *common.Uint128FromBigInt(i)
+
+	encByts, err := oldScale.Encode(expectedVal)
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+	encBytes2, err := oldScale.Encode(i)
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+
+	fmt.Printf("%+v, %+v", encByts, encBytes2)
 }

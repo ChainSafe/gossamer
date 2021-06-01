@@ -95,46 +95,48 @@ var (
 		{
 			name: "int(1)",
 			in:   int(1),
-			want: []byte{0x01, 0, 0, 0, 0, 0, 0, 0},
+			want: []byte{0x04},
 		},
 		{
 			name: "int(16383)",
 			in:   int(16383),
-			want: []byte{0xff, 0x3f, 0, 0, 0, 0, 0, 0},
+			want: []byte{0xfd, 0xff},
 		},
 		{
 			name: "int(1073741823)",
 			in:   int(1073741823),
-			want: []byte{0xff, 0xff, 0xff, 0x3f, 0, 0, 0, 0},
+			want: []byte{0xfe, 0xff, 0xff, 0xff},
 		},
 		{
 			name: "int(9223372036854775807)",
 			in:   int(9223372036854775807),
-			want: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
+			want: []byte{19, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
 		},
 	}
 	uintTests = tests{
 		{
 			name: "uint(1)",
 			in:   int(1),
-			want: []byte{0x01, 0, 0, 0, 0, 0, 0, 0},
+			want: []byte{0x04},
 		},
 		{
 			name: "uint(16383)",
 			in:   uint(16383),
-			want: []byte{0xff, 0x3f, 0, 0, 0, 0, 0, 0},
+			want: []byte{0xfd, 0xff},
 		},
 		{
 			name: "uint(1073741823)",
 			in:   uint(1073741823),
-			want: []byte{0xff, 0xff, 0xff, 0x3f, 0, 0, 0, 0},
+			want: []byte{0xfe, 0xff, 0xff, 0xff},
 		},
 		{
 			name: "uint(9223372036854775807)",
 			in:   uint(9223372036854775807),
-			want: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
+			want: []byte{0x13, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
 		},
 	}
+	variableWidthIntegerTests = newTests(intTests, uintTests)
+
 	int64Tests = tests{
 		{
 			name: "int64(1)",
@@ -252,7 +254,7 @@ var (
 		},
 	}
 	fixedWidthIntegerTests = newTests(
-		int8Tests, int16Tests, int32Tests, int64Tests, intTests, uint8Tests, uint16Tests, uint32Tests, uint64Tests, uintTests,
+		int8Tests, int16Tests, int32Tests, int64Tests, uint8Tests, uint16Tests, uint32Tests, uint64Tests,
 	)
 
 	zeroValBigInt *big.Int
@@ -311,6 +313,17 @@ var (
 			name: "big.NewInt(1<<32 - 1)",
 			in:   big.NewInt(1<<32 - 1),
 			want: []byte{0x03, 0xff, 0xff, 0xff, 0xff},
+		},
+	}
+
+	uint128Tests = tests{
+		{
+			in:   MustNewUint128(big.NewInt(0)),
+			want: nil,
+		},
+		{
+			in:   MustNewUint128(big.NewInt(1)),
+			want: []byte{0x01},
 		},
 	}
 
@@ -534,8 +547,8 @@ var (
 			want: newWant(
 				[]byte{
 					0xfe, 0xff, 0xff, 0xff,
-					0xff, 0xff, 0xff, 0x3f, 0, 0, 0, 0,
-					0xff, 0xff, 0xff, 0x3f, 0, 0, 0, 0,
+					0xfe, 0xff, 0xff, 0xff,
+					0xfe, 0xff, 0xff, 0xff,
 					0x01,
 					0x01,
 					0xff, 0x3f,
@@ -570,8 +583,8 @@ var (
 			want: newWant(
 				[]byte{
 					0x01, 0xfe, 0xff, 0xff, 0xff,
-					0x01, 0xff, 0xff, 0xff, 0x3f, 0, 0, 0, 0,
-					0x01, 0xff, 0xff, 0xff, 0x3f, 0, 0, 0, 0,
+					0x01, 0xfe, 0xff, 0xff, 0xff,
+					0x01, 0xfe, 0xff, 0xff, 0xff,
 					0x01, 0x01,
 					0x01, 0x01,
 					0x01, 0xff, 0x3f,
@@ -743,7 +756,7 @@ var (
 	}
 
 	allTests = newTests(
-		fixedWidthIntegerTests, bigIntTests, stringTests,
+		fixedWidthIntegerTests, variableWidthIntegerTests, bigIntTests, stringTests,
 		boolTests, structTests, sliceTests, arrayTests,
 	)
 )
@@ -784,6 +797,20 @@ func Test_encodeState_encodeFixedWidthInteger(t *testing.T) {
 	}
 }
 
+func Test_encodeState_encodeVariableWidthIntegers(t *testing.T) {
+	for _, tt := range variableWidthIntegerTests {
+		t.Run(tt.name, func(t *testing.T) {
+			es := &encodeState{}
+			if err := es.marshal(tt.in); (err != nil) != tt.wantErr {
+				t.Errorf("encodeState.encodeFixedWidthInt() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(es.Buffer.Bytes(), tt.want) {
+				t.Errorf("encodeState.encodeFixedWidthInt() = %v, want %v", es.Buffer.Bytes(), tt.want)
+			}
+		})
+	}
+}
+
 func Test_encodeState_encodeBigInt(t *testing.T) {
 	for _, tt := range bigIntTests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -793,6 +820,20 @@ func Test_encodeState_encodeBigInt(t *testing.T) {
 			}
 			if !reflect.DeepEqual(es.Buffer.Bytes(), tt.want) {
 				t.Errorf("encodeState.encodeBigInt() = %v, want %v", es.Buffer.Bytes(), tt.want)
+			}
+		})
+	}
+}
+
+func Test_encodeState_encodeUint128(t *testing.T) {
+	for _, tt := range uint128Tests {
+		t.Run(tt.name, func(t *testing.T) {
+			es := &encodeState{}
+			if err := es.marshal(tt.in); (err != nil) != tt.wantErr {
+				t.Errorf("encodeState.encodeUin128() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(es.Buffer.Bytes(), tt.want) {
+				t.Errorf("encodeState.encodeUin128() = %v, want %v", es.Buffer.Bytes(), tt.want)
 			}
 		})
 	}

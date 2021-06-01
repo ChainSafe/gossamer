@@ -28,7 +28,11 @@ type encodeState struct {
 
 func (es *encodeState) marshal(in interface{}) (err error) {
 	switch in := in.(type) {
-	case int, uint, int8, uint8, int16, uint16, int32, uint32, int64, uint64:
+	case int:
+		err = es.encodeUint(uint(in))
+	case uint:
+		err = es.encodeUint(in)
+	case int8, uint8, int16, uint16, int32, uint32, int64, uint64:
 		err = es.encodeFixedWidthInt(in)
 	case *big.Int:
 		err = es.encodeBigInt(in)
@@ -377,5 +381,6 @@ func (es *encodeState) encodeUint(i uint) (err error) {
 // encodeUint128 encodes a Uint128
 func (es *encodeState) encodeUint128(i *Uint128) (err error) {
 	err = binary.Write(es, binary.LittleEndian, i.Bytes())
+	fmt.Println("bytes", es.Bytes(), i.Bytes())
 	return
 }

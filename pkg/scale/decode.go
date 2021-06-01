@@ -41,13 +41,14 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 		err = ds.decodeBigInt(dstv)
 	case *Uint128:
 		err = ds.decodeUint128(dstv)
-	case int, uint, int8, uint8, int16, uint16, int32, uint32, int64, uint64:
+	case int, uint:
+		err = ds.decodeUint(dstv)
+	case int8, uint8, int16, uint16, int32, uint32, int64, uint64:
 		err = ds.decodeFixedWidthInt(dstv)
 	case []byte:
 		err = ds.decodeBytes(dstv)
 	case string:
-		err = ds.decodeString(dstv)
-		// in = string(b)
+		err = ds.decodeBytes(dstv)
 	case bool:
 		err = ds.decodeBool(dstv)
 	default:
@@ -63,7 +64,7 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 			// check if this is a convertible to VaryingDataType, if so encode using encodeVaryingDataType
 			switch t.ConvertibleTo(reflect.TypeOf(VaryingDataType{})) {
 			case true:
-				in, err = ds.decodeVaryingDataType(in)
+				err = ds.decodeVaryingDataType(dstv)
 			case false:
 				err = ds.decodeSlice(dstv)
 			}
@@ -71,24 +72,29 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 			_, ok := in.(VaryingDataTypeValue)
 			switch ok {
 			case true:
+				var temp reflect.Value
 				t := reflect.TypeOf(in)
 				switch t.Kind() {
 				// TODO: support more primitive types.  Do we need to support arrays and slices as well?
 				case reflect.Int:
-					in = reflect.ValueOf(in).Convert(reflect.TypeOf(int(1))).Interface()
+					temp = reflect.New(reflect.TypeOf(int(1)))
+					err = ds.unmarshal(temp.Elem())
+					if err != nil {
+						break
+					}
 				case reflect.Int16:
-					in = reflect.ValueOf(in).Convert(reflect.TypeOf(int16(1))).Interface()
+					temp = reflect.New(reflect.TypeOf(int16(1)))
+					err = ds.unmarshal(temp.Elem())
+					if err != nil {
+						break
+					}
 				}
+				dstv.Set(temp.Elem().Convert(t))
 			default:
 				err = fmt.Errorf("unsupported type: %T", in)
 			}
 		}
 	}
-
-	if err != nil {
-		return
-	}
-	// out = in
 	return
 }
 
@@ -100,7 +106,7 @@ func (ds *decodeState) decodePointer(dstv reflect.Value) (err error) {
 	}
 	switch rb {
 	case 0x00:
-		// just return dstv untouched
+		// nil case
 	case 0x01:
 		elemType := reflect.TypeOf(dstv.Interface()).Elem()
 		tempElem := reflect.New(elemType)
@@ -115,17 +121,17 @@ func (ds *decodeState) decodePointer(dstv reflect.Value) (err error) {
 	return
 }
 
-func (ds *decodeState) decodeVaryingDataType(dst interface{}) (vdt interface{}, err error) {
+func (ds *decodeState) decodeVaryingDataType(dstv reflect.Value) (err error) {
 	l, err := ds.decodeLength()
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	dstt := reflect.TypeOf(dst)
+	dstt := reflect.TypeOf(dstv.Interface())
 	key := fmt.Sprintf("%s.%s", dstt.PkgPath(), dstt.Name())
 	mappedValues, ok := vdtCache[key]
 	if !ok {
-		err = fmt.Errorf("unable to find registered custom VaryingDataType: %T", dst)
+		err = fmt.Errorf("unable to find registered custom VaryingDataType: %T", dstv.Interface())
 		return
 	}
 
@@ -139,7 +145,7 @@ func (ds *decodeState) decodeVaryingDataType(dst interface{}) (vdt interface{}, 
 
 		val, ok := mappedValues[uint(b)]
 		if !ok {
-			err = fmt.Errorf("unable to find registered VaryingDataTypeValue for type: %T", dst)
+			err = fmt.Errorf("unable to find registered VaryingDataTypeValue for type: %T", dstv.Interface())
 			return
 		}
 
@@ -151,97 +157,43 @@ func (ds *decodeState) decodeVaryingDataType(dst interface{}) (vdt interface{}, 
 
 		temp.Elem().Set(reflect.Append(temp.Elem(), tempVal))
 	}
-	vdt = temp.Elem().Interface()
+	dstv.Set(temp.Elem())
 	return
 }
 
-// decodeArray comment about this
 func (ds *decodeState) decodeSlice(dstv reflect.Value) (err error) {
-	// seems redundant since this shouldn't be called unless it is a slice,
-	// but I'll leave this error check in for completeness
-	// if dstv.Kind() != reflect.Slice {
-	// 	err = fmt.Errorf("can not decodeSlice dst type: %T %v", dstv.Interface(), dstv.Kind())
-	// 	return
-	// }
-
 	l, err := ds.decodeLength()
 	if err != nil {
 		return
 	}
+	in := dstv.Interface()
+	temp := reflect.New(reflect.ValueOf(in).Type())
+	for i := 0; i < l; i++ {
+		tempElemType := reflect.TypeOf(in).Elem()
+		tempElem := reflect.New(tempElemType).Elem()
 
-	switch dstv.Interface().(type) {
-	case []int:
-		temp := make([]int, l)
-		for i := 0; i < l; i++ {
-			var ui uint64
-			ui, err = ds.decodeUint()
-			if err != nil {
-				return
-			}
-			temp[i] = int(ui)
+		err = ds.unmarshal(tempElem)
+		if err != nil {
+			return
 		}
-		dstv.Set(reflect.ValueOf(temp))
-	default:
-		in := dstv.Interface()
-		temp := reflect.New(reflect.ValueOf(in).Type())
-		for i := 0; i < l; i++ {
-			tempElemType := reflect.TypeOf(in).Elem()
-			tempElem := reflect.New(tempElemType).Elem()
-
-			err = ds.unmarshal(tempElem)
-			if err != nil {
-				return
-			}
-			temp.Elem().Set(reflect.Append(temp.Elem(), tempElem))
-		}
-		dstv.Set(temp.Elem())
+		temp.Elem().Set(reflect.Append(temp.Elem(), tempElem))
 	}
+	dstv.Set(temp.Elem())
 
 	return
 }
 
-// decodeArray comment about this
 func (ds *decodeState) decodeArray(dstv reflect.Value) (err error) {
-	// dstv := reflect.ValueOf(dst)
-	// // seems redundant since this shouldn't be called unless it is an array,
-	// // but I'll leave this error check in for completeness
-	// if dstv.Kind() != reflect.Array {
-	// 	err = fmt.Errorf("can not decodeArray dst type: %T", dstv)
-	// 	return
-	// }
-
-	// temp := reflect.New(reflect.Indirect(reflect.ValueOf(dst)).Type())
 	in := dstv.Interface()
 	temp := reflect.New(reflect.ValueOf(in).Type())
 	for i := 0; i < temp.Elem().Len(); i++ {
 		elem := temp.Elem().Index(i)
-		elemIn := elem.Interface()
-
-		// var out interface{}
-		switch elemIn.(type) {
-		case int:
-			var ui uint64
-			ui, err = ds.decodeUint()
-			if err != nil {
-				return
-			}
-			elem.Set(reflect.ValueOf(int(ui)))
-		default:
-			err = ds.unmarshal(elem)
-			if err != nil {
-				return
-			}
+		err = ds.unmarshal(elem)
+		if err != nil {
+			return
 		}
-
-		// tempElem := temp.Elem().Index(i)
-		// if reflect.ValueOf(out).IsValid() {
-		// 	tempElem.Set(reflect.ValueOf(out).Convert(tempElem.Type()))
-		// } else {
-		// 	tempElem.Set(reflect.Zero(tempElem.Type()))
-		// }
 	}
 	dstv.Set(temp.Elem())
-	// arr = temp.Elem().Interface()
 	return
 }
 
@@ -269,7 +221,7 @@ func (ds *decodeState) decodeStruct(dstv reflect.Value) (err error) {
 }
 
 // decodeBool accepts a byte array representing a SCALE encoded bool and performs SCALE decoding
-// of the bool then returns it. if invalid, return false and an error
+// of the bool then returns it. if invalid returns an error
 func (ds *decodeState) decodeBool(dstv reflect.Value) (err error) {
 	rb, err := ds.ReadByte()
 	if err != nil {
@@ -288,57 +240,65 @@ func (ds *decodeState) decodeBool(dstv reflect.Value) (err error) {
 	return
 }
 
-// DecodeUnsignedInteger will decode unsigned integer
-func (ds *decodeState) decodeUint() (o uint64, err error) {
+// decodeUint will decode unsigned integer
+func (ds *decodeState) decodeUint(dstv reflect.Value) (err error) {
 	b, err := ds.ReadByte()
 	if err != nil {
-		return 0, err
+		return
 	}
 
+	in := dstv.Interface()
+	temp := reflect.New(reflect.TypeOf(in))
 	// check mode of encoding, stored at 2 least significant bits
 	mode := b & 3
-	if mode <= 2 {
-		val, e := ds.decodeSmallInt(b, mode)
-		return uint64(val), e
+	switch {
+	case mode <= 2:
+		var val int64
+		val, err = ds.decodeSmallInt(b, mode)
+		if err != nil {
+			return
+		}
+		temp.Elem().Set(reflect.ValueOf(val).Convert(reflect.TypeOf(in)))
+		dstv.Set(temp.Elem())
+	default:
+		// >4 byte mode
+		topSixBits := b >> 2
+		byteLen := uint(topSixBits) + 4
+
+		buf := make([]byte, byteLen)
+		_, err = ds.Read(buf)
+		if err != nil {
+			return
+		}
+
+		var o uint64
+		if byteLen == 4 {
+			o = uint64(binary.LittleEndian.Uint32(buf))
+		} else if byteLen > 4 && byteLen <= 8 {
+			tmp := make([]byte, 8)
+			copy(tmp, buf)
+			o = binary.LittleEndian.Uint64(tmp)
+		} else {
+			err = errors.New("could not decode invalid integer")
+			return
+		}
+		dstv.Set(reflect.ValueOf(o).Convert(reflect.TypeOf(in)))
 	}
-
-	// >4 byte mode
-	topSixBits := b >> 2
-	byteLen := uint(topSixBits) + 4
-
-	buf := make([]byte, byteLen)
-	_, err = ds.Read(buf)
-	if err != nil {
-		return 0, err
-	}
-
-	if byteLen == 4 {
-		o = uint64(binary.LittleEndian.Uint32(buf))
-	} else if byteLen > 4 && byteLen < 8 {
-		tmp := make([]byte, 8)
-		copy(tmp, buf)
-		o = binary.LittleEndian.Uint64(tmp)
-	} else {
-		err = errors.New("could not decode invalid integer")
-	}
-
-	return o, err
-}
-
-// decodeLength accepts a byte array representing a SCALE encoded integer and performs SCALE decoding of the int
-// if the encoding is valid, it then returns (o, bytesDecoded, err) where o is the decoded integer, bytesDecoded is the
-// number of input bytes decoded, and err is nil
-// otherwise, it returns 0, 0, and error
-func (ds *decodeState) decodeLength() (l int, err error) {
-	ui, err := ds.decodeUint()
-	l = int(ui)
 	return
 }
 
-// DecodeByteArray accepts a byte array representing a SCALE encoded byte array and performs SCALE decoding
-// of the byte array
-// if the encoding is valid, it then returns the decoded byte array, the total number of input bytes decoded, and nil
-// otherwise, it returns nil, 0, and error
+// decodeLength is helper method which calls decodeUint and casts to int
+func (ds *decodeState) decodeLength() (l int, err error) {
+	dstv := reflect.New(reflect.TypeOf(l))
+	err = ds.decodeUint(dstv.Elem())
+	if err != nil {
+		return
+	}
+	l = dstv.Elem().Interface().(int)
+	return
+}
+
+// decodeBytes is used to decode with a destination of []byte or string type
 func (ds *decodeState) decodeBytes(dstv reflect.Value) (err error) {
 	length, err := ds.decodeLength()
 	if err != nil {
@@ -351,31 +311,13 @@ func (ds *decodeState) decodeBytes(dstv reflect.Value) (err error) {
 		return
 	}
 
-	dstv.Set(reflect.ValueOf(b).Convert(dstv.Type()))
+	in := dstv.Interface()
+	inType := reflect.TypeOf(in)
+	dstv.Set(reflect.ValueOf(b).Convert(inType))
 	return
 }
 
-// decodeString accepts a byte array representing a SCALE encoded byte array and performs SCALE decoding
-// of the byte array
-// if the encoding is valid, it then returns the decoded byte array, the total number of input bytes decoded, and nil
-// otherwise, it returns nil, 0, and error
-func (ds *decodeState) decodeString(dstv reflect.Value) (err error) {
-	length, err := ds.decodeLength()
-	if err != nil {
-		return
-	}
-
-	b := make([]byte, length)
-	_, err = ds.Read(b)
-	if err != nil {
-		err = fmt.Errorf("could not decode invalid string: %v", err)
-	}
-
-	dstv.Set(reflect.ValueOf(string(b)))
-	return
-}
-
-// decodeSmallInt is used in the DecodeInteger and decodeBigInt functions when the mode is <= 2
+// decodeSmallInt is used in the decodeUint and decodeBigInt functions when the mode is <= 2
 // need to pass in the first byte, since we assume it's already been read
 func (ds *decodeState) decodeSmallInt(firstByte, mode byte) (out int64, err error) {
 	switch mode {
@@ -518,8 +460,6 @@ func (ds *decodeState) decodeFixedWidthInt(dstv reflect.Value) (err error) {
 }
 
 // decodeUint128 accepts a byte array representing Scale encoded common.Uint128 and performs SCALE decoding of the Uint128
-// if the encoding is valid, it then returns (i interface{}, nil) where i is the decoded common.Uint128 , otherwise
-// it returns nil and error
 func (ds *decodeState) decodeUint128(dstv reflect.Value) (err error) {
 	buf := make([]byte, 16)
 	err = binary.Read(ds, binary.LittleEndian, buf)

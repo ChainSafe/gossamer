@@ -23,6 +23,20 @@ func Test_decodeState_decodeFixedWidthInt(t *testing.T) {
 	}
 }
 
+func Test_decodeState_decodeVariableWidthInt(t *testing.T) {
+	for _, tt := range variableWidthIntegerTests {
+		t.Run(tt.name, func(t *testing.T) {
+			dst := reflect.New(reflect.TypeOf(tt.in)).Elem().Interface()
+			if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
+				t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(dst, tt.in) {
+				t.Errorf("decodeState.unmarshal() = %v, want %v", dst, tt.in)
+			}
+		})
+	}
+}
+
 func Test_decodeState_decodeBigInt(t *testing.T) {
 	for _, tt := range bigIntTests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -63,41 +77,6 @@ func Test_decodeState_decodeBool(t *testing.T) {
 				t.Errorf("decodeState.unmarshal() = %v, want %v", dst, tt.in)
 			}
 		})
-	}
-}
-
-func Test_decodeState_decodeStructManual(t *testing.T) {
-	// nil case
-	var dst *MyStruct = nil
-	var b = []byte{0}
-	var want *MyStruct = nil
-
-	err := Unmarshal(b, &dst)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if !reflect.DeepEqual(dst, want) {
-		t.Errorf("decodeState.unmarshal() = %v, want %v", dst, want)
-	}
-
-	// zero case MyStruct
-	var dst1 *MyStruct = &MyStruct{}
-	err = Unmarshal(b, &dst1)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if !reflect.DeepEqual(dst1, want) {
-		t.Errorf("decodeState.unmarshal() = %v, want %v", dst, want)
-	}
-
-	// zero case MyStruct
-	var dst2 *MyStruct = &MyStruct{Baz: true}
-	err = Unmarshal(b, &dst2)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if !reflect.DeepEqual(dst2, want) {
-		t.Errorf("decodeState.unmarshal() = %v, want %v", dst, want)
 	}
 }
 
