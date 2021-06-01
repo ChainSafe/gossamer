@@ -301,6 +301,12 @@ func (s *Service) logPeerCount() {
 	}
 }
 
+type peerInfo struct {
+	Roles      byte   `json:"roles"`
+	BestHash   string `json:"bestHash"`
+	BestNumber uint64 `json:"bestNumber"`
+}
+
 func (s *Service) publishNetworkTelemetry(done chan interface{}) {
 	ticker := time.NewTicker(s.telemetryInterval)
 	defer ticker.Stop()
@@ -318,6 +324,35 @@ main:
 				telemetry.NewKeyValue("bandwidth_upload", o.RateOut),
 				telemetry.NewKeyValue("msg", "system.interval"),
 				telemetry.NewKeyValue("peers", s.host.peerCount())))
+			if err != nil {
+				logger.Debug("problem sending system.interval telemetry message", "error", err)
+			}
+			netState := make(map[string]interface{})
+			netState["peerId"] = s.host.h.ID()
+			hostAddrs := []string{}
+			for _, v := range s.host.h.Addrs() {
+				hostAddrs = append(hostAddrs, v.String())
+			}
+			netState["externalAddressess"] = hostAddrs
+			listAddrs := []string{}
+			for _, v := range s.host.h.Network().ListenAddresses() {
+				listAddrs = append(listAddrs, v.String())
+			}
+			netState["listenedAddressess"] = listAddrs
+
+			peers := make(map[string]interface{})
+			for _, v := range s.Peers() {
+				p := &peerInfo{
+					Roles:      v.Roles,
+					BestHash:   v.BestHash.String(),
+					BestNumber: v.BestNumber,
+				}
+				peers[v.PeerID] = *p
+			}
+			netState["connectedPeers"] = peers
+			err = telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(
+				telemetry.NewKeyValue("msg", "system.network_state"),
+				telemetry.NewKeyValue("state", netState)))
 			if err != nil {
 				logger.Debug("problem sending system.interval telemetry message", "error", err)
 			}
