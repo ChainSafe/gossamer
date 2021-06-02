@@ -106,7 +106,7 @@ func basicExample() {
 		panic(err)
 	}
 
-    // 999
+	// 999
 	fmt.Printf("%d", unmarshaled)
 }
 ```
@@ -126,13 +126,13 @@ func structExample() {
 		Baz bool      `scale:"3"`
 		Bar int32     `scale:"2"`
 		Foo []byte    `scale:"1"`
-        Ignored int64 `scale:"-"`
+		Ignored int64 `scale:"-"`
 	}
 	var ms = MyStruct{
 		Baz: true,
 		Bar: 999,
 		Foo: []byte{1, 2},
-        Ignored: 999
+		Ignored: 999
 	}
 	bytes, err := scale.Marshal(ms)
 	if err != nil {
