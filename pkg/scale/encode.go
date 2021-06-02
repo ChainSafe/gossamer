@@ -116,6 +116,9 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 					in = reflect.ValueOf(in).Convert(reflect.TypeOf(int(1))).Interface()
 				case reflect.Int16:
 					in = reflect.ValueOf(in).Convert(reflect.TypeOf(int16(1))).Interface()
+				default:
+					err = fmt.Errorf("unsupported kind for VaryingDataTypeValue: %s", t.Kind())
+					return
 				}
 				err = es.marshal(in)
 			default:

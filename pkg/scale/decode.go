@@ -158,6 +158,9 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 					if err != nil {
 						break
 					}
+				default:
+					err = fmt.Errorf("unsupported kind for VaryingDataTypeValue: %s", t.Kind())
+					return
 				}
 				dstv.Set(temp.Elem().Convert(t))
 			default:
