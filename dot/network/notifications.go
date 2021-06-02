@@ -234,12 +234,12 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 			return
 		}
 
-		hsTicker := time.NewTicker(handshakeTimeout)
+		hsTimer := time.NewTimer(handshakeTimeout)
 		var hs Handshake
 
 		select {
-		case <-hsTicker.C:
-			hsTicker.Stop()
+		case <-hsTimer.C:
+			hsTimer.Stop()
 
 			logger.Warn("handshake timeout reached", "protocol", info.protocolID, "peer", peer)
 			_ = stream.Close()
@@ -247,7 +247,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 			return
 
 		case hsResponse := <-s.readHandshake(stream, decodeBlockAnnounceHandshake):
-			hsTicker.Stop()
+			hsTimer.Stop()
 
 			if hsResponse.err != nil {
 				logger.Trace("failed to read handshake", "protocol", info.protocolID, "peer", peer, "error", err)
@@ -321,7 +321,7 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 }
 
 func (s *Service) readHandshake(stream libp2pnetwork.Stream, decoder HandshakeDecoder) <-chan *handshakeReader {
-	hsC := make(chan *handshakeReader, 1)
+	hsC := make(chan *handshakeReader)
 
 	go func() {
 		msgBytes := s.bufPool.get()
