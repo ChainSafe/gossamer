@@ -387,6 +387,7 @@ func createSyncService(cfg *Config, st *state.Service, bp sync.BlockProducer, fg
 		Verifier:         verifier,
 		Runtime:          rt,
 		DigestHandler:    dh,
+		BaseState:        st.Base,
 	}
 
 	return sync.NewService(syncCfg)

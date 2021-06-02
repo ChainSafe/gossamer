@@ -56,6 +56,9 @@ type Service struct {
 
 	// Consensus digest handling
 	digestHandler DigestHandler
+
+	// map of code substitutions keyed by block hash
+	codeSubstitute map[string]string
 }
 
 // Config is the configuration for the sync Service.
@@ -69,6 +72,7 @@ type Config struct {
 	Runtime          runtime.Instance
 	Verifier         Verifier
 	DigestHandler    DigestHandler
+	BaseState        BaseState
 }
 
 // NewService returns a new *sync.Service
@@ -102,6 +106,11 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
+	codeSubstitute, err := cfg.BaseState.LoadGenesisData()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Service{
 		codeHash:         codeHash,
 		blockState:       cfg.BlockState,
@@ -114,6 +123,7 @@ func NewService(cfg *Config) (*Service, error) {
 		runtime:          cfg.Runtime,
 		verifier:         cfg.Verifier,
 		digestHandler:    cfg.DigestHandler,
+		codeSubstitute:   codeSubstitute.CodeSubstitutes,
 	}, nil
 }
 
@@ -379,6 +389,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 		s.handleDigests(block.Header)
 	}
 
+	s.handleCodeSubstitution(block.Header.Hash())
 	return s.handleRuntimeChanges(ts)
 }
 
@@ -432,6 +443,14 @@ func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {
 
 	s.codeHash = currCodeHash
 	return nil
+}
+
+func (s *Service) handleCodeSubstitution(block common.Hash) {
+	for k := range s.codeSubstitute {
+		if k == block.String() {
+			fmt.Printf("SUB CODE_____________________________________________\n")
+		}
+	}
 }
 
 func (s *Service) handleDigests(header *types.Header) {

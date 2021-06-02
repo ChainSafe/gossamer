@@ -48,6 +48,7 @@ type Data struct {
 	ForkBlocks         []string
 	BadBlocks          []string
 	ConsensusEngine    string
+	CodeSubstitutes    map[string]string
 }
 
 // TelemetryEndpoint struct to hold telemetry endpoint information
@@ -75,6 +76,7 @@ func (g *Genesis) GenesisData() *Data {
 		ForkBlocks:         g.ForkBlocks,
 		BadBlocks:          g.BadBlocks,
 		ConsensusEngine:    g.ConsensusEngine,
+		CodeSubstitutes:    g.CodeSubstitutes,
 	}
 }
 
