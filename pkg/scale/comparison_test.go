@@ -17,8 +17,6 @@
 package scale
 
 import (
-	"fmt"
-	"math/big"
 	"reflect"
 	"testing"
 
@@ -132,7 +130,7 @@ func TestOldVsNewEncoding(t *testing.T) {
 		),
 	}
 
-	newEncode, err := scale.Marshal(newDigest)
+	newEncode, err := Marshal(newDigest)
 	if err != nil {
 		t.Errorf("unexpected err: %v", err)
 		return
@@ -176,20 +174,28 @@ func BenchmarkMarshal(b *testing.B) {
 	}
 }
 
-func TestSomething(t *testing.T) {
-	i := big.NewInt(0)
-	expectedVal := *common.Uint128FromBigInt(i)
-
-	encByts, err := oldScale.Encode(expectedVal)
-	if err != nil {
-		t.Errorf("%v", err)
-		return
+func BenchmarkUnmarshal(b *testing.B) {
+	for _, tt := range allTests {
+		dst := reflect.New(reflect.TypeOf(tt.in)).Elem().Interface()
+		if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
+			b.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+			return
+		}
 	}
-	encBytes2, err := oldScale.Encode(i)
-	if err != nil {
-		t.Errorf("%v", err)
-		return
-	}
-
-	fmt.Printf("%+v, %+v", encByts, encBytes2)
 }
+
+// func BenchmarkDecode(b *testing.B) {
+// 	for _, tt := range variableWidthIntegerTests {
+// 		dst := reflect.New(reflect.TypeOf(tt.in)).Interface()
+// 		fmt.Printf("%v %T\n", dst, dst)
+// 		// if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
+// 		// 	b.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+// 		// 	return
+// 		// }
+// 		_, err := oldScale.Decode(tt.want, dst)
+// 		if err != nil {
+// 			b.Errorf("%v", err)
+// 			return
+// 		}
+// 	}
+// }
