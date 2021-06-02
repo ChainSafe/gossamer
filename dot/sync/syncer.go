@@ -389,7 +389,10 @@ func (s *Service) handleBlock(block *types.Block) error {
 		s.handleDigests(block.Header)
 	}
 
-	s.handleCodeSubstitution(block.Header.Hash())
+	e := s.handleCodeSubstitution(block.Header.Hash())
+	if e != nil {
+		return e
+	}
 	return s.handleRuntimeChanges(ts)
 }
 
@@ -445,12 +448,26 @@ func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {
 	return nil
 }
 
-func (s *Service) handleCodeSubstitution(block common.Hash) {
-	for k := range s.codeSubstitute {
-		if k == block.String() {
-			fmt.Printf("SUB CODE_____________________________________________\n")
+func (s *Service) handleCodeSubstitution(block common.Hash) error {
+	for key, value := range s.codeSubstitute {
+		if key == block.String() {
+			logger.Info("🔄 detected runtime code substitution, upgrading...", "block", block)
+			code := common.MustHexToBytes(value)
+			if len(code) == 0 {
+				return ErrEmptyRuntimeCode
+			}
+			err := s.runtime.UpdateRuntimeCode(code)
+			if err != nil {
+				logger.Crit("failed to substitute runtime code", "error", err)
+				return err
+			}
+			s.codeHash, err = common.Blake2bHash(code)
+			if err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
 
 func (s *Service) handleDigests(header *types.Header) {
