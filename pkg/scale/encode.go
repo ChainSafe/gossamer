@@ -381,6 +381,5 @@ func (es *encodeState) encodeUint(i uint) (err error) {
 // encodeUint128 encodes a Uint128
 func (es *encodeState) encodeUint128(i *Uint128) (err error) {
 	err = binary.Write(es, binary.LittleEndian, i.Bytes())
-	fmt.Println("bytes", es.Bytes(), i.Bytes())
 	return
 }
