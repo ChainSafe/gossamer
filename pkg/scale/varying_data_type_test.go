@@ -91,7 +91,7 @@ func init() {
 	}
 }
 
-var VariableDataTypeTests = tests{
+var varyingDataTypeTests = tests{
 	{
 		in: testVDT{
 			VDTValue1{
@@ -262,7 +262,7 @@ var VariableDataTypeTests = tests{
 }
 
 func Test_encodeState_encodeVaryingDataType(t *testing.T) {
-	for _, tt := range VariableDataTypeTests {
+	for _, tt := range varyingDataTypeTests {
 		t.Run(tt.name, func(t *testing.T) {
 			es := &encodeState{fieldScaleIndicesCache: cache}
 			if err := es.marshal(tt.in); (err != nil) != tt.wantErr {
@@ -276,7 +276,7 @@ func Test_encodeState_encodeVaryingDataType(t *testing.T) {
 }
 
 func Test_decodeState_decodeVaryingDataType(t *testing.T) {
-	for _, tt := range append(tests{}, VariableDataTypeTests...) {
+	for _, tt := range varyingDataTypeTests {
 		t.Run(tt.name, func(t *testing.T) {
 			dst := reflect.New(reflect.TypeOf(tt.in)).Elem().Interface()
 			if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {

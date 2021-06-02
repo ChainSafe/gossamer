@@ -1,15 +1,11 @@
-package scale_test
+package scale
 
 import (
-	"fmt"
-	"math/big"
 	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	oldScale "github.com/ChainSafe/gossamer/lib/scale"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // ChangesTrieRootDigest contains the root of the changes trie at a given block, if the runtime supports it.
@@ -75,8 +71,8 @@ func TestOldVsNewEncoding(t *testing.T) {
 		return
 	}
 
-	type Digests scale.VaryingDataType
-	err = scale.RegisterVaryingDataType(Digests{}, ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
+	type Digests VaryingDataType
+	err = RegisterVaryingDataType(Digests{}, ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
 	if err != nil {
 		t.Errorf("unexpected err: %v", err)
 		return
@@ -99,7 +95,7 @@ func TestOldVsNewEncoding(t *testing.T) {
 		},
 	}
 
-	newEncode, err := scale.Marshal(newDigest)
+	newEncode, err := Marshal(newDigest)
 	if err != nil {
 		t.Errorf("unexpected err: %v", err)
 		return
@@ -109,7 +105,7 @@ func TestOldVsNewEncoding(t *testing.T) {
 	}
 
 	var decoded Digests
-	err = scale.Unmarshal(newEncode, &decoded)
+	err = Unmarshal(newEncode, &decoded)
 	if err != nil {
 		t.Errorf("unexpected err: %v", err)
 	}
@@ -118,20 +114,28 @@ func TestOldVsNewEncoding(t *testing.T) {
 	}
 }
 
-func TestSomething(t *testing.T) {
-	i := big.NewInt(0)
-	expectedVal := *common.Uint128FromBigInt(i)
-
-	encByts, err := oldScale.Encode(expectedVal)
-	if err != nil {
-		t.Errorf("%v", err)
-		return
+func BenchmarkUnmarshal(b *testing.B) {
+	for _, tt := range allTests {
+		dst := reflect.New(reflect.TypeOf(tt.in)).Elem().Interface()
+		if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
+			b.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+			return
+		}
 	}
-	encBytes2, err := oldScale.Encode(i)
-	if err != nil {
-		t.Errorf("%v", err)
-		return
-	}
-
-	fmt.Printf("%+v, %+v", encByts, encBytes2)
 }
+
+// func BenchmarkDecode(b *testing.B) {
+// 	for _, tt := range variableWidthIntegerTests {
+// 		dst := reflect.New(reflect.TypeOf(tt.in)).Interface()
+// 		fmt.Printf("%v %T\n", dst, dst)
+// 		// if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
+// 		// 	b.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+// 		// 	return
+// 		// }
+// 		_, err := oldScale.Decode(tt.want, dst)
+// 		if err != nil {
+// 			b.Errorf("%v", err)
+// 			return
+// 		}
+// 	}
+// }
