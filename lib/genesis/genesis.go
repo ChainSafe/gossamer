@@ -33,6 +33,7 @@ type Genesis struct {
 	ForkBlocks         []string               `json:"forkBlocks"`
 	BadBlocks          []string               `json:"badBlocks"`
 	ConsensusEngine    string                 `json:"consensusEngine"`
+	CodeSubstitutes    map[string]string      `json:"codeSubstitutes"`
 }
 
 // Data defines the genesis file data formatted for trie storage
