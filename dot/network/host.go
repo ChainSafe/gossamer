@@ -365,7 +365,7 @@ func (h *host) peers() []peer.ID {
 // supportsProtocol checks if the protocol is supported by peerID
 // returns an error if could not get peer protocols
 func (h *host) supportsProtocol(peerID peer.ID, protocol protocol.ID) (bool, error) {
-	peerProtocols, err := h.h.Network().Peerstore().SupportsProtocols(peerID, string(protocol))
+	peerProtocols, err := h.h.Peerstore().SupportsProtocols(peerID, string(protocol))
 	if err != nil {
 		return false, err
 	}
