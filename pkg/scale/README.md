@@ -6,12 +6,9 @@ SCALE is a light-weight format which allows encoding (and decoding) which makes 
 
 It is important to note that the encoding context (knowledge of how the types and data structures look) needs to be known separately at both encoding and decoding ends. The encoded data does not include this contextual information.
 
-This codec attempts to translate the primitive Go types to the associated types in SCALE.  It also introduces a few custom types to implement SCALE primitives that have no direct translation to a Go primmitive type.
+This codec attempts to translate the primitive Go types to the associated types in SCALE.  It also introduces a few custom types to implement SCALE primitives that have no direct translation to a Go primitive type.
 
 ## Translating From SCALE to Go
-
-Goavro does not use Go's structure tags to translate data between
-native Go types and Avro encoded data.
 
 When translating from SCALE to native Go data,
 go-scale returns primitive Go data values for corresponding SCALE data
@@ -38,11 +35,11 @@ values. The table below shows how go-scale translates SCALE types to Go.
 
 ### Structs
 
-When decoding SCALE data knowledge of the structure of the destination data type is required to decode.  Structs are encoded as a SCALE Tuple, where each struct field is encoded in the sequence of the fields.  
+When decoding SCALE data, knowledge of the structure of the destination data type is required to decode.  Structs are encoded as a SCALE Tuple, where each struct field is encoded in the sequence of the fields.  
 
 #### Struct Tags
 
-go-scale uses `scale` struct tag do modify the order of the field values during encoding.  This is also used when decoding attributes back to the original type.  This essentially allows you to modify struct field ordering but preserve the encoding/decoding functionality.
+go-scale uses a `scale` struct tag to modify the order of the field values during encoding.  This is also used when decoding attributes back to the original type.  This essentially allows you to modify struct field ordering but preserve the encoding/decoding ordering.
 
 See the [usage example](#Struct-Tag-Example).
 
@@ -156,7 +153,7 @@ func structExample() {
 ### Varying Data Type
 
 A VaryingDataType is analogous to a Rust enum.  A VaryingDataType needs to be registered using the  `RegisterVaryingDataType` function with it's associated `VaryingDataTypeValue` types.  `VaryingDataTypeValue` is an
-interface with one `Index() uint` method that needs to be implemented.  The returned `uint` index should be unique per type and needs to be the same index as defined in the Rust enum.
+interface with one `Index() uint` method that needs to be implemented.  The returned `uint` index should be unique per type and needs to be the same index as defined in the Rust enum to ensure interopability. 
 
 ```
 import (
