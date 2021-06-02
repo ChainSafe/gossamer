@@ -454,6 +454,9 @@ func (ds *decodeState) decodeFixedWidthInt(dstv reflect.Value) (err error) {
 			break
 		}
 		out = uint(binary.LittleEndian.Uint64(buf))
+	default:
+		err = fmt.Errorf("invalid type: %T", in)
+		return
 	}
 	dstv.Set(reflect.ValueOf(out))
 	return
