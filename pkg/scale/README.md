@@ -75,9 +75,9 @@ SCALE uses a compact encoding for variable width unsigned integers.
 | SCALE/Rust         | Go                       |
 | ------------------ | ------------------------ |
 | `Compact<u8>`       | `uint`                  |
-| `Compact<u16>`      | `*uint16`               |
-| `Compact<u32>`      | `*uint32`               |
-| `Compact<u64>`      | `*uint64`               |
+| `Compact<u16>`      | `uint`                  |
+| `Compact<u32>`      | `uint`                  |
+| `Compact<u64>`      | `uint`                  |
 | `Compact<u128>`     | `*big.Int`              |
 
 ### Result
