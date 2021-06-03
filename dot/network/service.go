@@ -423,6 +423,7 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 	np := &notificationsProtocol{
 		protocolID:            protocolID,
 		getHandshake:          handshakeGetter,
+		handshakeDecoder:      handshakeDecoder,
 		handshakeValidator:    handshakeValidator,
 		inboundHandshakeData:  new(sync.Map),
 		outboundHandshakeData: new(sync.Map),

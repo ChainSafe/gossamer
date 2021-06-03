@@ -56,6 +56,7 @@ type (
 type notificationsProtocol struct {
 	protocolID         protocol.ID
 	getHandshake       HandshakeGetter
+	handshakeDecoder   HandshakeDecoder
 	handshakeValidator HandshakeValidator
 
 	inboundHandshakeData  *sync.Map //map[peer.ID]*handshakeData
@@ -226,7 +227,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 			return
 		}
 
-		hs, err := s.readHandshake(stream, decodeBlockAnnounceHandshake)
+		hs, err := s.readHandshake(stream, info.handshakeDecoder)
 		if err != nil {
 			logger.Debug("failed to read handshake", "protocol", info.protocolID, "peer", peer, "error", err)
 			_ = stream.Close()
