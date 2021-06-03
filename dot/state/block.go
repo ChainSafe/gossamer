@@ -167,8 +167,9 @@ func finalizedHashKey(round, setID uint64) []byte {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, round)
 	key := append(common.FinalizedBlockHashKey, buf...)
-	binary.LittleEndian.PutUint64(buf, setID)
-	return append(key, buf...)
+	buf2 := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf2, setID)
+	return append(key, buf2...)
 }
 
 // GenesisHash returns the hash of the genesis block
@@ -379,7 +380,14 @@ func (bs *BlockState) HasFinalizedBlock(round, setID uint64) (bool, error) {
 	// if round > r {
 	// 	return false, fmt.Errorf("round not yet finalised")
 	// }
-	return bs.db.Has(finalizedHashKey(round, setID))
+	has, err := bs.db.Has(finalizedHashKey(round, setID))
+	if err != nil {
+		logger.Info("HasFinalizedBlock", "err", err)
+		return false, err
+	}
+	
+	logger.Info("HasFinalizedBlock", "has", has)
+	return has, nil
 }
 
 // GetFinalizedHeader returns the latest finalised block header
