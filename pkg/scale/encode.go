@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"log"
 	"math/big"
 	"reflect"
 )
@@ -60,7 +59,16 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 				err = es.marshal(elem.Interface())
 			}
 		case reflect.Struct:
-			err = es.encodeStruct(in)
+			t := reflect.TypeOf(in)
+			// check if this is a convertible to VaryingDataType, if so encode using encodeVaryingDataType
+			switch t.ConvertibleTo(reflect.TypeOf(Result{})) {
+			case true:
+				resv := reflect.ValueOf(in).Convert(reflect.TypeOf(Result{}))
+				err = es.encodeResult(resv.Interface().(Result))
+			case false:
+				err = es.encodeStruct(in)
+			}
+
 		case reflect.Array:
 			err = es.encodeArray(in)
 		case reflect.Slice:
@@ -69,12 +77,7 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 			switch t.ConvertibleTo(reflect.TypeOf(VaryingDataType{})) {
 			case true:
 				invdt := reflect.ValueOf(in).Convert(reflect.TypeOf(VaryingDataType{}))
-				switch in := invdt.Interface().(type) {
-				case VaryingDataType:
-					err = es.encodeVaryingDataType(in)
-				default:
-					log.Panicf("this should never happen")
-				}
+				err = es.encodeVaryingDataType(invdt.Interface().(VaryingDataType))
 			case false:
 				err = es.encodeSlice(in)
 			}
@@ -103,18 +106,47 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 	return
 }
 
+func (es *encodeState) encodeResult(res Result) (err error) {
+	err = res.Validate()
+	if err != nil {
+		return
+	}
+
+	switch res.Ok {
+	case nil:
+		// error case
+		err = es.WriteByte(1)
+		if err != nil {
+			break
+		}
+		// TODO: type checking of res.Err against resultCache to ensure Err is same as
+		// registered type
+		err = es.marshal(res.Err)
+	default:
+		err = es.WriteByte(0)
+		if err != nil {
+			break
+		}
+		// TODO: type checking of res.Ok against resultCache to ensure Err is same as
+		// registered type
+		err = es.marshal(res.Ok)
+	}
+	return
+}
+
 func (es *encodeState) encodeVaryingDataType(values VaryingDataType) (err error) {
 	err = es.encodeLength(len(values))
 	if err != nil {
 		return
 	}
-	for _, t := range values {
+	for _, val := range values {
+		// TODO: type checking of val against vdtCache to ensure it is a registered type
 		// encode type.Index (idx) for varying data type
-		err = es.WriteByte(byte(t.Index()))
+		err = es.WriteByte(byte(val.Index()))
 		if err != nil {
 			return
 		}
-		err = es.marshal(t)
+		err = es.marshal(val)
 	}
 	return
 }
