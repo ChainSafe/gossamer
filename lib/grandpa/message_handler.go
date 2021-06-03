@@ -136,7 +136,7 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 }
 
 func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) (*ConsensusMessage, error) {
-	logger.Debug("received finalisation message", "round", msg.Round, "hash", msg.Vote.hash, "msg", msg)
+	logger.Debug("received finalisation message", "round", msg.Round, "hash", msg.Vote.hash, "msg", msg, "h.grandpa.state", h.grandpa.state)
 
 	if has, _ := h.blockState.HasFinalizedBlock(msg.Round, h.grandpa.state.setID); has {
 		return nil, nil

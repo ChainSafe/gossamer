@@ -368,17 +368,17 @@ func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
 
 // HasFinalizedBlock returns true if there is a finalised block for a given round and setID, false otherwise
 func (bs *BlockState) HasFinalizedBlock(round, setID uint64) (bool, error) {
-	// get current round
-	r, err := bs.GetRound()
-	if err != nil {
-		return false, err
-	}
+	logger.Info("HasFinalizedBlock")
+	// // get current round
+	// r, err := bs.GetRound()
+	// if err != nil {
+	// 	return false, err
+	// }
 
-	// round that is being queried for has not yet finalised
-	if round > r {
-		return false, fmt.Errorf("round not yet finalised")
-	}
-
+	// // round that is being queried for has not yet finalised
+	// if round > r {
+	// 	return false, fmt.Errorf("round not yet finalised")
+	// }
 	return bs.db.Has(finalizedHashKey(round, setID))
 }
 
