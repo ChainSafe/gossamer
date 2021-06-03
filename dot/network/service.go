@@ -67,12 +67,13 @@ type Service struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	cfg       *Config
-	host      *host
-	mdns      *mdns
-	gossip    *gossip
-	syncQueue *syncQueue
-	bufPool   *sizedBufferPool
+	cfg           *Config
+	host          *host
+	mdns          *mdns
+	gossip        *gossip
+	syncQueue     *syncQueue
+	bufPool       *sizedBufferPool
+	streamManager *streamManager
 
 	notificationsProtocols map[byte]*notificationsProtocol // map of sub-protocol msg ID to protocol info
 	notificationsMu        sync.RWMutex
@@ -162,6 +163,7 @@ func NewService(cfg *Config) (*Service, error) {
 		telemetryInterval:      cfg.telemetryInterval,
 		closeCh:                make(chan interface{}),
 		bufPool:                bufPool,
+		streamManager:          newStreamManager(ctx),
 	}
 
 	network.syncQueue = newSyncQueue(network)
@@ -267,6 +269,7 @@ func (s *Service) Start() error {
 	go s.logPeerCount()
 	go s.publishNetworkTelemetry(s.closeCh)
 	go s.sentBlockIntervalTelemetry()
+	s.streamManager.start()
 
 	return nil
 }
@@ -529,6 +532,8 @@ func isInbound(stream libp2pnetwork.Stream) bool {
 }
 
 func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder, handler messageHandler) {
+	s.streamManager.logNewStream(stream)
+
 	peer := stream.Conn().RemotePeer()
 	msgBytes := s.bufPool.get()
 	defer s.bufPool.put(&msgBytes)
@@ -542,6 +547,8 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 			_ = stream.Close()
 			return
 		}
+
+		s.streamManager.logMessageReceived(stream.ID())
 
 		// decode message based on message type
 		msg, err := decoder(msgBytes[:tot], peer, isInbound(stream))
