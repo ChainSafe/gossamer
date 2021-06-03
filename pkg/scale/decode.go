@@ -133,7 +133,14 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 		case reflect.Ptr:
 			err = ds.decodePointer(dstv)
 		case reflect.Struct:
-			err = ds.decodeStruct(dstv)
+			t := reflect.TypeOf(in)
+			// check if this is a convertible to Result, if so encode using decodeResult
+			switch t.ConvertibleTo(reflect.TypeOf(Result{})) {
+			case true:
+				err = ds.decodeResult(dstv)
+			case false:
+				err = ds.decodeStruct(dstv)
+			}
 		case reflect.Array:
 			err = ds.decodeArray(dstv)
 		case reflect.Slice:
