@@ -79,7 +79,7 @@ SCALE uses a compact encoding for variable width unsigned integers.
 
 ### Result
 
-To be implemented and documented.
+> TODO: To be implemented and documented.
 
 ## Usage
 
@@ -152,8 +152,10 @@ func structExample() {
 
 ### Varying Data Type
 
-A VaryingDataType is analogous to a Rust enum.  A VaryingDataType needs to be registered using the  `RegisterVaryingDataType` function with it's associated `VaryingDataTypeValue` types.  `VaryingDataTypeValue` is an
-interface with one `Index() uint` method that needs to be implemented.  The returned `uint` index should be unique per type and needs to be the same index as defined in the Rust enum to ensure interopability. 
+A `VaryingDataType` is analogous to a Rust enum.  A `VaryingDataType` needs to be registered using the  `RegisterVaryingDataType` function with its associated `VaryingDataTypeValue` types.  `VaryingDataTypeValue` is an
+interface with one `Index() uint` method that needs to be implemented.  The returned `uint` index should be unique per type and needs to be the same index as defined in the Rust enum to ensure interopability.
+
+> TODO: The only custom `VaryingDataTypeValue` types supported are currently `struct`, `int`, and `int16`.  Need to add other supported primitives.
 
 ```
 import (
