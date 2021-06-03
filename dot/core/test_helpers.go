@@ -20,7 +20,6 @@ import (
 	"io/ioutil"
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -33,12 +32,11 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	coremocks "github.com/ChainSafe/gossamer/tests/mocks/dot/core"
 	log "github.com/ChainSafe/log15"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
-
-// testMessageTimeout is the wait time for messages to be exchanged
-var testMessageTimeout = time.Second
 
 func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
 	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis.json")
@@ -88,14 +86,6 @@ func (bp *mockBlockProducer) GetBlockChannel() <-chan types.Block {
 // SetRuntime mocks setting runtime
 func (bp *mockBlockProducer) SetRuntime(rt runtime.Instance) {}
 
-type mockNetwork struct {
-	Message network.Message
-}
-
-func (n *mockNetwork) SendMessage(m network.NotificationsMessage) {
-	n.Message = m
-}
-
 // NewTestService creates a new test core service
 func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg == nil {
@@ -118,7 +108,11 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	}
 
 	if cfg.Verifier == nil {
-		cfg.Verifier = new(mockVerifier)
+		verifier := new(coremocks.Verifier)
+		verifier.
+			On("SetOnDisabled", mock.AnythingOfType("uint32"), mock.AnythingOfType("*types.Header")).
+			Return(nil)
+		cfg.Verifier = verifier
 	}
 
 	cfg.LogLvl = 3
