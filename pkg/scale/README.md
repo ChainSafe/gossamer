@@ -158,8 +158,6 @@ interface with one `Index() uint` method that needs to be implemented.  The retu
 ```
 import (
 	"fmt"
-	"testing"
-
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
