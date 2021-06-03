@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"log"
 	"math/big"
 	"reflect"
 )
@@ -87,7 +86,16 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 				err = es.marshal(elem.Interface())
 			}
 		case reflect.Struct:
-			err = es.encodeStruct(in)
+			t := reflect.TypeOf(in)
+			// check if this is a convertible to VaryingDataType, if so encode using encodeVaryingDataType
+			switch t.ConvertibleTo(reflect.TypeOf(Result{})) {
+			case true:
+				resv := reflect.ValueOf(in).Convert(reflect.TypeOf(Result{}))
+				err = es.encodeResult(resv.Interface().(Result))
+			case false:
+				err = es.encodeStruct(in)
+			}
+
 		case reflect.Array:
 			err = es.encodeArray(in)
 		case reflect.Slice:
@@ -96,12 +104,7 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 			switch t.ConvertibleTo(reflect.TypeOf(VaryingDataType{})) {
 			case true:
 				invdt := reflect.ValueOf(in).Convert(reflect.TypeOf(VaryingDataType{}))
-				switch in := invdt.Interface().(type) {
-				case VaryingDataType:
-					err = es.encodeVaryingDataType(in)
-				default:
-					log.Panicf("this should never happen")
-				}
+				err = es.encodeVaryingDataType(invdt.Interface().(VaryingDataType))
 			case false:
 				err = es.encodeSlice(in)
 			}
