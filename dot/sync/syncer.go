@@ -24,7 +24,6 @@ import (
 	"os"
 
 	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
@@ -57,7 +56,6 @@ type Service struct {
 
 	// Consensus digest handling
 	digestHandler DigestHandler
-	pruner        state.Pruner
 }
 
 // Config is the configuration for the sync Service.
@@ -71,7 +69,6 @@ type Config struct {
 	Runtime          runtime.Instance
 	Verifier         Verifier
 	DigestHandler    DigestHandler
-	Pruner           state.Pruner
 }
 
 // NewService returns a new *sync.Service
@@ -117,7 +114,6 @@ func NewService(cfg *Config) (*Service, error) {
 		runtime:          cfg.Runtime,
 		verifier:         cfg.Verifier,
 		digestHandler:    cfg.DigestHandler,
-		pruner:           cfg.Pruner,
 	}, nil
 }
 

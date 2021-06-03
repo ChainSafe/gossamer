@@ -239,8 +239,8 @@ func gossamerAction(ctx *cli.Context) error {
 		return fmt.Errorf("--%s cannot be less than %d", RetainBlockNumberFlag.Name, defaultRetainBlocks)
 	}
 
-	if cfg.Global.Pruning != "full" && cfg.Global.Pruning != "archive" {
-		return fmt.Errorf("--%s must be either 'full' or 'archive'", Pruning.Name)
+	if !cfg.Global.Pruning.IsValid() {
+		return fmt.Errorf("--%s must be either %s or %s", state.FullNode, state.ArchiveNode, Pruning.Name)
 	}
 
 	cfg.Global.LogLvl = lvl

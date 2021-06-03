@@ -148,7 +148,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	retainBlocks := 2
-	serv := NewService(testDir, log.LvlTrace, "full", int64(retainBlocks))
+	serv := NewService(testDir, log.LvlInfo, FullNode, int64(retainBlocks))
 	serv.UseMemDB()
 
 	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)

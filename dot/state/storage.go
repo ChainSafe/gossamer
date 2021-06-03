@@ -56,7 +56,7 @@ type StorageState struct {
 }
 
 // NewStorageState creates a new StorageState backed by the given trie and database located at basePath.
-func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie, gcMode string, retainBlocks int64) (*StorageState, error) {
+func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie, pruningMode Pruning, retainBlocks int64) (*StorageState, error) {
 	if db == nil {
 		return nil, fmt.Errorf("cannot have nil database")
 	}
@@ -69,7 +69,7 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie, 
 	tries[t.MustHash()] = t
 
 	var pruner Pruner
-	if gcMode == "full" {
+	if pruningMode == FullNode {
 		var err error
 		pruner, err = createPruner(db, retainBlocks)
 		if err != nil {
@@ -128,11 +128,8 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 		if err != nil {
 			return fmt.Errorf("failed to get state trie inserted keys: block %s %w", header.Hash(), err)
 		}
-		logger.Debug("storage", "inserted keys", len(insKeys), "for block", header.Number)
 
 		delKeys := ts.GetDeletedNodeHashes()
-
-		logger.Debug("storage ", "deleted keys", len(delKeys), "for block", header.Number)
 		err = s.pruner.storeJournalRecord(delKeys, insKeys, header.Hash(), header.Number.Int64())
 		if err != nil {
 			return err

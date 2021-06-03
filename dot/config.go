@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/chain/kusama"
 	"github.com/ChainSafe/gossamer/chain/polkadot"
+	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	log "github.com/ChainSafe/log15"
 )
@@ -53,7 +54,7 @@ type GlobalConfig struct {
 	MetricsPort    uint32
 	NoTelemetry    bool
 	RetainBlocks   int64
-	Pruning        string
+	Pruning        state.Pruning
 }
 
 // LogConfig represents the log levels for individual packages

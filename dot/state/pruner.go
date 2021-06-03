@@ -16,6 +16,39 @@ const (
 	pruneInterval = time.Second
 )
 
+// nolint
+const (
+	FullNode    = "full"
+	ArchiveNode = "archive"
+)
+
+// Pruning online pruning mode of historical state tries
+type Pruning string
+
+// IsValid checks whether the pruning mode is valid
+func (p Pruning) IsValid() bool {
+	switch p {
+	case FullNode:
+		return true
+	case ArchiveNode:
+		return true
+	default:
+		return false
+	}
+}
+
+// String returns format of Pruning
+func (p Pruning) String() string {
+	switch p {
+	case FullNode:
+		return "full"
+	case ArchiveNode:
+		return "archive"
+	default:
+		return ""
+	}
+}
+
 // Pruner is implemented by fullNodePruner and archivalNodePruner.
 type Pruner interface {
 	storeJournalRecord(deleted, inserted []common.Hash, blockHash common.Hash, blockNum int64) error

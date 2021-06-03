@@ -54,11 +54,11 @@ type Service struct {
 
 	// Below are for state trie online pruner
 	retainBlocks int64
-	gcMode       string
+	pruningMode  Pruning
 }
 
 // NewService create a new instance of Service
-func NewService(path string, lvl log.Lvl, gcMode string, retainBlocks int64) *Service {
+func NewService(path string, lvl log.Lvl, pruningMode Pruning, retainBlocks int64) *Service {
 	handler := log.StreamHandler(os.Stdout, log.TerminalFormat())
 	handler = log.CallerFileHandler(handler)
 	logger.SetHandler(log.LvlFilterHandler(lvl, handler))
@@ -71,7 +71,7 @@ func NewService(path string, lvl log.Lvl, gcMode string, retainBlocks int64) *Se
 		Storage:      nil,
 		Block:        nil,
 		closeCh:      make(chan interface{}),
-		gcMode:       gcMode,
+		pruningMode:  pruningMode,
 		retainBlocks: retainBlocks,
 	}
 }
@@ -147,7 +147,7 @@ func (s *Service) Start() error {
 	}
 
 	// create storage state
-	s.Storage, err = NewStorageState(db, s.Block, trie.NewEmptyTrie(), s.gcMode, s.retainBlocks)
+	s.Storage, err = NewStorageState(db, s.Block, trie.NewEmptyTrie(), s.pruningMode, s.retainBlocks)
 	if err != nil {
 		return fmt.Errorf("failed to create storage state: %w", err)
 	}

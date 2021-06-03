@@ -286,7 +286,7 @@ var (
 		Value: 256,
 	}
 
-	// Pruning triggers the online pruning of state trie. It's either full or archive. To enable pruning the value
+	// Pruning triggers the online pruning of historical state tries. It's either full or archive. To enable pruning the value
 	// should be set to `full`.
 	Pruning = cli.StringFlag{
 		Name:  "pruning",
