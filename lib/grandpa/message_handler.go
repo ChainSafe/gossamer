@@ -144,10 +144,11 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) (*ConsensusMess
 	if h.grandpa.state == nil {
 		panic("nil grandpa.state")
 	}
-	
+
 	if h.blockState == nil {
 		panic("nil blockState")
 	}
+	logger.Debug("checking HasFinalizedBlock", "round", msg.Round)
 
 	if has, _ := h.blockState.HasFinalizedBlock(msg.Round, h.grandpa.state.setID); has {
 		return nil, nil
