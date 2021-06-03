@@ -19,6 +19,7 @@ package network
 import (
 	"errors"
 	"sync"
+	"time"
 	"unsafe"
 
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
@@ -29,6 +30,7 @@ import (
 var errCannotValidateHandshake = errors.New("failed to validate handshake")
 
 const maxHandshakeSize = unsafe.Sizeof(BlockAnnounceHandshake{}) //nolint
+const handshakeTimeout = time.Second * 10
 
 // Handshake is the interface all handshakes for notifications protocols must implement
 type Handshake interface {
@@ -53,6 +55,11 @@ type (
 	NotificationsMessageHandler = func(peer peer.ID, msg NotificationsMessage) (propagate bool, err error)
 )
 
+type handshakeReader struct {
+	hs  Handshake
+	err error
+}
+
 type notificationsProtocol struct {
 	protocolID         protocol.ID
 	getHandshake       HandshakeGetter
@@ -63,16 +70,17 @@ type notificationsProtocol struct {
 }
 
 func (n *notificationsProtocol) getHandshakeData(pid peer.ID, inbound bool) (handshakeData, bool) {
-	if inbound {
-		data, has := n.inboundHandshakeData.Load(pid)
-		if !has {
-			return handshakeData{}, false
-		}
+	var (
+		data interface{}
+		has  bool
+	)
 
-		return data.(handshakeData), true
+	if inbound {
+		data, has = n.inboundHandshakeData.Load(pid)
+	} else {
+		data, has = n.outboundHandshakeData.Load(pid)
 	}
 
-	data, has := n.outboundHandshakeData.Load(pid)
 	if !has {
 		return handshakeData{}, false
 	}
@@ -174,7 +182,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			return nil
 		}
 
-		logger.Debug("received message on notifications sub-protocol", "protocol", info.protocolID,
+		logger.Trace("received message on notifications sub-protocol", "protocol", info.protocolID,
 			"message", msg,
 			"peer", stream.Conn().RemotePeer(),
 		)
@@ -226,14 +234,29 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 			return
 		}
 
-		hs, err := s.readHandshake(stream, decodeBlockAnnounceHandshake)
-		if err != nil {
-			logger.Trace("failed to read handshake", "protocol", info.protocolID, "peer", peer, "error", err)
-			_ = stream.Close()
-			return
-		}
+		hsTimer := time.NewTimer(handshakeTimeout)
 
-		hsData.received = true
+		var hs Handshake
+		select {
+		case <-hsTimer.C:
+			logger.Trace("handshake timeout reached", "protocol", info.protocolID, "peer", peer)
+			_ = stream.Close()
+			info.outboundHandshakeData.Delete(peer)
+			return
+
+		case hsResponse := <-s.readHandshake(stream, decodeBlockAnnounceHandshake):
+			hsTimer.Stop()
+			if hsResponse.err != nil {
+				logger.Trace("failed to read handshake", "protocol", info.protocolID, "peer", peer, "error", err)
+				_ = stream.Close()
+
+				info.outboundHandshakeData.Delete(peer)
+				return
+			}
+
+			hs = hsResponse.hs
+			hsData.received = true
+		}
 
 		err = info.handshakeValidator(peer, hs)
 		if err != nil {
@@ -294,19 +317,30 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 	}
 }
 
-func (s *Service) readHandshake(stream libp2pnetwork.Stream, decoder HandshakeDecoder) (Handshake, error) {
-	msgBytes := s.bufPool.get()
-	defer s.bufPool.put(&msgBytes)
+func (s *Service) readHandshake(stream libp2pnetwork.Stream, decoder HandshakeDecoder) <-chan *handshakeReader {
+	hsC := make(chan *handshakeReader)
 
-	tot, err := readStream(stream, msgBytes[:])
-	if err != nil {
-		return nil, err
-	}
+	go func() {
+		msgBytes := s.bufPool.get()
+		defer func() {
+			s.bufPool.put(&msgBytes)
+			close(hsC)
+		}()
 
-	hs, err := decoder(msgBytes[:tot])
-	if err != nil {
-		return nil, err
-	}
+		tot, err := readStream(stream, msgBytes[:])
+		if err != nil {
+			hsC <- &handshakeReader{hs: nil, err: err}
+			return
+		}
 
-	return hs, nil
+		hs, err := decoder(msgBytes[:tot])
+		if err != nil {
+			hsC <- &handshakeReader{hs: nil, err: err}
+			return
+		}
+
+		hsC <- &handshakeReader{hs: hs, err: nil}
+	}()
+
+	return hsC
 }
