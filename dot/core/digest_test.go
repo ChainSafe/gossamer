@@ -28,10 +28,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	coremocks "github.com/ChainSafe/gossamer/tests/mocks/dot/core"
 
 	log "github.com/ChainSafe/log15"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -48,18 +46,18 @@ func newTestDigestHandler(t *testing.T, withBABE, withGrandpa bool) *DigestHandl
 	err = stateSrvc.Start()
 	require.NoError(t, err)
 
-	var bp *coremocks.BlockProducer
+	//var bp *BlockProducer
 	if withBABE {
-		bp = new(coremocks.BlockProducer)
-		blockC := make(chan types.Block)
-		bp.On("GetBlockChannel", nil).Return(blockC)
+		//bp = new(BlockProducer)
+		//blockC := make(chan types.Block)
+		//bp.On("GetBlockChannel", nil).Return(blockC)
 	}
 
-	verifier := new(coremocks.Verifier)
-	verifier.On("SetOnDisabled", mock.Anything, mock.Anything).
-		Return(nil)
+	//verifier := new(Verifier)
+	// verifier.On("SetOnDisabled", mock.Anything, mock.Anything).
+	// 	Return(nil)
 
-	dh, err := NewDigestHandler(stateSrvc.Block, stateSrvc.Epoch, stateSrvc.Grandpa, bp, verifier)
+	dh, err := NewDigestHandler(stateSrvc.Block, stateSrvc.Epoch, stateSrvc.Grandpa, nil, nil)
 	require.NoError(t, err)
 	return dh
 }

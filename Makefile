@@ -135,7 +135,7 @@ ifndef MOCKGEN
 	@go get github.com/vektra/mockery/v2/.../
 endif
 	@echo "> Generating mocks at ./tests/mocks ..."
-	$(GOPATH)/bin/mockery --all --recursive --keeptree --output=./tests/mocks
+	$(GOPATH)/bin/mockery --all --recursive --inpackage --case underscore
 
 
 

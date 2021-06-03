@@ -32,9 +32,7 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	coremocks "github.com/ChainSafe/gossamer/tests/mocks/dot/core"
 	log "github.com/ChainSafe/log15"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -108,11 +106,11 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	}
 
 	if cfg.Verifier == nil {
-		verifier := new(coremocks.Verifier)
-		verifier.
-			On("SetOnDisabled", mock.AnythingOfType("uint32"), mock.AnythingOfType("*types.Header")).
-			Return(nil)
-		cfg.Verifier = verifier
+		// verifier := new(coremocks.Verifier)
+		// verifier.
+		// 	On("SetOnDisabled", mock.AnythingOfType("uint32"), mock.AnythingOfType("*types.Header")).
+		// 	Return(nil)
+		cfg.Verifier = nil
 	}
 
 	cfg.LogLvl = 3
