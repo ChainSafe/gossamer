@@ -173,12 +173,15 @@ func (p *fullNodePruner) processInsertedKeys(insKeys []common.Hash, blockHash co
 func (p *fullNodePruner) start() {
 	logger.Info("pruning started")
 
+	var canPrune bool
 	checkPruning := func() {
 		p.Lock()
 		defer p.Unlock()
 		if int64(len(p.deathList)) <= p.retainBlocks {
+			canPrune = false
 			return
 		}
+		canPrune = true
 
 		// pop first element from death list
 		row := p.deathList[0]
@@ -219,7 +222,10 @@ func (p *fullNodePruner) start() {
 
 	for {
 		checkPruning()
-		time.Sleep(pruneInterval)
+		// Don't sleep if we have data to prune.
+		if !canPrune {
+			time.Sleep(pruneInterval)
+		}
 	}
 }
 

@@ -17,6 +17,7 @@
 package state
 
 import (
+	"fmt"
 	"io/ioutil"
 	"math/big"
 	"testing"
@@ -25,6 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
@@ -141,6 +143,56 @@ func TestService_BlockTree(t *testing.T) {
 	require.Equal(t, stateA.Block.BestBlockHash(), stateB.Block.BestBlockHash())
 }
 
+func TestService_StorageTriePruning(t *testing.T) {
+	testDir := utils.NewTestDir(t)
+	defer utils.RemoveTestDir(t)
+
+	retainBlocks := 2
+	serv := NewService(testDir, log.LvlTrace, "full", int64(retainBlocks))
+	serv.UseMemDB()
+
+	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
+
+	err := serv.Initialise(genData, genesisHeader, genTrie)
+	require.NoError(t, err)
+
+	err = serv.Start()
+	require.NoError(t, err)
+
+	var blocks []*types.Block
+	parentHash := serv.Block.GenesisHash()
+
+	totalBlock := 10
+	for i := 1; i < totalBlock; i++ {
+		block, trieState := generateBlockWithRandomTrie(t, serv, &parentHash, int64(i))
+
+		err = serv.Storage.blockState.AddBlock(block)
+		require.NoError(t, err)
+
+		old := trieState.Snapshot()
+
+		oldTs, err := rtstorage.NewTrieState(old)
+		require.NoError(t, err)
+
+		err = serv.Storage.StoreTrie(oldTs, block.Header)
+		require.NoError(t, err)
+
+		blocks = append(blocks, block)
+		parentHash = block.Header.Hash()
+	}
+
+	time.Sleep(2 * time.Second)
+
+	for _, b := range blocks {
+		_, err := serv.Storage.LoadFromDB(b.Header.StateRoot)
+		if b.Header.Number.Int64() >= int64(totalBlock-retainBlocks-1) {
+			require.NoError(t, err, fmt.Sprintf("Got error for block %d", b.Header.Number.Int64()))
+			continue
+		}
+		require.Error(t, err, fmt.Sprintf("Expected error for block %d", b.Header.Number.Int64()))
+	}
+}
+
 func TestService_PruneStorage(t *testing.T) {
 	testDir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
@@ -164,7 +216,7 @@ func TestService_PruneStorage(t *testing.T) {
 	var toFinalize common.Hash
 
 	for i := 0; i < 3; i++ {
-		block, trieState := generateBlockWithRandomTrie(t, serv, nil)
+		block, trieState := generateBlockWithRandomTrie(t, serv, nil, int64(i+1))
 
 		err = serv.Storage.blockState.AddBlock(block)
 		require.NoError(t, err)
@@ -179,10 +231,10 @@ func TestService_PruneStorage(t *testing.T) {
 	}
 
 	// add some blocks to prune, on a different chain from the finalised block
-	prunedArr := []prunedBlock{}
+	var prunedArr []prunedBlock
 	parentHash := serv.Block.GenesisHash()
 	for i := 0; i < 3; i++ {
-		block, trieState := generateBlockWithRandomTrie(t, serv, &parentHash)
+		block, trieState := generateBlockWithRandomTrie(t, serv, &parentHash, int64(i+1))
 
 		err = serv.Storage.blockState.AddBlock(block)
 		require.NoError(t, err)
