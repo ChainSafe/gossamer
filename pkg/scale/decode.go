@@ -56,7 +56,14 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 		case reflect.Ptr:
 			err = ds.decodePointer(dstv)
 		case reflect.Struct:
-			err = ds.decodeStruct(dstv)
+			t := reflect.TypeOf(in)
+			// check if this is a convertible to Result, if so encode using decodeResult
+			switch t.ConvertibleTo(reflect.TypeOf(Result{})) {
+			case true:
+				err = ds.decodeResult(dstv)
+			case false:
+				err = ds.decodeStruct(dstv)
+			}
 		case reflect.Array:
 			err = ds.decodeArray(dstv)
 		case reflect.Slice:
@@ -97,6 +104,57 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 				err = fmt.Errorf("unsupported type: %T", in)
 			}
 		}
+	}
+	return
+}
+
+func (ds *decodeState) decodeResult(dstv reflect.Value) (err error) {
+	dstt := reflect.TypeOf(dstv.Interface())
+	key := fmt.Sprintf("%s.%s", dstt.PkgPath(), dstt.Name())
+	resultCases, ok := resCache[key]
+	if !ok {
+		err = fmt.Errorf("unable to find registered custom Result: %T", dstv.Interface())
+		return
+	}
+
+	var rb byte
+	rb, err = ds.ReadByte()
+	if err != nil {
+		return
+	}
+	switch rb {
+	case 0x00:
+		// Ok case
+		okIn, ok := resultCases[true]
+		if !ok {
+			err = fmt.Errorf("unable to find registered custom Result.Ok for: %T", dstv.Interface())
+			return
+		}
+		newOk := reflect.New(reflect.TypeOf(okIn))
+		err = ds.unmarshal(newOk.Elem())
+		if err != nil {
+			break
+		}
+		res := reflect.New(dstt)
+		res.Elem().FieldByName("Ok").Set(newOk.Elem())
+		dstv.Set(res.Elem())
+	case 0x01:
+		// Error case
+		errIn, ok := resultCases[false]
+		if !ok {
+			err = fmt.Errorf("unable to find registered custom Result.Err for: %T", dstv.Interface())
+			return
+		}
+		newErr := reflect.New(reflect.TypeOf(errIn))
+		err = ds.unmarshal(newErr.Elem())
+		if err != nil {
+			break
+		}
+		res := reflect.New(dstt)
+		res.Elem().FieldByName("Err").Set(newErr.Elem())
+		dstv.Set(res.Elem())
+	default:
+		err = fmt.Errorf("unsupported Result value: %v, bytes: %v", rb, ds.Bytes())
 	}
 	return
 }
