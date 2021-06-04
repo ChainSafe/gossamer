@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/utils"
+	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -83,11 +84,9 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	}
 
 	if cfg.TransactionHandler == nil {
-		cfg.TransactionHandler = newMockTransactionHandler()
-	}
-
-	if cfg.TransactionHandler == nil {
-		cfg.TransactionHandler = newMockTransactionHandler()
+		mocktxhandler := &MockTransactionHandler{}
+		mocktxhandler.On("HandleTransactionMessage", mock.AnythingOfType("*TransactionMessage")).Return(nil)
+		cfg.TransactionHandler = mocktxhandler
 	}
 
 	cfg.ProtocolID = TestProtocolID // default "/gossamer/gssmr/0"

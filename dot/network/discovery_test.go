@@ -19,13 +19,14 @@ package network
 import (
 	"context"
 	"fmt"
+	"path"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/utils"
+	badger "github.com/ipfs/go-ds-badger2"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-kad-dht/dual"
-	kbucket "github.com/libp2p/go-libp2p-kbucket"
+	"github.com/libp2p/go-libp2p-core/routing"
 
 	"github.com/stretchr/testify/require"
 )
@@ -41,12 +42,16 @@ func newTestDiscovery(t *testing.T, num int) []*discovery {
 			NoBootstrap: true,
 			NoMDNS:      true,
 		}
+		dstmpdir := t.TempDir()
+		ds, _ := badger.NewDatastore(path.Join(dstmpdir, "libp2p-datastore"), &badger.DefaultOptions)
 
 		srvc := createTestService(t, config)
 		disc := &discovery{
 			ctx: srvc.ctx,
 			h:   srvc.host.h,
+			ds:  ds,
 		}
+
 		go disc.start()
 		discs = append(discs, disc)
 	}
@@ -75,42 +80,33 @@ func connectNoSync(t *testing.T, ctx context.Context, a, b *discovery) {
 	require.NoError(t, err)
 }
 
-// nolint
-func wait(t *testing.T, ctx context.Context, a, b *dual.DHT) {
-	t.Helper()
-
-	// Loop until connection notification has been received.
-	// Under high load, this may not happen as immediately as we would like.
-	for a.LAN.RoutingTable().Find(b.LAN.PeerID()) == "" {
-		select {
-		case <-ctx.Done():
-			t.Fatal(ctx.Err())
-		case <-time.After(time.Millisecond * 5):
-		}
-	}
-}
-
 // Set `NoMDNS` to true and test routing via kademlia DHT service.
 func TestKadDHT(t *testing.T) {
 	if testing.Short() {
 		return
 	}
 
+	// setup 3 nodes
 	nodes := newTestDiscovery(t, 3)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
-	_, err := nodes[2].dht.FindPeer(ctx, nodes[1].h.ID())
-	require.Equal(t, err, kbucket.ErrLookupFailure)
-
-	connectNoSync(t, ctx, nodes[1], nodes[0])
+	// connects node 0 and node 2
 	connectNoSync(t, ctx, nodes[2], nodes[0])
 
-	// Can't use `connect` because b and c are only clients.
-	wait(t, ctx, nodes[1].dht, nodes[0].dht)
-	wait(t, ctx, nodes[2].dht, nodes[0].dht)
+	time.Sleep(startDHTTimeout + 1)
 
+	// node 2 doesnt know about node 1 then should return error
+	_, err := nodes[2].dht.FindPeer(ctx, nodes[1].h.ID())
+	require.Equal(t, err, routing.ErrNotFound)
+
+	// connects node 1 and node 0
+	connectNoSync(t, ctx, nodes[1], nodes[0])
+
+	time.Sleep(startDHTTimeout + 1)
+
+	// node 2 should know node 1 because both are connected to 0
 	_, err = nodes[2].dht.FindPeer(ctx, nodes[1].h.ID())
 	require.NoError(t, err)
 }

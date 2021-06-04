@@ -21,14 +21,18 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/libp2p/go-libp2p-core/protocol"
 
 	"github.com/stretchr/testify/require"
 )
+
+const protocolToTest = "/protocol"
 
 // test gossip messages to connected peers
 func TestGossip(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping TestGossip; currently, nothing is gossiped")
+		return
 	}
 
 	basePathA := utils.NewTestBasePath(t, "nodeA")
@@ -43,7 +47,7 @@ func TestGossip(t *testing.T) {
 
 	nodeA := createTestService(t, configA)
 	handlerA := newTestStreamHandler(testBlockAnnounceMessageDecoder)
-	nodeA.host.registerStreamHandler("", handlerA.handleStream)
+	nodeA.host.registerStreamHandler(protocolToTest, handlerA.handleStream)
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
@@ -56,7 +60,7 @@ func TestGossip(t *testing.T) {
 
 	nodeB := createTestService(t, configB)
 	handlerB := newTestStreamHandler(testBlockAnnounceMessageDecoder)
-	nodeB.host.registerStreamHandler("", handlerB.handleStream)
+	nodeB.host.registerStreamHandler(protocolToTest, handlerB.handleStream)
 
 	addrInfosA, err := nodeA.host.addrInfos()
 	require.NoError(t, err)
@@ -80,7 +84,7 @@ func TestGossip(t *testing.T) {
 
 	nodeC := createTestService(t, configC)
 	handlerC := newTestStreamHandler(testBlockAnnounceMessageDecoder)
-	nodeC.host.registerStreamHandler("", handlerC.handleStream)
+	nodeC.host.registerStreamHandler(protocolToTest, handlerC.handleStream)
 
 	err = nodeC.host.connect(*addrInfosA[0])
 	// retry connect if "failed to dial" error
@@ -101,7 +105,7 @@ func TestGossip(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-	_, err = nodeA.host.send(addrInfosB[0].ID, "", testBlockAnnounceMessage)
+	_, err = nodeA.host.send(addrInfosB[0].ID, protocol.ID(TestProtocolID+protocolToTest), testBlockAnnounceMessage)
 	require.NoError(t, err)
 
 	time.Sleep(TestMessageTimeout)

@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	. "github.com/ChainSafe/gossamer/dot/core/mocks"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -36,12 +37,12 @@ import (
 
 func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	// TODO: move to sync package
-	//net := new(Network)
+	net := new(MockNetwork)
 
 	newBlocks := make(chan types.Block)
 
 	cfg := &Config{
-		Network:         nil,
+		Network:         net,
 		Keystore:        keystore.NewGlobalKeystore(),
 		NewBlocks:       newBlocks,
 		IsBlockProducer: false,
@@ -60,22 +61,22 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 		Body: types.NewBody([]byte{}),
 	}
 
-	// expected := &network.BlockAnnounceMessage{
-	// 	ParentHash:     newBlock.Header.ParentHash,
-	// 	Number:         newBlock.Header.Number,
-	// 	StateRoot:      newBlock.Header.StateRoot,
-	// 	ExtrinsicsRoot: newBlock.Header.ExtrinsicsRoot,
-	// 	Digest:         newBlock.Header.Digest,
-	// 	BestBlock:      true,
-	// }
+	expected := &network.BlockAnnounceMessage{
+		ParentHash:     newBlock.Header.ParentHash,
+		Number:         newBlock.Header.Number,
+		StateRoot:      newBlock.Header.StateRoot,
+		ExtrinsicsRoot: newBlock.Header.ExtrinsicsRoot,
+		Digest:         newBlock.Header.Digest,
+		BestBlock:      true,
+	}
 
-	// setup the SendMessage function
-	//net.On("SendMessage", expected)
+	//setup the SendMessage function
+	net.On("SendMessage", expected)
 	newBlocks <- newBlock
 
 	time.Sleep(time.Second * 2)
 
-	//net.AssertCalled(t, "SendMessage", expected)
+	net.AssertCalled(t, "SendMessage", expected)
 }
 
 func createExtrinsics(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic {
@@ -133,15 +134,15 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	ks := keystore.NewGlobalKeystore()
 	ks.Acco.Insert(kp)
 
-	// bp := new(BlockProducer)
-	// blockC := make(chan types.Block)
-	// bp.On("GetBlockChannel", nil).Return(blockC)
+	bp := new(MockBlockProducer)
+	blockC := make(chan types.Block)
+	bp.On("GetBlockChannel", nil).Return(blockC)
 
 	cfg := &Config{
 		Keystore:         ks,
 		TransactionState: state.NewTransactionState(),
 		IsBlockProducer:  true,
-		BlockProducer:    nil,
+		BlockProducer:    bp,
 	}
 
 	s := NewTestService(t, cfg)

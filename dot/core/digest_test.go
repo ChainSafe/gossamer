@@ -29,7 +29,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 
+	. "github.com/ChainSafe/gossamer/dot/core/mocks"
+
 	log "github.com/ChainSafe/log15"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -46,16 +49,15 @@ func newTestDigestHandler(t *testing.T, withBABE, withGrandpa bool) *DigestHandl
 	err = stateSrvc.Start()
 	require.NoError(t, err)
 
-	//var bp *BlockProducer
+	var bp *MockBlockProducer
 	if withBABE {
-		//bp = new(BlockProducer)
-		//blockC := make(chan types.Block)
-		//bp.On("GetBlockChannel", nil).Return(blockC)
+		bp = new(MockBlockProducer)
+		blockC := make(chan types.Block)
+		bp.On("GetBlockChannel", nil).Return(blockC)
 	}
 
-	//verifier := new(Verifier)
-	// verifier.On("SetOnDisabled", mock.Anything, mock.Anything).
-	// 	Return(nil)
+	verifier := new(MockVerifier)
+	verifier.On("SetOnDisabled", mock.Anything, mock.Anything).Return(nil)
 
 	dh, err := NewDigestHandler(stateSrvc.Block, stateSrvc.Epoch, stateSrvc.Grandpa, nil, nil)
 	require.NoError(t, err)
@@ -321,8 +323,15 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 func TestDigestHandler_HandleBABEOnDisabled(t *testing.T) {
 	handler := newTestDigestHandler(t, true, false)
 
-	babemock := new(mockBlockProducer)
-	verifier := new(mockVerifier)
+	babemock := new(MockBlockProducer)
+	babemock.On("SetOnDisabled", uint32(7))
+
+	header := &types.Header{
+		Number: big.NewInt(1),
+	}
+
+	verifier := new(MockVerifier)
+	verifier.On("SetOnDisabled", uint32(7), header).Return(nil)
 
 	handler.babe = babemock
 	handler.verifier = verifier
@@ -339,10 +348,12 @@ func TestDigestHandler_HandleBABEOnDisabled(t *testing.T) {
 		Data:              data,
 	}
 
-	err = handler.HandleConsensusDigest(d, nil)
+	err = handler.HandleConsensusDigest(d, header)
+
 	fmt.Println("erro", err)
 	require.NoError(t, err)
-	//require.Equal(t, uint32(7), babemock.disabled)
+
+	babemock.AssertCalled(t, "SetOnDisabled", uint32(7))
 }
 
 func createHeaderWithPreDigest(slotNumber uint64) *types.Header {

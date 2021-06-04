@@ -28,12 +28,15 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	log "github.com/ChainSafe/log15"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	// importing packagemocks
+	. "github.com/ChainSafe/gossamer/dot/core/mocks"
 )
 
 func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
@@ -50,39 +53,6 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie
 	require.NoError(t, err)
 	return gen, genTrie, genesisHeader
 }
-
-type mockVerifier struct{}
-
-func (v *mockVerifier) SetOnDisabled(_ uint32, _ *types.Header) error {
-	return nil
-}
-
-// mockBlockProducer implements the BlockProducer interface
-type mockBlockProducer struct {
-	disabled uint32
-}
-
-// Start mocks starting
-func (bp *mockBlockProducer) Start() error {
-	return nil
-}
-
-// Stop mocks stopping
-func (bp *mockBlockProducer) Stop() error {
-	return nil
-}
-
-func (bp *mockBlockProducer) SetOnDisabled(idx uint32) {
-	bp.disabled = idx
-}
-
-// GetBlockChannel returns a new channel
-func (bp *mockBlockProducer) GetBlockChannel() <-chan types.Block {
-	return make(chan types.Block)
-}
-
-// SetRuntime mocks setting runtime
-func (bp *mockBlockProducer) SetRuntime(rt runtime.Instance) {}
 
 // NewTestService creates a new test core service
 func NewTestService(t *testing.T, cfg *Config) *Service {
@@ -106,10 +76,8 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	}
 
 	if cfg.Verifier == nil {
-		// verifier := new(coremocks.Verifier)
-		// verifier.
-		// 	On("SetOnDisabled", mock.AnythingOfType("uint32"), mock.AnythingOfType("*types.Header")).
-		// 	Return(nil)
+		verifier := new(MockVerifier)
+		verifier.On("SetOnDisabled", mock.AnythingOfType("uint32"), mock.AnythingOfType("*types.Header")).Return(nil)
 		cfg.Verifier = nil
 	}
 
@@ -164,7 +132,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 			NoBootstrap:        true,
 			NoMDNS:             true,
 			BlockState:         stateSrvc.Block,
-			TransactionHandler: &mockTransactionHandler{},
+			TransactionHandler: newMockTransactionHandler(),
 		}
 		cfg.Network = createTestNetworkService(t, config)
 	}
@@ -203,40 +171,19 @@ func createTestNetworkService(t *testing.T, cfg *network.Config) (srvc *network.
 	return srvc
 }
 
-type mockSyncer struct {
-	highestSeen *big.Int
+func newMockSyncer() *network.MockSyncer {
+	mocksyncer := new(network.MockSyncer)
+	mocksyncer.On("HandleBlockAnnounce", mock.AnythingOfType("*network.BlockAnnounceMessage")).Return(nil, nil)
+	mocksyncer.On("CreateBlockResponse", mock.AnythingOfType("*network.BlockRequestMessage")).Return(nil, nil)
+	mocksyncer.On("ProcessJustification", mock.AnythingOfType("[]*types.BlockData")).Return(0, nil)
+	mocksyncer.On("ProcessBlockData", mock.AnythingOfType("[]*types.BlockData")).Return(0, nil)
+	mocksyncer.On("SetSyncing", mock.AnythingOfType("bool"))
+	mocksyncer.On("IsSynced").Return(false)
+	return mocksyncer
 }
 
-func newMockSyncer() *mockSyncer {
-	return &mockSyncer{
-		highestSeen: big.NewInt(0),
-	}
-}
-
-func (s *mockSyncer) CreateBlockResponse(msg *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
-	return nil, nil
-}
-
-func (s *mockSyncer) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) error {
-	return nil
-}
-
-func (s *mockSyncer) ProcessBlockData(_ []*types.BlockData) (int, error) {
-	return 0, nil
-}
-
-func (s *mockSyncer) ProcessJustification(data []*types.BlockData) (int, error) {
-	return 0, nil
-}
-
-func (s *mockSyncer) IsSynced() bool {
-	return false
-}
-
-func (s *mockSyncer) SetSyncing(bool) {}
-
-type mockTransactionHandler struct{}
-
-func (h *mockTransactionHandler) HandleTransactionMessage(_ *network.TransactionMessage) error {
-	return nil
+func newMockTransactionHandler() *network.MockTransactionHandler {
+	mocktxhandler := new(network.MockTransactionHandler)
+	mocktxhandler.On("HandleTransactionMessage", mock.AnythingOfType("*network.TransactionMessage")).Return(nil)
+	return mocktxhandler
 }
