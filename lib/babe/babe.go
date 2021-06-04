@@ -233,11 +233,6 @@ func (b *Service) Pause() error {
 	b.Lock()
 	defer b.Unlock()
 
-	// select {
-	// case b.pause <- struct{}{}:
-	// 	logger.Info("service paused")
-	// default:
-	// }
 	b.pause <- struct{}{}
 	b.paused = true
 	return nil
@@ -488,12 +483,6 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		logger.Error("block authoring", "error", err)
 		return nil
 	}
-
-	// block built successfully, store resulting trie in storage state
-	// oldTs, err := rtstorage.NewTrieState(old)
-	// if err != nil {
-	// 	return err
-	// }
 
 	err = b.storageState.StoreTrie(ts)
 	if err != nil {
