@@ -68,7 +68,7 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 			err = ds.decodeArray(dstv)
 		case reflect.Slice:
 			t := reflect.TypeOf(in)
-			// check if this is a convertible to VaryingDataType, if so encode using encodeVaryingDataType
+			// check if this is a convertible to VaryingDataType, if so decode using encodeVaryingDataType
 			switch t.ConvertibleTo(reflect.TypeOf(VaryingDataType{})) {
 			case true:
 				err = ds.decodeVaryingDataType(dstv)
@@ -258,7 +258,8 @@ func (ds *decodeState) decodeArray(dstv reflect.Value) (err error) {
 	return
 }
 
-// decodeStruct comment about this
+// decodeStruct decodes a byte array representing a SCALE tuple.  The order of data is
+// determined by the source tuple in rust, or the struct field order in a go struct
 func (ds *decodeState) decodeStruct(dstv reflect.Value) (err error) {
 	in := dstv.Interface()
 	_, indices, err := cache.fieldScaleIndices(in)
