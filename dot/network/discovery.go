@@ -36,14 +36,12 @@ var (
 	initialAdvertisementTimeout = time.Millisecond
 	tryAdvertiseTimeout         = time.Second * 30
 	connectToPeersTimeout       = time.Minute
-	findPeersTimeout            = time.Minute
 )
 
 // discovery handles discovery of new peers via the kademlia DHT
 type discovery struct {
 	ctx                context.Context
 	dht                *dual.DHT
-	rd                 *libp2pdiscovery.RoutingDiscovery
 	h                  libp2phost.Host
 	bootnodes          []peer.AddrInfo
 	ds                 *badger.Datastore
@@ -119,7 +117,7 @@ func (d *discovery) stop() error {
 }
 
 func (d *discovery) discoverAndAdvertise() error {
-	d.rd = libp2pdiscovery.NewRoutingDiscovery(d.dht)
+	rd := libp2pdiscovery.NewRoutingDiscovery(d.dht)
 
 	err := d.dht.Bootstrap(d.ctx)
 	if err != nil {
@@ -128,83 +126,79 @@ func (d *discovery) discoverAndAdvertise() error {
 
 	// wait to connect to bootstrap peers
 	time.Sleep(time.Second)
-	go d.advertise()
-	go d.checkPeerCount()
 
-	logger.Debug("DHT discovery started!")
-	return nil
-}
+	go func() {
+		ttl := initialAdvertisementTimeout
 
-func (d *discovery) advertise() {
-	ttl := initialAdvertisementTimeout
-
-	for {
-		select {
-		case <-time.After(ttl):
-			logger.Debug("advertising ourselves in the DHT...")
-			err := d.dht.Bootstrap(d.ctx)
-			if err != nil {
-				logger.Warn("failed to bootstrap DHT", "error", err)
-				continue
-			}
-
-			ttl, err = d.rd.Advertise(d.ctx, string(d.pid))
-			if err != nil {
-				logger.Debug("failed to advertise in the DHT", "error", err)
-				ttl = tryAdvertiseTimeout
-			}
-		case <-d.ctx.Done():
-			return
-		}
-	}
-}
-
-func (d *discovery) checkPeerCount() {
-	for {
-		select {
-		case <-d.ctx.Done():
-			return
-		case <-time.After(connectToPeersTimeout):
-			if len(d.h.Network().Peers()) > d.minPeers {
-				continue
-			}
-
-			ctx, cancel := context.WithTimeout(d.ctx, findPeersTimeout)
-			defer cancel()
-			d.findPeers(ctx)
-		}
-	}
-}
-
-func (d *discovery) findPeers(ctx context.Context) {
-	logger.Info("attempting to find DHT peers...")
-	peerCh, err := d.rd.FindPeers(d.ctx, string(d.pid))
-	if err != nil {
-		logger.Warn("failed to begin finding peers via DHT", "err", err)
-		return
-	}
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case peer := <-peerCh:
-			if peer.ID == d.h.ID() || peer.ID == "" {
-				continue
-			}
-
-			logger.Info("found new peer via DHT", "peer", peer.ID)
-
-			// found a peer, try to connect if we need more peers
-			if len(d.h.Network().Peers()) < d.maxPeers {
-				err = d.h.Connect(d.ctx, peer)
+		for {
+			select {
+			case <-time.After(ttl):
+				logger.Debug("advertising ourselves in the DHT...")
+				err := d.dht.Bootstrap(d.ctx)
 				if err != nil {
-					logger.Trace("failed to connect to discovered peer", "peer", peer.ID, "err", err)
+					logger.Warn("failed to bootstrap DHT", "error", err)
+					continue
 				}
-			} else {
-				d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
+
+				ttl, err = rd.Advertise(d.ctx, string(d.pid))
+				if err != nil {
+					logger.Debug("failed to advertise in the DHT", "error", err)
+					ttl = tryAdvertiseTimeout
+				}
+			case <-d.ctx.Done():
 				return
 			}
 		}
-	}
+	}()
+
+	go func() {
+		logger.Debug("attempting to find DHT peers...")
+		peerCh, err := rd.FindPeers(d.ctx, string(d.pid))
+		if err != nil {
+			logger.Warn("failed to begin finding peers via DHT", "err", err)
+			return
+		}
+
+		peersToTry := make(map[*peer.AddrInfo]struct{})
+
+		for {
+			select {
+			case <-d.ctx.Done():
+				return
+			case <-time.After(connectToPeersTimeout):
+				if len(d.h.Network().Peers()) > d.minPeers {
+					continue
+				}
+
+				// reconnect to peers if peer count is low
+				for p := range peersToTry {
+					err = d.h.Connect(d.ctx, *p)
+					if err != nil {
+						logger.Trace("failed to connect to discovered peer", "peer", p.ID, "err", err)
+						delete(peersToTry, p)
+					}
+				}
+			case peer := <-peerCh:
+				if peer.ID == d.h.ID() || peer.ID == "" {
+					continue
+				}
+
+				logger.Trace("found new peer via DHT", "peer", peer.ID)
+
+				// found a peer, try to connect if we need more peers
+				if len(d.h.Network().Peers()) < d.maxPeers {
+					err = d.h.Connect(d.ctx, peer)
+					if err != nil {
+						logger.Trace("failed to connect to discovered peer", "peer", peer.ID, "err", err)
+					}
+				} else {
+					d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
+					peersToTry[&peer] = struct{}{}
+				}
+			}
+		}
+	}()
+
+	logger.Debug("DHT discovery started!")
+	return nil
 }

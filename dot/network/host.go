@@ -140,7 +140,6 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 					addrs = append(addrs, addr)
 				}
 			}
-
 			if externalAddr == nil {
 				return addrs
 			}

@@ -17,6 +17,7 @@
 package network
 
 import (
+	"bufio"
 	crand "crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -150,20 +151,15 @@ func uint64ToLEB128(in uint64) []byte {
 	return out
 }
 
-func readLEB128ToUint64(r io.Reader, buf []byte) (uint64, error) {
-	if len(buf) == 0 {
-		return 0, errors.New("buffer has length 0")
-	}
-
+func readLEB128ToUint64(r *bufio.Reader) (uint64, error) {
 	var out uint64
 	var shift uint
 	for {
-		_, err := r.Read(buf)
+		b, err := r.ReadByte()
 		if err != nil {
 			return 0, err
 		}
 
-		b := buf[0]
 		out |= uint64(0x7F&b) << shift
 		if b&0x80 == 0 {
 			break
@@ -179,12 +175,16 @@ func readStream(stream libp2pnetwork.Stream, buf []byte) (int, error) {
 		return 0, errors.New("stream is nil")
 	}
 
+	r := bufio.NewReader(stream)
+
 	var (
 		tot int
 	)
 
-	length, err := readLEB128ToUint64(stream, buf[:1])
-	if err != nil {
+	length, err := readLEB128ToUint64(r)
+	if err == io.EOF {
+		return 0, err
+	} else if err != nil {
 		return 0, err // TODO: return bytes read from readLEB128ToUint64
 	}
 
@@ -192,19 +192,21 @@ func readStream(stream libp2pnetwork.Stream, buf []byte) (int, error) {
 		return 0, nil // msg length of 0 is allowed, for example transactions handshake
 	}
 
-	if length > uint64(len(buf)) {
-		logger.Warn("received message with size greater than allocated message buffer", "length", length, "buffer size", len(buf))
-		return 0, fmt.Errorf("message size greater than allocated message buffer: got %d", length)
-	}
-
+	// TODO: check if length > len(buf), if so probably log.Crit
 	if length > maxBlockResponseSize {
-		logger.Warn("received message with size greater than maxBlockResponseSize, closing stream", "length", length)
+		logger.Warn("received message with size greater than maxBlockResponseSize, discarding", "length", length)
+		for {
+			_, err = r.Discard(int(maxBlockResponseSize))
+			if err != nil {
+				break
+			}
+		}
 		return 0, fmt.Errorf("message size greater than maximum: got %d", length)
 	}
 
 	tot = 0
 	for i := 0; i < maxReads; i++ {
-		n, err := stream.Read(buf[tot:])
+		n, err := r.Read(buf[tot:])
 		if err != nil {
 			return n + tot, err
 		}

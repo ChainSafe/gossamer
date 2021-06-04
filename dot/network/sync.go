@@ -725,7 +725,7 @@ func (q *syncQueue) handleBlockData(data []*types.BlockData) {
 
 	end := data[len(data)-1].Number().Int64()
 	if end <= finalised.Number.Int64() {
-		logger.Debug("ignoring block data that is below finalised head", "got", end, "head", finalised.Number.Int64())
+		logger.Debug("ignoring block data that is below our head", "got", end, "head", finalised.Number.Int64())
 		q.pushRequest(uint64(end+1), blockRequestBufferSize, "")
 		return
 	}
@@ -750,7 +750,10 @@ func (q *syncQueue) handleBlockData(data []*types.BlockData) {
 
 	var from peer.ID
 	d, ok := q.requestData.Load(uint64(q.currStart))
-	if ok {
+	if !ok {
+		// this shouldn't happen
+		logger.Debug("can't find request data for response!", "start", q.currStart)
+	} else {
 		from = d.(requestData).from
 		q.updatePeerScore(from, 2)
 		q.requestData.Delete(uint64(q.currStart))

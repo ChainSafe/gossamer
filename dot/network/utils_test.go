@@ -17,11 +17,10 @@
 package network
 
 import (
-	"bytes"
+	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/stretchr/testify/require"
 )
 
 // list of IPFS peers, for testing only
@@ -40,17 +39,25 @@ var TestPeers = []string{
 func TestStringToAddrInfo(t *testing.T) {
 	for _, str := range TestPeers {
 		pi, err := stringToAddrInfo(str)
-		require.NoError(t, err)
-		require.Equal(t, pi.ID.Pretty(), str[len(str)-46:])
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if pi.ID.Pretty() != str[len(str)-46:] {
+			t.Errorf("got %s expected %s", pi.ID.Pretty(), str)
+		}
 	}
 }
 
 func TestStringsToAddrInfos(t *testing.T) {
 	pi, err := stringsToAddrInfos(TestPeers)
-	require.NoError(t, err)
-
+	if err != nil {
+		t.Fatal(err)
+	}
 	for k, pi := range pi {
-		require.Equal(t, pi.ID.Pretty(), TestPeers[k][len(TestPeers[k])-46:])
+		if pi.ID.Pretty() != TestPeers[k][len(TestPeers[k])-46:] {
+			t.Errorf("got %s expected %s", pi.ID.Pretty(), TestPeers[k])
+		}
 	}
 }
 
@@ -59,59 +66,30 @@ func TestGenerateKey(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	keyA, err := generateKey(0, testDir)
-	require.NoError(t, err)
-
-	keyB, err := generateKey(0, testDir)
-	require.NoError(t, err)
-	require.NotEqual(t, keyA, keyB)
-
-	keyC, err := generateKey(1, testDir)
-	require.NoError(t, err)
-
-	keyD, err := generateKey(1, testDir)
-	require.NoError(t, err)
-	require.Equal(t, keyC, keyD)
-}
-
-func TestReadLEB128ToUint64(t *testing.T) {
-	tests := []struct {
-		input  []byte
-		output uint64
-	}{
-		{
-			input:  []byte("\x02"),
-			output: 2,
-		},
-		{
-			input:  []byte("\x7F"),
-			output: 127,
-		},
-		{
-			input:  []byte("\x80\x01"),
-			output: 128,
-		},
-		{
-			input:  []byte("\x81\x01"),
-			output: 129,
-		},
-		{
-			input:  []byte("\x82\x01"),
-			output: 130,
-		},
-		{
-			input:  []byte("\xB9\x64"),
-			output: 12857,
-		},
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	for _, tc := range tests {
-		b := make([]byte, 2)
-		buf := new(bytes.Buffer)
-		_, err := buf.Write(tc.input)
-		require.NoError(t, err)
+	keyB, err := generateKey(0, testDir)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-		ret, err := readLEB128ToUint64(buf, b[:1])
-		require.NoError(t, err)
-		require.Equal(t, tc.output, ret)
+	if reflect.DeepEqual(keyA, keyB) {
+		t.Error("Generated keys should not match")
+	}
+
+	keyC, err := generateKey(1, testDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	keyD, err := generateKey(1, testDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(keyC, keyD) {
+		t.Error("Generated keys should match")
 	}
 }

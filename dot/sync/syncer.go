@@ -364,14 +364,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 		}
 	} else {
 		logger.Debug("🔗 imported block", "number", block.Header.Number, "hash", block.Header.Hash())
-		err := telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(
-			telemetry.NewKeyValue("best", block.Header.Hash().String()),
-			telemetry.NewKeyValue("height", block.Header.Number.Uint64()),
-			telemetry.NewKeyValue("msg", "block.import"),
-			telemetry.NewKeyValue("origin", "NetworkInitialSync")))
-		if err != nil {
-			logger.Debug("problem sending block.import telemetry message", "error", err)
-		}
+		telemetry.GetInstance().SendBlockImport(block.Header.Hash().String(), block.Header.Number)
 	}
 
 	// handle consensus digest for authority changes
@@ -460,15 +453,4 @@ func (s *Service) IsSynced() bool {
 func (s *Service) SetSyncing(syncing bool) {
 	s.synced = !syncing
 	s.storageState.SetSyncing(syncing)
-	if syncing {
-		err := s.blockProducer.Pause()
-		if err != nil {
-			logger.Warn("failed to pause block production", "error", err)
-		}
-	} else {
-		err := s.blockProducer.Resume()
-		if err != nil {
-			logger.Warn("failed to resume block production", "error", err)
-		}
-	}
 }
