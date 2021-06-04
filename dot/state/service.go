@@ -23,6 +23,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -54,25 +55,35 @@ type Service struct {
 
 	// Below are for state trie online pruner
 	retainBlocks int64
-	pruningMode  Pruning
+	pruningMode  pruner.Mode
+}
+
+// Config is the default configuration used by state service.
+type Config struct {
+	Path     string
+	LogLevel log.Lvl
+	Pruning  struct {
+		Mode              pruner.Mode
+		NumRetainedBlocks int64
+	}
 }
 
 // NewService create a new instance of Service
-func NewService(path string, lvl log.Lvl, pruningMode Pruning, retainBlocks int64) *Service {
+func NewService(config Config) *Service {
 	handler := log.StreamHandler(os.Stdout, log.TerminalFormat())
 	handler = log.CallerFileHandler(handler)
-	logger.SetHandler(log.LvlFilterHandler(lvl, handler))
+	logger.SetHandler(log.LvlFilterHandler(config.LogLevel, handler))
 
 	return &Service{
-		dbPath:       path,
-		logLvl:       lvl,
+		dbPath:       config.Path,
+		logLvl:       config.LogLevel,
 		db:           nil,
 		isMemDB:      false,
 		Storage:      nil,
 		Block:        nil,
 		closeCh:      make(chan interface{}),
-		pruningMode:  pruningMode,
-		retainBlocks: retainBlocks,
+		pruningMode:  config.Pruning.Mode,
+		retainBlocks: config.Pruning.NumRetainedBlocks,
 	}
 }
 

@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/dot/state/pruner"
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -53,7 +54,20 @@ func newInMemoryDB(path string) (chaindb.Database, error) {
 // createStateService creates the state service and initialise state database
 func createStateService(cfg *Config) (*state.Service, error) {
 	logger.Debug("creating state service...")
-	stateSrvc := state.NewService(cfg.Global.BasePath, cfg.Log.StateLvl, cfg.Global.Pruning, cfg.Global.RetainBlocks)
+
+	config := state.Config{
+		Path:     cfg.Global.BasePath,
+		LogLevel: cfg.Log.StateLvl,
+		Pruning: struct {
+			Mode              pruner.Mode
+			NumRetainedBlocks int64
+		}{
+			Mode:              cfg.Global.Pruning,
+			NumRetainedBlocks: cfg.Global.RetainBlocks,
+		},
+	}
+
+	stateSrvc := state.NewService(config)
 
 	// start state service (initialise state database)
 	err := stateSrvc.Start()

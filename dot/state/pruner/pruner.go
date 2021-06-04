@@ -1,4 +1,4 @@
-package state
+package pruner
 
 import (
 	"fmt"
@@ -8,6 +8,7 @@ import (
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/scale"
+	log "github.com/ChainSafe/log15"
 )
 
 const (
@@ -18,47 +19,35 @@ const (
 
 // nolint
 const (
-	FullNode    = "full"
-	ArchiveNode = "archive"
+	Full    = Mode("full")
+	Archive = Mode("archive")
 )
 
-// Pruning online pruning mode of historical state tries
-type Pruning string
+// Mode online pruning mode of historical state tries
+type Mode string
 
 // IsValid checks whether the pruning mode is valid
-func (p Pruning) IsValid() bool {
+func (p Mode) IsValid() bool {
 	switch p {
-	case FullNode:
+	case Full:
 		return true
-	case ArchiveNode:
+	case Archive:
 		return true
 	default:
 		return false
 	}
 }
 
-// String returns format of Pruning
-func (p Pruning) String() string {
-	switch p {
-	case FullNode:
-		return "full"
-	case ArchiveNode:
-		return "archive"
-	default:
-		return ""
-	}
-}
-
-// Pruner is implemented by fullNodePruner and archivalNodePruner.
+// Pruner is implemented by FullNode and ArchiveNode.
 type Pruner interface {
-	storeJournalRecord(deleted, inserted []common.Hash, blockHash common.Hash, blockNum int64) error
+	StoreJournalRecord(deleted, inserted []common.Hash, blockHash common.Hash, blockNum int64) error
 }
 
-// archivalNodePruner is a no-op since we don't prune nodes in archive mode.
-type archivalNodePruner struct{}
+// ArchiveNode is a no-op since we don't prune nodes in archive mode.
+type ArchiveNode struct{}
 
-// storeJournalRecord for archive node doesn't do anything.
-func (a *archivalNodePruner) storeJournalRecord(deleted, inserted []common.Hash, blockHash common.Hash, blockNum int64) error {
+// StoreJournalRecord for archive node doesn't do anything.
+func (a *ArchiveNode) StoreJournalRecord(deleted, inserted []common.Hash, blockHash common.Hash, blockNum int64) error {
 	return nil
 }
 
@@ -69,8 +58,9 @@ type deathRecord struct {
 
 type deathRow []*deathRecord
 
-// fullNodePruner stores state trie diff and allows online state trie pruning
-type fullNodePruner struct {
+// FullNode stores state trie diff and allows online state trie pruning
+type FullNode struct {
+	logger        log.Logger
 	deathList     []deathRow
 	storageDB     chaindb.Database
 	journalDB     chaindb.Database
@@ -102,14 +92,15 @@ func newJournalRecord(hash common.Hash, insertedKeys, deletedKeys []common.Hash)
 	}
 }
 
-// createPruner creates a pruner
-func createPruner(db chaindb.Database, retainBlocks int64) (Pruner, error) {
-	p := &fullNodePruner{
+// NewFullNode creates a Pruner for full node.
+func NewFullNode(db, storageDB chaindb.Database, retainBlocks int64, l log.Logger) (Pruner, error) {
+	p := &FullNode{
 		deathList:    make([]deathRow, 0),
 		deathIndex:   make(map[common.Hash]int64),
-		storageDB:    chaindb.NewTable(db, storagePrefix),
+		storageDB:    storageDB,
 		journalDB:    chaindb.NewTable(db, journalPrefix),
 		retainBlocks: retainBlocks,
+		logger:       l,
 	}
 
 	blockNum, err := p.getLastPrunedIndex()
@@ -117,7 +108,7 @@ func createPruner(db chaindb.Database, retainBlocks int64) (Pruner, error) {
 		return nil, err
 	}
 
-	logger.Info("last pruned block", "block num", blockNum)
+	p.logger.Info("last pruned block", "block num", blockNum)
 	blockNum++
 
 	p.pendingNumber = blockNum
@@ -133,7 +124,7 @@ func createPruner(db chaindb.Database, retainBlocks int64) (Pruner, error) {
 }
 
 // StoreJournalRecord stores journal record into DB and add deathRow into deathList
-func (p *fullNodePruner) storeJournalRecord(deleted, inserted []common.Hash, blockHash common.Hash, blockNum int64) error {
+func (p *FullNode) StoreJournalRecord(deleted, inserted []common.Hash, blockHash common.Hash, blockNum int64) error {
 	jr := newJournalRecord(blockHash, inserted, deleted)
 
 	key := &journalKey{blockNum, blockHash}
@@ -142,12 +133,12 @@ func (p *fullNodePruner) storeJournalRecord(deleted, inserted []common.Hash, blo
 		return fmt.Errorf("failed to store journal record for %d: %w", blockNum, err)
 	}
 
-	logger.Debug("journal record stored", "block num", blockNum)
+	p.logger.Debug("journal record stored", "block num", blockNum)
 	p.addDeathRow(jr, blockNum)
 	return nil
 }
 
-func (p *fullNodePruner) addDeathRow(jr *journalRecord, blockNum int64) {
+func (p *FullNode) addDeathRow(jr *journalRecord, blockNum int64) {
 	if blockNum == 0 {
 		return
 	}
@@ -187,7 +178,7 @@ func (p *fullNodePruner) addDeathRow(jr *journalRecord, blockNum int64) {
 }
 
 // Remove re-inserted keys
-func (p *fullNodePruner) processInsertedKeys(insKeys []common.Hash, blockHash common.Hash) {
+func (p *FullNode) processInsertedKeys(insKeys []common.Hash, blockHash common.Hash) {
 	for _, k := range insKeys {
 		num, ok := p.deathIndex[k]
 		if !ok {
@@ -203,8 +194,8 @@ func (p *fullNodePruner) processInsertedKeys(insKeys []common.Hash, blockHash co
 	}
 }
 
-func (p *fullNodePruner) start() {
-	logger.Info("pruning started")
+func (p *FullNode) start() {
+	p.logger.Info("pruning started")
 
 	var canPrune bool
 	checkPruning := func() {
@@ -220,12 +211,12 @@ func (p *fullNodePruner) start() {
 		row := p.deathList[0]
 		blockNum := p.pendingNumber
 
-		logger.Debug("pruning block", "block num", blockNum)
+		p.logger.Debug("pruning block", "block num", blockNum)
 
 		for _, record := range row {
 			err := p.deleteKeys(record.deletedKeys)
 			if err != nil {
-				logger.Warn("failed to prune keys", "block num", blockNum, "error", err)
+				p.logger.Warn("failed to prune keys", "block num", blockNum, "error", err)
 				return
 			}
 
@@ -236,7 +227,7 @@ func (p *fullNodePruner) start() {
 
 		err := p.storeLastPrunedIndex(blockNum)
 		if err != nil {
-			logger.Error("failed to store last pruned index", "block num", blockNum, "error", err)
+			p.logger.Error("failed to store last pruned index", "block num", blockNum, "error", err)
 			return
 		}
 
@@ -247,7 +238,7 @@ func (p *fullNodePruner) start() {
 			jk := &journalKey{blockNum, record.blockHash}
 			err = p.deleteJournalRecord(jk)
 			if err != nil {
-				logger.Error("failed to delete journal record", "block num", blockNum, "error", err)
+				p.logger.Error("failed to delete journal record", "block num", blockNum, "error", err)
 				return
 			}
 		}
@@ -262,7 +253,7 @@ func (p *fullNodePruner) start() {
 	}
 }
 
-func (p *fullNodePruner) storeJournal(key *journalKey, jr *journalRecord) error {
+func (p *FullNode) storeJournal(key *journalKey, jr *journalRecord) error {
 	encKey, err := scale.Encode(key)
 	if err != nil {
 		return fmt.Errorf("failed to encode journal key block num %d: %w", key.blockNum, err)
@@ -282,7 +273,7 @@ func (p *fullNodePruner) storeJournal(key *journalKey, jr *journalRecord) error 
 }
 
 // loadDeathList loads deathList and deathIndex from journalRecord.
-func (p *fullNodePruner) loadDeathList() error {
+func (p *FullNode) loadDeathList() error {
 	itr := p.journalDB.NewIterator()
 	defer itr.Release()
 
@@ -305,7 +296,7 @@ func (p *fullNodePruner) loadDeathList() error {
 	return nil
 }
 
-func (p *fullNodePruner) deleteJournalRecord(key *journalKey) error {
+func (p *FullNode) deleteJournalRecord(key *journalKey) error {
 	encKey, err := scale.Encode(key)
 	if err != nil {
 		return err
@@ -319,7 +310,7 @@ func (p *fullNodePruner) deleteJournalRecord(key *journalKey) error {
 	return nil
 }
 
-func (p *fullNodePruner) storeLastPrunedIndex(blockNum int64) error {
+func (p *FullNode) storeLastPrunedIndex(blockNum int64) error {
 	encNum, err := scale.Encode(blockNum)
 	if err != nil {
 		return err
@@ -333,7 +324,7 @@ func (p *fullNodePruner) storeLastPrunedIndex(blockNum int64) error {
 	return nil
 }
 
-func (p *fullNodePruner) getLastPrunedIndex() (int64, error) {
+func (p *FullNode) getLastPrunedIndex() (int64, error) {
 	val, err := p.journalDB.Get([]byte(lastPrunedKey))
 	if err == chaindb.ErrKeyNotFound {
 		return 0, nil
@@ -351,7 +342,7 @@ func (p *fullNodePruner) getLastPrunedIndex() (int64, error) {
 	return blockNum.(int64), nil
 }
 
-func (p *fullNodePruner) deleteKeys(nodesHash map[common.Hash]int64) error {
+func (p *FullNode) deleteKeys(nodesHash map[common.Hash]int64) error {
 	for k := range nodesHash {
 		err := p.storageDB.Del(k.ToBytes())
 		if err != nil {

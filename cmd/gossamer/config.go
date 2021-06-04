@@ -25,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -445,7 +446,7 @@ func setDotGlobalConfigFromToml(tomlCfg *ctoml.Config, cfg *dot.GlobalConfig) {
 		cfg.MetricsPort = tomlCfg.Global.MetricsPort
 
 		cfg.RetainBlocks = tomlCfg.Global.RetainBlocks
-		cfg.Pruning = state.Pruning(tomlCfg.Global.Pruning)
+		cfg.Pruning = pruner.Mode(tomlCfg.Global.Pruning)
 	}
 }
 
@@ -476,7 +477,7 @@ func setDotGlobalConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) {
 	}
 
 	cfg.RetainBlocks = ctx.GlobalInt64(RetainBlockNumberFlag.Name)
-	cfg.Pruning = state.Pruning(ctx.GlobalString(Pruning.Name))
+	cfg.Pruning = pruner.Mode(ctx.GlobalString(Pruning.Name))
 	cfg.NoTelemetry = ctx.Bool("no-telemetry")
 }
 

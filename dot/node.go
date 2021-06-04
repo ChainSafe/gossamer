@@ -90,8 +90,13 @@ func InitNode(cfg *Config) error {
 		return fmt.Errorf("failed to create genesis block from trie: %w", err)
 	}
 
+	config := state.Config{
+		Path:     cfg.Global.BasePath,
+		LogLevel: cfg.Global.LogLvl,
+	}
+
 	// create new state service
-	stateSrvc := state.NewService(cfg.Global.BasePath, cfg.Global.LogLvl, "", 0)
+	stateSrvc := state.NewService(config)
 
 	// initialise state service with genesis data, block, and trie
 	err = stateSrvc.Initialise(gen, header, t)

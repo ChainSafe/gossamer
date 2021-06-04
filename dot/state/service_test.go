@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -50,13 +51,21 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie
 // helper method to create and start test state service
 func newTestService(t *testing.T) (state *Service) {
 	testDir := utils.NewTestDir(t)
-	state = NewService(testDir, log.LvlTrace, "", 0)
+	config := Config{
+		Path:     testDir,
+		LogLevel: log.LvlInfo,
+	}
+	state = NewService(config)
 	return state
 }
 
 func newTestMemDBService() *Service {
 	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
-	state := NewService(testDatadirPath, log.LvlTrace, "", 0)
+	config := Config{
+		Path:     testDatadirPath,
+		LogLevel: log.LvlInfo,
+	}
+	state := NewService(config)
 	state.UseMemDB()
 	return state
 }
@@ -118,7 +127,11 @@ func TestService_BlockTree(t *testing.T) {
 	// removes all data directories created within test directory
 	defer utils.RemoveTestDir(t)
 
-	stateA := NewService(testDir, log.LvlTrace, "", 0)
+	config := Config{
+		Path:     testDir,
+		LogLevel: log.LvlInfo,
+	}
+	stateA := NewService(config)
 
 	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 	err := stateA.Initialise(genData, genesisHeader, genTrie)
@@ -133,7 +146,7 @@ func TestService_BlockTree(t *testing.T) {
 	err = stateA.Stop()
 	require.NoError(t, err)
 
-	stateB := NewService(testDir, log.LvlTrace, "", 0)
+	stateB := NewService(config)
 
 	err = stateB.Start()
 	require.NoError(t, err)
@@ -148,7 +161,18 @@ func TestService_StorageTriePruning(t *testing.T) {
 	defer utils.RemoveTestDir(t)
 
 	retainBlocks := 2
-	serv := NewService(testDir, log.LvlInfo, FullNode, int64(retainBlocks))
+	config := Config{
+		Path:     testDir,
+		LogLevel: log.LvlInfo,
+		Pruning: struct {
+			Mode              pruner.Mode
+			NumRetainedBlocks int64
+		}{
+			Mode:              pruner.Full,
+			NumRetainedBlocks: int64(retainBlocks),
+		},
+	}
+	serv := NewService(config)
 	serv.UseMemDB()
 
 	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
@@ -197,7 +221,11 @@ func TestService_PruneStorage(t *testing.T) {
 	testDir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
 
-	serv := NewService(testDir, log.LvlTrace, "", 0)
+	config := Config{
+		Path:     testDir,
+		LogLevel: log.LvlInfo,
+	}
+	serv := NewService(config)
 	serv.UseMemDB()
 
 	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
@@ -272,7 +300,11 @@ func TestService_Rewind(t *testing.T) {
 	testDir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
 
-	serv := NewService(testDir, log.LvlTrace, "", 0)
+	config := Config{
+		Path:     testDir,
+		LogLevel: log.LvlInfo,
+	}
+	serv := NewService(config)
 	serv.UseMemDB()
 
 	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
@@ -320,7 +352,11 @@ func TestService_Import(t *testing.T) {
 	testDir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
 
-	serv := NewService(testDir, log.LvlTrace, "", 0)
+	config := Config{
+		Path:     testDir,
+		LogLevel: log.LvlInfo,
+	}
+	serv := NewService(config)
 	serv.UseMemDB()
 
 	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)

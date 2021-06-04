@@ -23,6 +23,7 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -51,12 +52,12 @@ type StorageState struct {
 	// change notifiers
 	changedLock  sync.RWMutex
 	observerList []Observer
-	pruner       Pruner
+	pruner       pruner.Pruner
 	syncing      bool
 }
 
 // NewStorageState creates a new StorageState backed by the given trie and database located at basePath.
-func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie, pruningMode Pruning, retainBlocks int64) (*StorageState, error) {
+func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie, pruningMode pruner.Mode, retainBlocks int64) (*StorageState, error) {
 	if db == nil {
 		return nil, fmt.Errorf("cannot have nil database")
 	}
@@ -68,23 +69,25 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie, 
 	tries := make(map[common.Hash]*trie.Trie)
 	tries[t.MustHash()] = t
 
-	var pruner Pruner
-	if pruningMode == FullNode {
+	storageTable := chaindb.NewTable(db, storagePrefix)
+
+	var p pruner.Pruner
+	if pruningMode == pruner.Full {
 		var err error
-		pruner, err = createPruner(db, retainBlocks)
+		p, err = pruner.NewFullNode(db, storageTable, retainBlocks, logger)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		pruner = &archivalNodePruner{}
+		p = &pruner.ArchiveNode{}
 	}
 
 	return &StorageState{
 		blockState:   blockState,
 		tries:        tries,
-		db:           chaindb.NewTable(db, storagePrefix),
+		db:           storageTable,
 		observerList: []Observer{},
-		pruner:       pruner,
+		pruner:       p,
 	}, nil
 }
 
@@ -119,7 +122,7 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 	s.tries[root] = ts.Trie()
 	s.lock.Unlock()
 
-	if _, ok := s.pruner.(*fullNodePruner); header == nil && ok {
+	if _, ok := s.pruner.(*pruner.FullNode); header == nil && ok {
 		return fmt.Errorf("block cannot be empty for Full node pruner")
 	}
 
@@ -130,7 +133,7 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 		}
 
 		delKeys := ts.GetDeletedNodeHashes()
-		err = s.pruner.storeJournalRecord(delKeys, insKeys, header.Hash(), header.Number.Int64())
+		err = s.pruner.StoreJournalRecord(delKeys, insKeys, header.Hash(), header.Number.Int64())
 		if err != nil {
 			return err
 		}

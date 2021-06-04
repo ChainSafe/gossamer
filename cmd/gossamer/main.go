@@ -23,6 +23,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
@@ -240,7 +241,7 @@ func gossamerAction(ctx *cli.Context) error {
 	}
 
 	if !cfg.Global.Pruning.IsValid() {
-		return fmt.Errorf("--%s must be either %s or %s", state.FullNode, state.ArchiveNode, Pruning.Name)
+		return fmt.Errorf("--%s must be either %s or %s", pruner.Full, pruner.Archive, Pruning.Name)
 	}
 
 	cfg.Global.LogLvl = lvl
