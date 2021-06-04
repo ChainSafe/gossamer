@@ -45,7 +45,7 @@ const (
 	blockAnnounceID = "/block-announces/1"
 	transactionsID  = "/transactions/1"
 
-	maxMessageSize = 1024 * 1024 // 1mb for now
+	maxMessageSize = 1024 * 63 // 63kb for now
 )
 
 var (
@@ -67,12 +67,13 @@ type Service struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	cfg       *Config
-	host      *host
-	mdns      *mdns
-	gossip    *gossip
-	syncQueue *syncQueue
-	bufPool   *sizedBufferPool
+	cfg           *Config
+	host          *host
+	mdns          *mdns
+	gossip        *gossip
+	syncQueue     *syncQueue
+	bufPool       *sizedBufferPool
+	streamManager *streamManager
 
 	notificationsProtocols map[byte]*notificationsProtocol // map of sub-protocol msg ID to protocol info
 	notificationsMu        sync.RWMutex
@@ -139,10 +140,10 @@ func NewService(cfg *Config) (*Service, error) {
 	var bufPool *sizedBufferPool
 	if cfg.noPreAllocate {
 		bufPool = &sizedBufferPool{
-			c: make(chan *[maxMessageSize]byte, cfg.MaxPeers*3),
+			c: make(chan *[maxMessageSize]byte, cfg.MinPeers*3),
 		}
 	} else {
-		bufPool = newSizedBufferPool((cfg.MaxPeers-cfg.MinPeers)*3/2, (cfg.MaxPeers+1)*3)
+		bufPool = newSizedBufferPool(cfg.MinPeers*3, cfg.MaxPeers*3)
 	}
 
 	network := &Service{
@@ -162,6 +163,7 @@ func NewService(cfg *Config) (*Service, error) {
 		telemetryInterval:      cfg.telemetryInterval,
 		closeCh:                make(chan interface{}),
 		bufPool:                bufPool,
+		streamManager:          newStreamManager(ctx),
 	}
 
 	network.syncQueue = newSyncQueue(network)
@@ -267,6 +269,7 @@ func (s *Service) Start() error {
 	go s.logPeerCount()
 	go s.publishNetworkTelemetry(s.closeCh)
 	go s.sentBlockIntervalTelemetry()
+	s.streamManager.start()
 
 	return nil
 }
@@ -313,9 +316,15 @@ main:
 
 		case <-ticker.C:
 			o := s.host.bwc.GetBandwidthTotals()
-			telemetry.GetInstance().SendNetworkData(telemetry.NewNetworkData(s.host.peerCount(), o.RateIn, o.RateOut))
+			err := telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(
+				telemetry.NewKeyValue("bandwidth_download", o.RateIn),
+				telemetry.NewKeyValue("bandwidth_upload", o.RateOut),
+				telemetry.NewKeyValue("msg", "system.interval"),
+				telemetry.NewKeyValue("peers", s.host.peerCount())))
+			if err != nil {
+				logger.Debug("problem sending system.interval telemetry message", "error", err)
+			}
 		}
-
 	}
 }
 
@@ -330,14 +339,17 @@ func (s *Service) sentBlockIntervalTelemetry() {
 			continue
 		}
 
-		telemetry.GetInstance().SendBlockIntervalData(&telemetry.BlockIntervalData{
-			BestHash:           best.Hash(),
-			BestHeight:         best.Number,
-			FinalizedHash:      finalized.Hash(),
-			FinalizedHeight:    finalized.Number,
-			TXCount:            0, // todo (ed) determine where to get tx count
-			UsedStateCacheSize: 0, // todo (ed) determine where to get used_state_cache_size
-		})
+		err = telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(
+			telemetry.NewKeyValue("best", best.Hash().String()),
+			telemetry.NewKeyValue("finalized_hash", finalized.Hash().String()), //nolint
+			telemetry.NewKeyValue("finalized_height", finalized.Number),        //nolint
+			telemetry.NewKeyValue("height", best.Number),
+			telemetry.NewKeyValue("msg", "system.interval"),
+			telemetry.NewKeyValue("txcount", 0),                // todo (ed) determine where to get tx count
+			telemetry.NewKeyValue("used_state_cache_size", 0))) // todo (ed) determine where to get used_state_cache_size
+		if err != nil {
+			logger.Debug("problem sending system.interval telemetry message", "error", err)
+		}
 		time.Sleep(s.telemetryInterval)
 	}
 }
@@ -465,20 +477,15 @@ func (s *Service) IsStopped() bool {
 
 // SendMessage implementation of interface to handle receiving messages
 func (s *Service) SendMessage(msg NotificationsMessage) {
-	if s.host == nil {
+	if s.host == nil || msg == nil || s.IsStopped() {
 		return
 	}
-	if s.IsStopped() {
-		return
-	}
-	if msg == nil {
-		logger.Debug("Received nil message from core service")
-		return
-	}
+
 	logger.Debug(
-		"Broadcasting message from core service",
+		"gossiping message",
 		"host", s.host.id(),
 		"type", msg.Type(),
+		"message", msg,
 	)
 
 	// check if the message is part of a notifications protocol
@@ -525,6 +532,8 @@ func isInbound(stream libp2pnetwork.Stream) bool {
 }
 
 func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder, handler messageHandler) {
+	s.streamManager.logNewStream(stream)
+
 	peer := stream.Conn().RemotePeer()
 	msgBytes := s.bufPool.get()
 	defer s.bufPool.put(&msgBytes)
@@ -538,6 +547,8 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 			_ = stream.Close()
 			return
 		}
+
+		s.streamManager.logMessageReceived(stream.ID())
 
 		// decode message based on message type
 		msg, err := decoder(msgBytes[:tot], peer, isInbound(stream))
