@@ -182,7 +182,8 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 	var body *types.Body
 	if ext != nil {
 		var txn *transaction.Validity
-		txn, err = instance.ValidateTransaction(append([]byte{byte(types.TxnExternal)}, ext...))
+		externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
+		txn, err = instance.ValidateTransaction(externalExt)
 		require.NoError(t, err)
 
 		vtx := transaction.NewValidTransaction(ext, txn)
