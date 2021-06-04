@@ -460,4 +460,15 @@ func (s *Service) IsSynced() bool {
 func (s *Service) SetSyncing(syncing bool) {
 	s.synced = !syncing
 	s.storageState.SetSyncing(syncing)
+	if syncing {
+		err := s.blockProducer.Pause()
+		if err != nil {
+			logger.Warn("failed to pause block production", "error", err)
+		}
+	} else {
+		err := s.blockProducer.Resume()
+		if err != nil {
+			logger.Warn("failed to resume block production", "error", err)
+		}
+	}
 }

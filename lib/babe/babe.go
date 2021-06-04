@@ -29,7 +29,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -244,7 +243,7 @@ func (b *Service) Pause() error {
 // Resume resumes the service ie. resumes block production
 func (b *Service) Resume() error {
 	if !b.paused {
-		return errors.New("service not paused")
+		return nil
 	}
 
 	epoch, err := b.epochState.GetCurrentEpoch()
@@ -253,9 +252,9 @@ func (b *Service) Resume() error {
 		return err
 	}
 
-	go b.initiate(epoch)
 	b.paused = false
-	logger.Info("service resumed")
+	go b.initiate(epoch)
+	logger.Info("service resumed", "epoch", epoch)
 	return nil
 }
 
@@ -488,21 +487,19 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		return nil
 	}
 
-	old := ts.Snapshot()
-
 	// block built successfully, store resulting trie in storage state
-	oldTs, err := rtstorage.NewTrieState(old)
-	if err != nil {
-		return err
-	}
+	// oldTs, err := rtstorage.NewTrieState(old)
+	// if err != nil {
+	// 	return err
+	// }
 
-	err = b.storageState.StoreTrie(oldTs)
+	err = b.storageState.StoreTrie(ts)
 	if err != nil {
 		logger.Error("failed to store trie in storage state", "error", err)
 	}
 
 	hash := block.Header.Hash()
-	logger.Info("built block", "hash", hash.String(), "number", block.Header.Number, "slot", slotNum)
+	logger.Info("built block", "hash", hash.String(), "number", block.Header.Number, "state root", block.Header.StateRoot, "slot", slotNum)
 	logger.Debug("built block", "header", block.Header, "body", block.Body, "parent", parent.Hash())
 
 	err = b.blockState.AddBlock(block)
