@@ -242,6 +242,10 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 
 		hsTimer := time.NewTimer(handshakeTimeout)
 
+		if info.handshakeDecoder == nil {
+			panic("handshakeDecoder is nil")
+		}
+
 		var hs Handshake
 		select {
 		case <-hsTimer.C:
@@ -319,7 +323,7 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 			continue
 		}
 
-		go s.sendData(peer, hs, info, msg)
+		s.sendData(peer, hs, info, msg)
 	}
 }
 
