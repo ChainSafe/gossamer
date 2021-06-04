@@ -6,7 +6,7 @@ SCALE is a light-weight format which allows encoding (and decoding) which makes 
 
 It is important to note that the encoding context (knowledge of how the types and data structures look) needs to be known separately at both encoding and decoding ends. The encoded data does not include this contextual information.
 
-This codec attempts to translate the primitive Go types to the associated types in SCALE.  It also introduces a few custom types to implement SCALE primitives that have no direct translation to a Go primitive type.
+This codec attempts to translate the primitive Go types to the associated types in SCALE.  It also introduces a few custom types to implement Rust primitives that have no direct translation to a Go primitive type.
 
 ## Translating From SCALE to Go
 
