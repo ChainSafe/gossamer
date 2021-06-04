@@ -385,7 +385,7 @@ func (bs *BlockState) HasFinalizedBlock(round, setID uint64) (bool, error) {
 		logger.Info("HasFinalizedBlock", "err", err)
 		return false, err
 	}
-	
+
 	logger.Info("HasFinalizedBlock", "has", has)
 	return has, nil
 }

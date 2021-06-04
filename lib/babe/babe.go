@@ -65,7 +65,7 @@ type Service struct {
 	blockChan chan types.Block // send blocks to core service
 
 	// State variables
-	lock  sync.Mutex
+	sync.RWMutex
 	pause chan struct{}
 }
 
@@ -230,12 +230,15 @@ func (b *Service) Pause() error {
 		return errors.New("service already paused")
 	}
 
-	select {
-	case b.pause <- struct{}{}:
-		logger.Info("service paused")
-	default:
-	}
+	b.Lock()
+	defer b.Unlock()
 
+	// select {
+	// case b.pause <- struct{}{}:
+	// 	logger.Info("service paused")
+	// default:
+	// }
+	b.pause <- struct{}{}
 	b.paused = true
 	return nil
 }
@@ -252,6 +255,9 @@ func (b *Service) Resume() error {
 		return err
 	}
 
+	b.Lock()
+	defer b.Unlock()
+
 	b.paused = false
 	go b.initiate(epoch)
 	logger.Info("service resumed", "epoch", epoch)
@@ -260,8 +266,8 @@ func (b *Service) Resume() error {
 
 // Stop stops the service. If stop is called, it cannot be resumed.
 func (b *Service) Stop() error {
-	b.lock.Lock()
-	defer b.lock.Unlock()
+	b.Lock()
+	defer b.Unlock()
 
 	if b.ctx.Err() != nil {
 		return errors.New("service already stopped")
@@ -284,7 +290,7 @@ func (b *Service) GetBlockChannel() <-chan types.Block {
 
 // SetOnDisabled sets the block producer with the given index as disabled
 // If this is our node, we stop producing blocks
-func (b *Service) SetOnDisabled(authorityIndex uint32) {
+func (b *Service) SetOnDisabled(authorityIndex uint32) { // TODO: remove this
 	if authorityIndex == b.epochData.authorityIndex {
 		b.isDisabled = true
 	}
@@ -302,18 +308,14 @@ func (b *Service) IsStopped() bool {
 
 // IsPaused returns if the service is paused or not (ie. producing blocks)
 func (b *Service) IsPaused() bool {
+	b.RLock()
+	defer b.RUnlock()
 	return b.paused
 }
 
 func (b *Service) safeSend(msg types.Block) error {
-	defer func() {
-		if err := recover(); err != nil {
-			logger.Error("recovered from panic", "error", err)
-		}
-	}()
-
-	b.lock.Lock()
-	defer b.lock.Unlock()
+	b.Lock()
+	defer b.Unlock()
 
 	if b.IsStopped() {
 		return errors.New("Service has been stopped")
@@ -444,7 +446,7 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) {
 }
 
 func (b *Service) handleSlot(slotNum uint64) error {
-	if b.slotToProof[slotNum] == nil {
+	if _, has := b.slotToProof[slotNum]; !has {
 		return ErrNotAuthorized
 	}
 
