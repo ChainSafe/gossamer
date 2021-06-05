@@ -38,14 +38,16 @@ type BlockTree struct {
 	leaves *leafMap
 	db     database.Database
 	sync.RWMutex
+	blockIndex map[Hash]*node
 }
 
 // NewEmptyBlockTree creates a BlockTree with a nil head
 func NewEmptyBlockTree(db database.Database) *BlockTree {
 	return &BlockTree{
-		head:   nil,
-		leaves: newEmptyLeafMap(),
-		db:     db,
+		head:       nil,
+		leaves:     newEmptyLeafMap(),
+		db:         db,
+		blockIndex: make(map[Hash]*node),
 	}
 }
 
@@ -61,9 +63,10 @@ func NewBlockTreeFromRoot(root *types.Header, db database.Database) *BlockTree {
 	}
 
 	return &BlockTree{
-		head:   head,
-		leaves: newLeafMap(head),
-		db:     db,
+		head:       head,
+		leaves:     newLeafMap(head),
+		db:         db,
+		blockIndex: make(map[Hash]*node),
 	}
 }
 
@@ -150,7 +153,19 @@ func (bt *BlockTree) GetAllBlocksAtDepth(hash common.Hash) []common.Hash {
 }
 
 // getNode finds and returns a node based on its Hash. Returns nil if not found.
-func (bt *BlockTree) getNode(h Hash) *node {
+func (bt *BlockTree) getNode(h Hash) (ret *node) {
+	defer func() {
+		if ret != nil {
+			if _, ok := bt.blockIndex[ret.hash]; !ok {
+				bt.blockIndex[ret.hash] = ret
+			}
+		}
+	}()
+
+	if b, ok := bt.blockIndex[h]; ok {
+		return b
+	}
+
 	if bt.head.hash == h {
 		return bt.head
 	}
@@ -175,6 +190,11 @@ func (bt *BlockTree) getNode(h Hash) *node {
 func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 	bt.Lock()
 	defer bt.Unlock()
+	defer func() {
+		for _, hash := range pruned {
+			delete(bt.blockIndex, hash)
+		}
+	}()
 
 	if finalised == bt.head.hash {
 		return pruned
