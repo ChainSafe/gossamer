@@ -370,7 +370,8 @@ func (bt *BlockTree) DeepCopy() *BlockTree {
 	defer bt.RUnlock()
 
 	btCopy := &BlockTree{
-		db: bt.db,
+		db:         bt.db,
+		blockIndex: bt.blockIndex,
 	}
 
 	if bt.head == nil {
