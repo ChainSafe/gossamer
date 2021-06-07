@@ -146,35 +146,94 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 		case reflect.Slice:
 			err = ds.decodeSlice(dstv)
 		default:
-			_, ok := in.(VaryingDataTypeValue)
-			switch ok {
-			case true:
-				var temp reflect.Value
-				t := reflect.TypeOf(in)
-				switch t.Kind() {
-				// TODO: support more primitive types.  Do we need to support arrays and slices as well?
-				case reflect.Int:
-					temp = reflect.New(reflect.TypeOf(int(1)))
-					err = ds.unmarshal(temp.Elem())
-					if err != nil {
-						break
-					}
-				case reflect.Int16:
-					temp = reflect.New(reflect.TypeOf(int16(1)))
-					err = ds.unmarshal(temp.Elem())
-					if err != nil {
-						break
-					}
-				default:
-					err = fmt.Errorf("unsupported kind for VaryingDataTypeValue: %s", t.Kind())
-					return
-				}
-				dstv.Set(temp.Elem().Convert(t))
-			default:
-				err = fmt.Errorf("unsupported type: %T", in)
-			}
+			err = fmt.Errorf("unsupported type: %T", in)
 		}
 	}
+	return
+}
+
+func (ds *decodeState) decodeCustomPrimitive(dstv reflect.Value) (err error) {
+	in := dstv.Interface()
+	inType := reflect.TypeOf(in)
+	var temp reflect.Value
+	switch inType.Kind() {
+	case reflect.Bool:
+		temp = reflect.New(reflect.TypeOf(false))
+		err = ds.unmarshal(temp.Elem())
+		if err != nil {
+			break
+		}
+	case reflect.Int:
+		temp = reflect.New(reflect.TypeOf(int(1)))
+		err = ds.unmarshal(temp.Elem())
+		if err != nil {
+			break
+		}
+	case reflect.Int8:
+		temp = reflect.New(reflect.TypeOf(int8(1)))
+		err = ds.unmarshal(temp.Elem())
+		if err != nil {
+			break
+		}
+	case reflect.Int16:
+		temp = reflect.New(reflect.TypeOf(int16(1)))
+		err = ds.unmarshal(temp.Elem())
+		if err != nil {
+			break
+		}
+	case reflect.Int32:
+		temp = reflect.New(reflect.TypeOf(int32(1)))
+		err = ds.unmarshal(temp.Elem())
+		if err != nil {
+			break
+		}
+	case reflect.Int64:
+		temp = reflect.New(reflect.TypeOf(int64(1)))
+		err = ds.unmarshal(temp.Elem())
+		if err != nil {
+			break
+		}
+	case reflect.String:
+		temp = reflect.New(reflect.TypeOf(""))
+		err = ds.unmarshal(temp.Elem())
+		if err != nil {
+			break
+		}
+	case reflect.Uint:
+		temp = reflect.New(reflect.TypeOf(uint(0)))
+		err = ds.unmarshal(temp.Elem())
+		if err != nil {
+			break
+		}
+	case reflect.Uint8:
+		temp = reflect.New(reflect.TypeOf(uint8(0)))
+		err = ds.unmarshal(temp.Elem())
+		if err != nil {
+			break
+		}
+	case reflect.Uint16:
+		temp = reflect.New(reflect.TypeOf(uint16(0)))
+		err = ds.unmarshal(temp.Elem())
+		if err != nil {
+			break
+		}
+	case reflect.Uint32:
+		temp = reflect.New(reflect.TypeOf(uint32(0)))
+		err = ds.unmarshal(temp.Elem())
+		if err != nil {
+			break
+		}
+	case reflect.Uint64:
+		temp = reflect.New(reflect.TypeOf(uint64(0)))
+		err = ds.unmarshal(temp.Elem())
+		if err != nil {
+			break
+		}
+	default:
+		err = fmt.Errorf("unsupported type for custom primitive: %T", in)
+		return
+	}
+	dstv.Set(temp.Elem().Convert(inType))
 	return
 }
 
