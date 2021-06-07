@@ -26,9 +26,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-
 	log "github.com/ChainSafe/log15"
 )
 
@@ -323,6 +323,11 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		return err
 	}
 
+	// subchain contains the ancestor as well so we need to remove it.
+	if len(subchain) > 0 {
+		subchain = subchain[1:]
+	}
+
 	// for each block in the previous chain, re-add its extrinsics back into the pool
 	for _, hash := range subchain {
 		body, err := s.blockState.GetBlockBody(hash)
@@ -340,13 +345,30 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		for _, ext := range exts {
 			logger.Debug("validating transaction on re-org chain", "extrinsic", ext)
 
-			txv, err := s.rt.ValidateTransaction(ext)
+			decExt := &types.ExtrinsicData{}
+			err = decExt.DecodeVersion(ext)
 			if err != nil {
-				logger.Debug("failed to validate transaction", "extrinsic", ext)
+				return err
+			}
+
+			// Inherent are not signed.
+			if !decExt.IsSigned() {
 				continue
 			}
 
-			vtx := transaction.NewValidTransaction(ext, txv)
+			encExt, err := scale.Encode(ext)
+			if err != nil {
+				return err
+			}
+
+			externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExt...))
+			txv, err := s.rt.ValidateTransaction(externalExt)
+			if err != nil {
+				logger.Debug("failed to validate transaction", "error", err, "extrinsic", ext)
+				continue
+			}
+
+			vtx := transaction.NewValidTransaction(encExt, txv)
 			s.transactionState.AddToPool(vtx)
 		}
 	}
@@ -442,7 +464,8 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 
 	// the transaction source is External
 	// validate the transaction
-	txv, err := s.rt.ValidateTransaction(append([]byte{byte(types.TxnExternal)}, ext...))
+	externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
+	txv, err := s.rt.ValidateTransaction(externalExt)
 	if err != nil {
 		return err
 	}
