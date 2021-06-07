@@ -563,6 +563,10 @@ func (s *Service) attemptToFinalize() error {
 		return ErrServicePaused
 	}
 
+	if s.ctx.Err() != nil {
+		return nil
+	}
+
 	has, _ := s.blockState.HasFinalizedBlock(s.state.round, s.state.setID)
 	if has {
 		return nil // a block was finalised, seems like we missed some messages

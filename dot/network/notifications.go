@@ -208,7 +208,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 
 func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtocol, msg NotificationsMessage) {
 	if support, err := s.host.supportsProtocol(peer, info.protocolID); err != nil || !support {
-		logger.Debug("the peer does not supports the protocol", "protocol", info.protocolID, "peer", peer, "err", err)
+		logger.Trace("the peer does not supports the protocol", "protocol", info.protocolID, "peer", peer, "err", err)
 		return
 	}
 
