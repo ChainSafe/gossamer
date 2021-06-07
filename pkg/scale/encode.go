@@ -61,6 +61,10 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 		err = es.encodeBool(in)
 	default:
 		switch reflect.TypeOf(in).Kind() {
+		case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16,
+			reflect.Int32, reflect.Int64, reflect.String, reflect.Uint,
+			reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+			err = es.encodeCustomPrimitive(in)
 		case reflect.Ptr:
 			// Assuming that anything that is a pointer is an Option to capture {nil, T}
 			elem := reflect.ValueOf(in).Elem()
@@ -98,30 +102,63 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 				err = es.encodeSlice(in)
 			}
 		default:
-			_, ok := in.(VaryingDataTypeValue)
-			switch ok {
-			case true:
-				t := reflect.TypeOf(in)
-				switch t.Kind() {
-				// TODO: support more primitive types.  Do we need to support arrays and slices as well?
-				case reflect.Int:
-					in = reflect.ValueOf(in).Convert(reflect.TypeOf(int(1))).Interface()
-				case reflect.Int16:
-					in = reflect.ValueOf(in).Convert(reflect.TypeOf(int16(1))).Interface()
-				default:
-					err = fmt.Errorf("unsupported kind for VaryingDataTypeValue: %s", t.Kind())
-					return
-				}
-				err = es.marshal(in)
-			default:
-				err = fmt.Errorf("unsupported type: %T", in)
-			}
+			// _, ok := in.(VaryingDataTypeValue)
+			// switch ok {
+			// case true:
+			// 	t := reflect.TypeOf(in)
+			// 	switch t.Kind() {
+			// 	// TODO: support more primitive types.  Do we need to support arrays and slices as well?
+			// 	case reflect.Int:
+			// 		in = reflect.ValueOf(in).Convert(reflect.TypeOf(int(1))).Interface()
+			// 	case reflect.Int16:
+			// 		in = reflect.ValueOf(in).Convert(reflect.TypeOf(int16(1))).Interface()
+			// 	default:
+			// 		err = fmt.Errorf("unsupported kind for VaryingDataTypeValue: %s", t.Kind())
+			// 		return
+			// 	}
+			// 	err = es.marshal(in)
+			// default:
+			err = fmt.Errorf("unsupported type: %T", in)
+			// }
 
 		}
 	}
 	return
 }
 
+func (es *encodeState) encodeCustomPrimitive(in interface{}) (err error) {
+	switch reflect.TypeOf(in).Kind() {
+	case reflect.Bool:
+		in = reflect.ValueOf(in).Convert(reflect.TypeOf(false)).Interface()
+	case reflect.Int:
+		in = reflect.ValueOf(in).Convert(reflect.TypeOf(int(0))).Interface()
+	case reflect.Int8:
+		in = reflect.ValueOf(in).Convert(reflect.TypeOf(int8(0))).Interface()
+	case reflect.Int16:
+		in = reflect.ValueOf(in).Convert(reflect.TypeOf(int16(0))).Interface()
+	case reflect.Int32:
+		in = reflect.ValueOf(in).Convert(reflect.TypeOf(int32(0))).Interface()
+	case reflect.Int64:
+		in = reflect.ValueOf(in).Convert(reflect.TypeOf(int64(0))).Interface()
+	case reflect.String:
+		in = reflect.ValueOf(in).Convert(reflect.TypeOf("")).Interface()
+	case reflect.Uint:
+		in = reflect.ValueOf(in).Convert(reflect.TypeOf(uint(0))).Interface()
+	case reflect.Uint8:
+		in = reflect.ValueOf(in).Convert(reflect.TypeOf(uint8(0))).Interface()
+	case reflect.Uint16:
+		in = reflect.ValueOf(in).Convert(reflect.TypeOf(uint16(0))).Interface()
+	case reflect.Uint32:
+		in = reflect.ValueOf(in).Convert(reflect.TypeOf(uint32(0))).Interface()
+	case reflect.Uint64:
+		in = reflect.ValueOf(in).Convert(reflect.TypeOf(uint64(0))).Interface()
+	default:
+		err = fmt.Errorf("unsupported type for custom primitive: %T", in)
+		return
+	}
+	err = es.marshal(in)
+	return
+}
 func (es *encodeState) encodeResult(res Result) (err error) {
 	err = res.Validate()
 	if err != nil {
