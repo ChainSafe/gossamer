@@ -42,12 +42,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type mockFinalityGadget struct{}
-
-func (m mockFinalityGadget) VerifyBlockJustification(_ []byte) error {
-	return nil
-}
-
 func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
 	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis.json")
 	require.NoError(t, err)
@@ -102,7 +96,7 @@ func newTestSyncer(t *testing.T) *Service {
 	}
 
 	if cfg.Verifier == nil {
-		cfg.Verifier = &mockVerifier{}
+		cfg.Verifier = NewMockVerifier()
 	}
 
 	if cfg.LogLvl == 0 {
@@ -110,7 +104,11 @@ func newTestSyncer(t *testing.T) *Service {
 	}
 
 	if cfg.FinalityGadget == nil {
-		cfg.FinalityGadget = &mockFinalityGadget{}
+		cfg.FinalityGadget = NewMockFinalityGadget()
+	}
+
+	if cfg.BlockProducer == nil {
+		cfg.BlockProducer = NewBlockProducer()
 	}
 
 	syncer, err := NewService(cfg)
@@ -355,7 +353,7 @@ func TestSyncer_HandleJustification(t *testing.T) {
 		Number: big.NewInt(1),
 	}
 
-	just := []byte("testjustification")
+	just := []byte{1, 2, 3, 4, 5}
 
 	syncer.handleJustification(header, just)
 

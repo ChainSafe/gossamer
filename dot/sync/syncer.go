@@ -90,7 +90,7 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 
 	if cfg.BlockProducer == nil {
-		cfg.BlockProducer = newMockBlockProducer()
+		return nil, ErrNilBlockProducer
 	}
 
 	handler := log.StreamHandler(os.Stdout, log.TerminalFormat())

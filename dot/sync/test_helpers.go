@@ -17,37 +17,29 @@
 package sync
 
 import (
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/stretchr/testify/mock"
+
+	. "github.com/ChainSafe/gossamer/dot/sync/mocks"
 )
 
-// mockVerifier implements the Verifier interface
-type mockVerifier struct{}
-
-// VerifyBlock mocks verifying a block
-func (v *mockVerifier) VerifyBlock(header *types.Header) error {
-	return nil
+func NewMockFinalityGadget() *MockFinalityGadget {
+	m := new(MockFinalityGadget)
+	// using []uint8 instead of []byte: https://github.com/stretchr/testify/pull/969
+	m.On("VerifyBlockJustification", mock.AnythingOfType("[]uint8")).Return(nil)
+	return m
 }
 
-// mockBlockProducer implements the BlockProducer interface
-type mockBlockProducer struct {
-	auths []*types.Authority
+func NewMockVerifier() *MockVerifier {
+	m := new(MockVerifier)
+	m.On("VerifyBlock", mock.AnythingOfType("*types.Header")).Return(nil)
+	return m
 }
 
-func newMockBlockProducer() *mockBlockProducer {
-	return &mockBlockProducer{
-		auths: []*types.Authority{},
-	}
-}
+func NewBlockProducer() *MockBlockProducer {
+	m := new(MockBlockProducer)
+	m.On("Pause").Return(nil)
+	m.On("Resume").Return(nil)
+	m.On("SetRuntime", mock.AnythingOfType("runtime.Instance"))
 
-// Pause mocks pausing
-func (bp *mockBlockProducer) Pause() error {
-	return nil
+	return m
 }
-
-// Resume mocks resuming
-func (bp *mockBlockProducer) Resume() error {
-	return nil
-}
-
-func (bp *mockBlockProducer) SetRuntime(_ runtime.Instance) {}
