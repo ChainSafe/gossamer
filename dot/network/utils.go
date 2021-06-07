@@ -216,7 +216,7 @@ func readStream(stream libp2pnetwork.Stream, buf []byte) (int, error) {
 	}
 
 	if tot != int(length) {
-		return tot, fmt.Errorf("failed to read entire message: expected %d bytes", length)
+		return tot, fmt.Errorf("failed to read entire message: expected %d bytes, received %d bytes", length, tot)
 	}
 
 	return tot, nil

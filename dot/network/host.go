@@ -362,6 +362,17 @@ func (h *host) peers() []peer.ID {
 	return h.h.Network().Peers()
 }
 
+// supportsProtocol checks if the protocol is supported by peerID
+// returns an error if could not get peer protocols
+func (h *host) supportsProtocol(peerID peer.ID, protocol protocol.ID) (bool, error) {
+	peerProtocols, err := h.h.Peerstore().SupportsProtocols(peerID, string(protocol))
+	if err != nil {
+		return false, err
+	}
+
+	return len(peerProtocols) > 0, nil
+}
+
 // peerCount returns the number of connected peers
 func (h *host) peerCount() int {
 	peers := h.h.Network().Peers()
