@@ -63,6 +63,7 @@ type handshakeReader struct {
 type notificationsProtocol struct {
 	protocolID         protocol.ID
 	getHandshake       HandshakeGetter
+	handshakeDecoder   HandshakeDecoder
 	handshakeValidator HandshakeValidator
 
 	inboundHandshakeData  *sync.Map //map[peer.ID]*handshakeData
