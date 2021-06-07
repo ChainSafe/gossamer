@@ -132,7 +132,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 			NoBootstrap:        true,
 			NoMDNS:             true,
 			BlockState:         stateSrvc.Block,
-			TransactionHandler: newMockTransactionHandler(),
+			TransactionHandler: network.NewMockTransactionHandler(),
 		}
 		cfg.Network = createTestNetworkService(t, config)
 	}
@@ -155,7 +155,7 @@ func createTestNetworkService(t *testing.T, cfg *network.Config) (srvc *network.
 	}
 
 	if cfg.Syncer == nil {
-		cfg.Syncer = newMockSyncer()
+		cfg.Syncer = network.NewMockSyncer()
 	}
 
 	srvc, err := network.NewService(cfg)
@@ -169,21 +169,4 @@ func createTestNetworkService(t *testing.T, cfg *network.Config) (srvc *network.
 		require.NoError(t, err)
 	})
 	return srvc
-}
-
-func newMockSyncer() *network.MockSyncer {
-	mocksyncer := new(network.MockSyncer)
-	mocksyncer.On("HandleBlockAnnounce", mock.AnythingOfType("*network.BlockAnnounceMessage")).Return(nil, nil)
-	mocksyncer.On("CreateBlockResponse", mock.AnythingOfType("*network.BlockRequestMessage")).Return(nil, nil)
-	mocksyncer.On("ProcessJustification", mock.AnythingOfType("[]*types.BlockData")).Return(0, nil)
-	mocksyncer.On("ProcessBlockData", mock.AnythingOfType("[]*types.BlockData")).Return(0, nil)
-	mocksyncer.On("SetSyncing", mock.AnythingOfType("bool"))
-	mocksyncer.On("IsSynced").Return(false)
-	return mocksyncer
-}
-
-func newMockTransactionHandler() *network.MockTransactionHandler {
-	mocktxhandler := new(network.MockTransactionHandler)
-	mocktxhandler.On("HandleTransactionMessage", mock.AnythingOfType("*network.TransactionMessage")).Return(nil)
-	return mocktxhandler
 }
