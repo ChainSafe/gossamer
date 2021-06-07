@@ -10,7 +10,7 @@ rpc = ""
 state = ""
 runtime = ""
 babe = ""
-grandpa = ""
+grandpa = "debug"
 sync = ""
 
 [init]
