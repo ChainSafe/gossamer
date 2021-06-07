@@ -183,19 +183,3 @@ func BenchmarkUnmarshal(b *testing.B) {
 		}
 	}
 }
-
-// func BenchmarkDecode(b *testing.B) {
-// 	for _, tt := range variableWidthIntegerTests {
-// 		dst := reflect.New(reflect.TypeOf(tt.in)).Interface()
-// 		fmt.Printf("%v %T\n", dst, dst)
-// 		// if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
-// 		// 	b.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
-// 		// 	return
-// 		// }
-// 		_, err := oldScale.Decode(tt.want, dst)
-// 		if err != nil {
-// 			b.Errorf("%v", err)
-// 			return
-// 		}
-// 	}
-// }
