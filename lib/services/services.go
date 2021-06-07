@@ -31,8 +31,7 @@ type Service interface {
 
 // ServiceRegistry is a structure to manage core system services
 type ServiceRegistry struct {
-	services     map[reflect.Type]Service // map of types to service instances
-	serviceTypes []reflect.Type           // all known service types, used to iterate through services
+	services map[reflect.Type]Service // map of types to service instances
 }
 
 // NewServiceRegistry creates an empty registry
@@ -44,23 +43,27 @@ func NewServiceRegistry() *ServiceRegistry {
 
 // RegisterService stores a new service in the map. If a service of that type has been seen
 func (s *ServiceRegistry) RegisterService(service Service) {
+	if service == nil {
+		log.Warn("Could not be able to register a nil service")
+		return
+	}
+
 	kind := reflect.TypeOf(service)
 	if _, exists := s.services[kind]; exists {
 		log.Warn("Tried to add service type that has already been seen", "type", kind)
 		return
 	}
 	s.services[kind] = service
-	s.serviceTypes = append(s.serviceTypes, kind)
 }
 
 // StartAll calls `Service.Start()` for all registered services
 func (s *ServiceRegistry) StartAll() {
-	log.Info(fmt.Sprintf("Starting services: %v", s.serviceTypes))
-	for _, typ := range s.serviceTypes {
-		log.Debug(fmt.Sprintf("Starting service %v", typ))
-		err := s.services[typ].Start()
+	log.Info("Starting services ...")
+	for t, service := range s.services {
+		log.Debug(fmt.Sprintf("Starting service %v", t))
+		err := service.Start()
 		if err != nil {
-			log.Error("Error starting service", "srvc", typ, "err", err)
+			log.Error("Error starting service", "srvc", t, "err", err)
 		}
 	}
 	log.Debug("All services started.")
@@ -68,12 +71,12 @@ func (s *ServiceRegistry) StartAll() {
 
 // StopAll calls `Service.Stop()` for all registered services
 func (s *ServiceRegistry) StopAll() {
-	log.Info(fmt.Sprintf("Stopping services: %v", s.serviceTypes))
-	for _, typ := range s.serviceTypes {
-		log.Debug(fmt.Sprintf("Stopping service %v", typ))
-		err := s.services[typ].Stop()
+	log.Info("Stopping services...")
+	for t, service := range s.services {
+		log.Debug(fmt.Sprintf("Stopping service %v", t))
+		err := service.Stop()
 		if err != nil {
-			log.Error("Error stopping service", "srvc", typ, "err", err)
+			log.Error("Error stopping service", "srvc", t, "err", err)
 		}
 	}
 	log.Debug("All services stopped.")
