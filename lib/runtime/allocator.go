@@ -86,12 +86,16 @@ func NewAllocator(mem Memory, ptrOffset uint32) *FreeingBumpHeapAllocator {
 }
 
 func (fbha *FreeingBumpHeapAllocator) growHeap(numPages uint32) error {
+	fmt.Println("pages needed", numPages)
 	err := fbha.heap.Grow(numPages)
 	if err != nil {
 		return err
 	}
 
-	fbha.maxHeapSize = fbha.heap.Length() - alignment
+	len := fbha.heap.Length()
+	fmt.Println("heap len", len)
+
+	fbha.maxHeapSize = len - alignment
 	return nil
 }
 
@@ -107,6 +111,7 @@ func (fbha *FreeingBumpHeapAllocator) Allocate(size uint32) (uint32, error) {
 	itemSize := nextPowerOf2GT8(size)
 
 	if (itemSize + fbha.totalSize + fbha.ptrOffset) > fbha.maxHeapSize {
+		fmt.Println("this condition")
 		pagesNeeded := ((itemSize + fbha.totalSize + fbha.ptrOffset) - fbha.maxHeapSize) / PageSize
 		err := fbha.growHeap(pagesNeeded + 1)
 		if err != nil {
@@ -127,6 +132,8 @@ func (fbha *FreeingBumpHeapAllocator) Allocate(size uint32) (uint32, error) {
 		// Nothing te be freed. Bump.
 		ptr = fbha.bump(itemSize+8) + 8
 	}
+
+	fmt.Println(ptr, itemSize, fbha.ptrOffset, fbha.maxHeapSize)
 
 	if (ptr + itemSize + fbha.ptrOffset) > fbha.maxHeapSize {
 		pagesNeeded := (ptr + itemSize + fbha.ptrOffset - fbha.maxHeapSize) / PageSize

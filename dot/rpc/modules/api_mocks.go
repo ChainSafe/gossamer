@@ -8,13 +8,13 @@ import (
 
 func NewMockStorageAPI() *MockStorageAPI {
 	m := new(MockStorageAPI)
-	m.On("GetStorage", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]byte")).Return(nil, nil)
+	m.On("GetStorage", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, nil)
 	m.On("Entries", mock.AnythingOfType("*common.Hash")).Return(nil, nil)
-	m.On("GetStorageByBlockHash", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[]byte")).Return(nil, nil)
+	m.On("GetStorageByBlockHash", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, nil)
 	m.On("RegisterStorageObserver", mock.Anything)
 	m.On("UnregisterStorageObserver", mock.Anything)
 	m.On("GetStateRootFromBlock", mock.AnythingOfType("*common.Hash")).Return(nil, nil)
-	m.On("GetKeysWithPrefix", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]byte")).Return(nil, nil)
+	m.On("GetKeysWithPrefix", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, nil)
 	return m
 }
 
@@ -26,9 +26,9 @@ func NewMockBlockAPI() *MockBlockAPI {
 	m.On("GetBlockHash", mock.AnythingOfType("*big.Int")).Return(nil, nil)
 	m.On("GetFinalizedHash", mock.AnythingOfType("uint64"), mock.AnythingOfType("uint64")).Return(common.Hash{}, nil)
 	m.On("RegisterImportedChannel", mock.AnythingOfType("chan<- *types.Block")).Return(byte(0), nil)
-	m.On("UnregisterImportedChannel", mock.AnythingOfType("byte"))
+	m.On("UnregisterImportedChannel", mock.AnythingOfType("uint8"))
 	m.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).Return(byte(0), nil)
-	m.On("UnregisterFinalizedChannel", mock.AnythingOfType("byte"))
+	m.On("UnregisterFinalizedChannel", mock.AnythingOfType("uint8"))
 	m.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(make([]byte, 10), nil)
 	m.On("HasJustification", mock.AnythingOfType("common.Hash")).Return(true, nil)
 	m.On("SubChain", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash")).Return(make([]common.Hash, 0), nil)
