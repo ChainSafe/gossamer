@@ -17,6 +17,8 @@
 package network
 
 import (
+	"context"
+	"fmt"
 	"math/big"
 	"sync"
 	"testing"
@@ -25,7 +27,10 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	ma "github.com/multiformats/go-multiaddr"
 
+	"github.com/libp2p/go-libp2p"
+	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
 )
@@ -239,4 +244,81 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 	require.True(t, has)
 	require.True(t, data.received)
 	require.True(t, data.validated)
+}
+
+func Test_HandshakeTimeout(t *testing.T) {
+	// create service A
+	config := &Config{
+		BasePath:    utils.NewTestBasePath(t, "nodeA"),
+		Port:        7001,
+		RandSeed:    1,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+	ha := createTestService(t, config)
+
+	// create info and handler
+	info := &notificationsProtocol{
+		protocolID:            ha.host.protocolID + blockAnnounceID,
+		getHandshake:          ha.getBlockAnnounceHandshake,
+		handshakeValidator:    ha.validateBlockAnnounceHandshake,
+		inboundHandshakeData:  new(sync.Map),
+		outboundHandshakeData: new(sync.Map),
+	}
+
+	// creating host b with will never respond to a handshake
+	addrB, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", 7002))
+	require.NoError(t, err)
+
+	hb, err := libp2p.New(
+		context.Background(), libp2p.ListenAddrs(addrB),
+	)
+	require.NoError(t, err)
+
+	testHandshakeMsg := &BlockAnnounceHandshake{
+		Roles:           4,
+		BestBlockNumber: 77,
+		BestBlockHash:   common.Hash{1},
+		GenesisHash:     common.Hash{2},
+	}
+
+	hb.SetStreamHandler(info.protocolID, func(stream libp2pnetwork.Stream) {
+		fmt.Println("never respond a handshake message")
+	})
+
+	addrBInfo := peer.AddrInfo{
+		ID:    hb.ID(),
+		Addrs: hb.Addrs(),
+	}
+
+	err = ha.host.connect(addrBInfo)
+	if failedToDial(err) {
+		time.Sleep(TestBackoffTimeout)
+		err = ha.host.connect(addrBInfo)
+	}
+	require.NoError(t, err)
+
+	go ha.sendData(hb.ID(), testHandshakeMsg, info, nil)
+
+	time.Sleep(handshakeTimeout / 2)
+	// peer should be stored in handshake data until timeout
+	_, ok := info.outboundHandshakeData.Load(hb.ID())
+	require.True(t, ok)
+
+	// a stream should be open until timeout
+	connAToB := ha.host.h.Network().ConnsToPeer(hb.ID())
+	require.Len(t, connAToB, 1)
+	require.Len(t, connAToB[0].GetStreams(), 1)
+
+	// after the timeout
+	time.Sleep(handshakeTimeout)
+
+	// handshake data should be removed
+	_, ok = info.outboundHandshakeData.Load(hb.ID())
+	require.False(t, ok)
+
+	// stream should be closed
+	connAToB = ha.host.h.Network().ConnsToPeer(hb.ID())
+	require.Len(t, connAToB, 1)
+	require.Len(t, connAToB[0].GetStreams(), 0)
 }
