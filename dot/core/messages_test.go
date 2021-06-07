@@ -74,7 +74,7 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	require.Equal(t, expected, net.Message)
 }
 
-func createExtrinsics(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic {
+func createExtrinsics(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic { //nolint
 	t.Helper()
 	rawMeta, err := rt.Metadata()
 	require.NoError(t, err)
