@@ -57,8 +57,8 @@ type Service struct {
 	// Consensus digest handling
 	digestHandler DigestHandler
 
-	// map of code substitutions keyed by block hash test comment
-	codeSubstitute map[string]string
+	// map of code substitutions keyed by block hash
+	codeSubstitute map[common.Hash]string
 }
 
 // Config is the configuration for the sync Service.
@@ -72,7 +72,7 @@ type Config struct {
 	Runtime          runtime.Instance
 	Verifier         Verifier
 	DigestHandler    DigestHandler
-	BaseState        BaseState
+	CodeSubstitutes  map[common.Hash]string
 }
 
 // NewService returns a new *sync.Service
@@ -106,11 +106,6 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
-	codeSubstitute, err := cfg.BaseState.LoadGenesisData()
-	if err != nil {
-		return nil, err
-	}
-
 	return &Service{
 		codeHash:         codeHash,
 		blockState:       cfg.BlockState,
@@ -123,7 +118,7 @@ func NewService(cfg *Config) (*Service, error) {
 		runtime:          cfg.Runtime,
 		verifier:         cfg.Verifier,
 		digestHandler:    cfg.DigestHandler,
-		codeSubstitute:   codeSubstitute.CodeSubstitutes,
+		codeSubstitute:   cfg.CodeSubstitutes,
 	}, nil
 }
 
@@ -374,7 +369,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 		}
 	} else {
 		logger.Debug("🔗 imported block", "number", block.Header.Number, "hash", block.Header.Hash())
-		err := telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(
+		err := telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage( // nolint
 			telemetry.NewKeyValue("best", block.Header.Hash().String()),
 			telemetry.NewKeyValue("height", block.Header.Number.Uint64()),
 			telemetry.NewKeyValue("msg", "block.import"),
@@ -389,9 +384,9 @@ func (s *Service) handleBlock(block *types.Block) error {
 		s.handleDigests(block.Header)
 	}
 
-	e := s.handleCodeSubstitution(block.Header.Hash())
-	if e != nil {
-		return e
+	err = s.handleCodeSubstitution(block.Header.Hash())
+	if err != nil {
+		return err
 	}
 	return s.handleRuntimeChanges(ts)
 }
@@ -449,22 +444,21 @@ func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {
 }
 
 func (s *Service) handleCodeSubstitution(block common.Hash) error {
-	for key, value := range s.codeSubstitute {
-		if key == block.String() {
-			logger.Info("🔄 detected runtime code substitution, upgrading...", "block", block)
-			code := common.MustHexToBytes(value)
-			if len(code) == 0 {
-				return ErrEmptyRuntimeCode
-			}
-			err := s.runtime.UpdateRuntimeCode(code)
-			if err != nil {
-				logger.Crit("failed to substitute runtime code", "error", err)
-				return err
-			}
-			s.codeHash, err = common.Blake2bHash(code)
-			if err != nil {
-				return err
-			}
+	value := s.codeSubstitute[block]
+	if value != "" {
+		logger.Info("🔄 detected runtime code substitution, upgrading...", "block", block)
+		code := common.MustHexToBytes(value)
+		if len(code) == 0 {
+			return ErrEmptyRuntimeCode
+		}
+		err := s.runtime.UpdateRuntimeCode(code)
+		if err != nil {
+			logger.Crit("failed to substitute runtime code", "error", err)
+			return err
+		}
+		s.codeHash, err = common.Blake2bHash(code)
+		if err != nil {
+			return err
 		}
 	}
 	return nil

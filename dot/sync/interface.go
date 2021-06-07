@@ -21,7 +21,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 )
@@ -55,11 +54,6 @@ type StorageState interface {
 	StoreTrie(ts *rtstorage.TrieState) error
 	LoadCodeHash(*common.Hash) (common.Hash, error)
 	SetSyncing(bool)
-}
-
-// BaseState is the interface for the base (genesis) state
-type BaseState interface {
-	LoadGenesisData() (*genesis.Data, error)
 }
 
 // TransactionState is the interface for transaction queue methods

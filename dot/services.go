@@ -22,7 +22,6 @@ import (
 	"path/filepath"
 
 	"github.com/ChainSafe/chaindb"
-
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/rpc"
@@ -32,6 +31,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -377,6 +377,15 @@ func createBlockVerifier(st *state.Service) (*babe.VerificationManager, error) {
 }
 
 func createSyncService(cfg *Config, st *state.Service, bp sync.BlockProducer, fg sync.FinalityGadget, dh *core.DigestHandler, verifier *babe.VerificationManager, rt runtime.Instance) (*sync.Service, error) {
+	genesisData, err := st.Base.LoadGenesisData()
+	if err != nil {
+		return nil, err
+	}
+	codeSubs := make(map[common.Hash]string)
+	for k, v := range genesisData.CodeSubstitutes {
+		codeSubs[common.MustHexToHash(k)] = v
+	}
+
 	syncCfg := &sync.Config{
 		LogLvl:           cfg.Log.SyncLvl,
 		BlockState:       st.Block,
@@ -387,7 +396,7 @@ func createSyncService(cfg *Config, st *state.Service, bp sync.BlockProducer, fg
 		Verifier:         verifier,
 		Runtime:          rt,
 		DigestHandler:    dh,
-		BaseState:        st.Base,
+		CodeSubstitutes:  codeSubs,
 	}
 
 	return sync.NewService(syncCfg)
