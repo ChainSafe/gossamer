@@ -369,12 +369,7 @@ func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
 
 // HasFinalizedBlock returns true if there is a finalised block for a given round and setID, false otherwise
 func (bs *BlockState) HasFinalizedBlock(round, setID uint64) (bool, error) {
-	has, err := bs.db.Has(finalizedHashKey(round, setID))
-	if err != nil {
-		return false, err
-	}
-
-	return has, nil
+	return bs.db.Has(finalizedHashKey(round, setID))
 }
 
 // GetFinalizedHeader returns the latest finalised block header

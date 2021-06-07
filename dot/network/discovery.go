@@ -35,7 +35,7 @@ var (
 	startDHTTimeout             = time.Second * 10
 	initialAdvertisementTimeout = time.Millisecond
 	tryAdvertiseTimeout         = time.Second * 30
-	connectToPeersTimeout       = time.Minute
+	connectToPeersTimeout       = time.Minute * 5
 	findPeersTimeout            = time.Minute
 )
 
@@ -177,7 +177,7 @@ func (d *discovery) checkPeerCount() {
 }
 
 func (d *discovery) findPeers(ctx context.Context) {
-	logger.Info("attempting to find DHT peers...")
+	logger.Debug("attempting to find DHT peers...")
 	peerCh, err := d.rd.FindPeers(d.ctx, string(d.pid))
 	if err != nil {
 		logger.Warn("failed to begin finding peers via DHT", "err", err)
@@ -193,7 +193,7 @@ func (d *discovery) findPeers(ctx context.Context) {
 				continue
 			}
 
-			logger.Info("found new peer via DHT", "peer", peer.ID)
+			logger.Trace("found new peer via DHT", "peer", peer.ID)
 
 			// found a peer, try to connect if we need more peers
 			if len(d.h.Network().Peers()) < d.maxPeers {

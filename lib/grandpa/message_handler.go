@@ -159,33 +159,17 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 }
 
 func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) (*ConsensusMessage, error) {
-	logger.Debug("received finalisation message", "round", msg.Round, "hash", msg.Vote.hash, "msg", msg)
-	if h.grandpa == nil {
-		panic("nil grandpa")
-	}
-
-	if h.grandpa.state == nil {
-		panic("nil grandpa.state")
-	}
-
-	if h.blockState == nil {
-		panic("nil blockState")
-	}
-	logger.Debug("checking HasFinalizedBlock", "round", msg.Round)
+	logger.Debug("received finalisation message", "round", msg.Round, "hash", msg.Vote.hash)
 
 	if has, _ := h.blockState.HasFinalizedBlock(msg.Round, h.grandpa.state.setID); has {
 		return nil, nil
 	}
-
-	logger.Debug("verifying justification", "round", msg.Round)
 
 	// check justification here
 	err := h.verifyCommitMessageJustification(msg)
 	if err != nil {
 		return nil, err
 	}
-
-	logger.Debug("setting finalised hash", "round", msg.Round)
 
 	// set finalised head for round in db
 	err = h.blockState.SetFinalizedHash(msg.Vote.hash, msg.Round, h.grandpa.state.setID)
