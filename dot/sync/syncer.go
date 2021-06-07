@@ -57,7 +57,7 @@ type Service struct {
 	// Consensus digest handling
 	digestHandler DigestHandler
 
-	// map of code substitutions keyed by block hash
+	// map of code substitutions keyed by block hash test comment
 	codeSubstitute map[string]string
 }
 
