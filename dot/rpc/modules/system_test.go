@@ -17,10 +17,12 @@
 package modules
 
 import (
+	"fmt"
 	"math/big"
 	"os"
 	"path"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -121,6 +123,11 @@ func newNetworkService(t *testing.T) *network.Service {
 
 	t.Cleanup(func() {
 		_ = srv.Stop()
+		time.Sleep(time.Second)
+		err = os.RemoveAll(cfg.BasePath)
+		if err != nil {
+			fmt.Printf("failed to remove path %s : %s\n", cfg.BasePath, err)
+		}
 	})
 
 	return srv
