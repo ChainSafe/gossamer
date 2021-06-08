@@ -196,16 +196,37 @@ func (cm *ConnManager) Disconnected(n network.Network, c network.Conn) {
 		Addrs: addrs,
 	}
 
-	go func() {
-		for i := 0; i < maxRetries; i++ {
-			err := cm.host.connect(info)
-			if err != nil {
-				logger.Warn("failed to reconnect to persistent peer", "peer", c.RemotePeer(), "error", err)
-				time.Sleep(time.Minute)
-				continue
-			}
+	count := 0
+	retry := func() bool {
+		err := cm.host.connect(info)
+		if err != nil {
+			logger.Warn("failed to reconnect to persistent peer", "peer", c.RemotePeer(), "error", err)
+			return false
+		}
 
+		count++
+		if count > maxRetries {
+			return true
+		}
+		return true
+	}
+
+	go func() {
+		if retry() {
 			return
+		}
+
+		retryTimer := time.NewTicker(time.Minute)
+		defer retryTimer.Stop()
+		for {
+			select {
+			case <-cm.host.ctx.Done():
+				return
+			case <-retryTimer.C:
+				if retry() {
+					return
+				}
+			}
 		}
 	}()
 
