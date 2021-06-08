@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net"
 	"path"
+	"sync"
 	"time"
 
 	"github.com/dgraph-io/ristretto"
@@ -62,6 +63,7 @@ type host struct {
 	ds              *badger.Datastore
 	messageCache    *messageCache
 	bwc             *metrics.BandwidthCounter
+	closeSync       sync.Once
 }
 
 // newHost creates a host wrapper with a new libp2p host instance
@@ -206,17 +208,19 @@ func (h *host) close() error {
 		return err
 	}
 
-	err = h.h.Peerstore().Close()
-	if err != nil {
-		logger.Error("Failed to close libp2p peerstore", "error", err)
-		return err
-	}
+	h.closeSync.Do(func() {
+		err = h.h.Peerstore().Close()
+		if err != nil {
+			logger.Error("Failed to close libp2p peerstore", "error", err)
+			return
+		}
 
-	err = h.ds.Close()
-	if err != nil {
-		logger.Error("Failed to close libp2p host datastore", "error", err)
-		return err
-	}
+		err = h.ds.Close()
+		if err != nil {
+			logger.Error("Failed to close libp2p host datastore", "error", err)
+			return
+		}
+	})
 	return nil
 }
 
