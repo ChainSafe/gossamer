@@ -50,7 +50,7 @@ var (
 
 func NewMockDigestHandler() *MockDigestHandler {
 	m := new(MockDigestHandler)
-	m.On("NextGrandpaAuthorityChange").Return(2 ^ 64 - 1)
+	m.On("NextGrandpaAuthorityChange").Return(uint64(2 ^ 64 - 1))
 	return m
 }
 
