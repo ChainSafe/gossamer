@@ -48,6 +48,8 @@ var privateCIDRs = []string{
 	"169.254.0.0/16",
 }
 
+var connectTimeout = time.Second * 5
+
 // host wraps libp2p host with network host configuration and services
 type host struct {
 	ctx             context.Context
@@ -241,7 +243,7 @@ func (h *host) registerStreamHandlerWithOverwrite(pid protocol.ID, overwrite boo
 // connect connects the host to a specific peer address
 func (h *host) connect(p peer.AddrInfo) (err error) {
 	h.h.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
-	ctx, cancel := context.WithTimeout(h.ctx, time.Second*2)
+	ctx, cancel := context.WithTimeout(h.ctx, connectTimeout)
 	defer cancel()
 	err = h.h.Connect(ctx, p)
 	return err
