@@ -70,7 +70,6 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 		cfg = &Config{
 			BasePath:    basePath,
 			Port:        7001,
-			RandSeed:    1,
 			NoBootstrap: true,
 			NoMDNS:      true,
 			LogLvl:      4,
@@ -272,7 +271,6 @@ func TestService_Health(t *testing.T) {
 	config := &Config{
 		BasePath:    basePath,
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}

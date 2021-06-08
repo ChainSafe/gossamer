@@ -33,7 +33,6 @@ func TestMaxPeers(t *testing.T) {
 		config := &Config{
 			BasePath:    utils.NewTestBasePath(t, fmt.Sprintf("node%d", i)),
 			Port:        7000 + uint32(i),
-			RandSeed:    1 + int64(i),
 			NoBootstrap: true,
 			NoMDNS:      true,
 			MaxPeers:    max,
@@ -91,7 +90,6 @@ func TestPersistentPeers(t *testing.T) {
 	configA := &Config{
 		BasePath:    utils.NewTestBasePath(t, "node-a"),
 		Port:        7000,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -101,7 +99,6 @@ func TestPersistentPeers(t *testing.T) {
 	configB := &Config{
 		BasePath:        utils.NewTestBasePath(t, "node-b"),
 		Port:            7001,
-		RandSeed:        2,
 		NoMDNS:          true,
 		PersistentPeers: []string{addrs[0].String()},
 	}

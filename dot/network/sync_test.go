@@ -82,7 +82,6 @@ func TestSyncQueue_PushResponse(t *testing.T) {
 	config := &Config{
 		BasePath:    basePath,
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -285,7 +284,6 @@ func TestSyncQueue_ProcessBlockRequests(t *testing.T) {
 	configA := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeA"),
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 		LogLvl:      4,
@@ -297,7 +295,6 @@ func TestSyncQueue_ProcessBlockRequests(t *testing.T) {
 	configB := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeB"),
 		Port:        7002,
-		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
 		LogLvl:      4,
@@ -309,7 +306,6 @@ func TestSyncQueue_ProcessBlockRequests(t *testing.T) {
 	configC := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeC"),
 		Port:        7003,
-		RandSeed:    3,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
