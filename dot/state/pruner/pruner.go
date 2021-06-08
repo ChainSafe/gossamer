@@ -213,10 +213,12 @@ func (p *FullNode) start() {
 
 		p.logger.Debug("pruning block", "block num", blockNum)
 
+		sdbBatch := p.storageDB.NewBatch()
 		for _, record := range row {
-			err := p.deleteKeys(record.deletedKeys)
+			err := p.deleteKeys(sdbBatch, record.deletedKeys)
 			if err != nil {
 				p.logger.Warn("failed to prune keys", "block num", blockNum, "error", err)
+				sdbBatch.Reset()
 				return
 			}
 
@@ -225,23 +227,36 @@ func (p *FullNode) start() {
 			}
 		}
 
+		if err := sdbBatch.Flush(); err != nil {
+			p.logger.Warn("failed to prune keys", "block num", blockNum, "error", err)
+			return
+		}
+
 		err := p.storeLastPrunedIndex(blockNum)
 		if err != nil {
-			p.logger.Error("failed to store last pruned index", "block num", blockNum, "error", err)
+			p.logger.Warn("failed to store last pruned index", "block num", blockNum, "error", err)
 			return
 		}
 
 		p.deathList = p.deathList[1:]
 		p.pendingNumber++
 
+		jdbBatch := p.journalDB.NewBatch()
 		for _, record := range row {
 			jk := &journalKey{blockNum, record.blockHash}
-			err = p.deleteJournalRecord(jk)
+			err = p.deleteJournalRecord(jdbBatch, jk)
 			if err != nil {
-				p.logger.Error("failed to delete journal record", "block num", blockNum, "error", err)
+				p.logger.Warn("failed to delete journal record", "block num", blockNum, "error", err)
+				jdbBatch.Reset()
 				return
 			}
 		}
+
+		if err = jdbBatch.Flush(); err != nil {
+			p.logger.Warn("failed to delete journal record", "block num", blockNum, "error", err)
+			return
+		}
+		p.logger.Debug("pruned block", "block num", blockNum)
 	}
 
 	for {
@@ -296,13 +311,13 @@ func (p *FullNode) loadDeathList() error {
 	return nil
 }
 
-func (p *FullNode) deleteJournalRecord(key *journalKey) error {
+func (p *FullNode) deleteJournalRecord(b chaindb.Batch, key *journalKey) error {
 	encKey, err := scale.Encode(key)
 	if err != nil {
 		return err
 	}
 
-	err = p.journalDB.Del(encKey)
+	err = b.Del(encKey)
 	if err != nil {
 		return err
 	}
@@ -342,9 +357,9 @@ func (p *FullNode) getLastPrunedIndex() (int64, error) {
 	return blockNum.(int64), nil
 }
 
-func (p *FullNode) deleteKeys(nodesHash map[common.Hash]int64) error {
+func (p *FullNode) deleteKeys(b chaindb.Batch, nodesHash map[common.Hash]int64) error {
 	for k := range nodesHash {
-		err := p.storageDB.Del(k.ToBytes())
+		err := b.Del(k.ToBytes())
 		if err != nil {
 			return err
 		}

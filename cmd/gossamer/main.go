@@ -453,7 +453,7 @@ func pruneState(ctx *cli.Context) error {
 	bloomSize := ctx.GlobalUint64(BloomFilterSizeFlag.Name)
 	retainBlocks := ctx.GlobalInt64(RetainBlockNumberFlag.Name)
 
-	pruner, err := state.NewPruner(inputDBPath, prunedDBPath, bloomSize, retainBlocks)
+	pruner, err := state.NewOfflinePruner(inputDBPath, prunedDBPath, bloomSize, retainBlocks)
 	if err != nil {
 		return err
 	}
