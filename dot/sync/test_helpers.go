@@ -90,6 +90,10 @@ func NewTestSyncer(t *testing.T) *Service {
 		cfg.StorageState = stateSrvc.Storage
 	}
 
+	if cfg.BlockProducer == nil {
+		cfg.BlockProducer = NewBlockProducer()
+	}
+
 	if cfg.Runtime == nil {
 		// set state to genesis state
 		genState, err := rtstorage.NewTrieState(genTrie) //nolint
