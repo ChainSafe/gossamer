@@ -48,7 +48,6 @@ func createServiceHelper(t *testing.T, num int) []*Service {
 		config := &Config{
 			BasePath:    utils.NewTestBasePath(t, fmt.Sprintf("node%d", i)),
 			Port:        uint32(7001 + i),
-			RandSeed:    int64(1 + i),
 			NoBootstrap: true,
 			NoMDNS:      true,
 		}
@@ -146,7 +145,6 @@ func TestBroadcastMessages(t *testing.T) {
 	configA := &Config{
 		BasePath:    basePathA,
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -159,7 +157,6 @@ func TestBroadcastMessages(t *testing.T) {
 	configB := &Config{
 		BasePath:    basePathB,
 		Port:        7002,
-		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -194,7 +191,6 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	configA := &Config{
 		BasePath:    basePathA,
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -207,7 +203,6 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	configB := &Config{
 		BasePath:    basePathB,
 		Port:        7002,
-		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -320,7 +315,6 @@ func TestHandleConn(t *testing.T) {
 	configA := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeA"),
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -330,7 +324,6 @@ func TestHandleConn(t *testing.T) {
 	configB := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeB"),
 		Port:        7002,
-		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
