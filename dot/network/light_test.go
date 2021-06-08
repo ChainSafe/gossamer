@@ -62,14 +62,12 @@ func TestHandleLightMessage_Response(t *testing.T) {
 	}
 	b := createTestService(t, configB)
 
-	addrInfosB, err := b.host.addrInfos()
-	require.NoError(t, err)
-
-	err = s.host.connect(*addrInfosB[0])
+	addrInfoB := b.host.addrInfo()
+	err := s.host.connect(addrInfoB)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = s.host.connect(*addrInfosB[0])
+		err = s.host.connect(addrInfoB)
 	}
 	require.NoError(t, err)
 
