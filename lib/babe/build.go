@@ -151,7 +151,7 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot) (*types.Block
 
 	logger.Trace("built block seal")
 
-	body, err := extrinsicsToBody(inherents, included)
+	body, err := ExtrinsicsToBody(inherents, included)
 	if err != nil {
 		return nil, err
 	}
@@ -344,7 +344,8 @@ func hasSlotEnded(slot Slot) bool {
 	return time.Since(slotEnd) >= 0
 }
 
-func extrinsicsToBody(inherents [][]byte, txs []*transaction.ValidTransaction) (*types.Body, error) {
+// ExtrinsicsToBody returns scale encoded block body which contains inherent and extrinsic.
+func ExtrinsicsToBody(inherents [][]byte, txs []*transaction.ValidTransaction) (*types.Body, error) {
 	extrinsics := types.BytesArrayToExtrinsics(inherents)
 
 	for _, tx := range txs {
