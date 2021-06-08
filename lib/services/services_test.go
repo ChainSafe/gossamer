@@ -29,7 +29,7 @@ func TestServiceRegistry_RegisterService(t *testing.T) {
 	r.RegisterService(&MockService{})
 	r.RegisterService(&MockService{})
 
-	require.Len(t, len(r.services), 1)
+	require.Len(t, r.services, 1)
 }
 
 func TestServiceRegistry_StartStopAll(t *testing.T) {
