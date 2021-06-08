@@ -422,16 +422,24 @@ func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {
 	if err != nil {
 		return err
 	}
+	previousVersion, _ := s.runtime.Version()
 
 	if bytes.Equal(s.codeHash[:], currCodeHash[:]) {
 		return nil
 	}
 
-	logger.Info("🔄 detected runtime code change, upgrading...", "block", s.blockState.BestBlockHash(), "previous code hash", s.codeHash, "new code hash", currCodeHash)
 	code := newState.LoadCode()
 	if len(code) == 0 {
 		return ErrEmptyRuntimeCode
 	}
+
+	newVersion, err := s.runtime.CheckRuntimeVersion(code)
+	if err != nil {
+		logger.Debug("problem checking runtime version", "error", err)
+	}
+	logger.Info("🔄 detected runtime code change, upgrading...", "block", s.blockState.BestBlockHash(),
+		"previous code hash", s.codeHash, "new code hash", currCodeHash,
+		"previous spec version", previousVersion.SpecVersion(), "new spec version", newVersion.SpecVersion())
 
 	err = s.runtime.UpdateRuntimeCode(code)
 	if err != nil {
