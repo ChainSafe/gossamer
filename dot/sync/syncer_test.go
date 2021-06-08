@@ -213,6 +213,16 @@ func TestSyncer_HandleRuntimeChanges(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestSyncer_HandleCodeSubstitutes(t *testing.T) {
+	syncer := NewTestSyncer(t)
+	startingCodeHash := syncer.codeHash
+	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29") // hash for known test code substitution
+
+	err := syncer.handleCodeSubstitution(blockHash)
+	require.NoError(t, err)
+	require.NotEqualf(t, startingCodeHash, syncer.codeHash, "expected different code hashes")
+}
+
 func TestSyncer_HandleJustification(t *testing.T) {
 	syncer := NewTestSyncer(t)
 
