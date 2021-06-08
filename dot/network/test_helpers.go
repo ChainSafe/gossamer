@@ -14,6 +14,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
+// NewMockBlockState create and return a network BlockState interface mock
 func NewMockBlockState(n *big.Int) *MockBlockState {
 	parentHash, _ := common.HexToHash("0x4545454545454545454545454545454545454545454545454545454545454545")
 	stateRoot, _ := common.HexToHash("0xb3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe0")
@@ -42,6 +43,7 @@ func NewMockBlockState(n *big.Int) *MockBlockState {
 	return m
 }
 
+// NewMockSyncer create and return a network Syncer interface mock
 func NewMockSyncer() *MockSyncer {
 	mocksyncer := new(MockSyncer)
 	mocksyncer.On("HandleBlockAnnounce", mock.AnythingOfType("*network.BlockAnnounceMessage")).Return(nil, nil)
@@ -53,6 +55,7 @@ func NewMockSyncer() *MockSyncer {
 	return mocksyncer
 }
 
+// NewMockTransactionHandler create and return a network TransactionHandler interface
 func NewMockTransactionHandler() *MockTransactionHandler {
 	mocktxhandler := new(MockTransactionHandler)
 	mocktxhandler.On("HandleTransactionMessage", mock.AnythingOfType("*network.TransactionMessage")).Return(nil)

@@ -1,13 +1,14 @@
 package modules
 
 import (
-	. "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+	modulesmocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/mock"
 )
 
-func NewMockStorageAPI() *MockStorageAPI {
-	m := new(MockStorageAPI)
+// NewMockStorageAPI creates and return an rpc StorageAPI interface mock
+func NewMockStorageAPI() *modulesmocks.MockStorageAPI {
+	m := new(modulesmocks.MockStorageAPI)
 	m.On("GetStorage", mock.AnythingOfType("*common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, nil)
 	m.On("Entries", mock.AnythingOfType("*common.Hash")).Return(nil, nil)
 	m.On("GetStorageByBlockHash", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil, nil)
@@ -18,8 +19,9 @@ func NewMockStorageAPI() *MockStorageAPI {
 	return m
 }
 
-func NewMockBlockAPI() *MockBlockAPI {
-	m := new(MockBlockAPI)
+// NewMockBlockAPI creates and return an rpc BlockAPI interface mock
+func NewMockBlockAPI() *modulesmocks.MockBlockAPI {
+	m := new(modulesmocks.MockBlockAPI)
 	m.On("GetHeader", mock.AnythingOfType("common.Hash")).Return(nil, nil)
 	m.On("BestBlockHash").Return(common.Hash{})
 	m.On("GetBlockByHash", mock.AnythingOfType("common.Hash")).Return(nil, nil)
@@ -35,8 +37,9 @@ func NewMockBlockAPI() *MockBlockAPI {
 	return m
 }
 
-func NewMockCoreAPI() *MockCoreAPI {
-	m := new(MockCoreAPI)
+// NewMockCoreAPI creates and return an rpc CoreAPI interface mock
+func NewMockCoreAPI() *modulesmocks.MockCoreAPI {
+	m := new(modulesmocks.MockCoreAPI)
 	m.On("InsertKey", mock.AnythingOfType("crypto.Keypair"))
 	m.On("HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(false, nil)
 	m.On("GetRuntimeVersion", mock.AnythingOfType("*common.Hash")).Return(nil, nil)

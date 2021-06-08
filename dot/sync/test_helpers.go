@@ -38,24 +38,27 @@ import (
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 
-	. "github.com/ChainSafe/gossamer/dot/sync/mocks"
+	syncmocks "github.com/ChainSafe/gossamer/dot/sync/mocks"
 )
 
-func NewMockFinalityGadget() *MockFinalityGadget {
-	m := new(MockFinalityGadget)
+// NewMockFinalityGadget create and return sync FinalityGadget interface mock
+func NewMockFinalityGadget() *syncmocks.MockFinalityGadget {
+	m := new(syncmocks.MockFinalityGadget)
 	// using []uint8 instead of []byte: https://github.com/stretchr/testify/pull/969
 	m.On("VerifyBlockJustification", mock.AnythingOfType("[]uint8")).Return(nil)
 	return m
 }
 
-func NewMockVerifier() *MockVerifier {
-	m := new(MockVerifier)
+// NewMockVerifier create and return sync Verifier interface mock
+func NewMockVerifier() *syncmocks.MockVerifier {
+	m := new(syncmocks.MockVerifier)
 	m.On("VerifyBlock", mock.AnythingOfType("*types.Header")).Return(nil)
 	return m
 }
 
-func NewBlockProducer() *MockBlockProducer {
-	m := new(MockBlockProducer)
+// NewBlockProducer create and return sync BlockProducer interface mock
+func NewBlockProducer() *syncmocks.MockBlockProducer {
+	m := new(syncmocks.MockBlockProducer)
 	m.On("Pause").Return(nil)
 	m.On("Resume").Return(nil)
 	m.On("SetRuntime", mock.AnythingOfType("runtime.Instance"))

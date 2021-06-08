@@ -36,7 +36,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	// importing packagemocks
-	. "github.com/ChainSafe/gossamer/dot/core/mocks"
+	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 )
 
 func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
@@ -76,7 +76,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	}
 
 	if cfg.Verifier == nil {
-		verifier := new(MockVerifier)
+		verifier := new(coremocks.MockVerifier)
 		verifier.On("SetOnDisabled", mock.AnythingOfType("uint32"), mock.AnythingOfType("*types.Header")).Return(nil)
 		cfg.Verifier = nil
 	}

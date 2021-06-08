@@ -30,74 +30,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
-
-func newTestSyncer(t *testing.T) *Service {
-	wasmer.DefaultTestLogLvl = 3
-
-	cfg := &Config{}
-	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
-	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo)
-	stateSrvc.UseMemDB()
-
-	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
-	err := stateSrvc.Initialise(gen, genHeader, genTrie)
-	require.NoError(t, err)
-
-	err = stateSrvc.Start()
-	require.NoError(t, err)
-
-	if cfg.BlockState == nil {
-		cfg.BlockState = stateSrvc.Block
-	}
-
-	if cfg.StorageState == nil {
-		cfg.StorageState = stateSrvc.Storage
-	}
-
-	if cfg.Runtime == nil {
-		// set state to genesis state
-		genState, err := rtstorage.NewTrieState(genTrie) //nolint
-		require.NoError(t, err)
-
-		rtCfg := &wasmer.Config{}
-		rtCfg.Storage = genState
-		rtCfg.LogLvl = 3
-
-		instance, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg) //nolint
-		require.NoError(t, err)
-		cfg.Runtime = instance
-	}
-
-	if cfg.TransactionState == nil {
-		cfg.TransactionState = stateSrvc.Transaction
-	}
-
-	if cfg.Verifier == nil {
-		cfg.Verifier = NewMockVerifier()
-	}
-
-	if cfg.LogLvl == 0 {
-		cfg.LogLvl = log.LvlDebug
-	}
-
-	if cfg.FinalityGadget == nil {
-		cfg.FinalityGadget = NewMockFinalityGadget()
-	}
-
-	if cfg.BlockProducer == nil {
-		cfg.BlockProducer = NewBlockProducer()
-	}
-
-	syncer, err := NewService(cfg)
-	require.NoError(t, err)
-	return syncer
-}
 
 func TestHandleBlockResponse(t *testing.T) {
 	if testing.Short() {

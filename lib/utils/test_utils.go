@@ -22,7 +22,7 @@ import (
 	"path"
 	"testing"
 
-	. "github.com/ChainSafe/gossamer/dot/types/mocks"
+	typesmocks "github.com/ChainSafe/gossamer/dot/types/mocks"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -79,8 +79,8 @@ func RemoveTestDir(t *testing.T) {
 }
 
 // NewMockDigestItem creates a mock digest item for testing purposes.
-func NewMockDigestItem(i int) *MockDigestItem {
-	mockDigestItem := new(MockDigestItem)
+func NewMockDigestItem(i int) *typesmocks.MockDigestItem {
+	mockDigestItem := new(typesmocks.MockDigestItem)
 	mockDigestItem.On("String").Return("")
 	mockDigestItem.On("Type").Return(byte(i))
 	mockDigestItem.On("Encode").Return([]byte{byte(i)}, nil)
