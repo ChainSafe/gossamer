@@ -445,22 +445,25 @@ func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {
 
 func (s *Service) handleCodeSubstitution(block common.Hash) error {
 	value := s.codeSubstitute[block]
-	if value != "" {
-		logger.Info("🔄 detected runtime code substitution, upgrading...", "block", block)
-		code := common.MustHexToBytes(value)
-		if len(code) == 0 {
-			return ErrEmptyRuntimeCode
-		}
-		err := s.runtime.UpdateRuntimeCode(code)
-		if err != nil {
-			logger.Crit("failed to substitute runtime code", "error", err)
-			return err
-		}
-		s.codeHash, err = common.Blake2bHash(code)
-		if err != nil {
-			return err
-		}
+	if value == "" {
+		return nil
 	}
+
+	logger.Info("🔄 detected runtime code substitution, upgrading...", "block", block)
+	code := common.MustHexToBytes(value)
+	if len(code) == 0 {
+		return ErrEmptyRuntimeCode
+	}
+	err := s.runtime.UpdateRuntimeCode(code)
+	if err != nil {
+		logger.Crit("failed to substitute runtime code", "error", err)
+		return err
+	}
+	s.codeHash, err = common.Blake2bHash(code)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
