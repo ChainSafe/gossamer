@@ -131,7 +131,7 @@ func NewTestSyncer(t *testing.T) *Service {
 	if cfg.CodeSubstitutes == nil {
 		cfg.CodeSubstitutes = make(map[common.Hash]string)
 
-		genesisData, err := stateSrvc.Base.LoadGenesisData()  // nolint
+		genesisData, err := stateSrvc.Base.LoadGenesisData() // nolint
 		require.NoError(t, err)
 
 		for k, v := range genesisData.CodeSubstitutes {
