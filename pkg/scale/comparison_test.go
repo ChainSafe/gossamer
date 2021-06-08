@@ -175,11 +175,25 @@ func BenchmarkMarshal(b *testing.B) {
 }
 
 func BenchmarkUnmarshal(b *testing.B) {
-	for _, tt := range allTests {
-		dst := reflect.New(reflect.TypeOf(tt.in)).Elem().Interface()
-		if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
-			b.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
-			return
+	for i := 0; i < b.N; i++ {
+		for _, tt := range allTests {
+			dst := reflect.New(reflect.TypeOf(tt.in)).Elem().Interface()
+			if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
+				b.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+		}
+	}
+}
+
+func BenchmarkMarshal(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		for _, tt := range allTests {
+			// dst := reflect.New(reflect.TypeOf(tt.in)).Elem().Interface()
+			if _, err := Marshal(tt.in); (err != nil) != tt.wantErr {
+				b.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
 		}
 	}
 }

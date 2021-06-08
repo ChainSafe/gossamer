@@ -28,7 +28,6 @@ func Test_fieldScaleIndicesCache_fieldScaleIndices(t *testing.T) {
 		wantIndices fieldScaleIndices
 		wantErr     bool
 	}{
-		// TODO: Add test cases.
 		{
 			in: struct{ Foo int }{},
 			wantIndices: fieldScaleIndices{
