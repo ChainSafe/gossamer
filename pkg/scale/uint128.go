@@ -111,13 +111,19 @@ func (u *Uint128) Bytes(order ...binary.ByteOrder) (b []byte) {
 // Cmp returns 1 if the receiver is greater than other, 0 if they are equal, and -1 otherwise.
 func (u *Uint128) Compare(other *Uint128) int {
 	switch {
-	case u.Upper > other.Upper, u.Lower > other.Lower:
+	case u.Upper > other.Upper:
 		return 1
-	case u.Upper < other.Upper, u.Lower < other.Lower:
+	case u.Upper < other.Upper:
 		return -1
-	default:
-		return 0
+	case u.Upper == other.Upper:
+		switch {
+		case u.Lower > other.Lower:
+			return 1
+		case u.Lower < other.Lower:
+			return -1
+		}
 	}
+	return 0
 }
 
 func (u *Uint128) trimBytes(b []byte, order binary.ByteOrder) []byte {

@@ -106,6 +106,20 @@ func newBoolPtr(in bool) (ptr *bool) {
 	return
 }
 
+type myCustomInt int
+type myCustomInt8 int8
+type myCustomInt16 int16
+type myCustomInt32 int32
+type myCustomInt64 int64
+type myCustomUint uint
+type myCustomUint8 uint8
+type myCustomUint16 uint16
+type myCustomUint32 uint32
+type myCustomUint64 uint64
+type myCustomBytes []byte
+type myCustomString string
+type myCustomBool bool
+
 var (
 	intTests = tests{
 		{
@@ -128,6 +142,11 @@ var (
 			in:   int(9223372036854775807),
 			want: []byte{19, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
 		},
+		{
+			name: "myCustomInt(9223372036854775807)",
+			in:   myCustomInt(9223372036854775807),
+			want: []byte{19, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
+		},
 	}
 	uintTests = tests{
 		{
@@ -148,6 +167,11 @@ var (
 		{
 			name: "uint(9223372036854775807)",
 			in:   uint(9223372036854775807),
+			want: []byte{0x13, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
+		},
+		{
+			name: "myCustomUint(9223372036854775807)",
+			in:   myCustomUint(9223372036854775807),
 			want: []byte{0x13, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
 		},
 	}
@@ -174,6 +198,11 @@ var (
 			in:   int64(9223372036854775807),
 			want: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
 		},
+		{
+			name: "myCustomInt64(9223372036854775807)",
+			in:   myCustomInt64(9223372036854775807),
+			want: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
+		},
 	}
 	uint64Tests = tests{
 		{
@@ -196,6 +225,11 @@ var (
 			in:   uint64(9223372036854775807),
 			want: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
 		},
+		{
+			name: "myCustomUint64(9223372036854775807)",
+			in:   myCustomUint64(9223372036854775807),
+			want: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
+		},
 	}
 	int32Tests = tests{
 		{
@@ -211,6 +245,11 @@ var (
 		{
 			name: "int32(1073741823)",
 			in:   int32(1073741823),
+			want: []byte{0xff, 0xff, 0xff, 0x3f},
+		},
+		{
+			name: "myCustomInt32(1073741823)",
+			in:   myCustomInt32(1073741823),
 			want: []byte{0xff, 0xff, 0xff, 0x3f},
 		},
 	}
@@ -230,6 +269,11 @@ var (
 			in:   uint32(1073741823),
 			want: []byte{0xff, 0xff, 0xff, 0x3f},
 		},
+		{
+			name: "uint32(1073741823)",
+			in:   myCustomUint32(1073741823),
+			want: []byte{0xff, 0xff, 0xff, 0x3f},
+		},
 	}
 	int8Tests = tests{
 		{
@@ -237,11 +281,21 @@ var (
 			in:   int8(1),
 			want: []byte{0x01},
 		},
+		{
+			name: "myCustomInt8(1)",
+			in:   myCustomInt8(1),
+			want: []byte{0x01},
+		},
 	}
 	uint8Tests = tests{
 		{
 			name: "uint8(1)",
 			in:   uint8(1),
+			want: []byte{0x01},
+		},
+		{
+			name: "myCustomInt8(1)",
+			in:   myCustomUint8(1),
 			want: []byte{0x01},
 		},
 	}
@@ -256,6 +310,11 @@ var (
 			in:   int16(16383),
 			want: []byte{0xff, 0x3f},
 		},
+		{
+			name: "myCustomInt16(16383)",
+			in:   myCustomInt16(16383),
+			want: []byte{0xff, 0x3f},
+		},
 	}
 	uint16Tests = tests{
 		{
@@ -266,6 +325,11 @@ var (
 		{
 			name: "uint16(16383)",
 			in:   uint16(16383),
+			want: []byte{0xff, 0x3f},
+		},
+		{
+			name: "myCustomUint16(16383)",
+			in:   myCustomUint16(16383),
 			want: []byte{0xff, 0x3f},
 		},
 	}
@@ -415,6 +479,18 @@ var (
 
 			want: append([]byte{0xDC}, testStrings[2]...),
 		},
+		{
+			name: "myCustomString(testStrings[0])",
+			in:   myCustomString(testStrings[0]),
+
+			want: append([]byte{0x0D, 0x01}, testStrings[0]...),
+		},
+		{
+			name: "myCustomBytes(testStrings[0])",
+			in:   myCustomBytes(testStrings[0]),
+
+			want: append([]byte{0x0D, 0x01}, testStrings[0]...),
+		},
 	}
 
 	boolTests = tests{
@@ -426,6 +502,11 @@ var (
 		{
 			name: "true",
 			in:   true,
+			want: []byte{0x01},
+		},
+		{
+			name: "myCustomBool(true)",
+			in:   myCustomBool(true),
 			want: []byte{0x01},
 		},
 	}
@@ -935,12 +1016,43 @@ func Test_marshal_optionality(t *testing.T) {
 			wantErr: t.wantErr,
 			want:    t.want,
 		}
-		switch t.in {
-		case nil:
-			ptrTest.want = []byte{0x00}
-		default:
-			ptrTest.want = append([]byte{0x01}, t.want...)
+		ptrTest.want = append([]byte{0x01}, t.want...)
+		ptrTests = append(ptrTests, ptrTest)
+	}
+	for _, tt := range ptrTests {
+		t.Run(tt.name, func(t *testing.T) {
+			es := &encodeState{fieldScaleIndicesCache: cache}
+			if err := es.marshal(tt.in); (err != nil) != tt.wantErr {
+				t.Errorf("encodeState.encodeFixedWidthInt() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(es.Buffer.Bytes(), tt.want) {
+				t.Errorf("encodeState.encodeFixedWidthInt() = %v, want %v", es.Buffer.Bytes(), tt.want)
+			}
+		})
+	}
+}
+
+func Test_marshal_optionality_nil_cases(t *testing.T) {
+	var ptrTests tests
+	for i := range allTests {
+		t := allTests[i]
+		ptrTest := test{
+			name: t.name,
+			// in:      t.in,
+			wantErr: t.wantErr,
+			want:    t.want,
 		}
+		// create a new pointer to new zero value of t.in
+		temp := reflect.New(reflect.TypeOf(t.in))
+		// create a new pointer to type of temp
+		tempv := reflect.New(reflect.PtrTo(temp.Type()).Elem())
+		// set zero value to elem of **temp so that is nil
+		tempv.Elem().Set(reflect.Zero(tempv.Elem().Type()))
+		// set test.in to *temp
+		ptrTest.in = tempv.Elem().Interface()
+		// want encoded nil
+		ptrTest.want = []byte{0x00}
+		// append to test
 		ptrTests = append(ptrTests, ptrTest)
 	}
 	for _, tt := range ptrTests {

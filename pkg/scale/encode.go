@@ -102,25 +102,7 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 				err = es.encodeSlice(in)
 			}
 		default:
-			// _, ok := in.(VaryingDataTypeValue)
-			// switch ok {
-			// case true:
-			// 	t := reflect.TypeOf(in)
-			// 	switch t.Kind() {
-			// 	// TODO: support more primitive types.  Do we need to support arrays and slices as well?
-			// 	case reflect.Int:
-			// 		in = reflect.ValueOf(in).Convert(reflect.TypeOf(int(1))).Interface()
-			// 	case reflect.Int16:
-			// 		in = reflect.ValueOf(in).Convert(reflect.TypeOf(int16(1))).Interface()
-			// 	default:
-			// 		err = fmt.Errorf("unsupported kind for VaryingDataTypeValue: %s", t.Kind())
-			// 		return
-			// 	}
-			// 	err = es.marshal(in)
-			// default:
 			err = fmt.Errorf("unsupported type: %T", in)
-			// }
-
 		}
 	}
 	return
@@ -204,90 +186,16 @@ func (es *encodeState) encodeVaryingDataType(values VaryingDataType) (err error)
 	return
 }
 
-func (es *encodeState) encodeSlice(t interface{}) (err error) {
-	switch arr := t.(type) {
-	// int is the only case that handles encoding differently.
-	// all other cases can recursively call es.marshal()
-	case []int:
-		err = es.encodeLength(len(arr))
+func (es *encodeState) encodeSlice(in interface{}) (err error) {
+	v := reflect.ValueOf(in)
+	err = es.encodeLength(v.Len())
+	if err != nil {
+		return
+	}
+	for i := 0; i < v.Len(); i++ {
+		err = es.marshal(v.Index(i).Interface())
 		if err != nil {
 			return
-		}
-		for _, elem := range arr {
-			err = es.encodeUint(uint(elem))
-			if err != nil {
-				return
-			}
-		}
-	// the cases below are to avoid using the reflect library
-	// for commonly used slices in gossamer
-	case []*big.Int:
-		err = es.encodeLength(len(arr))
-		if err != nil {
-			return
-		}
-		for _, elem := range arr {
-			err = es.marshal(elem)
-			if err != nil {
-				return
-			}
-		}
-	case []bool:
-		err = es.encodeLength(len(arr))
-		if err != nil {
-			return
-		}
-		for _, elem := range arr {
-			err = es.marshal(elem)
-			if err != nil {
-				return
-			}
-		}
-	case [][]byte:
-		err = es.encodeLength(len(arr))
-		if err != nil {
-			return
-		}
-		for _, elem := range arr {
-			err = es.marshal(elem)
-			if err != nil {
-				return
-			}
-		}
-	case [][]int:
-		err = es.encodeLength(len(arr))
-		if err != nil {
-			return
-		}
-		for _, elem := range arr {
-			err = es.marshal(elem)
-			if err != nil {
-				return
-			}
-		}
-	case []string:
-		err = es.encodeLength(len(arr))
-		if err != nil {
-			return
-		}
-		for _, elem := range arr {
-			err = es.marshal(elem)
-			if err != nil {
-				return
-			}
-		}
-	default:
-		// use reflect package for any other cases
-		s := reflect.ValueOf(t)
-		err = es.encodeUint(uint(s.Len()))
-		if err != nil {
-			return
-		}
-		for i := 0; i < s.Len(); i++ {
-			err = es.marshal(s.Index(i).Interface())
-			if err != nil {
-				return
-			}
 		}
 	}
 	return
@@ -298,19 +206,9 @@ func (es *encodeState) encodeSlice(t interface{}) (err error) {
 func (es *encodeState) encodeArray(in interface{}) (err error) {
 	v := reflect.ValueOf(in)
 	for i := 0; i < v.Len(); i++ {
-		elem := v.Index(i).Interface()
-		switch elem := elem.(type) {
-		case int:
-			// an array of unsized integers needs to be encoded using scale length encoding
-			err = es.encodeUint(uint(elem))
-			if err != nil {
-				return
-			}
-		default:
-			err = es.marshal(v.Index(i).Interface())
-			if err != nil {
-				return
-			}
+		err = es.marshal(v.Index(i).Interface())
+		if err != nil {
+			return
 		}
 	}
 	return
@@ -362,7 +260,7 @@ func (es *encodeState) encodeBool(l bool) (err error) {
 // it writes to the buffer a byte array where the first byte is the length of b encoded with SCALE, followed by the
 // byte array b itself
 func (es *encodeState) encodeBytes(b []byte) (err error) {
-	err = es.encodeUint(uint(len(b)))
+	err = es.encodeLength(len(b))
 	if err != nil {
 		return
 	}
@@ -390,10 +288,6 @@ func (es *encodeState) encodeFixedWidthInt(i interface{}) (err error) {
 		err = binary.Write(es, binary.LittleEndian, uint64(i))
 	case uint64:
 		err = binary.Write(es, binary.LittleEndian, i)
-	case int:
-		err = binary.Write(es, binary.LittleEndian, int64(i))
-	case uint:
-		err = binary.Write(es, binary.LittleEndian, uint64(i))
 	default:
 		err = fmt.Errorf("could not encode fixed width integer, invalid type: %T", i)
 	}
