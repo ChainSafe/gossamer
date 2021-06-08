@@ -91,8 +91,7 @@ func (fbha *FreeingBumpHeapAllocator) growHeap(numPages uint32) error {
 		return err
 	}
 
-	len := fbha.heap.Length()
-	fbha.maxHeapSize = len - alignment
+	fbha.maxHeapSize = fbha.heap.Length() - alignment
 	return nil
 }
 
