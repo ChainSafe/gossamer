@@ -17,6 +17,7 @@
 package grandpa
 
 import (
+	"bytes"
 	"fmt"
 	"time"
 
@@ -73,7 +74,12 @@ func (hs *GrandpaHandshake) Decode(in []byte) error {
 		return err
 	}
 
-	hs.Roles = msg.(*GrandpaHandshake).Roles
+	m, ok := msg.(*GrandpaHandshake)
+	if !ok {
+		return nil
+	}
+
+	hs.Roles = m.Roles
 	return nil
 }
 
@@ -136,7 +142,6 @@ func (s *Service) decodeMessage(in []byte) (NotificationsMessage, error) {
 
 func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (bool, error) {
 	if msg == nil {
-		logger.Trace("received nil message, ignoring")
 		return false, nil
 	}
 
@@ -145,8 +150,7 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 		return false, ErrInvalidMessageType
 	}
 
-	if len(cm.Data) == 0 {
-		logger.Trace("received message with nil data, ignoring")
+	if len(cm.Data) < 2 {
 		return false, nil
 	}
 
@@ -158,6 +162,12 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 	resp, err := s.messageHandler.handleMessage(from, m)
 	if err != nil {
 		return false, err
+	}
+
+	//return false, nil
+
+	if s.network == nil {
+		panic("s.network is nil")
 	}
 
 	if resp != nil {
@@ -202,4 +212,47 @@ func (s *Service) sendNeighbourMessage() {
 
 		s.network.SendMessage(cm)
 	}
+}
+
+// decodeMessage decodes a network-level consensus message into a GRANDPA VoteMessage or CommitMessage
+func decodeMessage(msg *ConsensusMessage) (m GrandpaMessage, err error) {
+	var (
+		mi interface{}
+		ok bool
+	)
+
+	switch msg.Data[0] {
+	case voteType:
+		m = &VoteMessage{}
+		_, err = scale.Decode(msg.Data[1:], m)
+	case commitType:
+		r := &bytes.Buffer{}
+		_, _ = r.Write(msg.Data[1:])
+		cm := &CommitMessage{}
+		err = cm.Decode(r)
+		m = cm
+	case neighbourType:
+		mi, err = scale.Decode(msg.Data[1:], &NeighbourMessage{})
+		if m, ok = mi.(*NeighbourMessage); !ok {
+			return nil, ErrInvalidMessageType
+		}
+	case catchUpRequestType:
+		mi, err = scale.Decode(msg.Data[1:], &catchUpRequest{})
+		if m, ok = mi.(*catchUpRequest); !ok {
+			return nil, ErrInvalidMessageType
+		}
+	case catchUpResponseType:
+		mi, err = scale.Decode(msg.Data[1:], &catchUpResponse{})
+		if m, ok = mi.(*catchUpResponse); !ok {
+			return nil, ErrInvalidMessageType
+		}
+	default:
+		return nil, ErrInvalidMessageType
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return m, nil
 }

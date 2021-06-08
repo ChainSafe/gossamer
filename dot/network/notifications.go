@@ -86,7 +86,11 @@ func (n *notificationsProtocol) getHandshakeData(pid peer.ID, inbound bool) (han
 		return handshakeData{}, false
 	}
 
-	return data.(handshakeData), true
+	hsData, ok := data.(handshakeData)
+	if !ok {
+		panic("data is not handshakeData")
+	}
+	return hsData, true
 }
 
 type handshakeData struct {
@@ -208,7 +212,6 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 
 func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtocol, msg NotificationsMessage) {
 	if support, err := s.host.supportsProtocol(peer, info.protocolID); err != nil || !support {
-		logger.Trace("the peer does not supports the protocol", "protocol", info.protocolID, "peer", peer, "err", err)
 		return
 	}
 
@@ -259,7 +262,6 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 			if hsResponse.err != nil {
 				logger.Trace("failed to read handshake", "protocol", info.protocolID, "peer", peer, "error", err)
 				_ = stream.Close()
-
 				info.outboundHandshakeData.Delete(peer)
 				return
 			}
@@ -323,7 +325,7 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 			continue
 		}
 
-		s.sendData(peer, hs, info, msg)
+		go s.sendData(peer, hs, info, msg)
 	}
 }
 
@@ -337,7 +339,7 @@ func (s *Service) readHandshake(stream libp2pnetwork.Stream, decoder HandshakeDe
 			close(hsC)
 		}()
 
-		tot, err := readStream(stream, msgBytes[:])
+		tot, err := readStream(stream, msgBytes[:]) // TODO: I think this will hang forever if the peer never responds, need to add stream to streamManager
 		if err != nil {
 			hsC <- &handshakeReader{hs: nil, err: err}
 			return

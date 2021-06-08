@@ -42,7 +42,6 @@ func (s *Service) receiveMessages(cond func() bool) {
 				logger.Trace("received vote message", "msg", msg)
 				vm, ok := msg.(*VoteMessage)
 				if !ok {
-					logger.Trace("failed to cast message to VoteMessage")
 					continue
 				}
 
@@ -52,7 +51,13 @@ func (s *Service) receiveMessages(cond func() bool) {
 					continue
 				}
 
-				logger.Debug("validated vote message", "vote", v, "round", vm.Round, "subround", vm.Message.Stage, "precommits", s.precommits)
+				logger.Debug("validated vote message",
+					"vote", v,
+					"round", vm.Round,
+					"subround", vm.Message.Stage,
+					"prevotes", s.prevotes,
+					"precommits", s.precommits,
+				)
 			case <-ctx.Done():
 				logger.Trace("returning from receiveMessages")
 				return
