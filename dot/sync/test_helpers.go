@@ -139,6 +139,10 @@ func NewTestSyncer(t *testing.T) *Service {
 		}
 	}
 
+	if cfg.CodeSubstitutedState == nil {
+		cfg.CodeSubstitutedState = stateSrvc.Base
+	}
+
 	syncer, err := NewService(cfg)
 	require.NoError(t, err)
 	return syncer

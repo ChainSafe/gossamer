@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"reflect"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
@@ -58,22 +59,23 @@ type Service struct {
 	digestHandler DigestHandler
 
 	// map of code substitutions keyed by block hash
-	codeSubstitute  map[common.Hash]string
-	codeSubstituted bool
+	codeSubstitute       map[common.Hash]string
+	codeSubstitutedState CodeSubstitutedState
 }
 
 // Config is the configuration for the sync Service.
 type Config struct {
-	LogLvl           log.Lvl
-	BlockState       BlockState
-	StorageState     StorageState
-	BlockProducer    BlockProducer
-	FinalityGadget   FinalityGadget
-	TransactionState TransactionState
-	Runtime          runtime.Instance
-	Verifier         Verifier
-	DigestHandler    DigestHandler
-	CodeSubstitutes  map[common.Hash]string
+	LogLvl               log.Lvl
+	BlockState           BlockState
+	StorageState         StorageState
+	BlockProducer        BlockProducer
+	FinalityGadget       FinalityGadget
+	TransactionState     TransactionState
+	Runtime              runtime.Instance
+	Verifier             Verifier
+	DigestHandler        DigestHandler
+	CodeSubstitutes      map[common.Hash]string
+	CodeSubstitutedState CodeSubstitutedState
 }
 
 // NewService returns a new *sync.Service
@@ -108,19 +110,19 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 
 	return &Service{
-		codeHash:         codeHash,
-		blockState:       cfg.BlockState,
-		storageState:     cfg.StorageState,
-		blockProducer:    cfg.BlockProducer,
-		finalityGadget:   cfg.FinalityGadget,
-		synced:           true,
-		highestSeenBlock: big.NewInt(0),
-		transactionState: cfg.TransactionState,
-		runtime:          cfg.Runtime,
-		verifier:         cfg.Verifier,
-		digestHandler:    cfg.DigestHandler,
-		codeSubstitute:   cfg.CodeSubstitutes,
-		codeSubstituted:  false,
+		codeHash:             codeHash,
+		blockState:           cfg.BlockState,
+		storageState:         cfg.StorageState,
+		blockProducer:        cfg.BlockProducer,
+		finalityGadget:       cfg.FinalityGadget,
+		synced:               true,
+		highestSeenBlock:     big.NewInt(0),
+		transactionState:     cfg.TransactionState,
+		runtime:              cfg.Runtime,
+		verifier:             cfg.Verifier,
+		digestHandler:        cfg.DigestHandler,
+		codeSubstitute:       cfg.CodeSubstitutes,
+		codeSubstitutedState: cfg.CodeSubstitutedState,
 	}, nil
 }
 
@@ -439,7 +441,12 @@ func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {
 	if err != nil {
 		logger.Debug("problem checking runtime version", "error", err)
 	}
-	if s.codeSubstituted && previousVersion.SpecVersion() == newVersion.SpecVersion() {
+	codeSubBlockHash, err := s.codeSubstitutedState.LoadCodeSubstitutedBlockHash()
+	if err != nil {
+		logger.Debug("problem checking code substituted block hash", "error", err)
+	}
+
+	if !reflect.DeepEqual(codeSubBlockHash, common.Hash{}) && previousVersion.SpecVersion() == newVersion.SpecVersion() {
 		// don't do runtime change if using code substitution and runtime change spec version are equal
 		//  (do a runtime change if code substituted and runtime spec versions are different, or code not substituted)
 		return nil
@@ -475,10 +482,11 @@ func (s *Service) handleCodeSubstitution(block common.Hash) error {
 		return err
 	}
 
+	err = s.codeSubstitutedState.StoreCodeSubstitutedBlockHash(block)
 	if err != nil {
 		return err
 	}
-	s.codeSubstituted = true
+
 	return nil
 }
 

@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"reflect"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/core"
@@ -93,6 +94,23 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GlobalKeystore, 
 	code, err := st.Storage.GetStorage(nil, []byte(":code"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve :code from trie: %s", err)
+	}
+
+	// check if code substitute is in use, if so replace code
+	codeSubHash, err := st.Base.LoadCodeSubstitutedBlockHash()
+	if err != nil {
+		logger.Debug("failed to retrieve substituted code block hash", "error", err)
+	}
+
+	if !reflect.DeepEqual(codeSubHash, common.Hash{}) {
+		logger.Info("🔄 detected runtime code substitution, upgrading...", "block", codeSubHash)
+		genData, err := st.Base.LoadGenesisData() // nolint
+		if err != nil {
+			return nil, err
+		}
+		codeString := genData.CodeSubstitutes[codeSubHash.String()]
+
+		code = common.MustHexToBytes(codeString)
 	}
 
 	ts, err := st.Storage.TrieState(nil)
@@ -387,16 +405,17 @@ func createSyncService(cfg *Config, st *state.Service, bp sync.BlockProducer, fg
 	}
 
 	syncCfg := &sync.Config{
-		LogLvl:           cfg.Log.SyncLvl,
-		BlockState:       st.Block,
-		StorageState:     st.Storage,
-		TransactionState: st.Transaction,
-		BlockProducer:    bp,
-		FinalityGadget:   fg,
-		Verifier:         verifier,
-		Runtime:          rt,
-		DigestHandler:    dh,
-		CodeSubstitutes:  codeSubs,
+		LogLvl:               cfg.Log.SyncLvl,
+		BlockState:           st.Block,
+		StorageState:         st.Storage,
+		TransactionState:     st.Transaction,
+		BlockProducer:        bp,
+		FinalityGadget:       fg,
+		Verifier:             verifier,
+		Runtime:              rt,
+		DigestHandler:        dh,
+		CodeSubstitutes:      codeSubs,
+		CodeSubstitutedState: st.Base,
 	}
 
 	return sync.NewService(syncCfg)

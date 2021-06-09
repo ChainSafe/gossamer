@@ -198,7 +198,7 @@ func TestSyncer_ExecuteBlock(t *testing.T) {
 
 func TestSyncer_HandleRuntimeChanges(t *testing.T) {
 	syncer := NewTestSyncer(t)
-
+	codeHashBefore := syncer.codeHash
 	_, err := runtime.GetRuntimeBlob(runtime.POLKADOT_RUNTIME_FP, runtime.POLKADOT_RUNTIME_URL)
 	require.NoError(t, err)
 
@@ -211,36 +211,35 @@ func TestSyncer_HandleRuntimeChanges(t *testing.T) {
 	ts.Set(common.CodeKey, testRuntime)
 	err = syncer.handleRuntimeChanges(ts)
 	require.NoError(t, err)
+	codeHashAfter := syncer.codeHash
+	require.NotEqualf(t, codeHashBefore, codeHashAfter, "expected different code hash after runtime update")
 }
 
 func TestSyncer_HandleCodeSubstitutes(t *testing.T) {
 	syncer := NewTestSyncer(t)
-	startingCodeHash := syncer.codeHash
 	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29") // hash for known test code substitution
-
 	err := syncer.handleCodeSubstitution(blockHash)
 	require.NoError(t, err)
-	require.NotEqualf(t, startingCodeHash, syncer.codeHash, "expected different code hashes")
+	codSub, err := syncer.codeSubstitutedState.LoadCodeSubstitutedBlockHash()
+	require.NoError(t, err)
+	require.Equal(t, blockHash, codSub)
 }
 
 func TestSyncer_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	syncer := NewTestSyncer(t)
-	startingCodeHash := syncer.codeHash
+	codeHashBefore := syncer.codeHash
 	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29") // hash for known test code substitution
 
 	err := syncer.handleCodeSubstitution(blockHash)
 	require.NoError(t, err)
-	require.NotEqualf(t, startingCodeHash, syncer.codeHash, "expected different code hashes")
+	require.Equal(t, codeHashBefore, syncer.codeHash) // codeHash should remain unchanged after code substitute
 
 	ts, err := syncer.storageState.TrieState(nil)
 	require.NoError(t, err)
 
-	// TODO (ed): Calling handleRuntimeChanges here triggers runtime update because code substitute updated code hash to newly substituted cade
-	//  however this just replaces substituted code with code prior to substitution.  Comparing spec versions from (from reviewing lags) is
-	//  also different, so how can we determine runtime code is not stale runtime prior to substitution?
-	// INFO[06-08|18:52:36] 🔄 detected runtime code change, upgrading... pkg=sync block=0x64597c55a052d484d9ff357266be326f62573bb4fbdbb3cd49f219396fcebf78 previous code hash=0x37a9655b95082a5bf9e7edcbdb0c4d2972bae0b5cc58bdebdc7c41b64fca20fe new code hash=0xac39a38c1968e8004aab4c1e678965db69cfbea690641f3000dc952f255aac0a previous spec version=30 new spec version=260 caller=syncer.go:440
 	err = syncer.handleRuntimeChanges(ts)
 	require.NoError(t, err)
+	require.NotEqual(t, codeHashBefore, syncer.codeHash) // codeHash should change after runtime change
 }
 
 func TestSyncer_HandleJustification(t *testing.T) {
