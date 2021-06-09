@@ -111,7 +111,6 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 
 	t.Cleanup(func() {
 		srvc.Stop()
-		time.Sleep(time.Second)
 		err = os.RemoveAll(cfg.BasePath)
 		if err != nil {
 			fmt.Printf("failed to remove path %s : %s\n", cfg.BasePath, err)
