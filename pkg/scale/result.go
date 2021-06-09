@@ -22,19 +22,17 @@ import (
 )
 
 type resultCache map[string]map[bool]interface{}
+
+// Result encapsulates an Ok or an Err case. It's not a valid result unless one of the
+// attributes != nil
 type Result struct {
 	Ok  interface{}
 	Err interface{}
 }
 
-// Validate ensures Result is valid.  Only one of the Ok and Err attributes should be nil
-func (r Result) Validate() (err error) {
-	switch {
-	case r.Ok == nil && r.Err != nil, r.Ok != nil && r.Err == nil:
-	default:
-		err = fmt.Errorf("Result is invalid: %+v", r)
-	}
-	return
+// Valid returns whether the Result is valid.  Only one of the Ok and Err attributes should be nil
+func (r Result) IsValid() bool {
+	return r.Ok == nil && r.Err != nil || r.Ok != nil && r.Err == nil
 }
 
 var resCache resultCache = make(resultCache)

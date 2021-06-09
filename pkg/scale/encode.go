@@ -142,8 +142,9 @@ func (es *encodeState) encodeCustomPrimitive(in interface{}) (err error) {
 	return
 }
 func (es *encodeState) encodeResult(res Result) (err error) {
-	err = res.Validate()
-	if err != nil {
+	switch res.IsValid() {
+	case false:
+		err = fmt.Errorf("Result is invalid: %+v", res)
 		return
 	}
 
