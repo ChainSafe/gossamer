@@ -474,7 +474,7 @@ func (s *Service) handleCodeSubstitution(block common.Hash) error {
 		logger.Crit("failed to substitute runtime code", "error", err)
 		return err
 	}
-	s.codeHash, err = common.Blake2bHash(code)
+
 	if err != nil {
 		return err
 	}
