@@ -48,7 +48,6 @@ func createServiceHelper(t *testing.T, num int) []*Service {
 		config := &Config{
 			BasePath:    utils.NewTestBasePath(t, fmt.Sprintf("node%d", i)),
 			Port:        uint32(7001 + i),
-			RandSeed:    int64(1 + i),
 			NoBootstrap: true,
 			NoMDNS:      true,
 		}
@@ -71,7 +70,6 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 		cfg = &Config{
 			BasePath:    basePath,
 			Port:        7001,
-			RandSeed:    1,
 			NoBootstrap: true,
 			NoMDNS:      true,
 			LogLvl:      4,
@@ -145,7 +143,6 @@ func TestBroadcastMessages(t *testing.T) {
 	configA := &Config{
 		BasePath:    basePathA,
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -158,7 +155,6 @@ func TestBroadcastMessages(t *testing.T) {
 	configB := &Config{
 		BasePath:    basePathB,
 		Port:        7002,
-		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -169,14 +165,12 @@ func TestBroadcastMessages(t *testing.T) {
 	handler := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
 	nodeB.host.registerStreamHandler(blockAnnounceID, handler.handleStream)
 
-	addrInfosB, err := nodeB.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosB[0])
+	addrInfoB := nodeB.host.addrInfo()
+	err := nodeA.host.connect(addrInfoB)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosB[0])
+		err = nodeA.host.connect(addrInfoB)
 	}
 	require.NoError(t, err)
 
@@ -193,7 +187,6 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	configA := &Config{
 		BasePath:    basePathA,
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -206,7 +199,6 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	configB := &Config{
 		BasePath:    basePathB,
 		Port:        7002,
-		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -218,14 +210,12 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	handler := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
 	nodeB.host.registerStreamHandler(blockAnnounceID, handler.handleStream)
 
-	addrInfosB, err := nodeB.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosB[0])
+	addrInfoB := nodeB.host.addrInfo()
+	err := nodeA.host.connect(addrInfoB)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosB[0])
+		err = nodeA.host.connect(addrInfoB)
 	}
 	require.NoError(t, err)
 
@@ -276,7 +266,6 @@ func TestService_Health(t *testing.T) {
 	config := &Config{
 		BasePath:    basePath,
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -294,13 +283,11 @@ func TestPersistPeerStore(t *testing.T) {
 	nodeA := nodes[0]
 	nodeB := nodes[1]
 
-	addrInfosB, err := nodeB.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosB[0])
+	addrInfoB := nodeB.host.addrInfo()
+	err := nodeA.host.connect(addrInfoB)
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosB[0])
+		err = nodeA.host.connect(addrInfoB)
 	}
 	require.NoError(t, err)
 
@@ -319,7 +306,6 @@ func TestHandleConn(t *testing.T) {
 	configA := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeA"),
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -329,20 +315,17 @@ func TestHandleConn(t *testing.T) {
 	configB := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeB"),
 		Port:        7002,
-		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
 
 	nodeB := createTestService(t, configB)
 
-	addrInfosB, err := nodeB.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosB[0])
+	addrInfoB := nodeB.host.addrInfo()
+	err := nodeA.host.connect(addrInfoB)
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosB[0])
+		err = nodeA.host.connect(addrInfoB)
 	}
 	require.NoError(t, err)
 

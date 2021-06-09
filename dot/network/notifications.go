@@ -261,7 +261,6 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 			_ = stream.Close()
 			info.outboundHandshakeData.Delete(peer)
 			return
-
 		case hsResponse := <-s.readHandshake(stream, info.handshakeDecoder):
 			hsTimer.Stop()
 			if hsResponse.err != nil {
