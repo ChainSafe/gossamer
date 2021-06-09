@@ -64,13 +64,11 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 		}
 		return nil, nil
 	case commitType:
-		//return nil, nil
-
 		if fm, ok := m.(*CommitMessage); ok {
 			return h.handleCommitMessage(fm)
 		}
 	case neighbourType:
-		return nil, nil
+		//return nil, nil
 
 		nm, ok := m.(*NeighbourMessage)
 		if !ok {
@@ -79,13 +77,13 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 
 		return nil, h.handleNeighbourMessage(from, nm)
 	case catchUpRequestType:
-		return nil, nil
+		//return nil, nil
 
 		if r, ok := m.(*catchUpRequest); ok {
 			return h.handleCatchUpRequest(r)
 		}
 	case catchUpResponseType:
-		return nil, nil
+		//return nil, nil
 
 		if r, ok := m.(*catchUpResponse); ok {
 			return nil, h.handleCatchUpResponse(r)

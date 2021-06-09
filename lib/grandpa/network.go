@@ -164,10 +164,14 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 		return false, err
 	}
 
-	if resp != nil {
-		logger.Crit("rebroadcasting from handleNetworkMessage", "s.network", s.network)
-		fmt.Println(resp)
-		s.network.SendMessage(resp)
+	switch r := resp.(type) {
+	case *ConsensusMessage:
+		if r != nil {
+			s.network.SendMessage(resp)
+		}
+	case nil:
+	default:
+		logger.Warn("unexpected type returned from message handler", "response", resp)
 	}
 
 	if m.Type() == neighbourType || m.Type() == catchUpResponseType {
