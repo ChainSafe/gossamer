@@ -275,17 +275,6 @@ func (b *BlockBuilder) buildBlockInherents(slot Slot) ([][]byte, error) {
 		return nil, err
 	}
 
-	// add finalnum
-	fin, err := b.blockState.GetFinalizedHeader(0, 0)
-	if err != nil {
-		return nil, err
-	}
-
-	err = idata.SetBigIntInherent(types.Finalnum, fin.Number)
-	if err != nil {
-		return nil, err
-	}
-
 	ienc, err := idata.Encode()
 	if err != nil {
 		return nil, err
