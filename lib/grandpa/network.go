@@ -164,13 +164,9 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 		return false, err
 	}
 
-	//return false, nil
-
-	if s.network == nil {
-		panic("s.network is nil")
-	}
-
 	if resp != nil {
+		logger.Crit("rebroadcasting from handleNetworkMessage", "s.network", s.network)
+		fmt.Println(resp)
 		s.network.SendMessage(resp)
 	}
 

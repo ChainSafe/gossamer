@@ -62,6 +62,7 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 			// send vote message to grandpa service
 			h.grandpa.in <- vm
 		}
+		return nil, nil
 	case commitType:
 		//return nil, nil
 

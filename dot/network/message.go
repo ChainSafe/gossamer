@@ -374,22 +374,34 @@ func (cm *ConsensusMessage) Type() byte {
 
 // String is the string
 func (cm *ConsensusMessage) String() string {
+	if cm == nil {
+		return "nil"
+	}
 	return fmt.Sprintf("ConsensusMessage Data=%x", cm.Data)
 }
 
 // Encode encodes a block response message using SCALE
 func (cm *ConsensusMessage) Encode() ([]byte, error) {
+	if cm == nil {
+		return []byte{}, nil
+	}
 	return cm.Data, nil
 }
 
 // Decode the message into a ConsensusMessage
 func (cm *ConsensusMessage) Decode(in []byte) error {
+	if cm == nil {
+		return errors.New("nil")
+	}
 	cm.Data = in
 	return nil
 }
 
 // Hash returns the Hash of ConsensusMessage
 func (cm *ConsensusMessage) Hash() common.Hash {
+	if cm == nil {
+		return common.Hash{}
+	}
 	// scale encode each extrinsic
 	encMsg, _ := cm.Encode()
 	hash, _ := common.Blake2bHash(encMsg)

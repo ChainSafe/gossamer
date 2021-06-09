@@ -211,15 +211,20 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 }
 
 func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtocol, msg NotificationsMessage) {
+	logger.Debug("checking if peer supports protocol", "protocol", info.protocolID)
 	if support, err := s.host.supportsProtocol(peer, info.protocolID); err != nil || !support {
 		return
 	}
+
+	logger.Debug("getting peer handshake data", "protocol", info.protocolID)
 
 	hsData, has := info.getHandshakeData(peer, false)
 	if has && !hsData.validated {
 		// peer has sent us an invalid handshake in the past, ignore
 		return
 	}
+
+	logger.Debug("got peer handshake data", "protocol", info.protocolID, "hsData", hsData, "has", has)
 
 	if !has || !hsData.received || hsData.stream == nil {
 		if !has {
@@ -229,10 +234,10 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		hsData.Lock()
 		defer hsData.Unlock()
 
-		logger.Trace("sending outbound handshake", "protocol", info.protocolID, "peer", peer, "message", hs)
+		logger.Debug("sending outbound handshake", "protocol", info.protocolID, "peer", peer, "message", hs)
 		stream, err := s.host.send(peer, info.protocolID, hs)
 		if err != nil {
-			logger.Trace("failed to send message to peer", "peer", peer, "error", err)
+			logger.Debug("failed to send message to peer", "peer", peer, "error", err)
 			return
 		}
 
@@ -252,7 +257,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		var hs Handshake
 		select {
 		case <-hsTimer.C:
-			logger.Trace("handshake timeout reached", "protocol", info.protocolID, "peer", peer)
+			logger.Debug("handshake timeout reached", "protocol", info.protocolID, "peer", peer)
 			_ = stream.Close()
 			info.outboundHandshakeData.Delete(peer)
 			return
@@ -260,7 +265,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		case hsResponse := <-s.readHandshake(stream, info.handshakeDecoder):
 			hsTimer.Stop()
 			if hsResponse.err != nil {
-				logger.Trace("failed to read handshake", "protocol", info.protocolID, "peer", peer, "error", err)
+				logger.Debug("failed to read handshake", "protocol", info.protocolID, "peer", peer, "error", err)
 				_ = stream.Close()
 				info.outboundHandshakeData.Delete(peer)
 				return
@@ -272,7 +277,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 
 		err = info.handshakeValidator(peer, hs)
 		if err != nil {
-			logger.Trace("failed to validate handshake", "protocol", info.protocolID, "peer", peer, "error", err)
+			logger.Debug("failed to validate handshake", "protocol", info.protocolID, "peer", peer, "error", err)
 			hsData.validated = false
 			info.outboundHandshakeData.Store(peer, hsData)
 			return
@@ -280,7 +285,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 
 		hsData.validated = true
 		info.outboundHandshakeData.Store(peer, hsData)
-		logger.Trace("sender: validated handshake", "protocol", info.protocolID, "peer", peer)
+		logger.Debug("sender: validated handshake", "protocol", info.protocolID, "peer", peer)
 	}
 
 	if s.host.messageCache != nil {
@@ -296,11 +301,11 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 	}
 
 	// we've completed the handshake with the peer, send message directly
-	logger.Trace("sending message", "protocol", info.protocolID, "peer", peer, "message", msg)
+	logger.Debug("sending message", "protocol", info.protocolID, "peer", peer, "message", msg)
 
 	err := s.host.writeToStream(hsData.stream, msg)
 	if err != nil {
-		logger.Trace("failed to send message to peer", "peer", peer, "error", err)
+		logger.Debug("failed to send message to peer", "peer", peer, "error", err)
 	}
 }
 
@@ -308,7 +313,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 // and peers that have previously sent us the message or who we have already sent the message to.
 // used for notifications sub-protocols to gossip a message
 func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer.ID, msg NotificationsMessage) {
-	logger.Trace(
+	logger.Debug(
 		"broadcasting message from notifications sub-protocol",
 		"protocol", info.protocolID,
 	)
