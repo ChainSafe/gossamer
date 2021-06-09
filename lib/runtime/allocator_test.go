@@ -18,7 +18,6 @@ package runtime
 
 import (
 	"encoding/binary"
-	"fmt"
 	"math"
 	"reflect"
 	"testing"
@@ -344,7 +343,6 @@ func TestShouldGrowMemory(t *testing.T) {
 
 	// when
 	_, err := fbha.Allocate(currentSize)
-	fmt.Println("o len here", mem.Length())
 	require.NoError(t, err)
 	require.Equal(t, (1<<16)+PageSize, int(mem.Length()))
 }

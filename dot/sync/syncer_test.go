@@ -220,7 +220,7 @@ func TestSyncer_HandleJustification(t *testing.T) {
 		Number: big.NewInt(1),
 	}
 
-	just := []byte{1, 2, 3, 4, 5}
+	just := []byte("testjustification")
 
 	syncer.handleJustification(header, just)
 

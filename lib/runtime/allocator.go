@@ -107,7 +107,6 @@ func (fbha *FreeingBumpHeapAllocator) Allocate(size uint32) (uint32, error) {
 	itemSize := nextPowerOf2GT8(size)
 
 	if (itemSize + fbha.totalSize + fbha.ptrOffset) > fbha.maxHeapSize {
-		fmt.Println("this condition")
 		pagesNeeded := ((itemSize + fbha.totalSize + fbha.ptrOffset) - fbha.maxHeapSize) / PageSize
 		err := fbha.growHeap(pagesNeeded + 1)
 		if err != nil {

@@ -17,7 +17,6 @@
 package core
 
 import (
-	"fmt"
 	"io/ioutil"
 	"math/big"
 	"testing"
@@ -350,7 +349,6 @@ func TestDigestHandler_HandleBABEOnDisabled(t *testing.T) {
 
 	err = handler.HandleConsensusDigest(d, header)
 
-	fmt.Println("erro", err)
 	require.NoError(t, err)
 
 	babemock.AssertCalled(t, "SetOnDisabled", uint32(7))

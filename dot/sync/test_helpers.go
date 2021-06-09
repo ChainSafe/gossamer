@@ -56,8 +56,8 @@ func NewMockVerifier() *syncmocks.MockVerifier {
 	return m
 }
 
-// NewBlockProducer create and return sync BlockProducer interface mock
-func NewBlockProducer() *syncmocks.MockBlockProducer {
+// NewMockBlockProducer create and return sync BlockProducer interface mock
+func NewMockBlockProducer() *syncmocks.MockBlockProducer {
 	m := new(syncmocks.MockBlockProducer)
 	m.On("Pause").Return(nil)
 	m.On("Resume").Return(nil)
@@ -91,7 +91,7 @@ func NewTestSyncer(t *testing.T) *Service {
 	}
 
 	if cfg.BlockProducer == nil {
-		cfg.BlockProducer = NewBlockProducer()
+		cfg.BlockProducer = NewMockBlockProducer()
 	}
 
 	if cfg.Runtime == nil {
