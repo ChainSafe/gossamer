@@ -51,10 +51,6 @@ func NewMessageHandler(grandpa *Service, blockState BlockState) *MessageHandler 
 func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.NotificationsMessage, error) {
 	logger.Trace("handling grandpa message", "msg", m)
 
-	if m == nil {
-		return nil, nil
-	}
-
 	switch m.Type() {
 	case voteType:
 		vm, ok := m.(*VoteMessage)
@@ -68,8 +64,6 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 			return h.handleCommitMessage(fm)
 		}
 	case neighbourType:
-		//return nil, nil
-
 		nm, ok := m.(*NeighbourMessage)
 		if !ok {
 			return nil, nil
@@ -77,14 +71,10 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 
 		return nil, h.handleNeighbourMessage(from, nm)
 	case catchUpRequestType:
-		//return nil, nil
-
 		if r, ok := m.(*catchUpRequest); ok {
 			return h.handleCatchUpRequest(r)
 		}
 	case catchUpResponseType:
-		//return nil, nil
-
 		if r, ok := m.(*catchUpResponse); ok {
 			return nil, h.handleCatchUpResponse(r)
 		}
@@ -96,20 +86,9 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 }
 
 func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMessage) error {
-	logger.Debug("received NeighbourMessage", "msg", msg)
 	currFinalized, err := h.blockState.GetFinalizedHeader(0, 0)
 	if err != nil {
 		return err
-	}
-
-	logger.Debug("handleNeighbourMessage", "currFinalized", currFinalized)
-
-	if currFinalized == nil || currFinalized.Number == nil {
-		panic("currFinalized is nil")
-	}
-
-	if msg == nil {
-		panic("msg is nil")
 	}
 
 	// ignore neighbour messages where our best finalised number is greater than theirs
@@ -122,10 +101,6 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 	head, err := h.blockState.BestBlockNumber()
 	if err != nil {
 		return err
-	}
-
-	if head == nil {
-		panic("head is nil")
 	}
 
 	// ignore neighbour messages that are above our head
