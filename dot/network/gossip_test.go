@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/libp2p/go-libp2p-core/protocol"
 
 	"github.com/stretchr/testify/require"
 )
@@ -98,7 +97,7 @@ func TestGossip(t *testing.T) {
 	}
 	require.NoError(t, err)
 
-  _, err = nodeA.host.send(addrInfoB.ID, "", testBlockAnnounceMessage)
+	_, err = nodeA.host.send(addrInfoB.ID, "", testBlockAnnounceMessage)
 	require.NoError(t, err)
 
 	time.Sleep(TestMessageTimeout)
