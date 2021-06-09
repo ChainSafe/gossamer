@@ -58,7 +58,8 @@ type Service struct {
 	digestHandler DigestHandler
 
 	// map of code substitutions keyed by block hash
-	codeSubstitute map[common.Hash]string
+	codeSubstitute  map[common.Hash]string
+	codeSubstituted bool
 }
 
 // Config is the configuration for the sync Service.
@@ -119,6 +120,7 @@ func NewService(cfg *Config) (*Service, error) {
 		verifier:         cfg.Verifier,
 		digestHandler:    cfg.DigestHandler,
 		codeSubstitute:   cfg.CodeSubstitutes,
+		codeSubstituted:  false,
 	}, nil
 }
 
@@ -437,6 +439,11 @@ func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {
 	if err != nil {
 		logger.Debug("problem checking runtime version", "error", err)
 	}
+	if s.codeSubstituted && previousVersion.SpecVersion() == newVersion.SpecVersion() {
+		// don't do runtime change if using code substitution and runtime change spec version are equal
+		//  (do a runtime change if code substituted and runtime spec versions are different, or code not substituted)
+		return nil
+	}
 	logger.Info("🔄 detected runtime code change, upgrading...", "block", s.blockState.BestBlockHash(),
 		"previous code hash", s.codeHash, "new code hash", currCodeHash,
 		"previous spec version", previousVersion.SpecVersion(), "new spec version", newVersion.SpecVersion())
@@ -471,7 +478,7 @@ func (s *Service) handleCodeSubstitution(block common.Hash) error {
 	if err != nil {
 		return err
 	}
-
+	s.codeSubstituted = true
 	return nil
 }
 
