@@ -33,16 +33,13 @@ func TestExternalAddrs(t *testing.T) {
 	config := &Config{
 		BasePath:    utils.NewTestBasePath(t, "node"),
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
 
 	node := createTestService(t, config)
 
-	addrInfos, err := node.host.addrInfos()
-	require.NoError(t, err)
-
+	addrInfo := node.host.addrInfo()
 	privateIPs := ma.NewFilters()
 	for _, cidr := range privateCIDRs {
 		_, ipnet, err := net.ParseCIDR(cidr) //nolint
@@ -50,10 +47,8 @@ func TestExternalAddrs(t *testing.T) {
 		privateIPs.AddFilter(*ipnet, ma.ActionDeny)
 	}
 
-	for _, info := range addrInfos {
-		for _, addr := range info.Addrs {
-			require.False(t, privateIPs.AddrBlocked(addr))
-		}
+	for _, addr := range addrInfo.Addrs {
+		require.False(t, privateIPs.AddrBlocked(addr))
 	}
 }
 
@@ -64,7 +59,6 @@ func TestConnect(t *testing.T) {
 	configA := &Config{
 		BasePath:    basePathA,
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -77,7 +71,6 @@ func TestConnect(t *testing.T) {
 	configB := &Config{
 		BasePath:    basePathB,
 		Port:        7002,
-		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -85,14 +78,12 @@ func TestConnect(t *testing.T) {
 	nodeB := createTestService(t, configB)
 	nodeB.noGossip = true
 
-	addrInfosB, err := nodeB.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosB[0])
+	addrInfoB := nodeB.host.addrInfo()
+	err := nodeA.host.connect(addrInfoB)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosB[0])
+		err = nodeA.host.connect(addrInfoB)
 	}
 	require.NoError(t, err)
 
@@ -123,7 +114,6 @@ func TestBootstrap(t *testing.T) {
 	configA := &Config{
 		BasePath:    basePathA,
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -138,7 +128,6 @@ func TestBootstrap(t *testing.T) {
 	configB := &Config{
 		BasePath:  basePathB,
 		Port:      7002,
-		RandSeed:  2,
 		Bootnodes: []string{addrA.String()},
 		NoMDNS:    true,
 	}
@@ -180,7 +169,6 @@ func TestSend(t *testing.T) {
 	configA := &Config{
 		BasePath:    basePathA,
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -193,7 +181,6 @@ func TestSend(t *testing.T) {
 	configB := &Config{
 		BasePath:    basePathB,
 		Port:        7002,
-		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -203,18 +190,16 @@ func TestSend(t *testing.T) {
 	handler := newTestStreamHandler(testBlockRequestMessageDecoder)
 	nodeB.host.registerStreamHandler("", handler.handleStream)
 
-	addrInfosB, err := nodeB.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosB[0])
+	addrInfoB := nodeB.host.addrInfo()
+	err := nodeA.host.connect(addrInfoB)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosB[0])
+		err = nodeA.host.connect(addrInfoB)
 	}
 	require.NoError(t, err)
 
-	_, err = nodeA.host.send(addrInfosB[0].ID, nodeB.host.protocolID, testBlockRequestMessage)
+	_, err = nodeA.host.send(addrInfoB.ID, nodeB.host.protocolID, testBlockRequestMessage)
 	require.NoError(t, err)
 
 	time.Sleep(TestMessageTimeout)
@@ -231,7 +216,6 @@ func TestExistingStream(t *testing.T) {
 	configA := &Config{
 		BasePath:    basePathA,
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -241,14 +225,11 @@ func TestExistingStream(t *testing.T) {
 	handlerA := newTestStreamHandler(testBlockRequestMessageDecoder)
 	nodeA.host.registerStreamHandler("", handlerA.handleStream)
 
-	addrInfosA, err := nodeA.host.addrInfos()
-	require.NoError(t, err)
-
+	addrInfoA := nodeA.host.addrInfo()
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
 		BasePath:    basePathB,
 		Port:        7002,
-		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -258,19 +239,17 @@ func TestExistingStream(t *testing.T) {
 	handlerB := newTestStreamHandler(testBlockRequestMessageDecoder)
 	nodeB.host.registerStreamHandler("", handlerB.handleStream)
 
-	addrInfosB, err := nodeB.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosB[0])
+	addrInfoB := nodeB.host.addrInfo()
+	err := nodeA.host.connect(addrInfoB)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosB[0])
+		err = nodeA.host.connect(addrInfoB)
 	}
 	require.NoError(t, err)
 
 	// node A opens the stream to send the first message
-	stream, err := nodeA.host.send(addrInfosB[0].ID, nodeB.host.protocolID, testBlockRequestMessage)
+	stream, err := nodeA.host.send(addrInfoB.ID, nodeB.host.protocolID, testBlockRequestMessage)
 	require.NoError(t, err)
 
 	time.Sleep(TestMessageTimeout)
@@ -282,7 +261,7 @@ func TestExistingStream(t *testing.T) {
 	require.NotNil(t, handlerB.messages[nodeA.host.id()], "node B timeout waiting for message from node A")
 
 	// node B opens the stream to send the first message
-	stream, err = nodeB.host.send(addrInfosA[0].ID, nodeB.host.protocolID, testBlockRequestMessage)
+	stream, err = nodeB.host.send(addrInfoA.ID, nodeB.host.protocolID, testBlockRequestMessage)
 	require.NoError(t, err)
 
 	time.Sleep(TestMessageTimeout)
@@ -299,7 +278,6 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	configA := &Config{
 		BasePath:    basePathA,
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -313,7 +291,6 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	configB := &Config{
 		BasePath:    basePathB,
 		Port:        7002,
-		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -323,14 +300,12 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	handlerB := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
 	nodeB.host.registerStreamHandler(blockAnnounceID, handlerB.handleStream)
 
-	addrInfosB, err := nodeB.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosB[0])
+	addrInfoB := nodeB.host.addrInfo()
+	err := nodeA.host.connect(addrInfoB)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosB[0])
+		err = nodeA.host.connect(addrInfoB)
 	}
 	require.NoError(t, err)
 
@@ -373,7 +348,6 @@ func Test_PeerSupportsProtocol(t *testing.T) {
 	configA := &Config{
 		BasePath:    basePathA,
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -384,7 +358,6 @@ func Test_PeerSupportsProtocol(t *testing.T) {
 	configB := &Config{
 		BasePath:    basePathB,
 		Port:        7002,
-		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -392,14 +365,12 @@ func Test_PeerSupportsProtocol(t *testing.T) {
 	nodeB := createTestService(t, configB)
 	nodeB.noGossip = true
 
-	addrInfosB, err := nodeB.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosB[0])
+	addrInfoB := nodeB.host.addrInfo()
+	err := nodeA.host.connect(addrInfoB)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosB[0])
+		err = nodeA.host.connect(addrInfoB)
 	}
 	require.NoError(t, err)
 

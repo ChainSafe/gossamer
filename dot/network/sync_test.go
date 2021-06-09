@@ -82,7 +82,6 @@ func TestSyncQueue_PushResponse(t *testing.T) {
 	config := &Config{
 		BasePath:    basePath,
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -285,7 +284,6 @@ func TestSyncQueue_ProcessBlockRequests(t *testing.T) {
 	configA := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeA"),
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 		LogLvl:      4,
@@ -297,7 +295,6 @@ func TestSyncQueue_ProcessBlockRequests(t *testing.T) {
 	configB := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeB"),
 		Port:        7002,
-		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
 		LogLvl:      4,
@@ -309,7 +306,6 @@ func TestSyncQueue_ProcessBlockRequests(t *testing.T) {
 	configC := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeC"),
 		Port:        7003,
-		RandSeed:    3,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -318,24 +314,20 @@ func TestSyncQueue_ProcessBlockRequests(t *testing.T) {
 	nodeC.noGossip = true
 
 	// connect A and B
-	addrInfosB, err := nodeB.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosB[0])
+	addrInfoB := nodeB.host.addrInfo()
+	err := nodeA.host.connect(addrInfoB)
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosB[0])
+		err = nodeA.host.connect(addrInfoB)
 	}
 	require.NoError(t, err)
 
 	// connect A and C
-	addrInfosC, err := nodeC.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosC[0])
+	addrInfoC := nodeC.host.addrInfo()
+	err = nodeA.host.connect(addrInfoC)
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosC[0])
+		err = nodeA.host.connect(addrInfoC)
 	}
 	require.NoError(t, err)
 

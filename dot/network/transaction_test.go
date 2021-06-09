@@ -60,7 +60,6 @@ func TestHandleTransactionMessage(t *testing.T) {
 	config := &Config{
 		BasePath:           basePath,
 		Port:               7001,
-		RandSeed:           1,
 		NoBootstrap:        true,
 		NoMDNS:             true,
 		TransactionHandler: mockhandler,
