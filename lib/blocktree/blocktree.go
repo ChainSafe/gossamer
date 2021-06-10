@@ -38,7 +38,7 @@ type BlockTree struct {
 	leaves *leafMap
 	db     database.Database
 	sync.RWMutex
-	blockIndex map[Hash]*node
+	blockCache map[Hash]*node
 }
 
 // NewEmptyBlockTree creates a BlockTree with a nil head
@@ -47,7 +47,7 @@ func NewEmptyBlockTree(db database.Database) *BlockTree {
 		head:       nil,
 		leaves:     newEmptyLeafMap(),
 		db:         db,
-		blockIndex: make(map[Hash]*node),
+		blockCache: make(map[Hash]*node),
 	}
 }
 
@@ -66,7 +66,7 @@ func NewBlockTreeFromRoot(root *types.Header, db database.Database) *BlockTree {
 		head:       head,
 		leaves:     newLeafMap(head),
 		db:         db,
-		blockIndex: make(map[Hash]*node),
+		blockCache: make(map[Hash]*node),
 	}
 }
 
@@ -156,13 +156,13 @@ func (bt *BlockTree) GetAllBlocksAtDepth(hash common.Hash) []common.Hash {
 func (bt *BlockTree) getNode(h Hash) (ret *node) {
 	defer func() {
 		if ret != nil {
-			if _, ok := bt.blockIndex[ret.hash]; !ok {
-				bt.blockIndex[ret.hash] = ret
+			if _, ok := bt.blockCache[ret.hash]; !ok {
+				bt.blockCache[ret.hash] = ret
 			}
 		}
 	}()
 
-	if b, ok := bt.blockIndex[h]; ok {
+	if b, ok := bt.blockCache[h]; ok {
 		return b
 	}
 
@@ -192,7 +192,7 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 	defer bt.Unlock()
 	defer func() {
 		for _, hash := range pruned {
-			delete(bt.blockIndex, hash)
+			delete(bt.blockCache, hash)
 		}
 	}()
 
@@ -371,7 +371,7 @@ func (bt *BlockTree) DeepCopy() *BlockTree {
 
 	btCopy := &BlockTree{
 		db:         bt.db,
-		blockIndex: bt.blockIndex,
+		blockCache: bt.blockCache,
 	}
 
 	if bt.head == nil {
