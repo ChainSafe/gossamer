@@ -38,8 +38,7 @@ const pruneKeyBufferSize = 1000
 
 // BlockState defines fields for manipulating the state of blocks, such as BlockTree, BlockDB and Header
 type BlockState struct {
-	bt *blocktree.BlockTree
-	//baseDB chaindb.Database
+	bt        *blocktree.BlockTree
 	baseState *BaseState
 	db        chaindb.Database
 	sync.RWMutex
@@ -168,8 +167,9 @@ func finalizedHashKey(round, setID uint64) []byte {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, round)
 	key := append(common.FinalizedBlockHashKey, buf...)
-	binary.LittleEndian.PutUint64(buf, setID)
-	return append(key, buf...)
+	buf2 := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf2, setID)
+	return append(key, buf2...)
 }
 
 // GenesisHash returns the hash of the genesis block
@@ -369,17 +369,6 @@ func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
 
 // HasFinalizedBlock returns true if there is a finalised block for a given round and setID, false otherwise
 func (bs *BlockState) HasFinalizedBlock(round, setID uint64) (bool, error) {
-	// get current round
-	r, err := bs.GetRound()
-	if err != nil {
-		return false, err
-	}
-
-	// round that is being queried for has not yet finalised
-	if round > r {
-		return false, fmt.Errorf("round not yet finalised")
-	}
-
 	return bs.db.Has(finalizedHashKey(round, setID))
 }
 

@@ -58,14 +58,12 @@ func TestSendMessage(t *testing.T) {
 	handler := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
 	nodeB.host.registerStreamHandler(blockAnnounceID, handler.handleStream)
 
-	addrInfosB, err := nodeB.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosB[0])
+	addrInfoB := nodeB.host.addrInfo()
+	err := nodeA.host.connect(addrInfoB)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosB[0])
+		err = nodeA.host.connect(addrInfoB)
 	}
 	require.NoError(t, err)
 
@@ -107,14 +105,12 @@ func TestSendMessage_DuplicateMessage(t *testing.T) {
 	handler := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
 	nodeB.host.registerStreamHandler(blockAnnounceID, handler.handleStream)
 
-	addrInfosB, err := nodeB.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosB[0])
+	addrInfoB := nodeB.host.addrInfo()
+	err := nodeA.host.connect(addrInfoB)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosB[0])
+		err = nodeA.host.connect(addrInfoB)
 	}
 	require.NoError(t, err)
 
@@ -199,13 +195,11 @@ func TestSendCatchUpRequest(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	addrInfosB, err := nodeB.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosB[0])
+	addrInfoB := nodeB.host.addrInfo()
+	err = nodeA.host.connect(addrInfoB)
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosB[0])
+		err = nodeA.host.connect(addrInfoB)
 	}
 	require.NoError(t, err)
 

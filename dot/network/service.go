@@ -19,7 +19,6 @@ package network
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"sync"
@@ -34,7 +33,6 @@ import (
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	discovery "github.com/libp2p/go-libp2p-discovery"
 )
 
 const (
@@ -46,6 +44,8 @@ const (
 	lightID         = "/light/2"
 	blockAnnounceID = "/block-announces/1"
 	transactionsID  = "/transactions/1"
+
+	maxMessageSize = 1024 * 63 // 63kb for now
 )
 
 var (
@@ -67,11 +67,13 @@ type Service struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	cfg       *Config
-	host      *host
-	mdns      *mdns
-	gossip    *gossip
-	syncQueue *syncQueue
+	cfg           *Config
+	host          *host
+	mdns          *mdns
+	gossip        *gossip
+	syncQueue     *syncQueue
+	bufPool       *sizedBufferPool
+	streamManager *streamManager
 
 	notificationsProtocols map[byte]*notificationsProtocol // map of sub-protocol msg ID to protocol info
 	notificationsMu        sync.RWMutex
@@ -132,6 +134,18 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
+	// pre-allocate pool of buffers used to read from streams.
+	// initially allocate as many buffers as liekly necessary which is the number inbound streams we will have,
+	// which should equal average number of peers times the number of notifications protocols, which is currently 3.
+	var bufPool *sizedBufferPool
+	if cfg.noPreAllocate {
+		bufPool = &sizedBufferPool{
+			c: make(chan *[maxMessageSize]byte, cfg.MinPeers*3),
+		}
+	} else {
+		bufPool = newSizedBufferPool(cfg.MinPeers*3, cfg.MaxPeers*3)
+	}
+
 	network := &Service{
 		ctx:                    ctx,
 		cancel:                 cancel,
@@ -148,6 +162,8 @@ func NewService(cfg *Config) (*Service, error) {
 		lightRequest:           make(map[peer.ID]struct{}),
 		telemetryInterval:      cfg.telemetryInterval,
 		closeCh:                make(chan interface{}),
+		bufPool:                bufPool,
+		streamManager:          newStreamManager(ctx),
 	}
 
 	network.syncQueue = newSyncQueue(network)
@@ -234,7 +250,7 @@ func (s *Service) Start() error {
 
 	if !s.noDiscover {
 		go func() {
-			err = s.beginDiscovery()
+			err = s.host.discovery.start()
 			if err != nil {
 				logger.Error("failed to begin DHT discovery", "error", err)
 			}
@@ -253,6 +269,7 @@ func (s *Service) Start() error {
 	go s.logPeerCount()
 	go s.publishNetworkTelemetry(s.closeCh)
 	go s.sentBlockIntervalTelemetry()
+	s.streamManager.start()
 
 	return nil
 }
@@ -299,9 +316,15 @@ main:
 
 		case <-ticker.C:
 			o := s.host.bwc.GetBandwidthTotals()
-			telemetry.GetInstance().SendNetworkData(telemetry.NewNetworkData(s.host.peerCount(), o.RateIn, o.RateOut))
+			err := telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(
+				telemetry.NewKeyValue("bandwidth_download", o.RateIn),
+				telemetry.NewKeyValue("bandwidth_upload", o.RateOut),
+				telemetry.NewKeyValue("msg", "system.interval"),
+				telemetry.NewKeyValue("peers", s.host.peerCount())))
+			if err != nil {
+				logger.Debug("problem sending system.interval telemetry message", "error", err)
+			}
 		}
-
 	}
 }
 
@@ -316,14 +339,17 @@ func (s *Service) sentBlockIntervalTelemetry() {
 			continue
 		}
 
-		telemetry.GetInstance().SendBlockIntervalData(&telemetry.BlockIntervalData{
-			BestHash:           best.Hash(),
-			BestHeight:         best.Number,
-			FinalizedHash:      finalized.Hash(),
-			FinalizedHeight:    finalized.Number,
-			TXCount:            0, // todo (ed) determine where to get tx count
-			UsedStateCacheSize: 0, // todo (ed) determine where to get used_state_cache_size
-		})
+		err = telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(
+			telemetry.NewKeyValue("best", best.Hash().String()),
+			telemetry.NewKeyValue("finalized_hash", finalized.Hash().String()), //nolint
+			telemetry.NewKeyValue("finalized_height", finalized.Number),        //nolint
+			telemetry.NewKeyValue("height", best.Number),
+			telemetry.NewKeyValue("msg", "system.interval"),
+			telemetry.NewKeyValue("txcount", 0),                // todo (ed) determine where to get tx count
+			telemetry.NewKeyValue("used_state_cache_size", 0))) // todo (ed) determine where to get used_state_cache_size
+		if err != nil {
+			logger.Debug("problem sending system.interval telemetry message", "error", err)
+		}
 		time.Sleep(s.telemetryInterval)
 	}
 }
@@ -332,46 +358,6 @@ func (s *Service) handleConn(conn libp2pnetwork.Conn) {
 	// give new peers a slight weight
 	// TODO: do this once handshake is received
 	s.syncQueue.updatePeerScore(conn.RemotePeer(), 1)
-}
-
-func (s *Service) beginDiscovery() error {
-	rd := discovery.NewRoutingDiscovery(s.host.dht)
-
-	err := s.host.dht.Bootstrap(s.ctx)
-	if err != nil {
-		return fmt.Errorf("failed to bootstrap DHT: %w", err)
-	}
-
-	// wait to connect to bootstrap peers
-	time.Sleep(time.Second)
-
-	go func() {
-		peerCh, err := rd.FindPeers(s.ctx, s.cfg.ProtocolID)
-		if err != nil {
-			logger.Error("failed to begin finding peers via DHT", "err", err)
-		}
-
-		for peer := range peerCh {
-			if peer.ID == s.host.id() {
-				return
-			}
-
-			logger.Debug("found new peer via DHT", "peer", peer.ID)
-
-			// found a peer, try to connect if we need more peers
-			if s.host.peerCount() < s.cfg.MaxPeers {
-				err = s.host.connect(peer)
-				if err != nil {
-					logger.Debug("failed to connect to discovered peer", "peer", peer.ID, "err", err)
-				}
-			} else {
-				s.host.addToPeerstore(peer)
-			}
-		}
-	}()
-
-	logger.Debug("DHT discovery started!")
-	return nil
 }
 
 // Stop closes running instances of the host and network services as well as
@@ -518,14 +504,14 @@ func isInbound(stream libp2pnetwork.Stream) bool {
 }
 
 func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder, handler messageHandler) {
-	var (
-		maxMessageSize uint64 = maxBlockResponseSize // TODO: determine actual max message size
-		msgBytes              = make([]byte, maxMessageSize)
-		peer                  = stream.Conn().RemotePeer()
-	)
+	s.streamManager.logNewStream(stream)
+
+	peer := stream.Conn().RemotePeer()
+	msgBytes := s.bufPool.get()
+	defer s.bufPool.put(&msgBytes)
 
 	for {
-		tot, err := readStream(stream, msgBytes)
+		tot, err := readStream(stream, msgBytes[:])
 		if err == io.EOF {
 			continue
 		} else if err != nil {
@@ -533,6 +519,8 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 			_ = stream.Close()
 			return
 		}
+
+		s.streamManager.logMessageReceived(stream.ID())
 
 		// decode message based on message type
 		msg, err := decoder(msgBytes[:tot], peer, isInbound(stream))

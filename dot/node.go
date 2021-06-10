@@ -28,7 +28,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ChainSafe/chaindb"
 	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -37,6 +36,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/services"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/metrics/prometheus"
@@ -121,7 +121,7 @@ func InitNode(cfg *Config) error {
 // node, the state database has been created and the genesis data has been loaded
 func NodeInitialized(basepath string, expected bool) bool {
 	// check if key registry exists
-	registry := path.Join(basepath, "KEYREGISTRY")
+	registry := path.Join(basepath, utils.DefaultDatabaseDir, "KEYREGISTRY")
 
 	_, err := os.Stat(registry)
 	if os.IsNotExist(err) {
@@ -136,9 +136,7 @@ func NodeInitialized(basepath string, expected bool) bool {
 	}
 
 	// initialise database using data directory
-	db, err := chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir: basepath,
-	})
+	db, err := utils.SetupDatabase(basepath, false)
 	if err != nil {
 		logger.Error(
 			"failed to create database",
@@ -173,7 +171,7 @@ func NodeInitialized(basepath string, expected bool) bool {
 // LoadGlobalNodeName returns the stored global node name from database
 func LoadGlobalNodeName(basepath string) (nodename string, err error) {
 	// initialise database using data directory
-	db, err := state.SetupDatabase(basepath)
+	db, err := utils.SetupDatabase(basepath, false)
 	if err != nil {
 		return "", err
 	}
@@ -352,18 +350,20 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	}
 
 	telemetry.GetInstance().AddConnections(gd.TelemetryEndpoints)
-	data := &telemetry.ConnectionData{
-		Authority:     cfg.Core.GrandpaAuthority,
-		Chain:         sysSrvc.ChainName(),
-		GenesisHash:   stateSrvc.Block.GenesisHash().String(),
-		SystemName:    sysSrvc.SystemName(),
-		NodeName:      cfg.Global.Name,
-		SystemVersion: sysSrvc.SystemVersion(),
-		NetworkID:     networkSrvc.NetworkState().PeerID,
-		StartTime:     strconv.FormatInt(time.Now().UnixNano(), 10),
-	}
-	telemetry.GetInstance().SendConnection(data)
 
+	err = telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(
+		telemetry.NewKeyValue("authority", cfg.Core.GrandpaAuthority),
+		telemetry.NewKeyValue("chain", sysSrvc.ChainName()),
+		telemetry.NewKeyValue("genesis_hash", stateSrvc.Block.GenesisHash().String()),
+		telemetry.NewKeyValue("implementation", sysSrvc.SystemName()),
+		telemetry.NewKeyValue("msg", "system.connected"),
+		telemetry.NewKeyValue("name", cfg.Global.Name),
+		telemetry.NewKeyValue("network_id", networkSrvc.NetworkState().PeerID),
+		telemetry.NewKeyValue("startup_time", strconv.FormatInt(time.Now().UnixNano(), 10)),
+		telemetry.NewKeyValue("version", sysSrvc.SystemVersion())))
+	if err != nil {
+		logger.Debug("problem sending system.connected telemetry message", "err", err)
+	}
 	return node, nil
 }
 
@@ -390,7 +390,7 @@ func setupMetricsServer(address string) {
 
 // stores the global node name to reuse
 func storeGlobalNodeName(name, basepath string) (err error) {
-	db, err := state.SetupDatabase(basepath)
+	db, err := utils.SetupDatabase(basepath, false)
 	if err != nil {
 		return err
 	}

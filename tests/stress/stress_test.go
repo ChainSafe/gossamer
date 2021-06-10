@@ -29,11 +29,10 @@ import (
 	gosstypes "github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/tests/utils"
+	log "github.com/ChainSafe/log15"
 	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v2"
 	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
 	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
-
-	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
 

@@ -45,6 +45,15 @@ func TestSeal(t *testing.T) {
 
 	babeService := createTestService(t, cfg)
 
+	builder, _ := NewBlockBuilder(
+		babeService.rt,
+		babeService.keypair,
+		babeService.transactionState,
+		babeService.blockState,
+		babeService.slotToProof,
+		babeService.epochData.authorityIndex,
+	)
+
 	zeroHash, err := common.HexToHash("0x00")
 	require.NoError(t, err)
 
@@ -57,7 +66,7 @@ func TestSeal(t *testing.T) {
 	hash, err := common.Blake2bHash(encHeader)
 	require.NoError(t, err)
 
-	seal, err := babeService.buildBlockSeal(header)
+	seal, err := builder.buildBlockSeal(header)
 	require.NoError(t, err)
 
 	ok, err := kp.Public().Verify(hash[:], seal.Data)
@@ -115,13 +124,22 @@ func TestBuildBlock_ok(t *testing.T) {
 	babeService := createTestService(t, cfg)
 	babeService.epochData.threshold = maxThreshold
 
+	builder, _ := NewBlockBuilder(
+		babeService.rt,
+		babeService.keypair,
+		babeService.transactionState,
+		babeService.blockState,
+		babeService.slotToProof,
+		babeService.epochData.authorityIndex,
+	)
+
 	// TODO: re-add extrinsic
 	exts := [][]byte{}
 
 	block, slot := createTestBlock(t, babeService, emptyHeader, exts, 1, testEpochIndex)
 
 	// create pre-digest
-	preDigest, err := babeService.buildBlockPreDigest(slot)
+	preDigest, err := builder.buildBlockPreDigest(slot)
 	require.NoError(t, err)
 
 	expectedBlockHeader := &types.Header{
@@ -130,13 +148,16 @@ func TestBuildBlock_ok(t *testing.T) {
 		Digest:     types.Digest{preDigest},
 	}
 
-	// remove seal from built block, since we can't predict the signature
-	block.Header.Digest = block.Header.Digest[:1]
 	require.Equal(t, expectedBlockHeader.ParentHash, block.Header.ParentHash)
 	require.Equal(t, expectedBlockHeader.Number, block.Header.Number)
 	require.NotEqual(t, block.Header.StateRoot, emptyHash)
 	require.NotEqual(t, block.Header.ExtrinsicsRoot, emptyHash)
-	require.Equal(t, expectedBlockHeader.Digest, block.Header.Digest)
+	require.Equal(t, 3, len(block.Header.Digest))
+	require.Equal(t, preDigest, block.Header.Digest[0])
+	require.Equal(t, types.PreRuntimeDigestType, block.Header.Digest[0].Type())
+	require.Equal(t, types.ConsensusDigestType, block.Header.Digest[1].Type())
+	require.Equal(t, types.SealDigestType, block.Header.Digest[2].Type())
+	require.Equal(t, types.NextEpochDataType, block.Header.Digest[1].(*types.ConsensusDigest).DataType())
 
 	// confirm block body is correct
 	extsRes, err := block.Body.AsExtrinsics()
@@ -316,4 +337,24 @@ func TestBuildBlock_failing(t *testing.T) {
 	if !bytes.Equal(txc.Extrinsic, txa) {
 		t.Fatal("did not readd valid transaction to queue")
 	}
+}
+
+func TestDecodeExtrinsicBody(t *testing.T) {
+	ext := types.NewExtrinsic([]byte{0x1, 0x2, 0x3})
+	inh := [][]byte{{0x4, 0x5}, {0x6, 0x7}}
+
+	vtx := transaction.NewValidTransaction(ext, &transaction.Validity{})
+
+	body, err := ExtrinsicsToBody(inh, []*transaction.ValidTransaction{vtx})
+	require.Nil(t, err)
+	require.NotNil(t, body)
+
+	bodyext, err := body.AsExtrinsics()
+	require.Nil(t, err)
+	require.NotNil(t, bodyext)
+	require.Len(t, bodyext, 3)
+
+	contains, err := body.HasExtrinsic(ext)
+	require.Nil(t, err)
+	require.True(t, contains)
 }

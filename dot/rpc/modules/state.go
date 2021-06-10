@@ -305,6 +305,7 @@ func (sm *StateModule) GetStorage(r *http.Request, req *StateStorageRequest, res
 	)
 
 	reqBytes, _ := common.HexToBytes(req.Key) // no need to catch error here
+
 	if req.Bhash != nil {
 		item, err = sm.storageAPI.GetStorageByBlockHash(*req.Bhash, reqBytes)
 		if err != nil {

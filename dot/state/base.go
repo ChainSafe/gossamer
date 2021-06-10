@@ -27,13 +27,6 @@ import (
 	"github.com/ChainSafe/chaindb"
 )
 
-// SetupDatabase will return an instance of database based on basepath
-func SetupDatabase(basepath string) (chaindb.Database, error) {
-	return chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir: basepath,
-	})
-}
-
 // BaseState is a wrapper for the chaindb.Database, without any prefixes
 type BaseState struct {
 	db chaindb.Database

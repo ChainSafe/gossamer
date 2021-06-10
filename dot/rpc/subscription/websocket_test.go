@@ -113,6 +113,61 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":4,"id":7}`+"\n"), msg)
 
+	// test state_unsubscribeStorage
+	c.WriteMessage(websocket.TextMessage, []byte(`{
+    "jsonrpc": "2.0",
+    "method": "state_unsubscribeStorage",
+    "params": "foo",
+    "id": 7}`))
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid request"},"id":7}`+"\n"), msg)
+
+	c.WriteMessage(websocket.TextMessage, []byte(`{
+    "jsonrpc": "2.0",
+    "method": "state_unsubscribeStorage",
+    "params": [],
+    "id": 7}`))
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid request"},"id":7}`+"\n"), msg)
+
+	c.WriteMessage(websocket.TextMessage, []byte(`{
+    "jsonrpc": "2.0",
+    "method": "state_unsubscribeStorage",
+    "params": ["6"],
+    "id": 7}`))
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":false,"id":7}`+"\n"), msg)
+
+	c.WriteMessage(websocket.TextMessage, []byte(`{
+    "jsonrpc": "2.0",
+    "method": "state_unsubscribeStorage",
+    "params": ["4"],
+    "id": 7}`))
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":true,"id":7}`+"\n"), msg)
+
+	c.WriteMessage(websocket.TextMessage, []byte(`{
+    "jsonrpc": "2.0",
+    "method": "state_unsubscribeStorage",
+    "params": [6],
+    "id": 7}`))
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":false,"id":7}`+"\n"), msg)
+
+	c.WriteMessage(websocket.TextMessage, []byte(`{
+    "jsonrpc": "2.0",
+    "method": "state_unsubscribeStorage",
+    "params": [4],
+    "id": 7}`))
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":true,"id":7}`+"\n"), msg)
+
 	// test initBlockListener
 	res, err = wsconn.initBlockListener(1)
 	require.EqualError(t, err, "error BlockAPI not set")

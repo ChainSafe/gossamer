@@ -28,11 +28,10 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/lib/utils"
-
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
-	"golang.org/x/crypto/ssh/terminal" //nolint
+	terminal "golang.org/x/term"
 )
 
 const confirmCharacter = "Y"
