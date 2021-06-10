@@ -168,7 +168,6 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		config := &network.Config{
 			BasePath:           testDatadirPath,
 			Port:               7001,
-			RandSeed:           1,
 			NoBootstrap:        true,
 			NoMDNS:             true,
 			BlockState:         stateSrvc.Block,
