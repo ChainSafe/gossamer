@@ -83,6 +83,8 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 				return err
 			}
 
+			logger.Debug("calculated threshold", "threshold", threshold)
+
 			b.epochData = &epochData{
 				randomness:     data.Randomness,
 				authorities:    data.Authorities,
@@ -96,6 +98,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 				authorityIndex: idx,
 				threshold:      b.epochData.threshold,
 			}
+			logger.Debug("used prev threshold", "threshold", b.epochData.threshold)
 		}
 		logger.Debug("got epoch config data", "epoch", epoch, "data", b.epochData)
 

@@ -147,7 +147,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		"epoch length (slots)", babeService.epochLength,
 		"authorities", Authorities(babeService.epochData.authorities),
 		"authority index", babeService.epochData.authorityIndex,
-		"threshold", babeService.epochData.threshold.ToLEBytes(),
+		"threshold", babeService.epochData.threshold,
 		"randomness", babeService.epochData.randomness,
 	)
 	return babeService, nil

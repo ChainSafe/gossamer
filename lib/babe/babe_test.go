@@ -37,7 +37,7 @@ import (
 )
 
 var (
-	defaultTestLogLvl = log.LvlInfo
+	defaultTestLogLvl = log.LvlDebug
 	emptyHash         = trie.EmptyHash
 	testTimeout       = time.Second * 5
 	testEpochIndex    = uint64(0)
@@ -136,6 +136,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		cfg.Runtime = rt
 	}
 
+	cfg.LogLvl = defaultTestLogLvl
 	babeService, err := NewService(cfg)
 	require.NoError(t, err)
 	return babeService
