@@ -168,8 +168,6 @@ func TestHandleChainReorg_NoReorg(t *testing.T) {
 }
 
 func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
-	//t.Skip() // fails with "'Bad input data provided to validate_transaction: Codec error"
-
 	s := NewTestService(t, nil)
 
 	bs := s.blockState

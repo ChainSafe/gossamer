@@ -17,7 +17,6 @@
 package core
 
 import (
-	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -106,8 +105,6 @@ func createExtrinsics(t *testing.T, rt runtime.Instance, genHash common.Hash, no
 
 	// Create the extrinsic
 	ext := ctypes.NewExtrinsic(c)
-
-	fmt.Println(rv.TransactionVersion(), rv.SpecVersion())
 
 	o := ctypes.SignatureOptions{
 		BlockHash:          ctypes.Hash(genHash),
