@@ -24,7 +24,7 @@ import (
 	"github.com/wasmerio/wasmer-go/wasmer"
 )
 
-// Memory is a thin wrapper around wasmtime memory to support
+// Memory is a thin wrapper around Wasmer memory to support
 // Gossamer runtime.Memory interface
 type Memory struct {
 	memory *wasmer.Memory
