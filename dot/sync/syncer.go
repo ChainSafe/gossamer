@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"reflect"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
@@ -56,19 +57,25 @@ type Service struct {
 
 	// Consensus digest handling
 	digestHandler DigestHandler
+
+	// map of code substitutions keyed by block hash
+	codeSubstitute       map[common.Hash]string
+	codeSubstitutedState CodeSubstitutedState
 }
 
 // Config is the configuration for the sync Service.
 type Config struct {
-	LogLvl           log.Lvl
-	BlockState       BlockState
-	StorageState     StorageState
-	BlockProducer    BlockProducer
-	FinalityGadget   FinalityGadget
-	TransactionState TransactionState
-	Runtime          runtime.Instance
-	Verifier         Verifier
-	DigestHandler    DigestHandler
+	LogLvl               log.Lvl
+	BlockState           BlockState
+	StorageState         StorageState
+	BlockProducer        BlockProducer
+	FinalityGadget       FinalityGadget
+	TransactionState     TransactionState
+	Runtime              runtime.Instance
+	Verifier             Verifier
+	DigestHandler        DigestHandler
+	CodeSubstitutes      map[common.Hash]string
+	CodeSubstitutedState CodeSubstitutedState
 }
 
 // NewService returns a new *sync.Service
@@ -103,17 +110,19 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 
 	return &Service{
-		codeHash:         codeHash,
-		blockState:       cfg.BlockState,
-		storageState:     cfg.StorageState,
-		blockProducer:    cfg.BlockProducer,
-		finalityGadget:   cfg.FinalityGadget,
-		synced:           true,
-		highestSeenBlock: big.NewInt(0),
-		transactionState: cfg.TransactionState,
-		runtime:          cfg.Runtime,
-		verifier:         cfg.Verifier,
-		digestHandler:    cfg.DigestHandler,
+		codeHash:             codeHash,
+		blockState:           cfg.BlockState,
+		storageState:         cfg.StorageState,
+		blockProducer:        cfg.BlockProducer,
+		finalityGadget:       cfg.FinalityGadget,
+		synced:               true,
+		highestSeenBlock:     big.NewInt(0),
+		transactionState:     cfg.TransactionState,
+		runtime:              cfg.Runtime,
+		verifier:             cfg.Verifier,
+		digestHandler:        cfg.DigestHandler,
+		codeSubstitute:       cfg.CodeSubstitutes,
+		codeSubstitutedState: cfg.CodeSubstitutedState,
 	}, nil
 }
 
@@ -364,7 +373,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 		}
 	} else {
 		logger.Debug("🔗 imported block", "number", block.Header.Number, "hash", block.Header.Hash())
-		err := telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(
+		err := telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage( // nolint
 			telemetry.NewKeyValue("best", block.Header.Hash().String()),
 			telemetry.NewKeyValue("height", block.Header.Number.Uint64()),
 			telemetry.NewKeyValue("msg", "block.import"),
@@ -377,6 +386,11 @@ func (s *Service) handleBlock(block *types.Block) error {
 	// handle consensus digest for authority changes
 	if s.digestHandler != nil {
 		s.handleDigests(block.Header)
+	}
+
+	err = s.handleCodeSubstitution(block.Header.Hash())
+	if err != nil {
+		return err
 	}
 
 	return s.handleRuntimeChanges(ts)
@@ -413,6 +427,7 @@ func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {
 	if err != nil {
 		return err
 	}
+	previousVersion, _ := s.runtime.Version()
 
 	if bytes.Equal(s.codeHash[:], currCodeHash[:]) {
 		return nil
@@ -424,6 +439,27 @@ func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {
 		return ErrEmptyRuntimeCode
 	}
 
+	codeSubBlockHash, err := s.codeSubstitutedState.LoadCodeSubstitutedBlockHash()
+	if err != nil {
+		logger.Debug("problem checking code substituted block hash", "error", err)
+	}
+
+	if !reflect.DeepEqual(codeSubBlockHash, common.Hash{}) {
+		// don't do runtime change if using code substitution and runtime change spec version are equal
+		//  (do a runtime change if code substituted and runtime spec versions are different, or code not substituted)
+		newVersion, err := s.runtime.CheckRuntimeVersion(code) // nolint
+		if err != nil {
+			logger.Debug("problem checking runtime version", "error", err)
+		}
+
+		if previousVersion.SpecVersion() == newVersion.SpecVersion() {
+			return nil
+		}
+		logger.Info("🔄 detected runtime code change, upgrading...", "block", s.blockState.BestBlockHash(),
+			"previous code hash", s.codeHash, "new code hash", currCodeHash,
+			"previous spec version", previousVersion.SpecVersion(), "new spec version", newVersion.SpecVersion())
+	}
+
 	err = s.runtime.UpdateRuntimeCode(code)
 	if err != nil {
 		logger.Crit("failed to update runtime code", "error", err)
@@ -431,6 +467,31 @@ func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {
 	}
 
 	s.codeHash = currCodeHash
+	return nil
+}
+
+func (s *Service) handleCodeSubstitution(block common.Hash) error {
+	value := s.codeSubstitute[block]
+	if value == "" {
+		return nil
+	}
+
+	logger.Info("🔄 detected runtime code substitution, upgrading...", "block", block)
+	code := common.MustHexToBytes(value)
+	if len(code) == 0 {
+		return ErrEmptyRuntimeCode
+	}
+	err := s.runtime.UpdateRuntimeCode(code)
+	if err != nil {
+		logger.Crit("failed to substitute runtime code", "error", err)
+		return err
+	}
+
+	err = s.codeSubstitutedState.StoreCodeSubstitutedBlockHash(block)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
