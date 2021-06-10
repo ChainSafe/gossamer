@@ -18,6 +18,7 @@ package network
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"sort"
@@ -25,10 +26,12 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 
+	"github.com/ChainSafe/chaindb"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
@@ -39,24 +42,16 @@ func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 		return
 	}
 
-	conn := stream.Conn()
-	if conn == nil {
-		logger.Error("Failed to get connection from stream")
-		_ = stream.Close()
-		return
-	}
-
-	peer := conn.RemotePeer()
-	s.readStream(stream, peer, s.decodeSyncMessage, s.handleSyncMessage)
+	s.readStream(stream, s.decodeSyncMessage, s.handleSyncMessage)
 }
 
-func (s *Service) decodeSyncMessage(in []byte, peer peer.ID) (Message, error) {
+func (s *Service) decodeSyncMessage(in []byte, peer peer.ID, inbound bool) (Message, error) {
 	msg := new(BlockRequestMessage)
 	err := msg.Decode(in)
 	return msg, err
 }
 
-// handleSyncMessage handles synchronization message types (BlockRequest and BlockResponse)
+// handleSyncMessage handles synchronisation message types (BlockRequest and BlockResponse)
 func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) error {
 	if msg == nil {
 		_ = stream.Close()
@@ -71,7 +66,7 @@ func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) er
 
 		resp, err := s.syncer.CreateBlockResponse(req)
 		if err != nil {
-			logger.Trace("cannot create response for request")
+			logger.Debug("cannot create response for request", "error", err)
 			return nil
 		}
 
@@ -84,7 +79,7 @@ func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) er
 	return nil
 }
 
-var (
+const (
 	blockRequestSize        uint32 = 128
 	blockRequestBufferSize  int    = 6
 	blockResponseBufferSize int    = 6
@@ -124,6 +119,7 @@ type syncQueue struct {
 	cancel       context.CancelFunc
 	peerScore    *sync.Map // map[peer.ID]int; peers we have successfully synced from before -> their score; score increases on successful response
 
+	requestDataByHash        *sync.Map // map[common.Hash]requestData; caching requestData by hash
 	requestData              *sync.Map // map[uint64]requestData; map of start # of request -> requestData
 	justificationRequestData *sync.Map // map[common.Hash]requestData; map of requests of justifications -> requestData
 	requestCh                chan *syncRequest
@@ -149,6 +145,7 @@ func newSyncQueue(s *Service) *syncQueue {
 		cancel:                   cancel,
 		peerScore:                new(sync.Map),
 		requestData:              new(sync.Map),
+		requestDataByHash:        new(sync.Map),
 		justificationRequestData: new(sync.Map),
 		requestCh:                make(chan *syncRequest, blockRequestBufferSize),
 		responses:                []*types.BlockData{},
@@ -161,7 +158,6 @@ func newSyncQueue(s *Service) *syncQueue {
 func (q *syncQueue) start() {
 	go q.handleResponseQueue()
 	go q.syncAtHead()
-	go q.finalizeAtHead()
 
 	go q.processBlockRequests()
 	go q.processBlockResponses()
@@ -178,11 +174,12 @@ func (q *syncQueue) syncAtHead() {
 	}
 
 	q.s.syncer.SetSyncing(true)
+	q.s.noGossip = true // don't gossip messages until we're at the head
 
 	for {
 		select {
 		// sleep for average block time TODO: make this configurable from slot duration
-		case <-time.After(q.slotDuration):
+		case <-time.After(q.slotDuration * 2):
 		case <-q.ctx.Done():
 			return
 		}
@@ -195,10 +192,12 @@ func (q *syncQueue) syncAtHead() {
 		// we aren't at the head yet, sleep
 		if curr.Number.Int64() < q.goal && curr.Number.Cmp(prev.Number) > 0 {
 			prev = curr
+			q.s.noGossip = true
 			continue
 		}
 
 		q.s.syncer.SetSyncing(false)
+		q.s.noGossip = false
 
 		// we have received new blocks since the last check, sleep
 		if prev.Number.Int64() < curr.Number.Int64() {
@@ -318,12 +317,12 @@ func (q *syncQueue) benchmark() {
 		}
 
 		if before.Number.Int64() >= q.goal {
-			finalized, err := q.s.blockState.GetFinalizedHeader(0, 0) //nolint
+			finalised, err := q.s.blockState.GetFinalizedHeader(0, 0) //nolint
 			if err != nil {
 				continue
 			}
 
-			logger.Info("💤 node waiting", "head", before.Number, "finalized", finalized.Number)
+			logger.Info("💤 node waiting", "peer count", len(q.s.host.peers()), "head", before.Number, "finalised", finalised.Number)
 			time.Sleep(time.Second * 5)
 			continue
 		}
@@ -338,18 +337,15 @@ func (q *syncQueue) benchmark() {
 
 		q.benchmarker.end(after.Number.Uint64())
 
-		logger.Info("🔗 imported blocks", "from", before.Number, "to", after.Number,
-			"hashes", fmt.Sprintf("[%s ... %s]", before.Hash(), after.Hash()),
-		)
-
-		if q.goal-before.Number.Int64() < int64(blockRequestSize) {
-			continue
-		}
-
 		logger.Info("🚣 currently syncing",
+			"peer count", len(q.s.host.peers()),
 			"goal", q.goal,
 			"average blocks/second", q.benchmarker.mostRecentAverage(),
 			"overall average", q.benchmarker.average(),
+		)
+
+		logger.Info("🔗 imported blocks", "from", before.Number, "to", after.Number,
+			"hashes", fmt.Sprintf("[%s ... %s]", before.Hash(), after.Hash()),
 		)
 	}
 }
@@ -460,6 +456,7 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error 
 	}
 
 	startHash := resp.BlockData[0].Hash
+
 	if _, has := q.justificationRequestData.Load(startHash); has && !resp.BlockData[0].Header.Exists() {
 		numJustifications := 0
 		justificationResponses := []*types.BlockData{}
@@ -472,6 +469,7 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error 
 		}
 
 		if numJustifications == 0 {
+			logger.Debug("got empty justification data", "start hash", startHash)
 			return errEmptyJustificationData
 		}
 
@@ -482,7 +480,7 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error 
 			from:     pid,
 		})
 
-		logger.Info("pushed justification data to queue", "hash", startHash)
+		logger.Debug("pushed justification data to queue", "hash", startHash)
 		q.responseCh <- justificationResponses
 		return nil
 	}
@@ -502,11 +500,18 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error 
 
 	// update peer's score
 	q.updatePeerScore(pid, 1)
-	q.requestData.Store(uint64(start), requestData{
+
+	reqdata := requestData{
 		sent:     true,
 		received: true,
 		from:     pid,
-	})
+	}
+
+	if _, has := q.requestDataByHash.Load(startHash); has {
+		q.requestDataByHash.Store(startHash, reqdata)
+	} else {
+		q.requestData.Store(uint64(start), reqdata)
+	}
 
 	q.responseLock.Lock()
 	defer q.responseLock.Unlock()
@@ -524,6 +529,28 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error 
 	return nil
 }
 
+func (q *syncQueue) isRequestDataCached(startingBlock *variadic.Uint64OrHash) (*requestData, bool) {
+	if startingBlock == nil {
+		return nil, false
+	}
+
+	if startingBlock.IsHash() {
+		if d, has := q.requestDataByHash.Load(startingBlock.Hash()); has {
+			data := d.(requestData)
+			return &data, true
+		}
+	}
+
+	if startingBlock.IsUint64() {
+		if d, has := q.requestData.Load(startingBlock.Uint64()); has {
+			data := d.(requestData)
+			return &data, true
+		}
+	}
+
+	return nil, false
+}
+
 func (q *syncQueue) processBlockRequests() {
 	for {
 		select {
@@ -532,16 +559,15 @@ func (q *syncQueue) processBlockRequests() {
 				continue
 			}
 
-			if !req.req.StartingBlock.IsUint64() {
+			reqData, ok := q.isRequestDataCached(req.req.StartingBlock)
+
+			if !ok {
 				q.trySync(req)
 				continue
 			}
 
-			if d, has := q.requestData.Load(req.req.StartingBlock.Uint64()); has {
-				data := d.(requestData)
-				if data.sent && data.received {
-					continue
-				}
+			if reqData.sent && reqData.received {
+				continue
 			}
 
 			q.trySync(req)
@@ -570,7 +596,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 		q.updatePeerScore(req.to, -1)
 	}
 
-	logger.Trace("trying peers in prioritized order...")
+	logger.Trace("trying peers in prioritised order...")
 	syncPeers := q.getSortedPeers()
 
 	for _, peer := range syncPeers {
@@ -601,10 +627,13 @@ func (q *syncQueue) trySync(req *syncRequest) {
 			received: false,
 		})
 	} else if req.req.StartingBlock.IsHash() && (req.req.RequestedData&RequestedDataHeader) == 0 {
-		q.justificationRequestData.Store(req.req.StartingBlock.Hash(), requestData{
+		startingBlockHash := req.req.StartingBlock.Hash()
+		reqdata := requestData{
 			sent:     true,
 			received: false,
-		})
+		}
+
+		q.justificationRequestData.Store(startingBlockHash, reqdata)
 	}
 
 	req.to = ""
@@ -666,7 +695,7 @@ func (q *syncQueue) handleBlockJustification(data []*types.BlockData) {
 	startHash, endHash := data[0].Hash, data[len(data)-1].Hash
 	logger.Debug("sending justification data to syncer", "start", startHash, "end", endHash)
 
-	_, err := q.s.syncer.ProcessBlockData(data)
+	_, err := q.s.syncer.ProcessJustification(data)
 	if err != nil {
 		logger.Warn("failed to handle block justifications", "error", err)
 		return
@@ -689,14 +718,14 @@ func (q *syncQueue) handleBlockJustification(data []*types.BlockData) {
 }
 
 func (q *syncQueue) handleBlockData(data []*types.BlockData) {
-	bestNum, err := q.s.blockState.BestBlockNumber()
+	finalised, err := q.s.blockState.GetFinalizedHeader(0, 0)
 	if err != nil {
-		panic(err) // TODO: don't panic but try again. seems blockState needs better concurrency handling
+		panic(err) // this should never happen
 	}
 
 	end := data[len(data)-1].Number().Int64()
-	if end <= bestNum.Int64() {
-		logger.Debug("ignoring block data that is below our head", "got", end, "head", bestNum.Int64())
+	if end <= finalised.Number.Int64() {
+		logger.Debug("ignoring block data that is below our head", "got", end, "head", finalised.Number.Int64())
 		q.pushRequest(uint64(end+1), blockRequestBufferSize, "")
 		return
 	}
@@ -736,10 +765,20 @@ func (q *syncQueue) handleBlockData(data []*types.BlockData) {
 func (q *syncQueue) handleBlockDataFailure(idx int, err error, data []*types.BlockData) {
 	logger.Warn("failed to handle block data", "failed on block", q.currStart+int64(idx), "error", err)
 
-	if err.Error() == "failed to get parent hash: Key not found" { // TODO: unwrap err
+	if errors.Is(err, chaindb.ErrKeyNotFound) || errors.Is(err, blocktree.ErrParentNotFound) {
+		finalised, err := q.s.blockState.GetFinalizedHeader(0, 0)
+		if err != nil {
+			panic(err)
+		}
+
 		header, err := types.NewHeaderFromOptional(data[idx].Header)
 		if err != nil {
 			logger.Debug("failed to get header from BlockData", "idx", idx, "error", err)
+			return
+		}
+
+		// don't request a chain that's been dropped
+		if header.Number.Int64() <= finalised.Number.Int64() {
 			return
 		}
 
@@ -780,20 +819,14 @@ func (q *syncQueue) handleBlockAnnounceHandshake(blockNum uint32, from peer.ID) 
 
 func (q *syncQueue) handleBlockAnnounce(msg *BlockAnnounceMessage, from peer.ID) {
 	q.updatePeerScore(from, 1)
+	logger.Debug("received BlockAnnounce", "number", msg.Number, "from", from)
 
-	header, err := types.NewHeader(
-		msg.ParentHash,
-		msg.Number,
-		msg.StateRoot,
-		msg.ExtrinsicsRoot,
-		msg.Digest,
-	)
+	header, err := types.NewHeader(msg.ParentHash, msg.StateRoot, msg.ExtrinsicsRoot, msg.Number, msg.Digest)
 	if err != nil {
 		logger.Error("failed to create header from BlockAnnounce", "error", err)
 		return
 	}
 
-	logger.Debug("received BlockAnnounce!", "number", msg.Number, "hash", header.Hash(), "from", from)
 	has, _ := q.s.blockState.HasBlockBody(header.Hash())
 	if has {
 		return
@@ -803,13 +836,16 @@ func (q *syncQueue) handleBlockAnnounce(msg *BlockAnnounceMessage, from peer.ID)
 		return
 	}
 
+	q.goal = header.Number.Int64()
+
 	bestNum, err := q.s.blockState.BestBlockNumber()
 	if err != nil {
 		logger.Error("failed to get best block number", "error", err)
 		return
 	}
 
-	q.goal = header.Number.Int64()
+	// TODO: if we're at the head, this should request by hash instead of number, since there will
+	// certainly be blocks with the same number.
 	q.pushRequest(uint64(bestNum.Int64()+1), blockRequestBufferSize, from)
 }
 

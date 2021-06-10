@@ -81,7 +81,7 @@ func GetBlockHash(t *testing.T, node *Node, num string) (common.Hash, error) {
 	return common.MustHexToHash(hash), nil
 }
 
-// GetFinalizedHead calls the endpoint chain_getFinalizedHead to get the latest finalized head
+// GetFinalizedHead calls the endpoint chain_getFinalizedHead to get the latest finalised head
 func GetFinalizedHead(t *testing.T, node *Node) common.Hash {
 	respBody, err := PostRPC(ChainGetFinalizedHead, NewEndpoint(node.RPCPort), "[]")
 	require.NoError(t, err)
@@ -92,7 +92,7 @@ func GetFinalizedHead(t *testing.T, node *Node) common.Hash {
 	return common.MustHexToHash(hash)
 }
 
-// GetFinalizedHeadByRound calls the endpoint chain_getFinalizedHeadByRound to get the finalized head at a given round
+// GetFinalizedHeadByRound calls the endpoint chain_getFinalizedHeadByRound to get the finalised head at a given round
 // TODO: add setID, hard-coded at 1 for now
 func GetFinalizedHeadByRound(t *testing.T, node *Node, round uint64) (common.Hash, error) {
 	p := strconv.Itoa(int(round))
@@ -134,7 +134,7 @@ func GetBlock(t *testing.T, node *Node, hash common.Hash) *types.Block {
 	extrinsicsRoot, err := common.HexToHash(header.ExtrinsicsRoot)
 	require.NoError(t, err)
 
-	h, err := types.NewHeader(parentHash, number, stateRoot, extrinsicsRoot, rpcLogsToDigest(t, header.Digest.Logs))
+	h, err := types.NewHeader(parentHash, stateRoot, extrinsicsRoot, number, rpcLogsToDigest(t, header.Digest.Logs))
 	require.NoError(t, err)
 
 	b, err := types.NewBodyFromExtrinsicStrings(block.Block.Body)

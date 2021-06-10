@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 )
 
@@ -43,21 +44,31 @@ type BlockState interface {
 	BlocktreeAsString() string
 	RegisterImportedChannel(ch chan<- *types.Block) (byte, error)
 	UnregisterImportedChannel(id byte)
-	RegisterFinalizedChannel(ch chan<- *types.Header) (byte, error)
+	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
 	UnregisterFinalizedChannel(id byte)
 	SetJustification(hash common.Hash, data []byte) error
 	HasJustification(hash common.Hash) (bool, error)
 	GetJustification(hash common.Hash) ([]byte, error)
+	GetHashByNumber(num *big.Int) (common.Hash, error)
+	BestBlockNumber() (*big.Int, error)
+}
+
+// GrandpaState is the interface required by grandpa into the grandpa state
+type GrandpaState interface { //nolint
+	GetCurrentSetID() (uint64, error)
+	GetAuthorities(setID uint64) ([]*types.GrandpaVoter, error)
+	GetSetIDByBlockNumber(num *big.Int) (uint64, error)
 }
 
 // DigestHandler is the interface required by GRANDPA for the digest handler
-type DigestHandler interface {
+type DigestHandler interface { // TODO: remove, use GrandpaState
 	NextGrandpaAuthorityChange() uint64
 }
 
 // Network is the interface required by GRANDPA for the network
 type Network interface {
 	SendMessage(msg network.NotificationsMessage)
+	SendJustificationRequest(to peer.ID, num uint32)
 	RegisterNotificationsProtocol(sub protocol.ID,
 		messageID byte,
 		handshakeGetter network.HandshakeGetter,

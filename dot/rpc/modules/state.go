@@ -240,7 +240,7 @@ func (sm *StateModule) GetChildStorageSize(r *http.Request, req *StateChildStora
 
 // GetKeysPaged Returns the keys with prefix with pagination support.
 func (sm *StateModule) GetKeysPaged(r *http.Request, req *StateStorageKeyRequest, res *StateStorageKeysResponse) error {
-	if len(req.Prefix) == 0 {
+	if req.Prefix == "" {
 		req.Prefix = "0x"
 	}
 	hPrefix, err := common.HexToBytes(req.Prefix)
@@ -305,6 +305,7 @@ func (sm *StateModule) GetStorage(r *http.Request, req *StateStorageRequest, res
 	)
 
 	reqBytes, _ := common.HexToBytes(req.Key) // no need to catch error here
+
 	if req.Bhash != nil {
 		item, err = sm.storageAPI.GetStorageByBlockHash(*req.Bhash, reqBytes)
 		if err != nil {

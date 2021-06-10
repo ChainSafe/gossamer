@@ -106,7 +106,7 @@ func (in *Instance) GrandpaAuthorities() ([]*types.Authority, error) {
 	return types.GrandpaAuthoritiesRawToAuthorities(adr.([]*types.GrandpaAuthoritiesRaw))
 }
 
-// InitializeBlock calls runtime API function Core_initialize_block
+// InitializeBlock calls runtime API function Core_initialise_block
 func (in *Instance) InitializeBlock(header *types.Header) error {
 	encodedHeader, err := scale.Encode(header)
 	if err != nil {
@@ -127,6 +127,7 @@ func (in *Instance) ApplyExtrinsic(data types.Extrinsic) ([]byte, error) {
 	return in.exec(runtime.BlockBuilderApplyExtrinsic, data)
 }
 
+//nolint
 // FinalizeBlock calls runtime API function BlockBuilder_finalize_block
 func (in *Instance) FinalizeBlock() (*types.Header, error) {
 	data, err := in.exec(runtime.BlockBuilderFinalizeBlock, []byte{})
@@ -147,7 +148,6 @@ func (in *Instance) FinalizeBlock() (*types.Header, error) {
 func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	// copy block since we're going to modify it
 	b := block.DeepCopy()
-	b.Header.Digest = types.NewEmptyDigest()
 
 	if in.version == nil {
 		var err error
@@ -157,17 +157,14 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 		}
 	}
 
-	// TODO: hack since substrate node_runtime can't seem to handle BABE pre-runtime digests
-	// with type prefix (ie Primary, Secondary...)
-	if bytes.Equal(in.version.SpecName(), []byte("kusama")) || bytes.Equal(in.version.SpecName(), []byte("polkadot")) {
-		// remove seal digest only
-		for _, d := range block.Header.Digest {
-			if d.Type() == types.SealDigestType {
-				continue
-			}
-
-			b.Header.Digest = append(b.Header.Digest, d)
+	// remove seal digest only
+	b.Header.Digest = types.NewEmptyDigest()
+	for _, d := range block.Header.Digest {
+		if d.Type() == types.SealDigestType {
+			continue
 		}
+
+		b.Header.Digest = append(b.Header.Digest, d)
 	}
 
 	bdEnc, err := b.Encode()

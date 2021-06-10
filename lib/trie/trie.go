@@ -50,13 +50,12 @@ func NewTrie(root node) *Trie {
 
 // Snapshot created a copy of the trie.
 func (t *Trie) Snapshot() *Trie {
-	oldTrie := &Trie{
-		generation: t.generation,
+	newTrie := &Trie{
+		generation: t.generation + 1,
 		root:       t.root,
 		childTries: t.childTries,
 	}
-	t.generation++
-	return oldTrie
+	return newTrie
 }
 
 func (t *Trie) maybeUpdateLeafGeneration(n *leaf) *leaf {

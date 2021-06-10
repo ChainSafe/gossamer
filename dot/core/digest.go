@@ -33,26 +33,23 @@ type DigestHandler struct {
 	cancel context.CancelFunc
 
 	// interfaces
-	blockState          BlockState
-	epochState          EpochState
-	grandpa             FinalityGadget
-	babe                BlockProducer
-	verifier            Verifier
-	isFinalityAuthority bool
-	isBlockProducer     bool
+	blockState   BlockState
+	epochState   EpochState
+	grandpaState GrandpaState
+	babe         BlockProducer
+	verifier     Verifier
 
 	// block notification channels
 	imported    chan *types.Block
 	importedID  byte
-	finalized   chan *types.Header
-	finalizedID byte
+	finalised   chan *types.FinalisationInfo
+	finalisedID byte
 
 	// GRANDPA changes
 	grandpaScheduledChange *grandpaChange
 	grandpaForcedChange    *grandpaChange
 	grandpaPause           *pause
 	grandpaResume          *resume
-	grandpaAuths           []*types.Authority // saved in case of pause
 }
 
 type grandpaChange struct {
@@ -69,59 +66,51 @@ type resume struct {
 }
 
 // NewDigestHandler returns a new DigestHandler
-func NewDigestHandler(blockState BlockState, epochState EpochState, babe BlockProducer, grandpa FinalityGadget, verifier Verifier) (*DigestHandler, error) {
+func NewDigestHandler(blockState BlockState, epochState EpochState, grandpaState GrandpaState, babe BlockProducer, verifier Verifier) (*DigestHandler, error) {
 	imported := make(chan *types.Block, 16)
-	finalized := make(chan *types.Header, 16)
+	finalised := make(chan *types.FinalisationInfo, 16)
 	iid, err := blockState.RegisterImportedChannel(imported)
 	if err != nil {
 		return nil, err
 	}
 
-	fid, err := blockState.RegisterFinalizedChannel(finalized)
+	fid, err := blockState.RegisterFinalizedChannel(finalised)
 	if err != nil {
 		return nil, err
 	}
 
-	isFinalityAuthority := grandpa != nil
-	isBlockProducer := babe != nil
-
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &DigestHandler{
-		ctx:                 ctx,
-		cancel:              cancel,
-		blockState:          blockState,
-		epochState:          epochState,
-		grandpa:             grandpa,
-		babe:                babe,
-		verifier:            verifier,
-		isFinalityAuthority: isFinalityAuthority,
-		isBlockProducer:     isBlockProducer,
-		imported:            imported,
-		importedID:          iid,
-		finalized:           finalized,
-		finalizedID:         fid,
+		ctx:          ctx,
+		cancel:       cancel,
+		blockState:   blockState,
+		epochState:   epochState,
+		grandpaState: grandpaState,
+		babe:         babe,
+		verifier:     verifier,
+		imported:     imported,
+		importedID:   iid,
+		finalised:    finalised,
+		finalisedID:  fid,
 	}, nil
 }
 
 // Start starts the DigestHandler
-func (h *DigestHandler) Start() {
+func (h *DigestHandler) Start() error {
 	go h.handleBlockImport(h.ctx)
-	go h.handleBlockFinalization(h.ctx)
+	go h.handleBlockFinalisation(h.ctx)
+	return nil
 }
 
 // Stop stops the DigestHandler
-func (h *DigestHandler) Stop() {
+func (h *DigestHandler) Stop() error {
 	h.cancel()
 	h.blockState.UnregisterImportedChannel(h.importedID)
-	h.blockState.UnregisterFinalizedChannel(h.finalizedID)
+	h.blockState.UnregisterFinalizedChannel(h.finalisedID)
 	close(h.imported)
-	close(h.finalized)
-}
-
-// SetFinalityGadget sets the digest handler's grandpa instance
-func (h *DigestHandler) SetFinalityGadget(grandpa FinalityGadget) {
-	h.grandpa = grandpa
+	close(h.finalised)
+	return nil
 }
 
 // NextGrandpaAuthorityChange returns the block number of the next upcoming grandpa authorities change.
@@ -155,11 +144,11 @@ func (h *DigestHandler) HandleConsensusDigest(d *types.ConsensusDigest, header *
 	if d.ConsensusEngineID == types.GrandpaEngineID {
 		switch t {
 		case types.GrandpaScheduledChangeType:
-			return h.handleScheduledChange(d)
+			return h.handleScheduledChange(d, header)
 		case types.GrandpaForcedChangeType:
-			return h.handleForcedChange(d)
+			return h.handleForcedChange(d, header)
 		case types.GrandpaOnDisabledType:
-			return h.handleGrandpaOnDisabled(d, header)
+			return nil // do nothing, as this is not implemented in substrate
 		case types.GrandpaPauseType:
 			return h.handlePause(d)
 		case types.GrandpaResumeType:
@@ -193,8 +182,9 @@ func (h *DigestHandler) handleBlockImport(ctx context.Context) {
 				continue
 			}
 
-			if h.isFinalityAuthority {
-				h.handleGrandpaChangesOnImport(block.Header.Number)
+			err := h.handleGrandpaChangesOnImport(block.Header.Number)
+			if err != nil {
+				logger.Error("failed to handle grandpa changes on block import", "error", err)
 			}
 		case <-ctx.Done():
 			return
@@ -202,154 +192,157 @@ func (h *DigestHandler) handleBlockImport(ctx context.Context) {
 	}
 }
 
-func (h *DigestHandler) handleBlockFinalization(ctx context.Context) {
+func (h *DigestHandler) handleBlockFinalisation(ctx context.Context) {
 	for {
 		select {
-		case header := <-h.finalized:
-			if header == nil {
+		case info := <-h.finalised:
+			if info == nil || info.Header == nil {
 				continue
 			}
 
-			if h.isFinalityAuthority {
-				h.handleGrandpaChangesOnFinalization(header.Number)
+			err := h.handleGrandpaChangesOnFinalization(info.Header.Number)
+			if err != nil {
+				logger.Error("failed to handle grandpa changes on block finalisation", "error", err)
 			}
-
-			// TODO: check if there's a NextEpochData or NextConfigData digest, if there is,
-			// make sure it matches what's in the EpochState for the upcoming epoch
 		case <-ctx.Done():
 			return
 		}
 	}
 }
 
-func (h *DigestHandler) handleGrandpaChangesOnImport(num *big.Int) {
+func (h *DigestHandler) handleGrandpaChangesOnImport(num *big.Int) error {
 	resume := h.grandpaResume
-	if resume != nil && num.Cmp(resume.atBlock) == 0 {
-		h.grandpa.UpdateAuthorities(h.grandpaAuths)
+	if resume != nil && num.Cmp(resume.atBlock) > -1 {
 		h.grandpaResume = nil
 	}
 
 	fc := h.grandpaForcedChange
-	if fc != nil && num.Cmp(fc.atBlock) == 0 {
-		h.grandpa.UpdateAuthorities(fc.auths)
+	if fc != nil && num.Cmp(fc.atBlock) > -1 {
+		err := h.grandpaState.IncrementSetID()
+		if err != nil {
+			return err
+		}
+
 		h.grandpaForcedChange = nil
+		curr, err := h.grandpaState.GetCurrentSetID()
+		if err != nil {
+			return err
+		}
+
+		logger.Debug("incremented grandpa set ID", "set ID", curr)
 	}
+
+	return nil
 }
 
-func (h *DigestHandler) handleGrandpaChangesOnFinalization(num *big.Int) {
+func (h *DigestHandler) handleGrandpaChangesOnFinalization(num *big.Int) error {
 	pause := h.grandpaPause
-	if pause != nil && num.Cmp(pause.atBlock) == 0 {
-		// save authority data for Resume
-		h.grandpaAuths = h.grandpa.Authorities()
-		h.grandpa.UpdateAuthorities([]*types.Authority{})
+	if pause != nil && num.Cmp(pause.atBlock) > -1 {
 		h.grandpaPause = nil
 	}
 
 	sc := h.grandpaScheduledChange
-	if sc != nil && num.Cmp(sc.atBlock) == 0 {
-		h.grandpa.UpdateAuthorities(sc.auths)
+	if sc != nil && num.Cmp(sc.atBlock) > -1 {
+		err := h.grandpaState.IncrementSetID()
+		if err != nil {
+			return err
+		}
+
 		h.grandpaScheduledChange = nil
+		curr, err := h.grandpaState.GetCurrentSetID()
+		if err != nil {
+			return err
+		}
+
+		logger.Debug("incremented grandpa set ID", "set ID", curr)
 	}
 
-	// if blocks get finalized before forced change takes place, disregard it
+	// if blocks get finalised before forced change takes place, disregard it
 	h.grandpaForcedChange = nil
+	return nil
 }
 
-func (h *DigestHandler) handleScheduledChange(d *types.ConsensusDigest) error {
+func (h *DigestHandler) handleScheduledChange(d *types.ConsensusDigest, header *types.Header) error {
 	curr, err := h.blockState.BestBlockHeader()
 	if err != nil {
 		return err
 	}
 
-	if d.ConsensusEngineID == types.GrandpaEngineID {
-		if h.grandpaScheduledChange != nil {
-			return nil
-		}
-
-		sc := &types.GrandpaScheduledChange{}
-		dec, err := scale.Decode(d.Data[1:], sc)
-		if err != nil {
-			return err
-		}
-		sc = dec.(*types.GrandpaScheduledChange)
-
-		logger.Debug("handling GrandpaScheduledChange", "data", sc)
-
-		if h.grandpa == nil {
-			// this should never happen
-			return nil
-		}
-
-		c, err := newGrandpaChange(sc.Auths, sc.Delay, curr.Number)
-		if err != nil {
-			return err
-		}
-
-		h.grandpaScheduledChange = c
-	}
-
-	return nil
-}
-
-func (h *DigestHandler) handleForcedChange(d *types.ConsensusDigest) error {
-	curr, err := h.blockState.BestBlockHeader()
-	if err != nil {
-		return err
-	}
-
-	if d.ConsensusEngineID == types.GrandpaEngineID {
-		if h.grandpaForcedChange != nil {
-			return errors.New("already have forced change scheduled")
-		}
-
-		fc := &types.GrandpaForcedChange{}
-		dec, err := scale.Decode(d.Data[1:], fc)
-		if err != nil {
-			return err
-		}
-		fc = dec.(*types.GrandpaForcedChange)
-
-		c, err := newGrandpaChange(fc.Auths, fc.Delay, curr.Number)
-		if err != nil {
-			return err
-		}
-
-		h.grandpaForcedChange = c
-	}
-
-	return nil
-}
-
-func (h *DigestHandler) handleGrandpaOnDisabled(d *types.ConsensusDigest, _ *types.Header) error {
-	od := &types.GrandpaOnDisabled{}
-	dec, err := scale.Decode(d.Data[1:], od)
-	if err != nil {
-		return err
-	}
-	od = dec.(*types.GrandpaOnDisabled)
-
-	logger.Debug("handling GrandpaOnDisabled", "data", od)
-
-	if h.grandpa == nil {
-		// this should never happen
+	if d.ConsensusEngineID != types.GrandpaEngineID {
 		return nil
 	}
 
-	curr := h.grandpa.Authorities()
-	next := []*types.Authority{}
-
-	for _, auth := range curr {
-		if auth.Weight != od.ID {
-			next = append(next, auth)
-		}
+	if h.grandpaScheduledChange != nil {
+		return nil
 	}
 
-	// TODO: this needs to be updated not to remove the authority from the list,
-	// but to flag them as disabled. thus, if we are disabled, we should stop voting.
-	// if we receive vote or finalization messages, we should ignore anything signed by the
-	// disabled authority
-	h.grandpa.UpdateAuthorities(next)
-	return nil
+	sc := &types.GrandpaScheduledChange{}
+	dec, err := scale.Decode(d.Data[1:], sc)
+	if err != nil {
+		return err
+	}
+	sc = dec.(*types.GrandpaScheduledChange)
+
+	logger.Debug("handling GrandpaScheduledChange", "data", sc)
+
+	c, err := newGrandpaChange(sc.Auths, sc.Delay, curr.Number)
+	if err != nil {
+		return err
+	}
+
+	h.grandpaScheduledChange = c
+
+	auths, err := types.GrandpaAuthoritiesRawToAuthorities(sc.Auths)
+	if err != nil {
+		return err
+	}
+
+	logger.Debug("setting GrandpaScheduledChange", "at block", big.NewInt(0).Add(header.Number, big.NewInt(int64(sc.Delay))))
+	return h.grandpaState.SetNextChange(
+		types.NewGrandpaVotersFromAuthorities(auths),
+		big.NewInt(0).Add(header.Number, big.NewInt(int64(sc.Delay))),
+	)
+}
+
+func (h *DigestHandler) handleForcedChange(d *types.ConsensusDigest, header *types.Header) error {
+	if d.ConsensusEngineID != types.GrandpaEngineID {
+		return nil
+	}
+
+	if header == nil {
+		return errors.New("header is nil")
+	}
+
+	if h.grandpaForcedChange != nil {
+		return errors.New("already have forced change scheduled")
+	}
+
+	fc := &types.GrandpaForcedChange{}
+	dec, err := scale.Decode(d.Data[1:], fc)
+	if err != nil {
+		return err
+	}
+	fc = dec.(*types.GrandpaForcedChange)
+
+	logger.Debug("handling GrandpaForcedChange", "data", fc)
+
+	c, err := newGrandpaChange(fc.Auths, fc.Delay, header.Number)
+	if err != nil {
+		return err
+	}
+
+	h.grandpaForcedChange = c
+
+	auths, err := types.GrandpaAuthoritiesRawToAuthorities(fc.Auths)
+	if err != nil {
+		return err
+	}
+
+	logger.Debug("setting GrandpaForcedChange", "at block", big.NewInt(0).Add(header.Number, big.NewInt(int64(fc.Delay))))
+	return h.grandpaState.SetNextChange(
+		types.NewGrandpaVotersFromAuthorities(auths),
+		big.NewInt(0).Add(header.Number, big.NewInt(int64(fc.Delay))),
+	)
 }
 
 func (h *DigestHandler) handlePause(d *types.ConsensusDigest) error {
@@ -371,7 +364,7 @@ func (h *DigestHandler) handlePause(d *types.ConsensusDigest) error {
 		atBlock: big.NewInt(-1).Add(curr.Number, delay),
 	}
 
-	return nil
+	return h.grandpaState.SetNextPause(h.grandpaPause.atBlock)
 }
 
 func (h *DigestHandler) handleResume(d *types.ConsensusDigest) error {
@@ -393,7 +386,7 @@ func (h *DigestHandler) handleResume(d *types.ConsensusDigest) error {
 		atBlock: big.NewInt(-1).Add(curr.Number, delay),
 	}
 
-	return nil
+	return h.grandpaState.SetNextResume(h.grandpaResume.atBlock)
 }
 
 func newGrandpaChange(raw []*types.GrandpaAuthoritiesRaw, delay uint32, currBlock *big.Int) (*grandpaChange, error) {

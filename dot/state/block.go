@@ -38,17 +38,17 @@ const pruneKeyBufferSize = 1000
 
 // BlockState defines fields for manipulating the state of blocks, such as BlockTree, BlockDB and Header
 type BlockState struct {
-	bt          *blocktree.BlockTree
-	baseDB      chaindb.Database
-	db          chaindb.Database
-	lock        sync.RWMutex
+	bt        *blocktree.BlockTree
+	baseState *BaseState
+	db        chaindb.Database
+	sync.RWMutex
 	genesisHash common.Hash
 
 	// block notifiers
 	imported      map[byte]chan<- *types.Block
-	finalized     map[byte]chan<- *types.Header
+	finalised     map[byte]chan<- *types.FinalisationInfo
 	importedLock  sync.RWMutex
-	finalizedLock sync.RWMutex
+	finalisedLock sync.RWMutex
 
 	pruneKeyCh chan *types.Header
 }
@@ -61,10 +61,10 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 
 	bs := &BlockState{
 		bt:         bt,
-		baseDB:     db,
+		baseState:  NewBaseState(db),
 		db:         chaindb.NewTable(db, blockPrefix),
 		imported:   make(map[byte]chan<- *types.Block),
-		finalized:  make(map[byte]chan<- *types.Header),
+		finalised:  make(map[byte]chan<- *types.FinalisationInfo),
 		pruneKeyCh: make(chan *types.Header, pruneKeyBufferSize),
 	}
 
@@ -77,14 +77,14 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 	return bs, nil
 }
 
-// NewBlockStateFromGenesis initializes a BlockState from a genesis header, saving it to the database located at basePath
+// NewBlockStateFromGenesis initialises a BlockState from a genesis header, saving it to the database located at basePath
 func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*BlockState, error) {
 	bs := &BlockState{
 		bt:         blocktree.NewBlockTreeFromRoot(header, db),
-		baseDB:     db,
+		baseState:  NewBaseState(db),
 		db:         chaindb.NewTable(db, blockPrefix),
 		imported:   make(map[byte]chan<- *types.Block),
-		finalized:  make(map[byte]chan<- *types.Header),
+		finalised:  make(map[byte]chan<- *types.FinalisationInfo),
 		pruneKeyCh: make(chan *types.Header, pruneKeyBufferSize),
 	}
 
@@ -110,7 +110,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 
 	bs.genesisHash = header.Hash()
 
-	// set the latest finalized head to the genesis header
+	// set the latest finalised head to the genesis header
 	err = bs.SetFinalizedHash(bs.genesisHash, 0, 0)
 	if err != nil {
 		return nil, err
@@ -167,8 +167,9 @@ func finalizedHashKey(round, setID uint64) []byte {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, round)
 	key := append(common.FinalizedBlockHashKey, buf...)
-	binary.LittleEndian.PutUint64(buf, setID)
-	return append(key, buf...)
+	buf2 := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf2, setID)
+	return append(key, buf2...)
 }
 
 // GenesisHash returns the hash of the genesis block
@@ -268,7 +269,7 @@ func (bs *BlockState) GetHeader(hash common.Hash) (*types.Header, error) {
 func (bs *BlockState) GetHashByNumber(num *big.Int) (common.Hash, error) {
 	bh, err := bs.db.Get(headerHashKey(num.Uint64()))
 	if err != nil {
-		return common.Hash{}, fmt.Errorf("cannot get block %d: %s", num, err)
+		return common.Hash{}, fmt.Errorf("cannot get block %d: %w", num, err)
 	}
 
 	return common.NewHash(bh), nil
@@ -278,7 +279,7 @@ func (bs *BlockState) GetHashByNumber(num *big.Int) (common.Hash, error) {
 func (bs *BlockState) GetHeaderByNumber(num *big.Int) (*types.Header, error) {
 	bh, err := bs.db.Get(headerHashKey(num.Uint64()))
 	if err != nil {
-		return nil, fmt.Errorf("cannot get block %d: %s", num, err)
+		return nil, fmt.Errorf("cannot get block %d: %w", num, err)
 	}
 
 	hash := common.NewHash(bh)
@@ -304,7 +305,7 @@ func (bs *BlockState) GetBlockByNumber(num *big.Int) (*types.Block, error) {
 	// First retrieve the block hash in a byte array based on the block number from the database
 	byteHash, err := bs.db.Get(headerHashKey(num.Uint64()))
 	if err != nil {
-		return nil, fmt.Errorf("cannot get block %d: %s", num, err)
+		return nil, fmt.Errorf("cannot get block %d: %w", num, err)
 	}
 
 	// Then find the block based on the hash
@@ -322,7 +323,7 @@ func (bs *BlockState) GetBlockHash(blockNumber *big.Int) (*common.Hash, error) {
 	// First retrieve the block hash in a byte array based on the block number from the database
 	byteHash, err := bs.db.Get(headerHashKey(blockNumber.Uint64()))
 	if err != nil {
-		return nil, fmt.Errorf("cannot get block %d: %s", blockNumber, err)
+		return nil, fmt.Errorf("cannot get block %d: %w", blockNumber, err)
 	}
 	hash := common.NewHash(byteHash)
 	return &hash, nil
@@ -330,9 +331,6 @@ func (bs *BlockState) GetBlockHash(blockNumber *big.Int) (*common.Hash, error) {
 
 // SetHeader will set the header into DB
 func (bs *BlockState) SetHeader(header *types.Header) error {
-	bs.lock.Lock()
-	defer bs.lock.Unlock()
-
 	hash := header.Hash()
 
 	// Write the encoded header
@@ -366,30 +364,15 @@ func (bs *BlockState) GetBlockBody(hash common.Hash) (*types.Body, error) {
 
 // SetBlockBody will add a block body to the db
 func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
-	bs.lock.Lock()
-	defer bs.lock.Unlock()
-
-	err := bs.db.Put(blockBodyKey(hash), body.AsOptional().Value())
-	return err
+	return bs.db.Put(blockBodyKey(hash), body.AsOptional().Value())
 }
 
-// HasFinalizedBlock returns true if there is a finalized block for a given round and setID, false otherwise
+// HasFinalizedBlock returns true if there is a finalised block for a given round and setID, false otherwise
 func (bs *BlockState) HasFinalizedBlock(round, setID uint64) (bool, error) {
-	// get current round
-	r, err := bs.GetRound()
-	if err != nil {
-		return false, err
-	}
-
-	// round that is being queried for has not yet finalized
-	if round > r {
-		return false, fmt.Errorf("round not yet finalized")
-	}
-
 	return bs.db.Has(finalizedHashKey(round, setID))
 }
 
-// GetFinalizedHeader returns the latest finalized block header
+// GetFinalizedHeader returns the latest finalised block header
 func (bs *BlockState) GetFinalizedHeader(round, setID uint64) (*types.Header, error) {
 	h, err := bs.GetFinalizedHash(round, setID)
 	if err != nil {
@@ -404,7 +387,7 @@ func (bs *BlockState) GetFinalizedHeader(round, setID uint64) (*types.Header, er
 	return header, nil
 }
 
-// GetFinalizedHash gets the latest finalized block header
+// GetFinalizedHash gets the latest finalised block header
 func (bs *BlockState) GetFinalizedHash(round, setID uint64) (common.Hash, error) {
 	// get current round
 	r, err := bs.GetRound()
@@ -412,9 +395,9 @@ func (bs *BlockState) GetFinalizedHash(round, setID uint64) (common.Hash, error)
 		return common.Hash{}, err
 	}
 
-	// round that is being queried for has not yet finalized
+	// round that is being queried for has not yet finalised
 	if round > r {
-		return common.Hash{}, fmt.Errorf("round not yet finalized")
+		return common.Hash{}, fmt.Errorf("round not yet finalised")
 	}
 
 	h, err := bs.db.Get(finalizedHashKey(round, setID))
@@ -425,9 +408,12 @@ func (bs *BlockState) GetFinalizedHash(round, setID uint64) (common.Hash, error)
 	return common.NewHash(h), nil
 }
 
-// SetFinalizedHash sets the latest finalized block header
+// SetFinalizedHash sets the latest finalised block header
 func (bs *BlockState) SetFinalizedHash(hash common.Hash, round, setID uint64) error {
-	go bs.notifyFinalized(hash)
+	bs.Lock()
+	defer bs.Unlock()
+
+	go bs.notifyFinalized(hash, round, setID)
 	if round > 0 {
 		err := bs.SetRound(round)
 		if err != nil {
@@ -454,7 +440,7 @@ func (bs *BlockState) SetFinalizedHash(hash common.Hash, round, setID uint64) er
 	return bs.db.Put(finalizedHashKey(round, setID), hash[:])
 }
 
-// SetRound sets the latest finalized GRANDPA round in the db
+// SetRound sets the latest finalised GRANDPA round in the db
 // TODO: this needs to use both setID and round
 func (bs *BlockState) SetRound(round uint64) error {
 	buf := make([]byte, 8)
@@ -462,7 +448,7 @@ func (bs *BlockState) SetRound(round uint64) error {
 	return bs.db.Put(common.LatestFinalizedRoundKey, buf)
 }
 
-// GetRound gets the latest finalized GRANDPA round from the db
+// GetRound gets the latest finalised GRANDPA round from the db
 func (bs *BlockState) GetRound() (uint64, error) {
 	r, err := bs.db.Get(common.LatestFinalizedRoundKey)
 	if err != nil {
@@ -496,6 +482,8 @@ func (bs *BlockState) CompareAndSetBlockData(bd *types.BlockData) error {
 
 // AddBlock adds a block to the blocktree and the DB with arrival time as current unix time
 func (bs *BlockState) AddBlock(block *types.Block) error {
+	bs.Lock()
+	defer bs.Unlock()
 	return bs.AddBlockWithArrivalTime(block, time.Now())
 }
 
@@ -505,6 +493,8 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 	if err != nil {
 		return err
 	}
+
+	prevHead := bs.bt.DeepestBlockHash()
 
 	// add block to blocktree
 	err = bs.bt.AddBlock(block.Header, uint64(arrivalTime.UnixNano()))
@@ -541,12 +531,58 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 		return err
 	}
 
+	// check if there was a re-org, if so, re-set the canonical number->hash mapping
+	err = bs.handleAddedBlock(prevHead, bs.bt.DeepestBlockHash())
+	if err != nil {
+		return err
+	}
+
 	go bs.notifyImported(block)
-	return bs.baseDB.Flush()
+	return bs.db.Flush()
+}
+
+// handleAddedBlock re-sets the canonical number->hash mapping if there was a chain re-org.
+// prev is the previous best block hash before the new block was added to the blocktree.
+// curr is the current best blogetck hash.
+func (bs *BlockState) handleAddedBlock(prev, curr common.Hash) error {
+	ancestor, err := bs.HighestCommonAncestor(prev, curr)
+	if err != nil {
+		return err
+	}
+
+	// if the highest common ancestor of the previous chain head and current chain head is the previous chain head,
+	// then the current chain head is the descendant of the previous and thus are on the same chain
+	if ancestor == prev {
+		return nil
+	}
+
+	subchain, err := bs.SubChain(ancestor, curr)
+	if err != nil {
+		return err
+	}
+
+	batch := bs.db.NewBatch()
+	for _, hash := range subchain {
+		// TODO: set number from ancestor.Number + i ?
+		header, err := bs.GetHeader(hash)
+		if err != nil {
+			return fmt.Errorf("failed to get header in subchain: %w", err)
+		}
+
+		err = batch.Put(headerHashKey(header.Number.Uint64()), hash.ToBytes())
+		if err != nil {
+			return err
+		}
+	}
+
+	return batch.Flush()
 }
 
 // AddBlockToBlockTree adds the given block to the blocktree. It does not write it to the database.
 func (bs *BlockState) AddBlockToBlockTree(header *types.Header) error {
+	bs.Lock()
+	defer bs.Unlock()
+
 	arrivalTime, err := bs.GetArrivalTime(header.Hash())
 	if err != nil {
 		arrivalTime = time.Now()
@@ -567,7 +603,7 @@ func (bs *BlockState) isBlockOnCurrentChain(header *types.Header) (bool, error) 
 	}
 
 	// if the new block is ahead of our best block, then it is on our current chain.
-	if header.Number.Cmp(bestBlock.Number) == 1 {
+	if header.Number.Cmp(bestBlock.Number) > 0 {
 		return true, nil
 	}
 
@@ -671,7 +707,7 @@ func (bs *BlockState) BlocktreeAsString() string {
 }
 
 func (bs *BlockState) setBestBlockHashKey(hash common.Hash) error {
-	return StoreBestBlockHash(bs.baseDB, hash)
+	return bs.baseState.StoreBestBlockHash(hash)
 }
 
 // HasArrivalTime returns true if the db contains the block's arrival time
@@ -681,7 +717,7 @@ func (bs *BlockState) HasArrivalTime(hash common.Hash) (bool, error) {
 
 // GetArrivalTime returns the arrival time in nanoseconds since the Unix epoch of a block given its hash
 func (bs *BlockState) GetArrivalTime(hash common.Hash) (time.Time, error) {
-	arrivalTime, err := bs.baseDB.Get(arrivalTimeKey(hash))
+	arrivalTime, err := bs.db.Get(arrivalTimeKey(hash))
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -693,5 +729,5 @@ func (bs *BlockState) GetArrivalTime(hash common.Hash) (time.Time, error) {
 func (bs *BlockState) setArrivalTime(hash common.Hash, arrivalTime time.Time) error {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, uint64(arrivalTime.UnixNano()))
-	return bs.baseDB.Put(arrivalTimeKey(hash), buf)
+	return bs.db.Put(arrivalTimeKey(hash), buf)
 }

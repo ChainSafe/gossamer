@@ -18,6 +18,7 @@ package utils
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"testing"
@@ -73,4 +74,36 @@ func RemoveTestDir(t *testing.T) {
 	if err != nil || PathExists(testDir) {
 		fmt.Println(fmt.Errorf("failed to remove test directory: %s", err))
 	}
+}
+
+// MockDigestItem ...
+type MockDigestItem struct {
+	i int
+}
+
+// NewMockDigestItem creates a mock digest item for testing purposes.
+func NewMockDigestItem(i int) *MockDigestItem {
+	return &MockDigestItem{
+		i: i,
+	}
+}
+
+// String ...
+func (d *MockDigestItem) String() string {
+	return ""
+}
+
+// Type ...
+func (d *MockDigestItem) Type() byte {
+	return byte(d.i)
+}
+
+// Encode ...
+func (d *MockDigestItem) Encode() ([]byte, error) {
+	return []byte{byte(d.i)}, nil
+}
+
+// Decode ...
+func (d *MockDigestItem) Decode(_ io.Reader) error {
+	return nil
 }

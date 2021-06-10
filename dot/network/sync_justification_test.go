@@ -18,7 +18,6 @@ package network
 
 import (
 	"context"
-	"math/big"
 	"testing"
 	"time"
 
@@ -36,7 +35,6 @@ func TestSyncQueue_PushResponse_Justification(t *testing.T) {
 	config := &Config{
 		BasePath:    basePath,
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -75,7 +73,6 @@ func TestSyncQueue_PushResponse_EmptyJustification(t *testing.T) {
 	config := &Config{
 		BasePath:    basePath,
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -134,35 +131,4 @@ func TestSyncQueue_processBlockResponses_Justification(t *testing.T) {
 	score, ok := q.peerScore.Load(peerID)
 	require.True(t, ok)
 	require.Equal(t, 2, score)
-}
-
-func TestSyncQueue_finalizeAtHead(t *testing.T) {
-	q := newTestSyncQueue(t)
-	q.stop()
-	time.Sleep(time.Second)
-	q.ctx = context.Background()
-	q.slotDuration = time.Millisecond * 200
-
-	hash, err := q.s.blockState.GetHashByNumber(big.NewInt(1))
-	require.NoError(t, err)
-
-	go q.finalizeAtHead()
-	time.Sleep(time.Second)
-
-	data, has := q.justificationRequestData.Load(hash)
-	require.True(t, has)
-	require.Equal(t, requestData{}, data)
-
-	expected := createBlockRequestWithHash(hash, blockRequestSize)
-	expected.RequestedData = RequestedDataJustification
-
-	select {
-	case req := <-q.requestCh:
-		require.Equal(t, &syncRequest{
-			req: expected,
-			to:  "",
-		}, req)
-	case <-time.After(time.Second):
-		t.Fatal("did not receive request")
-	}
 }

@@ -38,6 +38,8 @@ type Syncer interface {
 	// CreateBlockResponse is called upon receipt of a BlockRequestMessage to create the response
 	CreateBlockResponse(*BlockRequestMessage) (*BlockResponseMessage, error)
 
+	ProcessJustification(data []*types.BlockData) (int, error)
+
 	// ProcessBlockData is called to process BlockData received in a BlockResponseMessage
 	ProcessBlockData(data []*types.BlockData) (int, error)
 

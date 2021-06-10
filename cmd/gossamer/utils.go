@@ -28,12 +28,13 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/lib/utils"
-
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
-	"golang.org/x/crypto/ssh/terminal" //nolint
+	terminal "golang.org/x/term"
 )
+
+const confirmCharacter = "Y"
 
 // setupLogger sets up the gossamer logger
 func setupLogger(ctx *cli.Context) (log.Lvl, error) {
@@ -75,8 +76,8 @@ func confirmMessage(msg string) bool {
 	fmt.Print("> ")
 	for {
 		text, _ := reader.ReadString('\n')
-		text = strings.Replace(text, "\n", "", -1)
-		return strings.Compare("Y", text) == 0
+		text = strings.ReplaceAll(text, "\n", "")
+		return strings.Compare(confirmCharacter, strings.ToUpper(text)) == 0
 	}
 }
 
@@ -124,7 +125,6 @@ func newTestConfigWithFile(t *testing.T) (*dot.Config, *os.File) {
 	require.NoError(t, err)
 
 	tomlCfg := dotConfigToToml(cfg)
-
 	cfgFile := exportConfig(tomlCfg, file.Name())
 	return cfg, cfgFile
 }

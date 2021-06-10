@@ -16,10 +16,10 @@ type StorageAPI interface {
 	GetStorage(root *common.Hash, key []byte) ([]byte, error)
 	GetStorageByBlockHash(bhash common.Hash, key []byte) ([]byte, error)
 	Entries(root *common.Hash) (map[string][]byte, error)
-	RegisterStorageChangeChannel(sub state.StorageSubscription) (byte, error)
-	UnregisterStorageChangeChannel(id byte)
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 	GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error)
+	RegisterStorageObserver(observer state.Observer)
+	UnregisterStorageObserver(observer state.Observer)
 }
 
 // BlockAPI is the interface for the block state
@@ -33,7 +33,7 @@ type BlockAPI interface {
 	GetJustification(hash common.Hash) ([]byte, error)
 	RegisterImportedChannel(ch chan<- *types.Block) (byte, error)
 	UnregisterImportedChannel(id byte)
-	RegisterFinalizedChannel(ch chan<- *types.Header) (byte, error)
+	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
 	UnregisterFinalizedChannel(id byte)
 	SubChain(start, end common.Hash) ([]common.Hash, error)
 }
@@ -90,7 +90,7 @@ type RuntimeAPI interface {
 type SystemAPI interface {
 	SystemName() string
 	SystemVersion() string
-	NodeName() string
 	Properties() map[string]interface{}
 	ChainType() string
+	ChainName() string
 }

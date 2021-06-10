@@ -21,7 +21,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
@@ -32,6 +31,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/life"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmtime"
+	"github.com/ChainSafe/gossamer/lib/utils"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
@@ -43,10 +43,12 @@ var (
 	defaultGssmrConfigPath    = "./chain/gssmr/config.toml"
 	defaultKusamaConfigPath   = "./chain/kusama/config.toml"
 	defaultPolkadotConfigPath = "./chain/polkadot/config.toml"
+	defaultDevConfigPath      = "./chain/dev/config.toml"
 
 	gossamerName = "gssmr"
 	kusamaName   = "kusama"
 	polkadotName = "polkadot"
+	devName      = "dev"
 )
 
 // loadConfigFile loads a default config file if --chain is specified, a specific
@@ -99,6 +101,11 @@ func setupConfigFromChain(ctx *cli.Context) (*ctoml.Config, *dot.Config, error) 
 			tomlCfg = &ctoml.Config{}
 			cfg = dot.PolkadotConfig()
 			err = loadConfig(tomlCfg, defaultPolkadotConfigPath)
+		case devName:
+			logger.Info("loading toml configuration...", "config path", defaultDevConfigPath)
+			tomlCfg = &ctoml.Config{}
+			cfg = dot.DevConfig()
+			err = loadConfig(tomlCfg, defaultDevConfigPath)
 		default:
 			return nil, nil, fmt.Errorf("unknown chain id provided: %s", id)
 		}
@@ -130,7 +137,10 @@ func createDotConfig(ctx *cli.Context) (*dot.Config, error) {
 	logger.Info("loaded package log configuration", "cfg", cfg.Log)
 
 	// set global configuration values
-	setDotGlobalConfig(ctx, tomlCfg, &cfg.Global)
+	if err := setDotGlobalConfig(ctx, tomlCfg, &cfg.Global); err != nil {
+		logger.Error("failed to set global node configuration", "error", err)
+		return nil, err
+	}
 
 	// set remaining cli configuration values
 	setDotInitConfig(ctx, tomlCfg.Init, &cfg.Init)
@@ -149,7 +159,7 @@ func createDotConfig(ctx *cli.Context) (*dot.Config, error) {
 	return cfg, nil
 }
 
-// createInitConfig creates the configuration required to initialize a dot node
+// createInitConfig creates the configuration required to initialise a dot node
 func createInitConfig(ctx *cli.Context) (*dot.Config, error) {
 	tomlCfg, cfg, err := setupConfigFromChain(ctx)
 	if err != nil {
@@ -158,7 +168,11 @@ func createInitConfig(ctx *cli.Context) (*dot.Config, error) {
 	}
 
 	// set global configuration values
-	setDotGlobalConfig(ctx, tomlCfg, &cfg.Global)
+	err = setDotGlobalConfig(ctx, tomlCfg, &cfg.Global)
+	if err != nil {
+		logger.Error("failed to set global node configuration", "error", err)
+		return nil, err
+	}
 
 	// set log config
 	err = setLogConfig(ctx, tomlCfg, &cfg.Global, &cfg.Log)
@@ -194,7 +208,11 @@ func createImportStateConfig(ctx *cli.Context) (*dot.Config, error) {
 	}
 
 	// set global configuration values
-	setDotGlobalConfig(ctx, tomlCfg, &cfg.Global)
+	if err := setDotGlobalConfig(ctx, tomlCfg, &cfg.Global); err != nil {
+		logger.Error("failed to set global node configuration", "error", err)
+		return nil, err
+	}
+
 	return cfg, nil
 }
 
@@ -208,7 +226,11 @@ func createBuildSpecConfig(ctx *cli.Context) (*dot.Config, error) {
 	}
 
 	// set global configuration values
-	setDotGlobalConfig(ctx, tomlCfg, &cfg.Global)
+	if err := setDotGlobalConfig(ctx, tomlCfg, &cfg.Global); err != nil {
+		logger.Error("failed to set global node configuration", "error", err)
+		return nil, err
+	}
+
 	return cfg, nil
 }
 
@@ -227,7 +249,11 @@ func createExportConfig(ctx *cli.Context) (*dot.Config, error) {
 	updateDotConfigFromGenesisJSONRaw(*tomlCfg, cfg)
 
 	// set global configuration values
-	setDotGlobalConfig(ctx, tomlCfg, &cfg.Global)
+	err = setDotGlobalConfig(ctx, tomlCfg, &cfg.Global)
+	if err != nil {
+		logger.Error("failed to set global node configuration", "error", err)
+		return nil, err
+	}
 
 	// set log config
 	err = setLogConfig(ctx, &ctoml.Config{}, &cfg.Global, &cfg.Log)
@@ -383,13 +409,27 @@ func setDotInitConfig(ctx *cli.Context, tomlCfg ctoml.InitConfig, cfg *dot.InitC
 	)
 }
 
-// setDotGlobalConfig sets dot.GlobalConfig using flag values from the cli context
-func setDotGlobalConfig(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.GlobalConfig) {
-	if tomlCfg != nil {
-		if tomlCfg.Global.Name != "" {
-			cfg.Name = tomlCfg.Global.Name
-		}
+func setDotGlobalConfig(ctx *cli.Context, tomlConfig *ctoml.Config, cfg *dot.GlobalConfig) error {
+	setDotGlobalConfigFromToml(tomlConfig, cfg)
+	setDotGlobalConfigFromFlags(ctx, cfg)
 
+	if err := setDotGlobalConfigName(ctx, tomlConfig, cfg); err != nil {
+		return fmt.Errorf("could not set global node name: %w", err)
+	}
+
+	logger.Debug(
+		"global configuration",
+		"name", cfg.Name,
+		"id", cfg.ID,
+		"basepath", cfg.BasePath,
+	)
+
+	return nil
+}
+
+// setDotGlobalConfigFromToml will apply the toml configs to dot global config
+func setDotGlobalConfigFromToml(tomlCfg *ctoml.Config, cfg *dot.GlobalConfig) {
+	if tomlCfg != nil {
 		if tomlCfg.Global.ID != "" {
 			cfg.ID = tomlCfg.Global.ID
 		}
@@ -404,12 +444,10 @@ func setDotGlobalConfig(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.Global
 
 		cfg.MetricsPort = tomlCfg.Global.MetricsPort
 	}
+}
 
-	// check --name flag and update node configuration
-	if name := ctx.GlobalString(NameFlag.Name); name != "" {
-		cfg.Name = name
-	}
-
+// setDotGlobalConfigFromFlags sets dot.GlobalConfig using flag values from the cli context
+func setDotGlobalConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) {
 	// check --basepath flag and update node configuration
 	if basepath := ctx.GlobalString(BasePathFlag.Name); basepath != "" {
 		cfg.BasePath = basepath
@@ -419,6 +457,7 @@ func setDotGlobalConfig(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.Global
 	if cfg.BasePath == "" {
 		cfg.BasePath = dot.GssmrConfig().Global.BasePath
 	}
+
 	// check --log flag
 	if lvlToInt, err := strconv.Atoi(ctx.String(LogFlag.Name)); err == nil {
 		cfg.LogLvl = log.Lvl(lvlToInt)
@@ -433,12 +472,40 @@ func setDotGlobalConfig(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.Global
 		cfg.MetricsPort = uint32(metricsPort)
 	}
 
-	logger.Debug(
-		"global configuration",
-		"name", cfg.Name,
-		"id", cfg.ID,
-		"basepath", cfg.BasePath,
-	)
+	cfg.NoTelemetry = ctx.Bool("no-telemetry")
+}
+
+func setDotGlobalConfigName(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.GlobalConfig) error {
+	globalBasePath := utils.ExpandDir(cfg.BasePath)
+	initialised := dot.NodeInitialized(globalBasePath, false)
+
+	// consider the --name flag as higher priority
+	if ctx.GlobalString(NameFlag.Name) != "" {
+		cfg.Name = ctx.GlobalString(NameFlag.Name)
+		return nil
+	}
+
+	// consider the name on config as a second priority
+	if tomlCfg.Global.Name != "" {
+		cfg.Name = tomlCfg.Global.Name
+		return nil
+	}
+
+	// if node was previously initialised and is not the init command
+	if initialised && ctx.Command.Name != initCommandName {
+		var err error
+		if cfg.Name, err = dot.LoadGlobalNodeName(globalBasePath); err != nil {
+			return err
+		}
+
+		if cfg.Name != "" {
+			logger.Debug("load global node name from database", "name", cfg.Name)
+			return nil
+		}
+	}
+
+	cfg.Name = dot.RandomNodeName()
+	return nil
 }
 
 // setDotAccountConfig sets dot.AccountConfig using flag values from the cli context
@@ -511,11 +578,6 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 		cfg.GrandpaAuthority = false
 	}
 
-	if tomlCfg.BabeThresholdDenominator != 0 {
-		cfg.BabeThresholdDenominator = tomlCfg.BabeThresholdDenominator
-		cfg.BabeThresholdNumerator = tomlCfg.BabeThresholdNumerator
-	}
-
 	switch tomlCfg.WasmInterpreter {
 	case wasmer.Name:
 		cfg.WasmInterpreter = wasmer.Name
@@ -535,8 +597,6 @@ func setDotCoreConfig(ctx *cli.Context, tomlCfg ctoml.CoreConfig, cfg *dot.CoreC
 		"babe-authority", cfg.BabeAuthority,
 		"grandpa-authority", cfg.GrandpaAuthority,
 		"epoch-length", cfg.EpochLength,
-		"babe-threshold-numerator", cfg.BabeThresholdNumerator,
-		"babe-threshold-denominator", cfg.BabeThresholdDenominator,
 		"wasm-interpreter", cfg.WasmInterpreter,
 	)
 }
@@ -550,6 +610,7 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 	cfg.NoMDNS = tomlCfg.NoMDNS
 	cfg.MinPeers = tomlCfg.MinPeers
 	cfg.MaxPeers = tomlCfg.MaxPeers
+	cfg.PersistentPeers = tomlCfg.PersistentPeers
 
 	// check --port flag and update node configuration
 	if port := ctx.GlobalUint(PortFlag.Name); port != 0 {
@@ -581,6 +642,10 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 		cfg.NoMDNS = true
 	}
 
+	if len(cfg.PersistentPeers) == 0 {
+		cfg.PersistentPeers = []string(nil)
+	}
+
 	logger.Debug(
 		"network configuration",
 		"port", cfg.Port,
@@ -590,6 +655,7 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 		"nomdns", cfg.NoMDNS,
 		"minpeers", cfg.MinPeers,
 		"maxpeers", cfg.MaxPeers,
+		"persistent-peers", cfg.PersistentPeers,
 	)
 }
 
@@ -605,7 +671,7 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 	cfg.WSExternal = tomlCfg.WSExternal
 
 	// check --rpc flag and update node configuration
-	if enabled := ctx.GlobalBool(RPCEnabledFlag.Name); enabled {
+	if enabled := ctx.GlobalBool(RPCEnabledFlag.Name); enabled || cfg.Enabled {
 		cfg.Enabled = true
 	} else if ctx.IsSet(RPCEnabledFlag.Name) && !enabled {
 		cfg.Enabled = false
@@ -639,7 +705,7 @@ func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConf
 		cfg.WSPort = uint32(wsport)
 	}
 
-	if WS := ctx.GlobalBool(WSFlag.Name); WS {
+	if WS := ctx.GlobalBool(WSFlag.Name); WS || cfg.WS {
 		cfg.WS = true
 	} else if ctx.IsSet(WSFlag.Name) && !WS {
 		cfg.WS = false
@@ -701,7 +767,6 @@ func updateDotConfigFromGenesisJSONRaw(tomlCfg ctoml.Config, cfg *dot.Config) {
 		return // exit
 	}
 
-	cfg.Global.Name = gen.Name
 	cfg.Global.ID = gen.ID
 	cfg.Network.Bootnodes = gen.Bootnodes
 	cfg.Network.ProtocolID = gen.ProtocolID
@@ -719,25 +784,18 @@ func updateDotConfigFromGenesisJSONRaw(tomlCfg ctoml.Config, cfg *dot.Config) {
 	)
 }
 
-// updateDotConfigFromGenesisData updates the configuration from genesis data of an initialized node
+// updateDotConfigFromGenesisData updates the configuration from genesis data of an initialised node
 func updateDotConfigFromGenesisData(ctx *cli.Context, cfg *dot.Config) error {
-	// initialize database using data directory
-	db, err := chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir: cfg.Global.BasePath,
-	})
+	// initialise database using data directory
+	db, err := utils.SetupDatabase(cfg.Global.BasePath, false)
 	if err != nil {
 		return fmt.Errorf("failed to create database: %s", err)
 	}
 
-	// load genesis data from initialized node database
-	gen, err := state.LoadGenesisData(db)
+	// load genesis data from initialised node database
+	gen, err := state.NewBaseState(db).LoadGenesisData()
 	if err != nil {
 		return fmt.Errorf("failed to load genesis data: %s", err)
-	}
-
-	// check genesis name and use genesis name if --name flag not set
-	if !ctx.GlobalIsSet(NameFlag.Name) {
-		cfg.Global.Name = gen.Name
 	}
 
 	// check genesis id and use genesis id if --chain flag not set

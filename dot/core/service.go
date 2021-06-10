@@ -26,9 +26,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-
 	log "github.com/ChainSafe/log15"
 )
 
@@ -58,10 +58,6 @@ type Service struct {
 	blockProducer   BlockProducer
 	isBlockProducer bool
 
-	// Finality gadget variables
-	finalityGadget      FinalityGadget
-	isFinalityAuthority bool
-
 	// Block verification
 	verifier Verifier
 
@@ -81,19 +77,17 @@ type Service struct {
 
 // Config holds the configuration for the core Service.
 type Config struct {
-	LogLvl              log.Lvl
-	BlockState          BlockState
-	EpochState          EpochState
-	StorageState        StorageState
-	TransactionState    TransactionState
-	Network             Network
-	Keystore            *keystore.GlobalKeystore
-	Runtime             runtime.Instance
-	BlockProducer       BlockProducer
-	IsBlockProducer     bool
-	FinalityGadget      FinalityGadget
-	IsFinalityAuthority bool
-	Verifier            Verifier
+	LogLvl           log.Lvl
+	BlockState       BlockState
+	EpochState       EpochState
+	StorageState     StorageState
+	TransactionState TransactionState
+	Network          Network
+	Keystore         *keystore.GlobalKeystore
+	Runtime          runtime.Instance
+	BlockProducer    BlockProducer
+	IsBlockProducer  bool
+	Verifier         Verifier
 
 	NewBlocks chan types.Block // only used for testing purposes
 }
@@ -121,10 +115,6 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilBlockProducer
 	}
 
-	if cfg.IsFinalityAuthority && cfg.FinalityGadget == nil {
-		return nil, ErrNilFinalityGadget
-	}
-
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
 	h = log.CallerFileHandler(h)
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
@@ -148,25 +138,23 @@ func NewService(cfg *Config) (*Service, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	srv := &Service{
-		ctx:                 ctx,
-		cancel:              cancel,
-		rt:                  cfg.Runtime,
-		codeHash:            codeHash,
-		keys:                cfg.Keystore,
-		blkRec:              cfg.NewBlocks,
-		blockState:          cfg.BlockState,
-		epochState:          cfg.EpochState,
-		storageState:        cfg.StorageState,
-		transactionState:    cfg.TransactionState,
-		net:                 cfg.Network,
-		isBlockProducer:     cfg.IsBlockProducer,
-		blockProducer:       cfg.BlockProducer,
-		finalityGadget:      cfg.FinalityGadget,
-		verifier:            cfg.Verifier,
-		isFinalityAuthority: cfg.IsFinalityAuthority,
-		lock:                &sync.Mutex{},
-		blockAddCh:          blockAddCh,
-		blockAddChID:        id,
+		ctx:              ctx,
+		cancel:           cancel,
+		rt:               cfg.Runtime,
+		codeHash:         codeHash,
+		keys:             cfg.Keystore,
+		blkRec:           cfg.NewBlocks,
+		blockState:       cfg.BlockState,
+		epochState:       cfg.EpochState,
+		storageState:     cfg.StorageState,
+		transactionState: cfg.TransactionState,
+		net:              cfg.Network,
+		isBlockProducer:  cfg.IsBlockProducer,
+		blockProducer:    cfg.BlockProducer,
+		verifier:         cfg.Verifier,
+		lock:             &sync.Mutex{},
+		blockAddCh:       blockAddCh,
+		blockAddChID:     id,
 	}
 
 	if cfg.NewBlocks != nil {
@@ -296,12 +284,7 @@ func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
 		return ErrNilBlockState
 	}
 
-	err = s.blockState.AddBlock(block)
-	if err != nil {
-		return err
-	}
-
-	logger.Debug("added block from BABE", "header", block.Header, "body", block.Body)
+	logger.Debug("got block from BABE", "header", block.Header, "body", block.Body)
 
 	msg := &network.BlockAnnounceMessage{
 		ParentHash:     block.Header.ParentHash,
@@ -340,6 +323,11 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		return err
 	}
 
+	// subchain contains the ancestor as well so we need to remove it.
+	if len(subchain) > 0 {
+		subchain = subchain[1:]
+	}
+
 	// for each block in the previous chain, re-add its extrinsics back into the pool
 	for _, hash := range subchain {
 		body, err := s.blockState.GetBlockBody(hash)
@@ -357,13 +345,30 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		for _, ext := range exts {
 			logger.Debug("validating transaction on re-org chain", "extrinsic", ext)
 
-			txv, err := s.rt.ValidateTransaction(ext)
+			decExt := &types.ExtrinsicData{}
+			err = decExt.DecodeVersion(ext)
 			if err != nil {
-				logger.Debug("failed to validate transaction", "extrinsic", ext)
+				return err
+			}
+
+			// Inherent are not signed.
+			if !decExt.IsSigned() {
 				continue
 			}
 
-			vtx := transaction.NewValidTransaction(ext, txv)
+			encExt, err := scale.Encode(ext)
+			if err != nil {
+				return err
+			}
+
+			externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExt...))
+			txv, err := s.rt.ValidateTransaction(externalExt)
+			if err != nil {
+				logger.Debug("failed to validate transaction", "error", err, "extrinsic", ext)
+				continue
+			}
+
+			vtx := transaction.NewValidTransaction(encExt, txv)
 			s.transactionState.AddToPool(vtx)
 		}
 	}
@@ -459,7 +464,8 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 
 	// the transaction source is External
 	// validate the transaction
-	txv, err := s.rt.ValidateTransaction(append([]byte{byte(types.TxnExternal)}, ext...))
+	externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
+	txv, err := s.rt.ValidateTransaction(externalExt)
 	if err != nil {
 		return err
 	}

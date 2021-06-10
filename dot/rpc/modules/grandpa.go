@@ -44,7 +44,7 @@ type ProveFinalityRequest struct {
 // ProveFinalityResponse is an optional SCALE encoded proof array
 type ProveFinalityResponse [][]byte
 
-// ProveFinality for the provided block range. Returns NULL if there are no known finalized blocks in the range. If no authorities set is provided, the current one will be attempted.
+// ProveFinality for the provided block range. Returns NULL if there are no known finalised blocks in the range. If no authorities set is provided, the current one will be attempted.
 func (gm *GrandpaModule) ProveFinality(r *http.Request, req *ProveFinalityRequest, res *ProveFinalityResponse) error {
 	blocksToCheck, err := gm.blockAPI.SubChain(req.blockHashStart, req.blockHashEnd)
 	if err != nil {

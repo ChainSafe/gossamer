@@ -61,25 +61,24 @@ type AccountConfig struct {
 
 // NetworkConfig is to marshal/unmarshal toml network config vars
 type NetworkConfig struct {
-	Port        uint32   `toml:"port,omitempty"`
-	Bootnodes   []string `toml:"bootnodes,omitempty"`
-	ProtocolID  string   `toml:"protocol,omitempty"`
-	NoBootstrap bool     `toml:"nobootstrap,omitempty"`
-	NoMDNS      bool     `toml:"nomdns,omitempty"`
-	MinPeers    int      `toml:"min-peers,omitempty"`
-	MaxPeers    int      `toml:"max-peers,omitempty"`
+	Port            uint32   `toml:"port,omitempty"`
+	Bootnodes       []string `toml:"bootnodes,omitempty"`
+	ProtocolID      string   `toml:"protocol,omitempty"`
+	NoBootstrap     bool     `toml:"nobootstrap,omitempty"`
+	NoMDNS          bool     `toml:"nomdns,omitempty"`
+	MinPeers        int      `toml:"min-peers,omitempty"`
+	MaxPeers        int      `toml:"max-peers,omitempty"`
+	PersistentPeers []string `toml:"persistent-peers,omitempty"`
 }
 
 // CoreConfig is to marshal/unmarshal toml core config vars
 type CoreConfig struct {
-	Roles                    byte   `toml:"roles,omitempty"`
-	BabeAuthority            bool   `toml:"babe-authority"`
-	GrandpaAuthority         bool   `toml:"grandpa-authority"`
-	BabeThresholdNumerator   uint64 `toml:"babe-threshold-numerator,omitempty"`
-	BabeThresholdDenominator uint64 `toml:"babe-threshold-denominator,omitempty"`
-	SlotDuration             uint64 `toml:"slot-duration,omitempty"`
-	EpochLength              uint64 `toml:"epoch-length,omitempty"`
-	WasmInterpreter          string `toml:"wasm-interpreter,omitempty"`
+	Roles            byte   `toml:"roles,omitempty"`
+	BabeAuthority    bool   `toml:"babe-authority"`
+	GrandpaAuthority bool   `toml:"grandpa-authority"`
+	SlotDuration     uint64 `toml:"slot-duration,omitempty"`
+	EpochLength      uint64 `toml:"epoch-length,omitempty"`
+	WasmInterpreter  string `toml:"wasm-interpreter,omitempty"`
 }
 
 // RPCConfig is to marshal/unmarshal toml RPC config vars

@@ -2,15 +2,17 @@ module github.com/ChainSafe/gossamer
 
 require (
 	github.com/ChainSafe/chaindb v0.1.5-0.20210117220933-15e75f27268f
-	github.com/ChainSafe/go-schnorrkel v0.0.0-20210127175223-0f934d64ecac
+	github.com/ChainSafe/go-schnorrkel v0.0.0-20210222182958-bd440c890782
 	github.com/ChainSafe/log15 v1.0.0
 	github.com/OneOfOne/xxhash v1.2.5
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/bytecodealliance/wasmtime-go v0.20.0
 	github.com/centrifuge/go-substrate-rpc-client/v2 v2.0.1
+	github.com/chyeh/pubip v0.0.0-20170203095919-b7e679cf541c
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/davidlazar/go-crypto v0.0.0-20190912175916-7055855a373f // indirect
-	github.com/dgraph-io/badger/v2 v2.2007.2 // indirect
+	github.com/dgraph-io/badger/v2 v2.2007.2
+	github.com/dgraph-io/ristretto v0.0.4-0.20210122082011-bb5d392ed82d
 	github.com/disiqueira/gotree v1.0.0
 	github.com/docker/docker v1.13.1
 	github.com/elastic/gosigar v0.14.0 // indirect
@@ -25,9 +27,11 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/gtank/merlin v0.1.1
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d // indirect
+	github.com/holiman/bloomfilter/v2 v2.0.3
 	github.com/huin/goupnp v1.0.1-0.20200620063722-49508fba0031 // indirect
 	github.com/ipfs/go-ds-badger2 v0.1.0
 	github.com/jcelliott/lumber v0.0.0-20160324203708-dd349441af25 // indirect
+	github.com/jpillora/backoff v1.0.0 // indirect
 	github.com/jpillora/ipfilter v1.2.2
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/libp2p/go-libp2p v0.12.0
@@ -52,11 +56,8 @@ require (
 	github.com/wasmerio/wasmer-go v1.0.4-0.20210322081402-e3df02918776
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/lint v0.0.0-20191125180803-fdd1cda4f05f // indirect
-	golang.org/x/mod v0.1.1-0.20191209134235-331c550502dd // indirect
-	golang.org/x/net v0.0.0-20200822124328-c89045814202 // indirect
-	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9 // indirect
 	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c // indirect
-	golang.org/x/tools v0.0.0-20200221224223-e1da425f72fd // indirect
+	golang.org/x/term v0.0.0-20201117132131-f5c789dd3221
 	google.golang.org/appengine v1.6.5 // indirect
 	google.golang.org/protobuf v1.25.0
 )
@@ -64,4 +65,4 @@ require (
 go 1.15
 
 //replace github.com/wasmerio/wasmer-go => github.com/noot/wasmer-go v1.0.4-0.20210319205810-debe9d2aabf2
-replace github.com/wasmerio/wasmer-go => ../../noot/wasmer-go
+//replace github.com/wasmerio/wasmer-go => ../../noot/wasmer-go

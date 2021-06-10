@@ -23,7 +23,7 @@ import (
 )
 
 // int64ToPointerAndSize converts an int64 into a int32 pointer and a int32 length
-func int64ToPointerAndSize(in int64) (ptr int32, length int32) {
+func int64ToPointerAndSize(in int64) (ptr, length int32) {
 	return int32(in), int32(in >> 32)
 }
 
@@ -132,7 +132,7 @@ func ext_misc_print_utf8_version_1(c *wasmtime.Caller, dataSpan int64) {
 	logger.Trace("[ext_misc_print_utf8_version_1] executing...")
 	m := c.GetExport("memory").Memory()
 	data := asMemorySlice(m.UnsafeData(), dataSpan)
-	logger.Info("[ext_print_utf8]", "message", fmt.Sprintf("%s", data))
+	logger.Info("[ext_print_utf8]", "message", data)
 }
 
 func ext_misc_runtime_version_version_1(c *wasmtime.Caller, z int64) int64 {

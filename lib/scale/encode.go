@@ -100,16 +100,25 @@ func (se *Encoder) EncodeCustom(in interface{}) (int, error) {
 	someType := reflect.TypeOf(in)
 	// TODO: if not a pointer, check if type pointer has Encode method
 	_, ok := someType.MethodByName("Encode")
-	if ok {
-		res := reflect.ValueOf(in).MethodByName("Encode").Call([]reflect.Value{})
-		val := res[0].Interface()
-		err := res[1].Interface()
-		if err != nil {
-			return 0, err.(error)
-		}
+	if !ok {
+		return 0, fmt.Errorf("cannot call EncodeCustom")
+	}
+
+	res := reflect.ValueOf(in).MethodByName("Encode").Call([]reflect.Value{})
+	if len(res) == 0 {
+		return 0, fmt.Errorf("method Encode does not have any return values")
+	}
+
+	val := res[0].Interface()
+	if len(res) < 2 {
 		return se.Writer.Write(val.([]byte))
 	}
-	return 0, fmt.Errorf("cannot call EncodeCustom")
+
+	err := res[1].Interface()
+	if err != nil {
+		return 0, err.(error)
+	}
+	return se.Writer.Write(val.([]byte))
 }
 
 // encodeCustomOrEncode tries to use EncodeCustom, if that fails, it reverts to Encode
@@ -230,7 +239,7 @@ func (se *Encoder) encodeUint128(i common.Uint128) (bytesEncoded int, err error)
 	buf := make([]byte, 16)
 	binary.LittleEndian.PutUint64(buf[:8], i.Lower)
 	binary.LittleEndian.PutUint64(buf[8:], i.Upper)
-	err = binary.Write(se.Writer, binary.LittleEndian, buf[:])
+	err = binary.Write(se.Writer, binary.LittleEndian, buf)
 	bytesEncoded += len(buf)
 	return bytesEncoded, err
 }

@@ -85,16 +85,8 @@ func TestCreateCoreService(t *testing.T) {
 	rt, err := createRuntime(cfg, stateSrvc, ks, networkSrvc)
 	require.NoError(t, err)
 
-	dh, err := createDigestHandler(stateSrvc, nil, nil)
-	require.NoError(t, err)
-
-	gs, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran, networkSrvc)
-	require.NoError(t, err)
-
-	coreSrvc, err := createCoreService(cfg, nil, gs, nil, rt, ks, stateSrvc, networkSrvc)
+	coreSrvc, err := createCoreService(cfg, nil, nil, rt, ks, stateSrvc, networkSrvc)
 	require.Nil(t, err)
-
-	// TODO: improve dot tests #687
 	require.NotNil(t, coreSrvc)
 }
 
@@ -115,8 +107,6 @@ func TestCreateBlockVerifier(t *testing.T) {
 	stateSrvc, err := createStateService(cfg)
 	require.NoError(t, err)
 
-	cfg.Core.BabeThresholdNumerator = 0
-	cfg.Core.BabeThresholdDenominator = 0
 	_, err = createBlockVerifier(stateSrvc)
 	require.NoError(t, err)
 }
@@ -143,12 +133,10 @@ func TestCreateSyncService(t *testing.T) {
 	rt, err := createRuntime(cfg, stateSrvc, ks, &network.Service{})
 	require.NoError(t, err)
 
-	cfg.Core.BabeThresholdNumerator = 0
-	cfg.Core.BabeThresholdDenominator = 0
 	ver, err := createBlockVerifier(stateSrvc)
 	require.NoError(t, err)
 
-	_, err = createSyncService(cfg, stateSrvc, nil, nil, ver, rt)
+	_, err = createSyncService(cfg, stateSrvc, nil, nil, nil, ver, rt)
 	require.NoError(t, err)
 }
 
@@ -208,13 +196,7 @@ func TestCreateRPCService(t *testing.T) {
 	rt, err := createRuntime(cfg, stateSrvc, ks, networkSrvc)
 	require.NoError(t, err)
 
-	dh, err := createDigestHandler(stateSrvc, nil, nil)
-	require.NoError(t, err)
-
-	gs, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran, networkSrvc)
-	require.NoError(t, err)
-
-	coreSrvc, err := createCoreService(cfg, nil, gs, nil, rt, ks, stateSrvc, networkSrvc)
+	coreSrvc, err := createCoreService(cfg, nil, nil, rt, ks, stateSrvc, networkSrvc)
 	require.Nil(t, err)
 
 	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
@@ -335,13 +317,7 @@ func TestNewWebSocketServer(t *testing.T) {
 	rt, err := createRuntime(cfg, stateSrvc, ks, networkSrvc)
 	require.NoError(t, err)
 
-	dh, err := createDigestHandler(stateSrvc, nil, nil)
-	require.NoError(t, err)
-
-	gs, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran, networkSrvc)
-	require.NoError(t, err)
-
-	coreSrvc, err := createCoreService(cfg, nil, gs, nil, rt, ks, stateSrvc, networkSrvc)
+	coreSrvc, err := createCoreService(cfg, nil, nil, rt, ks, stateSrvc, networkSrvc)
 	require.Nil(t, err)
 
 	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)

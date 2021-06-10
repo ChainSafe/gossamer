@@ -46,8 +46,7 @@ func encodeRecursive(n node, enc []byte) ([]byte, error) {
 
 	enc = append(enc, scnenc...)
 
-	switch n := n.(type) {
-	case *branch:
+	if n, ok := n.(*branch); ok {
 		for _, child := range n.children {
 			if child != nil {
 				enc, err = encodeRecursive(child, enc)

@@ -21,21 +21,23 @@ import (
 	"fmt"
 	"net"
 	"path"
+	"sync"
 	"time"
 
+	"github.com/dgraph-io/ristretto"
 	badger "github.com/ipfs/go-ds-badger2"
 	"github.com/libp2p/go-libp2p"
 	libp2phost "github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/metrics"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	kaddht "github.com/libp2p/go-libp2p-kad-dht"
-	"github.com/libp2p/go-libp2p-kad-dht/dual"
 	"github.com/libp2p/go-libp2p-peerstore/pstoreds"
 	secio "github.com/libp2p/go-libp2p-secio"
-	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
+
+	"github.com/chyeh/pubip"
 )
 
 var privateCIDRs = []string{
@@ -47,26 +49,41 @@ var privateCIDRs = []string{
 	"169.254.0.0/16",
 }
 
+var connectTimeout = time.Second * 5
+
 // host wraps libp2p host with network host configuration and services
 type host struct {
-	ctx        context.Context
-	h          libp2phost.Host
-	dht        *dual.DHT
-	bootnodes  []peer.AddrInfo
-	protocolID protocol.ID
-	cm         *ConnManager
-	ds         *badger.Datastore
+	ctx             context.Context
+	h               libp2phost.Host
+	discovery       *discovery
+	bootnodes       []peer.AddrInfo
+	persistentPeers []peer.AddrInfo
+	protocolID      protocol.ID
+	cm              *ConnManager
+	ds              *badger.Datastore
+	messageCache    *messageCache
+	bwc             *metrics.BandwidthCounter
+	closeSync       sync.Once
 }
 
 // newHost creates a host wrapper with a new libp2p host instance
 func newHost(ctx context.Context, cfg *Config) (*host, error) {
-	// use "p2p" for multiaddress format
-	ma.SwapToP2pMultiaddrs()
-
 	// create multiaddress (without p2p identity)
 	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", cfg.Port))
 	if err != nil {
 		return nil, err
+	}
+
+	var externalAddr ma.Multiaddr
+	ip, err := pubip.Get()
+	if err != nil {
+		logger.Error("failed to get public IP", "error", err)
+	} else {
+		logger.Debug("got public IP", "IP", ip)
+		externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, cfg.Port))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// create connection manager
@@ -78,19 +95,22 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		return nil, err
 	}
 
+	// format persistent peers
+	pps, err := stringsToAddrInfos(cfg.PersistentPeers)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, pp := range pps {
+		cm.persistentPeers.Store(pp.ID, struct{}{})
+	}
+
 	// format protocol id
 	pid := protocol.ID(cfg.ProtocolID)
 
 	ds, err := badger.NewDatastore(path.Join(cfg.BasePath, "libp2p-datastore"), &badger.DefaultOptions)
 	if err != nil {
 		return nil, err
-	}
-
-	dhtOpts := []dual.Option{
-		dual.DHTOption(kaddht.Datastore(ds)),
-		dual.DHTOption(kaddht.BootstrapPeers(bns...)),
-		dual.DHTOption(kaddht.V1ProtocolOverride(pid + "/kad")),
-		dual.DHTOption(kaddht.Mode(kaddht.ModeAutoServer)),
 	}
 
 	privateIPs := ma.NewFilters()
@@ -118,13 +138,17 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		libp2p.ConnectionManager(cm),
 		libp2p.ChainOptions(libp2p.DefaultSecurity, libp2p.Security(secio.ID, secio.New)), // TODO: deprecate secio?
 		libp2p.AddrsFactory(func(as []ma.Multiaddr) []ma.Multiaddr {
-			ok := []ma.Multiaddr{}
+			addrs := []ma.Multiaddr{}
 			for _, addr := range as {
 				if !privateIPs.AddrBlocked(addr) {
-					ok = append(ok, addr)
+					addrs = append(addrs, addr)
 				}
 			}
-			return ok
+			if externalAddr == nil {
+				return addrs
+			}
+
+			return append(addrs, externalAddr)
 		}),
 	}
 
@@ -134,31 +158,44 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		return nil, err
 	}
 
-	// create DHT service
-	dht, err := dual.New(ctx, h, dhtOpts...)
+	cacheSize := 64 << 20 // 64 MB
+	config := ristretto.Config{
+		NumCounters: int64(float64(cacheSize) * 0.05 * 2),
+		MaxCost:     int64(float64(cacheSize) * 0.95),
+		BufferItems: 64,
+		Cost: func(value interface{}) int64 {
+			return int64(1)
+		},
+	}
+	msgCache, err := newMessageCache(config, msgCacheTTL)
 	if err != nil {
 		return nil, err
 	}
 
-	// wrap host and DHT service with routed host
-	h = rhost.Wrap(h, dht)
+	bwc := metrics.NewBandwidthCounter()
+	discovery := newDiscovery(ctx, h, bns, ds, pid, cfg.MinPeers, cfg.MaxPeers)
 
-	return &host{
-		ctx:        ctx,
-		h:          h,
-		dht:        dht,
-		bootnodes:  bns,
-		protocolID: pid,
-		cm:         cm,
-		ds:         ds,
-	}, nil
+	host := &host{
+		ctx:             ctx,
+		h:               h,
+		discovery:       discovery,
+		bootnodes:       bns,
+		protocolID:      pid,
+		cm:              cm,
+		ds:              ds,
+		persistentPeers: pps,
+		messageCache:    msgCache,
+		bwc:             bwc,
+	}
 
+	cm.host = host
+	return host, nil
 }
 
 // close closes host services and the libp2p host (host services first)
 func (h *host) close() error {
 	// close DHT service
-	err := h.dht.Close()
+	err := h.discovery.stop()
 	if err != nil {
 		logger.Error("Failed to close DHT service", "error", err)
 		return err
@@ -171,17 +208,19 @@ func (h *host) close() error {
 		return err
 	}
 
-	err = h.h.Peerstore().Close()
-	if err != nil {
-		logger.Error("Failed to close libp2p peerstore", "error", err)
-		return err
-	}
+	h.closeSync.Do(func() {
+		err = h.h.Peerstore().Close()
+		if err != nil {
+			logger.Error("Failed to close libp2p peerstore", "error", err)
+			return
+		}
 
-	err = h.ds.Close()
-	if err != nil {
-		logger.Error("Failed to close libp2p host datastore", "error", err)
-		return err
-	}
+		err = h.ds.Close()
+		if err != nil {
+			logger.Error("Failed to close libp2p host datastore", "error", err)
+			return
+		}
+	})
 	return nil
 }
 
@@ -208,57 +247,49 @@ func (h *host) registerStreamHandlerWithOverwrite(pid protocol.ID, overwrite boo
 // connect connects the host to a specific peer address
 func (h *host) connect(p peer.AddrInfo) (err error) {
 	h.h.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
-	ctx, cancel := context.WithTimeout(h.ctx, time.Second*2)
+	ctx, cancel := context.WithTimeout(h.ctx, connectTimeout)
 	defer cancel()
 	err = h.h.Connect(ctx, p)
 	return err
 }
 
-func (h *host) addToPeerstore(p peer.AddrInfo) {
-	h.h.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
-}
-
 // bootstrap connects the host to the configured bootnodes
 func (h *host) bootstrap() {
 	failed := 0
-	for _, addrInfo := range h.bootnodes {
+	all := append(h.bootnodes, h.persistentPeers...)
+	for _, addrInfo := range all {
+		logger.Debug("bootstrapping to peer", "peer", addrInfo.ID)
 		err := h.connect(addrInfo)
 		if err != nil {
 			logger.Debug("failed to bootstrap to peer", "error", err)
 			failed++
 		}
 	}
-	if failed == len(h.bootnodes) {
+	if failed == len(all) && len(all) != 0 {
 		logger.Error("failed to bootstrap to any bootnode")
 	}
 }
 
-// send writes the given message to the outbound message stream for the given
-// peer (gets the already opened outbound message stream or opens a new one).
-func (h *host) send(p peer.ID, pid protocol.ID, msg Message) (err error) {
-	// get outbound stream for given peer
-	s := h.getOutboundStream(p, pid)
-
-	// check if stream needs to be opened
-	if s == nil {
-		// open outbound stream with host protocol id
-		s, err = h.h.NewStream(h.ctx, p, pid)
-		if err != nil {
-			logger.Trace("failed to open new stream with peer", "peer", p, "protocol", pid, "error", err)
-			return err
-		}
-
-		logger.Trace(
-			"Opened stream",
-			"host", h.id(),
-			"peer", p,
-			"protocol", pid,
-		)
+// send creates a new outbound stream with the given peer and writes the message. It also returns
+// the newly created stream.
+func (h *host) send(p peer.ID, pid protocol.ID, msg Message) (libp2pnetwork.Stream, error) {
+	// open outbound stream with host protocol id
+	stream, err := h.h.NewStream(h.ctx, p, pid)
+	if err != nil {
+		logger.Trace("failed to open new stream with peer", "peer", p, "protocol", pid, "error", err)
+		return nil, err
 	}
 
-	err = h.writeToStream(s, msg)
+	logger.Trace(
+		"Opened stream",
+		"host", h.id(),
+		"peer", p,
+		"protocol", pid,
+	)
+
+	err = h.writeToStream(stream, msg)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	logger.Trace(
@@ -269,7 +300,7 @@ func (h *host) send(p peer.ID, pid protocol.ID, msg Message) (err error) {
 		"message", msg.String(),
 	)
 
-	return nil
+	return stream, nil
 }
 
 func (h *host) writeToStream(s libp2pnetwork.Stream, msg Message) error {
@@ -282,8 +313,14 @@ func (h *host) writeToStream(s libp2pnetwork.Stream, msg Message) error {
 	lenBytes := uint64ToLEB128(msgLen)
 	encMsg = append(lenBytes, encMsg...)
 
-	_, err = s.Write(encMsg)
-	return err
+	sent, err := s.Write(encMsg)
+	if err != nil {
+		return err
+	}
+
+	h.bwc.LogSentMessage(int64(sent))
+
+	return nil
 }
 
 // getOutboundStream returns the outbound message stream for the given peer or returns
@@ -331,22 +368,29 @@ func (h *host) peers() []peer.ID {
 	return h.h.Network().Peers()
 }
 
+// supportsProtocol checks if the protocol is supported by peerID
+// returns an error if could not get peer protocols
+func (h *host) supportsProtocol(peerID peer.ID, protocol protocol.ID) (bool, error) {
+	peerProtocols, err := h.h.Peerstore().SupportsProtocols(peerID, string(protocol))
+	if err != nil {
+		return false, err
+	}
+
+	return len(peerProtocols) > 0, nil
+}
+
 // peerCount returns the number of connected peers
 func (h *host) peerCount() int {
 	peers := h.h.Network().Peers()
 	return len(peers)
 }
 
-// addrInfos returns the libp2p AddrInfos of the host
-func (h *host) addrInfos() (addrInfos []*peer.AddrInfo, err error) {
-	for _, multiaddr := range h.multiaddrs() {
-		addrInfo, err := peer.AddrInfoFromP2pAddr(multiaddr)
-		if err != nil {
-			return nil, err
-		}
-		addrInfos = append(addrInfos, addrInfo)
+// addrInfo returns the libp2p peer.AddrInfo of the host
+func (h *host) addrInfo() peer.AddrInfo {
+	return peer.AddrInfo{
+		ID:    h.h.ID(),
+		Addrs: h.h.Addrs(),
 	}
-	return addrInfos, nil
 }
 
 // multiaddrs returns the multiaddresses of the host

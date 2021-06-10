@@ -25,6 +25,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -32,6 +33,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/extrinsic"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
@@ -165,6 +167,54 @@ func TestHandleChainReorg_NoReorg(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
+	s := NewTestService(t, nil)
+
+	bs := s.blockState
+
+	parent, err := bs.BestBlockHeader()
+	require.NoError(t, err)
+
+	block1 := sync.BuildBlock(t, s.rt, parent, nil)
+	err = bs.AddBlock(block1)
+	require.NoError(t, err)
+
+	block2 := sync.BuildBlock(t, s.rt, block1.Header, nil)
+	err = bs.AddBlock(block2)
+	require.NoError(t, err)
+
+	block3 := sync.BuildBlock(t, s.rt, block2.Header, nil)
+	err = bs.AddBlock(block3)
+	require.NoError(t, err)
+
+	block4 := sync.BuildBlock(t, s.rt, block3.Header, nil)
+	err = bs.AddBlock(block4)
+	require.NoError(t, err)
+
+	block5 := sync.BuildBlock(t, s.rt, block4.Header, nil)
+	err = bs.AddBlock(block5)
+	require.NoError(t, err)
+
+	block31 := sync.BuildBlock(t, s.rt, block2.Header, nil)
+	err = bs.AddBlock(block31)
+	require.NoError(t, err)
+
+	nonce := uint64(1)
+
+	// Add extrinsic to block `block31`
+	ext := createExtrinsics(t, s.rt, bs.GenesisHash(), nonce)
+
+	block41 := sync.BuildBlock(t, s.rt, block31.Header, ext)
+	err = bs.AddBlock(block41)
+	require.NoError(t, err)
+
+	err = s.handleChainReorg(block41.Header.Hash(), block5.Header.Hash())
+	require.NoError(t, err)
+
+	pending := s.transactionState.(*state.TransactionState).Pending()
+	require.Equal(t, 1, len(pending))
+}
+
 func TestHandleChainReorg_WithReorg_NoTransactions(t *testing.T) {
 	s := NewTestService(t, nil)
 	height := 5
@@ -220,7 +270,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 			ParentHash: ancestor.Header.Hash(),
 			Number:     big.NewInt(0).Add(ancestor.Header.Number, big.NewInt(1)),
 			Digest: types.Digest{
-				newMockDigestItem(1),
+				utils.NewMockDigestItem(1),
 			},
 		},
 		Body: body,
@@ -374,10 +424,10 @@ func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 	s := NewTestService(t, nil)
 
 	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
-	header, err := types.NewHeader(parentHash, big.NewInt(1), common.Hash{}, common.Hash{}, types.NewEmptyDigest())
+	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewEmptyDigest())
 	require.NoError(t, err)
 
-	//initialize block header
+	//initialise block header
 	err = s.rt.InitializeBlock(header)
 	require.NoError(t, err)
 

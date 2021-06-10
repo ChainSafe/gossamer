@@ -23,24 +23,28 @@ import (
 	"io/ioutil"
 	"math/big"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	log "github.com/ChainSafe/log15"
 	"github.com/gorilla/websocket"
 )
 
-var logger = log.New("pkg", "subscription")
+var logger = log.New("pkg", "rpc/subscription")
 
 // WSConn struct to hold WebSocket Connection references
 type WSConn struct {
 	Wsconn             *websocket.Conn
 	mu                 sync.Mutex
-	BlockSubChannels   map[int]byte
+	BlockSubChannels   map[uint]byte
 	StorageSubChannels map[int]byte
-	qtyListeners       int
-	Subscriptions      map[int]Listener
+	qtyListeners       uint
+	Subscriptions      map[uint]Listener
 	StorageAPI         modules.StorageAPI
 	BlockAPI           modules.BlockAPI
 	RuntimeAPI         modules.RuntimeAPI
@@ -57,7 +61,7 @@ func (c *WSConn) HandleComm() {
 			logger.Warn("websocket failed to read message", "error", err)
 			return
 		}
-		logger.Debug("websocket received", "message", fmt.Sprintf("%s", mbytes))
+		logger.Trace("websocket received", "message", mbytes)
 
 		// determine if request is for subscribe method type
 		var msg map[string]interface{}
@@ -67,11 +71,14 @@ func (c *WSConn) HandleComm() {
 			c.safeSendError(0, big.NewInt(-32600), "Invalid request")
 			continue
 		}
+
 		method := msg["method"]
+		params := msg["params"]
+		logger.Debug("ws method called", "method", method, "params", params)
+
 		// if method contains subscribe, then register subscription
 		if strings.Contains(fmt.Sprintf("%s", method), "subscribe") {
 			reqid := msg["id"].(float64)
-			params := msg["params"]
 			switch method {
 			case "chain_subscribeNewHeads", "chain_subscribeNewHead":
 				bl, err1 := c.initBlockListener(reqid)
@@ -81,16 +88,16 @@ func (c *WSConn) HandleComm() {
 				}
 				c.startListener(bl)
 			case "state_subscribeStorage":
-				scl, err2 := c.initStorageChangeListener(reqid, params)
+				_, err2 := c.initStorageChangeListener(reqid, params)
 				if err2 != nil {
 					logger.Warn("failed to create state change listener", "error", err2)
 					continue
 				}
-				c.startListener(scl)
+
 			case "chain_subscribeFinalizedHeads":
 				bfl, err3 := c.initBlockFinalizedListener(reqid)
 				if err3 != nil {
-					logger.Warn("failed to create block finalized", "error", err3)
+					logger.Warn("failed to create block finalised", "error", err3)
 					continue
 				}
 				c.startListener(bfl)
@@ -101,6 +108,9 @@ func (c *WSConn) HandleComm() {
 					continue
 				}
 				c.startListener(rvl)
+			case "state_unsubscribeStorage":
+				c.unsubscribeStorageListener(reqid, params)
+
 			}
 			continue
 		}
@@ -160,4 +170,246 @@ func (c *WSConn) HandleComm() {
 
 		c.safeSend(wsSend)
 	}
+}
+
+func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (uint, error) {
+	if c.StorageAPI == nil {
+		c.safeSendError(reqID, nil, "error StorageAPI not set")
+		return 0, fmt.Errorf("error StorageAPI not set")
+	}
+
+	myObs := &StorageObserver{
+		filter: make(map[string][]byte),
+		wsconn: c,
+	}
+
+	pA, ok := params.([]interface{})
+	if !ok {
+		return 0, fmt.Errorf("unknown parameter type")
+	}
+	for _, param := range pA {
+		switch p := param.(type) {
+		case []interface{}:
+			for _, pp := range param.([]interface{}) {
+				data, ok := pp.(string)
+				if !ok {
+					return 0, fmt.Errorf("unknown parameter type")
+				}
+				myObs.filter[data] = []byte{}
+			}
+		case string:
+			myObs.filter[p] = []byte{}
+		default:
+			return 0, fmt.Errorf("unknown parameter type")
+		}
+	}
+
+	c.qtyListeners++
+	myObs.id = c.qtyListeners
+
+	c.StorageAPI.RegisterStorageObserver(myObs)
+
+	c.Subscriptions[myObs.id] = myObs
+
+	initRes := NewSubscriptionResponseJSON(myObs.id, reqID)
+	c.safeSend(initRes)
+
+	return myObs.id, nil
+}
+
+func (c *WSConn) unsubscribeStorageListener(reqID float64, params interface{}) {
+	switch v := params.(type) {
+	case []interface{}:
+		if len(v) == 0 {
+			c.safeSendError(reqID, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
+			return
+		}
+	default:
+		c.safeSendError(reqID, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
+		return
+	}
+
+	var id uint
+	switch v := params.([]interface{})[0].(type) {
+	case float64:
+		id = uint(v)
+	case string:
+		i, err := strconv.ParseUint(v, 10, 32)
+		if err != nil {
+			c.safeSend(newBooleanResponseJSON(false, reqID))
+			return
+		}
+		id = uint(i)
+	default:
+		c.safeSendError(reqID, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
+		return
+	}
+
+	observer, ok := c.Subscriptions[id].(state.Observer)
+	if !ok {
+		initRes := newBooleanResponseJSON(false, reqID)
+		c.safeSend(initRes)
+		return
+	}
+
+	c.StorageAPI.UnregisterStorageObserver(observer)
+	c.safeSend(newBooleanResponseJSON(true, reqID))
+}
+
+func (c *WSConn) initBlockListener(reqID float64) (uint, error) {
+	bl := &BlockListener{
+		Channel: make(chan *types.Block),
+		wsconn:  c,
+	}
+
+	if c.BlockAPI == nil {
+		c.safeSendError(reqID, nil, "error BlockAPI not set")
+		return 0, fmt.Errorf("error BlockAPI not set")
+	}
+	chanID, err := c.BlockAPI.RegisterImportedChannel(bl.Channel)
+	if err != nil {
+		return 0, err
+	}
+	bl.ChanID = chanID
+	c.qtyListeners++
+	bl.subID = c.qtyListeners
+	c.Subscriptions[bl.subID] = bl
+	c.BlockSubChannels[bl.subID] = chanID
+	initRes := NewSubscriptionResponseJSON(bl.subID, reqID)
+	c.safeSend(initRes)
+
+	return bl.subID, nil
+}
+
+func (c *WSConn) initBlockFinalizedListener(reqID float64) (uint, error) {
+	bfl := &BlockFinalizedListener{
+		channel: make(chan *types.FinalisationInfo),
+		wsconn:  c,
+	}
+
+	if c.BlockAPI == nil {
+		c.safeSendError(reqID, nil, "error BlockAPI not set")
+		return 0, fmt.Errorf("error BlockAPI not set")
+	}
+	chanID, err := c.BlockAPI.RegisterFinalizedChannel(bfl.channel)
+	if err != nil {
+		return 0, err
+	}
+	bfl.chanID = chanID
+	c.qtyListeners++
+	bfl.subID = c.qtyListeners
+	c.Subscriptions[bfl.subID] = bfl
+	c.BlockSubChannels[bfl.subID] = chanID
+	initRes := NewSubscriptionResponseJSON(bfl.subID, reqID)
+	c.safeSend(initRes)
+
+	return bfl.subID, nil
+}
+
+func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (uint, error) {
+	pA := params.([]interface{})
+	extBytes, err := common.HexToBytes(pA[0].(string))
+	if err != nil {
+		return 0, err
+	}
+
+	// listen for built blocks
+	esl := &ExtrinsicSubmitListener{
+		importedChan:  make(chan *types.Block),
+		wsconn:        c,
+		extrinsic:     types.Extrinsic(extBytes),
+		finalisedChan: make(chan *types.FinalisationInfo),
+	}
+
+	if c.BlockAPI == nil {
+		return 0, fmt.Errorf("error BlockAPI not set")
+	}
+	esl.importedChanID, err = c.BlockAPI.RegisterImportedChannel(esl.importedChan)
+	if err != nil {
+		return 0, err
+	}
+
+	esl.finalisedChanID, err = c.BlockAPI.RegisterFinalizedChannel(esl.finalisedChan)
+	if err != nil {
+		return 0, err
+	}
+
+	c.qtyListeners++
+	esl.subID = c.qtyListeners
+	c.Subscriptions[esl.subID] = esl
+	c.BlockSubChannels[esl.subID] = esl.importedChanID
+
+	err = c.CoreAPI.HandleSubmittedExtrinsic(extBytes)
+	if err != nil {
+		return 0, err
+	}
+	c.safeSend(NewSubscriptionResponseJSON(esl.subID, reqID))
+
+	// TODO (ed) since HandleSubmittedExtrinsic has been called we assume the extrinsic is in the tx queue
+	//  should we add a channel to tx queue so we're notified when it's in the queue (See issue #1535)
+	if c.CoreAPI.IsBlockProducer() {
+		c.safeSend(newSubscriptionResponse(AuthorExtrinsicUpdates, esl.subID, "ready"))
+	}
+
+	// todo (ed) determine which peer extrinsic has been broadcast to, and set status
+	return esl.subID, err
+}
+
+func (c *WSConn) initRuntimeVersionListener(reqID float64) (uint, error) {
+	rvl := &RuntimeVersionListener{
+		wsconn: c,
+	}
+	if c.CoreAPI == nil {
+		c.safeSendError(reqID, nil, "error CoreAPI not set")
+		return 0, fmt.Errorf("error CoreAPI not set")
+	}
+	c.qtyListeners++
+	rvl.subID = c.qtyListeners
+	c.Subscriptions[rvl.subID] = rvl
+	initRes := NewSubscriptionResponseJSON(rvl.subID, reqID)
+	c.safeSend(initRes)
+
+	return rvl.subID, nil
+}
+
+func (c *WSConn) safeSend(msg interface{}) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	err := c.Wsconn.WriteJSON(msg)
+	if err != nil {
+		logger.Debug("error sending websocket message", "error", err)
+	}
+}
+func (c *WSConn) safeSendError(reqID float64, errorCode *big.Int, message string) {
+	res := &ErrorResponseJSON{
+		Jsonrpc: "2.0",
+		Error: &ErrorMessageJSON{
+			Code:    errorCode,
+			Message: message,
+		},
+		ID: reqID,
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	err := c.Wsconn.WriteJSON(res)
+	if err != nil {
+		logger.Debug("error sending websocket message", "error", err)
+	}
+}
+
+// ErrorResponseJSON json for error responses
+type ErrorResponseJSON struct {
+	Jsonrpc string            `json:"jsonrpc"`
+	Error   *ErrorMessageJSON `json:"error"`
+	ID      float64           `json:"id"`
+}
+
+// ErrorMessageJSON json for error messages
+type ErrorMessageJSON struct {
+	Code    *big.Int `json:"code"`
+	Message string   `json:"message"`
+}
+
+func (c *WSConn) startListener(lid uint) {
+	go c.Subscriptions[lid].Listen()
 }

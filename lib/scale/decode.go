@@ -115,7 +115,7 @@ func (sd *Decoder) ReadByte() (byte, error) {
 
 // decodeSmallInt is used in the DecodeInteger and DecodeBigInteger functions when the mode is <= 2
 // need to pass in the first byte, since we assume it's already been read
-func (sd *Decoder) decodeSmallInt(firstByte byte, mode byte) (o int64, err error) {
+func (sd *Decoder) decodeSmallInt(firstByte, mode byte) (o int64, err error) {
 	if mode == 0 { // 1 byte mode
 		o = int64(firstByte >> 2)
 	} else if mode == 1 { // 2 byte mode
@@ -368,8 +368,7 @@ func (sd *Decoder) DecodeArray(t interface{}) (interface{}, error) {
 
 	// this means t is a custom type with an underlying array.
 	// not handled, requires a custom decode function
-	switch v.Kind() {
-	case reflect.Ptr:
+	if v.Kind() == reflect.Ptr {
 		return nil, errors.New("unsupported type")
 	}
 
@@ -474,7 +473,7 @@ func (sd *Decoder) DecodeSlice(t interface{}) (interface{}, error) {
 }
 
 // DecodeTuple accepts a byte array representing the SCALE encoded tuple and an interface. This interface should be a pointer
-// to a struct which the encoded tuple should be marshaled into. If it is a valid encoding for the struct, it returns the
+// to a struct which the encoded tuple should be marshalled into. If it is a valid encoding for the struct, it returns the
 // decoded struct, otherwise error,
 // Note that we return the same interface that was passed to this function; this is because we are writing directly to the
 // struct that is passed in, using reflect to get each of the fields.
@@ -670,7 +669,7 @@ func (sd *Decoder) DecodeStringArray() ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		s[i] = string(o[:]) // cast []byte into string
+		s[i] = string(o) // cast []byte into string
 	}
 	return s, nil
 }

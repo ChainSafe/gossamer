@@ -17,10 +17,12 @@
 package modules
 
 import (
+	"fmt"
 	"math/big"
 	"os"
 	"path"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -48,6 +50,10 @@ func (s *mockSyncer) CreateBlockResponse(msg *network.BlockRequestMessage) (*net
 }
 
 func (s *mockSyncer) ProcessBlockData(_ []*types.BlockData) (int, error) {
+	return 0, nil
+}
+
+func (s *mockSyncer) ProcessJustification(_ []*types.BlockData) (int, error) {
 	return 0, nil
 }
 
@@ -117,6 +123,11 @@ func newNetworkService(t *testing.T) *network.Service {
 
 	t.Cleanup(func() {
 		_ = srv.Stop()
+		time.Sleep(time.Second)
+		err = os.RemoveAll(cfg.BasePath)
+		if err != nil {
+			fmt.Printf("failed to remove path %s : %s\n", cfg.BasePath, err)
+		}
 	})
 
 	return srv
@@ -210,10 +221,9 @@ func (api *mockSystemAPI) SystemVersion() string {
 	return api.info.SystemVersion
 }
 
-func (api *mockSystemAPI) NodeName() string {
+func (api *mockSystemAPI) ChainName() string {
 	return api.genData.Name
 }
-
 func (api *mockSystemAPI) Properties() map[string]interface{} {
 	return nil
 }

@@ -187,7 +187,7 @@ func (in *Instance) NetworkService() runtime.BasicNetwork {
 // TODO: move below to lib/runtime
 
 // int64ToPointerAndSize converts an int64 into a int32 pointer and a int32 length
-func int64ToPointerAndSize(in int64) (ptr int32, length int32) {
+func int64ToPointerAndSize(in int64) (ptr, length int32) {
 	return int32(in), int32(in >> 32)
 }
 

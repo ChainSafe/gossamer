@@ -135,6 +135,38 @@ func TestInstance_Version_NodeRuntime(t *testing.T) {
 	require.Equal(t, expected.TransactionVersion(), version.TransactionVersion())
 }
 
+func TestInstance_Version_DevRuntime(t *testing.T) {
+	expected := runtime.NewVersionData(
+		[]byte("node"),
+		[]byte("gossamer-node"),
+		10,
+		260,
+		0,
+		nil,
+		1,
+	)
+
+	instance := NewTestInstance(t, runtime.DEV_RUNTIME)
+
+	version, err := instance.Version()
+	require.Nil(t, err)
+
+	t.Logf("SpecName: %s\n", version.SpecName())
+	t.Logf("ImplName: %s\n", version.ImplName())
+	t.Logf("AuthoringVersion: %d\n", version.AuthoringVersion())
+	t.Logf("SpecVersion: %d\n", version.SpecVersion())
+	t.Logf("ImplVersion: %d\n", version.ImplVersion())
+	t.Logf("TransactionVersion: %d\n", version.TransactionVersion())
+
+	require.Equal(t, 12, len(version.APIItems()))
+	require.Equal(t, expected.SpecName(), version.SpecName())
+	require.Equal(t, expected.ImplName(), version.ImplName())
+	require.Equal(t, expected.AuthoringVersion(), version.AuthoringVersion())
+	require.Equal(t, expected.SpecVersion(), version.SpecVersion())
+	require.Equal(t, expected.ImplVersion(), version.ImplVersion())
+	require.Equal(t, expected.TransactionVersion(), version.TransactionVersion())
+}
+
 func balanceKey(t *testing.T, pub []byte) []byte { //nolint
 	h0, err := common.Twox128Hash([]byte("System"))
 	require.NoError(t, err)
@@ -248,6 +280,24 @@ func TestInstance_BabeConfiguration_NodeRuntime_NoAuthorities(t *testing.T) {
 		EpochLength:        200,
 		C1:                 1,
 		C2:                 4,
+		GenesisAuthorities: nil,
+		Randomness:         [32]byte{},
+		SecondarySlots:     1,
+	}
+
+	require.Equal(t, expected, cfg)
+}
+
+func TestInstance_BabeConfiguration_DevRuntime_NoAuthorities(t *testing.T) {
+	rt := NewTestInstance(t, runtime.DEV_RUNTIME)
+	cfg, err := rt.BabeConfiguration()
+	require.NoError(t, err)
+
+	expected := &types.BabeConfiguration{
+		SlotDuration:       3000,
+		EpochLength:        200,
+		C1:                 1,
+		C2:                 1,
 		GenesisAuthorities: nil,
 		Randomness:         [32]byte{},
 		SecondarySlots:     1,
@@ -402,6 +452,7 @@ func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
 	require.NoError(t, err)
 	instance.SetContextStorage(parentState)
 
+	block.Header.Digest = types.NewEmptyDigest()
 	_, err = instance.ExecuteBlock(block)
 	require.NoError(t, err)
 }
@@ -458,9 +509,9 @@ func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 	require.NoError(t, err)
 	instance.SetContextStorage(parentState)
 
-	//initialize block header
+	//initialise block header
 	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
-	header, err := types.NewHeader(parentHash, big.NewInt(1), common.Hash{}, common.Hash{}, types.NewEmptyDigest())
+	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewEmptyDigest())
 	require.NoError(t, err)
 	err = instance.InitializeBlock(header)
 	require.NoError(t, err)

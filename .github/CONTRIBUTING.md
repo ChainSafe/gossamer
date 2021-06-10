@@ -44,7 +44,7 @@ $ git remote -v (you should see myrepo and gossamer in the list of remotes)
 
 To start, check out our open issues. We recommend starting with an [issue labeled `Good First Issue`](https://github.com/ChainSafe/gossamer/issues?q=is%3Aopen+is%3Aissue+label%3A%22Good+First+Issue%22). Leave a comment to let us know that you would like to work on it. 
 
-Another option is to improve gossamer where you see fit based on your evaluation of our code. In order to best faciliate collabration, please create an issue before you start working on it.
+Another option is to improve gossamer where you see fit based on your evaluation of our code. In order to best facilitate collaboration, please create an issue before you start working on it.
 
 **6. Make improvements to the code.**
 
@@ -76,7 +76,7 @@ Navigate your browser to [https://github.com/ChainSafe/gossamer](https://github.
 
 ## Note on memory intensive tests
 Unfortunately, the free tier for CI's have a memory cap and some tests will cause the CI to experience an out of memory error.
-In order to mitigate this we have introduced the concept of **short tests**. If your PR causes an out of memory error please seperate the tests into two groups
+In order to mitigate this we have introduced the concept of **short tests**. If your PR causes an out of memory error please separate the tests into two groups
 like below and make sure to label it `large`:
 
 ```

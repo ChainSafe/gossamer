@@ -23,21 +23,23 @@ import (
 	"os/signal"
 	"path"
 	"runtime/debug"
+	"strconv"
 	"sync"
 	"syscall"
+	"time"
 
 	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/services"
+	"github.com/ChainSafe/gossamer/lib/utils"
+	log "github.com/ChainSafe/log15"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/metrics/prometheus"
-
-	"github.com/ChainSafe/chaindb"
-	log "github.com/ChainSafe/log15"
 )
 
 var logger = log.New("pkg", "dot")
@@ -50,12 +52,12 @@ type Node struct {
 	wg       sync.WaitGroup
 }
 
-// InitNode initializes a new dot node from the provided dot node configuration
+// InitNode initialises a new dot node from the provided dot node configuration
 // and JSON formatted genesis file.
 func InitNode(cfg *Config) error {
 	setupLogger(cfg)
 	logger.Info(
-		"🕸️ initializing node...",
+		"🕸️ initialising node...",
 		"name", cfg.Global.Name,
 		"id", cfg.Global.ID,
 		"basepath", cfg.Global.BasePath,
@@ -91,19 +93,19 @@ func InitNode(cfg *Config) error {
 	// create new state service
 	stateSrvc := state.NewService(cfg.Global.BasePath, cfg.Global.LogLvl)
 
-	if cfg.Core.BabeThresholdDenominator != 0 {
-		stateSrvc.BabeThresholdNumerator = cfg.Core.BabeThresholdNumerator
-		stateSrvc.BabeThresholdDenominator = cfg.Core.BabeThresholdDenominator
+	// initialise state service with genesis data, block, and trie
+	err = stateSrvc.Initialise(gen, header, t)
+	if err != nil {
+		return fmt.Errorf("failed to initialise state service: %s", err)
 	}
 
-	// initialize state service with genesis data, block, and trie
-	err = stateSrvc.Initialize(gen, header, t)
+	err = storeGlobalNodeName(cfg.Global.Name, cfg.Global.BasePath)
 	if err != nil {
-		return fmt.Errorf("failed to initialize state service: %s", err)
+		return fmt.Errorf("failed to store global node name: %s", err)
 	}
 
 	logger.Info(
-		"node initialized",
+		"node initialised",
 		"name", cfg.Global.Name,
 		"id", cfg.Global.ID,
 		"basepath", cfg.Global.BasePath,
@@ -119,12 +121,13 @@ func InitNode(cfg *Config) error {
 // node, the state database has been created and the genesis data has been loaded
 func NodeInitialized(basepath string, expected bool) bool {
 	// check if key registry exists
-	registry := path.Join(basepath, "KEYREGISTRY")
+	registry := path.Join(basepath, utils.DefaultDatabaseDir, "KEYREGISTRY")
+
 	_, err := os.Stat(registry)
 	if os.IsNotExist(err) {
 		if expected {
-			logger.Warn(
-				"node has not been initialized",
+			logger.Debug(
+				"node has not been initialised",
 				"basepath", basepath,
 				"error", "failed to locate KEYREGISTRY file in data directory",
 			)
@@ -132,10 +135,8 @@ func NodeInitialized(basepath string, expected bool) bool {
 		return false
 	}
 
-	// initialize database using data directory
-	db, err := chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir: basepath,
-	})
+	// initialise database using data directory
+	db, err := utils.SetupDatabase(basepath, false)
 	if err != nil {
 		logger.Error(
 			"failed to create database",
@@ -145,24 +146,56 @@ func NodeInitialized(basepath string, expected bool) bool {
 		return false
 	}
 
-	// load genesis data from initialized node database
-	_, err = state.LoadGenesisData(db)
+	defer func() {
+		// close database
+		err = db.Close()
+		if err != nil {
+			logger.Error("failed to close database", "error", err)
+		}
+	}()
+
+	// load genesis data from initialised node database
+	_, err = state.NewBaseState(db).LoadGenesisData()
 	if err != nil {
-		logger.Warn(
-			"node has not been initialized",
+		logger.Debug(
+			"node has not been initialised",
 			"basepath", basepath,
 			"error", err,
 		)
 		return false
 	}
 
-	// close database
-	err = db.Close()
+	return true
+}
+
+// LoadGlobalNodeName returns the stored global node name from database
+func LoadGlobalNodeName(basepath string) (nodename string, err error) {
+	// initialise database using data directory
+	db, err := utils.SetupDatabase(basepath, false)
 	if err != nil {
-		logger.Error("failed to close database", "error", err)
+		return "", err
 	}
 
-	return true
+	defer func() {
+		err = db.Close()
+		if err != nil {
+			logger.Error("failed to close database", "error", err)
+			return
+		}
+	}()
+
+	basestate := state.NewBaseState(db)
+	nodename, err = basestate.LoadNodeGlobalName()
+	if err != nil {
+		logger.Warn(
+			"failed to load global node name",
+			"basepath", basepath,
+			"error", err,
+		)
+		return "", err
+	}
+
+	return nodename, err
 }
 
 // NewNode creates a new dot node from a dot node configuration
@@ -184,7 +217,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	// Node Services
 
 	logger.Info(
-		"🕸️ initializing node services...",
+		"🕸️ initialising node services...",
 		"name", cfg.Global.Name,
 		"id", cfg.Global.ID,
 		"basepath", cfg.Global.BasePath,
@@ -196,6 +229,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 
 	// create state service and append state service to node services
 	stateSrvc, err := createStateService(cfg)
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to create state service: %s", err)
 	}
@@ -239,12 +273,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	if err != nil {
 		return nil, err
 	}
-
-	// Syncer
-	syncer, err := createSyncService(cfg, stateSrvc, bp, dh, ver, rt)
-	if err != nil {
-		return nil, err
-	}
+	nodeSrvcs = append(nodeSrvcs, dh)
 
 	// create GRANDPA service
 	fg, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran, networkSrvc)
@@ -252,12 +281,17 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		return nil, err
 	}
 	nodeSrvcs = append(nodeSrvcs, fg)
-	dh.SetFinalityGadget(fg) // TODO: this should be cleaned up
+
+	// Syncer
+	syncer, err := createSyncService(cfg, stateSrvc, bp, fg, dh, ver, rt)
+	if err != nil {
+		return nil, err
+	}
 
 	// Core Service
 
 	// create core service and append core service to node services
-	coreSrvc, err := createCoreService(cfg, bp, fg, ver, rt, ks, stateSrvc, networkSrvc)
+	coreSrvc, err := createCoreService(cfg, bp, ver, rt, ks, stateSrvc, networkSrvc)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create core service: %s", err)
 	}
@@ -306,6 +340,30 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		publishMetrics(cfg)
 	}
 
+	gd, err := stateSrvc.Base.LoadGenesisData()
+	if err != nil {
+		return nil, err
+	}
+
+	if cfg.Global.NoTelemetry {
+		return node, nil
+	}
+
+	telemetry.GetInstance().AddConnections(gd.TelemetryEndpoints)
+
+	err = telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(
+		telemetry.NewKeyValue("authority", cfg.Core.GrandpaAuthority),
+		telemetry.NewKeyValue("chain", sysSrvc.ChainName()),
+		telemetry.NewKeyValue("genesis_hash", stateSrvc.Block.GenesisHash().String()),
+		telemetry.NewKeyValue("implementation", sysSrvc.SystemName()),
+		telemetry.NewKeyValue("msg", "system.connected"),
+		telemetry.NewKeyValue("name", cfg.Global.Name),
+		telemetry.NewKeyValue("network_id", networkSrvc.NetworkState().PeerID),
+		telemetry.NewKeyValue("startup_time", strconv.FormatInt(time.Now().UnixNano(), 10)),
+		telemetry.NewKeyValue("version", sysSrvc.SystemVersion())))
+	if err != nil {
+		logger.Debug("problem sending system.connected telemetry message", "err", err)
+	}
 	return node, nil
 }
 
@@ -328,6 +386,35 @@ func setupMetricsServer(address string) {
 			log.Error("Failure in running metrics server", "err", err)
 		}
 	}()
+}
+
+// stores the global node name to reuse
+func storeGlobalNodeName(name, basepath string) (err error) {
+	db, err := utils.SetupDatabase(basepath, false)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = db.Close()
+		if err != nil {
+			logger.Error("failed to close database", "error", err)
+			return
+		}
+	}()
+
+	basestate := state.NewBaseState(db)
+	err = basestate.StoreNodeGlobalName(name)
+	if err != nil {
+		logger.Warn(
+			"failed to store global node name",
+			"basepath", basepath,
+			"error", err,
+		)
+		return err
+	}
+
+	return nil
 }
 
 // Start starts all dot node services

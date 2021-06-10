@@ -25,11 +25,11 @@ import (
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/genesis"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
+// storagePrefix storage key prefix.
 var storagePrefix = "storage"
 var codeKey = common.CodeKey
 
@@ -45,13 +45,12 @@ type StorageState struct {
 	blockState *BlockState
 	tries      map[common.Hash]*trie.Trie // map of root -> trie
 
-	baseDB chaindb.Database
-	db     chaindb.Database
-	lock   sync.RWMutex
+	db   chaindb.Database
+	lock sync.RWMutex
 
 	// change notifiers
-	changedLock   sync.RWMutex
-	subscriptions map[byte]*StorageSubscription
+	changedLock  sync.RWMutex
+	observerList []Observer
 
 	syncing bool
 }
@@ -70,11 +69,10 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie) 
 	tries[t.MustHash()] = t
 
 	return &StorageState{
-		blockState:    blockState,
-		tries:         tries,
-		baseDB:        db,
-		db:            chaindb.NewTable(db, storagePrefix),
-		subscriptions: make(map[byte]*StorageSubscription),
+		blockState:   blockState,
+		tries:        tries,
+		db:           chaindb.NewTable(db, storagePrefix),
+		observerList: []Observer{},
 	}, nil
 }
 
@@ -99,6 +97,8 @@ func (s *StorageState) pruneKey(keyHeader *types.Header) {
 // StoreTrie stores the given trie in the StorageState and writes it to the database
 func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
 	s.lock.Lock()
+	defer s.lock.Unlock()
+
 	root := ts.MustRoot()
 	if s.syncing {
 		// keep only the trie at the head of the chain when syncing
@@ -107,21 +107,15 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
 		}
 	}
 	s.tries[root] = ts.Trie()
-	s.lock.Unlock()
 
-	logger.Trace("cached trie in storage state", "root", root)
+	logger.Debug("cached trie in storage state", "root", root)
 
-	if err := ts.Trie().WriteDirty(s.db); err != nil {
+	if err := s.tries[root].WriteDirty(s.db); err != nil {
 		logger.Warn("failed to write trie to database", "root", root, "error", err)
 		return err
 	}
 
-	go func() {
-		if err := s.notifyStorageSubscriptions(root); err != nil {
-			logger.Warn("failed to notify storage subscriptions", "error", err)
-		}
-	}()
-
+	go s.notifyAll(root)
 	return nil
 }
 
@@ -152,70 +146,20 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		}
 	}
 
-	curr, err := rtstorage.NewTrieState(t)
+	nextTrie := t.Snapshot()
+	next, err := rtstorage.NewTrieState(nextTrie)
 	if err != nil {
 		return nil, err
 	}
 
-	s.lock.Lock()
-	s.tries[*root] = curr.Snapshot()
-	s.lock.Unlock()
-	return curr, nil
-}
-
-// StoreInDB encodes the entire trie and writes it to the DB
-// The key to the DB entry is the root hash of the trie
-func (s *StorageState) notifyStorageSubscriptions(root common.Hash) error {
-	s.lock.RLock()
-	t := s.tries[root]
-	s.lock.RUnlock()
-
-	if t == nil {
-		return errTrieDoesNotExist(root)
-	}
-
-	// notify subscribers of database changes
-	s.changedLock.Lock()
-	defer s.changedLock.Unlock()
-
-	for _, sub := range s.subscriptions {
-		subRes := &SubscriptionResult{
-			Hash: root,
-		}
-		if len(sub.Filter) == 0 {
-			// no filter, so send all changes
-			ent := t.Entries()
-			for k, v := range ent {
-				if k != ":code" {
-					// todo, currently we're ignoring :code since this is a lot of data
-					kv := &KeyValue{
-						Key:   common.MustHexToBytes(fmt.Sprintf("0x%x", k)),
-						Value: v,
-					}
-					subRes.Changes = append(subRes.Changes, *kv)
-				}
-			}
-		} else {
-			// filter result to include only interested keys
-			for k := range sub.Filter {
-				value := t.Get(common.MustHexToBytes(k))
-				kv := &KeyValue{
-					Key:   common.MustHexToBytes(k),
-					Value: value,
-				}
-				subRes.Changes = append(subRes.Changes, *kv)
-			}
-		}
-		s.notifyChanged(subRes)
-	}
-
-	return nil
+	logger.Trace("returning trie to be modified", "root", root, "next", next.MustRoot())
+	return next, nil
 }
 
 // LoadFromDB loads an encoded trie from the DB where the key is `root`
 func (s *StorageState) LoadFromDB(root common.Hash) (*trie.Trie, error) {
 	t := trie.NewEmptyTrie()
-	err := LoadTrie(s.db, t, root)
+	err := t.Load(s.db, root)
 	if err != nil {
 		return nil, err
 	}
@@ -437,9 +381,4 @@ func (s *StorageState) pruneStorage(closeCh chan interface{}) {
 			return
 		}
 	}
-}
-
-// GetGenesisData retrieves current genesis data from database
-func (s *StorageState) GetGenesisData() (*genesis.Data, error) {
-	return LoadGenesisData(s.baseDB)
 }

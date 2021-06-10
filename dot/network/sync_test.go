@@ -26,8 +26,10 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
+	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
 )
@@ -67,7 +69,7 @@ func TestDecodeSyncMessage(t *testing.T) {
 	reqEnc, err := testBlockRequestMessage.Encode()
 	require.NoError(t, err)
 
-	msg, err := s.decodeSyncMessage(reqEnc, testPeer)
+	msg, err := s.decodeSyncMessage(reqEnc, testPeer, true)
 	require.NoError(t, err)
 
 	req, ok := msg.(*BlockRequestMessage)
@@ -80,7 +82,6 @@ func TestSyncQueue_PushResponse(t *testing.T) {
 	config := &Config{
 		BasePath:    basePath,
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -283,7 +284,6 @@ func TestSyncQueue_ProcessBlockRequests(t *testing.T) {
 	configA := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeA"),
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 		LogLvl:      4,
@@ -295,7 +295,6 @@ func TestSyncQueue_ProcessBlockRequests(t *testing.T) {
 	configB := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeB"),
 		Port:        7002,
-		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
 		LogLvl:      4,
@@ -307,7 +306,6 @@ func TestSyncQueue_ProcessBlockRequests(t *testing.T) {
 	configC := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeC"),
 		Port:        7003,
-		RandSeed:    3,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -316,24 +314,20 @@ func TestSyncQueue_ProcessBlockRequests(t *testing.T) {
 	nodeC.noGossip = true
 
 	// connect A and B
-	addrInfosB, err := nodeB.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosB[0])
+	addrInfoB := nodeB.host.addrInfo()
+	err := nodeA.host.connect(addrInfoB)
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosB[0])
+		err = nodeA.host.connect(addrInfoB)
 	}
 	require.NoError(t, err)
 
 	// connect A and C
-	addrInfosC, err := nodeC.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosC[0])
+	addrInfoC := nodeC.host.addrInfo()
+	err = nodeA.host.connect(addrInfoC)
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosC[0])
+		err = nodeA.host.connect(addrInfoC)
 	}
 	require.NoError(t, err)
 
@@ -420,14 +414,62 @@ func TestSyncQueue_processBlockResponses(t *testing.T) {
 	require.Equal(t, blockRequestBufferSize, len(q.requestCh))
 }
 
+func TestSyncQueue_isRequestDataCached(t *testing.T) {
+	q := newTestSyncQueue(t)
+	q.stop()
+
+	reqdata := requestData{
+		sent:     true,
+		received: false,
+	}
+
+	// generate hash or uint64
+	hashtrack := variadic.NewUint64OrHashFromBytes([]byte{0, 0, 0, 1})
+	uinttrack := variadic.NewUint64OrHashFromBytes([]byte{1, 0, 0, 1})
+	othertrack := variadic.NewUint64OrHashFromBytes([]byte{1, 2, 3, 1})
+
+	tests := []struct {
+		variadic     *variadic.Uint64OrHash
+		reqMessage   BlockRequestMessage
+		expectedOk   bool
+		expectedData *requestData
+	}{
+		{
+			variadic:     hashtrack,
+			expectedOk:   true,
+			expectedData: &reqdata,
+		},
+		{
+			variadic:     uinttrack,
+			expectedOk:   true,
+			expectedData: &reqdata,
+		},
+		{
+			variadic:     othertrack,
+			expectedOk:   false,
+			expectedData: nil,
+		},
+	}
+
+	q.requestDataByHash.Store(hashtrack.Hash(), reqdata)
+	q.requestData.Store(uinttrack.Uint64(), reqdata)
+
+	for _, test := range tests {
+		data, ok := q.isRequestDataCached(test.variadic)
+		require.Equal(t, test.expectedOk, ok)
+		require.Equal(t, test.expectedData, data)
+	}
+}
+
 func TestSyncQueue_SyncAtHead(t *testing.T) {
 	q := newTestSyncQueue(t)
 	q.stop()
 	time.Sleep(time.Second)
 	q.ctx = context.Background()
+	q.slotDuration = time.Millisecond * 100
 
 	go q.syncAtHead()
-	time.Sleep(time.Millisecond * 6100)
+	time.Sleep(q.slotDuration * 3)
 	select {
 	case req := <-q.requestCh:
 		require.Equal(t, uint64(2), req.req.StartingBlock.Uint64())
@@ -500,7 +542,7 @@ func TestSyncQueue_handleBlockDataFailure_MissingParent(t *testing.T) {
 	q.ctx = context.Background()
 
 	data := testBlockResponseMessage().BlockData
-	q.handleBlockDataFailure(0, fmt.Errorf("failed to get parent hash: Key not found"), data)
+	q.handleBlockDataFailure(0, fmt.Errorf("some error: %w", chaindb.ErrKeyNotFound), data)
 	select {
 	case req := <-q.requestCh:
 		require.True(t, req.req.StartingBlock.IsHash())

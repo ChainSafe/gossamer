@@ -292,7 +292,7 @@ func (b *branch) encode() ([]byte, error) {
 			if err != nil {
 				return encoding, err
 			}
-			encoding = append(encoding, scEncChild[:]...)
+			encoding = append(encoding, scEncChild...)
 		}
 	}
 

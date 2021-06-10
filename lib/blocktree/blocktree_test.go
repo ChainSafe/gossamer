@@ -18,7 +18,6 @@ package blocktree
 
 import (
 	"bytes"
-	"io"
 	"math/big"
 	"reflect"
 	"testing"
@@ -26,6 +25,7 @@ import (
 	database "github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/stretchr/testify/require"
 )
@@ -34,32 +34,6 @@ var zeroHash, _ = common.HexToHash("0x00")
 var testHeader = &types.Header{
 	ParentHash: zeroHash,
 	Number:     big.NewInt(0),
-}
-
-type mockDigestItem struct {
-	i int
-}
-
-func newMockDigestItem(i int) *mockDigestItem {
-	return &mockDigestItem{
-		i: i,
-	}
-}
-
-func (d *mockDigestItem) String() string {
-	return ""
-}
-
-func (d *mockDigestItem) Type() byte {
-	return byte(d.i)
-}
-
-func (d *mockDigestItem) Encode() ([]byte, error) {
-	return []byte{byte(d.i)}, nil
-}
-
-func (d *mockDigestItem) Decode(_ io.Reader) error {
-	return nil
 }
 
 func newBlockTreeFromNode(head *node, db database.Database) *BlockTree {
@@ -279,7 +253,7 @@ func TestBlockTree_GetAllBlocksAtDepth(t *testing.T) {
 		header := &types.Header{
 			ParentHash: previousHash,
 			Number:     big.NewInt(int64(i)),
-			Digest:     types.Digest{newMockDigestItem(9)},
+			Digest:     types.Digest{utils.NewMockDigestItem(9)},
 		}
 
 		hash := header.Hash()
@@ -298,7 +272,7 @@ func TestBlockTree_GetAllBlocksAtDepth(t *testing.T) {
 		header := &types.Header{
 			ParentHash: previousHash,
 			Number:     big.NewInt(int64(i)),
-			Digest:     types.Digest{newMockDigestItem(7)},
+			Digest:     types.Digest{utils.NewMockDigestItem(7)},
 		}
 
 		hash := header.Hash()
@@ -390,19 +364,25 @@ func TestBlockTree_Prune(t *testing.T) {
 
 	copy := bt.DeepCopy()
 
-	// pick some block to finalize
-	finalized := bt.head.children[0].children[0].children[0]
-	pruned := bt.Prune(finalized.hash)
+	// pick some block to finalise
+	finalised := bt.head.children[0].children[0].children[0]
+	pruned := bt.Prune(finalised.hash)
 
 	for _, prunedHash := range pruned {
 		prunedNode := copy.getNode(prunedHash)
-		if prunedNode.isDescendantOf(finalized) {
-			t.Fatal("pruned node that's descendant of finalized node!!")
+		if prunedNode.isDescendantOf(finalised) {
+			t.Fatal("pruned node that's descendant of finalised node!!")
 		}
 
-		if finalized.isDescendantOf(prunedNode) {
-			t.Fatal("pruned an ancestor of the finalized node!!")
+		if finalised.isDescendantOf(prunedNode) {
+			t.Fatal("pruned an ancestor of the finalised node!!")
 		}
+	}
+
+	require.NotEqual(t, 0, len(bt.leaves.nodes()))
+	for _, leaf := range bt.leaves.nodes() {
+		require.NotEqual(t, leaf.hash, finalised.hash)
+		require.True(t, leaf.isDescendantOf(finalised))
 	}
 }
 

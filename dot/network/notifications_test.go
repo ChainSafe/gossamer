@@ -17,6 +17,7 @@
 package network
 
 import (
+	"fmt"
 	"math/big"
 	"sync"
 	"testing"
@@ -25,10 +26,14 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
-
+	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
 )
+
+func TestHandshake_SizeOf(t *testing.T) {
+	require.Equal(t, uint32(maxHandshakeSize), uint32(72))
+}
 
 func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "nodeA")
@@ -36,7 +41,6 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 	config := &Config{
 		BasePath:    basePath,
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -45,15 +49,17 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 
 	// create info and decoder
 	info := &notificationsProtocol{
-		protocolID:    s.host.protocolID + blockAnnounceID,
-		getHandshake:  s.getBlockAnnounceHandshake,
-		handshakeData: new(sync.Map),
+		protocolID:            s.host.protocolID + blockAnnounceID,
+		getHandshake:          s.getBlockAnnounceHandshake,
+		handshakeValidator:    s.validateBlockAnnounceHandshake,
+		inboundHandshakeData:  new(sync.Map),
+		outboundHandshakeData: new(sync.Map),
 	}
 	decoder := createDecoder(info, decodeBlockAnnounceHandshake, decodeBlockAnnounceMessage)
 
 	// haven't received handshake from peer
 	testPeerID := peer.ID("QmaCpDMGvV2BGHeYERUEnRQAwe3N8SzbUtfsmvsqQLuvuJ")
-	info.handshakeData.Store(testPeerID, &handshakeData{
+	info.inboundHandshakeData.Store(testPeerID, handshakeData{
 		received: false,
 	})
 
@@ -67,7 +73,7 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 	enc, err := testHandshake.Encode()
 	require.NoError(t, err)
 
-	msg, err := decoder(enc, testPeerID)
+	msg, err := decoder(enc, testPeerID, true)
 	require.NoError(t, err)
 	require.Equal(t, testHandshake, msg)
 
@@ -83,9 +89,10 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 	require.NoError(t, err)
 
 	// set handshake data to received
-	hsData, _ := info.getHandshakeData(testPeerID)
+	hsData, _ := info.getHandshakeData(testPeerID, true)
 	hsData.received = true
-	msg, err = decoder(enc, testPeerID)
+	info.inboundHandshakeData.Store(testPeerID, hsData)
+	msg, err = decoder(enc, testPeerID, true)
 	require.NoError(t, err)
 	require.Equal(t, testBlockAnnounce, msg)
 }
@@ -96,7 +103,6 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 	config := &Config{
 		BasePath:    basePath,
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -106,7 +112,6 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 	configB := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeB"),
 		Port:        7002,
-		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -117,13 +122,11 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 	testPeerID := b.host.id()
 
 	// connect nodes
-	addrInfosB, err := b.host.addrInfos()
-	require.NoError(t, err)
-
-	err = s.host.connect(*addrInfosB[0])
+	addrInfoB := b.host.addrInfo()
+	err := s.host.connect(addrInfoB)
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = s.host.connect(*addrInfosB[0])
+		err = s.host.connect(addrInfoB)
 	}
 	require.NoError(t, err)
 
@@ -132,14 +135,16 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 
 	// create info and handler
 	info := &notificationsProtocol{
-		protocolID:    s.host.protocolID + blockAnnounceID,
-		getHandshake:  s.getBlockAnnounceHandshake,
-		handshakeData: new(sync.Map),
+		protocolID:            s.host.protocolID + blockAnnounceID,
+		getHandshake:          s.getBlockAnnounceHandshake,
+		handshakeValidator:    s.validateBlockAnnounceHandshake,
+		inboundHandshakeData:  new(sync.Map),
+		outboundHandshakeData: new(sync.Map),
 	}
-	handler := s.createNotificationsMessageHandler(info, s.validateBlockAnnounceHandshake, s.handleBlockAnnounceMessage)
+	handler := s.createNotificationsMessageHandler(info, s.handleBlockAnnounceMessage)
 
 	// set handshake data to received
-	info.handshakeData.Store(testPeerID, &handshakeData{
+	info.inboundHandshakeData.Store(testPeerID, handshakeData{
 		received:  true,
 		validated: true,
 	})
@@ -155,7 +160,6 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 	config := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeA"),
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -164,16 +168,17 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 
 	// create info and handler
 	info := &notificationsProtocol{
-		protocolID:    s.host.protocolID + blockAnnounceID,
-		getHandshake:  s.getBlockAnnounceHandshake,
-		handshakeData: new(sync.Map),
+		protocolID:            s.host.protocolID + blockAnnounceID,
+		getHandshake:          s.getBlockAnnounceHandshake,
+		handshakeValidator:    s.validateBlockAnnounceHandshake,
+		inboundHandshakeData:  new(sync.Map),
+		outboundHandshakeData: new(sync.Map),
 	}
-	handler := s.createNotificationsMessageHandler(info, s.validateBlockAnnounceHandshake, s.handleBlockAnnounceMessage)
+	handler := s.createNotificationsMessageHandler(info, s.handleBlockAnnounceMessage)
 
 	configB := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeB"),
 		Port:        7002,
-		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -184,13 +189,11 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 	testPeerID := b.host.id()
 
 	// connect nodes
-	addrInfosB, err := b.host.addrInfos()
-	require.NoError(t, err)
-
-	err = s.host.connect(*addrInfosB[0])
+	addrInfoB := b.host.addrInfo()
+	err := s.host.connect(addrInfoB)
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = s.host.connect(*addrInfosB[0])
+		err = s.host.connect(addrInfoB)
 	}
 	require.NoError(t, err)
 
@@ -207,7 +210,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 
 	err = handler(stream, testHandshake)
 	require.Equal(t, errCannotValidateHandshake, err)
-	data, has := info.getHandshakeData(testPeerID)
+	data, has := info.getHandshakeData(testPeerID, true)
 	require.True(t, has)
 	require.True(t, data.received)
 	require.False(t, data.validated)
@@ -220,10 +223,93 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 		GenesisHash:     s.blockState.GenesisHash(),
 	}
 
+	info.inboundHandshakeData.Delete(testPeerID)
+
 	err = handler(stream, testHandshake)
 	require.NoError(t, err)
-	data, has = info.getHandshakeData(testPeerID)
+	data, has = info.getHandshakeData(testPeerID, true)
 	require.True(t, has)
 	require.True(t, data.received)
 	require.True(t, data.validated)
+}
+
+func Test_HandshakeTimeout(t *testing.T) {
+	basePathA := utils.NewTestBasePath(t, "nodeA")
+	configA := &Config{
+		BasePath:    basePathA,
+		Port:        7001,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeA := createTestService(t, configA)
+	nodeA.noGossip = true
+
+	basePathB := utils.NewTestBasePath(t, "nodeB")
+	configB := &Config{
+		BasePath:    basePathB,
+		Port:        7002,
+		RandSeed:    2,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeB := createTestService(t, configB)
+	nodeB.noGossip = true
+
+	// create info and handler
+	info := &notificationsProtocol{
+		protocolID:            nodeA.host.protocolID + blockAnnounceID,
+		getHandshake:          nodeA.getBlockAnnounceHandshake,
+		handshakeValidator:    nodeA.validateBlockAnnounceHandshake,
+		inboundHandshakeData:  new(sync.Map),
+		outboundHandshakeData: new(sync.Map),
+	}
+
+	nodeB.host.h.SetStreamHandler(info.protocolID, func(stream libp2pnetwork.Stream) {
+		fmt.Println("never respond a handshake message")
+	})
+
+	addrInfosB := nodeB.host.addrInfo()
+
+	err := nodeA.host.connect(addrInfosB)
+	// retry connect if "failed to dial" error
+	if failedToDial(err) {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(addrInfosB)
+	}
+	require.NoError(t, err)
+
+	testHandshakeMsg := &BlockAnnounceHandshake{
+		Roles:           4,
+		BestBlockNumber: 77,
+		BestBlockHash:   common.Hash{1},
+		GenesisHash:     common.Hash{2},
+	}
+	nodeA.SendMessage(testHandshakeMsg)
+
+	go nodeA.sendData(nodeB.host.id(), testHandshakeMsg, info, nil)
+
+	time.Sleep(time.Second)
+
+	// Verify that handshake data exists.
+	_, ok := info.getHandshakeData(nodeB.host.id(), false)
+	require.True(t, ok)
+
+	// a stream should be open until timeout
+	connAToB := nodeA.host.h.Network().ConnsToPeer(nodeB.host.id())
+	require.Len(t, connAToB, 1)
+	require.Len(t, connAToB[0].GetStreams(), 1)
+
+	// after the timeout
+	time.Sleep(handshakeTimeout)
+
+	// handshake data should be removed
+	_, ok = info.getHandshakeData(nodeB.host.id(), false)
+	require.False(t, ok)
+
+	// stream should be closed
+	connAToB = nodeA.host.h.Network().ConnsToPeer(nodeB.host.id())
+	require.Len(t, connAToB, 1)
+	require.Len(t, connAToB[0].GetStreams(), 0)
 }

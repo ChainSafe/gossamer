@@ -98,6 +98,12 @@ var (
 		Name:  "metrics-port",
 		Usage: "Set metric listening port ",
 	}
+
+	// NoTelemetryFlag stops publishing telemetry to default defined in genesis.json
+	NoTelemetryFlag = cli.BoolFlag{
+		Name:  "no-telemetry",
+		Usage: "Disable connecting to the Substrate telemetry server",
+	}
 )
 
 // Initialization-only flags
@@ -134,6 +140,10 @@ var (
 	GenesisSpecFlag = cli.StringFlag{
 		Name:  "genesis-spec",
 		Usage: "Path to human-readable genesis JSON file",
+	}
+	OutputSpecFlag = cli.StringFlag{
+		Name:  "output",
+		Usage: "Path to output the recently created genesis JSON file",
 	}
 )
 
@@ -230,7 +240,7 @@ var (
 	// ImportRawFlag imports a raw private key
 	ImportRawFlag = cli.StringFlag{
 		Name:  "import-raw",
-		Usage: "Import encrypted keystore file generated with gossamer",
+		Usage: "Import  a raw private key",
 	}
 	// ListFlag List node keys
 	ListFlag = cli.BoolFlag{
@@ -254,6 +264,29 @@ var (
 	}
 )
 
+// State Prune flags
+var (
+	// BloomFilterSizeFlag size for bloom filter, valid for the use with prune-state subcommand
+	BloomFilterSizeFlag = cli.IntFlag{
+		Name:  "bloom-size",
+		Usage: "Megabytes of memory allocated to bloom-filter for pruning",
+		Value: 2048,
+	}
+
+	// DBPathFlag data directory for pruned DB, valid for the use with prune-state subcommand
+	DBPathFlag = cli.StringFlag{
+		Name:  "pruned-db-path",
+		Usage: "Data directory for the output DB",
+	}
+
+	// RetainBlockNumberFlag retain number of block from latest block while pruning, valid for the use with prune-state subcommand
+	RetainBlockNumberFlag = cli.IntFlag{
+		Name:  "retain-blocks",
+		Usage: "Retain number of block from latest block while pruning",
+		Value: 256,
+	}
+)
+
 // flag sets that are shared by multiple commands
 var (
 	// GlobalFlags are flags that are valid for use with the root command and all subcommands
@@ -266,6 +299,9 @@ var (
 		CPUProfFlag,
 		MemProfFlag,
 		RewindFlag,
+		DBPathFlag,
+		BloomFilterSizeFlag,
+		RetainBlockNumberFlag,
 	}
 
 	// StartupFlags are flags that are valid for use with the root command and the export subcommand
@@ -295,6 +331,9 @@ var (
 		// metrics flag
 		PublishMetricsFlag,
 		MetricsPortFlag,
+
+		// telemetry flags
+		NoTelemetryFlag,
 	}
 )
 
@@ -312,6 +351,7 @@ var (
 	BuildSpecFlags = append([]cli.Flag{
 		RawFlag,
 		GenesisSpecFlag,
+		OutputSpecFlag,
 	}, GlobalFlags...)
 
 	// ExportFlags are the flags that are valid for use with the export subcommand
@@ -340,12 +380,20 @@ var (
 		HeaderFlag,
 		FirstSlotFlag,
 	}
+
+	PruningFlags = []cli.Flag{
+		ChainFlag,
+		ConfigFlag,
+		DBPathFlag,
+		BloomFilterSizeFlag,
+		RetainBlockNumberFlag,
+	}
 )
 
 // FixFlagOrder allow us to use various flag order formats (ie, `gossamer init
 // --config config.toml` and `gossamer --config config.toml init`). FixFlagOrder
 // only fixes global flags, all local flags must come after the subcommand (ie,
-// `gossamer --force --config config.toml init` will not recognize `--force` but
+// `gossamer --force --config config.toml init` will not recognise `--force` but
 // `gossamer init --force --config config.toml` will work as expected).
 func FixFlagOrder(f func(ctx *cli.Context) error) func(*cli.Context) error {
 	return func(ctx *cli.Context) error {

@@ -18,10 +18,14 @@ package dot
 
 import (
 	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -35,8 +39,10 @@ func (b *BuildSpec) ToJSON() ([]byte, error) {
 	tmpGen := &genesis.Genesis{
 		Name:       b.genesis.Name,
 		ID:         b.genesis.ID,
+		ChainType:  b.genesis.ChainType,
 		Bootnodes:  b.genesis.Bootnodes,
 		ProtocolID: b.genesis.ProtocolID,
+		Properties: b.genesis.Properties,
 		Genesis: genesis.Fields{
 			Runtime: b.genesis.GenesisFields().Runtime,
 		},
@@ -52,6 +58,7 @@ func (b *BuildSpec) ToJSONRaw() ([]byte, error) {
 		ChainType:  b.genesis.ChainType,
 		Bootnodes:  b.genesis.Bootnodes,
 		ProtocolID: b.genesis.ProtocolID,
+		Properties: b.genesis.Properties,
 		Genesis: genesis.Fields{
 			Raw: b.genesis.GenesisFields().Raw,
 		},
@@ -71,6 +78,21 @@ func BuildFromGenesis(path string, authCount int) (*BuildSpec, error) {
 	return bs, nil
 }
 
+// WriteGenesisSpecFile writes the build-spec in the output filepath
+func WriteGenesisSpecFile(data []byte, fp string) error {
+	// if file already exists then dont apply any written on it
+	if utils.PathExists(fp) {
+		return fmt.Errorf("file %s already exists, rename to avoid overwriting", fp)
+	}
+
+	if err := os.MkdirAll(filepath.Dir(fp), os.ModeDir|os.ModePerm); err != nil {
+		return err
+	}
+
+	WriteConfig(data, fp)
+	return nil
+}
+
 // BuildFromDB builds a BuildSpec from the DB located at path
 func BuildFromDB(path string) (*BuildSpec, error) {
 	tmpGen := &genesis.Genesis{
@@ -87,7 +109,7 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 
 	stateSrvc := state.NewService(path, log.LvlCrit)
 
-	// start state service (initialize state database)
+	// start state service (initialise state database)
 	err := stateSrvc.Start()
 	if err != nil {
 		return nil, err

@@ -17,7 +17,6 @@
 package core
 
 import (
-	"io"
 	"io/ioutil"
 	"math/big"
 	"testing"
@@ -51,7 +50,7 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), big.NewInt(0), genTrie.MustHash(), trie.EmptyHash, types.Digest{})
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.Digest{})
 	require.NoError(t, err)
 	return gen, genTrie, genesisHeader
 }
@@ -97,29 +96,6 @@ func (n *mockNetwork) SendMessage(m network.NotificationsMessage) {
 	n.Message = m
 }
 
-// mockFinalityGadget implements the FinalityGadget interface
-type mockFinalityGadget struct {
-	auths []*types.Authority
-}
-
-// Start mocks starting
-func (fg *mockFinalityGadget) Start() error {
-	return nil
-}
-
-// Stop mocks stopping
-func (fg *mockFinalityGadget) Stop() error {
-	return nil
-}
-
-func (fg *mockFinalityGadget) UpdateAuthorities(ad []*types.Authority) {
-	fg.auths = ad
-}
-
-func (fg *mockFinalityGadget) Authorities() []*types.Authority {
-	return fg.auths
-}
-
 // NewTestService creates a new test core service
 func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg == nil {
@@ -157,7 +133,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		stateSrvc = state.NewService(testDatadirPath, log.LvlInfo)
 		stateSrvc.UseMemDB()
 
-		err = stateSrvc.Initialize(gen, genHeader, genTrie)
+		err = stateSrvc.Initialise(gen, genHeader, genTrie)
 		require.Nil(t, err)
 
 		err = stateSrvc.Start()
@@ -192,7 +168,6 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		config := &network.Config{
 			BasePath:           testDatadirPath,
 			Port:               7001,
-			RandSeed:           1,
 			NoBootstrap:        true,
 			NoMDNS:             true,
 			BlockState:         stateSrvc.Block,
@@ -257,37 +232,15 @@ func (s *mockSyncer) ProcessBlockData(_ []*types.BlockData) (int, error) {
 	return 0, nil
 }
 
+func (s *mockSyncer) ProcessJustification(data []*types.BlockData) (int, error) {
+	return 0, nil
+}
+
 func (s *mockSyncer) IsSynced() bool {
 	return false
 }
 
 func (s *mockSyncer) SetSyncing(bool) {}
-
-type mockDigestItem struct { //nolint
-	i int
-}
-
-func newMockDigestItem(i int) *mockDigestItem { //nolint
-	return &mockDigestItem{
-		i: i,
-	}
-}
-
-func (d *mockDigestItem) String() string { //nolint
-	return ""
-}
-
-func (d *mockDigestItem) Type() byte { //nolint
-	return byte(d.i)
-}
-
-func (d *mockDigestItem) Encode() ([]byte, error) { //nolint
-	return []byte{byte(d.i)}, nil
-}
-
-func (d *mockDigestItem) Decode(_ io.Reader) error { //nolint
-	return nil
-}
 
 type mockTransactionHandler struct{}
 

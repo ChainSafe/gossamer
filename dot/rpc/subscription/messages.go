@@ -15,10 +15,6 @@
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 package subscription
 
-import (
-	"math/big"
-)
-
 // BaseResponseJSON for base json response
 type BaseResponseJSON struct {
 	Jsonrpc string `json:"jsonrpc"`
@@ -29,8 +25,14 @@ type BaseResponseJSON struct {
 // Params for json param response
 type Params struct {
 	Result         interface{} `json:"result"`
-	SubscriptionID int         `json:"subscription"`
+	SubscriptionID uint        `json:"subscription"`
 }
+
+// InvalidRequestCode error code returned for invalid request parameters, value derived from Substrate node output
+const InvalidRequestCode = -32600
+
+// InvalidRequestMessage error message for invalid request parameters
+const InvalidRequestMessage = "Invalid request"
 
 func newSubcriptionBaseResponseJSON() BaseResponseJSON {
 	return BaseResponseJSON{
@@ -38,7 +40,7 @@ func newSubcriptionBaseResponseJSON() BaseResponseJSON {
 	}
 }
 
-func newSubscriptionResponse(method string, subID int, result interface{}) BaseResponseJSON {
+func newSubscriptionResponse(method string, subID uint, result interface{}) BaseResponseJSON {
 	return BaseResponseJSON{
 		Jsonrpc: "2.0",
 		Method:  method,
@@ -52,11 +54,12 @@ func newSubscriptionResponse(method string, subID int, result interface{}) BaseR
 // ResponseJSON for json subscription responses
 type ResponseJSON struct {
 	Jsonrpc string  `json:"jsonrpc"`
-	Result  int     `json:"result"`
+	Result  uint    `json:"result"`
 	ID      float64 `json:"id"`
 }
 
-func newSubscriptionResponseJSON(subID int, reqID float64) ResponseJSON {
+// NewSubscriptionResponseJSON builds a Response JSON object
+func NewSubscriptionResponseJSON(subID uint, reqID float64) ResponseJSON {
 	return ResponseJSON{
 		Jsonrpc: "2.0",
 		Result:  subID,
@@ -64,40 +67,17 @@ func newSubscriptionResponseJSON(subID int, reqID float64) ResponseJSON {
 	}
 }
 
-// ErrorResponseJSON json for error responses
-type ErrorResponseJSON struct {
-	Jsonrpc string            `json:"jsonrpc"`
-	Error   *ErrorMessageJSON `json:"error"`
-	ID      float64           `json:"id"`
+// BooleanResponse for responses that return boolean values
+type BooleanResponse struct {
+	JSONRPC string  `json:"jsonrpc"`
+	Result  bool    `json:"result"`
+	ID      float64 `json:"id"`
 }
 
-// ErrorMessageJSON json for error messages
-type ErrorMessageJSON struct {
-	Code    *big.Int `json:"code"`
-	Message string   `json:"message"`
-}
-
-func (c *WSConn) safeSend(msg interface{}) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	err := c.Wsconn.WriteJSON(msg)
-	if err != nil {
-		logger.Debug("error sending websocket message", "error", err)
-	}
-}
-func (c *WSConn) safeSendError(reqID float64, errorCode *big.Int, message string) {
-	res := &ErrorResponseJSON{
-		Jsonrpc: "2.0",
-		Error: &ErrorMessageJSON{
-			Code:    errorCode,
-			Message: message,
-		},
-		ID: reqID,
-	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	err := c.Wsconn.WriteJSON(res)
-	if err != nil {
-		logger.Debug("error sending websocket message", "error", err)
+func newBooleanResponseJSON(value bool, reqID float64) BooleanResponse {
+	return BooleanResponse{
+		JSONRPC: "2.0",
+		Result:  value,
+		ID:      reqID,
 	}
 }
