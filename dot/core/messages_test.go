@@ -17,6 +17,7 @@
 package core
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -29,8 +30,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
-	ctypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -92,18 +93,25 @@ func createExtrinsics(t *testing.T, rt runtime.Instance, genHash common.Hash, no
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
-	bob, err := ctypes.NewAddressFromHexAccountID(keyring.Bob().Public().Hex())
+	bob, err := ctypes.NewMultiAddressFromHexAccountID(keyring.Bob().Public().Hex())
 	require.NoError(t, err)
 
-	c, err := ctypes.NewCall(meta, "Balances.transfer", bob, ctypes.NewUCompactFromUInt(12345))
+	bal, ok := new(big.Int).SetString("100000000000000", 10)
+	require.True(t, ok)
+
+	require.NoError(t, err)
+	c, err := ctypes.NewCall(meta, "Balances.transfer", bob, ctypes.NewUCompact(bal))
+
 	require.NoError(t, err)
 
 	// Create the extrinsic
 	ext := ctypes.NewExtrinsic(c)
 
+	fmt.Println(rv.TransactionVersion(), rv.SpecVersion())
+
 	o := ctypes.SignatureOptions{
 		BlockHash:          ctypes.Hash(genHash),
-		Era:                ctypes.ExtrinsicEra{IsImmortalEra: true},
+		Era:                ctypes.ExtrinsicEra{IsImmortalEra: false},
 		GenesisHash:        ctypes.Hash(genHash),
 		Nonce:              ctypes.NewUCompactFromUInt(nonce),
 		SpecVersion:        ctypes.U32(rv.SpecVersion()),
@@ -123,7 +131,7 @@ func createExtrinsics(t *testing.T, rt runtime.Instance, genHash common.Hash, no
 }
 
 func TestService_HandleTransactionMessage(t *testing.T) {
-	t.Skip() // fails with "'Bad input data provided to validate_transaction: Codec error"
+	//t.Skip() // fails with "'Bad input data provided to validate_transaction: Codec error"
 
 	kp, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)
