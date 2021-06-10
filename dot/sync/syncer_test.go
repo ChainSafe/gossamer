@@ -234,12 +234,18 @@ func TestSyncer_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, codeHashBefore, syncer.codeHash) // codeHash should remain unchanged after code substitute
 
+	_, err = runtime.GetRuntimeBlob(runtime.POLKADOT_RUNTIME_FP, runtime.POLKADOT_RUNTIME_URL)
+	require.NoError(t, err)
+	testRuntime, err := ioutil.ReadFile(runtime.POLKADOT_RUNTIME_FP)
+	require.NoError(t, err)
+
 	ts, err := syncer.storageState.TrieState(nil)
 	require.NoError(t, err)
 
+	ts.Set(common.CodeKey, testRuntime)
 	err = syncer.handleRuntimeChanges(ts)
 	require.NoError(t, err)
-	require.NotEqual(t, codeHashBefore, syncer.codeHash) // codeHash should change after runtime change
+	require.NotEqualf(t, codeHashBefore, syncer.codeHash, "expected different code hash after runtime update") // codeHash should change after runtime change
 }
 
 func TestSyncer_HandleJustification(t *testing.T) {
