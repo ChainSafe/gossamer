@@ -163,7 +163,6 @@ func (h *DigestHandler) HandleConsensusDigest(d *types.ConsensusDigest, header *
 		case types.NextEpochDataType:
 			return h.handleNextEpochData(d, header)
 		case types.BABEOnDisabledType:
-			logger.Info("on swit case BABEOnDisabledType", header)
 			return h.handleBABEOnDisabled(d, header)
 		case types.NextConfigDataType:
 			return h.handleNextConfigData(d, header)
