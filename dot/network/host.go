@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net"
 	"path"
+	"sync"
 	"time"
 
 	"github.com/dgraph-io/ristretto"
@@ -48,6 +49,8 @@ var privateCIDRs = []string{
 	"169.254.0.0/16",
 }
 
+var connectTimeout = time.Second * 5
+
 // host wraps libp2p host with network host configuration and services
 type host struct {
 	ctx             context.Context
@@ -60,6 +63,7 @@ type host struct {
 	ds              *badger.Datastore
 	messageCache    *messageCache
 	bwc             *metrics.BandwidthCounter
+	closeSync       sync.Once
 }
 
 // newHost creates a host wrapper with a new libp2p host instance
@@ -204,17 +208,19 @@ func (h *host) close() error {
 		return err
 	}
 
-	err = h.h.Peerstore().Close()
-	if err != nil {
-		logger.Error("Failed to close libp2p peerstore", "error", err)
-		return err
-	}
+	h.closeSync.Do(func() {
+		err = h.h.Peerstore().Close()
+		if err != nil {
+			logger.Error("Failed to close libp2p peerstore", "error", err)
+			return
+		}
 
-	err = h.ds.Close()
-	if err != nil {
-		logger.Error("Failed to close libp2p host datastore", "error", err)
-		return err
-	}
+		err = h.ds.Close()
+		if err != nil {
+			logger.Error("Failed to close libp2p host datastore", "error", err)
+			return
+		}
+	})
 	return nil
 }
 
@@ -241,7 +247,7 @@ func (h *host) registerStreamHandlerWithOverwrite(pid protocol.ID, overwrite boo
 // connect connects the host to a specific peer address
 func (h *host) connect(p peer.AddrInfo) (err error) {
 	h.h.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
-	ctx, cancel := context.WithTimeout(h.ctx, time.Second*2)
+	ctx, cancel := context.WithTimeout(h.ctx, connectTimeout)
 	defer cancel()
 	err = h.h.Connect(ctx, p)
 	return err
@@ -379,16 +385,12 @@ func (h *host) peerCount() int {
 	return len(peers)
 }
 
-// addrInfos returns the libp2p AddrInfos of the host
-func (h *host) addrInfos() (addrInfos []*peer.AddrInfo, err error) {
-	for _, multiaddr := range h.multiaddrs() {
-		addrInfo, err := peer.AddrInfoFromP2pAddr(multiaddr)
-		if err != nil {
-			return nil, err
-		}
-		addrInfos = append(addrInfos, addrInfo)
+// addrInfo returns the libp2p peer.AddrInfo of the host
+func (h *host) addrInfo() peer.AddrInfo {
+	return peer.AddrInfo{
+		ID:    h.h.ID(),
+		Addrs: h.h.Addrs(),
 	}
-	return addrInfos, nil
 }
 
 // multiaddrs returns the multiaddresses of the host

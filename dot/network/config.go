@@ -104,7 +104,6 @@ type Config struct {
 // build checks the configuration, sets up the private key for the network service,
 // and applies default values where appropriate
 func (c *Config) build() error {
-
 	// check state configuration
 	err := c.checkState()
 	if err != nil {
