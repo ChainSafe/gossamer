@@ -17,7 +17,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	log "github.com/ChainSafe/log15"
-	gtypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	gtypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
 	"github.com/stretchr/testify/require"
 )
 

@@ -32,9 +32,13 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
+
+	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
 )
 
 // testMessageTimeout is the wait time for messages to be exchanged
@@ -208,6 +212,60 @@ func createTestNetworkService(t *testing.T, cfg *network.Config) (srvc *network.
 		require.NoError(t, err)
 	})
 	return srvc
+}
+
+// CreateTestExtrinsics test helper creates a valid signed extrinsic supported by the new
+func CreateTestExtrinsics(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic { //nolint
+	t.Helper()
+	rawMeta, err := rt.Metadata()
+	require.NoError(t, err)
+
+	decoded, err := scale.Decode(rawMeta, []byte{})
+	require.NoError(t, err)
+
+	meta := &ctypes.Metadata{}
+	err = ctypes.DecodeFromBytes(decoded.([]byte), meta)
+	require.NoError(t, err)
+
+	rv, err := rt.Version()
+	require.NoError(t, err)
+
+	keyring, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+
+	bob, err := ctypes.NewMultiAddressFromHexAccountID(keyring.Bob().Public().Hex())
+	require.NoError(t, err)
+
+	bal, ok := new(big.Int).SetString("100000000000000", 10)
+	require.True(t, ok)
+
+	require.NoError(t, err)
+	c, err := ctypes.NewCall(meta, "Balances.transfer", bob, ctypes.NewUCompact(bal))
+
+	require.NoError(t, err)
+
+	// Create the extrinsic
+	ext := ctypes.NewExtrinsic(c)
+
+	o := ctypes.SignatureOptions{
+		BlockHash:          ctypes.Hash(genHash),
+		Era:                ctypes.ExtrinsicEra{IsImmortalEra: false},
+		GenesisHash:        ctypes.Hash(genHash),
+		Nonce:              ctypes.NewUCompactFromUInt(nonce),
+		SpecVersion:        ctypes.U32(rv.SpecVersion()),
+		Tip:                ctypes.NewUCompactFromUInt(0),
+		TransactionVersion: ctypes.U32(rv.TransactionVersion()),
+	}
+
+	// Sign the transaction using Alice's default account
+	err = ext.Sign(signature.TestKeyringPairAlice, o)
+	require.NoError(t, err)
+
+	extEnc, err := ctypes.EncodeToHexString(ext)
+	require.NoError(t, err)
+
+	extBytes := types.Extrinsic(common.MustHexToBytes(extEnc))
+	return extBytes
 }
 
 type mockSyncer struct {

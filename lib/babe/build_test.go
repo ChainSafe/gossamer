@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -29,9 +30,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	log "github.com/ChainSafe/log15"
-	cscale "github.com/centrifuge/go-substrate-rpc-client/v2/scale"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
-	ctypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	cscale "github.com/centrifuge/go-substrate-rpc-client/v3/scale"
+	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -168,8 +169,6 @@ func TestBuildBlock_ok(t *testing.T) {
 }
 
 func TestApplyExtrinsic(t *testing.T) {
-	t.Skip() // fails with "'Bad input data provided to validate_transaction: Codec error"
-
 	cfg := &ServiceConfig{
 		TransactionState: state.NewTransactionState(),
 		LogLvl:           log.LvlDebug,
@@ -186,7 +185,7 @@ func TestApplyExtrinsic(t *testing.T) {
 	err = babeService.rt.InitializeBlock(header)
 	require.NoError(t, err)
 
-	ext := types.Extrinsic(common.MustHexToBytes("0x410284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d015a3e258da3ea20581b68fe1264a35d1f62d6a0debb1a44e836375eb9921ba33e3d0f265f2da33c9ca4e10490b03918300be902fcb229f806c9cf99af4cc10f8c0000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a480b00c465f14670"))
+	ext := core.CreateTestExtrinsics(t, babeService.rt, parentHash, 0)
 
 	txVal, err := babeService.rt.ValidateTransaction(append([]byte{byte(types.TxnLocal)}, ext...))
 	require.NoError(t, err)

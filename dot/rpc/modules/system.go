@@ -26,7 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/scale"
-	ctypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
 )
 
 // SystemModule is an RPC module providing access to core API points
@@ -175,7 +175,7 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 		if err != nil {
 			return err
 		}
-		extSigner, err := common.HexToBytes(fmt.Sprintf("0x%x", ext.Signature.Signer.AsAccountID))
+		extSigner, err := common.HexToBytes(fmt.Sprintf("0x%x", ext.Signature.Signer.AsID))
 		if err != nil {
 			return err
 		}
