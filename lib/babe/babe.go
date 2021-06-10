@@ -41,6 +41,7 @@ type Service struct {
 	paused    bool
 	authority bool
 	dev       bool
+	isRunning bool
 
 	// Storage interfaces
 	blockState       BlockState
@@ -226,7 +227,7 @@ func (b *Service) EpochLength() uint64 {
 
 // Pause pauses the service ie. halts block production
 func (b *Service) Pause() error {
-	if b.paused {
+	if b.IsPaused() {
 		return errors.New("service already paused")
 	}
 
@@ -240,7 +241,7 @@ func (b *Service) Pause() error {
 
 // Resume resumes the service ie. resumes block production
 func (b *Service) Resume() error {
-	if !b.paused {
+	if !b.IsPaused() {
 		return nil
 	}
 
@@ -351,93 +352,109 @@ func (b *Service) initiate(epoch uint64) {
 		return
 	}
 
+	b.Lock()
+	if b.isRunning {
+		return
+	}
+
+	b.isRunning = true
+	b.Unlock()
+	logger.Info("calling invokeBlockAuthoring")
 	b.invokeBlockAuthoring(epoch)
 }
 
 func (b *Service) invokeBlockAuthoring(epoch uint64) {
-	// calculate current slot
-	startSlot := getCurrentSlot(b.slotDuration)
+	for {
+		// calculate current slot
+		startSlot := getCurrentSlot(b.slotDuration)
 
-	head, err := b.blockState.BestBlockHeader()
-	if err != nil {
-		logger.Error("failed to get best block header", "error", err)
-		return
-	}
-
-	// if we're at genesis, set the first slot number for the network
-	if head.Number.Cmp(big.NewInt(0)) == 0 {
-		err = b.epochState.SetFirstSlot(startSlot)
+		head, err := b.blockState.BestBlockHeader()
 		if err != nil {
-			logger.Error("failed to set first slot number", "error", err)
+			logger.Error("failed to get best block header", "error", err)
 			return
 		}
-	}
 
-	logger.Info("initiating epoch", "number", epoch, "start slot", startSlot+b.epochLength)
-	err = b.initiateEpoch(epoch)
-	if err != nil {
-		logger.Error("failed to initiate epoch", "epoch", epoch, "error", err)
-		return
-	}
-
-	// get start slot for current epoch
-	epochStart, err := b.epochState.GetStartSlotForEpoch(0)
-	if err != nil {
-		logger.Error("failed to get start slot for current epoch", "epoch", epoch, "error", err)
-		return
-	}
-
-	intoEpoch := startSlot - epochStart
-	logger.Info("current epoch", "epoch", epoch, "slots into epoch", intoEpoch)
-
-	// if the calculated amount of slots "into the epoch" is greater than the epoch length,
-	// we've been offline for more than an epoch, and need to sync. pause BABE for now, syncer will
-	// resume it when ready
-	if b.epochLength <= intoEpoch && !b.dev {
-		b.paused = true
-		return
-	}
-
-	if b.dev {
-		intoEpoch = intoEpoch % b.epochLength
-	}
-
-	slotDone := make([]<-chan time.Time, b.epochLength-intoEpoch)
-	for i := 0; i < int(b.epochLength-intoEpoch); i++ {
-		slotDone[i] = time.After(b.getSlotDuration() * time.Duration(i))
-	}
-
-	for i := 0; i < int(b.epochLength-intoEpoch); i++ {
-		select {
-		case <-b.ctx.Done():
-			return
-		case <-b.pause:
-			return
-		case <-slotDone[i]:
-			if !b.authority {
-				continue
-			}
-
-			slotNum := startSlot + uint64(i)
-			err = b.handleSlot(slotNum)
-			if err == ErrNotAuthorized {
-				logger.Debug("not authorized to produce a block in this slot", "slot", slotNum)
-				continue
-			} else if err != nil {
-				logger.Warn("failed to handle slot", "slot", slotNum, "error", err)
-				continue
+		// if we're at genesis, set the first slot number for the network
+		if head.Number.Cmp(big.NewInt(0)) == 0 {
+			err = b.epochState.SetFirstSlot(startSlot)
+			if err != nil {
+				logger.Error("failed to set first slot number", "error", err)
+				return
 			}
 		}
-	}
 
-	// setup next epoch, re-invoke block authoring
-	next, err := b.incrementEpoch()
-	if err != nil {
-		logger.Error("failed to increment epoch", "error", err)
-		return
-	}
+		logger.Info("initiating epoch", "number", epoch, "start slot", startSlot+b.epochLength)
+		err = b.initiateEpoch(epoch)
+		if err != nil {
+			logger.Error("failed to initiate epoch", "epoch", epoch, "error", err)
+			return
+		}
 
-	b.invokeBlockAuthoring(next)
+		// get start slot for current epoch
+		epochStart, err := b.epochState.GetStartSlotForEpoch(epoch)
+		if err != nil {
+			logger.Error("failed to get start slot for current epoch", "epoch", epoch, "error", err)
+			return
+		}
+
+		intoEpoch := startSlot - epochStart
+
+		// if the calculated amount of slots "into the epoch" is greater than the epoch length,
+		// we've been offline for more than an epoch, and need to sync. pause BABE for now, syncer will
+		// resume it when ready
+		if b.epochLength <= intoEpoch && !b.dev {
+			logger.Debug("pausing BABE, need to sync", "slots into epoch", intoEpoch, "startSlot", startSlot, "epochStart", epochStart)
+			b.paused = true
+			return
+		}
+
+		if b.dev {
+			intoEpoch = intoEpoch % b.epochLength
+		}
+
+		logger.Info("current epoch", "epoch", epoch, "slots into epoch", intoEpoch)
+
+		slotDone := make([]<-chan time.Time, b.epochLength-intoEpoch)
+		for i := 0; i < int(b.epochLength-intoEpoch); i++ {
+			slotDone[i] = time.After(b.getSlotDuration() * time.Duration(i))
+		}
+
+		for i := 0; i < int(b.epochLength-intoEpoch); i++ {
+			select {
+			case <-b.ctx.Done():
+				return
+			case <-b.pause:
+				b.Lock()
+				b.isRunning = false
+				b.Unlock()
+				return
+			case <-slotDone[i]:
+				if !b.authority {
+					continue
+				}
+
+				slotNum := startSlot + uint64(i)
+				err = b.handleSlot(slotNum)
+				if err == ErrNotAuthorized {
+					logger.Debug("not authorized to produce a block in this slot", "slot", slotNum, "slots into epoch", i)
+					continue
+				} else if err != nil {
+					logger.Warn("failed to handle slot", "slot", slotNum, "error", err)
+					continue
+				}
+			}
+		}
+
+		// setup next epoch, re-invoke block authoring
+		next, err := b.incrementEpoch()
+		if err != nil {
+			logger.Error("failed to increment epoch", "error", err)
+			return
+		}
+
+		logger.Info("epoch complete!", "completed epoch", epoch, "upcoming epoch", next)
+		epoch = next
+	}
 }
 
 func (b *Service) handleSlot(slotNum uint64) error {
@@ -466,8 +483,6 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		number:   slotNum,
 	}
 
-	logger.Debug("going to build block", "parent", parent)
-
 	// set runtime trie before building block
 	// if block building is successful, store the resulting trie in the storage state
 	ts, err := b.storageState.TrieState(&parent.StateRoot)
@@ -480,8 +495,7 @@ func (b *Service) handleSlot(slotNum uint64) error {
 
 	block, err := b.buildBlock(parent, currentSlot)
 	if err != nil {
-		logger.Error("block authoring", "error", err)
-		return nil
+		return err
 	}
 
 	err = b.storageState.StoreTrie(ts)

@@ -36,6 +36,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 			return err
 		}
 	} else if epoch > 0 {
+		logger.Debug("checking for epoch data", "epoch", epoch)
 		has, err := b.epochState.HasEpochData(epoch) //nolint
 		if err != nil {
 			return err
@@ -53,6 +54,8 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 			data, err = b.epochState.GetEpochData(epoch)
 		}
 
+		logger.Debug("got epoch data", "epoch", epoch, "data", data)
+
 		if err != nil {
 			return err
 		}
@@ -61,6 +64,8 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 		if err != nil && err != ErrNotAuthority {
 			return err
 		}
+
+		logger.Debug("got epoch auth index", "epoch", epoch, "index", idx)
 
 		has, err = b.epochState.HasConfigData(epoch)
 		if err != nil {
@@ -92,6 +97,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 				threshold:      b.epochData.threshold,
 			}
 		}
+		logger.Debug("got epoch config data", "epoch", epoch, "data", b.epochData)
 
 		startSlot, err = b.epochState.GetStartSlotForEpoch(epoch)
 		if err != nil {
@@ -113,9 +119,14 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 	logger.Debug("initiating epoch", "epoch", epoch, "start slot", startSlot)
 
 	for i := startSlot; i < startSlot+b.epochLength; i++ {
-		b.slotToProof[i], err = b.runLottery(i, epoch)
+		proof, err := b.runLottery(i, epoch)
 		if err != nil {
 			return fmt.Errorf("error running slot lottery at slot %d: error %s", i, err)
+		}
+
+		if proof != nil {
+			b.slotToProof[i] = proof
+			logger.Debug("claimed slot!", "slot", startSlot, "slots into epoch", i-startSlot)
 		}
 	}
 
