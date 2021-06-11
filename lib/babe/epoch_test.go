@@ -63,6 +63,13 @@ func TestInitiateEpoch_Epoch1(t *testing.T) {
 		Key:    bs.keypair.Public().(*sr25519.PublicKey),
 		Weight: 1,
 	}
+
+	data, err := bs.epochState.GetEpochData(0)
+	require.NoError(t, err)
+	data.Authorities = []*types.Authority{auth}
+	err = bs.epochState.SetEpochData(1, data)
+	require.NoError(t, err)
+
 	err = bs.initiateEpoch(1)
 	require.NoError(t, err)
 
@@ -72,8 +79,18 @@ func TestInitiateEpoch_Epoch1(t *testing.T) {
 		authorityIndex: 0,
 		threshold:      threshold,
 	}
-	require.Equal(t, expected, bs.epochData)
+	require.Equal(t, expected.randomness, bs.epochData.randomness)
+	require.Equal(t, expected.authorityIndex, bs.epochData.authorityIndex)
+	require.Equal(t, expected.threshold, bs.epochData.threshold)
 	require.GreaterOrEqual(t, len(bs.slotToProof), 1)
+
+	for i, auth := range bs.epochData.authorities {
+		expAuth, err := expected.authorities[i].Encode() //nolint
+		require.NoError(t, err)
+		res, err := auth.Encode()
+		require.NoError(t, err)
+		require.Equal(t, expAuth, res)
+	}
 
 	// for epoch 2, set EpochData but not ConfigData
 	edata := &types.EpochData{

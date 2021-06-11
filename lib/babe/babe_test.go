@@ -61,6 +61,10 @@ var (
 	}
 )
 
+type mockDigestHandler struct{}
+
+func (h *mockDigestHandler) HandleDigests(_ *types.Header) {}
+
 func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
 	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis.json")
 	if err != nil {
@@ -136,6 +140,8 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		cfg.Runtime = rt
 	}
 
+	cfg.DigestHandler = &mockDigestHandler{}
+	cfg.IsDev = true
 	cfg.LogLvl = defaultTestLogLvl
 	babeService, err := NewService(cfg)
 	require.NoError(t, err)
