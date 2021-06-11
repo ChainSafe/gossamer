@@ -389,17 +389,6 @@ func (bs *BlockState) GetFinalizedHeader(round, setID uint64) (*types.Header, er
 
 // GetFinalizedHash gets the latest finalised block header
 func (bs *BlockState) GetFinalizedHash(round, setID uint64) (common.Hash, error) {
-	// get current round
-	r, err := bs.GetRound()
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	// round that is being queried for has not yet finalised
-	if round > r {
-		return common.Hash{}, fmt.Errorf("round not yet finalised")
-	}
-
 	h, err := bs.db.Get(finalizedHashKey(round, setID))
 	if err != nil {
 		return common.Hash{}, err
