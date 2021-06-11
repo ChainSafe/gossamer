@@ -31,7 +31,7 @@ type BabeConfiguration struct {
 	C1                 uint64 // (1-(c1/c2)) is the probability of a slot being empty
 	C2                 uint64
 	GenesisAuthorities []*AuthorityRaw
-	Randomness         [32]byte
+	Randomness         [RandomnessLength]byte
 	SecondarySlots     byte
 }
 

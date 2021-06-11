@@ -480,8 +480,7 @@ func (b *Service) handleSlot(slotNum uint64) error {
 
 	block, err := b.buildBlock(parent, currentSlot)
 	if err != nil {
-		logger.Error("block authoring", "error", err)
-		return nil
+		return err
 	}
 
 	err = b.storageState.StoreTrie(ts)
