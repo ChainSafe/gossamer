@@ -153,26 +153,32 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 
 	v.lock.Lock()
 
-	logger.Debug("got epoch for header", "header", header, "epoch", epoch)
 	if info, has = v.epochInfo[epoch]; !has {
 		// special case for block 1 - the network doesn't necessarily start in epoch 1.
 		// if this happens, the database will be missing info for epochs before the first block.
 		if header.Number.Cmp(big.NewInt(1)) == 0 {
 			epoch = 0
 
-			// set network starting slot
-			// TODO: first slot should be confirmed when block with number=1 is marked final
-			var firstSlot uint64
-			firstSlot, err = types.GetSlotFromHeader(header)
+			block1IsFinal, err := v.blockState.NumberIsFinalised(big.NewInt(1))
 			if err != nil {
 				v.lock.Unlock()
-				return fmt.Errorf("failed to get slot from block 1: %w", err)
+				return fmt.Errorf("failed to check if block 1 is finalised: %w", err)
 			}
 
-			err = v.epochState.SetFirstSlot(firstSlot)
-			if err != nil {
-				v.lock.Unlock()
-				return fmt.Errorf("failed to set current epoch after receiving block 1: %w", err)
+			if !block1IsFinal {
+				// set first slot of network
+				var firstSlot uint64
+				firstSlot, err = types.GetSlotFromHeader(header)
+				if err != nil {
+					v.lock.Unlock()
+					return fmt.Errorf("failed to get slot from block 1: %w", err)
+				}
+
+				err = v.epochState.SetFirstSlot(firstSlot)
+				if err != nil {
+					v.lock.Unlock()
+					return fmt.Errorf("failed to set current epoch after receiving block 1: %w", err)
+				}
 			}
 
 			info, err = v.getVerifierInfo(0)

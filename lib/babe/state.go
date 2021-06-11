@@ -43,6 +43,7 @@ type BlockState interface {
 	GetSlotForBlock(common.Hash) (uint64, error)
 	GetFinalizedHeader(uint64, uint64) (*types.Header, error)
 	IsDescendantOf(parent, child common.Hash) (bool, error)
+	NumberIsFinalised(num *big.Int) (bool, error)
 }
 
 // StorageState interface for storage state methods

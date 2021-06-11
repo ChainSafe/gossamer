@@ -21,6 +21,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math/big"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -53,6 +54,7 @@ func configDataKey(epoch uint64) []byte {
 type EpochState struct {
 	db          chaindb.Database
 	baseState   *BaseState
+	blockState  *BlockState
 	epochLength uint64 // measured in slots
 	firstSlot   uint64
 	skipToEpoch uint64
@@ -119,7 +121,7 @@ func NewEpochStateFromGenesis(db chaindb.Database, genesisConfig *types.BabeConf
 }
 
 // NewEpochState returns a new EpochState
-func NewEpochState(db chaindb.Database) (*EpochState, error) {
+func NewEpochState(db chaindb.Database, blockState *BlockState) (*EpochState, error) {
 	baseState := NewBaseState(db)
 
 	epochLength, err := loadEpochLength(db)
@@ -139,6 +141,7 @@ func NewEpochState(db chaindb.Database) (*EpochState, error) {
 
 	return &EpochState{
 		baseState:   baseState,
+		blockState:  blockState,
 		db:          chaindb.NewTable(db, epochPrefix),
 		epochLength: epochLength,
 		firstSlot:   firstSlot,
@@ -289,6 +292,16 @@ func (s *EpochState) GetStartSlotForEpoch(epoch uint64) (uint64, error) {
 
 // SetFirstSlot sets the first slot number of the network
 func (s *EpochState) SetFirstSlot(slot uint64) error {
+	// check if block 1 was finalised already; if it has, don't set first slot again
+	header, err := s.blockState.GetFinalizedHeader(0, 0)
+	if err != nil {
+		return err
+	}
+
+	if header.Number.Cmp(big.NewInt(1)) > -1 {
+		return errors.New("first slot has already been set")
+	}
+
 	s.firstSlot = slot
 	return s.baseState.storeFirstSlot(slot)
 }
