@@ -25,8 +25,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const protocolToTest = "/protocol"
-
 // test gossip messages to connected peers
 func TestGossip(t *testing.T) {
 	if testing.Short() {
@@ -45,7 +43,7 @@ func TestGossip(t *testing.T) {
 
 	nodeA := createTestService(t, configA)
 	handlerA := newTestStreamHandler(testBlockAnnounceMessageDecoder)
-	nodeA.host.registerStreamHandler(protocolToTest, handlerA.handleStream)
+	nodeA.host.registerStreamHandler("", handlerA.handleStream)
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
@@ -57,7 +55,7 @@ func TestGossip(t *testing.T) {
 
 	nodeB := createTestService(t, configB)
 	handlerB := newTestStreamHandler(testBlockAnnounceMessageDecoder)
-	nodeB.host.registerStreamHandler(protocolToTest, handlerB.handleStream)
+	nodeB.host.registerStreamHandler("", handlerB.handleStream)
 
 	addrInfoA := nodeA.host.addrInfo()
 	err := nodeB.host.connect(addrInfoA)
@@ -78,7 +76,7 @@ func TestGossip(t *testing.T) {
 
 	nodeC := createTestService(t, configC)
 	handlerC := newTestStreamHandler(testBlockAnnounceMessageDecoder)
-	nodeC.host.registerStreamHandler(protocolToTest, handlerC.handleStream)
+	nodeC.host.registerStreamHandler("", handlerC.handleStream)
 
 	err = nodeC.host.connect(addrInfoA)
 	// retry connect if "failed to dial" error
