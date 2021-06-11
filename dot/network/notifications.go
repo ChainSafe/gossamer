@@ -63,6 +63,7 @@ type handshakeReader struct {
 type notificationsProtocol struct {
 	protocolID         protocol.ID
 	getHandshake       HandshakeGetter
+	handshakeDecoder   HandshakeDecoder
 	handshakeValidator HandshakeValidator
 
 	inboundHandshakeData  *sync.Map //map[peer.ID]*handshakeData
@@ -207,7 +208,6 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 
 func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtocol, msg NotificationsMessage) {
 	if support, err := s.host.supportsProtocol(peer, info.protocolID); err != nil || !support {
-		logger.Debug("the peer does not supports the protocol", "protocol", info.protocolID, "peer", peer, "err", err)
 		return
 	}
 
@@ -248,12 +248,11 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 			_ = stream.Close()
 			info.outboundHandshakeData.Delete(peer)
 			return
-		case hsResponse := <-s.readHandshake(stream, decodeBlockAnnounceHandshake):
+		case hsResponse := <-s.readHandshake(stream, info.handshakeDecoder):
 			hsTimer.Stop()
 			if hsResponse.err != nil {
 				logger.Trace("failed to read handshake", "protocol", info.protocolID, "peer", peer, "error", err)
 				_ = stream.Close()
-
 				info.outboundHandshakeData.Delete(peer)
 				return
 			}
