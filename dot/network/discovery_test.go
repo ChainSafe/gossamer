@@ -19,7 +19,6 @@ package network
 import (
 	"context"
 	"fmt"
-	"path"
 	"testing"
 	"time"
 
@@ -41,10 +40,14 @@ func newTestDiscovery(t *testing.T, num int) []*discovery {
 			NoBootstrap: true,
 			NoMDNS:      true,
 		}
-		dstmpdir := t.TempDir()
-		ds, _ := badger.NewDatastore(path.Join(dstmpdir, "libp2p-datastore"), &badger.DefaultOptions)
 
 		srvc := createTestService(t, config)
+
+		opts := badger.DefaultOptions
+		opts.InMemory = true
+
+		ds, err := badger.NewDatastore("", &opts)
+		require.NoError(t, err)
 		disc := &discovery{
 			ctx: srvc.ctx,
 			h:   srvc.host.h,
@@ -98,7 +101,7 @@ func TestKadDHT(t *testing.T) {
 
 	// node 2 doesnt know about node 1 then should return error
 	_, err := nodes[2].dht.FindPeer(ctx, nodes[1].h.ID())
-	require.Equal(t, err, routing.ErrNotFound)
+	require.ErrorIs(t, err, routing.ErrNotFound)
 
 	// connects node 1 and node 0
 	connectNoSync(t, ctx, nodes[1], nodes[0])
