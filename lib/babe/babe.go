@@ -405,10 +405,6 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) {
 		startSlot := getCurrentSlot(b.slotDuration)
 		intoEpoch := startSlot - epochStart
 
-		if startSlot < epochStart {
-			panic("trying to start epoch too early!")
-		}
-
 		// if the calculated amount of slots "into the epoch" is greater than the epoch length,
 		// we've been offline for more than an epoch, and need to sync. pause BABE for now, syncer will
 		// resume it when ready

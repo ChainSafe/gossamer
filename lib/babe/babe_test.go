@@ -37,7 +37,7 @@ import (
 )
 
 var (
-	defaultTestLogLvl = log.LvlDebug
+	defaultTestLogLvl = log.LvlInfo
 	emptyHash         = trie.EmptyHash
 	testTimeout       = time.Second * 5
 	testEpochIndex    = uint64(0)
