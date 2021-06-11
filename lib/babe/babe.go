@@ -41,7 +41,6 @@ type Service struct {
 	paused    bool
 	authority bool
 	dev       bool
-	isRunning bool
 
 	// Storage interfaces
 	blockState       BlockState
@@ -394,7 +393,7 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) {
 		if time.Since(epochStartTime) < 0 {
 			logger.Debug("waiting for epoch to start")
 			select {
-			case <-time.After(epochStartTime.Sub(time.Now())):
+			case <-time.After(time.Until(epochStartTime)):
 			case <-b.ctx.Done():
 				return
 			case <-b.pause:
@@ -534,5 +533,5 @@ func getCurrentSlot(slotDuration time.Duration) uint64 {
 }
 
 func getSlotStartTime(slot uint64, slotDuration time.Duration) time.Time {
-	return time.Unix(0, int64(slot)*int64(slotDuration.Nanoseconds()))
+	return time.Unix(0, int64(slot)*slotDuration.Nanoseconds())
 }
