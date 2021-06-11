@@ -245,7 +245,9 @@ func TestBlockTree_GetNodeCache(t *testing.T) {
 
 	block := bt.getNode(branches[0].hash)
 
-	cachedBlock, ok := bt.blockCache[block.hash]
+	cachedBlock, ok := bt.nodeCache[block.hash]
+
+	require.True(t, len(bt.nodeCache) > 0)
 	require.True(t, ok)
 	require.NotNil(t, cachedBlock)
 	require.Equal(t, cachedBlock, block)
@@ -425,7 +427,7 @@ func TestBlockTree_PruneCache(t *testing.T) {
 	pruned := bt.Prune(finalised.hash)
 
 	for _, prunedHash := range pruned {
-		block, ok := bt.blockCache[prunedHash]
+		block, ok := bt.nodeCache[prunedHash]
 
 		require.False(t, ok)
 		require.Nil(t, block)
@@ -439,7 +441,16 @@ func TestBlockTree_DeepCopy(t *testing.T) {
 	btCopy := bt.DeepCopy()
 
 	require.Equal(t, bt.db, btCopy.db)
-	require.Equal(t, bt.blockCache, btCopy.blockCache)
+	for hash := range bt.nodeCache {
+		b, ok := btCopy.nodeCache[hash]
+		b2 := bt.nodeCache[hash]
+
+		require.True(t, ok)
+		require.True(t, b != b2)
+
+		require.True(t, equalNodeValue(b, b2))
+
+	}
 	require.True(t, equalNodeValue(bt.head, btCopy.head), "BlockTree heads not equal")
 	require.True(t, equalLeave(bt.leaves, btCopy.leaves), "BlockTree leaves not equal")
 
