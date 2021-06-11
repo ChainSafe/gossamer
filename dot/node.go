@@ -261,19 +261,19 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		return nil, err
 	}
 
-	// create BABE service
-	bp, err := createBABEService(cfg, rt, stateSrvc, ks.Babe)
-	if err != nil {
-		return nil, err
-	}
-
-	nodeSrvcs = append(nodeSrvcs, bp)
-
 	dh, err := createDigestHandler(stateSrvc)
 	if err != nil {
 		return nil, err
 	}
 	nodeSrvcs = append(nodeSrvcs, dh)
+
+	// create BABE service
+	bp, err := createBABEService(cfg, rt, stateSrvc, ks.Babe, dh)
+	if err != nil {
+		return nil, err
+	}
+
+	nodeSrvcs = append(nodeSrvcs, bp)
 
 	// create GRANDPA service
 	fg, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran, networkSrvc)

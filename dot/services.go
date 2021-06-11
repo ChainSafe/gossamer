@@ -24,6 +24,7 @@ import (
 	"github.com/ChainSafe/chaindb"
 
 	"github.com/ChainSafe/gossamer/dot/core"
+	"github.com/ChainSafe/gossamer/dot/digest"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/rpc"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
@@ -165,7 +166,7 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GlobalKeystore, 
 	return rt, nil
 }
 
-func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks keystore.Keystore) (*babe.Service, error) {
+func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks keystore.Keystore, dh *digest.Handler) (*babe.Service, error) {
 	logger.Info(
 		"creating BABE service...",
 		"authority", cfg.Core.BabeAuthority,
@@ -188,6 +189,7 @@ func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks k
 		StorageState:     st.Storage,
 		TransactionState: st.Transaction,
 		EpochState:       st.Epoch,
+		DigestHandler:    dh,
 		EpochLength:      cfg.Core.EpochLength,
 		SlotDuration:     cfg.Core.SlotDuration, // TODO: remove this, should only be modified via runtime constant
 		Authority:        cfg.Core.BabeAuthority,
@@ -332,7 +334,7 @@ func createSystemService(cfg *types.SystemInfo, stateSrvc *state.Service) (*syst
 }
 
 // createGRANDPAService creates a new GRANDPA service
-func createGRANDPAService(cfg *Config, rt runtime.Instance, st *state.Service, dh *core.DigestHandler, ks keystore.Keystore, net *network.Service) (*grandpa.Service, error) {
+func createGRANDPAService(cfg *Config, rt runtime.Instance, st *state.Service, dh *digest.Handler, ks keystore.Keystore, net *network.Service) (*grandpa.Service, error) {
 	ad, err := rt.GrandpaAuthorities()
 	if err != nil {
 		return nil, err
@@ -375,7 +377,7 @@ func createBlockVerifier(st *state.Service) (*babe.VerificationManager, error) {
 	return ver, nil
 }
 
-func createSyncService(cfg *Config, st *state.Service, bp sync.BlockProducer, fg sync.FinalityGadget, dh *core.DigestHandler, verifier *babe.VerificationManager, rt runtime.Instance) (*sync.Service, error) {
+func createSyncService(cfg *Config, st *state.Service, bp sync.BlockProducer, fg sync.FinalityGadget, dh *digest.Handler, verifier *babe.VerificationManager, rt runtime.Instance) (*sync.Service, error) {
 	syncCfg := &sync.Config{
 		LogLvl:           cfg.Log.SyncLvl,
 		BlockState:       st.Block,
@@ -391,6 +393,6 @@ func createSyncService(cfg *Config, st *state.Service, bp sync.BlockProducer, fg
 	return sync.NewService(syncCfg)
 }
 
-func createDigestHandler(st *state.Service) (*core.DigestHandler, error) {
-	return core.NewDigestHandler(st.Block, st.Epoch, st.Grandpa)
+func createDigestHandler(st *state.Service) (*digest.Handler, error) {
+	return digest.NewHandler(st.Block, st.Epoch, st.Grandpa)
 }

@@ -209,7 +209,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 
 			// handle consensus digests for authority changes
 			if s.digestHandler != nil {
-				s.handleDigests(header)
+				s.digestHandler.HandleDigests(header)
 			}
 
 			if bd.Justification != nil && bd.Justification.Exists() {
@@ -376,7 +376,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 
 	// handle consensus digest for authority changes
 	if s.digestHandler != nil {
-		s.handleDigests(block.Header)
+		s.digestHandler.HandleDigests(block.Header)
 	}
 
 	return s.handleRuntimeChanges(ts)
@@ -432,23 +432,6 @@ func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {
 
 	s.codeHash = currCodeHash
 	return nil
-}
-
-func (s *Service) handleDigests(header *types.Header) {
-	for i, d := range header.Digest {
-		if d.Type() == types.ConsensusDigestType {
-			cd, ok := d.(*types.ConsensusDigest)
-			if !ok {
-				logger.Error("handleDigests", "block number", header.Number, "index", i, "error", "cannot cast invalid consensus digest item")
-				continue
-			}
-
-			err := s.digestHandler.HandleConsensusDigest(cd, header)
-			if err != nil {
-				logger.Error("handleDigests", "block number", header.Number, "index", i, "digest", cd, "error", err)
-			}
-		}
-	}
 }
 
 // IsSynced exposes the synced state

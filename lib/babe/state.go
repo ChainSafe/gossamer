@@ -77,3 +77,8 @@ type EpochState interface {
 	GetLatestEpochData() (*types.EpochData, error)
 	SkipVerify(*types.Header) (bool, error)
 }
+
+// DigestHandler is the interface for the consensus digest handler
+type DigestHandler interface {
+	HandleDigests(*types.Header)
+}

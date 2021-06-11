@@ -47,6 +47,7 @@ type Service struct {
 	storageState     StorageState
 	transactionState TransactionState
 	epochState       EpochState
+	digestHandler    DigestHandler
 	epochLength      uint64
 
 	// BABE authority keypair
@@ -75,6 +76,7 @@ type ServiceConfig struct {
 	StorageState         StorageState
 	TransactionState     TransactionState
 	EpochState           EpochState
+	DigestHandler        DigestHandler
 	Keypair              *sr25519.Keypair
 	Runtime              runtime.Instance
 	AuthData             []*types.Authority
@@ -104,6 +106,10 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		return nil, errors.New("runtime is nil")
 	}
 
+	if cfg.DigestHandler == nil {
+		return nil, errors.New("digestHandler is nil")
+	}
+
 	logger = log.New("pkg", "babe")
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
 	h = log.CallerFileHandler(h)
@@ -117,6 +123,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		blockState:       cfg.BlockState,
 		storageState:     cfg.StorageState,
 		epochState:       cfg.EpochState,
+		digestHandler:    cfg.DigestHandler,
 		epochLength:      cfg.EpochLength,
 		keypair:          cfg.Keypair,
 		rt:               cfg.Runtime,
@@ -524,6 +531,8 @@ func (b *Service) handleSlot(slotNum uint64) error {
 	if err != nil {
 		return err
 	}
+
+	b.digestHandler.HandleDigests(block.Header)
 
 	err = b.safeSend(*block)
 	if err != nil {

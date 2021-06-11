@@ -70,7 +70,7 @@ type BlockProducer interface {
 
 // DigestHandler is the interface for the consensus digest handler
 type DigestHandler interface {
-	HandleConsensusDigest(*types.ConsensusDigest, *types.Header) error
+	HandleDigests(header *types.Header)
 }
 
 // Verifier deals with block verification
