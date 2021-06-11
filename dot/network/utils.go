@@ -184,9 +184,7 @@ func readStream(stream libp2pnetwork.Stream, buf []byte) (int, error) {
 	)
 
 	length, err := readLEB128ToUint64(stream, buf[:1])
-	if err == io.EOF {
-		return 0, err
-	} else if err != nil {
+	if err != nil {
 		return 0, err // TODO: return bytes read from readLEB128ToUint64
 	}
 
@@ -196,13 +194,11 @@ func readStream(stream libp2pnetwork.Stream, buf []byte) (int, error) {
 
 	if length > uint64(len(buf)) {
 		logger.Warn("received message with size greater than allocated message buffer", "length", length, "buffer size", len(buf))
-		_ = stream.Close()
 		return 0, fmt.Errorf("message size greater than allocated message buffer: got %d", length)
 	}
 
 	if length > maxBlockResponseSize {
 		logger.Warn("received message with size greater than maxBlockResponseSize, closing stream", "length", length)
-		_ = stream.Close()
 		return 0, fmt.Errorf("message size greater than maximum: got %d", length)
 	}
 
@@ -220,7 +216,7 @@ func readStream(stream libp2pnetwork.Stream, buf []byte) (int, error) {
 	}
 
 	if tot != int(length) {
-		return tot, fmt.Errorf("failed to read entire message: expected %d bytes", length)
+		return tot, fmt.Errorf("failed to read entire message: expected %d bytes, received %d bytes", length, tot)
 	}
 
 	return tot, nil
