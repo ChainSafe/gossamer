@@ -32,7 +32,10 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-var logger log.Logger
+var (
+	logger          log.Logger
+	initialWaitTime = time.Duration(time.Second * 12)
+)
 
 // Service contains the VRF keys for the validator, as well as BABE configuation data
 type Service struct {
@@ -161,7 +164,6 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 func (b *Service) setEpochData(cfg *ServiceConfig) (err error) {
 	b.epochData = &epochData{}
 
-	logger.Debug("setting BABE epoch data")
 	epochData, err := b.epochState.GetLatestEpochData()
 	if err != nil {
 		return err
@@ -229,6 +231,9 @@ func (b *Service) setEpochData(cfg *ServiceConfig) (err error) {
 
 // Start starts BABE block authoring
 func (b *Service) Start() error {
+	// wait a bit to check if we need to sync before initiating
+	time.Sleep(initialWaitTime)
+
 	epoch, err := b.epochState.GetCurrentEpoch()
 	if err != nil {
 		logger.Error("failed to get current epoch", "error", err)
@@ -456,7 +461,7 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) {
 				slotNum := startSlot + uint64(i)
 				err = b.handleSlot(slotNum)
 				if err == ErrNotAuthorized {
-					logger.Debug("not authorized to produce a block in this slot", "slot", slotNum, "slots into epoch", uint64(i)+intoEpoch)
+					logger.Debug("not authorized to produce a block in this slot", "epoch", epoch, "slot", slotNum, "slots into epoch", uint64(i)+intoEpoch)
 					continue
 				} else if err != nil {
 					logger.Warn("failed to handle slot", "slot", slotNum, "error", err)
