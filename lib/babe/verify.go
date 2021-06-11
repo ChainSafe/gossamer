@@ -153,6 +153,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 
 	v.lock.Lock()
 
+	logger.Debug("got epoch for header", "header", header, "epoch", epoch)
 	if info, has = v.epochInfo[epoch]; !has {
 		// special case for block 1 - the network doesn't necessarily start in epoch 1.
 		// if this happens, the database will be missing info for epochs before the first block.
