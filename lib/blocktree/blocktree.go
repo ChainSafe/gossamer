@@ -155,11 +155,13 @@ func (bt *BlockTree) GetAllBlocksAtDepth(hash common.Hash) []common.Hash {
 // getNode finds and returns a node based on its Hash. Returns nil if not found.
 func (bt *BlockTree) getNode(h Hash) (ret *node) {
 	defer func() {
-		if ret != nil {
-			if _, ok := bt.blockCache[ret.hash]; !ok {
-				bt.blockCache[ret.hash] = ret
-			}
-		}
+		if ret == nil {
+		     return
+		 }
+		 
+	        if _, has := bt.blockCache[ret.hash]; !has {
+		        bt.blockCache[ret.hash] = ret
+	        }
 	}()
 
 	if b, ok := bt.blockCache[h]; ok {
