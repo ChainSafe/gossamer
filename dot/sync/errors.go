@@ -27,9 +27,6 @@ var ErrNilBlockState = errors.New("cannot have nil BlockState")
 // ErrNilStorageState is returned when StorageState is nil
 var ErrNilStorageState = errors.New("cannot have nil StorageState")
 
-// ErrNilBlockProducer is returned when BlockProducer is nil
-var ErrNilBlockProducer = errors.New("cannot have nil BlockProducer")
-
 // ErrNilVerifier is returned when trying to instantiate a Syncer without a Verifier
 var ErrNilVerifier = errors.New("cannot have nil Verifier")
 
