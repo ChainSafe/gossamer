@@ -395,7 +395,7 @@ func (bt *BlockTree) DeepCopy() *BlockTree {
 	}
 
 	for hash := range bt.nodeCache {
-		btCopy.getNode(hash)
+		btCopy.nodeCache[hash] = btCopy.getNode(hash)
 	}
 
 	return btCopy
