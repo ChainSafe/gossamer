@@ -19,6 +19,8 @@ package telemetry
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"reflect"
 	"sync"
 	"time"
 
@@ -40,7 +42,7 @@ type Message struct {
 
 // Handler struct for holding telemetry related things
 type Handler struct {
-	msg         chan Message
+	msg         chan interface{}
 	connections []*telemetryConnection
 	log         log.Logger
 }
@@ -62,7 +64,7 @@ func GetInstance() *Handler { //nolint
 		once.Do(
 			func() {
 				handlerInstance = &Handler{
-					msg: make(chan Message, 256),
+					msg: make(chan interface{}, 256),
 					log: log.New("pkg", "telemetry"),
 				}
 				go handlerInstance.startListening()
@@ -108,9 +110,9 @@ func (h *Handler) AddConnections(conns []*genesis.TelemetryEndpoint) {
 }
 
 // SendMessage sends Message to connected telemetry listeners
-func (h *Handler) SendMessage(msg *Message) error {
+func (h *Handler) SendMessage(msg interface{}) error {
 	select {
-	case h.msg <- *msg:
+	case h.msg <- msg:
 
 	case <-time.After(time.Second * 1):
 		return errors.New("timeout sending message")
@@ -124,7 +126,10 @@ func (h *Handler) startListening() {
 		go func() {
 			for _, conn := range h.connections {
 				conn.Lock()
-				err := conn.wsconn.WriteMessage(websocket.TextMessage, msgToBytes(msg))
+				fmt.Printf("SENDING %s\n", msgToJSON(msg))
+				//err := conn.wsconn.WriteMessage(websocket.TextMessage, msgToBytes(msg))
+				err := conn.wsconn.WriteMessage(websocket.TextMessage, msgToJSON(msg))
+
 				if err != nil {
 					h.log.Warn("issue while sending telemetry message", "error", err)
 				}
@@ -134,11 +139,38 @@ func (h *Handler) startListening() {
 	}
 }
 
-func msgToBytes(message Message) []byte {
-	message.values["ts"] = time.Now()
-	resB, err := json.Marshal(message.values)
+func msgToJSON(message interface{}) []byte {
+	res, err := json.Marshal(message)
 	if err != nil {
 		return nil
 	}
-	return resB
+
+	objMap := make(map[string]interface{})
+	err = json.Unmarshal(res, &objMap)
+	if err != nil {
+		return nil
+	}
+
+	objMap["ts"] = time.Now()
+	typ := reflect.TypeOf(message)
+	f, _ := typ.FieldByName("Msg")
+	def := f.Tag.Get("default")
+	objMap["msg"] = def
+
+	fullRes, err := json.Marshal(objMap)
+	if err != nil {
+		return nil
+	}
+	return fullRes
+}
+
+type SystemConnectedTM struct {
+	Authority bool `json:"authority"`
+	Chain string `json:"chain"`
+	GenesisHash string `json:"genesis_hash"`
+	Implementation string `json:"implementation"`
+	Msg string `default:"system.connected" json:"msg"`
+	Name string `json:"name"`
+	NetworkID string `json:"network_id"`
+	StartupTime string `json:"startup_time"`
 }
