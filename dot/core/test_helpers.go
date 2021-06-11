@@ -236,11 +236,10 @@ func CreateTestExtrinsics(t *testing.T, rt runtime.Instance, genHash common.Hash
 	bob, err := ctypes.NewMultiAddressFromHexAccountID(keyring.Bob().Public().Hex())
 	require.NoError(t, err)
 
-	bal, ok := new(big.Int).SetString("100000000000000", 10)
-	require.True(t, ok)
+	amount := ctypes.NewUCompactFromUInt(12345)
 
 	require.NoError(t, err)
-	c, err := ctypes.NewCall(meta, "Balances.transfer", bob, ctypes.NewUCompact(bal))
+	c, err := ctypes.NewCall(meta, "Balances.transfer", bob, amount)
 
 	require.NoError(t, err)
 

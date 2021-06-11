@@ -239,9 +239,15 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot) []*transaction.ValidTrans
 		}
 
 		extrinsic := txn.Extrinsic
+		encExt, err := scale.Encode(extrinsic)
+		if err != nil {
+			logger.Debug("failed to encode ext", "err", err)
+			continue
+		}
+
 		logger.Trace("build block", "applying extrinsic", extrinsic)
 
-		ret, err := b.rt.ApplyExtrinsic(extrinsic)
+		ret, err := b.rt.ApplyExtrinsic(encExt)
 		if err != nil {
 			logger.Warn("failed to apply extrinsic", "error", err, "extrinsic", extrinsic)
 			continue

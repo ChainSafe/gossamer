@@ -168,6 +168,7 @@ func TestBuildBlock_ok(t *testing.T) {
 	require.Equal(t, 1, len(extsBytes))
 }
 
+// TEST FAILING WITH []byte{0x1, 0x0, 0x6} EXHAUSTS RESOURCES
 func TestApplyExtrinsic(t *testing.T) {
 	cfg := &ServiceConfig{
 		TransactionState: state.NewTransactionState(),
@@ -175,10 +176,35 @@ func TestApplyExtrinsic(t *testing.T) {
 	}
 
 	babeService := createTestService(t, cfg)
+	babeService.epochData.authorityIndex = 0
 	babeService.epochData.threshold = maxThreshold
 
-	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
-	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewEmptyDigest())
+	builder, _ := NewBlockBuilder(
+		babeService.rt,
+		babeService.keypair,
+		babeService.transactionState,
+		babeService.blockState,
+		babeService.slotToProof,
+		babeService.epochData.authorityIndex,
+	)
+
+	duration, err := time.ParseDuration("1s")
+	require.NoError(t, err)
+
+	slotnum := uint64(1)
+	slot := Slot{
+		start:    time.Now(),
+		duration: duration,
+		number:   slotnum,
+	}
+
+	addAuthorshipProof(t, babeService, slotnum, testEpochIndex)
+
+	preDigest, err := builder.buildBlockPreDigest(slot)
+	require.NoError(t, err)
+
+	parentHash := babeService.blockState.GenesisHash()
+	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewDigest(preDigest))
 	require.NoError(t, err)
 
 	//initialise block header
@@ -186,17 +212,15 @@ func TestApplyExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 
 	ext := core.CreateTestExtrinsics(t, babeService.rt, parentHash, 0)
-
 	txVal, err := babeService.rt.ValidateTransaction(append([]byte{byte(types.TxnLocal)}, ext...))
 	require.NoError(t, err)
 
 	vtx := transaction.NewValidTransaction(ext, txVal)
 	babeService.transactionState.Push(vtx)
 
-	// apply extrinsic
-	res, err := babeService.rt.ApplyExtrinsic(ext)
+	res, err := babeService.rt.ApplyExtrinsic(vtx.Extrinsic)
 	require.NoError(t, err)
-	// Expected result for valid ApplyExtrinsic is 0, 0
+	//Expected result for valid ApplyExtrinsic is 0, 0
 	require.Equal(t, []byte{0, 0}, res)
 }
 
@@ -233,10 +257,10 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	rv, err := babeService.rt.Version()
 	require.NoError(t, err)
 
-	bob, err := ctypes.NewAddressFromHexAccountID("0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
+	bob, err := ctypes.NewMultiAddressFromHexAccountID("0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
 	require.NoError(t, err)
 
-	call, err := ctypes.NewCall(meta, "Balances.transfer", bob, ctypes.NewUCompactFromUInt(123450000000000))
+	call, err := ctypes.NewCall(meta, "Balances.transfer", bob, ctypes.NewUCompactFromUInt(12345))
 	require.NoError(t, err)
 
 	// Create the extrinsic
