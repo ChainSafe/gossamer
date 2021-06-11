@@ -134,9 +134,6 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot) (*types.Block
 
 	logger.Trace("finalised block")
 
-	// header.ParentHash = parent.Hash()
-	// header.Number.Add(parent.Number, big.NewInt(1))
-
 	// create seal and add to digest
 	seal, err := b.buildBlockSeal(header)
 	if err != nil {
