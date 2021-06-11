@@ -37,7 +37,6 @@ func TestStorageState_RegisterStorageObserver(t *testing.T) {
 	ts, err := ss.TrieState(nil)
 	require.NoError(t, err)
 
-	//observer := &MockStorageObserver{}
 	mockfilter := map[string][]byte{}
 	mockobs := &MockObserver{}
 
