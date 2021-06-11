@@ -55,11 +55,7 @@ type Service struct {
 	codeHash common.Hash
 
 	// Block production variables
-	blockProducer   BlockProducer
 	isBlockProducer bool
-
-	// Block verification
-	verifier Verifier
 
 	// Keystore
 	keys *keystore.GlobalKeystore
@@ -87,7 +83,6 @@ type Config struct {
 	Runtime          runtime.Instance
 	BlockProducer    BlockProducer
 	IsBlockProducer  bool
-	Verifier         Verifier
 
 	NewBlocks chan types.Block // only used for testing purposes
 }
@@ -150,8 +145,6 @@ func NewService(cfg *Config) (*Service, error) {
 		transactionState: cfg.TransactionState,
 		net:              cfg.Network,
 		isBlockProducer:  cfg.IsBlockProducer,
-		blockProducer:    cfg.BlockProducer,
-		verifier:         cfg.Verifier,
 		lock:             &sync.Mutex{},
 		blockAddCh:       blockAddCh,
 		blockAddChID:     id,

@@ -141,51 +141,50 @@ func (v *VerificationManager) SetOnDisabled(index uint32, header *types.Header) 
 // VerifyBlock verifies that the block producer for the given block was authorized to produce it.
 // It returns an error if the block is invalid.
 func (v *VerificationManager) VerifyBlock(header *types.Header) error {
-	epoch, err := v.epochState.GetEpochForBlock(header)
+
+	var (
+		info  *verifierInfo
+		epoch uint64
+		has   bool
+		err   error
+	)
+
+	// special case for block 1 - the network doesn't necessarily start in epoch 1.
+	// if this happens, the database will be missing info for epochs before the first block.
+	if header.Number.Cmp(big.NewInt(1)) == 0 {
+		epoch = 0
+
+		block1IsFinal, err := v.blockState.NumberIsFinalised(big.NewInt(1))
+		if err != nil {
+			return fmt.Errorf("failed to check if block 1 is finalised: %w", err)
+		}
+
+		if !block1IsFinal {
+			// set first slot of network
+			var firstSlot uint64
+			firstSlot, err = types.GetSlotFromHeader(header)
+			if err != nil {
+				return fmt.Errorf("failed to get slot from block 1: %w", err)
+			}
+
+			err = v.epochState.SetFirstSlot(firstSlot)
+			if err != nil {
+				return fmt.Errorf("failed to set current epoch after receiving block 1: %w", err)
+			}
+		}
+	}
+
+	epoch, err = v.epochState.GetEpochForBlock(header)
 	if err != nil {
 		return fmt.Errorf("failed to get epoch for block header: %w", err)
 	}
 
-	var (
-		info *verifierInfo
-		has  bool
-	)
-
 	v.lock.Lock()
 
+	logger.Debug("got epoch for header", "header", header, "epoch", epoch)
+
 	if info, has = v.epochInfo[epoch]; !has {
-		// special case for block 1 - the network doesn't necessarily start in epoch 1.
-		// if this happens, the database will be missing info for epochs before the first block.
-		if header.Number.Cmp(big.NewInt(1)) == 0 {
-			epoch = 0
-
-			block1IsFinal, err := v.blockState.NumberIsFinalised(big.NewInt(1))
-			if err != nil {
-				v.lock.Unlock()
-				return fmt.Errorf("failed to check if block 1 is finalised: %w", err)
-			}
-
-			if !block1IsFinal {
-				// set first slot of network
-				var firstSlot uint64
-				firstSlot, err = types.GetSlotFromHeader(header)
-				if err != nil {
-					v.lock.Unlock()
-					return fmt.Errorf("failed to get slot from block 1: %w", err)
-				}
-
-				err = v.epochState.SetFirstSlot(firstSlot)
-				if err != nil {
-					v.lock.Unlock()
-					return fmt.Errorf("failed to set current epoch after receiving block 1: %w", err)
-				}
-			}
-
-			info, err = v.getVerifierInfo(0)
-		} else {
-			info, err = v.getVerifierInfo(epoch)
-		}
-
+		info, err = v.getVerifierInfo(epoch)
 		if err != nil {
 			v.lock.Unlock()
 			// SkipVerify is set to true only in the case where we have imported a state at a given height,

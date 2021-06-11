@@ -61,6 +61,8 @@ type TransactionState interface {
 
 // EpochState is the interface for epoch methods
 type EpochState interface {
+	GetEpochLength() (uint64, error)
+	GetSlotDuration() (time.Duration, error)
 	SetCurrentEpoch(epoch uint64) error
 	GetCurrentEpoch() (uint64, error)
 	SetEpochData(uint64, *types.EpochData) error
@@ -68,6 +70,7 @@ type EpochState interface {
 	HasEpochData(epoch uint64) (bool, error)
 	GetConfigData(epoch uint64) (*types.ConfigData, error)
 	HasConfigData(epoch uint64) (bool, error)
+	GetLatestConfigData() (*types.ConfigData, error)
 	GetStartSlotForEpoch(epoch uint64) (uint64, error)
 	GetEpochForBlock(header *types.Header) (uint64, error)
 	SetFirstSlot(slot uint64) error

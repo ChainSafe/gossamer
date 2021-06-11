@@ -71,12 +71,6 @@ type TransactionState interface {
 // BlockProducer is the interface that a block production service must implement
 type BlockProducer interface {
 	GetBlockChannel() <-chan types.Block
-	SetOnDisabled(authorityIndex uint32)
-}
-
-// Verifier is the interface for the block verifier
-type Verifier interface {
-	SetOnDisabled(authorityIndex uint32, block *types.Header) error
 }
 
 // Network is the interface for the network service

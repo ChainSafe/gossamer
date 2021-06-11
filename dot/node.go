@@ -269,7 +269,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 
 	nodeSrvcs = append(nodeSrvcs, bp)
 
-	dh, err := createDigestHandler(stateSrvc, bp, ver)
+	dh, err := createDigestHandler(stateSrvc)
 	if err != nil {
 		return nil, err
 	}

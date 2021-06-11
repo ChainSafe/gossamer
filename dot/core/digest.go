@@ -36,8 +36,6 @@ type DigestHandler struct {
 	blockState   BlockState
 	epochState   EpochState
 	grandpaState GrandpaState
-	babe         BlockProducer
-	verifier     Verifier
 
 	// block notification channels
 	imported    chan *types.Block
@@ -66,7 +64,7 @@ type resume struct {
 }
 
 // NewDigestHandler returns a new DigestHandler
-func NewDigestHandler(blockState BlockState, epochState EpochState, grandpaState GrandpaState, babe BlockProducer, verifier Verifier) (*DigestHandler, error) {
+func NewDigestHandler(blockState BlockState, epochState EpochState, grandpaState GrandpaState) (*DigestHandler, error) {
 	imported := make(chan *types.Block, 16)
 	finalised := make(chan *types.FinalisationInfo, 16)
 	iid, err := blockState.RegisterImportedChannel(imported)
@@ -87,8 +85,6 @@ func NewDigestHandler(blockState BlockState, epochState EpochState, grandpaState
 		blockState:   blockState,
 		epochState:   epochState,
 		grandpaState: grandpaState,
-		babe:         babe,
-		verifier:     verifier,
 		imported:     imported,
 		importedID:   iid,
 		finalised:    finalised,
@@ -413,12 +409,12 @@ func (h *DigestHandler) handleBABEOnDisabled(d *types.ConsensusDigest, header *t
 
 	logger.Debug("handling BABEOnDisabled", "data", od)
 
-	err = h.verifier.SetOnDisabled(od.ID, header)
-	if err != nil {
-		return err
-	}
+	// err = h.verifier.SetOnDisabled(od.ID, header)
+	// if err != nil {
+	// 	return err
+	// }
 
-	h.babe.SetOnDisabled(od.ID)
+	// h.babe.SetOnDisabled(od.ID)
 	return nil
 }
 

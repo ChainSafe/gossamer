@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -29,13 +30,15 @@ import (
 )
 
 var (
-	epochPrefix      = "epoch"
-	epochLengthKey   = []byte("epochlength")
-	currentEpochKey  = []byte("current")
-	firstSlotKey     = []byte("firstslot")
-	epochDataPrefix  = []byte("epochinfo")
-	configDataPrefix = []byte("configinfo")
-	skipToKey        = []byte("skipto")
+	epochPrefix         = "epoch"
+	epochLengthKey      = []byte("epochlength")
+	currentEpochKey     = []byte("current")
+	firstSlotKey        = []byte("firstslot")
+	slotDurationKey     = []byte("slotduration")
+	epochDataPrefix     = []byte("epochinfo")
+	configDataPrefix    = []byte("configinfo")
+	latestConfigDataKey = []byte("lcfginfo")
+	skipToKey           = []byte("skipto")
 )
 
 func epochDataKey(epoch uint64) []byte {
@@ -108,8 +111,11 @@ func NewEpochStateFromGenesis(db chaindb.Database, genesisConfig *types.BabeConf
 		return nil, err
 	}
 
-	err = storeEpochLength(db, genesisConfig.EpochLength)
-	if err != nil {
+	if err = s.baseState.storeEpochLength(genesisConfig.EpochLength); err != nil {
+		return nil, err
+	}
+
+	if err = s.baseState.storeSlotDuration(genesisConfig.SlotDuration); err != nil {
 		return nil, err
 	}
 
@@ -124,7 +130,7 @@ func NewEpochStateFromGenesis(db chaindb.Database, genesisConfig *types.BabeConf
 func NewEpochState(db chaindb.Database, blockState *BlockState) (*EpochState, error) {
 	baseState := NewBaseState(db)
 
-	epochLength, err := loadEpochLength(db)
+	epochLength, err := baseState.loadEpochLength()
 	if err != nil {
 		return nil, err
 	}
@@ -149,19 +155,17 @@ func NewEpochState(db chaindb.Database, blockState *BlockState) (*EpochState, er
 	}, nil
 }
 
-func storeEpochLength(db chaindb.Database, l uint64) error {
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, l)
-	return db.Put(epochLengthKey, buf)
+func (s *EpochState) GetEpochLength() (uint64, error) {
+	return s.baseState.loadEpochLength()
 }
 
-func loadEpochLength(db chaindb.Database) (uint64, error) {
-	data, err := db.Get(epochLengthKey)
+func (s *EpochState) GetSlotDuration() (time.Duration, error) {
+	d, err := s.baseState.loadSlotDuration()
 	if err != nil {
 		return 0, err
 	}
 
-	return binary.LittleEndian.Uint64(data), nil
+	return time.ParseDuration(fmt.Sprintf("%dms", d))
 }
 
 // SetCurrentEpoch sets the current epoch
@@ -199,6 +203,10 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 		digest, err := types.DecodeBabePreDigest(r)
 		if err != nil {
 			return 0, fmt.Errorf("failed to decode babe header: %w", err)
+		}
+
+		if digest.SlotNumber() < s.firstSlot {
+			return 0, nil
 		}
 
 		return (digest.SlotNumber() - s.firstSlot) / s.epochLength, nil
@@ -261,7 +269,18 @@ func (s *EpochState) SetConfigData(epoch uint64, info *types.ConfigData) error {
 		return err
 	}
 
+	// this assumes the most recently set config data is the highest on the chain
+	if err = s.setLatestConfigData(epoch); err != nil {
+		return err
+	}
+
 	return s.db.Put(configDataKey(epoch), enc)
+}
+
+func (s *EpochState) setLatestConfigData(epoch uint64) error {
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, epoch)
+	return s.db.Put(latestConfigDataKey, buf)
 }
 
 // GetConfigData returns the BABE config data for a given epoch
@@ -277,6 +296,16 @@ func (s *EpochState) GetConfigData(epoch uint64) (*types.ConfigData, error) {
 	}
 
 	return info.(*types.ConfigData), nil
+}
+
+func (s *EpochState) GetLatestConfigData() (*types.ConfigData, error) {
+	b, err := s.db.Get(latestConfigDataKey)
+	if err != nil {
+		return nil, err
+	}
+
+	epoch := binary.LittleEndian.Uint64(b)
+	return s.GetConfigData(epoch)
 }
 
 // HasConfigData returns whether config data exists for a given epoch

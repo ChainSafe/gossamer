@@ -43,12 +43,14 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 
 		var data *types.EpochData
 		if !has {
-			data = &types.EpochData{
-				Randomness:  b.epochData.randomness,
-				Authorities: b.epochData.authorities,
-			}
+			// data = &types.EpochData{
+			// 	Randomness:  b.epochData.randomness,
+			// 	Authorities: b.epochData.authorities,
+			// }
 
-			err = b.epochState.SetEpochData(epoch, data)
+			// err = b.epochState.SetEpochData(epoch, data)
+			logger.Crit("no epoch data for next BABE epoch", "epoch", epoch)
+			return errNoEpochData
 		} else {
 			data, err = b.epochState.GetEpochData(epoch)
 		}
@@ -58,7 +60,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 		}
 
 		idx, err := b.getAuthorityIndex(data.Authorities)
-		if err != nil && err != ErrNotAuthority {
+		if err != nil && err != ErrNotAuthority { // TODO: this should be checked in the upper function
 			return err
 		}
 

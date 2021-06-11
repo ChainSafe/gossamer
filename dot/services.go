@@ -228,7 +228,6 @@ func createCoreService(cfg *Config, bp core.BlockProducer, verifier *babe.Verifi
 		Keystore:         ks,
 		Runtime:          rt,
 		IsBlockProducer:  cfg.Core.BabeAuthority,
-		Verifier:         verifier,
 		Network:          net,
 	}
 
@@ -392,6 +391,6 @@ func createSyncService(cfg *Config, st *state.Service, bp sync.BlockProducer, fg
 	return sync.NewService(syncCfg)
 }
 
-func createDigestHandler(st *state.Service, bp core.BlockProducer, verifier *babe.VerificationManager) (*core.DigestHandler, error) {
-	return core.NewDigestHandler(st.Block, st.Epoch, st.Grandpa, bp, verifier)
+func createDigestHandler(st *state.Service) (*core.DigestHandler, error) {
+	return core.NewDigestHandler(st.Block, st.Epoch, st.Grandpa)
 }

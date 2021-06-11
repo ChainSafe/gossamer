@@ -55,12 +55,6 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie
 	return gen, genTrie, genesisHeader
 }
 
-type mockVerifier struct{}
-
-func (v *mockVerifier) SetOnDisabled(_ uint32, _ *types.Header) error {
-	return nil
-}
-
 // mockBlockProducer implements the BlockProducer interface
 type mockBlockProducer struct {
 	disabled uint32
@@ -115,10 +109,6 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	if cfg.NewBlocks == nil {
 		cfg.NewBlocks = make(chan types.Block)
-	}
-
-	if cfg.Verifier == nil {
-		cfg.Verifier = new(mockVerifier)
 	}
 
 	cfg.LogLvl = 3

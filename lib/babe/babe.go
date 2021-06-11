@@ -59,7 +59,6 @@ type Service struct {
 	slotDuration time.Duration
 	epochData    *epochData
 	slotToProof  map[uint64]*VrfOutputAndProof // for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
-	isDisabled   bool
 
 	// Channels for inter-process communication
 	blockChan chan types.Block // send blocks to core service
@@ -129,18 +128,18 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		dev:              cfg.IsDev,
 	}
 
-	var err error
-	genCfg, err := babeService.rt.BabeConfiguration()
+	epoch, err := cfg.EpochState.GetCurrentEpoch()
 	if err != nil {
 		return nil, err
 	}
 
-	err = babeService.setEpochData(cfg, genCfg)
+	err = babeService.setEpochData(cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	logger.Debug("created service",
+		"epoch", epoch,
 		"block producer", cfg.Authority,
 		"slot duration", babeService.slotDuration,
 		"epoch length (slots)", babeService.epochLength,
@@ -152,54 +151,73 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 	return babeService, nil
 }
 
-func (b *Service) setEpochData(cfg *ServiceConfig, genCfg *types.BabeConfiguration) (err error) {
-	b.epochData = &epochData{
-		randomness: genCfg.Randomness,
+func (b *Service) setEpochData(cfg *ServiceConfig) (err error) {
+	b.epochData = &epochData{}
+
+	logger.Debug("setting BABE epoch data")
+	epochData, err := b.epochState.GetLatestEpochData()
+	if err != nil {
+		return err
+	}
+
+	configData, err := b.epochState.GetLatestConfigData()
+	if err != nil {
+		return err
 	}
 
 	// if slot duration is set via the config file, overwrite the runtime value
-	if cfg.SlotDuration > 0 {
+	// TODO: remove this, needs to be set via runtime
+	if cfg.SlotDuration > 0 && cfg.IsDev {
 		b.slotDuration, err = time.ParseDuration(fmt.Sprintf("%dms", cfg.SlotDuration))
+	} else if cfg.SlotDuration > 0 && !cfg.IsDev {
+		err = errors.New("slot duration modified in config for non-dev chain")
 	} else {
-		b.slotDuration, err = time.ParseDuration(fmt.Sprintf("%dms", genCfg.SlotDuration))
+		b.slotDuration, err = b.epochState.GetSlotDuration()
 	}
 	if err != nil {
 		return err
 	}
 
-	if cfg.AuthData == nil {
-		b.epochData.authorities, err = types.BABEAuthorityRawToAuthority(genCfg.GenesisAuthorities)
-		if err != nil {
-			return err
-		}
-	} else {
+	// TODO: remove this, needs to be set via runtime
+	if cfg.AuthData != nil && cfg.IsDev {
 		b.epochData.authorities = cfg.AuthData
-	}
-
-	if cfg.Authority {
-		b.epochData.authorityIndex, err = b.getAuthorityIndex(b.epochData.authorities)
-		if err != nil {
-			return err
-		}
-	}
-
-	if cfg.ThresholdDenominator == 0 {
-		b.epochData.threshold, err = CalculateThreshold(genCfg.C1, genCfg.C2, len(b.epochData.authorities))
+	} else if cfg.AuthData != nil && !cfg.IsDev {
+		return errors.New("authority data modified in config for non-dev chain")
 	} else {
-		b.epochData.threshold, err = CalculateThreshold(cfg.ThresholdNumerator, cfg.ThresholdDenominator, len(b.epochData.authorities))
+		b.epochData.authorities = epochData.Authorities
 	}
 
+	// TODO: remove this, needs to be set via runtime
+	if cfg.ThresholdDenominator != 0 && cfg.IsDev {
+		b.epochData.threshold, err = CalculateThreshold(cfg.ThresholdNumerator, cfg.ThresholdDenominator, len(b.epochData.authorities))
+	} else if cfg.ThresholdDenominator != 0 && !cfg.IsDev {
+		err = errors.New("threshold modified in config for non-dev chain")
+	} else {
+		b.epochData.threshold, err = CalculateThreshold(configData.C1, configData.C2, len(b.epochData.authorities))
+	}
 	if err != nil {
 		return err
 	}
 
-	if cfg.EpochLength > 0 {
+	// TODO: remove this, needs to be set via runtime
+	if cfg.EpochLength != 0 && cfg.IsDev {
 		b.epochLength = cfg.EpochLength
+	} else if cfg.EpochLength > 0 && !cfg.IsDev {
+		err = errors.New("epoch length modified in config for non-dev chain")
 	} else {
-		b.epochLength = genCfg.EpochLength
+		b.epochLength, err = b.epochState.GetEpochLength()
+	}
+	if err != nil {
+		return err
 	}
 
-	return nil
+	if !cfg.Authority {
+		return
+	}
+
+	b.epochData.authorityIndex, err = b.getAuthorityIndex(b.epochData.authorities)
+	b.epochData.randomness = epochData.Randomness
+	return err
 }
 
 // Start starts BABE block authoring
@@ -281,14 +299,6 @@ func (b *Service) SetRuntime(rt runtime.Instance) {
 // GetBlockChannel returns the channel where new blocks are passed
 func (b *Service) GetBlockChannel() <-chan types.Block {
 	return b.blockChan
-}
-
-// SetOnDisabled sets the block producer with the given index as disabled
-// If this is our node, we stop producing blocks
-func (b *Service) SetOnDisabled(authorityIndex uint32) { // TODO: remove this
-	if authorityIndex == b.epochData.authorityIndex {
-		b.isDisabled = true
-	}
 }
 
 // Authorities returns the current BABE authorities
@@ -439,7 +449,7 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) {
 				slotNum := startSlot + uint64(i)
 				err = b.handleSlot(slotNum)
 				if err == ErrNotAuthorized {
-					logger.Debug("not authorized to produce a block in this slot", "slot", slotNum, "slots into epoch", i)
+					logger.Debug("not authorized to produce a block in this slot", "slot", slotNum, "slots into epoch", uint64(i)+intoEpoch)
 					continue
 				} else if err != nil {
 					logger.Warn("failed to handle slot", "slot", slotNum, "error", err)
