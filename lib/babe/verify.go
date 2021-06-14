@@ -156,12 +156,12 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 		}
 
 		if !block1IsFinal {
-			// set first slot of network
-			var firstSlot uint64
-			firstSlot, err = types.GetSlotFromHeader(header)
+			firstSlot, err := types.GetSlotFromHeader(header)
 			if err != nil {
 				return fmt.Errorf("failed to get slot from block 1: %w", err)
 			}
+
+			logger.Debug("syncing block 1, setting first slot", "slot", firstSlot)
 
 			err = v.epochState.SetFirstSlot(firstSlot)
 			if err != nil {

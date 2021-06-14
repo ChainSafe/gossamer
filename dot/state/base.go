@@ -126,6 +126,7 @@ func (s *BaseState) loadSkipToEpoch() (uint64, error) {
 }
 
 func (s *BaseState) storeFirstSlot(slot uint64) error {
+	logger.Crit("setting first slot", "slot", slot)
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, slot)
 	return s.db.Put(firstSlotKey, buf)

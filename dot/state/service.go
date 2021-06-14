@@ -321,7 +321,6 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		return err
 	}
 
-	epoch.firstSlot = firstSlot
 	blockEpoch, err := epoch.GetEpochForBlock(header)
 	if err != nil {
 		return err

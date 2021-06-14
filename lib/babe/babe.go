@@ -377,32 +377,16 @@ func (b *Service) initiate(epoch uint64) {
 
 func (b *Service) invokeBlockAuthoring(epoch uint64) {
 	for {
+		err := b.initiateEpoch(epoch)
+		if err != nil {
+			logger.Error("failed to initiate epoch", "epoch", epoch, "error", err)
+			return
+		}
+
 		// get start slot for current epoch
 		epochStart, err := b.epochState.GetStartSlotForEpoch(epoch)
 		if err != nil {
 			logger.Error("failed to get start slot for current epoch", "epoch", epoch, "error", err)
-			return
-		}
-
-		// head, err := b.blockState.BestBlockHeader()
-		// if err != nil {
-		// 	logger.Error("failed to get best block header", "error", err)
-		// 	return
-		// }
-
-		// // if we're at genesis, set the first slot number for the network
-		// if head.Number.Cmp(big.NewInt(0)) == 0 {
-		// 	epochStart = getCurrentSlot(b.slotDuration)
-		// 	err = b.epochState.SetFirstSlot(epochStart)
-		// 	if err != nil {
-		// 		logger.Error("failed to set first slot number", "error", err)
-		// 		return
-		// 	}
-		// }
-
-		err = b.initiateEpoch(epoch)
-		if err != nil {
-			logger.Error("failed to initiate epoch", "epoch", epoch, "error", err)
 			return
 		}
 
@@ -429,7 +413,7 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) {
 		// we've been offline for more than an epoch, and need to sync. pause BABE for now, syncer will
 		// resume it when ready
 		if b.epochLength <= intoEpoch && !b.dev {
-			logger.Debug("pausing BABE, need to sync", "slots into epoch", intoEpoch, "startSlot", startSlot, "epochStart", epochStart)
+			logger.Debug("pausing BABE, need to sync", "slots into epoch", intoEpoch, "current slot", startSlot, "epoch start slot", epochStart)
 			b.paused = true
 			return
 		}
@@ -459,7 +443,7 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) {
 				slotNum := startSlot + uint64(i)
 				err = b.handleSlot(slotNum)
 				if err == ErrNotAuthorized {
-					logger.Debug("not authorized to produce a block in this slot", "epoch", epoch, "slot", slotNum, "slots into epoch", uint64(i)+intoEpoch)
+					logger.Debug("not authorized to produce a block in this slot", "epoch", epoch, "slot", slotNum, "slots into epoch", slotNum-epochStart)
 					continue
 				} else if err != nil {
 					logger.Warn("failed to handle slot", "slot", slotNum, "error", err)

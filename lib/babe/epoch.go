@@ -29,6 +29,8 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 		err       error
 	)
 
+	logger.Debug("initiating epoch", "epoch", epoch)
+
 	if epoch == 0 {
 		startSlot, err = b.epochState.GetStartSlotForEpoch(epoch)
 		if err != nil {
@@ -106,8 +108,10 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 
 			if proof != nil {
 				startSlot = i
+				break
 			}
 		}
+		logger.Debug("estimated first slot based on building block 1", "slot", startSlot)
 
 		// we are at genesis, set first slot by checking at which slot we will be able to produce block 1
 		err = b.epochState.SetFirstSlot(startSlot)

@@ -385,7 +385,7 @@ func (bs *BlockState) NumberIsFinalised(num *big.Int) (bool, error) {
 		return false, err
 	}
 
-	return num.Cmp(header.Number) >= 0, nil
+	return num.Cmp(header.Number) <= 0, nil
 }
 
 // GetFinalizedHeader returns the latest finalised block header

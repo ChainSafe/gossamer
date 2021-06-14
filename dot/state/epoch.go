@@ -59,7 +59,6 @@ type EpochState struct {
 	baseState   *BaseState
 	blockState  *BlockState
 	epochLength uint64 // measured in slots
-	firstSlot   uint64
 	skipToEpoch uint64
 }
 
@@ -86,7 +85,6 @@ func NewEpochStateFromGenesis(db chaindb.Database, genesisConfig *types.BabeConf
 		baseState:   NewBaseState(db),
 		db:          epochDB,
 		epochLength: genesisConfig.EpochLength,
-		firstSlot:   1,
 	}
 
 	auths, err := types.BABEAuthorityRawToAuthority(genesisConfig.GenesisAuthorities)
@@ -135,10 +133,10 @@ func NewEpochState(db chaindb.Database, blockState *BlockState) (*EpochState, er
 		return nil, err
 	}
 
-	firstSlot, err := baseState.loadFirstSlot()
-	if err != nil {
-		return nil, err
-	}
+	// firstSlot, err := baseState.loadFirstSlot()
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	skipToEpoch, err := baseState.loadSkipToEpoch()
 	if err != nil {
@@ -150,7 +148,6 @@ func NewEpochState(db chaindb.Database, blockState *BlockState) (*EpochState, er
 		blockState:  blockState,
 		db:          chaindb.NewTable(db, epochPrefix),
 		epochLength: epochLength,
-		firstSlot:   firstSlot,
 		skipToEpoch: skipToEpoch,
 	}, nil
 }
@@ -193,6 +190,11 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 		return 0, errors.New("header is nil")
 	}
 
+	firstSlot, err := s.baseState.loadFirstSlot()
+	if err != nil {
+		return 0, err
+	}
+
 	for _, d := range header.Digest {
 		if d.Type() != types.PreRuntimeDigestType {
 			continue
@@ -207,11 +209,11 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 			return 0, fmt.Errorf("failed to decode babe header: %w", err)
 		}
 
-		if digest.SlotNumber() < s.firstSlot {
+		if digest.SlotNumber() < firstSlot {
 			return 0, nil
 		}
 
-		return (digest.SlotNumber() - s.firstSlot) / s.epochLength, nil
+		return (digest.SlotNumber() - firstSlot) / s.epochLength, nil
 	}
 
 	return 0, errors.New("header does not contain pre-runtime digest")
@@ -319,7 +321,12 @@ func (s *EpochState) HasConfigData(epoch uint64) (bool, error) {
 // GetStartSlotForEpoch returns the first slot in the given epoch.
 // If 0 is passed as the epoch, it returns the start slot for the current epoch.
 func (s *EpochState) GetStartSlotForEpoch(epoch uint64) (uint64, error) {
-	return s.epochLength*epoch + s.firstSlot, nil
+	firstSlot, err := s.baseState.loadFirstSlot()
+	if err != nil {
+		return 0, err
+	}
+
+	return s.epochLength*epoch + firstSlot, nil
 }
 
 // SetFirstSlot sets the first slot number of the network
@@ -334,7 +341,6 @@ func (s *EpochState) SetFirstSlot(slot uint64) error {
 		return errors.New("first slot has already been set")
 	}
 
-	s.firstSlot = slot
 	return s.baseState.storeFirstSlot(slot)
 }
 
