@@ -102,6 +102,11 @@ func TestReadLEB128ToUint64(t *testing.T) {
 			input:  []byte("\xB9\x64"),
 			output: 12857,
 		},
+		{
+			input: []byte{'\xFF', '\xFF', '\xFF', '\xFF', '\xFF',
+				'\xFF', '\xFF', '\xFF', '\xFF', '\x01'},
+			output: 18446744073709551615,
+		},
 	}
 
 	for _, tc := range tests {
@@ -114,4 +119,16 @@ func TestReadLEB128ToUint64(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, tc.output, ret)
 	}
+}
+
+func TestInvalidLeb128(t *testing.T) {
+	input := []byte{'\xFF', '\xFF', '\xFF', '\xFF', '\xFF',
+		'\xFF', '\xFF', '\xFF', '\xFF', '\xFF', '\x01'}
+	b := make([]byte, 2)
+	buf := new(bytes.Buffer)
+	_, err := buf.Write(input)
+	require.NoError(t, err)
+
+	_, err = readLEB128ToUint64(buf, b[:1])
+	require.Error(t, err)
 }
