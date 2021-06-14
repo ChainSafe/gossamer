@@ -29,7 +29,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -66,7 +65,7 @@ type Service struct {
 	blockChan chan types.Block // send blocks to core service
 
 	// State variables
-	lock  sync.Mutex
+	sync.RWMutex
 	pause chan struct{}
 }
 
@@ -230,12 +229,10 @@ func (b *Service) Pause() error {
 		return errors.New("service already paused")
 	}
 
-	select {
-	case b.pause <- struct{}{}:
-		logger.Info("service paused")
-	default:
-	}
+	b.Lock()
+	defer b.Unlock()
 
+	b.pause <- struct{}{}
 	b.paused = true
 	return nil
 }
@@ -243,7 +240,7 @@ func (b *Service) Pause() error {
 // Resume resumes the service ie. resumes block production
 func (b *Service) Resume() error {
 	if !b.paused {
-		return errors.New("service not paused")
+		return nil
 	}
 
 	epoch, err := b.epochState.GetCurrentEpoch()
@@ -252,16 +249,19 @@ func (b *Service) Resume() error {
 		return err
 	}
 
-	go b.initiate(epoch)
+	b.Lock()
+	defer b.Unlock()
+
 	b.paused = false
-	logger.Info("service resumed")
+	go b.initiate(epoch)
+	logger.Info("service resumed", "epoch", epoch)
 	return nil
 }
 
 // Stop stops the service. If stop is called, it cannot be resumed.
 func (b *Service) Stop() error {
-	b.lock.Lock()
-	defer b.lock.Unlock()
+	b.Lock()
+	defer b.Unlock()
 
 	if b.ctx.Err() != nil {
 		return errors.New("service already stopped")
@@ -284,7 +284,7 @@ func (b *Service) GetBlockChannel() <-chan types.Block {
 
 // SetOnDisabled sets the block producer with the given index as disabled
 // If this is our node, we stop producing blocks
-func (b *Service) SetOnDisabled(authorityIndex uint32) {
+func (b *Service) SetOnDisabled(authorityIndex uint32) { // TODO: remove this
 	if authorityIndex == b.epochData.authorityIndex {
 		b.isDisabled = true
 	}
@@ -302,18 +302,14 @@ func (b *Service) IsStopped() bool {
 
 // IsPaused returns if the service is paused or not (ie. producing blocks)
 func (b *Service) IsPaused() bool {
+	b.RLock()
+	defer b.RUnlock()
 	return b.paused
 }
 
 func (b *Service) safeSend(msg types.Block) error {
-	defer func() {
-		if err := recover(); err != nil {
-			logger.Error("recovered from panic", "error", err)
-		}
-	}()
-
-	b.lock.Lock()
-	defer b.lock.Unlock()
+	b.Lock()
+	defer b.Unlock()
 
 	if b.IsStopped() {
 		return errors.New("service has been stopped")
@@ -444,7 +440,7 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) {
 }
 
 func (b *Service) handleSlot(slotNum uint64) error {
-	if b.slotToProof[slotNum] == nil {
+	if _, has := b.slotToProof[slotNum]; !has {
 		return ErrNotAuthorized
 	}
 
@@ -487,21 +483,13 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		return nil
 	}
 
-	old := ts.Snapshot()
-
-	// block built successfully, store resulting trie in storage state
-	oldTs, err := rtstorage.NewTrieState(old)
-	if err != nil {
-		return err
-	}
-
-	err = b.storageState.StoreTrie(oldTs, block.Header)
+	err = b.storageState.StoreTrie(ts, block.Header)
 	if err != nil {
 		logger.Error("failed to store trie in storage state", "error", err)
 	}
 
 	hash := block.Header.Hash()
-	logger.Info("built block", "hash", hash.String(), "number", block.Header.Number, "slot", slotNum)
+	logger.Info("built block", "hash", hash.String(), "number", block.Header.Number, "state root", block.Header.StateRoot, "slot", slotNum)
 	logger.Debug("built block", "header", block.Header, "body", block.Body, "parent", parent.Hash())
 
 	err = b.blockState.AddBlock(block)

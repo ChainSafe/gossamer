@@ -114,7 +114,7 @@ func NewFullNode(db, storageDB chaindb.Database, retainBlocks int64, l log.Logge
 		return nil, err
 	}
 
-	p.logger.Info("last pruned block", "block num", blockNum)
+	p.logger.Debug("last pruned block", "block num", blockNum)
 	blockNum++
 
 	p.pendingNumber = blockNum
@@ -201,7 +201,7 @@ func (p *FullNode) processInsertedKeys(insKeys []common.Hash, blockHash common.H
 }
 
 func (p *FullNode) start() {
-	p.logger.Info("pruning started")
+	p.logger.Debug("pruning started")
 
 	var canPrune bool
 	checkPruning := func() {

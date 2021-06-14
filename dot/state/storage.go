@@ -112,6 +112,8 @@ func (s *StorageState) pruneKey(keyHeader *types.Header) {
 // StoreTrie stores the given trie in the StorageState and writes it to the database
 func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) error {
 	s.lock.Lock()
+	defer s.lock.Unlock()
+
 	root := ts.MustRoot()
 	if s.syncing {
 		// keep only the trie at the head of the chain when syncing
@@ -120,7 +122,6 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 		}
 	}
 	s.tries[root] = ts.Trie()
-	s.lock.Unlock()
 
 	if _, ok := s.pruner.(*pruner.FullNode); header == nil && ok {
 		return fmt.Errorf("block cannot be empty for Full node pruner")
@@ -141,13 +142,12 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 
 	logger.Trace("cached trie in storage state", "root", root)
 
-	if err := ts.Trie().WriteDirty(s.db); err != nil {
+	if err := s.tries[root].WriteDirty(s.db); err != nil {
 		logger.Warn("failed to write trie to database", "root", root, "error", err)
 		return err
 	}
 
 	go s.notifyAll(root)
-
 	return nil
 }
 
@@ -178,15 +178,14 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		}
 	}
 
-	curr, err := rtstorage.NewTrieState(t)
+	nextTrie := t.Snapshot()
+	next, err := rtstorage.NewTrieState(nextTrie)
 	if err != nil {
 		return nil, err
 	}
 
-	s.lock.Lock()
-	s.tries[*root] = curr.Snapshot()
-	s.lock.Unlock()
-	return curr, nil
+	logger.Trace("returning trie to be modified", "root", root, "next", next.MustRoot())
+	return next, nil
 }
 
 // LoadFromDB loads an encoded trie from the DB where the key is `root`

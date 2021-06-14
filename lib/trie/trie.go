@@ -52,16 +52,14 @@ func NewTrie(root node) *Trie {
 
 // Snapshot created a copy of the trie.
 func (t *Trie) Snapshot() *Trie {
-	oldTrie := &Trie{
-		generation:  t.generation,
+	newTrie := &Trie{
+		generation:  t.generation + 1,
 		root:        t.root,
 		childTries:  t.childTries,
-		deletedKeys: t.deletedKeys,
+		deletedKeys: make([]common.Hash, 0),
 	}
 
-	t.generation++
-	t.deletedKeys = make([]common.Hash, 0)
-	return oldTrie
+	return newTrie
 }
 
 func (t *Trie) maybeUpdateGeneration(n node) node {
@@ -397,7 +395,7 @@ func (t *Trie) LoadFromMap(data map[string]string) error {
 
 // GetKeysWithPrefix returns all keys in the trie that have the given prefix
 func (t *Trie) GetKeysWithPrefix(prefix []byte) [][]byte {
-	p := []byte{}
+	var p []byte
 	if len(prefix) != 0 {
 		p = keyToNibbles(prefix)
 		if p[len(p)-1] == 0 {
