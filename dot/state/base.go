@@ -157,8 +157,8 @@ func (s *BaseState) loadPruningData() (pruner.Config, error) {
 		return pruner.Config{}, err
 	}
 
-	mode := &pruner.Config{}
-	err = json.Unmarshal(data, mode)
+	var mode pruner.Config
+	err = json.Unmarshal(data, &mode)
 
-	return *mode, err
+	return mode, err
 }
