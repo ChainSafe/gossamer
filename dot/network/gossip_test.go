@@ -29,7 +29,6 @@ import (
 func TestGossip(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping TestGossip; currently, nothing is gossiped")
-		return
 	}
 
 	basePathA := utils.NewTestBasePath(t, "nodeA")
