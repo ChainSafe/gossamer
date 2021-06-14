@@ -177,8 +177,6 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 
 	v.lock.Lock()
 
-	logger.Debug("got epoch for header", "header", header, "epoch", epoch)
-
 	if info, has = v.epochInfo[epoch]; !has {
 		info, err = v.getVerifierInfo(epoch)
 		if err != nil {
@@ -202,58 +200,12 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 
 	v.lock.Unlock()
 
-	// TODO: fix and re-add this, seems like we are disabling authorities that aren't actually disabled
-	// isDisabled, err := v.isDisabled(epoch, header)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to check if authority is disabled: %w", err)
-	// }
-
-	// if isDisabled {
-	// 	return ErrAuthorityDisabled
-	// }
-
 	verifier, err := newVerifier(v.blockState, epoch, info)
 	if err != nil {
 		return fmt.Errorf("failed to create new BABE verifier: %w", err)
 	}
 
 	return verifier.verifyAuthorshipRight(header)
-}
-
-func (v *VerificationManager) isDisabled(epoch uint64, header *types.Header) (bool, error) { //nolint
-	v.lock.RLock()
-	defer v.lock.RUnlock()
-
-	// check if any authorities have been disabled this epoch
-	if _, has := v.onDisabled[epoch]; !has {
-		return false, nil
-	}
-
-	// if authorities have been disabled, check which ones
-	idx, err := getAuthorityIndex(header)
-	if err != nil {
-		return false, err
-	}
-
-	if _, has := v.onDisabled[epoch][idx]; !has {
-		return false, nil
-	}
-
-	// this authority has been disabled on some branch, check if we are on that branch
-	producerInfos := v.onDisabled[epoch][idx]
-	for _, info := range producerInfos {
-		isDescendant, err := v.blockState.IsDescendantOf(info.blockHash, header.ParentHash)
-		if err != nil {
-			return false, err
-		}
-
-		if isDescendant && header.Number.Cmp(info.blockNumber) > 0 {
-			// this authority has been disabled on this branch
-			return true, nil
-		}
-	}
-
-	return false, nil
 }
 
 func (v *VerificationManager) getVerifierInfo(epoch uint64) (*verifierInfo, error) {

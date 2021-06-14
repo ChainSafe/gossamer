@@ -147,7 +147,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		return nil, err
 	}
 
-	initialWaitTime = babeService.slotDuration * 3
+	initialWaitTime = babeService.slotDuration * 5
 
 	logger.Debug("created service",
 		"epoch", epoch,
@@ -232,16 +232,14 @@ func (b *Service) setEpochData(cfg *ServiceConfig) (err error) {
 
 // Start starts BABE block authoring
 func (b *Service) Start() error {
+	if !b.authority {
+		return nil
+	}
+
 	// wait a bit to check if we need to sync before initiating
 	time.Sleep(initialWaitTime)
 
-	epoch, err := b.epochState.GetCurrentEpoch()
-	if err != nil {
-		logger.Error("failed to get current epoch", "error", err)
-		return err
-	}
-
-	go b.initiate(epoch)
+	go b.initiate()
 	return nil
 }
 
@@ -278,20 +276,18 @@ func (b *Service) Resume() error {
 		return nil
 	}
 
-	epoch, err := b.epochState.GetCurrentEpoch()
-	if err != nil {
-		logger.Error("failed to get current epoch", "error", err)
-		return err
-	}
-
 	b.paused = false
-	go b.initiate(epoch)
-	logger.Info("service resumed", "epoch", epoch)
+	go b.initiate()
+	logger.Info("service resumed")
 	return nil
 }
 
 // Stop stops the service. If stop is called, it cannot be resumed.
 func (b *Service) Stop() error {
+	if !b.authority {
+		return nil
+	}
+
 	b.Lock()
 	defer b.Unlock()
 
@@ -363,7 +359,7 @@ func (b *Service) getSlotDuration() time.Duration {
 	return b.slotDuration
 }
 
-func (b *Service) initiate(epoch uint64) {
+func (b *Service) initiate() {
 	if b.blockState == nil {
 		logger.Error("block authoring", "error", "blockState is nil")
 		return
@@ -374,15 +370,23 @@ func (b *Service) initiate(epoch uint64) {
 		return
 	}
 
-	err := b.invokeBlockAuthoring(epoch)
+	err := b.invokeBlockAuthoring()
 	if err != nil {
 		logger.Crit("block authoring error", "error", err)
 	}
 }
 
-func (b *Service) invokeBlockAuthoring(epoch uint64) error {
+func (b *Service) invokeBlockAuthoring() error {
 	for {
-		err := b.initiateEpoch(epoch)
+		// get current epoch; this assumed we have synced up until the same epoch as the rest of the network
+		// if we haven't, BABE will get paused
+		epoch, err := b.epochState.GetCurrentEpoch()
+		if err != nil {
+			logger.Error("failed to get current epoch", "error", err)
+			return err
+		}
+
+		err = b.initiateEpoch(epoch)
 		if err != nil {
 			logger.Error("failed to initiate epoch", "epoch", epoch, "error", err)
 			return err
@@ -403,9 +407,9 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) error {
 		// resume it when ready
 		if b.epochLength <= intoEpoch && !b.dev {
 			logger.Debug("pausing BABE, need to sync",
-				"slots into epoch", intoEpoch,
-				"current slot", startSlot,
-				"epoch start slot", epochStartSlot,
+				"slots into epoch",
+				intoEpoch, "startSlot",
+				startSlot, "epochStart", epochStartSlot,
 			)
 			go func() {
 				<-b.pause
@@ -431,10 +435,6 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) error {
 			case <-b.pause:
 				return nil
 			case <-slotDone[i]:
-				if !b.authority {
-					continue
-				}
-
 				slotNum := startSlot + uint64(i)
 				err = b.handleSlot(slotNum)
 				if err == ErrNotAuthorized {

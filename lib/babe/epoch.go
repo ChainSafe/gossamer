@@ -111,10 +111,6 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 		}
 	}
 
-	if !b.authority {
-		return nil
-	}
-
 	logger.Info("initiating epoch", "epoch", epoch, "start slot", startSlot)
 
 	for i := startSlot; i < startSlot+b.epochLength; i++ {
