@@ -351,22 +351,25 @@ func (b *Service) initiate(epoch uint64) {
 		return
 	}
 
-	b.invokeBlockAuthoring(epoch)
+	err := b.invokeBlockAuthoring(epoch)
+	if err != nil {
+		logger.Crit("block authoring error", "error", err)
+	}
 }
 
-func (b *Service) invokeBlockAuthoring(epoch uint64) {
+func (b *Service) invokeBlockAuthoring(epoch uint64) error {
 	for {
 		// get start slot for current epoch
 		epochStart, err := b.epochState.GetStartSlotForEpoch(epoch)
 		if err != nil {
 			logger.Error("failed to get start slot for current epoch", "epoch", epoch, "error", err)
-			return
+			return err
 		}
 
 		head, err := b.blockState.BestBlockHeader()
 		if err != nil {
 			logger.Error("failed to get best block header", "error", err)
-			return
+			return err
 		}
 
 		// if we're at genesis, set the first slot number for the network
@@ -375,7 +378,7 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) {
 			err = b.epochState.SetFirstSlot(epochStart)
 			if err != nil {
 				logger.Error("failed to set first slot number", "error", err)
-				return
+				return err
 			}
 		}
 
@@ -383,7 +386,7 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) {
 		err = b.initiateEpoch(epoch)
 		if err != nil {
 			logger.Error("failed to initiate epoch", "epoch", epoch, "error", err)
-			return
+			return err
 		}
 
 		epochStartTime := getSlotStartTime(epochStart, b.slotDuration)
@@ -395,9 +398,9 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) {
 			select {
 			case <-time.After(time.Until(epochStartTime)):
 			case <-b.ctx.Done():
-				return
+				return nil
 			case <-b.pause:
-				return
+				return nil
 			}
 		}
 
@@ -410,8 +413,10 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) {
 		// resume it when ready
 		if b.epochLength <= intoEpoch && !b.dev {
 			logger.Debug("pausing BABE, need to sync", "slots into epoch", intoEpoch, "startSlot", startSlot, "epochStart", epochStart)
-			b.paused = true
-			return
+			go func() {
+				<-b.pause
+			}()
+			return b.Pause()
 		}
 
 		if b.dev {
@@ -428,9 +433,9 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) {
 		for i := 0; i < int(b.epochLength-intoEpoch); i++ {
 			select {
 			case <-b.ctx.Done():
-				return
+				return nil
 			case <-b.pause:
-				return
+				return nil
 			case <-slotDone[i]:
 				if !b.authority {
 					continue
@@ -452,7 +457,7 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) {
 		next, err := b.incrementEpoch()
 		if err != nil {
 			logger.Error("failed to increment epoch", "error", err)
-			return
+			return err
 		}
 
 		logger.Info("epoch complete!", "completed epoch", epoch, "upcoming epoch", next)
