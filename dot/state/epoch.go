@@ -155,10 +155,12 @@ func NewEpochState(db chaindb.Database, blockState *BlockState) (*EpochState, er
 	}, nil
 }
 
+// GetEpochLength returns the length of an epoch in slots
 func (s *EpochState) GetEpochLength() (uint64, error) {
 	return s.baseState.loadEpochLength()
 }
 
+// GetSlotDuration returns the duration of a slot
 func (s *EpochState) GetSlotDuration() (time.Duration, error) {
 	d, err := s.baseState.loadSlotDuration()
 	if err != nil {
@@ -298,6 +300,7 @@ func (s *EpochState) GetConfigData(epoch uint64) (*types.ConfigData, error) {
 	return info.(*types.ConfigData), nil
 }
 
+// GetLatestConfigData returns the most recently set ConfigData
 func (s *EpochState) GetLatestConfigData() (*types.ConfigData, error) {
 	b, err := s.db.Get(latestConfigDataKey)
 	if err != nil {

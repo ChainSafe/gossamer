@@ -18,8 +18,7 @@ package babe
 
 import (
 	"fmt"
-
-	"github.com/ChainSafe/gossamer/dot/types"
+	//"github.com/ChainSafe/gossamer/dot/types"
 )
 
 // initiateEpoch sets the epochData for the given epoch, runs the lottery for the slots in the epoch,
@@ -41,20 +40,12 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 			return err
 		}
 
-		var data *types.EpochData
 		if !has {
-			// data = &types.EpochData{
-			// 	Randomness:  b.epochData.randomness,
-			// 	Authorities: b.epochData.authorities,
-			// }
-
-			// err = b.epochState.SetEpochData(epoch, data)
 			logger.Crit("no epoch data for next BABE epoch", "epoch", epoch)
 			return errNoEpochData
-		} else {
-			data, err = b.epochState.GetEpochData(epoch)
 		}
 
+		data, err := b.epochState.GetEpochData(epoch)
 		if err != nil {
 			return err
 		}
@@ -99,9 +90,26 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 		if err != nil {
 			return err
 		}
-	} else if b.blockState.BestBlockHash() == b.blockState.GenesisHash() {
-		// we are at genesis, set first slot using current time
+	}
+
+	// if we're at genesis, we need to determine when the first slot of the network will be
+	// by checking when we will be able to produce block 1.
+	// note that this assumes there will only be one producer of block 1
+	if b.blockState.BestBlockHash() == b.blockState.GenesisHash() {
 		startSlot = getCurrentSlot(b.slotDuration)
+
+		for i := startSlot; i < startSlot+b.epochLength; i++ {
+			proof, err := b.runLottery(i, epoch) //nolint
+			if err != nil {
+				return fmt.Errorf("error running slot lottery at slot %d: error %s", i, err)
+			}
+
+			if proof != nil {
+				startSlot = i
+			}
+		}
+
+		// we are at genesis, set first slot by checking at which slot we will be able to produce block 1
 		err = b.epochState.SetFirstSlot(startSlot)
 		if err != nil {
 			return err
@@ -112,7 +120,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 		return nil
 	}
 
-	logger.Debug("initiating epoch", "epoch", epoch, "start slot", startSlot)
+	logger.Info("initiating epoch", "epoch", epoch, "start slot", startSlot)
 
 	for i := startSlot; i < startSlot+b.epochLength; i++ {
 		if epoch > 0 {

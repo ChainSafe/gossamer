@@ -42,17 +42,6 @@ func newEpochStateFromGenesis(t *testing.T) *EpochState {
 	return s
 }
 
-func TestLoadStoreEpochLength(t *testing.T) {
-	db := NewInMemoryDB(t)
-	length := uint64(2222)
-	err := storeEpochLength(db, length)
-	require.NoError(t, err)
-
-	ret, err := loadEpochLength(db)
-	require.NoError(t, err)
-	require.Equal(t, length, ret)
-}
-
 func TestNewEpochStateFromGenesis(t *testing.T) {
 	_ = newEpochStateFromGenesis(t)
 }

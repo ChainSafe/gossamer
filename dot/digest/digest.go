@@ -424,7 +424,7 @@ func newGrandpaChange(raw []*types.GrandpaAuthoritiesRaw, delay uint32, currBloc
 	}, nil
 }
 
-func (h *Handler) handleBABEOnDisabled(d *types.ConsensusDigest, header *types.Header) error {
+func (h *Handler) handleBABEOnDisabled(d *types.ConsensusDigest, _ *types.Header) error {
 	od := &types.BABEOnDisabled{}
 	dec, err := scale.Decode(d.Data[1:], od)
 	if err != nil {
@@ -433,13 +433,6 @@ func (h *Handler) handleBABEOnDisabled(d *types.ConsensusDigest, header *types.H
 	od = dec.(*types.BABEOnDisabled)
 
 	logger.Debug("handling BABEOnDisabled", "data", od)
-
-	// err = h.verifier.SetOnDisabled(od.ID, header)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// h.babe.SetOnDisabled(od.ID)
 	return nil
 }
 

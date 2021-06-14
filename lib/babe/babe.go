@@ -21,7 +21,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/big"
 	"os"
 	"sync"
 	"time"
@@ -34,7 +33,7 @@ import (
 
 var (
 	logger          log.Logger
-	initialWaitTime = time.Duration(time.Second * 12)
+	initialWaitTime = time.Second * 12 // TODO: set to slotDuration * 2
 )
 
 // Service contains the VRF keys for the validator, as well as BABE configuation data
@@ -385,23 +384,22 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) {
 			return
 		}
 
-		head, err := b.blockState.BestBlockHeader()
-		if err != nil {
-			logger.Error("failed to get best block header", "error", err)
-			return
-		}
+		// head, err := b.blockState.BestBlockHeader()
+		// if err != nil {
+		// 	logger.Error("failed to get best block header", "error", err)
+		// 	return
+		// }
 
-		// if we're at genesis, set the first slot number for the network
-		if head.Number.Cmp(big.NewInt(0)) == 0 {
-			epochStart = getCurrentSlot(b.slotDuration)
-			err = b.epochState.SetFirstSlot(epochStart)
-			if err != nil {
-				logger.Error("failed to set first slot number", "error", err)
-				return
-			}
-		}
+		// // if we're at genesis, set the first slot number for the network
+		// if head.Number.Cmp(big.NewInt(0)) == 0 {
+		// 	epochStart = getCurrentSlot(b.slotDuration)
+		// 	err = b.epochState.SetFirstSlot(epochStart)
+		// 	if err != nil {
+		// 		logger.Error("failed to set first slot number", "error", err)
+		// 		return
+		// 	}
+		// }
 
-		logger.Info("initiating epoch", "number", epoch, "first slot of epoch", epochStart)
 		err = b.initiateEpoch(epoch)
 		if err != nil {
 			logger.Error("failed to initiate epoch", "epoch", epoch, "error", err)
