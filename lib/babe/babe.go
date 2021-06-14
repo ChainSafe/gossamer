@@ -402,9 +402,9 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) error {
 		// we've been offline for more than an epoch, and need to sync. pause BABE for now, syncer will
 		// resume it when ready
 		if b.epochLength <= intoEpoch && !b.dev {
-			logger.Debug("pausing BABE, need to sync", 
-				"slots into epoch", intoEpoch, 
-				"current slot", startSlot, 
+			logger.Debug("pausing BABE, need to sync",
+				"slots into epoch", intoEpoch,
+				"current slot", startSlot,
 				"epoch start slot", epochStartSlot,
 			)
 			go func() {
@@ -438,9 +438,9 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) error {
 				slotNum := startSlot + uint64(i)
 				err = b.handleSlot(slotNum)
 				if err == ErrNotAuthorized {
-					logger.Debug("not authorized to produce a block in this slot", 
-						"epoch", epoch, 
-						"slot", slotNum, 
+					logger.Debug("not authorized to produce a block in this slot",
+						"epoch", epoch,
+						"slot", slotNum,
 						"slots into epoch", slotNum-epochStartSlot,
 					)
 					continue
