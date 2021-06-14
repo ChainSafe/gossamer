@@ -317,3 +317,54 @@ func TestResult_Set(t *testing.T) {
 		})
 	}
 }
+
+// func TestNilOk(t *testing.T) {
+// 	mr := MyResult{}
+// 	mr.SetOk(nil)
+// 	bytes, err := Marshal(mr)
+// 	if err != nil {
+// 		t.Errorf("%v", err)
+// 		return
+// 	}
+
+// 	if !reflect.DeepEqual([]byte{0x00}, bytes) {
+// 		t.Errorf("unexpected bytes: %v", bytes)
+// 	}
+
+// 	mr1 := MyResult{}
+// 	mr1.SetErr(true)
+// 	bytes, err = Marshal(mr1)
+// 	if err != nil {
+// 		t.Errorf("%v", err)
+// 		return
+// 	}
+
+// 	if !reflect.DeepEqual([]byte{0x01, 0x01}, bytes) {
+// 		t.Errorf("unexpected bytes: %v", bytes)
+// 	}
+// }
+
+// func TestBothNil(t *testing.T) {
+// 	mr := MyResult{}
+// 	mr.SetOk(nil)
+// 	bytes, err := Marshal(mr)
+// 	if err != nil {
+// 		t.Errorf("%v", err)
+// 		return
+// 	}
+
+// 	if !reflect.DeepEqual([]byte{0x00}, bytes) {
+// 		t.Errorf("unexpected bytes: %v", bytes)
+// 	}
+
+// 	mr1 := MyResult{}
+// 	mr1.SetErr(nil)
+// 	bytes, err = Marshal(mr1)
+// 	if err != nil {
+// 		t.Errorf("%v", err)
+// 		return
+// 	}
+// 	if !reflect.DeepEqual([]byte{0x01, 0x01}, bytes) {
+// 		t.Errorf("unexpected bytes: %v", bytes)
+// 	}
+// }
