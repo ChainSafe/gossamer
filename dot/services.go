@@ -22,8 +22,6 @@ import (
 	"path/filepath"
 
 	"github.com/ChainSafe/chaindb"
-	"github.com/ChainSafe/gossamer/dot/state/pruner"
-
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/rpc"
@@ -58,13 +56,6 @@ func createStateService(cfg *Config) (*state.Service, error) {
 	config := state.Config{
 		Path:     cfg.Global.BasePath,
 		LogLevel: cfg.Log.StateLvl,
-		Pruning: struct {
-			Mode              pruner.Mode
-			NumRetainedBlocks int64
-		}{
-			Mode:              cfg.Global.Pruning,
-			NumRetainedBlocks: cfg.Global.RetainBlocks,
-		},
 	}
 
 	stateSrvc := state.NewService(config)

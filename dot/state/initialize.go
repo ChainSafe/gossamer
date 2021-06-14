@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -88,7 +89,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 	}
 
 	// create storage state from genesis trie
-	storageState, err := NewStorageState(db, blockState, t, "", 0)
+	storageState, err := NewStorageState(db, blockState, t, pruner.Config{})
 	if err != nil {
 		return fmt.Errorf("failed to create storage state from trie: %s", err)
 	}
@@ -171,6 +172,10 @@ func (s *Service) storeInitialValues(data *genesis.Data, header *types.Header, t
 	// write genesis data to state database
 	if err := s.Base.StoreGenesisData(data); err != nil {
 		return fmt.Errorf("failed to write genesis data to database: %s", err)
+	}
+
+	if err := s.Base.storePruningData(s.PrunerCfg); err != nil {
+		return fmt.Errorf("failed to write pruning data to database: %s", err)
 	}
 
 	return nil

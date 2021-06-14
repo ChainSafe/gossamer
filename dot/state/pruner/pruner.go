@@ -38,6 +38,12 @@ func (p Mode) IsValid() bool {
 	}
 }
 
+// Config holds state trie pruning mode and retained blocks
+type Config struct {
+	Mode           Mode
+	RetainedBlocks int64
+}
+
 // Pruner is implemented by FullNode and ArchiveNode.
 type Pruner interface {
 	StoreJournalRecord(deleted, inserted []common.Hash, blockHash common.Hash, blockNum int64) error

@@ -476,8 +476,8 @@ func setDotGlobalConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) {
 		cfg.MetricsPort = uint32(metricsPort)
 	}
 
-	cfg.RetainBlocks = ctx.GlobalInt64(RetainBlockNumberFlag.Name)
-	cfg.Pruning = pruner.Mode(ctx.GlobalString(Pruning.Name))
+	cfg.RetainBlocks = ctx.Int64(RetainBlockNumberFlag.Name)
+	cfg.Pruning = pruner.Mode(ctx.String(PruningFlag.Name))
 	cfg.NoTelemetry = ctx.Bool("no-telemetry")
 }
 

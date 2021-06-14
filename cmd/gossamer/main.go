@@ -38,7 +38,7 @@ const (
 	importRuntimeCommandName = "import-runtime"
 	importStateCommandName   = "import-state"
 	pruningStateCommandName  = "prune-state"
-	defaultRetainBlocks      = 256
+	defaultRetainBlocks      = 512
 )
 
 // app is the cli application
@@ -236,14 +236,6 @@ func gossamerAction(ctx *cli.Context) error {
 		return err
 	}
 
-	if cfg.Global.RetainBlocks < defaultRetainBlocks {
-		return fmt.Errorf("--%s cannot be less than %d", RetainBlockNumberFlag.Name, defaultRetainBlocks)
-	}
-
-	if !cfg.Global.Pruning.IsValid() {
-		return fmt.Errorf("--%s must be either %s or %s", pruner.Full, pruner.Archive, Pruning.Name)
-	}
-
 	cfg.Global.LogLvl = lvl
 
 	// expand data directory and update node configuration (performed separately
@@ -343,6 +335,18 @@ func initAction(ctx *cli.Context) error {
 	// expand data directory and update node configuration (performed separately
 	// from createDotConfig because dot config should not include expanded path)
 	cfg.Global.BasePath = utils.ExpandDir(cfg.Global.BasePath)
+
+	mode := pruner.Mode(ctx.String(PruningFlag.Name))
+	if !mode.IsValid() {
+		return fmt.Errorf("--%s must be either %s or %s", PruningFlag.Name, pruner.Full, pruner.Archive)
+	}
+	cfg.Global.Pruning = mode
+
+	rb := ctx.Int64(RetainBlockNumberFlag.Name)
+	if rb < defaultRetainBlocks {
+		return fmt.Errorf("--%s cannot be less than %d", RetainBlockNumberFlag.Name, defaultRetainBlocks)
+	}
+	cfg.Global.RetainBlocks = rb
 
 	// check if node has been initialised (expected false - no warning log)
 	if dot.NodeInitialized(cfg.Global.BasePath, false) {
@@ -451,7 +455,7 @@ func pruneState(ctx *cli.Context) error {
 	}
 
 	bloomSize := ctx.GlobalUint64(BloomFilterSizeFlag.Name)
-	retainBlocks := ctx.GlobalInt64(RetainBlockNumberFlag.Name)
+	retainBlocks := ctx.Int64(RetainBlockNumberFlag.Name)
 
 	pruner, err := state.NewOfflinePruner(inputDBPath, prunedDBPath, bloomSize, retainBlocks)
 	if err != nil {

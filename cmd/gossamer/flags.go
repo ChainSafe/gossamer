@@ -283,15 +283,15 @@ var (
 	RetainBlockNumberFlag = cli.IntFlag{
 		Name:  "retain-blocks",
 		Usage: "Retain number of block from latest block while pruning",
-		Value: 256,
+		Value: 512,
 	}
 
-	// Pruning triggers the online pruning of historical state tries. It's either full or archive. To enable pruning the value
+	// PruningFlag triggers the online pruning of historical state tries. It's either full or archive. To enable pruning the value
 	// should be set to `full`.
-	Pruning = cli.StringFlag{
+	PruningFlag = cli.StringFlag{
 		Name:  "pruning",
 		Usage: `State trie online pruning ("full", "archive")`,
-		Value: "full",
+		Value: "archive",
 	}
 )
 
@@ -309,8 +309,6 @@ var (
 		RewindFlag,
 		DBPathFlag,
 		BloomFilterSizeFlag,
-		RetainBlockNumberFlag,
-		Pruning,
 	}
 
 	// StartupFlags are flags that are valid for use with the root command and the export subcommand
@@ -355,6 +353,8 @@ var (
 	InitFlags = append([]cli.Flag{
 		ForceFlag,
 		GenesisFlag,
+		PruningFlag,
+		RetainBlockNumberFlag,
 	}, GlobalFlags...)
 
 	BuildSpecFlags = append([]cli.Flag{

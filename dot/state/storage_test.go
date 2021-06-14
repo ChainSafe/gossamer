@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -16,7 +17,7 @@ func newTestStorageState(t *testing.T) *StorageState {
 	db := NewInMemoryDB(t)
 	bs := newTestBlockState(t, testGenesisHeader)
 
-	s, err := NewStorageState(db, bs, trie.NewEmptyTrie(), "", 0)
+	s, err := NewStorageState(db, bs, trie.NewEmptyTrie(), pruner.Config{})
 	require.NoError(t, err)
 	return s
 }

@@ -164,12 +164,9 @@ func TestService_StorageTriePruning(t *testing.T) {
 	config := Config{
 		Path:     testDir,
 		LogLevel: log.LvlInfo,
-		Pruning: struct {
-			Mode              pruner.Mode
-			NumRetainedBlocks int64
-		}{
-			Mode:              pruner.Full,
-			NumRetainedBlocks: int64(retainBlocks),
+		PrunerCfg: pruner.Config{
+			Mode:           pruner.Full,
+			RetainedBlocks: int64(retainBlocks),
 		},
 	}
 	serv := NewService(config)

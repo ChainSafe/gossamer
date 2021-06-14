@@ -54,18 +54,14 @@ type Service struct {
 	BabeThresholdDenominator uint64
 
 	// Below are for state trie online pruner
-	retainBlocks int64
-	pruningMode  pruner.Mode
+	PrunerCfg pruner.Config
 }
 
 // Config is the default configuration used by state service.
 type Config struct {
-	Path     string
-	LogLevel log.Lvl
-	Pruning  struct {
-		Mode              pruner.Mode
-		NumRetainedBlocks int64
-	}
+	Path      string
+	LogLevel  log.Lvl
+	PrunerCfg pruner.Config
 }
 
 // NewService create a new instance of Service
@@ -75,15 +71,14 @@ func NewService(config Config) *Service {
 	logger.SetHandler(log.LvlFilterHandler(config.LogLevel, handler))
 
 	return &Service{
-		dbPath:       config.Path,
-		logLvl:       config.LogLevel,
-		db:           nil,
-		isMemDB:      false,
-		Storage:      nil,
-		Block:        nil,
-		closeCh:      make(chan interface{}),
-		pruningMode:  config.Pruning.Mode,
-		retainBlocks: config.Pruning.NumRetainedBlocks,
+		dbPath:    config.Path,
+		logLvl:    config.LogLevel,
+		db:        nil,
+		isMemDB:   false,
+		Storage:   nil,
+		Block:     nil,
+		closeCh:   make(chan interface{}),
+		PrunerCfg: config.PrunerCfg,
 	}
 }
 
@@ -157,8 +152,13 @@ func (s *Service) Start() error {
 		s.Block.bt = blocktree.NewBlockTreeFromRoot(lastFinalised, db)
 	}
 
+	pruner, err := s.Base.loadPruningData()
+	if err != nil {
+		return err
+	}
+
 	// create storage state
-	s.Storage, err = NewStorageState(db, s.Block, trie.NewEmptyTrie(), s.pruningMode, s.retainBlocks)
+	s.Storage, err = NewStorageState(db, s.Block, trie.NewEmptyTrie(), pruner)
 	if err != nil {
 		return fmt.Errorf("failed to create storage state: %w", err)
 	}

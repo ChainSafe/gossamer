@@ -57,7 +57,7 @@ type StorageState struct {
 }
 
 // NewStorageState creates a new StorageState backed by the given trie and database located at basePath.
-func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie, pruningMode pruner.Mode, retainBlocks int64) (*StorageState, error) {
+func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie, onlinePruner pruner.Config) (*StorageState, error) {
 	if db == nil {
 		return nil, fmt.Errorf("cannot have nil database")
 	}
@@ -72,9 +72,9 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie, 
 	storageTable := chaindb.NewTable(db, storagePrefix)
 
 	var p pruner.Pruner
-	if pruningMode == pruner.Full {
+	if onlinePruner.Mode == pruner.Full {
 		var err error
-		p, err = pruner.NewFullNode(db, storageTable, retainBlocks, logger)
+		p, err = pruner.NewFullNode(db, storageTable, onlinePruner.RetainedBlocks, logger)
 		if err != nil {
 			return nil, err
 		}

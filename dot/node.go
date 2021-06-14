@@ -31,6 +31,7 @@ import (
 	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -93,6 +94,13 @@ func InitNode(cfg *Config) error {
 	config := state.Config{
 		Path:     cfg.Global.BasePath,
 		LogLevel: cfg.Global.LogLvl,
+		PrunerCfg: struct {
+			Mode           pruner.Mode
+			RetainedBlocks int64
+		}{
+			Mode:           cfg.Global.Pruning,
+			RetainedBlocks: cfg.Global.RetainBlocks,
+		},
 	}
 
 	// create new state service

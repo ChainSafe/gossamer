@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -62,7 +63,7 @@ func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64, retain
 	}
 
 	// load storage state
-	storageState, err := NewStorageState(db, blockState, trie.NewEmptyTrie(), "", 0)
+	storageState, err := NewStorageState(db, blockState, trie.NewEmptyTrie(), pruner.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new storage state %w", err)
 	}
