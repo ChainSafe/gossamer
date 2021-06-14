@@ -79,15 +79,30 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 				err = es.marshal(elem.Interface())
 			}
 		case reflect.Struct:
+			// fmt.Println("in here!")
 			t := reflect.TypeOf(in)
-			// check if this is a convertible to VaryingDataType, if so encode using encodeVaryingDataType
-			switch t.ConvertibleTo(reflect.TypeOf(Result{})) {
+			field, ok := t.FieldByName("Result")
+			switch ok {
 			case true:
-				resv := reflect.ValueOf(in).Convert(reflect.TypeOf(Result{}))
-				err = es.encodeResult(resv.Interface().(Result))
-			case false:
+				if !field.Type.ConvertibleTo(reflect.TypeOf(Result{})) {
+					err = fmt.Errorf("%T is not a Result", in)
+					return
+				}
+				res := reflect.ValueOf(in).FieldByName("Result").Interface().(Result)
+				// fmt.Println("yao!", res)
+				err = es.encodeResult(res)
+			default:
 				err = es.encodeStruct(in)
 			}
+
+			// check if this is a type with an embedded Result, aka a registered result
+			// switch t.ConvertibleTo(reflect.TypeOf(Result{})) {
+			// case true:
+			// 	resv := reflect.ValueOf(in).Convert(reflect.TypeOf(Result{}))
+			// 	err = es.encodeResult(resv.Interface().(Result))
+			// case false:
+			// 	err = es.encodeStruct(in)
+			// }
 
 		case reflect.Array:
 			err = es.encodeArray(in)
@@ -148,7 +163,7 @@ func (es *encodeState) encodeResult(res Result) (err error) {
 		return
 	}
 
-	switch res.Ok {
+	switch res.ok {
 	case nil:
 		// error case
 		err = es.WriteByte(1)
@@ -157,15 +172,19 @@ func (es *encodeState) encodeResult(res Result) (err error) {
 		}
 		// TODO: type checking of res.Err against resultCache to ensure Err is same as
 		// registered type
-		err = es.marshal(res.Err)
+		if *res.err != nil {
+			err = es.marshal(*res.err)
+		}
 	default:
 		err = es.WriteByte(0)
 		if err != nil {
 			break
 		}
-		// TODO: type checking of res.Ok against resultCache to ensure Err is same as
+		// TODO: type checking of res.Ok against resultCache to ensure ok is same as
 		// registered type
-		err = es.marshal(res.Ok)
+		if *res.ok != nil {
+			err = es.marshal(*res.ok)
+		}
 	}
 	return
 }
