@@ -100,13 +100,7 @@ func (s *StorageState) pruneKey(keyHeader *types.Header) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	_, ok := s.tries[keyHeader.StateRoot]
-	if !ok {
-		return
-	}
-
 	delete(s.tries, keyHeader.StateRoot)
-	// TODO: database pruning needs to be refactored since the trie is now stored by nodes
 }
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database

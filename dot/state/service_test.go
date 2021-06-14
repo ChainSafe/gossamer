@@ -27,7 +27,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
@@ -190,12 +189,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 		err = serv.Storage.blockState.AddBlock(block)
 		require.NoError(t, err)
 
-		old := trieState.Snapshot()
-
-		oldTs, err := rtstorage.NewTrieState(old)
-		require.NoError(t, err)
-
-		err = serv.Storage.StoreTrie(oldTs, block.Header)
+		err = serv.Storage.StoreTrie(trieState, block.Header)
 		require.NoError(t, err)
 
 		blocks = append(blocks, block)
@@ -210,7 +204,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 			require.NoError(t, err, fmt.Sprintf("Got error for block %d", b.Header.Number.Int64()))
 			continue
 		}
-		require.Error(t, err, fmt.Sprintf("Expected error for block %d", b.Header.Number.Int64()))
+		require.ErrorIs(t, err, chaindb.ErrKeyNotFound, fmt.Sprintf("Expected error for block %d", b.Header.Number.Int64()))
 	}
 }
 

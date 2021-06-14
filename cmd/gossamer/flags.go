@@ -283,7 +283,7 @@ var (
 	RetainBlockNumberFlag = cli.IntFlag{
 		Name:  "retain-blocks",
 		Usage: "Retain number of block from latest block while pruning",
-		Value: 512,
+		Value: defaultRetainBlocks,
 	}
 
 	// PruningFlag triggers the online pruning of historical state tries. It's either full or archive. To enable pruning the value

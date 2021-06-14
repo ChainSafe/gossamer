@@ -499,8 +499,8 @@ func TestTrieDiff(t *testing.T) {
 		trie.Put(test.key, test.value)
 	}
 
-	oldTrie := trie.Snapshot()
-	err = oldTrie.Store(storageDB)
+	newTrie := trie.Snapshot()
+	err = trie.Store(storageDB)
 	require.NoError(t, err)
 
 	tests = []Test{
@@ -512,12 +512,12 @@ func TestTrieDiff(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		trie.Put(test.key, test.value)
+		newTrie.Put(test.key, test.value)
 	}
-	deletedKeys := trie.deletedKeys
+	deletedKeys := newTrie.deletedKeys
 	require.Len(t, deletedKeys, 3)
 
-	err = trie.WriteDirty(storageDB)
+	err = newTrie.WriteDirty(storageDB)
 	require.NoError(t, err)
 
 	for _, key := range deletedKeys {
@@ -525,11 +525,11 @@ func TestTrieDiff(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	newTrie := NewEmptyTrie()
-	err = newTrie.Load(storageDB, common.BytesToHash(trie.root.getHash()))
+	dbTrie := NewEmptyTrie()
+	err = dbTrie.Load(storageDB, common.BytesToHash(newTrie.root.getHash()))
 	require.NoError(t, err)
 
-	enc, err := trie.Encode()
+	enc, err := dbTrie.Encode()
 	require.NoError(t, err)
 
 	newEnc, err := newTrie.Encode()
