@@ -133,11 +133,6 @@ func NewEpochState(db chaindb.Database, blockState *BlockState) (*EpochState, er
 		return nil, err
 	}
 
-	// firstSlot, err := baseState.loadFirstSlot()
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	skipToEpoch, err := baseState.loadSkipToEpoch()
 	if err != nil {
 		return nil, err

@@ -18,7 +18,6 @@ package babe
 
 import (
 	"fmt"
-	//"github.com/ChainSafe/gossamer/dot/types"
 )
 
 // initiateEpoch sets the epochData for the given epoch, runs the lottery for the slots in the epoch,
@@ -98,19 +97,11 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 	// by checking when we will be able to produce block 1.
 	// note that this assumes there will only be one producer of block 1
 	if b.blockState.BestBlockHash() == b.blockState.GenesisHash() {
-		startSlot = getCurrentSlot(b.slotDuration)
-
-		for i := startSlot; i < startSlot+b.epochLength; i++ {
-			proof, err := b.runLottery(i, epoch) //nolint
-			if err != nil {
-				return fmt.Errorf("error running slot lottery at slot %d: error %s", i, err)
-			}
-
-			if proof != nil {
-				startSlot = i
-				break
-			}
+		startSlot, err = b.getFirstSlot(epoch)
+		if err != nil {
+			return err
 		}
+
 		logger.Debug("estimated first slot based on building block 1", "slot", startSlot)
 
 		// we are at genesis, set first slot by checking at which slot we will be able to produce block 1
@@ -143,6 +134,23 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 	}
 
 	return nil
+}
+
+func (b *Service) getFirstSlot(epoch uint64) (uint64, error) {
+	startSlot := getCurrentSlot(b.slotDuration)
+	for i := startSlot; i < startSlot+b.epochLength; i++ {
+		proof, err := b.runLottery(i, epoch)
+		if err != nil {
+			return 0, fmt.Errorf("error running slot lottery at slot %d: error %s", i, err)
+		}
+
+		if proof != nil {
+			startSlot = i
+			break
+		}
+	}
+
+	return startSlot, nil
 }
 
 // incrementEpoch increments the current epoch stored in the db and returns the new epoch number

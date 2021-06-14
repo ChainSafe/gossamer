@@ -33,7 +33,7 @@ import (
 
 var (
 	logger          log.Logger
-	initialWaitTime = time.Second * 12 // TODO: set to slotDuration * 2
+	initialWaitTime time.Duration
 )
 
 // Service contains the VRF keys for the validator, as well as BABE configuation data
@@ -146,6 +146,8 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	initialWaitTime = babeService.slotDuration * 3
 
 	logger.Debug("created service",
 		"epoch", epoch,
@@ -386,37 +388,25 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) error {
 			return err
 		}
 
-		// get start slot for current epoch
-		epochStart, err := b.epochState.GetStartSlotForEpoch(epoch)
+		epochStartSlot, err := b.waitForEpochStart(epoch)
 		if err != nil {
-			logger.Error("failed to get start slot for current epoch", "epoch", epoch, "error", err)
+			logger.Error("failed to wait for epoch start", "epoch", epoch, "error", err)
 			return err
-		}
-
-		epochStartTime := getSlotStartTime(epochStart, b.slotDuration)
-		logger.Debug("checking if epoch started", "epoch start", epochStartTime, "now", time.Now())
-
-		// check if it's time to start the epoch yet. if not, wait until it is
-		if time.Since(epochStartTime) < 0 {
-			logger.Debug("waiting for epoch to start")
-			select {
-			case <-time.After(time.Until(epochStartTime)):
-			case <-b.ctx.Done():
-				return nil
-			case <-b.pause:
-				return nil
-			}
 		}
 
 		// calculate current slot
 		startSlot := getCurrentSlot(b.slotDuration)
-		intoEpoch := startSlot - epochStart
+		intoEpoch := startSlot - epochStartSlot
 
 		// if the calculated amount of slots "into the epoch" is greater than the epoch length,
 		// we've been offline for more than an epoch, and need to sync. pause BABE for now, syncer will
 		// resume it when ready
 		if b.epochLength <= intoEpoch && !b.dev {
-			logger.Debug("pausing BABE, need to sync", "slots into epoch", intoEpoch, "current slot", startSlot, "epoch start slot", epochStart)
+			logger.Debug("pausing BABE, need to sync", 
+				"slots into epoch", intoEpoch, 
+				"current slot", startSlot, 
+				"epoch start slot", epochStartSlot,
+			)
 			go func() {
 				<-b.pause
 			}()
@@ -448,7 +438,11 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) error {
 				slotNum := startSlot + uint64(i)
 				err = b.handleSlot(slotNum)
 				if err == ErrNotAuthorized {
-					logger.Debug("not authorized to produce a block in this slot", "epoch", epoch, "slot", slotNum, "slots into epoch", slotNum-epochStart)
+					logger.Debug("not authorized to produce a block in this slot", 
+						"epoch", epoch, 
+						"slot", slotNum, 
+						"slots into epoch", slotNum-epochStartSlot,
+					)
 					continue
 				} else if err != nil {
 					logger.Warn("failed to handle slot", "slot", slotNum, "error", err)
@@ -467,6 +461,32 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) error {
 		logger.Info("epoch complete!", "completed epoch", epoch, "upcoming epoch", next)
 		epoch = next
 	}
+}
+
+func (b *Service) waitForEpochStart(epoch uint64) (uint64, error) {
+	// get start slot for current epoch
+	epochStart, err := b.epochState.GetStartSlotForEpoch(epoch)
+	if err != nil {
+		logger.Error("failed to get start slot for current epoch", "epoch", epoch, "error", err)
+		return 0, err
+	}
+
+	epochStartTime := getSlotStartTime(epochStart, b.slotDuration)
+	logger.Debug("checking if epoch started", "epoch start", epochStartTime, "now", time.Now())
+
+	// check if it's time to start the epoch yet. if not, wait until it is
+	if time.Since(epochStartTime) < 0 {
+		logger.Debug("waiting for epoch to start")
+		select {
+		case <-time.After(time.Until(epochStartTime)):
+		case <-b.ctx.Done():
+			return 0, errors.New("context cancelled")
+		case <-b.pause:
+			return 0, errors.New("service paused")
+		}
+	}
+
+	return epochStart, nil
 }
 
 func (b *Service) handleSlot(slotNum uint64) error {
