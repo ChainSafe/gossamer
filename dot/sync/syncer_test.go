@@ -232,11 +232,17 @@ func TestSyncer_HandleRuntimeChanges(t *testing.T) {
 
 func TestSyncer_HandleCodeSubstitutes(t *testing.T) {
 	syncer := NewTestSyncer(t, true)
-	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29") // hash for known test code substitution
-	err := syncer.handleCodeSubstitution(blockHash)
+	nonSubBlockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e28")
+	err := syncer.handleCodeSubstitution(nonSubBlockHash)
 	require.NoError(t, err)
 	codSub := syncer.codeSubstitutedState.LoadCodeSubstitutedBlockHash()
-	require.Equal(t, blockHash, codSub)
+	require.Equal(t, common.Hash{}, codSub)
+
+	subBlockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29") // hash for known test code substitution
+	err = syncer.handleCodeSubstitution(subBlockHash)
+	require.NoError(t, err)
+	codSub = syncer.codeSubstitutedState.LoadCodeSubstitutedBlockHash()
+	require.Equal(t, subBlockHash, codSub)
 }
 
 func TestSyncer_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
