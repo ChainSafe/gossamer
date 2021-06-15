@@ -431,7 +431,6 @@ func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {
 	if err != nil {
 		return err
 	}
-	previousVersion, _ := s.runtime.Version()
 
 	if bytes.Equal(s.codeHash[:], currCodeHash[:]) {
 		return nil
@@ -454,9 +453,11 @@ func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {
 			return err
 		}
 
+		previousVersion, _ := s.runtime.Version()
 		if previousVersion.SpecVersion() == newVersion.SpecVersion() {
 			return nil
 		}
+
 		logger.Info("🔄 detected runtime code change, upgrading...", "block", s.blockState.BestBlockHash(),
 			"previous code hash", s.codeHash, "new code hash", currCodeHash,
 			"previous spec version", previousVersion.SpecVersion(), "new spec version", newVersion.SpecVersion())
@@ -490,6 +491,7 @@ func (s *Service) handleCodeSubstitution(hash common.Hash) error {
 	if len(code) == 0 {
 		return ErrEmptyRuntimeCode
 	}
+
 	err := s.runtime.UpdateRuntimeCode(code)
 	if err != nil {
 		logger.Crit("failed to substitute runtime code", "error", err)

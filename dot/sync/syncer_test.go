@@ -20,6 +20,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
@@ -31,8 +32,24 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+
+	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
+
+func TestMain(m *testing.M) {
+	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
+	if err != nil {
+		log.Error("failed to generate runtime wasm file", err)
+		os.Exit(1)
+	}
+
+	// Start all tests
+	code := m.Run()
+
+	runtime.RemoveFiles(wasmFilePaths)
+	os.Exit(code)
+}
 
 func TestHandleBlockResponse(t *testing.T) {
 	if testing.Short() {
@@ -199,8 +216,6 @@ func TestSyncer_ExecuteBlock(t *testing.T) {
 func TestSyncer_HandleRuntimeChanges(t *testing.T) {
 	syncer := NewTestSyncer(t, false)
 	codeHashBefore := syncer.codeHash
-	_, err := runtime.GetRuntimeBlob(runtime.POLKADOT_RUNTIME_FP, runtime.POLKADOT_RUNTIME_URL)
-	require.NoError(t, err)
 
 	testRuntime, err := ioutil.ReadFile(runtime.POLKADOT_RUNTIME_FP)
 	require.NoError(t, err)
@@ -233,8 +248,6 @@ func TestSyncer_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, codeHashBefore, syncer.codeHash) // codeHash should remain unchanged after code substitute
 
-	_, err = runtime.GetRuntimeBlob(runtime.POLKADOT_RUNTIME_FP, runtime.POLKADOT_RUNTIME_URL)
-	require.NoError(t, err)
 	testRuntime, err := ioutil.ReadFile(runtime.POLKADOT_RUNTIME_FP)
 	require.NoError(t, err)
 

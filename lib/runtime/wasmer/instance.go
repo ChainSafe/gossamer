@@ -172,19 +172,11 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 func (in *Instance) UpdateRuntimeCode(code []byte) error {
 	in.Stop()
 
-	instance, err := in.setupInstanceVM(code)
+	err := in.setupInstanceVM(code)
 	if err != nil {
 		return err
 	}
 
-	// TODO: get __heap_base exported value from runtime.
-	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does
-	heapBase := runtime.DefaultHeapBase
-
-	in.ctx.Allocator = runtime.NewAllocator(instance.Memory, heapBase)
-	instance.SetContextData(in.ctx)
-
-	in.vm = *instance
 	in.version, err = in.Version()
 	if err != nil {
 		return err
@@ -195,54 +187,55 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 
 // CheckRuntimeVersion calculates runtime Version for runtime blob passed in
 func (in *Instance) CheckRuntimeVersion(code []byte) (runtime.Version, error) {
-	originalVM := in.vm
+	tmp := &Instance{
+		imports: in.imports,
+		ctx:     in.ctx,
+	}
 
-	instance, err := in.setupInstanceVM(code)
+	err := tmp.setupInstanceVM(code)
 	if err != nil {
 		return nil, err
 	}
 
-	instance.SetContextData(in.ctx)
-
-	in.vm = *instance
-	checkVersion, err := in.Version()
-	if err != nil {
-		return nil, err
-	}
-
-	in.vm = originalVM
-	return checkVersion, nil
+	return tmp.Version()
 }
 
-func (in *Instance) setupInstanceVM(code []byte) (*wasm.Instance, error) {
+func (in *Instance) setupInstanceVM(code []byte) error {
 	imports, err := in.imports()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// TODO: determine memory descriptor size that the runtime wants from the wasm.
 	// should be doable w/ wasmer 1.0.0.
 	memory, err := wasm.NewMemory(23, 0)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	_, err = imports.AppendMemory("memory", memory)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Instantiates the WebAssembly module.
-	instance, err := wasm.NewInstanceWithImports(code, imports)
+	in.vm, err = wasm.NewInstanceWithImports(code, imports)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Assume imported memory is used if runtime does not export any
-	if !instance.HasMemory() {
-		instance.Memory = memory
+	if !in.vm.HasMemory() {
+		in.vm.Memory = memory
 	}
-	return &instance, nil
+
+	// TODO: get __heap_base exported value from runtime.
+	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does
+	heapBase := runtime.DefaultHeapBase
+
+	in.ctx.Allocator = runtime.NewAllocator(in.vm.Memory, heapBase)
+	in.vm.SetContextData(in.ctx)
+	return nil
 }
 
 // SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.

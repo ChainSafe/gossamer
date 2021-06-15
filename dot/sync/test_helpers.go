@@ -149,8 +149,8 @@ func newTestGenesisWithTrieAndHeader(t *testing.T, usePolkadotGenesis bool) (*ge
 	if usePolkadotGenesis {
 		fp = "../../chain/polkadot/genesis.json"
 	}
+
 	gen, err := genesis.NewGenesisFromJSONRaw(fp)
-	//gen, err := genesis.NewGenesisFromJSONRaw("../../chain/polkadot/genesis.json")
 	require.NoError(t, err)
 
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
