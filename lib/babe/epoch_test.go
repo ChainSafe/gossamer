@@ -29,12 +29,15 @@ import (
 
 func TestInitiateEpoch_Epoch0(t *testing.T) {
 	bs := createTestService(t, nil)
-	bs.epochLength = 10
+	bs.epochLength = 20
 	startSlot := uint64(1000)
 
 	err := bs.epochState.SetFirstSlot(startSlot)
 	require.NoError(t, err)
 	err = bs.initiateEpoch(0)
+	require.NoError(t, err)
+
+	startSlot, err = bs.epochState.GetStartSlotForEpoch(0)
 	require.NoError(t, err)
 
 	count := 0

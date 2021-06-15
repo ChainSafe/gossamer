@@ -103,6 +103,17 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 		}
 
 		logger.Debug("estimated first slot based on building block 1", "slot", startSlot)
+		for i := startSlot; i < startSlot+b.epochLength; i++ {
+			proof, err := b.runLottery(i, epoch)
+			if err != nil {
+				return fmt.Errorf("error running slot lottery at slot %d: error %s", i, err)
+			}
+
+			if proof != nil {
+				startSlot = i
+				break
+			}
+		}
 
 		// we are at genesis, set first slot by checking at which slot we will be able to produce block 1
 		err = b.epochState.SetFirstSlot(startSlot)
