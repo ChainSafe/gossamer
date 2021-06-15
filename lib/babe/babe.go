@@ -48,6 +48,8 @@ type Service struct {
 	epochState       EpochState
 	epochLength      uint64
 
+	blockImportHandler BlockImportHandler
+
 	// BABE authority keypair
 	keypair *sr25519.Keypair // TODO: change to BABE keystore
 
@@ -61,7 +63,7 @@ type Service struct {
 	isDisabled   bool
 
 	// Channels for inter-process communication
-	blockChan chan types.Block // send blocks to core service
+	//blockChan chan types.Block // send blocks to core service
 
 	// State variables
 	sync.RWMutex
@@ -75,6 +77,7 @@ type ServiceConfig struct {
 	StorageState         StorageState
 	TransactionState     TransactionState
 	EpochState           EpochState
+	BlockImportHandler   BlockImportHandler
 	Keypair              *sr25519.Keypair
 	Runtime              runtime.Instance
 	AuthData             []*types.Authority
@@ -104,6 +107,10 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		return nil, errors.New("runtime is nil")
 	}
 
+	if cfg.BlockImportHandler == nil {
+		return nil, ErrNilBlockImportHandler
+	}
+
 	logger = log.New("pkg", "babe")
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
 	h = log.CallerFileHandler(h)
@@ -122,10 +129,11 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		rt:               cfg.Runtime,
 		transactionState: cfg.TransactionState,
 		slotToProof:      make(map[uint64]*VrfOutputAndProof),
-		blockChan:        make(chan types.Block, 16),
-		pause:            make(chan struct{}),
-		authority:        cfg.Authority,
-		dev:              cfg.IsDev,
+		//blockChan:        make(chan types.Block, 16),
+		pause:              make(chan struct{}),
+		authority:          cfg.Authority,
+		dev:                cfg.IsDev,
+		blockImportHandler: cfg.BlockImportHandler,
 	}
 
 	var err error
@@ -270,15 +278,15 @@ func (b *Service) IsPaused() bool {
 
 // Stop stops the service. If stop is called, it cannot be resumed.
 func (b *Service) Stop() error {
-	b.Lock()
-	defer b.Unlock()
+	// b.Lock()
+	// defer b.Unlock()
 
 	if b.ctx.Err() != nil {
 		return errors.New("service already stopped")
 	}
 
 	b.cancel()
-	close(b.blockChan)
+	//close(b.blockChan)
 	return nil
 }
 
@@ -287,10 +295,10 @@ func (b *Service) SetRuntime(rt runtime.Instance) {
 	b.rt = rt
 }
 
-// GetBlockChannel returns the channel where new blocks are passed
-func (b *Service) GetBlockChannel() <-chan types.Block {
-	return b.blockChan
-}
+// // GetBlockChannel returns the channel where new blocks are passed
+// func (b *Service) GetBlockChannel() <-chan types.Block {
+// 	return b.blockChan
+// }
 
 // SetOnDisabled sets the block producer with the given index as disabled
 // If this is our node, we stop producing blocks
@@ -310,17 +318,17 @@ func (b *Service) IsStopped() bool {
 	return b.ctx.Err() != nil
 }
 
-func (b *Service) safeSend(msg types.Block) error {
-	b.Lock()
-	defer b.Unlock()
+// func (b *Service) safeSend(msg types.Block) error {
+// 	b.Lock()
+// 	defer b.Unlock()
 
-	if b.IsStopped() {
-		return errors.New("Service has been stopped")
-	}
+// 	if b.IsStopped() {
+// 		return errors.New("Service has been stopped")
+// 	}
 
-	b.blockChan <- msg
-	return nil
-}
+// 	b.blockChan <- msg
+// 	return nil
+// }
 
 func (b *Service) getAuthorityIndex(Authorities []*types.Authority) (uint32, error) {
 	if !b.authority {
@@ -505,25 +513,30 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		return err
 	}
 
-	err = b.storageState.StoreTrie(ts)
-	if err != nil {
-		logger.Error("failed to store trie in storage state", "error", err)
+	if err := b.blockImportHandler.HandleBlockImport(block, ts); err != nil {
+		logger.Warn("failed to import built block", "error", err)
+		return err
 	}
+
+	// err = b.storageState.StoreTrie(ts)
+	// if err != nil {
+	// 	logger.Error("failed to store trie in storage state", "error", err)
+	// }
 
 	hash := block.Header.Hash()
 	logger.Info("built block", "hash", hash.String(), "number", block.Header.Number, "state root", block.Header.StateRoot, "slot", slotNum)
 	logger.Debug("built block", "header", block.Header, "body", block.Body, "parent", parent.Hash())
 
-	err = b.blockState.AddBlock(block)
-	if err != nil {
-		return err
-	}
+	// err = b.blockState.AddBlock(block)
+	// if err != nil {
+	// 	return err
+	// }
 
-	err = b.safeSend(*block)
-	if err != nil {
-		logger.Error("failed to send block to core", "error", err)
-		return err
-	}
+	// err = b.safeSend(*block)
+	// if err != nil {
+	// 	logger.Error("failed to send block to core", "error", err)
+	// 	return err
+	// }
 
 	return nil
 }

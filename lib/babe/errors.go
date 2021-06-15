@@ -60,6 +60,8 @@ var ErrAuthorityDisabled = errors.New("authority has been disabled for the remai
 // ErrNotAuthority is returned when trying to perform authority functions when not an authority
 var ErrNotAuthority = errors.New("node is not an authority")
 
+var ErrNilBlockImportHandler = errors.New("cannot have nil BlockImportHandler")
+
 var errInvalidResult = errors.New("invalid error value")
 
 // A DispatchOutcomeError is outcome of dispatching the extrinsic

@@ -73,3 +73,7 @@ type EpochState interface {
 	GetLatestEpochData() (*types.EpochData, error)
 	SkipVerify(*types.Header) (bool, error)
 }
+
+type BlockImportHandler interface {
+	HandleBlockImport(block *types.Block, state *rtstorage.TrieState) error
+}
