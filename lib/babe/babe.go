@@ -497,14 +497,22 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		return err
 	}
 
+	logger.Info("built block", "hash", block.Header.Hash().String(),
+		"number", block.Header.Number,
+		"state root", block.Header.StateRoot,
+		"slot", slotNum,
+	)
+	logger.Debug("built block",
+		"header", block.Header,
+		"body", block.Body,
+		"parent", parent.Hash(),
+	)
+
 	if err := b.blockImportHandler.HandleBlockImport(block, ts); err != nil {
 		logger.Warn("failed to import built block", "error", err)
 		return err
 	}
 
-	hash := block.Header.Hash()
-	logger.Info("built block", "hash", hash.String(), "number", block.Header.Number, "state root", block.Header.StateRoot, "slot", slotNum)
-	logger.Debug("built block", "header", block.Header, "body", block.Body, "parent", parent.Hash())
 	return nil
 }
 

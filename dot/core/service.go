@@ -155,29 +155,13 @@ func NewService(cfg *Config) (*Service, error) {
 
 // Start starts the core service
 func (s *Service) Start() error {
-	// we can ignore the `cancel` function returned by `context.WithCancel` since Stop() cancels the parent context,
-	// so all the child contexts should also be canceled. potentially update if there is a better way to do this
-
-	// start receiving blocks from BABE session
-	//go s.receiveBlocks(s.ctx)
-
-	// start receiving messages from network service
-
-	// start handling imported blocks
 	go s.handleBlocksAsync()
-
 	return nil
 }
 
 // Stop stops the core service
 func (s *Service) Stop() error {
-	// s.lock.Lock()
-	// defer s.lock.Unlock()
 	s.cancel()
-
-	//s.blockState.UnregisterImportedChannel(s.blockAddChID)
-	//close(s.blockAddCh)
-
 	return nil
 }
 
