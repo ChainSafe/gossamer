@@ -271,12 +271,12 @@ func TestService_PauseAndResume(t *testing.T) {
 	}()
 
 	go func() {
-		err := bs.Resume()
+		err := bs.Resume() //nolint
 		require.NoError(t, err)
 	}()
 
 	go func() {
-		err := bs.Resume()
+		err := bs.Resume() //nolint
 		require.NoError(t, err)
 	}()
 
