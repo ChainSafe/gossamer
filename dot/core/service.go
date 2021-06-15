@@ -18,11 +18,13 @@ package core
 import (
 	"bytes"
 	"context"
+	"math/big"
 	"os"
-	"sync"
+	//"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -46,46 +48,35 @@ type Service struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	// State interfaces
+	// Service interfaces
 	blockState       BlockState
 	epochState       EpochState
 	storageState     StorageState
 	transactionState TransactionState
+	net              Network
+	digestHandler    DigestHandler
 
 	// Current runtime and hash of the current runtime code
 	rt       runtime.Instance
 	codeHash common.Hash
 
-	// Block production variables
-	//blockProducer   BlockProducer
-	isBlockProducer bool
-
-	// Block verification
-	verifier Verifier
-
-	// Keystore
-	keys *keystore.GlobalKeystore
-
-	// Channels and interfaces for inter-process communication
-	//blkRec <-chan types.Block // receive blocks from BABE session
-	net Network
-
-	blockAddCh chan *types.Block // receive blocks added to blocktree
-	//blockAddChID byte
-
-	// State variables
-	lock *sync.Mutex // channel lock
-
-	digestHandler DigestHandler
-
 	// map of code substitutions keyed by block hash
 	codeSubstitute       map[common.Hash]string
 	codeSubstitutedState CodeSubstitutedState
+
+	// Keystore
+	keys *keystore.GlobalKeystore
+	// State variables
+	//lock sync.Mutex
+
+	blockAddCh chan *types.Block // receive blocks added to blocktree
+
 }
 
 // Config holds the configuration for the core Service.
 type Config struct {
-	LogLvl           log.Lvl
+	LogLvl log.Lvl
+
 	BlockState       BlockState
 	EpochState       EpochState
 	StorageState     StorageState
@@ -93,15 +84,10 @@ type Config struct {
 	Network          Network
 	Keystore         *keystore.GlobalKeystore
 	Runtime          runtime.Instance
-	//BlockProducer    BlockProducer
-	IsBlockProducer bool
-	Verifier        Verifier
-	DigestHandler   DigestHandler
+	DigestHandler    DigestHandler
 
 	CodeSubstitutes      map[common.Hash]string
 	CodeSubstitutedState CodeSubstitutedState
-
-	NewBlocks chan types.Block // only used for testing purposes
 }
 
 // NewService returns a new core service that connects the runtime, BABE
@@ -123,17 +109,13 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilRuntime
 	}
 
-	// if cfg.IsBlockProducer && cfg.BlockProducer == nil {
-	// 	return nil, ErrNilBlockProducer
-	// }
-
 	if cfg.Network == nil {
 		return nil, ErrNilNetwork
 	}
 
-	// if cfg.DigestHandler == nil {
-	// 	return nil, ErrNilDigestHandler
-	// }
+	if cfg.DigestHandler == nil {
+		return nil, ErrNilDigestHandler
+	}
 
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
 	h = log.CallerFileHandler(h)
@@ -150,40 +132,23 @@ func NewService(cfg *Config) (*Service, error) {
 	}
 
 	blockAddCh := make(chan *types.Block, 256)
-	// id, err := cfg.BlockState.RegisterImportedChannel(blockAddCh)
-	// if err != nil {
-	// 	return nil, err
-	// }
 
 	ctx, cancel := context.WithCancel(context.Background())
-
 	srv := &Service{
-		ctx:      ctx,
-		cancel:   cancel,
-		rt:       cfg.Runtime,
-		codeHash: codeHash,
-		keys:     cfg.Keystore,
-		//blkRec:           cfg.NewBlocks,
-		blockState:       cfg.BlockState,
-		epochState:       cfg.EpochState,
-		storageState:     cfg.StorageState,
-		transactionState: cfg.TransactionState,
-		net:              cfg.Network,
-		isBlockProducer:  cfg.IsBlockProducer,
-		//blockProducer:    cfg.BlockProducer,
-		verifier:   cfg.Verifier,
-		lock:       &sync.Mutex{},
-		blockAddCh: blockAddCh,
-		//blockAddChID:     id,
+		ctx:                  ctx,
+		cancel:               cancel,
+		rt:                   cfg.Runtime,
+		codeHash:             codeHash,
+		keys:                 cfg.Keystore,
+		blockState:           cfg.BlockState,
+		epochState:           cfg.EpochState,
+		storageState:         cfg.StorageState,
+		transactionState:     cfg.TransactionState,
+		net:                  cfg.Network,
+		blockAddCh:           blockAddCh,
 		codeSubstitute:       cfg.CodeSubstitutes,
 		codeSubstitutedState: cfg.CodeSubstitutedState,
 	}
-
-	// if cfg.NewBlocks != nil {
-	// 	srv.blkRec = cfg.NewBlocks
-	// } else if cfg.IsBlockProducer {
-	// 	srv.blkRec = cfg.BlockProducer.GetBlockChannel()
-	// }
 
 	return srv, nil
 }
@@ -206,8 +171,8 @@ func (s *Service) Start() error {
 
 // Stop stops the core service
 func (s *Service) Stop() error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	// s.lock.Lock()
+	// defer s.lock.Unlock()
 	s.cancel()
 
 	//s.blockState.UnregisterImportedChannel(s.blockAddChID)
@@ -249,6 +214,23 @@ func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieS
 }
 
 func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) error {
+	err := s.storageState.StoreTrie(state)
+	if err != nil {
+		return err
+	}
+
+	logger.Trace("imported block and stored resulting state", "state root", state.MustRoot())
+
+	if err := s.blockState.AddBlock(block); err != nil {
+		if err == blocktree.ErrParentNotFound && block.Header.Number.Cmp(big.NewInt(0)) != 0 {
+			return err
+		} else if err == blocktree.ErrBlockExists || block.Header.Number.Cmp(big.NewInt(0)) == 0 {
+			// this is fine
+		} else {
+			return err
+		}
+	}
+
 	if err := s.handleRuntimeChanges(state); err != nil {
 		return err
 	}
@@ -259,6 +241,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	}
 
 	go func() {
+		// TODO: make sure channel isn't closed?
 		s.blockAddCh <- block
 	}()
 
@@ -604,10 +587,10 @@ func (s *Service) GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error)
 	return s.rt.Version()
 }
 
-// IsBlockProducer returns true if node is a block producer
-func (s *Service) IsBlockProducer() bool {
-	return s.isBlockProducer
-}
+// // IsBlockProducer returns true if node is a block producer
+// func (s *Service) IsBlockProducer() bool {
+// 	return s.isBlockProducer
+// }
 
 // HandleSubmittedExtrinsic is used to send a Transaction message containing a Extrinsic @ext
 func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
@@ -623,11 +606,11 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 		return err
 	}
 
-	if s.isBlockProducer {
-		// add transaction to pool
-		vtx := transaction.NewValidTransaction(ext, txv)
-		s.transactionState.AddToPool(vtx)
-	}
+	//if s.isBlockProducer {
+	// add transaction to pool
+	vtx := transaction.NewValidTransaction(ext, txv)
+	s.transactionState.AddToPool(vtx)
+	//}
 
 	// broadcast transaction
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}}

@@ -244,15 +244,15 @@ func createCoreService(cfg *Config, verifier *babe.VerificationManager, rt runti
 
 	// set core configuration
 	coreConfig := &core.Config{
-		LogLvl:               cfg.Log.CoreLvl,
-		BlockState:           st.Block,
-		EpochState:           st.Epoch,
-		StorageState:         st.Storage,
-		TransactionState:     st.Transaction,
-		Keystore:             ks,
-		Runtime:              rt,
-		IsBlockProducer:      cfg.Core.BabeAuthority,
-		Verifier:             verifier,
+		LogLvl:           cfg.Log.CoreLvl,
+		BlockState:       st.Block,
+		EpochState:       st.Epoch,
+		StorageState:     st.Storage,
+		TransactionState: st.Transaction,
+		Keystore:         ks,
+		Runtime:          rt,
+		//IsBlockProducer:      cfg.Core.BabeAuthority,
+		//Verifier:             verifier,
 		Network:              net,
 		DigestHandler:        dh,
 		CodeSubstitutes:      codeSubs,
@@ -403,13 +403,12 @@ func createBlockVerifier(st *state.Service) (*babe.VerificationManager, error) {
 	return ver, nil
 }
 
-func newSyncService(cfg *Config, st *state.Service, bp sync.BlockProducer, fg sync.FinalityGadget, verifier *babe.VerificationManager, rt runtime.Instance) (*sync.Service, error) {
+func newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget, verifier *babe.VerificationManager, rt runtime.Instance) (*sync.Service, error) {
 	syncCfg := &sync.Config{
 		LogLvl:           cfg.Log.SyncLvl,
 		BlockState:       st.Block,
 		StorageState:     st.Storage,
 		TransactionState: st.Transaction,
-		BlockProducer:    bp,
 		FinalityGadget:   fg,
 		Verifier:         verifier,
 		Runtime:          rt,

@@ -27,7 +27,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
-	"github.com/ChainSafe/gossamer/lib/common"
+	//"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	//rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	log "github.com/ChainSafe/log15"
@@ -37,13 +37,12 @@ var logger = log.New("pkg", "sync")
 
 // Service deals with chain syncing by sending block request messages and watching for responses.
 type Service struct {
-	codeHash common.Hash // cached hash of runtime code
+	//codeHash common.Hash // cached hash of runtime code
 
 	// State interfaces
 	blockState         BlockState // retrieve our current head of chain from BlockState
 	storageState       StorageState
 	transactionState   TransactionState
-	blockProducer      BlockProducer
 	finalityGadget     FinalityGadget
 	blockImportHandler BlockImportHandler
 
@@ -54,9 +53,6 @@ type Service struct {
 
 	// BABE verification
 	verifier Verifier
-
-	// Consensus digest handling
-	//digestHandler DigestHandler
 }
 
 // Config is the configuration for the sync Service.
@@ -64,7 +60,6 @@ type Config struct {
 	LogLvl             log.Lvl
 	BlockState         BlockState
 	StorageState       StorageState
-	BlockProducer      BlockProducer
 	FinalityGadget     FinalityGadget
 	TransactionState   TransactionState
 	BlockImportHandler BlockImportHandler
@@ -90,10 +85,6 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilRuntime
 	}
 
-	if cfg.BlockProducer == nil {
-		cfg.BlockProducer = NewMockBlockProducer()
-	}
-
 	if cfg.BlockImportHandler == nil {
 		return nil, ErrNilBlockImportHandler
 	}
@@ -102,16 +93,15 @@ func NewService(cfg *Config) (*Service, error) {
 	handler = log.CallerFileHandler(handler)
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, handler))
 
-	codeHash, err := cfg.StorageState.LoadCodeHash(nil)
-	if err != nil {
-		return nil, err
-	}
+	// codeHash, err := cfg.StorageState.LoadCodeHash(nil)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	return &Service{
-		codeHash:           codeHash,
+		//codeHash:           codeHash,
 		blockState:         cfg.BlockState,
 		storageState:       cfg.StorageState,
-		blockProducer:      cfg.BlockProducer,
 		finalityGadget:     cfg.FinalityGadget,
 		blockImportHandler: cfg.BlockImportHandler,
 		synced:             true,
@@ -119,7 +109,6 @@ func NewService(cfg *Config) (*Service, error) {
 		transactionState:   cfg.TransactionState,
 		runtime:            cfg.Runtime,
 		verifier:           cfg.Verifier,
-		//digestHandler:        cfg.DigestHandler,
 	}, nil
 }
 
@@ -201,13 +190,13 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 			// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
 			logger.Debug("skipping block, already have", "hash", bd.Hash)
 
-			header, err := s.blockState.GetHeader(bd.Hash) //nolint
+			block, err := s.blockState.GetBlockByHash(bd.Hash) //nolint
 			if err != nil {
 				logger.Debug("failed to get header", "hash", bd.Hash, "error", err)
 				return i, err
 			}
 
-			err = s.blockState.AddBlockToBlockTree(header)
+			err = s.blockState.AddBlockToBlockTree(block.Header)
 			if err != nil && !errors.Is(err, blocktree.ErrBlockExists) {
 				logger.Warn("failed to add block to blocktree", "hash", bd.Hash, "error", err)
 				return i, err
@@ -219,8 +208,8 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 			// }
 
 			if bd.Justification != nil && bd.Justification.Exists() {
-				logger.Debug("handling Justification...", "number", header.Number, "hash", bd.Hash)
-				s.handleJustification(header, bd.Justification.Value())
+				logger.Debug("handling Justification...", "number", block.Header.Number, "hash", bd.Hash)
+				s.handleJustification(block.Header, bd.Justification.Value())
 			}
 
 			// if err := s.handleCodeSubstitution(bd.Hash); err != nil {
@@ -228,7 +217,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 			// 	return i, err
 			// }
 
-			if err := s.blockImportHandler; err != nil {
+			if err := s.blockImportHandler.HandleBlockImport(block, nil); err != nil {
 				logger.Warn("failed to handle block import", "error", err)
 			}
 
@@ -361,35 +350,40 @@ func (s *Service) handleBlock(block *types.Block) error {
 		return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)
 	}
 
-	err = s.storageState.StoreTrie(ts)
-	if err != nil {
+	if err := s.blockImportHandler.HandleBlockImport(block, ts); err != nil {
 		return err
 	}
-	logger.Trace("executed block and stored resulting state", "state root", ts.MustRoot())
 
-	// TODO: batch writes in AddBlock
-	err = s.blockState.AddBlock(block)
+	// err = s.storageState.StoreTrie(ts)
+	// if err != nil {
+	// 	return err
+	// }
+	// logger.Trace("executed block and stored resulting state", "state root", ts.MustRoot())
+
+	// // TODO: batch writes in AddBlock
+	// err = s.blockState.AddBlock(block)
+	// if err != nil {
+	// 	if err == blocktree.ErrParentNotFound && block.Header.Number.Cmp(big.NewInt(0)) != 0 {
+	// 		return err
+	// 	} else if err == blocktree.ErrBlockExists || block.Header.Number.Cmp(big.NewInt(0)) == 0 {
+	// 		// this is fine
+	// 	} else {
+	// 		return err
+	// 	}
+	//} else {
+	logger.Debug("🔗 imported block", "number", block.Header.Number, "hash", block.Header.Hash())
+
+	err = telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage( // nolint
+		telemetry.NewKeyValue("best", block.Header.Hash().String()),
+		telemetry.NewKeyValue("height", block.Header.Number.Uint64()),
+		telemetry.NewKeyValue("msg", "block.import"),
+		telemetry.NewKeyValue("origin", "NetworkInitialSync")))
 	if err != nil {
-		if err == blocktree.ErrParentNotFound && block.Header.Number.Cmp(big.NewInt(0)) != 0 {
-			return err
-		} else if err == blocktree.ErrBlockExists || block.Header.Number.Cmp(big.NewInt(0)) == 0 {
-			// this is fine
-		} else {
-			return err
-		}
-	} else {
-		logger.Debug("🔗 imported block", "number", block.Header.Number, "hash", block.Header.Hash())
-		err := telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage( // nolint
-			telemetry.NewKeyValue("best", block.Header.Hash().String()),
-			telemetry.NewKeyValue("height", block.Header.Number.Uint64()),
-			telemetry.NewKeyValue("msg", "block.import"),
-			telemetry.NewKeyValue("origin", "NetworkInitialSync")))
-		if err != nil {
-			logger.Debug("problem sending block.import telemetry message", "error", err)
-		}
+		logger.Trace("problem sending block.import telemetry message", "error", err)
 	}
 
-	return s.blockImportHandler.HandleBlockImport(block, ts)
+	return nil
+	//}
 
 	// // handle consensus digest for authority changes
 	// if s.digestHandler != nil {

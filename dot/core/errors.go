@@ -53,6 +53,8 @@ var ErrNilNetwork = errors.New("cannot have nil Network")
 // ErrEmptyRuntimeCode is returned when the storage :code is empty
 var ErrEmptyRuntimeCode = errors.New("new :code is empty")
 
+var ErrNilDigestHandler = errors.New("cannot have nil DigestHandler")
+
 // ErrNilChannel is returned if a channel is nil
 func ErrNilChannel(s string) error {
 	return fmt.Errorf("cannot have nil channel %s", s)

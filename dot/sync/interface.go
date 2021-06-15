@@ -46,6 +46,7 @@ type BlockState interface {
 	SetFinalizedHash(hash common.Hash, round, setID uint64) error
 	AddBlockToBlockTree(header *types.Header) error
 	GetHashByNumber(*big.Int) (common.Hash, error)
+	GetBlockByHash(common.Hash) (*types.Block, error)
 }
 
 // StorageState is the interface for the storage state

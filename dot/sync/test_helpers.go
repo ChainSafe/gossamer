@@ -90,10 +90,6 @@ func NewTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 		cfg.StorageState = stateSrvc.Storage
 	}
 
-	if cfg.BlockProducer == nil {
-		cfg.BlockProducer = NewMockBlockProducer()
-	}
-
 	if cfg.Runtime == nil {
 		// set state to genesis state
 		genState, err := rtstorage.NewTrieState(genTrie) //nolint
