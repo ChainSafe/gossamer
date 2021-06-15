@@ -169,7 +169,7 @@ func TestBuildBlock_ok(t *testing.T) {
 }
 
 // TEST FAILING WITH []byte{0x1, 0x0, 0x6} EXHAUSTS RESOURCES
-func TestApplyExtrinsic(t *testing.T) {
+func TestApplyExtrinsic_0(t *testing.T) {
 	cfg := &ServiceConfig{
 		TransactionState: state.NewTransactionState(),
 		LogLvl:           log.LvlDebug,
@@ -208,17 +208,17 @@ func TestApplyExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 
 	//initialise block header
-	err = babeService.rt.InitializeBlock(header)
+	err = builder.rt.InitializeBlock(header)
+	require.NoError(t, err)
+
+	_, err = builder.buildBlockInherents(slot)
 	require.NoError(t, err)
 
 	ext := core.CreateTestExtrinsics(t, babeService.rt, parentHash, 0)
-	txVal, err := babeService.rt.ValidateTransaction(append([]byte{byte(types.TxnLocal)}, ext...))
+	_, err = babeService.rt.ValidateTransaction(append([]byte{byte(types.TxnLocal)}, ext...))
 	require.NoError(t, err)
 
-	vtx := transaction.NewValidTransaction(ext, txVal)
-	babeService.transactionState.Push(vtx)
-
-	res, err := babeService.rt.ApplyExtrinsic(vtx.Extrinsic)
+	res, err := builder.rt.ApplyExtrinsic(ext)
 	require.NoError(t, err)
 	//Expected result for valid ApplyExtrinsic is 0, 0
 	require.Equal(t, []byte{0, 0}, res)
