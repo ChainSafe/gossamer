@@ -19,11 +19,12 @@ package telemetry
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
+	"math/big"
 	"reflect"
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	log "github.com/ChainSafe/log15"
 	"github.com/gorilla/websocket"
@@ -35,22 +36,11 @@ type telemetryConnection struct {
 	sync.Mutex
 }
 
-// Message struct to hold telemetry message data
-type Message struct {
-	values map[string]interface{}
-}
-
 // Handler struct for holding telemetry related things
 type Handler struct {
 	msg         chan interface{}
 	connections []*telemetryConnection
 	log         log.Logger
-}
-
-// KeyValue object to hold key value pairs used in telemetry messages
-type KeyValue struct {
-	key   string
-	value interface{}
 }
 
 var (
@@ -71,25 +61,6 @@ func GetInstance() *Handler { //nolint
 			})
 	}
 	return handlerInstance
-}
-
-// NewTelemetryMessage builds a telemetry message
-func NewTelemetryMessage(values ...*KeyValue) *Message { //nolint
-	mvals := make(map[string]interface{})
-	for _, v := range values {
-		mvals[v.key] = v.value
-	}
-	return &Message{
-		values: mvals,
-	}
-}
-
-// NewKeyValue builds a key value pair for telemetry messages
-func NewKeyValue(key string, value interface{}) *KeyValue { //nolint
-	return &KeyValue{
-		key:   key,
-		value: value,
-	}
 }
 
 // AddConnections adds the given telemetry endpoint as listeners that will receive telemetry data
@@ -126,51 +97,94 @@ func (h *Handler) startListening() {
 		go func() {
 			for _, conn := range h.connections {
 				conn.Lock()
-				fmt.Printf("SENDING %s\n", msgToJSON(msg))
-				//err := conn.wsconn.WriteMessage(websocket.TextMessage, msgToBytes(msg))
-				err := conn.wsconn.WriteMessage(websocket.TextMessage, msgToJSON(msg))
+				defer conn.Unlock()
+				msgBytes, err := h.msgToJSON(msg)
+				if err != nil || len(msgBytes) == 0 {
+					h.log.Debug("issue decoding telemetry message", "error", err)
+					return
+				}
 
+				err = conn.wsconn.WriteMessage(websocket.TextMessage, msgBytes)
 				if err != nil {
 					h.log.Warn("issue while sending telemetry message", "error", err)
 				}
-				conn.Unlock()
 			}
 		}()
 	}
 }
 
-func msgToJSON(message interface{}) []byte {
-	res, err := json.Marshal(message)
+func (h *Handler) msgToJSON(message interface{}) ([]byte, error) {
+	defer h.recoverMessage()
+
+	messageBytes, err := json.Marshal(message)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
-	objMap := make(map[string]interface{})
-	err = json.Unmarshal(res, &objMap)
+	messageMap := make(map[string]interface{})
+	err = json.Unmarshal(messageBytes, &messageMap)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
-	objMap["ts"] = time.Now()
+	messageMap["ts"] = time.Now()
 	typ := reflect.TypeOf(message)
-	f, _ := typ.FieldByName("Msg")
-	def := f.Tag.Get("default")
-	objMap["msg"] = def
-
-	fullRes, err := json.Marshal(objMap)
-	if err != nil {
-		return nil
+	field, found := typ.FieldByName("Msg")
+	if !found {
+		return []byte{}, errors.New("unknown telemetry message type")
 	}
-	return fullRes
+	def := field.Tag.Get("default")
+	messageMap["msg"] = def
+
+	fullRes, err := json.Marshal(messageMap)
+	if err != nil {
+		return nil, err
+	}
+	return fullRes, nil
+}
+func (h *Handler) recoverMessage() {
+	if r := recover(); r != nil {
+		h.log.Debug("recovered", "issue", r)
+	}
 }
 
+// SystemConnectedTM struct to hold system connected telemetry messages
 type SystemConnectedTM struct {
-	Authority bool `json:"authority"`
-	Chain string `json:"chain"`
-	GenesisHash string `json:"genesis_hash"`
-	Implementation string `json:"implementation"`
-	Msg string `default:"system.connected" json:"msg"`
-	Name string `json:"name"`
-	NetworkID string `json:"network_id"`
-	StartupTime string `json:"startup_time"`
+	Authority      bool         `json:"authority"`
+	Chain          string       `json:"chain"`
+	GenesisHash    *common.Hash `json:"genesis_hash"`
+	Implementation string       `json:"implementation"`
+	Msg            string       `default:"system.connected" json:"msg"`
+	Name           string       `json:"name"`
+	NetworkID      string       `json:"network_id"`
+	StartupTime    string       `json:"startup_time"`
+	Version        string       `json:"version"`
+}
+
+// BlockImportTM struct to hold block import telemetry messages
+type BlockImportTM struct {
+	BestHash *common.Hash `json:"best"`
+	Height   *big.Int     `json:"height"`
+	Msg      string       `default:"block.import" json:"msg"`
+	Origin   string       `json:"origin"`
+}
+
+// SystemIntervalTM struct to hold system interval telemetry messages
+type SystemIntervalTM struct {
+	BandwidthDownload  float64      `json:"bandwidth_download,omitempty"`
+	BandwidthUpload    float64      `json:"bandwidth_upload,omitempty"`
+	Msg                string       `default:"system.interval" json:"msg"`
+	Peers              int          `json:"peers,omitempty"`
+	BestHash           *common.Hash `json:"best,omitempty"`
+	BestHeight         *big.Int     `json:"height,omitempty"`
+	FinalisedHash      *common.Hash `json:"finalized_hash,omitempty"`   // nolint
+	FinalisedHeight    *big.Int     `json:"finalized_height,omitempty"` // nolint
+	TxCount            *big.Int     `json:"txcount,omitempty"`
+	UsedStateCacheSize *big.Int     `json:"used_state_cache_size,omitempty"`
+}
+
+// NetworkStateTM struct to hold network state telemetry messages
+type NetworkStateTM struct {
+	Msg   string                 `default:"system.network_state" json:"msg"`
+	State map[string]interface{} `json:"state"`
 }

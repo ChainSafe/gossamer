@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
@@ -42,69 +43,69 @@ func TestMain(m *testing.M) {
 
 func TestHandler_SendMulti(t *testing.T) {
 	var wg sync.WaitGroup
-	wg.Add(1)
+	wg.Add(5)
 
 	resultCh = make(chan []byte)
 
 	go func() {
+		genesisHash := common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3")
 		GetInstance().SendMessage(SystemConnectedTM{
-			Authority: false,
-			Chain: "chain",
-			GenesisHash: "hash",
+			Authority:      false,
+			Chain:          "chain",
+			GenesisHash:    &genesisHash,
 			Implementation: "systemName",
-			Name: "nodeName",
-			NetworkID: "netID",
-			StartupTime: "startTime",
+			Name:           "nodeName",
+			NetworkID:      "netID",
+			StartupTime:    "startTime",
 		})
 		wg.Done()
 	}()
-	//go func() {
-	//	GetInstance().SendMessage(NewTelemetryMessage(
-	//		NewKeyValue("authority", false),
-	//		NewKeyValue("chain", "chain"),
-	//		NewKeyValue("genesis_hash", "hash"),
-	//		NewKeyValue("implementation", "systemName"),
-	//		NewKeyValue("msg", "system.connected"),
-	//		NewKeyValue("name", "nodeName"),
-	//		NewKeyValue("network_id", "netID"),
-	//		NewKeyValue("startup_time", "startTime"),
-	//		NewKeyValue("version", "version")))
-	//	wg.Done()
-	//}()
 
-	//go func() {
-	//	GetInstance().SendMessage(NewTelemetryMessage(
-	//		NewKeyValue("best", "hash"),
-	//		NewKeyValue("height", big.NewInt(2)),
-	//		NewKeyValue("msg", "block.import"),
-	//		NewKeyValue("origin", "NetworkInitialSync")))
-	//	wg.Done()
-	//}()
+	go func() {
+		bh := common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6")
+		GetInstance().SendMessage(BlockImportTM{
+			BestHash: &bh,
+			Height:   big.NewInt(2),
+			Origin:   "NetworkInitialSync",
+		})
+		wg.Done()
+	}()
 
-	//go func() {
-	//	GetInstance().SendMessage(NewTelemetryMessage(
-	//		NewKeyValue("bandwidth_download", 2),
-	//		NewKeyValue("bandwidth_upload", 3),
-	//		NewKeyValue("msg", "system.interval"),
-	//		NewKeyValue("peers", 1)))
-	//	wg.Done()
-	//}()
-	//
-	//go func() {
-	//	GetInstance().SendMessage(NewTelemetryMessage(
-	//		NewKeyValue("best", "0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6"),
-	//		NewKeyValue("finalized_hash", "0x687197c11b4cf95374159843e7f46fbcd63558db981aaef01a8bac2a44a1d6b2"), // nolint
-	//		NewKeyValue("finalized_height", 32256), NewKeyValue("height", 32375),                                // nolint
-	//		NewKeyValue("msg", "system.interval"), NewKeyValue("txcount", 2),
-	//		NewKeyValue("used_state_cache_size", 1886357)))
-	//	wg.Done()
-	//}()
+	go func() {
+		GetInstance().SendMessage(SystemIntervalTM{
+			BandwidthDownload: 2,
+			BandwidthUpload:   3,
+			Peers:             1,
+		})
+		wg.Done()
+	}()
+
+	go func() {
+		bestHash := common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6")
+		finalisedHash := common.MustHexToHash("0x687197c11b4cf95374159843e7f46fbcd63558db981aaef01a8bac2a44a1d6b2")
+		GetInstance().SendMessage(SystemIntervalTM{
+			BestHash:           &bestHash,
+			BestHeight:         big.NewInt(32375),
+			FinalisedHash:      &finalisedHash,
+			FinalisedHeight:    big.NewInt(32256),
+			TxCount:            big.NewInt(0),
+			UsedStateCacheSize: big.NewInt(1234),
+		})
+		wg.Done()
+	}()
+
+	// test for handling of non telemetry message
+	go func() {
+		GetInstance().SendMessage(
+			common.Hash{})
+		wg.Done()
+	}()
 
 	wg.Wait()
 
 	expected1 := []byte(`{"bandwidth_download":2,"bandwidth_upload":3,"msg":"system.interval","peers":1,"ts":`)
-	expected2 := []byte(`{"best":"hash","height":2,"msg":"block.import","origin":"NetworkInitialSync","ts":`)
-	expected3 := []byte(`{"authority":false,"chain":"chain","genesis_hash":"hash","implementation":"systemName","msg":"system.connected","name":"nodeName","network_id":"netID","startup_time":"startTime","ts":`)
+	expected2 := []byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","height":2,"msg":"block.import","origin":"NetworkInitialSync","ts":`)
+	expected3 := []byte(`{"authority":false,"chain":"chain","genesis_hash":"0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3","implementation":"systemName","msg":"system.connected","name":"nodeName","network_id":"netID","startup_time":"startTime","ts":`)
 	expected4 := []byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","finalized_hash":"0x687197c11b4cf95374159843e7f46fbcd63558db981aaef01a8bac2a44a1d6b2","finalized_height":32256,"height":32375,"msg":"system.interval","ts":`) // nolint
 
 	expected := [][]byte{expected3, expected1, expected4, expected2}
@@ -112,7 +113,7 @@ func TestHandler_SendMulti(t *testing.T) {
 	var actual [][]byte
 	for data := range resultCh {
 		actual = append(actual, data)
-		if len(actual) == 1 {
+		if len(actual) == 4 {
 			break
 		}
 	}
@@ -134,11 +135,12 @@ func TestListenerConcurrency(t *testing.T) {
 	resultCh = make(chan []byte)
 	for i := 0; i < qty; i++ {
 		go func() {
-			GetInstance().SendMessage(NewTelemetryMessage(
-				NewKeyValue("best", "hash"),
-				NewKeyValue("height", big.NewInt(2)),
-				NewKeyValue("msg", "block.import"),
-				NewKeyValue("origin", "NetworkInitialSync")))
+			bestHash := common.Hash{}
+			GetInstance().SendMessage(BlockImportTM{
+				BestHash: &bestHash,
+				Height:   big.NewInt(2),
+				Origin:   "NetworkInitialSync",
+			})
 			wg.Done()
 		}()
 	}
