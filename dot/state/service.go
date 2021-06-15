@@ -175,6 +175,7 @@ func (s *Service) Start() error {
 
 	num, _ := s.Block.BestBlockNumber()
 	logger.Info("created state service", "head", s.Block.BestBlockHash(), "highest number", num)
+
 	// Start background goroutine to GC pruned keys.
 	go s.Storage.pruneStorage(s.closeCh)
 	return nil

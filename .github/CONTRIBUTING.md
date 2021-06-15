@@ -62,6 +62,14 @@ Changes that only affect a single file can be tested with
 $ go test <file_you_are_working_on>
 ```
 
+Sometimes you may need to create mocks for interfaces, in that case you will just execute:
+
+```
+$ make mock
+```
+
+The above command will generate mocks for all the interfaces inside the project! This command does not affect unchanged interfaces. 
+
 **8. Lint your changes.**
 
 Before opening a pull request be sure to run the linter

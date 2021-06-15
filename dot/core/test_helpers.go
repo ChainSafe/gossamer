@@ -20,7 +20,6 @@ import (
 	"io/ioutil"
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -29,16 +28,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
-
-// testMessageTimeout is the wait time for messages to be exchanged
-var testMessageTimeout = time.Second
 
 func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
 	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis.json")
@@ -53,41 +48,6 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie
 	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.Digest{})
 	require.NoError(t, err)
 	return gen, genTrie, genesisHeader
-}
-
-// mockBlockProducer implements the BlockProducer interface
-type mockBlockProducer struct {
-	disabled uint32
-}
-
-// Start mocks starting
-func (bp *mockBlockProducer) Start() error {
-	return nil
-}
-
-// Stop mocks stopping
-func (bp *mockBlockProducer) Stop() error {
-	return nil
-}
-
-func (bp *mockBlockProducer) SetOnDisabled(idx uint32) {
-	bp.disabled = idx
-}
-
-// GetBlockChannel returns a new channel
-func (bp *mockBlockProducer) GetBlockChannel() <-chan types.Block {
-	return make(chan types.Block)
-}
-
-// SetRuntime mocks setting runtime
-func (bp *mockBlockProducer) SetRuntime(rt runtime.Instance) {}
-
-type mockNetwork struct {
-	Message network.Message
-}
-
-func (n *mockNetwork) SendMessage(m network.NotificationsMessage) {
-	n.Message = m
 }
 
 // NewTestService creates a new test core service
@@ -161,7 +121,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 			NoBootstrap:        true,
 			NoMDNS:             true,
 			BlockState:         stateSrvc.Block,
-			TransactionHandler: &mockTransactionHandler{},
+			TransactionHandler: network.NewMockTransactionHandler(),
 		}
 		cfg.Network = createTestNetworkService(t, config)
 	}
@@ -184,7 +144,7 @@ func createTestNetworkService(t *testing.T, cfg *network.Config) (srvc *network.
 	}
 
 	if cfg.Syncer == nil {
-		cfg.Syncer = newMockSyncer()
+		cfg.Syncer = network.NewMockSyncer()
 	}
 
 	srvc, err := network.NewService(cfg)
@@ -198,42 +158,4 @@ func createTestNetworkService(t *testing.T, cfg *network.Config) (srvc *network.
 		require.NoError(t, err)
 	})
 	return srvc
-}
-
-type mockSyncer struct {
-	highestSeen *big.Int
-}
-
-func newMockSyncer() *mockSyncer {
-	return &mockSyncer{
-		highestSeen: big.NewInt(0),
-	}
-}
-
-func (s *mockSyncer) CreateBlockResponse(msg *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
-	return nil, nil
-}
-
-func (s *mockSyncer) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) error {
-	return nil
-}
-
-func (s *mockSyncer) ProcessBlockData(_ []*types.BlockData) (int, error) {
-	return 0, nil
-}
-
-func (s *mockSyncer) ProcessJustification(data []*types.BlockData) (int, error) {
-	return 0, nil
-}
-
-func (s *mockSyncer) IsSynced() bool {
-	return false
-}
-
-func (s *mockSyncer) SetSyncing(bool) {}
-
-type mockTransactionHandler struct{}
-
-func (h *mockTransactionHandler) HandleTransactionMessage(_ *network.TransactionMessage) error {
-	return nil
 }

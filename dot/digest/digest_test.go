@@ -31,7 +31,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
+	. "github.com/ChainSafe/gossamer/dot/core/mocks"
+
 	log "github.com/ChainSafe/log15"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -95,7 +98,16 @@ func newTestHandler(t *testing.T, withBABE, withGrandpa bool) *Handler { //nolin
 	err = stateSrvc.Start()
 	require.NoError(t, err)
 
-	time.Sleep(time.Second)
+	var bp *MockBlockProducer
+	if withBABE {
+		bp = new(MockBlockProducer)
+		blockC := make(chan types.Block)
+		bp.On("GetBlockChannel", nil).Return(blockC)
+	}
+
+	verifier := new(MockVerifier)
+	verifier.On("SetOnDisabled", mock.Anything, mock.Anything).Return(nil)
+
 	dh, err := NewHandler(stateSrvc.Block, stateSrvc.Epoch, stateSrvc.Grandpa)
 	require.NoError(t, err)
 	return dh
@@ -359,8 +371,9 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 
 func TestHandler_HandleBABEOnDisabled(t *testing.T) {
 	handler := newTestHandler(t, true, false)
-	handler.Start()
-	defer handler.Stop()
+	header := &types.Header{
+		Number: big.NewInt(1),
+	}
 
 	digest := &types.BABEOnDisabled{
 		ID: 7,
@@ -374,7 +387,7 @@ func TestHandler_HandleBABEOnDisabled(t *testing.T) {
 		Data:              data,
 	}
 
-	err = handler.handleConsensusDigest(d, nil)
+	err = handler.handleConsensusDigest(d, header)
 	require.NoError(t, err)
 }
 
