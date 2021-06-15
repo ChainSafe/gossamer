@@ -122,7 +122,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		rt:               cfg.Runtime,
 		transactionState: cfg.TransactionState,
 		slotToProof:      make(map[uint64]*VrfOutputAndProof),
-		blockChan:        make(chan types.Block),
+		blockChan:        make(chan types.Block, 16),
 		pause:            make(chan struct{}),
 		authority:        cfg.Authority,
 		dev:              cfg.IsDev,
@@ -227,6 +227,11 @@ func (b *Service) EpochLength() uint64 {
 func (b *Service) Pause() error {
 	b.Lock()
 	defer b.Unlock()
+
+	if b.IsPaused() {
+		return nil
+	}
+
 	close(b.pause)
 	return nil
 }
