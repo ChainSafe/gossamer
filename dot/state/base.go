@@ -116,13 +116,13 @@ func (s *BaseState) StoreCodeSubstitutedBlockHash(hash common.Hash) error {
 }
 
 // LoadCodeSubstitutedBlockHash loads the hash stored at CodeSubstitutedBlock key
-func (s *BaseState) LoadCodeSubstitutedBlockHash() (common.Hash, error) {
+func (s *BaseState) LoadCodeSubstitutedBlockHash() common.Hash {
 	hash, err := s.db.Get(common.CodeSubstitutedBlock)
 	if err != nil {
-		return common.Hash{}, err
+		return common.Hash{}
 	}
 
-	return common.NewHash(hash), nil
+	return common.NewHash(hash)
 }
 
 func (s *BaseState) storeSkipToEpoch(epoch uint64) error {

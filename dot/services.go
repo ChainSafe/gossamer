@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
-	"reflect"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/core"
@@ -97,12 +96,9 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GlobalKeystore, 
 	}
 
 	// check if code substitute is in use, if so replace code
-	codeSubHash, err := st.Base.LoadCodeSubstitutedBlockHash()
-	if err != nil {
-		logger.Debug("failed to retrieve substituted code block hash", "error", err)
-	}
+	codeSubHash := st.Base.LoadCodeSubstitutedBlockHash()
 
-	if !reflect.DeepEqual(codeSubHash, common.Hash{}) {
+	if !codeSubHash.Equal(common.Hash{}) {
 		logger.Info("🔄 detected runtime code substitution, upgrading...", "block", codeSubHash)
 		genData, err := st.Base.LoadGenesisData() // nolint
 		if err != nil {
@@ -394,7 +390,7 @@ func createBlockVerifier(st *state.Service) (*babe.VerificationManager, error) {
 	return ver, nil
 }
 
-func createSyncService(cfg *Config, st *state.Service, bp sync.BlockProducer, fg sync.FinalityGadget, dh *core.DigestHandler, verifier *babe.VerificationManager, rt runtime.Instance) (*sync.Service, error) {
+func newSyncService(cfg *Config, st *state.Service, bp sync.BlockProducer, fg sync.FinalityGadget, dh *core.DigestHandler, verifier *babe.VerificationManager, rt runtime.Instance) (*sync.Service, error) {
 	genesisData, err := st.Base.LoadGenesisData()
 	if err != nil {
 		return nil, err

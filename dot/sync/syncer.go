@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"math/big"
 	"os"
-	"reflect"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
@@ -224,6 +223,11 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 			if bd.Justification != nil && bd.Justification.Exists() {
 				logger.Debug("handling Justification...", "number", header.Number, "hash", bd.Hash)
 				s.handleJustification(header, bd.Justification.Value())
+			}
+
+			if err := s.handleCodeSubstitution(bd.Hash); err != nil {
+				logger.Warn("failed to handle code substitution", "error", err)
+				return i, err
 			}
 
 			continue
@@ -439,17 +443,15 @@ func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {
 		return ErrEmptyRuntimeCode
 	}
 
-	codeSubBlockHash, err := s.codeSubstitutedState.LoadCodeSubstitutedBlockHash()
-	if err != nil {
-		logger.Debug("problem checking code substituted block hash", "error", err)
-	}
+	codeSubBlockHash := s.codeSubstitutedState.LoadCodeSubstitutedBlockHash()
 
-	if !reflect.DeepEqual(codeSubBlockHash, common.Hash{}) {
+	if !codeSubBlockHash.Equal(common.Hash{}) {
 		// don't do runtime change if using code substitution and runtime change spec version are equal
 		//  (do a runtime change if code substituted and runtime spec versions are different, or code not substituted)
 		newVersion, err := s.runtime.CheckRuntimeVersion(code) // nolint
 		if err != nil {
 			logger.Debug("problem checking runtime version", "error", err)
+			return err
 		}
 
 		if previousVersion.SpecVersion() == newVersion.SpecVersion() {
@@ -467,16 +469,23 @@ func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {
 	}
 
 	s.codeHash = currCodeHash
+
+	err = s.codeSubstitutedState.StoreCodeSubstitutedBlockHash(common.Hash{})
+	if err != nil {
+		logger.Error("failed to update code substituted block hash", "error", err)
+		return err
+	}
+
 	return nil
 }
 
-func (s *Service) handleCodeSubstitution(block common.Hash) error {
-	value := s.codeSubstitute[block]
+func (s *Service) handleCodeSubstitution(hash common.Hash) error {
+	value := s.codeSubstitute[hash]
 	if value == "" {
 		return nil
 	}
 
-	logger.Info("🔄 detected runtime code substitution, upgrading...", "block", block)
+	logger.Info("🔄 detected runtime code substitution, upgrading...", "block", hash)
 	code := common.MustHexToBytes(value)
 	if len(code) == 0 {
 		return ErrEmptyRuntimeCode
@@ -487,7 +496,7 @@ func (s *Service) handleCodeSubstitution(block common.Hash) error {
 		return err
 	}
 
-	err = s.codeSubstitutedState.StoreCodeSubstitutedBlockHash(block)
+	err = s.codeSubstitutedState.StoreCodeSubstitutedBlockHash(hash)
 	if err != nil {
 		return err
 	}

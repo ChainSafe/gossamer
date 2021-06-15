@@ -172,25 +172,7 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 func (in *Instance) UpdateRuntimeCode(code []byte) error {
 	in.Stop()
 
-	imports, err := in.imports()
-	if err != nil {
-		return err
-	}
-
-	// TODO: determine memory descriptor size that the runtime wants from the wasm.
-	// should be doable w/ wasmer 1.0.0.
-	memory, err := wasm.NewMemory(23, 0)
-	if err != nil {
-		return err
-	}
-
-	_, err = imports.AppendMemory("memory", memory)
-	if err != nil {
-		return err
-	}
-
-	// Instantiates the WebAssembly module.
-	instance, err := wasm.NewInstanceWithImports(code, imports)
+	instance, err := in.setupInstanceVM(code)
 	if err != nil {
 		return err
 	}
@@ -199,15 +181,10 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does
 	heapBase := runtime.DefaultHeapBase
 
-	// Assume imported memory is used if runtime does not export any
-	if !instance.HasMemory() {
-		instance.Memory = memory
-	}
-
 	in.ctx.Allocator = runtime.NewAllocator(instance.Memory, heapBase)
 	instance.SetContextData(in.ctx)
 
-	in.vm = instance
+	in.vm = *instance
 	in.version, err = in.Version()
 	if err != nil {
 		return err
@@ -220,6 +197,24 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 func (in *Instance) CheckRuntimeVersion(code []byte) (runtime.Version, error) {
 	originalVM := in.vm
 
+	instance, err := in.setupInstanceVM(code)
+	if err != nil {
+		return nil, err
+	}
+
+	instance.SetContextData(in.ctx)
+
+	in.vm = *instance
+	checkVersion, err := in.Version()
+	if err != nil {
+		return nil, err
+	}
+
+	in.vm = originalVM
+	return checkVersion, nil
+}
+
+func (in *Instance) setupInstanceVM(code []byte) (*wasm.Instance, error) {
 	imports, err := in.imports()
 	if err != nil {
 		return nil, err
@@ -247,17 +242,7 @@ func (in *Instance) CheckRuntimeVersion(code []byte) (runtime.Version, error) {
 	if !instance.HasMemory() {
 		instance.Memory = memory
 	}
-
-	instance.SetContextData(in.ctx)
-
-	in.vm = instance
-	checkVersion, err := in.Version()
-	if err != nil {
-		return nil, err
-	}
-
-	in.vm = originalVM
-	return checkVersion, nil
+	return &instance, nil
 }
 
 // SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.

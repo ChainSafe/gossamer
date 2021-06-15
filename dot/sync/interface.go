@@ -58,7 +58,7 @@ type StorageState interface {
 
 // CodeSubstitutedState interface to handle storage of code substitute state
 type CodeSubstitutedState interface {
-	LoadCodeSubstitutedBlockHash() (common.Hash, error)
+	LoadCodeSubstitutedBlockHash() common.Hash
 	StoreCodeSubstitutedBlockHash(hash common.Hash) error
 }
 

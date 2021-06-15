@@ -39,10 +39,10 @@ func TestHandleBlockResponse(t *testing.T) {
 		t.Skip() // this test takes around 4min to run
 	}
 
-	syncer := NewTestSyncer(t)
+	syncer := NewTestSyncer(t, false)
 	syncer.highestSeenBlock = big.NewInt(132)
 
-	responder := NewTestSyncer(t)
+	responder := NewTestSyncer(t, false)
 	parent, err := responder.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
@@ -77,7 +77,7 @@ func TestHandleBlockResponse(t *testing.T) {
 }
 
 func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
-	syncer := NewTestSyncer(t)
+	syncer := NewTestSyncer(t, false)
 	syncer.highestSeenBlock = big.NewInt(20)
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
@@ -90,7 +90,7 @@ func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
 		parent = block.Header
 	}
 
-	responder := NewTestSyncer(t)
+	responder := NewTestSyncer(t, false)
 
 	parent, err = responder.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
@@ -122,7 +122,7 @@ func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
 }
 
 func TestRemoveIncludedExtrinsics(t *testing.T) {
-	syncer := NewTestSyncer(t)
+	syncer := NewTestSyncer(t, false)
 
 	ext := []byte("nootwashere")
 	tx := &transaction.ValidTransaction{
@@ -152,13 +152,13 @@ func TestRemoveIncludedExtrinsics(t *testing.T) {
 }
 
 func TestHandleBlockResponse_NoBlockData(t *testing.T) {
-	syncer := NewTestSyncer(t)
+	syncer := NewTestSyncer(t, false)
 	_, err := syncer.ProcessBlockData(nil)
 	require.Equal(t, ErrNilBlockData, err)
 }
 
 func TestHandleBlockResponse_BlockData(t *testing.T) {
-	syncer := NewTestSyncer(t)
+	syncer := NewTestSyncer(t, false)
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
@@ -181,7 +181,7 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 }
 
 func TestSyncer_ExecuteBlock(t *testing.T) {
-	syncer := NewTestSyncer(t)
+	syncer := NewTestSyncer(t, false)
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
@@ -197,7 +197,7 @@ func TestSyncer_ExecuteBlock(t *testing.T) {
 }
 
 func TestSyncer_HandleRuntimeChanges(t *testing.T) {
-	syncer := NewTestSyncer(t)
+	syncer := NewTestSyncer(t, false)
 	codeHashBefore := syncer.codeHash
 	_, err := runtime.GetRuntimeBlob(runtime.POLKADOT_RUNTIME_FP, runtime.POLKADOT_RUNTIME_URL)
 	require.NoError(t, err)
@@ -216,17 +216,16 @@ func TestSyncer_HandleRuntimeChanges(t *testing.T) {
 }
 
 func TestSyncer_HandleCodeSubstitutes(t *testing.T) {
-	syncer := NewTestSyncer(t)
+	syncer := NewTestSyncer(t, true)
 	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29") // hash for known test code substitution
 	err := syncer.handleCodeSubstitution(blockHash)
 	require.NoError(t, err)
-	codSub, err := syncer.codeSubstitutedState.LoadCodeSubstitutedBlockHash()
-	require.NoError(t, err)
+	codSub := syncer.codeSubstitutedState.LoadCodeSubstitutedBlockHash()
 	require.Equal(t, blockHash, codSub)
 }
 
 func TestSyncer_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
-	syncer := NewTestSyncer(t)
+	syncer := NewTestSyncer(t, true)
 	codeHashBefore := syncer.codeHash
 	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29") // hash for known test code substitution
 
@@ -249,7 +248,7 @@ func TestSyncer_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 }
 
 func TestSyncer_HandleJustification(t *testing.T) {
-	syncer := NewTestSyncer(t)
+	syncer := NewTestSyncer(t, false)
 
 	header := &types.Header{
 		Number: big.NewInt(1),
@@ -265,7 +264,7 @@ func TestSyncer_HandleJustification(t *testing.T) {
 }
 
 func TestSyncer_ProcessJustification(t *testing.T) {
-	syncer := NewTestSyncer(t)
+	syncer := NewTestSyncer(t, false)
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)

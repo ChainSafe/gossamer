@@ -67,7 +67,7 @@ func NewMockBlockProducer() *syncmocks.MockBlockProducer {
 }
 
 // NewTestSyncer ...
-func NewTestSyncer(t *testing.T) *Service {
+func NewTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 	wasmer.DefaultTestLogLvl = 3
 
 	cfg := &Config{}
@@ -75,7 +75,7 @@ func NewTestSyncer(t *testing.T) *Service {
 	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo)
 	stateSrvc.UseMemDB()
 
-	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t, usePolkadotGenesis)
 	err := stateSrvc.Initialise(gen, genHeader, genTrie)
 	require.NoError(t, err)
 
@@ -144,8 +144,13 @@ func NewTestSyncer(t *testing.T) *Service {
 	return syncer
 }
 
-func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
-	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis.json")
+func newTestGenesisWithTrieAndHeader(t *testing.T, usePolkadotGenesis bool) (*genesis.Genesis, *trie.Trie, *types.Header) {
+	fp := "../../chain/gssmr/genesis.json"
+	if usePolkadotGenesis {
+		fp = "../../chain/polkadot/genesis.json"
+	}
+	gen, err := genesis.NewGenesisFromJSONRaw(fp)
+	//gen, err := genesis.NewGenesisFromJSONRaw("../../chain/polkadot/genesis.json")
 	require.NoError(t, err)
 
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
