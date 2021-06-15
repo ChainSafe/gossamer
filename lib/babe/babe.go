@@ -40,7 +40,6 @@ var (
 type Service struct {
 	ctx       context.Context
 	cancel    context.CancelFunc
-	paused    bool
 	authority bool
 	dev       bool
 
@@ -131,7 +130,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		rt:               cfg.Runtime,
 		transactionState: cfg.TransactionState,
 		slotToProof:      make(map[uint64]*VrfOutputAndProof),
-		blockChan:        make(chan types.Block),
+		blockChan:        make(chan types.Block, 16),
 		pause:            make(chan struct{}),
 		authority:        cfg.Authority,
 		dev:              cfg.IsDev,
@@ -258,12 +257,11 @@ func (b *Service) Pause() error {
 	b.Lock()
 	defer b.Unlock()
 
-	if b.paused {
-		return errors.New("service already paused")
+	if b.IsPaused() {
+		return nil
 	}
 
-	b.paused = true
-	b.pause <- struct{}{}
+	close(b.pause)
 	return nil
 }
 
@@ -272,14 +270,24 @@ func (b *Service) Resume() error {
 	b.Lock()
 	defer b.Unlock()
 
-	if !b.paused {
+	if !b.IsPaused() {
 		return nil
 	}
 
-	b.paused = false
+	b.pause = make(chan struct{})
 	go b.initiate()
-	logger.Info("service resumed")
+	logger.Debug("service resumed")
 	return nil
+}
+
+// IsPaused returns if the service is paused or not (ie. producing blocks)
+func (b *Service) IsPaused() bool {
+	select {
+	case <-b.pause:
+		return true
+	default:
+		return false
+	}
 }
 
 // Stop stops the service. If stop is called, it cannot be resumed.
@@ -318,13 +326,6 @@ func (b *Service) Authorities() []*types.Authority {
 // IsStopped returns true if the service is stopped (ie not producing blocks)
 func (b *Service) IsStopped() bool {
 	return b.ctx.Err() != nil
-}
-
-// IsPaused returns if the service is paused or not (ie. producing blocks)
-func (b *Service) IsPaused() bool {
-	b.RLock()
-	defer b.RUnlock()
-	return b.paused
 }
 
 func (b *Service) safeSend(msg types.Block) error {
@@ -415,9 +416,6 @@ func (b *Service) invokeBlockAuthoring() error {
 				intoEpoch, "startSlot",
 				startSlot, "epochStart", epochStartSlot,
 			)
-			go func() {
-				<-b.pause
-			}()
 			return b.Pause()
 		}
 

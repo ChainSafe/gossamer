@@ -142,6 +142,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 
 	cfg.DigestHandler = &mockDigestHandler{}
 	cfg.IsDev = true
+
 	cfg.LogLvl = defaultTestLogLvl
 	babeService, err := NewService(cfg)
 	require.NoError(t, err)
@@ -256,6 +257,36 @@ func TestStartAndStop(t *testing.T) {
 	})
 	err := bs.Start()
 	require.NoError(t, err)
+	err = bs.Stop()
+	require.NoError(t, err)
+}
+
+func TestService_PauseAndResume(t *testing.T) {
+	bs := createTestService(t, &ServiceConfig{
+		LogLvl: log.LvlCrit,
+	})
+	err := bs.Start()
+	require.NoError(t, err)
+	time.Sleep(time.Second)
+
+	go func() {
+		_ = bs.Pause()
+	}()
+
+	go func() {
+		_ = bs.Pause()
+	}()
+
+	go func() {
+		err := bs.Resume() //nolint
+		require.NoError(t, err)
+	}()
+
+	go func() {
+		err := bs.Resume() //nolint
+		require.NoError(t, err)
+	}()
+
 	err = bs.Stop()
 	require.NoError(t, err)
 }
