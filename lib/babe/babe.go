@@ -38,7 +38,6 @@ var logger log.Logger
 type Service struct {
 	ctx       context.Context
 	cancel    context.CancelFunc
-	paused    bool
 	authority bool
 	dev       bool
 
@@ -228,13 +227,7 @@ func (b *Service) EpochLength() uint64 {
 func (b *Service) Pause() error {
 	b.Lock()
 	defer b.Unlock()
-
-	if b.paused {
-		return errors.New("service already paused")
-	}
-
-	b.paused = true
-	b.pause <- struct{}{}
+	close(b.pause)
 	return nil
 }
 
@@ -243,9 +236,11 @@ func (b *Service) Resume() error {
 	b.Lock()
 	defer b.Unlock()
 
-	if !b.paused {
+	if !b.IsPaused() {
 		return nil
 	}
+
+	b.pause = make(chan struct{})
 
 	epoch, err := b.epochState.GetCurrentEpoch()
 	if err != nil {
@@ -253,10 +248,19 @@ func (b *Service) Resume() error {
 		return err
 	}
 
-	b.paused = false
 	go b.initiate(epoch)
 	logger.Info("service resumed", "epoch", epoch)
 	return nil
+}
+
+// IsPaused returns if the service is paused or not (ie. producing blocks)
+func (b *Service) IsPaused() bool {
+	select {
+	case <-b.pause:
+		return true
+	default:
+		return false
+	}
 }
 
 // Stop stops the service. If stop is called, it cannot be resumed.
@@ -299,13 +303,6 @@ func (b *Service) Authorities() []*types.Authority {
 // IsStopped returns true if the service is stopped (ie not producing blocks)
 func (b *Service) IsStopped() bool {
 	return b.ctx.Err() != nil
-}
-
-// IsPaused returns if the service is paused or not (ie. producing blocks)
-func (b *Service) IsPaused() bool {
-	b.RLock()
-	defer b.RUnlock()
-	return b.paused
 }
 
 func (b *Service) safeSend(msg types.Block) error {
@@ -413,9 +410,6 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) error {
 		// resume it when ready
 		if b.epochLength <= intoEpoch && !b.dev {
 			logger.Debug("pausing BABE, need to sync", "slots into epoch", intoEpoch, "startSlot", startSlot, "epochStart", epochStart)
-			go func() {
-				<-b.pause
-			}()
 			return b.Pause()
 		}
 
