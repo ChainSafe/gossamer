@@ -225,25 +225,37 @@ func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks k
 // Core Service
 
 // createCoreService creates the core service from the provided core configuration
-func createCoreService(cfg *Config, bp core.BlockProducer, verifier *babe.VerificationManager, rt runtime.Instance, ks *keystore.GlobalKeystore, stateSrvc *state.Service, net *network.Service) (*core.Service, error) {
+func createCoreService(cfg *Config, verifier *babe.VerificationManager, rt runtime.Instance, ks *keystore.GlobalKeystore, st *state.Service, net *network.Service) (*core.Service, error) {
 	logger.Debug(
 		"creating core service...",
 		"authority", cfg.Core.Roles == types.AuthorityRole,
 	)
 
+	genesisData, err := st.Base.LoadGenesisData()
+	if err != nil {
+		return nil, err
+	}
+
+	codeSubs := make(map[common.Hash]string)
+	for k, v := range genesisData.CodeSubstitutes {
+		codeSubs[common.MustHexToHash(k)] = v
+	}
+
 	// set core configuration
 	coreConfig := &core.Config{
 		LogLvl:           cfg.Log.CoreLvl,
-		BlockState:       stateSrvc.Block,
-		EpochState:       stateSrvc.Epoch,
-		StorageState:     stateSrvc.Storage,
-		TransactionState: stateSrvc.Transaction,
-		BlockProducer:    bp,
+		BlockState:       st.Block,
+		EpochState:       st.Epoch,
+		StorageState:     st.Storage,
+		TransactionState: st.Transaction,
 		Keystore:         ks,
 		Runtime:          rt,
 		IsBlockProducer:  cfg.Core.BabeAuthority,
 		Verifier:         verifier,
 		Network:          net,
+		//DigestHandler:        dh,
+		CodeSubstitutes:      codeSubs,
+		CodeSubstitutedState: st.Base,
 	}
 
 	// create new core service
@@ -391,26 +403,15 @@ func createBlockVerifier(st *state.Service) (*babe.VerificationManager, error) {
 }
 
 func newSyncService(cfg *Config, st *state.Service, bp sync.BlockProducer, fg sync.FinalityGadget, dh *core.DigestHandler, verifier *babe.VerificationManager, rt runtime.Instance) (*sync.Service, error) {
-	genesisData, err := st.Base.LoadGenesisData()
-	if err != nil {
-		return nil, err
-	}
-	codeSubs := make(map[common.Hash]string)
-	for k, v := range genesisData.CodeSubstitutes {
-		codeSubs[common.MustHexToHash(k)] = v
-	}
 	syncCfg := &sync.Config{
-		LogLvl:               cfg.Log.SyncLvl,
-		BlockState:           st.Block,
-		StorageState:         st.Storage,
-		TransactionState:     st.Transaction,
-		BlockProducer:        bp,
-		FinalityGadget:       fg,
-		Verifier:             verifier,
-		Runtime:              rt,
-		DigestHandler:        dh,
-		CodeSubstitutes:      codeSubs,
-		CodeSubstitutedState: st.Base,
+		LogLvl:           cfg.Log.SyncLvl,
+		BlockState:       st.Block,
+		StorageState:     st.Storage,
+		TransactionState: st.Transaction,
+		BlockProducer:    bp,
+		FinalityGadget:   fg,
+		Verifier:         verifier,
+		Runtime:          rt,
 	}
 
 	return sync.NewService(syncCfg)

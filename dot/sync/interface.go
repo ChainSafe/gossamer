@@ -56,12 +56,6 @@ type StorageState interface {
 	SetSyncing(bool)
 }
 
-// CodeSubstitutedState interface to handle storage of code substitute state
-type CodeSubstitutedState interface {
-	LoadCodeSubstitutedBlockHash() common.Hash
-	StoreCodeSubstitutedBlockHash(hash common.Hash) error
-}
-
 // TransactionState is the interface for transaction queue methods
 type TransactionState interface {
 	RemoveExtrinsic(ext types.Extrinsic)
@@ -74,11 +68,6 @@ type BlockProducer interface {
 	SetRuntime(rt runtime.Instance)
 }
 
-// DigestHandler is the interface for the consensus digest handler
-type DigestHandler interface {
-	HandleConsensusDigest(*types.ConsensusDigest, *types.Header) error
-}
-
 // Verifier deals with block verification
 type Verifier interface {
 	VerifyBlock(header *types.Header) error
@@ -87,4 +76,8 @@ type Verifier interface {
 // FinalityGadget implements justification verification functionality
 type FinalityGadget interface {
 	VerifyBlockJustification([]byte) error
+}
+
+type BlockImportHandler interface {
+	HandleBlockImport(block *types.Block, state *rtstorage.TrieState) error
 }

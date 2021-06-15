@@ -124,21 +124,6 @@ func NewTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 		cfg.FinalityGadget = NewMockFinalityGadget()
 	}
 
-	if cfg.CodeSubstitutes == nil {
-		cfg.CodeSubstitutes = make(map[common.Hash]string)
-
-		genesisData, err := stateSrvc.Base.LoadGenesisData() // nolint
-		require.NoError(t, err)
-
-		for k, v := range genesisData.CodeSubstitutes {
-			cfg.CodeSubstitutes[common.MustHexToHash(k)] = v
-		}
-	}
-
-	if cfg.CodeSubstitutedState == nil {
-		cfg.CodeSubstitutedState = stateSrvc.Base
-	}
-
 	syncer, err := NewService(cfg)
 	require.NoError(t, err)
 	return syncer

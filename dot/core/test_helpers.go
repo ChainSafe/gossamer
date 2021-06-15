@@ -136,6 +136,21 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		cfg.Network = createTestNetworkService(t, config)
 	}
 
+	if cfg.CodeSubstitutes == nil {
+		cfg.CodeSubstitutes = make(map[common.Hash]string)
+
+		genesisData, err := stateSrvc.Base.LoadGenesisData() // nolint
+		require.NoError(t, err)
+
+		for k, v := range genesisData.CodeSubstitutes {
+			cfg.CodeSubstitutes[common.MustHexToHash(k)] = v
+		}
+	}
+
+	if cfg.CodeSubstitutedState == nil {
+		cfg.CodeSubstitutedState = stateSrvc.Base
+	}
+
 	s, err := NewService(cfg)
 	require.Nil(t, err)
 

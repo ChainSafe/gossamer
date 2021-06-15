@@ -101,3 +101,14 @@ type GrandpaState interface {
 	SetNextResume(number *big.Int) error
 	GetCurrentSetID() (uint64, error)
 }
+
+// CodeSubstitutedState interface to handle storage of code substitute state
+type CodeSubstitutedState interface {
+	LoadCodeSubstitutedBlockHash() common.Hash
+	StoreCodeSubstitutedBlockHash(hash common.Hash) error
+}
+
+// // DigestHandler is the interface for the consensus digest handler
+// type DigestHandler interface {
+// 	HandleConsensusDigest(*types.ConsensusDigest, *types.Header) error
+// }

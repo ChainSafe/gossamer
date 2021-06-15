@@ -33,6 +33,8 @@ var ErrNilVerifier = errors.New("cannot have nil Verifier")
 // ErrNilRuntime is returned when trying to instantiate a Service or Syncer without a runtime
 var ErrNilRuntime = errors.New("cannot have nil runtime")
 
+var ErrNilBlockImportHandler = errors.New("cannot have nil BlockImportHandler")
+
 // ErrNilBlockData is returned when trying to process a BlockResponseMessage with nil BlockData
 var ErrNilBlockData = errors.New("got nil BlockData")
 
@@ -44,9 +46,6 @@ var ErrInvalidBlock = errors.New("could not verify block")
 
 // ErrInvalidBlockRequest is returned when an invalid block request is received
 var ErrInvalidBlockRequest = errors.New("invalid block request")
-
-// ErrEmptyRuntimeCode is returned when the storage :code is empty
-var ErrEmptyRuntimeCode = errors.New("new :code is empty")
 
 // ErrNilChannel is returned if a channel is nil
 func ErrNilChannel(s string) error {

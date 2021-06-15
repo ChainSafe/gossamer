@@ -16,6 +16,7 @@
 package core
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"sync"
@@ -26,6 +27,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -55,7 +57,7 @@ type Service struct {
 	codeHash common.Hash
 
 	// Block production variables
-	blockProducer   BlockProducer
+	//blockProducer   BlockProducer
 	isBlockProducer bool
 
 	// Block verification
@@ -65,14 +67,20 @@ type Service struct {
 	keys *keystore.GlobalKeystore
 
 	// Channels and interfaces for inter-process communication
-	blkRec <-chan types.Block // receive blocks from BABE session
-	net    Network
+	//blkRec <-chan types.Block // receive blocks from BABE session
+	net Network
 
-	blockAddCh   chan *types.Block // receive blocks added to blocktree
-	blockAddChID byte
+	blockAddCh chan *types.Block // receive blocks added to blocktree
+	//blockAddChID byte
 
 	// State variables
 	lock *sync.Mutex // channel lock
+
+	digestHandler DigestHandler
+
+	// map of code substitutions keyed by block hash
+	codeSubstitute       map[common.Hash]string
+	codeSubstitutedState CodeSubstitutedState
 }
 
 // Config holds the configuration for the core Service.
@@ -85,9 +93,13 @@ type Config struct {
 	Network          Network
 	Keystore         *keystore.GlobalKeystore
 	Runtime          runtime.Instance
-	BlockProducer    BlockProducer
-	IsBlockProducer  bool
-	Verifier         Verifier
+	//BlockProducer    BlockProducer
+	IsBlockProducer bool
+	Verifier        Verifier
+	DigestHandler   DigestHandler
+
+	CodeSubstitutes      map[common.Hash]string
+	CodeSubstitutedState CodeSubstitutedState
 
 	NewBlocks chan types.Block // only used for testing purposes
 }
@@ -111,9 +123,17 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilRuntime
 	}
 
-	if cfg.IsBlockProducer && cfg.BlockProducer == nil {
-		return nil, ErrNilBlockProducer
+	// if cfg.IsBlockProducer && cfg.BlockProducer == nil {
+	// 	return nil, ErrNilBlockProducer
+	// }
+
+	if cfg.Network == nil {
+		return nil, ErrNilNetwork
 	}
+
+	// if cfg.DigestHandler == nil {
+	// 	return nil, ErrNilDigestHandler
+	// }
 
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
 	h = log.CallerFileHandler(h)
@@ -129,39 +149,41 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
-	blockAddCh := make(chan *types.Block, 16)
-	id, err := cfg.BlockState.RegisterImportedChannel(blockAddCh)
-	if err != nil {
-		return nil, err
-	}
+	blockAddCh := make(chan *types.Block, 256)
+	// id, err := cfg.BlockState.RegisterImportedChannel(blockAddCh)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	srv := &Service{
-		ctx:              ctx,
-		cancel:           cancel,
-		rt:               cfg.Runtime,
-		codeHash:         codeHash,
-		keys:             cfg.Keystore,
-		blkRec:           cfg.NewBlocks,
+		ctx:      ctx,
+		cancel:   cancel,
+		rt:       cfg.Runtime,
+		codeHash: codeHash,
+		keys:     cfg.Keystore,
+		//blkRec:           cfg.NewBlocks,
 		blockState:       cfg.BlockState,
 		epochState:       cfg.EpochState,
 		storageState:     cfg.StorageState,
 		transactionState: cfg.TransactionState,
 		net:              cfg.Network,
 		isBlockProducer:  cfg.IsBlockProducer,
-		blockProducer:    cfg.BlockProducer,
-		verifier:         cfg.Verifier,
-		lock:             &sync.Mutex{},
-		blockAddCh:       blockAddCh,
-		blockAddChID:     id,
+		//blockProducer:    cfg.BlockProducer,
+		verifier:   cfg.Verifier,
+		lock:       &sync.Mutex{},
+		blockAddCh: blockAddCh,
+		//blockAddChID:     id,
+		codeSubstitute:       cfg.CodeSubstitutes,
+		codeSubstitutedState: cfg.CodeSubstitutedState,
 	}
 
-	if cfg.NewBlocks != nil {
-		srv.blkRec = cfg.NewBlocks
-	} else if cfg.IsBlockProducer {
-		srv.blkRec = cfg.BlockProducer.GetBlockChannel()
-	}
+	// if cfg.NewBlocks != nil {
+	// 	srv.blkRec = cfg.NewBlocks
+	// } else if cfg.IsBlockProducer {
+	// 	srv.blkRec = cfg.BlockProducer.GetBlockChannel()
+	// }
 
 	return srv, nil
 }
@@ -172,12 +194,12 @@ func (s *Service) Start() error {
 	// so all the child contexts should also be canceled. potentially update if there is a better way to do this
 
 	// start receiving blocks from BABE session
-	go s.receiveBlocks(s.ctx)
+	//go s.receiveBlocks(s.ctx)
 
 	// start receiving messages from network service
 
 	// start handling imported blocks
-	go s.handleBlocks(s.ctx)
+	go s.handleBlocksAsync()
 
 	return nil
 }
@@ -188,8 +210,8 @@ func (s *Service) Stop() error {
 	defer s.lock.Unlock()
 	s.cancel()
 
-	s.blockState.UnregisterImportedChannel(s.blockAddChID)
-	close(s.blockAddCh)
+	//s.blockState.UnregisterImportedChannel(s.blockAddChID)
+	//close(s.blockAddCh)
 
 	return nil
 }
@@ -208,30 +230,134 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 	return ts.Root()
 }
 
-func (s *Service) handleBlocks(ctx context.Context) {
-	for {
-		//prev := s.blockState.BestBlockHash()
+func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieState) error {
+	return s.handleBlock(block, state)
+}
 
-		select {
-		case block := <-s.blockAddCh:
-			if block == nil {
+func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieState) error {
+	msg := &network.BlockAnnounceMessage{
+		ParentHash:     block.Header.ParentHash,
+		Number:         block.Header.Number,
+		StateRoot:      block.Header.StateRoot,
+		ExtrinsicsRoot: block.Header.ExtrinsicsRoot,
+		Digest:         block.Header.Digest,
+		BestBlock:      true,
+	}
+
+	s.net.SendMessage(msg)
+	return s.handleBlock(block, state)
+}
+
+func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) error {
+	if err := s.handleRuntimeChanges(state); err != nil {
+		return err
+	}
+
+	if err := s.handleCurrentSlot(block.Header); err != nil {
+		logger.Warn("failed to handle epoch for block", "block", block.Header.Hash(), "error", err)
+		return err
+	}
+
+	go func() {
+		s.blockAddCh <- block
+	}()
+
+	return nil
+}
+
+func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {
+	currCodeHash, err := newState.LoadCodeHash()
+	if err != nil {
+		return err
+	}
+
+	if bytes.Equal(s.codeHash[:], currCodeHash[:]) {
+		return nil
+	}
+
+	logger.Info("🔄 detected runtime code change, upgrading...", "block", s.blockState.BestBlockHash(), "previous code hash", s.codeHash, "new code hash", currCodeHash)
+	code := newState.LoadCode()
+	if len(code) == 0 {
+		return ErrEmptyRuntimeCode
+	}
+
+	codeSubBlockHash := s.codeSubstitutedState.LoadCodeSubstitutedBlockHash()
+
+	if !codeSubBlockHash.Equal(common.Hash{}) {
+		// don't do runtime change if using code substitution and runtime change spec version are equal
+		//  (do a runtime change if code substituted and runtime spec versions are different, or code not substituted)
+		newVersion, err := s.rt.CheckRuntimeVersion(code) // nolint
+		if err != nil {
+			logger.Debug("problem checking runtime version", "error", err)
+			return err
+		}
+
+		previousVersion, _ := s.rt.Version()
+		if previousVersion.SpecVersion() == newVersion.SpecVersion() {
+			return nil
+		}
+
+		logger.Info("🔄 detected runtime code change, upgrading...", "block", s.blockState.BestBlockHash(),
+			"previous code hash", s.codeHash, "new code hash", currCodeHash,
+			"previous spec version", previousVersion.SpecVersion(), "new spec version", newVersion.SpecVersion())
+	}
+
+	err = s.rt.UpdateRuntimeCode(code)
+	if err != nil {
+		logger.Crit("failed to update runtime code", "error", err)
+		return err
+	}
+
+	s.codeHash = currCodeHash
+
+	err = s.codeSubstitutedState.StoreCodeSubstitutedBlockHash(common.Hash{})
+	if err != nil {
+		logger.Error("failed to update code substituted block hash", "error", err)
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) handleCodeSubstitution(hash common.Hash) error {
+	value := s.codeSubstitute[hash]
+	if value == "" {
+		return nil
+	}
+
+	logger.Info("🔄 detected runtime code substitution, upgrading...", "block", hash)
+	code := common.MustHexToBytes(value)
+	if len(code) == 0 {
+		return ErrEmptyRuntimeCode
+	}
+
+	err := s.rt.UpdateRuntimeCode(code)
+	if err != nil {
+		logger.Crit("failed to substitute runtime code", "error", err)
+		return err
+	}
+
+	err = s.codeSubstitutedState.StoreCodeSubstitutedBlockHash(hash)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Service) handleDigests(header *types.Header) {
+	for i, d := range header.Digest {
+		if d.Type() == types.ConsensusDigestType {
+			cd, ok := d.(*types.ConsensusDigest)
+			if !ok {
+				logger.Error("handleDigests", "block number", header.Number, "index", i, "error", "cannot cast invalid consensus digest item")
 				continue
 			}
 
-			if err := s.handleCurrentSlot(block.Header); err != nil {
-				logger.Warn("failed to handle epoch for block", "block", block.Header.Hash(), "error", err)
+			err := s.digestHandler.HandleConsensusDigest(cd, header)
+			if err != nil {
+				logger.Error("handleDigests", "block number", header.Number, "index", i, "digest", cd, "error", err)
 			}
-
-			// TODO: add inherent check
-			// if err := s.handleChainReorg(prev, block.Header.Hash()); err != nil {
-			// 	logger.Warn("failed to re-add transactions to chain upon re-org", "error", err)
-			// }
-
-			if err := s.maintainTransactionPool(block); err != nil {
-				logger.Warn("failed to maintain transaction pool", "error", err)
-			}
-		case <-ctx.Done():
-			return
 		}
 	}
 }
@@ -259,49 +385,75 @@ func (s *Service) handleCurrentSlot(header *types.Header) error {
 	return s.epochState.SetCurrentEpoch(epoch)
 }
 
-// receiveBlocks starts receiving blocks from the BABE session
-func (s *Service) receiveBlocks(ctx context.Context) {
+// handleBlocksAsync handles a block asynchronously; the handling performed by this function
+// does not need to be completed before the next block can be imported.
+func (s *Service) handleBlocksAsync() {
 	for {
+		//prev := s.blockState.BestBlockHash()
+
 		select {
-		case block := <-s.blkRec:
-			if block.Header == nil {
+		case block := <-s.blockAddCh:
+			if block == nil {
 				continue
 			}
 
-			err := s.handleReceivedBlock(&block)
-			if err != nil {
-				logger.Warn("failed to handle block from BABE session", "err", err)
+			// TODO: add inherent check
+			// if err := s.handleChainReorg(prev, block.Header.Hash()); err != nil {
+			// 	logger.Warn("failed to re-add transactions to chain upon re-org", "error", err)
+			// }
+
+			if err := s.maintainTransactionPool(block); err != nil {
+				logger.Warn("failed to maintain transaction pool", "error", err)
 			}
-		case <-ctx.Done():
+		case <-s.ctx.Done():
 			return
 		}
 	}
 }
 
-// handleReceivedBlock handles blocks from the BABE session
-func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
-	if s.blockState == nil {
-		return ErrNilBlockState
-	}
+// // receiveBlocks starts receiving blocks from the BABE session
+// func (s *Service) receiveBlocks(ctx context.Context) {
+// 	for {
+// 		select {
+// 		case block := <-s.blkRec:
+// 			if block.Header == nil {
+// 				continue
+// 			}
 
-	logger.Debug("got block from BABE", "header", block.Header, "body", block.Body)
+// 			err := s.handleReceivedBlock(&block)
+// 			if err != nil {
+// 				logger.Warn("failed to handle block from BABE session", "err", err)
+// 			}
+// 		case <-ctx.Done():
+// 			return
+// 		}
+// 	}
+// }
 
-	msg := &network.BlockAnnounceMessage{
-		ParentHash:     block.Header.ParentHash,
-		Number:         block.Header.Number,
-		StateRoot:      block.Header.StateRoot,
-		ExtrinsicsRoot: block.Header.ExtrinsicsRoot,
-		Digest:         block.Header.Digest,
-		BestBlock:      true,
-	}
+// // handleReceivedBlock handles blocks from the BABE session
+// func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
+// 	if s.blockState == nil {
+// 		return ErrNilBlockState
+// 	}
 
-	if s.net == nil {
-		return
-	}
+// 	logger.Debug("got block from BABE", "header", block.Header, "body", block.Body)
 
-	s.net.SendMessage(msg)
-	return nil
-}
+// 	msg := &network.BlockAnnounceMessage{
+// 		ParentHash:     block.Header.ParentHash,
+// 		Number:         block.Header.Number,
+// 		StateRoot:      block.Header.StateRoot,
+// 		ExtrinsicsRoot: block.Header.ExtrinsicsRoot,
+// 		Digest:         block.Header.Digest,
+// 		BestBlock:      true,
+// 	}
+
+// 	if s.net == nil {
+// 		return
+// 	}
+
+// 	s.net.SendMessage(msg)
+// 	return nil
+// }
 
 // handleChainReorg checks if there is a chain re-org (ie. new chain head is on a different chain than the
 // previous chain head). If there is a re-org, it moves the transactions that were included on the previous
