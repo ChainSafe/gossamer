@@ -102,7 +102,7 @@ func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (*Service, chan GrandpaMess
 	cfg := &Config{
 		BlockState:    st.Block,
 		GrandpaState:  st.Grandpa,
-		DigestHandler: &mockDigestHandler{},
+		DigestHandler: NewMockDigestHandler(),
 		Voters:        voters,
 		Keypair:       kp,
 		LogLvl:        log.LvlInfo,

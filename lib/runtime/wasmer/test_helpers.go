@@ -24,9 +24,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	log "github.com/ChainSafe/log15"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
@@ -100,15 +100,14 @@ func setupConfig(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Lvl,
 	cfg.LogLvl = lvl
 	cfg.NodeStorage = ns
 	cfg.Network = new(runtime.TestRuntimeNetwork)
-	cfg.Transaction = new(mockTransactionState)
+	cfg.Transaction = NewTransactionStateMock()
 	cfg.Role = role
 	return fp, cfg
 }
 
-type mockTransactionState struct {
-}
-
-// AddToPool adds a transaction to the pool
-func (mt *mockTransactionState) AddToPool(vt *transaction.ValidTransaction) common.Hash {
-	return common.BytesToHash([]byte("test"))
+// NewTransactionStateMock create and return an runtime Transaction State interface mock
+func NewTransactionStateMock() *runtime.MockTransactionState {
+	m := new(runtime.MockTransactionState)
+	m.On("AddToPool", mock.AnythingOfType("*transaction.ValidTransaction")).Return(common.BytesToHash([]byte("test")))
+	return m
 }

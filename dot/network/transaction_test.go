@@ -20,11 +20,11 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -52,35 +52,17 @@ func TestDecodeTransactionMessage(t *testing.T) {
 	require.Equal(t, testTxMsg, msg)
 }
 
-type mockTransactionHandler struct {
-	txs map[common.Hash]types.Extrinsic
-}
-
-func newMockTransactionHandler() *mockTransactionHandler {
-	return &mockTransactionHandler{
-		txs: make(map[common.Hash]types.Extrinsic),
-	}
-}
-
-func (h *mockTransactionHandler) HandleTransactionMessage(msg *TransactionMessage) error {
-	for _, tx := range msg.Extrinsics {
-		h.txs[tx.Hash()] = tx
-	}
-
-	return nil
-}
-
 func TestHandleTransactionMessage(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "nodeA")
-
-	handler := newMockTransactionHandler()
+	mockhandler := &MockTransactionHandler{}
+	mockhandler.On("HandleTransactionMessage", mock.AnythingOfType("*network.TransactionMessage")).Return(nil)
 
 	config := &Config{
 		BasePath:           basePath,
 		Port:               7001,
 		NoBootstrap:        true,
 		NoMDNS:             true,
-		TransactionHandler: handler,
+		TransactionHandler: mockhandler,
 	}
 
 	s := createTestService(t, config)
@@ -90,7 +72,5 @@ func TestHandleTransactionMessage(t *testing.T) {
 	}
 
 	s.handleTransactionMessage(peer.ID(""), msg)
-	for _, tx := range msg.Extrinsics {
-		require.NotNil(t, handler.txs[tx.Hash()])
-	}
+	mockhandler.AssertCalled(t, "HandleTransactionMessage", msg)
 }
