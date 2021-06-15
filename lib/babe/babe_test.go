@@ -253,3 +253,33 @@ func TestStartAndStop(t *testing.T) {
 	err = bs.Stop()
 	require.NoError(t, err)
 }
+
+func TestService_PauseAndResume(t *testing.T) {
+	bs := createTestService(t, &ServiceConfig{
+		LogLvl: log.LvlCrit,
+	})
+	err := bs.Start()
+	require.NoError(t, err)
+	time.Sleep(time.Second)
+
+	go func() {
+		_ = bs.Pause()
+	}()
+
+	go func() {
+		_ = bs.Pause()
+	}()
+
+	go func() {
+		err := bs.Resume()
+		require.NoError(t, err)
+	}()
+
+	go func() {
+		err := bs.Resume()
+		require.NoError(t, err)
+	}()
+
+	err = bs.Stop()
+	require.NoError(t, err)
+}
