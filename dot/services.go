@@ -180,7 +180,7 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GlobalKeystore, 
 	return rt, nil
 }
 
-func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks keystore.Keystore) (*babe.Service, error) {
+func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks keystore.Keystore, cs *core.Service) (*babe.Service, error) {
 	logger.Info(
 		"creating BABE service...",
 		"authority", cfg.Core.BabeAuthority,
@@ -197,16 +197,17 @@ func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks k
 	}
 
 	bcfg := &babe.ServiceConfig{
-		LogLvl:           cfg.Log.BlockProducerLvl,
-		Runtime:          rt,
-		BlockState:       st.Block,
-		StorageState:     st.Storage,
-		TransactionState: st.Transaction,
-		EpochState:       st.Epoch,
-		EpochLength:      cfg.Core.EpochLength,
-		SlotDuration:     cfg.Core.SlotDuration, // TODO: remove this, should only be modified via runtime constant
-		Authority:        cfg.Core.BabeAuthority,
-		IsDev:            cfg.Global.ID == "dev",
+		LogLvl:             cfg.Log.BlockProducerLvl,
+		Runtime:            rt,
+		BlockState:         st.Block,
+		StorageState:       st.Storage,
+		TransactionState:   st.Transaction,
+		EpochState:         st.Epoch,
+		BlockImportHandler: cs,
+		EpochLength:        cfg.Core.EpochLength,
+		SlotDuration:       cfg.Core.SlotDuration, // TODO: remove this, should only be modified via runtime constant
+		Authority:          cfg.Core.BabeAuthority,
+		IsDev:              cfg.Global.ID == "dev",
 	}
 
 	if cfg.Core.BabeAuthority {
@@ -403,15 +404,16 @@ func createBlockVerifier(st *state.Service) (*babe.VerificationManager, error) {
 	return ver, nil
 }
 
-func newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget, verifier *babe.VerificationManager, rt runtime.Instance) (*sync.Service, error) {
+func newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget, verifier *babe.VerificationManager, rt runtime.Instance, cs *core.Service) (*sync.Service, error) {
 	syncCfg := &sync.Config{
-		LogLvl:           cfg.Log.SyncLvl,
-		BlockState:       st.Block,
-		StorageState:     st.Storage,
-		TransactionState: st.Transaction,
-		FinalityGadget:   fg,
-		Verifier:         verifier,
-		Runtime:          rt,
+		LogLvl:             cfg.Log.SyncLvl,
+		BlockState:         st.Block,
+		StorageState:       st.Storage,
+		TransactionState:   st.Transaction,
+		FinalityGadget:     fg,
+		Verifier:           verifier,
+		Runtime:            rt,
+		BlockImportHandler: cs,
 	}
 
 	return sync.NewService(syncCfg)

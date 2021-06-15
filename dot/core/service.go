@@ -214,13 +214,6 @@ func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieS
 }
 
 func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) error {
-	err := s.storageState.StoreTrie(state)
-	if err != nil {
-		return err
-	}
-
-	logger.Trace("imported block and stored resulting state", "state root", state.MustRoot())
-
 	if err := s.blockState.AddBlock(block); err != nil {
 		if err == blocktree.ErrParentNotFound && block.Header.Number.Cmp(big.NewInt(0)) != 0 {
 			return err
@@ -230,6 +223,15 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 			return err
 		}
 	}
+
+	err := s.storageState.StoreTrie(state)
+	if err != nil {
+		return err
+	}
+
+	logger.Trace("imported block and stored state trie", "block", block.Header.Hash(), "state root", state.MustRoot())
+
+	s.digestHandler.HandleDigests(block.Header)
 
 	if err := s.handleRuntimeChanges(state); err != nil {
 		return err
@@ -326,24 +328,6 @@ func (s *Service) handleCodeSubstitution(hash common.Hash) error {
 	}
 
 	return nil
-}
-
-func (s *Service) handleDigests(header *types.Header) {
-	s.digestHandler.HandleDigests(header)
-	// for i, d := range header.Digest {
-	// 	if d.Type() == types.ConsensusDigestType {
-	// 		cd, ok := d.(*types.ConsensusDigest)
-	// 		if !ok {
-	// 			logger.Error("handleDigests", "block number", header.Number, "index", i, "error", "cannot cast invalid consensus digest item")
-	// 			continue
-	// 		}
-
-	// 		err := s.digestHandler.HandleConsensusDigest(cd, header)
-	// 		if err != nil {
-	// 			logger.Error("handleDigests", "block number", header.Number, "index", i, "digest", cd, "error", err)
-	// 		}
-	// 	}
-	// }
 }
 
 func (s *Service) handleCurrentSlot(header *types.Header) error {

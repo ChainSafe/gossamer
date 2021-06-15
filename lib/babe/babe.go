@@ -62,9 +62,6 @@ type Service struct {
 	slotToProof  map[uint64]*VrfOutputAndProof // for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
 	isDisabled   bool
 
-	// Channels for inter-process communication
-	//blockChan chan types.Block // send blocks to core service
-
 	// State variables
 	sync.RWMutex
 	pause chan struct{}
@@ -505,26 +502,9 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		return err
 	}
 
-	// err = b.storageState.StoreTrie(ts)
-	// if err != nil {
-	// 	logger.Error("failed to store trie in storage state", "error", err)
-	// }
-
 	hash := block.Header.Hash()
 	logger.Info("built block", "hash", hash.String(), "number", block.Header.Number, "state root", block.Header.StateRoot, "slot", slotNum)
 	logger.Debug("built block", "header", block.Header, "body", block.Body, "parent", parent.Hash())
-
-	// err = b.blockState.AddBlock(block)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// err = b.safeSend(*block)
-	// if err != nil {
-	// 	logger.Error("failed to send block to core", "error", err)
-	// 	return err
-	// }
-
 	return nil
 }
 
