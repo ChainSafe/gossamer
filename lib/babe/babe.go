@@ -119,17 +119,16 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	babeService := &Service{
-		ctx:              ctx,
-		cancel:           cancel,
-		blockState:       cfg.BlockState,
-		storageState:     cfg.StorageState,
-		epochState:       cfg.EpochState,
-		epochLength:      cfg.EpochLength,
-		keypair:          cfg.Keypair,
-		rt:               cfg.Runtime,
-		transactionState: cfg.TransactionState,
-		slotToProof:      make(map[uint64]*VrfOutputAndProof),
-		//blockChan:        make(chan types.Block, 16),
+		ctx:                ctx,
+		cancel:             cancel,
+		blockState:         cfg.BlockState,
+		storageState:       cfg.StorageState,
+		epochState:         cfg.EpochState,
+		epochLength:        cfg.EpochLength,
+		keypair:            cfg.Keypair,
+		rt:                 cfg.Runtime,
+		transactionState:   cfg.TransactionState,
+		slotToProof:        make(map[uint64]*VrfOutputAndProof),
 		pause:              make(chan struct{}),
 		authority:          cfg.Authority,
 		dev:                cfg.IsDev,
@@ -317,18 +316,6 @@ func (b *Service) Authorities() []*types.Authority {
 func (b *Service) IsStopped() bool {
 	return b.ctx.Err() != nil
 }
-
-// func (b *Service) safeSend(msg types.Block) error {
-// 	b.Lock()
-// 	defer b.Unlock()
-
-// 	if b.IsStopped() {
-// 		return errors.New("Service has been stopped")
-// 	}
-
-// 	b.blockChan <- msg
-// 	return nil
-// }
 
 func (b *Service) getAuthorityIndex(Authorities []*types.Authority) (uint32, error) {
 	if !b.authority {
