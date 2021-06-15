@@ -137,9 +137,6 @@ func buildBlock(t *testing.T, instance runtime.Instance) *types.Block {
 	err = idata.SetInt64Inherent(types.Babeslot, 1)
 	require.NoError(t, err)
 
-	err = idata.SetBigIntInherent(types.Finalnum, big.NewInt(0))
-	require.NoError(t, err)
-
 	ienc, err := idata.Encode()
 	require.NoError(t, err)
 

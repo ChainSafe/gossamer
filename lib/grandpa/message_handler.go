@@ -58,6 +58,7 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 			// send vote message to grandpa service
 			h.grandpa.in <- vm
 		}
+		return nil, nil
 	case commitType:
 		if fm, ok := m.(*CommitMessage); ok {
 			return h.handleCommitMessage(fm)
@@ -85,7 +86,7 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 }
 
 func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMessage) error {
-	currFinalized, err := h.grandpa.blockState.GetFinalizedHeader(0, 0)
+	currFinalized, err := h.blockState.GetFinalizedHeader(0, 0)
 	if err != nil {
 		return err
 	}
@@ -97,7 +98,7 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 
 	// TODO; determine if there is some reason we don't receive justifications in responses near the head (usually),
 	// and remove the following code if it's fixed.
-	head, err := h.grandpa.blockState.BestBlockNumber()
+	head, err := h.blockState.BestBlockNumber()
 	if err != nil {
 		return err
 	}
@@ -136,7 +137,7 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 }
 
 func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) (*ConsensusMessage, error) {
-	logger.Debug("received finalisation message", "round", msg.Round, "hash", msg.Vote.hash)
+	logger.Debug("received finalisation message", "msg", msg)
 
 	if has, _ := h.blockState.HasFinalizedBlock(msg.Round, h.grandpa.state.setID); has {
 		return nil, nil
@@ -259,49 +260,6 @@ func (h *MessageHandler) verifyCatchUpResponseCompletability(prevote, precommit 
 	return nil
 }
 
-// decodeMessage decodes a network-level consensus message into a GRANDPA VoteMessage or CommitMessage
-func decodeMessage(msg *ConsensusMessage) (m GrandpaMessage, err error) {
-	var (
-		mi interface{}
-		ok bool
-	)
-
-	switch msg.Data[0] {
-	case voteType:
-		m = &VoteMessage{}
-		_, err = scale.Decode(msg.Data[1:], m)
-	case commitType:
-		r := &bytes.Buffer{}
-		_, _ = r.Write(msg.Data[1:])
-		cm := &CommitMessage{}
-		err = cm.Decode(r)
-		m = cm
-	case neighbourType:
-		mi, err = scale.Decode(msg.Data[1:], &NeighbourMessage{})
-		if m, ok = mi.(*NeighbourMessage); !ok {
-			return nil, ErrInvalidMessageType
-		}
-	case catchUpRequestType:
-		mi, err = scale.Decode(msg.Data[1:], &catchUpRequest{})
-		if m, ok = mi.(*catchUpRequest); !ok {
-			return nil, ErrInvalidMessageType
-		}
-	case catchUpResponseType:
-		mi, err = scale.Decode(msg.Data[1:], &catchUpResponse{})
-		if m, ok = mi.(*catchUpResponse); !ok {
-			return nil, ErrInvalidMessageType
-		}
-	default:
-		return nil, ErrInvalidMessageType
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return m, nil
-}
-
 func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) error {
 	if len(fm.Precommits) != len(fm.AuthData) {
 		return ErrPrecommitSignatureMismatch
@@ -327,7 +285,7 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 
 	// confirm total # signatures >= grandpa threshold
 	if uint64(count) < h.grandpa.state.threshold() {
-		logger.Error("minimum votes not met for finalisation message", "votes needed", h.grandpa.state.threshold(),
+		logger.Debug("minimum votes not met for finalisation message", "votes needed", h.grandpa.state.threshold(),
 			"votes received", len(fm.Precommits))
 		return ErrMinVotesNotMet
 	}

@@ -42,15 +42,11 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 		b.slotToProof,
 		b.epochData.authorityIndex,
 	)
-
 	if err != nil {
-		return nil, errors.New("There was an error creating block builder - " + err.Error())
+		return nil, fmt.Errorf("failed to create block builder: %w", err)
 	}
 
-	block, err := builder.buildBlock(parent, slot)
-
-	return block, err
-
+	return builder.buildBlock(parent, slot)
 }
 
 // nolint
@@ -137,9 +133,6 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot) (*types.Block
 	}
 
 	logger.Trace("finalised block")
-
-	header.ParentHash = parent.Hash()
-	header.Number.Add(parent.Number, big.NewInt(1))
 
 	// create seal and add to digest
 	seal, err := b.buildBlockSeal(header)
@@ -281,17 +274,6 @@ func (b *BlockBuilder) buildBlockInherents(slot Slot) ([][]byte, error) {
 
 	// add babeslot
 	err = idata.SetInt64Inherent(types.Babeslot, slot.number)
-	if err != nil {
-		return nil, err
-	}
-
-	// add finalnum
-	fin, err := b.blockState.GetFinalizedHeader(0, 0)
-	if err != nil {
-		return nil, err
-	}
-
-	err = idata.SetBigIntInherent(types.Finalnum, fin.Number)
 	if err != nil {
 		return nil, err
 	}
