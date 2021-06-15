@@ -43,74 +43,14 @@ var (
 	testPeers = []common.PeerInfo{}
 )
 
-type mockSyncer struct{}
-
-func (s *mockSyncer) CreateBlockResponse(msg *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
-	return nil, nil
-}
-
-func (s *mockSyncer) ProcessBlockData(_ []*types.BlockData) (int, error) {
-	return 0, nil
-}
-
-func (s *mockSyncer) ProcessJustification(_ []*types.BlockData) (int, error) {
-	return 0, nil
-}
-
-func (s *mockSyncer) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) error {
-	return nil
-}
-
-func (s *mockSyncer) HandleBlockAnnounceHandshake(num *big.Int) []*network.BlockRequestMessage {
-	return nil
-}
-
-func (s *mockSyncer) IsSynced() bool {
-	return false
-}
-
-func (s *mockSyncer) SetSyncing(_ bool) {}
-
-type mockBlockState struct{}
-
-func (s *mockBlockState) BestBlockHeader() (*types.Header, error) {
-	return genesisHeader, nil
-}
-
-func (s *mockBlockState) BestBlockNumber() (*big.Int, error) {
-	return big.NewInt(0), nil
-}
-
-func (s *mockBlockState) GenesisHash() common.Hash {
-	return genesisHeader.Hash()
-}
-
-func (s *mockBlockState) HasBlockBody(_ common.Hash) (bool, error) {
-	return false, nil
-}
-
-func (s *mockBlockState) GetFinalizedHeader(_, _ uint64) (*types.Header, error) {
-	return s.BestBlockHeader()
-}
-
-func (s *mockBlockState) GetHashByNumber(_ *big.Int) (common.Hash, error) {
-	return common.Hash{}, nil
-}
-
-type mockTransactionHandler struct{}
-
-func (h *mockTransactionHandler) HandleTransactionMessage(_ *network.TransactionMessage) error {
-	return nil
-}
-
 func newNetworkService(t *testing.T) *network.Service {
 	testDir := path.Join(os.TempDir(), "test_data")
 
 	cfg := &network.Config{
-		BlockState:         &mockBlockState{},
+		BlockState:         network.NewMockBlockState(nil),
 		BasePath:           testDir,
-		Syncer:             &mockSyncer{},
-		TransactionHandler: &mockTransactionHandler{},
+		Syncer:             network.NewMockSyncer(),
+		TransactionHandler: network.NewMockTransactionHandler(),
 	}
 
 	srv, err := network.NewService(cfg)

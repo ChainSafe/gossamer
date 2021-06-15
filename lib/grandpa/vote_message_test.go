@@ -38,7 +38,7 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 	cfg := &Config{
 		BlockState:    st.Block,
 		GrandpaState:  st.Grandpa,
-		DigestHandler: &mockDigestHandler{},
+		DigestHandler: NewMockDigestHandler(),
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
 		Network:       net,
@@ -70,7 +70,7 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 	cfg := &Config{
 		BlockState:    st.Block,
 		GrandpaState:  st.Grandpa,
-		DigestHandler: &mockDigestHandler{},
+		DigestHandler: NewMockDigestHandler(),
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
 		Network:       net,
@@ -112,7 +112,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	cfg := &Config{
 		BlockState:    st.Block,
 		GrandpaState:  st.Grandpa,
-		DigestHandler: &mockDigestHandler{},
+		DigestHandler: NewMockDigestHandler(),
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
 		Network:       net,
@@ -169,7 +169,7 @@ func TestValidateMessage_Valid(t *testing.T) {
 	cfg := &Config{
 		BlockState:    st.Block,
 		GrandpaState:  st.Grandpa,
-		DigestHandler: &mockDigestHandler{},
+		DigestHandler: NewMockDigestHandler(),
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
 		Network:       net,
@@ -200,7 +200,7 @@ func TestValidateMessage_InvalidSignature(t *testing.T) {
 	cfg := &Config{
 		BlockState:    st.Block,
 		GrandpaState:  st.Grandpa,
-		DigestHandler: &mockDigestHandler{},
+		DigestHandler: NewMockDigestHandler(),
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
 		Network:       net,
@@ -232,7 +232,7 @@ func TestValidateMessage_SetIDMismatch(t *testing.T) {
 	cfg := &Config{
 		BlockState:    st.Block,
 		GrandpaState:  st.Grandpa,
-		DigestHandler: &mockDigestHandler{},
+		DigestHandler: NewMockDigestHandler(),
 		Keypair:       kr.Bob().(*ed25519.Keypair),
 		Network:       net,
 	}
@@ -263,7 +263,7 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 	cfg := &Config{
 		BlockState:    st.Block,
 		GrandpaState:  st.Grandpa,
-		DigestHandler: &mockDigestHandler{},
+		DigestHandler: NewMockDigestHandler(),
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
 		Network:       net,
@@ -307,7 +307,7 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 	cfg := &Config{
 		BlockState:    st.Block,
 		GrandpaState:  st.Grandpa,
-		DigestHandler: &mockDigestHandler{},
+		DigestHandler: NewMockDigestHandler(),
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
 		Network:       net,
@@ -340,7 +340,7 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 	cfg := &Config{
 		BlockState:    st.Block,
 		GrandpaState:  st.Grandpa,
-		DigestHandler: &mockDigestHandler{},
+		DigestHandler: NewMockDigestHandler(),
 		Voters:        voters,
 		Keypair:       kr.Bob().(*ed25519.Keypair),
 		Network:       net,
