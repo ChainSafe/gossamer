@@ -41,13 +41,14 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) erro
 			logger.Error("failed to validate transaction", "err", err)
 			return err
 		}
+		if val.Propagate {
+			// create new valid transaction
+			vtx := transaction.NewValidTransaction(tx, val)
 
-		// create new valid transaction
-		vtx := transaction.NewValidTransaction(tx, val)
-
-		// push to the transaction queue of BABE session
-		hash := s.transactionState.AddToPool(vtx)
-		logger.Trace("Added transaction to queue", "hash", hash)
+			// push to the transaction queue of BABE session
+			hash := s.transactionState.AddToPool(vtx)
+			logger.Trace("Added transaction to queue", "hash", hash)
+		}
 	}
 
 	return nil
