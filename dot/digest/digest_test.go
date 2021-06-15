@@ -142,7 +142,7 @@ func TestHandler_GrandpaScheduledChange(t *testing.T) {
 		handler.blockState.(*state.BlockState).SetFinalizedHash(h.Hash(), 0, 0)
 	}
 
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Millisecond * 500)
 	setID, err := handler.grandpaState.(*state.GrandpaState).GetCurrentSetID()
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), setID)

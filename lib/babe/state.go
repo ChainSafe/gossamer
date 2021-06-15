@@ -76,6 +76,7 @@ type EpochState interface {
 	SetFirstSlot(slot uint64) error
 	GetLatestEpochData() (*types.EpochData, error)
 	SkipVerify(*types.Header) (bool, error)
+	GetEpochFromTime(time.Time) (uint64, error)
 }
 
 // DigestHandler is the interface for the consensus digest handler

@@ -324,6 +324,21 @@ func (s *EpochState) GetStartSlotForEpoch(epoch uint64) (uint64, error) {
 	return s.epochLength*epoch + firstSlot, nil
 }
 
+func (s *EpochState) GetEpochFromTime(t time.Time) (uint64, error) {
+	slotDuration, err := s.GetSlotDuration()
+	if err != nil {
+		return 0, err
+	}
+
+	firstSlot, err := s.baseState.loadFirstSlot()
+	if err != nil {
+		return 0, err
+	}
+
+	slot := uint64(t.UnixNano()) / uint64(slotDuration.Nanoseconds())
+	return (slot - firstSlot) / s.epochLength, nil
+}
+
 // SetFirstSlot sets the first slot number of the network
 func (s *EpochState) SetFirstSlot(slot uint64) error {
 	// check if block 1 was finalised already; if it has, don't set first slot again

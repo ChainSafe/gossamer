@@ -377,16 +377,20 @@ func (b *Service) initiate() {
 }
 
 func (b *Service) invokeBlockAuthoring() error {
-	for {
-		// get current epoch; this assumed we have synced up until the same epoch as the rest of the network
-		// if we haven't, BABE will get paused
-		epoch, err := b.epochState.GetCurrentEpoch()
-		if err != nil {
-			logger.Error("failed to get current epoch", "error", err)
-			return err
-		}
+	// epoch, err := b.epochState.GetEpochFromTime(time.Now())
+	// if err != nil {
+	// 	logger.Error("failed to get epoch from current time", "error", err)
+	// 	return err
+	// }
 
-		err = b.initiateEpoch(epoch)
+	epoch, err := b.epochState.GetCurrentEpoch()
+	if err != nil {
+		logger.Error("failed to get current epoch", "error", err)
+		return err
+	}
+
+	for {
+		err := b.initiateEpoch(epoch)
 		if err != nil {
 			logger.Error("failed to initiate epoch", "epoch", epoch, "error", err)
 			return err
