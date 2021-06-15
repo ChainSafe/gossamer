@@ -188,7 +188,9 @@ func TestStartNode(t *testing.T) {
 	require.NoError(t, err)
 
 	go func() {
-		time.Sleep(time.Second)
+		// TODO: need to wait until all services are started so that wg.Add is called, otherwise
+		// will call wg.Done before the counter is at 1
+		time.Sleep(time.Second * 15)
 		node.Stop()
 	}()
 

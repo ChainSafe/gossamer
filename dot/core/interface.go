@@ -108,7 +108,7 @@ type CodeSubstitutedState interface {
 	StoreCodeSubstitutedBlockHash(hash common.Hash) error
 }
 
-// // DigestHandler is the interface for the consensus digest handler
-// type DigestHandler interface {
-// 	HandleConsensusDigest(*types.ConsensusDigest, *types.Header) error
-// }
+// DigestHandler is the interface for the consensus digest handler
+type DigestHandler interface {
+	HandleDigests(header *types.Header)
+}

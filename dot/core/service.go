@@ -346,20 +346,21 @@ func (s *Service) handleCodeSubstitution(hash common.Hash) error {
 }
 
 func (s *Service) handleDigests(header *types.Header) {
-	for i, d := range header.Digest {
-		if d.Type() == types.ConsensusDigestType {
-			cd, ok := d.(*types.ConsensusDigest)
-			if !ok {
-				logger.Error("handleDigests", "block number", header.Number, "index", i, "error", "cannot cast invalid consensus digest item")
-				continue
-			}
+	s.digestHandler.HandleDigests(header)
+	// for i, d := range header.Digest {
+	// 	if d.Type() == types.ConsensusDigestType {
+	// 		cd, ok := d.(*types.ConsensusDigest)
+	// 		if !ok {
+	// 			logger.Error("handleDigests", "block number", header.Number, "index", i, "error", "cannot cast invalid consensus digest item")
+	// 			continue
+	// 		}
 
-			err := s.digestHandler.HandleConsensusDigest(cd, header)
-			if err != nil {
-				logger.Error("handleDigests", "block number", header.Number, "index", i, "digest", cd, "error", err)
-			}
-		}
-	}
+	// 		err := s.digestHandler.HandleConsensusDigest(cd, header)
+	// 		if err != nil {
+	// 			logger.Error("handleDigests", "block number", header.Number, "index", i, "digest", cd, "error", err)
+	// 		}
+	// 	}
+	// }
 }
 
 func (s *Service) handleCurrentSlot(header *types.Header) error {

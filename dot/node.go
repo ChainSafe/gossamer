@@ -261,19 +261,18 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		return nil, err
 	}
 
+	dh, err := createDigestHandler(stateSrvc)
+	if err != nil {
+		return nil, err
+	}
+	nodeSrvcs = append(nodeSrvcs, dh)
+
 	// create BABE service
 	bp, err := createBABEService(cfg, rt, stateSrvc, ks.Babe)
 	if err != nil {
 		return nil, err
 	}
-
 	nodeSrvcs = append(nodeSrvcs, bp)
-
-	dh, err := createDigestHandler(stateSrvc, bp, ver)
-	if err != nil {
-		return nil, err
-	}
-	nodeSrvcs = append(nodeSrvcs, dh)
 
 	// create GRANDPA service
 	fg, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran, networkSrvc)
@@ -283,7 +282,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	nodeSrvcs = append(nodeSrvcs, fg)
 
 	// Syncer
-	syncer, err := newSyncService(cfg, stateSrvc, bp, fg, dh, ver, rt)
+	syncer, err := newSyncService(cfg, stateSrvc, bp, fg, ver, rt)
 	if err != nil {
 		return nil, err
 	}
@@ -291,7 +290,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	// Core Service
 
 	// create core service and append core service to node services
-	coreSrvc, err := createCoreService(cfg, ver, rt, ks, stateSrvc, networkSrvc)
+	coreSrvc, err := createCoreService(cfg, ver, rt, ks, stateSrvc, networkSrvc, dh)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create core service: %s", err)
 	}
