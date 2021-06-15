@@ -117,9 +117,14 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 			delete(b.slotToProof, i-b.epochLength) // clear data from previous epoch
 		}
 
-		b.slotToProof[i], err = b.runLottery(i, epoch)
+		proof, err := b.runLottery(i, epoch)
 		if err != nil {
 			return fmt.Errorf("error running slot lottery at slot %d: error %s", i, err)
+		}
+
+		if proof != nil {
+			b.slotToProof[i] = proof
+			logger.Trace("claimed slot!", "slot", startSlot, "slots into epoch", i-startSlot)
 		}
 	}
 
