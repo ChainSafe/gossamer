@@ -2,17 +2,12 @@ package subscription
 
 import (
 	"log"
-	"math/big"
 	"net/http"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto"
-	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
 )
@@ -66,7 +61,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error StorageAPI not set"},"id":1}`+"\n"), msg)
 
-	wsconn.StorageAPI = new(MockStorageAPI)
+	wsconn.StorageAPI = modules.NewMockStorageAPI()
 
 	res, err = wsconn.initStorageChangeListener(1, nil)
 	require.EqualError(t, err, "unknown parameter type")
@@ -176,7 +171,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}`+"\n"), msg)
 
-	wsconn.BlockAPI = new(MockBlockAPI)
+	wsconn.BlockAPI = modules.NewMockBlockAPI()
 
 	res, err = wsconn.initBlockListener(1)
 	require.NoError(t, err)
@@ -205,7 +200,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}`+"\n"), msg)
 
-	wsconn.BlockAPI = new(MockBlockAPI)
+	wsconn.BlockAPI = modules.NewMockBlockAPI()
 
 	res, err = wsconn.initBlockFinalizedListener(1)
 	require.NoError(t, err)
@@ -215,7 +210,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":7,"id":1}`+"\n"), msg)
 
 	// test initExtrinsicWatch
-	wsconn.CoreAPI = new(MockCoreAPI)
+	wsconn.CoreAPI = modules.NewMockCoreAPI()
 	wsconn.BlockAPI = nil
 	res, err = wsconn.initExtrinsicWatch(0, []interface{}{"NotHex"})
 	require.EqualError(t, err, "could not byteify non 0x prefixed string")
@@ -225,96 +220,9 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.EqualError(t, err, "error BlockAPI not set")
 	require.Equal(t, uint(0), res)
 
-	wsconn.BlockAPI = new(MockBlockAPI)
+	wsconn.BlockAPI = modules.NewMockBlockAPI()
 	res, err = wsconn.initExtrinsicWatch(0, []interface{}{"0x26aa"})
 	require.NoError(t, err)
 	require.Equal(t, uint(8), res)
 
-}
-
-type MockStorageAPI struct{}
-
-func (m *MockStorageAPI) GetStorage(_ *common.Hash, key []byte) ([]byte, error) {
-	return nil, nil
-}
-func (m *MockStorageAPI) Entries(_ *common.Hash) (map[string][]byte, error) {
-	return nil, nil
-}
-func (m *MockStorageAPI) GetStorageByBlockHash(_ common.Hash, key []byte) ([]byte, error) {
-	return nil, nil
-}
-func (m *MockStorageAPI) RegisterStorageObserver(observer state.Observer) {
-}
-
-func (m *MockStorageAPI) UnregisterStorageObserver(observer state.Observer) {
-}
-func (m *MockStorageAPI) GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error) {
-	return nil, nil
-}
-func (m *MockStorageAPI) GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error) {
-	return nil, nil
-}
-
-type MockBlockAPI struct {
-}
-
-func (m *MockBlockAPI) GetHeader(hash common.Hash) (*types.Header, error) {
-	return nil, nil
-}
-func (m *MockBlockAPI) BestBlockHash() common.Hash {
-	return common.Hash{}
-}
-func (m *MockBlockAPI) GetBlockByHash(hash common.Hash) (*types.Block, error) {
-	return nil, nil
-}
-func (m *MockBlockAPI) GetBlockHash(blockNumber *big.Int) (*common.Hash, error) {
-	return nil, nil
-}
-func (m *MockBlockAPI) GetFinalizedHash(uint64, uint64) (common.Hash, error) {
-	return common.Hash{}, nil
-}
-func (m *MockBlockAPI) RegisterImportedChannel(ch chan<- *types.Block) (byte, error) {
-	return 0, nil
-}
-func (m *MockBlockAPI) UnregisterImportedChannel(id byte) {
-}
-func (m *MockBlockAPI) RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error) {
-	return 0, nil
-}
-func (m *MockBlockAPI) UnregisterFinalizedChannel(id byte) {}
-
-func (m *MockBlockAPI) GetJustification(hash common.Hash) ([]byte, error) {
-	return make([]byte, 10), nil
-}
-
-func (m *MockBlockAPI) HasJustification(hash common.Hash) (bool, error) {
-	return true, nil
-}
-
-func (m *MockBlockAPI) SubChain(start, end common.Hash) ([]common.Hash, error) {
-	return make([]common.Hash, 0), nil
-}
-
-type MockCoreAPI struct{}
-
-func (m *MockCoreAPI) InsertKey(kp crypto.Keypair) {}
-
-func (m *MockCoreAPI) HasKey(pubKeyStr string, keyType string) (bool, error) {
-	return false, nil
-}
-
-func (m *MockCoreAPI) GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error) {
-	return nil, nil
-}
-
-func (m *MockCoreAPI) IsBlockProducer() bool {
-	return false
-}
-
-func (m *MockCoreAPI) HandleSubmittedExtrinsic(types.Extrinsic) error {
-	return nil
-}
-
-func (m *MockCoreAPI) GetMetadata(bhash *common.Hash) ([]byte, error) {
-	return nil, nil
 }
