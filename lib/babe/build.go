@@ -322,7 +322,7 @@ func (b *BlockBuilder) addToQueue(txs []*transaction.ValidTransaction) {
 }
 
 func hasSlotEnded(slot Slot) bool {
-	slotEnd := slot.start.Add(slot.duration)
+	slotEnd := slot.start.Add(slot.duration * 2 / 3) // reserve last 1/3 of slot for block finalisation
 	return time.Since(slotEnd) >= 0
 }
 
