@@ -63,10 +63,6 @@ var (
 	}
 )
 
-type mockDigestHandler struct{}
-
-func (h *mockDigestHandler) HandleDigests(_ *types.Header) {}
-
 func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
 	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis.json")
 	if err != nil {

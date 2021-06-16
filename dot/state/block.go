@@ -425,12 +425,12 @@ func (bs *BlockState) SetFinalizedHash(hash common.Hash, round, setID uint64) er
 
 	// if nothing was previously finalised, set the first slot of the network to the
 	// slot number of block 1, which is now being set as final
-	// if bs.lastFinalised.Equal(bs.genesisHash) && !hash.Equal(bs.genesisHash) {
-	// 	err := bs.setFirstSlotOnFinalisation()
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
+	if bs.lastFinalised.Equal(bs.genesisHash) && !hash.Equal(bs.genesisHash) {
+		err := bs.setFirstSlotOnFinalisation()
+		if err != nil {
+			return err
+		}
+	}
 
 	go bs.notifyFinalized(hash, round, setID)
 	if round > 0 {

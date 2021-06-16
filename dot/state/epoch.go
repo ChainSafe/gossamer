@@ -327,6 +327,7 @@ func (s *EpochState) GetStartSlotForEpoch(epoch uint64) (uint64, error) {
 	return s.epochLength*epoch + firstSlot, nil
 }
 
+// GetEpochFromTime returns the epoch for a given time
 func (s *EpochState) GetEpochFromTime(t time.Time) (uint64, error) {
 	slotDuration, err := s.GetSlotDuration()
 	if err != nil {
@@ -339,6 +340,11 @@ func (s *EpochState) GetEpochFromTime(t time.Time) (uint64, error) {
 	}
 
 	slot := uint64(t.UnixNano()) / uint64(slotDuration.Nanoseconds())
+
+	if slot < firstSlot {
+		return 0, errors.New("given time is before network start")
+	}
+
 	return (slot - firstSlot) / s.epochLength, nil
 }
 

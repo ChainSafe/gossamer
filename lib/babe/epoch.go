@@ -104,7 +104,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 
 		logger.Debug("estimated first slot based on building block 1", "slot", startSlot)
 		for i := startSlot; i < startSlot+b.epochLength; i++ {
-			proof, err := b.runLottery(i, epoch)
+			proof, err := b.runLottery(i, epoch) //nolint
 			if err != nil {
 				return fmt.Errorf("error running slot lottery at slot %d: error %s", i, err)
 			}

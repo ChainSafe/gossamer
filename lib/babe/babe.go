@@ -48,7 +48,6 @@ type Service struct {
 	storageState     StorageState
 	transactionState TransactionState
 	epochState       EpochState
-	digestHandler    DigestHandler
 	epochLength      uint64
 
 	blockImportHandler BlockImportHandler

@@ -13,8 +13,8 @@ type BlockImportHandler struct {
 	mock.Mock
 }
 
-// HandleBlockImport provides a mock function with given fields: block, state
-func (_m *BlockImportHandler) HandleBlockImport(block *types.Block, state *storage.TrieState) error {
+// HandleBlockProduced provides a mock function with given fields: block, state
+func (_m *BlockImportHandler) HandleBlockProduced(block *types.Block, state *storage.TrieState) error {
 	ret := _m.Called(block, state)
 
 	var r0 error
