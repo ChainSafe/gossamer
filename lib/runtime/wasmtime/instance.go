@@ -124,6 +124,11 @@ func (in *Instance) UpdateRuntimeCode(_ []byte) error {
 	return errors.New("unimplemented")
 }
 
+// CheckRuntimeVersion ...
+func (in *Instance) CheckRuntimeVersion(code []byte) (gssmrruntime.Version, error) {
+	return nil, errors.New("unimplemented")
+}
+
 // SetContextStorage sets the runtime context's Storage
 func (in *Instance) SetContextStorage(s gssmrruntime.Storage) {
 	ctx.Storage = s
