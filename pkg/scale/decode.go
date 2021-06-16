@@ -133,28 +133,7 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 		case reflect.Ptr:
 			err = ds.decodePointer(dstv)
 		case reflect.Struct:
-			t := reflect.TypeOf(in)
-			field, ok := t.FieldByName("Result")
-			switch ok {
-			case true:
-				if !field.Type.ConvertibleTo(reflect.TypeOf(Result{})) {
-					err = fmt.Errorf("%T is not a Result", in)
-					return
-				}
-				// res := reflect.ValueOf(in).FieldByName("Result")
-				// fmt.Println("yao!", res)
-				err = ds.decodeResult(dstv)
-			default:
-				err = ds.decodeStruct(dstv)
-			}
-
-			// // check if this is a convertible to Result, if so encode using decodeResult
-			// switch t.ConvertibleTo(reflect.TypeOf(Result{})) {
-			// case true:
-			// 	err = ds.decodeResult(dstv)
-			// case false:
-			// 	err = ds.decodeStruct(dstv)
-			// }
+			err = ds.decodeStruct(dstv)
 		case reflect.Array:
 			err = ds.decodeArray(dstv)
 		case reflect.Slice:
