@@ -177,7 +177,7 @@ func TestService_RunEpochLengthConfig(t *testing.T) {
 	}
 
 	babeService := createTestService(t, cfg)
-	require.Equal(t, babeService.epochLength, 5)
+	require.Equal(t, uint64(5), babeService.epochLength)
 }
 
 func TestService_SlotDuration(t *testing.T) {
