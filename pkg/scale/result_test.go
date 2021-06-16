@@ -22,23 +22,15 @@ import (
 )
 
 func TestEncodeDecodeResult(t *testing.T) {
-	type MyResult struct {
-		Result
-	}
-
-	err := RegisterResult(MyResult{}, MyStruct{}, false)
-	if err != nil {
-		t.Errorf("%v", err)
-	}
-
 	ms := MyStruct{
 		Foo: []byte{0x01},
 		Bar: 2,
 		Baz: true,
 	}
-	mr := MyResult{}
-	mr.SetOk(ms)
-	bytes, err := Marshal(mr)
+	res := NewResult(ms, nil)
+	res.Set(OK, ms)
+
+	bytes, err := Marshal(res)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
@@ -47,9 +39,9 @@ func TestEncodeDecodeResult(t *testing.T) {
 		t.Errorf("unexpected bytes: %v", bytes)
 	}
 
-	mr1 := MyResult{}
-	mr1.SetErr(true)
-	bytes, err = Marshal(mr1)
+	res = NewResult(nil, true)
+	res.Set(Err, true)
+	bytes, err = Marshal(res)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
@@ -57,110 +49,234 @@ func TestEncodeDecodeResult(t *testing.T) {
 		t.Errorf("unexpected bytes: %v", bytes)
 	}
 
-	mr2 := MyResult{}
+	res = NewResult(nil, true)
+	res.Set(Err, false)
+	bytes, err = Marshal(res)
+	if err != nil {
+		t.Errorf("%v", err)
+	}
+	if !reflect.DeepEqual([]byte{0x01, 0x00}, bytes) {
+		t.Errorf("unexpected bytes: %v", bytes)
+	}
+
+	mr2 := NewResult(ms, nil)
 	err = Unmarshal([]byte{0x00, 0x04, 0x01, 0x02, 0, 0, 0, 0x01}, &mr2)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
-	expected := MyResult{}
-	expected.SetOk(ms)
+	expected := NewResult(ms, nil)
+	expected.Set(OK, ms)
 	if !reflect.DeepEqual(expected, mr2) {
-		t.Errorf("unexpected MyResult")
+		t.Errorf("unexpected MyResult %+v %+v", expected, mr2)
 	}
 
-	mr3 := MyResult{}
+	mr3 := NewResult(nil, true)
 	err = Unmarshal([]byte{0x01, 0x01}, &mr3)
 	if err != nil {
 		t.Errorf("%v", err)
 	}
-
-	expected = MyResult{}
-	expected.SetErr(true)
+	expected = NewResult(nil, true)
+	expected.Set(Err, true)
 	if !reflect.DeepEqual(expected, mr3) {
-		t.Errorf("unexpected MyResult")
+		t.Errorf("unexpected MyResult %+v %+v", expected, mr3)
 	}
 }
 
-func TestNilErr(t *testing.T) {
-	type MyResult struct {
-		Result
+func TestResult_IsSet(t *testing.T) {
+	type fields struct {
+		ok   interface{}
+		err  interface{}
+		mode ResultMode
 	}
-
-	err := RegisterResult(MyResult{}, true, nil)
-	if err != nil {
-		t.Errorf("%v", err)
+	tests := []struct {
+		name   string
+		fields fields
+		want   bool
+	}{
+		{
+			want: false,
+		},
+		{
+			fields: fields{
+				ok: empty{},
+			},
+			want: false,
+		},
+		{
+			fields: fields{
+				ok:  empty{},
+				err: empty{},
+			},
+			want: false,
+		},
+		{
+			fields: fields{
+				ok:   empty{},
+				err:  empty{},
+				mode: OK,
+			},
+			want: true,
+		},
+		{
+			fields: fields{
+				ok:   empty{},
+				err:  empty{},
+				mode: Err,
+			},
+			want: true,
+		},
 	}
-
-	mr := MyResult{}
-	mr.SetErr(nil)
-	bytes, err := Marshal(mr)
-	if err != nil {
-		t.Errorf("%v", err)
-		return
-	}
-
-	if !reflect.DeepEqual([]byte{0x01}, bytes) {
-		t.Errorf("unexpected bytes: %v", bytes)
-	}
-
-	mr1 := MyResult{}
-	err = Unmarshal([]byte{0x01}, &mr1)
-	if err != nil {
-		t.Errorf("%v", err)
-	}
-	expected := mr
-	if !reflect.DeepEqual(expected, mr1) {
-		t.Errorf("unexpected MyResult, %+v, %+v", expected, mr1)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &Result{
+				ok:   tt.fields.ok,
+				err:  tt.fields.err,
+				mode: tt.fields.mode,
+			}
+			if got := r.IsSet(); got != tt.want {
+				t.Errorf("Result.IsSet() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
 
-// func TestNilOk(t *testing.T) {
-// 	mr := MyResult{}
-// 	mr.SetOk(nil)
-// 	bytes, err := Marshal(mr)
-// 	if err != nil {
-// 		t.Errorf("%v", err)
-// 		return
-// 	}
+func TestResult_Unwrap(t *testing.T) {
+	type fields struct {
+		ok   interface{}
+		err  interface{}
+		mode ResultMode
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		wantOk  interface{}
+		wantErr bool
+	}{
+		{
+			fields: fields{
+				ok:  empty{},
+				err: empty{},
+			},
+			wantErr: true,
+		},
+		{
+			fields: fields{
+				ok:   empty{},
+				err:  empty{},
+				mode: OK,
+			},
+		},
+		{
+			fields: fields{
+				ok:   empty{},
+				err:  empty{},
+				mode: Err,
+			},
+			wantErr: true,
+		},
+		{
+			fields: fields{
+				ok:   true,
+				err:  empty{},
+				mode: OK,
+			},
+			wantOk: true,
+		},
+		{
+			fields: fields{
+				ok:   empty{},
+				err:  true,
+				mode: Err,
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &Result{
+				ok:   tt.fields.ok,
+				err:  tt.fields.err,
+				mode: tt.fields.mode,
+			}
+			gotOk, err := r.Unwrap()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Result.Unwrap() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotOk, tt.wantOk) {
+				t.Errorf("Result.Unwrap() = %v, want %v", gotOk, tt.wantOk)
+			}
+		})
+	}
+}
 
-// 	if !reflect.DeepEqual([]byte{0x00}, bytes) {
-// 		t.Errorf("unexpected bytes: %v", bytes)
-// 	}
-
-// 	mr1 := MyResult{}
-// 	mr1.SetErr(true)
-// 	bytes, err = Marshal(mr1)
-// 	if err != nil {
-// 		t.Errorf("%v", err)
-// 		return
-// 	}
-
-// 	if !reflect.DeepEqual([]byte{0x01, 0x01}, bytes) {
-// 		t.Errorf("unexpected bytes: %v", bytes)
-// 	}
-// }
-
-// func TestBothNil(t *testing.T) {
-// 	mr := MyResult{}
-// 	mr.SetOk(nil)
-// 	bytes, err := Marshal(mr)
-// 	if err != nil {
-// 		t.Errorf("%v", err)
-// 		return
-// 	}
-
-// 	if !reflect.DeepEqual([]byte{0x00}, bytes) {
-// 		t.Errorf("unexpected bytes: %v", bytes)
-// 	}
-
-// 	mr1 := MyResult{}
-// 	mr1.SetErr(nil)
-// 	bytes, err = Marshal(mr1)
-// 	if err != nil {
-// 		t.Errorf("%v", err)
-// 		return
-// 	}
-// 	if !reflect.DeepEqual([]byte{0x01, 0x01}, bytes) {
-// 		t.Errorf("unexpected bytes: %v", bytes)
-// 	}
-// }
+func TestResult_Set(t *testing.T) {
+	type args struct {
+		mode ResultMode
+		in   interface{}
+	}
+	tests := []struct {
+		name    string
+		res     Result
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+		{
+			args: args{
+				mode: Unset,
+			},
+			wantErr: true,
+		},
+		{
+			args: args{
+				mode: OK,
+				in:   nil,
+			},
+		},
+		{
+			args: args{
+				mode: Err,
+				in:   nil,
+			},
+		},
+		{
+			args: args{
+				mode: OK,
+				in:   true,
+			},
+			res: NewResult(true, nil),
+		},
+		{
+			args: args{
+				mode: Err,
+				in:   true,
+			},
+			res: NewResult(nil, true),
+		},
+		{
+			args: args{
+				mode: OK,
+				in:   true,
+			},
+			res:     NewResult("ok", "err"),
+			wantErr: true,
+		},
+		{
+			args: args{
+				mode: Err,
+				in:   nil,
+			},
+			res:     NewResult(nil, true),
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := tt.res
+			if err := r.Set(tt.args.mode, tt.args.in); (err != nil) != tt.wantErr {
+				t.Errorf("Result.Set() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
