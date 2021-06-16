@@ -220,6 +220,9 @@ func TestSyncer_HandleJustification(t *testing.T) {
 
 	just := []byte("testjustification")
 
+	err := syncer.blockState.SetHeader(header)
+	require.NoError(t, err)
+
 	syncer.handleJustification(header, just)
 
 	res, err := syncer.blockState.GetJustification(header.Hash())

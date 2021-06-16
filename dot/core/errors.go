@@ -57,6 +57,8 @@ var (
 
 	// ErrNilDigestHandler is returned when the DigestHandler interface is nil
 	ErrNilDigestHandler = errors.New("cannot have nil DigestHandler")
+
+	errNilCodeSubstitutedState = errors.New("cannot have nil CodeSubstitutedStat")
 )
 
 // ErrNilChannel is returned if a channel is nil

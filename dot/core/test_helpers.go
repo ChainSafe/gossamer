@@ -79,7 +79,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
 
-	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.TransactionState == nil || cfg.EpochState == nil {
+	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.TransactionState == nil || cfg.EpochState == nil || cfg.CodeSubstitutedState == nil {
 		stateSrvc = state.NewService(testDatadirPath, log.LvlInfo)
 		stateSrvc.UseMemDB()
 
@@ -106,6 +106,10 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		cfg.EpochState = stateSrvc.Epoch
 	}
 
+	if cfg.CodeSubstitutedState == nil {
+		cfg.CodeSubstitutedState = stateSrvc.Base
+	}
+
 	if cfg.Runtime == nil {
 		rtCfg := &wasmer.Config{}
 		rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
@@ -129,7 +133,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg.CodeSubstitutes == nil {
 		cfg.CodeSubstitutes = make(map[common.Hash]string)
 
-		genesisData, err := stateSrvc.Base.LoadGenesisData() // nolint
+		genesisData, err := cfg.CodeSubstitutedState.(*state.BaseState).LoadGenesisData() //nolint
 		require.NoError(t, err)
 
 		for k, v := range genesisData.CodeSubstitutes {
@@ -142,7 +146,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	}
 
 	s, err := NewService(cfg)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	if net, ok := cfg.Network.(*network.Service); ok {
 		net.SetTransactionHandler(s)

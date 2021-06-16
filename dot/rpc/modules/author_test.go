@@ -132,10 +132,13 @@ func TestAuthorModule_SubmitExtrinsic_invalid_input(t *testing.T) {
 	txQueue := state.NewTransactionState()
 	auth := setupAuthModule(t, txQueue)
 
+	fmt.Println("setupAuthModule")
+
 	// create and submit extrinsic
 	ext := Extrinsic{fmt.Sprintf("%x", "1")}
 
 	res := new(ExtrinsicHashResponse)
+	fmt.Println("SubmitExtrinsic")
 
 	err := auth.SubmitExtrinsic(nil, &ext, res)
 	require.EqualError(t, err, "could not byteify non 0x prefixed string")
@@ -276,20 +279,23 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	}
 
 	cfg := &core.Config{
-		Runtime:          rt,
-		Keystore:         ks,
-		TransactionState: srvc.Transaction,
-		BlockState:       srvc.Block,
-		StorageState:     srvc.Storage,
-		EpochState:       srvc.Epoch,
-		Network:          &mockNetwork{},
+		Runtime:              rt,
+		Keystore:             ks,
+		TransactionState:     srvc.Transaction,
+		BlockState:           srvc.Block,
+		StorageState:         srvc.Storage,
+		EpochState:           srvc.Epoch,
+		Network:              &mockNetwork{},
+		CodeSubstitutedState: srvc.Base,
 	}
 
 	return core.NewTestService(t, cfg)
 }
 
 func setupAuthModule(t *testing.T, txq *state.TransactionState) *AuthorModule {
+	fmt.Println("calling setupAuthModule")
 	cs := newCoreService(t, nil)
+	fmt.Println("called newCoreService")
 	rt := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
 	t.Cleanup(func() {
 		rt.Stop()
