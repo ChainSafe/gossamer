@@ -18,9 +18,9 @@ package core
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"math/big"
 	"os"
-	//"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -148,6 +148,7 @@ func NewService(cfg *Config) (*Service, error) {
 		blockAddCh:           blockAddCh,
 		codeSubstitute:       cfg.CodeSubstitutes,
 		codeSubstitutedState: cfg.CodeSubstitutedState,
+		digestHandler:        cfg.DigestHandler,
 	}
 
 	return srv, nil
@@ -179,10 +180,14 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 	return ts.Root()
 }
 
+// HandleBlockImport handles a block that was imported via the network
 func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieState) error {
 	return s.handleBlock(block, state)
 }
 
+// HandleBlockProduced handles a block that was produced by us
+// It is handled the same as an imported block in terms of state updates; the only difference
+// is we send a BlockAnnounceMessage to our peers.
 func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieState) error {
 	msg := &network.BlockAnnounceMessage{
 		ParentHash:     block.Header.ParentHash,
@@ -198,6 +203,11 @@ func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieS
 }
 
 func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) error {
+	if block == nil || block.Header == nil || state == nil {
+		return nil
+	}
+
+	// store block in database
 	if err := s.blockState.AddBlock(block); err != nil {
 		if err == blocktree.ErrParentNotFound && block.Header.Number.Cmp(big.NewInt(0)) != 0 {
 			return err
@@ -208,19 +218,30 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		}
 	}
 
+	// store updates state trie nodes in database
 	err := s.storageState.StoreTrie(state)
 	if err != nil {
 		return err
 	}
 
-	logger.Trace("imported block and stored state trie", "block", block.Header.Hash(), "state root", state.MustRoot())
+	logger.Debug("imported block and stored state trie", "block", block.Header.Hash(), "state root", state.MustRoot())
 
+	// handle consensus digests
 	s.digestHandler.HandleDigests(block.Header)
 
+	// check for runtime changes
 	if err := s.handleRuntimeChanges(state); err != nil {
+		logger.Crit("failed to update runtime code", "error", err)
 		return err
 	}
 
+	// check if there was a runtime code substitution
+	if err := s.handleCodeSubstitution(block.Header.Hash()); err != nil {
+		logger.Crit("failed to substitute runtime code", "error", err)
+		return err
+	}
+
+	// check if block production epoch transitioned
 	if err := s.handleCurrentSlot(block.Header); err != nil {
 		logger.Warn("failed to handle epoch for block", "block", block.Header.Hash(), "error", err)
 		return err
@@ -255,9 +276,8 @@ func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {
 	if !codeSubBlockHash.Equal(common.Hash{}) {
 		// don't do runtime change if using code substitution and runtime change spec version are equal
 		//  (do a runtime change if code substituted and runtime spec versions are different, or code not substituted)
-		newVersion, err := s.rt.CheckRuntimeVersion(code) // nolint
+		newVersion, err := s.rt.CheckRuntimeVersion(code)
 		if err != nil {
-			logger.Debug("problem checking runtime version", "error", err)
 			return err
 		}
 
@@ -273,7 +293,6 @@ func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {
 
 	err = s.rt.UpdateRuntimeCode(code)
 	if err != nil {
-		logger.Crit("failed to update runtime code", "error", err)
 		return err
 	}
 
@@ -281,8 +300,7 @@ func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {
 
 	err = s.codeSubstitutedState.StoreCodeSubstitutedBlockHash(common.Hash{})
 	if err != nil {
-		logger.Error("failed to update code substituted block hash", "error", err)
-		return err
+		return fmt.Errorf("failed to update code substituted block hash: %w", err)
 	}
 
 	return nil
@@ -302,7 +320,6 @@ func (s *Service) handleCodeSubstitution(hash common.Hash) error {
 
 	err := s.rt.UpdateRuntimeCode(code)
 	if err != nil {
-		logger.Crit("failed to substitute runtime code", "error", err)
 		return err
 	}
 
@@ -341,8 +358,6 @@ func (s *Service) handleCurrentSlot(header *types.Header) error {
 // does not need to be completed before the next block can be imported.
 func (s *Service) handleBlocksAsync() {
 	for {
-		//prev := s.blockState.BestBlockHash()
-
 		select {
 		case block := <-s.blockAddCh:
 			if block == nil {
@@ -362,50 +377,6 @@ func (s *Service) handleBlocksAsync() {
 		}
 	}
 }
-
-// // receiveBlocks starts receiving blocks from the BABE session
-// func (s *Service) receiveBlocks(ctx context.Context) {
-// 	for {
-// 		select {
-// 		case block := <-s.blkRec:
-// 			if block.Header == nil {
-// 				continue
-// 			}
-
-// 			err := s.handleReceivedBlock(&block)
-// 			if err != nil {
-// 				logger.Warn("failed to handle block from BABE session", "err", err)
-// 			}
-// 		case <-ctx.Done():
-// 			return
-// 		}
-// 	}
-// }
-
-// // handleReceivedBlock handles blocks from the BABE session
-// func (s *Service) handleReceivedBlock(block *types.Block) (err error) {
-// 	if s.blockState == nil {
-// 		return ErrNilBlockState
-// 	}
-
-// 	logger.Debug("got block from BABE", "header", block.Header, "body", block.Body)
-
-// 	msg := &network.BlockAnnounceMessage{
-// 		ParentHash:     block.Header.ParentHash,
-// 		Number:         block.Header.Number,
-// 		StateRoot:      block.Header.StateRoot,
-// 		ExtrinsicsRoot: block.Header.ExtrinsicsRoot,
-// 		Digest:         block.Header.Digest,
-// 		BestBlock:      true,
-// 	}
-
-// 	if s.net == nil {
-// 		return
-// 	}
-
-// 	s.net.SendMessage(msg)
-// 	return nil
-// }
 
 // handleChainReorg checks if there is a chain re-org (ie. new chain head is on a different chain than the
 // previous chain head). If there is a re-org, it moves the transactions that were included on the previous
@@ -554,11 +525,6 @@ func (s *Service) GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error)
 	s.rt.SetContextStorage(ts)
 	return s.rt.Version()
 }
-
-// // IsBlockProducer returns true if node is a block producer
-// func (s *Service) IsBlockProducer() bool {
-// 	return s.isBlockProducer
-// }
 
 // HandleSubmittedExtrinsic is used to send a Transaction message containing a Extrinsic @ext
 func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {

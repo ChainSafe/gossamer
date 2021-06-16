@@ -217,7 +217,13 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 			// 	return i, err
 			// }
 
-			if err := s.blockImportHandler.HandleBlockImport(block, nil); err != nil {
+			state, err := s.storageState.TrieState(&block.Header.StateRoot)
+			if err != nil {
+				logger.Warn("failed to load state for block", "block", block.Header.Hash(), "error", err)
+				return i, err
+			}
+
+			if err := s.blockImportHandler.HandleBlockImport(block, state); err != nil {
 				logger.Warn("failed to handle block import", "error", err)
 			}
 
