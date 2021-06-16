@@ -471,13 +471,13 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 		}
 
 		header = block.Header
-		logger.Info("got block from node", "header", header, "body", block.Body, "node", nodes[idx].Key)
+		logger.Debug("got block from node", "header", header, "body", block.Body, "node", nodes[idx].Key)
 
 		if block.Body != nil {
 			resExts, err = block.Body.AsExtrinsics()
 			require.NoError(t, err, block.Body)
 
-			logger.Info("extrinsics", "exts", resExts)
+			logger.Debug("extrinsics", "exts", resExts)
 			if len(resExts) >= 2 {
 				extInBlock = block.Header.Number
 				break
@@ -491,7 +491,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 
 	var included bool
 	for _, ext := range resExts {
-		logger.Info("comparing", "expected", extEnc, "in block", common.BytesToHex(ext))
+		logger.Debug("comparing", "expected", extEnc, "in block", common.BytesToHex(ext))
 		if strings.Compare(extEnc, common.BytesToHex(ext)) == 0 {
 			included = true
 		}
