@@ -31,10 +31,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
-	//. "github.com/ChainSafe/gossamer/dot/core/mocks"
-
 	log "github.com/ChainSafe/log15"
-	//"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
