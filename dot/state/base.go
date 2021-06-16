@@ -110,6 +110,21 @@ func (s *BaseState) LoadLatestStorageHash() (common.Hash, error) {
 	return common.NewHash(hashbytes), nil
 }
 
+// StoreCodeSubstitutedBlockHash stores the hash at the CodeSubstitutedBlock key
+func (s *BaseState) StoreCodeSubstitutedBlockHash(hash common.Hash) error {
+	return s.db.Put(common.CodeSubstitutedBlock, hash[:])
+}
+
+// LoadCodeSubstitutedBlockHash loads the hash stored at CodeSubstitutedBlock key
+func (s *BaseState) LoadCodeSubstitutedBlockHash() common.Hash {
+	hash, err := s.db.Get(common.CodeSubstitutedBlock)
+	if err != nil {
+		return common.Hash{}
+	}
+
+	return common.NewHash(hash)
+}
+
 func (s *BaseState) storeSkipToEpoch(epoch uint64) error {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, epoch)

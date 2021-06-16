@@ -31,10 +31,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
-	//. "github.com/ChainSafe/gossamer/dot/core/mocks"
-
 	log "github.com/ChainSafe/log15"
-	//"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -97,16 +94,6 @@ func newTestHandler(t *testing.T, withBABE, withGrandpa bool) *Handler { //nolin
 
 	err = stateSrvc.Start()
 	require.NoError(t, err)
-
-	// var bp *MockBlockProducer
-	// if withBABE {
-	// 	bp = new(MockBlockProducer)
-	// 	blockC := make(chan types.Block)
-	// 	bp.On("GetBlockChannel", nil).Return(blockC)
-	// }
-
-	// verifier := new(MockVerifier)
-	// verifier.On("SetOnDisabled", mock.Anything, mock.Anything).Return(nil)
 
 	dh, err := NewHandler(stateSrvc.Block, stateSrvc.Epoch, stateSrvc.Grandpa)
 	require.NoError(t, err)

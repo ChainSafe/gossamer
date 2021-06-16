@@ -265,7 +265,13 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 	expected := genesisHeader.Hash()
 	require.Equal(t, common.BytesToHex(expected[:]), res)
 
-	testhash := common.Hash{1, 2, 3, 4}
+	header := &types.Header{
+		Number: big.NewInt(1),
+	}
+	err = state.Block.SetHeader(header)
+	require.NoError(t, err)
+
+	testhash := header.Hash()
 	err = state.Block.SetFinalizedHash(testhash, 77, 1)
 	require.NoError(t, err)
 

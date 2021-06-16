@@ -21,8 +21,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
-// ErrBadSlotClaim is returned when a slot claim is invalid
 var (
+	// ErrBadSlotClaim is returned when a slot claim is invalid
 	ErrBadSlotClaim = errors.New("could not verify slot claim VRF proof")
 
 	// ErrBadSecondarySlotClaim is returned when a slot claim is invalid
@@ -33,12 +33,6 @@ var (
 
 	// ErrProducerEquivocated is returned when a block producer has produced conflicting blocks
 	ErrProducerEquivocated = errors.New("block producer equivocated")
-
-	// ErrNilBlockState is returned when the BlockState is nil
-	ErrNilBlockState = errors.New("cannot have nil BlockState")
-
-	// ErrNilEpochState is returned when the EpochState is nil
-	ErrNilEpochState = errors.New("cannot have nil EpochState")
 
 	// ErrNotAuthorized is returned when the node is not authorized to produce a block
 	ErrNotAuthorized = errors.New("not authorized to produce block")
@@ -61,8 +55,12 @@ var (
 	// ErrNotAuthority is returned when trying to perform authority functions when not an authority
 	ErrNotAuthority = errors.New("node is not an authority")
 
-	errInvalidResult = errors.New("invalid error value")
-	errNoEpochData   = errors.New("no epoch data for next BABE epoch")
+	errNilBlockImportHandler = errors.New("cannot have nil BlockImportHandler")
+	errNilBlockState         = errors.New("cannot have nil BlockState")
+	errNilEpochState         = errors.New("cannot have nil EpochState")
+	errNilRuntime            = errors.New("runtime is nil")
+	errInvalidResult         = errors.New("invalid error value")
+	errNoEpochData           = errors.New("no epoch data found for upcoming epoch")
 )
 
 // A DispatchOutcomeError is outcome of dispatching the extrinsic

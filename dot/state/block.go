@@ -418,6 +418,11 @@ func (bs *BlockState) SetFinalizedHash(hash common.Hash, round, setID uint64) er
 	bs.Lock()
 	defer bs.Unlock()
 
+	has, _ := bs.HasHeader(hash)
+	if !has {
+		return fmt.Errorf("cannot finalise unknown block %s", hash)
+	}
+
 	// if nothing was previously finalised, set the first slot of the network to the
 	// slot number of block 1, which is now being set as final
 	if bs.lastFinalised.Equal(bs.genesisHash) && !hash.Equal(bs.genesisHash) {

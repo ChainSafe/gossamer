@@ -83,3 +83,8 @@ type EpochState interface {
 type DigestHandler interface {
 	HandleDigests(*types.Header)
 }
+
+// BlockImportHandler is the interface for the handler of new blocks
+type BlockImportHandler interface {
+	HandleBlockImport(block *types.Block, state *rtstorage.TrieState) error
+}

@@ -30,6 +30,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
+
 	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
 	"github.com/stretchr/testify/require"
@@ -39,13 +40,9 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	// TODO: move to sync package
 	net := new(MockNetwork)
 
-	newBlocks := make(chan types.Block)
-
 	cfg := &Config{
-		Network:         net,
-		Keystore:        keystore.NewGlobalKeystore(),
-		NewBlocks:       newBlocks,
-		IsBlockProducer: false,
+		Network:  net,
+		Keystore: keystore.NewGlobalKeystore(),
 	}
 
 	s := NewTestService(t, cfg)
@@ -53,10 +50,11 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	require.Nil(t, err)
 
 	// simulate block sent from BABE session
-	newBlock := types.Block{
+	newBlock := &types.Block{
 		Header: &types.Header{
 			Number:     big.NewInt(1),
 			ParentHash: s.blockState.BestBlockHash(),
+			Digest:     types.Digest{types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()},
 		},
 		Body: types.NewBody([]byte{}),
 	}
@@ -72,10 +70,14 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 
 	//setup the SendMessage function
 	net.On("SendMessage", expected)
-	newBlocks <- newBlock
 
-	time.Sleep(time.Second * 2)
+	state, err := s.storageState.TrieState(nil)
+	require.NoError(t, err)
 
+	err = s.HandleBlockProduced(newBlock, state)
+	require.NoError(t, err)
+
+	time.Sleep(time.Second)
 	net.AssertCalled(t, "SendMessage", expected)
 }
 
@@ -141,8 +143,6 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	cfg := &Config{
 		Keystore:         ks,
 		TransactionState: state.NewTransactionState(),
-		IsBlockProducer:  true,
-		BlockProducer:    bp,
 	}
 
 	s := NewTestService(t, cfg)

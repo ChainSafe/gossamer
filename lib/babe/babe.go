@@ -51,6 +51,8 @@ type Service struct {
 	digestHandler    DigestHandler
 	epochLength      uint64
 
+	blockImportHandler BlockImportHandler
+
 	// BABE authority keypair
 	keypair *sr25519.Keypair // TODO: change to BABE keystore
 
@@ -61,9 +63,6 @@ type Service struct {
 	slotDuration time.Duration
 	epochData    *epochData
 	slotToProof  map[uint64]*VrfOutputAndProof // for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
-
-	// Channels for inter-process communication
-	blockChan chan types.Block // send blocks to core service
 
 	// State variables
 	sync.RWMutex
@@ -77,7 +76,7 @@ type ServiceConfig struct {
 	StorageState         StorageState
 	TransactionState     TransactionState
 	EpochState           EpochState
-	DigestHandler        DigestHandler
+	BlockImportHandler   BlockImportHandler
 	Keypair              *sr25519.Keypair
 	Runtime              runtime.Instance
 	AuthData             []*types.Authority
@@ -96,19 +95,19 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 	}
 
 	if cfg.BlockState == nil {
-		return nil, errors.New("blockState is nil")
+		return nil, errNilBlockState
 	}
 
 	if cfg.EpochState == nil {
-		return nil, errors.New("epochState is nil")
+		return nil, errNilEpochState
 	}
 
 	if cfg.Runtime == nil {
-		return nil, errors.New("runtime is nil")
+		return nil, errNilRuntime
 	}
 
-	if cfg.DigestHandler == nil {
-		return nil, errors.New("digestHandler is nil")
+	if cfg.BlockImportHandler == nil {
+		return nil, errNilBlockImportHandler
 	}
 
 	logger = log.New("pkg", "babe")
@@ -119,21 +118,20 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	babeService := &Service{
-		ctx:              ctx,
-		cancel:           cancel,
-		blockState:       cfg.BlockState,
-		storageState:     cfg.StorageState,
-		epochState:       cfg.EpochState,
-		digestHandler:    cfg.DigestHandler,
-		epochLength:      cfg.EpochLength,
-		keypair:          cfg.Keypair,
-		rt:               cfg.Runtime,
-		transactionState: cfg.TransactionState,
-		slotToProof:      make(map[uint64]*VrfOutputAndProof),
-		blockChan:        make(chan types.Block, 16),
-		pause:            make(chan struct{}),
-		authority:        cfg.Authority,
-		dev:              cfg.IsDev,
+		ctx:                ctx,
+		cancel:             cancel,
+		blockState:         cfg.BlockState,
+		storageState:       cfg.StorageState,
+		epochState:         cfg.EpochState,
+		epochLength:        cfg.EpochLength,
+		keypair:            cfg.Keypair,
+		rt:                 cfg.Runtime,
+		transactionState:   cfg.TransactionState,
+		slotToProof:        make(map[uint64]*VrfOutputAndProof),
+		pause:              make(chan struct{}),
+		authority:          cfg.Authority,
+		dev:                cfg.IsDev,
+		blockImportHandler: cfg.BlockImportHandler,
 	}
 
 	epoch, err := cfg.EpochState.GetCurrentEpoch()
@@ -304,18 +302,12 @@ func (b *Service) Stop() error {
 	}
 
 	b.cancel()
-	close(b.blockChan)
 	return nil
 }
 
 // SetRuntime sets the service's runtime
 func (b *Service) SetRuntime(rt runtime.Instance) {
 	b.rt = rt
-}
-
-// GetBlockChannel returns the channel where new blocks are passed
-func (b *Service) GetBlockChannel() <-chan types.Block {
-	return b.blockChan
 }
 
 // Authorities returns the current BABE authorities
@@ -326,18 +318,6 @@ func (b *Service) Authorities() []*types.Authority {
 // IsStopped returns true if the service is stopped (ie not producing blocks)
 func (b *Service) IsStopped() bool {
 	return b.ctx.Err() != nil
-}
-
-func (b *Service) safeSend(msg types.Block) error {
-	b.Lock()
-	defer b.Unlock()
-
-	if b.IsStopped() {
-		return errors.New("Service has been stopped")
-	}
-
-	b.blockChan <- msg
-	return nil
 }
 
 func (b *Service) getAuthorityIndex(Authorities []*types.Authority) (uint32, error) {
@@ -532,25 +512,19 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		return err
 	}
 
-	err = b.storageState.StoreTrie(ts)
-	if err != nil {
-		logger.Error("failed to store trie in storage state", "error", err)
-	}
+	logger.Info("built block", "hash", block.Header.Hash().String(),
+		"number", block.Header.Number,
+		"state root", block.Header.StateRoot,
+		"slot", slotNum,
+	)
+	logger.Debug("built block",
+		"header", block.Header,
+		"body", block.Body,
+		"parent", parent.Hash(),
+	)
 
-	hash := block.Header.Hash()
-	logger.Info("built block", "hash", hash.String(), "number", block.Header.Number, "state root", block.Header.StateRoot, "slot", slotNum)
-	logger.Debug("built block", "header", block.Header, "body", block.Body, "parent", parent.Hash())
-
-	err = b.blockState.AddBlock(block)
-	if err != nil {
-		return err
-	}
-
-	b.digestHandler.HandleDigests(block.Header)
-
-	err = b.safeSend(*block)
-	if err != nil {
-		logger.Error("failed to send block to core", "error", err)
+	if err := b.blockImportHandler.HandleBlockImport(block, ts); err != nil {
+		logger.Warn("failed to import built block", "error", err)
 		return err
 	}
 

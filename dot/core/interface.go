@@ -55,6 +55,7 @@ type StorageState interface {
 	LoadCode(root *common.Hash) ([]byte, error)
 	LoadCodeHash(root *common.Hash) (common.Hash, error)
 	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
+	StoreTrie(*rtstorage.TrieState) error
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 }
 
@@ -67,11 +68,6 @@ type TransactionState interface {
 	PendingInPool() []*transaction.ValidTransaction
 }
 
-// BlockProducer is the interface that a block production service must implement
-type BlockProducer interface {
-	GetBlockChannel() <-chan types.Block
-}
-
 // Network is the interface for the network service
 type Network interface {
 	SendMessage(network.NotificationsMessage)
@@ -82,4 +78,15 @@ type EpochState interface {
 	GetEpochForBlock(header *types.Header) (uint64, error)
 	SetCurrentEpoch(epoch uint64) error
 	GetCurrentEpoch() (uint64, error)
+}
+
+// CodeSubstitutedState interface to handle storage of code substitute state
+type CodeSubstitutedState interface {
+	LoadCodeSubstitutedBlockHash() common.Hash
+	StoreCodeSubstitutedBlockHash(hash common.Hash) error
+}
+
+// DigestHandler is the interface for the consensus digest handler
+type DigestHandler interface {
+	HandleDigests(header *types.Header)
 }
