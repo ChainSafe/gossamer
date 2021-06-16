@@ -93,19 +93,19 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 	}
 
 	if cfg.BlockState == nil {
-		return nil, errors.New("blockState is nil")
+		return nil, errNilBlockState
 	}
 
 	if cfg.EpochState == nil {
-		return nil, errors.New("epochState is nil")
+		return nil, errNilEpochState
 	}
 
 	if cfg.Runtime == nil {
-		return nil, errors.New("runtime is nil")
+		return nil, errNilRuntime
 	}
 
 	if cfg.BlockImportHandler == nil {
-		return nil, ErrNilBlockImportHandler
+		return nil, errNilBlockImportHandler
 	}
 
 	logger = log.New("pkg", "babe")

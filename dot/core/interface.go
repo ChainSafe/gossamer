@@ -22,7 +22,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	//"github.com/ChainSafe/gossamer/lib/grandpa"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
@@ -77,8 +76,6 @@ type Network interface {
 // EpochState is the interface for state.EpochState
 type EpochState interface {
 	GetEpochForBlock(header *types.Header) (uint64, error)
-	//SetEpochData(epoch uint64, info *types.EpochData) error
-	//SetConfigData(epoch uint64, info *types.ConfigData) error
 	SetCurrentEpoch(epoch uint64) error
 	GetCurrentEpoch() (uint64, error)
 }

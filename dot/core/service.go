@@ -272,7 +272,7 @@ func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {
 	if !codeSubBlockHash.Equal(common.Hash{}) {
 		// don't do runtime change if using code substitution and runtime change spec version are equal
 		//  (do a runtime change if code substituted and runtime spec versions are different, or code not substituted)
-		newVersion, err := s.rt.CheckRuntimeVersion(code)
+		newVersion, err := s.rt.CheckRuntimeVersion(code) //nolint
 		if err != nil {
 			return err
 		}
@@ -536,11 +536,9 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 		return err
 	}
 
-	//if s.isBlockProducer {
 	// add transaction to pool
 	vtx := transaction.NewValidTransaction(ext, txv)
 	s.transactionState.AddToPool(vtx)
-	//}
 
 	// broadcast transaction
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}}

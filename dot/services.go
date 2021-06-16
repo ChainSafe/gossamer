@@ -227,7 +227,7 @@ func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks k
 // Core Service
 
 // createCoreService creates the core service from the provided core configuration
-func createCoreService(cfg *Config, verifier *babe.VerificationManager, rt runtime.Instance, ks *keystore.GlobalKeystore, st *state.Service, net *network.Service, dh *digest.Handler) (*core.Service, error) {
+func createCoreService(cfg *Config, rt runtime.Instance, ks *keystore.GlobalKeystore, st *state.Service, net *network.Service, dh *digest.Handler) (*core.Service, error) {
 	logger.Debug(
 		"creating core service...",
 		"authority", cfg.Core.Roles == types.AuthorityRole,
@@ -245,15 +245,13 @@ func createCoreService(cfg *Config, verifier *babe.VerificationManager, rt runti
 
 	// set core configuration
 	coreConfig := &core.Config{
-		LogLvl:           cfg.Log.CoreLvl,
-		BlockState:       st.Block,
-		EpochState:       st.Epoch,
-		StorageState:     st.Storage,
-		TransactionState: st.Transaction,
-		Keystore:         ks,
-		Runtime:          rt,
-		//IsBlockProducer:      cfg.Core.BabeAuthority,
-		//Verifier:             verifier,
+		LogLvl:               cfg.Log.CoreLvl,
+		BlockState:           st.Block,
+		EpochState:           st.Epoch,
+		StorageState:         st.Storage,
+		TransactionState:     st.Transaction,
+		Keystore:             ks,
+		Runtime:              rt,
 		Network:              net,
 		DigestHandler:        dh,
 		CodeSubstitutes:      codeSubs,

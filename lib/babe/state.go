@@ -74,6 +74,7 @@ type EpochState interface {
 	SkipVerify(*types.Header) (bool, error)
 }
 
+// BlockImportHandler is the interface for the handler of new blocks
 type BlockImportHandler interface {
 	HandleBlockImport(block *types.Block, state *rtstorage.TrieState) error
 }

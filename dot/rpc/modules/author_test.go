@@ -279,7 +279,6 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 		Runtime:          rt,
 		Keystore:         ks,
 		TransactionState: srvc.Transaction,
-		IsBlockProducer:  false,
 		BlockState:       srvc.Block,
 		StorageState:     srvc.Storage,
 		EpochState:       srvc.Epoch,

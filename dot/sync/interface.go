@@ -71,6 +71,7 @@ type FinalityGadget interface {
 	VerifyBlockJustification([]byte) error
 }
 
+// BlockImportHandler is the interface for the handler of newly imported blocks
 type BlockImportHandler interface {
 	HandleBlockImport(block *types.Block, state *rtstorage.TrieState) error
 }

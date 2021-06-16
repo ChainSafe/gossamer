@@ -69,23 +69,23 @@ type Config struct {
 // NewService returns a new *sync.Service
 func NewService(cfg *Config) (*Service, error) {
 	if cfg.BlockState == nil {
-		return nil, ErrNilBlockState
+		return nil, errNilBlockState
 	}
 
 	if cfg.StorageState == nil {
-		return nil, ErrNilStorageState
+		return nil, errNilStorageState
 	}
 
 	if cfg.Verifier == nil {
-		return nil, ErrNilVerifier
+		return nil, errNilVerifier
 	}
 
 	if cfg.Runtime == nil {
-		return nil, ErrNilRuntime
+		return nil, errNilRuntime
 	}
 
 	if cfg.BlockImportHandler == nil {
-		return nil, ErrNilBlockImportHandler
+		return nil, errNilBlockImportHandler
 	}
 
 	handler := log.StreamHandler(os.Stdout, log.TerminalFormat())
@@ -339,7 +339,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 		return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)
 	}
 
-	if err := s.blockImportHandler.HandleBlockImport(block, ts); err != nil {
+	if err = s.blockImportHandler.HandleBlockImport(block, ts); err != nil {
 		return err
 	}
 

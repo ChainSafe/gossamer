@@ -41,8 +41,8 @@ import (
 	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 )
 
-func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) []*types.Header {
-	return addTestBlocksToStateWithParent(t, blockState.BestBlockHash(), depth, blockState)
+func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
+	_ = addTestBlocksToStateWithParent(t, blockState.BestBlockHash(), depth, blockState)
 }
 
 func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, depth int, blockState BlockState) []*types.Header {
