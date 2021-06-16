@@ -342,8 +342,8 @@ func TestSyncQueue_ProcessBlockRequests(t *testing.T) {
 		req: testBlockRequestMessage,
 	}
 
-	time.Sleep(time.Second * 2)
-	require.Equal(t, 128, len(nodeA.syncQueue.responses))
+	time.Sleep(time.Second * 3)
+	require.Len(t, nodeA.syncQueue.responses, 128)
 	testResp := testBlockResponseMessage()
 	require.Equal(t, testResp.BlockData, nodeA.syncQueue.responses)
 }

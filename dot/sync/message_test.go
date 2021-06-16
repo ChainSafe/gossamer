@@ -2,7 +2,6 @@ package sync
 
 import (
 	"math/big"
-	"os"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -10,9 +9,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	log "github.com/ChainSafe/log15"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -39,22 +37,8 @@ func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 	}
 }
 
-func TestMain(m *testing.M) {
-	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
-	if err != nil {
-		log.Error("failed to generate runtime wasm file", err)
-		os.Exit(1)
-	}
-
-	// Start all tests
-	code := m.Run()
-
-	runtime.RemoveFiles(wasmFilePaths)
-	os.Exit(code)
-}
-
 func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
-	s := NewTestSyncer(t)
+	s := NewTestSyncer(t, false)
 	addTestBlocksToState(t, int(maxResponseSize), s.blockState)
 
 	start, err := variadic.NewUint64OrHash(uint64(1))
@@ -90,7 +74,7 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 }
 
 func TestService_CreateBlockResponse_StartHash(t *testing.T) {
-	s := NewTestSyncer(t)
+	s := NewTestSyncer(t, false)
 	addTestBlocksToState(t, int(maxResponseSize), s.blockState)
 
 	startHash, err := s.blockState.GetHashByNumber(big.NewInt(1))
@@ -115,7 +99,7 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 }
 
 func TestService_CreateBlockResponse_Ascending(t *testing.T) {
-	s := NewTestSyncer(t)
+	s := NewTestSyncer(t, false)
 	addTestBlocksToState(t, int(maxResponseSize), s.blockState)
 
 	startHash, err := s.blockState.GetHashByNumber(big.NewInt(1))
@@ -141,7 +125,7 @@ func TestService_CreateBlockResponse_Ascending(t *testing.T) {
 
 // tests the ProcessBlockRequestMessage method
 func TestService_CreateBlockResponse(t *testing.T) {
-	s := NewTestSyncer(t)
+	s := NewTestSyncer(t, false)
 	addTestBlocksToState(t, 2, s.blockState)
 
 	bestHash := s.blockState.BestBlockHash()

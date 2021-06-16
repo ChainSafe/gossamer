@@ -172,6 +172,35 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 func (in *Instance) UpdateRuntimeCode(code []byte) error {
 	in.Stop()
 
+	err := in.setupInstanceVM(code)
+	if err != nil {
+		return err
+	}
+
+	in.version, err = in.Version()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// CheckRuntimeVersion calculates runtime Version for runtime blob passed in
+func (in *Instance) CheckRuntimeVersion(code []byte) (runtime.Version, error) {
+	tmp := &Instance{
+		imports: in.imports,
+		ctx:     in.ctx,
+	}
+
+	err := tmp.setupInstanceVM(code)
+	if err != nil {
+		return nil, err
+	}
+
+	return tmp.Version()
+}
+
+func (in *Instance) setupInstanceVM(code []byte) error {
 	imports, err := in.imports()
 	if err != nil {
 		return err
@@ -190,29 +219,22 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 	}
 
 	// Instantiates the WebAssembly module.
-	instance, err := wasm.NewInstanceWithImports(code, imports)
+	in.vm, err = wasm.NewInstanceWithImports(code, imports)
 	if err != nil {
 		return err
+	}
+
+	// Assume imported memory is used if runtime does not export any
+	if !in.vm.HasMemory() {
+		in.vm.Memory = memory
 	}
 
 	// TODO: get __heap_base exported value from runtime.
 	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does
 	heapBase := runtime.DefaultHeapBase
 
-	// Assume imported memory is used if runtime does not export any
-	if !instance.HasMemory() {
-		instance.Memory = memory
-	}
-
-	in.ctx.Allocator = runtime.NewAllocator(instance.Memory, heapBase)
-	instance.SetContextData(in.ctx)
-
-	in.vm = instance
-	in.version, err = in.Version()
-	if err != nil {
-		return err
-	}
-
+	in.ctx.Allocator = runtime.NewAllocator(in.vm.Memory, heapBase)
+	in.vm.SetContextData(in.ctx)
 	return nil
 }
 

@@ -36,6 +36,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
+
+	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 )
 
 func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) []*types.Header {
@@ -97,7 +99,7 @@ func TestStartService(t *testing.T) {
 }
 
 func TestAnnounceBlock(t *testing.T) {
-	net := new(mockNetwork)
+	net := new(coremocks.MockNetwork)
 	newBlocks := make(chan types.Block)
 
 	cfg := &Config{
@@ -111,7 +113,7 @@ func TestAnnounceBlock(t *testing.T) {
 	defer s.Stop()
 
 	// simulate block sent from BABE session
-	newBlocks <- types.Block{
+	newBlock := types.Block{
 		Header: &types.Header{
 			ParentHash: s.blockState.BestBlockHash(),
 			Number:     big.NewInt(1),
@@ -119,9 +121,21 @@ func TestAnnounceBlock(t *testing.T) {
 		Body: &types.Body{},
 	}
 
-	time.Sleep(testMessageTimeout)
-	require.NotNil(t, net.Message)
-	require.Equal(t, network.BlockAnnounceMsgType, net.Message.(network.NotificationsMessage).Type())
+	expected := &network.BlockAnnounceMessage{
+		ParentHash:     newBlock.Header.ParentHash,
+		Number:         newBlock.Header.Number,
+		StateRoot:      newBlock.Header.StateRoot,
+		ExtrinsicsRoot: newBlock.Header.ExtrinsicsRoot,
+		Digest:         newBlock.Header.Digest,
+		BestBlock:      true,
+	}
+
+	net.On("SendMessage", expected)
+
+	newBlocks <- newBlock
+	time.Sleep(time.Second * 2)
+
+	net.AssertCalled(t, "SendMessage", expected)
 }
 
 func TestService_HasKey(t *testing.T) {
