@@ -17,10 +17,11 @@
 package core
 
 import (
+	"reflect"
+
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	"reflect"
 )
 
 // HandleTransactionMessage validates each transaction in the message and
