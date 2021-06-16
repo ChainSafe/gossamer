@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -48,6 +49,7 @@ type Service struct {
 	ctx        context.Context
 	cancel     context.CancelFunc
 	blockAddCh chan *types.Block // for asynchronous block handling
+	sync.Mutex                   // lock for channel
 
 	// Service interfaces
 	blockState       BlockState
@@ -163,6 +165,10 @@ func (s *Service) Start() error {
 // Stop stops the core service
 func (s *Service) Stop() error {
 	s.cancel()
+
+	s.Lock()
+	defer s.Unlock()
+	close(s.blockAddCh)
 	return nil
 }
 
@@ -207,6 +213,13 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		return nil
 	}
 
+	// store updates state trie nodes in database
+	err := s.storageState.StoreTrie(state)
+	if err != nil {
+		logger.Warn("failed to store state trie for imported block", "block", block.Header.Hash(), "error", err)
+		return err
+	}
+
 	// store block in database
 	if err := s.blockState.AddBlock(block); err != nil {
 		if err == blocktree.ErrParentNotFound && block.Header.Number.Cmp(big.NewInt(0)) != 0 {
@@ -216,12 +229,6 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		} else {
 			return err
 		}
-	}
-
-	// store updates state trie nodes in database
-	err := s.storageState.StoreTrie(state)
-	if err != nil {
-		return err
 	}
 
 	logger.Debug("imported block and stored state trie", "block", block.Header.Hash(), "state root", state.MustRoot())
@@ -248,7 +255,8 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	}
 
 	go func() {
-		// TODO: make sure channel isn't closed?
+		s.Lock()
+		defer s.Unlock()
 		s.blockAddCh <- block
 	}()
 
