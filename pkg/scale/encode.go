@@ -59,6 +59,8 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 		err = es.encodeBytes([]byte(in))
 	case bool:
 		err = es.encodeBool(in)
+	case Result:
+		err = es.encodeResult(in)
 	default:
 		switch reflect.TypeOf(in).Kind() {
 		case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16,
@@ -79,31 +81,7 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 				err = es.marshal(elem.Interface())
 			}
 		case reflect.Struct:
-			// fmt.Println("in here!")
-			t := reflect.TypeOf(in)
-			field, ok := t.FieldByName("Result")
-			switch ok {
-			case true:
-				if !field.Type.ConvertibleTo(reflect.TypeOf(Result{})) {
-					err = fmt.Errorf("%T is not a Result", in)
-					return
-				}
-				res := reflect.ValueOf(in).FieldByName("Result").Interface().(Result)
-				// fmt.Println("yao!", res)
-				err = es.encodeResult(res)
-			default:
-				err = es.encodeStruct(in)
-			}
-
-			// check if this is a type with an embedded Result, aka a registered result
-			// switch t.ConvertibleTo(reflect.TypeOf(Result{})) {
-			// case true:
-			// 	resv := reflect.ValueOf(in).Convert(reflect.TypeOf(Result{}))
-			// 	err = es.encodeResult(resv.Interface().(Result))
-			// case false:
-			// 	err = es.encodeStruct(in)
-			// }
-
+			err = es.encodeStruct(in)
 		case reflect.Array:
 			err = es.encodeArray(in)
 		case reflect.Slice:
@@ -157,34 +135,30 @@ func (es *encodeState) encodeCustomPrimitive(in interface{}) (err error) {
 	return
 }
 func (es *encodeState) encodeResult(res Result) (err error) {
-	switch res.IsValid() {
-	case false:
-		err = fmt.Errorf("Result is invalid: %+v", res)
+	if !res.IsSet() {
+		err = fmt.Errorf("Result is not set: %+v", res)
 		return
 	}
 
-	switch res.ok {
-	case nil:
-		// error case
-		err = es.WriteByte(1)
-		if err != nil {
-			break
-		}
-		// TODO: type checking of res.Err against resultCache to ensure Err is same as
-		// registered type
-		if *res.err != nil {
-			err = es.marshal(*res.err)
-		}
-	default:
+	var in interface{}
+	switch res.mode {
+	case OK:
 		err = es.WriteByte(0)
 		if err != nil {
-			break
+			return
 		}
-		// TODO: type checking of res.Ok against resultCache to ensure ok is same as
-		// registered type
-		if *res.ok != nil {
-			err = es.marshal(*res.ok)
+		in = res.ok
+	case Err:
+		err = es.WriteByte(1)
+		if err != nil {
+			return
 		}
+		in = res.err
+	}
+	switch in := in.(type) {
+	case empty:
+	default:
+		err = es.marshal(in)
 	}
 	return
 }
