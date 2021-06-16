@@ -379,7 +379,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 		blockHash := block.Header.Hash()
 		logger.Debug("🔗 imported block", "number", block.Header.Number, "hash", blockHash)
 
-		err := telemetry.GetInstance().SendMessage(telemetry.BlockImportTM{
+		err := telemetry.GetInstance().SendMessage(telemetry.BlockImportTM{  // nolint
 			BestHash: &blockHash,
 			Height:   block.Header.Number,
 			Origin:   "NetworkInitialSync",
