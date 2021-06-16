@@ -499,7 +499,7 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		"parent", parent.Hash(),
 	)
 
-	if err := b.blockImportHandler.HandleBlockImport(block, ts); err != nil {
+	if err := b.blockImportHandler.HandleBlockProduced(block, ts); err != nil {
 		logger.Warn("failed to import built block", "error", err)
 		return err
 	}
