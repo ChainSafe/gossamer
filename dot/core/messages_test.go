@@ -17,6 +17,7 @@
 package core
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -157,8 +158,9 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	extBytes := createExtrinsics(t, s.rt, genHash, 0)
 
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}}
-	err = s.HandleTransactionMessage(msg)
+	b, err := s.HandleTransactionMessage(msg)
 	require.NoError(t, err)
+	fmt.Printf("b %v\n", b)
 
 	pending := s.transactionState.(*state.TransactionState).Pending()
 	require.NotEqual(t, 0, len(pending))

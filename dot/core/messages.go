@@ -20,36 +20,57 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"reflect"
 )
 
 // HandleTransactionMessage validates each transaction in the message and
 // adds valid transactions to the transaction queue of the BABE session
-func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) error {
+func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (bool, error) {
 	logger.Debug("received TransactionMessage")
 	if !s.isBlockProducer {
-		return nil
+		return false, nil
 	}
 
 	// get transactions from message extrinsics
 	txs := msg.Extrinsics
-
+	var toRemove []types.Extrinsic
 	for _, tx := range txs {
 		// validate each transaction
 		externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, tx...))
 		val, err := s.rt.ValidateTransaction(externalExt)
 		if err != nil {
 			logger.Error("failed to validate transaction", "err", err)
-			return err
+			return false, err
 		}
-		if val.Propagate {
-			// create new valid transaction
-			vtx := transaction.NewValidTransaction(tx, val)
 
-			// push to the transaction queue of BABE session
-			hash := s.transactionState.AddToPool(vtx)
-			logger.Trace("Added transaction to queue", "hash", hash)
+		// create new valid transaction
+		vtx := transaction.NewValidTransaction(tx, val)
+
+		// push to the transaction queue of BABE session
+		hash := s.transactionState.AddToPool(vtx)
+		logger.Trace("Added transaction to queue", "hash", hash)
+
+		// find tx(s) that should not propagate
+		if !val.Propagate {
+			toRemove = append(toRemove, tx)
 		}
 	}
 
-	return nil
+	// remove tx(s) that should not propagate
+	for _, v := range toRemove {
+		msg.Extrinsics = findAndDelete(msg.Extrinsics, v)
+	}
+
+	return len(msg.Extrinsics) > 0, nil
+}
+
+func findAndDelete(s []types.Extrinsic, item types.Extrinsic) []types.Extrinsic {
+	index := 0
+	for _, i := range s {
+		if !reflect.DeepEqual(i, item) {
+			s[index] = i
+			index++
+		}
+	}
+	return s[:index]
 }
