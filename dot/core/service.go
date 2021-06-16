@@ -164,10 +164,10 @@ func (s *Service) Start() error {
 
 // Stop stops the core service
 func (s *Service) Stop() error {
-	s.cancel()
-
 	s.Lock()
 	defer s.Unlock()
+
+	s.cancel()
 	close(s.blockAddCh)
 	return nil
 }
@@ -257,6 +257,10 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	go func() {
 		s.Lock()
 		defer s.Unlock()
+		if s.ctx.Err != nil {
+			return
+		}
+
 		s.blockAddCh <- block
 	}()
 
