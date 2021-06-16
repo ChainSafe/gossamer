@@ -425,53 +425,73 @@ func TestResult_Set(t *testing.T) {
 	}
 }
 
-// func TestNilOk(t *testing.T) {
-// 	mr := MyResult{}
-// 	mr.SetOk(nil)
-// 	bytes, err := Marshal(mr)
-// 	if err != nil {
-// 		t.Errorf("%v", err)
-// 		return
-// 	}
-
-// 	if !reflect.DeepEqual([]byte{0x00}, bytes) {
-// 		t.Errorf("unexpected bytes: %v", bytes)
-// 	}
-
-// 	mr1 := MyResult{}
-// 	mr1.SetErr(true)
-// 	bytes, err = Marshal(mr1)
-// 	if err != nil {
-// 		t.Errorf("%v", err)
-// 		return
-// 	}
-
-// 	if !reflect.DeepEqual([]byte{0x01, 0x01}, bytes) {
-// 		t.Errorf("unexpected bytes: %v", bytes)
-// 	}
-// }
-
-// func TestBothNil(t *testing.T) {
-// 	mr := MyResult{}
-// 	mr.SetOk(nil)
-// 	bytes, err := Marshal(mr)
-// 	if err != nil {
-// 		t.Errorf("%v", err)
-// 		return
-// 	}
-
-// 	if !reflect.DeepEqual([]byte{0x00}, bytes) {
-// 		t.Errorf("unexpected bytes: %v", bytes)
-// 	}
-
-// 	mr1 := MyResult{}
-// 	mr1.SetErr(nil)
-// 	bytes, err = Marshal(mr1)
-// 	if err != nil {
-// 		t.Errorf("%v", err)
-// 		return
-// 	}
-// 	if !reflect.DeepEqual([]byte{0x01, 0x01}, bytes) {
-// 		t.Errorf("unexpected bytes: %v", bytes)
-// 	}
-// }
+func TestResult_Set(t *testing.T) {
+	type args struct {
+		mode ResultMode
+		in   interface{}
+	}
+	tests := []struct {
+		name    string
+		res     Result
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+		{
+			args: args{
+				mode: Unset,
+			},
+			wantErr: true,
+		},
+		{
+			args: args{
+				mode: OK,
+				in:   nil,
+			},
+		},
+		{
+			args: args{
+				mode: Err,
+				in:   nil,
+			},
+		},
+		{
+			args: args{
+				mode: OK,
+				in:   true,
+			},
+			res: NewResult(true, nil),
+		},
+		{
+			args: args{
+				mode: Err,
+				in:   true,
+			},
+			res: NewResult(nil, true),
+		},
+		{
+			args: args{
+				mode: OK,
+				in:   true,
+			},
+			res:     NewResult("ok", "err"),
+			wantErr: true,
+		},
+		{
+			args: args{
+				mode: Err,
+				in:   nil,
+			},
+			res:     NewResult(nil, true),
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := tt.res
+			if err := r.Set(tt.args.mode, tt.args.in); (err != nil) != tt.wantErr {
+				t.Errorf("Result.Set() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
