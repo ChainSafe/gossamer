@@ -257,7 +257,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	go func() {
 		s.Lock()
 		defer s.Unlock()
-		if s.ctx.Err != nil {
+		if s.ctx.Err() != nil {
 			return
 		}
 
