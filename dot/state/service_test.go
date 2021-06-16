@@ -48,13 +48,13 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie
 // helper method to create and start test state service
 func newTestService(t *testing.T) (state *Service) {
 	testDir := utils.NewTestDir(t)
-	state = NewService(testDir, log.LvlTrace)
+	state = NewService(testDir, log.LvlInfo)
 	return state
 }
 
 func newTestMemDBService() *Service {
 	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
-	state := NewService(testDatadirPath, log.LvlTrace)
+	state := NewService(testDatadirPath, log.LvlInfo)
 	state.UseMemDB()
 	return state
 }
@@ -116,7 +116,7 @@ func TestService_BlockTree(t *testing.T) {
 	// removes all data directories created within test directory
 	defer utils.RemoveTestDir(t)
 
-	stateA := NewService(testDir, log.LvlTrace)
+	stateA := NewService(testDir, log.LvlInfo)
 
 	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
 	err := stateA.Initialise(genData, genesisHeader, genTrie)
@@ -131,7 +131,7 @@ func TestService_BlockTree(t *testing.T) {
 	err = stateA.Stop()
 	require.NoError(t, err)
 
-	stateB := NewService(testDir, log.LvlTrace)
+	stateB := NewService(testDir, log.LvlInfo)
 
 	err = stateB.Start()
 	require.NoError(t, err)
@@ -145,7 +145,7 @@ func TestService_PruneStorage(t *testing.T) {
 	testDir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
 
-	serv := NewService(testDir, log.LvlTrace)
+	serv := NewService(testDir, log.LvlInfo)
 	serv.UseMemDB()
 
 	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
@@ -220,7 +220,7 @@ func TestService_Rewind(t *testing.T) {
 	testDir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
 
-	serv := NewService(testDir, log.LvlTrace)
+	serv := NewService(testDir, log.LvlInfo)
 	serv.UseMemDB()
 
 	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)
@@ -268,7 +268,7 @@ func TestService_Import(t *testing.T) {
 	testDir := utils.NewTestDir(t)
 	defer utils.RemoveTestDir(t)
 
-	serv := NewService(testDir, log.LvlTrace)
+	serv := NewService(testDir, log.LvlInfo)
 	serv.UseMemDB()
 
 	genData, genTrie, genesisHeader := newTestGenesisWithTrieAndHeader(t)

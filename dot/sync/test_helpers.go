@@ -117,7 +117,7 @@ func NewTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 	}
 
 	if cfg.LogLvl == 0 {
-		cfg.LogLvl = log.LvlDebug
+		cfg.LogLvl = log.LvlInfo
 	}
 
 	if cfg.FinalityGadget == nil {
