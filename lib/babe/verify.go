@@ -141,7 +141,6 @@ func (v *VerificationManager) SetOnDisabled(index uint32, header *types.Header) 
 // VerifyBlock verifies that the block producer for the given block was authorized to produce it.
 // It returns an error if the block is invalid.
 func (v *VerificationManager) VerifyBlock(header *types.Header) error {
-
 	var (
 		info *verifierInfo
 		has  bool
@@ -167,6 +166,8 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 			if err != nil {
 				return fmt.Errorf("failed to set current epoch after receiving block 1: %w", err)
 			}
+
+			fmt.Println("set firstSlot")
 		}
 	}
 

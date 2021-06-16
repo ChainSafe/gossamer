@@ -121,6 +121,9 @@ func NewEpochStateFromGenesis(db chaindb.Database, genesisConfig *types.BabeConf
 		return nil, err
 	}
 
+	s.blockState = &BlockState{
+		db: chaindb.NewTable(db, blockPrefix),
+	}
 	return s, nil
 }
 
