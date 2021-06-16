@@ -134,11 +134,13 @@ func networkServiceEnabled(cfg *Config) bool {
 func GssmrConfig() *Config {
 	return &Config{
 		Global: GlobalConfig{
-			Name:        gssmr.DefaultName,
-			ID:          gssmr.DefaultID,
-			BasePath:    gssmr.DefaultBasePath,
-			LogLvl:      gssmr.DefaultLvl,
-			MetricsPort: gssmr.DefaultMetricsPort,
+			Name:         gssmr.DefaultName,
+			ID:           gssmr.DefaultID,
+			BasePath:     gssmr.DefaultBasePath,
+			LogLvl:       gssmr.DefaultLvl,
+			MetricsPort:  gssmr.DefaultMetricsPort,
+			RetainBlocks: gssmr.DefaultRetainBlocks,
+			Pruning:      pruner.Mode(gssmr.DefaultPruningMode),
 		},
 		Log: LogConfig{
 			CoreLvl:           gssmr.DefaultLvl,
@@ -182,11 +184,13 @@ func GssmrConfig() *Config {
 func KusamaConfig() *Config {
 	return &Config{
 		Global: GlobalConfig{
-			Name:        kusama.DefaultName,
-			ID:          kusama.DefaultID,
-			BasePath:    kusama.DefaultBasePath,
-			LogLvl:      kusama.DefaultLvl,
-			MetricsPort: kusama.DefaultMetricsPort,
+			Name:         kusama.DefaultName,
+			ID:           kusama.DefaultID,
+			BasePath:     kusama.DefaultBasePath,
+			LogLvl:       kusama.DefaultLvl,
+			MetricsPort:  kusama.DefaultMetricsPort,
+			RetainBlocks: gssmr.DefaultRetainBlocks,
+			Pruning:      pruner.Mode(gssmr.DefaultPruningMode),
 		},
 		Log: LogConfig{
 			CoreLvl:           kusama.DefaultLvl,
@@ -228,10 +232,12 @@ func KusamaConfig() *Config {
 func PolkadotConfig() *Config {
 	return &Config{
 		Global: GlobalConfig{
-			Name:     polkadot.DefaultName,
-			ID:       polkadot.DefaultID,
-			BasePath: polkadot.DefaultBasePath,
-			LogLvl:   polkadot.DefaultLvl,
+			Name:         polkadot.DefaultName,
+			ID:           polkadot.DefaultID,
+			BasePath:     polkadot.DefaultBasePath,
+			LogLvl:       polkadot.DefaultLvl,
+			RetainBlocks: gssmr.DefaultRetainBlocks,
+			Pruning:      pruner.Mode(gssmr.DefaultPruningMode),
 		},
 		Log: LogConfig{
 			CoreLvl:           polkadot.DefaultLvl,
@@ -273,11 +279,13 @@ func PolkadotConfig() *Config {
 func DevConfig() *Config {
 	return &Config{
 		Global: GlobalConfig{
-			Name:        dev.DefaultName,
-			ID:          dev.DefaultID,
-			BasePath:    dev.DefaultBasePath,
-			LogLvl:      dev.DefaultLvl,
-			MetricsPort: dev.DefaultMetricsPort,
+			Name:         dev.DefaultName,
+			ID:           dev.DefaultID,
+			BasePath:     dev.DefaultBasePath,
+			LogLvl:       dev.DefaultLvl,
+			MetricsPort:  dev.DefaultMetricsPort,
+			RetainBlocks: dev.DefaultRetainBlocks,
+			Pruning:      pruner.Mode(dev.DefaultPruningMode),
 		},
 		Log: LogConfig{
 			CoreLvl:           dev.DefaultLvl,

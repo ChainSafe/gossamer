@@ -152,13 +152,13 @@ func (s *Service) Start() error {
 		s.Block.bt = blocktree.NewBlockTreeFromRoot(lastFinalised, db)
 	}
 
-	pruner, err := s.Base.loadPruningData()
+	pr, err := s.Base.loadPruningData()
 	if err != nil {
 		return err
 	}
 
 	// create storage state
-	s.Storage, err = NewStorageState(db, s.Block, trie.NewEmptyTrie(), pruner)
+	s.Storage, err = NewStorageState(db, s.Block, trie.NewEmptyTrie(), pr)
 	if err != nil {
 		return fmt.Errorf("failed to create storage state: %w", err)
 	}

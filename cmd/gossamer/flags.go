@@ -17,6 +17,7 @@
 package main
 
 import (
+	"github.com/ChainSafe/gossamer/chain/dev"
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
 )
@@ -280,10 +281,10 @@ var (
 	}
 
 	// RetainBlockNumberFlag retain number of block from latest block while pruning, valid for the use with prune-state subcommand
-	RetainBlockNumberFlag = cli.IntFlag{
+	RetainBlockNumberFlag = cli.Int64Flag{
 		Name:  "retain-blocks",
 		Usage: "Retain number of block from latest block while pruning",
-		Value: defaultRetainBlocks,
+		Value: dev.DefaultRetainBlocks,
 	}
 
 	// PruningFlag triggers the online pruning of historical state tries. It's either full or archive. To enable pruning the value
@@ -291,7 +292,7 @@ var (
 	PruningFlag = cli.StringFlag{
 		Name:  "pruning",
 		Usage: `State trie online pruning ("full", "archive")`,
-		Value: "archive",
+		Value: dev.DefaultPruningMode,
 	}
 )
 
