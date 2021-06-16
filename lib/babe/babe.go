@@ -274,15 +274,11 @@ func (b *Service) IsPaused() bool {
 
 // Stop stops the service. If stop is called, it cannot be resumed.
 func (b *Service) Stop() error {
-	// b.Lock()
-	// defer b.Unlock()
-
 	if b.ctx.Err() != nil {
 		return errors.New("service already stopped")
 	}
 
 	b.cancel()
-	//close(b.blockChan)
 	return nil
 }
 
@@ -290,11 +286,6 @@ func (b *Service) Stop() error {
 func (b *Service) SetRuntime(rt runtime.Instance) {
 	b.rt = rt
 }
-
-// // GetBlockChannel returns the channel where new blocks are passed
-// func (b *Service) GetBlockChannel() <-chan types.Block {
-// 	return b.blockChan
-// }
 
 // SetOnDisabled sets the block producer with the given index as disabled
 // If this is our node, we stop producing blocks

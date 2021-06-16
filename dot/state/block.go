@@ -402,6 +402,11 @@ func (bs *BlockState) SetFinalizedHash(hash common.Hash, round, setID uint64) er
 	bs.Lock()
 	defer bs.Unlock()
 
+	has, _ := bs.HasHeader(hash)
+	if !has {
+		return fmt.Errorf("cannot finalise unknown block %s", hash)
+	}
+
 	go bs.notifyFinalized(hash, round, setID)
 	if round > 0 {
 		err := bs.SetRound(round)
