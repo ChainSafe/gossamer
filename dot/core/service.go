@@ -113,6 +113,10 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, ErrNilDigestHandler
 	}
 
+	if cfg.CodeSubstitutedState == nil {
+		return nil, errNilCodeSubstitutedState
+	}
+
 	h := log.StreamHandler(os.Stdout, log.TerminalFormat())
 	h = log.CallerFileHandler(h)
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
