@@ -16,7 +16,7 @@ jobs:
         uses: golangci/golangci-lint-action@v2
         with:          
           version: 'latest'
-          args: --verbose
+          args: --out-format=colored-line-number
 
   vet-check:
     runs-on: ubuntu-latest
