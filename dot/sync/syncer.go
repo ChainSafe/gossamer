@@ -200,7 +200,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 				s.handleJustification(block.Header, bd.Justification.Value())
 			}
 
-			state, err := s.storageState.TrieState(&block.Header.StateRoot)
+			state, err := s.storageState.TrieState(&block.Header.StateRoot) // TODO: this is probably unnecessary, since the state is already in the database
 			if err != nil {
 				logger.Warn("failed to load state for block", "block", block.Header.Hash(), "error", err)
 				return i, err
