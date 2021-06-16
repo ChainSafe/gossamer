@@ -22,7 +22,6 @@ import (
 	"path/filepath"
 
 	"github.com/ChainSafe/chaindb"
-
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/rpc"
@@ -32,6 +31,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -93,6 +93,20 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GlobalKeystore, 
 	code, err := st.Storage.GetStorage(nil, []byte(":code"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve :code from trie: %s", err)
+	}
+
+	// check if code substitute is in use, if so replace code
+	codeSubHash := st.Base.LoadCodeSubstitutedBlockHash()
+
+	if !codeSubHash.Equal(common.Hash{}) {
+		logger.Info("🔄 detected runtime code substitution, upgrading...", "block", codeSubHash)
+		genData, err := st.Base.LoadGenesisData() // nolint
+		if err != nil {
+			return nil, err
+		}
+		codeString := genData.CodeSubstitutes[codeSubHash.String()]
+
+		code = common.MustHexToBytes(codeString)
 	}
 
 	ts, err := st.Storage.TrieState(nil)
@@ -376,17 +390,27 @@ func createBlockVerifier(st *state.Service) (*babe.VerificationManager, error) {
 	return ver, nil
 }
 
-func createSyncService(cfg *Config, st *state.Service, bp sync.BlockProducer, fg sync.FinalityGadget, dh *core.DigestHandler, verifier *babe.VerificationManager, rt runtime.Instance) (*sync.Service, error) {
+func newSyncService(cfg *Config, st *state.Service, bp sync.BlockProducer, fg sync.FinalityGadget, dh *core.DigestHandler, verifier *babe.VerificationManager, rt runtime.Instance) (*sync.Service, error) {
+	genesisData, err := st.Base.LoadGenesisData()
+	if err != nil {
+		return nil, err
+	}
+	codeSubs := make(map[common.Hash]string)
+	for k, v := range genesisData.CodeSubstitutes {
+		codeSubs[common.MustHexToHash(k)] = v
+	}
 	syncCfg := &sync.Config{
-		LogLvl:           cfg.Log.SyncLvl,
-		BlockState:       st.Block,
-		StorageState:     st.Storage,
-		TransactionState: st.Transaction,
-		BlockProducer:    bp,
-		FinalityGadget:   fg,
-		Verifier:         verifier,
-		Runtime:          rt,
-		DigestHandler:    dh,
+		LogLvl:               cfg.Log.SyncLvl,
+		BlockState:           st.Block,
+		StorageState:         st.Storage,
+		TransactionState:     st.Transaction,
+		BlockProducer:        bp,
+		FinalityGadget:       fg,
+		Verifier:             verifier,
+		Runtime:              rt,
+		DigestHandler:        dh,
+		CodeSubstitutes:      codeSubs,
+		CodeSubstitutedState: st.Base,
 	}
 
 	return sync.NewService(syncCfg)

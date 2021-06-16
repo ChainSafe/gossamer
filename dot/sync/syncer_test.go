@@ -20,6 +20,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
@@ -31,18 +32,34 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+
+	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
+
+func TestMain(m *testing.M) {
+	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
+	if err != nil {
+		log.Error("failed to generate runtime wasm file", err)
+		os.Exit(1)
+	}
+
+	// Start all tests
+	code := m.Run()
+
+	runtime.RemoveFiles(wasmFilePaths)
+	os.Exit(code)
+}
 
 func TestHandleBlockResponse(t *testing.T) {
 	if testing.Short() {
 		t.Skip() // this test takes around 4min to run
 	}
 
-	syncer := NewTestSyncer(t)
+	syncer := NewTestSyncer(t, false)
 	syncer.highestSeenBlock = big.NewInt(132)
 
-	responder := NewTestSyncer(t)
+	responder := NewTestSyncer(t, false)
 	parent, err := responder.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
@@ -77,7 +94,7 @@ func TestHandleBlockResponse(t *testing.T) {
 }
 
 func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
-	syncer := NewTestSyncer(t)
+	syncer := NewTestSyncer(t, false)
 	syncer.highestSeenBlock = big.NewInt(20)
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
@@ -90,7 +107,7 @@ func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
 		parent = block.Header
 	}
 
-	responder := NewTestSyncer(t)
+	responder := NewTestSyncer(t, false)
 
 	parent, err = responder.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
@@ -122,7 +139,7 @@ func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
 }
 
 func TestRemoveIncludedExtrinsics(t *testing.T) {
-	syncer := NewTestSyncer(t)
+	syncer := NewTestSyncer(t, false)
 
 	ext := []byte("nootwashere")
 	tx := &transaction.ValidTransaction{
@@ -152,13 +169,13 @@ func TestRemoveIncludedExtrinsics(t *testing.T) {
 }
 
 func TestHandleBlockResponse_NoBlockData(t *testing.T) {
-	syncer := NewTestSyncer(t)
+	syncer := NewTestSyncer(t, false)
 	_, err := syncer.ProcessBlockData(nil)
 	require.Equal(t, ErrNilBlockData, err)
 }
 
 func TestHandleBlockResponse_BlockData(t *testing.T) {
-	syncer := NewTestSyncer(t)
+	syncer := NewTestSyncer(t, false)
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
@@ -181,7 +198,7 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 }
 
 func TestSyncer_ExecuteBlock(t *testing.T) {
-	syncer := NewTestSyncer(t)
+	syncer := NewTestSyncer(t, false)
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
@@ -197,10 +214,8 @@ func TestSyncer_ExecuteBlock(t *testing.T) {
 }
 
 func TestSyncer_HandleRuntimeChanges(t *testing.T) {
-	syncer := NewTestSyncer(t)
-
-	_, err := runtime.GetRuntimeBlob(runtime.POLKADOT_RUNTIME_FP, runtime.POLKADOT_RUNTIME_URL)
-	require.NoError(t, err)
+	syncer := NewTestSyncer(t, false)
+	codeHashBefore := syncer.codeHash
 
 	testRuntime, err := ioutil.ReadFile(runtime.POLKADOT_RUNTIME_FP)
 	require.NoError(t, err)
@@ -211,10 +226,48 @@ func TestSyncer_HandleRuntimeChanges(t *testing.T) {
 	ts.Set(common.CodeKey, testRuntime)
 	err = syncer.handleRuntimeChanges(ts)
 	require.NoError(t, err)
+	codeHashAfter := syncer.codeHash
+	require.NotEqualf(t, codeHashBefore, codeHashAfter, "expected different code hash after runtime update")
+}
+
+func TestSyncer_HandleCodeSubstitutes(t *testing.T) {
+	syncer := NewTestSyncer(t, true)
+	nonSubBlockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e28")
+	err := syncer.handleCodeSubstitution(nonSubBlockHash)
+	require.NoError(t, err)
+	codSub := syncer.codeSubstitutedState.LoadCodeSubstitutedBlockHash()
+	require.Equal(t, common.Hash{}, codSub)
+
+	subBlockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29") // hash for known test code substitution
+	err = syncer.handleCodeSubstitution(subBlockHash)
+	require.NoError(t, err)
+	codSub = syncer.codeSubstitutedState.LoadCodeSubstitutedBlockHash()
+	require.Equal(t, subBlockHash, codSub)
+}
+
+func TestSyncer_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
+	syncer := NewTestSyncer(t, true)
+	codeHashBefore := syncer.codeHash
+	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29") // hash for known test code substitution
+
+	err := syncer.handleCodeSubstitution(blockHash)
+	require.NoError(t, err)
+	require.Equal(t, codeHashBefore, syncer.codeHash) // codeHash should remain unchanged after code substitute
+
+	testRuntime, err := ioutil.ReadFile(runtime.POLKADOT_RUNTIME_FP)
+	require.NoError(t, err)
+
+	ts, err := syncer.storageState.TrieState(nil)
+	require.NoError(t, err)
+
+	ts.Set(common.CodeKey, testRuntime)
+	err = syncer.handleRuntimeChanges(ts)
+	require.NoError(t, err)
+	require.NotEqualf(t, codeHashBefore, syncer.codeHash, "expected different code hash after runtime update") // codeHash should change after runtime change
 }
 
 func TestSyncer_HandleJustification(t *testing.T) {
-	syncer := NewTestSyncer(t)
+	syncer := NewTestSyncer(t, false)
 
 	header := &types.Header{
 		Number: big.NewInt(1),
@@ -230,7 +283,7 @@ func TestSyncer_HandleJustification(t *testing.T) {
 }
 
 func TestSyncer_ProcessJustification(t *testing.T) {
-	syncer := NewTestSyncer(t)
+	syncer := NewTestSyncer(t, false)
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)

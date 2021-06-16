@@ -137,7 +137,7 @@ func TestCreateSyncService(t *testing.T) {
 	ver, err := createBlockVerifier(stateSrvc)
 	require.NoError(t, err)
 
-	_, err = createSyncService(cfg, stateSrvc, sync.NewMockBlockProducer(), nil, nil, ver, rt)
+	_, err = newSyncService(cfg, stateSrvc, sync.NewMockBlockProducer(), nil, nil, ver, rt)
 	require.NoError(t, err)
 }
 

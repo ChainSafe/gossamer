@@ -67,7 +67,7 @@ func NewMockBlockProducer() *syncmocks.MockBlockProducer {
 }
 
 // NewTestSyncer ...
-func NewTestSyncer(t *testing.T) *Service {
+func NewTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 	wasmer.DefaultTestLogLvl = 3
 
 	cfg := &Config{}
@@ -75,7 +75,7 @@ func NewTestSyncer(t *testing.T) *Service {
 	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo)
 	stateSrvc.UseMemDB()
 
-	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t, usePolkadotGenesis)
 	err := stateSrvc.Initialise(gen, genHeader, genTrie)
 	require.NoError(t, err)
 
@@ -124,13 +124,33 @@ func NewTestSyncer(t *testing.T) *Service {
 		cfg.FinalityGadget = NewMockFinalityGadget()
 	}
 
+	if cfg.CodeSubstitutes == nil {
+		cfg.CodeSubstitutes = make(map[common.Hash]string)
+
+		genesisData, err := stateSrvc.Base.LoadGenesisData() // nolint
+		require.NoError(t, err)
+
+		for k, v := range genesisData.CodeSubstitutes {
+			cfg.CodeSubstitutes[common.MustHexToHash(k)] = v
+		}
+	}
+
+	if cfg.CodeSubstitutedState == nil {
+		cfg.CodeSubstitutedState = stateSrvc.Base
+	}
+
 	syncer, err := NewService(cfg)
 	require.NoError(t, err)
 	return syncer
 }
 
-func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
-	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis.json")
+func newTestGenesisWithTrieAndHeader(t *testing.T, usePolkadotGenesis bool) (*genesis.Genesis, *trie.Trie, *types.Header) {
+	fp := "../../chain/gssmr/genesis.json"
+	if usePolkadotGenesis {
+		fp = "../../chain/polkadot/genesis.json"
+	}
+
+	gen, err := genesis.NewGenesisFromJSONRaw(fp)
 	require.NoError(t, err)
 
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
