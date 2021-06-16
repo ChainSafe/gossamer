@@ -45,8 +45,9 @@ var (
 // BABE session, and network service. It deals with the validation of transactions
 // and blocks by calling their respective validation functions in the runtime.
 type Service struct {
-	ctx    context.Context
-	cancel context.CancelFunc
+	ctx        context.Context
+	cancel     context.CancelFunc
+	blockAddCh chan *types.Block // for asynchronous block handling
 
 	// Service interfaces
 	blockState       BlockState
@@ -66,11 +67,6 @@ type Service struct {
 
 	// Keystore
 	keys *keystore.GlobalKeystore
-	// State variables
-	//lock sync.Mutex
-
-	blockAddCh chan *types.Block // receive blocks added to blocktree
-
 }
 
 // Config holds the configuration for the core Service.

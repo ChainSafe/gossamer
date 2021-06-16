@@ -21,7 +21,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 )
 
@@ -60,13 +59,6 @@ type StorageState interface {
 // TransactionState is the interface for transaction queue methods
 type TransactionState interface {
 	RemoveExtrinsic(ext types.Extrinsic)
-}
-
-// BlockProducer is the interface that a block production service must implement
-type BlockProducer interface {
-	Pause() error
-	Resume() error
-	SetRuntime(rt runtime.Instance)
 }
 
 // Verifier deals with block verification

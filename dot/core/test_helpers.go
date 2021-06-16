@@ -32,10 +32,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	log "github.com/ChainSafe/log15"
-	//"github.com/stretchr/testify/mock"
+
+	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	// importing packagemocks
-	//coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 )
 
 func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
@@ -56,10 +56,11 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie
 // NewTestService creates a new test core service
 func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg == nil {
-		cfg = &Config{
-			//IsBlockProducer: false,
-		}
+		cfg = &Config{}
 	}
+
+	cfg.DigestHandler = new(coremocks.MockDigestHandler)
+	cfg.DigestHandler.(*coremocks.MockDigestHandler).On("HandleDigests", mock.AnythingOfType("*types.Header"))
 
 	if cfg.Keystore == nil {
 		cfg.Keystore = keystore.NewGlobalKeystore()
@@ -69,16 +70,6 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		}
 		cfg.Keystore.Acco.Insert(kp)
 	}
-
-	// if cfg.NewBlocks == nil {
-	// 	cfg.NewBlocks = make(chan types.Block)
-	// }
-
-	// if cfg.Verifier == nil {
-	// 	verifier := new(coremocks.MockVerifier)
-	// 	verifier.On("SetOnDisabled", mock.AnythingOfType("uint32"), mock.AnythingOfType("*types.Header")).Return(nil)
-	// 	cfg.Verifier = nil
-	// }
 
 	cfg.LogLvl = 3
 

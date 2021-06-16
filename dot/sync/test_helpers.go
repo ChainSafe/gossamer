@@ -56,16 +56,6 @@ func NewMockVerifier() *syncmocks.MockVerifier {
 	return m
 }
 
-// NewMockBlockProducer create and return sync BlockProducer interface mock
-func NewMockBlockProducer() *syncmocks.MockBlockProducer {
-	m := new(syncmocks.MockBlockProducer)
-	m.On("Pause").Return(nil)
-	m.On("Resume").Return(nil)
-	m.On("SetRuntime", mock.AnythingOfType("runtime.Instance"))
-
-	return m
-}
-
 // NewTestSyncer ...
 func NewTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 	wasmer.DefaultTestLogLvl = 3
@@ -89,6 +79,9 @@ func NewTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 	if cfg.StorageState == nil {
 		cfg.StorageState = stateSrvc.Storage
 	}
+
+	cfg.BlockImportHandler = new(syncmocks.MockBlockImportHandler)
+	cfg.BlockImportHandler.(*syncmocks.MockBlockImportHandler).On("HandleBlockImport", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).Return(nil)
 
 	if cfg.Runtime == nil {
 		// set state to genesis state
