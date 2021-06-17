@@ -60,26 +60,26 @@ var (
 	gossamerCMD   = filepath.Join(currentDir, "../..", "bin/gossamer")
 
 	// GenesisOneAuth is the genesis file that has 1 authority
-	GenesisOneAuth string = filepath.Join(currentDir, "../utils/genesis_oneauth.json")
+	GenesisOneAuth = filepath.Join(currentDir, "../utils/genesis_oneauth.json")
 	// GenesisThreeAuths is the genesis file that has 3 authorities
-	GenesisThreeAuths string = filepath.Join(currentDir, "../utils/genesis_threeauths.json")
+	GenesisThreeAuths = filepath.Join(currentDir, "../utils/genesis_threeauths.json")
 	// GenesisSixAuths is the genesis file that has 6 authorities
-	GenesisSixAuths string = filepath.Join(currentDir, "../utils/genesis_sixauths.json")
+	GenesisSixAuths = filepath.Join(currentDir, "../utils/genesis_sixauths.json")
 	// GenesisDefault is the default gssmr genesis file
-	GenesisDefault string = filepath.Join(currentDir, "../..", "chain/gssmr/genesis.json")
+	GenesisDefault = filepath.Join(currentDir, "../..", "chain/gssmr/genesis.json")
 	// GenesisDev is the default dev genesis file
-	GenesisDev string = filepath.Join(currentDir, "../..", "chain/dev/genesis-spec.json")
+	GenesisDev = filepath.Join(currentDir, "../..", "chain/dev/genesis-spec.json")
 
 	// ConfigDefault is the default config file
-	ConfigDefault string = filepath.Join(currentDir, "../utils/config_default.toml")
+	ConfigDefault = filepath.Join(currentDir, "../utils/config_default.toml")
 	// ConfigLogGrandpa is a config file where log levels are set to CRIT except for GRANDPA
-	ConfigLogGrandpa string = filepath.Join(currentDir, "../utils/config_log_grandpa.toml")
+	ConfigLogGrandpa = filepath.Join(currentDir, "../utils/config_log_grandpa.toml")
 	// ConfigNoBABE is a config file with BABE disabled
-	ConfigNoBABE string = filepath.Join(currentDir, "../utils/config_nobabe.toml")
+	ConfigNoBABE = filepath.Join(currentDir, "../utils/config_nobabe.toml")
 	// ConfigNoGrandpa is a config file with grandpa disabled
-	ConfigNoGrandpa string = filepath.Join(currentDir, "../utils/config_nograndpa.toml")
+	ConfigNoGrandpa = filepath.Join(currentDir, "../utils/config_nograndpa.toml")
 	// ConfigNotAuthority is a config file with no authority functionality
-	ConfigNotAuthority string = filepath.Join(currentDir, "../utils/config_notauthority.toml")
+	ConfigNotAuthority = filepath.Join(currentDir, "../utils/config_notauthority.toml")
 )
 
 // Node represents a gossamer process
@@ -126,7 +126,7 @@ func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
 // StartGossamer starts given node
 func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 	var key string
-	var params []string = []string{"--port", strconv.Itoa(basePort + node.Idx),
+	var params = []string{"--port", strconv.Itoa(basePort + node.Idx),
 		"--config", node.config,
 		"--basepath", node.basePath,
 		"--rpchost", HOSTNAME,
