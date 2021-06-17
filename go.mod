@@ -52,7 +52,6 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.1-0.20200815110645-5c35d600f0ca // indirect
 	github.com/urfave/cli v1.20.0
-	github.com/vektra/mockery/v2 v2.8.0 // indirect
 	github.com/wasmerio/go-ext-wasm v0.3.2-0.20200326095750-0a32be6068ec
 	go.opencensus.io v0.22.5 // indirect
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
