@@ -306,7 +306,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 	require.NoError(t, err)
 	ts.Set(aliceAcctStoKey, aliceAcctEncoded)
 
-	err = chain.Storage.StoreTrie(ts)
+	err = chain.Storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
 	err = chain.Block.AddBlock(&types.Block{
 		Header: &types.Header{
