@@ -36,7 +36,11 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
 	require.NoError(t, err)
 
-	dbSrv := state.NewService(testDatadirPath, log.LvlInfo)
+	config := state.Config{
+		Path:     testDatadirPath,
+		LogLevel: log.LvlInfo,
+	}
+	dbSrv := state.NewService(config)
 	dbSrv.UseMemDB()
 
 	if genCfg == nil {

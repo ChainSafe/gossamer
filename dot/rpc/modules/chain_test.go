@@ -280,7 +280,12 @@ var gen, genTrie, genesisHeader = newTestGenesisWithTrieAndHeader()
 func newTestStateService(t *testing.T) *state.Service {
 	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
 	require.NoError(t, err)
-	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo)
+
+	config := state.Config{
+		Path:     testDatadirPath,
+		LogLevel: log.LvlInfo,
+	}
+	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()
 
 	err = stateSrvc.Initialise(gen, genesisHeader, genTrie)
