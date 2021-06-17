@@ -33,6 +33,8 @@ var (
 	WorkingStorageHashKey = []byte("working_storage_hash")
 	//NodeNameKey is the storage key to store de current node name and avoid create a new name every initialization
 	NodeNameKey = []byte("node_name")
+	// PruningKey is the storage key to store the current pruning configuration.
+	PruningKey = []byte("prune")
 	//CodeSubstitutedBlock is the storage key to store block hash of substituted (if there is currently code substituted)
 	CodeSubstitutedBlock = []byte("code_substituted_block")
 )

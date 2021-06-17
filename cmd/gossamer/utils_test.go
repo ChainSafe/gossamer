@@ -38,6 +38,8 @@ func newTestContext(description string, flags []string, values []interface{}) (*
 			set.String(flags[i], v, "")
 		case uint:
 			set.Uint(flags[i], v, "")
+		case int64:
+			set.Int64(flags[i], v, "")
 		default:
 			return nil, fmt.Errorf("unexpected cli value type: %T", values[i])
 		}
@@ -66,6 +68,11 @@ func newTestContext(description string, flags []string, values []interface{}) (*
 			}
 		case uint:
 			err := ctx.Set(flags[i], strconv.Itoa(int(values[i].(uint))))
+			if err != nil {
+				return nil, fmt.Errorf("failed to set cli flag: %T", flags[i])
+			}
+		case int64:
+			err := ctx.Set(flags[i], strconv.Itoa(int(values[i].(int64))))
 			if err != nil {
 				return nil, fmt.Errorf("failed to set cli flag: %T", flags[i])
 			}
