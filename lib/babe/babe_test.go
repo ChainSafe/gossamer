@@ -92,7 +92,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	}
 
 	cfg.BlockImportHandler = new(mocks.BlockImportHandler)
-	cfg.BlockImportHandler.(*mocks.BlockImportHandler).On("HandleBlockImport", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).Return(nil)
+	cfg.BlockImportHandler.(*mocks.BlockImportHandler).On("HandleBlockProduced", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).Return(nil)
 
 	if cfg.Keypair == nil {
 		cfg.Keypair, err = sr25519.GenerateKeypair()
