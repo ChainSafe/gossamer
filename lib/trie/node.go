@@ -62,6 +62,8 @@ type node interface {
 	setEncodingAndHash([]byte, []byte)
 	getHash() []byte
 	getGeneration() uint64
+	setGeneration(uint64)
+	copy() node
 }
 
 type (
@@ -86,7 +88,15 @@ type (
 	}
 )
 
-func (b *branch) copy() *branch {
+func (b *branch) setGeneration(generation uint64) {
+	b.generation = generation
+}
+
+func (l *leaf) setGeneration(generation uint64) {
+	l.generation = generation
+}
+
+func (b *branch) copy() node {
 	cpy := &branch{
 		key:        make([]byte, len(b.key)),
 		children:   b.children,
@@ -109,7 +119,7 @@ func (b *branch) copy() *branch {
 	return cpy
 }
 
-func (l *leaf) copy() *leaf {
+func (l *leaf) copy() node {
 	cpy := &leaf{
 		key:        make([]byte, len(l.key)),
 		value:      make([]byte, len(l.value)),
@@ -537,7 +547,7 @@ func encodeExtraPartialKeyLength(pkLen int) ([]byte, error) {
 }
 
 func decodeKey(r io.Reader, keyLen byte) ([]byte, error) {
-	var totalKeyLen int = int(keyLen)
+	var totalKeyLen = int(keyLen)
 
 	if keyLen == 0x3f {
 		// partial key longer than 63, read next bytes for rest of pk len

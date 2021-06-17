@@ -45,7 +45,11 @@ func ImportState(basepath, stateFP, headerFP string, firstSlot uint64) error {
 
 	log.Info("ImportState", "header", header)
 
-	srv := state.NewService(basepath, log.LvlInfo)
+	config := state.Config{
+		Path:     basepath,
+		LogLevel: log.LvlInfo,
+	}
+	srv := state.NewService(config)
 	return srv.Import(header, tr, firstSlot)
 }
 

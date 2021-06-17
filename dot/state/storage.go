@@ -23,6 +23,7 @@ import (
 	"sync"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -51,12 +52,12 @@ type StorageState struct {
 	// change notifiers
 	changedLock  sync.RWMutex
 	observerList []Observer
-
-	syncing bool
+	pruner       pruner.Pruner
+	syncing      bool
 }
 
 // NewStorageState creates a new StorageState backed by the given trie and database located at basePath.
-func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie) (*StorageState, error) {
+func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie, onlinePruner pruner.Config) (*StorageState, error) {
 	if db == nil {
 		return nil, fmt.Errorf("cannot have nil database")
 	}
@@ -68,11 +69,25 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie) 
 	tries := make(map[common.Hash]*trie.Trie)
 	tries[t.MustHash()] = t
 
+	storageTable := chaindb.NewTable(db, storagePrefix)
+
+	var p pruner.Pruner
+	if onlinePruner.Mode == pruner.Full {
+		var err error
+		p, err = pruner.NewFullNode(db, storageTable, onlinePruner.RetainedBlocks, logger)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		p = &pruner.ArchiveNode{}
+	}
+
 	return &StorageState{
 		blockState:   blockState,
 		tries:        tries,
-		db:           chaindb.NewTable(db, storagePrefix),
+		db:           storageTable,
 		observerList: []Observer{},
+		pruner:       p,
 	}, nil
 }
 
@@ -85,17 +100,11 @@ func (s *StorageState) pruneKey(keyHeader *types.Header) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	_, ok := s.tries[keyHeader.StateRoot]
-	if !ok {
-		return
-	}
-
 	delete(s.tries, keyHeader.StateRoot)
-	// TODO: database pruning needs to be refactored since the trie is now stored by nodes
 }
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database
-func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
+func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -108,7 +117,24 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState) error {
 	}
 	s.tries[root] = ts.Trie()
 
-	logger.Debug("cached trie in storage state", "root", root)
+	if _, ok := s.pruner.(*pruner.FullNode); header == nil && ok {
+		return fmt.Errorf("block cannot be empty for Full node pruner")
+	}
+
+	if header != nil {
+		insKeys, err := ts.GetInsertedNodeHashes()
+		if err != nil {
+			return fmt.Errorf("failed to get state trie inserted keys: block %s %w", header.Hash(), err)
+		}
+
+		delKeys := ts.GetDeletedNodeHashes()
+		err = s.pruner.StoreJournalRecord(delKeys, insKeys, header.Hash(), header.Number.Int64())
+		if err != nil {
+			return err
+		}
+	}
+
+	logger.Trace("cached trie in storage state", "root", root)
 
 	if err := s.tries[root].WriteDirty(s.db); err != nil {
 		logger.Warn("failed to write trie to database", "root", root, "error", err)

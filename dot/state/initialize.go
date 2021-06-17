@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -29,8 +31,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
-
-	"github.com/ChainSafe/chaindb"
 )
 
 // Initialise initialises the genesis state of the DB using the given storage trie. The trie should be loaded with the genesis storage state.
@@ -89,7 +89,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 	}
 
 	// create storage state from genesis trie
-	storageState, err := NewStorageState(db, blockState, t)
+	storageState, err := NewStorageState(db, blockState, t, pruner.Config{})
 	if err != nil {
 		return fmt.Errorf("failed to create storage state from trie: %s", err)
 	}
@@ -172,6 +172,10 @@ func (s *Service) storeInitialValues(data *genesis.Data, header *types.Header, t
 	// write genesis data to state database
 	if err := s.Base.StoreGenesisData(data); err != nil {
 		return fmt.Errorf("failed to write genesis data to database: %s", err)
+	}
+
+	if err := s.Base.storePruningData(s.PrunerCfg); err != nil {
+		return fmt.Errorf("failed to write pruning data to database: %s", err)
 	}
 
 	return nil

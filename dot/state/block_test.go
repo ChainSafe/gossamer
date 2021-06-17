@@ -273,8 +273,22 @@ func TestFinalizedHash(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, testGenesisHeader.Hash(), h)
 
-	testhash := common.Hash{1, 2, 3, 4}
+	header := &types.Header{
+		ParentHash: testGenesisHeader.Hash(),
+		Number:     big.NewInt(1),
+		Digest: types.Digest{
+			types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+		},
+	}
+
+	testhash := header.Hash()
 	err = bs.db.Put(headerKey(testhash), []byte{})
+	require.NoError(t, err)
+
+	err = bs.AddBlock(&types.Block{
+		Header: header,
+		Body:   &types.Body{},
+	})
 	require.NoError(t, err)
 
 	err = bs.SetFinalizedHash(testhash, 1, 1)

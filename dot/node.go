@@ -31,6 +31,7 @@ import (
 	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -90,8 +91,20 @@ func InitNode(cfg *Config) error {
 		return fmt.Errorf("failed to create genesis block from trie: %w", err)
 	}
 
+	config := state.Config{
+		Path:     cfg.Global.BasePath,
+		LogLevel: cfg.Global.LogLvl,
+		PrunerCfg: struct {
+			Mode           pruner.Mode
+			RetainedBlocks int64
+		}{
+			Mode:           cfg.Global.Pruning,
+			RetainedBlocks: cfg.Global.RetainBlocks,
+		},
+	}
+
 	// create new state service
-	stateSrvc := state.NewService(cfg.Global.BasePath, cfg.Global.LogLvl)
+	stateSrvc := state.NewService(config)
 
 	// initialise state service with genesis data, block, and trie
 	err = stateSrvc.Initialise(gen, header, t)

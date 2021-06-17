@@ -9,7 +9,7 @@
 // The gossamer library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
+// GNU Lesser General Public License for more details.p
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
@@ -214,7 +214,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	}
 
 	// store updates state trie nodes in database
-	err := s.storageState.StoreTrie(state)
+	err := s.storageState.StoreTrie(state, block.Header)
 	if err != nil {
 		logger.Warn("failed to store state trie for imported block", "block", block.Header.Hash(), "error", err)
 		return err
