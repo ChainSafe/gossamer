@@ -206,7 +206,7 @@ func TestService_ProducesBlocks(t *testing.T) {
 	}()
 
 	time.Sleep(babeService.slotDuration * 2)
-	babeService.blockImportHandler.(*mocks.BlockImportHandler).AssertCalled(t, "HandleBlockImport", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState"))
+	babeService.blockImportHandler.(*mocks.BlockImportHandler).AssertCalled(t, "HandleBlockProduced", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState"))
 }
 
 func TestService_GetAuthorityIndex(t *testing.T) {
