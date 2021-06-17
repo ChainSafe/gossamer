@@ -190,7 +190,6 @@ linters:
     - varcheck
     - misspell
     - ineffassign
-    - gosimple
     - unconvert
     - goconst
     - errcheck
