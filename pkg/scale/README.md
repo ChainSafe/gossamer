@@ -77,10 +77,6 @@ SCALE uses a compact encoding for variable width unsigned integers.
 | `Compact<u64>`      | `uint`                  |
 | `Compact<u128>`     | `*big.Int`              |
 
-### Result
-
-> TODO: To be implemented and documented.
-
 ## Usage
 
 ### Basic Example
@@ -148,6 +144,19 @@ func structExample() {
 	// {Baz:true Bar:999 Foo:[1 2] Ignored:0}
 	fmt.Printf("%+v", unmarshaled)
 }
+```
+
+### Result
+
+A `Result` is custom type analogous to a rust result.  A `Result` needs to be constructed using the `NewResult` constructor.  The two parameters accepted are the expected types that are associated to the `Ok`, and `Err` cases.  
+
+```
+// Rust
+Result<i32, i32> = Ok(10)
+
+// go-scale
+result := scale.NewResult(int32(0), int32(0)
+result.Set(scale.Ok, 10)
 ```
 
 ### Varying Data Type
