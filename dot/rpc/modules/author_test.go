@@ -132,13 +132,10 @@ func TestAuthorModule_SubmitExtrinsic_invalid_input(t *testing.T) {
 	txQueue := state.NewTransactionState()
 	auth := setupAuthModule(t, txQueue)
 
-	fmt.Println("setupAuthModule")
-
 	// create and submit extrinsic
 	ext := Extrinsic{fmt.Sprintf("%x", "1")}
 
 	res := new(ExtrinsicHashResponse)
-	fmt.Println("SubmitExtrinsic")
 
 	err := auth.SubmitExtrinsic(nil, &ext, res)
 	require.EqualError(t, err, "could not byteify non 0x prefixed string")
