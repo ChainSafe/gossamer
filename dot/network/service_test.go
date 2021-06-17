@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/utils"
+	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -77,15 +78,13 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	}
 
 	if cfg.BlockState == nil {
-		cfg.BlockState = newMockBlockState(nil)
+		cfg.BlockState = NewMockBlockState(nil)
 	}
 
 	if cfg.TransactionHandler == nil {
-		cfg.TransactionHandler = newMockTransactionHandler()
-	}
-
-	if cfg.TransactionHandler == nil {
-		cfg.TransactionHandler = newMockTransactionHandler()
+		mocktxhandler := &MockTransactionHandler{}
+		mocktxhandler.On("HandleTransactionMessage", mock.AnythingOfType("*TransactionMessage")).Return(nil)
+		cfg.TransactionHandler = mocktxhandler
 	}
 
 	cfg.ProtocolID = TestProtocolID // default "/gossamer/gssmr/0"
@@ -95,7 +94,7 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	}
 
 	if cfg.Syncer == nil {
-		cfg.Syncer = newMockSyncer()
+		cfg.Syncer = NewMockSyncer()
 	}
 
 	cfg.noPreAllocate = true
@@ -269,13 +268,19 @@ func TestService_Health(t *testing.T) {
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
+	mocksyncer := &MockSyncer{}
+	mocksyncer.On("SetSyncing", mock.AnythingOfType("bool"))
+
 	s := createTestService(t, config)
+	s.syncer = mocksyncer
 
-	require.Equal(t, s.Health().IsSyncing, true)
-	mockSync := s.syncer.(*mockSyncer)
+	mocksyncer.On("IsSynced").Return(false).Once()
+	h := s.Health()
+	require.Equal(t, true, h.IsSyncing)
 
-	mockSync.SetSyncing(false)
-	require.Equal(t, s.Health().IsSyncing, false)
+	mocksyncer.On("IsSynced").Return(true).Once()
+	h = s.Health()
+	require.Equal(t, false, h.IsSyncing)
 }
 
 func TestPersistPeerStore(t *testing.T) {

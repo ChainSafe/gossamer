@@ -18,104 +18,46 @@ package services
 
 import (
 	"testing"
+
+	. "github.com/ChainSafe/gossamer/lib/services/mocks"
+	"github.com/stretchr/testify/require"
 )
-
-// ------------------- Mock Services --------------------
-type MockSrvcA struct {
-	running bool
-}
-
-func (s *MockSrvcA) Start() error {
-	s.running = true
-	return nil
-}
-func (s *MockSrvcA) Stop() error {
-	s.running = false
-	return nil
-}
-
-type MockSrvcB struct {
-	running bool
-}
-
-func (s *MockSrvcB) Start() error {
-	s.running = true
-	return nil
-}
-func (s *MockSrvcB) Stop() error {
-	s.running = false
-	return nil
-}
-
-type FakeService struct{}
-
-func (s *FakeService) Start() error { return nil }
-func (s *FakeService) Stop()        {}
-
-// --------------------------------------------------------
 
 func TestServiceRegistry_RegisterService(t *testing.T) {
 	r := NewServiceRegistry()
 
-	a1 := &MockSrvcA{}
-	a2 := &MockSrvcA{}
+	r.RegisterService(&MockService{})
+	r.RegisterService(&MockService{})
 
-	r.RegisterService(a1)
-	r.RegisterService(a2)
-
-	if len(r.serviceTypes) > 1 {
-		t.Fatalf("should not allow services of the same type to be registered")
-	}
+	require.Len(t, r.services, 1)
 }
 
 func TestServiceRegistry_StartStopAll(t *testing.T) {
 	r := NewServiceRegistry()
 
-	a := &MockSrvcA{}
-	b := &MockSrvcB{}
+	m := new(MockService)
+	m.On("Start").Return(nil)
+	m.On("Stop").Return(nil)
 
-	r.RegisterService(a)
-	r.RegisterService(b)
+	r.RegisterService(m)
 
 	r.StartAll()
-
-	if a.running != true || b.running != true {
-		t.Fatal("failed to start service")
-	}
+	m.AssertCalled(t, "Start")
 
 	r.StopAll()
-
-	if a.running != false || b.running != false {
-		t.Fatal("failed to stop service")
-	}
-
+	m.AssertCalled(t, "Stop")
 }
 
 func TestServiceRegistry_Get_Err(t *testing.T) {
 	r := NewServiceRegistry()
 
-	a := &MockSrvcA{}
-	b := &MockSrvcB{}
+	a := new(MockService)
+	a.On("Start").Return(nil)
+	a.On("Stop").Return(nil)
 
 	r.RegisterService(a)
-	r.RegisterService(b)
+	require.NotNil(t, r.Get(a))
 
-	if r.Get(a) == nil {
-		t.Fatalf("Failed to fetch service: %T", a)
-	}
-	if err := r.Get(a).Start(); err != nil {
-		t.Fatal(err)
-	}
-
-	if r.Get(b) == nil {
-		t.Fatalf("Failed to fetch service: %T", b)
-	}
-	if err := r.Get(b).Start(); err != nil {
-		t.Fatal(err)
-	}
-
-	f := &FakeService{}
-	if s := r.Get(f); s != nil {
-		t.Fatalf("Expected nil. Fetched service: %T", s)
-	}
+	f := struct{}{}
+	require.Nil(t, r.Get(f))
 }

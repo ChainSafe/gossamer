@@ -56,6 +56,12 @@ type StorageState interface {
 	SetSyncing(bool)
 }
 
+// CodeSubstitutedState interface to handle storage of code substitute state
+type CodeSubstitutedState interface {
+	LoadCodeSubstitutedBlockHash() common.Hash
+	StoreCodeSubstitutedBlockHash(hash common.Hash) error
+}
+
 // TransactionState is the interface for transaction queue methods
 type TransactionState interface {
 	RemoveExtrinsic(ext types.Extrinsic)

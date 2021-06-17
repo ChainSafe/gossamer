@@ -296,7 +296,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	nodeSrvcs = append(nodeSrvcs, fg)
 
 	// Syncer
-	syncer, err := createSyncService(cfg, stateSrvc, bp, fg, dh, ver, rt)
+	syncer, err := newSyncService(cfg, stateSrvc, bp, fg, dh, ver, rt)
 	if err != nil {
 		return nil, err
 	}

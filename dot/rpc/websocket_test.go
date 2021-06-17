@@ -18,16 +18,14 @@ package rpc
 import (
 	"flag"
 	"log"
-	"math/big"
 	"net/url"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/core"
-	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/require"
 )
@@ -54,8 +52,8 @@ func TestHTTPServer_ServeHTTP(t *testing.T) {
 		SystemName: "gossamer",
 	}
 	sysAPI := system.NewService(si, nil)
-	bAPI := new(MockBlockAPI)
-	sAPI := new(MockStorageAPI)
+	bAPI := modules.NewMockBlockAPI()
+	sAPI := modules.NewMockStorageAPI()
 	cfg := &HTTPServerConfig{
 		Modules:    []string{"system", "chain"},
 		External:   false,
@@ -95,67 +93,4 @@ func TestHTTPServer_ServeHTTP(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, item.expected, message)
 	}
-}
-
-type MockBlockAPI struct {
-}
-
-func (m *MockBlockAPI) GetHeader(hash common.Hash) (*types.Header, error) {
-	return nil, nil
-}
-func (m *MockBlockAPI) BestBlockHash() common.Hash {
-	return common.Hash{}
-}
-func (m *MockBlockAPI) GetBlockByHash(hash common.Hash) (*types.Block, error) {
-	return nil, nil
-}
-func (m *MockBlockAPI) GetBlockHash(blockNumber *big.Int) (*common.Hash, error) {
-	return nil, nil
-}
-func (m *MockBlockAPI) GetFinalizedHash(uint64, uint64) (common.Hash, error) {
-	return common.Hash{}, nil
-}
-func (m *MockBlockAPI) RegisterImportedChannel(ch chan<- *types.Block) (byte, error) {
-	return 0, nil
-}
-func (m *MockBlockAPI) UnregisterImportedChannel(id byte) {
-}
-func (m *MockBlockAPI) RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error) {
-	return 0, nil
-}
-func (m *MockBlockAPI) UnregisterFinalizedChannel(id byte) {}
-
-func (m *MockBlockAPI) GetJustification(hash common.Hash) ([]byte, error) {
-	return make([]byte, 10), nil
-}
-
-func (m *MockBlockAPI) HasJustification(hash common.Hash) (bool, error) {
-	return true, nil
-}
-
-func (m *MockBlockAPI) SubChain(start, end common.Hash) ([]common.Hash, error) {
-	return make([]common.Hash, 0), nil
-}
-
-type MockStorageAPI struct{}
-
-func (m *MockStorageAPI) GetStorage(_ *common.Hash, key []byte) ([]byte, error) {
-	return nil, nil
-}
-func (m *MockStorageAPI) Entries(_ *common.Hash) (map[string][]byte, error) {
-	return nil, nil
-}
-func (m *MockStorageAPI) GetStorageByBlockHash(_ common.Hash, key []byte) ([]byte, error) {
-	return nil, nil
-}
-func (m *MockStorageAPI) RegisterStorageObserver(observer state.Observer) {
-}
-
-func (m *MockStorageAPI) UnregisterStorageObserver(observer state.Observer) {
-}
-func (m *MockStorageAPI) GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error) {
-	return nil, nil
-}
-func (m *MockStorageAPI) GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error) {
-	return nil, nil
 }
