@@ -125,3 +125,16 @@ func TestLoadStoreEpochLength(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, length, ret)
 }
+
+func TestLoadAndStoreSlotDuration(t *testing.T) {
+	db := NewInMemoryDB(t)
+	base := NewBaseState(db)
+
+	d := uint64(3000)
+	err := base.storeSlotDuration(d)
+	require.NoError(t, err)
+
+	ret, err := base.loadSlotDuration()
+	require.NoError(t, err)
+	require.Equal(t, d, ret)
+}
