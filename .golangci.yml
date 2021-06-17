@@ -187,6 +187,7 @@ linters:
     - govet
     - gofmt
     - goimports
+    - gosimple
     - varcheck
     - misspell
     - ineffassign
@@ -242,6 +243,10 @@ issues:
     - linters:
         - staticcheck
       text: "SA9003:"
+
+    - linters:
+        - gosimple
+      text: "S1025:"
 
     - linters:
         - revive
