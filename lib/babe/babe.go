@@ -132,7 +132,6 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		blockImportHandler: cfg.BlockImportHandler,
 	}
 
-	var err error
 	genCfg, err := babeService.rt.BabeConfiguration()
 	if err != nil {
 		return nil, err

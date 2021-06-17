@@ -214,7 +214,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	}
 
 	// store updates state trie nodes in database
-	err := s.storageState.StoreTrie(state)
+	err := s.storageState.StoreTrie(state, block.Header)
 	if err != nil {
 		logger.Warn("failed to store state trie for imported block", "block", block.Header.Hash(), "error", err)
 		return err
