@@ -32,11 +32,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	log "github.com/ChainSafe/log15"
+
+	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-
-	// importing packagemocks
-	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 )
 
 func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
@@ -57,10 +56,11 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie
 // NewTestService creates a new test core service
 func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg == nil {
-		cfg = &Config{
-			IsBlockProducer: false,
-		}
+		cfg = &Config{}
 	}
+
+	cfg.DigestHandler = new(coremocks.MockDigestHandler)
+	cfg.DigestHandler.(*coremocks.MockDigestHandler).On("HandleDigests", mock.AnythingOfType("*types.Header"))
 
 	if cfg.Keystore == nil {
 		cfg.Keystore = keystore.NewGlobalKeystore()
@@ -71,16 +71,6 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		cfg.Keystore.Acco.Insert(kp)
 	}
 
-	if cfg.NewBlocks == nil {
-		cfg.NewBlocks = make(chan types.Block)
-	}
-
-	if cfg.Verifier == nil {
-		verifier := new(coremocks.MockVerifier)
-		verifier.On("SetOnDisabled", mock.AnythingOfType("uint32"), mock.AnythingOfType("*types.Header")).Return(nil)
-		cfg.Verifier = nil
-	}
-
 	cfg.LogLvl = 3
 
 	var stateSrvc *state.Service
@@ -89,7 +79,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
 
-	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.TransactionState == nil || cfg.EpochState == nil {
+	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.TransactionState == nil || cfg.EpochState == nil || cfg.CodeSubstitutedState == nil {
 		config := state.Config{
 			Path:     testDatadirPath,
 			LogLevel: log.LvlInfo,
@@ -120,6 +110,10 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		cfg.EpochState = stateSrvc.Epoch
 	}
 
+	if cfg.CodeSubstitutedState == nil {
+		cfg.CodeSubstitutedState = stateSrvc.Base
+	}
+
 	if cfg.Runtime == nil {
 		rtCfg := &wasmer.Config{}
 		rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
@@ -140,8 +134,23 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		cfg.Network = createTestNetworkService(t, config)
 	}
 
+	if cfg.CodeSubstitutes == nil {
+		cfg.CodeSubstitutes = make(map[common.Hash]string)
+
+		genesisData, err := cfg.CodeSubstitutedState.(*state.BaseState).LoadGenesisData() //nolint
+		require.NoError(t, err)
+
+		for k, v := range genesisData.CodeSubstitutes {
+			cfg.CodeSubstitutes[common.MustHexToHash(k)] = v
+		}
+	}
+
+	if cfg.CodeSubstitutedState == nil {
+		cfg.CodeSubstitutedState = stateSrvc.Base
+	}
+
 	s, err := NewService(cfg)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	if net, ok := cfg.Network.(*network.Service); ok {
 		net.SetTransactionHandler(s)

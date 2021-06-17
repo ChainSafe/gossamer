@@ -347,9 +347,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (uint, er
 
 	// TODO (ed) since HandleSubmittedExtrinsic has been called we assume the extrinsic is in the tx queue
 	//  should we add a channel to tx queue so we're notified when it's in the queue (See issue #1535)
-	if c.CoreAPI.IsBlockProducer() {
-		c.safeSend(newSubscriptionResponse(AuthorExtrinsicUpdates, esl.subID, "ready"))
-	}
+	c.safeSend(newSubscriptionResponse(AuthorExtrinsicUpdates, esl.subID, "ready"))
 
 	// todo (ed) determine which peer extrinsic has been broadcast to, and set status
 	return esl.subID, err
