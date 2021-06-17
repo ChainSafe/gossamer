@@ -212,7 +212,11 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
-	stateSrvc := state.NewService(cfg.Global.BasePath, log.LvlTrace)
+	config := state.Config{
+		Path:     cfg.Global.BasePath,
+		LogLevel: log.LvlInfo,
+	}
+	stateSrvc := state.NewService(config)
 
 	gen, err := genesis.NewGenesisFromJSONRaw(genPath)
 	require.NoError(t, err)

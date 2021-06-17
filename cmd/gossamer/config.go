@@ -21,10 +21,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ChainSafe/gossamer/chain/dev"
 	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -172,6 +174,14 @@ func createInitConfig(ctx *cli.Context) (*dot.Config, error) {
 	if err != nil {
 		logger.Error("failed to set global node configuration", "error", err)
 		return nil, err
+	}
+
+	if !cfg.Global.Pruning.IsValid() {
+		return nil, fmt.Errorf("--%s must be either %s or %s", PruningFlag.Name, pruner.Full, pruner.Archive)
+	}
+
+	if cfg.Global.RetainBlocks < dev.DefaultRetainBlocks {
+		return nil, fmt.Errorf("--%s cannot be less than %d", RetainBlockNumberFlag.Name, dev.DefaultRetainBlocks)
 	}
 
 	// set log config
@@ -443,6 +453,9 @@ func setDotGlobalConfigFromToml(tomlCfg *ctoml.Config, cfg *dot.GlobalConfig) {
 		}
 
 		cfg.MetricsPort = tomlCfg.Global.MetricsPort
+
+		cfg.RetainBlocks = tomlCfg.Global.RetainBlocks
+		cfg.Pruning = pruner.Mode(tomlCfg.Global.Pruning)
 	}
 }
 
@@ -472,6 +485,8 @@ func setDotGlobalConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) {
 		cfg.MetricsPort = uint32(metricsPort)
 	}
 
+	cfg.RetainBlocks = ctx.Int64(RetainBlockNumberFlag.Name)
+	cfg.Pruning = pruner.Mode(ctx.String(PruningFlag.Name))
 	cfg.NoTelemetry = ctx.Bool("no-telemetry")
 }
 

@@ -128,7 +128,6 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		dev:              cfg.IsDev,
 	}
 
-	var err error
 	genCfg, err := babeService.rt.BabeConfiguration()
 	if err != nil {
 		return nil, err
@@ -315,7 +314,7 @@ func (b *Service) safeSend(msg types.Block) error {
 	defer b.Unlock()
 
 	if b.IsStopped() {
-		return errors.New("Service has been stopped")
+		return errors.New("service has been stopped")
 	}
 
 	b.blockChan <- msg
@@ -505,7 +504,7 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		return err
 	}
 
-	err = b.storageState.StoreTrie(ts)
+	err = b.storageState.StoreTrie(ts, block.Header)
 	if err != nil {
 		logger.Error("failed to store trie in storage state", "error", err)
 	}
