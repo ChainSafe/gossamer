@@ -76,8 +76,6 @@ $ make mock path=$(path to the interface) interface=$(interface name) INMOCKS=1
 
 The command above will generate the mock inside the folder `$(path)/mocks`, and the mocks will be in the same package that your interface is.
 
-The above command will generate mocks for all the interfaces inside the project! This command does not affect unchanged interfaces. 
-
 **8. Lint your changes.**
 
 Before opening a pull request be sure to run the linter
