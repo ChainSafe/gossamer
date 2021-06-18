@@ -54,7 +54,6 @@ type Service struct {
 
 	// Current runtime
 	rt runtime.Instance
-
 	// Epoch configuration data
 	slotDuration time.Duration
 	epochData    *epochData
@@ -503,7 +502,7 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		return err
 	}
 
-	return nil
+	return b.rt.HandleRuntimeChanges(ts)
 }
 
 func getCurrentSlot(slotDuration time.Duration) uint64 {

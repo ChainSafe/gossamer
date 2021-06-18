@@ -19,12 +19,14 @@ package runtime
 import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
 // Instance is the interface a v0.8 runtime instance must implement
 type Instance interface {
+	HandleRuntimeChanges(newState *rtstorage.TrieState) error
 	UpdateRuntimeCode([]byte) error
 	Stop()
 	NodeStorage() NodeStorage

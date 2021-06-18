@@ -22,7 +22,9 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	gssmrruntime "github.com/ChainSafe/gossamer/lib/runtime"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/bytecodealliance/wasmtime-go"
@@ -49,9 +51,15 @@ type Config struct {
 
 // Instance represents a v0.8 runtime go-wasmtime instance
 type Instance struct {
-	vm  *wasmtime.Instance
-	mu  sync.Mutex
-	mem *wasmtime.Memory
+	vm       *wasmtime.Instance
+	mu       sync.Mutex
+	mem      *wasmtime.Memory
+	codeHash common.Hash
+}
+
+// HandleRuntimeChanges ...
+func (in *Instance) HandleRuntimeChanges(newState *rtstorage.TrieState) error {
+	return nil
 }
 
 // NewInstanceFromFile instantiates a runtime from a .wasm file
@@ -114,8 +122,9 @@ func newInstanceFromModule(module *wasmtime.Module, engine *wasmtime.Engine, cfg
 	}
 
 	return &Instance{
-		vm:  instance,
-		mem: mem,
+		vm:       instance,
+		mem:      mem,
+		codeHash: cfg.CodeHash,
 	}, nil
 }
 

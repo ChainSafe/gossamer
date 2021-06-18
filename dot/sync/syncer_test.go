@@ -209,8 +209,39 @@ func TestSyncer_HandleRuntimeChanges(t *testing.T) {
 	require.NoError(t, err)
 
 	ts.Set(common.CodeKey, testRuntime)
-	err = syncer.handleRuntimeChanges(ts)
+	err = syncer.runtime.HandleRuntimeChanges(ts)
 	require.NoError(t, err)
+}
+
+func TestSyncer_UpdateNodeRuntimeVersion(t *testing.T) {
+	const (
+		currSpecVersion           = uint32(260)
+		updatedSpecVersion        = uint32(262)
+		updateNodeRuntimeWasmPath = "../../tests/polkadotjs_test/node_runtime_2.compact.wasm"
+	)
+
+	syncer := NewTestSyncer(t)
+
+	_, err := runtime.GetRuntimeBlob(runtime.NODE_RUNTIME, runtime.NODE_RUNTIME_URL)
+	require.NoError(t, err)
+
+	testRuntime, err := ioutil.ReadFile(updateNodeRuntimeWasmPath)
+	require.NoError(t, err)
+
+	v, err := syncer.runtime.Version()
+	require.NoError(t, err)
+	require.Equal(t, v.SpecVersion(), currSpecVersion)
+
+	ts, err := syncer.storageState.TrieState(nil)
+	require.NoError(t, err)
+
+	ts.Set(common.CodeKey, testRuntime)
+	err = syncer.runtime.HandleRuntimeChanges(ts)
+	require.NoError(t, err)
+
+	v, err = syncer.runtime.Version()
+	require.NoError(t, err)
+	require.Equal(t, v.SpecVersion(), updatedSpecVersion)
 }
 
 func TestSyncer_HandleJustification(t *testing.T) {

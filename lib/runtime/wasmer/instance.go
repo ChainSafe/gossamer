@@ -17,6 +17,7 @@
 package wasmer
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -25,6 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
 	log "github.com/ChainSafe/log15"
@@ -50,11 +52,12 @@ type Config struct {
 
 // Instance represents a v0.8 runtime go-wasmer instance
 type Instance struct {
-	vm      wasm.Instance
-	ctx     *runtime.Context
-	mutex   sync.Mutex
-	version runtime.Version
-	imports func() (*wasm.Imports, error)
+	vm       wasm.Instance
+	ctx      *runtime.Context
+	mutex    sync.Mutex
+	version  runtime.Version
+	imports  func() (*wasm.Imports, error)
+	codeHash common.Hash // cached hash of runtime code
 }
 
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data
@@ -159,9 +162,10 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	instance.SetContextData(runtimeCtx)
 
 	inst := &Instance{
-		vm:      instance,
-		ctx:     runtimeCtx,
-		imports: cfg.Imports,
+		vm:       instance,
+		ctx:      runtimeCtx,
+		imports:  cfg.Imports,
+		codeHash: cfg.CodeHash,
 	}
 
 	inst.version, _ = inst.Version()
@@ -304,4 +308,30 @@ func int64ToPointerAndSize(in int64) (ptr, length int32) {
 // pointerAndSizeToInt64 converts int32 pointer and size to a int64
 func pointerAndSizeToInt64(ptr, size int32) int64 {
 	return int64(ptr) | (int64(size) << 32)
+}
+
+// HandleRuntimeChanges handles the change in runtime
+func (in *Instance) HandleRuntimeChanges(newState *rtstorage.TrieState) error {
+	currCodeHash, err := newState.LoadCodeHash()
+	if err != nil {
+		return err
+	}
+
+	if bytes.Equal(in.codeHash[:], currCodeHash[:]) {
+		return err
+	}
+
+	code := newState.LoadCode()
+	if len(code) == 0 {
+		return errors.New("service has been stopped")
+	}
+
+	err = in.UpdateRuntimeCode(code)
+	if err != nil {
+		logger.Crit("failed to update runtime code", "error", err)
+		return err
+	}
+
+	in.codeHash = currCodeHash
+	return nil
 }

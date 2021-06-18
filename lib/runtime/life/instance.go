@@ -24,6 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	log "github.com/ChainSafe/log15"
 	"github.com/perlin-network/life/exec"
 )
@@ -49,6 +50,11 @@ type Instance struct {
 	vm      *exec.VirtualMachine
 	mu      sync.Mutex
 	version runtime.Version
+}
+
+// HandleRuntimeChanges ...
+func (in *Instance) HandleRuntimeChanges(newState *rtstorage.TrieState) error {
+	return nil
 }
 
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data
