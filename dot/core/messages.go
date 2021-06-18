@@ -17,8 +17,6 @@
 package core
 
 import (
-	"reflect"
-
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -31,14 +29,15 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (boo
 
 	// get transactions from message extrinsics
 	txs := msg.Extrinsics
-	var toRemove []types.Extrinsic
+	var toPropagate []types.Extrinsic
 	for _, tx := range txs {
 		// validate each transaction
 		externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, tx...))
 		val, err := s.rt.ValidateTransaction(externalExt)
 		if err != nil {
 			logger.Error("failed to validate transaction", "err", err)
-			return false, err
+			val.Propagate = false
+			continue
 		}
 
 		// create new valid transaction
@@ -48,27 +47,13 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (boo
 		hash := s.transactionState.AddToPool(vtx)
 		logger.Trace("Added transaction to queue", "hash", hash)
 
-		// find tx(s) that should not propagate
-		if !val.Propagate {
-			toRemove = append(toRemove, tx)
+		// find tx(s) that should propagate
+		if val.Propagate {
+			toPropagate = append(toPropagate, tx)
 		}
 	}
 
-	// remove tx(s) that should not propagate
-	for _, v := range toRemove {
-		msg.Extrinsics = findAndDelete(msg.Extrinsics, v)
-	}
+	msg.Extrinsics = toPropagate
 
 	return len(msg.Extrinsics) > 0, nil
-}
-
-func findAndDelete(s []types.Extrinsic, item types.Extrinsic) []types.Extrinsic {
-	index := 0
-	for _, i := range s {
-		if !reflect.DeepEqual(i, item) {
-			s[index] = i
-			index++
-		}
-	}
-	return s[:index]
 }
