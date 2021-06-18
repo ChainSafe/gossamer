@@ -39,6 +39,11 @@ var testHeader = &types.Header{
 	},
 }
 
+var testBlock = &types.Block{
+	Header: testHeader,
+	Body:   &types.Body{},
+}
+
 var testHash = testHeader.Hash()
 
 func buildTestJustification(t *testing.T, qty int, round, setID uint64, kr *keystore.Ed25519Keyring, subround subround) []*SignedPrecommit {
@@ -245,7 +250,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	fm := gs.newCommitMessage(gs.head, round)
 	fm.Vote = NewVote(testHash, uint32(round))
 
-	err := st.Block.SetHeader(testHeader)
+	err := st.Block.AddBlock(testBlock)
 	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block)
@@ -334,7 +339,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 		number: 1,
 	}
 
-	err := st.Block.SetHeader(testHeader)
+	err := st.Block.AddBlock(testBlock)
 	require.NoError(t, err)
 
 	err = gs.blockState.SetFinalizedHash(testHeader.Hash(), round, setID)
