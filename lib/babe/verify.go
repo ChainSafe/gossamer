@@ -166,8 +166,6 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 			if err != nil {
 				return fmt.Errorf("failed to set current epoch after receiving block 1: %w", err)
 			}
-
-			fmt.Println("set firstSlot")
 		}
 	}
 

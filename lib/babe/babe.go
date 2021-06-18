@@ -138,7 +138,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		return nil, err
 	}
 
-	err = babeService.setEpochData(cfg)
+	err = babeService.setupParameters(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +158,8 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 	return babeService, nil
 }
 
-func (b *Service) setEpochData(cfg *ServiceConfig) (err error) {
+func (b *Service) setupParameters(cfg *ServiceConfig) error {
+	var err error
 	b.epochData = &epochData{}
 
 	epochData, err := b.epochState.GetLatestEpochData()
@@ -166,14 +167,16 @@ func (b *Service) setEpochData(cfg *ServiceConfig) (err error) {
 		return err
 	}
 
+	fmt.Println(epochData)
+	b.epochData.randomness = epochData.Randomness
+
 	configData, err := b.epochState.GetLatestConfigData()
 	if err != nil {
 		return err
 	}
 
 	// if slot duration is set via the config file, overwrite the runtime value
-	// TODO: remove this, needs to be set via runtime
-	if cfg.SlotDuration > 0 && cfg.IsDev {
+	if cfg.SlotDuration > 0 && cfg.IsDev { // TODO: remove this, needs to be set via runtime
 		b.slotDuration, err = time.ParseDuration(fmt.Sprintf("%dms", cfg.SlotDuration))
 	} else if cfg.SlotDuration > 0 && !cfg.IsDev {
 		err = errors.New("slot duration modified in config for non-dev chain")
@@ -184,29 +187,7 @@ func (b *Service) setEpochData(cfg *ServiceConfig) (err error) {
 		return err
 	}
 
-	// TODO: remove this, needs to be set via runtime
-	if cfg.AuthData != nil && cfg.IsDev {
-		b.epochData.authorities = cfg.AuthData
-	} else if cfg.AuthData != nil && !cfg.IsDev {
-		return errors.New("authority data modified in config for non-dev chain")
-	} else {
-		b.epochData.authorities = epochData.Authorities
-	}
-
-	// TODO: remove this, needs to be set via runtime
-	if cfg.ThresholdDenominator != 0 && cfg.IsDev {
-		b.epochData.threshold, err = CalculateThreshold(cfg.ThresholdNumerator, cfg.ThresholdDenominator, len(b.epochData.authorities))
-	} else if cfg.ThresholdDenominator != 0 && !cfg.IsDev {
-		err = errors.New("threshold modified in config for non-dev chain")
-	} else {
-		b.epochData.threshold, err = CalculateThreshold(configData.C1, configData.C2, len(b.epochData.authorities))
-	}
-	if err != nil {
-		return err
-	}
-
-	// TODO: remove this, needs to be set via runtime
-	if cfg.EpochLength != 0 && cfg.IsDev {
+	if cfg.EpochLength != 0 && cfg.IsDev { // TODO: remove this, needs to be set via runtime
 		b.epochLength = cfg.EpochLength
 	} else if cfg.EpochLength > 0 && !cfg.IsDev {
 		err = errors.New("epoch length modified in config for non-dev chain")
@@ -217,12 +198,30 @@ func (b *Service) setEpochData(cfg *ServiceConfig) (err error) {
 		return err
 	}
 
+	if cfg.AuthData != nil && cfg.IsDev { // TODO: remove this, needs to be set via runtime
+		b.epochData.authorities = cfg.AuthData
+	} else if cfg.AuthData != nil && !cfg.IsDev {
+		return errors.New("authority data modified in config for non-dev chain")
+	} else {
+		b.epochData.authorities = epochData.Authorities
+	}
+
+	if cfg.ThresholdDenominator != 0 && cfg.IsDev { // TODO: remove this, needs to be set via runtime
+		b.epochData.threshold, err = CalculateThreshold(cfg.ThresholdNumerator, cfg.ThresholdDenominator, len(b.epochData.authorities))
+	} else if cfg.ThresholdDenominator != 0 && !cfg.IsDev {
+		err = errors.New("threshold modified in config for non-dev chain")
+	} else {
+		b.epochData.threshold, err = CalculateThreshold(configData.C1, configData.C2, len(b.epochData.authorities))
+	}
+	if err != nil {
+		return err
+	}
+
 	if !cfg.Authority {
-		return
+		return nil
 	}
 
 	b.epochData.authorityIndex, err = b.getAuthorityIndex(b.epochData.authorities)
-	b.epochData.randomness = epochData.Randomness
 	return err
 }
 
