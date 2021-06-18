@@ -276,21 +276,23 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	}
 
 	cfg := &core.Config{
-		Runtime:          rt,
-		Keystore:         ks,
-		TransactionState: srvc.Transaction,
-		IsBlockProducer:  false,
-		BlockState:       srvc.Block,
-		StorageState:     srvc.Storage,
-		EpochState:       srvc.Epoch,
-		Network:          &mockNetwork{},
+		Runtime:              rt,
+		Keystore:             ks,
+		TransactionState:     srvc.Transaction,
+		BlockState:           srvc.Block,
+		StorageState:         srvc.Storage,
+		EpochState:           srvc.Epoch,
+		Network:              &mockNetwork{},
+		CodeSubstitutedState: srvc.Base,
 	}
 
 	return core.NewTestService(t, cfg)
 }
 
 func setupAuthModule(t *testing.T, txq *state.TransactionState) *AuthorModule {
+	fmt.Println("calling setupAuthModule")
 	cs := newCoreService(t, nil)
+	fmt.Println("called newCoreService")
 	rt := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
 	t.Cleanup(func() {
 		rt.Stop()

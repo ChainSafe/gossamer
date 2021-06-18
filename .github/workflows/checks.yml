@@ -13,9 +13,10 @@ jobs:
         run: diff -u <(echo -n) <(gofmt -d -s .)
 
       - name: golangci-lint
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.41.0
-          $(go env GOPATH)/bin/golangci-lint run
+        uses: golangci/golangci-lint-action@v2
+        with:          
+          version: 'latest'
+          args: -v
 
   vet-check:
     runs-on: ubuntu-latest
