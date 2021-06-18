@@ -104,6 +104,9 @@ func TestNewCatchUpResponse(t *testing.T) {
 
 	testHeader := &types.Header{
 		Number: big.NewInt(1),
+		Digest: types.Digest{
+			types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+		},
 	}
 
 	v := &Vote{

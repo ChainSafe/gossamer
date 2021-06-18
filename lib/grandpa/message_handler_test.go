@@ -34,6 +34,9 @@ import (
 var testHeader = &types.Header{
 	ParentHash: testGenesisHeader.Hash(),
 	Number:     big.NewInt(1),
+	Digest: types.Digest{
+		types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+	},
 }
 
 var testHash = testHeader.Hash()
@@ -198,6 +201,9 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 		Header: &types.Header{
 			Number:     big.NewInt(1),
 			ParentHash: st.Block.GenesisHash(),
+			Digest: types.Digest{
+				types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+			},
 		},
 		Body: &types.Body{0},
 	}
