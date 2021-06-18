@@ -65,10 +65,16 @@ $ go test <file_you_are_working_on>
 Sometimes you may need to create mocks for interfaces, in that case you will just execute:
 
 ```
-$ make mock
+$ make mock path=$(path to the interface) interface=$(interface name)
 ```
 
-The above command will generate mocks for all the interfaces inside the project! This command does not affect unchanged interfaces. 
+The command above will generate a file with prefix `mock_` inside the interface folder, if you want to generate the same mock but inside the `mocks` folder, you can execute:
+
+```
+$ make mock path=$(path to the interface) interface=$(interface name) INMOCKS=1
+```
+
+The command above will generate the mock inside the folder `$(path)/mocks`, and the mocks will be in the same package that your interface is.
 
 **8. Lint your changes.**
 
