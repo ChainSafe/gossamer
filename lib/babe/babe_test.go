@@ -216,31 +216,32 @@ func newTestService_setupParameters(t *testing.T) (*Service, *state.EpochState, 
 }
 
 func TestService_setupParameters_genesis(t *testing.T) {
-	s, _, genesisBABEConfig := newTestService_setupParameters(t)
+	s, _, genCfg := newTestService_setupParameters(t)
 
 	cfg := &ServiceConfig{}
 	err := s.setupParameters(cfg)
 	require.NoError(t, err)
-	slotDuration, err := time.ParseDuration(fmt.Sprintf("%dms", genesisBABEConfig.SlotDuration))
+	slotDuration, err := time.ParseDuration(fmt.Sprintf("%dms", genCfg.SlotDuration))
 	require.NoError(t, err)
-	auths, err := types.BABEAuthorityRawToAuthority(genesisBABEConfig.GenesisAuthorities)
+	auths, err := types.BABEAuthorityRawToAuthority(genCfg.GenesisAuthorities)
 	require.NoError(t, err)
-	threshold, err := CalculateThreshold(genesisBABEConfig.C1, genesisBABEConfig.C2, len(auths))
+	threshold, err := CalculateThreshold(genCfg.C1, genCfg.C2, len(auths))
+	require.NoError(t, err)
 
 	require.Equal(t, slotDuration, s.slotDuration)
-	require.Equal(t, uint64(genesisBABEConfig.EpochLength), s.epochLength)
+	require.Equal(t, genCfg.EpochLength, s.epochLength)
 	require.Equal(t, auths, s.epochData.authorities)
 	require.Equal(t, threshold, s.epochData.threshold)
-	require.Equal(t, genesisBABEConfig.Randomness, s.epochData.randomness)
+	require.Equal(t, genCfg.Randomness, s.epochData.randomness)
 }
 
 func TestService_setupParameters_epochData(t *testing.T) {
-	s, epochState, genesisBABEConfig := newTestService_setupParameters(t)
+	s, epochState, genCfg := newTestService_setupParameters(t)
 
 	err := epochState.SetCurrentEpoch(1)
 	require.NoError(t, err)
 
-	auths, err := types.BABEAuthorityRawToAuthority(genesisBABEConfig.GenesisAuthorities)
+	auths, err := types.BABEAuthorityRawToAuthority(genCfg.GenesisAuthorities)
 	require.NoError(t, err)
 
 	data := &types.EpochData{
@@ -253,24 +254,25 @@ func TestService_setupParameters_epochData(t *testing.T) {
 	cfg := &ServiceConfig{}
 	err = s.setupParameters(cfg)
 	require.NoError(t, err)
-	slotDuration, err := time.ParseDuration(fmt.Sprintf("%dms", genesisBABEConfig.SlotDuration))
+	slotDuration, err := time.ParseDuration(fmt.Sprintf("%dms", genCfg.SlotDuration))
 	require.NoError(t, err)
-	threshold, err := CalculateThreshold(genesisBABEConfig.C1, genesisBABEConfig.C2, len(data.Authorities))
+	threshold, err := CalculateThreshold(genCfg.C1, genCfg.C2, len(data.Authorities))
+	require.NoError(t, err)
 
 	require.Equal(t, slotDuration, s.slotDuration)
-	require.Equal(t, uint64(genesisBABEConfig.EpochLength), s.epochLength)
+	require.Equal(t, genCfg.EpochLength, s.epochLength)
 	require.Equal(t, data.Authorities, s.epochData.authorities)
 	require.Equal(t, data.Randomness, s.epochData.randomness)
 	require.Equal(t, threshold, s.epochData.threshold)
 }
 
 func TestService_setupParameters_configData(t *testing.T) {
-	s, epochState, genesisBABEConfig := newTestService_setupParameters(t)
+	s, epochState, genCfg := newTestService_setupParameters(t)
 
 	err := epochState.SetCurrentEpoch(7)
 	require.NoError(t, err)
 
-	auths, err := types.BABEAuthorityRawToAuthority(genesisBABEConfig.GenesisAuthorities)
+	auths, err := types.BABEAuthorityRawToAuthority(genCfg.GenesisAuthorities)
 	require.NoError(t, err)
 
 	data := &types.EpochData{
@@ -290,12 +292,13 @@ func TestService_setupParameters_configData(t *testing.T) {
 	cfg := &ServiceConfig{}
 	err = s.setupParameters(cfg)
 	require.NoError(t, err)
-	slotDuration, err := time.ParseDuration(fmt.Sprintf("%dms", genesisBABEConfig.SlotDuration))
+	slotDuration, err := time.ParseDuration(fmt.Sprintf("%dms", genCfg.SlotDuration))
 	require.NoError(t, err)
 	threshold, err := CalculateThreshold(cfgData.C1, cfgData.C2, len(data.Authorities))
+	require.NoError(t, err)
 
 	require.Equal(t, slotDuration, s.slotDuration)
-	require.Equal(t, uint64(genesisBABEConfig.EpochLength), s.epochLength)
+	require.Equal(t, genCfg.EpochLength, s.epochLength)
 	require.Equal(t, data.Authorities, s.epochData.authorities)
 	require.Equal(t, data.Randomness, s.epochData.randomness)
 	require.Equal(t, threshold, s.epochData.threshold)
