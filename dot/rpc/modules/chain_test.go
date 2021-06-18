@@ -267,6 +267,9 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 
 	header := &types.Header{
 		Number: big.NewInt(1),
+		Digest: types.Digest{
+			types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+		},
 	}
 	err = state.Block.SetHeader(header)
 	require.NoError(t, err)
@@ -358,8 +361,10 @@ func loadTestBlocks(gh common.Hash, bs *state.BlockState) error {
 
 	// Create header & blockData for block 1
 	header1 := &types.Header{
-		Number:     big.NewInt(1),
-		Digest:     types.Digest{},
+		Number: big.NewInt(1),
+		Digest: types.Digest{
+			types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+		},
 		ParentHash: blockHash0,
 		StateRoot:  trie.EmptyHash,
 	}
