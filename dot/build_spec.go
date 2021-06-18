@@ -107,7 +107,11 @@ func BuildFromDB(path string) (*BuildSpec, error) {
 	tmpGen.Genesis.Raw = make(map[string]map[string]string)
 	tmpGen.Genesis.Runtime = make(map[string]map[string]interface{})
 
-	stateSrvc := state.NewService(path, log.LvlCrit)
+	config := state.Config{
+		Path:     path,
+		LogLevel: log.LvlInfo,
+	}
+	stateSrvc := state.NewService(config)
 
 	// start state service (initialise state database)
 	err := stateSrvc.Start()

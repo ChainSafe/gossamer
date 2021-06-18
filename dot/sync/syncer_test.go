@@ -18,7 +18,6 @@ package sync
 
 import (
 	"errors"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"testing"
@@ -27,7 +26,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -213,59 +211,6 @@ func TestSyncer_ExecuteBlock(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestSyncer_HandleRuntimeChanges(t *testing.T) {
-	syncer := NewTestSyncer(t, false)
-	codeHashBefore := syncer.codeHash
-
-	testRuntime, err := ioutil.ReadFile(runtime.POLKADOT_RUNTIME_FP)
-	require.NoError(t, err)
-
-	ts, err := syncer.storageState.TrieState(nil)
-	require.NoError(t, err)
-
-	ts.Set(common.CodeKey, testRuntime)
-	err = syncer.handleRuntimeChanges(ts)
-	require.NoError(t, err)
-	codeHashAfter := syncer.codeHash
-	require.NotEqualf(t, codeHashBefore, codeHashAfter, "expected different code hash after runtime update")
-}
-
-func TestSyncer_HandleCodeSubstitutes(t *testing.T) {
-	syncer := NewTestSyncer(t, true)
-	nonSubBlockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e28")
-	err := syncer.handleCodeSubstitution(nonSubBlockHash)
-	require.NoError(t, err)
-	codSub := syncer.codeSubstitutedState.LoadCodeSubstitutedBlockHash()
-	require.Equal(t, common.Hash{}, codSub)
-
-	subBlockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29") // hash for known test code substitution
-	err = syncer.handleCodeSubstitution(subBlockHash)
-	require.NoError(t, err)
-	codSub = syncer.codeSubstitutedState.LoadCodeSubstitutedBlockHash()
-	require.Equal(t, subBlockHash, codSub)
-}
-
-func TestSyncer_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
-	syncer := NewTestSyncer(t, true)
-	codeHashBefore := syncer.codeHash
-	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29") // hash for known test code substitution
-
-	err := syncer.handleCodeSubstitution(blockHash)
-	require.NoError(t, err)
-	require.Equal(t, codeHashBefore, syncer.codeHash) // codeHash should remain unchanged after code substitute
-
-	testRuntime, err := ioutil.ReadFile(runtime.POLKADOT_RUNTIME_FP)
-	require.NoError(t, err)
-
-	ts, err := syncer.storageState.TrieState(nil)
-	require.NoError(t, err)
-
-	ts.Set(common.CodeKey, testRuntime)
-	err = syncer.handleRuntimeChanges(ts)
-	require.NoError(t, err)
-	require.NotEqualf(t, codeHashBefore, syncer.codeHash, "expected different code hash after runtime update") // codeHash should change after runtime change
-}
-
 func TestSyncer_HandleJustification(t *testing.T) {
 	syncer := NewTestSyncer(t, false)
 
@@ -274,6 +219,9 @@ func TestSyncer_HandleJustification(t *testing.T) {
 	}
 
 	just := []byte("testjustification")
+
+	err := syncer.blockState.SetHeader(header)
+	require.NoError(t, err)
 
 	syncer.handleJustification(header, just)
 

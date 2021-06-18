@@ -274,6 +274,9 @@ func TestFinalizedHash(t *testing.T) {
 	require.Equal(t, testGenesisHeader.Hash(), h)
 
 	testhash := common.Hash{1, 2, 3, 4}
+	err = bs.db.Put(headerKey(testhash), []byte{})
+	require.NoError(t, err)
+
 	err = bs.SetFinalizedHash(testhash, 1, 1)
 	require.NoError(t, err)
 

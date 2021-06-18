@@ -56,23 +56,18 @@ func NewMockVerifier() *syncmocks.MockVerifier {
 	return m
 }
 
-// NewMockBlockProducer create and return sync BlockProducer interface mock
-func NewMockBlockProducer() *syncmocks.MockBlockProducer {
-	m := new(syncmocks.MockBlockProducer)
-	m.On("Pause").Return(nil)
-	m.On("Resume").Return(nil)
-	m.On("SetRuntime", mock.AnythingOfType("runtime.Instance"))
-
-	return m
-}
-
 // NewTestSyncer ...
 func NewTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 	wasmer.DefaultTestLogLvl = 3
 
 	cfg := &Config{}
 	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
-	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo)
+
+	scfg := state.Config{
+		Path:     testDatadirPath,
+		LogLevel: log.LvlInfo,
+	}
+	stateSrvc := state.NewService(scfg)
 	stateSrvc.UseMemDB()
 
 	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t, usePolkadotGenesis)
@@ -90,9 +85,8 @@ func NewTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 		cfg.StorageState = stateSrvc.Storage
 	}
 
-	if cfg.BlockProducer == nil {
-		cfg.BlockProducer = NewMockBlockProducer()
-	}
+	cfg.BlockImportHandler = new(syncmocks.MockBlockImportHandler)
+	cfg.BlockImportHandler.(*syncmocks.MockBlockImportHandler).On("HandleBlockImport", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).Return(nil)
 
 	if cfg.Runtime == nil {
 		// set state to genesis state
@@ -122,21 +116,6 @@ func NewTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 
 	if cfg.FinalityGadget == nil {
 		cfg.FinalityGadget = NewMockFinalityGadget()
-	}
-
-	if cfg.CodeSubstitutes == nil {
-		cfg.CodeSubstitutes = make(map[common.Hash]string)
-
-		genesisData, err := stateSrvc.Base.LoadGenesisData() // nolint
-		require.NoError(t, err)
-
-		for k, v := range genesisData.CodeSubstitutes {
-			cfg.CodeSubstitutes[common.MustHexToHash(k)] = v
-		}
-	}
-
-	if cfg.CodeSubstitutedState == nil {
-		cfg.CodeSubstitutedState = stateSrvc.Base
 	}
 
 	syncer, err := NewService(cfg)
