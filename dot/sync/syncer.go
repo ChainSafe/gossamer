@@ -36,8 +36,6 @@ var logger = log.New("pkg", "sync")
 
 // Service deals with chain syncing by sending block request messages and watching for responses.
 type Service struct {
-	//codeHash common.Hash // cached hash of runtime code
-
 	// State interfaces
 	blockState         BlockState // retrieve our current head of chain from BlockState
 	storageState       StorageState

@@ -357,12 +357,6 @@ func (b *Service) initiate() {
 }
 
 func (b *Service) invokeBlockAuthoring() error {
-	// epoch, err := b.epochState.GetEpochFromTime(time.Now())
-	// if err != nil {
-	// 	logger.Error("failed to get epoch from current time", "error", err)
-	// 	return err
-	// }
-
 	epoch, err := b.epochState.GetCurrentEpoch()
 	if err != nil {
 		logger.Error("failed to get current epoch", "error", err)
