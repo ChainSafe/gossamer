@@ -205,14 +205,14 @@ func newTestService_setupParameters(t *testing.T) (*Service, *state.EpochState, 
 	rt, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg) //nolint
 	require.NoError(t, err)
 
-	genesisBABEConfig, err := rt.BabeConfiguration()
+	genCfg, err := rt.BabeConfiguration()
 	require.NoError(t, err)
 
 	s := &Service{
 		epochState: dbSrv.Epoch,
 	}
 
-	return s, dbSrv.Epoch, genesisBABEConfig
+	return s, dbSrv.Epoch, genCfg
 }
 
 func TestService_setupParameters_genesis(t *testing.T) {
