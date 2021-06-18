@@ -27,9 +27,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+
 	log "github.com/ChainSafe/log15"
 )
 
@@ -37,14 +36,12 @@ var logger = log.New("pkg", "sync")
 
 // Service deals with chain syncing by sending block request messages and watching for responses.
 type Service struct {
-	codeHash common.Hash // cached hash of runtime code
-
 	// State interfaces
-	blockState       BlockState // retrieve our current head of chain from BlockState
-	storageState     StorageState
-	transactionState TransactionState
-	blockProducer    BlockProducer
-	finalityGadget   FinalityGadget
+	blockState         BlockState // retrieve our current head of chain from BlockState
+	storageState       StorageState
+	transactionState   TransactionState
+	finalityGadget     FinalityGadget
+	blockImportHandler BlockImportHandler
 
 	// Synchronisation variables
 	synced           bool
@@ -53,75 +50,56 @@ type Service struct {
 
 	// BABE verification
 	verifier Verifier
-
-	// Consensus digest handling
-	digestHandler DigestHandler
-
-	// map of code substitutions keyed by block hash
-	codeSubstitute       map[common.Hash]string
-	codeSubstitutedState CodeSubstitutedState
 }
 
 // Config is the configuration for the sync Service.
 type Config struct {
-	LogLvl               log.Lvl
-	BlockState           BlockState
-	StorageState         StorageState
-	BlockProducer        BlockProducer
-	FinalityGadget       FinalityGadget
-	TransactionState     TransactionState
-	Runtime              runtime.Instance
-	Verifier             Verifier
-	DigestHandler        DigestHandler
-	CodeSubstitutes      map[common.Hash]string
-	CodeSubstitutedState CodeSubstitutedState
+	LogLvl             log.Lvl
+	BlockState         BlockState
+	StorageState       StorageState
+	FinalityGadget     FinalityGadget
+	TransactionState   TransactionState
+	BlockImportHandler BlockImportHandler
+	Runtime            runtime.Instance
+	Verifier           Verifier
 }
 
 // NewService returns a new *sync.Service
 func NewService(cfg *Config) (*Service, error) {
 	if cfg.BlockState == nil {
-		return nil, ErrNilBlockState
+		return nil, errNilBlockState
 	}
 
 	if cfg.StorageState == nil {
-		return nil, ErrNilStorageState
+		return nil, errNilStorageState
 	}
 
 	if cfg.Verifier == nil {
-		return nil, ErrNilVerifier
+		return nil, errNilVerifier
 	}
 
 	if cfg.Runtime == nil {
-		return nil, ErrNilRuntime
+		return nil, errNilRuntime
 	}
 
-	if cfg.BlockProducer == nil {
-		cfg.BlockProducer = NewMockBlockProducer()
+	if cfg.BlockImportHandler == nil {
+		return nil, errNilBlockImportHandler
 	}
 
 	handler := log.StreamHandler(os.Stdout, log.TerminalFormat())
 	handler = log.CallerFileHandler(handler)
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, handler))
 
-	codeHash, err := cfg.StorageState.LoadCodeHash(nil)
-	if err != nil {
-		return nil, err
-	}
-
 	return &Service{
-		codeHash:             codeHash,
-		blockState:           cfg.BlockState,
-		storageState:         cfg.StorageState,
-		blockProducer:        cfg.BlockProducer,
-		finalityGadget:       cfg.FinalityGadget,
-		synced:               true,
-		highestSeenBlock:     big.NewInt(0),
-		transactionState:     cfg.TransactionState,
-		runtime:              cfg.Runtime,
-		verifier:             cfg.Verifier,
-		digestHandler:        cfg.DigestHandler,
-		codeSubstitute:       cfg.CodeSubstitutes,
-		codeSubstitutedState: cfg.CodeSubstitutedState,
+		blockState:         cfg.BlockState,
+		storageState:       cfg.StorageState,
+		finalityGadget:     cfg.FinalityGadget,
+		blockImportHandler: cfg.BlockImportHandler,
+		synced:             true,
+		highestSeenBlock:   big.NewInt(0),
+		transactionState:   cfg.TransactionState,
+		runtime:            cfg.Runtime,
+		verifier:           cfg.Verifier,
 	}, nil
 }
 
@@ -203,31 +181,34 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 			// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
 			logger.Debug("skipping block, already have", "hash", bd.Hash)
 
-			header, err := s.blockState.GetHeader(bd.Hash) //nolint
+			block, err := s.blockState.GetBlockByHash(bd.Hash) //nolint
 			if err != nil {
 				logger.Debug("failed to get header", "hash", bd.Hash, "error", err)
 				return i, err
 			}
 
-			err = s.blockState.AddBlockToBlockTree(header)
+			err = s.blockState.AddBlockToBlockTree(block.Header)
 			if err != nil && !errors.Is(err, blocktree.ErrBlockExists) {
 				logger.Warn("failed to add block to blocktree", "hash", bd.Hash, "error", err)
 				return i, err
 			}
 
-			// handle consensus digests for authority changes
-			if s.digestHandler != nil {
-				s.handleDigests(header)
-			}
-
 			if bd.Justification != nil && bd.Justification.Exists() {
-				logger.Debug("handling Justification...", "number", header.Number, "hash", bd.Hash)
-				s.handleJustification(header, bd.Justification.Value())
+				logger.Debug("handling Justification...", "number", block.Header.Number, "hash", bd.Hash)
+				s.handleJustification(block.Header, bd.Justification.Value())
 			}
 
-			if err := s.handleCodeSubstitution(bd.Hash); err != nil {
-				logger.Warn("failed to handle code substitution", "error", err)
+			// TODO: this is probably unnecessary, since the state is already in the database
+			// however, this case shouldn't be hit often, since it's only hit if the node state
+			// is rewinded or if the node shuts down unexpectedly
+			state, err := s.storageState.TrieState(&block.Header.StateRoot)
+			if err != nil {
+				logger.Warn("failed to load state for block", "block", block.Header.Hash(), "error", err)
 				return i, err
+			}
+
+			if err := s.blockImportHandler.HandleBlockImport(block, state); err != nil {
+				logger.Warn("failed to handle block import", "error", err)
 			}
 
 			continue
@@ -359,45 +340,22 @@ func (s *Service) handleBlock(block *types.Block) error {
 		return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)
 	}
 
-	err = s.storageState.StoreTrie(ts, block.Header)
-	if err != nil {
-		return err
-	}
-	logger.Trace("executed block and stored resulting state", "state root", ts.MustRoot())
-
-	// TODO: batch writes in AddBlock
-	err = s.blockState.AddBlock(block)
-	if err != nil {
-		if err == blocktree.ErrParentNotFound && block.Header.Number.Cmp(big.NewInt(0)) != 0 {
-			return err
-		} else if err == blocktree.ErrBlockExists || block.Header.Number.Cmp(big.NewInt(0)) == 0 {
-			// this is fine
-		} else {
-			return err
-		}
-	} else {
-		logger.Debug("🔗 imported block", "number", block.Header.Number, "hash", block.Header.Hash())
-		err := telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage( // nolint
-			telemetry.NewKeyValue("best", block.Header.Hash().String()),
-			telemetry.NewKeyValue("height", block.Header.Number.Uint64()),
-			telemetry.NewKeyValue("msg", "block.import"),
-			telemetry.NewKeyValue("origin", "NetworkInitialSync")))
-		if err != nil {
-			logger.Debug("problem sending block.import telemetry message", "error", err)
-		}
-	}
-
-	// handle consensus digest for authority changes
-	if s.digestHandler != nil {
-		s.handleDigests(block.Header)
-	}
-
-	err = s.handleCodeSubstitution(block.Header.Hash())
-	if err != nil {
+	if err = s.blockImportHandler.HandleBlockImport(block, ts); err != nil {
 		return err
 	}
 
-	return s.handleRuntimeChanges(ts)
+	logger.Debug("🔗 imported block", "number", block.Header.Number, "hash", block.Header.Hash())
+
+	err = telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage( // nolint
+		telemetry.NewKeyValue("best", block.Header.Hash().String()),
+		telemetry.NewKeyValue("height", block.Header.Number.Uint64()),
+		telemetry.NewKeyValue("msg", "block.import"),
+		telemetry.NewKeyValue("origin", "NetworkInitialSync")))
+	if err != nil {
+		logger.Trace("problem sending block.import telemetry message", "error", err)
+	}
+
+	return nil
 }
 
 func (s *Service) handleJustification(header *types.Header, justification []byte) {
@@ -424,103 +382,6 @@ func (s *Service) handleJustification(header *types.Header, justification []byte
 	}
 
 	logger.Info("🔨 finalised block", "number", header.Number, "hash", header.Hash())
-}
-
-func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {
-	currCodeHash, err := newState.LoadCodeHash()
-	if err != nil {
-		return err
-	}
-
-	if bytes.Equal(s.codeHash[:], currCodeHash[:]) {
-		return nil
-	}
-
-	logger.Info("🔄 detected runtime code change, upgrading...", "block", s.blockState.BestBlockHash(), "previous code hash", s.codeHash, "new code hash", currCodeHash)
-	code := newState.LoadCode()
-	if len(code) == 0 {
-		return ErrEmptyRuntimeCode
-	}
-
-	codeSubBlockHash := s.codeSubstitutedState.LoadCodeSubstitutedBlockHash()
-
-	if !codeSubBlockHash.Equal(common.Hash{}) {
-		// don't do runtime change if using code substitution and runtime change spec version are equal
-		//  (do a runtime change if code substituted and runtime spec versions are different, or code not substituted)
-		newVersion, err := s.runtime.CheckRuntimeVersion(code) // nolint
-		if err != nil {
-			logger.Debug("problem checking runtime version", "error", err)
-			return err
-		}
-
-		previousVersion, _ := s.runtime.Version()
-		if previousVersion.SpecVersion() == newVersion.SpecVersion() {
-			return nil
-		}
-
-		logger.Info("🔄 detected runtime code change, upgrading...", "block", s.blockState.BestBlockHash(),
-			"previous code hash", s.codeHash, "new code hash", currCodeHash,
-			"previous spec version", previousVersion.SpecVersion(), "new spec version", newVersion.SpecVersion())
-	}
-
-	err = s.runtime.UpdateRuntimeCode(code)
-	if err != nil {
-		logger.Crit("failed to update runtime code", "error", err)
-		return err
-	}
-
-	s.codeHash = currCodeHash
-
-	err = s.codeSubstitutedState.StoreCodeSubstitutedBlockHash(common.Hash{})
-	if err != nil {
-		logger.Error("failed to update code substituted block hash", "error", err)
-		return err
-	}
-
-	return nil
-}
-
-func (s *Service) handleCodeSubstitution(hash common.Hash) error {
-	value := s.codeSubstitute[hash]
-	if value == "" {
-		return nil
-	}
-
-	logger.Info("🔄 detected runtime code substitution, upgrading...", "block", hash)
-	code := common.MustHexToBytes(value)
-	if len(code) == 0 {
-		return ErrEmptyRuntimeCode
-	}
-
-	err := s.runtime.UpdateRuntimeCode(code)
-	if err != nil {
-		logger.Crit("failed to substitute runtime code", "error", err)
-		return err
-	}
-
-	err = s.codeSubstitutedState.StoreCodeSubstitutedBlockHash(hash)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (s *Service) handleDigests(header *types.Header) {
-	for i, d := range header.Digest {
-		if d.Type() == types.ConsensusDigestType {
-			cd, ok := d.(*types.ConsensusDigest)
-			if !ok {
-				logger.Error("handleDigests", "block number", header.Number, "index", i, "error", "cannot cast invalid consensus digest item")
-				continue
-			}
-
-			err := s.digestHandler.HandleConsensusDigest(cd, header)
-			if err != nil {
-				logger.Error("handleDigests", "block number", header.Number, "index", i, "digest", cd, "error", err)
-			}
-		}
-	}
 }
 
 // IsSynced exposes the synced state

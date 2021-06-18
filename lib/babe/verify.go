@@ -58,11 +58,11 @@ type VerificationManager struct {
 // NewVerificationManager returns a new NewVerificationManager
 func NewVerificationManager(blockState BlockState, epochState EpochState) (*VerificationManager, error) {
 	if blockState == nil {
-		return nil, ErrNilBlockState
+		return nil, errNilBlockState
 	}
 
 	if epochState == nil {
-		return nil, ErrNilEpochState
+		return nil, errNilEpochState
 	}
 
 	return &VerificationManager{
@@ -304,7 +304,7 @@ type verifier struct {
 // newVerifier returns a Verifier for the epoch described by the given descriptor
 func newVerifier(blockState BlockState, epoch uint64, info *verifierInfo) (*verifier, error) {
 	if blockState == nil {
-		return nil, ErrNilBlockState
+		return nil, errNilBlockState
 	}
 
 	return &verifier{

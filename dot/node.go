@@ -227,8 +227,6 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		return nil, ErrNoKeysProvided
 	}
 
-	// Node Services
-
 	logger.Info(
 		"🕸️ initialising node services...",
 		"name", cfg.Global.Name,
@@ -236,19 +234,15 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		"basepath", cfg.Global.BasePath,
 	)
 
-	var nodeSrvcs []services.Service
+	var (
+		nodeSrvcs   []services.Service
+		networkSrvc *network.Service
+	)
 
-	// State Service
-
-	// create state service and append state service to node services
 	stateSrvc, err := createStateService(cfg)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to create state service: %s", err)
 	}
-
-	// Network Service
-	var networkSrvc *network.Service
 
 	// check if network service is enabled
 	if enabled := networkServiceEnabled(cfg); enabled {
@@ -274,65 +268,51 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		return nil, err
 	}
 
-	// create BABE service
-	bp, err := createBABEService(cfg, rt, stateSrvc, ks.Babe)
-	if err != nil {
-		return nil, err
-	}
-
-	nodeSrvcs = append(nodeSrvcs, bp)
-
-	dh, err := createDigestHandler(stateSrvc, bp, ver)
+	dh, err := createDigestHandler(stateSrvc)
 	if err != nil {
 		return nil, err
 	}
 	nodeSrvcs = append(nodeSrvcs, dh)
 
-	// create GRANDPA service
+	coreSrvc, err := createCoreService(cfg, rt, ks, stateSrvc, networkSrvc, dh)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create core service: %s", err)
+	}
+	nodeSrvcs = append(nodeSrvcs, coreSrvc)
+
+	bp, err := createBABEService(cfg, rt, stateSrvc, ks.Babe, coreSrvc)
+	if err != nil {
+		return nil, err
+	}
+	nodeSrvcs = append(nodeSrvcs, bp)
+
 	fg, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran, networkSrvc)
 	if err != nil {
 		return nil, err
 	}
 	nodeSrvcs = append(nodeSrvcs, fg)
 
-	// Syncer
-	syncer, err := newSyncService(cfg, stateSrvc, bp, fg, dh, ver, rt)
+	syncer, err := newSyncService(cfg, stateSrvc, fg, ver, rt, coreSrvc)
 	if err != nil {
 		return nil, err
 	}
-
-	// Core Service
-
-	// create core service and append core service to node services
-	coreSrvc, err := createCoreService(cfg, bp, ver, rt, ks, stateSrvc, networkSrvc)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create core service: %s", err)
-	}
-	nodeSrvcs = append(nodeSrvcs, coreSrvc)
 
 	if networkSrvc != nil {
 		networkSrvc.SetSyncer(syncer)
 		networkSrvc.SetTransactionHandler(coreSrvc)
 	}
 
-	// System Service
-
-	// create system service and append to node services
 	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create system service: %s", err)
 	}
 	nodeSrvcs = append(nodeSrvcs, sysSrvc)
 
-	// RPC Service
-
 	// check if rpc service is enabled
 	if enabled := cfg.RPC.Enabled; enabled {
-		// create rpc service and append rpc service to node services
 		rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc, bp, rt, sysSrvc)
 		nodeSrvcs = append(nodeSrvcs, rpcSrvc)
 	} else {
-		// do not create or append rpc service if rpc service is not enabled
 		logger.Debug("rpc service disabled by default", "rpc", enabled)
 	}
 
