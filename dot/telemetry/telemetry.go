@@ -95,14 +95,14 @@ func (h *Handler) startListening() {
 	for {
 		msg := <-h.msg
 		go func() {
+			msgBytes, err := h.msgToJSON(msg)
+			if err != nil || len(msgBytes) == 0 {
+				h.log.Debug("issue decoding telemetry message", "error", err)
+				return
+			}
 			for _, conn := range h.connections {
 				conn.Lock()
 				defer conn.Unlock()
-				msgBytes, err := h.msgToJSON(msg)
-				if err != nil || len(msgBytes) == 0 {
-					h.log.Debug("issue decoding telemetry message", "error", err)
-					return
-				}
 
 				err = conn.wsconn.WriteMessage(websocket.TextMessage, msgBytes)
 				if err != nil {
