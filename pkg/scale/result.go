@@ -21,11 +21,15 @@ import (
 	"reflect"
 )
 
+// ResultMode is the mode the Result is set to
 type ResultMode int
 
 const (
+	// Unset ResultMode is zero value mode
 	Unset ResultMode = iota
+	// Ok case
 	OK
+	// Err case
 	Err
 )
 
@@ -53,6 +57,7 @@ func NewResult(okIn interface{}, errIn interface{}) (res Result) {
 	return
 }
 
+// Set takes in a mode (OK/Err) and the associated interface and sets the Result value
 func (r *Result) Set(mode ResultMode, in interface{}) (err error) {
 	switch mode {
 	case OK:
@@ -75,6 +80,7 @@ func (r *Result) Set(mode ResultMode, in interface{}) (err error) {
 	return
 }
 
+// UnsetResult is error when Result is unset with a value.
 type UnsetResult error
 
 // Result returns the result in go standard wrapping the Err case in a ResultErr
@@ -117,10 +123,12 @@ func (r *Result) IsSet() bool {
 
 type empty struct{}
 
+// WrappedErr is returned by Result.Unwrap().  The underlying Err value is wrapped and stored in Err attribute
 type WrappedErr struct {
 	Err interface{}
 }
 
+// Error fulfills the error interface
 func (r WrappedErr) Error() string {
 	return fmt.Sprintf("ResultErr %+v", r.Err)
 }

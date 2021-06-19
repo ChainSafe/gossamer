@@ -854,7 +854,8 @@ var (
 
 	allTests = newTests(
 		fixedWidthIntegerTests, variableWidthIntegerTests, stringTests,
-		boolTests, structTests, sliceTests, arrayTests, varyingDataTypeTests,
+		boolTests, structTests, sliceTests, arrayTests,
+		varyingDataTypeTests,
 	)
 )
 

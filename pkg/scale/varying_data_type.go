@@ -18,34 +18,93 @@ package scale
 
 import (
 	"fmt"
-	"reflect"
 )
-
-type varyingDataTypeCache map[string]map[uint]VaryingDataTypeValue
-
-var vdtCache varyingDataTypeCache = make(varyingDataTypeCache)
-
-type VaryingDataType []VaryingDataTypeValue
-
-func RegisterVaryingDataType(in interface{}, values ...VaryingDataTypeValue) (err error) {
-	t := reflect.TypeOf(in)
-	if !t.ConvertibleTo(reflect.TypeOf(VaryingDataType{})) {
-		err = fmt.Errorf("%T is not a VaryingDataType", in)
-		return
-	}
-
-	key := fmt.Sprintf("%s.%s", t.PkgPath(), t.Name())
-	_, ok := vdtCache[key]
-	if !ok {
-		vdtCache[key] = make(map[uint]VaryingDataTypeValue)
-	}
-	for _, val := range values {
-		vdtCache[key][val.Index()] = val
-	}
-	return
-}
 
 // VaryingDataType is used to represent scale encodable types
 type VaryingDataTypeValue interface {
 	Index() uint
+}
+
+// VaryingDataTypeSlice is used to represent []VaryingDataType.  SCALE requires knowledge
+// of the underlying data, so it is required to have the VaryingDataType required for decoding
+type VaryingDataTypeSlice struct {
+	VaryingDataType
+	Values []VaryingDataType
+}
+
+// Add takes variadic parameter values to add VaryingDataTypeValue(s)
+func (vdts *VaryingDataTypeSlice) Add(values ...VaryingDataTypeValue) (err error) {
+	for _, val := range values {
+		copied := vdts.VaryingDataType
+		err = copied.Set(val)
+		if err != nil {
+			return
+		}
+		vdts.Values = append(vdts.Values, copied)
+	}
+	return
+}
+
+// NewVaryingDataTypeSlice is constructor for VaryingDataTypeSlice
+func NewVaryingDataTypeSlice(vdt VaryingDataType) (vdts VaryingDataTypeSlice) {
+	vdts.VaryingDataType = vdt
+	vdts.Values = make([]VaryingDataType, 0)
+	return
+}
+
+func mustNewVaryingDataTypeSliceAndSet(vdt VaryingDataType, values ...VaryingDataTypeValue) (vdts VaryingDataTypeSlice) {
+	vdts = NewVaryingDataTypeSlice(vdt)
+	err := vdts.Add(values...)
+	if err != nil {
+		panic(err)
+	}
+	return
+}
+
+// VaryingDataType is analogous to a rust enum.  Name is taken from polkadot spec.
+type VaryingDataType struct {
+	value VaryingDataTypeValue
+	cache map[uint]VaryingDataTypeValue
+}
+
+// Set will set the VaryingDataType value
+func (vdt *VaryingDataType) Set(value VaryingDataTypeValue) (err error) {
+	_, ok := vdt.cache[value.Index()]
+	if !ok {
+		err = fmt.Errorf("unable to append VaryingDataTypeValue: %T, not in cache", value)
+		return
+	}
+	vdt.value = value
+	return
+}
+
+// Value returns value stored in vdt
+func (vdt *VaryingDataType) Value() VaryingDataTypeValue {
+	return vdt.value
+}
+
+// NewVaryingDataType is constructor for VaryingDataType
+func NewVaryingDataType(values ...VaryingDataTypeValue) (vdt VaryingDataType, err error) {
+	if len(values) == 0 {
+		err = fmt.Errorf("must provide atleast one VaryingDataTypeValue")
+		return
+	}
+	vdt.cache = make(map[uint]VaryingDataTypeValue)
+	for _, value := range values {
+		_, ok := vdt.cache[value.Index()]
+		if ok {
+			err = fmt.Errorf("duplicate index with VaryingDataType: %T with index: %d", value, value.Index())
+			return
+		}
+		vdt.cache[value.Index()] = value
+	}
+	return
+}
+
+func MustNewVaryingDataType(values ...VaryingDataTypeValue) (vdt VaryingDataType) {
+	vdt, err := NewVaryingDataType(values...)
+	if err != nil {
+		panic(err)
+	}
+	return
 }

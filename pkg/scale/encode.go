@@ -61,6 +61,10 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 		err = es.encodeBool(in)
 	case Result:
 		err = es.encodeResult(in)
+	case VaryingDataType:
+		err = es.encodeVaryingDataType(in)
+	case VaryingDataTypeSlice:
+		err = es.encodeVaryingDataTypeSlice(in)
 	default:
 		switch reflect.TypeOf(in).Kind() {
 		case reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16,
@@ -85,15 +89,7 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 		case reflect.Array:
 			err = es.encodeArray(in)
 		case reflect.Slice:
-			t := reflect.TypeOf(in)
-			// check if this is a convertible to VaryingDataType, if so encode using encodeVaryingDataType
-			switch t.ConvertibleTo(reflect.TypeOf(VaryingDataType{})) {
-			case true:
-				invdt := reflect.ValueOf(in).Convert(reflect.TypeOf(VaryingDataType{}))
-				err = es.encodeVaryingDataType(invdt.Interface().(VaryingDataType))
-			case false:
-				err = es.encodeSlice(in)
-			}
+			err = es.encodeSlice(in)
 		default:
 			err = fmt.Errorf("unsupported type: %T", in)
 		}
@@ -134,6 +130,7 @@ func (es *encodeState) encodeCustomPrimitive(in interface{}) (err error) {
 	err = es.marshal(in)
 	return
 }
+
 func (es *encodeState) encodeResult(res Result) (err error) {
 	if !res.IsSet() {
 		err = fmt.Errorf("Result is not set: %+v", res)
@@ -163,20 +160,17 @@ func (es *encodeState) encodeResult(res Result) (err error) {
 	return
 }
 
-func (es *encodeState) encodeVaryingDataType(values VaryingDataType) (err error) {
-	err = es.encodeLength(len(values))
+func (es *encodeState) encodeVaryingDataType(vdt VaryingDataType) (err error) {
+	err = es.WriteByte(byte(vdt.value.Index()))
 	if err != nil {
 		return
 	}
-	for _, val := range values {
-		// TODO: type checking of val against vdtCache to ensure it is a registered type
-		// encode type.Index (idx) for varying data type
-		err = es.WriteByte(byte(val.Index()))
-		if err != nil {
-			return
-		}
-		err = es.marshal(val)
-	}
+	err = es.marshal(vdt.value)
+	return
+}
+
+func (es *encodeState) encodeVaryingDataTypeSlice(vdts VaryingDataTypeSlice) (err error) {
+	err = es.marshal(vdts.Values)
 	return
 }
 
