@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ethereum/go-ethereum/metrics"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -46,7 +47,19 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 		return nil, fmt.Errorf("failed to create block builder: %w", err)
 	}
 
+	buildBlockHist := metrics.GetOrRegisterHistogram(
+		"gossamer/proposer/block/constructed",
+		metrics.DefaultRegistry,
+		metrics.NewUniformSample(1028),
+	)
+
+	startBuilt := time.Now()
+	defer func() {
+		buildBlockHist.Update(time.Since(startBuilt).Milliseconds())
+	}()
+
 	return builder.buildBlock(parent, slot)
+
 }
 
 // nolint
