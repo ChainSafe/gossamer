@@ -532,22 +532,38 @@ func Test_unmarshal_optionality(t *testing.T) {
 	}
 	for _, tt := range ptrTests {
 		t.Run(tt.name, func(t *testing.T) {
-			// this becomes a pointer to a zero value of the underlying value
-			dst := reflect.New(reflect.TypeOf(tt.in)).Interface()
-			if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
-				t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			var diff string
-			if tt.out != nil {
-				diff = cmp.Diff(reflect.ValueOf(dst).Elem().Interface(), reflect.ValueOf(tt.out).Interface(), cmpopts.IgnoreUnexported(tt.in))
-			} else {
-				diff = cmp.Diff(reflect.ValueOf(dst).Elem().Interface(), reflect.ValueOf(tt.in).Interface(), cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}, MyStructWithPrivate{}))
-			}
-			if diff != "" {
-				t.Errorf("decodeState.unmarshal() = %s", diff)
-			}
+			switch in := tt.in.(type) {
+			case VaryingDataType:
+				// copy the inputted vdt cause we need the cached values
+				copy := in
+				vdt := copy
+				vdt.value = nil
+				var dst interface{} = &vdt
+				if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
+					t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+					return
+				}
+				diff := cmp.Diff(vdt.value, tt.in.(VaryingDataType).value, cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}, MyStructWithPrivate{}))
+				if diff != "" {
+					t.Errorf("decodeState.unmarshal() = %s", diff)
+				}
+			default:
+				dst := reflect.New(reflect.TypeOf(tt.in)).Interface()
+				if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
+					t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+					return
+				}
+				var diff string
+				if tt.out != nil {
+					diff = cmp.Diff(reflect.ValueOf(dst).Elem().Interface(), reflect.ValueOf(tt.out).Interface(), cmpopts.IgnoreUnexported(tt.in))
+				} else {
+					diff = cmp.Diff(reflect.ValueOf(dst).Elem().Interface(), reflect.ValueOf(tt.in).Interface(), cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}, MyStructWithPrivate{}))
+				}
+				if diff != "" {
+					t.Errorf("decodeState.unmarshal() = %s", diff)
+				}
 
+			}
 		})
 	}
 }

@@ -940,3 +940,234 @@ func Test_decodeState_decodeVaryingDataTypeSlice(t *testing.T) {
 		})
 	}
 }
+
+func TestNewVaryingDataType(t *testing.T) {
+	type args struct {
+		values []VaryingDataTypeValue
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantVdt VaryingDataType
+		wantErr bool
+	}{
+		{
+			args: args{
+				values: []VaryingDataTypeValue{},
+			},
+			wantErr: true,
+		},
+		{
+			args: args{
+				values: []VaryingDataTypeValue{
+					VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0),
+				},
+			},
+			wantVdt: VaryingDataType{
+				cache: map[uint]VaryingDataTypeValue{
+					VDTValue{}.Index():   VDTValue{},
+					VDTValue1{}.Index():  VDTValue1{},
+					VDTValue2{}.Index():  VDTValue2{},
+					VDTValue3(0).Index(): VDTValue3(0),
+				},
+			},
+		},
+		{
+			args: args{
+				values: []VaryingDataTypeValue{
+					VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0), VDTValue{},
+				},
+			},
+			wantVdt: VaryingDataType{
+				cache: map[uint]VaryingDataTypeValue{
+					VDTValue{}.Index():   VDTValue{},
+					VDTValue1{}.Index():  VDTValue1{},
+					VDTValue2{}.Index():  VDTValue2{},
+					VDTValue3(0).Index(): VDTValue3(0),
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotVdt, err := NewVaryingDataType(tt.args.values...)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewVaryingDataType() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(gotVdt, tt.wantVdt) {
+				t.Errorf("NewVaryingDataType() = %v, want %v", gotVdt, tt.wantVdt)
+			}
+		})
+	}
+}
+
+func TestVaryingDataType_Set(t *testing.T) {
+	type args struct {
+		value VaryingDataTypeValue
+	}
+	tests := []struct {
+		name    string
+		vdt     VaryingDataType
+		args    args
+		wantErr bool
+	}{
+		{
+			vdt: mustNewVaryingDataType(VDTValue1{}),
+			args: args{
+				value: VDTValue1{},
+			},
+		},
+		{
+			vdt: mustNewVaryingDataType(VDTValue1{}, VDTValue2{}),
+			args: args{
+				value: VDTValue1{},
+			},
+		},
+		{
+			vdt: mustNewVaryingDataType(VDTValue1{}, VDTValue2{}),
+			args: args{
+				value: VDTValue2{},
+			},
+		},
+		{
+			vdt: mustNewVaryingDataType(VDTValue1{}, VDTValue2{}),
+			args: args{
+				value: VDTValue3(0),
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vdt := tt.vdt
+			if err := vdt.Set(tt.args.value); (err != nil) != tt.wantErr {
+				t.Errorf("VaryingDataType.SetValue() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestVaryingDataTypeSlice_Add(t *testing.T) {
+	type args struct {
+		values []VaryingDataTypeValue
+	}
+	tests := []struct {
+		name       string
+		vdts       VaryingDataTypeSlice
+		args       args
+		wantErr    bool
+		wantValues []VaryingDataType
+	}{
+		{
+			name: "happy path",
+			vdts: NewVaryingDataTypeSlice(MustNewVaryingDataType(VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0))),
+			args: args{
+				values: []VaryingDataTypeValue{
+					VDTValue{
+						B: 1,
+					},
+				},
+			},
+			wantValues: []VaryingDataType{
+				mustNewVaryingDataTypeAndSet(
+					VDTValue{
+						B: 1,
+					},
+					VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0),
+				),
+			},
+		},
+		{
+			name: "invalid value error case",
+			vdts: NewVaryingDataTypeSlice(MustNewVaryingDataType(VDTValue{}, VDTValue1{}, VDTValue2{})),
+			args: args{
+				values: []VaryingDataTypeValue{
+					VDTValue3(0),
+				},
+			},
+			wantValues: []VaryingDataType{},
+			wantErr:    true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vdts := &tt.vdts
+			if err := vdts.Add(tt.args.values...); (err != nil) != tt.wantErr {
+				t.Errorf("VaryingDataTypeSlice.Add() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(vdts.Values, tt.wantValues) {
+				t.Errorf("NewVaryingDataType() = %v, want %v", vdts.Values, tt.wantValues)
+			}
+		})
+	}
+}
+
+var varyingDataTypeSliceTests = tests{
+	{
+		in: mustNewVaryingDataTypeSliceAndSet(
+			mustNewVaryingDataType(
+				VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0),
+			),
+			VDTValue1{O: newBigIntPtr(big.NewInt(1073741823))},
+		),
+		want: []byte{
+			// length
+			4,
+			// index
+			2,
+			// value
+			0x01, 0xfe, 0xff, 0xff, 0xff,
+			0x00,
+			0x00,
+			0x00,
+			0x00,
+			0x00,
+			0x00,
+			0x00,
+			0x00,
+			0x00,
+			0x00,
+			0x00,
+			0x00,
+			0x00,
+		},
+	},
+}
+
+func Test_encodeState_encodeVaryingDataTypeSlice(t *testing.T) {
+	for _, tt := range varyingDataTypeSliceTests {
+		t.Run(tt.name, func(t *testing.T) {
+			vdt := tt.in.(VaryingDataTypeSlice)
+			b, err := Marshal(vdt)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("encodeState.encodeStruct() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(b, tt.want) {
+				t.Errorf("encodeState.encodeStruct() = %v, want %v", b, tt.want)
+			}
+		})
+	}
+}
+
+// func Test_decodeState_decodeVaryingDataTypeSlice(t *testing.T) {
+// 	for _, tt := range varyingDataTypeTests {
+// 		t.Run(tt.name, func(t *testing.T) {
+// 			dst, err := NewVaryingDataType(VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0))
+// 			if err != nil {
+// 				t.Errorf("%v", err)
+// 				return
+// 			}
+// 			if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
+// 				t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+// 				return
+// 			}
+// 			vdt := tt.in.(VaryingDataType)
+// 			diff := cmp.Diff(dst.Value(), vdt.Value(), cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}))
+// 			if diff != "" {
+// 				t.Errorf("decodeState.unmarshal() = %s", diff)
+// 			}
+// 		})
+// 	}
+// }
