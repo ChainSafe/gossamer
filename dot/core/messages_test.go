@@ -38,7 +38,7 @@ import (
 
 func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	// TODO: move to sync package
-	net := new(MockNetwork)  // nolint
+	net := new(MockNetwork) // nolint
 
 	cfg := &Config{
 		Network:  net,

@@ -19,6 +19,7 @@ package network
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"math/big"
 	"os"
@@ -337,7 +338,7 @@ main:
 			netState["externalAddressess"] = hostAddrs
 			listAddrs := []string{}
 			for _, v := range s.host.h.Network().ListenAddresses() {
-				listAddrs = append(listAddrs, v.String())
+				listAddrs = append(listAddrs, fmt.Sprintf("%s/p2p/%s", v, s.host.h.ID()))
 			}
 			netState["listenedAddressess"] = listAddrs
 
