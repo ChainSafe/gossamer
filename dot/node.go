@@ -344,16 +344,15 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 
 	telemetry.GetInstance().AddConnections(gd.TelemetryEndpoints)
 	genesisHash := stateSrvc.Block.GenesisHash()
-	err = telemetry.GetInstance().SendMessage(telemetry.SystemConnectedTM{
-		Authority:      cfg.Core.GrandpaAuthority,
-		Chain:          sysSrvc.ChainName(),
-		GenesisHash:    &genesisHash,
-		Implementation: sysSrvc.SystemName(),
-		Name:           cfg.Global.Name,
-		NetworkID:      networkSrvc.NetworkState().PeerID,
-		StartupTime:    strconv.FormatInt(time.Now().UnixNano(), 10),
-		Version:        sysSrvc.SystemVersion(),
-	})
+	err = telemetry.GetInstance().SendMessage(telemetry.NewSystemConnectedTM(
+		cfg.Core.GrandpaAuthority,
+		sysSrvc.ChainName(),
+		&genesisHash,
+		sysSrvc.SystemName(),
+		cfg.Global.Name,
+		networkSrvc.NetworkState().PeerID,
+		strconv.FormatInt(time.Now().UnixNano(), 10),
+		sysSrvc.SystemVersion()))
 	if err != nil {
 		logger.Debug("problem sending system.connected telemetry message", "err", err)
 	}

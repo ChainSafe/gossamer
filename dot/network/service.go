@@ -323,11 +323,8 @@ main:
 
 		case <-ticker.C:
 			o := s.host.bwc.GetBandwidthTotals()
-			err := telemetry.GetInstance().SendMessage(telemetry.SystemIntervalTM{
-				BandwidthDownload: o.RateIn,
-				BandwidthUpload:   o.RateOut,
-				Peers:             s.host.peerCount(),
-			})
+			err := telemetry.GetInstance().SendMessage(telemetry.NewBandwidthTM(o.RateIn, o.RateOut, s.host.peerCount()))
+
 			if err != nil {
 				logger.Debug("problem sending system.interval telemetry message", "error", err)
 			}
@@ -355,9 +352,7 @@ main:
 			}
 			netState["connectedPeers"] = peers
 
-			err = telemetry.GetInstance().SendMessage(telemetry.NetworkStateTM{
-				State: netState,
-			})
+			err = telemetry.GetInstance().SendMessage(telemetry.NewNetworkStateTM(netState))
 			if err != nil {
 				logger.Debug("problem sending system.interval telemetry message", "error", err)
 			}
@@ -379,15 +374,14 @@ func (s *Service) sentBlockIntervalTelemetry() {
 		}
 		finalizedHash := finalized.Hash()
 
-		err = telemetry.GetInstance().SendMessage(telemetry.SystemIntervalTM{
-			BestHash:           &bestHash,
-			BestHeight:         best.Number,
-			FinalisedHash:      &finalizedHash,
-			FinalisedHeight:    finalized.Number,
-			TxCount:            big.NewInt(0), // todo (ed) determine where to get tx count
-			UsedStateCacheSize: big.NewInt(0), // todo (ed) determine where to get used_state_cache_size
-		})
-
+		err = telemetry.GetInstance().SendMessage(telemetry.NewBlockIntervalTM(
+			&bestHash,
+			best.Number,
+			&finalizedHash,
+			finalized.Number,
+			big.NewInt(0), // todo (ed) determine where to get tx count
+			big.NewInt(0), // todo (ed) determine where to get used_state_cache_size
+		))
 		if err != nil {
 			logger.Debug("problem sending system.interval telemetry message", "error", err)
 		}

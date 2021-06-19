@@ -20,7 +20,6 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
-	"reflect"
 	"sync"
 	"time"
 
@@ -38,7 +37,7 @@ type telemetryConnection struct {
 
 // Handler struct for holding telemetry related things
 type Handler struct {
-	msg         chan interface{}
+	msg         chan TelemetryMessage
 	connections []*telemetryConnection
 	log         log.Logger
 }
@@ -54,7 +53,7 @@ func GetInstance() *Handler { //nolint
 		once.Do(
 			func() {
 				handlerInstance = &Handler{
-					msg: make(chan interface{}, 256),
+					msg: make(chan TelemetryMessage, 256),
 					log: log.New("pkg", "telemetry"),
 				}
 				go handlerInstance.startListening()
@@ -81,7 +80,7 @@ func (h *Handler) AddConnections(conns []*genesis.TelemetryEndpoint) {
 }
 
 // SendMessage sends Message to connected telemetry listeners
-func (h *Handler) SendMessage(msg interface{}) error {
+func (h *Handler) SendMessage(msg TelemetryMessage) error {
 	select {
 	case h.msg <- msg:
 
@@ -113,9 +112,7 @@ func (h *Handler) startListening() {
 	}
 }
 
-func (h *Handler) msgToJSON(message interface{}) ([]byte, error) {
-	defer h.recoverMessage()
-
+func (h *Handler) msgToJSON(message TelemetryMessage) ([]byte, error) {
 	messageBytes, err := json.Marshal(message)
 	if err != nil {
 		return nil, err
@@ -128,13 +125,8 @@ func (h *Handler) msgToJSON(message interface{}) ([]byte, error) {
 	}
 
 	messageMap["ts"] = time.Now()
-	typ := reflect.TypeOf(message)
-	field, found := typ.FieldByName("Msg")
-	if !found {
-		return []byte{}, errors.New("unknown telemetry message type")
-	}
-	def := field.Tag.Get("default")
-	messageMap["msg"] = def
+
+	messageMap["msg"] = message.messageType()
 
 	fullRes, err := json.Marshal(messageMap)
 	if err != nil {
@@ -142,10 +134,9 @@ func (h *Handler) msgToJSON(message interface{}) ([]byte, error) {
 	}
 	return fullRes, nil
 }
-func (h *Handler) recoverMessage() {
-	if r := recover(); r != nil {
-		h.log.Debug("recovered", "issue", r)
-	}
+
+type TelemetryMessage interface {
+	messageType() string
 }
 
 // SystemConnectedTM struct to hold system connected telemetry messages
@@ -154,26 +145,57 @@ type SystemConnectedTM struct {
 	Chain          string       `json:"chain"`
 	GenesisHash    *common.Hash `json:"genesis_hash"`
 	Implementation string       `json:"implementation"`
-	Msg            string       `default:"system.connected" json:"msg"`
+	Msg            string       `json:"msg"`
 	Name           string       `json:"name"`
 	NetworkID      string       `json:"network_id"`
 	StartupTime    string       `json:"startup_time"`
 	Version        string       `json:"version"`
 }
 
+func NewSystemConnectedTM(authority bool, chain string, genesisHash *common.Hash,
+	implementation, name, networkID, startupTime, version string) *SystemConnectedTM {
+	return &SystemConnectedTM{
+		Authority:      authority,
+		Chain:          chain,
+		GenesisHash:    genesisHash,
+		Implementation: implementation,
+		Msg:            "system.connected",
+		Name:           name,
+		NetworkID:      networkID,
+		StartupTime:    startupTime,
+		Version:        version,
+	}
+}
+func (tm *SystemConnectedTM) messageType() string {
+	return tm.Msg
+}
+
 // BlockImportTM struct to hold block import telemetry messages
 type BlockImportTM struct {
 	BestHash *common.Hash `json:"best"`
 	Height   *big.Int     `json:"height"`
-	Msg      string       `default:"block.import" json:"msg"`
+	Msg      string       `json:"msg"`
 	Origin   string       `json:"origin"`
+}
+
+func NewBlockImportTM(bestHash *common.Hash, height *big.Int, origin string) *BlockImportTM {
+	return &BlockImportTM{
+		BestHash: bestHash,
+		Height:   height,
+		Msg:      "block.import",
+		Origin:   origin,
+	}
+}
+
+func (tm *BlockImportTM) messageType() string {
+	return tm.Msg
 }
 
 // SystemIntervalTM struct to hold system interval telemetry messages
 type SystemIntervalTM struct {
 	BandwidthDownload  float64      `json:"bandwidth_download,omitempty"`
 	BandwidthUpload    float64      `json:"bandwidth_upload,omitempty"`
-	Msg                string       `default:"system.interval" json:"msg"`
+	Msg                string       `json:"msg"`
 	Peers              int          `json:"peers,omitempty"`
 	BestHash           *common.Hash `json:"best,omitempty"`
 	BestHeight         *big.Int     `json:"height,omitempty"`
@@ -183,8 +205,44 @@ type SystemIntervalTM struct {
 	UsedStateCacheSize *big.Int     `json:"used_state_cache_size,omitempty"`
 }
 
+func NewBandwidthTM(bandwidthDownload, bandwidthUpload float64, peers int) *SystemIntervalTM {
+	return &SystemIntervalTM{
+		BandwidthDownload: bandwidthDownload,
+		BandwidthUpload:   bandwidthUpload,
+		Msg:               "system.interval",
+		Peers:             peers,
+	}
+}
+
+func NewBlockIntervalTM(beshHash *common.Hash, bestHeight *big.Int, finalisedHash *common.Hash,
+	finalisedHeight, txCount, usedStateCacheSize *big.Int) *SystemIntervalTM {
+	return &SystemIntervalTM{
+		Msg:                "system.interval",
+		BestHash:           beshHash,
+		BestHeight:         bestHeight,
+		FinalisedHash:      finalisedHash,
+		FinalisedHeight:    finalisedHeight,
+		TxCount:            txCount,
+		UsedStateCacheSize: usedStateCacheSize,
+	}
+}
+
+func (tm *SystemIntervalTM) messageType() string {
+	return tm.Msg
+}
+
 // NetworkStateTM struct to hold network state telemetry messages
 type NetworkStateTM struct {
-	Msg   string                 `default:"system.network_state" json:"msg"`
+	Msg   string                 `json:"msg"`
 	State map[string]interface{} `json:"state"`
+}
+
+func NewNetworkStateTM(state map[string]interface{}) *NetworkStateTM {
+	return &NetworkStateTM{
+		Msg:   "system.network_state",
+		State: state,
+	}
+}
+func (tm *NetworkStateTM) messageType() string {
+	return tm.Msg
 }
