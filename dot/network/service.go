@@ -379,7 +379,7 @@ func (s *Service) sentBlockIntervalTelemetry() {
 			best.Number,
 			&finalizedHash,
 			finalized.Number,
-			big.NewInt(0), // todo (ed) determine where to get tx count
+			big.NewInt(int64(s.transactionHandler.TransactionsCount())),
 			big.NewInt(0), // todo (ed) determine where to get used_state_cache_size
 		))
 		if err != nil {

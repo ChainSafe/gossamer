@@ -49,3 +49,8 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) erro
 
 	return nil
 }
+
+// TransactionsCount returns number for pending transactions in pool
+func (s *Service) TransactionsCount() int {
+	return len(s.transactionState.PendingInPool())
+}
