@@ -31,7 +31,7 @@ import (
 
 // NewTestInstance will create a new runtime instance using the given target runtime
 func NewTestInstance(t *testing.T, targetRuntime string) *Instance {
-	return NewTestInstanceWithTrie(t, targetRuntime, nil, log.LvlTrace)
+	return NewTestInstanceWithTrie(t, targetRuntime, nil, log.LvlInfo)
 }
 
 // NewTestInstanceWithTrie will create a new runtime (polkadot/test) with the supplied trie as the storage
