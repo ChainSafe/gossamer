@@ -90,15 +90,7 @@ func (es *encodeState) marshal(in interface{}) (err error) {
 		case reflect.Array:
 			err = es.encodeArray(in)
 		case reflect.Slice:
-			t := reflect.TypeOf(in)
-			// check if this is a convertible to VaryingDataType, if so encode using encodeVaryingDataType
-			switch t.ConvertibleTo(reflect.TypeOf(VaryingDataType{})) {
-			case true:
-				invdt := reflect.ValueOf(in).Convert(reflect.TypeOf(VaryingDataType{}))
-				err = es.encodeVaryingDataType(invdt.Interface().(VaryingDataType))
-			case false:
-				err = es.encodeSlice(in)
-			}
+			err = es.encodeSlice(in)
 		default:
 			err = fmt.Errorf("unsupported type: %T", in)
 		}
