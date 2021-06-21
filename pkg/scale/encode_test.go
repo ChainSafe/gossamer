@@ -511,14 +511,7 @@ var (
 		},
 	}
 
-	nilPtrMyStruct *MyStruct
-	ptrMystruct    *MyStruct = &MyStruct{
-		Foo: []byte{0x01},
-		Bar: 2,
-		Baz: true,
-	}
-	nilPtrMyStruct2 *MyStruct = nil
-	structTests               = tests{
+	structTests = tests{
 		{
 			name: "struct {[]byte, int32}",
 			in: MyStruct{
@@ -604,6 +597,7 @@ var (
 				Foo:   []byte{0x01},
 				Bar:   2,
 				Baz:   true,
+				priv1: []byte{0x00},
 			},
 			want: []byte{0x04, 0x01, 0x02, 0, 0, 0, 0x01},
 		},
@@ -614,6 +608,9 @@ var (
 				Bar:    2,
 				Baz:    true,
 				Ignore: "me",
+				somethingElse: &struct {
+					fields int
+				}{1},
 			},
 			want: []byte{0x04, 0x01, 0x02, 0, 0, 0, 0x01},
 			out: MyStructWithIgnore{

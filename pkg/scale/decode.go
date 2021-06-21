@@ -27,7 +27,7 @@ import (
 
 // indirect walks down v allocating pointers as needed,
 // until it gets to a non-pointer.
-func indirect(dstv reflect.Value) (elem reflect.Value, err error) {
+func indirect(dstv reflect.Value) (elem reflect.Value) {
 	dstv0 := dstv
 	haveAddr := false
 	for {
@@ -68,6 +68,7 @@ func indirect(dstv reflect.Value) (elem reflect.Value, err error) {
 	return
 }
 
+// Unmarshal takes data and a destination pointer to unmarshal the data to.
 func Unmarshal(data []byte, dst interface{}) (err error) {
 	dstv := reflect.ValueOf(dst)
 	if dstv.Kind() != reflect.Ptr || dstv.IsNil() {
@@ -75,7 +76,7 @@ func Unmarshal(data []byte, dst interface{}) (err error) {
 		return
 	}
 
-	elem, err := indirect(dstv)
+	elem := indirect(dstv)
 	if err != nil {
 		return
 	}
@@ -581,7 +582,7 @@ func (ds *decodeState) decodeFixedWidthInt(dstv reflect.Value) (err error) {
 		if err != nil {
 			return
 		}
-		out = uint8(b)
+		out = uint8(b) // nolint
 	case int16:
 		buf := make([]byte, 2)
 		_, err = ds.Read(buf)

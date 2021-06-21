@@ -24,6 +24,7 @@ import (
 	"reflect"
 )
 
+// Marshal takes in an interface{} and attempts to marshal into []byte
 func Marshal(v interface{}) (b []byte, err error) {
 	es := encodeState{
 		fieldScaleIndicesCache: cache,

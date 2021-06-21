@@ -27,7 +27,7 @@ type ResultMode int
 const (
 	// Unset ResultMode is zero value mode
 	Unset ResultMode = iota
-	// Ok case
+	// OK case
 	OK
 	// Err case
 	Err
@@ -83,7 +83,7 @@ func (r *Result) Set(mode ResultMode, in interface{}) (err error) {
 // UnsetResult is error when Result is unset with a value.
 type UnsetResult error
 
-// Result returns the result in go standard wrapping the Err case in a ResultErr
+// Unwrap returns the result in go standard wrapping the Err case in a ResultErr
 func (r *Result) Unwrap() (ok interface{}, err error) {
 	if !r.IsSet() {
 		err = UnsetResult(fmt.Errorf("result is not set"))
@@ -128,7 +128,7 @@ type WrappedErr struct {
 	Err interface{}
 }
 
-// Error fulfills the error interface
+// Error fulfils the error interface
 func (r WrappedErr) Error() string {
 	return fmt.Sprintf("ResultErr %+v", r.Err)
 }

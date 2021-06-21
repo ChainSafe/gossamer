@@ -20,7 +20,7 @@ import (
 	"fmt"
 )
 
-// VaryingDataType is used to represent scale encodable types
+// VaryingDataTypeValue is used to represent scale encodable types of an associated VaryingDataType
 type VaryingDataTypeValue interface {
 	Index() uint
 }
@@ -101,6 +101,7 @@ func NewVaryingDataType(values ...VaryingDataTypeValue) (vdt VaryingDataType, er
 	return
 }
 
+// MustNewVaryingDataType is constructor for VaryingDataType
 func MustNewVaryingDataType(values ...VaryingDataTypeValue) (vdt VaryingDataType) {
 	vdt, err := NewVaryingDataType(values...)
 	if err != nil {

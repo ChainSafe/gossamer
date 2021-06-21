@@ -87,7 +87,7 @@ func NewUint128(in interface{}, order ...binary.ByteOrder) (u *Uint128, err erro
 	return
 }
 
-// Bytes returns the Uint128 in little endian format by default.  A variadic paramter
+// Bytes returns the Uint128 in little endian format by default.  A variadic parameter
 // order can be used to specify the binary.ByteOrder used
 func (u *Uint128) Bytes(order ...binary.ByteOrder) (b []byte) {
 	var o binary.ByteOrder = binary.LittleEndian
@@ -108,7 +108,7 @@ func (u *Uint128) Bytes(order ...binary.ByteOrder) (b []byte) {
 	return
 }
 
-// Cmp returns 1 if the receiver is greater than other, 0 if they are equal, and -1 otherwise.
+// Compare returns 1 if the receiver is greater than other, 0 if they are equal, and -1 otherwise.
 func (u *Uint128) Compare(other *Uint128) int {
 	switch {
 	case u.Upper > other.Upper:
