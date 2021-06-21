@@ -135,6 +135,7 @@ func (h *Handler) msgToJSON(message TelemetryMessage) ([]byte, error) {
 	return fullRes, nil
 }
 
+// TelemetryMessage interface for TelemetryMessage functions
 type TelemetryMessage interface {
 	messageType() string
 }
@@ -152,6 +153,7 @@ type SystemConnectedTM struct {
 	Version        string       `json:"version"`
 }
 
+// NewSystemConnectedTM function to create new System Connected Telemetry Message
 func NewSystemConnectedTM(authority bool, chain string, genesisHash *common.Hash,
 	implementation, name, networkID, startupTime, version string) *SystemConnectedTM {
 	return &SystemConnectedTM{
@@ -178,6 +180,7 @@ type BlockImportTM struct {
 	Origin   string       `json:"origin"`
 }
 
+// NewBlockImportTM function to create new Block Import Telemetry Message
 func NewBlockImportTM(bestHash *common.Hash, height *big.Int, origin string) *BlockImportTM {
 	return &BlockImportTM{
 		BestHash: bestHash,
@@ -205,6 +208,7 @@ type SystemIntervalTM struct {
 	UsedStateCacheSize *big.Int     `json:"used_state_cache_size,omitempty"`
 }
 
+// NewBandwidthTM function to create new Bandwidth Telemetry Message
 func NewBandwidthTM(bandwidthDownload, bandwidthUpload float64, peers int) *SystemIntervalTM {
 	return &SystemIntervalTM{
 		BandwidthDownload: bandwidthDownload,
@@ -214,6 +218,7 @@ func NewBandwidthTM(bandwidthDownload, bandwidthUpload float64, peers int) *Syst
 	}
 }
 
+// NewBlockIntervalTM function to create new Block Interval Telemetry Message
 func NewBlockIntervalTM(beshHash *common.Hash, bestHeight *big.Int, finalisedHash *common.Hash,
 	finalisedHeight, txCount, usedStateCacheSize *big.Int) *SystemIntervalTM {
 	return &SystemIntervalTM{
@@ -237,6 +242,7 @@ type NetworkStateTM struct {
 	State map[string]interface{} `json:"state"`
 }
 
+// NewNetworkStateTM function to create new Network State Telemetry Message
 func NewNetworkStateTM(state map[string]interface{}) *NetworkStateTM {
 	return &NetworkStateTM{
 		Msg:   "system.network_state",
