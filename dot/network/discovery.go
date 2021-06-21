@@ -140,13 +140,9 @@ func (d *discovery) discoverAndAdvertise() error {
 func (d *discovery) advertise() {
 	ttl := initialAdvertisementTimeout
 
-	// todo (ed): should this be inside the for loop so that ttl is updated as needed?
-	//  or keep as time.After
-	t := time.NewTicker(ttl)
-	defer t.Stop()
 	for {
 		select {
-		case <-t.C:
+		case <-time.After(ttl):
 			logger.Debug("advertising ourselves in the DHT...")
 			err := d.dht.Bootstrap(d.ctx)
 			if err != nil {
@@ -154,10 +150,10 @@ func (d *discovery) advertise() {
 				continue
 			}
 
-			ttl, err = d.rd.Advertise(d.ctx, string(d.pid)) // nolint
+			ttl, err = d.rd.Advertise(d.ctx, string(d.pid))
 			if err != nil {
 				logger.Debug("failed to advertise in the DHT", "error", err)
-				ttl = tryAdvertiseTimeout // nolint
+				ttl = tryAdvertiseTimeout
 			}
 		case <-d.ctx.Done():
 			return
