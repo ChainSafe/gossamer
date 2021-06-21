@@ -210,10 +210,8 @@ func resultExample() {
 
 ### Varying Data Type
 
-A `VaryingDataType` is analogous to a Rust enum.  A `VaryingDataType` needs to be registered using the  `RegisterVaryingDataType` function with its associated `VaryingDataTypeValue` types.  `VaryingDataTypeValue` is an
-interface with one `Index() uint` method that needs to be implemented.  The returned `uint` index should be unique per type and needs to be the same index as defined in the Rust enum to ensure interopability.
-
-> TODO: The only custom `VaryingDataTypeValue` types supported are currently `struct`, `int`, and `int16`.  Need to add other supported primitives.
+A `VaryingDataType` is analogous to a Rust enum.  A `VaryingDataType` needs to be constructed using the  `NewVaryingDataType` constructor.  `VaryingDataTypeValue` is an
+interface with one `Index() uint` method that needs to be implemented.  The returned `uint` index should be unique per type and needs to be the same index as defined in the Rust enum to ensure interopability.  To set the value of the `VaryingDataType`, the `VaryingDataType.Set()` function should be called with an associated `VaryingDataTypeValue`.
 
 ```
 import (
@@ -247,39 +245,82 @@ func (mi16 MyInt16) Index() uint {
 	return 3
 }
 
-type MyVaryingDataType scale.VaryingDataType
-
-func varyingDataTypeExample() {
-	err := scale.RegisterVaryingDataType(MyVaryingDataType{}, MyStruct{}, MyOtherStruct{}, MyInt16(0))
+func ExampleVaryingDataType() {
+	vdt, err := scale.NewVaryingDataType(MyStruct{}, MyOtherStruct{}, MyInt16(0))
 	if err != nil {
 		panic(err)
 	}
 
-	mvdt := MyVaryingDataType{
+	err = vdt.Set(MyStruct{
+		Baz: true,
+		Bar: 999,
+		Foo: []byte{1, 2},
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	bytes, err := scale.Marshal(vdt)
+	if err != nil {
+		panic(err)
+	}
+
+	vdt1, err := scale.NewVaryingDataType(MyStruct{}, MyOtherStruct{}, MyInt16(0))
+	if err != nil {
+		panic(err)
+	}
+
+	err = scale.Unmarshal(bytes, &vdt1)
+	if err != nil {
+		panic(err)
+	}
+
+	if !reflect.DeepEqual(vdt, vdt1) {
+		panic(fmt.Errorf("uh oh: %+v %+v", vdt, vdt1))
+	}
+}
+```
+
+A `VaryingDataTypeSlice` is a slice containing multiple `VaryingDataType` elements.  Each `VaryingDataTypeValue` must be of a supported type of the `VaryingDataType` passed into the `NewVaryingDataTypeSlice` constructor.  The method to call to add `VaryingDataTypeValue` instances is `VaryingDataTypeSlice.Add()`.
+
+```
+func ExampleVaryingDataTypeSlice() {
+	vdt, err := scale.NewVaryingDataType(MyStruct{}, MyOtherStruct{}, MyInt16(0))
+	if err != nil {
+		panic(err)
+	}
+
+	vdts := scale.NewVaryingDataTypeSlice(vdt)
+
+	err = vdts.Add(
 		MyStruct{
 			Baz: true,
 			Bar: 999,
 			Foo: []byte{1, 2},
 		},
-		MyOtherStruct{
-			Foo: "hello",
-			Bar: 999,
-			Baz: 888,
-		},
-		MyInt16(111),
-	}
-	bytes, err := scale.Marshal(mvdt)
+		MyInt16(1),
+	)
 	if err != nil {
 		panic(err)
 	}
 
-	var unmarshaled MyVaryingDataType
-	err = scale.Unmarshal(bytes, &unmarshaled)
+	bytes, err := scale.Marshal(vdts)
 	if err != nil {
 		panic(err)
 	}
 
-	// [{Baz:true Bar:999 Foo:[1 2]} {Foo:hello Bar:999 Baz:888} 111]
-	fmt.Printf("%+v", unmarshaled)
+	vdts1 := scale.NewVaryingDataTypeSlice(vdt)
+	if err != nil {
+		panic(err)
+	}
+
+	err = scale.Unmarshal(bytes, &vdts1)
+	if err != nil {
+		panic(err)
+	}
+
+	if !reflect.DeepEqual(vdts, vdts1) {
+		panic(fmt.Errorf("uh oh: %+v %+v", vdts, vdts1))
+	}
 }
 ```

@@ -7,7 +7,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-func resultExample() {
+func ExampleResult() {
 	// pass in zero or non-zero values of the types for Ok and Err cases
 	res := scale.NewResult(bool(false), string(""))
 
@@ -48,6 +48,6 @@ func resultExample() {
 	}
 }
 
-func TestSomething2(t *testing.T) {
-	resultExample()
+func TestExampleResult(t *testing.T) {
+	ExampleResult()
 }
