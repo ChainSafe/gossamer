@@ -73,7 +73,7 @@ describe('Testing polkadot.js/api calls:', function () {
             const aliceKey = keyring.addFromUri('//Alice');
 
             // Retrieve the runtime to upgrade
-            const code = fs.readFileSync('./node_runtime_2.compact.wasm').toString('hex');
+            const code = fs.readFileSync('./node_runtime.compact.wasm').toString('hex');
             const proposal = api.tx.system && api.tx.system.setCode
                 ? api.tx.system.setCode(`0x${code}`) // For newer versions of Substrate
                 : api.tx.consensus.setCode(`0x${code}`); // For previous versions
