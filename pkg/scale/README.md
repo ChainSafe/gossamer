@@ -88,7 +88,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-func basicExample() {
+func ExampleBasic() {
 	// compact length encoded uint
 	var ui uint = 999
 	bytes, err := scale.Marshal(ui)
@@ -117,7 +117,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-func structExample() {
+func ExampleStruct() {
 	type MyStruct struct {
 		Baz bool      `scale:"3"`
 		Bar int32     `scale:"2"`
@@ -165,7 +165,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-func resultExample() {
+func ExampleResult() {
 	// pass in zero or non-zero values of the types for Ok and Err cases
 	res := scale.NewResult(bool(false), string(""))
 
