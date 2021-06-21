@@ -38,7 +38,7 @@ test:
 	@echo "  >  \033[32mRunning tests...\033[0m "
 	#GOBIN=$(PWD)/bin go run scripts/ci.go test
 	git lfs pull
-	go test -short -coverprofile c.out ./... -timeout=20m
+	go test -short -coverprofile c.out ./... -timeout=30m
 
 ## it-stable: Runs Integration Tests Stable mode
 it-stable:
@@ -128,13 +128,19 @@ install:
 	GOBIN=$(GOPATH)/bin go run scripts/ci.go install
 
 MOCKGEN := $(shell command -v $(GOPATH)/bin/mockery 2> /dev/null)
+INMOCKS=0
 mock:
 ifndef MOCKGEN
 	@echo "> Installing mockery ..."
 	@go get github.com/vektra/mockery/v2/.../
 endif
-	@echo "> Generating mocks at ./tests/mocks ..."
-	$(GOPATH)/bin/mockery --all --recursive --inpackage --case underscore
+	@echo "> Generating mocks at $(path)"
+
+ifeq ($(INMOCKS),1)
+	cd $(path); $(GOPATH)/bin/mockery --name $(interface) --inpackage --keeptree --case underscore
+else
+	$(GOPATH)/bin/mockery --srcpkg $(path) --name $(interface) --case underscore --inpackage
+endif
 
 
 

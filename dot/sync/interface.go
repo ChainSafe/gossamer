@@ -21,7 +21,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 )
 
@@ -46,6 +45,7 @@ type BlockState interface {
 	SetFinalizedHash(hash common.Hash, round, setID uint64) error
 	AddBlockToBlockTree(header *types.Header) error
 	GetHashByNumber(*big.Int) (common.Hash, error)
+	GetBlockByHash(common.Hash) (*types.Block, error)
 }
 
 // StorageState is the interface for the storage state
@@ -67,18 +67,6 @@ type TransactionState interface {
 	RemoveExtrinsic(ext types.Extrinsic)
 }
 
-// BlockProducer is the interface that a block production service must implement
-type BlockProducer interface {
-	Pause() error
-	Resume() error
-	SetRuntime(rt runtime.Instance)
-}
-
-// DigestHandler is the interface for the consensus digest handler
-type DigestHandler interface {
-	HandleConsensusDigest(*types.ConsensusDigest, *types.Header) error
-}
-
 // Verifier deals with block verification
 type Verifier interface {
 	VerifyBlock(header *types.Header) error
@@ -87,4 +75,9 @@ type Verifier interface {
 // FinalityGadget implements justification verification functionality
 type FinalityGadget interface {
 	VerifyBlockJustification([]byte) error
+}
+
+// BlockImportHandler is the interface for the handler of newly imported blocks
+type BlockImportHandler interface {
+	HandleBlockImport(block *types.Block, state *rtstorage.TrieState) error
 }

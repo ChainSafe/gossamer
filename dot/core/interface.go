@@ -22,7 +22,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/grandpa"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
@@ -56,6 +55,7 @@ type StorageState interface {
 	LoadCode(root *common.Hash) ([]byte, error)
 	LoadCodeHash(root *common.Hash) (common.Hash, error)
 	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
+	StoreTrie(*rtstorage.TrieState, *types.Header) error
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 }
 
@@ -68,17 +68,6 @@ type TransactionState interface {
 	PendingInPool() []*transaction.ValidTransaction
 }
 
-// BlockProducer is the interface that a block production service must implement
-type BlockProducer interface {
-	GetBlockChannel() <-chan types.Block
-	SetOnDisabled(authorityIndex uint32)
-}
-
-// Verifier is the interface for the block verifier
-type Verifier interface {
-	SetOnDisabled(authorityIndex uint32, block *types.Header) error
-}
-
 // Network is the interface for the network service
 type Network interface {
 	SendMessage(network.NotificationsMessage)
@@ -87,17 +76,17 @@ type Network interface {
 // EpochState is the interface for state.EpochState
 type EpochState interface {
 	GetEpochForBlock(header *types.Header) (uint64, error)
-	SetEpochData(epoch uint64, info *types.EpochData) error
-	SetConfigData(epoch uint64, info *types.ConfigData) error
 	SetCurrentEpoch(epoch uint64) error
 	GetCurrentEpoch() (uint64, error)
 }
 
-// GrandpaState is the interface for the state.GrandpaState
-type GrandpaState interface {
-	SetNextChange(authorities []*grandpa.Voter, number *big.Int) error
-	IncrementSetID() error
-	SetNextPause(number *big.Int) error
-	SetNextResume(number *big.Int) error
-	GetCurrentSetID() (uint64, error)
+// CodeSubstitutedState interface to handle storage of code substitute state
+type CodeSubstitutedState interface {
+	LoadCodeSubstitutedBlockHash() common.Hash
+	StoreCodeSubstitutedBlockHash(hash common.Hash) error
+}
+
+// DigestHandler is the interface for the consensus digest handler
+type DigestHandler interface {
+	HandleDigests(header *types.Header)
 }

@@ -34,12 +34,14 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ChainSafe/gossamer/lib/babe/mocks"
+	mock "github.com/stretchr/testify/mock"
 )
 
 var (
 	defaultTestLogLvl = log.LvlInfo
 	emptyHash         = trie.EmptyHash
-	testTimeout       = time.Second * 5
 	testEpochIndex    = uint64(0)
 
 	maxThreshold = common.MaxUint128
@@ -88,6 +90,9 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 			Authority: true,
 		}
 	}
+
+	cfg.BlockImportHandler = new(mocks.BlockImportHandler)
+	cfg.BlockImportHandler.(*mocks.BlockImportHandler).On("HandleBlockProduced", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).Return(nil)
 
 	if cfg.Keypair == nil {
 		cfg.Keypair, err = sr25519.GenerateKeypair()
@@ -166,19 +171,16 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestRunEpochLengthConfig(t *testing.T) {
+func TestService_RunEpochLengthConfig(t *testing.T) {
 	cfg := &ServiceConfig{
 		EpochLength: 5,
 	}
 
 	babeService := createTestService(t, cfg)
-
-	if babeService.epochLength != 5 {
-		t.Fatal("epoch length not set")
-	}
+	require.Equal(t, uint64(5), babeService.epochLength)
 }
 
-func TestSlotDuration(t *testing.T) {
+func TestService_SlotDuration(t *testing.T) {
 	duration, err := time.ParseDuration("1000ms")
 	require.NoError(t, err)
 
@@ -190,7 +192,7 @@ func TestSlotDuration(t *testing.T) {
 	require.Equal(t, dur.Milliseconds(), int64(1000))
 }
 
-func TestBabeAnnounceMessage(t *testing.T) {
+func TestService_ProducesBlocks(t *testing.T) {
 	babeService := createTestService(t, nil)
 
 	babeService.epochData.authorityIndex = 0
@@ -201,21 +203,18 @@ func TestBabeAnnounceMessage(t *testing.T) {
 	}
 
 	babeService.epochData.threshold = maxThreshold
-	blockNumber := big.NewInt(int64(1))
 
 	err := babeService.Start()
 	require.NoError(t, err)
+	defer func() {
+		_ = babeService.Stop()
+	}()
 
-	newBlocks := babeService.GetBlockChannel()
-	select {
-	case block := <-newBlocks:
-		require.Equal(t, blockNumber, block.Header.Number)
-	case <-time.After(testTimeout):
-		t.Fatal("did not receive block")
-	}
+	time.Sleep(babeService.slotDuration * 2)
+	babeService.blockImportHandler.(*mocks.BlockImportHandler).AssertCalled(t, "HandleBlockProduced", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState"))
 }
 
-func TestGetAuthorityIndex(t *testing.T) {
+func TestService_GetAuthorityIndex(t *testing.T) {
 	kpA, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)
 

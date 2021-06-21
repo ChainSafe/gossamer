@@ -225,7 +225,7 @@ func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
 
 	tt.Put(runtime.GrandpaAuthoritiesKey, value)
 
-	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlTrace)
+	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlInfo)
 
 	auths, err := rt.GrandpaAuthorities()
 	require.NoError(t, err)
@@ -252,7 +252,7 @@ func TestInstance_GrandpaAuthorities_PolkadotRuntime(t *testing.T) {
 
 	tt.Put(runtime.GrandpaAuthoritiesKey, value)
 
-	rt := NewTestInstanceWithTrie(t, runtime.POLKADOT_RUNTIME, tt, log.LvlTrace)
+	rt := NewTestInstanceWithTrie(t, runtime.POLKADOT_RUNTIME, tt, log.LvlInfo)
 
 	auths, err := rt.GrandpaAuthorities()
 	require.NoError(t, err)
@@ -319,7 +319,7 @@ func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {
 
 	tt.Put(runtime.BABEAuthoritiesKey(), avalue)
 
-	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlTrace)
+	rt := NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlInfo)
 
 	cfg, err := rt.BabeConfiguration()
 	require.NoError(t, err)

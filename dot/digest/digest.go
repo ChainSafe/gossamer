@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package core
+package digest
 
 import (
 	"context"
@@ -23,12 +23,20 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/lib/services"
+
+	log "github.com/ChainSafe/log15"
 )
 
 var maxUint64 = uint64(2^64) - 1
 
-// DigestHandler is used to handle consensus messages and relevant authority updates to BABE and GRANDPA
-type DigestHandler struct {
+var (
+	_      services.Service = &Handler{}
+	logger log.Logger       = log.New("pkg", "digest") // TODO: add to config options
+)
+
+// Handler is used to handle consensus messages and relevant authority updates to BABE and GRANDPA
+type Handler struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
@@ -36,8 +44,6 @@ type DigestHandler struct {
 	blockState   BlockState
 	epochState   EpochState
 	grandpaState GrandpaState
-	babe         BlockProducer
-	verifier     Verifier
 
 	// block notification channels
 	imported    chan *types.Block
@@ -65,8 +71,8 @@ type resume struct {
 	atBlock *big.Int
 }
 
-// NewDigestHandler returns a new DigestHandler
-func NewDigestHandler(blockState BlockState, epochState EpochState, grandpaState GrandpaState, babe BlockProducer, verifier Verifier) (*DigestHandler, error) {
+// NewHandler returns a new Handler
+func NewHandler(blockState BlockState, epochState EpochState, grandpaState GrandpaState) (*Handler, error) {
 	imported := make(chan *types.Block, 16)
 	finalised := make(chan *types.FinalisationInfo, 16)
 	iid, err := blockState.RegisterImportedChannel(imported)
@@ -81,14 +87,12 @@ func NewDigestHandler(blockState BlockState, epochState EpochState, grandpaState
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	return &DigestHandler{
+	return &Handler{
 		ctx:          ctx,
 		cancel:       cancel,
 		blockState:   blockState,
 		epochState:   epochState,
 		grandpaState: grandpaState,
-		babe:         babe,
-		verifier:     verifier,
 		imported:     imported,
 		importedID:   iid,
 		finalised:    finalised,
@@ -96,15 +100,15 @@ func NewDigestHandler(blockState BlockState, epochState EpochState, grandpaState
 	}, nil
 }
 
-// Start starts the DigestHandler
-func (h *DigestHandler) Start() error {
+// Start starts the Handler
+func (h *Handler) Start() error {
 	go h.handleBlockImport(h.ctx)
 	go h.handleBlockFinalisation(h.ctx)
 	return nil
 }
 
-// Stop stops the DigestHandler
-func (h *DigestHandler) Stop() error {
+// Stop stops the Handler
+func (h *Handler) Stop() error {
 	h.cancel()
 	h.blockState.UnregisterImportedChannel(h.importedID)
 	h.blockState.UnregisterFinalizedChannel(h.finalisedID)
@@ -115,7 +119,7 @@ func (h *DigestHandler) Stop() error {
 
 // NextGrandpaAuthorityChange returns the block number of the next upcoming grandpa authorities change.
 // It returns 0 if no change is scheduled.
-func (h *DigestHandler) NextGrandpaAuthorityChange() uint64 {
+func (h *Handler) NextGrandpaAuthorityChange() uint64 {
 	next := maxUint64
 
 	if h.grandpaScheduledChange != nil {
@@ -137,8 +141,25 @@ func (h *DigestHandler) NextGrandpaAuthorityChange() uint64 {
 	return next
 }
 
-// HandleConsensusDigest is the function used by the syncer to handle a consensus digest
-func (h *DigestHandler) HandleConsensusDigest(d *types.ConsensusDigest, header *types.Header) error {
+// HandleDigests handles consensus digests for an imported block
+func (h *Handler) HandleDigests(header *types.Header) {
+	for i, d := range header.Digest {
+		if d.Type() == types.ConsensusDigestType {
+			cd, ok := d.(*types.ConsensusDigest)
+			if !ok {
+				logger.Error("handleDigests", "block number", header.Number, "index", i, "error", "cannot cast invalid consensus digest item")
+				continue
+			}
+
+			err := h.handleConsensusDigest(cd, header)
+			if err != nil {
+				logger.Error("handleDigests", "block number", header.Number, "index", i, "digest", cd, "error", err)
+			}
+		}
+	}
+}
+
+func (h *Handler) handleConsensusDigest(d *types.ConsensusDigest, header *types.Header) error {
 	t := d.DataType()
 
 	if d.ConsensusEngineID == types.GrandpaEngineID {
@@ -174,7 +195,7 @@ func (h *DigestHandler) HandleConsensusDigest(d *types.ConsensusDigest, header *
 	return errors.New("unknown consensus engine ID")
 }
 
-func (h *DigestHandler) handleBlockImport(ctx context.Context) {
+func (h *Handler) handleBlockImport(ctx context.Context) {
 	for {
 		select {
 		case block := <-h.imported:
@@ -192,7 +213,7 @@ func (h *DigestHandler) handleBlockImport(ctx context.Context) {
 	}
 }
 
-func (h *DigestHandler) handleBlockFinalisation(ctx context.Context) {
+func (h *Handler) handleBlockFinalisation(ctx context.Context) {
 	for {
 		select {
 		case info := <-h.finalised:
@@ -210,7 +231,7 @@ func (h *DigestHandler) handleBlockFinalisation(ctx context.Context) {
 	}
 }
 
-func (h *DigestHandler) handleGrandpaChangesOnImport(num *big.Int) error {
+func (h *Handler) handleGrandpaChangesOnImport(num *big.Int) error {
 	resume := h.grandpaResume
 	if resume != nil && num.Cmp(resume.atBlock) > -1 {
 		h.grandpaResume = nil
@@ -235,7 +256,7 @@ func (h *DigestHandler) handleGrandpaChangesOnImport(num *big.Int) error {
 	return nil
 }
 
-func (h *DigestHandler) handleGrandpaChangesOnFinalization(num *big.Int) error {
+func (h *Handler) handleGrandpaChangesOnFinalization(num *big.Int) error {
 	pause := h.grandpaPause
 	if pause != nil && num.Cmp(pause.atBlock) > -1 {
 		h.grandpaPause = nil
@@ -262,7 +283,7 @@ func (h *DigestHandler) handleGrandpaChangesOnFinalization(num *big.Int) error {
 	return nil
 }
 
-func (h *DigestHandler) handleScheduledChange(d *types.ConsensusDigest, header *types.Header) error {
+func (h *Handler) handleScheduledChange(d *types.ConsensusDigest, header *types.Header) error {
 	curr, err := h.blockState.BestBlockHeader()
 	if err != nil {
 		return err
@@ -304,7 +325,7 @@ func (h *DigestHandler) handleScheduledChange(d *types.ConsensusDigest, header *
 	)
 }
 
-func (h *DigestHandler) handleForcedChange(d *types.ConsensusDigest, header *types.Header) error {
+func (h *Handler) handleForcedChange(d *types.ConsensusDigest, header *types.Header) error {
 	if d.ConsensusEngineID != types.GrandpaEngineID {
 		return nil
 	}
@@ -345,7 +366,7 @@ func (h *DigestHandler) handleForcedChange(d *types.ConsensusDigest, header *typ
 	)
 }
 
-func (h *DigestHandler) handlePause(d *types.ConsensusDigest) error {
+func (h *Handler) handlePause(d *types.ConsensusDigest) error {
 	curr, err := h.blockState.BestBlockHeader()
 	if err != nil {
 		return err
@@ -367,7 +388,7 @@ func (h *DigestHandler) handlePause(d *types.ConsensusDigest) error {
 	return h.grandpaState.SetNextPause(h.grandpaPause.atBlock)
 }
 
-func (h *DigestHandler) handleResume(d *types.ConsensusDigest) error {
+func (h *Handler) handleResume(d *types.ConsensusDigest) error {
 	curr, err := h.blockState.BestBlockHeader()
 	if err != nil {
 		return err
@@ -403,25 +424,13 @@ func newGrandpaChange(raw []*types.GrandpaAuthoritiesRaw, delay uint32, currBloc
 	}, nil
 }
 
-func (h *DigestHandler) handleBABEOnDisabled(d *types.ConsensusDigest, header *types.Header) error {
-	od := new(types.BABEOnDisabled)
-	_, err := scale.Decode(d.Data[1:], od)
-	if err != nil {
-		return err
-	}
-
+func (h *Handler) handleBABEOnDisabled(d *types.ConsensusDigest, _ *types.Header) error {
+	od := &types.BABEOnDisabled{}
 	logger.Debug("handling BABEOnDisabled", "data", od)
-
-	err = h.verifier.SetOnDisabled(od.ID, header)
-
-	if err != nil {
-		return err
-	}
-	h.babe.SetOnDisabled(od.ID)
 	return nil
 }
 
-func (h *DigestHandler) handleNextEpochData(d *types.ConsensusDigest, header *types.Header) error {
+func (h *Handler) handleNextEpochData(d *types.ConsensusDigest, header *types.Header) error {
 	od := &types.NextEpochData{}
 	dec, err := scale.Decode(d.Data[1:], od)
 	if err != nil {
@@ -446,7 +455,7 @@ func (h *DigestHandler) handleNextEpochData(d *types.ConsensusDigest, header *ty
 	return h.epochState.SetEpochData(currEpoch+1, data)
 }
 
-func (h *DigestHandler) handleNextConfigData(d *types.ConsensusDigest, header *types.Header) error {
+func (h *Handler) handleNextConfigData(d *types.ConsensusDigest, header *types.Header) error {
 	od := &types.NextConfigData{}
 	dec, err := scale.Decode(d.Data[1:], od)
 	if err != nil {
