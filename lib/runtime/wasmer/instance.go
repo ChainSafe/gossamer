@@ -224,7 +224,7 @@ func (in *Instance) CheckRuntimeVersion(code []byte) (runtime.Version, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return tmp.Version()
 }
 
