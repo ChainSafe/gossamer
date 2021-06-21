@@ -29,7 +29,7 @@ type VaryingDataTypeValue interface {
 // of the underlying data, so it is required to have the VaryingDataType required for decoding
 type VaryingDataTypeSlice struct {
 	VaryingDataType
-	Values []VaryingDataType
+	Types []VaryingDataType
 }
 
 // Add takes variadic parameter values to add VaryingDataTypeValue(s)
@@ -40,7 +40,7 @@ func (vdts *VaryingDataTypeSlice) Add(values ...VaryingDataTypeValue) (err error
 		if err != nil {
 			return
 		}
-		vdts.Values = append(vdts.Values, copied)
+		vdts.Types = append(vdts.Types, copied)
 	}
 	return
 }
@@ -48,7 +48,7 @@ func (vdts *VaryingDataTypeSlice) Add(values ...VaryingDataTypeValue) (err error
 // NewVaryingDataTypeSlice is constructor for VaryingDataTypeSlice
 func NewVaryingDataTypeSlice(vdt VaryingDataType) (vdts VaryingDataTypeSlice) {
 	vdts.VaryingDataType = vdt
-	vdts.Values = make([]VaryingDataType, 0)
+	vdts.Types = make([]VaryingDataType, 0)
 	return
 }
 

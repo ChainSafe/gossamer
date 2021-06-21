@@ -120,6 +120,8 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 		err = ds.decodeResult(dstv)
 	case VaryingDataType:
 		err = ds.decodeVaryingDataType(dstv)
+	case VaryingDataTypeSlice:
+		err = ds.decodeVaryingDataTypeSlice(dstv)
 	default:
 		t := reflect.TypeOf(in)
 		switch t.Kind() {
@@ -292,6 +294,26 @@ func (ds *decodeState) decodePointer(dstv reflect.Value) (err error) {
 	default:
 		err = fmt.Errorf("unsupported Option value: %v, bytes: %v", rb, ds.Bytes())
 	}
+	return
+}
+
+func (ds *decodeState) decodeVaryingDataTypeSlice(dstv reflect.Value) (err error) {
+	vdts := dstv.Interface().(VaryingDataTypeSlice)
+	l, err := ds.decodeLength()
+	if err != nil {
+		return
+	}
+	for i := 0; i < l; i++ {
+		vdt := vdts.VaryingDataType
+		vdtv := reflect.New(reflect.TypeOf(vdt))
+		vdtv.Elem().Set(reflect.ValueOf(vdt))
+		err = ds.unmarshal(vdtv.Elem())
+		if err != nil {
+			return
+		}
+		vdts.Types = append(vdts.Types, vdtv.Elem().Interface().(VaryingDataType))
+	}
+	dstv.Set(reflect.ValueOf(vdts))
 	return
 }
 

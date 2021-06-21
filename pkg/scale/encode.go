@@ -170,7 +170,7 @@ func (es *encodeState) encodeVaryingDataType(vdt VaryingDataType) (err error) {
 }
 
 func (es *encodeState) encodeVaryingDataTypeSlice(vdts VaryingDataTypeSlice) (err error) {
-	err = es.marshal(vdts.Values)
+	err = es.marshal(vdts.Types)
 	return
 }
 
