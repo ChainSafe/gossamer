@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	gossamermetrics "github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ethereum/go-ethereum/metrics"
 	badger "github.com/ipfs/go-ds-badger2"
 	libp2phost "github.com/libp2p/go-libp2p-core/host"
@@ -39,10 +40,8 @@ var (
 	connectToPeersTimeout       = time.Minute * 5
 	findPeersTimeout            = time.Minute
 
-	peerCountGauge = metrics.GetOrRegisterGauge(
-		"gossamer/network/discovery/peer_count",
-		metrics.DefaultRegistry,
-	)
+	checkPeerCountMetrics = "gossamer/network/peer_count"
+	peersStoreMetrics     = "gossamer/network/peerstore_count"
 )
 
 // discovery handles discovery of new peers via the kademlia DHT
@@ -55,9 +54,16 @@ type discovery struct {
 	ds                 *badger.Datastore
 	pid                protocol.ID
 	minPeers, maxPeers int
+
+	metrics map[string]interface{}
 }
 
 func newDiscovery(ctx context.Context, h libp2phost.Host, bootnodes []peer.AddrInfo, ds *badger.Datastore, pid protocol.ID, min, max int) *discovery {
+	metrics.Enabled = true
+	discoveryMetrics := make(map[string]interface{})
+	discoveryMetrics[checkPeerCountMetrics] = metrics.GetOrRegisterGauge(checkPeerCountMetrics, nil)
+	discoveryMetrics[peersStoreMetrics] = metrics.GetOrRegisterGauge(peersStoreMetrics, nil)
+
 	return &discovery{
 		ctx:       ctx,
 		h:         h,
@@ -66,6 +72,8 @@ func newDiscovery(ctx context.Context, h libp2phost.Host, bootnodes []peer.AddrI
 		pid:       pid,
 		minPeers:  min,
 		maxPeers:  max,
+
+		metrics: discoveryMetrics,
 	}
 }
 
@@ -121,6 +129,8 @@ func (d *discovery) stop() error {
 		return nil
 	}
 
+	gossamermetrics.UnregisterMetrics(d.metrics)
+
 	return d.dht.Close()
 }
 
@@ -167,8 +177,6 @@ func (d *discovery) advertise() {
 
 func (d *discovery) checkPeerCount() {
 	for {
-		defer peerCountGauge.Update(int64(len(d.h.Network().Peers())))
-
 		select {
 		case <-d.ctx.Done():
 			return
@@ -193,6 +201,20 @@ func (d *discovery) findPeers(ctx context.Context) {
 	}
 
 	for {
+		defer func() {
+			checkPeerGauge, ok := d.metrics[checkPeerCountMetrics]
+			if ok {
+				g := checkPeerGauge.(metrics.Gauge)
+				g.Update(int64(len(d.h.Network().Peers())))
+			}
+
+			peerstore, ok := d.metrics[peersStoreMetrics]
+			if ok {
+				g := peerstore.(metrics.Gauge)
+				g.Update(int64(d.h.Peerstore().Peers().Len()))
+			}
+		}()
+
 		select {
 		case <-ctx.Done():
 			return

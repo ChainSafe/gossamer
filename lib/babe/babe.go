@@ -26,6 +26,7 @@ import (
 	"sync"
 	"time"
 
+	gossamermetrics "github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -285,10 +286,7 @@ func (b *Service) Stop() error {
 	if b.ctx.Err() != nil {
 		return errors.New("service already stopped")
 	}
-
-	for k, _ := range b.metrics {
-		metrics.Unregister(k)
-	}
+	gossamermetrics.UnregisterMetrics(b.metrics)
 
 	b.cancel()
 	return nil
