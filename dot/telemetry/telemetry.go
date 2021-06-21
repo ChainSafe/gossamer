@@ -37,7 +37,7 @@ type telemetryConnection struct {
 
 // Handler struct for holding telemetry related things
 type Handler struct {
-	msg         chan TelemetryMessage
+	msg         chan Message
 	connections []*telemetryConnection
 	log         log.Logger
 }
@@ -53,7 +53,7 @@ func GetInstance() *Handler { //nolint
 		once.Do(
 			func() {
 				handlerInstance = &Handler{
-					msg: make(chan TelemetryMessage, 256),
+					msg: make(chan Message, 256),
 					log: log.New("pkg", "telemetry"),
 				}
 				go handlerInstance.startListening()
@@ -80,7 +80,7 @@ func (h *Handler) AddConnections(conns []*genesis.TelemetryEndpoint) {
 }
 
 // SendMessage sends Message to connected telemetry listeners
-func (h *Handler) SendMessage(msg TelemetryMessage) error {
+func (h *Handler) SendMessage(msg Message) error {
 	select {
 	case h.msg <- msg:
 
@@ -112,7 +112,7 @@ func (h *Handler) startListening() {
 	}
 }
 
-func (h *Handler) msgToJSON(message TelemetryMessage) ([]byte, error) {
+func (h *Handler) msgToJSON(message Message) ([]byte, error) {
 	messageBytes, err := json.Marshal(message)
 	if err != nil {
 		return nil, err
@@ -135,8 +135,8 @@ func (h *Handler) msgToJSON(message TelemetryMessage) ([]byte, error) {
 	return fullRes, nil
 }
 
-// TelemetryMessage interface for TelemetryMessage functions
-type TelemetryMessage interface {
+// Message interface for Message functions
+type Message interface {
 	messageType() string
 }
 
