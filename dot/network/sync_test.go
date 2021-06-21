@@ -470,15 +470,12 @@ func TestSyncQueue_SyncAtHead(t *testing.T) {
 
 	go q.syncAtHead()
 	time.Sleep(q.slotDuration * 3)
-	timeout := time.NewTimer(TestMessageTimeout)
 	select {
 	case req := <-q.requestCh:
 		require.Equal(t, uint64(2), req.req.StartingBlock.Uint64())
-	case <-timeout.C:
+	case <-time.After(TestMessageTimeout):
 		t.Fatal("did not queue request")
-		timeout.Reset(TestMessageTimeout) // todo (ed): do we need to reset timer here since we're not using it after timeout?
 	}
-	timeout.Stop()
 }
 
 func TestSyncQueue_PushRequest_NearHead(t *testing.T) {

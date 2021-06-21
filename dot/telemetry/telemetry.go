@@ -109,10 +109,12 @@ func (h *Handler) AddConnections(conns []*genesis.TelemetryEndpoint) {
 
 // SendMessage sends Message to connected telemetry listeners
 func (h *Handler) SendMessage(msg *Message) error {
+	t := time.NewTicker(time.Second * 1)
+	defer t.Stop()
 	select {
 	case h.msg <- *msg:
 
-	case <-time.After(time.Second * 1):
+	case <-t.C:
 		return errors.New("timeout sending message")
 	}
 	return nil

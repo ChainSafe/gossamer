@@ -379,8 +379,10 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) error {
 		// check if it's time to start the epoch yet. if not, wait until it is
 		if time.Since(epochStartTime) < 0 {
 			logger.Debug("waiting for epoch to start")
+			t := time.NewTicker(time.Until(epochStartTime))
+			defer t.Stop()
 			select {
-			case <-time.After(time.Until(epochStartTime)):
+			case <-t.C:
 			case <-b.ctx.Done():
 				return nil
 			case <-b.pause:

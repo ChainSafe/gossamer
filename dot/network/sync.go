@@ -176,10 +176,12 @@ func (q *syncQueue) syncAtHead() {
 	q.s.syncer.SetSyncing(true)
 	q.s.noGossip = true // don't gossip messages until we're at the head
 
+	t := time.NewTicker(q.slotDuration * 2)
+	defer t.Stop()
 	for {
 		select {
 		// sleep for average block time TODO: make this configurable from slot duration
-		case <-time.After(q.slotDuration * 2):
+		case <-t.C:
 		case <-q.ctx.Done():
 			return
 		}
@@ -214,9 +216,11 @@ func (q *syncQueue) syncAtHead() {
 }
 
 func (q *syncQueue) handleResponseQueue() {
+	t := time.NewTicker(time.Second)
+	defer t.Stop()
 	for {
 		select {
-		case <-time.After(time.Second):
+		case <-t.C:
 		case <-q.ctx.Done():
 			return
 		}
@@ -260,9 +264,11 @@ func (q *syncQueue) handleResponseQueue() {
 
 // prune peers with low score and connect to new peers
 func (q *syncQueue) prunePeers() {
+	t := time.NewTicker(time.Second * 30)
+	defer t.Stop()
 	for {
 		select {
-		case <-time.After(time.Second * 30):
+		case <-t.C:
 		case <-q.ctx.Done():
 			return
 		}
