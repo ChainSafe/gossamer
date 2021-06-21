@@ -33,6 +33,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
+var (
+	buildBlockTimer = "gossamer/proposer/block/constructed"
+)
+
 // construct a block for this slot with the given parent
 func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, error) {
 	builder, err := NewBlockBuilder(
@@ -47,15 +51,13 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 		return nil, fmt.Errorf("failed to create block builder: %w", err)
 	}
 
-	buildBlockHist := metrics.GetOrRegisterHistogram(
-		"gossamer/proposer/block/constructed",
-		metrics.DefaultRegistry,
-		metrics.NewUniformSample(1028),
-	)
-
 	startBuilt := time.Now()
 	defer func() {
-		buildBlockHist.Update(time.Since(startBuilt).Milliseconds())
+		timerRegistry, ok := b.metrics[buildBlockTimer]
+		if ok {
+			timerMetrics := timerRegistry.(metrics.Timer)
+			timerMetrics.Update(time.Since(startBuilt))
+		}
 	}()
 
 	return builder.buildBlock(parent, slot)

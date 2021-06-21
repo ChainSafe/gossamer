@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ethereum/go-ethereum/metrics"
 	badger "github.com/ipfs/go-ds-badger2"
 	libp2phost "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -37,6 +38,11 @@ var (
 	tryAdvertiseTimeout         = time.Second * 30
 	connectToPeersTimeout       = time.Minute * 5
 	findPeersTimeout            = time.Minute
+
+	peerCountGauge = metrics.GetOrRegisterGauge(
+		"gossamer/network/discovery/peer_count",
+		metrics.DefaultRegistry,
+	)
 )
 
 // discovery handles discovery of new peers via the kademlia DHT
@@ -161,6 +167,8 @@ func (d *discovery) advertise() {
 
 func (d *discovery) checkPeerCount() {
 	for {
+		defer peerCountGauge.Update(int64(len(d.h.Network().Peers())))
+
 		select {
 		case <-d.ctx.Done():
 			return

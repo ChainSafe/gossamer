@@ -30,6 +30,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	log "github.com/ChainSafe/log15"
+	"github.com/ethereum/go-ethereum/metrics"
 )
 
 var logger log.Logger
@@ -66,6 +67,8 @@ type Service struct {
 	// State variables
 	sync.RWMutex
 	pause chan struct{}
+
+	metrics map[string]interface{}
 }
 
 // ServiceConfig represents a BABE configuration
@@ -137,6 +140,12 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	metrics.Enabled = true
+	babeMetrics := make(map[string]interface{})
+	babeMetrics[buildBlockTimer] = metrics.GetOrRegisterTimer(buildBlockTimer, nil)
+
+	babeService.metrics = babeMetrics
 
 	logger.Debug("created service",
 		"block producer", cfg.Authority,
@@ -274,6 +283,10 @@ func (b *Service) Stop() error {
 
 	if b.ctx.Err() != nil {
 		return errors.New("service already stopped")
+	}
+
+	for k, _ := range b.metrics {
+		metrics.Unregister(k)
 	}
 
 	b.cancel()
