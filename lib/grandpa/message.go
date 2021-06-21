@@ -37,7 +37,7 @@ type GrandpaMessage interface { //nolint
 }
 
 var (
-	voteType            byte = 0
+	voteType            byte
 	commitType          byte = 1
 	neighbourType       byte = 2
 	catchUpRequestType  byte = 3

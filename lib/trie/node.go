@@ -547,7 +547,7 @@ func encodeExtraPartialKeyLength(pkLen int) ([]byte, error) {
 }
 
 func decodeKey(r io.Reader, keyLen byte) ([]byte, error) {
-	var totalKeyLen int = int(keyLen)
+	var totalKeyLen = int(keyLen)
 
 	if keyLen == 0x3f {
 		// partial key longer than 63, read next bytes for rest of pk len

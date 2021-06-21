@@ -17,6 +17,7 @@
 package core
 
 import (
+	"io/ioutil"
 	"math/big"
 	"os"
 	"sort"
@@ -40,8 +41,8 @@ import (
 	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 )
 
-func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) []*types.Header {
-	return addTestBlocksToStateWithParent(t, blockState.BestBlockHash(), depth, blockState)
+func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
+	_ = addTestBlocksToStateWithParent(t, blockState.BestBlockHash(), depth, blockState)
 }
 
 func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, depth int, blockState BlockState) []*types.Header {
@@ -100,23 +101,21 @@ func TestStartService(t *testing.T) {
 
 func TestAnnounceBlock(t *testing.T) {
 	net := new(coremocks.MockNetwork)
-	newBlocks := make(chan types.Block)
-
 	cfg := &Config{
-		NewBlocks: newBlocks,
-		Network:   net,
+		Network: net,
 	}
 
 	s := NewTestService(t, cfg)
 	err := s.Start()
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer s.Stop()
 
 	// simulate block sent from BABE session
-	newBlock := types.Block{
+	newBlock := &types.Block{
 		Header: &types.Header{
 			ParentHash: s.blockState.BestBlockHash(),
 			Number:     big.NewInt(1),
+			Digest:     types.Digest{types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()},
 		},
 		Body: &types.Body{},
 	}
@@ -132,9 +131,13 @@ func TestAnnounceBlock(t *testing.T) {
 
 	net.On("SendMessage", expected)
 
-	newBlocks <- newBlock
-	time.Sleep(time.Second * 2)
+	state, err := s.storageState.TrieState(nil)
+	require.NoError(t, err)
 
+	err = s.HandleBlockProduced(newBlock, state)
+	require.NoError(t, err)
+
+	time.Sleep(time.Second)
 	net.AssertCalled(t, "SendMessage", expected)
 }
 
@@ -425,15 +428,6 @@ func TestService_GetRuntimeVersion(t *testing.T) {
 	require.Equal(t, rtExpected, rtv)
 }
 
-func TestService_IsBlockProducer(t *testing.T) {
-	cfg := &Config{
-		IsBlockProducer: false,
-	}
-	s := NewTestService(t, cfg)
-	bp := s.IsBlockProducer()
-	require.Equal(t, false, bp)
-}
-
 func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 	s := NewTestService(t, nil)
 
@@ -456,4 +450,59 @@ func TestService_GetMetadata(t *testing.T) {
 	res, err := s.GetMetadata(nil)
 	require.NoError(t, err)
 	require.Greater(t, len(res), 10000)
+}
+
+func TestService_HandleRuntimeChanges(t *testing.T) {
+	s := NewTestService(t, nil)
+	codeHashBefore := s.codeHash
+
+	testRuntime, err := ioutil.ReadFile(runtime.POLKADOT_RUNTIME_FP)
+	require.NoError(t, err)
+
+	ts, err := s.storageState.TrieState(nil)
+	require.NoError(t, err)
+
+	ts.Set(common.CodeKey, testRuntime)
+	err = s.handleRuntimeChanges(ts)
+	require.NoError(t, err)
+	codeHashAfter := s.codeHash
+	require.NotEqualf(t, codeHashBefore, codeHashAfter, "expected different code hash after runtime update")
+}
+
+func TestService_HandleCodeSubstitutes(t *testing.T) {
+	s := NewTestService(t, nil)
+
+	testRuntime, err := ioutil.ReadFile(runtime.POLKADOT_RUNTIME_FP)
+	require.NoError(t, err)
+
+	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29") // hash for known test code substitution
+	s.codeSubstitute = map[common.Hash]string{
+		blockHash: common.BytesToHex(testRuntime),
+	}
+
+	err = s.handleCodeSubstitution(blockHash)
+	require.NoError(t, err)
+	codSub := s.codeSubstitutedState.LoadCodeSubstitutedBlockHash()
+	require.Equal(t, blockHash, codSub)
+}
+
+func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
+	s := NewTestService(t, nil)
+	codeHashBefore := s.codeHash
+	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29") // hash for known test code substitution
+
+	err := s.handleCodeSubstitution(blockHash)
+	require.NoError(t, err)
+	require.Equal(t, codeHashBefore, s.codeHash) // codeHash should remain unchanged after code substitute
+
+	testRuntime, err := ioutil.ReadFile(runtime.POLKADOT_RUNTIME_FP)
+	require.NoError(t, err)
+
+	ts, err := s.storageState.TrieState(nil)
+	require.NoError(t, err)
+
+	ts.Set(common.CodeKey, testRuntime)
+	err = s.handleRuntimeChanges(ts)
+	require.NoError(t, err)
+	require.NotEqualf(t, codeHashBefore, s.codeHash, "expected different code hash after runtime update") // codeHash should change after runtime change
 }
