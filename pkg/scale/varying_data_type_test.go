@@ -810,27 +810,97 @@ var varyingDataTypeSliceTests = tests{
 			),
 			VDTValue1{O: newBigIntPtr(big.NewInt(1073741823))},
 		),
-		want: []byte{
-			// length
-			4,
-			// index
-			2,
-			// value
-			0x01, 0xfe, 0xff, 0xff, 0xff,
-			0x00,
-			0x00,
-			0x00,
-			0x00,
-			0x00,
-			0x00,
-			0x00,
-			0x00,
-			0x00,
-			0x00,
-			0x00,
-			0x00,
-			0x00,
-		},
+		want: newWant(
+			[]byte{
+				// length
+				4,
+				// index
+				2,
+				// value
+				0x01, 0xfe, 0xff, 0xff, 0xff,
+				0x00,
+				0x00,
+				0x00,
+				0x00,
+				0x00,
+				0x00,
+				0x00,
+				0x00,
+				0x00,
+				0x00,
+				0x00,
+				0x00,
+				0x00,
+			},
+		),
+	},
+	{
+		in: mustNewVaryingDataTypeSliceAndSet(
+			mustNewVaryingDataType(
+				VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0),
+			),
+			VDTValue1{O: newBigIntPtr(big.NewInt(1073741823))},
+			VDTValue{
+				A: big.NewInt(1073741823),
+				B: int(1073741823),
+				C: uint(1073741823),
+				D: int8(1),
+				E: uint8(1),
+				F: int16(16383),
+				G: uint16(16383),
+				H: int32(1073741823),
+				I: uint32(1073741823),
+				J: int64(9223372036854775807),
+				K: uint64(9223372036854775807),
+				L: byteArray(64),
+				M: testStrings[1],
+				N: true,
+			},
+		),
+		want: newWant(
+			[]byte{
+				// length
+				8,
+			},
+			[]byte{
+				// index
+				2,
+				// value
+				0x01, 0xfe, 0xff, 0xff, 0xff,
+				0x00,
+				0x00,
+				0x00,
+				0x00,
+				0x00,
+				0x00,
+				0x00,
+				0x00,
+				0x00,
+				0x00,
+				0x00,
+				0x00,
+				0x00,
+			},
+			[]byte{
+				// index
+				1,
+				// value
+				0xfe, 0xff, 0xff, 0xff,
+				0xfe, 0xff, 0xff, 0xff,
+				0xfe, 0xff, 0xff, 0xff,
+				0x01,
+				0x01,
+				0xff, 0x3f,
+				0xff, 0x3f,
+				0xff, 0xff, 0xff, 0x3f,
+				0xff, 0xff, 0xff, 0x3f,
+				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f,
+				0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f,
+			},
+			append([]byte{0x01, 0x01}, byteArray(64)...),
+			append([]byte{0xC2, 0x02, 0x01, 0x00}, testStrings[1]...),
+			[]byte{0x01},
+		),
 	},
 }
 
@@ -840,32 +910,33 @@ func Test_encodeState_encodeVaryingDataTypeSlice(t *testing.T) {
 			vdt := tt.in.(VaryingDataTypeSlice)
 			b, err := Marshal(vdt)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("encodeState.encodeStruct() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Marshal() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if !reflect.DeepEqual(b, tt.want) {
-				t.Errorf("encodeState.encodeStruct() = %v, want %v", b, tt.want)
+				t.Errorf("Marshal() = %v, want %v", b, tt.want)
 			}
 		})
 	}
 }
 
-// func Test_decodeState_decodeVaryingDataTypeSlice(t *testing.T) {
-// 	for _, tt := range varyingDataTypeTests {
-// 		t.Run(tt.name, func(t *testing.T) {
-// 			dst, err := NewVaryingDataType(VDTValue{}, VDTValue1{}, VDTValue2{}, VDTValue3(0))
-// 			if err != nil {
-// 				t.Errorf("%v", err)
-// 				return
-// 			}
-// 			if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
-// 				t.Errorf("decodeState.unmarshal() error = %v, wantErr %v", err, tt.wantErr)
-// 				return
-// 			}
-// 			vdt := tt.in.(VaryingDataType)
-// 			diff := cmp.Diff(dst.Value(), vdt.Value(), cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}))
-// 			if diff != "" {
-// 				t.Errorf("decodeState.unmarshal() = %s", diff)
-// 			}
-// 		})
-// 	}
-// }
+func Test_decodeState_decodeVaryingDataTypeSlice(t *testing.T) {
+	opt := cmp.Comparer(func(x, y VaryingDataType) bool {
+		return reflect.DeepEqual(x.value, y.value) && reflect.DeepEqual(x.cache, y.cache)
+	})
+
+	for _, tt := range varyingDataTypeSliceTests {
+		t.Run(tt.name, func(t *testing.T) {
+			dst := tt.in.(VaryingDataTypeSlice)
+			dst.Types = make([]VaryingDataType, 0)
+			if err := Unmarshal(tt.want, &dst); (err != nil) != tt.wantErr {
+				t.Errorf("Unmarshal() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			vdts := tt.in.(VaryingDataTypeSlice)
+			diff := cmp.Diff(dst, vdts, cmpopts.IgnoreUnexported(big.Int{}, VDTValue2{}, MyStructWithIgnore{}), opt)
+			if diff != "" {
+				t.Errorf("decodeState.unmarshal() = %s", diff)
+			}
+		})
+	}
+}
