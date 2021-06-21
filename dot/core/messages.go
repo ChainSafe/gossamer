@@ -24,6 +24,7 @@ import (
 
 // HandleTransactionMessage validates each transaction in the message and
 // adds valid transactions to the transaction queue of the BABE session
+// returns boolean for transaction propagation, true - transactions should be propagoted
 func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (bool, error) {
 	logger.Debug("received TransactionMessage")
 
