@@ -41,7 +41,7 @@ type Result struct {
 }
 
 // NewResult is constructor for Result. Use nil to represent empty tuple () in Rust.
-func NewResult(okIn interface{}, errIn interface{}) (res Result) {
+func NewResult(okIn, errIn interface{}) (res Result) {
 	switch okIn {
 	case nil:
 		res.ok = empty{}
