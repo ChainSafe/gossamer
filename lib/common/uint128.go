@@ -17,6 +17,7 @@ package common
 
 import (
 	"encoding/binary"
+	"fmt"
 	"math/big"
 )
 
@@ -64,6 +65,10 @@ func Uint128FromLEBytes(in []byte) *Uint128 {
 		Upper: upper,
 		Lower: lower,
 	}
+}
+
+func (u *Uint128) String() string {
+	return fmt.Sprintf("%d", big.NewInt(0).SetBytes(u.ToBEBytes()))
 }
 
 // ToLEBytes returns the Uint128 as a little endian byte slice

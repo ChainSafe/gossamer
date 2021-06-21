@@ -229,6 +229,31 @@ func TestBlockTree_GetNode(t *testing.T) {
 	}
 }
 
+func TestBlockTree_GetNodeCache(t *testing.T) {
+	bt, branches := createTestBlockTree(testHeader, 16, nil)
+
+	for _, branch := range branches {
+		header := &types.Header{
+			ParentHash: branch.hash,
+			Number:     branch.depth,
+			StateRoot:  Hash{0x1},
+		}
+
+		err := bt.AddBlock(header, 0)
+		require.Nil(t, err)
+	}
+
+	block := bt.getNode(branches[0].hash)
+
+	cachedBlock, ok := bt.nodeCache[block.hash]
+
+	require.True(t, len(bt.nodeCache) > 0)
+	require.True(t, ok)
+	require.NotNil(t, cachedBlock)
+	require.Equal(t, cachedBlock, block)
+
+}
+
 func TestBlockTree_GetAllBlocksAtDepth(t *testing.T) {
 	bt, _ := createTestBlockTree(testHeader, 8, nil)
 	hashes := bt.head.getNodesWithDepth(big.NewInt(10), []common.Hash{})
@@ -386,12 +411,46 @@ func TestBlockTree_Prune(t *testing.T) {
 	}
 }
 
+func TestBlockTree_PruneCache(t *testing.T) {
+	var bt *BlockTree
+	var branches []testBranch
+
+	for {
+		bt, branches = createTestBlockTree(testHeader, 5, nil)
+		if len(branches) > 0 && len(bt.getNode(branches[0].hash).children) > 1 {
+			break
+		}
+	}
+
+	// pick some block to finalise
+	finalised := bt.head.children[0].children[0].children[0]
+	pruned := bt.Prune(finalised.hash)
+
+	for _, prunedHash := range pruned {
+		block, ok := bt.nodeCache[prunedHash]
+
+		require.False(t, ok)
+		require.Nil(t, block)
+	}
+
+}
+
 func TestBlockTree_DeepCopy(t *testing.T) {
 	bt, _ := createFlatTree(t, 8)
 
 	btCopy := bt.DeepCopy()
 
 	require.Equal(t, bt.db, btCopy.db)
+	for hash := range bt.nodeCache {
+		b, ok := btCopy.nodeCache[hash]
+		b2 := bt.nodeCache[hash]
+
+		require.True(t, ok)
+		require.True(t, b != b2)
+
+		require.True(t, equalNodeValue(b, b2))
+
+	}
 	require.True(t, equalNodeValue(bt.head, btCopy.head), "BlockTree heads not equal")
 	require.True(t, equalLeave(bt.leaves, btCopy.leaves), "BlockTree leaves not equal")
 

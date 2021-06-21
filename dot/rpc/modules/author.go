@@ -165,7 +165,7 @@ func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 		return err
 	}
 	ext := types.Extrinsic(extBytes)
-	cm.logger.Trace("[rpc]", "extrinsic", ext)
+	cm.logger.Crit("[rpc]", "extrinsic", ext)
 
 	err = cm.coreAPI.HandleSubmittedExtrinsic(ext)
 	*res = ExtrinsicHashResponse(ext.Hash().String())

@@ -26,6 +26,7 @@ import (
 // Instance is the interface a v0.8 runtime instance must implement
 type Instance interface {
 	UpdateRuntimeCode([]byte) error
+	CheckRuntimeVersion([]byte) (Version, error)
 	NodeStorage() NodeStorage
 	NetworkService() BasicNetwork
 	Exec(function string, data []byte) ([]byte, error)

@@ -1,7 +1,7 @@
 module github.com/ChainSafe/gossamer
 
 require (
-	github.com/ChainSafe/chaindb v0.1.5-0.20210117220933-15e75f27268f
+	github.com/ChainSafe/chaindb v0.1.5-0.20210608140454-9606fe8c3985
 	github.com/ChainSafe/go-schnorrkel v0.0.0-20210222182958-bd440c890782
 	github.com/ChainSafe/log15 v1.0.0
 	github.com/OneOfOne/xxhash v1.2.5
@@ -12,7 +12,7 @@ require (
 	github.com/cosmos/go-bip39 v1.0.0
 	github.com/davidlazar/go-crypto v0.0.0-20190912175916-7055855a373f // indirect
 	github.com/dgraph-io/badger/v2 v2.2007.2
-	github.com/dgraph-io/ristretto v0.0.4-0.20210122082011-bb5d392ed82d
+	github.com/dgraph-io/ristretto v0.0.3-0.20200630154024-f66de99634de
 	github.com/disiqueira/gotree v1.0.0
 	github.com/docker/docker v1.13.1
 	github.com/elastic/gosigar v0.14.0 // indirect
@@ -38,7 +38,6 @@ require (
 	github.com/libp2p/go-libp2p-core v0.7.0
 	github.com/libp2p/go-libp2p-discovery v0.5.0
 	github.com/libp2p/go-libp2p-kad-dht v0.11.1
-	github.com/libp2p/go-libp2p-kbucket v0.4.7
 	github.com/libp2p/go-libp2p-peerstore v0.2.6
 	github.com/libp2p/go-libp2p-secio v0.2.2
 	github.com/libp2p/go-sockaddr v0.1.0 // indirect

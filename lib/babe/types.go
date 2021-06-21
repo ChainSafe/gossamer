@@ -70,3 +70,12 @@ type epochData struct {
 	authorities    []*types.Authority
 	threshold      *common.Uint128
 }
+
+func (ed *epochData) String() string {
+	return fmt.Sprintf("randomness=%x authorityIndex=%d authorities=%v threshold=%s",
+		ed.randomness,
+		ed.authorityIndex,
+		ed.authorities,
+		ed.threshold,
+	)
+}

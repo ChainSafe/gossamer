@@ -20,7 +20,6 @@ import (
 	"io/ioutil"
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -29,16 +28,15 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	log "github.com/ChainSafe/log15"
+
+	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
-
-// testMessageTimeout is the wait time for messages to be exchanged
-var testMessageTimeout = time.Second
 
 func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
 	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis.json")
@@ -55,54 +53,14 @@ func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie
 	return gen, genTrie, genesisHeader
 }
 
-type mockVerifier struct{}
-
-func (v *mockVerifier) SetOnDisabled(_ uint32, _ *types.Header) error {
-	return nil
-}
-
-// mockBlockProducer implements the BlockProducer interface
-type mockBlockProducer struct {
-	disabled uint32
-}
-
-// Start mocks starting
-func (bp *mockBlockProducer) Start() error {
-	return nil
-}
-
-// Stop mocks stopping
-func (bp *mockBlockProducer) Stop() error {
-	return nil
-}
-
-func (bp *mockBlockProducer) SetOnDisabled(idx uint32) {
-	bp.disabled = idx
-}
-
-// GetBlockChannel returns a new channel
-func (bp *mockBlockProducer) GetBlockChannel() <-chan types.Block {
-	return make(chan types.Block)
-}
-
-// SetRuntime mocks setting runtime
-func (bp *mockBlockProducer) SetRuntime(rt runtime.Instance) {}
-
-type mockNetwork struct {
-	Message network.Message
-}
-
-func (n *mockNetwork) SendMessage(m network.NotificationsMessage) {
-	n.Message = m
-}
-
 // NewTestService creates a new test core service
 func NewTestService(t *testing.T, cfg *Config) *Service {
 	if cfg == nil {
-		cfg = &Config{
-			IsBlockProducer: false,
-		}
+		cfg = &Config{}
 	}
+
+	cfg.DigestHandler = new(coremocks.MockDigestHandler)
+	cfg.DigestHandler.(*coremocks.MockDigestHandler).On("HandleDigests", mock.AnythingOfType("*types.Header"))
 
 	if cfg.Keystore == nil {
 		cfg.Keystore = keystore.NewGlobalKeystore()
@@ -113,14 +71,6 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		cfg.Keystore.Acco.Insert(kp)
 	}
 
-	if cfg.NewBlocks == nil {
-		cfg.NewBlocks = make(chan types.Block)
-	}
-
-	if cfg.Verifier == nil {
-		cfg.Verifier = new(mockVerifier)
-	}
-
 	cfg.LogLvl = 3
 
 	var stateSrvc *state.Service
@@ -129,8 +79,12 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
 
-	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.TransactionState == nil || cfg.EpochState == nil {
-		stateSrvc = state.NewService(testDatadirPath, log.LvlInfo)
+	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.TransactionState == nil || cfg.EpochState == nil || cfg.CodeSubstitutedState == nil {
+		config := state.Config{
+			Path:     testDatadirPath,
+			LogLevel: log.LvlInfo,
+		}
+		stateSrvc = state.NewService(config)
 		stateSrvc.UseMemDB()
 
 		err = stateSrvc.Initialise(gen, genHeader, genTrie)
@@ -156,6 +110,10 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		cfg.EpochState = stateSrvc.Epoch
 	}
 
+	if cfg.CodeSubstitutedState == nil {
+		cfg.CodeSubstitutedState = stateSrvc.Base
+	}
+
 	if cfg.Runtime == nil {
 		rtCfg := &wasmer.Config{}
 		rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
@@ -171,13 +129,28 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 			NoBootstrap:        true,
 			NoMDNS:             true,
 			BlockState:         stateSrvc.Block,
-			TransactionHandler: &mockTransactionHandler{},
+			TransactionHandler: network.NewMockTransactionHandler(),
 		}
 		cfg.Network = createTestNetworkService(t, config)
 	}
 
+	if cfg.CodeSubstitutes == nil {
+		cfg.CodeSubstitutes = make(map[common.Hash]string)
+
+		genesisData, err := cfg.CodeSubstitutedState.(*state.BaseState).LoadGenesisData() //nolint
+		require.NoError(t, err)
+
+		for k, v := range genesisData.CodeSubstitutes {
+			cfg.CodeSubstitutes[common.MustHexToHash(k)] = v
+		}
+	}
+
+	if cfg.CodeSubstitutedState == nil {
+		cfg.CodeSubstitutedState = stateSrvc.Base
+	}
+
 	s, err := NewService(cfg)
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	if net, ok := cfg.Network.(*network.Service); ok {
 		net.SetTransactionHandler(s)
@@ -194,7 +167,7 @@ func createTestNetworkService(t *testing.T, cfg *network.Config) (srvc *network.
 	}
 
 	if cfg.Syncer == nil {
-		cfg.Syncer = newMockSyncer()
+		cfg.Syncer = network.NewMockSyncer()
 	}
 
 	srvc, err := network.NewService(cfg)
@@ -208,42 +181,4 @@ func createTestNetworkService(t *testing.T, cfg *network.Config) (srvc *network.
 		require.NoError(t, err)
 	})
 	return srvc
-}
-
-type mockSyncer struct {
-	highestSeen *big.Int
-}
-
-func newMockSyncer() *mockSyncer {
-	return &mockSyncer{
-		highestSeen: big.NewInt(0),
-	}
-}
-
-func (s *mockSyncer) CreateBlockResponse(msg *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
-	return nil, nil
-}
-
-func (s *mockSyncer) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) error {
-	return nil
-}
-
-func (s *mockSyncer) ProcessBlockData(_ []*types.BlockData) (int, error) {
-	return 0, nil
-}
-
-func (s *mockSyncer) ProcessJustification(data []*types.BlockData) (int, error) {
-	return 0, nil
-}
-
-func (s *mockSyncer) IsSynced() bool {
-	return false
-}
-
-func (s *mockSyncer) SetSyncing(bool) {}
-
-type mockTransactionHandler struct{}
-
-func (h *mockTransactionHandler) HandleTransactionMessage(_ *network.TransactionMessage) error {
-	return nil
 }

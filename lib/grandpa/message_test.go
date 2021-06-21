@@ -97,7 +97,7 @@ func TestCommitMessageToConsensusMessage(t *testing.T) {
 }
 
 func TestNewCatchUpResponse(t *testing.T) {
-	gs, _ := newTestService(t)
+	gs, st := newTestService(t)
 
 	round := uint64(1)
 	setID := uint64(1)
@@ -111,7 +111,10 @@ func TestNewCatchUpResponse(t *testing.T) {
 		number: 1,
 	}
 
-	err := gs.blockState.SetFinalizedHash(testHeader.Hash(), round, setID)
+	err := st.Block.SetHeader(testHeader)
+	require.NoError(t, err)
+
+	err = gs.blockState.SetFinalizedHash(testHeader.Hash(), round, setID)
 	require.NoError(t, err)
 	err = gs.blockState.(*state.BlockState).SetHeader(testHeader)
 	require.NoError(t, err)

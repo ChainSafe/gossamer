@@ -22,7 +22,7 @@ func runPruneCmd(t *testing.T, configFile, prunedDBPath string) {
 	ctx, err := newTestContext(
 		"Test state trie offline pruning  --prune-state",
 		[]string{"config", "pruned-db-path", "bloom-size", "retain-blocks"},
-		[]interface{}{configFile, prunedDBPath, "256", "5"},
+		[]interface{}{configFile, prunedDBPath, "256", int64(5)},
 	)
 	if err != nil {
 		t.Fatal(err)

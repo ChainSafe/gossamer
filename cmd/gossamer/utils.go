@@ -95,6 +95,8 @@ func newTestConfig(t *testing.T) *dot.Config {
 			LogLvl:         log.LvlInfo,
 			PublishMetrics: dot.GssmrConfig().Global.PublishMetrics,
 			MetricsPort:    dot.GssmrConfig().Global.MetricsPort,
+			RetainBlocks:   dot.GssmrConfig().Global.RetainBlocks,
+			Pruning:        dot.GssmrConfig().Global.Pruning,
 		},
 		Log: dot.LogConfig{
 			CoreLvl:           log.LvlInfo,

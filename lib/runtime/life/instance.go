@@ -141,6 +141,11 @@ func (in *Instance) UpdateRuntimeCode(_ []byte) error {
 	return errors.New("unimplemented")
 }
 
+// CheckRuntimeVersion ...
+func (in *Instance) CheckRuntimeVersion(code []byte) (runtime.Version, error) {
+	return nil, errors.New("unimplemented")
+}
+
 // SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.
 func (in *Instance) SetContextStorage(s runtime.Storage) {
 	ctx.Storage = s

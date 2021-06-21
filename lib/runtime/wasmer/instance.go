@@ -212,6 +212,22 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	return inst, nil
 }
 
+// CheckRuntimeVersion calculates runtime Version for runtime blob passed in
+func (in *Instance) CheckRuntimeVersion(code []byte) (runtime.Version, error) {
+	// TODO: make sure this works
+	cfg := &Config{
+		Imports: in.imports,
+	}
+	cfg.LogLvl = -1
+
+	tmp, err := newInstance(code, cfg)
+	if err != nil {
+		return nil, err
+	}
+	
+	return tmp.Version()
+}
+
 // UpdateRuntimeCode updates the runtime instance to run the given code
 func (in *Instance) UpdateRuntimeCode(code []byte) error {
 	cfg := &Config{
