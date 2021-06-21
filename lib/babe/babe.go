@@ -167,7 +167,6 @@ func (b *Service) setupParameters(cfg *ServiceConfig) error {
 		return err
 	}
 
-	fmt.Println(epochData)
 	b.epochData.randomness = epochData.Randomness
 
 	configData, err := b.epochState.GetLatestConfigData()
