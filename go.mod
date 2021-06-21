@@ -21,10 +21,14 @@ require (
 	github.com/golang/snappy v0.0.3-0.20201103224600-674baa8c7fc3 // indirect
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 	github.com/google/go-cmp v0.5.6
 =======
 	github.com/google/go-cmp v0.5.6 // indirect
 >>>>>>> fix struct tests and optionality tests
+=======
+	github.com/google/go-cmp v0.5.6
+>>>>>>> integrate scale pkg into lib/transaction
 =======
 	github.com/google/go-cmp v0.5.6
 >>>>>>> integrate scale pkg into lib/transaction
