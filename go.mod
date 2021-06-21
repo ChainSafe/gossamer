@@ -22,10 +22,14 @@ require (
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 	github.com/google/go-cmp v0.5.6
 =======
 	github.com/google/go-cmp v0.5.6 // indirect
 >>>>>>> fix struct tests and optionality tests
+=======
+	github.com/google/go-cmp v0.5.6
+>>>>>>> integrate scale pkg into lib/transaction
 =======
 	github.com/google/go-cmp v0.5.6
 >>>>>>> integrate scale pkg into lib/transaction
