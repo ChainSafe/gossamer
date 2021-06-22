@@ -534,15 +534,12 @@ func (s *Service) GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error)
 		return nil, err
 	}
 
-	logger.Crit("core.GetRuntimeVersion", "state root", stateRootHash)
-
 	s.rt.SetContextStorage(ts)
 	return s.rt.Version()
 }
 
 // HandleSubmittedExtrinsic is used to send a Transaction message containing a Extrinsic @ext
 func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
-	logger.Crit("HandleSubmittedExtrinsic")
 	if s.net == nil {
 		return nil
 	}

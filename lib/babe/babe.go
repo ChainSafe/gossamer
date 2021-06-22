@@ -502,7 +502,7 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		return err
 	}
 
-	return b.rt.HandleRuntimeChanges(ts)
+	return nil
 }
 
 func getCurrentSlot(slotDuration time.Duration) uint64 {
