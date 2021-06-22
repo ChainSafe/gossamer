@@ -93,15 +93,14 @@ func determineCustomModuleErr(res []byte) error {
 func determineDispatchErr(res []byte) error {
 	switch res[0] {
 	case 0:
-		//unKnownError, _ := scale.Decode(res[1:], []byte{})
-		//fmt.Sprintf("Output: %s", string(unKnownError.([]byte)))
-		//fmt.Println("Output:")
-		// This has not been working
 		var v []byte
-		fmt.Println(res)
-		unKnownError := scale.Unmarshal(res[1:], &v)
-		fmt.Println("Output: " + unKnownError.Error())
-		return &DispatchOutcomeError{fmt.Sprintf("unknown error: %s", unKnownError.Error())}
+		err := scale.Unmarshal(res[1:], &v)
+		if err != nil {
+			// this err is thrown if we can't unmarshal, so prolly `errInvalidResult`. Check to make sure
+			// TODO Create stucts for errors and integrate into Varying data type
+			return errInvalidResult
+		}
+		return &DispatchOutcomeError{fmt.Sprintf("unknown error: %s", v)}
 	case 1:
 		return &DispatchOutcomeError{"failed lookup"}
 	case 2:
