@@ -173,10 +173,18 @@ func (err BadOrigin) Index() uint {
 	return 3
 }
 
+type CustomModuleError struct {
+	Err string
+}
+
+func (err CustomModuleError) Index() uint {
+	return 4
+}
+
 func determineErr(res []byte) error {
 	switch res[0] {
 	case 0: // DispatchOutcome
-		result := scale.NewResult(nil, scale.MustNewVaryingDataType(UnknownError{}))
+		result := scale.NewResult(nil, scale.MustNewVaryingDataType(UnknownError{}, FailedLookup{}, BadOrigin{}, CustomModuleError{}))
 		//err := result.Set(scale.OK, nil)
 		//if err != nil {
 		//	panic(err)
