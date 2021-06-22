@@ -54,8 +54,7 @@ func NewVaryingDataTypeSlice(vdt VaryingDataType) (vdts VaryingDataTypeSlice) {
 
 func mustNewVaryingDataTypeSliceAndSet(vdt VaryingDataType, values ...VaryingDataTypeValue) (vdts VaryingDataTypeSlice) {
 	vdts = NewVaryingDataTypeSlice(vdt)
-	err := vdts.Add(values...)
-	if err != nil {
+	if err := vdts.Add(values...); err != nil {
 		panic(err)
 	}
 	return
