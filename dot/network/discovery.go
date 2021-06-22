@@ -21,8 +21,7 @@ import (
 	"fmt"
 	"time"
 
-	gossamermetrics "github.com/ChainSafe/gossamer/dot/metrics"
-	"github.com/ethereum/go-ethereum/metrics"
+	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 	badger "github.com/ipfs/go-ds-badger2"
 	libp2phost "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -55,14 +54,15 @@ type discovery struct {
 	pid                protocol.ID
 	minPeers, maxPeers int
 
-	metrics map[string]interface{}
+	metrics map[string]ethmetrics.Gauge
 }
 
 func newDiscovery(ctx context.Context, h libp2phost.Host, bootnodes []peer.AddrInfo, ds *badger.Datastore, pid protocol.ID, min, max int) *discovery {
-	metrics.Enabled = true
-	discoveryMetrics := make(map[string]interface{})
-	discoveryMetrics[checkPeerCountMetrics] = metrics.GetOrRegisterGauge(checkPeerCountMetrics, nil)
-	discoveryMetrics[peersStoreMetrics] = metrics.GetOrRegisterGauge(peersStoreMetrics, nil)
+	ethmetrics.Enabled = true
+	discoveryMetrics := map[string]ethmetrics.Gauge{
+		checkPeerCountMetrics: ethmetrics.GetOrRegisterGauge(checkPeerCountMetrics, nil),
+		peersStoreMetrics:     ethmetrics.GetOrRegisterGauge(peersStoreMetrics, nil),
+	}
 
 	return &discovery{
 		ctx:       ctx,
@@ -129,7 +129,9 @@ func (d *discovery) stop() error {
 		return nil
 	}
 
-	gossamermetrics.UnregisterMetrics(d.metrics)
+	for k := range d.metrics {
+		ethmetrics.Unregister(k)
+	}
 
 	return d.dht.Close()
 }
@@ -201,20 +203,6 @@ func (d *discovery) findPeers(ctx context.Context) {
 	}
 
 	for {
-		defer func() {
-			checkPeerGauge, ok := d.metrics[checkPeerCountMetrics]
-			if ok {
-				g := checkPeerGauge.(metrics.Gauge)
-				g.Update(int64(len(d.h.Network().Peers())))
-			}
-
-			peerstore, ok := d.metrics[peersStoreMetrics]
-			if ok {
-				g := peerstore.(metrics.Gauge)
-				g.Update(int64(d.h.Peerstore().Peers().Len()))
-			}
-		}()
-
 		select {
 		case <-ctx.Done():
 			return
@@ -231,8 +219,11 @@ func (d *discovery) findPeers(ctx context.Context) {
 				if err != nil {
 					logger.Trace("failed to connect to discovered peer", "peer", peer.ID, "err", err)
 				}
+
+				d.metrics[checkPeerCountMetrics].Update(int64(len(d.h.Network().Peers())))
 			} else {
 				d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
+				d.metrics[peersStoreMetrics].Update(int64(d.h.Peerstore().Peers().Len()))
 				return
 			}
 		}

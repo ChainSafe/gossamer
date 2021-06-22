@@ -59,9 +59,3 @@ func CollectProcessMetrics() {
 		time.Sleep(Refresh)
 	}
 }
-
-func UnregisterMetrics(tounregister map[string]interface{}) {
-	for k := range tounregister {
-		metrics.Unregister(k)
-	}
-}

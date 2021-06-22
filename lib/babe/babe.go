@@ -26,12 +26,11 @@ import (
 	"sync"
 	"time"
 
-	gossamermetrics "github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	log "github.com/ChainSafe/log15"
-	"github.com/ethereum/go-ethereum/metrics"
+	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 )
 
 var logger log.Logger
@@ -146,9 +145,9 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		return nil, err
 	}
 
-	metrics.Enabled = true
+	ethmetrics.Enabled = true
 	babeMetrics := make(map[string]interface{})
-	babeMetrics[buildBlockTimer] = metrics.GetOrRegisterTimer(buildBlockTimer, nil)
+	babeMetrics[buildBlockTimer] = ethmetrics.GetOrRegisterTimer(buildBlockTimer, nil)
 
 	babeService.metrics = babeMetrics
 
@@ -286,7 +285,10 @@ func (b *Service) Stop() error {
 	if b.ctx.Err() != nil {
 		return errors.New("service already stopped")
 	}
-	gossamermetrics.UnregisterMetrics(b.metrics)
+
+	for k := range b.metrics {
+		ethmetrics.Unregister(k)
+	}
 
 	b.cancel()
 	return nil
