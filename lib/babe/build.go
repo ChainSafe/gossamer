@@ -29,9 +29,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
-	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 const (
@@ -306,14 +305,15 @@ func (b *BlockBuilder) buildBlockInherents(slot Slot) ([][]byte, error) {
 	}
 
 	// decode inherent extrinsics
-	exts, err := scale.Decode(inherentExts, [][]byte{})
+	var exts [][]byte
+	err = scale.Unmarshal(inherentExts, &exts)
 	if err != nil {
 		return nil, err
 	}
 
 	// apply each inherent extrinsic
-	for _, ext := range exts.([][]byte) {
-		in, err := scale.Encode(ext)
+	for _, ext := range exts {
+		in, err := scale.Marshal(ext)
 		if err != nil {
 			return nil, err
 		}
@@ -329,7 +329,7 @@ func (b *BlockBuilder) buildBlockInherents(slot Slot) ([][]byte, error) {
 		}
 	}
 
-	return exts.([][]byte), nil
+	return exts, nil
 }
 
 func (b *BlockBuilder) addToQueue(txs []*transaction.ValidTransaction) {
@@ -354,7 +354,7 @@ func ExtrinsicsToBody(inherents [][]byte, txs []*transaction.ValidTransaction) (
 
 	for _, tx := range txs {
 		var decExt []byte
-		err := scale2.Unmarshal(tx.Extrinsic, &decExt)
+		err := scale.Unmarshal(tx.Extrinsic, &decExt)
 		if err != nil {
 			return nil, err
 		}
