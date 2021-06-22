@@ -236,7 +236,11 @@ func determineErr(res []byte) error {
 	switch res[0] {
 	case 0: // DispatchOutcome
 		result := scale.NewResult(nil, scale.MustNewVaryingDataType(UnknownError{}))
-		fmt.Println("Result err")
+		//err := result.Set(scale.OK, nil)
+		//if err != nil {
+		//	panic(err)
+		//}
+		fmt.Println("Result")
 		fmt.Println(result)
 		switch res[1] {
 		case 0:
