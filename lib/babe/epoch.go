@@ -52,7 +52,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 		}
 
 		idx, err := b.getAuthorityIndex(data.Authorities)
-		if err != nil && err != ErrNotAuthority { // TODO: this should be checked in the upper function
+		if err != nil && !errors.Is(err, ErrNotAuthority) { // TODO: this should be checked in the upper function
 			return err
 		}
 
@@ -106,7 +106,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 		for i := startSlot; i < startSlot+b.epochLength; i++ {
 			proof, err := b.runLottery(i, epoch) //nolint
 			if err != nil {
-				return fmt.Errorf("error running slot lottery at slot %d: error %s", i, err)
+				return fmt.Errorf("error running slot lottery at slot %d: error %w", i, err)
 			}
 
 			if proof != nil {
@@ -131,7 +131,7 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 
 		proof, err := b.runLottery(i, epoch)
 		if err != nil {
-			return fmt.Errorf("error running slot lottery at slot %d: error %s", i, err)
+			return fmt.Errorf("error running slot lottery at slot %d: error %w", i, err)
 		}
 
 		if proof != nil {
@@ -148,7 +148,7 @@ func (b *Service) getFirstSlot(epoch uint64) (uint64, error) {
 	for i := startSlot; i < startSlot+b.epochLength; i++ {
 		proof, err := b.runLottery(i, epoch)
 		if err != nil {
-			return 0, fmt.Errorf("error running slot lottery at slot %d: error %s", i, err)
+			return 0, fmt.Errorf("error running slot lottery at slot %d: error %w", i, err)
 		}
 
 		if proof != nil {

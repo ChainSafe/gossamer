@@ -177,7 +177,7 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func newTestService_setupParameters(t *testing.T) (*Service, *state.EpochState, *types.BabeConfiguration) {
+func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *types.BabeConfiguration) {
 	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
 	require.NoError(t, err)
 
