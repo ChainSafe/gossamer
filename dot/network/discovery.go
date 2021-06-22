@@ -32,15 +32,17 @@ import (
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
 )
 
+const (
+	checkPeerCountMetrics = "gossamer/network/peer_count"
+	peersStoreMetrics     = "gossamer/network/peerstore_count"
+)
+
 var (
 	startDHTTimeout             = time.Second * 10
 	initialAdvertisementTimeout = time.Millisecond
 	tryAdvertiseTimeout         = time.Second * 30
 	connectToPeersTimeout       = time.Minute * 5
 	findPeersTimeout            = time.Minute
-
-	checkPeerCountMetrics = "gossamer/network/peer_count"
-	peersStoreMetrics     = "gossamer/network/peerstore_count"
 )
 
 // discovery handles discovery of new peers via the kademlia DHT
