@@ -139,14 +139,15 @@ func TestOldVsNewEncoding(t *testing.T) {
 		t.Errorf("encodeState.encodeStruct() = %v, want %v", oldEncode, newEncode)
 	}
 
-	// decoded := []VaryingDataType{}
-	// err = Unmarshal(newEncode, &decoded)
-	// if err != nil {
-	// 	t.Errorf("unexpected err: %v", err)
-	// }
-	// if !reflect.DeepEqual(decoded, newDigest) {
-	// 	t.Errorf("Unmarshal() = %v, want %v", decoded, newDigest)
-	// }
+	decoded := NewVaryingDataTypeSlice(vdt)
+	err = Unmarshal(newEncode, &decoded)
+	if err != nil {
+		t.Errorf("unexpected err: %v", err)
+	}
+	// decoded.Types
+	if !reflect.DeepEqual(decoded.Types, newDigest) {
+		t.Errorf("Unmarshal() = %v, want %v", decoded.Types, newDigest)
+	}
 }
 
 func BenchmarkUnmarshal(b *testing.B) {
