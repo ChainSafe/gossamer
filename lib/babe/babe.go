@@ -66,8 +66,6 @@ type Service struct {
 	// State variables
 	sync.RWMutex
 	pause chan struct{}
-
-	metrics map[string]interface{}
 }
 
 // ServiceConfig represents a BABE configuration
@@ -144,12 +142,6 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	ethmetrics.Enabled = true
-	babeMetrics := make(map[string]interface{})
-	babeMetrics[buildBlockTimer] = ethmetrics.GetOrRegisterTimer(buildBlockTimer, nil)
-
-	babeService.metrics = babeMetrics
 
 	logger.Debug("created service",
 		"block producer", cfg.Authority,
@@ -286,9 +278,8 @@ func (b *Service) Stop() error {
 		return errors.New("service already stopped")
 	}
 
-	for k := range b.metrics {
-		ethmetrics.Unregister(k)
-	}
+	ethmetrics.Unregister(buildBlockTimer)
+	ethmetrics.Unregister(buildBlockErrors)
 
 	b.cancel()
 	return nil

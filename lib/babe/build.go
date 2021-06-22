@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ethereum/go-ethereum/metrics"
+	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -33,8 +33,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
-var (
-	buildBlockTimer = "gossamer/proposer/block/constructed"
+const (
+	buildBlockTimer  = "gossamer/proposer/block/constructed"
+	buildBlockErrors = "gossamer/proposer/block/constructed/errors"
 )
 
 // construct a block for this slot with the given parent
@@ -52,16 +53,18 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 	}
 
 	startBuilt := time.Now()
-	defer func() {
-		timerRegistry, ok := b.metrics[buildBlockTimer]
-		if ok {
-			timerMetrics := timerRegistry.(metrics.Timer)
-			timerMetrics.Update(time.Since(startBuilt))
-		}
-	}()
+	block, err := builder.buildBlock(parent, slot)
 
-	return builder.buildBlock(parent, slot)
+	if err != nil {
+		builderErrors := ethmetrics.GetOrRegisterCounter(buildBlockErrors, nil)
+		builderErrors.Inc(1)
 
+		return nil, err
+	}
+
+	timerMetrics := ethmetrics.GetOrRegisterTimer(buildBlockTimer, nil)
+	timerMetrics.UpdateSince(startBuilt)
+	return block, err
 }
 
 // nolint

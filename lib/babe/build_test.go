@@ -370,11 +370,6 @@ func TestBuildBlockTimeMonitor(t *testing.T) {
 	metrics.Enabled = true
 	timerMetrics := metrics.GetOrRegisterTimer(buildBlockTimer, nil)
 
-	m := make(map[string]interface{})
-	m[buildBlockTimer] = timerMetrics
-
-	babeService.metrics = m
-
 	require.Equal(t, int64(0), timerMetrics.Count())
 	createTestBlock(t, babeService, parent, [][]byte{}, 1, testEpochIndex)
 	require.Equal(t, int64(1), timerMetrics.Count())
