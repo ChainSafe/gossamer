@@ -150,7 +150,7 @@ func determineUnknownTxnErr(res []byte) error {
 }
 
 type UnknownError struct {
-	Err string
+	Err DispatchOutcomeError
 }
 
 func (err UnknownError) Index() uint {
@@ -158,7 +158,7 @@ func (err UnknownError) Index() uint {
 }
 
 type FailedLookup struct {
-	Err string
+	err DispatchOutcomeError
 }
 
 func (err FailedLookup) Index() uint {
@@ -166,7 +166,7 @@ func (err FailedLookup) Index() uint {
 }
 
 type BadOrigin struct {
-	Err string
+	Err DispatchOutcomeError
 }
 
 func (err BadOrigin) Index() uint {
@@ -174,7 +174,7 @@ func (err BadOrigin) Index() uint {
 }
 
 type CustomModuleError struct {
-	Err string
+	Err DispatchOutcomeError
 }
 
 func (err CustomModuleError) Index() uint {
@@ -189,6 +189,11 @@ func determineErr(res []byte) error {
 		//if err != nil {
 		//	panic(err)
 		//}
+
+		// This code chunk works
+		v := FailedLookup{err: DispatchOutcomeError{"failed lookup"}}
+		fmt.Println(v.err)
+
 		fmt.Println("Result")
 		fmt.Println(result)
 		switch res[1] {
