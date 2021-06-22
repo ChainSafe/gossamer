@@ -216,7 +216,7 @@ func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *
 }
 
 func TestService_setupParameters_genesis(t *testing.T) {
-	s, _, genCfg := newTestService_setupParameters(t)
+	s, _, genCfg := newTestServiceSetupParameters(t)
 
 	cfg := &ServiceConfig{}
 	err := s.setupParameters(cfg)
@@ -236,7 +236,7 @@ func TestService_setupParameters_genesis(t *testing.T) {
 }
 
 func TestService_setupParameters_epochData(t *testing.T) {
-	s, epochState, genCfg := newTestService_setupParameters(t)
+	s, epochState, genCfg := newTestServiceSetupParameters(t)
 
 	err := epochState.SetCurrentEpoch(1)
 	require.NoError(t, err)
@@ -267,7 +267,7 @@ func TestService_setupParameters_epochData(t *testing.T) {
 }
 
 func TestService_setupParameters_configData(t *testing.T) {
-	s, epochState, genCfg := newTestService_setupParameters(t)
+	s, epochState, genCfg := newTestServiceSetupParameters(t)
 
 	err := epochState.SetCurrentEpoch(7)
 	require.NoError(t, err)
