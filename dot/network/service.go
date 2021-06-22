@@ -275,7 +275,6 @@ func (s *Service) Start() error {
 }
 
 func (s *Service) collectNetworkMetrics() {
-	metrics.Enabled = true
 	for {
 		peerCount := metrics.GetOrRegisterGauge("network/node/peerCount", metrics.DefaultRegistry)
 		totalConn := metrics.GetOrRegisterGauge("network/node/totalConnection", metrics.DefaultRegistry)

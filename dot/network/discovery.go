@@ -55,17 +55,9 @@ type discovery struct {
 	ds                 *badger.Datastore
 	pid                protocol.ID
 	minPeers, maxPeers int
-
-	metrics map[string]ethmetrics.Gauge
 }
 
 func newDiscovery(ctx context.Context, h libp2phost.Host, bootnodes []peer.AddrInfo, ds *badger.Datastore, pid protocol.ID, min, max int) *discovery {
-	ethmetrics.Enabled = true
-	discoveryMetrics := map[string]ethmetrics.Gauge{
-		checkPeerCountMetrics: ethmetrics.GetOrRegisterGauge(checkPeerCountMetrics, nil),
-		peersStoreMetrics:     ethmetrics.GetOrRegisterGauge(peersStoreMetrics, nil),
-	}
-
 	return &discovery{
 		ctx:       ctx,
 		h:         h,
@@ -74,8 +66,6 @@ func newDiscovery(ctx context.Context, h libp2phost.Host, bootnodes []peer.AddrI
 		pid:       pid,
 		minPeers:  min,
 		maxPeers:  max,
-
-		metrics: discoveryMetrics,
 	}
 }
 
@@ -131,9 +121,8 @@ func (d *discovery) stop() error {
 		return nil
 	}
 
-	for k := range d.metrics {
-		ethmetrics.Unregister(k)
-	}
+	ethmetrics.Unregister(checkPeerCountMetrics)
+	ethmetrics.Unregister(peersStoreMetrics)
 
 	return d.dht.Close()
 }
@@ -221,11 +210,8 @@ func (d *discovery) findPeers(ctx context.Context) {
 				if err != nil {
 					logger.Trace("failed to connect to discovered peer", "peer", peer.ID, "err", err)
 				}
-
-				d.metrics[checkPeerCountMetrics].Update(int64(len(d.h.Network().Peers())))
 			} else {
 				d.h.Peerstore().AddAddrs(peer.ID, peer.Addrs, peerstore.PermanentAddrTTL)
-				d.metrics[peersStoreMetrics].Update(int64(d.h.Peerstore().Peers().Len()))
 				return
 			}
 		}
