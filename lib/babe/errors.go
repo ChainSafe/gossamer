@@ -16,9 +16,8 @@ package babe
 import (
 	"errors"
 	"fmt"
-
 	"github.com/ChainSafe/gossamer/lib/common/optional"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 var (
@@ -95,8 +94,15 @@ func determineCustomModuleErr(res []byte) error {
 func determineDispatchErr(res []byte) error {
 	switch res[0] {
 	case 0:
-		unKnownError, _ := scale.Decode(res[1:], []byte{})
-		return &DispatchOutcomeError{fmt.Sprintf("unknown error: %s", string(unKnownError.([]byte)))}
+		//unKnownError, _ := scale.Decode(res[1:], []byte{})
+		//fmt.Sprintf("Output: %s", string(unKnownError.([]byte)))
+		//fmt.Println("Output:")
+		// This has not been working
+		var v []byte
+		fmt.Println(res)
+		unKnownError := scale.Unmarshal(res[1:], &v)
+		fmt.Println("Output: " + unKnownError.Error())
+		return &DispatchOutcomeError{fmt.Sprintf("unknown error: %s", unKnownError.Error())}
 	case 1:
 		return &DispatchOutcomeError{"failed lookup"}
 	case 2:
