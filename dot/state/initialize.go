@@ -75,7 +75,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 		return fmt.Errorf("failed to write genesis values to database: %s", err)
 	}
 
-	// create and store blockree from genesis block
+	// create and store blocktree from genesis block
 	bt := blocktree.NewBlockTreeFromRoot(header, db)
 	err = bt.Store()
 	if err != nil {
@@ -87,6 +87,8 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 	if err != nil {
 		return fmt.Errorf("failed to create block state from genesis: %s", err)
 	}
+
+	blockState.StoreRuntime(header.Hash(), rt)
 
 	// create storage state from genesis trie
 	storageState, err := NewStorageState(db, blockState, t, pruner.Config{})

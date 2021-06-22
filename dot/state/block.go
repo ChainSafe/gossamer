@@ -19,8 +19,10 @@ package state
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"math/big"
+	"path/filepath"
 	"reflect"
 	"sync"
 	"time"
@@ -29,6 +31,10 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
 var blockPrefix = "block"
@@ -225,6 +231,8 @@ func (bs *BlockState) DeleteBlock(hash common.Hash) error {
 			return err
 		}
 	}
+
+	bs.bt.DeleteRuntime(hash)
 
 	return nil
 }
@@ -763,4 +771,87 @@ func (bs *BlockState) setArrivalTime(hash common.Hash, arrivalTime time.Time) er
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, uint64(arrivalTime.UnixNano()))
 	return bs.db.Put(arrivalTimeKey(hash), buf)
+}
+
+// HandleRuntimeChanges handles the update in runtime.
+func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState, rt runtime.Instance, bHash common.Hash) error {
+	currCodeHash, err := newState.LoadCodeHash()
+	if err != nil {
+		return err
+	}
+
+	codeHash := rt.GetCodeHash()
+	if bytes.Equal(codeHash[:], currCodeHash[:]) {
+		bs.StoreRuntime(bHash, rt)
+		return err
+	}
+
+	logger.Info("🔄 detected runtime code change, upgrading...", "block", bHash, "previous code hash", codeHash, "new code hash", currCodeHash)
+	code := newState.LoadCode()
+	if len(code) == 0 {
+		return errors.New("new :code is empty")
+	}
+
+	//codeSubBlockHash := s.codeSubstitutedState.LoadCodeSubstitutedBlockHash()
+	newVersion, err := rt.CheckRuntimeVersion(code) //nolint
+	if err != nil {
+		return err
+	}
+
+	previousVersion, _ := rt.Version()
+	if previousVersion.SpecVersion() == newVersion.SpecVersion() {
+		return nil
+	}
+
+	logger.Info("🔄 detected runtime code change, upgrading...", "block", bHash,
+		"previous code hash", codeHash, "new code hash", currCodeHash,
+		"previous spec version", previousVersion.SpecVersion(), "new spec version", newVersion.SpecVersion())
+
+	rtCfg := &wasmer.Config{
+		Imports: wasmer.ImportsNodeRuntime,
+	}
+
+	localStorage, err := utils.SetupDatabase(filepath.Join(bs.db.Path(), bHash.String(), "local_storage"), true)
+	if err != nil {
+		return err
+	}
+
+	ns := rt.NodeStorage()
+	ns.LocalStorage = localStorage
+
+	rtCfg.Storage = newState
+	rtCfg.Keystore = rt.Keystore()
+	rtCfg.NodeStorage = ns
+	rtCfg.Network = rt.NetworkService()
+	rtCfg.CodeHash = currCodeHash
+
+	if rt.Validator() {
+		rtCfg.Role = 4
+	}
+
+	instance, err := wasmer.NewInstance(code, rtCfg)
+	if err != nil {
+		return err
+	}
+
+	bs.StoreRuntime(bHash, instance)
+	return nil
+}
+
+// GetRuntime gets the runtime from block tree for the corresponding block hash.
+func (bs *BlockState) GetRuntime(hash *common.Hash) (runtime.Instance, bool) {
+	if hash == nil {
+		rt, ok := bs.bt.GetBlockRuntime(bs.BestBlockHash())
+		if !ok {
+			return nil, false
+		}
+		return rt, true
+	}
+
+	return bs.bt.GetBlockRuntime(*hash)
+}
+
+// StoreRuntime stores the runtime in blocktree for corresponding block hash.
+func (bs *BlockState) StoreRuntime(hash common.Hash, rt runtime.Instance) {
+	bs.bt.StoreRuntime(hash, rt)
 }

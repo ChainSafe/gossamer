@@ -22,6 +22,8 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	gssmrruntime "github.com/ChainSafe/gossamer/lib/runtime"
 
 	log "github.com/ChainSafe/log15"
@@ -49,10 +51,14 @@ type Config struct {
 
 // Instance represents a v0.8 runtime go-wasmtime instance
 type Instance struct {
-	vm  *wasmtime.Instance
-	mu  sync.Mutex
-	mem *wasmtime.Memory
+	vm       *wasmtime.Instance
+	mu       sync.Mutex
+	mem      *wasmtime.Memory
+	isClosed bool
+	codeHash common.Hash
 }
+
+func (in *Instance) GetCodeHash() common.Hash { return in.codeHash }
 
 // NewInstanceFromFile instantiates a runtime from a .wasm file
 func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
@@ -114,8 +120,9 @@ func newInstanceFromModule(module *wasmtime.Module, engine *wasmtime.Engine, cfg
 	}
 
 	return &Instance{
-		vm:  instance,
-		mem: mem,
+		vm:       instance,
+		mem:      mem,
+		codeHash: cfg.CodeHash,
 	}, nil
 }
 
@@ -140,6 +147,16 @@ func (in *Instance) Stop() {}
 // NodeStorage returns the context's NodeStorage
 func (in *Instance) NodeStorage() gssmrruntime.NodeStorage {
 	return ctx.NodeStorage
+}
+
+// Validator returns the context's Validator
+func (in *Instance) Validator() bool {
+	return ctx.Validator
+}
+
+// Keystore to get reference to runtime keystore
+func (in *Instance) Keystore() *keystore.GlobalKeystore {
+	return ctx.Keystore
 }
 
 // NetworkService returns the context's NetworkService

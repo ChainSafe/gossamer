@@ -22,6 +22,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
@@ -44,6 +45,9 @@ type BlockState interface {
 	GetFinalizedHeader(uint64, uint64) (*types.Header, error)
 	IsDescendantOf(parent, child common.Hash) (bool, error)
 	NumberIsFinalised(num *big.Int) (bool, error)
+	HandleRuntimeChanges(newState *rtstorage.TrieState, in runtime.Instance, bHash common.Hash) error
+	GetRuntime(*common.Hash) (runtime.Instance, bool)
+	StoreRuntime(common.Hash, runtime.Instance)
 }
 
 // StorageState interface for storage state methods

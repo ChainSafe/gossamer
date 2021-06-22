@@ -131,6 +131,11 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GlobalKeystore, 
 		PersistentStorage: chaindb.NewTable(st.DB(), "offlinestorage"),
 	}
 
+	codeHash, err := st.Storage.LoadCodeHash(nil)
+	if err != nil {
+		return nil, err
+	}
+
 	var rt runtime.Instance
 	switch cfg.Core.WasmInterpreter {
 	case wasmer.Name:
@@ -143,6 +148,7 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GlobalKeystore, 
 		rtCfg.NodeStorage = ns
 		rtCfg.Network = net
 		rtCfg.Role = cfg.Core.Roles
+		rtCfg.CodeHash = codeHash
 
 		// create runtime executor
 		rt, err = wasmer.NewInstance(code, rtCfg)
@@ -159,6 +165,7 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GlobalKeystore, 
 		rtCfg.NodeStorage = ns
 		rtCfg.Network = net
 		rtCfg.Role = cfg.Core.Roles
+		rtCfg.CodeHash = codeHash
 
 		// create runtime executor
 		rt, err = wasmtime.NewInstance(code, rtCfg)
@@ -175,6 +182,7 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GlobalKeystore, 
 		rtCfg.NodeStorage = ns
 		rtCfg.Network = net
 		rtCfg.Role = cfg.Core.Roles
+		rtCfg.CodeHash = codeHash
 
 		// create runtime executor
 		rt, err = life.NewInstance(code, rtCfg)
@@ -183,6 +191,7 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GlobalKeystore, 
 		}
 	}
 
+	st.Block.StoreRuntime(st.Block.BestBlockHash(), rt)
 	return rt, nil
 }
 
@@ -257,7 +266,6 @@ func createCoreService(cfg *Config, rt runtime.Instance, ks *keystore.GlobalKeys
 		StorageState:         st.Storage,
 		TransactionState:     st.Transaction,
 		Keystore:             ks,
-		Runtime:              rt,
 		Network:              net,
 		DigestHandler:        dh,
 		CodeSubstitutes:      codeSubs,

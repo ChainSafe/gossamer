@@ -23,6 +23,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -322,10 +323,16 @@ func newTestStateService(t *testing.T) *state.Service {
 		t.Fatal(err)
 	}
 
+	hash := genesisHeader.Hash()
+	rt, ok := stateSrvc.Block.GetRuntime(&hash)
+	require.True(t, ok)
+
 	err = stateSrvc.Start()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	stateSrvc.Block.StoreRuntime(hash, rt)
 
 	err = loadTestBlocks(genesisHeader.Hash(), stateSrvc.Block)
 	if err != nil {
@@ -379,6 +386,13 @@ func loadTestBlocks(gh common.Hash, bs *state.BlockState) error {
 		return err
 	}
 
+	rt, ok := bs.GetRuntime(&gh)
+	if !ok {
+		return blocktree.ErrFailedToGetRuntime
+	}
+
+	bs.StoreRuntime(block0.Header.Hash(), rt)
+
 	// Create header & blockData for block 1
 	header1 := &types.Header{
 		Number: big.NewInt(1),
@@ -402,6 +416,8 @@ func loadTestBlocks(gh common.Hash, bs *state.BlockState) error {
 	if err != nil {
 		return err
 	}
+
+	bs.StoreRuntime(block0.Header.Hash(), rt)
 
 	return nil
 }

@@ -116,10 +116,17 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	if cfg.Runtime == nil {
 		rtCfg := &wasmer.Config{}
+
 		rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
 		require.NoError(t, err)
-		cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(gen, rtCfg)
+
+		rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
 		require.NoError(t, err)
+
+		rt, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg)
+		require.NoError(t, err)
+
+		cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), rt)
 	}
 
 	if cfg.Network == nil {

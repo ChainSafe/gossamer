@@ -150,11 +150,15 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	header, err := types.NewHeader(genHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewEmptyDigest())
 	require.NoError(t, err)
 
+	rt, ok := s.blockState.GetRuntime(nil)
+	require.True(t, ok)
+
 	// initialise block header
-	err = s.rt.InitializeBlock(header)
+	err = rt.InitializeBlock(header)
 	require.NoError(t, err)
 
-	extBytes := createExtrinsics(t, s.rt, genHash, 0)
+	extBytes := createExtrinsics(t, rt, genHash, 0)
+
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}}
 	b, err := s.HandleTransactionMessage(msg)
 	require.NoError(t, err)

@@ -19,6 +19,7 @@ package core
 import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
@@ -31,10 +32,16 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (boo
 	// get transactions from message extrinsics
 	txs := msg.Extrinsics
 	var toPropagate []types.Extrinsic
+
+	rt, ok := s.blockState.GetRuntime(nil)
+	if !ok {
+		return false, blocktree.ErrFailedToGetRuntime
+	}
+
 	for _, tx := range txs {
 		// validate each transaction
 		externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, tx...))
-		val, err := s.rt.ValidateTransaction(externalExt)
+		val, err := rt.ValidateTransaction(externalExt)
 		if err != nil {
 			logger.Debug("failed to validate transaction", "err", err)
 			continue
