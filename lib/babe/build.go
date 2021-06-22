@@ -30,6 +30,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // construct a block for this slot with the given parent
@@ -326,16 +327,17 @@ func hasSlotEnded(slot Slot) bool {
 	return time.Since(slotEnd) >= 0
 }
 
-// ExtrinsicsToBody returns scale encoded block body which contains inherent and extrinsic.
+// ExtrinsicsToBody returns scale2 encoded block body which contains inherent and extrinsic.
 func ExtrinsicsToBody(inherents [][]byte, txs []*transaction.ValidTransaction) (*types.Body, error) {
 	extrinsics := types.BytesArrayToExtrinsics(inherents)
 
 	for _, tx := range txs {
-		decExt, err := scale.Decode(tx.Extrinsic, []byte{})
+		var decExt []byte
+		err := scale2.Unmarshal(tx.Extrinsic, &decExt)
 		if err != nil {
 			return nil, err
 		}
-		extrinsics = append(extrinsics, decExt.([]byte))
+		extrinsics = append(extrinsics, decExt)
 	}
 
 	return types.NewBodyFromExtrinsics(extrinsics)
