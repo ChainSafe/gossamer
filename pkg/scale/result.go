@@ -61,15 +61,21 @@ func NewResult(okIn, errIn interface{}) (res Result) {
 func (r *Result) Set(mode ResultMode, in interface{}) (err error) {
 	switch mode {
 	case OK:
-		if reflect.TypeOf(r.ok) != reflect.TypeOf(in) {
+		if reflect.TypeOf(r.ok) == reflect.TypeOf(empty{}) && in == nil {
+			r.mode = mode
+			return
+		} else if reflect.TypeOf(r.ok) != reflect.TypeOf(in) {
 			err = fmt.Errorf("type mistmatch for result.ok: %T, and inputted: %T", r.ok, in)
 			return
 		}
 		r.ok = in
 		r.mode = mode
 	case Err:
-		if reflect.TypeOf(r.err) != reflect.TypeOf(in) {
-			err = fmt.Errorf("type mistmatch for result.ok: %T, and inputted: %T", r.ok, in)
+		if reflect.TypeOf(r.err) == reflect.TypeOf(empty{}) && in == nil {
+			r.mode = mode
+			return
+		} else if reflect.TypeOf(r.err) != reflect.TypeOf(in) {
+			err = fmt.Errorf("type mistmatch for result.err: %T, and inputted: %T", r.ok, in)
 			return
 		}
 		r.err = in
