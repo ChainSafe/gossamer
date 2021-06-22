@@ -235,6 +235,9 @@ func (err Module) String() string {
 func determineErr(res []byte) error {
 	switch res[0] {
 	case 0: // DispatchOutcome
+		result := scale.NewResult(nil, scale.MustNewVaryingDataType(UnknownError{}))
+		fmt.Println("Result err")
+		fmt.Println(result)
 		switch res[1] {
 		case 0:
 			return nil
