@@ -150,9 +150,36 @@ func determineUnknownTxnErr(res []byte) error {
 	return errInvalidResult
 }
 
+type UnknownError struct {
+	Err string
+}
+
+func (err UnknownError) Index() uint {
+	return 1
+}
+
+type FailedLookup struct {
+	Err string
+}
+
+func (err FailedLookup) Index() uint {
+	return 2
+}
+
+type BadOrigin struct {
+	Err string
+}
+
+func (err BadOrigin) Index() uint {
+	return 3
+}
+
 func determineErr(res []byte) error {
 	switch res[0] {
 	case 0: // DispatchOutcome
+		result := scale.NewResult(nil, scale.MustNewVaryingDataType(UnknownError{}))
+		fmt.Println("Result err")
+		fmt.Println(result)
 		switch res[1] {
 		case 0:
 			return nil
