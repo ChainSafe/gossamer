@@ -93,7 +93,6 @@ func (c *WSConn) HandleComm() {
 					logger.Warn("failed to create state change listener", "error", err2)
 					continue
 				}
-
 			case "chain_subscribeFinalizedHeads":
 				bfl, err3 := c.initBlockFinalizedListener(reqid)
 				if err3 != nil {
