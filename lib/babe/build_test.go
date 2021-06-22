@@ -374,4 +374,9 @@ func TestBuildBlockTimeMonitor(t *testing.T) {
 	createTestBlock(t, babeService, parent, [][]byte{}, 1, testEpochIndex)
 	require.Equal(t, int64(1), timerMetrics.Count())
 
+	buildErrorsMetrics := metrics.GetOrRegisterCounter(buildBlockErrors, nil)
+	require.Equal(t, int64(0), buildErrorsMetrics.Count())
+	_, err = babeService.buildBlock(parent, Slot{})
+	require.Error(t, err)
+	require.Equal(t, int64(1), buildErrorsMetrics.Count())
 }
