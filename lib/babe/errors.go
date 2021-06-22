@@ -235,7 +235,7 @@ func (err Module) String() string {
 func determineErr(res []byte) error {
 	switch res[0] {
 	case 0: // DispatchOutcome
-		result := scale.NewResult(nil, scale.MustNewVaryingDataType(UnknownError{}))
+		result := scale.NewResult(nil, scale.MustNewVaryingDataType(UnknownError{}, FailedLookup{}, BadOrigin{}, CustomModuleError{}))
 		//err := result.Set(scale.OK, nil)
 		//if err != nil {
 		//	panic(err)
