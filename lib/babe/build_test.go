@@ -26,8 +26,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	log "github.com/ChainSafe/log15"
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v2/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
@@ -222,11 +222,12 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	// build extrinsic
 	rawMeta, err := babeService.rt.Metadata()
 	require.NoError(t, err)
-	decoded, err := scale.Decode(rawMeta, []byte{})
+	var decoded []byte
+	err = scale.Unmarshal(rawMeta, []byte{})
 	require.NoError(t, err)
 
 	meta := &ctypes.Metadata{}
-	err = ctypes.DecodeFromBytes(decoded.([]byte), meta)
+	err = ctypes.DecodeFromBytes(decoded, meta)
 	require.NoError(t, err)
 
 	rv, err := babeService.rt.Version()
