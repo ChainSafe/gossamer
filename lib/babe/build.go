@@ -354,7 +354,11 @@ func ExtrinsicsToBody(inherents [][]byte, txs []*transaction.ValidTransaction) (
 
 	for _, tx := range txs {
 		var decExt []byte
+<<<<<<< HEAD
 		err := scale.Unmarshal(tx.Extrinsic, &decExt)
+=======
+		err := scale2.Unmarshal(tx.Extrinsic, &decExt)
+>>>>>>> WIP/Integrate scale into lib/babe
 		if err != nil {
 			return nil, err
 		}
