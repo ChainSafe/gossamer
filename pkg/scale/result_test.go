@@ -329,23 +329,38 @@ func TestResult_Set(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		// TODO: Add test cases.
 		{
 			args: args{
 				mode: Unset,
 			},
+			res:     NewResult(nil, nil),
 			wantErr: true,
+			wantResult: Result{
+				ok: empty{}, err: empty{},
+			},
 		},
 		{
 			args: args{
 				mode: OK,
 				in:   nil,
 			},
+			res: NewResult(nil, nil),
+			wantResult: Result{
+				ok:   empty{},
+				err:  empty{},
+				mode: OK,
+			},
 		},
 		{
 			args: args{
 				mode: Err,
 				in:   nil,
+			},
+			res: NewResult(nil, nil),
+			wantResult: Result{
+				ok:   empty{},
+				err:  empty{},
+				mode: Err,
 			},
 		},
 		{
@@ -354,6 +369,11 @@ func TestResult_Set(t *testing.T) {
 				in:   true,
 			},
 			res: NewResult(true, nil),
+			wantResult: Result{
+				ok:   true,
+				err:  empty{},
+				mode: OK,
+			},
 		},
 		{
 			args: args{
@@ -361,6 +381,11 @@ func TestResult_Set(t *testing.T) {
 				in:   true,
 			},
 			res: NewResult(nil, true),
+			wantResult: Result{
+				ok:   empty{},
+				err:  true,
+				mode: Err,
+			},
 		},
 		{
 			args: args{
@@ -369,6 +394,10 @@ func TestResult_Set(t *testing.T) {
 			},
 			res:     NewResult("ok", "err"),
 			wantErr: true,
+			wantResult: Result{
+				ok:  "ok",
+				err: "err",
+			},
 		},
 		{
 			args: args{
@@ -377,6 +406,10 @@ func TestResult_Set(t *testing.T) {
 			},
 			res:     NewResult(nil, true),
 			wantErr: true,
+			wantResult: Result{
+				ok:  empty{},
+				err: true,
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -384,6 +417,9 @@ func TestResult_Set(t *testing.T) {
 			r := tt.res
 			if err := r.Set(tt.args.mode, tt.args.in); (err != nil) != tt.wantErr {
 				t.Errorf("Result.Set() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if !reflect.DeepEqual(tt.wantResult, r) {
+				t.Errorf("Result.Unwrap() = %v, want %v", tt.wantResult, r)
 			}
 		})
 	}
