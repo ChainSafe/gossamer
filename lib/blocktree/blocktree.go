@@ -22,10 +22,9 @@ import (
 	"sync"
 	"time"
 
+	database "github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-
-	database "github.com/ChainSafe/chaindb"
 	"github.com/disiqueira/gotree"
 )
 

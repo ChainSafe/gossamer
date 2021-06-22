@@ -545,6 +545,12 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 		return nil
 	}
 
+	ts, err := s.storageState.TrieState(nil)
+	if err != nil {
+		return err
+	}
+	s.rt.SetContextStorage(ts)
+
 	// the transaction source is External
 	// validate the transaction
 	externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
