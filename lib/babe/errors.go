@@ -240,6 +240,11 @@ func determineErr(res []byte) error {
 		//if err != nil {
 		//	panic(err)
 		//}
+
+		// This code chunk works
+		v := FailedLookup{err: DispatchOutcomeError{"failed lookup"}}
+		fmt.Println(v.err)
+
 		fmt.Println("Result")
 		fmt.Println(result)
 		switch res[1] {
