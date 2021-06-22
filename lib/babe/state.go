@@ -48,7 +48,7 @@ type BlockState interface {
 // StorageState interface for storage state methods
 type StorageState interface {
 	TrieState(hash *common.Hash) (*rtstorage.TrieState, error)
-	StoreTrie(ts *rtstorage.TrieState) error
+	StoreTrie(ts *rtstorage.TrieState, header *types.Header) error
 }
 
 // TransactionState is the interface for transaction queue methods
@@ -72,4 +72,9 @@ type EpochState interface {
 	SetFirstSlot(slot uint64) error
 	GetLatestEpochData() (*types.EpochData, error)
 	SkipVerify(*types.Header) (bool, error)
+}
+
+// BlockImportHandler is the interface for the handler of new blocks
+type BlockImportHandler interface {
+	HandleBlockProduced(block *types.Block, state *rtstorage.TrieState) error
 }

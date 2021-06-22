@@ -99,7 +99,7 @@ linters-settings:
 #          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Warnf
 #          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Errorf
 #          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Fatalf
-  golint:
+  revive:
     # minimal confidence for issues, default is 0.8
     min-confidence: 0.8
   gofmt:
@@ -187,10 +187,10 @@ linters:
     - govet
     - gofmt
     - goimports
+    - gosimple
     - varcheck
     - misspell
     - ineffassign
-    - gosimple
     - unconvert
     - goconst
     - errcheck
@@ -200,7 +200,7 @@ linters:
     - gosec
     - bodyclose
     - goprintffuncname
-    - golint
+    - revive
     - depguard
     - gocyclo
     - unparam
@@ -245,15 +245,19 @@ issues:
       text: "SA9003:"
 
     - linters:
-        - golint
+        - gosimple
+      text: "S1025:"
+
+    - linters:
+        - revive
       text: "package comment should be of the form"
 
     - linters:
-        - golint
+        - revive
       text: "don't use ALL_CAPS in Go names;"
 
     - linters:
-        - golint
+        - revive
       text: "don't use underscores in Go names;"
 
     - linters:

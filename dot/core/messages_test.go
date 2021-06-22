@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	. "github.com/ChainSafe/gossamer/dot/core/mocks"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -29,6 +30,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
+
 	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
 	"github.com/stretchr/testify/require"
@@ -36,42 +38,47 @@ import (
 
 func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	// TODO: move to sync package
-	net := new(mockNetwork)
-	newBlocks := make(chan types.Block)
+	net := new(MockNetwork)
 
 	cfg := &Config{
-		Network:         net,
-		Keystore:        keystore.NewGlobalKeystore(),
-		NewBlocks:       newBlocks,
-		IsBlockProducer: false,
+		Network:  net,
+		Keystore: keystore.NewGlobalKeystore(),
 	}
 
 	s := NewTestService(t, cfg)
 	err := s.Start()
 	require.Nil(t, err)
 
-	expected := &network.BlockAnnounceMessage{
-		Number:         big.NewInt(1),
-		ParentHash:     s.blockState.BestBlockHash(),
-		StateRoot:      common.Hash{},
-		ExtrinsicsRoot: common.Hash{},
-		Digest:         nil,
-		BestBlock:      true,
-	}
-
 	// simulate block sent from BABE session
-	newBlocks <- types.Block{
+	newBlock := &types.Block{
 		Header: &types.Header{
 			Number:     big.NewInt(1),
 			ParentHash: s.blockState.BestBlockHash(),
+			Digest:     types.Digest{types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()},
 		},
 		Body: types.NewBody([]byte{}),
 	}
 
-	time.Sleep(testMessageTimeout)
-	require.NotNil(t, net.Message)
-	require.Equal(t, network.BlockAnnounceMsgType, net.Message.(network.NotificationsMessage).Type())
-	require.Equal(t, expected, net.Message)
+	expected := &network.BlockAnnounceMessage{
+		ParentHash:     newBlock.Header.ParentHash,
+		Number:         newBlock.Header.Number,
+		StateRoot:      newBlock.Header.StateRoot,
+		ExtrinsicsRoot: newBlock.Header.ExtrinsicsRoot,
+		Digest:         newBlock.Header.Digest,
+		BestBlock:      true,
+	}
+
+	//setup the SendMessage function
+	net.On("SendMessage", expected)
+
+	state, err := s.storageState.TrieState(nil)
+	require.NoError(t, err)
+
+	err = s.HandleBlockProduced(newBlock, state)
+	require.NoError(t, err)
+
+	time.Sleep(time.Second)
+	net.AssertCalled(t, "SendMessage", expected)
 }
 
 func createExtrinsics(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic {
@@ -129,11 +136,13 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	ks := keystore.NewGlobalKeystore()
 	ks.Acco.Insert(kp)
 
+	bp := new(MockBlockProducer)
+	blockC := make(chan types.Block)
+	bp.On("GetBlockChannel", nil).Return(blockC)
+
 	cfg := &Config{
 		Keystore:         ks,
 		TransactionState: state.NewTransactionState(),
-		IsBlockProducer:  true,
-		BlockProducer:    &mockBlockProducer{},
 	}
 
 	s := NewTestService(t, cfg)

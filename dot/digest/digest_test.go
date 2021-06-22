@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
 
-package core
+package digest
 
 import (
 	"io/ioutil"
@@ -24,18 +24,73 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/trie"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
 
-func newTestDigestHandler(t *testing.T, withBABE, withGrandpa bool) *DigestHandler { //nolint
+// TODO: use these from core?
+func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) []*types.Header {
+	return addTestBlocksToStateWithParent(t, blockState.(*state.BlockState).BestBlockHash(), depth, blockState)
+}
+
+func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, depth int, blockState BlockState) []*types.Header {
+	prevHeader, err := blockState.(*state.BlockState).GetHeader(previousHash)
+	require.NoError(t, err)
+	previousNum := prevHeader.Number
+
+	headers := []*types.Header{}
+
+	for i := 1; i <= depth; i++ {
+		block := &types.Block{
+			Header: &types.Header{
+				ParentHash: previousHash,
+				Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
+				Digest:     types.Digest{},
+			},
+			Body: &types.Body{},
+		}
+
+		previousHash = block.Header.Hash()
+
+		err := blockState.(*state.BlockState).AddBlock(block)
+		require.NoError(t, err)
+		headers = append(headers, block.Header)
+	}
+
+	return headers
+}
+
+func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
+	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis.json")
+	if err != nil {
+		gen, err = genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis.json")
+		require.NoError(t, err)
+	}
+
+	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.Digest{})
+	require.NoError(t, err)
+	return gen, genTrie, genesisHeader
+}
+
+func newTestHandler(t *testing.T, withBABE, withGrandpa bool) *Handler { //nolint
 	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
 	require.NoError(t, err)
-	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo)
+
+	config := state.Config{
+		Path:     testDatadirPath,
+		LogLevel: log.LvlInfo,
+	}
+	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()
 
 	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
@@ -45,19 +100,13 @@ func newTestDigestHandler(t *testing.T, withBABE, withGrandpa bool) *DigestHandl
 	err = stateSrvc.Start()
 	require.NoError(t, err)
 
-	var bp BlockProducer
-	if withBABE {
-		bp = &mockBlockProducer{}
-	}
-
-	time.Sleep(time.Second)
-	dh, err := NewDigestHandler(stateSrvc.Block, stateSrvc.Epoch, stateSrvc.Grandpa, bp, &mockVerifier{})
+	dh, err := NewHandler(stateSrvc.Block, stateSrvc.Epoch, stateSrvc.Grandpa)
 	require.NoError(t, err)
 	return dh
 }
 
-func TestDigestHandler_GrandpaScheduledChange(t *testing.T) {
-	handler := newTestDigestHandler(t, false, true)
+func TestHandler_GrandpaScheduledChange(t *testing.T) {
+	handler := newTestHandler(t, false, true)
 	handler.Start()
 	defer handler.Stop()
 
@@ -83,21 +132,21 @@ func TestDigestHandler_GrandpaScheduledChange(t *testing.T) {
 		Number: big.NewInt(1),
 	}
 
-	err = handler.HandleConsensusDigest(d, header)
+	err = handler.handleConsensusDigest(d, header)
 	require.NoError(t, err)
 
 	headers := addTestBlocksToState(t, 2, handler.blockState)
 	for _, h := range headers {
-		handler.blockState.SetFinalizedHash(h.Hash(), 0, 0)
+		handler.blockState.(*state.BlockState).SetFinalizedHash(h.Hash(), 0, 0)
 	}
 
 	// authorities should change on start of block 3 from start
 	headers = addTestBlocksToState(t, 1, handler.blockState)
 	for _, h := range headers {
-		handler.blockState.SetFinalizedHash(h.Hash(), 0, 0)
+		handler.blockState.(*state.BlockState).SetFinalizedHash(h.Hash(), 0, 0)
 	}
 
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Millisecond * 500)
 	setID, err := handler.grandpaState.(*state.GrandpaState).GetCurrentSetID()
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), setID)
@@ -109,8 +158,8 @@ func TestDigestHandler_GrandpaScheduledChange(t *testing.T) {
 	require.Equal(t, expected, auths)
 }
 
-func TestDigestHandler_GrandpaForcedChange(t *testing.T) {
-	handler := newTestDigestHandler(t, false, true)
+func TestHandler_GrandpaForcedChange(t *testing.T) {
+	handler := newTestHandler(t, false, true)
 	handler.Start()
 	defer handler.Stop()
 
@@ -136,7 +185,7 @@ func TestDigestHandler_GrandpaForcedChange(t *testing.T) {
 		Number: big.NewInt(1),
 	}
 
-	err = handler.HandleConsensusDigest(d, header)
+	err = handler.handleConsensusDigest(d, header)
 	require.NoError(t, err)
 
 	addTestBlocksToState(t, 3, handler.blockState)
@@ -156,8 +205,8 @@ func TestDigestHandler_GrandpaForcedChange(t *testing.T) {
 	require.Equal(t, expected, auths)
 }
 
-func TestDigestHandler_GrandpaPauseAndResume(t *testing.T) {
-	handler := newTestDigestHandler(t, false, true)
+func TestHandler_GrandpaPauseAndResume(t *testing.T) {
+	handler := newTestHandler(t, false, true)
 	handler.Start()
 	defer handler.Stop()
 
@@ -173,7 +222,7 @@ func TestDigestHandler_GrandpaPauseAndResume(t *testing.T) {
 		Data:              data,
 	}
 
-	err = handler.HandleConsensusDigest(d, nil)
+	err = handler.handleConsensusDigest(d, nil)
 	require.NoError(t, err)
 	nextPause, err := handler.grandpaState.(*state.GrandpaState).GetNextPause()
 	require.NoError(t, err)
@@ -181,7 +230,7 @@ func TestDigestHandler_GrandpaPauseAndResume(t *testing.T) {
 
 	headers := addTestBlocksToState(t, 3, handler.blockState)
 	for _, h := range headers {
-		handler.blockState.SetFinalizedHash(h.Hash(), 0, 0)
+		handler.blockState.(*state.BlockState).SetFinalizedHash(h.Hash(), 0, 0)
 	}
 
 	time.Sleep(time.Millisecond * 100)
@@ -199,7 +248,7 @@ func TestDigestHandler_GrandpaPauseAndResume(t *testing.T) {
 		Data:              data,
 	}
 
-	err = handler.HandleConsensusDigest(d, nil)
+	err = handler.handleConsensusDigest(d, nil)
 	require.NoError(t, err)
 
 	addTestBlocksToState(t, 3, handler.blockState)
@@ -212,7 +261,7 @@ func TestDigestHandler_GrandpaPauseAndResume(t *testing.T) {
 }
 
 func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
-	handler := newTestDigestHandler(t, false, true)
+	handler := newTestHandler(t, false, true)
 	handler.Start()
 	defer handler.Stop()
 
@@ -233,7 +282,7 @@ func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
 		Number: big.NewInt(1),
 	}
 
-	err = handler.HandleConsensusDigest(d, header)
+	err = handler.handleConsensusDigest(d, header)
 	require.NoError(t, err)
 
 	next := handler.NextGrandpaAuthorityChange()
@@ -248,7 +297,7 @@ func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
 }
 
 func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
-	handler := newTestDigestHandler(t, false, true)
+	handler := newTestHandler(t, false, true)
 	handler.Start()
 	defer handler.Stop()
 
@@ -273,7 +322,7 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 		Number: big.NewInt(1),
 	}
 
-	err = handler.HandleConsensusDigest(d, header)
+	err = handler.handleConsensusDigest(d, header)
 	require.NoError(t, err)
 
 	nextSetID := uint64(1)
@@ -299,7 +348,7 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 		Data:              data,
 	}
 
-	err = handler.HandleConsensusDigest(d, header)
+	err = handler.handleConsensusDigest(d, header)
 	require.NoError(t, err)
 
 	next := handler.NextGrandpaAuthorityChange()
@@ -312,10 +361,11 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 	require.Equal(t, expected, auths)
 }
 
-func TestDigestHandler_HandleBABEOnDisabled(t *testing.T) {
-	handler := newTestDigestHandler(t, true, false)
-	handler.Start()
-	defer handler.Stop()
+func TestHandler_HandleBABEOnDisabled(t *testing.T) {
+	handler := newTestHandler(t, true, false)
+	header := &types.Header{
+		Number: big.NewInt(1),
+	}
 
 	digest := &types.BABEOnDisabled{
 		ID: 7,
@@ -329,9 +379,8 @@ func TestDigestHandler_HandleBABEOnDisabled(t *testing.T) {
 		Data:              data,
 	}
 
-	err = handler.HandleConsensusDigest(d, nil)
+	err = handler.handleConsensusDigest(d, header)
 	require.NoError(t, err)
-	require.Equal(t, uint32(7), handler.babe.(*mockBlockProducer).disabled)
 }
 
 func createHeaderWithPreDigest(slotNumber uint64) *types.Header {
@@ -347,8 +396,8 @@ func createHeaderWithPreDigest(slotNumber uint64) *types.Header {
 	}
 }
 
-func TestDigestHandler_HandleNextEpochData(t *testing.T) {
-	handler := newTestDigestHandler(t, true, false)
+func TestHandler_HandleNextEpochData(t *testing.T) {
+	handler := newTestHandler(t, true, false)
 	handler.Start()
 	defer handler.Stop()
 
@@ -380,7 +429,7 @@ func TestDigestHandler_HandleNextEpochData(t *testing.T) {
 
 	header := createHeaderWithPreDigest(10)
 
-	err = handler.HandleConsensusDigest(d, header)
+	err = handler.handleConsensusDigest(d, header)
 	require.NoError(t, err)
 
 	stored, err := handler.epochState.(*state.EpochState).GetEpochData(1)
@@ -390,8 +439,8 @@ func TestDigestHandler_HandleNextEpochData(t *testing.T) {
 	require.Equal(t, res, stored)
 }
 
-func TestDigestHandler_HandleNextConfigData(t *testing.T) {
-	handler := newTestDigestHandler(t, true, false)
+func TestHandler_HandleNextConfigData(t *testing.T) {
+	handler := newTestHandler(t, true, false)
 	handler.Start()
 	defer handler.Stop()
 
@@ -411,7 +460,7 @@ func TestDigestHandler_HandleNextConfigData(t *testing.T) {
 
 	header := createHeaderWithPreDigest(10)
 
-	err = handler.HandleConsensusDigest(d, header)
+	err = handler.handleConsensusDigest(d, header)
 	require.NoError(t, err)
 
 	stored, err := handler.epochState.(*state.EpochState).GetConfigData(1)

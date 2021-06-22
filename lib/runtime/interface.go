@@ -28,6 +28,7 @@ import (
 type Instance interface {
 	HandleRuntimeChanges(newState *rtstorage.TrieState) error
 	UpdateRuntimeCode([]byte) error
+	CheckRuntimeVersion([]byte) (Version, error)
 	Stop()
 	NodeStorage() NodeStorage
 	NetworkService() BasicNetwork

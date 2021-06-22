@@ -33,6 +33,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/stretchr/testify/require"
+
+	. "github.com/ChainSafe/gossamer/lib/grandpa/mocks"
 )
 
 // testGenesisHeader is a test block header
@@ -46,10 +48,10 @@ var (
 	voters = newTestVoters()
 )
 
-type mockDigestHandler struct{}
-
-func (h *mockDigestHandler) NextGrandpaAuthorityChange() uint64 {
-	return 2 ^ 64 - 1
+func NewMockDigestHandler() *MockDigestHandler {
+	m := new(MockDigestHandler)
+	m.On("NextGrandpaAuthorityChange").Return(uint64(2 ^ 64 - 1))
+	return m
 }
 
 func newTestState(t *testing.T) *state.Service {
@@ -90,7 +92,7 @@ func newTestService(t *testing.T) (*Service, *state.Service) {
 	cfg := &Config{
 		BlockState:    st.Block,
 		GrandpaState:  st.Grandpa,
-		DigestHandler: &mockDigestHandler{},
+		DigestHandler: NewMockDigestHandler(),
 		Voters:        voters,
 		Keypair:       kr.Alice().(*ed25519.Keypair),
 		Authority:     true,
