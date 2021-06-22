@@ -37,7 +37,6 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (boo
 		val, err := s.rt.ValidateTransaction(externalExt)
 		if err != nil {
 			logger.Error("failed to validate transaction", "err", err)
-			val.Propagate = false
 			continue
 		}
 

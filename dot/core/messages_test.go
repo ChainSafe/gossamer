@@ -155,7 +155,6 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	extBytes := createExtrinsics(t, s.rt, genHash, 0)
-
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}}
 	b, err := s.HandleTransactionMessage(msg)
 	require.NoError(t, err)
@@ -164,4 +163,10 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	pending := s.transactionState.(*state.TransactionState).Pending()
 	require.NotEqual(t, 0, len(pending))
 	require.Equal(t, extBytes, pending[0].Extrinsic)
+
+	extBytes = []byte(`bogus extrinsic`)
+	msg = &network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}}
+	b, err = s.HandleTransactionMessage(msg)
+	require.NoError(t, err)
+	require.False(t, b)
 }
