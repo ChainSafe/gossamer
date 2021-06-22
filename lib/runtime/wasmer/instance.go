@@ -245,7 +245,6 @@ func (in *Instance) setupInstanceVM(code []byte) error {
 // SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.
 func (in *Instance) SetContextStorage(s runtime.Storage) {
 	in.ctx.Storage = s
-	in.vm.SetContextData(in.ctx)
 }
 
 // Stop func
