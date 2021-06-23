@@ -305,8 +305,6 @@ func (s *Service) logPeerCount() {
 	}
 }
 
-
-
 func (s *Service) publishNetworkTelemetry(done chan interface{}) {
 	ticker := time.NewTicker(s.telemetryInterval)
 	defer ticker.Stop()
