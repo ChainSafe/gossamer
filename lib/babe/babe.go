@@ -175,41 +175,45 @@ func (b *Service) setupParameters(cfg *ServiceConfig) error {
 	}
 
 	// if slot duration is set via the config file, overwrite the runtime value
-	if cfg.SlotDuration > 0 && cfg.IsDev { // TODO: remove this, needs to be set via runtime
+	switch {
+	case cfg.SlotDuration > 0 && cfg.IsDev: // TODO: remove this, needs to be set via runtime
 		b.slotDuration, err = time.ParseDuration(fmt.Sprintf("%dms", cfg.SlotDuration))
-	} else if cfg.SlotDuration > 0 && !cfg.IsDev {
+	case cfg.SlotDuration > 0 && !cfg.IsDev:
 		err = errors.New("slot duration modified in config for non-dev chain")
-	} else {
+	default:
 		b.slotDuration, err = b.epochState.GetSlotDuration()
 	}
 	if err != nil {
 		return err
 	}
 
-	if cfg.EpochLength != 0 && cfg.IsDev { // TODO: remove this, needs to be set via runtime
+	switch {
+	case cfg.EpochLength != 0 && cfg.IsDev: // TODO: remove this, needs to be set via runtime
 		b.epochLength = cfg.EpochLength
-	} else if cfg.EpochLength > 0 && !cfg.IsDev {
+	case cfg.EpochLength > 0 && !cfg.IsDev:
 		err = errors.New("epoch length modified in config for non-dev chain")
-	} else {
+	default:
 		b.epochLength, err = b.epochState.GetEpochLength()
 	}
 	if err != nil {
 		return err
 	}
 
-	if cfg.AuthData != nil && cfg.IsDev { // TODO: remove this, needs to be set via runtime
+	switch {
+	case cfg.AuthData != nil && cfg.IsDev: // TODO: remove this, needs to be set via runtime
 		b.epochData.authorities = cfg.AuthData
-	} else if cfg.AuthData != nil && !cfg.IsDev {
+	case cfg.AuthData != nil && !cfg.IsDev:
 		return errors.New("authority data modified in config for non-dev chain")
-	} else {
+	default:
 		b.epochData.authorities = epochData.Authorities
 	}
 
-	if cfg.ThresholdDenominator != 0 && cfg.IsDev { // TODO: remove this, needs to be set via runtime
+	switch {
+	case cfg.ThresholdDenominator != 0 && cfg.IsDev: // TODO: remove this, needs to be set via runtime
 		b.epochData.threshold, err = CalculateThreshold(cfg.ThresholdNumerator, cfg.ThresholdDenominator, len(b.epochData.authorities))
-	} else if cfg.ThresholdDenominator != 0 && !cfg.IsDev {
+	case cfg.ThresholdDenominator != 0 && !cfg.IsDev:
 		err = errors.New("threshold modified in config for non-dev chain")
-	} else {
+	default:
 		b.epochData.threshold, err = CalculateThreshold(configData.C1, configData.C2, len(b.epochData.authorities))
 	}
 	if err != nil {
@@ -231,7 +235,7 @@ func (b *Service) Start() error {
 	}
 
 	// wait a bit to check if we need to sync before initiating
-	time.Sleep(initialWaitTime)
+	<-time.NewTimer(initialWaitTime).C
 
 	go b.initiate()
 	return nil
@@ -450,12 +454,21 @@ func (b *Service) waitForEpochStart(epoch uint64) (uint64, error) {
 	// check if it's time to start the epoch yet. if not, wait until it is
 	if time.Since(epochStartTime) < 0 {
 		logger.Debug("waiting for epoch to start")
-		select {
-		case <-time.After(time.Until(epochStartTime)):
-		case <-b.ctx.Done():
-			return 0, errors.New("context cancelled")
-		case <-b.pause:
-			return 0, errors.New("service paused")
+		err = func() error {
+			timer := time.NewTimer(time.Until(epochStartTime))
+			defer timer.Stop()
+			select {
+			case <-timer.C:
+				return nil
+			case <-b.ctx.Done():
+				return errors.New("context cancelled")
+			case <-b.pause:
+				return errors.New("service paused")
+			}
+		}()
+
+		if err != nil {
+			return 0, err
 		}
 	}
 
