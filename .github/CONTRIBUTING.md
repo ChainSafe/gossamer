@@ -84,29 +84,7 @@ Before opening a pull request be sure to run the linter
 $ gometallinter ./...
 ```
 
-**9. Using docker-compose**
-
-To use the **docker-compose.yml** file make sure you have installed [Docker](https://docs.docker.com/engine/install/) and [Docker Compose](https://docs.docker.com/compose/install/).
-
-The docker-compose.yml file has, currently, the Prometheus to collect metrics, so to start that service you can execute (in the project root folder):
-
-```
-docker-compose up (-d to disatach the terminal)
-
-or
-
-docker-compose up prometheus (-d to disatach the terminal)
-```
-
-the above command will starts the Prometheus service on `0.0.0.0:9090`.
-
-### Prometheus
-
-Actually the Prometheus service reads a file `prometheus.yml` placed in the root level project folder, this file contains the definitions that Prometheus needs to collect the metrics. 
-
-Linux: In the **job_name == gossamer** the **targets** property should be `[localhost:9876]`
-
-**10. Create a pull request.**
+**9. Create a pull request.**
 
 Navigate your browser to [https://github.com/ChainSafe/gossamer](https://github.com/ChainSafe/gossamer) and click on the new pull request button. In the “base” box on the left, change the branch to “**base development**”, the branch that you want your changes to be applied to. In the “compare” box on the right, select feature-in-progress-branch, the branch containing the changes you want to apply. You will then be asked to answer a few questions about your pull request. After you complete the questionnaire, the pull request will appear in the list of pull requests at [https://github.com/ChainSafe/gossamer/pulls](https://github.com/ChainSafe/gossamer/pulls).
 
