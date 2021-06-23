@@ -361,22 +361,23 @@ func TestDecodeExtrinsicBody(t *testing.T) {
 }
 
 func TestBuildBlockTimeMonitor(t *testing.T) {
+	metrics.Enabled = true
+	metrics.Unregister(buildBlockTimer)
+
 	babeService := createTestService(t, nil)
 	babeService.epochData.threshold = maxThreshold
 
 	parent, err := babeService.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
-	metrics.Enabled = true
 	timerMetrics := metrics.GetOrRegisterTimer(buildBlockTimer, nil)
+	timerMetrics.Stop()
 
-	require.Equal(t, int64(0), timerMetrics.Count())
 	createTestBlock(t, babeService, parent, [][]byte{}, 1, testEpochIndex)
 	require.Equal(t, int64(1), timerMetrics.Count())
 
-	buildErrorsMetrics := metrics.GetOrRegisterCounter(buildBlockErrors, nil)
-	require.Equal(t, int64(0), buildErrorsMetrics.Count())
 	_, err = babeService.buildBlock(parent, Slot{})
 	require.Error(t, err)
+	buildErrorsMetrics := metrics.GetOrRegisterCounter(buildBlockErrors, nil)
 	require.Equal(t, int64(1), buildErrorsMetrics.Count())
 }

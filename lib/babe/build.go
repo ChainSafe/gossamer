@@ -55,6 +55,9 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 	startBuilt := time.Now()
 	block, err := builder.buildBlock(parent, slot)
 
+	// is necessary to enable ethmetrics to be possible register values
+	ethmetrics.Enabled = true //nolint
+
 	if err != nil {
 		builderErrors := ethmetrics.GetOrRegisterCounter(buildBlockErrors, nil)
 		builderErrors.Inc(1)
@@ -63,7 +66,7 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 	}
 
 	timerMetrics := ethmetrics.GetOrRegisterTimer(buildBlockTimer, nil)
-	timerMetrics.UpdateSince(startBuilt)
+	timerMetrics.Update(time.Since(startBuilt))
 	return block, err
 }
 
