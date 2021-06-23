@@ -19,7 +19,6 @@ package network
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"math/big"
 	"os"
@@ -306,11 +305,7 @@ func (s *Service) logPeerCount() {
 	}
 }
 
-type peerInfo struct {
-	Roles      byte   `json:"roles"`
-	BestHash   string `json:"bestHash"`
-	BestNumber uint64 `json:"bestNumber"`
-}
+
 
 func (s *Service) publishNetworkTelemetry(done chan interface{}) {
 	ticker := time.NewTicker(s.telemetryInterval)
@@ -325,35 +320,11 @@ main:
 		case <-ticker.C:
 			o := s.host.bwc.GetBandwidthTotals()
 			err := telemetry.GetInstance().SendMessage(telemetry.NewBandwidthTM(o.RateIn, o.RateOut, s.host.peerCount()))
-
 			if err != nil {
 				logger.Debug("problem sending system.interval telemetry message", "error", err)
 			}
-			netState := make(map[string]interface{})
-			netState["peerId"] = s.host.h.ID()
-			hostAddrs := []string{}
-			for _, v := range s.host.h.Addrs() {
-				hostAddrs = append(hostAddrs, v.String())
-			}
-			netState["externalAddressess"] = hostAddrs
-			listAddrs := []string{}
-			for _, v := range s.host.h.Network().ListenAddresses() {
-				listAddrs = append(listAddrs, fmt.Sprintf("%s/p2p/%s", v, s.host.h.ID()))
-			}
-			netState["listenedAddressess"] = listAddrs
 
-			peers := make(map[string]interface{})
-			for _, v := range s.Peers() {
-				p := &peerInfo{
-					Roles:      v.Roles,
-					BestHash:   v.BestHash.String(),
-					BestNumber: v.BestNumber,
-				}
-				peers[v.PeerID] = *p
-			}
-			netState["connectedPeers"] = peers
-
-			err = telemetry.GetInstance().SendMessage(telemetry.NewNetworkStateTM(netState))
+			err = telemetry.GetInstance().SendMessage(telemetry.NewNetworkStateTM(s.host.h, s.Peers()))
 			if err != nil {
 				logger.Debug("problem sending system.interval telemetry message", "error", err)
 			}

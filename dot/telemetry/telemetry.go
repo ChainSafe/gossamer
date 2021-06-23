@@ -19,6 +19,7 @@ package telemetry
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/big"
 	"sync"
 	"time"
@@ -27,6 +28,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	log "github.com/ChainSafe/log15"
 	"github.com/gorilla/websocket"
+	libp2phost "github.com/libp2p/go-libp2p-core/host"
 )
 
 type telemetryConnection struct {
@@ -95,7 +97,7 @@ func (h *Handler) startListening() {
 		msg := <-h.msg
 		go func() {
 			msgBytes, err := h.msgToJSON(msg)
-			if err != nil || len(msgBytes) == 0 {
+			if err != nil {
 				h.log.Debug("issue decoding telemetry message", "error", err)
 				return
 			}
@@ -236,6 +238,12 @@ func (tm *SystemIntervalTM) messageType() string {
 	return tm.Msg
 }
 
+type peerInfo struct {
+	Roles      byte   `json:"roles"`
+	BestHash   string `json:"bestHash"`
+	BestNumber uint64 `json:"bestNumber"`
+}
+
 // NetworkStateTM struct to hold network state telemetry messages
 type NetworkStateTM struct {
 	Msg   string                 `json:"msg"`
@@ -243,10 +251,34 @@ type NetworkStateTM struct {
 }
 
 // NewNetworkStateTM function to create new Network State Telemetry Message
-func NewNetworkStateTM(state map[string]interface{}) *NetworkStateTM {
+func NewNetworkStateTM(host libp2phost.Host, peerInfos []common.PeerInfo) *NetworkStateTM {
+	netState := make(map[string]interface{})
+	netState["peerId"] = host.ID()
+	hostAddrs := []string{}
+	for _, v := range host.Addrs() {
+		hostAddrs = append(hostAddrs, v.String())
+	}
+	netState["externalAddressess"] = hostAddrs
+	listAddrs := []string{}
+	for _, v := range host.Network().ListenAddresses() {
+		listAddrs = append(listAddrs, fmt.Sprintf("%s/p2p/%s", v, host.ID()))
+	}
+	netState["listenedAddressess"] = listAddrs
+
+	peers := make(map[string]interface{})
+	for _, v := range peerInfos {
+		p := &peerInfo{
+			Roles:      v.Roles,
+			BestHash:   v.BestHash.String(),
+			BestNumber: v.BestNumber,
+		}
+		peers[v.PeerID] = *p
+	}
+	netState["connectedPeers"] = peers
+
 	return &NetworkStateTM{
 		Msg:   "system.network_state",
-		State: state,
+		State: netState,
 	}
 }
 func (tm *NetworkStateTM) messageType() string {
