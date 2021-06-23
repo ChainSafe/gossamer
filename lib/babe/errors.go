@@ -62,9 +62,12 @@ var (
 )
 
 // A DispatchOutcomeError is outcome of dispatching the extrinsic
+// Can I make this not a struct?
 type DispatchOutcomeError struct {
 	msg string // description of error
 }
+
+//type DispatchOutcomeError string
 
 func (e DispatchOutcomeError) Error() string {
 	return fmt.Sprintf("dispatch outcome error: %s", e.msg)
@@ -90,24 +93,81 @@ func determineCustomModuleErr(res []byte) error {
 	return fmt.Errorf("index: %d code: %d message: %s", res[0], res[1], errMsg.String())
 }
 
+//func determineDispatchErr(res []byte) error {
+//	var v []byte
+//	err := scale.Unmarshal(res[1:], &v)
+//	if err != nil {
+//		// this err is thrown if we can't unmarshal, so prolly `errInvalidResult`. Check to make sure
+//		// TODO Create stucts for errors and integrate into Varying data type
+//		return errInvalidResult
+//	}
+//
+//	switch res[0] {
+//	case 0:
+//		var v []byte
+//		err := scale.Unmarshal(res[1:], &v)
+//		if err != nil {
+//			// this err is thrown if we can't unmarshal, so prolly `errInvalidResult`. Check to make sure
+//			// TODO Create stucts for errors and integrate into Varying data type
+//			return errInvalidResult
+//		}
+//		return &DispatchOutcomeError{fmt.Sprintf("unknown error: %s", v)}
+//	case 1:
+//		return &DispatchOutcomeError{"failed lookup"}
+//	case 2:
+//		return &DispatchOutcomeError{"bad origin"}
+//	case 3:
+//		return &DispatchOutcomeError{fmt.Sprintf("custom module error: %s", determineCustomModuleErr(res[1:]))}
+//	}
+//
+//	return errInvalidResult
+//}
+
 func determineDispatchErr(res []byte) error {
-	switch res[0] {
-	case 0:
-		var v []byte
-		err := scale.Unmarshal(res[1:], &v)
-		if err != nil {
-			// this err is thrown if we can't unmarshal, so prolly `errInvalidResult`. Check to make sure
-			// TODO Create stucts for errors and integrate into Varying data type
-			return errInvalidResult
-		}
-		return &DispatchOutcomeError{fmt.Sprintf("unknown error: %s", v)}
-	case 1:
-		return &DispatchOutcomeError{"failed lookup"}
-	case 2:
-		return &DispatchOutcomeError{"bad origin"}
-	case 3:
-		return &DispatchOutcomeError{fmt.Sprintf("custom module error: %s", determineCustomModuleErr(res[1:]))}
+	//result := scale.NewResult(nil, scale.MustNewVaryingDataType(UnknownError{}, FailedLookup{}, BadOrigin{}, CustomModuleError{}))
+	vdt := scale.MustNewVaryingDataType(UnknownError{}, FailedLookup{}, BadOrigin{}, CustomModuleError{})
+	//fmt.Println("Result")
+	//fmt.Println(result)
+
+	//var v []byte
+	err := scale.Unmarshal(res[1:], &vdt)
+	if err != nil {
+		// this err is thrown if we can't unmarshal, so prolly `errInvalidResult`. Check to make sure
+		// TODO Create stucts for errors and integrate into Varying data type
+		return errInvalidResult
 	}
+
+
+	//fmt.Println("Unmarsalled dispatchErr Type:")
+	//fmt.Println(vdt.Value())
+
+	switch val := vdt.Value().(type){
+	case UnknownError:
+		// For some reason its not entering here, going to customModuleError instead
+		// Maybe cuz struct is wrong
+		fmt.Println("Val:")
+		fmt.Println(val)
+		return &DispatchOutcomeError{fmt.Sprintf("unknown error: %s", val.Err)}
+	case FailedLookup:
+		return &DispatchOutcomeError{"failed lookup"}
+	case BadOrigin:
+		return &DispatchOutcomeError{"bad origin"}
+	case CustomModuleError:
+		// Printing nice, not getting the correct values
+		return &DispatchOutcomeError{fmt.Sprintf("custom module error: %s", val.String())}
+	}
+	//// if custon error module
+	//if vdt.Value().Index() == 4 {
+	//	err = vdt.Set(CustomModuleError{
+	//		Err: DispatchOutcomeError{fmt.Sprintf("custom module error: %s", determineCustomModuleErr(res[1:]))},
+	//	})
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//}
+	//fmt.Println("Unmarsalled dispatchErr Value2:")
+	//fmt.Println(vdt.Value())
+
 	return errInvalidResult
 }
 
@@ -150,7 +210,7 @@ func determineUnknownTxnErr(res []byte) error {
 }
 
 type UnknownError struct {
-	Err DispatchOutcomeError
+	Err string
 }
 
 func (err UnknownError) Index() uint {
@@ -158,7 +218,7 @@ func (err UnknownError) Index() uint {
 }
 
 type FailedLookup struct {
-	err DispatchOutcomeError
+	Err string
 }
 
 func (err FailedLookup) Index() uint {
@@ -166,7 +226,7 @@ func (err FailedLookup) Index() uint {
 }
 
 type BadOrigin struct {
-	Err DispatchOutcomeError
+	Err string
 }
 
 func (err BadOrigin) Index() uint {
@@ -174,28 +234,34 @@ func (err BadOrigin) Index() uint {
 }
 
 type CustomModuleError struct {
-	Err DispatchOutcomeError
+	index uint8      `scale:"3"`
+	err   uint8	  	 `scale:"2"`
+	message string  `scale:"1"` // might need to be *string
 }
 
 func (err CustomModuleError) Index() uint {
 	return 4
 }
 
+func (err CustomModuleError) String() string {
+	return fmt.Sprintf("index: %d code: %d message: %s", err.index, err.err, err.message)
+}
+
 func determineErr(res []byte) error {
 	switch res[0] {
 	case 0: // DispatchOutcome
-		result := scale.NewResult(nil, scale.MustNewVaryingDataType(UnknownError{}, FailedLookup{}, BadOrigin{}, CustomModuleError{}))
+		//result := scale.NewResult(nil, scale.MustNewVaryingDataType(UnknownError{}, FailedLookup{}, BadOrigin{}, CustomModuleError{}))
 		//err := result.Set(scale.OK, nil)
 		//if err != nil {
 		//	panic(err)
 		//}
 
-		// This code chunk works
-		v := FailedLookup{err: DispatchOutcomeError{"failed lookup"}}
-		fmt.Println(v.err)
-
-		fmt.Println("Result")
-		fmt.Println(result)
+		//// This code chunk works
+		//v := FailedLookup{Err: DispatchOutcomeError{"failed lookup"}}
+		//fmt.Println(v.Err)
+		//
+		//fmt.Println("Result")
+		//fmt.Println(result)
 		switch res[1] {
 		case 0:
 			return nil
