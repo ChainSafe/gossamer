@@ -24,19 +24,20 @@ import (
 
 // HandleTransactionMessage validates each transaction in the message and
 // adds valid transactions to the transaction queue of the BABE session
-func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) error {
+// returns boolean for transaction propagation, true - transactions should be propagated
+func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (bool, error) {
 	logger.Debug("received TransactionMessage")
 
 	// get transactions from message extrinsics
 	txs := msg.Extrinsics
-
+	var toPropagate []types.Extrinsic
 	for _, tx := range txs {
 		// validate each transaction
 		externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, tx...))
 		val, err := s.rt.ValidateTransaction(externalExt)
 		if err != nil {
-			logger.Error("failed to validate transaction", "err", err)
-			return err
+			logger.Debug("failed to validate transaction", "err", err)
+			continue
 		}
 
 		// create new valid transaction
@@ -45,7 +46,14 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) erro
 		// push to the transaction queue of BABE session
 		hash := s.transactionState.AddToPool(vtx)
 		logger.Trace("Added transaction to queue", "hash", hash)
+
+		// find tx(s) that should propagate
+		if val.Propagate {
+			toPropagate = append(toPropagate, tx)
+		}
 	}
 
-	return nil
+	msg.Extrinsics = toPropagate
+
+	return len(msg.Extrinsics) > 0, nil
 }
