@@ -55,7 +55,7 @@ func TestDecodeTransactionMessage(t *testing.T) {
 func TestHandleTransactionMessage(t *testing.T) {
 	basePath := utils.NewTestBasePath(t, "nodeA")
 	mockhandler := &MockTransactionHandler{}
-	mockhandler.On("HandleTransactionMessage", mock.AnythingOfType("*network.TransactionMessage")).Return(nil)
+	mockhandler.On("HandleTransactionMessage", mock.AnythingOfType("*network.TransactionMessage")).Return(true, nil)
 
 	config := &Config{
 		BasePath:           basePath,
