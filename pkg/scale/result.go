@@ -21,11 +21,15 @@ import (
 	"reflect"
 )
 
+// ResultMode is the mode the Result is set to
 type ResultMode int
 
 const (
+	// Unset ResultMode is zero value mode
 	Unset ResultMode = iota
+	// OK case
 	OK
+	// Err case
 	Err
 )
 
@@ -37,7 +41,7 @@ type Result struct {
 }
 
 // NewResult is constructor for Result. Use nil to represent empty tuple () in Rust.
-func NewResult(okIn interface{}, errIn interface{}) (res Result) {
+func NewResult(okIn, errIn interface{}) (res Result) {
 	switch okIn {
 	case nil:
 		res.ok = empty{}
@@ -53,18 +57,25 @@ func NewResult(okIn interface{}, errIn interface{}) (res Result) {
 	return
 }
 
+// Set takes in a mode (OK/Err) and the associated interface and sets the Result value
 func (r *Result) Set(mode ResultMode, in interface{}) (err error) {
 	switch mode {
 	case OK:
-		if reflect.TypeOf(r.ok) != reflect.TypeOf(in) {
+		if reflect.TypeOf(r.ok) == reflect.TypeOf(empty{}) && in == nil {
+			r.mode = mode
+			return
+		} else if reflect.TypeOf(r.ok) != reflect.TypeOf(in) {
 			err = fmt.Errorf("type mistmatch for result.ok: %T, and inputted: %T", r.ok, in)
 			return
 		}
 		r.ok = in
 		r.mode = mode
 	case Err:
-		if reflect.TypeOf(r.err) != reflect.TypeOf(in) {
-			err = fmt.Errorf("type mistmatch for result.ok: %T, and inputted: %T", r.ok, in)
+		if reflect.TypeOf(r.err) == reflect.TypeOf(empty{}) && in == nil {
+			r.mode = mode
+			return
+		} else if reflect.TypeOf(r.err) != reflect.TypeOf(in) {
+			err = fmt.Errorf("type mistmatch for result.err: %T, and inputted: %T", r.ok, in)
 			return
 		}
 		r.err = in
@@ -75,9 +86,10 @@ func (r *Result) Set(mode ResultMode, in interface{}) (err error) {
 	return
 }
 
+// UnsetResult is error when Result is unset with a value.
 type UnsetResult error
 
-// Result returns the result in go standard wrapping the Err case in a ResultErr
+// Unwrap returns the result in go standard wrapping the Err case in a ResultErr
 func (r *Result) Unwrap() (ok interface{}, err error) {
 	if !r.IsSet() {
 		err = UnsetResult(fmt.Errorf("result is not set"))
@@ -117,10 +129,12 @@ func (r *Result) IsSet() bool {
 
 type empty struct{}
 
+// WrappedErr is returned by Result.Unwrap().  The underlying Err value is wrapped and stored in Err attribute
 type WrappedErr struct {
 	Err interface{}
 }
 
+// Error fulfils the error interface
 func (r WrappedErr) Error() string {
 	return fmt.Sprintf("ResultErr %+v", r.Err)
 }

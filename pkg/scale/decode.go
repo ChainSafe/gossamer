@@ -25,10 +25,59 @@ import (
 	"reflect"
 )
 
+// indirect walks down v allocating pointers as needed,
+// until it gets to a non-pointer.
+func indirect(dstv reflect.Value) (elem reflect.Value) {
+	dstv0 := dstv
+	haveAddr := false
+	for {
+		// Load value from interface, but only if the result will be
+		// usefully addressable.
+		if dstv.Kind() == reflect.Interface && !dstv.IsNil() {
+			e := dstv.Elem()
+			if e.Kind() == reflect.Ptr && !e.IsNil() && e.Elem().Kind() == reflect.Ptr {
+				haveAddr = false
+				dstv = e
+				continue
+			}
+		}
+		if dstv.Kind() != reflect.Ptr {
+			break
+		}
+		if dstv.CanSet() {
+			break
+		}
+		// Prevent infinite loop if v is an interface pointing to its own address:
+		//     var v interface{}
+		//     v = &v
+		if dstv.Elem().Kind() == reflect.Interface && dstv.Elem().Elem() == dstv {
+			dstv = dstv.Elem()
+			break
+		}
+		if dstv.IsNil() {
+			dstv.Set(reflect.New(dstv.Type().Elem()))
+		}
+		if haveAddr {
+			dstv = dstv0 // restore original value after round-trip Value.Addr().Elem()
+			haveAddr = false
+		} else {
+			dstv = dstv.Elem()
+		}
+	}
+	elem = dstv
+	return
+}
+
+// Unmarshal takes data and a destination pointer to unmarshal the data to.
 func Unmarshal(data []byte, dst interface{}) (err error) {
 	dstv := reflect.ValueOf(dst)
 	if dstv.Kind() != reflect.Ptr || dstv.IsNil() {
 		err = fmt.Errorf("unsupported dst: %T, must be a pointer to a destination", dst)
+		return
+	}
+
+	elem := indirect(dstv)
+	if err != nil {
 		return
 	}
 
@@ -39,7 +88,8 @@ func Unmarshal(data []byte, dst interface{}) (err error) {
 		return
 	}
 	ds.Buffer = *buf
-	err = ds.unmarshal(dstv.Elem())
+
+	err = ds.unmarshal(elem)
 	if err != nil {
 		return
 	}
@@ -69,6 +119,10 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 		err = ds.decodeBool(dstv)
 	case Result:
 		err = ds.decodeResult(dstv)
+	case VaryingDataType:
+		err = ds.decodeVaryingDataType(dstv)
+	case VaryingDataTypeSlice:
+		err = ds.decodeVaryingDataTypeSlice(dstv)
 	default:
 		t := reflect.TypeOf(in)
 		switch t.Kind() {
@@ -83,14 +137,7 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 		case reflect.Array:
 			err = ds.decodeArray(dstv)
 		case reflect.Slice:
-			t := reflect.TypeOf(in)
-			// check if this is a convertible to VaryingDataType, if so decode using encodeVaryingDataType
-			switch t.ConvertibleTo(reflect.TypeOf(VaryingDataType{})) {
-			case true:
-				err = ds.decodeVaryingDataType(dstv)
-			case false:
-				err = ds.decodeSlice(dstv)
-			}
+			err = ds.decodeSlice(dstv)
 		default:
 			err = fmt.Errorf("unsupported type: %T", in)
 		}
@@ -229,56 +276,72 @@ func (ds *decodeState) decodePointer(dstv reflect.Value) (err error) {
 	case 0x00:
 		// nil case
 	case 0x01:
-		elemType := reflect.TypeOf(dstv.Interface()).Elem()
-		tempElem := reflect.New(elemType)
-		err = ds.unmarshal(tempElem.Elem())
-		if err != nil {
-			break
+		switch dstv.IsZero() {
+		case false:
+			if dstv.Elem().Kind() == reflect.Ptr {
+				err = ds.unmarshal(dstv.Elem().Elem())
+			} else {
+				err = ds.unmarshal(dstv.Elem())
+			}
+		case true:
+			elemType := reflect.TypeOf(dstv.Interface()).Elem()
+			tempElem := reflect.New(elemType)
+			err = ds.unmarshal(tempElem.Elem())
+			if err != nil {
+				return
+			}
+			dstv.Set(tempElem)
 		}
-		dstv.Set(tempElem)
 	default:
 		err = fmt.Errorf("unsupported Option value: %v, bytes: %v", rb, ds.Bytes())
 	}
 	return
 }
 
-func (ds *decodeState) decodeVaryingDataType(dstv reflect.Value) (err error) {
+func (ds *decodeState) decodeVaryingDataTypeSlice(dstv reflect.Value) (err error) {
+	vdts := dstv.Interface().(VaryingDataTypeSlice)
 	l, err := ds.decodeLength()
 	if err != nil {
 		return
 	}
+	for i := 0; i < l; i++ {
+		vdt := vdts.VaryingDataType
+		vdtv := reflect.New(reflect.TypeOf(vdt))
+		vdtv.Elem().Set(reflect.ValueOf(vdt))
+		err = ds.unmarshal(vdtv.Elem())
+		if err != nil {
+			return
+		}
+		vdts.Types = append(vdts.Types, vdtv.Elem().Interface().(VaryingDataType))
+	}
+	dstv.Set(reflect.ValueOf(vdts))
+	return
+}
 
-	dstt := reflect.TypeOf(dstv.Interface())
-	key := fmt.Sprintf("%s.%s", dstt.PkgPath(), dstt.Name())
-	mappedValues, ok := vdtCache[key]
-	if !ok {
-		err = fmt.Errorf("unable to find registered custom VaryingDataType: %T", dstv.Interface())
+func (ds *decodeState) decodeVaryingDataType(dstv reflect.Value) (err error) {
+	var b byte
+	b, err = ds.ReadByte()
+	if err != nil {
 		return
 	}
 
-	temp := reflect.New(dstt)
-	for i := 0; i < l; i++ {
-		var b byte
-		b, err = ds.ReadByte()
-		if err != nil {
-			return
-		}
-
-		val, ok := mappedValues[uint(b)]
-		if !ok {
-			err = fmt.Errorf("unable to find registered VaryingDataTypeValue for type: %T", dstv.Interface())
-			return
-		}
-
-		tempVal := reflect.New(reflect.TypeOf(val)).Elem()
-		err = ds.unmarshal(tempVal)
-		if err != nil {
-			return
-		}
-
-		temp.Elem().Set(reflect.Append(temp.Elem(), tempVal))
+	vdt := dstv.Interface().(VaryingDataType)
+	val, ok := vdt.cache[uint(b)]
+	if !ok {
+		err = fmt.Errorf("unable to find VaryingDataTypeValue with index: %d", uint(b))
+		return
 	}
-	dstv.Set(temp.Elem())
+
+	tempVal := reflect.New(reflect.TypeOf(val)).Elem()
+	err = ds.unmarshal(tempVal)
+	if err != nil {
+		return
+	}
+	err = vdt.Set(tempVal.Interface().(VaryingDataTypeValue))
+	if err != nil {
+		return
+	}
+	dstv.Set(reflect.ValueOf(vdt))
 	return
 }
 
@@ -510,56 +573,56 @@ func (ds *decodeState) decodeFixedWidthInt(dstv reflect.Value) (err error) {
 		var b byte
 		b, err = ds.ReadByte()
 		if err != nil {
-			break
+			return
 		}
 		out = int8(b)
 	case uint8:
 		var b byte
 		b, err = ds.ReadByte()
 		if err != nil {
-			break
+			return
 		}
-		out = uint8(b)
+		out = uint8(b) // nolint
 	case int16:
 		buf := make([]byte, 2)
 		_, err = ds.Read(buf)
 		if err != nil {
-			break
+			return
 		}
 		out = int16(binary.LittleEndian.Uint16(buf))
 	case uint16:
 		buf := make([]byte, 2)
 		_, err = ds.Read(buf)
 		if err != nil {
-			break
+			return
 		}
 		out = binary.LittleEndian.Uint16(buf)
 	case int32:
 		buf := make([]byte, 4)
 		_, err = ds.Read(buf)
 		if err != nil {
-			break
+			return
 		}
 		out = int32(binary.LittleEndian.Uint32(buf))
 	case uint32:
 		buf := make([]byte, 4)
 		_, err = ds.Read(buf)
 		if err != nil {
-			break
+			return
 		}
 		out = binary.LittleEndian.Uint32(buf)
 	case int64:
 		buf := make([]byte, 8)
 		_, err = ds.Read(buf)
 		if err != nil {
-			break
+			return
 		}
 		out = int64(binary.LittleEndian.Uint64(buf))
 	case uint64:
 		buf := make([]byte, 8)
 		_, err = ds.Read(buf)
 		if err != nil {
-			break
+			return
 		}
 		out = binary.LittleEndian.Uint64(buf)
 	default:

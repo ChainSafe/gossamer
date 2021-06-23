@@ -64,7 +64,7 @@ func (prd SealDigest) Index() uint {
 }
 
 func TestOldVsNewEncoding(t *testing.T) {
-	oldDigest := types.Digest{
+	oldDigests := types.Digest{
 		&types.ChangesTrieRootDigest{
 			Hash: common.Hash{0, 91, 50, 25, 214, 94, 119, 36, 71, 216, 33, 152, 85, 184, 34, 120, 61, 161, 164, 223, 76, 53, 40, 246, 76, 38, 235, 204, 43, 31, 179, 28},
 		},
@@ -81,34 +81,53 @@ func TestOldVsNewEncoding(t *testing.T) {
 			Data:              []byte{1, 3, 5, 7},
 		},
 	}
-	oldEncode, err := oldDigest.Encode()
+	oldEncode, err := oldDigests.Encode()
 	if err != nil {
 		t.Errorf("unexpected err: %v", err)
 		return
 	}
 
-	type Digests VaryingDataType
-	err = RegisterVaryingDataType(Digests{}, ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
+	vdt, err := NewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
 	if err != nil {
 		t.Errorf("unexpected err: %v", err)
 		return
 	}
-	newDigest := Digests{
-		ChangesTrieRootDigest{
-			Hash: common.Hash{0, 91, 50, 25, 214, 94, 119, 36, 71, 216, 33, 152, 85, 184, 34, 120, 61, 161, 164, 223, 76, 53, 40, 246, 76, 38, 235, 204, 43, 31, 179, 28},
-		},
-		PreRuntimeDigest{
-			ConsensusEngineID: types.BabeEngineID,
-			Data:              []byte{1, 3, 5, 7},
-		},
-		ConsensusDigest{
-			ConsensusEngineID: types.BabeEngineID,
-			Data:              []byte{1, 3, 5, 7},
-		},
-		SealDigest{
-			ConsensusEngineID: types.BabeEngineID,
-			Data:              []byte{1, 3, 5, 7},
-		},
+	err = vdt.Set(ChangesTrieRootDigest{
+		Hash: common.Hash{0, 91, 50, 25, 214, 94, 119, 36, 71, 216, 33, 152, 85, 184, 34, 120, 61, 161, 164, 223, 76, 53, 40, 246, 76, 38, 235, 204, 43, 31, 179, 28},
+	})
+	if err != nil {
+		t.Errorf("unexpected err: %v", err)
+		return
+	}
+
+	newDigest := []VaryingDataType{
+		mustNewVaryingDataTypeAndSet(
+			ChangesTrieRootDigest{
+				Hash: common.Hash{0, 91, 50, 25, 214, 94, 119, 36, 71, 216, 33, 152, 85, 184, 34, 120, 61, 161, 164, 223, 76, 53, 40, 246, 76, 38, 235, 204, 43, 31, 179, 28},
+			},
+			ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{},
+		),
+		mustNewVaryingDataTypeAndSet(
+			PreRuntimeDigest{
+				ConsensusEngineID: types.BabeEngineID,
+				Data:              []byte{1, 3, 5, 7},
+			},
+			ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{},
+		),
+		mustNewVaryingDataTypeAndSet(
+			ConsensusDigest{
+				ConsensusEngineID: types.BabeEngineID,
+				Data:              []byte{1, 3, 5, 7},
+			},
+			ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{},
+		),
+		mustNewVaryingDataTypeAndSet(
+			SealDigest{
+				ConsensusEngineID: types.BabeEngineID,
+				Data:              []byte{1, 3, 5, 7},
+			},
+			ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{},
+		),
 	}
 
 	newEncode, err := Marshal(newDigest)
@@ -120,13 +139,14 @@ func TestOldVsNewEncoding(t *testing.T) {
 		t.Errorf("encodeState.encodeStruct() = %v, want %v", oldEncode, newEncode)
 	}
 
-	var decoded Digests
+	decoded := NewVaryingDataTypeSlice(vdt)
 	err = Unmarshal(newEncode, &decoded)
 	if err != nil {
 		t.Errorf("unexpected err: %v", err)
 	}
-	if !reflect.DeepEqual(decoded, newDigest) {
-		t.Errorf("Unmarshal() = %v, want %v", decoded, newDigest)
+	// decoded.Types
+	if !reflect.DeepEqual(decoded.Types, newDigest) {
+		t.Errorf("Unmarshal() = %v, want %v", decoded.Types, newDigest)
 	}
 }
 
