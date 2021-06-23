@@ -26,12 +26,19 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 
+	ethmetrics "github.com/ethereum/go-ethereum/metrics"
+
 	log "github.com/ChainSafe/log15"
+)
+
+const (
+	finalityGrandpaRound = "gossamer/finality/grandpa/round"
 )
 
 var (
@@ -197,6 +204,7 @@ func (s *Service) Start() error {
 	}()
 
 	go s.sendNeighbourMessage()
+	go s.collectGrandpaMetrics()
 	return nil
 }
 
@@ -229,6 +237,26 @@ func (s *Service) authorities() []*types.Authority {
 	}
 
 	return ad
+}
+
+func (s *Service) collectGrandpaMetrics() {
+	s.collect()
+	tc := time.NewTicker(metrics.Refresh)
+	defer tc.Stop()
+	for {
+		select {
+		case <-s.ctx.Done():
+			return
+		case <-tc.C:
+			s.collect()
+		}
+	}
+}
+
+func (s *Service) collect() {
+	ethmetrics.Enabled = true
+	finalityCounterMetric := ethmetrics.GetOrRegisterGauge(finalityGrandpaRound, nil)
+	finalityCounterMetric.Update(int64(s.state.round))
 }
 
 // updateAuthorities updates the grandpa voter set, increments the setID, and resets the round numbers
@@ -279,6 +307,7 @@ func (s *Service) initiate() error {
 	s.roundLock.Lock()
 	s.state.round++
 	logger.Trace("incrementing grandpa round", "next round", s.state.round)
+
 	if s.tracker != nil {
 		s.tracker.stop()
 	}
