@@ -63,6 +63,7 @@ var (
 )
 
 // A DispatchOutcomeError is outcome of dispatching the extrinsic
+// Can I make this not a struct?
 type DispatchOutcomeError struct {
 	msg string // description of error
 }
@@ -232,21 +233,25 @@ func (err Module) String() string {
 	return fmt.Sprintf("index: %d code: %d message: %x", err.Idx, err.Err, *err.Message)
 }
 
+func (err CustomModuleError) String() string {
+	return fmt.Sprintf("index: %d code: %d message: %s", err.index, err.err, err.message)
+}
+
 func determineErr(res []byte) error {
 	switch res[0] {
 	case 0: // DispatchOutcome
-		result := scale.NewResult(nil, scale.MustNewVaryingDataType(UnknownError{}, FailedLookup{}, BadOrigin{}, CustomModuleError{}))
+		//result := scale.NewResult(nil, scale.MustNewVaryingDataType(UnknownError{}, FailedLookup{}, BadOrigin{}, CustomModuleError{}))
 		//err := result.Set(scale.OK, nil)
 		//if err != nil {
 		//	panic(err)
 		//}
 
-		// This code chunk works
-		v := FailedLookup{err: DispatchOutcomeError{"failed lookup"}}
-		fmt.Println(v.err)
-
-		fmt.Println("Result")
-		fmt.Println(result)
+		//// This code chunk works
+		//v := FailedLookup{Err: DispatchOutcomeError{"failed lookup"}}
+		//fmt.Println(v.Err)
+		//
+		//fmt.Println("Result")
+		//fmt.Println(result)
 		switch res[1] {
 		case 0:
 			return nil
