@@ -122,7 +122,13 @@ func determineCustomModuleErr(res []byte) error {
 //	return errInvalidResult
 //}
 
+/*
+	Two main issues I need to fix:
+		1) Types arent being unmarshalled correctly: probably because of how I constructed them or how I am unmarshalling
+		2) CustomModuleError data isnt being decoded. The type is but the struct is empty
+ */
 func determineDispatchErr(res []byte) error {
+	// Maybe I need to do something with this first status byte? unsure of what tho
 	// If not encoded with thees types, will they still evaluate? Maybe thats why they are going to customModuleError
 	vdt := scale.MustNewVaryingDataType(UnknownError{}, FailedLookup{}, BadOrigin{}, CustomModuleError{})
 
