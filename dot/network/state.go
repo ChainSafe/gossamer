@@ -55,5 +55,5 @@ type Syncer interface {
 
 // TransactionHandler is the interface used by the transactions sub-protocol
 type TransactionHandler interface {
-	HandleTransactionMessage(*TransactionMessage) error
+	HandleTransactionMessage(*TransactionMessage) (bool, error)
 }
