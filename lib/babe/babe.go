@@ -30,6 +30,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	log "github.com/ChainSafe/log15"
+	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 )
 
 var logger log.Logger
@@ -276,6 +277,9 @@ func (b *Service) Stop() error {
 	if b.ctx.Err() != nil {
 		return errors.New("service already stopped")
 	}
+
+	ethmetrics.Unregister(buildBlockTimer)
+	ethmetrics.Unregister(buildBlockErrors)
 
 	b.cancel()
 	return nil
