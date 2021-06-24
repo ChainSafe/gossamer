@@ -155,7 +155,11 @@ func TestVerificationManager_VerifyBlock_IsDisabled(t *testing.T) {
 		ThresholdNumerator:   1,
 		ThresholdDenominator: 1,
 	})
-	cfg, err := babeService.rt.BabeConfiguration()
+
+	rt, ok := babeService.blockState.GetRuntime(nil)
+	require.True(t, ok)
+
+	cfg, err := rt.BabeConfiguration()
 	require.NoError(t, err)
 
 	cfg.GenesisAuthorities = types.AuthoritiesToRaw(babeService.epochData.authorities)
@@ -201,7 +205,11 @@ func TestVerificationManager_VerifyBlock_Ok(t *testing.T) {
 		ThresholdNumerator:   1,
 		ThresholdDenominator: 1,
 	})
-	cfg, err := babeService.rt.BabeConfiguration()
+
+	rt, ok := babeService.blockState.GetRuntime(nil)
+	require.True(t, ok)
+
+	cfg, err := rt.BabeConfiguration()
 	require.NoError(t, err)
 
 	cfg.GenesisAuthorities = types.AuthoritiesToRaw(babeService.epochData.authorities)
@@ -221,7 +229,11 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 		ThresholdNumerator:   1,
 		ThresholdDenominator: 1,
 	})
-	cfg, err := babeService.rt.BabeConfiguration()
+
+	rt, ok := babeService.blockState.GetRuntime(nil)
+	require.True(t, ok)
+
+	cfg, err := rt.BabeConfiguration()
 	require.NoError(t, err)
 
 	cfg.GenesisAuthorities = types.AuthoritiesToRaw(babeService.epochData.authorities)
@@ -258,7 +270,11 @@ func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T)
 		ThresholdNumerator:   1,
 		ThresholdDenominator: 1,
 	})
-	cfg, err := babeService.rt.BabeConfiguration()
+
+	rt, ok := babeService.blockState.GetRuntime(nil)
+	require.True(t, ok)
+
+	cfg, err := rt.BabeConfiguration()
 	require.NoError(t, err)
 
 	cfg.GenesisAuthorities = types.AuthoritiesToRaw(babeService.epochData.authorities)
@@ -278,7 +294,11 @@ func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
 		ThresholdNumerator:   1,
 		ThresholdDenominator: 1,
 	})
-	cfg, err := babeService.rt.BabeConfiguration()
+
+	rt, ok := babeService.blockState.GetRuntime(nil)
+	require.True(t, ok)
+
+	cfg, err := rt.BabeConfiguration()
 	require.NoError(t, err)
 
 	cfg.C1 = 1
@@ -308,7 +328,6 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 	babeService.epochData.authorityIndex = 0
 
 	builder, _ := NewBlockBuilder(
-		babeService.rt,
 		babeService.keypair,
 		babeService.transactionState,
 		babeService.blockState,

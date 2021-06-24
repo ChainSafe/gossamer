@@ -275,13 +275,13 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	}
 	nodeSrvcs = append(nodeSrvcs, dh)
 
-	coreSrvc, err := createCoreService(cfg, rt, ks, stateSrvc, networkSrvc, dh)
+	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create core service: %s", err)
 	}
 	nodeSrvcs = append(nodeSrvcs, coreSrvc)
 
-	bp, err := createBABEService(cfg, rt, stateSrvc, ks.Babe, coreSrvc)
+	bp, err := createBABEService(cfg, stateSrvc, ks.Babe, coreSrvc)
 	if err != nil {
 		return nil, err
 	}

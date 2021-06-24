@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	log "github.com/ChainSafe/log15"
@@ -55,9 +56,6 @@ type Service struct {
 
 	// BABE authority keypair
 	keypair *sr25519.Keypair // TODO: change to BABE keystore
-
-	// Current runtime
-	rt runtime.Instance
 
 	// Epoch configuration data
 	slotDuration time.Duration
@@ -102,10 +100,6 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		return nil, errNilEpochState
 	}
 
-	if cfg.Runtime == nil {
-		return nil, errNilRuntime
-	}
-
 	if cfg.BlockImportHandler == nil {
 		return nil, errNilBlockImportHandler
 	}
@@ -125,7 +119,6 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		epochState:         cfg.EpochState,
 		epochLength:        cfg.EpochLength,
 		keypair:            cfg.Keypair,
-		rt:                 cfg.Runtime,
 		transactionState:   cfg.TransactionState,
 		slotToProof:        make(map[uint64]*VrfOutputAndProof),
 		pause:              make(chan struct{}),
@@ -308,11 +301,6 @@ func (b *Service) Stop() error {
 
 	b.cancel()
 	return nil
-}
-
-// SetRuntime sets the service's runtime
-func (b *Service) SetRuntime(rt runtime.Instance) {
-	b.rt = rt
 }
 
 // Authorities returns the current BABE authorities
@@ -513,9 +501,15 @@ func (b *Service) handleSlot(slotNum uint64) error {
 		return err
 	}
 
-	b.rt.SetContextStorage(ts)
+	hash := parent.Hash()
+	rt, ok := b.blockState.GetRuntime(&hash)
+	if !ok {
+		return blocktree.ErrFailedToGetRuntime
+	}
 
-	block, err := b.buildBlock(parent, currentSlot)
+	rt.SetContextStorage(ts)
+
+	block, err := b.buildBlock(parent, currentSlot, rt)
 	if err != nil {
 		return err
 	}

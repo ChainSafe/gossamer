@@ -82,13 +82,10 @@ func TestCreateCoreService(t *testing.T) {
 
 	networkSrvc := &network.Service{}
 
-	rt, err := createRuntime(cfg, stateSrvc, ks, networkSrvc)
-	require.NoError(t, err)
-
 	dh, err := createDigestHandler(stateSrvc)
 	require.NoError(t, err)
 
-	coreSrvc, err := createCoreService(cfg, rt, ks, stateSrvc, networkSrvc, dh)
+	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
 	require.NoError(t, err)
 	require.NotNil(t, coreSrvc)
 }
@@ -133,8 +130,6 @@ func TestCreateSyncService(t *testing.T) {
 
 	ks := keystore.NewGlobalKeystore()
 	require.NotNil(t, ks)
-	rt, err := createRuntime(cfg, stateSrvc, ks, &network.Service{})
-	require.NoError(t, err)
 
 	ver, err := createBlockVerifier(stateSrvc)
 	require.NoError(t, err)
@@ -142,10 +137,10 @@ func TestCreateSyncService(t *testing.T) {
 	dh, err := createDigestHandler(stateSrvc)
 	require.NoError(t, err)
 
-	coreSrvc, err := createCoreService(cfg, rt, ks, stateSrvc, &network.Service{}, dh)
+	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, &network.Service{}, dh)
 	require.NoError(t, err)
 
-	_, err = newSyncService(cfg, stateSrvc, nil, ver, rt, coreSrvc)
+	_, err = newSyncService(cfg, stateSrvc, nil, ver, nil, coreSrvc)
 	require.NoError(t, err)
 }
 
@@ -208,7 +203,7 @@ func TestCreateRPCService(t *testing.T) {
 	dh, err := createDigestHandler(stateSrvc)
 	require.NoError(t, err)
 
-	coreSrvc, err := createCoreService(cfg, rt, ks, stateSrvc, networkSrvc, dh)
+	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
 	require.NoError(t, err)
 
 	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
@@ -248,7 +243,7 @@ func TestCreateBABEService(t *testing.T) {
 	dh, err := createDigestHandler(stateSrvc)
 	require.NoError(t, err)
 
-	coreSrvc, err := createCoreService(cfg, rt, ks, stateSrvc, &network.Service{}, dh)
+	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, &network.Service{}, dh)
 	require.NoError(t, err)
 
 	bs, err := createBABEService(cfg, rt, stateSrvc, ks.Babe, coreSrvc)
@@ -338,7 +333,7 @@ func TestNewWebSocketServer(t *testing.T) {
 	dh, err := createDigestHandler(stateSrvc)
 	require.NoError(t, err)
 
-	coreSrvc, err := createCoreService(cfg, rt, ks, stateSrvc, networkSrvc, dh)
+	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
 	require.Nil(t, err)
 
 	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)

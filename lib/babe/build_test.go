@@ -47,7 +47,6 @@ func TestSeal(t *testing.T) {
 	babeService := createTestService(t, cfg)
 
 	builder, _ := NewBlockBuilder(
-		babeService.rt,
 		babeService.keypair,
 		babeService.transactionState,
 		babeService.blockState,
@@ -103,16 +102,21 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header, e
 		number:   slotNumber,
 	}
 
+	rt, ok := babeService.blockState.GetRuntime(nil)
+	require.True(t, ok)
+
 	// build block
 	var block *types.Block
 	for i := 0; i < 1; i++ { // retry if error
-		block, err = babeService.buildBlock(parent, slot)
+		block, err = babeService.buildBlock(parent, slot, rt)
 		if err == nil {
+			babeService.blockState.StoreRuntime(block.Header.Hash(), rt)
 			return block, slot
 		}
 	}
 
 	require.NoError(t, err)
+
 	return block, slot
 }
 
@@ -126,7 +130,6 @@ func TestBuildBlock_ok(t *testing.T) {
 	babeService.epochData.threshold = maxThreshold
 
 	builder, _ := NewBlockBuilder(
-		babeService.rt,
 		babeService.keypair,
 		babeService.transactionState,
 		babeService.blockState,
@@ -181,20 +184,23 @@ func TestApplyExtrinsic(t *testing.T) {
 	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewEmptyDigest())
 	require.NoError(t, err)
 
+	rt, ok := babeService.blockState.GetRuntime(nil)
+	require.True(t, ok)
+
 	//initialise block header
-	err = babeService.rt.InitializeBlock(header)
+	err = rt.InitializeBlock(header)
 	require.NoError(t, err)
 
 	ext := types.Extrinsic(common.MustHexToBytes("0x410284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d015a3e258da3ea20581b68fe1264a35d1f62d6a0debb1a44e836375eb9921ba33e3d0f265f2da33c9ca4e10490b03918300be902fcb229f806c9cf99af4cc10f8c0000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a480b00c465f14670"))
 
-	txVal, err := babeService.rt.ValidateTransaction(append([]byte{byte(types.TxnLocal)}, ext...))
+	txVal, err := rt.ValidateTransaction(append([]byte{byte(types.TxnLocal)}, ext...))
 	require.NoError(t, err)
 
 	vtx := transaction.NewValidTransaction(ext, txVal)
 	babeService.transactionState.Push(vtx)
 
 	// apply extrinsic
-	res, err := babeService.rt.ApplyExtrinsic(ext)
+	res, err := rt.ApplyExtrinsic(ext)
 	require.NoError(t, err)
 	// Expected result for valid ApplyExtrinsic is 0, 0
 	require.Equal(t, []byte{0, 0}, res)
@@ -216,12 +222,15 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewEmptyDigest())
 	require.NoError(t, err)
 
+	rt, ok := babeService.blockState.GetRuntime(nil)
+	require.True(t, ok)
+
 	//initialise block header
-	err = babeService.rt.InitializeBlock(header)
+	err = rt.InitializeBlock(header)
 	require.NoError(t, err)
 
 	// build extrinsic
-	rawMeta, err := babeService.rt.Metadata()
+	rawMeta, err := rt.Metadata()
 	require.NoError(t, err)
 	decoded, err := scale.Decode(rawMeta, []byte{})
 	require.NoError(t, err)
@@ -230,7 +239,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	err = ctypes.DecodeFromBytes(decoded.([]byte), meta)
 	require.NoError(t, err)
 
-	rv, err := babeService.rt.Version()
+	rv, err := rt.Version()
 	require.NoError(t, err)
 
 	bob, err := ctypes.NewAddressFromHexAccountID("0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
@@ -262,14 +271,14 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	encoder := cscale.NewEncoder(&extEnc)
 	ext.Encode(*encoder)
 
-	txVal, err := babeService.rt.ValidateTransaction(append([]byte{byte(types.TxnLocal)}, extEnc.Bytes()...))
+	txVal, err := rt.ValidateTransaction(append([]byte{byte(types.TxnLocal)}, extEnc.Bytes()...))
 	require.NoError(t, err)
 
 	vtx := transaction.NewValidTransaction(extEnc.Bytes(), txVal)
 	babeService.transactionState.Push(vtx)
 
 	// apply extrinsic
-	res, err := babeService.rt.ApplyExtrinsic(extEnc.Bytes())
+	res, err := rt.ApplyExtrinsic(extEnc.Bytes())
 	require.NoError(t, err)
 	// Expected result for valid ApplyExtrinsic is 0, 0
 	require.Equal(t, []byte{0, 0}, res)
@@ -327,7 +336,10 @@ func TestBuildBlock_failing(t *testing.T) {
 		number:   slotNumber,
 	}
 
-	_, err = babeService.buildBlock(parentHeader, slot)
+	rt, ok := babeService.blockState.GetRuntime(nil)
+	require.True(t, ok)
+
+	_, err = babeService.buildBlock(parentHeader, slot, rt)
 	if err == nil {
 		t.Fatal("should error when attempting to include invalid tx")
 	}

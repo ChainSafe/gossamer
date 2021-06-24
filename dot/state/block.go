@@ -782,7 +782,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState, rt run
 
 	codeHash := rt.GetCodeHash()
 	if bytes.Equal(codeHash[:], currCodeHash[:]) {
-		bs.StoreRuntime(bHash, rt)
+		//bs.StoreRuntime(bHash, rt)
 		return err
 	}
 
