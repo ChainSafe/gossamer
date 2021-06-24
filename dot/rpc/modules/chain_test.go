@@ -23,9 +23,9 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
 	database "github.com/ChainSafe/chaindb"
@@ -319,25 +319,16 @@ func newTestStateService(t *testing.T) *state.Service {
 	stateSrvc.UseMemDB()
 
 	err = stateSrvc.Initialise(gen, genesisHeader, genTrie)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	hash := genesisHeader.Hash()
-	rt, ok := stateSrvc.Block.GetRuntime(&hash)
-	require.True(t, ok)
+	require.NoError(t, err)
 
 	err = stateSrvc.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	stateSrvc.Block.StoreRuntime(hash, rt)
+	rt, err := stateSrvc.CreateGenesisRuntime(genTrie, gen)
+	require.NoError(t, err)
 
-	err = loadTestBlocks(genesisHeader.Hash(), stateSrvc.Block)
-	if err != nil {
-		t.Fatal(err)
-	}
+	err = loadTestBlocks(genesisHeader.Hash(), stateSrvc.Block, rt)
+	require.NoError(t, err)
 
 	t.Cleanup(func() {
 		stateSrvc.Stop()
@@ -363,7 +354,7 @@ func newTestGenesisWithTrieAndHeader() (*genesis.Genesis, *trie.Trie, *types.Hea
 	return gen, genTrie, genesisHeader
 }
 
-func loadTestBlocks(gh common.Hash, bs *state.BlockState) error {
+func loadTestBlocks(gh common.Hash, bs *state.BlockState, rt runtime.Instance) error {
 	// Create header
 	header0 := &types.Header{
 		Number:     big.NewInt(0),
@@ -384,11 +375,6 @@ func loadTestBlocks(gh common.Hash, bs *state.BlockState) error {
 	err := bs.AddBlock(block0)
 	if err != nil {
 		return err
-	}
-
-	rt, ok := bs.GetRuntime(&gh)
-	if !ok {
-		return blocktree.ErrFailedToGetRuntime
 	}
 
 	bs.StoreRuntime(block0.Header.Hash(), rt)
@@ -417,7 +403,7 @@ func loadTestBlocks(gh common.Hash, bs *state.BlockState) error {
 		return err
 	}
 
-	bs.StoreRuntime(block0.Header.Hash(), rt)
+	bs.StoreRuntime(block1.Header.Hash(), rt)
 
 	return nil
 }

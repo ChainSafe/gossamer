@@ -34,6 +34,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
@@ -45,6 +47,7 @@ const pruneKeyBufferSize = 1000
 type BlockState struct {
 	bt        *blocktree.BlockTree
 	baseState *BaseState
+	dbPath    string
 	db        chaindb.Database
 	sync.RWMutex
 	genesisHash   common.Hash
@@ -67,6 +70,7 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 
 	bs := &BlockState{
 		bt:         bt,
+		dbPath:     db.Path(),
 		baseState:  NewBaseState(db),
 		db:         chaindb.NewTable(db, blockPrefix),
 		imported:   make(map[byte]chan<- *types.Block),
@@ -186,6 +190,28 @@ func finalizedHashKey(round, setID uint64) []byte {
 // GenesisHash returns the hash of the genesis block
 func (bs *BlockState) GenesisHash() common.Hash {
 	return bs.genesisHash
+}
+
+// ValidateTransaction validates transaction
+func (bs *BlockState) ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error) {
+	rt, ok := bs.GetRuntime(nil)
+	if !ok {
+		return nil, blocktree.ErrFailedToGetRuntime
+	}
+
+	ret, err := rt.Exec(runtime.TaggedTransactionQueueValidateTransaction, e)
+	if err != nil {
+		return nil, err
+	}
+
+	if ret[0] != 0 {
+		return nil, runtime.NewValidateTransactionError(ret)
+	}
+
+	v := transaction.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false)
+	_, err = scale.Decode(ret[1:], v)
+
+	return v, err
 }
 
 // DeleteBlock deletes all instances of the block and its related data in the database
@@ -782,7 +808,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState, rt run
 
 	codeHash := rt.GetCodeHash()
 	if bytes.Equal(codeHash[:], currCodeHash[:]) {
-		//bs.StoreRuntime(bHash, rt)
+		bs.StoreRuntime(bHash, rt)
 		return err
 	}
 
@@ -811,7 +837,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState, rt run
 		Imports: wasmer.ImportsNodeRuntime,
 	}
 
-	localStorage, err := utils.SetupDatabase(filepath.Join(bs.db.Path(), bHash.String(), "local_storage"), true)
+	localStorage, err := utils.SetupDatabase(filepath.Join(bs.dbPath, bHash.String(), "local_storage"), true)
 	if err != nil {
 		return err
 	}
@@ -838,7 +864,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState, rt run
 	return nil
 }
 
-// GetRuntime gets the runtime from block tree for the corresponding block hash.
+// GetRuntime gets the runtime for the corresponding block hash.
 func (bs *BlockState) GetRuntime(hash *common.Hash) (runtime.Instance, bool) {
 	if hash == nil {
 		rt, ok := bs.bt.GetBlockRuntime(bs.BestBlockHash())
@@ -851,7 +877,12 @@ func (bs *BlockState) GetRuntime(hash *common.Hash) (runtime.Instance, bool) {
 	return bs.bt.GetBlockRuntime(*hash)
 }
 
-// StoreRuntime stores the runtime in blocktree for corresponding block hash.
+// StoreRuntime stores the runtime for corresponding block hash.
 func (bs *BlockState) StoreRuntime(hash common.Hash, rt runtime.Instance) {
 	bs.bt.StoreRuntime(hash, rt)
+}
+
+// GetAllBlocks get all the blocks
+func (bs *BlockState) GetAllBlocks() []common.Hash {
+	return bs.bt.GetAllBlocks()
 }

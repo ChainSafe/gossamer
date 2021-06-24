@@ -36,6 +36,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
@@ -259,7 +260,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	}
 
 	// create runtime
-	rt, err := createRuntime(cfg, stateSrvc, ks, networkSrvc)
+	err = loadRuntime(cfg, stateSrvc, ks, networkSrvc)
 	if err != nil {
 		return nil, err
 	}
@@ -287,13 +288,13 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	}
 	nodeSrvcs = append(nodeSrvcs, bp)
 
-	fg, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran, networkSrvc)
+	fg, err := createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, networkSrvc)
 	if err != nil {
 		return nil, err
 	}
 	nodeSrvcs = append(nodeSrvcs, fg)
 
-	syncer, err := newSyncService(cfg, stateSrvc, fg, ver, rt, coreSrvc)
+	syncer, err := newSyncService(cfg, stateSrvc, fg, ver, coreSrvc)
 	if err != nil {
 		return nil, err
 	}
@@ -311,7 +312,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 
 	// check if rpc service is enabled
 	if enabled := cfg.RPC.Enabled; enabled {
-		rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc, bp, rt, sysSrvc)
+		rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc, bp, sysSrvc)
 		nodeSrvcs = append(nodeSrvcs, rpcSrvc)
 	} else {
 		logger.Debug("rpc service disabled by default", "rpc", enabled)
@@ -445,4 +446,29 @@ func (n *Node) Stop() {
 	// stop all node services
 	n.Services.StopAll()
 	n.wg.Done()
+}
+
+func loadRuntime(cfg *Config, stateSrvc *state.Service, ks *keystore.GlobalKeystore, net *network.Service) error {
+	blocks := stateSrvc.Block.GetAllBlocks()
+	runtimeCode := make(map[string]runtime.Instance)
+	for _, hash := range blocks {
+		code, err := stateSrvc.Storage.GetStorageByBlockHash(hash, []byte(":code"))
+		if err != nil {
+			return err
+		}
+
+		if rt, ok := runtimeCode[string(code)]; ok {
+			stateSrvc.Block.StoreRuntime(hash, rt)
+			continue
+		}
+
+		rt, err := createRuntime(cfg, stateSrvc, ks, net, code)
+		if err != nil {
+			return err
+		}
+
+		runtimeCode[string(code)] = rt
+	}
+
+	return nil
 }

@@ -60,7 +60,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 
 	s.Base = NewBaseState(db)
 
-	rt, err := s.createGenesisRuntime(t, gen)
+	rt, err := s.CreateGenesisRuntime(t, gen)
 	if err != nil {
 		return err
 	}
@@ -87,8 +87,6 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 	if err != nil {
 		return fmt.Errorf("failed to create block state from genesis: %s", err)
 	}
-
-	blockState.StoreRuntime(header.Hash(), rt)
 
 	// create storage state from genesis trie
 	storageState, err := NewStorageState(db, blockState, t, pruner.Config{})
@@ -183,7 +181,8 @@ func (s *Service) storeInitialValues(data *genesis.Data, header *types.Header, t
 	return nil
 }
 
-func (s *Service) createGenesisRuntime(t *trie.Trie, gen *genesis.Genesis) (runtime.Instance, error) {
+// CreateGenesisRuntime creates runtime instance form genesis
+func (s *Service) CreateGenesisRuntime(t *trie.Trie, gen *genesis.Genesis) (runtime.Instance, error) {
 	// load genesis state into database
 	genTrie, err := rtstorage.NewTrieState(t)
 	if err != nil {

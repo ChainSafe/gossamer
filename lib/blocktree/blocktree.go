@@ -404,10 +404,12 @@ func (bt *BlockTree) DeepCopy() *BlockTree {
 	return btCopy
 }
 
+// StoreRuntime stores the runtime for corresponding block hash.
 func (bt *BlockTree) StoreRuntime(hash common.Hash, in runtime.Instance) {
 	bt.blockRt.Store(hash, in)
 }
 
+// DeleteRuntime deletes the runtime for corresponding block hash.
 func (bt *BlockTree) DeleteRuntime(hash common.Hash) {
 	in, ok := bt.GetBlockRuntime(hash)
 	if !ok {
@@ -418,6 +420,7 @@ func (bt *BlockTree) DeleteRuntime(hash common.Hash) {
 	bt.blockRt.Delete(hash)
 }
 
+// GetBlockRuntime returns block runtime for corresponding block hash.
 func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (runtime.Instance, bool) {
 	ins, ok := bt.blockRt.Load(hash)
 	if !ok {

@@ -47,15 +47,14 @@ type Config struct {
 
 // Instance represents a v0.8 runtime life instance
 type Instance struct {
-	vm       *exec.VirtualMachine
-	mu       sync.Mutex
-	version  runtime.Version
-	isClosed bool
-	codeHash common.Hash
+	vm      *exec.VirtualMachine
+	mu      sync.Mutex
+	version runtime.Version
 }
 
+// GetCodeHash returns code hash of the runtime
 func (in *Instance) GetCodeHash() common.Hash {
-	return in.codeHash
+	return common.Hash{}
 }
 
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data
@@ -113,8 +112,7 @@ func NewInstance(code []byte, cfg *Config) (runtime.Instance, error) {
 	logger.Debug("creating new runtime instance", "context", runtimeCtx)
 
 	inst := &Instance{
-		vm:       instance,
-		codeHash: cfg.CodeHash,
+		vm: instance,
 	}
 
 	ctx = runtimeCtx

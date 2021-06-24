@@ -52,6 +52,7 @@ type BlockState interface {
 	HandleRuntimeChanges(newState *rtstorage.TrieState, in runtime.Instance, bHash common.Hash) error
 	GetRuntime(*common.Hash) (runtime.Instance, bool)
 	StoreRuntime(common.Hash, runtime.Instance)
+	GetAllBlocks() []common.Hash
 }
 
 // StorageState interface for storage state methods

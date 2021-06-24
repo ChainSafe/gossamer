@@ -127,6 +127,8 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 		require.NoError(t, err)
 
 		cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), rt)
+	} else {
+		cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), cfg.Runtime)
 	}
 
 	if cfg.Network == nil {

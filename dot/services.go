@@ -32,6 +32,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
+	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -90,17 +91,11 @@ func createStateService(cfg *Config) (*state.Service, error) {
 	return stateSrvc, nil
 }
 
-func createRuntime(cfg *Config, st *state.Service, ks *keystore.GlobalKeystore, net *network.Service) (runtime.Instance, error) {
+func createRuntime(cfg *Config, st *state.Service, ks *keystore.GlobalKeystore, net *network.Service, code []byte) (runtime.Instance, error) {
 	logger.Info(
 		"creating runtime...",
 		"interpreter", cfg.Core.WasmInterpreter,
 	)
-
-	// load runtime code from trie
-	code, err := st.Storage.GetStorage(nil, []byte(":code"))
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve :code from trie: %s", err)
-	}
 
 	// check if code substitute is in use, if so replace code
 	codeSubHash := st.Base.LoadCodeSubstitutedBlockHash()
@@ -324,7 +319,7 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Servi
 // RPC Service
 
 // createRPCService creates the RPC service from the provided core configuration
-func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service, bp modules.BlockProducerAPI, rt runtime.Instance, sysSrvc *system.Service) *rpc.HTTPServer {
+func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service, bp modules.BlockProducerAPI, sysSrvc *system.Service) *rpc.HTTPServer {
 	logger.Info(
 		"creating rpc service...",
 		"host", cfg.RPC.Host,
@@ -344,7 +339,7 @@ func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Serv
 		NetworkAPI:          networkSrvc,
 		CoreAPI:             coreSrvc,
 		BlockProducerAPI:    bp,
-		RuntimeAPI:          rt,
+		RuntimeAPI:          stateSrvc.Block,
 		TransactionQueueAPI: stateSrvc.Transaction,
 		RPCAPI:              rpcService,
 		SystemAPI:           sysSrvc,
@@ -372,7 +367,12 @@ func createSystemService(cfg *types.SystemInfo, stateSrvc *state.Service) (*syst
 }
 
 // createGRANDPAService creates a new GRANDPA service
-func createGRANDPAService(cfg *Config, rt runtime.Instance, st *state.Service, dh *digest.Handler, ks keystore.Keystore, net *network.Service) (*grandpa.Service, error) {
+func createGRANDPAService(cfg *Config, st *state.Service, dh *digest.Handler, ks keystore.Keystore, net *network.Service) (*grandpa.Service, error) {
+	rt, ok := st.Block.GetRuntime(nil)
+	if !ok {
+		return nil, blocktree.ErrFailedToGetRuntime
+	}
+
 	ad, err := rt.GrandpaAuthorities()
 	if err != nil {
 		return nil, err
@@ -415,7 +415,7 @@ func createBlockVerifier(st *state.Service) (*babe.VerificationManager, error) {
 	return ver, nil
 }
 
-func newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget, verifier *babe.VerificationManager, rt runtime.Instance, cs *core.Service) (*sync.Service, error) {
+func newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget, verifier *babe.VerificationManager, cs *core.Service) (*sync.Service, error) {
 	syncCfg := &sync.Config{
 		LogLvl:             cfg.Log.SyncLvl,
 		BlockState:         st.Block,
@@ -423,7 +423,6 @@ func newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget, veri
 		TransactionState:   st.Transaction,
 		FinalityGadget:     fg,
 		Verifier:           verifier,
-		Runtime:            rt,
 		BlockImportHandler: cs,
 	}
 

@@ -97,9 +97,14 @@ func NewTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 		rtCfg.Storage = genState
 		rtCfg.LogLvl = 3
 
+		rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
+		require.NoError(t, err)
+
 		instance, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg) //nolint
 		require.NoError(t, err)
 		cfg.Runtime = instance
+
+		cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), instance)
 	}
 
 	if cfg.TransactionState == nil {

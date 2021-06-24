@@ -51,14 +51,15 @@ type Config struct {
 
 // Instance represents a v0.8 runtime go-wasmtime instance
 type Instance struct {
-	vm       *wasmtime.Instance
-	mu       sync.Mutex
-	mem      *wasmtime.Memory
-	isClosed bool
-	codeHash common.Hash
+	vm  *wasmtime.Instance
+	mu  sync.Mutex
+	mem *wasmtime.Memory
 }
 
-func (in *Instance) GetCodeHash() common.Hash { return in.codeHash }
+// GetCodeHash ...
+func (in *Instance) GetCodeHash() common.Hash {
+	return common.Hash{}
+}
 
 // NewInstanceFromFile instantiates a runtime from a .wasm file
 func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
@@ -120,9 +121,8 @@ func newInstanceFromModule(module *wasmtime.Module, engine *wasmtime.Engine, cfg
 	}
 
 	return &Instance{
-		vm:       instance,
-		mem:      mem,
-		codeHash: cfg.CodeHash,
+		vm:  instance,
+		mem: mem,
 	}, nil
 }
 
