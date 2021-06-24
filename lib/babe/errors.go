@@ -131,7 +131,8 @@ func determineCustomModuleErr(res []byte) error {
 func determineDispatchErr(res []byte) error {
 	// Maybe I need to do something with this first status byte? unsure of what tho
 	// If not encoded with thees types, will they still evaluate? Maybe thats why they are going to customModuleError
-	vdt := scale.MustNewVaryingDataType(UnknownError{}, FailedLookup{}, BadOrigin{}, CustomModuleError{})
+	//var e := &UnknownError
+	vdt := scale.MustNewVaryingDataType(&UnknownError{}, FailedLookup{}, BadOrigin{}, CustomModuleError{})
 
 	// Am I unmarshalling the right thing here? Make sure should be res[1]
 	err := scale.Unmarshal(res[1:], &vdt)
@@ -143,12 +144,12 @@ func determineDispatchErr(res []byte) error {
 	// Might have to change testing to adjust to new types
 	// Something is wrong with my types: Not being properly recognized
 	switch val := vdt.Value().(type){
-	case UnknownError:
+	case *UnknownError:
 		// For some reason its not entering here, going to customModuleError instead
 		// Maybe cuz struct is wrong?
 		fmt.Println("Val:")
 		fmt.Println(val)
-		return &DispatchOutcomeError{fmt.Sprintf("unknown error: %s", val)}
+		return &DispatchOutcomeError{fmt.Sprintf("unknown error: %p", val)}
 	case FailedLookup:
 		 // Add testing for this case, make sure struct is correct
 		fmt.Println("failed lookup")
@@ -206,8 +207,10 @@ func determineUnknownTxnErr(res []byte) error {
 }
 
 type UnknownError struct {
-	err string
+	err *string
 }
+
+//type UnknownError *string
 
 func (err UnknownError) Index() uint {
 	return 1
@@ -232,7 +235,7 @@ func (err BadOrigin) Index() uint {
 type CustomModuleError struct {
 	index uint8      `scale:"3"`
 	err   uint8	  	 `scale:"2"`
-	message string  `scale:"1"` // might need to be *string
+	message string  `scale:"1"` // might need to be *string or an option
 }
 
 func (err CustomModuleError) Index() uint {
