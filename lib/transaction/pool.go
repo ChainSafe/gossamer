@@ -2,9 +2,14 @@ package transaction
 
 import (
 	"sync"
+	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 )
+
+const collectTxMetricsTimeout = time.Second * 5
+const readyTransactionsMetrics = "gossamer/ready/transaction/metrics"
 
 // Pool represents the transaction pool
 type Pool struct {
@@ -14,9 +19,12 @@ type Pool struct {
 
 // NewPool returns a new empty Pool
 func NewPool() *Pool {
-	return &Pool{
+	p := &Pool{
 		transactions: make(map[common.Hash]*ValidTransaction),
 	}
+
+	go p.collectMetrics()
+	return p
 }
 
 // Transactions returns all the transactions in the pool
@@ -48,4 +56,20 @@ func (p *Pool) Remove(hash common.Hash) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	delete(p.transactions, hash)
+}
+
+func (p *Pool) collectMetrics() {
+	t := time.NewTicker(collectTxMetricsTimeout)
+	defer t.Stop()
+
+	for range t.C {
+		p.collect()
+	}
+
+}
+
+func (p *Pool) collect() {
+	ethmetrics.Enabled = true
+	pooltx := ethmetrics.GetOrRegisterGauge(readyTransactionsMetrics, nil)
+	pooltx.Update(int64(len(p.transactions)))
 }

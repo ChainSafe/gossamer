@@ -25,6 +25,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+const readyPriorityQueueTransactions = "gossamer/ready/transaction/metrics"
+
 // ErrTransactionExists is returned when trying to add a transaction to the queue that already exists
 var ErrTransactionExists = errors.New("transaction is already in queue")
 
