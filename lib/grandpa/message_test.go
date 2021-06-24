@@ -1,11 +1,9 @@
 package grandpa
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/scale"
@@ -102,16 +100,12 @@ func TestNewCatchUpResponse(t *testing.T) {
 	round := uint64(1)
 	setID := uint64(1)
 
-	testHeader := &types.Header{
-		Number: big.NewInt(1),
-	}
-
 	v := &Vote{
 		hash:   testHeader.Hash(),
 		number: 1,
 	}
 
-	err := st.Block.SetHeader(testHeader)
+	err := st.Block.AddBlock(testBlock)
 	require.NoError(t, err)
 
 	err = gs.blockState.SetFinalizedHash(testHeader.Hash(), round, setID)

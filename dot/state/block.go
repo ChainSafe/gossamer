@@ -42,7 +42,8 @@ type BlockState struct {
 	baseState *BaseState
 	db        chaindb.Database
 	sync.RWMutex
-	genesisHash common.Hash
+	genesisHash   common.Hash
+	lastFinalised common.Hash
 
 	// block notifiers
 	imported      map[byte]chan<- *types.Block
@@ -74,6 +75,11 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 	}
 
 	bs.genesisHash = genesisBlock.Header.Hash()
+	bs.lastFinalised, err = bs.GetFinalizedHash(0, 0)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get last finalised hash: %w", err)
+	}
+
 	return bs, nil
 }
 
@@ -372,6 +378,16 @@ func (bs *BlockState) HasFinalizedBlock(round, setID uint64) (bool, error) {
 	return bs.db.Has(finalizedHashKey(round, setID))
 }
 
+// NumberIsFinalised checks if a block number is finalised or not
+func (bs *BlockState) NumberIsFinalised(num *big.Int) (bool, error) {
+	header, err := bs.GetFinalizedHeader(0, 0)
+	if err != nil {
+		return false, err
+	}
+
+	return num.Cmp(header.Number) <= 0, nil
+}
+
 // GetFinalizedHeader returns the latest finalised block header
 func (bs *BlockState) GetFinalizedHeader(round, setID uint64) (*types.Header, error) {
 	h, err := bs.GetFinalizedHash(round, setID)
@@ -407,6 +423,15 @@ func (bs *BlockState) SetFinalizedHash(hash common.Hash, round, setID uint64) er
 		return fmt.Errorf("cannot finalise unknown block %s", hash)
 	}
 
+	// if nothing was previously finalised, set the first slot of the network to the
+	// slot number of block 1, which is now being set as final
+	if bs.lastFinalised.Equal(bs.genesisHash) && !hash.Equal(bs.genesisHash) {
+		err := bs.setFirstSlotOnFinalisation()
+		if err != nil {
+			return err
+		}
+	}
+
 	go bs.notifyFinalized(hash, round, setID)
 	if round > 0 {
 		err := bs.SetRound(round)
@@ -431,7 +456,22 @@ func (bs *BlockState) SetFinalizedHash(hash common.Hash, round, setID uint64) er
 		bs.pruneKeyCh <- header
 	}
 
+	bs.lastFinalised = hash
 	return bs.db.Put(finalizedHashKey(round, setID), hash[:])
+}
+
+func (bs *BlockState) setFirstSlotOnFinalisation() error {
+	header, err := bs.GetHeaderByNumber(big.NewInt(1))
+	if err != nil {
+		return err
+	}
+
+	slot, err := types.GetSlotFromHeader(header)
+	if err != nil {
+		return err
+	}
+
+	return bs.baseState.storeFirstSlot(slot)
 }
 
 // SetRound sets the latest finalised GRANDPA round in the db
