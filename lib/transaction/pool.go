@@ -63,4 +63,5 @@ func (p *Pool) Remove(hash common.Hash) {
 	delete(p.transactions, hash)
 }
 
+// Update returns the total of valid transactions in the pool
 func (p *Pool) Update() int64 { return int64(len(p.transactions)) }

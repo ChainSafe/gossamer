@@ -182,4 +182,5 @@ func (spq *PriorityQueue) Pending() []*ValidTransaction {
 	return txns
 }
 
+// Update returns the total of valid transactions in the priority queue
 func (spq *PriorityQueue) Update() int64 { return int64(spq.pq.Len()) }
