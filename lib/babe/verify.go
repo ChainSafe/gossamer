@@ -141,44 +141,43 @@ func (v *VerificationManager) SetOnDisabled(index uint32, header *types.Header) 
 // VerifyBlock verifies that the block producer for the given block was authorized to produce it.
 // It returns an error if the block is invalid.
 func (v *VerificationManager) VerifyBlock(header *types.Header) error {
-	epoch, err := v.epochState.GetEpochForBlock(header)
-	if err != nil {
-		return fmt.Errorf("failed to get epoch for block header: %w", err)
-	}
-
 	var (
 		info *verifierInfo
 		has  bool
 	)
 
-	v.lock.Lock()
+	// special case for block 1 - the network doesn't necessarily start in epoch 1.
+	// if this happens, the database will be missing info for epochs before the first block.
+	if header.Number.Cmp(big.NewInt(1)) == 0 {
+		block1IsFinal, err := v.blockState.NumberIsFinalised(big.NewInt(1))
+		if err != nil {
+			return fmt.Errorf("failed to check if block 1 is finalised: %w", err)
+		}
 
-	if info, has = v.epochInfo[epoch]; !has {
-		// special case for block 1 - the network doesn't necessarily start in epoch 1.
-		// if this happens, the database will be missing info for epochs before the first block.
-		if header.Number.Cmp(big.NewInt(1)) == 0 {
-			epoch = 0
-
-			// set network starting slot
-			// TODO: first slot should be confirmed when block with number=1 is marked final
-			var firstSlot uint64
-			firstSlot, err = types.GetSlotFromHeader(header)
+		if !block1IsFinal {
+			firstSlot, err := types.GetSlotFromHeader(header)
 			if err != nil {
-				v.lock.Unlock()
 				return fmt.Errorf("failed to get slot from block 1: %w", err)
 			}
 
+			logger.Debug("syncing block 1, setting first slot", "slot", firstSlot)
+
 			err = v.epochState.SetFirstSlot(firstSlot)
 			if err != nil {
-				v.lock.Unlock()
 				return fmt.Errorf("failed to set current epoch after receiving block 1: %w", err)
 			}
-
-			info, err = v.getVerifierInfo(0)
-		} else {
-			info, err = v.getVerifierInfo(epoch)
 		}
+	}
 
+	epoch, err := v.epochState.GetEpochForBlock(header)
+	if err != nil {
+		return fmt.Errorf("failed to get epoch for block header: %w", err)
+	}
+
+	v.lock.Lock()
+
+	if info, has = v.epochInfo[epoch]; !has {
+		info, err = v.getVerifierInfo(epoch)
 		if err != nil {
 			v.lock.Unlock()
 			// SkipVerify is set to true only in the case where we have imported a state at a given height,
@@ -200,58 +199,12 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 
 	v.lock.Unlock()
 
-	// TODO: fix and re-add this, seems like we are disabling authorities that aren't actually disabled
-	// isDisabled, err := v.isDisabled(epoch, header)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to check if authority is disabled: %w", err)
-	// }
-
-	// if isDisabled {
-	// 	return ErrAuthorityDisabled
-	// }
-
 	verifier, err := newVerifier(v.blockState, epoch, info)
 	if err != nil {
 		return fmt.Errorf("failed to create new BABE verifier: %w", err)
 	}
 
 	return verifier.verifyAuthorshipRight(header)
-}
-
-func (v *VerificationManager) isDisabled(epoch uint64, header *types.Header) (bool, error) { //nolint
-	v.lock.RLock()
-	defer v.lock.RUnlock()
-
-	// check if any authorities have been disabled this epoch
-	if _, has := v.onDisabled[epoch]; !has {
-		return false, nil
-	}
-
-	// if authorities have been disabled, check which ones
-	idx, err := getAuthorityIndex(header)
-	if err != nil {
-		return false, err
-	}
-
-	if _, has := v.onDisabled[epoch][idx]; !has {
-		return false, nil
-	}
-
-	// this authority has been disabled on some branch, check if we are on that branch
-	producerInfos := v.onDisabled[epoch][idx]
-	for _, info := range producerInfos {
-		isDescendant, err := v.blockState.IsDescendantOf(info.blockHash, header.ParentHash)
-		if err != nil {
-			return false, err
-		}
-
-		if isDescendant && header.Number.Cmp(info.blockNumber) > 0 {
-			// this authority has been disabled on this branch
-			return true, nil
-		}
-	}
-
-	return false, nil
 }
 
 func (v *VerificationManager) getVerifierInfo(epoch uint64) (*verifierInfo, error) {
