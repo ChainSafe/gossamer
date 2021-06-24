@@ -152,6 +152,8 @@ func determineDispatchErr(res []byte) error { // This works yay!
 		return &DispatchOutcomeError{"bad origin"}
 	case Module:
 		return &DispatchOutcomeError{fmt.Sprintf("custom module error: %s", val.String())}
+	default: // Remove this before PR lol
+		fmt.Println("Something is most definitly afoot at the circle K")
 	}
 
 	return errInvalidResult
