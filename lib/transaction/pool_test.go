@@ -1,7 +1,6 @@
 package transaction
 
 import (
-	"fmt"
 	"sort"
 	"testing"
 	"time"
@@ -99,6 +98,5 @@ func TestPoolCollectMetrics(t *testing.T) {
 	p.Remove(h[0])
 
 	time.Sleep(collectTxMetricsTimeout + time.Second)
-	fmt.Println(len(p.transactions))
 	require.Equal(t, int64(len(validtx)-1), txmetrics.Value())
 }
