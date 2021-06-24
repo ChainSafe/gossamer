@@ -213,4 +213,5 @@ func TestBeginDiscovery_ThreeNodes(t *testing.T) {
 	// assert B and C can discover each other
 	addrs := nodeB.host.h.Peerstore().Addrs(nodeC.host.id())
 	require.NotEqual(t, 0, len(addrs))
+
 }
