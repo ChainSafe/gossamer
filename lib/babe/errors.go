@@ -205,10 +205,6 @@ func determineUnknownTxnErr(res []byte) error {
 	return errInvalidResult
 }
 
-//type UnknownError struct {
-//	err string
-//}
-
 type UnknownError string
 
 func (err UnknownError) Index() uint {
@@ -232,9 +228,9 @@ func (err BadOrigin) Index() uint {
 }
 
 type CustomModuleError struct {
-	index uint8      `scale:"3"`
-	err   uint8	  	 `scale:"2"`
-	message string  `scale:"1"` // might need to be *string or an option
+	index uint8       `scale:"3"`
+	err   uint8	  	  `scale:"2"`
+	message *string   `scale:"1"` // Does scale need to consider that rust has multiple string types?
 }
 
 func (err CustomModuleError) Index() uint {
@@ -242,7 +238,7 @@ func (err CustomModuleError) Index() uint {
 }
 
 func (err CustomModuleError) String() string {
-	return fmt.Sprintf("index: %d code: %d message: %s", err.index, err.err, err.message)
+	return fmt.Sprintf("index: %d code: %d message: %p", err.index, err.err, err.message)
 }
 
 func determineErr(res []byte) error {
