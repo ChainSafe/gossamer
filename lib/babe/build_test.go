@@ -32,6 +32,7 @@ import (
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v2/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/stretchr/testify/require"
 )
 
@@ -357,4 +358,26 @@ func TestDecodeExtrinsicBody(t *testing.T) {
 	contains, err := body.HasExtrinsic(ext)
 	require.Nil(t, err)
 	require.True(t, contains)
+}
+
+func TestBuildBlockTimeMonitor(t *testing.T) {
+	metrics.Enabled = true
+	metrics.Unregister(buildBlockTimer)
+
+	babeService := createTestService(t, nil)
+	babeService.epochData.threshold = maxThreshold
+
+	parent, err := babeService.blockState.BestBlockHeader()
+	require.NoError(t, err)
+
+	timerMetrics := metrics.GetOrRegisterTimer(buildBlockTimer, nil)
+	timerMetrics.Stop()
+
+	createTestBlock(t, babeService, parent, [][]byte{}, 1, testEpochIndex)
+	require.Equal(t, int64(1), timerMetrics.Count())
+
+	_, err = babeService.buildBlock(parent, Slot{})
+	require.Error(t, err)
+	buildErrorsMetrics := metrics.GetOrRegisterCounter(buildBlockErrors, nil)
+	require.Equal(t, int64(1), buildErrorsMetrics.Count())
 }
