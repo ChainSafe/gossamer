@@ -4,8 +4,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
-	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 )
 
 const collectTxMetricsTimeout = time.Second * 5
@@ -23,7 +23,12 @@ func NewPool() *Pool {
 		transactions: make(map[common.Hash]*ValidTransaction),
 	}
 
-	go p.collectMetrics()
+	go metrics.CollectGaugeMetrics(
+		collectTxMetricsTimeout,
+		readyTransactionsMetrics,
+		p,
+	)
+
 	return p
 }
 
@@ -58,18 +63,4 @@ func (p *Pool) Remove(hash common.Hash) {
 	delete(p.transactions, hash)
 }
 
-func (p *Pool) collectMetrics() {
-	t := time.NewTicker(collectTxMetricsTimeout)
-	defer t.Stop()
-
-	for range t.C {
-		p.collect()
-	}
-
-}
-
-func (p *Pool) collect() {
-	ethmetrics.Enabled = true
-	pooltx := ethmetrics.GetOrRegisterGauge(readyTransactionsMetrics, nil)
-	pooltx.Update(int64(len(p.transactions)))
-}
+func (p *Pool) Update() int64 { return int64(len(p.transactions)) }
