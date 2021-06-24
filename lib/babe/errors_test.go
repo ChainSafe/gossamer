@@ -61,6 +61,7 @@ func TestApplyExtrinsicErrors(t *testing.T) {
 				require.NoError(t, err)
 				return
 			}
+			t.Log(err.Error())
 
 			if c.test[0] == 0 {
 				_, ok := err.(*DispatchOutcomeError)
