@@ -235,7 +235,7 @@ func (err Module) String() string {
 }
 
 func (err CustomModuleError) String() string {
-	return fmt.Sprintf("index: %d code: %d message: %s", err.index, err.err, err.message)
+	return fmt.Sprintf("index: %d code: %d message: %p", err.index, err.err, err.message)
 }
 
 func determineErr(res []byte) error {
