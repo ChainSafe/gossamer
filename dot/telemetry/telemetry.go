@@ -45,6 +45,7 @@ type Handler struct {
 	log         log.Logger
 }
 
+// Instance functions that telemetry handler instance needs to implement
 type Instance interface {
 	AddConnections(conns []*genesis.TelemetryEndpoint)
 	SendMessage(msg *Message) error
@@ -141,6 +142,7 @@ func (h *Handler) startListening() {
 	}
 }
 
+// KillInstance replaces current telemetry handler instance with no op telemetry handler instance
 func (h *Handler) KillInstance() {
 	handlerInstance = &NoopHandler{}
 }
@@ -170,10 +172,13 @@ type NoopHandler struct {
 
 func (h *NoopHandler) startListening() {}
 
+// SendMessage no op for telemetry send message function
 func (h *NoopHandler) SendMessage(msg *Message) error {
 	return nil
 }
 
+// AddConnections no op for telemetry add connections function
 func (h *NoopHandler) AddConnections(conns []*genesis.TelemetryEndpoint) {}
 
+// KillInstance no op for telemetry kill instance function
 func (h *NoopHandler) KillInstance() {}
