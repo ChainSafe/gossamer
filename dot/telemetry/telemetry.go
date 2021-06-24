@@ -45,6 +45,13 @@ type Handler struct {
 	log         log.Logger
 }
 
+type Instance interface {
+	AddConnections(conns []*genesis.TelemetryEndpoint)
+	SendMessage(msg *Message) error
+	startListening()
+	KillInstance()
+}
+
 // KeyValue object to hold key value pairs used in telemetry messages
 type KeyValue struct {
 	key   string
@@ -53,11 +60,11 @@ type KeyValue struct {
 
 var (
 	once            sync.Once
-	handlerInstance *Handler
+	handlerInstance Instance
 )
 
 // GetInstance singleton pattern to for accessing TelemetryHandler
-func GetInstance() *Handler { //nolint
+func GetInstance() Instance { //nolint
 	if handlerInstance == nil {
 		once.Do(
 			func() {
@@ -134,6 +141,10 @@ func (h *Handler) startListening() {
 	}
 }
 
+func (h *Handler) KillInstance() {
+	handlerInstance = &NoopHandler{}
+}
+
 type response struct {
 	ID        int                    `json:"id"`
 	Payload   map[string]interface{} `json:"payload"`
@@ -152,3 +163,17 @@ func msgToBytes(message Message) []byte {
 	}
 	return resB
 }
+
+// NoopHandler struct no op handling (ignoring) telemetry messages
+type NoopHandler struct {
+}
+
+func (h *NoopHandler) startListening() {}
+
+func (h *NoopHandler) SendMessage(msg *Message) error {
+	return nil
+}
+
+func (h *NoopHandler) AddConnections(conns []*genesis.TelemetryEndpoint) {}
+
+func (h *NoopHandler) KillInstance() {}

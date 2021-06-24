@@ -139,6 +139,42 @@ func TestListenerConcurrency(t *testing.T) {
 	}
 }
 
+func TestKillInstance(t *testing.T) {
+	const qty = 1000
+	var wg sync.WaitGroup
+	wg.Add(qty)
+
+	resultCh = make(chan []byte)
+	for i := 0; i < qty; i++ {
+		if i == qty/2 {
+			GetInstance().KillInstance()
+		}
+		go func() {
+			GetInstance().SendMessage(NewTelemetryMessage(
+				NewKeyValue("best", "hash"),
+				NewKeyValue("height", big.NewInt(2)),
+				NewKeyValue("msg", "block.import"),
+				NewKeyValue("origin", "NetworkInitialSync")))
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	counter := 0
+	tk := time.NewTicker(time.Second * 2)
+main:
+	for {
+		select {
+		case <-tk.C:
+			break main
+		case <-resultCh:
+			counter++
+		}
+	}
+	tk.Stop()
+
+	require.LessOrEqual(t, counter, qty/2)
+}
+
 func listen(w http.ResponseWriter, r *http.Request) {
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
