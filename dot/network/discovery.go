@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 	badger "github.com/ipfs/go-ds-badger2"
 	libp2phost "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -29,6 +30,11 @@ import (
 	libp2pdiscovery "github.com/libp2p/go-libp2p-discovery"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
 	"github.com/libp2p/go-libp2p-kad-dht/dual"
+)
+
+const (
+	checkPeerCountMetrics = "gossamer/network/peer_count"
+	peersStoreMetrics     = "gossamer/network/peerstore_count"
 )
 
 var (
@@ -114,6 +120,9 @@ func (d *discovery) stop() error {
 	if d.dht == nil {
 		return nil
 	}
+
+	ethmetrics.Unregister(checkPeerCountMetrics)
+	ethmetrics.Unregister(peersStoreMetrics)
 
 	return d.dht.Close()
 }
