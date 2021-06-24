@@ -128,27 +128,31 @@ func determineCustomModuleErr(res []byte) error {
 		2) CustomModuleError data isnt being decoded. The type is but the struct is empty
  */
 func determineDispatchErr(res []byte) error {
+	fmt.Println("In the method")
 	// Maybe I need to do something with this first status byte? unsure of what tho
 	// If not encoded with thees types, will they still evaluate? Maybe thats why they are going to customModuleError
 	//var e := &UnknownError
-	vdt := scale.MustNewVaryingDataType(&UnknownError{}, FailedLookup{}, BadOrigin{}, CustomModuleError{})
-
+	vdt := scale.MustNewVaryingDataType(UnknownError{}, FailedLookup{}, BadOrigin{}, CustomModuleError{})
+	fmt.Println("Past vdt")
 	// Am I unmarshalling the right thing here? Make sure should be res[1]
-	err := scale.Unmarshal(res[1:], &vdt)
+	err := scale.Unmarshal(res, &vdt)
 	if err != nil {
 		// Unmarshalling error. Check to make sure this is the correct return type for this case
 		return errInvalidResult
 	}
 
+	fmt.Println("Vdt")
+	fmt.Println(vdt.Value())
+
 	// Might have to change testing to adjust to new types
 	// Something is wrong with my types: Not being properly recognized
 	switch val := vdt.Value().(type){
-	case *UnknownError:
+	case UnknownError:
 		// For some reason its not entering here, going to customModuleError instead
 		// Maybe cuz struct is wrong?
 		fmt.Println("Val:")
 		fmt.Println(val)
-		return &DispatchOutcomeError{fmt.Sprintf("unknown error: %p", val)}
+		return &DispatchOutcomeError{fmt.Sprintf("unknown error: %s", val)}
 	case FailedLookup:
 		 // Add testing for this case, make sure struct is correct
 		fmt.Println("failed lookup")
@@ -162,6 +166,8 @@ func determineDispatchErr(res []byte) error {
 		fmt.Println("Val2:")
 		fmt.Println(val)
 		return &DispatchOutcomeError{fmt.Sprintf("custom module error: %s", val.String())}
+	default: // Remove this before PR lol
+		fmt.Println("Something is most definitly afoot at the circle K")
 	}
 
 	return errInvalidResult
@@ -206,13 +212,13 @@ func determineUnknownTxnErr(res []byte) error {
 }
 
 type UnknownError struct {
-	err *string
+	err string
 }
 
 //type UnknownError *string
 
 func (err UnknownError) Index() uint {
-	return 1
+	return 0
 }
 
 type FailedLookup struct {
@@ -220,7 +226,7 @@ type FailedLookup struct {
 }
 
 func (err FailedLookup) Index() uint {
-	return 2
+	return 1
 }
 
 type BadOrigin struct {
@@ -228,7 +234,7 @@ type BadOrigin struct {
 }
 
 func (err BadOrigin) Index() uint {
-	return 3
+	return 2
 }
 
 type CustomModuleError struct {
@@ -238,7 +244,7 @@ type CustomModuleError struct {
 }
 
 func (err CustomModuleError) Index() uint {
-	return 4
+	return 3
 }
 
 func (err CustomModuleError) String() string {
