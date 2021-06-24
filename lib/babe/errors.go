@@ -124,16 +124,14 @@ func determineCustomModuleErr(res []byte) error {
 
 /*
 	Two main issues I need to fix:
-		1) Types arent being unmarshalled correctly: probably because of how I constructed them or how I am unmarshalling
+		1) Types arent being unmarshalled correctly: probably because of how I constructed them or how I am unmarshalling - fixed
 		2) CustomModuleError data isnt being decoded. The type is but the struct is empty
  */
 func determineDispatchErr(res []byte) error {
-	fmt.Println("In the method")
 	// Maybe I need to do something with this first status byte? unsure of what tho
 	// If not encoded with thees types, will they still evaluate? Maybe thats why they are going to customModuleError
-	//var e := &UnknownError
-	vdt := scale.MustNewVaryingDataType(UnknownError{}, FailedLookup{}, BadOrigin{}, CustomModuleError{})
-	fmt.Println("Past vdt")
+	var e UnknownError
+	vdt := scale.MustNewVaryingDataType(e, FailedLookup{}, BadOrigin{}, CustomModuleError{})
 	// Am I unmarshalling the right thing here? Make sure should be res[1]
 	err := scale.Unmarshal(res, &vdt)
 	if err != nil {
@@ -147,11 +145,7 @@ func determineDispatchErr(res []byte) error {
 	// Might have to change testing to adjust to new types
 	// Something is wrong with my types: Not being properly recognized
 	switch val := vdt.Value().(type){
-	case UnknownError:
-		// For some reason its not entering here, going to customModuleError instead
-		// Maybe cuz struct is wrong?
-		fmt.Println("Val:")
-		fmt.Println(val)
+	case UnknownError: // Got it!
 		return &DispatchOutcomeError{fmt.Sprintf("unknown error: %s", val)}
 	case FailedLookup:
 		 // Add testing for this case, make sure struct is correct
@@ -211,11 +205,11 @@ func determineUnknownTxnErr(res []byte) error {
 	return errInvalidResult
 }
 
-type UnknownError struct {
-	err string
-}
+//type UnknownError struct {
+//	err string
+//}
 
-//type UnknownError *string
+type UnknownError string
 
 func (err UnknownError) Index() uint {
 	return 0
