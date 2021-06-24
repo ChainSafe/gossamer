@@ -17,6 +17,7 @@
 package babe
 
 import (
+	"fmt"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -132,6 +133,10 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		err = dbSrv.Start()
 		require.NoError(t, err)
 
+		t.Cleanup(func() {
+			_ = dbSrv.Stop()
+		})
+
 		cfg.BlockState = dbSrv.Block
 		cfg.StorageState = dbSrv.Storage
 		cfg.EpochState = dbSrv.Epoch
@@ -146,6 +151,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		cfg.Runtime = rt
 	}
 
+	cfg.IsDev = true
 	cfg.LogLvl = defaultTestLogLvl
 	babeService, err := NewService(cfg)
 	require.NoError(t, err)
@@ -169,6 +175,133 @@ func TestMain(m *testing.M) {
 
 	runtime.RemoveFiles(wasmFilePaths)
 	os.Exit(code)
+}
+
+func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *types.BabeConfiguration) {
+	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
+	require.NoError(t, err)
+
+	config := state.Config{
+		Path:     testDatadirPath,
+		LogLevel: log.LvlInfo,
+	}
+	dbSrv := state.NewService(config)
+	dbSrv.UseMemDB()
+
+	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	err = dbSrv.Initialise(gen, genHeader, genTrie)
+	require.NoError(t, err)
+
+	err = dbSrv.Start()
+	require.NoError(t, err)
+
+	t.Cleanup(func() {
+		_ = dbSrv.Stop()
+	})
+
+	rtCfg := &wasmer.Config{}
+	rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
+	require.NoError(t, err)
+	rt, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg) //nolint
+	require.NoError(t, err)
+
+	genCfg, err := rt.BabeConfiguration()
+	require.NoError(t, err)
+
+	s := &Service{
+		epochState: dbSrv.Epoch,
+	}
+
+	return s, dbSrv.Epoch, genCfg
+}
+
+func TestService_setupParameters_genesis(t *testing.T) {
+	s, _, genCfg := newTestServiceSetupParameters(t)
+
+	cfg := &ServiceConfig{}
+	err := s.setupParameters(cfg)
+	require.NoError(t, err)
+	slotDuration, err := time.ParseDuration(fmt.Sprintf("%dms", genCfg.SlotDuration))
+	require.NoError(t, err)
+	auths, err := types.BABEAuthorityRawToAuthority(genCfg.GenesisAuthorities)
+	require.NoError(t, err)
+	threshold, err := CalculateThreshold(genCfg.C1, genCfg.C2, len(auths))
+	require.NoError(t, err)
+
+	require.Equal(t, slotDuration, s.slotDuration)
+	require.Equal(t, genCfg.EpochLength, s.epochLength)
+	require.Equal(t, auths, s.epochData.authorities)
+	require.Equal(t, threshold, s.epochData.threshold)
+	require.Equal(t, genCfg.Randomness, s.epochData.randomness)
+}
+
+func TestService_setupParameters_epochData(t *testing.T) {
+	s, epochState, genCfg := newTestServiceSetupParameters(t)
+
+	err := epochState.SetCurrentEpoch(1)
+	require.NoError(t, err)
+
+	auths, err := types.BABEAuthorityRawToAuthority(genCfg.GenesisAuthorities)
+	require.NoError(t, err)
+
+	data := &types.EpochData{
+		Authorities: auths[:3],
+		Randomness:  [types.RandomnessLength]byte{99, 88, 77},
+	}
+	err = epochState.SetEpochData(1, data)
+	require.NoError(t, err)
+
+	cfg := &ServiceConfig{}
+	err = s.setupParameters(cfg)
+	require.NoError(t, err)
+	slotDuration, err := time.ParseDuration(fmt.Sprintf("%dms", genCfg.SlotDuration))
+	require.NoError(t, err)
+	threshold, err := CalculateThreshold(genCfg.C1, genCfg.C2, len(data.Authorities))
+	require.NoError(t, err)
+
+	require.Equal(t, slotDuration, s.slotDuration)
+	require.Equal(t, genCfg.EpochLength, s.epochLength)
+	require.Equal(t, data.Authorities, s.epochData.authorities)
+	require.Equal(t, data.Randomness, s.epochData.randomness)
+	require.Equal(t, threshold, s.epochData.threshold)
+}
+
+func TestService_setupParameters_configData(t *testing.T) {
+	s, epochState, genCfg := newTestServiceSetupParameters(t)
+
+	err := epochState.SetCurrentEpoch(7)
+	require.NoError(t, err)
+
+	auths, err := types.BABEAuthorityRawToAuthority(genCfg.GenesisAuthorities)
+	require.NoError(t, err)
+
+	data := &types.EpochData{
+		Authorities: auths[:3],
+		Randomness:  [types.RandomnessLength]byte{99, 88, 77},
+	}
+	err = epochState.SetEpochData(7, data)
+	require.NoError(t, err)
+
+	cfgData := &types.ConfigData{
+		C1: 1,
+		C2: 7,
+	}
+	err = epochState.SetConfigData(1, cfgData) // set config data for a previous epoch, ensure latest config data is used
+	require.NoError(t, err)
+
+	cfg := &ServiceConfig{}
+	err = s.setupParameters(cfg)
+	require.NoError(t, err)
+	slotDuration, err := time.ParseDuration(fmt.Sprintf("%dms", genCfg.SlotDuration))
+	require.NoError(t, err)
+	threshold, err := CalculateThreshold(cfgData.C1, cfgData.C2, len(data.Authorities))
+	require.NoError(t, err)
+
+	require.Equal(t, slotDuration, s.slotDuration)
+	require.Equal(t, genCfg.EpochLength, s.epochLength)
+	require.Equal(t, data.Authorities, s.epochData.authorities)
+	require.Equal(t, data.Randomness, s.epochData.randomness)
+	require.Equal(t, threshold, s.epochData.threshold)
 }
 
 func TestService_RunEpochLengthConfig(t *testing.T) {

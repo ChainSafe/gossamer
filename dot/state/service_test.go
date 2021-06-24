@@ -231,11 +231,13 @@ func TestService_PruneStorage(t *testing.T) {
 		dbKey []byte
 	}
 
-	//var prunedArr []prunedBlock
 	var toFinalize common.Hash
 
 	for i := 0; i < 3; i++ {
 		block, trieState := generateBlockWithRandomTrie(t, serv, nil, int64(i+1))
+		block.Header.Digest = types.Digest{
+			types.NewBabeSecondaryPlainPreDigest(0, uint64(i+1)).ToPreRuntimeDigest(),
+		}
 
 		err = serv.Storage.blockState.AddBlock(block)
 		require.NoError(t, err)
@@ -391,7 +393,6 @@ func TestService_Import(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, header.StateRoot, root)
 
-	require.Equal(t, firstSlot, serv.Epoch.firstSlot)
 	skip, err := serv.Epoch.SkipVerify(header)
 	require.NoError(t, err)
 	require.True(t, skip)

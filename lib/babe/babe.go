@@ -21,7 +21,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/big"
 	"os"
 	"sync"
 	"time"
@@ -33,7 +32,10 @@ import (
 	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 )
 
-var logger log.Logger
+var (
+	logger          log.Logger
+	initialWaitTime time.Duration
+)
 
 // Service contains the VRF keys for the validator, as well as BABE configuation data
 type Service struct {
@@ -61,7 +63,6 @@ type Service struct {
 	slotDuration time.Duration
 	epochData    *epochData
 	slotToProof  map[uint64]*VrfOutputAndProof // for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
-	isDisabled   bool
 
 	// State variables
 	sync.RWMutex
@@ -133,17 +134,20 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		blockImportHandler: cfg.BlockImportHandler,
 	}
 
-	genCfg, err := babeService.rt.BabeConfiguration()
+	epoch, err := cfg.EpochState.GetCurrentEpoch()
 	if err != nil {
 		return nil, err
 	}
 
-	err = babeService.setEpochData(cfg, genCfg)
+	err = babeService.setupParameters(cfg)
 	if err != nil {
 		return nil, err
 	}
+
+	initialWaitTime = babeService.slotDuration * 5
 
 	logger.Debug("created service",
+		"epoch", epoch,
 		"block producer", cfg.Authority,
 		"slot duration", babeService.slotDuration,
 		"epoch length (slots)", babeService.epochLength,
@@ -155,65 +159,86 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 	return babeService, nil
 }
 
-func (b *Service) setEpochData(cfg *ServiceConfig, genCfg *types.BabeConfiguration) (err error) {
-	b.epochData = &epochData{
-		randomness: genCfg.Randomness,
+func (b *Service) setupParameters(cfg *ServiceConfig) error {
+	var err error
+	b.epochData = &epochData{}
+
+	epochData, err := b.epochState.GetLatestEpochData()
+	if err != nil {
+		return err
+	}
+
+	b.epochData.randomness = epochData.Randomness
+
+	configData, err := b.epochState.GetLatestConfigData()
+	if err != nil {
+		return err
 	}
 
 	// if slot duration is set via the config file, overwrite the runtime value
-	if cfg.SlotDuration > 0 {
+	switch {
+	case cfg.SlotDuration > 0 && cfg.IsDev: // TODO: remove this, needs to be set via runtime
 		b.slotDuration, err = time.ParseDuration(fmt.Sprintf("%dms", cfg.SlotDuration))
-	} else {
-		b.slotDuration, err = time.ParseDuration(fmt.Sprintf("%dms", genCfg.SlotDuration))
+	case cfg.SlotDuration > 0 && !cfg.IsDev:
+		err = errors.New("slot duration modified in config for non-dev chain")
+	default:
+		b.slotDuration, err = b.epochState.GetSlotDuration()
 	}
 	if err != nil {
 		return err
 	}
 
-	if cfg.AuthData == nil {
-		b.epochData.authorities, err = types.BABEAuthorityRawToAuthority(genCfg.GenesisAuthorities)
-		if err != nil {
-			return err
-		}
-	} else {
-		b.epochData.authorities = cfg.AuthData
-	}
-
-	if cfg.Authority {
-		b.epochData.authorityIndex, err = b.getAuthorityIndex(b.epochData.authorities)
-		if err != nil {
-			return err
-		}
-	}
-
-	if cfg.ThresholdDenominator == 0 {
-		b.epochData.threshold, err = CalculateThreshold(genCfg.C1, genCfg.C2, len(b.epochData.authorities))
-	} else {
-		b.epochData.threshold, err = CalculateThreshold(cfg.ThresholdNumerator, cfg.ThresholdDenominator, len(b.epochData.authorities))
-	}
-
-	if err != nil {
-		return err
-	}
-
-	if cfg.EpochLength > 0 {
+	switch {
+	case cfg.EpochLength != 0 && cfg.IsDev: // TODO: remove this, needs to be set via runtime
 		b.epochLength = cfg.EpochLength
-	} else {
-		b.epochLength = genCfg.EpochLength
+	case cfg.EpochLength > 0 && !cfg.IsDev:
+		err = errors.New("epoch length modified in config for non-dev chain")
+	default:
+		b.epochLength, err = b.epochState.GetEpochLength()
+	}
+	if err != nil {
+		return err
 	}
 
-	return nil
+	switch {
+	case cfg.AuthData != nil && cfg.IsDev: // TODO: remove this, needs to be set via runtime
+		b.epochData.authorities = cfg.AuthData
+	case cfg.AuthData != nil && !cfg.IsDev:
+		return errors.New("authority data modified in config for non-dev chain")
+	default:
+		b.epochData.authorities = epochData.Authorities
+	}
+
+	switch {
+	case cfg.ThresholdDenominator != 0 && cfg.IsDev: // TODO: remove this, needs to be set via runtime
+		b.epochData.threshold, err = CalculateThreshold(cfg.ThresholdNumerator, cfg.ThresholdDenominator, len(b.epochData.authorities))
+	case cfg.ThresholdDenominator != 0 && !cfg.IsDev:
+		err = errors.New("threshold modified in config for non-dev chain")
+	default:
+		b.epochData.threshold, err = CalculateThreshold(configData.C1, configData.C2, len(b.epochData.authorities))
+	}
+	if err != nil {
+		return err
+	}
+
+	if !cfg.Authority {
+		return nil
+	}
+
+	b.epochData.authorityIndex, err = b.getAuthorityIndex(b.epochData.authorities)
+	return err
 }
 
 // Start starts BABE block authoring
 func (b *Service) Start() error {
-	epoch, err := b.epochState.GetCurrentEpoch()
-	if err != nil {
-		logger.Error("failed to get current epoch", "error", err)
-		return err
+	if !b.authority {
+		return nil
 	}
 
-	go b.initiate(epoch)
+	// wait a bit to check if we need to sync before initiating
+	<-time.NewTimer(initialWaitTime).C
+
+	go b.initiate()
 	return nil
 }
 
@@ -250,15 +275,8 @@ func (b *Service) Resume() error {
 	}
 
 	b.pause = make(chan struct{})
-
-	epoch, err := b.epochState.GetCurrentEpoch()
-	if err != nil {
-		logger.Error("failed to get current epoch", "error", err)
-		return err
-	}
-
-	go b.initiate(epoch)
-	logger.Info("service resumed", "epoch", epoch)
+	go b.initiate()
+	logger.Debug("service resumed")
 	return nil
 }
 
@@ -274,6 +292,13 @@ func (b *Service) IsPaused() bool {
 
 // Stop stops the service. If stop is called, it cannot be resumed.
 func (b *Service) Stop() error {
+	if !b.authority {
+		return nil
+	}
+
+	b.Lock()
+	defer b.Unlock()
+
 	if b.ctx.Err() != nil {
 		return errors.New("service already stopped")
 	}
@@ -288,14 +313,6 @@ func (b *Service) Stop() error {
 // SetRuntime sets the service's runtime
 func (b *Service) SetRuntime(rt runtime.Instance) {
 	b.rt = rt
-}
-
-// SetOnDisabled sets the block producer with the given index as disabled
-// If this is our node, we stop producing blocks
-func (b *Service) SetOnDisabled(authorityIndex uint32) { // TODO: remove this
-	if authorityIndex == b.epochData.authorityIndex {
-		b.isDisabled = true
-	}
 }
 
 // Authorities returns the current BABE authorities
@@ -328,7 +345,7 @@ func (b *Service) getSlotDuration() time.Duration {
 	return b.slotDuration
 }
 
-func (b *Service) initiate(epoch uint64) {
+func (b *Service) initiate() {
 	if b.blockState == nil {
 		logger.Error("block authoring", "error", "blockState is nil")
 		return
@@ -339,68 +356,45 @@ func (b *Service) initiate(epoch uint64) {
 		return
 	}
 
-	err := b.invokeBlockAuthoring(epoch)
+	err := b.invokeBlockAuthoring()
 	if err != nil {
 		logger.Crit("block authoring error", "error", err)
 	}
 }
 
-func (b *Service) invokeBlockAuthoring(epoch uint64) error {
+func (b *Service) invokeBlockAuthoring() error {
+	epoch, err := b.epochState.GetCurrentEpoch()
+	if err != nil {
+		logger.Error("failed to get current epoch", "error", err)
+		return err
+	}
+
 	for {
-		// get start slot for current epoch
-		epochStart, err := b.epochState.GetStartSlotForEpoch(epoch)
-		if err != nil {
-			logger.Error("failed to get start slot for current epoch", "epoch", epoch, "error", err)
-			return err
-		}
-
-		head, err := b.blockState.BestBlockHeader()
-		if err != nil {
-			logger.Error("failed to get best block header", "error", err)
-			return err
-		}
-
-		// if we're at genesis, set the first slot number for the network
-		if head.Number.Cmp(big.NewInt(0)) == 0 {
-			epochStart = getCurrentSlot(b.slotDuration)
-			err = b.epochState.SetFirstSlot(epochStart)
-			if err != nil {
-				logger.Error("failed to set first slot number", "error", err)
-				return err
-			}
-		}
-
-		logger.Info("initiating epoch", "number", epoch, "first slot of epoch", epochStart)
-		err = b.initiateEpoch(epoch)
+		err := b.initiateEpoch(epoch)
 		if err != nil {
 			logger.Error("failed to initiate epoch", "epoch", epoch, "error", err)
 			return err
 		}
 
-		epochStartTime := getSlotStartTime(epochStart, b.slotDuration)
-		logger.Debug("checking if epoch started", "epoch start", epochStartTime, "now", time.Now())
-
-		// check if it's time to start the epoch yet. if not, wait until it is
-		if time.Since(epochStartTime) < 0 {
-			logger.Debug("waiting for epoch to start")
-			select {
-			case <-time.After(time.Until(epochStartTime)):
-			case <-b.ctx.Done():
-				return nil
-			case <-b.pause:
-				return nil
-			}
+		epochStartSlot, err := b.waitForEpochStart(epoch)
+		if err != nil {
+			logger.Error("failed to wait for epoch start", "epoch", epoch, "error", err)
+			return err
 		}
 
 		// calculate current slot
 		startSlot := getCurrentSlot(b.slotDuration)
-		intoEpoch := startSlot - epochStart
+		intoEpoch := startSlot - epochStartSlot
 
 		// if the calculated amount of slots "into the epoch" is greater than the epoch length,
 		// we've been offline for more than an epoch, and need to sync. pause BABE for now, syncer will
 		// resume it when ready
 		if b.epochLength <= intoEpoch && !b.dev {
-			logger.Debug("pausing BABE, need to sync", "slots into epoch", intoEpoch, "startSlot", startSlot, "epochStart", epochStart)
+			logger.Debug("pausing BABE, need to sync",
+				"slots into epoch",
+				intoEpoch, "startSlot",
+				startSlot, "epochStart", epochStartSlot,
+			)
 			return b.Pause()
 		}
 
@@ -422,14 +416,14 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) error {
 			case <-b.pause:
 				return nil
 			case <-slotDone[i]:
-				if !b.authority {
-					continue
-				}
-
 				slotNum := startSlot + uint64(i)
 				err = b.handleSlot(slotNum)
 				if err == ErrNotAuthorized {
-					logger.Debug("not authorized to produce a block in this slot", "slot", slotNum, "slots into epoch", i)
+					logger.Debug("not authorized to produce a block in this slot",
+						"epoch", epoch,
+						"slot", slotNum,
+						"slots into epoch", slotNum-epochStartSlot,
+					)
 					continue
 				} else if err != nil {
 					logger.Warn("failed to handle slot", "slot", slotNum, "error", err)
@@ -448,6 +442,41 @@ func (b *Service) invokeBlockAuthoring(epoch uint64) error {
 		logger.Info("epoch complete!", "completed epoch", epoch, "upcoming epoch", next)
 		epoch = next
 	}
+}
+
+func (b *Service) waitForEpochStart(epoch uint64) (uint64, error) {
+	// get start slot for current epoch
+	epochStart, err := b.epochState.GetStartSlotForEpoch(epoch)
+	if err != nil {
+		logger.Error("failed to get start slot for current epoch", "epoch", epoch, "error", err)
+		return 0, err
+	}
+
+	epochStartTime := getSlotStartTime(epochStart, b.slotDuration)
+	logger.Debug("checking if epoch started", "epoch start", epochStartTime, "now", time.Now())
+
+	// check if it's time to start the epoch yet. if not, wait until it is
+	if time.Since(epochStartTime) < 0 {
+		logger.Debug("waiting for epoch to start")
+		err = func() error {
+			timer := time.NewTimer(time.Until(epochStartTime))
+			defer timer.Stop()
+			select {
+			case <-timer.C:
+				return nil
+			case <-b.ctx.Done():
+				return errors.New("context cancelled")
+			case <-b.pause:
+				return errors.New("service paused")
+			}
+		}()
+
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	return epochStart, nil
 }
 
 func (b *Service) handleSlot(slotNum uint64) error {
