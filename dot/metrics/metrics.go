@@ -15,7 +15,6 @@ const (
 
 // CollectProcessMetrics periodically collects various metrics about the running process.
 func CollectProcessMetrics() {
-	metrics.Enabled = true
 	// Create the various data collectors
 	cpuStats := make([]*metrics.CPUStats, 2)
 	memStats := make([]*runtime.MemStats, 2)
