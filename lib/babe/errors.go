@@ -228,13 +228,12 @@ func (err Module) Index() uint {
 }
 
 func (err Module) String() string {
-	// Make sure this is okay as opposed to being a string. Should be fine since its wrapped in the error
 	return fmt.Sprintf("index: %d code: %d message: %x", err.Idx, err.Err, *err.Message)
 }
 
 func determineErr(res []byte) error {
 	switch res[0] {
-	case 0: // DispatchOutcome
+	case 0:
 		switch res[1] {
 		case 0:
 			return nil
@@ -243,7 +242,7 @@ func determineErr(res []byte) error {
 		default:
 			return errInvalidResult
 		}
-	case 1: // TransactionValidityError
+	case 1:
 		switch res[1] {
 		case 0:
 			return determineInvalidTxnErr(res[2:])
