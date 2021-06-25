@@ -97,22 +97,10 @@ type Module struct { // add in `scale:"1"` after
 }
 
 // Dispatch Receivers
-func (err Other) Index() uint {
-	return 0
-}
-
-func (err CannotLookup) Index() uint {
-	return 1
-}
-
-func (err BadOrigin) Index() uint {
-	return 2
-}
-
-func (err Module) Index() uint {
-	return 3
-}
-
+func (err Other) Index() uint {return 0}
+func (err CannotLookup) Index() uint {return 1}
+func (err BadOrigin) Index() uint {return 2}
+func (err Module) Index() uint {return 3}
 func (err Module) String() string {
 	return fmt.Sprintf("index: %d code: %d message: %x", err.Idx, err.Err, *err.Message)
 }
@@ -126,24 +114,92 @@ type NoUnsignedValidator struct {
 	err string
 }
 
-type Custom uint8
+type UnknownCustom uint8
 
 // Unknown Transaction Receivers
-func (err ValidityCannotLookup) Index() uint {
+func (err ValidityCannotLookup) Index() uint {return 0}
+func (err NoUnsignedValidator) Index() uint {return 1}
+func (err UnknownCustom) Index() uint {return 2}
+
+// Invalid Transaction Errors
+type Call struct {
+	err string
+}
+
+type Payment struct {
+	err string
+}
+
+type Future struct {
+	err string
+}
+
+type Stale struct {
+	err string
+}
+
+type BadProof struct {
+	err string
+}
+
+type AncientBirthBlock struct {
+	err string
+}
+
+type ExhaustsResources struct {
+	err string
+}
+
+type InvalidCustom uint8
+
+type BadMandatory struct {
+	err string
+}
+
+type MandatoryDispatch struct {
+	err string
+}
+
+// Invalid Transaction Receivers
+func (err Call) Index() uint {
 	return 0
 }
 
-func (err NoUnsignedValidator) Index() uint {
+func (err Payment) Index() uint {
 	return 1
 }
 
-func (err Custom) Index() uint {
+func (err Future) Index() uint {
 	return 2
 }
 
-// Invalid Transaction Errors
+func (err Stale) Index() uint {
+	return 3
+}
 
-// Invalid Transaction Receivers
+func (err BadProof) Index() uint {
+	return 4
+}
+
+func (err AncientBirthBlock) Index() uint {
+	return 5
+}
+
+func (err ExhaustsResources) Index() uint {
+	return 6
+}
+
+func (err InvalidCustom) Index() uint {
+	return 7
+}
+
+func (err BadMandatory) Index() uint {
+	return 8
+}
+
+func (err MandatoryDispatch) Index() uint {
+	return 9
+}
 
 /*
 	TODO:
@@ -174,46 +230,69 @@ func determineDispatchErr(res []byte) error { // This works yay!
 	return errInvalidResult
 }
 
-func determineInvalidTxnErr(res []byte) error {
-	switch res[0] {
-	case 0:
-		return &TransactionValidityError{"call of the transaction is not expected"}
-	case 1:
-		return &TransactionValidityError{"invalid payment"}
-	case 2:
-		return &TransactionValidityError{"invalid transaction"}
-	case 3:
-		return &TransactionValidityError{"outdated transaction"}
-	case 4:
-		return &TransactionValidityError{"bad proof"}
-	case 5:
-		return &TransactionValidityError{"ancient birth block"}
-	case 6:
-		return &TransactionValidityError{"exhausts resources"}
-	case 7:
-		return &TransactionValidityError{fmt.Sprintf("unknown error: %d", res[1])}
-	case 8:
-		return &TransactionValidityError{"mandatory dispatch error"}
-	case 9:
-		return &TransactionValidityError{"invalid mandatory dispatch"}
-	}
-	return errInvalidResult
-}
-
-//func determineUnknownTxnErr(res []byte) error {
+//func determineInvalidTxnErr(res []byte) error {
 //	switch res[0] {
 //	case 0:
-//		return &TransactionValidityError{"lookup failed"}
+//		return &TransactionValidityError{"call of the transaction is not expected"}
 //	case 1:
-//		return &TransactionValidityError{"validator not found"}
+//		return &TransactionValidityError{"invalid payment"}
 //	case 2:
+//		return &TransactionValidityError{"invalid transaction"}
+//	case 3:
+//		return &TransactionValidityError{"outdated transaction"}
+//	case 4:
+//		return &TransactionValidityError{"bad proof"}
+//	case 5:
+//		return &TransactionValidityError{"ancient birth block"}
+//	case 6:
+//		return &TransactionValidityError{"exhausts resources"}
+//	case 7:
 //		return &TransactionValidityError{fmt.Sprintf("unknown error: %d", res[1])}
+//	case 8:
+//		return &TransactionValidityError{"mandatory dispatch error"}
+//	case 9:
+//		return &TransactionValidityError{"invalid mandatory dispatch"}
 //	}
 //	return errInvalidResult
 //}
 
+func determineInvalidTxnErr(res []byte) error {
+	var c InvalidCustom
+	vdt := scale.MustNewVaryingDataType(Call{}, Payment{}, Future{}, Stale{}, BadProof{}, AncientBirthBlock{},
+										ExhaustsResources{}, c, BadMandatory{}, MandatoryDispatch{})
+	err := scale.Unmarshal(res, &vdt)
+	if err != nil {
+		return errInvalidResult
+	}
+
+	switch val := vdt.Value().(type) {
+	case Call:
+		return &TransactionValidityError{"call of the transaction is not expected"}
+	case Payment:
+		return &TransactionValidityError{"invalid payment"}
+	case Future:
+		return &TransactionValidityError{"invalid transaction"}
+	case Stale:
+		return &TransactionValidityError{"outdated transaction"}
+	case BadProof:
+		return &TransactionValidityError{"bad proof"}
+	case AncientBirthBlock:
+		return &TransactionValidityError{"ancient birth block"}
+	case ExhaustsResources:
+		return &TransactionValidityError{"exhausts resources"}
+	case InvalidCustom:
+		return &TransactionValidityError{fmt.Sprintf("unknown error: %d", val)}
+	case BadMandatory:
+		return &TransactionValidityError{"mandatory dispatch error"}
+	case MandatoryDispatch:
+		return &TransactionValidityError{"invalid mandatory dispatch"}
+	}
+
+	return errInvalidResult
+}
+
 func determineUnknownTxnErr(res []byte) error {
-	var c Custom
+	var c UnknownCustom
 	vdt := scale.MustNewVaryingDataType(ValidityCannotLookup{}, NoUnsignedValidator{}, c)
 	err := scale.Unmarshal(res, &vdt)
 	if err != nil {
@@ -225,7 +304,7 @@ func determineUnknownTxnErr(res []byte) error {
 		return &TransactionValidityError{"lookup failed"}
 	case NoUnsignedValidator:
 		return &TransactionValidityError{"validator not found"}
-	case Custom:
+	case UnknownCustom:
 		return &TransactionValidityError{fmt.Sprintf("unknown error: %d", val)}
 	}
 
