@@ -52,7 +52,9 @@ func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, dept
 			Header: &types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
-				Digest:     types.Digest{},
+				Digest: types.Digest{
+					types.NewBabeSecondaryPlainPreDigest(0, uint64(i)).ToPreRuntimeDigest(),
+				},
 			},
 			Body: &types.Body{},
 		}

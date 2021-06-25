@@ -22,7 +22,6 @@ import (
 	"reflect"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -188,9 +187,7 @@ func TestStartNode(t *testing.T) {
 	require.NoError(t, err)
 
 	go func() {
-		// TODO: need to wait until all services are started so that wg.Add is called, otherwise
-		// will call wg.Done before the counter is at 1
-		time.Sleep(time.Second * 15)
+		<-node.started
 		node.Stop()
 	}()
 
