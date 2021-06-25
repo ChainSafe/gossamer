@@ -31,14 +31,11 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-<<<<<<< HEAD
 )
 
 const (
 	buildBlockTimer  = "gossamer/proposer/block/constructed"
 	buildBlockErrors = "gossamer/proposer/block/constructed/errors"
-=======
->>>>>>> a0d51c70c1072b37d7d0ff6139f7232c8403811d
 )
 
 // construct a block for this slot with the given parent

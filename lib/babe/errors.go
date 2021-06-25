@@ -141,11 +141,7 @@ func determineDispatchErr(res []byte) error { // This works yay!
 		return errInvalidResult
 	}
 
-<<<<<<< HEAD
 	switch val := vdt.Value().(type) {
-=======
-	switch val := vdt.Value().(type){
->>>>>>> a0d51c70c1072b37d7d0ff6139f7232c8403811d
 	case Other:
 		return &DispatchOutcomeError{fmt.Sprintf("unknown error: %s", val)}
 	case CannotLookup:
