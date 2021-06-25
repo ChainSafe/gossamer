@@ -161,53 +161,17 @@ type MandatoryDispatch struct {
 }
 
 // Invalid Transaction Receivers
-func (err Call) Index() uint {
-	return 0
-}
+func (err Call) Index() uint {return 0}
+func (err Payment) Index() uint {return 1}
+func (err Future) Index() uint {return 2}
+func (err Stale) Index() uint {return 3}
+func (err BadProof) Index() uint {return 4}
+func (err AncientBirthBlock) Index() uint {return 5}
+func (err ExhaustsResources) Index() uint {return 6}
+func (err InvalidCustom) Index() uint {return 7}
+func (err BadMandatory) Index() uint {return 8}
+func (err MandatoryDispatch) Index() uint {return 9}
 
-func (err Payment) Index() uint {
-	return 1
-}
-
-func (err Future) Index() uint {
-	return 2
-}
-
-func (err Stale) Index() uint {
-	return 3
-}
-
-func (err BadProof) Index() uint {
-	return 4
-}
-
-func (err AncientBirthBlock) Index() uint {
-	return 5
-}
-
-func (err ExhaustsResources) Index() uint {
-	return 6
-}
-
-func (err InvalidCustom) Index() uint {
-	return 7
-}
-
-func (err BadMandatory) Index() uint {
-	return 8
-}
-
-func (err MandatoryDispatch) Index() uint {
-	return 9
-}
-
-/*
-	TODO:
-		1) Expand on this to include other error types
-		2) Clean up code
-		3) Make sure everything I do is okay (errors returned and printing as hex instead of string). This could be included in a pr
-		4) PR???
- */
 func determineDispatchErr(res []byte) error { // This works yay!
 	var e Other
 	vdt := scale.MustNewVaryingDataType(e, CannotLookup{}, BadOrigin{}, Module{})
@@ -229,32 +193,6 @@ func determineDispatchErr(res []byte) error { // This works yay!
 
 	return errInvalidResult
 }
-
-//func determineInvalidTxnErr(res []byte) error {
-//	switch res[0] {
-//	case 0:
-//		return &TransactionValidityError{"call of the transaction is not expected"}
-//	case 1:
-//		return &TransactionValidityError{"invalid payment"}
-//	case 2:
-//		return &TransactionValidityError{"invalid transaction"}
-//	case 3:
-//		return &TransactionValidityError{"outdated transaction"}
-//	case 4:
-//		return &TransactionValidityError{"bad proof"}
-//	case 5:
-//		return &TransactionValidityError{"ancient birth block"}
-//	case 6:
-//		return &TransactionValidityError{"exhausts resources"}
-//	case 7:
-//		return &TransactionValidityError{fmt.Sprintf("unknown error: %d", res[1])}
-//	case 8:
-//		return &TransactionValidityError{"mandatory dispatch error"}
-//	case 9:
-//		return &TransactionValidityError{"invalid mandatory dispatch"}
-//	}
-//	return errInvalidResult
-//}
 
 func determineInvalidTxnErr(res []byte) error {
 	var c InvalidCustom
