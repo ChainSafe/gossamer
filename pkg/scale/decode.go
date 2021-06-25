@@ -315,91 +315,6 @@ func (ds *decodeState) decodeCustomPrimitive(dstv reflect.Value) (err error) {
 	return
 }
 
-func (ds *decodeState) decodeCustomPrimitive(dstv reflect.Value) (err error) {
-	in := dstv.Interface()
-	inType := reflect.TypeOf(in)
-	var temp reflect.Value
-	switch inType.Kind() {
-	case reflect.Bool:
-		temp = reflect.New(reflect.TypeOf(false))
-		err = ds.unmarshal(temp.Elem())
-		if err != nil {
-			break
-		}
-	case reflect.Int:
-		temp = reflect.New(reflect.TypeOf(int(1)))
-		err = ds.unmarshal(temp.Elem())
-		if err != nil {
-			break
-		}
-	case reflect.Int8:
-		temp = reflect.New(reflect.TypeOf(int8(1)))
-		err = ds.unmarshal(temp.Elem())
-		if err != nil {
-			break
-		}
-	case reflect.Int16:
-		temp = reflect.New(reflect.TypeOf(int16(1)))
-		err = ds.unmarshal(temp.Elem())
-		if err != nil {
-			break
-		}
-	case reflect.Int32:
-		temp = reflect.New(reflect.TypeOf(int32(1)))
-		err = ds.unmarshal(temp.Elem())
-		if err != nil {
-			break
-		}
-	case reflect.Int64:
-		temp = reflect.New(reflect.TypeOf(int64(1)))
-		err = ds.unmarshal(temp.Elem())
-		if err != nil {
-			break
-		}
-	case reflect.String:
-		temp = reflect.New(reflect.TypeOf(""))
-		err = ds.unmarshal(temp.Elem())
-		if err != nil {
-			break
-		}
-	case reflect.Uint:
-		temp = reflect.New(reflect.TypeOf(uint(0)))
-		err = ds.unmarshal(temp.Elem())
-		if err != nil {
-			break
-		}
-	case reflect.Uint8:
-		temp = reflect.New(reflect.TypeOf(uint8(0)))
-		err = ds.unmarshal(temp.Elem())
-		if err != nil {
-			break
-		}
-	case reflect.Uint16:
-		temp = reflect.New(reflect.TypeOf(uint16(0)))
-		err = ds.unmarshal(temp.Elem())
-		if err != nil {
-			break
-		}
-	case reflect.Uint32:
-		temp = reflect.New(reflect.TypeOf(uint32(0)))
-		err = ds.unmarshal(temp.Elem())
-		if err != nil {
-			break
-		}
-	case reflect.Uint64:
-		temp = reflect.New(reflect.TypeOf(uint64(0)))
-		err = ds.unmarshal(temp.Elem())
-		if err != nil {
-			break
-		}
-	default:
-		err = fmt.Errorf("unsupported type for custom primitive: %T", in)
-		return
-	}
-	dstv.Set(temp.Elem().Convert(inType))
-	return
-}
-
 func (ds *decodeState) decodeResult(dstv reflect.Value) (err error) {
 	res := dstv.Interface().(Result)
 	var rb byte
@@ -804,23 +719,6 @@ func (ds *decodeState) decodeFixedWidthInt(dstv reflect.Value) (err error) {
 }
 
 // decodeUint128 accepts a byte array representing Scale encoded common.Uint128 and performs SCALE decoding of the Uint128
-func (ds *decodeState) decodeUint128(dstv reflect.Value) (err error) {
-	buf := make([]byte, 16)
-	err = binary.Read(ds, binary.LittleEndian, buf)
-	if err != nil {
-		return
-	}
-	ui128, err := NewUint128(buf)
-	if err != nil {
-		return
-	}
-	dstv.Set(reflect.ValueOf(ui128))
-	return
-}
-
-// decodeUint128 accepts a byte array representing Scale encoded common.Uint128 and performs SCALE decoding of the Uint128
-// if the encoding is valid, it then returns (i interface{}, nil) where i is the decoded common.Uint128 , otherwise
-// it returns nil and error
 func (ds *decodeState) decodeUint128(dstv reflect.Value) (err error) {
 	buf := make([]byte, 16)
 	err = binary.Read(ds, binary.LittleEndian, buf)
