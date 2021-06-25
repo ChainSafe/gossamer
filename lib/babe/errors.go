@@ -16,7 +16,6 @@ package babe
 import (
 	"errors"
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -67,8 +66,6 @@ type DispatchOutcomeError struct {
 	msg string // description of error
 }
 
-//type DispatchOutcomeError string
-
 func (e DispatchOutcomeError) Error() string {
 	return fmt.Sprintf("dispatch outcome error: %s", e.msg)
 }
@@ -82,62 +79,84 @@ func (e TransactionValidityError) Error() string {
 	return fmt.Sprintf("transaction validity error: %s", e.msg)
 }
 
-func determineCustomModuleErr(res []byte) error {
-	if len(res) < 3 {
-		return errInvalidResult
-	}
-	errMsg, err := optional.NewBytes(false, nil).DecodeBytes(res[2:])
-	if err != nil {
-		return err
-	}
-	return fmt.Errorf("index: %d code: %d message: %s", res[0], res[1], errMsg.String())
+// Dispatch Errors
+type Other string
+
+type CannotLookup struct {
+	err string
 }
 
-//func determineDispatchErr(res []byte) error {
-//	var v []byte
-//	err := scale.Unmarshal(res[1:], &v)
-//	if err != nil {
-//		// this err is thrown if we can't unmarshal, so prolly `errInvalidResult`. Check to make sure
-//		// TODO Create stucts for errors and integrate into Varying data type
-//		return errInvalidResult
-//	}
-//
-//	switch res[0] {
-//	case 0:
-//		var v []byte
-//		err := scale.Unmarshal(res[1:], &v)
-//		if err != nil {
-//			// this err is thrown if we can't unmarshal, so prolly `errInvalidResult`. Check to make sure
-//			// TODO Create stucts for errors and integrate into Varying data type
-//			return errInvalidResult
-//		}
-//		return &DispatchOutcomeError{fmt.Sprintf("unknown error: %s", v)}
-//	case 1:
-//		return &DispatchOutcomeError{"failed lookup"}
-//	case 2:
-//		return &DispatchOutcomeError{"bad origin"}
-//	case 3:
-//		return &DispatchOutcomeError{fmt.Sprintf("custom module error: %s", determineCustomModuleErr(res[1:]))}
-//	}
-//
-//	return errInvalidResult
-//}
+type BadOrigin struct {
+	err string
+}
+
+type Module struct { // add in `scale:"1"` after
+	Idx uint8
+	Err   uint8
+	Message *string
+}
+
+// Dispatch Receivers
+func (err Other) Index() uint {
+	return 0
+}
+
+func (err CannotLookup) Index() uint {
+	return 1
+}
+
+func (err BadOrigin) Index() uint {
+	return 2
+}
+
+func (err Module) Index() uint {
+	return 3
+}
+
+func (err Module) String() string {
+	return fmt.Sprintf("index: %d code: %d message: %x", err.Idx, err.Err, *err.Message)
+}
+
+// Unknown Transaction Errors
+type ValidityCannotLookup struct {
+	err string
+}
+
+type NoUnsignedValidator struct {
+	err string
+}
+
+type Custom uint8
+
+// Unknown Transaction Receivers
+func (err ValidityCannotLookup) Index() uint {
+	return 0
+}
+
+func (err NoUnsignedValidator) Index() uint {
+	return 1
+}
+
+func (err Custom) Index() uint {
+	return 2
+}
+
+// Invalid Transaction Errors
+
+// Invalid Transaction Receivers
 
 /*
 	TODO:
-		1) Add test cases for 2 middle cases
-		2) Expand on this to include other error types
-		3) Rebase
-		4) Clean up code
-		5) Make sure everything I do is okay (errors returned and printing as hex instead of string). This could be included in a pr
-		6) PR???
+		1) Expand on this to include other error types
+		2) Clean up code
+		3) Make sure everything I do is okay (errors returned and printing as hex instead of string). This could be included in a pr
+		4) PR???
  */
 func determineDispatchErr(res []byte) error { // This works yay!
 	var e Other
 	vdt := scale.MustNewVaryingDataType(e, CannotLookup{}, BadOrigin{}, Module{})
 	err := scale.Unmarshal(res, &vdt)
 	if err != nil {
-		// Unmarshalling error. Check to make sure this is the correct return type for this case
 		return errInvalidResult
 	}
 
@@ -145,10 +164,8 @@ func determineDispatchErr(res []byte) error { // This works yay!
 	case Other:
 		return &DispatchOutcomeError{fmt.Sprintf("unknown error: %s", val)}
 	case CannotLookup:
-		 // Add testing for this case, make sure struct is correct
 		return &DispatchOutcomeError{"failed lookup"}
 	case BadOrigin:
-		// Add testing for this case, make sure struct is correct
 		return &DispatchOutcomeError{"bad origin"}
 	case Module:
 		return &DispatchOutcomeError{fmt.Sprintf("custom module error: %s", val.String())}
@@ -183,53 +200,38 @@ func determineInvalidTxnErr(res []byte) error {
 	return errInvalidResult
 }
 
+//func determineUnknownTxnErr(res []byte) error {
+//	switch res[0] {
+//	case 0:
+//		return &TransactionValidityError{"lookup failed"}
+//	case 1:
+//		return &TransactionValidityError{"validator not found"}
+//	case 2:
+//		return &TransactionValidityError{fmt.Sprintf("unknown error: %d", res[1])}
+//	}
+//	return errInvalidResult
+//}
+
 func determineUnknownTxnErr(res []byte) error {
-	switch res[0] {
-	case 0:
-		return &TransactionValidityError{"lookup failed"}
-	case 1:
-		return &TransactionValidityError{"validator not found"}
-	case 2:
-		return &TransactionValidityError{fmt.Sprintf("unknown error: %d", res[1])}
+	var c Custom
+	vdt := scale.MustNewVaryingDataType(ValidityCannotLookup{}, NoUnsignedValidator{}, c)
+	err := scale.Unmarshal(res, &vdt)
+	if err != nil {
+		return errInvalidResult
 	}
+
+	switch val := vdt.Value().(type) {
+	case ValidityCannotLookup:
+		return &TransactionValidityError{"lookup failed"}
+	case NoUnsignedValidator:
+		return &TransactionValidityError{"validator not found"}
+	case Custom:
+		return &TransactionValidityError{fmt.Sprintf("unknown error: %d", val)}
+	}
+
 	return errInvalidResult
 }
 
-type Other string
-
-func (err Other) Index() uint {
-	return 0
-}
-
-type CannotLookup struct {
-	err string
-}
-
-func (err CannotLookup) Index() uint {
-	return 1
-}
-
-type BadOrigin struct {
-	err string
-}
-
-func (err BadOrigin) Index() uint {
-	return 2
-}
-
-type Module struct { // add in `scale:"1"` after
-	Idx uint8
-	Err   uint8
-	Message *string
-}
-
-func (err Module) Index() uint {
-	return 3
-}
-
-func (err Module) String() string {
-	return fmt.Sprintf("index: %d code: %d message: %x", err.Idx, err.Err, *err.Message)
-}
 
 func (err CustomModuleError) String() string {
 	return fmt.Sprintf("index: %d code: %d message: %p", err.index, err.err, err.message)
