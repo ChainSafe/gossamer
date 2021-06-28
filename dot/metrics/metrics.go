@@ -34,6 +34,7 @@ const (
 	refreshFreq = int64(Refresh / time.Second)
 )
 
+// PublishMetrics function will export the /metrics endpoint to prometheus process
 func PublishMetrics(address string) {
 	ethmetrics.Enabled = true
 	setupMetricsServer(address)

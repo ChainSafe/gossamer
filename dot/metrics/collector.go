@@ -24,15 +24,19 @@ import (
 	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 )
 
+// GaugeMetrics interface allows the exportation of many gauge metrics
+// the implementer could exports
 type GaugeMetrics interface {
 	CollectGauge() map[string]int64
 }
 
+// Collector struct controls the metrics and executes polling to extract the values
 type Collector struct {
 	ctx    context.Context
 	gauges []GaugeMetrics
 }
 
+// NewCollector creates a new Collector
 func NewCollector(ctx context.Context) *Collector {
 	return &Collector{
 		ctx:    ctx,
@@ -40,21 +44,14 @@ func NewCollector(ctx context.Context) *Collector {
 	}
 }
 
+// Start will start one goroutine to collect all the gauges registereds and
+// a separate goroutine to collect process metrics
 func (c *Collector) Start() {
 	go c.startCollectProccessMetrics()
 	go c.startCollectGauges()
 }
 
-func (c *Collector) Stop() {
-	for _, g := range c.gauges {
-		m := g.CollectGauge()
-
-		for label := range m {
-			ethmetrics.Unregister(label)
-		}
-	}
-}
-
+// AddGauge adds a GaugeMetrics implementer on gauges list
 func (c *Collector) AddGauge(g GaugeMetrics) {
 	c.gauges = append(c.gauges, g)
 }
