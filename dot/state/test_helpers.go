@@ -143,6 +143,9 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 	tb := []testBranch{}
 	arrivalTime := time.Now()
 
+	rt, err := blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
 	head, err := blockState.BestBlockHeader()
 	require.NoError(t, err)
 
@@ -161,6 +164,8 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 		hash := block.Header.Hash()
 		err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
 		require.Nil(t, err)
+
+		blockState.StoreRuntime(hash, rt)
 
 		previousHash = hash
 
@@ -199,6 +204,8 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 			hash := block.Header.Hash()
 			err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
 			require.Nil(t, err)
+
+			blockState.StoreRuntime(hash, rt)
 
 			previousHash = hash
 			arrivalTime = arrivalTime.Add(inc)
