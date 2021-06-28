@@ -578,7 +578,7 @@ func (q *syncQueue) processBlockRequests() {
 }
 
 func (q *syncQueue) trySync(req *syncRequest) {
-	if q.ctx.Err() != nil {
+	if q.ctx.Err() != nil || len(q.s.host.peers()) == 0 {
 		return
 	}
 

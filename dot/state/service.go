@@ -183,7 +183,7 @@ func (s *Service) Start() error {
 	s.Transaction = NewTransactionState()
 
 	// create epoch state
-	s.Epoch, err = NewEpochState(db)
+	s.Epoch, err = NewEpochState(db, s.Block)
 	if err != nil {
 		return fmt.Errorf("failed to create epoch state: %w", err)
 	}
@@ -331,7 +331,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		db: chaindb.NewTable(s.db, storagePrefix),
 	}
 
-	epoch, err := NewEpochState(s.db)
+	epoch, err := NewEpochState(s.db, block)
 	if err != nil {
 		return err
 	}
@@ -342,7 +342,6 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		return err
 	}
 
-	epoch.firstSlot = firstSlot
 	blockEpoch, err := epoch.GetEpochForBlock(header)
 	if err != nil {
 		return err

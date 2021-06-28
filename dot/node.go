@@ -49,6 +49,7 @@ type Node struct {
 	Services *services.ServiceRegistry // registry of all node services
 	StopFunc func()                    // func to call when node stops, currently used for profiling
 	wg       sync.WaitGroup
+	started  chan struct{}
 }
 
 // InitNode initialises a new dot node from the provided dot node configuration
@@ -321,6 +322,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		Name:     cfg.Global.Name,
 		StopFunc: stopFunc,
 		Services: services.NewServiceRegistry(),
+		started:  make(chan struct{}),
 	}
 
 	for _, srvc := range nodeSrvcs {
@@ -411,8 +413,8 @@ func (n *Node) Start() error {
 	}()
 
 	n.wg.Add(1)
+	close(n.started)
 	n.wg.Wait()
-
 	return nil
 }
 
