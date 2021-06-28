@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"io/ioutil"
 	"log"
 	"math/big"
