@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"io/ioutil"
 	"math/big"
 	"path/filepath"
@@ -32,7 +33,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	scale2 "github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
@@ -209,7 +210,8 @@ func buildRawArrayInterface(a []interface{}, kv *keyValue) {
 			kv.iVal = append(kv.iVal, tba)
 		case float64:
 			// TODO: determine how to handle this error
-			encVal, _ := scale.Encode(uint64(v2))
+			//encVal, _ := scale2.Encode(uint64(v2))
+			encVal, _ := scale.Marshal(uint64(v2))
 			kv.value = kv.value + fmt.Sprintf("%x", encVal)
 			kv.iVal = append(kv.iVal, big.NewInt(int64(v2)))
 		}
@@ -244,7 +246,8 @@ func formatValue(kv *keyValue) (string, error) {
 	switch {
 	case reflect.DeepEqual([]string{"grandpa", "authorities"}, kv.key):
 		if kv.valueLen != nil {
-			lenEnc, err := scale.Encode(kv.valueLen)
+			//lenEnc, err := scale2.Encode(kv.valueLen)
+			lenEnc, err := scale.Marshal(kv.valueLen)
 			if err != nil {
 				return "", err
 			}
@@ -256,7 +259,8 @@ func formatValue(kv *keyValue) (string, error) {
 		return kv.value, nil
 	default:
 		if kv.valueLen != nil {
-			lenEnc, err := scale.Encode(kv.valueLen)
+			//lenEnc, err := scale2.Encode(kv.valueLen)
+			lenEnc, err := scale.Marshal(kv.valueLen)
 			if err != nil {
 				return "", err
 			}
@@ -296,7 +300,7 @@ func buildBalances(kv *keyValue, res map[string]string) error {
 				},
 			}
 
-			encBal, err := scale.Encode(accInfo)
+			encBal, err := scale2.Encode(accInfo)
 			if err != nil {
 				return err
 			}
@@ -358,7 +362,7 @@ func addAuthoritiesValues(k1, k2 string, kt crypto.KeyType, value []byte, gen *G
 	// decode authorities values into []interface that will be decoded into json array
 	ava := [][]interface{}{}
 	buf := &bytes.Buffer{}
-	sd := scale.Decoder{Reader: buf}
+	sd := scale2.Decoder{Reader: buf}
 	_, err := buf.Write(value)
 	if err != nil {
 		return err
