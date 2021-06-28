@@ -300,7 +300,11 @@ func buildBalances(kv *keyValue, res map[string]string) error {
 				},
 			}
 
-			encBal, err := scale2.Encode(accInfo)
+			// This is where it breaks, seems like it has leading 0s that shouldnt be their but im unsure why
+			//encBal, err := scale2.Encode(accInfo)
+			fmt.Println(accInfo)
+			encBal, err := scale.Marshal(accInfo)
+			//fmt.Println(encBal)
 			if err != nil {
 				return err
 			}
