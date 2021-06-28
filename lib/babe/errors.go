@@ -91,16 +91,16 @@ type BadOrigin struct {
 }
 
 type Module struct { // add in `scale:"1"` after
-	Idx uint8
-	Err   uint8
+	Idx     uint8
+	Err     uint8
 	Message *string
 }
 
 // Dispatch Receivers
-func (err Other) Index() uint {return 0}
-func (err CannotLookup) Index() uint {return 1}
-func (err BadOrigin) Index() uint {return 2}
-func (err Module) Index() uint {return 3}
+func (err Other) Index() uint        { return 0 }
+func (err CannotLookup) Index() uint { return 1 }
+func (err BadOrigin) Index() uint    { return 2 }
+func (err Module) Index() uint       { return 3 }
 func (err Module) String() string {
 	return fmt.Sprintf("index: %d code: %d message: %x", err.Idx, err.Err, *err.Message)
 }
@@ -117,9 +117,9 @@ type NoUnsignedValidator struct {
 type UnknownCustom uint8
 
 // Unknown Transaction Receivers
-func (err ValidityCannotLookup) Index() uint {return 0}
-func (err NoUnsignedValidator) Index() uint {return 1}
-func (err UnknownCustom) Index() uint {return 2}
+func (err ValidityCannotLookup) Index() uint { return 0 }
+func (err NoUnsignedValidator) Index() uint  { return 1 }
+func (err UnknownCustom) Index() uint        { return 2 }
 
 // Invalid Transaction Errors
 type Call struct {
@@ -161,18 +161,18 @@ type MandatoryDispatch struct {
 }
 
 // Invalid Transaction Receivers
-func (err Call) Index() uint {return 0}
-func (err Payment) Index() uint {return 1}
-func (err Future) Index() uint {return 2}
-func (err Stale) Index() uint {return 3}
-func (err BadProof) Index() uint {return 4}
-func (err AncientBirthBlock) Index() uint {return 5}
-func (err ExhaustsResources) Index() uint {return 6}
-func (err InvalidCustom) Index() uint {return 7}
-func (err BadMandatory) Index() uint {return 8}
-func (err MandatoryDispatch) Index() uint {return 9}
+func (err Call) Index() uint              { return 0 }
+func (err Payment) Index() uint           { return 1 }
+func (err Future) Index() uint            { return 2 }
+func (err Stale) Index() uint             { return 3 }
+func (err BadProof) Index() uint          { return 4 }
+func (err AncientBirthBlock) Index() uint { return 5 }
+func (err ExhaustsResources) Index() uint { return 6 }
+func (err InvalidCustom) Index() uint     { return 7 }
+func (err BadMandatory) Index() uint      { return 8 }
+func (err MandatoryDispatch) Index() uint { return 9 }
 
-func determineDispatchErr(res []byte) error { // This works yay!
+func determineDispatchErr(res []byte) error {
 	var e Other
 	vdt := scale.MustNewVaryingDataType(e, CannotLookup{}, BadOrigin{}, Module{})
 	err := scale.Unmarshal(res, &vdt)
@@ -197,7 +197,7 @@ func determineDispatchErr(res []byte) error { // This works yay!
 func determineInvalidTxnErr(res []byte) error {
 	var c InvalidCustom
 	vdt := scale.MustNewVaryingDataType(Call{}, Payment{}, Future{}, Stale{}, BadProof{}, AncientBirthBlock{},
-										ExhaustsResources{}, c, BadMandatory{}, MandatoryDispatch{})
+		ExhaustsResources{}, c, BadMandatory{}, MandatoryDispatch{})
 	err := scale.Unmarshal(res, &vdt)
 	if err != nil {
 		return errInvalidResult
