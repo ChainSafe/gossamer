@@ -26,7 +26,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	log "github.com/ChainSafe/log15"
@@ -502,9 +501,9 @@ func (b *Service) handleSlot(slotNum uint64) error {
 	}
 
 	hash := parent.Hash()
-	rt, ok := b.blockState.GetRuntime(&hash)
-	if !ok {
-		return blocktree.ErrFailedToGetRuntime
+	rt, err := b.blockState.GetRuntime(&hash)
+	if err != nil {
+		return err
 	}
 
 	rt.SetContextStorage(ts)

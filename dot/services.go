@@ -32,7 +32,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/system"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
-	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -368,9 +367,9 @@ func createSystemService(cfg *types.SystemInfo, stateSrvc *state.Service) (*syst
 
 // createGRANDPAService creates a new GRANDPA service
 func createGRANDPAService(cfg *Config, st *state.Service, dh *digest.Handler, ks keystore.Keystore, net *network.Service) (*grandpa.Service, error) {
-	rt, ok := st.Block.GetRuntime(nil)
-	if !ok {
-		return nil, blocktree.ErrFailedToGetRuntime
+	rt, err := st.Block.GetRuntime(nil)
+	if err != nil {
+		return nil, err
 	}
 
 	ad, err := rt.GrandpaAuthorities()

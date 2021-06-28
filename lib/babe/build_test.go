@@ -102,8 +102,8 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header, e
 		number:   slotNumber,
 	}
 
-	rt, ok := babeService.blockState.GetRuntime(nil)
-	require.True(t, ok)
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
 
 	// build block
 	var block *types.Block
@@ -184,8 +184,8 @@ func TestApplyExtrinsic(t *testing.T) {
 	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewEmptyDigest())
 	require.NoError(t, err)
 
-	rt, ok := babeService.blockState.GetRuntime(nil)
-	require.True(t, ok)
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
 
 	//initialise block header
 	err = rt.InitializeBlock(header)
@@ -222,8 +222,8 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewEmptyDigest())
 	require.NoError(t, err)
 
-	rt, ok := babeService.blockState.GetRuntime(nil)
-	require.True(t, ok)
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
 
 	//initialise block header
 	err = rt.InitializeBlock(header)
@@ -336,8 +336,8 @@ func TestBuildBlock_failing(t *testing.T) {
 		number:   slotNumber,
 	}
 
-	rt, ok := babeService.blockState.GetRuntime(nil)
-	require.True(t, ok)
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
 
 	_, err = babeService.buildBlock(parentHeader, slot, rt)
 	if err == nil {
@@ -388,7 +388,10 @@ func TestBuildBlockTimeMonitor(t *testing.T) {
 	createTestBlock(t, babeService, parent, [][]byte{}, 1, testEpochIndex)
 	require.Equal(t, int64(1), timerMetrics.Count())
 
-	_, err = babeService.buildBlock(parent, Slot{})
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	_, err = babeService.buildBlock(parent, Slot{}, rt)
 	require.Error(t, err)
 	buildErrorsMetrics := metrics.GetOrRegisterCounter(buildBlockErrors, nil)
 	require.Equal(t, int64(1), buildErrorsMetrics.Count())

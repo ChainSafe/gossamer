@@ -194,9 +194,9 @@ func (bs *BlockState) GenesisHash() common.Hash {
 
 // ValidateTransaction validates transaction
 func (bs *BlockState) ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error) {
-	rt, ok := bs.GetRuntime(nil)
-	if !ok {
-		return nil, blocktree.ErrFailedToGetRuntime
+	rt, err := bs.GetRuntime(nil)
+	if err != nil {
+		return nil, err
 	}
 
 	ret, err := rt.Exec(runtime.TaggedTransactionQueueValidateTransaction, e)
@@ -818,20 +818,22 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState, rt run
 		return errors.New("new :code is empty")
 	}
 
-	//codeSubBlockHash := s.codeSubstitutedState.LoadCodeSubstitutedBlockHash()
-	newVersion, err := rt.CheckRuntimeVersion(code) //nolint
-	if err != nil {
-		return err
-	}
+	codeSubBlockHash := bs.baseState.LoadCodeSubstitutedBlockHash()
+	if !codeSubBlockHash.Equal(common.Hash{}) {
+		newVersion, err := rt.CheckRuntimeVersion(code) //nolint
+		if err != nil {
+			return err
+		}
 
-	previousVersion, _ := rt.Version()
-	if previousVersion.SpecVersion() == newVersion.SpecVersion() {
-		return nil
-	}
+		previousVersion, _ := rt.Version()
+		if previousVersion.SpecVersion() == newVersion.SpecVersion() {
+			return nil
+		}
 
-	logger.Info("🔄 detected runtime code change, upgrading...", "block", bHash,
-		"previous code hash", codeHash, "new code hash", currCodeHash,
-		"previous spec version", previousVersion.SpecVersion(), "new spec version", newVersion.SpecVersion())
+		logger.Info("🔄 detected runtime code change, upgrading...", "block", bHash,
+			"previous code hash", codeHash, "new code hash", currCodeHash,
+			"previous spec version", previousVersion.SpecVersion(), "new spec version", newVersion.SpecVersion())
+	}
 
 	rtCfg := &wasmer.Config{
 		Imports: wasmer.ImportsNodeRuntime,
@@ -861,17 +863,23 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState, rt run
 	}
 
 	bs.StoreRuntime(bHash, instance)
+
+	err = bs.baseState.StoreCodeSubstitutedBlockHash(common.Hash{})
+	if err != nil {
+		return fmt.Errorf("failed to update code substituted block hash: %w", err)
+	}
+
 	return nil
 }
 
 // GetRuntime gets the runtime for the corresponding block hash.
-func (bs *BlockState) GetRuntime(hash *common.Hash) (runtime.Instance, bool) {
+func (bs *BlockState) GetRuntime(hash *common.Hash) (runtime.Instance, error) {
 	if hash == nil {
-		rt, ok := bs.bt.GetBlockRuntime(bs.BestBlockHash())
-		if !ok {
-			return nil, false
+		rt, err := bs.bt.GetBlockRuntime(bs.BestBlockHash())
+		if err != nil {
+			return nil, err
 		}
-		return rt, true
+		return rt, nil
 	}
 
 	return bs.bt.GetBlockRuntime(*hash)

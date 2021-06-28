@@ -34,6 +34,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -451,14 +452,20 @@ func (n *Node) Stop() {
 func loadRuntime(cfg *Config, stateSrvc *state.Service, ks *keystore.GlobalKeystore, net *network.Service) error {
 	blocks := stateSrvc.Block.GetAllBlocks()
 	runtimeCode := make(map[string]runtime.Instance)
-	for _, hash := range blocks {
-		code, err := stateSrvc.Storage.GetStorageByBlockHash(hash, []byte(":code"))
+	for i := range blocks {
+		hash := &blocks[i]
+		code, err := stateSrvc.Storage.GetStorageByBlockHash(*hash, []byte(":code"))
 		if err != nil {
 			return err
 		}
 
-		if rt, ok := runtimeCode[string(code)]; ok {
-			stateSrvc.Block.StoreRuntime(hash, rt)
+		codeHash, err := common.Blake2bHash(code)
+		if err != nil {
+			return err
+		}
+
+		if rt, ok := runtimeCode[codeHash.String()]; ok {
+			stateSrvc.Block.StoreRuntime(*hash, rt)
 			continue
 		}
 
@@ -467,7 +474,7 @@ func loadRuntime(cfg *Config, stateSrvc *state.Service, ks *keystore.GlobalKeyst
 			return err
 		}
 
-		runtimeCode[string(code)] = rt
+		runtimeCode[codeHash.String()] = rt
 	}
 
 	return nil

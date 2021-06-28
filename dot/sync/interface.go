@@ -48,7 +48,7 @@ type BlockState interface {
 	GetHashByNumber(*big.Int) (common.Hash, error)
 	GetBlockByHash(common.Hash) (*types.Block, error)
 	HandleRuntimeChanges(newState *rtstorage.TrieState, in runtime.Instance, bHash common.Hash) error
-	GetRuntime(*common.Hash) (runtime.Instance, bool)
+	GetRuntime(*common.Hash) (runtime.Instance, error)
 	StoreRuntime(common.Hash, runtime.Instance)
 }
 

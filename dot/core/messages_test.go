@@ -150,8 +150,8 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	header, err := types.NewHeader(genHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewEmptyDigest())
 	require.NoError(t, err)
 
-	rt, ok := s.blockState.GetRuntime(nil)
-	require.True(t, ok)
+	rt, err := s.blockState.GetRuntime(nil)
+	require.NoError(t, err)
 
 	// initialise block header
 	err = rt.InitializeBlock(header)

@@ -411,8 +411,8 @@ func (bt *BlockTree) StoreRuntime(hash common.Hash, in runtime.Instance) {
 
 // DeleteRuntime deletes the runtime for corresponding block hash.
 func (bt *BlockTree) DeleteRuntime(hash common.Hash) {
-	in, ok := bt.GetBlockRuntime(hash)
-	if !ok {
+	in, err := bt.GetBlockRuntime(hash)
+	if err != nil {
 		return
 	}
 
@@ -421,10 +421,10 @@ func (bt *BlockTree) DeleteRuntime(hash common.Hash) {
 }
 
 // GetBlockRuntime returns block runtime for corresponding block hash.
-func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (runtime.Instance, bool) {
+func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (runtime.Instance, error) {
 	ins, ok := bt.blockRt.Load(hash)
 	if !ok {
-		return nil, false
+		return nil, ErrFailedToGetRuntime
 	}
-	return ins.(runtime.Instance), true
+	return ins.(runtime.Instance), nil
 }

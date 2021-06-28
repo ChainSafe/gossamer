@@ -25,7 +25,6 @@ var (
 	errNilBlockState         = errors.New("cannot have nil BlockState")
 	errNilStorageState       = errors.New("cannot have nil StorageState")
 	errNilVerifier           = errors.New("cannot have nil Verifier")
-	errNilRuntime            = errors.New("cannot have nil runtime")
 	errNilBlockImportHandler = errors.New("cannot have nil BlockImportHandler")
 
 	// ErrNilBlockData is returned when trying to process a BlockResponseMessage with nil BlockData

@@ -327,9 +327,9 @@ func (s *Service) handleBlock(block *types.Block) error {
 	}
 
 	hash := parent.Hash()
-	rt, ok := s.blockState.GetRuntime(&hash)
-	if !ok {
-		return blocktree.ErrFailedToGetRuntime
+	rt, err := s.blockState.GetRuntime(&hash)
+	if err != nil {
+		return err
 	}
 
 	rt.SetContextStorage(ts)

@@ -199,7 +199,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	}
 
 	// store block in database
-	if err := s.blockState.AddBlock(block); err != nil {
+	if err = s.blockState.AddBlock(block); err != nil {
 		if err == blocktree.ErrParentNotFound && block.Header.Number.Cmp(big.NewInt(0)) != 0 {
 			return err
 		} else if err == blocktree.ErrBlockExists || block.Header.Number.Cmp(big.NewInt(0)) == 0 {
@@ -214,9 +214,9 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	// handle consensus digests
 	s.digestHandler.HandleDigests(block.Header)
 
-	rt, ok := s.blockState.GetRuntime(&block.Header.ParentHash)
-	if !ok {
-		return blocktree.ErrFailedToGetRuntime
+	rt, err := s.blockState.GetRuntime(&block.Header.ParentHash)
+	if err != nil {
+		return err
 	}
 
 	// check for runtime changes
@@ -262,12 +262,12 @@ func (s *Service) handleCodeSubstitution(hash common.Hash) error {
 		return ErrEmptyRuntimeCode
 	}
 
-	rt, ok := s.blockState.GetRuntime(&hash)
-	if !ok {
-		return blocktree.ErrFailedToGetRuntime
+	rt, err := s.blockState.GetRuntime(&hash)
+	if err != nil {
+		return err
 	}
 
-	err := rt.UpdateRuntimeCode(code)
+	err = rt.UpdateRuntimeCode(code)
 	if err != nil {
 		return err
 	}
@@ -352,16 +352,16 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		subchain = subchain[1:]
 	}
 
+	// Check transaction validation on the best block.
+	rt, err := s.blockState.GetRuntime(nil)
+	if err != nil {
+		return err
+	}
+
 	// for each block in the previous chain, re-add its extrinsics back into the pool
 	for _, hash := range subchain {
 		body, err := s.blockState.GetBlockBody(hash)
 		if err != nil {
-			continue
-		}
-
-		rt, ok := s.blockState.GetRuntime(&hash)
-		if !ok {
-			logger.Debug("failed to get runtime instance", "block", hash)
 			continue
 		}
 
@@ -478,9 +478,9 @@ func (s *Service) GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error)
 		return nil, err
 	}
 
-	rt, ok := s.blockState.GetRuntime(bhash)
-	if !ok {
-		return nil, blocktree.ErrFailedToGetRuntime
+	rt, err := s.blockState.GetRuntime(bhash)
+	if err != nil {
+		return nil, err
 	}
 
 	rt.SetContextStorage(ts)
@@ -499,9 +499,9 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 		return err
 	}
 
-	rt, ok := s.blockState.GetRuntime(nil)
-	if !ok {
-		return blocktree.ErrFailedToGetRuntime
+	rt, err := s.blockState.GetRuntime(nil)
+	if err != nil {
+		return err
 	}
 
 	rt.SetContextStorage(ts)
@@ -543,9 +543,9 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 		return nil, err
 	}
 
-	rt, ok := s.blockState.GetRuntime(bhash)
-	if !ok {
-		return nil, blocktree.ErrFailedToGetRuntime
+	rt, err := s.blockState.GetRuntime(bhash)
+	if err != nil {
+		return nil, err
 	}
 
 	rt.SetContextStorage(ts)

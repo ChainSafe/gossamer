@@ -19,7 +19,6 @@ package core
 import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
@@ -33,9 +32,9 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (boo
 	txs := msg.Extrinsics
 	var toPropagate []types.Extrinsic
 
-	rt, ok := s.blockState.GetRuntime(nil)
-	if !ok {
-		return false, blocktree.ErrFailedToGetRuntime
+	rt, err := s.blockState.GetRuntime(nil)
+	if err != nil {
+		return false, err
 	}
 
 	for _, tx := range txs {

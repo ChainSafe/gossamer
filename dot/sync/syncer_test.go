@@ -61,8 +61,8 @@ func TestHandleBlockResponse(t *testing.T) {
 	parent, err := responder.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
-	rt, ok := responder.blockState.GetRuntime(nil)
-	require.True(t, ok)
+	rt, err := responder.blockState.GetRuntime(nil)
+	require.NoError(t, err)
 
 	for i := 0; i < 130; i++ {
 		block := BuildBlock(t, rt, parent, nil)
@@ -101,8 +101,8 @@ func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
-	rt, ok := syncer.blockState.GetRuntime(nil)
-	require.True(t, ok)
+	rt, err := syncer.blockState.GetRuntime(nil)
+	require.NoError(t, err)
 
 	for i := 0; i < 4; i++ {
 		block := BuildBlock(t, rt, parent, nil)
@@ -116,8 +116,8 @@ func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
 	parent, err = responder.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
-	rt, ok = responder.blockState.GetRuntime(nil)
-	require.True(t, ok)
+	rt, err = responder.blockState.GetRuntime(nil)
+	require.NoError(t, err)
 
 	for i := 0; i < 16; i++ {
 		block := BuildBlock(t, rt, parent, nil)
@@ -188,8 +188,8 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
-	rt, ok := syncer.blockState.GetRuntime(nil)
-	require.True(t, ok)
+	rt, err := syncer.blockState.GetRuntime(nil)
+	require.NoError(t, err)
 
 	block := BuildBlock(t, rt, parent, nil)
 
@@ -215,8 +215,8 @@ func TestSyncer_ExecuteBlock(t *testing.T) {
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
-	rt, ok := syncer.blockState.GetRuntime(nil)
-	require.True(t, ok)
+	rt, err := syncer.blockState.GetRuntime(nil)
+	require.NoError(t, err)
 
 	block := BuildBlock(t, rt, parent, nil)
 
@@ -260,13 +260,14 @@ func TestSyncer_ProcessJustification(t *testing.T) {
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
-	rt, ok := syncer.blockState.GetRuntime(nil)
-	require.True(t, ok)
+	rt, err := syncer.blockState.GetRuntime(nil)
+	require.NoError(t, err)
 
 	block := BuildBlock(t, rt, parent, nil)
-block.Header.Digest = types.Digest{
-types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
-}
+	block.Header.Digest = types.Digest{
+		types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+	}
+
 	err = syncer.blockState.(*state.BlockState).AddBlock(block)
 	require.NoError(t, err)
 

@@ -151,11 +151,10 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
 		require.NoError(t, err)
 
-		rt, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg)
+		cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(gen, rtCfg)
 		require.NoError(t, err)
-
-		cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), rt)
 	}
+	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), cfg.Runtime)
 
 	cfg.IsDev = true
 	cfg.LogLvl = defaultTestLogLvl
