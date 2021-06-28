@@ -348,7 +348,7 @@ func hasSlotEnded(slot Slot) bool {
 	return time.Since(slotEnd) >= 0
 }
 
-// ExtrinsicsToBody returns scale2 encoded block body which contains inherent and extrinsic.
+// ExtrinsicsToBody returns scale encoded block body which contains inherent and extrinsic.
 func ExtrinsicsToBody(inherents [][]byte, txs []*transaction.ValidTransaction) (*types.Body, error) {
 	extrinsics := types.BytesArrayToExtrinsics(inherents)
 
