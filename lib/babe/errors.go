@@ -16,6 +16,7 @@ package babe
 import (
 	"errors"
 	"fmt"
+
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -79,23 +80,27 @@ func (e TransactionValidityError) Error() string {
 	return fmt.Sprintf("transaction validity error: %s", e.msg)
 }
 
+// Other Some error occurred
 type Other string
 
 func (err Other) Index() uint { return 0 }
 
+// CannotLookup Failed to lookup some data
 type CannotLookup struct {
 	err string
 }
 
 func (err CannotLookup) Index() uint { return 1 }
 
+// BadOrigin A bad origin
 type BadOrigin struct {
 	err string
 }
 
 func (err BadOrigin) Index() uint { return 2 }
 
-type Module struct { // add in `scale:"1"` after
+// Module A custom error in a module
+type Module struct {
 	Idx     uint8
 	Err     uint8
 	Message *string
@@ -107,74 +112,87 @@ func (err Module) String() string {
 	return fmt.Sprintf("index: %d code: %d message: %x", err.Idx, err.Err, *err.Message)
 }
 
+// ValidityCannotLookup Could not lookup some information that is required to validate the transaction
 type ValidityCannotLookup struct {
 	err string
 }
 
 func (err ValidityCannotLookup) Index() uint { return 0 }
 
+// NoUnsignedValidator No validator found for the given unsigned transaction
 type NoUnsignedValidator struct {
 	err string
 }
 
 func (err NoUnsignedValidator) Index() uint { return 1 }
 
+// UnknownCustom Any other custom unknown validity that is not covered
 type UnknownCustom uint8
 
 func (err UnknownCustom) Index() uint { return 2 }
 
+// Call The call of the transaction is not expected
 type Call struct {
 	err string
 }
 
 func (err Call) Index() uint { return 0 }
 
+// Payment General error to do with the inability to pay some fees (e.g. account balance too low)
 type Payment struct {
 	err string
 }
 
 func (err Payment) Index() uint { return 1 }
 
+// Future General error to do with the transaction not yet being valid (e.g. nonce too high)
 type Future struct {
 	err string
 }
 
 func (err Future) Index() uint { return 2 }
 
+// Stale General error to do with the transaction being outdated (e.g. nonce too low)
 type Stale struct {
 	err string
 }
 
 func (err Stale) Index() uint { return 3 }
 
+// BadProof General error to do with the transaction’s proofs (e.g. signature)
 type BadProof struct {
 	err string
 }
 
 func (err BadProof) Index() uint { return 4 }
 
+// AncientBirthBlock The transaction birth block is ancient
 type AncientBirthBlock struct {
 	err string
 }
 
 func (err AncientBirthBlock) Index() uint { return 5 }
 
+// ExhaustsResources The transaction would exhaust the resources of current block
 type ExhaustsResources struct {
 	err string
 }
 
 func (err ExhaustsResources) Index() uint { return 6 }
 
+// InvalidCustom Any other custom invalid validity that is not covered
 type InvalidCustom uint8
 
 func (err InvalidCustom) Index() uint { return 7 }
 
+// BadMandatory An extrinsic with a Mandatory dispatch resulted in Error
 type BadMandatory struct {
 	err string
 }
 
 func (err BadMandatory) Index() uint { return 8 }
 
+// MandatoryDispatch A transaction with a mandatory dispatch
 type MandatoryDispatch struct {
 	err string
 }
