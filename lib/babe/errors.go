@@ -79,16 +79,21 @@ func (e TransactionValidityError) Error() string {
 	return fmt.Sprintf("transaction validity error: %s", e.msg)
 }
 
-// Dispatch Errors
 type Other string
+
+func (err Other) Index() uint { return 0 }
 
 type CannotLookup struct {
 	err string
 }
 
+func (err CannotLookup) Index() uint { return 1 }
+
 type BadOrigin struct {
 	err string
 }
+
+func (err BadOrigin) Index() uint { return 2 }
 
 type Module struct { // add in `scale:"1"` after
 	Idx     uint8
@@ -96,80 +101,84 @@ type Module struct { // add in `scale:"1"` after
 	Message *string
 }
 
-// Dispatch Receivers
-func (err Other) Index() uint        { return 0 }
-func (err CannotLookup) Index() uint { return 1 }
-func (err BadOrigin) Index() uint    { return 2 }
-func (err Module) Index() uint       { return 3 }
+func (err Module) Index() uint { return 3 }
+
 func (err Module) String() string {
 	return fmt.Sprintf("index: %d code: %d message: %x", err.Idx, err.Err, *err.Message)
 }
 
-// Unknown Transaction Errors
 type ValidityCannotLookup struct {
 	err string
 }
+
+func (err ValidityCannotLookup) Index() uint { return 0 }
 
 type NoUnsignedValidator struct {
 	err string
 }
 
+func (err NoUnsignedValidator) Index() uint { return 1 }
+
 type UnknownCustom uint8
 
-// Unknown Transaction Receivers
-func (err ValidityCannotLookup) Index() uint { return 0 }
-func (err NoUnsignedValidator) Index() uint  { return 1 }
-func (err UnknownCustom) Index() uint        { return 2 }
+func (err UnknownCustom) Index() uint { return 2 }
 
-// Invalid Transaction Errors
 type Call struct {
 	err string
 }
+
+func (err Call) Index() uint { return 0 }
 
 type Payment struct {
 	err string
 }
 
+func (err Payment) Index() uint { return 1 }
+
 type Future struct {
 	err string
 }
+
+func (err Future) Index() uint { return 2 }
 
 type Stale struct {
 	err string
 }
 
+func (err Stale) Index() uint { return 3 }
+
 type BadProof struct {
 	err string
 }
+
+func (err BadProof) Index() uint { return 4 }
 
 type AncientBirthBlock struct {
 	err string
 }
 
+func (err AncientBirthBlock) Index() uint { return 5 }
+
 type ExhaustsResources struct {
 	err string
 }
 
+func (err ExhaustsResources) Index() uint { return 6 }
+
 type InvalidCustom uint8
+
+func (err InvalidCustom) Index() uint { return 7 }
 
 type BadMandatory struct {
 	err string
 }
 
+func (err BadMandatory) Index() uint { return 8 }
+
 type MandatoryDispatch struct {
 	err string
 }
 
-// Invalid Transaction Receivers
-func (err Call) Index() uint              { return 0 }
-func (err Payment) Index() uint           { return 1 }
-func (err Future) Index() uint            { return 2 }
-func (err Stale) Index() uint             { return 3 }
-func (err BadProof) Index() uint          { return 4 }
-func (err AncientBirthBlock) Index() uint { return 5 }
-func (err ExhaustsResources) Index() uint { return 6 }
-func (err InvalidCustom) Index() uint     { return 7 }
-func (err BadMandatory) Index() uint      { return 8 }
 func (err MandatoryDispatch) Index() uint { return 9 }
 
 func determineDispatchErr(res []byte) error {
