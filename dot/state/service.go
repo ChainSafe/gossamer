@@ -33,6 +33,9 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
+const readyPoolTransactionsMetrics = "gossamer/ready/pool/transaction/metrics"
+const readyPriorityQueueTransactions = "gossamer/ready/queue/transaction/metrics"
+
 var logger = log.New("pkg", "state")
 
 // Service is the struct that holds storage, block and network states
@@ -395,4 +398,11 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 	}
 
 	return s.db.Close()
+}
+
+func (s *Service) CollectGauge() map[string]int64 {
+	return map[string]int64{
+		readyPoolTransactionsMetrics:   int64(s.Transaction.pool.Len()),
+		readyPriorityQueueTransactions: int64(s.Transaction.queue.Len()),
+	}
 }

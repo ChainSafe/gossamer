@@ -21,12 +21,9 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
-
-const readyPriorityQueueTransactions = "gossamer/ready/transaction/metrics"
 
 // ErrTransactionExists is returned when trying to add a transaction to the queue that already exists
 var ErrTransactionExists = errors.New("transaction is already in queue")
@@ -97,12 +94,6 @@ func NewPriorityQueue() *PriorityQueue {
 		pq:  make(priorityQueue, 0),
 		txs: make(map[common.Hash]*Item),
 	}
-
-	go metrics.CollectGaugeMetrics(
-		collectTxMetricsTimeout,
-		readyPriorityQueueTransactions,
-		spq,
-	)
 
 	heap.Init(&spq.pq)
 	return spq
@@ -182,5 +173,7 @@ func (spq *PriorityQueue) Pending() []*ValidTransaction {
 	return txns
 }
 
-// Update returns the total of valid transactions in the priority queue
-func (spq *PriorityQueue) Update() int64 { return int64(spq.pq.Len()) }
+// Len return the current length of the queue
+func (spq *PriorityQueue) Len() int {
+	return spq.pq.Len()
+}

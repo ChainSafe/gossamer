@@ -18,14 +18,9 @@ package transaction
 
 import (
 	"sync"
-	"time"
 
-	"github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
-
-const collectTxMetricsTimeout = time.Second * 5
-const readyTransactionsMetrics = "gossamer/ready/transaction/metrics"
 
 // Pool represents the transaction pool
 type Pool struct {
@@ -35,17 +30,9 @@ type Pool struct {
 
 // NewPool returns a new empty Pool
 func NewPool() *Pool {
-	p := &Pool{
+	return &Pool{
 		transactions: make(map[common.Hash]*ValidTransaction),
 	}
-
-	go metrics.CollectGaugeMetrics(
-		collectTxMetricsTimeout,
-		readyTransactionsMetrics,
-		p,
-	)
-
-	return p
 }
 
 // Transactions returns all the transactions in the pool
@@ -79,5 +66,7 @@ func (p *Pool) Remove(hash common.Hash) {
 	delete(p.transactions, hash)
 }
 
-// Update returns the total of valid transactions in the pool
-func (p *Pool) Update() int64 { return int64(len(p.transactions)) }
+// Len return the current length of the pool
+func (p *Pool) Len() int {
+	return len(p.transactions)
+}
