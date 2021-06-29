@@ -21,12 +21,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"io/ioutil"
+	"log"
 	"math/big"
 	"path/filepath"
 	"reflect"
-
-	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -34,7 +34,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	scale2 "github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
 
@@ -362,21 +361,21 @@ func addAuthoritiesValues(k1, k2 string, kt crypto.KeyType, value []byte, gen *G
 
 	// decode authorities values into []interface that will be decoded into json array
 	ava := [][]interface{}{}
-	buf := &bytes.Buffer{}
-	sd := scale2.Decoder{Reader: buf}
-	_, err := buf.Write(value)
+	reader := new(bytes.Buffer)
+	_, err := reader.Write(value)
 	if err != nil {
 		return err
 	}
 
-	alen, err := sd.DecodeInteger()
+	var alen int
+	err = scale.Unmarshal(value, &alen)
 	if err != nil {
 		return err
 	}
 	for i := 0; i < int(alen); i++ {
 		auth := []interface{}{}
 		buf := make([]byte, 32)
-		if _, err = sd.Reader.Read(buf); err == nil {
+		if _, err := reader.Read(buf); err == nil {
 			var arr = [32]byte{}
 			copy(arr[:], buf)
 			pa, err := bytesToAddress(kt, arr[:])
@@ -385,11 +384,17 @@ func addAuthoritiesValues(k1, k2 string, kt crypto.KeyType, value []byte, gen *G
 			}
 			auth = append(auth, pa)
 		}
-		iv, err := sd.DecodeFixedWidthInt(uint64(0))
+		b := make([]byte, 8)
+		if _, err := reader.Read(b); err != nil {
+			log.Fatal(err)
+		}
+		var iv uint64
+		err = scale.Unmarshal(b, &iv)
+
 		if err != nil {
 			return err
 		}
-		auth = append(auth, iv.(uint64))
+		auth = append(auth, iv)
 		ava = append(ava, auth)
 	}
 
