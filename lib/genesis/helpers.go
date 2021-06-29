@@ -21,11 +21,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"io/ioutil"
 	"math/big"
 	"path/filepath"
 	"reflect"
+
+	"github.com/ChainSafe/gossamer/pkg/scale"
+
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
