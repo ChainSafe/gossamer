@@ -61,7 +61,9 @@ type KeyValue struct {
 var (
 	once            sync.Once
 	handlerInstance Instance
-	Enabled         = true // enabled by default
+
+	// Enabled flag to determine if telemetry is enabled
+	Enabled = true // enabled by default
 )
 
 // GetInstance singleton pattern to for accessing TelemetryHandler
