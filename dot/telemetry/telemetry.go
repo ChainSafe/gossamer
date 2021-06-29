@@ -40,9 +40,10 @@ type Message struct {
 
 // Handler struct for holding telemetry related things
 type Handler struct {
-	msg         chan Message
-	connections []*telemetryConnection
-	log         log.Logger
+	msg                chan Message
+	connections        []*telemetryConnection
+	log                log.Logger
+	sendMessageTimeout time.Duration
 }
 
 // KeyValue object to hold key value pairs used in telemetry messages
@@ -56,14 +57,17 @@ var (
 	handlerInstance *Handler
 )
 
+const defaultMessageTimeout = time.Second
+
 // GetInstance singleton pattern to for accessing TelemetryHandler
 func GetInstance() *Handler { //nolint
 	if handlerInstance == nil {
 		once.Do(
 			func() {
 				handlerInstance = &Handler{
-					msg: make(chan Message, 256),
-					log: log.New("pkg", "telemetry"),
+					msg:                make(chan Message, 256),
+					log:                log.New("pkg", "telemetry"),
+					sendMessageTimeout: defaultMessageTimeout,
 				}
 				go handlerInstance.startListening()
 			})
@@ -109,10 +113,12 @@ func (h *Handler) AddConnections(conns []*genesis.TelemetryEndpoint) {
 
 // SendMessage sends Message to connected telemetry listeners
 func (h *Handler) SendMessage(msg *Message) error {
+	t := time.NewTicker(h.sendMessageTimeout)
+	defer t.Stop()
 	select {
 	case h.msg <- *msg:
 
-	case <-time.After(time.Second * 1):
+	case <-t.C:
 		return errors.New("timeout sending message")
 	}
 	return nil
