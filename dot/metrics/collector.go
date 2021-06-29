@@ -47,7 +47,7 @@ func NewCollector(ctx context.Context) *Collector {
 	}
 }
 
-// Start will start one goroutine to collect all the gauges registereds and
+// Start will start one goroutine to collect all the gauges registered and
 // a separate goroutine to collect process metrics
 func (c *Collector) Start() {
 	c.wg.Add(2)
