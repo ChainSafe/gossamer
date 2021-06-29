@@ -399,11 +399,11 @@ func buildBlock(t *testing.T, instance runtime.Instance) *types.Block {
 
 	// apply each inherent extrinsic
 	for _, ext := range exts {
-		in, err := scale.Marshal(ext)
-		require.NoError(t, err)
+		in, er := scale.Marshal(ext)
+		require.NoError(t, er)
 
-		ret, err := instance.ApplyExtrinsic(append([]byte{1}, in...))
-		require.NoError(t, err, in)
+		ret, e := instance.ApplyExtrinsic(append([]byte{1}, in...))
+		require.NoError(t, e, in)
 		require.Equal(t, ret, []byte{0, 0})
 	}
 
