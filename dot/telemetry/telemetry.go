@@ -86,7 +86,7 @@ func (h *Handler) AddConnections(conns []*genesis.TelemetryEndpoint) {
 }
 
 // SendMessage sends Message to connected telemetry listeners
-func (h *Handler) SendMessage(msg *Message) error {
+func (h *Handler) SendMessage(msg Message) error {
 	t := time.NewTicker(h.sendMessageTimeout)
 	defer t.Stop()
 	select {
