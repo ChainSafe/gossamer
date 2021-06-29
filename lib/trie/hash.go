@@ -24,19 +24,17 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/scale"
-	"golang.org/x/sync/errgroup"
-
 	"golang.org/x/crypto/blake2b"
+	"golang.org/x/sync/errgroup"
 )
 
 type sliceBuffer []byte
 
-func (b *sliceBuffer) Write(data []byte) (n int, err error) {
+func (b *sliceBuffer) write(data []byte) {
 	*b = append(*b, data...)
-	return len(data), nil
 }
 
-func (b *sliceBuffer) Reset() {
+func (b *sliceBuffer) reset() {
 	*b = (*b)[:0]
 }
 
@@ -47,8 +45,8 @@ type Hasher struct {
 	parallel bool // Whether to use parallel threads when hashing
 }
 
-// HasherPool creates a pool of Hasher.
-var HasherPool = sync.Pool{
+// hasherPool creates a pool of Hasher.
+var hasherPool = sync.Pool{
 	New: func() interface{} {
 		h, _ := blake2b.New256(nil)
 
@@ -61,15 +59,15 @@ var HasherPool = sync.Pool{
 
 // NewHasher create new Hasher instance
 func NewHasher(parallel bool) *Hasher {
-	h := HasherPool.Get().(*Hasher)
+	h := hasherPool.Get().(*Hasher)
 	h.parallel = parallel
 	return h
 }
 
 func returnHasherToPool(h *Hasher) {
-	h.tmp.Reset()
+	h.tmp.reset()
 	h.hash.Reset()
-	HasherPool.Put(h)
+	hasherPool.Put(h)
 }
 
 // Hash encodes the node and then hashes it if its encoded length is > 32 bytes
@@ -110,21 +108,37 @@ func (h *Hasher) encode(n node) ([]byte, error) {
 	return nil, nil
 }
 
+func encodeAndHash(n node) ([]byte, error) {
+	h := NewHasher(false)
+	defer returnHasherToPool(h)
+
+	encChild, err := h.Hash(n)
+	if err != nil {
+		return nil, err
+	}
+
+	scEncChild, err := scale.Encode(encChild)
+	if err != nil {
+		return nil, err
+	}
+	return scEncChild, nil
+}
+
 // encodeBranch encodes a branch with the encoding specified at the top of this package
 func (h *Hasher) encodeBranch(b *branch) ([]byte, error) {
 	if !b.dirty && b.encoding != nil {
 		return b.encoding, nil
 	}
-	h.tmp.Reset()
+	h.tmp.reset()
 
 	encoding, err := b.header()
-	h.tmp = append(h.tmp, encoding...)
+	h.tmp.write(encoding)
 	if err != nil {
 		return nil, err
 	}
 
-	h.tmp = append(h.tmp, nibblesToKeyLE(b.key)...)
-	h.tmp = append(h.tmp, common.Uint16ToBytes(b.childrenBitmap())...)
+	h.tmp.write(nibblesToKeyLE(b.key))
+	h.tmp.write(common.Uint16ToBytes(b.childrenBitmap()))
 
 	if b.value != nil {
 		buffer := bytes.Buffer{}
@@ -133,7 +147,7 @@ func (h *Hasher) encodeBranch(b *branch) ([]byte, error) {
 		if err != nil {
 			return h.tmp, err
 		}
-		h.tmp = append(h.tmp, buffer.Bytes()...)
+		h.tmp.write(buffer.Bytes())
 	}
 
 	if h.parallel {
@@ -147,19 +161,10 @@ func (h *Hasher) encodeBranch(b *branch) ([]byte, error) {
 						return nil
 					}
 
-					hasher := NewHasher(false)
-					defer returnHasherToPool(hasher)
-
-					encChild, err := hasher.Hash(child)
+					resBuff[i], err = encodeAndHash(child)
 					if err != nil {
 						return err
 					}
-
-					scEncChild, err := scale.Encode(encChild)
-					if err != nil {
-						return err
-					}
-					resBuff[i] = scEncChild
 					return nil
 				})
 			}(i)
@@ -170,25 +175,17 @@ func (h *Hasher) encodeBranch(b *branch) ([]byte, error) {
 
 		for _, v := range resBuff {
 			if v != nil {
-				h.tmp = append(h.tmp, v...)
+				h.tmp.write(v)
 			}
 		}
 	} else {
 		for i := 0; i < 16; i++ {
 			if child := b.children[i]; child != nil {
-				hasher := NewHasher(false)
-				defer returnHasherToPool(hasher)
-
-				encChild, err := hasher.Hash(child)
+				scEncChild, err := encodeAndHash(child)
 				if err != nil {
 					return nil, err
 				}
-
-				scEncChild, err := scale.Encode(encChild)
-				if err != nil {
-					return nil, err
-				}
-				h.tmp = append(h.tmp, scEncChild...)
+				h.tmp.write(scEncChild)
 			}
 		}
 	}
@@ -202,15 +199,15 @@ func (h *Hasher) encodeLeaf(l *leaf) ([]byte, error) {
 		return l.encoding, nil
 	}
 
-	h.tmp.Reset()
+	h.tmp.reset()
 
 	encoding, err := l.header()
-	h.tmp = append(h.tmp, encoding...)
+	h.tmp.write(encoding)
 	if err != nil {
 		return nil, err
 	}
 
-	h.tmp = append(h.tmp, nibblesToKeyLE(l.key)...)
+	h.tmp.write(nibblesToKeyLE(l.key))
 
 	buffer := bytes.Buffer{}
 	se := scale.Encoder{Writer: &buffer}
@@ -220,7 +217,7 @@ func (h *Hasher) encodeLeaf(l *leaf) ([]byte, error) {
 		return nil, err
 	}
 
-	h.tmp = append(h.tmp, buffer.Bytes()...)
+	h.tmp.write(buffer.Bytes())
 	l.encoding = h.tmp
 	return h.tmp, nil
 }
