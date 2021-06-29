@@ -38,11 +38,13 @@ func NewGrandpaModule(api BlockAPI, finalityAPI BlockFinalityAPI) *GrandpaModule
 	}
 }
 
+// Votes struct formats rpc call
 type Votes struct {
 	CurrentWeight uint32   `json:"currentWeight"`
 	Missing       []string `json:"missing"`
 }
 
+// RoundState json format for roundState RPC call
 type RoundState struct {
 	Round           uint32 `json:"round"`
 	TotalWeight     uint32 `json:"totalWeight"`
@@ -51,8 +53,9 @@ type RoundState struct {
 	Precommits      Votes  `json:"precommits"`
 }
 
+// RoundStateResponse response to roundState RPC call
 type RoundStateResponse struct {
-	SetId      uint32       `json:"setId"`
+	SetID      uint32       `json:"setId"`
 	Best       RoundState   `json:"best"`
 	Background []RoundState `json:"background"`
 }
@@ -75,9 +78,9 @@ func (gm *GrandpaModule) ProveFinality(r *http.Request, req *ProveFinalityReques
 	}
 
 	// Leaving check in for linter
-	// if req.authorityID != uint64(0) {
-	// 	// TODO: #1404 Check if functionality relevant
-	// }
+	if req.authorityID != uint64(0) {
+		// TODO: #1404 Check if functionality relevant
+	}
 
 	for _, block := range blocksToCheck {
 		hasJustification, _ := gm.blockAPI.HasJustification(block)
@@ -119,7 +122,7 @@ func (gm *GrandpaModule) RoundState(r *http.Request, req *EmptyRequest, res *Rou
 	totalWeight := calcTotalWeight(voters)
 
 	roundstate := RoundStateResponse{
-		SetId: uint32(gm.blockFinalityAPI.GetSetID()),
+		SetID: uint32(gm.blockFinalityAPI.GetSetID()),
 		Best: RoundState{
 			Round:           uint32(gm.blockFinalityAPI.GetRound()),
 			ThresholdWeight: calcThresholdWeight(totalWeight),

@@ -96,6 +96,7 @@ type SystemAPI interface {
 	ChainName() string
 }
 
+// BlockFinalityAPI is the interface for handling block finalisation methods
 type BlockFinalityAPI interface {
 	GetSetID() uint64
 	GetRound() uint64

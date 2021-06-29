@@ -1156,10 +1156,12 @@ func (s *Service) findParentWithNumber(v *Vote, n uint32) (*Vote, error) {
 	return NewVoteFromHeader(b), nil
 }
 
+// GetSetID returns the current setID
 func (s *Service) GetSetID() uint64 {
 	return s.state.setID
 }
 
+// GetRound return the current round number
 func (s *Service) GetRound() uint64 {
 	s.roundLock.Lock()
 	defer s.roundLock.Unlock()
@@ -1167,10 +1169,12 @@ func (s *Service) GetRound() uint64 {
 	return s.state.round
 }
 
+// GetVoters returns the list of current grandpa.Voters
 func (s *Service) GetVoters() Voters {
 	return s.state.voters
 }
 
+// PreVotes returns the current prevotes to the current round
 func (s *Service) PreVotes() map[ed25519.PublicKeyBytes]*Vote {
 	s.mapLock.Lock()
 	defer s.mapLock.Unlock()
@@ -1178,6 +1182,7 @@ func (s *Service) PreVotes() map[ed25519.PublicKeyBytes]*Vote {
 	return s.prevotes
 }
 
+// PreCommits returns the current precommits to the current round
 func (s *Service) PreCommits() map[ed25519.PublicKeyBytes]*Vote {
 	s.mapLock.Lock()
 	defer s.mapLock.Unlock()
