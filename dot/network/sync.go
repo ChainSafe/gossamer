@@ -88,7 +88,9 @@ const (
 	badPeerThreshold       int    = -2
 	protectedPeerThreshold int    = 7
 
-	defaultSlotDuration = time.Second * 6
+	defaultSlotDuration                = time.Second * 6
+	defaultHandleResponseQueueDuration = time.Second
+	defaultPrunePeersDuration          = time.Second * 30
 )
 
 var (
@@ -132,26 +134,30 @@ type syncQueue struct {
 	goal               int64 // goal block number we are trying to sync to
 	currStart, currEnd int64 // the start and end of the BlockResponse we are currently handling; 0 and 0 if we are not currently handling any
 
-	benchmarker *syncBenchmarker
+	benchmarker                 *syncBenchmarker
+	handleResponseQueueDuration time.Duration
+	prunePeersDuration          time.Duration
 }
 
 func newSyncQueue(s *Service) *syncQueue {
 	ctx, cancel := context.WithCancel(s.ctx)
 
 	return &syncQueue{
-		s:                        s,
-		slotDuration:             defaultSlotDuration,
-		ctx:                      ctx,
-		cancel:                   cancel,
-		peerScore:                new(sync.Map),
-		requestData:              new(sync.Map),
-		requestDataByHash:        new(sync.Map),
-		justificationRequestData: new(sync.Map),
-		requestCh:                make(chan *syncRequest, blockRequestBufferSize),
-		responses:                []*types.BlockData{},
-		responseCh:               make(chan []*types.BlockData, blockResponseBufferSize),
-		benchmarker:              newSyncBenchmarker(),
-		buf:                      make([]byte, maxBlockResponseSize),
+		s:                           s,
+		slotDuration:                defaultSlotDuration,
+		ctx:                         ctx,
+		cancel:                      cancel,
+		peerScore:                   new(sync.Map),
+		requestData:                 new(sync.Map),
+		requestDataByHash:           new(sync.Map),
+		justificationRequestData:    new(sync.Map),
+		requestCh:                   make(chan *syncRequest, blockRequestBufferSize),
+		responses:                   []*types.BlockData{},
+		responseCh:                  make(chan []*types.BlockData, blockResponseBufferSize),
+		benchmarker:                 newSyncBenchmarker(),
+		buf:                         make([]byte, maxBlockResponseSize),
+		handleResponseQueueDuration: defaultHandleResponseQueueDuration,
+		prunePeersDuration:          defaultPrunePeersDuration,
 	}
 }
 
@@ -176,10 +182,12 @@ func (q *syncQueue) syncAtHead() {
 	q.s.syncer.SetSyncing(true)
 	q.s.noGossip = true // don't gossip messages until we're at the head
 
+	t := time.NewTicker(q.slotDuration * 2)
+	defer t.Stop()
 	for {
 		select {
 		// sleep for average block time TODO: make this configurable from slot duration
-		case <-time.After(q.slotDuration * 2):
+		case <-t.C:
 		case <-q.ctx.Done():
 			return
 		}
@@ -214,9 +222,11 @@ func (q *syncQueue) syncAtHead() {
 }
 
 func (q *syncQueue) handleResponseQueue() {
+	t := time.NewTicker(q.handleResponseQueueDuration)
+	defer t.Stop()
 	for {
 		select {
-		case <-time.After(time.Second):
+		case <-t.C:
 		case <-q.ctx.Done():
 			return
 		}
@@ -260,9 +270,11 @@ func (q *syncQueue) handleResponseQueue() {
 
 // prune peers with low score and connect to new peers
 func (q *syncQueue) prunePeers() {
+	t := time.NewTicker(q.prunePeersDuration)
+	defer t.Stop()
 	for {
 		select {
-		case <-time.After(time.Second * 30):
+		case <-t.C:
 		case <-q.ctx.Done():
 			return
 		}
