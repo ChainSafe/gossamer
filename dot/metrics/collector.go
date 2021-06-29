@@ -19,6 +19,7 @@ package metrics
 import (
 	"context"
 	"runtime"
+	"sync"
 	"time"
 
 	ethmetrics "github.com/ethereum/go-ethereum/metrics"
@@ -34,12 +35,14 @@ type GaugeMetrics interface {
 type Collector struct {
 	ctx    context.Context
 	gauges []GaugeMetrics
+	wg     sync.WaitGroup
 }
 
 // NewCollector creates a new Collector
 func NewCollector(ctx context.Context) *Collector {
 	return &Collector{
 		ctx:    ctx,
+		wg:     sync.WaitGroup{},
 		gauges: make([]GaugeMetrics, 0),
 	}
 }
@@ -47,8 +50,12 @@ func NewCollector(ctx context.Context) *Collector {
 // Start will start one goroutine to collect all the gauges registereds and
 // a separate goroutine to collect process metrics
 func (c *Collector) Start() {
+	c.wg.Add(2)
+
 	go c.startCollectProccessMetrics()
 	go c.startCollectGauges()
+
+	c.wg.Wait()
 }
 
 // AddGauge adds a GaugeMetrics implementer on gauges list
@@ -60,7 +67,10 @@ func (c *Collector) startCollectGauges() {
 	ethmetrics.Enabled = true
 
 	t := time.NewTicker(Refresh)
-	defer t.Stop()
+	defer func() {
+		t.Stop()
+		c.wg.Done()
+	}()
 
 	for {
 		select {
@@ -104,7 +114,10 @@ func (c *Collector) startCollectProccessMetrics() {
 	)
 
 	t := time.NewTicker(Refresh)
-	defer t.Stop()
+	defer func() {
+		t.Stop()
+		c.wg.Done()
+	}()
 
 	for i := 1; ; i++ {
 		select {
