@@ -75,9 +75,9 @@ func (gm *GrandpaModule) ProveFinality(r *http.Request, req *ProveFinalityReques
 	}
 
 	// Leaving check in for linter
-	if req.authorityID != uint64(0) {
-		// TODO: #1404 Check if functionality relevant
-	}
+	// if req.authorityID != uint64(0) {
+	// 	// TODO: #1404 Check if functionality relevant
+	// }
 
 	for _, block := range blocksToCheck {
 		hasJustification, _ := gm.blockAPI.HasJustification(block)
