@@ -28,8 +28,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/pkg/scale"
 
-	"github.com/ChainSafe/gossamer/pkg/scale"
-
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -287,27 +285,23 @@ func buildBalances(kv *keyValue, res map[string]string) error {
 
 			bKey = append(bKey, kv.iVal[i].([]byte)...)
 
-			accInfo := types.AccountInfo{
+			accInfo := types.AccountInfo1{
 				Nonce:    0,
 				RefCount: 0,
 				Data: struct {
-					Free       common.Uint128
-					Reserved   common.Uint128
-					MiscFrozen common.Uint128
-					FreeFrozen common.Uint128
+					Free       *scale.Uint128
+					Reserved   *scale.Uint128
+					MiscFrozen *scale.Uint128
+					FreeFrozen *scale.Uint128
 				}{
-					Free:       *common.Uint128FromBigInt(kv.iVal[i+1].(*big.Int)),
-					Reserved:   *common.Uint128FromBigInt(big.NewInt(0)),
-					MiscFrozen: *common.Uint128FromBigInt(big.NewInt(0)),
-					FreeFrozen: *common.Uint128FromBigInt(big.NewInt(0)),
+					Free:       scale.MustNewUint128(kv.iVal[i+1].(*big.Int)),
+					Reserved:   scale.MustNewUint128(big.NewInt(0)),
+					MiscFrozen: scale.MustNewUint128(big.NewInt(0)),
+					FreeFrozen: scale.MustNewUint128(big.NewInt(0)),
 				},
 			}
 
-			// This is where it breaks, seems like it has leading 0s that shouldnt be their but im unsure why
-			//encBal, err := scale2.Encode(accInfo)
-			fmt.Println(accInfo)
 			encBal, err := scale.Marshal(accInfo)
-			//fmt.Println(encBal)
 			if err != nil {
 				return err
 			}
