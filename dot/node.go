@@ -340,9 +340,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		return nil, err
 	}
 
-	if cfg.Global.NoTelemetry {
-		telemetry.GetInstance().KillInstance()
-	}
+	telemetry.Enabled = !cfg.Global.NoTelemetry
 
 	telemetry.GetInstance().AddConnections(gd.TelemetryEndpoints)
 

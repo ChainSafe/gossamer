@@ -50,7 +50,6 @@ type Instance interface {
 	AddConnections(conns []*genesis.TelemetryEndpoint)
 	SendMessage(msg *Message) error
 	startListening()
-	KillInstance()
 }
 
 // KeyValue object to hold key value pairs used in telemetry messages
@@ -62,10 +61,11 @@ type KeyValue struct {
 var (
 	once            sync.Once
 	handlerInstance Instance
+	Enabled         = true // enabled by default
 )
 
 // GetInstance singleton pattern to for accessing TelemetryHandler
-func GetInstance() Instance { //nolint
+func GetInstance() Instance {
 	if handlerInstance == nil {
 		once.Do(
 			func() {
@@ -76,6 +76,10 @@ func GetInstance() Instance { //nolint
 				go handlerInstance.startListening()
 			})
 	}
+	if !Enabled {
+		return &NoopHandler{}
+	}
+
 	return handlerInstance
 }
 
@@ -142,11 +146,6 @@ func (h *Handler) startListening() {
 	}
 }
 
-// KillInstance replaces current telemetry handler instance with no op telemetry handler instance
-func (h *Handler) KillInstance() {
-	handlerInstance = &NoopHandler{}
-}
-
 type response struct {
 	ID        int                    `json:"id"`
 	Payload   map[string]interface{} `json:"payload"`
@@ -179,6 +178,3 @@ func (h *NoopHandler) SendMessage(msg *Message) error {
 
 // AddConnections no op for telemetry add connections function
 func (h *NoopHandler) AddConnections(conns []*genesis.TelemetryEndpoint) {}
-
-// KillInstance no op for telemetry kill instance function
-func (h *NoopHandler) KillInstance() {}

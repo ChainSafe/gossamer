@@ -147,7 +147,7 @@ func TestKillInstance(t *testing.T) {
 	resultCh = make(chan []byte)
 	for i := 0; i < qty; i++ {
 		if i == qty/2 {
-			GetInstance().KillInstance()
+			Enabled = false
 		}
 		go func() {
 			GetInstance().SendMessage(NewTelemetryMessage(
