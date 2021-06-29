@@ -60,6 +60,7 @@ var (
 	errNilEpochState         = errors.New("cannot have nil EpochState")
 	errNilRuntime            = errors.New("runtime is nil")
 	errInvalidResult         = errors.New("invalid error value")
+	errNoEpochData           = errors.New("no epoch data found for upcoming epoch")
 )
 
 // A DispatchOutcomeError is outcome of dispatching the extrinsic

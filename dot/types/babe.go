@@ -95,7 +95,7 @@ func (d *EpochDataRaw) ToEpochData() (*EpochData, error) {
 type ConfigData struct {
 	C1             uint64
 	C2             uint64
-	SecondarySlots byte
+	SecondarySlots byte // TODO: this is unused, will need to update BABE verifier to use this
 }
 
 // GetSlotFromHeader returns the BABE slot from the given header

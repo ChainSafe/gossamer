@@ -96,6 +96,9 @@ func TestSendNeighbourMessage(t *testing.T) {
 		Header: &types.Header{
 			ParentHash: testGenesisHeader.Hash(),
 			Number:     big.NewInt(1),
+			Digest: types.Digest{
+				types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+			},
 		},
 		Body: &types.Body{},
 	}

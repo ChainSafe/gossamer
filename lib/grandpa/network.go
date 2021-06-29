@@ -177,11 +177,13 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 }
 
 func (s *Service) sendNeighbourMessage() {
+	t := time.NewTicker(neighbourMessageInterval)
+	defer t.Stop()
 	for {
 		select {
 		case <-s.ctx.Done():
 			return
-		case <-time.After(neighbourMessageInterval):
+		case <-t.C:
 			if s.neighbourMessage == nil {
 				continue
 			}

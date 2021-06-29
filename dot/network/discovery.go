@@ -75,13 +75,15 @@ func (d *discovery) start() error {
 		// get all currently connected peers and use them to bootstrap the DHT
 		peers := d.h.Network().Peers()
 
+		t := time.NewTicker(startDHTTimeout)
+		defer t.Stop()
 		for {
 			if len(peers) > 0 {
 				break
 			}
 
 			select {
-			case <-time.After(startDHTTimeout):
+			case <-t.C:
 				logger.Debug("no peers yet, waiting to start DHT...")
 				// wait for peers to connect before starting DHT, otherwise DHT bootstrap nodes
 				// will be empty and we will fail to fill the routing table
@@ -169,11 +171,13 @@ func (d *discovery) advertise() {
 }
 
 func (d *discovery) checkPeerCount() {
+	t := time.NewTicker(connectToPeersTimeout)
+	defer t.Stop()
 	for {
 		select {
 		case <-d.ctx.Done():
 			return
-		case <-time.After(connectToPeersTimeout):
+		case <-t.C:
 			if len(d.h.Network().Peers()) > d.minPeers {
 				continue
 			}

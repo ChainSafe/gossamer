@@ -39,12 +39,17 @@ func TestChainGetHeader_Genesis(t *testing.T) {
 	header, err := state.Block.BestBlockHeader()
 	require.NoError(t, err)
 
+	d, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest().Encode()
+	require.NoError(t, err)
+
 	expected := &ChainBlockHeaderResponse{
 		ParentHash:     header.ParentHash.String(),
 		Number:         common.BytesToHex(header.Number.Bytes()),
 		StateRoot:      header.StateRoot.String(),
 		ExtrinsicsRoot: header.ExtrinsicsRoot.String(),
-		Digest:         ChainBlockHeaderDigest{},
+		Digest: ChainBlockHeaderDigest{
+			Logs: []string{common.BytesToHex(d)},
+		},
 	}
 
 	hash := state.Block.BestBlockHash()
@@ -64,12 +69,17 @@ func TestChainGetHeader_Latest(t *testing.T) {
 	header, err := state.Block.BestBlockHeader()
 	require.NoError(t, err)
 
+	d, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest().Encode()
+	require.NoError(t, err)
+
 	expected := &ChainBlockHeaderResponse{
 		ParentHash:     header.ParentHash.String(),
 		Number:         common.BytesToHex(header.Number.Bytes()),
 		StateRoot:      header.StateRoot.String(),
 		ExtrinsicsRoot: header.ExtrinsicsRoot.String(),
-		Digest:         ChainBlockHeaderDigest{},
+		Digest: ChainBlockHeaderDigest{
+			Logs: []string{common.BytesToHex(d)},
+		},
 	}
 
 	res := &ChainBlockHeaderResponse{}
@@ -101,12 +111,17 @@ func TestChainGetBlock_Genesis(t *testing.T) {
 	header, err := state.Block.BestBlockHeader()
 	require.NoError(t, err)
 
+	d, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest().Encode()
+	require.NoError(t, err)
+
 	expectedHeader := &ChainBlockHeaderResponse{
 		ParentHash:     header.ParentHash.String(),
 		Number:         common.BytesToHex(header.Number.Bytes()),
 		StateRoot:      header.StateRoot.String(),
 		ExtrinsicsRoot: header.ExtrinsicsRoot.String(),
-		Digest:         ChainBlockHeaderDigest{},
+		Digest: ChainBlockHeaderDigest{
+			Logs: []string{common.BytesToHex(d)},
+		},
 	}
 
 	hash := state.Block.BestBlockHash()
@@ -134,12 +149,17 @@ func TestChainGetBlock_Latest(t *testing.T) {
 	header, err := state.Block.BestBlockHeader()
 	require.NoError(t, err)
 
+	d, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest().Encode()
+	require.NoError(t, err)
+
 	expectedHeader := &ChainBlockHeaderResponse{
 		ParentHash:     header.ParentHash.String(),
 		Number:         common.BytesToHex(header.Number.Bytes()),
 		StateRoot:      header.StateRoot.String(),
 		ExtrinsicsRoot: header.ExtrinsicsRoot.String(),
-		Digest:         ChainBlockHeaderDigest{},
+		Digest: ChainBlockHeaderDigest{
+			Logs: []string{common.BytesToHex(d)},
+		},
 	}
 
 	expected := &ChainBlockResponse{
@@ -267,6 +287,9 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 
 	header := &types.Header{
 		Number: big.NewInt(1),
+		Digest: types.Digest{
+			types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+		},
 	}
 	err = state.Block.SetHeader(header)
 	require.NoError(t, err)
@@ -358,8 +381,10 @@ func loadTestBlocks(gh common.Hash, bs *state.BlockState) error {
 
 	// Create header & blockData for block 1
 	header1 := &types.Header{
-		Number:     big.NewInt(1),
-		Digest:     types.Digest{},
+		Number: big.NewInt(1),
+		Digest: types.Digest{
+			types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+		},
 		ParentHash: blockHash0,
 		StateRoot:  trie.EmptyHash,
 	}
