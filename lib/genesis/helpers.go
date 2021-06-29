@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"io/ioutil"
 	"log"
 	"math/big"
@@ -35,6 +34,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // NewGenesisFromJSONRaw parses a JSON formatted genesis file
@@ -372,20 +372,20 @@ func addAuthoritiesValues(k1, k2 string, kt crypto.KeyType, value []byte, gen *G
 	if err != nil {
 		return err
 	}
-	for i := 0; i < int(alen); i++ {
+	for i := 0; i < alen; i++ {
 		auth := []interface{}{}
 		buf := make([]byte, 32)
-		if _, err := reader.Read(buf); err == nil {
+		if _, err = reader.Read(buf); err == nil {
 			var arr = [32]byte{}
 			copy(arr[:], buf)
-			pa, err := bytesToAddress(kt, arr[:])
-			if err != nil {
-				return err
+			pa, e := bytesToAddress(kt, arr[:])
+			if e != nil {
+				return e
 			}
 			auth = append(auth, pa)
 		}
 		b := make([]byte, 8)
-		if _, err := reader.Read(b); err != nil {
+		if _, err = reader.Read(b); err != nil {
 			log.Fatal(err)
 		}
 		var iv uint64
