@@ -80,13 +80,13 @@ func (e TransactionValidityError) Error() string {
 	return fmt.Sprintf("transaction validity error: %s", e.msg)
 }
 
-// A UnmarshallingError is when unmarshalling fails
-type UnmarshallingError struct {
+// A UnmarshalError is when unmarshalling fails
+type UnmarshalError struct {
 	msg string
 }
 
-func (e UnmarshallingError) Error() string {
-	return fmt.Sprintf("unmarshalling error: %s", e.msg)
+func (e UnmarshalError) Error() string {
+	return fmt.Sprintf("unmarshal error: %s", e.msg)
 }
 
 // Other Some error occurred
@@ -204,7 +204,7 @@ func determineDispatchErr(res []byte) error {
 	vdt := scale.MustNewVaryingDataType(e, CannotLookup{}, BadOrigin{}, Module{})
 	err := scale.Unmarshal(res, &vdt)
 	if err != nil {
-		return &UnmarshallingError{err.Error()}
+		return &UnmarshalError{err.Error()}
 	}
 
 	switch val := vdt.Value().(type) {
@@ -227,7 +227,7 @@ func determineInvalidTxnErr(res []byte) error {
 		ExhaustsResources{}, c, BadMandatory{}, MandatoryDispatch{})
 	err := scale.Unmarshal(res, &vdt)
 	if err != nil {
-		return &UnmarshallingError{err.Error()}
+		return &UnmarshalError{err.Error()}
 	}
 
 	switch val := vdt.Value().(type) {
@@ -261,7 +261,7 @@ func determineUnknownTxnErr(res []byte) error {
 	vdt := scale.MustNewVaryingDataType(ValidityCannotLookup{}, NoUnsignedValidator{}, c)
 	err := scale.Unmarshal(res, &vdt)
 	if err != nil {
-		return &UnmarshallingError{err.Error()}
+		return &UnmarshalError{err.Error()}
 	}
 
 	switch val := vdt.Value().(type) {
