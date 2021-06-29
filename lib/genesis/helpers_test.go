@@ -161,8 +161,6 @@ func TestAccountInfoMarshal(t *testing.T) {
 	encBal, err := scale2.Encode(accInfo)
 	require.NoError(t, err)
 
-	fmt.Printf("encBal %v\n", encBal)
-
 	accInfo1 := types.AccountInfo1{
 		Nonce:    0,
 		RefCount: 0,
@@ -181,8 +179,5 @@ func TestAccountInfoMarshal(t *testing.T) {
 
 	encBal1, err := scale.Marshal(accInfo1)
 	require.NoError(t, err)
-	fmt.Printf("encBal1 %v\n", encBal1)
-
 	require.Equal(t, encBal, encBal1)
-
 }
