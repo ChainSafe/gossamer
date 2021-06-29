@@ -29,8 +29,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
 
@@ -296,13 +296,19 @@ func setupSystemModule(t *testing.T) *SystemModule {
 		Nonce:    3,
 		RefCount: 0,
 		Data: struct {
-			Free       common.Uint128
-			Reserved   common.Uint128
-			MiscFrozen common.Uint128
-			FreeFrozen common.Uint128
-		}{},
+			Free       *scale.Uint128
+			Reserved   *scale.Uint128
+			MiscFrozen *scale.Uint128
+			FreeFrozen *scale.Uint128
+		}{
+			Free:       scale.MustNewUint128(big.NewInt(0)),
+			Reserved:   scale.MustNewUint128(big.NewInt(0)),
+			MiscFrozen: scale.MustNewUint128(big.NewInt(0)),
+			FreeFrozen: scale.MustNewUint128(big.NewInt(0)),
+		},
 	}
-	aliceAcctEncoded, err := scale.Encode(aliceAcctInfo)
+
+	aliceAcctEncoded, err := scale.Marshal(aliceAcctInfo)
 	require.NoError(t, err)
 	ts.Set(aliceAcctStoKey, aliceAcctEncoded)
 
