@@ -1155,3 +1155,32 @@ func (s *Service) findParentWithNumber(v *Vote, n uint32) (*Vote, error) {
 
 	return NewVoteFromHeader(b), nil
 }
+
+func (s *Service) GetSetID() uint64 {
+	return s.state.setID
+}
+
+func (s *Service) GetRound() uint64 {
+	s.roundLock.Lock()
+	defer s.roundLock.Unlock()
+
+	return s.state.round
+}
+
+func (s *Service) PreVotesAddresses() ([]string, error) {
+	s.mapLock.Lock()
+	defer s.mapLock.Unlock()
+
+	addrs := make([]string, len(s.prevotes))
+
+	for k := range s.prevotes {
+		pk, err := ed25519.NewPublicKey(k[:])
+		if err != nil {
+			return nil, err
+		}
+
+		addrs = append(addrs, string(pk.Address()))
+	}
+
+	return addrs, nil
+}

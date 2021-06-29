@@ -34,6 +34,25 @@ func NewGrandpaModule(api BlockAPI) *GrandpaModule {
 	}
 }
 
+type Votes struct {
+	CurrentWeight uint32   `json:"currentWeight"`
+	Missing       []string `json:"missing"`
+}
+
+type RoundState struct {
+	Round           uint32 `json:"round"`
+	TotalWeight     uint32 `json:"totalWeight"`
+	ThresholdWeight uint32 `json:"thresholdWeight"`
+	Prevotes        Votes  `json:"prevotes"`
+	Precommits      Votes  `json:"precommits"`
+}
+
+type RoundStateResponse struct {
+	SetId      uint32       `json:"setId"`
+	Best       RoundState   `json:"best"`
+	Background []RoundState `json:"background"`
+}
+
 // ProveFinalityRequest request struct
 type ProveFinalityRequest struct {
 	blockHashStart common.Hash
@@ -68,6 +87,13 @@ func (gm *GrandpaModule) ProveFinality(r *http.Request, req *ProveFinalityReques
 		}
 		*res = append(*res, justification)
 	}
+
+	return nil
+}
+
+// RoundState returns the state of the current best round state as well as the ongoing background rounds.
+func (gm *GrandpaModule) RoundState(r *http.Request, req *EmptyRequest, res *RoundStateResponse) error {
+	//roundstate := new(RoundState)
 
 	return nil
 }

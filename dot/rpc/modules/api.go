@@ -93,3 +93,10 @@ type SystemAPI interface {
 	ChainType() string
 	ChainName() string
 }
+
+type BlockFinalityAPI interface {
+	GetSetID() uint64
+	GetRound() uint64
+	PreVotesAddresses() ([]string, error)
+	PreCommitsAddresses() ([]string, error)
+}
