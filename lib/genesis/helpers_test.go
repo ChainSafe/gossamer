@@ -20,16 +20,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"math/big"
 	"os"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	scale2 "github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
 
@@ -140,44 +135,4 @@ func TestNewTrieFromGenesis(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, expTrie, trie)
-}
-
-func TestAccountInfoMarshal(t *testing.T) {
-	accInfo := types.AccountInfo{
-		Nonce:    0,
-		RefCount: 0,
-		Data: struct {
-			Free       common.Uint128
-			Reserved   common.Uint128
-			MiscFrozen common.Uint128
-			FreeFrozen common.Uint128
-		}{
-			Free:       *common.Uint128FromBigInt(big.NewInt(100)),
-			Reserved:   *common.Uint128FromBigInt(big.NewInt(0)),
-			MiscFrozen: *common.Uint128FromBigInt(big.NewInt(0)),
-			FreeFrozen: *common.Uint128FromBigInt(big.NewInt(0)),
-		},
-	}
-	encBal, err := scale2.Encode(accInfo)
-	require.NoError(t, err)
-
-	accInfo1 := types.AccountInfo1{
-		Nonce:    0,
-		RefCount: 0,
-		Data: struct {
-			Free       *scale.Uint128
-			Reserved   *scale.Uint128
-			MiscFrozen *scale.Uint128
-			FreeFrozen *scale.Uint128
-		}{
-			Free:       scale.MustNewUint128(big.NewInt(100)),
-			Reserved:   scale.MustNewUint128(big.NewInt(0)),
-			MiscFrozen: scale.MustNewUint128(big.NewInt(0)),
-			FreeFrozen: scale.MustNewUint128(big.NewInt(0)),
-		},
-	}
-
-	encBal1, err := scale.Marshal(accInfo1)
-	require.NoError(t, err)
-	require.Equal(t, encBal, encBal1)
 }
