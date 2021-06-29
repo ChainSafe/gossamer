@@ -1167,20 +1167,20 @@ func (s *Service) GetRound() uint64 {
 	return s.state.round
 }
 
-func (s *Service) PreVotesAddresses() ([]string, error) {
+func (s *Service) GetVoters() Voters {
+	return s.state.voters
+}
+
+func (s *Service) PreVotes() map[ed25519.PublicKeyBytes]*Vote {
 	s.mapLock.Lock()
 	defer s.mapLock.Unlock()
 
-	addrs := make([]string, len(s.prevotes))
+	return s.prevotes
+}
 
-	for k := range s.prevotes {
-		pk, err := ed25519.NewPublicKey(k[:])
-		if err != nil {
-			return nil, err
-		}
+func (s *Service) PreCommits() map[ed25519.PublicKeyBytes]*Vote {
+	s.mapLock.Lock()
+	defer s.mapLock.Unlock()
 
-		addrs = append(addrs, string(pk.Address()))
-	}
-
-	return addrs, nil
+	return s.precommits
 }
