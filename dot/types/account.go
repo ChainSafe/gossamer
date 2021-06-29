@@ -20,7 +20,7 @@ type AccountInfo struct {
 	}
 }
 
-type AccountInfo1 struct {
+type AccountInfo struct {
 	// The number of transactions this account has sent.
 	Nonce uint32
 	// The number of other modules that currently depend on this account's existence. The account
