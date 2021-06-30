@@ -300,6 +300,7 @@ func determineErr(res []byte) error {
 	case 0:
 		var e Other
 		vdt := scale.MustNewVaryingDataType(e, CannotLookup{}, BadOrigin{}, Module{})
+
 		r := scale.NewResult(nil, vdt)
 		err := scale.Unmarshal(res[1:], &r)
 		if err != nil {
@@ -308,25 +309,41 @@ func determineErr(res []byte) error {
 		}
 
 		ok, err := r.Unwrap()
-		//fmt.Println(err)
 		if err != nil {
-			er := determineDispatchErr(err)
-			//fmt.Println(er)
-			return er
+			// error case
+			fmt.Printf("err %v\n", err)
+			switch err := err.(type) {
+			case scale.WrappedErr:
+				vdt := err.Err.(scale.VaryingDataType)
+				switch val := vdt.Value().(type) {
+				case Module, BadOrigin, CannotLookup, Other:
+					fmt.Printf("in here! %T %v\n", val, val)
+				}
+
+			}
+		} else {
+			// ok case
+			fmt.Printf("ok %v\n", ok)
 		}
-		//fmt.Println(ok)
-		if ok != nil {
-			return errInvalidResult
-		}
-		return nil
-		//switch res[1] {
-		//case 0:
-		//	return nil
-		//case 1:
-		//	return determineDispatchErr(res[2:])
-		//default:
-		//	return errInvalidResult
-		//}
+		// //fmt.Println(err)
+		// if err != nil {
+		// 	er := determineDispatchErr(err)
+		// 	//fmt.Println(er)
+		// 	return er
+		// }
+		// //fmt.Println(ok)
+		// if ok != nil {
+		// 	return errInvalidResult
+		// }
+		// return nil
+		// //switch res[1] {
+		// //case 0:
+		// //	return nil
+		// //case 1:
+		// //	return determineDispatchErr(res[2:])
+		// //default:
+		// //	return errInvalidResult
+		// //}
 	case 1:
 		switch res[1] {
 		case 0:

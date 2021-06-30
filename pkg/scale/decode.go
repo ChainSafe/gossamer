@@ -325,6 +325,7 @@ func (ds *decodeState) decodeResult(dstv reflect.Value) (err error) {
 	switch rb {
 	case 0x00:
 		tempElem := reflect.New(reflect.TypeOf(res.ok))
+		tempElem.Elem().Set(reflect.ValueOf(res.ok))
 		err = ds.unmarshal(tempElem.Elem())
 		if err != nil {
 			return
@@ -336,6 +337,7 @@ func (ds *decodeState) decodeResult(dstv reflect.Value) (err error) {
 		dstv.Set(reflect.ValueOf(res))
 	case 0x01:
 		tempElem := reflect.New(reflect.TypeOf(res.err))
+		tempElem.Elem().Set(reflect.ValueOf(res.err))
 		err = ds.unmarshal(tempElem.Elem())
 		if err != nil {
 			return
