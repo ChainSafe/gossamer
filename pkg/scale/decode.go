@@ -321,12 +321,16 @@ func (ds *decodeState) decodeVaryingDataTypeSlice(dstv reflect.Value) (err error
 func (ds *decodeState) decodeVaryingDataType(dstv reflect.Value) (err error) {
 	var b byte
 	b, err = ds.ReadByte()
+	fmt.Println("expected index")
+	fmt.Println(b)
 	if err != nil {
 		return
 	}
 
 	vdt := dstv.Interface().(VaryingDataType)
 	val, ok := vdt.cache[uint(b)]
+	fmt.Println("cache at index")
+	fmt.Println(vdt.cache[uint(b)])
 	if !ok {
 		err = fmt.Errorf("unable to find VaryingDataTypeValue with index: %d", uint(b))
 		return

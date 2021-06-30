@@ -1,6 +1,7 @@
 package babe
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -71,6 +72,7 @@ func TestApplyExtrinsicErrors(t *testing.T) {
 				require.NoError(t, err)
 				return
 			}
+			fmt.Println(err)
 
 			if c.test[0] == 0 {
 				_, ok := err.(*DispatchOutcomeError)
