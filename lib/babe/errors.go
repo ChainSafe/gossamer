@@ -237,6 +237,8 @@ func determineInvalidTxnErr(vdt scale.VaryingDataType) error {
 		return &TransactionValidityError{"mandatory dispatch error"}
 	case MandatoryDispatch:
 		return &TransactionValidityError{"invalid mandatory dispatch"}
+	default:
+		fmt.Printf("Default %T\n", val)
 	}
 
 	return errInvalidResult
@@ -308,11 +310,13 @@ func determineErr(res []byte) error {
 			fmt.Printf("ERROR wrapped error \n")
 			vdt := err.Err.(scale.VaryingDataType)
 			fmt.Printf("Error type: %T\n", vdt.Value())
+			// This doesnt seem to be being decoding correctly with custom VDTs
 			switch val := vdt.Value().(type) {
 			case ValidityVdt:
 				// This part returns invalid error so gotta figure that out
-				fmt.Printf("ValidityVdt \n")
-				return determineInvalidTxnErr(val.vdt)
+				fmt.Printf("ValidityVdt %T\n", val.vdt)
+				fmt.Printf("ValidityVdt %v\n", val.vdt)
+				//return determineInvalidTxnErr(val.vdt)
 			case UnknownVdt:
 				// Not finding the index here
 				fmt.Printf("UnknownVdt \n")
