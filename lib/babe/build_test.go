@@ -22,11 +22,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 
@@ -83,6 +83,45 @@ func addAuthorshipProof(t *testing.T, babeService *Service, slotNumber, epoch ui
 	require.NoError(t, err)
 	require.NotNil(t, outAndProof, "proof was nil when under threshold")
 	babeService.slotToProof[slotNumber] = outAndProof
+}
+
+func createTestExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic {
+	t.Helper()
+	rawMeta, err := rt.Metadata()
+	require.NoError(t, err)
+
+	decoded, err := scale.Decode(rawMeta, []byte{})
+	require.NoError(t, err)
+
+	meta := &ctypes.Metadata{}
+	err = ctypes.DecodeFromBytes(decoded.([]byte), meta)
+	require.NoError(t, err)
+
+	rv, err := rt.Version()
+	require.NoError(t, err)
+
+	c, err := ctypes.NewCall(meta, "System.remark", []byte{0xab, 0xcd})
+	require.NoError(t, err)
+
+	ext := ctypes.NewExtrinsic(c)
+	o := ctypes.SignatureOptions{
+		BlockHash:          ctypes.Hash(genHash),
+		Era:                ctypes.ExtrinsicEra{IsImmortalEra: false},
+		GenesisHash:        ctypes.Hash(genHash),
+		Nonce:              ctypes.NewUCompactFromUInt(nonce),
+		SpecVersion:        ctypes.U32(rv.SpecVersion()),
+		Tip:                ctypes.NewUCompactFromUInt(0),
+		TransactionVersion: ctypes.U32(rv.TransactionVersion()),
+	}
+
+	// Sign the transaction using Alice's key
+	err = ext.Sign(signature.TestKeyringPairAlice, o)
+	require.NoError(t, err)
+
+	extEnc, err := ctypes.EncodeToHexString(ext)
+	require.NoError(t, err)
+
+	return types.Extrinsic(common.MustHexToBytes(extEnc))
 }
 
 func createTestBlock(t *testing.T, babeService *Service, parent *types.Header, exts [][]byte, slotNumber, epoch uint64) (*types.Block, Slot) { //nolint
@@ -170,8 +209,7 @@ func TestBuildBlock_ok(t *testing.T) {
 	require.Equal(t, 1, len(extsBytes))
 }
 
-// TEST FAILING WITH []byte{0x1, 0x0, 0x6} EXHAUSTS RESOURCES
-func TestApplyExtrinsic_0(t *testing.T) {
+func TestApplyExtrinsic(t *testing.T) {
 	cfg := &ServiceConfig{
 		TransactionState: state.NewTransactionState(),
 		LogLvl:           log.LvlInfo,
@@ -199,13 +237,26 @@ func TestApplyExtrinsic_0(t *testing.T) {
 		duration: duration,
 		number:   slotnum,
 	}
-
 	addAuthorshipProof(t, babeService, slotnum, testEpochIndex)
+
+	slot2 := Slot{
+		start:    time.Now(),
+		duration: duration,
+		number:   2,
+	}
+	addAuthorshipProof(t, babeService, 2, testEpochIndex)
+
+	preDigest2, err := builder.buildBlockPreDigest(slot2)
+	require.NoError(t, err)
+
+	parentHash := babeService.blockState.GenesisHash()
+	ts, err := babeService.storageState.TrieState(nil)
+	require.NoError(t, err)
+	builder.rt.SetContextStorage(ts)
 
 	preDigest, err := builder.buildBlockPreDigest(slot)
 	require.NoError(t, err)
 
-	parentHash := babeService.blockState.GenesisHash()
 	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewDigest(preDigest))
 	require.NoError(t, err)
 
@@ -216,14 +267,27 @@ func TestApplyExtrinsic_0(t *testing.T) {
 	_, err = builder.buildBlockInherents(slot)
 	require.NoError(t, err)
 
-	ext := core.CreateTestExtrinsics(t, babeService.rt, parentHash, 0)
-	_, err = babeService.rt.ValidateTransaction(append([]byte{byte(types.TxnLocal)}, ext...))
+	header1, err := builder.rt.FinalizeBlock()
+	require.NoError(t, err)
+
+	ext := createTestExtrinsic(t, babeService.rt, parentHash, 0)
+	_, err = babeService.rt.ValidateTransaction(append([]byte{byte(types.TxnExternal)}, ext...))
+	require.NoError(t, err)
+
+	header2, err := types.NewHeader(header1.Hash(), common.Hash{}, common.Hash{}, big.NewInt(2), types.NewDigest(preDigest2))
+	require.NoError(t, err)
+	err = builder.rt.InitializeBlock(header2)
+	require.NoError(t, err)
+
+	_, err = builder.buildBlockInherents(slot)
 	require.NoError(t, err)
 
 	res, err := builder.rt.ApplyExtrinsic(ext)
 	require.NoError(t, err)
-	//Expected result for valid ApplyExtrinsic is 0, 0
 	require.Equal(t, []byte{0, 0}, res)
+
+	_, err = builder.rt.FinalizeBlock()
+	require.NoError(t, err)
 }
 
 func TestBuildAndApplyExtrinsic(t *testing.T) {

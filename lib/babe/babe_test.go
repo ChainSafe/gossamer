@@ -142,12 +142,6 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		cfg.EpochState = dbSrv.Epoch
 	}
 
-	// weight := big.NewInt(1 << 30)
-	// enc, err := scale.Encode(weight)
-	// require.NoError(t, err)
-	// blockWeightKey := common.MustHexToBytes("0x26aa394eea5630e07c48ae0c9558cef734abf5cb34d6244378cddbf18e849d96")
-	// genTrie.Put(blockWeightKey, enc)
-
 	if cfg.Runtime == nil {
 		rtCfg := &wasmer.Config{}
 		rtCfg.LogLvl = 4

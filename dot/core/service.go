@@ -539,16 +539,15 @@ func (s *Service) GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error)
 
 // HandleSubmittedExtrinsic is used to send a Transaction message containing a Extrinsic @ext
 func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
-	logger.Crit("HandleSubmittedExtrinsic")
-	if s.net == nil {
-		return nil
-	}
+	logger.Crit("HandleSubmittedExtrinsic", "ext", fmt.Sprintf("0x%x", ext))
 
 	// the transaction source is External
 	// validate the transaction
 	externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
+
 	txv, err := s.rt.ValidateTransaction(externalExt)
 	if err != nil {
+		logger.Warn("failed to validate extrinsic", "error", err)
 		return err
 	}
 

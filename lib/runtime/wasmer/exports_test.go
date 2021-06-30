@@ -17,7 +17,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	log "github.com/ChainSafe/log15"
-	gtypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
+
+	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -201,7 +203,7 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 		},
 	}
 
-	encBal, err := gtypes.EncodeToBytes(accInfo)
+	encBal, err := ctypes.EncodeToBytes(accInfo)
 	require.NoError(t, err)
 
 	rt.ctx.Storage.Set(aliceBalanceKey, encBal)
@@ -484,6 +486,45 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func createTestExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic {
+	t.Helper()
+	rawMeta, err := rt.Metadata()
+	require.NoError(t, err)
+
+	decoded, err := scale.Decode(rawMeta, []byte{})
+	require.NoError(t, err)
+
+	meta := &ctypes.Metadata{}
+	err = ctypes.DecodeFromBytes(decoded.([]byte), meta)
+	require.NoError(t, err)
+
+	rv, err := rt.Version()
+	require.NoError(t, err)
+
+	c, err := ctypes.NewCall(meta, "System.remark", []byte{0xab, 0xcd})
+	require.NoError(t, err)
+
+	ext := ctypes.NewExtrinsic(c)
+	o := ctypes.SignatureOptions{
+		BlockHash:          ctypes.Hash(genHash),
+		Era:                ctypes.ExtrinsicEra{IsImmortalEra: false},
+		GenesisHash:        ctypes.Hash(genHash),
+		Nonce:              ctypes.NewUCompactFromUInt(nonce),
+		SpecVersion:        ctypes.U32(rv.SpecVersion()),
+		Tip:                ctypes.NewUCompactFromUInt(0),
+		TransactionVersion: ctypes.U32(rv.TransactionVersion()),
+	}
+
+	// Sign the transaction using Alice's key
+	err = ext.Sign(signature.TestKeyringPairAlice, o)
+	require.NoError(t, err)
+
+	extEnc, err := ctypes.EncodeToHexString(ext)
+	require.NoError(t, err)
+
+	return types.Extrinsic(common.MustHexToBytes(extEnc))
+}
+
 func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 	t.Skip() // fails with "'Bad input data provided to validate_transaction: Codec error"
 	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis.json")
@@ -508,14 +549,15 @@ func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 	require.NoError(t, err)
 	instance.SetContextStorage(parentState)
 
-	//initialise block header
+	// TODO: where did this hash come from??
 	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
 	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewEmptyDigest())
 	require.NoError(t, err)
 	err = instance.InitializeBlock(header)
 	require.NoError(t, err)
 
-	ext := types.Extrinsic(common.MustHexToBytes("0x410284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d015a3e258da3ea20581b68fe1264a35d1f62d6a0debb1a44e836375eb9921ba33e3d0f265f2da33c9ca4e10490b03918300be902fcb229f806c9cf99af4cc10f8c0000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a480b00c465f14670"))
+	ext := createTestExtrinsic(t, instance, parentHash, 0)
+	ext = append([]byte{byte(types.TxnExternal)}, ext...)
 	res, err := instance.ApplyExtrinsic(ext)
 	require.NoError(t, err)
 	require.Equal(t, []byte{0, 0}, res)
