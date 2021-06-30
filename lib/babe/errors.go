@@ -199,15 +199,30 @@ type MandatoryDispatch struct{}
 // Index Returns VDT index
 func (err MandatoryDispatch) Index() uint { return 9 }
 
-func determineDispatchErr(res []byte) error {
-	var e Other
-	vdt := scale.MustNewVaryingDataType(e, CannotLookup{}, BadOrigin{}, Module{})
-	err := scale.Unmarshal(res, &vdt)
-	if err != nil {
-		return &UnmarshalError{err.Error()}
-	}
+//func determineDispatchErr(res []byte) error {
+//	var e Other
+//	vdt := scale.MustNewVaryingDataType(e, CannotLookup{}, BadOrigin{}, Module{})
+//	err := scale.Unmarshal(res, &vdt)
+//	if err != nil {
+//		return &UnmarshalError{err.Error()}
+//	}
+//
+//	switch val := vdt.Value().(type) {
+//	case Other:
+//		return &DispatchOutcomeError{fmt.Sprintf("unknown error: %s", val)}
+//	case CannotLookup:
+//		return &DispatchOutcomeError{"failed lookup"}
+//	case BadOrigin:
+//		return &DispatchOutcomeError{"bad origin"}
+//	case Module:
+//		return &DispatchOutcomeError{fmt.Sprintf("custom module error: %s", val.string())}
+//	}
+//
+//	return errInvalidResult
+//}
 
-	switch val := vdt.Value().(type) {
+func determineDispatchErr(i interface{}) error {
+	switch val := i.(type) {
 	case Other:
 		return &DispatchOutcomeError{fmt.Sprintf("unknown error: %s", val)}
 	case CannotLookup:
@@ -276,22 +291,42 @@ func determineUnknownTxnErr(res []byte) error {
 	return errInvalidResult
 }
 
-
-func (err CustomModuleError) String() string {
-	return fmt.Sprintf("index: %d code: %d message: %p", err.index, err.err, err.message)
-}
-
+//Result{
+//OK: Result{ OK: nil, Err: VaryingDataType(string, FailedLookup, BadOrigin, Other?) }.
+//Err: VaryingDataType( VaryingDataType{all the invalid tx errors}, VaryingDataType{TxValidityErros},
+//}
 func determineErr(res []byte) error {
 	switch res[0] {
 	case 0:
-		switch res[1] {
-		case 0:
-			return nil
-		case 1:
-			return determineDispatchErr(res[2:])
-		default:
+		var e Other
+		vdt := scale.MustNewVaryingDataType(e, CannotLookup{}, BadOrigin{}, Module{})
+		r := scale.NewResult(nil, vdt)
+		err := scale.Unmarshal(res[1:], &r)
+		if err != nil {
+			//fmt.Println("error1")
+			return err
+		}
+
+		ok, err := r.Unwrap()
+		//fmt.Println(err)
+		if err != nil {
+			er := determineDispatchErr(err)
+			//fmt.Println(er)
+			return er
+		}
+		//fmt.Println(ok)
+		if ok != nil {
 			return errInvalidResult
 		}
+		return nil
+		//switch res[1] {
+		//case 0:
+		//	return nil
+		//case 1:
+		//	return determineDispatchErr(res[2:])
+		//default:
+		//	return errInvalidResult
+		//}
 	case 1:
 		switch res[1] {
 		case 0:

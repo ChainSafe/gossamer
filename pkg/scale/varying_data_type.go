@@ -90,12 +90,16 @@ func NewVaryingDataType(values ...VaryingDataTypeValue) (vdt VaryingDataType, er
 	}
 	vdt.cache = make(map[uint]VaryingDataTypeValue)
 	for _, value := range values {
+		//fmt.Println("index")
+		//fmt.Println(value.Index())
 		_, ok := vdt.cache[value.Index()]
 		if ok {
 			err = fmt.Errorf("duplicate index with VaryingDataType: %T with index: %d", value, value.Index())
 			return
 		}
 		vdt.cache[value.Index()] = value
+		//fmt.Println("value at cache")
+		//fmt.Println(vdt.cache[value.Index()])
 	}
 	return
 }
