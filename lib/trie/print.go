@@ -39,7 +39,7 @@ func (t *Trie) string(tree gotree.Tree, curr node, idx int) {
 	switch c := curr.(type) {
 	case *branch:
 		hasher := NewHasher(false)
-		defer returnHasherToPool(hasher)
+		defer hasher.returnToPool()
 		c.encoding, _ = hasher.encode(c)
 		var bstr string
 		if len(c.encoding) > 1024 {
@@ -55,7 +55,7 @@ func (t *Trie) string(tree gotree.Tree, curr node, idx int) {
 		}
 	case *leaf:
 		hasher := NewHasher(false)
-		defer returnHasherToPool(hasher)
+		defer hasher.returnToPool()
 		c.encoding, _ = hasher.encode(c)
 		var bstr string
 		if len(c.encoding) > 1024 {

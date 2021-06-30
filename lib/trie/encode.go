@@ -35,7 +35,7 @@ func encodeRecursive(n node, enc []byte) ([]byte, error) {
 	}
 
 	hasher := NewHasher(false)
-	defer returnHasherToPool(hasher)
+	defer hasher.returnToPool()
 	nenc, err := hasher.encode(n)
 	if err != nil {
 		return enc, err

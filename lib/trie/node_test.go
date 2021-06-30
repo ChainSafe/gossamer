@@ -172,7 +172,7 @@ func TestBranchEncode(t *testing.T) {
 		for _, child := range b.children {
 			if child != nil {
 				hasher := NewHasher(false)
-				defer returnHasherToPool(hasher)
+				defer hasher.returnToPool()
 				encChild, er := hasher.Hash(child)
 				if er != nil {
 					t.Errorf("Fail when encoding branch child: %s", er)
@@ -182,7 +182,7 @@ func TestBranchEncode(t *testing.T) {
 		}
 
 		hasher := NewHasher(false)
-		defer returnHasherToPool(hasher)
+		defer hasher.returnToPool()
 		res, err := hasher.encodeBranch(b)
 		if !bytes.Equal(res, expected) {
 			t.Errorf("Fail when encoding node: got %x expected %x", res, expected)
@@ -217,7 +217,7 @@ func TestLeafEncode(t *testing.T) {
 		expected = append(expected, buf.Bytes()...)
 
 		hasher := NewHasher(false)
-		defer returnHasherToPool(hasher)
+		defer hasher.returnToPool()
 		res, err := hasher.encodeLeaf(l)
 		if !bytes.Equal(res, expected) {
 			t.Errorf("Fail when encoding node: got %x expected %x", res, expected)
@@ -241,7 +241,7 @@ func TestEncodeRoot(t *testing.T) {
 			}
 
 			hasher := NewHasher(false)
-			defer returnHasherToPool(hasher)
+			defer hasher.returnToPool()
 			_, err := hasher.encode(trie.root)
 			if err != nil {
 				t.Errorf("Fail to encode trie root: %s", err)
@@ -268,7 +268,7 @@ func TestBranchDecode(t *testing.T) {
 	}
 
 	hasher := NewHasher(false)
-	defer returnHasherToPool(hasher)
+	defer hasher.returnToPool()
 	for _, test := range tests {
 		enc, err := hasher.encodeBranch(test)
 		require.NoError(t, err)
@@ -299,7 +299,7 @@ func TestLeafDecode(t *testing.T) {
 	}
 
 	hasher := NewHasher(false)
-	defer returnHasherToPool(hasher)
+	defer hasher.returnToPool()
 	for _, test := range tests {
 		enc, err := hasher.encodeLeaf(test)
 		require.NoError(t, err)
@@ -338,7 +338,7 @@ func TestDecode(t *testing.T) {
 	}
 
 	hasher := NewHasher(false)
-	defer returnHasherToPool(hasher)
+	defer hasher.returnToPool()
 	for _, test := range tests {
 		enc, err := hasher.encode(test)
 		require.NoError(t, err)

@@ -110,7 +110,7 @@ func (t *Trie) RootNode() node { //nolint
 // EncodeRoot returns the encoded root of the trie
 func (t *Trie) EncodeRoot() ([]byte, error) {
 	h := NewHasher(t.parallel)
-	defer returnHasherToPool(h)
+	defer h.returnToPool()
 	return h.encode(t.RootNode())
 }
 

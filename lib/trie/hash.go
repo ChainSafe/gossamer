@@ -64,7 +64,7 @@ func NewHasher(parallel bool) *Hasher {
 	return h
 }
 
-func returnHasherToPool(h *Hasher) {
+func (h *Hasher) returnToPool() {
 	h.tmp.reset()
 	h.hash.Reset()
 	hasherPool.Put(h)
@@ -110,7 +110,7 @@ func (h *Hasher) encode(n node) ([]byte, error) {
 
 func encodeAndHash(n node) ([]byte, error) {
 	h := NewHasher(false)
-	defer returnHasherToPool(h)
+	defer h.returnToPool()
 
 	encChild, err := h.Hash(n)
 	if err != nil {
