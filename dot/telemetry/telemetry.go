@@ -46,7 +46,7 @@ type Handler struct {
 	sendMessageTimeout time.Duration
 }
 
-// Instance functions that telemetry handler instance needs to implement
+// Instance interface that telemetry handler instance needs to implement
 type Instance interface {
 	AddConnections(conns []*genesis.TelemetryEndpoint)
 	SendMessage(msg *Message) error
