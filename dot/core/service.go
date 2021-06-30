@@ -548,16 +548,8 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 		return err
 	}
 
-	// TODO: v0.9 runtime requires a tx submitted from polkadot.js to be
-	// SCALE decoded before inclusion in a block, but not v0.8
-	// how do we handle this?
-	dec, err := scale.Decode(ext, []byte{})
-	if err != nil {
-		return err
-	}
-
 	// add transaction to pool
-	vtx := transaction.NewValidTransaction(dec.([]byte), txv)
+	vtx := transaction.NewValidTransaction(ext, txv)
 	s.transactionState.AddToPool(vtx)
 
 	// broadcast transaction

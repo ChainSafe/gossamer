@@ -557,8 +557,10 @@ func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 	require.NoError(t, err)
 
 	ext := createTestExtrinsic(t, instance, parentHash, 0)
-	ext = append([]byte{byte(types.TxnExternal)}, ext...)
-	res, err := instance.ApplyExtrinsic(ext)
+	enc, err := scale.Encode(ext)
+	require.NoError(t, err)
+
+	res, err := instance.ApplyExtrinsic(enc)
 	require.NoError(t, err)
 	require.Equal(t, []byte{0, 0}, res)
 }
