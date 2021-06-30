@@ -29,10 +29,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+
 	log "github.com/ChainSafe/log15"
 	cscale "github.com/centrifuge/go-substrate-rpc-client/v3/scale"
 	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
+	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/stretchr/testify/require"
 )
 
@@ -119,7 +121,7 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header, e
 func TestBuildBlock_ok(t *testing.T) {
 	cfg := &ServiceConfig{
 		TransactionState: state.NewTransactionState(),
-		LogLvl:           log.LvlDebug,
+		LogLvl:           log.LvlInfo,
 	}
 
 	babeService := createTestService(t, cfg)
@@ -172,7 +174,7 @@ func TestBuildBlock_ok(t *testing.T) {
 func TestApplyExtrinsic_0(t *testing.T) {
 	cfg := &ServiceConfig{
 		TransactionState: state.NewTransactionState(),
-		LogLvl:           log.LvlDebug,
+		LogLvl:           log.LvlInfo,
 	}
 
 	babeService := createTestService(t, cfg)
@@ -230,7 +232,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	t.Skip()
 	cfg := &ServiceConfig{
 		TransactionState: state.NewTransactionState(),
-		LogLvl:           log.LvlDebug,
+		LogLvl:           log.LvlInfo,
 	}
 
 	babeService := createTestService(t, cfg)
@@ -382,4 +384,26 @@ func TestDecodeExtrinsicBody(t *testing.T) {
 	contains, err := body.HasExtrinsic(ext)
 	require.Nil(t, err)
 	require.True(t, contains)
+}
+
+func TestBuildBlockTimeMonitor(t *testing.T) {
+	metrics.Enabled = true
+	metrics.Unregister(buildBlockTimer)
+
+	babeService := createTestService(t, nil)
+	babeService.epochData.threshold = maxThreshold
+
+	parent, err := babeService.blockState.BestBlockHeader()
+	require.NoError(t, err)
+
+	timerMetrics := metrics.GetOrRegisterTimer(buildBlockTimer, nil)
+	timerMetrics.Stop()
+
+	createTestBlock(t, babeService, parent, [][]byte{}, 1, testEpochIndex)
+	require.Equal(t, int64(1), timerMetrics.Count())
+
+	_, err = babeService.buildBlock(parent, Slot{})
+	require.Error(t, err)
+	buildErrorsMetrics := metrics.GetOrRegisterCounter(buildBlockErrors, nil)
+	require.Equal(t, int64(1), buildErrorsMetrics.Count())
 }

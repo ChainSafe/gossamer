@@ -18,31 +18,46 @@ package sync
 
 import (
 	"errors"
-	"io/ioutil"
 	"math/big"
+	"os"
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+
+	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
+
+func TestMain(m *testing.M) {
+	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
+	if err != nil {
+		log.Error("failed to generate runtime wasm file", err)
+		os.Exit(1)
+	}
+
+	// Start all tests
+	code := m.Run()
+
+	runtime.RemoveFiles(wasmFilePaths)
+	os.Exit(code)
+}
 
 func TestHandleBlockResponse(t *testing.T) {
 	if testing.Short() {
 		t.Skip() // this test takes around 4min to run
 	}
 
-	syncer := NewTestSyncer(t)
+	syncer := NewTestSyncer(t, false)
 	syncer.highestSeenBlock = big.NewInt(132)
 
-	responder := NewTestSyncer(t)
+	responder := NewTestSyncer(t, false)
 	parent, err := responder.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
@@ -77,7 +92,7 @@ func TestHandleBlockResponse(t *testing.T) {
 }
 
 func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
-	syncer := NewTestSyncer(t)
+	syncer := NewTestSyncer(t, false)
 	syncer.highestSeenBlock = big.NewInt(20)
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
@@ -90,7 +105,7 @@ func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
 		parent = block.Header
 	}
 
-	responder := NewTestSyncer(t)
+	responder := NewTestSyncer(t, false)
 
 	parent, err = responder.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
@@ -122,7 +137,7 @@ func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
 }
 
 func TestRemoveIncludedExtrinsics(t *testing.T) {
-	syncer := NewTestSyncer(t)
+	syncer := NewTestSyncer(t, false)
 
 	ext := []byte("nootwashere")
 	tx := &transaction.ValidTransaction{
@@ -152,13 +167,13 @@ func TestRemoveIncludedExtrinsics(t *testing.T) {
 }
 
 func TestHandleBlockResponse_NoBlockData(t *testing.T) {
-	syncer := NewTestSyncer(t)
+	syncer := NewTestSyncer(t, false)
 	_, err := syncer.ProcessBlockData(nil)
 	require.Equal(t, ErrNilBlockData, err)
 }
 
 func TestHandleBlockResponse_BlockData(t *testing.T) {
-	syncer := NewTestSyncer(t)
+	syncer := NewTestSyncer(t, false)
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
@@ -181,7 +196,7 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 }
 
 func TestSyncer_ExecuteBlock(t *testing.T) {
-	syncer := NewTestSyncer(t)
+	syncer := NewTestSyncer(t, false)
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
@@ -196,31 +211,23 @@ func TestSyncer_ExecuteBlock(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestSyncer_HandleRuntimeChanges(t *testing.T) {
-	syncer := NewTestSyncer(t)
-
-	_, err := runtime.GetRuntimeBlob(runtime.POLKADOT_RUNTIME_FP, runtime.POLKADOT_RUNTIME_URL)
-	require.NoError(t, err)
-
-	testRuntime, err := ioutil.ReadFile(runtime.POLKADOT_RUNTIME_FP)
-	require.NoError(t, err)
-
-	ts, err := syncer.storageState.TrieState(nil)
-	require.NoError(t, err)
-
-	ts.Set(common.CodeKey, testRuntime)
-	err = syncer.handleRuntimeChanges(ts)
-	require.NoError(t, err)
-}
-
 func TestSyncer_HandleJustification(t *testing.T) {
-	syncer := NewTestSyncer(t)
+	syncer := NewTestSyncer(t, false)
 
+	d := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
 	header := &types.Header{
-		Number: big.NewInt(1),
+		ParentHash: syncer.blockState.(*state.BlockState).GenesisHash(),
+		Number:     big.NewInt(1),
+		Digest:     types.Digest{d},
 	}
 
 	just := []byte("testjustification")
+
+	err := syncer.blockState.AddBlock(&types.Block{
+		Header: header,
+		Body:   &types.Body{},
+	})
+	require.NoError(t, err)
 
 	syncer.handleJustification(header, just)
 
@@ -230,11 +237,14 @@ func TestSyncer_HandleJustification(t *testing.T) {
 }
 
 func TestSyncer_ProcessJustification(t *testing.T) {
-	syncer := NewTestSyncer(t)
+	syncer := NewTestSyncer(t, false)
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 	block := BuildBlock(t, syncer.runtime, parent, nil)
+	block.Header.Digest = types.Digest{
+		types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+	}
 	err = syncer.blockState.(*state.BlockState).AddBlock(block)
 	require.NoError(t, err)
 

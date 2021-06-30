@@ -21,32 +21,25 @@ import (
 	"fmt"
 )
 
-// ErrNilBlockState is returned when BlockState is nil
-var ErrNilBlockState = errors.New("cannot have nil BlockState")
+var (
+	errNilBlockState         = errors.New("cannot have nil BlockState")
+	errNilStorageState       = errors.New("cannot have nil StorageState")
+	errNilVerifier           = errors.New("cannot have nil Verifier")
+	errNilRuntime            = errors.New("cannot have nil runtime")
+	errNilBlockImportHandler = errors.New("cannot have nil BlockImportHandler")
 
-// ErrNilStorageState is returned when StorageState is nil
-var ErrNilStorageState = errors.New("cannot have nil StorageState")
+	// ErrNilBlockData is returned when trying to process a BlockResponseMessage with nil BlockData
+	ErrNilBlockData = errors.New("got nil BlockData")
 
-// ErrNilVerifier is returned when trying to instantiate a Syncer without a Verifier
-var ErrNilVerifier = errors.New("cannot have nil Verifier")
+	// ErrServiceStopped is returned when the service has been stopped
+	ErrServiceStopped = errors.New("service has been stopped")
 
-// ErrNilRuntime is returned when trying to instantiate a Service or Syncer without a runtime
-var ErrNilRuntime = errors.New("cannot have nil runtime")
+	// ErrInvalidBlock is returned when a block cannot be verified
+	ErrInvalidBlock = errors.New("could not verify block")
 
-// ErrNilBlockData is returned when trying to process a BlockResponseMessage with nil BlockData
-var ErrNilBlockData = errors.New("got nil BlockData")
-
-// ErrServiceStopped is returned when the service has been stopped
-var ErrServiceStopped = errors.New("service has been stopped")
-
-// ErrInvalidBlock is returned when a block cannot be verified
-var ErrInvalidBlock = errors.New("could not verify block")
-
-// ErrInvalidBlockRequest is returned when an invalid block request is received
-var ErrInvalidBlockRequest = errors.New("invalid block request")
-
-// ErrEmptyRuntimeCode is returned when the storage :code is empty
-var ErrEmptyRuntimeCode = errors.New("new :code is empty")
+	// ErrInvalidBlockRequest is returned when an invalid block request is received
+	ErrInvalidBlockRequest = errors.New("invalid block request")
+)
 
 // ErrNilChannel is returned if a channel is nil
 func ErrNilChannel(s string) error {

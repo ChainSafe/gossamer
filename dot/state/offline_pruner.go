@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -14,11 +15,11 @@ import (
 	"github.com/dgraph-io/badger/v2/pb"
 )
 
-// Pruner is an offline tool to prune the stale state with the help of
-// bloom filter, The workflow of pruner is very simple:
+// OfflinePruner is a tool to prune the stale state with the help of
+// bloom filter, The workflow of Pruner is very simple:
 // - iterate the storage state, reconstruct the relevant state tries
 // - iterate the database, stream all the targeted keys to new DB
-type Pruner struct {
+type OfflinePruner struct {
 	inputDB        *chaindb.BadgerDB
 	storageState   *StorageState
 	blockState     *BlockState
@@ -30,8 +31,8 @@ type Pruner struct {
 	prunedDBPath string
 }
 
-// NewPruner creates an instance of Pruner.
-func NewPruner(inputDBPath, prunedDBPath string, bloomSize uint64, retainBlockNum int64) (*Pruner, error) {
+// NewOfflinePruner creates an instance of OfflinePruner.
+func NewOfflinePruner(inputDBPath, prunedDBPath string, bloomSize uint64, retainBlockNum int64) (*OfflinePruner, error) {
 	db, err := utils.LoadChainDB(inputDBPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load DB %w", err)
@@ -62,12 +63,12 @@ func NewPruner(inputDBPath, prunedDBPath string, bloomSize uint64, retainBlockNu
 	}
 
 	// load storage state
-	storageState, err := NewStorageState(db, blockState, trie.NewEmptyTrie())
+	storageState, err := NewStorageState(db, blockState, trie.NewEmptyTrie(), pruner.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new storage state %w", err)
 	}
 
-	return &Pruner{
+	return &OfflinePruner{
 		inputDB:        db,
 		storageState:   storageState,
 		blockState:     blockState,
@@ -80,7 +81,7 @@ func NewPruner(inputDBPath, prunedDBPath string, bloomSize uint64, retainBlockNu
 }
 
 // SetBloomFilter loads keys with storage prefix of last `retainBlockNum` blocks into the bloom filter
-func (p *Pruner) SetBloomFilter() error {
+func (p *OfflinePruner) SetBloomFilter() error {
 	defer p.inputDB.Close() // nolint: errcheck
 	finalisedHash, err := p.blockState.GetFinalizedHash(0, 0)
 	if err != nil {
@@ -134,7 +135,7 @@ func (p *Pruner) SetBloomFilter() error {
 }
 
 // Prune starts streaming the data from input db to the pruned db.
-func (p *Pruner) Prune() error {
+func (p *OfflinePruner) Prune() error {
 	inputDB, err := utils.LoadBadgerDB(p.inputDBPath)
 	if err != nil {
 		return fmt.Errorf("failed to load DB %w", err)

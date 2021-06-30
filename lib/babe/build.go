@@ -24,12 +24,18 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+)
+
+const (
+	buildBlockTimer  = "gossamer/proposer/block/constructed"
+	buildBlockErrors = "gossamer/proposer/block/constructed/errors"
 )
 
 // construct a block for this slot with the given parent
@@ -46,7 +52,22 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 		return nil, fmt.Errorf("failed to create block builder: %w", err)
 	}
 
-	return builder.buildBlock(parent, slot)
+	startBuilt := time.Now()
+	block, err := builder.buildBlock(parent, slot)
+
+	// is necessary to enable ethmetrics to be possible register values
+	ethmetrics.Enabled = true //nolint
+
+	if err != nil {
+		builderErrors := ethmetrics.GetOrRegisterCounter(buildBlockErrors, nil)
+		builderErrors.Inc(1)
+
+		return nil, err
+	}
+
+	timerMetrics := ethmetrics.GetOrRegisterTimer(buildBlockTimer, nil)
+	timerMetrics.Update(time.Since(startBuilt))
+	return block, err
 }
 
 // nolint
@@ -328,7 +349,7 @@ func (b *BlockBuilder) addToQueue(txs []*transaction.ValidTransaction) {
 }
 
 func hasSlotEnded(slot Slot) bool {
-	slotEnd := slot.start.Add(slot.duration)
+	slotEnd := slot.start.Add(slot.duration * 2 / 3) // reserve last 1/3 of slot for block finalisation
 	return time.Since(slotEnd) >= 0
 }
 

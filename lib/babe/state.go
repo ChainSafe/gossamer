@@ -43,13 +43,13 @@ type BlockState interface {
 	GetSlotForBlock(common.Hash) (uint64, error)
 	GetFinalizedHeader(uint64, uint64) (*types.Header, error)
 	IsDescendantOf(parent, child common.Hash) (bool, error)
+	NumberIsFinalised(num *big.Int) (bool, error)
 }
 
 // StorageState interface for storage state methods
 type StorageState interface {
 	TrieState(hash *common.Hash) (*rtstorage.TrieState, error)
-	StoreTrie(ts *rtstorage.TrieState) error
-	GetStorage(root *common.Hash, key []byte) ([]byte, error)
+	StoreTrie(ts *rtstorage.TrieState, header *types.Header) error
 }
 
 // TransactionState is the interface for transaction queue methods
@@ -61,6 +61,8 @@ type TransactionState interface {
 
 // EpochState is the interface for epoch methods
 type EpochState interface {
+	GetEpochLength() (uint64, error)
+	GetSlotDuration() (time.Duration, error)
 	SetCurrentEpoch(epoch uint64) error
 	GetCurrentEpoch() (uint64, error)
 	SetEpochData(uint64, *types.EpochData) error
@@ -68,9 +70,21 @@ type EpochState interface {
 	HasEpochData(epoch uint64) (bool, error)
 	GetConfigData(epoch uint64) (*types.ConfigData, error)
 	HasConfigData(epoch uint64) (bool, error)
+	GetLatestConfigData() (*types.ConfigData, error)
 	GetStartSlotForEpoch(epoch uint64) (uint64, error)
 	GetEpochForBlock(header *types.Header) (uint64, error)
 	SetFirstSlot(slot uint64) error
 	GetLatestEpochData() (*types.EpochData, error)
 	SkipVerify(*types.Header) (bool, error)
+	GetEpochFromTime(time.Time) (uint64, error)
+}
+
+// DigestHandler is the interface for the consensus digest handler
+type DigestHandler interface {
+	HandleDigests(*types.Header)
+}
+
+// BlockImportHandler is the interface for the handler of new blocks
+type BlockImportHandler interface {
+	HandleBlockProduced(block *types.Block, state *rtstorage.TrieState) error
 }

@@ -56,26 +56,21 @@ func NewMockVerifier() *syncmocks.MockVerifier {
 	return m
 }
 
-// NewMockBlockProducer create and return sync BlockProducer interface mock
-func NewMockBlockProducer() *syncmocks.MockBlockProducer {
-	m := new(syncmocks.MockBlockProducer)
-	m.On("Pause").Return(nil)
-	m.On("Resume").Return(nil)
-	m.On("SetRuntime", mock.AnythingOfType("runtime.Instance"))
-
-	return m
-}
-
 // NewTestSyncer ...
-func NewTestSyncer(t *testing.T) *Service {
+func NewTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 	wasmer.DefaultTestLogLvl = 3
 
 	cfg := &Config{}
 	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
-	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo)
+
+	scfg := state.Config{
+		Path:     testDatadirPath,
+		LogLevel: log.LvlInfo,
+	}
+	stateSrvc := state.NewService(scfg)
 	stateSrvc.UseMemDB()
 
-	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t, usePolkadotGenesis)
 	err := stateSrvc.Initialise(gen, genHeader, genTrie)
 	require.NoError(t, err)
 
@@ -90,9 +85,8 @@ func NewTestSyncer(t *testing.T) *Service {
 		cfg.StorageState = stateSrvc.Storage
 	}
 
-	if cfg.BlockProducer == nil {
-		cfg.BlockProducer = NewMockBlockProducer()
-	}
+	cfg.BlockImportHandler = new(syncmocks.MockBlockImportHandler)
+	cfg.BlockImportHandler.(*syncmocks.MockBlockImportHandler).On("HandleBlockImport", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).Return(nil)
 
 	if cfg.Runtime == nil {
 		// set state to genesis state
@@ -117,7 +111,7 @@ func NewTestSyncer(t *testing.T) *Service {
 	}
 
 	if cfg.LogLvl == 0 {
-		cfg.LogLvl = log.LvlDebug
+		cfg.LogLvl = log.LvlInfo
 	}
 
 	if cfg.FinalityGadget == nil {
@@ -129,8 +123,13 @@ func NewTestSyncer(t *testing.T) *Service {
 	return syncer
 }
 
-func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
-	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis.json")
+func newTestGenesisWithTrieAndHeader(t *testing.T, usePolkadotGenesis bool) (*genesis.Genesis, *trie.Trie, *types.Header) {
+	fp := "../../chain/gssmr/genesis.json"
+	if usePolkadotGenesis {
+		fp = "../../chain/polkadot/genesis.json"
+	}
+
+	gen, err := genesis.NewGenesisFromJSONRaw(fp)
 	require.NoError(t, err)
 
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
@@ -180,7 +179,7 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 		require.NoError(t, err)
 
 		vtx := transaction.NewValidTransaction(ext, txn)
-		_, err := instance.ApplyExtrinsic(ext) // TODO: Determine error for ret
+		_, err = instance.ApplyExtrinsic(ext) // TODO: Determine error for ret
 		require.NoError(t, err)
 
 		body, err = babe.ExtrinsicsToBody(inExt, []*transaction.ValidTransaction{vtx})

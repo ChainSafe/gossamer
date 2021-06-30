@@ -21,27 +21,24 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/ChainSafe/gossamer/dot/core/mocks"
+	. "github.com/ChainSafe/gossamer/dot/core/mocks" // nolint
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+
 	"github.com/stretchr/testify/require"
 )
 
 func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	// TODO: move to sync package
-	net := new(MockNetwork)
-
-	newBlocks := make(chan types.Block)
+	net := new(MockNetwork) // nolint
 
 	cfg := &Config{
-		Network:         net,
-		Keystore:        keystore.NewGlobalKeystore(),
-		NewBlocks:       newBlocks,
-		IsBlockProducer: false,
+		Network:  net,
+		Keystore: keystore.NewGlobalKeystore(),
 	}
 
 	s := NewTestService(t, cfg)
@@ -49,10 +46,11 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	require.Nil(t, err)
 
 	// simulate block sent from BABE session
-	newBlock := types.Block{
+	newBlock := &types.Block{
 		Header: &types.Header{
 			Number:     big.NewInt(1),
 			ParentHash: s.blockState.BestBlockHash(),
+			Digest:     types.Digest{types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()},
 		},
 		Body: types.NewBody([]byte{}),
 	}
@@ -68,10 +66,14 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 
 	//setup the SendMessage function
 	net.On("SendMessage", expected)
-	newBlocks <- newBlock
 
-	time.Sleep(time.Second * 2)
+	state, err := s.storageState.TrieState(nil)
+	require.NoError(t, err)
 
+	err = s.HandleBlockProduced(newBlock, state)
+	require.NoError(t, err)
+
+	time.Sleep(time.Second)
 	net.AssertCalled(t, "SendMessage", expected)
 }
 
@@ -82,15 +84,13 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	ks := keystore.NewGlobalKeystore()
 	ks.Acco.Insert(kp)
 
-	bp := new(MockBlockProducer)
+	bp := new(MockBlockProducer) // nolint
 	blockC := make(chan types.Block)
 	bp.On("GetBlockChannel", nil).Return(blockC)
 
 	cfg := &Config{
 		Keystore:         ks,
 		TransactionState: state.NewTransactionState(),
-		IsBlockProducer:  true,
-		BlockProducer:    bp,
 	}
 
 	s := NewTestService(t, cfg)
@@ -103,12 +103,19 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	extBytes := CreateTestExtrinsics(t, s.rt, genHash, 0)
-
+	//extBytes := createExtrinsics(t, s.rt, genHash, 0)
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}}
-	err = s.HandleTransactionMessage(msg)
+	b, err := s.HandleTransactionMessage(msg)
 	require.NoError(t, err)
+	require.True(t, b)
 
 	pending := s.transactionState.(*state.TransactionState).Pending()
 	require.NotEqual(t, 0, len(pending))
 	require.Equal(t, extBytes, pending[0].Extrinsic)
+
+	extBytes = []byte(`bogus extrinsic`)
+	msg = &network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}}
+	b, err = s.HandleTransactionMessage(msg)
+	require.NoError(t, err)
+	require.False(t, b)
 }

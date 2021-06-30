@@ -37,7 +37,7 @@ type (
 type subround byte
 
 var (
-	prevote         subround = 0
+	prevote         subround
 	precommit       subround = 1
 	primaryProposal subround = 2
 )
