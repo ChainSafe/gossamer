@@ -161,6 +161,7 @@ func (h *Hasher) encodeBranch(b *branch) ([]byte, error) {
 						return nil
 					}
 
+					var err error
 					resBuff[i], err = encodeAndHash(child)
 					if err != nil {
 						return err
