@@ -10,11 +10,11 @@ rpc = ""
 state = ""
 runtime = ""
 babe = ""
-grandpa = ""
+grandpa = "debug"
 sync = ""
 
 [init]
-genesis = "./chain/gssmr/genesis.json"
+genesis = "./chain/gssmr/genesis-spec.json"
 
 [account]
 key = ""
