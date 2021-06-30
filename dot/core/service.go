@@ -544,7 +544,6 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 
 	txv, err := s.rt.ValidateTransaction(externalExt)
 	if err != nil {
-		logger.Warn("failed to validate extrinsic", "error", err)
 		return err
 	}
 

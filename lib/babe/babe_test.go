@@ -144,7 +144,6 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 
 	if cfg.Runtime == nil {
 		rtCfg := &wasmer.Config{}
-		rtCfg.LogLvl = 4
 		rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
 		require.NoError(t, err)
 		rt, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg) //nolint

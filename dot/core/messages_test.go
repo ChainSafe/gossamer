@@ -52,14 +52,10 @@ func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, non
 	rv, err := rt.Version()
 	require.NoError(t, err)
 
-	require.NoError(t, err)
-	//c, err := ctypes.NewCall(meta, "Balances.transfer", bob, amount)
 	c, err := ctypes.NewCall(meta, "System.remark", []byte{0xab, 0xcd})
 	require.NoError(t, err)
 
-	// Create the extrinsic
 	ext := ctypes.NewExtrinsic(c)
-
 	o := ctypes.SignatureOptions{
 		BlockHash:          ctypes.Hash(genHash),
 		Era:                ctypes.ExtrinsicEra{IsImmortalEra: false},
@@ -70,7 +66,7 @@ func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, non
 		TransactionVersion: ctypes.U32(rv.TransactionVersion()),
 	}
 
-	// Sign the transaction using Alice's default account
+	// Sign the transaction using Alice's key
 	err = ext.Sign(signature.TestKeyringPairAlice, o)
 	require.NoError(t, err)
 
