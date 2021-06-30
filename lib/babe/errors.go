@@ -221,8 +221,8 @@ func (err MandatoryDispatch) Index() uint { return 9 }
 //	return errInvalidResult
 //}
 
-func determineDispatchErr(i interface{}) error {
-	switch val := i.(type) {
+func determineDispatchErr(vdt scale.VaryingDataType) error {
+	switch val := vdt.Value().(type) {
 	case Other:
 		return &DispatchOutcomeError{fmt.Sprintf("unknown error: %s", val)}
 	case CannotLookup:
@@ -300,50 +300,22 @@ func determineErr(res []byte) error {
 	case 0:
 		var e Other
 		vdt := scale.MustNewVaryingDataType(e, CannotLookup{}, BadOrigin{}, Module{})
-
 		r := scale.NewResult(nil, vdt)
 		err := scale.Unmarshal(res[1:], &r)
 		if err != nil {
-			//fmt.Println("error1")
 			return err
 		}
 
-		ok, err := r.Unwrap()
+		_, err = r.Unwrap()
 		if err != nil {
-			// error case
-			fmt.Printf("err %v\n", err)
 			switch err := err.(type) {
 			case scale.WrappedErr:
 				vdt := err.Err.(scale.VaryingDataType)
-				switch val := vdt.Value().(type) {
-				case Module, BadOrigin, CannotLookup, Other:
-					fmt.Printf("in here! %T %v\n", val, val)
-				}
-
+				return  determineDispatchErr(vdt)
 			}
 		} else {
-			// ok case
-			fmt.Printf("ok %v\n", ok)
+			return nil
 		}
-		// //fmt.Println(err)
-		// if err != nil {
-		// 	er := determineDispatchErr(err)
-		// 	//fmt.Println(er)
-		// 	return er
-		// }
-		// //fmt.Println(ok)
-		// if ok != nil {
-		// 	return errInvalidResult
-		// }
-		// return nil
-		// //switch res[1] {
-		// //case 0:
-		// //	return nil
-		// //case 1:
-		// //	return determineDispatchErr(res[2:])
-		// //default:
-		// //	return errInvalidResult
-		// //}
 	case 1:
 		switch res[1] {
 		case 0:
