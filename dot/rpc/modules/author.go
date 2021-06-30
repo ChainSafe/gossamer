@@ -97,7 +97,7 @@ func NewAuthorModule(logger log.Logger, coreAPI CoreAPI, runtimeAPI RuntimeAPI, 
 }
 
 // InsertKey inserts a key into the keystore
-func (cm *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *KeyInsertResponse) error {
+func (am *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *KeyInsertResponse) error {
 	keyReq := *req
 
 	pkDec, err := common.HexToBytes(keyReq[1])
@@ -119,8 +119,8 @@ func (cm *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *K
 		return fmt.Errorf("generated public key does not equal provide public key")
 	}
 
-	cm.coreAPI.InsertKey(keyPair)
-	cm.logger.Info("inserted key into keystore", "key", keyPair.Public().Hex())
+	am.coreAPI.InsertKey(keyPair)
+	am.logger.Info("inserted key into keystore", "key", keyPair.Public().Hex())
 	return nil
 }
 
@@ -133,8 +133,8 @@ func (cm *AuthorModule) HasKey(r *http.Request, req *[]string, res *bool) error 
 }
 
 // PendingExtrinsics Returns all pending extrinsics
-func (cm *AuthorModule) PendingExtrinsics(r *http.Request, req *EmptyRequest, res *PendingExtrinsicsResponse) error {
-	pending := cm.txStateAPI.Pending()
+func (am *AuthorModule) PendingExtrinsics(r *http.Request, req *EmptyRequest, res *PendingExtrinsicsResponse) error {
+	pending := am.txStateAPI.Pending()
 	resp := make([]string, len(pending))
 	for idx, tx := range pending {
 		resp[idx] = common.BytesToHex(tx.Extrinsic)
@@ -167,7 +167,7 @@ func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *Ex
 	}
 
 	ext := types.Extrinsic(extBytes)
-	err = cm.coreAPI.HandleSubmittedExtrinsic(ext)
 	*res = ExtrinsicHashResponse(ext.Hash().String())
+	err = cm.coreAPI.HandleSubmittedExtrinsic(ext)
 	return err
 }
