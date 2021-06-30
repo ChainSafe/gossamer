@@ -24,6 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+
 	log "github.com/ChainSafe/log15"
 )
 

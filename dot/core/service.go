@@ -539,10 +539,7 @@ func (s *Service) GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error)
 
 // HandleSubmittedExtrinsic is used to send a Transaction message containing a Extrinsic @ext
 func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
-	logger.Crit("HandleSubmittedExtrinsic", "ext", fmt.Sprintf("0x%x", ext))
-
 	// the transaction source is External
-	// validate the transaction
 	externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
 
 	txv, err := s.rt.ValidateTransaction(externalExt)
@@ -551,8 +548,16 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 		return err
 	}
 
+	// TODO: v0.9 runtime requires a tx submitted from polkadot.js to be
+	// SCALE decoded before inclusion in a block, but not v0.8
+	// how do we handle this?
+	dec, err := scale.Decode(ext, []byte{})
+	if err != nil {
+		return err
+	}
+
 	// add transaction to pool
-	vtx := transaction.NewValidTransaction(ext, txv)
+	vtx := transaction.NewValidTransaction(dec.([]byte), txv)
 	s.transactionState.AddToPool(vtx)
 
 	// broadcast transaction

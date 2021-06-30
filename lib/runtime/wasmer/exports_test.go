@@ -486,7 +486,7 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func createTestExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic {
+func createTestExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic { //nolint
 	t.Helper()
 	rawMeta, err := rt.Metadata()
 	require.NoError(t, err)
