@@ -17,8 +17,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ChainSafe/gossamer/lib/common/optional"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 var (
@@ -81,82 +80,216 @@ func (e TransactionValidityError) Error() string {
 	return fmt.Sprintf("transaction validity error: %s", e.msg)
 }
 
-func determineCustomModuleErr(res []byte) error {
-	if len(res) < 3 {
-		return errInvalidResult
-	}
-	errMsg, err := optional.NewBytes(false, nil).DecodeBytes(res[2:])
-	if err != nil {
-		return err
-	}
-	return fmt.Errorf("index: %d code: %d message: %s", res[0], res[1], errMsg.String())
+// A UnmarshalError is when unmarshalling fails
+type UnmarshalError struct {
+	msg string
 }
 
-func determineDispatchErr(res []byte) error {
-	switch res[0] {
-	case 0:
-		unKnownError, _ := scale.Decode(res[1:], []byte{})
-		return &DispatchOutcomeError{fmt.Sprintf("unknown error: %s", string(unKnownError.([]byte)))}
-	case 1:
+func (e UnmarshalError) Error() string {
+	return fmt.Sprintf("unmarshal error: %s", e.msg)
+}
+
+// Other Some error occurred
+type Other string
+
+// Index Returns VDT index
+func (err Other) Index() uint { return 0 }
+
+// CannotLookup Failed to lookup some data
+type CannotLookup struct{}
+
+// Index Returns VDT index
+func (err CannotLookup) Index() uint { return 1 }
+
+// BadOrigin A bad origin
+type BadOrigin struct{}
+
+// Index Returns VDT index
+func (err BadOrigin) Index() uint { return 2 }
+
+// Module A custom error in a module
+type Module struct {
+	Idx     uint8
+	Err     uint8
+	Message *string
+}
+
+// Index Returns VDT index
+func (err Module) Index() uint { return 3 }
+
+func (err Module) string() string {
+	return fmt.Sprintf("index: %d code: %d message: %x", err.Idx, err.Err, *err.Message)
+}
+
+// ValidityCannotLookup Could not lookup some information that is required to validate the transaction
+type ValidityCannotLookup struct{}
+
+// Index Returns VDT index
+func (err ValidityCannotLookup) Index() uint { return 0 }
+
+// NoUnsignedValidator No validator found for the given unsigned transaction
+type NoUnsignedValidator struct{}
+
+// Index Returns VDT index
+func (err NoUnsignedValidator) Index() uint { return 1 }
+
+// UnknownCustom Any other custom unknown validity that is not covered
+type UnknownCustom uint8
+
+// Index Returns VDT index
+func (err UnknownCustom) Index() uint { return 2 }
+
+// Call The call of the transaction is not expected
+type Call struct{}
+
+// Index Returns VDT index
+func (err Call) Index() uint { return 0 }
+
+// Payment General error to do with the inability to pay some fees (e.g. account balance too low)
+type Payment struct{}
+
+// Index Returns VDT index
+func (err Payment) Index() uint { return 1 }
+
+// Future General error to do with the transaction not yet being valid (e.g. nonce too high)
+type Future struct{}
+
+// Index Returns VDT index
+func (err Future) Index() uint { return 2 }
+
+// Stale General error to do with the transaction being outdated (e.g. nonce too low)
+type Stale struct{}
+
+// Index Returns VDT index
+func (err Stale) Index() uint { return 3 }
+
+// BadProof General error to do with the transaction’s proofs (e.g. signature)
+type BadProof struct{}
+
+// Index Returns VDT index
+func (err BadProof) Index() uint { return 4 }
+
+// AncientBirthBlock The transaction birth block is ancient
+type AncientBirthBlock struct{}
+
+// Index Returns VDT index
+func (err AncientBirthBlock) Index() uint { return 5 }
+
+// ExhaustsResources The transaction would exhaust the resources of current block
+type ExhaustsResources struct{}
+
+// Index Returns VDT index
+func (err ExhaustsResources) Index() uint { return 6 }
+
+// InvalidCustom Any other custom invalid validity that is not covered
+type InvalidCustom uint8
+
+// Index Returns VDT index
+func (err InvalidCustom) Index() uint { return 7 }
+
+// BadMandatory An extrinsic with a Mandatory dispatch resulted in Error
+type BadMandatory struct{}
+
+// Index Returns VDT index
+func (err BadMandatory) Index() uint { return 8 }
+
+// MandatoryDispatch A transaction with a mandatory dispatch
+type MandatoryDispatch struct{}
+
+// Index Returns VDT index
+func (err MandatoryDispatch) Index() uint { return 9 }
+
+func determineDispatchErr(vdt scale.VaryingDataType) error {
+	switch val := vdt.Value().(type) {
+	case Other:
+		return &DispatchOutcomeError{fmt.Sprintf("unknown error: %s", val)}
+	case CannotLookup:
 		return &DispatchOutcomeError{"failed lookup"}
-	case 2:
+	case BadOrigin:
 		return &DispatchOutcomeError{"bad origin"}
-	case 3:
-		return &DispatchOutcomeError{fmt.Sprintf("custom module error: %s", determineCustomModuleErr(res[1:]))}
+	case Module:
+		return &DispatchOutcomeError{fmt.Sprintf("custom module error: %s", val.string())}
 	}
+
 	return errInvalidResult
 }
 
 func determineInvalidTxnErr(res []byte) error {
-	switch res[0] {
-	case 0:
+	var c InvalidCustom
+	vdt := scale.MustNewVaryingDataType(Call{}, Payment{}, Future{}, Stale{}, BadProof{}, AncientBirthBlock{},
+		ExhaustsResources{}, c, BadMandatory{}, MandatoryDispatch{})
+	err := scale.Unmarshal(res, &vdt)
+	if err != nil {
+		return &UnmarshalError{err.Error()}
+	}
+	switch val := vdt.Value().(type) {
+	case Call:
 		return &TransactionValidityError{"call of the transaction is not expected"}
-	case 1:
+	case Payment:
 		return &TransactionValidityError{"invalid payment"}
-	case 2:
+	case Future:
 		return &TransactionValidityError{"invalid transaction"}
-	case 3:
+	case Stale:
 		return &TransactionValidityError{"outdated transaction"}
-	case 4:
+	case BadProof:
 		return &TransactionValidityError{"bad proof"}
-	case 5:
+	case AncientBirthBlock:
 		return &TransactionValidityError{"ancient birth block"}
-	case 6:
+	case ExhaustsResources:
 		return &TransactionValidityError{"exhausts resources"}
-	case 7:
-		return &TransactionValidityError{fmt.Sprintf("unknown error: %d", res[1])}
-	case 8:
+	case InvalidCustom:
+		return &TransactionValidityError{fmt.Sprintf("unknown error: %d", val)}
+	case BadMandatory:
 		return &TransactionValidityError{"mandatory dispatch error"}
-	case 9:
+	case MandatoryDispatch:
 		return &TransactionValidityError{"invalid mandatory dispatch"}
 	}
 	return errInvalidResult
 }
 
 func determineUnknownTxnErr(res []byte) error {
-	switch res[0] {
-	case 0:
+	var c UnknownCustom
+	vdt := scale.MustNewVaryingDataType(ValidityCannotLookup{}, NoUnsignedValidator{}, c)
+	err := scale.Unmarshal(res, &vdt)
+	if err != nil {
+		return &UnmarshalError{err.Error()}
+	}
+	switch val := vdt.Value().(type) {
+	case ValidityCannotLookup:
 		return &TransactionValidityError{"lookup failed"}
-	case 1:
+	case NoUnsignedValidator:
 		return &TransactionValidityError{"validator not found"}
-	case 2:
-		return &TransactionValidityError{fmt.Sprintf("unknown error: %d", res[1])}
+	case UnknownCustom:
+		return &TransactionValidityError{fmt.Sprintf("unknown error: %d", val)}
 	}
 	return errInvalidResult
 }
 
+// TODO wrap all errors in a Result to unmarshall
 func determineErr(res []byte) error {
 	switch res[0] {
-	case 0: // DispatchOutcome
-		switch res[1] {
-		case 0:
-			return nil
-		case 1:
-			return determineDispatchErr(res[2:])
-		default:
-			return errInvalidResult
+	case 0:
+		var e Other
+		vdt := scale.MustNewVaryingDataType(e, CannotLookup{}, BadOrigin{}, Module{})
+		r := scale.NewResult(nil, vdt)
+		err := scale.Unmarshal(res[1:], &r)
+		if err != nil {
+			return err
 		}
-	case 1: // TransactionValidityError
+
+		_, err = r.Unwrap()
+		if err != nil {
+			switch err := err.(type) {
+			case scale.WrappedErr:
+				vdt := err.Err.(scale.VaryingDataType)
+				return determineDispatchErr(vdt)
+			default:
+				return &UnmarshalError{"Unexpected result error type"}
+			}
+		} else {
+			return nil
+		}
+	case 1:
 		switch res[1] {
 		case 0:
 			return determineInvalidTxnErr(res[2:])
