@@ -17,10 +17,29 @@
 package modules
 
 import (
+	"math/big"
 	"reflect"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/grandpa"
+	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/stretchr/testify/require"
+
+	rpcmocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+)
+
+var (
+	testGenesisHeader = &types.Header{
+		Number:    big.NewInt(0),
+		StateRoot: trie.EmptyHash,
+	}
+
+	kr, _ = keystore.NewEd25519Keyring()
 )
 
 func TestGrandpaProveFinality(t *testing.T) {
@@ -54,4 +73,62 @@ func TestGrandpaProveFinality(t *testing.T) {
 	if !reflect.DeepEqual(*res, expectedResponse) {
 		t.Errorf("Fail: expected: %+v got: %+v\n", res, &expectedResponse)
 	}
+}
+
+func TestRoundSate(t *testing.T) {
+	var voters grandpa.Voters
+
+	for _, k := range kr.Keys {
+		voters = append(voters, &types.GrandpaVoter{
+			Key: k.Public().(*ed25519.PublicKey),
+			ID:  1,
+		})
+	}
+
+	grandpamock := new(rpcmocks.MockBlockFinalityAPI)
+	grandpamock.On("GetVoters").Return(voters)
+	grandpamock.On("GetSetID").Return(uint64(0))
+	grandpamock.On("GetRound").Return(uint64(2))
+
+	grandpamock.On("PreVotes").Return(map[ed25519.PublicKeyBytes]*grandpa.Vote{
+		kr.Alice().Public().(*ed25519.PublicKey).AsBytes():   grandpa.NewVote(common.Hash{}, uint32(0)),
+		kr.Bob().Public().(*ed25519.PublicKey).AsBytes():     grandpa.NewVote(common.Hash{}, uint32(0)),
+		kr.Charlie().Public().(*ed25519.PublicKey).AsBytes(): grandpa.NewVote(common.Hash{}, uint32(0)),
+		kr.Dave().Public().(*ed25519.PublicKey).AsBytes():    grandpa.NewVote(common.Hash{}, uint32(0)),
+	})
+
+	grandpamock.On("PreCommits").Return(map[ed25519.PublicKeyBytes]*grandpa.Vote{
+		kr.Alice().Public().(*ed25519.PublicKey).AsBytes(): grandpa.NewVote(common.Hash{}, uint32(0)),
+		kr.Bob().Public().(*ed25519.PublicKey).AsBytes():   grandpa.NewVote(common.Hash{}, uint32(0)),
+	})
+
+	mod := NewGrandpaModule(nil, grandpamock)
+
+	res := new(RoundStateResponse)
+	err := mod.RoundState(nil, nil, res)
+
+	require.NoError(t, err)
+
+	// newTestVoters has actually 9 keys with weight of 1
+	require.Equal(t, uint32(9), res.Best.TotalWeight)
+	require.Equal(t, uint32(7), res.Best.ThresholdWeight)
+
+	expectedMissingPrevotes := []string{
+		string(kr.Eve().Public().Address()),
+		string(kr.Ferdie().Public().Address()),
+		string(kr.George().Public().Address()),
+		string(kr.Heather().Public().Address()),
+		string(kr.Ian().Public().Address()),
+	}
+
+	expectedMissingPrecommits := append([]string{
+		string(kr.Charlie().Public().Address()),
+		string(kr.Dave().Public().Address()),
+	}, expectedMissingPrevotes...)
+
+	require.Equal(t, expectedMissingPrevotes, res.Best.Prevotes.Missing)
+	require.Equal(t, expectedMissingPrecommits, res.Best.Precommits.Missing)
+
+	require.Equal(t, uint32(4), res.Best.Prevotes.CurrentWeight)
+	require.Equal(t, uint32(2), res.Best.Precommits.CurrentWeight)
 }
