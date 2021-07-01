@@ -283,6 +283,8 @@ func determineErr(res []byte) error {
 			case scale.WrappedErr:
 				vdt := err.Err.(scale.VaryingDataType)
 				return determineDispatchErr(vdt)
+			default:
+				return &UnmarshalError{"Unexpected result error type"}
 			}
 		} else {
 			return nil
