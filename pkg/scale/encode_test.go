@@ -175,20 +175,6 @@ var (
 			want: []byte{0x13, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
 		},
 	}
-	int64Tests = tests{
-		{
-			name: "myCustomUint(9223372036854775807)",
-			in:   myCustomUint(9223372036854775807),
-			want: []byte{0x13, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
-		},
-	}
-	int64Tests = tests{
-		{
-			name: "myCustomUint(9223372036854775807)",
-			in:   myCustomUint(9223372036854775807),
-			want: []byte{0x13, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
-		},
-	}
 	variableWidthIntegerTests = newTests(intTests, uintTests)
 
 	int64Tests = tests{
@@ -220,20 +206,6 @@ var (
 	}
 	uint64Tests = tests{
 		{
-			name: "myCustomInt64(9223372036854775807)",
-			in:   myCustomInt64(9223372036854775807),
-			want: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
-		},
-	}
-	uint64Tests = tests{
-		{
-			name: "myCustomInt64(9223372036854775807)",
-			in:   myCustomInt64(9223372036854775807),
-			want: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
-		},
-	}
-	uint64Tests = tests{
-		{
 			name: "uint64(1)",
 			in:   uint64(1),
 			want: []byte{0x01, 0, 0, 0, 0, 0, 0, 0},
@@ -253,20 +225,6 @@ var (
 			in:   uint64(9223372036854775807),
 			want: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
 		},
-		{
-			name: "myCustomUint64(9223372036854775807)",
-			in:   myCustomUint64(9223372036854775807),
-			want: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
-		},
-	}
-	int32Tests = tests{
-		{
-			name: "myCustomUint64(9223372036854775807)",
-			in:   myCustomUint64(9223372036854775807),
-			want: []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f},
-		},
-	}
-	int32Tests = tests{
 		{
 			name: "myCustomUint64(9223372036854775807)",
 			in:   myCustomUint64(9223372036854775807),
@@ -319,20 +277,6 @@ var (
 	}
 	int8Tests = tests{
 		{
-			name: "uint32(1073741823)",
-			in:   myCustomUint32(1073741823),
-			want: []byte{0xff, 0xff, 0xff, 0x3f},
-		},
-	}
-	int8Tests = tests{
-		{
-			name: "uint32(1073741823)",
-			in:   myCustomUint32(1073741823),
-			want: []byte{0xff, 0xff, 0xff, 0x3f},
-		},
-	}
-	int8Tests = tests{
-		{
 			name: "int8(1)",
 			in:   int8(1),
 			want: []byte{0x01},
@@ -357,20 +301,6 @@ var (
 	}
 	int16Tests = tests{
 		{
-			name: "myCustomInt8(1)",
-			in:   myCustomUint8(1),
-			want: []byte{0x01},
-		},
-	}
-	int16Tests = tests{
-		{
-			name: "myCustomInt8(1)",
-			in:   myCustomUint8(1),
-			want: []byte{0x01},
-		},
-	}
-	int16Tests = tests{
-		{
 			name: "int16(1)",
 			in:   int16(1),
 			want: []byte{0x01, 0},
@@ -380,20 +310,6 @@ var (
 			in:   int16(16383),
 			want: []byte{0xff, 0x3f},
 		},
-		{
-			name: "myCustomInt16(16383)",
-			in:   myCustomInt16(16383),
-			want: []byte{0xff, 0x3f},
-		},
-	}
-	uint16Tests = tests{
-		{
-			name: "myCustomInt16(16383)",
-			in:   myCustomInt16(16383),
-			want: []byte{0xff, 0x3f},
-		},
-	}
-	uint16Tests = tests{
 		{
 			name: "myCustomInt16(16383)",
 			in:   myCustomInt16(16383),
