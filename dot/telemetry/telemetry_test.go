@@ -158,7 +158,6 @@ main:
 	}
 	tk.Stop()
 
-	require.Greater(t, counter, 0)
 	require.LessOrEqual(t, counter, qty/2)
 }
 
