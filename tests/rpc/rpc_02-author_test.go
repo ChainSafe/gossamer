@@ -106,19 +106,6 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 	require.NotEqual(t, hash, common.Hash{})
 }
 
-// TestDecodeExt is for debugging/decoding extrinsics.  Test with a hex string that was generated (from above tests
-//  or polkadot.js/api) and use in buffer.Write.  The decoded output will show the values in the extrinsic.
-func TestDecodeExt(t *testing.T) {
-	buffer := bytes.Buffer{}
-	decoder := scale.NewDecoder(&buffer)
-	buffer.Write(common.MustHexToBytes("0x410284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01f8efbe48487e57a22abf7e3acd491b7f3528a33a111b1298601554863d27eb129eaa4e718e1365414ff3d028b62bebc651194c6b5001e5c2839b982757e08a8c0000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a480b00c465f14670"))
-	ext := types.Extrinsic{}
-	err := decoder.Decode(&ext)
-	require.NoError(t, err)
-	fmt.Printf("decoded ext %+v\n", ext)
-
-}
-
 func TestAuthorRPC(t *testing.T) {
 	if utils.MODE != rpcSuite {
 		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")

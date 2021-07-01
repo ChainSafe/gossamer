@@ -10,7 +10,10 @@ type AccountInfo struct {
 	Nonce uint32
 	// The number of other modules that currently depend on this account's existence. The account
 	// cannot be reaped until this is zero.
-	RefCount uint32
+	//RefCount uint32
+
+	Consumers uint32
+	Producers uint32
 	// The additional data that belongs to this account. Used to store the balance(s) in a lot of chains.
 	Data struct {
 		Free       common.Uint128

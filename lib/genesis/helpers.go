@@ -281,8 +281,8 @@ func buildBalances(kv *keyValue, res map[string]string) error {
 			bKey = append(bKey, kv.iVal[i].([]byte)...)
 
 			accInfo := types.AccountInfo{
-				Nonce:    0,
-				RefCount: 0,
+				Nonce: 0,
+				//RefCount: 0,
 				Data: struct {
 					Free       common.Uint128
 					Reserved   common.Uint128
