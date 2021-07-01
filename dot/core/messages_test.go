@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/ChainSafe/gossamer/dot/core/mocks"
+	. "github.com/ChainSafe/gossamer/dot/core/mocks" // nolint
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -38,7 +38,7 @@ import (
 
 func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	// TODO: move to sync package
-	net := new(MockNetwork)
+	net := new(MockNetwork) // nolint
 
 	cfg := &Config{
 		Network:  net,
@@ -136,7 +136,7 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	ks := keystore.NewGlobalKeystore()
 	ks.Acco.Insert(kp)
 
-	bp := new(MockBlockProducer)
+	bp := new(MockBlockProducer) // nolint
 	blockC := make(chan types.Block)
 	bp.On("GetBlockChannel", nil).Return(blockC)
 
