@@ -50,14 +50,15 @@ type Instance interface {
 	AddConnections(conns []*genesis.TelemetryEndpoint)
 	SendMessage(msg Message) error
 	startListening()
+	Initialise(enabled bool)
 }
 
 var (
 	once            sync.Once
 	handlerInstance Instance
 
-	// Enabled flag to determine if telemetry is enabled
-	Enabled = true // enabled by default
+	enabled    = true // enabled by default
+	initilised sync.Once
 )
 
 const defaultMessageTimeout = time.Second
@@ -75,11 +76,18 @@ func GetInstance() Instance {
 				go handlerInstance.startListening()
 			})
 	}
-	if !Enabled {
+	if !enabled {
 		return &NoopHandler{}
 	}
 
 	return handlerInstance
+}
+
+func (h *Handler) Initialise(_enabled bool) {
+	initilised.Do(
+		func() {
+			enabled = _enabled
+		})
 }
 
 // AddConnections adds the given telemetry endpoint as listeners that will receive telemetry data
@@ -308,6 +316,8 @@ func (tm *NetworkStateTM) messageType() string {
 // NoopHandler struct no op handling (ignoring) telemetry messages
 type NoopHandler struct {
 }
+
+func (h *NoopHandler) Initialise(enabled bool) {}
 
 func (h *NoopHandler) startListening() {}
 

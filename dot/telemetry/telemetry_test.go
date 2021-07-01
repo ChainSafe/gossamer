@@ -136,7 +136,7 @@ func TestDisableInstance(t *testing.T) {
 	resultCh = make(chan []byte)
 	for i := 0; i < qty; i++ {
 		if i == qty/2 {
-			Enabled = false
+			GetInstance().Initialise(false)
 		}
 		go func() {
 			bh := common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6")
@@ -158,6 +158,7 @@ main:
 	}
 	tk.Stop()
 
+	require.Greater(t, counter, 0)
 	require.LessOrEqual(t, counter, qty/2)
 }
 
