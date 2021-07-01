@@ -258,7 +258,7 @@ func (c *WSConn) unsubscribeStorageListener(reqID float64, params interface{}) {
 
 func (c *WSConn) initBlockListener(reqID float64) (uint, error) {
 	bl := &BlockListener{
-		Channel: make(chan *types.Block),
+		Channel: make(chan *types.Block, 100),
 		wsconn:  c,
 	}
 
@@ -283,7 +283,7 @@ func (c *WSConn) initBlockListener(reqID float64) (uint, error) {
 
 func (c *WSConn) initBlockFinalizedListener(reqID float64) (uint, error) {
 	bfl := &BlockFinalizedListener{
-		channel: make(chan *types.FinalisationInfo),
+		channel: make(chan *types.FinalisationInfo, 100),
 		wsconn:  c,
 	}
 
@@ -315,10 +315,10 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (uint, er
 
 	// listen for built blocks
 	esl := &ExtrinsicSubmitListener{
-		importedChan:  make(chan *types.Block),
+		importedChan:  make(chan *types.Block, 100),
 		wsconn:        c,
 		extrinsic:     types.Extrinsic(extBytes),
-		finalisedChan: make(chan *types.FinalisationInfo),
+		finalisedChan: make(chan *types.FinalisationInfo, 100),
 	}
 
 	if c.BlockAPI == nil {

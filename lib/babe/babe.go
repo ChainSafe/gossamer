@@ -128,7 +128,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		rt:                 cfg.Runtime,
 		transactionState:   cfg.TransactionState,
 		slotToProof:        make(map[uint64]*VrfOutputAndProof),
-		pause:              make(chan struct{}),
+		pause:              make(chan struct{}, 100),
 		authority:          cfg.Authority,
 		dev:                cfg.IsDev,
 		blockImportHandler: cfg.BlockImportHandler,
@@ -274,7 +274,7 @@ func (b *Service) Resume() error {
 		return nil
 	}
 
-	b.pause = make(chan struct{})
+	b.pause = make(chan struct{}, 100)
 	go b.initiate()
 	logger.Debug("service resumed")
 	return nil

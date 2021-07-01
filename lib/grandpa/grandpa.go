@@ -163,7 +163,7 @@ func NewService(cfg *Config) (*Service, error) {
 		justification:      make(map[uint64][]*SignedPrecommit),
 		head:               head,
 		in:                 make(chan GrandpaMessage, 128),
-		resumed:            make(chan struct{}),
+		resumed:            make(chan struct{}, 100),
 		network:            cfg.Network,
 		finalisedCh:        finalisedCh,
 		finalisedChID:      fid,
@@ -334,7 +334,7 @@ func (s *Service) initiate() error {
 }
 
 func (s *Service) waitForFirstBlock() error {
-	ch := make(chan *types.Block)
+	ch := make(chan *types.Block, 100)
 	id, err := s.blockState.RegisterImportedChannel(ch)
 	if err != nil {
 		return err
