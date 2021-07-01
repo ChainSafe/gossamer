@@ -48,14 +48,8 @@ type Handler struct {
 // Instance interface that telemetry handler instance needs to implement
 type Instance interface {
 	AddConnections(conns []*genesis.TelemetryEndpoint)
-	SendMessage(msg *Message) error
+	SendMessage(msg Message) error
 	startListening()
-}
-
-// KeyValue object to hold key value pairs used in telemetry messages
-type KeyValue struct {
-	key   string
-	value interface{}
 }
 
 var (
@@ -318,7 +312,7 @@ type NoopHandler struct {
 func (h *NoopHandler) startListening() {}
 
 // SendMessage no op for telemetry send message function
-func (h *NoopHandler) SendMessage(msg *Message) error {
+func (h *NoopHandler) SendMessage(msg Message) error {
 	return nil
 }
 

@@ -128,7 +128,7 @@ func TestListenerConcurrency(t *testing.T) {
 	}
 }
 
-func TestKillInstance(t *testing.T) {
+func TestDisableInstance(t *testing.T) {
 	const qty = 1000
 	var wg sync.WaitGroup
 	wg.Add(qty)
@@ -139,11 +139,8 @@ func TestKillInstance(t *testing.T) {
 			Enabled = false
 		}
 		go func() {
-			GetInstance().SendMessage(NewTelemetryMessage(
-				NewKeyValue("best", "hash"),
-				NewKeyValue("height", big.NewInt(2)),
-				NewKeyValue("msg", "block.import"),
-				NewKeyValue("origin", "NetworkInitialSync")))
+			bh := common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6")
+			GetInstance().SendMessage(NewBlockImportTM(&bh, big.NewInt(2), "NetworkInitialSync"))
 			wg.Done()
 		}()
 	}
