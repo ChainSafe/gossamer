@@ -215,7 +215,7 @@ func callWebsocket(t *testing.T, test *testCase) {
 
 	done := make(chan struct{})
 
-	vals := make(chan []byte)
+	vals := make(chan []byte, 100)
 	go wsListener(t, ws, vals, done, len(test.expected.([]interface{})))
 
 	err = ws.WriteMessage(websocket.TextMessage, []byte(`{

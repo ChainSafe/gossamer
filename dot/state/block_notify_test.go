@@ -82,7 +82,7 @@ func TestImportChannel_Multi(t *testing.T) {
 
 	var err error
 	for i := 0; i < num; i++ {
-		chs[i] = make(chan *types.Block)
+		chs[i] = make(chan *types.Block, 100)
 		ids[i], err = bs.RegisterImportedChannel(chs[i])
 		require.NoError(t, err)
 	}
@@ -122,7 +122,7 @@ func TestFinalizedChannel_Multi(t *testing.T) {
 
 	var err error
 	for i := 0; i < num; i++ {
-		chs[i] = make(chan *types.FinalisationInfo)
+		chs[i] = make(chan *types.FinalisationInfo, 100)
 		ids[i], err = bs.RegisterFinalizedChannel(chs[i])
 		require.NoError(t, err)
 	}

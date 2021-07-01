@@ -137,7 +137,7 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	ks.Acco.Insert(kp)
 
 	bp := new(MockBlockProducer) // nolint
-	blockC := make(chan types.Block)
+	blockC := make(chan types.Block, 100)
 	bp.On("GetBlockChannel", nil).Return(blockC)
 
 	cfg := &Config{
