@@ -17,7 +17,6 @@
 package modules
 
 import (
-	"math/big"
 	"reflect"
 	"testing"
 
@@ -27,20 +26,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/require"
 
 	rpcmocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 )
 
-var (
-	testGenesisHeader = &types.Header{
-		Number:    big.NewInt(0),
-		StateRoot: trie.EmptyHash,
-	}
-
-	kr, _ = keystore.NewEd25519Keyring()
-)
+var kr, _ = keystore.NewEd25519Keyring()
 
 func TestGrandpaProveFinality(t *testing.T) {
 	testStateService := newTestStateService(t)
