@@ -83,6 +83,7 @@ func GetInstance() Instance {
 	return handlerInstance
 }
 
+// Initialise function to set if telemetry is enabled
 func (h *Handler) Initialise(_enabled bool) {
 	initilised.Do(
 		func() {
@@ -317,6 +318,7 @@ func (tm *NetworkStateTM) messageType() string {
 type NoopHandler struct {
 }
 
+// Initialise function to set if telemetry is enabled
 func (h *NoopHandler) Initialise(enabled bool) {}
 
 func (h *NoopHandler) startListening() {}
