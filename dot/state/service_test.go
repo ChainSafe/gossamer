@@ -419,7 +419,7 @@ func TestStateServiceMetrics(t *testing.T) {
 
 	m := metrics.NewCollector(context.Background())
 	m.AddGauge(serv)
-	m.Start()
+	go m.Start()
 
 	vtxs := []*transaction.ValidTransaction{
 		{
