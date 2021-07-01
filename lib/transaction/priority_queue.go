@@ -175,5 +175,8 @@ func (spq *PriorityQueue) Pending() []*ValidTransaction {
 
 // Len return the current length of the queue
 func (spq *PriorityQueue) Len() int {
+	spq.Lock()
+	defer spq.Unlock()
+
 	return spq.pq.Len()
 }

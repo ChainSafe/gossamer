@@ -68,5 +68,8 @@ func (p *Pool) Remove(hash common.Hash) {
 
 // Len return the current length of the pool
 func (p *Pool) Len() int {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	return len(p.transactions)
 }

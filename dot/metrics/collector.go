@@ -50,6 +50,7 @@ func NewCollector(ctx context.Context) *Collector {
 // Start will start one goroutine to collect all the gauges registered and
 // a separate goroutine to collect process metrics
 func (c *Collector) Start() {
+	ethmetrics.Enabled = true
 	c.wg.Add(2)
 
 	go c.startCollectProccessMetrics()
@@ -64,8 +65,6 @@ func (c *Collector) AddGauge(g GaugeMetrics) {
 }
 
 func (c *Collector) startCollectGauges() {
-	ethmetrics.Enabled = true
-
 	t := time.NewTicker(Refresh)
 	defer func() {
 		t.Stop()
@@ -90,8 +89,6 @@ func (c *Collector) startCollectGauges() {
 }
 
 func (c *Collector) startCollectProccessMetrics() {
-	ethmetrics.Enabled = true
-
 	cpuStats := make([]*ethmetrics.CPUStats, 2)
 	memStats := make([]*runtime.MemStats, 2)
 	for i := 0; i < len(memStats); i++ {
