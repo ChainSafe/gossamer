@@ -23,6 +23,45 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func createTestExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic { //nolint
+	t.Helper()
+	rawMeta, err := rt.Metadata()
+	require.NoError(t, err)
+
+	decoded, err := scale.Decode(rawMeta, []byte{})
+	require.NoError(t, err)
+
+	meta := &ctypes.Metadata{}
+	err = ctypes.DecodeFromBytes(decoded.([]byte), meta)
+	require.NoError(t, err)
+
+	rv, err := rt.Version()
+	require.NoError(t, err)
+
+	c, err := ctypes.NewCall(meta, "System.remark", []byte{0xab, 0xcd})
+	require.NoError(t, err)
+
+	ext := ctypes.NewExtrinsic(c)
+	o := ctypes.SignatureOptions{
+		BlockHash:          ctypes.Hash(genHash),
+		Era:                ctypes.ExtrinsicEra{IsImmortalEra: false},
+		GenesisHash:        ctypes.Hash(genHash),
+		Nonce:              ctypes.NewUCompactFromUInt(nonce),
+		SpecVersion:        ctypes.U32(rv.SpecVersion()),
+		Tip:                ctypes.NewUCompactFromUInt(0),
+		TransactionVersion: ctypes.U32(rv.TransactionVersion()),
+	}
+
+	// Sign the transaction using Alice's key
+	err = ext.Sign(signature.TestKeyringPairAlice, o)
+	require.NoError(t, err)
+
+	extEnc, err := ctypes.EncodeToHexString(ext)
+	require.NoError(t, err)
+
+	return types.Extrinsic(common.MustHexToBytes(extEnc))
+}
+
 func TestInstance_Version_PolkadotRuntime(t *testing.T) {
 	expected := runtime.NewVersionData(
 		[]byte("polkadot"),
@@ -181,15 +220,28 @@ func balanceKey(t *testing.T, pub []byte) []byte { //nolint
 }
 
 func TestNodeRuntime_ValidateTransaction(t *testing.T) {
-	t.Skip("fixing next_key breaks this... :(")
+	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis.json")
+	require.NoError(t, err)
+
+	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	// set state to genesis state
+	genState, err := storage.NewTrieState(genTrie)
+	require.NoError(t, err)
+
+	cfg := &Config{}
+	cfg.Storage = genState
+	cfg.LogLvl = 4
+
+	rt, err := NewRuntimeFromGenesis(gen, cfg)
+	require.NoError(t, err)
+
 	alicePub := common.MustHexToBytes("0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d")
 	aliceBalanceKey := balanceKey(t, alicePub)
 
-	rt := NewTestInstance(t, runtime.NODE_RUNTIME)
-
 	accInfo := types.AccountInfo{
-		Nonce:    0,
-		RefCount: 0,
+		Nonce: 0,
 		Data: struct {
 			Free       common.Uint128
 			Reserved   common.Uint128
@@ -206,15 +258,20 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	encBal, err := ctypes.EncodeToBytes(accInfo)
 	require.NoError(t, err)
 
-	rt.ctx.Storage.Set(aliceBalanceKey, encBal)
+	rt.(*Instance).ctx.Storage.Set(aliceBalanceKey, encBal)
+	// this key is System.UpgradedToDualRefCount -> set to true since all accounts have been upgraded to v0.9 format
+	rt.(*Instance).ctx.Storage.Set(common.MustHexToBytes("0x26aa394eea5630e07c48ae0c9558cef7c21aab032aaa6e946ca50ad39ab66603"), []byte{1})
 
-	extBytes, err := common.HexToBytes("0x2d0284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01ccacd0447dd220241dfb510e6e0554dff73899e79a068c58c7a149f568c71e046893a7e4726b5532af338b7780d0e9a83e9acc00e1610b02468405b2394769840000000600ff90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22e5c0")
-	require.NoError(t, err)
+	genesisHeader := &types.Header{
+		ParentHash: common.Hash{},
+		Number:     big.NewInt(0),
+		StateRoot:  genTrie.MustHash(),
+	}
 
-	_ = buildBlock(t, rt)
+	ext := createTestExtrinsic(t, rt, genesisHeader.Hash(), 0)
+	ext = append([]byte{byte(types.TxnExternal)}, ext...)
 
-	ext := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, extBytes...))
-
+	_ = buildBlock(t, rt, genesisHeader.Hash())
 	_, err = rt.ValidateTransaction(ext)
 	require.NoError(t, err)
 }
@@ -371,9 +428,9 @@ func TestInstance_InitializeBlock_PolkadotRuntime(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func buildBlock(t *testing.T, instance runtime.Instance) *types.Block {
+func buildBlock(t *testing.T, instance runtime.Instance, parentHash common.Hash) *types.Block {
 	header := &types.Header{
-		ParentHash: trie.EmptyHash,
+		ParentHash: parentHash,
 		Number:     big.NewInt(1),
 		Digest:     types.Digest{},
 	}
@@ -440,12 +497,12 @@ func buildBlock(t *testing.T, instance runtime.Instance) *types.Block {
 
 func TestInstance_FinalizeBlock_NodeRuntime(t *testing.T) {
 	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
-	buildBlock(t, instance)
+	buildBlock(t, instance, common.Hash{})
 }
 
 func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {
 	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
-	block := buildBlock(t, instance)
+	block := buildBlock(t, instance, common.Hash{})
 
 	// reset state back to parent state before executing
 	parentState, err := storage.NewTrieState(nil)
@@ -475,7 +532,7 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 
 	instance, err := NewRuntimeFromGenesis(gen, cfg)
 	require.NoError(t, err)
-	block := buildBlock(t, instance)
+	block := buildBlock(t, instance, common.Hash{})
 
 	// reset state back to parent state before executing
 	parentState, err := storage.NewTrieState(genTrie)
@@ -484,45 +541,6 @@ func TestInstance_ExecuteBlock_GossamerRuntime(t *testing.T) {
 
 	_, err = instance.ExecuteBlock(block)
 	require.NoError(t, err)
-}
-
-func createTestExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic { //nolint
-	t.Helper()
-	rawMeta, err := rt.Metadata()
-	require.NoError(t, err)
-
-	decoded, err := scale.Decode(rawMeta, []byte{})
-	require.NoError(t, err)
-
-	meta := &ctypes.Metadata{}
-	err = ctypes.DecodeFromBytes(decoded.([]byte), meta)
-	require.NoError(t, err)
-
-	rv, err := rt.Version()
-	require.NoError(t, err)
-
-	c, err := ctypes.NewCall(meta, "System.remark", []byte{0xab, 0xcd})
-	require.NoError(t, err)
-
-	ext := ctypes.NewExtrinsic(c)
-	o := ctypes.SignatureOptions{
-		BlockHash:          ctypes.Hash(genHash),
-		Era:                ctypes.ExtrinsicEra{IsImmortalEra: false},
-		GenesisHash:        ctypes.Hash(genHash),
-		Nonce:              ctypes.NewUCompactFromUInt(nonce),
-		SpecVersion:        ctypes.U32(rv.SpecVersion()),
-		Tip:                ctypes.NewUCompactFromUInt(0),
-		TransactionVersion: ctypes.U32(rv.TransactionVersion()),
-	}
-
-	// Sign the transaction using Alice's key
-	err = ext.Sign(signature.TestKeyringPairAlice, o)
-	require.NoError(t, err)
-
-	extEnc, err := ctypes.EncodeToHexString(ext)
-	require.NoError(t, err)
-
-	return types.Extrinsic(common.MustHexToBytes(extEnc))
 }
 
 func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
@@ -569,7 +587,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime(t *testing.T) {
 	DefaultTestLogLvl = 0
 
 	instance := NewTestInstance(t, runtime.POLKADOT_RUNTIME)
-	block := buildBlock(t, instance)
+	block := buildBlock(t, instance, common.Hash{})
 
 	// reset state back to parent state before executing
 	parentState, err := storage.NewTrieState(nil)
