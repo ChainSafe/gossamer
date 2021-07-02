@@ -269,10 +269,14 @@ func determineErr(res []byte) error {
 				switch err := err.(type) {
 				case scale.WrappedErr:
 					return determineErrType(err.Err.(scale.VaryingDataType))
+				default:
+					return errInvalidResult
 				}
 			} else {
 				return determineErrType(ok.(scale.VaryingDataType))
 			}
+		default:
+			return errInvalidResult
 		}
 	} else {
 		switch o := ok.(type) {
@@ -282,11 +286,14 @@ func determineErr(res []byte) error {
 				switch err := err.(type) {
 				case scale.WrappedErr:
 					return determineErrType(err.Err.(scale.VaryingDataType))
+				default:
+					return errInvalidResult
 				}
 			} else {
 				return nil
 			}
+		default:
+			return errInvalidResult
 		}
 	}
-	return errInvalidResult
 }
