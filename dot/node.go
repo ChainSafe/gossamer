@@ -17,8 +17,8 @@
 package dot
 
 import (
+	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"os/signal"
 	"path"
@@ -28,7 +28,7 @@ import (
 	"syscall"
 	"time"
 
-	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
+	"github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
@@ -39,8 +39,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
-	"github.com/ethereum/go-ethereum/metrics"
-	"github.com/ethereum/go-ethereum/metrics/prometheus"
 )
 
 var logger = log.New("pkg", "dot")
@@ -51,6 +49,7 @@ type Node struct {
 	Services *services.ServiceRegistry // registry of all node services
 	StopFunc func()                    // func to call when node stops, currently used for profiling
 	wg       sync.WaitGroup
+	started  chan struct{}
 }
 
 // InitNode initialises a new dot node from the provided dot node configuration
@@ -323,6 +322,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		Name:     cfg.Global.Name,
 		StopFunc: stopFunc,
 		Services: services.NewServiceRegistry(),
+		started:  make(chan struct{}),
 	}
 
 	for _, srvc := range nodeSrvcs {
@@ -330,7 +330,15 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	}
 
 	if cfg.Global.PublishMetrics {
-		publishMetrics(cfg)
+		c := metrics.NewCollector(context.Background())
+		c.AddGauge(fg)
+		c.AddGauge(stateSrvc)
+
+		go c.Start()
+
+		address := fmt.Sprintf("%s:%d", cfg.RPC.Host, cfg.Global.MetricsPort)
+		log.Info("Enabling stand-alone metrics HTTP endpoint", "address", address)
+		metrics.PublishMetrics(address)
 	}
 
 	gd, err := stateSrvc.Base.LoadGenesisData()
@@ -343,43 +351,20 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	}
 
 	telemetry.GetInstance().AddConnections(gd.TelemetryEndpoints)
-
-	err = telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(
-		telemetry.NewKeyValue("authority", cfg.Core.GrandpaAuthority),
-		telemetry.NewKeyValue("chain", sysSrvc.ChainName()),
-		telemetry.NewKeyValue("genesis_hash", stateSrvc.Block.GenesisHash().String()),
-		telemetry.NewKeyValue("implementation", sysSrvc.SystemName()),
-		telemetry.NewKeyValue("msg", "system.connected"),
-		telemetry.NewKeyValue("name", cfg.Global.Name),
-		telemetry.NewKeyValue("network_id", networkSrvc.NetworkState().PeerID),
-		telemetry.NewKeyValue("startup_time", strconv.FormatInt(time.Now().UnixNano(), 10)),
-		telemetry.NewKeyValue("version", sysSrvc.SystemVersion())))
+	genesisHash := stateSrvc.Block.GenesisHash()
+	err = telemetry.GetInstance().SendMessage(telemetry.NewSystemConnectedTM(
+		cfg.Core.GrandpaAuthority,
+		sysSrvc.ChainName(),
+		&genesisHash,
+		sysSrvc.SystemName(),
+		cfg.Global.Name,
+		networkSrvc.NetworkState().PeerID,
+		strconv.FormatInt(time.Now().UnixNano(), 10),
+		sysSrvc.SystemVersion()))
 	if err != nil {
 		logger.Debug("problem sending system.connected telemetry message", "err", err)
 	}
 	return node, nil
-}
-
-func publishMetrics(cfg *Config) {
-	metrics.Enabled = true
-	address := fmt.Sprintf("%s:%d", cfg.RPC.Host, cfg.Global.MetricsPort)
-	log.Info("Enabling stand-alone metrics HTTP endpoint", "address", address)
-	setupMetricsServer(address)
-
-	// Start system runtime metrics collection
-	go gssmrmetrics.CollectProcessMetrics()
-}
-
-// setupMetricsServer starts a dedicated metrics server at the given address.
-func setupMetricsServer(address string) {
-	m := http.NewServeMux()
-	m.Handle("/metrics", prometheus.Handler(metrics.DefaultRegistry))
-	log.Info("Starting metrics server", "addr", fmt.Sprintf("http://%s/metrics", address))
-	go func() {
-		if err := http.ListenAndServe(address, m); err != nil {
-			log.Error("Failure in running metrics server", "err", err)
-		}
-	}()
 }
 
 // stores the global node name to reuse
@@ -429,8 +414,8 @@ func (n *Node) Start() error {
 	}()
 
 	n.wg.Add(1)
+	close(n.started)
 	n.wg.Wait()
-
 	return nil
 }
 

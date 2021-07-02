@@ -59,6 +59,7 @@ func NewMockSyncer() *MockSyncer {
 func NewMockTransactionHandler() *MockTransactionHandler {
 	mocktxhandler := new(MockTransactionHandler)
 	mocktxhandler.On("HandleTransactionMessage", mock.AnythingOfType("*network.TransactionMessage")).Return(nil)
+	mocktxhandler.On("TransactionsCount").Return(0)
 	return mocktxhandler
 }
 

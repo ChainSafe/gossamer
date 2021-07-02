@@ -26,7 +26,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -202,13 +201,6 @@ func (s *Service) Start() error {
 	}()
 
 	go s.sendNeighbourMessage()
-
-	go metrics.CollectGaugeMetrics(
-		metrics.Refresh,
-		finalityGrandpaRoundMetrics,
-		s,
-	)
-
 	return nil
 }
 
@@ -243,7 +235,14 @@ func (s *Service) authorities() []*types.Authority {
 	return ad
 }
 
-func (s *Service) Update() int64 { return int64(s.state.round) }
+func (s *Service) CollectGauge() map[string]int64 {
+	s.roundLock.Lock()
+	defer s.roundLock.Unlock()
+
+	return map[string]int64{
+		finalityGrandpaRoundMetrics: int64(s.state.round),
+	}
+}
 
 // updateAuthorities updates the grandpa voter set, increments the setID, and resets the round numbers
 func (s *Service) updateAuthorities() error {

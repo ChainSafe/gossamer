@@ -214,13 +214,19 @@ func TestSyncer_ExecuteBlock(t *testing.T) {
 func TestSyncer_HandleJustification(t *testing.T) {
 	syncer := NewTestSyncer(t, false)
 
+	d := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
 	header := &types.Header{
-		Number: big.NewInt(1),
+		ParentHash: syncer.blockState.(*state.BlockState).GenesisHash(),
+		Number:     big.NewInt(1),
+		Digest:     types.Digest{d},
 	}
 
 	just := []byte("testjustification")
 
-	err := syncer.blockState.SetHeader(header)
+	err := syncer.blockState.AddBlock(&types.Block{
+		Header: header,
+		Body:   &types.Body{},
+	})
 	require.NoError(t, err)
 
 	syncer.handleJustification(header, just)
@@ -236,6 +242,9 @@ func TestSyncer_ProcessJustification(t *testing.T) {
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 	block := BuildBlock(t, syncer.runtime, parent, nil)
+	block.Header.Digest = types.Digest{
+		types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+	}
 	err = syncer.blockState.(*state.BlockState).AddBlock(block)
 	require.NoError(t, err)
 

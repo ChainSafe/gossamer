@@ -33,6 +33,9 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
+const readyPoolTransactionsMetrics = "gossamer/ready/pool/transaction/metrics"
+const readyPriorityQueueTransactions = "gossamer/ready/queue/transaction/metrics"
+
 var logger = log.New("pkg", "state")
 
 // Service is the struct that holds storage, block and network states
@@ -180,7 +183,7 @@ func (s *Service) Start() error {
 	s.Transaction = NewTransactionState()
 
 	// create epoch state
-	s.Epoch, err = NewEpochState(db)
+	s.Epoch, err = NewEpochState(db, s.Block)
 	if err != nil {
 		return fmt.Errorf("failed to create epoch state: %w", err)
 	}
@@ -328,7 +331,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		db: chaindb.NewTable(s.db, storagePrefix),
 	}
 
-	epoch, err := NewEpochState(s.db)
+	epoch, err := NewEpochState(s.db, block)
 	if err != nil {
 		return err
 	}
@@ -339,7 +342,6 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		return err
 	}
 
-	epoch.firstSlot = firstSlot
 	blockEpoch, err := epoch.GetEpochForBlock(header)
 	if err != nil {
 		return err
@@ -395,4 +397,12 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 	}
 
 	return s.db.Close()
+}
+
+// CollectGauge exports 2 metrics related to valid transaction pool and queue
+func (s *Service) CollectGauge() map[string]int64 {
+	return map[string]int64{
+		readyPoolTransactionsMetrics:   int64(s.Transaction.pool.Len()),
+		readyPriorityQueueTransactions: int64(s.Transaction.queue.Len()),
+	}
 }
