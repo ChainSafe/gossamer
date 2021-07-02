@@ -88,7 +88,7 @@ build-debug: clean
 
 ## init: Initialise gossamer using the default genesis and toml configuration files
 init:
-	./bin/gossamer --key alice init --genesis chain/gssmr/genesis.json --force
+	./bin/gossamer init --force
 
 ## init-repo: Set initial configuration for the repo
 init-repo:
