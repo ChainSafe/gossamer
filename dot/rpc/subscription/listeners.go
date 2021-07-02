@@ -17,6 +17,7 @@ package subscription
 
 import (
 	"fmt"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"reflect"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
@@ -191,27 +192,34 @@ func (l *ExtrinsicSubmitListener) Listen() {
 
 // RuntimeVersionListener to handle listening for Runtime Version
 type RuntimeVersionListener struct {
-	wsconn *WSConn
+	wsconn WSConnAPI
 	subID  uint
+	runtimeUpdate chan runtime.Version
 }
 
 // Listen implementation of Listen interface to listen for runtime version changes
 func (l *RuntimeVersionListener) Listen() {
 	// This sends current runtime version once when subscription is created
 	// TODO (ed) add logic to send updates when runtime version changes
-	rtVersion, err := l.wsconn.CoreAPI.GetRuntimeVersion(nil)
-	if err != nil {
-		return
-	}
-	ver := modules.StateRuntimeVersionResponse{}
+	// todo (ed) figure out how to send current rt version (get ref to CoreAPI)
+	//rtVersion, err := l.wsconn.CoreAPI.GetRuntimeVersion(nil)
+	//if err != nil {
+	//	return
+	//}
+	//ver := modules.StateRuntimeVersionResponse{}
+	//
+	//ver.SpecName = string(rtVersion.SpecName())
+	//ver.ImplName = string(rtVersion.ImplName())
+	//ver.AuthoringVersion = rtVersion.AuthoringVersion()
+	//ver.SpecVersion = rtVersion.SpecVersion()
+	//ver.ImplVersion = rtVersion.ImplVersion()
+	//ver.TransactionVersion = rtVersion.TransactionVersion()
+	//ver.Apis = modules.ConvertAPIs(rtVersion.APIItems())
 
-	ver.SpecName = string(rtVersion.SpecName())
-	ver.ImplName = string(rtVersion.ImplName())
-	ver.AuthoringVersion = rtVersion.AuthoringVersion()
-	ver.SpecVersion = rtVersion.SpecVersion()
-	ver.ImplVersion = rtVersion.ImplVersion()
-	ver.TransactionVersion = rtVersion.TransactionVersion()
-	ver.Apis = modules.ConvertAPIs(rtVersion.APIItems())
-
-	l.wsconn.safeSend(newSubscriptionResponse("state_runtimeVersion", l.subID, ver))
+	//l.wsconn.safeSend(newSubscriptionResponse("state_runtimeVersion", l.subID, ver))
+	go func() {
+		for info := range l.runtimeUpdate {
+			fmt.Printf("runtime info %v\n", info)
+		}
+	}()
 }

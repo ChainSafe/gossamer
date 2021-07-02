@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"io/ioutil"
 	"math/big"
 	"net/http"
@@ -356,11 +357,19 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (uint, er
 func (c *WSConn) initRuntimeVersionListener(reqID float64) (uint, error) {
 	rvl := &RuntimeVersionListener{
 		wsconn: c,
+		runtimeUpdate: make(chan runtime.Version),
 	}
 	if c.CoreAPI == nil {
 		c.safeSendError(reqID, nil, "error CoreAPI not set")
 		return 0, fmt.Errorf("error CoreAPI not set")
 	}
+
+	id, err := c.CoreAPI.RegisterRuntimeUpdatedChannel(rvl.runtimeUpdate)
+	if err != nil {
+		return 0, err
+	}
+	fmt.Printf("registered update channel %v\n", id)
+
 	c.qtyListeners++
 	rvl.subID = c.qtyListeners
 	c.Subscriptions[rvl.subID] = rvl

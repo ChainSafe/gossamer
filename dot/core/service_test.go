@@ -17,6 +17,7 @@
 package core
 
 import (
+	"fmt"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -455,6 +456,8 @@ func TestService_GetMetadata(t *testing.T) {
 func TestService_HandleRuntimeChanges(t *testing.T) {
 	s := NewTestService(t, nil)
 	codeHashBefore := s.codeHash
+upChan := make(chan runtime.Version)
+s.RegisterRuntimeUpdatedChannel(upChan)
 
 	testRuntime, err := ioutil.ReadFile(runtime.POLKADOT_RUNTIME_FP)
 	require.NoError(t, err)
@@ -463,7 +466,9 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	require.NoError(t, err)
 
 	ts.Set(common.CodeKey, testRuntime)
-	err = s.handleRuntimeChanges(ts)
+go s.handleRuntimeChanges(ts)
+resUp := <- upChan
+fmt.Printf("ForUP %v\n", resUp)
 	require.NoError(t, err)
 	codeHashAfter := s.codeHash
 	require.NotEqualf(t, codeHashBefore, codeHashAfter, "expected different code hash after runtime update")

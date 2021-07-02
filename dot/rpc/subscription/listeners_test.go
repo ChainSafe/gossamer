@@ -17,7 +17,11 @@
 package subscription
 
 import (
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	"io/ioutil"
 	"math/big"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -158,4 +162,40 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	resFinalised := map[string]interface{}{"finalised": block.Header.Hash().String()}
 	expectedFinalizedRespones := newSubscriptionResponse(AuthorExtrinsicUpdates, esl.subID, resFinalised)
 	require.Equal(t, expectedFinalizedRespones, mockConnection.lastMessage)
+}
+
+func TestRuntimeChannelListener_Listen(t *testing.T) {
+	notifyChan := make(chan runtime.Version)
+	mockConnection := &MockWSConnAPI{}
+	rvl := RuntimeVersionListener{
+		wsconn:        mockConnection,
+		subID:         0,
+		runtimeUpdate: notifyChan,
+	}
+
+	instance := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
+	_, err := runtime.GetRuntimeBlob(runtime.POLKADOT_RUNTIME_FP, runtime.POLKADOT_RUNTIME_URL)
+	require.NoError(t, err)
+	fp, err := filepath.Abs(runtime.POLKADOT_RUNTIME_FP)
+	require.NoError(t, err)
+	code, err := ioutil.ReadFile(fp)
+	require.NoError(t, err)
+	version, err := instance.CheckRuntimeVersion(code)
+	require.NoError(t, err)
+
+	//block := runtime.Version()
+	//block.Header.Number = big.NewInt(1)
+	//
+	//head, err := modules.HeaderToJSON(*block.Header)
+	//require.NoError(t, err)
+	//
+	expectedResposnse := newSubcriptionBaseResponseJSON()
+	//expectedResposnse.Method = "chain_newHead"
+	//expectedResposnse.Params.Result = head
+
+	go rvl.Listen()
+
+	notifyChan <- version
+	time.Sleep(time.Millisecond * 10)
+	require.Equal(t, expectedResposnse, mockConnection.lastMessage)
 }

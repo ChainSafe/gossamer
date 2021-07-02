@@ -18,8 +18,10 @@ package core
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
+	"math/rand"
 	"os"
 	"sync"
 
@@ -69,6 +71,9 @@ type Service struct {
 
 	// Keystore
 	keys *keystore.GlobalKeystore
+
+	runtimeChangedLock  sync.RWMutex
+	runtimeChanged      map[byte]chan<- runtime.Version
 }
 
 // Config holds the configuration for the core Service.
@@ -151,6 +156,7 @@ func NewService(cfg *Config) (*Service, error) {
 		codeSubstitute:       cfg.CodeSubstitutes,
 		codeSubstitutedState: cfg.CodeSubstitutedState,
 		digestHandler:        cfg.DigestHandler,
+		runtimeChanged: make(map[byte]chan<- runtime.Version),
 	}
 
 	return srv, nil
@@ -308,6 +314,11 @@ func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {
 		return err
 	}
 
+	ver, err := s.rt.Version()
+	if err == nil {
+		go s.notifyRuntimeUpdated(ver)
+	}
+
 	s.codeHash = currCodeHash
 
 	err = s.codeSubstitutedState.StoreCodeSubstitutedBlockHash(common.Hash{})
@@ -463,6 +474,25 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 	return nil
 }
 
+func (s *Service) notifyRuntimeUpdated(version runtime.Version) {
+	s.runtimeChangedLock.RLock()
+	defer s.runtimeChangedLock.RUnlock()
+
+	if len(s.runtimeChanged) == 0 {
+		return
+	}
+
+	logger.Info("notifying runtime updated chans...", "chans", s.runtimeChanged)
+	for _, ch := range s.runtimeChanged {
+		go func(ch chan<- runtime.Version) {
+			select {
+			case ch <- version:
+			default:
+			}
+		}(ch)
+	}
+}
+
 // maintainTransactionPool removes any transactions that were included in the new block, revalidates the transactions in the pool,
 // and moves them to the queue if valid.
 // See https://github.com/paritytech/substrate/blob/74804b5649eccfb83c90aec87bdca58e5d5c8789/client/transaction-pool/src/lib.rs#L545
@@ -584,4 +614,33 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 
 	s.rt.SetContextStorage(ts)
 	return s.rt.Metadata()
+}
+
+func (s *Service)  RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (byte, error) {
+	s.runtimeChangedLock.RLock()
+
+	if len(s.runtimeChanged) == 256 {
+		return 0, errors.New("channel limit reached")
+	}
+
+	var id byte
+	for {
+		id = generateID()
+		if s.runtimeChanged[id] == nil {
+			break
+		}
+	}
+
+	s.runtimeChangedLock.RUnlock()
+
+	s.runtimeChangedLock.Lock()
+	s.runtimeChanged[id] = ch
+	s.runtimeChangedLock.Unlock()
+	return id, nil
+}
+
+func generateID() byte {
+	// skipcq: GSC-G404
+	id := rand.Intn(256) //nolint
+	return byte(id)
 }
