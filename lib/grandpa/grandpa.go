@@ -235,6 +235,7 @@ func (s *Service) authorities() []*types.Authority {
 	return ad
 }
 
+// CollectGauge returns the map between metrics label and value
 func (s *Service) CollectGauge() map[string]int64 {
 	s.roundLock.Lock()
 	defer s.roundLock.Unlock()
