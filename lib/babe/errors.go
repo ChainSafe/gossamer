@@ -214,14 +214,7 @@ func determineDispatchErr(vdt scale.VaryingDataType) error {
 	return errInvalidResult
 }
 
-func determineInvalidTxnErr(res []byte) error {
-	var c InvalidCustom
-	vdt := scale.MustNewVaryingDataType(Call{}, Payment{}, Future{}, Stale{}, BadProof{}, AncientBirthBlock{},
-		ExhaustsResources{}, c, BadMandatory{}, MandatoryDispatch{})
-	err := scale.Unmarshal(res, &vdt)
-	if err != nil {
-		return &UnmarshalError{err.Error()}
-	}
+func determineInvalidTxnErr(vdt scale.VaryingDataType) error {
 	switch val := vdt.Value().(type) {
 	case Call:
 		return &TransactionValidityError{"call of the transaction is not expected"}
@@ -247,13 +240,7 @@ func determineInvalidTxnErr(res []byte) error {
 	return errInvalidResult
 }
 
-func determineUnknownTxnErr(res []byte) error {
-	var c UnknownCustom
-	vdt := scale.MustNewVaryingDataType(ValidityCannotLookup{}, NoUnsignedValidator{}, c)
-	err := scale.Unmarshal(res, &vdt)
-	if err != nil {
-		return &UnmarshalError{err.Error()}
-	}
+func determineUnknownTxnErr(vdt scale.VaryingDataType) error {
 	switch val := vdt.Value().(type) {
 	case ValidityCannotLookup:
 		return &TransactionValidityError{"lookup failed"}
@@ -265,36 +252,52 @@ func determineUnknownTxnErr(res []byte) error {
 	return errInvalidResult
 }
 
-// TODO wrap all errors in a Result to unmarshall
 func determineErr(res []byte) error {
-	switch res[0] {
-	case 0:
-		var e Other
-		vdt := scale.MustNewVaryingDataType(e, CannotLookup{}, BadOrigin{}, Module{})
-		r := scale.NewResult(nil, vdt)
-		err := scale.Unmarshal(res[1:], &r)
-		if err != nil {
-			return err
-		}
+	var other Other
+	var invalidCustom InvalidCustom
+	var unknownCustom UnknownCustom
 
-		_, err = r.Unwrap()
-		if err != nil {
-			switch err := err.(type) {
-			case scale.WrappedErr:
-				vdt := err.Err.(scale.VaryingDataType)
-				return determineDispatchErr(vdt)
-			default:
-				return &UnmarshalError{"Unexpected result error type"}
+	dispatchError := scale.MustNewVaryingDataType(other, CannotLookup{}, BadOrigin{}, Module{})
+	invalid := scale.MustNewVaryingDataType(Call{}, Payment{}, Future{}, Stale{}, BadProof{}, AncientBirthBlock{},
+		ExhaustsResources{}, invalidCustom, BadMandatory{}, MandatoryDispatch{})
+	unknown := scale.MustNewVaryingDataType(ValidityCannotLookup{}, NoUnsignedValidator{}, unknownCustom)
+
+	okRes := scale.NewResult(nil, dispatchError)
+	errRes := scale.NewResult(invalid, unknown)
+	result := scale.NewResult(okRes, errRes)
+
+	err := scale.Unmarshal(res, &result)
+	if err != nil {
+		return err
+	}
+
+	ok, err := result.Unwrap()
+	if err != nil {
+		switch o := err.(type) {
+		case scale.WrappedErr:
+			errResult := o.Err.(scale.Result)
+			ok, err = errResult.Unwrap()
+			if err != nil {
+				switch err := err.(type) {
+				case scale.WrappedErr:
+					return determineUnknownTxnErr(err.Err.(scale.VaryingDataType))
+				}
+			} else {
+				return determineInvalidTxnErr(ok.(scale.VaryingDataType))
 			}
-		} else {
-			return nil
 		}
-	case 1:
-		switch res[1] {
-		case 0:
-			return determineInvalidTxnErr(res[2:])
-		case 1:
-			return determineUnknownTxnErr(res[2:])
+	} else {
+		switch o := ok.(type) {
+		case scale.Result:
+			ok, err = o.Unwrap()
+			if err != nil {
+				switch err := err.(type) {
+				case scale.WrappedErr:
+					return  determineDispatchErr(err.Err.(scale.VaryingDataType))
+				}
+			} else {
+				return nil
+			}
 		}
 	}
 	return errInvalidResult
