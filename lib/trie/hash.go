@@ -28,20 +28,10 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type sliceBuffer []byte
-
-func (b *sliceBuffer) write(data []byte) {
-	*b = append(*b, data...)
-}
-
-func (b *sliceBuffer) reset() {
-	*b = (*b)[:0]
-}
-
 // Hasher is a wrapper around a hash function
 type Hasher struct {
 	hash     hash.Hash
-	tmp      sliceBuffer
+	tmp      bytes.Buffer
 	parallel bool // Whether to use parallel threads when hashing
 }
 
@@ -49,9 +39,12 @@ type Hasher struct {
 var hasherPool = sync.Pool{
 	New: func() interface{} {
 		h, _ := blake2b.New256(nil)
+		var buf bytes.Buffer
+		// This allocation will be helpful for encoding keys. This is the min buffer size.
+		buf.Grow(700)
 
 		return &Hasher{
-			tmp:  make(sliceBuffer, 0, 520), // cap is as large as a full branch node.
+			tmp:  buf,
 			hash: h,
 		}
 	},
@@ -65,7 +58,7 @@ func NewHasher(parallel bool) *Hasher {
 }
 
 func (h *Hasher) returnToPool() {
-	h.tmp.reset()
+	h.tmp.Reset()
 	h.hash.Reset()
 	hasherPool.Put(h)
 }
@@ -129,25 +122,25 @@ func (h *Hasher) encodeBranch(b *branch) ([]byte, error) {
 	if !b.dirty && b.encoding != nil {
 		return b.encoding, nil
 	}
-	h.tmp.reset()
+	h.tmp.Reset()
 
 	encoding, err := b.header()
-	h.tmp.write(encoding)
+	h.tmp.Write(encoding)
 	if err != nil {
 		return nil, err
 	}
 
-	h.tmp.write(nibblesToKeyLE(b.key))
-	h.tmp.write(common.Uint16ToBytes(b.childrenBitmap()))
+	h.tmp.Write(nibblesToKeyLE(b.key))
+	h.tmp.Write(common.Uint16ToBytes(b.childrenBitmap()))
 
 	if b.value != nil {
 		buffer := bytes.Buffer{}
 		se := scale.Encoder{Writer: &buffer}
 		_, err = se.Encode(b.value)
 		if err != nil {
-			return h.tmp, err
+			return nil, err
 		}
-		h.tmp.write(buffer.Bytes())
+		h.tmp.Write(buffer.Bytes())
 	}
 
 	if h.parallel {
@@ -176,7 +169,7 @@ func (h *Hasher) encodeBranch(b *branch) ([]byte, error) {
 
 		for _, v := range resBuff {
 			if v != nil {
-				h.tmp.write(v)
+				h.tmp.Write(v)
 			}
 		}
 	} else {
@@ -186,12 +179,12 @@ func (h *Hasher) encodeBranch(b *branch) ([]byte, error) {
 				if err != nil {
 					return nil, err
 				}
-				h.tmp.write(scEncChild)
+				h.tmp.Write(scEncChild)
 			}
 		}
 	}
 
-	return h.tmp, nil
+	return h.tmp.Bytes(), nil
 }
 
 // encodeLeaf encodes a leaf with the encoding specified at the top of this package
@@ -200,15 +193,15 @@ func (h *Hasher) encodeLeaf(l *leaf) ([]byte, error) {
 		return l.encoding, nil
 	}
 
-	h.tmp.reset()
+	h.tmp.Reset()
 
 	encoding, err := l.header()
-	h.tmp.write(encoding)
+	h.tmp.Write(encoding)
 	if err != nil {
 		return nil, err
 	}
 
-	h.tmp.write(nibblesToKeyLE(l.key))
+	h.tmp.Write(nibblesToKeyLE(l.key))
 
 	buffer := bytes.Buffer{}
 	se := scale.Encoder{Writer: &buffer}
@@ -218,7 +211,7 @@ func (h *Hasher) encodeLeaf(l *leaf) ([]byte, error) {
 		return nil, err
 	}
 
-	h.tmp.write(buffer.Bytes())
-	l.encoding = h.tmp
-	return h.tmp, nil
+	h.tmp.Write(buffer.Bytes())
+	l.encoding = h.tmp.Bytes()
+	return h.tmp.Bytes(), nil
 }
