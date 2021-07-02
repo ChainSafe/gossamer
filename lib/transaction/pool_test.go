@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
 
@@ -93,12 +94,12 @@ func TestPoolCollectMetrics(t *testing.T) {
 		h[i] = p.Insert(v)
 	}
 
-	time.Sleep(collectTxMetricsTimeout + time.Second)
+	time.Sleep(metrics.Refresh + time.Second)
 	require.Equal(t, int64(len(validtx)), txmetrics.Value())
 
 	p.Remove(h[0])
 
-	time.Sleep(collectTxMetricsTimeout + time.Second)
+	time.Sleep(metrics.Refresh + time.Second)
 	fmt.Println(len(p.transactions))
 	require.Equal(t, int64(len(validtx)-1), txmetrics.Value())
 }

@@ -18,12 +18,10 @@ package transaction
 
 import (
 	"sync"
-	"time"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-const collectTxMetricsTimeout = time.Second * 5
 const readyTransactionsMetrics = "gossamer/ready/transaction/metrics"
 
 // Pool represents the transaction pool

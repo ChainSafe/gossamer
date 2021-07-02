@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/metrics"
 	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 	"github.com/stretchr/testify/require"
 )
@@ -64,7 +65,7 @@ func TestPriorityQueue(t *testing.T) {
 	}
 
 	// wait for metrics to be collected
-	time.Sleep(collectTxMetricsTimeout + time.Second)
+	time.Sleep(metrics.Refresh + time.Second)
 	require.Equal(t, int64(len(tests)), priorityQueueM.Value())
 
 	for i, exp := range expected {
@@ -77,7 +78,7 @@ func TestPriorityQueue(t *testing.T) {
 	}
 
 	// wait for metrics to be collected
-	time.Sleep(collectTxMetricsTimeout + time.Second)
+	time.Sleep(metrics.Refresh + time.Second)
 	require.Equal(t, int64(pq.pq.Len()), priorityQueueM.Value())
 }
 
