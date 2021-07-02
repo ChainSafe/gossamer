@@ -321,7 +321,7 @@ func (s *Service) broadcastExcluding(info *notificationsProtocol, excluding peer
 }
 
 func (s *Service) readHandshake(stream libp2pnetwork.Stream, decoder HandshakeDecoder) <-chan *handshakeReader {
-	hsC := make(chan *handshakeReader, 100)
+	hsC := make(chan *handshakeReader)
 
 	go func() {
 		msgBytes := s.bufPool.get()
