@@ -199,7 +199,7 @@ type MandatoryDispatch struct{}
 // Index Returns VDT index
 func (err MandatoryDispatch) Index() uint { return 9 }
 
-func determineDispatchErr(vdt scale.VaryingDataType) error {
+func determineErrType(vdt scale.VaryingDataType) error {
 	switch val := vdt.Value().(type) {
 	case Other:
 		return &DispatchOutcomeError{fmt.Sprintf("unknown error: %s", val)}
@@ -209,13 +209,6 @@ func determineDispatchErr(vdt scale.VaryingDataType) error {
 		return &DispatchOutcomeError{"bad origin"}
 	case Module:
 		return &DispatchOutcomeError{fmt.Sprintf("custom module error: %s", val.string())}
-	}
-
-	return errInvalidResult
-}
-
-func determineInvalidTxnErr(vdt scale.VaryingDataType) error {
-	switch val := vdt.Value().(type) {
 	case Call:
 		return &TransactionValidityError{"call of the transaction is not expected"}
 	case Payment:
@@ -236,12 +229,6 @@ func determineInvalidTxnErr(vdt scale.VaryingDataType) error {
 		return &TransactionValidityError{"mandatory dispatch error"}
 	case MandatoryDispatch:
 		return &TransactionValidityError{"invalid mandatory dispatch"}
-	}
-	return errInvalidResult
-}
-
-func determineUnknownTxnErr(vdt scale.VaryingDataType) error {
-	switch val := vdt.Value().(type) {
 	case ValidityCannotLookup:
 		return &TransactionValidityError{"lookup failed"}
 	case NoUnsignedValidator:
@@ -249,6 +236,7 @@ func determineUnknownTxnErr(vdt scale.VaryingDataType) error {
 	case UnknownCustom:
 		return &TransactionValidityError{fmt.Sprintf("unknown error: %d", val)}
 	}
+
 	return errInvalidResult
 }
 
@@ -268,7 +256,7 @@ func determineErr(res []byte) error {
 
 	err := scale.Unmarshal(res, &result)
 	if err != nil {
-		return err
+		return &UnmarshalError{err.Error()}
 	}
 
 	ok, err := result.Unwrap()
@@ -280,20 +268,20 @@ func determineErr(res []byte) error {
 			if err != nil {
 				switch err := err.(type) {
 				case scale.WrappedErr:
-					return determineUnknownTxnErr(err.Err.(scale.VaryingDataType))
+					return determineErrType(err.Err.(scale.VaryingDataType))
 				}
 			} else {
-				return determineInvalidTxnErr(ok.(scale.VaryingDataType))
+				return determineErrType(ok.(scale.VaryingDataType))
 			}
 		}
 	} else {
 		switch o := ok.(type) {
 		case scale.Result:
-			ok, err = o.Unwrap()
+			_, err = o.Unwrap()
 			if err != nil {
 				switch err := err.(type) {
 				case scale.WrappedErr:
-					return  determineDispatchErr(err.Err.(scale.VaryingDataType))
+					return determineErrType(err.Err.(scale.VaryingDataType))
 				}
 			} else {
 				return nil
