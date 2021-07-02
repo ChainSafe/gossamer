@@ -236,7 +236,6 @@ func TestService_PruneStorage(t *testing.T) {
 	}
 
 	var toFinalize common.Hash
-
 	for i := 0; i < 3; i++ {
 		block, trieState := generateBlockWithRandomTrie(t, serv, nil, int64(i+1))
 		block.Header.Digest = types.Digest{

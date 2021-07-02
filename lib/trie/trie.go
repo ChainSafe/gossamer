@@ -33,6 +33,7 @@ type Trie struct {
 	root        node
 	childTries  map[common.Hash]*Trie // Used to store the child tries.
 	deletedKeys []common.Hash
+	parallel    bool
 }
 
 // NewEmptyTrie creates a trie with a nil root
@@ -47,6 +48,7 @@ func NewTrie(root node) *Trie {
 		childTries:  make(map[common.Hash]*Trie),
 		generation:  0, // Initially zero but increases after every snapshot.
 		deletedKeys: make([]common.Hash, 0),
+		parallel:    true,
 	}
 }
 
@@ -107,7 +109,9 @@ func (t *Trie) RootNode() node { //nolint
 
 // EncodeRoot returns the encoded root of the trie
 func (t *Trie) EncodeRoot() ([]byte, error) {
-	return encode(t.RootNode())
+	h := NewHasher(t.parallel)
+	defer h.returnToPool()
+	return h.encode(t.RootNode())
 }
 
 // MustHash returns the hashed root of the trie. It panics if it fails to hash the root node.
