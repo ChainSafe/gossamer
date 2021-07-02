@@ -47,7 +47,7 @@ var (
 	// InitConfig
 
 	// DefaultGenesis is the default genesis configuration path
-	DefaultGenesis = string("./chain/gssmr/genesis.json")
+	DefaultGenesis = string("./chain/gssmr/genesis-spec.json")
 
 	// AccountConfig
 
