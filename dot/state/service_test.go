@@ -17,21 +17,25 @@
 package state
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"math/big"
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/ChainSafe/chaindb"
 	log "github.com/ChainSafe/log15"
+	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 	"github.com/stretchr/testify/require"
 )
 
@@ -399,4 +403,54 @@ func TestService_Import(t *testing.T) {
 
 	err = serv.Stop()
 	require.NoError(t, err)
+}
+
+func TestStateServiceMetrics(t *testing.T) {
+	testDir := utils.NewTestDir(t)
+	defer utils.RemoveTestDir(t)
+
+	config := Config{
+		Path:     testDir,
+		LogLevel: log.LvlInfo,
+	}
+	ethmetrics.Enabled = true
+	serv := NewService(config)
+	serv.Transaction = NewTransactionState()
+
+	m := metrics.NewCollector(context.Background())
+	m.AddGauge(serv)
+	go m.Start()
+
+	vtxs := []*transaction.ValidTransaction{
+		{
+			Extrinsic: []byte("a"),
+			Validity:  &transaction.Validity{Priority: 1},
+		},
+		{
+			Extrinsic: []byte("b"),
+			Validity:  &transaction.Validity{Priority: 4},
+		},
+	}
+
+	hashes := make([]common.Hash, len(vtxs))
+	for i, v := range vtxs {
+		h := serv.Transaction.pool.Insert(v)
+		serv.Transaction.queue.Push(v)
+
+		hashes[i] = h
+	}
+
+	time.Sleep(time.Second + metrics.Refresh)
+	gpool := ethmetrics.GetOrRegisterGauge(readyPoolTransactionsMetrics, nil)
+	gqueue := ethmetrics.GetOrRegisterGauge(readyPriorityQueueTransactions, nil)
+
+	require.Equal(t, int64(2), gpool.Value())
+	require.Equal(t, int64(2), gqueue.Value())
+
+	serv.Transaction.pool.Remove(hashes[0])
+	serv.Transaction.queue.Pop()
+
+	time.Sleep(time.Second + metrics.Refresh)
+	require.Equal(t, int64(1), gpool.Value())
+	require.Equal(t, int64(1), gqueue.Value())
 }
