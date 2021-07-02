@@ -260,7 +260,7 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 
 	rt.(*Instance).ctx.Storage.Set(aliceBalanceKey, encBal)
 	// this key is System.UpgradedToDualRefCount -> set to true since all accounts have been upgraded to v0.9 format
-	rt.(*Instance).ctx.Storage.Set(common.MustHexToBytes("0x26aa394eea5630e07c48ae0c9558cef7c21aab032aaa6e946ca50ad39ab66603"), []byte{1})
+	rt.(*Instance).ctx.Storage.Set(common.UpgradedToDualRefKey, []byte{1})
 
 	genesisHeader := &types.Header{
 		ParentHash: common.Hash{},
