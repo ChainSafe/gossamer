@@ -215,3 +215,23 @@ func (l *RuntimeVersionListener) Listen() {
 
 	l.wsconn.safeSend(newSubscriptionResponse("state_runtimeVersion", l.subID, ver))
 }
+
+type GrandpaJustificationListener struct {
+	wsconn *WSConn
+	subID  uint
+
+	finalisedChID byte
+	finalisedCh   chan *types.FinalisationInfo
+}
+
+const grandpaJustifications = "grandpa_justifications"
+
+func (g *GrandpaJustificationListener) Listen() {
+	// listen for finalised headers
+	go func() {
+		for info := range g.finalisedCh {
+			hash := info.Header.Hash().String()
+			g.wsconn.safeSend(newSubscriptionResponse(grandpaJustifications, g.subID, hash))
+		}
+	}()
+}

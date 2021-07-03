@@ -81,35 +81,48 @@ func (c *WSConn) HandleComm() {
 			reqid := msg["id"].(float64)
 			switch method {
 			case "chain_subscribeNewHeads", "chain_subscribeNewHead":
-				bl, err1 := c.initBlockListener(reqid)
-				if err1 != nil {
+				bl, err := c.initBlockListener(reqid)
+				if err != nil {
 					logger.Warn("failed to create block listener", "error", err)
 					continue
 				}
 				c.startListener(bl)
+
 			case "state_subscribeStorage":
-				_, err2 := c.initStorageChangeListener(reqid, params)
-				if err2 != nil {
-					logger.Warn("failed to create state change listener", "error", err2)
+				_, err := c.initStorageChangeListener(reqid, params)
+				if err != nil {
+					logger.Warn("failed to create state change listener", "error", err)
 					continue
 				}
 
 			case "chain_subscribeFinalizedHeads":
-				bfl, err3 := c.initBlockFinalizedListener(reqid)
-				if err3 != nil {
-					logger.Warn("failed to create block finalised", "error", err3)
+				bfl, err := c.initBlockFinalizedListener(reqid)
+				if err != nil {
+					logger.Warn("failed to create block finalised", "error", err)
 					continue
 				}
 				c.startListener(bfl)
 			case "state_subscribeRuntimeVersion":
-				rvl, err4 := c.initRuntimeVersionListener(reqid)
-				if err4 != nil {
-					logger.Warn("failed to create runtime version listener", "error", err4)
+				rvl, err := c.initRuntimeVersionListener(reqid)
+				if err != nil {
+					logger.Warn("failed to create runtime version listener", "error", err)
 					continue
 				}
 				c.startListener(rvl)
 			case "state_unsubscribeStorage":
 				c.unsubscribeStorageListener(reqid, params)
+
+			case "grandpa_subscribeJustifications":
+				gjl, err := c.initGrandpaJustificationListener(reqid)
+				if err != nil {
+					logger.Warn("failed to create grandpa justification listener", "error", err)
+					continue
+				}
+
+				c.startListener(gjl)
+
+			case "grandpa_unsubscribeJustifications":
+				c.unsubscribeGrandpaJustificationListener(reqid, params)
 
 			}
 			continue
@@ -368,6 +381,64 @@ func (c *WSConn) initRuntimeVersionListener(reqID float64) (uint, error) {
 	c.safeSend(initRes)
 
 	return rvl.subID, nil
+}
+
+func (c *WSConn) initGrandpaJustificationListener(reqID float64) (uint, error) {
+	c.qtyListeners++
+
+	jl := &GrandpaJustificationListener{
+		wsconn:      c,
+		subID:       c.qtyListeners,
+		finalisedCh: make(chan *types.FinalisationInfo, 1),
+	}
+
+	var err error
+
+	jl.finalisedChID, err = c.BlockAPI.RegisterFinalizedChannel(jl.finalisedCh)
+	if err != nil {
+		return 0, err
+	}
+
+	c.Subscriptions[jl.subID] = jl
+	return jl.subID, nil
+}
+
+func (c *WSConn) unsubscribeGrandpaJustificationListener(reqID float64, params interface{}) {
+	switch v := params.(type) {
+	case []interface{}:
+		if len(v) == 0 {
+			c.safeSendError(reqID, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
+			return
+		}
+	default:
+		c.safeSendError(reqID, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
+		return
+	}
+
+	var id uint
+	switch v := params.([]interface{})[0].(type) {
+	case float64:
+		id = uint(v)
+	case string:
+		i, err := strconv.ParseInt(v, 10, 32)
+		if err != nil {
+			c.safeSend(newBooleanResponseJSON(false, reqID))
+			return
+		}
+		id = uint(i)
+	default:
+		c.safeSendError(reqID, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
+		return
+	}
+
+	listener, ok := c.Subscriptions[id].(*GrandpaJustificationListener)
+	if !ok {
+		c.safeSend(newBooleanResponseJSON(false, reqID))
+		return
+	}
+
+	c.BlockAPI.UnregisterFinalizedChannel(listener.finalisedChID)
+	c.safeSend(newBooleanResponseJSON(true, reqID))
 }
 
 func (c *WSConn) safeSend(msg interface{}) {
