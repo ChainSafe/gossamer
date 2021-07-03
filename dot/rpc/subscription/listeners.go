@@ -16,6 +16,7 @@
 package subscription
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 
@@ -217,6 +218,8 @@ func (l *RuntimeVersionListener) Listen() {
 }
 
 type GrandpaJustificationListener struct {
+	cancel context.CancelFunc
+	ctx    context.Context
 	wsconn *WSConn
 	subID  uint
 
@@ -229,9 +232,14 @@ const grandpaJustifications = "grandpa_justifications"
 func (g *GrandpaJustificationListener) Listen() {
 	// listen for finalised headers
 	go func() {
-		for info := range g.finalisedCh {
-			hash := info.Header.Hash().String()
-			g.wsconn.safeSend(newSubscriptionResponse(grandpaJustifications, g.subID, hash))
+		for {
+			select {
+			case info := <-g.finalisedCh:
+				hash := info.Header.Hash().String()
+				g.wsconn.safeSend(newSubscriptionResponse(grandpaJustifications, g.subID, hash))
+			case <-g.ctx.Done():
+				return
+			}
 		}
 	}()
 }

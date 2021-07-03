@@ -18,6 +18,7 @@ package subscription
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -386,7 +387,12 @@ func (c *WSConn) initRuntimeVersionListener(reqID float64) (uint, error) {
 func (c *WSConn) initGrandpaJustificationListener(reqID float64) (uint, error) {
 	c.qtyListeners++
 
+	ctx, cancel := context.WithCancel(context.Background())
+
 	jl := &GrandpaJustificationListener{
+		ctx:    ctx,
+		cancel: cancel,
+
 		wsconn:      c,
 		subID:       c.qtyListeners,
 		finalisedCh: make(chan *types.FinalisationInfo, 1),
@@ -438,6 +444,9 @@ func (c *WSConn) unsubscribeGrandpaJustificationListener(reqID float64, params i
 	}
 
 	c.BlockAPI.UnregisterFinalizedChannel(listener.finalisedChID)
+	// stop the goroutine execution
+	listener.cancel()
+
 	c.safeSend(newBooleanResponseJSON(true, reqID))
 }
 
