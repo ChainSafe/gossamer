@@ -19,6 +19,7 @@ package subscription
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/big"
@@ -35,10 +36,14 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+var errCannotReadFromWebsocket = errors.New("cannot read message from websocket")
+var errCannotUnmarshalMessage = errors.New("cannot unmarshal webasocket message data")
 var logger = log.New("pkg", "rpc/subscription")
 
 // WSConn struct to hold WebSocket Connection references
 type WSConn struct {
+	listeners sync.Map
+
 	Wsconn             *websocket.Conn
 	mu                 sync.Mutex
 	BlockSubChannels   map[uint]byte
@@ -53,28 +58,58 @@ type WSConn struct {
 	RPCHost            string
 }
 
+// readWebsocketMessage will read and parse the message data to a string->interface{} data
+func (c *WSConn) readWebsocketMessage() ([]byte, map[string]interface{}, error) {
+	_, mbytes, err := c.Wsconn.ReadMessage()
+	if err != nil {
+		logger.Warn("websocket failed to read message", "error", err)
+		return nil, nil, errCannotReadFromWebsocket
+	}
+
+	logger.Trace("websocket received", "message", mbytes)
+
+	// determine if request is for subscribe method type
+	var msg map[string]interface{}
+	err = json.Unmarshal(mbytes, &msg)
+
+	if err != nil {
+		logger.Warn("websocket failed to unmarshal request message", "error", err)
+		return nil, nil, errCannotUnmarshalMessage
+	}
+
+	return mbytes, msg, nil
+}
+
 //HandleComm handles messages received on websocket connections
 func (c *WSConn) HandleComm() {
 	for {
-		_, mbytes, err := c.Wsconn.ReadMessage()
-		if err != nil {
-			logger.Warn("websocket failed to read message", "error", err)
+		mbytes, msg, err := c.readWebsocketMessage()
+		if errors.Is(err, errCannotReadFromWebsocket) {
 			return
 		}
-		logger.Trace("websocket received", "message", mbytes)
 
-		// determine if request is for subscribe method type
-		var msg map[string]interface{}
-		err = json.Unmarshal(mbytes, &msg)
-		if err != nil {
-			logger.Warn("websocket failed to unmarshal request message", "error", err)
-			c.safeSendError(0, big.NewInt(-32600), "Invalid request")
+		if errors.Is(err, errCannotUnmarshalMessage) {
+			c.safeSendError(0, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
 			continue
 		}
 
-		method := msg["method"]
+		method := msg["method"].(string)
 		params := msg["params"]
+
 		logger.Debug("ws method called", "method", method, "params", params)
+
+		if contains(method, "subscribe") {
+			setup := c.getSetupListener(method)
+
+			reqid := msg["id"].(float64)
+			listener, err := setup(reqid, params)
+			if err != nil {
+				logger.Warn("failed to create block listener", "method", method, "error", err)
+				continue
+			}
+
+			go listener.Listen()
+		}
 
 		// if method contains subscribe, then register subscription
 		if strings.Contains(fmt.Sprintf("%s", method), "subscribe") {
@@ -256,7 +291,7 @@ func (c *WSConn) unsubscribeStorageListener(reqID float64, params interface{}) {
 	c.safeSend(newBooleanResponseJSON(true, reqID))
 }
 
-func (c *WSConn) initBlockListener(reqID float64) (uint, error) {
+func (c *WSConn) initBlockListener(reqID float64, params interface{}) (Listener, error) {
 	bl := &BlockListener{
 		Channel: make(chan *types.Block),
 		wsconn:  c,
@@ -264,21 +299,24 @@ func (c *WSConn) initBlockListener(reqID float64) (uint, error) {
 
 	if c.BlockAPI == nil {
 		c.safeSendError(reqID, nil, "error BlockAPI not set")
-		return 0, fmt.Errorf("error BlockAPI not set")
+		return nil, fmt.Errorf("error BlockAPI not set")
 	}
-	chanID, err := c.BlockAPI.RegisterImportedChannel(bl.Channel)
+
+	var err error
+	bl.ChanID, err = c.BlockAPI.RegisterImportedChannel(bl.Channel)
+
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	bl.ChanID = chanID
-	c.qtyListeners++
+
 	bl.subID = c.qtyListeners
 	c.Subscriptions[bl.subID] = bl
-	c.BlockSubChannels[bl.subID] = chanID
+	c.BlockSubChannels[bl.subID] = bl.ChanID
+
 	initRes := NewSubscriptionResponseJSON(bl.subID, reqID)
 	c.safeSend(initRes)
 
-	return bl.subID, nil
+	return bl, nil
 }
 
 func (c *WSConn) initBlockFinalizedListener(reqID float64) (uint, error) {
@@ -378,6 +416,7 @@ func (c *WSConn) safeSend(msg interface{}) {
 		logger.Debug("error sending websocket message", "error", err)
 	}
 }
+
 func (c *WSConn) safeSendError(reqID float64, errorCode *big.Int, message string) {
 	res := &ErrorResponseJSON{
 		Jsonrpc: "2.0",
@@ -408,6 +447,6 @@ type ErrorMessageJSON struct {
 	Message string   `json:"message"`
 }
 
-func (c *WSConn) startListener(lid uint) {
-	go c.Subscriptions[lid].Listen()
+func contains(s string, sub string) bool {
+	return strings.Contains(s, sub)
 }

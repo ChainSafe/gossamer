@@ -15,6 +15,7 @@ import (
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
 }
+
 var wsconn = &WSConn{
 	Subscriptions:    make(map[uint]Listener),
 	BlockSubChannels: make(map[uint]byte),
@@ -42,6 +43,7 @@ func TestMain(m *testing.M) {
 		}
 	}()
 	time.Sleep(time.Millisecond * 100)
+
 	// Start all tests
 	os.Exit(m.Run())
 }
