@@ -1,70 +1,80 @@
 package subscription
 
 import (
+	"errors"
 	"fmt"
-
-	"github.com/ChainSafe/gossamer/dot/types"
+	"strconv"
 )
 
+var errUknownParamSubscribeID = errors.New("invalid params format type")
+var errCannotParseID = errors.New("could not parse param id")
+var errCannotFindListener = errors.New("could not find listener")
+var errCannotFindUnsubsriber = errors.New("could not find unsubsriber function")
+
+type unsubListener func(reqid float64, l Listener, params interface{})
 type setupListener func(reqid float64, params interface{}) (Listener, error)
 
 func (c *WSConn) getSetupListener(method string) setupListener {
-	c.qtyListeners++
-
 	switch method {
 	case "chain_subscribeNewHeads", "chain_subscribeNewHead":
 		return c.initBlockListener
-		// case "state_subscribeStorage":
-		// 	_, err2 := c.initStorageChangeListener(reqid, params)
-		// 	if err2 != nil {
-		// 		logger.Warn("failed to create state change listener", "error", err2)
-		// 		continue
-		// 	}
-
-		// case "chain_subscribeFinalizedHeads":
-		// 	bfl, err3 := c.initBlockFinalizedListener(reqid)
-		// 	if err3 != nil {
-		// 		logger.Warn("failed to create block finalised", "error", err3)
-		// 		continue
-		// 	}
-		// 	c.startListener(bfl)
-		// case "state_subscribeRuntimeVersion":
-		// 	rvl, err4 := c.initRuntimeVersionListener(reqid)
-		// 	if err4 != nil {
-		// 		logger.Warn("failed to create runtime version listener", "error", err4)
-		// 		continue
-		// 	}
-		// 	c.startListener(rvl)
-		// case "state_unsubscribeStorage":
-		// 	c.unsubscribeStorageListener(reqid, params)
-
+	case "state_subscribeStorage":
+		return c.initStorageChangeListener
+	case "chain_subscribeFinalizedHeads":
+		return c.initBlockFinalizedListener
+	case "state_subscribeRuntimeVersion":
+		return c.initRuntimeVersionListener
+	default:
+		return nil
 	}
-
-	return nil
 }
 
-func initBlockListener(c *WSConn, reqID float64) (uint, error) {
-	bl := &BlockListener{
-		Channel: make(chan *types.Block),
-		wsconn:  c,
-	}
-
-	if c.BlockAPI == nil {
-		c.safeSendError(reqID, nil, "error BlockAPI not set")
-		return 0, fmt.Errorf("error BlockAPI not set")
-	}
-
-	chanID, err := c.BlockAPI.RegisterImportedChannel(bl.Channel)
+func (c *WSConn) getUnsubListener(method string, params interface{}) (unsubListener, Listener, error) {
+	subscriberid, err := parseSubscribeID(params)
 	if err != nil {
-		return 0, err
+		return nil, nil, err
 	}
-	bl.ChanID = chanID
-	c.qtyListeners++
-	bl.subID = c.qtyListeners
-	c.Subscriptions[bl.subID] = bl
-	c.BlockSubChannels[bl.subID] = chanID
-	initRes := NewSubscriptionResponseJSON(bl.subID, reqID)
-	c.safeSend(initRes)
 
-	return bl.subID, nil
+	listener, ok := c.Subscriptions[subscriberid]
+	if !ok {
+		return nil, nil, fmt.Errorf("subscriber id %v: %w", subscriberid, errCannotFindListener)
+	}
+
+	var unsub unsubListener
+
+	switch method {
+	case "state_unsubscribeStorage":
+		unsub = c.unsubscribeStorageListener
+	default:
+		return nil, nil, errCannotFindUnsubsriber
+	}
+
+	return unsub, listener, nil
+}
+
+func parseSubscribeID(p interface{}) (uint, error) {
+	switch v := p.(type) {
+	case []interface{}:
+		if len(v) == 0 {
+			return 0, errUknownParamSubscribeID
+		}
+	default:
+		return 0, errUknownParamSubscribeID
+	}
+
+	var id uint
+	switch v := p.([]interface{})[0].(type) {
+	case float64:
+		id = uint(v)
+	case string:
+		i, err := strconv.ParseUint(v, 10, 32)
+		if err != nil {
+			return 0, errCannotParseID
+		}
+		id = uint(i)
+	default:
+		return 0, errUknownParamSubscribeID
+	}
+
+	return id, nil
 }

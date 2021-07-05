@@ -16,6 +16,7 @@
 package subscription
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 
@@ -28,6 +29,7 @@ import (
 // Listener interface for functions that define Listener related functions
 type Listener interface {
 	Listen()
+	Stop()
 }
 
 // WSConnAPI interface defining methors a WSConn should have
@@ -84,6 +86,7 @@ func (s *StorageObserver) GetFilter() map[string][]byte {
 
 // Listen to satisfy Listener interface (but is no longer used by StorageObserver)
 func (s *StorageObserver) Listen() {}
+func (s *StorageObserver) Stop()   {}
 
 // BlockListener to handle listening for blocks importedChan
 type BlockListener struct {
@@ -91,26 +94,39 @@ type BlockListener struct {
 	wsconn  WSConnAPI
 	ChanID  byte
 	subID   uint
+
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 // Listen implementation of Listen interface to listen for importedChan changes
 func (l *BlockListener) Listen() {
-	for block := range l.Channel {
-		if block == nil {
-			continue
-		}
-		head, err := modules.HeaderToJSON(*block.Header)
-		if err != nil {
-			logger.Error("failed to convert header to JSON", "error", err)
-		}
+	l.ctx, l.cancel = context.WithCancel(context.Background())
+	go func() {
+		for {
+			select {
+			case <-l.ctx.Done():
+				return
+			case block := <-l.Channel:
+				if block == nil {
+					continue
+				}
+				head, err := modules.HeaderToJSON(*block.Header)
+				if err != nil {
+					logger.Error("failed to convert header to JSON", "error", err)
+				}
 
-		res := newSubcriptionBaseResponseJSON()
-		res.Method = "chain_newHead"
-		res.Params.Result = head
-		res.Params.SubscriptionID = l.subID
-		l.wsconn.safeSend(res)
-	}
+				res := newSubcriptionBaseResponseJSON()
+				res.Method = "chain_newHead"
+				res.Params.Result = head
+				res.Params.SubscriptionID = l.subID
+				l.wsconn.safeSend(res)
+			}
+		}
+	}()
 }
+
+func (l *BlockListener) Stop() { l.cancel() }
 
 // BlockFinalizedListener to handle listening for finalised blocks
 type BlockFinalizedListener struct {
@@ -118,25 +134,38 @@ type BlockFinalizedListener struct {
 	wsconn  WSConnAPI
 	chanID  byte
 	subID   uint
+	ctx     context.Context
+	cancel  context.CancelFunc
 }
 
 // Listen implementation of Listen interface to listen for importedChan changes
 func (l *BlockFinalizedListener) Listen() {
-	for info := range l.channel {
-		if info == nil || info.Header == nil {
-			continue
+	l.ctx, l.cancel = context.WithCancel(context.Background())
+
+	go func() {
+		for {
+			select {
+			case <-l.ctx.Done():
+				return
+			case info := <-l.channel:
+				if info == nil || info.Header == nil {
+					continue
+				}
+				head, err := modules.HeaderToJSON(*info.Header)
+				if err != nil {
+					logger.Error("failed to convert header to JSON", "error", err)
+				}
+				res := newSubcriptionBaseResponseJSON()
+				res.Method = "chain_finalizedHead"
+				res.Params.Result = head
+				res.Params.SubscriptionID = l.subID
+				l.wsconn.safeSend(res)
+			}
 		}
-		head, err := modules.HeaderToJSON(*info.Header)
-		if err != nil {
-			logger.Error("failed to convert header to JSON", "error", err)
-		}
-		res := newSubcriptionBaseResponseJSON()
-		res.Method = "chain_finalizedHead"
-		res.Params.Result = head
-		res.Params.SubscriptionID = l.subID
-		l.wsconn.safeSend(res)
-	}
+	}()
 }
+
+func (l *BlockFinalizedListener) Stop() { l.cancel() }
 
 // ExtrinsicSubmitListener to handle listening for extrinsic events
 type ExtrinsicSubmitListener struct {
@@ -149,6 +178,9 @@ type ExtrinsicSubmitListener struct {
 	importedHash    common.Hash
 	finalisedChan   chan *types.FinalisationInfo
 	finalisedChanID byte
+
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 // AuthorExtrinsicUpdates method name
@@ -156,38 +188,52 @@ const AuthorExtrinsicUpdates = "author_extrinsicUpdate"
 
 // Listen implementation of Listen interface to listen for importedChan changes
 func (l *ExtrinsicSubmitListener) Listen() {
+	l.ctx, l.cancel = context.WithCancel(context.Background())
+
 	// listen for imported blocks with extrinsic
 	go func() {
-		for block := range l.importedChan {
-			if block == nil {
-				continue
-			}
-			bodyHasExtrinsic, err := block.Body.HasExtrinsic(l.extrinsic)
-			if err != nil {
-				fmt.Printf("error %v\n", err)
-			}
+		for {
+			select {
+			case <-l.ctx.Done():
+				return
+			case block := <-l.importedChan:
+				if block == nil {
+					continue
+				}
+				bodyHasExtrinsic, err := block.Body.HasExtrinsic(l.extrinsic)
+				if err != nil {
+					fmt.Printf("error %v\n", err)
+				}
 
-			if bodyHasExtrinsic {
-				resM := make(map[string]interface{})
-				resM["inBlock"] = block.Header.Hash().String()
+				if bodyHasExtrinsic {
+					resM := make(map[string]interface{})
+					resM["inBlock"] = block.Header.Hash().String()
 
-				l.importedHash = block.Header.Hash()
-				l.wsconn.safeSend(newSubscriptionResponse(AuthorExtrinsicUpdates, l.subID, resM))
+					l.importedHash = block.Header.Hash()
+					l.wsconn.safeSend(newSubscriptionResponse(AuthorExtrinsicUpdates, l.subID, resM))
+				}
 			}
 		}
 	}()
 
 	// listen for finalised headers
 	go func() {
-		for info := range l.finalisedChan {
-			if reflect.DeepEqual(l.importedHash, info.Header.Hash()) {
-				resM := make(map[string]interface{})
-				resM["finalised"] = info.Header.Hash().String()
-				l.wsconn.safeSend(newSubscriptionResponse(AuthorExtrinsicUpdates, l.subID, resM))
+		for {
+			select {
+			case <-l.ctx.Done():
+				return
+			case info := <-l.finalisedChan:
+				if reflect.DeepEqual(l.importedHash, info.Header.Hash()) {
+					resM := make(map[string]interface{})
+					resM["finalised"] = info.Header.Hash().String()
+					l.wsconn.safeSend(newSubscriptionResponse(AuthorExtrinsicUpdates, l.subID, resM))
+				}
 			}
 		}
 	}()
 }
+
+func (l *ExtrinsicSubmitListener) Stop() { l.cancel() }
 
 // RuntimeVersionListener to handle listening for Runtime Version
 type RuntimeVersionListener struct {
@@ -215,3 +261,7 @@ func (l *RuntimeVersionListener) Listen() {
 
 	l.wsconn.safeSend(newSubscriptionResponse("state_runtimeVersion", l.subID, ver))
 }
+
+// Stop to runtimeVersionListener not implemented yet because the listener
+// does not need to be stoped
+func (l *RuntimeVersionListener) Stop() {}
