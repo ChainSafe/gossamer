@@ -38,7 +38,7 @@ func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 	utils.CreateDefaultConfig()
 	defer os.Remove(utils.ConfigDefault)
 
-	nodes, err := utils.InitializeAndStartNodesWebsocket(t, 1, utils.GenesisDefault, utils.ConfigDefault)
+	nodes, err := utils.InitializeAndStartNodesWebsocket(t, 1, utils.GenesisDev, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	command := "npx mocha ./test --timeout 30000"
