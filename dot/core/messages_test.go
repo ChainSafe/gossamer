@@ -31,10 +31,51 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
 
-	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
-	ctypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
+
 	"github.com/stretchr/testify/require"
 )
+
+func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic {
+	t.Helper()
+	rawMeta, err := rt.Metadata()
+	require.NoError(t, err)
+
+	decoded, err := scale.Decode(rawMeta, []byte{})
+	require.NoError(t, err)
+
+	meta := &ctypes.Metadata{}
+	err = ctypes.DecodeFromBytes(decoded.([]byte), meta)
+	require.NoError(t, err)
+
+	rv, err := rt.Version()
+	require.NoError(t, err)
+
+	c, err := ctypes.NewCall(meta, "System.remark", []byte{0xab, 0xcd})
+	require.NoError(t, err)
+
+	ext := ctypes.NewExtrinsic(c)
+	o := ctypes.SignatureOptions{
+		BlockHash:          ctypes.Hash(genHash),
+		Era:                ctypes.ExtrinsicEra{IsImmortalEra: false},
+		GenesisHash:        ctypes.Hash(genHash),
+		Nonce:              ctypes.NewUCompactFromUInt(nonce),
+		SpecVersion:        ctypes.U32(rv.SpecVersion()),
+		Tip:                ctypes.NewUCompactFromUInt(0),
+		TransactionVersion: ctypes.U32(rv.TransactionVersion()),
+	}
+
+	// Sign the transaction using Alice's key
+	err = ext.Sign(signature.TestKeyringPairAlice, o)
+	require.NoError(t, err)
+
+	extEnc, err := ctypes.EncodeToHexString(ext)
+	require.NoError(t, err)
+
+	extBytes := types.Extrinsic(common.MustHexToBytes(extEnc))
+	return extBytes
+}
 
 func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	// TODO: move to sync package
@@ -81,54 +122,6 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	net.AssertCalled(t, "SendMessage", expected)
 }
 
-func createExtrinsics(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic {
-	t.Helper()
-	rawMeta, err := rt.Metadata()
-	require.NoError(t, err)
-
-	decoded, err := scale.Decode(rawMeta, []byte{})
-	require.NoError(t, err)
-
-	meta := &ctypes.Metadata{}
-	err = ctypes.DecodeFromBytes(decoded.([]byte), meta)
-	require.NoError(t, err)
-
-	rv, err := rt.Version()
-	require.NoError(t, err)
-
-	keyring, err := keystore.NewSr25519Keyring()
-	require.NoError(t, err)
-
-	bob, err := ctypes.NewAddressFromHexAccountID(keyring.Bob().Public().Hex())
-	require.NoError(t, err)
-
-	c, err := ctypes.NewCall(meta, "Balances.transfer", bob, ctypes.NewUCompactFromUInt(12345))
-	require.NoError(t, err)
-
-	// Create the extrinsic
-	ext := ctypes.NewExtrinsic(c)
-
-	o := ctypes.SignatureOptions{
-		BlockHash:          ctypes.Hash(genHash),
-		Era:                ctypes.ExtrinsicEra{IsImmortalEra: true},
-		GenesisHash:        ctypes.Hash(genHash),
-		Nonce:              ctypes.NewUCompactFromUInt(nonce),
-		SpecVersion:        ctypes.U32(rv.SpecVersion()),
-		Tip:                ctypes.NewUCompactFromUInt(0),
-		TransactionVersion: ctypes.U32(rv.TransactionVersion()),
-	}
-
-	// Sign the transaction using Alice's default account
-	err = ext.Sign(signature.TestKeyringPairAlice, o)
-	require.NoError(t, err)
-
-	extEnc, err := ctypes.EncodeToHexString(ext)
-	require.NoError(t, err)
-
-	extBytes := types.Extrinsic(common.MustHexToBytes(extEnc))
-	return extBytes
-}
-
 func TestService_HandleTransactionMessage(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)
@@ -154,7 +147,7 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	err = s.rt.InitializeBlock(header)
 	require.NoError(t, err)
 
-	extBytes := createExtrinsics(t, s.rt, genHash, 0)
+	extBytes := createExtrinsic(t, s.rt, genHash, 0)
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}}
 	b, err := s.HandleTransactionMessage(msg)
 	require.NoError(t, err)
