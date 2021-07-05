@@ -86,7 +86,9 @@ func (s *StorageObserver) GetFilter() map[string][]byte {
 
 // Listen to satisfy Listener interface (but is no longer used by StorageObserver)
 func (s *StorageObserver) Listen() {}
-func (s *StorageObserver) Stop()   {}
+
+// Stop to satisfy Listener interface (but is no longer used by StorageObserver)
+func (s *StorageObserver) Stop() {}
 
 // BlockListener to handle listening for blocks importedChan
 type BlockListener struct {
@@ -126,6 +128,7 @@ func (l *BlockListener) Listen() {
 	}()
 }
 
+// Stop to cancel the running goroutines to this listener
 func (l *BlockListener) Stop() { l.cancel() }
 
 // BlockFinalizedListener to handle listening for finalised blocks
@@ -165,6 +168,7 @@ func (l *BlockFinalizedListener) Listen() {
 	}()
 }
 
+// Stop to cancel the running goroutines to this listener
 func (l *BlockFinalizedListener) Stop() { l.cancel() }
 
 // ExtrinsicSubmitListener to handle listening for extrinsic events
@@ -233,6 +237,7 @@ func (l *ExtrinsicSubmitListener) Listen() {
 	}()
 }
 
+// Stop to cancel the running goroutines to this listener
 func (l *ExtrinsicSubmitListener) Stop() { l.cancel() }
 
 // RuntimeVersionListener to handle listening for Runtime Version

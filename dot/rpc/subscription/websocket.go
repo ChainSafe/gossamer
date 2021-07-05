@@ -105,7 +105,7 @@ func (c *WSConn) HandleComm() {
 		if contains(method, "_subscribe") {
 			setup := c.getSetupListener(method)
 
-			listener, err := setup(reqid, params)
+			listener, err := setup(reqid, params) //nolint
 			if err != nil {
 				logger.Warn("failed to create listener", "method", method, "error", err)
 				continue
@@ -116,7 +116,7 @@ func (c *WSConn) HandleComm() {
 		}
 
 		if contains(method, "_unsubscribe") {
-			unsub, listener, err := c.getUnsubListener(method, params)
+			unsub, listener, err := c.getUnsubListener(method, params) //nolint
 
 			if err != nil {
 				logger.Warn("failed to get unsubscriber", "method", method, "error", err)
@@ -138,7 +138,7 @@ func (c *WSConn) HandleComm() {
 		}
 
 		if contains(method, "submitAndWatchExtrinsic") {
-			listener, err := c.initExtrinsicWatch(reqid, params)
+			listener, err := c.initExtrinsicWatch(reqid, params) //nolint
 			if err != nil {
 				logger.Warn("failed to create listener", "method", method, "error", err)
 				c.safeSendError(reqid, nil, err.Error())
@@ -416,13 +416,12 @@ func (c *WSConn) executeRequest(r *http.Request, d interface{}) error {
 	}
 
 	body, err := ioutil.ReadAll(res.Body)
-	defer res.Body.Close()
-
 	if err != nil {
 		logger.Warn("error reading response body", "error", err)
 		return err
 	}
 
+	err = res.Body.Close()
 	if err != nil {
 		logger.Warn("error closing response body", "error", err)
 		return err
