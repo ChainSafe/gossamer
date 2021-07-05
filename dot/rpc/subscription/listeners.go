@@ -109,7 +109,11 @@ func (l *BlockListener) Listen() {
 			select {
 			case <-l.ctx.Done():
 				return
-			case block := <-l.Channel:
+			case block, ok := <-l.Channel:
+				if !ok {
+					return
+				}
+
 				if block == nil {
 					continue
 				}
@@ -150,7 +154,11 @@ func (l *BlockFinalizedListener) Listen() {
 			select {
 			case <-l.ctx.Done():
 				return
-			case info := <-l.channel:
+			case info, ok := <-l.channel:
+				if !ok {
+					return
+				}
+
 				if info == nil || info.Header == nil {
 					continue
 				}
@@ -200,7 +208,11 @@ func (l *ExtrinsicSubmitListener) Listen() {
 			select {
 			case <-l.ctx.Done():
 				return
-			case block := <-l.importedChan:
+			case block, ok := <-l.importedChan:
+				if !ok {
+					return
+				}
+
 				if block == nil {
 					continue
 				}
@@ -226,7 +238,11 @@ func (l *ExtrinsicSubmitListener) Listen() {
 			select {
 			case <-l.ctx.Done():
 				return
-			case info := <-l.finalisedChan:
+			case info, ok := <-l.finalisedChan:
+				if !ok {
+					return
+				}
+
 				if reflect.DeepEqual(l.importedHash, info.Header.Hash()) {
 					resM := make(map[string]interface{})
 					resM["finalised"] = info.Header.Hash().String()

@@ -65,7 +65,7 @@ type WSConn struct {
 func (c *WSConn) readWebsocketMessage() ([]byte, map[string]interface{}, error) {
 	_, mbytes, err := c.Wsconn.ReadMessage()
 	if err != nil {
-		logger.Warn("websocket failed to read message", "error", err)
+		logger.Debug("websocket failed to read message", "error", err)
 		return nil, nil, errCannotReadFromWebsocket
 	}
 
@@ -76,7 +76,7 @@ func (c *WSConn) readWebsocketMessage() ([]byte, map[string]interface{}, error) 
 	err = json.Unmarshal(mbytes, &msg)
 
 	if err != nil {
-		logger.Warn("websocket failed to unmarshal request message", "error", err)
+		logger.Debug("websocket failed to unmarshal request message", "error", err)
 		return nil, nil, errCannotUnmarshalMessage
 	}
 
@@ -214,7 +214,7 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (L
 	return stgobs, nil
 }
 
-func (c *WSConn) unsubscribeStorageListener(reqID float64, l Listener, params interface{}) {
+func (c *WSConn) unsubscribeStorageListener(reqID float64, l Listener, _ interface{}) {
 	observer, ok := l.(state.Observer)
 	if !ok {
 		initRes := newBooleanResponseJSON(false, reqID)
@@ -226,7 +226,7 @@ func (c *WSConn) unsubscribeStorageListener(reqID float64, l Listener, params in
 	c.safeSend(newBooleanResponseJSON(true, reqID))
 }
 
-func (c *WSConn) initBlockListener(reqID float64, params interface{}) (Listener, error) {
+func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, error) {
 	bl := &BlockListener{
 		Channel: make(chan *types.Block),
 		wsconn:  c,
@@ -258,7 +258,7 @@ func (c *WSConn) initBlockListener(reqID float64, params interface{}) (Listener,
 	return bl, nil
 }
 
-func (c *WSConn) initBlockFinalizedListener(reqID float64, params interface{}) (Listener, error) {
+func (c *WSConn) initBlockFinalizedListener(reqID float64, _ interface{}) (Listener, error) {
 	bfl := &BlockFinalizedListener{
 		channel: make(chan *types.FinalisationInfo),
 		wsconn:  c,
@@ -341,7 +341,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 	return esl, err
 }
 
-func (c *WSConn) initRuntimeVersionListener(reqID float64, params interface{}) (Listener, error) {
+func (c *WSConn) initRuntimeVersionListener(reqID float64, _ interface{}) (Listener, error) {
 	rvl := &RuntimeVersionListener{
 		wsconn: c,
 	}
