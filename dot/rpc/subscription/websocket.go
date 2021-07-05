@@ -57,17 +57,16 @@ type WSConn struct {
 //HandleComm handles messages received on websocket connections
 func (c *WSConn) HandleComm() {
 	for {
-		_, mbytes, err := c.Wsconn.ReadMessage()
-		if err != nil {
-			logger.Warn("websocket failed to read message", "error", err)
+		_, mbytes, readErr := c.Wsconn.ReadMessage()
+		if readErr != nil {
+			logger.Warn("websocket failed to read message", "error", readErr)
 			return
 		}
 		logger.Trace("websocket received", "message", mbytes)
 
 		// determine if request is for subscribe method type
 		var msg map[string]interface{}
-		err = json.Unmarshal(mbytes, &msg)
-		if err != nil {
+		if err := json.Unmarshal(mbytes, &msg); err != nil {
 			logger.Warn("websocket failed to unmarshal request message", "error", err)
 			c.safeSendError(0, big.NewInt(-32600), "Invalid request")
 			continue
@@ -144,7 +143,7 @@ func (c *WSConn) HandleComm() {
 		// handle non-subscribe calls
 		client := &http.Client{}
 		buf := &bytes.Buffer{}
-		_, err = buf.Write(mbytes)
+		_, err := buf.Write(mbytes)
 		if err != nil {
 			logger.Warn("failed to write message to buffer", "error", err)
 			return
@@ -385,8 +384,12 @@ func (c *WSConn) initRuntimeVersionListener(reqID float64) (uint, error) {
 }
 
 func (c *WSConn) initGrandpaJustificationListener(reqID float64) (uint, error) {
-	c.qtyListeners++
+	if c.BlockAPI == nil {
+		c.safeSendError(reqID, nil, "error BlockAPI not set")
+		return 0, fmt.Errorf("error BlockAPI not set")
+	}
 
+	c.qtyListeners++
 	ctx, cancel := context.WithCancel(context.Background())
 
 	jl := &GrandpaJustificationListener{
@@ -399,7 +402,6 @@ func (c *WSConn) initGrandpaJustificationListener(reqID float64) (uint, error) {
 	}
 
 	var err error
-
 	jl.finalisedChID, err = c.BlockAPI.RegisterFinalizedChannel(jl.finalisedCh)
 	if err != nil {
 		return 0, err

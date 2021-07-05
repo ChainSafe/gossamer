@@ -217,6 +217,7 @@ func (l *RuntimeVersionListener) Listen() {
 	l.wsconn.safeSend(newSubscriptionResponse("state_runtimeVersion", l.subID, ver))
 }
 
+// GrandpaJustificationListener struct has the finalisedCh and the context to stop the goroutines
 type GrandpaJustificationListener struct {
 	cancel context.CancelFunc
 	ctx    context.Context
@@ -229,6 +230,7 @@ type GrandpaJustificationListener struct {
 
 const grandpaJustifications = "grandpa_justifications"
 
+// Listen will start goroutines that listen to the finaised blocks
 func (g *GrandpaJustificationListener) Listen() {
 	// listen for finalised headers
 	go func() {
