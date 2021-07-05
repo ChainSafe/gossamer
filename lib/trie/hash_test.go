@@ -41,14 +41,10 @@ func generateRand(size int) [][]byte {
 }
 
 func TestNewHasher(t *testing.T) {
-	hasher, err := NewHasher()
-	if err != nil {
-		t.Fatalf("error creating new hasher: %s", err)
-	} else if hasher == nil {
-		t.Fatal("did not create new hasher")
-	}
+	hasher := NewHasher(false)
+	defer hasher.returnToPool()
 
-	_, err = hasher.hash.Write([]byte("noot"))
+	_, err := hasher.hash.Write([]byte("noot"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -62,10 +58,8 @@ func TestNewHasher(t *testing.T) {
 }
 
 func TestHashLeaf(t *testing.T) {
-	hasher, err := NewHasher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	hasher := NewHasher(false)
+	defer hasher.returnToPool()
 
 	n := &leaf{key: generateRandBytes(380), value: generateRandBytes(64)}
 	h, err := hasher.Hash(n)
@@ -77,10 +71,8 @@ func TestHashLeaf(t *testing.T) {
 }
 
 func TestHashBranch(t *testing.T) {
-	hasher, err := NewHasher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	hasher := NewHasher(false)
+	defer hasher.returnToPool()
 
 	n := &branch{key: generateRandBytes(380), value: generateRandBytes(380)}
 	n.children[3] = &leaf{key: generateRandBytes(380), value: generateRandBytes(380)}
@@ -93,13 +85,11 @@ func TestHashBranch(t *testing.T) {
 }
 
 func TestHashShort(t *testing.T) {
-	hasher, err := NewHasher()
-	if err != nil {
-		t.Fatal(err)
-	}
+	hasher := NewHasher(false)
+	defer hasher.returnToPool()
 
 	n := &leaf{key: generateRandBytes(2), value: generateRandBytes(3)}
-	expected, err := n.encode()
+	expected, err := hasher.encode(n)
 	if err != nil {
 		t.Fatal(err)
 	}
