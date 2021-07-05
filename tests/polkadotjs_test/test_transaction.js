@@ -26,7 +26,7 @@ async function main() {
     // bob 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty
 
     const transfer = await api.tx.balances.transfer(bobKey.address, 12345).signAndSend(aliceKey);
-    console.log(`hxHash ${transfer}`);
+    console.log(`transaction hash: ${transfer}`);
 }
 
 main().catch(console.error);
