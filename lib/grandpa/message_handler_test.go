@@ -17,6 +17,7 @@
 package grandpa
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -37,11 +38,6 @@ var testHeader = &types.Header{
 	Digest: types.Digest{
 		types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
 	},
-}
-
-var testBlock = &types.Block{
-	Header: testHeader,
-	Body:   &types.Body{},
 }
 
 var testHash = testHeader.Hash()
@@ -196,7 +192,7 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 		Version: 1,
 		Round:   2,
 		SetID:   3,
-		Number:  1,
+		Number:  2,
 	}
 
 	_, err := h.handleMessage("", msg)
@@ -204,7 +200,7 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 
 	block := &types.Block{
 		Header: &types.Header{
-			Number:     big.NewInt(1),
+			Number:     big.NewInt(2),
 			ParentHash: st.Block.GenesisHash(),
 			Digest: types.Digest{
 				types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
@@ -220,7 +216,9 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, out)
 
+	fmt.Println("blocks", block)
 	finalised, err := st.Block.GetFinalizedHash(0, 0)
+	fmt.Println("finalised", finalised)
 	require.NoError(t, err)
 	require.Equal(t, block.Header.Hash(), finalised)
 }
@@ -250,7 +248,18 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	fm := gs.newCommitMessage(gs.head, round)
 	fm.Vote = NewVote(testHash, uint32(round))
 
-	err := st.Block.AddBlock(testBlock)
+	block := &types.Block{
+		Header: &types.Header{
+			ParentHash: testHeader.Hash(),
+			Number:     big.NewInt(1),
+			Digest: types.Digest{
+				types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+			},
+		},
+		Body: &types.Body{},
+	}
+
+	err := st.Block.AddBlock(block)
 	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block)
@@ -334,17 +343,28 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	setID := uint64(0)
 	gs.state.round = round + 1
 
+	block := &types.Block{
+		Header: &types.Header{
+			ParentHash: testHeader.Hash(),
+			Number:     big.NewInt(1),
+			Digest: types.Digest{
+				types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+			},
+		},
+		Body: &types.Body{},
+	}
+
 	v := &Vote{
-		hash:   testHeader.Hash(),
+		hash:   block.Header.Hash(),
 		number: 1,
 	}
 
-	err := st.Block.AddBlock(testBlock)
+	err := st.Block.AddBlock(block)
 	require.NoError(t, err)
 
-	err = gs.blockState.SetFinalizedHash(testHeader.Hash(), round, setID)
+	err = gs.blockState.SetFinalizedHash(block.Header.Hash(), round, setID)
 	require.NoError(t, err)
-	err = gs.blockState.(*state.BlockState).SetHeader(testHeader)
+	err = gs.blockState.(*state.BlockState).SetHeader(block.Header)
 	require.NoError(t, err)
 
 	pvj := []*SignedPrecommit{

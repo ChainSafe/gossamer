@@ -10,6 +10,7 @@ import (
 	babemocks "github.com/ChainSafe/gossamer/lib/babe/mocks"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
@@ -30,6 +31,8 @@ var genesisBABEConfig = &types.BabeConfiguration{
 
 func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
 	db := state.NewInMemoryDB(t)
+
+	_, _, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 	bs, err := state.NewBlockStateFromGenesis(db, genesisHeader)
 	require.NoError(t, err)
 	es, err := state.NewEpochStateFromGenesis(db, genesisBABEConfig)

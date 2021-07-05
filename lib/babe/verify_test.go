@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -47,7 +48,7 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 		genCfg = genesisBABEConfig
 	}
 
-	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 	err = dbSrv.Initialise(gen, genHeader, genTrie)
 	require.NoError(t, err)
 
