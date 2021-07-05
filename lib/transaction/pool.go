@@ -22,8 +22,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-const readyTransactionsMetrics = "gossamer/ready/transaction/metrics"
-
 // Pool represents the transaction pool
 type Pool struct {
 	transactions map[common.Hash]*ValidTransaction
