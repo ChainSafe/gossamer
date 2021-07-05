@@ -31,7 +31,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	log "github.com/ChainSafe/log15"
@@ -443,7 +443,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 				continue
 			}
 
-			encExt, err := scale.Encode(ext)
+			encExt, err := scale.Marshal(ext)
 			if err != nil {
 				return err
 			}

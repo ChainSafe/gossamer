@@ -85,7 +85,7 @@ func createExtrinsics(t *testing.T, rt runtime.Instance, genHash common.Hash, no
 	t.Helper()
 	rawMeta, err := rt.Metadata()
 	require.NoError(t, err)
-	
+
 	var decoded []byte
 	err = scale.Unmarshal(rawMeta, &decoded)
 	require.NoError(t, err)
