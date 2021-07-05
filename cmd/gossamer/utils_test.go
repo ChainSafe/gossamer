@@ -45,7 +45,7 @@ func newTestContext(description string, flags []string, values []interface{}) (*
 		}
 	}
 
-	ctx := cli.NewContext(nil, set, nil)
+	ctx := cli.NewContext(app, set, nil)
 
 	for i := range values {
 		switch v := values[i].(type) {
