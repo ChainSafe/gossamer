@@ -17,7 +17,6 @@
 package grandpa
 
 import (
-	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -216,9 +215,7 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, out)
 
-	fmt.Println("blocks", block)
 	finalised, err := st.Block.GetFinalizedHash(0, 0)
-	fmt.Println("finalised", finalised)
 	require.NoError(t, err)
 	require.Equal(t, block.Header.Hash(), finalised)
 }
@@ -346,7 +343,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	block := &types.Block{
 		Header: &types.Header{
 			ParentHash: testHeader.Hash(),
-			Number:     big.NewInt(1),
+			Number:     big.NewInt(2),
 			Digest: types.Digest{
 				types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
 			},
@@ -356,7 +353,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 
 	v := &Vote{
 		hash:   block.Header.Hash(),
-		number: 1,
+		number: 2,
 	}
 
 	err := st.Block.AddBlock(block)

@@ -17,7 +17,6 @@
 package grandpa
 
 import (
-	"fmt"
 	"io/ioutil"
 	"math/big"
 	"math/rand"
@@ -347,7 +346,6 @@ func TestGetPossibleSelectedAncestors_VaryingAncestor(t *testing.T) {
 	// this should return the highest common ancestor of (a, b) and (b, c) with >=2/3 votes,
 	// which are the nodes at depth 6 and 7.
 	require.Equal(t, 2, len(blocks))
-	fmt.Println("b", blocks)
 	require.Equal(t, uint32(6), blocks[expectedAt6])
 	require.Equal(t, uint32(7), blocks[expectedAt7])
 }
