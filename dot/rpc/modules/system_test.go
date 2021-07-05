@@ -230,11 +230,10 @@ func TestSystemModule_AccountNextIndex_StoragePending(t *testing.T) {
 	}
 	err := sys.AccountNextIndex(nil, &req, res)
 	require.NoError(t, err)
-
 	require.Equal(t, expectedStored, *res)
 
 	// extrinsic for transfer signed by alice, nonce 4 (created with polkadot.js/api test_transaction)
-	signedExt := common.MustHexToBytes("0x022d0284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d018c35943da8a04f06a36db9fadc7b2f02ccdef38dd89f88835c0af16b5fce816b117d8073aca078984d5b81bcf86e89cfa3195e5ec3c457d4282370b854f430850010000600ff90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22e5c0")
+	signedExt := common.MustHexToBytes("0xad018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0146d0050619728683af4e9659bf202aeb2b8b13b48a875adb663f449f1a71453903546f3252193964185eb91c482cf95caf327db407d57ebda95046b5ef890187001000000108abcd")
 	vtx := &transaction.ValidTransaction{
 		Extrinsic: types.NewExtrinsic(signedExt),
 		Validity:  new(transaction.Validity),
@@ -269,7 +268,7 @@ func TestSystemModule_AccountNextIndex_Pending(t *testing.T) {
 	}
 
 	// extrinsic for transfer signed by alice, nonce 4 (created with polkadot.js/api test_transaction)
-	signedExt := common.MustHexToBytes("0x022d0284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d018c35943da8a04f06a36db9fadc7b2f02ccdef38dd89f88835c0af16b5fce816b117d8073aca078984d5b81bcf86e89cfa3195e5ec3c457d4282370b854f430850010000600ff90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22e5c0")
+	signedExt := common.MustHexToBytes("0xad018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0146d0050619728683af4e9659bf202aeb2b8b13b48a875adb663f449f1a71453903546f3252193964185eb91c482cf95caf327db407d57ebda95046b5ef890187001000000108abcd")
 	vtx := &transaction.ValidTransaction{
 		Extrinsic: types.NewExtrinsic(signedExt),
 		Validity:  new(transaction.Validity),
@@ -292,9 +291,10 @@ func setupSystemModule(t *testing.T) *SystemModule {
 
 	aliceAcctStoKey, err := common.HexToBytes("0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9de1e86a9a8c739864cf3cc5ec2bea59fd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d")
 	require.NoError(t, err)
+
 	aliceAcctInfo := types.AccountInfo{
-		Nonce:    3,
-		RefCount: 0,
+		Nonce: 3,
+		//RefCount: 0,
 		Data: struct {
 			Free       common.Uint128
 			Reserved   common.Uint128

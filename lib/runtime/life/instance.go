@@ -77,7 +77,7 @@ func NewInstance(code []byte, cfg *Config) (runtime.Instance, error) {
 	}
 
 	vmCfg := exec.VMConfig{
-		DefaultMemoryPages: 20,
+		DefaultMemoryPages: 23,
 	}
 
 	instance, err := exec.NewVirtualMachine(code, vmCfg, cfg.Resolver, nil)
