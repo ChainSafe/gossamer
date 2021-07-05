@@ -19,11 +19,6 @@ package transaction
 import (
 	"reflect"
 	"testing"
-	"time"
-
-	"github.com/ChainSafe/gossamer/dot/metrics"
-	ethmetrics "github.com/ethereum/go-ethereum/metrics"
-	"github.com/stretchr/testify/require"
 )
 
 func TestPriorityQueue(t *testing.T) {
@@ -50,23 +45,12 @@ func TestPriorityQueue(t *testing.T) {
 		},
 	}
 
-	//check metrics
-	ethmetrics.Unregister(readyPriorityQueueTransactions)
-	ethmetrics.Enabled = true
-
-	priorityQueueM := ethmetrics.GetOrRegisterGauge(readyPriorityQueueTransactions, nil)
-	require.Equal(t, int64(0), priorityQueueM.Value())
-
 	pq := NewPriorityQueue()
 	expected := []int{3, 1, 2, 4, 0}
 
 	for _, node := range tests {
 		pq.Push(node)
 	}
-
-	// wait for metrics to be collected
-	time.Sleep(metrics.Refresh + time.Second)
-	require.Equal(t, int64(len(tests)), priorityQueueM.Value())
 
 	for i, exp := range expected {
 		n := pq.Pop()
@@ -76,10 +60,6 @@ func TestPriorityQueue(t *testing.T) {
 			t.Fatalf("Fail: iteration %d got %v expected %v", i, n, tests[exp])
 		}
 	}
-
-	// wait for metrics to be collected
-	time.Sleep(metrics.Refresh + time.Second)
-	require.Equal(t, int64(pq.pq.Len()), priorityQueueM.Value())
 }
 
 func TestPriorityQueueAgain(t *testing.T) {
