@@ -31,9 +31,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	log "github.com/ChainSafe/log15"
 )
 
