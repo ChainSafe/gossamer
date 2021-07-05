@@ -50,7 +50,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 		require.Len(t, errList, 0)
 	}()
 
-	time.Sleep(15 * time.Second) // wait for server to start
+	time.Sleep(30 * time.Second) // wait for server to start and block 1 to be produced
 
 	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("http://localhost:%s", nodes[0].RPCPort))
 	require.NoError(t, err)
@@ -58,11 +58,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 	meta, err := api.RPC.State.GetMetadataLatest()
 	require.NoError(t, err)
 
-	// Create a call, transferring 12345 units to Bob
-	bob, err := types.NewAddressFromHexAccountID("0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
-	require.NoError(t, err)
-
-	c, err := types.NewCall(meta, "Balances.transfer", bob, types.NewUCompactFromUInt(12345))
+	c, err := types.NewCall(meta, "System.remark", []byte{0xab})
 	require.NoError(t, err)
 
 	// Create the extrinsic
@@ -84,7 +80,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 
 	o := types.SignatureOptions{
 		BlockHash:          genesisHash,
-		Era:                types.ExtrinsicEra{IsImmortalEra: true},
+		Era:                types.ExtrinsicEra{IsImmortalEra: false},
 		GenesisHash:        genesisHash,
 		Nonce:              types.NewUCompactFromUInt(uint64(accInfo.Nonce)),
 		SpecVersion:        rv.SpecVersion,
