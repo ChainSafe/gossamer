@@ -77,6 +77,7 @@ func TestConfigFromChainFlag(t *testing.T) {
 			require.Nil(t, err)
 			cfg, err := createDotConfig(ctx)
 			require.Nil(t, err)
+			cfg.System = types.SystemInfo{}
 			require.Equal(t, c.expected, cfg)
 		})
 	}
@@ -710,6 +711,7 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 
 	cfg.Init.Genesis = genFile.Name()
 	updateDotConfigFromGenesisJSONRaw(*dotConfigToToml(testCfg), cfg)
+	cfg.System = types.SystemInfo{}
 	require.Equal(t, expected, cfg)
 }
 
@@ -760,6 +762,7 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 	cfg, err := createDotConfig(ctx)
 	require.Nil(t, err)
 	updateDotConfigFromGenesisJSONRaw(*dotConfigToToml(testCfg), cfg)
+	cfg.System = types.SystemInfo{}
 	require.Equal(t, expected, cfg)
 }
 
@@ -830,7 +833,7 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 
 	err = updateDotConfigFromGenesisData(ctx, cfg) // name should not be updated if provided as flag value
 	require.Nil(t, err)
-
+	cfg.System = types.SystemInfo{}
 	require.Equal(t, expected, cfg)
 }
 
