@@ -270,6 +270,16 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot) []*transaction.ValidTrans
 			if _, ok := err.(*DispatchOutcomeError); !ok {
 				continue
 			}
+
+			// TODO: make this prettier after SCALE babe error refactor
+			// don't drop transactions that may be valid in a later block ie.
+			// run out of gas for this block or have a nonce that may be valid in a later block
+			if tvErr, ok := err.(*TransactionValidityError); ok {
+				switch tvErr.msg {
+				case "exhausts resources", "invalid transaction": // 6 or 2
+					b.transactionState.Push(txn)
+				}
+			}
 		}
 
 		logger.Debug("build block applied extrinsic", "extrinsic", extrinsic)
