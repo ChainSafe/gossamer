@@ -60,6 +60,19 @@ var (
 	errNilRuntime            = errors.New("runtime is nil")
 	errInvalidResult         = errors.New("invalid error value")
 	errNoEpochData           = errors.New("no epoch data found for upcoming epoch")
+
+	other         Other
+	invalidCustom InvalidCustom
+	unknownCustom UnknownCustom
+
+	dispatchError = scale.MustNewVaryingDataType(other, CannotLookup{}, BadOrigin{}, Module{})
+	invalid       = scale.MustNewVaryingDataType(Call{}, Payment{}, Future{}, Stale{}, BadProof{}, AncientBirthBlock{},
+		ExhaustsResources{}, invalidCustom, BadMandatory{}, MandatoryDispatch{})
+	unknown = scale.MustNewVaryingDataType(ValidityCannotLookup{}, NoUnsignedValidator{}, unknownCustom)
+
+	okRes  = scale.NewResult(nil, dispatchError)
+	errRes = scale.NewResult(invalid, unknown)
+	result = scale.NewResult(okRes, errRes)
 )
 
 // A DispatchOutcomeError is outcome of dispatching the extrinsic
@@ -80,7 +93,7 @@ func (e TransactionValidityError) Error() string {
 	return fmt.Sprintf("transaction validity error: %s", e.msg)
 }
 
-// A UnmarshalError is when unmarshalling fails
+// UnmarshalError occurs when unmarshalling fails
 type UnmarshalError struct {
 	msg string
 }
@@ -241,19 +254,6 @@ func determineErrType(vdt scale.VaryingDataType) error {
 }
 
 func determineErr(res []byte) error {
-	var other Other
-	var invalidCustom InvalidCustom
-	var unknownCustom UnknownCustom
-
-	dispatchError := scale.MustNewVaryingDataType(other, CannotLookup{}, BadOrigin{}, Module{})
-	invalid := scale.MustNewVaryingDataType(Call{}, Payment{}, Future{}, Stale{}, BadProof{}, AncientBirthBlock{},
-		ExhaustsResources{}, invalidCustom, BadMandatory{}, MandatoryDispatch{})
-	unknown := scale.MustNewVaryingDataType(ValidityCannotLookup{}, NoUnsignedValidator{}, unknownCustom)
-
-	okRes := scale.NewResult(nil, dispatchError)
-	errRes := scale.NewResult(invalid, unknown)
-	result := scale.NewResult(okRes, errRes)
-
 	err := scale.Unmarshal(res, &result)
 	if err != nil {
 		return &UnmarshalError{err.Error()}
