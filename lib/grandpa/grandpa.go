@@ -1175,17 +1175,17 @@ func (s *Service) GetVoters() Voters {
 }
 
 // PreVotes returns the current prevotes to the current round
-func (s *Service) PreVotes() map[ed25519.PublicKeyBytes]*Vote {
+func (s *Service) PreVotes() (map[ed25519.PublicKeyBytes]*Vote, map[ed25519.PublicKeyBytes][]*Vote) {
 	s.mapLock.Lock()
 	defer s.mapLock.Unlock()
 
-	return s.prevotes
+	return s.prevotes, s.pvEquivocations
 }
 
 // PreCommits returns the current precommits to the current round
-func (s *Service) PreCommits() map[ed25519.PublicKeyBytes]*Vote {
+func (s *Service) PreCommits() (map[ed25519.PublicKeyBytes]*Vote, map[ed25519.PublicKeyBytes][]*Vote) {
 	s.mapLock.Lock()
 	defer s.mapLock.Unlock()
 
-	return s.precommits
+	return s.precommits, s.pcEquivocations
 }

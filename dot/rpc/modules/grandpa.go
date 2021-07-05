@@ -106,8 +106,8 @@ func (gm *GrandpaModule) RoundState(r *http.Request, req *EmptyRequest, res *Rou
 		votersPkBytes[i] = v.PublicKeyBytes()
 	}
 
-	prevotes := gm.blockFinalityAPI.PreVotes()
-	precommits := gm.blockFinalityAPI.PreCommits()
+	prevotes, _ := gm.blockFinalityAPI.PreVotes()
+	precommits, _ := gm.blockFinalityAPI.PreCommits()
 
 	missingPrevotes, err := toAddress(difference(votersPkBytes, prevotes))
 	if err != nil {
@@ -119,20 +119,19 @@ func (gm *GrandpaModule) RoundState(r *http.Request, req *EmptyRequest, res *Rou
 		return err
 	}
 
-	totalWeight := calcTotalWeight(voters)
-
+	totalWeight := uint32(len(voters))
 	roundstate := RoundStateResponse{
 		SetID: uint32(gm.blockFinalityAPI.GetSetID()),
 		Best: RoundState{
 			Round:           uint32(gm.blockFinalityAPI.GetRound()),
-			ThresholdWeight: calcThresholdWeight(totalWeight),
+			ThresholdWeight: thresholdWeight(totalWeight),
 			TotalWeight:     totalWeight,
 			Prevotes: Votes{
-				CurrentWeight: calcWeight(voters, prevotes),
+				CurrentWeight: uint32(len(prevotes)),
 				Missing:       missingPrevotes,
 			},
 			Precommits: Votes{
-				CurrentWeight: calcWeight(voters, precommits),
+				CurrentWeight: uint32(len(precommits)),
 				Missing:       missingPrecommits,
 			},
 		},
@@ -143,30 +142,8 @@ func (gm *GrandpaModule) RoundState(r *http.Request, req *EmptyRequest, res *Rou
 	return nil
 }
 
-func calcWeight(voters grandpa.Voters, pre map[ed25519.PublicKeyBytes]*grandpa.Vote) uint32 {
-	var weight uint32
-	for pk := range pre {
-		for _, gpv := range voters {
-			if gpv.PublicKeyBytes() == pk {
-				weight += uint32(gpv.ID)
-			}
-		}
-	}
-	return weight
-}
-
-func calcTotalWeight(voters grandpa.Voters) uint32 {
-	var totalWeight uint32
-	for _, v := range voters {
-		totalWeight += uint32(v.ID)
-	}
-
-	return totalWeight
-}
-
-func calcThresholdWeight(totalWeight uint32) uint32 {
-	faulty := (totalWeight - 1) / 3
-	return totalWeight - faulty
+func thresholdWeight(totalWeight uint32) uint32 {
+	return totalWeight * 2 / 3
 }
 
 // difference get the values representing the difference, i.e., the values that are in voters but not in pre.

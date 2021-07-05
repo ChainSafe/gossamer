@@ -86,12 +86,12 @@ func TestRoundSate(t *testing.T) {
 		kr.Bob().Public().(*ed25519.PublicKey).AsBytes():     grandpa.NewVote(common.Hash{}, uint32(0)),
 		kr.Charlie().Public().(*ed25519.PublicKey).AsBytes(): grandpa.NewVote(common.Hash{}, uint32(0)),
 		kr.Dave().Public().(*ed25519.PublicKey).AsBytes():    grandpa.NewVote(common.Hash{}, uint32(0)),
-	})
+	}, map[ed25519.PublicKeyBytes][]*grandpa.Vote{})
 
 	grandpamock.On("PreCommits").Return(map[ed25519.PublicKeyBytes]*grandpa.Vote{
 		kr.Alice().Public().(*ed25519.PublicKey).AsBytes(): grandpa.NewVote(common.Hash{}, uint32(0)),
 		kr.Bob().Public().(*ed25519.PublicKey).AsBytes():   grandpa.NewVote(common.Hash{}, uint32(0)),
-	})
+	}, map[ed25519.PublicKeyBytes][]*grandpa.Vote{})
 
 	mod := NewGrandpaModule(nil, grandpamock)
 
@@ -102,7 +102,7 @@ func TestRoundSate(t *testing.T) {
 
 	// newTestVoters has actually 9 keys with weight of 1
 	require.Equal(t, uint32(9), res.Best.TotalWeight)
-	require.Equal(t, uint32(7), res.Best.ThresholdWeight)
+	require.Equal(t, uint32(6), res.Best.ThresholdWeight)
 
 	expectedMissingPrevotes := []string{
 		string(kr.Eve().Public().Address()),
