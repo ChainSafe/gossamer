@@ -181,6 +181,9 @@ func buildRawMap(m map[string]map[string]interface{}) (map[string]string, error)
 		}
 		res[key] = value
 	}
+
+	// TODO: put this in common
+	res[common.BytesToHex(common.UpgradedToDualRefKey)] = "0x01"
 	return res, nil
 }
 
@@ -281,8 +284,8 @@ func buildBalances(kv *keyValue, res map[string]string) error {
 			bKey = append(bKey, kv.iVal[i].([]byte)...)
 
 			accInfo := types.AccountInfo{
-				Nonce:    0,
-				RefCount: 0,
+				Nonce: 0,
+				//RefCount: 0,
 				Data: struct {
 					Free       common.Uint128
 					Reserved   common.Uint128
