@@ -34,8 +34,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
-	"github.com/ChainSafe/gossamer/lib/scale"
-	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
@@ -190,28 +188,6 @@ func finalizedHashKey(round, setID uint64) []byte {
 // GenesisHash returns the hash of the genesis block
 func (bs *BlockState) GenesisHash() common.Hash {
 	return bs.genesisHash
-}
-
-// ValidateTransaction validates transaction
-func (bs *BlockState) ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error) {
-	rt, err := bs.GetRuntime(nil)
-	if err != nil {
-		return nil, err
-	}
-
-	ret, err := rt.Exec(runtime.TaggedTransactionQueueValidateTransaction, e)
-	if err != nil {
-		return nil, err
-	}
-
-	if ret[0] != 0 {
-		return nil, runtime.NewValidateTransactionError(ret)
-	}
-
-	v := transaction.NewValidity(0, [][]byte{{}}, [][]byte{{}}, 0, false)
-	_, err = scale.Decode(ret[1:], v)
-
-	return v, err
 }
 
 // DeleteBlock deletes all instances of the block and its related data in the database
@@ -890,7 +866,7 @@ func (bs *BlockState) StoreRuntime(hash common.Hash, rt runtime.Instance) {
 	bs.bt.StoreRuntime(hash, rt)
 }
 
-// GetAllBlocks get all the blocks
-func (bs *BlockState) GetAllBlocks() []common.Hash {
+// GetAllNonFinalisedBlocks get all the blocks
+func (bs *BlockState) GetAllNonFinalisedBlocks() []common.Hash {
 	return bs.bt.GetAllBlocks()
 }

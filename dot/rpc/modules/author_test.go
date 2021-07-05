@@ -43,7 +43,7 @@ func TestMain(m *testing.M) {
 
 func TestAuthorModule_Pending(t *testing.T) {
 	txQueue := state.NewTransactionState()
-	auth := NewAuthorModule(nil, nil, nil, txQueue)
+	auth := NewAuthorModule(nil, nil, txQueue)
 
 	res := new(PendingExtrinsicsResponse)
 	err := auth.PendingExtrinsics(nil, nil, res)
@@ -296,7 +296,7 @@ func setupAuthModule(t *testing.T, txq *state.TransactionState) *AuthorModule {
 	t.Cleanup(func() {
 		rt.Stop()
 	})
-	return NewAuthorModule(nil, cs, rt, txq)
+	return NewAuthorModule(nil, cs, txq)
 }
 
 type mockNetwork struct{}

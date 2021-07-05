@@ -338,7 +338,6 @@ func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Serv
 		NetworkAPI:          networkSrvc,
 		CoreAPI:             coreSrvc,
 		BlockProducerAPI:    bp,
-		RuntimeAPI:          stateSrvc.Block,
 		TransactionQueueAPI: stateSrvc.Transaction,
 		RPCAPI:              rpcService,
 		SystemAPI:           sysSrvc,

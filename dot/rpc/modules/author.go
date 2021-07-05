@@ -31,7 +31,6 @@ import (
 type AuthorModule struct {
 	logger     log.Logger
 	coreAPI    CoreAPI
-	runtimeAPI RuntimeAPI
 	txStateAPI TransactionStateAPI
 }
 
@@ -82,7 +81,7 @@ type ExtrinsicStatus struct {
 type ExtrinsicHashResponse string
 
 // NewAuthorModule creates a new Author module.
-func NewAuthorModule(logger log.Logger, coreAPI CoreAPI, runtimeAPI RuntimeAPI, txStateAPI TransactionStateAPI) *AuthorModule {
+func NewAuthorModule(logger log.Logger, coreAPI CoreAPI, txStateAPI TransactionStateAPI) *AuthorModule {
 	if logger == nil {
 		logger = log.New("service", "RPC", "module", "author")
 	}
@@ -90,7 +89,6 @@ func NewAuthorModule(logger log.Logger, coreAPI CoreAPI, runtimeAPI RuntimeAPI, 
 	return &AuthorModule{
 		logger:     logger.New("module", "author"),
 		coreAPI:    coreAPI,
-		runtimeAPI: runtimeAPI,
 		txStateAPI: txStateAPI,
 	}
 }
