@@ -19,6 +19,7 @@ package grandpa
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 
@@ -171,7 +172,9 @@ func (v *Vote) Decode(r io.Reader) (*Vote, error) {
 
 	var err error
 	v.hash, err = common.ReadHash(r)
-	if err != nil {
+	if errors.Is(err, io.EOF) {
+		return v, nil
+	} else if err != nil {
 		return nil, err
 	}
 

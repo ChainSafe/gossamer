@@ -111,3 +111,14 @@ func TestJustification_Decode(t *testing.T) {
 	require.Equal(t, common.MustHexToHash("0x2a82146e771968df054c8036040dea584339df52d8cbac6970d4c22ed59f7022"), fj.Commit.Hash)
 	require.Equal(t, 199, len(fj.Commit.Precommits))
 }
+
+func TestDecodeNilVote(t *testing.T) {
+	var emptyVote Vote
+	enc, err := scale.Encode(emptyVote)
+	require.NoError(t, err)
+	require.Nil(t, enc)
+
+	var res Vote
+	_, err = res.Decode(bytes.NewReader(enc))
+	require.NoError(t, err)
+}

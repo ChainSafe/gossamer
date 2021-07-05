@@ -23,7 +23,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/stretchr/testify/require"
 )
 
@@ -577,4 +577,10 @@ func TestDecodeEmptyArray(t *testing.T) {
 	if !reflect.DeepEqual(output, expected) {
 		t.Fatalf("Fail: got %v expected %v", output, expected)
 	}
+}
+
+func TestDecodeNilPublicKey(t *testing.T) {
+	var pubKey ed25519.PublicKeyBytes
+	_, err := pubKey.Decode(bytes.NewReader(nil))
+	require.Nil(t, err)
 }
