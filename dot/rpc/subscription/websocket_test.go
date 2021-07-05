@@ -1,15 +1,23 @@
 package subscription
 
 import (
+	"context"
+	"fmt"
 	"log"
+	"math/big"
 	"net/http"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/gorilla/websocket"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	modulesmocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 )
 
 var upgrader = websocket.Upgrader{
@@ -224,5 +232,53 @@ func TestWSConn_HandleComm(t *testing.T) {
 	res, err = wsconn.initExtrinsicWatch(0, []interface{}{"0x26aa"})
 	require.NoError(t, err)
 	require.Equal(t, uint(8), res)
+}
 
+func TestInitGrandpaFinalisation(t *testing.T) {
+	c, _, err := websocket.DefaultDialer.Dial("ws://localhost:8546", nil) //nolint
+	if err != nil {
+		log.Fatal("dial:", err)
+	}
+	defer c.Close()
+
+	var fCh chan<- *types.FinalisationInfo
+
+	mockBlockAPI := new(modulesmocks.MockBlockAPI)
+	mockBlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
+		Run(func(args mock.Arguments) {
+			ch := args.Get(0).(chan<- *types.FinalisationInfo)
+			fCh = ch
+		}).
+		Return(uint8(4), nil)
+
+	wsconn.BlockAPI = mockBlockAPI
+	id, err := wsconn.initGrandpaJustificationListener(0)
+	require.NoError(t, err)
+	require.NotEqual(t, 0, id)
+
+	listener, ok := wsconn.Subscriptions[id]
+	require.True(t, ok)
+
+	listener.Listen()
+	header := &types.Header{
+		ParentHash: common.Hash{},
+		Number:     big.NewInt(1),
+	}
+
+	expectedhash := header.Hash()
+
+	fCh <- &types.FinalisationInfo{
+		Header: header,
+	}
+
+	expected := fmt.Sprintf(`{"jsonrpc":"2.0","method":"grandpa_justifications","params":{"result":"%s","subscription":%v}}`+"\n", expectedhash.String(), id)
+
+	_, msg, err := c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, []byte(expected), msg)
+
+	grandpaJustificationListener := listener.(*GrandpaJustificationListener)
+	grandpaJustificationListener.cancel()
+	err = grandpaJustificationListener.ctx.Err()
+	require.ErrorIs(t, err, context.Canceled)
 }
