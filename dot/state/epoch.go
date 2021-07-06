@@ -235,7 +235,7 @@ func (s *EpochState) GetEpochData(epoch uint64) (*types.EpochData, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var info *types.EpochDataRaw
 	err = scale.Unmarshal(enc, &info)
 	if err != nil {
