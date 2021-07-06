@@ -26,6 +26,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
+const DEFAULT_BUFFER_SIZE = 100
+
 // BlockState interface for block state methods
 type BlockState interface {
 	BestBlockHash() common.Hash

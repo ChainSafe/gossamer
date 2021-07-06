@@ -27,6 +27,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -258,7 +259,7 @@ func (c *WSConn) unsubscribeStorageListener(reqID float64, params interface{}) {
 
 func (c *WSConn) initBlockListener(reqID float64) (uint, error) {
 	bl := &BlockListener{
-		Channel: make(chan *types.Block, 100),
+		Channel: make(chan *types.Block, core.DEFAULT_BUFFER_SIZE),
 		wsconn:  c,
 	}
 
@@ -315,7 +316,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (uint, er
 
 	// listen for built blocks
 	esl := &ExtrinsicSubmitListener{
-		importedChan:  make(chan *types.Block, 100),
+		importedChan:  make(chan *types.Block, core.DEFAULT_BUFFER_SIZE),
 		wsconn:        c,
 		extrinsic:     types.Extrinsic(extBytes),
 		finalisedChan: make(chan *types.FinalisationInfo, 100),

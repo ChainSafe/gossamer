@@ -167,7 +167,7 @@ func NewService(cfg *Config) (*Service, error) {
 		justification:      make(map[uint64][]*SignedPrecommit),
 		head:               head,
 		in:                 make(chan GrandpaMessage, 128),
-		resumed:            make(chan struct{}, 100),
+		resumed:            make(chan struct{}),
 		network:            cfg.Network,
 		finalisedCh:        finalisedCh,
 		finalisedChID:      fid,

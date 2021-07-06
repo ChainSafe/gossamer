@@ -45,7 +45,7 @@ func TestHandler_SendMulti(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(4)
 
-	resultCh = make(chan []byte, 100)
+	resultCh = make(chan []byte)
 
 	go func() {
 		genesisHash := common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3")
@@ -109,7 +109,7 @@ func TestListenerConcurrency(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(qty)
 
-	resultCh = make(chan []byte, 100)
+	resultCh = make(chan []byte)
 	for i := 0; i < qty; i++ {
 		go func() {
 			bestHash := common.Hash{}
@@ -132,7 +132,7 @@ func TestListenerConcurrency(t *testing.T) {
 //  this can be useful to see what data is sent to telemetry server
 func TestInfiniteListener(t *testing.T) {
 	t.Skip()
-	resultCh = make(chan []byte, 100)
+	resultCh = make(chan []byte)
 	for data := range resultCh {
 		fmt.Printf("Data %s\n", data)
 	}
