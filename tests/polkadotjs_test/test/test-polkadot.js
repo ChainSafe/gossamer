@@ -62,7 +62,7 @@ describe('Testing polkadot.js/api calls:', function () {
         it('call api.libraryInfo', async function () {
             const libraryInfo = await api.libraryInfo;
             expect(libraryInfo).to.be.not.null;
-            expect(libraryInfo).to.be.equal('@polkadot/api v2.8.1');
+            expect(libraryInfo).to.be.equal('@polkadot/api v4.5.1');
         });
     });
     describe('api query', () => {
@@ -110,7 +110,7 @@ describe('Testing polkadot.js/api calls:', function () {
             const unsubHeads = await api.rpc.chain.subscribeNewHeads((lastHeader) => {
                 expect(lastHeader).to.have.property('hash').to.have.lengthOf(32);
                 expect(lastHeader).to.have.property('number')
-                if (++count === 3) {
+                if (++count === 2) {
                     unsubHeads();
                 }
             });

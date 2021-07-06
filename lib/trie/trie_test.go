@@ -24,6 +24,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -1136,4 +1137,50 @@ func TestNextKey_Random(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestRootHashNonParallel(t *testing.T) {
+	rt := GenerateRandomTests(t, 1000000)
+	trie := NewEmptyTrie()
+	for i := range rt {
+		test := &rt[i]
+		trie.Put(test.key, test.value)
+	}
+
+	t.Run("Non Parallel Hash", func(t *testing.T) {
+		trie.parallel = false
+		_, err := trie.Hash()
+		require.NoError(t, err)
+		PrintMemUsage()
+	})
+}
+
+func TestRootHashParallel(t *testing.T) {
+	rt := GenerateRandomTests(t, 1000000)
+	trie := NewEmptyTrie()
+	for i := range rt {
+		test := &rt[i]
+		trie.Put(test.key, test.value)
+	}
+
+	t.Run("Parallel Hash", func(t *testing.T) {
+		trie.parallel = true
+		_, err := trie.Hash()
+		require.NoError(t, err)
+		PrintMemUsage()
+	})
+}
+
+func PrintMemUsage() {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	// For info on each, see: https://golang.org/pkg/runtime/#MemStats
+	fmt.Printf("Alloc = %v MiB", bToMb(m.Alloc))
+	fmt.Printf("\tTotalAlloc = %v MiB", bToMb(m.TotalAlloc))
+	fmt.Printf("\tSys = %v MiB", bToMb(m.Sys))
+	fmt.Printf("\tNumGC = %v\n", m.NumGC)
+}
+
+func bToMb(b uint64) uint64 {
+	return b / 1024 / 1024
 }

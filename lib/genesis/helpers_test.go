@@ -23,6 +23,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/require"
@@ -67,9 +68,10 @@ func TestNewGenesisFromJSON(t *testing.T) {
 	expRaw := make(map[string]map[string]string)
 	expRaw["top"] = make(map[string]string)
 	expRaw["top"]["0x3a636f6465"] = "0xfoo"
-	expRaw["top"]["0x3a6772616e6470615f617574686f726974696573"] = "0x010834602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a6910000000000000000"                                                                                                                                                                                     // raw grandpa authorities
-	expRaw["top"]["0x014f204c006a2837deb5551ba5211d6ce887d1f35708af762efe7b709b5eff15"] = "0x08d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0100000000000000"                                                                                                                                                               // raw babe authorities
-	expRaw["top"]["0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9de1e86a9a8c739864cf3cc5ec2bea59fd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"] = "0x00000000000000007aeb9049000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" // raw system account
+	expRaw["top"]["0x3a6772616e6470615f617574686f726974696573"] = "0x010834602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a6910000000000000000"                                                                                                                                                                                             // raw grandpa authorities
+	expRaw["top"]["0x014f204c006a2837deb5551ba5211d6ce887d1f35708af762efe7b709b5eff15"] = "0x08d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0100000000000000"                                                                                                                                                                       // raw babe authorities
+	expRaw["top"]["0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9de1e86a9a8c739864cf3cc5ec2bea59fd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"] = "0x0000000000000000000000007aeb9049000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" // raw system account
+	expRaw["top"][common.BytesToHex(common.UpgradedToDualRefKey)] = "0x01"
 
 	expectedGenesis.Genesis = Fields{
 		Raw: expRaw,
