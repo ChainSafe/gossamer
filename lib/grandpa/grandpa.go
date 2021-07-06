@@ -35,6 +35,10 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
+const (
+	finalityGrandpaRoundMetrics = "gossamer/finality/grandpa/round"
+)
+
 var (
 	interval = time.Second // TODO: make this configurable; currently 1s is same as substrate; total round length is interval * 2
 	logger   = log.New("pkg", "grandpa")
@@ -59,10 +63,9 @@ type Service struct {
 	network        Network
 
 	// current state information
-	state      *State    // current state
-	prevotes   *sync.Map // map[ed25519.PublicKeyBytes]*SignedVote // pre-votes for the current round
-	precommits *sync.Map // map[ed25519.PublicKeyBytes]*SignedVote // pre-commits for the current round
-	// TODO: change equivocations to map[ed25519.PublicKeyBytes][]*SignedVote
+	state           *State                                   // current state
+	prevotes        *sync.Map                                // map[ed25519.PublicKeyBytes]*SignedVote // pre-votes for the current round
+	precommits      *sync.Map                                // map[ed25519.PublicKeyBytes]*SignedVote // pre-commits for the current round
 	pvEquivocations map[ed25519.PublicKeyBytes][]*SignedVote // equivocatory votes for current pre-vote stage
 	pcEquivocations map[ed25519.PublicKeyBytes][]*SignedVote // equivocatory votes for current pre-commit stage
 	tracker         *tracker                                 // tracker of vote messages we may need in the future
@@ -227,6 +230,16 @@ func (s *Service) authorities() []*types.Authority {
 	}
 
 	return ad
+}
+
+// CollectGauge returns the map between metrics label and value
+func (s *Service) CollectGauge() map[string]int64 {
+	s.roundLock.Lock()
+	defer s.roundLock.Unlock()
+
+	return map[string]int64{
+		finalityGrandpaRoundMetrics: int64(s.state.round),
+	}
 }
 
 // updateAuthorities updates the grandpa voter set, increments the setID, and resets the round numbers
