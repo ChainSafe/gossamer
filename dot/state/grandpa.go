@@ -102,7 +102,7 @@ func (s *GrandpaState) GetAuthorities(setID uint64) ([]*types.GrandpaVoter, erro
 		return nil, err
 	}
 
-	var v types.GrandpaVoters
+	var v []*types.GrandpaVoter
 	err = scale.Unmarshal(enc, &v)
 	if err != nil {
 		return nil, err
