@@ -102,7 +102,7 @@ func (c *WSConn) HandleComm() {
 
 		logger.Debug("ws method called", "method", method, "params", params)
 
-		if contains(method, "_subscribe") {
+		if strings.Contains(method, "_subscribe") {
 			setup := c.getSetupListener(method)
 
 			listener, err := setup(reqid, params) //nolint
@@ -115,7 +115,7 @@ func (c *WSConn) HandleComm() {
 			continue
 		}
 
-		if contains(method, "_unsubscribe") {
+		if strings.Contains(method, "_unsubscribe") {
 			unsub, listener, err := c.getUnsubListener(method, params) //nolint
 
 			if err != nil {
@@ -137,7 +137,7 @@ func (c *WSConn) HandleComm() {
 			continue
 		}
 
-		if contains(method, "submitAndWatchExtrinsic") {
+		if strings.Contains(method, "submitAndWatchExtrinsic") {
 			listener, err := c.initExtrinsicWatch(reqid, params) //nolint
 			if err != nil {
 				logger.Warn("failed to create listener", "method", method, "error", err)
@@ -392,8 +392,7 @@ func (c *WSConn) safeSendError(reqID float64, errorCode *big.Int, message string
 
 func (c *WSConn) prepareRequest(b []byte) (*http.Request, error) {
 	buff := &bytes.Buffer{}
-	_, err := buff.Write(b)
-	if err != nil {
+	if _, err := buff.Write(b); err != nil {
 		logger.Warn("failed to write message to buffer", "error", buff)
 		return nil, err
 	}

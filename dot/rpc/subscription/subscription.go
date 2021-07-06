@@ -30,14 +30,14 @@ func (c *WSConn) getSetupListener(method string) setupListener {
 }
 
 func (c *WSConn) getUnsubListener(method string, params interface{}) (unsubListener, Listener, error) {
-	subscriberid, err := parseSubscribeID(params)
+	subscribeID, err := parseSubscribeID(params)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	listener, ok := c.Subscriptions[subscriberid]
+	listener, ok := c.Subscriptions[subscribeID]
 	if !ok {
-		return nil, nil, fmt.Errorf("subscriber id %v: %w", subscriberid, errCannotFindListener)
+		return nil, nil, fmt.Errorf("subscriber id %v: %w", subscribeID, errCannotFindListener)
 	}
 
 	var unsub unsubListener
