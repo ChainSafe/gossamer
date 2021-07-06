@@ -244,11 +244,6 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot) []*transaction.ValidTrans
 		txn := b.transactionState.Pop()
 		// Transaction queue is empty.
 		if txn == nil {
-			return included
-		}
-
-		// Move to next extrinsic.
-		if txn.Extrinsic == nil {
 			continue
 		}
 
