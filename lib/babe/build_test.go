@@ -26,12 +26,14 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+
 	log "github.com/ChainSafe/log15"
-	cscale "github.com/centrifuge/go-substrate-rpc-client/v2/scale"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
-	ctypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	cscale "github.com/centrifuge/go-substrate-rpc-client/v3/scale"
+	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/stretchr/testify/require"
 )
@@ -81,6 +83,45 @@ func addAuthorshipProof(t *testing.T, babeService *Service, slotNumber, epoch ui
 	require.NoError(t, err)
 	require.NotNil(t, outAndProof, "proof was nil when under threshold")
 	babeService.slotToProof[slotNumber] = outAndProof
+}
+
+func createTestExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic {
+	t.Helper()
+	rawMeta, err := rt.Metadata()
+	require.NoError(t, err)
+
+	decoded, err := scale.Decode(rawMeta, []byte{})
+	require.NoError(t, err)
+
+	meta := &ctypes.Metadata{}
+	err = ctypes.DecodeFromBytes(decoded.([]byte), meta)
+	require.NoError(t, err)
+
+	rv, err := rt.Version()
+	require.NoError(t, err)
+
+	c, err := ctypes.NewCall(meta, "System.remark", []byte{0xab, 0xcd})
+	require.NoError(t, err)
+
+	ext := ctypes.NewExtrinsic(c)
+	o := ctypes.SignatureOptions{
+		BlockHash:          ctypes.Hash(genHash),
+		Era:                ctypes.ExtrinsicEra{IsImmortalEra: false},
+		GenesisHash:        ctypes.Hash(genHash),
+		Nonce:              ctypes.NewUCompactFromUInt(nonce),
+		SpecVersion:        ctypes.U32(rv.SpecVersion()),
+		Tip:                ctypes.NewUCompactFromUInt(0),
+		TransactionVersion: ctypes.U32(rv.TransactionVersion()),
+	}
+
+	// Sign the transaction using Alice's key
+	err = ext.Sign(signature.TestKeyringPairAlice, o)
+	require.NoError(t, err)
+
+	extEnc, err := ctypes.EncodeToHexString(ext)
+	require.NoError(t, err)
+
+	return types.Extrinsic(common.MustHexToBytes(extEnc))
 }
 
 func createTestBlock(t *testing.T, babeService *Service, parent *types.Header, exts [][]byte, slotNumber, epoch uint64) (*types.Block, Slot) { //nolint
@@ -175,29 +216,78 @@ func TestApplyExtrinsic(t *testing.T) {
 	}
 
 	babeService := createTestService(t, cfg)
+	babeService.epochData.authorityIndex = 0
 	babeService.epochData.threshold = maxThreshold
 
-	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
-	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewEmptyDigest())
+	builder, _ := NewBlockBuilder(
+		babeService.rt,
+		babeService.keypair,
+		babeService.transactionState,
+		babeService.blockState,
+		babeService.slotToProof,
+		babeService.epochData.authorityIndex,
+	)
+
+	duration, err := time.ParseDuration("1s")
+	require.NoError(t, err)
+
+	slotnum := uint64(1)
+	slot := Slot{
+		start:    time.Now(),
+		duration: duration,
+		number:   slotnum,
+	}
+	addAuthorshipProof(t, babeService, slotnum, testEpochIndex)
+
+	slot2 := Slot{
+		start:    time.Now(),
+		duration: duration,
+		number:   2,
+	}
+	addAuthorshipProof(t, babeService, 2, testEpochIndex)
+
+	preDigest2, err := builder.buildBlockPreDigest(slot2)
+	require.NoError(t, err)
+
+	parentHash := babeService.blockState.GenesisHash()
+	ts, err := babeService.storageState.TrieState(nil)
+	require.NoError(t, err)
+	builder.rt.SetContextStorage(ts)
+
+	preDigest, err := builder.buildBlockPreDigest(slot)
+	require.NoError(t, err)
+
+	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewDigest(preDigest))
 	require.NoError(t, err)
 
 	//initialise block header
-	err = babeService.rt.InitializeBlock(header)
+	err = builder.rt.InitializeBlock(header)
 	require.NoError(t, err)
 
-	ext := types.Extrinsic(common.MustHexToBytes("0x410284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d015a3e258da3ea20581b68fe1264a35d1f62d6a0debb1a44e836375eb9921ba33e3d0f265f2da33c9ca4e10490b03918300be902fcb229f806c9cf99af4cc10f8c0000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a480b00c465f14670"))
-
-	txVal, err := babeService.rt.ValidateTransaction(append([]byte{byte(types.TxnLocal)}, ext...))
+	_, err = builder.buildBlockInherents(slot)
 	require.NoError(t, err)
 
-	vtx := transaction.NewValidTransaction(ext, txVal)
-	babeService.transactionState.Push(vtx)
-
-	// apply extrinsic
-	res, err := babeService.rt.ApplyExtrinsic(ext)
+	header1, err := builder.rt.FinalizeBlock()
 	require.NoError(t, err)
-	// Expected result for valid ApplyExtrinsic is 0, 0
+
+	ext := createTestExtrinsic(t, babeService.rt, parentHash, 0)
+	_, err = babeService.rt.ValidateTransaction(append([]byte{byte(types.TxnExternal)}, ext...))
+	require.NoError(t, err)
+
+	header2, err := types.NewHeader(header1.Hash(), common.Hash{}, common.Hash{}, big.NewInt(2), types.NewDigest(preDigest2))
+	require.NoError(t, err)
+	err = builder.rt.InitializeBlock(header2)
+	require.NoError(t, err)
+
+	_, err = builder.buildBlockInherents(slot)
+	require.NoError(t, err)
+
+	res, err := builder.rt.ApplyExtrinsic(ext)
+	require.NoError(t, err)
 	require.Equal(t, []byte{0, 0}, res)
+
+	_, err = builder.rt.FinalizeBlock()
+	require.NoError(t, err)
 }
 
 func TestBuildAndApplyExtrinsic(t *testing.T) {
@@ -233,10 +323,10 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	rv, err := babeService.rt.Version()
 	require.NoError(t, err)
 
-	bob, err := ctypes.NewAddressFromHexAccountID("0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
+	bob, err := ctypes.NewMultiAddressFromHexAccountID("0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
 	require.NoError(t, err)
 
-	call, err := ctypes.NewCall(meta, "Balances.transfer", bob, ctypes.NewUCompactFromUInt(123450000000000))
+	call, err := ctypes.NewCall(meta, "Balances.transfer", bob, ctypes.NewUCompactFromUInt(12345))
 	require.NoError(t, err)
 
 	// Create the extrinsic
