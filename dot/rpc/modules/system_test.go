@@ -24,13 +24,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/lib/trie"
+	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
 
@@ -322,4 +328,40 @@ func setupSystemModule(t *testing.T) *SystemModule {
 	// TODO (ed) add transactions to txQueue and add test for those
 	txQueue := state.NewTransactionState()
 	return NewSystemModule(net, nil, core, chain.Storage, txQueue)
+}
+
+type mockNetwork struct{}
+
+func (n *mockNetwork) SendMessage(_ network.NotificationsMessage) {}
+
+func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
+	// setup service
+	tt := trie.NewEmptyTrie()
+	rt := wasmer.NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlInfo)
+	ks := keystore.NewGlobalKeystore()
+	t.Cleanup(func() {
+		rt.Stop()
+	})
+
+	// insert alice key for testing
+	kr, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+	ks.Acco.Insert(kr.Alice())
+
+	if srvc == nil {
+		srvc = newTestStateService(t)
+	}
+
+	cfg := &core.Config{
+		Runtime:              rt,
+		Keystore:             ks,
+		TransactionState:     srvc.Transaction,
+		BlockState:           srvc.Block,
+		StorageState:         srvc.Storage,
+		EpochState:           srvc.Epoch,
+		Network:              &mockNetwork{},
+		CodeSubstitutedState: srvc.Base,
+	}
+
+	return core.NewTestService(t, cfg)
 }

@@ -331,6 +331,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 
 	if cfg.Global.PublishMetrics {
 		c := metrics.NewCollector(context.Background())
+		c.AddGauge(fg)
 		c.AddGauge(stateSrvc)
 
 		go c.Start()
