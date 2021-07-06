@@ -212,8 +212,10 @@ func buildRawArrayInterface(a []interface{}, kv *keyValue) {
 			kv.value = kv.value + fmt.Sprintf("%x", tba)
 			kv.iVal = append(kv.iVal, tba)
 		case float64:
-			// TODO: determine how to handle this error
-			encVal, _ := scale.Marshal(uint64(v2))
+			encVal, err := scale.Marshal(uint64(v2))
+			if err != nil {
+				panic(err)
+			}
 			kv.value = kv.value + fmt.Sprintf("%x", encVal)
 			kv.iVal = append(kv.iVal, big.NewInt(int64(v2)))
 		}
