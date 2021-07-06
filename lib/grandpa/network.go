@@ -176,6 +176,18 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 	return true, nil
 }
 
+// sendMessage sends a vote message to be gossiped to the network
+func (s *Service) sendMessage(msg GrandpaMessage) error {
+	cm, err := msg.ToConsensusMessage()
+	if err != nil {
+		return err
+	}
+
+	s.network.SendMessage(cm)
+	logger.Trace("sent message", "msg", msg)
+	return nil
+}
+
 func (s *Service) sendNeighbourMessage() {
 	t := time.NewTicker(neighbourMessageInterval)
 	defer t.Stop()
@@ -220,14 +232,19 @@ func decodeMessage(msg *ConsensusMessage) (m GrandpaMessage, err error) {
 
 	switch msg.Data[0] {
 	case voteType:
-		m = &VoteMessage{}
-		_, err = scale.Decode(msg.Data[1:], m)
+		r := &bytes.Buffer{}
+		_, _ = r.Write(msg.Data[1:])
+		vm := &VoteMessage{}
+		err = vm.Decode(r)
+		m = vm
+		logger.Trace("got VoteMessage!!!", "msg", m)
 	case commitType:
 		r := &bytes.Buffer{}
 		_, _ = r.Write(msg.Data[1:])
 		cm := &CommitMessage{}
 		err = cm.Decode(r)
 		m = cm
+		logger.Trace("got CommitMessage!!!", "msg", m)
 	case neighbourType:
 		mi, err = scale.Decode(msg.Data[1:], &NeighbourMessage{})
 		if m, ok = mi.(*NeighbourMessage); !ok {
