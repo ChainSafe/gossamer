@@ -29,8 +29,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
 
@@ -302,7 +302,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 			FreeFrozen common.Uint128
 		}{},
 	}
-	aliceAcctEncoded, err := scale.Encode(aliceAcctInfo)
+	aliceAcctEncoded, err := scale.Marshal(aliceAcctInfo)
 	require.NoError(t, err)
 	ts.Set(aliceAcctStoKey, aliceAcctEncoded)
 
