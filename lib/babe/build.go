@@ -266,7 +266,6 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot) []*transaction.ValidTrans
 				continue
 			}
 
-			// TODO: make this prettier after SCALE babe error refactor
 			// don't drop transactions that may be valid in a later block ie.
 			// run out of gas for this block or have a nonce that may be valid in a later block
 			if tvErr, ok := err.(*TransactionValidityError); ok {

@@ -81,6 +81,26 @@ func (e TransactionValidityError) Error() string {
 	return fmt.Sprintf("transaction validity error: %s", e.msg)
 }
 
+type transactionValidityErrorMsg string
+
+var (
+	unexpectedTxCallMsg         transactionValidityErrorMsg = "call of the transaction is not expected"
+	invalidPaymentMsg           transactionValidityErrorMsg = "invalid payment"
+	invalidTransactionMsg       transactionValidityErrorMsg = "invalid transaction"
+	outdatedTransactionMsg      transactionValidityErrorMsg = "outdated transaction"
+	badProofMsg                 transactionValidityErrorMsg = "bad proof"
+	ancientBirthBlockMsg        transactionValidityErrorMsg = "ancient birth block"
+	exhaustsResourcesMsg        transactionValidityErrorMsg = "exhausts resources"
+	mandatoryDispatchErrorMsg   transactionValidityErrorMsg = "mandatory dispatch error"
+	invalidMandatoryDispatchMsg transactionValidityErrorMsg = "invalid mandatory dispatch"
+	lookupFailedMsg             transactionValidityErrorMsg = "lookup failed"
+	validatorNotFoundMsg        transactionValidityErrorMsg = "validator not found"
+)
+
+func newUnknownErrorMsg(code byte) transactionValidityErrorMsg {
+	return transactionValidityErrorMsg(fmt.Sprintf("unknown error: %d", code))
+}
+
 func determineCustomModuleErr(res []byte) error {
 	if len(res) < 3 {
 		return errInvalidResult
@@ -105,24 +125,6 @@ func determineDispatchErr(res []byte) error {
 		return &DispatchOutcomeError{fmt.Sprintf("custom module error: %s", determineCustomModuleErr(res[1:]))}
 	}
 	return errInvalidResult
-}
-
-type transactionValidityErrorMsg string
-
-var (
-	unexpectedTxCallMsg         transactionValidityErrorMsg = "call of the transaction is not expected"
-	invalidPaymentMsg           transactionValidityErrorMsg = "invalid payment"
-	invalidTransactionMsg       transactionValidityErrorMsg = "invalid transaction"
-	outdatedTransactionMsg      transactionValidityErrorMsg = "outdated transaction"
-	badProofMsg                 transactionValidityErrorMsg = "bad proof"
-	ancientBirthBlockMsg        transactionValidityErrorMsg = "ancient birth block"
-	exhaustsResourcesMsg        transactionValidityErrorMsg = "exhausts resources"
-	mandatoryDispatchErrorMsg   transactionValidityErrorMsg = "mandatory dispatch error"
-	invalidMandatoryDispatchMsg transactionValidityErrorMsg = "invalid mandatory dispatch"
-)
-
-func newUnknownErrorMsg(code byte) transactionValidityErrorMsg {
-	return transactionValidityErrorMsg(fmt.Sprintf("unknown error: %d", code))
 }
 
 func determineInvalidTxnErr(res []byte) error {
@@ -154,9 +156,9 @@ func determineInvalidTxnErr(res []byte) error {
 func determineUnknownTxnErr(res []byte) error {
 	switch res[0] {
 	case 0:
-		return &TransactionValidityError{"lookup failed"}
+		return &TransactionValidityError{lookupFailedMsg}
 	case 1:
-		return &TransactionValidityError{"validator not found"}
+		return &TransactionValidityError{validatorNotFoundMsg}
 	case 2:
 		return &TransactionValidityError{newUnknownErrorMsg(res[1])}
 	}
