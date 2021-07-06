@@ -113,7 +113,7 @@ func (h *Handler) startListening() {
 
 				err = conn.wsconn.WriteMessage(websocket.TextMessage, msgBytes)
 				if err != nil {
-					h.log.Warn("issue while sending telemetry message", "error", err)
+					h.log.Debug("issue while sending telemetry message", "error", err)
 				}
 			}
 		}()
