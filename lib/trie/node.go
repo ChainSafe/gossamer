@@ -53,7 +53,6 @@ import (
 // node is the interface for trie methods
 type node interface {
 	encodeAndHash() ([]byte, []byte, error)
-	encode() ([]byte, error)
 	decode(r io.Reader, h byte) error
 	isDirty() bool
 	setDirty(dirty bool)
@@ -220,28 +219,13 @@ func (b *branch) setKey(key []byte) {
 	b.key = key
 }
 
-// Encode is the high-level function wrapping the encoding for different node types
-// encoding has the following format:
-// NodeHeader | Extra partial key length | Partial Key | Value
-func encode(n node) ([]byte, error) {
-	switch n := n.(type) {
-	case *branch:
-		return n.encode()
-	case *leaf:
-		return n.encode()
-	case nil:
-		return []byte{0}, nil
-	}
-
-	return nil, nil
-}
-
 func (b *branch) encodeAndHash() ([]byte, []byte, error) {
 	if !b.dirty && b.encoding != nil && b.hash != nil {
 		return b.encoding, b.hash, nil
 	}
 
-	enc, err := b.encode()
+	hasher := NewHasher(false)
+	enc, err := hasher.encodeBranch(b)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -262,59 +246,13 @@ func (b *branch) encodeAndHash() ([]byte, []byte, error) {
 	return enc, hash[:], nil
 }
 
-// Encode encodes a branch with the encoding specified at the top of this package
-func (b *branch) encode() ([]byte, error) {
-	if !b.dirty && b.encoding != nil {
-		return b.encoding, nil
-	}
-
-	encoding, err := b.header()
-	if err != nil {
-		return nil, err
-	}
-
-	encoding = append(encoding, nibblesToKeyLE(b.key)...)
-	encoding = append(encoding, common.Uint16ToBytes(b.childrenBitmap())...)
-
-	if b.value != nil {
-		buffer := bytes.Buffer{}
-		se := scale.Encoder{Writer: &buffer}
-		_, err = se.Encode(b.value)
-		if err != nil {
-			return encoding, err
-		}
-		encoding = append(encoding, buffer.Bytes()...)
-	}
-
-	for _, child := range b.children {
-		if child != nil {
-			hasher, err := NewHasher()
-			if err != nil {
-				return nil, err
-			}
-
-			encChild, err := hasher.Hash(child)
-			if err != nil {
-				return encoding, err
-			}
-
-			scEncChild, err := scale.Encode(encChild)
-			if err != nil {
-				return encoding, err
-			}
-			encoding = append(encoding, scEncChild...)
-		}
-	}
-
-	return encoding, nil
-}
-
 func (l *leaf) encodeAndHash() ([]byte, []byte, error) {
 	if !l.isDirty() && l.encoding != nil && l.hash != nil {
 		return l.encoding, l.hash, nil
 	}
+	hasher := NewHasher(false)
+	enc, err := hasher.encodeLeaf(l)
 
-	enc, err := l.encode()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -333,30 +271,6 @@ func (l *leaf) encodeAndHash() ([]byte, []byte, error) {
 	l.encoding = enc
 	l.hash = hash[:]
 	return enc, hash[:], nil
-}
-
-// Encode encodes a leaf with the encoding specified at the top of this package
-func (l *leaf) encode() ([]byte, error) {
-	if !l.dirty && l.encoding != nil {
-		return l.encoding, nil
-	}
-
-	encoding, err := l.header()
-	if err != nil {
-		return nil, err
-	}
-
-	encoding = append(encoding, nibblesToKeyLE(l.key)...)
-
-	buffer := bytes.Buffer{}
-	se := scale.Encoder{Writer: &buffer}
-	_, err = se.Encode(l.value)
-	if err != nil {
-		return encoding, err
-	}
-	encoding = append(encoding, buffer.Bytes()...)
-	l.encoding = encoding
-	return encoding, nil
 }
 
 func decodeBytes(in []byte) (node, error) {
