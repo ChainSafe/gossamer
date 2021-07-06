@@ -34,6 +34,10 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
+const (
+	finalityGrandpaRoundMetrics = "gossamer/finality/grandpa/round"
+)
+
 var (
 	interval = time.Second // TODO: make this configurable; currently 1s is same as substrate; total round length is then 2s
 	logger   = log.New("pkg", "grandpa")
@@ -231,6 +235,16 @@ func (s *Service) authorities() []*types.Authority {
 	return ad
 }
 
+// CollectGauge returns the map between metrics label and value
+func (s *Service) CollectGauge() map[string]int64 {
+	s.roundLock.Lock()
+	defer s.roundLock.Unlock()
+
+	return map[string]int64{
+		finalityGrandpaRoundMetrics: int64(s.state.round),
+	}
+}
+
 // updateAuthorities updates the grandpa voter set, increments the setID, and resets the round numbers
 func (s *Service) updateAuthorities() error {
 	currSetID, err := s.grandpaState.GetCurrentSetID()
@@ -279,6 +293,7 @@ func (s *Service) initiate() error {
 	s.roundLock.Lock()
 	s.state.round++
 	logger.Trace("incrementing grandpa round", "next round", s.state.round)
+
 	if s.tracker != nil {
 		s.tracker.stop()
 	}
