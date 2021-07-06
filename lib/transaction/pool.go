@@ -30,11 +30,9 @@ type Pool struct {
 
 // NewPool returns a new empty Pool
 func NewPool() *Pool {
-	p := &Pool{
+	return &Pool{
 		transactions: make(map[common.Hash]*ValidTransaction),
 	}
-
-	return p
 }
 
 // Transactions returns all the transactions in the pool
