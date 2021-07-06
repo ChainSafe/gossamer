@@ -35,6 +35,9 @@ const (
 // Hash used to store a blake2b hash
 type Hash [32]byte
 
+// EmptyHash is an empty [32]byte{}
+var EmptyHash = Hash{}
+
 // NewHash casts a byte array to a Hash
 // if the input is longer than 32 bytes, it takes the first 32 bytes
 func NewHash(in []byte) (res Hash) {
