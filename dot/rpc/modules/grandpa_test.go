@@ -22,7 +22,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -81,17 +80,17 @@ func TestRoundSate(t *testing.T) {
 	grandpamock.On("GetSetID").Return(uint64(0))
 	grandpamock.On("GetRound").Return(uint64(2))
 
-	grandpamock.On("PreVotes").Return(map[ed25519.PublicKeyBytes]*grandpa.Vote{
-		kr.Alice().Public().(*ed25519.PublicKey).AsBytes():   grandpa.NewVote(common.Hash{}, uint32(0)),
-		kr.Bob().Public().(*ed25519.PublicKey).AsBytes():     grandpa.NewVote(common.Hash{}, uint32(0)),
-		kr.Charlie().Public().(*ed25519.PublicKey).AsBytes(): grandpa.NewVote(common.Hash{}, uint32(0)),
-		kr.Dave().Public().(*ed25519.PublicKey).AsBytes():    grandpa.NewVote(common.Hash{}, uint32(0)),
-	}, map[ed25519.PublicKeyBytes][]*grandpa.Vote{})
+	grandpamock.On("PreVotes").Return([]ed25519.PublicKeyBytes{
+		kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
+		kr.Bob().Public().(*ed25519.PublicKey).AsBytes(),
+		kr.Charlie().Public().(*ed25519.PublicKey).AsBytes(),
+		kr.Dave().Public().(*ed25519.PublicKey).AsBytes(),
+	}, []ed25519.PublicKeyBytes{})
 
-	grandpamock.On("PreCommits").Return(map[ed25519.PublicKeyBytes]*grandpa.Vote{
-		kr.Alice().Public().(*ed25519.PublicKey).AsBytes(): grandpa.NewVote(common.Hash{}, uint32(0)),
-		kr.Bob().Public().(*ed25519.PublicKey).AsBytes():   grandpa.NewVote(common.Hash{}, uint32(0)),
-	}, map[ed25519.PublicKeyBytes][]*grandpa.Vote{})
+	grandpamock.On("PreCommits").Return([]ed25519.PublicKeyBytes{
+		kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
+		kr.Bob().Public().(*ed25519.PublicKey).AsBytes(),
+	}, []ed25519.PublicKeyBytes{})
 
 	mod := NewGrandpaModule(nil, grandpamock)
 
