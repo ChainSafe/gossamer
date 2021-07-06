@@ -448,7 +448,3 @@ type ErrorMessageJSON struct {
 	Code    *big.Int `json:"code"`
 	Message string   `json:"message"`
 }
-
-func contains(s string, sub string) bool {
-	return strings.Contains(s, sub)
-}
