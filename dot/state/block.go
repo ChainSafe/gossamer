@@ -432,8 +432,9 @@ func (bs *BlockState) SetFinalizedHash(hash common.Hash, round, setID uint64) er
 		}
 	}
 
-	go bs.notifyFinalized(hash, round, setID)
 	if round > 0 {
+		go bs.notifyFinalized(hash, round, setID)
+
 		err := bs.SetRound(round)
 		if err != nil {
 			return err
@@ -452,7 +453,7 @@ func (bs *BlockState) SetFinalizedHash(hash common.Hash, round, setID uint64) er
 			return err
 		}
 
-		logger.Trace("pruned block", "hash", rem)
+		logger.Trace("pruned block", "hash", rem, "number", header.Number)
 		bs.pruneKeyCh <- header
 	}
 
