@@ -4,8 +4,6 @@ package modules
 
 import (
 	ed25519 "github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	grandpa "github.com/ChainSafe/gossamer/lib/grandpa"
-
 	mock "github.com/stretchr/testify/mock"
 
 	types "github.com/ChainSafe/gossamer/dot/types"
@@ -61,24 +59,24 @@ func (_m *MockBlockFinalityAPI) GetVoters() types.GrandpaVoters {
 }
 
 // PreCommits provides a mock function with given fields:
-func (_m *MockBlockFinalityAPI) PreCommits() (map[ed25519.PublicKeyBytes]*grandpa.Vote, map[ed25519.PublicKeyBytes][]*grandpa.Vote) {
+func (_m *MockBlockFinalityAPI) PreCommits() ([]ed25519.PublicKeyBytes, []ed25519.PublicKeyBytes) {
 	ret := _m.Called()
 
-	var r0 map[ed25519.PublicKeyBytes]*grandpa.Vote
-	if rf, ok := ret.Get(0).(func() map[ed25519.PublicKeyBytes]*grandpa.Vote); ok {
+	var r0 []ed25519.PublicKeyBytes
+	if rf, ok := ret.Get(0).(func() []ed25519.PublicKeyBytes); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(map[ed25519.PublicKeyBytes]*grandpa.Vote)
+			r0 = ret.Get(0).([]ed25519.PublicKeyBytes)
 		}
 	}
 
-	var r1 map[ed25519.PublicKeyBytes][]*grandpa.Vote
-	if rf, ok := ret.Get(1).(func() map[ed25519.PublicKeyBytes][]*grandpa.Vote); ok {
+	var r1 []ed25519.PublicKeyBytes
+	if rf, ok := ret.Get(1).(func() []ed25519.PublicKeyBytes); ok {
 		r1 = rf()
 	} else {
 		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(map[ed25519.PublicKeyBytes][]*grandpa.Vote)
+			r1 = ret.Get(1).([]ed25519.PublicKeyBytes)
 		}
 	}
 
@@ -86,24 +84,24 @@ func (_m *MockBlockFinalityAPI) PreCommits() (map[ed25519.PublicKeyBytes]*grandp
 }
 
 // PreVotes provides a mock function with given fields:
-func (_m *MockBlockFinalityAPI) PreVotes() (map[ed25519.PublicKeyBytes]*grandpa.Vote, map[ed25519.PublicKeyBytes][]*grandpa.Vote) {
+func (_m *MockBlockFinalityAPI) PreVotes() ([]ed25519.PublicKeyBytes, []ed25519.PublicKeyBytes) {
 	ret := _m.Called()
 
-	var r0 map[ed25519.PublicKeyBytes]*grandpa.Vote
-	if rf, ok := ret.Get(0).(func() map[ed25519.PublicKeyBytes]*grandpa.Vote); ok {
+	var r0 []ed25519.PublicKeyBytes
+	if rf, ok := ret.Get(0).(func() []ed25519.PublicKeyBytes); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(map[ed25519.PublicKeyBytes]*grandpa.Vote)
+			r0 = ret.Get(0).([]ed25519.PublicKeyBytes)
 		}
 	}
 
-	var r1 map[ed25519.PublicKeyBytes][]*grandpa.Vote
-	if rf, ok := ret.Get(1).(func() map[ed25519.PublicKeyBytes][]*grandpa.Vote); ok {
+	var r1 []ed25519.PublicKeyBytes
+	if rf, ok := ret.Get(1).(func() []ed25519.PublicKeyBytes); ok {
 		r1 = rf()
 	} else {
 		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(map[ed25519.PublicKeyBytes][]*grandpa.Vote)
+			r1 = ret.Get(1).([]ed25519.PublicKeyBytes)
 		}
 	}
 

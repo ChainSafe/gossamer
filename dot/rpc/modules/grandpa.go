@@ -21,7 +21,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/grandpa"
 )
 
 // GrandpaModule init parameters
@@ -106,8 +105,8 @@ func (gm *GrandpaModule) RoundState(r *http.Request, req *EmptyRequest, res *Rou
 		votersPkBytes[i] = v.PublicKeyBytes()
 	}
 
-	prevotes, _ := gm.blockFinalityAPI.PreVotes()
-	precommits, _ := gm.blockFinalityAPI.PreCommits()
+	prevotes, pvEquivocations := gm.blockFinalityAPI.PreVotes()
+	precommits, pcEquivocations := gm.blockFinalityAPI.PreCommits()
 
 	missingPrevotes, err := toAddress(difference(votersPkBytes, prevotes))
 	if err != nil {
@@ -127,11 +126,11 @@ func (gm *GrandpaModule) RoundState(r *http.Request, req *EmptyRequest, res *Rou
 			ThresholdWeight: thresholdWeight(totalWeight),
 			TotalWeight:     totalWeight,
 			Prevotes: Votes{
-				CurrentWeight: uint32(len(prevotes)),
+				CurrentWeight: uint32(len(prevotes) + len(pvEquivocations)),
 				Missing:       missingPrevotes,
 			},
 			Precommits: Votes{
-				CurrentWeight: uint32(len(precommits)),
+				CurrentWeight: uint32(len(precommits) + len(pcEquivocations)),
 				Missing:       missingPrecommits,
 			},
 		},
@@ -147,11 +146,16 @@ func thresholdWeight(totalWeight uint32) uint32 {
 }
 
 // difference get the values representing the difference, i.e., the values that are in voters but not in pre.
-func difference(voters []ed25519.PublicKeyBytes, pre map[ed25519.PublicKeyBytes]*grandpa.Vote) []ed25519.PublicKeyBytes {
+func difference(voters []ed25519.PublicKeyBytes, equivocations []ed25519.PublicKeyBytes) []ed25519.PublicKeyBytes {
 	diff := make([]ed25519.PublicKeyBytes, 0)
+	diffmap := make(map[ed25519.PublicKeyBytes]bool, len(voters))
+
+	for _, eq := range equivocations {
+		diffmap[eq] = true
+	}
 
 	for _, v := range voters {
-		if _, ok := pre[v]; !ok {
+		if _, ok := diffmap[v]; !ok {
 			diff = append(diff, v)
 		}
 	}

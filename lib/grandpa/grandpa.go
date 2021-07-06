@@ -1175,17 +1175,39 @@ func (s *Service) GetVoters() Voters {
 }
 
 // PreVotes returns the current prevotes to the current round
-func (s *Service) PreVotes() (map[ed25519.PublicKeyBytes]*Vote, map[ed25519.PublicKeyBytes][]*Vote) {
+func (s *Service) PreVotes() ([]ed25519.PublicKeyBytes, []ed25519.PublicKeyBytes) {
 	s.mapLock.Lock()
 	defer s.mapLock.Unlock()
 
-	return s.prevotes, s.pvEquivocations
+	pvPublicKeys := make([]ed25519.PublicKeyBytes, len(s.prevotes))
+	eqPublicKeys := make([]ed25519.PublicKeyBytes, len(s.pvEquivocations))
+
+	for v := range s.prevotes {
+		pvPublicKeys = append(pvPublicKeys, v)
+	}
+
+	for v := range s.pvEquivocations {
+		eqPublicKeys = append(eqPublicKeys, v)
+	}
+
+	return pvPublicKeys, eqPublicKeys
 }
 
 // PreCommits returns the current precommits to the current round
-func (s *Service) PreCommits() (map[ed25519.PublicKeyBytes]*Vote, map[ed25519.PublicKeyBytes][]*Vote) {
+func (s *Service) PreCommits() ([]ed25519.PublicKeyBytes, []ed25519.PublicKeyBytes) {
 	s.mapLock.Lock()
 	defer s.mapLock.Unlock()
 
-	return s.precommits, s.pcEquivocations
+	pcPublicKeys := make([]ed25519.PublicKeyBytes, len(s.precommits))
+	eqPublicKeys := make([]ed25519.PublicKeyBytes, len(s.pcEquivocations))
+
+	for v := range s.prevotes {
+		pcPublicKeys = append(pcPublicKeys, v)
+	}
+
+	for v := range s.pvEquivocations {
+		eqPublicKeys = append(eqPublicKeys, v)
+	}
+
+	return pcPublicKeys, eqPublicKeys
 }

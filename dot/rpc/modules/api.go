@@ -101,6 +101,6 @@ type BlockFinalityAPI interface {
 	GetSetID() uint64
 	GetRound() uint64
 	GetVoters() grandpa.Voters
-	PreVotes() (map[ed25519.PublicKeyBytes]*grandpa.Vote, map[ed25519.PublicKeyBytes][]*grandpa.Vote)
-	PreCommits() (map[ed25519.PublicKeyBytes]*grandpa.Vote, map[ed25519.PublicKeyBytes][]*grandpa.Vote)
+	PreVotes() ([]ed25519.PublicKeyBytes, []ed25519.PublicKeyBytes)
+	PreCommits() ([]ed25519.PublicKeyBytes, []ed25519.PublicKeyBytes)
 }
