@@ -17,6 +17,7 @@
 package grandpa
 
 import (
+	"context"
 	"io/ioutil"
 	"math/big"
 	"math/rand"
@@ -24,6 +25,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -35,6 +37,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	. "github.com/ChainSafe/gossamer/lib/grandpa/mocks"
+
+	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 )
 
 // testGenesisHeader is a test block header
@@ -1114,4 +1118,21 @@ func TestGrandpa_NonAuthority(t *testing.T) {
 
 	require.Equal(t, uint64(2), gs.state.round)
 	require.Equal(t, uint64(0), gs.state.setID)
+}
+func TestFinalRoundGaugeMetric(t *testing.T) {
+	gs, _ := newTestService(t)
+	ethmetrics.Enabled = true
+
+	gs.state.round = uint64(180)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	coll := metrics.NewCollector(ctx)
+	coll.AddGauge(gs)
+
+	go coll.Start()
+
+	time.Sleep(metrics.Refresh + time.Second)
+	gauge := ethmetrics.GetOrRegisterGauge(finalityGrandpaRoundMetrics, nil)
+	require.Equal(t, gauge.Value(), int64(180))
 }

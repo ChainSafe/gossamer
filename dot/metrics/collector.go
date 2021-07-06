@@ -80,8 +80,8 @@ func (c *Collector) startCollectGauges() {
 				m := g.CollectGauge()
 
 				for label, value := range m {
-					pooltx := ethmetrics.GetOrRegisterGauge(label, nil)
-					pooltx.Update(value)
+					gauge := ethmetrics.GetOrRegisterGauge(label, nil)
+					gauge.Update(value)
 				}
 			}
 		}
