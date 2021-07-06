@@ -74,7 +74,7 @@ func (e DispatchOutcomeError) Error() string {
 
 // A TransactionValidityError is possible errors while checking the validity of a transaction
 type TransactionValidityError struct {
-	msg string // description of error
+	msg transactionValidityErrorMsg // description of error
 }
 
 func (e TransactionValidityError) Error() string {
@@ -107,28 +107,46 @@ func determineDispatchErr(res []byte) error {
 	return errInvalidResult
 }
 
+type transactionValidityErrorMsg string
+
+var (
+	unexpectedTxCallMsg         transactionValidityErrorMsg = "call of the transaction is not expected"
+	invalidPaymentMsg           transactionValidityErrorMsg = "invalid payment"
+	invalidTransactionMsg       transactionValidityErrorMsg = "invalid transaction"
+	outdatedTransactionMsg      transactionValidityErrorMsg = "outdated transaction"
+	badProofMsg                 transactionValidityErrorMsg = "bad proof"
+	ancientBirthBlockMsg        transactionValidityErrorMsg = "ancient birth block"
+	exhaustsResourcesMsg        transactionValidityErrorMsg = "exhausts resources"
+	mandatoryDispatchErrorMsg   transactionValidityErrorMsg = "mandatory dispatch error"
+	invalidMandatoryDispatchMsg transactionValidityErrorMsg = "invalid mandatory dispatch"
+)
+
+func newUnknownErrorMsg(code byte) transactionValidityErrorMsg {
+	return transactionValidityErrorMsg(fmt.Sprintf("unknown error: %d", code))
+}
+
 func determineInvalidTxnErr(res []byte) error {
 	switch res[0] {
 	case 0:
-		return &TransactionValidityError{"call of the transaction is not expected"}
+		return &TransactionValidityError{unexpectedTxCallMsg}
 	case 1:
-		return &TransactionValidityError{"invalid payment"}
+		return &TransactionValidityError{invalidPaymentMsg}
 	case 2:
-		return &TransactionValidityError{"invalid transaction"}
+		return &TransactionValidityError{invalidTransactionMsg}
 	case 3:
-		return &TransactionValidityError{"outdated transaction"}
+		return &TransactionValidityError{outdatedTransactionMsg}
 	case 4:
-		return &TransactionValidityError{"bad proof"}
+		return &TransactionValidityError{badProofMsg}
 	case 5:
-		return &TransactionValidityError{"ancient birth block"}
+		return &TransactionValidityError{ancientBirthBlockMsg}
 	case 6:
-		return &TransactionValidityError{"exhausts resources"}
+		return &TransactionValidityError{exhaustsResourcesMsg}
 	case 7:
-		return &TransactionValidityError{fmt.Sprintf("unknown error: %d", res[1])}
+		return &TransactionValidityError{newUnknownErrorMsg(res[1])}
 	case 8:
-		return &TransactionValidityError{"mandatory dispatch error"}
+		return &TransactionValidityError{mandatoryDispatchErrorMsg}
 	case 9:
-		return &TransactionValidityError{"invalid mandatory dispatch"}
+		return &TransactionValidityError{invalidMandatoryDispatchMsg}
 	}
 	return errInvalidResult
 }
@@ -140,7 +158,7 @@ func determineUnknownTxnErr(res []byte) error {
 	case 1:
 		return &TransactionValidityError{"validator not found"}
 	case 2:
-		return &TransactionValidityError{fmt.Sprintf("unknown error: %d", res[1])}
+		return &TransactionValidityError{newUnknownErrorMsg(res[1])}
 	}
 	return errInvalidResult
 }

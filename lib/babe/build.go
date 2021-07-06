@@ -271,7 +271,7 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot) []*transaction.ValidTrans
 			// run out of gas for this block or have a nonce that may be valid in a later block
 			if tvErr, ok := err.(*TransactionValidityError); ok {
 				switch tvErr.msg {
-				case "exhausts resources", "invalid transaction": // 6 or 2
+				case exhaustsResourcesMsg, invalidTransactionMsg:
 					b.transactionState.Push(txn)
 				}
 			}
