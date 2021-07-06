@@ -32,9 +32,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
-	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 
@@ -166,10 +166,11 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 	require.NoError(t, err)
 
 	// decode inherent extrinsics
-	exts, err := scale.Decode(inherentExts, [][]byte{})
+	var exts [][]byte
+	err = scale.Unmarshal(inherentExts, &exts)
 	require.NoError(t, err)
 
-	inExt := exts.([][]byte)
+	inExt := exts
 
 	var body *types.Body
 	if ext != nil {
@@ -191,7 +192,7 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 
 	// apply each inherent extrinsic
 	for _, ext := range inExt {
-		in, err := scale.Encode(ext) //nolint
+		in, err := scale.Marshal(ext) //nolint
 		require.NoError(t, err)
 
 		ret, err := instance.ApplyExtrinsic(in)
