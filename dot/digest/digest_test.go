@@ -138,14 +138,14 @@ func TestHandler_GrandpaScheduledChange(t *testing.T) {
 	require.NoError(t, err)
 
 	headers := addTestBlocksToState(t, 2, handler.blockState)
-	for _, h := range headers {
-		handler.blockState.(*state.BlockState).SetFinalizedHash(h.Hash(), 0, 0)
+	for i, h := range headers {
+		handler.blockState.(*state.BlockState).SetFinalizedHash(h.Hash(), uint64(i), 0)
 	}
 
 	// authorities should change on start of block 3 from start
 	headers = addTestBlocksToState(t, 1, handler.blockState)
 	for _, h := range headers {
-		handler.blockState.(*state.BlockState).SetFinalizedHash(h.Hash(), 0, 0)
+		handler.blockState.(*state.BlockState).SetFinalizedHash(h.Hash(), 3, 0)
 	}
 
 	time.Sleep(time.Millisecond * 500)
@@ -231,8 +231,8 @@ func TestHandler_GrandpaPauseAndResume(t *testing.T) {
 	require.Equal(t, big.NewInt(int64(p.Delay)), nextPause)
 
 	headers := addTestBlocksToState(t, 3, handler.blockState)
-	for _, h := range headers {
-		handler.blockState.(*state.BlockState).SetFinalizedHash(h.Hash(), 0, 0)
+	for i, h := range headers {
+		handler.blockState.(*state.BlockState).SetFinalizedHash(h.Hash(), uint64(i), 0)
 	}
 
 	time.Sleep(time.Millisecond * 100)
