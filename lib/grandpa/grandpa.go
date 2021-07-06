@@ -813,11 +813,11 @@ func (s *Service) finalise() error {
 	// set best final candidate
 	s.bestFinalCandidate[s.state.round] = bfc
 
-	// create prevote justification ie. list of all signed prevotes for the bfc
-	pvs, err := s.createJustification(bfc.hash, prevote)
-	if err != nil {
-		return err
-	}
+	// // create prevote justification ie. list of all signed prevotes for the bfc
+	// pvs, err := s.createJustification(bfc.hash, prevote)
+	// if err != nil {
+	// 	return err
+	// }
 
 	// create precommit justification ie. list of all signed precommits for the bfc
 	pcs, err := s.createJustification(bfc.hash, precommit)
@@ -825,10 +825,10 @@ func (s *Service) finalise() error {
 		return err
 	}
 
-	pvj, err := newJustification(s.state.round, bfc.hash, bfc.number, pvs).Encode()
-	if err != nil {
-		return err
-	}
+	// pvj, err := newJustification(s.state.round, bfc.hash, bfc.number, pvs).Encode()
+	// if err != nil {
+	// 	return err
+	// }
 
 	pcj, err := newJustification(s.state.round, bfc.hash, bfc.number, pcs).Encode()
 	if err != nil {
@@ -838,7 +838,8 @@ func (s *Service) finalise() error {
 	// cache justification
 	s.justification[s.state.round] = pcs
 
-	err = s.blockState.SetJustification(bfc.hash, append(pvj, pcj...))
+	// TODO: store prevotes in database, needed for catch-up
+	err = s.blockState.SetJustification(bfc.hash, pcj)
 	if err != nil {
 		return err
 	}

@@ -273,6 +273,7 @@ func (f *CommitMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 }
 
 func (s *Service) newCommitMessage(header *types.Header, round uint64) *CommitMessage {
+	// TODO: get justification from database and parse for precommits
 	just := s.justification[round]
 	precommits, authData := justificationToCompact(just)
 	return &CommitMessage{
