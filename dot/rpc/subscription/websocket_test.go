@@ -1,7 +1,6 @@
 package subscription
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -138,7 +137,6 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid request"},"id":7}`+"\n"), msg)
 
-	fmt.Println(wsconn.Subscriptions)
 	c.WriteMessage(websocket.TextMessage, []byte(`{
     "jsonrpc": "2.0",
     "method": "state_unsubscribeStorage",
