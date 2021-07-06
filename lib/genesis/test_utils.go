@@ -19,6 +19,8 @@ package genesis
 import (
 	"encoding/json"
 	"io/ioutil"
+
+	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 const testProtocolID = "/gossamer/test/0"
@@ -61,7 +63,10 @@ var TestFieldsHR = Fields{
 // TestFieldsRaw instance of raw Fields struct for testing use with TestGenesis
 var TestFieldsRaw = Fields{
 	Raw: map[string]map[string]string{
-		"top": {"0x3a636f6465": "mocktestcode"},
+		"top": {
+			"0x3a636f6465": "mocktestcode",
+			common.BytesToHex(common.UpgradedToDualRefKey): "0x01",
+		},
 	},
 }
 
