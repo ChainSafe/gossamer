@@ -149,7 +149,6 @@ func loadGrandpaAuthorities(t *trie.Trie) ([]*types.GrandpaVoter, error) {
 
 	r := &bytes.Buffer{}
 	_, _ = r.Write(authsRaw[1:])
-	// TODO remove this function after scale integration into trie
 	return types.DecodeGrandpaVoters(r)
 }
 

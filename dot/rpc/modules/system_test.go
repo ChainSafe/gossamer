@@ -33,9 +33,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
-    "github.com/ChainSafe/gossamer/lib/transaction"
-    "github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )

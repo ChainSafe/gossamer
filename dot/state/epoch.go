@@ -26,7 +26,7 @@ import (
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
 var (
@@ -221,7 +221,7 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 func (s *EpochState) SetEpochData(epoch uint64, info *types.EpochData) error {
 	raw := info.ToEpochDataRaw()
 
-	enc, err := scale.Marshal(raw)
+	enc, err := scale.Encode(raw)
 	if err != nil {
 		return err
 	}
@@ -236,13 +236,17 @@ func (s *EpochState) GetEpochData(epoch uint64) (*types.EpochData, error) {
 		return nil, err
 	}
 
-	var info *types.EpochDataRaw
-	err = scale.Unmarshal(enc, &info)
+	info, err := scale.Decode(enc, &types.EpochDataRaw{})
 	if err != nil {
 		return nil, err
 	}
 
-	return info.ToEpochData()
+	raw, ok := info.(*types.EpochDataRaw)
+	if !ok {
+		return nil, errors.New("failed to decode raw epoch data")
+	}
+
+	return raw.ToEpochData()
 }
 
 // GetLatestEpochData returns the EpochData for the current epoch
@@ -262,7 +266,7 @@ func (s *EpochState) HasEpochData(epoch uint64) (bool, error) {
 
 // SetConfigData sets the BABE config data for a given epoch
 func (s *EpochState) SetConfigData(epoch uint64, info *types.ConfigData) error {
-	enc, err := scale.Marshal(info)
+	enc, err := scale.Encode(info)
 	if err != nil {
 		return err
 	}
@@ -288,13 +292,12 @@ func (s *EpochState) GetConfigData(epoch uint64) (*types.ConfigData, error) {
 		return nil, err
 	}
 
-	var info *types.ConfigData
-	err = scale.Unmarshal(enc, &info)
+	info, err := scale.Decode(enc, new(types.ConfigData))
 	if err != nil {
 		return nil, err
 	}
 
-	return info, nil
+	return info.(*types.ConfigData), nil
 }
 
 // GetLatestConfigData returns the most recently set ConfigData

@@ -17,13 +17,14 @@
 package state
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"math/big"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
 var (
@@ -87,7 +88,7 @@ func setIDChangeKey(setID uint64) []byte {
 
 // setAuthorities sets the authorities for a given setID
 func (s *GrandpaState) setAuthorities(setID uint64, authorities []*types.GrandpaVoter) error {
-	enc, err := scale.Marshal(authorities)
+	enc, err := scale.Encode(authorities)
 	if err != nil {
 		return err
 	}
@@ -102,8 +103,13 @@ func (s *GrandpaState) GetAuthorities(setID uint64) ([]*types.GrandpaVoter, erro
 		return nil, err
 	}
 
-	var v []*types.GrandpaVoter
-	err = scale.Unmarshal(enc, &v)
+	r := &bytes.Buffer{}
+	_, err = r.Write(enc)
+	if err != nil {
+		return nil, err
+	}
+
+	v, err := types.DecodeGrandpaVoters(r)
 	if err != nil {
 		return nil, err
 	}
