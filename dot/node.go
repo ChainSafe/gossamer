@@ -308,7 +308,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	nodeSrvcs = append(nodeSrvcs, sysSrvc)
 
 	// check if rpc service is enabled
-	if enabled := cfg.RPC.Enabled; enabled {
+	if enabled := cfg.RPC.Enabled || cfg.RPC.WS; enabled {
 		rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc, bp, rt, sysSrvc)
 		nodeSrvcs = append(nodeSrvcs, rpcSrvc)
 	} else {
@@ -346,9 +346,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		return nil, err
 	}
 
-	if cfg.Global.NoTelemetry {
-		return node, nil
-	}
+	telemetry.GetInstance().Initialise(!cfg.Global.NoTelemetry)
 
 	telemetry.GetInstance().AddConnections(gd.TelemetryEndpoints)
 	genesisHash := stateSrvc.Block.GenesisHash()
