@@ -59,7 +59,7 @@ func (_m *MockBlockFinalityAPI) GetVoters() types.GrandpaVoters {
 }
 
 // PreCommits provides a mock function with given fields:
-func (_m *MockBlockFinalityAPI) PreCommits() ([]ed25519.PublicKeyBytes, []ed25519.PublicKeyBytes) {
+func (_m *MockBlockFinalityAPI) PreCommits() []ed25519.PublicKeyBytes {
 	ret := _m.Called()
 
 	var r0 []ed25519.PublicKeyBytes
@@ -71,20 +71,11 @@ func (_m *MockBlockFinalityAPI) PreCommits() ([]ed25519.PublicKeyBytes, []ed2551
 		}
 	}
 
-	var r1 []ed25519.PublicKeyBytes
-	if rf, ok := ret.Get(1).(func() []ed25519.PublicKeyBytes); ok {
-		r1 = rf()
-	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).([]ed25519.PublicKeyBytes)
-		}
-	}
-
-	return r0, r1
+	return r0
 }
 
 // PreVotes provides a mock function with given fields:
-func (_m *MockBlockFinalityAPI) PreVotes() ([]ed25519.PublicKeyBytes, []ed25519.PublicKeyBytes) {
+func (_m *MockBlockFinalityAPI) PreVotes() []ed25519.PublicKeyBytes {
 	ret := _m.Called()
 
 	var r0 []ed25519.PublicKeyBytes
@@ -96,14 +87,5 @@ func (_m *MockBlockFinalityAPI) PreVotes() ([]ed25519.PublicKeyBytes, []ed25519.
 		}
 	}
 
-	var r1 []ed25519.PublicKeyBytes
-	if rf, ok := ret.Get(1).(func() []ed25519.PublicKeyBytes); ok {
-		r1 = rf()
-	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).([]ed25519.PublicKeyBytes)
-		}
-	}
-
-	return r0, r1
+	return r0
 }

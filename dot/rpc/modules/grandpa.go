@@ -105,15 +105,15 @@ func (gm *GrandpaModule) RoundState(r *http.Request, req *EmptyRequest, res *Rou
 		votersPkBytes[i] = v.PublicKeyBytes()
 	}
 
-	prevotes, pvEquivocations := gm.blockFinalityAPI.PreVotes()
-	precommits, pcEquivocations := gm.blockFinalityAPI.PreCommits()
+	votes := gm.blockFinalityAPI.PreVotes()
+	commits := gm.blockFinalityAPI.PreCommits()
 
-	missingPrevotes, err := toAddress(difference(votersPkBytes, prevotes))
+	missingPrevotes, err := toAddress(difference(votersPkBytes, votes))
 	if err != nil {
 		return err
 	}
 
-	missingPrecommits, err := toAddress(difference(votersPkBytes, precommits))
+	missingPrecommits, err := toAddress(difference(votersPkBytes, commits))
 	if err != nil {
 		return err
 	}
@@ -126,11 +126,11 @@ func (gm *GrandpaModule) RoundState(r *http.Request, req *EmptyRequest, res *Rou
 			ThresholdWeight: thresholdWeight(totalWeight),
 			TotalWeight:     totalWeight,
 			Prevotes: Votes{
-				CurrentWeight: uint32(len(prevotes) + len(pvEquivocations)),
+				CurrentWeight: uint32(len(votes)),
 				Missing:       missingPrevotes,
 			},
 			Precommits: Votes{
-				CurrentWeight: uint32(len(precommits) + len(pcEquivocations)),
+				CurrentWeight: uint32(len(commits)),
 				Missing:       missingPrecommits,
 			},
 		},

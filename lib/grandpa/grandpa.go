@@ -1317,45 +1317,49 @@ func (s *Service) GetVoters() Voters {
 }
 
 // PreVotes returns the current prevotes to the current round
-func (s *Service) PreVotes() ([]ed25519.PublicKeyBytes, []ed25519.PublicKeyBytes) {
+func (s *Service) PreVotes() []ed25519.PublicKeyBytes {
 	s.mapLock.Lock()
 	defer s.mapLock.Unlock()
 
-	pvPublicKeys := make([]ed25519.PublicKeyBytes, s.lenVotes(prevote))
-	eqPublicKeys := make([]ed25519.PublicKeyBytes, len(s.pvEquivocations))
+	votes := make([]ed25519.PublicKeyBytes, 0, s.lenVotes(prevote)+len(s.pvEquivocations))
 
 	s.prevotes.Range(func(k interface{}, _ interface{}) bool {
 		b := k.(ed25519.PublicKeyBytes)
-		pvPublicKeys = append(pvPublicKeys, b)
+
+		// if the key is not in the equivocations, then add
+		if _, ok := s.pvEquivocations[b]; !ok {
+			votes = append(votes, b)
+		}
 		return true
 	})
 
 	for v := range s.pvEquivocations {
-		eqPublicKeys = append(eqPublicKeys, v)
+		votes = append(votes, v)
 	}
 
-	return pvPublicKeys, eqPublicKeys
+	return votes
 }
 
 // PreCommits returns the current precommits to the current round
-func (s *Service) PreCommits() ([]ed25519.PublicKeyBytes, []ed25519.PublicKeyBytes) {
+func (s *Service) PreCommits() []ed25519.PublicKeyBytes {
 	s.mapLock.Lock()
 	defer s.mapLock.Unlock()
 
-	pcPublicKeys := make([]ed25519.PublicKeyBytes, s.lenVotes(precommit))
-	eqPublicKeys := make([]ed25519.PublicKeyBytes, len(s.pcEquivocations))
+	votes := make([]ed25519.PublicKeyBytes, 0, s.lenVotes(precommit)+len(s.pcEquivocations))
 
 	s.precommits.Range(func(k interface{}, _ interface{}) bool {
 		b := k.(ed25519.PublicKeyBytes)
-		pcPublicKeys = append(pcPublicKeys, b)
+		if _, ok := s.pcEquivocations[b]; !ok {
+			votes = append(votes, b)
+		}
 		return true
 	})
 
 	for v := range s.pvEquivocations {
-		eqPublicKeys = append(eqPublicKeys, v)
+		votes = append(votes, v)
 	}
 
-	return pcPublicKeys, eqPublicKeys
+	return votes
 }
 
 func (s *Service) lenVotes(stage subround) int {

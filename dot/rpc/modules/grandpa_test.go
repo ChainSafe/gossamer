@@ -85,12 +85,12 @@ func TestRoundSate(t *testing.T) {
 		kr.Bob().Public().(*ed25519.PublicKey).AsBytes(),
 		kr.Charlie().Public().(*ed25519.PublicKey).AsBytes(),
 		kr.Dave().Public().(*ed25519.PublicKey).AsBytes(),
-	}, []ed25519.PublicKeyBytes{})
+	})
 
 	grandpamock.On("PreCommits").Return([]ed25519.PublicKeyBytes{
 		kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 		kr.Bob().Public().(*ed25519.PublicKey).AsBytes(),
-	}, []ed25519.PublicKeyBytes{})
+	})
 
 	mod := NewGrandpaModule(nil, grandpamock)
 
