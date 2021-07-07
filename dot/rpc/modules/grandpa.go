@@ -20,44 +20,18 @@ import (
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/grandpa"
 )
 
 // GrandpaModule init parameters
 type GrandpaModule struct {
-	blockAPI         BlockAPI
-	blockFinalityAPI BlockFinalityAPI
+	blockAPI BlockAPI
 }
 
 // NewGrandpaModule creates a new Grandpa rpc module.
-func NewGrandpaModule(api BlockAPI, finalityAPI BlockFinalityAPI) *GrandpaModule {
+func NewGrandpaModule(api BlockAPI) *GrandpaModule {
 	return &GrandpaModule{
-		blockAPI:         api,
-		blockFinalityAPI: finalityAPI,
+		blockAPI: api,
 	}
-}
-
-// Votes struct formats rpc call
-type Votes struct {
-	CurrentWeight uint32   `json:"currentWeight"`
-	Missing       []string `json:"missing"`
-}
-
-// RoundState json format for roundState RPC call
-type RoundState struct {
-	Round           uint32 `json:"round"`
-	TotalWeight     uint32 `json:"totalWeight"`
-	ThresholdWeight uint32 `json:"thresholdWeight"`
-	Prevotes        Votes  `json:"prevotes"`
-	Precommits      Votes  `json:"precommits"`
-}
-
-// RoundStateResponse response to roundState RPC call
-type RoundStateResponse struct {
-	SetID      uint32       `json:"setId"`
-	Best       RoundState   `json:"best"`
-	Background []RoundState `json:"background"`
 }
 
 // ProveFinalityRequest request struct
@@ -96,102 +70,4 @@ func (gm *GrandpaModule) ProveFinality(r *http.Request, req *ProveFinalityReques
 	}
 
 	return nil
-}
-
-// RoundState returns the state of the current best round state as well as the ongoing background rounds.
-func (gm *GrandpaModule) RoundState(r *http.Request, req *EmptyRequest, res *RoundStateResponse) error {
-	voters := gm.blockFinalityAPI.GetVoters()
-	votersPkBytes := make([]ed25519.PublicKeyBytes, len(voters))
-	for i, v := range voters {
-		votersPkBytes[i] = v.PublicKeyBytes()
-	}
-
-	prevotes := gm.blockFinalityAPI.PreVotes()
-	precommits := gm.blockFinalityAPI.PreCommits()
-
-	missingPrevotes, err := toAddress(difference(votersPkBytes, prevotes))
-	if err != nil {
-		return err
-	}
-
-	missingPrecommits, err := toAddress(difference(votersPkBytes, precommits))
-	if err != nil {
-		return err
-	}
-
-	totalWeight := calcTotalWeight(voters)
-
-	roundstate := RoundStateResponse{
-		SetID: uint32(gm.blockFinalityAPI.GetSetID()),
-		Best: RoundState{
-			Round:           uint32(gm.blockFinalityAPI.GetRound()),
-			ThresholdWeight: calcThresholdWeight(totalWeight),
-			TotalWeight:     totalWeight,
-			Prevotes: Votes{
-				CurrentWeight: calcWeight(voters, prevotes),
-				Missing:       missingPrevotes,
-			},
-			Precommits: Votes{
-				CurrentWeight: calcWeight(voters, precommits),
-				Missing:       missingPrecommits,
-			},
-		},
-		Background: []RoundState{},
-	}
-
-	*res = roundstate
-	return nil
-}
-
-func calcWeight(voters grandpa.Voters, pre map[ed25519.PublicKeyBytes]*grandpa.Vote) uint32 {
-	var weight uint32
-	for pk := range pre {
-		for _, gpv := range voters {
-			if gpv.PublicKeyBytes() == pk {
-				weight += uint32(gpv.ID)
-			}
-		}
-	}
-	return weight
-}
-
-func calcTotalWeight(voters grandpa.Voters) uint32 {
-	var totalWeight uint32
-	for _, v := range voters {
-		totalWeight += uint32(v.ID)
-	}
-
-	return totalWeight
-}
-
-func calcThresholdWeight(totalWeight uint32) uint32 {
-	faulty := (totalWeight - 1) / 3
-	return totalWeight - faulty
-}
-
-// difference get the values representing the difference, i.e., the values that are in voters but not in pre.
-func difference(voters []ed25519.PublicKeyBytes, pre map[ed25519.PublicKeyBytes]*grandpa.Vote) []ed25519.PublicKeyBytes {
-	diff := make([]ed25519.PublicKeyBytes, 0)
-
-	for _, v := range voters {
-		if _, ok := pre[v]; !ok {
-			diff = append(diff, v)
-		}
-	}
-
-	return diff
-}
-
-func toAddress(pkb []ed25519.PublicKeyBytes) ([]string, error) {
-	addrs := make([]string, len(pkb))
-	for i, b := range pkb {
-		pk, err := ed25519.NewPublicKey(b[:])
-		if err != nil {
-			return nil, err
-		}
-
-		addrs[i] = string(pk.Address())
-	}
-
-	return addrs, nil
 }
