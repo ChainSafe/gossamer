@@ -163,8 +163,13 @@ func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 				return nil, err
 			}
 
+			cm, err := s.newCommitMessage(header, m.Round)
+			if err != nil {
+				return nil, err
+			}
+
 			// send finalised block from previous round to network
-			msg, err := s.newCommitMessage(header, m.Round).ToConsensusMessage()
+			msg, err := cm.ToConsensusMessage()
 			if err != nil {
 				return nil, err
 			}

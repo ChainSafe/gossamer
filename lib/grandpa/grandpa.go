@@ -72,9 +72,8 @@ type Service struct {
 	head            *types.Header                            // most recently finalised block
 
 	// historical information
-	preVotedBlock      map[uint64]*Vote         // map of round number -> pre-voted block
-	bestFinalCandidate map[uint64]*Vote         // map of round number -> best final candidate
-	justification      map[uint64][]*SignedVote // map of round number -> precommit round justification
+	preVotedBlock      map[uint64]*Vote // map of round number -> pre-voted block
+	bestFinalCandidate map[uint64]*Vote // map of round number -> best final candidate
 
 	// channels for communication with other services
 	in               chan GrandpaMessage // only used to receive *VoteMessage
@@ -166,7 +165,6 @@ func NewService(cfg *Config) (*Service, error) {
 		pcEquivocations:    make(map[ed25519.PublicKeyBytes][]*SignedVote),
 		preVotedBlock:      make(map[uint64]*Vote),
 		bestFinalCandidate: make(map[uint64]*Vote),
-		justification:      make(map[uint64][]*SignedVote),
 		head:               head,
 		in:                 make(chan GrandpaMessage, 128),
 		resumed:            make(chan struct{}),
@@ -395,8 +393,13 @@ func (s *Service) handleIsPrimary() (bool, error) {
 	}
 
 	if s.head.Number.Int64() > 0 {
+		cm, err := s.newCommitMessage(s.head, s.state.round-1)
+		if err != nil {
+			return false, err
+		}
+
 		// send finalised block from previous round to network
-		msg, err := s.newCommitMessage(s.head, s.state.round-1).ToConsensusMessage()
+		msg, err := cm.ToConsensusMessage()
 		if err != nil {
 			return false, fmt.Errorf("failed to encode finalisation message: %w", err)
 		}
@@ -649,10 +652,13 @@ func (s *Service) attemptToFinalize() error {
 			"direct votes for bfc #", votes[*bfc],
 			"total votes for bfc", pc,
 			"precommits", s.precommits,
-			"justification count", len(s.justification[s.state.round]),
 		)
 
-		cm := s.newCommitMessage(s.head, s.state.round)
+		cm, err := s.newCommitMessage(s.head, s.state.round)
+		if err != nil {
+			return err
+		}
+
 		msg, err := cm.ToConsensusMessage()
 		if err != nil {
 			return err
@@ -834,9 +840,6 @@ func (s *Service) finalise() error {
 	if err != nil {
 		return err
 	}
-
-	// cache justification TODO: remove this and just get from db
-	s.justification[s.state.round] = pcs
 
 	if err = s.blockState.SetJustification(bfc.hash, pcj); err != nil {
 		return err
