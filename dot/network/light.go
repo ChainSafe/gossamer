@@ -5,7 +5,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // Pair is a pair of arbitrary bytes.
@@ -40,22 +40,25 @@ func (l *LightRequest) SubProtocol() string {
 }
 
 // Encode encodes a LightRequest message using SCALE and appends the type byte to the start
+// TODO Remove encode/decode receiver functions
 func (l *LightRequest) Encode() ([]byte, error) {
-	return scale.Encode(l)
+	return scale.Marshal(l)
 }
 
 // Decode the message into a LightRequest, it assumes the type byte has been removed
 func (l *LightRequest) Decode(in []byte) error {
-	msg, err := scale.Decode(in, l)
+	var msg *LightRequest
+	err := scale.Unmarshal(in, &msg)
+	//msg, err := scale.Decode(in, l)
 	if err != nil {
 		return err
 	}
 
-	l.RmtCallRequest = msg.(*LightRequest).RmtCallRequest
-	l.RmtReadRequest = msg.(*LightRequest).RmtReadRequest
-	l.RmtHeaderRequest = msg.(*LightRequest).RmtHeaderRequest
-	l.RmtReadChildRequest = msg.(*LightRequest).RmtReadChildRequest
-	l.RmtChangesRequest = msg.(*LightRequest).RmtChangesRequest
+	l.RmtCallRequest = msg.RmtCallRequest
+	l.RmtReadRequest = msg.RmtReadRequest
+	l.RmtHeaderRequest = msg.RmtHeaderRequest
+	l.RmtReadChildRequest = msg.RmtReadChildRequest
+	l.RmtChangesRequest = msg.RmtChangesRequest
 	return nil
 }
 
@@ -92,20 +95,22 @@ func (l *LightResponse) SubProtocol() string {
 
 // Encode encodes a LightResponse message using SCALE and appends the type byte to the start
 func (l *LightResponse) Encode() ([]byte, error) {
-	return scale.Encode(l)
+	return scale.Marshal(l)
 }
 
 // Decode the message into a LightResponse, it assumes the type byte has been removed
 func (l *LightResponse) Decode(in []byte) error {
-	msg, err := scale.Decode(in, l)
+	//msg, err := scale.Decode(in, l)
+	var msg *LightResponse
+	err := scale.Unmarshal(in, &msg)
 	if err != nil {
 		return err
 	}
 
-	l.RmtCallResponse = msg.(*LightResponse).RmtCallResponse
-	l.RmtReadResponse = msg.(*LightResponse).RmtReadResponse
-	l.RmtHeaderResponse = msg.(*LightResponse).RmtHeaderResponse
-	l.RmtChangeResponse = msg.(*LightResponse).RmtChangeResponse
+	l.RmtCallResponse = msg.RmtCallResponse
+	l.RmtReadResponse = msg.RmtReadResponse
+	l.RmtHeaderResponse = msg.RmtHeaderResponse
+	l.RmtChangeResponse = msg.RmtChangeResponse
 	return nil
 }
 
