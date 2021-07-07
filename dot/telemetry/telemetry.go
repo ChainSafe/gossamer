@@ -45,15 +45,26 @@ type Handler struct {
 	sendMessageTimeout time.Duration
 }
 
+// Instance interface that telemetry handler instance needs to implement
+type Instance interface {
+	AddConnections(conns []*genesis.TelemetryEndpoint)
+	SendMessage(msg Message) error
+	startListening()
+	Initialise(enabled bool)
+}
+
 var (
 	once            sync.Once
-	handlerInstance *Handler
+	handlerInstance Instance
+
+	enabled    = true // enabled by default
+	initilised sync.Once
 )
 
 const defaultMessageTimeout = time.Second
 
 // GetInstance singleton pattern to for accessing TelemetryHandler
-func GetInstance() *Handler { //nolint
+func GetInstance() Instance {
 	if handlerInstance == nil {
 		once.Do(
 			func() {
@@ -65,7 +76,19 @@ func GetInstance() *Handler { //nolint
 				go handlerInstance.startListening()
 			})
 	}
+	if !enabled {
+		return &NoopHandler{}
+	}
+
 	return handlerInstance
+}
+
+// Initialise function to set if telemetry is enabled
+func (h *Handler) Initialise(e bool) {
+	initilised.Do(
+		func() {
+			enabled = e
+		})
 }
 
 // AddConnections adds the given telemetry endpoint as listeners that will receive telemetry data
@@ -290,3 +313,20 @@ func NewNetworkStateTM(host libp2phost.Host, peerInfos []common.PeerInfo) *Netwo
 func (tm *NetworkStateTM) messageType() string {
 	return tm.Msg
 }
+
+// NoopHandler struct no op handling (ignoring) telemetry messages
+type NoopHandler struct {
+}
+
+// Initialise function to set if telemetry is enabled
+func (h *NoopHandler) Initialise(enabled bool) {}
+
+func (h *NoopHandler) startListening() {}
+
+// SendMessage no op for telemetry send message function
+func (h *NoopHandler) SendMessage(msg Message) error {
+	return nil
+}
+
+// AddConnections no op for telemetry add connections function
+func (h *NoopHandler) AddConnections(conns []*genesis.TelemetryEndpoint) {}
