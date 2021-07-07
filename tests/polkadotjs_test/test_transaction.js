@@ -3,10 +3,16 @@ const { ApiPromise, WsProvider } = require('@polkadot/api');
 const {Keyring } = require('@polkadot/keyring');
 
 async function main() {
-    // Construct
-
     const wsProvider = new WsProvider('ws://127.0.0.1:8546');
     const api = await ApiPromise.create({ provider: wsProvider });
+
+    // wait for block 1
+    const unsub = await api.rpc.chain.subscribeNewHeads(async (lastHeader) => {
+        console.log(`latest block: #${lastHeader.number} `);
+        if (lastHeader.number > 1) {
+            unsub()
+        }
+    });
 
     // Simple transaction
     const keyring = new Keyring({type: 'sr25519' });
@@ -20,7 +26,7 @@ async function main() {
     // bob 5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty
 
     const transfer = await api.tx.balances.transfer(bobKey.address, 12345).signAndSend(aliceKey);
-    console.log(`hxHash ${transfer}`);
+    console.log(`transaction hash: ${transfer}`);
 }
 
 main().catch(console.error);

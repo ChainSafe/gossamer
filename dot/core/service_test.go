@@ -231,7 +231,7 @@ func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
 	nonce := uint64(1)
 
 	// Add extrinsic to block `block31`
-	ext := createExtrinsics(t, rt, bs.GenesisHash(), nonce)
+	ext := createExtrinsic(t, rt, bs.GenesisHash(), nonce)
 
 	block41 := sync.BuildBlock(t, rt, block31.Header, ext)
 	bs.StoreRuntime(block41.Header.Hash(), rt)
@@ -465,9 +465,9 @@ func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 	err = rt.InitializeBlock(header)
 	require.NoError(t, err)
 
-	ext := types.Extrinsic(common.MustHexToBytes("0x410284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d015a3e258da3ea20581b68fe1264a35d1f62d6a0debb1a44e836375eb9921ba33e3d0f265f2da33c9ca4e10490b03918300be902fcb229f806c9cf99af4cc10f8c0000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a480b00c465f14670"))
+	extBytes := createExtrinsic(t, rt, block.Header.Hash(), 0)
 
-	err = s.HandleSubmittedExtrinsic(ext)
+	err = s.HandleSubmittedExtrinsic(extBytes)
 	require.NoError(t, err)
 }
 

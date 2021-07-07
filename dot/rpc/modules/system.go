@@ -19,14 +19,13 @@ package modules
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"math/big"
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/scale"
-	ctypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
 )
 
 // SystemModule is an RPC module providing access to core API points
@@ -171,15 +170,13 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 	found := false
 	for _, v := range pending {
 		var ext ctypes.Extrinsic
-		err := ctypes.DecodeFromBytes(v.Extrinsic[1:], &ext)
+		err := ctypes.DecodeFromBytes(v.Extrinsic, &ext)
 		if err != nil {
 			return err
 		}
-		extSigner, err := common.HexToBytes(fmt.Sprintf("0x%x", ext.Signature.Signer.AsAccountID))
-		if err != nil {
-			return err
-		}
-		if bytes.Equal(extSigner, addressPubKey) {
+
+		extSigner := [32]byte(ext.Signature.Signer.AsID)
+		if bytes.Equal(extSigner[:], addressPubKey) {
 			found = true
 			sigNonce := big.Int(ext.Signature.Nonce)
 			if sigNonce.Uint64() > nonce {

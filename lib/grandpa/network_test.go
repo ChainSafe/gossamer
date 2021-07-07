@@ -49,7 +49,7 @@ func TestGrandpaHandshake_Encode(t *testing.T) {
 func TestHandleNetworkMessage(t *testing.T) {
 	gs, st := newTestService(t)
 
-	gs.justification[77] = []*SignedPrecommit{
+	gs.justification[77] = []*SignedVote{
 		{
 			Vote:        testVote,
 			Signature:   testSignature,

@@ -54,7 +54,9 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, v := range voters {
-		equivocated := gs.checkForEquivocation(v, vote, prevote)
+		equivocated := gs.checkForEquivocation(v, &SignedVote{
+			Vote: vote,
+		}, prevote)
 		require.False(t, equivocated)
 	}
 }
@@ -88,15 +90,19 @@ func TestCheckForEquivocation_WithEquivocation(t *testing.T) {
 
 	voter := voters[0]
 
-	gs.prevotes[voter.Key.AsBytes()] = vote1
+	gs.prevotes.Store(voter.Key.AsBytes(), &SignedVote{
+		Vote: vote1,
+	})
 
 	vote2, err := NewVoteFromHash(leaves[1], st.Block)
 	require.NoError(t, err)
 
-	equivocated := gs.checkForEquivocation(voter, vote2, prevote)
+	equivocated := gs.checkForEquivocation(voter, &SignedVote{
+		Vote: vote2,
+	}, prevote)
 	require.True(t, equivocated)
 
-	require.Equal(t, 0, len(gs.prevotes))
+	require.Equal(t, 0, gs.lenVotes(prevote))
 	require.Equal(t, 1, len(gs.pvEquivocations))
 	require.Equal(t, 2, len(gs.pvEquivocations[voter.Key.AsBytes()]))
 }
@@ -136,24 +142,30 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 
 	voter := voters[0]
 
-	gs.prevotes[voter.Key.AsBytes()] = vote
+	gs.prevotes.Store(voter.Key.AsBytes(), &SignedVote{
+		Vote: vote,
+	})
 
 	vote2 := NewVoteFromHeader(branches[0])
 	require.NoError(t, err)
 
-	equivocated := gs.checkForEquivocation(voter, vote2, prevote)
+	equivocated := gs.checkForEquivocation(voter, &SignedVote{
+		Vote: vote2,
+	}, prevote)
 	require.True(t, equivocated)
 
-	require.Equal(t, 0, len(gs.prevotes))
+	require.Equal(t, 0, gs.lenVotes(prevote))
 	require.Equal(t, 1, len(gs.pvEquivocations))
 
 	vote3 := NewVoteFromHeader(branches[1])
 	require.NoError(t, err)
 
-	equivocated = gs.checkForEquivocation(voter, vote3, prevote)
+	equivocated = gs.checkForEquivocation(voter, &SignedVote{
+		Vote: vote3,
+	}, prevote)
 	require.True(t, equivocated)
 
-	require.Equal(t, 0, len(gs.prevotes))
+	require.Equal(t, 0, gs.lenVotes(prevote))
 	require.Equal(t, 1, len(gs.pvEquivocations))
 	require.Equal(t, 3, len(gs.pvEquivocations[voter.Key.AsBytes()]))
 }
@@ -181,8 +193,10 @@ func TestValidateMessage_Valid(t *testing.T) {
 	h, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
 
-	msg, err := gs.createVoteMessage(NewVoteFromHeader(h), prevote, kr.Alice())
+	gs.keypair = kr.Alice().(*ed25519.Keypair)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(h), prevote)
 	require.NoError(t, err)
+	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
 	vote, err := gs.validateMessage(msg)
 	require.NoError(t, err)
@@ -212,8 +226,10 @@ func TestValidateMessage_InvalidSignature(t *testing.T) {
 	h, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
 
-	msg, err := gs.createVoteMessage(NewVoteFromHeader(h), prevote, kr.Alice())
+	gs.keypair = kr.Alice().(*ed25519.Keypair)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(h), prevote)
 	require.NoError(t, err)
+	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
 	msg.Message.Signature[63] = 0
 
@@ -243,8 +259,10 @@ func TestValidateMessage_SetIDMismatch(t *testing.T) {
 	h, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
 
-	msg, err := gs.createVoteMessage(NewVoteFromHeader(h), prevote, kr.Alice())
+	gs.keypair = kr.Alice().(*ed25519.Keypair)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(h), prevote)
 	require.NoError(t, err)
+	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
 	gs.state.setID = 1
 
@@ -279,18 +297,22 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 		}
 	}
 
-	h, err := st.Block.BestBlockHeader()
+	leaves := gs.blockState.Leaves()
+	voteA, err := NewVoteFromHash(leaves[0], st.Block)
 	require.NoError(t, err)
-
-	vote := NewVoteFromHeader(h)
+	voteB, err := NewVoteFromHash(leaves[1], st.Block)
 	require.NoError(t, err)
 
 	voter := voters[0]
 
-	gs.prevotes[voter.Key.AsBytes()] = vote
+	gs.prevotes.Store(voter.Key.AsBytes(), &SignedVote{
+		Vote: voteA,
+	})
 
-	msg, err := gs.createVoteMessage(NewVoteFromHeader(branches[0]), prevote, kr.Alice())
+	gs.keypair = kr.Alice().(*ed25519.Keypair)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(voteB, prevote)
 	require.NoError(t, err)
+	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
 	_, err = gs.validateMessage(msg)
 	require.Equal(t, ErrEquivocation, err, gs.prevotes)
@@ -322,8 +344,10 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 		Number: big.NewInt(77),
 	}
 
-	msg, err := gs.createVoteMessage(NewVoteFromHeader(fake), prevote, kr.Alice())
+	gs.keypair = kr.Alice().(*ed25519.Keypair)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(fake), prevote)
 	require.NoError(t, err)
+	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
 	_, err = gs.validateMessage(msg)
 	require.Equal(t, err, ErrBlockDoesNotExist)
@@ -360,8 +384,10 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 	require.NoError(t, err)
 	gs.head = h
 
-	msg, err := gs.createVoteMessage(NewVoteFromHeader(branches[0]), prevote, kr.Alice())
+	gs.keypair = kr.Alice().(*ed25519.Keypair)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(branches[0]), prevote)
 	require.NoError(t, err)
+	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
 	_, err = gs.validateMessage(msg)
 	require.Equal(t, ErrDescendantNotFound, err, gs.prevotes)

@@ -374,9 +374,13 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		// currently we are attempting to re-add inherents, causing lots of "'Bad input data provided to validate_transaction" errors.
 		for _, ext := range exts {
 			logger.Debug("validating transaction on re-org chain", "extrinsic", ext)
+			encExt, err := scale.Encode(ext)
+			if err != nil {
+				return err
+			}
 
 			decExt := &types.ExtrinsicData{}
-			err = decExt.DecodeVersion(ext)
+			err = decExt.DecodeVersion(encExt)
 			if err != nil {
 				return err
 			}
@@ -384,11 +388,6 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 			// Inherent are not signed.
 			if !decExt.IsSigned() {
 				continue
-			}
-
-			encExt, err := scale.Encode(ext)
-			if err != nil {
-				return err
 			}
 
 			externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, encExt...))
@@ -505,9 +504,7 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 	}
 
 	rt.SetContextStorage(ts)
-
 	// the transaction source is External
-	// validate the transaction
 	externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
 	txv, err := rt.ValidateTransaction(externalExt)
 	if err != nil {
