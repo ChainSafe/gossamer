@@ -110,29 +110,6 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 
 	logger.Debug("got neighbour message", "number", msg.Number, "set id", msg.SetID, "round", msg.Round)
 	h.grandpa.network.SendJustificationRequest(from, msg.Number)
-
-	// don't finalise too close to head, until we add justification request + verification functionality.
-	// this prevents us from marking the wrong block as final and getting stuck on the wrong chain
-	if uint32(head.Int64())-4 < msg.Number {
-		return nil
-	}
-
-	// TODO: instead of assuming the finalised hash is the one we currently know about,
-	// request the justification from the network before setting it as finalised.
-	hash, err := h.grandpa.blockState.GetHashByNumber(big.NewInt(int64(msg.Number)))
-	if err != nil {
-		return err
-	}
-
-	if err = h.grandpa.blockState.SetFinalizedHash(hash, msg.Round, msg.SetID); err != nil {
-		return err
-	}
-
-	if err = h.grandpa.blockState.SetFinalizedHash(hash, 0, 0); err != nil {
-		return err
-	}
-
-	logger.Info("🔨 finalised block", "number", msg.Number, "hash", hash)
 	return nil
 }
 
@@ -155,10 +132,12 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) (*ConsensusMess
 		return nil, err
 	}
 
-	// set latest finalised head in db
-	err = h.blockState.SetFinalizedHash(msg.Vote.hash, 0, 0)
-	if err != nil {
-		return nil, err
+	if msg.Round >= h.grandpa.state.round {
+		// set latest finalised head in db
+		err = h.blockState.SetFinalizedHash(msg.Vote.hash, 0, 0)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// check if msg has same setID but is 2 or more rounds ahead of us, if so, return catch-up request to send
@@ -174,7 +153,12 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) (*ConsensusMess
 }
 
 func (h *MessageHandler) handleCatchUpRequest(msg *catchUpRequest) (*ConsensusMessage, error) {
+	if !h.grandpa.authority {
+		return nil, nil
+	}
+
 	logger.Debug("received catch up request", "round", msg.Round, "setID", msg.SetID)
+
 	if msg.SetID != h.grandpa.state.setID {
 		return nil, ErrSetIDMismatch
 	}
@@ -193,6 +177,10 @@ func (h *MessageHandler) handleCatchUpRequest(msg *catchUpRequest) (*ConsensusMe
 }
 
 func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponse) error {
+	if !h.grandpa.authority {
+		return nil
+	}
+
 	logger.Debug("received catch up response", "round", msg.Round, "setID", msg.SetID, "hash", msg.Hash)
 
 	// if we aren't currently expecting a catch up response, return
@@ -267,7 +255,7 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 
 	count := 0
 	for i, pc := range fm.Precommits {
-		just := &SignedPrecommit{
+		just := &SignedVote{
 			Vote:        pc,
 			Signature:   fm.AuthData[i].Signature,
 			AuthorityID: fm.AuthData[i].AuthorityID,
@@ -278,7 +266,12 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 			continue
 		}
 
-		if just.Vote.hash == fm.Vote.hash && just.Vote.number == fm.Vote.number {
+		isDescendant, err := h.blockState.IsDescendantOf(fm.Vote.hash, just.Vote.hash)
+		if err != nil {
+			logger.Warn("verifyCommitMessageJustification", "error", err)
+		}
+
+		if isDescendant {
 			count++
 		}
 	}
@@ -286,9 +279,11 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 	// confirm total # signatures >= grandpa threshold
 	if uint64(count) < h.grandpa.state.threshold() {
 		logger.Debug("minimum votes not met for finalisation message", "votes needed", h.grandpa.state.threshold(),
-			"votes received", len(fm.Precommits))
+			"votes received", count)
 		return ErrMinVotesNotMet
 	}
+
+	logger.Debug("validated commit message", "msg", fm)
 	return nil
 }
 
@@ -341,7 +336,7 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *catchUpResponse) erro
 	return nil
 }
 
-func (h *MessageHandler) verifyJustification(just *SignedPrecommit, round, setID uint64, stage subround) error {
+func (h *MessageHandler) verifyJustification(just *SignedVote, round, setID uint64, stage subround) error {
 	// verify signature
 	msg, err := scale.Encode(&FullVote{
 		Stage: stage,

@@ -43,8 +43,10 @@ func TestMessageTracker_ValidateMessage(t *testing.T) {
 		Number: big.NewInt(77),
 	}
 
-	msg, err := gs.createVoteMessage(NewVoteFromHeader(fake), prevote, kr.Alice())
+	gs.keypair = kr.Alice().(*ed25519.Keypair)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(fake), prevote)
 	require.NoError(t, err)
+	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
 	_, err = gs.validateMessage(msg)
 	require.Equal(t, err, ErrBlockDoesNotExist)
@@ -69,8 +71,10 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 		Number:     big.NewInt(4),
 	}
 
-	msg, err := gs.createVoteMessage(NewVoteFromHeader(next), prevote, kr.Alice())
+	gs.keypair = kr.Alice().(*ed25519.Keypair)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(next), prevote)
 	require.NoError(t, err)
+	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
 	_, err = gs.validateMessage(msg)
 	require.Equal(t, err, ErrBlockDoesNotExist)
@@ -107,8 +111,10 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 		Number:     big.NewInt(4),
 	}
 
-	msg, err := gs.createVoteMessage(NewVoteFromHeader(next), prevote, kr.Alice())
+	gs.keypair = kr.Alice().(*ed25519.Keypair)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(next), prevote)
 	require.NoError(t, err)
+	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
 	_, err = gs.validateMessage(msg)
 	require.Equal(t, ErrBlockDoesNotExist, err)
@@ -125,5 +131,7 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 		hash:   msg.Message.Hash,
 		number: msg.Message.Number,
 	}
-	require.Equal(t, expected, gs.prevotes[kr.Alice().Public().(*ed25519.PublicKey).AsBytes()], gs.tracker.messages)
+	pv, has := gs.prevotes.Load(kr.Alice().Public().(*ed25519.PublicKey).AsBytes())
+	require.True(t, has)
+	require.Equal(t, expected, pv.(*SignedVote).Vote, gs.tracker.messages)
 }
