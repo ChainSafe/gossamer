@@ -128,6 +128,39 @@ func TestListenerConcurrency(t *testing.T) {
 	}
 }
 
+func TestDisableInstance(t *testing.T) {
+	const qty = 1000
+	var wg sync.WaitGroup
+	wg.Add(qty)
+
+	resultCh = make(chan []byte)
+	for i := 0; i < qty; i++ {
+		if i == qty/2 {
+			GetInstance().Initialise(false)
+		}
+		go func() {
+			bh := common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6")
+			GetInstance().SendMessage(NewBlockImportTM(&bh, big.NewInt(2), "NetworkInitialSync"))
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	counter := 0
+	tk := time.NewTicker(time.Second * 2)
+main:
+	for {
+		select {
+		case <-tk.C:
+			break main
+		case <-resultCh:
+			counter++
+		}
+	}
+	tk.Stop()
+
+	require.LessOrEqual(t, counter, qty/2)
+}
+
 // TestInfiniteListener starts loop that print out data received on websocket ws://localhost:8001/
 //  this can be useful to see what data is sent to telemetry server
 func TestInfiniteListener(t *testing.T) {
