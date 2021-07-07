@@ -48,7 +48,7 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 		RequestedData: 3,
 		StartingBlock: start,
 		EndBlockHash:  optional.NewHash(false, common.Hash{}),
-		Direction:     1,
+		Direction:     0,
 		Max:           optional.NewUint32(false, 0),
 	}
 
@@ -62,7 +62,7 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 		RequestedData: 3,
 		StartingBlock: start,
 		EndBlockHash:  optional.NewHash(false, common.Hash{}),
-		Direction:     1,
+		Direction:     0,
 		Max:           optional.NewUint32(true, maxResponseSize+100),
 	}
 
@@ -87,7 +87,7 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 		RequestedData: 3,
 		StartingBlock: start,
 		EndBlockHash:  optional.NewHash(false, common.Hash{}),
-		Direction:     1,
+		Direction:     0,
 		Max:           optional.NewUint32(false, 0),
 	}
 
@@ -98,7 +98,7 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	require.Equal(t, big.NewInt(128), resp.BlockData[127].Number())
 }
 
-func TestService_CreateBlockResponse_Ascending(t *testing.T) {
+func TestService_CreateBlockResponse_Descending(t *testing.T) {
 	s := NewTestSyncer(t, false)
 	addTestBlocksToState(t, int(maxResponseSize), s.blockState)
 
@@ -112,7 +112,7 @@ func TestService_CreateBlockResponse_Ascending(t *testing.T) {
 		RequestedData: 3,
 		StartingBlock: start,
 		EndBlockHash:  optional.NewHash(false, common.Hash{}),
-		Direction:     0,
+		Direction:     1,
 		Max:           optional.NewUint32(false, 0),
 	}
 
@@ -169,7 +169,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				RequestedData: 3,
 				StartingBlock: start,
 				EndBlockHash:  optional.NewHash(true, endHash),
-				Direction:     1,
+				Direction:     0,
 				Max:           optional.NewUint32(false, 0),
 			},
 			expectedMsgValue: &network.BlockResponseMessage{
@@ -188,7 +188,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				RequestedData: 1,
 				StartingBlock: start,
 				EndBlockHash:  optional.NewHash(true, endHash),
-				Direction:     1,
+				Direction:     0,
 				Max:           optional.NewUint32(false, 0),
 			},
 			expectedMsgValue: &network.BlockResponseMessage{
@@ -207,7 +207,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				RequestedData: 4,
 				StartingBlock: start,
 				EndBlockHash:  optional.NewHash(true, endHash),
-				Direction:     1,
+				Direction:     0,
 				Max:           optional.NewUint32(false, 0),
 			},
 			expectedMsgValue: &network.BlockResponseMessage{
@@ -227,7 +227,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				RequestedData: 8,
 				StartingBlock: start,
 				EndBlockHash:  optional.NewHash(true, endHash),
-				Direction:     1,
+				Direction:     0,
 				Max:           optional.NewUint32(false, 0),
 			},
 			expectedMsgValue: &network.BlockResponseMessage{

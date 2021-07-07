@@ -7,8 +7,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
@@ -94,13 +92,4 @@ type SystemAPI interface {
 	Properties() map[string]interface{}
 	ChainType() string
 	ChainName() string
-}
-
-// BlockFinalityAPI is the interface for handling block finalisation methods
-type BlockFinalityAPI interface {
-	GetSetID() uint64
-	GetRound() uint64
-	GetVoters() grandpa.Voters
-	PreVotes() map[ed25519.PublicKeyBytes]*grandpa.Vote
-	PreCommits() map[ed25519.PublicKeyBytes]*grandpa.Vote
 }

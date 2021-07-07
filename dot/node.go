@@ -308,8 +308,8 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	nodeSrvcs = append(nodeSrvcs, sysSrvc)
 
 	// check if rpc service is enabled
-	if enabled := cfg.RPC.Enabled; enabled {
-		rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc, bp, rt, sysSrvc, fg)
+	if enabled := cfg.RPC.Enabled || cfg.RPC.WS; enabled {
+		rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc, bp, rt, sysSrvc)
 		nodeSrvcs = append(nodeSrvcs, rpcSrvc)
 	} else {
 		logger.Debug("rpc service disabled by default", "rpc", enabled)
@@ -331,6 +331,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 
 	if cfg.Global.PublishMetrics {
 		c := metrics.NewCollector(context.Background())
+		c.AddGauge(fg)
 		c.AddGauge(stateSrvc)
 
 		go c.Start()
