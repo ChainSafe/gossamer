@@ -271,11 +271,12 @@ func TestSyncQueue_HandleBlockAnnounce(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, 1, score.(int))
 	require.Equal(t, testBlockAnnounceMessage.Number.Int64(), q.goal)
-	require.Equal(t, 6, len(q.requestCh))
+	require.Equal(t, 1, len(q.requestCh))
 
-	head, err := q.s.blockState.BestBlockNumber()
-	require.NoError(t, err)
-	expected := createBlockRequest(head.Int64(), blockRequestSize)
+	header := &types.Header{
+		Number: testBlockAnnounceMessage.Number,
+	}
+	expected := createBlockRequestWithHash(header.Hash(), blockRequestSize)
 	req := <-q.requestCh
 	require.Equal(t, &syncRequest{req: expected, to: testPeerID}, req)
 }

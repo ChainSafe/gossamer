@@ -52,20 +52,26 @@ func (s subround) Decode(r io.Reader) (subround, error) {
 		return 255, nil
 	}
 
-	if b == 0 {
+	switch b {
+	case 0:
 		return prevote, nil
-	} else if b == 1 {
+	case 1:
 		return precommit, nil
-	} else {
+	case 2:
+		return primaryProposal, nil
+	default:
 		return 255, ErrCannotDecodeSubround
 	}
 }
 
 func (s subround) String() string {
-	if s == prevote {
+	switch s {
+	case prevote:
 		return "prevote"
-	} else if s == precommit {
+	case precommit:
 		return "precommit"
+	case primaryProposal:
+		return "primaryProposal"
 	}
 
 	return "unknown"
@@ -188,45 +194,53 @@ func (v *Vote) String() string {
 	return fmt.Sprintf("hash=%s number=%d", v.hash, v.number)
 }
 
-// SignedPrecommit represents a signed precommit message for a finalised block
-type SignedPrecommit struct {
+// SignedVote represents a signed precommit message for a finalised block
+type SignedVote struct {
 	Vote        *Vote
 	Signature   [64]byte
 	AuthorityID ed25519.PublicKeyBytes
 }
 
+func (s *SignedVote) String() string {
+	return fmt.Sprintf("SignedVote hash=%s number=%d authority=%s",
+		s.Vote.hash,
+		s.Vote.number,
+		s.AuthorityID,
+	)
+}
+
 // Encode returns the SCALE encoded Justification
-func (j *SignedPrecommit) Encode() ([]byte, error) {
-	enc, err := j.Vote.Encode()
+func (s *SignedVote) Encode() ([]byte, error) {
+	enc, err := s.Vote.Encode()
 	if err != nil {
 		return nil, err
 	}
 
-	enc = append(enc, j.Signature[:]...)
-	enc = append(enc, j.AuthorityID[:]...)
+	enc = append(enc, s.Signature[:]...)
+	enc = append(enc, s.AuthorityID[:]...)
 	return enc, nil
 }
 
 // Decode returns the SCALE decoded Justification
-func (j *SignedPrecommit) Decode(r io.Reader) (*SignedPrecommit, error) {
+func (s *SignedVote) Decode(r io.Reader) (*SignedVote, error) {
 	sd := &scale.Decoder{Reader: r}
-	i, err := sd.Decode(j)
+	i, err := sd.Decode(s)
 	if err != nil {
 		return nil, err
 	}
 
-	d := i.(*SignedPrecommit)
-	j.Vote = d.Vote
-	j.Signature = d.Signature
-	j.AuthorityID = d.AuthorityID
-	return j, nil
+	d := i.(*SignedVote)
+	s.Vote = d.Vote
+	s.Signature = d.Signature
+	s.AuthorityID = d.AuthorityID
+	return s, nil
 }
 
 // Commit contains all the signed precommits for a given block
 type Commit struct {
 	Hash       common.Hash
 	Number     uint32
-	Precommits []*SignedPrecommit
+	Precommits []*SignedVote
 }
 
 // Justification represents a finality justification for a block
@@ -235,7 +249,7 @@ type Justification struct {
 	Commit *Commit
 }
 
-func newJustification(round uint64, hash common.Hash, number uint32, j []*SignedPrecommit) *Justification {
+func newJustification(round uint64, hash common.Hash, number uint32, j []*SignedVote) *Justification {
 	return &Justification{
 		Round: round,
 		Commit: &Commit{
