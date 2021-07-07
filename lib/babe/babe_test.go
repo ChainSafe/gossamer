@@ -24,6 +24,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -133,7 +134,8 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
 		require.NoError(t, err)
 
-		rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
+		storageState := cfg.StorageState.(core.StorageState)
+		rtCfg.CodeHash, err = storageState.LoadCodeHash(nil)
 		require.NoError(t, err)
 
 		cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(gen, rtCfg)

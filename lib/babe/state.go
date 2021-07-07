@@ -53,7 +53,6 @@ type BlockState interface {
 type StorageState interface {
 	TrieState(hash *common.Hash) (*rtstorage.TrieState, error)
 	StoreTrie(ts *rtstorage.TrieState, header *types.Header) error
-	LoadCodeHash(root *common.Hash) (common.Hash, error)
 }
 
 // TransactionState is the interface for transaction queue methods
