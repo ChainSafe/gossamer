@@ -65,7 +65,7 @@ func TestGrandpaProveFinality(t *testing.T) {
 	}
 }
 
-func TestRoundSate(t *testing.T) {
+func TestRoundState(t *testing.T) {
 	var voters grandpa.Voters
 
 	for _, k := range kr.Keys {

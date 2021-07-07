@@ -1325,11 +1325,7 @@ func (s *Service) PreVotes() []ed25519.PublicKeyBytes {
 
 	s.prevotes.Range(func(k interface{}, _ interface{}) bool {
 		b := k.(ed25519.PublicKeyBytes)
-
-		// if the key is not in the equivocations, then add
-		if _, ok := s.pvEquivocations[b]; !ok {
-			votes = append(votes, b)
-		}
+		votes = append(votes, b)
 		return true
 	})
 
@@ -1349,9 +1345,7 @@ func (s *Service) PreCommits() []ed25519.PublicKeyBytes {
 
 	s.precommits.Range(func(k interface{}, _ interface{}) bool {
 		b := k.(ed25519.PublicKeyBytes)
-		if _, ok := s.pcEquivocations[b]; !ok {
-			votes = append(votes, b)
-		}
+		votes = append(votes, b)
 		return true
 	})
 
