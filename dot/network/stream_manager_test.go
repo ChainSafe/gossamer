@@ -71,11 +71,11 @@ func TestStreamManager(t *testing.T) {
 
 	time.Sleep(cleanupStreamInterval * 2)
 	connsAToB := ha.Network().ConnsToPeer(hb.ID())
-	require.Equal(t, 1, len(connsAToB))
+	require.GreaterOrEqual(t, len(connsAToB), 1)
 	require.Equal(t, 0, len(connsAToB[0].GetStreams()))
 
 	connsBToA := hb.Network().ConnsToPeer(ha.ID())
-	require.Equal(t, 1, len(connsBToA))
+	require.GreaterOrEqual(t, len(connsBToA), 1)
 	require.Equal(t, 0, len(connsBToA[0].GetStreams()))
 }
 
@@ -93,10 +93,10 @@ func TestStreamManager_KeepStream(t *testing.T) {
 
 	time.Sleep(cleanupStreamInterval / 2)
 	connsAToB := ha.Network().ConnsToPeer(hb.ID())
-	require.Equal(t, 1, len(connsAToB))
+	require.GreaterOrEqual(t, len(connsAToB), 1)
 	require.Equal(t, 1, len(connsAToB[0].GetStreams()))
 
 	connsBToA := hb.Network().ConnsToPeer(ha.ID())
-	require.Equal(t, 1, len(connsBToA))
+	require.GreaterOrEqual(t, len(connsBToA), 1)
 	require.Equal(t, 1, len(connsBToA[0].GetStreams()))
 }
