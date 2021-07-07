@@ -346,9 +346,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		return nil, err
 	}
 
-	if cfg.Global.NoTelemetry {
-		return node, nil
-	}
+	telemetry.GetInstance().Initialise(!cfg.Global.NoTelemetry)
 
 	telemetry.GetInstance().AddConnections(gd.TelemetryEndpoints)
 	genesisHash := stateSrvc.Block.GenesisHash()
