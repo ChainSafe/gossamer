@@ -24,13 +24,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/lib/trie"
+	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )
 
@@ -230,11 +236,10 @@ func TestSystemModule_AccountNextIndex_StoragePending(t *testing.T) {
 	}
 	err := sys.AccountNextIndex(nil, &req, res)
 	require.NoError(t, err)
-
 	require.Equal(t, expectedStored, *res)
 
 	// extrinsic for transfer signed by alice, nonce 4 (created with polkadot.js/api test_transaction)
-	signedExt := common.MustHexToBytes("0x022d0284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d018c35943da8a04f06a36db9fadc7b2f02ccdef38dd89f88835c0af16b5fce816b117d8073aca078984d5b81bcf86e89cfa3195e5ec3c457d4282370b854f430850010000600ff90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22e5c0")
+	signedExt := common.MustHexToBytes("0xad018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0146d0050619728683af4e9659bf202aeb2b8b13b48a875adb663f449f1a71453903546f3252193964185eb91c482cf95caf327db407d57ebda95046b5ef890187001000000108abcd")
 	vtx := &transaction.ValidTransaction{
 		Extrinsic: types.NewExtrinsic(signedExt),
 		Validity:  new(transaction.Validity),
@@ -269,7 +274,7 @@ func TestSystemModule_AccountNextIndex_Pending(t *testing.T) {
 	}
 
 	// extrinsic for transfer signed by alice, nonce 4 (created with polkadot.js/api test_transaction)
-	signedExt := common.MustHexToBytes("0x022d0284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d018c35943da8a04f06a36db9fadc7b2f02ccdef38dd89f88835c0af16b5fce816b117d8073aca078984d5b81bcf86e89cfa3195e5ec3c457d4282370b854f430850010000600ff90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22e5c0")
+	signedExt := common.MustHexToBytes("0xad018400d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0146d0050619728683af4e9659bf202aeb2b8b13b48a875adb663f449f1a71453903546f3252193964185eb91c482cf95caf327db407d57ebda95046b5ef890187001000000108abcd")
 	vtx := &transaction.ValidTransaction{
 		Extrinsic: types.NewExtrinsic(signedExt),
 		Validity:  new(transaction.Validity),
@@ -292,9 +297,10 @@ func setupSystemModule(t *testing.T) *SystemModule {
 
 	aliceAcctStoKey, err := common.HexToBytes("0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9de1e86a9a8c739864cf3cc5ec2bea59fd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d")
 	require.NoError(t, err)
+
 	aliceAcctInfo := types.AccountInfo{
-		Nonce:    3,
-		RefCount: 0,
+		Nonce: 3,
+		//RefCount: 0,
 		Data: struct {
 			Free       common.Uint128
 			Reserved   common.Uint128
@@ -322,4 +328,40 @@ func setupSystemModule(t *testing.T) *SystemModule {
 	// TODO (ed) add transactions to txQueue and add test for those
 	txQueue := state.NewTransactionState()
 	return NewSystemModule(net, nil, core, chain.Storage, txQueue)
+}
+
+type mockNetwork struct{}
+
+func (n *mockNetwork) SendMessage(_ network.NotificationsMessage) {}
+
+func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
+	// setup service
+	tt := trie.NewEmptyTrie()
+	rt := wasmer.NewTestInstanceWithTrie(t, runtime.NODE_RUNTIME, tt, log.LvlInfo)
+	ks := keystore.NewGlobalKeystore()
+	t.Cleanup(func() {
+		rt.Stop()
+	})
+
+	// insert alice key for testing
+	kr, err := keystore.NewSr25519Keyring()
+	require.NoError(t, err)
+	ks.Acco.Insert(kr.Alice())
+
+	if srvc == nil {
+		srvc = newTestStateService(t)
+	}
+
+	cfg := &core.Config{
+		Runtime:              rt,
+		Keystore:             ks,
+		TransactionState:     srvc.Transaction,
+		BlockState:           srvc.Block,
+		StorageState:         srvc.Storage,
+		EpochState:           srvc.Epoch,
+		Network:              &mockNetwork{},
+		CodeSubstitutedState: srvc.Base,
+	}
+
+	return core.NewTestService(t, cfg)
 }
