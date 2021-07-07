@@ -79,7 +79,7 @@ func TestApplyExtrinsicErrors(t *testing.T) {
 				_, ok := err.(*TransactionValidityError)
 				require.True(t, ok)
 			}
-			require.Equal(t, err.Error(), c.expected)
+			require.Equal(t, c.expected, err.Error())
 		})
 	}
 }

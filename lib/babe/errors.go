@@ -110,7 +110,7 @@ var (
 )
 
 func newUnknownErrorMsg(data scale.VaryingDataTypeValue) transactionValidityErrorMsg {
-	return transactionValidityErrorMsg(fmt.Sprintf("unknown error: %d", data.Index()))
+	return transactionValidityErrorMsg(fmt.Sprintf("unknown error: %d", data))
 }
 
 // UnmarshalError occurs when unmarshalling fails
