@@ -1,7 +1,6 @@
 package state
 
 import (
-	"encoding/binary"
 	"fmt"
 	"math/big"
 
@@ -9,63 +8,48 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-var (
-	prevotesPrefix   = []byte("pv")
-	precommitsPrefix = []byte("pc")
-)
-
-func prevotesKey(round, setID uint64) []byte {
-	k := roundSetIDKey(round, setID)
-	return append(prevotesPrefix, k...)
-}
-
-func precommitsKey(round, setID uint64) []byte {
-	k := roundSetIDKey(round, setID)
-	return append(precommitsPrefix, k...)
-}
-
 // finalizedHashKey = FinalizedBlockHashKey + round + setID (LE encoded)
 func finalizedHashKey(round, setID uint64) []byte {
 	return append(common.FinalizedBlockHashKey, roundSetIDKey(round, setID)...)
 }
 
-func roundSetIDKey(round, setID uint64) []byte {
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, round)
-	buf2 := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf2, setID)
-	return append(buf, buf2...)
-}
+// func roundSetIDKey(round, setID uint64) []byte {
+// 	buf := make([]byte, 8)
+// 	binary.LittleEndian.PutUint64(buf, round)
+// 	buf2 := make([]byte, 8)
+// 	binary.LittleEndian.PutUint64(buf2, setID)
+// 	return append(buf, buf2...)
+// }
 
-// HasPrevotes returns if the db contains prevotes for the given round and set ID
-func (bs *BlockState) HasPrevotes(round, setID uint64) (bool, error) {
-	return bs.db.Has(prevotesKey(round, setID))
-}
+// // HasPrevotes returns if the db contains prevotes for the given round and set ID
+// func (bs *BlockState) HasPrevotes(round, setID uint64) (bool, error) {
+// 	return bs.db.Has(prevotesKey(round, setID))
+// }
 
-// SetPrevotes sets the prevotes for a specific round and set ID in the database
-func (bs *BlockState) SetPrevotes(round, setID uint64, data []byte) error {
-	return bs.db.Put(prevotesKey(round, setID), data)
-}
+// // SetPrevotes sets the prevotes for a specific round and set ID in the database
+// func (bs *BlockState) SetPrevotes(round, setID uint64, data []byte) error {
+// 	return bs.db.Put(prevotesKey(round, setID), data)
+// }
 
-// GetPrevotes retrieves the prevotes for a specific round and set ID from the database
-func (bs *BlockState) GetPrevotes(round, setID uint64) ([]byte, error) {
-	return bs.db.Get(prevotesKey(round, setID))
-}
+// // GetPrevotes retrieves the prevotes for a specific round and set ID from the database
+// func (bs *BlockState) GetPrevotes(round, setID uint64) ([]byte, error) {
+// 	return bs.db.Get(prevotesKey(round, setID))
+// }
 
-// HasPrecommits returns if the db contains precommits for the given round and set ID
-func (bs *BlockState) HasPrecommits(round, setID uint64) (bool, error) {
-	return bs.db.Has(precommitsKey(round, setID))
-}
+// // HasPrecommits returns if the db contains precommits for the given round and set ID
+// func (bs *BlockState) HasPrecommits(round, setID uint64) (bool, error) {
+// 	return bs.db.Has(precommitsKey(round, setID))
+// }
 
-// SetPrecommits sets the precommits for a specific round and set ID in the database
-func (bs *BlockState) SetPrecommits(round, setID uint64, data []byte) error {
-	return bs.db.Put(precommitsKey(round, setID), data)
-}
+// // SetPrecommits sets the precommits for a specific round and set ID in the database
+// func (bs *BlockState) SetPrecommits(round, setID uint64, data []byte) error {
+// 	return bs.db.Put(precommitsKey(round, setID), data)
+// }
 
-// GetPrecommits retrieves the precommits for a specific round and set ID from the database
-func (bs *BlockState) GetPrecommits(round, setID uint64) ([]byte, error) {
-	return bs.db.Get(precommitsKey(round, setID))
-}
+// // GetPrecommits retrieves the precommits for a specific round and set ID from the database
+// func (bs *BlockState) GetPrecommits(round, setID uint64) ([]byte, error) {
+// 	return bs.db.Get(precommitsKey(round, setID))
+// }
 
 // HasFinalizedBlock returns true if there is a finalised block for a given round and setID, false otherwise
 func (bs *BlockState) HasFinalizedBlock(round, setID uint64) (bool, error) {

@@ -818,11 +818,11 @@ func (s *Service) finalise() error {
 	// set best final candidate
 	s.bestFinalCandidate[s.state.round] = bfc
 
-	// // create prevote justification ie. list of all signed prevotes for the bfc
-	// pvs, err := s.createJustification(bfc.hash, prevote)
-	// if err != nil {
-	// 	return err
-	// }
+	// create prevote justification ie. list of all signed prevotes for the bfc
+	pvs, err := s.createJustification(bfc.hash, prevote)
+	if err != nil {
+		return err
+	}
 
 	// create precommit justification ie. list of all signed precommits for the bfc
 	pcs, err := s.createJustification(bfc.hash, precommit)
@@ -830,21 +830,23 @@ func (s *Service) finalise() error {
 		return err
 	}
 
-	// pvj, err := newJustification(s.state.round, bfc.hash, bfc.number, pvs).Encode()
-	// if err != nil {
-	// 	return err
-	// }
-
 	pcj, err := newJustification(s.state.round, bfc.hash, bfc.number, pcs).Encode()
 	if err != nil {
 		return err
 	}
 
-	// cache justification
+	// cache justification TODO: remove this and just get from db
 	s.justification[s.state.round] = pcs
 
-	// TODO: store prevotes in database, needed for catch-up
 	if err = s.blockState.SetJustification(bfc.hash, pcj); err != nil {
+		return err
+	}
+
+	if err = s.grandpaState.SetPrevotes(s.state.round, s.state.setID, pvs); err != nil {
+		return err
+	}
+
+	if err = s.grandpaState.SetPrecommits(s.state.round, s.state.setID, pcs); err != nil {
 		return err
 	}
 

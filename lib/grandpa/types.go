@@ -260,12 +260,12 @@ func newJustification(round uint64, hash common.Hash, number uint32, j []*Signed
 	}
 }
 
-// Encode returns the SCALE encoding of a FullJustification
+// Encode returns the SCALE encoding of a Justification
 func (j *Justification) Encode() ([]byte, error) {
 	return scale.Encode(j)
 }
 
-// Decode returns a SCALE decoded FullJustification
+// Decode returns a SCALE decoded Justification
 func (j *Justification) Decode(r io.Reader) error {
 	sd := &scale.Decoder{Reader: r}
 	i, err := sd.Decode(&Justification{Commit: &Commit{}})

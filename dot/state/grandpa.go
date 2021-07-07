@@ -25,6 +25,7 @@ import (
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
@@ -283,4 +284,77 @@ func (s *GrandpaState) GetNextResume() (*big.Int, error) {
 	}
 
 	return big.NewInt(0).SetBytes(num), nil
+}
+
+var (
+	prevotesPrefix   = []byte("pv")
+	precommitsPrefix = []byte("pc")
+)
+
+func prevotesKey(round, setID uint64) []byte {
+	k := roundSetIDKey(round, setID)
+	return append(prevotesPrefix, k...)
+}
+
+func precommitsKey(round, setID uint64) []byte {
+	k := roundSetIDKey(round, setID)
+	return append(precommitsPrefix, k...)
+}
+
+func roundSetIDKey(round, setID uint64) []byte {
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, round)
+	buf2 := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf2, setID)
+	return append(buf, buf2...)
+}
+
+// SetPrevotes sets the prevotes for a specific round and set ID in the database
+func (s *GrandpaState) SetPrevotes(round, setID uint64, pvs []*grandpa.SignedVote) error {
+	data, err := scale.Encode(pvs)
+	if err != nil {
+		return err
+	}
+
+	return s.db.Put(prevotesKey(round, setID), data)
+}
+
+// GetPrevotes retrieves the prevotes for a specific round and set ID from the database
+func (s *GrandpaState) GetPrevotes(round, setID uint64) ([]*grandpa.SignedVote, error) {
+	data, err := s.db.Get(prevotesKey(round, setID))
+	if err != nil {
+		return nil, err
+	}
+
+	pvs, err := scale.Decode(data, []*grandpa.SignedVote{})
+	if err != nil {
+		return nil, err
+	}
+
+	return pvs.([]*grandpa.SignedVote), nil
+}
+
+// SetPrecommits sets the precommits for a specific round and set ID in the database
+func (s *GrandpaState) SetPrecommits(round, setID uint64, pcs []*grandpa.SignedVote) error {
+	data, err := scale.Encode(pcs)
+	if err != nil {
+		return err
+	}
+
+	return s.db.Put(precommitsKey(round, setID), data)
+}
+
+// GetPrecommits retrieves the precommits for a specific round and set ID from the database
+func (s *GrandpaState) GetPrecommits(round, setID uint64) ([]*grandpa.SignedVote, error) {
+	data, err := s.db.Get(precommitsKey(round, setID))
+	if err != nil {
+		return nil, err
+	}
+
+	pcs, err := scale.Decode(data, []*grandpa.SignedVote{})
+	if err != nil {
+		return nil, err
+	}
+
+	return pcs.([]*grandpa.SignedVote), nil
 }

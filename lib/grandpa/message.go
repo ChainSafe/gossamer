@@ -17,7 +17,6 @@
 package grandpa
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"math/big"
@@ -343,44 +342,21 @@ func (s *Service) newCatchUpResponse(round, setID uint64) (*catchUpResponse, err
 		return nil, err
 	}
 
-	has, err := s.blockState.HasJustification(header.Hash())
+	pvs, err := s.grandpaState.GetPrevotes(round, setID)
 	if err != nil {
 		return nil, err
 	}
 
-	if !has {
-		return nil, ErrNoJustification
-	}
-
-	just, err := s.blockState.GetJustification(header.Hash())
+	pcs, err := s.grandpaState.GetPrecommits(round, setID)
 	if err != nil {
 		return nil, err
 	}
-
-	r := &bytes.Buffer{}
-	sd := &scale.Decoder{Reader: r}
-	_, err = r.Write(just)
-	if err != nil {
-		return nil, err
-	}
-
-	d, err := sd.Decode([]*SignedVote{})
-	if err != nil {
-		return nil, err
-	}
-	pvj := d.([]*SignedVote)
-
-	d, err = sd.Decode([]*SignedVote{})
-	if err != nil {
-		return nil, err
-	}
-	pcj := d.([]*SignedVote)
 
 	return &catchUpResponse{
 		SetID:                  setID,
 		Round:                  round,
-		PreVoteJustification:   pvj,
-		PreCommitJustification: pcj,
+		PreVoteJustification:   pvs,
+		PreCommitJustification: pcs,
 		Hash:                   header.Hash(),
 		Number:                 uint32(header.Number.Uint64()),
 	}, nil
