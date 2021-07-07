@@ -78,8 +78,8 @@ func (m *SignedMessage) Decode(r io.Reader) (err error) {
 		return err
 	}
 
-	m.Hash = vote.hash
-	m.Number = vote.number
+	m.Hash = vote.Hash
+	m.Number = vote.Number
 
 	sig, err := common.Read64Bytes(r)
 	if err != nil {

@@ -126,7 +126,7 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) (*ConsensusMess
 	}
 
 	// set finalised head for round in db
-	if err := h.blockState.SetFinalizedHash(msg.Vote.hash, msg.Round, h.grandpa.state.setID); err != nil {
+	if err := h.blockState.SetFinalizedHash(msg.Vote.Hash, msg.Round, h.grandpa.state.setID); err != nil {
 		return nil, err
 	}
 
@@ -141,7 +141,7 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) (*ConsensusMess
 
 	if msg.Round >= h.grandpa.state.round {
 		// set latest finalised head in db
-		err = h.blockState.SetFinalizedHash(msg.Vote.hash, 0, 0)
+		err = h.blockState.SetFinalizedHash(msg.Vote.Hash, 0, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -275,7 +275,7 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 			continue
 		}
 
-		isDescendant, err := h.blockState.IsDescendantOf(fm.Vote.hash, just.Vote.hash)
+		isDescendant, err := h.blockState.IsDescendantOf(fm.Vote.Hash, just.Vote.Hash)
 		if err != nil {
 			logger.Warn("verifyCommitMessageJustification", "error", err)
 		}
@@ -306,7 +306,7 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *catchUpResponse) (commo
 			continue
 		}
 
-		votes[just.Vote.hash]++
+		votes[just.Vote.Hash]++
 	}
 
 	var prevote common.Hash
@@ -333,7 +333,7 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *catchUpResponse) erro
 			continue
 		}
 
-		if just.Vote.hash == msg.Hash && just.Vote.number == msg.Number {
+		if just.Vote.Hash == msg.Hash && just.Vote.Number == msg.Number {
 			count++
 		}
 	}
@@ -422,11 +422,11 @@ func (s *Service) VerifyBlockJustification(justification []byte) error {
 	}
 
 	for _, just := range fj.Commit.Precommits {
-		if just.Vote.hash != fj.Commit.Hash {
+		if just.Vote.Hash != fj.Commit.Hash {
 			return ErrJustificationHashMismatch
 		}
 
-		if just.Vote.number != fj.Commit.Number {
+		if just.Vote.Number != fj.Commit.Number {
 			return ErrJustificationNumberMismatch
 		}
 

@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/binary"
 	"fmt"
 	"io"
 
@@ -171,4 +172,84 @@ type FinalisationInfo struct {
 	Header *Header
 	Round  uint64
 	SetID  uint64
+}
+
+// GrandpaSignedVote represents a signed precommit message for a finalised block
+type GrandpaSignedVote struct {
+	Vote        *GrandpaVote
+	Signature   [64]byte
+	AuthorityID ed25519.PublicKeyBytes
+}
+
+func (s *GrandpaSignedVote) String() string {
+	return fmt.Sprintf("SignedVote hash=%s number=%d authority=%s",
+		s.Vote.Hash,
+		s.Vote.Number,
+		s.AuthorityID,
+	)
+}
+
+// Encode returns the SCALE encoded Justification
+func (s *GrandpaSignedVote) Encode() ([]byte, error) {
+	enc, err := s.Vote.Encode()
+	if err != nil {
+		return nil, err
+	}
+
+	enc = append(enc, s.Signature[:]...)
+	enc = append(enc, s.AuthorityID[:]...)
+	return enc, nil
+}
+
+// Decode returns the SCALE decoded Justification
+func (s *GrandpaSignedVote) Decode(r io.Reader) (*GrandpaSignedVote, error) {
+	sd := &scale.Decoder{Reader: r}
+	i, err := sd.Decode(s)
+	if err != nil {
+		return nil, err
+	}
+
+	d := i.(*GrandpaSignedVote)
+	s.Vote = d.Vote
+	s.Signature = d.Signature
+	s.AuthorityID = d.AuthorityID
+	return s, nil
+}
+
+// GrandpaVote represents a vote for a block with the given hash and number
+type GrandpaVote struct {
+	Hash   common.Hash
+	Number uint32
+}
+
+// String returns the Vote as a string
+func (v *GrandpaVote) String() string {
+	return fmt.Sprintf("hash=%s number=%d", v.Hash, v.Number)
+}
+
+// Encode returns the SCALE encoding of a Vote
+func (v *GrandpaVote) Encode() ([]byte, error) {
+	buf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(buf, v.Number)
+	return append(v.Hash[:], buf...), nil
+}
+
+// Decode returns the SCALE decoded Vote
+func (v *GrandpaVote) Decode(r io.Reader) (*GrandpaVote, error) {
+	if v == nil {
+		v = new(GrandpaVote)
+	}
+
+	var err error
+	v.Hash, err = common.ReadHash(r)
+	if err != nil {
+		return nil, err
+	}
+
+	v.Number, err = common.ReadUint32(r)
+	if err != nil {
+		return nil, err
+	}
+
+	return v, nil
 }

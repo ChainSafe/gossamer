@@ -413,8 +413,8 @@ func (s *Service) handleIsPrimary() (bool, error) {
 	}
 
 	pv := &Vote{
-		hash:   best.Hash(),
-		number: uint32(best.Number.Int64()),
+		Hash:   best.Hash(),
+		Number: uint32(best.Number.Int64()),
 	}
 
 	// send primary prevote message to network
@@ -559,7 +559,7 @@ func (s *Service) playGrandpaRound() error {
 				return false
 			}
 
-			if completable && finalisable && uint32(s.head.Number.Int64()) >= prevBfc.number {
+			if completable && finalisable && uint32(s.head.Number.Int64()) >= prevBfc.Number {
 				return true
 			}
 
@@ -628,12 +628,12 @@ func (s *Service) attemptToFinalize() error {
 			return err
 		}
 
-		pc, err := s.getTotalVotesForBlock(bfc.hash, precommit)
+		pc, err := s.getTotalVotesForBlock(bfc.Hash, precommit)
 		if err != nil {
 			return err
 		}
 
-		if bfc.number < uint32(s.head.Number.Int64()) || pc < s.state.threshold() {
+		if bfc.Number < uint32(s.head.Number.Int64()) || pc < s.state.threshold() {
 			continue
 		}
 
@@ -705,7 +705,7 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	// and greater than the best final candidate from the last round, we choose that.
 	// otherwise, we simply choose the head of our chain.
 	prm, has := s.loadVote(s.derivePrimary().PublicKeyBytes(), prevote)
-	if has && prm.Vote.number >= uint32(s.head.Number.Int64()) {
+	if has && prm.Vote.Number >= uint32(s.head.Number.Int64()) {
 		vote = prm.Vote
 	} else {
 		header, err := s.blockState.BestBlockHeader()
@@ -717,7 +717,7 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	}
 
 	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
-	if uint64(vote.number) > nextChange {
+	if uint64(vote.Number) > nextChange {
 		header, err := s.blockState.GetHeaderByNumber(big.NewInt(int64(nextChange)))
 		if err != nil {
 			return nil, err
@@ -742,7 +742,7 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 	s.mapLock.Unlock()
 
 	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
-	if uint64(pvb.number) > nextChange {
+	if uint64(pvb.Number) > nextChange {
 		header, err := s.blockState.GetHeaderByNumber(big.NewInt(int64(nextChange)))
 		if err != nil {
 			return nil, err
@@ -781,7 +781,7 @@ func (s *Service) isFinalisable(round uint64) (bool, error) {
 		return false, errors.New("cannot find best final candidate for round")
 	}
 
-	pc, err := s.getTotalVotesForBlock(bfc.hash, precommit)
+	pc, err := s.getTotalVotesForBlock(bfc.Hash, precommit)
 	if err != nil {
 		return false, err
 	}
@@ -794,7 +794,7 @@ func (s *Service) isFinalisable(round uint64) (bool, error) {
 		return false, errors.New("cannot find best final candidate for previous round")
 	}
 
-	if bfc.number <= pvb.number && (s.state.round == 0 || prevBfc.number <= bfc.number) && pc >= s.state.threshold() {
+	if bfc.Number <= pvb.Number && (s.state.round == 0 || prevBfc.Number <= bfc.Number) && pc >= s.state.threshold() {
 		return true, nil
 	}
 
@@ -823,23 +823,23 @@ func (s *Service) finalise() error {
 	s.bestFinalCandidate[s.state.round] = bfc
 
 	// create prevote justification ie. list of all signed prevotes for the bfc
-	pvs, err := s.createJustification(bfc.hash, prevote)
+	pvs, err := s.createJustification(bfc.Hash, prevote)
 	if err != nil {
 		return err
 	}
 
 	// create precommit justification ie. list of all signed precommits for the bfc
-	pcs, err := s.createJustification(bfc.hash, precommit)
+	pcs, err := s.createJustification(bfc.Hash, precommit)
 	if err != nil {
 		return err
 	}
 
-	pcj, err := newJustification(s.state.round, bfc.hash, bfc.number, pcs).Encode()
+	pcj, err := newJustification(s.state.round, bfc.Hash, bfc.Number, pcs).Encode()
 	if err != nil {
 		return err
 	}
 
-	if err = s.blockState.SetJustification(bfc.hash, pcj); err != nil {
+	if err = s.blockState.SetJustification(bfc.Hash, pcj); err != nil {
 		return err
 	}
 
@@ -851,13 +851,13 @@ func (s *Service) finalise() error {
 		return err
 	}
 
-	s.head, err = s.blockState.GetHeader(bfc.hash)
+	s.head, err = s.blockState.GetHeader(bfc.Hash)
 	if err != nil {
 		return err
 	}
 
 	// set finalised head for round in db
-	if err = s.blockState.SetFinalizedHash(bfc.hash, s.state.round, s.state.setID); err != nil {
+	if err = s.blockState.SetFinalizedHash(bfc.Hash, s.state.round, s.state.setID); err != nil {
 		return err
 	}
 
@@ -866,7 +866,7 @@ func (s *Service) finalise() error {
 	}
 
 	// set latest finalised head in db
-	return s.blockState.SetFinalizedHash(bfc.hash, 0, 0)
+	return s.blockState.SetFinalizedHash(bfc.Hash, 0, 0)
 }
 
 // createJustification collects the signed precommits received for this round and turns them into
@@ -891,7 +891,7 @@ func (s *Service) createJustification(bfc common.Hash, stage subround) ([]*Signe
 		pc := value.(*SignedVote)
 		var isDescendant bool
 
-		isDescendant, err = s.blockState.IsDescendantOf(bfc, pc.Vote.hash)
+		isDescendant, err = s.blockState.IsDescendantOf(bfc, pc.Vote.Hash)
 		if err != nil {
 			return false
 		}
@@ -939,24 +939,24 @@ func (s *Service) getBestFinalCandidate() (*Vote, error) {
 
 	// if there are multiple blocks, get the one with the highest number
 	// that is also an ancestor of the prevoted block (or is the prevoted block)
-	if blocks[prevoted.hash] != 0 {
+	if blocks[prevoted.Hash] != 0 {
 		return &prevoted, nil
 	}
 
 	bfc := &Vote{
-		number: 0,
+		Number: 0,
 	}
 
 	for h, n := range blocks {
 		// check if the current block is an ancestor of prevoted block
-		isDescendant, err := s.blockState.IsDescendantOf(h, prevoted.hash)
+		isDescendant, err := s.blockState.IsDescendantOf(h, prevoted.Hash)
 		if err != nil {
 			return nil, err
 		}
 
 		if !isDescendant {
 			// find common ancestor, implicitly has >=2/3 votes
-			pred, err := s.blockState.HighestCommonAncestor(h, prevoted.hash)
+			pred, err := s.blockState.HighestCommonAncestor(h, prevoted.Hash)
 			if err != nil {
 				return nil, err
 			}
@@ -966,20 +966,20 @@ func (s *Service) getBestFinalCandidate() (*Vote, error) {
 				return nil, err
 			}
 
-			n = v.number
+			n = v.Number
 			h = pred
 		}
 
 		// choose block with highest number
-		if n > bfc.number {
+		if n > bfc.Number {
 			bfc = &Vote{
-				hash:   h,
-				number: n,
+				Hash:   h,
+				Number: n,
 			}
 		}
 	}
 
-	if [32]byte(bfc.hash) == [32]byte{} {
+	if [32]byte(bfc.Hash) == [32]byte{} {
 		return &prevoted, nil
 	}
 
@@ -1004,12 +1004,12 @@ func (s *Service) isCompletable() (bool, error) {
 	// check that (total precommits - total pc equivocations - precommits for that block) >= 2/3 |V|
 	// ie. there must not be a descendent of the prevotes block that is preferred
 	for _, v := range votes {
-		if prevoted.hash == v.hash {
+		if prevoted.Hash == v.Hash {
 			continue
 		}
 
 		// check if the current block is a descendant of prevoted block
-		isDescendant, err := s.blockState.IsDescendantOf(prevoted.hash, v.hash)
+		isDescendant, err := s.blockState.IsDescendantOf(prevoted.Hash, v.Hash)
 		if err != nil {
 			return false, err
 		}
@@ -1018,7 +1018,7 @@ func (s *Service) isCompletable() (bool, error) {
 			continue
 		}
 
-		c, err := s.getTotalVotesForBlock(v.hash, precommit)
+		c, err := s.getTotalVotesForBlock(v.Hash, precommit)
 		if err != nil {
 			return false, err
 		}
@@ -1050,21 +1050,22 @@ func (s *Service) getPreVotedBlock() (Vote, error) {
 	if len(blocks) == 1 {
 		for h, n := range blocks {
 			return Vote{
-				hash:   h,
-				number: n,
+				Hash:   h,
+				Number: n,
 			}, nil
 		}
 	}
 
 	// if there are multiple, find the one with the highest number and return it
 	highest := Vote{
-		number: uint32(0),
+		Number: uint32(0),
 	}
+
 	for h, n := range blocks {
-		if n > highest.number {
+		if n > highest.Number {
 			highest = Vote{
-				hash:   h,
-				number: n,
+				Hash:   h,
+				Number: n,
 			}
 		}
 	}
@@ -1098,13 +1099,14 @@ func (s *Service) getGrandpaGHOST() (Vote, error) {
 
 	// if there are multiple, find the one with the highest number and return it
 	highest := Vote{
-		number: uint32(0),
+		Number: uint32(0),
 	}
+
 	for h, n := range blocks {
-		if n > highest.number {
+		if n > highest.Number {
 			highest = Vote{
-				hash:   h,
-				number: n,
+				Hash:   h,
+				Number: n,
 			}
 		}
 	}
@@ -1125,13 +1127,13 @@ func (s *Service) getPossibleSelectedBlocks(stage subround, threshold uint64) (m
 
 	// check if any of them have >=threshold votes
 	for v := range votes {
-		total, err := s.getTotalVotesForBlock(v.hash, stage)
+		total, err := s.getTotalVotesForBlock(v.Hash, stage)
 		if err != nil {
 			return nil, err
 		}
 
 		if total >= threshold {
-			blocks[v.hash] = v.number
+			blocks[v.Hash] = v.Number
 		}
 	}
 
@@ -1146,7 +1148,7 @@ func (s *Service) getPossibleSelectedBlocks(stage subround, threshold uint64) (m
 	va := s.getVotes(stage)
 
 	for v := range votes {
-		blocks, err = s.getPossibleSelectedAncestors(va, v.hash, blocks, stage, threshold)
+		blocks, err = s.getPossibleSelectedAncestors(va, v.Hash, blocks, stage, threshold)
 		if err != nil {
 			return nil, err
 		}
@@ -1159,12 +1161,12 @@ func (s *Service) getPossibleSelectedBlocks(stage subround, threshold uint64) (m
 // it returns a map of block hash -> number, such that the blocks in the map have >=2/3 votes
 func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash, selected map[common.Hash]uint32, stage subround, threshold uint64) (map[common.Hash]uint32, error) {
 	for _, v := range votes {
-		if v.hash == curr {
+		if v.Hash == curr {
 			continue
 		}
 
 		// find common ancestor, check if votes for it is >=threshold or not
-		pred, err := s.blockState.HighestCommonAncestor(v.hash, curr)
+		pred, err := s.blockState.HighestCommonAncestor(v.Hash, curr)
 		if err == blocktree.ErrNodeNotFound {
 			continue
 		} else if err != nil {
@@ -1229,10 +1231,9 @@ func (s *Service) getVotesForBlock(hash common.Hash, stage subround) (uint64, er
 	votesForBlock := uint64(0)
 
 	for v, c := range votes {
-
 		// check if the current block is a descendant of B
-		isDescendant, err := s.blockState.IsDescendantOf(hash, v.hash)
-		if err == blocktree.ErrStartNodeNotFound || err == blocktree.ErrEndNodeNotFound {
+		isDescendant, err := s.blockState.IsDescendantOf(hash, v.Hash)
+		if errors.Is(err, blocktree.ErrStartNodeNotFound) || errors.Is(err, blocktree.ErrEndNodeNotFound) {
 			continue
 		} else if err != nil {
 			return 0, err
@@ -1284,17 +1285,17 @@ func (s *Service) getVotes(stage subround) []Vote {
 
 // findParentWithNumber returns a Vote for an ancestor with number n given an existing Vote
 func (s *Service) findParentWithNumber(v *Vote, n uint32) (*Vote, error) {
-	if v.number <= n {
+	if v.Number <= n {
 		return v, nil
 	}
 
-	b, err := s.blockState.GetHeader(v.hash)
+	b, err := s.blockState.GetHeader(v.Hash)
 	if err != nil {
 		return nil, err
 	}
 
 	// # of iterations
-	l := int(v.number - n)
+	l := int(v.Number - n)
 
 	for i := 0; i < l; i++ {
 		p, err := s.blockState.GetHeader(b.ParentHash)
