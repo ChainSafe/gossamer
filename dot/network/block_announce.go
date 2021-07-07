@@ -25,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/scale"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 )
@@ -66,7 +67,7 @@ func (bm *BlockAnnounceMessage) String() string {
 
 // Encode a BlockAnnounce Msg Type containing the BlockAnnounceMessage using scale.Encode
 func (bm *BlockAnnounceMessage) Encode() ([]byte, error) {
-	enc, err := scale.Encode(bm)
+	enc, err := scale2.Marshal(bm)
 	if err != nil {
 		return enc, err
 	}
@@ -119,8 +120,10 @@ func decodeBlockAnnounceHandshake(in []byte) (Handshake, error) {
 }
 
 func decodeBlockAnnounceMessage(in []byte) (NotificationsMessage, error) {
-	msg := new(BlockAnnounceMessage)
-	err := msg.Decode(in)
+	//msg := new(BlockAnnounceMessage)
+	//err := msg.Decode(in)
+	var msg NotificationsMessage
+	err := scale2.Unmarshal(in, &msg)
 	if err != nil {
 		return nil, err
 	}

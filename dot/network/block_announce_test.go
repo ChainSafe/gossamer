@@ -17,6 +17,7 @@
 package network
 
 import (
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 	"sync"
 	"testing"
@@ -30,6 +31,7 @@ import (
 )
 
 func TestBlockAnnounce_Encode(t *testing.T) {
+	// Encode struct might be having be nil instead of empty struct
 	testBlockAnnounce := &BlockAnnounceMessage{
 		ParentHash:     common.Hash{1},
 		Number:         big.NewInt(77),
@@ -41,11 +43,13 @@ func TestBlockAnnounce_Encode(t *testing.T) {
 	enc, err := testBlockAnnounce.Encode()
 	require.NoError(t, err)
 
-	res := &BlockAnnounceMessage{
-		Number: big.NewInt(0),
-		Digest: types.Digest{},
-	}
-	err = res.Decode(enc)
+	//res := &BlockAnnounceMessage{
+	//	Number: big.NewInt(0),
+	//	Digest: types.Digest{},
+	//}
+	//err = res.Decode(enc)
+	var res *BlockAnnounceMessage
+	err = scale.Unmarshal(enc, &res)
 	require.NoError(t, err)
 	require.Equal(t, testBlockAnnounce, res)
 }
@@ -78,7 +82,9 @@ func TestDecodeBlockAnnounceMessage(t *testing.T) {
 	enc, err := testBlockAnnounce.Encode()
 	require.NoError(t, err)
 
-	msg, err := decodeBlockAnnounceMessage(enc)
+	//msg, err := decodeBlockAnnounceMessage(enc)
+	var msg *BlockAnnounceMessage
+	err = scale.Unmarshal(enc, &msg)
 	require.NoError(t, err)
 	require.Equal(t, testBlockAnnounce, msg)
 }
