@@ -22,7 +22,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
@@ -47,7 +47,7 @@ func (s *Service) receiveMessages(cond func() bool) {
 
 				v, err := s.validateMessage(vm)
 				if err != nil {
-					logger.Trace("failed to validate vote message", "message", vm, "error", err)
+					logger.Debug("failed to validate vote message", "message", vm, "error", err)
 					continue
 				}
 
@@ -55,8 +55,9 @@ func (s *Service) receiveMessages(cond func() bool) {
 					"vote", v,
 					"round", vm.Round,
 					"subround", vm.Message.Stage,
-					"prevotes", s.prevotes,
-					"precommits", s.precommits,
+					"prevote count", s.lenVotes(prevote),
+					"precommit count", s.lenVotes(precommit),
+					"votes needed", s.state.threshold(),
 				)
 			case <-ctx.Done():
 				logger.Trace("returning from receiveMessages")
@@ -74,34 +75,7 @@ func (s *Service) receiveMessages(cond func() bool) {
 	}
 }
 
-// sendMessage sends a message through the out channel
-func (s *Service) sendMessage(vote *Vote, stage subround) error {
-	msg, err := s.createVoteMessage(vote, stage, s.keypair)
-	if err != nil {
-		return err
-	}
-
-	cm, err := msg.ToConsensusMessage()
-	if err != nil {
-		return err
-	}
-
-	s.chanLock.Lock()
-	defer s.chanLock.Unlock()
-
-	// context was canceled
-	if s.ctx.Err() != nil {
-		return nil
-	}
-
-	s.network.SendMessage(cm)
-	logger.Trace("sent VoteMessage", "msg", msg)
-
-	return nil
-}
-
-// createVoteMessage returns a signed VoteMessage given a header
-func (s *Service) createVoteMessage(vote *Vote, stage subround, kp crypto.Keypair) (*VoteMessage, error) {
+func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage subround) (*SignedVote, *VoteMessage, error) {
 	msg, err := scale.Encode(&FullVote{
 		Stage: stage,
 		Vote:  vote,
@@ -109,27 +83,35 @@ func (s *Service) createVoteMessage(vote *Vote, stage subround, kp crypto.Keypai
 		SetID: s.state.setID,
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	sig, err := kp.Sign(msg)
+	sig, err := s.keypair.Sign(msg)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+
+	pc := &SignedVote{
+		Vote:        vote,
+		Signature:   ed25519.NewSignatureBytes(sig),
+		AuthorityID: s.keypair.Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
 	sm := &SignedMessage{
 		Stage:       stage,
-		Hash:        vote.hash,
-		Number:      vote.number,
+		Hash:        pc.Vote.hash,
+		Number:      pc.Vote.number,
 		Signature:   ed25519.NewSignatureBytes(sig),
-		AuthorityID: kp.Public().(*ed25519.PublicKey).AsBytes(),
+		AuthorityID: s.keypair.Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
-	return &VoteMessage{
+	vm := &VoteMessage{
 		Round:   s.state.round,
 		SetID:   s.state.setID,
 		Message: sm,
-	}, nil
+	}
+
+	return pc, vm, nil
 }
 
 // validateMessage validates a VoteMessage and adds it to the current votes
@@ -149,6 +131,19 @@ func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 		return nil, err
 	}
 
+	switch m.Message.Stage {
+	case prevote, primaryProposal:
+		pv, has := s.loadVote(pk.AsBytes(), prevote)
+		if has && pv.Vote.hash.Equal(m.Message.Hash) {
+			return nil, errVoteExists
+		}
+	case precommit:
+		pc, has := s.loadVote(pk.AsBytes(), precommit)
+		if has && pc.Vote.hash.Equal(m.Message.Hash) {
+			return nil, errVoteExists
+		}
+	}
+
 	err = validateMessageSignature(pk, m)
 	if err != nil {
 		return nil, err
@@ -161,6 +156,24 @@ func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 
 	// check that vote is for current round
 	if m.Round != s.state.round {
+		if m.Round < s.state.round {
+			// peer doesn't know round was finalised, send out another commit message
+			header, err := s.blockState.GetFinalizedHeader(m.Round, m.SetID) //nolint
+			if err != nil {
+				return nil, err
+			}
+
+			// send finalised block from previous round to network
+			msg, err := s.newCommitMessage(header, m.Round).ToConsensusMessage()
+			if err != nil {
+				return nil, err
+			}
+
+			// TODO: don't broadcast, just send to peer; will address in a follow-up
+			s.network.SendMessage(msg)
+		}
+
+		// TODO: get justification if your round is lower, or just do catch-up?
 		return nil, ErrRoundMismatch
 	}
 
@@ -179,38 +192,32 @@ func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 	}
 
 	err = s.validateVote(vote)
-	if err == ErrBlockDoesNotExist {
+	if errors.Is(err, ErrBlockDoesNotExist) || errors.Is(err, blocktree.ErrEndNodeNotFound) {
+		// TODO: cancel if block is imported; if we refactor the syncing this will likely become cleaner
+		// as we can have an API to synchronously sync and import a block
+		go s.network.SendBlockReqestByHash(vote.hash)
 		s.tracker.add(m)
 	}
 	if err != nil {
 		return nil, err
 	}
 
-	s.mapLock.Lock()
-	defer s.mapLock.Unlock()
-
-	just := &SignedPrecommit{
+	just := &SignedVote{
 		Vote:        vote,
 		Signature:   m.Message.Signature,
 		AuthorityID: pk.AsBytes(),
 	}
 
-	// add justification before checking for equivocation, since equivocatory vote may still be used in justification
-	if m.Message.Stage == prevote {
-		s.pvJustifications[m.Message.Hash] = append(s.pvJustifications[m.Message.Hash], just)
-	} else if m.Message.Stage == precommit {
-		s.pcJustifications[m.Message.Hash] = append(s.pcJustifications[m.Message.Hash], just)
-	}
-
-	equivocated := s.checkForEquivocation(voter, vote, m.Message.Stage)
+	equivocated := s.checkForEquivocation(voter, just, m.Message.Stage)
 	if equivocated {
 		return nil, ErrEquivocation
 	}
 
-	if m.Message.Stage == prevote {
-		s.prevotes[pk.AsBytes()] = vote
-	} else if m.Message.Stage == precommit {
-		s.precommits[pk.AsBytes()] = vote
+	switch m.Message.Stage {
+	case prevote, primaryProposal:
+		s.prevotes.Store(pk.AsBytes(), just)
+	case precommit:
+		s.precommits.Store(pk.AsBytes(), just)
 	}
 
 	return vote, nil
@@ -219,31 +226,38 @@ func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 // checkForEquivocation checks if the vote is an equivocatory vote.
 // it returns true if so, false otherwise.
 // additionally, if the vote is equivocatory, it updates the service's votes and equivocations.
-func (s *Service) checkForEquivocation(voter *Voter, vote *Vote, stage subround) bool {
+func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage subround) bool {
 	v := voter.Key.AsBytes()
 
-	var eq map[ed25519.PublicKeyBytes][]*Vote
-	var votes map[ed25519.PublicKeyBytes]*Vote
+	// save justification, since equivocatory vote may still be used in justification
+	var eq map[ed25519.PublicKeyBytes][]*SignedVote
 
-	if stage == prevote {
+	switch stage {
+	case prevote, primaryProposal:
 		eq = s.pvEquivocations
-		votes = s.prevotes
-	} else {
+	case precommit:
 		eq = s.pcEquivocations
-		votes = s.precommits
 	}
 
-	if eq[v] != nil {
+	s.mapLock.Lock()
+	defer s.mapLock.Unlock()
+
+	_, has := eq[v]
+	if has {
 		// if the voter has already equivocated, every vote in that round is an equivocatory vote
 		eq[v] = append(eq[v], vote)
 		return true
 	}
 
-	if votes[v] != nil && votes[v].hash != vote.hash {
+	existingVote, has := s.loadVote(v, stage)
+	if !has {
+		return false
+	}
+
+	if has && existingVote.Vote.hash != vote.Vote.hash {
 		// the voter has already voted, all their votes are now equivocatory
-		prev := votes[v]
-		eq[v] = []*Vote{prev, vote}
-		delete(votes, v)
+		eq[v] = []*SignedVote{existingVote, vote}
+		s.deleteVote(v, stage)
 		return true
 	}
 
