@@ -221,13 +221,20 @@ func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponse) error {
 		return err
 	}
 
+	// set prevotes and precommits in db
+	if err = h.grandpa.grandpaState.SetPrevotes(msg.Round, msg.SetID, msg.PreVoteJustification); err != nil {
+		return err
+	}
+
+	if err = h.grandpa.grandpaState.SetPrecommits(msg.Round, msg.SetID, msg.PreCommitJustification); err != nil {
+		return err
+	}
+
 	// update state and signal to grandpa we are ready to initiate
 	head, err := h.grandpa.blockState.GetHeader(msg.Hash)
 	if err != nil {
 		return err
 	}
-
-	// TODO: set prevotes and precommits in db
 
 	h.grandpa.head = head
 	h.grandpa.state.round = msg.Round
