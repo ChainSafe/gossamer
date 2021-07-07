@@ -121,14 +121,21 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) (*ConsensusMess
 	}
 
 	// check justification here
-	err := h.verifyCommitMessageJustification(msg)
-	if err != nil {
+	if err := h.verifyCommitMessageJustification(msg); err != nil {
 		return nil, err
 	}
 
 	// set finalised head for round in db
-	err = h.blockState.SetFinalizedHash(msg.Vote.hash, msg.Round, h.grandpa.state.setID)
+	if err := h.blockState.SetFinalizedHash(msg.Vote.hash, msg.Round, h.grandpa.state.setID); err != nil {
+		return nil, err
+	}
+
+	pcs, err := compactToJustification(msg.Precommits, msg.AuthData)
 	if err != nil {
+		return nil, err
+	}
+
+	if err = h.grandpa.grandpaState.SetPrecommits(msg.Round, msg.SetID, pcs); err != nil {
 		return nil, err
 	}
 
@@ -219,6 +226,8 @@ func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponse) error {
 	if err != nil {
 		return err
 	}
+
+	// TODO: set prevotes and precommits in db
 
 	h.grandpa.head = head
 	h.grandpa.state.round = msg.Round

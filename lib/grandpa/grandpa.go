@@ -196,7 +196,7 @@ func (s *Service) Start() error {
 	go func() {
 		err := s.initiate()
 		if err != nil {
-			logger.Error("failed to initiate", "error", err)
+			logger.Crit("failed to initiate", "error", err)
 		}
 	}()
 
@@ -648,10 +648,8 @@ func (s *Service) attemptToFinalize() error {
 			"setID", s.state.setID,
 			"round", s.state.round,
 			"hash", s.head.Hash(),
-			"precommits #", pc,
-			"direct votes for bfc #", votes[*bfc],
+			"direct votes for bfc", votes[*bfc],
 			"total votes for bfc", pc,
-			"precommits", s.precommits,
 		)
 
 		cm, err := s.newCommitMessage(s.head, s.state.round)

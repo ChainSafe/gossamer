@@ -101,5 +101,6 @@ var (
 	// ErrAuthorityNotInSet is returned when a precommit within a justification is signed by a key not in the authority set
 	ErrAuthorityNotInSet = errors.New("authority is not in set")
 
-	errVoteExists = errors.New("already have vote")
+	errVoteExists              = errors.New("already have vote")
+	errVoteToSignatureMismatch = errors.New("votes and authority count mismatch")
 )

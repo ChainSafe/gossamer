@@ -301,6 +301,23 @@ func justificationToCompact(just []*SignedVote) ([]*Vote, []*AuthData) {
 	return precommits, authData
 }
 
+func compactToJustification(vs []*Vote, auths []*AuthData) ([]*SignedVote, error) {
+	if len(vs) != len(auths) {
+		return nil, errVoteToSignatureMismatch
+	}
+
+	just := make([]*SignedVote, len(vs))
+	for i, v := range vs {
+		just[i] = &SignedVote{
+			Vote:        v,
+			Signature:   auths[i].Signature,
+			AuthorityID: auths[i].AuthorityID,
+		}
+	}
+
+	return just, nil
+}
+
 type catchUpRequest struct {
 	Round uint64
 	SetID uint64

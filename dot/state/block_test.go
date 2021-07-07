@@ -299,19 +299,6 @@ func TestFinalizedHash(t *testing.T) {
 	require.Equal(t, testhash, h)
 }
 
-func TestLatestFinalizedRound(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader)
-	r, err := bs.GetRound()
-	require.NoError(t, err)
-	require.Equal(t, uint64(0), r)
-
-	err = bs.SetRound(99)
-	require.NoError(t, err)
-	r, err = bs.GetRound()
-	require.NoError(t, err)
-	require.Equal(t, uint64(99), r)
-}
-
 func TestFinalization_DeleteBlock(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 	AddBlocksToState(t, bs, 5)
