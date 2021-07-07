@@ -336,11 +336,6 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	setID := uint64(0)
 	gs.state.round = round + 1
 
-	v := &Vote{
-		Hash:   testHeader.Hash(),
-		Number: 1,
-	}
-
 	err := st.Block.AddBlock(testBlock)
 	require.NoError(t, err)
 
@@ -357,9 +352,6 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 		},
 	}
 
-	pvjEnc, err := scale.Encode(pvj)
-	require.NoError(t, err)
-
 	pcj := []*SignedVote{
 		{
 			Vote:        testVote2,
@@ -368,10 +360,9 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 		},
 	}
 
-	pcjEnc, err := scale.Encode(pcj)
+	err = gs.grandpaState.SetPrevotes(round, setID, pvj)
 	require.NoError(t, err)
-
-	err = gs.blockState.SetJustification(v.Hash, append(pvjEnc, pcjEnc...))
+	err = gs.grandpaState.SetPrecommits(round, setID, pcj)
 	require.NoError(t, err)
 
 	resp, err := gs.newCatchUpResponse(round, setID)

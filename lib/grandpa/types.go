@@ -30,6 +30,7 @@ import (
 type (
 	Voter      = types.GrandpaVoter
 	Voters     = types.GrandpaVoters
+	Vote       = types.GrandpaVote
 	SignedVote = types.GrandpaSignedVote
 )
 
@@ -119,8 +120,6 @@ func (s *State) pubkeyToVoter(pk *ed25519.PublicKey) (*Voter, error) {
 func (s *State) threshold() uint64 {
 	return uint64(2 * len(s.voters) / 3)
 }
-
-type Vote = types.GrandpaVote
 
 // NewVote returns a new Vote given a block hash and number
 func NewVote(hash common.Hash, number uint32) *Vote {

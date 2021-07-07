@@ -6,7 +6,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/scale"
 
 	"github.com/stretchr/testify/require"
 )
@@ -84,6 +83,7 @@ func TestCommitMessageToConsensusMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	fm, err := gs.newCommitMessage(gs.head, 77)
+	require.NoError(t, err)
 	precommits, authData := justificationToCompact(just)
 
 	expected := &CommitMessage{
@@ -123,9 +123,6 @@ func TestNewCatchUpResponse(t *testing.T) {
 		},
 	}
 
-	pvjEnc, err := scale.Encode(pvj)
-	require.NoError(t, err)
-
 	pcj := []*SignedVote{
 		{
 			Vote:        testVote2,
@@ -134,10 +131,9 @@ func TestNewCatchUpResponse(t *testing.T) {
 		},
 	}
 
-	pcjEnc, err := scale.Encode(pcj)
+	err = gs.grandpaState.SetPrevotes(round, setID, pvj)
 	require.NoError(t, err)
-
-	err = gs.blockState.SetJustification(v.Hash, append(pvjEnc, pcjEnc...))
+	err = gs.grandpaState.SetPrecommits(round, setID, pcj)
 	require.NoError(t, err)
 
 	resp, err := gs.newCatchUpResponse(round, setID)
