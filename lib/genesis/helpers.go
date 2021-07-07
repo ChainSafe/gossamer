@@ -162,10 +162,13 @@ func buildRawMap(m map[string]map[string]interface{}) (map[string]string, error)
 	for k, v := range m {
 		kv := new(keyValue)
 		kv.key = append(kv.key, k)
-		buildRawMapInterface(v, kv)
+		err := buildRawMapInterface(v, kv)
+		if err != nil {
+			return nil, err
+		}
 
 		if reflect.DeepEqual([]string{"palletBalances", "balances"}, kv.key) {
-			err := buildBalances(kv, res)
+			err = buildBalances(kv, res)
 			if err != nil {
 				return nil, err
 			}
@@ -188,24 +191,31 @@ func buildRawMap(m map[string]map[string]interface{}) (map[string]string, error)
 	return res, nil
 }
 
-func buildRawMapInterface(m map[string]interface{}, kv *keyValue) {
+func buildRawMapInterface(m map[string]interface{}, kv *keyValue) error {
 	for k, v := range m {
 		kv.key = append(kv.key, k)
 		switch v2 := v.(type) {
 		case []interface{}:
 			kv.valueLen = big.NewInt(int64(len(v2)))
-			buildRawArrayInterface(v2, kv)
+			err := buildRawArrayInterface(v2, kv)
+			if err != nil {
+				return err
+			}
 		case string:
 			kv.value = v2
 		}
 	}
+	return nil
 }
 
-func buildRawArrayInterface(a []interface{}, kv *keyValue) {
+func buildRawArrayInterface(a []interface{}, kv *keyValue) error {
 	for _, v := range a {
 		switch v2 := v.(type) {
 		case []interface{}:
-			buildRawArrayInterface(v2, kv)
+			err := buildRawArrayInterface(v2, kv)
+			if err != nil {
+				return err
+			}
 		case string:
 			// todo check to confirm it's an address
 			tba := crypto.PublicAddressToByteArray(common.Address(v2))
@@ -214,12 +224,13 @@ func buildRawArrayInterface(a []interface{}, kv *keyValue) {
 		case float64:
 			encVal, err := scale.Marshal(uint64(v2))
 			if err != nil {
-				panic(err)
+				return err
 			}
 			kv.value = kv.value + fmt.Sprintf("%x", encVal)
 			kv.iVal = append(kv.iVal, big.NewInt(int64(v2)))
 		}
 	}
+	return nil
 }
 
 func formatKey(kv *keyValue) (string, error) {
