@@ -84,7 +84,7 @@ func GetInstance() Instance {
 }
 
 // Initialise function to set if telemetry is enabled
-func (h *Handler) Initialise(_enabled bool) {
+func (h *Handler) Initialise(e bool) {
 	initilised.Do(
 		func() {
 			enabled = _enabled
