@@ -100,7 +100,9 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 
 	gs, _, _, _ := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
 	state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 3)
-	gs.Start()
+	err = gs.Start()
+	require.NoError(t, err)
+
 	time.Sleep(time.Second) // wait for round to initiate
 
 	parent, err := gs.blockState.BestBlockHeader()

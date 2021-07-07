@@ -153,7 +153,7 @@ func NewService(cfg *Config) (*Service, error) {
 	s := &Service{
 		ctx:                ctx,
 		cancel:             cancel,
-		state:              NewState(cfg.Voters, setID, round+1),
+		state:              NewState(cfg.Voters, setID, round),
 		blockState:         cfg.BlockState,
 		grandpaState:       cfg.GrandpaState,
 		digestHandler:      cfg.DigestHandler,
@@ -280,6 +280,7 @@ func (s *Service) initiateRound() error {
 
 	s.head, err = s.blockState.GetFinalizedHeader(s.state.round, s.state.setID)
 	if err != nil {
+		logger.Crit("failed to get finalised header", "error", err)
 		return err
 	}
 
@@ -394,18 +395,7 @@ func (s *Service) handleIsPrimary() (bool, error) {
 	}
 
 	if s.head.Number.Int64() > 0 {
-		cm, err := s.newCommitMessage(s.head, s.state.round-1)
-		if err != nil {
-			return false, err
-		}
-
-		// send finalised block from previous round to network
-		msg, err := cm.ToConsensusMessage()
-		if err != nil {
-			return false, fmt.Errorf("failed to encode finalisation message: %w", err)
-		}
-
-		s.network.SendMessage(msg)
+		s.primaryBroadcastCommitMessage()
 	}
 
 	best, err := s.blockState.BestBlockHeader()
@@ -433,6 +423,23 @@ func (s *Service) handleIsPrimary() (bool, error) {
 
 	s.network.SendMessage(msg)
 	return true, nil
+}
+
+// broadcast commit message from the previous round to the network
+// ignore errors, since it's not critical to broadcast
+func (s *Service) primaryBroadcastCommitMessage() {
+	cm, err := s.newCommitMessage(s.head, s.state.round-1)
+	if err != nil {
+		return
+	}
+
+	// send finalised block from previous round to network
+	msg, err := cm.ToConsensusMessage()
+	if err != nil {
+		logger.Warn("failed to encode finalisation message", "error", err)
+	}
+
+	s.network.SendMessage(msg)
 }
 
 // playGrandpaRound executes a round of GRANDPA
