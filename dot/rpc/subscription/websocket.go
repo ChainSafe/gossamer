@@ -393,9 +393,8 @@ func (c *WSConn) initGrandpaJustificationListener(reqID float64) (uint, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	jl := &GrandpaJustificationListener{
-		ctx:    ctx,
-		cancel: cancel,
-
+		ctx:         ctx,
+		cancel:      cancel,
 		wsconn:      c,
 		subID:       c.qtyListeners,
 		finalisedCh: make(chan *types.FinalisationInfo, 1),
