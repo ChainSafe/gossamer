@@ -64,7 +64,7 @@ type SignedMessage struct {
 
 // String returns the SignedMessage as a string
 func (m *SignedMessage) String() string {
-	return fmt.Sprintf("hash=%s number=%d authorityID=0x%x", m.Hash, m.Number, m.AuthorityID)
+	return fmt.Sprintf("stage=%s hash=%s number=%d authorityID=%s", m.Stage, m.Hash, m.Number, m.AuthorityID)
 }
 
 // Decode SCALE decodes the data into a SignedMessage
@@ -283,7 +283,7 @@ func (s *Service) newCommitMessage(header *types.Header, round uint64) *CommitMe
 	}
 }
 
-func justificationToCompact(just []*SignedPrecommit) ([]*Vote, []*AuthData) {
+func justificationToCompact(just []*SignedVote) ([]*Vote, []*AuthData) {
 	precommits := make([]*Vote, len(just))
 	authData := make([]*AuthData, len(just))
 
@@ -330,8 +330,8 @@ func (r *catchUpRequest) ToConsensusMessage() (*ConsensusMessage, error) {
 type catchUpResponse struct {
 	SetID                  uint64
 	Round                  uint64
-	PreVoteJustification   []*SignedPrecommit
-	PreCommitJustification []*SignedPrecommit
+	PreVoteJustification   []*SignedVote
+	PreCommitJustification []*SignedVote
 	Hash                   common.Hash
 	Number                 uint32
 }
@@ -363,17 +363,17 @@ func (s *Service) newCatchUpResponse(round, setID uint64) (*catchUpResponse, err
 		return nil, err
 	}
 
-	d, err := sd.Decode([]*SignedPrecommit{})
+	d, err := sd.Decode([]*SignedVote{})
 	if err != nil {
 		return nil, err
 	}
-	pvj := d.([]*SignedPrecommit)
+	pvj := d.([]*SignedVote)
 
-	d, err = sd.Decode([]*SignedPrecommit{})
+	d, err = sd.Decode([]*SignedVote{})
 	if err != nil {
 		return nil, err
 	}
-	pcj := d.([]*SignedPrecommit)
+	pcj := d.([]*SignedVote)
 
 	return &catchUpResponse{
 		SetID:                  setID,

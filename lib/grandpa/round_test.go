@@ -37,10 +37,16 @@ import (
 
 var testTimeout = 20 * time.Second
 
+type testJustificationRequest struct {
+	to  peer.ID
+	num uint32
+}
+
 type testNetwork struct {
-	t         *testing.T
-	out       chan GrandpaMessage
-	finalised chan GrandpaMessage
+	t                    *testing.T
+	out                  chan GrandpaMessage
+	finalised            chan GrandpaMessage
+	justificationRequest *testJustificationRequest
 }
 
 func newTestNetwork(t *testing.T) *testNetwork {
@@ -65,7 +71,12 @@ func (n *testNetwork) SendMessage(msg NotificationsMessage) {
 	}
 }
 
-func (n *testNetwork) SendJustificationRequest(_ peer.ID, _ uint32) {}
+func (n *testNetwork) SendJustificationRequest(to peer.ID, num uint32) {
+	n.justificationRequest = &testJustificationRequest{
+		to:  to,
+		num: num,
+	}
+}
 
 func (n *testNetwork) RegisterNotificationsProtocol(sub protocol.ID,
 	messageID byte,
@@ -78,6 +89,8 @@ func (n *testNetwork) RegisterNotificationsProtocol(sub protocol.ID,
 ) error {
 	return nil
 }
+
+func (n *testNetwork) SendBlockReqestByHash(_ common.Hash) {}
 
 func onSameChain(blockState BlockState, a, b common.Hash) bool {
 	descendant, err := blockState.IsDescendantOf(a, b)
@@ -122,24 +135,31 @@ func TestGrandpa_BaseCase(t *testing.T) {
 	require.NoError(t, err)
 
 	gss := make([]*Service, len(kr.Keys))
-	prevotes := make(map[ed25519.PublicKeyBytes]*Vote)
-	precommits := make(map[ed25519.PublicKeyBytes]*Vote)
+	prevotes := new(sync.Map)
+	precommits := new(sync.Map)
 
 	for i, gs := range gss {
 		gs, _, _, _ = setupGrandpa(t, kr.Keys[i])
 		gss[i] = gs
 		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 15)
-		prevotes[gs.publicKeyBytes()], err = gs.determinePreVote()
+		pv, err := gs.determinePreVote() //nolint
 		require.NoError(t, err)
+		prevotes.Store(gs.publicKeyBytes(), &SignedVote{
+			Vote: pv,
+		})
 	}
 
 	for _, gs := range gss {
 		gs.prevotes = prevotes
+		gs.precommits = precommits
 	}
 
 	for _, gs := range gss {
-		precommits[gs.publicKeyBytes()], err = gs.determinePreCommit()
+		pc, err := gs.determinePreCommit()
 		require.NoError(t, err)
+		precommits.Store(gs.publicKeyBytes(), &SignedVote{
+			Vote: pc,
+		})
 		err = gs.finalise()
 		require.NoError(t, err)
 		has, err := gs.blockState.HasJustification(gs.head.Hash())
@@ -164,8 +184,8 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 	require.NoError(t, err)
 
 	gss := make([]*Service, len(kr.Keys))
-	prevotes := make(map[ed25519.PublicKeyBytes]*Vote)
-	precommits := make(map[ed25519.PublicKeyBytes]*Vote)
+	prevotes := new(sync.Map)
+	precommits := new(sync.Map)
 
 	for i, gs := range gss {
 		gs, _, _, _ = setupGrandpa(t, kr.Keys[i])
@@ -173,23 +193,34 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 
 		r := rand.Intn(3)
 		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4+r)
-		prevotes[gs.publicKeyBytes()], err = gs.determinePreVote()
+		pv, err := gs.determinePreVote() //nolint
 		require.NoError(t, err)
+		prevotes.Store(gs.publicKeyBytes(), &SignedVote{
+			Vote: pv,
+		})
 	}
 
 	// only want to add prevotes for a node that has a block that exists on its chain
 	for _, gs := range gss {
-		for k, pv := range prevotes {
+		prevotes.Range(func(key, prevote interface{}) bool {
+			k := key.(ed25519.PublicKeyBytes)
+			pv := prevote.(*Vote)
 			err = gs.validateVote(pv)
 			if err == nil {
-				gs.prevotes[k] = pv
+				gs.prevotes.Store(k, &SignedVote{
+					Vote: pv,
+				})
 			}
-		}
+			return true
+		})
 	}
 
 	for _, gs := range gss {
-		precommits[gs.publicKeyBytes()], err = gs.determinePreCommit()
+		pc, err := gs.determinePreCommit()
 		require.NoError(t, err)
+		precommits.Store(gs.publicKeyBytes(), &SignedVote{
+			Vote: pc,
+		})
 		err = gs.finalise()
 		require.NoError(t, err)
 	}
@@ -449,7 +480,7 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 		vote, err := NewVoteFromHash(leaves[1], gs.blockState)
 		require.NoError(t, err)
 
-		vmsg, err := gs.createVoteMessage(vote, prevote, gs.keypair)
+		_, vmsg, err := gs.createSignedVoteAndVoteMessage(vote, prevote)
 		require.NoError(t, err)
 
 		for _, in := range ins {
