@@ -21,6 +21,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/rpc/subscription"
@@ -243,6 +244,9 @@ func NewWSConn(conn *websocket.Conn, cfg *HTTPServerConfig) *subscription.WSConn
 		CoreAPI:            cfg.CoreAPI,
 		TxStateAPI:         cfg.TransactionQueueAPI,
 		RPCHost:            fmt.Sprintf("http://%s:%d/", cfg.Host, cfg.RPCPort),
+		HTTP: &http.Client{
+			Timeout: time.Second * 30,
+		},
 	}
 	return c
 }
