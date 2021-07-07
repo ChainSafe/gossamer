@@ -153,7 +153,7 @@ func NewService(cfg *Config) (*Service, error) {
 	s := &Service{
 		ctx:                ctx,
 		cancel:             cancel,
-		state:              NewState(cfg.Voters, setID, round),
+		state:              NewState(cfg.Voters, setID, round+1),
 		blockState:         cfg.BlockState,
 		grandpaState:       cfg.GrandpaState,
 		digestHandler:      cfg.DigestHandler,
@@ -283,7 +283,8 @@ func (s *Service) initiateRound() error {
 		return err
 	}
 
-	if s.state.round == 0 {
+	// there was a setID change, or the node was started from genesis
+	if s.state.round == 1 {
 		s.chanLock.Lock()
 		s.mapLock.Lock()
 		s.preVotedBlock[0] = NewVoteFromHeader(s.head)
