@@ -87,7 +87,7 @@ func GetInstance() Instance {
 func (h *Handler) Initialise(e bool) {
 	initilised.Do(
 		func() {
-			enabled = _enabled
+			enabled = e
 		})
 }
 
