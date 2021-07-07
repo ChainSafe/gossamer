@@ -317,4 +317,4 @@ func (g *GrandpaJustificationListener) Listen() {
 }
 
 // Stop will cancel all the goroutines that are executing
-func (l *GrandpaJustificationListener) Stop() { l.cancel() }
+func (g *GrandpaJustificationListener) Stop() { g.cancel() }
