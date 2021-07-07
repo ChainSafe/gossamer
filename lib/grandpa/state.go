@@ -58,6 +58,8 @@ type GrandpaState interface { //nolint
 	GetCurrentSetID() (uint64, error)
 	GetAuthorities(setID uint64) ([]*types.GrandpaVoter, error)
 	GetSetIDByBlockNumber(num *big.Int) (uint64, error)
+	SetLatestRound(round uint64) error
+	GetLatestRound() (uint64, error)
 }
 
 // DigestHandler is the interface required by GRANDPA for the digest handler

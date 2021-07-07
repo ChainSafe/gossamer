@@ -145,11 +145,16 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
+	round, err := cfg.GrandpaState.GetLatestRound()
+	if err != nil {
+		return nil, err
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	s := &Service{
 		ctx:                ctx,
 		cancel:             cancel,
-		state:              NewState(cfg.Voters, setID, 0), // TODO: determine current round
+		state:              NewState(cfg.Voters, setID, round),
 		blockState:         cfg.BlockState,
 		grandpaState:       cfg.GrandpaState,
 		digestHandler:      cfg.DigestHandler,
@@ -839,8 +844,7 @@ func (s *Service) finalise() error {
 	s.justification[s.state.round] = pcs
 
 	// TODO: store prevotes in database, needed for catch-up
-	err = s.blockState.SetJustification(bfc.hash, pcj)
-	if err != nil {
+	if err = s.blockState.SetJustification(bfc.hash, pcj); err != nil {
 		return err
 	}
 
@@ -850,8 +854,11 @@ func (s *Service) finalise() error {
 	}
 
 	// set finalised head for round in db
-	err = s.blockState.SetFinalizedHash(bfc.hash, s.state.round, s.state.setID)
-	if err != nil {
+	if err = s.blockState.SetFinalizedHash(bfc.hash, s.state.round, s.state.setID); err != nil {
+		return err
+	}
+
+	if err = s.grandpaState.SetLatestRound(s.state.round); err != nil {
 		return err
 	}
 
