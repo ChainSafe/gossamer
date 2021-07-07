@@ -355,7 +355,7 @@ func (c *WSConn) initRuntimeVersionListener(reqID float64, _ interface{}) (Liste
 
 	id, err := c.CoreAPI.RegisterRuntimeUpdatedChannel(rvl.runtimeUpdate)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	fmt.Printf("registered update channel %v\n", id)
 
