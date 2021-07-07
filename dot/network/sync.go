@@ -36,6 +36,16 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
+// SendBlockReqestByHash sends a block request to the network with the given block hash
+func (s *Service) SendBlockReqestByHash(hash common.Hash) {
+	req := createBlockRequestWithHash(hash, blockRequestSize)
+	s.syncQueue.requestDataByHash.Delete(hash)
+	s.syncQueue.trySync(&syncRequest{
+		req: req,
+		to:  "",
+	})
+}
+
 // handleSyncStream handles streams with the <protocol-id>/sync/2 protocol ID
 func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 	if stream == nil {
@@ -537,7 +547,11 @@ func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error 
 	}
 
 	q.responses = sortResponses(q.responses)
-	logger.Debug("pushed block data to queue", "start", start, "end", end, "queue", q.stringifyResponseQueue())
+	logger.Debug("pushed block data to queue", "start", start, "end", end,
+		"start hash", q.responses[0].Hash,
+		"end hash", q.responses[len(q.responses)-1].Hash,
+		"queue", q.stringifyResponseQueue(),
+	)
 	return nil
 }
 
@@ -611,9 +625,10 @@ func (q *syncQueue) trySync(req *syncRequest) {
 	logger.Trace("trying peers in prioritised order...")
 	syncPeers := q.getSortedPeers()
 
-	for _, peer := range syncPeers {
+	for i, peer := range syncPeers {
 		// if peer doesn't respond multiple times, then ignore them TODO: determine best values for this
-		if peer.score <= badPeerThreshold {
+		// TODO: if we only have a few peers, should we do this check at all?
+		if peer.score <= badPeerThreshold && i > q.s.cfg.MinPeers {
 			break
 		}
 
@@ -647,9 +662,6 @@ func (q *syncQueue) trySync(req *syncRequest) {
 
 		q.justificationRequestData.Store(startingBlockHash, reqdata)
 	}
-
-	req.to = ""
-	q.requestCh <- req
 }
 
 func (q *syncQueue) syncWithPeer(peer peer.ID, req *BlockRequestMessage) (*BlockResponseMessage, error) {
@@ -737,7 +749,7 @@ func (q *syncQueue) handleBlockData(data []*types.BlockData) {
 
 	end := data[len(data)-1].Number().Int64()
 	if end <= finalised.Number.Int64() {
-		logger.Debug("ignoring block data that is below our head", "got", end, "head", finalised.Number.Int64())
+		logger.Debug("ignoring block data that is below our finalised head", "got", end, "head", finalised.Number.Int64())
 		q.pushRequest(uint64(end+1), blockRequestBufferSize, "")
 		return
 	}
@@ -844,21 +856,16 @@ func (q *syncQueue) handleBlockAnnounce(msg *BlockAnnounceMessage, from peer.ID)
 		return
 	}
 
-	if header.Number.Int64() <= q.goal {
-		return
+	if header.Number.Int64() > q.goal {
+		q.goal = header.Number.Int64()
 	}
 
-	q.goal = header.Number.Int64()
-
-	bestNum, err := q.s.blockState.BestBlockNumber()
-	if err != nil {
-		logger.Error("failed to get best block number", "error", err)
-		return
+	req := createBlockRequestWithHash(header.Hash(), blockRequestSize)
+	q.requestDataByHash.Delete(req)
+	q.requestCh <- &syncRequest{
+		req: req,
+		to:  from,
 	}
-
-	// TODO: if we're at the head, this should request by hash instead of number, since there will
-	// certainly be blocks with the same number.
-	q.pushRequest(uint64(bestNum.Int64()+1), blockRequestBufferSize, from)
 }
 
 func createBlockRequest(startInt int64, size uint32) *BlockRequestMessage {
@@ -875,7 +882,7 @@ func createBlockRequest(startInt int64, size uint32) *BlockRequestMessage {
 		RequestedData: RequestedDataHeader + RequestedDataBody + RequestedDataJustification,
 		StartingBlock: start,
 		EndBlockHash:  optional.NewHash(false, common.Hash{}),
-		Direction:     0, // ascending
+		Direction:     0, // TODO: define this somewhere
 		Max:           max,
 	}
 
@@ -896,7 +903,7 @@ func createBlockRequestWithHash(startHash common.Hash, size uint32) *BlockReques
 		RequestedData: RequestedDataHeader + RequestedDataBody + RequestedDataJustification,
 		StartingBlock: start,
 		EndBlockHash:  optional.NewHash(false, common.Hash{}),
-		Direction:     0, // ascending
+		Direction:     0, // TODO: define this somewhere
 		Max:           max,
 	}
 
