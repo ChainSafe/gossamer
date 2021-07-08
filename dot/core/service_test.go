@@ -480,13 +480,19 @@ func TestService_GetMetadata(t *testing.T) {
 
 func TestService_HandleRuntimeChanges(t *testing.T) {
 	const (
-		currSpecVersion           = uint32(260)
 		updatedSpecVersion        = uint32(262)
 		updateNodeRuntimeWasmPath = "../../tests/polkadotjs_test/test/node_runtime.compact.wasm"
 	)
 	s := NewTestService(t, nil)
 
-	hash := s.blockState.BestBlockHash() // geneisHash
+	rt, err := s.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	v, err := rt.Version()
+	require.NoError(t, err)
+
+	currSpecVersion := v.SpecVersion()   // genesis runtime version.
+	hash := s.blockState.BestBlockHash() // genesisHash
 
 	newBlock1 := &types.Block{
 		Header: &types.Header{
@@ -510,7 +516,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	parentRt, err := s.blockState.GetRuntime(&hash)
 	require.NoError(t, err)
 
-	v, err := parentRt.Version()
+	v, err = parentRt.Version()
 	require.NoError(t, err)
 	require.Equal(t, v.SpecVersion(), currSpecVersion)
 
@@ -529,7 +535,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	require.NoError(t, err)
 
 	// bhash1 runtime should not be updated
-	rt, err := s.blockState.GetRuntime(&bhash1)
+	rt, err = s.blockState.GetRuntime(&bhash1)
 	require.NoError(t, err)
 
 	v, err = rt.Version()

@@ -217,7 +217,7 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	// check if request for justification was sent out
 	expected := &testJustificationRequest{
 		to:  "",
-		num: 1,
+		num: 2,
 	}
 	require.Equal(t, expected, gs.network.(*testNetwork).justificationRequest)
 }
