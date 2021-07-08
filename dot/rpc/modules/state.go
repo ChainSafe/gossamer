@@ -24,7 +24,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // StateCallRequest holds json fields
@@ -272,8 +272,9 @@ func (sm *StateModule) GetMetadata(r *http.Request, req *StateRuntimeMetadataQue
 		return err
 	}
 
-	decoded, err := scale.Decode(metadata, []byte{})
-	*res = StateMetadataResponse(common.BytesToHex(decoded.([]byte)))
+	var decoded []byte
+	err = scale.Unmarshal(metadata, &decoded)
+	*res = StateMetadataResponse(common.BytesToHex(decoded))
 	return err
 }
 
