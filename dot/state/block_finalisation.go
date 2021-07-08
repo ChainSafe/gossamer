@@ -74,7 +74,7 @@ func (bs *BlockState) SetFinalizedHash(hash common.Hash, round, setID uint64) er
 	}
 
 	if round > 0 {
-		go bs.notifyFinalized(hash, round, setID)
+		bs.notifyFinalized(hash, round, setID)
 	}
 
 	pruned := bs.bt.Prune(hash)

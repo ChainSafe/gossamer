@@ -285,17 +285,14 @@ func (s *GrandpaState) GetNextResume() (*big.Int, error) {
 	return big.NewInt(0).SetBytes(num), nil
 }
 
-var (
-	prevotesPrefix   = []byte("pv")
-	precommitsPrefix = []byte("pc")
-)
-
 func prevotesKey(round, setID uint64) []byte {
+	prevotesPrefix := []byte("pv")
 	k := roundSetIDKey(round, setID)
 	return append(prevotesPrefix, k...)
 }
 
 func precommitsKey(round, setID uint64) []byte {
+	precommitsPrefix := []byte("pc")
 	k := roundSetIDKey(round, setID)
 	return append(precommitsPrefix, k...)
 }
