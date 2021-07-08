@@ -452,20 +452,22 @@ func TestService_GetRuntimeVersion(t *testing.T) {
 func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 	s := NewTestService(t, nil)
 
-	block, err := s.blockState.BestBlock()
-	require.NoError(t, err)
-
-	header, err := types.NewHeader(block.Header.Hash(), common.Hash{}, common.Hash{}, big.NewInt(block.Header.Number.Int64()+1), types.NewEmptyDigest())
+	genHeader, err := s.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
 	rt, err := s.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	// Initialise block header
-	err = rt.InitializeBlock(header)
+	ts, err := s.storageState.TrieState(nil)
+	require.NoError(t, err)
+	rt.SetContextStorage(ts)
+
+	block := sync.BuildBlock(t, rt, genHeader, nil)
+
+	err = s.handleBlock(block, ts)
 	require.NoError(t, err)
 
-	extBytes := createExtrinsic(t, rt, block.Header.Hash(), 0)
+	extBytes := createExtrinsic(t, rt, genHeader.Hash(), 0)
 
 	err = s.HandleSubmittedExtrinsic(extBytes)
 	require.NoError(t, err)

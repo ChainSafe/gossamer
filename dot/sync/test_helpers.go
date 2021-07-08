@@ -150,7 +150,9 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     big.NewInt(0).Add(parent.Number, big.NewInt(1)),
-		Digest:     types.Digest{},
+		Digest: types.Digest{
+			types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+		},
 	}
 
 	err := instance.InitializeBlock(header)
