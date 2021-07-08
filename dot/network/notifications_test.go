@@ -286,7 +286,7 @@ func Test_HandshakeTimeout(t *testing.T) {
 		BestBlockHash:   common.Hash{1},
 		GenesisHash:     common.Hash{2},
 	}
-	nodeA.SendMessage(testHandshakeMsg)
+	nodeA.GossipMessage(testHandshakeMsg)
 
 	go nodeA.sendData(nodeB.host.id(), testHandshakeMsg, info, nil)
 

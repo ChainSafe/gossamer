@@ -76,7 +76,7 @@ type Service struct {
 	bestFinalCandidate map[uint64]*Vote // map of round number -> best final candidate
 
 	// channels for communication with other services
-	in               chan GrandpaMessage // only used to receive *VoteMessage
+	in               chan *networkVoteMessage // only used to receive *VoteMessage
 	finalisedCh      chan *types.FinalisationInfo
 	finalisedChID    byte
 	neighbourMessage *NeighbourMessage // cached neighbour message
@@ -166,7 +166,7 @@ func NewService(cfg *Config) (*Service, error) {
 		preVotedBlock:      make(map[uint64]*Vote),
 		bestFinalCandidate: make(map[uint64]*Vote),
 		head:               head,
-		in:                 make(chan GrandpaMessage, 128),
+		in:                 make(chan *networkVoteMessage, 128),
 		resumed:            make(chan struct{}),
 		network:            cfg.Network,
 		finalisedCh:        finalisedCh,

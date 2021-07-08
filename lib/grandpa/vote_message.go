@@ -20,29 +20,32 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	//"time"
 
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/scale"
+
+	"github.com/libp2p/go-libp2p-core/peer"
 )
+
+type networkVoteMessage struct {
+	from peer.ID
+	msg  *VoteMessage
+}
 
 // receiveMessages receives messages from the in channel until the specified condition is met
 func (s *Service) receiveMessages(ctx context.Context /*cond func() bool*/) {
 	for {
 		select {
 		case msg := <-s.in:
-			if msg == nil {
+			if msg == nil || msg.msg == nil {
 				continue
 			}
 
 			logger.Trace("received vote message", "msg", msg)
-			vm, ok := msg.(*VoteMessage)
-			if !ok {
-				continue
-			}
+			vm := msg.msg
 
-			v, err := s.validateMessage(vm)
+			v, err := s.validateMessage(msg.from, vm)
 			if err != nil {
 				logger.Debug("failed to validate vote message", "message", vm, "error", err)
 				continue
@@ -61,14 +64,6 @@ func (s *Service) receiveMessages(ctx context.Context /*cond func() bool*/) {
 			return
 		}
 	}
-
-	// for {
-	// 	if cond() {
-	// 		cancel()
-	// 		return
-	// 	}
-	// 	time.Sleep(time.Millisecond * 10)
-	// }
 }
 
 func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage subround) (*SignedVote, *VoteMessage, error) {
@@ -112,7 +107,7 @@ func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage subround) (*S
 
 // validateMessage validates a VoteMessage and adds it to the current votes
 // it returns the resulting vote if validated, error otherwise
-func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
+func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 	// make sure round does not increment while VoteMessage is being validated
 	s.roundLock.Lock()
 	defer s.roundLock.Unlock()
@@ -170,8 +165,7 @@ func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 				return nil, err
 			}
 
-			// TODO: pass peer.ID here
-			s.network.SendMessage("", msg)
+			s.network.SendMessage(from, msg)
 		}
 
 		// TODO: get justification if your round is lower, or just do catch-up?
@@ -197,7 +191,10 @@ func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 		// TODO: cancel if block is imported; if we refactor the syncing this will likely become cleaner
 		// as we can have an API to synchronously sync and import a block
 		go s.network.SendBlockReqestByHash(vote.Hash)
-		s.tracker.add(m)
+		s.tracker.add(&networkVoteMessage{
+			from: from,
+			msg:  m,
+		})
 	}
 	if err != nil {
 		return nil, err
