@@ -91,7 +91,7 @@ func TestStreamManager_KeepStream(t *testing.T) {
 	smA.start()
 	smB.start()
 
-	time.Sleep(cleanupStreamInterval / 2)
+	time.Sleep(cleanupStreamInterval / 3)
 	connsAToB := ha.Network().ConnsToPeer(hb.ID())
 	require.GreaterOrEqual(t, len(connsAToB), 1)
 	require.Equal(t, 1, len(connsAToB[0].GetStreams()))
