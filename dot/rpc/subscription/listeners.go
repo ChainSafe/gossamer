@@ -28,8 +28,10 @@ import (
 )
 
 var (
+	// ErrCannotCancel when is not possible to cancel a goroutine after `cancelTimeout` seconds
 	ErrCannotCancel = errors.New("cannot cancel listen goroutines")
-	cancelTimeout   = time.Second * 10
+
+	cancelTimeout = time.Second * 10
 )
 
 // Listener interface for functions that define Listener related functions
