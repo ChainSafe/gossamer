@@ -12,7 +12,7 @@ type MockNetwork struct {
 	mock.Mock
 }
 
-// SendMessage provides a mock function with given fields: _a0
-func (_m *MockNetwork) SendMessage(_a0 network.NotificationsMessage) {
+// GossipMessage provides a mock function with given fields: _a0
+func (_m *MockNetwork) GossipMessage(_a0 network.NotificationsMessage) {
 	_m.Called(_a0)
 }

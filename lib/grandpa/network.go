@@ -162,7 +162,7 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 	switch r := resp.(type) {
 	case *ConsensusMessage:
 		if r != nil {
-			s.network.SendMessage(resp)
+			s.network.GossipMessage(resp)
 		}
 	case nil:
 	default:
@@ -183,7 +183,7 @@ func (s *Service) sendMessage(msg GrandpaMessage) error {
 		return err
 	}
 
-	s.network.SendMessage(cm)
+	s.network.GossipMessage(cm)
 	logger.Trace("sent message", "msg", msg)
 	return nil
 }
@@ -219,7 +219,7 @@ func (s *Service) sendNeighbourMessage() {
 			continue
 		}
 
-		s.network.SendMessage(cm)
+		s.network.GossipMessage(cm)
 	}
 }
 

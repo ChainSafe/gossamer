@@ -175,7 +175,7 @@ func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 			}
 
 			// TODO: don't broadcast, just send to peer; will address in a follow-up
-			s.network.SendMessage(msg)
+			s.network.GossipMessage(msg)
 		}
 
 		// TODO: get justification if your round is lower, or just do catch-up?

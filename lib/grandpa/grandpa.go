@@ -421,7 +421,7 @@ func (s *Service) handleIsPrimary() (bool, error) {
 		return false, fmt.Errorf("failed to encode finalisation message: %w", err)
 	}
 
-	s.network.SendMessage(msg)
+	s.network.GossipMessage(msg)
 	return true, nil
 }
 
@@ -439,7 +439,7 @@ func (s *Service) primaryBroadcastCommitMessage() {
 		logger.Warn("failed to encode finalisation message", "error", err)
 	}
 
-	s.network.SendMessage(msg)
+	s.network.GossipMessage(msg)
 }
 
 // playGrandpaRound executes a round of GRANDPA
@@ -671,7 +671,7 @@ func (s *Service) attemptToFinalize() error {
 		}
 
 		logger.Debug("sending CommitMessage", "msg", cm)
-		s.network.SendMessage(msg)
+		s.network.GossipMessage(msg)
 		return nil
 	}
 }
