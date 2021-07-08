@@ -108,7 +108,7 @@ var (
 )
 
 func newUnknownError(data scale.VaryingDataTypeValue) error {
-	return errors.New(fmt.Sprintf("unknown error: %d", data))
+	return fmt.Errorf("unknown error: %d", data)
 }
 
 // UnmarshalError occurs when unmarshalling fails
