@@ -16,9 +16,10 @@
 package subscription
 
 import (
-	"context"
+	"errors"
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -26,10 +27,15 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+var (
+	ErrCannotCancel = errors.New("cannot cancel listen goroutines")
+	cancelTimeout   = time.Second * 10
+)
+
 // Listener interface for functions that define Listener related functions
 type Listener interface {
 	Listen()
-	Stop()
+	Stop() error
 }
 
 // WSConnAPI interface defining methors a WSConn should have
@@ -88,7 +94,7 @@ func (s *StorageObserver) GetFilter() map[string][]byte {
 func (s *StorageObserver) Listen() {}
 
 // Stop to satisfy Listener interface (but is no longer used by StorageObserver)
-func (s *StorageObserver) Stop() {}
+func (s *StorageObserver) Stop() error { return nil }
 
 // BlockListener to handle listening for blocks importedChan
 type BlockListener struct {
@@ -97,17 +103,19 @@ type BlockListener struct {
 	ChanID  byte
 	subID   uint32
 
-	ctx    context.Context
-	cancel context.CancelFunc
+	done   chan interface{}
+	cancel chan interface{}
 }
 
 // Listen implementation of Listen interface to listen for importedChan changes
 func (l *BlockListener) Listen() {
-	l.ctx, l.cancel = context.WithCancel(context.Background())
 	go func() {
+		defer close(l.done)
+		defer close(l.Channel)
+
 		for {
 			select {
-			case <-l.ctx.Done():
+			case <-l.cancel:
 				return
 			case block, ok := <-l.Channel:
 				if !ok {
@@ -133,7 +141,9 @@ func (l *BlockListener) Listen() {
 }
 
 // Stop to cancel the running goroutines to this listener
-func (l *BlockListener) Stop() { l.cancel() }
+func (l *BlockListener) Stop() error {
+	return cancelWithTimeout(l.cancel, l.done, cancelTimeout)
+}
 
 // BlockFinalizedListener to handle listening for finalised blocks
 type BlockFinalizedListener struct {
@@ -141,18 +151,20 @@ type BlockFinalizedListener struct {
 	wsconn  WSConnAPI
 	chanID  byte
 	subID   uint32
-	ctx     context.Context
-	cancel  context.CancelFunc
+
+	cancel chan interface{}
+	done   chan interface{}
 }
 
 // Listen implementation of Listen interface to listen for importedChan changes
 func (l *BlockFinalizedListener) Listen() {
-	l.ctx, l.cancel = context.WithCancel(context.Background())
-
 	go func() {
+		defer close(l.done)
+		defer close(l.channel)
+
 		for {
 			select {
-			case <-l.ctx.Done():
+			case <-l.cancel:
 				return
 			case info, ok := <-l.channel:
 				if !ok {
@@ -177,7 +189,9 @@ func (l *BlockFinalizedListener) Listen() {
 }
 
 // Stop to cancel the running goroutines to this listener
-func (l *BlockFinalizedListener) Stop() { l.cancel() }
+func (l *BlockFinalizedListener) Stop() error {
+	return cancelWithTimeout(l.cancel, l.done, cancelTimeout)
+}
 
 // ExtrinsicSubmitListener to handle listening for extrinsic events
 type ExtrinsicSubmitListener struct {
@@ -191,8 +205,8 @@ type ExtrinsicSubmitListener struct {
 	finalisedChan   chan *types.FinalisationInfo
 	finalisedChanID byte
 
-	ctx    context.Context
-	cancel context.CancelFunc
+	cancel chan interface{}
+	done   chan interface{}
 }
 
 // AuthorExtrinsicUpdates method name
@@ -200,13 +214,15 @@ const AuthorExtrinsicUpdates = "author_extrinsicUpdate"
 
 // Listen implementation of Listen interface to listen for importedChan changes
 func (l *ExtrinsicSubmitListener) Listen() {
-	l.ctx, l.cancel = context.WithCancel(context.Background())
 
 	// listen for imported blocks with extrinsic
 	go func() {
+		defer close(l.done)
+		defer close(l.importedChan)
+
 		for {
 			select {
-			case <-l.ctx.Done():
+			case <-l.cancel:
 				return
 			case block, ok := <-l.importedChan:
 				if !ok {
@@ -228,16 +244,7 @@ func (l *ExtrinsicSubmitListener) Listen() {
 					l.importedHash = block.Header.Hash()
 					l.wsconn.safeSend(newSubscriptionResponse(AuthorExtrinsicUpdates, l.subID, resM))
 				}
-			}
-		}
-	}()
 
-	// listen for finalised headers
-	go func() {
-		for {
-			select {
-			case <-l.ctx.Done():
-				return
 			case info, ok := <-l.finalisedChan:
 				if !ok {
 					return
@@ -254,7 +261,9 @@ func (l *ExtrinsicSubmitListener) Listen() {
 }
 
 // Stop to cancel the running goroutines to this listener
-func (l *ExtrinsicSubmitListener) Stop() { l.cancel() }
+func (l *ExtrinsicSubmitListener) Stop() error {
+	return cancelWithTimeout(l.cancel, l.done, cancelTimeout)
+}
 
 // RuntimeVersionListener to handle listening for Runtime Version
 type RuntimeVersionListener struct {
@@ -285,12 +294,13 @@ func (l *RuntimeVersionListener) Listen() {
 
 // Stop to runtimeVersionListener not implemented yet because the listener
 // does not need to be stoped
-func (l *RuntimeVersionListener) Stop() {}
+func (l *RuntimeVersionListener) Stop() error { return nil }
 
 // GrandpaJustificationListener struct has the finalisedCh and the context to stop the goroutines
 type GrandpaJustificationListener struct {
-	cancel context.CancelFunc
-	ctx    context.Context
+	cancel chan interface{}
+	done   chan interface{}
+
 	wsconn *WSConn
 	subID  uint32
 
@@ -304,17 +314,41 @@ const grandpaJustifications = "grandpa_justifications"
 func (g *GrandpaJustificationListener) Listen() {
 	// listen for finalised headers
 	go func() {
+		defer close(g.done)
+		defer close(g.finalisedCh)
+
 		for {
 			select {
-			case info := <-g.finalisedCh:
+			case <-g.cancel:
+				return
+
+			case info, ok := <-g.finalisedCh:
+				if !ok {
+					return
+				}
+
 				hash := info.Header.Hash().String()
 				g.wsconn.safeSend(newSubscriptionResponse(grandpaJustifications, g.subID, hash))
-			case <-g.ctx.Done():
-				return
 			}
 		}
 	}()
 }
 
 // Stop will cancel all the goroutines that are executing
-func (g *GrandpaJustificationListener) Stop() { g.cancel() }
+func (g *GrandpaJustificationListener) Stop() error {
+	return cancelWithTimeout(g.cancel, g.done, cancelTimeout)
+}
+
+func cancelWithTimeout(cancel chan interface{}, done chan interface{}, t time.Duration) error {
+	close(cancel)
+
+	timeout := time.NewTimer(t)
+	defer timeout.Stop()
+
+	select {
+	case <-done:
+		return nil
+	case <-timeout.C:
+		return ErrCannotCancel
+	}
+}

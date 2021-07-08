@@ -1,7 +1,6 @@
 package subscription
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"math/big"
@@ -10,14 +9,14 @@ import (
 	"testing"
 	"time"
 
+	modulesmocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-
-	modulesmocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 )
 
 var upgrader = websocket.Upgrader{
@@ -244,14 +243,14 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, res)
 	require.Len(t, wsconn.Subscriptions, 8)
-}
 
-func TestInitGrandpaFinalisation(t *testing.T) {
-	c, _, err := websocket.DefaultDialer.Dial("ws://localhost:8546", nil) //nolint
-	if err != nil {
-		log.Fatal("dial:", err)
-	}
-	defer c.Close()
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, `{"jsonrpc":"2.0","result":8,"id":0}`+"\n", string(msg))
+
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, `{"jsonrpc":"2.0","method":"author_extrinsicUpdate","params":{"result":"ready","subscription":8}}`+"\n", string(msg))
 
 	var fCh chan<- *types.FinalisationInfo
 
@@ -268,6 +267,10 @@ func TestInitGrandpaFinalisation(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, listener)
 
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, `{"jsonrpc":"2.0","result":9,"id":0}`+"\n", string(msg))
+
 	listener.Listen()
 	header := &types.Header{
 		ParentHash: common.Hash{},
@@ -280,15 +283,15 @@ func TestInitGrandpaFinalisation(t *testing.T) {
 		Header: header,
 	}
 
+	time.Sleep(time.Second * 2)
+
 	g := listener.(*GrandpaJustificationListener)
 	expected := fmt.Sprintf(`{"jsonrpc":"2.0","method":"grandpa_justifications","params":{"result":"%s","subscription":%v}}`+"\n", expectedhash.String(), g.subID)
 
-	_, msg, err := c.ReadMessage()
+	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
 	require.Equal(t, []byte(expected), msg)
 
-	listener.Stop()
-
-	err = g.ctx.Err()
-	require.ErrorIs(t, err, context.Canceled)
+	err = listener.Stop()
+	require.NoError(t, err)
 }

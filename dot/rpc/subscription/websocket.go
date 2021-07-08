@@ -18,7 +18,6 @@ package subscription
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -133,7 +132,12 @@ func (c *WSConn) HandleComm() {
 			}
 
 			unsub(reqid, listener, params)
-			listener.Stop()
+			err = listener.Stop()
+
+			if err != nil {
+				logger.Warn("problems to cancel listen goroutines", "method", method, "error", err)
+			}
+
 			continue
 		}
 
@@ -201,7 +205,6 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (L
 
 	c.mu.Lock()
 
-	c.qtyListeners++
 	stgobs.id = atomic.AddUint32(&c.qtyListeners, 1)
 	c.Subscriptions[stgobs.id] = stgobs
 
@@ -230,6 +233,8 @@ func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, erro
 	bl := &BlockListener{
 		Channel: make(chan *types.Block),
 		wsconn:  c,
+		cancel:  make(chan interface{}, 1),
+		done:    make(chan interface{}, 1),
 	}
 
 	if c.BlockAPI == nil {
@@ -259,7 +264,10 @@ func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, erro
 func (c *WSConn) initBlockFinalizedListener(reqID float64, _ interface{}) (Listener, error) {
 	bfl := &BlockFinalizedListener{
 		channel: make(chan *types.FinalisationInfo),
-		wsconn:  c,
+		cancel:  make(chan interface{}, 1),
+		done:    make(chan interface{}, 1),
+
+		wsconn: c,
 	}
 
 	if c.BlockAPI == nil {
@@ -299,6 +307,8 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 		wsconn:        c,
 		extrinsic:     types.Extrinsic(extBytes),
 		finalisedChan: make(chan *types.FinalisationInfo),
+		cancel:        make(chan interface{}, 1),
+		done:          make(chan interface{}, 1),
 	}
 
 	if c.BlockAPI == nil {
@@ -363,10 +373,9 @@ func (c *WSConn) initGrandpaJustificationListener(reqID float64, _ interface{}) 
 		return nil, fmt.Errorf("error BlockAPI not set")
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
 	jl := &GrandpaJustificationListener{
-		ctx:         ctx,
-		cancel:      cancel,
+		cancel:      make(chan interface{}, 1),
+		done:        make(chan interface{}, 1),
 		wsconn:      c,
 		finalisedCh: make(chan *types.FinalisationInfo, 1),
 	}
@@ -378,10 +387,13 @@ func (c *WSConn) initGrandpaJustificationListener(reqID float64, _ interface{}) 
 	}
 
 	c.mu.Lock()
+
 	jl.subID = atomic.AddUint32(&c.qtyListeners, 1)
 	c.Subscriptions[jl.subID] = jl
 
 	c.mu.Unlock()
+
+	c.safeSend(NewSubscriptionResponseJSON(jl.subID, reqID))
 
 	return jl, nil
 }
