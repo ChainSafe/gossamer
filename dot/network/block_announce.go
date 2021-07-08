@@ -72,6 +72,7 @@ func (bm *BlockAnnounceMessage) Encode() ([]byte, error) {
 	return enc, nil
 }
 
+// Decode the message into a BlockAnnounceMessage
 func (bm *BlockAnnounceMessage) Decode(in []byte) error {
 	err := scale.Unmarshal(in, &bm)
 	if err != nil {

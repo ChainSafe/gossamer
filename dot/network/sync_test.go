@@ -369,7 +369,7 @@ func TestSyncQueue_handleResponseQueue_responseQueueAhead(t *testing.T) {
 
 	testHeader0 := types.Header{
 		Number: big.NewInt(77),
-		Digest: types.Digest{},
+		Digest: types.Digest(nil),
 	}
 	q.responses = append(q.responses, &types.BlockData{
 		Hash:          testHeader0.Hash(),
@@ -395,7 +395,7 @@ func TestSyncQueue_processBlockResponses(t *testing.T) {
 
 	testHeader0 := types.Header{
 		Number: big.NewInt(0),
-		Digest: types.Digest{},
+		Digest: types.Digest(nil),
 	}
 	go func() {
 		q.responseCh <- []*types.BlockData{

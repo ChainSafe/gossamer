@@ -26,7 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -311,12 +311,14 @@ func protobufToBlockData(pbd *pb.BlockData) (*types.BlockData, error) {
 	}
 
 	if pbd.Header != nil {
-		header, err := scale.Decode(pbd.Header, types.NewEmptyHeader())
+		//header, err := scale.Decode(pbd.Header, types.NewEmptyHeader())
+		var header types.Header
+		err := scale.Unmarshal(pbd.Header, &header)
 		if err != nil {
 			return nil, err
 		}
 
-		bd.Header = header.(*types.Header).AsOptional()
+		bd.Header = header.AsOptional()
 	}
 
 	if pbd.Body != nil {

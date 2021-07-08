@@ -98,13 +98,14 @@ func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
 func TestEncodeBlockResponseMessage_WithHeader(t *testing.T) {
 	hash := common.NewHash([]byte{0})
 	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
+	d := types.Digest(nil)
 
 	header := &optional.CoreHeader{
 		ParentHash:     testHash,
 		Number:         big.NewInt(1),
 		StateRoot:      testHash,
 		ExtrinsicsRoot: testHash,
-		Digest:         &types.Digest{},
+		Digest:         &d,
 	}
 
 	bd := &types.BlockData{
@@ -132,13 +133,14 @@ func TestEncodeBlockResponseMessage_WithHeader(t *testing.T) {
 func TestEncodeBlockResponseMessage_WithBody(t *testing.T) {
 	hash := common.NewHash([]byte{0})
 	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
+	d := types.Digest(nil)
 
 	header := &optional.CoreHeader{
 		ParentHash:     testHash,
 		Number:         big.NewInt(1),
 		StateRoot:      testHash,
 		ExtrinsicsRoot: testHash,
-		Digest:         &types.Digest{},
+		Digest:         &d,
 	}
 
 	exts := [][]byte{{1, 3, 5, 7}, {9, 1, 2}, {3, 4, 5}}
@@ -170,13 +172,14 @@ func TestEncodeBlockResponseMessage_WithBody(t *testing.T) {
 func TestEncodeBlockResponseMessage_WithAll(t *testing.T) {
 	hash := common.NewHash([]byte{0})
 	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
+	d := types.Digest(nil)
 
 	header := &optional.CoreHeader{
 		ParentHash:     testHash,
 		Number:         big.NewInt(1),
 		StateRoot:      testHash,
 		ExtrinsicsRoot: testHash,
-		Digest:         &types.Digest{},
+		Digest:         &d,
 	}
 
 	exts := [][]byte{{16, 1, 3, 5, 7}, {12, 9, 1, 2}, {12, 3, 4, 5}}

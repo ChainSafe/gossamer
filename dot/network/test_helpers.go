@@ -28,7 +28,7 @@ func NewMockBlockState(n *big.Int) *MockBlockState {
 		Number:         n,
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
-		Digest:         types.Digest{},
+		Digest:         types.Digest(nil),
 	}
 
 	m := new(MockBlockState)
@@ -71,7 +71,7 @@ func testBlockResponseMessage() *BlockResponseMessage {
 	for i := 0; i < int(blockRequestSize); i++ {
 		testHeader := types.Header{
 			Number: big.NewInt(int64(77 + i)),
-			Digest: types.Digest{},
+			Digest: types.Digest(nil),
 		}
 
 		msg.BlockData = append(msg.BlockData, &types.BlockData{
