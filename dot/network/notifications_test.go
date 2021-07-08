@@ -92,7 +92,7 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 	hsData, _ := info.getHandshakeData(testPeerID, true)
 	hsData.received = true
 	info.inboundHandshakeData.Store(testPeerID, hsData)
-	msg, err = decoder(enc, testPeerID, true) // i think failing here
+	msg, err = decoder(enc, testPeerID, true)
 	require.NoError(t, err)
 	require.Equal(t, testBlockAnnounce, msg)
 }

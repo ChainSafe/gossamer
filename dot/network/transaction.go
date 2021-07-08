@@ -70,7 +70,6 @@ func (tm *TransactionMessage) Encode() ([]byte, error) {
 
 // Decode the message into a TransactionMessage
 func (tm *TransactionMessage) Decode(in []byte) error {
-	//decodedMessage, err := scale.Decode(in, []byte{})
 	var decodedMessage []byte
 	err := scale.Unmarshal(in, &decodedMessage)
 	if err != nil {

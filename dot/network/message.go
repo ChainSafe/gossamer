@@ -311,7 +311,6 @@ func protobufToBlockData(pbd *pb.BlockData) (*types.BlockData, error) {
 	}
 
 	if pbd.Header != nil {
-		//header, err := scale.Decode(pbd.Header, types.NewEmptyHeader())
 		var header types.Header
 		err := scale.Unmarshal(pbd.Header, &header)
 		if err != nil {

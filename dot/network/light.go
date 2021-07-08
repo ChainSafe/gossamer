@@ -49,7 +49,6 @@ func (l *LightRequest) Encode() ([]byte, error) {
 func (l *LightRequest) Decode(in []byte) error {
 	var msg *LightRequest
 	err := scale.Unmarshal(in, &msg)
-	//msg, err := scale.Decode(in, l)
 	if err != nil {
 		return err
 	}
@@ -100,7 +99,6 @@ func (l *LightResponse) Encode() ([]byte, error) {
 
 // Decode the message into a LightResponse, it assumes the type byte has been removed
 func (l *LightResponse) Decode(in []byte) error {
-	//msg, err := scale.Decode(in, l)
 	var msg *LightResponse
 	err := scale.Unmarshal(in, &msg)
 	if err != nil {
