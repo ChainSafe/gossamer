@@ -18,13 +18,13 @@ package subscription
 import (
 	"context"
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	"reflect"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 )
 
 // Listener interface for functions that define Listener related functions
@@ -259,38 +259,48 @@ func (l *ExtrinsicSubmitListener) Stop() { l.cancel() }
 
 // RuntimeVersionListener to handle listening for Runtime Version
 type RuntimeVersionListener struct {
-	wsconn WSConnAPI
-	subID  uint
+	wsconn        WSConnAPI
+	subID         uint
 	runtimeUpdate chan runtime.Version
+	coreAPI       modules.CoreAPI
 }
 
 // Listen implementation of Listen interface to listen for runtime version changes
 func (l *RuntimeVersionListener) Listen() {
 	// This sends current runtime version once when subscription is created
-	// TODO (ed) add logic to send updates when runtime version changes
-	// todo (ed) figure out how to send current rt version (get ref to CoreAPI)
-	//rtVersion, err := l.wsconn.CoreAPI.GetRuntimeVersion(nil)
-	//if err != nil {
-	//	return
-	//}
-	//ver := modules.StateRuntimeVersionResponse{}
-	//
-	//ver.SpecName = string(rtVersion.SpecName())
-	//ver.ImplName = string(rtVersion.ImplName())
-	//ver.AuthoringVersion = rtVersion.AuthoringVersion()
-	//ver.SpecVersion = rtVersion.SpecVersion()
-	//ver.ImplVersion = rtVersion.ImplVersion()
-	//ver.TransactionVersion = rtVersion.TransactionVersion()
-	//ver.Apis = modules.ConvertAPIs(rtVersion.APIItems())
+	rtVersion, err := l.coreAPI.GetRuntimeVersion(nil)
+	if err != nil {
+		return
+	}
+	ver := modules.StateRuntimeVersionResponse{}
+	ver.SpecName = string(rtVersion.SpecName())
+	ver.ImplName = string(rtVersion.ImplName())
+	ver.AuthoringVersion = rtVersion.AuthoringVersion()
+	ver.SpecVersion = rtVersion.SpecVersion()
+	ver.ImplVersion = rtVersion.ImplVersion()
+	ver.TransactionVersion = rtVersion.TransactionVersion()
+	ver.Apis = modules.ConvertAPIs(rtVersion.APIItems())
 
-	//l.wsconn.safeSend(newSubscriptionResponse("state_runtimeVersion", l.subID, ver))
+	go l.wsconn.safeSend(newSubscriptionResponse("state_runtimeVersion", l.subID, ver))
+
+	// listen for runtime updates
 	go func() {
 		for info := range l.runtimeUpdate {
-			fmt.Printf("runtime info %v\n", info)
+			ver := modules.StateRuntimeVersionResponse{}
+
+			ver.SpecName = string(info.SpecName())
+			ver.ImplName = string(info.ImplName())
+			ver.AuthoringVersion = info.AuthoringVersion()
+			ver.SpecVersion = info.SpecVersion()
+			ver.ImplVersion = info.ImplVersion()
+			ver.TransactionVersion = info.TransactionVersion()
+			ver.Apis = modules.ConvertAPIs(info.APIItems())
+
+			l.wsconn.safeSend(newSubscriptionResponse("state_runtimeVersion", l.subID, ver))
 		}
 	}()
 }
 
 // Stop to runtimeVersionListener not implemented yet because the listener
-// does not need to be stoped
+// does not need to be stopped
 func (l *RuntimeVersionListener) Stop() {}

@@ -17,8 +17,6 @@
 package subscription
 
 import (
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"io/ioutil"
 	"math/big"
 	"path/filepath"
@@ -29,6 +27,8 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/stretchr/testify/require"
 )
 
@@ -171,7 +171,17 @@ func TestRuntimeChannelListener_Listen(t *testing.T) {
 		wsconn:        mockConnection,
 		subID:         0,
 		runtimeUpdate: notifyChan,
+		coreAPI:       modules.NewMockCoreAPI(),
 	}
+
+	expectedInitialVersion := modules.StateRuntimeVersionResponse{
+		SpecName: "mock-spec",
+		Apis:     modules.ConvertAPIs(nil),
+	}
+
+	expectedInitialResponse := newSubcriptionBaseResponseJSON()
+	expectedInitialResponse.Method = "state_runtimeVersion"
+	expectedInitialResponse.Params.Result = expectedInitialVersion
 
 	instance := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
 	_, err := runtime.GetRuntimeBlob(runtime.POLKADOT_RUNTIME_FP, runtime.POLKADOT_RUNTIME_URL)
@@ -183,19 +193,28 @@ func TestRuntimeChannelListener_Listen(t *testing.T) {
 	version, err := instance.CheckRuntimeVersion(code)
 	require.NoError(t, err)
 
-	//block := runtime.Version()
-	//block.Header.Number = big.NewInt(1)
-	//
-	//head, err := modules.HeaderToJSON(*block.Header)
-	//require.NoError(t, err)
-	//
-	expectedResposnse := newSubcriptionBaseResponseJSON()
-	//expectedResposnse.Method = "chain_newHead"
-	//expectedResposnse.Params.Result = head
+	expectedUpdatedVersion := modules.StateRuntimeVersionResponse{
+		SpecName:           "polkadot",
+		ImplName:           "parity-polkadot",
+		AuthoringVersion:   0,
+		SpecVersion:        25,
+		ImplVersion:        0,
+		TransactionVersion: 5,
+		Apis:               modules.ConvertAPIs(version.APIItems()),
+	}
+
+	expectedUpdateResponse := newSubcriptionBaseResponseJSON()
+	expectedUpdateResponse.Method = "state_runtimeVersion"
+	expectedUpdateResponse.Params.Result = expectedUpdatedVersion
 
 	go rvl.Listen()
 
+	//check initial response
+	time.Sleep(time.Millisecond * 10)
+	require.Equal(t, expectedInitialResponse, mockConnection.lastMessage)
+
+	// check response after update
 	notifyChan <- version
 	time.Sleep(time.Millisecond * 10)
-	require.Equal(t, expectedResposnse, mockConnection.lastMessage)
+	require.Equal(t, expectedUpdateResponse, mockConnection.lastMessage)
 }

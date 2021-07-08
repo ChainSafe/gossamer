@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	"io/ioutil"
 	"math/big"
 	"net/http"
@@ -32,6 +31,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	log "github.com/ChainSafe/log15"
 	"github.com/gorilla/websocket"
 )
@@ -343,24 +343,23 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 }
 
 func (c *WSConn) initRuntimeVersionListener(reqID float64, _ interface{}) (Listener, error) {
-	rvl := &RuntimeVersionListener{
-		wsconn: c,
-		runtimeUpdate: make(chan runtime.Version),
-	}
-
 	if c.CoreAPI == nil {
 		c.safeSendError(reqID, nil, "error CoreAPI not set")
 		return nil, fmt.Errorf("error CoreAPI not set")
 	}
 
-	id, err := c.CoreAPI.RegisterRuntimeUpdatedChannel(rvl.runtimeUpdate)
+	rvl := &RuntimeVersionListener{
+		wsconn:        c,
+		runtimeUpdate: make(chan runtime.Version),
+		coreAPI:       c.CoreAPI,
+	}
+
+	_, err := c.CoreAPI.RegisterRuntimeUpdatedChannel(rvl.runtimeUpdate)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("registered update channel %v\n", id)
 
 	c.mu.Lock()
-
 
 	c.qtyListeners++
 	rvl.subID = c.qtyListeners

@@ -72,8 +72,8 @@ type Service struct {
 	// Keystore
 	keys *keystore.GlobalKeystore
 
-	runtimeChangedLock  sync.RWMutex
-	runtimeChanged      map[byte]chan<- runtime.Version
+	runtimeChangedLock sync.RWMutex
+	runtimeChanged     map[byte]chan<- runtime.Version
 }
 
 // Config holds the configuration for the core Service.
@@ -156,7 +156,7 @@ func NewService(cfg *Config) (*Service, error) {
 		codeSubstitute:       cfg.CodeSubstitutes,
 		codeSubstitutedState: cfg.CodeSubstitutedState,
 		digestHandler:        cfg.DigestHandler,
-		runtimeChanged: make(map[byte]chan<- runtime.Version),
+		runtimeChanged:       make(map[byte]chan<- runtime.Version),
 	}
 
 	return srv, nil
@@ -610,7 +610,7 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 	return s.rt.Metadata()
 }
 
-func (s *Service)  RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (byte, error) {
+func (s *Service) RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (byte, error) {
 	s.runtimeChangedLock.RLock()
 
 	if len(s.runtimeChanged) == 256 {
