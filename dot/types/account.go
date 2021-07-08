@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // AccountInfo Information of an account.
@@ -12,9 +12,9 @@ type AccountInfo struct {
 	Producers uint32
 	// The additional data that belongs to this account. Used to store the balance(s) in a lot of chains.
 	Data struct {
-		Free       common.Uint128
-		Reserved   common.Uint128
-		MiscFrozen common.Uint128
-		FreeFrozen common.Uint128
+		Free       *scale.Uint128
+		Reserved   *scale.Uint128
+		MiscFrozen *scale.Uint128
+		FreeFrozen *scale.Uint128
 	}
 }

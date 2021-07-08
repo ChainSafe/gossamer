@@ -29,7 +29,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
@@ -42,11 +42,12 @@ func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, non
 	rawMeta, err := rt.Metadata()
 	require.NoError(t, err)
 
-	decoded, err := scale.Decode(rawMeta, []byte{})
+	var decoded []byte
+	err = scale.Unmarshal(rawMeta, &decoded)
 	require.NoError(t, err)
 
 	meta := &ctypes.Metadata{}
-	err = ctypes.DecodeFromBytes(decoded.([]byte), meta)
+	err = ctypes.DecodeFromBytes(decoded, meta)
 	require.NoError(t, err)
 
 	rv, err := rt.Version()
