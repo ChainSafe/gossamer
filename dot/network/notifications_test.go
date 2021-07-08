@@ -82,7 +82,7 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 		Number:         big.NewInt(77),
 		StateRoot:      common.Hash{2},
 		ExtrinsicsRoot: common.Hash{3},
-		Digest:         types.Digest{},
+		Digest:         types.Digest(nil),
 	}
 
 	enc, err = testBlockAnnounce.Encode()
@@ -92,7 +92,7 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 	hsData, _ := info.getHandshakeData(testPeerID, true)
 	hsData.received = true
 	info.inboundHandshakeData.Store(testPeerID, hsData)
-	msg, err = decoder(enc, testPeerID, true)
+	msg, err = decoder(enc, testPeerID, true) // i think failing here
 	require.NoError(t, err)
 	require.Equal(t, testBlockAnnounce, msg)
 }
