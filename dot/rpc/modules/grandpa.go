@@ -147,7 +147,7 @@ func thresholdWeight(totalWeight uint32) uint32 {
 
 // difference get the values representing the difference, i.e., the values that are in voters but not in pre.
 // this function returns the authorities that haven't voted yet
-func difference(voters []ed25519.PublicKeyBytes, equivocations []ed25519.PublicKeyBytes) []ed25519.PublicKeyBytes {
+func difference(voters, equivocations []ed25519.PublicKeyBytes) []ed25519.PublicKeyBytes {
 	diff := make([]ed25519.PublicKeyBytes, 0)
 	diffmap := make(map[ed25519.PublicKeyBytes]bool, len(voters))
 
