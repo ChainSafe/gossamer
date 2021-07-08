@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"math/big"
 	"path/filepath"
 	"reflect"
@@ -32,8 +33,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // NewGenesisFromJSONRaw parses a JSON formatted genesis file
@@ -161,10 +162,13 @@ func buildRawMap(m map[string]map[string]interface{}) (map[string]string, error)
 	for k, v := range m {
 		kv := new(keyValue)
 		kv.key = append(kv.key, k)
-		buildRawMapInterface(v, kv)
+		err := buildRawMapInterface(v, kv)
+		if err != nil {
+			return nil, err
+		}
 
 		if reflect.DeepEqual([]string{"palletBalances", "balances"}, kv.key) {
-			err := buildBalances(kv, res)
+			err = buildBalances(kv, res)
 			if err != nil {
 				return nil, err
 			}
@@ -187,36 +191,46 @@ func buildRawMap(m map[string]map[string]interface{}) (map[string]string, error)
 	return res, nil
 }
 
-func buildRawMapInterface(m map[string]interface{}, kv *keyValue) {
+func buildRawMapInterface(m map[string]interface{}, kv *keyValue) error {
 	for k, v := range m {
 		kv.key = append(kv.key, k)
 		switch v2 := v.(type) {
 		case []interface{}:
 			kv.valueLen = big.NewInt(int64(len(v2)))
-			buildRawArrayInterface(v2, kv)
+			err := buildRawArrayInterface(v2, kv)
+			if err != nil {
+				return err
+			}
 		case string:
 			kv.value = v2
 		}
 	}
+	return nil
 }
 
-func buildRawArrayInterface(a []interface{}, kv *keyValue) {
+func buildRawArrayInterface(a []interface{}, kv *keyValue) error {
 	for _, v := range a {
 		switch v2 := v.(type) {
 		case []interface{}:
-			buildRawArrayInterface(v2, kv)
+			err := buildRawArrayInterface(v2, kv)
+			if err != nil {
+				return err
+			}
 		case string:
 			// todo check to confirm it's an address
 			tba := crypto.PublicAddressToByteArray(common.Address(v2))
 			kv.value = kv.value + fmt.Sprintf("%x", tba)
 			kv.iVal = append(kv.iVal, tba)
 		case float64:
-			// TODO: determine how to handle this error
-			encVal, _ := scale.Encode(uint64(v2))
+			encVal, err := scale.Marshal(uint64(v2))
+			if err != nil {
+				return err
+			}
 			kv.value = kv.value + fmt.Sprintf("%x", encVal)
 			kv.iVal = append(kv.iVal, big.NewInt(int64(v2)))
 		}
 	}
+	return nil
 }
 
 func formatKey(kv *keyValue) (string, error) {
@@ -247,7 +261,7 @@ func formatValue(kv *keyValue) (string, error) {
 	switch {
 	case reflect.DeepEqual([]string{"grandpa", "authorities"}, kv.key):
 		if kv.valueLen != nil {
-			lenEnc, err := scale.Encode(kv.valueLen)
+			lenEnc, err := scale.Marshal(kv.valueLen)
 			if err != nil {
 				return "", err
 			}
@@ -259,7 +273,7 @@ func formatValue(kv *keyValue) (string, error) {
 		return kv.value, nil
 	default:
 		if kv.valueLen != nil {
-			lenEnc, err := scale.Encode(kv.valueLen)
+			lenEnc, err := scale.Marshal(kv.valueLen)
 			if err != nil {
 				return "", err
 			}
@@ -287,19 +301,19 @@ func buildBalances(kv *keyValue, res map[string]string) error {
 				Nonce: 0,
 				//RefCount: 0,
 				Data: struct {
-					Free       common.Uint128
-					Reserved   common.Uint128
-					MiscFrozen common.Uint128
-					FreeFrozen common.Uint128
+					Free       *scale.Uint128
+					Reserved   *scale.Uint128
+					MiscFrozen *scale.Uint128
+					FreeFrozen *scale.Uint128
 				}{
-					Free:       *common.Uint128FromBigInt(kv.iVal[i+1].(*big.Int)),
-					Reserved:   *common.Uint128FromBigInt(big.NewInt(0)),
-					MiscFrozen: *common.Uint128FromBigInt(big.NewInt(0)),
-					FreeFrozen: *common.Uint128FromBigInt(big.NewInt(0)),
+					Free:       scale.MustNewUint128(kv.iVal[i+1].(*big.Int)),
+					Reserved:   scale.MustNewUint128(big.NewInt(0)),
+					MiscFrozen: scale.MustNewUint128(big.NewInt(0)),
+					FreeFrozen: scale.MustNewUint128(big.NewInt(0)),
 				},
 			}
 
-			encBal, err := scale.Encode(accInfo)
+			encBal, err := scale.Marshal(accInfo)
 			if err != nil {
 				return err
 			}
@@ -360,34 +374,41 @@ func addAuthoritiesValues(k1, k2 string, kt crypto.KeyType, value []byte, gen *G
 
 	// decode authorities values into []interface that will be decoded into json array
 	ava := [][]interface{}{}
-	buf := &bytes.Buffer{}
-	sd := scale.Decoder{Reader: buf}
-	_, err := buf.Write(value)
+	reader := new(bytes.Buffer)
+	_, err := reader.Write(value)
 	if err != nil {
 		return err
 	}
 
-	alen, err := sd.DecodeInteger()
+	var alen int
+	err = scale.Unmarshal(value, &alen)
 	if err != nil {
 		return err
 	}
-	for i := 0; i < int(alen); i++ {
+	for i := 0; i < alen; i++ {
 		auth := []interface{}{}
 		buf := make([]byte, 32)
-		if _, err = sd.Reader.Read(buf); err == nil {
+		if _, err = reader.Read(buf); err == nil {
 			var arr = [32]byte{}
 			copy(arr[:], buf)
+			//nolint
 			pa, err := bytesToAddress(kt, arr[:])
 			if err != nil {
 				return err
 			}
 			auth = append(auth, pa)
 		}
-		iv, err := sd.DecodeFixedWidthInt(uint64(0))
+		b := make([]byte, 8)
+		if _, err = reader.Read(b); err != nil {
+			log.Fatal(err)
+		}
+		var iv uint64
+		err = scale.Unmarshal(b, &iv)
+
 		if err != nil {
 			return err
 		}
-		auth = append(auth, iv.(uint64))
+		auth = append(auth, iv)
 		ava = append(ava, auth)
 	}
 
