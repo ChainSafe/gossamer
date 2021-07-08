@@ -51,6 +51,7 @@ func NewMockCoreAPI() *modulesmocks.MockCoreAPI {
 	return m
 }
 
+// NewMockVersion creates and returns an runtime Version interface mock
 func NewMockVersion() *runtimemocks.MockVersion {
 	m := new(runtimemocks.MockVersion)
 	m.On("SpecName").Return([]byte(`mock-spec`))

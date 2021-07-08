@@ -610,6 +610,7 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 	return s.rt.Metadata()
 }
 
+// RegisterRuntimeUpdatedChannel function to register chan that is notified when runtime version changes
 func (s *Service) RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (byte, error) {
 	s.runtimeChangedLock.RLock()
 
