@@ -39,7 +39,7 @@ type WSConnAPI interface {
 
 // StorageObserver struct to hold data for observer (Observer Design Pattern)
 type StorageObserver struct {
-	id     uint
+	id     uint32
 	filter map[string][]byte
 	wsconn WSConnAPI
 }
@@ -70,13 +70,13 @@ func (s *StorageObserver) Update(change *state.SubscriptionResult) {
 	res := newSubcriptionBaseResponseJSON()
 	res.Method = "state_storage"
 	res.Params.Result = changeResult
-	res.Params.SubscriptionID = s.GetID()
+	res.Params.SubscriptionID = s.id
 	s.wsconn.safeSend(res)
 }
 
 // GetID the id for the Observer
 func (s *StorageObserver) GetID() uint {
-	return s.id
+	return uint(s.id)
 }
 
 // GetFilter returns the filter the Observer is using
@@ -95,7 +95,7 @@ type BlockListener struct {
 	Channel chan *types.Block
 	wsconn  WSConnAPI
 	ChanID  byte
-	subID   uint
+	subID   uint32
 
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -140,7 +140,7 @@ type BlockFinalizedListener struct {
 	channel chan *types.FinalisationInfo
 	wsconn  WSConnAPI
 	chanID  byte
-	subID   uint
+	subID   uint32
 	ctx     context.Context
 	cancel  context.CancelFunc
 }
@@ -182,7 +182,7 @@ func (l *BlockFinalizedListener) Stop() { l.cancel() }
 // ExtrinsicSubmitListener to handle listening for extrinsic events
 type ExtrinsicSubmitListener struct {
 	wsconn    WSConnAPI
-	subID     uint
+	subID     uint32
 	extrinsic types.Extrinsic
 
 	importedChan    chan *types.Block
@@ -259,7 +259,7 @@ func (l *ExtrinsicSubmitListener) Stop() { l.cancel() }
 // RuntimeVersionListener to handle listening for Runtime Version
 type RuntimeVersionListener struct {
 	wsconn *WSConn
-	subID  uint
+	subID  uint32
 }
 
 // Listen implementation of Listen interface to listen for runtime version changes
@@ -292,7 +292,7 @@ type GrandpaJustificationListener struct {
 	cancel context.CancelFunc
 	ctx    context.Context
 	wsconn *WSConn
-	subID  uint
+	subID  uint32
 
 	finalisedChID byte
 	finalisedCh   chan *types.FinalisationInfo

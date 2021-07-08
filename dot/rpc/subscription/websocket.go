@@ -27,6 +27,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -46,18 +47,16 @@ var logger = log.New("pkg", "rpc/subscription")
 
 // WSConn struct to hold WebSocket Connection references
 type WSConn struct {
-	Wsconn             *websocket.Conn
-	mu                 sync.Mutex
-	BlockSubChannels   map[uint]byte
-	StorageSubChannels map[int]byte
-	qtyListeners       uint
-	Subscriptions      map[uint]Listener
-	StorageAPI         modules.StorageAPI
-	BlockAPI           modules.BlockAPI
-	RuntimeAPI         modules.RuntimeAPI
-	CoreAPI            modules.CoreAPI
-	TxStateAPI         modules.TransactionStateAPI
-	RPCHost            string
+	Wsconn        *websocket.Conn
+	mu            sync.Mutex
+	qtyListeners  uint32
+	Subscriptions map[uint32]Listener
+	StorageAPI    modules.StorageAPI
+	BlockAPI      modules.BlockAPI
+	RuntimeAPI    modules.RuntimeAPI
+	CoreAPI       modules.CoreAPI
+	TxStateAPI    modules.TransactionStateAPI
+	RPCHost       string
 
 	HTTP httpclient
 }
@@ -203,7 +202,7 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (L
 	c.mu.Lock()
 
 	c.qtyListeners++
-	stgobs.id = c.qtyListeners
+	stgobs.id = atomic.AddUint32(&c.qtyListeners, 1)
 	c.Subscriptions[stgobs.id] = stgobs
 
 	c.mu.Unlock()
@@ -247,10 +246,8 @@ func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, erro
 
 	c.mu.Lock()
 
-	c.qtyListeners++
-	bl.subID = c.qtyListeners
+	bl.subID = atomic.AddUint32(&c.qtyListeners, 1)
 	c.Subscriptions[bl.subID] = bl
-	c.BlockSubChannels[bl.subID] = bl.ChanID
 
 	c.mu.Unlock()
 
@@ -278,10 +275,8 @@ func (c *WSConn) initBlockFinalizedListener(reqID float64, _ interface{}) (Liste
 
 	c.mu.Lock()
 
-	c.qtyListeners++
-	bfl.subID = c.qtyListeners
+	bfl.subID = atomic.AddUint32(&c.qtyListeners, 1)
 	c.Subscriptions[bfl.subID] = bfl
-	c.BlockSubChannels[bfl.subID] = bfl.chanID
 
 	c.mu.Unlock()
 
@@ -321,10 +316,8 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 
 	c.mu.Lock()
 
-	c.qtyListeners++
-	esl.subID = c.qtyListeners
+	esl.subID = atomic.AddUint32(&c.qtyListeners, 1)
 	c.Subscriptions[esl.subID] = esl
-	c.BlockSubChannels[esl.subID] = esl.importedChanID
 
 	c.mu.Unlock()
 
@@ -354,8 +347,7 @@ func (c *WSConn) initRuntimeVersionListener(reqID float64, _ interface{}) (Liste
 
 	c.mu.Lock()
 
-	c.qtyListeners++
-	rvl.subID = c.qtyListeners
+	rvl.subID = atomic.AddUint32(&c.qtyListeners, 1)
 	c.Subscriptions[rvl.subID] = rvl
 
 	c.mu.Unlock()
@@ -372,12 +364,10 @@ func (c *WSConn) initGrandpaJustificationListener(reqID float64, _ interface{}) 
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-
 	jl := &GrandpaJustificationListener{
 		ctx:         ctx,
 		cancel:      cancel,
 		wsconn:      c,
-		subID:       c.qtyListeners,
 		finalisedCh: make(chan *types.FinalisationInfo, 1),
 	}
 
@@ -388,8 +378,7 @@ func (c *WSConn) initGrandpaJustificationListener(reqID float64, _ interface{}) 
 	}
 
 	c.mu.Lock()
-
-	c.qtyListeners++
+	jl.subID = atomic.AddUint32(&c.qtyListeners, 1)
 	c.Subscriptions[jl.subID] = jl
 
 	c.mu.Unlock()

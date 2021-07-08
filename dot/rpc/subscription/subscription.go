@@ -56,7 +56,7 @@ func (c *WSConn) getUnsubListener(method string, params interface{}) (unsubListe
 	return unsub, listener, nil
 }
 
-func parseSubscribeID(p interface{}) (uint, error) {
+func parseSubscribeID(p interface{}) (uint32, error) {
 	switch v := p.(type) {
 	case []interface{}:
 		if len(v) == 0 {
@@ -66,16 +66,16 @@ func parseSubscribeID(p interface{}) (uint, error) {
 		return 0, errUknownParamSubscribeID
 	}
 
-	var id uint
+	var id uint32
 	switch v := p.([]interface{})[0].(type) {
 	case float64:
-		id = uint(v)
+		id = uint32(v)
 	case string:
 		i, err := strconv.ParseUint(v, 10, 32)
 		if err != nil {
 			return 0, errCannotParseID
 		}
-		id = uint(i)
+		id = uint32(i)
 	default:
 		return 0, errUknownParamSubscribeID
 	}

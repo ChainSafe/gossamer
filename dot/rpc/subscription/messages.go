@@ -25,7 +25,7 @@ type BaseResponseJSON struct {
 // Params for json param response
 type Params struct {
 	Result         interface{} `json:"result"`
-	SubscriptionID uint        `json:"subscription"`
+	SubscriptionID uint32      `json:"subscription"`
 }
 
 // InvalidRequestCode error code returned for invalid request parameters, value derived from Substrate node output
@@ -40,7 +40,7 @@ func newSubcriptionBaseResponseJSON() BaseResponseJSON {
 	}
 }
 
-func newSubscriptionResponse(method string, subID uint, result interface{}) BaseResponseJSON {
+func newSubscriptionResponse(method string, subID uint32, result interface{}) BaseResponseJSON {
 	return BaseResponseJSON{
 		Jsonrpc: "2.0",
 		Method:  method,
@@ -54,12 +54,12 @@ func newSubscriptionResponse(method string, subID uint, result interface{}) Base
 // ResponseJSON for json subscription responses
 type ResponseJSON struct {
 	Jsonrpc string  `json:"jsonrpc"`
-	Result  uint    `json:"result"`
+	Result  uint32  `json:"result"`
 	ID      float64 `json:"id"`
 }
 
 // NewSubscriptionResponseJSON builds a Response JSON object
-func NewSubscriptionResponseJSON(subID uint, reqID float64) ResponseJSON {
+func NewSubscriptionResponseJSON(subID uint32, reqID float64) ResponseJSON {
 	return ResponseJSON{
 		Jsonrpc: "2.0",
 		Result:  subID,

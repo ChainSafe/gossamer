@@ -25,8 +25,7 @@ var upgrader = websocket.Upgrader{
 }
 
 var wsconn = &WSConn{
-	Subscriptions:    make(map[uint]Listener),
-	BlockSubChannels: make(map[uint]byte),
+	Subscriptions: make(map[uint32]Listener),
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
