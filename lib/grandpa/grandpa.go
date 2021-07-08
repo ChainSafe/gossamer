@@ -446,9 +446,11 @@ func (s *Service) primaryBroadcastCommitMessage() {
 // at the end of this round, a block will be finalised.
 func (s *Service) playGrandpaRound() error {
 	logger.Debug("starting round", "round", s.state.round, "setID", s.state.setID)
+	ctx, cancel := context.WithCancel(s.ctx)
+	defer cancel()
 
 	// save start time
-	start := time.Now()
+	//start := time.Now()
 
 	isPrimary, err := s.handleIsPrimary()
 	if err != nil {
@@ -456,25 +458,26 @@ func (s *Service) playGrandpaRound() error {
 	}
 
 	logger.Debug("receiving pre-vote messages...")
+	go s.receiveMessages(ctx)
 
-	go s.receiveMessages(func() bool {
-		if s.paused.Load().(bool) {
-			return true
-		}
+	// go s.receiveMessages(func() bool {
+	// 	if s.paused.Load().(bool) {
+	// 		return true
+	// 	}
 
-		end := start.Add(interval * 2)
+	// 	end := start.Add(interval * 2)
 
-		// ignore err, since if round isn't completable then this will continue
-		completable, _ := s.isCompletable()
+	// 	// ignore err, since if round isn't completable then this will continue
+	// 	completable, _ := s.isCompletable()
 
-		if time.Since(end) >= 0 || completable {
-			return true
-		}
+	// 	if time.Since(end) >= 0 || completable {
+	// 		return true
+	// 	}
 
-		return false
-	})
+	// 	return false
+	// })
 
-	time.Sleep(interval * 2)
+	time.Sleep(interval)
 
 	if s.paused.Load().(bool) {
 		return ErrServicePaused
@@ -503,18 +506,18 @@ func (s *Service) playGrandpaRound() error {
 
 	logger.Debug("receiving pre-commit messages...")
 
-	go s.receiveMessages(func() bool {
-		end := start.Add(interval * 4)
+	// go s.receiveMessages(func() bool {
+	// 	end := start.Add(interval * 4)
 
-		// ignore err, since if round isn't completable then this will continue
-		completable, _ := s.isCompletable()
+	// 	// ignore err, since if round isn't completable then this will continue
+	// 	completable, _ := s.isCompletable()
 
-		if time.Since(end) >= 0 || completable {
-			return true
-		}
+	// 	if time.Since(end) >= 0 || completable {
+	// 		return true
+	// 	}
 
-		return false
-	})
+	// 	return false
+	// })
 
 	time.Sleep(interval)
 
@@ -539,43 +542,41 @@ func (s *Service) playGrandpaRound() error {
 	// continue to send precommit messages until round is done
 	go s.sendVoteMessage(precommit, pcm, roundComplete)
 
-	go func() {
-		// receive messages until current round is completable and previous round is finalisable
-		// and the last finalised block is greater than the best final candidate from the previous round
-		s.receiveMessages(func() bool {
-			if s.paused.Load().(bool) {
-				return true
-			}
+	// go func() {
+	// 	// receive messages until current round is completable and previous round is finalisable
+	// 	// and the last finalised block is greater than the best final candidate from the previous round
+	// 	s.receiveMessages(func() bool {
+	// 		if s.paused.Load().(bool) {
+	// 			return true
+	// 		}
 
-			completable, err := s.isCompletable() //nolint
-			if err != nil {
-				return false
-			}
+	// 		completable, err := s.isCompletable() //nolint
+	// 		if err != nil {
+	// 			return false
+	// 		}
 
-			round := s.state.round
-			finalisable, err := s.isFinalisable(round)
-			if err != nil {
-				return false
-			}
+	// 		round := s.state.round
+	// 		finalisable, err := s.isFinalisable(round)
+	// 		if err != nil {
+	// 			return false
+	// 		}
 
-			s.mapLock.Lock()
-			prevBfc := s.bestFinalCandidate[s.state.round-1]
-			s.mapLock.Unlock()
+	// 		s.mapLock.Lock()
+	// 		prevBfc := s.bestFinalCandidate[s.state.round-1]
+	// 		s.mapLock.Unlock()
 
-			// this shouldn't happen as long as playGrandpaRound is called through initiate
-			if prevBfc == nil {
-				return false
-			}
+	// 		// this shouldn't happen as long as playGrandpaRound is called through initiate
+	// 		if prevBfc == nil {
+	// 			return false
+	// 		}
 
-			if completable && finalisable && uint32(s.head.Number.Int64()) >= prevBfc.Number {
-				return true
-			}
+	// 		if completable && finalisable && uint32(s.head.Number.Int64()) >= prevBfc.Number {
+	// 			return true
+	// 		}
 
-			return false
-		})
-	}()
-
-	time.Sleep(interval)
+	// 		return false
+	// 	})
+	// }()
 
 	err = s.attemptToFinalize()
 	if err != nil {

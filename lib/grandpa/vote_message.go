@@ -20,7 +20,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"time"
+	//"time"
 
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -28,51 +28,47 @@ import (
 )
 
 // receiveMessages receives messages from the in channel until the specified condition is met
-func (s *Service) receiveMessages(cond func() bool) {
-	ctx, cancel := context.WithCancel(s.ctx)
-
-	go func() {
-		for {
-			select {
-			case msg := <-s.in:
-				if msg == nil {
-					continue
-				}
-
-				logger.Trace("received vote message", "msg", msg)
-				vm, ok := msg.(*VoteMessage)
-				if !ok {
-					continue
-				}
-
-				v, err := s.validateMessage(vm)
-				if err != nil {
-					logger.Debug("failed to validate vote message", "message", vm, "error", err)
-					continue
-				}
-
-				logger.Debug("validated vote message",
-					"vote", v,
-					"round", vm.Round,
-					"subround", vm.Message.Stage,
-					"prevote count", s.lenVotes(prevote),
-					"precommit count", s.lenVotes(precommit),
-					"votes needed", s.state.threshold(),
-				)
-			case <-ctx.Done():
-				logger.Trace("returning from receiveMessages")
-				return
-			}
-		}
-	}()
-
+func (s *Service) receiveMessages(ctx context.Context /*cond func() bool*/) {
 	for {
-		if cond() {
-			cancel()
+		select {
+		case msg := <-s.in:
+			if msg == nil {
+				continue
+			}
+
+			logger.Trace("received vote message", "msg", msg)
+			vm, ok := msg.(*VoteMessage)
+			if !ok {
+				continue
+			}
+
+			v, err := s.validateMessage(vm)
+			if err != nil {
+				logger.Debug("failed to validate vote message", "message", vm, "error", err)
+				continue
+			}
+
+			logger.Debug("validated vote message",
+				"vote", v,
+				"round", vm.Round,
+				"subround", vm.Message.Stage,
+				"prevote count", s.lenVotes(prevote),
+				"precommit count", s.lenVotes(precommit),
+				"votes needed", s.state.threshold(),
+			)
+		case <-ctx.Done():
+			logger.Trace("returning from receiveMessages")
 			return
 		}
-		time.Sleep(time.Millisecond * 10)
 	}
+
+	// for {
+	// 	if cond() {
+	// 		cancel()
+	// 		return
+	// 	}
+	// 	time.Sleep(time.Millisecond * 10)
+	// }
 }
 
 func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage subround) (*SignedVote, *VoteMessage, error) {
@@ -174,8 +170,8 @@ func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 				return nil, err
 			}
 
-			// TODO: don't broadcast, just send to peer; will address in a follow-up
-			s.network.GossipMessage(msg)
+			// TODO: pass peer.ID here
+			s.network.SendMessage("", msg)
 		}
 
 		// TODO: get justification if your round is lower, or just do catch-up?

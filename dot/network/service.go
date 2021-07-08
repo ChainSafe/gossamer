@@ -509,7 +509,8 @@ func (s *Service) GossipMessage(msg NotificationsMessage) {
 	logger.Error("message not supported by any notifications protocol", "msg type", msg.Type())
 }
 
-func (s *Service) SendMessageToPeer(to peer.ID, msg NotificationsMessage) error {
+// SendMessage sends a message to the given peer
+func (s *Service) SendMessage(to peer.ID, msg NotificationsMessage) error {
 	s.notificationsMu.Lock()
 	defer s.notificationsMu.Unlock()
 	for msgID, prtl := range s.notificationsProtocols {
