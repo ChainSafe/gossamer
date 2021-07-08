@@ -31,9 +31,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
-	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -431,7 +431,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 		// currently we are attempting to re-add inherents, causing lots of "'Bad input data provided to validate_transaction" errors.
 		for _, ext := range exts {
 			logger.Debug("validating transaction on re-org chain", "extrinsic", ext)
-			encExt, err := scale.Encode(ext)
+			encExt, err := scale.Marshal(ext)
 			if err != nil {
 				return err
 			}
