@@ -268,13 +268,16 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot) []*transaction.ValidTrans
 
 			// don't drop transactions that may be valid in a later block ie.
 			// run out of gas for this block or have a nonce that may be valid in a later block
-			if tvErr, ok := err.(*TransactionValidityError); ok {
-				switch tvErr.msg {
-				case exhaustsResourcesMsg, invalidTransactionMsg:
-					hash, err := b.transactionState.Push(txn)
-					if err != nil {
-						logger.Debug("failed to re-add transaction to queue", "tx", hash, "error", err)
-					}
+			var e *TransactionValidityError
+			if !errors.As(err, &e) {
+				continue
+			}
+
+			err = err.(*TransactionValidityError).msg
+			if errors.Is(err, errExhaustsResources) || errors.Is(err, errInvalidTransaction) {
+				hash, err := b.transactionState.Push(txn)
+				if err != nil {
+					logger.Debug("failed to re-add transaction to queue", "tx", hash, "error", err)
 				}
 			}
 		}
