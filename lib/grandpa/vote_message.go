@@ -165,7 +165,9 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 				return nil, err
 			}
 
-			s.network.SendMessage(from, msg)
+			if err = s.network.SendMessage(from, msg); err != nil {
+				return nil, err
+			}
 		}
 
 		// TODO: get justification if your round is lower, or just do catch-up?

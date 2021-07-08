@@ -199,7 +199,7 @@ func TestValidateMessage_Valid(t *testing.T) {
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
-	vote, err := gs.validateMessage(msg)
+	vote, err := gs.validateMessage("", msg)
 	require.NoError(t, err)
 	require.Equal(t, h.Hash(), vote.Hash)
 }
@@ -234,7 +234,7 @@ func TestValidateMessage_InvalidSignature(t *testing.T) {
 
 	msg.Message.Signature[63] = 0
 
-	_, err = gs.validateMessage(msg)
+	_, err = gs.validateMessage("", msg)
 	require.Equal(t, err, ErrInvalidSignature)
 }
 
@@ -267,7 +267,7 @@ func TestValidateMessage_SetIDMismatch(t *testing.T) {
 
 	gs.state.setID = 1
 
-	_, err = gs.validateMessage(msg)
+	_, err = gs.validateMessage("", msg)
 	require.Equal(t, err, ErrSetIDMismatch)
 }
 
@@ -315,7 +315,7 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
-	_, err = gs.validateMessage(msg)
+	_, err = gs.validateMessage("", msg)
 	require.Equal(t, ErrEquivocation, err, gs.prevotes)
 }
 
@@ -350,7 +350,7 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
-	_, err = gs.validateMessage(msg)
+	_, err = gs.validateMessage("", msg)
 	require.Equal(t, err, ErrBlockDoesNotExist)
 }
 
@@ -390,6 +390,6 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
-	_, err = gs.validateMessage(msg)
+	_, err = gs.validateMessage("", msg)
 	require.Equal(t, ErrDescendantNotFound, err, gs.prevotes)
 }

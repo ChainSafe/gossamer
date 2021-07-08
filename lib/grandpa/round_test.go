@@ -112,7 +112,7 @@ func onSameChain(blockState BlockState, a, b common.Hash) bool {
 	return descendant
 }
 
-func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (*Service, chan GrandpaMessage, chan GrandpaMessage, chan GrandpaMessage) {
+func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (*Service, chan *networkVoteMessage, chan GrandpaMessage, chan GrandpaMessage) {
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
@@ -240,19 +240,21 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 	}
 }
 
-func broadcastVotes(from <-chan GrandpaMessage, to []chan GrandpaMessage, done *bool) {
+func broadcastVotes(from <-chan GrandpaMessage, to []chan *networkVoteMessage, done *bool) {
 	for v := range from {
 		for _, tc := range to {
 			if *done {
 				return
 			}
 
-			tc <- v
+			tc <- &networkVoteMessage{
+				msg: v.(*VoteMessage),
+			}
 		}
 	}
 }
 
-func cleanup(gs *Service, in, out chan GrandpaMessage, done *bool) { //nolint
+func cleanup(gs *Service, in chan *networkVoteMessage, out chan GrandpaMessage, done *bool) { //nolint
 	*done = true
 	close(in)
 	gs.cancel()
@@ -265,7 +267,7 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	require.NoError(t, err)
 
 	gss := make([]*Service, len(kr.Keys))
-	ins := make([]chan GrandpaMessage, len(kr.Keys))
+	ins := make([]chan *networkVoteMessage, len(kr.Keys))
 	outs := make([]chan GrandpaMessage, len(kr.Keys))
 	fins := make([]chan GrandpaMessage, len(kr.Keys))
 	done := false
@@ -344,7 +346,7 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 	require.NoError(t, err)
 
 	gss := make([]*Service, len(kr.Keys))
-	ins := make([]chan GrandpaMessage, len(kr.Keys))
+	ins := make([]chan *networkVoteMessage, len(kr.Keys))
 	outs := make([]chan GrandpaMessage, len(kr.Keys))
 	fins := make([]chan GrandpaMessage, len(kr.Keys))
 	done := false
@@ -445,7 +447,7 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 	require.NoError(t, err)
 
 	gss := make([]*Service, len(kr.Keys))
-	ins := make([]chan GrandpaMessage, len(kr.Keys))
+	ins := make([]chan *networkVoteMessage, len(kr.Keys))
 	outs := make([]chan GrandpaMessage, len(kr.Keys))
 	fins := make([]chan GrandpaMessage, len(kr.Keys))
 
@@ -488,7 +490,9 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 		require.NoError(t, err)
 
 		for _, in := range ins {
-			in <- vmsg
+			in <- &networkVoteMessage{
+				msg: vmsg,
+			}
 		}
 	}
 
@@ -546,7 +550,7 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 	require.NoError(t, err)
 
 	gss := make([]*Service, len(kr.Keys))
-	ins := make([]chan GrandpaMessage, len(kr.Keys))
+	ins := make([]chan *networkVoteMessage, len(kr.Keys))
 	outs := make([]chan GrandpaMessage, len(kr.Keys))
 	fins := make([]chan GrandpaMessage, len(kr.Keys))
 	done := false

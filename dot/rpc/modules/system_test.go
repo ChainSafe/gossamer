@@ -338,7 +338,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 
 type mockNetwork struct{}
 
-func (n *mockNetwork) SendMessage(_ network.NotificationsMessage) {}
+func (n *mockNetwork) GossipMessage(_ network.NotificationsMessage) {}
 
 func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	// setup service
