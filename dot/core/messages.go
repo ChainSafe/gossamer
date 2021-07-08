@@ -38,6 +38,13 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (boo
 	}
 
 	for _, tx := range txs {
+		ts, err := s.storageState.TrieState(nil)
+		if err != nil {
+			return false, err
+		}
+
+		rt.SetContextStorage(ts)
+
 		// validate each transaction
 		externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, tx...))
 		val, err := rt.ValidateTransaction(externalExt)
