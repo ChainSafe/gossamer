@@ -70,7 +70,7 @@ func TestStorageObserver_Update(t *testing.T) {
 }
 
 func TestBlockListener_Listen(t *testing.T) {
-	notifyChan := make(chan *types.Block, 100)
+	notifyChan := make(chan *types.Block)
 	mockConnection := &MockWSConnAPI{}
 	bl := BlockListener{
 		Channel: notifyChan,
@@ -95,7 +95,7 @@ func TestBlockListener_Listen(t *testing.T) {
 }
 
 func TestBlockFinalizedListener_Listen(t *testing.T) {
-	notifyChan := make(chan *types.FinalisationInfo, 100)
+	notifyChan := make(chan *types.FinalisationInfo)
 	mockConnection := &MockWSConnAPI{}
 	bfl := BlockFinalizedListener{
 		channel: notifyChan,
