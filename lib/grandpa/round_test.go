@@ -71,6 +71,10 @@ func (n *testNetwork) GossipMessage(msg NotificationsMessage) {
 	}
 }
 
+func (n *testNetwork) SendMessage(_ peer.ID, _ NotificationsMessage) error {
+	return nil
+}
+
 func (n *testNetwork) SendJustificationRequest(to peer.ID, num uint32) {
 	n.justificationRequest = &testJustificationRequest{
 		to:  to,
