@@ -47,17 +47,10 @@ func (l *LightRequest) Encode() ([]byte, error) {
 
 // Decode the message into a LightRequest, it assumes the type byte has been removed
 func (l *LightRequest) Decode(in []byte) error {
-	var msg *LightRequest
-	err := scale.Unmarshal(in, &msg)
+	err := scale.Unmarshal(in, &l)
 	if err != nil {
 		return err
 	}
-
-	l.RmtCallRequest = msg.RmtCallRequest
-	l.RmtReadRequest = msg.RmtReadRequest
-	l.RmtHeaderRequest = msg.RmtHeaderRequest
-	l.RmtReadChildRequest = msg.RmtReadChildRequest
-	l.RmtChangesRequest = msg.RmtChangesRequest
 	return nil
 }
 
@@ -99,16 +92,10 @@ func (l *LightResponse) Encode() ([]byte, error) {
 
 // Decode the message into a LightResponse, it assumes the type byte has been removed
 func (l *LightResponse) Decode(in []byte) error {
-	var msg *LightResponse
-	err := scale.Unmarshal(in, &msg)
+	err := scale.Unmarshal(in, &l)
 	if err != nil {
 		return err
 	}
-
-	l.RmtCallResponse = msg.RmtCallResponse
-	l.RmtReadResponse = msg.RmtReadResponse
-	l.RmtHeaderResponse = msg.RmtHeaderResponse
-	l.RmtChangeResponse = msg.RmtChangeResponse
 	return nil
 }
 

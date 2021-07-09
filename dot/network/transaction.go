@@ -81,7 +81,6 @@ func (tm *TransactionMessage) Decode(in []byte) error {
 	for bytesProcessed < messageSize {
 		var decodedExtrinsic []byte
 		err = scale.Unmarshal(decodedMessage[bytesProcessed:], &decodedExtrinsic)
-		//decodedExtrinsic, err := scale.Decode(decodedMessage.([]byte)[bytesProcessed:], []byte{})
 		if err != nil {
 			return err
 		}
