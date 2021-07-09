@@ -725,7 +725,7 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	}
 
 	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
-	if uint64(vote.number) > nextChange {
+	if uint64(vote.Number) > nextChange {
 		headerNum := new(big.Int).SetUint64(nextChange)
 		header, err := s.blockState.GetHeaderByNumber(headerNum)
 		if err != nil {
