@@ -451,3 +451,39 @@ type ErrorMessageJSON struct {
 	Code    *big.Int `json:"code"`
 	Message string   `json:"message"`
 }
+
+type BufferPool struct {
+	c chan *bytes.Buffer
+}
+
+func NewBufferPool(size int) (bp *BufferPool) {
+	return &BufferPool{
+		c: make(chan *bytes.Buffer, size),
+	}
+}
+
+// Get gets a Buffer from the BufferPool, or creates a new one if none are
+// available in the pool.
+func (bp *BufferPool) Get() (b *bytes.Buffer, err error) {
+	select {
+		case b = <-bp.c:
+		default:
+		err = fmt.Errorf("All slots used")
+	}
+	return
+}
+
+// Put returns the given Buffer to the BufferPool.
+func (bp *BufferPool) Put(b *bytes.Buffer) error {
+	select {
+	case bp.c <- b:
+		return nil
+	default: // Discard the buffer if the pool is full.
+	return fmt.Errorf("Pool is full")
+	}
+}
+
+// NumPooled returns the number of items currently pooled.
+func (bp *BufferPool) NumPooled() int {
+	return len(bp.c)
+}

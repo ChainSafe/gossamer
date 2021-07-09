@@ -1,7 +1,10 @@
 package subscription
 
 import (
+	"bytes"
+	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"testing"
@@ -238,4 +241,29 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.NotNil(t, res)
 	require.Len(t, wsconn.Subscriptions, 8)
 
+}
+
+func TestBufferPool(t *testing.T) {
+	bp := NewBufferPool(5)
+	fmt.Printf("Num Pooled: %v\n", bp.NumPooled())
+	for i := 0; i < 5; i++ {
+		buff := new(bytes.Buffer)
+		err := buff.WriteByte(generateID())
+		require.NoError(t, err)
+		fmt.Printf("bl %v\n", buff.Len())
+		err = bp.Put(buff)
+		require.NoError(t, err)
+	}
+	fmt.Printf("Num Pooled: %v\n", bp.NumPooled())
+
+	for i := 0; i < 6; i++ {
+		res, err := bp.Get()
+		fmt.Printf("Total (%v) - Item %x, %v \n", bp.NumPooled(), res, err)
+	}
+}
+
+func generateID() byte {
+	// skipcq: GSC-G404
+	id := rand.Intn(256) //nolint
+	return byte(id)
 }
