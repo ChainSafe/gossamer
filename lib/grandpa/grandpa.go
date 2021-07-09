@@ -877,9 +877,9 @@ func (s *Service) getBestFinalCandidate() (*Vote, error) {
 
 	// if there are multiple blocks, get the one with the highest number
 	// that is also an ancestor of the prevoted block (or is the prevoted block)
-	if blocks[prevoted.Hash] != 0 {
-		return &prevoted, nil
-	}
+	// if blocks[prevoted.Hash] != 0 {
+	// 	return &prevoted, nil
+	// }
 
 	bfc := &Vote{
 		Number: 0,
