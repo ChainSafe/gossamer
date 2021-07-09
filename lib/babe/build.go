@@ -273,8 +273,7 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot) []*transaction.ValidTrans
 				continue
 			}
 
-			err = err.(*TransactionValidityError).msg
-			if errors.Is(err, errExhaustsResources) || errors.Is(err, errInvalidTransaction) {
+			if errors.Is(e.msg, errExhaustsResources) || errors.Is(e.msg, errInvalidTransaction) {
 				hash, err := b.transactionState.Push(txn)
 				if err != nil {
 					logger.Debug("failed to re-add transaction to queue", "tx", hash, "error", err)
