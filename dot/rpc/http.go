@@ -49,6 +49,7 @@ type HTTPServerConfig struct {
 	NetworkAPI          modules.NetworkAPI
 	CoreAPI             modules.CoreAPI
 	BlockProducerAPI    modules.BlockProducerAPI
+	BlockFinalityAPI    modules.BlockFinalityAPI
 	RuntimeAPI          modules.RuntimeAPI
 	TransactionQueueAPI modules.TransactionStateAPI
 	RPCAPI              modules.RPCAPI
@@ -100,7 +101,7 @@ func (h *HTTPServer) RegisterModules(mods []string) {
 		case "chain":
 			srvc = modules.NewChainModule(h.serverConfig.BlockAPI)
 		case "grandpa":
-			srvc = modules.NewGrandpaModule(h.serverConfig.BlockAPI)
+			srvc = modules.NewGrandpaModule(h.serverConfig.BlockAPI, h.serverConfig.BlockFinalityAPI)
 		case "state":
 			srvc = modules.NewStateModule(h.serverConfig.NetworkAPI, h.serverConfig.StorageAPI, h.serverConfig.CoreAPI)
 		case "rpc":
