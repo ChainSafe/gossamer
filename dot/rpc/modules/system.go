@@ -24,7 +24,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
 )
 
@@ -196,12 +196,13 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 	if err != nil {
 		return err
 	}
-	sdMeta, err := scale.Decode(rawMeta, []byte{})
+	var sdMeta []byte
+	err = scale.Unmarshal(rawMeta, &sdMeta)
 	if err != nil {
 		return err
 	}
 	var metadata ctypes.Metadata
-	err = ctypes.DecodeFromBytes(sdMeta.([]byte), &metadata)
+	err = ctypes.DecodeFromBytes(sdMeta, &metadata)
 	if err != nil {
 		return err
 	}
