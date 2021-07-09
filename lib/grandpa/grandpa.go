@@ -128,7 +128,7 @@ func NewService(cfg *Config) (*Service, error) {
 	logger.Debug("creating service", "authority", cfg.Authority, "key", pub, "voter set", Voters(cfg.Voters))
 
 	// get latest finalised header
-	head, err := cfg.BlockState.GetFinalizedHeader(0, 0)
+	head, err := cfg.BlockState.GetFinalisedHeader(0, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -278,7 +278,7 @@ func (s *Service) initiateRound() error {
 		return err
 	}
 
-	s.head, err = s.blockState.GetFinalizedHeader(s.state.round, s.state.setID)
+	s.head, err = s.blockState.GetFinalisedHeader(s.state.round, s.state.setID)
 	if err != nil {
 		logger.Crit("failed to get finalised header", "error", err)
 		return err
@@ -625,7 +625,7 @@ func (s *Service) attemptToFinalize() error {
 			return ErrServicePaused
 		}
 
-		has, _ := s.blockState.HasFinalizedBlock(s.state.round, s.state.setID)
+		has, _ := s.blockState.HasFinalisedBlock(s.state.round, s.state.setID)
 		if has {
 			logger.Debug("block was finalised!", "round", s.state.round)
 			return nil // a block was finalised, seems like we missed some messages
@@ -865,7 +865,7 @@ func (s *Service) finalise() error {
 	}
 
 	// set finalised head for round in db
-	if err = s.blockState.SetFinalizedHash(bfc.Hash, s.state.round, s.state.setID); err != nil {
+	if err = s.blockState.SetFinalisedHash(bfc.Hash, s.state.round, s.state.setID); err != nil {
 		return err
 	}
 
@@ -874,7 +874,7 @@ func (s *Service) finalise() error {
 	}
 
 	// set latest finalised head in db
-	return s.blockState.SetFinalizedHash(bfc.Hash, 0, 0)
+	return s.blockState.SetFinalisedHash(bfc.Hash, 0, 0)
 }
 
 // createJustification collects the signed precommits received for this round and turns them into

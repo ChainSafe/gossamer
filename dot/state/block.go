@@ -75,7 +75,7 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 	}
 
 	bs.genesisHash = genesisBlock.Header.Hash()
-	bs.lastFinalised, err = bs.GetFinalizedHash(0, 0)
+	bs.lastFinalised, err = bs.GetFinalisedHash(0, 0)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get last finalised hash: %w", err)
 	}
@@ -117,7 +117,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 	bs.genesisHash = header.Hash()
 
 	// set the latest finalised head to the genesis header
-	err = bs.SetFinalizedHash(bs.genesisHash, 0, 0)
+	err = bs.SetFinalisedHash(bs.genesisHash, 0, 0)
 	if err != nil {
 		return nil, err
 	}

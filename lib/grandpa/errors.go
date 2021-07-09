@@ -65,7 +65,7 @@ var (
 	// ErrInvalidMessageType is returned when a network.Message cannot be decoded
 	ErrInvalidMessageType = errors.New("cannot decode invalid message type")
 
-	// ErrNotCommitMessage is returned when calling GetFinalizedHash on a message that isn't a CommitMessage
+	// ErrNotCommitMessage is returned when calling GetFinalisedHash on a message that isn't a CommitMessage
 	ErrNotCommitMessage = errors.New("cannot get finalised hash from VoteMessage")
 
 	// ErrNoJustification is returned when no justification can be found for a block, ie. it has not been finalised

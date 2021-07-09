@@ -113,7 +113,7 @@ func TestSendNeighbourMessage(t *testing.T) {
 	hash := block.Header.Hash()
 	round := uint64(7)
 	setID := uint64(33)
-	err = st.Block.SetFinalizedHash(hash, round, setID)
+	err = st.Block.SetFinalisedHash(hash, round, setID)
 	require.NoError(t, err)
 
 	expected := &NeighbourMessage{
