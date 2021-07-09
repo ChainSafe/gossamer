@@ -19,6 +19,7 @@ package digest
 import (
 	"context"
 	"errors"
+	"math"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -28,7 +29,7 @@ import (
 	log "github.com/ChainSafe/log15"
 )
 
-var maxUint64 = uint64(2^64) - 1
+var maxUint64 = uint64(math.MaxUint64)
 
 var (
 	_      services.Service = &Handler{}
