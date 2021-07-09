@@ -42,7 +42,7 @@ var testHeader = &types.Header{
 var testHash = testHeader.Hash()
 
 func buildTestJustification(t *testing.T, qty int, round, setID uint64, kr *keystore.Ed25519Keyring, subround subround) []*SignedVote {
-	just := []*SignedVote{}
+	var just []*SignedVote
 	for i := 0; i < qty; i++ {
 		j := &SignedVote{
 			Vote:        NewVote(testHash, uint32(round)),
@@ -283,7 +283,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T
 
 	gs.justification[round] = buildTestJustification(t, int(gs.state.threshold()), round, gs.state.setID, kr, precommit)
 
-	fm := gs.newCommitMessage(gs.head, round)
+	fm := gs.newCommitMessage(testGenesisHeader, round)
 
 	h := NewMessageHandler(gs, st.Block)
 	out, err := h.handleMessage("", fm)
