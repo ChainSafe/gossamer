@@ -137,7 +137,7 @@ endif
 	@echo "> Generating mocks at $(path)"
 
 ifeq ($(INMOCKS),1)
-	cd $(path); $(GOPATH)/bin/mockery --name $(interface) --inpackage --keeptree --case underscore
+	cd $(path); $(GOPATH)/bin/mockery --name $(interface) --structname Mock$(interface) --case underscore --keeptree
 else
 	$(GOPATH)/bin/mockery --srcpkg $(path) --name $(interface) --case underscore --inpackage
 endif
