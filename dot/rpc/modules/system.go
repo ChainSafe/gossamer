@@ -30,6 +30,8 @@ import (
 
 // SystemModule is an RPC module providing access to core API points
 type SystemModule struct {
+	blockAPI   BlockAPI
+	runtimeAPI RuntimeAPI
 	networkAPI NetworkAPI
 	systemAPI  SystemAPI
 	coreAPI    CoreAPI
@@ -68,15 +70,23 @@ type StringRequest struct {
 	String string
 }
 
+type DryRunRequest struct {
+	Extrinsic string
+	StateHash *common.Hash
+}
+
 // NewSystemModule creates a new API instance
 func NewSystemModule(net NetworkAPI, sys SystemAPI, core CoreAPI,
-	storage StorageAPI, txAPI TransactionStateAPI) *SystemModule {
+	storage StorageAPI, txAPI TransactionStateAPI, rtAPI RuntimeAPI,
+	blockAPI BlockAPI) *SystemModule {
 	return &SystemModule{
 		networkAPI: net, // TODO: migrate to network state
 		systemAPI:  sys,
 		coreAPI:    core,
 		storageAPI: storage,
 		txStateAPI: txAPI,
+		runtimeAPI: rtAPI,
+		blockAPI:   blockAPI,
 	}
 }
 
@@ -225,4 +235,27 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 
 	*res = U64Response(accountInfo.Nonce)
 	return nil
+}
+
+func (sm *SystemModule) DryRun(r *http.Request, req *DryRunRequest, res *string) error {
+	if req == nil || req.Extrinsic == "" {
+		return errors.New("cannot execute dry run with empty extrinsic value")
+	}
+
+	var h common.Hash
+
+	if req.StateHash == nil {
+		h = sm.blockAPI.BestBlockHash()
+	} else {
+		h = *req.StateHash
+	}
+
+	header, err := sm.blockAPI.GetHeader(h)
+	if err != nil {
+		return err
+	}
+
+	if err = sm.runtimeAPI.InitializeBlock(header); err != nil {
+		return err
+	}
 }

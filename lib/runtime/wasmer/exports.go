@@ -27,6 +27,22 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
+func (in *Instance) DryRunApplyExtrinsic(e types.Extrinsic, h *types.Header) ([]byte, error) {
+	if err := in.InitializeBlock(h); err != nil {
+		return nil, err
+	}
+
+	r, err := in.ApplyExtrinsic(e)
+	if err != nil {
+		return nil, err
+	}
+
+	if r[0] != 0 {
+		return nil, runtime.NewValidateTransactionError(r)
+	}
+
+}
+
 // ValidateTransaction runs the extrinsic through runtime function TaggedTransactionQueue_validate_transaction and returns *Validity
 func (in *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error) {
 	ret, err := in.exec(runtime.TaggedTransactionQueueValidateTransaction, e)
