@@ -35,6 +35,7 @@ type SystemModule struct {
 	coreAPI    CoreAPI
 	storageAPI StorageAPI
 	txStateAPI TransactionStateAPI
+	blockAPI   BlockAPI
 }
 
 // EmptyRequest represents an RPC request with no fields
@@ -66,6 +67,12 @@ type U64Response uint64
 // StringRequest holds string request
 type StringRequest struct {
 	String string
+}
+
+type SyncStateResponse struct {
+	CurrentBlock  uint32 `json:"currentBlock"`
+	HighestBlock  uint32 `json:"highestBlock"`
+	StartingBlock uint32 `json:"startingBlock"`
 }
 
 // NewSystemModule creates a new API instance
@@ -224,5 +231,15 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 	}
 
 	*res = U64Response(accountInfo.Nonce)
+	return nil
+}
+
+func (sm *SystemModule) SyncState(r *http.Request, req *EmptyRequest, res *SyncStateResponse) error {
+	h, err := sm.blockAPI.GetHeader(sm.blockAPI.BestBlockHash())
+	if err != nil {
+		return err
+	}
+
+	res.CurrentBlock = uint32(h.Number.Int64())
 	return nil
 }
