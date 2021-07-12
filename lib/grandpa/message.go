@@ -17,7 +17,6 @@
 package grandpa
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"math/big"
@@ -79,8 +78,8 @@ func (m *SignedMessage) Decode(r io.Reader) (err error) {
 		return err
 	}
 
-	m.Hash = vote.hash
-	m.Number = vote.number
+	m.Hash = vote.Hash
+	m.Number = vote.Number
 
 	sig, err := common.Read64Bytes(r)
 	if err != nil {
@@ -272,15 +271,19 @@ func (f *CommitMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 	}, nil
 }
 
-func (s *Service) newCommitMessage(header *types.Header, round uint64) *CommitMessage {
-	just := s.justification[round]
-	precommits, authData := justificationToCompact(just)
+func (s *Service) newCommitMessage(header *types.Header, round uint64) (*CommitMessage, error) {
+	pcs, err := s.grandpaState.GetPrecommits(round, s.state.setID)
+	if err != nil {
+		return nil, err
+	}
+
+	precommits, authData := justificationToCompact(pcs)
 	return &CommitMessage{
 		Round:      round,
 		Vote:       NewVoteFromHeader(header),
 		Precommits: precommits,
 		AuthData:   authData,
-	}
+	}, nil
 }
 
 func justificationToCompact(just []*SignedVote) ([]*Vote, []*AuthData) {
@@ -296,6 +299,23 @@ func justificationToCompact(just []*SignedVote) ([]*Vote, []*AuthData) {
 	}
 
 	return precommits, authData
+}
+
+func compactToJustification(vs []*Vote, auths []*AuthData) ([]*SignedVote, error) {
+	if len(vs) != len(auths) {
+		return nil, errVoteToSignatureMismatch
+	}
+
+	just := make([]*SignedVote, len(vs))
+	for i, v := range vs {
+		just[i] = &SignedVote{
+			Vote:        v,
+			Signature:   auths[i].Signature,
+			AuthorityID: auths[i].AuthorityID,
+		}
+	}
+
+	return just, nil
 }
 
 type catchUpRequest struct {
@@ -337,49 +357,26 @@ type catchUpResponse struct {
 }
 
 func (s *Service) newCatchUpResponse(round, setID uint64) (*catchUpResponse, error) {
-	header, err := s.blockState.GetFinalizedHeader(round, setID)
+	header, err := s.blockState.GetFinalisedHeader(round, setID)
 	if err != nil {
 		return nil, err
 	}
 
-	has, err := s.blockState.HasJustification(header.Hash())
+	pvs, err := s.grandpaState.GetPrevotes(round, setID)
 	if err != nil {
 		return nil, err
 	}
 
-	if !has {
-		return nil, ErrNoJustification
-	}
-
-	just, err := s.blockState.GetJustification(header.Hash())
+	pcs, err := s.grandpaState.GetPrecommits(round, setID)
 	if err != nil {
 		return nil, err
 	}
-
-	r := &bytes.Buffer{}
-	sd := &scale.Decoder{Reader: r}
-	_, err = r.Write(just)
-	if err != nil {
-		return nil, err
-	}
-
-	d, err := sd.Decode([]*SignedVote{})
-	if err != nil {
-		return nil, err
-	}
-	pvj := d.([]*SignedVote)
-
-	d, err = sd.Decode([]*SignedVote{})
-	if err != nil {
-		return nil, err
-	}
-	pcj := d.([]*SignedVote)
 
 	return &catchUpResponse{
 		SetID:                  setID,
 		Round:                  round,
-		PreVoteJustification:   pvj,
-		PreCommitJustification: pcj,
+		PreVoteJustification:   pvs,
+		PreCommitJustification: pcs,
 		Hash:                   header.Hash(),
 		Number:                 uint32(header.Number.Uint64()),
 	}, nil

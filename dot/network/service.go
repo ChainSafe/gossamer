@@ -337,7 +337,7 @@ func (s *Service) sentBlockIntervalTelemetry() {
 		}
 		bestHash := best.Hash()
 
-		finalized, err := s.blockState.GetFinalizedHeader(0, 0) //nolint
+		finalized, err := s.blockState.GetFinalisedHeader(0, 0) //nolint
 		if err != nil {
 			continue
 		}

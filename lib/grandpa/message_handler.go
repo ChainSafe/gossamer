@@ -86,7 +86,7 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 }
 
 func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMessage) error {
-	currFinalized, err := h.blockState.GetFinalizedHeader(0, 0)
+	currFinalized, err := h.blockState.GetFinalisedHeader(0, 0)
 	if err != nil {
 		return err
 	}
@@ -116,25 +116,32 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) (*ConsensusMessage, error) {
 	logger.Debug("received finalisation message", "msg", msg)
 
-	if has, _ := h.blockState.HasFinalizedBlock(msg.Round, h.grandpa.state.setID); has {
+	if has, _ := h.blockState.HasFinalisedBlock(msg.Round, h.grandpa.state.setID); has {
 		return nil, nil
 	}
 
 	// check justification here
-	err := h.verifyCommitMessageJustification(msg)
-	if err != nil {
+	if err := h.verifyCommitMessageJustification(msg); err != nil {
 		return nil, err
 	}
 
 	// set finalised head for round in db
-	err = h.blockState.SetFinalizedHash(msg.Vote.hash, msg.Round, h.grandpa.state.setID)
+	if err := h.blockState.SetFinalisedHash(msg.Vote.Hash, msg.Round, h.grandpa.state.setID); err != nil {
+		return nil, err
+	}
+
+	pcs, err := compactToJustification(msg.Precommits, msg.AuthData)
 	if err != nil {
+		return nil, err
+	}
+
+	if err = h.grandpa.grandpaState.SetPrecommits(msg.Round, msg.SetID, pcs); err != nil {
 		return nil, err
 	}
 
 	if msg.Round >= h.grandpa.state.round {
 		// set latest finalised head in db
-		err = h.blockState.SetFinalizedHash(msg.Vote.hash, 0, 0)
+		err = h.blockState.SetFinalisedHash(msg.Vote.Hash, 0, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -214,6 +221,15 @@ func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponse) error {
 		return err
 	}
 
+	// set prevotes and precommits in db
+	if err = h.grandpa.grandpaState.SetPrevotes(msg.Round, msg.SetID, msg.PreVoteJustification); err != nil {
+		return err
+	}
+
+	if err = h.grandpa.grandpaState.SetPrecommits(msg.Round, msg.SetID, msg.PreCommitJustification); err != nil {
+		return err
+	}
+
 	// update state and signal to grandpa we are ready to initiate
 	head, err := h.grandpa.blockState.GetHeader(msg.Hash)
 	if err != nil {
@@ -266,7 +282,7 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 			continue
 		}
 
-		isDescendant, err := h.blockState.IsDescendantOf(fm.Vote.hash, just.Vote.hash)
+		isDescendant, err := h.blockState.IsDescendantOf(fm.Vote.Hash, just.Vote.Hash)
 		if err != nil {
 			logger.Warn("verifyCommitMessageJustification", "error", err)
 		}
@@ -297,7 +313,7 @@ func (h *MessageHandler) verifyPreVoteJustification(msg *catchUpResponse) (commo
 			continue
 		}
 
-		votes[just.Vote.hash]++
+		votes[just.Vote.Hash]++
 	}
 
 	var prevote common.Hash
@@ -324,7 +340,7 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *catchUpResponse) erro
 			continue
 		}
 
-		if just.Vote.hash == msg.Hash && just.Vote.number == msg.Number {
+		if just.Vote.Hash == msg.Hash && just.Vote.Number == msg.Number {
 			count++
 		}
 	}
@@ -413,11 +429,11 @@ func (s *Service) VerifyBlockJustification(justification []byte) error {
 	}
 
 	for _, just := range fj.Commit.Precommits {
-		if just.Vote.hash != fj.Commit.Hash {
+		if just.Vote.Hash != fj.Commit.Hash {
 			return ErrJustificationHashMismatch
 		}
 
-		if just.Vote.number != fj.Commit.Number {
+		if just.Vote.Number != fj.Commit.Number {
 			return ErrJustificationNumberMismatch
 		}
 

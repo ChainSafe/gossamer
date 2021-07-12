@@ -42,7 +42,7 @@ type BlockState interface {
 	GetMessageQueue(common.Hash) ([]byte, error)
 	GetJustification(common.Hash) ([]byte, error)
 	SetJustification(hash common.Hash, data []byte) error
-	SetFinalizedHash(hash common.Hash, round, setID uint64) error
+	SetFinalisedHash(hash common.Hash, round, setID uint64) error
 	AddBlockToBlockTree(header *types.Header) error
 	GetHashByNumber(*big.Int) (common.Hash, error)
 	GetBlockByHash(common.Hash) (*types.Block, error)

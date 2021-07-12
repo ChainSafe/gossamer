@@ -417,7 +417,7 @@ func (b *Service) invokeBlockAuthoring() error {
 				return nil
 			case <-slotDone[i]:
 				slotNum := startSlot + uint64(i)
-				err = b.handleSlot(slotNum)
+				err = b.handleSlot(epoch, slotNum)
 				if err == ErrNotAuthorized {
 					logger.Debug("not authorized to produce a block in this slot",
 						"epoch", epoch,
@@ -479,7 +479,7 @@ func (b *Service) waitForEpochStart(epoch uint64) (uint64, error) {
 	return epochStart, nil
 }
 
-func (b *Service) handleSlot(slotNum uint64) error {
+func (b *Service) handleSlot(epoch, slotNum uint64) error {
 	if _, has := b.slotToProof[slotNum]; !has {
 		return ErrNotAuthorized
 	}
@@ -523,6 +523,7 @@ func (b *Service) handleSlot(slotNum uint64) error {
 	logger.Info("built block", "hash", block.Header.Hash().String(),
 		"number", block.Header.Number,
 		"state root", block.Header.StateRoot,
+		"epoch", epoch,
 		"slot", slotNum,
 	)
 	logger.Debug("built block",

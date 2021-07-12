@@ -35,9 +35,9 @@ type BlockState interface {
 	GetHeaderByNumber(num *big.Int) (*types.Header, error)
 	IsDescendantOf(parent, child common.Hash) (bool, error)
 	HighestCommonAncestor(a, b common.Hash) (common.Hash, error)
-	HasFinalizedBlock(round, setID uint64) (bool, error)
-	GetFinalizedHeader(uint64, uint64) (*types.Header, error)
-	SetFinalizedHash(common.Hash, uint64, uint64) error
+	HasFinalisedBlock(round, setID uint64) (bool, error)
+	GetFinalisedHeader(uint64, uint64) (*types.Header, error)
+	SetFinalisedHash(common.Hash, uint64, uint64) error
 	BestBlockHeader() (*types.Header, error)
 	BestBlockHash() common.Hash
 	Leaves() []common.Hash
@@ -58,6 +58,12 @@ type GrandpaState interface { //nolint
 	GetCurrentSetID() (uint64, error)
 	GetAuthorities(setID uint64) ([]*types.GrandpaVoter, error)
 	GetSetIDByBlockNumber(num *big.Int) (uint64, error)
+	SetLatestRound(round uint64) error
+	GetLatestRound() (uint64, error)
+	SetPrevotes(round, setID uint64, data []*SignedVote) error
+	SetPrecommits(round, setID uint64, data []*SignedVote) error
+	GetPrevotes(round, setID uint64) ([]*SignedVote, error)
+	GetPrecommits(round, setID uint64) ([]*SignedVote, error)
 }
 
 // DigestHandler is the interface required by GRANDPA for the digest handler
