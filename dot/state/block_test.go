@@ -269,7 +269,7 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 
 func TestFinalizedHash(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
-	h, err := bs.GetFinalizedHash(0, 0)
+	h, err := bs.GetFinalisedHash(0, 0)
 	require.NoError(t, err)
 	require.Equal(t, testGenesisHeader.Hash(), h)
 
@@ -291,25 +291,12 @@ func TestFinalizedHash(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = bs.SetFinalizedHash(testhash, 1, 1)
+	err = bs.SetFinalisedHash(testhash, 1, 1)
 	require.NoError(t, err)
 
-	h, err = bs.GetFinalizedHash(1, 1)
+	h, err = bs.GetFinalisedHash(1, 1)
 	require.NoError(t, err)
 	require.Equal(t, testhash, h)
-}
-
-func TestLatestFinalizedRound(t *testing.T) {
-	bs := newTestBlockState(t, testGenesisHeader)
-	r, err := bs.GetRound()
-	require.NoError(t, err)
-	require.Equal(t, uint64(0), r)
-
-	err = bs.SetRound(99)
-	require.NoError(t, err)
-	r, err = bs.GetRound()
-	require.NoError(t, err)
-	require.Equal(t, uint64(99), r)
 }
 
 func TestFinalization_DeleteBlock(t *testing.T) {
@@ -330,7 +317,7 @@ func TestFinalization_DeleteBlock(t *testing.T) {
 
 	// pick block to finalise
 	fin := leaves[len(leaves)-1]
-	err := bs.SetFinalizedHash(fin, 1, 1)
+	err := bs.SetFinalisedHash(fin, 1, 1)
 	require.NoError(t, err)
 
 	after := bs.bt.GetAllBlocks()
@@ -568,7 +555,7 @@ func TestNumberIsFinalised(t *testing.T) {
 
 	err = bs.SetHeader(header100)
 	require.NoError(t, err)
-	err = bs.SetFinalizedHash(header100.Hash(), 0, 0)
+	err = bs.SetFinalisedHash(header100.Hash(), 0, 0)
 	require.NoError(t, err)
 
 	fin, err = bs.NumberIsFinalised(big.NewInt(0))
@@ -611,7 +598,7 @@ func TestSetFinalisedHash_setFirstSlotOnFinalisation(t *testing.T) {
 
 	err = bs.SetHeader(header100)
 	require.NoError(t, err)
-	err = bs.SetFinalizedHash(header100.Hash(), 0, 0)
+	err = bs.SetFinalisedHash(header100.Hash(), 0, 0)
 	require.NoError(t, err)
 	require.Equal(t, header100.Hash(), bs.lastFinalised)
 

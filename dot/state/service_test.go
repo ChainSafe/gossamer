@@ -280,7 +280,7 @@ func TestService_PruneStorage(t *testing.T) {
 	}
 
 	// finalise a block
-	serv.Block.SetFinalizedHash(toFinalize, 0, 0)
+	serv.Block.SetFinalisedHash(toFinalize, 0, 0)
 
 	time.Sleep(1 * time.Second)
 

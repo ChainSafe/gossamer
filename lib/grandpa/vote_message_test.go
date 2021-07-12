@@ -201,7 +201,7 @@ func TestValidateMessage_Valid(t *testing.T) {
 
 	vote, err := gs.validateMessage(msg)
 	require.NoError(t, err)
-	require.Equal(t, h.Hash(), vote.hash)
+	require.Equal(t, h.Hash(), vote.Hash)
 }
 
 func TestValidateMessage_InvalidSignature(t *testing.T) {
