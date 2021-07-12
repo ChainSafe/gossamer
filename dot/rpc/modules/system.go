@@ -25,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/btcsuite/btcutil/base58"
 	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
 )
 
@@ -224,5 +225,15 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 	}
 
 	*res = U64Response(accountInfo.Nonce)
+	return nil
+}
+
+func (sm *SystemModule) LocalPeerId(r *http.Request, req *EmptyRequest, res *string) error {
+	netstate := sm.networkAPI.NetworkState()
+	if netstate.PeerID == "" {
+		return errors.New("peer id cannot be empty")
+	}
+
+	*res = base58.Encode([]byte(netstate.PeerID))
 	return nil
 }
