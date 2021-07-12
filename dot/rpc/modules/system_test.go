@@ -383,7 +383,7 @@ func TestLocalPeerId(t *testing.T) {
 	}
 
 	mocknetAPI := new(mocks.MockNetworkAPI)
-	mocknetAPI.On("NetworkState").Return(state)
+	mocknetAPI.On("NetworkState").Return(state).Once()
 
 	sysmodules := new(SystemModule)
 	sysmodules.networkAPI = mocknetAPI
@@ -393,4 +393,9 @@ func TestLocalPeerId(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, res, encoded)
+
+	state.PeerID = ""
+	mocknetAPI.On("NetworkState").Return(state).Once()
+	err = sysmodules.LocalPeerId(nil, nil, &res)
+	require.Error(t, err)
 }
