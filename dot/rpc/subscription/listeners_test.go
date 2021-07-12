@@ -121,8 +121,8 @@ func TestBlockFinalizedListener_Listen(t *testing.T) {
 }
 
 func TestExtrinsicSubmitListener_Listen(t *testing.T) {
-	notifyImportedChan := make(chan *types.Block)
-	notifyFinalizedChan := make(chan *types.FinalisationInfo)
+	notifyImportedChan := make(chan *types.Block, 100)
+	notifyFinalizedChan := make(chan *types.FinalisationInfo, 100)
 
 	mockConnection := &MockWSConnAPI{}
 	esl := ExtrinsicSubmitListener{

@@ -311,7 +311,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 
 	// check if rpc service is enabled
 	if enabled := cfg.RPC.Enabled || cfg.RPC.WS; enabled {
-		rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc, bp, sysSrvc)
+		rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc, bp, sysSrvc, fg)
 		nodeSrvcs = append(nodeSrvcs, rpcSrvc)
 	} else {
 		logger.Debug("rpc service disabled by default", "rpc", enabled)

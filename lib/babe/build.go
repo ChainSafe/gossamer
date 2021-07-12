@@ -237,11 +237,6 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 		txn := b.transactionState.Pop()
 		// Transaction queue is empty.
 		if txn == nil {
-			return included
-		}
-
-		// Move to next extrinsic.
-		if txn.Extrinsic == nil {
 			continue
 		}
 
@@ -262,6 +257,20 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*t
 			// It is included in the block.
 			if _, ok := err.(*DispatchOutcomeError); !ok {
 				continue
+			}
+
+			// don't drop transactions that may be valid in a later block ie.
+			// run out of gas for this block or have a nonce that may be valid in a later block
+			var e *TransactionValidityError
+			if !errors.As(err, &e) {
+				continue
+			}
+
+			if errors.Is(e.msg, errExhaustsResources) || errors.Is(e.msg, errInvalidTransaction) {
+				hash, err := b.transactionState.Push(txn)
+				if err != nil {
+					logger.Debug("failed to re-add transaction to queue", "tx", hash, "error", err)
+				}
 			}
 		}
 
