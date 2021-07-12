@@ -75,7 +75,7 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 	}
 
 	bs.genesisHash = genesisBlock.Header.Hash()
-	bs.lastFinalised, err = bs.GetFinalizedHash(0, 0)
+	bs.lastFinalised, err = bs.GetFinalisedHash(0, 0)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get last finalised hash: %w", err)
 	}
@@ -117,12 +117,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 	bs.genesisHash = header.Hash()
 
 	// set the latest finalised head to the genesis header
-	err = bs.SetFinalizedHash(bs.genesisHash, 0, 0)
-	if err != nil {
-		return nil, err
-	}
-
-	err = bs.SetRound(0)
+	err = bs.SetFinalisedHash(bs.genesisHash, 0, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -166,16 +161,6 @@ func blockBodyKey(hash common.Hash) []byte {
 // arrivalTimeKey = arrivalTimePrefix + hash
 func arrivalTimeKey(hash common.Hash) []byte {
 	return append(arrivalTimePrefix, hash.ToBytes()...)
-}
-
-// finalizedHashKey = hashkey + round + setID (LE encoded)
-func finalizedHashKey(round, setID uint64) []byte {
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, round)
-	key := append(common.FinalizedBlockHashKey, buf...)
-	buf2 := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf2, setID)
-	return append(key, buf2...)
 }
 
 // GenesisHash returns the hash of the genesis block
@@ -371,127 +356,6 @@ func (bs *BlockState) GetBlockBody(hash common.Hash) (*types.Body, error) {
 // SetBlockBody will add a block body to the db
 func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
 	return bs.db.Put(blockBodyKey(hash), body.AsOptional().Value())
-}
-
-// HasFinalizedBlock returns true if there is a finalised block for a given round and setID, false otherwise
-func (bs *BlockState) HasFinalizedBlock(round, setID uint64) (bool, error) {
-	return bs.db.Has(finalizedHashKey(round, setID))
-}
-
-// NumberIsFinalised checks if a block number is finalised or not
-func (bs *BlockState) NumberIsFinalised(num *big.Int) (bool, error) {
-	header, err := bs.GetFinalizedHeader(0, 0)
-	if err != nil {
-		return false, err
-	}
-
-	return num.Cmp(header.Number) <= 0, nil
-}
-
-// GetFinalizedHeader returns the latest finalised block header
-func (bs *BlockState) GetFinalizedHeader(round, setID uint64) (*types.Header, error) {
-	h, err := bs.GetFinalizedHash(round, setID)
-	if err != nil {
-		return nil, err
-	}
-
-	header, err := bs.GetHeader(h)
-	if err != nil {
-		return nil, err
-	}
-
-	return header, nil
-}
-
-// GetFinalizedHash gets the latest finalised block header
-func (bs *BlockState) GetFinalizedHash(round, setID uint64) (common.Hash, error) {
-	h, err := bs.db.Get(finalizedHashKey(round, setID))
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	return common.NewHash(h), nil
-}
-
-// SetFinalizedHash sets the latest finalised block header
-func (bs *BlockState) SetFinalizedHash(hash common.Hash, round, setID uint64) error {
-	bs.Lock()
-	defer bs.Unlock()
-
-	has, _ := bs.HasHeader(hash)
-	if !has {
-		return fmt.Errorf("cannot finalise unknown block %s", hash)
-	}
-
-	// if nothing was previously finalised, set the first slot of the network to the
-	// slot number of block 1, which is now being set as final
-	if bs.lastFinalised.Equal(bs.genesisHash) && !hash.Equal(bs.genesisHash) {
-		err := bs.setFirstSlotOnFinalisation()
-		if err != nil {
-			return err
-		}
-	}
-
-	if round > 0 {
-		go bs.notifyFinalized(hash, round, setID)
-
-		err := bs.SetRound(round)
-		if err != nil {
-			return err
-		}
-	}
-
-	pruned := bs.bt.Prune(hash)
-	for _, rem := range pruned {
-		header, err := bs.GetHeader(rem)
-		if err != nil {
-			return err
-		}
-
-		err = bs.DeleteBlock(rem)
-		if err != nil {
-			return err
-		}
-
-		logger.Trace("pruned block", "hash", rem, "number", header.Number)
-		bs.pruneKeyCh <- header
-	}
-
-	bs.lastFinalised = hash
-	return bs.db.Put(finalizedHashKey(round, setID), hash[:])
-}
-
-func (bs *BlockState) setFirstSlotOnFinalisation() error {
-	header, err := bs.GetHeaderByNumber(big.NewInt(1))
-	if err != nil {
-		return err
-	}
-
-	slot, err := types.GetSlotFromHeader(header)
-	if err != nil {
-		return err
-	}
-
-	return bs.baseState.storeFirstSlot(slot)
-}
-
-// SetRound sets the latest finalised GRANDPA round in the db
-// TODO: this needs to use both setID and round
-func (bs *BlockState) SetRound(round uint64) error {
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, round)
-	return bs.db.Put(common.LatestFinalizedRoundKey, buf)
-}
-
-// GetRound gets the latest finalised GRANDPA round from the db
-func (bs *BlockState) GetRound() (uint64, error) {
-	r, err := bs.db.Get(common.LatestFinalizedRoundKey)
-	if err != nil {
-		return 0, err
-	}
-
-	round := binary.LittleEndian.Uint64(r)
-	return round, nil
 }
 
 // CompareAndSetBlockData will compare empty fields and set all elements in a block data to db

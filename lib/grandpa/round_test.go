@@ -607,7 +607,7 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 		head := gss[0].blockState.(*state.BlockState).BestBlockHash()
 		for _, fb := range finalised {
 			require.NotNil(t, fb)
-			require.Equal(t, head, fb.Vote.hash)
+			require.Equal(t, head, fb.Vote.Hash)
 			require.GreaterOrEqual(t, len(fb.Precommits), len(kr.Keys)/2)
 			require.GreaterOrEqual(t, len(fb.AuthData), len(kr.Keys)/2)
 			finalised[0].Precommits = []*Vote{}

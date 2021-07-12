@@ -38,9 +38,9 @@ type BlockState interface {
 	GetBlockByHash(common.Hash) (*types.Block, error)
 	GenesisHash() common.Hash
 	GetSlotForBlock(common.Hash) (uint64, error)
-	GetFinalizedHeader(uint64, uint64) (*types.Header, error)
-	GetFinalizedHash(uint64, uint64) (common.Hash, error)
-	SetFinalizedHash(common.Hash, uint64, uint64) error
+	GetFinalisedHeader(uint64, uint64) (*types.Header, error)
+	GetFinalisedHash(uint64, uint64) (common.Hash, error)
+	SetFinalisedHash(common.Hash, uint64, uint64) error
 	RegisterImportedChannel(ch chan<- *types.Block) (byte, error)
 	UnregisterImportedChannel(id byte)
 	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)

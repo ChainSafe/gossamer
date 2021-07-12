@@ -65,7 +65,7 @@ var (
 	// ErrInvalidMessageType is returned when a network.Message cannot be decoded
 	ErrInvalidMessageType = errors.New("cannot decode invalid message type")
 
-	// ErrNotCommitMessage is returned when calling GetFinalizedHash on a message that isn't a CommitMessage
+	// ErrNotCommitMessage is returned when calling GetFinalisedHash on a message that isn't a CommitMessage
 	ErrNotCommitMessage = errors.New("cannot get finalised hash from VoteMessage")
 
 	// ErrNoJustification is returned when no justification can be found for a block, ie. it has not been finalised
@@ -101,5 +101,6 @@ var (
 	// ErrAuthorityNotInSet is returned when a precommit within a justification is signed by a key not in the authority set
 	ErrAuthorityNotInSet = errors.New("authority is not in set")
 
-	errVoteExists = errors.New("already have vote")
+	errVoteExists              = errors.New("already have vote")
+	errVoteToSignatureMismatch = errors.New("votes and authority count mismatch")
 )
