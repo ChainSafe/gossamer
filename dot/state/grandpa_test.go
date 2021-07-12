@@ -120,5 +120,21 @@ func TestGrandpaState_GetSetIDByBlockNumber(t *testing.T) {
 	setID, err = gs.GetSetIDByBlockNumber(big.NewInt(101))
 	require.NoError(t, err)
 	require.Equal(t, genesisSetID+1, setID)
+}
 
+func TestGrandpaState_LatestRound(t *testing.T) {
+	db := NewInMemoryDB(t)
+	gs, err := NewGrandpaStateFromGenesis(db, testAuths)
+	require.NoError(t, err)
+
+	r, err := gs.GetLatestRound()
+	require.NoError(t, err)
+	require.Equal(t, uint64(0), r)
+
+	err = gs.SetLatestRound(99)
+	require.NoError(t, err)
+
+	r, err = gs.GetLatestRound()
+	require.NoError(t, err)
+	require.Equal(t, uint64(99), r)
 }

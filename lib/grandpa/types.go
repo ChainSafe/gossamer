@@ -18,8 +18,6 @@ package grandpa
 
 import (
 	"bytes"
-	"encoding/binary"
-	"fmt"
 	"io"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -30,8 +28,10 @@ import (
 
 //nolint
 type (
-	Voter  = types.GrandpaVoter
-	Voters = types.GrandpaVoters
+	Voter      = types.GrandpaVoter
+	Voters     = types.GrandpaVoters
+	Vote       = types.GrandpaVote
+	SignedVote = types.GrandpaSignedVote
 )
 
 type subround byte
@@ -121,25 +121,19 @@ func (s *State) threshold() uint64 {
 	return uint64(2 * len(s.voters) / 3)
 }
 
-// Vote represents a vote for a block with the given hash and number
-type Vote struct {
-	hash   common.Hash
-	number uint32
-}
-
 // NewVote returns a new Vote given a block hash and number
 func NewVote(hash common.Hash, number uint32) *Vote {
 	return &Vote{
-		hash:   hash,
-		number: number,
+		Hash:   hash,
+		Number: number,
 	}
 }
 
 // NewVoteFromHeader returns a new Vote for a given header
 func NewVoteFromHeader(h *types.Header) *Vote {
 	return &Vote{
-		hash:   h.Hash(),
-		number: uint32(h.Number.Int64()),
+		Hash:   h.Hash(),
+		Number: uint32(h.Number.Int64()),
 	}
 }
 
@@ -160,80 +154,6 @@ func NewVoteFromHash(hash common.Hash, blockState BlockState) (*Vote, error) {
 	}
 
 	return NewVoteFromHeader(h), nil
-}
-
-// Encode returns the SCALE encoding of a Vote
-func (v *Vote) Encode() ([]byte, error) {
-	buf := make([]byte, 4)
-	binary.LittleEndian.PutUint32(buf, v.number)
-	return append(v.hash[:], buf...), nil
-}
-
-// Decode returns the SCALE decoded Vote
-func (v *Vote) Decode(r io.Reader) (*Vote, error) {
-	if v == nil {
-		v = new(Vote)
-	}
-
-	var err error
-	v.hash, err = common.ReadHash(r)
-	if err != nil {
-		return nil, err
-	}
-
-	v.number, err = common.ReadUint32(r)
-	if err != nil {
-		return nil, err
-	}
-
-	return v, nil
-}
-
-// String returns the Vote as a string
-func (v *Vote) String() string {
-	return fmt.Sprintf("hash=%s number=%d", v.hash, v.number)
-}
-
-// SignedVote represents a signed precommit message for a finalised block
-type SignedVote struct {
-	Vote        *Vote
-	Signature   [64]byte
-	AuthorityID ed25519.PublicKeyBytes
-}
-
-func (s *SignedVote) String() string {
-	return fmt.Sprintf("SignedVote hash=%s number=%d authority=%s",
-		s.Vote.hash,
-		s.Vote.number,
-		s.AuthorityID,
-	)
-}
-
-// Encode returns the SCALE encoded Justification
-func (s *SignedVote) Encode() ([]byte, error) {
-	enc, err := s.Vote.Encode()
-	if err != nil {
-		return nil, err
-	}
-
-	enc = append(enc, s.Signature[:]...)
-	enc = append(enc, s.AuthorityID[:]...)
-	return enc, nil
-}
-
-// Decode returns the SCALE decoded Justification
-func (s *SignedVote) Decode(r io.Reader) (*SignedVote, error) {
-	sd := &scale.Decoder{Reader: r}
-	i, err := sd.Decode(s)
-	if err != nil {
-		return nil, err
-	}
-
-	d := i.(*SignedVote)
-	s.Vote = d.Vote
-	s.Signature = d.Signature
-	s.AuthorityID = d.AuthorityID
-	return s, nil
 }
 
 // Commit contains all the signed precommits for a given block
@@ -260,12 +180,12 @@ func newJustification(round uint64, hash common.Hash, number uint32, j []*Signed
 	}
 }
 
-// Encode returns the SCALE encoding of a FullJustification
+// Encode returns the SCALE encoding of a Justification
 func (j *Justification) Encode() ([]byte, error) {
 	return scale.Encode(j)
 }
 
-// Decode returns a SCALE decoded FullJustification
+// Decode returns a SCALE decoded Justification
 func (j *Justification) Decode(r io.Reader) error {
 	sd := &scale.Decoder{Reader: r}
 	i, err := sd.Decode(&Justification{Commit: &Commit{}})

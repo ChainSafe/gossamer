@@ -37,7 +37,7 @@ func NewMockBlockState(n *big.Int) *MockBlockState {
 	m.On("GenesisHash").Return(common.NewHash([]byte{}))
 	m.On("BestBlockNumber").Return(big.NewInt(1), nil)
 	m.On("HasBlockBody", mock.AnythingOfType("common.Hash")).Return(false, nil)
-	m.On("GetFinalizedHeader", mock.AnythingOfType("uint64"), mock.AnythingOfType("uint64")).Return(header, nil)
+	m.On("GetFinalisedHeader", mock.AnythingOfType("uint64"), mock.AnythingOfType("uint64")).Return(header, nil)
 	m.On("GetHashByNumber", mock.AnythingOfType("*big.Int")).Return(common.Hash{}, nil)
 
 	return m

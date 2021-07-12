@@ -351,7 +351,7 @@ func (s *EpochState) GetEpochFromTime(t time.Time) (uint64, error) {
 // SetFirstSlot sets the first slot number of the network
 func (s *EpochState) SetFirstSlot(slot uint64) error {
 	// check if block 1 was finalised already; if it has, don't set first slot again
-	header, err := s.blockState.GetFinalizedHeader(0, 0)
+	header, err := s.blockState.GetFinalisedHeader(0, 0)
 	if err != nil {
 		return err
 	}
