@@ -234,10 +234,11 @@ func (c *WSConn) unsubscribeStorageListener(reqID float64, l Listener, _ interfa
 
 func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, error) {
 	bl := &BlockListener{
-		Channel: make(chan *types.Block, DEFAULT_BUFFER_SIZE),
-		wsconn:  c,
-		cancel:  make(chan interface{}, 1),
-		done:    make(chan interface{}, 1),
+		Channel:       make(chan *types.Block, DEFAULT_BUFFER_SIZE),
+		wsconn:        c,
+		cancel:        make(chan interface{}, 1),
+		cancelTimeout: defaultCancelTimeout,
+		done:          make(chan interface{}, 1),
 	}
 
 	if c.BlockAPI == nil {
@@ -266,11 +267,11 @@ func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, erro
 
 func (c *WSConn) initBlockFinalizedListener(reqID float64, _ interface{}) (Listener, error) {
 	bfl := &BlockFinalizedListener{
-		channel: make(chan *types.FinalisationInfo),
-		cancel:  make(chan interface{}, 1),
-		done:    make(chan interface{}, 1),
-
-		wsconn: c,
+		channel:       make(chan *types.FinalisationInfo),
+		cancel:        make(chan interface{}, 1),
+		done:          make(chan interface{}, 1),
+		cancelTimeout: defaultCancelTimeout,
+		wsconn:        c,
 	}
 
 	if c.BlockAPI == nil {
@@ -312,6 +313,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 		finalisedChan: make(chan *types.FinalisationInfo),
 		cancel:        make(chan interface{}, 1),
 		done:          make(chan interface{}, 1),
+		cancelTimeout: defaultCancelTimeout,
 	}
 
 	if c.BlockAPI == nil {
@@ -377,10 +379,11 @@ func (c *WSConn) initGrandpaJustificationListener(reqID float64, _ interface{}) 
 	}
 
 	jl := &GrandpaJustificationListener{
-		cancel:      make(chan interface{}, 1),
-		done:        make(chan interface{}, 1),
-		wsconn:      c,
-		finalisedCh: make(chan *types.FinalisationInfo, 1),
+		cancel:        make(chan interface{}, 1),
+		done:          make(chan interface{}, 1),
+		wsconn:        c,
+		finalisedCh:   make(chan *types.FinalisationInfo, 1),
+		cancelTimeout: defaultCancelTimeout,
 	}
 
 	var err error
