@@ -44,6 +44,9 @@ var errCannotReadFromWebsocket = errors.New("cannot read message from websocket"
 var errCannotUnmarshalMessage = errors.New("cannot unmarshal webasocket message data")
 var logger = log.New("pkg", "rpc/subscription")
 
+// DEFAULT_BUFFER_SIZE buffer size for channels
+const DEFAULT_BUFFER_SIZE = 100
+
 // WSConn struct to hold WebSocket Connection references
 type WSConn struct {
 	Wsconn        *websocket.Conn
@@ -231,7 +234,7 @@ func (c *WSConn) unsubscribeStorageListener(reqID float64, l Listener, _ interfa
 
 func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, error) {
 	bl := &BlockListener{
-		Channel: make(chan *types.Block),
+		Channel: make(chan *types.Block, DEFAULT_BUFFER_SIZE),
 		wsconn:  c,
 		cancel:  make(chan interface{}, 1),
 		done:    make(chan interface{}, 1),
@@ -303,7 +306,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 
 	// listen for built blocks
 	esl := &ExtrinsicSubmitListener{
-		importedChan:  make(chan *types.Block),
+		importedChan:  make(chan *types.Block, DEFAULT_BUFFER_SIZE),
 		wsconn:        c,
 		extrinsic:     types.Extrinsic(extBytes),
 		finalisedChan: make(chan *types.FinalisationInfo),
