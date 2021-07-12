@@ -229,7 +229,7 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 }
 
 // LocalPeerId Returns the base58-encoded PeerId fo the node.
-func (sm *SystemModule) LocalPeerId(r *http.Request, req *EmptyRequest, res *string) error {
+func (sm *SystemModule) LocalPeerId(r *http.Request, req *EmptyRequest, res *string) error { //nolint
 	netstate := sm.networkAPI.NetworkState()
 	if netstate.PeerID == "" {
 		return errors.New("peer id cannot be empty")
