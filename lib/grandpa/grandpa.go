@@ -128,7 +128,7 @@ func NewService(cfg *Config) (*Service, error) {
 	logger.Debug("creating service", "authority", cfg.Authority, "key", pub, "voter set", Voters(cfg.Voters))
 
 	// get latest finalised header
-	head, err := cfg.BlockState.GetFinalizedHeader(0, 0)
+	head, err := cfg.BlockState.GetFinalisedHeader(0, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -278,7 +278,7 @@ func (s *Service) initiateRound() error {
 		return err
 	}
 
-	s.head, err = s.blockState.GetFinalizedHeader(s.state.round, s.state.setID)
+	s.head, err = s.blockState.GetFinalisedHeader(s.state.round, s.state.setID)
 	if err != nil {
 		logger.Crit("failed to get finalised header", "error", err)
 		return err
@@ -555,7 +555,7 @@ func (s *Service) attemptToFinalize() error {
 			return ErrServicePaused
 		}
 
-		has, _ := s.blockState.HasFinalizedBlock(s.state.round, s.state.setID)
+		has, _ := s.blockState.HasFinalisedBlock(s.state.round, s.state.setID)
 		if has {
 			logger.Debug("block was finalised!", "round", s.state.round)
 			return nil // a block was finalised, seems like we missed some messages
@@ -656,11 +656,11 @@ func (s *Service) determinePreVote() (*Vote, error) {
 
 	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
 	if uint64(vote.Number) > nextChange {
-		header, err := s.blockState.GetHeaderByNumber(big.NewInt(int64(nextChange)))
+		headerNum := new(big.Int).SetUint64(nextChange)
+		header, err := s.blockState.GetHeaderByNumber(headerNum)
 		if err != nil {
 			return nil, err
 		}
-
 		vote = NewVoteFromHeader(header)
 	}
 
@@ -795,7 +795,7 @@ func (s *Service) finalise() error {
 	}
 
 	// set finalised head for round in db
-	if err = s.blockState.SetFinalizedHash(bfc.Hash, s.state.round, s.state.setID); err != nil {
+	if err = s.blockState.SetFinalisedHash(bfc.Hash, s.state.round, s.state.setID); err != nil {
 		return err
 	}
 
@@ -804,7 +804,7 @@ func (s *Service) finalise() error {
 	}
 
 	// set latest finalised head in db
-	return s.blockState.SetFinalizedHash(bfc.Hash, 0, 0)
+	return s.blockState.SetFinalisedHash(bfc.Hash, 0, 0)
 }
 
 // createJustification collects the signed precommits received for this round and turns them into
@@ -877,6 +877,8 @@ func (s *Service) getBestFinalCandidate() (*Vote, error) {
 
 	// if there are multiple blocks, get the one with the highest number
 	// that is also an ancestor of the prevoted block (or is the prevoted block)
+
+	// TODO: should this be here?  I think not
 	// if blocks[prevoted.Hash] != 0 {
 	// 	return &prevoted, nil
 	// }
@@ -1245,6 +1247,64 @@ func (s *Service) findParentWithNumber(v *Vote, n uint32) (*Vote, error) {
 	}
 
 	return NewVoteFromHeader(b), nil
+}
+
+// GetSetID returns the current setID
+func (s *Service) GetSetID() uint64 {
+	return s.state.setID
+}
+
+// GetRound return the current round number
+func (s *Service) GetRound() uint64 {
+	s.roundLock.Lock()
+	defer s.roundLock.Unlock()
+
+	return s.state.round
+}
+
+// GetVoters returns the list of current grandpa.Voters
+func (s *Service) GetVoters() Voters {
+	return s.state.voters
+}
+
+// PreVotes returns the current prevotes to the current round
+func (s *Service) PreVotes() []ed25519.PublicKeyBytes {
+	s.mapLock.Lock()
+	defer s.mapLock.Unlock()
+
+	votes := make([]ed25519.PublicKeyBytes, 0, s.lenVotes(prevote)+len(s.pvEquivocations))
+
+	s.prevotes.Range(func(k interface{}, _ interface{}) bool {
+		b := k.(ed25519.PublicKeyBytes)
+		votes = append(votes, b)
+		return true
+	})
+
+	for v := range s.pvEquivocations {
+		votes = append(votes, v)
+	}
+
+	return votes
+}
+
+// PreCommits returns the current precommits to the current round
+func (s *Service) PreCommits() []ed25519.PublicKeyBytes {
+	s.mapLock.Lock()
+	defer s.mapLock.Unlock()
+
+	votes := make([]ed25519.PublicKeyBytes, 0, s.lenVotes(precommit)+len(s.pcEquivocations))
+
+	s.precommits.Range(func(k interface{}, _ interface{}) bool {
+		b := k.(ed25519.PublicKeyBytes)
+		votes = append(votes, b)
+		return true
+	})
+
+	for v := range s.pvEquivocations {
+		votes = append(votes, v)
+	}
+
+	return votes
 }
 
 func (s *Service) lenVotes(stage subround) int {

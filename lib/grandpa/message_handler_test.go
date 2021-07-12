@@ -253,11 +253,11 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, out)
 
-	hash, err := st.Block.GetFinalizedHash(0, 0)
+	hash, err := st.Block.GetFinalisedHash(0, 0)
 	require.NoError(t, err)
 	require.Equal(t, fm.Vote.Hash, hash)
 
-	hash, err = st.Block.GetFinalizedHash(fm.Round, gs.state.setID)
+	hash, err = st.Block.GetFinalisedHash(fm.Round, gs.state.setID)
 	require.NoError(t, err)
 	require.Equal(t, fm.Vote.Hash, hash)
 }
@@ -339,7 +339,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	err := st.Block.AddBlock(testBlock)
 	require.NoError(t, err)
 
-	err = gs.blockState.SetFinalizedHash(testHeader.Hash(), round, setID)
+	err = gs.blockState.SetFinalisedHash(testHeader.Hash(), round, setID)
 	require.NoError(t, err)
 	err = gs.blockState.(*state.BlockState).SetHeader(testHeader)
 	require.NoError(t, err)

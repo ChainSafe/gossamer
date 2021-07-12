@@ -89,7 +89,7 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 }
 
 func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMessage) error {
-	currFinalized, err := h.blockState.GetFinalizedHeader(0, 0)
+	currFinalized, err := h.blockState.GetFinalisedHeader(0, 0)
 	if err != nil {
 		return err
 	}
@@ -119,7 +119,7 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) (*ConsensusMessage, error) {
 	logger.Debug("received finalisation message", "msg", msg)
 
-	if has, _ := h.blockState.HasFinalizedBlock(msg.Round, h.grandpa.state.setID); has {
+	if has, _ := h.blockState.HasFinalisedBlock(msg.Round, h.grandpa.state.setID); has {
 		return nil, nil
 	}
 
@@ -129,7 +129,7 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) (*ConsensusMess
 	}
 
 	// set finalised head for round in db
-	if err := h.blockState.SetFinalizedHash(msg.Vote.Hash, msg.Round, h.grandpa.state.setID); err != nil {
+	if err := h.blockState.SetFinalisedHash(msg.Vote.Hash, msg.Round, h.grandpa.state.setID); err != nil {
 		return nil, err
 	}
 
@@ -144,7 +144,7 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) (*ConsensusMess
 
 	if msg.Round >= h.grandpa.state.round {
 		// set latest finalised head in db
-		err = h.blockState.SetFinalizedHash(msg.Vote.Hash, 0, 0)
+		err = h.blockState.SetFinalisedHash(msg.Vote.Hash, 0, 0)
 		if err != nil {
 			return nil, err
 		}

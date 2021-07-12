@@ -86,11 +86,29 @@ func (e DispatchOutcomeError) Error() string {
 
 // A TransactionValidityError is possible errors while checking the validity of a transaction
 type TransactionValidityError struct {
-	msg string // description of error
+	msg error // description of error
 }
 
 func (e TransactionValidityError) Error() string {
 	return fmt.Sprintf("transaction validity error: %s", e.msg)
+}
+
+var (
+	errUnexpectedTxCall         = errors.New("call of the transaction is not expected")
+	errInvalidPayment           = errors.New("invalid payment")
+	errInvalidTransaction       = errors.New("invalid transaction")
+	errOutdatedTransaction      = errors.New("outdated transaction")
+	errBadProof                 = errors.New("bad proof")
+	errAncientBirthBlock        = errors.New("ancient birth block")
+	errExhaustsResources        = errors.New("exhausts resources")
+	errMandatoryDispatchError   = errors.New("mandatory dispatch error")
+	errInvalidMandatoryDispatch = errors.New("invalid mandatory dispatch")
+	errLookupFailed             = errors.New("lookup failed")
+	errValidatorNotFound        = errors.New("validator not found")
+)
+
+func newUnknownError(data scale.VaryingDataTypeValue) error {
+	return fmt.Errorf("unknown error: %d", data)
 }
 
 // UnmarshalError occurs when unmarshalling fails
@@ -223,31 +241,31 @@ func determineErrType(vdt scale.VaryingDataType) error {
 	case Module:
 		return &DispatchOutcomeError{fmt.Sprintf("custom module error: %s", val.string())}
 	case Call:
-		return &TransactionValidityError{"call of the transaction is not expected"}
+		return &TransactionValidityError{errUnexpectedTxCall}
 	case Payment:
-		return &TransactionValidityError{"invalid payment"}
+		return &TransactionValidityError{errInvalidPayment}
 	case Future:
-		return &TransactionValidityError{"invalid transaction"}
+		return &TransactionValidityError{errInvalidTransaction}
 	case Stale:
-		return &TransactionValidityError{"outdated transaction"}
+		return &TransactionValidityError{errOutdatedTransaction}
 	case BadProof:
-		return &TransactionValidityError{"bad proof"}
+		return &TransactionValidityError{errBadProof}
 	case AncientBirthBlock:
-		return &TransactionValidityError{"ancient birth block"}
+		return &TransactionValidityError{errAncientBirthBlock}
 	case ExhaustsResources:
-		return &TransactionValidityError{"exhausts resources"}
+		return &TransactionValidityError{errExhaustsResources}
 	case InvalidCustom:
-		return &TransactionValidityError{fmt.Sprintf("unknown error: %d", val)}
+		return &TransactionValidityError{newUnknownError(val)}
 	case BadMandatory:
-		return &TransactionValidityError{"mandatory dispatch error"}
+		return &TransactionValidityError{errMandatoryDispatchError}
 	case MandatoryDispatch:
-		return &TransactionValidityError{"invalid mandatory dispatch"}
+		return &TransactionValidityError{errInvalidMandatoryDispatch}
 	case ValidityCannotLookup:
-		return &TransactionValidityError{"lookup failed"}
+		return &TransactionValidityError{errLookupFailed}
 	case NoUnsignedValidator:
-		return &TransactionValidityError{"validator not found"}
+		return &TransactionValidityError{errValidatorNotFound}
 	case UnknownCustom:
-		return &TransactionValidityError{fmt.Sprintf("unknown error: %d", val)}
+		return &TransactionValidityError{newUnknownError(val)}
 	}
 
 	return errInvalidResult

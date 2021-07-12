@@ -1,3 +1,19 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package state
 
 import (
@@ -8,19 +24,19 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
-// finalizedHashKey = FinalizedBlockHashKey + round + setID (LE encoded)
-func finalizedHashKey(round, setID uint64) []byte {
+// finalisedHashKey = FinalizedBlockHashKey + round + setID (LE encoded)
+func finalisedHashKey(round, setID uint64) []byte {
 	return append(common.FinalizedBlockHashKey, roundSetIDKey(round, setID)...)
 }
 
-// HasFinalizedBlock returns true if there is a finalised block for a given round and setID, false otherwise
-func (bs *BlockState) HasFinalizedBlock(round, setID uint64) (bool, error) {
-	return bs.db.Has(finalizedHashKey(round, setID))
+// HasFinalisedBlock returns true if there is a finalised block for a given round and setID, false otherwise
+func (bs *BlockState) HasFinalisedBlock(round, setID uint64) (bool, error) {
+	return bs.db.Has(finalisedHashKey(round, setID))
 }
 
 // NumberIsFinalised checks if a block number is finalised or not
 func (bs *BlockState) NumberIsFinalised(num *big.Int) (bool, error) {
-	header, err := bs.GetFinalizedHeader(0, 0)
+	header, err := bs.GetFinalisedHeader(0, 0)
 	if err != nil {
 		return false, err
 	}
@@ -28,9 +44,9 @@ func (bs *BlockState) NumberIsFinalised(num *big.Int) (bool, error) {
 	return num.Cmp(header.Number) <= 0, nil
 }
 
-// GetFinalizedHeader returns the finalised block header by round and setID
-func (bs *BlockState) GetFinalizedHeader(round, setID uint64) (*types.Header, error) {
-	h, err := bs.GetFinalizedHash(round, setID)
+// GetFinalisedHeader returns the finalised block header by round and setID
+func (bs *BlockState) GetFinalisedHeader(round, setID uint64) (*types.Header, error) {
+	h, err := bs.GetFinalisedHash(round, setID)
 	if err != nil {
 		return nil, err
 	}
@@ -43,9 +59,9 @@ func (bs *BlockState) GetFinalizedHeader(round, setID uint64) (*types.Header, er
 	return header, nil
 }
 
-// GetFinalizedHash gets the finalised block header by round and setID
-func (bs *BlockState) GetFinalizedHash(round, setID uint64) (common.Hash, error) {
-	h, err := bs.db.Get(finalizedHashKey(round, setID))
+// GetFinalisedHash gets the finalised block header by round and setID
+func (bs *BlockState) GetFinalisedHash(round, setID uint64) (common.Hash, error) {
+	h, err := bs.db.Get(finalisedHashKey(round, setID))
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -53,9 +69,9 @@ func (bs *BlockState) GetFinalizedHash(round, setID uint64) (common.Hash, error)
 	return common.NewHash(h), nil
 }
 
-// SetFinalizedHash sets the latest finalised block header
+// SetFinalisedHash sets the latest finalised block header
 // Note that using round=0 and setID=0 would refer to the latest finalised hash
-func (bs *BlockState) SetFinalizedHash(hash common.Hash, round, setID uint64) error {
+func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) error {
 	bs.Lock()
 	defer bs.Unlock()
 
@@ -94,7 +110,7 @@ func (bs *BlockState) SetFinalizedHash(hash common.Hash, round, setID uint64) er
 	}
 
 	bs.lastFinalised = hash
-	return bs.db.Put(finalizedHashKey(round, setID), hash[:])
+	return bs.db.Put(finalisedHashKey(round, setID), hash[:])
 }
 
 func (bs *BlockState) setFirstSlotOnFinalisation() error {
