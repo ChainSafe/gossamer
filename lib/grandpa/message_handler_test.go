@@ -26,7 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )
@@ -62,7 +62,7 @@ func buildTestJustification(t *testing.T, qty int, round, setID uint64, kr *keys
 
 func createSignedVoteMsg(t *testing.T, number uint32, round, setID uint64, pk *ed25519.Keypair, subround Subround) [64]byte {
 	// create vote message
-	msg, err := scale.Encode(&FullVote{
+	msg, err := scale.Marshal(&FullVote{
 		Stage: subround,
 		Vote:  NewVote(testHash, number),
 		Round: round,

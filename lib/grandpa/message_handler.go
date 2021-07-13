@@ -26,7 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 )
@@ -354,7 +354,7 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *catchUpResponse) erro
 
 func (h *MessageHandler) verifyJustification(just *SignedVote, round, setID uint64, stage Subround) error {
 	// verify signature
-	msg, err := scale.Encode(&FullVote{
+	msg, err := scale.Marshal(&FullVote{
 		Stage: stage,
 		Vote:  just.Vote,
 		Round: round,
@@ -448,7 +448,7 @@ func (s *Service) VerifyBlockJustification(justification []byte) error {
 		}
 
 		// verify signature for each precommit
-		msg, err := scale.Encode(&FullVote{
+		msg, err := scale.Marshal(&FullVote{
 			Stage: precommit,
 			Vote:  just.Vote,
 			Round: fj.Round,
