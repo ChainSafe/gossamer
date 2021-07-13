@@ -224,6 +224,7 @@ func (s *Service) sendNeighbourMessage() {
 
 // decodeMessage decodes a network-level consensus message into a GRANDPA VoteMessage or CommitMessage
 func decodeMessage(msg *ConsensusMessage) (m GrandpaMessage, err error) {
+	// TODO make this a VDT
 	switch msg.Data[0] {
 	case voteType:
 		var vm *VoteMessage
