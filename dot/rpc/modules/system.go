@@ -77,13 +77,14 @@ type SyncStateResponse struct {
 
 // NewSystemModule creates a new API instance
 func NewSystemModule(net NetworkAPI, sys SystemAPI, core CoreAPI,
-	storage StorageAPI, txAPI TransactionStateAPI) *SystemModule {
+	storage StorageAPI, txAPI TransactionStateAPI, blockAPI BlockAPI) *SystemModule {
 	return &SystemModule{
 		networkAPI: net, // TODO: migrate to network state
 		systemAPI:  sys,
 		coreAPI:    core,
 		storageAPI: storage,
 		txStateAPI: txAPI,
+		blockAPI:   blockAPI,
 	}
 }
 
@@ -234,12 +235,18 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 	return nil
 }
 
+// SyncState Returns the state of the syncing of the node.
 func (sm *SystemModule) SyncState(r *http.Request, req *EmptyRequest, res *SyncStateResponse) error {
 	h, err := sm.blockAPI.GetHeader(sm.blockAPI.BestBlockHash())
 	if err != nil {
 		return err
 	}
 
-	res.CurrentBlock = uint32(h.Number.Int64())
+	*res = SyncStateResponse{
+		CurrentBlock:  uint32(h.Number.Int64()),
+		HighestBlock:  uint32(sm.networkAPI.HighestBlock()),
+		StartingBlock: uint32(sm.networkAPI.StartingBlock()),
+	}
+
 	return nil
 }

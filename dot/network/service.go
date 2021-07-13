@@ -674,3 +674,13 @@ func (s *Service) Peers() []common.PeerInfo {
 func (s *Service) NodeRoles() byte {
 	return s.cfg.Roles
 }
+
+// HighestBlock returns the highest known block number
+func (s *Service) HighestBlock() int64 {
+	return s.syncQueue.goal
+}
+
+// StartingBlock return the starting block number
+func (s *Service) StartingBlock() int64 {
+	return s.syncQueue.currStart
+}
