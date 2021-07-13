@@ -163,7 +163,7 @@ func TestNeighbourMessageToConsensusMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	expected := &ConsensusMessage{
-		Data: common.MustHexToBytes("0x020102000000000000000300000000000000ff000000"),
+		Data: common.MustHexToBytes("0x02010102000000000000000300000000000000ff000000"),
 	}
 
 	require.Equal(t, expected, cm)

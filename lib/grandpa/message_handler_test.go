@@ -46,7 +46,7 @@ var testBlock = &types.Block{
 
 var testHash = testHeader.Hash()
 
-func buildTestJustification(t *testing.T, qty int, round, setID uint64, kr *keystore.Ed25519Keyring, subround subround) []*SignedVote {
+func buildTestJustification(t *testing.T, qty int, round, setID uint64, kr *keystore.Ed25519Keyring, subround Subround) []*SignedVote {
 	just := []*SignedVote{}
 	for i := 0; i < qty; i++ {
 		j := &SignedVote{
@@ -60,7 +60,7 @@ func buildTestJustification(t *testing.T, qty int, round, setID uint64, kr *keys
 
 }
 
-func createSignedVoteMsg(t *testing.T, number uint32, round, setID uint64, pk *ed25519.Keypair, subround subround) [64]byte {
+func createSignedVoteMsg(t *testing.T, number uint32, round, setID uint64, pk *ed25519.Keypair, subround Subround) [64]byte {
 	// create vote message
 	msg, err := scale.Encode(&FullVote{
 		Stage: subround,
@@ -79,7 +79,7 @@ func createSignedVoteMsg(t *testing.T, number uint32, round, setID uint64, pk *e
 
 func TestDecodeMessage_VoteMessage(t *testing.T) {
 	cm := &ConsensusMessage{
-		Data: common.MustHexToBytes("0x004d000000000000006300000000000000017db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a7777000036e6eca85489bebbb0f687ca5404748d5aa2ffabee34e3ed272cc7b2f6d0a82c65b99bc7cd90dbc21bb528289ebf96705dbd7d96918d34d815509b4e0e2a030f34602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a691"),
+		Data: common.MustHexToBytes("0x00014d00000000000000630000000000000001017db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a7777000036e6eca85489bebbb0f687ca5404748d5aa2ffabee34e3ed272cc7b2f6d0a82c65b99bc7cd90dbc21bb528289ebf96705dbd7d96918d34d815509b4e0e2a030f34602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a691"),
 	}
 
 	msg, err := decodeMessage(cm)
@@ -132,7 +132,7 @@ func TestDecodeMessage_CommitMessage(t *testing.T) {
 
 func TestDecodeMessage_NeighbourMessage(t *testing.T) {
 	cm := &ConsensusMessage{
-		Data: common.MustHexToBytes("0x020102000000000000000300000000000000ff000000"),
+		Data: common.MustHexToBytes("0x02010102000000000000000300000000000000ff000000"),
 	}
 
 	msg, err := decodeMessage(cm)
@@ -149,7 +149,7 @@ func TestDecodeMessage_NeighbourMessage(t *testing.T) {
 
 func TestDecodeMessage_CatchUpRequest(t *testing.T) {
 	cm := &ConsensusMessage{
-		Data: common.MustHexToBytes("0x0311000000000000002200000000000000"),
+		Data: common.MustHexToBytes("0x030111000000000000002200000000000000"),
 	}
 
 	msg, err := decodeMessage(cm)

@@ -352,7 +352,7 @@ func (h *MessageHandler) verifyPreCommitJustification(msg *catchUpResponse) erro
 	return nil
 }
 
-func (h *MessageHandler) verifyJustification(just *SignedVote, round, setID uint64, stage subround) error {
+func (h *MessageHandler) verifyJustification(just *SignedVote, round, setID uint64, stage Subround) error {
 	// verify signature
 	msg, err := scale.Encode(&FullVote{
 		Stage: stage,

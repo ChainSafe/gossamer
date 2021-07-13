@@ -17,14 +17,12 @@
 package grandpa
 
 import (
-	"bytes"
 	"fmt"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/scale"
-
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 )
@@ -64,17 +62,18 @@ func (hs *GrandpaHandshake) String() string {
 
 // Encode encodes a GrandpaHandshake message using SCALE
 func (hs *GrandpaHandshake) Encode() ([]byte, error) {
-	return scale.Encode(hs)
+	return scale.Marshal(hs)
 }
 
 // Decode the message into a GrandpaHandshake
 func (hs *GrandpaHandshake) Decode(in []byte) error {
-	msg, err := scale.Decode(in, hs)
+	var msg *GrandpaHandshake
+	err := scale.Unmarshal(in, &msg)
 	if err != nil {
 		return err
 	}
 
-	hs.Roles = msg.(*GrandpaHandshake).Roles
+	hs.Roles = msg.Roles
 	return nil
 }
 
@@ -225,41 +224,29 @@ func (s *Service) sendNeighbourMessage() {
 
 // decodeMessage decodes a network-level consensus message into a GRANDPA VoteMessage or CommitMessage
 func decodeMessage(msg *ConsensusMessage) (m GrandpaMessage, err error) {
-	var (
-		mi interface{}
-		ok bool
-	)
-
 	switch msg.Data[0] {
 	case voteType:
-		r := &bytes.Buffer{}
-		_, _ = r.Write(msg.Data[1:])
-		vm := &VoteMessage{}
-		err = vm.Decode(r)
+		var vm *VoteMessage
+		err = scale.Unmarshal(msg.Data[1:], &vm)
 		m = vm
 		logger.Trace("got VoteMessage!!!", "msg", m)
 	case commitType:
-		r := &bytes.Buffer{}
-		_, _ = r.Write(msg.Data[1:])
-		cm := &CommitMessage{}
-		err = cm.Decode(r)
+		var cm *CommitMessage
+		err = scale.Unmarshal(msg.Data[1:], &cm)
 		m = cm
 		logger.Trace("got CommitMessage!!!", "msg", m)
 	case neighbourType:
-		mi, err = scale.Decode(msg.Data[1:], &NeighbourMessage{})
-		if m, ok = mi.(*NeighbourMessage); !ok {
-			return nil, ErrInvalidMessageType
-		}
+		var mi *NeighbourMessage
+		err = scale.Unmarshal(msg.Data[1:], &mi)
+		m = mi
 	case catchUpRequestType:
-		mi, err = scale.Decode(msg.Data[1:], &catchUpRequest{})
-		if m, ok = mi.(*catchUpRequest); !ok {
-			return nil, ErrInvalidMessageType
-		}
+		var mi *catchUpRequest
+		err = scale.Unmarshal(msg.Data[1:], &mi)
+		m = mi
 	case catchUpResponseType:
-		mi, err = scale.Decode(msg.Data[1:], &catchUpResponse{})
-		if m, ok = mi.(*catchUpResponse); !ok {
-			return nil, ErrInvalidMessageType
-		}
+		var mi *catchUpResponse
+		err = scale.Unmarshal(msg.Data[1:], &mi)
+		m = mi
 	default:
 		return nil, ErrInvalidMessageType
 	}

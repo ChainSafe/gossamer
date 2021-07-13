@@ -18,6 +18,7 @@ package grandpa
 
 import (
 	"fmt"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"io"
 	"math/big"
 
@@ -46,7 +47,7 @@ var (
 // FullVote represents a vote with additional information about the state
 // this is encoded and signed and the signature is included in SignedMessage
 type FullVote struct {
-	Stage subround
+	Stage Subround
 	Vote  *Vote
 	Round uint64
 	SetID uint64
@@ -54,7 +55,7 @@ type FullVote struct {
 
 // SignedMessage represents a block hash and number signed by an authority
 type SignedMessage struct {
-	Stage       subround // 0 for pre-vote, 1 for pre-commit, 2 for primary proposal
+	Stage       Subround // 0 for pre-vote, 1 for pre-commit, 2 for primary proposal
 	Hash        common.Hash
 	Number      uint32
 	Signature   [64]byte // ed25519.SignatureLength
@@ -68,7 +69,7 @@ func (m *SignedMessage) String() string {
 
 // Decode SCALE decodes the data into a SignedMessage
 func (m *SignedMessage) Decode(r io.Reader) (err error) {
-	m.Stage, err = subround(0).Decode(r)
+	m.Stage, err = Subround(0).Decode(r)
 	if err != nil {
 		return err
 	}
@@ -129,7 +130,8 @@ func (v *VoteMessage) Type() byte {
 
 // ToConsensusMessage converts the VoteMessage into a network-level consensus message
 func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
-	enc, err := scale.Encode(v)
+	//enc, err := scale.Encode(v)
+	enc, err := scale2.Marshal(v)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +151,8 @@ type NeighbourMessage struct {
 
 // ToConsensusMessage converts the NeighbourMessage into a network-level consensus message
 func (m *NeighbourMessage) ToConsensusMessage() (*network.ConsensusMessage, error) {
-	enc, err := scale.Encode(m)
+	//enc, err := scale.Encode(m)
+	enc, err := scale2.Marshal(m)
 	if err != nil {
 		return nil, err
 	}
@@ -261,7 +264,8 @@ func (f *CommitMessage) Type() byte {
 
 // ToConsensusMessage converts the CommitMessage into a network-level consensus message
 func (f *CommitMessage) ToConsensusMessage() (*ConsensusMessage, error) {
-	enc, err := scale.Encode(f)
+	//enc, err := scale.Encode(f)
+	enc, err := scale2.Marshal(f)
 	if err != nil {
 		return nil, err
 	}
@@ -337,7 +341,8 @@ func (r *catchUpRequest) Type() byte {
 
 // ToConsensusMessage converts the catchUpRequest into a network-level consensus message
 func (r *catchUpRequest) ToConsensusMessage() (*ConsensusMessage, error) {
-	enc, err := scale.Encode(r)
+	//enc, err := scale.Encode(r)
+	enc, err := scale2.Marshal(r)
 	if err != nil {
 		return nil, err
 	}
@@ -389,7 +394,8 @@ func (r *catchUpResponse) Type() byte {
 
 // ToConsensusMessage converts the catchUpResponse into a network-level consensus message
 func (r *catchUpResponse) ToConsensusMessage() (*ConsensusMessage, error) {
-	enc, err := scale.Encode(r)
+	//enc, err := scale.Encode(r)
+	enc, err := scale2.Marshal(r)
 	if err != nil {
 		return nil, err
 	}

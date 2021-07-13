@@ -34,19 +34,19 @@ type (
 	SignedVote = types.GrandpaSignedVote
 )
 
-type subround byte
+type Subround byte
 
 var (
-	prevote         subround
-	precommit       subround = 1
-	primaryProposal subround = 2
+	prevote         Subround
+	precommit       Subround = 1
+	primaryProposal Subround = 2
 )
 
-func (s subround) Encode() ([]byte, error) {
+func (s Subround) Encode() ([]byte, error) {
 	return []byte{byte(s)}, nil
 }
 
-func (s subround) Decode(r io.Reader) (subround, error) {
+func (s Subround) Decode(r io.Reader) (Subround, error) {
 	b, err := common.ReadByte(r)
 	if err != nil {
 		return 255, nil
@@ -64,7 +64,7 @@ func (s subround) Decode(r io.Reader) (subround, error) {
 	}
 }
 
-func (s subround) String() string {
+func (s Subround) String() string {
 	switch s {
 	case prevote:
 		return "prevote"
