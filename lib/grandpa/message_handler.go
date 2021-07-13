@@ -398,10 +398,8 @@ func (h *MessageHandler) verifyJustification(just *SignedVote, round, setID uint
 
 // VerifyBlockJustification verifies the finality justification for a block
 func (s *Service) VerifyBlockJustification(justification []byte) error {
-	r := &bytes.Buffer{}
-	_, _ = r.Write(justification)
-	fj := new(Justification)
-	err := fj.Decode(r)
+	var fj *Justification
+	err := scale.Unmarshal(justification, &fj)
 	if err != nil {
 		return err
 	}

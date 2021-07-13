@@ -18,12 +18,9 @@ package grandpa
 
 import (
 	"bytes"
-	"io"
-
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
 //nolint
@@ -41,28 +38,6 @@ var (
 	precommit       Subround = 1
 	primaryProposal Subround = 2
 )
-
-func (s Subround) Encode() ([]byte, error) {
-	return []byte{byte(s)}, nil
-}
-
-func (s Subround) Decode(r io.Reader) (Subround, error) {
-	b, err := common.ReadByte(r)
-	if err != nil {
-		return 255, nil
-	}
-
-	switch b {
-	case 0:
-		return prevote, nil
-	case 1:
-		return precommit, nil
-	case 2:
-		return primaryProposal, nil
-	default:
-		return 255, ErrCannotDecodeSubround
-	}
-}
 
 func (s Subround) String() string {
 	switch s {
@@ -178,23 +153,4 @@ func newJustification(round uint64, hash common.Hash, number uint32, j []*Signed
 			Precommits: j,
 		},
 	}
-}
-
-// Encode returns the SCALE encoding of a Justification
-func (j *Justification) Encode() ([]byte, error) {
-	return scale.Encode(j)
-}
-
-// Decode returns a SCALE decoded Justification
-func (j *Justification) Decode(r io.Reader) error {
-	sd := &scale.Decoder{Reader: r}
-	i, err := sd.Decode(&Justification{Commit: &Commit{}})
-	if err != nil {
-		return err
-	}
-
-	dec := i.(*Justification)
-	j.Round = dec.Round
-	j.Commit = dec.Commit
-	return nil
 }

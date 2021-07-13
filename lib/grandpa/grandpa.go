@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 	"os"
 	"sync"
@@ -842,7 +843,7 @@ func (s *Service) finalise() error {
 		return err
 	}
 
-	pcj, err := newJustification(s.state.round, bfc.Hash, bfc.Number, pcs).Encode()
+	pcj, err := scale.Marshal(newJustification(s.state.round, bfc.Hash, bfc.Number, pcs))
 	if err != nil {
 		return err
 	}

@@ -519,14 +519,14 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	number := uint32(2)
 	precommits := buildTestJustification(t, 2, round, setID, kr, precommit)
 	just := newJustification(round, testHash, number, precommits)
-	data, err := just.Encode()
+	data, err := scale.Marshal(just)
 	require.NoError(t, err)
 	err = gs.VerifyBlockJustification(data)
 	require.NoError(t, err)
 
 	// use wrong hash, shouldn't verify
 	just = newJustification(round, common.Hash{}, number, precommits)
-	data, err = just.Encode()
+	data, err = scale.Marshal(just)
 	require.NoError(t, err)
 	err = gs.VerifyBlockJustification(data)
 	require.NotNil(t, err)
@@ -534,7 +534,7 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 
 	// use wrong number, shouldn't verify
 	just = newJustification(round, testHash, number+1, precommits)
-	data, err = just.Encode()
+	data, err = scale.Marshal(just)
 	require.NoError(t, err)
 	err = gs.VerifyBlockJustification(data)
 	require.NotNil(t, err)
@@ -542,7 +542,7 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 
 	// use wrong round, shouldn't verify
 	just = newJustification(round+1, testHash, number, precommits)
-	data, err = just.Encode()
+	data, err = scale.Marshal(just)
 	require.NoError(t, err)
 	err = gs.VerifyBlockJustification(data)
 	require.NotNil(t, err)
@@ -551,7 +551,7 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	// add authority not in set, shouldn't verify
 	precommits = buildTestJustification(t, len(auths)+1, round, setID, kr, precommit)
 	just = newJustification(round, testHash, number, precommits)
-	data, err = just.Encode()
+	data, err = scale.Marshal(just)
 	require.NoError(t, err)
 	err = gs.VerifyBlockJustification(data)
 	require.Equal(t, ErrAuthorityNotInSet, err)
@@ -559,7 +559,7 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	// not enough signatures, shouldn't verify
 	precommits = buildTestJustification(t, 1, round, setID, kr, precommit)
 	just = newJustification(round, testHash, number, precommits)
-	data, err = just.Encode()
+	data, err = scale.Marshal(just)
 	require.NoError(t, err)
 	err = gs.VerifyBlockJustification(data)
 	require.Equal(t, ErrMinVotesNotMet, err)
