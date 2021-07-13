@@ -34,10 +34,14 @@ type networkVoteMessage struct {
 }
 
 // receiveMessages receives messages from the in channel until the specified condition is met
-func (s *Service) receiveMessages(ctx context.Context /*cond func() bool*/) {
+func (s *Service) receiveMessages(ctx context.Context) {
 	for {
 		select {
-		case msg := <-s.in:
+		case msg, ok := <-s.in:
+			if !ok {
+				return
+			}
+
 			if msg == nil || msg.msg == nil {
 				continue
 			}
