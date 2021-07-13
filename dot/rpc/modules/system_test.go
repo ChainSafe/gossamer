@@ -17,6 +17,7 @@
 package modules
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"os"
@@ -26,6 +27,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -370,4 +372,39 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	}
 
 	return core.NewTestService(t, cfg)
+}
+
+func TestSyncState(t *testing.T) {
+	fakeCommonHash := common.NewHash([]byte("fake"))
+	fakeHeader := &types.Header{
+		Number: big.NewInt(int64(49)),
+	}
+
+	blockapiMock := new(mocks.MockBlockAPI)
+	blockapiMock.On("BestBlockHash").Return(fakeCommonHash)
+	blockapiMock.On("GetHeader", fakeCommonHash).Return(fakeHeader, nil).Once()
+
+	netapiMock := new(mocks.MockNetworkAPI)
+	netapiMock.On("HighestBlock").Return(int64(90))
+	netapiMock.On("StartingBlock").Return(int64(10))
+
+	sysmodule := new(SystemModule)
+	sysmodule.blockAPI = blockapiMock
+	sysmodule.networkAPI = netapiMock
+
+	var res SyncStateResponse
+	err := sysmodule.SyncState(nil, nil, &res)
+	require.NoError(t, err)
+
+	expectedSyncState := SyncStateResponse{
+		CurrentBlock:  uint32(49),
+		HighestBlock:  uint32(90),
+		StartingBlock: uint32(10),
+	}
+
+	require.Equal(t, expectedSyncState, res)
+
+	blockapiMock.On("GetHeader", fakeCommonHash).Return(nil, errors.New("Problems while getting header")).Once()
+	err = sysmodule.SyncState(nil, nil, nil)
+	require.Error(t, err)
 }
