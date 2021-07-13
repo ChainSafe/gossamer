@@ -78,8 +78,8 @@ func (_m *MockBlockState) GenesisHash() common.Hash {
 	return r0
 }
 
-// GetFinalizedHeader provides a mock function with given fields: round, setID
-func (_m *MockBlockState) GetFinalizedHeader(round uint64, setID uint64) (*types.Header, error) {
+// GetFinalisedHeader provides a mock function with given fields: round, setID
+func (_m *MockBlockState) GetFinalisedHeader(round uint64, setID uint64) (*types.Header, error) {
 	ret := _m.Called(round, setID)
 
 	var r0 *types.Header

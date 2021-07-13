@@ -41,7 +41,7 @@ type BlockState interface {
 	GetArrivalTime(common.Hash) (time.Time, error)
 	GenesisHash() common.Hash
 	GetSlotForBlock(common.Hash) (uint64, error)
-	GetFinalizedHeader(uint64, uint64) (*types.Header, error)
+	GetFinalisedHeader(uint64, uint64) (*types.Header, error)
 	IsDescendantOf(parent, child common.Hash) (bool, error)
 	NumberIsFinalised(num *big.Int) (bool, error)
 }
