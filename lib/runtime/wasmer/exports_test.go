@@ -396,7 +396,7 @@ func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {
 		SlotDuration:       3000,
 		EpochLength:        200,
 		C1:                 1,
-		C2:                 4,
+		C2:                 2,
 		GenesisAuthorities: expectedAuthData,
 		Randomness:         [32]byte{1},
 		SecondarySlots:     1,
