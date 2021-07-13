@@ -69,6 +69,7 @@ type StringRequest struct {
 	String string
 }
 
+// SyncStateResponse is the struct to return on the system_syncState rpc call
 type SyncStateResponse struct {
 	CurrentBlock  uint32 `json:"currentBlock"`
 	HighestBlock  uint32 `json:"highestBlock"`

@@ -680,7 +680,7 @@ func (s *Service) HighestBlock() int64 {
 	return s.syncQueue.goal
 }
 
-// StartingBlock return the starting block number
+// StartingBlock return the starting block number that's currently being synced
 func (s *Service) StartingBlock() int64 {
 	return s.syncQueue.currStart
 }
