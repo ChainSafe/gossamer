@@ -232,7 +232,7 @@ func TestValidateMessage_InvalidSignature(t *testing.T) {
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
-	msg.Message.Signature[63] = 0
+	msg.Message.Signature[63] = 1
 
 	_, err = gs.validateMessage(msg)
 	require.Equal(t, err, ErrInvalidSignature)

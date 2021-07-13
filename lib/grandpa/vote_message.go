@@ -24,7 +24,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // receiveMessages receives messages from the in channel until the specified condition is met
@@ -76,7 +76,7 @@ func (s *Service) receiveMessages(cond func() bool) {
 }
 
 func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage Subround) (*SignedVote, *VoteMessage, error) {
-	msg, err := scale.Encode(&FullVote{
+	msg, err := scale.Marshal(&FullVote{
 		Stage: stage,
 		Vote:  vote,
 		Round: s.state.round,
@@ -296,7 +296,7 @@ func (s *Service) validateVote(v *Vote) error {
 }
 
 func validateMessageSignature(pk *ed25519.PublicKey, m *VoteMessage) error {
-	msg, err := scale.Encode(&FullVote{
+	msg, err := scale.Marshal(&FullVote{
 		Stage: m.Message.Stage,
 		Vote:  NewVote(m.Message.Hash, m.Message.Number),
 		Round: m.Round,
