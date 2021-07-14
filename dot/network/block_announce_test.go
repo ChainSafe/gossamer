@@ -41,10 +41,16 @@ func TestBlockAnnounce_Encode(t *testing.T) {
 	enc, err := testBlockAnnounce.Encode()
 	require.NoError(t, err)
 
+	enc2:= enc
+
 	res := new(BlockAnnounceMessage)
 	err = res.Decode(enc)
 	require.NoError(t, err)
 	require.Equal(t, testBlockAnnounce, res)
+
+	res2, err := decodeBlockAnnounceMessage(enc2)
+	require.NoError(t, err)
+	require.Equal(t, res2, res)
 }
 
 func TestDecodeBlockAnnounceHandshake(t *testing.T) {
