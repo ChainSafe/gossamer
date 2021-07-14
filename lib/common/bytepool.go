@@ -18,7 +18,7 @@ package common
 
 import "fmt"
 
-// BtyePool struct to hold byte objects that will be contained in pool
+// BytePool struct to hold byte objects that will be contained in pool
 type BytePool struct {
 	c chan byte
 }
