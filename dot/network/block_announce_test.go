@@ -41,7 +41,7 @@ func TestBlockAnnounce_Encode(t *testing.T) {
 	enc, err := testBlockAnnounce.Encode()
 	require.NoError(t, err)
 
-	enc2:= enc
+	enc2 := enc
 
 	res := new(BlockAnnounceMessage)
 	err = res.Decode(enc)
