@@ -262,7 +262,12 @@ type RuntimeVersionListener struct {
 	wsconn        WSConnAPI
 	subID         uint
 	runtimeUpdate chan runtime.Version
+	channelID byte
 	coreAPI       modules.CoreAPI
+}
+
+type VersionListener interface {
+	GetID() byte
 }
 
 // Listen implementation of Listen interface to listen for runtime version changes
@@ -304,3 +309,7 @@ func (l *RuntimeVersionListener) Listen() {
 // Stop to runtimeVersionListener not implemented yet because the listener
 // does not need to be stopped
 func (l *RuntimeVersionListener) Stop() {}
+
+func (l *RuntimeVersionListener) GetID() byte {
+	return l.channelID
+}

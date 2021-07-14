@@ -357,13 +357,14 @@ func (c *WSConn) initRuntimeVersionListener(reqID float64, _ interface{}) (Liste
 		coreAPI:       c.CoreAPI,
 	}
 
-	_, err := c.CoreAPI.RegisterRuntimeUpdatedChannel(rvl.runtimeUpdate)
+	chanID, err := c.CoreAPI.RegisterRuntimeUpdatedChannel(rvl.runtimeUpdate)
 	if err != nil {
 		return nil, err
 	}
 
 	c.mu.Lock()
 
+	rvl.channelID = chanID
 	c.qtyListeners++
 	rvl.subID = c.qtyListeners
 	c.Subscriptions[rvl.subID] = rvl
@@ -373,6 +374,19 @@ func (c *WSConn) initRuntimeVersionListener(reqID float64, _ interface{}) (Liste
 	c.safeSend(NewSubscriptionResponseJSON(rvl.subID, reqID))
 
 	return rvl, nil
+}
+
+func (c *WSConn) unsubscribeRuntimeVersionListener(reqID float64, l Listener, _ interface{}) {
+	observer, ok := l.(VersionListener)
+	if !ok {
+		initRes := newBooleanResponseJSON(false, reqID)
+		c.safeSend(initRes)
+		return
+	}
+	id := observer.GetID()
+
+	res := c.CoreAPI.UnregisterRuntimeUpdatedChannel(id)
+	c.safeSend(newBooleanResponseJSON(res, reqID))
 }
 
 func (c *WSConn) safeSend(msg interface{}) {

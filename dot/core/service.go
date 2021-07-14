@@ -612,7 +612,8 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 
 // RegisterRuntimeUpdatedChannel function to register chan that is notified when runtime version changes
 func (s *Service) RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (byte, error) {
-	s.runtimeChangedLock.RLock()
+	s.runtimeChangedLock.Lock()
+	defer s.runtimeChangedLock.Unlock()
 
 	if len(s.runtimeChanged) == 256 {
 		return 0, errors.New("channel limit reached")
@@ -626,12 +627,18 @@ func (s *Service) RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (byte
 		}
 	}
 
-	s.runtimeChangedLock.RUnlock()
-
-	s.runtimeChangedLock.Lock()
 	s.runtimeChanged[id] = ch
-	s.runtimeChangedLock.Unlock()
 	return id, nil
+}
+
+func (s *Service) UnregisterRuntimeUpdatedChannel (id byte) bool {
+	ch := s.runtimeChanged[id]
+	if ch != nil {
+		close(ch)
+		s.runtimeChanged[id] = nil
+		return true
+	}
+	return false
 }
 
 func generateID() byte {
