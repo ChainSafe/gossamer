@@ -65,7 +65,7 @@ func (bm *BlockAnnounceMessage) String() string {
 
 // Encode a BlockAnnounce Msg Type containing the BlockAnnounceMessage using scale.Encode
 func (bm *BlockAnnounceMessage) Encode() ([]byte, error) {
-	enc, err := scale.Marshal(bm)
+	enc, err := scale.Marshal(*bm)
 	if err != nil {
 		return enc, err
 	}
@@ -74,7 +74,7 @@ func (bm *BlockAnnounceMessage) Encode() ([]byte, error) {
 
 // Decode the message into a BlockAnnounceMessage
 func (bm *BlockAnnounceMessage) Decode(in []byte) error {
-	err := scale.Unmarshal(in, &bm)
+	err := scale.Unmarshal(in, bm)
 	if err != nil {
 		return err
 	}
@@ -83,7 +83,7 @@ func (bm *BlockAnnounceMessage) Decode(in []byte) error {
 
 // Hash returns the hash of the BlockAnnounceMessage
 func (bm *BlockAnnounceMessage) Hash() common.Hash {
-	encMsg, _ := scale.Marshal(bm)
+	encMsg, _ := scale.Marshal(*bm)
 	hash, _ := common.Blake2bHash(encMsg)
 	return hash
 }
@@ -104,13 +104,13 @@ func decodeBlockAnnounceHandshake(in []byte) (Handshake, error) {
 }
 
 func decodeBlockAnnounceMessage(in []byte) (NotificationsMessage, error) {
-	var msg *BlockAnnounceMessage
+	var msg BlockAnnounceMessage
 	err := scale.Unmarshal(in, &msg)
 	if err != nil {
 		return nil, err
 	}
 
-	return msg, nil
+	return &msg, nil
 }
 
 // BlockAnnounceHandshake is exchanged by nodes that are beginning the BlockAnnounce protocol
