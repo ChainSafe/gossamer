@@ -38,8 +38,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	log "github.com/ChainSafe/log15"
+<<<<<<< HEAD
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/mock"
+=======
+	"github.com/btcsuite/btcutil/base58"
+>>>>>>> development
 	"github.com/stretchr/testify/require"
 
 	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
@@ -377,4 +381,30 @@ func TestLocalListenAddresses(t *testing.T) {
 
 	require.Len(t, res, 1)
 	require.Equal(t, res[0], ma.String())
+}
+
+func TestLocalPeerId(t *testing.T) {
+	peerID := "12D3KooWBrwpqLE9Z23NEs59m2UHUs9sGYWenxjeCk489Xq7SG2h"
+	encoded := base58.Encode([]byte(peerID))
+
+	state := common.NetworkState{
+		PeerID: peerID,
+	}
+
+	mocknetAPI := new(mocks.MockNetworkAPI)
+	mocknetAPI.On("NetworkState").Return(state).Once()
+
+	sysmodules := new(SystemModule)
+	sysmodules.networkAPI = mocknetAPI
+
+	var res string
+	err := sysmodules.LocalPeerId(nil, nil, &res)
+	require.NoError(t, err)
+
+	require.Equal(t, res, encoded)
+
+	state.PeerID = ""
+	mocknetAPI.On("NetworkState").Return(state).Once()
+	err = sysmodules.LocalPeerId(nil, nil, &res)
+	require.Error(t, err)
 }
