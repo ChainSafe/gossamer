@@ -28,7 +28,7 @@ type GrandpaScheduledChange struct {
 
 // Encode returns a SCALE encoded GrandpaScheduledChange with first type byte
 func (sc *GrandpaScheduledChange) Encode() ([]byte, error) {
-	d, err := scale.Marshal(sc)
+	d, err := scale.Marshal(*sc)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,7 @@ type GrandpaForcedChange struct {
 
 // Encode returns a SCALE encoded GrandpaForcedChange with first type byte
 func (fc *GrandpaForcedChange) Encode() ([]byte, error) {
-	d, err := scale.Marshal(fc)
+	d, err := scale.Marshal(*fc)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ type GrandpaOnDisabled struct {
 
 // Encode returns a SCALE encoded GrandpaOnDisabled with first type byte
 func (od *GrandpaOnDisabled) Encode() ([]byte, error) {
-	d, err := scale.Marshal(od)
+	d, err := scale.Marshal(*od)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ type GrandpaPause struct {
 
 // Encode returns a SCALE encoded GrandpaPause with first type byte
 func (p *GrandpaPause) Encode() ([]byte, error) {
-	d, err := scale.Marshal(p)
+	d, err := scale.Marshal(*p)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ type GrandpaResume struct {
 
 // Encode returns a SCALE encoded GrandpaResume with first type byte
 func (r *GrandpaResume) Encode() ([]byte, error) {
-	d, err := scale.Marshal(r)
+	d, err := scale.Marshal(*r)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +106,7 @@ type NextEpochData struct {
 
 // Encode returns a SCALE encoded NextEpochData with first type byte
 func (d *NextEpochData) Encode() ([]byte, error) {
-	enc, err := scale.Marshal(d)
+	enc, err := scale.Marshal(*d)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +134,7 @@ type BABEOnDisabled struct {
 
 // Encode returns a SCALE encoded BABEOnDisabled with first type byte
 func (od *BABEOnDisabled) Encode() ([]byte, error) {
-	d, err := scale.Marshal(od)
+	d, err := scale.Marshal(*od)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +152,7 @@ type NextConfigData struct {
 
 // Encode returns a SCALE encoded NextConfigData with first type byte
 func (d *NextConfigData) Encode() ([]byte, error) {
-	enc, err := scale.Marshal(d)
+	enc, err := scale.Marshal(*d)
 	if err != nil {
 		return nil, err
 	}
