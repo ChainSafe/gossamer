@@ -149,6 +149,11 @@ func ext_default_child_storage_get_version_1(c *wasmtime.Caller, a, b int64) int
 	return 0
 }
 
+func ext_default_child_storage_read_version_1(c *wasmtime.Caller, childStorageKey, key, valueOut int64, offset int32) int64 {
+	logger.Trace("[ext_default_child_storage_read_version_1] executing...")
+	return 0
+}
+
 func ext_default_child_storage_root_version_1(c *wasmtime.Caller, z int64) int64 {
 	logger.Trace("[ext_default_child_storage_root_version_1] executing...")
 	return 0
@@ -160,6 +165,11 @@ func ext_default_child_storage_set_version_1(c *wasmtime.Caller, a, b, z int64) 
 
 func ext_default_child_storage_storage_kill_version_1(c *wasmtime.Caller, a int64) {
 	logger.Trace("[ext_default_child_storage_storage_kill_version_1] executing...")
+}
+
+func ext_default_child_storage_storage_kill_version_2(c *wasmtime.Caller, a, b int64) int32 {
+	logger.Trace("[ext_default_child_storage_storage_kill_version_2] executing...")
+	return 0
 }
 
 func ext_allocator_free_version_1(c *wasmtime.Caller, addr int32) {
@@ -264,6 +274,11 @@ func ext_storage_commit_transaction_version_1(c *wasmtime.Caller) {
 	logger.Trace("[ext_storage_commit_transaction_version_1] executing...")
 }
 
+func ext_storage_exists_version_1(c *wasmtime.Caller, keySpan int64) int32 {
+	logger.Trace("[ext_storage_exists_version_1] executing...")
+	return 0
+}
+
 func ext_storage_get_version_1(c *wasmtime.Caller, z int64) int64 {
 	logger.Trace("[ext_storage_get_version_1] executing...")
 	return 0
@@ -330,9 +345,11 @@ func ImportNodeRuntime(store *wasmtime.Store, memory *wasmtime.Memory) (*wasmtim
 		{"ext_misc_runtime_version_version_1", ext_misc_runtime_version_version_1},
 		{"ext_default_child_storage_clear_version_1", ext_default_child_storage_clear_version_1},
 		{"ext_default_child_storage_get_version_1", ext_default_child_storage_get_version_1},
+		{"ext_default_child_storage_read_version_1", ext_default_child_storage_read_version_1},
 		{"ext_default_child_storage_root_version_1", ext_default_child_storage_root_version_1},
 		{"ext_default_child_storage_set_version_1", ext_default_child_storage_set_version_1},
 		{"ext_default_child_storage_storage_kill_version_1", ext_default_child_storage_storage_kill_version_1},
+		{"ext_default_child_storage_storage_kill_version_2", ext_default_child_storage_storage_kill_version_2},
 		{"ext_allocator_free_version_1", ext_allocator_free_version_1},
 		{"ext_allocator_malloc_version_1", ext_allocator_malloc_version_1},
 		{"ext_hashing_blake2_128_version_1", ext_hashing_blake2_128_version_1},
@@ -353,6 +370,7 @@ func ImportNodeRuntime(store *wasmtime.Store, memory *wasmtime.Memory) (*wasmtim
 		{"ext_storage_clear_version_1", ext_storage_clear_version_1},
 		{"ext_storage_clear_prefix_version_1", ext_storage_clear_prefix_version_1},
 		{"ext_storage_commit_transaction_version_1", ext_storage_commit_transaction_version_1},
+		{"ext_storage_exists_version_1", ext_storage_exists_version_1},
 		{"ext_storage_get_version_1", ext_storage_get_version_1},
 		{"ext_storage_next_key_version_1", ext_storage_next_key_version_1},
 		{"ext_storage_read_version_1", ext_storage_read_version_1},
