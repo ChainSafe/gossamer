@@ -78,8 +78,8 @@ func (_m *MockBlockAPI) GetBlockHash(blockNumber *big.Int) (*common.Hash, error)
 	return r0, r1
 }
 
-// GetFinalizedHash provides a mock function with given fields: _a0, _a1
-func (_m *MockBlockAPI) GetFinalizedHash(_a0 uint64, _a1 uint64) (common.Hash, error) {
+// GetFinalisedHash provides a mock function with given fields: _a0, _a1
+func (_m *MockBlockAPI) GetFinalisedHash(_a0 uint64, _a1 uint64) (common.Hash, error) {
 	ret := _m.Called(_a0, _a1)
 
 	var r0 common.Hash

@@ -339,7 +339,7 @@ func (q *syncQueue) benchmark() {
 		}
 
 		if before.Number.Int64() >= q.goal {
-			finalised, err := q.s.blockState.GetFinalizedHeader(0, 0) //nolint
+			finalised, err := q.s.blockState.GetFinalisedHeader(0, 0) //nolint
 			if err != nil {
 				continue
 			}
@@ -742,7 +742,7 @@ func (q *syncQueue) handleBlockJustification(data []*types.BlockData) {
 }
 
 func (q *syncQueue) handleBlockData(data []*types.BlockData) {
-	finalised, err := q.s.blockState.GetFinalizedHeader(0, 0)
+	finalised, err := q.s.blockState.GetFinalisedHeader(0, 0)
 	if err != nil {
 		panic(err) // this should never happen
 	}
@@ -790,7 +790,7 @@ func (q *syncQueue) handleBlockDataFailure(idx int, err error, data []*types.Blo
 	logger.Warn("failed to handle block data", "failed on block", q.currStart+int64(idx), "error", err)
 
 	if errors.Is(err, chaindb.ErrKeyNotFound) || errors.Is(err, blocktree.ErrParentNotFound) {
-		finalised, err := q.s.blockState.GetFinalizedHeader(0, 0)
+		finalised, err := q.s.blockState.GetFinalisedHeader(0, 0)
 		if err != nil {
 			panic(err)
 		}

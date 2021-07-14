@@ -32,9 +32,6 @@ func (bs *BlockState) HasReceipt(hash common.Hash) (bool, error) {
 
 // SetReceipt sets a Receipt in the database
 func (bs *BlockState) SetReceipt(hash common.Hash, data []byte) error {
-	bs.Lock()
-	defer bs.Unlock()
-
 	err := bs.db.Put(prefixKey(hash, receiptPrefix), data)
 	if err != nil {
 		return err
@@ -60,9 +57,6 @@ func (bs *BlockState) HasMessageQueue(hash common.Hash) (bool, error) {
 
 // SetMessageQueue sets a MessageQueue in the database
 func (bs *BlockState) SetMessageQueue(hash common.Hash, data []byte) error {
-	bs.Lock()
-	defer bs.Unlock()
-
 	err := bs.db.Put(prefixKey(hash, messageQueuePrefix), data)
 	if err != nil {
 		return err
@@ -88,9 +82,6 @@ func (bs *BlockState) HasJustification(hash common.Hash) (bool, error) {
 
 // SetJustification sets a Justification in the database
 func (bs *BlockState) SetJustification(hash common.Hash, data []byte) error {
-	bs.Lock()
-	defer bs.Unlock()
-
 	err := bs.db.Put(prefixKey(hash, justificationPrefix), data)
 	if err != nil {
 		return err
