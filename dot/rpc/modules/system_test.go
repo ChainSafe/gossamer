@@ -38,12 +38,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	log "github.com/ChainSafe/log15"
-<<<<<<< HEAD
+	"github.com/btcsuite/btcutil/base58"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/stretchr/testify/mock"
-=======
-	"github.com/btcsuite/btcutil/base58"
->>>>>>> development
 	"github.com/stretchr/testify/require"
 
 	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
