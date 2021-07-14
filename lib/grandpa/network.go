@@ -31,6 +31,7 @@ var (
 	grandpaID                protocol.ID = "/paritytech/grandpa/1"
 	messageID                            = network.ConsensusMsgType
 	neighbourMessageInterval             = time.Minute * 5
+	gossipMessage = scale.MustNewVaryingDataType(&VoteMessage{}, &CommitMessage{}, &NeighbourMessage{}, &catchUpRequest{}, &catchUpResponse{})
 )
 
 // Handshake is an alias for network.Handshake
@@ -224,30 +225,20 @@ func (s *Service) sendNeighbourMessage() {
 
 // decodeMessage decodes a network-level consensus message into a GRANDPA VoteMessage or CommitMessage
 func decodeMessage(msg *ConsensusMessage) (m GrandpaMessage, err error) {
-	// TODO make this a VDT
-	switch msg.Data[0] {
-	case voteType:
-		var vm *VoteMessage
-		err = scale.Unmarshal(msg.Data[1:], &vm)
-		m = vm
+	err = scale.Unmarshal(msg.Data, &gossipMessage)
+	switch val := gossipMessage.Value().(type) {
+	case *VoteMessage:
+		m = val
 		logger.Trace("got VoteMessage!!!", "msg", m)
-	case commitType:
-		var cm *CommitMessage
-		err = scale.Unmarshal(msg.Data[1:], &cm)
-		m = cm
+	case *CommitMessage:
+		m = val
 		logger.Trace("got CommitMessage!!!", "msg", m)
-	case neighbourType:
-		var mi *NeighbourMessage
-		err = scale.Unmarshal(msg.Data[1:], &mi)
-		m = mi
-	case catchUpRequestType:
-		var mi *catchUpRequest
-		err = scale.Unmarshal(msg.Data[1:], &mi)
-		m = mi
-	case catchUpResponseType:
-		var mi *catchUpResponse
-		err = scale.Unmarshal(msg.Data[1:], &mi)
-		m = mi
+	case *NeighbourMessage:
+		m = val
+	case *catchUpRequest:
+		m = val
+	case *catchUpResponse:
+		m = val
 	default:
 		return nil, ErrInvalidMessageType
 	}

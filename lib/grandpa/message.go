@@ -76,6 +76,9 @@ func (v *VoteMessage) Type() byte {
 	return voteType
 }
 
+// Index Returns VDT index
+func (err *VoteMessage) Index() uint { return 0 }
+
 // ToConsensusMessage converts the VoteMessage into a network-level consensus message
 func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 	enc, err := scale.Marshal(v)
@@ -95,6 +98,9 @@ type NeighbourMessage struct {
 	SetID   uint64
 	Number  uint32
 }
+
+// Index Returns VDT index
+func (err *NeighbourMessage) Index() uint { return 2 }
 
 // ToConsensusMessage converts the NeighbourMessage into a network-level consensus message
 func (m *NeighbourMessage) ToConsensusMessage() (*network.ConsensusMessage, error) {
@@ -127,6 +133,9 @@ type CommitMessage struct {
 	Precommits []*Vote
 	AuthData   []*AuthData
 }
+
+// Index Returns VDT index
+func (err *CommitMessage) Index() uint { return 1 }
 
 // Type returns commitType
 func (f *CommitMessage) Type() byte {
@@ -197,6 +206,9 @@ type catchUpRequest struct {
 	SetID uint64
 }
 
+// Index Returns VDT index
+func (err *catchUpRequest) Index() uint { return 3 }
+
 func newCatchUpRequest(round, setID uint64) *catchUpRequest {
 	return &catchUpRequest{
 		Round: round,
@@ -229,6 +241,9 @@ type catchUpResponse struct {
 	Hash                   common.Hash
 	Number                 uint32
 }
+
+// Index Returns VDT index
+func (err *catchUpResponse) Index() uint { return 4 }
 
 func (s *Service) newCatchUpResponse(round, setID uint64) (*catchUpResponse, error) {
 	header, err := s.blockState.GetFinalisedHeader(round, setID)
