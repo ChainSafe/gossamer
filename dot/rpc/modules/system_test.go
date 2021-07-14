@@ -26,6 +26,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -37,6 +38,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	log "github.com/ChainSafe/log15"
+	"github.com/btcsuite/btcutil/base58"
 	"github.com/stretchr/testify/require"
 )
 
@@ -370,4 +372,30 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	}
 
 	return core.NewTestService(t, cfg)
+}
+
+func TestLocalPeerId(t *testing.T) {
+	peerID := "12D3KooWBrwpqLE9Z23NEs59m2UHUs9sGYWenxjeCk489Xq7SG2h"
+	encoded := base58.Encode([]byte(peerID))
+
+	state := common.NetworkState{
+		PeerID: peerID,
+	}
+
+	mocknetAPI := new(mocks.MockNetworkAPI)
+	mocknetAPI.On("NetworkState").Return(state).Once()
+
+	sysmodules := new(SystemModule)
+	sysmodules.networkAPI = mocknetAPI
+
+	var res string
+	err := sysmodules.LocalPeerId(nil, nil, &res)
+	require.NoError(t, err)
+
+	require.Equal(t, res, encoded)
+
+	state.PeerID = ""
+	mocknetAPI.On("NetworkState").Return(state).Once()
+	err = sysmodules.LocalPeerId(nil, nil, &res)
+	require.Error(t, err)
 }
