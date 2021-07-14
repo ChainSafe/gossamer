@@ -21,7 +21,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 	"os"
 	"sync"
@@ -32,6 +31,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	log "github.com/ChainSafe/log15"
 )

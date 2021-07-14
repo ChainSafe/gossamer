@@ -31,7 +31,7 @@ var (
 	grandpaID                protocol.ID = "/paritytech/grandpa/1"
 	messageID                            = network.ConsensusMsgType
 	neighbourMessageInterval             = time.Minute * 5
-	gossipMessage = scale.MustNewVaryingDataType(&VoteMessage{}, &CommitMessage{}, &NeighbourMessage{}, &catchUpRequest{}, &catchUpResponse{})
+	gossipMessage                        = scale.MustNewVaryingDataType(&VoteMessage{}, &CommitMessage{}, &NeighbourMessage{}, &catchUpRequest{}, &catchUpResponse{})
 )
 
 // Handshake is an alias for network.Handshake

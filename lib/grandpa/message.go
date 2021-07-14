@@ -18,11 +18,12 @@ package grandpa
 
 import (
 	"fmt"
+
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
-	 "github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // GrandpaMessage is implemented by all GRANDPA network messages
@@ -77,7 +78,7 @@ func (v *VoteMessage) Type() byte {
 }
 
 // Index Returns VDT index
-func (err *VoteMessage) Index() uint { return 0 }
+func (v *VoteMessage) Index() uint { return 0 }
 
 // ToConsensusMessage converts the VoteMessage into a network-level consensus message
 func (v *VoteMessage) ToConsensusMessage() (*ConsensusMessage, error) {
@@ -100,7 +101,7 @@ type NeighbourMessage struct {
 }
 
 // Index Returns VDT index
-func (err *NeighbourMessage) Index() uint { return 2 }
+func (m *NeighbourMessage) Index() uint { return 2 }
 
 // ToConsensusMessage converts the NeighbourMessage into a network-level consensus message
 func (m *NeighbourMessage) ToConsensusMessage() (*network.ConsensusMessage, error) {
@@ -135,7 +136,7 @@ type CommitMessage struct {
 }
 
 // Index Returns VDT index
-func (err *CommitMessage) Index() uint { return 1 }
+func (f *CommitMessage) Index() uint { return 1 }
 
 // Type returns commitType
 func (f *CommitMessage) Type() byte {
@@ -207,7 +208,7 @@ type catchUpRequest struct {
 }
 
 // Index Returns VDT index
-func (err *catchUpRequest) Index() uint { return 3 }
+func (r *catchUpRequest) Index() uint { return 3 }
 
 func newCatchUpRequest(round, setID uint64) *catchUpRequest {
 	return &catchUpRequest{
@@ -243,7 +244,7 @@ type catchUpResponse struct {
 }
 
 // Index Returns VDT index
-func (err *catchUpResponse) Index() uint { return 4 }
+func (r *catchUpResponse) Index() uint { return 4 }
 
 func (s *Service) newCatchUpResponse(round, setID uint64) (*catchUpResponse, error) {
 	header, err := s.blockState.GetFinalisedHeader(round, setID)

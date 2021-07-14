@@ -18,6 +18,7 @@ package grandpa
 
 import (
 	"bytes"
+
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
@@ -31,6 +32,7 @@ type (
 	SignedVote = types.GrandpaSignedVote
 )
 
+// Subround to represent grandpa round
 type Subround byte
 
 var (
