@@ -99,8 +99,8 @@ func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage subround) (*S
 
 	sm := &SignedMessage{
 		Stage:       stage,
-		Hash:        pc.Vote.hash,
-		Number:      pc.Vote.number,
+		Hash:        pc.Vote.Hash,
+		Number:      pc.Vote.Number,
 		Signature:   ed25519.NewSignatureBytes(sig),
 		AuthorityID: s.keypair.Public().(*ed25519.PublicKey).AsBytes(),
 	}
@@ -134,12 +134,12 @@ func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 	switch m.Message.Stage {
 	case prevote, primaryProposal:
 		pv, has := s.loadVote(pk.AsBytes(), prevote)
-		if has && pv.Vote.hash.Equal(m.Message.Hash) {
+		if has && pv.Vote.Hash.Equal(m.Message.Hash) {
 			return nil, errVoteExists
 		}
 	case precommit:
 		pc, has := s.loadVote(pk.AsBytes(), precommit)
-		if has && pc.Vote.hash.Equal(m.Message.Hash) {
+		if has && pc.Vote.Hash.Equal(m.Message.Hash) {
 			return nil, errVoteExists
 		}
 	}
@@ -158,13 +158,18 @@ func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 	if m.Round != s.state.round {
 		if m.Round < s.state.round {
 			// peer doesn't know round was finalised, send out another commit message
-			header, err := s.blockState.GetFinalizedHeader(m.Round, m.SetID) //nolint
+			header, err := s.blockState.GetFinalisedHeader(m.Round, m.SetID) //nolint
+			if err != nil {
+				return nil, err
+			}
+
+			cm, err := s.newCommitMessage(header, m.Round)
 			if err != nil {
 				return nil, err
 			}
 
 			// send finalised block from previous round to network
-			msg, err := s.newCommitMessage(header, m.Round).ToConsensusMessage()
+			msg, err := cm.ToConsensusMessage()
 			if err != nil {
 				return nil, err
 			}
@@ -195,7 +200,7 @@ func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 	if errors.Is(err, ErrBlockDoesNotExist) || errors.Is(err, blocktree.ErrEndNodeNotFound) {
 		// TODO: cancel if block is imported; if we refactor the syncing this will likely become cleaner
 		// as we can have an API to synchronously sync and import a block
-		go s.network.SendBlockReqestByHash(vote.hash)
+		go s.network.SendBlockReqestByHash(vote.Hash)
 		s.tracker.add(m)
 	}
 	if err != nil {
@@ -254,7 +259,7 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage sub
 		return false
 	}
 
-	if has && existingVote.Vote.hash != vote.Vote.hash {
+	if has && existingVote.Vote.Hash != vote.Vote.Hash {
 		// the voter has already voted, all their votes are now equivocatory
 		eq[v] = []*SignedVote{existingVote, vote}
 		s.deleteVote(v, stage)
@@ -268,7 +273,7 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage sub
 // previously finalised block.
 func (s *Service) validateVote(v *Vote) error {
 	// check if v.hash corresponds to a valid block
-	has, err := s.blockState.HasHeader(v.hash)
+	has, err := s.blockState.HasHeader(v.Hash)
 	if err != nil {
 		return err
 	}
@@ -278,7 +283,7 @@ func (s *Service) validateVote(v *Vote) error {
 	}
 
 	// check if the block is an eventual descendant of a previously finalised block
-	isDescendant, err := s.blockState.IsDescendantOf(s.head.Hash(), v.hash)
+	isDescendant, err := s.blockState.IsDescendantOf(s.head.Hash(), v.Hash)
 	if err != nil {
 		return err
 	}

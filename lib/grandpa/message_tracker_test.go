@@ -100,7 +100,9 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 
 	gs, _, _, _ := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
 	state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 3)
-	gs.Start()
+	err = gs.Start()
+	require.NoError(t, err)
+
 	time.Sleep(time.Second) // wait for round to initiate
 
 	parent, err := gs.blockState.BestBlockHeader()
@@ -128,8 +130,8 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 
 	time.Sleep(time.Second)
 	expected := &Vote{
-		hash:   msg.Message.Hash,
-		number: msg.Message.Number,
+		Hash:   msg.Message.Hash,
+		Number: msg.Message.Number,
 	}
 	pv, has := gs.prevotes.Load(kr.Alice().Public().(*ed25519.PublicKey).AsBytes())
 	require.True(t, has)
