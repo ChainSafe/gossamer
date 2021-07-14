@@ -18,10 +18,12 @@ package common
 
 import "fmt"
 
+// BtyePool struct to hold byte objects that will be contained in pool
 type BytePool struct {
 	c chan byte
 }
 
+// NewBytePool256 creates and initialises pool with 256 entries
 func NewBytePool256() (bp *BytePool, err error) {
 	bp = NewBytePool(256)
 	for i := 0; i < 256; i++ {
@@ -29,6 +31,8 @@ func NewBytePool256() (bp *BytePool, err error) {
 	}
 	return
 }
+
+// NewBytePool creates a new empty byte pool with capacity of size
 func NewBytePool(size int) (bp *BytePool) {
 	return &BytePool{
 		c: make(chan byte, size),
