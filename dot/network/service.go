@@ -679,7 +679,7 @@ func (s *Service) NodeRoles() byte {
 
 // CollectGauge will be used to collect coutable metrics from network service
 func (s *Service) CollectGauge() map[string]int64 {
-	var issyncing int64
+	var isSynced int64
 	if !s.syncer.IsSynced() {
 		issyncing = 1
 	} else {
