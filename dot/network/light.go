@@ -42,12 +42,12 @@ func (l *LightRequest) SubProtocol() string {
 // Encode encodes a LightRequest message using SCALE and appends the type byte to the start
 // TODO Remove encode/decode receiver functions
 func (l *LightRequest) Encode() ([]byte, error) {
-	return scale.Marshal(l)
+	return scale.Marshal(*l)
 }
 
 // Decode the message into a LightRequest, it assumes the type byte has been removed
 func (l *LightRequest) Decode(in []byte) error {
-	err := scale.Unmarshal(in, &l)
+	err := scale.Unmarshal(in, l)
 	if err != nil {
 		return err
 	}
@@ -87,12 +87,12 @@ func (l *LightResponse) SubProtocol() string {
 
 // Encode encodes a LightResponse message using SCALE and appends the type byte to the start
 func (l *LightResponse) Encode() ([]byte, error) {
-	return scale.Marshal(l)
+	return scale.Marshal(*l)
 }
 
 // Decode the message into a LightResponse, it assumes the type byte has been removed
 func (l *LightResponse) Decode(in []byte) error {
-	err := scale.Unmarshal(in, &l)
+	err := scale.Unmarshal(in, l)
 	if err != nil {
 		return err
 	}
