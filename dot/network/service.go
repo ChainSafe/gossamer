@@ -47,6 +47,8 @@ const (
 	transactionsID  = "/transactions/1"
 
 	maxMessageSize = 1024 * 63 // 63kb for now
+
+	gssmrIsMajorSyncMetric = "gossamer/network/is_major_syncing"
 )
 
 var (
@@ -673,4 +675,17 @@ func (s *Service) Peers() []common.PeerInfo {
 // NodeRoles Returns the roles the node is running as.
 func (s *Service) NodeRoles() byte {
 	return s.cfg.Roles
+}
+
+func (s *Service) CollectGauge() map[string]int64 {
+	var issyncing int64
+	if !s.syncer.IsSynced() {
+		issyncing = 1
+	} else {
+		issyncing = 0
+	}
+
+	return map[string]int64{
+		gssmrIsMajorSyncMetric: issyncing,
+	}
 }
