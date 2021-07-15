@@ -92,11 +92,17 @@ func (bm *BlockAnnounceMessage) Decode(in []byte) error {
 	//
 	//bm.BestBlock = bestBlock == 1
 	//return nil
-	//var hs = new(BlockAnnounceMessage)
-	err := scale.Unmarshal(in, bm)
+	var h = new(BlockAnnounceMessage)
+	err := scale.Unmarshal(in, h)
 	if err != nil {
 		return err
 	}
+	bm.ParentHash = h.ParentHash
+	bm.Number = h.Number
+	bm.StateRoot = h.StateRoot
+	bm.ExtrinsicsRoot = h.ExtrinsicsRoot
+	bm.Digest = h.Digest
+	bm.BestBlock = h.BestBlock
 	return nil
 }
 
