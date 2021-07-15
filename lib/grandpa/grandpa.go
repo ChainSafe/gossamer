@@ -211,7 +211,7 @@ func (s *Service) Stop() error {
 
 	s.cancel()
 
-	s.blockState.UnregisterFinalizedChannel(s.finalisedChID)
+	s.blockState.UnregisterFinalisedChannel(s.finalisedChID)
 	close(s.finalisedCh)
 
 	if !s.authority {

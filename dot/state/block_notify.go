@@ -64,15 +64,23 @@ func (bs *BlockState) UnregisterImportedChannel(id byte) {
 	defer bs.importedLock.Unlock()
 
 	delete(bs.imported, id)
+	err := bs.importedBytePool.Put(id)
+	if err != nil {
+		logger.Error("failed to unregister imported channel", "error", err)
+	}
 }
 
-// UnregisterFinalizedChannel removes the block finalisation notification channel with the given ID.
+// UnregisterFinalisedChannel removes the block finalisation notification channel with the given ID.
 // A channel must be unregistered before closing it.
-func (bs *BlockState) UnregisterFinalizedChannel(id byte) {
+func (bs *BlockState) UnregisterFinalisedChannel(id byte) {
 	bs.finalisedLock.Lock()
 	defer bs.finalisedLock.Unlock()
 
 	delete(bs.finalised, id)
+	err := bs.finalisedBytePool.Put(id)
+	if err != nil {
+		logger.Error("failed to unregister finalised channel", "error", err)
+	}
 }
 
 func (bs *BlockState) notifyImported(block *types.Block) {
