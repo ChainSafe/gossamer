@@ -389,7 +389,9 @@ func TestSyncState(t *testing.T) {
 
 	blockapiMock.On("GetHeader", fakeCommonHash).Return(nil, errors.New("Problems while getting header")).Once()
 	err = sysmodule.SyncState(nil, nil, nil)
+	require.Error(t, err)
 }
+
 func TestLocalListenAddresses(t *testing.T) {
 	ma, err := multiaddr.NewMultiaddr("/ip4/127.0.0.1/tcp/7001/p2p/12D3KooWCYyh5xoAc5oRyiGU4d9ktcqFQ23JjitNFR6bEcbw7YdN")
 	require.NoError(t, err)
