@@ -39,7 +39,11 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	log "github.com/ChainSafe/log15"
 	"github.com/btcsuite/btcutil/base58"
+	"github.com/multiformats/go-multiaddr"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 )
 
 var (
@@ -149,35 +153,15 @@ var testGenesisData = &genesis.Data{
 	ChainType: "Local",
 }
 
-type mockSystemAPI struct {
-	info    *types.SystemInfo
-	genData *genesis.Data
-}
+func newMockSystemAPI() *mocks.MockSystemAPI {
+	sysapimock := new(mocks.MockSystemAPI)
+	sysapimock.On("SystemName").Return(testSystemInfo.SystemName)
+	sysapimock.On("SystemVersion").Return(testSystemInfo.SystemVersion)
+	sysapimock.On("ChainName").Return(testGenesisData.Name)
+	sysapimock.On("Properties").Return(nil)
+	sysapimock.On("ChainType").Return(testGenesisData.ChainType)
 
-func newMockSystemAPI() *mockSystemAPI {
-	return &mockSystemAPI{
-		info:    testSystemInfo,
-		genData: testGenesisData,
-	}
-}
-
-func (api *mockSystemAPI) SystemName() string {
-	return api.info.SystemName
-}
-
-func (api *mockSystemAPI) SystemVersion() string {
-	return api.info.SystemVersion
-}
-
-func (api *mockSystemAPI) ChainName() string {
-	return api.genData.Name
-}
-func (api *mockSystemAPI) Properties() map[string]interface{} {
-	return nil
-}
-
-func (api *mockSystemAPI) ChainType() string {
-	return api.genData.ChainType
+	return sysapimock
 }
 
 func TestSystemModule_Chain(t *testing.T) {
@@ -196,9 +180,8 @@ func TestSystemModule_ChainType(t *testing.T) {
 
 	res := new(string)
 	sys.ChainType(nil, nil, res)
-	require.Equal(t, api.genData.ChainType, *res)
+	require.Equal(t, testGenesisData.ChainType, *res)
 }
-
 func TestSystemModule_Name(t *testing.T) {
 	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil)
 
@@ -338,10 +321,6 @@ func setupSystemModule(t *testing.T) *SystemModule {
 	return NewSystemModule(net, nil, core, chain.Storage, txQueue)
 }
 
-type mockNetwork struct{}
-
-func (n *mockNetwork) SendMessage(_ network.NotificationsMessage) {}
-
 func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	// setup service
 	tt := trie.NewEmptyTrie()
@@ -360,6 +339,9 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 		srvc = newTestStateService(t)
 	}
 
+	mocknet := new(coremocks.MockNetwork)
+	mocknet.On("SendMessage", mock.AnythingOfType("network.NotificationsMessage"))
+
 	cfg := &core.Config{
 		Runtime:              rt,
 		Keystore:             ks,
@@ -367,11 +349,35 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 		BlockState:           srvc.Block,
 		StorageState:         srvc.Storage,
 		EpochState:           srvc.Epoch,
-		Network:              &mockNetwork{},
+		Network:              mocknet,
 		CodeSubstitutedState: srvc.Base,
 	}
 
 	return core.NewTestService(t, cfg)
+}
+
+func TestLocalListenAddresses(t *testing.T) {
+	ma, err := multiaddr.NewMultiaddr("/ip4/127.0.0.1/tcp/7001/p2p/12D3KooWCYyh5xoAc5oRyiGU4d9ktcqFQ23JjitNFR6bEcbw7YdN")
+	require.NoError(t, err)
+
+	mockedNetState := common.NetworkState{
+		PeerID:     "fake-peer-id",
+		Multiaddrs: []multiaddr.Multiaddr{ma},
+	}
+
+	mockNetAPI := new(mocks.MockNetworkAPI)
+	mockNetAPI.On("NetworkState").Return(mockedNetState)
+
+	res := make([]string, 0)
+
+	sysmodule := new(SystemModule)
+	sysmodule.networkAPI = mockNetAPI
+
+	err = sysmodule.LocalListenAddresses(nil, nil, &res)
+	require.NoError(t, err)
+
+	require.Len(t, res, 1)
+	require.Equal(t, res[0], ma.String())
 }
 
 func TestLocalPeerId(t *testing.T) {
