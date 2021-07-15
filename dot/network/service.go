@@ -681,12 +681,12 @@ func (s *Service) NodeRoles() byte {
 func (s *Service) CollectGauge() map[string]int64 {
 	var isSynced int64
 	if !s.syncer.IsSynced() {
-		issyncing = 1
+		isSynced = 1
 	} else {
-		issyncing = 0
+		isSynced = 0
 	}
 
 	return map[string]int64{
-		gssmrIsMajorSyncMetric: issyncing,
+		gssmrIsMajorSyncMetric: isSynced,
 	}
 }
