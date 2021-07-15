@@ -72,8 +72,8 @@ type Service struct {
 	// Keystore
 	keys *keystore.GlobalKeystore
 
-	runtimeChangedLock sync.RWMutex
-	runtimeChanged     map[byte]chan<- runtime.Version
+	runtimeUpdateSubscriptionsLock sync.RWMutex
+	runtimeUpdateSubscriptions     map[byte]chan<- runtime.Version
 }
 
 // Config holds the configuration for the core Service.
@@ -146,17 +146,17 @@ func NewService(cfg *Config) (*Service, error) {
 		cancel:               cancel,
 		rt:                   cfg.Runtime,
 		codeHash:             codeHash,
-		keys:                 cfg.Keystore,
-		blockState:           cfg.BlockState,
-		epochState:           cfg.EpochState,
-		storageState:         cfg.StorageState,
-		transactionState:     cfg.TransactionState,
-		net:                  cfg.Network,
-		blockAddCh:           blockAddCh,
-		codeSubstitute:       cfg.CodeSubstitutes,
-		codeSubstitutedState: cfg.CodeSubstitutedState,
-		digestHandler:        cfg.DigestHandler,
-		runtimeChanged:       make(map[byte]chan<- runtime.Version),
+		keys:                       cfg.Keystore,
+		blockState:                 cfg.BlockState,
+		epochState:                 cfg.EpochState,
+		storageState:               cfg.StorageState,
+		transactionState:           cfg.TransactionState,
+		net:                        cfg.Network,
+		blockAddCh:                 blockAddCh,
+		codeSubstitute:             cfg.CodeSubstitutes,
+		codeSubstitutedState:       cfg.CodeSubstitutedState,
+		digestHandler:              cfg.DigestHandler,
+		runtimeUpdateSubscriptions: make(map[byte]chan<- runtime.Version),
 	}
 
 	return srv, nil
@@ -315,9 +315,10 @@ func (s *Service) handleRuntimeChanges(newState *rtstorage.TrieState) error {
 	}
 
 	ver, err := s.rt.Version()
-	if err == nil {
-		go s.notifyRuntimeUpdated(ver)
+	if err != nil {
+		return err
 	}
+	go s.notifyRuntimeUpdated(ver)
 
 	s.codeHash = currCodeHash
 
@@ -474,15 +475,15 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 }
 
 func (s *Service) notifyRuntimeUpdated(version runtime.Version) {
-	s.runtimeChangedLock.RLock()
-	defer s.runtimeChangedLock.RUnlock()
+	s.runtimeUpdateSubscriptionsLock.RLock()
+	defer s.runtimeUpdateSubscriptionsLock.RUnlock()
 
-	if len(s.runtimeChanged) == 0 {
+	if len(s.runtimeUpdateSubscriptions) == 0 {
 		return
 	}
 
-	logger.Info("notifying runtime updated chans...", "chans", s.runtimeChanged)
-	for _, ch := range s.runtimeChanged {
+	logger.Info("notifying runtime updated chans...", "chans", s.runtimeUpdateSubscriptions)
+	for _, ch := range s.runtimeUpdateSubscriptions {
 		go func(ch chan<- runtime.Version) {
 			select {
 			case ch <- version:
@@ -612,30 +613,30 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 
 // RegisterRuntimeUpdatedChannel function to register chan that is notified when runtime version changes
 func (s *Service) RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (byte, error) {
-	s.runtimeChangedLock.Lock()
-	defer s.runtimeChangedLock.Unlock()
+	s.runtimeUpdateSubscriptionsLock.Lock()
+	defer s.runtimeUpdateSubscriptionsLock.Unlock()
 
-	if len(s.runtimeChanged) == 256 {
+	if len(s.runtimeUpdateSubscriptions) == 256 {
 		return 0, errors.New("channel limit reached")
 	}
 
 	var id byte
 	for {
 		id = generateID()
-		if s.runtimeChanged[id] == nil {
+		if s.runtimeUpdateSubscriptions[id] == nil {
 			break
 		}
 	}
 
-	s.runtimeChanged[id] = ch
+	s.runtimeUpdateSubscriptions[id] = ch
 	return id, nil
 }
 
 func (s *Service) UnregisterRuntimeUpdatedChannel(id byte) bool {
-	ch := s.runtimeChanged[id]
+	ch := s.runtimeUpdateSubscriptions[id]
 	if ch != nil {
 		close(ch)
-		s.runtimeChanged[id] = nil
+		s.runtimeUpdateSubscriptions[id] = nil
 		return true
 	}
 	return false
