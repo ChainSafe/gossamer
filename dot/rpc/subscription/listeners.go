@@ -311,7 +311,7 @@ func (l *RuntimeVersionListener) Listen() {
 // does not need to be stopped
 func (l *RuntimeVersionListener) Stop() {}
 
-//
+// GetChannelID function that returns listener's channel ID
 func (l *RuntimeVersionListener) GetChannelID() byte {
 	return l.channelID
 }
