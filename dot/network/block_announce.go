@@ -110,12 +110,18 @@ func (bm *BlockAnnounceMessage) IsHandshake() bool {
 }
 
 func decodeBlockAnnounceHandshake(in []byte) (Handshake, error) {
-	hs, err := scale.Decode(in, new(BlockAnnounceHandshake))
+	var hs = new(BlockAnnounceHandshake)
+	err := scale2.Unmarshal(in, hs)
 	if err != nil {
 		return nil, err
 	}
 
-	return hs.(*BlockAnnounceHandshake), err
+	//hs, err := scale.Decode(in, new(BlockAnnounceHandshake))
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	return hs, err
 }
 
 func decodeBlockAnnounceMessage(in []byte) (NotificationsMessage, error) {
@@ -152,22 +158,16 @@ func (hs *BlockAnnounceHandshake) String() string {
 
 // Encode encodes a BlockAnnounceHandshake message using SCALE
 func (hs *BlockAnnounceHandshake) Encode() ([]byte, error) {
-	//return scale.Encode(hs)
 	return scale2.Marshal(*hs)
 }
 
 // Decode the message into a BlockAnnounceHandshake
 func (hs *BlockAnnounceHandshake) Decode(in []byte) error {
-	//msg, err := scale.Decode(in, hs)
 	err := scale2.Unmarshal(in, hs)
 	if err != nil {
 		return err
 	}
 
-	//hs.Roles = msg.(*BlockAnnounceHandshake).Roles
-	//hs.BestBlockNumber = msg.(*BlockAnnounceHandshake).BestBlockNumber
-	//hs.BestBlockHash = msg.(*BlockAnnounceHandshake).BestBlockHash
-	//hs.GenesisHash = msg.(*BlockAnnounceHandshake).GenesisHash
 	return nil
 }
 
