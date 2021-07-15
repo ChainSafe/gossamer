@@ -262,7 +262,7 @@ type RuntimeVersionListener struct {
 	wsconn        WSConnAPI
 	subID         uint
 	runtimeUpdate chan runtime.Version
-	channelID byte
+	channelID     byte
 	coreAPI       modules.CoreAPI
 }
 

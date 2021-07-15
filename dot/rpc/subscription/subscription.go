@@ -45,6 +45,8 @@ func (c *WSConn) getUnsubListener(method string, params interface{}) (unsubListe
 	switch method {
 	case "state_unsubscribeStorage":
 		unsub = c.unsubscribeStorageListener
+	case "state_unsubscribeRuntimeVersion":
+		unsub = c.unsubscribeRuntimeVersionListener
 	default:
 		return nil, nil, errCannotFindUnsubsriber
 	}

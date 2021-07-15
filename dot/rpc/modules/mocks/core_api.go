@@ -124,3 +124,17 @@ func (_m *MockCoreAPI) RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) 
 
 	return r0, r1
 }
+
+// UnregisterRuntimeUpdatedChannel provides a mock function with given fields: id
+func (_m *MockCoreAPI) UnregisterRuntimeUpdatedChannel(id byte) bool {
+	ret := _m.Called(id)
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(byte) bool); ok {
+		r0 = rf(id)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	return r0
+}
