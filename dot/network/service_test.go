@@ -344,3 +344,21 @@ func TestHandleConn(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, 1, aScore)
 }
+
+func TestSerivceIsMajorSyncMetrics(t *testing.T) {
+	mocksyncer := new(MockSyncer)
+
+	node := &Service{
+		syncer: mocksyncer,
+	}
+
+	mocksyncer.On("IsSynced").Return(false).Once()
+	m := node.CollectGauge()
+
+	require.Equal(t, int64(1), m[gssmrIsMajorSyncMetric])
+
+	mocksyncer.On("IsSynced").Return(true).Once()
+	m = node.CollectGauge()
+
+	require.Equal(t, int64(0), m[gssmrIsMajorSyncMetric])
+}
