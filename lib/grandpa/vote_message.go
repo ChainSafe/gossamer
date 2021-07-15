@@ -37,9 +37,13 @@ type networkVoteMessage struct {
 func (s *Service) receiveMessages(ctx context.Context) {
 	for {
 		select {
-		case msg := <-s.in:
+		case msg, ok := <-s.in:
 			if msg == nil || msg.msg == nil {
 				continue
+			}
+
+			if !ok {
+				return
 			}
 
 			logger.Trace("received vote message", "msg", msg)
