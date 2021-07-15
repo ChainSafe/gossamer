@@ -211,7 +211,6 @@ func (q *syncQueue) syncAtHead() {
 
 		goal := atomic.LoadInt64(&q.goal)
 
-		logger.Debug("sync at head", "current block", curr.Number.Int64(), "previus block", prev.Number, "goal", goal)
 		// we aren't at the head yet, sleep
 		if curr.Number.Int64() < goal && curr.Number.Cmp(prev.Number) > 0 {
 			prev = curr
