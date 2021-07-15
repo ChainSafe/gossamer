@@ -34,6 +34,8 @@ var (
 	_ NotificationsMessage = &BlockAnnounceHandshake{}
 )
 
+// Added for init test
+
 // BlockAnnounceMessage is a state block header
 type BlockAnnounceMessage struct {
 	ParentHash     common.Hash
