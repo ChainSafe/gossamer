@@ -37,11 +37,7 @@ type networkVoteMessage struct {
 func (s *Service) receiveMessages(ctx context.Context) {
 	for {
 		select {
-		case msg, ok := <-s.in:
-			if !ok {
-				return
-			}
-
+		case msg := <-s.in:
 			if msg == nil || msg.msg == nil {
 				continue
 			}
