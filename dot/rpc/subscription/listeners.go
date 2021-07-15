@@ -266,8 +266,9 @@ type RuntimeVersionListener struct {
 	coreAPI       modules.CoreAPI
 }
 
+// VersionListener interface defining methods that version listener must implement
 type VersionListener interface {
-	GetID() byte
+	GetChannelID() byte
 }
 
 // Listen implementation of Listen interface to listen for runtime version changes
@@ -310,6 +311,7 @@ func (l *RuntimeVersionListener) Listen() {
 // does not need to be stopped
 func (l *RuntimeVersionListener) Stop() {}
 
-func (l *RuntimeVersionListener) GetID() byte {
+//
+func (l *RuntimeVersionListener) GetChannelID() byte {
 	return l.channelID
 }

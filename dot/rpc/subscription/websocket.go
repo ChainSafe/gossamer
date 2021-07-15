@@ -383,7 +383,7 @@ func (c *WSConn) unsubscribeRuntimeVersionListener(reqID float64, l Listener, _ 
 		c.safeSend(initRes)
 		return
 	}
-	id := observer.GetID()
+	id := observer.GetChannelID()
 
 	res := c.CoreAPI.UnregisterRuntimeUpdatedChannel(id)
 	c.safeSend(newBooleanResponseJSON(res, reqID))

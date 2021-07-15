@@ -629,6 +629,7 @@ func (s *Service) RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (byte
 	return id, nil
 }
 
+// UnregisterRuntimeUpdatedChannel function to unregister runtime updated channel
 func (s *Service) UnregisterRuntimeUpdatedChannel(id byte) bool {
 	ch := s.runtimeUpdateSubscriptions[id]
 	if ch != nil {
