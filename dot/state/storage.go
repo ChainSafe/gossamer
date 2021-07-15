@@ -115,7 +115,7 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 			delete(s.tries, key)
 		}
 	}
-	s.tries[root] = ts.Trie()
+	s.tries[root] = ts.Trie().Snapshot()
 
 	if _, ok := s.pruner.(*pruner.FullNode); header == nil && ok {
 		return fmt.Errorf("block cannot be empty for Full node pruner")

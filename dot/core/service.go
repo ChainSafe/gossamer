@@ -213,9 +213,6 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		return nil
 	}
 
-	s.Lock()
-	defer s.Unlock()
-
 	// store updates state trie nodes in database
 	err := s.storageState.StoreTrie(state, block.Header)
 	if err != nil {
@@ -258,6 +255,8 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	}
 
 	go func() {
+		s.Lock()
+		defer s.Unlock()
 		if s.ctx.Err() != nil {
 			return
 		}
