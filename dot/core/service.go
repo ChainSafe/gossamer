@@ -213,6 +213,9 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 		return nil
 	}
 
+	s.Lock()
+	defer s.Unlock()
+
 	// store updates state trie nodes in database
 	err := s.storageState.StoreTrie(state, block.Header)
 	if err != nil {
@@ -255,8 +258,6 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	}
 
 	go func() {
-		s.Lock()
-		defer s.Unlock()
 		if s.ctx.Err() != nil {
 			return
 		}
@@ -370,16 +371,17 @@ func (s *Service) handleCurrentSlot(header *types.Header) error {
 // does not need to be completed before the next block can be imported.
 func (s *Service) handleBlocksAsync() {
 	for {
+		prev := s.blockState.BestBlockHash()
+
 		select {
 		case block := <-s.blockAddCh:
 			if block == nil {
 				continue
 			}
 
-			// TODO: add inherent check
-			// if err := s.handleChainReorg(prev, block.Header.Hash()); err != nil {
-			// 	logger.Warn("failed to re-add transactions to chain upon re-org", "error", err)
-			// }
+			if err := s.handleChainReorg(prev, block.Header.Hash()); err != nil {
+				logger.Warn("failed to re-add transactions to chain upon re-org", "error", err)
+			}
 
 			if err := s.maintainTransactionPool(block); err != nil {
 				logger.Warn("failed to maintain transaction pool", "error", err)
@@ -479,16 +481,14 @@ func (s *Service) maintainTransactionPool(block *types.Block) error {
 	// re-validate transactions in the pool and move them to the queue
 	txs := s.transactionState.PendingInPool()
 	for _, tx := range txs {
-		// TODO: re-add this on update to v0.8
+		val, err := s.rt.ValidateTransaction(tx.Extrinsic)
+		if err != nil {
+			// failed to validate tx, remove it from the pool or queue
+			s.transactionState.RemoveExtrinsic(tx.Extrinsic)
+			continue
+		}
 
-		// val, err := s.rt.ValidateTransaction(tx.Extrinsic)
-		// if err != nil {
-		// 	// failed to validate tx, remove it from the pool or queue
-		// 	s.transactionState.RemoveExtrinsic(ext)
-		// 	continue
-		// }
-
-		// tx = transaction.NewValidTransaction(tx.Extrinsic, val)
+		tx = transaction.NewValidTransaction(tx.Extrinsic, val)
 
 		h, err := s.transactionState.Push(tx)
 		if err != nil && err == transaction.ErrTransactionExists {

@@ -51,7 +51,6 @@ type BlockState interface {
 // StorageState is the interface for the storage state
 type StorageState interface {
 	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
-	StoreTrie(ts *rtstorage.TrieState, header *types.Header) error
 	LoadCodeHash(*common.Hash) (common.Hash, error)
 	SetSyncing(bool)
 }
