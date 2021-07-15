@@ -142,10 +142,10 @@ func NewService(cfg *Config) (*Service, error) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	srv := &Service{
-		ctx:                  ctx,
-		cancel:               cancel,
-		rt:                   cfg.Runtime,
-		codeHash:             codeHash,
+		ctx:                        ctx,
+		cancel:                     cancel,
+		rt:                         cfg.Runtime,
+		codeHash:                   codeHash,
 		keys:                       cfg.Keystore,
 		blockState:                 cfg.BlockState,
 		epochState:                 cfg.EpochState,
@@ -485,10 +485,7 @@ func (s *Service) notifyRuntimeUpdated(version runtime.Version) {
 	logger.Info("notifying runtime updated chans...", "chans", s.runtimeUpdateSubscriptions)
 	for _, ch := range s.runtimeUpdateSubscriptions {
 		go func(ch chan<- runtime.Version) {
-			select {
-			case ch <- version:
-			default:
-			}
+			ch <- version
 		}(ch)
 	}
 }
