@@ -50,8 +50,8 @@ type BlockState struct {
 	finalised         map[byte]chan<- *types.FinalisationInfo
 	importedLock      sync.RWMutex
 	finalisedLock     sync.RWMutex
-	importedBytepool  *common.BytePool
-	finalisedBytepool *common.BytePool
+	importedBytePool  *common.BytePool
+	finalisedBytePool *common.BytePool
 
 	pruneKeyCh chan *types.Header
 }
@@ -82,12 +82,12 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 		return nil, fmt.Errorf("failed to get last finalised hash: %w", err)
 	}
 
-	bs.importedBytepool, err = common.NewBytePool256()
+	bs.importedBytePool, err = common.NewBytePool256()
 	if err != nil {
 		logger.Debug("issue setting up imported byte pool", "error", err)
 	}
 
-	bs.finalisedBytepool, err = common.NewBytePool256()
+	bs.finalisedBytePool, err = common.NewBytePool256()
 	if err != nil {
 		logger.Debug("issue setting up finalised byte pool", "error", err)
 	}
@@ -134,12 +134,12 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		return nil, err
 	}
 
-	bs.importedBytepool, err = common.NewBytePool256()
+	bs.importedBytePool, err = common.NewBytePool256()
 	if err != nil {
 		logger.Debug("issue setting up imported byte pool", "error", err)
 	}
 
-	bs.finalisedBytepool, err = common.NewBytePool256()
+	bs.finalisedBytePool, err = common.NewBytePool256()
 	if err != nil {
 		logger.Debug("issue setting up finalised byte pool", "error", err)
 	}

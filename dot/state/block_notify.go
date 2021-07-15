@@ -26,7 +26,7 @@ import (
 func (bs *BlockState) RegisterImportedChannel(ch chan<- *types.Block) (byte, error) {
 	bs.importedLock.RLock()
 
-	id, err := bs.importedBytepool.Get()
+	id, err := bs.importedBytePool.Get()
 	if err != nil {
 		return 0, err
 	}
@@ -44,7 +44,7 @@ func (bs *BlockState) RegisterImportedChannel(ch chan<- *types.Block) (byte, err
 func (bs *BlockState) RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error) {
 	bs.finalisedLock.RLock()
 
-	id, err := bs.finalisedBytepool.Get()
+	id, err := bs.finalisedBytePool.Get()
 	if err != nil {
 		return 0, err
 	}

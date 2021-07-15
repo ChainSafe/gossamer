@@ -55,7 +55,7 @@ func (bp *BytePool) Put(b byte) error {
 	select {
 	case bp.c <- b:
 		return nil
-	default: // Discard the buffer if the pool is full.
+	default:
 		return fmt.Errorf("pool is full")
 	}
 }
