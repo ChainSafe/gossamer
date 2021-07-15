@@ -298,7 +298,7 @@ func (h *Handler) handleScheduledChange(d *types.ConsensusDigest, header *types.
 		return nil
 	}
 
-	var sc *types.GrandpaScheduledChange
+	var sc types.GrandpaScheduledChange
 	err = scale.Unmarshal(d.Data[1:], &sc)
 	if err != nil {
 		return err
@@ -338,7 +338,7 @@ func (h *Handler) handleForcedChange(d *types.ConsensusDigest, header *types.Hea
 		return errors.New("already have forced change scheduled")
 	}
 
-	var fc *types.GrandpaForcedChange
+	var fc types.GrandpaForcedChange
 	err := scale.Unmarshal(d.Data[1:], &fc)
 	if err != nil {
 		return err
@@ -371,7 +371,7 @@ func (h *Handler) handlePause(d *types.ConsensusDigest) error {
 		return err
 	}
 
-	var p *types.GrandpaPause
+	var p types.GrandpaPause
 	err = scale.Unmarshal(d.Data[1:], &p)
 	if err != nil {
 		return err
@@ -392,7 +392,7 @@ func (h *Handler) handleResume(d *types.ConsensusDigest) error {
 		return err
 	}
 
-	var p *types.GrandpaResume
+	var p types.GrandpaResume
 	err = scale.Unmarshal(d.Data[1:], &p)
 	if err != nil {
 		return err
@@ -428,7 +428,7 @@ func (h *Handler) handleBABEOnDisabled(d *types.ConsensusDigest, _ *types.Header
 }
 
 func (h *Handler) handleNextEpochData(d *types.ConsensusDigest, header *types.Header) error {
-	var od *types.NextEpochData
+	var od types.NextEpochData
 	err := scale.Unmarshal(d.Data[1:], &od)
 	if err != nil {
 		return err
@@ -452,7 +452,7 @@ func (h *Handler) handleNextEpochData(d *types.ConsensusDigest, header *types.He
 }
 
 func (h *Handler) handleNextConfigData(d *types.ConsensusDigest, header *types.Header) error {
-	var od *types.NextConfigData
+	var od types.NextConfigData
 	err := scale.Unmarshal(d.Data[1:], &od)
 	if err != nil {
 		return err
