@@ -341,7 +341,7 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	}
 
 	mocknet := new(coremocks.MockNetwork)
-	mocknet.On("SendMessage", mock.AnythingOfType("network.NotificationsMessage"))
+	mocknet.On("GossipMessage", mock.AnythingOfType("network.NotificationsMessage"))
 
 	cfg := &core.Config{
 		Runtime:              rt,

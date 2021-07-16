@@ -175,7 +175,7 @@ func TestBroadcastMessages(t *testing.T) {
 	require.NoError(t, err)
 
 	// simulate message sent from core service
-	nodeA.SendMessage(testBlockAnnounceMessage)
+	nodeA.GossipMessage(testBlockAnnounceMessage)
 	time.Sleep(time.Second * 2)
 	require.NotNil(t, handler.messages[nodeA.host.id()])
 }
@@ -232,7 +232,7 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 
 	// Only one message will be sent.
 	for i := 0; i < 5; i++ {
-		nodeA.SendMessage(testBlockAnnounceMessage)
+		nodeA.GossipMessage(testBlockAnnounceMessage)
 		time.Sleep(time.Millisecond * 10)
 	}
 
@@ -243,7 +243,7 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 
 	// All 5 message will be sent since cache is disabled.
 	for i := 0; i < 5; i++ {
-		nodeA.SendMessage(testBlockAnnounceMessage)
+		nodeA.GossipMessage(testBlockAnnounceMessage)
 		time.Sleep(time.Millisecond * 10)
 	}
 	require.Equal(t, 6, len(handler.messages[nodeA.host.id()]))

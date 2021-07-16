@@ -480,8 +480,8 @@ func (s *Service) IsStopped() bool {
 	return s.ctx.Err() != nil
 }
 
-// SendMessage implementation of interface to handle receiving messages
-func (s *Service) SendMessage(msg NotificationsMessage) {
+// GossipMessage gossips a notifications protocol message to our peers
+func (s *Service) GossipMessage(msg NotificationsMessage) {
 	if s.host == nil || msg == nil || s.IsStopped() {
 		return
 	}
@@ -507,6 +507,23 @@ func (s *Service) SendMessage(msg NotificationsMessage) {
 	}
 
 	logger.Error("message not supported by any notifications protocol", "msg type", msg.Type())
+}
+
+// SendMessage sends a message to the given peer
+func (s *Service) SendMessage(to peer.ID, msg NotificationsMessage) error {
+	s.notificationsMu.Lock()
+	defer s.notificationsMu.Unlock()
+	for msgID, prtl := range s.notificationsProtocols {
+		if msg.Type() != msgID || prtl == nil {
+			continue
+		}
+		hs, err := prtl.getHandshake()
+		if err != nil {
+			return err
+		}
+		s.sendData(to, hs, prtl, msg)
+	}
+	return errors.New("message not supported by any notifications protocol")
 }
 
 // handleLightStream handles streams with the <protocol-id>/light/2 protocol ID
