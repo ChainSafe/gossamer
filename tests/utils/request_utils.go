@@ -44,6 +44,7 @@ func PostRPC(method, host, params string) ([]byte, error) {
 
 	r, err := http.NewRequest("POST", host, buf)
 	if err != nil {
+		logger.Crit("Err Creating request", "error", err)
 		return nil, err
 	}
 	r.Header.Set("Content-Type", ContentTypeJSON)
@@ -55,6 +56,7 @@ func PostRPC(method, host, params string) ([]byte, error) {
 
 	resp, err := httpClient.Do(r)
 	if err != nil {
+		logger.Crit("httpClient Do error", "error", err)
 		return nil, err
 	} else if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("status code not OK")
@@ -65,6 +67,10 @@ func PostRPC(method, host, params string) ([]byte, error) {
 	}()
 
 	respBody, err := ioutil.ReadAll(resp.Body)
+	
+	if err != nil {
+		logger.Crit("Error reading", "error", err)
+	}
 
 	return respBody, err
 
