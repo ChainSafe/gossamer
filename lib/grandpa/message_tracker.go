@@ -27,15 +27,15 @@ import (
 // these messages may be needed again in the case that we are slightly out of sync with the rest of the network
 type tracker struct {
 	blockState BlockState
-	messages   map[common.Hash][]*VoteMessage // map of vote block hash -> array of VoteMessages for that hash
+	messages   map[common.Hash][]*networkVoteMessage // map of vote block hash -> array of VoteMessages for that hash
 	mapLock    sync.Mutex
-	in         chan *types.Block     // receive imported block from BlockState
-	chanID     byte                  // BlockState channel ID
-	out        chan<- GrandpaMessage // send a VoteMessage back to grandpa. corresponds to grandpa's in channel
+	in         chan *types.Block          // receive imported block from BlockState
+	chanID     byte                       // BlockState channel ID
+	out        chan<- *networkVoteMessage // send a VoteMessage back to grandpa. corresponds to grandpa's in channel
 	stopped    chan struct{}
 }
 
-func newTracker(bs BlockState, out chan<- GrandpaMessage) (*tracker, error) {
+func newTracker(bs BlockState, out chan<- *networkVoteMessage) (*tracker, error) {
 	in := make(chan *types.Block, 16)
 	id, err := bs.RegisterImportedChannel(in)
 	if err != nil {
@@ -44,7 +44,7 @@ func newTracker(bs BlockState, out chan<- GrandpaMessage) (*tracker, error) {
 
 	return &tracker{
 		blockState: bs,
-		messages:   make(map[common.Hash][]*VoteMessage),
+		messages:   make(map[common.Hash][]*networkVoteMessage),
 		mapLock:    sync.Mutex{},
 		in:         in,
 		chanID:     id,
@@ -63,9 +63,13 @@ func (t *tracker) stop() {
 	close(t.in)
 }
 
-func (t *tracker) add(v *VoteMessage) {
+func (t *tracker) add(v *networkVoteMessage) {
+	if v.msg == nil {
+		return
+	}
+
 	t.mapLock.Lock()
-	t.messages[v.Message.Hash] = append(t.messages[v.Message.Hash], v)
+	t.messages[v.msg.Message.Hash] = append(t.messages[v.msg.Message.Hash], v)
 	t.mapLock.Unlock()
 }
 

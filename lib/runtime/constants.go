@@ -27,7 +27,7 @@ const (
 	// v0.8 substrate runtime
 	NODE_RUNTIME     = "node_runtime"
 	NODE_RUNTIME_FP  = "node_runtime.compact.wasm"
-	NODE_RUNTIME_URL = "https://github.com/noot/substrate/blob/noot/v0.8/target/wasm32-unknown-unknown/release/wbuild/node-runtime/node_runtime.compact.wasm?raw=true"
+	NODE_RUNTIME_URL = "https://github.com/noot/substrate/blob/noot/v0.9/target/debug/wbuild/node-runtime/node_runtime.compact.wasm?raw=true"
 
 	// v0.8 polkadot runtime
 	POLKADOT_RUNTIME     = "polkadot_runtime"
