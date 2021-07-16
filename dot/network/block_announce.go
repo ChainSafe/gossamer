@@ -64,6 +64,10 @@ func (bm *BlockAnnounceMessage) String() string {
 
 // Encode a BlockAnnounce Msg Type containing the BlockAnnounceMessage using scale.Encode
 func (bm *BlockAnnounceMessage) Encode() ([]byte, error) {
+	if bm == nil {
+		return []byte{}, nil
+	}
+
 	enc, err := scale.Marshal(*bm)
 	if err != nil {
 		return enc, err
@@ -96,6 +100,10 @@ func (bm *BlockAnnounceMessage) Decode(in []byte) error {
 	//var h = new(BlockAnnounceMessage)
 	//err := scale.Unmarshal(in, h)
 	//var h BlockAnnounceMessage
+	if bm == nil {
+		return nil
+	}
+
 	err := scale.Unmarshal(in, &bm)
 	if err != nil {
 		return err
@@ -123,7 +131,7 @@ func (bm *BlockAnnounceMessage) IsHandshake() bool {
 }
 
 func decodeBlockAnnounceHandshake(in []byte) (Handshake, error) {
-	var hs = new(BlockAnnounceHandshake)
+	hs := new(BlockAnnounceHandshake)
 	err := scale.Unmarshal(in, hs)
 	if err != nil {
 		return nil, err
@@ -166,11 +174,19 @@ func (hs *BlockAnnounceHandshake) String() string {
 
 // Encode encodes a BlockAnnounceHandshake message using SCALE
 func (hs *BlockAnnounceHandshake) Encode() ([]byte, error) {
+	if hs == nil {
+		return []byte{}, nil
+	}
+
 	return scale.Marshal(*hs)
 }
 
 // Decode the message into a BlockAnnounceHandshake
 func (hs *BlockAnnounceHandshake) Decode(in []byte) error {
+	if hs == nil {
+		return nil
+	}
+
 	err := scale.Unmarshal(in, hs)
 	if err != nil {
 		return err
