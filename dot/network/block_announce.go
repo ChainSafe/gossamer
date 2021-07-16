@@ -124,7 +124,7 @@ func (bm *BlockAnnounceMessage) IsHandshake() bool {
 
 func decodeBlockAnnounceHandshake(in []byte) (Handshake, error) {
 	var hs = new(BlockAnnounceHandshake)
-	err := scale.Unmarshal(in, &hs)
+	err := scale.Unmarshal(in, hs)
 	if err != nil {
 		return nil, err
 	}
@@ -166,12 +166,12 @@ func (hs *BlockAnnounceHandshake) String() string {
 
 // Encode encodes a BlockAnnounceHandshake message using SCALE
 func (hs *BlockAnnounceHandshake) Encode() ([]byte, error) {
-	return scale.Marshal(hs)
+	return scale.Marshal(*hs)
 }
 
 // Decode the message into a BlockAnnounceHandshake
 func (hs *BlockAnnounceHandshake) Decode(in []byte) error {
-	err := scale.Unmarshal(in, &hs)
+	err := scale.Unmarshal(in, hs)
 	if err != nil {
 		return err
 	}
