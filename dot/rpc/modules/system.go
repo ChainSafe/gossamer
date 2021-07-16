@@ -228,6 +228,24 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 	return nil
 }
 
+// LocalListenAddresses Returns the libp2p multiaddresses that the local node is listening on
+func (sm *SystemModule) LocalListenAddresses(r *http.Request, req *EmptyRequest, res *[]string) error {
+	netstate := sm.networkAPI.NetworkState()
+
+	if len(netstate.Multiaddrs) < 1 {
+		return errors.New("multiaddress list is empty")
+	}
+
+	addrs := make([]string, len(netstate.Multiaddrs))
+
+	for i, ma := range netstate.Multiaddrs {
+		addrs[i] = ma.String()
+	}
+
+	*res = addrs
+	return nil
+}
+
 // LocalPeerId Returns the base58-encoded PeerId fo the node.
 func (sm *SystemModule) LocalPeerId(r *http.Request, req *EmptyRequest, res *string) error { //nolint
 	netstate := sm.networkAPI.NetworkState()

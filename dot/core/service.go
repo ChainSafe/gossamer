@@ -204,7 +204,7 @@ func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieS
 		BestBlock:      true,
 	}
 
-	s.net.SendMessage(msg)
+	s.net.GossipMessage(msg)
 	return s.handleBlock(block, state)
 }
 
@@ -553,7 +553,7 @@ func (s *Service) HandleSubmittedExtrinsic(ext types.Extrinsic) error {
 
 	// broadcast transaction
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{ext}}
-	s.net.SendMessage(msg)
+	s.net.GossipMessage(msg)
 	return nil
 }
 
