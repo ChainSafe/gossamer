@@ -240,14 +240,12 @@ func CheckNodeStarted(t *testing.T, gossamerHost string) error {
 
 	respBody, err := PostRPC(method, gossamerHost, "{}")
 	if err != nil {
-		logger.Crit("PostRPC failed", "error", err)
 		return err
 	}
 
 	target := new(modules.SystemHealthResponse)
 	err = DecodeRPC(t, respBody, target)
 	if err != nil {
-		logger.Crit("DecodeRPC failed", "error", err)
 		return err
 	}
 
