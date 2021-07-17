@@ -68,6 +68,7 @@ func (bm *BlockAnnounceMessage) Encode() ([]byte, error) {
 		return []byte{}, nil
 	}
 
+	// Encoding to a pointer appends a byte, so cant do that because changes encoding
 	enc, err := scale.Marshal(*bm)
 	if err != nil {
 		return enc, err
@@ -77,45 +78,23 @@ func (bm *BlockAnnounceMessage) Encode() ([]byte, error) {
 
 // Decode the message into a BlockAnnounceMessage
 func (bm *BlockAnnounceMessage) Decode(in []byte) error {
-	//r := &bytes.Buffer{}
-	//_, _ = r.Write(in)
-	//h, err := types.NewEmptyHeader().Decode(r)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//bm.ParentHash = h.ParentHash
-	//bm.Number = h.Number
-	//bm.StateRoot = h.StateRoot
-	//bm.ExtrinsicsRoot = h.ExtrinsicsRoot
-	//bm.Digest = h.Digest
-	//bestBlock, err := common.ReadByte(r)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//bm.BestBlock = bestBlock == 1
-	//return nil
-
-	//var h = new(BlockAnnounceMessage)
-	//err := scale.Unmarshal(in, h)
-	//var h BlockAnnounceMessage
 	if bm == nil {
 		return nil
 	}
 
-	err := scale.Unmarshal(in, &bm)
+	// Cannot Unmarshal to a pointer interface since that wasn't used to encode
+	var h BlockAnnounceMessage
+	err := scale.Unmarshal(in, &h)
 	if err != nil {
 		return err
 	}
 
-	// bm.ParentHash = h.ParentHash
-	// bm.Number = h.Number
-	// bm.StateRoot = h.StateRoot
-	// bm.ExtrinsicsRoot = h.ExtrinsicsRoot
-	// bm.Digest = h.Digest
-	// bm.BestBlock = h.BestBlock
-
+	bm.ParentHash = h.ParentHash
+	bm.Number = h.Number
+	bm.StateRoot = h.StateRoot
+	bm.ExtrinsicsRoot = h.ExtrinsicsRoot
+	bm.Digest = h.Digest
+	bm.BestBlock = h.BestBlock
 	return nil
 }
 
@@ -133,13 +112,14 @@ func (bm *BlockAnnounceMessage) IsHandshake() bool {
 }
 
 func decodeBlockAnnounceHandshake(in []byte) (Handshake, error) {
-	hs := new(BlockAnnounceHandshake)
-	err := scale.Unmarshal(in, hs)
+	//hs := new(BlockAnnounceHandshake)
+	var hs BlockAnnounceHandshake
+	err := scale.Unmarshal(in, &hs)
 	if err != nil {
 		return nil, err
 	}
 
-	return hs, err
+	return &hs, err
 }
 
 func decodeBlockAnnounceMessage(in []byte) (NotificationsMessage, error) {
@@ -189,11 +169,16 @@ func (hs *BlockAnnounceHandshake) Decode(in []byte) error {
 		return nil
 	}
 
-	err := scale.Unmarshal(in, hs)
+	var h BlockAnnounceHandshake
+	err := scale.Unmarshal(in, &h)
 	if err != nil {
 		return err
 	}
 
+	hs.Roles = h.Roles
+	hs.GenesisHash = h.GenesisHash
+	hs.BestBlockHash = h.BestBlockHash
+	hs.BestBlockNumber = h.BestBlockNumber
 	return nil
 }
 
