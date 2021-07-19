@@ -24,6 +24,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/scale"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // Digest represents the block digest. It consists of digest items.
@@ -117,12 +118,39 @@ func DecodeDigest(r io.Reader) (Digest, error) {
 
 	for i := 0; i < len(digest); i++ {
 		digest[i], err = DecodeDigestItem(r)
+		fmt.Println(err)
 		if err != nil {
 			return nil, fmt.Errorf("could not decode digest item %d: %w", i, err)
 		}
 	}
 
 	return digest, nil
+}
+
+// DecodeDigestItem will decode byte array to DigestItem
+func DecodeDigestItemNew(in []byte) (DigestItem, error) {
+	var digestItemVdt = scale2.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
+	err := scale2.Unmarshal(in, &digestItemVdt)
+	if err != nil {
+		return nil, err
+	}
+
+	switch val := digestItemVdt.Value().(type) {
+	case ChangesTrieRootDigest:
+		fmt.Println("ChangesTrieRootDigest: ", val)
+		return &val, err
+	case PreRuntimeDigest:
+		fmt.Println("PreRuntimeDigest: ", val)
+		return &val, err
+	case ConsensusDigest:
+		fmt.Println("ConsensusDigest: ", val)
+		return &val, err
+	case SealDigest:
+		fmt.Println("SealDigest: ", val)
+		return &val, err
+	}
+
+	return nil, errors.New("invalid digest item type")
 }
 
 // DecodeDigestItem will decode byte array to DigestItem
@@ -138,8 +166,10 @@ func DecodeDigestItem(r io.Reader) (DigestItem, error) {
 		err := d.Decode(r)
 		return d, err
 	case PreRuntimeDigestType:
+		// This first
 		d := new(PreRuntimeDigest)
 		err := d.Decode(r)
+		fmt.Println(err)
 		return d, err
 	case ConsensusDigestType:
 		d := new(ConsensusDigest)
@@ -167,6 +197,9 @@ type DigestItem interface {
 type ChangesTrieRootDigest struct {
 	Hash common.Hash
 }
+
+// Index Returns VDT index
+func (d ChangesTrieRootDigest) Index() uint { return 2 }
 
 // String returns the digest as a string
 func (d *ChangesTrieRootDigest) String() string {
@@ -200,6 +233,9 @@ type PreRuntimeDigest struct {
 	Data              []byte
 }
 
+// Index Returns VDT index
+func (d PreRuntimeDigest) Index() uint { return 6 }
+
 // NewBABEPreRuntimeDigest returns a PreRuntimeDigest with the BABE consensus ID
 func NewBABEPreRuntimeDigest(data []byte) *PreRuntimeDigest {
 	return &PreRuntimeDigest{
@@ -224,7 +260,8 @@ func (d *PreRuntimeDigest) Encode() ([]byte, error) {
 	enc = append(enc, d.ConsensusEngineID[:]...)
 
 	// encode data
-	output, err := scale.Encode(d.Data)
+	//output, err := scale.Encode(d.Data)
+	output, err := scale2.Marshal(d.Data)
 	if err != nil {
 		return nil, err
 	}
@@ -256,6 +293,9 @@ type ConsensusDigest struct {
 	ConsensusEngineID ConsensusEngineID
 	Data              []byte
 }
+
+// Index Returns VDT index
+func (err ConsensusDigest) Index() uint { return 4 }
 
 // String returns the digest as a string
 func (d *ConsensusDigest) String() string {
@@ -309,6 +349,9 @@ type SealDigest struct {
 	ConsensusEngineID ConsensusEngineID
 	Data              []byte
 }
+
+// Index Returns VDT index
+func (err SealDigest) Index() uint { return 5 }
 
 // String returns the digest as a string
 func (d *SealDigest) String() string {
