@@ -389,6 +389,7 @@ func (sm *StateModule) GetStorageSize(r *http.Request, req *StateStorageSizeRequ
 // QueryStorage isn't implemented properly yet.
 func (sm *StateModule) QueryStorage(r *http.Request, req *StateStorageQueryRangeRequest, res *StorageChangeSetResponse) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
+	sm.coreAPI.QueryStateRoot()
 	return nil
 }
 

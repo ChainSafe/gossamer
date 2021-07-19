@@ -579,3 +579,13 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 	s.rt.SetContextStorage(ts)
 	return s.rt.Metadata()
 }
+
+func (s *Service) QueryStorage(from *common.Hash, to *common.Hash, keys []*common.Hash) error {
+	stateRootHash, err := s.storageState.GetStateRootFromBlock(from)
+	if err != nil {
+		return err
+	}
+
+	ts, err := s.storageState.TrieState(stateRootHash)
+
+}
