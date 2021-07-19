@@ -83,7 +83,8 @@ func (bm *BlockAnnounceMessage) Decode(in []byte) error {
 	}
 
 	// Cannot Unmarshal to a pointer interface since that wasn't used to encode
-	var h BlockAnnounceMessage
+	h := *bm
+	//var h BlockAnnounceMessage
 	err := scale.Unmarshal(in, &h)
 	if err != nil {
 		return err
@@ -169,7 +170,8 @@ func (hs *BlockAnnounceHandshake) Decode(in []byte) error {
 		return nil
 	}
 
-	var h BlockAnnounceHandshake
+	//var h BlockAnnounceHandshake
+	h := *hs
 	err := scale.Unmarshal(in, &h)
 	if err != nil {
 		return err
