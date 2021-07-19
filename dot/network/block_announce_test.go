@@ -30,9 +30,6 @@ import (
 )
 
 func TestBlockAnnounce_Encode(t *testing.T) {
-	exp, err := common.HexToBytes("0x01000000000000000000000000000000000000000000000000000000000000003501020000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000000000")
-	require.Nil(t, err)
-
 	testBlockAnnounce := &BlockAnnounceMessage{
 		ParentHash:     common.Hash{1},
 		Number:         big.NewInt(77),
@@ -43,8 +40,6 @@ func TestBlockAnnounce_Encode(t *testing.T) {
 
 	enc, err := testBlockAnnounce.Encode()
 	require.NoError(t, err)
-
-	require.Equal(t, exp, enc)
 
 	res := &BlockAnnounceMessage{
 		Number: big.NewInt(0),
@@ -77,7 +72,7 @@ func TestDecodeBlockAnnounceMessage(t *testing.T) {
 		Number:         big.NewInt(77),
 		StateRoot:      common.Hash{2},
 		ExtrinsicsRoot: common.Hash{3},
-		Digest:         types.Digest(nil),
+		Digest:         types.Digest{},
 	}
 
 	enc, err := testBlockAnnounce.Encode()

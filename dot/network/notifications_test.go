@@ -82,7 +82,7 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 		Number:         big.NewInt(77),
 		StateRoot:      common.Hash{2},
 		ExtrinsicsRoot: common.Hash{3},
-		Digest:         types.Digest(nil),
+		Digest:         types.Digest{},
 	}
 
 	enc, err = testBlockAnnounce.Encode()
