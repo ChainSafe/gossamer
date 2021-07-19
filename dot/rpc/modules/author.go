@@ -24,6 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	log "github.com/ChainSafe/log15"
 )
@@ -34,6 +35,10 @@ type AuthorModule struct {
 	coreAPI    CoreAPI
 	runtimeAPI RuntimeAPI
 	txStateAPI TransactionStateAPI
+}
+
+type HasSessionKeyRequest struct {
+	Data string
 }
 
 // KeyInsertRequest is used as model for the JSON
@@ -65,6 +70,8 @@ type RemoveExtrinsicsResponse []common.Hash
 // KeyRotateResponse is a byte array used to rotate
 type KeyRotateResponse []byte
 
+type HasSessionKeyResponse bool
+
 // ExtrinsicStatus holds the actual valid statuses
 type ExtrinsicStatus struct {
 	IsFuture    bool
@@ -94,6 +101,30 @@ func NewAuthorModule(logger log.Logger, coreAPI CoreAPI, runtimeAPI RuntimeAPI, 
 		runtimeAPI: runtimeAPI,
 		txStateAPI: txStateAPI,
 	}
+}
+
+func (am *AuthorModule) HasSessionKeys(r *http.Request, req *HasSessionKeyRequest, res *HasSessionKeyResponse) error {
+	pubKeysBytes, err := common.HexToBytes(req.Data)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(pubKeysBytes)
+	data, err := am.runtimeAPI.DecodeSessinoKeys(pubKeysBytes)
+	if err != nil {
+		return err
+	}
+
+	var decodedKeys []struct {
+		key     []byte
+		keyType struct {
+			pub []byte
+		}
+	}
+
+	err = scale.Unmarshal(data, &decodedKeys)
+	fmt.Println(err, data, decodedKeys)
+	return err
 }
 
 // InsertKey inserts a key into the keystore

@@ -2,18 +2,56 @@ package modules
 
 import (
 	"fmt"
+	"math/rand"
 	"net/http"
 	"testing"
+
+	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	log "github.com/ChainSafe/log15"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
+
+func TestAuthorModule_HasSessionKey(t *testing.T) {
+	privateSeed := make([]byte, 32)
+	_, err := rand.Read(privateSeed)
+	require.NoError(t, err)
+
+	ecdsaPair, err := ed25519.NewKeypairFromSeed(privateSeed)
+	require.NoError(t, err)
+
+	basicks := keystore.NewBasicKeystore(keystore.DumyName, crypto.Ed25519Type)
+	basicks.Insert(ecdsaPair)
+
+	pkarray := basicks.PublicKeys()
+	encodedPubKeys, err := scale.Marshal(pkarray)
+	require.NoError(t, err)
+
+	runtimeInstance := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
+	module := &AuthorModule{
+		runtimeAPI: runtimeInstance,
+	}
+
+	req := &HasSessionKeyRequest{
+		Data: common.BytesToHex(encodedPubKeys),
+	}
+
+	var res HasSessionKeyResponse
+
+	err = module.HasSessionKeys(nil, req, &res)
+	require.NoError(t, err)
+}
 
 func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 	errMockCoreAPI := &apimocks.MockCoreAPI{}

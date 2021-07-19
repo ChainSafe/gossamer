@@ -85,6 +85,7 @@ type RPCAPI interface {
 // RuntimeAPI is the interface for runtime methods
 type RuntimeAPI interface {
 	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
+	DecodeSessinoKeys(enc []byte) ([]byte, error)
 }
 
 // SystemAPI is the interface for handling system methods
