@@ -129,6 +129,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		return nil, err
 	}
 
+	var err error
 	bs.importedBytePool, err = common.NewBytePool256()
 	if err != nil {
 		logger.Debug("issue setting up imported byte pool", "error", err)
