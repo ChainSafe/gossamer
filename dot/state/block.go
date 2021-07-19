@@ -716,7 +716,7 @@ func (bs *BlockState) StoreRuntime(hash common.Hash, rt runtime.Instance) {
 	bs.bt.StoreRuntime(hash, rt)
 }
 
-// GetAllNonFinalisedBlocks get all the blocks
-func (bs *BlockState) GetAllNonFinalisedBlocks() []common.Hash {
+// GetNonFinalisedBlocks get all the blocks in the blocktree
+func (bs *BlockState) GetNonFinalisedBlocks() []common.Hash {
 	return bs.bt.GetAllBlocks()
 }

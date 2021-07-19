@@ -431,7 +431,7 @@ func (n *Node) Stop() {
 }
 
 func loadRuntime(cfg *Config, stateSrvc *state.Service, ks *keystore.GlobalKeystore, net *network.Service) error {
-	blocks := stateSrvc.Block.GetAllNonFinalisedBlocks()
+	blocks := stateSrvc.Block.GetNonFinalisedBlocks()
 	runtimeCode := make(map[string]runtime.Instance)
 	for i := range blocks {
 		hash := &blocks[i]
