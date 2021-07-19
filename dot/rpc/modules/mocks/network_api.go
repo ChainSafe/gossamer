@@ -26,6 +26,20 @@ func (_m *MockNetworkAPI) Health() common.Health {
 	return r0
 }
 
+// HighestBlock provides a mock function with given fields:
+func (_m *MockNetworkAPI) HighestBlock() int64 {
+	ret := _m.Called()
+
+	var r0 int64
+	if rf, ok := ret.Get(0).(func() int64); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	return r0
+}
+
 // IsStopped provides a mock function with given fields:
 func (_m *MockNetworkAPI) IsStopped() bool {
 	ret := _m.Called()
@@ -93,6 +107,20 @@ func (_m *MockNetworkAPI) Start() error {
 		r0 = rf()
 	} else {
 		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// StartingBlock provides a mock function with given fields:
+func (_m *MockNetworkAPI) StartingBlock() int64 {
+	ret := _m.Called()
+
+	var r0 int64
+	if rf, ok := ret.Get(0).(func() int64); ok {
+		r0 = rf()
+	} else {
+		r0 = ret.Get(0).(int64)
 	}
 
 	return r0
