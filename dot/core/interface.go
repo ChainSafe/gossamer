@@ -70,7 +70,7 @@ type TransactionState interface {
 
 // Network is the interface for the network service
 type Network interface {
-	SendMessage(network.NotificationsMessage)
+	GossipMessage(network.NotificationsMessage)
 }
 
 // EpochState is the interface for state.EpochState

@@ -182,7 +182,7 @@ func TestMessageHandler_VoteMessage(t *testing.T) {
 
 	select {
 	case vote := <-gs.in:
-		require.Equal(t, vm, vote)
+		require.Equal(t, vm, vote.msg)
 	case <-time.After(time.Second):
 		t.Fatal("did not receive VoteMessage")
 	}

@@ -73,7 +73,8 @@ type DigestHandler interface { // TODO: remove, use GrandpaState
 
 // Network is the interface required by GRANDPA for the network
 type Network interface {
-	SendMessage(msg network.NotificationsMessage)
+	GossipMessage(msg network.NotificationsMessage)
+	SendMessage(to peer.ID, msg NotificationsMessage) error
 	SendBlockReqestByHash(hash common.Hash)
 	SendJustificationRequest(to peer.ID, num uint32)
 	RegisterNotificationsProtocol(sub protocol.ID,
