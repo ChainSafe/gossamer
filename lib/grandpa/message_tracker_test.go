@@ -48,9 +48,13 @@ func TestMessageTracker_ValidateMessage(t *testing.T) {
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
-	_, err = gs.validateMessage(msg)
+	expected := &networkVoteMessage{
+		msg: msg,
+	}
+
+	_, err = gs.validateMessage("", msg)
 	require.Equal(t, err, ErrBlockDoesNotExist)
-	require.Equal(t, []*VoteMessage{msg}, gs.tracker.messages[fake.Hash()])
+	require.Equal(t, []*networkVoteMessage{expected}, gs.tracker.messages[fake.Hash()])
 }
 
 func TestMessageTracker_SendMessage(t *testing.T) {
@@ -76,9 +80,13 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
-	_, err = gs.validateMessage(msg)
+	expected := &networkVoteMessage{
+		msg: msg,
+	}
+
+	_, err = gs.validateMessage("", msg)
 	require.Equal(t, err, ErrBlockDoesNotExist)
-	require.Equal(t, []*VoteMessage{msg}, gs.tracker.messages[next.Hash()])
+	require.Equal(t, []*networkVoteMessage{expected}, gs.tracker.messages[next.Hash()])
 
 	err = gs.blockState.(*state.BlockState).AddBlock(&types.Block{
 		Header: next,
@@ -88,7 +96,7 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 
 	select {
 	case v := <-in:
-		require.Equal(t, msg, v)
+		require.Equal(t, msg, v.msg)
 	case <-time.After(testTimeout):
 		t.Errorf("did not receive vote message")
 	}
@@ -100,7 +108,9 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 
 	gs, _, _, _ := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
 	state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 3)
-	gs.Start()
+	err = gs.Start()
+	require.NoError(t, err)
+
 	time.Sleep(time.Second) // wait for round to initiate
 
 	parent, err := gs.blockState.BestBlockHeader()
@@ -116,9 +126,13 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
-	_, err = gs.validateMessage(msg)
+	expected := &networkVoteMessage{
+		msg: msg,
+	}
+
+	_, err = gs.validateMessage("", msg)
 	require.Equal(t, ErrBlockDoesNotExist, err)
-	require.Equal(t, []*VoteMessage{msg}, gs.tracker.messages[next.Hash()])
+	require.Equal(t, []*networkVoteMessage{expected}, gs.tracker.messages[next.Hash()])
 
 	err = gs.blockState.(*state.BlockState).AddBlock(&types.Block{
 		Header: next,
@@ -127,11 +141,11 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	time.Sleep(time.Second)
-	expected := &Vote{
-		hash:   msg.Message.Hash,
-		number: msg.Message.Number,
+	expectedVote := &Vote{
+		Hash:   msg.Message.Hash,
+		Number: msg.Message.Number,
 	}
 	pv, has := gs.prevotes.Load(kr.Alice().Public().(*ed25519.PublicKey).AsBytes())
 	require.True(t, has)
-	require.Equal(t, expected, pv.(*SignedVote).Vote, gs.tracker.messages)
+	require.Equal(t, expectedVote, pv.(*SignedVote).Vote, gs.tracker.messages)
 }

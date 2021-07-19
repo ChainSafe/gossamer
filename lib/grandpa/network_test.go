@@ -49,15 +49,19 @@ func TestGrandpaHandshake_Encode(t *testing.T) {
 func TestHandleNetworkMessage(t *testing.T) {
 	gs, st := newTestService(t)
 
-	gs.justification[77] = []*SignedVote{
+	just := []*SignedVote{
 		{
 			Vote:        testVote,
 			Signature:   testSignature,
 			AuthorityID: gs.publicKeyBytes(),
 		},
 	}
+	err := st.Grandpa.SetPrecommits(77, gs.state.setID, just)
+	require.NoError(t, err)
 
-	fm := gs.newCommitMessage(gs.head, 77)
+	fm, err := gs.newCommitMessage(gs.head, 77)
+	require.NoError(t, err)
+
 	cm, err := fm.ToConsensusMessage()
 	require.NoError(t, err)
 	gs.state.voters = gs.state.voters[:1]
@@ -109,7 +113,7 @@ func TestSendNeighbourMessage(t *testing.T) {
 	hash := block.Header.Hash()
 	round := uint64(7)
 	setID := uint64(33)
-	err = st.Block.SetFinalizedHash(hash, round, setID)
+	err = st.Block.SetFinalisedHash(hash, round, setID)
 	require.NoError(t, err)
 
 	expected := &NeighbourMessage{

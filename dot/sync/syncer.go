@@ -369,7 +369,7 @@ func (s *Service) handleJustification(header *types.Header, justification []byte
 		return
 	}
 
-	err = s.blockState.SetFinalizedHash(header.Hash(), 0, 0)
+	err = s.blockState.SetFinalisedHash(header.Hash(), 0, 0)
 	if err != nil {
 		logger.Error("failed to set finalised hash", "error", err)
 		return

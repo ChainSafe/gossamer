@@ -111,8 +111,7 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 		BestBlock:      true,
 	}
 
-	//setup the SendMessage function
-	net.On("SendMessage", expected)
+	net.On("GossipMessage", expected)
 
 	state, err := s.storageState.TrieState(nil)
 	require.NoError(t, err)
@@ -121,7 +120,7 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	time.Sleep(time.Second)
-	net.AssertCalled(t, "SendMessage", expected)
+	net.AssertCalled(t, "GossipMessage", expected)
 }
 
 func TestService_HandleTransactionMessage(t *testing.T) {

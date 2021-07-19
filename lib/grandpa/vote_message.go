@@ -20,58 +20,53 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"time"
 
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/scale"
+
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
+type networkVoteMessage struct {
+	from peer.ID
+	msg  *VoteMessage
+}
+
 // receiveMessages receives messages from the in channel until the specified condition is met
-func (s *Service) receiveMessages(cond func() bool) {
-	ctx, cancel := context.WithCancel(s.ctx)
+func (s *Service) receiveMessages(ctx context.Context) {
+	for {
+		select {
+		case msg, ok := <-s.in:
+			if msg == nil || msg.msg == nil {
+				continue
+			}
 
-	go func() {
-		for {
-			select {
-			case msg := <-s.in:
-				if msg == nil {
-					continue
-				}
-
-				logger.Trace("received vote message", "msg", msg)
-				vm, ok := msg.(*VoteMessage)
-				if !ok {
-					continue
-				}
-
-				v, err := s.validateMessage(vm)
-				if err != nil {
-					logger.Debug("failed to validate vote message", "message", vm, "error", err)
-					continue
-				}
-
-				logger.Debug("validated vote message",
-					"vote", v,
-					"round", vm.Round,
-					"subround", vm.Message.Stage,
-					"prevote count", s.lenVotes(prevote),
-					"precommit count", s.lenVotes(precommit),
-					"votes needed", s.state.threshold(),
-				)
-			case <-ctx.Done():
-				logger.Trace("returning from receiveMessages")
+			if !ok {
 				return
 			}
-		}
-	}()
 
-	for {
-		if cond() {
-			cancel()
+			logger.Trace("received vote message", "msg", msg)
+			vm := msg.msg
+
+			v, err := s.validateMessage(msg.from, vm)
+			if err != nil {
+				logger.Debug("failed to validate vote message", "message", vm, "error", err)
+				continue
+			}
+
+			logger.Debug("validated vote message",
+				"vote", v,
+				"round", vm.Round,
+				"subround", vm.Message.Stage,
+				"prevote count", s.lenVotes(prevote),
+				"precommit count", s.lenVotes(precommit),
+				"votes needed", s.state.threshold(),
+			)
+		case <-ctx.Done():
+			logger.Trace("returning from receiveMessages")
 			return
 		}
-		time.Sleep(time.Millisecond * 10)
 	}
 }
 
@@ -99,8 +94,8 @@ func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage subround) (*S
 
 	sm := &SignedMessage{
 		Stage:       stage,
-		Hash:        pc.Vote.hash,
-		Number:      pc.Vote.number,
+		Hash:        pc.Vote.Hash,
+		Number:      pc.Vote.Number,
 		Signature:   ed25519.NewSignatureBytes(sig),
 		AuthorityID: s.keypair.Public().(*ed25519.PublicKey).AsBytes(),
 	}
@@ -116,7 +111,7 @@ func (s *Service) createSignedVoteAndVoteMessage(vote *Vote, stage subround) (*S
 
 // validateMessage validates a VoteMessage and adds it to the current votes
 // it returns the resulting vote if validated, error otherwise
-func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
+func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 	// make sure round does not increment while VoteMessage is being validated
 	s.roundLock.Lock()
 	defer s.roundLock.Unlock()
@@ -134,12 +129,12 @@ func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 	switch m.Message.Stage {
 	case prevote, primaryProposal:
 		pv, has := s.loadVote(pk.AsBytes(), prevote)
-		if has && pv.Vote.hash.Equal(m.Message.Hash) {
+		if has && pv.Vote.Hash.Equal(m.Message.Hash) {
 			return nil, errVoteExists
 		}
 	case precommit:
 		pc, has := s.loadVote(pk.AsBytes(), precommit)
-		if has && pc.Vote.hash.Equal(m.Message.Hash) {
+		if has && pc.Vote.Hash.Equal(m.Message.Hash) {
 			return nil, errVoteExists
 		}
 	}
@@ -158,19 +153,25 @@ func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 	if m.Round != s.state.round {
 		if m.Round < s.state.round {
 			// peer doesn't know round was finalised, send out another commit message
-			header, err := s.blockState.GetFinalizedHeader(m.Round, m.SetID) //nolint
+			header, err := s.blockState.GetFinalisedHeader(m.Round, m.SetID) //nolint
+			if err != nil {
+				return nil, err
+			}
+
+			cm, err := s.newCommitMessage(header, m.Round)
 			if err != nil {
 				return nil, err
 			}
 
 			// send finalised block from previous round to network
-			msg, err := s.newCommitMessage(header, m.Round).ToConsensusMessage()
+			msg, err := cm.ToConsensusMessage()
 			if err != nil {
 				return nil, err
 			}
 
-			// TODO: don't broadcast, just send to peer; will address in a follow-up
-			s.network.SendMessage(msg)
+			if err = s.network.SendMessage(from, msg); err != nil {
+				return nil, err
+			}
 		}
 
 		// TODO: get justification if your round is lower, or just do catch-up?
@@ -195,8 +196,11 @@ func (s *Service) validateMessage(m *VoteMessage) (*Vote, error) {
 	if errors.Is(err, ErrBlockDoesNotExist) || errors.Is(err, blocktree.ErrEndNodeNotFound) {
 		// TODO: cancel if block is imported; if we refactor the syncing this will likely become cleaner
 		// as we can have an API to synchronously sync and import a block
-		go s.network.SendBlockReqestByHash(vote.hash)
-		s.tracker.add(m)
+		go s.network.SendBlockReqestByHash(vote.Hash)
+		s.tracker.add(&networkVoteMessage{
+			from: from,
+			msg:  m,
+		})
 	}
 	if err != nil {
 		return nil, err
@@ -254,7 +258,7 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage sub
 		return false
 	}
 
-	if has && existingVote.Vote.hash != vote.Vote.hash {
+	if has && existingVote.Vote.Hash != vote.Vote.Hash {
 		// the voter has already voted, all their votes are now equivocatory
 		eq[v] = []*SignedVote{existingVote, vote}
 		s.deleteVote(v, stage)
@@ -268,7 +272,7 @@ func (s *Service) checkForEquivocation(voter *Voter, vote *SignedVote, stage sub
 // previously finalised block.
 func (s *Service) validateVote(v *Vote) error {
 	// check if v.hash corresponds to a valid block
-	has, err := s.blockState.HasHeader(v.hash)
+	has, err := s.blockState.HasHeader(v.Hash)
 	if err != nil {
 		return err
 	}
@@ -278,7 +282,7 @@ func (s *Service) validateVote(v *Vote) error {
 	}
 
 	// check if the block is an eventual descendant of a previously finalised block
-	isDescendant, err := s.blockState.IsDescendantOf(s.head.Hash(), v.hash)
+	isDescendant, err := s.blockState.IsDescendantOf(s.head.Hash(), v.Hash)
 	if err != nil {
 		return err
 	}

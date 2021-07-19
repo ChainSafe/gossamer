@@ -148,13 +148,13 @@ func TestGetDirectVotes(t *testing.T) {
 	gs, _ := newTestService(t)
 
 	voteA := &Vote{
-		hash:   common.Hash{0xa},
-		number: 1,
+		Hash:   common.Hash{0xa},
+		Number: 1,
 	}
 
 	voteB := &Vote{
-		hash:   common.Hash{0xb},
-		number: 1,
+		Hash:   common.Hash{0xb},
+		Number: 1,
 	}
 
 	for i, k := range kr.Keys {
@@ -205,11 +205,11 @@ func TestGetVotesForBlock_NoDescendantVotes(t *testing.T) {
 		}
 	}
 
-	votesForA, err := gs.getVotesForBlock(voteA.hash, prevote)
+	votesForA, err := gs.getVotesForBlock(voteA.Hash, prevote)
 	require.NoError(t, err)
 	require.Equal(t, uint64(5), votesForA)
 
-	votesForB, err := gs.getVotesForBlock(voteB.hash, prevote)
+	votesForB, err := gs.getVotesForBlock(voteB.Hash, prevote)
 	require.NoError(t, err)
 	require.Equal(t, uint64(4), votesForB)
 }
@@ -251,16 +251,16 @@ func TestGetVotesForBlock_DescendantVotes(t *testing.T) {
 		}
 	}
 
-	votesForA, err := gs.getVotesForBlock(voteA.hash, prevote)
+	votesForA, err := gs.getVotesForBlock(voteA.Hash, prevote)
 	require.NoError(t, err)
 	require.Equal(t, uint64(3), votesForA)
 
 	// votesForB should be # of votes for A + # of votes for B
-	votesForB, err := gs.getVotesForBlock(voteB.hash, prevote)
+	votesForB, err := gs.getVotesForBlock(voteB.Hash, prevote)
 	require.NoError(t, err)
 	require.Equal(t, uint64(5), votesForB)
 
-	votesForC, err := gs.getVotesForBlock(voteC.hash, prevote)
+	votesForC, err := gs.getVotesForBlock(voteC.Hash, prevote)
 	require.NoError(t, err)
 	require.Equal(t, uint64(4), votesForC)
 }
@@ -478,7 +478,7 @@ func TestGetPossibleSelectedBlocks_OneBlock(t *testing.T) {
 	blocks, err := gs.getPossibleSelectedBlocks(prevote, gs.state.threshold())
 	require.NoError(t, err)
 	require.Equal(t, 1, len(blocks))
-	require.Equal(t, voteA.number, blocks[voteA.hash])
+	require.Equal(t, voteA.Number, blocks[voteA.Hash])
 }
 
 func TestGetPossibleSelectedBlocks_EqualVotes_SameAncestor(t *testing.T) {
@@ -746,8 +746,8 @@ func TestGetPreVotedBlock_MultipleCandidates(t *testing.T) {
 
 	block, err := gs.getPreVotedBlock()
 	require.NoError(t, err)
-	require.Equal(t, expected, block.hash)
-	require.Equal(t, uint32(7), block.number)
+	require.Equal(t, expected, block.Hash)
+	require.Equal(t, uint32(7), block.Number)
 }
 
 func TestGetPreVotedBlock_EvenMoreCandidates(t *testing.T) {
@@ -821,8 +821,8 @@ func TestGetPreVotedBlock_EvenMoreCandidates(t *testing.T) {
 
 	block, err := gs.getPreVotedBlock()
 	require.NoError(t, err)
-	require.Equal(t, expected, block.hash)
-	require.Equal(t, uint32(4), block.number)
+	require.Equal(t, expected, block.Hash)
+	require.Equal(t, uint32(4), block.Number)
 }
 
 func TestIsCompletable(t *testing.T) {
@@ -881,7 +881,7 @@ func TestFindParentWithNumber(t *testing.T) {
 	expected, err := st.Block.GetBlockByNumber(big.NewInt(1))
 	require.NoError(t, err)
 
-	require.Equal(t, expected.Header.Hash(), p.hash)
+	require.Equal(t, expected.Header.Hash(), p.Hash)
 }
 
 func TestGetBestFinalCandidate_OneBlock(t *testing.T) {
@@ -1038,12 +1038,12 @@ func TestGetBestFinalCandidate_PrecommitOnAnotherChain(t *testing.T) {
 		}
 	}
 
-	pred, err := st.Block.HighestCommonAncestor(voteA.hash, voteB.hash)
+	pred, err := st.Block.HighestCommonAncestor(voteA.Hash, voteB.Hash)
 	require.NoError(t, err)
 
 	bfc, err := gs.getBestFinalCandidate()
 	require.NoError(t, err)
-	require.Equal(t, pred, bfc.hash)
+	require.Equal(t, pred, bfc.Hash)
 }
 
 func TestDeterminePreVote_NoPrimaryPreVote(t *testing.T) {
@@ -1055,7 +1055,7 @@ func TestDeterminePreVote_NoPrimaryPreVote(t *testing.T) {
 
 	header, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
-	require.Equal(t, header.Hash(), pv.hash)
+	require.Equal(t, header.Hash(), pv.Hash)
 }
 
 func TestDeterminePreVote_WithPrimaryPreVote(t *testing.T) {
@@ -1096,7 +1096,7 @@ func TestDeterminePreVote_WithInvalidPrimaryPreVote(t *testing.T) {
 
 	pv, err := gs.determinePreVote()
 	require.NoError(t, err)
-	require.Equal(t, gs.head.Hash(), pv.hash)
+	require.Equal(t, gs.head.Hash(), pv.Hash)
 }
 
 func TestIsFinalisable_True(t *testing.T) {
@@ -1173,7 +1173,7 @@ func TestIsFinalisable_False(t *testing.T) {
 	// previous round has finalised block # higher than current, so round is not finalisable
 	gs.state.round = 1
 	gs.bestFinalCandidate[0] = &Vote{
-		number: 4,
+		Number: 4,
 	}
 	gs.preVotedBlock[gs.state.round] = voteA
 
@@ -1209,12 +1209,12 @@ func TestGetGrandpaGHOST_CommonAncestor(t *testing.T) {
 		}
 	}
 
-	pred, err := gs.blockState.HighestCommonAncestor(voteA.hash, voteB.hash)
+	pred, err := gs.blockState.HighestCommonAncestor(voteA.Hash, voteB.Hash)
 	require.NoError(t, err)
 
 	block, err := gs.getGrandpaGHOST()
 	require.NoError(t, err)
-	require.Equal(t, pred, block.hash)
+	require.Equal(t, pred, block.Hash)
 }
 
 func TestGetGrandpaGHOST_MultipleCandidates(t *testing.T) {
@@ -1262,8 +1262,8 @@ func TestGetGrandpaGHOST_MultipleCandidates(t *testing.T) {
 
 	block, err := gs.getGrandpaGHOST()
 	require.NoError(t, err)
-	require.Equal(t, expected, block.hash)
-	require.Equal(t, uint32(3), block.number)
+	require.Equal(t, expected, block.Hash)
+	require.Equal(t, uint32(3), block.Number)
 
 	pv, err := gs.getPreVotedBlock()
 	require.NoError(t, err)
@@ -1284,7 +1284,7 @@ func TestGrandpa_NonAuthority(t *testing.T) {
 
 	state.AddBlocksToState(t, st.Block, 8)
 	head := st.Block.BestBlockHash()
-	err = st.Block.SetFinalizedHash(head, gs.state.round, gs.state.setID)
+	err = st.Block.SetFinalisedHash(head, gs.state.round, gs.state.setID)
 	require.NoError(t, err)
 
 	time.Sleep(time.Millisecond * 100)
