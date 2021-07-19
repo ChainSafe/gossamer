@@ -69,6 +69,35 @@ func indirect(dstv reflect.Value) (elem reflect.Value) {
 }
 
 // Unmarshal takes data and a destination pointer to unmarshal the data to.
+func UnmarshalFromBuffer(b *bytes.Buffer, dst interface{}) (err error) {
+	dstv := reflect.ValueOf(dst)
+	if dstv.Kind() != reflect.Ptr || dstv.IsNil() {
+		err = fmt.Errorf("unsupported dst: %T, must be a pointer to a destination", dst)
+		return
+	}
+
+	elem := indirect(dstv)
+	if err != nil {
+		return
+	}
+
+	//buf := &bytes.Buffer{}
+	//buf = b
+	ds := decodeState{}
+	//_, err = buf.Write(data)
+	//if err != nil {
+	//	return
+	//}
+	ds.Buffer = b
+
+	err = ds.unmarshal(elem)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// Unmarshal takes data and a destination pointer to unmarshal the data to.
 func Unmarshal(data []byte, dst interface{}) (err error) {
 	dstv := reflect.ValueOf(dst)
 	if dstv.Kind() != reflect.Ptr || dstv.IsNil() {
@@ -87,7 +116,7 @@ func Unmarshal(data []byte, dst interface{}) (err error) {
 	if err != nil {
 		return
 	}
-	ds.Buffer = *buf
+	ds.Buffer = buf
 
 	err = ds.unmarshal(elem)
 	if err != nil {
@@ -97,7 +126,7 @@ func Unmarshal(data []byte, dst interface{}) (err error) {
 }
 
 type decodeState struct {
-	bytes.Buffer
+	*bytes.Buffer
 }
 
 func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {

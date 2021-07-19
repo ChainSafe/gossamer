@@ -17,6 +17,7 @@
 package types
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -127,10 +128,59 @@ func DecodeDigest(r io.Reader) (Digest, error) {
 	return digest, nil
 }
 
+// DecodeDigest decodes the input into a Digest
+func DecodeDigestNew(in []byte) (Digest, error) {
+	r := &bytes.Buffer{}
+	_, _ = r.Write(in)
+	var num *big.Int
+	err := scale2.UnmarshalFromBuffer(r, &num)
+	if err != nil {
+		fmt.Println("error")
+		return nil, err
+	}
+	fmt.Println(r)
+
+	//enc, err := ioutil.ReadAll(r)
+	//if err != nil {
+	//	fmt.Println("error")
+	//	return nil, err
+	//}
+	//fmt.Println(common.BytesToHex(enc))
+
+	digest := make([]DigestItem, num.Uint64())
+	for i := 0; i < len(digest); i++ {
+		d, err := DecodeDigestItemNew(r)
+		fmt.Println(d)
+		if err != nil {
+			return nil, err
+		}
+		digest[i] = d
+		//enc = bytes.TrimPrefix(enc, )
+	}
+
+
+	//err = scale2.Unmarshal(in, &digest)
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	fmt.Println(digest)
+
+	//var digestItemVdt = scale2.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
+	//err := scale2.Unmarshal(in, &digest)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//fmt.Println(digest)
+	//return digest, nil
+	return digest, nil
+}
+
+
 // DecodeDigestItem will decode byte array to DigestItem
-func DecodeDigestItemNew(in []byte) (DigestItem, error) {
+func DecodeDigestItemNew(b *bytes.Buffer) (DigestItem, error) {
 	var digestItemVdt = scale2.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
-	err := scale2.Unmarshal(in, &digestItemVdt)
+	err := scale2.UnmarshalFromBuffer(b, &digestItemVdt)
 	if err != nil {
 		return nil, err
 	}
