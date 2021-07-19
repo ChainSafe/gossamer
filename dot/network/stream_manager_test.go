@@ -1,4 +1,4 @@
-stream_manager_teststream_manager_testpackage network
+package network
 
 import (
 	"context"
