@@ -17,6 +17,7 @@
 package modules
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"os"
@@ -89,7 +90,7 @@ func newNetworkService(t *testing.T) *network.Service {
 func TestSystemModule_Health(t *testing.T) {
 	net := newNetworkService(t)
 	net.Stop()
-	sys := NewSystemModule(net, nil, nil, nil, nil)
+	sys := NewSystemModule(net, nil, nil, nil, nil, nil)
 
 	res := &SystemHealthResponse{}
 	err := sys.Health(nil, nil, res)
@@ -103,7 +104,7 @@ func TestSystemModule_Health(t *testing.T) {
 // Test RPC's System.NetworkState() response
 func TestSystemModule_NetworkState(t *testing.T) {
 	net := newNetworkService(t)
-	sys := NewSystemModule(net, nil, nil, nil, nil)
+	sys := NewSystemModule(net, nil, nil, nil, nil, nil)
 
 	res := &SystemNetworkStateResponse{}
 	err := sys.NetworkState(nil, nil, res)
@@ -120,7 +121,7 @@ func TestSystemModule_NetworkState(t *testing.T) {
 func TestSystemModule_Peers(t *testing.T) {
 	net := newNetworkService(t)
 	net.Stop()
-	sys := NewSystemModule(net, nil, nil, nil, nil)
+	sys := NewSystemModule(net, nil, nil, nil, nil, nil)
 
 	res := &SystemPeersResponse{}
 	err := sys.Peers(nil, nil, res)
@@ -133,7 +134,7 @@ func TestSystemModule_Peers(t *testing.T) {
 
 func TestSystemModule_NodeRoles(t *testing.T) {
 	net := newNetworkService(t)
-	sys := NewSystemModule(net, nil, nil, nil, nil)
+	sys := NewSystemModule(net, nil, nil, nil, nil, nil)
 	expected := []interface{}{"Full"}
 
 	var res []interface{}
@@ -165,7 +166,7 @@ func newMockSystemAPI() *mocks.MockSystemAPI {
 }
 
 func TestSystemModule_Chain(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil)
+	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil, nil)
 
 	res := new(string)
 	err := sys.Chain(nil, nil, res)
@@ -176,14 +177,14 @@ func TestSystemModule_Chain(t *testing.T) {
 func TestSystemModule_ChainType(t *testing.T) {
 	api := newMockSystemAPI()
 
-	sys := NewSystemModule(nil, api, nil, nil, nil)
+	sys := NewSystemModule(nil, api, nil, nil, nil, nil)
 
 	res := new(string)
 	sys.ChainType(nil, nil, res)
 	require.Equal(t, testGenesisData.ChainType, *res)
 }
 func TestSystemModule_Name(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil)
+	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil, nil)
 
 	res := new(string)
 	err := sys.Name(nil, nil, res)
@@ -192,7 +193,7 @@ func TestSystemModule_Name(t *testing.T) {
 }
 
 func TestSystemModule_Version(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil)
+	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil, nil)
 
 	res := new(string)
 	err := sys.Version(nil, nil, res)
@@ -201,7 +202,7 @@ func TestSystemModule_Version(t *testing.T) {
 }
 
 func TestSystemModule_Properties(t *testing.T) {
-	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil)
+	sys := NewSystemModule(nil, newMockSystemAPI(), nil, nil, nil, nil)
 
 	expected := map[string]interface{}(nil)
 
@@ -318,7 +319,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 	core := newCoreService(t, chain)
 	// TODO (ed) add transactions to txQueue and add test for those
 	txQueue := state.NewTransactionState()
-	return NewSystemModule(net, nil, core, chain.Storage, txQueue)
+	return NewSystemModule(net, nil, core, chain.Storage, txQueue, nil)
 }
 
 func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
@@ -354,6 +355,41 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 	}
 
 	return core.NewTestService(t, cfg)
+}
+
+func TestSyncState(t *testing.T) {
+	fakeCommonHash := common.NewHash([]byte("fake"))
+	fakeHeader := &types.Header{
+		Number: big.NewInt(int64(49)),
+	}
+
+	blockapiMock := new(mocks.MockBlockAPI)
+	blockapiMock.On("BestBlockHash").Return(fakeCommonHash)
+	blockapiMock.On("GetHeader", fakeCommonHash).Return(fakeHeader, nil).Once()
+
+	netapiMock := new(mocks.MockNetworkAPI)
+	netapiMock.On("HighestBlock").Return(int64(90))
+	netapiMock.On("StartingBlock").Return(int64(10))
+
+	sysmodule := new(SystemModule)
+	sysmodule.blockAPI = blockapiMock
+	sysmodule.networkAPI = netapiMock
+
+	var res SyncStateResponse
+	err := sysmodule.SyncState(nil, nil, &res)
+	require.NoError(t, err)
+
+	expectedSyncState := SyncStateResponse{
+		CurrentBlock:  uint32(49),
+		HighestBlock:  uint32(90),
+		StartingBlock: uint32(10),
+	}
+
+	require.Equal(t, expectedSyncState, res)
+
+	blockapiMock.On("GetHeader", fakeCommonHash).Return(nil, errors.New("Problems while getting header")).Once()
+	err = sysmodule.SyncState(nil, nil, nil)
+	require.Error(t, err)
 }
 
 func TestLocalListenAddresses(t *testing.T) {

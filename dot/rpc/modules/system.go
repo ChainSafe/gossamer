@@ -36,6 +36,7 @@ type SystemModule struct {
 	coreAPI    CoreAPI
 	storageAPI StorageAPI
 	txStateAPI TransactionStateAPI
+	blockAPI   BlockAPI
 }
 
 // EmptyRequest represents an RPC request with no fields
@@ -69,15 +70,23 @@ type StringRequest struct {
 	String string
 }
 
+// SyncStateResponse is the struct to return on the system_syncState rpc call
+type SyncStateResponse struct {
+	CurrentBlock  uint32 `json:"currentBlock"`
+	HighestBlock  uint32 `json:"highestBlock"`
+	StartingBlock uint32 `json:"startingBlock"`
+}
+
 // NewSystemModule creates a new API instance
 func NewSystemModule(net NetworkAPI, sys SystemAPI, core CoreAPI,
-	storage StorageAPI, txAPI TransactionStateAPI) *SystemModule {
+	storage StorageAPI, txAPI TransactionStateAPI, blockAPI BlockAPI) *SystemModule {
 	return &SystemModule{
 		networkAPI: net, // TODO: migrate to network state
 		systemAPI:  sys,
 		coreAPI:    core,
 		storageAPI: storage,
 		txStateAPI: txAPI,
+		blockAPI:   blockAPI,
 	}
 }
 
@@ -225,6 +234,21 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 	}
 
 	*res = U64Response(accountInfo.Nonce)
+	return nil
+}
+
+// SyncState Returns the state of the syncing of the node.
+func (sm *SystemModule) SyncState(r *http.Request, req *EmptyRequest, res *SyncStateResponse) error {
+	h, err := sm.blockAPI.GetHeader(sm.blockAPI.BestBlockHash())
+	if err != nil {
+		return err
+	}
+
+	*res = SyncStateResponse{
+		CurrentBlock:  uint32(h.Number.Int64()),
+		HighestBlock:  uint32(sm.networkAPI.HighestBlock()),
+		StartingBlock: uint32(sm.networkAPI.StartingBlock()),
+	}
 	return nil
 }
 
