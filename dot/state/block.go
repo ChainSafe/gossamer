@@ -22,7 +22,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"path/filepath"
 	"reflect"
 	"sync"
 	"time"
@@ -34,7 +33,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
-	"github.com/ChainSafe/gossamer/lib/utils"
 )
 
 var blockPrefix = "block"
@@ -675,17 +673,9 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState, rt run
 		Imports: wasmer.ImportsNodeRuntime,
 	}
 
-	localStorage, err := utils.SetupDatabase(filepath.Join(bs.dbPath, bHash.String(), "local_storage"), true)
-	if err != nil {
-		return err
-	}
-
-	ns := rt.NodeStorage()
-	ns.LocalStorage = localStorage
-
 	rtCfg.Storage = newState
 	rtCfg.Keystore = rt.Keystore()
-	rtCfg.NodeStorage = ns
+	rtCfg.NodeStorage = rt.NodeStorage()
 	rtCfg.Network = rt.NetworkService()
 	rtCfg.CodeHash = currCodeHash
 

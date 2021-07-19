@@ -39,7 +39,7 @@ type BlockTree struct {
 	db     database.Database
 	sync.RWMutex
 	nodeCache map[Hash]*node
-	blockRt   *sync.Map
+	runtime   *sync.Map
 }
 
 // NewEmptyBlockTree creates a BlockTree with a nil head
@@ -49,7 +49,7 @@ func NewEmptyBlockTree(db database.Database) *BlockTree {
 		leaves:    newEmptyLeafMap(),
 		db:        db,
 		nodeCache: make(map[Hash]*node),
-		blockRt:   &sync.Map{},
+		runtime:   &sync.Map{},
 	}
 }
 
@@ -69,7 +69,7 @@ func NewBlockTreeFromRoot(root *types.Header, db database.Database) *BlockTree {
 		leaves:    newLeafMap(head),
 		db:        db,
 		nodeCache: make(map[Hash]*node),
-		blockRt:   &sync.Map{},
+		runtime:   &sync.Map{},
 	}
 }
 
@@ -406,7 +406,7 @@ func (bt *BlockTree) DeepCopy() *BlockTree {
 
 // StoreRuntime stores the runtime for corresponding block hash.
 func (bt *BlockTree) StoreRuntime(hash common.Hash, in runtime.Instance) {
-	bt.blockRt.Store(hash, in)
+	bt.runtime.Store(hash, in)
 }
 
 // DeleteRuntime deletes the runtime for corresponding block hash.
@@ -417,12 +417,12 @@ func (bt *BlockTree) DeleteRuntime(hash common.Hash) {
 	}
 
 	in.Stop()
-	bt.blockRt.Delete(hash)
+	bt.runtime.Delete(hash)
 }
 
 // GetBlockRuntime returns block runtime for corresponding block hash.
 func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (runtime.Instance, error) {
-	ins, ok := bt.blockRt.Load(hash)
+	ins, ok := bt.runtime.Load(hash)
 	if !ok {
 		return nil, ErrFailedToGetRuntime
 	}
