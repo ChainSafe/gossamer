@@ -193,26 +193,26 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 
 // BeginModifyTrie ...
 func (s *StorageState) BeginModifyTrie(root common.Hash) error {
-	stored, has := s.tries.Load(root)
-	if !has {
-		return errors.New("trie is not cached")
-	}
+	// stored, has := s.tries.Load(root)
+	// if !has {
+	// 	return errors.New("trie is not cached")
+	// }
 
-	stored.(*storedTrie).Lock()
-	//s.Lock()
+	// stored.(*storedTrie).Lock()
+	s.Lock()
 	logger.Info("BeginModifyTrie", "root", root)
 	return nil
 }
 
 // FinishModifyTrie ...
 func (s *StorageState) FinishModifyTrie(root common.Hash) error {
-	stored, has := s.tries.Load(root)
-	if !has {
-		return errors.New("trie is not cached")
-	}
+	// stored, has := s.tries.Load(root)
+	// if !has {
+	// 	return errors.New("trie is not cached")
+	// }
 
-	stored.(*storedTrie).Unlock()
-	//s.Unlock()
+	//stored.(*storedTrie).Unlock()
+	s.Unlock()
 	logger.Info("FinishModifyTrie", "root", root)
 	return nil
 }
