@@ -24,12 +24,12 @@ type BytePool struct {
 }
 
 // NewBytePool256 creates and initialises pool with 256 entries
-func NewBytePool256() (bp *BytePool, err error) {
-	bp = NewBytePool(256)
+func NewBytePool256() *BytePool {
+	bp := NewBytePool(256)
 	for i := 0; i < 256; i++ {
-		err = bp.Put(byte(i))
+		_ = bp.Put(byte(i))
 	}
-	return
+	return bp
 }
 
 // NewBytePool creates a new empty byte pool with capacity of size

@@ -82,15 +82,9 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 		return nil, fmt.Errorf("failed to get last finalised hash: %w", err)
 	}
 
-	bs.importedBytePool, err = common.NewBytePool256()
-	if err != nil {
-		logger.Debug("issue setting up imported byte pool", "error", err)
-	}
+	bs.importedBytePool = common.NewBytePool256()
 
-	bs.finalisedBytePool, err = common.NewBytePool256()
-	if err != nil {
-		logger.Debug("issue setting up finalised byte pool", "error", err)
-	}
+	bs.finalisedBytePool = common.NewBytePool256()
 
 	return bs, nil
 }
@@ -129,16 +123,9 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		return nil, err
 	}
 
-	var err error
-	bs.importedBytePool, err = common.NewBytePool256()
-	if err != nil {
-		logger.Debug("issue setting up imported byte pool", "error", err)
-	}
+	bs.importedBytePool = common.NewBytePool256()
 
-	bs.finalisedBytePool, err = common.NewBytePool256()
-	if err != nil {
-		logger.Debug("issue setting up finalised byte pool", "error", err)
-	}
+	bs.finalisedBytePool = common.NewBytePool256()
 
 	return bs, nil
 }

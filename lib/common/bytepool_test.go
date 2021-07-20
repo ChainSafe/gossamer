@@ -44,15 +44,14 @@ func TestBytePool(t *testing.T) {
 }
 
 func TestBytePool256(t *testing.T) {
-	bp, err := NewBytePool256()
-	require.NoError(t, err)
+	bp := NewBytePool256()
 	require.Equal(t, 256, bp.NumPooled())
 
 	for i := 0; i < 256; i++ {
 		_, err := bp.Get() // nolint
 		require.NoError(t, err)
 	}
-	_, err = bp.Get()
+	_, err := bp.Get()
 	require.EqualError(t, err, "all slots used")
 }
 
