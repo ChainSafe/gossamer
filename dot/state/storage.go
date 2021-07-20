@@ -191,6 +191,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 	return next, nil
 }
 
+// BeginModifyTrie ...
 func (s *StorageState) BeginModifyTrie(root common.Hash) error {
 	stored, has := s.tries.Load(root)
 	if !has {
@@ -201,6 +202,7 @@ func (s *StorageState) BeginModifyTrie(root common.Hash) error {
 	return nil
 }
 
+// FinishModifyTrie ...
 func (s *StorageState) FinishModifyTrie(root common.Hash) error {
 	stored, has := s.tries.Load(root)
 	if !has {
@@ -234,7 +236,7 @@ func (s *StorageState) loadTrie(root *common.Hash) (*trie.Trie, error) {
 		root = &sr
 	}
 
-	if stored, has := s.tries.Load(*root); !has {
+	if stored, has := s.tries.Load(*root); !has && stored != nil {
 		return stored.(*storedTrie).t, nil
 	}
 
