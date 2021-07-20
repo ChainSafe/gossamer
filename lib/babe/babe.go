@@ -529,8 +529,6 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 		return err
 	}
 
-	b.rt.SetContextStorage(ts)
-
 	logger.Crit("babe locking")
 
 	err = b.storageState.BeginModifyTrie(parent.StateRoot)
@@ -546,6 +544,8 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 			logger.Warn("failed to finish trie write", "error", err)
 		}
 	}()
+
+	b.rt.SetContextStorage(ts)
 
 	block, err := b.buildBlock(parent, currentSlot)
 	if err != nil {

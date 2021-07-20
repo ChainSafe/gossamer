@@ -332,9 +332,6 @@ func (s *Service) handleBlock(block *types.Block) error {
 		panic("parent state root does not match snapshot state root")
 	}
 
-	s.runtime.SetContextStorage(ts)
-	logger.Trace("going to execute block", "header", block.Header, "exts", block.Body)
-
 	logger.Crit("syncer locking")
 	err = s.storageState.BeginModifyTrie(parent.StateRoot)
 	if err != nil {
@@ -348,6 +345,9 @@ func (s *Service) handleBlock(block *types.Block) error {
 			logger.Warn("failed to finish trie write", "error", err)
 		}
 	}()
+
+	s.runtime.SetContextStorage(ts)
+	logger.Trace("going to execute block", "header", block.Header, "exts", block.Body)
 
 	_, err = s.runtime.ExecuteBlock(block)
 	if err != nil {
