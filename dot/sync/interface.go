@@ -53,6 +53,9 @@ type StorageState interface {
 	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
 	LoadCodeHash(*common.Hash) (common.Hash, error)
 	SetSyncing(bool)
+	BeginModifyTrie(root common.Hash) error
+	FinishModifyTrie(root common.Hash) error
+	//ModifyTrie(*common.Hash, state.ModifyTrieFunc) error
 }
 
 // CodeSubstitutedState interface to handle storage of code substitute state

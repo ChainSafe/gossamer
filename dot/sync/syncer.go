@@ -335,6 +335,18 @@ func (s *Service) handleBlock(block *types.Block) error {
 	s.runtime.SetContextStorage(ts)
 	logger.Trace("going to execute block", "header", block.Header, "exts", block.Body)
 
+	err = s.storageState.BeginModifyTrie(parent.StateRoot)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		err = s.storageState.FinishModifyTrie(parent.StateRoot)
+		if err != nil {
+			logger.Warn("failed to finish trie write", "error", err)
+		}
+	}()
+
 	_, err = s.runtime.ExecuteBlock(block)
 	if err != nil {
 		return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)

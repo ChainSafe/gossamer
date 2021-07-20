@@ -271,13 +271,13 @@ func (s *Service) Stop() error {
 		return err
 	}
 
-	s.Storage.lock.RLock()
-	t := s.Storage.tries[head]
-	s.Storage.lock.RUnlock()
+	stored, has := s.Storage.tries.Load(head)
 
-	if t == nil {
+	if !has {
 		return errTrieDoesNotExist(head)
 	}
+
+	t := stored.(*storedTrie).t
 
 	if err = s.Base.StoreLatestStorageHash(head); err != nil {
 		return err
