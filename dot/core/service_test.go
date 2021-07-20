@@ -129,7 +129,7 @@ func TestAnnounceBlock(t *testing.T) {
 		BestBlock:      true,
 	}
 
-	net.On("SendMessage", expected)
+	net.On("GossipMessage", expected)
 
 	state, err := s.storageState.TrieState(nil)
 	require.NoError(t, err)
@@ -138,7 +138,7 @@ func TestAnnounceBlock(t *testing.T) {
 	require.NoError(t, err)
 
 	time.Sleep(time.Second)
-	net.AssertCalled(t, "SendMessage", expected)
+	net.AssertCalled(t, "GossipMessage", expected)
 }
 
 func TestService_HasKey(t *testing.T) {

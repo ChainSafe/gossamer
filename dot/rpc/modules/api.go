@@ -49,6 +49,8 @@ type NetworkAPI interface {
 	Stop() error
 	Start() error
 	IsStopped() bool
+	HighestBlock() int64
+	StartingBlock() int64
 }
 
 // BlockProducerAPI is the interface for BlockProducer methods
