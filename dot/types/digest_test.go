@@ -18,7 +18,6 @@ package types
 
 import (
 	"bytes"
-	"fmt"
 	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"testing"
 
@@ -32,28 +31,22 @@ func TestDecodeSingleDigest(t *testing.T) {
 		Data:              []byte{1, 3, 5, 7},
 	}
 
-	//d := &ChangesTrieRootDigest{
-	//	Hash: common.Hash{0, 91, 50, 25, 214, 94, 119, 36, 71, 216, 33, 152, 85, 184, 34, 120, 61, 161, 164, 223, 76, 53, 40, 246, 76, 38, 235, 204, 43, 31, 179, 28},
-	//}
-
 	enc, err := d.Encode()
 	require.NoError(t, err)
-
-	//exp := common.MustHexToBytes("0x06424142451001030507")
-	//require.Equal(t, exp, enc)
 
 	r := &bytes.Buffer{}
 	_, _ = r.Write(enc)
 	decoder := scale2.NewDecoder(r)
-	d2, err := DecodeDigestItemNew(decoder)
+	d2, err := DecodeDigestItem(decoder)
 	require.NoError(t, err)
 	require.Equal(t, d2, d)
 }
 
 func TestDecodeDigestNew(t *testing.T) {
 	d := common.MustHexToBytes("0x0c0642414245340201000000ef55a50f00000000044241424549040118ca239392960473fe1bc65f94ee27d890a49c1b200c006ff5dcc525330ecc16770100000000000000b46f01874ce7abbb5220e8fd89bede0adad14c73039d91e28e881823433e723f0100000000000000d684d9176d6eb69887540c9a89fa6097adea82fc4b0ff26d1062b488f352e179010000000000000068195a71bdde49117a616424bdc60a1733e96acb1da5aeab5d268cf2a572e94101000000000000001a0575ef4ae24bdfd31f4cb5bd61239ae67c12d4e64ae51ac756044aa6ad8200010000000000000018168f2aad0081a25728961ee00627cfe35e39833c805016632bf7c14da5800901000000000000000000000000000000000000000000000000000000000000000000000000000000054241424501014625284883e564bc1e4063f5ea2b49846cdddaa3761d04f543b698c1c3ee935c40d25b869247c36c6b8a8cbbd7bb2768f560ab7c276df3c62df357a7e3b1ec8d")
-
-	digest, err := DecodeDigestNew(d)
+	r := &bytes.Buffer{}
+	_, _ = r.Write(d)
+	digest, err := DecodeDigest(r)
 	require.NoError(t, err)
 	require.Equal(t, 3, len(digest))
 
@@ -86,8 +79,8 @@ func TestChangesTrieRootDigest(t *testing.T) {
 
 	r := &bytes.Buffer{}
 	_, _ = r.Write(enc)
-
-	d2, err := DecodeDigestItem(r)
+	dec := scale2.NewDecoder(r)
+	d2, err := DecodeDigestItem(dec)
 	require.NoError(t, err)
 	require.Equal(t, d, d2)
 }
@@ -101,12 +94,10 @@ func TestPreRuntimeDigest(t *testing.T) {
 	enc, err := d.Encode()
 	require.NoError(t, err)
 
-	fmt.Println(common.BytesToHex(enc))
-
 	r := &bytes.Buffer{}
 	_, _ = r.Write(enc)
-
-	d2, err := DecodeDigestItem(r)
+	dec := scale2.NewDecoder(r)
+	d2, err := DecodeDigestItem(dec)
 	require.NoError(t, err)
 	require.Equal(t, d, d2)
 }
@@ -122,8 +113,8 @@ func TestConsensusDigest(t *testing.T) {
 
 	r := &bytes.Buffer{}
 	_, _ = r.Write(enc)
-
-	d2, err := DecodeDigestItem(r)
+	dec := scale2.NewDecoder(r)
+	d2, err := DecodeDigestItem(dec)
 	require.NoError(t, err)
 	require.Equal(t, d, d2)
 }
@@ -139,8 +130,8 @@ func TestSealDigest(t *testing.T) {
 
 	r := &bytes.Buffer{}
 	_, _ = r.Write(enc)
-
-	d2, err := DecodeDigestItem(r)
+	dec := scale2.NewDecoder(r)
+	d2, err := DecodeDigestItem(dec)
 	require.NoError(t, err)
 	require.Equal(t, d, d2)
 }

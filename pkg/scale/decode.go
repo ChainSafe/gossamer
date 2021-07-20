@@ -25,6 +25,19 @@ import (
 	"reflect"
 )
 
+func NewDecoder(r *bytes.Buffer) *Decoder {
+	d := Decoder{Reader: decodeState{r}}
+	return &d
+}
+
+type Decoder struct {
+	Reader decodeState
+}
+
+type decodeState struct {
+	*bytes.Buffer
+}
+
 // indirect walks down v allocating pointers as needed,
 // until it gets to a non-pointer.
 func indirect(dstv reflect.Value) (elem reflect.Value) {
@@ -68,8 +81,7 @@ func indirect(dstv reflect.Value) (elem reflect.Value) {
 	return
 }
 
-// Unmarshal takes data and a destination pointer to unmarshal the data to.
-func UnmarshalFromBuffer(b *bytes.Buffer, dst interface{}) (err error) {
+func (d *Decoder) Decode(dst interface{}) (err error) {
 	dstv := reflect.ValueOf(dst)
 	if dstv.Kind() != reflect.Ptr || dstv.IsNil() {
 		err = fmt.Errorf("unsupported dst: %T, must be a pointer to a destination", dst)
@@ -81,42 +93,8 @@ func UnmarshalFromBuffer(b *bytes.Buffer, dst interface{}) (err error) {
 		return
 	}
 
-	//buf := &bytes.Buffer{}
-	//buf = b
 	ds := decodeState{}
-	//_, err = buf.Write(data)
-	//if err != nil {
-	//	return
-	//}
-	ds.Buffer = b
-
-	err = ds.unmarshal(elem)
-	if err != nil {
-		return
-	}
-	return
-}
-
-func (d *Decoder) Unmarshal(dst interface{}) (err error) {
-	dstv := reflect.ValueOf(dst)
-	if dstv.Kind() != reflect.Ptr || dstv.IsNil() {
-		err = fmt.Errorf("unsupported dst: %T, must be a pointer to a destination", dst)
-		return
-	}
-
-	elem := indirect(dstv)
-	if err != nil {
-		return
-	}
-
-	//buf := &bytes.Buffer{}
-	//buf = b
-	ds := decodeState{}
-	//_, err = buf.Write(data)
-	//if err != nil {
-	//	return
-	//}
-	ds.Buffer = d.Reader
+	ds.Buffer = d.Reader.Buffer
 
 	err = ds.unmarshal(elem)
 	if err != nil {
@@ -151,19 +129,6 @@ func Unmarshal(data []byte, dst interface{}) (err error) {
 		return
 	}
 	return
-}
-
-func NewDecoder(r *bytes.Buffer) *Decoder {
-	d := Decoder{Reader: r}
-	return &d
-}
-
-type Decoder struct {
-	Reader *bytes.Buffer
-}
-
-type decodeState struct {
-	*bytes.Buffer
 }
 
 func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {

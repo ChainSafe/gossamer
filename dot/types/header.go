@@ -17,9 +17,9 @@
 package types
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -125,8 +125,8 @@ func (bh *Header) MustEncode() []byte {
 }
 
 // Decode decodes the SCALE encoded input into this header
-func (bh *Header) Decode(r io.Reader) (*Header, error) {
-	sd := scale.Decoder{Reader: r}
+func (bh *Header) Decode(buf *bytes.Buffer) (*Header, error) {
+	sd := scale.Decoder{Reader: buf}
 
 	ph, err := sd.Decode(common.Hash{})
 	if err != nil {
@@ -148,7 +148,7 @@ func (bh *Header) Decode(r io.Reader) (*Header, error) {
 		return nil, err
 	}
 
-	d, err := DecodeDigest(r)
+	d, err := DecodeDigest(buf)
 	if err != nil {
 		return nil, err
 	}
@@ -198,8 +198,14 @@ func NewHeaderFromOptional(oh *optional.Header) (*Header, error) {
 }
 
 // decodeOptionalHeader decodes a SCALE encoded optional Header into an *optional.Header
-func decodeOptionalHeader(r io.Reader) (*optional.Header, error) {
-	sd := scale.Decoder{Reader: r}
+func decodeOptionalHeader(r *bytes.Buffer) (*optional.Header, error) {
+	//sd := scale2.Decoder{Reader: r}
+	//buf := &bytes.Buffer{}
+	//_, err := buf.ReadFrom(r)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//sd := scale2.NewDecoder(r)
 
 	exists, err := common.ReadByte(r)
 	if err != nil {
@@ -214,13 +220,15 @@ func decodeOptionalHeader(r io.Reader) (*optional.Header, error) {
 			ExtrinsicsRoot: common.Hash{},
 			Digest:         Digest{},
 		}
-		_, err = sd.Decode(header)
+
+		//err = sd.Decode(header)
+		head, err := header.Decode(r)
 		if err != nil {
 			return nil, err
 		}
 
-		header.Hash()
-		return header.AsOptional(), nil
+		head.Hash()
+		return head.AsOptional(), nil
 	}
 
 	return optional.NewHeader(false, nil), nil

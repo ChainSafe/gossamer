@@ -17,8 +17,9 @@
 package types
 
 import (
+	"bytes"
 	"fmt"
-	"io"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -134,7 +135,7 @@ func (bd *BlockData) Encode() ([]byte, error) {
 }
 
 // Decode decodes the SCALE encoded input to BlockData
-func (bd *BlockData) Decode(r io.Reader) error {
+func (bd *BlockData) Decode(r *bytes.Buffer) error {
 	hash, err := common.ReadHash(r)
 	if err != nil {
 		return err
@@ -188,15 +189,17 @@ func EncodeBlockDataArray(bds []*BlockData) ([]byte, error) {
 }
 
 // DecodeBlockDataArray decodes a SCALE encoded BlockData array
-func DecodeBlockDataArray(r io.Reader) ([]*BlockData, error) {
-	sd := scale.Decoder{Reader: r}
+func DecodeBlockDataArray(r *bytes.Buffer) ([]*BlockData, error) {
+	//sd := scale2.Decoder{Reader: r}
+	sd := scale2.NewDecoder(r)
 
-	l, err := sd.Decode(int32(0))
+	var l int32
+	err := sd.Decode(&l)
 	if err != nil {
 		return nil, err
 	}
 
-	length := int(l.(int32))
+	length := int(l)
 	bds := make([]*BlockData, length)
 
 	for i := 0; i < length; i++ {

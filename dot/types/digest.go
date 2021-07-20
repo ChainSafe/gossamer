@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -61,7 +60,7 @@ func (d *Digest) Encode() ([]byte, error) {
 }
 
 // Decode decodes a SCALE encoded digest and appends it to the given Digest
-func (d *Digest) Decode(r io.Reader) error {
+func (d *Digest) Decode(r *bytes.Buffer) error {
 	var err error
 	digest, err := DecodeDigest(r)
 	if err != nil {
@@ -107,43 +106,24 @@ var ConsensusDigestType = byte(4)
 var SealDigestType = byte(5)
 
 // DecodeDigest decodes the input into a Digest
-func DecodeDigest(r io.Reader) (Digest, error) {
-	sd := scale.Decoder{Reader: r}
+func DecodeDigest(buf *bytes.Buffer) (Digest, error) {
+	//enc, err := ioutil.ReadAll(r)
+	//if err != nil {
+	//	return nil, err
+	//}
 
-	num, err := sd.Decode(big.NewInt(0))
-	if err != nil {
-		return nil, fmt.Errorf("could not decode length of digest items: %w", err)
-	}
-
-	digest := make([]DigestItem, num.(*big.Int).Uint64())
-
-	for i := 0; i < len(digest); i++ {
-		digest[i], err = DecodeDigestItem(r)
-		fmt.Println(err)
-		if err != nil {
-			return nil, fmt.Errorf("could not decode digest item %d: %w", i, err)
-		}
-	}
-
-	return digest, nil
-}
-
-// DecodeDigest decodes the input into a Digest
-func DecodeDigestNew(in []byte) (Digest, error) {
-	r := &bytes.Buffer{}
-	//reader := scale2.Decoder{Reader: r}
-	decoder := scale2.NewDecoder(r)
-	_, _ = r.Write(in)
+	//buf := &bytes.Buffer{}
+	decoder := scale2.NewDecoder(buf)
+	//_, _ = buf.Write(enc)
 	var num *big.Int
-	err := decoder.Unmarshal(&num)
-	//err := scale2.UnmarshalFromBuffer(r, &num)
+	err := decoder.Decode(&num)
 	if err != nil {
 		return nil, err
 	}
 
 	digest := make([]DigestItem, num.Uint64())
 	for i := 0; i < len(digest); i++ {
-		d, err := DecodeDigestItemNew(decoder)
+		d, err := DecodeDigestItem(decoder)
 		if err != nil {
 			return nil, err
 		}
@@ -152,12 +132,10 @@ func DecodeDigestNew(in []byte) (Digest, error) {
 	return digest, nil
 }
 
-
 // DecodeDigestItem will decode byte array to DigestItem
-func DecodeDigestItemNew(decoder *scale2.Decoder) (DigestItem, error) {
+func DecodeDigestItem(decoder *scale2.Decoder) (DigestItem, error) {
 	var digestItemVdt = scale2.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
-	//err := scale2.UnmarshalFromBuffer(b, &digestItemVdt)
-	err := decoder.Unmarshal(&digestItemVdt)
+	err := decoder.Decode(&digestItemVdt)
 	if err != nil {
 		return nil, err
 	}
@@ -176,44 +154,13 @@ func DecodeDigestItemNew(decoder *scale2.Decoder) (DigestItem, error) {
 	return nil, errors.New("invalid digest item type")
 }
 
-// DecodeDigestItem will decode byte array to DigestItem
-func DecodeDigestItem(r io.Reader) (DigestItem, error) {
-	typ, err := common.ReadByte(r)
-	if err != nil {
-		return nil, err
-	}
-
-	switch typ {
-	case ChangesTrieRootDigestType:
-		d := new(ChangesTrieRootDigest)
-		err := d.Decode(r)
-		return d, err
-	case PreRuntimeDigestType:
-		// This first
-		d := new(PreRuntimeDigest)
-		err := d.Decode(r)
-		fmt.Println(err)
-		return d, err
-	case ConsensusDigestType:
-		d := new(ConsensusDigest)
-		err := d.Decode(r)
-		return d, err
-	case SealDigestType:
-		d := new(SealDigest)
-		err := d.Decode(r)
-		return d, err
-	}
-
-	return nil, errors.New("invalid digest item type")
-}
-
 // DigestItem can be of one of four types of digest: ChangesTrieRootDigest, PreRuntimeDigest, ConsensusDigest, or SealDigest.
 // see https://github.com/paritytech/substrate/blob/f548309478da3935f72567c2abc2eceec3978e9f/primitives/runtime/src/generic/digest.rs#L77
 type DigestItem interface {
 	String() string
 	Type() byte
 	Encode() ([]byte, error)
-	Decode(io.Reader) error // Decode assumes the type byte (first byte) has been removed from the encoding.
+	Decode(buf *bytes.Buffer) error // Decode assumes the type byte (first byte) has been removed from the encoding.
 }
 
 // ChangesTrieRootDigest contains the root of the changes trie at a given block, if the runtime supports it.
@@ -240,8 +187,8 @@ func (d *ChangesTrieRootDigest) Encode() ([]byte, error) {
 }
 
 // Decode will decode into ChangesTrieRootDigest Hash
-func (d *ChangesTrieRootDigest) Decode(r io.Reader) error {
-	hash, err := common.ReadHash(r)
+func (d *ChangesTrieRootDigest) Decode(buf *bytes.Buffer) error {
+	hash, err := common.ReadHash(buf)
 	if err != nil {
 		return err
 	}
@@ -293,15 +240,15 @@ func (d *PreRuntimeDigest) Encode() ([]byte, error) {
 }
 
 // Decode will decode PreRuntimeDigest ConsensusEngineID and Data
-func (d *PreRuntimeDigest) Decode(r io.Reader) error {
-	id, err := common.Read4Bytes(r)
+func (d *PreRuntimeDigest) Decode(buf *bytes.Buffer) error {
+	id, err := common.Read4Bytes(buf)
 	if err != nil {
 		return err
 	}
 
 	copy(d.ConsensusEngineID[:], id)
 
-	sd := scale.Decoder{Reader: r}
+	sd := scale.Decoder{Reader: buf}
 	output, err := sd.Decode([]byte{})
 	if err != nil {
 		return err
@@ -344,15 +291,15 @@ func (d *ConsensusDigest) Encode() ([]byte, error) {
 }
 
 // Decode will decode into ConsensusEngineID and Data
-func (d *ConsensusDigest) Decode(r io.Reader) error {
-	id, err := common.Read4Bytes(r)
+func (d *ConsensusDigest) Decode(buf *bytes.Buffer) error {
+	id, err := common.Read4Bytes(buf)
 	if err != nil {
 		return err
 	}
 
 	copy(d.ConsensusEngineID[:], id)
 
-	sd := scale.Decoder{Reader: r}
+	sd := scale.Decoder{Reader: buf}
 	output, err := sd.Decode([]byte{})
 	if err != nil {
 		return err
@@ -399,8 +346,8 @@ func (d *SealDigest) Encode() ([]byte, error) {
 }
 
 // Decode will decode into  SealDigest ConsensusEngineID and Data
-func (d *SealDigest) Decode(r io.Reader) error {
-	id, err := common.Read4Bytes(r)
+func (d *SealDigest) Decode(buf *bytes.Buffer) error {
+	id, err := common.Read4Bytes(buf)
 	if err != nil {
 		return err
 	}
@@ -408,7 +355,7 @@ func (d *SealDigest) Decode(r io.Reader) error {
 	copy(d.ConsensusEngineID[:], id)
 
 	// decode data
-	sd := scale.Decoder{Reader: r}
+	sd := scale.Decoder{Reader: buf}
 
 	output, err := sd.Decode([]byte{})
 	if err != nil {
