@@ -265,7 +265,7 @@ type ConsensusDigest struct {
 }
 
 // Index Returns VDT index
-func (err ConsensusDigest) Index() uint { return 4 }
+func (d ConsensusDigest) Index() uint { return 4 }
 
 // String returns the digest as a string
 func (d *ConsensusDigest) String() string {

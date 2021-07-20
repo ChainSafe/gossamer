@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"io/ioutil"
 	"path/filepath"
 
@@ -132,7 +133,8 @@ func newHeaderFromFile(filename string) (*types.Header, error) {
 		digestBytes := common.MustHexToBytes(log.(string))
 		r := &bytes.Buffer{}
 		_, _ = r.Write(digestBytes)
-		digestItem, err := types.DecodeDigestItem(r)
+		decoder := scale2.NewDecoder(r)
+		digestItem, err := types.DecodeDigestItem(decoder)
 		if err != nil {
 			return nil, err
 		}

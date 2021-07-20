@@ -3,6 +3,7 @@
 package types
 
 import (
+	"bytes"
 	io "io"
 
 	mock "github.com/stretchr/testify/mock"
@@ -14,7 +15,7 @@ type MockDigestItem struct {
 }
 
 // Decode provides a mock function with given fields: _a0
-func (_m *MockDigestItem) Decode(_a0 io.Reader) error {
+func (_m *MockDigestItem) Decode(_a0 *bytes.Buffer) error {
 	ret := _m.Called(_a0)
 
 	var r0 error

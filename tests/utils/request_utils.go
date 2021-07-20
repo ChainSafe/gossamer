@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"io/ioutil"
 	"net/http"
 	"testing"
@@ -168,7 +169,8 @@ func rpcLogsToDigest(t *testing.T, logs []string) types.Digest {
 
 		r := &bytes.Buffer{}
 		_, _ = r.Write(itemBytes)
-		item, err := types.DecodeDigestItem(r)
+		decoder := scale2.NewDecoder(r)
+		item, err := types.DecodeDigestItem(decoder)
 		require.NoError(t, err)
 
 		digest = append(digest, item)

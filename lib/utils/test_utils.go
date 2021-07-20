@@ -84,7 +84,7 @@ func NewMockDigestItem(i int) *typesmocks.MockDigestItem {
 	mockDigestItem.On("String").Return("")
 	mockDigestItem.On("Type").Return(byte(i))
 	mockDigestItem.On("Encode").Return([]byte{byte(i)}, nil)
-	mockDigestItem.On("Decode", mock.AnythingOfType("io.Reader")).Return(nil)
+	mockDigestItem.On("Decode", mock.AnythingOfType("*bytes.Buffer")).Return(nil)
 
 	return mockDigestItem
 }
