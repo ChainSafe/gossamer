@@ -344,7 +344,13 @@ func (q *syncQueue) benchmark() {
 				continue
 			}
 
-			logger.Info("💤 node waiting", "peer count", len(q.s.host.peers()), "head", before.Number, "finalised", finalised.Number)
+			logger.Info("💤 node waiting",
+				"peer count", len(q.s.host.peers()),
+				"head", before.Number,
+				"hash", before.Hash(),
+				"finalised", finalised.Number,
+				"hash", finalised.Hash(),
+			)
 			time.Sleep(time.Second * 5)
 			continue
 		}
