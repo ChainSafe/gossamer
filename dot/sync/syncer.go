@@ -335,12 +335,14 @@ func (s *Service) handleBlock(block *types.Block) error {
 	s.runtime.SetContextStorage(ts)
 	logger.Trace("going to execute block", "header", block.Header, "exts", block.Body)
 
+	logger.Crit("syncer locking")
 	err = s.storageState.BeginModifyTrie(parent.StateRoot)
 	if err != nil {
 		return err
 	}
 
 	defer func() {
+		logger.Crit("syncer unlocking")
 		err = s.storageState.FinishModifyTrie(parent.StateRoot)
 		if err != nil {
 			logger.Warn("failed to finish trie write", "error", err)

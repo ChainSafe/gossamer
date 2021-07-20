@@ -52,7 +52,7 @@ type StorageState struct {
 	tries      *sync.Map // map[common.Hash]*storedTrie // map of root -> trie
 
 	db chaindb.Database
-	//lock sync.RWMutex
+	sync.RWMutex
 
 	// change notifiers
 	changedLock  sync.RWMutex
@@ -117,7 +117,7 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 	// 	}
 	// }
 
-	s.tries.Store(root, &storedTrie{
+	_, _ = s.tries.LoadOrStore(root, &storedTrie{
 		t: ts.Trie(),
 	})
 
@@ -172,7 +172,7 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 			t: t,
 		}
 
-		s.tries.Store(*root, stored)
+		_, _ = s.tries.LoadOrStore(*root, stored)
 	}
 
 	t := stored.(*storedTrie).t
@@ -193,23 +193,27 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 
 // BeginModifyTrie ...
 func (s *StorageState) BeginModifyTrie(root common.Hash) error {
-	stored, has := s.tries.Load(root)
-	if !has {
-		return errors.New("trie is not cached")
-	}
+	// stored, has := s.tries.Load(root)
+	// if !has {
+	// 	return errors.New("trie is not cached")
+	// }
 
-	stored.(*storedTrie).Lock()
+	// stored.(*storedTrie).Lock()
+	s.Lock()
+	logger.Info("BeginModifyTrie", "root", root)
 	return nil
 }
 
 // FinishModifyTrie ...
 func (s *StorageState) FinishModifyTrie(root common.Hash) error {
-	stored, has := s.tries.Load(root)
-	if !has {
-		return errors.New("trie is not cached")
-	}
+	// stored, has := s.tries.Load(root)
+	// if !has {
+	// 	return errors.New("trie is not cached")
+	// }
 
-	stored.(*storedTrie).Unlock()
+	//stored.(*storedTrie).Unlock()
+	s.Unlock()
+	logger.Info("FinishModifyTrie", "root", root)
 	return nil
 }
 
@@ -221,7 +225,7 @@ func (s *StorageState) LoadFromDB(root common.Hash) (*trie.Trie, error) {
 		return nil, err
 	}
 
-	s.tries.Store(t.MustHash(), &storedTrie{
+	_, _ = s.tries.LoadOrStore(t.MustHash(), &storedTrie{
 		t: t,
 	})
 	return t, nil
