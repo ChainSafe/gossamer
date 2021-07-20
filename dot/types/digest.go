@@ -131,72 +131,45 @@ func DecodeDigest(r io.Reader) (Digest, error) {
 // DecodeDigest decodes the input into a Digest
 func DecodeDigestNew(in []byte) (Digest, error) {
 	r := &bytes.Buffer{}
+	//reader := scale2.Decoder{Reader: r}
+	decoder := scale2.NewDecoder(r)
 	_, _ = r.Write(in)
 	var num *big.Int
-	err := scale2.UnmarshalFromBuffer(r, &num)
+	err := decoder.Unmarshal(&num)
+	//err := scale2.UnmarshalFromBuffer(r, &num)
 	if err != nil {
-		fmt.Println("error")
 		return nil, err
 	}
-	fmt.Println(r)
-
-	//enc, err := ioutil.ReadAll(r)
-	//if err != nil {
-	//	fmt.Println("error")
-	//	return nil, err
-	//}
-	//fmt.Println(common.BytesToHex(enc))
 
 	digest := make([]DigestItem, num.Uint64())
 	for i := 0; i < len(digest); i++ {
-		d, err := DecodeDigestItemNew(r)
-		fmt.Println(d)
+		d, err := DecodeDigestItemNew(decoder)
 		if err != nil {
 			return nil, err
 		}
 		digest[i] = d
-		//enc = bytes.TrimPrefix(enc, )
 	}
-
-
-	//err = scale2.Unmarshal(in, &digest)
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	fmt.Println(digest)
-
-	//var digestItemVdt = scale2.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
-	//err := scale2.Unmarshal(in, &digest)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//fmt.Println(digest)
-	//return digest, nil
 	return digest, nil
 }
 
 
 // DecodeDigestItem will decode byte array to DigestItem
-func DecodeDigestItemNew(b *bytes.Buffer) (DigestItem, error) {
+func DecodeDigestItemNew(decoder *scale2.Decoder) (DigestItem, error) {
 	var digestItemVdt = scale2.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
-	err := scale2.UnmarshalFromBuffer(b, &digestItemVdt)
+	//err := scale2.UnmarshalFromBuffer(b, &digestItemVdt)
+	err := decoder.Unmarshal(&digestItemVdt)
 	if err != nil {
 		return nil, err
 	}
 
 	switch val := digestItemVdt.Value().(type) {
 	case ChangesTrieRootDigest:
-		fmt.Println("ChangesTrieRootDigest: ", val)
 		return &val, err
 	case PreRuntimeDigest:
-		fmt.Println("PreRuntimeDigest: ", val)
 		return &val, err
 	case ConsensusDigest:
-		fmt.Println("ConsensusDigest: ", val)
 		return &val, err
 	case SealDigest:
-		fmt.Println("SealDigest: ", val)
 		return &val, err
 	}
 

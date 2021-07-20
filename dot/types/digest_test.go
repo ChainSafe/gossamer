@@ -19,6 +19,7 @@ package types
 import (
 	"bytes"
 	"fmt"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -43,7 +44,8 @@ func TestDecodeSingleDigest(t *testing.T) {
 
 	r := &bytes.Buffer{}
 	_, _ = r.Write(enc)
-	d2, err := DecodeDigestItemNew(r)
+	decoder := scale2.NewDecoder(r)
+	d2, err := DecodeDigestItemNew(decoder)
 	require.NoError(t, err)
 	require.Equal(t, d2, d)
 }

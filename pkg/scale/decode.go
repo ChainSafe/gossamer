@@ -97,6 +97,34 @@ func UnmarshalFromBuffer(b *bytes.Buffer, dst interface{}) (err error) {
 	return
 }
 
+func (d *Decoder) Unmarshal(dst interface{}) (err error) {
+	dstv := reflect.ValueOf(dst)
+	if dstv.Kind() != reflect.Ptr || dstv.IsNil() {
+		err = fmt.Errorf("unsupported dst: %T, must be a pointer to a destination", dst)
+		return
+	}
+
+	elem := indirect(dstv)
+	if err != nil {
+		return
+	}
+
+	//buf := &bytes.Buffer{}
+	//buf = b
+	ds := decodeState{}
+	//_, err = buf.Write(data)
+	//if err != nil {
+	//	return
+	//}
+	ds.Buffer = d.Reader
+
+	err = ds.unmarshal(elem)
+	if err != nil {
+		return
+	}
+	return
+}
+
 // Unmarshal takes data and a destination pointer to unmarshal the data to.
 func Unmarshal(data []byte, dst interface{}) (err error) {
 	dstv := reflect.ValueOf(dst)
@@ -123,6 +151,15 @@ func Unmarshal(data []byte, dst interface{}) (err error) {
 		return
 	}
 	return
+}
+
+func NewDecoder(r *bytes.Buffer) *Decoder {
+	d := Decoder{Reader: r}
+	return &d
+}
+
+type Decoder struct {
+	Reader *bytes.Buffer
 }
 
 type decodeState struct {
