@@ -17,6 +17,7 @@
 package runtime
 
 import (
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	log "github.com/ChainSafe/log15"
 )
@@ -45,6 +46,7 @@ type InstanceConfig struct {
 	NodeStorage NodeStorage
 	Network     BasicNetwork
 	Transaction TransactionState
+	CodeHash    common.Hash
 }
 
 // Context is the context for the wasm interpreter's imported functions

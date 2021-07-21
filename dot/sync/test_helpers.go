@@ -97,9 +97,14 @@ func NewTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 		rtCfg.Storage = genState
 		rtCfg.LogLvl = 3
 
+		rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
+		require.NoError(t, err)
+
 		instance, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg) //nolint
 		require.NoError(t, err)
 		cfg.Runtime = instance
+
+		cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), instance)
 	}
 
 	if cfg.TransactionState == nil {
@@ -145,7 +150,9 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     big.NewInt(0).Add(parent.Number, big.NewInt(1)),
-		Digest:     types.Digest{},
+		Digest: types.Digest{
+			types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+		},
 	}
 
 	err := instance.InitializeBlock(header)
