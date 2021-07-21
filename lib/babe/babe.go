@@ -521,14 +521,6 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 	// 	return err
 	// }
 
-	// set runtime trie before building block
-	// if block building is successful, store the resulting trie in the storage state
-	ts, err := b.storageState.TrieState(&parent.StateRoot)
-	if err != nil || ts == nil {
-		logger.Error("failed to get parent trie", "parent state root", parent.StateRoot, "error", err)
-		return err
-	}
-
 	logger.Crit("babe locking")
 
 	err = b.storageState.BeginModifyTrie(parent.StateRoot)
@@ -544,6 +536,14 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 			logger.Warn("failed to finish trie write", "error", err)
 		}
 	}()
+
+	// set runtime trie before building block
+	// if block building is successful, store the resulting trie in the storage state
+	ts, err := b.storageState.TrieState(&parent.StateRoot)
+	if err != nil || ts == nil {
+		logger.Error("failed to get parent trie", "parent state root", parent.StateRoot, "error", err)
+		return err
+	}
 
 	b.rt.SetContextStorage(ts)
 
