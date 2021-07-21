@@ -25,11 +25,13 @@ import (
 	"reflect"
 )
 
+// NewDecoder constructor for the Decoder struct
 func NewDecoder(r *bytes.Buffer) *Decoder {
 	d := Decoder{Reader: decodeState{r}}
 	return &d
 }
 
+// Decoder public wrapper around decodeState
 type Decoder struct {
 	Reader decodeState
 }
@@ -81,6 +83,7 @@ func indirect(dstv reflect.Value) (elem reflect.Value) {
 	return
 }
 
+// Decode takes a destination pointer to unmarshal the data from the Decoder to.
 func (d *Decoder) Decode(dst interface{}) (err error) {
 	dstv := reflect.ValueOf(dst)
 	if dstv.Kind() != reflect.Ptr || dstv.IsNil() {

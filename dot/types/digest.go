@@ -23,8 +23,7 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/scale"
-	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // Digest represents the block digest. It consists of digest items.
@@ -42,7 +41,7 @@ func NewDigest(items ...DigestItem) Digest {
 
 // Encode returns the SCALE encoded digest
 func (d *Digest) Encode() ([]byte, error) {
-	enc, err := scale.Encode(big.NewInt(int64(len(*d))))
+	enc, err := scale.Marshal(big.NewInt(int64(len(*d))))
 	if err != nil {
 		return nil, err
 	}
@@ -107,14 +106,7 @@ var SealDigestType = byte(5)
 
 // DecodeDigest decodes the input into a Digest
 func DecodeDigest(buf *bytes.Buffer) (Digest, error) {
-	//enc, err := ioutil.ReadAll(r)
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	//buf := &bytes.Buffer{}
-	decoder := scale2.NewDecoder(buf)
-	//_, _ = buf.Write(enc)
+	decoder := scale.NewDecoder(buf)
 	var num *big.Int
 	err := decoder.Decode(&num)
 	if err != nil {
@@ -133,8 +125,8 @@ func DecodeDigest(buf *bytes.Buffer) (Digest, error) {
 }
 
 // DecodeDigestItem will decode byte array to DigestItem
-func DecodeDigestItem(decoder *scale2.Decoder) (DigestItem, error) {
-	var digestItemVdt = scale2.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
+func DecodeDigestItem(decoder *scale.Decoder) (DigestItem, error) {
+	var digestItemVdt = scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
 	err := decoder.Decode(&digestItemVdt)
 	if err != nil {
 		return nil, err
@@ -230,8 +222,7 @@ func (d *PreRuntimeDigest) Encode() ([]byte, error) {
 	enc = append(enc, d.ConsensusEngineID[:]...)
 
 	// encode data
-	//output, err := scale.Encode(d.Data)
-	output, err := scale2.Marshal(d.Data)
+	output, err := scale.Marshal(d.Data)
 	if err != nil {
 		return nil, err
 	}
@@ -248,13 +239,14 @@ func (d *PreRuntimeDigest) Decode(buf *bytes.Buffer) error {
 
 	copy(d.ConsensusEngineID[:], id)
 
-	sd := scale.Decoder{Reader: buf}
-	output, err := sd.Decode([]byte{})
+	sd := scale.NewDecoder(buf)
+	var output []byte
+	err = sd.Decode(&output)
 	if err != nil {
 		return err
 	}
 
-	d.Data = output.([]byte)
+	d.Data = output
 	return nil
 }
 
@@ -282,7 +274,7 @@ func (d *ConsensusDigest) Encode() ([]byte, error) {
 	enc := []byte{ConsensusDigestType}
 	enc = append(enc, d.ConsensusEngineID[:]...)
 	// encode data
-	output, err := scale.Encode(d.Data)
+	output, err := scale.Marshal(d.Data)
 	if err != nil {
 		return nil, err
 	}
@@ -299,13 +291,14 @@ func (d *ConsensusDigest) Decode(buf *bytes.Buffer) error {
 
 	copy(d.ConsensusEngineID[:], id)
 
-	sd := scale.Decoder{Reader: buf}
-	output, err := sd.Decode([]byte{})
+	sd := scale.NewDecoder(buf)
+	var output []byte
+	err = sd.Decode(&output)
 	if err != nil {
 		return err
 	}
 
-	d.Data = output.([]byte)
+	d.Data = output
 	return nil
 }
 
@@ -321,7 +314,7 @@ type SealDigest struct {
 }
 
 // Index Returns VDT index
-func (err SealDigest) Index() uint { return 5 }
+func (d SealDigest) Index() uint { return 5 }
 
 // String returns the digest as a string
 func (d *SealDigest) String() string {
@@ -338,7 +331,7 @@ func (d *SealDigest) Encode() ([]byte, error) {
 	enc := []byte{SealDigestType}
 	enc = append(enc, d.ConsensusEngineID[:]...)
 	// encode data
-	output, err := scale.Encode(d.Data)
+	output, err := scale.Marshal(d.Data)
 	if err != nil {
 		return nil, err
 	}
@@ -355,13 +348,13 @@ func (d *SealDigest) Decode(buf *bytes.Buffer) error {
 	copy(d.ConsensusEngineID[:], id)
 
 	// decode data
-	sd := scale.Decoder{Reader: buf}
-
-	output, err := sd.Decode([]byte{})
+	sd := scale.NewDecoder(buf)
+	var output []byte
+	err = sd.Decode(&output)
 	if err != nil {
 		return err
 	}
 
-	d.Data = output.([]byte)
+	d.Data = output
 	return nil
 }
