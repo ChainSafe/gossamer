@@ -18,10 +18,10 @@ package types
 
 import (
 	"bytes"
-	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/stretchr/testify/require"
 )
 
@@ -36,7 +36,7 @@ func TestDecodeSingleDigest(t *testing.T) {
 
 	r := &bytes.Buffer{}
 	_, _ = r.Write(enc)
-	decoder := scale2.NewDecoder(r)
+	decoder := scale.NewDecoder(r)
 	d2, err := DecodeDigestItem(decoder)
 	require.NoError(t, err)
 	require.Equal(t, d2, d)
@@ -79,7 +79,7 @@ func TestChangesTrieRootDigest(t *testing.T) {
 
 	r := &bytes.Buffer{}
 	_, _ = r.Write(enc)
-	dec := scale2.NewDecoder(r)
+	dec := scale.NewDecoder(r)
 	d2, err := DecodeDigestItem(dec)
 	require.NoError(t, err)
 	require.Equal(t, d, d2)
@@ -96,7 +96,7 @@ func TestPreRuntimeDigest(t *testing.T) {
 
 	r := &bytes.Buffer{}
 	_, _ = r.Write(enc)
-	dec := scale2.NewDecoder(r)
+	dec := scale.NewDecoder(r)
 	d2, err := DecodeDigestItem(dec)
 	require.NoError(t, err)
 	require.Equal(t, d, d2)
@@ -113,7 +113,7 @@ func TestConsensusDigest(t *testing.T) {
 
 	r := &bytes.Buffer{}
 	_, _ = r.Write(enc)
-	dec := scale2.NewDecoder(r)
+	dec := scale.NewDecoder(r)
 	d2, err := DecodeDigestItem(dec)
 	require.NoError(t, err)
 	require.Equal(t, d, d2)
@@ -130,7 +130,7 @@ func TestSealDigest(t *testing.T) {
 
 	r := &bytes.Buffer{}
 	_, _ = r.Write(enc)
-	dec := scale2.NewDecoder(r)
+	dec := scale.NewDecoder(r)
 	d2, err := DecodeDigestItem(dec)
 	require.NoError(t, err)
 	require.Equal(t, d, d2)

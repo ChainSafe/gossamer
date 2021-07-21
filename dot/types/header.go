@@ -24,7 +24,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // Header is a state block header
@@ -94,7 +94,7 @@ func (bh *Header) String() string {
 // If hashing the header errors, this will panic.
 func (bh *Header) Hash() common.Hash {
 	if bh.hash == [32]byte{} {
-		enc, err := scale.Encode(bh)
+		enc, err := bh.Encode()
 		if err != nil {
 			panic(err)
 		}
@@ -112,7 +112,45 @@ func (bh *Header) Hash() common.Hash {
 
 // Encode returns the SCALE encoding of a header
 func (bh *Header) Encode() ([]byte, error) {
-	return scale.Encode(bh)
+	// This works I believe
+	var enc []byte
+	ph, err := scale.Marshal(bh.ParentHash)
+	if err != nil {
+		return nil, err
+	}
+	enc = append(enc, ph...)
+
+	num, err := scale.Marshal(bh.Number)
+	if err != nil {
+		return nil, err
+	}
+	enc = append(enc, num...)
+
+	sr, err := scale.Marshal(bh.StateRoot)
+	if err != nil {
+		return nil, err
+	}
+	enc = append(enc, sr...)
+
+	er, err := scale.Marshal(bh.ExtrinsicsRoot)
+	if err != nil {
+		return nil, err
+	}
+	enc = append(enc, er...)
+
+	d, err := bh.Digest.Encode()
+	if err != nil {
+		return nil, err
+	}
+	enc = append(enc, d...)
+
+	hash, err := scale.Marshal(bh.hash)
+	if err != nil {
+		return nil, err
+	}
+	enc = append(enc, hash...)
+
+	return enc, nil
 }
 
 // MustEncode returns the SCALE encoded header and panics if it fails to encode
@@ -126,24 +164,28 @@ func (bh *Header) MustEncode() []byte {
 
 // Decode decodes the SCALE encoded input into this header
 func (bh *Header) Decode(buf *bytes.Buffer) (*Header, error) {
-	sd := scale.Decoder{Reader: buf}
+	sd := scale.NewDecoder(buf)
 
-	ph, err := sd.Decode(common.Hash{})
+	var ph common.Hash
+	err := sd.Decode(&ph)
 	if err != nil {
 		return nil, err
 	}
 
-	num, err := sd.Decode(big.NewInt(0))
+	var num *big.Int
+	err = sd.Decode(&num)
 	if err != nil {
 		return nil, err
 	}
 
-	sr, err := sd.Decode(common.Hash{})
+	var sr common.Hash
+	err = sd.Decode(&sr)
 	if err != nil {
 		return nil, err
 	}
 
-	er, err := sd.Decode(common.Hash{})
+	var er common.Hash
+	err = sd.Decode(&er)
 	if err != nil {
 		return nil, err
 	}
@@ -153,10 +195,10 @@ func (bh *Header) Decode(buf *bytes.Buffer) (*Header, error) {
 		return nil, err
 	}
 
-	bh.ParentHash = ph.(common.Hash)
-	bh.Number = num.(*big.Int)
-	bh.StateRoot = sr.(common.Hash)
-	bh.ExtrinsicsRoot = er.(common.Hash)
+	bh.ParentHash = ph
+	bh.Number = num
+	bh.StateRoot = sr
+	bh.ExtrinsicsRoot = er
 	bh.Digest = d
 	return bh, nil
 }
@@ -199,14 +241,6 @@ func NewHeaderFromOptional(oh *optional.Header) (*Header, error) {
 
 // decodeOptionalHeader decodes a SCALE encoded optional Header into an *optional.Header
 func decodeOptionalHeader(r *bytes.Buffer) (*optional.Header, error) {
-	//sd := scale2.Decoder{Reader: r}
-	//buf := &bytes.Buffer{}
-	//_, err := buf.ReadFrom(r)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//sd := scale2.NewDecoder(r)
-
 	exists, err := common.ReadByte(r)
 	if err != nil {
 		return nil, err
