@@ -82,6 +82,7 @@ var (
 	// DefaultNoMDNS disables mDNS discovery
 	DefaultNoMDNS = false
 
+	// DefaultDiscoveryInterval is the default interval for searching for DHT peers
 	DefaultDiscoveryInterval = time.Second * 10
 
 	// RPCConfig
