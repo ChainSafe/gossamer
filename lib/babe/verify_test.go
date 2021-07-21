@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -47,7 +48,7 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 		genCfg = genesisBABEConfig
 	}
 
-	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 	err = dbSrv.Initialise(gen, genHeader, genTrie)
 	require.NoError(t, err)
 
@@ -155,7 +156,11 @@ func TestVerificationManager_VerifyBlock_IsDisabled(t *testing.T) {
 		ThresholdNumerator:   1,
 		ThresholdDenominator: 1,
 	})
-	cfg, err := babeService.rt.BabeConfiguration()
+
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	cfg, err := rt.BabeConfiguration()
 	require.NoError(t, err)
 
 	cfg.GenesisAuthorities = types.AuthoritiesToRaw(babeService.epochData.authorities)
@@ -201,7 +206,11 @@ func TestVerificationManager_VerifyBlock_Ok(t *testing.T) {
 		ThresholdNumerator:   1,
 		ThresholdDenominator: 1,
 	})
-	cfg, err := babeService.rt.BabeConfiguration()
+
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	cfg, err := rt.BabeConfiguration()
 	require.NoError(t, err)
 
 	cfg.GenesisAuthorities = types.AuthoritiesToRaw(babeService.epochData.authorities)
@@ -221,7 +230,11 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 		ThresholdNumerator:   1,
 		ThresholdDenominator: 1,
 	})
-	cfg, err := babeService.rt.BabeConfiguration()
+
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	cfg, err := rt.BabeConfiguration()
 	require.NoError(t, err)
 
 	cfg.GenesisAuthorities = types.AuthoritiesToRaw(babeService.epochData.authorities)
@@ -258,7 +271,11 @@ func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T)
 		ThresholdNumerator:   1,
 		ThresholdDenominator: 1,
 	})
-	cfg, err := babeService.rt.BabeConfiguration()
+
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	cfg, err := rt.BabeConfiguration()
 	require.NoError(t, err)
 
 	cfg.GenesisAuthorities = types.AuthoritiesToRaw(babeService.epochData.authorities)
@@ -278,7 +295,11 @@ func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
 		ThresholdNumerator:   1,
 		ThresholdDenominator: 1,
 	})
-	cfg, err := babeService.rt.BabeConfiguration()
+
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	cfg, err := rt.BabeConfiguration()
 	require.NoError(t, err)
 
 	cfg.C1 = 1
@@ -308,7 +329,6 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 	babeService.epochData.authorityIndex = 0
 
 	builder, _ := NewBlockBuilder(
-		babeService.rt,
 		babeService.keypair,
 		babeService.transactionState,
 		babeService.blockState,

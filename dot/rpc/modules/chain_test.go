@@ -25,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
 	database "github.com/ChainSafe/chaindb"
@@ -265,7 +266,7 @@ func TestChainGetBlockHash_Array(t *testing.T) {
 func TestChainGetFinalizedHead(t *testing.T) {
 	state := newTestStateService(t)
 	svc := NewChainModule(state.Block)
-
+	_, _, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 	var res ChainHashResponse
 	err := svc.GetFinalizedHead(nil, &EmptyRequest{}, &res)
 	require.NoError(t, err)
@@ -282,6 +283,8 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 	req := ChainFinalizedHeadRequest{0, 0}
 	err := svc.GetFinalizedHeadByRound(nil, &req, &res)
 	require.NoError(t, err)
+
+	_, _, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 	expected := genesisHeader.Hash()
 	require.Equal(t, common.BytesToHex(expected[:]), res)
 
@@ -304,8 +307,6 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 	require.Equal(t, common.BytesToHex(testhash[:]), res)
 }
 
-var gen, genTrie, genesisHeader = newTestGenesisWithTrieAndHeader()
-
 func newTestStateService(t *testing.T) *state.Service {
 	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
 	require.NoError(t, err)
@@ -317,20 +318,18 @@ func newTestStateService(t *testing.T) *state.Service {
 	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()
 
+	gen, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 	err = stateSrvc.Initialise(gen, genesisHeader, genTrie)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	err = stateSrvc.Start()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	err = loadTestBlocks(genesisHeader.Hash(), stateSrvc.Block)
-	if err != nil {
-		t.Fatal(err)
-	}
+	rt, err := stateSrvc.CreateGenesisRuntime(genTrie, gen)
+	require.NoError(t, err)
+
+	err = loadTestBlocks(genesisHeader.Hash(), stateSrvc.Block, rt)
+	require.NoError(t, err)
 
 	t.Cleanup(func() {
 		stateSrvc.Stop()
@@ -338,25 +337,7 @@ func newTestStateService(t *testing.T) *state.Service {
 	return stateSrvc
 }
 
-func newTestGenesisWithTrieAndHeader() (*genesis.Genesis, *trie.Trie, *types.Header) {
-	gen, err := genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis.json")
-	if err != nil {
-		panic(err)
-	}
-
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
-	if err != nil {
-		panic(err)
-	}
-
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.Digest{}) //nolint
-	if err != nil {
-		panic(err)
-	}
-	return gen, genTrie, genesisHeader
-}
-
-func loadTestBlocks(gh common.Hash, bs *state.BlockState) error {
+func loadTestBlocks(gh common.Hash, bs *state.BlockState, rt runtime.Instance) error {
 	// Create header
 	header0 := &types.Header{
 		Number:     big.NewInt(0),
@@ -378,6 +359,8 @@ func loadTestBlocks(gh common.Hash, bs *state.BlockState) error {
 	if err != nil {
 		return err
 	}
+
+	bs.StoreRuntime(block0.Header.Hash(), rt)
 
 	// Create header & blockData for block 1
 	header1 := &types.Header{
@@ -402,6 +385,8 @@ func loadTestBlocks(gh common.Hash, bs *state.BlockState) error {
 	if err != nil {
 		return err
 	}
+
+	bs.StoreRuntime(block1.Header.Hash(), rt)
 
 	return nil
 }

@@ -270,6 +270,8 @@ func formatValue(kv *keyValue) (string, error) {
 		return "", fmt.Errorf("error formatting value for grandpa authorities")
 	case reflect.DeepEqual([]string{"system", "code"}, kv.key):
 		return kv.value, nil
+	case reflect.DeepEqual([]string{"Sudo", "Key"}, kv.key):
+		return common.BytesToHex(crypto.PublicAddressToByteArray(common.Address(kv.value))), nil
 	default:
 		if kv.valueLen != nil {
 			lenEnc, err := scale.Marshal(kv.valueLen)
