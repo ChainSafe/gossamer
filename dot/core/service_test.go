@@ -506,3 +506,14 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEqualf(t, codeHashBefore, s.codeHash, "expected different code hash after runtime update") // codeHash should change after runtime change
 }
+
+func TestService_RegisterUnRegisterRuntimeUpdatedChannel(t *testing.T) {
+	s := NewTestService(t, nil)
+	ch := make(chan<- runtime.Version)
+	chID, err := s.RegisterRuntimeUpdatedChannel(ch)
+	require.NoError(t, err)
+	require.NotNil(t, chID)
+
+	res := s.UnregisterRuntimeUpdatedChannel(chID)
+	require.True(t, res)
+}
