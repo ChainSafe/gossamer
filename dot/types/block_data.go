@@ -19,12 +19,11 @@ package types
 import (
 	"bytes"
 	"fmt"
-	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // BlockData is stored within the BlockDB
@@ -77,10 +76,44 @@ func (bd *BlockData) Encode() ([]byte, error) {
 	enc := bd.Hash[:]
 
 	if bd.Header.Exists() {
-		venc, err := scale.Encode(bd.Header.Value())
+		//venc, err := scale.Encode(bd.Header.Value())
+		head, err := NewHeaderFromOptional(bd.Header)
 		if err != nil {
 			return nil, err
 		}
+		venc, err := head.Encode()
+
+		//var venc []byte
+		//ph, err := scale2.Marshal(bd.Header.Value().ParentHash)
+		//if err != nil {
+		//	return nil, err
+		//}
+		//venc = append(venc, ph...)
+		//
+		//num, err := scale2.Marshal(bd.Header.Value().Number)
+		//if err != nil {
+		//	return nil, err
+		//}
+		//venc = append(venc, num...)
+		//
+		//sr, err := scale2.Marshal(bd.Header.Value().StateRoot)
+		//if err != nil {
+		//	return nil, err
+		//}
+		//venc = append(venc, sr...)
+		//
+		//er, err := scale2.Marshal(bd.Header.Value().ExtrinsicsRoot)
+		//if err != nil {
+		//	return nil, err
+		//}
+		//venc = append(venc, er...)
+		//
+		//d, err := bd.Header.Value().Digest.Encode()
+		//if err != nil {
+		//	return nil, err
+		//}
+		//venc = append(venc, d...)
+
 		enc = append(enc, byte(1)) // Some
 		enc = append(enc, venc...)
 	} else {
@@ -88,7 +121,7 @@ func (bd *BlockData) Encode() ([]byte, error) {
 	}
 
 	if bd.Body.Exists() {
-		venc, err := scale.Encode(bd.Body.Value())
+		venc, err := scale.Marshal(bd.Body.Value())
 		if err != nil {
 			return nil, err
 		}
@@ -99,7 +132,7 @@ func (bd *BlockData) Encode() ([]byte, error) {
 	}
 
 	if bd.Receipt != nil && bd.Receipt.Exists() {
-		venc, err := scale.Encode(bd.Receipt.Value())
+		venc, err := scale.Marshal(bd.Receipt.Value())
 		if err != nil {
 			return nil, err
 		}
@@ -110,7 +143,7 @@ func (bd *BlockData) Encode() ([]byte, error) {
 	}
 
 	if bd.MessageQueue != nil && bd.MessageQueue.Exists() {
-		venc, err := scale.Encode(bd.MessageQueue.Value())
+		venc, err := scale.Marshal(bd.MessageQueue.Value())
 		if err != nil {
 			return nil, err
 		}
@@ -121,7 +154,7 @@ func (bd *BlockData) Encode() ([]byte, error) {
 	}
 
 	if bd.Justification != nil && bd.Justification.Exists() {
-		venc, err := scale.Encode(bd.Justification.Value())
+		venc, err := scale.Marshal(bd.Justification.Value())
 		if err != nil {
 			return nil, err
 		}
@@ -172,7 +205,7 @@ func (bd *BlockData) Decode(r *bytes.Buffer) error {
 
 // EncodeBlockDataArray encodes an array of BlockData using SCALE
 func EncodeBlockDataArray(bds []*BlockData) ([]byte, error) {
-	enc, err := scale.Encode(int32(len(bds)))
+	enc, err := scale.Marshal(int32(len(bds)))
 	if err != nil {
 		return nil, err
 	}
@@ -190,8 +223,7 @@ func EncodeBlockDataArray(bds []*BlockData) ([]byte, error) {
 
 // DecodeBlockDataArray decodes a SCALE encoded BlockData array
 func DecodeBlockDataArray(r *bytes.Buffer) ([]*BlockData, error) {
-	//sd := scale2.Decoder{Reader: r}
-	sd := scale2.NewDecoder(r)
+	sd := scale.NewDecoder(r)
 
 	var l int32
 	err := sd.Decode(&l)
