@@ -47,7 +47,7 @@ func TestStartGossamerAndPolkadotAPI(t *testing.T) {
 	require.NoError(t, err, string(data))
 
 	//uncomment this to see log results from javascript tests
-	//fmt.Printf("%s\n", data)
+	fmt.Printf("%s\n", data)
 
 	t.Log("going to tear down gossamer...")
 	errList := utils.TearDown(t, nodes)

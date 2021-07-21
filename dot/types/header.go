@@ -144,11 +144,19 @@ func (bh *Header) Encode() ([]byte, error) {
 	}
 	enc = append(enc, d...)
 
-	hash, err := scale.Marshal(bh.hash)
-	if err != nil {
-		return nil, err
-	}
-	enc = append(enc, hash...)
+	//hash, err := common.Blake2bHash(enc)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//h, err := scale.Marshal(hash)
+
+	// Call bh.Hash?
+	//h := bh.Hash().ToBytes()
+	//h, err := scale.Marshal(bh.hash)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//enc = append(enc, h...)
 
 	return enc, nil
 }
