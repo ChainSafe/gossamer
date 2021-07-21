@@ -17,6 +17,7 @@
 package core
 
 import (
+	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -516,4 +517,16 @@ func TestService_RegisterUnRegisterRuntimeUpdatedChannel(t *testing.T) {
 
 	res := s.UnregisterRuntimeUpdatedChannel(chID)
 	require.True(t, res)
+}
+
+func TestService_RegisterUnRegisterPanic(t *testing.T) {
+	s := NewTestService(t, nil)
+	testVer := modules.NewMockVersion()
+	for  i := 0; i < 10; i++ {
+		go s.notifyRuntimeUpdated(testVer)
+		ch := make (chan <- runtime.Version)
+		chID, err := s.RegisterRuntimeUpdatedChannel(ch)
+		require.NoError(t, err)
+		s.UnregisterRuntimeUpdatedChannel(chID)
+	}
 }
