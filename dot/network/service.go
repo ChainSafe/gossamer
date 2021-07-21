@@ -707,3 +707,13 @@ func (s *Service) CollectGauge() map[string]int64 {
 		gssmrIsMajorSyncMetric: isSynced,
 	}
 }
+
+// HighestBlock returns the highest known block number
+func (s *Service) HighestBlock() int64 {
+	return s.syncQueue.goal
+}
+
+// StartingBlock return the starting block number that's currently being synced
+func (s *Service) StartingBlock() int64 {
+	return s.syncQueue.currStart
+}
