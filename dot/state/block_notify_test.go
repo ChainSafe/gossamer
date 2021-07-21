@@ -56,7 +56,7 @@ func TestFinalizedChannel(t *testing.T) {
 	id, err := bs.RegisterFinalizedChannel(ch)
 	require.NoError(t, err)
 
-	defer bs.UnregisterFinalizedChannel(id)
+	defer bs.UnregisterFinalisedChannel(id)
 
 	chain, _ := AddBlocksToState(t, bs, 3)
 
@@ -150,6 +150,6 @@ func TestFinalizedChannel_Multi(t *testing.T) {
 	wg.Wait()
 
 	for _, id := range ids {
-		bs.UnregisterFinalizedChannel(id)
+		bs.UnregisterFinalisedChannel(id)
 	}
 }
