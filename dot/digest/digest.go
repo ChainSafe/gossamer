@@ -23,9 +23,8 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/services"
-
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	log "github.com/ChainSafe/log15"
 )
 
@@ -298,12 +297,11 @@ func (h *Handler) handleScheduledChange(d *types.ConsensusDigest, header *types.
 		return nil
 	}
 
-	sc := &types.GrandpaScheduledChange{}
-	dec, err := scale.Decode(d.Data[1:], sc)
+	var sc types.GrandpaScheduledChange
+	err = scale.Unmarshal(d.Data[1:], &sc)
 	if err != nil {
 		return err
 	}
-	sc = dec.(*types.GrandpaScheduledChange)
 
 	logger.Debug("handling GrandpaScheduledChange", "data", sc)
 
@@ -339,12 +337,11 @@ func (h *Handler) handleForcedChange(d *types.ConsensusDigest, header *types.Hea
 		return errors.New("already have forced change scheduled")
 	}
 
-	fc := &types.GrandpaForcedChange{}
-	dec, err := scale.Decode(d.Data[1:], fc)
+	var fc types.GrandpaForcedChange
+	err := scale.Unmarshal(d.Data[1:], &fc)
 	if err != nil {
 		return err
 	}
-	fc = dec.(*types.GrandpaForcedChange)
 
 	logger.Debug("handling GrandpaForcedChange", "data", fc)
 
@@ -373,12 +370,11 @@ func (h *Handler) handlePause(d *types.ConsensusDigest) error {
 		return err
 	}
 
-	p := &types.GrandpaPause{}
-	dec, err := scale.Decode(d.Data[1:], p)
+	var p types.GrandpaPause
+	err = scale.Unmarshal(d.Data[1:], &p)
 	if err != nil {
 		return err
 	}
-	p = dec.(*types.GrandpaPause)
 
 	delay := big.NewInt(int64(p.Delay))
 
@@ -395,14 +391,13 @@ func (h *Handler) handleResume(d *types.ConsensusDigest) error {
 		return err
 	}
 
-	p := &types.GrandpaResume{}
-	dec, err := scale.Decode(d.Data[1:], p)
+	var r types.GrandpaResume
+	err = scale.Unmarshal(d.Data[1:], &r)
 	if err != nil {
 		return err
 	}
-	p = dec.(*types.GrandpaResume)
 
-	delay := big.NewInt(int64(p.Delay))
+	delay := big.NewInt(int64(r.Delay))
 
 	h.grandpaResume = &resume{
 		atBlock: big.NewInt(-1).Add(curr.Number, delay),
@@ -432,12 +427,11 @@ func (h *Handler) handleBABEOnDisabled(d *types.ConsensusDigest, _ *types.Header
 }
 
 func (h *Handler) handleNextEpochData(d *types.ConsensusDigest, header *types.Header) error {
-	od := &types.NextEpochData{}
-	dec, err := scale.Decode(d.Data[1:], od)
+	var od types.NextEpochData
+	err := scale.Unmarshal(d.Data[1:], &od)
 	if err != nil {
 		return err
 	}
-	od = dec.(*types.NextEpochData)
 
 	logger.Debug("handling BABENextEpochData", "data", od)
 
@@ -457,12 +451,11 @@ func (h *Handler) handleNextEpochData(d *types.ConsensusDigest, header *types.He
 }
 
 func (h *Handler) handleNextConfigData(d *types.ConsensusDigest, header *types.Header) error {
-	od := &types.NextConfigData{}
-	dec, err := scale.Decode(d.Data[1:], od)
+	var od types.NextConfigData
+	err := scale.Unmarshal(d.Data[1:], &od)
 	if err != nil {
 		return err
 	}
-	od = dec.(*types.NextConfigData)
 
 	logger.Debug("handling BABENextConfigData", "data", od)
 
