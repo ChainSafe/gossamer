@@ -50,10 +50,12 @@ type BlockState struct {
 	lastFinalised common.Hash
 
 	// block notifiers
-	imported      map[byte]chan<- *types.Block
-	finalised     map[byte]chan<- *types.FinalisationInfo
-	importedLock  sync.RWMutex
-	finalisedLock sync.RWMutex
+	imported          map[byte]chan<- *types.Block
+	finalised         map[byte]chan<- *types.FinalisationInfo
+	importedLock      sync.RWMutex
+	finalisedLock     sync.RWMutex
+	importedBytePool  *common.BytePool
+	finalisedBytePool *common.BytePool
 
 	pruneKeyCh chan *types.Header
 }
@@ -84,6 +86,10 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 	if err != nil {
 		return nil, fmt.Errorf("failed to get last finalised hash: %w", err)
 	}
+
+	bs.importedBytePool = common.NewBytePool256()
+
+	bs.finalisedBytePool = common.NewBytePool256()
 
 	return bs, nil
 }
@@ -121,6 +127,10 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 	if err := bs.SetFinalisedHash(bs.genesisHash, 0, 0); err != nil {
 		return nil, err
 	}
+
+	bs.importedBytePool = common.NewBytePool256()
+
+	bs.finalisedBytePool = common.NewBytePool256()
 
 	return bs, nil
 }
