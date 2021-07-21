@@ -25,7 +25,7 @@ import (
 
 func TestBytePool(t *testing.T) {
 	bp := NewBytePool(5)
-	require.Equal(t, 0, bp.NumPooled())
+	require.Equal(t, 0, bp.Len())
 
 	for i := 0; i < 5; i++ {
 		err := bp.Put(generateID())
@@ -33,7 +33,7 @@ func TestBytePool(t *testing.T) {
 	}
 	err := bp.Put(generateID())
 	require.EqualError(t, err, "pool is full")
-	require.Equal(t, 5, bp.NumPooled())
+	require.Equal(t, 5, bp.Len())
 
 	for i := 0; i < 5; i++ {
 		_, err := bp.Get() // nolint
@@ -45,7 +45,7 @@ func TestBytePool(t *testing.T) {
 
 func TestBytePool256(t *testing.T) {
 	bp := NewBytePool256()
-	require.Equal(t, 256, bp.NumPooled())
+	require.Equal(t, 256, bp.Len())
 
 	for i := 0; i < 256; i++ {
 		_, err := bp.Get() // nolint

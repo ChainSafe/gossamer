@@ -60,7 +60,7 @@ func (bp *BytePool) Put(b byte) error {
 	}
 }
 
-// NumPooled returns the number of items currently pooled.
-func (bp *BytePool) NumPooled() int {
+// Len returns the number of items currently pooled.
+func (bp *BytePool) Len() int {
 	return len(bp.c)
 }
