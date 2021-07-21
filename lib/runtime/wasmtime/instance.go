@@ -86,7 +86,7 @@ func newInstanceFromModule(module *wasmtime.Module, engine *wasmtime.Engine, cfg
 	store := wasmtime.NewStore(engine)
 
 	lim := wasmtime.Limits{
-		Min: 20,
+		Min: 23,
 		Max: wasmtime.LimitsMaxNone,
 	}
 	mem := wasmtime.NewMemory(store, wasmtime.NewMemoryType(lim))
