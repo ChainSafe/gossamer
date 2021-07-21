@@ -245,7 +245,6 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot) []*transaction.ValidTrans
 		// Transaction queue is empty.
 		if txn == nil {
 			continue
-			//return included
 		}
 
 		extrinsic := txn.Extrinsic

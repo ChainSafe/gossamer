@@ -2,6 +2,7 @@ package state
 
 import (
 	"math/big"
+	"sync"
 	"testing"
 	"time"
 
@@ -137,32 +138,41 @@ func TestStorage_LoadFromDB(t *testing.T) {
 	require.Equal(t, 3, len(entries))
 }
 
-// func TestStorage_StoreTrie_Syncing(t *testing.T) {
-// 	storage := newTestStorageState(t)
-// 	ts, err := storage.TrieState(&trie.EmptyHash)
-// 	require.NoError(t, err)
+func syncMapLen(m *sync.Map) int {
+	l := 0
+	m.Range(func(_, _ interface{}) bool {
+		l++
+		return true
+	})
+	return l
+}
 
-// 	key := []byte("testkey")
-// 	value := []byte("testvalue")
-// 	ts.Set(key, value)
+func TestStorage_StoreTrie_Syncing(t *testing.T) {
+	storage := newTestStorageState(t)
+	ts, err := storage.TrieState(&trie.EmptyHash)
+	require.NoError(t, err)
 
-// 	storage.SetSyncing(true)
-// 	err = storage.StoreTrie(ts, nil)
-// 	require.NoError(t, err)
-// 	require.Equal(t, 1, len(storage.tries))
-// }
+	key := []byte("testkey")
+	value := []byte("testvalue")
+	ts.Set(key, value)
 
-// func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
-// 	storage := newTestStorageState(t)
-// 	ts, err := storage.TrieState(&trie.EmptyHash)
-// 	require.NoError(t, err)
+	storage.SetSyncing(true)
+	err = storage.StoreTrie(ts, nil)
+	require.NoError(t, err)
+	require.Equal(t, 1, syncMapLen(storage.tries))
+}
 
-// 	key := []byte("testkey")
-// 	value := []byte("testvalue")
-// 	ts.Set(key, value)
+func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
+	storage := newTestStorageState(t)
+	ts, err := storage.TrieState(&trie.EmptyHash)
+	require.NoError(t, err)
 
-// 	storage.SetSyncing(false)
-// 	err = storage.StoreTrie(ts, nil)
-// 	require.NoError(t, err)
-// 	require.Equal(t, 2, len(storage.tries))
-// }
+	key := []byte("testkey")
+	value := []byte("testvalue")
+	ts.Set(key, value)
+
+	storage.SetSyncing(false)
+	err = storage.StoreTrie(ts, nil)
+	require.NoError(t, err)
+	require.Equal(t, 2, syncMapLen(storage.tries))
+}

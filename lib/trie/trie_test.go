@@ -66,10 +66,11 @@ func TestCommonPrefix(t *testing.T) {
 }
 
 var (
-	PUT     = 0
-	DEL     = 1
-	GET     = 2
-	GETLEAF = 3
+	PUT          = 0
+	DEL          = 1
+	CLEAR_PREFIX = 2
+	GET          = 3
+	GETLEAF      = 4
 )
 
 func TestNewEmptyTrie(t *testing.T) {
@@ -1196,13 +1197,15 @@ func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
 		k := make([]byte, 2)
 		_, err := rand.Read(k)
 		require.NoError(t, err)
-		op := rand.Intn(2)
+		op := rand.Intn(3)
 
 		switch op {
 		case PUT:
 			expectedA.Put(k, k)
 		case DEL:
 			expectedA.Delete(k)
+		case CLEAR_PREFIX:
+			expectedA.ClearPrefix(k)
 		}
 
 		testCasesA[i] = Test{
@@ -1217,13 +1220,15 @@ func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
 		k := make([]byte, 2)
 		_, err := rand.Read(k)
 		require.NoError(t, err)
-		op := rand.Intn(2)
+		op := rand.Intn(3)
 
 		switch op {
 		case PUT:
 			expectedB.Put(k, k)
 		case DEL:
 			expectedB.Delete(k)
+		case CLEAR_PREFIX:
+			expectedB.ClearPrefix(k)
 		}
 
 		testCasesB[i] = Test{
@@ -1244,6 +1249,8 @@ func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
 				trieA.Put(tc.key, tc.key)
 			case DEL:
 				trieA.Delete(tc.key)
+			case CLEAR_PREFIX:
+				trieA.ClearPrefix(tc.key)
 			}
 		}
 		wg.Done()
@@ -1256,6 +1263,8 @@ func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
 				trieB.Put(tc.key, tc.key)
 			case DEL:
 				trieB.Delete(tc.key)
+			case CLEAR_PREFIX:
+				trieB.ClearPrefix(tc.key)
 			}
 		}
 		wg.Done()

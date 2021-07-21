@@ -66,7 +66,7 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie, 
 		return nil, fmt.Errorf("cannot have nil trie")
 	}
 
-	tries := new(sync.Map) //make(map[common.Hash]*trie.Trie)
+	tries := new(sync.Map)
 	tries.Store(t.MustHash(), t)
 
 	storageTable := chaindb.NewTable(db, storagePrefix)
@@ -103,12 +103,15 @@ func (s *StorageState) pruneKey(keyHeader *types.Header) {
 // StoreTrie stores the given trie in the StorageState and writes it to the database
 func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) error {
 	root := ts.MustRoot()
-	// if s.syncing {
-	// 	// keep only the trie at the head of the chain when syncing
-	// 	for key := range s.tries {
-	// 		delete(s.tries, key)
-	// 	}
-	// }
+
+	if s.syncing {
+		// keep only the trie at the head of the chain when syncing
+		// TODO: probably remove this when memory usage improves
+		s.tries.Range(func(k, _ interface{}) bool {
+			s.tries.Delete(k)
+			return true
+		})
+	}
 
 	_, _ = s.tries.LoadOrStore(root, ts.Trie())
 
