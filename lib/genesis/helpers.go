@@ -186,7 +186,6 @@ func buildRawMap(m map[string]map[string]interface{}) (map[string]string, error)
 		res[key] = value
 	}
 
-	// TODO: put this in common
 	res[common.BytesToHex(common.UpgradedToDualRefKey)] = "0x01"
 	return res, nil
 }
