@@ -76,12 +76,10 @@ type KeyRotateResponse []byte
 
 type HasSessionKeyResponse bool
 
-type KeyTypeID struct {
-	Pub []byte
-}
+type KeyTypeID [4]uint8
 
 type DecodedKey struct {
-	Data []byte
+	Data []uint8
 	Type KeyTypeID
 }
 
@@ -135,11 +133,14 @@ func (am *AuthorModule) HasSessionKeys(r *http.Request, req *HasSessionKeyReques
 		return err
 	}
 
+	fmt.Printf("data: %v, err: %v\n", data, err)
+
 	var decodedKeys *[]DecodedKey
 	err = scale.Unmarshal(data, &decodedKeys)
 	fmt.Println(err, data, decodedKeys)
 
-	am.logger.Debug("decoded data", "err", err, "from runtime", data, "decoded", decodedKeys)
+	// am.logger.Debug("decoded data", "err", err, "from runtime", data, "decoded", decodedKeys)
+	fmt.Printf("decodedKeys: %+v\n", decodedKeys)
 
 	*res = false
 	return err
