@@ -271,13 +271,12 @@ func (s *Service) Stop() error {
 		return err
 	}
 
-	stored, has := s.Storage.tries.Load(head)
-
+	st, has := s.Storage.tries.Load(head)
 	if !has {
 		return errTrieDoesNotExist(head)
 	}
 
-	t := stored.(*storedTrie).t
+	t := st.(*trie.Trie)
 
 	if err = s.Base.StoreLatestStorageHash(head); err != nil {
 		return err

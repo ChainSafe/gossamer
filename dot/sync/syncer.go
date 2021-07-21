@@ -321,19 +321,8 @@ func (s *Service) handleBlock(block *types.Block) error {
 		return fmt.Errorf("failed to get parent hash: %w", err)
 	}
 
-	logger.Crit("syncer locking")
-	err = s.storageState.BeginModifyTrie(parent.StateRoot)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		logger.Crit("syncer unlocking")
-		err = s.storageState.FinishModifyTrie(parent.StateRoot)
-		if err != nil {
-			logger.Warn("failed to finish trie write", "error", err)
-		}
-	}()
+	s.storageState.BeginModifyTrie()
+	defer s.storageState.FinishModifyTrie()
 
 	logger.Trace("getting parent state", "root", parent.StateRoot)
 	ts, err := s.storageState.TrieState(&parent.StateRoot)

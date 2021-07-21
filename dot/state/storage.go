@@ -41,15 +41,10 @@ func errTrieDoesNotExist(hash common.Hash) error {
 	return fmt.Errorf("%w: %s", ErrTrieDoesNotExist, hash)
 }
 
-type storedTrie struct {
-	t          *trie.Trie
-	sync.Mutex // locked when trie is being written to, unlocked when writes are done
-}
-
 // StorageState is the struct that holds the trie, db and lock
 type StorageState struct {
 	blockState *BlockState
-	tries      *sync.Map // map[common.Hash]*storedTrie // map of root -> trie
+	tries      *sync.Map // map[common.Hash]*trie.Trie // map of root -> trie
 
 	db chaindb.Database
 	sync.RWMutex
@@ -72,9 +67,7 @@ func NewStorageState(db chaindb.Database, blockState *BlockState, t *trie.Trie, 
 	}
 
 	tries := new(sync.Map) //make(map[common.Hash]*trie.Trie)
-	tries.Store(t.MustHash(), &storedTrie{
-		t: t,
-	})
+	tries.Store(t.MustHash(), t)
 
 	storageTable := chaindb.NewTable(db, storagePrefix)
 
@@ -117,9 +110,7 @@ func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) 
 	// 	}
 	// }
 
-	_, _ = s.tries.LoadOrStore(root, &storedTrie{
-		t: ts.Trie(),
-	})
+	_, _ = s.tries.LoadOrStore(root, ts.Trie())
 
 	if _, ok := s.pruner.(*pruner.FullNode); header == nil && ok {
 		return fmt.Errorf("block cannot be empty for Full node pruner")
@@ -160,22 +151,18 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 		root = &sr
 	}
 
-	stored, has := s.tries.Load(*root)
+	st, has := s.tries.Load(*root)
 	if !has {
 		var err error
-		t, err := s.LoadFromDB(*root)
+		st, err = s.LoadFromDB(*root)
 		if err != nil {
 			return nil, err
 		}
 
-		stored = &storedTrie{
-			t: t,
-		}
-
-		_, _ = s.tries.LoadOrStore(*root, stored)
+		_, _ = s.tries.LoadOrStore(*root, st)
 	}
 
-	t := stored.(*storedTrie).t
+	t := st.(*trie.Trie)
 
 	if has && t.MustHash() != *root {
 		panic("trie does not have expected root")
@@ -192,29 +179,13 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 }
 
 // BeginModifyTrie ...
-func (s *StorageState) BeginModifyTrie(root common.Hash) error {
-	// stored, has := s.tries.Load(root)
-	// if !has {
-	// 	return errors.New("trie is not cached")
-	// }
-
-	// stored.(*storedTrie).Lock()
+func (s *StorageState) BeginModifyTrie() {
 	s.Lock()
-	logger.Info("BeginModifyTrie", "root", root)
-	return nil
 }
 
 // FinishModifyTrie ...
-func (s *StorageState) FinishModifyTrie(root common.Hash) error {
-	// stored, has := s.tries.Load(root)
-	// if !has {
-	// 	return errors.New("trie is not cached")
-	// }
-
-	//stored.(*storedTrie).Unlock()
+func (s *StorageState) FinishModifyTrie() {
 	s.Unlock()
-	logger.Info("FinishModifyTrie", "root", root)
-	return nil
 }
 
 // LoadFromDB loads an encoded trie from the DB where the key is `root`
@@ -225,9 +196,7 @@ func (s *StorageState) LoadFromDB(root common.Hash) (*trie.Trie, error) {
 		return nil, err
 	}
 
-	_, _ = s.tries.LoadOrStore(t.MustHash(), &storedTrie{
-		t: t,
-	})
+	_, _ = s.tries.LoadOrStore(t.MustHash(), t)
 	return t, nil
 }
 
@@ -240,8 +209,8 @@ func (s *StorageState) loadTrie(root *common.Hash) (*trie.Trie, error) {
 		root = &sr
 	}
 
-	if stored, has := s.tries.Load(*root); !has && stored != nil {
-		return stored.(*storedTrie).t, nil
+	if t, has := s.tries.Load(*root); !has && t != nil {
+		return t.(*trie.Trie), nil
 	}
 
 	tr, err := s.LoadFromDB(*root)
@@ -270,9 +239,8 @@ func (s *StorageState) GetStorage(root *common.Hash, key []byte) ([]byte, error)
 		root = &sr
 	}
 
-	if stored, has := s.tries.Load(*root); has {
-		trie := stored.(*storedTrie).t
-		val := trie.Get(key)
+	if t, has := s.tries.Load(*root); has {
+		val := t.(*trie.Trie).Get(key)
 		return val, nil
 	}
 
