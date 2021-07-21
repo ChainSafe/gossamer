@@ -20,7 +20,6 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/network"
-	//"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -56,7 +55,6 @@ type StorageState interface {
 	LoadCode(root *common.Hash) ([]byte, error)
 	LoadCodeHash(root *common.Hash) (common.Hash, error)
 	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
-	//ModifyTrie(*common.Hash, state.ModifyTrieFunc) error
 	StoreTrie(*rtstorage.TrieState, *types.Header) error
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 }
