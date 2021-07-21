@@ -486,10 +486,10 @@ func (s *Service) notifyRuntimeUpdated(version runtime.Version) {
 	var wg sync.WaitGroup
 	wg.Add(len(s.runtimeUpdateSubscriptions))
 	for _, ch := range s.runtimeUpdateSubscriptions {
-		go func(ch chan<- runtime.Version, wg *sync.WaitGroup) {
+		go func(ch chan<- runtime.Version) {
 			defer wg.Done()
 			ch <- version
-		}(ch, &wg)
+		}(ch)
 	}
 	wg.Wait()
 }
@@ -635,8 +635,8 @@ func (s *Service) RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (byte
 
 // UnregisterRuntimeUpdatedChannel function to unregister runtime updated channel
 func (s *Service) UnregisterRuntimeUpdatedChannel(id byte) bool {
-	ch := s.runtimeUpdateSubscriptions[id]
-	if ch != nil {
+	ch, ok := s.runtimeUpdateSubscriptions[id]
+	if ok {
 		close(ch)
 		s.runtimeUpdateSubscriptions[id] = nil
 		return true
