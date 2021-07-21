@@ -82,7 +82,7 @@ type KeyTypeID struct {
 
 type DecodedKey struct {
 	Data []byte
-	Type KeyTypeID
+	Type *KeyTypeID
 }
 
 // ExtrinsicStatus holds the actual valid statuses

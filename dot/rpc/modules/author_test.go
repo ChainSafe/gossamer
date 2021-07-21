@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
@@ -20,21 +21,40 @@ import (
 )
 
 func TestAuthorModule_HasSessionKey(t *testing.T) {
+	globalStore := keystore.NewGlobalKeystore()
+
+	coremockapi := new(apimocks.MockCoreAPI)
+	mockInsertKey := coremockapi.On("InsertKey", mock.AnythingOfType("*sr25519.Keypair"))
+	mockInsertKey.Run(func(args mock.Arguments) {
+		kp := args.Get(0).(*sr25519.Keypair)
+		globalStore.Acco.Insert(kp)
+	}).Once()
+
 	keys := "0x34309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
 
 	runtimeInstance := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
 	module := &AuthorModule{
 		runtimeAPI: runtimeInstance,
+		coreAPI:    coremockapi,
+		logger:     log.New("service", "RPC", "module", "author"),
 	}
 
 	req := &HasSessionKeyRequest{
 		Data: keys,
 	}
 
-	var res HasSessionKeyResponse
-
-	err := module.HasSessionKeys(nil, req, &res)
+	err := module.InsertKey(nil, &KeyInsertRequest{
+		Type:      "dumy",
+		Seed:      "0xfec0f475b818470af5caf1f3c1b1558729961161946d581d2755f9fb566534f8",
+		PublicKey: "0x34309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026",
+	}, nil)
+	coremockapi.AssertCalled(t, "InsertKey", mock.AnythingOfType("*sr25519.Keypair"))
 	require.NoError(t, err)
+
+	var res HasSessionKeyResponse
+	err = module.HasSessionKeys(nil, req, &res)
+	require.NoError(t, err)
+	coremockapi.AssertCalled(t, "InsertKey")
 }
 
 func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
