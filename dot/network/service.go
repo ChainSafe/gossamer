@@ -132,8 +132,6 @@ func NewService(cfg *Config) (*Service, error) {
 		connectToPeersTimeout = cfg.DiscoveryInterval
 	}
 
-	logger.Crit("network", "connectToPeersTimeout", connectToPeersTimeout)
-
 	// create a new host instance
 	host, err := newHost(ctx, cfg)
 	if err != nil {
