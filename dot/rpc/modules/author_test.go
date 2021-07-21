@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
 
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -21,11 +20,7 @@ import (
 )
 
 func TestAuthorModule_HasSessionKey(t *testing.T) {
-	aliceSessionSeed := "0xfec0f475b818470af5caf1f3c1b1558729961161946d581d2755f9fb566534f8"
-	kp, err := signature.KeyringPairFromSecret(aliceSessionSeed, 0)
-	require.NoError(t, err)
-
-	fmt.Println("======>", kp.Address, common.BytesToHex(kp.PublicKey))
+	keys := "0x34309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
 
 	runtimeInstance := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
 	module := &AuthorModule{
@@ -33,12 +28,12 @@ func TestAuthorModule_HasSessionKey(t *testing.T) {
 	}
 
 	req := &HasSessionKeyRequest{
-		Data: common.BytesToHex(kp.PublicKey),
+		Data: keys,
 	}
 
 	var res HasSessionKeyResponse
 
-	err = module.HasSessionKeys(nil, req, &res)
+	err := module.HasSessionKeys(nil, req, &res)
 	require.NoError(t, err)
 }
 
