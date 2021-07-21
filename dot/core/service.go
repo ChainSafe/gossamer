@@ -483,11 +483,15 @@ func (s *Service) notifyRuntimeUpdated(version runtime.Version) {
 	}
 
 	logger.Info("notifying runtime updated chans...", "chans", s.runtimeUpdateSubscriptions)
+	var wg sync.WaitGroup
+	wg.Add(len(s.runtimeUpdateSubscriptions))
 	for _, ch := range s.runtimeUpdateSubscriptions {
-		go func(ch chan<- runtime.Version) {
+		go func(ch chan<- runtime.Version, wg *sync.WaitGroup) {
+			defer wg.Done()
 			ch <- version
-		}(ch)
+		}(ch, &wg)
 	}
+	wg.Wait()
 }
 
 // maintainTransactionPool removes any transactions that were included in the new block, revalidates the transactions in the pool,
