@@ -29,6 +29,7 @@ grandpa-authority = true
 port = 7001
 nobootstrap = false
 nomdns = false
+discovery-interval = 10
 
 [rpc]
 enabled = false
