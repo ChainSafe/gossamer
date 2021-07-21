@@ -41,7 +41,7 @@ var (
 	startDHTTimeout             = time.Second * 10
 	initialAdvertisementTimeout = time.Millisecond
 	tryAdvertiseTimeout         = time.Second * 30
-	connectToPeersTimeout       = time.Minute * 5
+	connectToPeersTimeout       = time.Second * 30//time.Minute * 5
 	findPeersTimeout            = time.Minute
 )
 
