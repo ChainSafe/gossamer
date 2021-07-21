@@ -181,12 +181,12 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 	return next, nil
 }
 
-// BeginModifyTrie ...
+// BeginModifyTrie should be called before the trie is modified
 func (s *StorageState) BeginModifyTrie() {
 	s.Lock()
 }
 
-// FinishModifyTrie ...
+// FinishModifyTrie should be called after the trie is done being modified
 func (s *StorageState) FinishModifyTrie() {
 	s.Unlock()
 }

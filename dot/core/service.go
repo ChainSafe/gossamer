@@ -480,14 +480,15 @@ func (s *Service) maintainTransactionPool(block *types.Block) error {
 	// re-validate transactions in the pool and move them to the queue
 	txs := s.transactionState.PendingInPool()
 	for _, tx := range txs {
-		val, err := s.rt.ValidateTransaction(tx.Extrinsic)
-		if err != nil {
-			// failed to validate tx, remove it from the pool or queue
-			s.transactionState.RemoveExtrinsic(tx.Extrinsic)
-			continue
-		}
+		// TODO: re-add this
+		// val, err := s.rt.ValidateTransaction(tx.Extrinsic)
+		// if err != nil {
+		// 	// failed to validate tx, remove it from the pool or queue
+		// 	s.transactionState.RemoveExtrinsic(tx.Extrinsic)
+		// 	continue
+		// }
 
-		tx = transaction.NewValidTransaction(tx.Extrinsic, val)
+		// tx = transaction.NewValidTransaction(tx.Extrinsic, val)
 
 		h, err := s.transactionState.Push(tx)
 		if err != nil && err == transaction.ErrTransactionExists {
