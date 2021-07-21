@@ -2,14 +2,11 @@ package modules
 
 import (
 	"fmt"
-	"math/rand"
 	"net/http"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/lib/crypto"
-	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
 
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -24,19 +21,11 @@ import (
 )
 
 func TestAuthorModule_HasSessionKey(t *testing.T) {
-	privateSeed := make([]byte, 32)
-	_, err := rand.Read(privateSeed)
+	aliceSessionSeed := "0xfec0f475b818470af5caf1f3c1b1558729961161946d581d2755f9fb566534f8"
+	kp, err := signature.KeyringPairFromSecret(aliceSessionSeed, 0)
 	require.NoError(t, err)
 
-	ecdsaPair, err := ed25519.NewKeypairFromSeed(privateSeed)
-	require.NoError(t, err)
-
-	basicks := keystore.NewBasicKeystore(keystore.DumyName, crypto.Ed25519Type)
-	basicks.Insert(ecdsaPair)
-
-	pkarray := basicks.PublicKeys()
-	encodedPubKeys, err := scale.Marshal(pkarray)
-	require.NoError(t, err)
+	fmt.Println("======>", kp.Address, common.BytesToHex(kp.PublicKey))
 
 	runtimeInstance := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
 	module := &AuthorModule{
@@ -44,7 +33,7 @@ func TestAuthorModule_HasSessionKey(t *testing.T) {
 	}
 
 	req := &HasSessionKeyRequest{
-		Data: common.BytesToHex(encodedPubKeys),
+		Data: common.BytesToHex(kp.PublicKey),
 	}
 
 	var res HasSessionKeyResponse

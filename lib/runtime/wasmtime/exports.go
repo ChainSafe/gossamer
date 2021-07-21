@@ -150,8 +150,8 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	return in.exec(runtime.CoreExecuteBlock, bdEnc)
 }
 
-// DecodeSessinoKeys decodes the given public session keys. Returns a list of raw public keys including their key type.
-func (in *Instance) DecodeSessinoKeys(enc []byte) ([]byte, error) {
+// DecodeSessionKeys decodes the given public session keys. Returns a list of raw public keys including their key type.
+func (in *Instance) DecodeSessionKeys(enc []byte) ([]byte, error) {
 	return in.exec(runtime.DecodeSessionKeys, enc)
 }
 

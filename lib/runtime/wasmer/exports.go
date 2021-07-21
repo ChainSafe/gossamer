@@ -175,9 +175,13 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	return in.exec(runtime.CoreExecuteBlock, bdEnc)
 }
 
-// DecodeSessinoKeys decodes the given public session keys. Returns a list of raw public keys including their key type.
-func (in *Instance) DecodeSessinoKeys(enc []byte) ([]byte, error) {
-	return in.exec(runtime.DecodeSessionKeys, enc)
+// DecodeSessionKeys decodes the given public session keys. Returns a list of raw public keys including their key type.
+func (in *Instance) DecodeSessionKeys(enc []byte) ([]byte, error) {
+	logger.Warn("Decoded Session received", "data", enc)
+	returnBytes, err := in.exec(runtime.DecodeSessionKeys, enc)
+
+	logger.Warn("Decoded Session returns", "data", returnBytes, "err", err)
+	return returnBytes, err
 }
 
 func (in *Instance) CheckInherents()      {} //nolint

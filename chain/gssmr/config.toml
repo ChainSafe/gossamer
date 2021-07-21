@@ -6,7 +6,7 @@ metrics-port = 9876
 [log]
 core = ""
 network = ""
-rpc = ""
+rpc = "debug"
 state = ""
 runtime = ""
 babe = ""

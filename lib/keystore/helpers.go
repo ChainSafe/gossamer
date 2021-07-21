@@ -64,6 +64,17 @@ func DecodePrivateKey(in []byte, keytype crypto.KeyType) (priv crypto.PrivateKey
 	return priv, err
 }
 
+func DecodePrivateKeyFromHex(seed string, keytype crypto.KeyType) (priv crypto.PrivateKey, err error) {
+	switch keytype {
+	case crypto.Sr25519Type:
+		priv, err = sr25519.NewPrivateKeyFromHex(seed)
+	default:
+		return nil, errors.New("cannot decode key: invalid key type")
+	}
+
+	return priv, err
+}
+
 // GenerateKeypair create a new keypair with the corresponding type and saves
 // it to basepath/keystore/[public key].key in json format encrypted using the
 // specified password and returns the resulting filepath of the new key

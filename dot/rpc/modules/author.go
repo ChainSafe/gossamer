@@ -42,7 +42,11 @@ type HasSessionKeyRequest struct {
 }
 
 // KeyInsertRequest is used as model for the JSON
-type KeyInsertRequest []string
+type KeyInsertRequest struct {
+	Type      string
+	Seed      string
+	PublicKey string
+}
 
 // Extrinsic represents a hex-encoded extrinsic
 type Extrinsic struct {
@@ -71,6 +75,15 @@ type RemoveExtrinsicsResponse []common.Hash
 type KeyRotateResponse []byte
 
 type HasSessionKeyResponse bool
+
+type KeyTypeID struct {
+	Pub []byte
+}
+
+type DecodedKey struct {
+	Data []byte
+	Type KeyTypeID
+}
 
 // ExtrinsicStatus holds the actual valid statuses
 type ExtrinsicStatus struct {
@@ -109,21 +122,26 @@ func (am *AuthorModule) HasSessionKeys(r *http.Request, req *HasSessionKeyReques
 		return err
 	}
 
-	fmt.Println(pubKeysBytes)
-	data, err := am.runtimeAPI.DecodeSessinoKeys(pubKeysBytes)
+	pkeys, err := scale.Marshal(pubKeysBytes)
 	if err != nil {
+		am.logger.Debug("err while scale encoding data", "err", err)
 		return err
 	}
 
-	var decodedKeys []struct {
-		key     []byte
-		keyType struct {
-			pub []byte
-		}
+	data, err := am.runtimeAPI.DecodeSessionKeys(pkeys)
+	if err != nil {
+		am.logger.Debug("err while calling decode session keys runtime function", "err", err)
+		*res = false
+		return err
 	}
 
+	var decodedKeys *[]DecodedKey
 	err = scale.Unmarshal(data, &decodedKeys)
 	fmt.Println(err, data, decodedKeys)
+
+	am.logger.Debug("decoded data", "err", err, "from runtime", data, "decoded", decodedKeys)
+
+	*res = false
 	return err
 }
 
@@ -131,22 +149,25 @@ func (am *AuthorModule) HasSessionKeys(r *http.Request, req *HasSessionKeyReques
 func (am *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *KeyInsertResponse) error {
 	keyReq := *req
 
-	pkDec, err := common.HexToBytes(keyReq[1])
+	seedBytes, err := common.HexToBytes(req.Seed)
 	if err != nil {
 		return err
 	}
 
-	privateKey, err := keystore.DecodePrivateKey(pkDec, keystore.DetermineKeyType(keyReq[0]))
+	privateKey, err := keystore.DecodePrivateKey(seedBytes, keystore.DetermineKeyType(keyReq.Type))
 	if err != nil {
+		am.logger.Debug("err decode private key from hex", "key type", keystore.DetermineKeyType(keyReq.Type), "err", err)
 		return err
 	}
 
 	keyPair, err := keystore.PrivateKeyToKeypair(privateKey)
 	if err != nil {
+		am.logger.Debug("err private key pair", "key type", keystore.DetermineKeyType(keyReq.Type), "err", err)
 		return err
 	}
 
-	if !reflect.DeepEqual(keyPair.Public().Hex(), keyReq[2]) {
+	if !reflect.DeepEqual(keyPair.Public().Hex(), keyReq.PublicKey) {
+		am.logger.Debug("keys not equal", "keypair", keyPair.Public().Hex(), "received", keyReq.PublicKey)
 		return fmt.Errorf("generated public key does not equal provide public key")
 	}
 
