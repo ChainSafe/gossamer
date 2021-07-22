@@ -267,6 +267,8 @@ func (s *Service) handleCodeSubstitution(hash common.Hash) error {
 		return err
 	}
 
+	// TODO: this needs to create a new runtime instance, otherwise it will update
+	// the blocks that reference the current runtime version to use the code substition
 	err = rt.UpdateRuntimeCode(code)
 	if err != nil {
 		return err
