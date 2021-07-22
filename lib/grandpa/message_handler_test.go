@@ -39,15 +39,10 @@ var testHeader = &types.Header{
 	},
 }
 
-var testBlock = &types.Block{
-	Header: testHeader,
-	Body:   &types.Body{},
-}
-
 var testHash = testHeader.Hash()
 
 func buildTestJustification(t *testing.T, qty int, round, setID uint64, kr *keystore.Ed25519Keyring, subround subround) []*SignedVote {
-	just := []*SignedVote{}
+	var just []*SignedVote
 	for i := 0; i < qty; i++ {
 		j := &SignedVote{
 			Vote:        NewVote(testHash, uint32(round)),
@@ -192,17 +187,27 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	gs, st := newTestService(t)
 	h := NewMessageHandler(gs, st.Block)
 
-	err := st.Block.AddBlock(testBlock)
-	require.NoError(t, err)
-
 	msg := &NeighbourMessage{
 		Version: 1,
 		Round:   2,
 		SetID:   3,
-		Number:  1,
+		Number:  2,
+	}
+	_, err := h.handleMessage("", msg)
+	require.NoError(t, err)
+
+	block := &types.Block{
+		Header: &types.Header{
+			Number:     big.NewInt(2),
+			ParentHash: st.Block.GenesisHash(),
+			Digest: types.Digest{
+				types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+			},
+		},
+		Body: &types.Body{0},
 	}
 
-	_, err = h.handleMessage("", msg)
+	err = st.Block.AddBlock(block)
 	require.NoError(t, err)
 
 	out, err := h.handleMessage("", msg)
@@ -212,7 +217,7 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	// check if request for justification was sent out
 	expected := &testJustificationRequest{
 		to:  "",
-		num: 1,
+		num: 2,
 	}
 	require.Equal(t, expected, gs.network.(*testNetwork).justificationRequest)
 }
@@ -245,7 +250,18 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	require.NoError(t, err)
 	fm.Vote = NewVote(testHash, uint32(round))
 
-	err = st.Block.AddBlock(testBlock)
+	block := &types.Block{
+		Header: &types.Header{
+			ParentHash: testHeader.Hash(),
+			Number:     big.NewInt(1),
+			Digest: types.Digest{
+				types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+			},
+		},
+		Body: &types.Body{},
+	}
+
+	err = st.Block.AddBlock(block)
 	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block)
@@ -272,7 +288,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T
 	err := st.Grandpa.SetPrecommits(round, gs.state.setID, just)
 	require.NoError(t, err)
 
-	fm, err := gs.newCommitMessage(gs.head, round)
+	fm, err := gs.newCommitMessage(testGenesisHeader, round)
 	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block)
@@ -336,12 +352,23 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	setID := uint64(0)
 	gs.state.round = round + 1
 
-	err := st.Block.AddBlock(testBlock)
+	block := &types.Block{
+		Header: &types.Header{
+			ParentHash: testHeader.Hash(),
+			Number:     big.NewInt(2),
+			Digest: types.Digest{
+				types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+			},
+		},
+		Body: &types.Body{},
+	}
+
+	err := st.Block.AddBlock(block)
 	require.NoError(t, err)
 
 	err = gs.blockState.SetFinalisedHash(testHeader.Hash(), round, setID)
 	require.NoError(t, err)
-	err = gs.blockState.(*state.BlockState).SetHeader(testHeader)
+	err = gs.blockState.(*state.BlockState).SetHeader(block.Header)
 	require.NoError(t, err)
 
 	pvj := []*SignedVote{

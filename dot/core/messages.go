@@ -31,10 +31,23 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (boo
 	// get transactions from message extrinsics
 	txs := msg.Extrinsics
 	var toPropagate []types.Extrinsic
+
+	rt, err := s.blockState.GetRuntime(nil)
+	if err != nil {
+		return false, err
+	}
+
 	for _, tx := range txs {
+		ts, err := s.storageState.TrieState(nil)
+		if err != nil {
+			return false, err
+		}
+
+		rt.SetContextStorage(ts)
+
 		// validate each transaction
 		externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, tx...))
-		val, err := s.rt.ValidateTransaction(externalExt)
+		val, err := rt.ValidateTransaction(externalExt)
 		if err != nil {
 			logger.Debug("failed to validate transaction", "err", err)
 			continue

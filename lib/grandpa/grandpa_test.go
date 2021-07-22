@@ -30,7 +30,10 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
@@ -65,8 +68,18 @@ func newTestState(t *testing.T) *state.Service {
 	db, err := utils.SetupDatabase(testDatadirPath, true)
 	require.NoError(t, err)
 
-	block, err := state.NewBlockStateFromGenesis(db, testGenesisHeader)
+	gen, genTrie, _ := genesis.NewTestGenesisWithTrieAndHeader(t)
+	block, err := state.NewBlockStateFromGenesis(db, testHeader)
 	require.NoError(t, err)
+
+	rtCfg := &wasmer.Config{}
+
+	rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
+	require.NoError(t, err)
+
+	rt, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg)
+	require.NoError(t, err)
+	block.StoreRuntime(block.BestBlockHash(), rt)
 
 	grandpa, err := state.NewGrandpaStateFromGenesis(db, voters)
 	require.NoError(t, err)
@@ -298,7 +311,7 @@ func TestGetPossibleSelectedAncestors_SameAncestor(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	expected, err := common.HexToHash("0x32ed981734053dc565a1e224137d751f24917a1cb2aeea56fd44a06629550a23")
+	expected, err := common.HexToHash("0x4c897e75b7bf836ed5508bb0f1d04b396ae0bba3a1f902a1ac4195728bec35d9")
 	require.NoError(t, err)
 
 	// this should return the highest common ancestor of (a, b, c) with >=2/3 votes,
@@ -354,10 +367,10 @@ func TestGetPossibleSelectedAncestors_VaryingAncestor(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	expectedAt6, err := common.HexToHash("0x32ed981734053dc565a1e224137d751f24917a1cb2aeea56fd44a06629550a23")
+	expectedAt6, err := common.HexToHash("0x4c897e75b7bf836ed5508bb0f1d04b396ae0bba3a1f902a1ac4195728bec35d9")
 	require.NoError(t, err)
 
-	expectedAt7, err := common.HexToHash("0x57508d4d2c5b01e6bd50dacee5d14979a6f23e41d4b4eb6464a8a29015549847")
+	expectedAt7, err := common.HexToHash("0x3820aa85743cd534dd1cdb309fe8543f3a6fb5818119b7b857ffafa2ae18ab1b")
 	require.NoError(t, err)
 
 	// this should return the highest common ancestor of (a, b) and (b, c) with >=2/3 votes,
@@ -422,10 +435,10 @@ func TestGetPossibleSelectedAncestors_VaryingAncestor_MoreBranches(t *testing.T)
 		require.NoError(t, err)
 	}
 
-	expectedAt6, err := common.HexToHash("0x32ed981734053dc565a1e224137d751f24917a1cb2aeea56fd44a06629550a23")
+	expectedAt6, err := common.HexToHash("0x4c897e75b7bf836ed5508bb0f1d04b396ae0bba3a1f902a1ac4195728bec35d9")
 	require.NoError(t, err)
 
-	expectedAt7, err := common.HexToHash("0x57508d4d2c5b01e6bd50dacee5d14979a6f23e41d4b4eb6464a8a29015549847")
+	expectedAt7, err := common.HexToHash("0x3820aa85743cd534dd1cdb309fe8543f3a6fb5818119b7b857ffafa2ae18ab1b")
 	require.NoError(t, err)
 
 	// this should return the highest common ancestor of (a, b) and (b, c) with >=2/3 votes,
@@ -508,7 +521,7 @@ func TestGetPossibleSelectedBlocks_EqualVotes_SameAncestor(t *testing.T) {
 	blocks, err := gs.getPossibleSelectedBlocks(prevote, gs.state.threshold())
 	require.NoError(t, err)
 
-	expected, err := common.HexToHash("0x32ed981734053dc565a1e224137d751f24917a1cb2aeea56fd44a06629550a23")
+	expected, err := common.HexToHash("0x4c897e75b7bf836ed5508bb0f1d04b396ae0bba3a1f902a1ac4195728bec35d9")
 	require.NoError(t, err)
 
 	// this should return the highest common ancestor of (a, b, c)
@@ -557,10 +570,10 @@ func TestGetPossibleSelectedBlocks_EqualVotes_VaryingAncestor(t *testing.T) {
 	blocks, err := gs.getPossibleSelectedBlocks(prevote, gs.state.threshold())
 	require.NoError(t, err)
 
-	expectedAt6, err := common.HexToHash("0x32ed981734053dc565a1e224137d751f24917a1cb2aeea56fd44a06629550a23")
+	expectedAt6, err := common.HexToHash("0x4c897e75b7bf836ed5508bb0f1d04b396ae0bba3a1f902a1ac4195728bec35d9")
 	require.NoError(t, err)
 
-	expectedAt7, err := common.HexToHash("0x57508d4d2c5b01e6bd50dacee5d14979a6f23e41d4b4eb6464a8a29015549847")
+	expectedAt7, err := common.HexToHash("0x3820aa85743cd534dd1cdb309fe8543f3a6fb5818119b7b857ffafa2ae18ab1b")
 	require.NoError(t, err)
 
 	// this should return the highest common ancestor of (a, b) and (b, c) with >=2/3 votes,
@@ -728,7 +741,7 @@ func TestGetPreVotedBlock_MultipleCandidates(t *testing.T) {
 	}
 
 	// expected block is that with the highest number ie. at depth 7
-	expected, err := common.HexToHash("0x57508d4d2c5b01e6bd50dacee5d14979a6f23e41d4b4eb6464a8a29015549847")
+	expected, err := common.HexToHash("0x3820aa85743cd534dd1cdb309fe8543f3a6fb5818119b7b857ffafa2ae18ab1b")
 	require.NoError(t, err)
 
 	block, err := gs.getPreVotedBlock()
@@ -802,14 +815,14 @@ func TestGetPreVotedBlock_EvenMoreCandidates(t *testing.T) {
 
 	t.Log(st.Block.BlocktreeAsString())
 
-	// expected block is at depth 5
-	expected, err := common.HexToHash("0xd01a209a130af98b3375cf9a571e92b7c0fc8b61dee7917f852a673fcb57ac19")
+	// expected block is at depth 4
+	expected, err := common.HexToHash("0x951e6e1a529692b1e6cbfbf00ae6bb39386e7b883c42d92a4672780e769f8a51")
 	require.NoError(t, err)
 
 	block, err := gs.getPreVotedBlock()
 	require.NoError(t, err)
 	require.Equal(t, expected, block.Hash)
-	require.Equal(t, uint32(5), block.Number)
+	require.Equal(t, uint32(4), block.Number)
 }
 
 func TestIsCompletable(t *testing.T) {
@@ -1244,7 +1257,7 @@ func TestGetGrandpaGHOST_MultipleCandidates(t *testing.T) {
 	t.Log(st.Block.BlocktreeAsString())
 
 	// expected block is that with the most votes ie. block 3
-	expected, err := common.HexToHash("0x00608d0fab61edd13d6cded6db4014e001269973fe9e2d9d9c21a769ad826e7d")
+	expected, err := common.HexToHash("0x7b8d506f0977136fcb9ba630bc179d30d698d1247dd64f08df976205ad2cc04d")
 	require.NoError(t, err)
 
 	block, err := gs.getGrandpaGHOST()

@@ -68,7 +68,6 @@ func addBlocksToState(t *testing.T, babeService *Service, depth int, blockState 
 	previousAT := startTime
 	duration, err := time.ParseDuration("1s")
 	builder, _ := NewBlockBuilder(
-		babeService.rt,
 		babeService.keypair,
 		babeService.transactionState,
 		babeService.blockState,
@@ -140,7 +139,6 @@ func TestEstimateCurrentSlot(t *testing.T) {
 	babeService.epochData.authorityIndex = 0
 
 	builder, _ := NewBlockBuilder(
-		babeService.rt,
 		babeService.keypair,
 		babeService.transactionState,
 		babeService.blockState,

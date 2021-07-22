@@ -233,8 +233,8 @@ func (_m *MockBlockAPI) SubChain(start common.Hash, end common.Hash) ([]common.H
 	return r0, r1
 }
 
-// UnregisterFinalizedChannel provides a mock function with given fields: id
-func (_m *MockBlockAPI) UnregisterFinalizedChannel(id byte) {
+// UnregisterFinalisedChannel provides a mock function with given fields: id
+func (_m *MockBlockAPI) UnregisterFinalisedChannel(id byte) {
 	_m.Called(id)
 }
 

@@ -23,14 +23,13 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	ethmetrics "github.com/ethereum/go-ethereum/metrics"
-
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	ethmetrics "github.com/ethereum/go-ethereum/metrics"
 )
 
 const (
@@ -39,9 +38,8 @@ const (
 )
 
 // construct a block for this slot with the given parent
-func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, error) {
+func (b *Service) buildBlock(parent *types.Header, slot Slot, rt runtime.Instance) (*types.Block, error) {
 	builder, err := NewBlockBuilder(
-		b.rt,
 		b.keypair,
 		b.transactionState,
 		b.blockState,
@@ -53,7 +51,7 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 	}
 
 	startBuilt := time.Now()
-	block, err := builder.buildBlock(parent, slot)
+	block, err := builder.buildBlock(parent, slot, rt)
 
 	// is necessary to enable ethmetrics to be possible register values
 	ethmetrics.Enabled = true //nolint
@@ -67,12 +65,11 @@ func (b *Service) buildBlock(parent *types.Header, slot Slot) (*types.Block, err
 
 	timerMetrics := ethmetrics.GetOrRegisterTimer(buildBlockTimer, nil)
 	timerMetrics.Update(time.Since(startBuilt))
-	return block, err
+	return block, nil
 }
 
 // nolint
 type BlockBuilder struct {
-	rt                    runtime.Instance
 	keypair               *sr25519.Keypair
 	transactionState      TransactionState
 	blockState            BlockState
@@ -81,10 +78,7 @@ type BlockBuilder struct {
 }
 
 // nolint
-func NewBlockBuilder(rt runtime.Instance, kp *sr25519.Keypair, ts TransactionState, bs BlockState, sp map[uint64]*VrfOutputAndProof, authidx uint32) (*BlockBuilder, error) {
-	if rt == nil {
-		return nil, errors.New("cannot create block builder; runtime instance is nil")
-	}
+func NewBlockBuilder(kp *sr25519.Keypair, ts TransactionState, bs BlockState, sp map[uint64]*VrfOutputAndProof, authidx uint32) (*BlockBuilder, error) {
 	if ts == nil {
 		return nil, errors.New("cannot create block builder; transaction state is nil")
 	}
@@ -96,7 +90,6 @@ func NewBlockBuilder(rt runtime.Instance, kp *sr25519.Keypair, ts TransactionSta
 	}
 
 	bb := &BlockBuilder{
-		rt:                    rt,
 		keypair:               kp,
 		transactionState:      ts,
 		blockState:            bs,
@@ -107,7 +100,7 @@ func NewBlockBuilder(rt runtime.Instance, kp *sr25519.Keypair, ts TransactionSta
 	return bb, nil
 }
 
-func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot) (*types.Block, error) {
+func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.Instance) (*types.Block, error) {
 	logger.Trace("build block", "parent", parent, "slot", slot)
 
 	// create pre-digest
@@ -126,7 +119,7 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot) (*types.Block
 	}
 
 	// initialise block header
-	err = b.rt.InitializeBlock(header)
+	err = rt.InitializeBlock(header)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +127,7 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot) (*types.Block
 	logger.Trace("initialised block")
 
 	// add block inherents
-	inherents, err := b.buildBlockInherents(slot)
+	inherents, err := b.buildBlockInherents(slot, rt)
 	if err != nil {
 		return nil, fmt.Errorf("cannot build inherents: %s", err)
 	}
@@ -142,12 +135,12 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot) (*types.Block
 	logger.Trace("built block inherents", "encoded inherents", inherents)
 
 	// add block extrinsics
-	included := b.buildBlockExtrinsics(slot)
+	included := b.buildBlockExtrinsics(slot, rt)
 
 	logger.Trace("built block extrinsics")
 
 	// finalise block
-	header, err = b.rt.FinalizeBlock()
+	header, err = rt.FinalizeBlock()
 	if err != nil {
 		b.addToQueue(included)
 		return nil, fmt.Errorf("cannot finalise block: %s", err)
@@ -237,7 +230,7 @@ func (b *BlockBuilder) buildBlockBABEPrimaryPreDigest(slot Slot) (*types.BabePri
 // buildBlockExtrinsics applies extrinsics to the block. it returns an array of included extrinsics.
 // for each extrinsic in queue, add it to the block, until the slot ends or the block is full.
 // if any extrinsic fails, it returns an empty array and an error.
-func (b *BlockBuilder) buildBlockExtrinsics(slot Slot) []*transaction.ValidTransaction {
+func (b *BlockBuilder) buildBlockExtrinsics(slot Slot, rt runtime.Instance) []*transaction.ValidTransaction {
 	var included []*transaction.ValidTransaction
 
 	for !hasSlotEnded(slot) {
@@ -250,7 +243,7 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot) []*transaction.ValidTrans
 		extrinsic := txn.Extrinsic
 		logger.Trace("build block", "applying extrinsic", extrinsic)
 
-		ret, err := b.rt.ApplyExtrinsic(extrinsic)
+		ret, err := rt.ApplyExtrinsic(extrinsic)
 		if err != nil {
 			logger.Warn("failed to apply extrinsic", "error", err, "extrinsic", extrinsic)
 			continue
@@ -288,7 +281,7 @@ func (b *BlockBuilder) buildBlockExtrinsics(slot Slot) []*transaction.ValidTrans
 	return included
 }
 
-func (b *BlockBuilder) buildBlockInherents(slot Slot) ([][]byte, error) {
+func (b *BlockBuilder) buildBlockInherents(slot Slot, rt runtime.Instance) ([][]byte, error) {
 	// Setup inherents: add timstap0
 	idata := types.NewInherentsData()
 	err := idata.SetInt64Inherent(types.Timstap0, uint64(time.Now().Unix()))
@@ -308,7 +301,7 @@ func (b *BlockBuilder) buildBlockInherents(slot Slot) ([][]byte, error) {
 	}
 
 	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
-	inherentExts, err := b.rt.InherentExtrinsics(ienc)
+	inherentExts, err := rt.InherentExtrinsics(ienc)
 	if err != nil {
 		return nil, err
 	}
@@ -327,7 +320,7 @@ func (b *BlockBuilder) buildBlockInherents(slot Slot) ([][]byte, error) {
 			return nil, err
 		}
 
-		ret, err := b.rt.ApplyExtrinsic(in)
+		ret, err := rt.ApplyExtrinsic(in)
 		if err != nil {
 			return nil, err
 		}

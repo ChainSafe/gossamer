@@ -49,7 +49,6 @@ func TestSeal(t *testing.T) {
 	babeService := createTestService(t, cfg)
 
 	builder, _ := NewBlockBuilder(
-		babeService.rt,
 		babeService.keypair,
 		babeService.transactionState,
 		babeService.blockState,
@@ -146,16 +145,21 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.Header, e
 		number:   slotNumber,
 	}
 
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
 	// build block
 	var block *types.Block
 	for i := 0; i < 1; i++ { // retry if error
-		block, err = babeService.buildBlock(parent, slot)
+		block, err = babeService.buildBlock(parent, slot, rt)
 		if err == nil {
+			babeService.blockState.StoreRuntime(block.Header.Hash(), rt)
 			return block, slot
 		}
 	}
 
 	require.NoError(t, err)
+
 	return block, slot
 }
 
@@ -169,7 +173,6 @@ func TestBuildBlock_ok(t *testing.T) {
 	babeService.epochData.threshold = maxThreshold
 
 	builder, _ := NewBlockBuilder(
-		babeService.rt,
 		babeService.keypair,
 		babeService.transactionState,
 		babeService.blockState,
@@ -222,7 +225,6 @@ func TestApplyExtrinsic(t *testing.T) {
 	babeService.epochData.threshold = maxThreshold
 
 	builder, _ := NewBlockBuilder(
-		babeService.rt,
 		babeService.keypair,
 		babeService.transactionState,
 		babeService.blockState,
@@ -252,9 +254,13 @@ func TestApplyExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 
 	parentHash := babeService.blockState.GenesisHash()
+
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
 	ts, err := babeService.storageState.TrieState(nil)
 	require.NoError(t, err)
-	builder.rt.SetContextStorage(ts)
+	rt.SetContextStorage(ts)
 
 	preDigest, err := builder.buildBlockPreDigest(slot)
 	require.NoError(t, err)
@@ -263,32 +269,32 @@ func TestApplyExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 
 	//initialise block header
-	err = builder.rt.InitializeBlock(header)
+	err = rt.InitializeBlock(header)
 	require.NoError(t, err)
 
-	_, err = builder.buildBlockInherents(slot)
+	_, err = builder.buildBlockInherents(slot, rt)
 	require.NoError(t, err)
 
-	header1, err := builder.rt.FinalizeBlock()
+	header1, err := rt.FinalizeBlock()
 	require.NoError(t, err)
 
-	ext := createTestExtrinsic(t, babeService.rt, parentHash, 0)
-	_, err = babeService.rt.ValidateTransaction(append([]byte{byte(types.TxnExternal)}, ext...))
+	ext := createTestExtrinsic(t, rt, parentHash, 0)
+	_, err = rt.ValidateTransaction(append([]byte{byte(types.TxnExternal)}, ext...))
 	require.NoError(t, err)
 
 	header2, err := types.NewHeader(header1.Hash(), common.Hash{}, common.Hash{}, big.NewInt(2), types.NewDigest(preDigest2))
 	require.NoError(t, err)
-	err = builder.rt.InitializeBlock(header2)
+	err = rt.InitializeBlock(header2)
 	require.NoError(t, err)
 
-	_, err = builder.buildBlockInherents(slot)
+	_, err = builder.buildBlockInherents(slot, rt)
 	require.NoError(t, err)
 
-	res, err := builder.rt.ApplyExtrinsic(ext)
+	res, err := rt.ApplyExtrinsic(ext)
 	require.NoError(t, err)
 	require.Equal(t, []byte{0, 0}, res)
 
-	_, err = builder.rt.FinalizeBlock()
+	_, err = rt.FinalizeBlock()
 	require.NoError(t, err)
 }
 
@@ -308,12 +314,15 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewEmptyDigest())
 	require.NoError(t, err)
 
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
 	//initialise block header
-	err = babeService.rt.InitializeBlock(header)
+	err = rt.InitializeBlock(header)
 	require.NoError(t, err)
 
 	// build extrinsic
-	rawMeta, err := babeService.rt.Metadata()
+	rawMeta, err := rt.Metadata()
 	require.NoError(t, err)
 	var decoded []byte
 	err = scale.Unmarshal(rawMeta, []byte{})
@@ -323,7 +332,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	err = ctypes.DecodeFromBytes(decoded, meta)
 	require.NoError(t, err)
 
-	rv, err := babeService.rt.Version()
+	rv, err := rt.Version()
 	require.NoError(t, err)
 
 	bob, err := ctypes.NewMultiAddressFromHexAccountID("0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
@@ -355,14 +364,14 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	encoder := cscale.NewEncoder(&extEnc)
 	ext.Encode(*encoder)
 
-	txVal, err := babeService.rt.ValidateTransaction(append([]byte{byte(types.TxnLocal)}, extEnc.Bytes()...))
+	txVal, err := rt.ValidateTransaction(append([]byte{byte(types.TxnLocal)}, extEnc.Bytes()...))
 	require.NoError(t, err)
 
 	vtx := transaction.NewValidTransaction(extEnc.Bytes(), txVal)
 	babeService.transactionState.Push(vtx)
 
 	// apply extrinsic
-	res, err := babeService.rt.ApplyExtrinsic(extEnc.Bytes())
+	res, err := rt.ApplyExtrinsic(extEnc.Bytes())
 	require.NoError(t, err)
 	// Expected result for valid ApplyExtrinsic is 0, 0
 	require.Equal(t, []byte{0, 0}, res)
@@ -420,7 +429,10 @@ func TestBuildBlock_failing(t *testing.T) {
 		number:   slotNumber,
 	}
 
-	_, err = babeService.buildBlock(parentHeader, slot)
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	_, err = babeService.buildBlock(parentHeader, slot, rt)
 	if err == nil {
 		t.Fatal("should error when attempting to include invalid tx")
 	}
@@ -469,7 +481,10 @@ func TestBuildBlockTimeMonitor(t *testing.T) {
 	createTestBlock(t, babeService, parent, [][]byte{}, 1, testEpochIndex)
 	require.Equal(t, int64(1), timerMetrics.Count())
 
-	_, err = babeService.buildBlock(parent, Slot{})
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	_, err = babeService.buildBlock(parent, Slot{}, rt)
 	require.Error(t, err)
 	buildErrorsMetrics := metrics.GetOrRegisterCounter(buildBlockErrors, nil)
 	require.Equal(t, int64(1), buildErrorsMetrics.Count())
