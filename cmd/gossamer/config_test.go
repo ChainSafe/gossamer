@@ -810,11 +810,12 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 		Account: testCfg.Account,
 		Core:    testCfg.Core,
 		Network: dot.NetworkConfig{
-			Port:        testCfg.Network.Port,
-			Bootnodes:   []string{}, // TODO: improve cmd tests #687
-			ProtocolID:  testCfg.Network.ProtocolID,
-			NoBootstrap: testCfg.Network.NoBootstrap,
-			NoMDNS:      testCfg.Network.NoMDNS,
+			Port:              testCfg.Network.Port,
+			Bootnodes:         []string{}, // TODO: improve cmd tests #687
+			ProtocolID:        testCfg.Network.ProtocolID,
+			NoBootstrap:       testCfg.Network.NoBootstrap,
+			NoMDNS:            testCfg.Network.NoMDNS,
+			DiscoveryInterval: testCfg.Network.DiscoveryInterval,
 		},
 		RPC:    testCfg.RPC,
 		System: testCfg.System,
