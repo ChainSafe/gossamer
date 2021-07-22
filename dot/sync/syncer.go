@@ -315,8 +315,8 @@ func (s *Service) handleBlock(block *types.Block) error {
 		return fmt.Errorf("failed to get parent hash: %w", err)
 	}
 
-	s.storageState.BeginModifyTrie()
-	defer s.storageState.FinishModifyTrie()
+	s.storageState.Lock()
+	defer s.storageState.Unlock()
 
 	logger.Trace("getting parent state", "root", parent.StateRoot)
 	ts, err := s.storageState.TrieState(&parent.StateRoot)

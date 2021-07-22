@@ -181,16 +181,6 @@ func (s *StorageState) TrieState(root *common.Hash) (*rtstorage.TrieState, error
 	return next, nil
 }
 
-// BeginModifyTrie should be called before the trie is modified
-func (s *StorageState) BeginModifyTrie() {
-	s.Lock()
-}
-
-// FinishModifyTrie should be called after the trie is done being modified
-func (s *StorageState) FinishModifyTrie() {
-	s.Unlock()
-}
-
 // LoadFromDB loads an encoded trie from the DB where the key is `root`
 func (s *StorageState) LoadFromDB(root common.Hash) (*trie.Trie, error) {
 	t := trie.NewEmptyTrie()
