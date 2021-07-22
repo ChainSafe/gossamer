@@ -212,7 +212,7 @@ func (s *StorageState) loadTrie(root *common.Hash) (*trie.Trie, error) {
 		root = &sr
 	}
 
-	if t, has := s.tries.Load(*root); !has && t != nil {
+	if t, has := s.tries.Load(*root); has && t != nil {
 		return t.(*trie.Trie), nil
 	}
 
