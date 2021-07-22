@@ -20,8 +20,8 @@ import (
 	"bytes"
 
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/scale"
-	ctypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	"github.com/centrifuge/go-substrate-rpc-client/v3/scale"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
 )
 
 // Extrinsic is a generic transaction whose format is verified in the runtime

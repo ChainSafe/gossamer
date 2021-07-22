@@ -25,7 +25,7 @@ func (t *Test) Value() []byte {
 }
 
 // GenerateRandomTests returns an array of random Tests
-func GenerateRandomTests(t *testing.T, size int) []Test {
+func GenerateRandomTests(t testing.TB, size int) []Test {
 	rt := make([]Test, size)
 	kv := make(map[string][]byte)
 
@@ -38,7 +38,7 @@ func GenerateRandomTests(t *testing.T, size int) []Test {
 	return rt
 }
 
-func generateRandomTest(t *testing.T, kv map[string][]byte) Test {
+func generateRandomTest(t testing.TB, kv map[string][]byte) Test {
 	r := *rand.New(rand.NewSource(rand.Int63())) //nolint
 	test := Test{}
 

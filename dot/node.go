@@ -17,8 +17,8 @@
 package dot
 
 import (
+	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"os/signal"
 	"path"
@@ -28,18 +28,19 @@ import (
 	"syscall"
 	"time"
 
-	gssmrmetrics "github.com/ChainSafe/gossamer/dot/metrics"
+	"github.com/ChainSafe/gossamer/dot/metrics"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/telemetry"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
-	"github.com/ethereum/go-ethereum/metrics"
-	"github.com/ethereum/go-ethereum/metrics/prometheus"
 )
 
 var logger = log.New("pkg", "dot")
@@ -50,6 +51,7 @@ type Node struct {
 	Services *services.ServiceRegistry // registry of all node services
 	StopFunc func()                    // func to call when node stops, currently used for profiling
 	wg       sync.WaitGroup
+	started  chan struct{}
 }
 
 // InitNode initialises a new dot node from the provided dot node configuration
@@ -90,8 +92,20 @@ func InitNode(cfg *Config) error {
 		return fmt.Errorf("failed to create genesis block from trie: %w", err)
 	}
 
+	config := state.Config{
+		Path:     cfg.Global.BasePath,
+		LogLevel: cfg.Global.LogLvl,
+		PrunerCfg: struct {
+			Mode           pruner.Mode
+			RetainedBlocks int64
+		}{
+			Mode:           cfg.Global.Pruning,
+			RetainedBlocks: cfg.Global.RetainBlocks,
+		},
+	}
+
 	// create new state service
-	stateSrvc := state.NewService(cfg.Global.BasePath, cfg.Global.LogLvl)
+	stateSrvc := state.NewService(config)
 
 	// initialise state service with genesis data, block, and trie
 	err = stateSrvc.Initialise(gen, header, t)
@@ -214,8 +228,6 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		return nil, ErrNoKeysProvided
 	}
 
-	// Node Services
-
 	logger.Info(
 		"🕸️ initialising node services...",
 		"name", cfg.Global.Name,
@@ -223,19 +235,15 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		"basepath", cfg.Global.BasePath,
 	)
 
-	var nodeSrvcs []services.Service
+	var (
+		nodeSrvcs   []services.Service
+		networkSrvc *network.Service
+	)
 
-	// State Service
-
-	// create state service and append state service to node services
 	stateSrvc, err := createStateService(cfg)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to create state service: %s", err)
 	}
-
-	// Network Service
-	var networkSrvc *network.Service
 
 	// check if network service is enabled
 	if enabled := networkServiceEnabled(cfg); enabled {
@@ -251,7 +259,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	}
 
 	// create runtime
-	rt, err := createRuntime(cfg, stateSrvc, ks, networkSrvc)
+	err = loadRuntime(cfg, stateSrvc, ks, networkSrvc)
 	if err != nil {
 		return nil, err
 	}
@@ -261,65 +269,51 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		return nil, err
 	}
 
-	// create BABE service
-	bp, err := createBABEService(cfg, rt, stateSrvc, ks.Babe)
-	if err != nil {
-		return nil, err
-	}
-
-	nodeSrvcs = append(nodeSrvcs, bp)
-
-	dh, err := createDigestHandler(stateSrvc, bp, ver)
+	dh, err := createDigestHandler(stateSrvc)
 	if err != nil {
 		return nil, err
 	}
 	nodeSrvcs = append(nodeSrvcs, dh)
 
-	// create GRANDPA service
-	fg, err := createGRANDPAService(cfg, rt, stateSrvc, dh, ks.Gran, networkSrvc)
+	coreSrvc, err := createCoreService(cfg, ks, stateSrvc, networkSrvc, dh)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create core service: %s", err)
+	}
+	nodeSrvcs = append(nodeSrvcs, coreSrvc)
+
+	bp, err := createBABEService(cfg, stateSrvc, ks.Babe, coreSrvc)
+	if err != nil {
+		return nil, err
+	}
+	nodeSrvcs = append(nodeSrvcs, bp)
+
+	fg, err := createGRANDPAService(cfg, stateSrvc, dh, ks.Gran, networkSrvc)
 	if err != nil {
 		return nil, err
 	}
 	nodeSrvcs = append(nodeSrvcs, fg)
 
-	// Syncer
-	syncer, err := createSyncService(cfg, stateSrvc, bp, fg, dh, ver, rt)
+	syncer, err := newSyncService(cfg, stateSrvc, fg, ver, coreSrvc)
 	if err != nil {
 		return nil, err
 	}
-
-	// Core Service
-
-	// create core service and append core service to node services
-	coreSrvc, err := createCoreService(cfg, bp, ver, rt, ks, stateSrvc, networkSrvc)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create core service: %s", err)
-	}
-	nodeSrvcs = append(nodeSrvcs, coreSrvc)
 
 	if networkSrvc != nil {
 		networkSrvc.SetSyncer(syncer)
 		networkSrvc.SetTransactionHandler(coreSrvc)
 	}
 
-	// System Service
-
-	// create system service and append to node services
 	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create system service: %s", err)
 	}
 	nodeSrvcs = append(nodeSrvcs, sysSrvc)
 
-	// RPC Service
-
 	// check if rpc service is enabled
-	if enabled := cfg.RPC.Enabled; enabled {
-		// create rpc service and append rpc service to node services
-		rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc, bp, rt, sysSrvc)
+	if enabled := cfg.RPC.Enabled || cfg.RPC.WS; enabled {
+		rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc, bp, sysSrvc, fg)
 		nodeSrvcs = append(nodeSrvcs, rpcSrvc)
 	} else {
-		// do not create or append rpc service if rpc service is not enabled
 		logger.Debug("rpc service disabled by default", "rpc", enabled)
 	}
 
@@ -330,6 +324,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		Name:     cfg.Global.Name,
 		StopFunc: stopFunc,
 		Services: services.NewServiceRegistry(),
+		started:  make(chan struct{}),
 	}
 
 	for _, srvc := range nodeSrvcs {
@@ -337,7 +332,15 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	}
 
 	if cfg.Global.PublishMetrics {
-		publishMetrics(cfg)
+		c := metrics.NewCollector(context.Background())
+		c.AddGauge(fg)
+		c.AddGauge(stateSrvc)
+
+		go c.Start()
+
+		address := fmt.Sprintf("%s:%d", cfg.RPC.Host, cfg.Global.MetricsPort)
+		log.Info("Enabling stand-alone metrics HTTP endpoint", "address", address)
+		metrics.PublishMetrics(address)
 	}
 
 	gd, err := stateSrvc.Base.LoadGenesisData()
@@ -345,47 +348,23 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 		return nil, err
 	}
 
-	if cfg.Global.NoTelemetry {
-		return node, nil
-	}
+	telemetry.GetInstance().Initialise(!cfg.Global.NoTelemetry)
 
 	telemetry.GetInstance().AddConnections(gd.TelemetryEndpoints)
-
-	err = telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(
-		telemetry.NewKeyValue("authority", cfg.Core.GrandpaAuthority),
-		telemetry.NewKeyValue("chain", sysSrvc.ChainName()),
-		telemetry.NewKeyValue("genesis_hash", stateSrvc.Block.GenesisHash().String()),
-		telemetry.NewKeyValue("implementation", sysSrvc.SystemName()),
-		telemetry.NewKeyValue("msg", "system.connected"),
-		telemetry.NewKeyValue("name", cfg.Global.Name),
-		telemetry.NewKeyValue("network_id", networkSrvc.NetworkState().PeerID),
-		telemetry.NewKeyValue("startup_time", strconv.FormatInt(time.Now().UnixNano(), 10)),
-		telemetry.NewKeyValue("version", sysSrvc.SystemVersion())))
+	genesisHash := stateSrvc.Block.GenesisHash()
+	err = telemetry.GetInstance().SendMessage(telemetry.NewSystemConnectedTM(
+		cfg.Core.GrandpaAuthority,
+		sysSrvc.ChainName(),
+		&genesisHash,
+		sysSrvc.SystemName(),
+		cfg.Global.Name,
+		networkSrvc.NetworkState().PeerID,
+		strconv.FormatInt(time.Now().UnixNano(), 10),
+		sysSrvc.SystemVersion()))
 	if err != nil {
 		logger.Debug("problem sending system.connected telemetry message", "err", err)
 	}
 	return node, nil
-}
-
-func publishMetrics(cfg *Config) {
-	address := fmt.Sprintf("%s:%d", cfg.RPC.Host, cfg.Global.MetricsPort)
-	log.Info("Enabling stand-alone metrics HTTP endpoint", "address", address)
-	setupMetricsServer(address)
-
-	// Start system runtime metrics collection
-	go gssmrmetrics.CollectProcessMetrics()
-}
-
-// setupMetricsServer starts a dedicated metrics server at the given address.
-func setupMetricsServer(address string) {
-	m := http.NewServeMux()
-	m.Handle("/metrics", prometheus.Handler(metrics.DefaultRegistry))
-	log.Info("Starting metrics server", "addr", fmt.Sprintf("http://%s/metrics", address))
-	go func() {
-		if err := http.ListenAndServe(address, m); err != nil {
-			log.Error("Failure in running metrics server", "err", err)
-		}
-	}()
 }
 
 // stores the global node name to reuse
@@ -435,8 +414,8 @@ func (n *Node) Start() error {
 	}()
 
 	n.wg.Add(1)
+	close(n.started)
 	n.wg.Wait()
-
 	return nil
 }
 
@@ -449,4 +428,35 @@ func (n *Node) Stop() {
 	// stop all node services
 	n.Services.StopAll()
 	n.wg.Done()
+}
+
+func loadRuntime(cfg *Config, stateSrvc *state.Service, ks *keystore.GlobalKeystore, net *network.Service) error {
+	blocks := stateSrvc.Block.GetNonFinalisedBlocks()
+	runtimeCode := make(map[string]runtime.Instance)
+	for i := range blocks {
+		hash := &blocks[i]
+		code, err := stateSrvc.Storage.GetStorageByBlockHash(*hash, []byte(":code"))
+		if err != nil {
+			return err
+		}
+
+		codeHash, err := common.Blake2bHash(code)
+		if err != nil {
+			return err
+		}
+
+		if rt, ok := runtimeCode[codeHash.String()]; ok {
+			stateSrvc.Block.StoreRuntime(*hash, rt)
+			continue
+		}
+
+		rt, err := createRuntime(cfg, stateSrvc, ks, net, code)
+		if err != nil {
+			return err
+		}
+
+		runtimeCode[codeHash.String()] = rt
+	}
+
+	return nil
 }

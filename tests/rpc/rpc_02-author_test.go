@@ -23,13 +23,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/centrifuge/go-substrate-rpc-client/v2/scale"
+	"github.com/centrifuge/go-substrate-rpc-client/v3/scale"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/tests/utils"
-	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v2"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v3"
+	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
+	"github.com/centrifuge/go-substrate-rpc-client/v3/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -50,7 +50,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 		require.Len(t, errList, 0)
 	}()
 
-	time.Sleep(15 * time.Second) // wait for server to start
+	time.Sleep(30 * time.Second) // wait for server to start and block 1 to be produced
 
 	api, err := gsrpc.NewSubstrateAPI(fmt.Sprintf("http://localhost:%s", nodes[0].RPCPort))
 	require.NoError(t, err)
@@ -58,11 +58,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 	meta, err := api.RPC.State.GetMetadataLatest()
 	require.NoError(t, err)
 
-	// Create a call, transferring 12345 units to Bob
-	bob, err := types.NewAddressFromHexAccountID("0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
-	require.NoError(t, err)
-
-	c, err := types.NewCall(meta, "Balances.transfer", bob, types.NewUCompactFromUInt(12345))
+	c, err := types.NewCall(meta, "System.remark", []byte{0xab})
 	require.NoError(t, err)
 
 	// Create the extrinsic
@@ -84,7 +80,7 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 
 	o := types.SignatureOptions{
 		BlockHash:          genesisHash,
-		Era:                types.ExtrinsicEra{IsImmortalEra: true},
+		Era:                types.ExtrinsicEra{IsImmortalEra: false},
 		GenesisHash:        genesisHash,
 		Nonce:              types.NewUCompactFromUInt(uint64(accInfo.Nonce)),
 		SpecVersion:        rv.SpecVersion,
@@ -104,19 +100,6 @@ func TestAuthorSubmitExtrinsic(t *testing.T) {
 	hash, err := api.RPC.Author.SubmitExtrinsic(ext)
 	require.NoError(t, err)
 	require.NotEqual(t, hash, common.Hash{})
-}
-
-// TestDecodeExt is for debugging/decoding extrinsics.  Test with a hex string that was generated (from above tests
-//  or polkadot.js/api) and use in buffer.Write.  The decoded output will show the values in the extrinsic.
-func TestDecodeExt(t *testing.T) {
-	buffer := bytes.Buffer{}
-	decoder := scale.NewDecoder(&buffer)
-	buffer.Write(common.MustHexToBytes("0x410284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01f8efbe48487e57a22abf7e3acd491b7f3528a33a111b1298601554863d27eb129eaa4e718e1365414ff3d028b62bebc651194c6b5001e5c2839b982757e08a8c0000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a480b00c465f14670"))
-	ext := types.Extrinsic{}
-	err := decoder.Decode(&ext)
-	require.NoError(t, err)
-	fmt.Printf("decoded ext %+v\n", ext)
-
 }
 
 func TestAuthorRPC(t *testing.T) {

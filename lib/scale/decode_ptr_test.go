@@ -188,7 +188,7 @@ func TestDecodePtrBool(t *testing.T) {
 		}
 	}
 
-	var result bool = true
+	var result = true
 	err := DecodePtr([]byte{0xff}, &result)
 	if err == nil {
 		t.Error("did not error for invalid bool")

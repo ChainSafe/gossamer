@@ -39,6 +39,11 @@ var (
 	// DefaultLvl is the default log level
 	DefaultLvl = log.LvlInfo
 
+	// DefaultPruningMode is the default pruning mode
+	DefaultPruningMode = "archive"
+	// DefaultRetainBlocks is the default retained blocks
+	DefaultRetainBlocks = int64(512)
+
 	// InitConfig
 
 	// DefaultGenesis is the default genesis configuration path

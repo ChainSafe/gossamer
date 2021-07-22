@@ -101,16 +101,16 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 	responseData := []*types.BlockData{}
 
 	switch blockRequest.Direction {
-	case 0: // ascending (ie child to parent)
-		for i := endHeader.Number.Int64(); i >= startHeader.Number.Int64(); i-- {
+	case 0: // ascending (ie parent to child)
+		for i := startHeader.Number.Int64(); i <= endHeader.Number.Int64(); i++ {
 			blockData, err := s.getBlockData(big.NewInt(i), blockRequest.RequestedData)
 			if err != nil {
 				return nil, err
 			}
 			responseData = append(responseData, blockData)
 		}
-	case 1: // descending (ie parent to child)
-		for i := startHeader.Number.Int64(); i <= endHeader.Number.Int64(); i++ {
+	case 1: // descending (ie child to parent)
+		for i := endHeader.Number.Int64(); i >= startHeader.Number.Int64(); i-- {
 			blockData, err := s.getBlockData(big.NewInt(i), blockRequest.RequestedData)
 			if err != nil {
 				return nil, err

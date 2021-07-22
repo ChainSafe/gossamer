@@ -19,14 +19,14 @@ package modules
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"math/big"
 	"net/http"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
-	"github.com/ChainSafe/gossamer/lib/scale"
-	ctypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/btcsuite/btcutil/base58"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
 )
 
 // SystemModule is an RPC module providing access to core API points
@@ -36,6 +36,7 @@ type SystemModule struct {
 	coreAPI    CoreAPI
 	storageAPI StorageAPI
 	txStateAPI TransactionStateAPI
+	blockAPI   BlockAPI
 }
 
 // EmptyRequest represents an RPC request with no fields
@@ -69,15 +70,23 @@ type StringRequest struct {
 	String string
 }
 
+// SyncStateResponse is the struct to return on the system_syncState rpc call
+type SyncStateResponse struct {
+	CurrentBlock  uint32 `json:"currentBlock"`
+	HighestBlock  uint32 `json:"highestBlock"`
+	StartingBlock uint32 `json:"startingBlock"`
+}
+
 // NewSystemModule creates a new API instance
 func NewSystemModule(net NetworkAPI, sys SystemAPI, core CoreAPI,
-	storage StorageAPI, txAPI TransactionStateAPI) *SystemModule {
+	storage StorageAPI, txAPI TransactionStateAPI, blockAPI BlockAPI) *SystemModule {
 	return &SystemModule{
 		networkAPI: net, // TODO: migrate to network state
 		systemAPI:  sys,
 		coreAPI:    core,
 		storageAPI: storage,
 		txStateAPI: txAPI,
+		blockAPI:   blockAPI,
 	}
 }
 
@@ -171,15 +180,13 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 	found := false
 	for _, v := range pending {
 		var ext ctypes.Extrinsic
-		err := ctypes.DecodeFromBytes(v.Extrinsic[1:], &ext)
+		err := ctypes.DecodeFromBytes(v.Extrinsic, &ext)
 		if err != nil {
 			return err
 		}
-		extSigner, err := common.HexToBytes(fmt.Sprintf("0x%x", ext.Signature.Signer.AsAccountID))
-		if err != nil {
-			return err
-		}
-		if bytes.Equal(extSigner, addressPubKey) {
+
+		extSigner := [32]byte(ext.Signature.Signer.AsID)
+		if bytes.Equal(extSigner[:], addressPubKey) {
 			found = true
 			sigNonce := big.Int(ext.Signature.Nonce)
 			if sigNonce.Uint64() > nonce {
@@ -199,12 +206,13 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 	if err != nil {
 		return err
 	}
-	sdMeta, err := scale.Decode(rawMeta, []byte{})
+	var sdMeta []byte
+	err = scale.Unmarshal(rawMeta, &sdMeta)
 	if err != nil {
 		return err
 	}
 	var metadata ctypes.Metadata
-	err = ctypes.DecodeFromBytes(sdMeta.([]byte), &metadata)
+	err = ctypes.DecodeFromBytes(sdMeta, &metadata)
 	if err != nil {
 		return err
 	}
@@ -226,5 +234,49 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 	}
 
 	*res = U64Response(accountInfo.Nonce)
+	return nil
+}
+
+// SyncState Returns the state of the syncing of the node.
+func (sm *SystemModule) SyncState(r *http.Request, req *EmptyRequest, res *SyncStateResponse) error {
+	h, err := sm.blockAPI.GetHeader(sm.blockAPI.BestBlockHash())
+	if err != nil {
+		return err
+	}
+
+	*res = SyncStateResponse{
+		CurrentBlock:  uint32(h.Number.Int64()),
+		HighestBlock:  uint32(sm.networkAPI.HighestBlock()),
+		StartingBlock: uint32(sm.networkAPI.StartingBlock()),
+	}
+	return nil
+}
+
+// LocalListenAddresses Returns the libp2p multiaddresses that the local node is listening on
+func (sm *SystemModule) LocalListenAddresses(r *http.Request, req *EmptyRequest, res *[]string) error {
+	netstate := sm.networkAPI.NetworkState()
+
+	if len(netstate.Multiaddrs) < 1 {
+		return errors.New("multiaddress list is empty")
+	}
+
+	addrs := make([]string, len(netstate.Multiaddrs))
+
+	for i, ma := range netstate.Multiaddrs {
+		addrs[i] = ma.String()
+	}
+
+	*res = addrs
+	return nil
+}
+
+// LocalPeerId Returns the base58-encoded PeerId fo the node.
+func (sm *SystemModule) LocalPeerId(r *http.Request, req *EmptyRequest, res *string) error { //nolint
+	netstate := sm.networkAPI.NetworkState()
+	if netstate.PeerID == "" {
+		return errors.New("peer id cannot be empty")
+	}
+
+	*res = base58.Encode([]byte(netstate.PeerID))
 	return nil
 }

@@ -171,10 +171,8 @@ func TestBranchEncode(t *testing.T) {
 
 		for _, child := range b.children {
 			if child != nil {
-				hasher, e := NewHasher()
-				if e != nil {
-					t.Fatal(e)
-				}
+				hasher := NewHasher(false)
+				defer hasher.returnToPool()
 				encChild, er := hasher.Hash(child)
 				if er != nil {
 					t.Errorf("Fail when encoding branch child: %s", er)
@@ -183,7 +181,9 @@ func TestBranchEncode(t *testing.T) {
 			}
 		}
 
-		res, err := b.encode()
+		hasher := NewHasher(false)
+		defer hasher.returnToPool()
+		res, err := hasher.encodeBranch(b)
 		if !bytes.Equal(res, expected) {
 			t.Errorf("Fail when encoding node: got %x expected %x", res, expected)
 		} else if err != nil {
@@ -216,7 +216,9 @@ func TestLeafEncode(t *testing.T) {
 
 		expected = append(expected, buf.Bytes()...)
 
-		res, err := l.encode()
+		hasher := NewHasher(false)
+		defer hasher.returnToPool()
+		res, err := hasher.encodeLeaf(l)
 		if !bytes.Equal(res, expected) {
 			t.Errorf("Fail when encoding node: got %x expected %x", res, expected)
 		} else if err != nil {
@@ -238,7 +240,9 @@ func TestEncodeRoot(t *testing.T) {
 				t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
 			}
 
-			_, err := encode(trie.root)
+			hasher := NewHasher(false)
+			defer hasher.returnToPool()
+			_, err := hasher.encode(trie.root)
 			if err != nil {
 				t.Errorf("Fail to encode trie root: %s", err)
 			}
@@ -263,8 +267,10 @@ func TestBranchDecode(t *testing.T) {
 		{key: byteArray(573), children: [16]node{}, value: []byte{0x01}},
 	}
 
+	hasher := NewHasher(false)
+	defer hasher.returnToPool()
 	for _, test := range tests {
-		enc, err := test.encode()
+		enc, err := hasher.encodeBranch(test)
 		require.NoError(t, err)
 
 		res := new(branch)
@@ -292,8 +298,10 @@ func TestLeafDecode(t *testing.T) {
 		{key: byteArray(573), value: []byte{0x01}, dirty: true},
 	}
 
+	hasher := NewHasher(false)
+	defer hasher.returnToPool()
 	for _, test := range tests {
-		enc, err := test.encode()
+		enc, err := hasher.encodeLeaf(test)
 		require.NoError(t, err)
 
 		res := new(leaf)
@@ -329,8 +337,10 @@ func TestDecode(t *testing.T) {
 		&leaf{key: byteArray(573), value: []byte{0x01}},
 	}
 
+	hasher := NewHasher(false)
+	defer hasher.returnToPool()
 	for _, test := range tests {
-		enc, err := test.encode()
+		enc, err := hasher.encode(test)
 		require.NoError(t, err)
 
 		r := &bytes.Buffer{}

@@ -62,6 +62,20 @@ Changes that only affect a single file can be tested with
 $ go test <file_you_are_working_on>
 ```
 
+Sometimes you may need to create mocks for interfaces, in that case you will just execute:
+
+```
+$ make mock path=$(path to the interface) interface=$(interface name)
+```
+
+The command above will generate a file with prefix `mock_` inside the interface folder, if you want to generate the same mock but inside the `mocks` folder, you can execute:
+
+```
+$ make mock path=$(path to the interface) interface=$(interface name) INMOCKS=1
+```
+
+The command above will generate the mock inside the folder `$(path)/mocks`, and the mocks will be in the same package that your interface is.
+
 **8. Lint your changes.**
 
 Before opening a pull request be sure to run the linter

@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"math/big"
 	"os"
 	"sync"
 	"time"
@@ -275,7 +276,6 @@ func (s *Service) Start() error {
 }
 
 func (s *Service) collectNetworkMetrics() {
-	metrics.Enabled = true
 	for {
 		peerCount := metrics.GetOrRegisterGauge("network/node/peerCount", metrics.DefaultRegistry)
 		totalConn := metrics.GetOrRegisterGauge("network/node/totalConnection", metrics.DefaultRegistry)
@@ -316,11 +316,12 @@ main:
 
 		case <-ticker.C:
 			o := s.host.bwc.GetBandwidthTotals()
-			err := telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(
-				telemetry.NewKeyValue("bandwidth_download", o.RateIn),
-				telemetry.NewKeyValue("bandwidth_upload", o.RateOut),
-				telemetry.NewKeyValue("msg", "system.interval"),
-				telemetry.NewKeyValue("peers", s.host.peerCount())))
+			err := telemetry.GetInstance().SendMessage(telemetry.NewBandwidthTM(o.RateIn, o.RateOut, s.host.peerCount()))
+			if err != nil {
+				logger.Debug("problem sending system.interval telemetry message", "error", err)
+			}
+
+			err = telemetry.GetInstance().SendMessage(telemetry.NewNetworkStateTM(s.host.h, s.Peers()))
 			if err != nil {
 				logger.Debug("problem sending system.interval telemetry message", "error", err)
 			}
@@ -334,19 +335,22 @@ func (s *Service) sentBlockIntervalTelemetry() {
 		if err != nil {
 			continue
 		}
-		finalized, err := s.blockState.GetFinalizedHeader(0, 0) //nolint
+		bestHash := best.Hash()
+
+		finalized, err := s.blockState.GetFinalisedHeader(0, 0) //nolint
 		if err != nil {
 			continue
 		}
+		finalizedHash := finalized.Hash()
 
-		err = telemetry.GetInstance().SendMessage(telemetry.NewTelemetryMessage(
-			telemetry.NewKeyValue("best", best.Hash().String()),
-			telemetry.NewKeyValue("finalized_hash", finalized.Hash().String()), //nolint
-			telemetry.NewKeyValue("finalized_height", finalized.Number),        //nolint
-			telemetry.NewKeyValue("height", best.Number),
-			telemetry.NewKeyValue("msg", "system.interval"),
-			telemetry.NewKeyValue("txcount", 0),                // todo (ed) determine where to get tx count
-			telemetry.NewKeyValue("used_state_cache_size", 0))) // todo (ed) determine where to get used_state_cache_size
+		err = telemetry.GetInstance().SendMessage(telemetry.NewBlockIntervalTM(
+			&bestHash,
+			best.Number,
+			&finalizedHash,
+			finalized.Number,
+			big.NewInt(int64(s.transactionHandler.TransactionsCount())),
+			big.NewInt(0), // todo (ed) determine where to get used_state_cache_size
+		))
 		if err != nil {
 			logger.Debug("problem sending system.interval telemetry message", "error", err)
 		}
@@ -474,6 +478,52 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 // IsStopped returns true if the service is stopped
 func (s *Service) IsStopped() bool {
 	return s.ctx.Err() != nil
+}
+
+// GossipMessage gossips a notifications protocol message to our peers
+func (s *Service) GossipMessage(msg NotificationsMessage) {
+	if s.host == nil || msg == nil || s.IsStopped() {
+		return
+	}
+
+	logger.Debug(
+		"gossiping message",
+		"host", s.host.id(),
+		"type", msg.Type(),
+		"message", msg,
+	)
+
+	// check if the message is part of a notifications protocol
+	s.notificationsMu.Lock()
+	defer s.notificationsMu.Unlock()
+
+	for msgID, prtl := range s.notificationsProtocols {
+		if msg.Type() != msgID || prtl == nil {
+			continue
+		}
+
+		s.broadcastExcluding(prtl, peer.ID(""), msg)
+		return
+	}
+
+	logger.Error("message not supported by any notifications protocol", "msg type", msg.Type())
+}
+
+// SendMessage sends a message to the given peer
+func (s *Service) SendMessage(to peer.ID, msg NotificationsMessage) error {
+	s.notificationsMu.Lock()
+	defer s.notificationsMu.Unlock()
+	for msgID, prtl := range s.notificationsProtocols {
+		if msg.Type() != msgID || prtl == nil {
+			continue
+		}
+		hs, err := prtl.getHandshake()
+		if err != nil {
+			return err
+		}
+		s.sendData(to, hs, prtl, msg)
+	}
+	return errors.New("message not supported by any notifications protocol")
 }
 
 // handleLightStream handles streams with the <protocol-id>/light/2 protocol ID
@@ -640,4 +690,14 @@ func (s *Service) Peers() []common.PeerInfo {
 // NodeRoles Returns the roles the node is running as.
 func (s *Service) NodeRoles() byte {
 	return s.cfg.Roles
+}
+
+// HighestBlock returns the highest known block number
+func (s *Service) HighestBlock() int64 {
+	return s.syncQueue.goal
+}
+
+// StartingBlock return the starting block number that's currently being synced
+func (s *Service) StartingBlock() int64 {
+	return s.syncQueue.currStart
 }

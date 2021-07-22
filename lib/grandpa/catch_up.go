@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -35,12 +36,13 @@ type catchUp struct {
 	isStarted             *atomic.Value
 	authorityPeers        *sync.Map //map[peer.ID]*NeighbourMessage
 	highestFinalizedRound uint64    // TODO: get this from neighbour messages
+	responseCh            <-chan *catchUpResponse
 
 	grandpa *Service
 	network Network
 }
 
-func newCatchUp(isAuthority bool, grandpa *Service, network Network) *catchUp {
+func newCatchUp(isAuthority bool, grandpa *Service, network Network, responseCh <-chan *catchUpResponse) *catchUp {
 	isStarted := new(atomic.Value)
 	isStarted.Store(false)
 
@@ -50,6 +52,7 @@ func newCatchUp(isAuthority bool, grandpa *Service, network Network) *catchUp {
 		grandpa:        grandpa,
 		network:        network,
 		authorityPeers: new(sync.Map),
+		responseCh:     responseCh,
 	}
 }
 
@@ -87,13 +90,7 @@ func (c *catchUp) doCatchUp(from peer.ID, setID, round uint64) error {
 	c.isStarted.Store(true)
 	defer c.isStarted.Store(false)
 
-	msg := newCatchUpRequest(round, setID)
-	cm, err := msg.ToConsensusMessage()
-	if err != nil {
-		return err
-	}
-
-	resp, err := c.network.SendCatchUpRequest(from, messageID, cm)
+	resp, err := c.sendCatchUpRequest(from, newCatchUpRequest(round, setID))
 	if err != nil {
 		return err
 	}
@@ -105,23 +102,35 @@ func (c *catchUp) doCatchUp(from peer.ID, setID, round uint64) error {
 
 	logger.Debug("catch up response", "resp", resp)
 
-	grandpaResp, err := decodeMessage(resp)
-	if err != nil {
-		return err
-	}
-
 	// make sure grandpa.state.setID and grandpa.state.voters are set correctly before verifying response
 	err = c.grandpa.updateAuthorities()
 	if err != nil {
 		return err
 	}
 
-	catchUpResp, ok := grandpaResp.(*catchUpResponse)
-	if !ok {
-		return errors.New("message is not catch up response")
+	return c.handleCatchUpResponse(resp)
+}
+
+func (c *catchUp) sendCatchUpRequest(to peer.ID, req *catchUpRequest) (*catchUpResponse, error) {
+	cm, err := req.ToConsensusMessage()
+	if err != nil {
+		return nil, err
 	}
 
-	return c.handleCatchUpResponse(catchUpResp)
+	err = c.network.SendMessage(to, cm)
+	if err != nil {
+		return nil, err
+	}
+
+	timer := time.NewTimer(time.Second * 5)
+	defer timer.Stop()
+
+	select {
+	case resp := <-c.responseCh:
+		return resp, nil
+	case <-timer.C:
+		return nil, errors.New("timeout")
+	}
 }
 
 // TODO: track authority peers and only take into account neighbour messages from them for catch-up
@@ -134,7 +143,7 @@ func (c *catchUp) addNeighbourMessage(from peer.ID, msg *NeighbourMessage) {
 }
 
 func (c *catchUp) handleCatchUpResponse(msg *catchUpResponse) error {
-	logger.Debug("received catch up response", "round", msg.Round, "setID", msg.SetID, "hash", msg.Hash)
+	logger.Debug("handling catch up response", "round", msg.Round, "setID", msg.SetID, "hash", msg.Hash)
 
 	// if we aren't currently expecting a catch up response, return
 	if !c.grandpa.paused.Load().(bool) {
@@ -211,7 +220,7 @@ func (c *catchUp) verifyPreVoteJustification(msg *catchUpResponse) (common.Hash,
 			continue
 		}
 
-		votes[just.Vote.hash]++
+		votes[just.Vote.Hash]++
 	}
 
 	var prevote common.Hash
@@ -238,7 +247,7 @@ func (c *catchUp) verifyPreCommitJustification(msg *catchUpResponse) error {
 			continue
 		}
 
-		if just.Vote.hash == msg.Hash && just.Vote.number == msg.Number {
+		if just.Vote.Hash == msg.Hash && just.Vote.Number == msg.Number {
 			count++
 		}
 	}
@@ -250,7 +259,7 @@ func (c *catchUp) verifyPreCommitJustification(msg *catchUpResponse) error {
 	return nil
 }
 
-func verifyJustification(authorities []*types.Authority, just *SignedPrecommit, round, setID uint64, stage subround) error {
+func verifyJustification(authorities []*types.Authority, just *SignedVote, round, setID uint64, stage subround) error {
 	// verify signature
 	msg, err := scale.Encode(&FullVote{
 		Stage: stage,

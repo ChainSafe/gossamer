@@ -16,6 +16,7 @@ jobs:
         uses: golangci/golangci-lint-action@v2
         with:          
           version: 'latest'
+          args: -v
 
   vet-check:
     runs-on: ubuntu-latest

@@ -24,11 +24,13 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
 
 	"github.com/stretchr/testify/require"
@@ -467,6 +469,74 @@ func TestDeleteOddKeyLengths(t *testing.T) {
 	}
 
 	runTests(t, trie, tests)
+}
+
+func TestTrieDiff(t *testing.T) {
+	testDataDirPath, _ := ioutil.TempDir(t.TempDir(), "test-badger-datadir")
+	defer os.RemoveAll(testDataDirPath)
+
+	cfg := &chaindb.Config{
+		DataDir:  testDataDirPath,
+		InMemory: false,
+	}
+
+	db, err := chaindb.NewBadgerDB(cfg)
+	require.NoError(t, err)
+
+	storageDB := chaindb.NewTable(db, "storage")
+
+	defer db.Close()
+	trie := NewEmptyTrie()
+
+	var testKey = []byte("testKey")
+
+	tests := []Test{
+		{key: testKey, value: testKey},
+		{key: []byte("testKey1"), value: []byte("testKey1")},
+		{key: []byte("testKey2"), value: []byte("testKey2")},
+	}
+
+	for _, test := range tests {
+		trie.Put(test.key, test.value)
+	}
+
+	newTrie := trie.Snapshot()
+	err = trie.Store(storageDB)
+	require.NoError(t, err)
+
+	tests = []Test{
+		{key: testKey, value: []byte("newTestKey2")},
+		{key: []byte("testKey2"), value: []byte("newKey")},
+		{key: []byte("testKey3"), value: []byte("testKey3")},
+		{key: []byte("testKey4"), value: []byte("testKey2")},
+		{key: []byte("testKey5"), value: []byte("testKey5")},
+	}
+
+	for _, test := range tests {
+		newTrie.Put(test.key, test.value)
+	}
+	deletedKeys := newTrie.deletedKeys
+	require.Len(t, deletedKeys, 3)
+
+	err = newTrie.WriteDirty(storageDB)
+	require.NoError(t, err)
+
+	for _, key := range deletedKeys {
+		err = storageDB.Del(key.ToBytes())
+		require.NoError(t, err)
+	}
+
+	dbTrie := NewEmptyTrie()
+	err = dbTrie.Load(storageDB, common.BytesToHash(newTrie.root.getHash()))
+	require.NoError(t, err)
+
+	enc, err := dbTrie.Encode()
+	require.NoError(t, err)
+
+	newEnc, err := newTrie.Encode()
+	require.NoError(t, err)
+
+	require.Equal(t, enc, newEnc)
 }
 
 func TestDelete(t *testing.T) {
@@ -1067,4 +1137,50 @@ func TestNextKey_Random(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestRootHashNonParallel(t *testing.T) {
+	rt := GenerateRandomTests(t, 1000000)
+	trie := NewEmptyTrie()
+	for i := range rt {
+		test := &rt[i]
+		trie.Put(test.key, test.value)
+	}
+
+	t.Run("Non Parallel Hash", func(t *testing.T) {
+		trie.parallel = false
+		_, err := trie.Hash()
+		require.NoError(t, err)
+		PrintMemUsage()
+	})
+}
+
+func TestRootHashParallel(t *testing.T) {
+	rt := GenerateRandomTests(t, 1000000)
+	trie := NewEmptyTrie()
+	for i := range rt {
+		test := &rt[i]
+		trie.Put(test.key, test.value)
+	}
+
+	t.Run("Parallel Hash", func(t *testing.T) {
+		trie.parallel = true
+		_, err := trie.Hash()
+		require.NoError(t, err)
+		PrintMemUsage()
+	})
+}
+
+func PrintMemUsage() {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	// For info on each, see: https://golang.org/pkg/runtime/#MemStats
+	fmt.Printf("Alloc = %v MiB", bToMb(m.Alloc))
+	fmt.Printf("\tTotalAlloc = %v MiB", bToMb(m.TotalAlloc))
+	fmt.Printf("\tSys = %v MiB", bToMb(m.Sys))
+	fmt.Printf("\tNumGC = %v\n", m.NumGC)
+}
+
+func bToMb(b uint64) uint64 {
+	return b / 1024 / 1024
 }

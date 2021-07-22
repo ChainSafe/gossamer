@@ -22,7 +22,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 )
@@ -35,9 +34,9 @@ type BlockState interface {
 	GetHeaderByNumber(num *big.Int) (*types.Header, error)
 	IsDescendantOf(parent, child common.Hash) (bool, error)
 	HighestCommonAncestor(a, b common.Hash) (common.Hash, error)
-	HasFinalizedBlock(round, setID uint64) (bool, error)
-	GetFinalizedHeader(uint64, uint64) (*types.Header, error)
-	SetFinalizedHash(common.Hash, uint64, uint64) error
+	HasFinalisedBlock(round, setID uint64) (bool, error)
+	GetFinalisedHeader(uint64, uint64) (*types.Header, error)
+	SetFinalisedHash(common.Hash, uint64, uint64) error
 	BestBlockHeader() (*types.Header, error)
 	BestBlockHash() common.Hash
 	Leaves() []common.Hash
@@ -45,7 +44,7 @@ type BlockState interface {
 	RegisterImportedChannel(ch chan<- *types.Block) (byte, error)
 	UnregisterImportedChannel(id byte)
 	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
-	UnregisterFinalizedChannel(id byte)
+	UnregisterFinalisedChannel(id byte)
 	SetJustification(hash common.Hash, data []byte) error
 	HasJustification(hash common.Hash) (bool, error)
 	GetJustification(hash common.Hash) ([]byte, error)
@@ -58,6 +57,12 @@ type GrandpaState interface { //nolint
 	GetCurrentSetID() (uint64, error)
 	GetAuthorities(setID uint64) ([]*types.GrandpaVoter, error)
 	GetSetIDByBlockNumber(num *big.Int) (uint64, error)
+	SetLatestRound(round uint64) error
+	GetLatestRound() (uint64, error)
+	SetPrevotes(round, setID uint64, data []*SignedVote) error
+	SetPrecommits(round, setID uint64, data []*SignedVote) error
+	GetPrevotes(round, setID uint64) ([]*SignedVote, error)
+	GetPrecommits(round, setID uint64) ([]*SignedVote, error)
 }
 
 // DigestHandler is the interface required by GRANDPA for the digest handler
@@ -67,7 +72,9 @@ type DigestHandler interface { // TODO: remove, use GrandpaState
 
 // Network is the interface required by GRANDPA for the network
 type Network interface {
-	SendMessage(msg network.NotificationsMessage)
+	GossipMessage(msg network.NotificationsMessage)
+	SendMessage(to peer.ID, msg NotificationsMessage) error
+	SendBlockReqestByHash(hash common.Hash)
 	SendJustificationRequest(to peer.ID, num uint32)
 	RegisterNotificationsProtocol(sub protocol.ID,
 		messageID byte,
@@ -78,5 +85,4 @@ type Network interface {
 		messageHandler network.NotificationsMessageHandler,
 		overwriteProtocol bool,
 	) error
-	SendCatchUpRequest(peer peer.ID, msgType byte, req *network.ConsensusMessage) (*network.ConsensusMessage, error)
 }

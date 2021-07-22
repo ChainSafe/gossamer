@@ -22,6 +22,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/mock"
+
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/babe"
@@ -30,60 +32,45 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
-	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
+
+	syncmocks "github.com/ChainSafe/gossamer/dot/sync/mocks"
 )
 
-// mockVerifier implements the Verifier interface
-type mockVerifier struct{}
-
-// VerifyBlock mocks verifying a block
-func (v *mockVerifier) VerifyBlock(header *types.Header) error {
-	return nil
+// NewMockFinalityGadget create and return sync FinalityGadget interface mock
+func NewMockFinalityGadget() *syncmocks.MockFinalityGadget {
+	m := new(syncmocks.MockFinalityGadget)
+	// using []uint8 instead of []byte: https://github.com/stretchr/testify/pull/969
+	m.On("VerifyBlockJustification", mock.AnythingOfType("[]uint8")).Return(nil)
+	return m
 }
 
-// mockBlockProducer implements the BlockProducer interface
-type mockBlockProducer struct {
-	auths []*types.Authority
-}
-
-func newMockBlockProducer() *mockBlockProducer {
-	return &mockBlockProducer{
-		auths: []*types.Authority{},
-	}
-}
-
-// Pause mocks pausing
-func (bp *mockBlockProducer) Pause() error {
-	return nil
-}
-
-// Resume mocks resuming
-func (bp *mockBlockProducer) Resume() error {
-	return nil
-}
-
-func (bp *mockBlockProducer) SetRuntime(_ runtime.Instance) {}
-
-type mockFinalityGadget struct{}
-
-func (m mockFinalityGadget) VerifyBlockJustification(_ []byte) error {
-	return nil
+// NewMockVerifier create and return sync Verifier interface mock
+func NewMockVerifier() *syncmocks.MockVerifier {
+	m := new(syncmocks.MockVerifier)
+	m.On("VerifyBlock", mock.AnythingOfType("*types.Header")).Return(nil)
+	return m
 }
 
 // NewTestSyncer ...
-func NewTestSyncer(t *testing.T) *Service {
+func NewTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 	wasmer.DefaultTestLogLvl = 3
 
 	cfg := &Config{}
 	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
-	stateSrvc := state.NewService(testDatadirPath, log.LvlInfo)
+
+	scfg := state.Config{
+		Path:     testDatadirPath,
+		LogLevel: log.LvlInfo,
+	}
+	stateSrvc := state.NewService(scfg)
 	stateSrvc.UseMemDB()
 
-	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t, usePolkadotGenesis)
 	err := stateSrvc.Initialise(gen, genHeader, genTrie)
 	require.NoError(t, err)
 
@@ -98,6 +85,9 @@ func NewTestSyncer(t *testing.T) *Service {
 		cfg.StorageState = stateSrvc.Storage
 	}
 
+	cfg.BlockImportHandler = new(syncmocks.MockBlockImportHandler)
+	cfg.BlockImportHandler.(*syncmocks.MockBlockImportHandler).On("HandleBlockImport", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).Return(nil)
+
 	if cfg.Runtime == nil {
 		// set state to genesis state
 		genState, err := rtstorage.NewTrieState(genTrie) //nolint
@@ -107,9 +97,14 @@ func NewTestSyncer(t *testing.T) *Service {
 		rtCfg.Storage = genState
 		rtCfg.LogLvl = 3
 
+		rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
+		require.NoError(t, err)
+
 		instance, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg) //nolint
 		require.NoError(t, err)
 		cfg.Runtime = instance
+
+		cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), instance)
 	}
 
 	if cfg.TransactionState == nil {
@@ -117,15 +112,15 @@ func NewTestSyncer(t *testing.T) *Service {
 	}
 
 	if cfg.Verifier == nil {
-		cfg.Verifier = &mockVerifier{}
+		cfg.Verifier = NewMockVerifier()
 	}
 
 	if cfg.LogLvl == 0 {
-		cfg.LogLvl = log.LvlDebug
+		cfg.LogLvl = log.LvlInfo
 	}
 
 	if cfg.FinalityGadget == nil {
-		cfg.FinalityGadget = &mockFinalityGadget{}
+		cfg.FinalityGadget = NewMockFinalityGadget()
 	}
 
 	syncer, err := NewService(cfg)
@@ -133,8 +128,13 @@ func NewTestSyncer(t *testing.T) *Service {
 	return syncer
 }
 
-func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
-	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis.json")
+func newTestGenesisWithTrieAndHeader(t *testing.T, usePolkadotGenesis bool) (*genesis.Genesis, *trie.Trie, *types.Header) {
+	fp := "../../chain/gssmr/genesis.json"
+	if usePolkadotGenesis {
+		fp = "../../chain/polkadot/genesis.json"
+	}
+
+	gen, err := genesis.NewGenesisFromJSONRaw(fp)
 	require.NoError(t, err)
 
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
@@ -150,7 +150,9 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     big.NewInt(0).Add(parent.Number, big.NewInt(1)),
-		Digest:     types.Digest{},
+		Digest: types.Digest{
+			types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+		},
 	}
 
 	err := instance.InitializeBlock(header)
@@ -163,9 +165,6 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 	err = idata.SetInt64Inherent(types.Babeslot, 1)
 	require.NoError(t, err)
 
-	err = idata.SetBigIntInherent(types.Finalnum, big.NewInt(0))
-	require.NoError(t, err)
-
 	ienc, err := idata.Encode()
 	require.NoError(t, err)
 
@@ -174,10 +173,11 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 	require.NoError(t, err)
 
 	// decode inherent extrinsics
-	exts, err := scale.Decode(inherentExts, [][]byte{})
+	var exts [][]byte
+	err = scale.Unmarshal(inherentExts, &exts)
 	require.NoError(t, err)
 
-	inExt := exts.([][]byte)
+	inExt := exts
 
 	var body *types.Body
 	if ext != nil {
@@ -199,7 +199,7 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 
 	// apply each inherent extrinsic
 	for _, ext := range inExt {
-		in, err := scale.Encode(ext) //nolint
+		in, err := scale.Marshal(ext) //nolint
 		require.NoError(t, err)
 
 		ret, err := instance.ApplyExtrinsic(in)

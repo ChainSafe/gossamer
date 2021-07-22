@@ -17,7 +17,9 @@
 package state
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -40,17 +42,6 @@ func newEpochStateFromGenesis(t *testing.T) *EpochState {
 	s, err := NewEpochStateFromGenesis(db, genesisBABEConfig)
 	require.NoError(t, err)
 	return s
-}
-
-func TestLoadStoreEpochLength(t *testing.T) {
-	db := NewInMemoryDB(t)
-	length := uint64(2222)
-	err := storeEpochLength(db, length)
-	require.NoError(t, err)
-
-	ret, err := loadEpochLength(db)
-	require.NoError(t, err)
-	require.Equal(t, length, ret)
 }
 
 func TestNewEpochStateFromGenesis(t *testing.T) {
@@ -149,6 +140,10 @@ func TestEpochState_ConfigData(t *testing.T) {
 	ret, err := s.GetConfigData(1)
 	require.NoError(t, err)
 	require.Equal(t, data, ret)
+
+	ret, err = s.GetLatestConfigData()
+	require.NoError(t, err)
+	require.Equal(t, data, ret)
 }
 
 func TestEpochState_GetEpochForBlock(t *testing.T) {
@@ -177,4 +172,53 @@ func TestEpochState_GetEpochForBlock(t *testing.T) {
 	epoch, err = s.GetEpochForBlock(header)
 	require.NoError(t, err)
 	require.Equal(t, uint64(2), epoch)
+}
+
+func TestEpochState_SetAndGetSlotDuration(t *testing.T) {
+	s := newEpochStateFromGenesis(t)
+	expected := time.Millisecond * time.Duration(genesisBABEConfig.SlotDuration)
+
+	ret, err := s.GetSlotDuration()
+	require.NoError(t, err)
+	require.Equal(t, expected, ret)
+}
+
+func TestEpochState_GetEpochFromTime(t *testing.T) {
+	s := newEpochStateFromGenesis(t)
+	s.blockState = newTestBlockState(t, testGenesisHeader)
+
+	epochDuration, err := time.ParseDuration(fmt.Sprintf("%dms", genesisBABEConfig.SlotDuration*genesisBABEConfig.EpochLength))
+	require.NoError(t, err)
+
+	slotDuration := time.Millisecond * time.Duration(genesisBABEConfig.SlotDuration)
+
+	start := time.Unix(1, 0) // let's say first slot is 1 second after January 1, 1970 UTC
+	slot := uint64(start.UnixNano()) / uint64(slotDuration.Nanoseconds())
+
+	err = s.SetFirstSlot(slot)
+	require.NoError(t, err)
+
+	epoch, err := s.GetEpochFromTime(start)
+	require.NoError(t, err)
+	require.Equal(t, uint64(0), epoch)
+
+	epoch, err = s.GetEpochFromTime(start.Add(epochDuration))
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), epoch)
+
+	epoch, err = s.GetEpochFromTime(start.Add(epochDuration / 2))
+	require.NoError(t, err)
+	require.Equal(t, uint64(0), epoch)
+
+	epoch, err = s.GetEpochFromTime(start.Add(epochDuration * 3 / 2))
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), epoch)
+
+	epoch, err = s.GetEpochFromTime(start.Add(epochDuration*100 + 1))
+	require.NoError(t, err)
+	require.Equal(t, uint64(100), epoch)
+
+	epoch, err = s.GetEpochFromTime(start.Add(epochDuration*100 - 1))
+	require.NoError(t, err)
+	require.Equal(t, uint64(99), epoch)
 }

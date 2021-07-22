@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
@@ -91,8 +92,8 @@ func TestExportCommand(t *testing.T) {
 		},
 		{
 			"Test gossamer export --config --genesis --bootnodes --log --force",
-			[]string{"config", "genesis", "bootnodes", "name", "force"},
-			[]interface{}{testConfig, genFile.Name(), testBootnode, "Gossamer", "true"},
+			[]string{"config", "genesis", "bootnodes", "name", "force", "pruning", "retain-blocks"},
+			[]interface{}{testConfig, genFile.Name(), testBootnode, "Gossamer", "true", gssmr.DefaultPruningMode, gssmr.DefaultRetainBlocks},
 			&dot.Config{
 				Global: testCfg.Global,
 				Init: dot.InitConfig{
@@ -122,8 +123,8 @@ func TestExportCommand(t *testing.T) {
 		},
 		{
 			"Test gossamer export --config --genesis --protocol --log --force",
-			[]string{"config", "genesis", "protocol", "force", "name"},
-			[]interface{}{testConfig, genFile.Name(), testProtocol, "true", "Gossamer"},
+			[]string{"config", "genesis", "protocol", "force", "name", "pruning", "retain-blocks"},
+			[]interface{}{testConfig, genFile.Name(), testProtocol, "true", "Gossamer", gssmr.DefaultPruningMode, gssmr.DefaultRetainBlocks},
 			&dot.Config{
 				Global: testCfg.Global,
 				Init: dot.InitConfig{

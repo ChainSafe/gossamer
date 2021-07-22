@@ -22,32 +22,28 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-// struct to mock memory interface
-type mockMemory struct {
-	buffer []byte
-}
+func NewMemoryMock(size uint32) *MockMemory {
+	m := new(MockMemory)
+	testobj := make([]byte, size)
 
-// return mock memory as byte slice
-func (m *mockMemory) Data() []byte {
-	return m.buffer
-}
+	m.On("Data").Return(testobj)
+	lengthcall := m.On("Length")
+	lengthcall.RunFn = func(args mock.Arguments) {
+		lengthcall.ReturnArguments = mock.Arguments{uint32(len(testobj))}
+	}
 
-// return mock memory size
-func (m *mockMemory) Length() uint32 {
-	return uint32(len(m.buffer))
-}
+	growcall := m.On("Grow", mock.Anything)
+	growcall.RunFn = func(args mock.Arguments) {
+		arg := args[0].(uint32)
+		testobj = append(testobj, make([]byte, PageSize*arg)...)
+		growcall.ReturnArguments = mock.Arguments{nil}
+	}
 
-func (m *mockMemory) Grow(numPages uint32) error {
-	m.buffer = append(m.buffer, make([]byte, PageSize*numPages)...)
-	return nil
-}
-
-// create new mock memory of specified size
-func newMockMemory(size uint32) *mockMemory {
-	return &mockMemory{buffer: make([]byte, size)}
+	return m
 }
 
 // struct to hold data for a round of tests
@@ -295,13 +291,13 @@ var allTests = []testHolder{
 //  test holder
 func TestAllocator(t *testing.T) {
 	for _, test := range allTests {
-		allocator := NewAllocator(newMockMemory(1<<16), test.offset)
+		memmock := NewMemoryMock(1 << 16)
+		allocator := NewAllocator(memmock, test.offset)
 
 		for _, theTest := range test.tests {
 			switch v := theTest.test.(type) {
 			case *allocateTest:
-				result, err1 :=
-					allocator.Allocate(v.size)
+				result, err1 := allocator.Allocate(v.size)
 				if err1 != nil {
 					t.Fatal(err1)
 				}
@@ -340,8 +336,9 @@ func compareState(allocator FreeingBumpHeapAllocator, state allocatorState, resu
 
 // test that allocator should grow memory if the allocation request is larger than current size
 func TestShouldGrowMemory(t *testing.T) {
-	mem := newMockMemory(1 << 16)
+	mem := NewMemoryMock(1 << 16)
 	currentSize := mem.Length()
+
 	fbha := NewAllocator(mem, 0)
 
 	// when
@@ -352,7 +349,7 @@ func TestShouldGrowMemory(t *testing.T) {
 
 // test that the allocator should grow memory if it's already full
 func TestShouldGrowMemoryIfFull(t *testing.T) {
-	mem := newMockMemory(1 << 16)
+	mem := NewMemoryMock(1 << 16)
 	currentSize := mem.Length()
 	fbha := NewAllocator(mem, 0)
 
@@ -372,10 +369,10 @@ func TestShouldGrowMemoryIfFull(t *testing.T) {
 // test to confirm that allocator can allocate the MaxPossibleAllocation
 func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
 	// given, grow heap memory so that we have at least MaxPossibleAllocation available
-	mem := newMockMemory(1 << 16)
+	mem := NewMemoryMock(1 << 16)
 
 	pagesNeeded := (MaxPossibleAllocation / PageSize) - (mem.Length() / PageSize) + 1
-	mem = newMockMemory(mem.Length() + pagesNeeded*65*1024)
+	mem = NewMemoryMock(mem.Length() + pagesNeeded*65*1024)
 
 	fbha := NewAllocator(mem, 0)
 
@@ -391,7 +388,7 @@ func TestShouldAllocateMaxPossibleAllocationSize(t *testing.T) {
 
 // test that allocator should not allocate memory if request is too large
 func TestShouldNotAllocateIfRequestSizeTooLarge(t *testing.T) {
-	fbha := NewAllocator(newMockMemory(1<<16), 0)
+	fbha := NewAllocator(NewMemoryMock(1<<16), 0)
 
 	// when
 	_, err := fbha.Allocate(MaxPossibleAllocation + 1)

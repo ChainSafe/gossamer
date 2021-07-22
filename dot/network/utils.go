@@ -157,6 +157,8 @@ func readLEB128ToUint64(r io.Reader, buf []byte) (uint64, error) {
 
 	var out uint64
 	var shift uint
+
+	maxSize := 10 // Max bytes in LEB128 encoding of uint64 is 10.
 	for {
 		_, err := r.Read(buf)
 		if err != nil {
@@ -168,6 +170,12 @@ func readLEB128ToUint64(r io.Reader, buf []byte) (uint64, error) {
 		if b&0x80 == 0 {
 			break
 		}
+
+		maxSize--
+		if maxSize == 0 {
+			return 0, fmt.Errorf("invalid LEB128 encoded data")
+		}
+
 		shift += 7
 	}
 	return out, nil

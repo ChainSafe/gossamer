@@ -21,89 +21,46 @@ import (
 	"testing"
 	"time"
 
+	. "github.com/ChainSafe/gossamer/dot/core/mocks" // nolint
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/scale"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
-	ctypes "github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+
+	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
+	ctypes "github.com/centrifuge/go-substrate-rpc-client/v3/types"
+
 	"github.com/stretchr/testify/require"
 )
 
-func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
-	// TODO: move to sync package
-	net := new(mockNetwork)
-	newBlocks := make(chan types.Block)
-
-	cfg := &Config{
-		Network:         net,
-		Keystore:        keystore.NewGlobalKeystore(),
-		NewBlocks:       newBlocks,
-		IsBlockProducer: false,
-	}
-
-	s := NewTestService(t, cfg)
-	err := s.Start()
-	require.Nil(t, err)
-
-	expected := &network.BlockAnnounceMessage{
-		Number:         big.NewInt(1),
-		ParentHash:     s.blockState.BestBlockHash(),
-		StateRoot:      common.Hash{},
-		ExtrinsicsRoot: common.Hash{},
-		Digest:         nil,
-		BestBlock:      true,
-	}
-
-	// simulate block sent from BABE session
-	newBlocks <- types.Block{
-		Header: &types.Header{
-			Number:     big.NewInt(1),
-			ParentHash: s.blockState.BestBlockHash(),
-		},
-		Body: types.NewBody([]byte{}),
-	}
-
-	time.Sleep(testMessageTimeout)
-	require.NotNil(t, net.Message)
-	require.Equal(t, network.BlockAnnounceMsgType, net.Message.(network.NotificationsMessage).Type())
-	require.Equal(t, expected, net.Message)
-}
-
-func createExtrinsics(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic {
+func createExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash, nonce uint64) types.Extrinsic {
 	t.Helper()
 	rawMeta, err := rt.Metadata()
 	require.NoError(t, err)
 
-	decoded, err := scale.Decode(rawMeta, []byte{})
+	var decoded []byte
+	err = scale.Unmarshal(rawMeta, &decoded)
 	require.NoError(t, err)
 
 	meta := &ctypes.Metadata{}
-	err = ctypes.DecodeFromBytes(decoded.([]byte), meta)
+	err = ctypes.DecodeFromBytes(decoded, meta)
 	require.NoError(t, err)
 
 	rv, err := rt.Version()
 	require.NoError(t, err)
 
-	keyring, err := keystore.NewSr25519Keyring()
+	c, err := ctypes.NewCall(meta, "System.remark", []byte{0xab, 0xcd})
 	require.NoError(t, err)
 
-	bob, err := ctypes.NewAddressFromHexAccountID(keyring.Bob().Public().Hex())
-	require.NoError(t, err)
-
-	c, err := ctypes.NewCall(meta, "Balances.transfer", bob, ctypes.NewUCompactFromUInt(12345))
-	require.NoError(t, err)
-
-	// Create the extrinsic
 	ext := ctypes.NewExtrinsic(c)
-
 	o := ctypes.SignatureOptions{
 		BlockHash:          ctypes.Hash(genHash),
-		Era:                ctypes.ExtrinsicEra{IsImmortalEra: true},
+		Era:                ctypes.ExtrinsicEra{IsImmortalEra: false},
 		GenesisHash:        ctypes.Hash(genHash),
 		Nonce:              ctypes.NewUCompactFromUInt(nonce),
 		SpecVersion:        ctypes.U32(rv.SpecVersion()),
@@ -111,7 +68,7 @@ func createExtrinsics(t *testing.T, rt runtime.Instance, genHash common.Hash, no
 		TransactionVersion: ctypes.U32(rv.TransactionVersion()),
 	}
 
-	// Sign the transaction using Alice's default account
+	// Sign the transaction using Alice's key
 	err = ext.Sign(signature.TestKeyringPairAlice, o)
 	require.NoError(t, err)
 
@@ -122,6 +79,50 @@ func createExtrinsics(t *testing.T, rt runtime.Instance, genHash common.Hash, no
 	return extBytes
 }
 
+func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
+	// TODO: move to sync package
+	net := new(MockNetwork) // nolint
+
+	cfg := &Config{
+		Network:  net,
+		Keystore: keystore.NewGlobalKeystore(),
+	}
+
+	s := NewTestService(t, cfg)
+	err := s.Start()
+	require.Nil(t, err)
+
+	// simulate block sent from BABE session
+	newBlock := &types.Block{
+		Header: &types.Header{
+			Number:     big.NewInt(1),
+			ParentHash: s.blockState.BestBlockHash(),
+			Digest:     types.Digest{types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()},
+		},
+		Body: types.NewBody([]byte{}),
+	}
+
+	expected := &network.BlockAnnounceMessage{
+		ParentHash:     newBlock.Header.ParentHash,
+		Number:         newBlock.Header.Number,
+		StateRoot:      newBlock.Header.StateRoot,
+		ExtrinsicsRoot: newBlock.Header.ExtrinsicsRoot,
+		Digest:         newBlock.Header.Digest,
+		BestBlock:      true,
+	}
+
+	net.On("GossipMessage", expected)
+
+	state, err := s.storageState.TrieState(nil)
+	require.NoError(t, err)
+
+	err = s.HandleBlockProduced(newBlock, state)
+	require.NoError(t, err)
+
+	time.Sleep(time.Second)
+	net.AssertCalled(t, "GossipMessage", expected)
+}
+
 func TestService_HandleTransactionMessage(t *testing.T) {
 	kp, err := sr25519.GenerateKeypair()
 	require.NoError(t, err)
@@ -129,29 +130,45 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	ks := keystore.NewGlobalKeystore()
 	ks.Acco.Insert(kp)
 
+	bp := new(MockBlockProducer) // nolint
+	blockC := make(chan types.Block)
+	bp.On("GetBlockChannel", nil).Return(blockC)
+
 	cfg := &Config{
 		Keystore:         ks,
 		TransactionState: state.NewTransactionState(),
-		IsBlockProducer:  true,
-		BlockProducer:    &mockBlockProducer{},
 	}
 
 	s := NewTestService(t, cfg)
 	genHash := s.blockState.GenesisHash()
-	header, err := types.NewHeader(genHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewEmptyDigest())
+	genHeader, err := s.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
-	// initialise block header
-	err = s.rt.InitializeBlock(header)
+	rt, err := s.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	extBytes := createExtrinsics(t, s.rt, genHash, 0)
+	ts, err := s.storageState.TrieState(nil)
+	require.NoError(t, err)
+	rt.SetContextStorage(ts)
 
+	block := sync.BuildBlock(t, rt, genHeader, nil)
+
+	err = s.handleBlock(block, ts)
+	require.NoError(t, err)
+
+	extBytes := createExtrinsic(t, rt, genHash, 0)
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}}
-	err = s.HandleTransactionMessage(msg)
+	b, err := s.HandleTransactionMessage(msg)
 	require.NoError(t, err)
+	require.True(t, b)
 
 	pending := s.transactionState.(*state.TransactionState).Pending()
 	require.NotEqual(t, 0, len(pending))
 	require.Equal(t, extBytes, pending[0].Extrinsic)
+
+	extBytes = []byte(`bogus extrinsic`)
+	msg = &network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}}
+	b, err = s.HandleTransactionMessage(msg)
+	require.NoError(t, err)
+	require.False(t, b)
 }

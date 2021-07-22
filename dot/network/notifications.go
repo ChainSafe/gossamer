@@ -215,7 +215,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 
 func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtocol, msg NotificationsMessage) error {
 	if support, err := s.host.supportsProtocol(peer, info.protocolID); err != nil || !support {
-		return errors.New("")
+		return nil
 	}
 
 	hsData, has := info.getHandshakeData(peer, false)
@@ -261,7 +261,6 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 			if hsResponse.err != nil {
 				logger.Trace("failed to read handshake", "protocol", info.protocolID, "peer", peer, "error", err)
 				_ = stream.Close()
-
 				info.outboundHandshakeData.Delete(peer)
 				return nil
 			}
@@ -291,6 +290,15 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		}
 
 		if !added {
+			return nil
+		}
+
+		// TODO: ensure grandpa stores *all* previously received votes and discards them
+		// only when they are for already finalised rounds; currently this causes issues
+		// because a vote might be received slightly too early, causing a round mismatch err,
+		// causing grandpa to discard the vote.
+		_, isConsensusMsg := msg.(*ConsensusMessage)
+		if !added && !isConsensusMsg {
 			return nil
 		}
 	}

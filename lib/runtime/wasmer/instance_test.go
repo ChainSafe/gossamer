@@ -17,6 +17,8 @@
 package wasmer
 
 import (
+	"io/ioutil"
+	"path/filepath"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -43,4 +45,34 @@ func TestPointerSize(t *testing.T) {
 	require.Equal(t, int32(32), length)
 	res := pointerAndSizeToInt64(ptr, length)
 	require.Equal(t, in, res)
+}
+
+func TestInstance_CheckRuntimeVersion(t *testing.T) {
+	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
+	_, err := runtime.GetRuntimeBlob(runtime.POLKADOT_RUNTIME_FP, runtime.POLKADOT_RUNTIME_URL)
+	require.NoError(t, err)
+	fp, err := filepath.Abs(runtime.POLKADOT_RUNTIME_FP)
+	require.NoError(t, err)
+	code, err := ioutil.ReadFile(fp)
+	require.NoError(t, err)
+	version, err := instance.CheckRuntimeVersion(code)
+	require.NoError(t, err)
+
+	expected := runtime.NewVersionData(
+		[]byte("polkadot"),
+		[]byte("parity-polkadot"),
+		0,
+		25,
+		0,
+		nil,
+		5,
+	)
+
+	require.Equal(t, 12, len(version.APIItems()))
+	require.Equal(t, expected.SpecName(), version.SpecName())
+	require.Equal(t, expected.ImplName(), version.ImplName())
+	require.Equal(t, expected.AuthoringVersion(), version.AuthoringVersion())
+	require.Equal(t, expected.SpecVersion(), version.SpecVersion())
+	require.Equal(t, expected.ImplVersion(), version.ImplVersion())
+	require.Equal(t, expected.TransactionVersion(), version.TransactionVersion())
 }

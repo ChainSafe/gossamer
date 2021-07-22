@@ -333,7 +333,6 @@ func initAction(ctx *cli.Context) error {
 	// expand data directory and update node configuration (performed separately
 	// from createDotConfig because dot config should not include expanded path)
 	cfg.Global.BasePath = utils.ExpandDir(cfg.Global.BasePath)
-
 	// check if node has been initialised (expected false - no warning log)
 	if dot.NodeInitialized(cfg.Global.BasePath, false) {
 
@@ -443,12 +442,12 @@ func pruneState(ctx *cli.Context) error {
 	bloomSize := ctx.GlobalUint64(BloomFilterSizeFlag.Name)
 	retainBlocks := ctx.GlobalInt64(RetainBlockNumberFlag.Name)
 
-	pruner, err := state.NewPruner(inputDBPath, prunedDBPath, bloomSize, retainBlocks)
+	pruner, err := state.NewOfflinePruner(inputDBPath, prunedDBPath, bloomSize, retainBlocks)
 	if err != nil {
 		return err
 	}
 
-	logger.Info("Pruner initialised")
+	logger.Info("Offline pruner initialised")
 
 	err = pruner.SetBloomFilter()
 	if err != nil {

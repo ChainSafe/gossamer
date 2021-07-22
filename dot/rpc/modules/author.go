@@ -24,6 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+
 	log "github.com/ChainSafe/log15"
 )
 
@@ -31,7 +32,6 @@ import (
 type AuthorModule struct {
 	logger     log.Logger
 	coreAPI    CoreAPI
-	runtimeAPI RuntimeAPI
 	txStateAPI TransactionStateAPI
 }
 
@@ -82,7 +82,7 @@ type ExtrinsicStatus struct {
 type ExtrinsicHashResponse string
 
 // NewAuthorModule creates a new Author module.
-func NewAuthorModule(logger log.Logger, coreAPI CoreAPI, runtimeAPI RuntimeAPI, txStateAPI TransactionStateAPI) *AuthorModule {
+func NewAuthorModule(logger log.Logger, coreAPI CoreAPI, txStateAPI TransactionStateAPI) *AuthorModule {
 	if logger == nil {
 		logger = log.New("service", "RPC", "module", "author")
 	}
@@ -90,13 +90,12 @@ func NewAuthorModule(logger log.Logger, coreAPI CoreAPI, runtimeAPI RuntimeAPI, 
 	return &AuthorModule{
 		logger:     logger.New("module", "author"),
 		coreAPI:    coreAPI,
-		runtimeAPI: runtimeAPI,
 		txStateAPI: txStateAPI,
 	}
 }
 
 // InsertKey inserts a key into the keystore
-func (cm *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *KeyInsertResponse) error {
+func (am *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *KeyInsertResponse) error {
 	keyReq := *req
 
 	pkDec, err := common.HexToBytes(keyReq[1])
@@ -118,22 +117,22 @@ func (cm *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *K
 		return fmt.Errorf("generated public key does not equal provide public key")
 	}
 
-	cm.coreAPI.InsertKey(keyPair)
-	cm.logger.Info("inserted key into keystore", "key", keyPair.Public().Hex())
+	am.coreAPI.InsertKey(keyPair)
+	am.logger.Info("inserted key into keystore", "key", keyPair.Public().Hex())
 	return nil
 }
 
 // HasKey Checks if the keystore has private keys for the given public key and key type.
-func (cm *AuthorModule) HasKey(r *http.Request, req *[]string, res *bool) error {
+func (am *AuthorModule) HasKey(r *http.Request, req *[]string, res *bool) error {
 	reqKey := *req
 	var err error
-	*res, err = cm.coreAPI.HasKey(reqKey[0], reqKey[1])
+	*res, err = am.coreAPI.HasKey(reqKey[0], reqKey[1])
 	return err
 }
 
 // PendingExtrinsics Returns all pending extrinsics
-func (cm *AuthorModule) PendingExtrinsics(r *http.Request, req *EmptyRequest, res *PendingExtrinsicsResponse) error {
-	pending := cm.txStateAPI.Pending()
+func (am *AuthorModule) PendingExtrinsics(r *http.Request, req *EmptyRequest, res *PendingExtrinsicsResponse) error {
+	pending := am.txStateAPI.Pending()
 	resp := make([]string, len(pending))
 	for idx, tx := range pending {
 		resp[idx] = common.BytesToHex(tx.Extrinsic)
@@ -144,30 +143,30 @@ func (cm *AuthorModule) PendingExtrinsics(r *http.Request, req *EmptyRequest, re
 }
 
 // RemoveExtrinsic Remove given extrinsic from the pool and temporarily ban it to prevent reimporting
-func (cm *AuthorModule) RemoveExtrinsic(r *http.Request, req *ExtrinsicOrHashRequest, res *RemoveExtrinsicsResponse) error {
+func (am *AuthorModule) RemoveExtrinsic(r *http.Request, req *ExtrinsicOrHashRequest, res *RemoveExtrinsicsResponse) error {
 	return nil
 }
 
 // RotateKeys Generate new session keys and returns the corresponding public keys
-func (cm *AuthorModule) RotateKeys(r *http.Request, req *EmptyRequest, res *KeyRotateResponse) error {
+func (am *AuthorModule) RotateKeys(r *http.Request, req *EmptyRequest, res *KeyRotateResponse) error {
 	return nil
 }
 
 // SubmitAndWatchExtrinsic Submit and subscribe to watch an extrinsic until unsubscribed
-func (cm *AuthorModule) SubmitAndWatchExtrinsic(r *http.Request, req *Extrinsic, res *ExtrinsicStatus) error {
+func (am *AuthorModule) SubmitAndWatchExtrinsic(r *http.Request, req *Extrinsic, res *ExtrinsicStatus) error {
 	return nil
 }
 
 // SubmitExtrinsic Submit a fully formatted extrinsic for block inclusion
-func (cm *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *ExtrinsicHashResponse) error {
+func (am *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *ExtrinsicHashResponse) error {
 	extBytes, err := common.HexToBytes(req.Data)
 	if err != nil {
 		return err
 	}
 	ext := types.Extrinsic(extBytes)
-	cm.logger.Trace("[rpc]", "extrinsic", ext)
+	am.logger.Crit("[rpc]", "extrinsic", ext)
 
-	err = cm.coreAPI.HandleSubmittedExtrinsic(ext)
 	*res = ExtrinsicHashResponse(ext.Hash().String())
+	err = am.coreAPI.HandleSubmittedExtrinsic(ext)
 	return err
 }

@@ -30,9 +30,9 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/tests/utils"
 	log "github.com/ChainSafe/log15"
-	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v2"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/signature"
-	"github.com/centrifuge/go-substrate-rpc-client/v2/types"
+	gsrpc "github.com/centrifuge/go-substrate-rpc-client/v3"
+	"github.com/centrifuge/go-substrate-rpc-client/v3/signature"
+	"github.com/centrifuge/go-substrate-rpc-client/v3/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -363,7 +363,6 @@ func TestSync_Restart(t *testing.T) {
 func TestSync_SubmitExtrinsic(t *testing.T) {
 	t.Log("starting gossamer...")
 
-	//numNodes := 3
 	// index of node to submit tx to
 	idx := 0 // TODO: randomise this
 
@@ -373,8 +372,6 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	nodes := []*utils.Node{node}
 
 	// Start rest of nodes
-	// nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDev, utils.ConfigNoBABE)
-	// require.NoError(t, err)
 	node, err = utils.RunGossamer(t, 1, utils.TestDir(t, utils.KeyList[1]), utils.GenesisDev, utils.ConfigNotAuthority, false)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
@@ -395,11 +392,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	meta, err := api.RPC.State.GetMetadataLatest()
 	require.NoError(t, err)
 
-	// Create a call, transferring 12345 units to Bob
-	bob, err := types.NewAddressFromHexAccountID("0x90b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22")
-	require.NoError(t, err)
-
-	c, err := types.NewCall(meta, "Balances.transfer", bob, types.NewUCompactFromUInt(12345))
+	c, err := types.NewCall(meta, "System.remark", []byte{0xab})
 	require.NoError(t, err)
 
 	// Create the extrinsic

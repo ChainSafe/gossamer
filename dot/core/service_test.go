@@ -17,6 +17,7 @@
 package core
 
 import (
+	"io/ioutil"
 	"math/big"
 	"os"
 	"sort"
@@ -36,10 +37,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
+
+	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 )
 
-func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) []*types.Header {
-	return addTestBlocksToStateWithParent(t, blockState.BestBlockHash(), depth, blockState)
+func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
+	_ = addTestBlocksToStateWithParent(t, blockState.BestBlockHash(), depth, blockState)
 }
 
 func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, depth int, blockState BlockState) []*types.Header {
@@ -47,7 +50,9 @@ func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, dept
 	require.NoError(t, err)
 	previousNum := prevHeader.Number
 
-	headers := []*types.Header{}
+	var headers []*types.Header
+	rt, err := blockState.GetRuntime(nil)
+	require.NoError(t, err)
 
 	for i := 1; i <= depth; i++ {
 		block := &types.Block{
@@ -61,6 +66,7 @@ func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, dept
 
 		previousHash = block.Header.Hash()
 
+		blockState.StoreRuntime(block.Header.Hash(), rt)
 		err := blockState.AddBlock(block)
 		require.NoError(t, err)
 		headers = append(headers, block.Header)
@@ -97,31 +103,45 @@ func TestStartService(t *testing.T) {
 }
 
 func TestAnnounceBlock(t *testing.T) {
-	net := new(mockNetwork)
-	newBlocks := make(chan types.Block)
-
+	net := new(coremocks.MockNetwork)
 	cfg := &Config{
-		NewBlocks: newBlocks,
-		Network:   net,
+		Network: net,
 	}
 
 	s := NewTestService(t, cfg)
 	err := s.Start()
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer s.Stop()
 
 	// simulate block sent from BABE session
-	newBlocks <- types.Block{
+	newBlock := &types.Block{
 		Header: &types.Header{
 			ParentHash: s.blockState.BestBlockHash(),
 			Number:     big.NewInt(1),
+			Digest:     types.Digest{types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()},
 		},
 		Body: &types.Body{},
 	}
 
-	time.Sleep(testMessageTimeout)
-	require.NotNil(t, net.Message)
-	require.Equal(t, network.BlockAnnounceMsgType, net.Message.(network.NotificationsMessage).Type())
+	expected := &network.BlockAnnounceMessage{
+		ParentHash:     newBlock.Header.ParentHash,
+		Number:         newBlock.Header.Number,
+		StateRoot:      newBlock.Header.StateRoot,
+		ExtrinsicsRoot: newBlock.Header.ExtrinsicsRoot,
+		Digest:         newBlock.Header.Digest,
+		BestBlock:      true,
+	}
+
+	net.On("GossipMessage", expected)
+
+	state, err := s.storageState.TrieState(nil)
+	require.NoError(t, err)
+
+	err = s.HandleBlockProduced(newBlock, state)
+	require.NoError(t, err)
+
+	time.Sleep(time.Second)
+	net.AssertCalled(t, "GossipMessage", expected)
 }
 
 func TestService_HasKey(t *testing.T) {
@@ -175,36 +195,46 @@ func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
 	parent, err := bs.BestBlockHeader()
 	require.NoError(t, err)
 
-	block1 := sync.BuildBlock(t, s.rt, parent, nil)
+	rt, err := s.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	block1 := sync.BuildBlock(t, rt, parent, nil)
+	bs.StoreRuntime(block1.Header.Hash(), rt)
 	err = bs.AddBlock(block1)
 	require.NoError(t, err)
 
-	block2 := sync.BuildBlock(t, s.rt, block1.Header, nil)
+	block2 := sync.BuildBlock(t, rt, block1.Header, nil)
+	bs.StoreRuntime(block2.Header.Hash(), rt)
 	err = bs.AddBlock(block2)
 	require.NoError(t, err)
 
-	block3 := sync.BuildBlock(t, s.rt, block2.Header, nil)
+	block3 := sync.BuildBlock(t, rt, block2.Header, nil)
+	bs.StoreRuntime(block3.Header.Hash(), rt)
 	err = bs.AddBlock(block3)
 	require.NoError(t, err)
 
-	block4 := sync.BuildBlock(t, s.rt, block3.Header, nil)
+	block4 := sync.BuildBlock(t, rt, block3.Header, nil)
+	bs.StoreRuntime(block4.Header.Hash(), rt)
 	err = bs.AddBlock(block4)
 	require.NoError(t, err)
 
-	block5 := sync.BuildBlock(t, s.rt, block4.Header, nil)
+	block5 := sync.BuildBlock(t, rt, block4.Header, nil)
+	bs.StoreRuntime(block5.Header.Hash(), rt)
 	err = bs.AddBlock(block5)
 	require.NoError(t, err)
 
-	block31 := sync.BuildBlock(t, s.rt, block2.Header, nil)
+	block31 := sync.BuildBlock(t, rt, block2.Header, nil)
+	bs.StoreRuntime(block31.Header.Hash(), rt)
 	err = bs.AddBlock(block31)
 	require.NoError(t, err)
 
 	nonce := uint64(1)
 
 	// Add extrinsic to block `block31`
-	ext := createExtrinsics(t, s.rt, bs.GenesisHash(), nonce)
+	ext := createExtrinsic(t, rt, bs.GenesisHash(), nonce)
 
-	block41 := sync.BuildBlock(t, s.rt, block31.Header, ext)
+	block41 := sync.BuildBlock(t, rt, block31.Header, ext)
+	bs.StoreRuntime(block41.Header.Hash(), rt)
 	err = bs.AddBlock(block41)
 	require.NoError(t, err)
 
@@ -254,7 +284,11 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	tx, err := ext.Encode()
 	require.NoError(t, err)
 
-	validity, err := s.rt.ValidateTransaction(tx)
+	bhash := s.blockState.BestBlockHash()
+	rt, err := s.blockState.GetRuntime(&bhash)
+	require.NoError(t, err)
+
+	validity, err := rt.ValidateTransaction(tx)
 	require.NoError(t, err)
 
 	// get common ancestor
@@ -276,6 +310,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 		Body: body,
 	}
 
+	s.blockState.StoreRuntime(block.Header.Hash(), rt)
 	err = s.blockState.AddBlock(block)
 	require.NoError(t, err)
 
@@ -403,7 +438,10 @@ func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 
 func TestService_GetRuntimeVersion(t *testing.T) {
 	s := NewTestService(t, nil)
-	rtExpected, err := s.rt.Version()
+	rt, err := s.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	rtExpected, err := rt.Version()
 	require.NoError(t, err)
 
 	rtv, err := s.GetRuntimeVersion(nil)
@@ -411,29 +449,27 @@ func TestService_GetRuntimeVersion(t *testing.T) {
 	require.Equal(t, rtExpected, rtv)
 }
 
-func TestService_IsBlockProducer(t *testing.T) {
-	cfg := &Config{
-		IsBlockProducer: false,
-	}
-	s := NewTestService(t, cfg)
-	bp := s.IsBlockProducer()
-	require.Equal(t, false, bp)
-}
-
 func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 	s := NewTestService(t, nil)
 
-	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
-	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewEmptyDigest())
+	genHeader, err := s.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
-	//initialise block header
-	err = s.rt.InitializeBlock(header)
+	rt, err := s.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	ext := types.Extrinsic(common.MustHexToBytes("0x410284ffd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d015a3e258da3ea20581b68fe1264a35d1f62d6a0debb1a44e836375eb9921ba33e3d0f265f2da33c9ca4e10490b03918300be902fcb229f806c9cf99af4cc10f8c0000000600ff8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a480b00c465f14670"))
+	ts, err := s.storageState.TrieState(nil)
+	require.NoError(t, err)
+	rt.SetContextStorage(ts)
 
-	err = s.HandleSubmittedExtrinsic(ext)
+	block := sync.BuildBlock(t, rt, genHeader, nil)
+
+	err = s.handleBlock(block, ts)
+	require.NoError(t, err)
+
+	extBytes := createExtrinsic(t, rt, genHeader.Hash(), 0)
+
+	err = s.HandleSubmittedExtrinsic(extBytes)
 	require.NoError(t, err)
 }
 
@@ -442,4 +478,138 @@ func TestService_GetMetadata(t *testing.T) {
 	res, err := s.GetMetadata(nil)
 	require.NoError(t, err)
 	require.Greater(t, len(res), 10000)
+}
+
+func TestService_HandleRuntimeChanges(t *testing.T) {
+	const (
+		updatedSpecVersion        = uint32(262)
+		updateNodeRuntimeWasmPath = "../../tests/polkadotjs_test/test/node_runtime.compact.wasm"
+	)
+	s := NewTestService(t, nil)
+
+	rt, err := s.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	v, err := rt.Version()
+	require.NoError(t, err)
+
+	currSpecVersion := v.SpecVersion()   // genesis runtime version.
+	hash := s.blockState.BestBlockHash() // genesisHash
+
+	newBlock1 := &types.Block{
+		Header: &types.Header{
+			ParentHash: hash,
+			Number:     big.NewInt(1),
+			Digest:     types.Digest{utils.NewMockDigestItem(1)}},
+		Body: types.NewBody([]byte("Old Runtime")),
+	}
+
+	newBlockRTUpdate := &types.Block{
+		Header: &types.Header{
+			ParentHash: hash,
+			Number:     big.NewInt(1),
+			Digest:     types.Digest{utils.NewMockDigestItem(2)}},
+		Body: types.NewBody([]byte("Updated Runtime")),
+	}
+
+	ts, err := s.storageState.TrieState(nil) // Pass genesis root
+	require.NoError(t, err)
+
+	parentRt, err := s.blockState.GetRuntime(&hash)
+	require.NoError(t, err)
+
+	v, err = parentRt.Version()
+	require.NoError(t, err)
+	require.Equal(t, v.SpecVersion(), currSpecVersion)
+
+	bhash1 := newBlock1.Header.Hash()
+	err = s.blockState.HandleRuntimeChanges(ts, parentRt, bhash1)
+	require.NoError(t, err)
+
+	testRuntime, err := ioutil.ReadFile(updateNodeRuntimeWasmPath)
+	require.NoError(t, err)
+
+	ts.Set(common.CodeKey, testRuntime)
+	rtUpdateBhash := newBlockRTUpdate.Header.Hash()
+
+	// update runtime for new block
+	err = s.blockState.HandleRuntimeChanges(ts, parentRt, rtUpdateBhash)
+	require.NoError(t, err)
+
+	// bhash1 runtime should not be updated
+	rt, err = s.blockState.GetRuntime(&bhash1)
+	require.NoError(t, err)
+
+	v, err = rt.Version()
+	require.NoError(t, err)
+	require.Equal(t, v.SpecVersion(), currSpecVersion)
+
+	rt, err = s.blockState.GetRuntime(&rtUpdateBhash)
+	require.NoError(t, err)
+
+	v, err = rt.Version()
+	require.NoError(t, err)
+	require.Equal(t, v.SpecVersion(), updatedSpecVersion)
+}
+
+func TestService_HandleCodeSubstitutes(t *testing.T) {
+	s := NewTestService(t, nil)
+
+	testRuntime, err := ioutil.ReadFile(runtime.POLKADOT_RUNTIME_FP)
+	require.NoError(t, err)
+
+	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29") // hash for known test code substitution
+	s.codeSubstitute = map[common.Hash]string{
+		blockHash: common.BytesToHex(testRuntime),
+	}
+
+	rt, err := s.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	s.blockState.StoreRuntime(blockHash, rt)
+
+	err = s.handleCodeSubstitution(blockHash)
+	require.NoError(t, err)
+	codSub := s.codeSubstitutedState.LoadCodeSubstitutedBlockHash()
+	require.Equal(t, blockHash, codSub)
+}
+
+func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
+	s := NewTestService(t, nil)
+
+	parentRt, err := s.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	codeHashBefore := parentRt.GetCodeHash()
+	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29") // hash for known test code substitution
+
+	newBlock := &types.Block{
+		Header: &types.Header{
+			ParentHash: blockHash,
+			Number:     big.NewInt(1),
+			Digest:     types.Digest{utils.NewMockDigestItem(1)}},
+		Body: types.NewBody([]byte("Updated Runtime")),
+	}
+
+	err = s.handleCodeSubstitution(blockHash)
+	require.NoError(t, err)
+	require.Equal(t, codeHashBefore, parentRt.GetCodeHash()) // codeHash should remain unchanged after code substitute
+
+	testRuntime, err := ioutil.ReadFile(runtime.POLKADOT_RUNTIME_FP)
+	require.NoError(t, err)
+
+	ts, err := s.storageState.TrieState(nil)
+	require.NoError(t, err)
+
+	ts.Set(common.CodeKey, testRuntime)
+	rtUpdateBhash := newBlock.Header.Hash()
+
+	// update runtime for new block
+	err = s.blockState.HandleRuntimeChanges(ts, parentRt, rtUpdateBhash)
+	require.NoError(t, err)
+
+	rt, err := s.blockState.GetRuntime(&rtUpdateBhash)
+	require.NoError(t, err)
+
+	require.NotEqualf(t, codeHashBefore, rt.GetCodeHash(), "expected different code hash after runtime update") // codeHash should change after runtime change
 }

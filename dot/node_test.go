@@ -22,7 +22,6 @@ import (
 	"reflect"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -188,7 +187,7 @@ func TestStartNode(t *testing.T) {
 	require.NoError(t, err)
 
 	go func() {
-		time.Sleep(time.Second)
+		<-node.started
 		node.Stop()
 	}()
 
@@ -212,7 +211,11 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
-	stateSrvc := state.NewService(cfg.Global.BasePath, log.LvlTrace)
+	config := state.Config{
+		Path:     cfg.Global.BasePath,
+		LogLevel: log.LvlInfo,
+	}
+	stateSrvc := state.NewService(config)
 
 	gen, err := genesis.NewGenesisFromJSONRaw(genPath)
 	require.NoError(t, err)

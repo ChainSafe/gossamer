@@ -54,7 +54,7 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Run unit tests
-        run: go test -short ./... -timeout=20m
+        run: go test -short ./... -timeout=30m
 
       - name: Test State - Race
         run: make test-state-race

@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/chain/dev"
 	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -45,26 +46,26 @@ func TestConfigFromChainFlag(t *testing.T) {
 	}{
 		{
 			"Test gossamer --chain gssmr",
-			[]string{"chain", "name"},
-			[]interface{}{"gssmr", dot.GssmrConfig().Global.Name},
+			[]string{"chain", "name", "pruning", "retain-blocks"},
+			[]interface{}{"gssmr", dot.GssmrConfig().Global.Name, gssmr.DefaultPruningMode, gssmr.DefaultRetainBlocks},
 			dot.GssmrConfig(),
 		},
 		{
 			"Test gossamer --chain kusama",
-			[]string{"chain", "name"},
-			[]interface{}{"kusama", dot.KusamaConfig().Global.Name},
+			[]string{"chain", "name", "pruning", "retain-blocks"},
+			[]interface{}{"kusama", dot.KusamaConfig().Global.Name, gssmr.DefaultPruningMode, gssmr.DefaultRetainBlocks},
 			dot.KusamaConfig(),
 		},
 		{
 			"Test gossamer --chain polkadot",
-			[]string{"chain", "name"},
-			[]interface{}{"polkadot", dot.PolkadotConfig().Global.Name},
+			[]string{"chain", "name", "pruning", "retain-blocks"},
+			[]interface{}{"polkadot", dot.PolkadotConfig().Global.Name, gssmr.DefaultPruningMode, gssmr.DefaultRetainBlocks},
 			dot.PolkadotConfig(),
 		},
 		{
 			"Test gossamer --chain dev",
-			[]string{"chain", "name"},
-			[]interface{}{"dev", dot.DevConfig().Global.Name},
+			[]string{"chain", "name", "pruning", "retain-blocks"},
+			[]interface{}{"dev", dot.DevConfig().Global.Name, dev.DefaultPruningMode, dev.DefaultRetainBlocks},
 			dot.DevConfig(),
 		},
 	}
@@ -76,6 +77,7 @@ func TestConfigFromChainFlag(t *testing.T) {
 			require.Nil(t, err)
 			cfg, err := createDotConfig(ctx)
 			require.Nil(t, err)
+			cfg.System = types.SystemInfo{}
 			require.Equal(t, c.expected, cfg)
 		})
 	}
@@ -100,8 +102,8 @@ func TestInitConfigFromFlags(t *testing.T) {
 	}{
 		{
 			"Test gossamer --genesis",
-			[]string{"config", "genesis"},
-			[]interface{}{testCfgFile.Name(), "test_genesis"},
+			[]string{"config", "genesis", "pruning", "retain-blocks"},
+			[]interface{}{testCfgFile.Name(), "test_genesis", dev.DefaultPruningMode, dev.DefaultRetainBlocks},
 			dot.InitConfig{
 				Genesis: "test_genesis",
 			},
@@ -709,6 +711,7 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 
 	cfg.Init.Genesis = genFile.Name()
 	updateDotConfigFromGenesisJSONRaw(*dotConfigToToml(testCfg), cfg)
+	cfg.System = types.SystemInfo{}
 	require.Equal(t, expected, cfg)
 }
 
@@ -759,6 +762,7 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 	cfg, err := createDotConfig(ctx)
 	require.Nil(t, err)
 	updateDotConfigFromGenesisJSONRaw(*dotConfigToToml(testCfg), cfg)
+	cfg.System = types.SystemInfo{}
 	require.Equal(t, expected, cfg)
 }
 
@@ -829,7 +833,7 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 
 	err = updateDotConfigFromGenesisData(ctx, cfg) // name should not be updated if provided as flag value
 	require.Nil(t, err)
-
+	cfg.System = types.SystemInfo{}
 	require.Equal(t, expected, cfg)
 }
 

@@ -20,6 +20,7 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/chain/dev"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
@@ -43,24 +44,24 @@ func TestFixFlagOrder(t *testing.T) {
 		values      []interface{}
 	}{
 		{
-			"Test gossamer --config --genesis --log --force",
-			[]string{"config", "genesis", "log", "force"},
-			[]interface{}{testConfig.Name(), genFile.Name(), "trace", true},
+			"Test gossamer --config --genesis --log --force --pruning --retain-blocks",
+			[]string{"config", "genesis", "log", "force", "pruning", "retain-blocks"},
+			[]interface{}{testConfig.Name(), genFile.Name(), "trace", true, dev.DefaultPruningMode, dev.DefaultRetainBlocks},
 		},
 		{
-			"Test gossamer --config --genesis --force --log",
-			[]string{"config", "genesis", "force", "log"},
-			[]interface{}{testConfig.Name(), genFile.Name(), true, "trace"},
+			"Test gossamer --config --genesis --force --log --pruning --retain-blocks",
+			[]string{"config", "genesis", "force", "log", "pruning", "retain-blocks"},
+			[]interface{}{testConfig.Name(), genFile.Name(), true, "trace", dev.DefaultPruningMode, dev.DefaultRetainBlocks},
 		},
 		{
-			"Test gossamer --config --force --genesis --log",
-			[]string{"config", "force", "genesis", "log"},
-			[]interface{}{testConfig.Name(), true, genFile.Name(), "trace"},
+			"Test gossamer --config --force --genesis --log ---pruning --retain-blocks",
+			[]string{"config", "force", "genesis", "log", "pruning", "retain-blocks"},
+			[]interface{}{testConfig.Name(), true, genFile.Name(), "trace", dev.DefaultPruningMode, dev.DefaultRetainBlocks},
 		},
 		{
-			"Test gossamer --force --config --genesis --log",
-			[]string{"force", "config", "genesis", "log"},
-			[]interface{}{true, testConfig.Name(), genFile.Name(), "trace"},
+			"Test gossamer --force --config --genesis --log --pruning --retain-blocks",
+			[]string{"force", "config", "genesis", "log", "pruning", "retain-blocks"},
+			[]interface{}{true, testConfig.Name(), genFile.Name(), "trace", dev.DefaultPruningMode, dev.DefaultRetainBlocks},
 		},
 	}
 

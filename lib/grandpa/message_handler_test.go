@@ -34,14 +34,17 @@ import (
 var testHeader = &types.Header{
 	ParentHash: testGenesisHeader.Hash(),
 	Number:     big.NewInt(1),
+	Digest: types.Digest{
+		types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+	},
 }
 
 var testHash = testHeader.Hash()
 
-func buildTestJustification(t *testing.T, qty int, round, setID uint64, kr *keystore.Ed25519Keyring, subround subround) []*SignedPrecommit {
-	just := []*SignedPrecommit{}
+func buildTestJustification(t *testing.T, qty int, round, setID uint64, kr *keystore.Ed25519Keyring, subround subround) []*SignedVote {
+	var just []*SignedVote
 	for i := 0; i < qty; i++ {
-		j := &SignedPrecommit{
+		j := &SignedVote{
 			Vote:        NewVote(testHash, uint32(round)),
 			Signature:   createSignedVoteMsg(t, uint32(round), round, setID, kr.Keys[i%len(kr.Keys)], subround),
 			AuthorityID: kr.Keys[i%len(kr.Keys)].Public().(*ed25519.PublicKey).AsBytes(),
@@ -101,8 +104,8 @@ func TestDecodeMessage_CommitMessage(t *testing.T) {
 		Round: 77,
 		SetID: 1,
 		Vote: &Vote{
-			hash:   common.MustHexToHash("0x7db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a"),
-			number: 99,
+			Hash:   common.MustHexToHash("0x7db9db5ed9967b80143100189ba69d9e4deab85ac3570e5df25686cabe32964a"),
+			Number: 99,
 		},
 		Precommits: []*Vote{
 			testVote,
@@ -163,8 +166,8 @@ func TestMessageHandler_VoteMessage(t *testing.T) {
 
 	gs.state.setID = 99
 	gs.state.round = 77
-	v.number = 0x7777
-	vm, err := gs.createVoteMessage(v, precommit, gs.keypair)
+	v.Number = 0x7777
+	_, vm, err := gs.createSignedVoteAndVoteMessage(v, precommit)
 	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block)
@@ -174,7 +177,7 @@ func TestMessageHandler_VoteMessage(t *testing.T) {
 
 	select {
 	case vote := <-gs.in:
-		require.Equal(t, vm, vote)
+		require.Equal(t, vm, vote.msg)
 	case <-time.After(time.Second):
 		t.Fatal("did not receive VoteMessage")
 	}
@@ -188,16 +191,18 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 		Version: 1,
 		Round:   2,
 		SetID:   3,
-		Number:  1,
+		Number:  2,
 	}
-
 	_, err := h.handleMessage("", msg)
 	require.NoError(t, err)
 
 	block := &types.Block{
 		Header: &types.Header{
-			Number:     big.NewInt(1),
+			Number:     big.NewInt(2),
 			ParentHash: st.Block.GenesisHash(),
+			Digest: types.Digest{
+				types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+			},
 		},
 		Body: &types.Body{0},
 	}
@@ -209,16 +214,19 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, out)
 
-	finalised, err := st.Block.GetFinalizedHash(0, 0)
-	require.NoError(t, err)
-	require.Equal(t, block.Header.Hash(), finalised)
+	// check if request for justification was sent out
+	expected := &testJustificationRequest{
+		to:  "",
+		num: 2,
+	}
+	require.Equal(t, expected, gs.network.(*testNetwork).justificationRequest)
 }
 
 func TestMessageHandler_VerifyJustification_InvalidSig(t *testing.T) {
 	gs, _ := newTestService(t)
 	gs.state.round = 77
 
-	just := &SignedPrecommit{
+	just := &SignedVote{
 		Vote:        testVote,
 		Signature:   [64]byte{0x1},
 		AuthorityID: gs.publicKeyBytes(),
@@ -233,23 +241,40 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 
 	round := uint64(77)
 	gs.state.round = round
-	gs.justification[round] = buildTestJustification(t, int(gs.state.threshold()), round, gs.state.setID, kr, precommit)
+	just := buildTestJustification(t, int(gs.state.threshold()), round, gs.state.setID, kr, precommit)
+	err := st.Grandpa.SetPrecommits(round, gs.state.setID, just)
+	require.NoError(t, err)
 
-	fm := gs.newCommitMessage(gs.head, round)
+	fm, err := gs.newCommitMessage(gs.head, round)
+	require.NoError(t, err)
 	fm.Vote = NewVote(testHash, uint32(round))
+
+	block := &types.Block{
+		Header: &types.Header{
+			ParentHash: testHeader.Hash(),
+			Number:     big.NewInt(1),
+			Digest: types.Digest{
+				types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+			},
+		},
+		Body: &types.Body{},
+	}
+
+	err = st.Block.AddBlock(block)
+	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block)
 	out, err := h.handleMessage("", fm)
 	require.NoError(t, err)
 	require.Nil(t, out)
 
-	hash, err := st.Block.GetFinalizedHash(0, 0)
+	hash, err := st.Block.GetFinalisedHash(0, 0)
 	require.NoError(t, err)
-	require.Equal(t, fm.Vote.hash, hash)
+	require.Equal(t, fm.Vote.Hash, hash)
 
-	hash, err = st.Block.GetFinalizedHash(fm.Round, gs.state.setID)
+	hash, err = st.Block.GetFinalisedHash(fm.Round, gs.state.setID)
 	require.NoError(t, err)
-	require.Equal(t, fm.Vote.hash, hash)
+	require.Equal(t, fm.Vote.Hash, hash)
 }
 
 func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T) {
@@ -258,9 +283,12 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T
 	round := uint64(77)
 	gs.state.round = round
 
-	gs.justification[round] = buildTestJustification(t, int(gs.state.threshold()), round, gs.state.setID, kr, precommit)
+	just := buildTestJustification(t, int(gs.state.threshold()), round, gs.state.setID, kr, precommit)
+	err := st.Grandpa.SetPrecommits(round, gs.state.setID, just)
+	require.NoError(t, err)
 
-	fm := gs.newCommitMessage(gs.head, round)
+	fm, err := gs.newCommitMessage(testGenesisHeader, round)
+	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block)
 	out, err := h.handleMessage("", fm)
@@ -271,15 +299,19 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T
 func TestMessageHandler_CommitMessage_WithCatchUpRequest(t *testing.T) {
 	gs, st := newTestService(t)
 
-	gs.justification[77] = []*SignedPrecommit{
+	just := []*SignedVote{
 		{
 			Vote:        testVote,
 			Signature:   testSignature,
 			AuthorityID: gs.publicKeyBytes(),
 		},
 	}
+	err := st.Grandpa.SetPrecommits(77, gs.state.setID, just)
+	require.NoError(t, err)
 
-	fm := gs.newCommitMessage(gs.head, 77)
+	fm, err := gs.newCommitMessage(gs.head, 77)
+	require.NoError(t, err)
+
 	gs.state.voters = gs.state.voters[:1]
 
 	h := NewMessageHandler(gs, st.Block)
@@ -319,17 +351,26 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	setID := uint64(0)
 	gs.state.round = round + 1
 
-	v := &Vote{
-		hash:   testHeader.Hash(),
-		number: 1,
+	block := &types.Block{
+		Header: &types.Header{
+			ParentHash: testHeader.Hash(),
+			Number:     big.NewInt(2),
+			Digest: types.Digest{
+				types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+			},
+		},
+		Body: &types.Body{},
 	}
 
-	err := gs.blockState.SetFinalizedHash(testHeader.Hash(), round, setID)
-	require.NoError(t, err)
-	err = gs.blockState.(*state.BlockState).SetHeader(testHeader)
+	err := st.Block.AddBlock(block)
 	require.NoError(t, err)
 
-	pvj := []*SignedPrecommit{
+	err = gs.blockState.SetFinalisedHash(testHeader.Hash(), round, setID)
+	require.NoError(t, err)
+	err = gs.blockState.(*state.BlockState).SetHeader(block.Header)
+	require.NoError(t, err)
+
+	pvj := []*SignedVote{
 		{
 			Vote:        testVote,
 			Signature:   testSignature,
@@ -337,10 +378,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 		},
 	}
 
-	pvjEnc, err := scale.Encode(pvj)
-	require.NoError(t, err)
-
-	pcj := []*SignedPrecommit{
+	pcj := []*SignedVote{
 		{
 			Vote:        testVote2,
 			Signature:   testSignature,
@@ -348,10 +386,9 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 		},
 	}
 
-	pcjEnc, err := scale.Encode(pcj)
+	err = gs.grandpaState.SetPrevotes(round, setID, pvj)
 	require.NoError(t, err)
-
-	err = gs.blockState.SetJustification(v.hash, append(pvjEnc, pcjEnc...))
+	err = gs.grandpaState.SetPrecommits(round, setID, pcj)
 	require.NoError(t, err)
 
 	resp, err := gs.newCatchUpResponse(round, setID)
@@ -373,9 +410,9 @@ func TestVerifyJustification(t *testing.T) {
 	gs, _ := newTestService(t)
 
 	vote := NewVote(testHash, 123)
-	just := &SignedPrecommit{
+	just := &SignedVote{
 		Vote:        vote,
-		Signature:   createSignedVoteMsg(t, vote.number, 77, gs.state.setID, kr.Alice().(*ed25519.Keypair), precommit),
+		Signature:   createSignedVoteMsg(t, vote.Number, 77, gs.state.setID, kr.Alice().(*ed25519.Keypair), precommit),
 		AuthorityID: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
@@ -387,10 +424,10 @@ func TestVerifyJustification_InvalidSignature(t *testing.T) {
 	gs, _ := newTestService(t)
 
 	vote := NewVote(testHash, 123)
-	just := &SignedPrecommit{
+	just := &SignedVote{
 		Vote: vote,
 		// create signed vote with mismatched vote number
-		Signature:   createSignedVoteMsg(t, vote.number+1, 77, gs.state.setID, kr.Alice().(*ed25519.Keypair), precommit),
+		Signature:   createSignedVoteMsg(t, vote.Number+1, 77, gs.state.setID, kr.Alice().(*ed25519.Keypair), precommit),
 		AuthorityID: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(),
 	}
 
@@ -406,9 +443,9 @@ func TestVerifyJustification_InvalidAuthority(t *testing.T) {
 	require.NoError(t, err)
 
 	vote := NewVote(testHash, 123)
-	just := &SignedPrecommit{
+	just := &SignedVote{
 		Vote:        vote,
-		Signature:   createSignedVoteMsg(t, vote.number, 77, gs.state.setID, fakeKey, precommit),
+		Signature:   createSignedVoteMsg(t, vote.Number, 77, gs.state.setID, fakeKey, precommit),
 		AuthorityID: fakeKey.Public().(*ed25519.PublicKey).AsBytes(),
 	}
 

@@ -33,6 +33,7 @@ type Genesis struct {
 	ForkBlocks         []string               `json:"forkBlocks"`
 	BadBlocks          []string               `json:"badBlocks"`
 	ConsensusEngine    string                 `json:"consensusEngine"`
+	CodeSubstitutes    map[string]string      `json:"codeSubstitutes"`
 }
 
 // Data defines the genesis file data formatted for trie storage
@@ -47,6 +48,7 @@ type Data struct {
 	ForkBlocks         []string
 	BadBlocks          []string
 	ConsensusEngine    string
+	CodeSubstitutes    map[string]string
 }
 
 // TelemetryEndpoint struct to hold telemetry endpoint information
@@ -74,6 +76,7 @@ func (g *Genesis) GenesisData() *Data {
 		ForkBlocks:         g.ForkBlocks,
 		BadBlocks:          g.BadBlocks,
 		ConsensusEngine:    g.ConsensusEngine,
+		CodeSubstitutes:    g.CodeSubstitutes,
 	}
 }
 

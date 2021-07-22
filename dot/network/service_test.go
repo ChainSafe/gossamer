@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/utils"
+	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -77,15 +78,14 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	}
 
 	if cfg.BlockState == nil {
-		cfg.BlockState = newMockBlockState(nil)
+		cfg.BlockState = NewMockBlockState(nil)
 	}
 
 	if cfg.TransactionHandler == nil {
-		cfg.TransactionHandler = newMockTransactionHandler()
-	}
-
-	if cfg.TransactionHandler == nil {
-		cfg.TransactionHandler = newMockTransactionHandler()
+		mocktxhandler := &MockTransactionHandler{}
+		mocktxhandler.On("HandleTransactionMessage", mock.AnythingOfType("*TransactionMessage")).Return(nil)
+		mocktxhandler.On("TransactionsCount").Return(0)
+		cfg.TransactionHandler = mocktxhandler
 	}
 
 	cfg.ProtocolID = TestProtocolID // default "/gossamer/gssmr/0"
@@ -95,7 +95,7 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	}
 
 	if cfg.Syncer == nil {
-		cfg.Syncer = newMockSyncer()
+		cfg.Syncer = NewMockSyncer()
 	}
 
 	cfg.noPreAllocate = true
@@ -175,7 +175,7 @@ func TestBroadcastMessages(t *testing.T) {
 	require.NoError(t, err)
 
 	// simulate message sent from core service
-	nodeA.SendMessage(testBlockAnnounceMessage)
+	nodeA.GossipMessage(testBlockAnnounceMessage)
 	time.Sleep(time.Second * 2)
 	require.NotNil(t, handler.messages[nodeA.host.id()])
 }
@@ -232,7 +232,7 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 
 	// Only one message will be sent.
 	for i := 0; i < 5; i++ {
-		nodeA.SendMessage(testBlockAnnounceMessage)
+		nodeA.GossipMessage(testBlockAnnounceMessage)
 		time.Sleep(time.Millisecond * 10)
 	}
 
@@ -243,7 +243,7 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 
 	// All 5 message will be sent since cache is disabled.
 	for i := 0; i < 5; i++ {
-		nodeA.SendMessage(testBlockAnnounceMessage)
+		nodeA.GossipMessage(testBlockAnnounceMessage)
 		time.Sleep(time.Millisecond * 10)
 	}
 	require.Equal(t, 6, len(handler.messages[nodeA.host.id()]))
@@ -269,13 +269,19 @@ func TestService_Health(t *testing.T) {
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
+	mocksyncer := &MockSyncer{}
+	mocksyncer.On("SetSyncing", mock.AnythingOfType("bool"))
+
 	s := createTestService(t, config)
+	s.syncer = mocksyncer
 
-	require.Equal(t, s.Health().IsSyncing, true)
-	mockSync := s.syncer.(*mockSyncer)
+	mocksyncer.On("IsSynced").Return(false).Once()
+	h := s.Health()
+	require.Equal(t, true, h.IsSyncing)
 
-	mockSync.SetSyncing(false)
-	require.Equal(t, s.Health().IsSyncing, false)
+	mocksyncer.On("IsSynced").Return(true).Once()
+	h = s.Health()
+	require.Equal(t, false, h.IsSyncing)
 }
 
 func TestPersistPeerStore(t *testing.T) {

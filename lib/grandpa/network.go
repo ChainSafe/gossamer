@@ -17,6 +17,7 @@
 package grandpa
 
 import (
+	"bytes"
 	"fmt"
 	"time"
 
@@ -139,7 +140,6 @@ func (s *Service) decodeMessage(in []byte) (NotificationsMessage, error) {
 
 func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (bool, error) {
 	if msg == nil {
-		logger.Trace("received nil message, ignoring")
 		return false, nil
 	}
 
@@ -148,8 +148,7 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 		return false, ErrInvalidMessageType
 	}
 
-	if len(cm.Data) == 0 {
-		logger.Trace("received message with nil data, ignoring")
+	if len(cm.Data) < 2 {
 		return false, nil
 	}
 
@@ -163,8 +162,14 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 		return false, err
 	}
 
-	if resp != nil {
-		s.network.SendMessage(resp)
+	switch r := resp.(type) {
+	case *ConsensusMessage:
+		if r != nil {
+			s.network.GossipMessage(resp)
+		}
+	case nil:
+	default:
+		logger.Warn("unexpected type returned from message handler", "response", resp)
 	}
 
 	if m.Type() == neighbourType || m.Type() == catchUpResponseType {
@@ -174,12 +179,26 @@ func (s *Service) handleNetworkMessage(from peer.ID, msg NotificationsMessage) (
 	return true, nil
 }
 
+// sendMessage sends a vote message to be gossiped to the network
+func (s *Service) sendMessage(msg GrandpaMessage) error {
+	cm, err := msg.ToConsensusMessage()
+	if err != nil {
+		return err
+	}
+
+	s.network.GossipMessage(cm)
+	logger.Trace("sent message", "msg", msg)
+	return nil
+}
+
 func (s *Service) sendNeighbourMessage() {
+	t := time.NewTicker(neighbourMessageInterval)
+	defer t.Stop()
 	for {
 		select {
 		case <-s.ctx.Done():
 			return
-		case <-time.After(neighbourMessageInterval):
+		case <-t.C:
 			if s.neighbourMessage == nil {
 				continue
 			}
@@ -203,6 +222,54 @@ func (s *Service) sendNeighbourMessage() {
 			continue
 		}
 
-		s.network.SendMessage(cm)
+		s.network.GossipMessage(cm)
 	}
+}
+
+// decodeMessage decodes a network-level consensus message into a GRANDPA VoteMessage or CommitMessage
+func decodeMessage(msg *ConsensusMessage) (m GrandpaMessage, err error) {
+	var (
+		mi interface{}
+		ok bool
+	)
+
+	switch msg.Data[0] {
+	case voteType:
+		r := &bytes.Buffer{}
+		_, _ = r.Write(msg.Data[1:])
+		vm := &VoteMessage{}
+		err = vm.Decode(r)
+		m = vm
+		logger.Trace("got VoteMessage!!!", "msg", m)
+	case commitType:
+		r := &bytes.Buffer{}
+		_, _ = r.Write(msg.Data[1:])
+		cm := &CommitMessage{}
+		err = cm.Decode(r)
+		m = cm
+		logger.Trace("got CommitMessage!!!", "msg", m)
+	case neighbourType:
+		mi, err = scale.Decode(msg.Data[1:], &NeighbourMessage{})
+		if m, ok = mi.(*NeighbourMessage); !ok {
+			return nil, ErrInvalidMessageType
+		}
+	case catchUpRequestType:
+		mi, err = scale.Decode(msg.Data[1:], &catchUpRequest{})
+		if m, ok = mi.(*catchUpRequest); !ok {
+			return nil, ErrInvalidMessageType
+		}
+	case catchUpResponseType:
+		mi, err = scale.Decode(msg.Data[1:], &catchUpResponse{})
+		if m, ok = mi.(*catchUpResponse); !ok {
+			return nil, ErrInvalidMessageType
+		}
+	default:
+		return nil, ErrInvalidMessageType
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return m, nil
 }

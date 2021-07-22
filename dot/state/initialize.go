@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -29,8 +31,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
-
-	"github.com/ChainSafe/chaindb"
 )
 
 // Initialise initialises the genesis state of the DB using the given storage trie. The trie should be loaded with the genesis storage state.
@@ -60,7 +60,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 
 	s.Base = NewBaseState(db)
 
-	rt, err := s.createGenesisRuntime(t, gen)
+	rt, err := s.CreateGenesisRuntime(t, gen)
 	if err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 		return fmt.Errorf("failed to write genesis values to database: %s", err)
 	}
 
-	// create and store blockree from genesis block
+	// create and store blocktree from genesis block
 	bt := blocktree.NewBlockTreeFromRoot(header, db)
 	err = bt.Store()
 	if err != nil {
@@ -89,7 +89,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 	}
 
 	// create storage state from genesis trie
-	storageState, err := NewStorageState(db, blockState, t)
+	storageState, err := NewStorageState(db, blockState, t, pruner.Config{})
 	if err != nil {
 		return fmt.Errorf("failed to create storage state from trie: %s", err)
 	}
@@ -174,10 +174,15 @@ func (s *Service) storeInitialValues(data *genesis.Data, header *types.Header, t
 		return fmt.Errorf("failed to write genesis data to database: %s", err)
 	}
 
+	if err := s.Base.storePruningData(s.PrunerCfg); err != nil {
+		return fmt.Errorf("failed to write pruning data to database: %s", err)
+	}
+
 	return nil
 }
 
-func (s *Service) createGenesisRuntime(t *trie.Trie, gen *genesis.Genesis) (runtime.Instance, error) {
+// CreateGenesisRuntime creates runtime instance form genesis
+func (s *Service) CreateGenesisRuntime(t *trie.Trie, gen *genesis.Genesis) (runtime.Instance, error) {
 	// load genesis state into database
 	genTrie, err := rtstorage.NewTrieState(t)
 	if err != nil {

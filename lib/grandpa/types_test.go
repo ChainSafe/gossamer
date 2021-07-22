@@ -38,8 +38,8 @@ func TestPubkeyToVoter(t *testing.T) {
 	require.Equal(t, voters[0], voter)
 }
 
-func TestSignedPrecommitEncoding(t *testing.T) {
-	just := &SignedPrecommit{
+func TestSignedVoteEncoding(t *testing.T) {
+	just := &SignedVote{
 		Vote:        testVote,
 		Signature:   testSignature,
 		AuthorityID: testAuthorityID,
@@ -50,14 +50,14 @@ func TestSignedPrecommitEncoding(t *testing.T) {
 
 	rw := &bytes.Buffer{}
 	rw.Write(enc)
-	dec := new(SignedPrecommit)
+	dec := new(SignedVote)
 	_, err = dec.Decode(rw)
 	require.NoError(t, err)
 	require.Equal(t, just, dec)
 }
 
-func TestSignedPrecommitArrayEncoding(t *testing.T) {
-	just := []*SignedPrecommit{
+func TestSignedVoteArrayEncoding(t *testing.T) {
+	just := []*SignedVote{
 		{
 			Vote:        testVote,
 			Signature:   testSignature,
@@ -68,13 +68,13 @@ func TestSignedPrecommitArrayEncoding(t *testing.T) {
 	enc, err := scale.Encode(just)
 	require.NoError(t, err)
 
-	dec, err := scale.Decode(enc, make([]*SignedPrecommit, 1))
+	dec, err := scale.Decode(enc, make([]*SignedVote, 1))
 	require.NoError(t, err)
-	require.Equal(t, just, dec.([]*SignedPrecommit))
+	require.Equal(t, just, dec.([]*SignedVote))
 }
 
 func TestJustification(t *testing.T) {
-	just := &SignedPrecommit{
+	just := &SignedVote{
 		Vote:        testVote,
 		Signature:   testSignature,
 		AuthorityID: testAuthorityID,
@@ -83,7 +83,7 @@ func TestJustification(t *testing.T) {
 	fj := &Justification{
 		Round: 99,
 		Commit: &Commit{
-			Precommits: []*SignedPrecommit{just},
+			Precommits: []*SignedVote{just},
 		},
 	}
 	enc, err := fj.Encode()
