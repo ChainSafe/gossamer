@@ -18,40 +18,22 @@ package core
 
 import (
 	"io/ioutil"
-	"math/big"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
-	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
-	"github.com/ChainSafe/gossamer/lib/trie"
 	log "github.com/ChainSafe/log15"
 
 	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
-
-func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
-	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis.json")
-	if err != nil {
-		gen, err = genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis.json")
-		require.NoError(t, err)
-	}
-
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
-	require.NoError(t, err)
-
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.Digest{})
-	require.NoError(t, err)
-	return gen, genTrie, genesisHeader
-}
 
 // NewTestService creates a new test core service
 func NewTestService(t *testing.T, cfg *Config) *Service {
@@ -77,7 +59,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
 	require.NoError(t, err)
 
-	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 
 	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.TransactionState == nil || cfg.EpochState == nil || cfg.CodeSubstitutedState == nil {
 		config := state.Config{
@@ -116,11 +98,17 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 	if cfg.Runtime == nil {
 		rtCfg := &wasmer.Config{}
+
 		rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
 		require.NoError(t, err)
+
+		rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
+		require.NoError(t, err)
+
 		cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(gen, rtCfg)
 		require.NoError(t, err)
 	}
+	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), cfg.Runtime)
 
 	if cfg.Network == nil {
 		config := &network.Config{

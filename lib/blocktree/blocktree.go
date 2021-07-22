@@ -22,10 +22,10 @@ import (
 	"sync"
 	"time"
 
+	database "github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-
-	database "github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/disiqueira/gotree"
 )
 
@@ -39,6 +39,7 @@ type BlockTree struct {
 	db     database.Database
 	sync.RWMutex
 	nodeCache map[Hash]*node
+	runtime   *sync.Map
 }
 
 // NewEmptyBlockTree creates a BlockTree with a nil head
@@ -48,6 +49,7 @@ func NewEmptyBlockTree(db database.Database) *BlockTree {
 		leaves:    newEmptyLeafMap(),
 		db:        db,
 		nodeCache: make(map[Hash]*node),
+		runtime:   &sync.Map{},
 	}
 }
 
@@ -67,6 +69,7 @@ func NewBlockTreeFromRoot(root *types.Header, db database.Database) *BlockTree {
 		leaves:    newLeafMap(head),
 		db:        db,
 		nodeCache: make(map[Hash]*node),
+		runtime:   &sync.Map{},
 	}
 }
 
@@ -399,4 +402,29 @@ func (bt *BlockTree) DeepCopy() *BlockTree {
 	}
 
 	return btCopy
+}
+
+// StoreRuntime stores the runtime for corresponding block hash.
+func (bt *BlockTree) StoreRuntime(hash common.Hash, in runtime.Instance) {
+	bt.runtime.Store(hash, in)
+}
+
+// DeleteRuntime deletes the runtime for corresponding block hash.
+func (bt *BlockTree) DeleteRuntime(hash common.Hash) {
+	in, err := bt.GetBlockRuntime(hash)
+	if err != nil {
+		return
+	}
+
+	in.Stop()
+	bt.runtime.Delete(hash)
+}
+
+// GetBlockRuntime returns block runtime for corresponding block hash.
+func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (runtime.Instance, error) {
+	ins, ok := bt.runtime.Load(hash)
+	if !ok {
+		return nil, ErrFailedToGetRuntime
+	}
+	return ins.(runtime.Instance), nil
 }
