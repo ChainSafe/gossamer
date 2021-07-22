@@ -24,6 +24,7 @@ import (
 	. "github.com/ChainSafe/gossamer/dot/core/mocks" // nolint
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
+	"github.com/ChainSafe/gossamer/dot/sync"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
@@ -140,14 +141,22 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 
 	s := NewTestService(t, cfg)
 	genHash := s.blockState.GenesisHash()
-	header, err := types.NewHeader(genHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewEmptyDigest())
+	genHeader, err := s.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
-	// initialise block header
-	err = s.rt.InitializeBlock(header)
+	rt, err := s.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	extBytes := createExtrinsic(t, s.rt, genHash, 0)
+	ts, err := s.storageState.TrieState(nil)
+	require.NoError(t, err)
+	rt.SetContextStorage(ts)
+
+	block := sync.BuildBlock(t, rt, genHeader, nil)
+
+	err = s.handleBlock(block, ts)
+	require.NoError(t, err)
+
+	extBytes := createExtrinsic(t, rt, genHash, 0)
 	msg := &network.TransactionMessage{Extrinsics: []types.Extrinsic{extBytes}}
 	b, err := s.HandleTransactionMessage(msg)
 	require.NoError(t, err)

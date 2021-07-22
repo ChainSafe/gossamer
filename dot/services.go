@@ -90,17 +90,11 @@ func createStateService(cfg *Config) (*state.Service, error) {
 	return stateSrvc, nil
 }
 
-func createRuntime(cfg *Config, st *state.Service, ks *keystore.GlobalKeystore, net *network.Service) (runtime.Instance, error) {
+func createRuntime(cfg *Config, st *state.Service, ks *keystore.GlobalKeystore, net *network.Service, code []byte) (runtime.Instance, error) {
 	logger.Info(
 		"creating runtime...",
 		"interpreter", cfg.Core.WasmInterpreter,
 	)
-
-	// load runtime code from trie
-	code, err := st.Storage.GetStorage(nil, []byte(":code"))
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve :code from trie: %s", err)
-	}
 
 	// check if code substitute is in use, if so replace code
 	codeSubHash := st.Base.LoadCodeSubstitutedBlockHash()
@@ -131,6 +125,11 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GlobalKeystore, 
 		PersistentStorage: chaindb.NewTable(st.DB(), "offlinestorage"),
 	}
 
+	codeHash, err := st.Storage.LoadCodeHash(nil)
+	if err != nil {
+		return nil, err
+	}
+
 	var rt runtime.Instance
 	switch cfg.Core.WasmInterpreter {
 	case wasmer.Name:
@@ -143,6 +142,7 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GlobalKeystore, 
 		rtCfg.NodeStorage = ns
 		rtCfg.Network = net
 		rtCfg.Role = cfg.Core.Roles
+		rtCfg.CodeHash = codeHash
 
 		// create runtime executor
 		rt, err = wasmer.NewInstance(code, rtCfg)
@@ -159,6 +159,7 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GlobalKeystore, 
 		rtCfg.NodeStorage = ns
 		rtCfg.Network = net
 		rtCfg.Role = cfg.Core.Roles
+		rtCfg.CodeHash = codeHash
 
 		// create runtime executor
 		rt, err = wasmtime.NewInstance(code, rtCfg)
@@ -175,6 +176,7 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GlobalKeystore, 
 		rtCfg.NodeStorage = ns
 		rtCfg.Network = net
 		rtCfg.Role = cfg.Core.Roles
+		rtCfg.CodeHash = codeHash
 
 		// create runtime executor
 		rt, err = life.NewInstance(code, rtCfg)
@@ -183,10 +185,11 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GlobalKeystore, 
 		}
 	}
 
+	st.Block.StoreRuntime(st.Block.BestBlockHash(), rt)
 	return rt, nil
 }
 
-func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks keystore.Keystore, cs *core.Service) (*babe.Service, error) {
+func createBABEService(cfg *Config, st *state.Service, ks keystore.Keystore, cs *core.Service) (*babe.Service, error) {
 	logger.Info(
 		"creating BABE service...",
 		"authority", cfg.Core.BabeAuthority,
@@ -204,7 +207,6 @@ func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks k
 
 	bcfg := &babe.ServiceConfig{
 		LogLvl:             cfg.Log.BlockProducerLvl,
-		Runtime:            rt,
 		BlockState:         st.Block,
 		StorageState:       st.Storage,
 		TransactionState:   st.Transaction,
@@ -233,7 +235,7 @@ func createBABEService(cfg *Config, rt runtime.Instance, st *state.Service, ks k
 // Core Service
 
 // createCoreService creates the core service from the provided core configuration
-func createCoreService(cfg *Config, rt runtime.Instance, ks *keystore.GlobalKeystore, st *state.Service, net *network.Service, dh *digest.Handler) (*core.Service, error) {
+func createCoreService(cfg *Config, ks *keystore.GlobalKeystore, st *state.Service, net *network.Service, dh *digest.Handler) (*core.Service, error) {
 	logger.Debug(
 		"creating core service...",
 		"authority", cfg.Core.Roles == types.AuthorityRole,
@@ -257,7 +259,6 @@ func createCoreService(cfg *Config, rt runtime.Instance, ks *keystore.GlobalKeys
 		StorageState:         st.Storage,
 		TransactionState:     st.Transaction,
 		Keystore:             ks,
-		Runtime:              rt,
 		Network:              net,
 		DigestHandler:        dh,
 		CodeSubstitutes:      codeSubs,
@@ -317,7 +318,7 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Servi
 // RPC Service
 
 // createRPCService creates the RPC service from the provided core configuration
-func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service, bp modules.BlockProducerAPI, rt runtime.Instance, sysSrvc *system.Service, finSrvc *grandpa.Service) *rpc.HTTPServer {
+func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service, bp modules.BlockProducerAPI, sysSrvc *system.Service, finSrvc *grandpa.Service) *rpc.HTTPServer {
 	logger.Info(
 		"creating rpc service...",
 		"host", cfg.RPC.Host,
@@ -338,7 +339,6 @@ func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Serv
 		CoreAPI:             coreSrvc,
 		BlockProducerAPI:    bp,
 		BlockFinalityAPI:    finSrvc,
-		RuntimeAPI:          rt,
 		TransactionQueueAPI: stateSrvc.Transaction,
 		RPCAPI:              rpcService,
 		SystemAPI:           sysSrvc,
@@ -366,7 +366,12 @@ func createSystemService(cfg *types.SystemInfo, stateSrvc *state.Service) (*syst
 }
 
 // createGRANDPAService creates a new GRANDPA service
-func createGRANDPAService(cfg *Config, rt runtime.Instance, st *state.Service, dh *digest.Handler, ks keystore.Keystore, net *network.Service) (*grandpa.Service, error) {
+func createGRANDPAService(cfg *Config, st *state.Service, dh *digest.Handler, ks keystore.Keystore, net *network.Service) (*grandpa.Service, error) {
+	rt, err := st.Block.GetRuntime(nil)
+	if err != nil {
+		return nil, err
+	}
+
 	ad, err := rt.GrandpaAuthorities()
 	if err != nil {
 		return nil, err
@@ -409,7 +414,7 @@ func createBlockVerifier(st *state.Service) (*babe.VerificationManager, error) {
 	return ver, nil
 }
 
-func newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget, verifier *babe.VerificationManager, rt runtime.Instance, cs *core.Service) (*sync.Service, error) {
+func newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget, verifier *babe.VerificationManager, cs *core.Service) (*sync.Service, error) {
 	syncCfg := &sync.Config{
 		LogLvl:             cfg.Log.SyncLvl,
 		BlockState:         st.Block,
@@ -417,7 +422,6 @@ func newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget, veri
 		TransactionState:   st.Transaction,
 		FinalityGadget:     fg,
 		Verifier:           verifier,
-		Runtime:            rt,
 		BlockImportHandler: cs,
 	}
 

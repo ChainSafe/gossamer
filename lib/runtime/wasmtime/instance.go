@@ -22,6 +22,8 @@ import (
 	"runtime"
 	"sync"
 
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	gssmrruntime "github.com/ChainSafe/gossamer/lib/runtime"
 
 	log "github.com/ChainSafe/log15"
@@ -52,6 +54,11 @@ type Instance struct {
 	vm  *wasmtime.Instance
 	mu  sync.Mutex
 	mem *wasmtime.Memory
+}
+
+// GetCodeHash ...
+func (in *Instance) GetCodeHash() common.Hash {
+	return common.Hash{}
 }
 
 // NewInstanceFromFile instantiates a runtime from a .wasm file
@@ -140,6 +147,16 @@ func (in *Instance) Stop() {}
 // NodeStorage returns the context's NodeStorage
 func (in *Instance) NodeStorage() gssmrruntime.NodeStorage {
 	return ctx.NodeStorage
+}
+
+// Validator returns the context's Validator
+func (in *Instance) Validator() bool {
+	return ctx.Validator
+}
+
+// Keystore to get reference to runtime keystore
+func (in *Instance) Keystore() *keystore.GlobalKeystore {
+	return ctx.Keystore
 }
 
 // NetworkService returns the context's NetworkService
