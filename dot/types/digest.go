@@ -39,6 +39,14 @@ func NewDigest(items ...DigestItem) Digest {
 	return items
 }
 
+func EncodeWithVdt(digest scale.VaryingDataTypeSlice) ([]byte, error) {
+	enc, err := scale.Marshal(digest)
+	if err != nil {
+		return nil, err
+	}
+	return enc, nil
+}
+
 // Encode returns the SCALE encoded digest
 func (d *Digest) Encode() ([]byte, error) {
 	enc, err := scale.Marshal(big.NewInt(int64(len(*d))))
@@ -104,6 +112,19 @@ var ConsensusDigestType = byte(4)
 // SealDigestType is the byte representation of SealDigest
 var SealDigestType = byte(5)
 
+var digestItemVdt = scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
+var DigestVdtSlice = scale.NewVaryingDataTypeSlice(digestItemVdt)
+
+
+func DecodeWithVdt(in []byte) (scale.VaryingDataTypeSlice, error) {
+	var digestVdtSlice = scale.NewVaryingDataTypeSlice(digestItemVdt)
+	err := scale.Unmarshal(in, &digestVdtSlice)
+	if err != nil {
+		return scale.VaryingDataTypeSlice{}, err
+	}
+	return digestVdtSlice, nil
+}
+
 // DecodeDigest decodes the input into a Digest
 func DecodeDigest(buf *bytes.Buffer) (Digest, error) {
 	decoder := scale.NewDecoder(buf)
@@ -126,7 +147,7 @@ func DecodeDigest(buf *bytes.Buffer) (Digest, error) {
 
 // DecodeDigestItem will decode byte array to DigestItem
 func DecodeDigestItem(decoder *scale.Decoder) (DigestItem, error) {
-	var digestItemVdt = scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
+	//var digestItemVdt = scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
 	err := decoder.Decode(&digestItemVdt)
 	if err != nil {
 		return nil, err
