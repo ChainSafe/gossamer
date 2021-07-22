@@ -24,6 +24,7 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
+	"unsafe"
 )
 
 // ErrNoPrefix is returned when trying to convert a hex-encoded string with no 0x prefix
@@ -264,4 +265,28 @@ func ReadBytes(r io.Reader, n int) ([]byte, error) {
 		return nil, err
 	}
 	return buf, nil
+}
+
+// CheckAllBytesZero just uses unsafe.Pointer to read at least 8 positions at a time
+func CheckAllBytesZero(b []byte) bool {
+	n := len(b)
+
+	// Magic to get largest length which could be divided by 8.
+	nlen8 := n & 0xFFFFFFF8
+	i := 0
+
+	for ; i < nlen8; i += 8 {
+		b := *(*uint64)(unsafe.Pointer(&b[i]))
+		if b != 0 {
+			return false
+		}
+	}
+
+	for ; i < n; i++ {
+		if b[i] != 0 {
+			return false
+		}
+	}
+
+	return true
 }

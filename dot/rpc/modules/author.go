@@ -76,13 +76,10 @@ type KeyRotateResponse []byte
 
 type HasSessionKeyResponse bool
 
-type KeyTypeID struct {
-	Pub []byte
-}
-
+type KeyTypeID [4]uint8
 type DecodedKey struct {
-	Data []byte
-	Type *KeyTypeID
+	Data []uint8
+	Type KeyTypeID
 }
 
 // ExtrinsicStatus holds the actual valid statuses
@@ -137,12 +134,41 @@ func (am *AuthorModule) HasSessionKeys(r *http.Request, req *HasSessionKeyReques
 
 	var decodedKeys *[]DecodedKey
 	err = scale.Unmarshal(data, &decodedKeys)
-	fmt.Println(err, data, decodedKeys)
+	if err != nil {
+		return err
+	}
 
 	am.logger.Debug("decoded data", "err", err, "from runtime", data, "decoded", decodedKeys)
 
-	*res = false
-	return err
+	qtyCheck := 0
+	for _, key := range *decodedKeys {
+		if common.CheckAllBytesZero(key.Data) {
+			continue
+		}
+
+		encType := keystore.Name(key.Type[:])
+		ok, err := am.coreAPI.HasKey(common.BytesToHex(key.Data), string(encType))
+
+		if err != nil {
+			*res = false
+			return err
+		}
+
+		if !ok {
+			*res = false
+			return nil
+		}
+
+		qtyCheck++
+	}
+
+	if qtyCheck > 0 {
+		*res = true
+	} else {
+		*res = false
+	}
+
+	return nil
 }
 
 // InsertKey inserts a key into the keystore

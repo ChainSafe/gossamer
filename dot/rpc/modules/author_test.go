@@ -30,6 +30,15 @@ func TestAuthorModule_HasSessionKey(t *testing.T) {
 		globalStore.Acco.Insert(kp)
 	}).Once()
 
+	mockHasKey := coremockapi.On("HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string"))
+	mockHasKey.Run(func(args mock.Arguments) {
+		pubKeyHex := args.Get(0).(string)
+		keyType := args.Get(1).(string)
+
+		ok, err := keystore.HasKey(pubKeyHex, keyType, globalStore.Acco)
+		mockHasKey.ReturnArguments = []interface{}{ok, err}
+	})
+
 	keys := "0x34309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
 
 	runtimeInstance := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
@@ -50,11 +59,12 @@ func TestAuthorModule_HasSessionKey(t *testing.T) {
 	}, nil)
 	coremockapi.AssertCalled(t, "InsertKey", mock.AnythingOfType("*sr25519.Keypair"))
 	require.NoError(t, err)
+	require.Equal(t, 1, globalStore.Acco.Size())
 
 	var res HasSessionKeyResponse
 	err = module.HasSessionKeys(nil, req, &res)
 	require.NoError(t, err)
-	coremockapi.AssertCalled(t, "InsertKey")
+	require.True(t, bool(res))
 }
 
 func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
