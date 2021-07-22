@@ -61,8 +61,11 @@ func TestHandleBlockResponse(t *testing.T) {
 	parent, err := responder.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
+	rt, err := responder.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
 	for i := 0; i < 130; i++ {
-		block := BuildBlock(t, responder.runtime, parent, nil)
+		block := BuildBlock(t, rt, parent, nil)
 		err = responder.blockState.AddBlock(block)
 		require.NoError(t, err)
 		parent = block.Header
@@ -98,8 +101,11 @@ func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
+	rt, err := syncer.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
 	for i := 0; i < 4; i++ {
-		block := BuildBlock(t, syncer.runtime, parent, nil)
+		block := BuildBlock(t, rt, parent, nil)
 		err = syncer.blockState.AddBlock(block)
 		require.NoError(t, err)
 		parent = block.Header
@@ -110,8 +116,11 @@ func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
 	parent, err = responder.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
+	rt, err = responder.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
 	for i := 0; i < 16; i++ {
-		block := BuildBlock(t, responder.runtime, parent, nil)
+		block := BuildBlock(t, rt, parent, nil)
 		err = responder.blockState.AddBlock(block)
 		require.NoError(t, err)
 		parent = block.Header
@@ -145,7 +154,8 @@ func TestRemoveIncludedExtrinsics(t *testing.T) {
 		Validity:  &transaction.Validity{Priority: 1},
 	}
 
-	syncer.transactionState.(*state.TransactionState).Push(tx)
+	_, err := syncer.transactionState.(*state.TransactionState).Push(tx)
+	require.NoError(t, err)
 
 	exts := []types.Extrinsic{ext}
 	body, err := types.NewBodyFromExtrinsics(exts)
@@ -177,7 +187,11 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
-	block := BuildBlock(t, syncer.runtime, parent, nil)
+
+	rt, err := syncer.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	block := BuildBlock(t, rt, parent, nil)
 
 	bd := []*types.BlockData{{
 		Hash:          block.Header.Hash(),
@@ -200,14 +214,18 @@ func TestSyncer_ExecuteBlock(t *testing.T) {
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
-	block := BuildBlock(t, syncer.runtime, parent, nil)
+
+	rt, err := syncer.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	block := BuildBlock(t, rt, parent, nil)
 
 	// reset parentState
 	parentState, err := syncer.storageState.TrieState(&parent.StateRoot)
 	require.NoError(t, err)
-	syncer.runtime.SetContextStorage(parentState)
+	rt.SetContextStorage(parentState)
 
-	_, err = syncer.runtime.ExecuteBlock(block)
+	_, err = rt.ExecuteBlock(block)
 	require.NoError(t, err)
 }
 
@@ -241,10 +259,15 @@ func TestSyncer_ProcessJustification(t *testing.T) {
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
-	block := BuildBlock(t, syncer.runtime, parent, nil)
+
+	rt, err := syncer.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	block := BuildBlock(t, rt, parent, nil)
 	block.Header.Digest = types.Digest{
 		types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
 	}
+
 	err = syncer.blockState.(*state.BlockState).AddBlock(block)
 	require.NoError(t, err)
 

@@ -2,6 +2,7 @@ const { describe } = require('mocha');
 const { expect } = require('chai');
 const { ApiPromise, WsProvider } = require('@polkadot/api');
 const { Keyring } = require('@polkadot/keyring');
+const fs = require('fs');
 
 const sleep = (delay) => new Promise((resolve) => setTimeout(resolve, delay));
 
@@ -65,6 +66,39 @@ describe('Testing polkadot.js/api calls:', function () {
             expect(libraryInfo).to.be.equal('@polkadot/api v4.5.1');
         });
     });
+    describe('upgrade runtime', () => {
+        it('update the runtime using wasm file', async function () {
+            const keyring = new Keyring({type: 'sr25519' });
+            const aliceKey = keyring.addFromUri('//Alice');
+
+            // Retrieve the runtime to upgrade
+            const code = fs.readFileSync('test/node_runtime.compact.wasm').toString('hex');
+            const proposal = api.tx.system && api.tx.system.setCode
+                ? api.tx.system.setCode(`0x${code}`) // For newer versions of Substrate
+                : api.tx.consensus.setCode(`0x${code}`); // For previous versions
+
+            // Perform the actual chain upgrade via the sudo module
+            api.tx.sudo
+                .sudo(proposal)
+                .signAndSend(aliceKey, ({ events = [], status }) => {
+                    console.log('Proposal status:', status.type);
+
+                    if (status.isInBlock) {
+                        console.error('You have just upgraded your chain');
+
+                        console.log('Included at block hash', status.asInBlock.toHex());
+                        console.log('Events:');
+
+                        console.log(JSON.stringify(events.toHuman(), null, 2));
+                    } else if (status.isFinalized) {
+                        console.log('Finalized block hash', status.asFinalized.toHex());
+
+                        process.exit(0);
+                    }
+                });
+        })
+    });
+
     describe('api query', () => {
         it('call api.query.timestamp.now()', async function () {
             const timestamp = await api.query.timestamp.now();

@@ -22,7 +22,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 )
@@ -45,7 +44,7 @@ type BlockState interface {
 	RegisterImportedChannel(ch chan<- *types.Block) (byte, error)
 	UnregisterImportedChannel(id byte)
 	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
-	UnregisterFinalizedChannel(id byte)
+	UnregisterFinalisedChannel(id byte)
 	SetJustification(hash common.Hash, data []byte) error
 	HasJustification(hash common.Hash) (bool, error)
 	GetJustification(hash common.Hash) ([]byte, error)
