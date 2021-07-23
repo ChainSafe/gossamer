@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"math/big"
 	"os"
-	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -512,7 +511,6 @@ func (s *Service) playGrandpaRound() error {
 	err = s.attemptToFinalize()
 	if err != nil {
 		logger.Error("failed to finalise", "error", err)
-		debug.PrintStack()
 		return err
 	}
 
