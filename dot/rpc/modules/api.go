@@ -76,8 +76,8 @@ type CoreAPI interface {
 	GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error)
 	HandleSubmittedExtrinsic(types.Extrinsic) error
 	GetMetadata(bhash *common.Hash) ([]byte, error)
-	RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (byte, error)
-	UnregisterRuntimeUpdatedChannel(id byte) bool
+	RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error)
+	UnregisterRuntimeUpdatedChannel(id uint32) bool
 }
 
 // RPCAPI is the interface for methods related to RPC service

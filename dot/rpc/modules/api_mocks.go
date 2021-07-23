@@ -47,7 +47,7 @@ func NewMockCoreAPI() *modulesmocks.MockCoreAPI {
 	m.On("IsBlockProducer").Return(false)
 	m.On("HandleSubmittedExtrinsic", mock.AnythingOfType("types.Extrinsic")).Return(nil)
 	m.On("GetMetadata", mock.AnythingOfType("*common.Hash")).Return(nil, nil)
-	m.On("RegisterRuntimeUpdatedChannel", mock.AnythingOfType("chan<- runtime.Version")).Return(byte(0), nil)
+	m.On("RegisterRuntimeUpdatedChannel", mock.AnythingOfType("chan<- runtime.Version")).Return(uint32(0), nil)
 	return m
 }
 
