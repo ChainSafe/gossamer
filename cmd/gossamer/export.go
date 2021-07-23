@@ -18,6 +18,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
@@ -117,11 +118,12 @@ func dotConfigToToml(dcfg *dot.Config) *ctoml.Config {
 	}
 
 	cfg.Network = ctoml.NetworkConfig{
-		Port:        dcfg.Network.Port,
-		Bootnodes:   dcfg.Network.Bootnodes,
-		ProtocolID:  dcfg.Network.ProtocolID,
-		NoBootstrap: dcfg.Network.NoBootstrap,
-		NoMDNS:      dcfg.Network.NoMDNS,
+		Port:              dcfg.Network.Port,
+		Bootnodes:         dcfg.Network.Bootnodes,
+		ProtocolID:        dcfg.Network.ProtocolID,
+		NoBootstrap:       dcfg.Network.NoBootstrap,
+		NoMDNS:            dcfg.Network.NoMDNS,
+		DiscoveryInterval: int(dcfg.Network.DiscoveryInterval / time.Second),
 	}
 
 	cfg.RPC = ctoml.RPCConfig{

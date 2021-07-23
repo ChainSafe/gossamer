@@ -56,7 +56,6 @@ type WSConn struct {
 	Subscriptions      map[uint]Listener
 	StorageAPI         modules.StorageAPI
 	BlockAPI           modules.BlockAPI
-	RuntimeAPI         modules.RuntimeAPI
 	CoreAPI            modules.CoreAPI
 	TxStateAPI         modules.TransactionStateAPI
 	RPCHost            string

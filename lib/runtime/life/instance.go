@@ -24,6 +24,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	log "github.com/ChainSafe/log15"
 	"github.com/perlin-network/life/exec"
@@ -51,6 +52,11 @@ type Instance struct {
 	vm      *exec.VirtualMachine
 	mu      sync.Mutex
 	version runtime.Version
+}
+
+// GetCodeHash returns code hash of the runtime
+func (in *Instance) GetCodeHash() common.Hash {
+	return common.Hash{}
 }
 
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data
@@ -211,6 +217,16 @@ func (in *Instance) NodeStorage() runtime.NodeStorage {
 // NetworkService to get referernce to runtime network service
 func (in *Instance) NetworkService() runtime.BasicNetwork {
 	return ctx.Network
+}
+
+// Validator returns the context's Validator
+func (in *Instance) Validator() bool {
+	return ctx.Validator
+}
+
+// Keystore to get reference to runtime keystore
+func (in *Instance) Keystore() *keystore.GlobalKeystore {
+	return ctx.Keystore
 }
 
 // TODO: move below to lib/runtime
