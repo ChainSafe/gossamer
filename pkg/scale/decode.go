@@ -154,8 +154,10 @@ func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {
 	case Result:
 		err = ds.decodeResult(dstv)
 	case VaryingDataType:
+		fmt.Println("val")
 		err = ds.decodeVaryingDataType(dstv)
 	case VaryingDataTypeSlice:
+		fmt.Println("slice")
 		err = ds.decodeVaryingDataTypeSlice(dstv)
 	default:
 		t := reflect.TypeOf(in)
@@ -335,11 +337,14 @@ func (ds *decodeState) decodePointer(dstv reflect.Value) (err error) {
 }
 
 func (ds *decodeState) decodeVaryingDataTypeSlice(dstv reflect.Value) (err error) {
+	fmt.Println("dstv: ", dstv)
 	vdts := dstv.Interface().(VaryingDataTypeSlice)
+	fmt.Println("vstv: ", vdts)
 	l, err := ds.decodeLength()
 	if err != nil {
 		return
 	}
+	fmt.Println("Length: ", l)
 	for i := 0; i < l; i++ {
 		vdt := vdts.VaryingDataType
 		vdtv := reflect.New(reflect.TypeOf(vdt))
@@ -362,6 +367,7 @@ func (ds *decodeState) decodeVaryingDataType(dstv reflect.Value) (err error) {
 	}
 
 	vdt := dstv.Interface().(VaryingDataType)
+	//fmt.Println("vdt", vdt.value)
 	val, ok := vdt.cache[uint(b)]
 	if !ok {
 		err = fmt.Errorf("unable to find VaryingDataTypeValue with index: %d", uint(b))

@@ -28,6 +28,11 @@ import (
 
 // Digest represents the block digest. It consists of digest items.
 type Digest []DigestItem
+type DigestVdt scale.VaryingDataTypeSlice
+
+
+var DigestItemVdt = scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
+var DigestVdtSlice = scale.NewVaryingDataTypeSlice(DigestItemVdt)
 
 // NewEmptyDigest returns an empty digest
 func NewEmptyDigest() Digest {
@@ -112,12 +117,9 @@ var ConsensusDigestType = byte(4)
 // SealDigestType is the byte representation of SealDigest
 var SealDigestType = byte(5)
 
-var digestItemVdt = scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
-var DigestVdtSlice = scale.NewVaryingDataTypeSlice(digestItemVdt)
-
 
 func DecodeWithVdt(in []byte) (scale.VaryingDataTypeSlice, error) {
-	var digestVdtSlice = scale.NewVaryingDataTypeSlice(digestItemVdt)
+	var digestVdtSlice = scale.NewVaryingDataTypeSlice(DigestItemVdt)
 	err := scale.Unmarshal(in, &digestVdtSlice)
 	if err != nil {
 		return scale.VaryingDataTypeSlice{}, err
@@ -148,12 +150,12 @@ func DecodeDigest(buf *bytes.Buffer) (Digest, error) {
 // DecodeDigestItem will decode byte array to DigestItem
 func DecodeDigestItem(decoder *scale.Decoder) (DigestItem, error) {
 	//var digestItemVdt = scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
-	err := decoder.Decode(&digestItemVdt)
+	err := decoder.Decode(&DigestItemVdt)
 	if err != nil {
 		return nil, err
 	}
 
-	switch val := digestItemVdt.Value().(type) {
+	switch val := DigestItemVdt.Value().(type) {
 	case ChangesTrieRootDigest:
 		return &val, err
 	case PreRuntimeDigest:

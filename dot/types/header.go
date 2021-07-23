@@ -37,6 +37,35 @@ type Header struct {
 	hash           common.Hash
 }
 
+// Header is a state block header
+type HeaderVdt struct {
+	ParentHash     common.Hash `json:"parentHash"`
+	Number         *big.Int    `json:"number"`
+	StateRoot      common.Hash `json:"stateRoot"`
+	ExtrinsicsRoot common.Hash `json:"extrinsicsRoot"`
+	Digest         scale.VaryingDataTypeSlice      `json:"digest"`
+	hash           common.Hash
+}
+
+// NewHeader creates a new block header and sets its hash field
+func NewHeaderVdt(parentHash, stateRoot, extrinsicsRoot common.Hash, number *big.Int, digest scale.VaryingDataTypeSlice) (*HeaderVdt, error) {
+	if number == nil {
+		// Hash() will panic if number is nil
+		return nil, errors.New("cannot have nil block number")
+	}
+
+	bh := &HeaderVdt{
+		ParentHash:     parentHash,
+		Number:         number,
+		StateRoot:      stateRoot,
+		ExtrinsicsRoot: extrinsicsRoot,
+		Digest:         digest,
+	}
+
+	bh.Hash()
+	return bh, nil
+}
+
 // NewHeader creates a new block header and sets its hash field
 func NewHeader(parentHash, stateRoot, extrinsicsRoot common.Hash, number *big.Int, digest []DigestItem) (*Header, error) {
 	if number == nil {
@@ -57,11 +86,40 @@ func NewHeader(parentHash, stateRoot, extrinsicsRoot common.Hash, number *big.In
 }
 
 // NewEmptyHeader returns a new header with all zero values
+func NewEmptyHeaderVdt() *HeaderVdt {
+	var diVdt = scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
+	var vdtSlice = scale.NewVaryingDataTypeSlice(diVdt)
+	return &HeaderVdt{
+		Number: big.NewInt(0),
+		Digest: vdtSlice,
+	}
+}
+
+// NewEmptyHeader returns a new header with all zero values
 func NewEmptyHeader() *Header {
 	return &Header{
 		Number: big.NewInt(0),
 		Digest: []DigestItem{},
 	}
+}
+
+// DeepCopy returns a deep copy of the header to prevent side effects down the road
+func (bh *HeaderVdt) DeepCopy() *HeaderVdt {
+	cp := NewEmptyHeaderVdt()
+	copy(cp.ParentHash[:], bh.ParentHash[:])
+	copy(cp.StateRoot[:], bh.StateRoot[:])
+	copy(cp.ExtrinsicsRoot[:], bh.ExtrinsicsRoot[:])
+
+	if bh.Number != nil {
+		cp.Number = new(big.Int).Set(bh.Number)
+	}
+
+	if len(bh.Digest.Types) > 0 {
+		//cp.Digest = make([]DigestItem, len(bh.Digest))
+		copy(cp.Digest.Types[:], bh.Digest.Types[:])
+	}
+
+	return cp
 }
 
 // DeepCopy returns a deep copy of the header to prevent side effects down the road
@@ -84,9 +142,33 @@ func (bh *Header) DeepCopy() *Header {
 }
 
 // String returns the formatted header as a string
+func (bh *HeaderVdt) String() string {
+	return fmt.Sprintf("ParentHash=%s Number=%d StateRoot=%s ExtrinsicsRoot=%s Digest=%v Hash=%s",
+		bh.ParentHash, bh.Number, bh.StateRoot, bh.ExtrinsicsRoot, bh.Digest, bh.Hash())
+}
+
+// String returns the formatted header as a string
 func (bh *Header) String() string {
 	return fmt.Sprintf("ParentHash=%s Number=%d StateRoot=%s ExtrinsicsRoot=%s Digest=%v Hash=%s",
 		bh.ParentHash, bh.Number, bh.StateRoot, bh.ExtrinsicsRoot, bh.Digest, bh.Hash())
+}
+
+func (bh *HeaderVdt) Hash() common.Hash {
+	if bh.hash == [32]byte{} {
+		enc, err := bh.Encode()
+		if err != nil {
+			panic(err)
+		}
+
+		hash, err := common.Blake2bHash(enc)
+		if err != nil {
+			panic(err)
+		}
+
+		bh.hash = hash
+	}
+
+	return bh.hash
 }
 
 // Hash returns the hash of the block header
@@ -108,6 +190,15 @@ func (bh *Header) Hash() common.Hash {
 	}
 
 	return bh.hash
+}
+
+// Encode returns the SCALE encoding of a header
+func (bh *HeaderVdt) Encode() ([]byte, error) {
+	enc, err := scale.Marshal(*bh)
+	if err != nil {
+		return nil, err
+	}
+	return enc, nil
 }
 
 // Encode returns the SCALE encoding of a header
@@ -148,12 +239,39 @@ func (bh *Header) Encode() ([]byte, error) {
 }
 
 // MustEncode returns the SCALE encoded header and panics if it fails to encode
+func (bh *HeaderVdt) MustEncode() []byte {
+	enc, err := bh.Encode()
+	if err != nil {
+		panic(err)
+	}
+	return enc
+}
+
+// MustEncode returns the SCALE encoded header and panics if it fails to encode
 func (bh *Header) MustEncode() []byte {
 	enc, err := bh.Encode()
 	if err != nil {
 		panic(err)
 	}
 	return enc
+}
+
+func Decode(bh HeaderVdt, in []byte) (HeaderVdt, error) {
+	err := scale.Unmarshal(in, &bh)
+	if err != nil {
+		return HeaderVdt{}, err
+	}
+	return bh, nil
+}
+
+// Decode decodes the SCALE encoded input into this header
+func (bh *HeaderVdt) Decode(in []byte) (*HeaderVdt, error) {
+	var dec = NewEmptyHeaderVdt()
+	err := scale.Unmarshal(in, dec)
+	if err != nil {
+		return nil, err
+	}
+	return dec, nil
 }
 
 // Decode decodes the SCALE encoded input into this header
