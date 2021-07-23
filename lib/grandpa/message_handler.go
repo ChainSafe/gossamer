@@ -432,13 +432,7 @@ func (s *Service) VerifyBlockJustification(justification []byte) error {
 	}
 
 	for _, just := range fj.Commit.Precommits {
-		if just.Vote.Hash != fj.Commit.Hash {
-			return ErrJustificationHashMismatch
-		}
-
-		if just.Vote.Number != fj.Commit.Number {
-			return ErrJustificationNumberMismatch
-		}
+		// TODO: check if vote was for descendant of committe block
 
 		pk, err := ed25519.NewPublicKey(just.AuthorityID[:])
 		if err != nil {
