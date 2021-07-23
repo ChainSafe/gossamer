@@ -112,7 +112,7 @@ func (h *Handler) Start() error {
 func (h *Handler) Stop() error {
 	h.cancel()
 	h.blockState.UnregisterImportedChannel(h.importedID)
-	h.blockState.UnregisterFinalizedChannel(h.finalisedID)
+	h.blockState.UnregisterFinalisedChannel(h.finalisedID)
 	close(h.imported)
 	close(h.finalised)
 	return nil

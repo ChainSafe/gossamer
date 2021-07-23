@@ -46,7 +46,6 @@ type Service struct {
 	// Synchronisation variables
 	synced           bool
 	highestSeenBlock *big.Int // highest block number we have seen
-	runtime          runtime.Instance
 
 	// BABE verification
 	verifier Verifier
@@ -78,10 +77,6 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, errNilVerifier
 	}
 
-	if cfg.Runtime == nil {
-		return nil, errNilRuntime
-	}
-
 	if cfg.BlockImportHandler == nil {
 		return nil, errNilBlockImportHandler
 	}
@@ -98,7 +93,6 @@ func NewService(cfg *Config) (*Service, error) {
 		synced:             true,
 		highestSeenBlock:   big.NewInt(0),
 		transactionState:   cfg.TransactionState,
-		runtime:            cfg.Runtime,
 		verifier:           cfg.Verifier,
 	}, nil
 }
@@ -332,10 +326,16 @@ func (s *Service) handleBlock(block *types.Block) error {
 		panic("parent state root does not match snapshot state root")
 	}
 
-	s.runtime.SetContextStorage(ts)
+	hash := parent.Hash()
+	rt, err := s.blockState.GetRuntime(&hash)
+	if err != nil {
+		return err
+	}
+
+	rt.SetContextStorage(ts)
 	logger.Trace("going to execute block", "header", block.Header, "exts", block.Body)
 
-	_, err = s.runtime.ExecuteBlock(block)
+	_, err = rt.ExecuteBlock(block)
 	if err != nil {
 		return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)
 	}

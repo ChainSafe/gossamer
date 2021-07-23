@@ -19,6 +19,7 @@ package runtime
 import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
@@ -30,9 +31,12 @@ type Instance interface {
 	Stop()
 	NodeStorage() NodeStorage
 	NetworkService() BasicNetwork
+	Keystore() *keystore.GlobalKeystore
+	Validator() bool
 	Exec(function string, data []byte) ([]byte, error)
 	SetContextStorage(s Storage) // used to set the TrieState before a runtime call
 
+	GetCodeHash() common.Hash
 	Version() (Version, error)
 	Metadata() ([]byte, error)
 	BabeConfiguration() (*types.BabeConfiguration, error)
