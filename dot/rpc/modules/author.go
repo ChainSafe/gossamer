@@ -19,7 +19,7 @@ package modules
 import (
 	"fmt"
 	"net/http"
-	"reflect"
+	"strings"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -137,8 +137,6 @@ func (am *AuthorModule) HasSessionKeys(r *http.Request, req *HasSessionKeyReques
 		return err
 	}
 
-	am.logger.Debug("decoded data", "err", err, "from runtime", data, "decoded", decodedKeys)
-
 	qtyCheck := 0
 	for _, key := range *decodedKeys {
 		if common.CheckAllBytesZero(key.Data) {
@@ -191,7 +189,8 @@ func (am *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *K
 		return err
 	}
 
-	if !reflect.DeepEqual(keyPair.Public().Hex(), keyReq.PublicKey) {
+	//strings.EqualFold compare using case-insensitivity.
+	if !strings.EqualFold(keyPair.Public().Hex(), keyReq.PublicKey) {
 		am.logger.Debug("keys not equal", "keypair", keyPair.Public().Hex(), "received", keyReq.PublicKey)
 		return fmt.Errorf("generated public key does not equal provide public key")
 	}
