@@ -34,6 +34,7 @@ type AuthorModule struct {
 	logger     log.Logger
 	coreAPI    CoreAPI
 	txStateAPI TransactionStateAPI
+	runtimeAPI RuntimeAPI
 }
 
 type HasSessionKeyRequest struct {
