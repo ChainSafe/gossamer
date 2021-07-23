@@ -66,9 +66,9 @@ func TestSomething(t *testing.T) {
 	require.Equal(t, MyVaryingDataTypeSliceStruct{vdts}, mvdtss)
 }
 func TestEncodeHeaderVdt(t *testing.T) {
-	var dVdt = scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
-	var vdts = scale.NewVaryingDataTypeSlice(dVdt)
-	//vdts := DigestVdtSlice
+	//var dVdt = scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
+	//var vdts = scale.NewVaryingDataTypeSlice(dVdt)
+	vdts := DigestVdtSlice
 	err := vdts.Add(
 		PreRuntimeDigest{
 			ConsensusEngineID: BabeEngineID,
@@ -100,13 +100,6 @@ func TestEncodeHeaderVdt(t *testing.T) {
 		},
 	}
 
-	//di, err := scale.Marshal(vdts)
-	//require.NoError(t, err)
-	//
-	//var digest = scale.NewVaryingDataTypeSlice(DigestItemVdt) // This is necessary to decode
-	//err = scale.Unmarshal(di, &digest)
-	//require.NoError(t, err)
-
 	header, err := NewHeader(common.Hash{1}, common.Hash{1}, common.Hash{1}, big.NewInt(1), d)
 	require.NoError(t, err)
 
@@ -129,49 +122,48 @@ func TestEncodeHeaderVdt(t *testing.T) {
 	fmt.Println("--- Decoding regular Header ---")
 	rw := &bytes.Buffer{}
 	rw.Write(enc)
-	_, err = new(Header).Decode(rw)
+	dec, err := new(Header).Decode(rw)
 	require.NoError(t, err)
 
 	//decVdt, err := new(HeaderVdt).Decode(encVdt)
 	fmt.Println("--- Decoding VDT Header ---")
-	var head = NewEmptyHeaderVdt()
-
-	//var diVdt = scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
-	//var vdtSlice = scale.NewVaryingDataTypeSlice(diVdt)
-	//head := HeaderVdt{
-	//	Number: big.NewInt(0),
-	//	Digest: vdtSlice,
-	//}
-	//var head HeaderVdt
-	//decVdt, err := head.Decode(encVdt)
-	//decVdt, err := Decode(*head, encVdt)
-	//var decVdt HeaderVdt
-	err = scale.Unmarshal(encVdt, &head)
+	var decVdt = NewEmptyHeaderVdt()
+	err = scale.Unmarshal(encVdt, &decVdt)
 	require.NoError(t, err)
 
-	fmt.Println(head)
-
 	//l := len(decVdt.Digest.Types[:])
-	//fmt.Println(l)
 	////var act [l]interface{}
 	//act := make([]interface{}, l)
+	////var act [3]interface{}
 	//for i, _ := range decVdt.Digest.Types {
 	//	switch val := decVdt.Digest.Types[i].Value().(type) {
 	//	case ChangesTrieRootDigest:
-	//		fmt.Println(i)
-	//		act[i] = val
+	//		//fmt.Println(i)
+	//		act[i] = &val
 	//	case PreRuntimeDigest:
-	//		fmt.Println(i)
-	//		act[i] = val
+	//		//fmt.Println(i)
+	//		act[i] = &val
 	//	case ConsensusDigest:
-	//		fmt.Println(i)
-	//		act[i] = val
+	//		//fmt.Println(i)
+	//		act[i] = &val
 	//	case SealDigest:
-	//		fmt.Println(i)
-	//		act[i] = val
+	//		//fmt.Println(i)
+	//		act[i] = &val
 	//	}
 	//}
 	//fmt.Println(act[:])
+	//require.Equal(t, dec.Digest[0], decVdt.Digest.Types[0].Value())
+
+	 // Test if reencoding is equal
+	enc2, err := dec.Encode()
+	require.NoError(t, err)
+
+	//encVdt, err := headerVdt.Encode()
+	encVdt2, err := scale.Marshal(decVdt)
+	require.NoError(t, err)
+
+	require.Equal(t, enc2, encVdt2)
+	fmt.Println("--- ReEncodings are Equal ---")
 }
 
 // TODO add test for deep copy of VDTs

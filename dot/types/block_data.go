@@ -78,7 +78,7 @@ func (bd *BlockData) Encode() ([]byte, error) {
 	if bd.Header.Exists() {
 		//venc, err := scale.Encode(bd.Header.Value())
 		head, err := NewHeaderFromOptional(bd.Header)
-		if err != nil {
+		if err != nil || head == nil{
 			return nil, err
 		}
 		venc, err := head.Encode()

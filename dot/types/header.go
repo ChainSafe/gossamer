@@ -114,8 +114,8 @@ func (bh *HeaderVdt) DeepCopy() HeaderVdt {
 	}
 
 	if len(bh.Digest.Types) > 0 {
-		//cp.Digest = make([]DigestItem, len(bh.Digest))
-		copy(cp.Digest.Types[:], bh.Digest.Types[:])
+		cp.Digest = DigestVdtSlice
+		copy(cp.Digest.Types, bh.Digest.Types[:])
 	}
 
 	return cp
