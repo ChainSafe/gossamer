@@ -128,7 +128,10 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 	}
 
 	ctx = runtimeCtx
-	inst.version, _ = inst.Version()
+	//inst.version, err = inst.Version()
+	//if err != nil {
+	//	logger.Error("error checking instance version", "error", err)
+	//}
 	return inst, nil
 }
 

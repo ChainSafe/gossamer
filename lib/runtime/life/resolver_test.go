@@ -17,16 +17,18 @@
 package life
 
 import (
-	"testing"
-
+	"fmt"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/stretchr/testify/require"
+	"testing"
 )
 
 func Test_ext_hashing_blake2_256_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	//inst := newInstanceFromGenesis(t)
+	fmt.Printf("inst %v\n", inst)
 
 	data := []byte("helloworld")
 	enc, err := scale.Encode(data)
