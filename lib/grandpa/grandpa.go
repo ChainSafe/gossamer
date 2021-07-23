@@ -479,6 +479,7 @@ func (s *Service) playGrandpaRound() error {
 
 	logger.Debug("sending pre-vote message...", "vote", pv)
 	roundComplete := make(chan struct{})
+	defer close(roundComplete)
 
 	// continue to send prevote messages until round is done
 	go s.sendVoteMessage(prevote, vm, roundComplete)
@@ -510,10 +511,9 @@ func (s *Service) playGrandpaRound() error {
 	err = s.attemptToFinalize()
 	if err != nil {
 		logger.Error("failed to finalise", "error", err)
-		return err
+		//return err
 	}
 
-	close(roundComplete)
 	return nil
 }
 
@@ -563,11 +563,13 @@ func (s *Service) attemptToFinalize() error {
 
 		bfc, err := s.getBestFinalCandidate()
 		if err != nil {
+			logger.Crit("failed to getBestFinalCandidate", "error", err)
 			return err
 		}
 
 		pc, err := s.getTotalVotesForBlock(bfc.Hash, precommit)
 		if err != nil {
+			logger.Crit("failed to getTotalVotesForBlock", "error", err)
 			return err
 		}
 
@@ -577,6 +579,7 @@ func (s *Service) attemptToFinalize() error {
 
 		err = s.finalise()
 		if err != nil {
+			logger.Crit("failed to finalise", "error", err)
 			return err
 		}
 
