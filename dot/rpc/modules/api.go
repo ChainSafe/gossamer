@@ -76,18 +76,13 @@ type CoreAPI interface {
 	GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error)
 	HandleSubmittedExtrinsic(types.Extrinsic) error
 	GetMetadata(bhash *common.Hash) ([]byte, error)
+	DecodeSessionKeys(enc []byte) ([]byte, error)
 }
 
 // RPCAPI is the interface for methods related to RPC service
 type RPCAPI interface {
 	Methods() []string
 	BuildMethodNames(rcvr interface{}, name string)
-}
-
-// RuntimeAPI is the interface for runtime methods
-type RuntimeAPI interface {
-	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
-	DecodeSessionKeys(enc []byte) ([]byte, error)
 }
 
 // SystemAPI is the interface for handling system methods

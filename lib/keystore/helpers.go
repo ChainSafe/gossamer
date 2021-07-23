@@ -25,7 +25,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"unsafe"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -33,11 +32,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/utils"
-)
-
-var (
-	ErrTypeNotFound  = errors.New("could not determine the key type")
-	ErrAllBytesZeros = errors.New("cannot decode key with all bytes zeros")
 )
 
 // PrivateKeyToKeypair returns a public, private keypair given a private key
@@ -71,15 +65,17 @@ func DecodePrivateKey(in []byte, keytype crypto.KeyType) (priv crypto.PrivateKey
 }
 
 // DecodePrivateKeyFromHex turns an hex seed into a private key
-func DecodePrivateKeyFromHex(seed string, keytype crypto.KeyType) (priv crypto.PrivateKey, err error) {
+func DecodeKeyPairFromSeed(seed []byte, keytype crypto.KeyType) (kp crypto.Keypair, err error) {
 	switch keytype {
 	case crypto.Sr25519Type:
-		priv, err = sr25519.NewPrivateKeyFromHex(seed)
+		kp, err = sr25519.NewKeypairFromSeed(seed)
+	case crypto.Ed25519Type:
+		kp, err = ed25519.NewKeypairFromSeed(seed)
 	default:
 		return nil, errors.New("cannot decode key: invalid key type")
 	}
 
-	return priv, err
+	return kp, err
 }
 
 // GenerateKeypair create a new keypair with the corresponding type and saves
@@ -358,28 +354,4 @@ func HasKey(pubKeyStr, keyType string, keystore Keystore) (bool, error) {
 	}
 	key := keystore.GetKeypairFromAddress(pubKey.Address())
 	return key != nil, nil
-}
-
-// CheckAllBytesZero just uses unsafe.Pointer to read at least 8 positions at a time
-func CheckAllBytesZero(b []byte) bool {
-	n := len(b)
-
-	// Magic to get largest length which could be divided by 8.
-	nlen8 := n & 0xFFFFFFF8
-	i := 0
-
-	for ; i < nlen8; i += 8 {
-		b := *(*uint64)(unsafe.Pointer(&b[i]))
-		if b != 0 {
-			return false
-		}
-	}
-
-	for ; i < n; i++ {
-		if b[i] != 0 {
-			return false
-		}
-	}
-
-	return true
 }

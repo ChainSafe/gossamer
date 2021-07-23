@@ -34,7 +34,6 @@ type AuthorModule struct {
 	logger     log.Logger
 	coreAPI    CoreAPI
 	txStateAPI TransactionStateAPI
-	runtimeAPI RuntimeAPI
 }
 
 type HasSessionKeyRequest struct {
@@ -124,7 +123,7 @@ func (am *AuthorModule) HasSessionKeys(r *http.Request, req *HasSessionKeyReques
 		return err
 	}
 
-	data, err := am.runtimeAPI.DecodeSessionKeys(pkeys)
+	data, err := am.coreAPI.DecodeSessionKeys(pkeys)
 	if err != nil {
 		am.logger.Debug("err while calling decode session keys runtime function", "err", err)
 		*res = false
@@ -177,13 +176,7 @@ func (am *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *K
 		return err
 	}
 
-	privateKey, err := keystore.DecodePrivateKey(seedBytes, keystore.DetermineKeyType(keyReq.Type))
-	if err != nil {
-		am.logger.Debug("err decode private key from hex", "key type", keystore.DetermineKeyType(keyReq.Type), "err", err)
-		return err
-	}
-
-	keyPair, err := keystore.PrivateKeyToKeypair(privateKey)
+	keyPair, err := keystore.DecodeKeyPairFromSeed(seedBytes, keystore.DetermineKeyType(keyReq.Type))
 	if err != nil {
 		am.logger.Debug("err private key pair", "key type", keystore.DetermineKeyType(keyReq.Type), "err", err)
 		return err
