@@ -23,10 +23,10 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
-	"runtime/debug"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"

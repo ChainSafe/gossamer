@@ -99,11 +99,13 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 			header, err := bs.GetHeader(hash)
 			if err != nil {
 				logger.Debug("failed to get pruned header", "hash", hash, "error", err)
+				return
 			}
 
 			err = bs.DeleteBlock(hash)
 			if err != nil {
 				logger.Debug("failed to delete block", "hash", hash, "error", err)
+				return
 			}
 
 			logger.Trace("pruned block", "hash", hash, "number", header.Number)
