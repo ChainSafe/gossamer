@@ -94,21 +94,21 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	}
 
 	pruned := bs.bt.Prune(hash)
-	for _, rem := range pruned {
-		go func() {
-			header, err := bs.GetHeader(rem)
+	for _, hash := range pruned {
+		go func(hash common.Hash) {
+			header, err := bs.GetHeader(hash)
 			if err != nil {
-				logger.Debug("failed to get pruned header", "hash", rem, "error", err)
+				logger.Debug("failed to get pruned header", "hash", hash, "error", err)
 			}
 
-			err = bs.DeleteBlock(rem)
+			err = bs.DeleteBlock(hash)
 			if err != nil {
-				logger.Debug("failed to delete block", "hash", rem, "error", err)
+				logger.Debug("failed to delete block", "hash", hash, "error", err)
 			}
 
-			logger.Trace("pruned block", "hash", rem, "number", header.Number)
-			bs.pruneKeyCh <- header		
-		}()
+			logger.Trace("pruned block", "hash", hash, "number", header.Number)
+			bs.pruneKeyCh <- header
+		}(hash)
 	}
 
 	bs.lastFinalised = hash
