@@ -134,6 +134,7 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 	}
 
 	ctx = runtimeCtx
+	// todo fix this so that it doesn't panic if instVersion isn't in the wasm blob
 	//inst.version, err = inst.Version()
 	//if err != nil {
 	//	logger.Error("error checking instance version", "error", err)
