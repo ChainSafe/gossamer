@@ -47,6 +47,8 @@ const (
 	transactionsID  = "/transactions/1"
 
 	maxMessageSize = 1024 * 63 // 63kb for now
+
+	gssmrIsMajorSyncMetric = "gossamer/network/is_major_syncing"
 )
 
 var (
@@ -480,8 +482,8 @@ func (s *Service) IsStopped() bool {
 	return s.ctx.Err() != nil
 }
 
-// SendMessage implementation of interface to handle receiving messages
-func (s *Service) SendMessage(msg NotificationsMessage) {
+// GossipMessage gossips a notifications protocol message to our peers
+func (s *Service) GossipMessage(msg NotificationsMessage) {
 	if s.host == nil || msg == nil || s.IsStopped() {
 		return
 	}
@@ -507,6 +509,23 @@ func (s *Service) SendMessage(msg NotificationsMessage) {
 	}
 
 	logger.Error("message not supported by any notifications protocol", "msg type", msg.Type())
+}
+
+// SendMessage sends a message to the given peer
+func (s *Service) SendMessage(to peer.ID, msg NotificationsMessage) error {
+	s.notificationsMu.Lock()
+	defer s.notificationsMu.Unlock()
+	for msgID, prtl := range s.notificationsProtocols {
+		if msg.Type() != msgID || prtl == nil {
+			continue
+		}
+		hs, err := prtl.getHandshake()
+		if err != nil {
+			return err
+		}
+		s.sendData(to, hs, prtl, msg)
+	}
+	return errors.New("message not supported by any notifications protocol")
 }
 
 // handleLightStream handles streams with the <protocol-id>/light/2 protocol ID
@@ -673,4 +692,28 @@ func (s *Service) Peers() []common.PeerInfo {
 // NodeRoles Returns the roles the node is running as.
 func (s *Service) NodeRoles() byte {
 	return s.cfg.Roles
+}
+
+// CollectGauge will be used to collect coutable metrics from network service
+func (s *Service) CollectGauge() map[string]int64 {
+	var isSynced int64
+	if !s.syncer.IsSynced() {
+		isSynced = 1
+	} else {
+		isSynced = 0
+	}
+
+	return map[string]int64{
+		gssmrIsMajorSyncMetric: isSynced,
+	}
+}
+
+// HighestBlock returns the highest known block number
+func (s *Service) HighestBlock() int64 {
+	return s.syncQueue.goal
+}
+
+// StartingBlock return the starting block number that's currently being synced
+func (s *Service) StartingBlock() int64 {
+	return s.syncQueue.currStart
 }

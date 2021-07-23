@@ -55,7 +55,6 @@ type WSConn struct {
 	Subscriptions map[uint32]Listener
 	StorageAPI    modules.StorageAPI
 	BlockAPI      modules.BlockAPI
-	RuntimeAPI    modules.RuntimeAPI
 	CoreAPI       modules.CoreAPI
 	TxStateAPI    modules.TransactionStateAPI
 	RPCHost       string
@@ -411,7 +410,7 @@ func (c *WSConn) unsubscribeGrandpaJustificationListener(reqID float64, l Listen
 		return
 	}
 
-	c.BlockAPI.UnregisterFinalizedChannel(listener.finalisedChID)
+	c.BlockAPI.UnregisterFinalisedChannel(listener.finalisedChID)
 	c.safeSend(newBooleanResponseJSON(true, reqID))
 }
 

@@ -17,9 +17,6 @@
 package state
 
 import (
-	"errors"
-	"math/rand"
-
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
@@ -29,16 +26,9 @@ import (
 func (bs *BlockState) RegisterImportedChannel(ch chan<- *types.Block) (byte, error) {
 	bs.importedLock.RLock()
 
-	if len(bs.imported) == 256 {
-		return 0, errors.New("channel limit reached")
-	}
-
-	var id byte
-	for {
-		id = generateID()
-		if bs.imported[id] == nil {
-			break
-		}
+	id, err := bs.importedBytePool.Get()
+	if err != nil {
+		return 0, err
 	}
 
 	bs.importedLock.RUnlock()
@@ -54,16 +44,9 @@ func (bs *BlockState) RegisterImportedChannel(ch chan<- *types.Block) (byte, err
 func (bs *BlockState) RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error) {
 	bs.finalisedLock.RLock()
 
-	if len(bs.finalised) == 256 {
-		return 0, errors.New("channel limit reached")
-	}
-
-	var id byte
-	for {
-		id = generateID()
-		if bs.finalised[id] == nil {
-			break
-		}
+	id, err := bs.finalisedBytePool.Get()
+	if err != nil {
+		return 0, err
 	}
 
 	bs.finalisedLock.RUnlock()
@@ -81,15 +64,23 @@ func (bs *BlockState) UnregisterImportedChannel(id byte) {
 	defer bs.importedLock.Unlock()
 
 	delete(bs.imported, id)
+	err := bs.importedBytePool.Put(id)
+	if err != nil {
+		logger.Error("failed to unregister imported channel", "error", err)
+	}
 }
 
-// UnregisterFinalizedChannel removes the block finalisation notification channel with the given ID.
+// UnregisterFinalisedChannel removes the block finalisation notification channel with the given ID.
 // A channel must be unregistered before closing it.
-func (bs *BlockState) UnregisterFinalizedChannel(id byte) {
+func (bs *BlockState) UnregisterFinalisedChannel(id byte) {
 	bs.finalisedLock.Lock()
 	defer bs.finalisedLock.Unlock()
 
 	delete(bs.finalised, id)
+	err := bs.finalisedBytePool.Put(id)
+	if err != nil {
+		logger.Error("failed to unregister finalised channel", "error", err)
+	}
 }
 
 func (bs *BlockState) notifyImported(block *types.Block) {
@@ -140,10 +131,4 @@ func (bs *BlockState) notifyFinalized(hash common.Hash, round, setID uint64) {
 			}
 		}(ch)
 	}
-}
-
-func generateID() byte {
-	// skipcq: GSC-G404
-	id := rand.Intn(256) //nolint
-	return byte(id)
 }

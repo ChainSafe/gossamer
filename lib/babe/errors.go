@@ -57,7 +57,6 @@ var (
 	errNilBlockImportHandler = errors.New("cannot have nil BlockImportHandler")
 	errNilBlockState         = errors.New("cannot have nil BlockState")
 	errNilEpochState         = errors.New("cannot have nil EpochState")
-	errNilRuntime            = errors.New("runtime is nil")
 	errInvalidResult         = errors.New("invalid error value")
 	errNoEpochData           = errors.New("no epoch data found for upcoming epoch")
 

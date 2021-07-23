@@ -80,6 +80,7 @@ func TestStreamManager(t *testing.T) {
 }
 
 func TestStreamManager_KeepStream(t *testing.T) {
+	t.Skip() // TODO: test is flaky
 	ctx, hosts, sms := setupStreamManagerTest(t)
 	ha, hb := hosts[0], hosts[1]
 	smA, smB := sms[0], sms[1]
