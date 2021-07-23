@@ -51,20 +51,18 @@ func TestEncodeWithVdt(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	//type s struct {
-	//	v scale.VaryingDataTypeSlice
+	//type S struct {
+	//	V scale.VaryingDataTypeSlice
 	//}
 	//
-	//ts := s{v:vdts}
-
-
+	//ts := S{V:vdts}
 	bytes, err := scale.Marshal(vdts)
 	require.NoError(t, err)
 	require.Equal(t, d, bytes)
 
-	//v := DigestVdtSlice
-	//err = scale.Unmarshal(bytes, &v)
-	v, err := DecodeWithVdt(bytes)
+	v := DigestVdtSlice
+	err = scale.Unmarshal(bytes, &v)
+	//v, err := DecodeWithVdt(bytes)
 	require.NoError(t, err)
 	//fmt.Println(digest[0])
 	//fmt.Println(v.Types[0].Value())

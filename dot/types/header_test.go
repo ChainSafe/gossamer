@@ -77,11 +77,14 @@ func TestEncodeHeaderVdt(t *testing.T) {
 	headerVdt, err := NewHeaderVdt(common.Hash{1}, common.Hash{1}, common.Hash{1}, big.NewInt(1), vdts)
 	require.NoError(t, err)
 
+	require.Equal(t, header.hash, headerVdt.hash)
+
+
 	enc, err := header.Encode()
 	require.NoError(t, err)
 
 	//encVdt, err := headerVdt.Encode()
-	encVdt, err := scale.Marshal(*headerVdt)
+	encVdt, err := scale.Marshal(headerVdt)
 	require.NoError(t, err)
 
 	require.Equal(t, enc, encVdt)
@@ -105,13 +108,13 @@ func TestEncodeHeaderVdt(t *testing.T) {
 	//	Digest: vdtSlice,
 	//}
 	//var head HeaderVdt
-	decVdt, err := head.Decode(encVdt)
+	//decVdt, err := head.Decode(encVdt)
 	//decVdt, err := Decode(*head, encVdt)
 	//var decVdt HeaderVdt
-	//err = scale.Unmarshal(encVdt, &head)
+	err = scale.Unmarshal(encVdt, &head)
 	require.NoError(t, err)
 
-	fmt.Println(decVdt)
+	fmt.Println(head)
 
 
 
