@@ -26,6 +26,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"runtime/debug"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
@@ -511,7 +512,8 @@ func (s *Service) playGrandpaRound() error {
 	err = s.attemptToFinalize()
 	if err != nil {
 		logger.Error("failed to finalise", "error", err)
-		//return err
+		debug.PrintStack()
+		return err
 	}
 
 	return nil
