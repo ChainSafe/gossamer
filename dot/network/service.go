@@ -47,6 +47,8 @@ const (
 	transactionsID  = "/transactions/1"
 
 	maxMessageSize = 1024 * 63 // 63kb for now
+
+	gssmrIsMajorSyncMetric = "gossamer/network/is_major_syncing"
 )
 
 var (
@@ -690,6 +692,20 @@ func (s *Service) Peers() []common.PeerInfo {
 // NodeRoles Returns the roles the node is running as.
 func (s *Service) NodeRoles() byte {
 	return s.cfg.Roles
+}
+
+// CollectGauge will be used to collect coutable metrics from network service
+func (s *Service) CollectGauge() map[string]int64 {
+	var isSynced int64
+	if !s.syncer.IsSynced() {
+		isSynced = 1
+	} else {
+		isSynced = 0
+	}
+
+	return map[string]int64{
+		gssmrIsMajorSyncMetric: isSynced,
+	}
 }
 
 // HighestBlock returns the highest known block number

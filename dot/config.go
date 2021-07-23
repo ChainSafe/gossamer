@@ -238,6 +238,7 @@ func PolkadotConfig() *Config {
 			LogLvl:       polkadot.DefaultLvl,
 			RetainBlocks: gssmr.DefaultRetainBlocks,
 			Pruning:      pruner.Mode(gssmr.DefaultPruningMode),
+			MetricsPort:  gssmr.DefaultMetricsPort,
 		},
 		Log: LogConfig{
 			CoreLvl:           polkadot.DefaultLvl,
