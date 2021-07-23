@@ -43,7 +43,7 @@ func TestAuthorModule_HasSessionKey(t *testing.T) {
 
 	runtimeInstance := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
 
-	decodeSessionKeysMock := coremockapi.On("DecodeSessionKeys", mock.AnythingOfType("[]byte"))
+	decodeSessionKeysMock := coremockapi.On("DecodeSessionKeys", mock.AnythingOfType("[]uint8"))
 	decodeSessionKeysMock.Run(func(args mock.Arguments) {
 		b := args.Get(0).([]byte)
 		dec, err := runtimeInstance.DecodeSessionKeys(b)
