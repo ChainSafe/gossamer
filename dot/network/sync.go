@@ -23,6 +23,7 @@ import (
 	"reflect"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -194,6 +195,7 @@ func (q *syncQueue) syncAtHead() {
 
 	t := time.NewTicker(q.slotDuration * 2)
 	defer t.Stop()
+
 	for {
 		select {
 		// sleep for average block time TODO: make this configurable from slot duration
@@ -207,10 +209,13 @@ func (q *syncQueue) syncAtHead() {
 			continue
 		}
 
+		goal := atomic.LoadInt64(&q.goal)
+
 		// we aren't at the head yet, sleep
-		if curr.Number.Int64() < q.goal && curr.Number.Cmp(prev.Number) > 0 {
+		if curr.Number.Int64() < goal && curr.Number.Cmp(prev.Number) > 0 {
 			prev = curr
 			q.s.noGossip = true
+			q.s.syncer.SetSyncing(true)
 			continue
 		}
 
@@ -247,10 +252,12 @@ func (q *syncQueue) handleResponseQueue() {
 		}
 
 		q.responseLock.Lock()
+		goal := atomic.LoadInt64(&q.goal)
+
 		if len(q.responses) == 0 {
 			q.responseLock.Unlock()
 
-			if len(q.requestCh) == 0 && head.Int64() < q.goal {
+			if len(q.requestCh) == 0 && head.Int64() < goal {
 				q.pushRequest(uint64(head.Int64()+1), blockRequestBufferSize, "")
 			}
 			continue
@@ -328,6 +335,9 @@ func (q *syncQueue) prunePeers() {
 }
 
 func (q *syncQueue) benchmark() {
+	t := time.NewTimer(time.Second * 5)
+	defer t.Stop()
+
 	for {
 		if q.ctx.Err() != nil {
 			return
@@ -338,19 +348,27 @@ func (q *syncQueue) benchmark() {
 			continue
 		}
 
-		if before.Number.Int64() >= q.goal {
+		goal := atomic.LoadInt64(&q.goal)
+
+		if before.Number.Int64() >= goal {
 			finalised, err := q.s.blockState.GetFinalisedHeader(0, 0) //nolint
 			if err != nil {
 				continue
 			}
 
 			logger.Info("💤 node waiting", "peer count", len(q.s.host.peers()), "head", before.Number, "finalised", finalised.Number)
-			time.Sleep(time.Second * 5)
+
+			// reset the counter and then wait 5 seconds
+			t.Reset(time.Second * 5)
+			<-t.C
+
 			continue
 		}
 
 		q.benchmarker.begin(before.Number.Uint64())
-		time.Sleep(time.Second * 5)
+
+		t.Reset(time.Second * 5)
+		<-t.C
 
 		after, err := q.s.blockState.BestBlockHeader()
 		if err != nil {
@@ -361,7 +379,7 @@ func (q *syncQueue) benchmark() {
 
 		logger.Info("🚣 currently syncing",
 			"peer count", len(q.s.host.peers()),
-			"goal", q.goal,
+			"goal", goal,
 			"average blocks/second", q.benchmarker.mostRecentAverage(),
 			"overall average", q.benchmarker.average(),
 		)
@@ -418,11 +436,13 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 		return
 	}
 
-	if q.goal < best.Int64() {
-		q.goal = best.Int64()
+	goal := atomic.LoadInt64(&q.goal)
+	if goal < best.Int64() {
+		atomic.StoreInt64(&q.goal, best.Int64())
 	}
 
-	if q.goal-int64(start) < int64(blockRequestSize) {
+	goal = atomic.LoadInt64(&q.goal)
+	if goal-int64(start) < int64(blockRequestSize) {
 		start := best.Int64() + 1
 		req := createBlockRequest(start, 0)
 
@@ -443,7 +463,7 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 	start = start - m + 1
 
 	for i := 0; i < numRequests; i++ {
-		if start > uint64(q.goal) {
+		if start > uint64(goal) {
 			return
 		}
 
@@ -833,11 +853,12 @@ func (q *syncQueue) handleBlockAnnounceHandshake(blockNum uint32, from peer.ID) 
 		return
 	}
 
-	if bestNum.Int64() >= int64(blockNum) || q.goal >= int64(blockNum) {
+	goal := atomic.LoadInt64(&q.goal)
+	if bestNum.Int64() >= int64(blockNum) || goal >= int64(blockNum) {
 		return
 	}
 
-	q.goal = int64(blockNum)
+	atomic.StoreInt64(&q.goal, int64(blockNum))
 	q.pushRequest(uint64(bestNum.Int64()+1), blockRequestBufferSize, from)
 }
 
@@ -856,8 +877,9 @@ func (q *syncQueue) handleBlockAnnounce(msg *BlockAnnounceMessage, from peer.ID)
 		return
 	}
 
-	if header.Number.Int64() > q.goal {
-		q.goal = header.Number.Int64()
+	goal := atomic.LoadInt64(&q.goal)
+	if header.Number.Int64() > goal {
+		atomic.StoreInt64(&q.goal, header.Number.Int64())
 	}
 
 	req := createBlockRequestWithHash(header.Hash(), blockRequestSize)
