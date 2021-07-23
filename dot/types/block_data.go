@@ -26,6 +26,8 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+// TODO see if I can migrate away from using optionals
+
 // BlockData is stored within the BlockDB
 type BlockData struct {
 	Hash          common.Hash
@@ -78,7 +80,7 @@ func (bd *BlockData) Encode() ([]byte, error) {
 	if bd.Header.Exists() {
 		//venc, err := scale.Encode(bd.Header.Value())
 		head, err := NewHeaderFromOptional(bd.Header)
-		if err != nil || head == nil{
+		if err != nil {
 			return nil, err
 		}
 		venc, err := head.Encode()

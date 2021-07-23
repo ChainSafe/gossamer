@@ -307,6 +307,17 @@ func (bh *Header) Decode(buf *bytes.Buffer) (*Header, error) {
 }
 
 // AsOptional returns the Header as an optional.Header
+func (bh *HeaderVdt) AsOptional() optional.HeaderVdt {
+	return optional.NewHeaderVdt(true, optional.CoreHeaderVdt{
+		ParentHash:     bh.ParentHash,
+		Number:         bh.Number,
+		StateRoot:      bh.StateRoot,
+		ExtrinsicsRoot: bh.ExtrinsicsRoot,
+		Digest:         bh.Digest,
+	})
+}
+
+// AsOptional returns the Header as an optional.Header
 func (bh *Header) AsOptional() *optional.Header {
 	return optional.NewHeader(true, &optional.CoreHeader{
 		ParentHash:     bh.ParentHash,
@@ -315,6 +326,31 @@ func (bh *Header) AsOptional() *optional.Header {
 		ExtrinsicsRoot: bh.ExtrinsicsRoot,
 		Digest:         &bh.Digest,
 	})
+}
+
+// NewHeaderFromOptional returns a Header given an optional.Header. If the optional.Header is None, an error is returned.
+func NewHeaderVdtFromOptional(oh optional.HeaderVdt) (HeaderVdt, error) {
+	if !oh.Exists() {
+		return HeaderVdt{}, errors.New("header is None")
+	}
+
+	h := oh.Value()
+
+	if h.Number == nil {
+		// Hash() will panic if number is nil
+		return HeaderVdt{}, errors.New("cannot have nil block number")
+	}
+
+	bh := HeaderVdt{
+		ParentHash:     h.ParentHash,
+		Number:         h.Number,
+		StateRoot:      h.StateRoot,
+		ExtrinsicsRoot: h.ExtrinsicsRoot,
+		Digest:         h.Digest,
+	}
+
+	bh.Hash()
+	return bh, nil
 }
 
 // NewHeaderFromOptional returns a Header given an optional.Header. If the optional.Header is None, an error is returned.

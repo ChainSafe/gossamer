@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"io"
 	"io/ioutil"
 	"math/big"
@@ -386,6 +387,14 @@ type Digest interface {
 	Decode(buf *bytes.Buffer) error // Decode assumes the type byte (first byte) has been removed from the encoding.
 }
 
+type CoreHeaderVdt struct {
+	ParentHash     common.Hash `json:"parentHash"`
+	Number         *big.Int    `json:"number"`
+	StateRoot      common.Hash `json:"stateRoot"`
+	ExtrinsicsRoot common.Hash `json:"extrinsicsRoot"`
+	Digest         scale2.VaryingDataTypeSlice      `json:"digest"`
+}
+
 // CoreHeader is a state block header
 // This is copied from core/types since core/types imports this package, we cannot import core/types.
 type CoreHeader struct {
@@ -402,9 +411,23 @@ func (h *CoreHeader) String() string {
 }
 
 // Header represents an optional header type
+type HeaderVdt struct {
+	exists bool
+	value  CoreHeaderVdt
+}
+
+// Header represents an optional header type
 type Header struct {
 	exists bool
 	value  *CoreHeader
+}
+
+// NewHeader returns a new optional.Header
+func NewHeaderVdt(exists bool, value CoreHeaderVdt) HeaderVdt {
+	return HeaderVdt{
+		exists: exists,
+		value:  value,
+	}
 }
 
 // NewHeader returns a new optional.Header
@@ -416,11 +439,27 @@ func NewHeader(exists bool, value *CoreHeader) *Header {
 }
 
 // Exists returns true if the value is Some, false if it is None.
+func (x *HeaderVdt) Exists() bool {
+	if x == nil {
+		return false
+	}
+	return x.exists
+}
+
+// Exists returns true if the value is Some, false if it is None.
 func (x *Header) Exists() bool {
 	if x == nil {
 		return false
 	}
 	return x.exists
+}
+
+// Value returns the value of the header. It returns nil if the header is None.
+func (x *HeaderVdt) Value() *CoreHeaderVdt {
+	if x == nil {
+		return nil
+	}
+	return &x.value
 }
 
 // Value returns the value of the header. It returns nil if the header is None.

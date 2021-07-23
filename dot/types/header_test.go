@@ -65,9 +65,8 @@ func TestSomething(t *testing.T) {
 
 	require.Equal(t, MyVaryingDataTypeSliceStruct{vdts}, mvdtss)
 }
-func TestEncodeHeaderVdt(t *testing.T) {
-	//var dVdt = scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
-	//var vdts = scale.NewVaryingDataTypeSlice(dVdt)
+
+func TestEncodeAndDecodeHeaderVdt(t *testing.T) {
 	vdts := DigestVdtSlice
 	err := vdts.Add(
 		PreRuntimeDigest{
@@ -111,62 +110,120 @@ func TestEncodeHeaderVdt(t *testing.T) {
 	enc, err := header.Encode()
 	require.NoError(t, err)
 
-	//encVdt, err := headerVdt.Encode()
 	encVdt, err := scale.Marshal(headerVdt)
 	require.NoError(t, err)
 
 	require.Equal(t, enc, encVdt)
-	fmt.Println("--- Encodings are Equal ---")
-	// Passes up to here
 
-	fmt.Println("--- Decoding regular Header ---")
 	rw := &bytes.Buffer{}
 	rw.Write(enc)
 	dec, err := new(Header).Decode(rw)
 	require.NoError(t, err)
 
-	//decVdt, err := new(HeaderVdt).Decode(encVdt)
-	fmt.Println("--- Decoding VDT Header ---")
 	var decVdt = NewEmptyHeaderVdt()
 	err = scale.Unmarshal(encVdt, &decVdt)
 	require.NoError(t, err)
-
-	//l := len(decVdt.Digest.Types[:])
-	////var act [l]interface{}
-	//act := make([]interface{}, l)
-	////var act [3]interface{}
-	//for i, _ := range decVdt.Digest.Types {
-	//	switch val := decVdt.Digest.Types[i].Value().(type) {
-	//	case ChangesTrieRootDigest:
-	//		//fmt.Println(i)
-	//		act[i] = &val
-	//	case PreRuntimeDigest:
-	//		//fmt.Println(i)
-	//		act[i] = &val
-	//	case ConsensusDigest:
-	//		//fmt.Println(i)
-	//		act[i] = &val
-	//	case SealDigest:
-	//		//fmt.Println(i)
-	//		act[i] = &val
-	//	}
-	//}
-	//fmt.Println(act[:])
-	//require.Equal(t, dec.Digest[0], decVdt.Digest.Types[0].Value())
 
 	 // Test if reencoding is equal
 	enc2, err := dec.Encode()
 	require.NoError(t, err)
 
-	//encVdt, err := headerVdt.Encode()
 	encVdt2, err := scale.Marshal(decVdt)
 	require.NoError(t, err)
 
 	require.Equal(t, enc2, encVdt2)
-	fmt.Println("--- ReEncodings are Equal ---")
+	// Should test decoding optional but honestly lets just get rid of it
+}
+
+func TestOptionalDecoding(t *testing.T) {
+	vdts := DigestVdtSlice
+	err := vdts.Add(
+		PreRuntimeDigest{
+			ConsensusEngineID: BabeEngineID,
+			Data:              common.MustHexToBytes("0x0201000000ef55a50f00000000"),
+		},
+		ConsensusDigest{
+			ConsensusEngineID: BabeEngineID,
+			Data:              common.MustHexToBytes("0x0118ca239392960473fe1bc65f94ee27d890a49c1b200c006ff5dcc525330ecc16770100000000000000b46f01874ce7abbb5220e8fd89bede0adad14c73039d91e28e881823433e723f0100000000000000d684d9176d6eb69887540c9a89fa6097adea82fc4b0ff26d1062b488f352e179010000000000000068195a71bdde49117a616424bdc60a1733e96acb1da5aeab5d268cf2a572e94101000000000000001a0575ef4ae24bdfd31f4cb5bd61239ae67c12d4e64ae51ac756044aa6ad8200010000000000000018168f2aad0081a25728961ee00627cfe35e39833c805016632bf7c14da5800901000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		},
+		SealDigest{
+			ConsensusEngineID: BabeEngineID,
+			Data:              common.MustHexToBytes("0x4625284883e564bc1e4063f5ea2b49846cdddaa3761d04f543b698c1c3ee935c40d25b869247c36c6b8a8cbbd7bb2768f560ab7c276df3c62df357a7e3b1ec8d"),
+		},
+	)
+	require.NoError(t, err)
+
+	d := Digest{
+		&PreRuntimeDigest{
+			ConsensusEngineID: BabeEngineID,
+			Data:              common.MustHexToBytes("0x0201000000ef55a50f00000000"),
+		},
+		&ConsensusDigest{
+			ConsensusEngineID: BabeEngineID,
+			Data:              common.MustHexToBytes("0x0118ca239392960473fe1bc65f94ee27d890a49c1b200c006ff5dcc525330ecc16770100000000000000b46f01874ce7abbb5220e8fd89bede0adad14c73039d91e28e881823433e723f0100000000000000d684d9176d6eb69887540c9a89fa6097adea82fc4b0ff26d1062b488f352e179010000000000000068195a71bdde49117a616424bdc60a1733e96acb1da5aeab5d268cf2a572e94101000000000000001a0575ef4ae24bdfd31f4cb5bd61239ae67c12d4e64ae51ac756044aa6ad8200010000000000000018168f2aad0081a25728961ee00627cfe35e39833c805016632bf7c14da5800901000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		},
+		&SealDigest{
+			ConsensusEngineID: BabeEngineID,
+			Data:              common.MustHexToBytes("0x4625284883e564bc1e4063f5ea2b49846cdddaa3761d04f543b698c1c3ee935c40d25b869247c36c6b8a8cbbd7bb2768f560ab7c276df3c62df357a7e3b1ec8d"),
+		},
+	}
+
+	header, err := NewHeader(common.Hash{1}, common.Hash{1}, common.Hash{1}, big.NewInt(1), d)
+	require.NoError(t, err)
+
+	headerVdt, err := NewHeaderVdt(common.Hash{1}, common.Hash{1}, common.Hash{1}, big.NewInt(1), vdts)
+	require.NoError(t, err)
+
+	headerVdtPointer := &headerVdt
+	fmt.Println(headerVdtPointer)
+	optional := header.AsOptional()
+	fmt.Println(optional)
+
+	//enc, err := scale.Marshal(optional)
+	//require.NoError(t, err)
+	//
+	//encVdt, err := scale.Marshal(headerVdtPointer)
+	//require.NoError(t, err)
+
+	//require.Equal(t, enc, encVdt)
+
 }
 
 // TODO add test for deep copy of VDTs
+
+func TestHeaderVdtAsOptional(t *testing.T) {
+	vdts := DigestVdtSlice
+	err := vdts.Add(
+		PreRuntimeDigest{
+			ConsensusEngineID: BabeEngineID,
+			Data:              common.MustHexToBytes("0x0201000000ef55a50f00000000"),
+		},
+		ConsensusDigest{
+			ConsensusEngineID: BabeEngineID,
+			Data:              common.MustHexToBytes("0x0118ca239392960473fe1bc65f94ee27d890a49c1b200c006ff5dcc525330ecc16770100000000000000b46f01874ce7abbb5220e8fd89bede0adad14c73039d91e28e881823433e723f0100000000000000d684d9176d6eb69887540c9a89fa6097adea82fc4b0ff26d1062b488f352e179010000000000000068195a71bdde49117a616424bdc60a1733e96acb1da5aeab5d268cf2a572e94101000000000000001a0575ef4ae24bdfd31f4cb5bd61239ae67c12d4e64ae51ac756044aa6ad8200010000000000000018168f2aad0081a25728961ee00627cfe35e39833c805016632bf7c14da5800901000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		},
+		SealDigest{
+			ConsensusEngineID: BabeEngineID,
+			Data:              common.MustHexToBytes("0x4625284883e564bc1e4063f5ea2b49846cdddaa3761d04f543b698c1c3ee935c40d25b869247c36c6b8a8cbbd7bb2768f560ab7c276df3c62df357a7e3b1ec8d"),
+		},
+	)
+	require.NoError(t, err)
+
+	headerVdt, err := NewHeaderVdt(common.Hash{1}, common.Hash{1}, common.Hash{1}, big.NewInt(1), vdts)
+	require.NoError(t, err)
+
+	optionalVdt := headerVdt.AsOptional()
+	require.True(t, optionalVdt.Exists())
+	opHead := optionalVdt.Value()
+	require.NotNil(t, opHead)
+	require.Equal(t, headerVdt.Digest, opHead.Digest)
+
+	//TODO test other functions or just get rid of this optional type cuz i dont think its necessary with new scale
+
+	newHead, err := NewHeaderVdtFromOptional(optionalVdt)
+	require.NoError(t, err)
+	require.Equal(t, headerVdt, newHead)
+}
 
 func TestDecodeHeader(t *testing.T) {
 	header, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, big.NewInt(0), Digest{})
