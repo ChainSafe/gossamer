@@ -19,7 +19,6 @@ import (
 	"context"
 	"errors"
 	"math/big"
-	"math/rand"
 	"os"
 	"sync"
 
@@ -35,6 +34,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	log "github.com/ChainSafe/log15"
+	"github.com/google/uuid"
 )
 
 var (
@@ -67,7 +67,7 @@ type Service struct {
 	keys *keystore.GlobalKeystore
 
 	runtimeUpdateSubscriptionsLock sync.RWMutex
-	runtimeUpdateSubscriptions     map[byte]chan<- runtime.Version
+	runtimeUpdateSubscriptions     map[uint32]chan<- runtime.Version
 }
 
 // Config holds the configuration for the core Service.
@@ -134,7 +134,7 @@ func NewService(cfg *Config) (*Service, error) {
 		codeSubstitute:             cfg.CodeSubstitutes,
 		codeSubstitutedState:       cfg.CodeSubstitutedState,
 		digestHandler:              cfg.DigestHandler,
-		runtimeUpdateSubscriptions: make(map[byte]chan<- runtime.Version),
+		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
 	}
 
 	return srv, nil
@@ -576,7 +576,7 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 }
 
 // RegisterRuntimeUpdatedChannel function to register chan that is notified when runtime version changes
-func (s *Service) RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (byte, error) {
+func (s *Service) RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error) {
 	s.runtimeUpdateSubscriptionsLock.Lock()
 	defer s.runtimeUpdateSubscriptionsLock.Unlock()
 
@@ -584,31 +584,33 @@ func (s *Service) RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (byte
 		return 0, errors.New("channel limit reached")
 	}
 
-	var id byte
-	for {
-		id = generateID()
-		if s.runtimeUpdateSubscriptions[id] == nil {
-			break
-		}
-	}
+	id := s.generateID()
 
 	s.runtimeUpdateSubscriptions[id] = ch
 	return id, nil
 }
 
 // UnregisterRuntimeUpdatedChannel function to unregister runtime updated channel
-func (s *Service) UnregisterRuntimeUpdatedChannel(id byte) bool {
+func (s *Service) UnregisterRuntimeUpdatedChannel(id uint32) bool {
+	s.runtimeUpdateSubscriptionsLock.Lock()
+	defer s.runtimeUpdateSubscriptionsLock.Unlock()
 	ch, ok := s.runtimeUpdateSubscriptions[id]
 	if ok {
 		close(ch)
-		s.runtimeUpdateSubscriptions[id] = nil
+		delete(s.runtimeUpdateSubscriptions, id)
 		return true
 	}
 	return false
 }
 
-func generateID() byte {
-	// skipcq: GSC-G404
-	id := rand.Intn(256) //nolint
-	return byte(id)
+func (s *Service) generateID() uint32 {
+	uuid := uuid.New()
+
+	// todo (ed) is it still necessary to do this check since we're using a UUID which should be unique?
+	for {
+		if s.runtimeUpdateSubscriptions[uuid.ID()] == nil {
+			break
+		}
+	}
+	return uuid.ID()
 }

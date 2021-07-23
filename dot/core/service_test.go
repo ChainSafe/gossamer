@@ -625,8 +625,7 @@ func TestService_RegisterUnRegisterRuntimeUpdatedChannel(t *testing.T) {
 	require.True(t, res)
 }
 
-func TestService_RegisterUnRegisterPanic(t *testing.T) {
-	t.Skip() // TODO, this test is skipped because it fails with panic, todo determine reason and fix
+func TestService_RegisterUnRegisterConcurrentCalls(t *testing.T) {
 	s := NewTestService(t, nil)
 
 	go func() {
