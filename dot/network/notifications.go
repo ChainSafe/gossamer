@@ -18,7 +18,6 @@ package network
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 	"unsafe"
@@ -305,7 +304,6 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 
 	// we've completed the handshake with the peer, send message directly
 	logger.Debug("sending message", "protocol", info.protocolID, "peer", peer, "message", msg)
-	fmt.Println("sendData", hsData.stream.ID())
 
 	err := s.host.writeToStream(hsData.stream, msg)
 	if err != nil {

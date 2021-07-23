@@ -123,7 +123,7 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 
 	// if the peer reports a higher set ID, or the same set ID but a higher round,
 	// we have fallen behind and need to initiate catch-up.
-	if msg.SetID >= h.grandpa.state.setID || (msg.SetID == h.grandpa.state.setID && msg.Round >= h.grandpa.state.round+2) {
+	if msg.SetID == h.grandpa.state.setID && msg.Round >= h.grandpa.state.round+2 {
 		err = h.catchUp.doCatchUp(from, msg.SetID, msg.Round)
 		if err != nil {
 			logger.Debug("failed to do catch up", "error", err)

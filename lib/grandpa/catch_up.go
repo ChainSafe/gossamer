@@ -100,7 +100,7 @@ func (c *catchUp) doCatchUp(from peer.ID, setID, round uint64) error {
 		return errors.New("peer did not send catch up response :(")
 	}
 
-	logger.Debug("catch up response", "resp", resp)
+	logger.Debug("got catch up response", "resp", resp)
 
 	// make sure grandpa.state.setID and grandpa.state.voters are set correctly before verifying response
 	err = c.grandpa.updateAuthorities()
