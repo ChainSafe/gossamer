@@ -241,9 +241,7 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 		return nil
 	}
 
-	go func() {
-		s.syncQueue.handleBlockAnnounceHandshake(bhs.BestBlockNumber, peer)
-	}()
+	go s.syncQueue.handleBlockAnnounceHandshake(bhs.BestBlockNumber, peer)
 
 	return nil
 }
