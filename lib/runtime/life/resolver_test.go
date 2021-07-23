@@ -17,22 +17,23 @@
 package life
 
 import (
+	"testing"
+
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func Test_ext_hashing_blake2_256_version_1(t *testing.T) {
-
-	inst := newInstanceFromGenesis(t)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	data := []byte("helloworld")
 	enc, err := scale.Encode(data)
 	require.NoError(t, err)
 
-	ret, err := inst.Exec("ext_offchain_index_set_version_1", enc)
 	//ret, err := inst.Exec("ext_hashing_blake2_256_version_1", enc)
+	ret, err := inst.Exec("rtm_ext_hashing_blake2_256_version_1", enc)
 	require.NoError(t, err)
 
 	hash, err := scale.Decode(ret, []byte{})

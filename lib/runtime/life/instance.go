@@ -18,6 +18,7 @@ package life
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"sync"
 
@@ -26,6 +27,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	log "github.com/ChainSafe/log15"
 	"github.com/perlin-network/life/exec"
+	wasm_validation "github.com/perlin-network/life/wasm-validation"
 )
 
 // Name represents the name of the interpreter
@@ -63,8 +65,24 @@ func NewRuntimeFromGenesis(g *genesis.Genesis, cfg *Config) (runtime.Instance, e
 	return NewInstance(code, cfg)
 }
 
+// NewInstanceFromFile instantiates a runtime from a .wasm file
+func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
+	// Reads the WebAssembly module as bytes.
+	bytes, err := ioutil.ReadFile(fp)
+	if err != nil {
+		return nil, err
+	}
+
+	err = wasm_validation.ValidateWasm(bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewInstance(bytes, cfg)
+}
+
 // NewInstance ...
-func NewInstance(code []byte, cfg *Config) (runtime.Instance, error) {
+func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 	if len(code) == 0 {
 		return nil, errors.New("code is empty")
 	}
