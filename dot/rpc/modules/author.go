@@ -36,6 +36,7 @@ type AuthorModule struct {
 	txStateAPI TransactionStateAPI
 }
 
+// HasSessionKeyRequest is used to receive the rpc data
 type HasSessionKeyRequest struct {
 	Data string
 }
@@ -73,9 +74,13 @@ type RemoveExtrinsicsResponse []common.Hash
 // KeyRotateResponse is a byte array used to rotate
 type KeyRotateResponse []byte
 
+// HasSessionKeyResponse is the response to the RPC call
 type HasSessionKeyResponse bool
 
+// KeyTypeID is a fixed len array to scale decodes the key type
 type KeyTypeID [4]uint8
+
+// DecodedKey is the representation of a scaled decoded key
 type DecodedKey struct {
 	Data []uint8
 	Type KeyTypeID
@@ -111,6 +116,7 @@ func NewAuthorModule(logger log.Logger, coreAPI CoreAPI, txStateAPI TransactionS
 	}
 }
 
+// HasSessionKeys checks if the keystore has private keys for the given session public keys.
 func (am *AuthorModule) HasSessionKeys(r *http.Request, req *HasSessionKeyRequest, res *HasSessionKeyResponse) error {
 	pubKeysBytes, err := common.HexToBytes(req.Data)
 	if err != nil {

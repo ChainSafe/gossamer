@@ -276,7 +276,7 @@ func CheckAllBytesZero(b []byte) bool {
 	i := 0
 
 	for ; i < nlen8; i += 8 {
-		b := *(*uint64)(unsafe.Pointer(&b[i]))
+		b := *(*uint64)(unsafe.Pointer(&b[i])) //nolint
 		if b != 0 {
 			return false
 		}
