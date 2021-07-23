@@ -39,11 +39,11 @@ type Header struct {
 
 // Header is a state block header
 type HeaderVdt struct {
-	ParentHash     common.Hash `json:"parentHash"`
-	Number         *big.Int    `json:"number"`
-	StateRoot      common.Hash `json:"stateRoot"`
-	ExtrinsicsRoot common.Hash `json:"extrinsicsRoot"`
-	Digest         scale.VaryingDataTypeSlice      `json:"digest"`
+	ParentHash     common.Hash                `json:"parentHash"`
+	Number         *big.Int                   `json:"number"`
+	StateRoot      common.Hash                `json:"stateRoot"`
+	ExtrinsicsRoot common.Hash                `json:"extrinsicsRoot"`
+	Digest         scale.VaryingDataTypeSlice `json:"digest"`
 	hash           common.Hash
 }
 
@@ -51,7 +51,7 @@ type HeaderVdt struct {
 func NewHeaderVdt(parentHash, stateRoot, extrinsicsRoot common.Hash, number *big.Int, digest scale.VaryingDataTypeSlice) (HeaderVdt, error) {
 	if number == nil {
 		// Hash() will panic if number is nil
-		return HeaderVdt{},errors.New("cannot have nil block number")
+		return HeaderVdt{}, errors.New("cannot have nil block number")
 	}
 
 	bh := HeaderVdt{
@@ -90,7 +90,6 @@ func NewEmptyHeaderVdt() HeaderVdt {
 	var diVdt = scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
 	var vdtSlice = scale.NewVaryingDataTypeSlice(diVdt)
 	return HeaderVdt{
-		Number: big.NewInt(0),
 		Digest: vdtSlice,
 	}
 }

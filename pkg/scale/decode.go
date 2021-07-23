@@ -435,6 +435,9 @@ func (ds *decodeState) decodeStruct(dstv reflect.Value) (err error) {
 		if !field.CanInterface() {
 			continue
 		}
+		if !dstv.Field(i.fieldIndex).IsZero() {
+			field.Set(dstv.Field(i.fieldIndex))
+		}
 		err = ds.unmarshal(field)
 		if err != nil {
 			err = fmt.Errorf("%s, field: %+v", err, field)
