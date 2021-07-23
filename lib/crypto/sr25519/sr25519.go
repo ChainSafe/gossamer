@@ -25,8 +25,6 @@ import (
 
 	sr25519 "github.com/ChainSafe/go-schnorrkel"
 	"github.com/gtank/merlin"
-
-	log "github.com/ChainSafe/log15"
 )
 
 //nolint
@@ -41,7 +39,6 @@ const (
 
 // SigningContext is the context for signatures used or created with substrate
 var SigningContext = []byte("substrate")
-var logger = log.New("service", "sr25519", "module", "crypto")
 
 // Keypair is a sr25519 public-private keypair
 type Keypair struct {
@@ -57,11 +54,6 @@ type PublicKey struct {
 // PrivateKey holds reference to a sr25519.SecretKey
 type PrivateKey struct {
 	key *sr25519.SecretKey
-}
-
-// MiniPrivateKey holds reference to a sr25519 MiniSecretKey
-type MiniPrivateKey struct {
-	key *sr25519.MiniSecretKey
 }
 
 // NewKeypair returns a sr25519 Keypair given a schnorrkel secret key
@@ -157,16 +149,9 @@ func NewPrivateKey(in []byte) (*PrivateKey, error) {
 	if len(in) != PrivateKeyLength {
 		return nil, errors.New("input to create sr25519 private key is not 32 bytes")
 	}
-
-	buf := [SeedLength]byte{}
-	copy(buf[:], in)
-	msc, err := sr25519.NewMiniSecretKeyFromRaw(buf)
-	if err != nil {
-		return nil, err
-	}
-
-	priv := msc.ExpandEd25519()
-	return &PrivateKey{key: priv}, nil
+	priv := new(PrivateKey)
+	err := priv.Decode(in)
+	return priv, err
 }
 
 // NewPrivateKeyFromHex returns a private key from a seed
