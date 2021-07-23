@@ -67,7 +67,7 @@ func (t *Trie) Snapshot() *Trie {
 	newTrie := &Trie{
 		generation:  t.generation + 1,
 		root:        t.root,
-		childTries:  t.childTries,
+		childTries:  children,
 		deletedKeys: make([]common.Hash, 0),
 		parallel:    t.parallel,
 	}
