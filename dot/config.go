@@ -18,6 +18,7 @@ package dot
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/ChainSafe/gossamer/chain/dev"
 	"github.com/ChainSafe/gossamer/chain/gssmr"
@@ -82,14 +83,15 @@ type AccountConfig struct {
 
 // NetworkConfig is to marshal/unmarshal toml network config vars
 type NetworkConfig struct {
-	Port            uint32
-	Bootnodes       []string
-	ProtocolID      string
-	NoBootstrap     bool
-	NoMDNS          bool
-	MinPeers        int
-	MaxPeers        int
-	PersistentPeers []string
+	Port              uint32
+	Bootnodes         []string
+	ProtocolID        string
+	NoBootstrap       bool
+	NoMDNS            bool
+	MinPeers          int
+	MaxPeers          int
+	PersistentPeers   []string
+	DiscoveryInterval time.Duration
 }
 
 // CoreConfig is to marshal/unmarshal toml core config vars
@@ -166,10 +168,11 @@ func GssmrConfig() *Config {
 			WasmInterpreter:  gssmr.DefaultWasmInterpreter,
 		},
 		Network: NetworkConfig{
-			Port:        gssmr.DefaultNetworkPort,
-			Bootnodes:   gssmr.DefaultNetworkBootnodes,
-			NoBootstrap: gssmr.DefaultNoBootstrap,
-			NoMDNS:      gssmr.DefaultNoMDNS,
+			Port:              gssmr.DefaultNetworkPort,
+			Bootnodes:         gssmr.DefaultNetworkBootnodes,
+			NoBootstrap:       gssmr.DefaultNoBootstrap,
+			NoMDNS:            gssmr.DefaultNoMDNS,
+			DiscoveryInterval: gssmr.DefaultDiscoveryInterval,
 		},
 		RPC: RPCConfig{
 			Port:    gssmr.DefaultRPCHTTPPort,
