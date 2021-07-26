@@ -74,7 +74,7 @@ type RemoveExtrinsicsResponse []common.Hash
 // KeyRotateResponse is a byte array used to rotate
 type KeyRotateResponse []byte
 
-// HasSessionKeyResponse is the response to the RPC call
+// HasSessionKeyResponse is the response to the RPC call author_hasSessionKeys
 type HasSessionKeyResponse bool
 
 // KeyTypeID is a fixed len array to scale decodes the key type
