@@ -78,12 +78,12 @@ type KeyRotateResponse []byte
 type HasSessionKeyResponse bool
 
 // KeyTypeID represents the key type of a session key
-type KeyTypeID [4]uint8
+type keyTypeID [4]uint8
 
-// DecodedKey is the representation of a scaled decoded key
-type DecodedKey struct {
+// DecodedKey is the representation of a scaled decoded public key
+type decodedKey struct {
 	Data []uint8
-	Type KeyTypeID
+	Type keyTypeID
 }
 
 // ExtrinsicStatus holds the actual valid statuses
@@ -125,27 +125,25 @@ func (am *AuthorModule) HasSessionKeys(r *http.Request, req *HasSessionKeyReques
 
 	pkeys, err := scale.Marshal(pubKeysBytes)
 	if err != nil {
-		am.logger.Debug("err while scale encoding data", "err", err)
 		return err
 	}
 
 	data, err := am.coreAPI.DecodeSessionKeys(pkeys)
 	if err != nil {
-		am.logger.Debug("err while calling decode session keys runtime function", "err", err)
 		*res = false
 		return err
 	}
 
-	var decodedKeys *[]DecodedKey
+	var decodedKeys *[]decodedKey
 	err = scale.Unmarshal(data, &decodedKeys)
 	if err != nil {
 		return err
 	}
 
-	qtyCheck := 0
 	for _, key := range *decodedKeys {
 		if common.CheckAllBytesZero(key.Data) {
-			continue
+			*res = false
+			return err
 		}
 
 		encType := keystore.Name(key.Type[:])
@@ -160,16 +158,9 @@ func (am *AuthorModule) HasSessionKeys(r *http.Request, req *HasSessionKeyReques
 			*res = false
 			return nil
 		}
-
-		qtyCheck++
 	}
 
-	if qtyCheck > 0 {
-		*res = true
-	} else {
-		*res = false
-	}
-
+	*res = true
 	return nil
 }
 
