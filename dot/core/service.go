@@ -580,12 +580,59 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 	return s.rt.Metadata()
 }
 
-func (s *Service) QueryStorage(from *common.Hash, to *common.Hash, keys []*common.Hash) error {
-	stateRootHash, err := s.storageState.GetStateRootFromBlock(from)
+type (
+	Changes map[string]string
+)
+
+func (s *Service) QueryStorage(from *common.Hash, to *common.Hash, keys []string) (map[common.Hash]Changes, error) {
+	var err error
+	blocksToQuery := []common.Hash{*from}
+	if to != nil {
+		if blocksToQuery, err = s.blockState.SubChain(*from, *to); err != nil {
+			return nil, err
+		}
+	}
+
+	queries := make(map[common.Hash]Changes)
+	for _, hash := range blocksToQuery {
+		changes, err := s.tryQueryStorage(hash, keys)
+		if err != nil {
+			return nil, err
+		}
+
+		queries[hash] = changes
+	}
+
+	return queries, nil
+}
+
+// tryQueryStorage will try to get all the `keys` inside the block's current state
+func (s *Service) tryQueryStorage(block common.Hash, keys []string) (Changes, error) {
+	stateRootHash, err := s.storageState.GetStateRootFromBlock(&block)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	ts, err := s.storageState.TrieState(stateRootHash)
+	if err != nil {
+		return nil, err
+	}
 
+	changes := make(map[string]string)
+
+	for _, k := range keys {
+		keyBytes, err := common.HexToBytes(k)
+		if err != nil {
+			return nil, err
+		}
+
+		storedData := ts.Get(keyBytes)
+		if bytes.EqualFold(storedData, []byte{}) {
+			continue
+		}
+
+		changes[k] = common.BytesToHex(storedData)
+	}
+
+	return changes, nil
 }

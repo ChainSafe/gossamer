@@ -85,9 +85,9 @@ type StateStorageRequest struct {
 
 // StateStorageQueryRangeRequest holds json fields
 type StateStorageQueryRangeRequest struct {
-	Keys       []*common.Hash `json:"keys" validate:"required"`
-	StartBlock *common.Hash   `json:"startBlock" validate:"required"`
-	Block      *common.Hash   `json:"block"`
+	Keys       []string     `json:"keys" validate:"required"`
+	StartBlock *common.Hash `json:"startBlock" validate:"required"`
+	Block      *common.Hash `json:"block"`
 }
 
 // StateStorageKeysQuery field to store storage keys
@@ -389,7 +389,7 @@ func (sm *StateModule) GetStorageSize(r *http.Request, req *StateStorageSizeRequ
 // QueryStorage isn't implemented properly yet.
 func (sm *StateModule) QueryStorage(r *http.Request, req *StateStorageQueryRangeRequest, res *StorageChangeSetResponse) error {
 	// TODO implement change storage trie so that block hash parameter works (See issue #834)
-	sm.coreAPI.QueryStateRoot()
+	//sm.coreAPI.QueryStateRoot()
 	return nil
 }
 

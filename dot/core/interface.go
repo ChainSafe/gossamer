@@ -48,6 +48,7 @@ type BlockState interface {
 	HighestCommonAncestor(a, b common.Hash) (common.Hash, error)
 	SubChain(start, end common.Hash) ([]common.Hash, error)
 	GetBlockBody(hash common.Hash) (*types.Body, error)
+	GetHeader(hash common.Hash) (*types.Header, error)
 }
 
 // StorageState interface for storage state methods
