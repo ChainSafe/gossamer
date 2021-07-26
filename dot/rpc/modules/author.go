@@ -17,6 +17,7 @@
 package modules
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -38,7 +39,7 @@ type AuthorModule struct {
 
 // HasSessionKeyRequest is used to receive the rpc data
 type HasSessionKeyRequest struct {
-	Data string
+	PublicKeys string
 }
 
 // KeyInsertRequest is used as model for the JSON
@@ -118,7 +119,7 @@ func NewAuthorModule(logger log.Logger, coreAPI CoreAPI, txStateAPI TransactionS
 
 // HasSessionKeys checks if the keystore has private keys for the given session public keys.
 func (am *AuthorModule) HasSessionKeys(r *http.Request, req *HasSessionKeyRequest, res *HasSessionKeyResponse) error {
-	pubKeysBytes, err := common.HexToBytes(req.Data)
+	pubKeysBytes, err := common.HexToBytes(req.PublicKeys)
 	if err != nil {
 		return err
 	}
@@ -140,23 +141,18 @@ func (am *AuthorModule) HasSessionKeys(r *http.Request, req *HasSessionKeyReques
 		return err
 	}
 
-	for _, key := range *decodedKeys {
-		if common.CheckAllBytesZero(key.Data) {
-			*res = false
-			return err
-		}
+	if decodedKeys == nil {
+		*res = false
+		return errors.New("could not decode DecodeSessionKeys response")
+	}
 
+	for _, key := range *decodedKeys {
 		encType := keystore.Name(key.Type[:])
 		ok, err := am.coreAPI.HasKey(common.BytesToHex(key.Data), string(encType))
 
-		if err != nil {
+		if err != nil || !ok {
 			*res = false
 			return err
-		}
-
-		if !ok {
-			*res = false
-			return nil
 		}
 	}
 

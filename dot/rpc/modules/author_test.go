@@ -40,7 +40,6 @@ func TestAuthorModule_HasSessionKey(t *testing.T) {
 	})
 
 	keys := "0x34309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-
 	runtimeInstance := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
 
 	decodeSessionKeysMock := coremockapi.On("DecodeSessionKeys", mock.AnythingOfType("[]uint8"))
@@ -56,7 +55,7 @@ func TestAuthorModule_HasSessionKey(t *testing.T) {
 	}
 
 	req := &HasSessionKeyRequest{
-		Data: keys,
+		PublicKeys: keys,
 	}
 
 	err := module.InsertKey(nil, &KeyInsertRequest{
