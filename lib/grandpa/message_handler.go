@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
-	"reflect"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -84,7 +83,7 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 		}
 	case catchUpResponseType:
 		if r, ok := m.(*catchUpResponse); ok {
-			h.catchUp.handleCatchUpResponse(r)
+			h.handleCatchUpResponse(r)
 			return nil, nil
 		}
 	default:
@@ -248,50 +247,6 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 	}
 
 	logger.Debug("validated commit message", "msg", fm)
-	return nil
-}
-
-func (h *MessageHandler) verifyJustification(just *SignedVote, round, setID uint64, stage subround) error {
-	// verify signature
-	msg, err := scale.Encode(&FullVote{
-		Stage: stage,
-		Vote:  just.Vote,
-		Round: round,
-		SetID: setID,
-	})
-	if err != nil {
-		return err
-	}
-
-	pk, err := ed25519.NewPublicKey(just.AuthorityID[:])
-	if err != nil {
-		return err
-	}
-
-	ok, err := pk.Verify(msg, just.Signature[:])
-	if err != nil {
-		return err
-	}
-
-	if !ok {
-		return ErrInvalidSignature
-	}
-
-	// verify authority in justification set
-	authFound := false
-	for _, auth := range h.grandpa.authorities() {
-		justKey, err := just.AuthorityID.Encode()
-		if err != nil {
-			return err
-		}
-		if reflect.DeepEqual(auth.Key.Encode(), justKey) {
-			authFound = true
-			break
-		}
-	}
-	if !authFound {
-		return ErrVoterNotFound
-	}
 	return nil
 }
 
