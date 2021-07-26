@@ -67,7 +67,7 @@ var (
 	BlockBuilderApplyExtrinsic = "BlockBuilder_apply_extrinsic"
 	// BlockBuilderFinalizeBlock is the runtime API call BlockBuilder_finalize_block
 	BlockBuilderFinalizeBlock = "BlockBuilder_finalize_block"
-	// DecodeSessionKeys os the runtime API call SessionKeys_decode_session_keys
+	// DecodeSessionKeys is the runtime API call SessionKeys_decode_session_keys
 	DecodeSessionKeys = "SessionKeys_decode_session_keys"
 )
 

@@ -84,7 +84,7 @@ func NewKeypairFromPrivate(priv *PrivateKey) (*Keypair, error) {
 }
 
 // NewKeypairFromSeed returns a new sr25519 Keypair given a seed
-func NewKeypairFromSeed(keystr []byte) (*Keypair, error) {
+func NewKeypairFromHex(keystr []byte) (*Keypair, error) {
 	if len(keystr) != SeedLength {
 		return nil, fmt.Errorf("cannot generate key from seed: seed is not 32 bytes long")
 	}

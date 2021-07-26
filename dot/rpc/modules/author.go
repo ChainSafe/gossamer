@@ -168,7 +168,7 @@ func (am *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *K
 		return err
 	}
 
-	keyPair, err := keystore.DecodeKeyPairFromSeed(keyBytes, keystore.DetermineKeyType(keyReq.Type))
+	keyPair, err := keystore.DecodeKeyPairFromHex(keyBytes, keystore.DetermineKeyType(keyReq.Type))
 	if err != nil {
 		return err
 	}
