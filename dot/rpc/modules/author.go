@@ -77,7 +77,7 @@ type KeyRotateResponse []byte
 // HasSessionKeyResponse is the response to the RPC call author_hasSessionKeys
 type HasSessionKeyResponse bool
 
-// KeyTypeID is a fixed len array to scale decodes the key type
+// KeyTypeID represents the key type of a session key
 type KeyTypeID [4]uint8
 
 // DecodedKey is the representation of a scaled decoded key
