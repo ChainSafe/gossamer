@@ -41,7 +41,35 @@ var testDigest = &Digest{
 }
 
 func TestBlockDataSlice(t *testing.T) {
+	var slice [2]BlockDataVdt
 
+	bdVdt1 := BlockDataVdt{
+		Hash:          common.NewHash([]byte{0}),
+		Header:        nil,
+		Body:          NewBody([]byte{0xa, 0xb, 0xc, 0xd}),
+		Receipt:       nil,
+		MessageQueue:  nil,
+		Justification: nil,
+	}
+
+	bdVdt2 := BlockDataVdt{
+		Hash:          common.NewHash([]byte{0}),
+		Header:        nil,
+		Body:          NewBody([]byte{0xa, 0xb, 0xc, 0xd}),
+		Receipt:       &[]byte{3},
+		MessageQueue:  nil,
+		Justification: nil,
+	}
+	slice[0] = bdVdt1
+	slice[1] = bdVdt2
+
+	enc, err := scale.Marshal(slice)
+	require.NoError(t, err)
+
+	var exp [2]BlockDataVdt
+	err = scale.Unmarshal(enc, &exp)
+	require.NoError(t, err)
+	require.Equal(t, slice, exp)
 }
 
 func TestVdtEncode(t *testing.T) {
