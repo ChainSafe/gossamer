@@ -222,8 +222,6 @@ func (bs *BlockState) DeleteBlock(hash common.Hash) error {
 		}
 	}
 
-	bs.bt.DeleteRuntime(hash)
-
 	return nil
 }
 
@@ -653,7 +651,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState, rt run
 	codeHash := rt.GetCodeHash()
 	if bytes.Equal(codeHash[:], currCodeHash[:]) {
 		bs.StoreRuntime(bHash, rt)
-		return err
+		return nil
 	}
 
 	logger.Info("🔄 detected runtime code change, upgrading...", "block", bHash, "previous code hash", codeHash, "new code hash", currCodeHash)
@@ -669,8 +667,11 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState, rt run
 			return err
 		}
 
+		// only update runtime during code substitution if runtime SpecVersion is updated
 		previousVersion, _ := rt.Version()
 		if previousVersion.SpecVersion() == newVersion.SpecVersion() {
+			logger.Info("not upgrading runtime code during code substitution")
+			bs.StoreRuntime(bHash, rt)
 			return nil
 		}
 
