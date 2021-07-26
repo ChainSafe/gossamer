@@ -18,6 +18,7 @@ package types
 
 import (
 	"bytes"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 	"reflect"
 	"testing"
@@ -37,6 +38,59 @@ var testDigest = &Digest{
 		ConsensusEngineID: BabeEngineID,
 		Data:              []byte{4, 5, 6, 7},
 	},
+}
+
+func TestBlockDataSlice(t *testing.T) {
+
+}
+
+func TestVdtEncode(t *testing.T) {
+	hash := common.NewHash([]byte{0})
+	body := optional.CoreBody{0xa, 0xb, 0xc, 0xd}
+	//body2 := NewBody([]byte{0xa, 0xb, 0xc, 0xd})
+
+	bd := &BlockData{
+		Hash:          hash,
+		Header:        optional.NewHeader(false, nil),
+		Body:          optional.NewBody(true, body),
+		Receipt:       optional.NewBytes(false, nil),
+		MessageQueue:  optional.NewBytes(false, nil),
+		Justification: optional.NewBytes(false, nil),
+	}
+
+	bdVdt := BlockDataVdt{
+		Hash:          common.NewHash([]byte{0}),
+		Header:        nil,
+		Body:          NewBody([]byte{0xa, 0xb, 0xc, 0xd}),
+		Receipt:       nil,
+		MessageQueue:  nil,
+		Justification: nil,
+	}
+
+	expected, err := common.HexToBytes("0x00000000000000000000000000000000000000000000000000000000000000000001100a0b0c0d000000")
+	require.NoError(t, err)
+
+	enc, err := bd.Encode()
+	require.NoError(t, err)
+	require.Equal(t, expected, enc)
+
+	enc2, err := scale.Marshal(bdVdt)
+	require.NoError(t, err)
+	require.Equal(t, enc, enc2)
+
+	// Decode
+	var block BlockDataVdt
+	err = scale.Unmarshal(enc2, &block)
+	require.NoError(t, err)
+	require.Equal(t, bdVdt, block)
+
+	r := &bytes.Buffer{}
+	_, _ = r.Write(enc)
+
+	res := new(BlockData)
+	err = res.Decode(r)
+	require.NoError(t, err)
+	require.Equal(t, bd, res)
 }
 
 func TestBlockDataEncodeEmpty(t *testing.T) {

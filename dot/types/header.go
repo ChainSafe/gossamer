@@ -48,13 +48,13 @@ type HeaderVdt struct {
 }
 
 // NewHeader creates a new block header and sets its hash field
-func NewHeaderVdt(parentHash, stateRoot, extrinsicsRoot common.Hash, number *big.Int, digest scale.VaryingDataTypeSlice) (HeaderVdt, error) {
+func NewHeaderVdt(parentHash, stateRoot, extrinsicsRoot common.Hash, number *big.Int, digest scale.VaryingDataTypeSlice) (*HeaderVdt, error) {
 	if number == nil {
 		// Hash() will panic if number is nil
-		return HeaderVdt{}, errors.New("cannot have nil block number")
+		return nil, errors.New("cannot have nil block number")
 	}
 
-	bh := HeaderVdt{
+	bh := &HeaderVdt{
 		ParentHash:     parentHash,
 		Number:         number,
 		StateRoot:      stateRoot,
@@ -86,10 +86,11 @@ func NewHeader(parentHash, stateRoot, extrinsicsRoot common.Hash, number *big.In
 }
 
 // NewEmptyHeader returns a new header with all zero values
-func NewEmptyHeaderVdt() HeaderVdt {
+func NewEmptyHeaderVdt() *HeaderVdt {
 	var diVdt = scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
 	var vdtSlice = scale.NewVaryingDataTypeSlice(diVdt)
-	return HeaderVdt{
+	return &HeaderVdt{
+		Number: big.NewInt(0),
 		Digest: vdtSlice,
 	}
 }
@@ -103,7 +104,7 @@ func NewEmptyHeader() *Header {
 }
 
 // DeepCopy returns a deep copy of the header to prevent side effects down the road
-func (bh *HeaderVdt) DeepCopy() HeaderVdt {
+func (bh *HeaderVdt) DeepCopy() *HeaderVdt {
 	cp := NewEmptyHeaderVdt()
 	copy(cp.ParentHash[:], bh.ParentHash[:])
 	copy(cp.StateRoot[:], bh.StateRoot[:])
@@ -255,15 +256,15 @@ func (bh *Header) MustEncode() []byte {
 	return enc
 }
 
-// Decode decodes the SCALE encoded input into this header
-func (bh HeaderVdt) Decode(in []byte) (HeaderVdt, error) {
-	var dec = NewEmptyHeaderVdt()
-	err := scale.Unmarshal(in, dec)
-	if err != nil {
-		return HeaderVdt{}, err
-	}
-	return dec, nil
-}
+//// Decode decodes the SCALE encoded input into this header
+//func (bh HeaderVdt) Decode(in []byte) (HeaderVdt, error) {
+//	var dec = NewEmptyHeaderVdt()
+//	err := scale.Unmarshal(in, dec)
+//	if err != nil {
+//		return HeaderVdt{}, err
+//	}
+//	return dec, nil
+//}
 
 // Decode decodes the SCALE encoded input into this header
 func (bh *Header) Decode(buf *bytes.Buffer) (*Header, error) {
@@ -307,14 +308,15 @@ func (bh *Header) Decode(buf *bytes.Buffer) (*Header, error) {
 }
 
 // AsOptional returns the Header as an optional.Header
-func (bh *HeaderVdt) AsOptional() optional.HeaderVdt {
-	return optional.NewHeaderVdt(true, optional.CoreHeaderVdt{
+func (bh *HeaderVdt) AsOptional() *optional.HeaderVdt {
+	head := optional.NewHeaderVdt(true, &optional.CoreHeaderVdt{
 		ParentHash:     bh.ParentHash,
 		Number:         bh.Number,
 		StateRoot:      bh.StateRoot,
 		ExtrinsicsRoot: bh.ExtrinsicsRoot,
 		Digest:         bh.Digest,
 	})
+	return &head
 }
 
 // AsOptional returns the Header as an optional.Header
@@ -376,6 +378,24 @@ func NewHeaderFromOptional(oh *optional.Header) (*Header, error) {
 
 	bh.Hash()
 	return bh, nil
+}
+
+// decodeOptionalHeader decodes a SCALE encoded optional Header into an *optional.Header
+func decodeOptionalVdtHeader(in []byte) (*optional.HeaderVdt, error) {
+	// This function seems to work
+	if in[0] == 1 {
+		head := NewEmptyHeaderVdt()
+		err := scale.Unmarshal(in[1:], &head)
+		if err != nil {
+			return nil , err
+		}
+
+		head.Hash()
+		return head.AsOptional(), nil
+	}
+
+	head := optional.NewHeaderVdt(false, nil)
+	return &head, nil
 }
 
 // decodeOptionalHeader decodes a SCALE encoded optional Header into an *optional.Header

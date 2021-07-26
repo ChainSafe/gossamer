@@ -33,6 +33,29 @@ type MyVaryingDataTypeSliceStruct struct {
 	VDTS scale.VaryingDataTypeSlice
 }
 
+func TestOptionals(t *testing.T) {
+	f := optional.NewHeaderVdt(false, nil)
+	tr := optional.NewHeaderVdt(true, nil)
+
+	enc, err := scale.Marshal(f)
+	require.NoError(t, err)
+
+	enc2, err := scale.Marshal(tr)
+	require.NoError(t, err)
+
+	var opt1 optional.HeaderVdt
+	err = scale.Unmarshal(enc, &opt1)
+	require.NoError(t, err)
+
+	var opt2 optional.HeaderVdt
+	err = scale.Unmarshal(enc2, &opt2)
+	require.NoError(t, err)
+
+	require.Equal(t, opt1, f)
+	require.Equal(t, opt2, tr)
+	// All works
+}
+
 func TestSomething(t *testing.T) {
 	var dVdt = scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
 	var vdts = scale.NewVaryingDataTypeSlice(dVdt)
@@ -110,7 +133,7 @@ func TestEncodeAndDecodeHeaderVdt(t *testing.T) {
 	enc, err := header.Encode()
 	require.NoError(t, err)
 
-	encVdt, err := scale.Marshal(headerVdt)
+	encVdt, err := scale.Marshal(*headerVdt)
 	require.NoError(t, err)
 
 	require.Equal(t, enc, encVdt)
@@ -121,14 +144,14 @@ func TestEncodeAndDecodeHeaderVdt(t *testing.T) {
 	require.NoError(t, err)
 
 	var decVdt = NewEmptyHeaderVdt()
-	err = scale.Unmarshal(encVdt, &decVdt)
+	err = scale.Unmarshal(encVdt, decVdt)
 	require.NoError(t, err)
 
 	 // Test if reencoding is equal
 	enc2, err := dec.Encode()
 	require.NoError(t, err)
 
-	encVdt2, err := scale.Marshal(decVdt)
+	encVdt2, err := scale.Marshal(*decVdt)
 	require.NoError(t, err)
 
 	require.Equal(t, enc2, encVdt2)
@@ -150,19 +173,18 @@ func TestOptionalEncoding(t *testing.T) {
 	enc, err := scale.Marshal(*header)
 	require.NoError(t, err)
 
-	encVdt, err := scale.Marshal(vdtOption.Value)
+	encVdt, err := scale.Marshal(*vdtOption.Value)
 	require.NoError(t, err)
 
-	encVdtOption, err := scale.Marshal(vdtOption)
+	encVdtOption, err := scale.Marshal(*vdtOption)
 	require.NoError(t, err)
 
 	require.Equal(t, enc, encVdt)
 
-	var dec optional.HeaderVdt
-	dec.Value.Digest = vdts
+	var dec = optional.HeaderVdt{Value: &optional.CoreHeaderVdt{Digest: vdts}}
 	err = scale.Unmarshal(encVdtOption, &dec)
 	require.NoError(t, err)
-	require.Equal(t, vdtOption, dec)
+	require.Equal(t, *vdtOption, dec)
 	// Works to this point
 }
 
@@ -257,9 +279,17 @@ func TestHeaderVdtAsOptional(t *testing.T) {
 
 	//TODO test other functions or just get rid of this optional type cuz i dont think its necessary with new scale
 
-	newHead, err := NewHeaderVdtFromOptional(optionalVdt)
+	enc, err := scale.Marshal(*optionalVdt)
 	require.NoError(t, err)
-	require.Equal(t, headerVdt, newHead)
+
+	//Decode
+	opt, err := decodeOptionalVdtHeader(enc)
+	require.NoError(t, err)
+	require.Equal(t, optionalVdt, opt)
+
+	//newHead, err := NewHeaderVdtFromOptional(optionalVdt)
+	//require.NoError(t, err)
+	//require.Equal(t, headerVdt, newHead)
 }
 
 func TestDecodeHeader(t *testing.T) {

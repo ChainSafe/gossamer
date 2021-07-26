@@ -29,6 +29,16 @@ import (
 // TODO see if I can migrate away from using optionals. Start with testing first
 
 // BlockData is stored within the BlockDB
+type BlockDataVdt struct {
+	Hash          common.Hash
+	Header        *HeaderVdt
+	Body          *Body
+	Receipt       *[]byte
+	MessageQueue  *[]byte
+	Justification *[]byte
+}
+
+// BlockData is stored within the BlockDB
 type BlockData struct {
 	Hash          common.Hash
 	Header        *optional.Header
@@ -74,6 +84,30 @@ func (bd *BlockData) String() string {
 }
 
 // Encode performs SCALE encoding of the BlockData
+func (bd BlockDataVdt) Encode() ([]byte, error) {
+	enc, err := scale.Marshal(bd)
+	if err != nil {
+		return nil, err
+	}
+	return enc, nil
+}
+
+func (bd *BlockData) EncodeBody() ([]byte, error) {
+	var enc []byte
+	if bd.Body.Exists() {
+		venc, err := scale.Marshal(bd.Body.Value())
+		if err != nil {
+			return nil, err
+		}
+		enc = append(enc, byte(1)) // Some
+		enc = append(enc, venc...)
+	} else {
+		enc = append(enc, byte(0)) // None
+	}
+	return enc, nil
+}
+
+// Encode performs SCALE encoding of the BlockData
 func (bd *BlockData) Encode() ([]byte, error) {
 	enc := bd.Hash[:]
 
@@ -84,37 +118,8 @@ func (bd *BlockData) Encode() ([]byte, error) {
 			return nil, err
 		}
 		venc, err := head.Encode()
+		//venc, err := scale.Marshal(bd.H)
 
-		//var venc []byte
-		//ph, err := scale2.Marshal(bd.Header.Value().ParentHash)
-		//if err != nil {
-		//	return nil, err
-		//}
-		//venc = append(venc, ph...)
-		//
-		//num, err := scale2.Marshal(bd.Header.Value().Number)
-		//if err != nil {
-		//	return nil, err
-		//}
-		//venc = append(venc, num...)
-		//
-		//sr, err := scale2.Marshal(bd.Header.Value().StateRoot)
-		//if err != nil {
-		//	return nil, err
-		//}
-		//venc = append(venc, sr...)
-		//
-		//er, err := scale2.Marshal(bd.Header.Value().ExtrinsicsRoot)
-		//if err != nil {
-		//	return nil, err
-		//}
-		//venc = append(venc, er...)
-		//
-		//d, err := bd.Header.Value().Digest.Encode()
-		//if err != nil {
-		//	return nil, err
-		//}
-		//venc = append(venc, d...)
 
 		enc = append(enc, byte(1)) // Some
 		enc = append(enc, venc...)

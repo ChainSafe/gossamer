@@ -92,9 +92,23 @@ func (x *Uint32) Encode() []byte {
 }
 
 // Bytes represents an optional Bytes type.
+type BytesTest struct {
+	Exists bool
+	Value  []byte
+}
+
+// Bytes represents an optional Bytes type.
 type Bytes struct {
 	exists bool
 	value  []byte
+}
+
+// NewBytes returns a new optional.Bytes
+func NewBytesTest(exists bool, value []byte) BytesTest {
+	return BytesTest{
+		Exists: exists,
+		Value:  value,
+	}
 }
 
 // NewBytes returns a new optional.Bytes
@@ -413,7 +427,7 @@ func (h *CoreHeader) String() string {
 // Header represents an optional header type
 type HeaderVdt struct {
 	Exists bool
-	Value  CoreHeaderVdt
+	Value  *CoreHeaderVdt
 }
 
 // Header represents an optional header type
@@ -423,7 +437,7 @@ type Header struct {
 }
 
 // NewHeader returns a new optional.Header
-func NewHeaderVdt(exists bool, value CoreHeaderVdt) HeaderVdt {
+func NewHeaderVdt(exists bool, value *CoreHeaderVdt) HeaderVdt {
 	return HeaderVdt{
 		Exists: exists,
 		Value:  value,
@@ -474,9 +488,23 @@ func (x *Header) Set(exists bool, value *CoreHeader) {
 type CoreBody []byte
 
 // Body represents an optional types.Body.
+type BodyTest struct {
+	Exists bool
+	Value  CoreBody
+}
+
+// Body represents an optional types.Body.
 type Body struct {
 	exists bool
 	value  CoreBody
+}
+
+// NewBody returns a new optional.Body
+func NewBodyTest(exists bool, value CoreBody) BodyTest {
+	return BodyTest{
+		Exists: exists,
+		Value:  value,
+	}
 }
 
 // NewBody returns a new optional.Body

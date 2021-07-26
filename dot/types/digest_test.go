@@ -18,7 +18,6 @@ package types
 
 import (
 	"bytes"
-	"fmt"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -69,20 +68,22 @@ func TestEncodeWithVdt(t *testing.T) {
 	//exp := digest[0]
 	//act := v.Types[0].Value()
 	//require.Equal(t, exp, act)
-	var act interface{}
-	switch val := v.Types[0].Value().(type) {
-	case ChangesTrieRootDigest:
-		act = &val
-	case PreRuntimeDigest:
-		act = &val
-	case ConsensusDigest:
-		act = &val
-	case SealDigest:
-		act = &val
-	}
+
+
+	//var act interface{}
+	//switch val := v.Types[0].Value().(type) {
+	//case ChangesTrieRootDigest:
+	//	act = &val
+	//case PreRuntimeDigest:
+	//	act = &val
+	//case ConsensusDigest:
+	//	act = &val
+	//case SealDigest:
+	//	act = &val
+	//}
 
 	//require.Equal(t, exp, act)
-	fmt.Println(act)
+	//fmt.Println(act)
 
 	// Reencode and check
 	encV, err := scale.Marshal(v)
