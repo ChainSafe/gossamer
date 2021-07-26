@@ -492,6 +492,9 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 		number:   slotNum,
 	}
 
+	b.storageState.Lock()
+	defer b.storageState.Unlock()
+
 	// set runtime trie before building block
 	// if block building is successful, store the resulting trie in the storage state
 	ts, err := b.storageState.TrieState(&parent.StateRoot)
