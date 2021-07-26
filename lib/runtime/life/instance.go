@@ -194,7 +194,7 @@ func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 
 	fnc, ok := in.vm.GetFunctionExport(function)
 	if !ok {
-		panic("entry function not found")
+		panic("entry function " + function + " not found")
 	}
 
 	ret, err := in.vm.Run(fnc, int64(ptr), int64(len(data)))

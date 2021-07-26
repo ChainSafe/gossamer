@@ -24,48 +24,69 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 	case "env":
 		switch field {
 		case "ext_logging_log_version_1":
+			// todo test
 			return ext_logging_log_version_1
 		case "ext_misc_print_utf8_version_1":
+			// todo test
 			return ext_misc_print_utf8_version_1
 		case "ext_misc_print_hex_version_1":
+			// todo test
 			return ext_misc_print_hex_version_1
 		case "ext_allocator_malloc_version_1":
+			// todo test
 			return ext_allocator_malloc_version_1
 		case "ext_allocator_free_version_1":
+			// todo test
 			return ext_allocator_free_version_1
 		case "ext_hashing_blake2_256_version_1":
 			return ext_hashing_blake2_256_version_1
 		case "ext_hashing_twox_128_version_1":
+			// todo test
 			return ext_hashing_twox_128_version_1
 		case "ext_storage_get_version_1":
+			// todo test
 			return ext_storage_get_version_1
 		case "ext_storage_set_version_1":
+			// todo test
 			return ext_storage_set_version_1
 		case "ext_storage_next_key_version_1":
+			// todo test
 			return ext_storage_next_key_version_1
 		case "ext_hashing_twox_64_version_1":
+			// todo test
 			return ext_hashing_twox_64_version_1
 		case "ext_storage_clear_version_1":
+			// todo test
 			return ext_storage_clear_version_1
 		case "ext_storage_clear_prefix_version_1":
+			// todo test
 			return ext_storage_clear_prefix_version_1
 		case "ext_storage_read_version_1":
+			// todo test
 			return ext_storage_read_version_1
 		case "ext_storage_append_version_1":
+			// todo test
 			return ext_storage_append_version_1
 		case "ext_trie_blake2_256_ordered_root_version_1":
+			// todo test
 			return ext_trie_blake2_256_ordered_root_version_1
 		case "ext_storage_root_version_1":
+			// todo test
 			return ext_storage_root_version_1
 		case "ext_storage_changes_root_version_1":
+			// todo test
 			return ext_storage_changes_root_version_1
 		case "ext_crypto_start_batch_verify_version_1":
+			// todo test
 			return ext_crypto_start_batch_verify_version_1
 		case "ext_crypto_finish_batch_verify_version_1":
+			// todo test
 			return ext_crypto_finish_batch_verify_version_1
 		case "ext_offchain_index_set_version_1":
+			// todo test
 			return ext_offchain_index_set_version_1
 		case "ext_storage_exists_version_1":
+			// todo test
 			return ext_storage_exists_version_1
 		default:
 			panic(fmt.Errorf("unknown import resolved: %s", field))
