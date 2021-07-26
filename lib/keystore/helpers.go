@@ -65,12 +65,12 @@ func DecodePrivateKey(in []byte, keytype crypto.KeyType) (priv crypto.PrivateKey
 }
 
 // DecodeKeyPairFromSeed turns an hex seed into a private key
-func DecodeKeyPairFromSeed(seed []byte, keytype crypto.KeyType) (kp crypto.Keypair, err error) {
+func DecodeKeyPairFromSeed(keystr []byte, keytype crypto.KeyType) (kp crypto.Keypair, err error) {
 	switch keytype {
 	case crypto.Sr25519Type:
-		kp, err = sr25519.NewKeypairFromSeed(seed)
+		kp, err = sr25519.NewKeypairFromSeed(keystr)
 	case crypto.Ed25519Type:
-		kp, err = ed25519.NewKeypairFromSeed(seed)
+		kp, err = ed25519.NewKeypairFromSeed(keystr)
 	default:
 		return nil, errors.New("cannot decode key: invalid key type")
 	}

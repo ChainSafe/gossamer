@@ -215,24 +215,3 @@ func TestMustHexToBigIntPanic(t *testing.T) {
 	assert.Panics(t, func() { MustHexToBigInt("12") }, "should panic for string not starting with 0x")
 	assert.Panics(t, func() { MustHexToBigInt("0xzz") }, "should panic for string not containing hex characters")
 }
-
-func benchmarckCheckBytesAllZero(s int, b *testing.B) {
-	for n := 0; n < b.N; n++ {
-		z := make([]byte, s)
-		if !CheckAllBytesZero(z) {
-			b.Error("all bytes entries should be zeros")
-		}
-	}
-}
-
-func BenchmarkCheckBytesAllZero1000(b *testing.B) {
-	benchmarckCheckBytesAllZero(1000, b)
-}
-
-func BenchmarkCheckBytesAllZero10000(b *testing.B) {
-	benchmarckCheckBytesAllZero(10000, b)
-}
-
-func BenchmarkCheckBytesAllZero1000000(b *testing.B) {
-	benchmarckCheckBytesAllZero(1000000, b)
-}

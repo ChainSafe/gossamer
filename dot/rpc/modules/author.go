@@ -18,7 +18,6 @@ package modules
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -164,23 +163,19 @@ func (am *AuthorModule) HasSessionKeys(r *http.Request, req *HasSessionKeyReques
 func (am *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *KeyInsertResponse) error {
 	keyReq := *req
 
-	seedBytes, err := common.HexToBytes(req.Seed)
+	keyBytes, err := common.HexToBytes(req.Seed)
 	if err != nil {
 		return err
 	}
 
-	keyPair, err := keystore.DecodeKeyPairFromSeed(seedBytes, keystore.DetermineKeyType(keyReq.Type))
+	keyPair, err := keystore.DecodeKeyPairFromSeed(keyBytes, keystore.DetermineKeyType(keyReq.Type))
 	if err != nil {
-		am.logger.Debug("err private key pair", "key type", keystore.DetermineKeyType(keyReq.Type), "err", err)
 		return err
 	}
-
-	fmt.Println("here", keyPair.Public().Hex(), keyReq.PublicKey)
 
 	//strings.EqualFold compare using case-insensitivity.
 	if !strings.EqualFold(keyPair.Public().Hex(), keyReq.PublicKey) {
-		am.logger.Debug("keys not equal", "keypair", keyPair.Public().Hex(), "received", keyReq.PublicKey, "type", keyReq.Type)
-		return fmt.Errorf("generated public key does not equal provide public key")
+		return errors.New("generated public key does not equal provide public key")
 	}
 
 	am.coreAPI.InsertKey(keyPair)
