@@ -41,6 +41,27 @@ var testDigest = &Digest{
 }
 
 func TestBlockDataSlice(t *testing.T) {
+	vdts := DigestVdtSlice
+	err := vdts.Add(
+		PreRuntimeDigest{
+			ConsensusEngineID: BabeEngineID,
+			Data:              common.MustHexToBytes("0x0201000000ef55a50f00000000"),
+		},
+		ConsensusDigest{
+			ConsensusEngineID: BabeEngineID,
+			Data:              common.MustHexToBytes("0x0118ca239392960473fe1bc65f94ee27d890a49c1b200c006ff5dcc525330ecc16770100000000000000b46f01874ce7abbb5220e8fd89bede0adad14c73039d91e28e881823433e723f0100000000000000d684d9176d6eb69887540c9a89fa6097adea82fc4b0ff26d1062b488f352e179010000000000000068195a71bdde49117a616424bdc60a1733e96acb1da5aeab5d268cf2a572e94101000000000000001a0575ef4ae24bdfd31f4cb5bd61239ae67c12d4e64ae51ac756044aa6ad8200010000000000000018168f2aad0081a25728961ee00627cfe35e39833c805016632bf7c14da5800901000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		},
+		SealDigest{
+			ConsensusEngineID: BabeEngineID,
+			Data:              common.MustHexToBytes("0x4625284883e564bc1e4063f5ea2b49846cdddaa3761d04f543b698c1c3ee935c40d25b869247c36c6b8a8cbbd7bb2768f560ab7c276df3c62df357a7e3b1ec8d"),
+		},
+	)
+	require.NoError(t, err)
+
+	headerVdt, err := NewHeaderVdt(common.Hash{1}, common.Hash{1}, common.Hash{1}, big.NewInt(1), vdts)
+	require.NoError(t, err)
+
+
 	var slice [2]BlockDataVdt
 
 	bdVdt1 := BlockDataVdt{
@@ -54,7 +75,7 @@ func TestBlockDataSlice(t *testing.T) {
 
 	bdVdt2 := BlockDataVdt{
 		Hash:          common.NewHash([]byte{0}),
-		Header:        nil,
+		Header:        headerVdt,
 		Body:          NewBody([]byte{0xa, 0xb, 0xc, 0xd}),
 		Receipt:       &[]byte{3},
 		MessageQueue:  nil,
@@ -66,7 +87,10 @@ func TestBlockDataSlice(t *testing.T) {
 	enc, err := scale.Marshal(slice)
 	require.NoError(t, err)
 
+	b := BlockDataVdt{Header: NewEmptyHeaderVdt()}
 	var exp [2]BlockDataVdt
+	exp[0] = b
+	exp[1] = b
 	err = scale.Unmarshal(enc, &exp)
 	require.NoError(t, err)
 	require.Equal(t, slice, exp)
