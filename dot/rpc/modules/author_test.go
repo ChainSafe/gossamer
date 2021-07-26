@@ -261,8 +261,8 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 			args: args{
 				req: &KeyInsertRequest{
 					"babe",
-					"0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309",
 					"0x6246ddf254e0b4b4e7dffefc8adf69d212b98ac2b579c362b473fec8c40b4c0a",
+					"0xdad5131003242c37c227f744f82118dd59a24b949ae264a93d949100738c196c",
 				},
 			},
 		},
@@ -273,9 +273,10 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 				coreAPI: mockCoreAPI,
 			},
 			args: args{
-				req: &KeyInsertRequest{"gran",
-					"0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309b7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309",
-					"0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309",
+				req: &KeyInsertRequest{
+					"gran",
+					"0xb48004c6e1625282313b07d1c9950935e86894a2e4f21fb1ffee9854d180c781",
+					"0xa7d6507d59f8871b8f1a0f2c32e219adfacff4c9fcb05b0b2d8ebd6a65c88ee6",
 				},
 			},
 		},

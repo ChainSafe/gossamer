@@ -19,6 +19,7 @@ package sr25519
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -84,6 +85,10 @@ func NewKeypairFromPrivate(priv *PrivateKey) (*Keypair, error) {
 
 // NewKeypairFromSeed returns a new sr25519 Keypair given a seed
 func NewKeypairFromSeed(seed []byte) (*Keypair, error) {
+	if len(seed) != SeedLength {
+		return nil, fmt.Errorf("cannot generate key from seed: seed is not 32 bytes long")
+	}
+
 	buf := [SeedLength]byte{}
 	copy(buf[:], seed)
 	msc, err := sr25519.NewMiniSecretKeyFromRaw(buf)

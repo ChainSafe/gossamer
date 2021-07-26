@@ -188,9 +188,11 @@ func (am *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *K
 		return err
 	}
 
+	fmt.Println("here", keyPair.Public().Hex(), keyReq.PublicKey)
+
 	//strings.EqualFold compare using case-insensitivity.
 	if !strings.EqualFold(keyPair.Public().Hex(), keyReq.PublicKey) {
-		am.logger.Debug("keys not equal", "keypair", keyPair.Public().Hex(), "received", keyReq.PublicKey)
+		am.logger.Debug("keys not equal", "keypair", keyPair.Public().Hex(), "received", keyReq.PublicKey, "type", keyReq.Type)
 		return fmt.Errorf("generated public key does not equal provide public key")
 	}
 
