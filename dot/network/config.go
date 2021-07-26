@@ -49,6 +49,9 @@ const (
 
 	// DefaultMaxPeerCount is the default maximum peer count
 	DefaultMaxPeerCount = 50
+
+	// DefaultDiscoveryInterval is the default interval for searching for DHT peers
+	DefaultDiscoveryInterval = time.Minute * 5
 )
 
 // DefaultBootnodes the default value for Config.Bootnodes
@@ -85,6 +88,8 @@ type Config struct {
 
 	MinPeers int
 	MaxPeers int
+
+	DiscoveryInterval time.Duration
 
 	// PersistentPeers is a list of multiaddrs which the node should remain connected to
 	PersistentPeers []string

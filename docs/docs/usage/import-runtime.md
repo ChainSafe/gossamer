@@ -30,7 +30,9 @@ Note: the `import-runtime` subcommand does not validate that the runtime in the 
 To create the raw genesis file used by the node, you can use the `gossamer build-spec` subcommand.
 
 ```
-./bin/gossamer build-spec --raw --genesis genesis-spec.json > genesis.json
+./bin/gossamer build-spec --raw --genesis-spec genesis-spec.json > genesis.json
+or
+./bin/gossamer build-spec --raw --genesis-spec genesis-spec.json --output genesis.json
 ```
 
 This creates a genesis file `genesis.json` that is usable by the node.
