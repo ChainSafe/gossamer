@@ -356,12 +356,17 @@ func (q *syncQueue) benchmark() {
 				continue
 			}
 
-			logger.Info("💤 node waiting", "peer count", len(q.s.host.peers()), "head", before.Number, "finalised", finalised.Number)
+			logger.Info("💤 node waiting",
+				"peer count", len(q.s.host.peers()),
+				"head", before.Number,
+				"hash", before.Hash(),
+				"finalised", finalised.Number,
+				"hash", finalised.Hash(),
+			)
 
 			// reset the counter and then wait 5 seconds
 			t.Reset(time.Second * 5)
 			<-t.C
-
 			continue
 		}
 
