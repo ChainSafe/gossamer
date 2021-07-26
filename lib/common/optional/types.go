@@ -412,8 +412,8 @@ func (h *CoreHeader) String() string {
 
 // Header represents an optional header type
 type HeaderVdt struct {
-	exists bool
-	value  CoreHeaderVdt
+	Exists bool
+	Value  CoreHeaderVdt
 }
 
 // Header represents an optional header type
@@ -425,8 +425,8 @@ type Header struct {
 // NewHeader returns a new optional.Header
 func NewHeaderVdt(exists bool, value CoreHeaderVdt) HeaderVdt {
 	return HeaderVdt{
-		exists: exists,
-		value:  value,
+		Exists: exists,
+		Value:  value,
 	}
 }
 
@@ -438,13 +438,6 @@ func NewHeader(exists bool, value *CoreHeader) *Header {
 	}
 }
 
-// Exists returns true if the value is Some, false if it is None.
-func (x *HeaderVdt) Exists() bool {
-	if x == nil {
-		return false
-	}
-	return x.exists
-}
 
 // Exists returns true if the value is Some, false if it is None.
 func (x *Header) Exists() bool {
@@ -454,13 +447,6 @@ func (x *Header) Exists() bool {
 	return x.exists
 }
 
-// Value returns the value of the header. It returns nil if the header is None.
-func (x *HeaderVdt) Value() *CoreHeaderVdt {
-	if x == nil {
-		return nil
-	}
-	return &x.value
-}
 
 // Value returns the value of the header. It returns nil if the header is None.
 func (x *Header) Value() *CoreHeader {

@@ -330,11 +330,11 @@ func (bh *Header) AsOptional() *optional.Header {
 
 // NewHeaderFromOptional returns a Header given an optional.Header. If the optional.Header is None, an error is returned.
 func NewHeaderVdtFromOptional(oh optional.HeaderVdt) (HeaderVdt, error) {
-	if !oh.Exists() {
+	if !oh.Exists {
 		return HeaderVdt{}, errors.New("header is None")
 	}
 
-	h := oh.Value()
+	h := oh.Value
 
 	if h.Number == nil {
 		// Hash() will panic if number is nil
@@ -396,6 +396,7 @@ func decodeOptionalHeader(r *bytes.Buffer) (*optional.Header, error) {
 
 		head, err := header.Decode(r)
 		if err != nil {
+			fmt.Println("Error here")
 			return nil, err
 		}
 

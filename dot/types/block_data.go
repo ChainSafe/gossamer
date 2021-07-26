@@ -26,7 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// TODO see if I can migrate away from using optionals
+// TODO see if I can migrate away from using optionals. Start with testing first
 
 // BlockData is stored within the BlockDB
 type BlockData struct {
