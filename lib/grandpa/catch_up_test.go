@@ -24,7 +24,7 @@ import (
 
 func TestMessageHandler_VerifyPreVoteJustification(t *testing.T) {
 	gs, _ := newTestService(t)
-	h := newCatchUp(true, gs, newTestNetwork(t))
+	h := newCatchUp(true, gs, newTestNetwork(t), nil)
 
 	just := buildTestJustification(t, int(gs.state.threshold()), 1, gs.state.setID, kr, prevote)
 	msg := &catchUpResponse{
@@ -40,7 +40,7 @@ func TestMessageHandler_VerifyPreVoteJustification(t *testing.T) {
 
 func TestMessageHandler_VerifyPreCommitJustification(t *testing.T) {
 	gs, _ := newTestService(t)
-	h := newCatchUp(true, gs, newTestNetwork(t))
+	h := newCatchUp(true, gs, newTestNetwork(t), nil)
 
 	round := uint64(1)
 	just := buildTestJustification(t, int(gs.state.threshold()), round, gs.state.setID, kr, precommit)

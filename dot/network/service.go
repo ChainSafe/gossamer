@@ -523,11 +523,16 @@ func (s *Service) SendMessage(to peer.ID, msg NotificationsMessage) error {
 		if msg.Type() != msgID || prtl == nil {
 			continue
 		}
+
 		hs, err := prtl.getHandshake()
 		if err != nil {
 			return err
 		}
-		s.sendData(to, hs, prtl, msg)
+
+		err = s.sendData(to, hs, prtl, msg)
+		if err != nil {
+			return err
+		}
 	}
 	return errors.New("message not supported by any notifications protocol")
 }
