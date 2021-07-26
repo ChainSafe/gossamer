@@ -41,37 +41,27 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 		case "ext_hashing_blake2_256_version_1":
 			return ext_hashing_blake2_256_version_1
 		case "ext_hashing_twox_128_version_1":
-			// todo test
 			return ext_hashing_twox_128_version_1
 		case "ext_storage_get_version_1":
-			// todo test
 			return ext_storage_get_version_1
 		case "ext_storage_set_version_1":
-			// todo test
 			return ext_storage_set_version_1
 		case "ext_storage_next_key_version_1":
-			// todo test
 			return ext_storage_next_key_version_1
 		case "ext_hashing_twox_64_version_1":
-			// todo test
 			return ext_hashing_twox_64_version_1
 		case "ext_storage_clear_version_1":
-			// todo test
 			return ext_storage_clear_version_1
 		case "ext_storage_clear_prefix_version_1":
-			// todo test
 			return ext_storage_clear_prefix_version_1
 		case "ext_storage_read_version_1":
-			// todo test
 			return ext_storage_read_version_1
 		case "ext_storage_append_version_1":
-			// todo test
+			// todo fix test
 			return ext_storage_append_version_1
 		case "ext_trie_blake2_256_ordered_root_version_1":
-			// todo test
 			return ext_trie_blake2_256_ordered_root_version_1
 		case "ext_storage_root_version_1":
-			// todo test
 			return ext_storage_root_version_1
 		case "ext_storage_changes_root_version_1":
 			// todo test
@@ -86,7 +76,6 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 			// todo test
 			return ext_offchain_index_set_version_1
 		case "ext_storage_exists_version_1":
-			// todo test
 			return ext_storage_exists_version_1
 		default:
 			panic(fmt.Errorf("unknown import resolved: %s", field))
