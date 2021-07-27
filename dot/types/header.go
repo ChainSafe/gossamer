@@ -103,7 +103,7 @@ func NewEmptyHeader() *Header {
 	}
 }
 
-// DeepCopy returns a deep copy of the header to prevent side effects down the road
+// Exists returns a boolean indicating if the header exists
 func (bh *HeaderVdt) Exists() bool {
 	exists := bh != nil
 	return exists
@@ -200,15 +200,6 @@ func (bh *Header) Hash() common.Hash {
 }
 
 // Encode returns the SCALE encoding of a header
-func (bh HeaderVdt) Encode() ([]byte, error) {
-	enc, err := scale.Marshal(bh)
-	if err != nil {
-		return nil, err
-	}
-	return enc, nil
-}
-
-// Encode returns the SCALE encoding of a header
 func (bh *Header) Encode() ([]byte, error) {
 	// This works I believe
 	var enc []byte
@@ -243,24 +234,6 @@ func (bh *Header) Encode() ([]byte, error) {
 	enc = append(enc, d...)
 
 	return enc, nil
-}
-
-// MustEncode returns the SCALE encoded header and panics if it fails to encode
-func (bh *HeaderVdt) MustEncode() []byte {
-	enc, err := bh.Encode()
-	if err != nil {
-		panic(err)
-	}
-	return enc
-}
-
-// MustEncode returns the SCALE encoded header and panics if it fails to encode
-func (bh *Header) MustEncode() []byte {
-	enc, err := bh.Encode()
-	if err != nil {
-		panic(err)
-	}
-	return enc
 }
 
 // Decode decodes the SCALE encoded input into this header
