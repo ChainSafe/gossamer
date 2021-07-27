@@ -25,17 +25,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//var testDigest = &Digest{
-//	&PreRuntimeDigest{
-//		ConsensusEngineID: BabeEngineID,
-//		Data:              []byte{1, 2, 3},
-//	},
-//	&SealDigest{
-//		ConsensusEngineID: BabeEngineID,
-//		Data:              []byte{4, 5, 6, 7},
-//	},
-//}
-
 var digestItem = scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
 var digest = scale.NewVaryingDataTypeSlice(digestItem)
 
@@ -50,6 +39,25 @@ var _ = testDigest.Add(
 		Data:              []byte{4, 5, 6, 7},
 	},
 )
+
+func TestNumber(t *testing.T) {
+	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
+
+	headerVdt, err := NewHeaderVdt(testHash, testHash, testHash, big.NewInt(5), testDigest)
+	require.NoError(t, err)
+
+	bd := BlockDataVdt{
+		Hash:          common.NewHash([]byte{0}),
+		Header:        headerVdt,
+		Body:          nil,
+		Receipt:       nil,
+		MessageQueue:  nil,
+		Justification: nil,
+	}
+
+	num := bd.Number()
+	require.Equal(t, big.NewInt(5), num)
+}
 
 func TestBlockDataEncodeAndDecodeEmpty(t *testing.T) {
 	expected, err := common.HexToBytes("0x00000000000000000000000000000000000000000000000000000000000000000000000000")

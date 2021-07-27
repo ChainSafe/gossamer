@@ -104,6 +104,12 @@ func NewEmptyHeader() *Header {
 }
 
 // DeepCopy returns a deep copy of the header to prevent side effects down the road
+func (bh *HeaderVdt) Exists() bool {
+	exists := bh != nil
+	return exists
+}
+
+// DeepCopy returns a deep copy of the header to prevent side effects down the road
 func (bh *HeaderVdt) DeepCopy() *HeaderVdt {
 	cp := NewEmptyHeaderVdt()
 	copy(cp.ParentHash[:], bh.ParentHash[:])
@@ -257,16 +263,6 @@ func (bh *Header) MustEncode() []byte {
 	return enc
 }
 
-//// Decode decodes the SCALE encoded input into this header
-//func (bh HeaderVdt) Decode(in []byte) (HeaderVdt, error) {
-//	var dec = NewEmptyHeaderVdt()
-//	err := scale.Unmarshal(in, dec)
-//	if err != nil {
-//		return HeaderVdt{}, err
-//	}
-//	return dec, nil
-//}
-
 // Decode decodes the SCALE encoded input into this header
 func (bh *Header) Decode(buf *bytes.Buffer) (*Header, error) {
 	sd := scale.NewDecoder(buf)
@@ -309,18 +305,6 @@ func (bh *Header) Decode(buf *bytes.Buffer) (*Header, error) {
 }
 
 // AsOptional returns the Header as an optional.Header
-func (bh *HeaderVdt) AsOptional() *optional.HeaderVdt {
-	head := optional.NewHeaderVdt(true, &optional.CoreHeaderVdt{
-		ParentHash:     bh.ParentHash,
-		Number:         bh.Number,
-		StateRoot:      bh.StateRoot,
-		ExtrinsicsRoot: bh.ExtrinsicsRoot,
-		Digest:         bh.Digest,
-	})
-	return &head
-}
-
-// AsOptional returns the Header as an optional.Header
 func (bh *Header) AsOptional() *optional.Header {
 	return optional.NewHeader(true, &optional.CoreHeader{
 		ParentHash:     bh.ParentHash,
@@ -329,31 +313,6 @@ func (bh *Header) AsOptional() *optional.Header {
 		ExtrinsicsRoot: bh.ExtrinsicsRoot,
 		Digest:         &bh.Digest,
 	})
-}
-
-// NewHeaderFromOptional returns a Header given an optional.Header. If the optional.Header is None, an error is returned.
-func NewHeaderVdtFromOptional(oh optional.HeaderVdt) (HeaderVdt, error) {
-	if !oh.Exists {
-		return HeaderVdt{}, errors.New("header is None")
-	}
-
-	h := oh.Value
-
-	if h.Number == nil {
-		// Hash() will panic if number is nil
-		return HeaderVdt{}, errors.New("cannot have nil block number")
-	}
-
-	bh := HeaderVdt{
-		ParentHash:     h.ParentHash,
-		Number:         h.Number,
-		StateRoot:      h.StateRoot,
-		ExtrinsicsRoot: h.ExtrinsicsRoot,
-		Digest:         h.Digest,
-	}
-
-	bh.Hash()
-	return bh, nil
 }
 
 // NewHeaderFromOptional returns a Header given an optional.Header. If the optional.Header is None, an error is returned.
@@ -379,51 +338,4 @@ func NewHeaderFromOptional(oh *optional.Header) (*Header, error) {
 
 	bh.Hash()
 	return bh, nil
-}
-
-// decodeOptionalHeader decodes a SCALE encoded optional Header into an *optional.Header
-func decodeOptionalVdtHeader(in []byte) (*optional.HeaderVdt, error) {
-	// This function seems to work
-	if in[0] == 1 {
-		head := NewEmptyHeaderVdt()
-		err := scale.Unmarshal(in[1:], &head)
-		if err != nil {
-			return nil , err
-		}
-
-		head.Hash()
-		return head.AsOptional(), nil
-	}
-
-	head := optional.NewHeaderVdt(false, nil)
-	return &head, nil
-}
-
-// decodeOptionalHeader decodes a SCALE encoded optional Header into an *optional.Header
-func decodeOptionalHeader(r *bytes.Buffer) (*optional.Header, error) {
-	exists, err := common.ReadByte(r)
-	if err != nil {
-		return nil, err
-	}
-
-	if exists == 1 {
-		header := &Header{
-			ParentHash:     common.Hash{},
-			Number:         big.NewInt(0),
-			StateRoot:      common.Hash{},
-			ExtrinsicsRoot: common.Hash{},
-			Digest:         Digest{},
-		}
-
-		head, err := header.Decode(r)
-		if err != nil {
-			fmt.Println("Error here")
-			return nil, err
-		}
-
-		head.Hash()
-		return head.AsOptional(), nil
-	}
-
-	return optional.NewHeader(false, nil), nil
 }
