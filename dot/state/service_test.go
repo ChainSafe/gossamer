@@ -272,10 +272,8 @@ func TestService_PruneStorage(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	for _, v := range prunedArr {
-		serv.Storage.lock.Lock()
-		_, ok := serv.Storage.tries[v.hash]
-		serv.Storage.lock.Unlock()
-		require.Equal(t, false, ok)
+		_, has := serv.Storage.tries.Load(v.hash)
+		require.Equal(t, false, has)
 	}
 }
 
