@@ -17,16 +17,12 @@
 package types
 
 import (
-	"bytes"
 	"fmt"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 )
-
-// TODO see if I can migrate away from using optionals. Start with testing first
 
 // BlockData is stored within the BlockDB
 type BlockDataVdt struct {
@@ -83,129 +79,120 @@ func (bd *BlockData) String() string {
 	return str
 }
 
-// Encode performs SCALE encoding of the BlockData
-func (bd BlockDataVdt) Encode() ([]byte, error) {
-	enc, err := scale.Marshal(bd)
-	if err != nil {
-		return nil, err
-	}
-	return enc, nil
-}
+//func (bd *BlockData) EncodeBody() ([]byte, error) {
+//	var enc []byte
+//	if bd.Body.Exists() {
+//		venc, err := scale.Marshal(bd.Body.Value())
+//		if err != nil {
+//			return nil, err
+//		}
+//		enc = append(enc, byte(1)) // Some
+//		enc = append(enc, venc...)
+//	} else {
+//		enc = append(enc, byte(0)) // None
+//	}
+//	return enc, nil
+//}
 
-func (bd *BlockData) EncodeBody() ([]byte, error) {
-	var enc []byte
-	if bd.Body.Exists() {
-		venc, err := scale.Marshal(bd.Body.Value())
-		if err != nil {
-			return nil, err
-		}
-		enc = append(enc, byte(1)) // Some
-		enc = append(enc, venc...)
-	} else {
-		enc = append(enc, byte(0)) // None
-	}
-	return enc, nil
-}
+//// Encode performs SCALE encoding of the BlockData
+//func (bd *BlockData) Encode() ([]byte, error) {
+//	enc := bd.Hash[:]
+//
+//	if bd.Header.Exists() {
+//		//venc, err := scale.Encode(bd.Header.Value())
+//		head, err := NewHeaderFromOptional(bd.Header)
+//		if err != nil {
+//			return nil, err
+//		}
+//		venc, err := head.Encode()
+//		//venc, err := scale.Marshal(bd.H)
+//
+//
+//		enc = append(enc, byte(1)) // Some
+//		enc = append(enc, venc...)
+//	} else {
+//		enc = append(enc, byte(0)) // None
+//	}
+//
+//	if bd.Body.Exists() {
+//		venc, err := scale.Marshal(bd.Body.Value())
+//		if err != nil {
+//			return nil, err
+//		}
+//		enc = append(enc, byte(1)) // Some
+//		enc = append(enc, venc...)
+//	} else {
+//		enc = append(enc, byte(0)) // None
+//	}
+//
+//	if bd.Receipt != nil && bd.Receipt.Exists() {
+//		venc, err := scale.Marshal(bd.Receipt.Value())
+//		if err != nil {
+//			return nil, err
+//		}
+//		enc = append(enc, byte(1)) // Some
+//		enc = append(enc, venc...)
+//	} else {
+//		enc = append(enc, byte(0)) // None
+//	}
+//
+//	if bd.MessageQueue != nil && bd.MessageQueue.Exists() {
+//		venc, err := scale.Marshal(bd.MessageQueue.Value())
+//		if err != nil {
+//			return nil, err
+//		}
+//		enc = append(enc, byte(1)) // Some
+//		enc = append(enc, venc...)
+//	} else {
+//		enc = append(enc, byte(0)) // None
+//	}
+//
+//	if bd.Justification != nil && bd.Justification.Exists() {
+//		venc, err := scale.Marshal(bd.Justification.Value())
+//		if err != nil {
+//			return nil, err
+//		}
+//		enc = append(enc, byte(1)) // Some
+//		enc = append(enc, venc...)
+//	} else {
+//		enc = append(enc, byte(0)) // None
+//	}
+//
+//	return enc, nil
+//}
 
-// Encode performs SCALE encoding of the BlockData
-func (bd *BlockData) Encode() ([]byte, error) {
-	enc := bd.Hash[:]
-
-	if bd.Header.Exists() {
-		//venc, err := scale.Encode(bd.Header.Value())
-		head, err := NewHeaderFromOptional(bd.Header)
-		if err != nil {
-			return nil, err
-		}
-		venc, err := head.Encode()
-		//venc, err := scale.Marshal(bd.H)
-
-
-		enc = append(enc, byte(1)) // Some
-		enc = append(enc, venc...)
-	} else {
-		enc = append(enc, byte(0)) // None
-	}
-
-	if bd.Body.Exists() {
-		venc, err := scale.Marshal(bd.Body.Value())
-		if err != nil {
-			return nil, err
-		}
-		enc = append(enc, byte(1)) // Some
-		enc = append(enc, venc...)
-	} else {
-		enc = append(enc, byte(0)) // None
-	}
-
-	if bd.Receipt != nil && bd.Receipt.Exists() {
-		venc, err := scale.Marshal(bd.Receipt.Value())
-		if err != nil {
-			return nil, err
-		}
-		enc = append(enc, byte(1)) // Some
-		enc = append(enc, venc...)
-	} else {
-		enc = append(enc, byte(0)) // None
-	}
-
-	if bd.MessageQueue != nil && bd.MessageQueue.Exists() {
-		venc, err := scale.Marshal(bd.MessageQueue.Value())
-		if err != nil {
-			return nil, err
-		}
-		enc = append(enc, byte(1)) // Some
-		enc = append(enc, venc...)
-	} else {
-		enc = append(enc, byte(0)) // None
-	}
-
-	if bd.Justification != nil && bd.Justification.Exists() {
-		venc, err := scale.Marshal(bd.Justification.Value())
-		if err != nil {
-			return nil, err
-		}
-		enc = append(enc, byte(1)) // Some
-		enc = append(enc, venc...)
-	} else {
-		enc = append(enc, byte(0)) // None
-	}
-
-	return enc, nil
-}
-
-// Decode decodes the SCALE encoded input to BlockData
-func (bd *BlockData) Decode(r *bytes.Buffer) error {
-	hash, err := common.ReadHash(r)
-	if err != nil {
-		return err
-	}
-	bd.Hash = hash
-
-	bd.Header, err = decodeOptionalHeader(r)
-	if err != nil {
-		return err
-	}
-
-	bd.Body, err = decodeOptionalBody(r)
-	if err != nil {
-		return err
-	}
-
-	bd.Receipt, err = decodeOptionalBytes(r)
-	if err != nil {
-		return err
-	}
-
-	bd.MessageQueue, err = decodeOptionalBytes(r)
-	if err != nil {
-		return err
-	}
-
-	bd.Justification, err = decodeOptionalBytes(r)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
+//// Decode decodes the SCALE encoded input to BlockData
+//func (bd *BlockData) Decode(r *bytes.Buffer) error {
+//	hash, err := common.ReadHash(r)
+//	if err != nil {
+//		return err
+//	}
+//	bd.Hash = hash
+//
+//	bd.Header, err = decodeOptionalHeader(r)
+//	if err != nil {
+//		return err
+//	}
+//
+//	bd.Body, err = decodeOptionalBody(r)
+//	if err != nil {
+//		return err
+//	}
+//
+//	bd.Receipt, err = decodeOptionalBytes(r)
+//	if err != nil {
+//		return err
+//	}
+//
+//	bd.MessageQueue, err = decodeOptionalBytes(r)
+//	if err != nil {
+//		return err
+//	}
+//
+//	bd.Justification, err = decodeOptionalBytes(r)
+//	if err != nil {
+//		return err
+//	}
+//
+//	return nil
+//}
