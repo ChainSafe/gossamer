@@ -3,7 +3,9 @@
 package mocks
 
 import (
+	core "github.com/ChainSafe/gossamer/dot/core"
 	common "github.com/ChainSafe/gossamer/lib/common"
+
 	crypto "github.com/ChainSafe/gossamer/lib/crypto"
 
 	mock "github.com/stretchr/testify/mock"
@@ -104,16 +106,25 @@ func (_m *MockCoreAPI) InsertKey(kp crypto.Keypair) {
 	_m.Called(kp)
 }
 
-// IsBlockProducer provides a mock function with given fields:
-func (_m *MockCoreAPI) IsBlockProducer() bool {
-	ret := _m.Called()
+// QueryStorage provides a mock function with given fields: from, to, keys
+func (_m *MockCoreAPI) QueryStorage(from *common.Hash, to *common.Hash, keys []string) (map[common.Hash]core.Changes, error) {
+	ret := _m.Called(from, to, keys)
 
-	var r0 bool
-	if rf, ok := ret.Get(0).(func() bool); ok {
-		r0 = rf()
+	var r0 map[common.Hash]core.Changes
+	if rf, ok := ret.Get(0).(func(*common.Hash, *common.Hash, []string) map[common.Hash]core.Changes); ok {
+		r0 = rf(from, to, keys)
 	} else {
-		r0 = ret.Get(0).(bool)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[common.Hash]core.Changes)
+		}
 	}
 
-	return r0
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*common.Hash, *common.Hash, []string) error); ok {
+		r1 = rf(from, to, keys)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }

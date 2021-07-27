@@ -25,7 +25,10 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+	log "github.com/ChainSafe/log15"
 )
+
+var logger = log.New("trie", "Trie", "module", "trie")
 
 // StateCallRequest holds json fields
 type StateCallRequest struct {
@@ -87,7 +90,7 @@ type StateStorageRequest struct {
 type StateStorageQueryRangeRequest struct {
 	Keys       []string     `json:"keys" validate:"required"`
 	StartBlock *common.Hash `json:"startBlock" validate:"required"`
-	Block      *common.Hash `json:"block"`
+	EndBlock   *common.Hash `json:"block"`
 }
 
 // StateStorageKeysQuery field to store storage keys
@@ -129,8 +132,8 @@ type StateMetadataResponse string
 
 // StorageChangeSetResponse is the struct that holds the block and changes
 type StorageChangeSetResponse struct {
-	Block   *common.Hash
-	Changes []KeyValueOption
+	Block   *common.Hash `json:"block"`
+	Changes [][]string   `json:"changes"`
 }
 
 // KeyValueOption struct holds json fields
@@ -387,9 +390,32 @@ func (sm *StateModule) GetStorageSize(r *http.Request, req *StateStorageSizeRequ
 }
 
 // QueryStorage isn't implemented properly yet.
-func (sm *StateModule) QueryStorage(r *http.Request, req *StateStorageQueryRangeRequest, res *StorageChangeSetResponse) error {
-	// TODO implement change storage trie so that block hash parameter works (See issue #834)
-	//sm.coreAPI.QueryStateRoot()
+func (sm *StateModule) QueryStorage(r *http.Request, req *StateStorageQueryRangeRequest, res *[]StorageChangeSetResponse) error {
+	logger.Warn("receiving data", "start", req.StartBlock, "end", req.EndBlock, "keys", req.Keys)
+	changesByBlock, err := sm.coreAPI.QueryStorage(req.StartBlock, req.EndBlock, req.Keys)
+	logger.Warn("after query", "err", err)
+	if err != nil {
+		return err
+	}
+
+	var response []StorageChangeSetResponse
+
+	for block, c := range changesByBlock {
+		var changes [][]string
+
+		for key, value := range c {
+			changes = append(changes, []string{key, value})
+		}
+
+		response = append(response, StorageChangeSetResponse{
+			Block:   &block,
+			Changes: changes,
+		})
+	}
+
+	logger.Warn("built response", "res", response)
+
+	*res = response
 	return nil
 }
 
