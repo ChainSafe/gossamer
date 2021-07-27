@@ -626,12 +626,6 @@ func TestService_RegisterUnRegisterRuntimeUpdatedChannel(t *testing.T) {
 	require.True(t, res)
 }
 
-func TestService_notifyRuntimeUpdated(t *testing.T) {
-	s := NewTestService(t, nil)
-	testVer := NewMockVersion(1)
-	s.notifyRuntimeUpdated(testVer)
-}
-
 func TestService_RegisterUnRegisterConcurrentCalls(t *testing.T) {
 	s := NewTestService(t, nil)
 
