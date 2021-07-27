@@ -68,6 +68,8 @@ func newTestState(t *testing.T) *state.Service {
 	db, err := utils.SetupDatabase(testDatadirPath, true)
 	require.NoError(t, err)
 
+	t.Cleanup(func() { db.Close() })
+
 	gen, genTrie, _ := genesis.NewTestGenesisWithTrieAndHeader(t)
 	block, err := state.NewBlockStateFromGenesis(db, testHeader)
 	require.NoError(t, err)

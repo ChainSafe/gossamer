@@ -49,7 +49,7 @@ func NewEmptyBlockTree(db database.Database) *BlockTree {
 		leaves:    newEmptyLeafMap(),
 		db:        db,
 		nodeCache: make(map[Hash]*node),
-		runtime:   &sync.Map{},
+		runtime:   &sync.Map{}, // map[Hash]runtime.Instance
 	}
 }
 
@@ -201,6 +201,7 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 	defer func() {
 		for _, hash := range pruned {
 			delete(bt.nodeCache, hash)
+			bt.runtime.Delete(hash)
 		}
 	}()
 
@@ -220,6 +221,7 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 	for _, leaf := range leaves {
 		bt.leaves.store(leaf.hash, leaf)
 	}
+
 	return pruned
 }
 
@@ -407,17 +409,6 @@ func (bt *BlockTree) DeepCopy() *BlockTree {
 // StoreRuntime stores the runtime for corresponding block hash.
 func (bt *BlockTree) StoreRuntime(hash common.Hash, in runtime.Instance) {
 	bt.runtime.Store(hash, in)
-}
-
-// DeleteRuntime deletes the runtime for corresponding block hash.
-func (bt *BlockTree) DeleteRuntime(hash common.Hash) {
-	in, err := bt.GetBlockRuntime(hash)
-	if err != nil {
-		return
-	}
-
-	in.Stop()
-	bt.runtime.Delete(hash)
 }
 
 // GetBlockRuntime returns block runtime for corresponding block hash.
