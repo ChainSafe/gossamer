@@ -606,12 +606,12 @@ func (s *Service) UnregisterRuntimeUpdatedChannel(id uint32) bool {
 }
 
 func (s *Service) generateID() uint32 {
-	uuid := uuid.New()
-
+	var uid uuid.UUID
 	for {
-		if s.runtimeUpdateSubscriptions[uuid.ID()] == nil {
+		uid = uuid.New()
+		if s.runtimeUpdateSubscriptions[uid.ID()] == nil {
 			break
 		}
 	}
-	return uuid.ID()
+	return uid.ID()
 }
