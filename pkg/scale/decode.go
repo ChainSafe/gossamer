@@ -431,8 +431,11 @@ func (ds *decodeState) decodeStruct(dstv reflect.Value) (err error) {
 		if !field.CanInterface() {
 			continue
 		}
-		if !dstv.Field(i.fieldIndex).IsZero() {
-			field.Set(dstv.Field(i.fieldIndex))
+		// if the value is not a zero value, set it as non-zero value from dst.
+		// this is required for VaryingDataTypeSlice and VaryingDataType
+		inv := reflect.ValueOf(in)
+		if inv.Field(i.fieldIndex).IsValid() && !inv.Field(i.fieldIndex).IsZero() {
+			field.Set(inv.Field(i.fieldIndex))
 		}
 		err = ds.unmarshal(field)
 		if err != nil {
