@@ -422,7 +422,7 @@ func (s *Service) notifyRuntimeUpdated(version runtime.Version) {
 		return
 	}
 
-	logger.Info("notifying runtime updated chans...", "chans", s.runtimeUpdateSubscriptions)
+	logger.Debug("notifying runtime updated chans...", "chans", s.runtimeUpdateSubscriptions)
 	var wg sync.WaitGroup
 	wg.Add(len(s.runtimeUpdateSubscriptions))
 	for _, ch := range s.runtimeUpdateSubscriptions {
