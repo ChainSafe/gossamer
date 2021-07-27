@@ -18,9 +18,15 @@ package grandpa
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 )
+
+// errRoundMismatch is returned when trying to validate a vote message that isn't for the current round
+func errRoundMismatch(got, want uint64) error {
+	return fmt.Errorf("rounds do not match: got %d, want %d", got, want)
+}
 
 //nolint
 var (
@@ -38,9 +44,6 @@ var (
 
 	// ErrSetIDMismatch is returned when trying to validate a vote message with an invalid voter set ID, or when receiving a catch up message with a different set ID
 	ErrSetIDMismatch = errors.New("set IDs do not match")
-
-	// ErrRoundMismatch is returned when trying to validate a vote message that isn't for the current round
-	ErrRoundMismatch = errors.New("rounds do not match")
 
 	// ErrEquivocation is returned when trying to validate a vote for that is equivocatory
 	ErrEquivocation = errors.New("vote is equivocatory")

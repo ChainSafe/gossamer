@@ -142,17 +142,11 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) (*ConsensusMess
 		return nil, err
 	}
 
-	if msg.Round >= h.grandpa.state.round {
-		// set latest finalised head in db
-		err = h.blockState.SetFinalisedHash(msg.Vote.Hash, 0, 0)
-		if err != nil {
-			return nil, err
-		}
-	}
+	return nil, nil
 
 	// check if msg has same setID but is 2 or more rounds ahead of us, if so, return catch-up request to send
 	if msg.Round > h.grandpa.state.round+1 && !h.grandpa.paused.Load().(bool) { // TODO: CommitMessage does not have setID, confirm this is correct
-		h.grandpa.paused.Store(true)
+		//h.grandpa.paused.Store(true)
 		h.grandpa.state.round = msg.Round + 1
 		req := newCatchUpRequest(msg.Round, h.grandpa.state.setID)
 		logger.Debug("sending catch-up request; paused service", "round", msg.Round)
@@ -192,12 +186,13 @@ func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponse) error {
 	}
 
 	logger.Debug("received catch up response", "round", msg.Round, "setID", msg.SetID, "hash", msg.Hash)
+	return nil
 
 	// if we aren't currently expecting a catch up response, return
-	if !h.grandpa.paused.Load().(bool) {
-		logger.Debug("not currently paused, ignoring catch up response")
-		return nil
-	}
+	// if !h.grandpa.paused.Load().(bool) {
+	// 	logger.Debug("not currently paused, ignoring catch up response")
+	// 	return nil
+	// }
 
 	if msg.SetID != h.grandpa.state.setID {
 		return ErrSetIDMismatch
@@ -288,6 +283,7 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 		isDescendant, err := h.blockState.IsDescendantOf(fm.Vote.Hash, just.Vote.Hash)
 		if err != nil {
 			logger.Warn("verifyCommitMessageJustification", "error", err)
+			continue
 		}
 
 		if isDescendant {
@@ -400,7 +396,7 @@ func (h *MessageHandler) verifyJustification(just *SignedVote, round, setID uint
 }
 
 // VerifyBlockJustification verifies the finality justification for a block
-func (s *Service) VerifyBlockJustification(justification []byte) error {
+func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byte) error {
 	r := &bytes.Buffer{}
 	_, _ = r.Write(justification)
 	fj := new(Justification)
@@ -465,6 +461,12 @@ func (s *Service) VerifyBlockJustification(justification []byte) error {
 		}
 	}
 
+	err = s.blockState.SetFinalisedHash(hash, fj.Round, setID)
+	if err != nil {
+		return err
+	}
+
+	logger.Debug("set finalised block", "hash", hash, "round", fj.Round, "setID", setID)
 	return nil
 }
 

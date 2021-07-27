@@ -123,6 +123,10 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 
 	bs.genesisHash = header.Hash()
 
+	if err := bs.db.Put(highestRoundAndSetIDKey, roundSetIDKey(0, 0)); err != nil {
+		return nil, err
+	}
+
 	// set the latest finalised head to the genesis header
 	if err := bs.SetFinalisedHash(bs.genesisHash, 0, 0); err != nil {
 		return nil, err

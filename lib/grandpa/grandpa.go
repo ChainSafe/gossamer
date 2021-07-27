@@ -345,7 +345,8 @@ func (s *Service) initiate() error {
 		}
 
 		if err != nil {
-			return err
+			logger.Warn("play grandpa round error", "error", err)
+			continue
 		}
 
 		if s.ctx.Err() != nil {
@@ -802,12 +803,7 @@ func (s *Service) finalise() error {
 		return err
 	}
 
-	if err = s.grandpaState.SetLatestRound(s.state.round); err != nil {
-		return err
-	}
-
-	// set latest finalised head in db
-	return s.blockState.SetFinalisedHash(bfc.Hash, 0, 0)
+	return s.grandpaState.SetLatestRound(s.state.round)
 }
 
 // createJustification collects the signed precommits received for this round and turns them into
@@ -1015,8 +1011,10 @@ func (s *Service) getPreVotedBlock() (Vote, error) {
 func (s *Service) getGrandpaGHOST() (Vote, error) {
 	threshold := s.state.threshold()
 
-	var blocks map[common.Hash]uint32
-	var err error
+	var (
+		blocks map[common.Hash]uint32
+		err    error
+	)
 
 	for {
 		blocks, err = s.getPossibleSelectedBlocks(prevote, threshold)

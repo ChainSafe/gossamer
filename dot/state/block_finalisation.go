@@ -17,12 +17,15 @@
 package state
 
 import (
+	"encoding/binary"
 	"fmt"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
+
+var highestRoundAndSetIDKey = []byte("hrs")
 
 // finalisedHashKey = FinalizedBlockHashKey + round + setID (LE encoded)
 func finalisedHashKey(round, setID uint64) []byte {
@@ -69,8 +72,63 @@ func (bs *BlockState) GetFinalisedHash(round, setID uint64) (common.Hash, error)
 	return common.NewHash(h), nil
 }
 
+func roundSetIDNum(round, setID uint64) *big.Int {
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, round)
+	buf2 := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf2, setID)
+	return big.NewInt(0).SetBytes(append(buf, buf2...))
+}
+
+func (bs *BlockState) setHighestRoundAndSetID(round, setID uint64) error {
+	currRound, currSetID, err := bs.getHighestRoundAndSetID()
+	if err != nil {
+		return err
+	}
+
+	if roundSetIDNum(round, setID).Cmp(roundSetIDNum(currRound, currSetID)) <= 0 {
+		return nil
+	}
+
+	return bs.db.Put(highestRoundAndSetIDKey, roundSetIDKey(round, setID))
+}
+
+func (bs *BlockState) getHighestRoundAndSetID() (uint64, uint64, error) {
+	b, err := bs.db.Get(highestRoundAndSetIDKey)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	round := binary.LittleEndian.Uint64(b[:8])
+	setID := binary.LittleEndian.Uint64(b[8:16])
+	return round, setID, nil
+}
+
+func (bs *BlockState) GetHighestFinalisedHash() (common.Hash, error) {
+	round, setID, err := bs.getHighestRoundAndSetID()
+	if err != nil {
+		return common.Hash{}, err
+	}
+
+	return bs.GetFinalisedHash(round, setID)
+}
+
+// GetHighestFinalisedHeader returns the most recently finalised block header
+func (bs *BlockState) GetHighestFinalisedHeader() (*types.Header, error) {
+	h, err := bs.GetHighestFinalisedHash()
+	if err != nil {
+		return nil, err
+	}
+
+	header, err := bs.GetHeader(h)
+	if err != nil {
+		return nil, err
+	}
+
+	return header, nil
+}
+
 // SetFinalisedHash sets the latest finalised block header
-// Note that using round=0 and setID=0 would refer to the latest finalised hash
 func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) error {
 	bs.Lock()
 	defer bs.Unlock()
@@ -114,7 +172,12 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	}
 
 	bs.lastFinalised = hash
-	return bs.db.Put(finalisedHashKey(round, setID), hash[:])
+
+	if err := bs.db.Put(finalisedHashKey(round, setID), hash[:]); err != nil {
+		return err
+	}
+
+	return bs.setHighestRoundAndSetID(round, setID)
 }
 
 func (bs *BlockState) setFirstSlotOnFinalisation() error {
