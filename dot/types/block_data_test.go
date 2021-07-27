@@ -18,6 +18,7 @@ package types
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 	"reflect"
@@ -40,7 +41,81 @@ var testDigest = &Digest{
 	},
 }
 
-func TestBlockDataSlice(t *testing.T) {
+func TestNilBlockData(t *testing.T) {
+	expected, err := common.HexToBytes("0x00000000000000000000000000000000000000000000000000000000000000000000000000")
+	require.NoError(t, err)
+
+	bd := BlockDataVdt{
+		Hash:          common.NewHash([]byte{0}),
+		Header:        nil,
+		Body:          nil,
+		Receipt:       nil,
+		MessageQueue:  nil,
+		Justification: nil,
+	}
+
+	enc, err := scale.Marshal(bd)
+	require.NoError(t, err)
+
+	require.Equal(t, expected, enc)
+}
+
+func TestFullBlockDataNew(t *testing.T) {
+	expected, err := common.HexToBytes("0x7d0000000000000000000000000000000000000000000000000000000000000001000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f04000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f0806424142450c0102030542414245100405060701100a0b0c0d010401010402010403")
+	require.NoError(t, err)
+
+	hash := common.NewHash([]byte{125})
+	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
+	body := NewBody([]byte{0xa, 0xb, 0xc, 0xd})
+
+	vdts := DigestVdtSlice
+	err = vdts.Add(
+		PreRuntimeDigest{
+			ConsensusEngineID: BabeEngineID,
+			Data:              []byte{1, 2, 3},
+		},
+		SealDigest{
+			ConsensusEngineID: BabeEngineID,
+			Data:              []byte{4, 5, 6, 7},
+		},
+	)
+	require.NoError(t, err)
+
+	headerVdt, err := NewHeaderVdt(testHash, testHash, testHash, big.NewInt(1), vdts)
+	require.NoError(t, err)
+
+	bd := BlockDataVdt{
+		Hash:          hash,
+		Header:        headerVdt,
+		Body:          body,
+		Receipt:       &[]byte{1},
+		MessageQueue:  &[]byte{2},
+		Justification: &[]byte{3},
+	}
+
+	enc, err := scale.Marshal(bd)
+	require.NoError(t, err)
+
+	require.Equal(t, expected, enc)
+}
+
+func TestFullBlockData(t *testing.T) {
+	hash := common.NewHash([]byte{0})
+	bd := &BlockData{
+		Hash:          hash,
+		Header:        optional.NewHeader(false, nil),
+		Body:          optional.NewBody(false, nil),
+		Receipt:       optional.NewBytes(false, nil),
+		MessageQueue:  optional.NewBytes(false, nil),
+		Justification: optional.NewBytes(false, nil),
+	}
+	enc, err := bd.Encode()
+	require.NoError(t, err)
+
+	fmt.Println(common.BytesToHex(enc))
+}
+
+func TestSingleNonNilBlockData(t *testing.T) {
 	vdts := DigestVdtSlice
 	err := vdts.Add(
 		PreRuntimeDigest{
@@ -61,39 +136,23 @@ func TestBlockDataSlice(t *testing.T) {
 	headerVdt, err := NewHeaderVdt(common.Hash{1}, common.Hash{1}, common.Hash{1}, big.NewInt(1), vdts)
 	require.NoError(t, err)
 
-
-	var slice [2]BlockDataVdt
-
-	bdVdt1 := BlockDataVdt{
+	bd := BlockDataVdt{
 		Hash:          common.NewHash([]byte{0}),
-		Header:        nil,
+		Header:        headerVdt,
 		Body:          NewBody([]byte{0xa, 0xb, 0xc, 0xd}),
 		Receipt:       nil,
 		MessageQueue:  nil,
 		Justification: nil,
 	}
 
-	bdVdt2 := BlockDataVdt{
-		Hash:          common.NewHash([]byte{0}),
-		Header:        headerVdt,
-		Body:          NewBody([]byte{0xa, 0xb, 0xc, 0xd}),
-		Receipt:       &[]byte{3},
-		MessageQueue:  nil,
-		Justification: nil,
-	}
-	slice[0] = bdVdt1
-	slice[1] = bdVdt2
-
-	enc, err := scale.Marshal(slice)
+	enc, err := scale.Marshal(bd)
 	require.NoError(t, err)
 
-	b := BlockDataVdt{Header: NewEmptyHeaderVdt()}
-	var exp [2]BlockDataVdt
-	exp[0] = b
-	exp[1] = b
-	err = scale.Unmarshal(enc, &exp)
+	block := BlockDataVdt{Header: NewEmptyHeaderVdt()}
+	err = scale.Unmarshal(enc, &block)
 	require.NoError(t, err)
-	require.Equal(t, slice, exp)
+	_ = block.Header.Hash()
+	require.Equal(t, bd, block)
 }
 
 func TestVdtEncode(t *testing.T) {
@@ -356,59 +415,5 @@ func TestBlockDataDecodeAll(t *testing.T) {
 
 	if !reflect.DeepEqual(res, expected) {
 		t.Fatalf("Fail: got %v expected %v", res, expected)
-	}
-}
-
-func TestBlockDataArrayEncodeAndDecode(t *testing.T) {
-	hash := common.NewHash([]byte{0})
-	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
-	body := optional.CoreBody{0xa, 0xb, 0xc, 0xd}
-
-	header := &optional.CoreHeader{
-		ParentHash:     testHash,
-		Number:         big.NewInt(1),
-		StateRoot:      testHash,
-		ExtrinsicsRoot: testHash,
-		Digest:         testDigest,
-	}
-
-	expected := []*BlockData{{
-		Hash:          hash,
-		Header:        optional.NewHeader(true, header),
-		Body:          optional.NewBody(false, nil),
-		Receipt:       optional.NewBytes(false, nil),
-		MessageQueue:  optional.NewBytes(false, nil),
-		Justification: optional.NewBytes(false, nil),
-	}, {
-		Hash:          hash,
-		Header:        optional.NewHeader(false, nil),
-		Body:          optional.NewBody(true, body),
-		Receipt:       optional.NewBytes(true, []byte("asdf")),
-		MessageQueue:  optional.NewBytes(true, []byte("ghjkl")),
-		Justification: optional.NewBytes(true, []byte("qwerty")),
-	}, {
-		Hash:          hash,
-		Header:        optional.NewHeader(false, nil),
-		Body:          optional.NewBody(true, body),
-		Receipt:       optional.NewBytes(false, nil),
-		MessageQueue:  optional.NewBytes(false, nil),
-		Justification: optional.NewBytes(false, nil),
-	}}
-
-	enc, err := EncodeBlockDataArray(expected)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	r := &bytes.Buffer{}
-	r.Write(enc)
-
-	res, err := DecodeBlockDataArray(r)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !reflect.DeepEqual(res[1], expected[1]) {
-		t.Fatalf("Fail: got %v expected %v", res[1], expected[1])
 	}
 }

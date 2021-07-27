@@ -90,7 +90,6 @@ func NewEmptyHeaderVdt() *HeaderVdt {
 	var diVdt = scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
 	var vdtSlice = scale.NewVaryingDataTypeSlice(diVdt)
 	return &HeaderVdt{
-		Number: big.NewInt(0),
 		Digest: vdtSlice,
 	}
 }
@@ -155,7 +154,8 @@ func (bh *Header) String() string {
 
 func (bh *HeaderVdt) Hash() common.Hash {
 	if bh.hash == [32]byte{} {
-		enc, err := bh.Encode()
+		//enc, err := bh.Encode()
+		enc, err := scale.Marshal(*bh)
 		if err != nil {
 			panic(err)
 		}
