@@ -40,7 +40,7 @@ func TestStateModule_GetRuntimeVersion(t *testing.T) {
 		SpecName:         "node",
 		ImplName:         "substrate-node",
 		AuthoringVersion: 10,
-		SpecVersion:      264,
+		SpecVersion:      260,
 		ImplVersion:      0,
 		Apis: []interface{}{
 			[]interface{}{"0xdf6acb689907609b", uint32(3)},
@@ -54,10 +54,9 @@ func TestStateModule_GetRuntimeVersion(t *testing.T) {
 			[]interface{}{"0xbc9d89904f5b923f", uint32(1)},
 			[]interface{}{"0x68b66ba122c93fa7", uint32(1)},
 			[]interface{}{"0x37c8bb1350a9a2a8", uint32(1)},
-			[]interface{}{"0x91d5df18b0d2cf58", uint32(1)},
 			[]interface{}{"0xab3c0572291feb8b", uint32(1)},
 		},
-		TransactionVersion: 2,
+		TransactionVersion: 1,
 	}
 
 	sm, hash, _ := setupStateModule(t)
