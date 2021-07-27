@@ -608,7 +608,6 @@ func (s *Service) UnregisterRuntimeUpdatedChannel(id uint32) bool {
 func (s *Service) generateID() uint32 {
 	uuid := uuid.New()
 
-	// todo (ed) is it still necessary to do this check since we're using a UUID which should be unique?
 	for {
 		if s.runtimeUpdateSubscriptions[uuid.ID()] == nil {
 			break
