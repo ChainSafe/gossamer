@@ -33,7 +33,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/extrinsic"
-	runtimemocks "github.com/ChainSafe/gossamer/lib/runtime/mocks"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/utils"
@@ -613,50 +612,4 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NotEqualf(t, codeHashBefore, rt.GetCodeHash(), "expected different code hash after runtime update") // codeHash should change after runtime change
-}
-
-func TestService_RegisterUnRegisterRuntimeUpdatedChannel(t *testing.T) {
-	s := NewTestService(t, nil)
-	ch := make(chan<- runtime.Version)
-	chID, err := s.RegisterRuntimeUpdatedChannel(ch)
-	require.NoError(t, err)
-	require.NotNil(t, chID)
-
-	res := s.UnregisterRuntimeUpdatedChannel(chID)
-	require.True(t, res)
-}
-
-func TestService_RegisterUnRegisterConcurrentCalls(t *testing.T) {
-	s := NewTestService(t, nil)
-
-	go func() {
-		for i := 0; i < 100; i++ {
-			testVer := NewMockVersion(uint32(i))
-			go s.notifyRuntimeUpdated(testVer)
-		}
-	}()
-
-	for i := 0; i < 100; i++ {
-		go func() {
-
-			ch := make(chan<- runtime.Version)
-			chID, err := s.RegisterRuntimeUpdatedChannel(ch)
-			require.NoError(t, err)
-			unReg := s.UnregisterRuntimeUpdatedChannel(chID)
-			require.True(t, unReg)
-		}()
-	}
-}
-
-// NewMockVersion creates and returns an runtime Version interface mock
-func NewMockVersion(specVer uint32) *runtimemocks.MockVersion {
-	m := new(runtimemocks.MockVersion)
-	m.On("SpecName").Return([]byte(`mock-spec`))
-	m.On("ImplName").Return(nil)
-	m.On("AuthoringVersion").Return(uint32(0))
-	m.On("SpecVersion").Return(specVer)
-	m.On("ImplVersion").Return(uint32(0))
-	m.On("TransactionVersion").Return(uint32(0))
-	m.On("APIItems").Return(nil)
-	return m
 }

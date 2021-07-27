@@ -103,38 +103,3 @@ func (_m *MockCoreAPI) HasKey(pubKeyStr string, keyType string) (bool, error) {
 func (_m *MockCoreAPI) InsertKey(kp crypto.Keypair) {
 	_m.Called(kp)
 }
-
-// RegisterRuntimeUpdatedChannel provides a mock function with given fields: ch
-func (_m *MockCoreAPI) RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error) {
-	ret := _m.Called(ch)
-
-	var r0 uint32
-	if rf, ok := ret.Get(0).(func(chan<- runtime.Version) uint32); ok {
-		r0 = rf(ch)
-	} else {
-		r0 = ret.Get(0).(uint32)
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(chan<- runtime.Version) error); ok {
-		r1 = rf(ch)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// UnregisterRuntimeUpdatedChannel provides a mock function with given fields: id
-func (_m *MockCoreAPI) UnregisterRuntimeUpdatedChannel(id uint32) bool {
-	ret := _m.Called(id)
-
-	var r0 bool
-	if rf, ok := ret.Get(0).(func(uint32) bool); ok {
-		r0 = rf(id)
-	} else {
-		r0 = ret.Get(0).(bool)
-	}
-
-	return r0
-}

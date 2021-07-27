@@ -356,7 +356,7 @@ func (c *WSConn) initRuntimeVersionListener(reqID float64, _ interface{}) (Liste
 		coreAPI:       c.CoreAPI,
 	}
 
-	chanID, err := c.CoreAPI.RegisterRuntimeUpdatedChannel(rvl.runtimeUpdate)
+	chanID, err := c.BlockAPI.RegisterRuntimeUpdatedChannel(rvl.runtimeUpdate)
 	if err != nil {
 		return nil, err
 	}
@@ -384,7 +384,7 @@ func (c *WSConn) unsubscribeRuntimeVersionListener(reqID float64, l Listener, _ 
 	}
 	id := observer.GetChannelID()
 
-	res := c.CoreAPI.UnregisterRuntimeUpdatedChannel(id)
+	res := c.BlockAPI.UnregisterRuntimeUpdatedChannel(id)
 	c.safeSend(newBooleanResponseJSON(res, reqID))
 }
 

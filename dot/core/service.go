@@ -17,7 +17,6 @@ package core
 
 import (
 	"context"
-	"errors"
 	"math/big"
 	"os"
 	"sync"
@@ -34,7 +33,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	log "github.com/ChainSafe/log15"
-	"github.com/google/uuid"
 )
 
 var (
@@ -65,9 +63,6 @@ type Service struct {
 
 	// Keystore
 	keys *keystore.GlobalKeystore
-
-	runtimeUpdateSubscriptionsLock sync.RWMutex
-	runtimeUpdateSubscriptions     map[uint32]chan<- runtime.Version
 }
 
 // Config holds the configuration for the core Service.
@@ -122,19 +117,18 @@ func NewService(cfg *Config) (*Service, error) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	srv := &Service{
-		ctx:                        ctx,
-		cancel:                     cancel,
-		keys:                       cfg.Keystore,
-		blockState:                 cfg.BlockState,
-		epochState:                 cfg.EpochState,
-		storageState:               cfg.StorageState,
-		transactionState:           cfg.TransactionState,
-		net:                        cfg.Network,
-		blockAddCh:                 blockAddCh,
-		codeSubstitute:             cfg.CodeSubstitutes,
-		codeSubstitutedState:       cfg.CodeSubstitutedState,
-		digestHandler:              cfg.DigestHandler,
-		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
+		ctx:                  ctx,
+		cancel:               cancel,
+		keys:                 cfg.Keystore,
+		blockState:           cfg.BlockState,
+		epochState:           cfg.EpochState,
+		storageState:         cfg.StorageState,
+		transactionState:     cfg.TransactionState,
+		net:                  cfg.Network,
+		blockAddCh:           blockAddCh,
+		codeSubstitute:       cfg.CodeSubstitutes,
+		codeSubstitutedState: cfg.CodeSubstitutedState,
+		digestHandler:        cfg.DigestHandler,
 	}
 
 	return srv, nil
@@ -414,25 +408,25 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 	return nil
 }
 
-func (s *Service) notifyRuntimeUpdated(version runtime.Version) {
-	s.runtimeUpdateSubscriptionsLock.RLock()
-	defer s.runtimeUpdateSubscriptionsLock.RUnlock()
-
-	if len(s.runtimeUpdateSubscriptions) == 0 {
-		return
-	}
-
-	logger.Debug("notifying runtime updated chans...", "chans", s.runtimeUpdateSubscriptions)
-	var wg sync.WaitGroup
-	wg.Add(len(s.runtimeUpdateSubscriptions))
-	for _, ch := range s.runtimeUpdateSubscriptions {
-		go func(ch chan<- runtime.Version) {
-			defer wg.Done()
-			ch <- version
-		}(ch)
-	}
-	wg.Wait()
-}
+//func (s *Service) notifyRuntimeUpdated(version runtime.Version) {
+//	s.runtimeUpdateSubscriptionsLock.RLock()
+//	defer s.runtimeUpdateSubscriptionsLock.RUnlock()
+//
+//	if len(s.runtimeUpdateSubscriptions) == 0 {
+//		return
+//	}
+//
+//	logger.Debug("notifying runtime updated chans...", "chans", s.runtimeUpdateSubscriptions)
+//	var wg sync.WaitGroup
+//	wg.Add(len(s.runtimeUpdateSubscriptions))
+//	for _, ch := range s.runtimeUpdateSubscriptions {
+//		go func(ch chan<- runtime.Version) {
+//			defer wg.Done()
+//			ch <- version
+//		}(ch)
+//	}
+//	wg.Wait()
+//}
 
 // maintainTransactionPool removes any transactions that were included in the new block, revalidates the transactions in the pool,
 // and moves them to the queue if valid.
@@ -575,43 +569,4 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 
 	rt.SetContextStorage(ts)
 	return rt.Metadata()
-}
-
-// RegisterRuntimeUpdatedChannel function to register chan that is notified when runtime version changes
-func (s *Service) RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error) {
-	s.runtimeUpdateSubscriptionsLock.Lock()
-	defer s.runtimeUpdateSubscriptionsLock.Unlock()
-
-	if len(s.runtimeUpdateSubscriptions) == 256 {
-		return 0, errors.New("channel limit reached")
-	}
-
-	id := s.generateID()
-
-	s.runtimeUpdateSubscriptions[id] = ch
-	return id, nil
-}
-
-// UnregisterRuntimeUpdatedChannel function to unregister runtime updated channel
-func (s *Service) UnregisterRuntimeUpdatedChannel(id uint32) bool {
-	s.runtimeUpdateSubscriptionsLock.Lock()
-	defer s.runtimeUpdateSubscriptionsLock.Unlock()
-	ch, ok := s.runtimeUpdateSubscriptions[id]
-	if ok {
-		close(ch)
-		delete(s.runtimeUpdateSubscriptions, id)
-		return true
-	}
-	return false
-}
-
-func (s *Service) generateID() uint32 {
-	var uid uuid.UUID
-	for {
-		uid = uuid.New()
-		if s.runtimeUpdateSubscriptions[uid.ID()] == nil {
-			break
-		}
-	}
-	return uid.ID()
 }
