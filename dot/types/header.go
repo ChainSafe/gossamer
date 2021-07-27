@@ -90,6 +90,7 @@ func NewEmptyHeaderVdt() *HeaderVdt {
 	var diVdt = scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
 	var vdtSlice = scale.NewVaryingDataTypeSlice(diVdt)
 	return &HeaderVdt{
+		Number: big.NewInt(0),
 		Digest: vdtSlice,
 	}
 }
