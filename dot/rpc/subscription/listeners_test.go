@@ -190,9 +190,10 @@ func TestGrandpaJustification_Listen(t *testing.T) {
 		defer server.Close()
 
 		wsURL := "ws" + strings.TrimPrefix(server.URL, "http")
-		ws, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+		ws, r, err := websocket.DefaultDialer.Dial(wsURL, nil)
 		require.NoError(t, err)
 
+		defer r.Body.Close()
 		defer ws.Close()
 
 		mockedJust := grandpa.Justification{

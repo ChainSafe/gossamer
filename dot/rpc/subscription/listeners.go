@@ -323,7 +323,6 @@ func (g *GrandpaJustificationListener) Listen() {
 		for {
 			select {
 			case <-g.cancel:
-				fmt.Println("closing everything")
 				return
 
 			case info, ok := <-g.finalisedCh:
@@ -356,7 +355,6 @@ func cancelWithTimeout(cancel chan interface{}, done chan interface{}, t time.Du
 
 	select {
 	case <-done:
-		fmt.Println("finalized")
 		return nil
 	case <-timeout.C:
 		return ErrCannotCancel
