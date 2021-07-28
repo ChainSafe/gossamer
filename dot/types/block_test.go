@@ -18,6 +18,7 @@ package types
 
 import (
 	"bytes"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 	"reflect"
 	"testing"
@@ -26,6 +27,43 @@ import (
 
 	"github.com/stretchr/testify/require"
 )
+
+func TestEncodeAndDecodeBlockVdt(t *testing.T) {
+	expected := []byte{69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69,
+		4, 39, 71, 171, 124, 13, 195, 139, 127, 42, 251, 168, 43, 213, 226, 214, 172, 239, 140, 49, 224, 152, 0,
+		246, 96, 183, 94, 200, 74, 112, 5, 9, 159, 3, 23, 10, 46, 117, 151, 183, 183, 227, 216, 76, 5, 57, 29, 19,
+		154, 98, 177, 87, 231, 135, 134, 216, 192, 130, 242, 157, 207, 76, 17, 19, 20, 0, 8, 4, 1}
+
+	parentHash, err := common.HexToHash("0x4545454545454545454545454545454545454545454545454545454545454545")
+	require.NoError(t, err)
+
+	stateRoot, err := common.HexToHash("0x2747ab7c0dc38b7f2afba82bd5e2d6acef8c31e09800f660b75ec84a7005099f")
+	require.NoError(t, err)
+
+	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
+	require.NoError(t, err)
+
+	header, err := NewHeaderVdt(parentHash, stateRoot, extrinsicsRoot, big.NewInt(1), NewEmptyDigestVdt())
+	require.NoError(t, err)
+
+	body := NewBody([]byte{4, 1})
+
+	block := NewBlockVdt(*header, *body)
+
+	enc, err := scale.Marshal(block)
+	require.NoError(t, err)
+
+	require.Equal(t, expected, enc)
+
+	// Decode time
+	dec := NewEmptyBlockVdt()
+	err = scale.Unmarshal(enc, &dec)
+	require.NoError(t, err)
+	if dec.Header.Number != nil { // Hash panics if number is nil
+		dec.Header.Hash()
+	}
+	require.Equal(t, block, dec)
+}
 
 func TestEncodeBlock(t *testing.T) {
 	// see https://github.com/paritytech/substrate/blob/master/test-utils/runtime/src/system.rs#L376
@@ -57,6 +95,7 @@ func TestEncodeBlock(t *testing.T) {
 		Digest:         Digest{},
 	}
 
+	// This is wrong body needs to be encoded first
 	block := NewBlock(header, NewBody([]byte{4, 1}))
 	enc, err := block.Encode()
 	if err != nil {

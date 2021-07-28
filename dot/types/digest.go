@@ -30,9 +30,15 @@ import (
 type Digest []DigestItem
 type DigestVdt scale.VaryingDataTypeSlice
 
-
+// TODO remove these and force a call to constructor
 var DigestItemVdt = scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
 var DigestVdtSlice = scale.NewVaryingDataTypeSlice(DigestItemVdt)
+
+// NewEmptyDigest returns an empty digest
+func NewEmptyDigestVdt() scale.VaryingDataTypeSlice {
+	var di = scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
+	return scale.NewVaryingDataTypeSlice(di)
+}
 
 // NewEmptyDigest returns an empty digest
 func NewEmptyDigest() Digest {

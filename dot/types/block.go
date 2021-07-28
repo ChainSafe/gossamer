@@ -22,6 +22,11 @@ import (
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
+type BlockVdt struct {
+	Header HeaderVdt
+	Body   Body
+}
+
 // Block defines a state block
 type Block struct {
 	Header *Header
@@ -29,10 +34,25 @@ type Block struct {
 }
 
 // NewBlock returns a new Block
+func NewBlockVdt(header HeaderVdt, body Body) BlockVdt {
+	return BlockVdt{
+		Header: header,
+		Body:   body,
+	}
+}
+
+// NewBlock returns a new Block
 func NewBlock(header *Header, body *Body) *Block {
 	return &Block{
 		Header: header,
 		Body:   body,
+	}
+}
+
+func NewEmptyBlockVdt() BlockVdt {
+	return BlockVdt{
+		Header: *NewEmptyHeaderVdt(),
+		Body:   *new(Body),
 	}
 }
 
@@ -69,6 +89,15 @@ func (b *Block) Decode(r io.Reader) error {
 	sd := scale.Decoder{Reader: r}
 	_, err := sd.Decode(b)
 	return err
+}
+
+func (b *BlockVdt) DeepCopy() BlockVdt {
+	bc := make([]byte, len(b.Body))
+	copy(bc, b.Body)
+	return BlockVdt{
+		Header: *b.Header.DeepCopy(),
+		Body:   *NewBody(bc),
+	}
 }
 
 // DeepCopy returns a copy of the block
