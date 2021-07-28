@@ -33,10 +33,8 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 			// todo test
 			return ext_misc_print_hex_version_1
 		case "ext_allocator_malloc_version_1":
-			// todo test
 			return ext_allocator_malloc_version_1
 		case "ext_allocator_free_version_1":
-			// todo test
 			return ext_allocator_free_version_1
 		case "ext_hashing_blake2_256_version_1":
 			return ext_hashing_blake2_256_version_1
@@ -416,7 +414,7 @@ func ext_storage_append_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_storage_append_version_1] executing...")
 	storage := ctx.Storage
 	keySpan := vm.GetCurrentFrame().Locals[0]
-	valueSpan := vm.GetCurrentFrame().Locals[0]
+	valueSpan := vm.GetCurrentFrame().Locals[1]
 
 	key := asMemorySlice(vm.Memory, keySpan)
 	logger.Debug("[ext_storage_append_version_1]", "key", fmt.Sprintf("0x%x", key))

@@ -18,6 +18,7 @@ package life
 
 import (
 	"bytes"
+	"encoding/binary"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -27,6 +28,22 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/require"
 )
+
+func Test_ext_allocator_malloc_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	size := make([]byte, 4)
+	binary.LittleEndian.PutUint32(size, 1)
+	enc, err := scale.Encode(size)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_allocator_malloc_version_1", enc)
+	require.NoError(t, err)
+
+	res, err := scale.Decode(ret, []byte{})
+	require.NoError(t, err)
+	require.Equal(t, size, res)
+}
 
 func Test_ext_hashing_blake2_256_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
@@ -212,7 +229,6 @@ func Test_ext_storage_read_version_1(t *testing.T) {
 }
 
 func Test_ext_storage_append_version_1(t *testing.T) {
-	// todo determine why this is failing
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	testkey := []byte("noot")
