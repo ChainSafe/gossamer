@@ -369,18 +369,18 @@ func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
 }
 
 // CompareAndSetBlockData will compare empty fields and set all elements in a block data to db
-func (bs *BlockState) CompareAndSetBlockData(bd *types.BlockData) error {
+func (bs *BlockState) CompareAndSetBlockData(bd types.BlockDataVdt) error {
 	hasReceipt, _ := bs.HasReceipt(bd.Hash)
-	if bd.Receipt != nil && bd.Receipt.Exists() && !hasReceipt {
-		err := bs.SetReceipt(bd.Hash, bd.Receipt.Value())
+	if bd.Receipt != nil && !hasReceipt {
+		err := bs.SetReceipt(bd.Hash, *bd.Receipt)
 		if err != nil {
 			return err
 		}
 	}
 
 	hasMessageQueue, _ := bs.HasMessageQueue(bd.Hash)
-	if bd.MessageQueue != nil && bd.MessageQueue.Exists() && !hasMessageQueue {
-		err := bs.SetMessageQueue(bd.Hash, bd.MessageQueue.Value())
+	if bd.MessageQueue != nil && !hasMessageQueue {
+		err := bs.SetMessageQueue(bd.Hash, *bd.MessageQueue)
 		if err != nil {
 			return err
 		}
