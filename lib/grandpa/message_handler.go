@@ -55,13 +55,11 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 	case voteType:
 		vm, ok := m.(*VoteMessage)
 		if h.grandpa != nil && ok {
-			go func() {
-				// send vote message to grandpa service
-				h.grandpa.in <- &networkVoteMessage{
-					from: from,
-					msg:  vm,
-				}
-			}()
+			// send vote message to grandpa service
+			h.grandpa.in <- &networkVoteMessage{
+				from: from,
+				msg:  vm,
+			}
 		}
 		return nil, nil
 	case commitType:
@@ -119,7 +117,7 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 }
 
 func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) (*ConsensusMessage, error) {
-	logger.Debug("received finalisation message", "msg", msg)
+	logger.Debug("received commit message", "msg", msg)
 
 	if has, _ := h.blockState.HasFinalisedBlock(msg.Round, h.grandpa.state.setID); has {
 		return nil, nil
