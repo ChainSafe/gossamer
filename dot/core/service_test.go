@@ -644,7 +644,7 @@ func TestTryQueryStore_WhenThereIsDataToRetrieve(t *testing.T) {
 	hexKey := common.BytesToHex(testKey)
 	keys := []string{hexKey}
 
-	changes, err := s.tryQueryStorage(blockhash, keys)
+	changes, err := s.tryQueryStorage(blockhash, keys...)
 	require.NoError(t, err)
 
 	require.Equal(t, changes[hexKey], common.BytesToHex(testValue))
@@ -675,7 +675,7 @@ func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
 	hexKey := common.BytesToHex(testKey)
 	keys := []string{hexKey}
 
-	changes, err := s.tryQueryStorage(blockhash, keys)
+	changes, err := s.tryQueryStorage(blockhash, keys...)
 	require.NoError(t, err)
 
 	require.Empty(t, changes)
@@ -700,7 +700,7 @@ func TestTryQueryState_WhenDoesNotHaveStateRoot(t *testing.T) {
 	hexKey := common.BytesToHex(testKey)
 	keys := []string{hexKey}
 
-	changes, err := s.tryQueryStorage(blockhash, keys)
+	changes, err := s.tryQueryStorage(blockhash, keys...)
 	require.Error(t, err)
 	require.Nil(t, changes)
 }
@@ -731,11 +731,11 @@ func TestQueryStorate_WhenBlocksHasData(t *testing.T) {
 
 	from := firstBlock.Header.Hash()
 
-	data, err := s.QueryStorage(&from, nil, keys)
+	data, err := s.QueryStorage(&from, nil, keys...)
 	require.NoError(t, err)
 	require.Len(t, data, 1)
 
-	require.Equal(t, data[firstBlock.Header.Hash()], Changes(
+	require.Equal(t, data[firstBlock.Header.Hash()], QueryKeyValueChanges(
 		map[string]string{
 			common.BytesToHex(firstKey): common.BytesToHex(firstValue),
 		},
@@ -744,16 +744,16 @@ func TestQueryStorate_WhenBlocksHasData(t *testing.T) {
 	from = secondBlock.Header.Hash()
 	to := thirdBlock.Header.Hash()
 
-	data, err = s.QueryStorage(&from, &to, keys)
+	data, err = s.QueryStorage(&from, &to, keys...)
 	require.NoError(t, err)
 	require.Len(t, data, 2)
 
-	require.Equal(t, data[secondBlock.Header.Hash()], Changes(
+	require.Equal(t, data[secondBlock.Header.Hash()], QueryKeyValueChanges(
 		map[string]string{
 			common.BytesToHex(secondKey): common.BytesToHex(secondValue),
 		},
 	))
-	require.Equal(t, data[thirdBlock.Header.Hash()], Changes(
+	require.Equal(t, data[thirdBlock.Header.Hash()], QueryKeyValueChanges(
 		map[string]string{
 			common.BytesToHex(thirdKey): common.BytesToHex(thirdValue),
 		},

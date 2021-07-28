@@ -388,12 +388,12 @@ func (sm *StateModule) GetStorageSize(r *http.Request, req *StateStorageSizeRequ
 
 // QueryStorage isn't implemented properly yet.
 func (sm *StateModule) QueryStorage(r *http.Request, req *StateStorageQueryRangeRequest, res *[]StorageChangeSetResponse) error {
-	changesByBlock, err := sm.coreAPI.QueryStorage(req.StartBlock, req.EndBlock, req.Keys)
+	changesByBlock, err := sm.coreAPI.QueryStorage(req.StartBlock, req.EndBlock, req.Keys...)
 	if err != nil {
 		return err
 	}
 
-	var response []StorageChangeSetResponse
+	response := make([]StorageChangeSetResponse, 0, len(changesByBlock))
 
 	for block, c := range changesByBlock {
 		var changes [][]string
