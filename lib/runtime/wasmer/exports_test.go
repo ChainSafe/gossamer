@@ -74,32 +74,6 @@ func TestInstance_Version_NodeRuntime_v098(t *testing.T) {
 		2,
 	)
 
-	// rfp := "/home/elizabeth/substrate/target/debug/wbuild/node-runtime/node_runtime.compact.wasm"
-
-	// s, err := storage.NewTrieState(trie.NewEmptyTrie())
-	// require.NoError(t, err)
-
-	// fp, err := filepath.Abs(rfp)
-	// require.NoError(t, err)
-
-	// ns := runtime.NodeStorage{
-	// 	LocalStorage:      runtime.NewInMemoryDB(t),
-	// 	PersistentStorage: runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
-	// }
-	// cfg := &Config{
-	// 	Imports: ImportsNodeRuntime,
-	// }
-	// cfg.Storage = s
-	// cfg.Keystore = keystore.NewGlobalKeystore()
-	// cfg.LogLvl = log.LvlInfo
-	// cfg.NodeStorage = ns
-	// cfg.Network = new(runtime.TestRuntimeNetwork)
-	// cfg.Transaction = NewTransactionStateMock()
-	// cfg.Role = 1
-
-	// instance, err := NewInstanceFromFile(fp, cfg)
-	// require.NoError(t, err)
-
 	instance := NewTestInstance(t, runtime.NODE_RUNTIME_v098)
 
 	version, err := instance.Version()
