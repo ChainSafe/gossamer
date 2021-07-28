@@ -1120,16 +1120,36 @@ func ext_default_child_storage_storage_kill_version_1(context unsafe.Pointer, ch
 }
 
 //export ext_default_child_storage_storage_kill_version_2
-func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer, a, b C.int64_t) C.int32_t {
+func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer, childStorageKeySpan, _ C.int64_t) C.int32_t {
 	logger.Debug("[ext_default_child_storage_storage_kill_version_2] executing...")
-	logger.Warn("[ext_default_child_storage_storage_kill_version_2] unimplemented")
+	logger.Warn("[ext_default_child_storage_storage_kill_version_2] somewhat unimplemented")
+	// TODO: need to use `limit` parameter
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	ctx := instanceContext.Data().(*runtime.Context)
+	storage := ctx.Storage
+
+	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
+	storage.DeleteChild(childStorageKey)
+
+	// note: this function always returns `KillStorageResult::AllRemoved`, which is 0
 	return 0
 }
 
 //export ext_default_child_storage_storage_kill_version_3
-func ext_default_child_storage_storage_kill_version_3(context unsafe.Pointer, a, b C.int64_t) C.int64_t {
+func ext_default_child_storage_storage_kill_version_3(context unsafe.Pointer, childStorageKeySpan, _ C.int64_t) C.int64_t {
 	logger.Debug("[ext_default_child_storage_storage_kill_version_3] executing...")
-	logger.Warn("[ext_default_child_storage_storage_kill_version_3] unimplemented")
+	logger.Warn("[ext_default_child_storage_storage_kill_version_2] somewhat unimplemented")
+	// TODO: need to use `limit` parameter
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	ctx := instanceContext.Data().(*runtime.Context)
+	storage := ctx.Storage
+
+	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
+	storage.DeleteChild(childStorageKey)
+
+	// TODO: this function returns a `KillStorageResult` which may be `AllRemoved` (0) or `SomeRemaining` (1)
 	return 0
 }
 
@@ -1633,9 +1653,23 @@ func ext_storage_clear_prefix_version_1(context unsafe.Pointer, prefixSpan C.int
 
 //export ext_storage_clear_prefix_version_2
 func ext_storage_clear_prefix_version_2(context unsafe.Pointer, prefixSpan, _ C.int64_t) C.int64_t {
-	logger.Debug("[ext_storage_clear_prefix_version_2] executing...")
-	logger.Warn("[ext_storage_clear_prefix_version_2] unimplemented")
-	return 0
+	logger.Trace("[ext_storage_clear_prefix_version_2] executing...")
+	logger.Warn("[ext_storage_clear_prefix_version_2] somewhat unimplemented")
+	// TODO: need to use unused `limit` parameter
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	ctx := instanceContext.Data().(*runtime.Context)
+	storage := ctx.Storage
+
+	prefix := asMemorySlice(instanceContext, prefixSpan)
+	logger.Debug("[ext_storage_clear_prefix_version_1]", "prefix", fmt.Sprintf("0x%x", prefix))
+
+	err := storage.ClearPrefix(prefix)
+	if err != nil {
+		logger.Error("[ext_storage_clear_prefix_version_1]", "error", err)
+	}
+
+	return 1
 }
 
 //export ext_storage_exists_version_1
