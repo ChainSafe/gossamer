@@ -5,13 +5,12 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	log "github.com/ChainSafe/log15"
