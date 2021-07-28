@@ -105,16 +105,12 @@ func TestSync_SingleBlockProducer(t *testing.T) {
 	node, err := utils.RunGossamer(t, numNodes-1, utils.TestDir(t, utils.KeyList[numNodes-1]), utils.GenesisDev, utils.ConfigNoGrandpa, false)
 	require.NoError(t, err)
 
-	fmt.Println("Started block producing node")
-
 	// wait and start rest of nodes - if they all start at the same time the first round usually doesn't complete since
 	// all nodes vote for different blocks.
 	time.Sleep(time.Second * 15)
 	nodes, err := utils.InitializeAndStartNodes(t, numNodes-1, utils.GenesisDev, utils.ConfigNotAuthority)
 	require.NoError(t, err)
 	nodes = append(nodes, node)
-
-	fmt.Println("Nodes started")
 
 	time.Sleep(time.Second * 20)
 
