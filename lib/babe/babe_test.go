@@ -24,6 +24,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -64,25 +65,10 @@ var (
 	}
 )
 
-func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
-	gen, err := genesis.NewGenesisFromJSONRaw("../../chain/gssmr/genesis.json")
-	if err != nil {
-		gen, err = genesis.NewGenesisFromJSONRaw("../../../chain/gssmr/genesis.json")
-		require.NoError(t, err)
-	}
-
-	genTrie, err := genesis.NewTrieFromGenesis(gen)
-	require.NoError(t, err)
-
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.Digest{}) //nolint
-	require.NoError(t, err)
-	return gen, genTrie, genesisHeader
-}
-
 func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	wasmer.DefaultTestLogLvl = 1
 
-	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 	genesisHeader = genHeader
 	var err error
 
@@ -144,12 +130,18 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 
 	if cfg.Runtime == nil {
 		rtCfg := &wasmer.Config{}
+
 		rtCfg.Storage, err = rtstorage.NewTrieState(genTrie)
 		require.NoError(t, err)
-		rt, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg) //nolint
+
+		storageState := cfg.StorageState.(core.StorageState)
+		rtCfg.CodeHash, err = storageState.LoadCodeHash(nil)
 		require.NoError(t, err)
-		cfg.Runtime = rt
+
+		cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(gen, rtCfg)
+		require.NoError(t, err)
 	}
+	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), cfg.Runtime)
 
 	cfg.IsDev = true
 	cfg.LogLvl = defaultTestLogLvl
@@ -188,7 +180,7 @@ func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *
 	dbSrv := state.NewService(config)
 	dbSrv.UseMemDB()
 
-	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 	err = dbSrv.Initialise(gen, genHeader, genTrie)
 	require.NoError(t, err)
 

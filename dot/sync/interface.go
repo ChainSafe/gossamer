@@ -21,6 +21,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 )
 
@@ -46,14 +47,17 @@ type BlockState interface {
 	AddBlockToBlockTree(header *types.Header) error
 	GetHashByNumber(*big.Int) (common.Hash, error)
 	GetBlockByHash(common.Hash) (*types.Block, error)
+	GetRuntime(*common.Hash) (runtime.Instance, error)
+	StoreRuntime(common.Hash, runtime.Instance)
 }
 
 // StorageState is the interface for the storage state
 type StorageState interface {
 	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
-	StoreTrie(ts *rtstorage.TrieState, header *types.Header) error
 	LoadCodeHash(*common.Hash) (common.Hash, error)
 	SetSyncing(bool)
+	Lock()
+	Unlock()
 }
 
 // CodeSubstitutedState interface to handle storage of code substitute state

@@ -17,6 +17,8 @@
 package gssmr
 
 import (
+	"time"
+
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	log "github.com/ChainSafe/log15"
 )
@@ -79,6 +81,9 @@ var (
 	DefaultNoBootstrap = false
 	// DefaultNoMDNS disables mDNS discovery
 	DefaultNoMDNS = false
+
+	// DefaultDiscoveryInterval is the default interval for searching for DHT peers
+	DefaultDiscoveryInterval = time.Second * 10
 
 	// RPCConfig
 

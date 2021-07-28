@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/ChainSafe/gossamer/chain/dev"
 	"github.com/ChainSafe/gossamer/chain/gssmr"
@@ -627,6 +628,12 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 	cfg.MaxPeers = tomlCfg.MaxPeers
 	cfg.PersistentPeers = tomlCfg.PersistentPeers
 
+	if tomlCfg.DiscoveryInterval > 0 {
+		cfg.DiscoveryInterval = time.Second * time.Duration(tomlCfg.DiscoveryInterval)
+	} else {
+		cfg.DiscoveryInterval = 0
+	}
+
 	// check --port flag and update node configuration
 	if port := ctx.GlobalUint(PortFlag.Name); port != 0 {
 		cfg.Port = uint32(port)
@@ -671,6 +678,7 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 		"minpeers", cfg.MinPeers,
 		"maxpeers", cfg.MaxPeers,
 		"persistent-peers", cfg.PersistentPeers,
+		"discovery-interval", cfg.DiscoveryInterval,
 	)
 }
 

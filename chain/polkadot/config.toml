@@ -1,6 +1,7 @@
 [global]
 basepath = "~/.gossamer/polkadot"
 log = "info"
+metrics-port = 9876
 
 [log]
 core = ""

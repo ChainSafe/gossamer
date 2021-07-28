@@ -19,6 +19,7 @@ package main
 import (
 	"io/ioutil"
 	"testing"
+	"time"
 
 	"github.com/ChainSafe/gossamer/chain/dev"
 	"github.com/ChainSafe/gossamer/chain/gssmr"
@@ -383,11 +384,12 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 			[]string{"config", "port"},
 			[]interface{}{testCfgFile.Name(), "1234"},
 			dot.NetworkConfig{
-				Port:        1234,
-				Bootnodes:   testCfg.Network.Bootnodes,
-				ProtocolID:  testCfg.Network.ProtocolID,
-				NoBootstrap: testCfg.Network.NoBootstrap,
-				NoMDNS:      testCfg.Network.NoMDNS,
+				Port:              1234,
+				Bootnodes:         testCfg.Network.Bootnodes,
+				ProtocolID:        testCfg.Network.ProtocolID,
+				NoBootstrap:       testCfg.Network.NoBootstrap,
+				NoMDNS:            testCfg.Network.NoMDNS,
+				DiscoveryInterval: time.Second * 10,
 			},
 		},
 		{
@@ -395,11 +397,12 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 			[]string{"config", "bootnodes"},
 			[]interface{}{testCfgFile.Name(), "peer1,peer2"},
 			dot.NetworkConfig{
-				Port:        testCfg.Network.Port,
-				Bootnodes:   []string{"peer1", "peer2"},
-				ProtocolID:  testCfg.Network.ProtocolID,
-				NoBootstrap: testCfg.Network.NoBootstrap,
-				NoMDNS:      testCfg.Network.NoMDNS,
+				Port:              testCfg.Network.Port,
+				Bootnodes:         []string{"peer1", "peer2"},
+				ProtocolID:        testCfg.Network.ProtocolID,
+				NoBootstrap:       testCfg.Network.NoBootstrap,
+				NoMDNS:            testCfg.Network.NoMDNS,
+				DiscoveryInterval: time.Second * 10,
 			},
 		},
 		{
@@ -407,11 +410,12 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 			[]string{"config", "protocol"},
 			[]interface{}{testCfgFile.Name(), "/gossamer/test/0"},
 			dot.NetworkConfig{
-				Port:        testCfg.Network.Port,
-				Bootnodes:   testCfg.Network.Bootnodes,
-				ProtocolID:  "/gossamer/test/0",
-				NoBootstrap: testCfg.Network.NoBootstrap,
-				NoMDNS:      testCfg.Network.NoMDNS,
+				Port:              testCfg.Network.Port,
+				Bootnodes:         testCfg.Network.Bootnodes,
+				ProtocolID:        "/gossamer/test/0",
+				NoBootstrap:       testCfg.Network.NoBootstrap,
+				NoMDNS:            testCfg.Network.NoMDNS,
+				DiscoveryInterval: time.Second * 10,
 			},
 		},
 		{
@@ -419,11 +423,12 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 			[]string{"config", "nobootstrap"},
 			[]interface{}{testCfgFile.Name(), "true"},
 			dot.NetworkConfig{
-				Port:        testCfg.Network.Port,
-				Bootnodes:   testCfg.Network.Bootnodes,
-				ProtocolID:  testCfg.Network.ProtocolID,
-				NoBootstrap: true,
-				NoMDNS:      testCfg.Network.NoMDNS,
+				Port:              testCfg.Network.Port,
+				Bootnodes:         testCfg.Network.Bootnodes,
+				ProtocolID:        testCfg.Network.ProtocolID,
+				NoBootstrap:       true,
+				NoMDNS:            testCfg.Network.NoMDNS,
+				DiscoveryInterval: time.Second * 10,
 			},
 		},
 		{
@@ -431,11 +436,12 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 			[]string{"config", "nomdns"},
 			[]interface{}{testCfgFile.Name(), "true"},
 			dot.NetworkConfig{
-				Port:        testCfg.Network.Port,
-				Bootnodes:   testCfg.Network.Bootnodes,
-				ProtocolID:  testCfg.Network.ProtocolID,
-				NoBootstrap: testCfg.Network.NoBootstrap,
-				NoMDNS:      true,
+				Port:              testCfg.Network.Port,
+				Bootnodes:         testCfg.Network.Bootnodes,
+				ProtocolID:        testCfg.Network.ProtocolID,
+				NoBootstrap:       testCfg.Network.NoBootstrap,
+				NoMDNS:            true,
+				DiscoveryInterval: time.Second * 10,
 			},
 		},
 	}
@@ -804,11 +810,12 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 		Account: testCfg.Account,
 		Core:    testCfg.Core,
 		Network: dot.NetworkConfig{
-			Port:        testCfg.Network.Port,
-			Bootnodes:   []string{}, // TODO: improve cmd tests #687
-			ProtocolID:  testCfg.Network.ProtocolID,
-			NoBootstrap: testCfg.Network.NoBootstrap,
-			NoMDNS:      testCfg.Network.NoMDNS,
+			Port:              testCfg.Network.Port,
+			Bootnodes:         []string{}, // TODO: improve cmd tests #687
+			ProtocolID:        testCfg.Network.ProtocolID,
+			NoBootstrap:       testCfg.Network.NoBootstrap,
+			NoMDNS:            testCfg.Network.NoMDNS,
+			DiscoveryInterval: testCfg.Network.DiscoveryInterval,
 		},
 		RPC:    testCfg.RPC,
 		System: testCfg.System,

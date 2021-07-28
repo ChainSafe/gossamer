@@ -54,11 +54,22 @@ func NewTrie(root node) *Trie {
 
 // Snapshot created a copy of the trie.
 func (t *Trie) Snapshot() *Trie {
+	children := make(map[common.Hash]*Trie)
+	for h, c := range t.childTries {
+		children[h] = &Trie{
+			generation:  c.generation + 1,
+			root:        c.root,
+			deletedKeys: make([]common.Hash, 0),
+			parallel:    c.parallel,
+		}
+	}
+
 	newTrie := &Trie{
 		generation:  t.generation + 1,
 		root:        t.root,
-		childTries:  t.childTries,
+		childTries:  children,
 		deletedKeys: make([]common.Hash, 0),
+		parallel:    t.parallel,
 	}
 
 	return newTrie

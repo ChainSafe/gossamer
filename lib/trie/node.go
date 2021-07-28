@@ -96,9 +96,11 @@ func (l *leaf) setGeneration(generation uint64) {
 }
 
 func (b *branch) copy() node {
+	b.Lock()
+	defer b.Unlock()
 	cpy := &branch{
 		key:        make([]byte, len(b.key)),
-		children:   b.children,
+		children:   [16]node{},
 		value:      nil,
 		dirty:      b.dirty,
 		hash:       make([]byte, len(b.hash)),
@@ -106,6 +108,7 @@ func (b *branch) copy() node {
 		generation: b.generation,
 	}
 	copy(cpy.key, b.key)
+	copy(cpy.children[:], b.children[:])
 
 	// nil and []byte{} are encoded differently, watch out!
 	if b.value != nil {
@@ -119,6 +122,8 @@ func (b *branch) copy() node {
 }
 
 func (l *leaf) copy() node {
+	l.Lock()
+	defer l.Unlock()
 	cpy := &leaf{
 		key:        make([]byte, len(l.key)),
 		value:      make([]byte, len(l.value)),

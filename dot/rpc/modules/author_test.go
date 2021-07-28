@@ -32,7 +32,6 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 	type fields struct {
 		logger     log.Logger
 		coreAPI    CoreAPI
-		runtimeAPI RuntimeAPI
 		txStateAPI TransactionStateAPI
 	}
 	type args struct {
@@ -87,7 +86,6 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 			am := &AuthorModule{
 				logger:     tt.fields.logger,
 				coreAPI:    tt.fields.coreAPI,
-				runtimeAPI: tt.fields.runtimeAPI,
 				txStateAPI: tt.fields.txStateAPI,
 			}
 			if err := am.SubmitExtrinsic(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
@@ -117,7 +115,6 @@ func TestAuthorModule_PendingExtrinsics(t *testing.T) {
 	type fields struct {
 		logger     log.Logger
 		coreAPI    CoreAPI
-		runtimeAPI RuntimeAPI
 		txStateAPI TransactionStateAPI
 	}
 	type args struct {
@@ -163,7 +160,6 @@ func TestAuthorModule_PendingExtrinsics(t *testing.T) {
 			cm := &AuthorModule{
 				logger:     tt.fields.logger,
 				coreAPI:    tt.fields.coreAPI,
-				runtimeAPI: tt.fields.runtimeAPI,
 				txStateAPI: tt.fields.txStateAPI,
 			}
 			if err := cm.PendingExtrinsics(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
@@ -184,7 +180,6 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 	type fields struct {
 		logger     log.Logger
 		coreAPI    CoreAPI
-		runtimeAPI RuntimeAPI
 		txStateAPI TransactionStateAPI
 	}
 	type args struct {
@@ -260,7 +255,6 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 			am := &AuthorModule{
 				logger:     tt.fields.logger,
 				coreAPI:    tt.fields.coreAPI,
-				runtimeAPI: tt.fields.runtimeAPI,
 				txStateAPI: tt.fields.txStateAPI,
 			}
 			if err := am.InsertKey(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
@@ -289,7 +283,6 @@ func TestAuthorModule_HasKey(t *testing.T) {
 	type fields struct {
 		logger     log.Logger
 		coreAPI    CoreAPI
-		runtimeAPI RuntimeAPI
 		txStateAPI TransactionStateAPI
 	}
 	type args struct {
@@ -344,7 +337,6 @@ func TestAuthorModule_HasKey(t *testing.T) {
 			cm := &AuthorModule{
 				logger:     tt.fields.logger,
 				coreAPI:    tt.fields.coreAPI,
-				runtimeAPI: tt.fields.runtimeAPI,
 				txStateAPI: tt.fields.txStateAPI,
 			}
 			if err := cm.HasKey(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {

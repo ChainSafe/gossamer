@@ -50,7 +50,6 @@ type HTTPServerConfig struct {
 	CoreAPI             modules.CoreAPI
 	BlockProducerAPI    modules.BlockProducerAPI
 	BlockFinalityAPI    modules.BlockFinalityAPI
-	RuntimeAPI          modules.RuntimeAPI
 	TransactionQueueAPI modules.TransactionStateAPI
 	RPCAPI              modules.RPCAPI
 	SystemAPI           modules.SystemAPI
@@ -95,9 +94,9 @@ func (h *HTTPServer) RegisterModules(mods []string) {
 		switch mod {
 		case "system":
 			srvc = modules.NewSystemModule(h.serverConfig.NetworkAPI, h.serverConfig.SystemAPI,
-				h.serverConfig.CoreAPI, h.serverConfig.StorageAPI, h.serverConfig.TransactionQueueAPI)
+				h.serverConfig.CoreAPI, h.serverConfig.StorageAPI, h.serverConfig.TransactionQueueAPI, h.serverConfig.BlockAPI)
 		case "author":
-			srvc = modules.NewAuthorModule(h.logger, h.serverConfig.CoreAPI, h.serverConfig.RuntimeAPI, h.serverConfig.TransactionQueueAPI)
+			srvc = modules.NewAuthorModule(h.logger, h.serverConfig.CoreAPI, h.serverConfig.TransactionQueueAPI)
 		case "chain":
 			srvc = modules.NewChainModule(h.serverConfig.BlockAPI)
 		case "grandpa":
@@ -240,7 +239,6 @@ func NewWSConn(conn *websocket.Conn, cfg *HTTPServerConfig) *subscription.WSConn
 		StorageSubChannels: make(map[int]byte),
 		StorageAPI:         cfg.StorageAPI,
 		BlockAPI:           cfg.BlockAPI,
-		RuntimeAPI:         cfg.RuntimeAPI,
 		CoreAPI:            cfg.CoreAPI,
 		TxStateAPI:         cfg.TransactionQueueAPI,
 		RPCHost:            fmt.Sprintf("http://%s:%d/", cfg.Host, cfg.RPCPort),

@@ -56,9 +56,6 @@ type Service struct {
 	// BABE authority keypair
 	keypair *sr25519.Keypair // TODO: change to BABE keystore
 
-	// Current runtime
-	rt runtime.Instance
-
 	// Epoch configuration data
 	slotDuration time.Duration
 	epochData    *epochData
@@ -102,10 +99,6 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		return nil, errNilEpochState
 	}
 
-	if cfg.Runtime == nil {
-		return nil, errNilRuntime
-	}
-
 	if cfg.BlockImportHandler == nil {
 		return nil, errNilBlockImportHandler
 	}
@@ -125,7 +118,6 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 		epochState:         cfg.EpochState,
 		epochLength:        cfg.EpochLength,
 		keypair:            cfg.Keypair,
-		rt:                 cfg.Runtime,
 		transactionState:   cfg.TransactionState,
 		slotToProof:        make(map[uint64]*VrfOutputAndProof),
 		pause:              make(chan struct{}),
@@ -308,11 +300,6 @@ func (b *Service) Stop() error {
 
 	b.cancel()
 	return nil
-}
-
-// SetRuntime sets the service's runtime
-func (b *Service) SetRuntime(rt runtime.Instance) {
-	b.rt = rt
 }
 
 // Authorities returns the current BABE authorities
@@ -505,6 +492,9 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 		number:   slotNum,
 	}
 
+	b.storageState.Lock()
+	defer b.storageState.Unlock()
+
 	// set runtime trie before building block
 	// if block building is successful, store the resulting trie in the storage state
 	ts, err := b.storageState.TrieState(&parent.StateRoot)
@@ -513,9 +503,15 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 		return err
 	}
 
-	b.rt.SetContextStorage(ts)
+	hash := parent.Hash()
+	rt, err := b.blockState.GetRuntime(&hash)
+	if err != nil {
+		return err
+	}
 
-	block, err := b.buildBlock(parent, currentSlot)
+	rt.SetContextStorage(ts)
+
+	block, err := b.buildBlock(parent, currentSlot, rt)
 	if err != nil {
 		return err
 	}

@@ -37,7 +37,7 @@ type BlockAPI interface {
 	RegisterImportedChannel(ch chan<- *types.Block) (byte, error)
 	UnregisterImportedChannel(id byte)
 	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
-	UnregisterFinalizedChannel(id byte)
+	UnregisterFinalisedChannel(id byte)
 	SubChain(start, end common.Hash) ([]common.Hash, error)
 }
 
@@ -50,6 +50,8 @@ type NetworkAPI interface {
 	Stop() error
 	Start() error
 	IsStopped() bool
+	HighestBlock() int64
+	StartingBlock() int64
 }
 
 // BlockProducerAPI is the interface for BlockProducer methods
@@ -82,11 +84,6 @@ type CoreAPI interface {
 type RPCAPI interface {
 	Methods() []string
 	BuildMethodNames(rcvr interface{}, name string)
-}
-
-// RuntimeAPI is the interface for runtime methods
-type RuntimeAPI interface {
-	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
 }
 
 // SystemAPI is the interface for handling system methods
