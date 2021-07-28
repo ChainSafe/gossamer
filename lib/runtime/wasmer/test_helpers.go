@@ -28,7 +28,6 @@ import (
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
 )
 
 // DefaultTestLogLvl is the log level used for test runtime instances
@@ -57,27 +56,8 @@ func NewTestInstanceWithRole(t *testing.T, targetRuntime string, role byte) *Ins
 	return r
 }
 
-// GetRuntimeImports ...
-func GetRuntimeImports(targetRuntime string) func() (*wasm.Imports, error) {
-	var registerImports func() (*wasm.Imports, error)
-
-	switch targetRuntime {
-	case runtime.NODE_RUNTIME:
-		registerImports = ImportsNodeRuntime
-	case runtime.POLKADOT_RUNTIME:
-		registerImports = ImportsNodeRuntime
-	case runtime.HOST_API_TEST_RUNTIME:
-		registerImports = ImportsNodeRuntime
-	default:
-		registerImports = ImportsNodeRuntime
-	}
-
-	return registerImports
-}
-
 func setupConfig(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Lvl, role byte) (string, *Config) {
 	testRuntimeFilePath, testRuntimeURL := runtime.GetRuntimeVars(targetRuntime)
-	importsFunc := GetRuntimeImports(targetRuntime)
 
 	_, err := runtime.GetRuntimeBlob(testRuntimeFilePath, testRuntimeURL)
 	require.Nil(t, err, "Fail: could not get runtime", "targetRuntime", targetRuntime)
@@ -93,7 +73,7 @@ func setupConfig(t *testing.T, targetRuntime string, tt *trie.Trie, lvl log.Lvl,
 		PersistentStorage: runtime.NewInMemoryDB(t), // we're using a local storage here since this is a test runtime
 	}
 	cfg := &Config{
-		Imports: importsFunc,
+		Imports: ImportsNodeRuntime,
 	}
 	cfg.Storage = s
 	cfg.Keystore = keystore.NewGlobalKeystore()
