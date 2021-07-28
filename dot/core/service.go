@@ -41,7 +41,7 @@ var (
 	logger log.Logger       = log.New("pkg", "core")
 )
 
-// Changes represents the key-value data inside a block storage
+// QueryKeyValueChanges represents the key-value data inside a block storage
 type QueryKeyValueChanges map[string]string
 
 // Service is an overhead layer that allows communication between the runtime,
@@ -571,6 +571,7 @@ func (s *Service) QueryStorage(from *common.Hash, to *common.Hash, keys ...strin
 	}
 
 	queries := make(map[common.Hash]QueryKeyValueChanges)
+
 	for _, hash := range blocksToQuery {
 		changes, err := s.tryQueryStorage(hash, keys...)
 		if err != nil {
@@ -591,7 +592,6 @@ func (s *Service) tryQueryStorage(block common.Hash, keys ...string) (QueryKeyVa
 	}
 
 	changes := make(QueryKeyValueChanges)
-
 	for _, k := range keys {
 		keyBytes, err := common.HexToBytes(k)
 		if err != nil {
