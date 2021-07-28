@@ -64,7 +64,7 @@ func DecodePrivateKey(in []byte, keytype crypto.KeyType) (priv crypto.PrivateKey
 	return priv, err
 }
 
-// DecodeKeyPairFromHex turns an hex seed into a keypair
+// DecodeKeyPairFromHex turns an hex-encoded private key into a keypair
 func DecodeKeyPairFromHex(keystr []byte, keytype crypto.KeyType) (kp crypto.Keypair, err error) {
 	switch keytype {
 	case crypto.Sr25519Type:
