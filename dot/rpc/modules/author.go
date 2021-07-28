@@ -140,9 +140,9 @@ func (am *AuthorModule) HasSessionKeys(r *http.Request, req *HasSessionKeyReques
 		return err
 	}
 
-	if decodedKeys == nil {
+	if decodedKeys == nil || len(*decodedKeys) < 1 {
 		*res = false
-		return errors.New("could not decode DecodeSessionKeys response")
+		return nil
 	}
 
 	for _, key := range *decodedKeys {
