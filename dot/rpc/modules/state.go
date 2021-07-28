@@ -25,10 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/pkg/scale"
-	log "github.com/ChainSafe/log15"
 )
-
-var logger = log.New("trie", "Trie", "module", "trie")
 
 // StateCallRequest holds json fields
 type StateCallRequest struct {
@@ -391,9 +388,7 @@ func (sm *StateModule) GetStorageSize(r *http.Request, req *StateStorageSizeRequ
 
 // QueryStorage isn't implemented properly yet.
 func (sm *StateModule) QueryStorage(r *http.Request, req *StateStorageQueryRangeRequest, res *[]StorageChangeSetResponse) error {
-	logger.Warn("receiving data", "start", req.StartBlock, "end", req.EndBlock, "keys", req.Keys)
 	changesByBlock, err := sm.coreAPI.QueryStorage(req.StartBlock, req.EndBlock, req.Keys)
-	logger.Warn("after query", "err", err)
 	if err != nil {
 		return err
 	}
@@ -412,8 +407,6 @@ func (sm *StateModule) QueryStorage(r *http.Request, req *StateStorageQueryRange
 			Changes: changes,
 		})
 	}
-
-	logger.Warn("built response", "res", response)
 
 	*res = response
 	return nil
