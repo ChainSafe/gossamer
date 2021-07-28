@@ -18,6 +18,7 @@ package subscription
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"reflect"
 	"time"
 
@@ -314,12 +315,15 @@ const grandpaJustifications = "grandpa_justifications"
 func (g *GrandpaJustificationListener) Listen() {
 	// listen for finalised headers
 	go func() {
-		defer close(g.done)
-		defer close(g.finalisedCh)
+		defer func() {
+			close(g.done)
+			close(g.finalisedCh)
+		}()
 
 		for {
 			select {
 			case <-g.cancel:
+				fmt.Println("closing everything")
 				return
 
 			case info, ok := <-g.finalisedCh:
@@ -327,8 +331,13 @@ func (g *GrandpaJustificationListener) Listen() {
 					return
 				}
 
-				hash := info.Header.Hash().String()
-				g.wsconn.safeSend(newSubscriptionResponse(grandpaJustifications, g.subID, hash))
+				just, err := g.wsconn.BlockAPI.GetJustification(info.Header.Hash())
+				if err != nil {
+					g.wsconn.safeSendError(float64(g.subID), big.NewInt(InvalidRequestCode),
+						fmt.Sprintf("error while retrieve justification: %v", err))
+				}
+
+				g.wsconn.safeSend(newSubscriptionResponse(grandpaJustifications, g.subID, common.BytesToHex(just)))
 			}
 		}
 	}()
@@ -347,6 +356,7 @@ func cancelWithTimeout(cancel chan interface{}, done chan interface{}, t time.Du
 
 	select {
 	case <-done:
+		fmt.Println("finalized")
 		return nil
 	case <-timeout.C:
 		return ErrCannotCancel
