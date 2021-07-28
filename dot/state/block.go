@@ -88,9 +88,7 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 	}
 
 	bs.importedBytePool = common.NewBytePool256()
-
 	bs.finalisedBytePool = common.NewBytePool256()
-
 	return bs, nil
 }
 
@@ -133,9 +131,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 	}
 
 	bs.importedBytePool = common.NewBytePool256()
-
 	bs.finalisedBytePool = common.NewBytePool256()
-
 	return bs, nil
 }
 

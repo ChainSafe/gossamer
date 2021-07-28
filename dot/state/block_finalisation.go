@@ -49,6 +49,9 @@ func (bs *BlockState) NumberIsFinalised(num *big.Int) (bool, error) {
 
 // GetFinalisedHeader returns the finalised block header by round and setID
 func (bs *BlockState) GetFinalisedHeader(round, setID uint64) (*types.Header, error) {
+	bs.Lock()
+	defer bs.Unlock()
+
 	h, err := bs.GetFinalisedHash(round, setID)
 	if err != nil {
 		return nil, err
@@ -72,28 +75,21 @@ func (bs *BlockState) GetFinalisedHash(round, setID uint64) (common.Hash, error)
 	return common.NewHash(h), nil
 }
 
-func roundSetIDNum(round, setID uint64) *big.Int {
-	buf := make([]byte, 8)
-	binary.BigEndian.PutUint64(buf, round)
-	buf2 := make([]byte, 8)
-	binary.BigEndian.PutUint64(buf2, setID)
-	return big.NewInt(0).SetBytes(append(buf, buf2...))
-}
-
 func (bs *BlockState) setHighestRoundAndSetID(round, setID uint64) error {
-	currRound, currSetID, err := bs.getHighestRoundAndSetID()
+	currRound, currSetID, err := bs.GetHighestRoundAndSetID()
 	if err != nil {
 		return err
 	}
 
-	if roundSetIDNum(round, setID).Cmp(roundSetIDNum(currRound, currSetID)) <= 0 {
+	// higher setID takes precedence over round
+	if setID < currSetID || setID == currSetID && round <= currRound {
 		return nil
 	}
 
 	return bs.db.Put(highestRoundAndSetIDKey, roundSetIDKey(round, setID))
 }
 
-func (bs *BlockState) getHighestRoundAndSetID() (uint64, uint64, error) {
+func (bs *BlockState) GetHighestRoundAndSetID() (uint64, uint64, error) {
 	b, err := bs.db.Get(highestRoundAndSetIDKey)
 	if err != nil {
 		return 0, 0, err
@@ -105,7 +101,7 @@ func (bs *BlockState) getHighestRoundAndSetID() (uint64, uint64, error) {
 }
 
 func (bs *BlockState) GetHighestFinalisedHash() (common.Hash, error) {
-	round, setID, err := bs.getHighestRoundAndSetID()
+	round, setID, err := bs.GetHighestRoundAndSetID()
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -153,22 +149,22 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 
 	pruned := bs.bt.Prune(hash)
 	for _, hash := range pruned {
-		go func(hash common.Hash) {
-			header, err := bs.GetHeader(hash)
-			if err != nil {
-				logger.Debug("failed to get pruned header", "hash", hash, "error", err)
-				return
-			}
+		header, err := bs.GetHeader(hash)
+		if err != nil {
+			logger.Debug("failed to get pruned header", "hash", hash, "error", err)
+			continue
+		}
 
-			err = bs.DeleteBlock(hash)
-			if err != nil {
-				logger.Debug("failed to delete block", "hash", hash, "error", err)
-				return
-			}
+		err = bs.DeleteBlock(hash)
+		if err != nil {
+			logger.Debug("failed to delete block", "hash", hash, "error", err)
+			continue
+		}
 
-			logger.Trace("pruned block", "hash", hash, "number", header.Number)
+		logger.Trace("pruned block", "hash", hash, "number", header.Number)
+		go func(header *types.Header) {
 			bs.pruneKeyCh <- header
-		}(hash)
+		}(header)
 	}
 
 	bs.lastFinalised = hash

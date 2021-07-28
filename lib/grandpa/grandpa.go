@@ -278,9 +278,29 @@ func (s *Service) initiateRound() error {
 		return err
 	}
 
+	round, setID, err := s.blockState.GetHighestRoundAndSetID()
+	if err != nil {
+		return err
+	}
+
+	if round > s.state.round && setID == s.state.setID {
+		logger.Debug("found block finalised in higher round, updating our round...", "new round", round)
+		s.state.round = round
+		err = s.grandpaState.SetLatestRound(round)
+		if err != nil {
+			return err
+		}
+	}
+
+	if setID > s.state.setID {
+		logger.Debug("found block finalised in higher setID, updating our setID...", "new setID", setID)
+		s.state.setID = setID
+		s.state.round = round
+	}
+
 	s.head, err = s.blockState.GetFinalisedHeader(s.state.round, s.state.setID)
 	if err != nil {
-		logger.Crit("failed to get finalised header", "error", err)
+		logger.Crit("failed to get finalised header", "round", s.state.round, "error", err)
 		return err
 	}
 
@@ -559,6 +579,17 @@ func (s *Service) attemptToFinalize() error {
 		has, _ := s.blockState.HasFinalisedBlock(s.state.round, s.state.setID)
 		if has {
 			logger.Debug("block was finalised!", "round", s.state.round)
+			return nil // a block was finalised, seems like we missed some messages
+		}
+
+		highestRound, highestSetID, _ := s.blockState.GetHighestRoundAndSetID()
+		if highestRound > s.state.round {
+			logger.Debug("block was finalised!", "round", highestRound, "setID", highestSetID)
+			return nil // a block was finalised, seems like we missed some messages
+		}
+
+		if highestSetID > s.state.setID {
+			logger.Debug("block was finalised!", "round", highestRound, "setID", highestSetID)
 			return nil // a block was finalised, seems like we missed some messages
 		}
 

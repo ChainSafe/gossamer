@@ -55,11 +55,13 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 	case voteType:
 		vm, ok := m.(*VoteMessage)
 		if h.grandpa != nil && ok {
-			// send vote message to grandpa service
-			h.grandpa.in <- &networkVoteMessage{
-				from: from,
-				msg:  vm,
-			}
+			go func() {
+				// send vote message to grandpa service
+				h.grandpa.in <- &networkVoteMessage{
+					from: from,
+					msg:  vm,
+				}
+			}()
 		}
 		return nil, nil
 	case commitType:
@@ -410,6 +412,15 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 		return fmt.Errorf("cannot get set ID from block number: %w", err)
 	}
 
+	has, err := s.blockState.HasFinalisedBlock(fj.Round, setID)
+	if err != nil {
+		return err
+	}
+
+	if has {
+		return fmt.Errorf("already have finalised block with setID=%d and round=%d", setID, fj.Round)
+	}
+
 	auths, err := s.grandpaState.GetAuthorities(setID)
 	if err != nil {
 		return fmt.Errorf("cannot get authorities for set ID: %w", err)
@@ -428,7 +439,7 @@ func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byt
 	}
 
 	for _, just := range fj.Commit.Precommits {
-		// TODO: check if vote was for descendant of committe block
+		// TODO: check if vote was for descendant of committed block
 
 		pk, err := ed25519.NewPublicKey(just.AuthorityID[:])
 		if err != nil {
