@@ -17,6 +17,7 @@ package core
 
 import (
 	"context"
+	"errors"
 	"math/big"
 	"os"
 	"sync"
@@ -556,6 +557,10 @@ type (
 )
 
 func (s *Service) QueryStorage(from *common.Hash, to *common.Hash, keys []string) (map[common.Hash]Changes, error) {
+	if from == nil {
+		return nil, errors.New("cannot query data without a starting block hash")
+	}
+
 	var err error
 	blocksToQuery := []common.Hash{*from}
 	if to != nil {
