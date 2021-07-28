@@ -61,6 +61,7 @@ type StorageState interface {
 	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
 	StoreTrie(*rtstorage.TrieState, *types.Header) error
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
+	GetStorage(root *common.Hash, key []byte) ([]byte, error)
 }
 
 // TransactionState is the interface for transaction state methods

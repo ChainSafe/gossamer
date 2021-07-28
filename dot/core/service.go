@@ -589,11 +589,6 @@ func (s *Service) tryQueryStorage(block common.Hash, keys []string) (Changes, er
 		return nil, err
 	}
 
-	ts, err := s.storageState.TrieState(stateRootHash)
-	if err != nil {
-		return nil, err
-	}
-
 	changes := make(map[string]string)
 
 	for _, k := range keys {
@@ -602,7 +597,11 @@ func (s *Service) tryQueryStorage(block common.Hash, keys []string) (Changes, er
 			return nil, err
 		}
 
-		storedData := ts.Get(keyBytes)
+		storedData, err := s.storageState.GetStorage(stateRootHash, keyBytes)
+		if err != nil {
+			return nil, err
+		}
+
 		if storedData == nil {
 			continue
 		}
