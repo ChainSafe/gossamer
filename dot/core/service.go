@@ -267,6 +267,8 @@ func (s *Service) handleCodeSubstitution(hash common.Hash) error {
 		return err
 	}
 
+	// TODO: this needs to create a new runtime instance, otherwise it will update
+	// the blocks that reference the current runtime version to use the code substition
 	err = rt.UpdateRuntimeCode(code)
 	if err != nil {
 		return err
@@ -307,16 +309,17 @@ func (s *Service) handleCurrentSlot(header *types.Header) error {
 // does not need to be completed before the next block can be imported.
 func (s *Service) handleBlocksAsync() {
 	for {
+		prev := s.blockState.BestBlockHash()
+
 		select {
 		case block := <-s.blockAddCh:
 			if block == nil {
 				continue
 			}
 
-			// TODO: add inherent check
-			// if err := s.handleChainReorg(prev, block.Header.Hash()); err != nil {
-			// 	logger.Warn("failed to re-add transactions to chain upon re-org", "error", err)
-			// }
+			if err := s.handleChainReorg(prev, block.Header.Hash()); err != nil {
+				logger.Warn("failed to re-add transactions to chain upon re-org", "error", err)
+			}
 
 			if err := s.maintainTransactionPool(block); err != nil {
 				logger.Warn("failed to maintain transaction pool", "error", err)
@@ -422,12 +425,11 @@ func (s *Service) maintainTransactionPool(block *types.Block) error {
 	// re-validate transactions in the pool and move them to the queue
 	txs := s.transactionState.PendingInPool()
 	for _, tx := range txs {
-		// TODO: re-add this on update to v0.8
-
+		// TODO: re-add this
 		// val, err := s.rt.ValidateTransaction(tx.Extrinsic)
 		// if err != nil {
 		// 	// failed to validate tx, remove it from the pool or queue
-		// 	s.transactionState.RemoveExtrinsic(ext)
+		// 	s.transactionState.RemoveExtrinsic(tx.Extrinsic)
 		// 	continue
 		// }
 
