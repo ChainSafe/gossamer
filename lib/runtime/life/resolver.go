@@ -86,6 +86,10 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 			return ext_default_child_storage_clear_version_1
 		case "ext_default_child_storage_storage_kill_version_1":
 			return ext_default_child_storage_storage_kill_version_1
+		case "ext_default_child_storage_exists_version_1":
+			return ext_default_child_storage_exists_version_1
+		case "ext_default_child_storage_clear_prefix_version_1":
+			return ext_default_child_storage_clear_prefix_version_1
 		default:
 			panic(fmt.Errorf("unknown import resolved: %s", field))
 		}
@@ -638,6 +642,43 @@ func ext_default_child_storage_storage_kill_version_1(vm *exec.VirtualMachine) i
 
 	childStorageKey := asMemorySlice(memory, childStorageKeySpan)
 	storage.DeleteChild(childStorageKey)
+	return 0
+}
+
+func ext_default_child_storage_exists_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_default_child_storage_exists_version_1] executing...")
+
+	childStorageKey := vm.GetCurrentFrame().Locals[0]
+	key := vm.GetCurrentFrame().Locals[1]
+	storage := ctx.Storage
+	memory := vm.Memory
+
+	child, err := storage.GetChildStorage(asMemorySlice(memory, childStorageKey), asMemorySlice(memory, key))
+	if err != nil {
+		logger.Error("[ext_default_child_storage_exists_version_1] failed to get child from child storage", "error", err)
+		return 0
+	}
+	if child != nil {
+		return 1
+	}
+	return 0
+}
+
+func ext_default_child_storage_clear_prefix_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_default_child_storage_clear_prefix_version_1] executing...")
+
+	childStorageKey := vm.GetCurrentFrame().Locals[0]
+	prefixSpan := vm.GetCurrentFrame().Locals[1]
+	storage := ctx.Storage
+	memory := vm.Memory
+
+	keyToChild := asMemorySlice(memory, childStorageKey)
+	prefix := asMemorySlice(memory, prefixSpan)
+
+	err := storage.ClearPrefixInChild(keyToChild, prefix)
+	if err != nil {
+		logger.Error("[ext_default_child_storage_clear_prefix_version_1] failed to clear prefix in child", "error", err)
+	}
 	return 0
 }
 

@@ -24,6 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/stretchr/testify/require"
@@ -473,9 +474,70 @@ func Test_ext_default_child_storage_storage_kill_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_exists_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	err := ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	require.NoError(t, err)
+
+	err = ctx.Storage.SetChildStorage(testChildKey, testKey, testValue)
+	require.NoError(t, err)
+
+	encChildKey, err := scale.Encode(testChildKey)
+	require.NoError(t, err)
+
+	encKey, err := scale.Encode(testKey)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_default_child_storage_exists_version_1", append(encChildKey, encKey...))
+	require.NoError(t, err)
+
+	buf := &bytes.Buffer{}
+	buf.Write(ret)
+
+	read, err := new(optional.Bytes).Decode(buf)
+	require.NoError(t, err)
+	require.True(t, read.Exists())
 }
 
 func Test_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	prefix := []byte("key")
+
+	testKeyValuePair := []struct {
+		key   []byte
+		value []byte
+	}{
+		{[]byte("keyOne"), []byte("value1")},
+		{[]byte("keyTwo"), []byte("value2")},
+		{[]byte("keyThree"), []byte("value3")},
+	}
+
+	err := ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	require.NoError(t, err)
+
+	for _, kv := range testKeyValuePair {
+		err = ctx.Storage.SetChildStorage(testChildKey, kv.key, kv.value)
+		require.NoError(t, err)
+	}
+
+	// Confirm if value is set
+	keys, err := ctx.Storage.(*storage.TrieState).GetKeysWithPrefixFromChild(testChildKey, prefix)
+	require.NoError(t, err)
+	require.Equal(t, 3, len(keys))
+
+	encChildKey, err := scale.Encode(testChildKey)
+	require.NoError(t, err)
+
+	encPrefix, err := scale.Encode(prefix)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_default_child_storage_clear_prefix_version_1", append(encChildKey, encPrefix...))
+	require.NoError(t, err)
+
+	keys, err = ctx.Storage.(*storage.TrieState).GetKeysWithPrefixFromChild(testChildKey, prefix)
+	require.NoError(t, err)
+	require.Equal(t, 0, len(keys))
 }
 
 func Test_ext_default_child_storage_root_version_1(t *testing.T) {
