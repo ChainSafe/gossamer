@@ -320,14 +320,13 @@ func (bs *BlockState) GetBlockByNumber(num *big.Int) (*types.Block, error) {
 }
 
 // GetBlockHash returns block hash for a given blockNumber
-func (bs *BlockState) GetBlockHash(blockNumber *big.Int) (*common.Hash, error) {
-	// First retrieve the block hash in a byte array based on the block number from the database
+func (bs *BlockState) GetBlockHash(blockNumber *big.Int) (common.Hash, error) {
 	byteHash, err := bs.db.Get(headerHashKey(blockNumber.Uint64()))
 	if err != nil {
-		return nil, fmt.Errorf("cannot get block %d: %w", blockNumber, err)
+		return common.Hash{}, fmt.Errorf("cannot get block %d: %w", blockNumber, err)
 	}
-	hash := common.NewHash(byteHash)
-	return &hash, nil
+
+	return common.NewHash(byteHash), nil
 }
 
 // SetHeader will set the header into DB

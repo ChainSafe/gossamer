@@ -98,9 +98,6 @@ var (
 	// ErrPrecommitBlockMismatch is returned when a precommit hash within a justification is not a descendant of the committed block
 	ErrPrecommitBlockMismatch = errors.New("precommit block is not descendant of committed block")
 
-	// ErrJustificationNumberMismatch is returned when a precommit number within a justification does not match the justification number
-	ErrJustificationNumberMismatch = errors.New("precommit number does not match justification number")
-
 	// ErrAuthorityNotInSet is returned when a precommit within a justification is signed by a key not in the authority set
 	ErrAuthorityNotInSet = errors.New("authority is not in set")
 

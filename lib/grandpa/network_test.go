@@ -73,12 +73,6 @@ func TestHandleNetworkMessage(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, propagate)
 
-	select {
-	case <-gs.network.(*testNetwork).out:
-	case <-time.After(testTimeout):
-		t.Fatal("expected to send message")
-	}
-
 	neighbourMsg := &NeighbourMessage{}
 	cm, err = neighbourMsg.ToConsensusMessage()
 	require.NoError(t, err)
