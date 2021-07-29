@@ -365,7 +365,6 @@ func (s *Service) initiate() error {
 		}
 
 		if err != nil {
-			logger.Warn("play grandpa round error", "error", err)
 			continue
 		}
 
@@ -595,13 +594,11 @@ func (s *Service) attemptToFinalize() error {
 
 		bfc, err := s.getBestFinalCandidate()
 		if err != nil {
-			logger.Crit("failed to getBestFinalCandidate", "error", err)
 			return err
 		}
 
 		pc, err := s.getTotalVotesForBlock(bfc.Hash, precommit)
 		if err != nil {
-			logger.Crit("failed to getTotalVotesForBlock", "error", err)
 			return err
 		}
 
@@ -611,7 +608,6 @@ func (s *Service) attemptToFinalize() error {
 
 		err = s.finalise()
 		if err != nil {
-			logger.Crit("failed to finalise", "error", err)
 			return err
 		}
 
