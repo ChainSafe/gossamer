@@ -29,6 +29,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var testChildKey = []byte("childKey")
+var testKey = []byte("key")
+var testValue = []byte("value")
+
 func Test_ext_allocator_malloc_version_1(t *testing.T) {
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
@@ -326,4 +330,98 @@ func Test_ext_storage_exists_version_1(t *testing.T) {
 	ret, err = inst.Exec("rtm_ext_storage_exists_version_1", enc)
 	require.NoError(t, err)
 	require.Equal(t, byte(0), ret[0])
+}
+
+func Test_ext_default_child_storage_set_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	err := ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	require.NoError(t, err)
+
+	// Check if value is not set
+	val, err := ctx.Storage.GetChildStorage(testChildKey, testKey)
+	require.NoError(t, err)
+	require.Nil(t, val)
+
+	encChildKey, err := scale.Encode(testChildKey)
+	require.NoError(t, err)
+
+	encKey, err := scale.Encode(testKey)
+	require.NoError(t, err)
+
+	encVal, err := scale.Encode(testValue)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_default_child_storage_set_version_1", append(append(encChildKey, encKey...), encVal...))
+	require.NoError(t, err)
+
+	val, err = ctx.Storage.GetChildStorage(testChildKey, testKey)
+	require.NoError(t, err)
+	require.Equal(t, testValue, val)
+}
+
+func Test_ext_default_child_storage_get_version_1(t *testing.T) {
+}
+
+func Test_ext_default_child_storage_read_version_1(t *testing.T) {
+}
+
+func Test_ext_default_child_storage_clear_version_1(t *testing.T) {
+}
+
+func Test_ext_default_child_storage_storage_kill_version_1(t *testing.T) {
+}
+
+func Test_ext_default_child_storage_exists_version_1(t *testing.T) {
+}
+
+func Test_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {
+}
+
+func Test_ext_default_child_storage_root_version_1(t *testing.T) {
+}
+
+func Test_ext_default_child_storage_next_key_version_1(t *testing.T) {
+}
+
+func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
+}
+
+func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
+}
+
+func Test_ext_crypto_ed25519_sign_version_1(t *testing.T) {
+}
+
+func Test_ext_crypto_ed25519_verify_version_1(t *testing.T) {
+}
+
+func Test_ext_crypto_sr25519_public_keys_version_1(t *testing.T) {
+}
+
+func Test_ext_crypto_sr25519_generate_version_1(t *testing.T) {
+}
+
+func Test_ext_crypto_sr25519_sign_version_1(t *testing.T) {
+}
+
+func Test_ext_crypto_sr25519_verify_version_1(t *testing.T) {
+}
+
+func Test_ext_crypto_secp256k1_ecdsa_recover_version_1(t *testing.T) {
+}
+
+func Test_ext_hashing_keccak_256_version_1(t *testing.T) {
+}
+
+func Test_ext_hashing_sha2_256_version_1(t *testing.T) {
+}
+
+func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
+}
+
+func Test_ext_hashing_twox_256_version_1(t *testing.T) {
+}
+
+func Test_ext_trie_blake2_256_root_version_1(t *testing.T) {
 }

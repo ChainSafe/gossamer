@@ -55,26 +55,27 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 		case "ext_storage_read_version_1":
 			return ext_storage_read_version_1
 		case "ext_storage_append_version_1":
-			// todo fix test
 			return ext_storage_append_version_1
 		case "ext_trie_blake2_256_ordered_root_version_1":
 			return ext_trie_blake2_256_ordered_root_version_1
 		case "ext_storage_root_version_1":
 			return ext_storage_root_version_1
 		case "ext_storage_changes_root_version_1":
-			// todo test
+			// todo doesn't have rtm test
 			return ext_storage_changes_root_version_1
 		case "ext_crypto_start_batch_verify_version_1":
-			// todo test
+			// todo how to implement this?
 			return ext_crypto_start_batch_verify_version_1
 		case "ext_crypto_finish_batch_verify_version_1":
-			// todo test
+			// todo how to implement this?
 			return ext_crypto_finish_batch_verify_version_1
 		case "ext_offchain_index_set_version_1":
-			// todo test
+			// todo how to implement this?
 			return ext_offchain_index_set_version_1
 		case "ext_storage_exists_version_1":
 			return ext_storage_exists_version_1
+		case "ext_default_child_storage_set_version_1":
+			return ext_default_child_storage_set_version_1
 		default:
 			panic(fmt.Errorf("unknown import resolved: %s", field))
 		}
@@ -518,6 +519,30 @@ func ext_crypto_finish_batch_verify_version_1(vm *exec.VirtualMachine) int64 {
 
 func ext_offchain_index_set_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_offchain_index_set_version_1] executing...")
+	return 0
+}
+
+func ext_default_child_storage_set_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_default_child_storage_set_version_1] executing...")
+	storage := ctx.Storage
+	memory := vm.Memory
+
+	childStorageKeySpan := vm.GetCurrentFrame().Locals[0]
+	childStorageKey := asMemorySlice(memory, childStorageKeySpan)
+	keySpan := vm.GetCurrentFrame().Locals[1]
+	key := asMemorySlice(memory, keySpan)
+	valueSpan := vm.GetCurrentFrame().Locals[2]
+	value := asMemorySlice(memory, valueSpan)
+
+	cp := make([]byte, len(value))
+	copy(cp, value)
+
+	err := storage.SetChildStorage(childStorageKey, key, cp)
+	if err != nil {
+		logger.Error("[ext_default_child_storage_set_version_1] failed to set value in child storage", "error", err)
+		return 0
+	}
+	// todo(ed) what is this supposed to return?
 	return 0
 }
 
