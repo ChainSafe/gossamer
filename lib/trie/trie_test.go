@@ -28,6 +28,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
@@ -65,10 +66,11 @@ func TestCommonPrefix(t *testing.T) {
 }
 
 var (
-	PUT     = 0
-	GET     = 1
-	DEL     = 2
-	GETLEAF = 3
+	PUT          = 0
+	DEL          = 1
+	CLEAR_PREFIX = 2
+	GET          = 3
+	GETLEAF      = 4
 )
 
 func TestNewEmptyTrie(t *testing.T) {
@@ -1183,4 +1185,93 @@ func PrintMemUsage() {
 
 func bToMb(b uint64) uint64 {
 	return b / 1024 / 1024
+}
+
+func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
+	base := buildSmallTrie()
+	size := 65536
+
+	testCasesA := make([]Test, size)
+	expectedA := buildSmallTrie()
+	for i := 0; i < size; i++ {
+		k := make([]byte, 2)
+		_, err := rand.Read(k)
+		require.NoError(t, err)
+		op := rand.Intn(3)
+
+		switch op {
+		case PUT:
+			expectedA.Put(k, k)
+		case DEL:
+			expectedA.Delete(k)
+		case CLEAR_PREFIX:
+			expectedA.ClearPrefix(k)
+		}
+
+		testCasesA[i] = Test{
+			key: k,
+			op:  op,
+		}
+	}
+
+	testCasesB := make([]Test, size)
+	expectedB := buildSmallTrie()
+	for i := 0; i < size; i++ {
+		k := make([]byte, 2)
+		_, err := rand.Read(k)
+		require.NoError(t, err)
+		op := rand.Intn(3)
+
+		switch op {
+		case PUT:
+			expectedB.Put(k, k)
+		case DEL:
+			expectedB.Delete(k)
+		case CLEAR_PREFIX:
+			expectedB.ClearPrefix(k)
+		}
+
+		testCasesB[i] = Test{
+			key: k,
+			op:  op,
+		}
+	}
+
+	wg := new(sync.WaitGroup)
+	wg.Add(2)
+	trieA := base.Snapshot()
+	trieB := base.Snapshot()
+
+	go func() {
+		for _, tc := range testCasesA {
+			switch tc.op {
+			case PUT:
+				trieA.Put(tc.key, tc.key)
+			case DEL:
+				trieA.Delete(tc.key)
+			case CLEAR_PREFIX:
+				trieA.ClearPrefix(tc.key)
+			}
+		}
+		wg.Done()
+	}()
+
+	go func() {
+		for _, tc := range testCasesB {
+			switch tc.op {
+			case PUT:
+				trieB.Put(tc.key, tc.key)
+			case DEL:
+				trieB.Delete(tc.key)
+			case CLEAR_PREFIX:
+				trieB.ClearPrefix(tc.key)
+			}
+		}
+		wg.Done()
+	}()
+
+	wg.Wait()
+
+	require.Equal(t, expectedA.MustHash(), trieA.MustHash())
+	require.Equal(t, expectedB.MustHash(), trieB.MustHash())
 }

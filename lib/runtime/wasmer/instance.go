@@ -294,6 +294,10 @@ func (in *Instance) exec(function string, data []byte) ([]byte, error) {
 	in.Lock()
 	defer in.Unlock()
 
+	if in.isClosed {
+		return nil, errors.New("instance is stopped")
+	}
+
 	ptr, err := in.malloc(uint32(len(data)))
 	if err != nil {
 		return nil, err
