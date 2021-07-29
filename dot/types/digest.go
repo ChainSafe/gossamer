@@ -28,7 +28,6 @@ import (
 
 // Digest represents the block digest. It consists of digest items.
 type Digest []DigestItem
-type DigestVdt scale.VaryingDataTypeSlice
 
 // TODO remove these and force a call to constructor
 var DigestItemVdt = scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
