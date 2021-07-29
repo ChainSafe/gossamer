@@ -441,3 +441,51 @@ func TestLocalPeerId(t *testing.T) {
 	err = sysmodules.LocalPeerId(nil, nil, &res)
 	require.Error(t, err)
 }
+
+func TestAddReservedPeer(t *testing.T) {
+	t.Run("Test Add and Remove reserved peers with success", func(t *testing.T) {
+		networkMock := new(mocks.MockNetworkAPI)
+		networkMock.On("AddReservedPeers", mock.AnythingOfType("string")).Return(nil).Once()
+		networkMock.On("RemoveReservedPeers", mock.AnythingOfType("string")).Return(nil).Once()
+
+		multiAddrPeer := "/ip4/198.51.100.19/tcp/30333/p2p/QmSk5HQbn6LhUwDiNMseVUjuRYhEtYj4aUZ6WfWoGURpdV"
+		sysModule := &SystemModule{
+			networkAPI: networkMock,
+		}
+
+		var b *[]byte
+		err := sysModule.AddReservedPeer(nil, &StringRequest{String: multiAddrPeer}, b)
+		require.NoError(t, err)
+		require.Nil(t, b)
+
+		peerID := "QmSk5HQbn6LhUwDiNMseVUjuRYhEtYj4aUZ6WfWoGURpdV"
+		err = sysModule.RemoveReservedPeer(nil, &StringRequest{String: peerID}, b)
+		require.NoError(t, err)
+		require.Nil(t, b)
+	})
+
+	t.Run("Test Add and Remove reserved peers without success", func(t *testing.T) {
+		networkMock := new(mocks.MockNetworkAPI)
+		networkMock.On("AddReservedPeers", mock.AnythingOfType("string")).Return(errors.New("some problems")).Once()
+		networkMock.On("RemoveReservedPeers", mock.AnythingOfType("string")).Return(errors.New("other problems")).Once()
+
+		sysModule := &SystemModule{
+			networkAPI: networkMock,
+		}
+
+		var b *[]byte
+		err := sysModule.AddReservedPeer(nil, &StringRequest{String: ""}, b)
+		require.Error(t, err, "cannot add an empty reserved peer")
+		require.Nil(t, b)
+
+		multiAddrPeer := "/ip4/198.51.100.19/tcp/30333/p2p/QmSk5HQbn6LhUwDiNMseVUjuRYhEtYj4aUZ6WfWoGURpdV"
+		err = sysModule.AddReservedPeer(nil, &StringRequest{String: multiAddrPeer}, b)
+		require.Error(t, err, "some problems")
+		require.Nil(t, b)
+
+		peerID := "QmSk5HQbn6LhUwDiNMseVUjuRYhEtYj4aUZ6WfWoGURpdV"
+		err = sysModule.RemoveReservedPeer(nil, &StringRequest{String: peerID}, b)
+		require.Error(t, err, "other problems")
+		require.Nil(t, b)
+	})
+}

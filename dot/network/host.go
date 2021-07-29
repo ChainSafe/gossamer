@@ -368,6 +368,59 @@ func (h *host) peers() []peer.ID {
 	return h.h.Network().Peers()
 }
 
+// addReservedPeers adds the peers `addrs` in the Peerstore
+func (h *host) addReservedPeers(addrs ...string) error {
+	if len(addrs) < 1 {
+		return nil
+	}
+
+	for _, addr := range addrs {
+		maddr, err := ma.NewMultiaddr(addr)
+		if err != nil {
+			return err
+		}
+
+		h.h.Peerstore().AddAddrs(peer.ID(maddr.Bytes()), []ma.Multiaddr{maddr}, peerstore.PermanentAddrTTL)
+	}
+
+	return nil
+}
+
+// removeReservedPeers will close all connections with the peer and remove it from the peerstore
+func (h *host) removeReservedPeers(ids ...string) error {
+	if len(ids) < 1 {
+		return nil
+	}
+
+	for _, id := range ids {
+		peerID := peer.ID(id)
+
+		if err := h.closeProotocolsForPeer(peerID); err != nil {
+			return err
+		}
+
+		if err := h.closePeer(peerID); err != nil {
+			return err
+		}
+
+		h.h.Peerstore().ClearAddrs(peerID)
+	}
+
+	return nil
+}
+
+func (h *host) closeProotocolsForPeer(p peer.ID) error {
+	protocols, err := h.h.Peerstore().GetProtocols(p)
+	if err != nil {
+		return err
+	}
+
+	for _, pid := range protocols {
+		h.closeStream(p, protocol.ID(pid))
+	}
+	return nil
+}
+
 // supportsProtocol checks if the protocol is supported by peerID
 // returns an error if could not get peer protocols
 func (h *host) supportsProtocol(peerID peer.ID, protocol protocol.ID) (bool, error) {
