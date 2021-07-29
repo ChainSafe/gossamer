@@ -56,15 +56,15 @@ func (_m *MockBlockAPI) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 }
 
 // GetBlockHash provides a mock function with given fields: blockNumber
-func (_m *MockBlockAPI) GetBlockHash(blockNumber *big.Int) (*common.Hash, error) {
+func (_m *MockBlockAPI) GetBlockHash(blockNumber *big.Int) (common.Hash, error) {
 	ret := _m.Called(blockNumber)
 
-	var r0 *common.Hash
-	if rf, ok := ret.Get(0).(func(*big.Int) *common.Hash); ok {
+	var r0 common.Hash
+	if rf, ok := ret.Get(0).(func(*big.Int) common.Hash); ok {
 		r0 = rf(blockNumber)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*common.Hash)
+			r0 = ret.Get(0).(common.Hash)
 		}
 	}
 

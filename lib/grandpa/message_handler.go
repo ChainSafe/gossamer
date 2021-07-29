@@ -180,7 +180,7 @@ func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponse) error { //n
 	return nil
 
 	// if we aren't currently expecting a catch up response, return
-	if !h.grandpa.paused.Load().(bool) {
+	if !h.grandpa.paused.Load().(bool) { //nolint
 		logger.Debug("not currently paused, ignoring catch up response")
 		return nil
 	}
