@@ -82,6 +82,10 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 			return ext_default_child_storage_get_version_1
 		case "ext_default_child_storage_read_version_1":
 			return ext_default_child_storage_read_version_1
+		case "ext_default_child_storage_clear_version_1":
+			return ext_default_child_storage_clear_version_1
+		case "ext_default_child_storage_storage_kill_version_1":
+			return ext_default_child_storage_storage_kill_version_1
 		default:
 			panic(fmt.Errorf("unknown import resolved: %s", field))
 		}
@@ -605,6 +609,36 @@ func ext_default_child_storage_read_version_1(vm *exec.VirtualMachine) int64 {
 	}
 
 	return sizeSpan
+}
+
+func ext_default_child_storage_clear_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Debug("[ext_default_child_storage_clear_version_1] executing...")
+
+	childStorageKey := vm.GetCurrentFrame().Locals[0]
+	keySpan := vm.GetCurrentFrame().Locals[1]
+	memory := vm.Memory
+	storage := ctx.Storage
+
+	keyToChild := asMemorySlice(memory, childStorageKey)
+	key := asMemorySlice(memory, keySpan)
+
+	err := storage.ClearChildStorage(keyToChild, key)
+	if err != nil {
+		logger.Error("[ext_default_child_storage_clear_version_1] failed to clear child storage", "error", err)
+	}
+	return 0
+}
+
+func ext_default_child_storage_storage_kill_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_default_child_storage_storage_kill_version_1] executing...")
+
+	childStorageKeySpan := vm.GetCurrentFrame().Locals[0]
+	memory := vm.Memory
+	storage := ctx.Storage
+
+	childStorageKey := asMemorySlice(memory, childStorageKeySpan)
+	storage.DeleteChild(childStorageKey)
+	return 0
 }
 
 // Convert 64bit wasm span descriptor to Go memory slice

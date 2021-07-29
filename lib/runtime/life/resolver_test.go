@@ -424,9 +424,52 @@ func Test_ext_default_child_storage_read_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_clear_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	err := ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	require.NoError(t, err)
+
+	err = ctx.Storage.SetChildStorage(testChildKey, testKey, testValue)
+	require.NoError(t, err)
+
+	// Confirm if value is set
+	val, err := ctx.Storage.GetChildStorage(testChildKey, testKey)
+	require.NoError(t, err)
+	require.Equal(t, testValue, val)
+
+	encChildKey, err := scale.Encode(testChildKey)
+	require.NoError(t, err)
+
+	encKey, err := scale.Encode(testKey)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_default_child_storage_clear_version_1", append(encChildKey, encKey...))
+	require.NoError(t, err)
+
+	val, err = ctx.Storage.GetChildStorage(testChildKey, testKey)
+	require.NoError(t, err)
+	require.Nil(t, val)
 }
 
 func Test_ext_default_child_storage_storage_kill_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	err := ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	require.NoError(t, err)
+
+	// Confirm if value is set
+	child, err := ctx.Storage.GetChild(testChildKey)
+	require.NoError(t, err)
+	require.NotNil(t, child)
+
+	encChildKey, err := scale.Encode(testChildKey)
+	require.NoError(t, err)
+
+	_, err = inst.Exec("rtm_ext_default_child_storage_storage_kill_version_1", encChildKey)
+	require.NoError(t, err)
+
+	child, _ = ctx.Storage.GetChild(testChildKey)
+	require.Nil(t, child)
 }
 
 func Test_ext_default_child_storage_exists_version_1(t *testing.T) {
