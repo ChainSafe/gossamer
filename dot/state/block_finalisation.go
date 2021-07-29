@@ -89,6 +89,7 @@ func (bs *BlockState) setHighestRoundAndSetID(round, setID uint64) error {
 	return bs.db.Put(highestRoundAndSetIDKey, roundSetIDKey(round, setID))
 }
 
+// GetHighestRoundAndSetID gets the highest round and setID that have been finalised
 func (bs *BlockState) GetHighestRoundAndSetID() (uint64, uint64, error) {
 	b, err := bs.db.Get(highestRoundAndSetIDKey)
 	if err != nil {
@@ -100,6 +101,7 @@ func (bs *BlockState) GetHighestRoundAndSetID() (uint64, uint64, error) {
 	return round, setID, nil
 }
 
+// GetHighestFinalisedHash returns the highest finalised block hash
 func (bs *BlockState) GetHighestFinalisedHash() (common.Hash, error) {
 	round, setID, err := bs.GetHighestRoundAndSetID()
 	if err != nil {
@@ -109,7 +111,7 @@ func (bs *BlockState) GetHighestFinalisedHash() (common.Hash, error) {
 	return bs.GetFinalisedHash(round, setID)
 }
 
-// GetHighestFinalisedHeader returns the most recently finalised block header
+// GetHighestFinalisedHeader returns the highest finalised block header
 func (bs *BlockState) GetHighestFinalisedHeader() (*types.Header, error) {
 	h, err := bs.GetHighestFinalisedHash()
 	if err != nil {

@@ -95,8 +95,8 @@ var (
 	// ErrPrecommitSignatureMismatch is returned when the number of precommits and signatures in a CommitMessage do not match
 	ErrPrecommitSignatureMismatch = errors.New("number of precommits does not match number of signatures")
 
-	// ErrJustificationHashMismatch is returned when a precommit hash within a justification does not match the justification hash
-	ErrJustificationHashMismatch = errors.New("precommit hash does not match justification hash")
+	// ErrPrecommitBlockMismatch is returned when a precommit hash within a justification is not a descendant of the committed block
+	ErrPrecommitBlockMismatch = errors.New("precommit block is not descendant of committed block")
 
 	// ErrJustificationNumberMismatch is returned when a precommit number within a justification does not match the justification number
 	ErrJustificationNumberMismatch = errors.New("precommit number does not match justification number")

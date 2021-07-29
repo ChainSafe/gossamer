@@ -24,7 +24,7 @@ import (
 
 func TestHighestRoundAndSetID(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
-	round, setID, err := bs.getHighestRoundAndSetID()
+	round, setID, err := bs.GetHighestRoundAndSetID()
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), round)
 	require.Equal(t, uint64(0), setID)
@@ -32,7 +32,7 @@ func TestHighestRoundAndSetID(t *testing.T) {
 	err = bs.setHighestRoundAndSetID(1, 0)
 	require.NoError(t, err)
 
-	round, setID, err = bs.getHighestRoundAndSetID()
+	round, setID, err = bs.GetHighestRoundAndSetID()
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), round)
 	require.Equal(t, uint64(0), setID)
@@ -40,7 +40,7 @@ func TestHighestRoundAndSetID(t *testing.T) {
 	err = bs.setHighestRoundAndSetID(10, 0)
 	require.NoError(t, err)
 
-	round, setID, err = bs.getHighestRoundAndSetID()
+	round, setID, err = bs.GetHighestRoundAndSetID()
 	require.NoError(t, err)
 	require.Equal(t, uint64(10), round)
 	require.Equal(t, uint64(0), setID)
@@ -48,7 +48,7 @@ func TestHighestRoundAndSetID(t *testing.T) {
 	err = bs.setHighestRoundAndSetID(9, 0)
 	require.NoError(t, err)
 
-	round, setID, err = bs.getHighestRoundAndSetID()
+	round, setID, err = bs.GetHighestRoundAndSetID()
 	require.NoError(t, err)
 	require.Equal(t, uint64(10), round)
 	require.Equal(t, uint64(0), setID)
@@ -56,7 +56,7 @@ func TestHighestRoundAndSetID(t *testing.T) {
 	err = bs.setHighestRoundAndSetID(0, 1)
 	require.NoError(t, err)
 
-	round, setID, err = bs.getHighestRoundAndSetID()
+	round, setID, err = bs.GetHighestRoundAndSetID()
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), round)
 	require.Equal(t, uint64(1), setID)
@@ -64,7 +64,7 @@ func TestHighestRoundAndSetID(t *testing.T) {
 	err = bs.setHighestRoundAndSetID(100000, 0)
 	require.NoError(t, err)
 
-	round, setID, err = bs.getHighestRoundAndSetID()
+	round, setID, err = bs.GetHighestRoundAndSetID()
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), round)
 	require.Equal(t, uint64(1), setID)

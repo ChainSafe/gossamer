@@ -548,22 +548,22 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	just := newJustification(round, testHash, number, precommits)
 	data, err := just.Encode()
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(data)
+	err = gs.VerifyBlockJustification(common.Hash{}, data)
 	require.NoError(t, err)
 
 	// use wrong hash, shouldn't verify
 	just = newJustification(round, common.Hash{}, number, precommits)
 	data, err = just.Encode()
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(data)
+	err = gs.VerifyBlockJustification(common.Hash{}, data)
 	require.NotNil(t, err)
-	require.Equal(t, ErrJustificationHashMismatch, err)
+	require.Equal(t, ErrPrecommitBlockMismatch, err)
 
 	// use wrong number, shouldn't verify
 	just = newJustification(round, testHash, number+1, precommits)
 	data, err = just.Encode()
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(data)
+	err = gs.VerifyBlockJustification(common.Hash{}, data)
 	require.NotNil(t, err)
 	require.Equal(t, ErrJustificationNumberMismatch, err)
 
@@ -571,7 +571,7 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	just = newJustification(round+1, testHash, number, precommits)
 	data, err = just.Encode()
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(data)
+	err = gs.VerifyBlockJustification(common.Hash{}, data)
 	require.NotNil(t, err)
 	require.Equal(t, ErrInvalidSignature, err)
 
@@ -580,7 +580,7 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	just = newJustification(round, testHash, number, precommits)
 	data, err = just.Encode()
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(data)
+	err = gs.VerifyBlockJustification(common.Hash{}, data)
 	require.Equal(t, ErrAuthorityNotInSet, err)
 
 	// not enough signatures, shouldn't verify
@@ -588,6 +588,6 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	just = newJustification(round, testHash, number, precommits)
 	data, err = just.Encode()
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(data)
+	err = gs.VerifyBlockJustification(common.Hash{}, data)
 	require.Equal(t, ErrMinVotesNotMet, err)
 }
