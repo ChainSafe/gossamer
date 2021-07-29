@@ -1139,7 +1139,7 @@ func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer, ch
 //export ext_default_child_storage_storage_kill_version_3
 func ext_default_child_storage_storage_kill_version_3(context unsafe.Pointer, childStorageKeySpan, _ C.int64_t) C.int64_t {
 	logger.Debug("[ext_default_child_storage_storage_kill_version_3] executing...")
-	logger.Warn("[ext_default_child_storage_storage_kill_version_2] somewhat unimplemented")
+	logger.Warn("[ext_default_child_storage_storage_kill_version_3] somewhat unimplemented")
 	// TODO: need to use `limit` parameter
 
 	instanceContext := wasm.IntoInstanceContext(context)
