@@ -23,6 +23,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	ma "github.com/multiformats/go-multiaddr"
 
@@ -405,4 +406,54 @@ func Test_PeerSupportsProtocol(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, test.expect, output)
 	}
+}
+
+func Test_ReservedPeersRPCCalls(t *testing.T) {
+	basePathA := utils.NewTestBasePath(t, "nodeA")
+	configA := &Config{
+		BasePath:    basePathA,
+		Port:        7001,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeA := createTestService(t, configA)
+
+	addr := "/ip4/198.51.100.19/tcp/30333/p2p/QmSk5HQbn6LhUwDiNMseVUjuRYhEtYj4aUZ6WfWoGURpdV"
+	err := nodeA.host.addReservedPeers(addr)
+	require.NoError(t, err)
+
+	maddr, err := ma.NewMultiaddr(addr)
+	require.NoError(t, err)
+
+	addinfo, err := peer.AddrInfoFromP2pAddr(maddr)
+	require.NoError(t, err)
+
+	addrs := nodeA.host.h.Peerstore().Addrs(addinfo.ID)
+	require.NotEmpty(t, addrs)
+}
+
+func Test_RemoveReservedPeers(t *testing.T) {
+	basePathA := utils.NewTestBasePath(t, "nodeA")
+	configA := &Config{
+		BasePath:    basePathA,
+		Port:        7001,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeA := createTestService(t, configA)
+
+	addr := "/ip4/198.51.100.19/tcp/30333/p2p/QmSk5HQbn6LhUwDiNMseVUjuRYhEtYj4aUZ6WfWoGURpdV"
+	err := nodeA.host.addReservedPeers(addr)
+	require.NoError(t, err)
+
+	pID := "QmSk5HQbn6LhUwDiNMseVUjuRYhEtYj4aUZ6WfWoGURpdV"
+
+	err = nodeA.host.removeReservedPeers(pID)
+	require.NoError(t, err)
+
+	fakePID, _ := peer.IDFromString(pID)
+	slice := nodeA.host.h.Peerstore().Addrs(fakePID)
+	require.Empty(t, slice)
 }

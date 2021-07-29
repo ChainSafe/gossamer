@@ -380,7 +380,14 @@ func (h *host) addReservedPeers(addrs ...string) error {
 			return err
 		}
 
-		h.h.Peerstore().AddAddrs(peer.ID(maddr.Bytes()), []ma.Multiaddr{maddr}, peerstore.PermanentAddrTTL)
+		addinfo, err := peer.AddrInfoFromP2pAddr(maddr)
+		if err != nil {
+			return err
+		}
+
+		h.h.Peerstore().AddAddrs(addinfo.ID, addinfo.Addrs, peerstore.PermanentAddrTTL)
+
+		fmt.Println(h.h.Peerstore().Addrs(addinfo.ID))
 	}
 
 	return nil
@@ -393,7 +400,10 @@ func (h *host) removeReservedPeers(ids ...string) error {
 	}
 
 	for _, id := range ids {
-		peerID := peer.ID(id)
+		peerID, err := peer.Decode(id)
+		if err != nil {
+			return err
+		}
 
 		if err := h.closeProotocolsForPeer(peerID); err != nil {
 			return err
@@ -402,7 +412,6 @@ func (h *host) removeReservedPeers(ids ...string) error {
 		if err := h.closePeer(peerID); err != nil {
 			return err
 		}
-
 		h.h.Peerstore().ClearAddrs(peerID)
 	}
 
