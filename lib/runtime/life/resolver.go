@@ -1,7 +1,9 @@
 package life
 
+import "C"
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"math/big"
@@ -76,6 +78,10 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 			return ext_storage_exists_version_1
 		case "ext_default_child_storage_set_version_1":
 			return ext_default_child_storage_set_version_1
+		case "ext_default_child_storage_get_version_1":
+			return ext_default_child_storage_get_version_1
+		case "ext_default_child_storage_read_version_1":
+			return ext_default_child_storage_read_version_1
 		default:
 			panic(fmt.Errorf("unknown import resolved: %s", field))
 		}
@@ -544,6 +550,61 @@ func ext_default_child_storage_set_version_1(vm *exec.VirtualMachine) int64 {
 	}
 	// todo(ed) what is this supposed to return?
 	return 0
+}
+
+func ext_default_child_storage_get_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_default_child_storage_get_version_1] executing...")
+
+	childStorageKey := vm.GetCurrentFrame().Locals[0]
+	key := vm.GetCurrentFrame().Locals[1]
+	storage := ctx.Storage
+	memory := vm.Memory
+
+	child, err := storage.GetChildStorage(asMemorySlice(memory, childStorageKey), asMemorySlice(memory, key))
+	if err != nil {
+		logger.Error("[ext_default_child_storage_get_version_1] failed to get child from child storage", "error", err)
+		return 0
+	}
+
+	value, err := toWasmMemoryOptional(memory, child)
+	if err != nil {
+		logger.Error("[ext_default_child_storage_get_version_1] failed to allocate", "error", err)
+		return 0
+	}
+
+	return value
+}
+
+func ext_default_child_storage_read_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_default_child_storage_read_version_1] executing...")
+
+	childStorageKey := vm.GetCurrentFrame().Locals[0]
+	key := vm.GetCurrentFrame().Locals[1]
+	valueOut := vm.GetCurrentFrame().Locals[2]
+	offset := vm.GetCurrentFrame().Locals[3]
+	storage := ctx.Storage
+	memory := vm.Memory
+
+	value, err := storage.GetChildStorage(asMemorySlice(memory, childStorageKey), asMemorySlice(memory, key))
+	if err != nil {
+		logger.Error("[ext_default_child_storage_read_version_1] failed to get child storage", "error", err)
+		return 0
+	}
+
+	valueBuf, valueLen := int64ToPointerAndSize(valueOut)
+	copy(memory[valueBuf:valueBuf+valueLen], value[offset:])
+
+	size := uint32(len(value[offset:]))
+	sizeBuf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(sizeBuf, size)
+
+	sizeSpan, err := toWasmMemoryOptional(memory, sizeBuf)
+	if err != nil {
+		logger.Error("[ext_default_child_storage_read_version_1] failed to allocate", "error", err)
+		return 0
+	}
+
+	return sizeSpan
 }
 
 // Convert 64bit wasm span descriptor to Go memory slice

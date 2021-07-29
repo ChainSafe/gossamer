@@ -361,9 +361,66 @@ func Test_ext_default_child_storage_set_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_get_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	err := ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	require.NoError(t, err)
+
+	err = ctx.Storage.SetChildStorage(testChildKey, testKey, testValue)
+	require.NoError(t, err)
+
+	encChildKey, err := scale.Encode(testChildKey)
+	require.NoError(t, err)
+
+	encKey, err := scale.Encode(testKey)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_default_child_storage_get_version_1", append(encChildKey, encKey...))
+	require.NoError(t, err)
+
+	buf := &bytes.Buffer{}
+	buf.Write(ret)
+
+	read, err := new(optional.Bytes).Decode(buf)
+	require.NoError(t, err)
+	require.Equal(t, testValue, read.Value())
 }
 
 func Test_ext_default_child_storage_read_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	err := ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	require.NoError(t, err)
+
+	err = ctx.Storage.SetChildStorage(testChildKey, testKey, testValue)
+	require.NoError(t, err)
+
+	testOffset := uint32(2)
+	testBufferSize := uint32(100)
+
+	encChildKey, err := scale.Encode(testChildKey)
+	require.NoError(t, err)
+
+	encKey, err := scale.Encode(testKey)
+	require.NoError(t, err)
+
+	encBufferSize, err := scale.Encode(testBufferSize)
+	require.NoError(t, err)
+
+	encOffset, err := scale.Encode(testOffset)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_default_child_storage_read_version_1", append(append(encChildKey, encKey...), append(encOffset, encBufferSize...)...))
+	require.NoError(t, err)
+
+	buf := &bytes.Buffer{}
+	buf.Write(ret)
+
+	read, err := new(optional.Bytes).Decode(buf)
+	require.NoError(t, err)
+
+	val := read.Value()
+	require.Equal(t, testValue[testOffset:], val[:len(testValue)-int(testOffset)])
 }
 
 func Test_ext_default_child_storage_clear_version_1(t *testing.T) {
