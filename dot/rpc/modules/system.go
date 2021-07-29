@@ -287,11 +287,7 @@ func (sm *SystemModule) AddReservedPeer(r *http.Request, req *StringRequest, res
 		return errors.New("cannot add an empty reserved peer")
 	}
 
-	if err := sm.networkAPI.AddReservedPeers(req.String); err != nil {
-		return err
-	}
-
-	return nil
+	return sm.networkAPI.AddReservedPeers(req.String)
 }
 
 // RemoveReservedPeer remove a reserved peer. The string should encode only the PeerId
@@ -300,9 +296,5 @@ func (sm *SystemModule) RemoveReservedPeer(r *http.Request, req *StringRequest, 
 		return errors.New("cannot remove an empty reserved peer")
 	}
 
-	if err := sm.networkAPI.RemoveReservedPeers(req.String); err != nil {
-		return err
-	}
-
-	return nil
+	return sm.networkAPI.RemoveReservedPeers(req.String)
 }
