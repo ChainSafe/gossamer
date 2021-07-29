@@ -17,8 +17,9 @@
 package modules
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewMockStorageAPI(t *testing.T) {
