@@ -28,6 +28,15 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+const (
+	grandpaJustificationsMethod  = "grandpa_justifications"
+	stateRuntimeVersionMethod    = "state_runtimeVersion"
+	authorExtrinsicUpdatesMethod = "author_extrinsicUpdate"
+	chainFinalizedHeadMethod     = "chain_finalizedHead"
+	chainNewHeadMethod           = "chain_newHead"
+	stateStorageMethod           = "state_storage"
+)
+
 var (
 	// ErrCannotCancel when is not possible to cancel a goroutine after `cancelTimeout` seconds
 	ErrCannotCancel = errors.New("cannot cancel listen goroutines")
@@ -77,7 +86,7 @@ func (s *StorageObserver) Update(change *state.SubscriptionResult) {
 	}
 
 	res := newSubcriptionBaseResponseJSON()
-	res.Method = "state_storage"
+	res.Method = stateStorageMethod
 	res.Params.Result = changeResult
 	res.Params.SubscriptionID = s.id
 	s.wsconn.safeSend(res)
@@ -134,7 +143,7 @@ func (l *BlockListener) Listen() {
 				}
 
 				res := newSubcriptionBaseResponseJSON()
-				res.Method = "chain_newHead"
+				res.Method = chainNewHeadMethod
 				res.Params.Result = head
 				res.Params.SubscriptionID = l.subID
 				l.wsconn.safeSend(res)
@@ -182,7 +191,7 @@ func (l *BlockFinalizedListener) Listen() {
 					logger.Error("failed to convert header to JSON", "error", err)
 				}
 				res := newSubcriptionBaseResponseJSON()
-				res.Method = "chain_finalizedHead"
+				res.Method = chainFinalizedHeadMethod
 				res.Params.Result = head
 				res.Params.SubscriptionID = l.subID
 				l.wsconn.safeSend(res)
@@ -210,9 +219,6 @@ type ExtrinsicSubmitListener struct {
 	cancel          chan interface{}
 	cancelTimeout   time.Duration
 }
-
-// AuthorExtrinsicUpdates method name
-const AuthorExtrinsicUpdates = "author_extrinsicUpdate"
 
 // Listen implementation of Listen interface to listen for importedChan changes
 func (l *ExtrinsicSubmitListener) Listen() {
@@ -244,7 +250,7 @@ func (l *ExtrinsicSubmitListener) Listen() {
 					resM["inBlock"] = block.Header.Hash().String()
 
 					l.importedHash = block.Header.Hash()
-					l.wsconn.safeSend(newSubscriptionResponse(AuthorExtrinsicUpdates, l.subID, resM))
+					l.wsconn.safeSend(newSubscriptionResponse(authorExtrinsicUpdatesMethod, l.subID, resM))
 				}
 
 			case info, ok := <-l.finalisedChan:
@@ -255,7 +261,7 @@ func (l *ExtrinsicSubmitListener) Listen() {
 				if reflect.DeepEqual(l.importedHash, info.Header.Hash()) {
 					resM := make(map[string]interface{})
 					resM["finalised"] = info.Header.Hash().String()
-					l.wsconn.safeSend(newSubscriptionResponse(AuthorExtrinsicUpdates, l.subID, resM))
+					l.wsconn.safeSend(newSubscriptionResponse(authorExtrinsicUpdatesMethod, l.subID, resM))
 				}
 			}
 		}
@@ -291,7 +297,7 @@ func (l *RuntimeVersionListener) Listen() {
 	ver.TransactionVersion = rtVersion.TransactionVersion()
 	ver.Apis = modules.ConvertAPIs(rtVersion.APIItems())
 
-	l.wsconn.safeSend(newSubscriptionResponse("state_runtimeVersion", l.subID, ver))
+	l.wsconn.safeSend(newSubscriptionResponse(stateRuntimeVersionMethod, l.subID, ver))
 }
 
 // Stop to runtimeVersionListener not implemented yet because the listener
@@ -308,8 +314,6 @@ type GrandpaJustificationListener struct {
 	finalisedChID byte
 	finalisedCh   chan *types.FinalisationInfo
 }
-
-const grandpaJustifications = "grandpa_justifications"
 
 // Listen will start goroutines that listen to the finaised blocks
 func (g *GrandpaJustificationListener) Listen() {
@@ -336,7 +340,7 @@ func (g *GrandpaJustificationListener) Listen() {
 						fmt.Sprintf("error while retrieve justification: %v", err))
 				}
 
-				g.wsconn.safeSend(newSubscriptionResponse(grandpaJustifications, g.subID, common.BytesToHex(just)))
+				g.wsconn.safeSend(newSubscriptionResponse(grandpaJustificationsMethod, g.subID, common.BytesToHex(just)))
 			}
 		}
 	}()

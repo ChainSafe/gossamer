@@ -152,7 +152,7 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	}
 
 	resImported := map[string]interface{}{"inBlock": block.Header.Hash().String()}
-	expectedImportedRespones := newSubscriptionResponse(AuthorExtrinsicUpdates, esl.subID, resImported)
+	expectedImportedRespones := newSubscriptionResponse(authorExtrinsicUpdatesMethod, esl.subID, resImported)
 
 	go esl.Listen()
 
@@ -165,7 +165,7 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	}
 	time.Sleep(time.Millisecond * 10)
 	resFinalised := map[string]interface{}{"finalised": block.Header.Hash().String()}
-	expectedFinalizedRespones := newSubscriptionResponse(AuthorExtrinsicUpdates, esl.subID, resFinalised)
+	expectedFinalizedRespones := newSubscriptionResponse(authorExtrinsicUpdatesMethod, esl.subID, resFinalised)
 	require.Equal(t, expectedFinalizedRespones, mockConnection.lastMessage)
 }
 
