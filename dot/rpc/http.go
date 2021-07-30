@@ -233,15 +233,13 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // NewWSConn to create new WebSocket Connection struct
 func NewWSConn(conn *websocket.Conn, cfg *HTTPServerConfig) *subscription.WSConn {
 	c := &subscription.WSConn{
-		Wsconn:             conn,
-		Subscriptions:      make(map[uint]subscription.Listener),
-		BlockSubChannels:   make(map[uint]byte),
-		StorageSubChannels: make(map[int]byte),
-		StorageAPI:         cfg.StorageAPI,
-		BlockAPI:           cfg.BlockAPI,
-		CoreAPI:            cfg.CoreAPI,
-		TxStateAPI:         cfg.TransactionQueueAPI,
-		RPCHost:            fmt.Sprintf("http://%s:%d/", cfg.Host, cfg.RPCPort),
+		Wsconn:        conn,
+		Subscriptions: make(map[uint32]subscription.Listener),
+		StorageAPI:    cfg.StorageAPI,
+		BlockAPI:      cfg.BlockAPI,
+		CoreAPI:       cfg.CoreAPI,
+		TxStateAPI:    cfg.TransactionQueueAPI,
+		RPCHost:       fmt.Sprintf("http://%s:%d/", cfg.Host, cfg.RPCPort),
 		HTTP: &http.Client{
 			Timeout: time.Second * 30,
 		},

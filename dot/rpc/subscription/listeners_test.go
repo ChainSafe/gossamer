@@ -17,14 +17,23 @@
 package subscription
 
 import (
+	"fmt"
+	"log"
 	"math/big"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/grandpa"
+	"github.com/gorilla/websocket"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -158,4 +167,77 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	resFinalised := map[string]interface{}{"finalised": block.Header.Hash().String()}
 	expectedFinalizedRespones := newSubscriptionResponse(AuthorExtrinsicUpdates, esl.subID, resFinalised)
 	require.Equal(t, expectedFinalizedRespones, mockConnection.lastMessage)
+}
+
+func TestGrandpaJustification_Listen(t *testing.T) {
+	t.Run("When justification doesnt returns error", func(t *testing.T) {
+		wsconn = new(WSConn)
+		var up = websocket.Upgrader{
+			CheckOrigin: func(r *http.Request) bool { return true },
+		}
+
+		h := func(w http.ResponseWriter, r *http.Request) {
+			c, err := up.Upgrade(w, r, nil)
+			if err != nil {
+				log.Print("error while setup handler:", err)
+				return
+			}
+
+			wsconn.Wsconn = c
+		}
+
+		server := httptest.NewServer(http.HandlerFunc(h))
+		defer server.Close()
+
+		wsURL := "ws" + strings.TrimPrefix(server.URL, "http")
+		ws, r, err := websocket.DefaultDialer.Dial(wsURL, nil)
+		require.NoError(t, err)
+
+		defer r.Body.Close()
+		defer ws.Close()
+
+		mockedJust := grandpa.Justification{
+			Round: 1,
+			Commit: &grandpa.Commit{
+				Hash:       common.Hash{},
+				Number:     1,
+				Precommits: nil,
+			},
+		}
+
+		mockedJustBytes, err := mockedJust.Encode()
+		require.NoError(t, err)
+
+		blockStateMock := new(mocks.MockBlockAPI)
+		blockStateMock.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(mockedJustBytes, nil)
+		wsconn.BlockAPI = blockStateMock
+
+		finchannel := make(chan *types.FinalisationInfo)
+		sub := GrandpaJustificationListener{
+			subID:         10,
+			wsconn:        wsconn,
+			cancel:        make(chan interface{}, 1),
+			done:          make(chan interface{}, 1),
+			finalisedCh:   finchannel,
+			cancelTimeout: time.Second * 5,
+		}
+
+		sub.Listen()
+		finchannel <- &types.FinalisationInfo{
+			Header: types.NewEmptyHeader(),
+		}
+
+		time.Sleep(time.Second * 3)
+
+		_, msg, err := ws.ReadMessage()
+		require.NoError(t, err)
+
+		expected := `{"jsonrpc":"2.0","method":"grandpa_justifications","params":{"result":"%s","subscription":10}}` + "\n"
+		expected = fmt.Sprintf(expected, common.BytesToHex(mockedJustBytes))
+
+		require.Equal(t, string(msg), expected)
+		require.NoError(t, sub.Stop())
+		wsconn.Wsconn.Close()
+	})
+
 }

@@ -16,9 +16,11 @@
 package subscription
 
 import (
-	"context"
+	"errors"
 	"fmt"
+	"math/big"
 	"reflect"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -26,10 +28,17 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+var (
+	// ErrCannotCancel when is not possible to cancel a goroutine after `cancelTimeout` seconds
+	ErrCannotCancel = errors.New("cannot cancel listen goroutines")
+
+	defaultCancelTimeout = time.Second * 10
+)
+
 // Listener interface for functions that define Listener related functions
 type Listener interface {
 	Listen()
-	Stop()
+	Stop() error
 }
 
 // WSConnAPI interface defining methors a WSConn should have
@@ -39,7 +48,7 @@ type WSConnAPI interface {
 
 // StorageObserver struct to hold data for observer (Observer Design Pattern)
 type StorageObserver struct {
-	id     uint
+	id     uint32
 	filter map[string][]byte
 	wsconn WSConnAPI
 }
@@ -70,13 +79,13 @@ func (s *StorageObserver) Update(change *state.SubscriptionResult) {
 	res := newSubcriptionBaseResponseJSON()
 	res.Method = "state_storage"
 	res.Params.Result = changeResult
-	res.Params.SubscriptionID = s.GetID()
+	res.Params.SubscriptionID = s.id
 	s.wsconn.safeSend(res)
 }
 
 // GetID the id for the Observer
 func (s *StorageObserver) GetID() uint {
-	return s.id
+	return uint(s.id)
 }
 
 // GetFilter returns the filter the Observer is using
@@ -88,26 +97,28 @@ func (s *StorageObserver) GetFilter() map[string][]byte {
 func (s *StorageObserver) Listen() {}
 
 // Stop to satisfy Listener interface (but is no longer used by StorageObserver)
-func (s *StorageObserver) Stop() {}
+func (s *StorageObserver) Stop() error { return nil }
 
 // BlockListener to handle listening for blocks importedChan
 type BlockListener struct {
-	Channel chan *types.Block
-	wsconn  WSConnAPI
-	ChanID  byte
-	subID   uint
-
-	ctx    context.Context
-	cancel context.CancelFunc
+	Channel       chan *types.Block
+	wsconn        WSConnAPI
+	ChanID        byte
+	subID         uint32
+	done          chan interface{}
+	cancel        chan interface{}
+	cancelTimeout time.Duration
 }
 
 // Listen implementation of Listen interface to listen for importedChan changes
 func (l *BlockListener) Listen() {
-	l.ctx, l.cancel = context.WithCancel(context.Background())
 	go func() {
+		defer close(l.done)
+		defer close(l.Channel)
+
 		for {
 			select {
-			case <-l.ctx.Done():
+			case <-l.cancel:
 				return
 			case block, ok := <-l.Channel:
 				if !ok {
@@ -133,26 +144,30 @@ func (l *BlockListener) Listen() {
 }
 
 // Stop to cancel the running goroutines to this listener
-func (l *BlockListener) Stop() { l.cancel() }
+func (l *BlockListener) Stop() error {
+	return cancelWithTimeout(l.cancel, l.done, l.cancelTimeout)
+}
 
 // BlockFinalizedListener to handle listening for finalised blocks
 type BlockFinalizedListener struct {
-	channel chan *types.FinalisationInfo
-	wsconn  WSConnAPI
-	chanID  byte
-	subID   uint
-	ctx     context.Context
-	cancel  context.CancelFunc
+	channel       chan *types.FinalisationInfo
+	wsconn        WSConnAPI
+	chanID        byte
+	subID         uint32
+	done          chan interface{}
+	cancel        chan interface{}
+	cancelTimeout time.Duration
 }
 
 // Listen implementation of Listen interface to listen for importedChan changes
 func (l *BlockFinalizedListener) Listen() {
-	l.ctx, l.cancel = context.WithCancel(context.Background())
-
 	go func() {
+		defer close(l.done)
+		defer close(l.channel)
+
 		for {
 			select {
-			case <-l.ctx.Done():
+			case <-l.cancel:
 				return
 			case info, ok := <-l.channel:
 				if !ok {
@@ -177,22 +192,23 @@ func (l *BlockFinalizedListener) Listen() {
 }
 
 // Stop to cancel the running goroutines to this listener
-func (l *BlockFinalizedListener) Stop() { l.cancel() }
+func (l *BlockFinalizedListener) Stop() error {
+	return cancelWithTimeout(l.cancel, l.done, l.cancelTimeout)
+}
 
 // ExtrinsicSubmitListener to handle listening for extrinsic events
 type ExtrinsicSubmitListener struct {
-	wsconn    WSConnAPI
-	subID     uint
-	extrinsic types.Extrinsic
-
+	wsconn          WSConnAPI
+	subID           uint32
+	extrinsic       types.Extrinsic
 	importedChan    chan *types.Block
 	importedChanID  byte
 	importedHash    common.Hash
 	finalisedChan   chan *types.FinalisationInfo
 	finalisedChanID byte
-
-	ctx    context.Context
-	cancel context.CancelFunc
+	done            chan interface{}
+	cancel          chan interface{}
+	cancelTimeout   time.Duration
 }
 
 // AuthorExtrinsicUpdates method name
@@ -200,13 +216,15 @@ const AuthorExtrinsicUpdates = "author_extrinsicUpdate"
 
 // Listen implementation of Listen interface to listen for importedChan changes
 func (l *ExtrinsicSubmitListener) Listen() {
-	l.ctx, l.cancel = context.WithCancel(context.Background())
 
 	// listen for imported blocks with extrinsic
 	go func() {
+		defer close(l.done)
+		defer close(l.importedChan)
+
 		for {
 			select {
-			case <-l.ctx.Done():
+			case <-l.cancel:
 				return
 			case block, ok := <-l.importedChan:
 				if !ok {
@@ -228,16 +246,7 @@ func (l *ExtrinsicSubmitListener) Listen() {
 					l.importedHash = block.Header.Hash()
 					l.wsconn.safeSend(newSubscriptionResponse(AuthorExtrinsicUpdates, l.subID, resM))
 				}
-			}
-		}
-	}()
 
-	// listen for finalised headers
-	go func() {
-		for {
-			select {
-			case <-l.ctx.Done():
-				return
 			case info, ok := <-l.finalisedChan:
 				if !ok {
 					return
@@ -254,12 +263,14 @@ func (l *ExtrinsicSubmitListener) Listen() {
 }
 
 // Stop to cancel the running goroutines to this listener
-func (l *ExtrinsicSubmitListener) Stop() { l.cancel() }
+func (l *ExtrinsicSubmitListener) Stop() error {
+	return cancelWithTimeout(l.cancel, l.done, l.cancelTimeout)
+}
 
 // RuntimeVersionListener to handle listening for Runtime Version
 type RuntimeVersionListener struct {
 	wsconn *WSConn
-	subID  uint
+	subID  uint32
 }
 
 // Listen implementation of Listen interface to listen for runtime version changes
@@ -285,4 +296,67 @@ func (l *RuntimeVersionListener) Listen() {
 
 // Stop to runtimeVersionListener not implemented yet because the listener
 // does not need to be stoped
-func (l *RuntimeVersionListener) Stop() {}
+func (l *RuntimeVersionListener) Stop() error { return nil }
+
+// GrandpaJustificationListener struct has the finalisedCh and the context to stop the goroutines
+type GrandpaJustificationListener struct {
+	cancel        chan interface{}
+	cancelTimeout time.Duration
+	done          chan interface{}
+	wsconn        *WSConn
+	subID         uint32
+	finalisedChID byte
+	finalisedCh   chan *types.FinalisationInfo
+}
+
+const grandpaJustifications = "grandpa_justifications"
+
+// Listen will start goroutines that listen to the finaised blocks
+func (g *GrandpaJustificationListener) Listen() {
+	// listen for finalised headers
+	go func() {
+		defer func() {
+			close(g.done)
+			close(g.finalisedCh)
+		}()
+
+		for {
+			select {
+			case <-g.cancel:
+				return
+
+			case info, ok := <-g.finalisedCh:
+				if !ok {
+					return
+				}
+
+				just, err := g.wsconn.BlockAPI.GetJustification(info.Header.Hash())
+				if err != nil {
+					g.wsconn.safeSendError(float64(g.subID), big.NewInt(InvalidRequestCode),
+						fmt.Sprintf("error while retrieve justification: %v", err))
+				}
+
+				g.wsconn.safeSend(newSubscriptionResponse(grandpaJustifications, g.subID, common.BytesToHex(just)))
+			}
+		}
+	}()
+}
+
+// Stop will cancel all the goroutines that are executing
+func (g *GrandpaJustificationListener) Stop() error {
+	return cancelWithTimeout(g.cancel, g.done, g.cancelTimeout)
+}
+
+func cancelWithTimeout(cancel chan interface{}, done chan interface{}, t time.Duration) error {
+	close(cancel)
+
+	timeout := time.NewTimer(t)
+	defer timeout.Stop()
+
+	select {
+	case <-done:
+		return nil
+	case <-timeout.C:
+		return ErrCannotCancel
+	}
+}
