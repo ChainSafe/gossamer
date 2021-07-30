@@ -27,7 +27,7 @@ func TestAuthorModule_HasSessionKey(t *testing.T) {
 	mockInsertKey.Run(func(args mock.Arguments) {
 		kp := args.Get(0).(*sr25519.Keypair)
 		globalStore.Acco.Insert(kp)
-	}).Once()
+	})
 
 	mockHasKey := coremockapi.On("HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string"))
 	mockHasKey.Run(func(args mock.Arguments) {
@@ -38,7 +38,7 @@ func TestAuthorModule_HasSessionKey(t *testing.T) {
 		mockHasKey.ReturnArguments = []interface{}{ok, err}
 	})
 
-	keys := "0x34309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+	keys := "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d34309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026"
 	runtimeInstance := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
 
 	decodeSessionKeysMock := coremockapi.On("DecodeSessionKeys", mock.AnythingOfType("[]uint8"))
@@ -58,13 +58,21 @@ func TestAuthorModule_HasSessionKey(t *testing.T) {
 	}
 
 	err := module.InsertKey(nil, &KeyInsertRequest{
-		Type:      "dumy",
+		Type:      "babe",
 		Seed:      "0xfec0f475b818470af5caf1f3c1b1558729961161946d581d2755f9fb566534f8",
 		PublicKey: "0x34309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026",
 	}, nil)
 	coremockapi.AssertCalled(t, "InsertKey", mock.AnythingOfType("*sr25519.Keypair"))
 	require.NoError(t, err)
 	require.Equal(t, 1, globalStore.Acco.Size())
+
+	err = module.InsertKey(nil, &KeyInsertRequest{
+		Type:      "babe",
+		Seed:      "0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a",
+		PublicKey: "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d",
+	}, nil)
+	require.NoError(t, err)
+	require.Equal(t, 2, globalStore.Acco.Size())
 
 	var res HasSessionKeyResponse
 	err = module.HasSessionKeys(nil, req, &res)
