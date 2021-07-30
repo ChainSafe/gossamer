@@ -158,7 +158,7 @@ func NewPrivateKey(in []byte) (*PrivateKey, error) {
 	return priv, err
 }
 
-// NewPrivateKeyFromHex returns a private key from a seed
+// NewPrivateKeyFromHex returns a private key from a hex-encoded private key
 func NewPrivateKeyFromHex(keystr string) (*PrivateKey, error) {
 	seedBytes, err := common.HexToBytes(keystr)
 	if err != nil {
