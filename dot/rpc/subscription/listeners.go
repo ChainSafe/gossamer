@@ -114,8 +114,8 @@ type BlockListener struct {
 	wsconn        WSConnAPI
 	ChanID        byte
 	subID         uint32
-	done          chan interface{}
-	cancel        chan interface{}
+	done          chan struct{}
+	cancel        chan struct{}
 	cancelTimeout time.Duration
 }
 
@@ -163,8 +163,8 @@ type BlockFinalizedListener struct {
 	wsconn        WSConnAPI
 	chanID        byte
 	subID         uint32
-	done          chan interface{}
-	cancel        chan interface{}
+	done          chan struct{}
+	cancel        chan struct{}
 	cancelTimeout time.Duration
 }
 
@@ -215,8 +215,8 @@ type ExtrinsicSubmitListener struct {
 	importedHash    common.Hash
 	finalisedChan   chan *types.FinalisationInfo
 	finalisedChanID byte
-	done            chan interface{}
-	cancel          chan interface{}
+	done            chan struct{}
+	cancel          chan struct{}
 	cancelTimeout   time.Duration
 }
 
@@ -306,9 +306,9 @@ func (l *RuntimeVersionListener) Stop() error { return nil }
 
 // GrandpaJustificationListener struct has the finalisedCh and the context to stop the goroutines
 type GrandpaJustificationListener struct {
-	cancel        chan interface{}
+	cancel        chan struct{}
 	cancelTimeout time.Duration
-	done          chan interface{}
+	done          chan struct{}
 	wsconn        *WSConn
 	subID         uint32
 	finalisedChID byte
@@ -351,7 +351,7 @@ func (g *GrandpaJustificationListener) Stop() error {
 	return cancelWithTimeout(g.cancel, g.done, g.cancelTimeout)
 }
 
-func cancelWithTimeout(cancel chan interface{}, done chan interface{}, t time.Duration) error {
+func cancelWithTimeout(cancel chan struct{}, done chan struct{}, t time.Duration) error {
 	close(cancel)
 
 	timeout := time.NewTimer(t)

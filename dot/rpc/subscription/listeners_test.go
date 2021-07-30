@@ -216,8 +216,8 @@ func TestGrandpaJustification_Listen(t *testing.T) {
 		sub := GrandpaJustificationListener{
 			subID:         10,
 			wsconn:        wsconn,
-			cancel:        make(chan interface{}, 1),
-			done:          make(chan interface{}, 1),
+			cancel:        make(chan struct{}, 1),
+			done:          make(chan struct{}, 1),
 			finalisedCh:   finchannel,
 			cancelTimeout: time.Second * 5,
 		}
