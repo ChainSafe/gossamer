@@ -295,7 +295,7 @@ func TestGrandpaJustification_Listen(t *testing.T) {
 func setupWSConn(t *testing.T) (*WSConn, *websocket.Conn, func()) {
 	t.Helper()
 
-	wsconn = new(WSConn)
+	wskt := new(WSConn)
 	var up = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool { return true },
 	}
@@ -307,7 +307,7 @@ func setupWSConn(t *testing.T) (*WSConn, *websocket.Conn, func()) {
 			return
 		}
 
-		wsconn.Wsconn = c
+		wskt.Wsconn = c
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(h))
@@ -321,8 +321,8 @@ func setupWSConn(t *testing.T) (*WSConn, *websocket.Conn, func()) {
 		server.Close()
 		r.Body.Close()
 		ws.Close()
-		wsconn.Wsconn.Close()
+		wskt.Wsconn.Close()
 	}
 
-	return wsconn, ws, cancel
+	return wskt, ws, cancel
 }
