@@ -137,7 +137,7 @@ func (c *WSConn) HandleComm() {
 			err = listener.Stop()
 
 			if err != nil {
-				logger.Warn("problems to cancel listen goroutines", "method", method, "error", err)
+				logger.Warn("failed to cancel listener goroutine", "method", method, "error", err)
 			}
 
 			continue
