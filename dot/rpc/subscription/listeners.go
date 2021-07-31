@@ -111,7 +111,7 @@ func (s *StorageObserver) Stop() error { return nil }
 // BlockListener to handle listening for blocks importedChan
 type BlockListener struct {
 	Channel       chan *types.Block
-	wsconn        WSConnAPI
+	wsconn        *WSConn
 	ChanID        byte
 	subID         uint32
 	done          chan struct{}
@@ -122,8 +122,10 @@ type BlockListener struct {
 // Listen implementation of Listen interface to listen for importedChan changes
 func (l *BlockListener) Listen() {
 	go func() {
-		defer close(l.done)
-		defer close(l.Channel)
+		defer func() {
+			l.wsconn.BlockAPI.UnregisterImportedChannel(l.ChanID)
+			close(l.done)
+		}()
 
 		for {
 			select {
@@ -160,7 +162,7 @@ func (l *BlockListener) Stop() error {
 // BlockFinalizedListener to handle listening for finalised blocks
 type BlockFinalizedListener struct {
 	channel       chan *types.FinalisationInfo
-	wsconn        WSConnAPI
+	wsconn        *WSConn
 	chanID        byte
 	subID         uint32
 	done          chan struct{}
@@ -171,8 +173,10 @@ type BlockFinalizedListener struct {
 // Listen implementation of Listen interface to listen for importedChan changes
 func (l *BlockFinalizedListener) Listen() {
 	go func() {
-		defer close(l.done)
-		defer close(l.channel)
+		defer func() {
+			l.wsconn.BlockAPI.UnregisterFinalisedChannel(l.chanID)
+			close(l.done)
+		}()
 
 		for {
 			select {
@@ -207,7 +211,7 @@ func (l *BlockFinalizedListener) Stop() error {
 
 // ExtrinsicSubmitListener to handle listening for extrinsic events
 type ExtrinsicSubmitListener struct {
-	wsconn          WSConnAPI
+	wsconn          *WSConn
 	subID           uint32
 	extrinsic       types.Extrinsic
 	importedChan    chan *types.Block
@@ -225,8 +229,11 @@ func (l *ExtrinsicSubmitListener) Listen() {
 
 	// listen for imported blocks with extrinsic
 	go func() {
-		defer close(l.done)
-		defer close(l.importedChan)
+		defer func() {
+			l.wsconn.BlockAPI.UnregisterImportedChannel(l.importedChanID)
+			l.wsconn.BlockAPI.UnregisterFinalisedChannel(l.finalisedChanID)
+			close(l.done)
+		}()
 
 		for {
 			select {
@@ -320,8 +327,8 @@ func (g *GrandpaJustificationListener) Listen() {
 	// listen for finalised headers
 	go func() {
 		defer func() {
+			g.wsconn.BlockAPI.UnregisterFinalisedChannel(g.finalisedChID)
 			close(g.done)
-			close(g.finalisedCh)
 		}()
 
 		for {
