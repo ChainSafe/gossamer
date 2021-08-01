@@ -14,6 +14,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -253,8 +254,20 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.Equal(t, `{"jsonrpc":"2.0","method":"author_extrinsicUpdate","params":{"result":"ready","subscription":8}}`+"\n", string(msg))
 
 	var fCh chan<- *types.FinalisationInfo
+	mockedJust := grandpa.Justification{
+		Round: 1,
+		Commit: &grandpa.Commit{
+			Hash:       common.Hash{},
+			Number:     1,
+			Precommits: nil,
+		},
+	}
+
+	mockedJustBytes, err := mockedJust.Encode()
+	require.NoError(t, err)
 
 	mockBlockAPI := new(modulesmocks.MockBlockAPI)
+	mockBlockAPI.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(mockedJustBytes, nil)
 	mockBlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
 		Run(func(args mock.Arguments) {
 			ch := args.Get(0).(chan<- *types.FinalisationInfo)
@@ -277,8 +290,6 @@ func TestWSConn_HandleComm(t *testing.T) {
 		Number:     big.NewInt(1),
 	}
 
-	expectedhash := header.Hash()
-
 	fCh <- &types.FinalisationInfo{
 		Header: header,
 	}
@@ -286,11 +297,11 @@ func TestWSConn_HandleComm(t *testing.T) {
 	time.Sleep(time.Second * 2)
 
 	g := listener.(*GrandpaJustificationListener)
-	expected := fmt.Sprintf(`{"jsonrpc":"2.0","method":"grandpa_justifications","params":{"result":"%s","subscription":%v}}`+"\n", expectedhash.String(), g.subID)
+	expected := fmt.Sprintf(`{"jsonrpc":"2.0","method":"grandpa_justifications","params":{"result":"%s","subscription":%v}}`+"\n", common.BytesToHex(mockedJustBytes), g.subID)
 
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
-	require.Equal(t, []byte(expected), msg)
+	require.Equal(t, expected, string(msg))
 
 	err = listener.Stop()
 	require.NoError(t, err)

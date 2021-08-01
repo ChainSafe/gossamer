@@ -171,7 +171,7 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 
 func TestGrandpaJustification_Listen(t *testing.T) {
 	t.Run("When justification doesnt returns error", func(t *testing.T) {
-		wsconn = new(WSConn)
+		wsconn := new(WSConn)
 		var up = websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool { return true },
 		}
