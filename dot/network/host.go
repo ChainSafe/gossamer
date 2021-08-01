@@ -18,6 +18,7 @@ package network
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"path"
@@ -385,9 +386,10 @@ func (h *host) addReservedPeers(addrs ...string) error {
 			return err
 		}
 
-		h.h.Peerstore().AddAddrs(addinfo.ID, addinfo.Addrs, peerstore.PermanentAddrTTL)
-
-		fmt.Println(h.h.Peerstore().Addrs(addinfo.ID))
+		h.h.ConnManager().Protect(addinfo.ID, "")
+		if err := h.connect(*addinfo); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -405,28 +407,12 @@ func (h *host) removeReservedPeers(ids ...string) error {
 			return err
 		}
 
-		if err := h.closeProotocolsForPeer(peerID); err != nil {
-			return err
+		del := h.h.ConnManager().Unprotect(peerID, "")
+		if !del {
+			return errors.New("could not disconnect peer")
 		}
-
-		if err := h.closePeer(peerID); err != nil {
-			return err
-		}
-		h.h.Peerstore().ClearAddrs(peerID)
 	}
 
-	return nil
-}
-
-func (h *host) closeProotocolsForPeer(p peer.ID) error {
-	protocols, err := h.h.Peerstore().GetProtocols(p)
-	if err != nil {
-		return err
-	}
-
-	for _, pid := range protocols {
-		h.closeStream(p, protocol.ID(pid))
-	}
 	return nil
 }
 
