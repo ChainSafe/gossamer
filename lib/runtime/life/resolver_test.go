@@ -541,9 +541,72 @@ func Test_ext_default_child_storage_clear_prefix_version_1(t *testing.T) {
 }
 
 func Test_ext_default_child_storage_root_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	err := ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	require.NoError(t, err)
+
+	err = ctx.Storage.SetChildStorage(testChildKey, testKey, testValue)
+	require.NoError(t, err)
+
+	child, err := ctx.Storage.GetChild(testChildKey)
+	require.NoError(t, err)
+
+	rootHash, err := child.Hash()
+	require.NoError(t, err)
+
+	encChildKey, err := scale.Encode(testChildKey)
+	require.NoError(t, err)
+	encKey, err := scale.Encode(testKey)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_default_child_storage_root_version_1", append(encChildKey, encKey...))
+	require.NoError(t, err)
+
+	hash, err := scale.Decode(ret, []byte{})
+	require.NoError(t, err)
+
+	// Convert decoded interface to common Hash
+	actualValue := common.BytesToHash(hash.([]byte))
+	require.Equal(t, rootHash, actualValue)
 }
 
 func Test_ext_default_child_storage_next_key_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testKeyValuePair := []struct {
+		key   []byte
+		value []byte
+	}{
+		{[]byte("apple"), []byte("value1")},
+		{[]byte("key"), []byte("value2")},
+	}
+
+	key := testKeyValuePair[0].key
+
+	err := ctx.Storage.SetChild(testChildKey, trie.NewEmptyTrie())
+	require.NoError(t, err)
+
+	for _, kv := range testKeyValuePair {
+		err = ctx.Storage.SetChildStorage(testChildKey, kv.key, kv.value)
+		require.NoError(t, err)
+	}
+
+	encChildKey, err := scale.Encode(testChildKey)
+	require.NoError(t, err)
+
+	encKey, err := scale.Encode(key)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_default_child_storage_next_key_version_1", append(encChildKey, encKey...))
+	require.NoError(t, err)
+
+	buf := &bytes.Buffer{}
+	buf.Write(ret)
+
+	read, err := new(optional.Bytes).Decode(buf)
+	require.NoError(t, err)
+	require.Equal(t, testKeyValuePair[1].key, read.Value())
 }
 
 func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {

@@ -90,6 +90,10 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 			return ext_default_child_storage_exists_version_1
 		case "ext_default_child_storage_clear_prefix_version_1":
 			return ext_default_child_storage_clear_prefix_version_1
+		case "ext_default_child_storage_root_version_1":
+			return ext_default_child_storage_root_version_1
+		case "ext_default_child_storage_next_key_version_1":
+			return ext_default_child_storage_next_key_version_1
 		default:
 			panic(fmt.Errorf("unknown import resolved: %s", field))
 		}
@@ -680,6 +684,57 @@ func ext_default_child_storage_clear_prefix_version_1(vm *exec.VirtualMachine) i
 		logger.Error("[ext_default_child_storage_clear_prefix_version_1] failed to clear prefix in child", "error", err)
 	}
 	return 0
+}
+
+func ext_default_child_storage_root_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_default_child_storage_root_version_1] executing...")
+
+	childStorageKey := vm.GetCurrentFrame().Locals[0]
+	memory := vm.Memory
+	storage := ctx.Storage
+
+	child, err := storage.GetChild(asMemorySlice(memory, childStorageKey))
+	if err != nil {
+		logger.Error("[ext_default_child_storage_root_version_1] failed to retrieve child", "error", err)
+		return 0
+	}
+
+	childRoot, err := child.Hash()
+	if err != nil {
+		logger.Error("[ext_default_child_storage_root_version_1] failed to encode child root", "error", err)
+		return 0
+	}
+
+	root, err := toWasmMemoryOptional(memory, childRoot[:])
+	if err != nil {
+		logger.Error("[ext_default_child_storage_root_version_1] failed to allocate", "error", err)
+		return 0
+	}
+
+	return root
+}
+
+func ext_default_child_storage_next_key_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_default_child_storage_next_key_version_1] executing...")
+
+	childStorageKey := vm.GetCurrentFrame().Locals[0]
+	key := vm.GetCurrentFrame().Locals[1]
+	memory := vm.Memory
+	storage := ctx.Storage
+
+	child, err := storage.GetChildNextKey(asMemorySlice(memory, childStorageKey), asMemorySlice(memory, key))
+	if err != nil {
+		logger.Error("[ext_default_child_storage_next_key_version_1] failed to get child's next key", "error", err)
+		return 0
+	}
+
+	value, err := toWasmMemoryOptional(memory, child)
+	if err != nil {
+		logger.Error("[ext_default_child_storage_next_key_version_1] failed to allocate", "error", err)
+		return 0
+	}
+
+	return value
 }
 
 // Convert 64bit wasm span descriptor to Go memory slice
