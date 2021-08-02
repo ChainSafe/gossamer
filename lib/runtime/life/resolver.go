@@ -6,8 +6,10 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	rtype "github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"math/big"
 
@@ -111,6 +113,10 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 			return ext_crypto_sr25519_generate_version_1
 		case "ext_crypto_sr25519_sign_version_1":
 			return ext_crypto_sr25519_sign_version_1
+		case "ext_crypto_sr25519_verify_version_1":
+			return ext_crypto_sr25519_verify_version_1
+		case "ext_crypto_secp256k1_ecdsa_recover_version_1":
+			return ext_crypto_secp256k1_ecdsa_recover_version_1
 		default:
 			panic(fmt.Errorf("unknown import resolved: %s", field))
 		}
@@ -1077,6 +1083,94 @@ func ext_crypto_sr25519_sign_version_1(vm *exec.VirtualMachine) int64 {
 	return ret
 }
 
+func ext_crypto_sr25519_verify_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_crypto_sr25519_verify_version_1] executing...")
+
+	sig := vm.GetCurrentFrame().Locals[0]
+	msg := vm.GetCurrentFrame().Locals[1]
+	key := vm.GetCurrentFrame().Locals[2]
+	memory := vm.Memory
+	sigVerifier := ctx.SigVerifier
+
+	message := asMemorySlice(memory, msg)
+	signature := memory[sig : sig+64]
+
+	pub, err := sr25519.NewPublicKey(memory[key : key+32])
+	if err != nil {
+		logger.Error("[ext_crypto_sr25519_verify_version_1] invalid sr25519 public key")
+		return 0
+	}
+
+	logger.Debug("[ext_crypto_sr25519_verify_version_1]", "pub", pub.Hex(),
+		"message", fmt.Sprintf("0x%x", message),
+		"signature", fmt.Sprintf("0x%x", signature),
+	)
+
+	if sigVerifier.IsStarted() {
+		signature := runtime.Signature{
+			PubKey:    pub.Encode(),
+			Sign:      signature,
+			Msg:       message,
+			KeyTypeID: crypto.Sr25519Type,
+		}
+		sigVerifier.Add(&signature)
+		return 1
+	}
+
+	if ok, err := pub.VerifyDeprecated(message, signature); err != nil || !ok {
+		logger.Debug("[ext_crypto_sr25519_verify_version_1] failed to validate signature", "error", err)
+		// TODO: fix this, fails at block 3876
+		return 1
+	}
+
+	logger.Debug("[ext_crypto_sr25519_verify_version_1] verified sr25519 signature")
+	return 1
+}
+
+func ext_crypto_secp256k1_ecdsa_recover_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_crypto_secp256k1_ecdsa_recover_version_1] executing...")
+
+	sig := vm.GetCurrentFrame().Locals[0]
+	msg := vm.GetCurrentFrame().Locals[1]
+	memory := vm.Memory
+
+	// msg must be the 32-byte hash of the message to be signed.
+	// sig must be a 65-byte compact ECDSA signature containing the
+	// recovery id as the last element
+	message := memory[msg : msg+32]
+	signature := memory[sig : sig+65]
+
+	if signature[64] == 27 {
+		signature[64] = 0
+	}
+
+	if signature[64] == 28 {
+		signature[64] = 1
+	}
+
+	pub, err := secp256k1.RecoverPublicKey(message, signature)
+	if err != nil {
+		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_version_1] failed to recover public key", "error", err)
+		var ret int64
+		ret, err = toWasmMemoryResult(memory, nil)
+		if err != nil {
+			logger.Error("[ext_crypto_secp256k1_ecdsa_recover_version_1] failed to allocate memory", "error", err)
+			return 0
+		}
+		return ret
+	}
+
+	logger.Debug("[ext_crypto_secp256k1_ecdsa_recover_version_1]", "len", len(pub), "recovered public key", fmt.Sprintf("0x%x", pub))
+
+	ret, err := toWasmMemoryResult(memory, pub[1:])
+	if err != nil {
+		logger.Error("[ext_crypto_secp256k1_ecdsa_recover_version_1] failed to allocate memory", "error", err)
+		return 0
+	}
+
+	return ret
+}
+
 // Convert 64bit wasm span descriptor to Go memory slice
 func asMemorySlice(memory []byte, span int64) []byte {
 	ptr, size := int64ToPointerAndSize(span)
@@ -1153,6 +1247,23 @@ func toWasmMemoryFixedSizeOptional(memory, data []byte) (int64, error) {
 	}
 
 	enc, err := opt.Encode()
+	if err != nil {
+		return 0, err
+	}
+
+	return toWasmMemory(memory, enc)
+}
+
+// Wraps slice in Result type and copies result to wasm memory. Returns resulting 64bit span descriptor
+func toWasmMemoryResult(memory, data []byte) (int64, error) {
+	var res *rtype.Result
+	if len(data) == 0 {
+		res = rtype.NewResult(byte(1), nil)
+	} else {
+		res = rtype.NewResult(byte(0), data)
+	}
+
+	enc, err := res.Encode()
 	if err != nil {
 		return 0, err
 	}
