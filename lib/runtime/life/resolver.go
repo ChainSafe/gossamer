@@ -121,6 +121,12 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 			return ext_hashing_keccak_256_version_1
 		case "ext_hashing_sha2_256_version_1":
 			return ext_hashing_sha2_256_version_1
+		case "ext_hashing_blake2_128_version_1":
+			return ext_hashing_blake2_128_version_1
+		case "ext_hashing_twox_256_version_1":
+			return ext_hashing_twox_256_version_1
+		case "ext_trie_blake2_256_root_version_1":
+			return ext_trie_blake2_256_root_version_1
 		default:
 			panic(fmt.Errorf("unknown import resolved: %s", field))
 		}
@@ -1218,6 +1224,104 @@ func ext_hashing_sha2_256_version_1(vm *exec.VirtualMachine) int64 {
 	}
 
 	return int64(out)
+}
+
+func ext_hashing_blake2_128_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_hashing_blake2_128_version_1] executing...")
+
+	dataSpan := vm.GetCurrentFrame().Locals[0]
+	memory := vm.Memory
+
+	data := asMemorySlice(memory, dataSpan)
+
+	hash, err := common.Blake2b128(data)
+	if err != nil {
+		logger.Error("[ext_hashing_blake2_128_version_1]", "error", err)
+		return 0
+	}
+
+	logger.Debug("[ext_hashing_blake2_128_version_1]", "data", fmt.Sprintf("0x%x", data), "hash", fmt.Sprintf("0x%x", hash))
+
+	out, err := toWasmMemorySized(memory, hash, 16)
+	if err != nil {
+		logger.Error("[ext_hashing_blake2_128_version_1] failed to allocate", "error", err)
+		return 0
+	}
+
+	return int64(out)
+}
+
+func ext_hashing_twox_256_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_hashing_twox_256_version_1] executing...")
+
+	dataSpan := vm.GetCurrentFrame().Locals[0]
+	memory := vm.Memory
+
+	data := asMemorySlice(memory, dataSpan)
+
+	hash, err := common.Twox256(data)
+	if err != nil {
+		logger.Error("[ext_hashing_twox_256_version_1]", "error", err)
+		return 0
+	}
+
+	logger.Debug("[ext_hashing_twox_256_version_1]", "data", data, "hash", hash)
+
+	out, err := toWasmMemorySized(memory, hash[:], 32)
+	if err != nil {
+		logger.Error("[ext_hashing_twox_256_version_1] failed to allocate", "error", err)
+		return 0
+	}
+
+	return int64(out)
+}
+
+func ext_trie_blake2_256_root_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Debug("[ext_trie_blake2_256_root_version_1] executing...")
+
+	dataSpan := vm.GetCurrentFrame().Locals[0]
+	memory := vm.Memory
+
+	data := asMemorySlice(memory, dataSpan)
+
+	t := trie.NewEmptyTrie()
+	// TODO: this is a fix for the length until slices of structs can be decoded
+	// length passed in is the # of (key, value) tuples, but we are decoding as a slice of []byte
+	data[0] = data[0] << 1
+
+	// this function is expecting an array of (key, value) tuples
+	kvs, err := scale.Decode(data, [][]byte{})
+	if err != nil {
+		logger.Error("[ext_trie_blake2_256_root_version_1]", "error", err)
+		return 0
+	}
+
+	keyValues := kvs.([][]byte)
+	if len(keyValues)%2 != 0 { // TODO: this can be removed when we have decoding of slices of structs
+		logger.Warn("[ext_trie_blake2_256_root_version_1] odd number of input key-values, skipping last value")
+		keyValues = keyValues[:len(keyValues)-1]
+	}
+
+	for i := 0; i < len(keyValues); i = i + 2 {
+		t.Put(keyValues[i], keyValues[i+1])
+	}
+
+	// allocate memory for value and copy value to memory
+	ptr, err := ctx.Allocator.Allocate(32)
+	if err != nil {
+		logger.Error("[ext_trie_blake2_256_root_version_1]", "error", err)
+		return 0
+	}
+
+	hash, err := t.Hash()
+	if err != nil {
+		logger.Error("[ext_trie_blake2_256_root_version_1]", "error", err)
+		return 0
+	}
+
+	logger.Debug("[ext_trie_blake2_256_root_version_1]", "root", hash)
+	copy(memory[ptr:ptr+32], hash[:])
+	return int64(ptr)
 }
 
 // Convert 64bit wasm span descriptor to Go memory slice

@@ -977,10 +977,59 @@ func Test_ext_hashing_sha2_256_version_1(t *testing.T) {
 }
 
 func Test_ext_hashing_blake2_128_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	data := []byte("helloworld")
+	enc, err := scale.Encode(data)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_hashing_blake2_128_version_1", enc)
+	require.NoError(t, err)
+
+	hash, err := scale.Decode(ret, []byte{})
+	require.NoError(t, err)
+
+	expected, err := common.Blake2b128(data)
+	require.NoError(t, err)
+	require.Equal(t, expected[:], hash)
 }
 
 func Test_ext_hashing_twox_256_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	data := []byte("helloworld")
+	enc, err := scale.Encode(data)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_hashing_twox_256_version_1", enc)
+	require.NoError(t, err)
+
+	hash, err := scale.Decode(ret, []byte{})
+	require.NoError(t, err)
+
+	expected, err := common.Twox256(data)
+	require.NoError(t, err)
+	require.Equal(t, expected[:], hash)
 }
 
 func Test_ext_trie_blake2_256_root_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	testinput := []string{"noot", "was", "here", "??"}
+	encInput, err := scale.Encode(testinput)
+	require.NoError(t, err)
+	encInput[0] = encInput[0] >> 1
+
+	res, err := inst.Exec("rtm_ext_trie_blake2_256_root_version_1", encInput)
+	require.NoError(t, err)
+
+	hash, err := scale.Decode(res, []byte{})
+	require.NoError(t, err)
+
+	tt := trie.NewEmptyTrie()
+	tt.Put([]byte("noot"), []byte("was"))
+	tt.Put([]byte("here"), []byte("??"))
+
+	expected := tt.MustHash()
+	require.Equal(t, expected[:], hash)
 }
