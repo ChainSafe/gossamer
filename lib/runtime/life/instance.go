@@ -74,7 +74,8 @@ func NewRuntimeFromGenesis(g *genesis.Genesis, cfg *Config) (runtime.Instance, e
 // NewInstanceFromFile instantiates a runtime from a .wasm file
 func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
 	// Reads the WebAssembly module as bytes.
-	bytes, err := ioutil.ReadFile(fp)
+	// TODO determine lint issue: Potential file inclusion via variable
+	bytes, err := ioutil.ReadFile(fp) // nolint
 	if err != nil {
 		return nil, err
 	}

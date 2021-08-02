@@ -26,7 +26,7 @@ import (
 type Resolver struct{} // TODO: move context inside resolver
 
 // ResolveFunc ...
-func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
+func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport { // nolint
 	switch module {
 	case "env":
 		switch field {
