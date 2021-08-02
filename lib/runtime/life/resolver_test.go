@@ -24,6 +24,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
+	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
@@ -794,9 +795,71 @@ func Test_ext_crypto_sr25519_public_keys_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_sr25519_generate_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	idData := []byte(keystore.AccoName)
+	ks, _ := ctx.Keystore.GetKeystore(idData)
+	require.Equal(t, 0, ks.Size())
+
+	mnemonic, err := crypto.NewBIP39Mnemonic()
+	require.NoError(t, err)
+
+	data := optional.NewBytes(true, []byte(mnemonic))
+	seedData, err := data.Encode()
+	require.NoError(t, err)
+
+	params := append(idData, seedData...)
+
+	ret, err := inst.Exec("rtm_ext_crypto_sr25519_generate_version_1", params)
+	require.NoError(t, err)
+
+	out, err := scale.Decode(ret, []byte{})
+	require.NoError(t, err)
+
+	pubKey, err := ed25519.NewPublicKey(out.([]byte))
+	require.NoError(t, err)
+	require.Equal(t, 1, ks.Size())
+
+	kp := ks.GetKeypair(pubKey)
+	require.NotNil(t, kp)
 }
 
 func Test_ext_crypto_sr25519_sign_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	kp, err := sr25519.GenerateKeypair()
+	require.NoError(t, err)
+
+	idData := []byte(keystore.AccoName)
+	ks, _ := ctx.Keystore.GetKeystore(idData)
+	require.Equal(t, 0, ks.Size())
+
+	ks.Insert(kp)
+
+	pubKeyData := kp.Public().Encode()
+	encPubKey, err := scale.Encode(pubKeyData)
+	require.NoError(t, err)
+
+	msgData := []byte("Hello world!")
+	encMsg, err := scale.Encode(msgData)
+	require.NoError(t, err)
+
+	res, err := inst.Exec("rtm_ext_crypto_sr25519_sign_version_1", append(append(idData, encPubKey...), encMsg...))
+	require.NoError(t, err)
+
+	out, err := scale.Decode(res, []byte{})
+	require.NoError(t, err)
+
+	buf := &bytes.Buffer{}
+	buf.Write(out.([]byte))
+
+	value, err := new(optional.FixedSizeBytes).Decode(buf)
+	require.NoError(t, err)
+	require.True(t, value.Exists())
+
+	ok, err := kp.Public().Verify(msgData, value.Value())
+	require.NoError(t, err)
+	require.True(t, ok)
 }
 
 func Test_ext_crypto_sr25519_verify_version_1(t *testing.T) {

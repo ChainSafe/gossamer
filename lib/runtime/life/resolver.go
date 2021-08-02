@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"math/big"
 
 	"github.com/perlin-network/life/exec"
@@ -106,6 +107,10 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 			return ext_crypto_ed25519_verify_version_1
 		case "ext_crypto_sr25519_public_keys_version_1":
 			return ext_crypto_sr25519_public_keys_version_1
+		case "ext_crypto_sr25519_generate_version_1":
+			return ext_crypto_sr25519_generate_version_1
+		case "ext_crypto_sr25519_sign_version_1":
+			return ext_crypto_sr25519_sign_version_1
 		default:
 			panic(fmt.Errorf("unknown import resolved: %s", field))
 		}
@@ -972,6 +977,101 @@ func ext_crypto_sr25519_public_keys_version_1(vm *exec.VirtualMachine) int64 {
 		logger.Error("[ext_crypto_sr25519_public_keys_version_1] failed to allocate memory", err)
 		ret, _ = toWasmMemory(memory, []byte{0})
 		return ret
+	}
+
+	return ret
+}
+
+func ext_crypto_sr25519_generate_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_crypto_sr25519_generate_version_1] executing...")
+
+	keyTypeID := vm.GetCurrentFrame().Locals[0]
+	seedSpan := vm.GetCurrentFrame().Locals[1]
+	memory := vm.Memory
+
+	id := memory[keyTypeID : keyTypeID+4]
+
+	seedBytes := asMemorySlice(memory, seedSpan)
+	buf := &bytes.Buffer{}
+	buf.Write(seedBytes)
+
+	seed, err := optional.NewBytes(false, nil).Decode(buf)
+	if err != nil {
+		logger.Warn("[ext_crypto_sr25519_generate_version_1] cannot generate key", "error", err)
+		return 0
+	}
+
+	var kp crypto.Keypair
+	if seed.Exists() {
+		kp, err = sr25519.NewKeypairFromMnenomic(string(seed.Value()), "")
+	} else {
+		kp, err = sr25519.GenerateKeypair()
+	}
+
+	if err != nil {
+		logger.Trace("[ext_crypto_sr25519_generate_version_1] cannot generate key", "error", err)
+		panic(err)
+	}
+
+	ks, err := ctx.Keystore.GetKeystore(id)
+	if err != nil {
+		logger.Warn("[ext_crypto_sr25519_generate_version_1]", "name", id, "error", err)
+		return 0
+	}
+
+	ks.Insert(kp)
+	ret, err := toWasmMemorySized(memory, kp.Public().Encode(), 32)
+	if err != nil {
+		logger.Error("[ext_crypto_sr25519_generate_version_1] failed to allocate memory", "error", err)
+		return 0
+	}
+
+	logger.Debug("[ext_crypto_sr25519_generate_version_1] generated sr25519 keypair", "public", kp.Public().Hex())
+	return int64(ret)
+}
+
+func ext_crypto_sr25519_sign_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_crypto_sr25519_sign_version_1] executing...")
+
+	keyTypeID := vm.GetCurrentFrame().Locals[0]
+	key := vm.GetCurrentFrame().Locals[1]
+	msg := vm.GetCurrentFrame().Locals[2]
+	memory := vm.Memory
+
+	emptyRet, _ := toWasmMemoryOptional(memory, nil)
+
+	id := memory[keyTypeID : keyTypeID+4]
+
+	ks, err := ctx.Keystore.GetKeystore(id)
+	if err != nil {
+		logger.Warn("[ext_crypto_sr25519_sign_version_1]", "name", id, "error", err)
+		return emptyRet
+	}
+
+	var ret int64
+	pubKey, err := sr25519.NewPublicKey(memory[key : key+32])
+	if err != nil {
+		logger.Error("[ext_crypto_sr25519_sign_version_1] failed to get public key", "error", err)
+		return emptyRet
+	}
+
+	signingKey := ks.GetKeypair(pubKey)
+	if signingKey == nil {
+		logger.Error("[ext_crypto_sr25519_sign_version_1] could not find public key in keystore", "error", pubKey)
+		return emptyRet
+	}
+
+	msgData := asMemorySlice(memory, msg)
+	sig, err := signingKey.Sign(msgData)
+	if err != nil {
+		logger.Error("[ext_crypto_sr25519_sign_version_1] could not sign message", "error", err)
+		return emptyRet
+	}
+
+	ret, err = toWasmMemoryFixedSizeOptional(memory, sig)
+	if err != nil {
+		logger.Error("[ext_crypto_sr25519_sign_version_1] failed to allocate memory", "error", err)
+		return emptyRet
 	}
 
 	return ret
