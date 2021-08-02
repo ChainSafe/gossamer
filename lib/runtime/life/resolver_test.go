@@ -617,7 +617,6 @@ func Test_ext_default_child_storage_next_key_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
-	// TODO (ed): determine why this test fails
 	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
 
 	idData := []byte(keystore.DumyName)
@@ -651,46 +650,32 @@ func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
-	// TODO (ed) fix this and test
-	//inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
-	//
-	//idData := []byte(keystore.AccoName)
-	//ks, _ := ctx.Keystore.GetKeystore(idData)
-	//require.Equal(t, 0, ks.Size())
-	//
-	//mnemonic, err := crypto.NewBIP39Mnemonic()
-	//require.NoError(t, err)
-	//
-	//data := optional.NewBytes(true, []byte(mnemonic))
-	//seedData, err := data.Encode()
-	//require.NoError(t, err)
-	//
-	//params := append(idData, seedData...)
-	//
-	//// we manually store and call the runtime function here since inst.exec assumes
-	//// the data returned from the function is a pointer-size, but for ext_crypto_ed25519_generate_version_1,
-	//// it's just a pointer
-	//ptr, err := inst.malloc(uint32(len(params)))
-	//require.NoError(t, err)
-	//
-	//inst.store(params, int32(ptr))
-	//dataLen := int32(len(params))
-	//
-	//runtimeFunc, ok := inst.vm.Exports["rtm_ext_crypto_ed25519_generate_version_1"]
-	//require.True(t, ok)
-	//
-	//ret, err := runtimeFunc(int32(ptr), dataLen)
-	//require.NoError(t, err)
-	//
-	//mem := inst.vm.Memory.Data()
-	//// TODO: why is this SCALE encoded? it should just be a 32 byte buffer. may be due to way test runtime is written.
-	//pubKeyBytes := mem[ret.ToI32()+1 : ret.ToI32()+1+32]
-	//pubKey, err := ed25519.NewPublicKey(pubKeyBytes)
-	//require.NoError(t, err)
-	//
-	//require.Equal(t, 1, ks.Size())
-	//kp := ks.GetKeypair(pubKey)
-	//require.NotNil(t, kp)
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	idData := []byte(keystore.AccoName)
+	ks, _ := ctx.Keystore.GetKeystore(idData)
+	require.Equal(t, 0, ks.Size())
+
+	mnemonic, err := crypto.NewBIP39Mnemonic()
+	require.NoError(t, err)
+
+	data := optional.NewBytes(true, []byte(mnemonic))
+	seedData, err := data.Encode()
+	require.NoError(t, err)
+
+	params := append(idData, seedData...)
+
+	ret, err := inst.Exec("rtm_ext_crypto_ed25519_generate_version_1", params)
+	require.NoError(t, err)
+
+	out, err := scale.Decode(ret, []byte{})
+	require.NoError(t, err)
+
+	pubKey, err := ed25519.NewPublicKey(out.([]byte))
+	require.NoError(t, err)
+	require.Equal(t, 1, ks.Size())
+	kp := ks.GetKeypair(pubKey)
+	require.NotNil(t, kp)
 }
 
 func Test_ext_crypto_ed25519_sign_version_1(t *testing.T) {
