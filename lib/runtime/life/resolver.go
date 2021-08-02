@@ -6,6 +6,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"math/big"
 
 	"github.com/perlin-network/life/exec"
@@ -94,6 +96,12 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 			return ext_default_child_storage_root_version_1
 		case "ext_default_child_storage_next_key_version_1":
 			return ext_default_child_storage_next_key_version_1
+		case "ext_crypto_ed25519_public_keys_version_1":
+			return ext_crypto_ed25519_public_keys_version_1
+		case "ext_crypto_ed25519_generate_version_1":
+			return ext_crypto_ed25519_generate_version_1
+		case "ext_crypto_ed25519_sign_version_1":
+			return ext_crypto_ed25519_sign_version_1
 		default:
 			panic(fmt.Errorf("unknown import resolved: %s", field))
 		}
@@ -737,6 +745,150 @@ func ext_default_child_storage_next_key_version_1(vm *exec.VirtualMachine) int64
 	return value
 }
 
+func ext_crypto_ed25519_public_keys_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_crypto_ed25519_public_keys_version_1] executing...")
+
+	keyTypeID := vm.GetCurrentFrame().Locals[0]
+	memory := vm.Memory
+
+	id := memory[keyTypeID : keyTypeID+4]
+
+	ks, err := ctx.Keystore.GetKeystore(id)
+	if err != nil {
+		logger.Warn("[ext_crypto_ed25519_public_keys_version_1]", "name", id, "error", err)
+		ret, _ := toWasmMemory(memory, []byte{0})
+		return ret
+	}
+
+	if ks.Type() != crypto.Ed25519Type && ks.Type() != crypto.UnknownType {
+		logger.Warn("[ext_crypto_ed25519_public_keys_version_1]", "name", id, "error", "keystore type is not ed25519", "type", ks.Type())
+		ret, _ := toWasmMemory(memory, []byte{0})
+		return ret
+	}
+
+	keys := ks.PublicKeys()
+
+	var encodedKeys []byte
+	for _, key := range keys {
+		encodedKeys = append(encodedKeys, key.Encode()...)
+	}
+
+	prefix, err := scale.Encode(big.NewInt(int64(len(keys))))
+	if err != nil {
+		logger.Error("[ext_crypto_ed25519_public_keys_version_1] failed to allocate memory", err)
+		ret, _ := toWasmMemory(memory, []byte{0})
+		return ret
+	}
+
+	ret, err := toWasmMemory(memory, append(prefix, encodedKeys...))
+	if err != nil {
+		logger.Error("[ext_crypto_ed25519_public_keys_version_1] failed to allocate memory", err)
+		ret, _ = toWasmMemory(memory, []byte{0})
+		return ret
+	}
+
+	return ret
+}
+
+func ext_crypto_ed25519_generate_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_crypto_ed25519_generate_version_1] executing...")
+
+	keyTypeID := vm.GetCurrentFrame().Locals[0]
+	seedSpan := vm.GetCurrentFrame().Locals[1]
+	memory := vm.Memory
+
+	id := memory[keyTypeID : keyTypeID+4]
+	seedBytes := asMemorySlice(memory, seedSpan)
+	buf := &bytes.Buffer{}
+	buf.Write(seedBytes)
+
+	seed, err := optional.NewBytes(false, nil).Decode(buf)
+	if err != nil {
+		logger.Warn("[ext_crypto_ed25519_generate_version_1] cannot generate key", "error", err)
+		return 0
+	}
+
+	var kp crypto.Keypair
+
+	if seed.Exists() {
+		kp, err = ed25519.NewKeypairFromMnenomic(string(seed.Value()), "")
+	} else {
+		kp, err = ed25519.GenerateKeypair()
+	}
+
+	if err != nil {
+		logger.Warn("[ext_crypto_ed25519_generate_version_1] cannot generate key", "error", err)
+		return 0
+	}
+
+	ks, err := ctx.Keystore.GetKeystore(id)
+	if err != nil {
+		logger.Warn("[ext_crypto_ed25519_generate_version_1]", "name", id, "error", err)
+		return 0
+	}
+
+	ks.Insert(kp)
+
+	ret, err := toWasmMemorySized(memory, kp.Public().Encode(), 32)
+	if err != nil {
+		logger.Warn("[ext_crypto_ed25519_generate_version_1] failed to allocate memory", "error", err)
+		return 0
+	}
+
+	logger.Debug("[ext_crypto_ed25519_generate_version_1] generated ed25519 keypair", "public", kp.Public().Hex())
+	return int64(ret)
+}
+
+func ext_crypto_ed25519_sign_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_crypto_ed25519_sign_version_1] executing...")
+
+	keyTypeID := vm.GetCurrentFrame().Locals[0]
+	key := vm.GetCurrentFrame().Locals[1]
+	msg := vm.GetCurrentFrame().Locals[2]
+	memory := vm.Memory
+
+	id := memory[keyTypeID : keyTypeID+4]
+
+	pubKeyData := memory[key : key+32]
+	pubKey, err := ed25519.NewPublicKey(pubKeyData)
+	if err != nil {
+		logger.Error("[ext_crypto_ed25519_sign_version_1] failed to get public keys", "error", err)
+		return 0
+	}
+
+	ks, err := ctx.Keystore.GetKeystore(id)
+	if err != nil {
+		logger.Warn("[ext_crypto_ed25519_sign_version_1]", "name", id, "error", err)
+		ret, _ := toWasmMemoryOptional(memory, nil)
+		return ret
+	}
+
+	var ret int64
+	signingKey := ks.GetKeypair(pubKey)
+	if signingKey == nil {
+		logger.Error("[ext_crypto_ed25519_sign_version_1] could not find public key in keystore", "error", pubKey)
+		ret, err = toWasmMemoryOptional(memory, nil)
+		if err != nil {
+			logger.Error("[ext_crypto_ed25519_sign_version_1] failed to allocate memory", err)
+			return 0
+		}
+		return ret
+	}
+
+	sig, err := signingKey.Sign(asMemorySlice(memory, msg))
+	if err != nil {
+		logger.Error("[ext_crypto_ed25519_sign_version_1] could not sign message")
+	}
+
+	ret, err = toWasmMemoryFixedSizeOptional(memory, sig)
+	if err != nil {
+		logger.Error("[ext_crypto_ed25519_sign_version_1] failed to allocate memory", err)
+		return 0
+	}
+
+	return ret
+}
+
 // Convert 64bit wasm span descriptor to Go memory slice
 func asMemorySlice(memory []byte, span int64) []byte {
 	ptr, size := int64ToPointerAndSize(span)
@@ -800,5 +952,22 @@ func toWasmMemoryOptionalUint32(memory []byte, data *uint32) (int64, error) {
 	}
 
 	enc := opt.Encode()
+	return toWasmMemory(memory, enc)
+}
+
+// Wraps slice in optional.FixedSizeBytes and copies result to wasm memory. Returns resulting 64bit span descriptor
+func toWasmMemoryFixedSizeOptional(memory, data []byte) (int64, error) {
+	var opt *optional.FixedSizeBytes
+	if data == nil {
+		opt = optional.NewFixedSizeBytes(false, nil)
+	} else {
+		opt = optional.NewFixedSizeBytes(true, data)
+	}
+
+	enc, err := opt.Encode()
+	if err != nil {
+		return 0, err
+	}
+
 	return toWasmMemory(memory, enc)
 }

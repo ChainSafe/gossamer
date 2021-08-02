@@ -19,10 +19,13 @@ package life
 import (
 	"bytes"
 	"encoding/binary"
+	"sort"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/scale"
@@ -610,12 +613,115 @@ func Test_ext_default_child_storage_next_key_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_ed25519_public_keys_version_1(t *testing.T) {
+	// TODO (ed): determine why this test fails
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	idData := []byte(keystore.DumyName)
+	ks, _ := ctx.Keystore.GetKeystore(idData)
+	require.Equal(t, 0, ks.Size())
+
+	size := 5
+	pubKeys := make([][32]byte, size)
+	for i := range pubKeys {
+		kp, err := ed25519.GenerateKeypair()
+		require.NoError(t, err)
+
+		ks.Insert(kp)
+		copy(pubKeys[i][:], kp.Public().Encode())
+	}
+
+	sort.Slice(pubKeys, func(i int, j int) bool { return pubKeys[i][0] < pubKeys[j][0] })
+
+	res, err := inst.Exec("rtm_ext_crypto_ed25519_public_keys_version_1", idData)
+	require.NoError(t, err)
+
+	out, err := scale.Decode(res, []byte{})
+	require.NoError(t, err)
+
+	value, err := scale.Decode(out.([]byte), [][32]byte{})
+	require.NoError(t, err)
+
+	ret := value.([][32]byte)
+	sort.Slice(ret, func(i int, j int) bool { return ret[i][0] < ret[j][0] })
+	require.Equal(t, pubKeys, ret)
 }
 
 func Test_ext_crypto_ed25519_generate_version_1(t *testing.T) {
+	// TODO (ed) fix this and test
+	//inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+	//
+	//idData := []byte(keystore.AccoName)
+	//ks, _ := ctx.Keystore.GetKeystore(idData)
+	//require.Equal(t, 0, ks.Size())
+	//
+	//mnemonic, err := crypto.NewBIP39Mnemonic()
+	//require.NoError(t, err)
+	//
+	//data := optional.NewBytes(true, []byte(mnemonic))
+	//seedData, err := data.Encode()
+	//require.NoError(t, err)
+	//
+	//params := append(idData, seedData...)
+	//
+	//// we manually store and call the runtime function here since inst.exec assumes
+	//// the data returned from the function is a pointer-size, but for ext_crypto_ed25519_generate_version_1,
+	//// it's just a pointer
+	//ptr, err := inst.malloc(uint32(len(params)))
+	//require.NoError(t, err)
+	//
+	//inst.store(params, int32(ptr))
+	//dataLen := int32(len(params))
+	//
+	//runtimeFunc, ok := inst.vm.Exports["rtm_ext_crypto_ed25519_generate_version_1"]
+	//require.True(t, ok)
+	//
+	//ret, err := runtimeFunc(int32(ptr), dataLen)
+	//require.NoError(t, err)
+	//
+	//mem := inst.vm.Memory.Data()
+	//// TODO: why is this SCALE encoded? it should just be a 32 byte buffer. may be due to way test runtime is written.
+	//pubKeyBytes := mem[ret.ToI32()+1 : ret.ToI32()+1+32]
+	//pubKey, err := ed25519.NewPublicKey(pubKeyBytes)
+	//require.NoError(t, err)
+	//
+	//require.Equal(t, 1, ks.Size())
+	//kp := ks.GetKeypair(pubKey)
+	//require.NotNil(t, kp)
 }
 
 func Test_ext_crypto_ed25519_sign_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	kp, err := ed25519.GenerateKeypair()
+	require.NoError(t, err)
+
+	idData := []byte(keystore.AccoName)
+	ks, _ := ctx.Keystore.GetKeystore(idData)
+	ks.Insert(kp)
+
+	pubKeyData := kp.Public().Encode()
+	encPubKey, err := scale.Encode(pubKeyData)
+	require.NoError(t, err)
+
+	msgData := []byte("Hello world!")
+	encMsg, err := scale.Encode(msgData)
+	require.NoError(t, err)
+
+	res, err := inst.Exec("rtm_ext_crypto_ed25519_sign_version_1", append(append(idData, encPubKey...), encMsg...))
+	require.NoError(t, err)
+
+	out, err := scale.Decode(res, []byte{})
+	require.NoError(t, err)
+
+	buf := &bytes.Buffer{}
+	buf.Write(out.([]byte))
+
+	value, err := new(optional.FixedSizeBytes).Decode(buf)
+	require.NoError(t, err)
+
+	ok, err := kp.Public().Verify(msgData, value.Value())
+	require.NoError(t, err)
+	require.True(t, ok)
 }
 
 func Test_ext_crypto_ed25519_verify_version_1(t *testing.T) {
