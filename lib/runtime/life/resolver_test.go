@@ -25,6 +25,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
@@ -725,9 +726,71 @@ func Test_ext_crypto_ed25519_sign_version_1(t *testing.T) {
 }
 
 func Test_ext_crypto_ed25519_verify_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	kp, err := ed25519.GenerateKeypair()
+	require.NoError(t, err)
+
+	idData := []byte(keystore.AccoName)
+	ks, _ := ctx.Keystore.GetKeystore(idData)
+	ks.Insert(kp)
+
+	pubKeyData := kp.Public().Encode()
+	encPubKey, err := scale.Encode(pubKeyData)
+	require.NoError(t, err)
+
+	msgData := []byte("Hello world!")
+	encMsg, err := scale.Encode(msgData)
+	require.NoError(t, err)
+
+	sign, err := kp.Private().Sign(msgData)
+	require.NoError(t, err)
+	encSign, err := scale.Encode(sign)
+	require.NoError(t, err)
+
+	ret, err := inst.Exec("rtm_ext_crypto_ed25519_verify_version_1", append(append(encSign, encMsg...), encPubKey...))
+	require.NoError(t, err)
+
+	buf := &bytes.Buffer{}
+	buf.Write(ret)
+
+	read, err := new(optional.Bytes).Decode(buf)
+	require.NoError(t, err)
+
+	require.True(t, read.Exists())
 }
 
 func Test_ext_crypto_sr25519_public_keys_version_1(t *testing.T) {
+	inst := NewTestInstance(t, runtime.HOST_API_TEST_RUNTIME)
+
+	idData := []byte(keystore.DumyName)
+	ks, _ := ctx.Keystore.GetKeystore(idData)
+	require.Equal(t, 0, ks.Size())
+
+	size := 5
+	pubKeys := make([][32]byte, size)
+	for i := range pubKeys {
+		kp, err := sr25519.GenerateKeypair()
+		require.NoError(t, err)
+
+		ks.Insert(kp)
+		copy(pubKeys[i][:], kp.Public().Encode())
+	}
+
+	sort.Slice(pubKeys, func(i int, j int) bool { return pubKeys[i][0] < pubKeys[j][0] })
+
+	res, err := inst.Exec("rtm_ext_crypto_sr25519_public_keys_version_1", idData)
+	require.NoError(t, err)
+
+	out, err := scale.Decode(res, []byte{})
+	require.NoError(t, err)
+
+	value, err := scale.Decode(out.([]byte), [][32]byte{})
+	require.NoError(t, err)
+
+	ret := value.([][32]byte)
+	sort.Slice(ret, func(i int, j int) bool { return ret[i][0] < ret[j][0] })
+	require.Equal(t, pubKeys, ret)
 }
 
 func Test_ext_crypto_sr25519_generate_version_1(t *testing.T) {

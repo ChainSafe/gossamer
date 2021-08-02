@@ -102,6 +102,10 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 			return ext_crypto_ed25519_generate_version_1
 		case "ext_crypto_ed25519_sign_version_1":
 			return ext_crypto_ed25519_sign_version_1
+		case "ext_crypto_ed25519_verify_version_1":
+			return ext_crypto_ed25519_verify_version_1
+		case "ext_crypto_sr25519_public_keys_version_1":
+			return ext_crypto_sr25519_public_keys_version_1
 		default:
 			panic(fmt.Errorf("unknown import resolved: %s", field))
 		}
@@ -884,6 +888,90 @@ func ext_crypto_ed25519_sign_version_1(vm *exec.VirtualMachine) int64 {
 	if err != nil {
 		logger.Error("[ext_crypto_ed25519_sign_version_1] failed to allocate memory", err)
 		return 0
+	}
+
+	return ret
+}
+
+func ext_crypto_ed25519_verify_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_crypto_ed25519_verify_version_1] executing...")
+
+	sig := vm.GetCurrentFrame().Locals[0]
+	msg := vm.GetCurrentFrame().Locals[1]
+	key := vm.GetCurrentFrame().Locals[2]
+	memory := vm.Memory
+	sigVerifier := ctx.SigVerifier
+
+	signature := memory[sig : sig+64]
+	message := asMemorySlice(memory, msg)
+	pubKeyData := memory[key : key+32]
+
+	pubKey, err := ed25519.NewPublicKey(pubKeyData)
+	if err != nil {
+		logger.Error("[ext_crypto_ed25519_verify_version_1] failed to create public key")
+		return 0
+	}
+
+	if sigVerifier.IsStarted() {
+		signature := runtime.Signature{
+			PubKey:    pubKey.Encode(),
+			Sign:      signature,
+			Msg:       message,
+			KeyTypeID: crypto.Ed25519Type,
+		}
+		sigVerifier.Add(&signature)
+		return 1
+	}
+
+	if ok, err := pubKey.Verify(message, signature); err != nil || !ok {
+		logger.Error("[ext_crypto_ed25519_verify_version_1] failed to verify")
+		return 0
+	}
+
+	logger.Debug("[ext_crypto_ed25519_verify_version_1] verified ed25519 signature")
+	return 1
+}
+
+func ext_crypto_sr25519_public_keys_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_crypto_sr25519_public_keys_version_1] executing...")
+
+	keyTypeID := vm.GetCurrentFrame().Locals[0]
+	memory := vm.Memory
+
+	id := memory[keyTypeID : keyTypeID+4]
+
+	ks, err := ctx.Keystore.GetKeystore(id)
+	if err != nil {
+		logger.Warn("[ext_crypto_sr25519_public_keys_version_1]", "name", id, "error", err)
+		ret, _ := toWasmMemory(memory, []byte{0})
+		return ret
+	}
+
+	if ks.Type() != crypto.Sr25519Type && ks.Type() != crypto.UnknownType {
+		logger.Warn("[ext_crypto_sr25519_public_keys_version_1]", "name", id, "error", "keystore type is not sr25519")
+		ret, _ := toWasmMemory(memory, []byte{0})
+		return ret
+	}
+
+	keys := ks.PublicKeys()
+
+	var encodedKeys []byte
+	for _, key := range keys {
+		encodedKeys = append(encodedKeys, key.Encode()...)
+	}
+
+	prefix, err := scale.Encode(big.NewInt(int64(len(keys))))
+	if err != nil {
+		logger.Error("[ext_crypto_sr25519_public_keys_version_1] failed to allocate memory", err)
+		ret, _ := toWasmMemory(memory, []byte{0})
+		return ret
+	}
+
+	ret, err := toWasmMemory(memory, append(prefix, encodedKeys...))
+	if err != nil {
+		logger.Error("[ext_crypto_sr25519_public_keys_version_1] failed to allocate memory", err)
+		ret, _ = toWasmMemory(memory, []byte{0})
+		return ret
 	}
 
 	return ret
