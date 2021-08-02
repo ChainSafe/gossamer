@@ -117,6 +117,10 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 			return ext_crypto_sr25519_verify_version_1
 		case "ext_crypto_secp256k1_ecdsa_recover_version_1":
 			return ext_crypto_secp256k1_ecdsa_recover_version_1
+		case "ext_hashing_keccak_256_version_1":
+			return ext_hashing_keccak_256_version_1
+		case "ext_hashing_sha2_256_version_1":
+			return ext_hashing_sha2_256_version_1
 		default:
 			panic(fmt.Errorf("unknown import resolved: %s", field))
 		}
@@ -1169,6 +1173,51 @@ func ext_crypto_secp256k1_ecdsa_recover_version_1(vm *exec.VirtualMachine) int64
 	}
 
 	return ret
+}
+
+func ext_hashing_keccak_256_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_hashing_keccak_256_version_1] executing...")
+
+	dataSpan := vm.GetCurrentFrame().Locals[0]
+	memory := vm.Memory
+
+	data := asMemorySlice(memory, dataSpan)
+
+	hash, err := common.Keccak256(data)
+	if err != nil {
+		logger.Error("[ext_hashing_keccak_256_version_1]", "error", err)
+		return 0
+	}
+
+	logger.Debug("[ext_hashing_keccak_256_version_1]", "data", fmt.Sprintf("0x%x", data), "hash", hash)
+
+	out, err := toWasmMemorySized(memory, hash[:], 32)
+	if err != nil {
+		logger.Error("[ext_hashing_keccak_256_version_1] failed to allocate", "error", err)
+		return 0
+	}
+
+	return int64(out)
+}
+
+func ext_hashing_sha2_256_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_hashing_sha2_256_version_1] executing...")
+
+	dataSpan := vm.GetCurrentFrame().Locals[0]
+	memory := vm.Memory
+
+	data := asMemorySlice(memory, dataSpan)
+	hash := common.Sha256(data)
+
+	logger.Debug("[ext_hashing_sha2_256_version_1]", "data", data, "hash", hash)
+
+	out, err := toWasmMemorySized(memory, hash[:], 32)
+	if err != nil {
+		logger.Error("[ext_hashing_sha2_256_version_1] failed to allocate", "error", err)
+		return 0
+	}
+
+	return int64(out)
 }
 
 // Convert 64bit wasm span descriptor to Go memory slice
