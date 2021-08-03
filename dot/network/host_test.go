@@ -23,7 +23,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	ma "github.com/multiformats/go-multiaddr"
 
@@ -408,7 +407,7 @@ func Test_PeerSupportsProtocol(t *testing.T) {
 	}
 }
 
-func Test_ReservedPeersRPCCalls(t *testing.T) {
+func Test_AddReservedPeers(t *testing.T) {
 	basePathA := utils.NewTestBasePath(t, "nodeA")
 	configA := &Config{
 		BasePath:    basePathA,
@@ -418,19 +417,25 @@ func Test_ReservedPeersRPCCalls(t *testing.T) {
 	}
 
 	nodeA := createTestService(t, configA)
+	nodeA.noGossip = true
 
-	addr := "/ip4/198.51.100.19/tcp/30333/p2p/QmSk5HQbn6LhUwDiNMseVUjuRYhEtYj4aUZ6WfWoGURpdV"
-	err := nodeA.host.addReservedPeers(addr)
+	basePathB := utils.NewTestBasePath(t, "nodeB")
+	configB := &Config{
+		BasePath:    basePathB,
+		Port:        7002,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeB := createTestService(t, configB)
+	nodeB.noGossip = true
+
+	nodeBPeerAddr := nodeB.host.multiaddrs()[0].String()
+	err := nodeA.host.addReservedPeers(nodeBPeerAddr)
 	require.NoError(t, err)
 
-	maddr, err := ma.NewMultiaddr(addr)
-	require.NoError(t, err)
-
-	addinfo, err := peer.AddrInfoFromP2pAddr(maddr)
-	require.NoError(t, err)
-
-	addrs := nodeA.host.h.Peerstore().Addrs(addinfo.ID)
-	require.NotEmpty(t, addrs)
+	isProtected := nodeA.host.h.ConnManager().IsProtected(nodeB.host.addrInfo().ID, "")
+	require.True(t, isProtected)
 }
 
 func Test_RemoveReservedPeers(t *testing.T) {
@@ -443,17 +448,28 @@ func Test_RemoveReservedPeers(t *testing.T) {
 	}
 
 	nodeA := createTestService(t, configA)
+	nodeA.noGossip = true
 
-	addr := "/ip4/198.51.100.19/tcp/30333/p2p/QmSk5HQbn6LhUwDiNMseVUjuRYhEtYj4aUZ6WfWoGURpdV"
-	err := nodeA.host.addReservedPeers(addr)
+	basePathB := utils.NewTestBasePath(t, "nodeB")
+	configB := &Config{
+		BasePath:    basePathB,
+		Port:        7002,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeB := createTestService(t, configB)
+	nodeB.noGossip = true
+
+	nodeBPeerAddr := nodeB.host.multiaddrs()[0].String()
+	err := nodeA.host.addReservedPeers(nodeBPeerAddr)
 	require.NoError(t, err)
 
-	pID := "QmSk5HQbn6LhUwDiNMseVUjuRYhEtYj4aUZ6WfWoGURpdV"
+	pID := nodeB.host.addrInfo().ID.String()
 
 	err = nodeA.host.removeReservedPeers(pID)
 	require.NoError(t, err)
 
-	fakePID, _ := peer.IDFromString(pID)
-	slice := nodeA.host.h.Peerstore().Addrs(fakePID)
-	require.Empty(t, slice)
+	isProtected := nodeA.host.h.ConnManager().IsProtected(nodeB.host.addrInfo().ID, "")
+	require.False(t, isProtected)
 }
