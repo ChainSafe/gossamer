@@ -150,11 +150,6 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	return in.Exec(runtime.CoreExecuteBlock, bdEnc)
 }
 
-// DecodeSessionKeys decodes the given public session keys. Returns a list of raw public keys including their key type.
-func (in *Instance) DecodeSessionKeys(enc []byte) ([]byte, error) {
-	return in.Exec(runtime.DecodeSessionKeys, enc)
-}
-
 func (in *Instance) CheckInherents()      {} //nolint
 func (in *Instance) RandomSeed()          {} //nolint
 func (in *Instance) OffchainWorker()      {} //nolint
