@@ -18,6 +18,29 @@ type MockCoreAPI struct {
 	mock.Mock
 }
 
+// DecodeSessionKeys provides a mock function with given fields: enc
+func (_m *MockCoreAPI) DecodeSessionKeys(enc []byte) ([]byte, error) {
+	ret := _m.Called(enc)
+
+	var r0 []byte
+	if rf, ok := ret.Get(0).(func([]byte) []byte); ok {
+		r0 = rf(enc)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]byte)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func([]byte) error); ok {
+		r1 = rf(enc)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetMetadata provides a mock function with given fields: bhash
 func (_m *MockCoreAPI) GetMetadata(bhash *common.Hash) ([]byte, error) {
 	ret := _m.Called(bhash)
@@ -102,18 +125,4 @@ func (_m *MockCoreAPI) HasKey(pubKeyStr string, keyType string) (bool, error) {
 // InsertKey provides a mock function with given fields: kp
 func (_m *MockCoreAPI) InsertKey(kp crypto.Keypair) {
 	_m.Called(kp)
-}
-
-// IsBlockProducer provides a mock function with given fields:
-func (_m *MockCoreAPI) IsBlockProducer() bool {
-	ret := _m.Called()
-
-	var r0 bool
-	if rf, ok := ret.Get(0).(func() bool); ok {
-		r0 = rf()
-	} else {
-		r0 = ret.Get(0).(bool)
-	}
-
-	return r0
 }
