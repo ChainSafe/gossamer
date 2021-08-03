@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -48,17 +49,15 @@ const DEFAULT_BUFFER_SIZE = 100
 
 // WSConn struct to hold WebSocket Connection references
 type WSConn struct {
-	Wsconn             *websocket.Conn
-	mu                 sync.Mutex
-	BlockSubChannels   map[uint]byte
-	StorageSubChannels map[int]byte
-	qtyListeners       uint
-	Subscriptions      map[uint]Listener
-	StorageAPI         modules.StorageAPI
-	BlockAPI           modules.BlockAPI
-	CoreAPI            modules.CoreAPI
-	TxStateAPI         modules.TransactionStateAPI
-	RPCHost            string
+	Wsconn        *websocket.Conn
+	mu            sync.Mutex
+	qtyListeners  uint32
+	Subscriptions map[uint32]Listener
+	StorageAPI    modules.StorageAPI
+	BlockAPI      modules.BlockAPI
+	CoreAPI       modules.CoreAPI
+	TxStateAPI    modules.TransactionStateAPI
+	RPCHost       string
 
 	HTTP httpclient
 }
@@ -135,7 +134,12 @@ func (c *WSConn) HandleComm() {
 			}
 
 			unsub(reqid, listener, params)
-			listener.Stop()
+			err = listener.Stop()
+
+			if err != nil {
+				logger.Warn("failed to cancel listener goroutine", "method", method, "error", err)
+			}
+
 			continue
 		}
 
@@ -203,8 +207,7 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (L
 
 	c.mu.Lock()
 
-	c.qtyListeners++
-	stgobs.id = c.qtyListeners
+	stgobs.id = atomic.AddUint32(&c.qtyListeners, 1)
 	c.Subscriptions[stgobs.id] = stgobs
 
 	c.mu.Unlock()
@@ -230,8 +233,11 @@ func (c *WSConn) unsubscribeStorageListener(reqID float64, l Listener, _ interfa
 
 func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, error) {
 	bl := &BlockListener{
-		Channel: make(chan *types.Block, DEFAULT_BUFFER_SIZE),
-		wsconn:  c,
+		Channel:       make(chan *types.Block, DEFAULT_BUFFER_SIZE),
+		wsconn:        c,
+		cancel:        make(chan struct{}, 1),
+		cancelTimeout: defaultCancelTimeout,
+		done:          make(chan struct{}, 1),
 	}
 
 	if c.BlockAPI == nil {
@@ -248,10 +254,8 @@ func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, erro
 
 	c.mu.Lock()
 
-	c.qtyListeners++
-	bl.subID = c.qtyListeners
+	bl.subID = atomic.AddUint32(&c.qtyListeners, 1)
 	c.Subscriptions[bl.subID] = bl
-	c.BlockSubChannels[bl.subID] = bl.ChanID
 
 	c.mu.Unlock()
 
@@ -262,8 +266,11 @@ func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, erro
 
 func (c *WSConn) initBlockFinalizedListener(reqID float64, _ interface{}) (Listener, error) {
 	bfl := &BlockFinalizedListener{
-		channel: make(chan *types.FinalisationInfo, DEFAULT_BUFFER_SIZE),
-		wsconn:  c,
+		channel:       make(chan *types.FinalisationInfo),
+		cancel:        make(chan struct{}, 1),
+		done:          make(chan struct{}, 1),
+		cancelTimeout: defaultCancelTimeout,
+		wsconn:        c,
 	}
 
 	if c.BlockAPI == nil {
@@ -279,10 +286,8 @@ func (c *WSConn) initBlockFinalizedListener(reqID float64, _ interface{}) (Liste
 
 	c.mu.Lock()
 
-	c.qtyListeners++
-	bfl.subID = c.qtyListeners
+	bfl.subID = atomic.AddUint32(&c.qtyListeners, 1)
 	c.Subscriptions[bfl.subID] = bfl
-	c.BlockSubChannels[bfl.subID] = bfl.chanID
 
 	c.mu.Unlock()
 
@@ -304,7 +309,10 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 		importedChan:  make(chan *types.Block, DEFAULT_BUFFER_SIZE),
 		wsconn:        c,
 		extrinsic:     types.Extrinsic(extBytes),
-		finalisedChan: make(chan *types.FinalisationInfo, DEFAULT_BUFFER_SIZE),
+		finalisedChan: make(chan *types.FinalisationInfo),
+		cancel:        make(chan struct{}, 1),
+		done:          make(chan struct{}, 1),
+		cancelTimeout: defaultCancelTimeout,
 	}
 
 	if c.BlockAPI == nil {
@@ -322,10 +330,8 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 
 	c.mu.Lock()
 
-	c.qtyListeners++
-	esl.subID = c.qtyListeners
+	esl.subID = atomic.AddUint32(&c.qtyListeners, 1)
 	c.Subscriptions[esl.subID] = esl
-	c.BlockSubChannels[esl.subID] = esl.importedChanID
 
 	c.mu.Unlock()
 
@@ -337,7 +343,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 
 	// TODO (ed) since HandleSubmittedExtrinsic has been called we assume the extrinsic is in the tx queue
 	//  should we add a channel to tx queue so we're notified when it's in the queue (See issue #1535)
-	c.safeSend(newSubscriptionResponse(AuthorExtrinsicUpdates, esl.subID, "ready"))
+	c.safeSend(newSubscriptionResponse(authorExtrinsicUpdatesMethod, esl.subID, "ready"))
 
 	// todo (ed) determine which peer extrinsic has been broadcast to, and set status
 	return esl, err
@@ -355,8 +361,7 @@ func (c *WSConn) initRuntimeVersionListener(reqID float64, _ interface{}) (Liste
 
 	c.mu.Lock()
 
-	c.qtyListeners++
-	rvl.subID = c.qtyListeners
+	rvl.subID = atomic.AddUint32(&c.qtyListeners, 1)
 	c.Subscriptions[rvl.subID] = rvl
 
 	c.mu.Unlock()
@@ -364,6 +369,49 @@ func (c *WSConn) initRuntimeVersionListener(reqID float64, _ interface{}) (Liste
 	c.safeSend(NewSubscriptionResponseJSON(rvl.subID, reqID))
 
 	return rvl, nil
+}
+
+func (c *WSConn) initGrandpaJustificationListener(reqID float64, _ interface{}) (Listener, error) {
+	if c.BlockAPI == nil {
+		c.safeSendError(reqID, nil, "error BlockAPI not set")
+		return nil, fmt.Errorf("error BlockAPI not set")
+	}
+
+	jl := &GrandpaJustificationListener{
+		cancel:        make(chan struct{}, 1),
+		done:          make(chan struct{}, 1),
+		wsconn:        c,
+		finalisedCh:   make(chan *types.FinalisationInfo, 1),
+		cancelTimeout: defaultCancelTimeout,
+	}
+
+	var err error
+	jl.finalisedChID, err = c.BlockAPI.RegisterFinalizedChannel(jl.finalisedCh)
+	if err != nil {
+		return nil, err
+	}
+
+	c.mu.Lock()
+
+	jl.subID = atomic.AddUint32(&c.qtyListeners, 1)
+	c.Subscriptions[jl.subID] = jl
+
+	c.mu.Unlock()
+
+	c.safeSend(NewSubscriptionResponseJSON(jl.subID, reqID))
+
+	return jl, nil
+}
+
+func (c *WSConn) unsubscribeGrandpaJustificationListener(reqID float64, l Listener, params interface{}) {
+	listener, ok := l.(*GrandpaJustificationListener)
+	if !ok {
+		c.safeSend(newBooleanResponseJSON(false, reqID))
+		return
+	}
+
+	c.BlockAPI.UnregisterFinalisedChannel(listener.finalisedChID)
+	c.safeSend(newBooleanResponseJSON(true, reqID))
 }
 
 func (c *WSConn) safeSend(msg interface{}) {
