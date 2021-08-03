@@ -47,6 +47,7 @@ type Instance interface {
 	ApplyExtrinsic(data types.Extrinsic) ([]byte, error)
 	FinalizeBlock() (*types.Header, error)
 	ExecuteBlock(block *types.Block) ([]byte, error)
+	DecodeSessionKeys(enc []byte) ([]byte, error)
 
 	// TODO: parameters and return values for these are undefined in the spec
 	CheckInherents()
