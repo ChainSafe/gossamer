@@ -24,8 +24,6 @@ func (c *WSConn) getSetupListener(method string) setupListener {
 		return c.initBlockFinalizedListener
 	case "state_subscribeRuntimeVersion":
 		return c.initRuntimeVersionListener
-	case "grandpa_subscribeJustifications":
-		return c.initGrandpaJustificationListener
 	default:
 		return nil
 	}
@@ -47,8 +45,6 @@ func (c *WSConn) getUnsubListener(method string, params interface{}) (unsubListe
 	switch method {
 	case "state_unsubscribeStorage":
 		unsub = c.unsubscribeStorageListener
-	case "grandpa_unsubscribeJustifications":
-		unsub = c.unsubscribeGrandpaJustificationListener
 	default:
 		return nil, nil, errCannotFindUnsubsriber
 	}
@@ -56,7 +52,7 @@ func (c *WSConn) getUnsubListener(method string, params interface{}) (unsubListe
 	return unsub, listener, nil
 }
 
-func parseSubscribeID(p interface{}) (uint32, error) {
+func parseSubscribeID(p interface{}) (uint, error) {
 	switch v := p.(type) {
 	case []interface{}:
 		if len(v) == 0 {
@@ -66,16 +62,16 @@ func parseSubscribeID(p interface{}) (uint32, error) {
 		return 0, errUknownParamSubscribeID
 	}
 
-	var id uint32
+	var id uint
 	switch v := p.([]interface{})[0].(type) {
 	case float64:
-		id = uint32(v)
+		id = uint(v)
 	case string:
 		i, err := strconv.ParseUint(v, 10, 32)
 		if err != nil {
 			return 0, errCannotParseID
 		}
-		id = uint32(i)
+		id = uint(i)
 	default:
 		return 0, errUknownParamSubscribeID
 	}

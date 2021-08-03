@@ -17,24 +17,14 @@
 package subscription
 
 import (
-	"encoding/json"
-	"fmt"
-	"log"
 	"math/big"
-	"net/http"
-	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
-	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/grandpa"
-	"github.com/gorilla/websocket"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -70,132 +60,76 @@ func TestStorageObserver_Update(t *testing.T) {
 		expected.Changes[i] = Change{common.BytesToHex(v.Key), common.BytesToHex(v.Value)}
 	}
 
-	expectedResponse := newSubcriptionBaseResponseJSON()
-	expectedResponse.Method = stateStorageMethod
-	expectedResponse.Params.Result = expected
+	expectedRespones := newSubcriptionBaseResponseJSON()
+	expectedRespones.Method = "state_storage"
+	expectedRespones.Params.Result = expected
 
 	storageObserver.Update(change)
 	time.Sleep(time.Millisecond * 10)
-	require.Equal(t, expectedResponse, mockConnection.lastMessage)
+	require.Equal(t, expectedRespones, mockConnection.lastMessage)
 }
 
 func TestBlockListener_Listen(t *testing.T) {
-	wsconn, ws, cancel := setupWSConn(t)
-	defer cancel()
-
-	mockBlockAPI := new(mocks.MockBlockAPI)
-	mockBlockAPI.On("UnregisterImportedChannel", mock.AnythingOfType("uint8"))
-
-	wsconn.BlockAPI = mockBlockAPI
-
 	notifyChan := make(chan *types.Block)
+	mockConnection := &MockWSConnAPI{}
 	bl := BlockListener{
-		Channel:       notifyChan,
-		wsconn:        wsconn,
-		cancel:        make(chan struct{}),
-		done:          make(chan struct{}),
-		cancelTimeout: time.Second * 5,
+		Channel: notifyChan,
+		wsconn:  mockConnection,
 	}
 
 	block := types.NewEmptyBlock()
 	block.Header.Number = big.NewInt(1)
 
-	go bl.Listen()
-	defer func() {
-		require.NoError(t, bl.Stop())
-		time.Sleep(time.Millisecond * 10)
-		mockBlockAPI.AssertCalled(t, "UnregisterImportedChannel", mock.AnythingOfType("uint8"))
-	}()
-
-	notifyChan <- block
-	time.Sleep(time.Second * 2)
-
-	_, msg, err := ws.ReadMessage()
-	require.NoError(t, err)
-
 	head, err := modules.HeaderToJSON(*block.Header)
 	require.NoError(t, err)
 
 	expectedResposnse := newSubcriptionBaseResponseJSON()
-	expectedResposnse.Method = chainNewHeadMethod
+	expectedResposnse.Method = "chain_newHead"
 	expectedResposnse.Params.Result = head
 
-	expectedResponseBytes, err := json.Marshal(expectedResposnse)
-	require.NoError(t, err)
+	go bl.Listen()
 
-	require.Equal(t, string(expectedResponseBytes)+"\n", string(msg))
+	notifyChan <- block
+	time.Sleep(time.Millisecond * 10)
+	require.Equal(t, expectedResposnse, mockConnection.lastMessage)
 }
 
 func TestBlockFinalizedListener_Listen(t *testing.T) {
-	wsconn, ws, cancel := setupWSConn(t)
-	defer cancel()
-
-	mockBlockAPI := new(mocks.MockBlockAPI)
-	mockBlockAPI.On("UnregisterFinalisedChannel", mock.AnythingOfType("uint8"))
-
-	wsconn.BlockAPI = mockBlockAPI
-
 	notifyChan := make(chan *types.FinalisationInfo)
+	mockConnection := &MockWSConnAPI{}
 	bfl := BlockFinalizedListener{
-		channel:       notifyChan,
-		wsconn:        wsconn,
-		cancel:        make(chan struct{}),
-		done:          make(chan struct{}),
-		cancelTimeout: time.Second * 5,
+		channel: notifyChan,
+		wsconn:  mockConnection,
 	}
 
 	header := types.NewEmptyHeader()
-
-	bfl.Listen()
-	defer func() {
-		require.NoError(t, bfl.Stop())
-		time.Sleep(time.Millisecond * 10)
-		mockBlockAPI.AssertCalled(t, "UnregisterFinalisedChannel", mock.AnythingOfType("uint8"))
-	}()
-
-	notifyChan <- &types.FinalisationInfo{
-		Header: header,
-	}
-	time.Sleep(time.Second * 2)
-
-	_, msg, err := ws.ReadMessage()
-	require.NoError(t, err)
-
 	head, err := modules.HeaderToJSON(*header)
 	if err != nil {
 		logger.Error("failed to convert header to JSON", "error", err)
 	}
 	expectedResponse := newSubcriptionBaseResponseJSON()
-	expectedResponse.Method = chainFinalizedHeadMethod
+	expectedResponse.Method = "chain_finalizedHead"
 	expectedResponse.Params.Result = head
 
-	expectedResponseBytes, err := json.Marshal(expectedResponse)
-	require.NoError(t, err)
+	go bfl.Listen()
 
-	require.Equal(t, string(expectedResponseBytes)+"\n", string(msg))
+	notifyChan <- &types.FinalisationInfo{
+		Header: header,
+	}
+	time.Sleep(time.Millisecond * 10)
+	require.Equal(t, expectedResponse, mockConnection.lastMessage)
 }
 
 func TestExtrinsicSubmitListener_Listen(t *testing.T) {
-	wsconn, ws, cancel := setupWSConn(t)
-	defer cancel()
-
 	notifyImportedChan := make(chan *types.Block, 100)
 	notifyFinalizedChan := make(chan *types.FinalisationInfo, 100)
 
-	mockBlockAPI := new(mocks.MockBlockAPI)
-	mockBlockAPI.On("UnregisterImportedChannel", mock.AnythingOfType("uint8"))
-	mockBlockAPI.On("UnregisterFinalisedChannel", mock.AnythingOfType("uint8"))
-
-	wsconn.BlockAPI = mockBlockAPI
-
+	mockConnection := &MockWSConnAPI{}
 	esl := ExtrinsicSubmitListener{
 		importedChan:  notifyImportedChan,
 		finalisedChan: notifyFinalizedChan,
-		wsconn:        wsconn,
+		wsconn:        mockConnection,
 		extrinsic:     types.Extrinsic{1, 2, 3},
-		cancel:        make(chan struct{}),
-		done:          make(chan struct{}),
-		cancelTimeout: time.Second * 5,
 	}
 	header := types.NewEmptyHeader()
 	exts := []types.Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
@@ -208,122 +142,20 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 		Body:   body,
 	}
 
-	esl.Listen()
-	defer func() {
-		require.NoError(t, esl.Stop())
-		time.Sleep(time.Millisecond * 10)
+	resImported := map[string]interface{}{"inBlock": block.Header.Hash().String()}
+	expectedImportedRespones := newSubscriptionResponse(AuthorExtrinsicUpdates, esl.subID, resImported)
 
-		mockBlockAPI.AssertCalled(t, "UnregisterImportedChannel", mock.AnythingOfType("uint8"))
-		mockBlockAPI.AssertCalled(t, "UnregisterFinalisedChannel", mock.AnythingOfType("uint8"))
-	}()
+	go esl.Listen()
 
 	notifyImportedChan <- block
-	time.Sleep(time.Second * 2)
-
-	_, msg, err := ws.ReadMessage()
-	require.NoError(t, err)
-	resImported := map[string]interface{}{"inBlock": block.Header.Hash().String()}
-	expectedImportedBytes, err := json.Marshal(newSubscriptionResponse(authorExtrinsicUpdatesMethod, esl.subID, resImported))
-	require.NoError(t, err)
-	require.Equal(t, string(expectedImportedBytes)+"\n", string(msg))
+	time.Sleep(time.Millisecond * 10)
+	require.Equal(t, expectedImportedRespones, mockConnection.lastMessage)
 
 	notifyFinalizedChan <- &types.FinalisationInfo{
 		Header: header,
 	}
-	time.Sleep(time.Second * 2)
-
-	_, msg, err = ws.ReadMessage()
-	require.NoError(t, err)
+	time.Sleep(time.Millisecond * 10)
 	resFinalised := map[string]interface{}{"finalised": block.Header.Hash().String()}
-	expectedFinalizedBytes, err := json.Marshal(newSubscriptionResponse(authorExtrinsicUpdatesMethod, esl.subID, resFinalised))
-	require.NoError(t, err)
-	require.Equal(t, string(expectedFinalizedBytes)+"\n", string(msg))
-}
-
-func TestGrandpaJustification_Listen(t *testing.T) {
-	t.Run("When justification doesnt returns error", func(t *testing.T) {
-		wsconn, ws, cancel := setupWSConn(t)
-		defer cancel()
-
-		mockedJust := grandpa.Justification{
-			Round: 1,
-			Commit: &grandpa.Commit{
-				Hash:       common.Hash{},
-				Number:     1,
-				Precommits: nil,
-			},
-		}
-
-		mockedJustBytes, err := mockedJust.Encode()
-		require.NoError(t, err)
-
-		blockStateMock := new(mocks.MockBlockAPI)
-		blockStateMock.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(mockedJustBytes, nil)
-		blockStateMock.On("UnregisterFinalisedChannel", mock.AnythingOfType("uint8"))
-		wsconn.BlockAPI = blockStateMock
-
-		finchannel := make(chan *types.FinalisationInfo)
-		sub := GrandpaJustificationListener{
-			subID:         10,
-			wsconn:        wsconn,
-			cancel:        make(chan struct{}, 1),
-			done:          make(chan struct{}, 1),
-			finalisedCh:   finchannel,
-			cancelTimeout: time.Second * 5,
-		}
-
-		sub.Listen()
-		finchannel <- &types.FinalisationInfo{
-			Header: types.NewEmptyHeader(),
-		}
-
-		time.Sleep(time.Second * 3)
-
-		_, msg, err := ws.ReadMessage()
-		require.NoError(t, err)
-
-		expected := `{"jsonrpc":"2.0","method":"grandpa_justifications","params":{"result":"%s","subscription":10}}` + "\n"
-		expected = fmt.Sprintf(expected, common.BytesToHex(mockedJustBytes))
-
-		require.Equal(t, string(msg), expected)
-		require.NoError(t, sub.Stop())
-		wsconn.Wsconn.Close()
-	})
-
-}
-
-func setupWSConn(t *testing.T) (*WSConn, *websocket.Conn, func()) {
-	t.Helper()
-
-	wskt := new(WSConn)
-	var up = websocket.Upgrader{
-		CheckOrigin: func(r *http.Request) bool { return true },
-	}
-
-	h := func(w http.ResponseWriter, r *http.Request) {
-		c, err := up.Upgrade(w, r, nil)
-		if err != nil {
-			log.Print("error while setup handler:", err)
-			return
-		}
-
-		wskt.Wsconn = c
-	}
-
-	server := httptest.NewServer(http.HandlerFunc(h))
-	defer server.Close()
-
-	wsURL := "ws" + strings.TrimPrefix(server.URL, "http")
-	ws, r, err := websocket.DefaultDialer.Dial(wsURL, nil)
-	defer r.Body.Close()
-
-	require.NoError(t, err)
-
-	cancel := func() {
-		server.Close()
-		ws.Close()
-		wskt.Wsconn.Close()
-	}
-
-	return wskt, ws, cancel
+	expectedFinalizedRespones := newSubscriptionResponse(AuthorExtrinsicUpdates, esl.subID, resFinalised)
+	require.Equal(t, expectedFinalizedRespones, mockConnection.lastMessage)
 }
