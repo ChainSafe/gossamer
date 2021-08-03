@@ -45,7 +45,7 @@ import (
 func NewMockFinalityGadget() *syncmocks.FinalityGadget {
 	m := new(syncmocks.FinalityGadget)
 	// using []uint8 instead of []byte: https://github.com/stretchr/testify/pull/969
-	m.On("VerifyBlockJustification", mock.AnythingOfType("[]uint8")).Return(nil)
+	m.On("VerifyBlockJustification", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil)
 	return m
 }
 
