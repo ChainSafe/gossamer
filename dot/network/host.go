@@ -369,7 +369,7 @@ func (h *host) peers() []peer.ID {
 	return h.h.Network().Peers()
 }
 
-// addReservedPeers adds the peers `addrs` in the Peerstore
+// addReservedPeers adds the peers `addrs` to the protected peers list and connects to them
 func (h *host) addReservedPeers(addrs ...string) error {
 	if len(addrs) < 1 {
 		return nil
