@@ -18,6 +18,7 @@ package modules
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -388,7 +389,11 @@ func (sm *StateModule) GetStorageSize(r *http.Request, req *StateStorageSizeRequ
 
 // QueryStorage isn't implemented properly yet.
 func (sm *StateModule) QueryStorage(r *http.Request, req *StateStorageQueryRangeRequest, res *[]StorageChangeSetResponse) error {
-	changesByBlock, err := sm.coreAPI.QueryStorage(req.StartBlock, req.EndBlock, req.Keys...)
+	if req.StartBlock == nil {
+		return errors.New("the start block hash cannot be an empty value")
+	}
+
+	changesByBlock, err := sm.coreAPI.QueryStorage(*req.StartBlock, req.EndBlock, req.Keys...)
 	if err != nil {
 		return err
 	}

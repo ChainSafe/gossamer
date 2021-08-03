@@ -731,7 +731,7 @@ func TestQueryStorate_WhenBlocksHasData(t *testing.T) {
 
 	from := firstBlock.Header.Hash()
 
-	data, err := s.QueryStorage(&from, nil, keys...)
+	data, err := s.QueryStorage(from, nil, keys...)
 	require.NoError(t, err)
 	require.Len(t, data, 1)
 
@@ -744,7 +744,7 @@ func TestQueryStorate_WhenBlocksHasData(t *testing.T) {
 	from = secondBlock.Header.Hash()
 	to := thirdBlock.Header.Hash()
 
-	data, err = s.QueryStorage(&from, &to, keys...)
+	data, err = s.QueryStorage(from, &to, keys...)
 	require.NoError(t, err)
 	require.Len(t, data, 2)
 

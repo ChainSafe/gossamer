@@ -130,7 +130,7 @@ func (_m *MockCoreAPI) InsertKey(kp crypto.Keypair) {
 }
 
 // QueryStorage provides a mock function with given fields: from, to, keys
-func (_m *MockCoreAPI) QueryStorage(from *common.Hash, to *common.Hash, keys ...string) (map[common.Hash]core.QueryKeyValueChanges, error) {
+func (_m *MockCoreAPI) QueryStorage(from common.Hash, to *common.Hash, keys ...string) (map[common.Hash]core.QueryKeyValueChanges, error) {
 	_va := make([]interface{}, len(keys))
 	for _i := range keys {
 		_va[_i] = keys[_i]
@@ -141,7 +141,7 @@ func (_m *MockCoreAPI) QueryStorage(from *common.Hash, to *common.Hash, keys ...
 	ret := _m.Called(_ca...)
 
 	var r0 map[common.Hash]core.QueryKeyValueChanges
-	if rf, ok := ret.Get(0).(func(*common.Hash, *common.Hash, ...string) map[common.Hash]core.QueryKeyValueChanges); ok {
+	if rf, ok := ret.Get(0).(func(common.Hash, *common.Hash, ...string) map[common.Hash]core.QueryKeyValueChanges); ok {
 		r0 = rf(from, to, keys...)
 	} else {
 		if ret.Get(0) != nil {
@@ -150,7 +150,7 @@ func (_m *MockCoreAPI) QueryStorage(from *common.Hash, to *common.Hash, keys ...
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*common.Hash, *common.Hash, ...string) error); ok {
+	if rf, ok := ret.Get(1).(func(common.Hash, *common.Hash, ...string) error); ok {
 		r1 = rf(from, to, keys...)
 	} else {
 		r1 = ret.Error(1)

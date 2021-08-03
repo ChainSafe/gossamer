@@ -17,7 +17,6 @@ package core
 
 import (
 	"context"
-	"errors"
 	"math/big"
 	"os"
 	"sync"
@@ -567,15 +566,12 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 
 // QueryStorage returns the key-value data by block based on `keys` params
 // on every block starting `from` until `to` block, if `to` is not nil
-func (s *Service) QueryStorage(from *common.Hash, to *common.Hash, keys ...string) (map[common.Hash]QueryKeyValueChanges, error) {
-	if from == nil {
-		return nil, errors.New("cannot query data without a starting block hash")
-	}
-
+func (s *Service) QueryStorage(from common.Hash, to *common.Hash, keys ...string) (map[common.Hash]QueryKeyValueChanges, error) {
 	var err error
-	blocksToQuery := []common.Hash{*from}
+	blocksToQuery := []common.Hash{from}
+
 	if to != nil {
-		if blocksToQuery, err = s.blockState.SubChain(*from, *to); err != nil {
+		if blocksToQuery, err = s.blockState.SubChain(from, *to); err != nil {
 			return nil, err
 		}
 	}
