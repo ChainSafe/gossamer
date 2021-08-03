@@ -170,14 +170,17 @@ func (h *MessageHandler) handleCatchUpRequest(msg *catchUpRequest) (*ConsensusMe
 	return resp.ToConsensusMessage()
 }
 
-func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponse) error { //nolint
+func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponse) error {
 	if !h.grandpa.authority {
 		return nil
 	}
 
 	logger.Debug("received catch up response", "round", msg.Round, "setID", msg.SetID, "hash", msg.Hash)
+
 	// TODO: re-add catch-up logic
-	return nil
+	if true {
+		return nil
+	}
 
 	// if we aren't currently expecting a catch up response, return
 	if !h.grandpa.paused.Load().(bool) { //nolint
