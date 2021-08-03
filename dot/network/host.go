@@ -395,7 +395,7 @@ func (h *host) addReservedPeers(addrs ...string) error {
 	return nil
 }
 
-// removeReservedPeers will close all connections with the peer and remove it from the peerstore
+// removeReservedPeers will remove the given peers from the protected peers list
 func (h *host) removeReservedPeers(ids ...string) error {
 	if len(ids) < 1 {
 		return nil
