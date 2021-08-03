@@ -358,7 +358,7 @@ func (g *GrandpaJustificationListener) Stop() error {
 	return cancelWithTimeout(g.cancel, g.done, g.cancelTimeout)
 }
 
-func cancelWithTimeout(cancel chan struct{}, done chan struct{}, t time.Duration) error {
+func cancelWithTimeout(cancel, done chan struct{}, t time.Duration) error {
 	close(cancel)
 
 	timeout := time.NewTimer(t)
