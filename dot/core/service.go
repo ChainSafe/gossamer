@@ -567,13 +567,13 @@ func (s *Service) GetMetadata(bhash *common.Hash) ([]byte, error) {
 // QueryStorage returns the key-value data by block based on `keys` params
 // on every block starting `from` until `to` block, if `to` is not nil
 func (s *Service) QueryStorage(from common.Hash, to *common.Hash, keys ...string) (map[common.Hash]QueryKeyValueChanges, error) {
-	var err error
-	blocksToQuery := []common.Hash{from}
+	if to == nil {
+		*to = s.blockState.BestBlockHash()
+	}
 
-	if to != nil {
-		if blocksToQuery, err = s.blockState.SubChain(from, *to); err != nil {
-			return nil, err
-		}
+	blocksToQuery, err := s.blockState.SubChain(from, *to)
+	if err != nil {
+		return nil, err
 	}
 
 	queries := make(map[common.Hash]QueryKeyValueChanges)
