@@ -267,13 +267,15 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.NoError(t, err)
 
 	mockBlockAPI := new(modulesmocks.MockBlockAPI)
-	mockBlockAPI.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(mockedJustBytes, nil)
 	mockBlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
 		Run(func(args mock.Arguments) {
 			ch := args.Get(0).(chan<- *types.FinalisationInfo)
 			fCh = ch
 		}).
 		Return(uint8(4), nil)
+
+	mockBlockAPI.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(mockedJustBytes, nil)
+	mockBlockAPI.On("UnregisterFinalisedChannel", mock.AnythingOfType("uint8"))
 
 	wsconn.BlockAPI = mockBlockAPI
 	listener, err := wsconn.initGrandpaJustificationListener(0, nil)
@@ -296,12 +298,11 @@ func TestWSConn_HandleComm(t *testing.T) {
 
 	time.Sleep(time.Second * 2)
 
-	g := listener.(*GrandpaJustificationListener)
-	expected := fmt.Sprintf(`{"jsonrpc":"2.0","method":"grandpa_justifications","params":{"result":"%s","subscription":%v}}`+"\n", common.BytesToHex(mockedJustBytes), g.subID)
-
+	expected := `{"jsonrpc":"2.0","method":"grandpa_justifications","params":{"result":"%s","subscription":9}}` + "\n"
+	expected = fmt.Sprintf(expected, common.BytesToHex(mockedJustBytes))
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
-	require.Equal(t, expected, string(msg))
+	require.Equal(t, []byte(expected), msg)
 
 	err = listener.Stop()
 	require.NoError(t, err)

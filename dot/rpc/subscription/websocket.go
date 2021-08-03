@@ -235,9 +235,9 @@ func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, erro
 	bl := &BlockListener{
 		Channel:       make(chan *types.Block, DEFAULT_BUFFER_SIZE),
 		wsconn:        c,
-		cancel:        make(chan interface{}, 1),
+		cancel:        make(chan struct{}, 1),
 		cancelTimeout: defaultCancelTimeout,
-		done:          make(chan interface{}, 1),
+		done:          make(chan struct{}, 1),
 	}
 
 	if c.BlockAPI == nil {
@@ -267,8 +267,8 @@ func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, erro
 func (c *WSConn) initBlockFinalizedListener(reqID float64, _ interface{}) (Listener, error) {
 	bfl := &BlockFinalizedListener{
 		channel:       make(chan *types.FinalisationInfo),
-		cancel:        make(chan interface{}, 1),
-		done:          make(chan interface{}, 1),
+		cancel:        make(chan struct{}, 1),
+		done:          make(chan struct{}, 1),
 		cancelTimeout: defaultCancelTimeout,
 		wsconn:        c,
 	}
@@ -310,8 +310,8 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 		wsconn:        c,
 		extrinsic:     types.Extrinsic(extBytes),
 		finalisedChan: make(chan *types.FinalisationInfo),
-		cancel:        make(chan interface{}, 1),
-		done:          make(chan interface{}, 1),
+		cancel:        make(chan struct{}, 1),
+		done:          make(chan struct{}, 1),
 		cancelTimeout: defaultCancelTimeout,
 	}
 
@@ -343,7 +343,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 
 	// TODO (ed) since HandleSubmittedExtrinsic has been called we assume the extrinsic is in the tx queue
 	//  should we add a channel to tx queue so we're notified when it's in the queue (See issue #1535)
-	c.safeSend(newSubscriptionResponse(AuthorExtrinsicUpdates, esl.subID, "ready"))
+	c.safeSend(newSubscriptionResponse(authorExtrinsicUpdatesMethod, esl.subID, "ready"))
 
 	// todo (ed) determine which peer extrinsic has been broadcast to, and set status
 	return esl, err
@@ -378,8 +378,8 @@ func (c *WSConn) initGrandpaJustificationListener(reqID float64, _ interface{}) 
 	}
 
 	jl := &GrandpaJustificationListener{
-		cancel:        make(chan interface{}, 1),
-		done:          make(chan interface{}, 1),
+		cancel:        make(chan struct{}, 1),
+		done:          make(chan struct{}, 1),
 		wsconn:        c,
 		finalisedCh:   make(chan *types.FinalisationInfo, 1),
 		cancelTimeout: defaultCancelTimeout,
