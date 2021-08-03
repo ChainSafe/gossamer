@@ -76,6 +76,7 @@ type CoreAPI interface {
 	GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error)
 	HandleSubmittedExtrinsic(types.Extrinsic) error
 	GetMetadata(bhash *common.Hash) ([]byte, error)
+	DecodeSessionKeys(enc []byte) ([]byte, error)
 }
 
 // RPCAPI is the interface for methods related to RPC service

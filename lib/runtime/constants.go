@@ -67,6 +67,8 @@ var (
 	BlockBuilderApplyExtrinsic = "BlockBuilder_apply_extrinsic"
 	// BlockBuilderFinalizeBlock is the runtime API call BlockBuilder_finalize_block
 	BlockBuilderFinalizeBlock = "BlockBuilder_finalize_block"
+	// DecodeSessionKeys is the runtime API call SessionKeys_decode_session_keys
+	DecodeSessionKeys = "SessionKeys_decode_session_keys"
 )
 
 // GrandpaAuthoritiesKey is the location of GRANDPA authority data in the storage trie for LEGACY_NODE_RUNTIME and NODE_RUNTIME

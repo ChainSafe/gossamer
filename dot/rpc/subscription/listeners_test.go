@@ -70,13 +70,13 @@ func TestStorageObserver_Update(t *testing.T) {
 		expected.Changes[i] = Change{common.BytesToHex(v.Key), common.BytesToHex(v.Value)}
 	}
 
-	expectedRespones := newSubcriptionBaseResponseJSON()
-	expectedRespones.Method = "state_storage"
-	expectedRespones.Params.Result = expected
+	expectedResponse := newSubcriptionBaseResponseJSON()
+	expectedResponse.Method = stateStorageMethod
+	expectedResponse.Params.Result = expected
 
 	storageObserver.Update(change)
 	time.Sleep(time.Millisecond * 10)
-	require.Equal(t, expectedRespones, mockConnection.lastMessage)
+	require.Equal(t, expectedResponse, mockConnection.lastMessage)
 }
 
 func TestBlockListener_Listen(t *testing.T) {
