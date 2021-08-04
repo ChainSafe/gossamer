@@ -18,7 +18,6 @@ package network
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"path"
@@ -407,9 +406,8 @@ func (h *host) removeReservedPeers(ids ...string) error {
 			return err
 		}
 
-		del := h.h.ConnManager().Unprotect(peerID, "")
-		if !del {
-			return errors.New("could not disconnect peer")
+		if del := h.h.ConnManager().Unprotect(peerID, ""); !del {
+			continue
 		}
 	}
 
