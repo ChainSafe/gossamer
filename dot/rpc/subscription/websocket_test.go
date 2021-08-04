@@ -1,22 +1,14 @@
 package subscription
 
 import (
-	"fmt"
 	"log"
-	"math/big"
 	"net/http"
 	"os"
 	"testing"
 	"time"
 
-	modulesmocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
-
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/gorilla/websocket"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,7 +17,8 @@ var upgrader = websocket.Upgrader{
 }
 
 var wsconn = &WSConn{
-	Subscriptions: make(map[uint32]Listener),
+	Subscriptions:    make(map[uint]Listener),
+	BlockSubChannels: make(map[uint]byte),
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
@@ -245,65 +238,4 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.NotNil(t, res)
 	require.Len(t, wsconn.Subscriptions, 8)
 
-	_, msg, err = c.ReadMessage()
-	require.NoError(t, err)
-	require.Equal(t, `{"jsonrpc":"2.0","result":8,"id":0}`+"\n", string(msg))
-
-	_, msg, err = c.ReadMessage()
-	require.NoError(t, err)
-	require.Equal(t, `{"jsonrpc":"2.0","method":"author_extrinsicUpdate","params":{"result":"ready","subscription":8}}`+"\n", string(msg))
-
-	var fCh chan<- *types.FinalisationInfo
-	mockedJust := grandpa.Justification{
-		Round: 1,
-		Commit: &grandpa.Commit{
-			Hash:       common.Hash{},
-			Number:     1,
-			Precommits: nil,
-		},
-	}
-
-	mockedJustBytes, err := mockedJust.Encode()
-	require.NoError(t, err)
-
-	mockBlockAPI := new(modulesmocks.MockBlockAPI)
-	mockBlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
-		Run(func(args mock.Arguments) {
-			ch := args.Get(0).(chan<- *types.FinalisationInfo)
-			fCh = ch
-		}).
-		Return(uint8(4), nil)
-
-	mockBlockAPI.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(mockedJustBytes, nil)
-	mockBlockAPI.On("UnregisterFinalisedChannel", mock.AnythingOfType("uint8"))
-
-	wsconn.BlockAPI = mockBlockAPI
-	listener, err := wsconn.initGrandpaJustificationListener(0, nil)
-	require.NoError(t, err)
-	require.NotNil(t, listener)
-
-	_, msg, err = c.ReadMessage()
-	require.NoError(t, err)
-	require.Equal(t, `{"jsonrpc":"2.0","result":9,"id":0}`+"\n", string(msg))
-
-	listener.Listen()
-	header := &types.Header{
-		ParentHash: common.Hash{},
-		Number:     big.NewInt(1),
-	}
-
-	fCh <- &types.FinalisationInfo{
-		Header: header,
-	}
-
-	time.Sleep(time.Second * 2)
-
-	expected := `{"jsonrpc":"2.0","method":"grandpa_justifications","params":{"result":"%s","subscription":9}}` + "\n"
-	expected = fmt.Sprintf(expected, common.BytesToHex(mockedJustBytes))
-	_, msg, err = c.ReadMessage()
-	require.NoError(t, err)
-	require.Equal(t, []byte(expected), msg)
-
-	err = listener.Stop()
-	require.NoError(t, err)
 }
