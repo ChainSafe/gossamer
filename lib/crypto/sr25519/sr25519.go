@@ -83,13 +83,9 @@ func NewKeypairFromPrivate(priv *PrivateKey) (*Keypair, error) {
 }
 
 // NewKeypairFromSeed returns a new sr25519 Keypair given a seed
-func NewKeypairFromSeed(keystr []byte) (*Keypair, error) {
-	if len(keystr) != SeedLength {
-		return nil, errors.New("cannot generate key from seed: seed is not 32 bytes long")
-	}
-
+func NewKeypairFromSeed(seed []byte) (*Keypair, error) {
 	buf := [SeedLength]byte{}
-	copy(buf[:], keystr)
+	copy(buf[:], seed)
 	msc, err := sr25519.NewMiniSecretKeyFromRaw(buf)
 	if err != nil {
 		return nil, err
@@ -156,30 +152,6 @@ func NewPrivateKey(in []byte) (*PrivateKey, error) {
 	priv := new(PrivateKey)
 	err := priv.Decode(in)
 	return priv, err
-}
-
-// NewPrivateKeyFromHex returns a private key from a hex-encoded private key
-func NewPrivateKeyFromHex(keystr string) (*PrivateKey, error) {
-	seedBytes, err := common.HexToBytes(keystr)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(seedBytes) != PrivateKeyLength {
-		return nil, errors.New("cannot create public key: input is not 32 bytes")
-	}
-
-	var privKeyBytes [32]byte
-	copy(privKeyBytes[:], seedBytes)
-
-	miniSecretKey, err := sr25519.NewMiniSecretKeyFromRaw(privKeyBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return &PrivateKey{
-		key: miniSecretKey.ExpandUniform(),
-	}, nil
 }
 
 // GenerateKeypair returns a new sr25519 keypair
