@@ -8,77 +8,12 @@ import (
 	apimocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	log "github.com/ChainSafe/log15"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
 )
-
-func TestAuthorModule_HasSessionKey(t *testing.T) {
-	globalStore := keystore.NewGlobalKeystore()
-
-	coremockapi := new(apimocks.MockCoreAPI)
-	mockInsertKey := coremockapi.On("InsertKey", mock.AnythingOfType("*sr25519.Keypair"))
-	mockInsertKey.Run(func(args mock.Arguments) {
-		kp := args.Get(0).(*sr25519.Keypair)
-		globalStore.Acco.Insert(kp)
-	})
-
-	mockHasKey := coremockapi.On("HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string"))
-	mockHasKey.Run(func(args mock.Arguments) {
-		pubKeyHex := args.Get(0).(string)
-		keyType := args.Get(1).(string)
-
-		ok, err := keystore.HasKey(pubKeyHex, keyType, globalStore.Acco)
-		mockHasKey.ReturnArguments = []interface{}{ok, err}
-	})
-
-	keys := "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d34309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026"
-	runtimeInstance := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
-
-	decodeSessionKeysMock := coremockapi.On("DecodeSessionKeys", mock.AnythingOfType("[]uint8"))
-	decodeSessionKeysMock.Run(func(args mock.Arguments) {
-		b := args.Get(0).([]byte)
-		dec, err := runtimeInstance.DecodeSessionKeys(b)
-		decodeSessionKeysMock.ReturnArguments = []interface{}{dec, err}
-	})
-
-	module := &AuthorModule{
-		coreAPI: coremockapi,
-		logger:  log.New("service", "RPC", "module", "author"),
-	}
-
-	req := &HasSessionKeyRequest{
-		PublicKeys: keys,
-	}
-
-	err := module.InsertKey(nil, &KeyInsertRequest{
-		Type:      "babe",
-		Seed:      "0xfec0f475b818470af5caf1f3c1b1558729961161946d581d2755f9fb566534f8",
-		PublicKey: "0x34309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026",
-	}, nil)
-	coremockapi.AssertCalled(t, "InsertKey", mock.AnythingOfType("*sr25519.Keypair"))
-	require.NoError(t, err)
-	require.Equal(t, 1, globalStore.Acco.Size())
-
-	err = module.InsertKey(nil, &KeyInsertRequest{
-		Type:      "babe",
-		Seed:      "0xe5be9a5092b81bca64be81d212e7f2f9eba183bb7a90954f7b76361f6edb5c0a",
-		PublicKey: "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d",
-	}, nil)
-	require.NoError(t, err)
-	require.Equal(t, 2, globalStore.Acco.Size())
-
-	var res HasSessionKeyResponse
-	err = module.HasSessionKeys(nil, req, &res)
-	require.NoError(t, err)
-	require.True(t, bool(res))
-}
 
 func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 	errMockCoreAPI := &apimocks.MockCoreAPI{}
@@ -267,8 +202,8 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 			args: args{
 				req: &KeyInsertRequest{
 					"babe",
+					"0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309",
 					"0x6246ddf254e0b4b4e7dffefc8adf69d212b98ac2b579c362b473fec8c40b4c0a",
-					"0xdad5131003242c37c227f744f82118dd59a24b949ae264a93d949100738c196c",
 				},
 			},
 		},
@@ -279,10 +214,9 @@ func TestAuthorModule_InsertKey(t *testing.T) {
 				coreAPI: mockCoreAPI,
 			},
 			args: args{
-				req: &KeyInsertRequest{
-					"gran",
-					"0xb48004c6e1625282313b07d1c9950935e86894a2e4f21fb1ffee9854d180c781",
-					"0xa7d6507d59f8871b8f1a0f2c32e219adfacff4c9fcb05b0b2d8ebd6a65c88ee6",
+				req: &KeyInsertRequest{"gran",
+					"0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309b7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309",
+					"0xb7e9185065667390d2ad952a5324e8c365c9bf503dcf97c67a5ce861afe97309",
 				},
 			},
 		},

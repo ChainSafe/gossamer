@@ -17,14 +17,13 @@
 package modules
 
 import (
-	"errors"
+	"fmt"
 	"net/http"
-	"strings"
+	"reflect"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/keystore"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	log "github.com/ChainSafe/log15"
 )
@@ -36,17 +35,8 @@ type AuthorModule struct {
 	txStateAPI TransactionStateAPI
 }
 
-// HasSessionKeyRequest is used to receive the rpc data
-type HasSessionKeyRequest struct {
-	PublicKeys string
-}
-
 // KeyInsertRequest is used as model for the JSON
-type KeyInsertRequest struct {
-	Type      string
-	Seed      string
-	PublicKey string
-}
+type KeyInsertRequest []string
 
 // Extrinsic represents a hex-encoded extrinsic
 type Extrinsic struct {
@@ -73,18 +63,6 @@ type RemoveExtrinsicsResponse []common.Hash
 
 // KeyRotateResponse is a byte array used to rotate
 type KeyRotateResponse []byte
-
-// HasSessionKeyResponse is the response to the RPC call author_hasSessionKeys
-type HasSessionKeyResponse bool
-
-// KeyTypeID represents the key type of a session key
-type keyTypeID [4]uint8
-
-// DecodedKey is the representation of a scaled decoded public key
-type decodedKey struct {
-	Data []uint8
-	Type keyTypeID
-}
 
 // ExtrinsicStatus holds the actual valid statuses
 type ExtrinsicStatus struct {
@@ -116,66 +94,27 @@ func NewAuthorModule(logger log.Logger, coreAPI CoreAPI, txStateAPI TransactionS
 	}
 }
 
-// HasSessionKeys checks if the keystore has private keys for the given session public keys.
-func (am *AuthorModule) HasSessionKeys(r *http.Request, req *HasSessionKeyRequest, res *HasSessionKeyResponse) error {
-	pubKeysBytes, err := common.HexToBytes(req.PublicKeys)
-	if err != nil {
-		return err
-	}
-
-	pkeys, err := scale.Marshal(pubKeysBytes)
-	if err != nil {
-		return err
-	}
-
-	data, err := am.coreAPI.DecodeSessionKeys(pkeys)
-	if err != nil {
-		*res = false
-		return err
-	}
-
-	var decodedKeys *[]decodedKey
-	err = scale.Unmarshal(data, &decodedKeys)
-	if err != nil {
-		return err
-	}
-
-	if decodedKeys == nil || len(*decodedKeys) < 1 {
-		*res = false
-		return nil
-	}
-
-	for _, key := range *decodedKeys {
-		encType := keystore.Name(key.Type[:])
-		ok, err := am.coreAPI.HasKey(common.BytesToHex(key.Data), string(encType))
-
-		if err != nil || !ok {
-			*res = false
-			return err
-		}
-	}
-
-	*res = true
-	return nil
-}
-
 // InsertKey inserts a key into the keystore
 func (am *AuthorModule) InsertKey(r *http.Request, req *KeyInsertRequest, res *KeyInsertResponse) error {
 	keyReq := *req
 
-	keyBytes, err := common.HexToBytes(req.Seed)
+	pkDec, err := common.HexToBytes(keyReq[1])
 	if err != nil {
 		return err
 	}
 
-	keyPair, err := keystore.DecodeKeyPairFromHex(keyBytes, keystore.DetermineKeyType(keyReq.Type))
+	privateKey, err := keystore.DecodePrivateKey(pkDec, keystore.DetermineKeyType(keyReq[0]))
 	if err != nil {
 		return err
 	}
 
-	//strings.EqualFold compare using case-insensitivity.
-	if !strings.EqualFold(keyPair.Public().Hex(), keyReq.PublicKey) {
-		return errors.New("generated public key does not equal provide public key")
+	keyPair, err := keystore.PrivateKeyToKeypair(privateKey)
+	if err != nil {
+		return err
+	}
+
+	if !reflect.DeepEqual(keyPair.Public().Hex(), keyReq[2]) {
+		return fmt.Errorf("generated public key does not equal provide public key")
 	}
 
 	am.coreAPI.InsertKey(keyPair)
