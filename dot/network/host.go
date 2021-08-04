@@ -406,7 +406,7 @@ func (h *host) removeReservedPeers(ids ...string) error {
 			return err
 		}
 
-		if del := h.h.ConnManager().Unprotect(peerID, ""); !del {
+		if !h.h.ConnManager().Unprotect(peerID, "") {
 			continue
 		}
 	}
