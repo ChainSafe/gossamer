@@ -121,7 +121,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 
 	bs.genesisHash = header.Hash()
 
-	if err := bs.db.Put(highestRoundAndSetIDKey, roundSetIDKey(0, 0)); err != nil {
+	if err := bs.db.Put(highestRoundAndSetIDKey, roundAndSetIDToBytes(0, 0)); err != nil {
 		return nil, err
 	}
 
