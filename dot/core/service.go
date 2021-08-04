@@ -408,26 +408,6 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 	return nil
 }
 
-//func (s *Service) notifyRuntimeUpdated(version runtime.Version) {
-//	s.runtimeUpdateSubscriptionsLock.RLock()
-//	defer s.runtimeUpdateSubscriptionsLock.RUnlock()
-//
-//	if len(s.runtimeUpdateSubscriptions) == 0 {
-//		return
-//	}
-//
-//	logger.Debug("notifying runtime updated chans...", "chans", s.runtimeUpdateSubscriptions)
-//	var wg sync.WaitGroup
-//	wg.Add(len(s.runtimeUpdateSubscriptions))
-//	for _, ch := range s.runtimeUpdateSubscriptions {
-//		go func(ch chan<- runtime.Version) {
-//			defer wg.Done()
-//			ch <- version
-//		}(ch)
-//	}
-//	wg.Wait()
-//}
-
 // maintainTransactionPool removes any transactions that were included in the new block, revalidates the transactions in the pool,
 // and moves them to the queue if valid.
 // See https://github.com/paritytech/substrate/blob/74804b5649eccfb83c90aec87bdca58e5d5c8789/client/transaction-pool/src/lib.rs#L545

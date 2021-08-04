@@ -665,9 +665,9 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState, rt run
 	}
 
 	codeSubBlockHash := bs.baseState.LoadCodeSubstitutedBlockHash()
-	var newVersion runtime.Version
+
 	if !codeSubBlockHash.Equal(common.Hash{}) {
-		newVersion, err = rt.CheckRuntimeVersion(code)
+		newVersion, err := rt.CheckRuntimeVersion(code) //nolint
 		if err != nil {
 			return err
 		}
@@ -711,6 +711,10 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState, rt run
 		return fmt.Errorf("failed to update code substituted block hash: %w", err)
 	}
 
+	newVersion, err := rt.Version()
+	if err != nil {
+		return fmt.Errorf("failed to retrieve runtime version: %w", err)
+	}
 	bs.notifyRuntimeUpdated(newVersion)
 	return nil
 }
