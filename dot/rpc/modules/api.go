@@ -78,7 +78,6 @@ type CoreAPI interface {
 	HandleSubmittedExtrinsic(types.Extrinsic) error
 	GetMetadata(bhash *common.Hash) ([]byte, error)
 	QueryStorage(from common.Hash, to *common.Hash, keys ...string) (map[common.Hash]core.QueryKeyValueChanges, error)
-	DecodeSessionKeys(enc []byte) ([]byte, error)
 }
 
 // RPCAPI is the interface for methods related to RPC service
