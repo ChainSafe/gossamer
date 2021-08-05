@@ -45,11 +45,12 @@ package wasmer
 //
 // extern int32_t ext_trie_blake2_256_root_version_1(void *context, int64_t a);
 // extern int32_t ext_trie_blake2_256_ordered_root_version_1(void *context, int64_t a);
+// extern int32_t ext_trie_blake2_256_verify_proof_version_1(void *context, int32_t a, int64_t b, int64_t c, int64_t d);
 //
+// extern int64_t ext_misc_runtime_version_version_1(void *context, int64_t a);
 // extern void ext_misc_print_hex_version_1(void *context, int64_t a);
 // extern void ext_misc_print_num_version_1(void *context, int64_t a);
 // extern void ext_misc_print_utf8_version_1(void *context, int64_t a);
-// extern int64_t ext_misc_runtime_version_version_1(void *context, int64_t a);
 //
 // extern void ext_default_child_storage_clear_version_1(void *context, int64_t a, int64_t b);
 // extern int64_t ext_default_child_storage_get_version_1(void *context, int64_t a, int64_t b);
@@ -59,6 +60,7 @@ package wasmer
 // extern void ext_default_child_storage_set_version_1(void *context, int64_t a, int64_t b, int64_t c);
 // extern void ext_default_child_storage_storage_kill_version_1(void *context, int64_t a);
 // extern int32_t ext_default_child_storage_storage_kill_version_2(void *context, int64_t a, int64_t b);
+// extern int64_t ext_default_child_storage_storage_kill_version_3(void *context, int64_t a, int64_t b);
 // extern void ext_default_child_storage_clear_prefix_version_1(void *context, int64_t a, int64_t b);
 // extern int32_t ext_default_child_storage_exists_version_1(void *context, int64_t a, int64_t b);
 //
@@ -75,17 +77,20 @@ package wasmer
 //
 // extern void ext_offchain_index_set_version_1(void *context, int64_t a, int64_t b);
 // extern int32_t ext_offchain_is_validator_version_1(void *context);
+// extern void ext_offchain_local_storage_clear_version_1(void *context, int32_t a, int64_t b);
 // extern int32_t ext_offchain_local_storage_compare_and_set_version_1(void *context, int32_t a, int64_t b, int64_t c, int64_t d);
 // extern int64_t ext_offchain_local_storage_get_version_1(void *context, int32_t a, int64_t b);
 // extern void ext_offchain_local_storage_set_version_1(void *context, int32_t a, int64_t b, int64_t c);
 // extern int64_t ext_offchain_network_state_version_1(void *context);
 // extern int32_t ext_offchain_random_seed_version_1(void *context);
 // extern int64_t ext_offchain_submit_transaction_version_1(void *context, int64_t a);
+// extern int64_t ext_offchain_timestamp_version_1(void *context);
 //
 // extern void ext_storage_append_version_1(void *context, int64_t a, int64_t b);
 // extern int64_t ext_storage_changes_root_version_1(void *context, int64_t a);
 // extern void ext_storage_clear_version_1(void *context, int64_t a);
 // extern void ext_storage_clear_prefix_version_1(void *context, int64_t a);
+// extern int64_t ext_storage_clear_prefix_version_2(void *context, int64_t a, int64_t b);
 // extern void ext_storage_commit_transaction_version_1(void *context);
 // extern int32_t ext_storage_exists_version_1(void *context, int64_t a);
 // extern int64_t ext_storage_get_version_1(void *context, int64_t a);
@@ -95,6 +100,9 @@ package wasmer
 // extern int64_t ext_storage_root_version_1(void *context);
 // extern void ext_storage_set_version_1(void *context, int64_t a, int64_t b);
 // extern void ext_storage_start_transaction_version_1(void *context);
+//
+// extern void ext_transaction_index_index_version_1(void *context, int32_t a, int32_t b, int32_t c);
+// extern void ext_transaction_index_renew_version_1(void *context, int32_t a, int32_t b);
 import "C"
 
 import (
@@ -152,6 +160,18 @@ func ext_logging_log_version_1(context unsafe.Pointer, level C.int32_t, targetDa
 func ext_logging_max_level_version_1(context unsafe.Pointer) C.int32_t {
 	logger.Trace("[ext_logging_max_level_version_1] executing...")
 	return 4
+}
+
+//export ext_transaction_index_index_version_1
+func ext_transaction_index_index_version_1(context unsafe.Pointer, a, b, c C.int32_t) {
+	logger.Trace("[ext_transaction_index_index_version_1] executing...")
+	logger.Warn("[ext_transaction_index_index_version_1] unimplemented")
+}
+
+//export ext_transaction_index_renew_version_1
+func ext_transaction_index_renew_version_1(context unsafe.Pointer, a, b C.int32_t) {
+	logger.Trace("[ext_transaction_index_renew_version_1] executing...")
+	logger.Warn("[ext_transaction_index_renew_version_1] unimplemented")
 }
 
 //export ext_sandbox_instance_teardown_version_1
@@ -835,6 +855,13 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 	return C.int32_t(ptr)
 }
 
+//export ext_trie_blake2_256_verify_proof_version_1
+func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, a C.int32_t, b, c, d C.int64_t) C.int32_t {
+	logger.Debug("[ext_trie_blake2_256_verify_proof_version_1] executing...")
+	logger.Warn("[ext_trie_blake2_256_verify_proof_version_1] unimplemented")
+	return 0
+}
+
 //export ext_misc_print_hex_version_1
 func ext_misc_print_hex_version_1(context unsafe.Pointer, dataSpan C.int64_t) {
 	logger.Trace("[ext_misc_print_hex_version_1] executing...")
@@ -1093,9 +1120,36 @@ func ext_default_child_storage_storage_kill_version_1(context unsafe.Pointer, ch
 }
 
 //export ext_default_child_storage_storage_kill_version_2
-func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer, a, b C.int64_t) C.int32_t {
+func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer, childStorageKeySpan, _ C.int64_t) C.int32_t {
 	logger.Debug("[ext_default_child_storage_storage_kill_version_2] executing...")
-	logger.Warn("[ext_default_child_storage_storage_kill_version_2] unimplemented")
+	logger.Warn("[ext_default_child_storage_storage_kill_version_2] somewhat unimplemented")
+	// TODO: need to use `limit` parameter
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	ctx := instanceContext.Data().(*runtime.Context)
+	storage := ctx.Storage
+
+	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
+	storage.DeleteChild(childStorageKey)
+
+	// note: this function always returns `KillStorageResult::AllRemoved`, which is 0
+	return 0
+}
+
+//export ext_default_child_storage_storage_kill_version_3
+func ext_default_child_storage_storage_kill_version_3(context unsafe.Pointer, childStorageKeySpan, _ C.int64_t) C.int64_t {
+	logger.Debug("[ext_default_child_storage_storage_kill_version_3] executing...")
+	logger.Warn("[ext_default_child_storage_storage_kill_version_3] somewhat unimplemented")
+	// TODO: need to use `limit` parameter
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	ctx := instanceContext.Data().(*runtime.Context)
+	storage := ctx.Storage
+
+	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
+	storage.DeleteChild(childStorageKey)
+
+	// TODO: this function returns a `KillStorageResult` which may be `AllRemoved` (0) or `SomeRemaining` (1)
 	return 0
 }
 
@@ -1297,6 +1351,12 @@ func ext_offchain_index_set_version_1(context unsafe.Pointer, keySpan, valueSpan
 	logger.Warn("[ext_offchain_index_set_version_1] unimplemented")
 }
 
+//export ext_offchain_local_storage_clear_version_1
+func ext_offchain_local_storage_clear_version_1(context unsafe.Pointer, a C.int32_t, b C.int64_t) {
+	logger.Trace("[ext_offchain_local_storage_clear_version_1] executing...")
+	logger.Warn("[ext_offchain_local_storage_clear_version_1] unimplemented")
+}
+
 //export ext_offchain_is_validator_version_1
 func ext_offchain_is_validator_version_1(context unsafe.Pointer) C.int32_t {
 	logger.Debug("[ext_offchain_is_validator_version_1] executing...")
@@ -1478,6 +1538,13 @@ func ext_offchain_submit_transaction_version_1(context unsafe.Pointer, data C.in
 	return C.int64_t(ptr)
 }
 
+//export ext_offchain_timestamp_version_1
+func ext_offchain_timestamp_version_1(context unsafe.Pointer) C.int64_t {
+	logger.Trace("[ext_offchain_timestamp_version_1] executing...")
+	logger.Warn("[ext_offchain_timestamp_version_1] unimplemented")
+	return 0
+}
+
 func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 	nextLength := big.NewInt(1)
 	var valueRes []byte
@@ -1582,6 +1649,27 @@ func ext_storage_clear_prefix_version_1(context unsafe.Pointer, prefixSpan C.int
 	if err != nil {
 		logger.Error("[ext_storage_clear_prefix_version_1]", "error", err)
 	}
+}
+
+//export ext_storage_clear_prefix_version_2
+func ext_storage_clear_prefix_version_2(context unsafe.Pointer, prefixSpan, _ C.int64_t) C.int64_t {
+	logger.Trace("[ext_storage_clear_prefix_version_2] executing...")
+	logger.Warn("[ext_storage_clear_prefix_version_2] somewhat unimplemented")
+	// TODO: need to use unused `limit` parameter
+
+	instanceContext := wasm.IntoInstanceContext(context)
+	ctx := instanceContext.Data().(*runtime.Context)
+	storage := ctx.Storage
+
+	prefix := asMemorySlice(instanceContext, prefixSpan)
+	logger.Debug("[ext_storage_clear_prefix_version_1]", "prefix", fmt.Sprintf("0x%x", prefix))
+
+	err := storage.ClearPrefix(prefix)
+	if err != nil {
+		logger.Error("[ext_storage_clear_prefix_version_1]", "error", err)
+	}
+
+	return 1
 }
 
 //export ext_storage_exists_version_1
@@ -1961,6 +2049,10 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
 	if err != nil {
 		return nil, err
 	}
+	_, err = imports.Append("ext_default_child_storage_storage_kill_version_3", ext_default_child_storage_storage_kill_version_3, C.ext_default_child_storage_storage_kill_version_3)
+	if err != nil {
+		return nil, err
+	}
 
 	_, err = imports.Append("ext_hashing_blake2_128_version_1", ext_hashing_blake2_128_version_1, C.ext_hashing_blake2_128_version_1)
 	if err != nil {
@@ -2025,6 +2117,10 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
 	if err != nil {
 		return nil, err
 	}
+	_, err = imports.Append("ext_offchain_local_storage_clear_version_1", ext_offchain_local_storage_clear_version_1, C.ext_offchain_local_storage_clear_version_1)
+	if err != nil {
+		return nil, err
+	}
 	_, err = imports.Append("ext_offchain_local_storage_compare_and_set_version_1", ext_offchain_local_storage_compare_and_set_version_1, C.ext_offchain_local_storage_compare_and_set_version_1)
 	if err != nil {
 		return nil, err
@@ -2046,6 +2142,10 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
 		return nil, err
 	}
 	_, err = imports.Append("ext_offchain_submit_transaction_version_1", ext_offchain_submit_transaction_version_1, C.ext_offchain_submit_transaction_version_1)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_offchain_timestamp_version_1", ext_offchain_timestamp_version_1, C.ext_offchain_timestamp_version_1)
 	if err != nil {
 		return nil, err
 	}
@@ -2095,6 +2195,10 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
 	if err != nil {
 		return nil, err
 	}
+	_, err = imports.Append("ext_storage_clear_prefix_version_2", ext_storage_clear_prefix_version_2, C.ext_storage_clear_prefix_version_2)
+	if err != nil {
+		return nil, err
+	}
 	_, err = imports.Append("ext_storage_commit_transaction_version_1", ext_storage_commit_transaction_version_1, C.ext_storage_commit_transaction_version_1)
 	if err != nil {
 		return nil, err
@@ -2137,6 +2241,19 @@ func ImportsNodeRuntime() (*wasm.Imports, error) { //nolint
 		return nil, err
 	}
 	_, err = imports.Append("ext_trie_blake2_256_root_version_1", ext_trie_blake2_256_root_version_1, C.ext_trie_blake2_256_root_version_1)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_trie_blake2_256_verify_proof_version_1", ext_trie_blake2_256_verify_proof_version_1, C.ext_trie_blake2_256_verify_proof_version_1)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = imports.Append("ext_transaction_index_index_version_1", ext_transaction_index_index_version_1, C.ext_transaction_index_index_version_1)
+	if err != nil {
+		return nil, err
+	}
+	_, err = imports.Append("ext_transaction_index_renew_version_1", ext_transaction_index_renew_version_1, C.ext_transaction_index_renew_version_1)
 	if err != nil {
 		return nil, err
 	}
