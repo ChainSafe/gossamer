@@ -159,95 +159,97 @@ type keyValue struct {
 	iVal     []interface{}
 }
 
-func generatePalletKeyValue(k string, v map[string]interface{}, res map[string]string) error {
+func generatePalletKeyValue(k string, v map[string]interface{}, res map[string]string) (bool, error) {
 	jsonBody, err := json.Marshal(v)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	switch k {
 	case "Society":
 		s := &society{}
 		if err = json.Unmarshal(jsonBody, s); err != nil {
-			return err
+			return false, err
 		}
 
 		err = generateKeyValue(s, k, res)
 		if err != nil {
-			return err
+			return false, err
 		}
 	case "Staking":
 		st := &staking{}
 		if err = json.Unmarshal(jsonBody, st); err != nil {
-			return err
+			return false, err
 		}
 
 		err = generateKeyValue(st, k, res)
 		if err != nil {
-			return err
+			return false, err
 		}
 	case "Contracts":
 		c := &contracts{}
 		if err = json.Unmarshal(jsonBody, c); err != nil {
-			return err
+			return false, err
 		}
 
 		err = generateContractKeyValue(c, k, res)
 		if err != nil {
-			return err
+			return false, err
 		}
 	case "Session":
 		s := &session{}
 		if err = json.Unmarshal(jsonBody, s); err != nil {
-			return err
+			return false, err
 		}
 
 		err = generateSessionKeyValue(s, k, res)
 		if err != nil {
-			return err
+			return false, err
 		}
 	case "Instance1Collective":
 		ic := &instance1Collective{}
 		if err = json.Unmarshal(jsonBody, ic); err != nil {
-			return err
+			return false, err
 		}
 
 		err = generateKeyValue(ic, k, res)
 		if err != nil {
-			return err
+			return false, err
 		}
 	case "Instance2Collective":
 		ic := &instance2Collective{}
 		if err = json.Unmarshal(jsonBody, ic); err != nil {
-			return err
+			return false, err
 		}
 
 		err = generateKeyValue(ic, k, res)
 		if err != nil {
-			return err
+			return false, err
 		}
 	case "Instance1Membership":
 		im := &instance1Membership{}
 		if err = json.Unmarshal(jsonBody, im); err != nil {
-			return err
+			return false, err
 		}
 
 		err = generateKeyValue(im, k, res)
 		if err != nil {
-			return err
+			return false, err
 		}
 	case "PhragmenElection":
 		pe := &phragmenElection{}
 		if err = json.Unmarshal(jsonBody, pe); err != nil {
-			return err
+			return false, err
 		}
 
 		err = generateKeyValue(pe, k, res)
 		if err != nil {
-			return err
+			return false, err
 		}
+	default:
+		return false, nil
 	}
-	return nil
+	return true, nil
 }
 
 func buildRawMap(m map[string]map[string]interface{}) (map[string]string, error) {
@@ -256,16 +258,21 @@ func buildRawMap(m map[string]map[string]interface{}) (map[string]string, error)
 		kv := new(keyValue)
 		kv.key = append(kv.key, k)
 
-		if err := generatePalletKeyValue(k, v, res); err != nil {
+		ok, err := generatePalletKeyValue(k, v, res)
+		if err != nil {
 			return nil, err
 		}
 
-		if err := buildRawMapInterface(v, kv); err != nil {
+		if ok {
+			continue
+		}
+
+		if err = buildRawMapInterface(v, kv); err != nil {
 			return nil, err
 		}
 
 		if reflect.DeepEqual([]string{"Balances", "balances"}, kv.key) {
-			err := buildBalances(kv, res)
+			err = buildBalances(kv, res)
 			if err != nil {
 				return nil, err
 			}
@@ -297,11 +304,6 @@ func buildRawMapInterface(m map[string]interface{}, kv *keyValue) error {
 			if err := buildRawArrayInterface(v2, kv); err != nil {
 				return err
 			}
-		case float64:
-			// TODO: determine how to handle this error
-			encVal, _ := scale.Marshal(uint32(v2))
-			kv.value += fmt.Sprintf("%x", encVal)
-			kv.iVal = append(kv.iVal, encVal)
 		case string:
 			kv.value = v2
 		}
@@ -472,10 +474,10 @@ func generateKeyValue(s interface{}, prefixKey string, res map[string]string) er
 
 func formatKey(kv *keyValue) (string, error) {
 	switch {
-	case reflect.DeepEqual([]string{"Grandpa", "Authorities"}, kv.key):
+	case reflect.DeepEqual([]string{"Grandpa", "authorities"}, kv.key):
 		kb := []byte(`:grandpa_authorities`)
 		return common.BytesToHex(kb), nil
-	case reflect.DeepEqual([]string{"FrameSystem", "changesTrieConfig", "code"}, kv.key):
+	case reflect.DeepEqual([]string{"System", "changesTrieConfig", "code"}, kv.key):
 		kb := []byte(`:code`)
 		return common.BytesToHex(kb), nil
 	default:
@@ -576,7 +578,7 @@ func generateAddHash(accAddr, key string) ([]byte, error) {
 
 func formatValue(kv *keyValue) (string, error) {
 	switch {
-	case reflect.DeepEqual([]string{"Grandpa", "Authorities"}, kv.key):
+	case reflect.DeepEqual([]string{"Grandpa", "authorities"}, kv.key):
 		if kv.valueLen != nil {
 			lenEnc, err := scale.Marshal(kv.valueLen)
 			if err != nil {
@@ -586,7 +588,7 @@ func formatValue(kv *keyValue) (string, error) {
 			return fmt.Sprintf("0x01%x%v", lenEnc, kv.value), nil
 		}
 		return "", fmt.Errorf("error formatting value for grandpa authorities")
-	case reflect.DeepEqual([]string{"FrameSystem", "changesTrieConfig", "code"}, kv.key):
+	case reflect.DeepEqual([]string{"System", "changesTrieConfig", "code"}, kv.key):
 		return kv.value, nil
 	case reflect.DeepEqual([]string{"Sudo", "Key"}, kv.key):
 		return common.BytesToHex(crypto.PublicAddressToByteArray(common.Address(kv.value))), nil
