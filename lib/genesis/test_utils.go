@@ -59,8 +59,9 @@ var TestGenesis = &Genesis{
 var TestFieldsHR = Fields{
 	Raw: map[string]map[string]string{},
 	Runtime: map[string]map[string]interface{}{
-		"system": {
-			"code": "mocktestcode",
+		"System": {
+			"changesTrieConfig": "",
+			"code":              "mocktestcode",
 		},
 	},
 }
@@ -95,8 +96,9 @@ func CreateTestGenesisJSONFile(asRaw bool) (string, error) {
 		tGen.Genesis = Fields{
 			Raw: map[string]map[string]string{},
 			Runtime: map[string]map[string]interface{}{
-				"system": {
-					"code": "mocktestcode",
+				"System": {
+					"changesTrieConfig": "",
+					"code":              "mocktestcode",
 				},
 			},
 		}
