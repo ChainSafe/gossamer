@@ -39,17 +39,17 @@ func TestService_Methods(t *testing.T) {
 
 	rpcService := NewService()
 	sysMod := modules.NewSystemModule(nil, nil, nil, nil, nil, nil)
-	rpcService.BuildMethodNames(sysMod, "system")
+	rpcService.BuildMethodNames(sysMod, "system", true)
 	m := rpcService.Methods()
 	require.Equal(t, qtySystemMethods, len(m)) // check to confirm quantity for methods is correct
 
 	rpcMod := modules.NewRPCModule(nil)
-	rpcService.BuildMethodNames(rpcMod, "rpc")
+	rpcService.BuildMethodNames(rpcMod, "rpc", true)
 	m = rpcService.Methods()
 	require.Equal(t, qtySystemMethods+qtyRPCMethods, len(m))
 
 	authMod := modules.NewAuthorModule(nil, nil, nil)
-	rpcService.BuildMethodNames(authMod, "author")
+	rpcService.BuildMethodNames(authMod, "author", true)
 	m = rpcService.Methods()
 	require.Equal(t, qtySystemMethods+qtyRPCMethods+qtyAuthorMethods, len(m))
 }

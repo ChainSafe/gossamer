@@ -81,7 +81,7 @@ type CoreAPI interface {
 // RPCAPI is the interface for methods related to RPC service
 type RPCAPI interface {
 	Methods() []string
-	BuildMethodNames(rcvr interface{}, name string)
+	BuildMethodNames(rcvr interface{}, name string, unsafeEnabled bool)
 }
 
 // SystemAPI is the interface for handling system methods

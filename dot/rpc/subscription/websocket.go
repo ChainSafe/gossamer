@@ -29,7 +29,6 @@ import (
 	"sync/atomic"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	log "github.com/ChainSafe/log15"
@@ -49,6 +48,7 @@ const DEFAULT_BUFFER_SIZE = 100
 
 // WSConn struct to hold WebSocket Connection references
 type WSConn struct {
+	UnsafeEnabled bool
 	Wsconn        *websocket.Conn
 	mu            sync.Mutex
 	qtyListeners  uint32
@@ -103,7 +103,7 @@ func (c *WSConn) HandleComm() {
 
 		logger.Debug("ws method called", "method", method, "params", params)
 
-		if strings.Contains(method, "_subscribe") {
+		if !strings.Contains(method, "_unsubscribe") {
 			setup := c.getSetupListener(method)
 
 			listener, err := setup(reqid, params) //nolint
@@ -116,8 +116,8 @@ func (c *WSConn) HandleComm() {
 			continue
 		}
 
-		if strings.Contains(method, "_unsubscribe") {
-			unsub, listener, err := c.getUnsubListener(method, params) //nolint
+		if strings.Contains(method, "_unsubscribe") || strings.Contains(method, "_unwatch") {
+			listener, err := c.getUnsubListener(method, params) //nolint
 
 			if err != nil {
 				logger.Warn("failed to get unsubscriber", "method", method, "error", err)
@@ -133,25 +133,13 @@ func (c *WSConn) HandleComm() {
 				}
 			}
 
-			unsub(reqid, listener, params)
 			err = listener.Stop()
-
 			if err != nil {
 				logger.Warn("failed to cancel listener goroutine", "method", method, "error", err)
+				c.safeSend(newBooleanResponseJSON(false, reqid))
 			}
 
-			continue
-		}
-
-		if strings.Contains(method, "submitAndWatchExtrinsic") {
-			listener, err := c.initExtrinsicWatch(reqid, params) //nolint
-			if err != nil {
-				logger.Warn("failed to create listener", "method", method, "error", err)
-				c.safeSendError(reqid, nil, err.Error())
-				continue
-			}
-
-			listener.Listen()
+			c.safeSend(newBooleanResponseJSON(true, reqid))
 			continue
 		}
 
@@ -217,18 +205,6 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (L
 	c.safeSend(initRes)
 
 	return stgobs, nil
-}
-
-func (c *WSConn) unsubscribeStorageListener(reqID float64, l Listener, _ interface{}) {
-	observer, ok := l.(state.Observer)
-	if !ok {
-		initRes := newBooleanResponseJSON(false, reqID)
-		c.safeSend(initRes)
-		return
-	}
-
-	c.StorageAPI.UnregisterStorageObserver(observer)
-	c.safeSend(newBooleanResponseJSON(true, reqID))
 }
 
 func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, error) {
@@ -401,17 +377,6 @@ func (c *WSConn) initGrandpaJustificationListener(reqID float64, _ interface{}) 
 	c.safeSend(NewSubscriptionResponseJSON(jl.subID, reqID))
 
 	return jl, nil
-}
-
-func (c *WSConn) unsubscribeGrandpaJustificationListener(reqID float64, l Listener, params interface{}) {
-	listener, ok := l.(*GrandpaJustificationListener)
-	if !ok {
-		c.safeSend(newBooleanResponseJSON(false, reqID))
-		return
-	}
-
-	c.BlockAPI.UnregisterFinalisedChannel(listener.finalisedChID)
-	c.safeSend(newBooleanResponseJSON(true, reqID))
 }
 
 func (c *WSConn) safeSend(msg interface{}) {

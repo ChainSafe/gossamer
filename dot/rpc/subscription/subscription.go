@@ -4,56 +4,64 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 )
 
-var errUknownParamSubscribeID = errors.New("invalid params format type")
-var errCannotParseID = errors.New("could not parse param id")
-var errCannotFindListener = errors.New("could not find listener")
-var errCannotFindUnsubsriber = errors.New("could not find unsubsriber function")
+const (
+	UNSAFE_SUFIX = "_UNSAFE"
 
-type unsubListener func(reqid float64, l Listener, params interface{})
+	authorSubmitAndWatchExtrinsic    = "author_submitAndWatchExtrinsic"
+	authorUnwatchExtrinsic           = "author_unwatchExtrinsic"
+	chainSubscribeNewHeads           = "chain_subscribeNewHeads"
+	chainSubscribeNewHead            = "chain_subscribeNewHead"
+	chainSubscribeFinalizedHeads     = "chain_subscribeFinalizedHeads"
+	stateSubscribeStorage            = "state_subscribeStorage"
+	stateSubscribeRuntimeVersion     = "state_subscribeRuntimeVersion"
+	stateUnsubscribeStorage          = "state_unsubscribeStorage"
+	grandpaSubscribeJustifications   = "grandpa_subscribeJustifications"
+	grandpaUnsubscribeJustifications = "grandpa_unsubscribeJustifications"
+)
+
 type setupListener func(reqid float64, params interface{}) (Listener, error)
+
+var (
+	errUknownParamSubscribeID = errors.New("invalid params format type")
+	errCannotParseID          = errors.New("could not parse param id")
+	errCannotFindListener     = errors.New("could not find listener")
+	errCannotFindUnsubsriber  = errors.New("could not find unsubsriber function")
+)
 
 func (c *WSConn) getSetupListener(method string) setupListener {
 	switch method {
-	case "chain_subscribeNewHeads", "chain_subscribeNewHead":
+	case authorSubmitAndWatchExtrinsic:
+		return c.initExtrinsicWatch
+	case chainSubscribeNewHeads, chainSubscribeNewHead:
 		return c.initBlockListener
-	case "state_subscribeStorage":
+	case stateSubscribeStorage:
 		return c.initStorageChangeListener
-	case "chain_subscribeFinalizedHeads":
+	case chainSubscribeFinalizedHeads:
 		return c.initBlockFinalizedListener
-	case "state_subscribeRuntimeVersion":
+	case stateSubscribeRuntimeVersion:
 		return c.initRuntimeVersionListener
-	case "grandpa_subscribeJustifications":
+	case grandpaSubscribeJustifications:
 		return c.initGrandpaJustificationListener
 	default:
 		return nil
 	}
 }
 
-func (c *WSConn) getUnsubListener(method string, params interface{}) (unsubListener, Listener, error) {
+func (c *WSConn) getUnsubListener(method string, params interface{}) (Listener, error) {
 	subscribeID, err := parseSubscribeID(params)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	listener, ok := c.Subscriptions[subscribeID]
 	if !ok {
-		return nil, nil, fmt.Errorf("subscriber id %v: %w", subscribeID, errCannotFindListener)
+		return nil, fmt.Errorf("subscriber id %v: %w", subscribeID, errCannotFindListener)
 	}
 
-	var unsub unsubListener
-
-	switch method {
-	case "state_unsubscribeStorage":
-		unsub = c.unsubscribeStorageListener
-	case "grandpa_unsubscribeJustifications":
-		unsub = c.unsubscribeGrandpaJustificationListener
-	default:
-		return nil, nil, errCannotFindUnsubsriber
-	}
-
-	return unsub, listener, nil
+	return listener, nil
 }
 
 func parseSubscribeID(p interface{}) (uint32, error) {
@@ -81,4 +89,9 @@ func parseSubscribeID(p interface{}) (uint32, error) {
 	}
 
 	return id, nil
+}
+
+// IsUnsafe returns true if the `name` has the _UNSAFE suffix
+func IsUnsafe(name string) bool {
+	return strings.HasSuffix(name, UNSAFE_SUFIX)
 }

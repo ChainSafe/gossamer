@@ -53,13 +53,34 @@ type HTTPServerConfig struct {
 	TransactionQueueAPI modules.TransactionStateAPI
 	RPCAPI              modules.RPCAPI
 	SystemAPI           modules.SystemAPI
-	External            bool
+	RPC                 bool
+	RPCExternal         bool
+	RPCUnsafe           bool
+	RPCUnsafeExternal   bool
 	Host                string
 	RPCPort             uint32
 	WS                  bool
 	WSExternal          bool
+	WSUnsafe            bool
+	WSUnsafeExternal    bool
 	WSPort              uint32
 	Modules             []string
+}
+
+func (h HTTPServerConfig) RPCUnsafeEnabled() bool {
+	return h.RPCUnsafe || h.RPCUnsafeExternal
+}
+
+func (h HTTPServerConfig) WSUnsafeEnabled() bool {
+	return h.WSUnsafe || h.WSUnsafeExternal
+}
+
+func (h HTTPServerConfig) ExposeWS() bool {
+	return h.WSExternal || h.WSUnsafeExternal
+}
+
+func (h HTTPServerConfig) ExposeRPC() bool {
+	return h.RPCExternal || h.RPCUnsafeExternal
 }
 
 var logger log.Logger
@@ -78,7 +99,7 @@ func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
 	}
 
 	server.RegisterModules(cfg.Modules)
-	if !cfg.External {
+	if !cfg.ExposeRPC() {
 		server.rpcServer.RegisterValidateRequestFunc(LocalRequestOnly)
 	}
 
@@ -118,7 +139,7 @@ func (h *HTTPServer) RegisterModules(mods []string) {
 			h.logger.Warn("Failed to register module", "mod", mod, "err", err)
 		}
 
-		h.serverConfig.RPCAPI.BuildMethodNames(srvc, mod)
+		h.serverConfig.RPCAPI.BuildMethodNames(srvc, mod, h.serverConfig.RPCUnsafeEnabled())
 	}
 }
 
@@ -199,7 +220,7 @@ func (h *HTTPServer) Stop() error {
 func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var upg = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
-			if !h.serverConfig.WSExternal {
+			if !h.serverConfig.ExposeWS() {
 				ip, _, error := net.SplitHostPort(r.RemoteAddr)
 				if error != nil {
 					logger.Error("unable to parse IP", "error")
@@ -214,6 +235,7 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				logger.Debug("external websocket request refused", "error")
 				return false
 			}
+
 			return true
 		},
 	}
@@ -233,6 +255,7 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // NewWSConn to create new WebSocket Connection struct
 func NewWSConn(conn *websocket.Conn, cfg *HTTPServerConfig) *subscription.WSConn {
 	c := &subscription.WSConn{
+		UnsafeEnabled: cfg.WSUnsafeEnabled(),
 		Wsconn:        conn,
 		Subscriptions: make(map[uint32]subscription.Listener),
 		StorageAPI:    cfg.StorageAPI,
