@@ -6,20 +6,20 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math/big"
+
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/common/optional"
 	rtype "github.com/ChainSafe/gossamer/lib/common/types"
 	"github.com/ChainSafe/gossamer/lib/crypto"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/crypto/secp256k1"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
-	"math/big"
-
-	"github.com/perlin-network/life/exec"
-
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	pscale "github.com/ChainSafe/gossamer/pkg/scale"
+	"github.com/perlin-network/life/exec"
 )
 
 // Resolver resolves the imports for life
@@ -144,17 +144,17 @@ func ext_logging_log_version_1(vm *exec.VirtualMachine) int64 {
 
 	switch int(level) {
 	case 0:
-		logger.Crit("[ext_logging_log_version_1]", "target", target, "message", msg)
+		logger.Crit("[ext_logging_log_version_1]", "target", string(target), "message", string(msg))
 	case 1:
-		logger.Warn("[ext_logging_log_version_1]", "target", target, "message", msg)
+		logger.Warn("[ext_logging_log_version_1]", "target", string(target), "message", string(msg))
 	case 2:
-		logger.Info("[ext_logging_log_version_1]", "target", target, "message", msg)
+		logger.Info("[ext_logging_log_version_1]", "target", string(target), "message", string(msg))
 	case 3:
-		logger.Debug("[ext_logging_log_version_1]", "target", target, "message", msg)
+		logger.Debug("[ext_logging_log_version_1]", "target", string(target), "message", string(msg))
 	case 4:
-		logger.Trace("[ext_logging_log_version_1]", "target", target, "message", msg)
+		logger.Trace("[ext_logging_log_version_1]", "target", string(target), "message", string(msg))
 	default:
-		logger.Error("[ext_logging_log_version_1]", "level", int(level), "target", target, "message", msg)
+		logger.Error("[ext_logging_log_version_1]", "level", int(level), "target", string(target), "message", string(msg))
 	}
 
 	return 0
@@ -429,6 +429,7 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 		_, _ = r.Write(valueCurr)
 		dec := &scale.Decoder{Reader: r}
 		currLength, err := dec.DecodeBigInt() //nolint
+
 		if err != nil {
 			logger.Trace("[ext_storage_append_version_1] item in storage is not SCALE encoded, overwriting", "key", key)
 			storage.Set(key, append([]byte{4}, valueToAppend...))
@@ -791,7 +792,7 @@ func ext_crypto_ed25519_public_keys_version_1(vm *exec.VirtualMachine) int64 {
 		encodedKeys = append(encodedKeys, key.Encode()...)
 	}
 
-	prefix, err := scale.Encode(big.NewInt(int64(len(keys))))
+	prefix, err := pscale.Marshal(big.NewInt(int64(len(keys))))
 	if err != nil {
 		logger.Error("[ext_crypto_ed25519_public_keys_version_1] failed to allocate memory", err)
 		ret, _ := toWasmMemory(memory, []byte{0})
@@ -974,7 +975,7 @@ func ext_crypto_sr25519_public_keys_version_1(vm *exec.VirtualMachine) int64 {
 		encodedKeys = append(encodedKeys, key.Encode()...)
 	}
 
-	prefix, err := scale.Encode(big.NewInt(int64(len(keys))))
+	prefix, err := pscale.Marshal(big.NewInt(int64(len(keys))))
 	if err != nil {
 		logger.Error("[ext_crypto_sr25519_public_keys_version_1] failed to allocate memory", err)
 		ret, _ := toWasmMemory(memory, []byte{0})
@@ -1283,13 +1284,14 @@ func ext_trie_blake2_256_root_version_1(vm *exec.VirtualMachine) int64 {
 	data[0] = data[0] << 1
 
 	// this function is expecting an array of (key, value) tuples
-	kvs, err := scale.Decode(data, [][]byte{})
+	var kvs [][]byte
+	err := pscale.Unmarshal(data, &kvs)
 	if err != nil {
 		logger.Error("[ext_trie_blake2_256_root_version_1]", "error", err)
 		return 0
 	}
 
-	keyValues := kvs.([][]byte)
+	keyValues := kvs
 	if len(keyValues)%2 != 0 { // TODO: this can be removed when we have decoding of slices of structs
 		logger.Warn("[ext_trie_blake2_256_root_version_1] odd number of input key-values, skipping last value")
 		keyValues = keyValues[:len(keyValues)-1]

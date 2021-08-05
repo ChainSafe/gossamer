@@ -80,8 +80,7 @@ func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
 		return nil, err
 	}
 
-	err = wasm_validation.ValidateWasm(bytes)
-	if err != nil {
+	if err = wasm_validation.ValidateWasm(bytes); err != nil {
 		return nil, err
 	}
 
