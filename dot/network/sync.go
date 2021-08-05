@@ -184,21 +184,21 @@ func (q *syncQueue) start() {
 }
 
 func (q *syncQueue) syncAtHead() {
-	prev, err := q.s.blockState.BestBlockHeader()
-	if err != nil {
-		logger.Error("failed to get best block header", "error", err)
-		return
-	}
+	// prev, err := q.s.blockState.BestBlockHeader()
+	// if err != nil {
+	// 	logger.Error("failed to get best block header", "error", err)
+	// 	return
+	// }
 
 	q.s.syncer.SetSyncing(true)
-	q.s.noGossip = true // don't gossip messages until we're at the head
+	//q.s.noGossip = true // don't gossip messages until we're at the head
 
 	t := time.NewTicker(q.slotDuration * 2)
 	defer t.Stop()
 
 	for {
 		select {
-		// sleep for average block time TODO: make this configurable from slot duration
+		// sleep for average block time
 		case <-t.C:
 		case <-q.ctx.Done():
 			return
@@ -212,25 +212,25 @@ func (q *syncQueue) syncAtHead() {
 		goal := atomic.LoadInt64(&q.goal)
 
 		// we aren't at the head yet, sleep
-		if curr.Number.Int64() < goal && curr.Number.Cmp(prev.Number) > 0 {
-			prev = curr
-			q.s.noGossip = true
+		if curr.Number.Int64() < goal-int64(blockRequestSize) {
+			//prev = curr
+			//q.s.noGossip = true
 			q.s.syncer.SetSyncing(true)
 			continue
 		}
 
 		q.s.syncer.SetSyncing(false)
-		q.s.noGossip = false
+		//q.s.noGossip = false
 
 		// we have received new blocks since the last check, sleep
-		if prev.Number.Int64() < curr.Number.Int64() {
-			prev = curr
-			continue
-		}
+		// if prev.Number.Int64() < curr.Number.Int64() {
+		// 	prev = curr
+		// 	continue
+		// }
 
-		prev = curr
+		//prev = curr
 		start := uint64(curr.Number.Int64()) + 1
-		logger.Debug("haven't received new blocks since last check, pushing request", "start", start)
+		logger.Debug("pushing request for blocks...", "start", start)
 		q.requestData.Delete(start)
 		q.pushRequest(start, 1, "")
 	}
@@ -444,12 +444,17 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 	goal := atomic.LoadInt64(&q.goal)
 	if goal < best.Int64() {
 		atomic.StoreInt64(&q.goal, best.Int64())
+		return
+	}
+
+	if goal == best.Int64() {
+		return
 	}
 
 	goal = atomic.LoadInt64(&q.goal)
 	if goal-int64(start) < int64(blockRequestSize) {
 		start := best.Int64() + 1
-		req := createBlockRequest(start, 0)
+		req := createBlockRequest(start, uint32(goal)-uint32(start))
 
 		logger.Debug("pushing request to queue", "start", start)
 		q.requestData.Store(start, requestData{

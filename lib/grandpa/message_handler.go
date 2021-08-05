@@ -125,6 +125,10 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 
 	// check justification here
 	if err := h.verifyCommitMessageJustification(msg); err != nil {
+		if errors.Is(err, blocktree.ErrBlockDoesNotExist) || errors.Is(err, blocktree.ErrStartNodeNotFound) {
+			go s.network.SendBlockReqestByHash(vote.Hash)
+			// TODO: make this synchronous
+		}
 		return err
 	}
 
