@@ -17,15 +17,14 @@
 package subscription
 
 import (
-	"io/ioutil"
-	"math/big"
-	"path/filepath"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -35,12 +34,12 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
-	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/mock"
-  "github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/require"
 )
 
 type MockWSConnAPI struct {

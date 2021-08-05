@@ -284,7 +284,7 @@ func (l *ExtrinsicSubmitListener) Stop() error {
 // RuntimeVersionListener to handle listening for Runtime Version
 type RuntimeVersionListener struct {
 	wsconn        WSConnAPI
-	subID         uint
+	subID         uint32
 	runtimeUpdate chan runtime.Version
 	channelID     uint32
 	coreAPI       modules.CoreAPI
@@ -293,8 +293,6 @@ type RuntimeVersionListener struct {
 // VersionListener interface defining methods that version listener must implement
 type VersionListener interface {
 	GetChannelID() uint32
-	wsconn *WSConn
-	subID  uint32
 }
 
 // Listen implementation of Listen interface to listen for runtime version changes
@@ -313,7 +311,7 @@ func (l *RuntimeVersionListener) Listen() {
 	ver.TransactionVersion = rtVersion.TransactionVersion()
 	ver.Apis = modules.ConvertAPIs(rtVersion.APIItems())
 
-	go l.wsconn.safeSend(newSubscriptionResponse("state_runtimeVersion", l.subID, ver))
+	go l.wsconn.safeSend(newSubscriptionResponse(stateRuntimeVersionMethod, l.subID, ver))
 
 	// listen for runtime updates
 	go func() {
@@ -328,19 +326,14 @@ func (l *RuntimeVersionListener) Listen() {
 			ver.TransactionVersion = info.TransactionVersion()
 			ver.Apis = modules.ConvertAPIs(info.APIItems())
 
-			l.wsconn.safeSend(newSubscriptionResponse("state_runtimeVersion", l.subID, ver))
+			l.wsconn.safeSend(newSubscriptionResponse(stateRuntimeVersionMethod, l.subID, ver))
 		}
 	}()
 }
 
-// Stop to runtimeVersionListener not implemented yet because the listener
-// does not need to be stopped
-func (l *RuntimeVersionListener) Stop() {}
-
 // GetChannelID function that returns listener's channel ID
 func (l *RuntimeVersionListener) GetChannelID() uint32 {
 	return l.channelID
-	l.wsconn.safeSend(newSubscriptionResponse(stateRuntimeVersionMethod, l.subID, ver))
 }
 
 // Stop to runtimeVersionListener not implemented yet because the listener
