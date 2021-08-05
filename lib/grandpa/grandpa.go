@@ -166,7 +166,7 @@ func NewService(cfg *Config) (*Service, error) {
 		preVotedBlock:      make(map[uint64]*Vote),
 		bestFinalCandidate: make(map[uint64]*Vote),
 		head:               head,
-		in:                 make(chan *networkVoteMessage, 128),
+		in:                 make(chan *networkVoteMessage, 1024),
 		resumed:            make(chan struct{}),
 		network:            cfg.Network,
 		finalisedCh:        finalisedCh,
@@ -278,9 +278,29 @@ func (s *Service) initiateRound() error {
 		return err
 	}
 
+	round, setID, err := s.blockState.GetHighestRoundAndSetID()
+	if err != nil {
+		return err
+	}
+
+	if round > s.state.round && setID == s.state.setID {
+		logger.Debug("found block finalised in higher round, updating our round...", "new round", round)
+		s.state.round = round
+		err = s.grandpaState.SetLatestRound(round)
+		if err != nil {
+			return err
+		}
+	}
+
+	if setID > s.state.setID {
+		logger.Debug("found block finalised in higher setID, updating our setID...", "new setID", setID)
+		s.state.setID = setID
+		s.state.round = round
+	}
+
 	s.head, err = s.blockState.GetFinalisedHeader(s.state.round, s.state.setID)
 	if err != nil {
-		logger.Crit("failed to get finalised header", "error", err)
+		logger.Crit("failed to get finalised header", "round", s.state.round, "error", err)
 		return err
 	}
 
@@ -345,7 +365,8 @@ func (s *Service) initiate() error {
 		}
 
 		if err != nil {
-			return err
+			logger.Warn("failed to play grandpa round", "error", err)
+			continue
 		}
 
 		if s.ctx.Err() != nil {
@@ -479,6 +500,7 @@ func (s *Service) playGrandpaRound() error {
 
 	logger.Debug("sending pre-vote message...", "vote", pv)
 	roundComplete := make(chan struct{})
+	defer close(roundComplete)
 
 	// continue to send prevote messages until round is done
 	go s.sendVoteMessage(prevote, vm, roundComplete)
@@ -513,7 +535,6 @@ func (s *Service) playGrandpaRound() error {
 		return err
 	}
 
-	close(roundComplete)
 	return nil
 }
 
@@ -558,6 +579,17 @@ func (s *Service) attemptToFinalize() error {
 		has, _ := s.blockState.HasFinalisedBlock(s.state.round, s.state.setID)
 		if has {
 			logger.Debug("block was finalised!", "round", s.state.round)
+			return nil // a block was finalised, seems like we missed some messages
+		}
+
+		highestRound, highestSetID, _ := s.blockState.GetHighestRoundAndSetID()
+		if highestRound > s.state.round {
+			logger.Debug("block was finalised!", "round", highestRound, "setID", highestSetID)
+			return nil // a block was finalised, seems like we missed some messages
+		}
+
+		if highestSetID > s.state.setID {
+			logger.Debug("block was finalised!", "round", highestRound, "setID", highestSetID)
 			return nil // a block was finalised, seems like we missed some messages
 		}
 
@@ -799,12 +831,7 @@ func (s *Service) finalise() error {
 		return err
 	}
 
-	if err = s.grandpaState.SetLatestRound(s.state.round); err != nil {
-		return err
-	}
-
-	// set latest finalised head in db
-	return s.blockState.SetFinalisedHash(bfc.Hash, 0, 0)
+	return s.grandpaState.SetLatestRound(s.state.round)
 }
 
 // createJustification collects the signed precommits received for this round and turns them into
@@ -1012,8 +1039,10 @@ func (s *Service) getPreVotedBlock() (Vote, error) {
 func (s *Service) getGrandpaGHOST() (Vote, error) {
 	threshold := s.state.threshold()
 
-	var blocks map[common.Hash]uint32
-	var err error
+	var (
+		blocks map[common.Hash]uint32
+		err    error
+	)
 
 	for {
 		blocks, err = s.getPossibleSelectedBlocks(prevote, threshold)

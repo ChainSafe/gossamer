@@ -71,7 +71,7 @@ func newTestState(t *testing.T) *state.Service {
 	t.Cleanup(func() { db.Close() })
 
 	gen, genTrie, _ := genesis.NewTestGenesisWithTrieAndHeader(t)
-	block, err := state.NewBlockStateFromGenesis(db, testHeader)
+	block, err := state.NewBlockStateFromGenesis(db, testGenesisHeader)
 	require.NoError(t, err)
 
 	rtCfg := &wasmer.Config{}
@@ -313,7 +313,7 @@ func TestGetPossibleSelectedAncestors_SameAncestor(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	expected, err := common.HexToHash("0x4c897e75b7bf836ed5508bb0f1d04b396ae0bba3a1f902a1ac4195728bec35d9")
+	expected, err := st.Block.GetBlockHash(big.NewInt(6))
 	require.NoError(t, err)
 
 	// this should return the highest common ancestor of (a, b, c) with >=2/3 votes,
@@ -369,10 +369,10 @@ func TestGetPossibleSelectedAncestors_VaryingAncestor(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	expectedAt6, err := common.HexToHash("0x4c897e75b7bf836ed5508bb0f1d04b396ae0bba3a1f902a1ac4195728bec35d9")
+	expectedAt6, err := st.Block.GetBlockHash(big.NewInt(6))
 	require.NoError(t, err)
 
-	expectedAt7, err := common.HexToHash("0x3820aa85743cd534dd1cdb309fe8543f3a6fb5818119b7b857ffafa2ae18ab1b")
+	expectedAt7, err := st.Block.GetBlockHash(big.NewInt(7))
 	require.NoError(t, err)
 
 	// this should return the highest common ancestor of (a, b) and (b, c) with >=2/3 votes,
@@ -437,10 +437,10 @@ func TestGetPossibleSelectedAncestors_VaryingAncestor_MoreBranches(t *testing.T)
 		require.NoError(t, err)
 	}
 
-	expectedAt6, err := common.HexToHash("0x4c897e75b7bf836ed5508bb0f1d04b396ae0bba3a1f902a1ac4195728bec35d9")
+	expectedAt6, err := st.Block.GetBlockHash(big.NewInt(6))
 	require.NoError(t, err)
 
-	expectedAt7, err := common.HexToHash("0x3820aa85743cd534dd1cdb309fe8543f3a6fb5818119b7b857ffafa2ae18ab1b")
+	expectedAt7, err := st.Block.GetBlockHash(big.NewInt(7))
 	require.NoError(t, err)
 
 	// this should return the highest common ancestor of (a, b) and (b, c) with >=2/3 votes,
@@ -523,7 +523,7 @@ func TestGetPossibleSelectedBlocks_EqualVotes_SameAncestor(t *testing.T) {
 	blocks, err := gs.getPossibleSelectedBlocks(prevote, gs.state.threshold())
 	require.NoError(t, err)
 
-	expected, err := common.HexToHash("0x4c897e75b7bf836ed5508bb0f1d04b396ae0bba3a1f902a1ac4195728bec35d9")
+	expected, err := st.Block.GetBlockHash(big.NewInt(6))
 	require.NoError(t, err)
 
 	// this should return the highest common ancestor of (a, b, c)
@@ -572,10 +572,10 @@ func TestGetPossibleSelectedBlocks_EqualVotes_VaryingAncestor(t *testing.T) {
 	blocks, err := gs.getPossibleSelectedBlocks(prevote, gs.state.threshold())
 	require.NoError(t, err)
 
-	expectedAt6, err := common.HexToHash("0x4c897e75b7bf836ed5508bb0f1d04b396ae0bba3a1f902a1ac4195728bec35d9")
+	expectedAt6, err := st.Block.GetBlockHash(big.NewInt(6))
 	require.NoError(t, err)
 
-	expectedAt7, err := common.HexToHash("0x3820aa85743cd534dd1cdb309fe8543f3a6fb5818119b7b857ffafa2ae18ab1b")
+	expectedAt7, err := st.Block.GetBlockHash(big.NewInt(7))
 	require.NoError(t, err)
 
 	// this should return the highest common ancestor of (a, b) and (b, c) with >=2/3 votes,
@@ -743,7 +743,7 @@ func TestGetPreVotedBlock_MultipleCandidates(t *testing.T) {
 	}
 
 	// expected block is that with the highest number ie. at depth 7
-	expected, err := common.HexToHash("0x3820aa85743cd534dd1cdb309fe8543f3a6fb5818119b7b857ffafa2ae18ab1b")
+	expected, err := st.Block.GetBlockHash(big.NewInt(7))
 	require.NoError(t, err)
 
 	block, err := gs.getPreVotedBlock()
@@ -817,14 +817,14 @@ func TestGetPreVotedBlock_EvenMoreCandidates(t *testing.T) {
 
 	t.Log(st.Block.BlocktreeAsString())
 
-	// expected block is at depth 4
-	expected, err := common.HexToHash("0x951e6e1a529692b1e6cbfbf00ae6bb39386e7b883c42d92a4672780e769f8a51")
+	// expected block is at depth 5
+	expected, err := st.Block.GetBlockHash(big.NewInt(5))
 	require.NoError(t, err)
 
 	block, err := gs.getPreVotedBlock()
 	require.NoError(t, err)
 	require.Equal(t, expected, block.Hash)
-	require.Equal(t, uint32(4), block.Number)
+	require.Equal(t, uint32(5), block.Number)
 }
 
 func TestIsCompletable(t *testing.T) {
@@ -1259,7 +1259,7 @@ func TestGetGrandpaGHOST_MultipleCandidates(t *testing.T) {
 	t.Log(st.Block.BlocktreeAsString())
 
 	// expected block is that with the most votes ie. block 3
-	expected, err := common.HexToHash("0x7b8d506f0977136fcb9ba630bc179d30d698d1247dd64f08df976205ad2cc04d")
+	expected, err := st.Block.GetBlockHash(big.NewInt(3))
 	require.NoError(t, err)
 
 	block, err := gs.getGrandpaGHOST()

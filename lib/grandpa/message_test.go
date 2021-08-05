@@ -106,7 +106,7 @@ func TestNewCatchUpResponse(t *testing.T) {
 
 	block := &types.Block{
 		Header: &types.Header{
-			ParentHash: testHeader.Hash(),
+			ParentHash: testGenesisHeader.Hash(),
 			Number:     big.NewInt(1),
 			Digest: types.Digest{
 				types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
