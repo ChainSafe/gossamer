@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -74,8 +75,7 @@ func NewRuntimeFromGenesis(g *genesis.Genesis, cfg *Config) (runtime.Instance, e
 // NewInstanceFromFile instantiates a runtime from a .wasm file
 func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
 	// Reads the WebAssembly module as bytes.
-	// TODO determine lint issue: Potential file inclusion via variable
-	bytes, err := ioutil.ReadFile(fp) // nolint
+	bytes, err := ioutil.ReadFile(filepath.Clean(fp))
 	if err != nil {
 		return nil, err
 	}
@@ -135,11 +135,10 @@ func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 	}
 
 	ctx = runtimeCtx
-	// todo fix this so that it doesn't panic if instVersion isn't in the wasm blob
-	//inst.version, err = inst.Version()
-	//if err != nil {
-	//	logger.Error("error checking instance version", "error", err)
-	//}
+	inst.version, err = inst.Version()
+	if err != nil {
+		logger.Error("error checking instance version", "error", err)
+	}
 	return inst, nil
 }
 
@@ -195,7 +194,7 @@ func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 
 	fnc, ok := in.vm.GetFunctionExport(function)
 	if !ok {
-		panic("entry function " + function + " not found")
+		return nil, fmt.Errorf("could not find exported function %s", function)
 	}
 
 	ret, err := in.vm.Run(fnc, int64(ptr), int64(len(data)))
