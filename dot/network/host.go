@@ -370,10 +370,6 @@ func (h *host) peers() []peer.ID {
 
 // addReservedPeers adds the peers `addrs` to the protected peers list and connects to them
 func (h *host) addReservedPeers(addrs ...string) error {
-	if len(addrs) < 1 {
-		return nil
-	}
-
 	for _, addr := range addrs {
 		maddr, err := ma.NewMultiaddr(addr)
 		if err != nil {
@@ -396,10 +392,6 @@ func (h *host) addReservedPeers(addrs ...string) error {
 
 // removeReservedPeers will remove the given peers from the protected peers list
 func (h *host) removeReservedPeers(ids ...string) error {
-	if len(ids) < 1 {
-		return nil
-	}
-
 	for _, id := range ids {
 		peerID, err := peer.Decode(id)
 		if err != nil {
