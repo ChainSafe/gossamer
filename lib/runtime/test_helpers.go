@@ -52,21 +52,20 @@ func NewInMemoryDB(t *testing.T) chaindb.Database {
 
 // GetRuntimeVars returns the testRuntimeFilePath and testRuntimeURL
 func GetRuntimeVars(targetRuntime string) (string, string) {
-	var testRuntimeFilePath string
-	var testRuntimeURL string
-
 	switch targetRuntime {
 	case NODE_RUNTIME:
-		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(NODE_RUNTIME_FP), NODE_RUNTIME_URL
+		return GetAbsolutePath(NODE_RUNTIME_FP), NODE_RUNTIME_URL
+	case NODE_RUNTIME_v098:
+		return GetAbsolutePath(NODE_RUNTIME_FP_v098), NODE_RUNTIME_URL_v098
 	case POLKADOT_RUNTIME:
-		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(POLKADOT_RUNTIME_FP), POLKADOT_RUNTIME_URL
+		return GetAbsolutePath(POLKADOT_RUNTIME_FP), POLKADOT_RUNTIME_URL
 	case HOST_API_TEST_RUNTIME:
-		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(HOST_API_TEST_RUNTIME_FP), HOST_API_TEST_RUNTIME_URL
+		return GetAbsolutePath(HOST_API_TEST_RUNTIME_FP), HOST_API_TEST_RUNTIME_URL
 	case DEV_RUNTIME:
-		testRuntimeFilePath, testRuntimeURL = GetAbsolutePath(DEV_RUNTIME_FP), DEV_RUNTIME_URL
+		return GetAbsolutePath(DEV_RUNTIME_FP), DEV_RUNTIME_URL
+	default:
+		return "", ""
 	}
-
-	return testRuntimeFilePath, testRuntimeURL
 }
 
 // GetAbsolutePath returns the completePath for a given targetDir
