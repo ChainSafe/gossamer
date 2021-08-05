@@ -70,13 +70,13 @@ func TestStorageObserver_Update(t *testing.T) {
 		expected.Changes[i] = Change{common.BytesToHex(v.Key), common.BytesToHex(v.Value)}
 	}
 
-	expectedResponse := newSubcriptionBaseResponseJSON()
-	expectedResponse.Method = stateStorageMethod
-	expectedResponse.Params.Result = expected
+	expectedRespones := newSubcriptionBaseResponseJSON()
+	expectedRespones.Method = "state_storage"
+	expectedRespones.Params.Result = expected
 
 	storageObserver.Update(change)
 	time.Sleep(time.Millisecond * 10)
-	require.Equal(t, expectedResponse, mockConnection.lastMessage)
+	require.Equal(t, expectedRespones, mockConnection.lastMessage)
 }
 
 func TestBlockListener_Listen(t *testing.T) {
@@ -174,7 +174,6 @@ func TestBlockFinalizedListener_Listen(t *testing.T) {
 
 	require.Equal(t, string(expectedResponseBytes)+"\n", string(msg))
 }
-
 func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	wsconn, ws, cancel := setupWSConn(t)
 	defer cancel()
@@ -289,7 +288,6 @@ func TestGrandpaJustification_Listen(t *testing.T) {
 		require.NoError(t, sub.Stop())
 		wsconn.Wsconn.Close()
 	})
-
 }
 
 func setupWSConn(t *testing.T) (*WSConn, *websocket.Conn, func()) {

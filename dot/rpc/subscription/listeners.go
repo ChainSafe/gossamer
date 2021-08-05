@@ -39,7 +39,7 @@ const (
 
 var (
 	// ErrCannotCancel when is not possible to cancel a goroutine after `cancelTimeout` seconds
-	ErrCannotCancel = errors.New("cannot cancel listen goroutines")
+	ErrCannotCancel = errors.New("cannot cancel listening goroutines")
 
 	defaultCancelTimeout = time.Second * 10
 )
@@ -344,7 +344,7 @@ func (g *GrandpaJustificationListener) Listen() {
 				just, err := g.wsconn.BlockAPI.GetJustification(info.Header.Hash())
 				if err != nil {
 					g.wsconn.safeSendError(float64(g.subID), big.NewInt(InvalidRequestCode),
-						fmt.Sprintf("error while retrieve justification: %v", err))
+						fmt.Sprintf("failed to retrieve justification: %v", err))
 				}
 
 				g.wsconn.safeSend(newSubscriptionResponse(grandpaJustificationsMethod, g.subID, common.BytesToHex(just)))
