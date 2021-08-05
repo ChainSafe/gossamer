@@ -4,12 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 )
 
 const (
-	UNSAFE_SUFIX = "_UNSAFE"
-
 	authorSubmitAndWatchExtrinsic    = "author_submitAndWatchExtrinsic"
 	authorUnwatchExtrinsic           = "author_unwatchExtrinsic"
 	chainSubscribeNewHeads           = "chain_subscribeNewHeads"
@@ -46,11 +43,23 @@ func (c *WSConn) getSetupListener(method string) setupListener {
 	case grandpaSubscribeJustifications:
 		return c.initGrandpaJustificationListener
 	default:
+		// in case the method is unsafe search for it in another function
+		if c.UnsafeEnabled {
+			return c.getSetupUnsafeListener(method)
+		}
+
 		return nil
 	}
 }
 
-func (c *WSConn) getUnsubListener(method string, params interface{}) (Listener, error) {
+func (c *WSConn) getSetupUnsafeListener(method string) setupListener {
+	switch method {
+	default:
+		return nil
+	}
+}
+
+func (c *WSConn) getUnsubListener(params interface{}) (Listener, error) {
 	subscribeID, err := parseSubscribeID(params)
 	if err != nil {
 		return nil, err
@@ -89,9 +98,4 @@ func parseSubscribeID(p interface{}) (uint32, error) {
 	}
 
 	return id, nil
-}
-
-// IsUnsafe returns true if the `name` has the _UNSAFE suffix
-func IsUnsafe(name string) bool {
-	return strings.HasSuffix(name, UNSAFE_SUFIX)
 }

@@ -103,8 +103,13 @@ func (c *WSConn) HandleComm() {
 
 		logger.Debug("ws method called", "method", method, "params", params)
 
-		if !strings.Contains(method, "_unsubscribe") {
+		if !strings.Contains(method, "_unsubscribe") && !strings.Contains(method, "_unwatch") {
 			setup := c.getSetupListener(method)
+
+			if setup == nil {
+				logger.Warn("failed to create listener", "method", method, "error", err)
+				continue
+			}
 
 			listener, err := setup(reqid, params) //nolint
 			if err != nil {
@@ -117,7 +122,7 @@ func (c *WSConn) HandleComm() {
 		}
 
 		if strings.Contains(method, "_unsubscribe") || strings.Contains(method, "_unwatch") {
-			listener, err := c.getUnsubListener(method, params) //nolint
+			listener, err := c.getUnsubListener(params) //nolint
 
 			if err != nil {
 				logger.Warn("failed to get unsubscriber", "method", method, "error", err)

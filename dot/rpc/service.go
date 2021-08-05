@@ -23,7 +23,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/ChainSafe/gossamer/dot/rpc/subscription"
+	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 )
 
 // Service struct to hold rpc service data
@@ -88,12 +88,12 @@ func (s *Service) BuildMethodNames(rcvr interface{}, name string, unsafeEnabled 
 		}
 
 		rpcMethodName := name + "_" + strings.ToLower(string(method.Name[0])) + method.Name[1:]
-		if subscription.IsUnsafe(rpcMethodName) && !unsafeEnabled {
+		if modules.IsUnsafe(rpcMethodName) && !unsafeEnabled {
 			continue
 		}
 
 		// if there is the _UNSAFE sufix then remove it
-		rpcMethodName = strings.TrimSuffix(rpcMethodName, subscription.UNSAFE_SUFIX)
+		rpcMethodName = strings.TrimSuffix(rpcMethodName, modules.UNSAFE_SUFIX)
 		s.rpcMethods = append(s.rpcMethods, rpcMethodName)
 	}
 }
