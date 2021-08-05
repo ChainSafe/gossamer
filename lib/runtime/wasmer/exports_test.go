@@ -63,6 +63,38 @@ func createTestExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash,
 	return types.Extrinsic(common.MustHexToBytes(extEnc))
 }
 
+func TestInstance_Version_NodeRuntime_v098(t *testing.T) {
+	expected := runtime.NewVersionData(
+		[]byte("node"),
+		[]byte("substrate-node"),
+		10,
+		267,
+		0,
+		nil,
+		2,
+	)
+
+	instance := NewTestInstance(t, runtime.NODE_RUNTIME_v098)
+
+	version, err := instance.Version()
+	require.Nil(t, err)
+
+	t.Logf("SpecName: %s\n", version.SpecName())
+	t.Logf("ImplName: %s\n", version.ImplName())
+	t.Logf("AuthoringVersion: %d\n", version.AuthoringVersion())
+	t.Logf("SpecVersion: %d\n", version.SpecVersion())
+	t.Logf("ImplVersion: %d\n", version.ImplVersion())
+	t.Logf("TransactionVersion: %d\n", version.TransactionVersion())
+
+	require.Equal(t, 13, len(version.APIItems()))
+	require.Equal(t, expected.SpecName(), version.SpecName())
+	require.Equal(t, expected.ImplName(), version.ImplName())
+	require.Equal(t, expected.AuthoringVersion(), version.AuthoringVersion())
+	require.Equal(t, expected.SpecVersion(), version.SpecVersion())
+	require.Equal(t, expected.ImplVersion(), version.ImplVersion())
+	require.Equal(t, expected.TransactionVersion(), version.TransactionVersion())
+}
+
 func TestInstance_Version_PolkadotRuntime(t *testing.T) {
 	expected := runtime.NewVersionData(
 		[]byte("polkadot"),
