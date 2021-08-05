@@ -365,6 +365,7 @@ func (s *Service) initiate() error {
 		}
 
 		if err != nil {
+			logger.Warn("failed to play grandpa round", "error", err)
 			continue
 		}
 
