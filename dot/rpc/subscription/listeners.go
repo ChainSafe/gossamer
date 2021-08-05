@@ -315,7 +315,12 @@ func (l *RuntimeVersionListener) Listen() {
 
 	// listen for runtime updates
 	go func() {
-		for info := range l.runtimeUpdate {
+		for {
+			info, ok := <-l.runtimeUpdate
+			if !ok {
+				return
+			}
+
 			ver := modules.StateRuntimeVersionResponse{}
 
 			ver.SpecName = string(info.SpecName())
