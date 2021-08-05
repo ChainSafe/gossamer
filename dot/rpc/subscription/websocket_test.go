@@ -266,18 +266,18 @@ func TestWSConn_HandleComm(t *testing.T) {
 	mockedJustBytes, err := mockedJust.Encode()
 	require.NoError(t, err)
 
-	mockBlockAPI := new(modulesmocks.MockBlockAPI)
-	mockBlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
+	BlockAPI := new(modulesmocks.BlockAPI)
+	BlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
 		Run(func(args mock.Arguments) {
 			ch := args.Get(0).(chan<- *types.FinalisationInfo)
 			fCh = ch
 		}).
 		Return(uint8(4), nil)
 
-	mockBlockAPI.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(mockedJustBytes, nil)
-	mockBlockAPI.On("UnregisterFinalisedChannel", mock.AnythingOfType("uint8"))
+	BlockAPI.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(mockedJustBytes, nil)
+	BlockAPI.On("UnregisterFinalisedChannel", mock.AnythingOfType("uint8"))
 
-	wsconn.BlockAPI = mockBlockAPI
+	wsconn.BlockAPI = BlockAPI
 	listener, err := wsconn.initGrandpaJustificationListener(0, nil)
 	require.NoError(t, err)
 	require.NotNil(t, listener)
