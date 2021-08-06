@@ -158,30 +158,6 @@ func NewPrivateKey(in []byte) (*PrivateKey, error) {
 	return priv, err
 }
 
-// NewPrivateKeyFromHex returns a private key from a hex-encoded private key
-func NewPrivateKeyFromHex(keystr string) (*PrivateKey, error) {
-	seedBytes, err := common.HexToBytes(keystr)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(seedBytes) != PrivateKeyLength {
-		return nil, errors.New("cannot create public key: input is not 32 bytes")
-	}
-
-	var privKeyBytes [32]byte
-	copy(privKeyBytes[:], seedBytes)
-
-	miniSecretKey, err := sr25519.NewMiniSecretKeyFromRaw(privKeyBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return &PrivateKey{
-		key: miniSecretKey.ExpandUniform(),
-	}, nil
-}
-
 // GenerateKeypair returns a new sr25519 keypair
 func GenerateKeypair() (*Keypair, error) {
 	priv, pub, err := sr25519.GenerateKeypair()
