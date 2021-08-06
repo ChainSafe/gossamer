@@ -88,9 +88,7 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 	}
 
 	bs.importedBytePool = common.NewBytePool256()
-
 	bs.finalisedBytePool = common.NewBytePool256()
-
 	return bs, nil
 }
 
@@ -123,15 +121,17 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 
 	bs.genesisHash = header.Hash()
 
+	if err := bs.db.Put(highestRoundAndSetIDKey, roundAndSetIDToBytes(0, 0)); err != nil {
+		return nil, err
+	}
+
 	// set the latest finalised head to the genesis header
 	if err := bs.SetFinalisedHash(bs.genesisHash, 0, 0); err != nil {
 		return nil, err
 	}
 
 	bs.importedBytePool = common.NewBytePool256()
-
 	bs.finalisedBytePool = common.NewBytePool256()
-
 	return bs, nil
 }
 
@@ -320,14 +320,13 @@ func (bs *BlockState) GetBlockByNumber(num *big.Int) (*types.Block, error) {
 }
 
 // GetBlockHash returns block hash for a given blockNumber
-func (bs *BlockState) GetBlockHash(blockNumber *big.Int) (*common.Hash, error) {
-	// First retrieve the block hash in a byte array based on the block number from the database
+func (bs *BlockState) GetBlockHash(blockNumber *big.Int) (common.Hash, error) {
 	byteHash, err := bs.db.Get(headerHashKey(blockNumber.Uint64()))
 	if err != nil {
-		return nil, fmt.Errorf("cannot get block %d: %w", blockNumber, err)
+		return common.Hash{}, fmt.Errorf("cannot get block %d: %w", blockNumber, err)
 	}
-	hash := common.NewHash(byteHash)
-	return &hash, nil
+
+	return common.NewHash(byteHash), nil
 }
 
 // SetHeader will set the header into DB
