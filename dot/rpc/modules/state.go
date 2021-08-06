@@ -86,9 +86,9 @@ type StateStorageRequest struct {
 
 // StateStorageQueryRangeRequest holds json fields
 type StateStorageQueryRangeRequest struct {
-	Keys       []string     `json:"keys" validate:"required"`
-	StartBlock common.Hash  `json:"startBlock" validate:"required"`
-	EndBlock   *common.Hash `json:"block"`
+	Keys       []string    `json:"keys" validate:"required"`
+	StartBlock common.Hash `json:"startBlock" validate:"required"`
+	EndBlock   common.Hash `json:"block"`
 }
 
 // StateStorageKeysQuery field to store storage keys
