@@ -29,7 +29,7 @@ type BlockState interface {
 	BestBlockNumber() (*big.Int, error)
 	GenesisHash() common.Hash
 	HasBlockBody(common.Hash) (bool, error)
-	GetFinalisedHeader(round, setID uint64) (*types.Header, error)
+	GetHighestFinalisedHeader() (*types.Header, error)
 	GetHashByNumber(num *big.Int) (common.Hash, error)
 }
 

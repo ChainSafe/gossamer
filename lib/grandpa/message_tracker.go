@@ -69,6 +69,7 @@ func (t *tracker) add(v *networkVoteMessage) {
 	}
 
 	t.mapLock.Lock()
+	// TODO: change to map of maps, this allows duplicates
 	t.messages[v.msg.Message.Hash] = append(t.messages[v.msg.Message.Hash], v)
 	t.mapLock.Unlock()
 }
