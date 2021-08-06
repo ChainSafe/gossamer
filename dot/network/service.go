@@ -343,7 +343,7 @@ func (s *Service) sentBlockIntervalTelemetry() {
 		}
 		bestHash := best.Hash()
 
-		finalized, err := s.blockState.GetFinalisedHeader(0, 0) //nolint
+		finalized, err := s.blockState.GetHighestFinalisedHeader() //nolint
 		if err != nil {
 			continue
 		}
@@ -519,16 +519,21 @@ func (s *Service) GossipMessage(msg NotificationsMessage) {
 func (s *Service) SendMessage(to peer.ID, msg NotificationsMessage) error {
 	s.notificationsMu.Lock()
 	defer s.notificationsMu.Unlock()
+
 	for msgID, prtl := range s.notificationsProtocols {
-		if msg.Type() != msgID || prtl == nil {
+		if msg.Type() != msgID {
 			continue
 		}
+
 		hs, err := prtl.getHandshake()
 		if err != nil {
 			return err
 		}
+
 		s.sendData(to, hs, prtl, msg)
+		return nil
 	}
+
 	return errors.New("message not supported by any notifications protocol")
 }
 

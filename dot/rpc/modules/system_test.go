@@ -363,7 +363,7 @@ func TestSyncState(t *testing.T) {
 		Number: big.NewInt(int64(49)),
 	}
 
-	blockapiMock := new(mocks.MockBlockAPI)
+	blockapiMock := new(mocks.BlockAPI)
 	blockapiMock.On("BestBlockHash").Return(fakeCommonHash)
 	blockapiMock.On("GetHeader", fakeCommonHash).Return(fakeHeader, nil).Once()
 
