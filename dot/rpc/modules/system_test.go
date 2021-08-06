@@ -402,7 +402,7 @@ func TestLocalListenAddresses(t *testing.T) {
 	}
 
 	mockNetAPI := new(mocks.MockNetworkAPI)
-	mockNetAPI.On("NetworkState").Return(mockedNetState)
+	mockNetAPI.On("NetworkState").Return(mockedNetState).Once()
 
 	res := make([]string, 0)
 
@@ -414,6 +414,10 @@ func TestLocalListenAddresses(t *testing.T) {
 
 	require.Len(t, res, 1)
 	require.Equal(t, res[0], ma.String())
+
+	mockNetAPI.On("NetworkState").Return(common.NetworkState{Multiaddrs: []multiaddr.Multiaddr{}}).Once()
+	err = sysmodule.LocalListenAddresses(nil, nil, &res)
+	require.Error(t, err, "multiaddress list is empty")
 }
 
 func TestLocalPeerId(t *testing.T) {
@@ -487,5 +491,11 @@ func TestAddReservedPeer(t *testing.T) {
 		err = sysModule.RemoveReservedPeer(nil, &StringRequest{String: peerID}, b)
 		require.Error(t, err, "other problems")
 		require.Nil(t, b)
+	})
+
+	t.Run("Test trying to add or remove peers with empty or white space request", func(t *testing.T) {
+		sysModule := &SystemModule{}
+		require.Error(t, sysModule.AddReservedPeer(nil, &StringRequest{String: ""}, nil))
+		require.Error(t, sysModule.RemoveReservedPeer(nil, &StringRequest{String: "    "}, nil))
 	})
 }
