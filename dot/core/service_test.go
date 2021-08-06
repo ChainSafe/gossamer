@@ -17,6 +17,7 @@
 package core
 
 import (
+	"errors"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -38,9 +39,12 @@ import (
 	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	"github.com/ChainSafe/gossamer/dot/core/mocks"
 	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
+	runtimemocks "github.com/ChainSafe/gossamer/lib/runtime/mocks"
 )
 
 func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
@@ -782,4 +786,37 @@ func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service, key, value []by
 	require.NoError(t, err)
 
 	return testBlock
+}
+
+func TestDecodeSessionKeys(t *testing.T) {
+	mockInstance := new(runtimemocks.MockInstance)
+	mockInstance.On("DecodeSessionKeys", mock.AnythingOfType("[]uint8")).Return([]byte{}, nil).Once()
+
+	mockBlockState := new(mocks.MockBlockState)
+	mockBlockState.On("GetRuntime", mock.AnythingOfType("*common.Hash")).Return(mockInstance, nil).Once()
+
+	coreservice := new(Service)
+	coreservice.blockState = mockBlockState
+
+	b, err := coreservice.DecodeSessionKeys([]byte{})
+
+	mockBlockState.AssertCalled(t, "GetRuntime", mock.AnythingOfType("*common.Hash"))
+	mockInstance.AssertCalled(t, "DecodeSessionKeys", []uint8{})
+
+	require.NoError(t, err)
+	require.Equal(t, b, []byte{})
+}
+
+func TestDecodeSessionKeys_WhenGetRuntimeReturnError(t *testing.T) {
+	mockBlockState := new(mocks.MockBlockState)
+	mockBlockState.On("GetRuntime", mock.AnythingOfType("*common.Hash")).Return(nil, errors.New("problems")).Once()
+
+	coreservice := new(Service)
+	coreservice.blockState = mockBlockState
+
+	b, err := coreservice.DecodeSessionKeys([]byte{})
+
+	mockBlockState.AssertCalled(t, "GetRuntime", mock.AnythingOfType("*common.Hash"))
+	require.Error(t, err, "problems")
+	require.Nil(t, b)
 }
