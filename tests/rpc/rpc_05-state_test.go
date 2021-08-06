@@ -93,6 +93,7 @@ func TestStateRPCResponseValidation(t *testing.T) {
 				Block:   &blockHash,
 				Changes: [][]string{},
 			},
+			skip: true,
 		},
 		{
 			description: "Test valid block hash state_getRuntimeVersion",
