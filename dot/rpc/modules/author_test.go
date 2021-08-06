@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"testing"
@@ -18,6 +19,88 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
+
+func TestAuthorModule_HasSessionKey_WhenScaleDataEmptyOrNil(t *testing.T) {
+	keys := "0x00"
+	runtimeInstance := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
+
+	coremockapi := new(apimocks.MockCoreAPI)
+
+	decodeSessionKeysMock := coremockapi.On("DecodeSessionKeys", mock.AnythingOfType("[]uint8"))
+	decodeSessionKeysMock.Run(func(args mock.Arguments) {
+		b := args.Get(0).([]byte)
+		dec, err := runtimeInstance.DecodeSessionKeys(b)
+		decodeSessionKeysMock.ReturnArguments = []interface{}{dec, err}
+	})
+
+	module := &AuthorModule{
+		coreAPI: coremockapi,
+		logger:  log.New("service", "RPC", "module", "author"),
+	}
+
+	req := &HasSessionKeyRequest{
+		PublicKeys: keys,
+	}
+
+	var res HasSessionKeyResponse
+	err := module.HasSessionKeys(nil, req, &res)
+	require.NoError(t, err)
+	require.False(t, bool(res))
+
+	coremockapi.AssertCalled(t, "DecodeSessionKeys", mock.AnythingOfType("[]uint8"))
+}
+
+func TestAuthorModule_HasSessionKey_WhenRuntimeFails(t *testing.T) {
+	coremockapi := new(apimocks.MockCoreAPI)
+	coremockapi.On("DecodeSessionKeys", mock.AnythingOfType("[]uint8")).Return(nil, errors.New("problems with runtime"))
+
+	module := &AuthorModule{
+		coreAPI: coremockapi,
+		logger:  log.New("service", "RPC", "module", "author"),
+	}
+
+	req := &HasSessionKeyRequest{
+		PublicKeys: "0x00",
+	}
+
+	var res HasSessionKeyResponse
+	err := module.HasSessionKeys(nil, req, &res)
+	require.Error(t, err, "problems with runtime")
+	require.False(t, bool(res))
+}
+
+func TestAuthorModule_HasSessionKey_WhenThereIsNoKeys(t *testing.T) {
+	keys := "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d34309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026"
+	runtimeInstance := wasmer.NewTestInstance(t, runtime.NODE_RUNTIME)
+
+	coremockapi := new(apimocks.MockCoreAPI)
+	coremockapi.On("HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(false, nil)
+
+	decodeSessionKeysMock := coremockapi.On("DecodeSessionKeys", mock.AnythingOfType("[]uint8"))
+	decodeSessionKeysMock.Run(func(args mock.Arguments) {
+		b := args.Get(0).([]byte)
+		dec, err := runtimeInstance.DecodeSessionKeys(b)
+		decodeSessionKeysMock.ReturnArguments = []interface{}{dec, err}
+	})
+
+	module := &AuthorModule{
+		coreAPI: coremockapi,
+		logger:  log.New("service", "RPC", "module", "author"),
+	}
+
+	req := &HasSessionKeyRequest{
+		PublicKeys: keys,
+	}
+
+	var res HasSessionKeyResponse
+	err := module.HasSessionKeys(nil, req, &res)
+	require.NoError(t, err)
+	require.False(t, bool(res))
+
+	coremockapi.AssertCalled(t, "DecodeSessionKeys", mock.AnythingOfType("[]uint8"))
+	coremockapi.AssertCalled(t, "HasKey", mock.AnythingOfType("string"), mock.AnythingOfType("string"))
+	coremockapi.AssertNumberOfCalls(t, "HasKey", 1)
+}
 
 func TestAuthorModule_HasSessionKey(t *testing.T) {
 	globalStore := keystore.NewGlobalKeystore()
