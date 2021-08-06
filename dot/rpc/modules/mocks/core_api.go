@@ -3,7 +3,9 @@
 package mocks
 
 import (
+	core "github.com/ChainSafe/gossamer/dot/core"
 	common "github.com/ChainSafe/gossamer/lib/common"
+
 	crypto "github.com/ChainSafe/gossamer/lib/crypto"
 
 	mock "github.com/stretchr/testify/mock"
@@ -125,4 +127,34 @@ func (_m *MockCoreAPI) HasKey(pubKeyStr string, keyType string) (bool, error) {
 // InsertKey provides a mock function with given fields: kp
 func (_m *MockCoreAPI) InsertKey(kp crypto.Keypair) {
 	_m.Called(kp)
+}
+
+// QueryStorage provides a mock function with given fields: from, to, keys
+func (_m *MockCoreAPI) QueryStorage(from common.Hash, to common.Hash, keys ...string) (map[common.Hash]core.QueryKeyValueChanges, error) {
+	_va := make([]interface{}, len(keys))
+	for _i := range keys {
+		_va[_i] = keys[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, from, to)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 map[common.Hash]core.QueryKeyValueChanges
+	if rf, ok := ret.Get(0).(func(common.Hash, common.Hash, ...string) map[common.Hash]core.QueryKeyValueChanges); ok {
+		r0 = rf(from, to, keys...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[common.Hash]core.QueryKeyValueChanges)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(common.Hash, common.Hash, ...string) error); ok {
+		r1 = rf(from, to, keys...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
