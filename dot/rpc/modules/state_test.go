@@ -453,5 +453,5 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 
 	hash, _ := chain.Block.GetBlockHash(big.NewInt(2))
 	core := newCoreService(t, chain)
-	return NewStateModule(net, chain.Storage, core), hash, &sr1
+	return NewStateModule(net, chain.Storage, core), &hash, &sr1
 }
