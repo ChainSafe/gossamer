@@ -304,9 +304,16 @@ func (s *Service) collectNetworkMetrics() {
 }
 
 func (s *Service) logPeerCount() {
+	ticker := time.NewTicker(time.Second * 30)
+	defer ticker.Stop()
+
 	for {
-		logger.Debug("peer count", "num", s.host.peerCount(), "min", s.cfg.MinPeers, "max", s.cfg.MaxPeers)
-		time.Sleep(time.Second * 30)
+		select {
+		case <-ticker.C:
+			logger.Debug("peer count", "num", s.host.peerCount(), "min", s.cfg.MinPeers, "max", s.cfg.MaxPeers)
+		case <-s.ctx.Done():
+			return
+		}
 	}
 }
 

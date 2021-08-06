@@ -713,8 +713,8 @@ func TestQueryStorate_WhenBlocksHasData(t *testing.T) {
 	}
 
 	s := NewTestService(t, nil)
-	firstKey, firstValue := []byte("transfer.to"), []byte("some-address-herer")
 
+	firstKey, firstValue := []byte("transfer.to"), []byte("some-address-herer")
 	firstBlock := createNewBlockAndStoreDataAtBlock(
 		t, s, firstKey, firstValue, s.blockState.GenesisHash(), 1,
 	)
@@ -730,10 +730,9 @@ func TestQueryStorate_WhenBlocksHasData(t *testing.T) {
 	)
 
 	from := firstBlock.Header.Hash()
-
-	data, err := s.QueryStorage(from, nil, keys...)
+	data, err := s.QueryStorage(from, common.Hash{}, keys...)
 	require.NoError(t, err)
-	require.Len(t, data, 1)
+	require.Len(t, data, 3)
 
 	require.Equal(t, data[firstBlock.Header.Hash()], QueryKeyValueChanges(
 		map[string]string{
@@ -744,7 +743,7 @@ func TestQueryStorate_WhenBlocksHasData(t *testing.T) {
 	from = secondBlock.Header.Hash()
 	to := thirdBlock.Header.Hash()
 
-	data, err = s.QueryStorage(from, &to, keys...)
+	data, err = s.QueryStorage(from, to, keys...)
 	require.NoError(t, err)
 	require.Len(t, data, 2)
 
