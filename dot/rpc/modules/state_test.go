@@ -17,7 +17,6 @@ package modules
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -369,14 +368,6 @@ func TestStateModule_QueryStorage(t *testing.T) {
 		err := module.QueryStorage(nil, req, &res)
 		require.NoError(t, err)
 		require.Len(t, res, 1)
-
-		resBytes, err := json.Marshal(res)
-		require.NoError(t, err)
-
-		expectedResponse := `[{"block":"%s","changes":[["0x80","value"],["0x90","another value"]]}]`
-		expectedResponse = fmt.Sprintf(expectedResponse, blockhash)
-
-		require.Equal(t, expectedResponse, string(resBytes))
 
 		coreapimock.AssertCalled(t, "QueryStorage", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash"), "0x90", "0x80")
 	})
