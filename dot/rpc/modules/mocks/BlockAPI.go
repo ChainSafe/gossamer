@@ -236,7 +236,7 @@ func (_m *BlockAPI) RegisterImportedChannel(ch chan<- *types.Block) (byte, error
 }
 
 // RegisterRuntimeUpdatedChannel provides a mock function with given fields: ch
-func (_m *MockBlockAPI) RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error) {
+func (_m *BlockAPI) RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error) {
 	ret := _m.Called(ch)
 
 	var r0 uint32
@@ -290,7 +290,7 @@ func (_m *BlockAPI) UnregisterImportedChannel(id byte) {
 }
 
 // UnregisterRuntimeUpdatedChannel provides a mock function with given fields: id
-func (_m *MockBlockAPI) UnregisterRuntimeUpdatedChannel(id uint32) bool {
+func (_m *BlockAPI) UnregisterRuntimeUpdatedChannel(id uint32) bool {
 	ret := _m.Called(id)
 
 	var r0 bool
