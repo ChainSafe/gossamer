@@ -28,10 +28,10 @@ import (
 )
 
 func TestStateRPCResponseValidation(t *testing.T) {
-	// if utils.MODE != rpcSuite {
-	// 	_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
-	// 	return
-	// }
+	if utils.MODE != rpcSuite {
+		_, _ = fmt.Fprintln(os.Stdout, "Going to skip RPC suite tests")
+		return
+	}
 
 	t.Log("starting gossamer...")
 
@@ -88,8 +88,11 @@ func TestStateRPCResponseValidation(t *testing.T) {
 		{
 			description: "Test state_queryStorage",
 			method:      "state_queryStorage",
-			params:      fmt.Sprintf(`[["0xf2794c22e353e9a839f12faab03a911bf68967d635641a7087e53f2bff1ecad3c6756fee45ec79ead60347fffb770bcdf0ec74da701ab3d6495986fe1ecc3027"], "0x%x", null]`, blockHash),
-			expected:    modules.StorageChangeSetResponse{},
+			params:      fmt.Sprintf(`[["0xf2794c22e353e9a839f12faab03a911bf68967d635641a7087e53f2bff1ecad3c6756fee45ec79ead60347fffb770bcdf0ec74da701ab3d6495986fe1ecc3027"], "%s", null]`, blockHash),
+			expected: modules.StorageChangeSetResponse{
+				Block:   &blockHash,
+				Changes: nil,
+			},
 		},
 		{
 			description: "Test valid block hash state_getRuntimeVersion",
