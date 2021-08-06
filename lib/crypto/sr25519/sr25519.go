@@ -83,9 +83,13 @@ func NewKeypairFromPrivate(priv *PrivateKey) (*Keypair, error) {
 }
 
 // NewKeypairFromSeed returns a new sr25519 Keypair given a seed
-func NewKeypairFromSeed(seed []byte) (*Keypair, error) {
+func NewKeypairFromSeed(keystr []byte) (*Keypair, error) {
+	if len(keystr) != SeedLength {
+		return nil, errors.New("cannot generate key from seed: seed is not 32 bytes long")
+	}
+
 	buf := [SeedLength]byte{}
-	copy(buf[:], seed)
+	copy(buf[:], keystr)
 	msc, err := sr25519.NewMiniSecretKeyFromRaw(buf)
 	if err != nil {
 		return nil, err
