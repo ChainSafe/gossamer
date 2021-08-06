@@ -131,6 +131,8 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	bs.Lock()
 	defer bs.Unlock()
 
+	fmt.Println("BEFORE PRUNE", bs.bt)
+
 	has, _ := bs.HasHeader(hash)
 	if !has {
 		return fmt.Errorf("cannot finalise unknown block %s", hash)
@@ -174,6 +176,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	if err := bs.db.Put(finalisedHashKey(round, setID), hash[:]); err != nil {
 		return err
 	}
+	fmt.Println("AFTER PRUNE", bs.bt)
 
 	return bs.setHighestRoundAndSetID(round, setID)
 }

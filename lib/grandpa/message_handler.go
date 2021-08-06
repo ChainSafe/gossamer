@@ -18,12 +18,14 @@ package grandpa
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math/big"
 	"reflect"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/scale"
@@ -49,18 +51,39 @@ func NewMessageHandler(grandpa *Service, blockState BlockState) *MessageHandler 
 // if it is a CommitMessage, it updates the BlockState
 // if it is a VoteMessage, it sends it to the GRANDPA service
 func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.NotificationsMessage, error) {
-	logger.Trace("handling grandpa message", "msg", m)
+	logger.Debug("handling grandpa message", "msg", m)
 
 	switch m.Type() {
 	case voteType:
 		vm, ok := m.(*VoteMessage)
-		if h.grandpa != nil && ok {
-			// send vote message to grandpa service
-			h.grandpa.in <- &networkVoteMessage{
-				from: from,
-				msg:  vm,
-			}
+		if !ok {
+			return nil, nil
 		}
+		// if h.grandpa != nil && ok {
+		// 	// send vote message to grandpa service
+		// 	h.grandpa.in <- &networkVoteMessage{
+		// 		from: from,
+		// 		msg:  vm,
+		// 	}
+		// }
+
+		logger.Trace("received vote message", "msg", vm)
+
+		v, err := h.grandpa.validateMessage(from, vm)
+		if err != nil {
+			logger.Debug("failed to validate vote message", "message", vm, "error", err)
+			return nil, nil
+		}
+
+		logger.Debug("validated vote message",
+			"vote", v,
+			"round", vm.Round,
+			"subround", vm.Message.Stage,
+			"prevote count", h.grandpa.lenVotes(prevote),
+			"precommit count", h.grandpa.lenVotes(precommit),
+			"votes needed", h.grandpa.state.threshold(),
+		)
+
 		return nil, nil
 	case commitType:
 		if fm, ok := m.(*CommitMessage); ok {
@@ -125,9 +148,10 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 
 	// check justification here
 	if err := h.verifyCommitMessageJustification(msg); err != nil {
-		if errors.Is(err, blocktree.ErrBlockDoesNotExist) || errors.Is(err, blocktree.ErrStartNodeNotFound) {
-			go s.network.SendBlockReqestByHash(vote.Hash)
+		if errors.Is(err, blocktree.ErrStartNodeNotFound) {
 			// TODO: make this synchronous
+			go h.grandpa.network.SendBlockReqestByHash(msg.Vote.Hash)
+			h.grandpa.tracker.addCommit(msg)
 		}
 		return err
 	}
