@@ -472,4 +472,7 @@ func Test_RemoveReservedPeers(t *testing.T) {
 
 	isProtected := nodeA.host.h.ConnManager().IsProtected(nodeB.host.addrInfo().ID, "")
 	require.False(t, isProtected)
+
+	err = nodeA.host.removeReservedPeers("failing peer ID")
+	require.Error(t, err)
 }
