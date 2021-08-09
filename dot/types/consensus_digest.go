@@ -127,19 +127,6 @@ func (d *NextEpochData) Encode() ([]byte, error) {
 	return append([]byte{NextEpochDataType}, enc...), nil
 }
 
-// ToEpochData returns the NextEpochData as EpochData
-func (d *NextEpochData) ToEpochData() (*EpochData, error) {
-	auths, err := BABEAuthorityRawToAuthority(d.Authorities)
-	if err != nil {
-		return nil, err
-	}
-
-	return &EpochData{
-		Authorities: auths,
-		Randomness:  d.Randomness,
-	}, nil
-}
-
 func (d *NextEpochDataNew) ToEpochData() (*EpochDataNew, error) {
 	auths, err := BABEAuthorityRawToAuthorityNew(d.Authorities)
 	if err != nil {

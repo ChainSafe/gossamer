@@ -183,7 +183,7 @@ func (h *Handler) handleConsensusDigest(d *types.ConsensusDigest, header *types.
 	if d.ConsensusEngineID == types.BabeEngineID {
 		switch t {
 		case types.NextEpochDataType:
-			return h.handleNextEpochDataNew(d, header)
+			return h.handleNextEpochData(d, header)
 		case types.BABEOnDisabledType:
 			return h.handleBABEOnDisabled(d, header)
 		case types.NextConfigDataType:
@@ -427,10 +427,7 @@ func (h *Handler) handleBABEOnDisabled(d *types.ConsensusDigest, _ *types.Header
 	return nil
 }
 
-func (h *Handler) handleNextEpochDataNew(d *types.ConsensusDigest, header *types.Header) error {
-	//var od types.NextEpochData
-	//err := scale.Unmarshal(d.Data[1:], &od)
-
+func (h *Handler) handleNextEpochData(d *types.ConsensusDigest, header *types.Header) error {
 	var od = types.BabeConsensusDigest
 	err := scale.Unmarshal(d.Data, &od)
 	if err != nil {
@@ -460,30 +457,6 @@ func (h *Handler) handleNextEpochDataNew(d *types.ConsensusDigest, header *types
 
 	logger.Debug("setting epoch data", "blocknum", header.Number, "epoch", currEpoch+1, "data", data)
 	return h.epochState.SetEpochDataNew(currEpoch+1, data)
-}
-
-func (h *Handler) handleNextEpochData(d *types.ConsensusDigest, header *types.Header) error {
-	var od types.NextEpochData
-	err := scale.Unmarshal(d.Data[1:], &od)
-	if err != nil {
-		return err
-	}
-
-	logger.Debug("handling BABENextEpochData", "data", od)
-
-	currEpoch, err := h.epochState.GetEpochForBlock(header)
-	if err != nil {
-		return err
-	}
-
-	// set EpochState epoch data for upcoming epoch
-	data, err := od.ToEpochData()
-	if err != nil {
-		return err
-	}
-
-	logger.Debug("setting epoch data", "blocknum", header.Number, "epoch", currEpoch+1, "data", data)
-	return h.epochState.SetEpochData(currEpoch+1, data)
 }
 
 func (h *Handler) handleNextConfigData(d *types.ConsensusDigest, header *types.Header) error {

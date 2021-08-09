@@ -354,11 +354,17 @@ func TestHandler_HandleBABEOnDisabled(t *testing.T) {
 		Number: big.NewInt(1),
 	}
 
-	digest := &types.BABEOnDisabled{
-		ID: 7,
-	}
+	//digest := &types.BABEOnDisabled{
+	//	ID: 7,
+	//}
 
-	data, err := digest.Encode()
+	var digest = types.BabeConsensusDigest
+	err := digest.Set(types.BABEOnDisabled{
+		ID: 7,
+	})
+
+	//data, err := digest.Encode()
+	data, err := scale.Marshal(digest)
 	require.NoError(t, err)
 
 	d := &types.ConsensusDigest{
