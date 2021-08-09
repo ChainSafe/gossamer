@@ -53,6 +53,8 @@ type NetworkAPI interface {
 	IsStopped() bool
 	HighestBlock() int64
 	StartingBlock() int64
+	AddReservedPeers(addrs ...string) error
+	RemoveReservedPeers(addrs ...string) error
 }
 
 // BlockProducerAPI is the interface for BlockProducer methods

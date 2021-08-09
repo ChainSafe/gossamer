@@ -705,6 +705,16 @@ func (s *Service) Peers() []common.PeerInfo {
 	return peers
 }
 
+// AddReservedPeers insert new peers to the peerstore with PermanentAddrTTL
+func (s *Service) AddReservedPeers(addrs ...string) error {
+	return s.host.addReservedPeers(addrs...)
+}
+
+// RemoveReservedPeers closes all connections with the target peers and remove it from the peerstore
+func (s *Service) RemoveReservedPeers(addrs ...string) error {
+	return s.host.removeReservedPeers(addrs...)
+}
+
 // NodeRoles Returns the roles the node is running as.
 func (s *Service) NodeRoles() byte {
 	return s.cfg.Roles
