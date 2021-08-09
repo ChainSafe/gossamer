@@ -63,6 +63,38 @@ func createTestExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash,
 	return types.Extrinsic(common.MustHexToBytes(extEnc))
 }
 
+func TestInstance_Version_NodeRuntime_v098(t *testing.T) {
+	expected := runtime.NewVersionData(
+		[]byte("node"),
+		[]byte("substrate-node"),
+		10,
+		267,
+		0,
+		nil,
+		2,
+	)
+
+	instance := NewTestInstance(t, runtime.NODE_RUNTIME_v098)
+
+	version, err := instance.Version()
+	require.Nil(t, err)
+
+	t.Logf("SpecName: %s\n", version.SpecName())
+	t.Logf("ImplName: %s\n", version.ImplName())
+	t.Logf("AuthoringVersion: %d\n", version.AuthoringVersion())
+	t.Logf("SpecVersion: %d\n", version.SpecVersion())
+	t.Logf("ImplVersion: %d\n", version.ImplVersion())
+	t.Logf("TransactionVersion: %d\n", version.TransactionVersion())
+
+	require.Equal(t, 13, len(version.APIItems()))
+	require.Equal(t, expected.SpecName(), version.SpecName())
+	require.Equal(t, expected.ImplName(), version.ImplName())
+	require.Equal(t, expected.AuthoringVersion(), version.AuthoringVersion())
+	require.Equal(t, expected.SpecVersion(), version.SpecVersion())
+	require.Equal(t, expected.ImplVersion(), version.ImplVersion())
+	require.Equal(t, expected.TransactionVersion(), version.TransactionVersion())
+}
+
 func TestInstance_Version_PolkadotRuntime(t *testing.T) {
 	expected := runtime.NewVersionData(
 		[]byte("polkadot"),
@@ -976,6 +1008,29 @@ func TestInstance_ExecuteBlock_PolkadotBlock1089328(t *testing.T) {
 
 	_, err = instance.ExecuteBlock(block)
 	require.NoError(t, err)
+}
+
+func TestInstance_DecodeSessionKeys(t *testing.T) {
+	keys := "0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d34309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc3852042602634309a9d2a24213896ff06895db16aade8b6502f3a71cf56374cc38520426026"
+	pubkeys, err := common.HexToBytes(keys)
+	require.NoError(t, err)
+
+	pukeysBytes, err := scale.Marshal(pubkeys)
+	require.NoError(t, err)
+
+	instance := NewTestInstance(t, runtime.NODE_RUNTIME_v098)
+	decoded, err := instance.DecodeSessionKeys(pukeysBytes)
+	require.NoError(t, err)
+
+	var decodedKeys *[]struct {
+		Data []uint8
+		Type [4]uint8
+	}
+
+	err = scale.Unmarshal(decoded, &decodedKeys)
+	require.NoError(t, err)
+
+	require.Len(t, *decodedKeys, 4)
 }
 
 func newTrieFromPairs(t *testing.T, filename string) *trie.Trie {

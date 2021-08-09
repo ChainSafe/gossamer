@@ -33,9 +33,9 @@ func TestNewService(t *testing.T) {
 }
 
 func TestService_Methods(t *testing.T) {
-	qtySystemMethods := 13
+	qtySystemMethods := 15
 	qtyRPCMethods := 1
-	qtyAuthorMethods := 7
+	qtyAuthorMethods := 8
 
 	rpcService := NewService()
 	sysMod := modules.NewSystemModule(nil, nil, nil, nil, nil, nil)

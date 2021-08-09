@@ -34,6 +34,13 @@ func TestNewKeypairFromSeed(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, kp.public)
 	require.NotNil(t, kp.private)
+
+	seed = make([]byte, 20)
+	_, err = rand.Read(seed)
+	require.NoError(t, err)
+	kp, err = NewKeypairFromSeed(seed)
+	require.Nil(t, kp)
+	require.Error(t, err, "cannot generate key from seed: seed is not 32 bytes long")
 }
 
 func TestSignAndVerify(t *testing.T) {
