@@ -399,10 +399,21 @@ func (h *Handler) handlePause(d *types.ConsensusDigest) error {
 		return err
 	}
 
-	var p types.GrandpaPause
-	err = scale.Unmarshal(d.Data[1:], &p)
+	//var p types.GrandpaPause
+	//err = scale.Unmarshal(d.Data[1:], &p)
+
+	var dec = types.GrandpaConsensusDigest
+	err = scale.Unmarshal(d.Data, &dec)
 	if err != nil {
 		return err
+	}
+
+	var p types.GrandpaPause
+	switch val := dec.Value().(type) {
+	case types.GrandpaPause:
+		p = val
+	default:
+		fmt.Println("THIS SHOULDNT HAPPEN")
 	}
 
 	delay := big.NewInt(int64(p.Delay))
@@ -420,10 +431,21 @@ func (h *Handler) handleResume(d *types.ConsensusDigest) error {
 		return err
 	}
 
-	var r types.GrandpaResume
-	err = scale.Unmarshal(d.Data[1:], &r)
+	//var r types.GrandpaResume
+	//err = scale.Unmarshal(d.Data[1:], &r)
+
+	var dec = types.GrandpaConsensusDigest
+	err = scale.Unmarshal(d.Data, &dec)
 	if err != nil {
 		return err
+	}
+
+	var r types.GrandpaResume
+	switch val := dec.Value().(type) {
+	case types.GrandpaResume:
+		r = val
+	default:
+		fmt.Println("THIS SHOULDNT HAPPEN")
 	}
 
 	delay := big.NewInt(int64(r.Delay))

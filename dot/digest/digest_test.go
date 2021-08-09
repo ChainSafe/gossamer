@@ -109,6 +109,7 @@ func TestHandler_GrandpaScheduledChange(t *testing.T) {
 
 	var digest = types.GrandpaConsensusDigest
 	err = digest.Set(sc)
+	require.NoError(t, err)
 
 	data, err := scale.Marshal(digest)
 	require.NoError(t, err)
@@ -165,6 +166,7 @@ func TestHandler_GrandpaForcedChange(t *testing.T) {
 
 	var digest = types.GrandpaConsensusDigest
 	err = digest.Set(fc)
+	require.NoError(t, err)
 
 	//data, err := fc.Encode()
 	data, err := scale.Marshal(digest)
@@ -204,11 +206,16 @@ func TestHandler_GrandpaPauseAndResume(t *testing.T) {
 	handler.Start()
 	defer handler.Stop()
 
-	p := &types.GrandpaPause{
+	p := types.GrandpaPause{
 		Delay: 3,
 	}
 
-	data, err := p.Encode()
+	var digest = types.GrandpaConsensusDigest
+	err := digest.Set(p)
+	require.NoError(t, err)
+
+	//data, err := p.Encode()
+	data, err := scale.Marshal(digest)
 	require.NoError(t, err)
 
 	d := &types.ConsensusDigest{
@@ -230,11 +237,16 @@ func TestHandler_GrandpaPauseAndResume(t *testing.T) {
 	time.Sleep(time.Millisecond * 100)
 	require.Nil(t, handler.grandpaPause)
 
-	r := &types.GrandpaResume{
+	r := types.GrandpaResume{
 		Delay: 3,
 	}
 
-	data, err = r.Encode()
+	var digest2 = types.GrandpaConsensusDigest
+	err = digest2.Set(r)
+	require.NoError(t, err)
+
+	//data, err = r.Encode()
+	data, err = scale.Marshal(digest2)
 	require.NoError(t, err)
 
 	d = &types.ConsensusDigest{
