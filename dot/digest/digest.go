@@ -19,6 +19,7 @@ package digest
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math"
 	"math/big"
 
@@ -182,7 +183,7 @@ func (h *Handler) handleConsensusDigest(d *types.ConsensusDigest, header *types.
 	if d.ConsensusEngineID == types.BabeEngineID {
 		switch t {
 		case types.NextEpochDataType:
-			return h.handleNextEpochData(d, header)
+			return h.handleNextEpochDataNew(d, header)
 		case types.BABEOnDisabledType:
 			return h.handleBABEOnDisabled(d, header)
 		case types.NextConfigDataType:
@@ -424,6 +425,41 @@ func (h *Handler) handleBABEOnDisabled(d *types.ConsensusDigest, _ *types.Header
 	od := &types.BABEOnDisabled{}
 	logger.Debug("handling BABEOnDisabled", "data", od)
 	return nil
+}
+
+func (h *Handler) handleNextEpochDataNew(d *types.ConsensusDigest, header *types.Header) error {
+	//var od types.NextEpochData
+	//err := scale.Unmarshal(d.Data[1:], &od)
+
+	var od = types.BabeConsensusDigest
+	err := scale.Unmarshal(d.Data, &od)
+	if err != nil {
+		return err
+	}
+
+	logger.Debug("handling BABENextEpochData", "data", od)
+
+	currEpoch, err := h.epochState.GetEpochForBlock(header)
+	if err != nil {
+		return err
+	}
+
+	var act types.NextEpochDataNew
+	switch val := od.Value().(type) {
+	case types.NextEpochDataNew:
+		act = val
+	default:
+		fmt.Println("THIS SHOULDNT HAPPEN")
+	}
+
+	// set EpochState epoch data for upcoming epoch
+	data, err := act.ToEpochData()
+	if err != nil {
+		return err
+	}
+
+	logger.Debug("setting epoch data", "blocknum", header.Number, "epoch", currEpoch+1, "data", data)
+	return h.epochState.SetEpochDataNew(currEpoch+1, data)
 }
 
 func (h *Handler) handleNextEpochData(d *types.ConsensusDigest, header *types.Header) error {

@@ -140,6 +140,18 @@ func (d *NextEpochData) ToEpochData() (*EpochData, error) {
 	}, nil
 }
 
+func (d *NextEpochDataNew) ToEpochData() (*EpochDataNew, error) {
+	auths, err := BABEAuthorityRawToAuthorityNew(d.Authorities)
+	if err != nil {
+		return nil, err
+	}
+
+	return &EpochDataNew{
+		Authorities: auths,
+		Randomness:  d.Randomness,
+	}, nil
+}
+
 // BABEOnDisabled represents a GRANDPA authority being disabled
 type BABEOnDisabled struct {
 	ID uint32

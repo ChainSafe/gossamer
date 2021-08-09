@@ -36,6 +36,7 @@ type BlockState interface {
 type EpochState interface {
 	GetEpochForBlock(header *types.Header) (uint64, error)
 	SetEpochData(epoch uint64, info *types.EpochData) error
+	SetEpochDataNew(epoch uint64, info *types.EpochDataNew) error
 	SetConfigData(epoch uint64, info *types.ConfigData) error
 }
 

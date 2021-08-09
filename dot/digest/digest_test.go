@@ -17,6 +17,8 @@
 package digest
 
 import (
+	"fmt"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"io/ioutil"
 	"math/big"
 	"testing"
@@ -382,6 +384,8 @@ func createHeaderWithPreDigest(slotNumber uint64) *types.Header {
 }
 
 func TestHandler_HandleNextEpochData(t *testing.T) {
+	expData := common.MustHexToBytes("0x0108d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01000000000000008eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a4801000000000000004d58630000000000000000000000000000000000000000000000000000000000")
+
 	handler := newTestHandler(t, true, false)
 	handler.Start()
 	defer handler.Stop()
@@ -389,23 +393,27 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
-	authA := &types.AuthorityRaw{
+	authA := types.AuthorityRaw{
 		Key:    keyring.Alice().Public().(*sr25519.PublicKey).AsBytes(),
 		Weight: 1,
 	}
 
-	authB := &types.AuthorityRaw{
+	authB := types.AuthorityRaw{
 		Key:    keyring.Bob().Public().(*sr25519.PublicKey).AsBytes(),
 		Weight: 1,
 	}
 
-	digest := &types.NextEpochData{
-		Authorities: []*types.AuthorityRaw{authA, authB},
+	var digest = types.BabeConsensusDigest
+	err = digest.Set(types.NextEpochDataNew{
+		Authorities: []types.AuthorityRaw{authA, authB},
 		Randomness:  [32]byte{77, 88, 99},
-	}
+	})
 
-	data, err := digest.Encode()
+	//data, err := digest.Encode()
+	data, err := scale.Marshal(digest)
 	require.NoError(t, err)
+
+	require.Equal(t, expData, data)
 
 	d := &types.ConsensusDigest{
 		ConsensusEngineID: types.BabeEngineID,
@@ -417,9 +425,18 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 	err = handler.handleConsensusDigest(d, header)
 	require.NoError(t, err)
 
-	stored, err := handler.epochState.(*state.EpochState).GetEpochData(1)
+	stored, err := handler.epochState.(*state.EpochState).GetEpochDataNew(1)
 	require.NoError(t, err)
-	res, err := digest.ToEpochData()
+
+	var act types.NextEpochDataNew
+	switch val := digest.Value().(type) {
+	case types.NextEpochDataNew:
+		act = val
+	default:
+		fmt.Println("THIS SHOULDNT HAPPEN")
+	}
+
+	res, err := act.ToEpochData()
 	require.NoError(t, err)
 	require.Equal(t, res, stored)
 }

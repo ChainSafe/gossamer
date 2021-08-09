@@ -217,6 +217,17 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 	return 0, errors.New("header does not contain pre-runtime digest")
 }
 
+func (s *EpochState) SetEpochDataNew(epoch uint64, info *types.EpochDataNew) error {
+	raw := info.ToEpochDataRaw()
+
+	enc, err := scale.Encode(raw)
+	if err != nil {
+		return err
+	}
+
+	return s.db.Put(epochDataKey(epoch), enc)
+}
+
 // SetEpochData sets the epoch data for a given epoch
 func (s *EpochState) SetEpochData(epoch uint64, info *types.EpochData) error {
 	raw := info.ToEpochDataRaw()
@@ -227,6 +238,25 @@ func (s *EpochState) SetEpochData(epoch uint64, info *types.EpochData) error {
 	}
 
 	return s.db.Put(epochDataKey(epoch), enc)
+}
+
+func (s *EpochState) GetEpochDataNew(epoch uint64) (*types.EpochDataNew, error) {
+	enc, err := s.db.Get(epochDataKey(epoch))
+	if err != nil {
+		return nil, err
+	}
+
+	info, err := scale.Decode(enc, &types.EpochDataRawNew{})
+	if err != nil {
+		return nil, err
+	}
+
+	raw, ok := info.(*types.EpochDataRawNew)
+	if !ok {
+		return nil, errors.New("failed to decode raw epoch data")
+	}
+
+	return raw.ToEpochData()
 }
 
 // GetEpochData returns the epoch data for a given epoch

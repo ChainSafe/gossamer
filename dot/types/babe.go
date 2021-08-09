@@ -35,6 +35,19 @@ type BabeConfiguration struct {
 	SecondarySlots     byte
 }
 
+func BABEAuthorityRawToAuthorityNew(adr []AuthorityRaw) ([]Authority, error) {
+	ad := make([]Authority, len(adr))
+	for i, r := range adr {
+		ad[i] = Authority{}
+		err := ad[i].FromRawSr25519(&r)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return ad, nil
+}
+
 // BABEAuthorityRawToAuthority turns a slice of BABE AuthorityRaw into a slice of Authority
 func BABEAuthorityRawToAuthority(adr []*AuthorityRaw) ([]*Authority, error) {
 	ad := make([]*Authority, len(adr))
@@ -53,6 +66,25 @@ func BABEAuthorityRawToAuthority(adr []*AuthorityRaw) ([]*Authority, error) {
 type EpochData struct {
 	Authorities []*Authority
 	Randomness  [RandomnessLength]byte
+}
+
+type EpochDataNew struct {
+	Authorities []Authority
+	Randomness  [RandomnessLength]byte
+}
+
+func (d *EpochDataNew) ToEpochDataRaw() *EpochDataRawNew {
+	raw := &EpochDataRawNew{
+		Randomness: d.Randomness,
+	}
+
+	rawAuths := make([]AuthorityRaw, len(d.Authorities))
+	for i, auth := range d.Authorities {
+		rawAuths[i] = *auth.ToRaw()
+	}
+
+	raw.Authorities = rawAuths
+	return raw
 }
 
 // ToEpochDataRaw returns the EpochData as an EpochDataRaw, converting the Authority to AuthorityRaw
@@ -74,6 +106,25 @@ func (d *EpochData) ToEpochDataRaw() *EpochDataRaw {
 type EpochDataRaw struct {
 	Authorities []*AuthorityRaw
 	Randomness  [RandomnessLength]byte
+}
+
+type EpochDataRawNew struct {
+	Authorities []AuthorityRaw
+	Randomness  [RandomnessLength]byte
+}
+
+func (d *EpochDataRawNew) ToEpochData() (*EpochDataNew, error) {
+	epochData := &EpochDataNew{
+		Randomness: d.Randomness,
+	}
+
+	auths, err := BABEAuthorityRawToAuthorityNew(d.Authorities)
+	if err != nil {
+		return nil, err
+	}
+
+	epochData.Authorities = auths
+	return epochData, nil
 }
 
 // ToEpochData returns the EpochDataRaw as EpochData
