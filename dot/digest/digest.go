@@ -187,7 +187,7 @@ func (h *Handler) handleConsensusDigest(d *types.ConsensusDigest, header *types.
 		case types.BABEOnDisabledType:
 			return h.handleBABEOnDisabled(d, header)
 		case types.NextConfigDataType:
-			return h.handleNextConfigData(d, header)
+			return h.handleNextConfigDataNew(d, header)
 		default:
 			return errors.New("invalid consensus digest data")
 		}
@@ -457,6 +457,33 @@ func (h *Handler) handleNextEpochData(d *types.ConsensusDigest, header *types.He
 
 	logger.Debug("setting epoch data", "blocknum", header.Number, "epoch", currEpoch+1, "data", data)
 	return h.epochState.SetEpochDataNew(currEpoch+1, data)
+}
+
+func (h *Handler) handleNextConfigDataNew(d *types.ConsensusDigest, header *types.Header) error {
+	var od = types.BabeConsensusDigest
+	err := scale.Unmarshal(d.Data, &od)
+	if err != nil {
+		return err
+	}
+
+	logger.Debug("handling BABENextConfigData", "data", od)
+
+	currEpoch, err := h.epochState.GetEpochForBlock(header)
+	if err != nil {
+		return err
+	}
+
+	var config types.NextConfigData
+	switch val := od.Value().(type) {
+	case types.NextConfigData:
+		config = val
+	default:
+		fmt.Println("THIS SHOULDNT HAPPEN")
+	}
+
+	logger.Debug("setting BABE config data", "blocknum", header.Number, "epoch", currEpoch+1, "data", config.ToConfigData())
+	// set EpochState config data for upcoming epoch
+	return h.epochState.SetConfigData(currEpoch+1, config.ToConfigData())
 }
 
 func (h *Handler) handleNextConfigData(d *types.ConsensusDigest, header *types.Header) error {

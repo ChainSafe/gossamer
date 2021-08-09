@@ -354,16 +354,11 @@ func TestHandler_HandleBABEOnDisabled(t *testing.T) {
 		Number: big.NewInt(1),
 	}
 
-	//digest := &types.BABEOnDisabled{
-	//	ID: 7,
-	//}
-
 	var digest = types.BabeConsensusDigest
 	err := digest.Set(types.BABEOnDisabled{
 		ID: 7,
 	})
 
-	//data, err := digest.Encode()
 	data, err := scale.Marshal(digest)
 	require.NoError(t, err)
 
@@ -415,7 +410,6 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 		Randomness:  [32]byte{77, 88, 99},
 	})
 
-	//data, err := digest.Encode()
 	data, err := scale.Marshal(digest)
 	require.NoError(t, err)
 
@@ -452,13 +446,15 @@ func TestHandler_HandleNextConfigData(t *testing.T) {
 	handler.Start()
 	defer handler.Stop()
 
-	digest := &types.NextConfigData{
+	var digest = types.BabeConsensusDigest
+	err := digest.Set(types.NextConfigData{
 		C1:             1,
 		C2:             8,
 		SecondarySlots: 1,
-	}
+	})
 
-	data, err := digest.Encode()
+	//data, err := digest.Encode()
+	data, err := scale.Marshal(digest)
 	require.NoError(t, err)
 
 	d := &types.ConsensusDigest{
@@ -471,7 +467,15 @@ func TestHandler_HandleNextConfigData(t *testing.T) {
 	err = handler.handleConsensusDigest(d, header)
 	require.NoError(t, err)
 
+	var act types.NextConfigData
+	switch val := digest.Value().(type) {
+	case types.NextConfigData:
+		act = val
+	default:
+		fmt.Println("THIS SHOULDNT HAPPEN")
+	}
+
 	stored, err := handler.epochState.(*state.EpochState).GetConfigData(1)
 	require.NoError(t, err)
-	require.Equal(t, digest.ToConfigData(), stored)
+	require.Equal(t, act.ToConfigData(), stored)
 }
