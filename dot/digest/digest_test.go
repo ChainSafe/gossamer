@@ -33,6 +33,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TODO remove pointers from the encoding types to support new scale
+
 // TODO: use these from core?
 func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) []*types.Header {
 	return addTestBlocksToStateWithParent(t, blockState.(*state.BlockState).BestBlockHash(), depth, blockState)
