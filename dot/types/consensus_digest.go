@@ -21,6 +21,7 @@ var (
 )
 
 var BabeConsensusDigest = scale.MustNewVaryingDataType(NextEpochDataNew{}, BABEOnDisabled{}, NextConfigData{})
+var GrandpaConsensusDigest = scale.MustNewVaryingDataType(GrandpaScheduledChangeNew{}, GrandpaForcedChangeNew{}, GrandpaOnDisabled{}, GrandpaPause{}, GrandpaResume{})
 
 
 // GrandpaScheduledChange represents a GRANDPA scheduled authority change
@@ -28,6 +29,13 @@ type GrandpaScheduledChange struct {
 	Auths []*GrandpaAuthoritiesRaw
 	Delay uint32
 }
+
+type GrandpaScheduledChangeNew struct {
+	Auths []GrandpaAuthoritiesRaw
+	Delay uint32
+}
+
+func (sc GrandpaScheduledChangeNew) Index() uint { return 1 }
 
 // Encode returns a SCALE encoded GrandpaScheduledChange with first type byte
 func (sc *GrandpaScheduledChange) Encode() ([]byte, error) {
@@ -45,6 +53,13 @@ type GrandpaForcedChange struct {
 	Delay uint32
 }
 
+type GrandpaForcedChangeNew struct {
+	Auths []GrandpaAuthoritiesRaw
+	Delay uint32
+}
+
+func (fc GrandpaForcedChangeNew) Index() uint { return 2 }
+
 // Encode returns a SCALE encoded GrandpaForcedChange with first type byte
 func (fc *GrandpaForcedChange) Encode() ([]byte, error) {
 	enc, err := scale.Marshal(*fc)
@@ -59,6 +74,9 @@ func (fc *GrandpaForcedChange) Encode() ([]byte, error) {
 type GrandpaOnDisabled struct {
 	ID uint64
 }
+
+func (od GrandpaOnDisabled) Index() uint { return 3 }
+
 
 // Encode returns a SCALE encoded GrandpaOnDisabled with first type byte
 func (od *GrandpaOnDisabled) Encode() ([]byte, error) {
@@ -75,6 +93,8 @@ type GrandpaPause struct {
 	Delay uint32
 }
 
+func (p GrandpaPause) Index() uint { return 4 }
+
 // Encode returns a SCALE encoded GrandpaPause with first type byte
 func (p *GrandpaPause) Encode() ([]byte, error) {
 	enc, err := scale.Marshal(*p)
@@ -90,6 +110,8 @@ type GrandpaResume struct {
 	Delay uint32
 }
 
+func (r GrandpaResume) Index() uint { return 5 }
+
 // Encode returns a SCALE encoded GrandpaResume with first type byte
 func (r *GrandpaResume) Encode() ([]byte, error) {
 	enc, err := scale.Marshal(*r)
@@ -100,14 +122,7 @@ func (r *GrandpaResume) Encode() ([]byte, error) {
 	return append([]byte{GrandpaResumeType}, enc...), nil
 }
 
-// NextEpochData is the digest that contains the data for the upcoming BABE epoch.
-// It is included in the first block of every epoch to describe the next epoch.
-type NextEpochData struct {
-	Authorities []*AuthorityRaw
-	Randomness  [RandomnessLength]byte
-}
-
-// NextEpochData is the digest that contains the data for the upcoming BABE epoch.
+// NextEpochDataNew is the digest that contains the data for the upcoming BABE epoch.
 // It is included in the first block of every epoch to describe the next epoch.
 type NextEpochDataNew struct {
 	Authorities []AuthorityRaw
@@ -116,16 +131,6 @@ type NextEpochDataNew struct {
 
 
 func (d NextEpochDataNew) Index() uint { return 1 }
-
-// Encode returns a SCALE encoded NextEpochData with first type byte
-func (d *NextEpochData) Encode() ([]byte, error) {
-	enc, err := scale.Marshal(*d)
-	if err != nil {
-		return nil, err
-	}
-
-	return append([]byte{NextEpochDataType}, enc...), nil
-}
 
 func (d *NextEpochDataNew) ToEpochData() (*EpochDataNew, error) {
 	auths, err := BABEAuthorityRawToAuthorityNew(d.Authorities)
@@ -146,16 +151,6 @@ type BABEOnDisabled struct {
 
 func (od BABEOnDisabled) Index() uint { return 2 }
 
-// Encode returns a SCALE encoded BABEOnDisabled with first type byte
-func (od *BABEOnDisabled) Encode() ([]byte, error) {
-	enc, err := scale.Marshal(*od)
-	if err != nil {
-		return nil, err
-	}
-
-	return append([]byte{BABEOnDisabledType}, enc...), nil
-}
-
 // NextConfigData is the digest that contains changes to the BABE configuration.
 // It is potentially included in the first block of an epoch to describe the next epoch.
 type NextConfigData struct {
@@ -165,16 +160,6 @@ type NextConfigData struct {
 }
 
 func (d NextConfigData) Index() uint { return 3 }
-
-// Encode returns a SCALE encoded NextConfigData with first type byte
-func (d *NextConfigData) Encode() ([]byte, error) {
-	enc, err := scale.Marshal(*d)
-	if err != nil {
-		return nil, err
-	}
-
-	return append([]byte{NextConfigDataType}, enc...), nil
-}
 
 // ToConfigData returns the NextConfigData as ConfigData
 func (d *NextConfigData) ToConfigData() *ConfigData {

@@ -53,14 +53,19 @@ type Handler struct {
 	finalisedID byte
 
 	// GRANDPA changes
-	grandpaScheduledChange *grandpaChange
+	grandpaScheduledChange *grandpaChangeNew
 	grandpaForcedChange    *grandpaChange
 	grandpaPause           *pause
 	grandpaResume          *resume
 }
 
 type grandpaChange struct {
-	auths   []*types.Authority
+	auths   []types.Authority
+	atBlock *big.Int
+}
+
+type grandpaChangeNew struct {
+	auths   []types.Authority
 	atBlock *big.Int
 }
 
@@ -163,10 +168,11 @@ func (h *Handler) HandleDigests(header *types.Header) {
 func (h *Handler) handleConsensusDigest(d *types.ConsensusDigest, header *types.Header) error {
 	t := d.DataType()
 
+	// TODO do a switch on the vdt type?
 	if d.ConsensusEngineID == types.GrandpaEngineID {
 		switch t {
 		case types.GrandpaScheduledChangeType:
-			return h.handleScheduledChange(d, header)
+			return h.handleScheduledChangeNew(d, header)
 		case types.GrandpaForcedChangeType:
 			return h.handleForcedChange(d, header)
 		case types.GrandpaOnDisabledType:
@@ -284,7 +290,7 @@ func (h *Handler) handleGrandpaChangesOnFinalization(num *big.Int) error {
 	return nil
 }
 
-func (h *Handler) handleScheduledChange(d *types.ConsensusDigest, header *types.Header) error {
+func (h *Handler) handleScheduledChangeNew(d *types.ConsensusDigest, header *types.Header) error {
 	curr, err := h.blockState.BestBlockHeader()
 	if err != nil {
 		return err
@@ -298,29 +304,40 @@ func (h *Handler) handleScheduledChange(d *types.ConsensusDigest, header *types.
 		return nil
 	}
 
-	var sc types.GrandpaScheduledChange
-	err = scale.Unmarshal(d.Data[1:], &sc)
+	//var sc types.GrandpaScheduledChange
+	//err = scale.Unmarshal(d.Data[1:], &sc)
+
+	var dec = types.GrandpaConsensusDigest
+	err = scale.Unmarshal(d.Data, &dec)
 	if err != nil {
 		return err
 	}
 
+	var sc types.GrandpaScheduledChangeNew
+	switch val := dec.Value().(type) {
+	case types.GrandpaScheduledChangeNew:
+		sc = val
+	default:
+		fmt.Println("THIS SHOULDNT HAPPEN")
+	}
+
 	logger.Debug("handling GrandpaScheduledChange", "data", sc)
 
-	c, err := newGrandpaChange(sc.Auths, sc.Delay, curr.Number)
+	c, err := newGrandpaChangeNew(sc.Auths, sc.Delay, curr.Number)
 	if err != nil {
 		return err
 	}
 
 	h.grandpaScheduledChange = c
 
-	auths, err := types.GrandpaAuthoritiesRawToAuthorities(sc.Auths)
+	auths, err := types.GrandpaAuthoritiesRawToAuthoritiesNew(sc.Auths)
 	if err != nil {
 		return err
 	}
 
 	logger.Debug("setting GrandpaScheduledChange", "at block", big.NewInt(0).Add(header.Number, big.NewInt(int64(sc.Delay))))
 	return h.grandpaState.SetNextChange(
-		types.NewGrandpaVotersFromAuthorities(auths),
+		types.NewGrandpaVotersFromAuthoritiesNew(auths),
 		big.NewInt(0).Add(header.Number, big.NewInt(int64(sc.Delay))),
 	)
 }
@@ -338,10 +355,21 @@ func (h *Handler) handleForcedChange(d *types.ConsensusDigest, header *types.Hea
 		return errors.New("already have forced change scheduled")
 	}
 
-	var fc types.GrandpaForcedChange
-	err := scale.Unmarshal(d.Data[1:], &fc)
+	//var fc types.GrandpaForcedChange
+	//err := scale.Unmarshal(d.Data[1:], &fc)
+
+	var dec = types.GrandpaConsensusDigest
+	err := scale.Unmarshal(d.Data, &dec)
 	if err != nil {
 		return err
+	}
+
+	var fc types.GrandpaForcedChangeNew
+	switch val := dec.Value().(type) {
+	case types.GrandpaForcedChangeNew:
+		fc = val
+	default:
+		fmt.Println("THIS SHOULDNT HAPPEN")
 	}
 
 	logger.Debug("handling GrandpaForcedChange", "data", fc)
@@ -353,14 +381,14 @@ func (h *Handler) handleForcedChange(d *types.ConsensusDigest, header *types.Hea
 
 	h.grandpaForcedChange = c
 
-	auths, err := types.GrandpaAuthoritiesRawToAuthorities(fc.Auths)
+	auths, err := types.GrandpaAuthoritiesRawToAuthoritiesNew(fc.Auths)
 	if err != nil {
 		return err
 	}
 
 	logger.Debug("setting GrandpaForcedChange", "at block", big.NewInt(0).Add(header.Number, big.NewInt(int64(fc.Delay))))
 	return h.grandpaState.SetNextChange(
-		types.NewGrandpaVotersFromAuthorities(auths),
+		types.NewGrandpaVotersFromAuthoritiesNew(auths),
 		big.NewInt(0).Add(header.Number, big.NewInt(int64(fc.Delay))),
 	)
 }
@@ -407,7 +435,21 @@ func (h *Handler) handleResume(d *types.ConsensusDigest) error {
 	return h.grandpaState.SetNextResume(h.grandpaResume.atBlock)
 }
 
-func newGrandpaChange(raw []*types.GrandpaAuthoritiesRaw, delay uint32, currBlock *big.Int) (*grandpaChange, error) {
+func newGrandpaChangeNew(raw []types.GrandpaAuthoritiesRaw, delay uint32, currBlock *big.Int) (*grandpaChangeNew, error) {
+	auths, err := types.GrandpaAuthoritiesRawToAuthoritiesNew(raw)
+	if err != nil {
+		return nil, err
+	}
+
+	d := big.NewInt(int64(delay))
+
+	return &grandpaChangeNew{
+		auths:   auths,
+		atBlock: big.NewInt(-1).Add(currBlock, d),
+	}, nil
+}
+
+func newGrandpaChange(raw []types.GrandpaAuthoritiesRaw, delay uint32, currBlock *big.Int) (*grandpaChange, error) {
 	auths, err := types.GrandpaAuthoritiesRawToAuthorities(raw)
 	if err != nil {
 		return nil, err

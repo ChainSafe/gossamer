@@ -89,7 +89,7 @@ type Config struct {
 	GrandpaState  GrandpaState
 	DigestHandler DigestHandler
 	Network       Network
-	Voters        []*Voter
+	Voters        []Voter
 	Keypair       *ed25519.Keypair
 	Authority     bool
 }
@@ -642,7 +642,8 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	// if we receive a vote message from the primary with a block that's greater than or equal to the current pre-voted block
 	// and greater than the best final candidate from the last round, we choose that.
 	// otherwise, we simply choose the head of our chain.
-	prm, has := s.loadVote(s.derivePrimary().PublicKeyBytes(), prevote)
+	primary := s.derivePrimary()
+	prm, has := s.loadVote(primary.PublicKeyBytes(), prevote)
 	if has && prm.Vote.Number >= uint32(s.head.Number.Int64()) {
 		vote = prm.Vote
 	} else {
@@ -850,7 +851,7 @@ func (s *Service) createJustification(bfc common.Hash, stage subround) ([]*Signe
 }
 
 // derivePrimary returns the primary for the current round
-func (s *Service) derivePrimary() *Voter {
+func (s *Service) derivePrimary() Voter {
 	return s.state.voters[s.state.round%uint64(len(s.state.voters))]
 }
 

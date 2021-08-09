@@ -100,14 +100,17 @@ func TestHandler_GrandpaScheduledChange(t *testing.T) {
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
-	sc := &types.GrandpaScheduledChange{
-		Auths: []*types.GrandpaAuthoritiesRaw{
+	sc := types.GrandpaScheduledChangeNew{
+		Auths: []types.GrandpaAuthoritiesRaw{
 			{Key: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(), ID: 0},
 		},
 		Delay: 3,
 	}
 
-	data, err := sc.Encode()
+	var digest = types.GrandpaConsensusDigest
+	err = digest.Set(sc)
+
+	data, err := scale.Marshal(digest)
 	require.NoError(t, err)
 
 	d := &types.ConsensusDigest{
@@ -140,7 +143,7 @@ func TestHandler_GrandpaScheduledChange(t *testing.T) {
 
 	auths, err := handler.grandpaState.(*state.GrandpaState).GetAuthorities(setID)
 	require.NoError(t, err)
-	expected, err := types.NewGrandpaVotersFromAuthoritiesRaw(sc.Auths)
+	expected, err := types.NewGrandpaVotersFromAuthoritiesRawNew(sc.Auths)
 	require.NoError(t, err)
 	require.Equal(t, expected, auths)
 }
@@ -153,14 +156,18 @@ func TestHandler_GrandpaForcedChange(t *testing.T) {
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
-	fc := &types.GrandpaForcedChange{
-		Auths: []*types.GrandpaAuthoritiesRaw{
+	fc := types.GrandpaForcedChangeNew{
+		Auths: []types.GrandpaAuthoritiesRaw{
 			{Key: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(), ID: 0},
 		},
 		Delay: 3,
 	}
 
-	data, err := fc.Encode()
+	var digest = types.GrandpaConsensusDigest
+	err = digest.Set(fc)
+
+	//data, err := fc.Encode()
+	data, err := scale.Marshal(digest)
 	require.NoError(t, err)
 
 	d := &types.ConsensusDigest{
@@ -187,7 +194,7 @@ func TestHandler_GrandpaForcedChange(t *testing.T) {
 
 	auths, err := handler.grandpaState.(*state.GrandpaState).GetAuthorities(setID)
 	require.NoError(t, err)
-	expected, err := types.NewGrandpaVotersFromAuthoritiesRaw(fc.Auths)
+	expected, err := types.NewGrandpaVotersFromAuthoritiesRawNew(fc.Auths)
 	require.NoError(t, err)
 	require.Equal(t, expected, auths)
 }
@@ -453,7 +460,6 @@ func TestHandler_HandleNextConfigData(t *testing.T) {
 		SecondarySlots: 1,
 	})
 
-	//data, err := digest.Encode()
 	data, err := scale.Marshal(digest)
 	require.NoError(t, err)
 
