@@ -368,6 +368,42 @@ func (h *host) peers() []peer.ID {
 	return h.h.Network().Peers()
 }
 
+// addReservedPeers adds the peers `addrs` to the protected peers list and connects to them
+func (h *host) addReservedPeers(addrs ...string) error {
+	for _, addr := range addrs {
+		maddr, err := ma.NewMultiaddr(addr)
+		if err != nil {
+			return err
+		}
+
+		addinfo, err := peer.AddrInfoFromP2pAddr(maddr)
+		if err != nil {
+			return err
+		}
+
+		h.h.ConnManager().Protect(addinfo.ID, "")
+		if err := h.connect(*addinfo); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// removeReservedPeers will remove the given peers from the protected peers list
+func (h *host) removeReservedPeers(ids ...string) error {
+	for _, id := range ids {
+		peerID, err := peer.Decode(id)
+		if err != nil {
+			return err
+		}
+
+		h.h.ConnManager().Unprotect(peerID, "")
+	}
+
+	return nil
+}
+
 // supportsProtocol checks if the protocol is supported by peerID
 // returns an error if could not get peer protocols
 func (h *host) supportsProtocol(peerID peer.ID, protocol protocol.ID) (bool, error) {

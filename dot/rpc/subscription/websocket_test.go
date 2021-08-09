@@ -2,10 +2,7 @@ package subscription
 
 import (
 	"fmt"
-	"log"
 	"math/big"
-	"net/http"
-	"os"
 	"testing"
 	"time"
 
@@ -20,47 +17,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
-}
-
-var wsconn = &WSConn{
-	Subscriptions: make(map[uint32]Listener),
-}
-
-func handler(w http.ResponseWriter, r *http.Request) {
-	c, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Print("upgrade:", err)
-		return
-	}
-	defer c.Close()
-
-	wsconn.Wsconn = c
-	wsconn.HandleComm()
-}
-
-func TestMain(m *testing.M) {
-	http.HandleFunc("/", handler)
-
-	go func() {
-		err := http.ListenAndServe("localhost:8546", nil)
-		if err != nil {
-			log.Fatal("error", err)
-		}
-	}()
-	time.Sleep(time.Millisecond * 100)
-
-	// Start all tests
-	os.Exit(m.Run())
-}
-
 func TestWSConn_HandleComm(t *testing.T) {
-	c, _, err := websocket.DefaultDialer.Dial("ws://localhost:8546", nil) //nolint
-	if err != nil {
-		log.Fatal("dial:", err)
-	}
-	defer c.Close()
+	wsconn, c, cancel := setupWSConn(t)
+	wsconn.Subscriptions = make(map[uint32]Listener)
+	defer cancel()
+
+	go wsconn.HandleComm()
+	time.Sleep(time.Second * 2)
+
+	fmt.Println("ws defined")
 
 	// test storageChangeListener
 	res, err := wsconn.initStorageChangeListener(1, nil)
