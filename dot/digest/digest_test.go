@@ -272,12 +272,17 @@ func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
 	defer handler.Stop()
 
 	block := uint32(3)
-	sc := &types.GrandpaScheduledChange{
-		Auths: []*types.GrandpaAuthoritiesRaw{},
+	sc := types.GrandpaScheduledChangeNew{
+		Auths: []types.GrandpaAuthoritiesRaw{},
 		Delay: block,
 	}
 
-	data, err := sc.Encode()
+	var digest = types.GrandpaConsensusDigest
+	err := digest.Set(sc)
+	require.NoError(t, err)
+
+	//data, err := sc.Encode()
+	data, err := scale.Marshal(digest)
 	require.NoError(t, err)
 
 	d := &types.ConsensusDigest{
@@ -297,7 +302,7 @@ func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
 	nextSetID := uint64(1)
 	auths, err := handler.grandpaState.(*state.GrandpaState).GetAuthorities(nextSetID)
 	require.NoError(t, err)
-	expected, err := types.NewGrandpaVotersFromAuthoritiesRaw(sc.Auths)
+	expected, err := types.NewGrandpaVotersFromAuthoritiesRawNew(sc.Auths)
 	require.NoError(t, err)
 	require.Equal(t, expected, auths)
 }
@@ -311,12 +316,17 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 	require.NoError(t, err)
 
 	later := uint32(6)
-	sc := &types.GrandpaScheduledChange{
-		Auths: []*types.GrandpaAuthoritiesRaw{},
+	sc := types.GrandpaScheduledChangeNew{
+		Auths: []types.GrandpaAuthoritiesRaw{},
 		Delay: later,
 	}
 
-	data, err := sc.Encode()
+	var digest = types.GrandpaConsensusDigest
+	err = digest.Set(sc)
+	require.NoError(t, err)
+
+	//data, err := sc.Encode()
+	data, err := scale.Marshal(digest)
 	require.NoError(t, err)
 
 	d := &types.ConsensusDigest{
@@ -334,19 +344,24 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 	nextSetID := uint64(1)
 	auths, err := handler.grandpaState.(*state.GrandpaState).GetAuthorities(nextSetID)
 	require.NoError(t, err)
-	expected, err := types.NewGrandpaVotersFromAuthoritiesRaw(sc.Auths)
+	expected, err := types.NewGrandpaVotersFromAuthoritiesRawNew(sc.Auths)
 	require.NoError(t, err)
 	require.Equal(t, expected, auths)
 
 	earlier := uint32(4)
-	fc := &types.GrandpaForcedChange{
-		Auths: []*types.GrandpaAuthoritiesRaw{
+	fc := types.GrandpaForcedChangeNew{
+		Auths: []types.GrandpaAuthoritiesRaw{
 			{Key: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(), ID: 0},
 		},
 		Delay: earlier,
 	}
 
-	data, err = fc.Encode()
+	digest = types.GrandpaConsensusDigest
+	err = digest.Set(fc)
+	require.NoError(t, err)
+
+	//data, err = fc.Encode()
+	data, err = scale.Marshal(digest)
 	require.NoError(t, err)
 
 	d = &types.ConsensusDigest{
@@ -362,7 +377,7 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 
 	auths, err = handler.grandpaState.(*state.GrandpaState).GetAuthorities(nextSetID)
 	require.NoError(t, err)
-	expected, err = types.NewGrandpaVotersFromAuthoritiesRaw(fc.Auths)
+	expected, err = types.NewGrandpaVotersFromAuthoritiesRawNew(fc.Auths)
 	require.NoError(t, err)
 	require.Equal(t, expected, auths)
 }
