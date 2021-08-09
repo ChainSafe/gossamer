@@ -26,56 +26,35 @@ import (
 )
 
 func TestEncode(t *testing.T) {
-	//expData := common.MustHexToBytes("0x010801d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0100000000000000018eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a4801000000000000004d58630000000000000000000000000000000000000000000000000000000000")
 	expData := common.MustHexToBytes("0x0108d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d01000000000000008eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a4801000000000000004d58630000000000000000000000000000000000000000000000000000000000")
 
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
-	//authA := &AuthorityRaw{
-	//	Key:    keyring.Alice().Public().(*sr25519.PublicKey).AsBytes(),
-	//	Weight: 1,
-	//}
-	//
-	//authB := &AuthorityRaw{
-	//	Key:    keyring.Bob().Public().(*sr25519.PublicKey).AsBytes(),
-	//	Weight: 1,
-	//}
-
-	auth1 := AuthorityRaw{
+	authA := AuthorityRaw{
 		Key:    keyring.Alice().Public().(*sr25519.PublicKey).AsBytes(),
 		Weight: 1,
 	}
 
-	auth2 := AuthorityRaw{
+	authB := AuthorityRaw{
 		Key:    keyring.Bob().Public().(*sr25519.PublicKey).AsBytes(),
 		Weight: 1,
 	}
 
 	var vdt = BabeConsensusDigest
 	err = vdt.Set(NextEpochDataNew{
-		Authorities: []AuthorityRaw{auth1, auth2},
+		Authorities: []AuthorityRaw{authA, authB},
 		Randomness:  [32]byte{77, 88, 99},
 	})
 
-	//digest := NextEpochData{
-	//	Authorities: []*AuthorityRaw{authA, authB},
-	//	Randomness:  [32]byte{77, 88, 99},
-	//}
-
-	//digestNew := NextEpochDataNew{
-	//	Authorities: []AuthorityRaw{auth1, auth2},
-	//	Randomness:  [32]byte{77, 88, 99},
-	//}
-
-	//data, err := digest.Encode()
-	//require.NoError(t, err)
-
-	// Encoding I do before is wrong. TODO fix
 
 	enc, err := scale.Marshal(vdt)
 	require.NoError(t, err)
-	require.Equal(t, expData, enc )
+	require.Equal(t, expData, enc)
 
+	var decVdt = BabeConsensusDigest
+	err = scale.Unmarshal(enc, &decVdt)
+	require.NoError(t, err)
+	require.Equal(t, vdt, decVdt)
 }
 
