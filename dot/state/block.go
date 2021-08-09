@@ -714,7 +714,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState, rt run
 	if err != nil {
 		return fmt.Errorf("failed to retrieve runtime version: %w", err)
 	}
-	bs.notifyRuntimeUpdated(newVersion)
+	go bs.notifyRuntimeUpdated(newVersion)
 	return nil
 }
 
