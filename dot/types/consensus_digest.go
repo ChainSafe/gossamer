@@ -20,6 +20,9 @@ var (
 	NextConfigDataType = byte(3)
 )
 
+var BabeConsensusDigest = scale.MustNewVaryingDataType(NextEpochDataNew{}, BABEOnDisabled{}, NextConfigData{})
+
+
 // GrandpaScheduledChange represents a GRANDPA scheduled authority change
 type GrandpaScheduledChange struct {
 	Auths []*GrandpaAuthoritiesRaw
@@ -104,6 +107,16 @@ type NextEpochData struct {
 	Randomness  [RandomnessLength]byte
 }
 
+// NextEpochData is the digest that contains the data for the upcoming BABE epoch.
+// It is included in the first block of every epoch to describe the next epoch.
+type NextEpochDataNew struct {
+	Authorities []AuthorityRaw
+	Randomness  [RandomnessLength]byte
+}
+
+
+func (d NextEpochDataNew) Index() uint { return 1 }
+
 // Encode returns a SCALE encoded NextEpochData with first type byte
 func (d *NextEpochData) Encode() ([]byte, error) {
 	enc, err := scale.Marshal(*d)
@@ -132,6 +145,8 @@ type BABEOnDisabled struct {
 	ID uint32
 }
 
+func (od BABEOnDisabled) Index() uint { return 2 }
+
 // Encode returns a SCALE encoded BABEOnDisabled with first type byte
 func (od *BABEOnDisabled) Encode() ([]byte, error) {
 	enc, err := scale.Marshal(*od)
@@ -149,6 +164,8 @@ type NextConfigData struct {
 	C2             uint64
 	SecondarySlots byte
 }
+
+func (d NextConfigData) Index() uint { return 3 }
 
 // Encode returns a SCALE encoded NextConfigData with first type byte
 func (d *NextConfigData) Encode() ([]byte, error) {
