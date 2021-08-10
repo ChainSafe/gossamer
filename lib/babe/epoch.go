@@ -73,14 +73,14 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 				return err
 			}
 
-			b.epochData = &epochData{
+			b.epochData = &epochDataNew{
 				randomness:     data.Randomness,
 				authorities:    data.Authorities,
 				authorityIndex: idx,
 				threshold:      threshold,
 			}
 		} else {
-			b.epochData = &epochData{
+			b.epochData = &epochDataNew{
 				randomness:     data.Randomness,
 				authorities:    data.Authorities,
 				authorityIndex: idx,

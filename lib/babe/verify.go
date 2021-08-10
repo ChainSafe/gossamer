@@ -31,7 +31,7 @@ import (
 // verifierInfo contains the information needed to verify blocks
 // it remains the same for an epoch
 type verifierInfo struct {
-	authorities []*types.Authority
+	authorities []types.Authority
 	randomness  Randomness
 	threshold   *common.Uint128
 }
@@ -249,7 +249,7 @@ func (v *VerificationManager) getConfigData(epoch uint64) (*types.ConfigData, er
 type verifier struct {
 	blockState  BlockState
 	epoch       uint64
-	authorities []*types.Authority
+	authorities []types.Authority
 	randomness  Randomness
 	threshold   *common.Uint128
 }

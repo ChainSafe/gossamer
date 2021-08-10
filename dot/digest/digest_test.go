@@ -459,7 +459,7 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 	err = handler.handleConsensusDigest(d, header)
 	require.NoError(t, err)
 
-	stored, err := handler.epochState.(*state.EpochState).GetEpochDataNew(1)
+	stored, err := handler.epochState.(*state.EpochState).GetEpochData(1)
 	require.NoError(t, err)
 
 	var act types.NextEpochData

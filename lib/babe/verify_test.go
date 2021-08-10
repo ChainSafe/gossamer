@@ -245,7 +245,7 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 
 	futureEpoch := uint64(5)
 
-	err = vm.epochState.(*state.EpochState).SetEpochData(futureEpoch, &types.EpochData{
+	err = vm.epochState.(*state.EpochState).SetEpochData(futureEpoch, &types.EpochDataNew{
 		Authorities: babeService.epochData.authorities,
 		Randomness:  babeService.epochData.randomness,
 	})
@@ -304,7 +304,7 @@ func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
 
 	cfg.C1 = 1
 	cfg.C2 = 1
-	cfg.GenesisAuthorities = []*types.AuthorityRaw{}
+	cfg.GenesisAuthorities = []types.AuthorityRaw{}
 
 	vm := newTestVerificationManager(t, cfg)
 
@@ -352,8 +352,8 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 	babeHeader, err := builder.buildBlockBABEPrimaryPreDigest(slot)
 	require.NoError(t, err)
 
-	Authorities := make([]*types.Authority, 1)
-	Authorities[0] = &types.Authority{
+	Authorities := make([]types.Authority, 1)
+	Authorities[0] = types.Authority{
 		Key: kp.Public().(*sr25519.PublicKey),
 	}
 	babeService.epochData.authorities = Authorities
@@ -398,8 +398,8 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	babeService := createTestService(t, cfg)
 	babeService.epochData.threshold = maxThreshold
 
-	babeService.epochData.authorities = make([]*types.Authority, 1)
-	babeService.epochData.authorities[0] = &types.Authority{
+	babeService.epochData.authorities = make([]types.Authority, 1)
+	babeService.epochData.authorities[0] = types.Authority{
 		Key: kp.Public().(*sr25519.PublicKey),
 	}
 

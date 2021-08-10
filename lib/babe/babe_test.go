@@ -59,7 +59,7 @@ var (
 		EpochLength:        200,
 		C1:                 1,
 		C2:                 4,
-		GenesisAuthorities: []*types.AuthorityRaw{},
+		GenesisAuthorities: []types.AuthorityRaw{},
 		Randomness:         [32]byte{},
 		SecondarySlots:     0,
 	}
@@ -87,11 +87,11 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	}
 
 	if cfg.AuthData == nil {
-		auth := &types.Authority{
+		auth := types.Authority{
 			Key:    cfg.Keypair.Public().(*sr25519.PublicKey),
 			Weight: 1,
 		}
-		cfg.AuthData = []*types.Authority{auth}
+		cfg.AuthData = []types.Authority{auth}
 	}
 
 	if cfg.TransactionState == nil {
@@ -236,7 +236,7 @@ func TestService_setupParameters_epochData(t *testing.T) {
 	auths, err := types.BABEAuthorityRawToAuthority(genCfg.GenesisAuthorities)
 	require.NoError(t, err)
 
-	data := &types.EpochData{
+	data := &types.EpochDataNew{
 		Authorities: auths[:3],
 		Randomness:  [types.RandomnessLength]byte{99, 88, 77},
 	}
@@ -267,7 +267,7 @@ func TestService_setupParameters_configData(t *testing.T) {
 	auths, err := types.BABEAuthorityRawToAuthority(genCfg.GenesisAuthorities)
 	require.NoError(t, err)
 
-	data := &types.EpochData{
+	data := &types.EpochDataNew{
 		Authorities: auths[:3],
 		Randomness:  [types.RandomnessLength]byte{99, 88, 77},
 	}
@@ -321,7 +321,7 @@ func TestService_ProducesBlocks(t *testing.T) {
 	babeService := createTestService(t, nil)
 
 	babeService.epochData.authorityIndex = 0
-	babeService.epochData.authorities = []*types.Authority{
+	babeService.epochData.authorities = []types.Authority{
 		{Key: nil, Weight: 1},
 		{Key: nil, Weight: 1},
 		{Key: nil, Weight: 1},
@@ -349,7 +349,7 @@ func TestService_GetAuthorityIndex(t *testing.T) {
 	pubA := kpA.Public().(*sr25519.PublicKey)
 	pubB := kpB.Public().(*sr25519.PublicKey)
 
-	authData := []*types.Authority{
+	authData := []types.Authority{
 		{Key: pubA, Weight: 1},
 		{Key: pubB, Weight: 1},
 	}

@@ -62,23 +62,23 @@ func TestInitiateEpoch_Epoch1(t *testing.T) {
 	// epoch 1, check that genesis EpochData and ConfigData was properly set
 	threshold := bs.epochData.threshold
 
-	auth := &types.Authority{
+	auth := types.Authority{
 		Key:    bs.keypair.Public().(*sr25519.PublicKey),
 		Weight: 1,
 	}
 
 	data, err := bs.epochState.GetEpochData(0)
 	require.NoError(t, err)
-	data.Authorities = []*types.Authority{auth}
+	data.Authorities = []types.Authority{auth}
 	err = bs.epochState.SetEpochData(1, data)
 	require.NoError(t, err)
 
 	err = bs.initiateEpoch(1)
 	require.NoError(t, err)
 
-	expected := &epochData{
+	expected := &epochDataNew{
 		randomness:     genesisBABEConfig.Randomness,
-		authorities:    []*types.Authority{auth},
+		authorities:    []types.Authority{auth},
 		authorityIndex: 0,
 		threshold:      threshold,
 	}
@@ -96,7 +96,7 @@ func TestInitiateEpoch_Epoch1(t *testing.T) {
 	}
 
 	// for epoch 2, set EpochData but not ConfigData
-	edata := &types.EpochData{
+	edata := &types.EpochDataNew{
 		Authorities: bs.epochData.authorities,
 		Randomness:  [32]byte{9},
 	}
@@ -104,7 +104,7 @@ func TestInitiateEpoch_Epoch1(t *testing.T) {
 	err = bs.epochState.(*state.EpochState).SetEpochData(2, edata)
 	require.NoError(t, err)
 
-	expected = &epochData{
+	expected = &epochDataNew{
 		randomness:     edata.Randomness,
 		authorities:    edata.Authorities,
 		authorityIndex: 0,
@@ -126,7 +126,7 @@ func TestInitiateEpoch_Epoch1(t *testing.T) {
 	}
 
 	// for epoch 3, set EpochData and ConfigData
-	edata = &types.EpochData{
+	edata = &types.EpochDataNew{
 		Authorities: bs.epochData.authorities,
 		Randomness:  [32]byte{9},
 	}
@@ -145,7 +145,7 @@ func TestInitiateEpoch_Epoch1(t *testing.T) {
 	threshold, err = CalculateThreshold(cdata.C1, cdata.C2, 1)
 	require.NoError(t, err)
 
-	expected = &epochData{
+	expected = &epochDataNew{
 		randomness:     edata.Randomness,
 		authorities:    edata.Authorities,
 		authorityIndex: 0,

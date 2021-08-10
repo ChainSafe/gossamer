@@ -87,12 +87,12 @@ func NewEpochStateFromGenesis(db chaindb.Database, genesisConfig *types.BabeConf
 		epochLength: genesisConfig.EpochLength,
 	}
 
-	auths, err := types.BABEAuthorityRawToAuthority(genesisConfig.GenesisAuthorities)
+	auths, err := types.BABEAuthorityRawToAuthorityNew(genesisConfig.GenesisAuthorities)
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.SetEpochData(0, &types.EpochData{
+	err = s.SetEpochData(0, &types.EpochDataNew{
 		Authorities: auths,
 		Randomness:  genesisConfig.Randomness,
 	})
@@ -229,7 +229,7 @@ func (s *EpochState) SetEpochDataNew(epoch uint64, info *types.EpochDataNew) err
 }
 
 // SetEpochData sets the epoch data for a given epoch
-func (s *EpochState) SetEpochData(epoch uint64, info *types.EpochData) error {
+func (s *EpochState) SetEpochData(epoch uint64, info *types.EpochDataNew) error {
 	raw := info.ToEpochDataRaw()
 
 	enc, err := scale.Encode(raw)
@@ -240,7 +240,7 @@ func (s *EpochState) SetEpochData(epoch uint64, info *types.EpochData) error {
 	return s.db.Put(epochDataKey(epoch), enc)
 }
 
-func (s *EpochState) GetEpochDataNew(epoch uint64) (*types.EpochDataNew, error) {
+func (s *EpochState) GetEpochData(epoch uint64) (*types.EpochDataNew, error) {
 	enc, err := s.db.Get(epochDataKey(epoch))
 	if err != nil {
 		return nil, err
@@ -259,28 +259,28 @@ func (s *EpochState) GetEpochDataNew(epoch uint64) (*types.EpochDataNew, error) 
 	return raw.ToEpochData()
 }
 
-// GetEpochData returns the epoch data for a given epoch
-func (s *EpochState) GetEpochData(epoch uint64) (*types.EpochData, error) {
-	enc, err := s.db.Get(epochDataKey(epoch))
-	if err != nil {
-		return nil, err
-	}
-
-	info, err := scale.Decode(enc, &types.EpochDataRaw{})
-	if err != nil {
-		return nil, err
-	}
-
-	raw, ok := info.(*types.EpochDataRaw)
-	if !ok {
-		return nil, errors.New("failed to decode raw epoch data")
-	}
-
-	return raw.ToEpochData()
-}
+//// GetEpochData returns the epoch data for a given epoch
+//func (s *EpochState) GetEpochData(epoch uint64) (*types.EpochData, error) {
+//	enc, err := s.db.Get(epochDataKey(epoch))
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	info, err := scale.Decode(enc, &types.EpochDataRaw{})
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	raw, ok := info.(*types.EpochDataRaw)
+//	if !ok {
+//		return nil, errors.New("failed to decode raw epoch data")
+//	}
+//
+//	return raw.ToEpochData()
+//}
 
 // GetLatestEpochData returns the EpochData for the current epoch
-func (s *EpochState) GetLatestEpochData() (*types.EpochData, error) {
+func (s *EpochState) GetLatestEpochData() (*types.EpochDataNew, error) {
 	curr, err := s.GetCurrentEpoch()
 	if err != nil {
 		return nil, err

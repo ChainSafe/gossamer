@@ -32,7 +32,7 @@ var genesisBABEConfig = &types.BabeConfiguration{
 	EpochLength:        200,
 	C1:                 1,
 	C2:                 4,
-	GenesisAuthorities: []*types.AuthorityRaw{},
+	GenesisAuthorities: []types.AuthorityRaw{},
 	Randomness:         [32]byte{},
 	SecondarySlots:     0,
 }
@@ -70,13 +70,13 @@ func TestEpochState_EpochData(t *testing.T) {
 	keyring, err := keystore.NewSr25519Keyring()
 	require.NoError(t, err)
 
-	auth := &types.Authority{
+	auth := types.Authority{
 		Key:    keyring.Alice().Public().(*sr25519.PublicKey),
 		Weight: 1,
 	}
 
-	info := &types.EpochData{
-		Authorities: []*types.Authority{auth},
+	info := &types.EpochDataNew{
+		Authorities: []types.Authority{auth},
 		Randomness:  [32]byte{77},
 	}
 
@@ -98,14 +98,14 @@ func TestEpochState_EpochData(t *testing.T) {
 func TestEpochState_GetStartSlotForEpoch(t *testing.T) {
 	s := newEpochStateFromGenesis(t)
 
-	info := &types.EpochData{
+	info := &types.EpochDataNew{
 		Randomness: [32]byte{77},
 	}
 
 	err := s.SetEpochData(2, info)
 	require.NoError(t, err)
 
-	info = &types.EpochData{
+	info = &types.EpochDataNew{
 		Randomness: [32]byte{77},
 	}
 

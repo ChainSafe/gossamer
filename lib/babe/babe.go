@@ -58,7 +58,7 @@ type Service struct {
 
 	// Epoch configuration data
 	slotDuration time.Duration
-	epochData    *epochData
+	epochData    *epochDataNew
 	slotToProof  map[uint64]*VrfOutputAndProof // for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
 
 	// State variables
@@ -76,7 +76,7 @@ type ServiceConfig struct {
 	BlockImportHandler   BlockImportHandler
 	Keypair              *sr25519.Keypair
 	Runtime              runtime.Instance
-	AuthData             []*types.Authority
+	AuthData             []types.Authority
 	IsDev                bool
 	ThresholdNumerator   uint64 // for development purposes
 	ThresholdDenominator uint64 // for development purposes
@@ -153,7 +153,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 
 func (b *Service) setupParameters(cfg *ServiceConfig) error {
 	var err error
-	b.epochData = &epochData{}
+	b.epochData = &epochDataNew{}
 
 	epochData, err := b.epochState.GetLatestEpochData()
 	if err != nil {
@@ -303,7 +303,7 @@ func (b *Service) Stop() error {
 }
 
 // Authorities returns the current BABE authorities
-func (b *Service) Authorities() []*types.Authority {
+func (b *Service) Authorities() []types.Authority {
 	return b.epochData.authorities
 }
 
@@ -312,7 +312,7 @@ func (b *Service) IsStopped() bool {
 	return b.ctx.Err() != nil
 }
 
-func (b *Service) getAuthorityIndex(Authorities []*types.Authority) (uint32, error) {
+func (b *Service) getAuthorityIndex(Authorities []types.Authority) (uint32, error) {
 	if !b.authority {
 		return 0, ErrNotAuthority
 	}

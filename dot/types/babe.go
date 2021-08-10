@@ -30,7 +30,7 @@ type BabeConfiguration struct {
 	EpochLength        uint64 // duration of epoch in slots
 	C1                 uint64 // (1-(c1/c2)) is the probability of a slot being empty
 	C2                 uint64
-	GenesisAuthorities []*AuthorityRaw
+	GenesisAuthorities []AuthorityRaw
 	Randomness         [RandomnessLength]byte
 	SecondarySlots     byte
 }
@@ -49,11 +49,11 @@ func BABEAuthorityRawToAuthorityNew(adr []AuthorityRaw) ([]Authority, error) {
 }
 
 // BABEAuthorityRawToAuthority turns a slice of BABE AuthorityRaw into a slice of Authority
-func BABEAuthorityRawToAuthority(adr []*AuthorityRaw) ([]*Authority, error) {
-	ad := make([]*Authority, len(adr))
+func BABEAuthorityRawToAuthority(adr []AuthorityRaw) ([]Authority, error) {
+	ad := make([]Authority, len(adr))
 	for i, r := range adr {
-		ad[i] = new(Authority)
-		err := ad[i].FromRawSr25519(r)
+		ad[i] = Authority{}
+		err := ad[i].FromRawSr25519(&r)
 		if err != nil {
 			return nil, err
 		}
@@ -127,20 +127,20 @@ func (d *EpochDataRawNew) ToEpochData() (*EpochDataNew, error) {
 	return epochData, nil
 }
 
-// ToEpochData returns the EpochDataRaw as EpochData
-func (d *EpochDataRaw) ToEpochData() (*EpochData, error) {
-	epochData := &EpochData{
-		Randomness: d.Randomness,
-	}
-
-	auths, err := BABEAuthorityRawToAuthority(d.Authorities)
-	if err != nil {
-		return nil, err
-	}
-
-	epochData.Authorities = auths
-	return epochData, nil
-}
+//// ToEpochData returns the EpochDataRaw as EpochData
+//func (d *EpochDataRaw) ToEpochData() (*EpochData, error) {
+//	epochData := &EpochData{
+//		Randomness: d.Randomness,
+//	}
+//
+//	auths, err := BABEAuthorityRawToAuthority(d.Authorities)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	epochData.Authorities = auths
+//	return epochData, nil
+//}
 
 // ConfigData represents a BABE configuration update
 type ConfigData struct {
