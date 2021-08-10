@@ -23,35 +23,12 @@ var (
 var BabeConsensusDigest = scale.MustNewVaryingDataType(NextEpochDataNew{}, BABEOnDisabled{}, NextConfigData{})
 var GrandpaConsensusDigest = scale.MustNewVaryingDataType(GrandpaScheduledChangeNew{}, GrandpaForcedChangeNew{}, GrandpaOnDisabled{}, GrandpaPause{}, GrandpaResume{})
 
-
-// GrandpaScheduledChange represents a GRANDPA scheduled authority change
-type GrandpaScheduledChange struct {
-	Auths []*GrandpaAuthoritiesRaw
-	Delay uint32
-}
-
 type GrandpaScheduledChangeNew struct {
 	Auths []GrandpaAuthoritiesRaw
 	Delay uint32
 }
 
 func (sc GrandpaScheduledChangeNew) Index() uint { return 1 }
-
-// Encode returns a SCALE encoded GrandpaScheduledChange with first type byte
-func (sc *GrandpaScheduledChange) Encode() ([]byte, error) {
-	enc, err := scale.Marshal(*sc)
-	if err != nil {
-		return nil, err
-	}
-
-	return append([]byte{GrandpaScheduledChangeType}, enc...), nil
-}
-
-// GrandpaForcedChange represents a GRANDPA forced authority change
-type GrandpaForcedChange struct {
-	Auths []*GrandpaAuthoritiesRaw
-	Delay uint32
-}
 
 type GrandpaForcedChangeNew struct {
 	Auths []GrandpaAuthoritiesRaw
@@ -60,33 +37,12 @@ type GrandpaForcedChangeNew struct {
 
 func (fc GrandpaForcedChangeNew) Index() uint { return 2 }
 
-// Encode returns a SCALE encoded GrandpaForcedChange with first type byte
-func (fc *GrandpaForcedChange) Encode() ([]byte, error) {
-	enc, err := scale.Marshal(*fc)
-	if err != nil {
-		return nil, err
-	}
-
-	return append([]byte{GrandpaForcedChangeType}, enc...), nil
-}
-
 // GrandpaOnDisabled represents a GRANDPA authority being disabled
 type GrandpaOnDisabled struct {
 	ID uint64
 }
 
 func (od GrandpaOnDisabled) Index() uint { return 3 }
-
-
-// Encode returns a SCALE encoded GrandpaOnDisabled with first type byte
-func (od *GrandpaOnDisabled) Encode() ([]byte, error) {
-	enc, err := scale.Marshal(*od)
-	if err != nil {
-		return nil, err
-	}
-
-	return append([]byte{GrandpaOnDisabledType}, enc...), nil
-}
 
 // GrandpaPause represents an authority set pause
 type GrandpaPause struct {
@@ -95,32 +51,12 @@ type GrandpaPause struct {
 
 func (p GrandpaPause) Index() uint { return 4 }
 
-// Encode returns a SCALE encoded GrandpaPause with first type byte
-func (p *GrandpaPause) Encode() ([]byte, error) {
-	enc, err := scale.Marshal(*p)
-	if err != nil {
-		return nil, err
-	}
-
-	return append([]byte{GrandpaPauseType}, enc...), nil
-}
-
 // GrandpaResume represents an authority set resume
 type GrandpaResume struct {
 	Delay uint32
 }
 
 func (r GrandpaResume) Index() uint { return 5 }
-
-// Encode returns a SCALE encoded GrandpaResume with first type byte
-func (r *GrandpaResume) Encode() ([]byte, error) {
-	enc, err := scale.Marshal(*r)
-	if err != nil {
-		return nil, err
-	}
-
-	return append([]byte{GrandpaResumeType}, enc...), nil
-}
 
 // NextEpochDataNew is the digest that contains the data for the upcoming BABE epoch.
 // It is included in the first block of every epoch to describe the next epoch.
