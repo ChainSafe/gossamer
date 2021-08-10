@@ -33,10 +33,6 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var (
-	validateHandler func(r *rpc.RequestInfo, v interface{}) error
-)
-
 // HTTPServer gateway for RPC server
 type HTTPServer struct {
 	logger       log.Logger

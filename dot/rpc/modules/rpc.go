@@ -21,6 +21,7 @@ import (
 )
 
 var (
+	// UNSAFE_METHODS is a list of all unsafe rpc methods of https://github.com/w3f/PSPs/blob/master/PSPs/drafts/psp-6.md
 	UNSAFE_METHODS = []string{
 		"system_addReservedPeer",
 		"system_removeReservedPeer",
