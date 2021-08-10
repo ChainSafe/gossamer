@@ -236,7 +236,7 @@ func TestAuthorModule_SubmitExtrinsic(t *testing.T) {
 				coreAPI:    tt.fields.coreAPI,
 				txStateAPI: tt.fields.txStateAPI,
 			}
-			if err := am.SubmitExtrinsic_UNSAFE(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
+			if err := am.SubmitExtrinsic(tt.args.r, tt.args.req, tt.args.res); (err != nil) != tt.wantErr {
 				t.Errorf("AuthorModule.SubmitExtrinsic() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if diff := cmp.Diff(tt.wantRes, *tt.args.res); diff != "" {

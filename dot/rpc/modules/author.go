@@ -219,7 +219,7 @@ func (am *AuthorModule) SubmitAndWatchExtrinsic(r *http.Request, req *Extrinsic,
 }
 
 // SubmitExtrinsic Submit a fully formatted extrinsic for block inclusion
-func (am *AuthorModule) SubmitExtrinsic_UNSAFE(r *http.Request, req *Extrinsic, res *ExtrinsicHashResponse) error {
+func (am *AuthorModule) SubmitExtrinsic(r *http.Request, req *Extrinsic, res *ExtrinsicHashResponse) error {
 	extBytes, err := common.HexToBytes(req.Data)
 	if err != nil {
 		return err

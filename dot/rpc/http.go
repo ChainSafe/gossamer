@@ -33,6 +33,10 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+var (
+	validateHandler func(r *rpc.RequestInfo, v interface{}) error
+)
+
 // HTTPServer gateway for RPC server
 type HTTPServer struct {
 	logger       log.Logger
@@ -99,10 +103,6 @@ func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
 	}
 
 	server.RegisterModules(cfg.Modules)
-	if !cfg.ExposeRPC() {
-		server.rpcServer.RegisterValidateRequestFunc(LocalRequestOnly)
-	}
-
 	return server
 }
 
@@ -139,7 +139,7 @@ func (h *HTTPServer) RegisterModules(mods []string) {
 			h.logger.Warn("Failed to register module", "mod", mod, "err", err)
 		}
 
-		h.serverConfig.RPCAPI.BuildMethodNames(srvc, mod, h.serverConfig.RPCUnsafeEnabled())
+		h.serverConfig.RPCAPI.BuildMethodNames(srvc, mod)
 	}
 }
 
@@ -159,15 +159,8 @@ func (h *HTTPServer) Start() error {
 	// Add custom validator for `common.Hash`
 	validate.RegisterCustomTypeFunc(common.HashValidator, common.Hash{})
 
-	validateHandler := func(r *rpc.RequestInfo, v interface{}) error {
-		err := validate.Struct(v)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
+	h.rpcServer.RegisterValidateRequestFunc(RPCValidator(h.serverConfig, validate))
 
-	h.rpcServer.RegisterValidateRequestFunc(validateHandler)
 	go func() {
 		err := http.ListenAndServe(fmt.Sprintf(":%d", h.serverConfig.RPCPort), r)
 		if err != nil {

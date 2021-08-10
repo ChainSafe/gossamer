@@ -18,10 +18,22 @@ package modules
 
 import (
 	"net/http"
-	"strings"
 )
 
-const UNSAFE_SUFIX = "_UNSAFE"
+var (
+	UNSAFE_METHODS = []string{
+		"system_addReservedPeer",
+		"system_removeReservedPeer",
+		"author_submitExtrinsic",
+		"author_removeExtrinsic",
+		"author_insertKey",
+		"author_rotateKeys",
+		"state_getPairs",
+		"state_getKeysPaged",
+		"state_queryStorage",
+		"childstate_getKeys",
+	}
+)
 
 // RPCModule is a RPC module providing access to RPC methods
 type RPCModule struct {
@@ -47,7 +59,13 @@ func (rm *RPCModule) Methods(r *http.Request, req *EmptyRequest, res *MethodsRes
 	return nil
 }
 
-// IsUnsafe returns true if the `name` has the _UNSAFE suffix
+// IsUnsafe returns true if the `name` has the  suffix
 func IsUnsafe(name string) bool {
-	return strings.HasSuffix(name, UNSAFE_SUFIX)
+	for _, unsafe := range UNSAFE_METHODS {
+		if name == unsafe {
+			return true
+		}
+	}
+
+	return false
 }

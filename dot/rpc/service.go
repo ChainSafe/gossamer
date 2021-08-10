@@ -22,8 +22,6 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
-
-	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 )
 
 // Service struct to hold rpc service data
@@ -51,7 +49,7 @@ var (
 
 // BuildMethodNames takes receiver interface and populates rpcMethods array with available
 //  method names
-func (s *Service) BuildMethodNames(rcvr interface{}, name string, unsafeEnabled bool) {
+func (s *Service) BuildMethodNames(rcvr interface{}, name string) {
 	rcvrType := reflect.TypeOf(rcvr)
 	for i := 0; i < rcvrType.NumMethod(); i++ {
 		method := rcvrType.Method(i)
@@ -88,12 +86,6 @@ func (s *Service) BuildMethodNames(rcvr interface{}, name string, unsafeEnabled 
 		}
 
 		rpcMethodName := name + "_" + strings.ToLower(string(method.Name[0])) + method.Name[1:]
-		if modules.IsUnsafe(rpcMethodName) && !unsafeEnabled {
-			continue
-		}
-
-		// if there is the _UNSAFE sufix then remove it
-		rpcMethodName = strings.TrimSuffix(rpcMethodName, modules.UNSAFE_SUFIX)
 		s.rpcMethods = append(s.rpcMethods, rpcMethodName)
 	}
 }

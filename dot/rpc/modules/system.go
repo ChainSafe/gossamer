@@ -19,6 +19,7 @@ package modules
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"math/big"
 	"net/http"
 	"strings"
@@ -284,6 +285,7 @@ func (sm *SystemModule) LocalPeerId(r *http.Request, req *EmptyRequest, res *str
 
 // AddReservedPeer adds a reserved peer. The string parameter should encode a p2p multiaddr.
 func (sm *SystemModule) AddReservedPeer(r *http.Request, req *StringRequest, res *[]byte) error {
+	fmt.Println("arrived by RPC method")
 	if strings.TrimSpace(req.String) == "" {
 		return errors.New("cannot add an empty reserved peer")
 	}
