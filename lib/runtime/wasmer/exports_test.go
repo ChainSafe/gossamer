@@ -419,7 +419,7 @@ func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {
 	authA, _ := common.HexToHash("0xeea1eabcac7d2c8a6459b7322cf997874482bfc3d2ec7a80888a3a7d71410364")
 	authB, _ := common.HexToHash("0xb64994460e59b30364cad3c92e3df6052f9b0ebbb8f88460c194dc5794d6d717")
 
-	expectedAuthData := []*types.AuthorityRaw{
+	expectedAuthData := []types.AuthorityRaw{
 		{Key: authA, Weight: 1},
 		{Key: authB, Weight: 1},
 	}

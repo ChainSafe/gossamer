@@ -77,12 +77,12 @@ func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {
 
 	kr, _ := keystore.NewSr25519Keyring()
 
-	expectedAuthData := []*types.AuthorityRaw{}
+	expectedAuthData := []types.AuthorityRaw{}
 
 	for _, kp := range kr.Keys {
 		kb := [32]byte{}
 		copy(kb[:], kp.Public().Encode())
-		expectedAuthData = append(expectedAuthData, &types.AuthorityRaw{
+		expectedAuthData = append(expectedAuthData, types.AuthorityRaw{
 			Key:    kb,
 			Weight: 1,
 		})
