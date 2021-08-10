@@ -439,7 +439,7 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 	}
 
 	var digest = types.BabeConsensusDigest
-	err = digest.Set(types.NextEpochDataNew{
+	err = digest.Set(types.NextEpochData{
 		Authorities: []types.AuthorityRaw{authA, authB},
 		Randomness:  [32]byte{77, 88, 99},
 	})
@@ -462,9 +462,9 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 	stored, err := handler.epochState.(*state.EpochState).GetEpochDataNew(1)
 	require.NoError(t, err)
 
-	var act types.NextEpochDataNew
+	var act types.NextEpochData
 	switch val := digest.Value().(type) {
-	case types.NextEpochDataNew:
+	case types.NextEpochData:
 		act = val
 	default:
 		fmt.Println("THIS SHOULDNT HAPPEN")

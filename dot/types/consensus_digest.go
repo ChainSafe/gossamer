@@ -65,7 +65,6 @@ type NextEpochData struct {
 	Randomness  [RandomnessLength]byte
 }
 
-
 func (d NextEpochData) Index() uint { return 1 }
 
 func (d *NextEpochData) ToEpochData() (*EpochDataNew, error) {

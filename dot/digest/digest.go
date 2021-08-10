@@ -167,8 +167,7 @@ func (h *Handler) HandleDigests(header *types.Header) {
 
 func (h *Handler) handleConsensusDigest(d *types.ConsensusDigest, header *types.Header) error {
 	t := d.DataType()
-
-	// TODO do a switch on the vdt type?
+	
 	if d.ConsensusEngineID == types.GrandpaEngineID {
 		switch t {
 		case types.GrandpaScheduledChangeType:

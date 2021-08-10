@@ -42,7 +42,7 @@ func TestBabeEncodeAndDecode(t *testing.T) {
 	}
 
 	var vdt = BabeConsensusDigest
-	err = vdt.Set(NextEpochDataNew{
+	err = vdt.Set(NextEpochData{
 		Authorities: []AuthorityRaw{authA, authB},
 		Randomness:  [32]byte{77, 88, 99},
 	})
