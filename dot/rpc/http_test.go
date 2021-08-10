@@ -162,11 +162,12 @@ func TestRPCUnsafeExpose(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	req, err := http.NewRequest(http.MethodPost, "http://localhost:7879/", buf)
+	ip, err := externalIP()
 	require.NoError(t, err)
 
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("http://%s:7879/", ip), buf)
+	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Forwarded-For", "200.189.72.10")
 
 	res, err := new(http.Client).Do(req)
 	require.NoError(t, err)
@@ -179,7 +180,7 @@ func TestRPCUnsafeExpose(t *testing.T) {
 	require.Equal(t, expected, string(resBody))
 }
 
-func TestRPCJustToLocalhost(t *testing.T) {
+func TestUnsafeRPCJustToLocalhost(t *testing.T) {
 	unsafeMethod := "system_addReservedPeer"
 	data := []byte(fmt.Sprintf(
 		`{"jsonrpc":"2.0","method":"%s","params":["%s"],"id":1}`,
@@ -225,7 +226,7 @@ func TestRPCJustToLocalhost(t *testing.T) {
 	require.Equal(t, expected, string(resBody))
 }
 
-func TestRPCExternalEnableButUnsafeDont(t *testing.T) {
+func TestRPCExternalEnable_UnsafeExternalNotEnabled(t *testing.T) {
 	unsafeMethod := "system_addReservedPeer"
 	unsafeData := []byte(fmt.Sprintf(
 		`{"jsonrpc":"2.0","method":"%s","params":["%s"],"id":1}`,
