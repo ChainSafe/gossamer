@@ -71,7 +71,7 @@ func (in *Instance) BabeConfiguration() (*types.BabeConfiguration, error) {
 }
 
 // GrandpaAuthorities returns the genesis authorities from the runtime
-func (in *Instance) GrandpaAuthorities() ([]*types.Authority, error) {
+func (in *Instance) GrandpaAuthorities() ([]types.Authority, error) {
 	ret, err := in.Exec(runtime.GrandpaAuthorities, []byte{})
 	if err != nil {
 		return nil, err
@@ -82,7 +82,7 @@ func (in *Instance) GrandpaAuthorities() ([]*types.Authority, error) {
 		return nil, err
 	}
 
-	return types.GrandpaAuthoritiesRawToAuthorities(adr.([]*types.GrandpaAuthoritiesRaw))
+	return types.GrandpaAuthoritiesRawToAuthorities(adr.([]types.GrandpaAuthoritiesRaw))
 }
 
 // InitializeBlock calls runtime API function Core_initialise_block
