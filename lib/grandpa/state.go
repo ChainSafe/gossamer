@@ -50,6 +50,7 @@ type BlockState interface {
 	GetJustification(hash common.Hash) ([]byte, error)
 	GetHashByNumber(num *big.Int) (common.Hash, error)
 	BestBlockNumber() (*big.Int, error)
+	GetHighestRoundAndSetID() (uint64, uint64, error)
 }
 
 // GrandpaState is the interface required by grandpa into the grandpa state

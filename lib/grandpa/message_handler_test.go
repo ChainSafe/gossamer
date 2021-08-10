@@ -252,7 +252,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 
 	block := &types.Block{
 		Header: &types.Header{
-			ParentHash: testHeader.Hash(),
+			ParentHash: testGenesisHeader.Hash(),
 			Number:     big.NewInt(1),
 			Digest: types.Digest{
 				types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
@@ -269,11 +269,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, out)
 
-	hash, err := st.Block.GetFinalisedHash(0, 0)
-	require.NoError(t, err)
-	require.Equal(t, fm.Vote.Hash, hash)
-
-	hash, err = st.Block.GetFinalisedHash(fm.Round, gs.state.setID)
+	hash, err := st.Block.GetFinalisedHash(fm.Round, gs.state.setID)
 	require.NoError(t, err)
 	require.Equal(t, fm.Vote.Hash, hash)
 }
@@ -316,14 +312,8 @@ func TestMessageHandler_CommitMessage_WithCatchUpRequest(t *testing.T) {
 	gs.state.voters = gs.state.voters[:1]
 
 	h := NewMessageHandler(gs, st.Block)
-	out, err := h.handleMessage("", fm)
+	_, err = h.handleMessage("", fm)
 	require.NoError(t, err)
-	require.NotNil(t, out)
-
-	req := newCatchUpRequest(77, gs.state.setID)
-	expected, err := req.ToConsensusMessage()
-	require.NoError(t, err)
-	require.Equal(t, expected, out)
 }
 
 func TestMessageHandler_CatchUpRequest_InvalidRound(t *testing.T) {
@@ -354,7 +344,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 
 	block := &types.Block{
 		Header: &types.Header{
-			ParentHash: testHeader.Hash(),
+			ParentHash: testGenesisHeader.Hash(),
 			Number:     big.NewInt(2),
 			Digest: types.Digest{
 				types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
@@ -366,7 +356,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	err := st.Block.AddBlock(block)
 	require.NoError(t, err)
 
-	err = gs.blockState.SetFinalisedHash(testHeader.Hash(), round, setID)
+	err = gs.blockState.SetFinalisedHash(testGenesisHeader.Hash(), round, setID)
 	require.NoError(t, err)
 	err = gs.blockState.(*state.BlockState).SetHeader(block.Header)
 	require.NoError(t, err)
@@ -535,6 +525,14 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	err := st.Grandpa.SetNextChange(auths, big.NewInt(1))
 	require.NoError(t, err)
 
+	block := &types.Block{
+		Header: testHeader,
+		Body:   &types.Body{0},
+	}
+
+	err = st.Block.AddBlock(block)
+	require.NoError(t, err)
+
 	err = st.Grandpa.IncrementSetID()
 	require.NoError(t, err)
 
@@ -542,52 +540,49 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), setID)
 
+	genhash := st.Block.GenesisHash()
+
 	round := uint64(2)
 	number := uint32(2)
 	precommits := buildTestJustification(t, 2, round, setID, kr, precommit)
 	just := newJustification(round, testHash, number, precommits)
 	data, err := just.Encode()
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(data)
+	err = gs.VerifyBlockJustification(testHash, data)
 	require.NoError(t, err)
 
 	// use wrong hash, shouldn't verify
-	just = newJustification(round, common.Hash{}, number, precommits)
+	precommits = buildTestJustification(t, 2, round+1, setID, kr, precommit)
+	just = newJustification(round+1, testHash, number, precommits)
+	just.Commit.Precommits[0].Vote.Hash = genhash
 	data, err = just.Encode()
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(data)
+	err = gs.VerifyBlockJustification(testHash, data)
 	require.NotNil(t, err)
-	require.Equal(t, ErrJustificationHashMismatch, err)
-
-	// use wrong number, shouldn't verify
-	just = newJustification(round, testHash, number+1, precommits)
-	data, err = just.Encode()
-	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(data)
-	require.NotNil(t, err)
-	require.Equal(t, ErrJustificationNumberMismatch, err)
+	require.Equal(t, ErrPrecommitBlockMismatch, err)
 
 	// use wrong round, shouldn't verify
-	just = newJustification(round+1, testHash, number, precommits)
+	precommits = buildTestJustification(t, 2, round+1, setID, kr, precommit)
+	just = newJustification(round+2, testHash, number, precommits)
 	data, err = just.Encode()
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(data)
+	err = gs.VerifyBlockJustification(testHash, data)
 	require.NotNil(t, err)
 	require.Equal(t, ErrInvalidSignature, err)
 
 	// add authority not in set, shouldn't verify
-	precommits = buildTestJustification(t, len(auths)+1, round, setID, kr, precommit)
-	just = newJustification(round, testHash, number, precommits)
+	precommits = buildTestJustification(t, len(auths)+1, round+1, setID, kr, precommit)
+	just = newJustification(round+1, testHash, number, precommits)
 	data, err = just.Encode()
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(data)
+	err = gs.VerifyBlockJustification(testHash, data)
 	require.Equal(t, ErrAuthorityNotInSet, err)
 
 	// not enough signatures, shouldn't verify
-	precommits = buildTestJustification(t, 1, round, setID, kr, precommit)
-	just = newJustification(round, testHash, number, precommits)
+	precommits = buildTestJustification(t, 1, round+1, setID, kr, precommit)
+	just = newJustification(round+1, testHash, number, precommits)
 	data, err = just.Encode()
 	require.NoError(t, err)
-	err = gs.VerifyBlockJustification(data)
+	err = gs.VerifyBlockJustification(testHash, data)
 	require.Equal(t, ErrMinVotesNotMet, err)
 }
