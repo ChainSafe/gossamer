@@ -100,7 +100,7 @@ func TestHandler_GrandpaScheduledChange(t *testing.T) {
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
-	sc := types.GrandpaScheduledChangeNew{
+	sc := types.GrandpaScheduledChange{
 		Auths: []types.GrandpaAuthoritiesRaw{
 			{Key: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(), ID: 0},
 		},
@@ -157,7 +157,7 @@ func TestHandler_GrandpaForcedChange(t *testing.T) {
 	kr, err := keystore.NewEd25519Keyring()
 	require.NoError(t, err)
 
-	fc := types.GrandpaForcedChangeNew{
+	fc := types.GrandpaForcedChange{
 		Auths: []types.GrandpaAuthoritiesRaw{
 			{Key: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(), ID: 0},
 		},
@@ -272,7 +272,7 @@ func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
 	defer handler.Stop()
 
 	block := uint32(3)
-	sc := types.GrandpaScheduledChangeNew{
+	sc := types.GrandpaScheduledChange{
 		Auths: []types.GrandpaAuthoritiesRaw{},
 		Delay: block,
 	}
@@ -316,7 +316,7 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 	require.NoError(t, err)
 
 	later := uint32(6)
-	sc := types.GrandpaScheduledChangeNew{
+	sc := types.GrandpaScheduledChange{
 		Auths: []types.GrandpaAuthoritiesRaw{},
 		Delay: later,
 	}
@@ -349,7 +349,7 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 	require.Equal(t, expected, auths)
 
 	earlier := uint32(4)
-	fc := types.GrandpaForcedChangeNew{
+	fc := types.GrandpaForcedChange{
 		Auths: []types.GrandpaAuthoritiesRaw{
 			{Key: kr.Alice().Public().(*ed25519.PublicKey).AsBytes(), ID: 0},
 		},

@@ -313,9 +313,9 @@ func (h *Handler) handleScheduledChangeNew(d *types.ConsensusDigest, header *typ
 		return err
 	}
 
-	var sc types.GrandpaScheduledChangeNew
+	var sc types.GrandpaScheduledChange
 	switch val := dec.Value().(type) {
-	case types.GrandpaScheduledChangeNew:
+	case types.GrandpaScheduledChange:
 		sc = val
 	default:
 		fmt.Println("THIS SHOULDNT HAPPEN")
@@ -364,9 +364,9 @@ func (h *Handler) handleForcedChange(d *types.ConsensusDigest, header *types.Hea
 		return err
 	}
 
-	var fc types.GrandpaForcedChangeNew
+	var fc types.GrandpaForcedChange
 	switch val := dec.Value().(type) {
-	case types.GrandpaForcedChangeNew:
+	case types.GrandpaForcedChange:
 		fc = val
 	default:
 		fmt.Println("THIS SHOULDNT HAPPEN")
@@ -505,9 +505,9 @@ func (h *Handler) handleNextEpochData(d *types.ConsensusDigest, header *types.He
 		return err
 	}
 
-	var act types.NextEpochDataNew
+	var act types.NextEpochData
 	switch val := od.Value().(type) {
-	case types.NextEpochDataNew:
+	case types.NextEpochData:
 		act = val
 	default:
 		fmt.Println("THIS SHOULDNT HAPPEN")

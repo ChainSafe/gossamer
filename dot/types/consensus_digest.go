@@ -20,22 +20,22 @@ var (
 	NextConfigDataType = byte(3)
 )
 
-var BabeConsensusDigest = scale.MustNewVaryingDataType(NextEpochDataNew{}, BABEOnDisabled{}, NextConfigData{})
-var GrandpaConsensusDigest = scale.MustNewVaryingDataType(GrandpaScheduledChangeNew{}, GrandpaForcedChangeNew{}, GrandpaOnDisabled{}, GrandpaPause{}, GrandpaResume{})
+var BabeConsensusDigest = scale.MustNewVaryingDataType(NextEpochData{}, BABEOnDisabled{}, NextConfigData{})
+var GrandpaConsensusDigest = scale.MustNewVaryingDataType(GrandpaScheduledChange{}, GrandpaForcedChange{}, GrandpaOnDisabled{}, GrandpaPause{}, GrandpaResume{})
 
-type GrandpaScheduledChangeNew struct {
+type GrandpaScheduledChange struct {
 	Auths []GrandpaAuthoritiesRaw
 	Delay uint32
 }
 
-func (sc GrandpaScheduledChangeNew) Index() uint { return 1 }
+func (sc GrandpaScheduledChange) Index() uint { return 1 }
 
-type GrandpaForcedChangeNew struct {
+type GrandpaForcedChange struct {
 	Auths []GrandpaAuthoritiesRaw
 	Delay uint32
 }
 
-func (fc GrandpaForcedChangeNew) Index() uint { return 2 }
+func (fc GrandpaForcedChange) Index() uint { return 2 }
 
 // GrandpaOnDisabled represents a GRANDPA authority being disabled
 type GrandpaOnDisabled struct {
@@ -58,17 +58,17 @@ type GrandpaResume struct {
 
 func (r GrandpaResume) Index() uint { return 5 }
 
-// NextEpochDataNew is the digest that contains the data for the upcoming BABE epoch.
+// NextEpochData is the digest that contains the data for the upcoming BABE epoch.
 // It is included in the first block of every epoch to describe the next epoch.
-type NextEpochDataNew struct {
+type NextEpochData struct {
 	Authorities []AuthorityRaw
 	Randomness  [RandomnessLength]byte
 }
 
 
-func (d NextEpochDataNew) Index() uint { return 1 }
+func (d NextEpochData) Index() uint { return 1 }
 
-func (d *NextEpochDataNew) ToEpochData() (*EpochDataNew, error) {
+func (d *NextEpochData) ToEpochData() (*EpochDataNew, error) {
 	auths, err := BABEAuthorityRawToAuthorityNew(d.Authorities)
 	if err != nil {
 		return nil, err

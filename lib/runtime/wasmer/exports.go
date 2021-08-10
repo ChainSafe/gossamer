@@ -97,7 +97,7 @@ func (in *Instance) GrandpaAuthorities() ([]types.Authority, error) {
 		return nil, err
 	}
 
-	adr, err := scale.Decode(ret, []*types.GrandpaAuthoritiesRaw{})
+	adr, err := scale.Decode(ret, []types.GrandpaAuthoritiesRaw{})
 	if err != nil {
 		return nil, err
 	}
