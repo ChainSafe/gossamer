@@ -1,59 +1,31 @@
 package subscription
 
 import (
-	"log"
-	"net/http"
-	"os"
+	"fmt"
+	"math/big"
 	"testing"
 	"time"
 
+	modulesmocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
+	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/gorilla/websocket"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
-}
-
-var wsconn = &WSConn{
-	Subscriptions:    make(map[uint]Listener),
-	BlockSubChannels: make(map[uint]byte),
-}
-
-func handler(w http.ResponseWriter, r *http.Request) {
-	c, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Print("upgrade:", err)
-		return
-	}
-	defer c.Close()
-
-	wsconn.Wsconn = c
-	wsconn.HandleComm()
-}
-
-func TestMain(m *testing.M) {
-	http.HandleFunc("/", handler)
-
-	go func() {
-		err := http.ListenAndServe("localhost:8546", nil)
-		if err != nil {
-			log.Fatal("error", err)
-		}
-	}()
-	time.Sleep(time.Millisecond * 100)
-
-	// Start all tests
-	os.Exit(m.Run())
-}
-
 func TestWSConn_HandleComm(t *testing.T) {
-	c, _, err := websocket.DefaultDialer.Dial("ws://localhost:8546", nil) //nolint
-	if err != nil {
-		log.Fatal("dial:", err)
-	}
-	defer c.Close()
+	wsconn, c, cancel := setupWSConn(t)
+	wsconn.Subscriptions = make(map[uint32]Listener)
+	defer cancel()
+
+	go wsconn.HandleComm()
+	time.Sleep(time.Second * 2)
+
+	fmt.Println("ws defined")
 
 	// test storageChangeListener
 	res, err := wsconn.initStorageChangeListener(1, nil)
@@ -238,4 +210,65 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.NotNil(t, res)
 	require.Len(t, wsconn.Subscriptions, 8)
 
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, `{"jsonrpc":"2.0","result":8,"id":0}`+"\n", string(msg))
+
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, `{"jsonrpc":"2.0","method":"author_extrinsicUpdate","params":{"result":"ready","subscription":8}}`+"\n", string(msg))
+
+	var fCh chan<- *types.FinalisationInfo
+	mockedJust := grandpa.Justification{
+		Round: 1,
+		Commit: &grandpa.Commit{
+			Hash:       common.Hash{},
+			Number:     1,
+			Precommits: nil,
+		},
+	}
+
+	mockedJustBytes, err := mockedJust.Encode()
+	require.NoError(t, err)
+
+	BlockAPI := new(modulesmocks.BlockAPI)
+	BlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
+		Run(func(args mock.Arguments) {
+			ch := args.Get(0).(chan<- *types.FinalisationInfo)
+			fCh = ch
+		}).
+		Return(uint8(4), nil)
+
+	BlockAPI.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(mockedJustBytes, nil)
+	BlockAPI.On("UnregisterFinalisedChannel", mock.AnythingOfType("uint8"))
+
+	wsconn.BlockAPI = BlockAPI
+	listener, err := wsconn.initGrandpaJustificationListener(0, nil)
+	require.NoError(t, err)
+	require.NotNil(t, listener)
+
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, `{"jsonrpc":"2.0","result":9,"id":0}`+"\n", string(msg))
+
+	listener.Listen()
+	header := &types.Header{
+		ParentHash: common.Hash{},
+		Number:     big.NewInt(1),
+	}
+
+	fCh <- &types.FinalisationInfo{
+		Header: header,
+	}
+
+	time.Sleep(time.Second * 2)
+
+	expected := `{"jsonrpc":"2.0","method":"grandpa_justifications","params":{"result":"%s","subscription":9}}` + "\n"
+	expected = fmt.Sprintf(expected, common.BytesToHex(mockedJustBytes))
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, []byte(expected), msg)
+
+	err = listener.Stop()
+	require.NoError(t, err)
 }

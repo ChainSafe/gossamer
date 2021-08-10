@@ -132,6 +132,7 @@ jobs:
         name: Run stable tests
         run: |
           docker run chainsafe/gossamer:test sh -c "make it-stable"
+  
   docker-rpc-tests:
     runs-on: ubuntu-latest
     steps:
@@ -155,6 +156,7 @@ jobs:
         name: Run rpc tests
         run: |
           docker run chainsafe/gossamer:test sh -c "make it-rpc"
+  
   docker-stress-tests:
     runs-on: ubuntu-latest
     steps:
@@ -178,6 +180,7 @@ jobs:
         name: Run stress
         run: |
           docker run chainsafe/gossamer:test sh -c "make it-stress"
+  
   docker-grandpa-tests:
     runs-on: ubuntu-latest
     steps:

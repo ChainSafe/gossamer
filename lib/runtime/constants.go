@@ -24,10 +24,15 @@ var runtimes = []string{HOST_API_TEST_RUNTIME, POLKADOT_RUNTIME, NODE_RUNTIME, D
 
 //nolint
 const (
-	// v0.8 substrate runtime
+	// v0.9 substrate runtime
 	NODE_RUNTIME     = "node_runtime"
 	NODE_RUNTIME_FP  = "node_runtime.compact.wasm"
 	NODE_RUNTIME_URL = "https://github.com/noot/substrate/blob/noot/v0.9/target/debug/wbuild/node-runtime/node_runtime.compact.wasm?raw=true"
+
+	// v0.9.8 substrate runtime
+	NODE_RUNTIME_v098     = "node_runtime-v0.9.8"
+	NODE_RUNTIME_FP_v098  = "node_runtime-v0.9.8.compact.wasm"
+	NODE_RUNTIME_URL_v098 = "https://github.com/noot/substrate/blob/noot/v0.9.8/target/debug/wbuild/node-runtime/node_runtime.compact.wasm?raw=true"
 
 	// v0.8 polkadot runtime
 	POLKADOT_RUNTIME     = "polkadot_runtime"
@@ -67,6 +72,8 @@ var (
 	BlockBuilderApplyExtrinsic = "BlockBuilder_apply_extrinsic"
 	// BlockBuilderFinalizeBlock is the runtime API call BlockBuilder_finalize_block
 	BlockBuilderFinalizeBlock = "BlockBuilder_finalize_block"
+	// DecodeSessionKeys is the runtime API call SessionKeys_decode_session_keys
+	DecodeSessionKeys = "SessionKeys_decode_session_keys"
 )
 
 // GrandpaAuthoritiesKey is the location of GRANDPA authority data in the storage trie for LEGACY_NODE_RUNTIME and NODE_RUNTIME

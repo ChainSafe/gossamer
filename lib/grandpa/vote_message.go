@@ -170,12 +170,12 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 			}
 
 			if err = s.network.SendMessage(from, msg); err != nil {
-				return nil, err
+				logger.Warn("failed to send CommitMessage", "error", err)
 			}
 		}
 
 		// TODO: get justification if your round is lower, or just do catch-up?
-		return nil, ErrRoundMismatch
+		return nil, errRoundMismatch(m.Round, s.state.round)
 	}
 
 	// check for equivocation ie. multiple votes within one subround
@@ -193,7 +193,7 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 	}
 
 	err = s.validateVote(vote)
-	if errors.Is(err, ErrBlockDoesNotExist) || errors.Is(err, blocktree.ErrEndNodeNotFound) {
+	if errors.Is(err, ErrBlockDoesNotExist) || errors.Is(err, blocktree.ErrDescendantNotFound) || errors.Is(err, blocktree.ErrEndNodeNotFound) || errors.Is(err, blocktree.ErrStartNodeNotFound) {
 		// TODO: cancel if block is imported; if we refactor the syncing this will likely become cleaner
 		// as we can have an API to synchronously sync and import a block
 		go s.network.SendBlockReqestByHash(vote.Hash)

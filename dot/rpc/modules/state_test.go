@@ -17,6 +17,7 @@ package modules
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/big"
@@ -24,8 +25,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/core"
+	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -315,6 +319,60 @@ func TestStateModule_GetStorageSize(t *testing.T) {
 	}
 }
 
+func TestStateModule_QueryStorage(t *testing.T) {
+	t.Run("When starting block is empty", func(t *testing.T) {
+		module := new(StateModule)
+		req := new(StateStorageQueryRangeRequest)
+
+		var res []StorageChangeSetResponse
+		err := module.QueryStorage(nil, req, &res)
+		require.Error(t, err, "the start block hash cannot be an empty value")
+	})
+
+	t.Run("When coreAPI QueryStorage returns error", func(t *testing.T) {
+		coreapimock := new(mocks.MockCoreAPI)
+		coreapimock.On("QueryStorage", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash")).Return(nil, errors.New("problem while querying"))
+
+		module := new(StateModule)
+		module.coreAPI = coreapimock
+
+		req := new(StateStorageQueryRangeRequest)
+		req.StartBlock = common.NewHash([]byte{1, 2})
+
+		var res []StorageChangeSetResponse
+		err := module.QueryStorage(nil, req, &res)
+		require.Error(t, err)
+		coreapimock.AssertCalled(t, "QueryStorage", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash"))
+	})
+
+	t.Run("When QueryStorage returns data", func(t *testing.T) {
+		blockhash := common.NewHash([]byte{123})
+
+		changes := map[common.Hash]core.QueryKeyValueChanges{
+			blockhash: core.QueryKeyValueChanges(map[string]string{
+				"0x80": "value",
+				"0x90": "another value",
+			}),
+		}
+		coreapimock := new(mocks.MockCoreAPI)
+		coreapimock.On("QueryStorage", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash"), "0x90", "0x80").Return(changes, nil)
+
+		module := new(StateModule)
+		module.coreAPI = coreapimock
+
+		req := new(StateStorageQueryRangeRequest)
+		req.StartBlock = common.NewHash([]byte{1, 2})
+		req.Keys = []string{"0x90", "0x80"}
+
+		var res []StorageChangeSetResponse
+		err := module.QueryStorage(nil, req, &res)
+		require.NoError(t, err)
+		require.Len(t, res, 1)
+
+		coreapimock.AssertCalled(t, "QueryStorage", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash"), "0x90", "0x80")
+	})
+}
+
 func TestStateModule_GetMetadata(t *testing.T) {
 	t.Skip() // TODO: update expected_metadata
 	sm, hash, _ := setupStateModule(t)
@@ -453,5 +511,5 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 
 	hash, _ := chain.Block.GetBlockHash(big.NewInt(2))
 	core := newCoreService(t, chain)
-	return NewStateModule(net, chain.Storage, core), hash, &sr1
+	return NewStateModule(net, chain.Storage, core), &hash, &sr1
 }

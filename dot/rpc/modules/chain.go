@@ -135,7 +135,7 @@ func (cm *ChainModule) GetHead(r *http.Request, req *ChainBlockNumberRequest, re
 
 // GetFinalizedHead returns the most recently finalised block hash
 func (cm *ChainModule) GetFinalizedHead(r *http.Request, req *EmptyRequest, res *ChainHashResponse) error {
-	h, err := cm.blockAPI.GetFinalisedHash(0, 0)
+	h, err := cm.blockAPI.GetHighestFinalisedHash()
 	if err != nil {
 		return err
 	}

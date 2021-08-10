@@ -406,3 +406,73 @@ func Test_PeerSupportsProtocol(t *testing.T) {
 		require.Equal(t, test.expect, output)
 	}
 }
+
+func Test_AddReservedPeers(t *testing.T) {
+	basePathA := utils.NewTestBasePath(t, "nodeA")
+	configA := &Config{
+		BasePath:    basePathA,
+		Port:        7001,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeA := createTestService(t, configA)
+	nodeA.noGossip = true
+
+	basePathB := utils.NewTestBasePath(t, "nodeB")
+	configB := &Config{
+		BasePath:    basePathB,
+		Port:        7002,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeB := createTestService(t, configB)
+	nodeB.noGossip = true
+
+	nodeBPeerAddr := nodeB.host.multiaddrs()[0].String()
+	err := nodeA.host.addReservedPeers(nodeBPeerAddr)
+	require.NoError(t, err)
+
+	isProtected := nodeA.host.h.ConnManager().IsProtected(nodeB.host.addrInfo().ID, "")
+	require.True(t, isProtected)
+}
+
+func Test_RemoveReservedPeers(t *testing.T) {
+	basePathA := utils.NewTestBasePath(t, "nodeA")
+	configA := &Config{
+		BasePath:    basePathA,
+		Port:        7001,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeA := createTestService(t, configA)
+	nodeA.noGossip = true
+
+	basePathB := utils.NewTestBasePath(t, "nodeB")
+	configB := &Config{
+		BasePath:    basePathB,
+		Port:        7002,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeB := createTestService(t, configB)
+	nodeB.noGossip = true
+
+	nodeBPeerAddr := nodeB.host.multiaddrs()[0].String()
+	err := nodeA.host.addReservedPeers(nodeBPeerAddr)
+	require.NoError(t, err)
+
+	pID := nodeB.host.addrInfo().ID.String()
+
+	err = nodeA.host.removeReservedPeers(pID)
+	require.NoError(t, err)
+
+	isProtected := nodeA.host.h.ConnManager().IsProtected(nodeB.host.addrInfo().ID, "")
+	require.False(t, isProtected)
+
+	err = nodeA.host.removeReservedPeers("failing peer ID")
+	require.Error(t, err)
+}

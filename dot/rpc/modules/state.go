@@ -18,6 +18,7 @@ package modules
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -85,9 +86,9 @@ type StateStorageRequest struct {
 
 // StateStorageQueryRangeRequest holds json fields
 type StateStorageQueryRangeRequest struct {
-	Keys       []*common.Hash `json:"keys" validate:"required"`
-	StartBlock *common.Hash   `json:"startBlock" validate:"required"`
-	Block      *common.Hash   `json:"block"`
+	Keys       []string    `json:"keys" validate:"required"`
+	StartBlock common.Hash `json:"startBlock" validate:"required"`
+	EndBlock   common.Hash `json:"block"`
 }
 
 // StateStorageKeysQuery field to store storage keys
@@ -129,8 +130,8 @@ type StateMetadataResponse string
 
 // StorageChangeSetResponse is the struct that holds the block and changes
 type StorageChangeSetResponse struct {
-	Block   *common.Hash
-	Changes []KeyValueOption
+	Block   *common.Hash `json:"block"`
+	Changes [][]string   `json:"changes"`
 }
 
 // KeyValueOption struct holds json fields
@@ -387,8 +388,32 @@ func (sm *StateModule) GetStorageSize(r *http.Request, req *StateStorageSizeRequ
 }
 
 // QueryStorage isn't implemented properly yet.
-func (sm *StateModule) QueryStorage(r *http.Request, req *StateStorageQueryRangeRequest, res *StorageChangeSetResponse) error {
-	// TODO implement change storage trie so that block hash parameter works (See issue #834)
+func (sm *StateModule) QueryStorage(r *http.Request, req *StateStorageQueryRangeRequest, res *[]StorageChangeSetResponse) error {
+	if req.StartBlock == common.EmptyHash {
+		return errors.New("the start block hash cannot be an empty value")
+	}
+
+	changesByBlock, err := sm.coreAPI.QueryStorage(req.StartBlock, req.EndBlock, req.Keys...)
+	if err != nil {
+		return err
+	}
+
+	response := make([]StorageChangeSetResponse, 0, len(changesByBlock))
+
+	for block, c := range changesByBlock {
+		var changes [][]string
+
+		for key, value := range c {
+			changes = append(changes, []string{key, value})
+		}
+
+		response = append(response, StorageChangeSetResponse{
+			Block:   &block,
+			Changes: changes,
+		})
+	}
+
+	*res = response
 	return nil
 }
 

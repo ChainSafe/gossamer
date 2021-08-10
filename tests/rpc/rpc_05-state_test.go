@@ -88,8 +88,12 @@ func TestStateRPCResponseValidation(t *testing.T) {
 		{
 			description: "Test state_queryStorage",
 			method:      "state_queryStorage",
-			params:      `[["0xf2794c22e353e9a839f12faab03a911bf68967d635641a7087e53f2bff1ecad3c6756fee45ec79ead60347fffb770bcdf0ec74da701ab3d6495986fe1ecc3027"], "0xa32c60dee8647b07435ae7583eb35cee606209a595718562dd4a486a07b6de15", null]`,
-			expected:    modules.StorageChangeSetResponse{},
+			params:      fmt.Sprintf(`[["0xf2794c22e353e9a839f12faab03a911bf68967d635641a7087e53f2bff1ecad3c6756fee45ec79ead60347fffb770bcdf0ec74da701ab3d6495986fe1ecc3027"], "%s", null]`, blockHash),
+			expected: modules.StorageChangeSetResponse{
+				Block:   &blockHash,
+				Changes: [][]string{},
+			},
+			skip: true,
 		},
 		{
 			description: "Test valid block hash state_getRuntimeVersion",

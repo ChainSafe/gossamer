@@ -371,6 +371,8 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
+	gs.tracker, err = newTracker(gs.blockState, gs.in)
+	require.NoError(t, err)
 
 	var branches []*types.Header
 	for {
