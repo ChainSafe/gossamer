@@ -53,18 +53,13 @@ type Handler struct {
 	finalisedID byte
 
 	// GRANDPA changes
-	grandpaScheduledChange *grandpaChangeNew
+	grandpaScheduledChange *grandpaChange
 	grandpaForcedChange    *grandpaChange
 	grandpaPause           *pause
 	grandpaResume          *resume
 }
 
 type grandpaChange struct {
-	auths   []types.Authority
-	atBlock *big.Int
-}
-
-type grandpaChangeNew struct {
 	auths   []types.Authority
 	atBlock *big.Int
 }
@@ -171,7 +166,7 @@ func (h *Handler) handleConsensusDigest(d *types.ConsensusDigest, header *types.
 	if d.ConsensusEngineID == types.GrandpaEngineID {
 		switch t {
 		case byte(types.GrandpaScheduledChange{}.Index()):
-			return h.handleScheduledChangeNew(d, header)
+			return h.handleScheduledChange(d, header)
 		case byte(types.GrandpaForcedChange{}.Index()):
 			return h.handleForcedChange(d, header)
 		case byte(types.GrandpaOnDisabled{}.Index()):
@@ -192,7 +187,7 @@ func (h *Handler) handleConsensusDigest(d *types.ConsensusDigest, header *types.
 		case byte(types.BABEOnDisabled{}.Index()):
 			return h.handleBABEOnDisabled(d, header)
 		case byte(types.NextConfigData{}.Index()):
-			return h.handleNextConfigDataNew(d, header)
+			return h.handleNextConfigData(d, header)
 		default:
 			return errors.New("invalid consensus digest data")
 		}
@@ -289,7 +284,7 @@ func (h *Handler) handleGrandpaChangesOnFinalization(num *big.Int) error {
 	return nil
 }
 
-func (h *Handler) handleScheduledChangeNew(d *types.ConsensusDigest, header *types.Header) error {
+func (h *Handler) handleScheduledChange(d *types.ConsensusDigest, header *types.Header) error {
 	curr, err := h.blockState.BestBlockHeader()
 	if err != nil {
 		return err
@@ -303,9 +298,6 @@ func (h *Handler) handleScheduledChangeNew(d *types.ConsensusDigest, header *typ
 		return nil
 	}
 
-	//var sc types.GrandpaScheduledChange
-	//err = scale.Unmarshal(d.Data[1:], &sc)
-
 	var dec = types.GrandpaConsensusDigest
 	err = scale.Unmarshal(d.Data, &dec)
 	if err != nil {
@@ -317,12 +309,12 @@ func (h *Handler) handleScheduledChangeNew(d *types.ConsensusDigest, header *typ
 	case types.GrandpaScheduledChange:
 		sc = val
 	default:
-		fmt.Println("THIS SHOULDNT HAPPEN")
+		return fmt.Errorf("expected ConsensusDigest of type GrandpaScheduledChange, but got: %T", val)
 	}
 
 	logger.Debug("handling GrandpaScheduledChange", "data", sc)
 
-	c, err := newGrandpaChangeNew(sc.Auths, sc.Delay, curr.Number)
+	c, err := newGrandpaChange(sc.Auths, sc.Delay, curr.Number)
 	if err != nil {
 		return err
 	}
@@ -354,9 +346,6 @@ func (h *Handler) handleForcedChange(d *types.ConsensusDigest, header *types.Hea
 		return errors.New("already have forced change scheduled")
 	}
 
-	//var fc types.GrandpaForcedChange
-	//err := scale.Unmarshal(d.Data[1:], &fc)
-
 	var dec = types.GrandpaConsensusDigest
 	err := scale.Unmarshal(d.Data, &dec)
 	if err != nil {
@@ -368,7 +357,7 @@ func (h *Handler) handleForcedChange(d *types.ConsensusDigest, header *types.Hea
 	case types.GrandpaForcedChange:
 		fc = val
 	default:
-		fmt.Println("THIS SHOULDNT HAPPEN")
+		return fmt.Errorf("expected ConsensusDigest of type GrandpaForcedChange, but got: %T", val)
 	}
 
 	logger.Debug("handling GrandpaForcedChange", "data", fc)
@@ -398,9 +387,6 @@ func (h *Handler) handlePause(d *types.ConsensusDigest) error {
 		return err
 	}
 
-	//var p types.GrandpaPause
-	//err = scale.Unmarshal(d.Data[1:], &p)
-
 	var dec = types.GrandpaConsensusDigest
 	err = scale.Unmarshal(d.Data, &dec)
 	if err != nil {
@@ -412,7 +398,7 @@ func (h *Handler) handlePause(d *types.ConsensusDigest) error {
 	case types.GrandpaPause:
 		p = val
 	default:
-		fmt.Println("THIS SHOULDNT HAPPEN")
+		return fmt.Errorf("expected ConsensusDigest of type GrandpaPause, but got: %T", val)
 	}
 
 	delay := big.NewInt(int64(p.Delay))
@@ -430,9 +416,6 @@ func (h *Handler) handleResume(d *types.ConsensusDigest) error {
 		return err
 	}
 
-	//var r types.GrandpaResume
-	//err = scale.Unmarshal(d.Data[1:], &r)
-
 	var dec = types.GrandpaConsensusDigest
 	err = scale.Unmarshal(d.Data, &dec)
 	if err != nil {
@@ -444,7 +427,7 @@ func (h *Handler) handleResume(d *types.ConsensusDigest) error {
 	case types.GrandpaResume:
 		r = val
 	default:
-		fmt.Println("THIS SHOULDNT HAPPEN")
+		return fmt.Errorf("expected ConsensusDigest of type GrandpaResume, but got: %T", val)
 	}
 
 	delay := big.NewInt(int64(r.Delay))
@@ -454,20 +437,6 @@ func (h *Handler) handleResume(d *types.ConsensusDigest) error {
 	}
 
 	return h.grandpaState.SetNextResume(h.grandpaResume.atBlock)
-}
-
-func newGrandpaChangeNew(raw []types.GrandpaAuthoritiesRaw, delay uint32, currBlock *big.Int) (*grandpaChangeNew, error) {
-	auths, err := types.GrandpaAuthoritiesRawToAuthorities(raw)
-	if err != nil {
-		return nil, err
-	}
-
-	d := big.NewInt(int64(delay))
-
-	return &grandpaChangeNew{
-		auths:   auths,
-		atBlock: big.NewInt(-1).Add(currBlock, d),
-	}, nil
 }
 
 func newGrandpaChange(raw []types.GrandpaAuthoritiesRaw, delay uint32, currBlock *big.Int) (*grandpaChange, error) {
@@ -509,7 +478,7 @@ func (h *Handler) handleNextEpochData(d *types.ConsensusDigest, header *types.He
 	case types.NextEpochData:
 		act = val
 	default:
-		fmt.Println("THIS SHOULDNT HAPPEN")
+		return fmt.Errorf("expected ConsensusDigest of type NextEpochData, but got: %T", val)
 	}
 
 	// set EpochState epoch data for upcoming epoch
@@ -522,7 +491,7 @@ func (h *Handler) handleNextEpochData(d *types.ConsensusDigest, header *types.He
 	return h.epochState.SetEpochData(currEpoch+1, data)
 }
 
-func (h *Handler) handleNextConfigDataNew(d *types.ConsensusDigest, header *types.Header) error {
+func (h *Handler) handleNextConfigData(d *types.ConsensusDigest, header *types.Header) error {
 	var od = types.BabeConsensusDigest
 	err := scale.Unmarshal(d.Data, &od)
 	if err != nil {
@@ -541,29 +510,10 @@ func (h *Handler) handleNextConfigDataNew(d *types.ConsensusDigest, header *type
 	case types.NextConfigData:
 		config = val
 	default:
-		fmt.Println("THIS SHOULDNT HAPPEN")
+		return fmt.Errorf("expected ConsensusDigest of type NextConfigData, but got: %T", val)
 	}
 
 	logger.Debug("setting BABE config data", "blocknum", header.Number, "epoch", currEpoch+1, "data", config.ToConfigData())
 	// set EpochState config data for upcoming epoch
 	return h.epochState.SetConfigData(currEpoch+1, config.ToConfigData())
-}
-
-func (h *Handler) handleNextConfigData(d *types.ConsensusDigest, header *types.Header) error {
-	var od types.NextConfigData
-	err := scale.Unmarshal(d.Data[1:], &od)
-	if err != nil {
-		return err
-	}
-
-	logger.Debug("handling BABENextConfigData", "data", od)
-
-	currEpoch, err := h.epochState.GetEpochForBlock(header)
-	if err != nil {
-		return err
-	}
-
-	logger.Debug("setting BABE config data", "blocknum", header.Number, "epoch", currEpoch+1, "data", od.ToConfigData())
-	// set EpochState config data for upcoming epoch
-	return h.epochState.SetConfigData(currEpoch+1, od.ToConfigData())
 }
