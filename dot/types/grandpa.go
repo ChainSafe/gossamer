@@ -116,7 +116,8 @@ func (v *GrandpaVoter) Decode(r io.Reader) error {
 	return nil
 }
 
-func NewGrandpaVotersFromAuthoritiesNew(ad []Authority) []GrandpaVoter {
+// NewGrandpaVotersFromAuthorities returns an array of GrandpaVoters given an array of GrandpaAuthorities
+func NewGrandpaVotersFromAuthorities(ad []Authority) []GrandpaVoter {
 	v := make([]GrandpaVoter, len(ad))
 
 	for i, d := range ad {
@@ -131,23 +132,8 @@ func NewGrandpaVotersFromAuthoritiesNew(ad []Authority) []GrandpaVoter {
 	return v
 }
 
-// NewGrandpaVotersFromAuthorities returns an array of GrandpaVoters given an array of GrandpaAuthorities
-func NewGrandpaVotersFromAuthorities(ad []*Authority) []*GrandpaVoter {
-	v := make([]*GrandpaVoter, len(ad))
-
-	for i, d := range ad {
-		if pk, ok := d.Key.(*ed25519.PublicKey); ok {
-			v[i] = &GrandpaVoter{
-				Key: pk,
-				ID:  d.Weight,
-			}
-		}
-	}
-
-	return v
-}
-
-func NewGrandpaVotersFromAuthoritiesRawNew(ad []GrandpaAuthoritiesRaw) ([]GrandpaVoter, error) {
+// NewGrandpaVotersFromAuthoritiesRaw returns an array of GrandpaVoters given an array of GrandpaAuthoritiesRaw
+func NewGrandpaVotersFromAuthoritiesRaw(ad []GrandpaAuthoritiesRaw) ([]GrandpaVoter, error) {
 	v := make([]GrandpaVoter, len(ad))
 
 	for i, d := range ad {
@@ -157,25 +143,6 @@ func NewGrandpaVotersFromAuthoritiesRawNew(ad []GrandpaAuthoritiesRaw) ([]Grandp
 		}
 
 		v[i] = GrandpaVoter{
-			Key: key,
-			ID:  d.ID,
-		}
-	}
-
-	return v, nil
-}
-
-// NewGrandpaVotersFromAuthoritiesRaw returns an array of GrandpaVoters given an array of GrandpaAuthoritiesRaw
-func NewGrandpaVotersFromAuthoritiesRaw(ad []*GrandpaAuthoritiesRaw) ([]*GrandpaVoter, error) {
-	v := make([]*GrandpaVoter, len(ad))
-
-	for i, d := range ad {
-		key, err := ed25519.NewPublicKey(d.Key[:])
-		if err != nil {
-			return nil, err
-		}
-
-		v[i] = &GrandpaVoter{
 			Key: key,
 			ID:  d.ID,
 		}

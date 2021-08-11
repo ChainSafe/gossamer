@@ -144,7 +144,7 @@ func TestHandler_GrandpaScheduledChange(t *testing.T) {
 
 	auths, err := handler.grandpaState.(*state.GrandpaState).GetAuthorities(setID)
 	require.NoError(t, err)
-	expected, err := types.NewGrandpaVotersFromAuthoritiesRawNew(sc.Auths)
+	expected, err := types.NewGrandpaVotersFromAuthoritiesRaw(sc.Auths)
 	require.NoError(t, err)
 	require.Equal(t, expected, auths)
 }
@@ -196,7 +196,7 @@ func TestHandler_GrandpaForcedChange(t *testing.T) {
 
 	auths, err := handler.grandpaState.(*state.GrandpaState).GetAuthorities(setID)
 	require.NoError(t, err)
-	expected, err := types.NewGrandpaVotersFromAuthoritiesRawNew(fc.Auths)
+	expected, err := types.NewGrandpaVotersFromAuthoritiesRaw(fc.Auths)
 	require.NoError(t, err)
 	require.Equal(t, expected, auths)
 }
@@ -302,7 +302,7 @@ func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
 	nextSetID := uint64(1)
 	auths, err := handler.grandpaState.(*state.GrandpaState).GetAuthorities(nextSetID)
 	require.NoError(t, err)
-	expected, err := types.NewGrandpaVotersFromAuthoritiesRawNew(sc.Auths)
+	expected, err := types.NewGrandpaVotersFromAuthoritiesRaw(sc.Auths)
 	require.NoError(t, err)
 	require.Equal(t, expected, auths)
 }
@@ -344,7 +344,7 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 	nextSetID := uint64(1)
 	auths, err := handler.grandpaState.(*state.GrandpaState).GetAuthorities(nextSetID)
 	require.NoError(t, err)
-	expected, err := types.NewGrandpaVotersFromAuthoritiesRawNew(sc.Auths)
+	expected, err := types.NewGrandpaVotersFromAuthoritiesRaw(sc.Auths)
 	require.NoError(t, err)
 	require.Equal(t, expected, auths)
 
@@ -377,7 +377,7 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 
 	auths, err = handler.grandpaState.(*state.GrandpaState).GetAuthorities(nextSetID)
 	require.NoError(t, err)
-	expected, err = types.NewGrandpaVotersFromAuthoritiesRawNew(fc.Auths)
+	expected, err = types.NewGrandpaVotersFromAuthoritiesRaw(fc.Auths)
 	require.NoError(t, err)
 	require.Equal(t, expected, auths)
 }

@@ -67,13 +67,6 @@ func (d Authorities) String() string {
 type epochData struct {
 	randomness     Randomness
 	authorityIndex uint32
-	authorities    []*types.Authority
-	threshold      *common.Uint128
-}
-
-type epochDataNew struct {
-	randomness     Randomness
-	authorityIndex uint32
 	authorities    []types.Authority
 	threshold      *common.Uint128
 }

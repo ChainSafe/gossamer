@@ -229,6 +229,7 @@ func (s *EpochState) SetEpochData(epoch uint64, info *types.EpochData) error {
 	return s.db.Put(epochDataKey(epoch), enc)
 }
 
+// GetEpochData returns the epoch data for a given epoch
 func (s *EpochState) GetEpochData(epoch uint64) (*types.EpochData, error) {
 	enc, err := s.db.Get(epochDataKey(epoch))
 	if err != nil {

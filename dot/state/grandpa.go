@@ -158,26 +158,6 @@ func (s *GrandpaState) GetLatestRound() (uint64, error) {
 	return round, nil
 }
 
-func (s *GrandpaState) SetNextChangeNew(authorities []types.GrandpaVoter, number *big.Int) error {
-	currSetID, err := s.GetCurrentSetID()
-	if err != nil {
-		return err
-	}
-
-	nextSetID := currSetID + 1
-	err = s.setAuthorities(nextSetID, authorities)
-	if err != nil {
-		return err
-	}
-
-	err = s.setSetIDChangeAtBlock(nextSetID, number)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // SetNextChange sets the next authority change
 func (s *GrandpaState) SetNextChange(authorities []types.GrandpaVoter, number *big.Int) error {
 	currSetID, err := s.GetCurrentSetID()

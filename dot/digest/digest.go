@@ -328,7 +328,7 @@ func (h *Handler) handleScheduledChange(d *types.ConsensusDigest, header *types.
 
 	logger.Debug("setting GrandpaScheduledChange", "at block", big.NewInt(0).Add(header.Number, big.NewInt(int64(sc.Delay))))
 	return h.grandpaState.SetNextChange(
-		types.NewGrandpaVotersFromAuthoritiesNew(auths),
+		types.NewGrandpaVotersFromAuthorities(auths),
 		big.NewInt(0).Add(header.Number, big.NewInt(int64(sc.Delay))),
 	)
 }
@@ -376,7 +376,7 @@ func (h *Handler) handleForcedChange(d *types.ConsensusDigest, header *types.Hea
 
 	logger.Debug("setting GrandpaForcedChange", "at block", big.NewInt(0).Add(header.Number, big.NewInt(int64(fc.Delay))))
 	return h.grandpaState.SetNextChange(
-		types.NewGrandpaVotersFromAuthoritiesNew(auths),
+		types.NewGrandpaVotersFromAuthorities(auths),
 		big.NewInt(0).Add(header.Number, big.NewInt(int64(fc.Delay))),
 	)
 }

@@ -58,7 +58,7 @@ type Service struct {
 
 	// Epoch configuration data
 	slotDuration time.Duration
-	epochData    *epochDataNew
+	epochData    *epochData
 	slotToProof  map[uint64]*VrfOutputAndProof // for slots where we are a producer, store the vrf output (bytes 0-32) + proof (bytes 32-96)
 
 	// State variables
@@ -153,7 +153,7 @@ func NewService(cfg *ServiceConfig) (*Service, error) {
 
 func (b *Service) setupParameters(cfg *ServiceConfig) error {
 	var err error
-	b.epochData = &epochDataNew{}
+	b.epochData = &epochData{}
 
 	epochData, err := b.epochState.GetLatestEpochData()
 	if err != nil {
