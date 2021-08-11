@@ -4,22 +4,6 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-// The follow are the consensus digest types for grandpa
-var (
-	GrandpaScheduledChangeType = byte(1)
-	GrandpaForcedChangeType    = byte(2)
-	GrandpaOnDisabledType      = byte(3)
-	GrandpaPauseType           = byte(4)
-	GrandpaResumeType          = byte(5)
-)
-
-// The follow are the consensus digest types for BABE
-var (
-	NextEpochDataType  = byte(1)
-	BABEOnDisabledType = byte(2)
-	NextConfigDataType = byte(3)
-)
-
 var BabeConsensusDigest = scale.MustNewVaryingDataType(NextEpochData{}, BABEOnDisabled{}, NextConfigData{})
 var GrandpaConsensusDigest = scale.MustNewVaryingDataType(GrandpaScheduledChange{}, GrandpaForcedChange{}, GrandpaOnDisabled{}, GrandpaPause{}, GrandpaResume{})
 

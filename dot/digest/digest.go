@@ -170,15 +170,15 @@ func (h *Handler) handleConsensusDigest(d *types.ConsensusDigest, header *types.
 
 	if d.ConsensusEngineID == types.GrandpaEngineID {
 		switch t {
-		case types.GrandpaScheduledChangeType:
+		case byte(types.GrandpaScheduledChange{}.Index()):
 			return h.handleScheduledChangeNew(d, header)
-		case types.GrandpaForcedChangeType:
+		case byte(types.GrandpaForcedChange{}.Index()):
 			return h.handleForcedChange(d, header)
-		case types.GrandpaOnDisabledType:
+		case byte(types.GrandpaOnDisabled{}.Index()):
 			return nil // do nothing, as this is not implemented in substrate
-		case types.GrandpaPauseType:
+		case byte(types.GrandpaPause{}.Index()):
 			return h.handlePause(d)
-		case types.GrandpaResumeType:
+		case byte(types.GrandpaResume{}.Index()):
 			return h.handleResume(d)
 		default:
 			return errors.New("invalid consensus digest data")
@@ -187,11 +187,11 @@ func (h *Handler) handleConsensusDigest(d *types.ConsensusDigest, header *types.
 
 	if d.ConsensusEngineID == types.BabeEngineID {
 		switch t {
-		case types.NextEpochDataType:
+		case byte(types.NextEpochData{}.Index()):
 			return h.handleNextEpochData(d, header)
-		case types.BABEOnDisabledType:
+		case byte(types.BABEOnDisabled{}.Index()):
 			return h.handleBABEOnDisabled(d, header)
-		case types.NextConfigDataType:
+		case byte(types.NextConfigData{}.Index()):
 			return h.handleNextConfigDataNew(d, header)
 		default:
 			return errors.New("invalid consensus digest data")

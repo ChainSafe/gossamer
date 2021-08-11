@@ -204,7 +204,7 @@ func TestBuildBlock_ok(t *testing.T) {
 	require.Equal(t, types.PreRuntimeDigestType, block.Header.Digest[0].Type())
 	require.Equal(t, types.ConsensusDigestType, block.Header.Digest[1].Type())
 	require.Equal(t, types.SealDigestType, block.Header.Digest[2].Type())
-	require.Equal(t, types.NextEpochDataType, block.Header.Digest[1].(*types.ConsensusDigest).DataType())
+	require.Equal(t, byte(types.NextEpochData{}.Index()), block.Header.Digest[1].(*types.ConsensusDigest).DataType())
 
 	// confirm block body is correct
 	extsRes, err := block.Body.AsExtrinsics()
