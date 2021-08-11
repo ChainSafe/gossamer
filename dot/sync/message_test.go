@@ -2,16 +2,15 @@ package sync
 
 import (
 	"math/big"
-	"os"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
-	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
-	log "github.com/ChainSafe/log15"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -38,23 +37,95 @@ func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 	}
 }
 
-func TestMain(m *testing.M) {
-	wasmFilePaths, err := runtime.GenerateRuntimeWasmFile()
-	if err != nil {
-		log.Error("failed to generate runtime wasm file", err)
-		os.Exit(1)
+func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
+	s := NewTestSyncer(t, false)
+	addTestBlocksToState(t, int(maxResponseSize), s.blockState)
+
+	start, err := variadic.NewUint64OrHash(uint64(1))
+	require.NoError(t, err)
+
+	req := &network.BlockRequestMessage{
+		RequestedData: 3,
+		StartingBlock: start,
+		EndBlockHash:  optional.NewHash(false, common.Hash{}),
+		Direction:     0,
+		Max:           optional.NewUint32(false, 0),
 	}
 
-	// Start all tests
-	code := m.Run()
+	resp, err := s.CreateBlockResponse(req)
+	require.NoError(t, err)
+	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
+	require.Equal(t, big.NewInt(1), resp.BlockData[0].Number())
+	require.Equal(t, big.NewInt(128), resp.BlockData[127].Number())
 
-	runtime.RemoveFiles(wasmFilePaths)
-	os.Exit(code)
+	req = &network.BlockRequestMessage{
+		RequestedData: 3,
+		StartingBlock: start,
+		EndBlockHash:  optional.NewHash(false, common.Hash{}),
+		Direction:     0,
+		Max:           optional.NewUint32(true, maxResponseSize+100),
+	}
+
+	resp, err = s.CreateBlockResponse(req)
+	require.NoError(t, err)
+	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
+	require.Equal(t, big.NewInt(1), resp.BlockData[0].Number())
+	require.Equal(t, big.NewInt(128), resp.BlockData[127].Number())
+}
+
+func TestService_CreateBlockResponse_StartHash(t *testing.T) {
+	s := NewTestSyncer(t, false)
+	addTestBlocksToState(t, int(maxResponseSize), s.blockState)
+
+	startHash, err := s.blockState.GetHashByNumber(big.NewInt(1))
+	require.NoError(t, err)
+
+	start, err := variadic.NewUint64OrHash(startHash)
+	require.NoError(t, err)
+
+	req := &network.BlockRequestMessage{
+		RequestedData: 3,
+		StartingBlock: start,
+		EndBlockHash:  optional.NewHash(false, common.Hash{}),
+		Direction:     0,
+		Max:           optional.NewUint32(false, 0),
+	}
+
+	resp, err := s.CreateBlockResponse(req)
+	require.NoError(t, err)
+	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
+	require.Equal(t, big.NewInt(1), resp.BlockData[0].Number())
+	require.Equal(t, big.NewInt(128), resp.BlockData[127].Number())
+}
+
+func TestService_CreateBlockResponse_Descending(t *testing.T) {
+	s := NewTestSyncer(t, false)
+	addTestBlocksToState(t, int(maxResponseSize), s.blockState)
+
+	startHash, err := s.blockState.GetHashByNumber(big.NewInt(1))
+	require.NoError(t, err)
+
+	start, err := variadic.NewUint64OrHash(startHash)
+	require.NoError(t, err)
+
+	req := &network.BlockRequestMessage{
+		RequestedData: 3,
+		StartingBlock: start,
+		EndBlockHash:  optional.NewHash(false, common.Hash{}),
+		Direction:     1,
+		Max:           optional.NewUint32(false, 0),
+	}
+
+	resp, err := s.CreateBlockResponse(req)
+	require.NoError(t, err)
+	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
+	require.Equal(t, big.NewInt(128), resp.BlockData[0].Number())
+	require.Equal(t, big.NewInt(1), resp.BlockData[127].Number())
 }
 
 // tests the ProcessBlockRequestMessage method
 func TestService_CreateBlockResponse(t *testing.T) {
-	s := newTestSyncer(t)
+	s := NewTestSyncer(t, false)
 	addTestBlocksToState(t, 2, s.blockState)
 
 	bestHash := s.blockState.BestBlockHash()
@@ -98,7 +169,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				RequestedData: 3,
 				StartingBlock: start,
 				EndBlockHash:  optional.NewHash(true, endHash),
-				Direction:     1,
+				Direction:     0,
 				Max:           optional.NewUint32(false, 0),
 			},
 			expectedMsgValue: &network.BlockResponseMessage{
@@ -117,7 +188,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				RequestedData: 1,
 				StartingBlock: start,
 				EndBlockHash:  optional.NewHash(true, endHash),
-				Direction:     1,
+				Direction:     0,
 				Max:           optional.NewUint32(false, 0),
 			},
 			expectedMsgValue: &network.BlockResponseMessage{
@@ -136,7 +207,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				RequestedData: 4,
 				StartingBlock: start,
 				EndBlockHash:  optional.NewHash(true, endHash),
-				Direction:     1,
+				Direction:     0,
 				Max:           optional.NewUint32(false, 0),
 			},
 			expectedMsgValue: &network.BlockResponseMessage{
@@ -156,7 +227,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				RequestedData: 8,
 				StartingBlock: start,
 				EndBlockHash:  optional.NewHash(true, endHash),
-				Direction:     1,
+				Direction:     0,
 				Max:           optional.NewUint32(false, 0),
 			},
 			expectedMsgValue: &network.BlockResponseMessage{

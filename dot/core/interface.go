@@ -22,7 +22,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/grandpa"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
@@ -39,16 +39,18 @@ type BlockState interface {
 	GetBlockByHash(common.Hash) (*types.Block, error)
 	GenesisHash() common.Hash
 	GetSlotForBlock(common.Hash) (uint64, error)
-	GetFinalizedHeader(uint64, uint64) (*types.Header, error)
-	GetFinalizedHash(uint64, uint64) (common.Hash, error)
-	SetFinalizedHash(common.Hash, uint64, uint64) error
+	GetFinalisedHeader(uint64, uint64) (*types.Header, error)
+	GetFinalisedHash(uint64, uint64) (common.Hash, error)
 	RegisterImportedChannel(ch chan<- *types.Block) (byte, error)
 	UnregisterImportedChannel(id byte)
 	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
-	UnregisterFinalizedChannel(id byte)
+	UnregisterFinalisedChannel(id byte)
 	HighestCommonAncestor(a, b common.Hash) (common.Hash, error)
 	SubChain(start, end common.Hash) ([]common.Hash, error)
 	GetBlockBody(hash common.Hash) (*types.Body, error)
+	HandleRuntimeChanges(newState *rtstorage.TrieState, in runtime.Instance, bHash common.Hash) error
+	GetRuntime(*common.Hash) (runtime.Instance, error)
+	StoreRuntime(common.Hash, runtime.Instance)
 }
 
 // StorageState interface for storage state methods
@@ -56,7 +58,9 @@ type StorageState interface {
 	LoadCode(root *common.Hash) ([]byte, error)
 	LoadCodeHash(root *common.Hash) (common.Hash, error)
 	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
+	StoreTrie(*rtstorage.TrieState, *types.Header) error
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
+	GetStorage(root *common.Hash, key []byte) ([]byte, error)
 }
 
 // TransactionState is the interface for transaction state methods
@@ -68,36 +72,25 @@ type TransactionState interface {
 	PendingInPool() []*transaction.ValidTransaction
 }
 
-// BlockProducer is the interface that a block production service must implement
-type BlockProducer interface {
-	GetBlockChannel() <-chan types.Block
-	SetOnDisabled(authorityIndex uint32)
-}
-
-// Verifier is the interface for the block verifier
-type Verifier interface {
-	SetOnDisabled(authorityIndex uint32, block *types.Header) error
-}
-
 // Network is the interface for the network service
 type Network interface {
-	SendMessage(network.NotificationsMessage)
+	GossipMessage(network.NotificationsMessage)
 }
 
 // EpochState is the interface for state.EpochState
 type EpochState interface {
 	GetEpochForBlock(header *types.Header) (uint64, error)
-	SetEpochData(epoch uint64, info *types.EpochData) error
-	SetConfigData(epoch uint64, info *types.ConfigData) error
 	SetCurrentEpoch(epoch uint64) error
 	GetCurrentEpoch() (uint64, error)
 }
 
-// GrandpaState is the interface for the state.GrandpaState
-type GrandpaState interface {
-	SetNextChange(authorities []*grandpa.Voter, number *big.Int) error
-	IncrementSetID() error
-	SetNextPause(number *big.Int) error
-	SetNextResume(number *big.Int) error
-	GetCurrentSetID() (uint64, error)
+// CodeSubstitutedState interface to handle storage of code substitute state
+type CodeSubstitutedState interface {
+	LoadCodeSubstitutedBlockHash() common.Hash
+	StoreCodeSubstitutedBlockHash(hash common.Hash) error
+}
+
+// DigestHandler is the interface for the consensus digest handler
+type DigestHandler interface {
+	HandleDigests(header *types.Header)
 }

@@ -22,10 +22,10 @@ import (
 	"sync"
 	"time"
 
+	database "github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-
-	database "github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/disiqueira/gotree"
 )
 
@@ -38,14 +38,18 @@ type BlockTree struct {
 	leaves *leafMap
 	db     database.Database
 	sync.RWMutex
+	nodeCache map[Hash]*node
+	runtime   *sync.Map
 }
 
 // NewEmptyBlockTree creates a BlockTree with a nil head
 func NewEmptyBlockTree(db database.Database) *BlockTree {
 	return &BlockTree{
-		head:   nil,
-		leaves: newEmptyLeafMap(),
-		db:     db,
+		head:      nil,
+		leaves:    newEmptyLeafMap(),
+		db:        db,
+		nodeCache: make(map[Hash]*node),
+		runtime:   &sync.Map{}, // map[Hash]runtime.Instance
 	}
 }
 
@@ -61,9 +65,11 @@ func NewBlockTreeFromRoot(root *types.Header, db database.Database) *BlockTree {
 	}
 
 	return &BlockTree{
-		head:   head,
-		leaves: newLeafMap(head),
-		db:     db,
+		head:      head,
+		leaves:    newLeafMap(head),
+		db:        db,
+		nodeCache: make(map[Hash]*node),
+		runtime:   &sync.Map{},
 	}
 }
 
@@ -103,6 +109,7 @@ func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime uint64) error {
 	}
 	parent.addChild(n)
 	bt.leaves.replace(parent, n)
+	bt.setInCache(n)
 
 	return nil
 }
@@ -149,8 +156,24 @@ func (bt *BlockTree) GetAllBlocksAtDepth(hash common.Hash) []common.Hash {
 	return bt.head.getNodesWithDepth(depth, hashes)
 }
 
+func (bt *BlockTree) setInCache(b *node) {
+	if b == nil {
+		return
+	}
+
+	if _, has := bt.nodeCache[b.hash]; !has {
+		bt.nodeCache[b.hash] = b
+	}
+}
+
 // getNode finds and returns a node based on its Hash. Returns nil if not found.
-func (bt *BlockTree) getNode(h Hash) *node {
+func (bt *BlockTree) getNode(h Hash) (ret *node) {
+	defer func() { bt.setInCache(ret) }()
+
+	if b, ok := bt.nodeCache[h]; ok {
+		return b
+	}
+
 	if bt.head.hash == h {
 		return bt.head
 	}
@@ -175,6 +198,12 @@ func (bt *BlockTree) getNode(h Hash) *node {
 func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 	bt.Lock()
 	defer bt.Unlock()
+	defer func() {
+		for _, hash := range pruned {
+			delete(bt.nodeCache, hash)
+			bt.runtime.Delete(hash)
+		}
+	}()
 
 	if finalised == bt.head.hash {
 		return pruned
@@ -187,8 +216,12 @@ func (bt *BlockTree) Prune(finalised Hash) (pruned []Hash) {
 
 	pruned = bt.head.prune(n, nil)
 	bt.head = n
+	leaves := n.getLeaves(nil)
 	bt.leaves = newEmptyLeafMap()
-	bt.leaves.store(n.hash, n)
+	for _, leaf := range leaves {
+		bt.leaves.store(leaf.hash, leaf)
+	}
+
 	return pruned
 }
 
@@ -347,7 +380,8 @@ func (bt *BlockTree) DeepCopy() *BlockTree {
 	defer bt.RUnlock()
 
 	btCopy := &BlockTree{
-		db: bt.db,
+		db:        bt.db,
+		nodeCache: make(map[Hash]*node),
 	}
 
 	if bt.head == nil {
@@ -365,5 +399,23 @@ func (bt *BlockTree) DeepCopy() *BlockTree {
 		}
 	}
 
+	for hash := range bt.nodeCache {
+		btCopy.nodeCache[hash] = btCopy.getNode(hash)
+	}
+
 	return btCopy
+}
+
+// StoreRuntime stores the runtime for corresponding block hash.
+func (bt *BlockTree) StoreRuntime(hash common.Hash, in runtime.Instance) {
+	bt.runtime.Store(hash, in)
+}
+
+// GetBlockRuntime returns block runtime for corresponding block hash.
+func (bt *BlockTree) GetBlockRuntime(hash common.Hash) (runtime.Instance, error) {
+	ins, ok := bt.runtime.Load(hash)
+	if !ok {
+		return nil, ErrFailedToGetRuntime
+	}
+	return ins.(runtime.Instance), nil
 }

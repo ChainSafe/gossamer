@@ -17,7 +17,6 @@
 package wasmer
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 
@@ -47,7 +46,7 @@ func (in *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validit
 // Version calls runtime function Core_Version
 func (in *Instance) Version() (runtime.Version, error) {
 	// kusama seems to use the legacy version format
-	if in.version != nil && bytes.Equal(in.version.SpecName(), []byte("kusama")) {
+	if in.version != nil {
 		return in.version, nil
 	}
 
@@ -148,7 +147,6 @@ func (in *Instance) FinalizeBlock() (*types.Header, error) {
 func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	// copy block since we're going to modify it
 	b := block.DeepCopy()
-	b.Header.Digest = types.NewEmptyDigest()
 
 	if in.version == nil {
 		var err error
@@ -158,17 +156,14 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 		}
 	}
 
-	// TODO: hack since substrate node_runtime can't seem to handle BABE pre-runtime digests
-	// with type prefix (ie Primary, Secondary...)
-	if bytes.Equal(in.version.SpecName(), []byte("kusama")) || bytes.Equal(in.version.SpecName(), []byte("polkadot")) {
-		// remove seal digest only
-		for _, d := range block.Header.Digest {
-			if d.Type() == types.SealDigestType {
-				continue
-			}
-
-			b.Header.Digest = append(b.Header.Digest, d)
+	// remove seal digest only
+	b.Header.Digest = types.NewEmptyDigest()
+	for _, d := range block.Header.Digest {
+		if d.Type() == types.SealDigestType {
+			continue
 		}
+
+		b.Header.Digest = append(b.Header.Digest, d)
 	}
 
 	bdEnc, err := b.Encode()
@@ -177,6 +172,11 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	}
 
 	return in.exec(runtime.CoreExecuteBlock, bdEnc)
+}
+
+// DecodeSessionKeys decodes the given public session keys. Returns a list of raw public keys including their key type.
+func (in *Instance) DecodeSessionKeys(enc []byte) ([]byte, error) {
+	return in.exec(runtime.DecodeSessionKeys, enc)
 }
 
 func (in *Instance) CheckInherents()      {} //nolint

@@ -21,18 +21,11 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
-
-	"github.com/ChainSafe/chaindb"
 )
-
-// SetupDatabase will return an instance of database based on basepath
-func SetupDatabase(basepath string) (chaindb.Database, error) {
-	return chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir: basepath,
-	})
-}
 
 // BaseState is a wrapper for the chaindb.Database, without any prefixes
 type BaseState struct {
@@ -117,6 +110,21 @@ func (s *BaseState) LoadLatestStorageHash() (common.Hash, error) {
 	return common.NewHash(hashbytes), nil
 }
 
+// StoreCodeSubstitutedBlockHash stores the hash at the CodeSubstitutedBlock key
+func (s *BaseState) StoreCodeSubstitutedBlockHash(hash common.Hash) error {
+	return s.db.Put(common.CodeSubstitutedBlock, hash[:])
+}
+
+// LoadCodeSubstitutedBlockHash loads the hash stored at CodeSubstitutedBlock key
+func (s *BaseState) LoadCodeSubstitutedBlockHash() common.Hash {
+	hash, err := s.db.Get(common.CodeSubstitutedBlock)
+	if err != nil {
+		return common.Hash{}
+	}
+
+	return common.NewHash(hash)
+}
+
 func (s *BaseState) storeSkipToEpoch(epoch uint64) error {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, epoch)
@@ -145,4 +153,57 @@ func (s *BaseState) loadFirstSlot() (uint64, error) {
 	}
 
 	return binary.LittleEndian.Uint64(data), nil
+}
+
+func (s *BaseState) storeEpochLength(l uint64) error {
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, l)
+	return s.db.Put(epochLengthKey, buf)
+}
+
+func (s *BaseState) loadEpochLength() (uint64, error) {
+	data, err := s.db.Get(epochLengthKey)
+	if err != nil {
+		return 0, err
+	}
+
+	return binary.LittleEndian.Uint64(data), nil
+}
+
+func (s *BaseState) storeSlotDuration(duration uint64) error {
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, duration)
+	return s.db.Put(slotDurationKey, buf)
+}
+
+func (s *BaseState) loadSlotDuration() (uint64, error) {
+	data, err := s.db.Get(slotDurationKey)
+	if err != nil {
+		return 0, err
+	}
+
+	return binary.LittleEndian.Uint64(data), nil
+}
+
+// storePruningData stores the pruner configuration.
+func (s *BaseState) storePruningData(mode pruner.Config) error {
+	encMode, err := json.Marshal(mode)
+	if err != nil {
+		return fmt.Errorf("cannot scale encode pruning mode: %s", err)
+	}
+
+	return s.db.Put(common.PruningKey, encMode)
+}
+
+// loadPruningData retrieves pruner configuration from db.
+func (s *BaseState) loadPruningData() (pruner.Config, error) {
+	data, err := s.db.Get(common.PruningKey)
+	if err != nil {
+		return pruner.Config{}, err
+	}
+
+	var mode pruner.Config
+	err = json.Unmarshal(data, &mode)
+
+	return mode, err
 }

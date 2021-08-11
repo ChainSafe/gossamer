@@ -16,9 +16,9 @@ Gossamer packages can be categorized into **four package types**:
 
     - `cmd/...` - command-line packages for running nodes and other services
 
-- **[host packages](#host-packages)**
+- **[dot packages](#dot-packages)**
 
-    - `host/...` - the host node package and host node service packages
+    - `dot/...` - the dot node package and host node service packages
 
 - **[lib packages](#lib-packages)**
 

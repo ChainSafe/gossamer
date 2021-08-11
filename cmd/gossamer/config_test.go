@@ -19,7 +19,9 @@ package main
 import (
 	"io/ioutil"
 	"testing"
+	"time"
 
+	"github.com/ChainSafe/gossamer/chain/dev"
 	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/dot"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -27,7 +29,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
-	"github.com/ChainSafe/chaindb"
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"
@@ -46,21 +47,27 @@ func TestConfigFromChainFlag(t *testing.T) {
 	}{
 		{
 			"Test gossamer --chain gssmr",
-			[]string{"chain", "name"},
-			[]interface{}{"gssmr", dot.GssmrConfig().Global.Name},
+			[]string{"chain", "name", "pruning", "retain-blocks"},
+			[]interface{}{"gssmr", dot.GssmrConfig().Global.Name, gssmr.DefaultPruningMode, gssmr.DefaultRetainBlocks},
 			dot.GssmrConfig(),
 		},
 		{
 			"Test gossamer --chain kusama",
-			[]string{"chain", "name"},
-			[]interface{}{"kusama", dot.KusamaConfig().Global.Name},
+			[]string{"chain", "name", "pruning", "retain-blocks"},
+			[]interface{}{"kusama", dot.KusamaConfig().Global.Name, gssmr.DefaultPruningMode, gssmr.DefaultRetainBlocks},
 			dot.KusamaConfig(),
 		},
 		{
 			"Test gossamer --chain polkadot",
-			[]string{"chain", "name"},
-			[]interface{}{"polkadot", dot.PolkadotConfig().Global.Name},
+			[]string{"chain", "name", "pruning", "retain-blocks"},
+			[]interface{}{"polkadot", dot.PolkadotConfig().Global.Name, gssmr.DefaultPruningMode, gssmr.DefaultRetainBlocks},
 			dot.PolkadotConfig(),
+		},
+		{
+			"Test gossamer --chain dev",
+			[]string{"chain", "name", "pruning", "retain-blocks"},
+			[]interface{}{"dev", dot.DevConfig().Global.Name, dev.DefaultPruningMode, dev.DefaultRetainBlocks},
+			dot.DevConfig(),
 		},
 	}
 
@@ -71,6 +78,7 @@ func TestConfigFromChainFlag(t *testing.T) {
 			require.Nil(t, err)
 			cfg, err := createDotConfig(ctx)
 			require.Nil(t, err)
+			cfg.System = types.SystemInfo{}
 			require.Equal(t, c.expected, cfg)
 		})
 	}
@@ -95,8 +103,8 @@ func TestInitConfigFromFlags(t *testing.T) {
 	}{
 		{
 			"Test gossamer --genesis",
-			[]string{"config", "genesis"},
-			[]interface{}{testCfgFile.Name(), "test_genesis"},
+			[]string{"config", "genesis", "pruning", "retain-blocks"},
+			[]interface{}{testCfgFile.Name(), "test_genesis", dev.DefaultPruningMode, dev.DefaultRetainBlocks},
 			dot.InitConfig{
 				Genesis: "test_genesis",
 			},
@@ -376,11 +384,12 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 			[]string{"config", "port"},
 			[]interface{}{testCfgFile.Name(), "1234"},
 			dot.NetworkConfig{
-				Port:        1234,
-				Bootnodes:   testCfg.Network.Bootnodes,
-				ProtocolID:  testCfg.Network.ProtocolID,
-				NoBootstrap: testCfg.Network.NoBootstrap,
-				NoMDNS:      testCfg.Network.NoMDNS,
+				Port:              1234,
+				Bootnodes:         testCfg.Network.Bootnodes,
+				ProtocolID:        testCfg.Network.ProtocolID,
+				NoBootstrap:       testCfg.Network.NoBootstrap,
+				NoMDNS:            testCfg.Network.NoMDNS,
+				DiscoveryInterval: time.Second * 10,
 			},
 		},
 		{
@@ -388,11 +397,12 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 			[]string{"config", "bootnodes"},
 			[]interface{}{testCfgFile.Name(), "peer1,peer2"},
 			dot.NetworkConfig{
-				Port:        testCfg.Network.Port,
-				Bootnodes:   []string{"peer1", "peer2"},
-				ProtocolID:  testCfg.Network.ProtocolID,
-				NoBootstrap: testCfg.Network.NoBootstrap,
-				NoMDNS:      testCfg.Network.NoMDNS,
+				Port:              testCfg.Network.Port,
+				Bootnodes:         []string{"peer1", "peer2"},
+				ProtocolID:        testCfg.Network.ProtocolID,
+				NoBootstrap:       testCfg.Network.NoBootstrap,
+				NoMDNS:            testCfg.Network.NoMDNS,
+				DiscoveryInterval: time.Second * 10,
 			},
 		},
 		{
@@ -400,11 +410,12 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 			[]string{"config", "protocol"},
 			[]interface{}{testCfgFile.Name(), "/gossamer/test/0"},
 			dot.NetworkConfig{
-				Port:        testCfg.Network.Port,
-				Bootnodes:   testCfg.Network.Bootnodes,
-				ProtocolID:  "/gossamer/test/0",
-				NoBootstrap: testCfg.Network.NoBootstrap,
-				NoMDNS:      testCfg.Network.NoMDNS,
+				Port:              testCfg.Network.Port,
+				Bootnodes:         testCfg.Network.Bootnodes,
+				ProtocolID:        "/gossamer/test/0",
+				NoBootstrap:       testCfg.Network.NoBootstrap,
+				NoMDNS:            testCfg.Network.NoMDNS,
+				DiscoveryInterval: time.Second * 10,
 			},
 		},
 		{
@@ -412,11 +423,12 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 			[]string{"config", "nobootstrap"},
 			[]interface{}{testCfgFile.Name(), "true"},
 			dot.NetworkConfig{
-				Port:        testCfg.Network.Port,
-				Bootnodes:   testCfg.Network.Bootnodes,
-				ProtocolID:  testCfg.Network.ProtocolID,
-				NoBootstrap: true,
-				NoMDNS:      testCfg.Network.NoMDNS,
+				Port:              testCfg.Network.Port,
+				Bootnodes:         testCfg.Network.Bootnodes,
+				ProtocolID:        testCfg.Network.ProtocolID,
+				NoBootstrap:       true,
+				NoMDNS:            testCfg.Network.NoMDNS,
+				DiscoveryInterval: time.Second * 10,
 			},
 		},
 		{
@@ -424,11 +436,12 @@ func TestNetworkConfigFromFlags(t *testing.T) {
 			[]string{"config", "nomdns"},
 			[]interface{}{testCfgFile.Name(), "true"},
 			dot.NetworkConfig{
-				Port:        testCfg.Network.Port,
-				Bootnodes:   testCfg.Network.Bootnodes,
-				ProtocolID:  testCfg.Network.ProtocolID,
-				NoBootstrap: testCfg.Network.NoBootstrap,
-				NoMDNS:      true,
+				Port:              testCfg.Network.Port,
+				Bootnodes:         testCfg.Network.Bootnodes,
+				ProtocolID:        testCfg.Network.ProtocolID,
+				NoBootstrap:       testCfg.Network.NoBootstrap,
+				NoMDNS:            true,
+				DiscoveryInterval: time.Second * 10,
 			},
 		},
 	}
@@ -704,6 +717,7 @@ func TestUpdateConfigFromGenesisJSON(t *testing.T) {
 
 	cfg.Init.Genesis = genFile.Name()
 	updateDotConfigFromGenesisJSONRaw(*dotConfigToToml(testCfg), cfg)
+	cfg.System = types.SystemInfo{}
 	require.Equal(t, expected, cfg)
 }
 
@@ -751,12 +765,10 @@ func TestUpdateConfigFromGenesisJSON_Default(t *testing.T) {
 		System:  testCfg.System,
 	}
 
-	expected.Core.BabeThresholdNumerator = 0
-	expected.Core.BabeThresholdDenominator = 0
-
 	cfg, err := createDotConfig(ctx)
 	require.Nil(t, err)
 	updateDotConfigFromGenesisJSONRaw(*dotConfigToToml(testCfg), cfg)
+	cfg.System = types.SystemInfo{}
 	require.Equal(t, expected, cfg)
 }
 
@@ -798,11 +810,12 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 		Account: testCfg.Account,
 		Core:    testCfg.Core,
 		Network: dot.NetworkConfig{
-			Port:        testCfg.Network.Port,
-			Bootnodes:   []string{}, // TODO: improve cmd tests #687
-			ProtocolID:  testCfg.Network.ProtocolID,
-			NoBootstrap: testCfg.Network.NoBootstrap,
-			NoMDNS:      testCfg.Network.NoMDNS,
+			Port:              testCfg.Network.Port,
+			Bootnodes:         []string{}, // TODO: improve cmd tests #687
+			ProtocolID:        testCfg.Network.ProtocolID,
+			NoBootstrap:       testCfg.Network.NoBootstrap,
+			NoMDNS:            testCfg.Network.NoMDNS,
+			DiscoveryInterval: testCfg.Network.DiscoveryInterval,
 		},
 		RPC:    testCfg.RPC,
 		System: testCfg.System,
@@ -812,12 +825,8 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 	require.Nil(t, err)
 
 	cfg.Init.Genesis = genFile.Name()
-	expected.Core.BabeThresholdNumerator = 0
-	expected.Core.BabeThresholdDenominator = 0
 
-	db, err := chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir: cfg.Global.BasePath,
-	})
+	db, err := utils.SetupDatabase(cfg.Global.BasePath, false)
 	require.Nil(t, err)
 
 	gen, err := genesis.NewGenesisFromJSONRaw(genFile.Name())
@@ -831,7 +840,7 @@ func TestUpdateConfigFromGenesisData(t *testing.T) {
 
 	err = updateDotConfigFromGenesisData(ctx, cfg) // name should not be updated if provided as flag value
 	require.Nil(t, err)
-
+	cfg.System = types.SystemInfo{}
 	require.Equal(t, expected, cfg)
 }
 
@@ -851,8 +860,6 @@ func TestGlobalNodeName_WhenNodeAlreadyHasStoredName(t *testing.T) {
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
-	cfg.Core.BabeThresholdNumerator = 0
-	cfg.Core.BabeThresholdDenominator = 0
 	cfg.Init.Genesis = genPath
 
 	err := dot.InitNode(cfg)

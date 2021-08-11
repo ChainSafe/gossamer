@@ -29,6 +29,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	runtime "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/stretchr/testify/require"
 )
@@ -40,10 +41,7 @@ func NewInMemoryDB(t *testing.T) chaindb.Database {
 	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
 	require.NoError(t, err)
 
-	db, err := chaindb.NewBadgerDB(&chaindb.Config{
-		DataDir:  testDatadirPath,
-		InMemory: true,
-	})
+	db, err := utils.SetupDatabase(testDatadirPath, true)
 	require.NoError(t, err)
 	t.Cleanup(func() {
 		_ = db.Close()
@@ -145,6 +143,9 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 	tb := []testBranch{}
 	arrivalTime := time.Now()
 
+	rt, err := blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
 	head, err := blockState.BestBlockHeader()
 	require.NoError(t, err)
 
@@ -163,6 +164,8 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 		hash := block.Header.Hash()
 		err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
 		require.Nil(t, err)
+
+		blockState.StoreRuntime(hash, rt)
 
 		previousHash = hash
 
@@ -202,14 +205,16 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 			err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
 			require.Nil(t, err)
 
+			blockState.StoreRuntime(hash, rt)
+
 			previousHash = hash
 			arrivalTime = arrivalTime.Add(inc)
 		}
 	}
 }
 
-func generateBlockWithRandomTrie(t *testing.T, serv *Service, parent *common.Hash) (*types.Block, *runtime.TrieState) {
-	trieState, err := serv.Storage.TrieState(&trie.EmptyHash)
+func generateBlockWithRandomTrie(t *testing.T, serv *Service, parent *common.Hash, bNum int64) (*types.Block, *runtime.TrieState) {
+	trieState, err := serv.Storage.TrieState(nil)
 	require.NoError(t, err)
 
 	// Generate random data for trie state.
@@ -226,11 +231,10 @@ func generateBlockWithRandomTrie(t *testing.T, serv *Service, parent *common.Has
 		parent = &bb
 	}
 
-	// Generate a block with the above StateRoot.
 	block := &types.Block{
 		Header: &types.Header{
 			ParentHash: *parent,
-			Number:     big.NewInt(rand),
+			Number:     big.NewInt(bNum),
 			StateRoot:  trieStateRoot,
 		},
 		Body: types.NewBody([]byte{}),

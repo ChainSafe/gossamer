@@ -43,10 +43,10 @@ func TestInstance_Version_NodeRuntime(t *testing.T) {
 		[]byte("node"),
 		[]byte("substrate-node"),
 		10,
-		260,
+		264,
 		0,
 		nil,
-		1,
+		2,
 	)
 
 	instance := newInstanceFromGenesis(t)
@@ -61,7 +61,7 @@ func TestInstance_Version_NodeRuntime(t *testing.T) {
 	t.Logf("ImplVersion: %d\n", version.ImplVersion())
 	t.Logf("TransactionVersion: %d\n", version.TransactionVersion())
 
-	require.Equal(t, 12, len(version.APIItems()))
+	require.Equal(t, 13, len(version.APIItems()))
 	require.Equal(t, expected.SpecName(), version.SpecName())
 	require.Equal(t, expected.ImplName(), version.ImplName())
 	require.Equal(t, expected.AuthoringVersion(), version.AuthoringVersion())
@@ -92,7 +92,7 @@ func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {
 		SlotDuration:       3000,
 		EpochLength:        200,
 		C1:                 1,
-		C2:                 4,
+		C2:                 2,
 		GenesisAuthorities: expectedAuthData,
 		Randomness:         [32]byte{},
 		SecondarySlots:     1,
@@ -135,9 +135,6 @@ func buildBlock(t *testing.T, instance runtime.Instance) *types.Block {
 	require.NoError(t, err)
 
 	err = idata.SetInt64Inherent(types.Babeslot, 1)
-	require.NoError(t, err)
-
-	err = idata.SetBigIntInherent(types.Finalnum, big.NewInt(0))
 	require.NoError(t, err)
 
 	ienc, err := idata.Encode()

@@ -128,6 +128,26 @@ func (t *Trie) load(db chaindb.Database, curr node) error {
 	return nil
 }
 
+// GetNodeHashes return hash of each key of the trie.
+func (t *Trie) GetNodeHashes(curr node, keys map[common.Hash]struct{}) error {
+	if c, ok := curr.(*branch); ok {
+		for _, child := range c.children {
+			if child == nil {
+				continue
+			}
+
+			hash := child.getHash()
+			keys[common.BytesToHash(hash)] = struct{}{}
+
+			err := t.GetNodeHashes(child, keys)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // PutInDB puts a value into the trie and writes the updates nodes the database. Since it needs to write all the nodes from the changed node up to the root, it writes these in a batch operation.
 func (t *Trie) PutInDB(db chaindb.Database, key, value []byte) error {
 	t.Put(key, value)
@@ -266,4 +286,54 @@ func (t *Trie) writeDirty(db chaindb.Batch, curr node) error {
 
 	curr.setDirty(false)
 	return nil
+}
+
+// GetInsertedNodeHashes returns the hash of nodes that are inserted into state trie since last snapshot is called
+// Since inserted nodes are newly created we need to compute their hash values.
+func (t *Trie) GetInsertedNodeHashes() ([]common.Hash, error) {
+	return t.getInsertedNodeHashes(t.root)
+}
+
+func (t *Trie) getInsertedNodeHashes(curr node) ([]common.Hash, error) {
+	var nodeHashes []common.Hash
+	if curr == nil || !curr.isDirty() {
+		return nil, nil
+	}
+
+	enc, hash, err := curr.encodeAndHash()
+	if err != nil {
+		return nil, err
+	}
+
+	if curr == t.root && len(enc) < 32 {
+		h, err := common.Blake2bHash(enc) //nolint
+		if err != nil {
+			return nil, err
+		}
+
+		hash = h[:]
+	}
+
+	nodeHash := common.BytesToHash(hash)
+	nodeHashes = append(nodeHashes, nodeHash)
+
+	if c, ok := curr.(*branch); ok {
+		for _, child := range c.children {
+			if child == nil {
+				continue
+			}
+			nodes, err := t.getInsertedNodeHashes(child)
+			if err != nil {
+				return nil, err
+			}
+			nodeHashes = append(nodeHashes, nodes...)
+		}
+	}
+
+	return nodeHashes, nil
+}
+
+// GetDeletedNodeHash returns the hash of nodes that are deleted from state trie since last snapshot is called
+func (t *Trie) GetDeletedNodeHash() []common.Hash {
+	return t.deletedKeys
 }

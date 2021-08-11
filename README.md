@@ -58,41 +58,47 @@ build gossamer command:
 make gossamer
 ```
 
-### Run Default Node
+### Run Development Node
 
-initialise default node:
+To initialise a development node:
+
+```
+./bin/gossamer --chain dev init
+```
+
+To start the development node:
+```
+./bin/gossamer --chain dev
+```
+
+The development node is configured to produce a block every slot and to finalise a block every round (as there is only one authority, `alice`.) 
+
+### Run Gossamer Node
+
+The gossamer node runs by default as an authority with 9 authorites set at genesis. The built-in keys, corresponding to the authorities, that are available for the node are `alice`, `bob`, `charlie`, `dave`, `eve`, `ferdie`, `george`, and `ian`.
+
+To initialise a gossamer node:
 ```
 ./bin/gossamer --chain gssmr init
 ```
 
-start default node:
+To start the gossamer node:
 ```
 ./bin/gossamer --chain gssmr --key alice
 ```
 
-The built-in keys available for the node are `alice`, `bob`, `charlie`, `dave`, `eve`, `ferdie`, `george`, and `ian`.
-
-The node will not build blocks every slot by default; it will appear that the node is doing nothing, but it is actually waiting for a slot to build a block. If you wish to force it to build blocks every slot, you update the `[core]` section of `chain/gssmr/config.toml` to the following:
-
-```
-[core]
-roles = 4
-babe-authority = true
-grandpa-authority = true
-babe-threshold-numerator = 1
-babe-threshold-denominator = 1
-```
-
-Then, re-run the above steps. NOTE: this feature is for testing only; if you wish to change the BABE block production parameters, you need to create a modified runtime.
+Note: If you only run one gossamer node, the node will not build blocks every slot or finalize blocks; it will appear that the node is doing nothing, but it is actually waiting for a slot to build a block. This is because there are 9 authorities set, so at least 6 of the authorities should be run for a functional network. If you wish to reduce the number of authorities, you can modify the genesis file in `chain/gssmr/genesis-spec.json`.
 
 ### Run Kusama Node
 
-initialise kusama node:
+Kusama is currently supported as a **full node**, ie. it can sync the chain but not act as an authority.
+
+To initialise a kusama node:
 ```
 ./bin/gossamer --chain kusama init
 ```
 
-start kusama node:
+To start the kusama node:
 ```
 ./bin/gossamer --chain kusama
 ```
@@ -108,12 +114,14 @@ After it's finished bootstrapping, the node should begin to sync.
 
 ### Run Polkadot Node
 
-initialise polkadot node:
+Polkadot is currently supported as a **full node**, ie. it can sync the chain but not act as an authority.
+
+To initialise a polkadot node:
 ```
 ./bin/gossamer --chain polkadot init
 ```
 
-start polkadot node:
+To start the polkadot node:
 ```
 ./bin/gossamer --chain polkadot
 ```

@@ -36,7 +36,6 @@ func TestGossip(t *testing.T) {
 	configA := &Config{
 		BasePath:    basePathA,
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -49,7 +48,6 @@ func TestGossip(t *testing.T) {
 	configB := &Config{
 		BasePath:    basePathB,
 		Port:        7002,
-		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -58,14 +56,12 @@ func TestGossip(t *testing.T) {
 	handlerB := newTestStreamHandler(testBlockAnnounceMessageDecoder)
 	nodeB.host.registerStreamHandler("", handlerB.handleStream)
 
-	addrInfosA, err := nodeA.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeB.host.connect(*addrInfosA[0])
+	addrInfoA := nodeA.host.addrInfo()
+	err := nodeB.host.connect(addrInfoA)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = nodeB.host.connect(*addrInfosA[0])
+		err = nodeB.host.connect(addrInfoA)
 	}
 	require.NoError(t, err)
 
@@ -73,7 +69,6 @@ func TestGossip(t *testing.T) {
 	configC := &Config{
 		BasePath:    basePathC,
 		Port:        7003,
-		RandSeed:    3,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -82,26 +77,24 @@ func TestGossip(t *testing.T) {
 	handlerC := newTestStreamHandler(testBlockAnnounceMessageDecoder)
 	nodeC.host.registerStreamHandler("", handlerC.handleStream)
 
-	err = nodeC.host.connect(*addrInfosA[0])
+	err = nodeC.host.connect(addrInfoA)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = nodeC.host.connect(*addrInfosA[0])
+		err = nodeC.host.connect(addrInfoA)
 	}
 	require.NoError(t, err)
 
-	addrInfosB, err := nodeB.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeC.host.connect(*addrInfosB[0])
+	addrInfoB := nodeB.host.addrInfo()
+	err = nodeC.host.connect(addrInfoB)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = nodeC.host.connect(*addrInfosB[0])
+		err = nodeC.host.connect(addrInfoB)
 	}
 	require.NoError(t, err)
 
-	_, err = nodeA.host.send(addrInfosB[0].ID, "", testBlockAnnounceMessage)
+	_, err = nodeA.host.send(addrInfoB.ID, "", testBlockAnnounceMessage)
 	require.NoError(t, err)
 
 	time.Sleep(TestMessageTimeout)

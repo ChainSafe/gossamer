@@ -8,7 +8,7 @@ VERSION=latest
 endif
 FULLDOCKERNAME=$(COMPANY)/$(NAME):$(VERSION)
 
-.PHONY: help lint test install build clean start docker gossamer
+.PHONY: help lint test install build clean start docker gossamer build-debug
 all: help
 help: Makefile
 	@echo
@@ -38,7 +38,7 @@ test:
 	@echo "  >  \033[32mRunning tests...\033[0m "
 	#GOBIN=$(PWD)/bin go run scripts/ci.go test
 	git lfs pull
-	go test -short -coverprofile c.out ./... -timeout=20m
+	go test -short -coverprofile c.out ./... -timeout=30m
 
 ## it-stable: Runs Integration Tests Stable mode
 it-stable:
@@ -83,13 +83,12 @@ build:
 	GOBIN=$(PWD)/bin go run scripts/ci.go install
 
 ## debug: Builds application binary with debug flags and stores it in `./bin/gossamer`
-build-debug:
-	@echo "  >  \033[32mBuilding binary...\033[0m "
-	GOBIN=$(PWD)/bin go run scripts/ci.go install-debug
+build-debug: clean
+	cd cmd/gossamer && go build -gcflags=all="-N -l" -o ../../bin/gossamer && cd ../..
 
 ## init: Initialise gossamer using the default genesis and toml configuration files
 init:
-	./bin/gossamer --key alice init --genesis chain/gssmr/genesis.json --force
+	./bin/gossamer init --force
 
 ## init-repo: Set initial configuration for the repo
 init-repo:
@@ -127,3 +126,22 @@ gossamer: clean
 ## install: install the gossamer binary in $GOPATH/bin
 install:
 	GOBIN=$(GOPATH)/bin go run scripts/ci.go install
+
+MOCKGEN := $(shell command -v $(GOPATH)/bin/mockery 2> /dev/null)
+INMOCKS=0
+mock:
+ifndef MOCKGEN
+	@echo "> Installing mockery ..."
+	@go get github.com/vektra/mockery/v2/.../
+endif
+	@echo "> Generating mocks at $(path)"
+
+ifeq ($(INMOCKS),1)
+	cd $(path); $(GOPATH)/bin/mockery --name $(interface) --structname Mock$(interface) --case underscore --keeptree
+else
+	$(GOPATH)/bin/mockery --srcpkg $(path) --name $(interface) --case underscore --inpackage
+endif
+
+
+
+

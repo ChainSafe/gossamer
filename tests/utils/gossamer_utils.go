@@ -60,22 +60,26 @@ var (
 	gossamerCMD   = filepath.Join(currentDir, "../..", "bin/gossamer")
 
 	// GenesisOneAuth is the genesis file that has 1 authority
-	GenesisOneAuth string = filepath.Join(currentDir, "../utils/genesis_oneauth.json")
+	GenesisOneAuth = filepath.Join(currentDir, "../utils/genesis_oneauth.json")
 	// GenesisThreeAuths is the genesis file that has 3 authorities
-	GenesisThreeAuths string = filepath.Join(currentDir, "../utils/genesis_threeauths.json")
+	GenesisThreeAuths = filepath.Join(currentDir, "../utils/genesis_threeauths.json")
 	// GenesisSixAuths is the genesis file that has 6 authorities
-	GenesisSixAuths string = filepath.Join(currentDir, "../utils/genesis_sixauths.json")
+	GenesisSixAuths = filepath.Join(currentDir, "../utils/genesis_sixauths.json")
 	// GenesisDefault is the default gssmr genesis file
-	GenesisDefault string = filepath.Join(currentDir, "../..", "chain/gssmr/genesis.json")
+	GenesisDefault = filepath.Join(currentDir, "../..", "chain/gssmr/genesis.json")
+	// GenesisDev is the default dev genesis file
+	GenesisDev = filepath.Join(currentDir, "../..", "chain/dev/genesis-spec.json")
 
 	// ConfigDefault is the default config file
-	ConfigDefault string = filepath.Join(currentDir, "../utils/config_default.toml")
+	ConfigDefault = filepath.Join(currentDir, "../utils/config_default.toml")
 	// ConfigLogGrandpa is a config file where log levels are set to CRIT except for GRANDPA
-	ConfigLogGrandpa string = filepath.Join(currentDir, "../utils/config_log_grandpa.toml")
+	ConfigLogGrandpa = filepath.Join(currentDir, "../utils/config_log_grandpa.toml")
 	// ConfigNoBABE is a config file with BABE disabled
-	ConfigNoBABE string = filepath.Join(currentDir, "../utils/config_nobabe.toml")
-	// ConfigBABEMaxThreshold is a config file with BABE threshold set to maximum (node can produce block every slot)
-	ConfigBABEMaxThreshold string = filepath.Join(currentDir, "../utils/config_babe_max_threshold.toml")
+	ConfigNoBABE = filepath.Join(currentDir, "../utils/config_nobabe.toml")
+	// ConfigNoGrandpa is a config file with grandpa disabled
+	ConfigNoGrandpa = filepath.Join(currentDir, "../utils/config_nograndpa.toml")
+	// ConfigNotAuthority is a config file with no authority functionality
+	ConfigNotAuthority = filepath.Join(currentDir, "../utils/config_notauthority.toml")
 )
 
 // Node represents a gossamer process
@@ -122,12 +126,12 @@ func InitGossamer(idx int, basePath, genesis, config string) (*Node, error) {
 // StartGossamer starts given node
 func StartGossamer(t *testing.T, node *Node, websocket bool) error {
 	var key string
-	var params []string = []string{"--port", strconv.Itoa(basePort + node.Idx),
+	var params = []string{"--port", strconv.Itoa(basePort + node.Idx),
 		"--config", node.config,
 		"--basepath", node.basePath,
 		"--rpchost", HOSTNAME,
 		"--rpcport", node.RPCPort,
-		"--rpcmods", "system,author,chain,state,dev",
+		"--rpcmods", "system,author,chain,state,dev,rpc",
 		"--rpc",
 		"--log", "info"}
 
@@ -390,16 +394,6 @@ func TestDir(t *testing.T, name string) string {
 	return filepath.Join("/tmp/", t.Name(), name)
 }
 
-// GenerateGenesisOneAuth generates Genesis file with one authority.
-func GenerateGenesisOneAuth() {
-	bs, err := dot.BuildFromGenesis(utils.GetGssmrGenesisPath(), 1)
-	if err != nil {
-		logger.Error("genesis file not found", "error", err)
-		os.Exit(1)
-	}
-	_ = dot.CreateJSONRawFile(bs, GenesisOneAuth)
-}
-
 // GenerateGenesisThreeAuth generates Genesis file with three authority.
 func GenerateGenesisThreeAuth() {
 	bs, err := dot.BuildFromGenesis(utils.GetGssmrGenesisPath(), 3)
@@ -423,10 +417,12 @@ func GenerateGenesisSixAuth() {
 func generateDefaultConfig() *ctoml.Config {
 	return &ctoml.Config{
 		Global: ctoml.GlobalConfig{
-			Name:        "Gossamer",
-			ID:          "gssmr",
-			LogLvl:      "crit",
-			MetricsPort: 9876,
+			Name:         "Gossamer",
+			ID:           "gssmr",
+			LogLvl:       "crit",
+			MetricsPort:  9876,
+			RetainBlocks: 256,
+			Pruning:      "archive",
 		},
 		Log: ctoml.LogConfig{
 			CoreLvl: "info",
@@ -467,31 +463,6 @@ func CreateDefaultConfig() {
 	_ = dot.ExportTomlConfig(cfg, ConfigDefault)
 }
 
-func generateConfigBabeMaxThreshold() *ctoml.Config {
-	cfg := generateDefaultConfig()
-	cfg.Log = ctoml.LogConfig{
-		SyncLvl:          "debug",
-		NetworkLvl:       "debug",
-		BlockProducerLvl: "info",
-	}
-	cfg.Core = ctoml.CoreConfig{
-		Roles:                    4,
-		BabeAuthority:            true,
-		GrandpaAuthority:         true,
-		BabeThresholdNumerator:   1,
-		BabeThresholdDenominator: 1,
-		SlotDuration:             3000,
-	}
-	cfg.RPC.Modules = []string{"system", "author", "chain", "state", "dev", "rpc"}
-	return cfg
-}
-
-// CreateConfigBabeMaxThreshold generates and creates babe max threshold config file.
-func CreateConfigBabeMaxThreshold() {
-	cfg := generateConfigBabeMaxThreshold()
-	_ = dot.ExportTomlConfig(cfg, ConfigBABEMaxThreshold)
-}
-
 func generateConfigLogGrandpa() *ctoml.Config {
 	cfg := generateDefaultConfig()
 	cfg.Log = ctoml.LogConfig{
@@ -517,8 +488,7 @@ func generateConfigNoBabe() *ctoml.Config {
 		SyncLvl:    "debug",
 		NetworkLvl: "debug",
 	}
-	cfg.Core.BabeThresholdNumerator = 1
-	cfg.Core.BabeThresholdDenominator = 1
+
 	cfg.Core.BabeAuthority = false
 	return cfg
 }
@@ -527,4 +497,30 @@ func generateConfigNoBabe() *ctoml.Config {
 func CreateConfigNoBabe() {
 	cfg := generateConfigNoBabe()
 	_ = dot.ExportTomlConfig(cfg, ConfigNoBABE)
+}
+
+func generateConfigNoGrandpa() *ctoml.Config {
+	cfg := generateDefaultConfig()
+	cfg.Core.GrandpaAuthority = false
+	return cfg
+}
+
+// CreateConfigNoGrandpa generates and creates no grandpa config file.
+func CreateConfigNoGrandpa() {
+	cfg := generateConfigNoGrandpa()
+	_ = dot.ExportTomlConfig(cfg, ConfigNoGrandpa)
+}
+
+func generateConfigNotAuthority() *ctoml.Config {
+	cfg := generateDefaultConfig()
+	cfg.Core.Roles = 1
+	cfg.Core.BabeAuthority = false
+	cfg.Core.GrandpaAuthority = false
+	return cfg
+}
+
+// CreateConfigNotAuthority generates and creates non-authority config file.
+func CreateConfigNotAuthority() {
+	cfg := generateConfigNotAuthority()
+	_ = dot.ExportTomlConfig(cfg, ConfigNotAuthority)
 }

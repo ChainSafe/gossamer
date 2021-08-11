@@ -112,3 +112,29 @@ func TestStoreAndLoadBestBlockHash(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, hash, res)
 }
+
+func TestLoadStoreEpochLength(t *testing.T) {
+	db := NewInMemoryDB(t)
+	base := NewBaseState(db)
+
+	length := uint64(2222)
+	err := base.storeEpochLength(length)
+	require.NoError(t, err)
+
+	ret, err := base.loadEpochLength()
+	require.NoError(t, err)
+	require.Equal(t, length, ret)
+}
+
+func TestLoadAndStoreSlotDuration(t *testing.T) {
+	db := NewInMemoryDB(t)
+	base := NewBaseState(db)
+
+	d := uint64(3000)
+	err := base.storeSlotDuration(d)
+	require.NoError(t, err)
+
+	ret, err := base.loadSlotDuration()
+	require.NoError(t, err)
+	require.Equal(t, d, ret)
+}

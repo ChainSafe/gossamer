@@ -20,12 +20,19 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+var runtimes = []string{HOST_API_TEST_RUNTIME, POLKADOT_RUNTIME, NODE_RUNTIME, DEV_RUNTIME}
+
 //nolint
 const (
-	// v0.8 substrate runtime
+	// v0.9 substrate runtime
 	NODE_RUNTIME     = "node_runtime"
 	NODE_RUNTIME_FP  = "node_runtime.compact.wasm"
-	NODE_RUNTIME_URL = "https://github.com/noot/substrate/blob/noot/v0.8/target/wasm32-unknown-unknown/release/wbuild/node-runtime/node_runtime.compact.wasm?raw=true"
+	NODE_RUNTIME_URL = "https://github.com/noot/substrate/blob/noot/v0.9/target/debug/wbuild/node-runtime/node_runtime.compact.wasm?raw=true"
+
+	// v0.9.8 substrate runtime
+	NODE_RUNTIME_v098     = "node_runtime-v0.9.8"
+	NODE_RUNTIME_FP_v098  = "node_runtime-v0.9.8.compact.wasm"
+	NODE_RUNTIME_URL_v098 = "https://github.com/noot/substrate/blob/noot/v0.9.8/target/debug/wbuild/node-runtime/node_runtime.compact.wasm?raw=true"
 
 	// v0.8 polkadot runtime
 	POLKADOT_RUNTIME     = "polkadot_runtime"
@@ -36,6 +43,11 @@ const (
 	HOST_API_TEST_RUNTIME     = "hostapi_runtime"
 	HOST_API_TEST_RUNTIME_FP  = "hostapi_runtime.compact.wasm"
 	HOST_API_TEST_RUNTIME_URL = "https://github.com/noot/polkadot-spec/blob/master/test/hostapi_runtime.compact.wasm?raw=true"
+
+	// v0.8 substrate runtime with modified name and babe C=(1, 1)
+	DEV_RUNTIME     = "dev_runtime"
+	DEV_RUNTIME_FP  = "dev_runtime.compact.wasm"
+	DEV_RUNTIME_URL = "https://github.com/noot/substrate/blob/noot/v0.8-dev-runtime/target/wasm32-unknown-unknown/release/wbuild/node-runtime/node_runtime.compact.wasm?raw=true"
 )
 
 //nolint
@@ -60,6 +72,8 @@ var (
 	BlockBuilderApplyExtrinsic = "BlockBuilder_apply_extrinsic"
 	// BlockBuilderFinalizeBlock is the runtime API call BlockBuilder_finalize_block
 	BlockBuilderFinalizeBlock = "BlockBuilder_finalize_block"
+	// DecodeSessionKeys is the runtime API call SessionKeys_decode_session_keys
+	DecodeSessionKeys = "SessionKeys_decode_session_keys"
 )
 
 // GrandpaAuthoritiesKey is the location of GRANDPA authority data in the storage trie for LEGACY_NODE_RUNTIME and NODE_RUNTIME

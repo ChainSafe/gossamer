@@ -19,6 +19,7 @@ package runtime
 import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 	"github.com/ChainSafe/gossamer/lib/trie"
 )
@@ -26,12 +27,16 @@ import (
 // Instance is the interface a v0.8 runtime instance must implement
 type Instance interface {
 	UpdateRuntimeCode([]byte) error
+	CheckRuntimeVersion([]byte) (Version, error)
 	Stop()
 	NodeStorage() NodeStorage
 	NetworkService() BasicNetwork
+	Keystore() *keystore.GlobalKeystore
+	Validator() bool
 	Exec(function string, data []byte) ([]byte, error)
 	SetContextStorage(s Storage) // used to set the TrieState before a runtime call
 
+	GetCodeHash() common.Hash
 	Version() (Version, error)
 	Metadata() ([]byte, error)
 	BabeConfiguration() (*types.BabeConfiguration, error)
@@ -42,6 +47,7 @@ type Instance interface {
 	ApplyExtrinsic(data types.Extrinsic) ([]byte, error)
 	FinalizeBlock() (*types.Header, error)
 	ExecuteBlock(block *types.Block) ([]byte, error)
+	DecodeSessionKeys(enc []byte) ([]byte, error)
 
 	// TODO: parameters and return values for these are undefined in the spec
 	CheckInherents()

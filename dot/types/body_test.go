@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/stretchr/testify/require"
 )
 
@@ -76,4 +77,37 @@ func TestBody_EncodedExtrinsics(t *testing.T) {
 	res, err := body.AsEncodedExtrinsics()
 	require.NoError(t, err)
 	require.Equal(t, BytesArrayToExtrinsics(exts), res)
+}
+
+func TestBody_FindEncodedExtrinsic(t *testing.T) {
+	target := Extrinsic([]byte{0x1, 0x2, 0x3, 0x4, 0x5})
+
+	body1, err := NewBodyFromExtrinsics([]Extrinsic{})
+	require.Nil(t, err)
+
+	decodedTarget, err := scale.Decode(target, []byte{})
+	require.Nil(t, err)
+
+	body2, err := NewBodyFromExtrinsics([]Extrinsic{decodedTarget.([]byte)})
+	require.Nil(t, err)
+
+	tests := []struct {
+		body   *Body
+		expect bool
+	}{
+		{
+			body:   body1,
+			expect: false,
+		},
+		{
+			body:   body2,
+			expect: true,
+		},
+	}
+
+	for _, test := range tests {
+		res, err := test.body.HasExtrinsic(target)
+		require.Nil(t, err)
+		require.Equal(t, test.expect, res)
+	}
 }

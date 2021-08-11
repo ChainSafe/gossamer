@@ -29,7 +29,7 @@ type BlockState interface {
 	BestBlockNumber() (*big.Int, error)
 	GenesisHash() common.Hash
 	HasBlockBody(common.Hash) (bool, error)
-	GetFinalizedHeader(round, setID uint64) (*types.Header, error)
+	GetHighestFinalisedHeader() (*types.Header, error)
 	GetHashByNumber(num *big.Int) (common.Hash, error)
 }
 
@@ -55,5 +55,6 @@ type Syncer interface {
 
 // TransactionHandler is the interface used by the transactions sub-protocol
 type TransactionHandler interface {
-	HandleTransactionMessage(*TransactionMessage) error
+	HandleTransactionMessage(*TransactionMessage) (bool, error)
+	TransactionsCount() int
 }

@@ -2,6 +2,7 @@ package telemetry
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"math/big"
 	"net/http"
@@ -18,6 +19,7 @@ import (
 )
 
 var upgrader = websocket.Upgrader{}
+var resultCh chan []byte
 
 func TestMain(m *testing.M) {
 	// start server to listen for websocket connections
@@ -39,8 +41,6 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-var resultCh chan []byte
-
 func TestHandler_SendMulti(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(4)
@@ -48,48 +48,44 @@ func TestHandler_SendMulti(t *testing.T) {
 	resultCh = make(chan []byte)
 
 	go func() {
-		GetInstance().SendConnection(&ConnectionData{
-			Authority:     false,
-			Chain:         "chain",
-			GenesisHash:   "hash",
-			SystemName:    "systemName",
-			NodeName:      "nodeName",
-			SystemVersion: "version",
-			NetworkID:     "netID",
-			StartTime:     "startTime",
-		})
+		genesisHash := common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3")
+
+		GetInstance().SendMessage(NewSystemConnectedTM(false, "chain", &genesisHash,
+			"systemName", "nodeName", "netID", "startTime", "0.1"))
+
 		wg.Done()
 	}()
 
 	go func() {
-		GetInstance().SendBlockImport("hash", big.NewInt(2))
+		bh := common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6")
+		GetInstance().SendMessage(NewBlockImportTM(&bh, big.NewInt(2), "NetworkInitialSync"))
+
 		wg.Done()
 	}()
 
 	go func() {
-		GetInstance().SendNetworkData(NewNetworkData(1, 2, 3))
+		GetInstance().SendMessage(NewBandwidthTM(2, 3, 1))
+
 		wg.Done()
 	}()
 
 	go func() {
-		GetInstance().SendBlockIntervalData(&BlockIntervalData{
-			BestHash:           common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6"),
-			BestHeight:         big.NewInt(32375),
-			FinalizedHash:      common.MustHexToHash("0x687197c11b4cf95374159843e7f46fbcd63558db981aaef01a8bac2a44a1d6b2"),
-			FinalizedHeight:    big.NewInt(32256),
-			TXCount:            2,
-			UsedStateCacheSize: 1886357,
-		})
+		bestHash := common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6")
+		finalisedHash := common.MustHexToHash("0x687197c11b4cf95374159843e7f46fbcd63558db981aaef01a8bac2a44a1d6b2")
+		GetInstance().SendMessage(NewBlockIntervalTM(&bestHash, big.NewInt(32375), &finalisedHash,
+			big.NewInt(32256), big.NewInt(0), big.NewInt(1234)))
+
 		wg.Done()
 	}()
+
 	wg.Wait()
 
-	expected1 := []byte(`{"id":1,"payload":{"bandwidth_download":2,"bandwidth_upload":3,"msg":"system.interval","peers":1},"ts":`)
-	expected2 := []byte(`{"id":1,"payload":{"best":"hash","height":2,"msg":"block.import","origin":"NetworkInitialSync"},"ts":`)
-	expected3 := []byte(`{"id":1,"payload":{"authority":false,"chain":"chain","config":"","genesis_hash":"hash","implementation":"systemName","msg":"system.connected","name":"nodeName","network_id":"netID","startup_time":"startTime","version":"version"},"ts":`)
-	expected4 := []byte(`{"id":1,"payload":{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","finalized_hash":"0x687197c11b4cf95374159843e7f46fbcd63558db981aaef01a8bac2a44a1d6b2","finalized_height":32256,"height":32375,"msg":"system.interval","txcount":2,"used_state_cache_size":1886357},"ts":`) // nolint
+	expected1 := []byte(`{"authority":false,"chain":"chain","genesis_hash":"0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3","implementation":"systemName","msg":"system.connected","name":"nodeName","network_id":"netID","startup_time":"startTime","ts":`)
+	expected2 := []byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","height":2,"msg":"block.import","origin":"NetworkInitialSync","ts":`)
+	expected3 := []byte(`{"bandwidth_download":2,"bandwidth_upload":3,"msg":"system.interval","peers":1,"ts":`)
+	expected4 := []byte(`{"best":"0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6","finalized_hash":"0x687197c11b4cf95374159843e7f46fbcd63558db981aaef01a8bac2a44a1d6b2","finalized_height":32256,"height":32375,"msg":"system.interval","ts":`) // nolint
 
-	expected := [][]byte{expected3, expected1, expected4, expected2}
+	expected := [][]byte{expected1, expected3, expected4, expected2}
 
 	var actual [][]byte
 	for data := range resultCh {
@@ -106,6 +102,73 @@ func TestHandler_SendMulti(t *testing.T) {
 	require.Contains(t, string(actual[1]), string(expected[1]))
 	require.Contains(t, string(actual[2]), string(expected[2]))
 	require.Contains(t, string(actual[3]), string(expected[3]))
+}
+
+func TestListenerConcurrency(t *testing.T) {
+	const qty = 1000
+	var wg sync.WaitGroup
+	wg.Add(qty)
+
+	resultCh = make(chan []byte)
+	for i := 0; i < qty; i++ {
+		go func() {
+			bestHash := common.Hash{}
+			GetInstance().SendMessage(NewBlockImportTM(&bestHash, big.NewInt(2), "NetworkInitialSync"))
+
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	counter := 0
+	for range resultCh {
+		counter++
+		if counter == qty {
+			break
+		}
+	}
+}
+
+func TestDisableInstance(t *testing.T) {
+	const qty = 1000
+	var wg sync.WaitGroup
+	wg.Add(qty)
+
+	resultCh = make(chan []byte)
+	for i := 0; i < qty; i++ {
+		if i == qty/2 {
+			GetInstance().Initialise(false)
+		}
+		go func() {
+			bh := common.MustHexToHash("0x07b749b6e20fd5f1159153a2e790235018621dd06072a62bcd25e8576f6ff5e6")
+			GetInstance().SendMessage(NewBlockImportTM(&bh, big.NewInt(2), "NetworkInitialSync"))
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	counter := 0
+	tk := time.NewTicker(time.Second * 2)
+main:
+	for {
+		select {
+		case <-tk.C:
+			break main
+		case <-resultCh:
+			counter++
+		}
+	}
+	tk.Stop()
+
+	require.LessOrEqual(t, counter, qty/2)
+}
+
+// TestInfiniteListener starts loop that print out data received on websocket ws://localhost:8001/
+//  this can be useful to see what data is sent to telemetry server
+func TestInfiniteListener(t *testing.T) {
+	t.Skip()
+	resultCh = make(chan []byte)
+	for data := range resultCh {
+		fmt.Printf("Data %s\n", data)
+	}
 }
 
 func listen(w http.ResponseWriter, r *http.Request) {

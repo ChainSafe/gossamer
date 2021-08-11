@@ -49,7 +49,6 @@ func TestHandleLightMessage_Response(t *testing.T) {
 	config := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeA"),
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -58,20 +57,17 @@ func TestHandleLightMessage_Response(t *testing.T) {
 	configB := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeB"),
 		Port:        7002,
-		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
 	b := createTestService(t, configB)
 
-	addrInfosB, err := b.host.addrInfos()
-	require.NoError(t, err)
-
-	err = s.host.connect(*addrInfosB[0])
+	addrInfoB := b.host.addrInfo()
+	err := s.host.connect(addrInfoB)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = s.host.connect(*addrInfosB[0])
+		err = s.host.connect(addrInfoB)
 	}
 	require.NoError(t, err)
 

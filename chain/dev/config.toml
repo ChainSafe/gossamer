@@ -1,0 +1,39 @@
+[global]
+basepath = "~/.gossamer/dev"
+log = "info"
+metrics-port = 9876
+
+[log]
+core = ""
+network = ""
+rpc = ""
+state = ""
+runtime = ""
+babe = ""
+grandpa = ""
+sync = ""
+
+[init]
+genesis = "./chain/dev/genesis-spec.json"
+
+[account]
+key = "alice"
+unlock = ""
+
+[core]
+roles = 4
+babe-authority = true
+grandpa-authority = true
+
+[network]
+port = 7001
+nobootstrap = false
+nomdns = false
+
+[rpc]
+enabled = true
+ws = true
+port = 8545
+host = "localhost"
+modules = ["system", "author", "chain", "state", "rpc", "grandpa"]
+ws-port = 8546

@@ -71,11 +71,8 @@ func TestChainRPC(t *testing.T) {
 		},
 	}
 
-	utils.CreateConfigBabeMaxThreshold()
-	defer os.Remove(utils.ConfigBABEMaxThreshold)
-
 	t.Log("starting gossamer...")
-	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDefault, utils.ConfigBABEMaxThreshold)
+	nodes, err := utils.InitializeAndStartNodes(t, 1, utils.GenesisDev, utils.ConfigDefault)
 	require.Nil(t, err)
 
 	time.Sleep(time.Second) // give server a second to start
@@ -188,13 +185,8 @@ func TestChainSubscriptionRPC(t *testing.T) {
 		},
 	}
 
-	utils.GenerateGenesisOneAuth()
-	defer os.Remove(utils.GenesisOneAuth)
-	utils.CreateConfigBabeMaxThreshold()
-	defer os.Remove(utils.ConfigBABEMaxThreshold)
-
 	t.Log("starting gossamer...")
-	nodes, err := utils.InitializeAndStartNodesWebsocket(t, 1, utils.GenesisOneAuth, utils.ConfigBABEMaxThreshold)
+	nodes, err := utils.InitializeAndStartNodesWebsocket(t, 1, utils.GenesisDev, utils.ConfigDefault)
 	require.Nil(t, err)
 
 	time.Sleep(time.Second) // give server a second to start

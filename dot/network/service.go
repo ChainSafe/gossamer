@@ -19,8 +19,8 @@ package network
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
+	"math/big"
 	"os"
 	"sync"
 	"time"
@@ -34,7 +34,6 @@ import (
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	discovery "github.com/libp2p/go-libp2p-discovery"
 )
 
 const (
@@ -46,6 +45,10 @@ const (
 	lightID         = "/light/2"
 	blockAnnounceID = "/block-announces/1"
 	transactionsID  = "/transactions/1"
+
+	maxMessageSize = 1024 * 63 // 63kb for now
+
+	gssmrIsMajorSyncMetric = "gossamer/network/is_major_syncing"
 )
 
 var (
@@ -67,11 +70,13 @@ type Service struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	cfg       *Config
-	host      *host
-	mdns      *mdns
-	gossip    *gossip
-	syncQueue *syncQueue
+	cfg           *Config
+	host          *host
+	mdns          *mdns
+	gossip        *gossip
+	syncQueue     *syncQueue
+	bufPool       *sizedBufferPool
+	streamManager *streamManager
 
 	notificationsProtocols map[byte]*notificationsProtocol // map of sub-protocol msg ID to protocol info
 	notificationsMu        sync.RWMutex
@@ -125,11 +130,27 @@ func NewService(cfg *Config) (*Service, error) {
 		cfg.MaxPeers = DefaultMaxPeerCount
 	}
 
+	if cfg.DiscoveryInterval > 0 {
+		connectToPeersTimeout = cfg.DiscoveryInterval
+	}
+
 	// create a new host instance
 	host, err := newHost(ctx, cfg)
 	if err != nil {
 		cancel()
 		return nil, err
+	}
+
+	// pre-allocate pool of buffers used to read from streams.
+	// initially allocate as many buffers as liekly necessary which is the number inbound streams we will have,
+	// which should equal average number of peers times the number of notifications protocols, which is currently 3.
+	var bufPool *sizedBufferPool
+	if cfg.noPreAllocate {
+		bufPool = &sizedBufferPool{
+			c: make(chan *[maxMessageSize]byte, cfg.MinPeers*3),
+		}
+	} else {
+		bufPool = newSizedBufferPool(cfg.MinPeers*3, cfg.MaxPeers*3)
 	}
 
 	network := &Service{
@@ -148,6 +169,8 @@ func NewService(cfg *Config) (*Service, error) {
 		lightRequest:           make(map[peer.ID]struct{}),
 		telemetryInterval:      cfg.telemetryInterval,
 		closeCh:                make(chan interface{}),
+		bufPool:                bufPool,
+		streamManager:          newStreamManager(ctx),
 	}
 
 	network.syncQueue = newSyncQueue(network)
@@ -234,7 +257,7 @@ func (s *Service) Start() error {
 
 	if !s.noDiscover {
 		go func() {
-			err = s.beginDiscovery()
+			err = s.host.discovery.start()
 			if err != nil {
 				logger.Error("failed to begin DHT discovery", "error", err)
 			}
@@ -253,12 +276,12 @@ func (s *Service) Start() error {
 	go s.logPeerCount()
 	go s.publishNetworkTelemetry(s.closeCh)
 	go s.sentBlockIntervalTelemetry()
+	s.streamManager.start()
 
 	return nil
 }
 
 func (s *Service) collectNetworkMetrics() {
-	metrics.Enabled = true
 	for {
 		peerCount := metrics.GetOrRegisterGauge("network/node/peerCount", metrics.DefaultRegistry)
 		totalConn := metrics.GetOrRegisterGauge("network/node/totalConnection", metrics.DefaultRegistry)
@@ -281,9 +304,16 @@ func (s *Service) collectNetworkMetrics() {
 }
 
 func (s *Service) logPeerCount() {
+	ticker := time.NewTicker(time.Second * 30)
+	defer ticker.Stop()
+
 	for {
-		logger.Debug("peer count", "num", s.host.peerCount(), "min", s.cfg.MinPeers, "max", s.cfg.MaxPeers)
-		time.Sleep(time.Second * 30)
+		select {
+		case <-ticker.C:
+			logger.Debug("peer count", "num", s.host.peerCount(), "min", s.cfg.MinPeers, "max", s.cfg.MaxPeers)
+		case <-s.ctx.Done():
+			return
+		}
 	}
 }
 
@@ -299,9 +329,16 @@ main:
 
 		case <-ticker.C:
 			o := s.host.bwc.GetBandwidthTotals()
-			telemetry.GetInstance().SendNetworkData(telemetry.NewNetworkData(s.host.peerCount(), o.RateIn, o.RateOut))
-		}
+			err := telemetry.GetInstance().SendMessage(telemetry.NewBandwidthTM(o.RateIn, o.RateOut, s.host.peerCount()))
+			if err != nil {
+				logger.Debug("problem sending system.interval telemetry message", "error", err)
+			}
 
+			err = telemetry.GetInstance().SendMessage(telemetry.NewNetworkStateTM(s.host.h, s.Peers()))
+			if err != nil {
+				logger.Debug("problem sending system.interval telemetry message", "error", err)
+			}
+		}
 	}
 }
 
@@ -311,19 +348,25 @@ func (s *Service) sentBlockIntervalTelemetry() {
 		if err != nil {
 			continue
 		}
-		finalized, err := s.blockState.GetFinalizedHeader(0, 0) //nolint
+		bestHash := best.Hash()
+
+		finalized, err := s.blockState.GetHighestFinalisedHeader() //nolint
 		if err != nil {
 			continue
 		}
+		finalizedHash := finalized.Hash()
 
-		telemetry.GetInstance().SendBlockIntervalData(&telemetry.BlockIntervalData{
-			BestHash:           best.Hash(),
-			BestHeight:         best.Number,
-			FinalizedHash:      finalized.Hash(),
-			FinalizedHeight:    finalized.Number,
-			TXCount:            0, // todo (ed) determine where to get tx count
-			UsedStateCacheSize: 0, // todo (ed) determine where to get used_state_cache_size
-		})
+		err = telemetry.GetInstance().SendMessage(telemetry.NewBlockIntervalTM(
+			&bestHash,
+			best.Number,
+			&finalizedHash,
+			finalized.Number,
+			big.NewInt(int64(s.transactionHandler.TransactionsCount())),
+			big.NewInt(0), // todo (ed) determine where to get used_state_cache_size
+		))
+		if err != nil {
+			logger.Debug("problem sending system.interval telemetry message", "error", err)
+		}
 		time.Sleep(s.telemetryInterval)
 	}
 }
@@ -332,46 +375,6 @@ func (s *Service) handleConn(conn libp2pnetwork.Conn) {
 	// give new peers a slight weight
 	// TODO: do this once handshake is received
 	s.syncQueue.updatePeerScore(conn.RemotePeer(), 1)
-}
-
-func (s *Service) beginDiscovery() error {
-	rd := discovery.NewRoutingDiscovery(s.host.dht)
-
-	err := s.host.dht.Bootstrap(s.ctx)
-	if err != nil {
-		return fmt.Errorf("failed to bootstrap DHT: %w", err)
-	}
-
-	// wait to connect to bootstrap peers
-	time.Sleep(time.Second)
-
-	go func() {
-		peerCh, err := rd.FindPeers(s.ctx, s.cfg.ProtocolID)
-		if err != nil {
-			logger.Error("failed to begin finding peers via DHT", "err", err)
-		}
-
-		for peer := range peerCh {
-			if peer.ID == s.host.id() {
-				return
-			}
-
-			logger.Debug("found new peer via DHT", "peer", peer.ID)
-
-			// found a peer, try to connect if we need more peers
-			if s.host.peerCount() < s.cfg.MaxPeers {
-				err = s.host.connect(peer)
-				if err != nil {
-					logger.Debug("failed to connect to discovered peer", "peer", peer.ID, "err", err)
-				}
-			} else {
-				s.host.addToPeerstore(peer)
-			}
-		}
-	}()
-
-	logger.Debug("DHT discovery started!")
-	return nil
 }
 
 // Stop closes running instances of the host and network services as well as
@@ -438,6 +441,7 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 		protocolID:            protocolID,
 		getHandshake:          handshakeGetter,
 		handshakeValidator:    handshakeValidator,
+		handshakeDecoder:      handshakeDecoder,
 		inboundHandshakeData:  new(sync.Map),
 		outboundHandshakeData: new(sync.Map),
 	}
@@ -489,22 +493,17 @@ func (s *Service) IsStopped() bool {
 	return s.ctx.Err() != nil
 }
 
-// SendMessage implementation of interface to handle receiving messages
-func (s *Service) SendMessage(msg NotificationsMessage) {
-	if s.host == nil {
+// GossipMessage gossips a notifications protocol message to our peers
+func (s *Service) GossipMessage(msg NotificationsMessage) {
+	if s.host == nil || msg == nil || s.IsStopped() {
 		return
 	}
-	if s.IsStopped() {
-		return
-	}
-	if msg == nil {
-		logger.Debug("Received nil message from core service")
-		return
-	}
+
 	logger.Debug(
-		"Broadcasting message from core service",
+		"gossiping message",
 		"host", s.host.id(),
 		"type", msg.Type(),
+		"message", msg,
 	)
 
 	// check if the message is part of a notifications protocol
@@ -521,6 +520,28 @@ func (s *Service) SendMessage(msg NotificationsMessage) {
 	}
 
 	logger.Error("message not supported by any notifications protocol", "msg type", msg.Type())
+}
+
+// SendMessage sends a message to the given peer
+func (s *Service) SendMessage(to peer.ID, msg NotificationsMessage) error {
+	s.notificationsMu.Lock()
+	defer s.notificationsMu.Unlock()
+
+	for msgID, prtl := range s.notificationsProtocols {
+		if msg.Type() != msgID {
+			continue
+		}
+
+		hs, err := prtl.getHandshake()
+		if err != nil {
+			return err
+		}
+
+		s.sendData(to, hs, prtl, msg)
+		return nil
+	}
+
+	return errors.New("message not supported by any notifications protocol")
 }
 
 // handleLightStream handles streams with the <protocol-id>/light/2 protocol ID
@@ -551,14 +572,14 @@ func isInbound(stream libp2pnetwork.Stream) bool {
 }
 
 func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder, handler messageHandler) {
-	var (
-		maxMessageSize uint64 = maxBlockResponseSize // TODO: determine actual max message size
-		msgBytes              = make([]byte, maxMessageSize)
-		peer                  = stream.Conn().RemotePeer()
-	)
+	s.streamManager.logNewStream(stream)
+
+	peer := stream.Conn().RemotePeer()
+	msgBytes := s.bufPool.get()
+	defer s.bufPool.put(&msgBytes)
 
 	for {
-		tot, err := readStream(stream, msgBytes)
+		tot, err := readStream(stream, msgBytes[:])
 		if err == io.EOF {
 			continue
 		} else if err != nil {
@@ -566,6 +587,8 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 			_ = stream.Close()
 			return
 		}
+
+		s.streamManager.logMessageReceived(stream.ID())
 
 		// decode message based on message type
 		msg, err := decoder(msgBytes[:tot], peer, isInbound(stream))
@@ -682,7 +705,41 @@ func (s *Service) Peers() []common.PeerInfo {
 	return peers
 }
 
+// AddReservedPeers insert new peers to the peerstore with PermanentAddrTTL
+func (s *Service) AddReservedPeers(addrs ...string) error {
+	return s.host.addReservedPeers(addrs...)
+}
+
+// RemoveReservedPeers closes all connections with the target peers and remove it from the peerstore
+func (s *Service) RemoveReservedPeers(addrs ...string) error {
+	return s.host.removeReservedPeers(addrs...)
+}
+
 // NodeRoles Returns the roles the node is running as.
 func (s *Service) NodeRoles() byte {
 	return s.cfg.Roles
+}
+
+// CollectGauge will be used to collect coutable metrics from network service
+func (s *Service) CollectGauge() map[string]int64 {
+	var isSynced int64
+	if !s.syncer.IsSynced() {
+		isSynced = 1
+	} else {
+		isSynced = 0
+	}
+
+	return map[string]int64{
+		gssmrIsMajorSyncMetric: isSynced,
+	}
+}
+
+// HighestBlock returns the highest known block number
+func (s *Service) HighestBlock() int64 {
+	return s.syncQueue.goal
+}
+
+// StartingBlock return the starting block number that's currently being synced
+func (s *Service) StartingBlock() int64 {
+	return s.syncQueue.currStart
 }

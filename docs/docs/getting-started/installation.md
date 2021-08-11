@@ -23,31 +23,36 @@ Run the following command to build the Gossamer binary:
 make gossamer
 ```
 
-## Run a Gossamer Node
+### Run Development Node
 
-To run default Gossamer node, first initialise the node. This writes the genesis state to the database.
+To initialise a development node:
+
+```
+./bin/gossamer --chain dev init
+```
+
+To start the development node:
+```
+./bin/gossamer --chain dev
+```
+
+The development node is configured to produce a block every slot and to finalise a block every round (as there is only one authority, `alice`.) 
+
+### Run Gossamer Node
+
+The gossamer node runs by default as an authority with 9 authorites set at genesis. The built-in keys, corresponding to the authorities, that are available for the node are `alice`, `bob`, `charlie`, `dave`, `eve`, `ferdie`, `george`, and `ian`.
+
+To initialise a gossamer node:
 ```
 ./bin/gossamer --chain gssmr init
 ```
 
-The gossamer node runs as an authority by default. The built-in authorities are `alice`, `bob`, `charlie`, `dave`, `eve`, `ferdie`, `george`, and `ian`. To start the node as an authority, provide it with a built-in key:
+To start the gossamer node:
 ```
 ./bin/gossamer --chain gssmr --key alice
 ```
 
-
-The node will not build blocks every slot by default; it will appear that the node is doing nothing, but it is actually waiting for a slot to build a block. If you wish to force it to build blocks every slot, you update the `[core]` section of `chain/gssmr/config.toml` to the following:
-
-```
-[core]
-roles = 4
-babe-authority = true
-grandpa-authority = true
-babe-threshold-numerator = 1
-babe-threshold-denominator = 1
-```
-
-Then, re-run the above steps. NOTE: this feature is for testing only; if you wish to change the BABE block production parameters, you need to create a modified runtime.
+Note: If you only run one gossamer node, the node will not build blocks every slot or finalize blocks; it will appear that the node is doing nothing, but it is actually waiting for a slot to build a block. This is because there are 9 authorities set, so at least 6 of the authorities should be run for a functional network. If you wish to reduce the number of authorities, you can modify the genesis file in `chain/gssmr/genesis-spec.json`.
 
 If you wish to run the default node as a non-authority, you can specify `roles=1`:
 ```

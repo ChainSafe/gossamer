@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/lib/utils"
+	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -41,6 +42,27 @@ func failedToDial(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "failed to dial")
 }
 
+func createServiceHelper(t *testing.T, num int) []*Service {
+	t.Helper()
+	var srvcs []*Service
+	for i := 0; i < num; i++ {
+		config := &Config{
+			BasePath:    utils.NewTestBasePath(t, fmt.Sprintf("node%d", i)),
+			Port:        uint32(7001 + i),
+			NoBootstrap: true,
+			NoMDNS:      true,
+		}
+
+		srvc := createTestService(t, config)
+		srvc.noGossip = true
+		handler := newTestStreamHandler(testBlockAnnounceMessageDecoder)
+		srvc.host.registerStreamHandler("", handler.handleStream)
+
+		srvcs = append(srvcs, srvc)
+	}
+	return srvcs
+}
+
 // helper method to create and start a new network service
 func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	if cfg == nil {
@@ -49,7 +71,6 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 		cfg = &Config{
 			BasePath:    basePath,
 			Port:        7001,
-			RandSeed:    1,
 			NoBootstrap: true,
 			NoMDNS:      true,
 			LogLvl:      4,
@@ -57,15 +78,14 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	}
 
 	if cfg.BlockState == nil {
-		cfg.BlockState = newMockBlockState(nil)
+		cfg.BlockState = NewMockBlockState(nil)
 	}
 
 	if cfg.TransactionHandler == nil {
-		cfg.TransactionHandler = newMockTransactionHandler()
-	}
-
-	if cfg.TransactionHandler == nil {
-		cfg.TransactionHandler = newMockTransactionHandler()
+		mocktxhandler := &MockTransactionHandler{}
+		mocktxhandler.On("HandleTransactionMessage", mock.AnythingOfType("*TransactionMessage")).Return(nil)
+		mocktxhandler.On("TransactionsCount").Return(0)
+		cfg.TransactionHandler = mocktxhandler
 	}
 
 	cfg.ProtocolID = TestProtocolID // default "/gossamer/gssmr/0"
@@ -75,8 +95,10 @@ func createTestService(t *testing.T, cfg *Config) (srvc *Service) {
 	}
 
 	if cfg.Syncer == nil {
-		cfg.Syncer = newMockSyncer()
+		cfg.Syncer = NewMockSyncer()
 	}
+
+	cfg.noPreAllocate = true
 
 	srvc, err := NewService(cfg)
 	require.NoError(t, err)
@@ -121,7 +143,6 @@ func TestBroadcastMessages(t *testing.T) {
 	configA := &Config{
 		BasePath:    basePathA,
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -134,7 +155,6 @@ func TestBroadcastMessages(t *testing.T) {
 	configB := &Config{
 		BasePath:    basePathB,
 		Port:        7002,
-		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -145,19 +165,17 @@ func TestBroadcastMessages(t *testing.T) {
 	handler := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
 	nodeB.host.registerStreamHandler(blockAnnounceID, handler.handleStream)
 
-	addrInfosB, err := nodeB.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosB[0])
+	addrInfoB := nodeB.host.addrInfo()
+	err := nodeA.host.connect(addrInfoB)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosB[0])
+		err = nodeA.host.connect(addrInfoB)
 	}
 	require.NoError(t, err)
 
 	// simulate message sent from core service
-	nodeA.SendMessage(testBlockAnnounceMessage)
+	nodeA.GossipMessage(testBlockAnnounceMessage)
 	time.Sleep(time.Second * 2)
 	require.NotNil(t, handler.messages[nodeA.host.id()])
 }
@@ -169,7 +187,6 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	configA := &Config{
 		BasePath:    basePathA,
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -182,7 +199,6 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	configB := &Config{
 		BasePath:    basePathB,
 		Port:        7002,
-		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -194,14 +210,12 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	handler := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
 	nodeB.host.registerStreamHandler(blockAnnounceID, handler.handleStream)
 
-	addrInfosB, err := nodeB.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosB[0])
+	addrInfoB := nodeB.host.addrInfo()
+	err := nodeA.host.connect(addrInfoB)
 	// retry connect if "failed to dial" error
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosB[0])
+		err = nodeA.host.connect(addrInfoB)
 	}
 	require.NoError(t, err)
 
@@ -218,7 +232,7 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 
 	// Only one message will be sent.
 	for i := 0; i < 5; i++ {
-		nodeA.SendMessage(testBlockAnnounceMessage)
+		nodeA.GossipMessage(testBlockAnnounceMessage)
 		time.Sleep(time.Millisecond * 10)
 	}
 
@@ -229,7 +243,7 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 
 	// All 5 message will be sent since cache is disabled.
 	for i := 0; i < 5; i++ {
-		nodeA.SendMessage(testBlockAnnounceMessage)
+		nodeA.GossipMessage(testBlockAnnounceMessage)
 		time.Sleep(time.Millisecond * 10)
 	}
 	require.Equal(t, 6, len(handler.messages[nodeA.host.id()]))
@@ -252,130 +266,22 @@ func TestService_Health(t *testing.T) {
 	config := &Config{
 		BasePath:    basePath,
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
+	mocksyncer := &MockSyncer{}
+	mocksyncer.On("SetSyncing", mock.AnythingOfType("bool"))
+
 	s := createTestService(t, config)
+	s.syncer = mocksyncer
 
-	require.Equal(t, s.Health().IsSyncing, true)
-	mockSync := s.syncer.(*mockSyncer)
+	mocksyncer.On("IsSynced").Return(false).Once()
+	h := s.Health()
+	require.Equal(t, true, h.IsSyncing)
 
-	mockSync.SetSyncing(false)
-	require.Equal(t, s.Health().IsSyncing, false)
-}
-
-func TestBeginDiscovery(t *testing.T) {
-	configA := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeA"),
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true,
-		NoMDNS:      true,
-	}
-
-	nodeA := createTestService(t, configA)
-	nodeA.noGossip = true
-
-	configB := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeB"),
-		Port:        7002,
-		RandSeed:    2,
-		NoBootstrap: true,
-		NoMDNS:      true,
-	}
-
-	nodeB := createTestService(t, configB)
-	nodeB.noGossip = true
-
-	addrInfosB, err := nodeB.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosB[0])
-	if failedToDial(err) {
-		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosB[0])
-	}
-	require.NoError(t, err)
-
-	err = nodeA.beginDiscovery()
-	require.NoError(t, err)
-
-	err = nodeB.beginDiscovery()
-	require.NoError(t, err)
-}
-
-func TestBeginDiscovery_ThreeNodes(t *testing.T) {
-	configA := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeA"),
-		Port:        7001,
-		RandSeed:    1,
-		NoBootstrap: true,
-		NoMDNS:      true,
-	}
-
-	nodeA := createTestService(t, configA)
-	nodeA.noGossip = true
-
-	configB := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeB"),
-		Port:        7002,
-		RandSeed:    2,
-		NoBootstrap: true,
-		NoMDNS:      true,
-	}
-
-	nodeB := createTestService(t, configB)
-	nodeB.noGossip = true
-
-	configC := &Config{
-		BasePath:    utils.NewTestBasePath(t, "nodeC"),
-		Port:        7003,
-		RandSeed:    3,
-		NoBootstrap: true,
-		NoMDNS:      true,
-	}
-
-	nodeC := createTestService(t, configC)
-	nodeC.noGossip = true
-
-	// connect A and B
-	addrInfosB, err := nodeB.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosB[0])
-	if failedToDial(err) {
-		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosB[0])
-	}
-	require.NoError(t, err)
-
-	// connect A and C
-	addrInfosC, err := nodeC.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosC[0])
-	if failedToDial(err) {
-		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosC[0])
-	}
-	require.NoError(t, err)
-
-	// begin advertising and discovery for all nodes
-	err = nodeA.beginDiscovery()
-	require.NoError(t, err)
-
-	err = nodeB.beginDiscovery()
-	require.NoError(t, err)
-
-	err = nodeC.beginDiscovery()
-	require.NoError(t, err)
-
-	time.Sleep(time.Millisecond * 500)
-
-	// assert B and C can discover each other
-	addrs := nodeB.host.h.Peerstore().Addrs(nodeC.host.id())
-	require.NotEqual(t, 0, len(addrs))
+	mocksyncer.On("IsSynced").Return(true).Once()
+	h = s.Health()
+	require.Equal(t, false, h.IsSyncing)
 }
 
 func TestPersistPeerStore(t *testing.T) {
@@ -383,13 +289,11 @@ func TestPersistPeerStore(t *testing.T) {
 	nodeA := nodes[0]
 	nodeB := nodes[1]
 
-	addrInfosB, err := nodeB.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosB[0])
+	addrInfoB := nodeB.host.addrInfo()
+	err := nodeA.host.connect(addrInfoB)
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosB[0])
+		err = nodeA.host.connect(addrInfoB)
 	}
 	require.NoError(t, err)
 
@@ -408,7 +312,6 @@ func TestHandleConn(t *testing.T) {
 	configA := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeA"),
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -418,20 +321,17 @@ func TestHandleConn(t *testing.T) {
 	configB := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeB"),
 		Port:        7002,
-		RandSeed:    2,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
 
 	nodeB := createTestService(t, configB)
 
-	addrInfosB, err := nodeB.host.addrInfos()
-	require.NoError(t, err)
-
-	err = nodeA.host.connect(*addrInfosB[0])
+	addrInfoB := nodeB.host.addrInfo()
+	err := nodeA.host.connect(addrInfoB)
 	if failedToDial(err) {
 		time.Sleep(TestBackoffTimeout)
-		err = nodeA.host.connect(*addrInfosB[0])
+		err = nodeA.host.connect(addrInfoB)
 	}
 	require.NoError(t, err)
 
@@ -443,4 +343,22 @@ func TestHandleConn(t *testing.T) {
 	aScore, ok := nodeB.syncQueue.peerScore.Load(nodeA.host.id())
 	require.True(t, ok)
 	require.Equal(t, 1, aScore)
+}
+
+func TestSerivceIsMajorSyncMetrics(t *testing.T) {
+	mocksyncer := new(MockSyncer)
+
+	node := &Service{
+		syncer: mocksyncer,
+	}
+
+	mocksyncer.On("IsSynced").Return(false).Once()
+	m := node.CollectGauge()
+
+	require.Equal(t, int64(1), m[gssmrIsMajorSyncMetric])
+
+	mocksyncer.On("IsSynced").Return(true).Once()
+	m = node.CollectGauge()
+
+	require.Equal(t, int64(0), m[gssmrIsMajorSyncMetric])
 }

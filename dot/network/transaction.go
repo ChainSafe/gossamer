@@ -162,5 +162,5 @@ func (s *Service) handleTransactionMessage(_ peer.ID, msg NotificationsMessage) 
 		return false, errors.New("invalid transaction type")
 	}
 
-	return true, s.transactionHandler.HandleTransactionMessage(txMsg)
+	return s.transactionHandler.HandleTransactionMessage(txMsg)
 }

@@ -19,17 +19,20 @@ package state
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"math/big"
 	"reflect"
 	"sync"
 	"time"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
-
-	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 )
 
 var blockPrefix = "block"
@@ -38,18 +41,21 @@ const pruneKeyBufferSize = 1000
 
 // BlockState defines fields for manipulating the state of blocks, such as BlockTree, BlockDB and Header
 type BlockState struct {
-	bt *blocktree.BlockTree
-	//baseDB chaindb.Database
+	bt        *blocktree.BlockTree
 	baseState *BaseState
+	dbPath    string
 	db        chaindb.Database
 	sync.RWMutex
-	genesisHash common.Hash
+	genesisHash   common.Hash
+	lastFinalised common.Hash
 
 	// block notifiers
-	imported      map[byte]chan<- *types.Block
-	finalised     map[byte]chan<- *types.FinalisationInfo
-	importedLock  sync.RWMutex
-	finalisedLock sync.RWMutex
+	imported          map[byte]chan<- *types.Block
+	finalised         map[byte]chan<- *types.FinalisationInfo
+	importedLock      sync.RWMutex
+	finalisedLock     sync.RWMutex
+	importedBytePool  *common.BytePool
+	finalisedBytePool *common.BytePool
 
 	pruneKeyCh chan *types.Header
 }
@@ -62,6 +68,7 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 
 	bs := &BlockState{
 		bt:         bt,
+		dbPath:     db.Path(),
 		baseState:  NewBaseState(db),
 		db:         chaindb.NewTable(db, blockPrefix),
 		imported:   make(map[byte]chan<- *types.Block),
@@ -75,6 +82,13 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 	}
 
 	bs.genesisHash = genesisBlock.Header.Hash()
+	bs.lastFinalised, err = bs.GetFinalisedHash(0, 0)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get last finalised hash: %w", err)
+	}
+
+	bs.importedBytePool = common.NewBytePool256()
+	bs.finalisedBytePool = common.NewBytePool256()
 	return bs, nil
 }
 
@@ -89,39 +103,35 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		pruneKeyCh: make(chan *types.Header, pruneKeyBufferSize),
 	}
 
-	err := bs.setArrivalTime(header.Hash(), time.Now())
-	if err != nil {
+	if err := bs.setArrivalTime(header.Hash(), time.Now()); err != nil {
 		return nil, err
 	}
 
-	err = bs.SetHeader(header)
-	if err != nil {
+	if err := bs.SetHeader(header); err != nil {
 		return nil, err
 	}
 
-	err = bs.db.Put(headerHashKey(header.Number.Uint64()), header.Hash().ToBytes())
-	if err != nil {
+	if err := bs.db.Put(headerHashKey(header.Number.Uint64()), header.Hash().ToBytes()); err != nil {
 		return nil, err
 	}
 
-	err = bs.SetBlockBody(header.Hash(), types.NewBody([]byte{}))
-	if err != nil {
+	if err := bs.SetBlockBody(header.Hash(), types.NewBody([]byte{})); err != nil {
 		return nil, err
 	}
 
 	bs.genesisHash = header.Hash()
 
+	if err := bs.db.Put(highestRoundAndSetIDKey, roundAndSetIDToBytes(0, 0)); err != nil {
+		return nil, err
+	}
+
 	// set the latest finalised head to the genesis header
-	err = bs.SetFinalizedHash(bs.genesisHash, 0, 0)
-	if err != nil {
+	if err := bs.SetFinalisedHash(bs.genesisHash, 0, 0); err != nil {
 		return nil, err
 	}
 
-	err = bs.SetRound(0)
-	if err != nil {
-		return nil, err
-	}
-
+	bs.importedBytePool = common.NewBytePool256()
+	bs.finalisedBytePool = common.NewBytePool256()
 	return bs, nil
 }
 
@@ -161,15 +171,6 @@ func blockBodyKey(hash common.Hash) []byte {
 // arrivalTimeKey = arrivalTimePrefix + hash
 func arrivalTimeKey(hash common.Hash) []byte {
 	return append(arrivalTimePrefix, hash.ToBytes()...)
-}
-
-// finalizedHashKey = hashkey + round + setID (LE encoded)
-func finalizedHashKey(round, setID uint64) []byte {
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, round)
-	key := append(common.FinalizedBlockHashKey, buf...)
-	binary.LittleEndian.PutUint64(buf, setID)
-	return append(key, buf...)
 }
 
 // GenesisHash returns the hash of the genesis block
@@ -319,14 +320,13 @@ func (bs *BlockState) GetBlockByNumber(num *big.Int) (*types.Block, error) {
 }
 
 // GetBlockHash returns block hash for a given blockNumber
-func (bs *BlockState) GetBlockHash(blockNumber *big.Int) (*common.Hash, error) {
-	// First retrieve the block hash in a byte array based on the block number from the database
+func (bs *BlockState) GetBlockHash(blockNumber *big.Int) (common.Hash, error) {
 	byteHash, err := bs.db.Get(headerHashKey(blockNumber.Uint64()))
 	if err != nil {
-		return nil, fmt.Errorf("cannot get block %d: %w", blockNumber, err)
+		return common.Hash{}, fmt.Errorf("cannot get block %d: %w", blockNumber, err)
 	}
-	hash := common.NewHash(byteHash)
-	return &hash, nil
+
+	return common.NewHash(byteHash), nil
 }
 
 // SetHeader will set the header into DB
@@ -365,109 +365,6 @@ func (bs *BlockState) GetBlockBody(hash common.Hash) (*types.Body, error) {
 // SetBlockBody will add a block body to the db
 func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
 	return bs.db.Put(blockBodyKey(hash), body.AsOptional().Value())
-}
-
-// HasFinalizedBlock returns true if there is a finalised block for a given round and setID, false otherwise
-func (bs *BlockState) HasFinalizedBlock(round, setID uint64) (bool, error) {
-	// get current round
-	r, err := bs.GetRound()
-	if err != nil {
-		return false, err
-	}
-
-	// round that is being queried for has not yet finalised
-	if round > r {
-		return false, fmt.Errorf("round not yet finalised")
-	}
-
-	return bs.db.Has(finalizedHashKey(round, setID))
-}
-
-// GetFinalizedHeader returns the latest finalised block header
-func (bs *BlockState) GetFinalizedHeader(round, setID uint64) (*types.Header, error) {
-	h, err := bs.GetFinalizedHash(round, setID)
-	if err != nil {
-		return nil, err
-	}
-
-	header, err := bs.GetHeader(h)
-	if err != nil {
-		return nil, err
-	}
-
-	return header, nil
-}
-
-// GetFinalizedHash gets the latest finalised block header
-func (bs *BlockState) GetFinalizedHash(round, setID uint64) (common.Hash, error) {
-	// get current round
-	r, err := bs.GetRound()
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	// round that is being queried for has not yet finalised
-	if round > r {
-		return common.Hash{}, fmt.Errorf("round not yet finalised")
-	}
-
-	h, err := bs.db.Get(finalizedHashKey(round, setID))
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	return common.NewHash(h), nil
-}
-
-// SetFinalizedHash sets the latest finalised block header
-func (bs *BlockState) SetFinalizedHash(hash common.Hash, round, setID uint64) error {
-	bs.Lock()
-	defer bs.Unlock()
-
-	go bs.notifyFinalized(hash, round, setID)
-	if round > 0 {
-		err := bs.SetRound(round)
-		if err != nil {
-			return err
-		}
-	}
-
-	pruned := bs.bt.Prune(hash)
-	for _, rem := range pruned {
-		header, err := bs.GetHeader(rem)
-		if err != nil {
-			return err
-		}
-
-		err = bs.DeleteBlock(rem)
-		if err != nil {
-			return err
-		}
-
-		logger.Trace("pruned block", "hash", rem)
-		bs.pruneKeyCh <- header
-	}
-
-	return bs.db.Put(finalizedHashKey(round, setID), hash[:])
-}
-
-// SetRound sets the latest finalised GRANDPA round in the db
-// TODO: this needs to use both setID and round
-func (bs *BlockState) SetRound(round uint64) error {
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, round)
-	return bs.db.Put(common.LatestFinalizedRoundKey, buf)
-}
-
-// GetRound gets the latest finalised GRANDPA round from the db
-func (bs *BlockState) GetRound() (uint64, error) {
-	r, err := bs.db.Get(common.LatestFinalizedRoundKey)
-	if err != nil {
-		return 0, err
-	}
-
-	round := binary.LittleEndian.Uint64(r)
-	return round, nil
 }
 
 // CompareAndSetBlockData will compare empty fields and set all elements in a block data to db
@@ -741,4 +638,95 @@ func (bs *BlockState) setArrivalTime(hash common.Hash, arrivalTime time.Time) er
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, uint64(arrivalTime.UnixNano()))
 	return bs.db.Put(arrivalTimeKey(hash), buf)
+}
+
+// HandleRuntimeChanges handles the update in runtime.
+func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState, rt runtime.Instance, bHash common.Hash) error {
+	currCodeHash, err := newState.LoadCodeHash()
+	if err != nil {
+		return err
+	}
+
+	codeHash := rt.GetCodeHash()
+	if bytes.Equal(codeHash[:], currCodeHash[:]) {
+		bs.StoreRuntime(bHash, rt)
+		return nil
+	}
+
+	logger.Info("🔄 detected runtime code change, upgrading...", "block", bHash, "previous code hash", codeHash, "new code hash", currCodeHash)
+	code := newState.LoadCode()
+	if len(code) == 0 {
+		return errors.New("new :code is empty")
+	}
+
+	codeSubBlockHash := bs.baseState.LoadCodeSubstitutedBlockHash()
+	if !codeSubBlockHash.Equal(common.Hash{}) {
+		newVersion, err := rt.CheckRuntimeVersion(code) //nolint
+		if err != nil {
+			return err
+		}
+
+		// only update runtime during code substitution if runtime SpecVersion is updated
+		previousVersion, _ := rt.Version()
+		if previousVersion.SpecVersion() == newVersion.SpecVersion() {
+			logger.Info("not upgrading runtime code during code substitution")
+			bs.StoreRuntime(bHash, rt)
+			return nil
+		}
+
+		logger.Info("🔄 detected runtime code change, upgrading...", "block", bHash,
+			"previous code hash", codeHash, "new code hash", currCodeHash,
+			"previous spec version", previousVersion.SpecVersion(), "new spec version", newVersion.SpecVersion())
+	}
+
+	rtCfg := &wasmer.Config{
+		Imports: wasmer.ImportsNodeRuntime,
+	}
+
+	rtCfg.Storage = newState
+	rtCfg.Keystore = rt.Keystore()
+	rtCfg.NodeStorage = rt.NodeStorage()
+	rtCfg.Network = rt.NetworkService()
+	rtCfg.CodeHash = currCodeHash
+
+	if rt.Validator() {
+		rtCfg.Role = 4
+	}
+
+	instance, err := wasmer.NewInstance(code, rtCfg)
+	if err != nil {
+		return err
+	}
+
+	bs.StoreRuntime(bHash, instance)
+
+	err = bs.baseState.StoreCodeSubstitutedBlockHash(common.Hash{})
+	if err != nil {
+		return fmt.Errorf("failed to update code substituted block hash: %w", err)
+	}
+
+	return nil
+}
+
+// GetRuntime gets the runtime for the corresponding block hash.
+func (bs *BlockState) GetRuntime(hash *common.Hash) (runtime.Instance, error) {
+	if hash == nil {
+		rt, err := bs.bt.GetBlockRuntime(bs.BestBlockHash())
+		if err != nil {
+			return nil, err
+		}
+		return rt, nil
+	}
+
+	return bs.bt.GetBlockRuntime(*hash)
+}
+
+// StoreRuntime stores the runtime for corresponding block hash.
+func (bs *BlockState) StoreRuntime(hash common.Hash, rt runtime.Instance) {
+	bs.bt.StoreRuntime(hash, rt)
+}
+
+// GetNonFinalisedBlocks get all the blocks in the blocktree
+func (bs *BlockState) GetNonFinalisedBlocks() []common.Hash {
+	return bs.bt.GetAllBlocks()
 }

@@ -3,10 +3,13 @@ package modules
 import (
 	"math/big"
 
+	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
+	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
@@ -27,14 +30,15 @@ type BlockAPI interface {
 	GetHeader(hash common.Hash) (*types.Header, error)
 	BestBlockHash() common.Hash
 	GetBlockByHash(hash common.Hash) (*types.Block, error)
-	GetBlockHash(blockNumber *big.Int) (*common.Hash, error)
-	GetFinalizedHash(uint64, uint64) (common.Hash, error)
+	GetBlockHash(blockNumber *big.Int) (common.Hash, error)
+	GetFinalisedHash(uint64, uint64) (common.Hash, error)
+	GetHighestFinalisedHash() (common.Hash, error)
 	HasJustification(hash common.Hash) (bool, error)
 	GetJustification(hash common.Hash) ([]byte, error)
 	RegisterImportedChannel(ch chan<- *types.Block) (byte, error)
 	UnregisterImportedChannel(id byte)
 	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
-	UnregisterFinalizedChannel(id byte)
+	UnregisterFinalisedChannel(id byte)
 	SubChain(start, end common.Hash) ([]common.Hash, error)
 }
 
@@ -47,6 +51,10 @@ type NetworkAPI interface {
 	Stop() error
 	Start() error
 	IsStopped() bool
+	HighestBlock() int64
+	StartingBlock() int64
+	AddReservedPeers(addrs ...string) error
+	RemoveReservedPeers(addrs ...string) error
 }
 
 // BlockProducerAPI is the interface for BlockProducer methods
@@ -70,20 +78,16 @@ type CoreAPI interface {
 	InsertKey(kp crypto.Keypair)
 	HasKey(pubKeyStr string, keyType string) (bool, error)
 	GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error)
-	IsBlockProducer() bool
 	HandleSubmittedExtrinsic(types.Extrinsic) error
 	GetMetadata(bhash *common.Hash) ([]byte, error)
+	QueryStorage(from, to common.Hash, keys ...string) (map[common.Hash]core.QueryKeyValueChanges, error)
+	DecodeSessionKeys(enc []byte) ([]byte, error)
 }
 
 // RPCAPI is the interface for methods related to RPC service
 type RPCAPI interface {
 	Methods() []string
 	BuildMethodNames(rcvr interface{}, name string)
-}
-
-// RuntimeAPI is the interface for runtime methods
-type RuntimeAPI interface {
-	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
 }
 
 // SystemAPI is the interface for handling system methods
@@ -93,4 +97,13 @@ type SystemAPI interface {
 	Properties() map[string]interface{}
 	ChainType() string
 	ChainName() string
+}
+
+// BlockFinalityAPI is the interface for handling block finalisation methods
+type BlockFinalityAPI interface {
+	GetSetID() uint64
+	GetRound() uint64
+	GetVoters() grandpa.Voters
+	PreVotes() []ed25519.PublicKeyBytes
+	PreCommits() []ed25519.PublicKeyBytes
 }

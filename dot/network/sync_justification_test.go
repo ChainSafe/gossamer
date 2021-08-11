@@ -35,7 +35,6 @@ func TestSyncQueue_PushResponse_Justification(t *testing.T) {
 	config := &Config{
 		BasePath:    basePath,
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}
@@ -74,7 +73,6 @@ func TestSyncQueue_PushResponse_EmptyJustification(t *testing.T) {
 	config := &Config{
 		BasePath:    basePath,
 		Port:        7001,
-		RandSeed:    1,
 		NoBootstrap: true,
 		NoMDNS:      true,
 	}

@@ -94,6 +94,7 @@ func NewPriorityQueue() *PriorityQueue {
 		pq:  make(priorityQueue, 0),
 		txs: make(map[common.Hash]*Item),
 	}
+
 	heap.Init(&spq.pq)
 	return spq
 }
@@ -170,4 +171,12 @@ func (spq *PriorityQueue) Pending() []*ValidTransaction {
 		txns = append(txns, spq.pq[idx].data)
 	}
 	return txns
+}
+
+// Len return the current length of the queue
+func (spq *PriorityQueue) Len() int {
+	spq.Lock()
+	defer spq.Unlock()
+
+	return spq.pq.Len()
 }

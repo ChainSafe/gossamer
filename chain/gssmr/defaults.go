@@ -17,6 +17,8 @@
 package gssmr
 
 import (
+	"time"
+
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	log "github.com/ChainSafe/log15"
 )
@@ -39,10 +41,15 @@ var (
 	// DefaultLvl is the default log level
 	DefaultLvl = log.LvlInfo
 
+	// DefaultPruningMode is the default pruning mode
+	DefaultPruningMode = "archive"
+	// DefaultRetainBlocks is the default retained blocks
+	DefaultRetainBlocks = int64(512)
+
 	// InitConfig
 
 	// DefaultGenesis is the default genesis configuration path
-	DefaultGenesis = string("./chain/gssmr/genesis.json")
+	DefaultGenesis = string("./chain/gssmr/genesis-spec.json")
 
 	// AccountConfig
 
@@ -74,6 +81,9 @@ var (
 	DefaultNoBootstrap = false
 	// DefaultNoMDNS disables mDNS discovery
 	DefaultNoMDNS = false
+
+	// DefaultDiscoveryInterval is the default interval for searching for DHT peers
+	DefaultDiscoveryInterval = time.Second * 10
 
 	// RPCConfig
 

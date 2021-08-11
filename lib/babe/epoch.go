@@ -17,40 +17,43 @@
 package babe
 
 import (
+	"errors"
 	"fmt"
-
-	"github.com/ChainSafe/gossamer/dot/types"
 )
 
 // initiateEpoch sets the epochData for the given epoch, runs the lottery for the slots in the epoch,
 // and stores updated EpochInfo in the database
 func (b *Service) initiateEpoch(epoch uint64) error {
-	var startSlot uint64
+	var (
+		startSlot uint64
+		err       error
+	)
 
-	if epoch > 0 {
-		has, err := b.epochState.HasEpochData(epoch)
+	logger.Debug("initiating epoch", "epoch", epoch)
+
+	if epoch == 0 {
+		startSlot, err = b.epochState.GetStartSlotForEpoch(epoch)
+		if err != nil {
+			return err
+		}
+	} else if epoch > 0 {
+		has, err := b.epochState.HasEpochData(epoch) //nolint
 		if err != nil {
 			return err
 		}
 
-		var data *types.EpochData
 		if !has {
-			data = &types.EpochData{
-				Randomness:  b.epochData.randomness,
-				Authorities: b.epochData.authorities,
-			}
-
-			err = b.epochState.SetEpochData(epoch, data)
-		} else {
-			data, err = b.epochState.GetEpochData(epoch)
+			logger.Crit("no epoch data for next BABE epoch", "epoch", epoch)
+			return errNoEpochData
 		}
 
+		data, err := b.epochState.GetEpochData(epoch)
 		if err != nil {
 			return err
 		}
 
 		idx, err := b.getAuthorityIndex(data.Authorities)
-		if err != nil && err != ErrNotAuthority {
+		if err != nil && !errors.Is(err, ErrNotAuthority) { // TODO: this should be checked in the upper function
 			return err
 		}
 
@@ -89,31 +92,73 @@ func (b *Service) initiateEpoch(epoch uint64) error {
 		if err != nil {
 			return err
 		}
-	} else if b.blockState.BestBlockHash() == b.blockState.GenesisHash() {
-		// we are at genesis, set first slot using current time
-		startSlot = getCurrentSlot(b.slotDuration)
-		err := b.epochState.SetFirstSlot(startSlot)
+	}
+
+	// if we're at genesis, we need to determine when the first slot of the network will be
+	// by checking when we will be able to produce block 1.
+	// note that this assumes there will only be one producer of block 1
+	if b.blockState.BestBlockHash() == b.blockState.GenesisHash() {
+		startSlot, err = b.getFirstSlot(epoch)
+		if err != nil {
+			return err
+		}
+
+		logger.Debug("estimated first slot based on building block 1", "slot", startSlot)
+		for i := startSlot; i < startSlot+b.epochLength; i++ {
+			proof, err := b.runLottery(i, epoch) //nolint
+			if err != nil {
+				return fmt.Errorf("error running slot lottery at slot %d: error %w", i, err)
+			}
+
+			if proof != nil {
+				startSlot = i
+				break
+			}
+		}
+
+		// we are at genesis, set first slot by checking at which slot we will be able to produce block 1
+		err = b.epochState.SetFirstSlot(startSlot)
 		if err != nil {
 			return err
 		}
 	}
 
-	if !b.authority {
-		return nil
-	}
-
-	var err error
+	logger.Info("initiating epoch", "epoch", epoch, "start slot", startSlot)
 
 	for i := startSlot; i < startSlot+b.epochLength; i++ {
-		b.slotToProof[i], err = b.runLottery(i, epoch)
+		if epoch > 0 {
+			delete(b.slotToProof, i-b.epochLength) // clear data from previous epoch
+		}
+
+		proof, err := b.runLottery(i, epoch)
 		if err != nil {
-			return fmt.Errorf("error running slot lottery at slot %d: error %s", i, err)
+			return fmt.Errorf("error running slot lottery at slot %d: error %w", i, err)
+		}
+
+		if proof != nil {
+			b.slotToProof[i] = proof
+			logger.Trace("claimed slot!", "slot", startSlot, "slots into epoch", i-startSlot)
 		}
 	}
 
-	// if we were previously disabled, we are now re-enabled since the epoch changed
-	b.isDisabled = false
 	return nil
+}
+
+func (b *Service) getFirstSlot(epoch uint64) (uint64, error) {
+	startSlot := getCurrentSlot(b.slotDuration)
+	for i := startSlot; i < startSlot+b.epochLength; i++ {
+		proof, err := b.runLottery(i, epoch)
+		if err != nil {
+			return 0, fmt.Errorf("error running slot lottery at slot %d: error %w", i, err)
+		}
+
+		if proof != nil {
+			startSlot = i
+			break
+		}
+	}
+
+	return startSlot, nil
 }
 
 // incrementEpoch increments the current epoch stored in the db and returns the new epoch number

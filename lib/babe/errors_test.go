@@ -33,6 +33,16 @@ func TestApplyExtrinsicErrors(t *testing.T) {
 			expected: "dispatch outcome error: unknown error: A",
 		},
 		{
+			name:     "Dispatch failed lookup",
+			test:     []byte{0, 1, 1},
+			expected: "dispatch outcome error: failed lookup",
+		},
+		{
+			name:     "Dispatch bad origin",
+			test:     []byte{0, 1, 2},
+			expected: "dispatch outcome error: bad origin",
+		},
+		{
 			name:     "Invalid txn payment error",
 			test:     []byte{1, 0, 1},
 			expected: "transaction validity error: invalid payment",
@@ -69,7 +79,7 @@ func TestApplyExtrinsicErrors(t *testing.T) {
 				_, ok := err.(*TransactionValidityError)
 				require.True(t, ok)
 			}
-			require.Equal(t, err.Error(), c.expected)
+			require.Equal(t, c.expected, err.Error())
 		})
 	}
 }

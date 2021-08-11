@@ -24,6 +24,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
 
@@ -50,11 +51,13 @@ type Config struct {
 
 // Instance represents a v0.8 runtime go-wasmer instance
 type Instance struct {
-	vm      wasm.Instance
-	ctx     *runtime.Context
-	mutex   sync.Mutex
-	version runtime.Version
-	imports func() (*wasm.Imports, error)
+	vm       wasm.Instance
+	ctx      *runtime.Context
+	version  runtime.Version
+	imports  func() (*wasm.Imports, error)
+	isClosed bool
+	codeHash common.Hash
+	sync.Mutex
 }
 
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data
@@ -159,19 +162,58 @@ func newInstance(code []byte, cfg *Config) (*Instance, error) {
 	instance.SetContextData(runtimeCtx)
 
 	inst := &Instance{
-		vm:      instance,
-		ctx:     runtimeCtx,
-		imports: cfg.Imports,
+		vm:       instance,
+		ctx:      runtimeCtx,
+		imports:  cfg.Imports,
+		codeHash: cfg.CodeHash,
 	}
 
 	inst.version, _ = inst.Version()
 	return inst, nil
 }
 
+// GetCodeHash returns the code of the instance
+func (in *Instance) GetCodeHash() common.Hash {
+	return in.codeHash
+}
+
 // UpdateRuntimeCode updates the runtime instance to run the given code
 func (in *Instance) UpdateRuntimeCode(code []byte) error {
 	in.Stop()
 
+	err := in.setupInstanceVM(code)
+	if err != nil {
+		return err
+	}
+
+	in.version = nil
+	in.version, err = in.Version()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// CheckRuntimeVersion calculates runtime Version for runtime blob passed in
+func (in *Instance) CheckRuntimeVersion(code []byte) (runtime.Version, error) {
+	tmp := &Instance{
+		imports: in.imports,
+		ctx:     in.ctx,
+	}
+
+	in.Lock()
+	defer in.Unlock()
+
+	err := tmp.setupInstanceVM(code)
+	if err != nil {
+		return nil, err
+	}
+
+	return tmp.Version()
+}
+
+func (in *Instance) setupInstanceVM(code []byte) error {
 	imports, err := in.imports()
 	if err != nil {
 		return err
@@ -190,41 +232,40 @@ func (in *Instance) UpdateRuntimeCode(code []byte) error {
 	}
 
 	// Instantiates the WebAssembly module.
-	instance, err := wasm.NewInstanceWithImports(code, imports)
+	in.vm, err = wasm.NewInstanceWithImports(code, imports)
 	if err != nil {
 		return err
+	}
+
+	// Assume imported memory is used if runtime does not export any
+	if !in.vm.HasMemory() {
+		in.vm.Memory = memory
 	}
 
 	// TODO: get __heap_base exported value from runtime.
 	// wasmer 0.3.x does not support this, but wasmer 1.0.0 does
 	heapBase := runtime.DefaultHeapBase
 
-	// Assume imported memory is used if runtime does not export any
-	if !instance.HasMemory() {
-		instance.Memory = memory
-	}
-
-	in.ctx.Allocator = runtime.NewAllocator(instance.Memory, heapBase)
-	instance.SetContextData(in.ctx)
-
-	in.vm = instance
-	in.version, err = in.Version()
-	if err != nil {
-		return err
-	}
-
+	in.ctx.Allocator = runtime.NewAllocator(in.vm.Memory, heapBase)
+	in.vm.SetContextData(in.ctx)
 	return nil
 }
 
 // SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.
 func (in *Instance) SetContextStorage(s runtime.Storage) {
+	in.Lock()
+	defer in.Unlock()
 	in.ctx.Storage = s
-	in.vm.SetContextData(in.ctx)
 }
 
 // Stop func
 func (in *Instance) Stop() {
-	in.vm.Close()
+	in.Lock()
+	defer in.Unlock()
+	if !in.isClosed {
+		in.vm.Close()
+		in.isClosed = true
+	}
 }
 
 // Store func
@@ -250,8 +291,12 @@ func (in *Instance) exec(function string, data []byte) ([]byte, error) {
 		return nil, runtime.ErrNilStorage
 	}
 
-	in.mutex.Lock()
-	defer in.mutex.Unlock()
+	in.Lock()
+	defer in.Unlock()
+
+	if in.isClosed {
+		return nil, errors.New("instance is stopped")
+	}
 
 	ptr, err := in.malloc(uint32(len(data)))
 	if err != nil {
@@ -294,6 +339,16 @@ func (in *Instance) NodeStorage() runtime.NodeStorage {
 // NetworkService to get referernce to runtime network service
 func (in *Instance) NetworkService() runtime.BasicNetwork {
 	return in.ctx.Network
+}
+
+// Keystore to get reference to runtime keystore
+func (in *Instance) Keystore() *keystore.GlobalKeystore {
+	return in.ctx.Keystore
+}
+
+// Validator returns the context's Validator
+func (in *Instance) Validator() bool {
+	return in.ctx.Validator
 }
 
 // int64ToPointerAndSize converts an int64 into a int32 pointer and a int32 length

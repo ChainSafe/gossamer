@@ -52,7 +52,7 @@ func (s *TrieState) Trie() *trie.Trie {
 
 // Snapshot creates a new "version" of the trie. The trie before Snapshot is called
 // can no longer be modified, all further changes are on a new "version" of the trie.
-// It returns the previous version of the trie.
+// It returns the new version of the trie.
 func (s *TrieState) Snapshot() *trie.Trie {
 	return s.t.Snapshot()
 }
@@ -61,7 +61,8 @@ func (s *TrieState) Snapshot() *trie.Trie {
 func (s *TrieState) BeginStorageTransaction() {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	s.oldTrie = s.t.Snapshot()
+	s.oldTrie = s.t
+	s.t = s.t.Snapshot()
 }
 
 // CommitStorageTransaction commits all storage changes made since BeginStorageTransaction was called.
@@ -267,4 +268,18 @@ func (s *TrieState) LoadCode() []byte {
 func (s *TrieState) LoadCodeHash() (common.Hash, error) {
 	code := s.LoadCode()
 	return common.Blake2bHash(code)
+}
+
+// GetInsertedNodeHashes returns the hash of nodes inserted into state trie since last block produced
+func (s *TrieState) GetInsertedNodeHashes() ([]common.Hash, error) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	return s.t.GetInsertedNodeHashes()
+}
+
+// GetDeletedNodeHashes returns the hash of nodes that are deleted from state trie since last block produced
+func (s *TrieState) GetDeletedNodeHashes() []common.Hash {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	return s.t.GetDeletedNodeHash()
 }

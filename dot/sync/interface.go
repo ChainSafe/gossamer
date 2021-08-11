@@ -43,33 +43,32 @@ type BlockState interface {
 	GetMessageQueue(common.Hash) ([]byte, error)
 	GetJustification(common.Hash) ([]byte, error)
 	SetJustification(hash common.Hash, data []byte) error
-	SetFinalizedHash(hash common.Hash, round, setID uint64) error
+	SetFinalisedHash(hash common.Hash, round, setID uint64) error
 	AddBlockToBlockTree(header *types.Header) error
+	GetHashByNumber(*big.Int) (common.Hash, error)
+	GetBlockByHash(common.Hash) (*types.Block, error)
+	GetRuntime(*common.Hash) (runtime.Instance, error)
+	StoreRuntime(common.Hash, runtime.Instance)
 }
 
 // StorageState is the interface for the storage state
 type StorageState interface {
 	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
-	StoreTrie(ts *rtstorage.TrieState) error
 	LoadCodeHash(*common.Hash) (common.Hash, error)
 	SetSyncing(bool)
+	Lock()
+	Unlock()
+}
+
+// CodeSubstitutedState interface to handle storage of code substitute state
+type CodeSubstitutedState interface {
+	LoadCodeSubstitutedBlockHash() common.Hash
+	StoreCodeSubstitutedBlockHash(hash common.Hash) error
 }
 
 // TransactionState is the interface for transaction queue methods
 type TransactionState interface {
 	RemoveExtrinsic(ext types.Extrinsic)
-}
-
-// BlockProducer is the interface that a block production service must implement
-type BlockProducer interface {
-	Pause() error
-	Resume() error
-	SetRuntime(rt runtime.Instance)
-}
-
-// DigestHandler is the interface for the consensus digest handler
-type DigestHandler interface {
-	HandleConsensusDigest(*types.ConsensusDigest, *types.Header) error
 }
 
 // Verifier deals with block verification
@@ -79,5 +78,10 @@ type Verifier interface {
 
 // FinalityGadget implements justification verification functionality
 type FinalityGadget interface {
-	VerifyBlockJustification([]byte) error
+	VerifyBlockJustification(common.Hash, []byte) error
+}
+
+// BlockImportHandler is the interface for the handler of newly imported blocks
+type BlockImportHandler interface {
+	HandleBlockImport(block *types.Block, state *rtstorage.TrieState) error
 }

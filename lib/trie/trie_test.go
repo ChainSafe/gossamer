@@ -24,11 +24,14 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
 
 	"github.com/stretchr/testify/require"
@@ -63,10 +66,11 @@ func TestCommonPrefix(t *testing.T) {
 }
 
 var (
-	PUT     = 0
-	GET     = 1
-	DEL     = 2
-	GETLEAF = 3
+	PUT          = 0
+	DEL          = 1
+	CLEAR_PREFIX = 2
+	GET          = 3
+	GETLEAF      = 4
 )
 
 func TestNewEmptyTrie(t *testing.T) {
@@ -469,6 +473,74 @@ func TestDeleteOddKeyLengths(t *testing.T) {
 	runTests(t, trie, tests)
 }
 
+func TestTrieDiff(t *testing.T) {
+	testDataDirPath, _ := ioutil.TempDir(t.TempDir(), "test-badger-datadir")
+	defer os.RemoveAll(testDataDirPath)
+
+	cfg := &chaindb.Config{
+		DataDir:  testDataDirPath,
+		InMemory: false,
+	}
+
+	db, err := chaindb.NewBadgerDB(cfg)
+	require.NoError(t, err)
+
+	storageDB := chaindb.NewTable(db, "storage")
+
+	defer db.Close()
+	trie := NewEmptyTrie()
+
+	var testKey = []byte("testKey")
+
+	tests := []Test{
+		{key: testKey, value: testKey},
+		{key: []byte("testKey1"), value: []byte("testKey1")},
+		{key: []byte("testKey2"), value: []byte("testKey2")},
+	}
+
+	for _, test := range tests {
+		trie.Put(test.key, test.value)
+	}
+
+	newTrie := trie.Snapshot()
+	err = trie.Store(storageDB)
+	require.NoError(t, err)
+
+	tests = []Test{
+		{key: testKey, value: []byte("newTestKey2")},
+		{key: []byte("testKey2"), value: []byte("newKey")},
+		{key: []byte("testKey3"), value: []byte("testKey3")},
+		{key: []byte("testKey4"), value: []byte("testKey2")},
+		{key: []byte("testKey5"), value: []byte("testKey5")},
+	}
+
+	for _, test := range tests {
+		newTrie.Put(test.key, test.value)
+	}
+	deletedKeys := newTrie.deletedKeys
+	require.Len(t, deletedKeys, 3)
+
+	err = newTrie.WriteDirty(storageDB)
+	require.NoError(t, err)
+
+	for _, key := range deletedKeys {
+		err = storageDB.Del(key.ToBytes())
+		require.NoError(t, err)
+	}
+
+	dbTrie := NewEmptyTrie()
+	err = dbTrie.Load(storageDB, common.BytesToHash(newTrie.root.getHash()))
+	require.NoError(t, err)
+
+	enc, err := dbTrie.Encode()
+	require.NoError(t, err)
+
+	newEnc, err := newTrie.Encode()
+	require.NoError(t, err)
+
+	require.Equal(t, enc, newEnc)
+}
+
 func TestDelete(t *testing.T) {
 	trie := NewEmptyTrie()
 
@@ -505,13 +577,13 @@ func TestDelete(t *testing.T) {
 			var val []byte
 			switch r {
 			case 0:
-				trie.Delete(test.key)
-				val = trie.Get(test.key)
+				ssTrie.Delete(test.key)
+				val = ssTrie.Get(test.key)
 				if val != nil {
 					t.Errorf("Fail to delete key %x with value %x: got %x", test.key, test.value, val)
 				}
 			case 1:
-				val = trie.Get(test.key)
+				val = ssTrie.Get(test.key)
 				if !bytes.Equal(test.value, val) {
 					t.Errorf("Fail to get key %x with value %x: got %x", test.key, test.value, val)
 				}
@@ -530,9 +602,9 @@ func TestDelete(t *testing.T) {
 	require.NoError(t, err)
 
 	// Only the current trie should have a different root hash since it is updated.
-	require.NotEqual(t, tHash, dcTrieHash)
-	require.NotEqual(t, tHash, ssTrieHash)
-	require.Equal(t, dcTrieHash, ssTrieHash)
+	require.NotEqual(t, ssTrie, dcTrieHash)
+	require.NotEqual(t, ssTrie, tHash)
+	require.Equal(t, dcTrieHash, tHash)
 }
 
 func TestGetKeysWithPrefix(t *testing.T) {
@@ -822,14 +894,14 @@ func TestClearPrefix(t *testing.T) {
 		require.Equal(t, tHash, dcTrieHash)
 		require.Equal(t, dcTrieHash, ssTrieHash)
 
-		trie.ClearPrefix(prefix)
+		ssTrie.ClearPrefix(prefix)
 		prefixNibbles := keyToNibbles(prefix)
 		if len(prefixNibbles) > 0 && prefixNibbles[len(prefixNibbles)-1] == 0 {
 			prefixNibbles = prefixNibbles[:len(prefixNibbles)-1]
 		}
 
 		for _, test := range tests {
-			res := trie.Get(test.key)
+			res := ssTrie.Get(test.key)
 
 			keyNibbles := keyToNibbles(test.key)
 			length := lenCommonPrefix(keyNibbles, prefixNibbles)
@@ -851,9 +923,9 @@ func TestClearPrefix(t *testing.T) {
 		require.NoError(t, err)
 
 		// Only the current trie should have a different root hash since it is updated.
-		require.NotEqual(t, tHash, dcTrieHash)
-		require.NotEqual(t, tHash, ssTrieHash)
-		require.Equal(t, dcTrieHash, ssTrieHash)
+		require.NotEqual(t, ssTrieHash, dcTrieHash)
+		require.NotEqual(t, ssTrieHash, tHash)
+		require.Equal(t, dcTrieHash, tHash)
 	}
 }
 
@@ -888,11 +960,11 @@ func TestClearPrefix_Small(t *testing.T) {
 	require.Equal(t, dcTrieHash, ssTrieHash)
 
 	for _, key := range keys {
-		trie.Put([]byte(key), []byte(key))
+		ssTrie.Put([]byte(key), []byte(key))
 	}
 
-	trie.ClearPrefix([]byte("noo"))
-	require.Equal(t, trie.root, &leaf{key: keyToNibbles([]byte("other")), value: []byte("other"), dirty: true})
+	ssTrie.ClearPrefix([]byte("noo"))
+	require.Equal(t, ssTrie.root, &leaf{key: keyToNibbles([]byte("other")), value: []byte("other"), dirty: true})
 
 	// Get the updated root hash of all tries.
 	tHash, err = trie.Hash()
@@ -905,9 +977,9 @@ func TestClearPrefix_Small(t *testing.T) {
 	require.NoError(t, err)
 
 	// Only the current trie should have a different root hash since it is updated.
-	require.NotEqual(t, tHash, dcTrieHash)
-	require.NotEqual(t, tHash, ssTrieHash)
-	require.Equal(t, dcTrieHash, ssTrieHash)
+	require.NotEqual(t, ssTrie, dcTrieHash)
+	require.NotEqual(t, ssTrie, tHash)
+	require.Equal(t, dcTrieHash, tHash)
 }
 
 func TestTrie_ClearPrefixVsDelete(t *testing.T) {
@@ -1007,13 +1079,11 @@ func TestSnapshot(t *testing.T) {
 		parentTrie.Put(test.key, test.value)
 	}
 
-	parentSnapshot := parentTrie.Snapshot()
-
-	newTrie := parentTrie
+	newTrie := parentTrie.Snapshot()
 	newTrie.Put(tests[0].key, tests[0].value)
 
 	require.Equal(t, expectedTrie.MustHash(), newTrie.MustHash())
-	require.NotEqual(t, parentSnapshot.MustHash(), newTrie.MustHash())
+	require.NotEqual(t, parentTrie.MustHash(), newTrie.MustHash())
 }
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -1069,4 +1139,139 @@ func TestNextKey_Random(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestRootHashNonParallel(t *testing.T) {
+	rt := GenerateRandomTests(t, 1000000)
+	trie := NewEmptyTrie()
+	for i := range rt {
+		test := &rt[i]
+		trie.Put(test.key, test.value)
+	}
+
+	t.Run("Non Parallel Hash", func(t *testing.T) {
+		trie.parallel = false
+		_, err := trie.Hash()
+		require.NoError(t, err)
+		PrintMemUsage()
+	})
+}
+
+func TestRootHashParallel(t *testing.T) {
+	rt := GenerateRandomTests(t, 1000000)
+	trie := NewEmptyTrie()
+	for i := range rt {
+		test := &rt[i]
+		trie.Put(test.key, test.value)
+	}
+
+	t.Run("Parallel Hash", func(t *testing.T) {
+		trie.parallel = true
+		_, err := trie.Hash()
+		require.NoError(t, err)
+		PrintMemUsage()
+	})
+}
+
+func PrintMemUsage() {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	// For info on each, see: https://golang.org/pkg/runtime/#MemStats
+	fmt.Printf("Alloc = %v MiB", bToMb(m.Alloc))
+	fmt.Printf("\tTotalAlloc = %v MiB", bToMb(m.TotalAlloc))
+	fmt.Printf("\tSys = %v MiB", bToMb(m.Sys))
+	fmt.Printf("\tNumGC = %v\n", m.NumGC)
+}
+
+func bToMb(b uint64) uint64 {
+	return b / 1024 / 1024
+}
+
+func TestTrie_ConcurrentSnapshotWrites(t *testing.T) {
+	base := buildSmallTrie()
+	size := 65536
+
+	testCasesA := make([]Test, size)
+	expectedA := buildSmallTrie()
+	for i := 0; i < size; i++ {
+		k := make([]byte, 2)
+		_, err := rand.Read(k)
+		require.NoError(t, err)
+		op := rand.Intn(3)
+
+		switch op {
+		case PUT:
+			expectedA.Put(k, k)
+		case DEL:
+			expectedA.Delete(k)
+		case CLEAR_PREFIX:
+			expectedA.ClearPrefix(k)
+		}
+
+		testCasesA[i] = Test{
+			key: k,
+			op:  op,
+		}
+	}
+
+	testCasesB := make([]Test, size)
+	expectedB := buildSmallTrie()
+	for i := 0; i < size; i++ {
+		k := make([]byte, 2)
+		_, err := rand.Read(k)
+		require.NoError(t, err)
+		op := rand.Intn(3)
+
+		switch op {
+		case PUT:
+			expectedB.Put(k, k)
+		case DEL:
+			expectedB.Delete(k)
+		case CLEAR_PREFIX:
+			expectedB.ClearPrefix(k)
+		}
+
+		testCasesB[i] = Test{
+			key: k,
+			op:  op,
+		}
+	}
+
+	wg := new(sync.WaitGroup)
+	wg.Add(2)
+	trieA := base.Snapshot()
+	trieB := base.Snapshot()
+
+	go func() {
+		for _, tc := range testCasesA {
+			switch tc.op {
+			case PUT:
+				trieA.Put(tc.key, tc.key)
+			case DEL:
+				trieA.Delete(tc.key)
+			case CLEAR_PREFIX:
+				trieA.ClearPrefix(tc.key)
+			}
+		}
+		wg.Done()
+	}()
+
+	go func() {
+		for _, tc := range testCasesB {
+			switch tc.op {
+			case PUT:
+				trieB.Put(tc.key, tc.key)
+			case DEL:
+				trieB.Delete(tc.key)
+			case CLEAR_PREFIX:
+				trieB.ClearPrefix(tc.key)
+			}
+		}
+		wg.Done()
+	}()
+
+	wg.Wait()
+
+	require.Equal(t, expectedA.MustHash(), trieA.MustHash())
+	require.Equal(t, expectedB.MustHash(), trieB.MustHash())
 }

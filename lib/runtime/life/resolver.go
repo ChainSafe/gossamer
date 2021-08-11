@@ -63,6 +63,10 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport {
 			return ext_crypto_start_batch_verify_version_1
 		case "ext_crypto_finish_batch_verify_version_1":
 			return ext_crypto_finish_batch_verify_version_1
+		case "ext_offchain_index_set_version_1":
+			return ext_offchain_index_set_version_1
+		case "ext_storage_exists_version_1":
+			return ext_storage_exists_version_1
 		default:
 			panic(fmt.Errorf("unknown import resolved: %s", field))
 		}
@@ -305,6 +309,21 @@ func ext_storage_clear_prefix_version_1(vm *exec.VirtualMachine) int64 {
 	return 0
 }
 
+func ext_storage_exists_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_storage_exists_version_1] executing...")
+	keySpan := vm.GetCurrentFrame().Locals[0]
+	storage := ctx.Storage
+
+	key := asMemorySlice(vm.Memory, keySpan)
+
+	val := storage.Get(key)
+	if len(val) == 0 {
+		return 0
+	}
+
+	return 1
+}
+
 func ext_storage_read_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_storage_read_version_1] executing...")
 	keySpan := vm.GetCurrentFrame().Locals[0]
@@ -487,6 +506,11 @@ func ext_crypto_start_batch_verify_version_1(vm *exec.VirtualMachine) int64 {
 func ext_crypto_finish_batch_verify_version_1(vm *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_crypto_finish_batch_verify_version_1] executing...")
 	return 1
+}
+
+func ext_offchain_index_set_version_1(vm *exec.VirtualMachine) int64 {
+	logger.Trace("[ext_offchain_index_set_version_1] executing...")
+	return 0
 }
 
 // Convert 64bit wasm span descriptor to Go memory slice

@@ -27,11 +27,8 @@ import (
 )
 
 func TestStress_Grandpa_OneAuthority(t *testing.T) {
-	utils.GenerateGenesisOneAuth()
-	defer os.Remove(utils.GenesisOneAuth)
-
 	numNodes := 1
-	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisOneAuth, utils.ConfigBABEMaxThreshold)
+	nodes, err := utils.InitializeAndStartNodes(t, numNodes, utils.GenesisDev, utils.ConfigDefault)
 	require.NoError(t, err)
 
 	defer func() {

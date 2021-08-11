@@ -18,28 +18,39 @@ package core
 
 import (
 	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
 // HandleTransactionMessage validates each transaction in the message and
 // adds valid transactions to the transaction queue of the BABE session
-func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) error {
+// returns boolean for transaction propagation, true - transactions should be propagated
+func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (bool, error) {
 	logger.Debug("received TransactionMessage")
-	if !s.isBlockProducer {
-		return nil
-	}
 
 	// get transactions from message extrinsics
 	txs := msg.Extrinsics
+	var toPropagate []types.Extrinsic
+
+	rt, err := s.blockState.GetRuntime(nil)
+	if err != nil {
+		return false, err
+	}
 
 	for _, tx := range txs {
-		tx := tx // pin
+		ts, err := s.storageState.TrieState(nil)
+		if err != nil {
+			return false, err
+		}
+
+		rt.SetContextStorage(ts)
 
 		// validate each transaction
-		val, err := s.rt.ValidateTransaction(tx)
+		externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, tx...))
+		val, err := rt.ValidateTransaction(externalExt)
 		if err != nil {
-			logger.Error("failed to validate transaction", "err", err)
-			return err
+			logger.Debug("failed to validate transaction", "err", err)
+			continue
 		}
 
 		// create new valid transaction
@@ -48,7 +59,19 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) erro
 		// push to the transaction queue of BABE session
 		hash := s.transactionState.AddToPool(vtx)
 		logger.Trace("Added transaction to queue", "hash", hash)
+
+		// find tx(s) that should propagate
+		if val.Propagate {
+			toPropagate = append(toPropagate, tx)
+		}
 	}
 
-	return nil
+	msg.Extrinsics = toPropagate
+
+	return len(msg.Extrinsics) > 0, nil
+}
+
+// TransactionsCount returns number for pending transactions in pool
+func (s *Service) TransactionsCount() int {
+	return len(s.transactionState.PendingInPool())
 }

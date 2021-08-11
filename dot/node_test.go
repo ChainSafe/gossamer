@@ -22,7 +22,6 @@ import (
 	"reflect"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -149,8 +148,6 @@ func TestNewNode_Authority(t *testing.T) {
 	require.Equal(t, 1, ks.Babe.Size())
 
 	cfg.Core.Roles = types.AuthorityRole
-	cfg.Core.BabeThresholdNumerator = 0
-	cfg.Core.BabeThresholdDenominator = 0
 
 	node, err := NewNode(cfg, ks, nil)
 	require.NoError(t, err)
@@ -190,7 +187,7 @@ func TestStartNode(t *testing.T) {
 	require.NoError(t, err)
 
 	go func() {
-		time.Sleep(time.Second)
+		<-node.started
 		node.Stop()
 	}()
 
@@ -214,7 +211,11 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
-	stateSrvc := state.NewService(cfg.Global.BasePath, log.LvlTrace)
+	config := state.Config{
+		Path:     cfg.Global.BasePath,
+		LogLevel: log.LvlInfo,
+	}
+	stateSrvc := state.NewService(config)
 
 	gen, err := genesis.NewGenesisFromJSONRaw(genPath)
 	require.NoError(t, err)
@@ -325,8 +326,6 @@ func TestInitNode_LoadBalances(t *testing.T) {
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
-	cfg.Core.BabeThresholdNumerator = 0
-	cfg.Core.BabeThresholdDenominator = 0
 	cfg.Init.Genesis = genPath
 
 	err := InitNode(cfg)
@@ -398,8 +397,6 @@ func TestNode_PersistGlobalName_WhenInitialize(t *testing.T) {
 	cfg.Core.Roles = types.FullNodeRole
 	cfg.Core.BabeAuthority = false
 	cfg.Core.GrandpaAuthority = false
-	cfg.Core.BabeThresholdNumerator = 0
-	cfg.Core.BabeThresholdDenominator = 0
 	cfg.Init.Genesis = genPath
 
 	err := InitNode(cfg)

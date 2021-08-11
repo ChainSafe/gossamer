@@ -56,12 +56,12 @@ func TestFinalizedChannel(t *testing.T) {
 	id, err := bs.RegisterFinalizedChannel(ch)
 	require.NoError(t, err)
 
-	defer bs.UnregisterFinalizedChannel(id)
+	defer bs.UnregisterFinalisedChannel(id)
 
 	chain, _ := AddBlocksToState(t, bs, 3)
 
 	for _, b := range chain {
-		bs.SetFinalizedHash(b.Hash(), 0, 0)
+		bs.SetFinalisedHash(b.Hash(), 1, 0)
 	}
 
 	for i := 0; i < 1; i++ {
@@ -146,10 +146,10 @@ func TestFinalizedChannel_Multi(t *testing.T) {
 	}
 
 	time.Sleep(time.Millisecond * 10)
-	bs.SetFinalizedHash(chain[0].Hash(), 0, 0)
+	bs.SetFinalisedHash(chain[0].Hash(), 1, 0)
 	wg.Wait()
 
 	for _, id := range ids {
-		bs.UnregisterFinalizedChannel(id)
+		bs.UnregisterFinalisedChannel(id)
 	}
 }

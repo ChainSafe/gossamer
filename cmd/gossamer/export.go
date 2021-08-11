@@ -18,6 +18,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot"
 	ctoml "github.com/ChainSafe/gossamer/dot/config/toml"
@@ -79,11 +80,13 @@ func dotConfigToToml(dcfg *dot.Config) *ctoml.Config {
 	cfg := &ctoml.Config{}
 
 	cfg.Global = ctoml.GlobalConfig{
-		Name:        dcfg.Global.Name,
-		ID:          dcfg.Global.ID,
-		BasePath:    dcfg.Global.BasePath,
-		LogLvl:      dcfg.Global.LogLvl.String(),
-		MetricsPort: dcfg.Global.MetricsPort,
+		Name:         dcfg.Global.Name,
+		ID:           dcfg.Global.ID,
+		BasePath:     dcfg.Global.BasePath,
+		LogLvl:       dcfg.Global.LogLvl.String(),
+		MetricsPort:  dcfg.Global.MetricsPort,
+		RetainBlocks: dcfg.Global.RetainBlocks,
+		Pruning:      string(dcfg.Global.Pruning),
 	}
 
 	cfg.Log = ctoml.LogConfig{
@@ -107,21 +110,20 @@ func dotConfigToToml(dcfg *dot.Config) *ctoml.Config {
 	}
 
 	cfg.Core = ctoml.CoreConfig{
-		Roles:                    dcfg.Core.Roles,
-		BabeAuthority:            dcfg.Core.BabeAuthority,
-		GrandpaAuthority:         dcfg.Core.GrandpaAuthority,
-		EpochLength:              dcfg.Core.EpochLength,
-		BabeThresholdNumerator:   dcfg.Core.BabeThresholdNumerator,
-		BabeThresholdDenominator: dcfg.Core.BabeThresholdDenominator,
-		SlotDuration:             dcfg.Core.SlotDuration,
+		Roles:            dcfg.Core.Roles,
+		BabeAuthority:    dcfg.Core.BabeAuthority,
+		GrandpaAuthority: dcfg.Core.GrandpaAuthority,
+		EpochLength:      dcfg.Core.EpochLength,
+		SlotDuration:     dcfg.Core.SlotDuration,
 	}
 
 	cfg.Network = ctoml.NetworkConfig{
-		Port:        dcfg.Network.Port,
-		Bootnodes:   dcfg.Network.Bootnodes,
-		ProtocolID:  dcfg.Network.ProtocolID,
-		NoBootstrap: dcfg.Network.NoBootstrap,
-		NoMDNS:      dcfg.Network.NoMDNS,
+		Port:              dcfg.Network.Port,
+		Bootnodes:         dcfg.Network.Bootnodes,
+		ProtocolID:        dcfg.Network.ProtocolID,
+		NoBootstrap:       dcfg.Network.NoBootstrap,
+		NoMDNS:            dcfg.Network.NoMDNS,
+		DiscoveryInterval: int(dcfg.Network.DiscoveryInterval / time.Second),
 	}
 
 	cfg.RPC = ctoml.RPCConfig{

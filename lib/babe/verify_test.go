@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/stretchr/testify/require"
 
 	"github.com/ChainSafe/gossamer/dot/state"
@@ -36,14 +37,18 @@ func newTestVerificationManager(t *testing.T, genCfg *types.BabeConfiguration) *
 	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
 	require.NoError(t, err)
 
-	dbSrv := state.NewService(testDatadirPath, log.LvlInfo)
+	config := state.Config{
+		Path:     testDatadirPath,
+		LogLevel: log.LvlInfo,
+	}
+	dbSrv := state.NewService(config)
 	dbSrv.UseMemDB()
 
 	if genCfg == nil {
 		genCfg = genesisBABEConfig
 	}
 
-	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
+	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 	err = dbSrv.Initialise(gen, genHeader, genTrie)
 	require.NoError(t, err)
 
@@ -151,7 +156,11 @@ func TestVerificationManager_VerifyBlock_IsDisabled(t *testing.T) {
 		ThresholdNumerator:   1,
 		ThresholdDenominator: 1,
 	})
-	cfg, err := babeService.rt.BabeConfiguration()
+
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	cfg, err := rt.BabeConfiguration()
 	require.NoError(t, err)
 
 	cfg.GenesisAuthorities = types.AuthoritiesToRaw(babeService.epochData.authorities)
@@ -197,7 +206,11 @@ func TestVerificationManager_VerifyBlock_Ok(t *testing.T) {
 		ThresholdNumerator:   1,
 		ThresholdDenominator: 1,
 	})
-	cfg, err := babeService.rt.BabeConfiguration()
+
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	cfg, err := rt.BabeConfiguration()
 	require.NoError(t, err)
 
 	cfg.GenesisAuthorities = types.AuthoritiesToRaw(babeService.epochData.authorities)
@@ -217,7 +230,11 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 		ThresholdNumerator:   1,
 		ThresholdDenominator: 1,
 	})
-	cfg, err := babeService.rt.BabeConfiguration()
+
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	cfg, err := rt.BabeConfiguration()
 	require.NoError(t, err)
 
 	cfg.GenesisAuthorities = types.AuthoritiesToRaw(babeService.epochData.authorities)
@@ -254,7 +271,11 @@ func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T)
 		ThresholdNumerator:   1,
 		ThresholdDenominator: 1,
 	})
-	cfg, err := babeService.rt.BabeConfiguration()
+
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	cfg, err := rt.BabeConfiguration()
 	require.NoError(t, err)
 
 	cfg.GenesisAuthorities = types.AuthoritiesToRaw(babeService.epochData.authorities)
@@ -274,7 +295,11 @@ func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
 		ThresholdNumerator:   1,
 		ThresholdDenominator: 1,
 	})
-	cfg, err := babeService.rt.BabeConfiguration()
+
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	cfg, err := rt.BabeConfiguration()
 	require.NoError(t, err)
 
 	cfg.C1 = 1
@@ -302,6 +327,15 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 	// create proof that we can authorize this block
 	babeService.epochData.threshold = maxThreshold
 	babeService.epochData.authorityIndex = 0
+
+	builder, _ := NewBlockBuilder(
+		babeService.keypair,
+		babeService.transactionState,
+		babeService.blockState,
+		babeService.slotToProof,
+		babeService.epochData.authorityIndex,
+	)
+
 	var slotNumber uint64 = 1
 
 	addAuthorshipProof(t, babeService, slotNumber, testEpochIndex)
@@ -315,7 +349,7 @@ func TestVerifyPimarySlotWinner(t *testing.T) {
 	}
 
 	// create babe header
-	babeHeader, err := babeService.buildBlockBABEPrimaryPreDigest(slot)
+	babeHeader, err := builder.buildBlockBABEPrimaryPreDigest(slot)
 	require.NoError(t, err)
 
 	Authorities := make([]*types.Authority, 1)

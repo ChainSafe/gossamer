@@ -53,7 +53,6 @@ import (
 // node is the interface for trie methods
 type node interface {
 	encodeAndHash() ([]byte, []byte, error)
-	encode() ([]byte, error)
 	decode(r io.Reader, h byte) error
 	isDirty() bool
 	setDirty(dirty bool)
@@ -62,6 +61,8 @@ type node interface {
 	setEncodingAndHash([]byte, []byte)
 	getHash() []byte
 	getGeneration() uint64
+	setGeneration(uint64)
+	copy() node
 }
 
 type (
@@ -86,10 +87,20 @@ type (
 	}
 )
 
-func (b *branch) copy() *branch {
+func (b *branch) setGeneration(generation uint64) {
+	b.generation = generation
+}
+
+func (l *leaf) setGeneration(generation uint64) {
+	l.generation = generation
+}
+
+func (b *branch) copy() node {
+	b.Lock()
+	defer b.Unlock()
 	cpy := &branch{
 		key:        make([]byte, len(b.key)),
-		children:   b.children,
+		children:   [16]node{},
 		value:      nil,
 		dirty:      b.dirty,
 		hash:       make([]byte, len(b.hash)),
@@ -97,6 +108,7 @@ func (b *branch) copy() *branch {
 		generation: b.generation,
 	}
 	copy(cpy.key, b.key)
+	copy(cpy.children[:], b.children[:])
 
 	// nil and []byte{} are encoded differently, watch out!
 	if b.value != nil {
@@ -109,7 +121,9 @@ func (b *branch) copy() *branch {
 	return cpy
 }
 
-func (l *leaf) copy() *leaf {
+func (l *leaf) copy() node {
+	l.Lock()
+	defer l.Unlock()
 	cpy := &leaf{
 		key:        make([]byte, len(l.key)),
 		value:      make([]byte, len(l.value)),
@@ -210,28 +224,13 @@ func (b *branch) setKey(key []byte) {
 	b.key = key
 }
 
-// Encode is the high-level function wrapping the encoding for different node types
-// encoding has the following format:
-// NodeHeader | Extra partial key length | Partial Key | Value
-func encode(n node) ([]byte, error) {
-	switch n := n.(type) {
-	case *branch:
-		return n.encode()
-	case *leaf:
-		return n.encode()
-	case nil:
-		return []byte{0}, nil
-	}
-
-	return nil, nil
-}
-
 func (b *branch) encodeAndHash() ([]byte, []byte, error) {
 	if !b.dirty && b.encoding != nil && b.hash != nil {
 		return b.encoding, b.hash, nil
 	}
 
-	enc, err := b.encode()
+	hasher := NewHasher(false)
+	enc, err := hasher.encodeBranch(b)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -252,59 +251,13 @@ func (b *branch) encodeAndHash() ([]byte, []byte, error) {
 	return enc, hash[:], nil
 }
 
-// Encode encodes a branch with the encoding specified at the top of this package
-func (b *branch) encode() ([]byte, error) {
-	if !b.dirty && b.encoding != nil {
-		return b.encoding, nil
-	}
-
-	encoding, err := b.header()
-	if err != nil {
-		return nil, err
-	}
-
-	encoding = append(encoding, nibblesToKeyLE(b.key)...)
-	encoding = append(encoding, common.Uint16ToBytes(b.childrenBitmap())...)
-
-	if b.value != nil {
-		buffer := bytes.Buffer{}
-		se := scale.Encoder{Writer: &buffer}
-		_, err = se.Encode(b.value)
-		if err != nil {
-			return encoding, err
-		}
-		encoding = append(encoding, buffer.Bytes()...)
-	}
-
-	for _, child := range b.children {
-		if child != nil {
-			hasher, err := NewHasher()
-			if err != nil {
-				return nil, err
-			}
-
-			encChild, err := hasher.Hash(child)
-			if err != nil {
-				return encoding, err
-			}
-
-			scEncChild, err := scale.Encode(encChild)
-			if err != nil {
-				return encoding, err
-			}
-			encoding = append(encoding, scEncChild...)
-		}
-	}
-
-	return encoding, nil
-}
-
 func (l *leaf) encodeAndHash() ([]byte, []byte, error) {
 	if !l.isDirty() && l.encoding != nil && l.hash != nil {
 		return l.encoding, l.hash, nil
 	}
+	hasher := NewHasher(false)
+	enc, err := hasher.encodeLeaf(l)
 
-	enc, err := l.encode()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -323,30 +276,6 @@ func (l *leaf) encodeAndHash() ([]byte, []byte, error) {
 	l.encoding = enc
 	l.hash = hash[:]
 	return enc, hash[:], nil
-}
-
-// Encode encodes a leaf with the encoding specified at the top of this package
-func (l *leaf) encode() ([]byte, error) {
-	if !l.dirty && l.encoding != nil {
-		return l.encoding, nil
-	}
-
-	encoding, err := l.header()
-	if err != nil {
-		return nil, err
-	}
-
-	encoding = append(encoding, nibblesToKeyLE(l.key)...)
-
-	buffer := bytes.Buffer{}
-	se := scale.Encoder{Writer: &buffer}
-	_, err = se.Encode(l.value)
-	if err != nil {
-		return encoding, err
-	}
-	encoding = append(encoding, buffer.Bytes()...)
-	l.encoding = encoding
-	return encoding, nil
 }
 
 func decodeBytes(in []byte) (node, error) {
@@ -537,7 +466,7 @@ func encodeExtraPartialKeyLength(pkLen int) ([]byte, error) {
 }
 
 func decodeKey(r io.Reader, keyLen byte) ([]byte, error) {
-	var totalKeyLen int = int(keyLen)
+	var totalKeyLen = int(keyLen)
 
 	if keyLen == 0x3f {
 		// partial key longer than 63, read next bytes for rest of pk len

@@ -23,6 +23,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/genesis"
+	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	log "github.com/ChainSafe/log15"
 	"github.com/perlin-network/life/exec"
@@ -51,6 +52,11 @@ type Instance struct {
 	version runtime.Version
 }
 
+// GetCodeHash returns code hash of the runtime
+func (in *Instance) GetCodeHash() common.Hash {
+	return common.Hash{}
+}
+
 // NewRuntimeFromGenesis creates a runtime instance from the genesis data
 func NewRuntimeFromGenesis(g *genesis.Genesis, cfg *Config) (runtime.Instance, error) { // TODO: simplify, get :code from storage
 	codeStr := g.GenesisFields().Raw["top"][common.BytesToHex(common.CodeKey)]
@@ -77,7 +83,7 @@ func NewInstance(code []byte, cfg *Config) (runtime.Instance, error) {
 	}
 
 	vmCfg := exec.VMConfig{
-		DefaultMemoryPages: 20,
+		DefaultMemoryPages: 23,
 	}
 
 	instance, err := exec.NewVirtualMachine(code, vmCfg, cfg.Resolver, nil)
@@ -141,6 +147,11 @@ func (in *Instance) UpdateRuntimeCode(_ []byte) error {
 	return errors.New("unimplemented")
 }
 
+// CheckRuntimeVersion ...
+func (in *Instance) CheckRuntimeVersion(code []byte) (runtime.Version, error) {
+	return nil, errors.New("unimplemented")
+}
+
 // SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.
 func (in *Instance) SetContextStorage(s runtime.Storage) {
 	ctx.Storage = s
@@ -185,6 +196,16 @@ func (in *Instance) NodeStorage() runtime.NodeStorage {
 // NetworkService to get referernce to runtime network service
 func (in *Instance) NetworkService() runtime.BasicNetwork {
 	return ctx.Network
+}
+
+// Validator returns the context's Validator
+func (in *Instance) Validator() bool {
+	return ctx.Validator
+}
+
+// Keystore to get reference to runtime keystore
+func (in *Instance) Keystore() *keystore.GlobalKeystore {
+	return ctx.Keystore
 }
 
 // TODO: move below to lib/runtime

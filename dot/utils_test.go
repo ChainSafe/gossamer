@@ -170,7 +170,7 @@ func TestTrieSnapshot(t *testing.T) {
 	require.NoError(t, err)
 
 	// Take Snapshot of the trie.
-	ssTrie := tri.Snapshot()
+	newTrie := tri.Snapshot()
 
 	// Get the Trie root hash for all the 3 tries.
 	tHash, err := tri.Hash()
@@ -179,16 +179,16 @@ func TestTrieSnapshot(t *testing.T) {
 	dcTrieHash, err := dcTrie.Hash()
 	require.NoError(t, err)
 
-	ssTrieHash, err := ssTrie.Hash()
+	newTrieHash, err := newTrie.Hash()
 	require.NoError(t, err)
 
-	// Root hash for all the 3 tries should be equal.
+	// Root hash for the 3 tries should be equal.
 	require.Equal(t, tHash, dcTrieHash)
-	require.Equal(t, dcTrieHash, ssTrieHash)
+	require.Equal(t, tHash, newTrieHash)
 
 	// Modify the current trie.
 	value[0] = 'w'
-	tri.Put(key, value)
+	newTrie.Put(key, value)
 
 	// Get the updated root hash of all tries.
 	tHash, err = tri.Hash()
@@ -197,11 +197,11 @@ func TestTrieSnapshot(t *testing.T) {
 	dcTrieHash, err = dcTrie.Hash()
 	require.NoError(t, err)
 
-	ssTrieHash, err = ssTrie.Hash()
+	newTrieHash, err = newTrie.Hash()
 	require.NoError(t, err)
 
 	// Only the current trie should have a different root hash since it is updated.
-	require.NotEqual(t, tHash, dcTrieHash)
-	require.NotEqual(t, tHash, ssTrieHash)
-	require.Equal(t, dcTrieHash, ssTrieHash)
+	require.NotEqual(t, newTrieHash, dcTrieHash)
+	require.NotEqual(t, newTrieHash, tHash)
+	require.Equal(t, dcTrieHash, tHash)
 }

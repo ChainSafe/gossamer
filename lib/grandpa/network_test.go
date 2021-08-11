@@ -49,15 +49,19 @@ func TestGrandpaHandshake_Encode(t *testing.T) {
 func TestHandleNetworkMessage(t *testing.T) {
 	gs, st := newTestService(t)
 
-	gs.justification[77] = []*SignedPrecommit{
+	just := []*SignedVote{
 		{
 			Vote:        testVote,
 			Signature:   testSignature,
 			AuthorityID: gs.publicKeyBytes(),
 		},
 	}
+	err := st.Grandpa.SetPrecommits(77, gs.state.setID, just)
+	require.NoError(t, err)
 
-	fm := gs.newCommitMessage(gs.head, 77)
+	fm, err := gs.newCommitMessage(gs.head, 77)
+	require.NoError(t, err)
+
 	cm, err := fm.ToConsensusMessage()
 	require.NoError(t, err)
 	gs.state.voters = gs.state.voters[:1]
@@ -68,12 +72,6 @@ func TestHandleNetworkMessage(t *testing.T) {
 	propagate, err := gs.handleNetworkMessage(peer.ID(""), cm)
 	require.NoError(t, err)
 	require.True(t, propagate)
-
-	select {
-	case <-gs.network.(*testNetwork).out:
-	case <-time.After(testTimeout):
-		t.Fatal("expected to send message")
-	}
 
 	neighbourMsg := &NeighbourMessage{}
 	cm, err = neighbourMsg.ToConsensusMessage()
@@ -94,8 +92,11 @@ func TestSendNeighbourMessage(t *testing.T) {
 
 	block := &types.Block{
 		Header: &types.Header{
-			ParentHash: testGenesisHeader.Hash(),
+			ParentHash: st.Block.GenesisHash(),
 			Number:     big.NewInt(1),
+			Digest: types.Digest{
+				types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+			},
 		},
 		Body: &types.Body{},
 	}
@@ -106,7 +107,7 @@ func TestSendNeighbourMessage(t *testing.T) {
 	hash := block.Header.Hash()
 	round := uint64(7)
 	setID := uint64(33)
-	err = st.Block.SetFinalizedHash(hash, round, setID)
+	err = st.Block.SetFinalisedHash(hash, round, setID)
 	require.NoError(t, err)
 
 	expected := &NeighbourMessage{

@@ -17,6 +17,7 @@
 package main
 
 import (
+	"github.com/ChainSafe/gossamer/chain/dev"
 	log "github.com/ChainSafe/log15"
 	"github.com/urfave/cli"
 )
@@ -264,6 +265,37 @@ var (
 	}
 )
 
+// State Prune flags
+var (
+	// BloomFilterSizeFlag size for bloom filter, valid for the use with prune-state subcommand
+	BloomFilterSizeFlag = cli.IntFlag{
+		Name:  "bloom-size",
+		Usage: "Megabytes of memory allocated to bloom-filter for pruning",
+		Value: 2048,
+	}
+
+	// DBPathFlag data directory for pruned DB, valid for the use with prune-state subcommand
+	DBPathFlag = cli.StringFlag{
+		Name:  "pruned-db-path",
+		Usage: "Data directory for the output DB",
+	}
+
+	// RetainBlockNumberFlag retain number of block from latest block while pruning, valid for the use with prune-state subcommand
+	RetainBlockNumberFlag = cli.Int64Flag{
+		Name:  "retain-blocks",
+		Usage: "Retain number of block from latest block while pruning",
+		Value: dev.DefaultRetainBlocks,
+	}
+
+	// PruningFlag triggers the online pruning of historical state tries. It's either full or archive. To enable pruning the value
+	// should be set to `full`.
+	PruningFlag = cli.StringFlag{
+		Name:  "pruning",
+		Usage: `State trie online pruning ("full", "archive")`,
+		Value: dev.DefaultPruningMode,
+	}
+)
+
 // flag sets that are shared by multiple commands
 var (
 	// GlobalFlags are flags that are valid for use with the root command and all subcommands
@@ -276,6 +308,8 @@ var (
 		CPUProfFlag,
 		MemProfFlag,
 		RewindFlag,
+		DBPathFlag,
+		BloomFilterSizeFlag,
 	}
 
 	// StartupFlags are flags that are valid for use with the root command and the export subcommand
@@ -320,6 +354,8 @@ var (
 	InitFlags = append([]cli.Flag{
 		ForceFlag,
 		GenesisFlag,
+		PruningFlag,
+		RetainBlockNumberFlag,
 	}, GlobalFlags...)
 
 	BuildSpecFlags = append([]cli.Flag{
@@ -353,6 +389,14 @@ var (
 		StateFlag,
 		HeaderFlag,
 		FirstSlotFlag,
+	}
+
+	PruningFlags = []cli.Flag{
+		ChainFlag,
+		ConfigFlag,
+		DBPathFlag,
+		BloomFilterSizeFlag,
+		RetainBlockNumberFlag,
 	}
 )
 

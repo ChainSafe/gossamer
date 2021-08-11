@@ -18,10 +18,13 @@ package dot
 
 import (
 	"encoding/json"
+	"time"
 
+	"github.com/ChainSafe/gossamer/chain/dev"
 	"github.com/ChainSafe/gossamer/chain/gssmr"
 	"github.com/ChainSafe/gossamer/chain/kusama"
 	"github.com/ChainSafe/gossamer/chain/polkadot"
+	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
 	log "github.com/ChainSafe/log15"
 )
@@ -51,6 +54,8 @@ type GlobalConfig struct {
 	PublishMetrics bool
 	MetricsPort    uint32
 	NoTelemetry    bool
+	RetainBlocks   int64
+	Pruning        pruner.Mode
 }
 
 // LogConfig represents the log levels for individual packages
@@ -78,26 +83,25 @@ type AccountConfig struct {
 
 // NetworkConfig is to marshal/unmarshal toml network config vars
 type NetworkConfig struct {
-	Port            uint32
-	Bootnodes       []string
-	ProtocolID      string
-	NoBootstrap     bool
-	NoMDNS          bool
-	MinPeers        int
-	MaxPeers        int
-	PersistentPeers []string
+	Port              uint32
+	Bootnodes         []string
+	ProtocolID        string
+	NoBootstrap       bool
+	NoMDNS            bool
+	MinPeers          int
+	MaxPeers          int
+	PersistentPeers   []string
+	DiscoveryInterval time.Duration
 }
 
 // CoreConfig is to marshal/unmarshal toml core config vars
 type CoreConfig struct {
-	Roles                    byte
-	BabeAuthority            bool
-	GrandpaAuthority         bool
-	BabeThresholdNumerator   uint64
-	BabeThresholdDenominator uint64
-	SlotDuration             uint64
-	EpochLength              uint64
-	WasmInterpreter          string
+	Roles            byte
+	BabeAuthority    bool
+	GrandpaAuthority bool
+	SlotDuration     uint64
+	EpochLength      uint64
+	WasmInterpreter  string
 }
 
 // RPCConfig is to marshal/unmarshal toml RPC config vars
@@ -132,11 +136,13 @@ func networkServiceEnabled(cfg *Config) bool {
 func GssmrConfig() *Config {
 	return &Config{
 		Global: GlobalConfig{
-			Name:        gssmr.DefaultName,
-			ID:          gssmr.DefaultID,
-			BasePath:    gssmr.DefaultBasePath,
-			LogLvl:      gssmr.DefaultLvl,
-			MetricsPort: gssmr.DefaultMetricsPort,
+			Name:         gssmr.DefaultName,
+			ID:           gssmr.DefaultID,
+			BasePath:     gssmr.DefaultBasePath,
+			LogLvl:       gssmr.DefaultLvl,
+			MetricsPort:  gssmr.DefaultMetricsPort,
+			RetainBlocks: gssmr.DefaultRetainBlocks,
+			Pruning:      pruner.Mode(gssmr.DefaultPruningMode),
 		},
 		Log: LogConfig{
 			CoreLvl:           gssmr.DefaultLvl,
@@ -162,10 +168,11 @@ func GssmrConfig() *Config {
 			WasmInterpreter:  gssmr.DefaultWasmInterpreter,
 		},
 		Network: NetworkConfig{
-			Port:        gssmr.DefaultNetworkPort,
-			Bootnodes:   gssmr.DefaultNetworkBootnodes,
-			NoBootstrap: gssmr.DefaultNoBootstrap,
-			NoMDNS:      gssmr.DefaultNoMDNS,
+			Port:              gssmr.DefaultNetworkPort,
+			Bootnodes:         gssmr.DefaultNetworkBootnodes,
+			NoBootstrap:       gssmr.DefaultNoBootstrap,
+			NoMDNS:            gssmr.DefaultNoMDNS,
+			DiscoveryInterval: gssmr.DefaultDiscoveryInterval,
 		},
 		RPC: RPCConfig{
 			Port:    gssmr.DefaultRPCHTTPPort,
@@ -180,11 +187,13 @@ func GssmrConfig() *Config {
 func KusamaConfig() *Config {
 	return &Config{
 		Global: GlobalConfig{
-			Name:        kusama.DefaultName,
-			ID:          kusama.DefaultID,
-			BasePath:    kusama.DefaultBasePath,
-			LogLvl:      kusama.DefaultLvl,
-			MetricsPort: kusama.DefaultMetricsPort,
+			Name:         kusama.DefaultName,
+			ID:           kusama.DefaultID,
+			BasePath:     kusama.DefaultBasePath,
+			LogLvl:       kusama.DefaultLvl,
+			MetricsPort:  kusama.DefaultMetricsPort,
+			RetainBlocks: gssmr.DefaultRetainBlocks,
+			Pruning:      pruner.Mode(gssmr.DefaultPruningMode),
 		},
 		Log: LogConfig{
 			CoreLvl:           kusama.DefaultLvl,
@@ -226,10 +235,13 @@ func KusamaConfig() *Config {
 func PolkadotConfig() *Config {
 	return &Config{
 		Global: GlobalConfig{
-			Name:     polkadot.DefaultName,
-			ID:       polkadot.DefaultID,
-			BasePath: polkadot.DefaultBasePath,
-			LogLvl:   polkadot.DefaultLvl,
+			Name:         polkadot.DefaultName,
+			ID:           polkadot.DefaultID,
+			BasePath:     polkadot.DefaultBasePath,
+			LogLvl:       polkadot.DefaultLvl,
+			RetainBlocks: gssmr.DefaultRetainBlocks,
+			Pruning:      pruner.Mode(gssmr.DefaultPruningMode),
+			MetricsPort:  gssmr.DefaultMetricsPort,
 		},
 		Log: LogConfig{
 			CoreLvl:           polkadot.DefaultLvl,
@@ -263,6 +275,58 @@ func PolkadotConfig() *Config {
 			Host:    polkadot.DefaultRPCHTTPHost,
 			Modules: polkadot.DefaultRPCModules,
 			WSPort:  polkadot.DefaultRPCWSPort,
+		},
+	}
+}
+
+// DevConfig returns the configuration for a development chain
+func DevConfig() *Config {
+	return &Config{
+		Global: GlobalConfig{
+			Name:         dev.DefaultName,
+			ID:           dev.DefaultID,
+			BasePath:     dev.DefaultBasePath,
+			LogLvl:       dev.DefaultLvl,
+			MetricsPort:  dev.DefaultMetricsPort,
+			RetainBlocks: dev.DefaultRetainBlocks,
+			Pruning:      pruner.Mode(dev.DefaultPruningMode),
+		},
+		Log: LogConfig{
+			CoreLvl:           dev.DefaultLvl,
+			SyncLvl:           dev.DefaultLvl,
+			NetworkLvl:        dev.DefaultLvl,
+			RPCLvl:            dev.DefaultLvl,
+			StateLvl:          dev.DefaultLvl,
+			RuntimeLvl:        dev.DefaultLvl,
+			BlockProducerLvl:  dev.DefaultLvl,
+			FinalityGadgetLvl: dev.DefaultLvl,
+		},
+		Init: InitConfig{
+			Genesis: dev.DefaultGenesis,
+		},
+		Account: AccountConfig{
+			Key:    dev.DefaultKey,
+			Unlock: dev.DefaultUnlock,
+		},
+		Core: CoreConfig{
+			Roles:            dev.DefaultRoles,
+			BabeAuthority:    dev.DefaultBabeAuthority,
+			GrandpaAuthority: dev.DefaultGrandpaAuthority,
+			WasmInterpreter:  dev.DefaultWasmInterpreter,
+		},
+		Network: NetworkConfig{
+			Port:        dev.DefaultNetworkPort,
+			Bootnodes:   dev.DefaultNetworkBootnodes,
+			NoBootstrap: dev.DefaultNoBootstrap,
+			NoMDNS:      dev.DefaultNoMDNS,
+		},
+		RPC: RPCConfig{
+			Port:    dev.DefaultRPCHTTPPort,
+			Host:    dev.DefaultRPCHTTPHost,
+			Modules: dev.DefaultRPCModules,
+			WSPort:  dev.DefaultRPCWSPort,
+			Enabled: dev.DefaultRPCEnabled,
+			WS:      dev.DefaultWSEnabled,
 		},
 	}
 }

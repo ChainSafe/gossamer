@@ -1,87 +1,60 @@
 package subscription
 
 import (
-	"log"
+	"fmt"
 	"math/big"
-	"net/http"
-	"os"
 	"testing"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/state"
+	modulesmocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
+
+	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/crypto"
-	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/lib/grandpa"
 	"github.com/gorilla/websocket"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
-}
-var wsconn = &WSConn{
-	Subscriptions:    make(map[uint]Listener),
-	BlockSubChannels: make(map[uint]byte),
-}
-
-func handler(w http.ResponseWriter, r *http.Request) {
-	c, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Print("upgrade:", err)
-		return
-	}
-	defer c.Close()
-
-	wsconn.Wsconn = c
-	wsconn.HandleComm()
-}
-
-func TestMain(m *testing.M) {
-	http.HandleFunc("/", handler)
-
-	go func() {
-		err := http.ListenAndServe("localhost:8546", nil)
-		if err != nil {
-			log.Fatal("error", err)
-		}
-	}()
-	time.Sleep(time.Millisecond * 100)
-	// Start all tests
-	os.Exit(m.Run())
-}
-
 func TestWSConn_HandleComm(t *testing.T) {
-	c, _, err := websocket.DefaultDialer.Dial("ws://localhost:8546", nil) //nolint
-	if err != nil {
-		log.Fatal("dial:", err)
-	}
-	defer c.Close()
+	wsconn, c, cancel := setupWSConn(t)
+	wsconn.Subscriptions = make(map[uint32]Listener)
+	defer cancel()
+
+	go wsconn.HandleComm()
+	time.Sleep(time.Second * 2)
+
+	fmt.Println("ws defined")
 
 	// test storageChangeListener
 	res, err := wsconn.initStorageChangeListener(1, nil)
+	require.Nil(t, res)
+	require.Len(t, wsconn.Subscriptions, 0)
 	require.EqualError(t, err, "error StorageAPI not set")
-	require.Equal(t, uint(0), res)
 	_, msg, err := c.ReadMessage()
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error StorageAPI not set"},"id":1}`+"\n"), msg)
 
-	wsconn.StorageAPI = new(MockStorageAPI)
+	wsconn.StorageAPI = modules.NewMockStorageAPI()
 
 	res, err = wsconn.initStorageChangeListener(1, nil)
+	require.Nil(t, res)
+	require.Len(t, wsconn.Subscriptions, 0)
 	require.EqualError(t, err, "unknown parameter type")
-	require.Equal(t, uint(0), res)
 
 	res, err = wsconn.initStorageChangeListener(2, []interface{}{})
+	require.NotNil(t, res)
 	require.NoError(t, err)
-	require.Equal(t, uint(1), res)
+	require.Len(t, wsconn.Subscriptions, 1)
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":1,"id":2}`+"\n"), msg)
 
 	res, err = wsconn.initStorageChangeListener(3, []interface{}{"0x26aa"})
+	require.NotNil(t, res)
 	require.NoError(t, err)
-	require.Equal(t, uint(2), res)
+	require.Len(t, wsconn.Subscriptions, 2)
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":2,"id":3}`+"\n"), msg)
@@ -89,8 +62,9 @@ func TestWSConn_HandleComm(t *testing.T) {
 	var testFilters = []interface{}{}
 	var testFilter1 = []interface{}{"0x26aa", "0x26a1"}
 	res, err = wsconn.initStorageChangeListener(4, append(testFilters, testFilter1))
+	require.NotNil(t, res)
 	require.NoError(t, err)
-	require.Equal(t, uint(3), res)
+	require.Len(t, wsconn.Subscriptions, 3)
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":3,"id":4}`+"\n"), msg)
@@ -98,11 +72,14 @@ func TestWSConn_HandleComm(t *testing.T) {
 	var testFilterWrongType = []interface{}{"0x26aa", 1}
 	res, err = wsconn.initStorageChangeListener(5, append(testFilters, testFilterWrongType))
 	require.EqualError(t, err, "unknown parameter type")
-	require.Equal(t, uint(0), res)
+	require.Nil(t, res)
+	// keep subscriptions len == 3, no additions was made
+	require.Len(t, wsconn.Subscriptions, 3)
 
 	res, err = wsconn.initStorageChangeListener(6, []interface{}{1})
 	require.EqualError(t, err, "unknown parameter type")
-	require.Equal(t, uint(0), res)
+	require.Nil(t, res)
+	require.Len(t, wsconn.Subscriptions, 3)
 
 	c.WriteMessage(websocket.TextMessage, []byte(`{
     "jsonrpc": "2.0",
@@ -113,19 +90,75 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":4,"id":7}`+"\n"), msg)
 
+	// test state_unsubscribeStorage
+	c.WriteMessage(websocket.TextMessage, []byte(`{
+    "jsonrpc": "2.0",
+    "method": "state_unsubscribeStorage",
+    "params": "foo",
+    "id": 7}`))
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid request"},"id":7}`+"\n"), msg)
+
+	c.WriteMessage(websocket.TextMessage, []byte(`{
+    "jsonrpc": "2.0",
+    "method": "state_unsubscribeStorage",
+    "params": [],
+    "id": 7}`))
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":-32600,"message":"Invalid request"},"id":7}`+"\n"), msg)
+
+	c.WriteMessage(websocket.TextMessage, []byte(`{
+    "jsonrpc": "2.0",
+    "method": "state_unsubscribeStorage",
+    "params": ["6"],
+    "id": 7}`))
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":false,"id":7}`+"\n"), msg)
+
+	c.WriteMessage(websocket.TextMessage, []byte(`{
+    "jsonrpc": "2.0",
+    "method": "state_unsubscribeStorage",
+    "params": ["4"],
+    "id": 7}`))
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":true,"id":7}`+"\n"), msg)
+
+	c.WriteMessage(websocket.TextMessage, []byte(`{
+    "jsonrpc": "2.0",
+    "method": "state_unsubscribeStorage",
+    "params": [6],
+    "id": 7}`))
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":false,"id":7}`+"\n"), msg)
+
+	c.WriteMessage(websocket.TextMessage, []byte(`{
+    "jsonrpc": "2.0",
+    "method": "state_unsubscribeStorage",
+    "params": [4],
+    "id": 7}`))
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":true,"id":7}`+"\n"), msg)
+
 	// test initBlockListener
-	res, err = wsconn.initBlockListener(1)
+	res, err = wsconn.initBlockListener(1, nil)
 	require.EqualError(t, err, "error BlockAPI not set")
-	require.Equal(t, uint(0), res)
+	require.Nil(t, res)
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}`+"\n"), msg)
 
-	wsconn.BlockAPI = new(MockBlockAPI)
+	wsconn.BlockAPI = modules.NewMockBlockAPI()
 
-	res, err = wsconn.initBlockListener(1)
+	res, err = wsconn.initBlockListener(1, nil)
 	require.NoError(t, err)
-	require.Equal(t, uint(5), res)
+	require.NotNil(t, res)
+	require.Len(t, wsconn.Subscriptions, 5)
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":5,"id":1}`+"\n"), msg)
@@ -143,123 +176,99 @@ func TestWSConn_HandleComm(t *testing.T) {
 	// test initBlockFinalizedListener
 	wsconn.BlockAPI = nil
 
-	res, err = wsconn.initBlockFinalizedListener(1)
+	res, err = wsconn.initBlockFinalizedListener(1, nil)
 	require.EqualError(t, err, "error BlockAPI not set")
-	require.Equal(t, uint(0), res)
+	require.Nil(t, res)
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}`+"\n"), msg)
 
-	wsconn.BlockAPI = new(MockBlockAPI)
+	wsconn.BlockAPI = modules.NewMockBlockAPI()
 
-	res, err = wsconn.initBlockFinalizedListener(1)
+	res, err = wsconn.initBlockFinalizedListener(1, nil)
 	require.NoError(t, err)
-	require.Equal(t, uint(7), res)
+	require.NotNil(t, res)
+	require.Len(t, wsconn.Subscriptions, 7)
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":7,"id":1}`+"\n"), msg)
 
 	// test initExtrinsicWatch
-	wsconn.CoreAPI = new(MockCoreAPI)
+	wsconn.CoreAPI = modules.NewMockCoreAPI()
 	wsconn.BlockAPI = nil
 	res, err = wsconn.initExtrinsicWatch(0, []interface{}{"NotHex"})
 	require.EqualError(t, err, "could not byteify non 0x prefixed string")
-	require.Equal(t, uint(0), res)
+	require.Nil(t, res)
 
 	res, err = wsconn.initExtrinsicWatch(0, []interface{}{"0x26aa"})
 	require.EqualError(t, err, "error BlockAPI not set")
-	require.Equal(t, uint(0), res)
+	require.Nil(t, res)
 
-	wsconn.BlockAPI = new(MockBlockAPI)
+	wsconn.BlockAPI = modules.NewMockBlockAPI()
 	res, err = wsconn.initExtrinsicWatch(0, []interface{}{"0x26aa"})
 	require.NoError(t, err)
-	require.Equal(t, uint(8), res)
+	require.NotNil(t, res)
+	require.Len(t, wsconn.Subscriptions, 8)
 
-}
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, `{"jsonrpc":"2.0","result":8,"id":0}`+"\n", string(msg))
 
-type MockStorageAPI struct{}
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, `{"jsonrpc":"2.0","method":"author_extrinsicUpdate","params":{"result":"ready","subscription":8}}`+"\n", string(msg))
 
-func (m *MockStorageAPI) GetStorage(_ *common.Hash, key []byte) ([]byte, error) {
-	return nil, nil
-}
-func (m *MockStorageAPI) Entries(_ *common.Hash) (map[string][]byte, error) {
-	return nil, nil
-}
-func (m *MockStorageAPI) GetStorageByBlockHash(_ common.Hash, key []byte) ([]byte, error) {
-	return nil, nil
-}
-func (m *MockStorageAPI) RegisterStorageObserver(observer state.Observer) {
-}
+	var fCh chan<- *types.FinalisationInfo
+	mockedJust := grandpa.Justification{
+		Round: 1,
+		Commit: &grandpa.Commit{
+			Hash:       common.Hash{},
+			Number:     1,
+			Precommits: nil,
+		},
+	}
 
-func (m *MockStorageAPI) UnregisterStorageObserver(observer state.Observer) {
-}
-func (m *MockStorageAPI) GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error) {
-	return nil, nil
-}
-func (m *MockStorageAPI) GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error) {
-	return nil, nil
-}
+	mockedJustBytes, err := mockedJust.Encode()
+	require.NoError(t, err)
 
-type MockBlockAPI struct {
-}
+	BlockAPI := new(modulesmocks.BlockAPI)
+	BlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
+		Run(func(args mock.Arguments) {
+			ch := args.Get(0).(chan<- *types.FinalisationInfo)
+			fCh = ch
+		}).
+		Return(uint8(4), nil)
 
-func (m *MockBlockAPI) GetHeader(hash common.Hash) (*types.Header, error) {
-	return nil, nil
-}
-func (m *MockBlockAPI) BestBlockHash() common.Hash {
-	return common.Hash{}
-}
-func (m *MockBlockAPI) GetBlockByHash(hash common.Hash) (*types.Block, error) {
-	return nil, nil
-}
-func (m *MockBlockAPI) GetBlockHash(blockNumber *big.Int) (*common.Hash, error) {
-	return nil, nil
-}
-func (m *MockBlockAPI) GetFinalizedHash(uint64, uint64) (common.Hash, error) {
-	return common.Hash{}, nil
-}
-func (m *MockBlockAPI) RegisterImportedChannel(ch chan<- *types.Block) (byte, error) {
-	return 0, nil
-}
-func (m *MockBlockAPI) UnregisterImportedChannel(id byte) {
-}
-func (m *MockBlockAPI) RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error) {
-	return 0, nil
-}
-func (m *MockBlockAPI) UnregisterFinalizedChannel(id byte) {}
+	BlockAPI.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(mockedJustBytes, nil)
+	BlockAPI.On("UnregisterFinalisedChannel", mock.AnythingOfType("uint8"))
 
-func (m *MockBlockAPI) GetJustification(hash common.Hash) ([]byte, error) {
-	return make([]byte, 10), nil
-}
+	wsconn.BlockAPI = BlockAPI
+	listener, err := wsconn.initGrandpaJustificationListener(0, nil)
+	require.NoError(t, err)
+	require.NotNil(t, listener)
 
-func (m *MockBlockAPI) HasJustification(hash common.Hash) (bool, error) {
-	return true, nil
-}
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, `{"jsonrpc":"2.0","result":9,"id":0}`+"\n", string(msg))
 
-func (m *MockBlockAPI) SubChain(start, end common.Hash) ([]common.Hash, error) {
-	return make([]common.Hash, 0), nil
-}
+	listener.Listen()
+	header := &types.Header{
+		ParentHash: common.Hash{},
+		Number:     big.NewInt(1),
+	}
 
-type MockCoreAPI struct{}
+	fCh <- &types.FinalisationInfo{
+		Header: header,
+	}
 
-func (m *MockCoreAPI) InsertKey(kp crypto.Keypair) {}
+	time.Sleep(time.Second * 2)
 
-func (m *MockCoreAPI) HasKey(pubKeyStr string, keyType string) (bool, error) {
-	return false, nil
-}
+	expected := `{"jsonrpc":"2.0","method":"grandpa_justifications","params":{"result":"%s","subscription":9}}` + "\n"
+	expected = fmt.Sprintf(expected, common.BytesToHex(mockedJustBytes))
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, []byte(expected), msg)
 
-func (m *MockCoreAPI) GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error) {
-	return nil, nil
-}
-
-func (m *MockCoreAPI) IsBlockProducer() bool {
-	return false
-}
-
-func (m *MockCoreAPI) HandleSubmittedExtrinsic(types.Extrinsic) error {
-	return nil
-}
-
-func (m *MockCoreAPI) GetMetadata(bhash *common.Hash) ([]byte, error) {
-	return nil, nil
+	err = listener.Stop()
+	require.NoError(t, err)
 }

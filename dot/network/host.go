@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net"
 	"path"
+	"sync"
 	"time"
 
 	"github.com/dgraph-io/ristretto"
@@ -32,12 +33,11 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/protocol"
-	kaddht "github.com/libp2p/go-libp2p-kad-dht"
-	"github.com/libp2p/go-libp2p-kad-dht/dual"
 	"github.com/libp2p/go-libp2p-peerstore/pstoreds"
 	secio "github.com/libp2p/go-libp2p-secio"
-	rhost "github.com/libp2p/go-libp2p/p2p/host/routed"
 	ma "github.com/multiformats/go-multiaddr"
+
+	"github.com/chyeh/pubip"
 )
 
 var privateCIDRs = []string{
@@ -49,11 +49,13 @@ var privateCIDRs = []string{
 	"169.254.0.0/16",
 }
 
+var connectTimeout = time.Second * 5
+
 // host wraps libp2p host with network host configuration and services
 type host struct {
 	ctx             context.Context
 	h               libp2phost.Host
-	dht             *dual.DHT
+	discovery       *discovery
 	bootnodes       []peer.AddrInfo
 	persistentPeers []peer.AddrInfo
 	protocolID      protocol.ID
@@ -61,6 +63,7 @@ type host struct {
 	ds              *badger.Datastore
 	messageCache    *messageCache
 	bwc             *metrics.BandwidthCounter
+	closeSync       sync.Once
 }
 
 // newHost creates a host wrapper with a new libp2p host instance
@@ -69,6 +72,18 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", cfg.Port))
 	if err != nil {
 		return nil, err
+	}
+
+	var externalAddr ma.Multiaddr
+	ip, err := pubip.Get()
+	if err != nil {
+		logger.Error("failed to get public IP", "error", err)
+	} else {
+		logger.Debug("got public IP", "IP", ip)
+		externalAddr, err = ma.NewMultiaddr(fmt.Sprintf("/ip4/%s/tcp/%d", ip, cfg.Port))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// create connection manager
@@ -98,13 +113,6 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		return nil, err
 	}
 
-	dhtOpts := []dual.Option{
-		dual.DHTOption(kaddht.Datastore(ds)),
-		dual.DHTOption(kaddht.BootstrapPeers(bns...)),
-		dual.DHTOption(kaddht.V1ProtocolOverride(pid + "/kad")),
-		dual.DHTOption(kaddht.Mode(kaddht.ModeAutoServer)),
-	}
-
 	privateIPs := ma.NewFilters()
 	for _, cidr := range privateCIDRs {
 		_, ipnet, err := net.ParseCIDR(cidr) //nolint
@@ -130,13 +138,17 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 		libp2p.ConnectionManager(cm),
 		libp2p.ChainOptions(libp2p.DefaultSecurity, libp2p.Security(secio.ID, secio.New)), // TODO: deprecate secio?
 		libp2p.AddrsFactory(func(as []ma.Multiaddr) []ma.Multiaddr {
-			ok := []ma.Multiaddr{}
+			addrs := []ma.Multiaddr{}
 			for _, addr := range as {
 				if !privateIPs.AddrBlocked(addr) {
-					ok = append(ok, addr)
+					addrs = append(addrs, addr)
 				}
 			}
-			return ok
+			if externalAddr == nil {
+				return addrs
+			}
+
+			return append(addrs, externalAddr)
 		}),
 	}
 
@@ -145,15 +157,6 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// create DHT service
-	dht, err := dual.New(ctx, h, dhtOpts...)
-	if err != nil {
-		return nil, err
-	}
-
-	// wrap host and DHT service with routed host
-	h = rhost.Wrap(h, dht)
 
 	cacheSize := 64 << 20 // 64 MB
 	config := ristretto.Config{
@@ -170,11 +173,12 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 	}
 
 	bwc := metrics.NewBandwidthCounter()
+	discovery := newDiscovery(ctx, h, bns, ds, pid, cfg.MinPeers, cfg.MaxPeers)
 
 	host := &host{
 		ctx:             ctx,
 		h:               h,
-		dht:             dht,
+		discovery:       discovery,
 		bootnodes:       bns,
 		protocolID:      pid,
 		cm:              cm,
@@ -191,7 +195,7 @@ func newHost(ctx context.Context, cfg *Config) (*host, error) {
 // close closes host services and the libp2p host (host services first)
 func (h *host) close() error {
 	// close DHT service
-	err := h.dht.Close()
+	err := h.discovery.stop()
 	if err != nil {
 		logger.Error("Failed to close DHT service", "error", err)
 		return err
@@ -204,17 +208,19 @@ func (h *host) close() error {
 		return err
 	}
 
-	err = h.h.Peerstore().Close()
-	if err != nil {
-		logger.Error("Failed to close libp2p peerstore", "error", err)
-		return err
-	}
+	h.closeSync.Do(func() {
+		err = h.h.Peerstore().Close()
+		if err != nil {
+			logger.Error("Failed to close libp2p peerstore", "error", err)
+			return
+		}
 
-	err = h.ds.Close()
-	if err != nil {
-		logger.Error("Failed to close libp2p host datastore", "error", err)
-		return err
-	}
+		err = h.ds.Close()
+		if err != nil {
+			logger.Error("Failed to close libp2p host datastore", "error", err)
+			return
+		}
+	})
 	return nil
 }
 
@@ -241,14 +247,10 @@ func (h *host) registerStreamHandlerWithOverwrite(pid protocol.ID, overwrite boo
 // connect connects the host to a specific peer address
 func (h *host) connect(p peer.AddrInfo) (err error) {
 	h.h.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
-	ctx, cancel := context.WithTimeout(h.ctx, time.Second*2)
+	ctx, cancel := context.WithTimeout(h.ctx, connectTimeout)
 	defer cancel()
 	err = h.h.Connect(ctx, p)
 	return err
-}
-
-func (h *host) addToPeerstore(p peer.AddrInfo) {
-	h.h.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
 }
 
 // bootstrap connects the host to the configured bootnodes
@@ -256,6 +258,7 @@ func (h *host) bootstrap() {
 	failed := 0
 	all := append(h.bootnodes, h.persistentPeers...)
 	for _, addrInfo := range all {
+		logger.Debug("bootstrapping to peer", "peer", addrInfo.ID)
 		err := h.connect(addrInfo)
 		if err != nil {
 			logger.Debug("failed to bootstrap to peer", "error", err)
@@ -365,22 +368,65 @@ func (h *host) peers() []peer.ID {
 	return h.h.Network().Peers()
 }
 
+// addReservedPeers adds the peers `addrs` to the protected peers list and connects to them
+func (h *host) addReservedPeers(addrs ...string) error {
+	for _, addr := range addrs {
+		maddr, err := ma.NewMultiaddr(addr)
+		if err != nil {
+			return err
+		}
+
+		addinfo, err := peer.AddrInfoFromP2pAddr(maddr)
+		if err != nil {
+			return err
+		}
+
+		h.h.ConnManager().Protect(addinfo.ID, "")
+		if err := h.connect(*addinfo); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// removeReservedPeers will remove the given peers from the protected peers list
+func (h *host) removeReservedPeers(ids ...string) error {
+	for _, id := range ids {
+		peerID, err := peer.Decode(id)
+		if err != nil {
+			return err
+		}
+
+		h.h.ConnManager().Unprotect(peerID, "")
+	}
+
+	return nil
+}
+
+// supportsProtocol checks if the protocol is supported by peerID
+// returns an error if could not get peer protocols
+func (h *host) supportsProtocol(peerID peer.ID, protocol protocol.ID) (bool, error) {
+	peerProtocols, err := h.h.Peerstore().SupportsProtocols(peerID, string(protocol))
+	if err != nil {
+		return false, err
+	}
+
+	return len(peerProtocols) > 0, nil
+}
+
 // peerCount returns the number of connected peers
 func (h *host) peerCount() int {
 	peers := h.h.Network().Peers()
 	return len(peers)
 }
 
-// addrInfos returns the libp2p AddrInfos of the host
-func (h *host) addrInfos() (addrInfos []*peer.AddrInfo, err error) {
-	for _, multiaddr := range h.multiaddrs() {
-		addrInfo, err := peer.AddrInfoFromP2pAddr(multiaddr)
-		if err != nil {
-			return nil, err
-		}
-		addrInfos = append(addrInfos, addrInfo)
+// addrInfo returns the libp2p peer.AddrInfo of the host
+func (h *host) addrInfo() peer.AddrInfo {
+	return peer.AddrInfo{
+		ID:    h.h.ID(),
+		Addrs: h.h.Addrs(),
 	}
-	return addrInfos, nil
 }
 
 // multiaddrs returns the multiaddresses of the host

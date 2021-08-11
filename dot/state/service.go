@@ -23,13 +23,18 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/ChainSafe/gossamer/dot/state/pruner"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/ChainSafe/chaindb"
 	log "github.com/ChainSafe/log15"
 )
+
+const readyPoolTransactionsMetrics = "gossamer/ready/pool/transaction/metrics"
+const readyPriorityQueueTransactions = "gossamer/ready/queue/transaction/metrics"
 
 var logger = log.New("pkg", "state")
 
@@ -50,22 +55,33 @@ type Service struct {
 	// Below are for testing only.
 	BabeThresholdNumerator   uint64
 	BabeThresholdDenominator uint64
+
+	// Below are for state trie online pruner
+	PrunerCfg pruner.Config
+}
+
+// Config is the default configuration used by state service.
+type Config struct {
+	Path      string
+	LogLevel  log.Lvl
+	PrunerCfg pruner.Config
 }
 
 // NewService create a new instance of Service
-func NewService(path string, lvl log.Lvl) *Service {
+func NewService(config Config) *Service {
 	handler := log.StreamHandler(os.Stdout, log.TerminalFormat())
 	handler = log.CallerFileHandler(handler)
-	logger.SetHandler(log.LvlFilterHandler(lvl, handler))
+	logger.SetHandler(log.LvlFilterHandler(config.LogLevel, handler))
 
 	return &Service{
-		dbPath:  path,
-		logLvl:  lvl,
-		db:      nil,
-		isMemDB: false,
-		Storage: nil,
-		Block:   nil,
-		closeCh: make(chan interface{}),
+		dbPath:    config.Path,
+		logLvl:    config.LogLevel,
+		db:        nil,
+		isMemDB:   false,
+		Storage:   nil,
+		Block:     nil,
+		closeCh:   make(chan interface{}),
+		PrunerCfg: config.PrunerCfg,
 	}
 }
 
@@ -88,18 +104,15 @@ func (s *Service) Start() error {
 	}
 
 	db := s.db
+
 	if !s.isMemDB {
 		basepath, err := filepath.Abs(s.dbPath)
 		if err != nil {
 			return err
 		}
 
-		cfg := &chaindb.Config{
-			DataDir: basepath,
-		}
-
 		// initialise database
-		db, err = chaindb.NewBadgerDB(cfg)
+		db, err = utils.SetupDatabase(basepath, false)
 		if err != nil {
 			return err
 		}
@@ -134,7 +147,7 @@ func (s *Service) Start() error {
 	if !bytes.Equal(btHead[:], bestHash[:]) {
 		logger.Info("detected abnormal node shutdown, restoring from last finalised block")
 
-		lastFinalised, err := s.Block.GetFinalizedHeader(0, 0) //nolint
+		lastFinalised, err := s.Block.GetFinalisedHeader(0, 0) //nolint
 		if err != nil {
 			return fmt.Errorf("failed to get latest finalised block: %w", err)
 		}
@@ -142,8 +155,13 @@ func (s *Service) Start() error {
 		s.Block.bt = blocktree.NewBlockTreeFromRoot(lastFinalised, db)
 	}
 
+	pr, err := s.Base.loadPruningData()
+	if err != nil {
+		return err
+	}
+
 	// create storage state
-	s.Storage, err = NewStorageState(db, s.Block, trie.NewEmptyTrie())
+	s.Storage, err = NewStorageState(db, s.Block, trie.NewEmptyTrie(), pr)
 	if err != nil {
 		return fmt.Errorf("failed to create storage state: %w", err)
 	}
@@ -165,7 +183,7 @@ func (s *Service) Start() error {
 	s.Transaction = NewTransactionState()
 
 	// create epoch state
-	s.Epoch, err = NewEpochState(db)
+	s.Epoch, err = NewEpochState(db, s.Block)
 	if err != nil {
 		return fmt.Errorf("failed to create epoch state: %w", err)
 	}
@@ -177,6 +195,7 @@ func (s *Service) Start() error {
 
 	num, _ := s.Block.BestBlockNumber()
 	logger.Info("created state service", "head", s.Block.BestBlockHash(), "highest number", num)
+
 	// Start background goroutine to GC pruned keys.
 	go s.Storage.pruneStorage(s.closeCh)
 	return nil
@@ -213,7 +232,7 @@ func (s *Service) Rewind(toBlock int64) error {
 		return err
 	}
 
-	err = s.Block.SetFinalizedHash(header.Hash(), 0, 0)
+	err = s.Block.SetFinalisedHash(header.Hash(), 0, 0)
 	if err != nil {
 		return err
 	}
@@ -252,13 +271,12 @@ func (s *Service) Stop() error {
 		return err
 	}
 
-	s.Storage.lock.RLock()
-	t := s.Storage.tries[head]
-	s.Storage.lock.RUnlock()
-
-	if t == nil {
+	st, has := s.Storage.tries.Load(head)
+	if !has {
 		return errTrieDoesNotExist(head)
 	}
+
+	t := st.(*trie.Trie)
 
 	if err = s.Base.StoreLatestStorageHash(head); err != nil {
 		return err
@@ -297,17 +315,9 @@ func (s *Service) Stop() error {
 // Import imports the given state corresponding to the given header and sets the head of the chain
 // to it. Additionally, it uses the first slot to correctly set the epoch number of the block.
 func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) error {
-	cfg := &chaindb.Config{
-		DataDir: s.dbPath,
-	}
-
-	if s.isMemDB {
-		cfg.InMemory = true
-	}
-
 	var err error
 	// initialise database using data directory
-	s.db, err = chaindb.NewBadgerDB(cfg)
+	s.db, err = utils.SetupDatabase(s.dbPath, s.isMemDB)
 	if err != nil {
 		return fmt.Errorf("failed to create database: %s", err)
 	}
@@ -320,7 +330,7 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		db: chaindb.NewTable(s.db, storagePrefix),
 	}
 
-	epoch, err := NewEpochState(s.db)
+	epoch, err := NewEpochState(s.db, block)
 	if err != nil {
 		return err
 	}
@@ -331,7 +341,6 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 		return err
 	}
 
-	epoch.firstSlot = firstSlot
 	blockEpoch, err := epoch.GetEpochForBlock(header)
 	if err != nil {
 		return err
@@ -387,4 +396,12 @@ func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) e
 	}
 
 	return s.db.Close()
+}
+
+// CollectGauge exports 2 metrics related to valid transaction pool and queue
+func (s *Service) CollectGauge() map[string]int64 {
+	return map[string]int64{
+		readyPoolTransactionsMetrics:   int64(s.Transaction.pool.Len()),
+		readyPriorityQueueTransactions: int64(s.Transaction.queue.Len()),
+	}
 }

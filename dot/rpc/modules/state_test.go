@@ -17,6 +17,7 @@ package modules
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/big"
@@ -24,8 +25,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ChainSafe/gossamer/dot/core"
+	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -40,7 +44,7 @@ func TestStateModule_GetRuntimeVersion(t *testing.T) {
 		SpecName:         "node",
 		ImplName:         "substrate-node",
 		AuthoringVersion: 10,
-		SpecVersion:      260,
+		SpecVersion:      264,
 		ImplVersion:      0,
 		Apis: []interface{}{
 			[]interface{}{"0xdf6acb689907609b", uint32(3)},
@@ -54,9 +58,10 @@ func TestStateModule_GetRuntimeVersion(t *testing.T) {
 			[]interface{}{"0xbc9d89904f5b923f", uint32(1)},
 			[]interface{}{"0x68b66ba122c93fa7", uint32(1)},
 			[]interface{}{"0x37c8bb1350a9a2a8", uint32(1)},
+			[]interface{}{"0x91d5df18b0d2cf58", uint32(1)},
 			[]interface{}{"0xab3c0572291feb8b", uint32(1)},
 		},
-		TransactionVersion: 1,
+		TransactionVersion: 2,
 	}
 
 	sm, hash, _ := setupStateModule(t)
@@ -314,7 +319,62 @@ func TestStateModule_GetStorageSize(t *testing.T) {
 	}
 }
 
+func TestStateModule_QueryStorage(t *testing.T) {
+	t.Run("When starting block is empty", func(t *testing.T) {
+		module := new(StateModule)
+		req := new(StateStorageQueryRangeRequest)
+
+		var res []StorageChangeSetResponse
+		err := module.QueryStorage(nil, req, &res)
+		require.Error(t, err, "the start block hash cannot be an empty value")
+	})
+
+	t.Run("When coreAPI QueryStorage returns error", func(t *testing.T) {
+		coreapimock := new(mocks.MockCoreAPI)
+		coreapimock.On("QueryStorage", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash")).Return(nil, errors.New("problem while querying"))
+
+		module := new(StateModule)
+		module.coreAPI = coreapimock
+
+		req := new(StateStorageQueryRangeRequest)
+		req.StartBlock = common.NewHash([]byte{1, 2})
+
+		var res []StorageChangeSetResponse
+		err := module.QueryStorage(nil, req, &res)
+		require.Error(t, err)
+		coreapimock.AssertCalled(t, "QueryStorage", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash"))
+	})
+
+	t.Run("When QueryStorage returns data", func(t *testing.T) {
+		blockhash := common.NewHash([]byte{123})
+
+		changes := map[common.Hash]core.QueryKeyValueChanges{
+			blockhash: core.QueryKeyValueChanges(map[string]string{
+				"0x80": "value",
+				"0x90": "another value",
+			}),
+		}
+		coreapimock := new(mocks.MockCoreAPI)
+		coreapimock.On("QueryStorage", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash"), "0x90", "0x80").Return(changes, nil)
+
+		module := new(StateModule)
+		module.coreAPI = coreapimock
+
+		req := new(StateStorageQueryRangeRequest)
+		req.StartBlock = common.NewHash([]byte{1, 2})
+		req.Keys = []string{"0x90", "0x80"}
+
+		var res []StorageChangeSetResponse
+		err := module.QueryStorage(nil, req, &res)
+		require.NoError(t, err)
+		require.Len(t, res, 1)
+
+		coreapimock.AssertCalled(t, "QueryStorage", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("common.Hash"), "0x90", "0x80")
+	})
+}
+
 func TestStateModule_GetMetadata(t *testing.T) {
+	t.Skip() // TODO: update expected_metadata
 	sm, hash, _ := setupStateModule(t)
 	randomHash, err := common.HexToHash(RandomHash)
 	require.NoError(t, err)
@@ -429,20 +489,27 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 
 	sr1, err := ts.Root()
 	require.NoError(t, err)
-	err = chain.Storage.StoreTrie(ts)
+	err = chain.Storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
 
-	err = chain.Block.AddBlock(&types.Block{
+	b := &types.Block{
 		Header: &types.Header{
 			ParentHash: chain.Block.BestBlockHash(),
 			Number:     big.NewInt(2),
 			StateRoot:  sr1,
 		},
 		Body: types.NewBody([]byte{}),
-	})
+	}
+
+	err = chain.Block.AddBlock(b)
 	require.NoError(t, err)
+
+	rt, err := chain.Block.GetRuntime(&b.Header.ParentHash)
+	require.NoError(t, err)
+
+	chain.Block.StoreRuntime(b.Header.Hash(), rt)
 
 	hash, _ := chain.Block.GetBlockHash(big.NewInt(2))
 	core := newCoreService(t, chain)
-	return NewStateModule(net, chain.Storage, core), hash, &sr1
+	return NewStateModule(net, chain.Storage, core), &hash, &sr1
 }

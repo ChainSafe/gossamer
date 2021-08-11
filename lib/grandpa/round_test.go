@@ -37,10 +37,16 @@ import (
 
 var testTimeout = 20 * time.Second
 
+type testJustificationRequest struct {
+	to  peer.ID
+	num uint32
+}
+
 type testNetwork struct {
-	t         *testing.T
-	out       chan GrandpaMessage
-	finalised chan GrandpaMessage
+	t                    *testing.T
+	out                  chan GrandpaMessage
+	finalised            chan GrandpaMessage
+	justificationRequest *testJustificationRequest
 }
 
 func newTestNetwork(t *testing.T) *testNetwork {
@@ -51,7 +57,7 @@ func newTestNetwork(t *testing.T) *testNetwork {
 	}
 }
 
-func (n *testNetwork) SendMessage(msg NotificationsMessage) {
+func (n *testNetwork) GossipMessage(msg NotificationsMessage) {
 	cm, ok := msg.(*ConsensusMessage)
 	require.True(n.t, ok)
 
@@ -65,7 +71,16 @@ func (n *testNetwork) SendMessage(msg NotificationsMessage) {
 	}
 }
 
-func (n *testNetwork) SendJustificationRequest(_ peer.ID, _ uint32) {}
+func (n *testNetwork) SendMessage(_ peer.ID, _ NotificationsMessage) error {
+	return nil
+}
+
+func (n *testNetwork) SendJustificationRequest(to peer.ID, num uint32) {
+	n.justificationRequest = &testJustificationRequest{
+		to:  to,
+		num: num,
+	}
+}
 
 func (n *testNetwork) RegisterNotificationsProtocol(sub protocol.ID,
 	messageID byte,
@@ -78,6 +93,8 @@ func (n *testNetwork) RegisterNotificationsProtocol(sub protocol.ID,
 ) error {
 	return nil
 }
+
+func (n *testNetwork) SendBlockReqestByHash(_ common.Hash) {}
 
 func onSameChain(blockState BlockState, a, b common.Hash) bool {
 	descendant, err := blockState.IsDescendantOf(a, b)
@@ -95,17 +112,17 @@ func onSameChain(blockState BlockState, a, b common.Hash) bool {
 	return descendant
 }
 
-func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (*Service, chan GrandpaMessage, chan GrandpaMessage, chan GrandpaMessage) {
+func setupGrandpa(t *testing.T, kp *ed25519.Keypair) (*Service, chan *networkVoteMessage, chan GrandpaMessage, chan GrandpaMessage) {
 	st := newTestState(t)
 	net := newTestNetwork(t)
 
 	cfg := &Config{
 		BlockState:    st.Block,
 		GrandpaState:  st.Grandpa,
-		DigestHandler: &mockDigestHandler{},
+		DigestHandler: NewMockDigestHandler(),
 		Voters:        voters,
 		Keypair:       kp,
-		LogLvl:        log.LvlTrace,
+		LogLvl:        log.LvlInfo,
 		Authority:     true,
 		Network:       net,
 	}
@@ -122,24 +139,31 @@ func TestGrandpa_BaseCase(t *testing.T) {
 	require.NoError(t, err)
 
 	gss := make([]*Service, len(kr.Keys))
-	prevotes := make(map[ed25519.PublicKeyBytes]*Vote)
-	precommits := make(map[ed25519.PublicKeyBytes]*Vote)
+	prevotes := new(sync.Map)
+	precommits := new(sync.Map)
 
 	for i, gs := range gss {
 		gs, _, _, _ = setupGrandpa(t, kr.Keys[i])
 		gss[i] = gs
 		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 15)
-		prevotes[gs.publicKeyBytes()], err = gs.determinePreVote()
+		pv, err := gs.determinePreVote() //nolint
 		require.NoError(t, err)
+		prevotes.Store(gs.publicKeyBytes(), &SignedVote{
+			Vote: pv,
+		})
 	}
 
 	for _, gs := range gss {
 		gs.prevotes = prevotes
+		gs.precommits = precommits
 	}
 
 	for _, gs := range gss {
-		precommits[gs.publicKeyBytes()], err = gs.determinePreCommit()
+		pc, err := gs.determinePreCommit()
 		require.NoError(t, err)
+		precommits.Store(gs.publicKeyBytes(), &SignedVote{
+			Vote: pc,
+		})
 		err = gs.finalise()
 		require.NoError(t, err)
 		has, err := gs.blockState.HasJustification(gs.head.Hash())
@@ -164,8 +188,8 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 	require.NoError(t, err)
 
 	gss := make([]*Service, len(kr.Keys))
-	prevotes := make(map[ed25519.PublicKeyBytes]*Vote)
-	precommits := make(map[ed25519.PublicKeyBytes]*Vote)
+	prevotes := new(sync.Map)
+	precommits := new(sync.Map)
 
 	for i, gs := range gss {
 		gs, _, _, _ = setupGrandpa(t, kr.Keys[i])
@@ -173,23 +197,34 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 
 		r := rand.Intn(3)
 		state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 4+r)
-		prevotes[gs.publicKeyBytes()], err = gs.determinePreVote()
+		pv, err := gs.determinePreVote() //nolint
 		require.NoError(t, err)
+		prevotes.Store(gs.publicKeyBytes(), &SignedVote{
+			Vote: pv,
+		})
 	}
 
 	// only want to add prevotes for a node that has a block that exists on its chain
 	for _, gs := range gss {
-		for k, pv := range prevotes {
+		prevotes.Range(func(key, prevote interface{}) bool {
+			k := key.(ed25519.PublicKeyBytes)
+			pv := prevote.(*Vote)
 			err = gs.validateVote(pv)
 			if err == nil {
-				gs.prevotes[k] = pv
+				gs.prevotes.Store(k, &SignedVote{
+					Vote: pv,
+				})
 			}
-		}
+			return true
+		})
 	}
 
 	for _, gs := range gss {
-		precommits[gs.publicKeyBytes()], err = gs.determinePreCommit()
+		pc, err := gs.determinePreCommit()
 		require.NoError(t, err)
+		precommits.Store(gs.publicKeyBytes(), &SignedVote{
+			Vote: pc,
+		})
 		err = gs.finalise()
 		require.NoError(t, err)
 	}
@@ -205,19 +240,21 @@ func TestGrandpa_DifferentChains(t *testing.T) {
 	}
 }
 
-func broadcastVotes(from <-chan GrandpaMessage, to []chan GrandpaMessage, done *bool) {
+func broadcastVotes(from <-chan GrandpaMessage, to []chan *networkVoteMessage, done *bool) {
 	for v := range from {
 		for _, tc := range to {
 			if *done {
 				return
 			}
 
-			tc <- v
+			tc <- &networkVoteMessage{
+				msg: v.(*VoteMessage),
+			}
 		}
 	}
 }
 
-func cleanup(gs *Service, in, out chan GrandpaMessage, done *bool) { //nolint
+func cleanup(gs *Service, in chan *networkVoteMessage, out chan GrandpaMessage, done *bool) { //nolint
 	*done = true
 	close(in)
 	gs.cancel()
@@ -230,7 +267,7 @@ func TestPlayGrandpaRound_BaseCase(t *testing.T) {
 	require.NoError(t, err)
 
 	gss := make([]*Service, len(kr.Keys))
-	ins := make([]chan GrandpaMessage, len(kr.Keys))
+	ins := make([]chan *networkVoteMessage, len(kr.Keys))
 	outs := make([]chan GrandpaMessage, len(kr.Keys))
 	fins := make([]chan GrandpaMessage, len(kr.Keys))
 	done := false
@@ -309,7 +346,7 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 	require.NoError(t, err)
 
 	gss := make([]*Service, len(kr.Keys))
-	ins := make([]chan GrandpaMessage, len(kr.Keys))
+	ins := make([]chan *networkVoteMessage, len(kr.Keys))
 	outs := make([]chan GrandpaMessage, len(kr.Keys))
 	fins := make([]chan GrandpaMessage, len(kr.Keys))
 	done := false
@@ -410,7 +447,7 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 	require.NoError(t, err)
 
 	gss := make([]*Service, len(kr.Keys))
-	ins := make([]chan GrandpaMessage, len(kr.Keys))
+	ins := make([]chan *networkVoteMessage, len(kr.Keys))
 	outs := make([]chan GrandpaMessage, len(kr.Keys))
 	fins := make([]chan GrandpaMessage, len(kr.Keys))
 
@@ -449,11 +486,13 @@ func TestPlayGrandpaRound_OneThirdEquivocating(t *testing.T) {
 		vote, err := NewVoteFromHash(leaves[1], gs.blockState)
 		require.NoError(t, err)
 
-		vmsg, err := gs.createVoteMessage(vote, prevote, gs.keypair)
+		_, vmsg, err := gs.createSignedVoteAndVoteMessage(vote, prevote)
 		require.NoError(t, err)
 
 		for _, in := range ins {
-			in <- vmsg
+			in <- &networkVoteMessage{
+				msg: vmsg,
+			}
 		}
 	}
 
@@ -511,7 +550,7 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 	require.NoError(t, err)
 
 	gss := make([]*Service, len(kr.Keys))
-	ins := make([]chan GrandpaMessage, len(kr.Keys))
+	ins := make([]chan *networkVoteMessage, len(kr.Keys))
 	outs := make([]chan GrandpaMessage, len(kr.Keys))
 	fins := make([]chan GrandpaMessage, len(kr.Keys))
 	done := false
@@ -576,7 +615,7 @@ func TestPlayGrandpaRound_MultipleRounds(t *testing.T) {
 		head := gss[0].blockState.(*state.BlockState).BestBlockHash()
 		for _, fb := range finalised {
 			require.NotNil(t, fb)
-			require.Equal(t, head, fb.Vote.hash)
+			require.Equal(t, head, fb.Vote.Hash)
 			require.GreaterOrEqual(t, len(fb.Precommits), len(kr.Keys)/2)
 			require.GreaterOrEqual(t, len(fb.AuthData), len(kr.Keys)/2)
 			finalised[0].Precommits = []*Vote{}
