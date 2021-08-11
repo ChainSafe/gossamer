@@ -96,7 +96,7 @@ func TestInitiateEpoch_Epoch1(t *testing.T) {
 	}
 
 	// for epoch 2, set EpochData but not ConfigData
-	edata := &types.EpochDataNew{
+	edata := &types.EpochData{
 		Authorities: bs.epochData.authorities,
 		Randomness:  [32]byte{9},
 	}
@@ -126,7 +126,7 @@ func TestInitiateEpoch_Epoch1(t *testing.T) {
 	}
 
 	// for epoch 3, set EpochData and ConfigData
-	edata = &types.EpochDataNew{
+	edata = &types.EpochData{
 		Authorities: bs.epochData.authorities,
 		Randomness:  [32]byte{9},
 	}

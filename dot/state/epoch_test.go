@@ -75,7 +75,7 @@ func TestEpochState_EpochData(t *testing.T) {
 		Weight: 1,
 	}
 
-	info := &types.EpochDataNew{
+	info := &types.EpochData{
 		Authorities: []types.Authority{auth},
 		Randomness:  [32]byte{77},
 	}
@@ -98,14 +98,14 @@ func TestEpochState_EpochData(t *testing.T) {
 func TestEpochState_GetStartSlotForEpoch(t *testing.T) {
 	s := newEpochStateFromGenesis(t)
 
-	info := &types.EpochDataNew{
+	info := &types.EpochData{
 		Randomness: [32]byte{77},
 	}
 
 	err := s.SetEpochData(2, info)
 	require.NoError(t, err)
 
-	info = &types.EpochDataNew{
+	info = &types.EpochData{
 		Randomness: [32]byte{77},
 	}
 

@@ -519,7 +519,7 @@ func (h *Handler) handleNextEpochData(d *types.ConsensusDigest, header *types.He
 	}
 
 	logger.Debug("setting epoch data", "blocknum", header.Number, "epoch", currEpoch+1, "data", data)
-	return h.epochState.SetEpochDataNew(currEpoch+1, data)
+	return h.epochState.SetEpochData(currEpoch+1, data)
 }
 
 func (h *Handler) handleNextConfigDataNew(d *types.ConsensusDigest, header *types.Header) error {

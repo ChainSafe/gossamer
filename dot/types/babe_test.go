@@ -60,7 +60,7 @@ func TestEpochData(t *testing.T) {
 		Weight: 1,
 	}
 
-	data := &EpochDataNew{
+	data := &EpochData{
 		Authorities: []Authority{auth},
 		Randomness:  [32]byte{77},
 	}

@@ -67,13 +67,13 @@ type NextEpochData struct {
 
 func (d NextEpochData) Index() uint { return 1 }
 
-func (d *NextEpochData) ToEpochData() (*EpochDataNew, error) {
-	auths, err := BABEAuthorityRawToAuthorityNew(d.Authorities)
+func (d *NextEpochData) ToEpochData() (*EpochData, error) {
+	auths, err := BABEAuthorityRawToAuthority(d.Authorities)
 	if err != nil {
 		return nil, err
 	}
 
-	return &EpochDataNew{
+	return &EpochData{
 		Authorities: auths,
 		Randomness:  d.Randomness,
 	}, nil

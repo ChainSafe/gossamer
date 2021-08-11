@@ -245,7 +245,7 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 
 	futureEpoch := uint64(5)
 
-	err = vm.epochState.(*state.EpochState).SetEpochData(futureEpoch, &types.EpochDataNew{
+	err = vm.epochState.(*state.EpochState).SetEpochData(futureEpoch, &types.EpochData{
 		Authorities: babeService.epochData.authorities,
 		Randomness:  babeService.epochData.randomness,
 	})

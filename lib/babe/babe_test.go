@@ -236,7 +236,7 @@ func TestService_setupParameters_epochData(t *testing.T) {
 	auths, err := types.BABEAuthorityRawToAuthority(genCfg.GenesisAuthorities)
 	require.NoError(t, err)
 
-	data := &types.EpochDataNew{
+	data := &types.EpochData{
 		Authorities: auths[:3],
 		Randomness:  [types.RandomnessLength]byte{99, 88, 77},
 	}
@@ -267,7 +267,7 @@ func TestService_setupParameters_configData(t *testing.T) {
 	auths, err := types.BABEAuthorityRawToAuthority(genCfg.GenesisAuthorities)
 	require.NoError(t, err)
 
-	data := &types.EpochDataNew{
+	data := &types.EpochData{
 		Authorities: auths[:3],
 		Randomness:  [types.RandomnessLength]byte{99, 88, 77},
 	}
