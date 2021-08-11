@@ -328,7 +328,7 @@ func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
 	authA, _ := ed25519.NewPublicKey(authABytes)
 	authB, _ := ed25519.NewPublicKey(authBBytes)
 
-	expected := []*types.Authority{
+	expected := []types.Authority{
 		{Key: authA, Weight: 1},
 		{Key: authB, Weight: 1},
 	}
@@ -355,7 +355,7 @@ func TestInstance_GrandpaAuthorities_PolkadotRuntime(t *testing.T) {
 	authA, _ := ed25519.NewPublicKey(authABytes)
 	authB, _ := ed25519.NewPublicKey(authBBytes)
 
-	expected := []*types.Authority{
+	expected := []types.Authority{
 		{Key: authA, Weight: 1},
 		{Key: authB, Weight: 1},
 	}

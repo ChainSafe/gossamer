@@ -108,10 +108,10 @@ func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
 
 	kr, _ := keystore.NewEd25519Keyring()
 
-	expected := []*types.Authority{}
+	var expected []types.Authority
 
 	for _, kp := range kr.Keys {
-		expected = append(expected, &types.Authority{
+		expected = append(expected, types.Authority{
 			Key:    kp.Public(),
 			Weight: 1,
 		})

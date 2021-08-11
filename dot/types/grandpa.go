@@ -53,7 +53,7 @@ func (a *GrandpaAuthoritiesRaw) Decode(r io.Reader) (*GrandpaAuthoritiesRaw, err
 
 // FromRawEd25519 sets the Authority given GrandpaAuthoritiesRaw. It converts the byte representations of
 // the authority public keys into a ed25519.PublicKey.
-func (a *Authority) FromRawEd25519(raw *GrandpaAuthoritiesRaw) error {
+func (a *Authority) FromRawEd25519(raw GrandpaAuthoritiesRaw) error {
 	key, err := ed25519.NewPublicKey(raw.Key[:])
 	if err != nil {
 		return err
@@ -68,7 +68,7 @@ func GrandpaAuthoritiesRawToAuthoritiesNew(adr []GrandpaAuthoritiesRaw) ([]Autho
 	ad := make([]Authority, len(adr))
 	for i, r := range adr {
 		ad[i] = Authority{}
-		err := ad[i].FromRawEd25519(&r)
+		err := ad[i].FromRawEd25519(r)
 		if err != nil {
 			return nil, err
 		}
@@ -82,7 +82,7 @@ func GrandpaAuthoritiesRawToAuthorities(adr []GrandpaAuthoritiesRaw) ([]Authorit
 	ad := make([]Authority, len(adr))
 	for i, r := range adr {
 		ad[i] = Authority{}
-		err := ad[i].FromRawEd25519(&r)
+		err := ad[i].FromRawEd25519(r)
 		if err != nil {
 			return nil, err
 		}
