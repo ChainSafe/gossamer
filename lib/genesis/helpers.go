@@ -49,6 +49,9 @@ const (
 	instance1MembershipConst = "Instance1Membership"
 	phragmenElectionConst    = "PhragmenElection"
 	notForcing               = "NotForcing"
+	forceNew                 = "ForceNew"
+	forceNone                = "ForceNone"
+	forceAlways              = "ForceAlways"
 	currentSchedule          = "CurrentSchedule"
 	phantom                  = "Phantom"
 )
@@ -370,11 +373,20 @@ func generateStorageValue(i interface{}, idx int) ([]byte, error) {
 			return nil, err
 		}
 	case string:
-		if t == notForcing { // TODO: This is a enum field. Check how to encode enum in Golang.
-			encode, err = scale.Marshal(uint8(0))
-			if err != nil {
-				return nil, err
-			}
+		var value uint8
+		switch t {
+		case notForcing:
+			value = 0
+		case forceNew:
+			value = 1
+		case forceNone:
+			value = 2
+		case forceAlways:
+			value = 3
+		}
+		encode, err = scale.Marshal(value)
+		if err != nil {
+			return nil, err
 		}
 	case [][]interface{}:
 		for _, data := range t {
