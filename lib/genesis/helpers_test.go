@@ -69,7 +69,7 @@ func TestNewGenesisFromJSON(t *testing.T) {
 	expRaw["top"] = make(map[string]string)
 	expRaw["top"]["0x3a636f6465"] = "0xfoo"
 	expRaw["top"]["0x3a6772616e6470615f617574686f726974696573"] = "0x010834602b88f60513f1c805d87ef52896934baf6a662bc37414dbdbf69356b1a6910000000000000000"                                                                                                                                                                                             // raw grandpa authorities
-	expRaw["top"]["0x014f204c006a2837deb5551ba5211d6ce887d1f35708af762efe7b709b5eff15"] = "0x08d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0100000000000000"                                                                                                                                                                       // raw babe authorities
+	expRaw["top"]["0x1cb6f36e027abb2091cfb5110ab5087f5e0621c4869aa60c02be9adcc98a0d1d"] = "0x08d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0100000000000000"                                                                                                                                                                       // raw babe authorities
 	expRaw["top"]["0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9de1e86a9a8c739864cf3cc5ec2bea59fd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"] = "0x0000000000000000000000007aeb9049000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" // raw system account
 	expRaw["top"][common.BytesToHex(common.UpgradedToDualRefKey)] = "0x01"
 
@@ -86,13 +86,13 @@ func TestNewGenesisFromJSON(t *testing.T) {
 	// create human readable test genesis
 	testGenesis := &Genesis{}
 	hrData := make(map[string]map[string]interface{})
-	hrData["system"] = map[string]interface{}{"code": "0xfoo"} // system code entry
-	hrData["babe"] = make(map[string]interface{})
-	hrData["babe"]["authorities"] = []interface{}{"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", 1} // babe authority data
-	hrData["grandpa"] = make(map[string]interface{})
-	hrData["grandpa"]["authorities"] = []interface{}{"5DFNv4Txc4b88qHqQ6GG4D646QcT4fN3jjS2G3r1PyZkfDut", 0} // grandpa authority data
-	hrData["palletBalances"] = make(map[string]interface{})
-	hrData["palletBalances"]["balances"] = []interface{}{"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", 1234234234} // balances
+	hrData["System"] = map[string]interface{}{"code": "0xfoo"} // system code entry
+	hrData["Babe"] = make(map[string]interface{})
+	hrData["Babe"]["Authorities"] = []interface{}{"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", 1} // babe authority data
+	hrData["Grandpa"] = make(map[string]interface{})
+	hrData["Grandpa"]["authorities"] = []interface{}{"5DFNv4Txc4b88qHqQ6GG4D646QcT4fN3jjS2G3r1PyZkfDut", 0} // grandpa authority data
+	hrData["Balances"] = make(map[string]interface{})
+	hrData["Balances"]["balances"] = []interface{}{"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY", 1234234234} // balances
 	testGenesis.Genesis = Fields{
 		Runtime: hrData,
 	}
@@ -118,7 +118,7 @@ func TestFormatKey(t *testing.T) {
 
 	out, err := formatKey(kv)
 	require.NoError(t, err)
-	require.Equal(t, out, fmt.Sprintf("0x%x", runtime.BABEAuthoritiesKey()))
+	require.Equal(t, fmt.Sprintf("0x%x", runtime.BABEAuthoritiesKey()), out)
 }
 
 func TestNewTrieFromGenesis(t *testing.T) {
