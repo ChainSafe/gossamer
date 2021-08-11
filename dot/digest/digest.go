@@ -329,7 +329,7 @@ func (h *Handler) handleScheduledChangeNew(d *types.ConsensusDigest, header *typ
 
 	h.grandpaScheduledChange = c
 
-	auths, err := types.GrandpaAuthoritiesRawToAuthoritiesNew(sc.Auths)
+	auths, err := types.GrandpaAuthoritiesRawToAuthorities(sc.Auths)
 	if err != nil {
 		return err
 	}
@@ -380,7 +380,7 @@ func (h *Handler) handleForcedChange(d *types.ConsensusDigest, header *types.Hea
 
 	h.grandpaForcedChange = c
 
-	auths, err := types.GrandpaAuthoritiesRawToAuthoritiesNew(fc.Auths)
+	auths, err := types.GrandpaAuthoritiesRawToAuthorities(fc.Auths)
 	if err != nil {
 		return err
 	}
@@ -457,7 +457,7 @@ func (h *Handler) handleResume(d *types.ConsensusDigest) error {
 }
 
 func newGrandpaChangeNew(raw []types.GrandpaAuthoritiesRaw, delay uint32, currBlock *big.Int) (*grandpaChangeNew, error) {
-	auths, err := types.GrandpaAuthoritiesRawToAuthoritiesNew(raw)
+	auths, err := types.GrandpaAuthoritiesRawToAuthorities(raw)
 	if err != nil {
 		return nil, err
 	}

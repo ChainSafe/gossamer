@@ -64,19 +64,6 @@ func (a *Authority) FromRawEd25519(raw GrandpaAuthoritiesRaw) error {
 	return nil
 }
 
-func GrandpaAuthoritiesRawToAuthoritiesNew(adr []GrandpaAuthoritiesRaw) ([]Authority, error) {
-	ad := make([]Authority, len(adr))
-	for i, r := range adr {
-		ad[i] = Authority{}
-		err := ad[i].FromRawEd25519(r)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return ad, nil
-}
-
 // GrandpaAuthoritiesRawToAuthorities turns a slice of GrandpaAuthoritiesRaw into a slice of Authority
 func GrandpaAuthoritiesRawToAuthorities(adr []GrandpaAuthoritiesRaw) ([]Authority, error) {
 	ad := make([]Authority, len(adr))
