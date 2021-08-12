@@ -42,18 +42,6 @@ func (c *WSConn) getSetupListener(method string) setupListener {
 	case grandpaSubscribeJustifications:
 		return c.initGrandpaJustificationListener
 	default:
-		// in case the method is unsafe search for it in another function
-		if c.UnsafeEnabled {
-			return c.getSetupUnsafeListener(method)
-		}
-
-		return nil
-	}
-}
-
-func (c *WSConn) getSetupUnsafeListener(method string) setupListener {
-	switch method {
-	default:
 		return nil
 	}
 }
