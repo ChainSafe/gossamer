@@ -29,9 +29,13 @@ import (
 // Digest represents the block digest. It consists of digest items.
 type Digest []DigestItem
 
-// TODO remove these and force a call to constructor
-var DigestItemVdt = scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
-var DigestVdtSlice = scale.NewVaryingDataTypeSlice(DigestItemVdt)
+func NewDigestItemVDT() scale.VaryingDataType {
+	return scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
+}
+
+func NewDigestVdt() scale.VaryingDataTypeSlice {
+	return scale.NewVaryingDataTypeSlice(NewDigestItemVDT())
+}
 
 // NewEmptyDigest returns an empty digest
 func NewEmptyDigestVdt() scale.VaryingDataTypeSlice {
@@ -114,16 +118,6 @@ var ConsensusDigestType = byte(4)
 // SealDigestType is the byte representation of SealDigest
 var SealDigestType = byte(5)
 
-
-func DecodeWithVdt(in []byte) (scale.VaryingDataTypeSlice, error) {
-	var digestVdtSlice = scale.NewVaryingDataTypeSlice(DigestItemVdt)
-	err := scale.Unmarshal(in, &digestVdtSlice)
-	if err != nil {
-		return scale.VaryingDataTypeSlice{}, err
-	}
-	return digestVdtSlice, nil
-}
-
 // DecodeDigest decodes the input into a Digest
 func DecodeDigest(buf *bytes.Buffer) (Digest, error) {
 	decoder := scale.NewDecoder(buf)
@@ -146,13 +140,13 @@ func DecodeDigest(buf *bytes.Buffer) (Digest, error) {
 
 // DecodeDigestItem will decode byte array to DigestItem
 func DecodeDigestItem(decoder *scale.Decoder) (DigestItem, error) {
-	//var digestItemVdt = scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
-	err := decoder.Decode(&DigestItemVdt)
+	var digestItemVdt = NewDigestItemVDT()
+	err := decoder.Decode(&digestItemVdt)
 	if err != nil {
 		return nil, err
 	}
 
-	switch val := DigestItemVdt.Value().(type) {
+	switch val := digestItemVdt.Value().(type) {
 	case ChangesTrieRootDigest:
 		return &val, err
 	case PreRuntimeDigest:

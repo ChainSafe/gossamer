@@ -33,7 +33,7 @@ func TestEncodeWithVdt(t *testing.T) {
 	//require.NoError(t, err)
 
 
-	vdts := DigestVdtSlice
+	vdts := NewDigestVdt()
 	err := vdts.Add(
 		PreRuntimeDigest{
 			ConsensusEngineID: BabeEngineID,
@@ -59,7 +59,7 @@ func TestEncodeWithVdt(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, d, bytes)
 
-	v := DigestVdtSlice
+	v := NewDigestVdt()
 	err = scale.Unmarshal(bytes, &v)
 	//v, err := DecodeWithVdt(bytes)
 	require.NoError(t, err)
