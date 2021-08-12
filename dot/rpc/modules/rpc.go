@@ -21,8 +21,8 @@ import (
 )
 
 var (
-	// UNSAFE_METHODS is a list of all unsafe rpc methods of https://github.com/w3f/PSPs/blob/master/PSPs/drafts/psp-6.md
-	UNSAFE_METHODS = []string{
+	// UnsafeMethods is a list of all unsafe rpc methods of https://github.com/w3f/PSPs/blob/master/PSPs/drafts/psp-6.md
+	UnsafeMethods = []string{
 		"system_addReservedPeer",
 		"system_removeReservedPeer",
 		"author_submitExtrinsic",
@@ -62,7 +62,7 @@ func (rm *RPCModule) Methods(r *http.Request, req *EmptyRequest, res *MethodsRes
 
 // IsUnsafe returns true if the `name` has the  suffix
 func IsUnsafe(name string) bool {
-	for _, unsafe := range UNSAFE_METHODS {
+	for _, unsafe := range UnsafeMethods {
 		if name == unsafe {
 			return true
 		}

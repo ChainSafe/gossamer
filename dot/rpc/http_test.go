@@ -114,7 +114,7 @@ func TestUnsafeRPCProtection(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	for _, unsafe := range modules.UNSAFE_METHODS {
+	for _, unsafe := range modules.UnsafeMethods {
 		func(method string) {
 			t.Run(fmt.Sprintf("Unsafe method %s should not be reachable", method), func(t *testing.T) {
 				data := []byte(fmt.Sprintf(`{"jsonrpc":"2.0","method":"%s","params":["0x00"],"id":1}`, method))

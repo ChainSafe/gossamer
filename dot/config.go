@@ -120,11 +120,11 @@ type RPCConfig struct {
 	WSUnsafeExternal bool
 }
 
-func (r RPCConfig) isRPCEnabled() bool {
+func (r *RPCConfig) isRPCEnabled() bool {
 	return r.Enabled || r.External || r.Unsafe || r.UnsafeExternal
 }
 
-func (r RPCConfig) isWSEnabled() bool {
+func (r *RPCConfig) isWSEnabled() bool {
 	return r.WS || r.WSExternal || r.WSUnsafe || r.WSUnsafeExternal
 }
 
