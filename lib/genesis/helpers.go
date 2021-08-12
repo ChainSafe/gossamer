@@ -337,17 +337,7 @@ func generateStorageValue(i interface{}, idx int) ([]byte, error) {
 	)
 
 	switch t := reflect.Indirect(val).Field(idx).Interface().(type) {
-	case int64:
-		encode, err = scale.Marshal(t)
-		if err != nil {
-			return nil, err
-		}
-	case uint64:
-		encode, err = scale.Marshal(t)
-		if err != nil {
-			return nil, err
-		}
-	case uint32:
+	case int64, uint64, uint32:
 		encode, err = scale.Marshal(t)
 		if err != nil {
 			return nil, err
@@ -508,7 +498,9 @@ func generateSessionKeyValue(s *session, prefixKey string, res map[string]string
 					return err
 				}
 
-				res[common.BytesToHex(append(append(moduleName, nextKeyHash...), append(accIDHash, validatorAccID...)...))] = common.BytesToHex(validatorAccID)
+				prefix := bytes.Join([][]byte{moduleName, nextKeyHash}, nil)
+				suffix := bytes.Join([][]byte{accIDHash, validatorAccID}, nil)
+				res[common.BytesToHex(append(prefix, suffix...))] = common.BytesToHex(validatorAccID)
 			case map[string]interface{}:
 				var storagePrefixKey []byte
 				storagePrefixKey, err = common.Twox128Hash([]byte("KeyOwner"))
