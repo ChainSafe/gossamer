@@ -50,7 +50,7 @@ func LocalRequestOnly(r *rpc.RequestInfo, i interface{}) error {
 	return errors.New("external HTTP request refused")
 }
 
-func SnakeCaseFormat(method string) (string, error) {
+func snakeCaseFormat(method string) (string, error) {
 	parts := strings.Split(method, ".")
 	if len(parts) < 2 {
 		return "", fmt.Errorf("invalid rpc method format %s, should be 'module.FunctionName'", method)
@@ -61,28 +61,28 @@ func SnakeCaseFormat(method string) (string, error) {
 	return strings.Join([]string{service, funcName}, "_"), nil
 }
 
-func RPCValidator(cfg *HTTPServerConfig, validate *validator.Validate) func(r *rpc.RequestInfo, i interface{}) error {
+func rpcValidator(cfg *HTTPServerConfig, validate *validator.Validate) func(r *rpc.RequestInfo, i interface{}) error {
 	return func(r *rpc.RequestInfo, v interface{}) error {
 		var (
 			err       error
 			rpcmethod string
 		)
 
-		if err := validate.Struct(v); err != nil {
+		if err = validate.Struct(v); err != nil {
 			return err
 		}
 
-		if rpcmethod, err = SnakeCaseFormat(r.Method); err != nil {
+		if rpcmethod, err = snakeCaseFormat(r.Method); err != nil {
 			return err
 		}
 
 		isUnsafe := modules.IsUnsafe(rpcmethod)
 
-		if isUnsafe && !cfg.RPCUnsafeEnabled() {
+		if isUnsafe && !cfg.rpcUnsafeEnabled() {
 			return fmt.Errorf("unsafe rpc method %s cannot be reachable", rpcmethod)
 		}
 
-		if !cfg.ExposeRPC() {
+		if !cfg.exposeRPC() {
 			return LocalRequestOnly(r, v)
 		}
 

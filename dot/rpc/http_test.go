@@ -123,7 +123,7 @@ func TestUnsafeRPCProtection(t *testing.T) {
 				_, err = buf.Write(data)
 				require.NoError(t, err)
 
-				_, resBody := makePOSTRequest(t, "http://localhost:7878/", buf)
+				_, resBody := localhostPostRequest(t, buf)
 				expected := fmt.Sprintf(
 					`{"jsonrpc":"2.0","error":{"code":-32000,"message":"unsafe rpc method %s cannot be reachable","data":null},"id":1}`+"\n",
 					method,
@@ -135,10 +135,9 @@ func TestUnsafeRPCProtection(t *testing.T) {
 	}
 }
 func TestRPCUnsafeExpose(t *testing.T) {
-	unsafeMethod := "system_addReservedPeer"
 	data := []byte(fmt.Sprintf(
 		`{"jsonrpc":"2.0","method":"%s","params":["%s"],"id":1}`,
-		unsafeMethod,
+		"system_addReservedPeer",
 		"/ip4/198.51.100.19/tcp/30333/p2p/QmSk5HQbn6LhUwDiNMseVUjuRYhEtYj4aUZ6WfWoGURpdV"))
 
 	buf := new(bytes.Buffer)
@@ -227,18 +226,16 @@ func TestUnsafeRPCJustToLocalhost(t *testing.T) {
 }
 
 func TestRPCExternalEnable_UnsafeExternalNotEnabled(t *testing.T) {
-	unsafeMethod := "system_addReservedPeer"
 	unsafeData := []byte(fmt.Sprintf(
 		`{"jsonrpc":"2.0","method":"%s","params":["%s"],"id":1}`,
-		unsafeMethod,
+		"system_addReservedPeer",
 		"/ip4/198.51.100.19/tcp/30333/p2p/QmSk5HQbn6LhUwDiNMseVUjuRYhEtYj4aUZ6WfWoGURpdV"))
 	unsafebuf := new(bytes.Buffer)
 	unsafebuf.Write(unsafeData)
 
-	safeMethod := "system_localPeerId"
 	safeData := []byte(fmt.Sprintf(
 		`{"jsonrpc":"2.0","method":"%s","params":[],"id":2}`,
-		safeMethod))
+		"system_localPeerId"))
 	safebuf := new(bytes.Buffer)
 	safebuf.Write(safeData)
 
@@ -297,7 +294,7 @@ func TestRPCExternalEnable_UnsafeExternalNotEnabled(t *testing.T) {
 	require.Equal(t, expected, string(resBody))
 }
 
-func makePOSTRequest(t *testing.T, url string, data io.Reader) (int, []byte) {
+func localhostPostRequest(t *testing.T, data io.Reader) (int, []byte) {
 	req, err := http.NewRequest(http.MethodPost, "http://localhost:7878/", data)
 	require.NoError(t, err)
 

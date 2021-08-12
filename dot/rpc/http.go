@@ -67,19 +67,19 @@ type HTTPServerConfig struct {
 	Modules             []string
 }
 
-func (h HTTPServerConfig) RPCUnsafeEnabled() bool {
+func (h HTTPServerConfig) rpcUnsafeEnabled() bool {
 	return h.RPCUnsafe || h.RPCUnsafeExternal
 }
 
-func (h HTTPServerConfig) WSUnsafeEnabled() bool {
+func (h HTTPServerConfig) wsUnsafeEnabled() bool {
 	return h.WSUnsafe || h.WSUnsafeExternal
 }
 
-func (h HTTPServerConfig) ExposeWS() bool {
+func (h HTTPServerConfig) exposeWS() bool {
 	return h.WSExternal || h.WSUnsafeExternal
 }
 
-func (h HTTPServerConfig) ExposeRPC() bool {
+func (h HTTPServerConfig) exposeRPC() bool {
 	return h.RPCExternal || h.RPCUnsafeExternal
 }
 
@@ -155,7 +155,7 @@ func (h *HTTPServer) Start() error {
 	// Add custom validator for `common.Hash`
 	validate.RegisterCustomTypeFunc(common.HashValidator, common.Hash{})
 
-	h.rpcServer.RegisterValidateRequestFunc(RPCValidator(h.serverConfig, validate))
+	h.rpcServer.RegisterValidateRequestFunc(rpcValidator(h.serverConfig, validate))
 
 	go func() {
 		err := http.ListenAndServe(fmt.Sprintf(":%d", h.serverConfig.RPCPort), r)
@@ -209,7 +209,7 @@ func (h *HTTPServer) Stop() error {
 func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var upg = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
-			if !h.serverConfig.ExposeWS() {
+			if !h.serverConfig.exposeWS() {
 				ip, _, error := net.SplitHostPort(r.RemoteAddr)
 				if error != nil {
 					logger.Error("unable to parse IP", "error")
@@ -244,7 +244,7 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // NewWSConn to create new WebSocket Connection struct
 func NewWSConn(conn *websocket.Conn, cfg *HTTPServerConfig) *subscription.WSConn {
 	c := &subscription.WSConn{
-		UnsafeEnabled: cfg.WSUnsafeEnabled(),
+		UnsafeEnabled: cfg.wsUnsafeEnabled(),
 		Wsconn:        conn,
 		Subscriptions: make(map[uint32]subscription.Listener),
 		StorageAPI:    cfg.StorageAPI,
