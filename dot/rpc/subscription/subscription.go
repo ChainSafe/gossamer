@@ -6,16 +6,14 @@ import (
 	"strconv"
 )
 
-type methodName string
-
 const (
-	authorSubmitAndWatchExtrinsic  methodName = "author_submitAndWatchExtrinsic" //nolint
-	chainSubscribeNewHeads                    = "chain_subscribeNewHeads"
-	chainSubscribeNewHead                     = "chain_subscribeNewHead"
-	chainSubscribeFinalizedHeads              = "chain_subscribeFinalizedHeads"
-	stateSubscribeStorage                     = "state_subscribeStorage"
-	stateSubscribeRuntimeVersion              = "state_subscribeRuntimeVersion"
-	grandpaSubscribeJustifications            = "grandpa_subscribeJustifications"
+	authorSubmitAndWatchExtrinsic  string = "author_submitAndWatchExtrinsic" //nolint
+	chainSubscribeNewHeads         string = "chain_subscribeNewHeads"
+	chainSubscribeNewHead          string = "chain_subscribeNewHead"
+	chainSubscribeFinalizedHeads   string = "chain_subscribeFinalizedHeads"
+	stateSubscribeStorage          string = "state_subscribeStorage"
+	stateSubscribeRuntimeVersion   string = "state_subscribeRuntimeVersion"
+	grandpaSubscribeJustifications string = "grandpa_subscribeJustifications"
 )
 
 type setupListener func(reqid float64, params interface{}) (Listener, error)
@@ -28,7 +26,7 @@ var (
 )
 
 func (c *WSConn) getSetupListener(method string) setupListener {
-	switch methodName(method) {
+	switch method {
 	case authorSubmitAndWatchExtrinsic:
 		return c.initExtrinsicWatch
 	case chainSubscribeNewHeads, chainSubscribeNewHead:
