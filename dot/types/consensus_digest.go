@@ -4,8 +4,13 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
-var BabeConsensusDigest = scale.MustNewVaryingDataType(NextEpochData{}, BABEOnDisabled{}, NextConfigData{})
-var GrandpaConsensusDigest = scale.MustNewVaryingDataType(GrandpaScheduledChange{}, GrandpaForcedChange{}, GrandpaOnDisabled{}, GrandpaPause{}, GrandpaResume{})
+func NewBabeConsensusDigest() scale.VaryingDataType {
+	return scale.MustNewVaryingDataType(NextEpochData{}, BABEOnDisabled{}, NextConfigData{})
+}
+
+func NewGrandpaConsensusDigest() scale.VaryingDataType {
+	return scale.MustNewVaryingDataType(GrandpaScheduledChange{}, GrandpaForcedChange{}, GrandpaOnDisabled{}, GrandpaPause{}, GrandpaResume{})
+}
 
 type GrandpaScheduledChange struct {
 	Auths []GrandpaAuthoritiesRaw

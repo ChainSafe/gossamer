@@ -41,20 +41,20 @@ func TestBabeEncodeAndDecode(t *testing.T) {
 		Weight: 1,
 	}
 
-	var vdt = BabeConsensusDigest
-	err = vdt.Set(NextEpochData{
+	var d = NewBabeConsensusDigest()
+	err = d.Set(NextEpochData{
 		Authorities: []AuthorityRaw{authA, authB},
 		Randomness:  [32]byte{77, 88, 99},
 	})
 
 
-	enc, err := scale.Marshal(vdt)
+	enc, err := scale.Marshal(d)
 	require.NoError(t, err)
 	require.Equal(t, expData, enc)
 
-	var decVdt = BabeConsensusDigest
-	err = scale.Unmarshal(enc, &decVdt)
+	var dec = NewBabeConsensusDigest()
+	err = scale.Unmarshal(enc, &dec)
 	require.NoError(t, err)
-	require.Equal(t, vdt, decVdt)
+	require.Equal(t, d, dec)
 }
 

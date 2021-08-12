@@ -107,7 +107,7 @@ func TestHandler_GrandpaScheduledChange(t *testing.T) {
 		Delay: 3,
 	}
 
-	var digest = types.GrandpaConsensusDigest
+	var digest = types.NewGrandpaConsensusDigest()
 	err = digest.Set(sc)
 	require.NoError(t, err)
 
@@ -164,7 +164,7 @@ func TestHandler_GrandpaForcedChange(t *testing.T) {
 		Delay: 3,
 	}
 
-	var digest = types.GrandpaConsensusDigest
+	var digest = types.NewGrandpaConsensusDigest()
 	err = digest.Set(fc)
 	require.NoError(t, err)
 
@@ -210,7 +210,7 @@ func TestHandler_GrandpaPauseAndResume(t *testing.T) {
 		Delay: 3,
 	}
 
-	var digest = types.GrandpaConsensusDigest
+	var digest = types.NewGrandpaConsensusDigest()
 	err := digest.Set(p)
 	require.NoError(t, err)
 
@@ -241,7 +241,7 @@ func TestHandler_GrandpaPauseAndResume(t *testing.T) {
 		Delay: 3,
 	}
 
-	var digest2 = types.GrandpaConsensusDigest
+	var digest2 = types.NewGrandpaConsensusDigest()
 	err = digest2.Set(r)
 	require.NoError(t, err)
 
@@ -277,7 +277,7 @@ func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
 		Delay: block,
 	}
 
-	var digest = types.GrandpaConsensusDigest
+	var digest = types.NewGrandpaConsensusDigest()
 	err := digest.Set(sc)
 	require.NoError(t, err)
 
@@ -321,7 +321,7 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 		Delay: later,
 	}
 
-	var digest = types.GrandpaConsensusDigest
+	var digest = types.NewGrandpaConsensusDigest()
 	err = digest.Set(sc)
 	require.NoError(t, err)
 
@@ -356,7 +356,7 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 		Delay: earlier,
 	}
 
-	digest = types.GrandpaConsensusDigest
+	digest = types.NewGrandpaConsensusDigest()
 	err = digest.Set(fc)
 	require.NoError(t, err)
 
@@ -388,7 +388,7 @@ func TestHandler_HandleBABEOnDisabled(t *testing.T) {
 		Number: big.NewInt(1),
 	}
 
-	var digest = types.BabeConsensusDigest
+	var digest = types.NewBabeConsensusDigest()
 	err := digest.Set(types.BABEOnDisabled{
 		ID: 7,
 	})
@@ -438,7 +438,7 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 		Weight: 1,
 	}
 
-	var digest = types.BabeConsensusDigest
+	var digest = types.NewBabeConsensusDigest()
 	err = digest.Set(types.NextEpochData{
 		Authorities: []types.AuthorityRaw{authA, authB},
 		Randomness:  [32]byte{77, 88, 99},
@@ -480,7 +480,7 @@ func TestHandler_HandleNextConfigData(t *testing.T) {
 	handler.Start()
 	defer handler.Stop()
 
-	var digest = types.BabeConsensusDigest
+	var digest = types.NewBabeConsensusDigest()
 	err := digest.Set(types.NextConfigData{
 		C1:             1,
 		C2:             8,

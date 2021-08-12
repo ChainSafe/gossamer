@@ -298,7 +298,7 @@ func (h *Handler) handleScheduledChange(d *types.ConsensusDigest, header *types.
 		return nil
 	}
 
-	var dec = types.GrandpaConsensusDigest
+	var dec = types.NewGrandpaConsensusDigest()
 	err = scale.Unmarshal(d.Data, &dec)
 	if err != nil {
 		return err
@@ -346,7 +346,7 @@ func (h *Handler) handleForcedChange(d *types.ConsensusDigest, header *types.Hea
 		return errors.New("already have forced change scheduled")
 	}
 
-	var dec = types.GrandpaConsensusDigest
+	var dec = types.NewGrandpaConsensusDigest()
 	err := scale.Unmarshal(d.Data, &dec)
 	if err != nil {
 		return err
@@ -387,7 +387,7 @@ func (h *Handler) handlePause(d *types.ConsensusDigest) error {
 		return err
 	}
 
-	var dec = types.GrandpaConsensusDigest
+	var dec = types.NewGrandpaConsensusDigest()
 	err = scale.Unmarshal(d.Data, &dec)
 	if err != nil {
 		return err
@@ -416,7 +416,7 @@ func (h *Handler) handleResume(d *types.ConsensusDigest) error {
 		return err
 	}
 
-	var dec = types.GrandpaConsensusDigest
+	var dec = types.NewGrandpaConsensusDigest()
 	err = scale.Unmarshal(d.Data, &dec)
 	if err != nil {
 		return err
@@ -460,7 +460,7 @@ func (h *Handler) handleBABEOnDisabled(d *types.ConsensusDigest, _ *types.Header
 }
 
 func (h *Handler) handleNextEpochData(d *types.ConsensusDigest, header *types.Header) error {
-	var od = types.BabeConsensusDigest
+	var od = types.NewBabeConsensusDigest()
 	err := scale.Unmarshal(d.Data, &od)
 	if err != nil {
 		return err
@@ -492,7 +492,7 @@ func (h *Handler) handleNextEpochData(d *types.ConsensusDigest, header *types.He
 }
 
 func (h *Handler) handleNextConfigData(d *types.ConsensusDigest, header *types.Header) error {
-	var od = types.BabeConsensusDigest
+	var od = types.NewBabeConsensusDigest()
 	err := scale.Unmarshal(d.Data, &od)
 	if err != nil {
 		return err
