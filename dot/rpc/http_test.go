@@ -123,7 +123,7 @@ func TestUnsafeRPCProtection(t *testing.T) {
 				_, err = buf.Write(data)
 				require.NoError(t, err)
 
-				_, resBody := localhostPostRequest(t, buf)
+				_, resBody := PostRequest(t, "http://localhost:7878/", buf)
 				expected := fmt.Sprintf(
 					`{"jsonrpc":"2.0","error":{"code":-32000,"message":"unsafe rpc method %s cannot be reachable","data":null},"id":1}`+"\n",
 					method,
@@ -164,17 +164,7 @@ func TestRPCUnsafeExpose(t *testing.T) {
 	ip, err := externalIP()
 	require.NoError(t, err)
 
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("http://%s:7879/", ip), buf)
-	require.NoError(t, err)
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err := new(http.Client).Do(req)
-	require.NoError(t, err)
-
-	resBody, err := ioutil.ReadAll(res.Body)
-	defer res.Body.Close()
-	require.NoError(t, err)
-
+	_, resBody := PostRequest(t, fmt.Sprintf("http://%s:7879/", ip), buf)
 	expected := `{"jsonrpc":"2.0","result":null,"id":1}` + "\n"
 	require.Equal(t, expected, string(resBody))
 }
@@ -210,17 +200,7 @@ func TestUnsafeRPCJustToLocalhost(t *testing.T) {
 	ip, err := externalIP()
 	require.NoError(t, err)
 
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("http://%s:7880/", ip), buf)
-	require.NoError(t, err)
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err := new(http.Client).Do(req)
-	require.NoError(t, err)
-
-	resBody, err := ioutil.ReadAll(res.Body)
-	defer res.Body.Close()
-	require.NoError(t, err)
-
+	_, resBody := PostRequest(t, fmt.Sprintf("http://%s:7880/", ip), buf)
 	expected := `{"jsonrpc":"2.0","error":{"code":-32000,"message":"external HTTP request refused","data":null},"id":1}` + "\n"
 	require.Equal(t, expected, string(resBody))
 }
@@ -262,40 +242,21 @@ func TestRPCExternalEnable_UnsafeExternalNotEnabled(t *testing.T) {
 	ip, err := externalIP()
 	require.NoError(t, err)
 
-	// safe method should be ok
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("http://%s:7880/", ip), safebuf)
-	require.NoError(t, err)
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err := new(http.Client).Do(req)
-	require.NoError(t, err)
-
-	resBody, err := ioutil.ReadAll(res.Body)
-	defer res.Body.Close()
-	require.NoError(t, err)
-
+	_, resBody := PostRequest(t, fmt.Sprintf("http://%s:7880/", ip), safebuf)
 	encoded := base58.Encode([]byte("peer id"))
 	expected := fmt.Sprintf(`{"jsonrpc":"2.0","result":"%s","id":2}`, encoded) + "\n"
 	require.Equal(t, expected, string(resBody))
 
 	// unsafe method should not be ok
-	req, err = http.NewRequest(http.MethodPost, fmt.Sprintf("http://%s:7880/", ip), unsafebuf)
-	require.NoError(t, err)
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err = new(http.Client).Do(req)
-	require.NoError(t, err)
-
-	resBody, err = ioutil.ReadAll(res.Body)
-	defer res.Body.Close()
-	require.NoError(t, err)
-
+	_, resBody = PostRequest(t, fmt.Sprintf("http://%s:7880/", ip), unsafebuf)
 	expected = `{"jsonrpc":"2.0","error":{"code":-32000,"message":"external HTTP request refused","data":null},"id":1}` + "\n"
 	require.Equal(t, expected, string(resBody))
 }
 
-func localhostPostRequest(t *testing.T, data io.Reader) (int, []byte) {
-	req, err := http.NewRequest(http.MethodPost, "http://localhost:7878/", data)
+func PostRequest(t *testing.T, url string, data io.Reader) (int, []byte) {
+	t.Helper()
+
+	req, err := http.NewRequest(http.MethodPost, url, data)
 	require.NoError(t, err)
 
 	req.Header.Set("Content-Type", "application/json")
