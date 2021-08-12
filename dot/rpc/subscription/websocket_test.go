@@ -2,10 +2,7 @@ package subscription
 
 import (
 	"fmt"
-	"log"
 	"math/big"
-	"net/http"
-	"os"
 	"testing"
 	"time"
 
@@ -20,47 +17,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
-}
-
-var wsconn = &WSConn{
-	Subscriptions: make(map[uint32]Listener),
-}
-
-func handler(w http.ResponseWriter, r *http.Request) {
-	c, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Print("upgrade:", err)
-		return
-	}
-	defer c.Close()
-
-	wsconn.Wsconn = c
-	wsconn.HandleComm()
-}
-
-func TestMain(m *testing.M) {
-	http.HandleFunc("/", handler)
-
-	go func() {
-		err := http.ListenAndServe("localhost:8546", nil)
-		if err != nil {
-			log.Fatal("error", err)
-		}
-	}()
-	time.Sleep(time.Millisecond * 100)
-
-	// Start all tests
-	os.Exit(m.Run())
-}
-
 func TestWSConn_HandleComm(t *testing.T) {
-	c, _, err := websocket.DefaultDialer.Dial("ws://localhost:8546", nil) //nolint
-	if err != nil {
-		log.Fatal("dial:", err)
-	}
-	defer c.Close()
+	wsconn, c, cancel := setupWSConn(t)
+	wsconn.Subscriptions = make(map[uint32]Listener)
+	defer cancel()
+
+	go wsconn.HandleComm()
+	time.Sleep(time.Second * 2)
+
+	fmt.Println("ws defined")
 
 	// test storageChangeListener
 	res, err := wsconn.initStorageChangeListener(1, nil)
@@ -266,18 +231,18 @@ func TestWSConn_HandleComm(t *testing.T) {
 	mockedJustBytes, err := mockedJust.Encode()
 	require.NoError(t, err)
 
-	mockBlockAPI := new(modulesmocks.MockBlockAPI)
-	mockBlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
+	BlockAPI := new(modulesmocks.BlockAPI)
+	BlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
 		Run(func(args mock.Arguments) {
 			ch := args.Get(0).(chan<- *types.FinalisationInfo)
 			fCh = ch
 		}).
 		Return(uint8(4), nil)
 
-	mockBlockAPI.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(mockedJustBytes, nil)
-	mockBlockAPI.On("UnregisterFinalisedChannel", mock.AnythingOfType("uint8"))
+	BlockAPI.On("GetJustification", mock.AnythingOfType("common.Hash")).Return(mockedJustBytes, nil)
+	BlockAPI.On("UnregisterFinalisedChannel", mock.AnythingOfType("uint8"))
 
-	wsconn.BlockAPI = mockBlockAPI
+	wsconn.BlockAPI = BlockAPI
 	listener, err := wsconn.initGrandpaJustificationListener(0, nil)
 	require.NoError(t, err)
 	require.NotNil(t, listener)
