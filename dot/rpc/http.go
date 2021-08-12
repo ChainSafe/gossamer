@@ -67,19 +67,19 @@ type HTTPServerConfig struct {
 	Modules             []string
 }
 
-func (h HTTPServerConfig) rpcUnsafeEnabled() bool {
+func (h *HTTPServerConfig) rpcUnsafeEnabled() bool {
 	return h.RPCUnsafe || h.RPCUnsafeExternal
 }
 
-func (h HTTPServerConfig) wsUnsafeEnabled() bool {
+func (h *HTTPServerConfig) wsUnsafeEnabled() bool {
 	return h.WSUnsafe || h.WSUnsafeExternal
 }
 
-func (h HTTPServerConfig) exposeWS() bool {
+func (h *HTTPServerConfig) exposeWS() bool {
 	return h.WSExternal || h.WSUnsafeExternal
 }
 
-func (h HTTPServerConfig) exposeRPC() bool {
+func (h *HTTPServerConfig) exposeRPC() bool {
 	return h.RPCExternal || h.RPCUnsafeExternal
 }
 
