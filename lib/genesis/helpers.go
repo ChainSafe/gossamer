@@ -107,10 +107,10 @@ func NewGenesisBlockFromTrie(t *trie.Trie) (*types.Header, error) {
 // trimGenesisAuthority iterates over authorities in genesis and keeps only `authCount` number of authorities.
 func trimGenesisAuthority(g *Genesis, authCount int) {
 	for k, authMap := range g.Genesis.Runtime {
-		if k != "babe" && k != "grandpa" {
+		if k != "Babe" && k != "Grandpa" {
 			continue
 		}
-		authorities, _ := authMap["authorities"].([]interface{})
+		authorities, _ := authMap["Authorities"].([]interface{})
 		var newAuthorities []interface{}
 		for _, authority := range authorities {
 			if len(newAuthorities) >= authCount {
@@ -118,7 +118,7 @@ func trimGenesisAuthority(g *Genesis, authCount int) {
 			}
 			newAuthorities = append(newAuthorities, authority)
 		}
-		authMap["authorities"] = newAuthorities
+		authMap["Authorities"] = newAuthorities
 	}
 }
 
@@ -463,7 +463,7 @@ func generateKeyValue(s interface{}, prefixKey string, res map[string]string) er
 
 func formatKey(kv *keyValue) (string, error) {
 	switch {
-	case reflect.DeepEqual([]string{"Grandpa", "authorities"}, kv.key):
+	case reflect.DeepEqual([]string{"Grandpa", "Authorities"}, kv.key):
 		kb := []byte(`:grandpa_authorities`)
 		return common.BytesToHex(kb), nil
 	case reflect.DeepEqual([]string{"System", "code"}, kv.key):
@@ -566,7 +566,7 @@ func generateAddressHash(accAddr, key string) ([]byte, error) {
 }
 func formatValue(kv *keyValue) (string, error) {
 	switch {
-	case reflect.DeepEqual([]string{"Grandpa", "authorities"}, kv.key):
+	case reflect.DeepEqual([]string{"Grandpa", "Authorities"}, kv.key):
 		if kv.valueLen != nil {
 			lenEnc, err := scale.Marshal(kv.valueLen)
 			if err != nil {
