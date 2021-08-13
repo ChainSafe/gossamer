@@ -107,7 +107,7 @@ func (c *WSConn) HandleComm() {
 			setup := c.getSetupListener(method)
 
 			if setup == nil {
-				logger.Warn("failed to create listener", "method", method, "error", err)
+				c.executeRPCCall(mbytes)
 				continue
 			}
 
@@ -164,6 +164,23 @@ func (c *WSConn) HandleComm() {
 
 		c.safeSend(wsresponse)
 	}
+}
+
+func (c *WSConn) executeRPCCall(data []byte) {
+	request, err := c.prepareRequest(data)
+	if err != nil {
+		logger.Warn("failed while preparing the request", "error", err)
+		return
+	}
+
+	var wsresponse interface{}
+	err = c.executeRequest(request, &wsresponse)
+	if err != nil {
+		logger.Warn("problems while executing the request", "error", err)
+		return
+	}
+
+	c.safeSend(wsresponse)
 }
 
 func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (Listener, error) {
