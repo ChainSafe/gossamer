@@ -66,7 +66,7 @@ func TestNewHTTPServer(t *testing.T) {
 	buf := &bytes.Buffer{}
 	_, err = buf.Write(data)
 	require.Nil(t, err)
-	req, err := http.NewRequest("POST", "http://localhost:8545/", buf)
+	req, err := http.NewRequest("POST", fmt.Sprintf("http://localhost:%v/", cfg.RPCPort), buf)
 	require.Nil(t, err)
 
 	req.Header.Set("Content-Type", "application/json")
@@ -78,7 +78,7 @@ func TestNewHTTPServer(t *testing.T) {
 	require.Equal(t, "200 OK", res.Status)
 
 	// nil POST
-	req, err = http.NewRequest("POST", "http://localhost:8545/", nil)
+	req, err = http.NewRequest("POST", fmt.Sprintf("http://localhost:%v/", cfg.RPCPort), nil)
 	require.Nil(t, err)
 
 	req.Header.Set("Content-Type", "application/json;")
@@ -90,7 +90,7 @@ func TestNewHTTPServer(t *testing.T) {
 	require.Equal(t, "200 OK", res.Status)
 
 	// GET
-	req, err = http.NewRequest("GET", "http://localhost:8545/", nil)
+	req, err = http.NewRequest("GET", fmt.Sprintf("http://localhost:%v/", cfg.RPCPort), nil)
 	require.Nil(t, err)
 
 	req.Header.Set("Content-Type", "application/json;")
@@ -126,7 +126,7 @@ func TestUnsafeRPCProtection(t *testing.T) {
 			_, err = buf.Write(data)
 			require.NoError(t, err)
 
-			_, resBody := PostRequest(t, "http://localhost:7878/", buf)
+			_, resBody := PostRequest(t, fmt.Sprintf("http://localhost:%v/", cfg.RPCPort), buf)
 			expected := fmt.Sprintf(
 				`{"jsonrpc":"2.0","error":{"code":-32000,"message":"unsafe rpc method %s cannot be reachable","data":null},"id":1}`+"\n",
 				unsafe,
@@ -167,7 +167,7 @@ func TestRPCUnsafeExpose(t *testing.T) {
 	ip, err := externalIP()
 	require.NoError(t, err)
 
-	_, resBody := PostRequest(t, fmt.Sprintf("http://%s:7879/", ip), buf)
+	_, resBody := PostRequest(t, fmt.Sprintf("http://%s:%v/", ip, cfg.RPCPort), buf)
 	expected := `{"jsonrpc":"2.0","result":null,"id":1}` + "\n"
 	require.Equal(t, expected, string(resBody))
 }
