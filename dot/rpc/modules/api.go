@@ -40,6 +40,8 @@ type BlockAPI interface {
 	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
 	UnregisterFinalisedChannel(id byte)
 	SubChain(start, end common.Hash) ([]common.Hash, error)
+	RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error)
+	UnregisterRuntimeUpdatedChannel(id uint32) bool
 }
 
 // NetworkAPI interface for network state methods

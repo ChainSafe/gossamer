@@ -31,6 +31,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	log "github.com/ChainSafe/log15"
 	"github.com/gorilla/websocket"
 )
@@ -330,17 +331,26 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 }
 
 func (c *WSConn) initRuntimeVersionListener(reqID float64, _ interface{}) (Listener, error) {
-	rvl := &RuntimeVersionListener{
-		wsconn: c,
-	}
-
 	if c.CoreAPI == nil {
 		c.safeSendError(reqID, nil, "error CoreAPI not set")
 		return nil, fmt.Errorf("error CoreAPI not set")
 	}
 
+	rvl := &RuntimeVersionListener{
+		wsconn:        c,
+		runtimeUpdate: make(chan runtime.Version),
+		coreAPI:       c.CoreAPI,
+	}
+
+	chanID, err := c.BlockAPI.RegisterRuntimeUpdatedChannel(rvl.runtimeUpdate)
+	if err != nil {
+		return nil, err
+	}
+
 	c.mu.Lock()
 
+	rvl.channelID = chanID
+	c.qtyListeners++
 	rvl.subID = atomic.AddUint32(&c.qtyListeners, 1)
 	c.Subscriptions[rvl.subID] = rvl
 
@@ -349,6 +359,19 @@ func (c *WSConn) initRuntimeVersionListener(reqID float64, _ interface{}) (Liste
 	c.safeSend(NewSubscriptionResponseJSON(rvl.subID, reqID))
 
 	return rvl, nil
+}
+
+func (c *WSConn) unsubscribeRuntimeVersionListener(reqID float64, l Listener, _ interface{}) {
+	observer, ok := l.(VersionListener)
+	if !ok {
+		initRes := newBooleanResponseJSON(false, reqID)
+		c.safeSend(initRes)
+		return
+	}
+	id := observer.GetChannelID()
+
+	res := c.BlockAPI.UnregisterRuntimeUpdatedChannel(id)
+	c.safeSend(newBooleanResponseJSON(res, reqID))
 }
 
 func (c *WSConn) initGrandpaJustificationListener(reqID float64, _ interface{}) (Listener, error) {

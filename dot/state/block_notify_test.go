@@ -23,7 +23,8 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	runtimemocks "github.com/ChainSafe/gossamer/lib/runtime/mocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -152,4 +153,50 @@ func TestFinalizedChannel_Multi(t *testing.T) {
 	for _, id := range ids {
 		bs.UnregisterFinalisedChannel(id)
 	}
+}
+
+func TestService_RegisterUnRegisterRuntimeUpdatedChannel(t *testing.T) {
+	bs := newTestBlockState(t, testGenesisHeader)
+	ch := make(chan<- runtime.Version)
+	chID, err := bs.RegisterRuntimeUpdatedChannel(ch)
+	require.NoError(t, err)
+	require.NotNil(t, chID)
+
+	res := bs.UnregisterRuntimeUpdatedChannel(chID)
+	require.True(t, res)
+}
+
+func TestService_RegisterUnRegisterConcurrentCalls(t *testing.T) {
+	bs := newTestBlockState(t, testGenesisHeader)
+
+	go func() {
+		for i := 0; i < 100; i++ {
+			testVer := NewMockVersion(uint32(i))
+			go bs.notifyRuntimeUpdated(testVer)
+		}
+	}()
+
+	for i := 0; i < 100; i++ {
+		go func() {
+
+			ch := make(chan<- runtime.Version)
+			chID, err := bs.RegisterRuntimeUpdatedChannel(ch)
+			require.NoError(t, err)
+			unReg := bs.UnregisterRuntimeUpdatedChannel(chID)
+			require.True(t, unReg)
+		}()
+	}
+}
+
+// NewMockVersion creates and returns an runtime Version interface mock
+func NewMockVersion(specVer uint32) *runtimemocks.MockVersion {
+	m := new(runtimemocks.MockVersion)
+	m.On("SpecName").Return([]byte(`mock-spec`))
+	m.On("ImplName").Return(nil)
+	m.On("AuthoringVersion").Return(uint32(0))
+	m.On("SpecVersion").Return(specVer)
+	m.On("ImplVersion").Return(uint32(0))
+	m.On("TransactionVersion").Return(uint32(0))
+	m.On("APIItems").Return(nil)
+	return m
 }

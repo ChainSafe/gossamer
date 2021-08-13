@@ -43,7 +43,7 @@ var testCalls = []struct {
 	{[]byte(`{"jsonrpc":"2.0","method":"state_subscribeStorage","params":[],"id":4}`), []byte(`{"jsonrpc":"2.0","result":2,"id":4}` + "\n")},
 	{[]byte(`{"jsonrpc":"2.0","method":"chain_subscribeFinalizedHeads","params":[],"id":5}`), []byte(`{"jsonrpc":"2.0","result":3,"id":5}` + "\n")},
 	{[]byte(`{"jsonrpc":"2.0","method":"author_submitAndWatchExtrinsic","params":["0x010203"],"id":6}`), []byte("{\"jsonrpc\":\"2.0\",\"error\":{\"code\":null,\"message\":\"Failed to call the `TaggedTransactionQueue_validate_transaction` exported function.\"},\"id\":6}\n")},
-	{[]byte(`{"jsonrpc":"2.0","method":"state_subscribeRuntimeVersion","params":[],"id":7}`), []byte("{\"jsonrpc\":\"2.0\",\"result\":5,\"id\":7}\n")},
+	{[]byte(`{"jsonrpc":"2.0","method":"state_subscribeRuntimeVersion","params":[],"id":7}`), []byte("{\"jsonrpc\":\"2.0\",\"result\":6,\"id\":7}\n")},
 }
 
 func TestHTTPServer_ServeHTTP(t *testing.T) {
