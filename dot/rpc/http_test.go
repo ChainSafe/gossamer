@@ -57,6 +57,7 @@ func TestNewHTTPServer(t *testing.T) {
 	require.Nil(t, err)
 
 	time.Sleep(time.Second) // give server a second to start
+	defer s.Stop()
 
 	// Valid request
 	client := &http.Client{}
@@ -113,6 +114,7 @@ func TestUnsafeRPCProtection(t *testing.T) {
 	require.NoError(t, err)
 
 	time.Sleep(time.Second)
+	defer s.Stop()
 
 	for _, unsafe := range modules.UnsafeMethods {
 		func(method string) {
@@ -160,6 +162,7 @@ func TestRPCUnsafeExpose(t *testing.T) {
 	require.NoError(t, err)
 
 	time.Sleep(time.Second)
+	defer s.Stop()
 
 	ip, err := externalIP()
 	require.NoError(t, err)
@@ -196,6 +199,7 @@ func TestUnsafeRPCJustToLocalhost(t *testing.T) {
 	require.NoError(t, err)
 
 	time.Sleep(time.Second)
+	defer s.Stop()
 
 	ip, err := externalIP()
 	require.NoError(t, err)
@@ -238,6 +242,7 @@ func TestRPCExternalEnable_UnsafeExternalNotEnabled(t *testing.T) {
 	require.NoError(t, err)
 
 	time.Sleep(time.Second)
+	defer s.Stop()
 
 	ip, err := externalIP()
 	require.NoError(t, err)
