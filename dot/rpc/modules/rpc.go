@@ -32,7 +32,6 @@ var (
 		"state_getPairs",
 		"state_getKeysPaged",
 		"state_queryStorage",
-		"childstate_getKeys",
 	}
 )
 

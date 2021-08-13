@@ -104,9 +104,11 @@ func TestNewHTTPServer(t *testing.T) {
 
 func TestUnsafeRPCProtection(t *testing.T) {
 	cfg := &HTTPServerConfig{
-		Modules: []string{"author"},
-		RPCPort: 7878,
-		RPCAPI:  NewService(),
+		Modules:           []string{"system", "author", "chain", "state", "rpc", "grandpa", "dev"},
+		RPCPort:           7878,
+		RPCAPI:            NewService(),
+		RPCUnsafe:         false,
+		RPCUnsafeExternal: false,
 	}
 
 	s := NewHTTPServer(cfg)
@@ -117,23 +119,21 @@ func TestUnsafeRPCProtection(t *testing.T) {
 	defer s.Stop()
 
 	for _, unsafe := range modules.UnsafeMethods {
-		func(method string) {
-			t.Run(fmt.Sprintf("Unsafe method %s should not be reachable", method), func(t *testing.T) {
-				data := []byte(fmt.Sprintf(`{"jsonrpc":"2.0","method":"%s","params":["0x00"],"id":1}`, method))
+		t.Run(fmt.Sprintf("Unsafe method %s should not be reachable", unsafe), func(t *testing.T) {
+			data := []byte(fmt.Sprintf(`{"jsonrpc":"2.0","method":"%s","params":[],"id":1}`, unsafe))
 
-				buf := new(bytes.Buffer)
-				_, err = buf.Write(data)
-				require.NoError(t, err)
+			buf := new(bytes.Buffer)
+			_, err = buf.Write(data)
+			require.NoError(t, err)
 
-				_, resBody := PostRequest(t, "http://localhost:7878/", buf)
-				expected := fmt.Sprintf(
-					`{"jsonrpc":"2.0","error":{"code":-32000,"message":"unsafe rpc method %s cannot be reachable","data":null},"id":1}`+"\n",
-					method,
-				)
+			_, resBody := PostRequest(t, "http://localhost:7878/", buf)
+			expected := fmt.Sprintf(
+				`{"jsonrpc":"2.0","error":{"code":-32000,"message":"unsafe rpc method %s cannot be reachable","data":null},"id":1}`+"\n",
+				unsafe,
+			)
 
-				require.Equal(t, expected, string(resBody))
-			})
-		}(unsafe)
+			require.Equal(t, expected, string(resBody))
+		})
 	}
 }
 func TestRPCUnsafeExpose(t *testing.T) {

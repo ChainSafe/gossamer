@@ -68,25 +68,20 @@ func rpcValidator(cfg *HTTPServerConfig, validate *validator.Validate) func(r *r
 			rpcmethod string
 		)
 
-		if err = validate.Struct(v); err != nil {
-			return err
-		}
-
 		if rpcmethod, err = snakeCaseFormat(r.Method); err != nil {
 			return err
 		}
 
 		isUnsafe := modules.IsUnsafe(rpcmethod)
-
 		if isUnsafe && !cfg.rpcUnsafeEnabled() {
 			return fmt.Errorf("unsafe rpc method %s cannot be reachable", rpcmethod)
 		}
 
-		if !cfg.exposeRPC() {
-			return LocalRequestOnly(r, v)
+		if err = validate.Struct(v); err != nil {
+			return err
 		}
 
-		if modules.IsUnsafe(rpcmethod) && !cfg.RPCUnsafeExternal {
+		if !cfg.exposeRPC() || modules.IsUnsafe(rpcmethod) && !cfg.RPCUnsafeExternal {
 			return LocalRequestOnly(r, v)
 		}
 
