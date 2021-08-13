@@ -228,16 +228,17 @@ func TestRPCExternalEnable_UnsafeExternalNotEnabled(t *testing.T) {
 		PeerID: "peer id",
 	})
 
-	cfg := &HTTPServerConfig{
-		Modules:     []string{"system"},
-		RPCPort:     7880,
-		RPCAPI:      NewService(),
-		RPCUnsafe:   true,
-		RPCExternal: true,
-		NetworkAPI:  netmock,
+	httpServerConfig := &HTTPServerConfig{
+		Modules:           []string{"system"},
+		RPCPort:           8786,
+		RPCAPI:            NewService(),
+		RPCUnsafe:         true,
+		RPCUnsafeExternal: false,
+		RPCExternal:       true,
+		NetworkAPI:        netmock,
 	}
 
-	s := NewHTTPServer(cfg)
+	s := NewHTTPServer(httpServerConfig)
 	err := s.Start()
 	require.NoError(t, err)
 
@@ -247,13 +248,13 @@ func TestRPCExternalEnable_UnsafeExternalNotEnabled(t *testing.T) {
 	ip, err := externalIP()
 	require.NoError(t, err)
 
-	_, resBody := PostRequest(t, fmt.Sprintf("http://%s:7880/", ip), safebuf)
+	_, resBody := PostRequest(t, fmt.Sprintf("http://%s:%v/", ip, httpServerConfig.RPCPort), safebuf)
 	encoded := base58.Encode([]byte("peer id"))
 	expected := fmt.Sprintf(`{"jsonrpc":"2.0","result":"%s","id":2}`, encoded) + "\n"
 	require.Equal(t, expected, string(resBody))
 
 	// unsafe method should not be ok
-	_, resBody = PostRequest(t, fmt.Sprintf("http://%s:7880/", ip), unsafebuf)
+	_, resBody = PostRequest(t, fmt.Sprintf("http://%s:%v/", ip, httpServerConfig.RPCPort), unsafebuf)
 	expected = `{"jsonrpc":"2.0","error":{"code":-32000,"message":"external HTTP request refused","data":null},"id":1}` + "\n"
 	require.Equal(t, expected, string(resBody))
 }
