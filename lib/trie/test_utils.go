@@ -1,8 +1,9 @@
 package trie
 
 import (
+	"crypto/rand"
 	"encoding/binary"
-	"math/rand"
+	"math/big"
 	"testing"
 )
 
@@ -39,14 +40,17 @@ func GenerateRandomTests(t testing.TB, size int) []Test {
 }
 
 func generateRandomTest(t testing.TB, kv map[string][]byte) Test {
-	r := *rand.New(rand.NewSource(rand.Int63())) //nolint
 	test := Test{}
 
 	for {
 		n := 2 // arbitrary positive number
-		size := r.Intn(510) + n
-		buf := make([]byte, size)
-		_, err := r.Read(buf)
+		size, err := rand.Int(rand.Reader, big.NewInt(510))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		buf := make([]byte, size.Int64()+int64(n))
+		_, err = rand.Read(buf)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -56,8 +60,12 @@ func generateRandomTest(t testing.TB, kv map[string][]byte) Test {
 		if kv[string(buf)] == nil || key < 256 {
 			test.key = buf
 
-			buf = make([]byte, r.Intn(128)+n)
-			_, err = r.Read(buf)
+			size, err := rand.Int(rand.Reader, big.NewInt(128))
+			if err != nil {
+				t.Fatal(err)
+			}
+			buf = make([]byte, size.Int64()+int64(n))
+			_, err = rand.Read(buf)
 			if err != nil {
 				t.Fatal(err)
 			}
