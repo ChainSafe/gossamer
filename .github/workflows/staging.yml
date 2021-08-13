@@ -18,3 +18,6 @@ jobs:
       
       - name: pwd
         run: pwd
+
+      - name: build docker image
+        run: docker build .github/staging/ --progress=plain -t=gossamer-polkadot:latest --build-arg chain=polkadot
