@@ -121,48 +121,30 @@ func (c *WSConn) HandleComm() {
 			continue
 		}
 
-		if strings.Contains(method, "_unsubscribe") || strings.Contains(method, "_unwatch") {
-			listener, err := c.getUnsubListener(params) //nolint
+		listener, err := c.getUnsubListener(params) //nolint
 
-			if err != nil {
-				logger.Warn("failed to get unsubscriber", "method", method, "error", err)
+		if err != nil {
+			logger.Warn("failed to get unsubscriber", "method", method, "error", err)
 
-				if errors.Is(err, errUknownParamSubscribeID) || errors.Is(err, errCannotFindUnsubsriber) {
-					c.safeSendError(reqid, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
-					continue
-				}
-
-				if errors.Is(err, errCannotParseID) || errors.Is(err, errCannotFindListener) {
-					c.safeSend(newBooleanResponseJSON(false, reqid))
-					continue
-				}
+			if errors.Is(err, errUknownParamSubscribeID) || errors.Is(err, errCannotFindUnsubsriber) {
+				c.safeSendError(reqid, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
+				continue
 			}
 
-			err = listener.Stop()
-			if err != nil {
-				logger.Warn("failed to cancel listener goroutine", "method", method, "error", err)
+			if errors.Is(err, errCannotParseID) || errors.Is(err, errCannotFindListener) {
 				c.safeSend(newBooleanResponseJSON(false, reqid))
+				continue
 			}
-
-			c.safeSend(newBooleanResponseJSON(true, reqid))
-			continue
 		}
 
-		// handle non-subscribe calls
-		request, err := c.prepareRequest(mbytes)
+		err = listener.Stop()
 		if err != nil {
-			logger.Warn("failed while preparing the request", "error", err)
-			return
+			logger.Warn("failed to cancel listener goroutine", "method", method, "error", err)
+			c.safeSend(newBooleanResponseJSON(false, reqid))
 		}
 
-		var wsresponse interface{}
-		err = c.executeRequest(request, &wsresponse)
-		if err != nil {
-			logger.Warn("problems while executing the request", "error", err)
-			return
-		}
-
-		c.safeSend(wsresponse)
+		c.safeSend(newBooleanResponseJSON(true, reqid))
+		continue
 	}
 }
 
