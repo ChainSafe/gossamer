@@ -361,19 +361,6 @@ func (c *WSConn) initRuntimeVersionListener(reqID float64, _ interface{}) (Liste
 	return rvl, nil
 }
 
-func (c *WSConn) unsubscribeRuntimeVersionListener(reqID float64, l Listener, _ interface{}) {
-	observer, ok := l.(VersionListener)
-	if !ok {
-		initRes := newBooleanResponseJSON(false, reqID)
-		c.safeSend(initRes)
-		return
-	}
-	id := observer.GetChannelID()
-
-	res := c.BlockAPI.UnregisterRuntimeUpdatedChannel(id)
-	c.safeSend(newBooleanResponseJSON(res, reqID))
-}
-
 func (c *WSConn) initGrandpaJustificationListener(reqID float64, _ interface{}) (Listener, error) {
 	if c.BlockAPI == nil {
 		c.safeSendError(reqID, nil, "error BlockAPI not set")
