@@ -4,11 +4,19 @@ import (
 	"errors"
 )
 
+type databaseWriter interface {
+	Put(hash, value []byte)
+}
+
 var (
 	ErrInvalidProof = errors.New("provided key is not present at trie")
 )
 
-func VerifyProof(t Trie, key []byte) (value []byte, err error) {
+func (t *Trie) Prove(key []byte, lvl uint, db databaseWriter) error {
+
+}
+
+func VerifyProof(t *Trie, key []byte) (value []byte, err error) {
 	if t.root == nil {
 		return nil, errors.New("cannot verify proof of an empty")
 	}
