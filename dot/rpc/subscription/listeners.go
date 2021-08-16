@@ -26,6 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 )
 
 const (
@@ -282,20 +283,26 @@ func (l *ExtrinsicSubmitListener) Stop() error {
 
 // RuntimeVersionListener to handle listening for Runtime Version
 type RuntimeVersionListener struct {
-	wsconn *WSConn
-	subID  uint32
+	wsconn        WSConnAPI
+	subID         uint32
+	runtimeUpdate chan runtime.Version
+	channelID     uint32
+	coreAPI       modules.CoreAPI
+}
+
+// VersionListener interface defining methods that version listener must implement
+type VersionListener interface {
+	GetChannelID() uint32
 }
 
 // Listen implementation of Listen interface to listen for runtime version changes
 func (l *RuntimeVersionListener) Listen() {
 	// This sends current runtime version once when subscription is created
-	// TODO (ed) add logic to send updates when runtime version changes
-	rtVersion, err := l.wsconn.CoreAPI.GetRuntimeVersion(nil)
+	rtVersion, err := l.coreAPI.GetRuntimeVersion(nil)
 	if err != nil {
 		return
 	}
 	ver := modules.StateRuntimeVersionResponse{}
-
 	ver.SpecName = string(rtVersion.SpecName())
 	ver.ImplName = string(rtVersion.ImplName())
 	ver.AuthoringVersion = rtVersion.AuthoringVersion()
@@ -304,7 +311,34 @@ func (l *RuntimeVersionListener) Listen() {
 	ver.TransactionVersion = rtVersion.TransactionVersion()
 	ver.Apis = modules.ConvertAPIs(rtVersion.APIItems())
 
-	l.wsconn.safeSend(newSubscriptionResponse(stateRuntimeVersionMethod, l.subID, ver))
+	go l.wsconn.safeSend(newSubscriptionResponse(stateRuntimeVersionMethod, l.subID, ver))
+
+	// listen for runtime updates
+	go func() {
+		for {
+			info, ok := <-l.runtimeUpdate
+			if !ok {
+				return
+			}
+
+			ver := modules.StateRuntimeVersionResponse{}
+
+			ver.SpecName = string(info.SpecName())
+			ver.ImplName = string(info.ImplName())
+			ver.AuthoringVersion = info.AuthoringVersion()
+			ver.SpecVersion = info.SpecVersion()
+			ver.ImplVersion = info.ImplVersion()
+			ver.TransactionVersion = info.TransactionVersion()
+			ver.Apis = modules.ConvertAPIs(info.APIItems())
+
+			l.wsconn.safeSend(newSubscriptionResponse(stateRuntimeVersionMethod, l.subID, ver))
+		}
+	}()
+}
+
+// GetChannelID function that returns listener's channel ID
+func (l *RuntimeVersionListener) GetChannelID() uint32 {
+	return l.channelID
 }
 
 // Stop to runtimeVersionListener not implemented yet because the listener

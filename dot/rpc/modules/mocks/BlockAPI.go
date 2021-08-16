@@ -8,6 +8,8 @@ import (
 	common "github.com/ChainSafe/gossamer/lib/common"
 	mock "github.com/stretchr/testify/mock"
 
+	runtime "github.com/ChainSafe/gossamer/lib/runtime"
+
 	types "github.com/ChainSafe/gossamer/dot/types"
 )
 
@@ -233,6 +235,27 @@ func (_m *BlockAPI) RegisterImportedChannel(ch chan<- *types.Block) (byte, error
 	return r0, r1
 }
 
+// RegisterRuntimeUpdatedChannel provides a mock function with given fields: ch
+func (_m *BlockAPI) RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error) {
+	ret := _m.Called(ch)
+
+	var r0 uint32
+	if rf, ok := ret.Get(0).(func(chan<- runtime.Version) uint32); ok {
+		r0 = rf(ch)
+	} else {
+		r0 = ret.Get(0).(uint32)
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(chan<- runtime.Version) error); ok {
+		r1 = rf(ch)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // SubChain provides a mock function with given fields: start, end
 func (_m *BlockAPI) SubChain(start common.Hash, end common.Hash) ([]common.Hash, error) {
 	ret := _m.Called(start, end)
@@ -264,4 +287,18 @@ func (_m *BlockAPI) UnregisterFinalisedChannel(id byte) {
 // UnregisterImportedChannel provides a mock function with given fields: id
 func (_m *BlockAPI) UnregisterImportedChannel(id byte) {
 	_m.Called(id)
+}
+
+// UnregisterRuntimeUpdatedChannel provides a mock function with given fields: id
+func (_m *BlockAPI) UnregisterRuntimeUpdatedChannel(id uint32) bool {
+	ret := _m.Called(id)
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(uint32) bool); ok {
+		r0 = rf(id)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	return r0
 }
