@@ -17,8 +17,13 @@
 package state
 
 import (
+	"errors"
+	"sync"
+
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/google/uuid"
 )
 
 // RegisterImportedChannel registers a channel for block notification upon block import.
@@ -131,4 +136,63 @@ func (bs *BlockState) notifyFinalized(hash common.Hash, round, setID uint64) {
 			}
 		}(ch)
 	}
+}
+
+func (bs *BlockState) notifyRuntimeUpdated(version runtime.Version) {
+	bs.runtimeUpdateSubscriptionsLock.RLock()
+	defer bs.runtimeUpdateSubscriptionsLock.RUnlock()
+
+	if len(bs.runtimeUpdateSubscriptions) == 0 {
+		return
+	}
+
+	logger.Debug("notifying runtime updated chans...", "chans", bs.runtimeUpdateSubscriptions)
+	var wg sync.WaitGroup
+	wg.Add(len(bs.runtimeUpdateSubscriptions))
+	for _, ch := range bs.runtimeUpdateSubscriptions {
+		go func(ch chan<- runtime.Version) {
+			defer wg.Done()
+			ch <- version
+		}(ch)
+	}
+	wg.Wait()
+}
+
+// RegisterRuntimeUpdatedChannel function to register chan that is notified when runtime version changes
+func (bs *BlockState) RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error) {
+	bs.runtimeUpdateSubscriptionsLock.Lock()
+	defer bs.runtimeUpdateSubscriptionsLock.Unlock()
+
+	if len(bs.runtimeUpdateSubscriptions) == 256 {
+		return 0, errors.New("channel limit reached")
+	}
+
+	id := bs.generateID()
+
+	bs.runtimeUpdateSubscriptions[id] = ch
+	return id, nil
+}
+
+// UnregisterRuntimeUpdatedChannel function to unregister runtime updated channel
+func (bs *BlockState) UnregisterRuntimeUpdatedChannel(id uint32) bool {
+	bs.runtimeUpdateSubscriptionsLock.Lock()
+	defer bs.runtimeUpdateSubscriptionsLock.Unlock()
+	ch, ok := bs.runtimeUpdateSubscriptions[id]
+	if ok {
+		close(ch)
+		delete(bs.runtimeUpdateSubscriptions, id)
+		return true
+	}
+	return false
+}
+
+func (bs *BlockState) generateID() uint32 {
+	var uid uuid.UUID
+	for {
+		uid = uuid.New()
+		if bs.runtimeUpdateSubscriptions[uid.ID()] == nil {
+			break
+		}
+	}
+	return uid.ID()
 }
