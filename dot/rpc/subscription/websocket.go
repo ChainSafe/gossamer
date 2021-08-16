@@ -318,6 +318,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 
 	err = c.CoreAPI.HandleSubmittedExtrinsic(extBytes)
 	if err != nil {
+		c.safeSendError(reqID, nil, err.Error())
 		return nil, err
 	}
 	c.safeSend(NewSubscriptionResponseJSON(esl.subID, reqID))
