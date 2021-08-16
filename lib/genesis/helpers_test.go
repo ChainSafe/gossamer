@@ -90,9 +90,9 @@ func TestNewGenesisFromJSON(t *testing.T) {
 	expRaw["top"]["0xcec5070d609dd3497f72bde07fc96ba0726380404683fc89e8233450c8aa1950ed43a85541921049696d6f6e80d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d"] = "0x"                                                       // Session
 	expRaw["top"]["0xcec5070d609dd3497f72bde07fc96ba0726380404683fc89e8233450c8aa1950f5537bdb2a1f626b6772616e8088dc3417d5058ec4b4503e0c12ea1a0a89be200fe98922423d4334014fa6b0ee"] = "0x"                                                       // Session
 	expRaw["top"]["0x11f3ba2e1cdd6d62f2ff9b5589e7ff81ba7fb8745735dc3be2a2c61a72c39e78"] = zeroByte                                                                                                                                             // Instance1Collective
+	expRaw["top"]["0x5f3e4907f716ac89b6347d15ececedca28dccb559b95c40168a1b2696581b5a7"] = "0x0000000000000000"                                                                                                                                 // Instance1Collective
 	expRaw["top"]["0x8985776095addd4789fccbce8ca77b23ba7fb8745735dc3be2a2c61a72c39e78"] = "0x08d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48"               // Instance2Collective
 	expRaw["top"]["0x492a52699edf49c972c21db794cfcf57ba7fb8745735dc3be2a2c61a72c39e78"] = zeroByte                                                                                                                                             // Instance1Membership
-	expRaw["top"]["0xe2e62dd81c48a88f73b6f6463555fd8eba7fb8745735dc3be2a2c61a72c39e78"] = "0x1101d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27de5c08eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48e5c0"     // PhragmenElection
 	// Contract
 	expRaw["top"]["0x4342193e496fab7ec59d615ed0dc5530d2d505c0e6f76fd7ce0796ebe187401c"] = "0x010000000001040000000002000000010000800000001000000000100000000100002000000000000800150600004c6b02004c8103009e1800000b1d0000160d0000651800006d2b00008a000000f5700100fdf602008e070000440600006e070000030600004f180000b528000091070000b60da70827080000590800006a0a0000ef070000560800004a0800008e080000f509000061090000dd090000a10a00009c090000e409000091090000650900001e0a0000120a0000ae09000099090000060a00006b2000000b1d000051200000221d000094090000ad090000b6090000160a0000660a0000fd090000260a0000440a0000d41a2a0000000000a0c729000000000092122900000000001ab5580000000000ba1c290000000000e000290000000000b0ef280000000000ee325c0000000000dec1280000000000ca07290000000000c07d4e00000000009c77140000000000303a7200000000000b01000000000000f0ab450000000000ff0200000000000060a21c270000000030078d31000000002635af09000000000ae164000000000038b18e0000000000b6b1cc0700000000890900000000000040036c00000000008ad6e21100000000de020000000000006e67cc080000000078f6110200000000e605000000000000acb1b50a00000000b24419090000000092579f08000000004702000000000000240300000000000016eaeb220000000055020000000000003503000000000000db0a000000000000f4802600000000006a100000000000006a9a280000000000220d0000000000004e9c2400000000001c0600000000000026832400000000001b06000000000000"
 	expectedGenesis.Genesis = Fields{
@@ -134,7 +134,9 @@ func TestNewGenesisFromJSON(t *testing.T) {
 		"SlashRewardFraction":   100000000,
 		"Invulnerables": []interface{}{
 			"5GNJqTPyNqANBkUVMN1LPPrxXnFouWXoe2wNSmmEoLctxiZY",
-		}}
+		},
+		"CanceledSlashPayout": 0,
+	}
 
 	hrData["Session"] = make(map[string]interface{})
 	hrData["Session"] = map[string]interface{}{
@@ -170,18 +172,6 @@ func TestNewGenesisFromJSON(t *testing.T) {
 	hrData["Instance1Membership"] = map[string]interface{}{
 		"Members": []interface{}{},
 		"Phantom": nil,
-	}
-
-	hrData["PhragmenElection"] = make(map[string]interface{})
-	hrData["PhragmenElection"] = map[string]interface{}{
-		"Members": []interface{}{
-			[]interface{}{
-				"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
-				12345},
-			[]interface{}{
-				"5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
-				12345},
-		},
 	}
 
 	hrData["Contracts"] = make(map[string]interface{})

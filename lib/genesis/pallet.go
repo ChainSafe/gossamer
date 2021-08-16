@@ -132,8 +132,9 @@ type staking struct {
 	Invulnerables         []string `json:"Invulnerables"`
 	ForceEra              string   `json:"ForceEra"`
 	SlashRewardFraction   uint32   `json:"SlashRewardFraction"`
+	// TODO: Implement custom decoding for this field.
+	CanceledSlashPayout int64 `json:"CanceledSlashPayout"`
 	// TODO: figure out below fields storage key.
-	// CanceledPayout        uint32          `json:"CanceledPayout"`
 	// Stakers               [][]interface{} `json:"Stakers"`
 }
 
@@ -157,5 +158,6 @@ type instance1Membership struct {
 }
 
 type phragmenElection struct {
+	// TODO: figure out the correct encoding format of members data
 	Members [][]interface{} `json:"Members"`
 }

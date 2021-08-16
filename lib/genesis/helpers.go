@@ -379,6 +379,7 @@ func generateStorageValue(i interface{}, idx int) ([]byte, error) {
 			return nil, err
 		}
 	case [][]interface{}:
+		// TODO: for members field in phragmenElection struct figure out the correct format for encoding value
 		for _, data := range t {
 			for _, v := range data {
 				var accAddr accountAddr
