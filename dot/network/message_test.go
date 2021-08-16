@@ -231,7 +231,7 @@ func TestEncodeBlockAnnounceMessage(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
-		Digest:         types.Digest{},
+		Digest:         types.NewEmptyDigestVdt(),
 	}
 	encMsg, err := bhm.Encode()
 	require.Nil(t, err)
@@ -244,7 +244,10 @@ func TestDecode_BlockAnnounceMessage(t *testing.T) {
 	announceMessage, err := common.HexToBytes("0x454545454545454545454545454545454545454545454545454545454545454504b3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe003170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c1113140000")
 	require.Nil(t, err)
 
-	bhm := new(BlockAnnounceMessage)
+	bhm := BlockAnnounceMessage{
+		Number: big.NewInt(0),
+		Digest: types.NewEmptyDigestVdt(),
+	}
 	err = bhm.Decode(announceMessage)
 	require.Nil(t, err)
 
@@ -257,12 +260,12 @@ func TestDecode_BlockAnnounceMessage(t *testing.T) {
 	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
 	require.Nil(t, err)
 
-	expected := &BlockAnnounceMessage{
+	expected := BlockAnnounceMessage{
 		ParentHash:     parentHash,
 		Number:         big.NewInt(1),
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
-		Digest:         types.Digest{},
+		Digest:         types.NewEmptyDigestVdt(),
 	}
 
 	require.Equal(t, expected, bhm)

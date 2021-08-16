@@ -128,12 +128,15 @@ func TestAnnounceBlock(t *testing.T) {
 		Body: &types.Body{},
 	}
 
+	digest := types.NewDigestVdt()
+	err = digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+
 	expected := &network.BlockAnnounceMessage{
 		ParentHash:     newBlock.Header.ParentHash,
 		Number:         newBlock.Header.Number,
 		StateRoot:      newBlock.Header.StateRoot,
 		ExtrinsicsRoot: newBlock.Header.ExtrinsicsRoot,
-		Digest:         newBlock.Header.Digest,
+		Digest:         digest,
 		BestBlock:      true,
 	}
 

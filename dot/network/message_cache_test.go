@@ -30,7 +30,7 @@ func TestMessageCache(t *testing.T) {
 		Number:         big.NewInt(77),
 		StateRoot:      common.Hash{2},
 		ExtrinsicsRoot: common.Hash{3},
-		Digest:         types.Digest{},
+		Digest:         types.NewEmptyDigestVdt(),
 	}
 
 	ok, err := msgCache.put(peerID, msg)

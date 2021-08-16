@@ -180,6 +180,7 @@ func testBlockRequestMessageDecoder(in []byte, _ peer.ID, _ bool) (Message, erro
 
 var testBlockAnnounceMessage = &BlockAnnounceMessage{
 	Number: big.NewInt(128 * 7),
+	Digest: types.NewEmptyDigestVdt(),
 }
 
 var testBlockAnnounceHandshake = &BlockAnnounceHandshake{
@@ -187,9 +188,13 @@ var testBlockAnnounceHandshake = &BlockAnnounceHandshake{
 }
 
 func testBlockAnnounceMessageDecoder(in []byte, _ peer.ID, _ bool) (Message, error) {
-	msg := new(BlockAnnounceMessage)
+	//msg := new(BlockAnnounceMessage)
+	msg := BlockAnnounceMessage{
+		Number: big.NewInt(0),
+		Digest: types.NewEmptyDigestVdt(),
+	}
 	err := msg.Decode(in)
-	return msg, err
+	return &msg, err
 }
 
 func testBlockAnnounceHandshakeDecoder(in []byte, _ peer.ID, _ bool) (Message, error) {

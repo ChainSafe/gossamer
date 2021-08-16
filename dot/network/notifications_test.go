@@ -82,7 +82,7 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 		Number:         big.NewInt(77),
 		StateRoot:      common.Hash{2},
 		ExtrinsicsRoot: common.Hash{3},
-		Digest:         types.Digest{},
+		Digest:         types.NewEmptyDigestVdt(),
 	}
 
 	enc, err = testBlockAnnounce.Encode()
@@ -148,8 +148,13 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 		received:  true,
 		validated: true,
 	})
+	//msg := &BlockAnnounceMessage{
+	//	Number: big.NewInt(10),
+	//}
+
 	msg := &BlockAnnounceMessage{
 		Number: big.NewInt(10),
+		Digest: types.NewEmptyDigestVdt(),
 	}
 
 	err = handler(stream, msg)

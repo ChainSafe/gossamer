@@ -104,7 +104,8 @@ func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) error {
 	logger.Debug("received BlockAnnounceMessage")
 
 	// create header from message
-	header, err := types.NewHeader(msg.ParentHash, msg.StateRoot, msg.ExtrinsicsRoot, msg.Number, msg.Digest)
+	//header, err := types.NewHeader(msg.ParentHash, msg.StateRoot, msg.ExtrinsicsRoot, msg.Number, msg.Digest)
+	header, err := types.NewHeaderVdt(msg.ParentHash, msg.StateRoot, msg.ExtrinsicsRoot, msg.Number, msg.Digest)
 	if err != nil {
 		return err
 	}
@@ -120,7 +121,7 @@ func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) error {
 		return nil
 	}
 
-	err = s.blockState.SetHeader(header)
+	err = s.blockState.SetHeaderNew(header)
 	if err != nil {
 		return err
 	}

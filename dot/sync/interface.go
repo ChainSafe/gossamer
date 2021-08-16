@@ -36,6 +36,7 @@ type BlockState interface {
 	HasBlockBody(hash common.Hash) (bool, error)
 	GetBlockBody(common.Hash) (*types.Body, error)
 	SetHeader(*types.Header) error
+	SetHeaderNew(*types.HeaderVdt) error
 	GetHeader(common.Hash) (*types.Header, error)
 	HasHeader(hash common.Hash) (bool, error)
 	SubChain(start, end common.Hash) ([]common.Hash, error)

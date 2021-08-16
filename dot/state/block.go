@@ -21,6 +21,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 	"reflect"
 	"sync"
@@ -331,6 +332,24 @@ func (bs *BlockState) GetBlockHash(blockNumber *big.Int) (common.Hash, error) {
 	}
 
 	return common.NewHash(byteHash), nil
+}
+
+func (bs *BlockState) SetHeaderNew(header *types.HeaderVdt) error {
+	hash := header.Hash()
+
+	// Write the encoded header
+	//bh, err := header.Encode()
+	bh, err := scale.Marshal(header)
+	if err != nil {
+		return err
+	}
+
+	err = bs.db.Put(headerKey(hash), bh)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // SetHeader will set the header into DB

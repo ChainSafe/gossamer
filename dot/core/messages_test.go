@@ -102,12 +102,24 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 		Body: types.NewBody([]byte{}),
 	}
 
+	digest := types.NewDigestVdt()
+	err = digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+
+	//newBlock := types.BlockVdt{
+	//	Header: types.HeaderVdt{
+	//		Number:     big.NewInt(1),
+	//		ParentHash: s.blockState.BestBlockHash(),
+	//		Digest:     digest,
+	//	},
+	//	Body: *types.NewBody([]byte{}),
+	//}
+
 	expected := &network.BlockAnnounceMessage{
 		ParentHash:     newBlock.Header.ParentHash,
 		Number:         newBlock.Header.Number,
 		StateRoot:      newBlock.Header.StateRoot,
 		ExtrinsicsRoot: newBlock.Header.ExtrinsicsRoot,
-		Digest:         newBlock.Header.Digest,
+		Digest:         digest,
 		BestBlock:      true,
 	}
 

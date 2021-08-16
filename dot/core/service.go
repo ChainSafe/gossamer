@@ -172,16 +172,39 @@ func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieSta
 	return s.handleBlock(block, state)
 }
 
-// HandleBlockProduced handles a block that was produced by us
-// It is handled the same as an imported block in terms of state updates; the only difference
-// is we send a BlockAnnounceMessage to our peers.
-func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieState) error {
+// HandleBlockProducedNew TODO This is a temp workaround, shouldnt take digest as param. To be fixed in types integration
+func (s *Service) HandleBlockProducedNew(block *types.Block, digest scale.VaryingDataTypeSlice, state *rtstorage.TrieState) error {
 	msg := &network.BlockAnnounceMessage{
 		ParentHash:     block.Header.ParentHash,
 		Number:         block.Header.Number,
 		StateRoot:      block.Header.StateRoot,
 		ExtrinsicsRoot: block.Header.ExtrinsicsRoot,
-		Digest:         block.Header.Digest,
+		Digest:         digest,
+		BestBlock:      true,
+	}
+
+	s.net.GossipMessage(msg)
+	return s.handleBlock(block, state)
+}
+
+// HandleBlockProduced handles a block that was produced by us
+// It is handled the same as an imported block in terms of state updates; the only difference
+// is we send a BlockAnnounceMessage to our peers.
+func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieState) error {
+	digest := types.NewDigestVdt()
+	for i, _ := range block.Header.Digest {
+		err := digest.Add(block.Header.Digest[i].(scale.VaryingDataTypeValue))
+		if err != nil {
+			return err
+		}
+	}
+
+	msg := &network.BlockAnnounceMessage{
+		ParentHash:     block.Header.ParentHash,
+		Number:         block.Header.Number,
+		StateRoot:      block.Header.StateRoot,
+		ExtrinsicsRoot: block.Header.ExtrinsicsRoot,
+		Digest:         digest,
 		BestBlock:      true,
 	}
 
