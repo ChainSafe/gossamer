@@ -3,9 +3,10 @@ package trie
 import (
 	"crypto/rand"
 	"encoding/binary"
-	"github.com/stretchr/testify/require"
 	"math/big"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 // Test represents a key-value pair for a test
