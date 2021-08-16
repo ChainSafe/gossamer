@@ -3,6 +3,7 @@ package trie
 import (
 	"crypto/rand"
 	"encoding/binary"
+	"github.com/stretchr/testify/require"
 	"math/big"
 	"testing"
 )
@@ -45,15 +46,11 @@ func generateRandomTest(t testing.TB, kv map[string][]byte) Test {
 	for {
 		n := 2 // arbitrary positive number
 		size, err := rand.Int(rand.Reader, big.NewInt(510))
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		buf := make([]byte, size.Int64()+int64(n))
 		_, err = rand.Read(buf)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		key := binary.LittleEndian.Uint16(buf[:2])
 
@@ -61,14 +58,12 @@ func generateRandomTest(t testing.TB, kv map[string][]byte) Test {
 			test.key = buf
 
 			size, err := rand.Int(rand.Reader, big.NewInt(128))
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
+
 			buf = make([]byte, size.Int64()+int64(n))
 			_, err = rand.Read(buf)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
+
 			test.value = buf
 
 			return test
