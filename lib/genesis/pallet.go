@@ -124,7 +124,8 @@ type contracts struct {
 type society struct {
 	Pot        *scale.Uint128 `json:"Pot"`
 	MaxMembers uint32         `json:"MaxMembers"`
-	Members    []string       `json:"Members"`
+	// TODO: figure out the correct encoding format of members field
+	Members []string `json:"Members"`
 }
 
 type staking struct {

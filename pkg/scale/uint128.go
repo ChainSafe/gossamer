@@ -159,7 +159,12 @@ func (u *Uint128) UnmarshalJSON(data []byte) error {
 	buf := make([]byte, len(data))
 	copy(buf, data)
 
-	dec, err := NewUint128(buf)
+	intVal, ok := big.NewInt(0).SetString(string(data), 10)
+	if !ok {
+		return fmt.Errorf("failed to unmarshal Uint128")
+	}
+
+	dec, err := NewUint128(intVal)
 	if err != nil {
 		return err
 	}
