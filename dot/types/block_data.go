@@ -47,10 +47,10 @@ type BlockData struct {
 func NewEmptyBlockDataVdt() *BlockDataVdt{
 	bd := &BlockDataVdt{
 		Header:        NewEmptyHeaderVdt(),
-		Body:          NewBody([]byte{}),
-		Receipt:       &[]byte{},
-		MessageQueue:  &[]byte{},
-		Justification: &[]byte{},
+		Body:          nil,
+		Receipt:       nil,
+		MessageQueue:  nil,
+		Justification: nil,
 	}
 	return bd
 }
