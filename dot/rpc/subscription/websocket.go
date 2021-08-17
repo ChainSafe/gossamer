@@ -233,6 +233,8 @@ func (c *WSConn) unsubscribeStorageListener(reqID float64, l Listener, _ interfa
 }
 
 func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, error) {
+	// TODO (ed) here the imported Channel get unregistered and closed in http.Stop
+	//  there doesn't seem to be an un-subscribe for this
 	bl := &BlockListener{
 		Channel:       make(chan *types.Block, DEFAULT_BUFFER_SIZE),
 		wsconn:        c,
@@ -305,6 +307,8 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 		return nil, err
 	}
 
+	// TODO (ed) the importedChan does not seem to get closed, or deleted
+	//  there doesn't seem to be an un-subscribe for this
 	// listen for built blocks
 	esl := &ExtrinsicSubmitListener{
 		importedChan:  make(chan *types.Block, DEFAULT_BUFFER_SIZE),
