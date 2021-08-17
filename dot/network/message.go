@@ -67,6 +67,7 @@ const (
 var _ Message = &BlockRequestMessage{}
 
 // BlockRequestMessage is sent to request some blocks from a peer
+// TODO remove optionals from this struct
 type BlockRequestMessage struct {
 	RequestedData byte
 	StartingBlock *variadic.Uint64OrHash // first byte 0 = block hash (32 byte), first byte 1 = block number (int64)
