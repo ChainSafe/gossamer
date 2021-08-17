@@ -44,6 +44,17 @@ type BlockData struct {
 	Justification *optional.Bytes
 }
 
+func NewEmptyBlockDataVdt() *BlockDataVdt{
+	bd := &BlockDataVdt{
+		Header:        NewEmptyHeaderVdt(),
+		Body:          NewBody([]byte{}),
+		Receipt:       &[]byte{},
+		MessageQueue:  &[]byte{},
+		Justification: &[]byte{},
+	}
+	return bd
+}
+
 // Number returns the BlockNumber of the BlockData's header, nil if it doesn't exist
 func (bd *BlockData) Number() *big.Int {
 	if bd == nil || bd.Header == nil || !bd.Header.Exists() {

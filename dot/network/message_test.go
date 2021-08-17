@@ -96,48 +96,47 @@ func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
 }
 
 func TestEncodeBlockResponseMessage_WithHeaderVdt(t *testing.T) {
-	exp := common.MustHexToBytes("0x0a86010a2000000000000000000000000000000000000000000000000000000000000000001262000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f04000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f00")
-
+	exp := common.MustHexToBytes("0x0aa2010a2000000000000000000000000000000000000000000000000000000000000000001262000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f04000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f001a0510010305071a040c0901021a040c0304052201012a0102320103")
 	hash := common.NewHash([]byte{0})
 	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
 
 	header, err := types.NewHeaderVdt(testHash, testHash, testHash, big.NewInt(1), types.NewDigestVdt())
 
+	exts := [][]byte{{1, 3, 5, 7}, {9, 1, 2}, {3, 4, 5}}
+	body, err := types.NewBodyFromBytes(exts)
+	require.NoError(t, err)
+
 	bd := &types.BlockDataVdt{
 		Hash:          hash,
 		Header:        header,
-		Body:          nil,
-		Receipt:       nil,
-		MessageQueue:  nil,
-		Justification: nil,
+		Body:          body,
+		Receipt:       &[]byte{1},
+		MessageQueue:  &[]byte{2},
+		Justification: &[]byte{3},
 	}
 
 	bm := &BlockResponseMessageNew{
 		BlockData: []*types.BlockDataVdt{bd},
 	}
 
-	//encH, err := scale.Marshal(bd)
-	//require.NoError(t, err)
-	//fmt.Println(common.BytesToHex(encH))
-
 	enc, err := bm.Encode()
 	require.NoError(t, err)
 	require.Equal(t, exp, enc)
 
-	empty := &types.BlockDataVdt{
-		Hash:          common.NewHash([]byte{0}),
-		Header:        types.NewEmptyHeaderVdt(),
-		Body:          nil,
-		Receipt:       nil,
-		MessageQueue:  nil,
-		Justification: nil,
-	}
+	empty := types.NewEmptyBlockDataVdt()
 
 	act := &BlockResponseMessageNew{
 		BlockData: []*types.BlockDataVdt{empty},
 	}
 	err = act.Decode(enc)
 	require.NoError(t, err)
+
+	for _, bd := range act.BlockData {
+		if bd.Header != nil {
+			_ = bd.Header.Hash()
+		}
+	}
+
 	require.Equal(t, bm, act)
 }
 
@@ -153,13 +152,17 @@ func TestEncodeBlockResponseMessage_WithHeader(t *testing.T) {
 		Digest:         &types.Digest{},
 	}
 
+	exts := [][]byte{{1, 3, 5, 7}, {9, 1, 2}, {3, 4, 5}}
+	body, err := types.NewBodyFromBytes(exts)
+	require.NoError(t, err)
+
 	bd := &types.BlockData{
 		Hash:          hash,
 		Header:        optional.NewHeader(true, header),
-		Body:          optional.NewBody(false, nil),
-		Receipt:       optional.NewBytes(false, nil),
-		MessageQueue:  optional.NewBytes(false, nil),
-		Justification: optional.NewBytes(false, nil),
+		Body:          body.AsOptional(),
+		Receipt:       optional.NewBytes(true, []byte{1}),
+		MessageQueue:  optional.NewBytes(true, []byte{2}),
+		Justification: optional.NewBytes(true, []byte{3}),
 	}
 
 	bm := &BlockResponseMessage{

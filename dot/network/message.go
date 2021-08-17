@@ -326,7 +326,7 @@ func blockDataToProtobufNew(bd *types.BlockDataVdt) (*pb.BlockData, error) {
 	}
 
 	if bd.Header != nil {
-		header, err := scale2.Marshal(bd.Header)
+		header, err := scale2.Marshal(*bd.Header)
 		if err != nil {
 			return nil, err
 		}
@@ -415,7 +415,7 @@ func protobufToBlockDataNew(pbd *pb.BlockData) (*types.BlockDataVdt, error) {
 
 	if pbd.Header != nil {
 		header := types.NewEmptyHeaderVdt()
-		err := scale2.Unmarshal(pbd.Header, &header)
+		err := scale2.Unmarshal(pbd.Header, header)
 		//header, err := scale.Decode(pbd.Header, types.NewEmptyHeader())
 		if err != nil {
 			return nil, err
