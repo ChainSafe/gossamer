@@ -29,7 +29,6 @@ import (
 	"sync/atomic"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
@@ -50,6 +49,7 @@ const DEFAULT_BUFFER_SIZE = 100
 
 // WSConn struct to hold WebSocket Connection references
 type WSConn struct {
+	UnsafeEnabled bool
 	Wsconn        *websocket.Conn
 	mu            sync.Mutex
 	qtyListeners  uint32
@@ -104,8 +104,13 @@ func (c *WSConn) HandleComm() {
 
 		logger.Debug("ws method called", "method", method, "params", params)
 
-		if strings.Contains(method, "_subscribe") {
+		if !strings.Contains(method, "_unsubscribe") && !strings.Contains(method, "_unwatch") {
 			setup := c.getSetupListener(method)
+
+			if setup == nil {
+				c.executeRPCCall(mbytes)
+				continue
+			}
 
 			listener, err := setup(reqid, params) //nolint
 			if err != nil {
@@ -117,61 +122,48 @@ func (c *WSConn) HandleComm() {
 			continue
 		}
 
-		if strings.Contains(method, "_unsubscribe") {
-			unsub, listener, err := c.getUnsubListener(method, params) //nolint
+		listener, err := c.getUnsubListener(params) //nolint
 
-			if err != nil {
-				logger.Warn("failed to get unsubscriber", "method", method, "error", err)
+		if err != nil {
+			logger.Warn("failed to get unsubscriber", "method", method, "error", err)
 
-				if errors.Is(err, errUknownParamSubscribeID) || errors.Is(err, errCannotFindUnsubsriber) {
-					c.safeSendError(reqid, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
-					continue
-				}
-
-				if errors.Is(err, errCannotParseID) || errors.Is(err, errCannotFindListener) {
-					c.safeSend(newBooleanResponseJSON(false, reqid))
-					continue
-				}
-			}
-
-			unsub(reqid, listener, params)
-			err = listener.Stop()
-
-			if err != nil {
-				logger.Warn("failed to cancel listener goroutine", "method", method, "error", err)
-			}
-
-			continue
-		}
-
-		if strings.Contains(method, "submitAndWatchExtrinsic") {
-			listener, err := c.initExtrinsicWatch(reqid, params) //nolint
-			if err != nil {
-				logger.Warn("failed to create listener", "method", method, "error", err)
-				c.safeSendError(reqid, nil, err.Error())
+			if errors.Is(err, errUknownParamSubscribeID) || errors.Is(err, errCannotFindUnsubsriber) {
+				c.safeSendError(reqid, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
 				continue
 			}
 
-			listener.Listen()
-			continue
+			if errors.Is(err, errCannotParseID) || errors.Is(err, errCannotFindListener) {
+				c.safeSend(newBooleanResponseJSON(false, reqid))
+				continue
+			}
 		}
 
-		// handle non-subscribe calls
-		request, err := c.prepareRequest(mbytes)
+		err = listener.Stop()
 		if err != nil {
-			logger.Warn("failed while preparing the request", "error", err)
-			return
+			logger.Warn("failed to cancel listener goroutine", "method", method, "error", err)
+			c.safeSend(newBooleanResponseJSON(false, reqid))
 		}
 
-		var wsresponse interface{}
-		err = c.executeRequest(request, &wsresponse)
-		if err != nil {
-			logger.Warn("problems while executing the request", "error", err)
-			return
-		}
-
-		c.safeSend(wsresponse)
+		c.safeSend(newBooleanResponseJSON(true, reqid))
+		continue
 	}
+}
+
+func (c *WSConn) executeRPCCall(data []byte) {
+	request, err := c.prepareRequest(data)
+	if err != nil {
+		logger.Warn("failed while preparing the request", "error", err)
+		return
+	}
+
+	var wsresponse interface{}
+	err = c.executeRequest(request, &wsresponse)
+	if err != nil {
+		logger.Warn("problems while executing the request", "error", err)
+		return
+	}
+
+	c.safeSend(wsresponse)
 }
 
 func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (Listener, error) {
@@ -218,18 +210,6 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (L
 	c.safeSend(initRes)
 
 	return stgobs, nil
-}
-
-func (c *WSConn) unsubscribeStorageListener(reqID float64, l Listener, _ interface{}) {
-	observer, ok := l.(state.Observer)
-	if !ok {
-		initRes := newBooleanResponseJSON(false, reqID)
-		c.safeSend(initRes)
-		return
-	}
-
-	c.StorageAPI.UnregisterStorageObserver(observer)
-	c.safeSend(newBooleanResponseJSON(true, reqID))
 }
 
 func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, error) {
@@ -338,6 +318,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 
 	err = c.CoreAPI.HandleSubmittedExtrinsic(extBytes)
 	if err != nil {
+		c.safeSendError(reqID, nil, err.Error())
 		return nil, err
 	}
 	c.safeSend(NewSubscriptionResponseJSON(esl.subID, reqID))
@@ -381,19 +362,6 @@ func (c *WSConn) initRuntimeVersionListener(reqID float64, _ interface{}) (Liste
 	return rvl, nil
 }
 
-func (c *WSConn) unsubscribeRuntimeVersionListener(reqID float64, l Listener, _ interface{}) {
-	observer, ok := l.(VersionListener)
-	if !ok {
-		initRes := newBooleanResponseJSON(false, reqID)
-		c.safeSend(initRes)
-		return
-	}
-	id := observer.GetChannelID()
-
-	res := c.BlockAPI.UnregisterRuntimeUpdatedChannel(id)
-	c.safeSend(newBooleanResponseJSON(res, reqID))
-}
-
 func (c *WSConn) initGrandpaJustificationListener(reqID float64, _ interface{}) (Listener, error) {
 	if c.BlockAPI == nil {
 		c.safeSendError(reqID, nil, "error BlockAPI not set")
@@ -424,17 +392,6 @@ func (c *WSConn) initGrandpaJustificationListener(reqID float64, _ interface{}) 
 	c.safeSend(NewSubscriptionResponseJSON(jl.subID, reqID))
 
 	return jl, nil
-}
-
-func (c *WSConn) unsubscribeGrandpaJustificationListener(reqID float64, l Listener, params interface{}) {
-	listener, ok := l.(*GrandpaJustificationListener)
-	if !ok {
-		c.safeSend(newBooleanResponseJSON(false, reqID))
-		return
-	}
-
-	c.BlockAPI.UnregisterFinalisedChannel(listener.finalisedChID)
-	c.safeSend(newBooleanResponseJSON(true, reqID))
 }
 
 func (c *WSConn) safeSend(msg interface{}) {

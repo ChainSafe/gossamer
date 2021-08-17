@@ -51,10 +51,12 @@ func (m *MockWSConnAPI) safeSend(msg interface{}) {
 }
 
 func TestStorageObserver_Update(t *testing.T) {
-	mockConnection := &MockWSConnAPI{}
+	wsconn, ws, cancel := setupWSConn(t)
+	defer cancel()
+
 	storageObserver := StorageObserver{
 		id:     0,
-		wsconn: mockConnection,
+		wsconn: wsconn,
 	}
 
 	data := []state.KeyValue{{
@@ -74,13 +76,20 @@ func TestStorageObserver_Update(t *testing.T) {
 		expected.Changes[i] = Change{common.BytesToHex(v.Key), common.BytesToHex(v.Value)}
 	}
 
-	expectedRespones := newSubcriptionBaseResponseJSON()
-	expectedRespones.Method = "state_storage"
-	expectedRespones.Params.Result = expected
+	expectedResponse := newSubcriptionBaseResponseJSON()
+	expectedResponse.Method = stateStorageMethod
+	expectedResponse.Params.Result = expected
 
 	storageObserver.Update(change)
-	time.Sleep(time.Millisecond * 10)
-	require.Equal(t, expectedRespones, mockConnection.lastMessage)
+	time.Sleep(time.Millisecond * 100)
+
+	_, msg, err := ws.ReadMessage()
+	require.NoError(t, err)
+
+	expectedResponseBytes, err := json.Marshal(expectedResponse)
+	require.NoError(t, err)
+
+	require.Equal(t, string(expectedResponseBytes)+"\n", string(msg))
 }
 
 func TestBlockListener_Listen(t *testing.T) {
