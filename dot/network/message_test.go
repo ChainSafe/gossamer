@@ -95,6 +95,52 @@ func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
 	require.Equal(t, bm, res)
 }
 
+func TestEncodeBlockResponseMessage_WithHeaderVdt(t *testing.T) {
+	exp := common.MustHexToBytes("0x0a86010a2000000000000000000000000000000000000000000000000000000000000000001262000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f04000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f000102030405060708090a0b0c0d0e0f00")
+
+	hash := common.NewHash([]byte{0})
+	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
+
+	header, err := types.NewHeaderVdt(testHash, testHash, testHash, big.NewInt(1), types.NewDigestVdt())
+
+	bd := &types.BlockDataVdt{
+		Hash:          hash,
+		Header:        header,
+		Body:          nil,
+		Receipt:       nil,
+		MessageQueue:  nil,
+		Justification: nil,
+	}
+
+	bm := &BlockResponseMessageNew{
+		BlockData: []*types.BlockDataVdt{bd},
+	}
+
+	//encH, err := scale.Marshal(bd)
+	//require.NoError(t, err)
+	//fmt.Println(common.BytesToHex(encH))
+
+	enc, err := bm.Encode()
+	require.NoError(t, err)
+	require.Equal(t, exp, enc)
+
+	empty := &types.BlockDataVdt{
+		Hash:          common.NewHash([]byte{0}),
+		Header:        types.NewEmptyHeaderVdt(),
+		Body:          nil,
+		Receipt:       nil,
+		MessageQueue:  nil,
+		Justification: nil,
+	}
+
+	act := &BlockResponseMessageNew{
+		BlockData: []*types.BlockDataVdt{empty},
+	}
+	err = act.Decode(enc)
+	require.NoError(t, err)
+	require.Equal(t, bm, act)
+}
+
 func TestEncodeBlockResponseMessage_WithHeader(t *testing.T) {
 	hash := common.NewHash([]byte{0})
 	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})

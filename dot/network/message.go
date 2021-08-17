@@ -20,6 +20,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 
 	pb "github.com/ChainSafe/gossamer/dot/network/proto"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -189,6 +190,26 @@ type BlockResponseMessage struct {
 	BlockData []*types.BlockData
 }
 
+type BlockResponseMessageNew struct {
+	BlockData []*types.BlockDataVdt
+}
+
+func (bm *BlockResponseMessageNew) getStartAndEnd() (int64, int64, error) {
+	if len(bm.BlockData) == 0 {
+		return 0, 0, errors.New("no BlockData in BlockResponseMessage")
+	}
+
+	if startExists := bm.BlockData[0].Header.Exists(); !startExists {
+		return 0, 0, errors.New("first BlockData in BlockResponseMessage does not contain header")
+	}
+
+	if endExists := bm.BlockData[len(bm.BlockData)-1].Header.Exists(); !endExists {
+		return 0, 0, errors.New("last BlockData in BlockResponseMessage does not contain header")
+	}
+
+	return bm.BlockData[0].Header.Number.Int64(), bm.BlockData[len(bm.BlockData)-1].Header.Number.Int64(), nil
+}
+
 func (bm *BlockResponseMessage) getStartAndEnd() (int64, int64, error) {
 	if len(bm.BlockData) == 0 {
 		return 0, 0, errors.New("no BlockData in BlockResponseMessage")
@@ -219,6 +240,25 @@ func (bm *BlockResponseMessage) String() string {
 	return fmt.Sprintf("BlockResponseMessage BlockData=%v", bm.BlockData)
 }
 
+func (bm *BlockResponseMessageNew) Encode() ([]byte, error) {
+	var (
+		err error
+	)
+
+	msg := &pb.BlockResponse{
+		Blocks: make([]*pb.BlockData, len(bm.BlockData)),
+	}
+
+	for i, bd := range bm.BlockData {
+		msg.Blocks[i], err = blockDataToProtobufNew(bd)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return proto.Marshal(msg)
+}
+
 // Encode returns the protobuf encoded BlockResponseMessage
 func (bm *BlockResponseMessage) Encode() ([]byte, error) {
 	var (
@@ -239,6 +279,26 @@ func (bm *BlockResponseMessage) Encode() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
+func (bm *BlockResponseMessageNew) Decode(in []byte) (err error) {
+	msg := &pb.BlockResponse{}
+	err = proto.Unmarshal(in, msg)
+	if err != nil {
+		return err
+	}
+
+	bm.BlockData = make([]*types.BlockDataVdt, len(msg.Blocks))
+
+	for i, bd := range msg.Blocks {
+		block, err := protobufToBlockDataNew(bd)
+		if err != nil {
+			return err
+		}
+		bm.BlockData[i] = block
+	}
+
+	return nil
+}
+
 // Decode decodes the protobuf encoded input to a BlockResponseMessage
 func (bm *BlockResponseMessage) Decode(in []byte) (err error) {
 	msg := &pb.BlockResponse{}
@@ -257,6 +317,47 @@ func (bm *BlockResponseMessage) Decode(in []byte) (err error) {
 	}
 
 	return nil
+}
+
+func blockDataToProtobufNew(bd *types.BlockDataVdt) (*pb.BlockData, error) {
+	p := &pb.BlockData{
+		Hash: bd.Hash[:],
+	}
+
+	if bd.Header != nil {
+		header, err := scale2.Marshal(bd.Header)
+		if err != nil {
+			return nil, err
+		}
+		p.Header = header
+	}
+
+	if bd.Body != nil {
+		body := bd.Body
+		exts, err := body.AsEncodedExtrinsicsNew()
+		if err != nil {
+			return nil, err
+		}
+
+		p.Body = types.ExtrinsicsArrayToBytesArray(exts)
+	}
+
+	if bd.Receipt != nil {
+		p.Receipt = *bd.Receipt
+	}
+
+	if bd.MessageQueue != nil {
+		p.MessageQueue = *bd.MessageQueue
+	}
+
+	if bd.Justification != nil {
+		p.Justification = *bd.Justification
+		if len(*bd.Justification) == 0 {
+			p.IsEmptyJustification = true
+		}
+	}
+
+	return p, nil
 }
 
 // blockDataToProtobuf converts a gossamer BlockData to a protobuf-defined BlockData
@@ -303,6 +404,59 @@ func blockDataToProtobuf(bd *types.BlockData) (*pb.BlockData, error) {
 	}
 
 	return p, nil
+}
+
+func protobufToBlockDataNew(pbd *pb.BlockData) (*types.BlockDataVdt, error) {
+	bd := &types.BlockDataVdt{
+		Hash: common.BytesToHash(pbd.Hash),
+		Header: types.NewEmptyHeaderVdt(),
+	}
+
+	if pbd.Header != nil {
+		header := types.NewEmptyHeaderVdt()
+		err := scale2.Unmarshal(pbd.Header, &header)
+		//header, err := scale.Decode(pbd.Header, types.NewEmptyHeader())
+		if err != nil {
+			return nil, err
+		}
+
+		bd.Header = header
+	}
+
+	if pbd.Body != nil {
+		body, err := types.NewBodyFromEncodedBytes(pbd.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		bd.Body = body
+	} else {
+		bd.Body = nil
+	}
+
+	if pbd.Receipt != nil {
+		bd.Receipt = &pbd.Receipt
+	} else {
+		bd.Receipt = nil
+	}
+
+	if pbd.MessageQueue != nil {
+		bd.MessageQueue = &pbd.MessageQueue
+	} else {
+		bd.MessageQueue = nil
+	}
+
+	if pbd.Justification != nil {
+		bd.Justification = &pbd.Justification
+	} else {
+		bd.Justification = nil
+	}
+
+	if pbd.Justification == nil && pbd.IsEmptyJustification {
+		bd.Justification = &[]byte{}
+	}
+
+	return bd, nil
 }
 
 func protobufToBlockData(pbd *pb.BlockData) (*types.BlockData, error) {

@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"io"
 	"math/big"
 
@@ -110,6 +111,32 @@ func (b *Body) AsExtrinsics() ([]Extrinsic, error) {
 	}
 
 	return BytesArrayToExtrinsics(dec.([][]byte)), nil
+}
+
+func (b *Body) AsEncodedExtrinsicsNew() ([]Extrinsic, error) {
+	exts := [][]byte{}
+
+	if len(*b) == 0 {
+		return []Extrinsic{}, nil
+	}
+
+	//dec, err := scale.Decode(*b, exts)
+	err := scale2.Unmarshal(*b, &exts)
+	if err != nil {
+		return nil, err
+	}
+
+	decodedExts := exts
+	ret := make([][]byte, len(decodedExts))
+
+	for i, ext := range decodedExts {
+		ret[i], err = scale2.Marshal(ext)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return BytesArrayToExtrinsics(ret), nil
 }
 
 // AsEncodedExtrinsics decodes the body into an array of SCALE encoded extrinsics
