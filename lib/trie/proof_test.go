@@ -2,12 +2,14 @@ package trie
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"testing"
 
 	crand "crypto/rand"
 
 	"github.com/ChainSafe/chaindb"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -45,10 +47,11 @@ func TestVerifyProof(t *testing.T) {
 	for _, kv := range entries {
 		t.Run("", func(t *testing.T) {
 			proof, clear := inMemoryChainDB(t)
+			defer clear()
 
 			fmt.Printf("Prove 0x%x\n", kv.k)
 
-			err := trie.Prove(kv.k, 0, proof)
+			_, err := trie.Prove(kv.k, 0, proof)
 			require.NoError(t, err)
 
 			fmt.Printf("Verifying 0x%x\n", kv.k)
@@ -56,8 +59,58 @@ func TestVerifyProof(t *testing.T) {
 
 			require.NoError(t, err)
 			require.Equal(t, kv.v, v)
+		})
+	}
+}
 
-			clear()
+func TestVerifyProofOneElement(t *testing.T) {
+	trie := NewEmptyTrie()
+	key := randBytes(32)
+	trie.Put(key, []byte("V"))
+
+	rootHash, err := trie.Hash()
+	require.NoError(t, err)
+
+	proof, clear := inMemoryChainDB(t)
+	defer clear()
+
+	_, err = trie.Prove(key, 0, proof)
+	require.NoError(t, err)
+
+	val, err := VerifyProof(rootHash, key, proof)
+	require.NoError(t, err)
+
+	require.Equal(t, []byte("V"), val)
+}
+
+func TestVerifyProof_BadProof(t *testing.T) {
+	trie, entries := randomTrie(t, 200)
+	rootHash, err := trie.Hash()
+	require.NoError(t, err)
+
+	for _, entry := range entries {
+		t.Run("", func(t *testing.T) {
+			proof, cancel := inMemoryChainDB(t)
+			defer cancel()
+
+			nLen, err := trie.Prove(entry.k, 0, proof)
+			require.NoError(t, err)
+
+			it := proof.NewIterator()
+			for i, d := 0, rand.Intn(nLen); i <= d; i++ {
+				it.Next()
+			}
+			key := it.Key()
+			val, _ := proof.Get(key)
+			proof.Del(key)
+			it.Release()
+
+			newhash, err := common.Keccak256(val)
+			require.NoError(t, err)
+			proof.Put(newhash.ToBytes(), val)
+
+			_, err = VerifyProof(rootHash, entry.k, proof)
+			require.Error(t, err)
 		})
 	}
 }

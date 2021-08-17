@@ -15,10 +15,10 @@ var (
 	ErrInvalidProof  = errors.New("provided key is not present at trie")
 )
 
-func (t *Trie) Prove(key []byte, fromLvl uint, db chaindb.Writer) error {
+func (t *Trie) Prove(key []byte, fromLvl uint, db chaindb.Writer) (int, error) {
 	key = keyToNibbles(key)
 	if len(key) == 0 {
-		return ErrEmptyNibbles
+		return 0, ErrEmptyNibbles
 	}
 
 	var nodes []node
@@ -37,7 +37,7 @@ proveLoop:
 				break proveLoop
 			}
 
-			return errors.New("could not found key")
+			return 0, errors.New("could not found key")
 
 		case *branch:
 			nodes = append(nodes, n)
@@ -47,7 +47,7 @@ proveLoop:
 
 			length := lenCommonPrefix(n.key, key)
 			if length > 0 && len(key) < len(n.key) {
-				return errors.New("could not found key")
+				return 0, errors.New("could not found key")
 			}
 
 			currNode = n.children[key[length]]
@@ -68,17 +68,15 @@ proveLoop:
 		)
 
 		if encHashNode, hashNode, err = n.encodeAndHash(); err != nil {
-			return fmt.Errorf("problems while encoding and hashing the node: %w", err)
+			return 0, fmt.Errorf("problems while encoding and hashing the node: %w", err)
 		}
 
-		fmt.Printf("0x%x\n", hashNode[:])
-
 		if err = db.Put(hashNode, encHashNode); err != nil {
-			return err
+			return len(nodes), err
 		}
 	}
 
-	return nil
+	return len(nodes), nil
 }
 
 func VerifyProof(rootHash common.Hash, key []byte, db chaindb.Reader) ([]byte, error) {
@@ -86,7 +84,6 @@ func VerifyProof(rootHash common.Hash, key []byte, db chaindb.Reader) ([]byte, e
 	wantedHash := rootHash
 
 	for {
-		fmt.Printf("verifying 0x%x\n", wantedHash)
 		enc, err := db.Get(wantedHash[:])
 		if err != nil {
 			return nil, fmt.Errorf("could not get hash %s while verifying proof: %w", wantedHash, err)
