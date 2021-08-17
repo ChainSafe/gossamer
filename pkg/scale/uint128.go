@@ -156,9 +156,6 @@ func (u *Uint128) trimBytes(b []byte, order binary.ByteOrder) []byte {
 
 // UnmarshalJSON converts data to Uint128.
 func (u *Uint128) UnmarshalJSON(data []byte) error {
-	buf := make([]byte, len(data))
-	copy(buf, data)
-
 	intVal, ok := big.NewInt(0).SetString(string(data), 10)
 	if !ok {
 		return fmt.Errorf("failed to unmarshal Uint128")
