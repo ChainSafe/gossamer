@@ -38,7 +38,7 @@ func createGenesisWithRuntime(fp string) (string, error) {
 		return "", err
 	}
 
-	genesis.Genesis.Runtime["system"]["code"] = fmt.Sprintf("0x%x", runtime)
+	genesis.Genesis.Runtime["System"]["code"] = fmt.Sprintf("0x%x", runtime)
 	bz, err := json.MarshalIndent(genesis, "", "\t")
 	if err != nil {
 		return "", err
