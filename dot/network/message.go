@@ -185,6 +185,7 @@ func (bm *BlockRequestMessage) Decode(in []byte) error {
 }
 
 var _ Message = &BlockResponseMessage{}
+var _ Message = &BlockResponseMessageNew{}
 
 // BlockResponseMessage is sent in response to a BlockRequestMessage
 type BlockResponseMessage struct {
@@ -227,9 +228,21 @@ func (bm *BlockResponseMessage) getStartAndEnd() (int64, int64, error) {
 	return bm.BlockData[0].Header.Value().Number.Int64(), bm.BlockData[len(bm.BlockData)-1].Header.Value().Number.Int64(), nil
 }
 
+func (bm *BlockResponseMessageNew) SubProtocol() string {
+	return syncID
+}
+
 // SubProtocol returns the sync sub-protocol
 func (bm *BlockResponseMessage) SubProtocol() string {
 	return syncID
+}
+
+func (bm *BlockResponseMessageNew) String() string {
+	if bm == nil {
+		return "BlockResponseMessage=nil"
+	}
+
+	return fmt.Sprintf("BlockResponseMessage BlockData=%v", bm.BlockData)
 }
 
 // String formats a BlockResponseMessage as a string
