@@ -10,11 +10,18 @@ import (
 )
 
 var (
+	// ErrEmptyTrieRoot occurs when trying to craft a prove with an empty trie root
 	ErrEmptyTrieRoot = errors.New("provided trie must have a root")
-	ErrEmptyNibbles  = errors.New("empty nibbles provided from key")
-	ErrInvalidProof  = errors.New("provided key is not present at trie")
+
+	// ErrEmptyNibbles occurs when trying to prove or valid a proof to an empty key
+	ErrEmptyNibbles = errors.New("empty nibbles provided from key")
+
+	// ErrInvalidProof occurs when the key could not be validated
+	ErrInvalidProof = errors.New("provided key is not present at trie")
 )
 
+// Prove constructs the merkle-proof for key. The result contains all encoded nodes
+// on the path to the value at key. Returns an error if could not found the key
 func (t *Trie) Prove(key []byte, fromLvl uint, db chaindb.Writer) (int, error) {
 	key = keyToNibbles(key)
 	if len(key) == 0 {
@@ -79,8 +86,13 @@ proveLoop:
 	return len(nodes), nil
 }
 
+// VerifyProof checks merkle proofs given an proof
 func VerifyProof(rootHash common.Hash, key []byte, db chaindb.Reader) ([]byte, error) {
 	key = keyToNibbles(key)
+	if len(key) == 0 {
+		return nil, ErrEmptyNibbles
+	}
+
 	wantedHash := rootHash
 
 	for {
@@ -89,12 +101,12 @@ func VerifyProof(rootHash common.Hash, key []byte, db chaindb.Reader) ([]byte, e
 			return nil, fmt.Errorf("could not get hash %s while verifying proof: %w", wantedHash, err)
 		}
 
-		node, err := decodeBytes(enc)
+		currNode, err := decodeBytes(enc)
 		if err != nil {
 			return nil, fmt.Errorf("could not decode node bytes: %w", err)
 		}
 
-		switch n := node.(type) {
+		switch n := currNode.(type) {
 		case nil:
 			return nil, ErrInvalidProof
 		case *leaf:
@@ -113,13 +125,13 @@ func VerifyProof(rootHash common.Hash, key []byte, db chaindb.Reader) ([]byte, e
 			}
 
 			length := lenCommonPrefix(n.key, key)
-			node = n.children[key[length]]
-			if node == nil {
+			next := n.children[key[length]]
+			if next == nil {
 				return nil, ErrInvalidProof
 			}
 
 			key = key[length+1:]
-			copy(wantedHash[:], node.getHash())
+			copy(wantedHash[:], next.getHash())
 		}
 	}
 }
