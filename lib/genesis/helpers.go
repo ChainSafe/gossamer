@@ -337,7 +337,7 @@ func generateStorageValue(i interface{}, idx int) ([]byte, error) {
 	)
 
 	switch t := reflect.Indirect(val).Field(idx).Interface().(type) {
-	case int64, uint64, uint32:
+	case int64, uint64, uint32, *scale.Uint128:
 		encode, err = scale.Marshal(t)
 		if err != nil {
 			return nil, err
