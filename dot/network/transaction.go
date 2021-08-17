@@ -22,7 +22,9 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/scale"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+
+	oldscale "github.com/ChainSafe/gossamer/lib/scale"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 )
@@ -54,37 +56,50 @@ func (tm *TransactionMessage) String() string {
 
 // Encode will encode TransactionMessage using scale.Encode
 func (tm *TransactionMessage) Encode() ([]byte, error) {
+	//// scale encode each extrinsic
+	//var encodedExtrinsics = make([]byte, 0)
+	//for _, extrinsic := range tm.Extrinsics {
+	//	encExt, err := scale.Encode([]byte(extrinsic))
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	encodedExtrinsics = append(encodedExtrinsics, encExt...)
+	//}
+
+	// scale encode the set of all extrinsics
+	return scale.Marshal(tm.Extrinsics)
+}
+
+func (tm *TransactionMessage) EncodeOld() ([]byte, error) {
 	// scale encode each extrinsic
 	var encodedExtrinsics = make([]byte, 0)
 	for _, extrinsic := range tm.Extrinsics {
-		encExt, err := scale.Encode([]byte(extrinsic))
+		encExt, err := oldscale.Encode([]byte(extrinsic))
 		if err != nil {
 			return nil, err
 		}
 		encodedExtrinsics = append(encodedExtrinsics, encExt...)
 	}
-
-	// scale encode the set of all extrinsics
-	return scale.Encode(encodedExtrinsics)
+	return oldscale.Encode(encodedExtrinsics)
 }
 
 // Decode the message into a TransactionMessage
 func (tm *TransactionMessage) Decode(in []byte) error {
-	decodedMessage, err := scale.Decode(in, []byte{})
+	err := scale.Unmarshal(in, &tm.Extrinsics)
 	if err != nil {
 		return err
 	}
-	messageSize := len(decodedMessage.([]byte))
-	bytesProcessed := 0
-	// loop through the message decoding extrinsics until they have all been decoded
-	for bytesProcessed < messageSize {
-		decodedExtrinsic, err := scale.Decode(decodedMessage.([]byte)[bytesProcessed:], []byte{})
-		if err != nil {
-			return err
-		}
-		bytesProcessed = bytesProcessed + len(decodedExtrinsic.([]byte)) + 1 // add 1 to processed since the first decode byte is consumed during decoding
-		tm.Extrinsics = append(tm.Extrinsics, decodedExtrinsic.([]byte))
-	}
+	//messageSize := len(decodedMessage.([]byte))
+	//bytesProcessed := 0
+	//// loop through the message decoding extrinsics until they have all been decoded
+	//for bytesProcessed < messageSize {
+	//	decodedExtrinsic, err := scale.Decode(decodedMessage.([]byte)[bytesProcessed:], []byte{})
+	//	if err != nil {
+	//		return err
+	//	}
+	//	bytesProcessed = bytesProcessed + len(decodedExtrinsic.([]byte)) + 1 // add 1 to processed since the first decode byte is consumed during decoding
+	//	tm.Extrinsics = append(tm.Extrinsics, decodedExtrinsic.([]byte))
+	//}
 
 	return nil
 }

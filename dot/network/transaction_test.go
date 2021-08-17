@@ -17,10 +17,15 @@
 package network
 
 import (
+	"fmt"
+	"math/rand"
+	"runtime"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 
@@ -74,4 +79,61 @@ func TestHandleTransactionMessage(t *testing.T) {
 
 	s.handleTransactionMessage(peer.ID(""), msg)
 	mockhandler.AssertCalled(t, "HandleTransactionMessage", msg)
+}
+
+//PrintMemUsage outputs the current, total and OS memory being used. As well as the number
+//of garage collection cycles completed.
+func PrintMemUsage() {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	fmt.Printf("Alloc = %v MiB", bToMb(m.Alloc))
+	fmt.Printf("\tTotalAlloc = %v MiB", bToMb(m.TotalAlloc))
+	fmt.Printf("\tSys = %v MiB", bToMb(m.Sys))
+	fmt.Printf("\tNumGC = %v\n", m.NumGC)
+}
+
+func bToMb(b uint64) uint64 {
+	return b / 1024 / 1024
+}
+
+func TestDecodeTransactionMessageEncode(t *testing.T) {
+	testTxMsg := TransactionMessage{
+		Extrinsics: []types.Extrinsic{}, // Store large data
+	}
+	for i := 0; i <= 1000; i++ {
+		token := make([]byte, 100000)
+		rand.Read(token)
+		testTxMsg.Extrinsics = append(testTxMsg.Extrinsics, token)
+	}
+	enc, err := testTxMsg.EncodeOld()
+	require.NoError(t, err)
+	PrintMemUsage()
+
+	_ = enc
+	// Force GC to clear up, should see a memory drop
+	runtime.GC()
+
+	encNew, err := testTxMsg.Encode()
+	require.NoError(t, err)
+	PrintMemUsage()
+	_ = encNew
+}
+
+func TestDecodeTransactionMessageEncodeRandom(t *testing.T) {
+	testTxMsg := TransactionMessage{
+		Extrinsics: []types.Extrinsic{}, // Store large data
+	}
+	for i := 0; i < 5; i++ {
+		token := make([]byte, 10)
+		//rand.Read(token)
+		testTxMsg.Extrinsics = append(testTxMsg.Extrinsics, token)
+	}
+	enc, err := testTxMsg.Encode()
+	require.NoError(t, err)
+
+	encScale, err := scale.Marshal(testTxMsg.Extrinsics)
+	require.NoError(t, err)
+
+	require.Equal(t, enc, encScale)
+	fmt.Println(common.BytesToHex(encScale))
 }
