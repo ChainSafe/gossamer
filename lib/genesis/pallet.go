@@ -123,7 +123,7 @@ type contracts struct {
 
 type society struct {
 	Pot        *scale.Uint128 `json:"Pot"`
-	MaxMembers *scale.Uint128 `json:"MaxMembers"` // TODO: figure out the type
+	MaxMembers uint32         `json:"MaxMembers"`
 	Members    []string       `json:"Members"`
 }
 

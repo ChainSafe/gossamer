@@ -159,7 +159,7 @@ func (u *Uint128) UnmarshalJSON(data []byte) error {
 	buf := make([]byte, len(data))
 	copy(buf, data)
 
-	dec, err := NewUint128(data)
+	dec, err := NewUint128(buf)
 	if err != nil {
 		return err
 	}
