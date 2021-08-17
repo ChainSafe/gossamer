@@ -138,7 +138,7 @@ func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream, peer peer.ID
 	for {
 		tot, err := readStream(stream, msgBytes)
 		if err == io.EOF {
-			continue
+			return
 		} else if err != nil {
 			logger.Debug("failed to read from stream", "protocol", stream.Protocol(), "error", err)
 			_ = stream.Close()
