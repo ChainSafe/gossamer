@@ -153,3 +153,17 @@ func (u *Uint128) trimBytes(b []byte, order binary.ByteOrder) []byte {
 	}
 	return b
 }
+
+// UnmarshalJSON converts data to Uint128.
+func (u *Uint128) UnmarshalJSON(data []byte) error {
+	buf := make([]byte, len(data))
+	copy(buf, data)
+
+	dec, err := NewUint128(data)
+	if err != nil {
+		return err
+	}
+	u.Upper = dec.Upper
+	u.Lower = dec.Lower
+	return nil
+}
