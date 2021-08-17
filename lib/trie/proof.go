@@ -115,7 +115,7 @@ func VerifyProof(rootHash common.Hash, key []byte, db chaindb.Reader) ([]byte, e
 			length := lenCommonPrefix(n.key, key)
 			node = n.children[key[length]]
 			if node == nil {
-				return nil, fmt.Errorf("key: 0x%x not found on branch to key 0x%x,", key[0], key[:])
+				return nil, ErrInvalidProof
 			}
 
 			key = key[length+1:]
