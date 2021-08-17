@@ -1,0 +1,63 @@
+on: [pull_request]
+name: unit-tests
+env:
+  GO111MODULE: on
+
+jobs:
+  unit-tests:
+    strategy:
+      matrix:
+        go-version: [1.15.x]
+        platform: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - id: go-cache-paths
+        run: |
+          echo "::set-output name=go-build::$(go env GOCACHE)"
+          echo "::set-output name=go-mod::$(go env GOMODCACHE)"
+      
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go-version }}
+      - uses: actions/checkout@v2
+
+      # cache go build cache
+      - name: Cache go modules
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.go-cache-paths.outputs.go-build }}
+          key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-go-build
+
+      # cache go mod cache
+      - name: Cache go modules
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.go-cache-paths.outputs.go-mod }}
+          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-go-mod
+
+      - name: Install Subkey
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            wget -P $HOME/.local/bin/ https://chainbridge.ams3.digitaloceanspaces.com/subkey-v2.0.0
+            mv $HOME/.local/bin/subkey-v2.0.0 $HOME/.local/bin/subkey
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            wget -P $HOME/.local/bin/ https://chainbridge.ams3.digitaloceanspaces.com/subkey-v2.0.0-macos
+            mv $HOME/.local/bin/subkey-v2.0.0-macos $HOME/.local/bin/subkey
+          else
+            echo "Subkey for $RUNNER_OS is not supported"
+            exit 1
+          fi
+
+          chmod +x $HOME/.local/bin/subkey
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Run unit tests
+        run: go test -short ./... -timeout=30m
+
+      - name: Test State - Race
+        run: make test-state-race
+
+      - name: Run build
+        run: make build
