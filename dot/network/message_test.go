@@ -95,47 +95,9 @@ func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
 	require.Equal(t, bm, res)
 }
 
-
-func TestEncodeBlockResponseMessage_WithBody(t *testing.T) {
-	hash := common.NewHash([]byte{0})
-	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
-
-	header := &optional.CoreHeader{
-		ParentHash:     testHash,
-		Number:         big.NewInt(1),
-		StateRoot:      testHash,
-		ExtrinsicsRoot: testHash,
-		Digest:         &types.Digest{},
-	}
-
-	exts := [][]byte{{1, 3, 5, 7}, {9, 1, 2}, {3, 4, 5}}
-	body, err := types.NewBodyFromBytes(exts)
-	require.NoError(t, err)
-
-	bd := &types.BlockData{
-		Hash:          hash,
-		Header:        optional.NewHeader(true, header),
-		Body:          body.AsOptional(),
-		Receipt:       optional.NewBytes(false, nil),
-		MessageQueue:  optional.NewBytes(false, nil),
-		Justification: optional.NewBytes(false, nil),
-	}
-
-	bm := &BlockResponseMessage{
-		BlockData: []*types.BlockData{bd},
-	}
-
-	encMsg, err := bm.Encode()
-	require.NoError(t, err)
-
-	res := new(BlockResponseMessage)
-	err = res.Decode(encMsg)
-	require.NoError(t, err)
-	require.Equal(t, bm, res)
-}
-
 func TestEncodeBlockResponseMessage_Empty(t *testing.T) {
 	bd := types.NewEmptyBlockDataVdt()
+	bd.Header.Hash()
 
 	bm := &BlockResponseMessageNew{
 		BlockData: []*types.BlockDataVdt{bd},
@@ -161,7 +123,7 @@ func TestEncodeBlockResponseMessage_Empty(t *testing.T) {
 	require.Equal(t, bm, act)
 }
 
-func TestEncodeBlockResponseMessage_WithBodyVdt(t *testing.T) {
+func TestEncodeBlockResponseMessage_WithBody(t *testing.T) {
 	hash := common.NewHash([]byte{0})
 	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
 	header, err := types.NewHeaderVdt(testHash, testHash, testHash, big.NewInt(1), types.NewDigestVdt())
