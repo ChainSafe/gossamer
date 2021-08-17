@@ -1,5 +1,7 @@
 package genesis
 
+import "github.com/ChainSafe/gossamer/pkg/scale"
+
 type contracts struct {
 	CurrentSchedule struct {
 		Version       uint32 `json:"version"`
@@ -120,20 +122,20 @@ type contracts struct {
 }
 
 type society struct {
-	Pot        uint64   `json:"Pot"`        //TODO: figure out the type
-	MaxMembers uint32   `json:"MaxMembers"` //TODO: figure out the type
-	Members    []string `json:"Members"`
+	Pot        *scale.Uint128 `json:"Pot"`
+	MaxMembers uint32         `json:"MaxMembers"`
+	// TODO: figure out the correct encoding format of members field
+	Members []string `json:"Members"`
 }
 
 type staking struct {
-	HistoryDepth          uint32   `json:"HistoryDepth"`
-	ValidatorCount        uint32   `json:"ValidatorCount"`
-	MinimumValidatorCount uint32   `json:"MinimumValidatorCount"`
-	Invulnerables         []string `json:"Invulnerables"`
-	ForceEra              string   `json:"ForceEra"`
-	SlashRewardFraction   uint32   `json:"SlashRewardFraction"`
-	// TODO: Implement custom decoding for this field.
-	CanceledSlashPayout int64 `json:"CanceledSlashPayout"`
+	HistoryDepth          uint32         `json:"HistoryDepth"`
+	ValidatorCount        uint32         `json:"ValidatorCount"`
+	MinimumValidatorCount uint32         `json:"MinimumValidatorCount"`
+	Invulnerables         []string       `json:"Invulnerables"`
+	ForceEra              string         `json:"ForceEra"`
+	SlashRewardFraction   uint32         `json:"SlashRewardFraction"`
+	CanceledSlashPayout   *scale.Uint128 `json:"CanceledSlashPayout"`
 	// TODO: figure out below fields storage key.
 	// Stakers               [][]interface{} `json:"Stakers"`
 }

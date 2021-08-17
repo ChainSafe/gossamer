@@ -25,8 +25,6 @@ func TestWSConn_HandleComm(t *testing.T) {
 	go wsconn.HandleComm()
 	time.Sleep(time.Second * 2)
 
-	fmt.Println("ws defined")
-
 	// test storageChangeListener
 	res, err := wsconn.initStorageChangeListener(1, nil)
 	require.Nil(t, res)

@@ -106,14 +106,26 @@ type CoreConfig struct {
 
 // RPCConfig is to marshal/unmarshal toml RPC config vars
 type RPCConfig struct {
-	Enabled    bool
-	External   bool
-	Port       uint32
-	Host       string
-	Modules    []string
-	WSPort     uint32
-	WS         bool
-	WSExternal bool
+	Enabled          bool
+	External         bool
+	Unsafe           bool
+	UnsafeExternal   bool
+	Port             uint32
+	Host             string
+	Modules          []string
+	WSPort           uint32
+	WS               bool
+	WSExternal       bool
+	WSUnsafe         bool
+	WSUnsafeExternal bool
+}
+
+func (r *RPCConfig) isRPCEnabled() bool {
+	return r.Enabled || r.External || r.Unsafe || r.UnsafeExternal
+}
+
+func (r *RPCConfig) isWSEnabled() bool {
+	return r.WS || r.WSExternal || r.WSUnsafe || r.WSUnsafeExternal
 }
 
 // StateConfig is the config for the State service
