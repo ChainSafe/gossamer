@@ -19,7 +19,7 @@ RUN apt-get update && \
 
 # Install Go
 RUN wget https://golang.org/dl/go1.16.7.linux-amd64.tar.gz
-RUN tar -C /usr/local -xzf go1.15.5.linux-amd64.tar.gz
+RUN tar -C /usr/local -xzf go1.16.7.linux-amd64.tar.gz
 
 # Install subkey
 RUN wget -P /usr/local/bin/ https://chainbridge.ams3.digitaloceanspaces.com/subkey-v2.0.0
