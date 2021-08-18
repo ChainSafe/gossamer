@@ -13,15 +13,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: ls -a
-        run: ls -a
-      
-      - name: pwd
-        run: pwd
-
-      - name: build docker image
-        run: docker build -f=Dockerfile.staging . --progress=plain -t=gossamer-polkadot:latest --build-arg chain=polkadot
-
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -36,9 +27,9 @@ jobs:
       - name: Build, tag, and push image to Amazon ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: gossamer-kusama
+          ECR_REPOSITORY: gossamer-polkadot
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker build -f=Dockerfile.staging . --progress=plain -t=$ECR_REPOSITORY:$IMAGE_TAG --build-arg chain=polkadot
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
