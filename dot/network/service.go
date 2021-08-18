@@ -580,8 +580,8 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 
 	for {
 		tot, err := readStream(stream, msgBytes[:])
-		if err == io.EOF {
-			continue
+		if errors.Is(err, io.EOF) {
+			return
 		} else if err != nil {
 			logger.Trace("failed to read from stream", "peer", stream.Conn().RemotePeer(), "protocol", stream.Protocol(), "error", err)
 			_ = stream.Close()
