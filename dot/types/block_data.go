@@ -44,9 +44,10 @@ type BlockData struct {
 	Justification *optional.Bytes
 }
 
+// TODO also have a constructor that takes in params, or a reciever ().Initialize
 func NewEmptyBlockDataVdt() *BlockDataVdt{
 	bd := &BlockDataVdt{
-		Header:        NewEmptyHeaderVdt(),
+		Header:        nil,
 		Body:          nil,
 		Receipt:       nil,
 		MessageQueue:  nil,

@@ -47,8 +47,8 @@ func NewMockSyncer() *MockSyncer {
 	mocksyncer := new(MockSyncer)
 	mocksyncer.On("HandleBlockAnnounce", mock.AnythingOfType("*network.BlockAnnounceMessage")).Return(nil, nil)
 	mocksyncer.On("CreateBlockResponse", mock.AnythingOfType("*network.BlockRequestMessage")).Return(testBlockResponseMessage(), nil)
-	mocksyncer.On("ProcessJustification", mock.AnythingOfType("[]*types.BlockData")).Return(0, nil)
-	mocksyncer.On("ProcessBlockData", mock.AnythingOfType("[]*types.BlockData")).Return(0, nil)
+	mocksyncer.On("ProcessJustification", mock.AnythingOfType("[]*types.BlockDataVdt")).Return(0, nil)
+	mocksyncer.On("ProcessBlockData", mock.AnythingOfType("[]*types.BlockDataVdt")).Return(0, nil)
 	mocksyncer.On("SetSyncing", mock.AnythingOfType("bool"))
 	mocksyncer.On("IsSynced").Return(false)
 	return mocksyncer
@@ -62,24 +62,24 @@ func NewMockTransactionHandler() *MockTransactionHandler {
 	return mocktxhandler
 }
 
-func testBlockResponseMessage() *BlockResponseMessage {
-	msg := &BlockResponseMessage{
-		BlockData: []*types.BlockData{},
+func testBlockResponseMessage() *BlockResponseMessageNew {
+	msg := &BlockResponseMessageNew{
+		BlockData: []*types.BlockDataVdt{},
 	}
 
 	for i := 0; i < int(blockRequestSize); i++ {
-		testHeader := types.Header{
+		testHeader := &types.HeaderVdt{
 			Number: big.NewInt(int64(77 + i)),
-			Digest: types.Digest{},
+			Digest: types.NewEmptyDigestVdt(),
 		}
 
-		msg.BlockData = append(msg.BlockData, &types.BlockData{
+		msg.BlockData = append(msg.BlockData, &types.BlockDataVdt{
 			Hash:          testHeader.Hash(),
-			Header:        testHeader.AsOptional(),
-			Body:          optional.NewBody(true, []byte{4, 4, 2}),
-			MessageQueue:  optional.NewBytes(false, nil),
-			Receipt:       optional.NewBytes(false, nil),
-			Justification: optional.NewBytes(false, nil),
+			Header:        testHeader,
+			Body:          types.NewBody([]byte{4, 4, 2}),
+			MessageQueue:  nil,
+			Receipt:       nil,
+			Justification: nil,
 		})
 	}
 

@@ -23,7 +23,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -44,15 +43,15 @@ func TestSyncQueue_PushResponse_Justification(t *testing.T) {
 	time.Sleep(time.Second)
 
 	peerID := peer.ID("noot")
-	msg := &BlockResponseMessage{
-		BlockData: []*types.BlockData{},
+	msg := &BlockResponseMessageNew{
+		BlockData: []*types.BlockDataVdt{},
 	}
 
 	for i := 0; i < int(blockRequestSize); i++ {
-		msg.BlockData = append(msg.BlockData, &types.BlockData{
-			Hash:          common.Hash{byte(i)},
-			Justification: optional.NewBytes(true, []byte{1}),
-		})
+		bd := types.NewEmptyBlockDataVdt()
+		bd.Hash = common.Hash{byte(i)}
+		bd.Justification = &[]byte{1}
+		msg.BlockData = append(msg.BlockData, bd)
 	}
 
 	s.syncQueue.justificationRequestData.Store(common.Hash{byte(0)}, requestData{})
@@ -82,15 +81,14 @@ func TestSyncQueue_PushResponse_EmptyJustification(t *testing.T) {
 	time.Sleep(time.Second)
 
 	peerID := peer.ID("noot")
-	msg := &BlockResponseMessage{
-		BlockData: []*types.BlockData{},
+	msg := &BlockResponseMessageNew{
+		BlockData: []*types.BlockDataVdt{},
 	}
 
 	for i := 0; i < int(blockRequestSize); i++ {
-		msg.BlockData = append(msg.BlockData, &types.BlockData{
-			Hash:          common.Hash{byte(i)},
-			Justification: optional.NewBytes(false, nil),
-		})
+		bd := types.NewEmptyBlockDataVdt()
+		bd.Hash = common.Hash{byte(i)}
+		msg.BlockData = append(msg.BlockData, bd)
 	}
 
 	s.syncQueue.justificationRequestData.Store(common.Hash{byte(0)}, &requestData{})
@@ -105,14 +103,14 @@ func TestSyncQueue_processBlockResponses_Justification(t *testing.T) {
 	q.ctx = context.Background()
 
 	go func() {
-		q.responseCh <- []*types.BlockData{
+		q.responseCh <- []*types.BlockDataVdt{
 			{
 				Hash:          common.Hash{byte(0)},
-				Header:        optional.NewHeader(false, nil),
-				Body:          optional.NewBody(false, nil),
-				Receipt:       optional.NewBytes(false, nil),
-				MessageQueue:  optional.NewBytes(false, nil),
-				Justification: optional.NewBytes(true, []byte{1}),
+				Header:        nil,
+				Body:          nil,
+				Receipt:       nil,
+				MessageQueue:  nil,
+				Justification: &[]byte{1},
 			},
 		}
 	}()

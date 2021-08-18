@@ -65,3 +65,13 @@ func TestEncodeAndDecodeHeader(t *testing.T) {
 	decVdt.Hash()
 	require.Equal(t, headerVdt, decVdt)
 }
+
+//func TestEmptyHeader(t *testing.T) {
+//	header := NewEmptyHeaderVdt()
+//	header2 := NewEmptyHeaderVdt()
+//
+//	//exists := header.Exists()
+//
+//	exists := header == header2
+//	require.False(t, exists)
+//}

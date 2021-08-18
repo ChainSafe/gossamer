@@ -97,6 +97,7 @@ func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
 
 func TestEncodeBlockResponseMessage_Empty(t *testing.T) {
 	bd := types.NewEmptyBlockDataVdt()
+	bd.Header = types.NewEmptyHeaderVdt()
 	bd.Header.Hash()
 
 	bm := &BlockResponseMessageNew{
@@ -107,6 +108,7 @@ func TestEncodeBlockResponseMessage_Empty(t *testing.T) {
 	require.NoError(t, err)
 
 	empty := types.NewEmptyBlockDataVdt()
+	empty.Header = types.NewEmptyHeaderVdt()
 
 	act := &BlockResponseMessageNew{
 		BlockData: []*types.BlockDataVdt{empty},
@@ -149,6 +151,7 @@ func TestEncodeBlockResponseMessage_WithBody(t *testing.T) {
 	require.NoError(t, err)
 
 	empty := types.NewEmptyBlockDataVdt()
+	empty.Header = types.NewEmptyHeaderVdt()
 
 	act := &BlockResponseMessageNew{
 		BlockData: []*types.BlockDataVdt{empty},
@@ -195,6 +198,7 @@ func TestEncodeBlockResponseMessage_WithAll(t *testing.T) {
 	require.Equal(t, exp, enc)
 
 	empty := types.NewEmptyBlockDataVdt()
+	empty.Header = types.NewEmptyHeaderVdt()
 
 	act := &BlockResponseMessageNew{
 		BlockData: []*types.BlockDataVdt{empty},

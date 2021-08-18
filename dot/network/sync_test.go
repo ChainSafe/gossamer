@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/utils"
 
@@ -89,18 +88,20 @@ func TestSyncQueue_PushResponse(t *testing.T) {
 	s := createTestService(t, config)
 
 	peerID := peer.ID("noot")
-	msg := &BlockResponseMessage{
-		BlockData: []*types.BlockData{},
+	msg := &BlockResponseMessageNew{
+		BlockData: []*types.BlockDataVdt{},
 	}
 
 	for i := 0; i < int(blockRequestSize); i++ {
-		testHeader := types.Header{
-			Number: big.NewInt(int64(77 + i)),
-		}
+		//testHeader := types.HeaderVdt{
+		//	Number: big.NewInt(int64(77 + i)),
+		//}
+		testHeader := types.NewEmptyHeaderVdt()
+		testHeader.Number = big.NewInt(int64(77 + i))
 
-		msg.BlockData = append(msg.BlockData, &types.BlockData{
-			Header: testHeader.AsOptional(),
-			Body:   optional.NewBody(true, []byte{0}),
+		msg.BlockData = append(msg.BlockData, &types.BlockDataVdt{
+			Header: testHeader,
+			Body:   types.NewBody([]byte{0}),
 		})
 	}
 
@@ -147,45 +148,48 @@ func TestSortRequests_RemoveDuplicates(t *testing.T) {
 }
 
 func TestSortResponses(t *testing.T) {
-	testHeader0 := types.Header{
+	testHeader0 := &types.HeaderVdt{
 		Number: big.NewInt(77),
+		Digest: types.NewEmptyDigestVdt(),
 	}
 
-	testHeader1 := types.Header{
+	testHeader1 := &types.HeaderVdt{
 		Number: big.NewInt(78),
+		Digest: types.NewEmptyDigestVdt(),
 	}
 
-	testHeader2 := types.Header{
+	testHeader2 := &types.HeaderVdt{
 		Number: big.NewInt(79),
+		Digest: types.NewEmptyDigestVdt(),
 	}
 
-	data := []*types.BlockData{
+	data := []*types.BlockDataVdt{
 		{
 			Hash:   testHeader2.Hash(),
-			Header: testHeader2.AsOptional(),
+			Header: testHeader2,
 		},
 		{
 			Hash:   testHeader0.Hash(),
-			Header: testHeader0.AsOptional(),
+			Header: testHeader0,
 		},
 		{
 			Hash:   testHeader1.Hash(),
-			Header: testHeader1.AsOptional(),
+			Header: testHeader1,
 		},
 	}
 
-	expected := []*types.BlockData{
+	expected := []*types.BlockDataVdt{
 		{
 			Hash:   testHeader0.Hash(),
-			Header: testHeader0.AsOptional(),
+			Header: testHeader0,
 		},
 		{
 			Hash:   testHeader1.Hash(),
-			Header: testHeader1.AsOptional(),
+			Header: testHeader1,
 		},
 		{
 			Hash:   testHeader2.Hash(),
-			Header: testHeader2.AsOptional(),
+			Header: testHeader2,
 		},
 	}
 
@@ -194,38 +198,41 @@ func TestSortResponses(t *testing.T) {
 }
 
 func TestSortResponses_RemoveDuplicated(t *testing.T) {
-	testHeader0 := types.Header{
+	testHeader0 := &types.HeaderVdt{
 		Number: big.NewInt(77),
+		Digest: types.NewEmptyDigestVdt(),
 	}
 
-	testHeader1 := types.Header{
+	testHeader1 := &types.HeaderVdt{
 		Number: big.NewInt(78),
+		Digest: types.NewEmptyDigestVdt(),
 	}
 
-	testHeader2 := types.Header{
+	testHeader2 := &types.HeaderVdt{
 		Number: big.NewInt(79),
+		Digest: types.NewEmptyDigestVdt(),
 	}
 
-	data := []*types.BlockData{
+	data := []*types.BlockDataVdt{
 		{
 			Hash:   testHeader0.Hash(),
-			Header: testHeader2.AsOptional(),
+			Header: testHeader2,
 		},
 		{
 			Hash:   testHeader0.Hash(),
-			Header: testHeader0.AsOptional(),
+			Header: testHeader0,
 		},
 		{
 			Hash:   testHeader0.Hash(),
-			Header: testHeader1.AsOptional(),
+			Header: testHeader1,
 		},
 	}
 
 	// should keep first block in sorted slice w/ duplicated hash
-	expected := []*types.BlockData{
+	expected := []*types.BlockDataVdt{
 		{
 			Hash:   testHeader0.Hash(),
-			Header: testHeader0.AsOptional(),
+			Header: testHeader0,
 		},
 	}
 
@@ -346,6 +353,7 @@ func TestSyncQueue_ProcessBlockRequests(t *testing.T) {
 	time.Sleep(time.Second * 3)
 	require.Len(t, nodeA.syncQueue.responses, 128)
 	testResp := testBlockResponseMessage()
+	// Sync queue responses arent being hashed
 	require.Equal(t, testResp.BlockData, nodeA.syncQueue.responses)
 }
 
@@ -367,17 +375,17 @@ func TestSyncQueue_handleResponseQueue_responseQueueAhead(t *testing.T) {
 	q.goal = int64(blockRequestSize) * 10
 	q.ctx = context.Background()
 
-	testHeader0 := types.Header{
+	testHeader0 := &types.HeaderVdt{
 		Number: big.NewInt(77),
-		Digest: types.Digest{},
+		Digest: types.NewEmptyDigestVdt(),
 	}
-	q.responses = append(q.responses, &types.BlockData{
+	q.responses = append(q.responses, &types.BlockDataVdt{
 		Hash:          testHeader0.Hash(),
-		Header:        testHeader0.AsOptional(),
-		Body:          optional.NewBody(true, []byte{4, 4, 2}),
-		Receipt:       optional.NewBytes(false, nil),
-		MessageQueue:  optional.NewBytes(false, nil),
-		Justification: optional.NewBytes(false, nil),
+		Header:        testHeader0,
+		Body:          types.NewBody([]byte{4, 4, 2}),
+		Receipt:       nil,
+		MessageQueue:  nil,
+		Justification: nil,
 	})
 
 	go q.handleResponseQueue()
@@ -393,19 +401,19 @@ func TestSyncQueue_processBlockResponses(t *testing.T) {
 	q.goal = int64(blockRequestSize) * 10
 	q.ctx = context.Background()
 
-	testHeader0 := types.Header{
+	testHeader0 := &types.HeaderVdt{
 		Number: big.NewInt(0),
-		Digest: types.Digest{},
+		Digest: types.NewEmptyDigestVdt(),
 	}
 	go func() {
-		q.responseCh <- []*types.BlockData{
+		q.responseCh <- []*types.BlockDataVdt{
 			{
 				Hash:          testHeader0.Hash(),
-				Header:        testHeader0.AsOptional(),
-				Body:          optional.NewBody(true, []byte{4, 4, 2}),
-				Receipt:       optional.NewBytes(false, nil),
-				MessageQueue:  optional.NewBytes(false, nil),
-				Justification: optional.NewBytes(false, nil),
+				Header:        testHeader0,
+				Body:          types.NewBody([]byte{4, 4, 2}),
+				Receipt:       nil,
+				MessageQueue:  nil,
+				Justification: nil,
 			},
 		}
 	}()

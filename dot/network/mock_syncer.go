@@ -13,15 +13,15 @@ type MockSyncer struct {
 }
 
 // CreateBlockResponse provides a mock function with given fields: _a0
-func (_m *MockSyncer) CreateBlockResponse(_a0 *BlockRequestMessage) (*BlockResponseMessage, error) {
+func (_m *MockSyncer) CreateBlockResponse(_a0 *BlockRequestMessage) (*BlockResponseMessageNew, error) {
 	ret := _m.Called(_a0)
 
-	var r0 *BlockResponseMessage
-	if rf, ok := ret.Get(0).(func(*BlockRequestMessage) *BlockResponseMessage); ok {
+	var r0 *BlockResponseMessageNew
+	if rf, ok := ret.Get(0).(func(*BlockRequestMessage) *BlockResponseMessageNew); ok {
 		r0 = rf(_a0)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*BlockResponseMessage)
+			r0 = ret.Get(0).(*BlockResponseMessageNew)
 		}
 	}
 
@@ -64,18 +64,18 @@ func (_m *MockSyncer) IsSynced() bool {
 }
 
 // ProcessBlockData provides a mock function with given fields: data
-func (_m *MockSyncer) ProcessBlockData(data []*types.BlockData) (int, error) {
+func (_m *MockSyncer) ProcessBlockData(data []*types.BlockDataVdt) (int, error) {
 	ret := _m.Called(data)
 
 	var r0 int
-	if rf, ok := ret.Get(0).(func([]*types.BlockData) int); ok {
+	if rf, ok := ret.Get(0).(func([]*types.BlockDataVdt) int); ok {
 		r0 = rf(data)
 	} else {
 		r0 = ret.Get(0).(int)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func([]*types.BlockData) error); ok {
+	if rf, ok := ret.Get(1).(func([]*types.BlockDataVdt) error); ok {
 		r1 = rf(data)
 	} else {
 		r1 = ret.Error(1)
@@ -85,18 +85,18 @@ func (_m *MockSyncer) ProcessBlockData(data []*types.BlockData) (int, error) {
 }
 
 // ProcessJustification provides a mock function with given fields: data
-func (_m *MockSyncer) ProcessJustification(data []*types.BlockData) (int, error) {
+func (_m *MockSyncer) ProcessJustification(data []*types.BlockDataVdt) (int, error) {
 	ret := _m.Called(data)
 
 	var r0 int
-	if rf, ok := ret.Get(0).(func([]*types.BlockData) int); ok {
+	if rf, ok := ret.Get(0).(func([]*types.BlockDataVdt) int); ok {
 		r0 = rf(data)
 	} else {
 		r0 = ret.Get(0).(int)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func([]*types.BlockData) error); ok {
+	if rf, ok := ret.Get(1).(func([]*types.BlockDataVdt) error); ok {
 		r1 = rf(data)
 	} else {
 		r1 = ret.Error(1)
