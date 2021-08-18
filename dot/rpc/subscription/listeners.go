@@ -60,7 +60,7 @@ type WSConnAPI interface {
 type StorageObserver struct {
 	id     uint32
 	filter map[string][]byte
-	wsconn WSConnAPI
+	wsconn *WSConn
 }
 
 // Change type defining key value pair representing change
@@ -107,7 +107,10 @@ func (s *StorageObserver) GetFilter() map[string][]byte {
 func (s *StorageObserver) Listen() {}
 
 // Stop to satisfy Listener interface (but is no longer used by StorageObserver)
-func (s *StorageObserver) Stop() error { return nil }
+func (s *StorageObserver) Stop() error {
+	s.wsconn.StorageAPI.UnregisterStorageObserver(s)
+	return nil
+}
 
 // BlockListener to handle listening for blocks importedChan
 type BlockListener struct {
@@ -227,7 +230,6 @@ type ExtrinsicSubmitListener struct {
 
 // Listen implementation of Listen interface to listen for importedChan changes
 func (l *ExtrinsicSubmitListener) Listen() {
-
 	// listen for imported blocks with extrinsic
 	go func() {
 		defer func() {

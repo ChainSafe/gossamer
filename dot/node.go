@@ -95,10 +95,7 @@ func InitNode(cfg *Config) error {
 	config := state.Config{
 		Path:     cfg.Global.BasePath,
 		LogLevel: cfg.Global.LogLvl,
-		PrunerCfg: struct {
-			Mode           pruner.Mode
-			RetainedBlocks int64
-		}{
+		PrunerCfg: pruner.Config{
 			Mode:           cfg.Global.Pruning,
 			RetainedBlocks: cfg.Global.RetainBlocks,
 		},
@@ -310,7 +307,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	nodeSrvcs = append(nodeSrvcs, sysSrvc)
 
 	// check if rpc service is enabled
-	if enabled := cfg.RPC.Enabled || cfg.RPC.WS; enabled {
+	if enabled := cfg.RPC.isRPCEnabled() || cfg.RPC.isWSEnabled(); enabled {
 		rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc, bp, sysSrvc, fg)
 		nodeSrvcs = append(nodeSrvcs, rpcSrvc)
 	} else {
