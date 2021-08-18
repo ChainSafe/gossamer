@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+
+	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 )
 
 const (
@@ -26,6 +28,10 @@ var (
 )
 
 func (c *WSConn) getSetupListener(method string) setupListener {
+	if concreteMethod, ok := modules.AliasesMethods[method]; ok {
+		method = concreteMethod
+	}
+
 	switch method {
 	case authorSubmitAndWatchExtrinsic:
 		return c.initExtrinsicWatch

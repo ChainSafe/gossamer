@@ -33,6 +33,12 @@ var (
 		"state_getKeysPaged",
 		"state_queryStorage",
 	}
+
+	AliasesMethods = map[string]string{
+		"chain_getHead":          "chain_getBlockHash",
+		"account_nextIndex":      "system_accountNextIndex",
+		"chain_getFinalisedHead": "chain_getFinalizedHead",
+	}
 )
 
 // RPCModule is a RPC module providing access to RPC methods
