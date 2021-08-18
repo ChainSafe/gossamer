@@ -2,6 +2,7 @@ package trie
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"testing"
@@ -16,7 +17,7 @@ import (
 func inMemoryChainDB(t *testing.T) (*chaindb.BadgerDB, func()) {
 	t.Helper()
 
-	tmpdir, err := os.MkdirTemp(os.TempDir(), "trie-chaindb-*")
+	tmpdir, err := ioutil.TempDir("", "trie-chaindb-*")
 	require.NoError(t, err)
 
 	db, err := chaindb.NewBadgerDB(&chaindb.Config{
