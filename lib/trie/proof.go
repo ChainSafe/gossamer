@@ -33,9 +33,9 @@ var (
 	ErrEmptyNibbles = errors.New("empty nibbles provided from key")
 )
 
-// Prove constructs the merkle-proof for key. The result contains all encoded nodes
-// on the path to the value at key. Returns an error if could not found the key
-func (t *Trie) Prove(key []byte, db chaindb.Writer) (int, error) {
+// GenerateProof constructs the merkle-proof for key. The result contains all encoded nodes
+// on the path to the key. Returns the amount of nodes of the path and error if could not found the key
+func (t *Trie) GenerateProof(key []byte, db chaindb.Writer) (int, error) {
 	key = keyToNibbles(key)
 	if len(key) == 0 {
 		return 0, ErrEmptyNibbles

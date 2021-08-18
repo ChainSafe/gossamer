@@ -73,7 +73,7 @@ func TestVerifyProof(t *testing.T) {
 			proof, clear := inMemoryChainDB(t)
 			defer clear()
 
-			_, err := trie.Prove(kv.k, proof)
+			_, err := trie.GenerateProof(kv.k, proof)
 			require.NoError(t, err)
 			v, err := VerifyProof(root, kv.k, proof)
 
@@ -96,7 +96,7 @@ func TestVerifyProofOneElement(t *testing.T) {
 	proof, clear := inMemoryChainDB(t)
 	defer clear()
 
-	_, err = trie.Prove(key, proof)
+	_, err = trie.GenerateProof(key, proof)
 	require.NoError(t, err)
 
 	val, err := VerifyProof(rootHash, key, proof)
@@ -126,7 +126,7 @@ func TestVerifyProof_BadProof(t *testing.T) {
 			proof, cancel := inMemoryChainDB(t)
 			defer cancel()
 
-			nLen, err := trie.Prove(kv.k, proof)
+			nLen, err := trie.GenerateProof(kv.k, proof)
 			require.NoError(t, err)
 
 			it := proof.NewIterator()
