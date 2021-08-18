@@ -24,12 +24,6 @@
                 }
             ],
             "environment": [],
-            "mountPoints": [
-                {
-                    "containerPath": "/root/.gossamer/",
-                    "sourceVolume": "rexray-vol"
-                }
-            ],
             "image": "500822580415.dkr.ecr.us-east-2.amazonaws.com/gossamer-kusama",
             "essential": true,
             "name": "gossamer-kusama"
@@ -47,19 +41,5 @@
     "requiresCompatibilities": [
         "EC2"
     ],
-    "cpu": "2048",
-    "volumes": [
-        {
-            "name": "rexray-vol",
-            "dockerVolumeConfiguration": {
-                "autoprovision": true,
-                "scope": "shared",
-                "driver": "rexray/ebs",
-                "driverOpts": {
-                    "volumetype": "gp2",
-                    "size": "8"
-                }
-            }
-        }
-    ]
+    "cpu": "2048"
 }
