@@ -1,3 +1,19 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package trie
 
 import (
@@ -57,12 +73,12 @@ func TestVerifyProof(t *testing.T) {
 			proof, clear := inMemoryChainDB(t)
 			defer clear()
 
-			_, err := trie.Prove(kv.k, 0, proof)
+			_, err := trie.Prove(kv.k, proof)
 			require.NoError(t, err)
 			v, err := VerifyProof(root, kv.k, proof)
 
 			require.NoError(t, err)
-			require.Equal(t, kv.v, v)
+			require.True(t, v)
 		}(entry)
 	}
 
@@ -80,13 +96,13 @@ func TestVerifyProofOneElement(t *testing.T) {
 	proof, clear := inMemoryChainDB(t)
 	defer clear()
 
-	_, err = trie.Prove(key, 0, proof)
+	_, err = trie.Prove(key, proof)
 	require.NoError(t, err)
 
 	val, err := VerifyProof(rootHash, key, proof)
 	require.NoError(t, err)
 
-	require.Equal(t, []byte("V"), val)
+	require.True(t, val)
 }
 
 func TestVerifyProof_BadProof(t *testing.T) {
@@ -110,7 +126,7 @@ func TestVerifyProof_BadProof(t *testing.T) {
 			proof, cancel := inMemoryChainDB(t)
 			defer cancel()
 
-			nLen, err := trie.Prove(kv.k, 0, proof)
+			nLen, err := trie.Prove(kv.k, proof)
 			require.NoError(t, err)
 
 			it := proof.NewIterator()
@@ -126,8 +142,9 @@ func TestVerifyProof_BadProof(t *testing.T) {
 			require.NoError(t, err)
 			proof.Put(newhash.ToBytes(), val)
 
-			_, err = VerifyProof(rootHash, kv.k, proof)
-			require.Error(t, err)
+			v, err := VerifyProof(rootHash, kv.k, proof)
+			require.NoError(t, err)
+			require.False(t, v)
 		}(entry)
 	}
 

@@ -1,3 +1,19 @@
+// Copyright 2019 ChainSafe Systems (ON) Corp.
+// This file is part of gossamer.
+//
+// The gossamer library is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// The gossamer library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with the gossamer library. If not, see <http://www.gnu.org/licenses/>.
+
 package trie
 
 import (
@@ -15,14 +31,11 @@ var (
 
 	// ErrEmptyNibbles occurs when trying to prove or valid a proof to an empty key
 	ErrEmptyNibbles = errors.New("empty nibbles provided from key")
-
-	// ErrInvalidProof occurs when the key could not be validated
-	ErrInvalidProof = errors.New("provided key is not present at trie")
 )
 
 // Prove constructs the merkle-proof for key. The result contains all encoded nodes
 // on the path to the value at key. Returns an error if could not found the key
-func (t *Trie) Prove(key []byte, fromLvl uint, db chaindb.Writer) (int, error) {
+func (t *Trie) Prove(key []byte, db chaindb.Writer) (int, error) {
 	key = keyToNibbles(key)
 	if len(key) == 0 {
 		return 0, ErrEmptyNibbles
@@ -63,11 +76,6 @@ proveLoop:
 	}
 
 	for _, n := range nodes {
-		if fromLvl > 0 {
-			fromLvl--
-			continue
-		}
-
 		var (
 			hashNode    []byte
 			encHashNode []byte
@@ -87,10 +95,10 @@ proveLoop:
 }
 
 // VerifyProof checks merkle proofs given an proof
-func VerifyProof(rootHash common.Hash, key []byte, db chaindb.Reader) ([]byte, error) {
+func VerifyProof(rootHash common.Hash, key []byte, db chaindb.Reader) (bool, error) {
 	key = keyToNibbles(key)
 	if len(key) == 0 {
-		return nil, ErrEmptyNibbles
+		return false, ErrEmptyNibbles
 	}
 
 	wantedHash := rootHash
@@ -98,36 +106,36 @@ func VerifyProof(rootHash common.Hash, key []byte, db chaindb.Reader) ([]byte, e
 	for {
 		enc, err := db.Get(wantedHash[:])
 		if err != nil {
-			return nil, fmt.Errorf("could not get hash %s while verifying proof: %w", wantedHash, err)
+			return false, fmt.Errorf("could not get hash %s while verifying proof: %w", wantedHash, err)
 		}
 
 		currNode, err := decodeBytes(enc)
 		if err != nil {
-			return nil, fmt.Errorf("could not decode node bytes: %w", err)
+			return false, fmt.Errorf("could not decode node bytes: %w", err)
 		}
 
 		switch n := currNode.(type) {
 		case nil:
-			return nil, ErrInvalidProof
+			return false, nil
 		case *leaf:
 			if bytes.Equal(n.key, key) {
-				return n.value, nil
+				return true, nil
 			}
 
-			return nil, ErrInvalidProof
+			return false, nil
 		case *branch:
 			if bytes.Equal(n.key, key) {
-				return n.value, nil
+				return true, nil
 			}
 
 			if len(key) == 0 {
-				return nil, ErrInvalidProof
+				return false, nil
 			}
 
 			length := lenCommonPrefix(n.key, key)
 			next := n.children[key[length]]
 			if next == nil {
-				return nil, ErrInvalidProof
+				return false, nil
 			}
 
 			key = key[length+1:]
