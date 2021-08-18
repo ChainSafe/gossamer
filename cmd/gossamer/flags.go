@@ -189,6 +189,16 @@ var (
 		Name:  "rpc-external",
 		Usage: "Enable external HTTP-RPC connections",
 	}
+	// RPCEnabledFlag Enable the HTTP-RPC
+	RPCUnsafeEnabledFlag = cli.BoolFlag{
+		Name:  "rpc-unsafe",
+		Usage: "Enable the HTTP-RPC server to unsafe procedures",
+	}
+	// RPCExternalFlag Enable the external HTTP-RPC
+	RPCUnsafeExternalFlag = cli.BoolFlag{
+		Name:  "rpc-unsafe-external",
+		Usage: "Enable external HTTP-RPC connections to unsafe procedures",
+	}
 	// RPCHostFlag HTTP-RPC server listening hostname
 	RPCHostFlag = cli.StringFlag{
 		Name:  "rpchost",
@@ -218,6 +228,16 @@ var (
 	WSExternalFlag = cli.BoolFlag{
 		Name:  "ws-external",
 		Usage: "Enable external websocket connections",
+	}
+	// WSFlag Enable the websockets server
+	WSUnsafeFlag = cli.BoolFlag{
+		Name:  "ws-unsafe",
+		Usage: "Enable access to websocket unsafe calls",
+	}
+	// WSExternalFlag Enable external websocket connections
+	WSUnsafeExternalFlag = cli.BoolFlag{
+		Name:  "ws-unsafe-external",
+		Usage: "Enable external access to websocket unsafe calls",
 	}
 )
 
@@ -329,11 +349,15 @@ var (
 		// rpc flags
 		RPCEnabledFlag,
 		RPCExternalFlag,
+		RPCUnsafeEnabledFlag,
+		RPCUnsafeExternalFlag,
 		RPCHostFlag,
 		RPCPortFlag,
 		RPCModulesFlag,
 		WSFlag,
 		WSExternalFlag,
+		WSUnsafeFlag,
+		WSUnsafeExternalFlag,
 		WSPortFlag,
 
 		// metrics flag
