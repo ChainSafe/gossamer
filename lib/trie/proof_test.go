@@ -2,10 +2,10 @@ package trie
 
 import (
 	crand "crypto/rand"
-	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"sync"
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
@@ -41,23 +41,32 @@ func TestVerifyProof(t *testing.T) {
 	root, err := trie.Hash()
 	require.NoError(t, err)
 
-	for _, kv := range entries {
-		t.Run("", func(t *testing.T) {
+	amount := make(chan struct{}, 50)
+	wg := new(sync.WaitGroup)
+
+	for _, entry := range entries {
+		wg.Add(1)
+		go func(kv *kv) {
+			defer func() {
+				wg.Done()
+				<-amount
+			}()
+
+			amount <- struct{}{}
+
 			proof, clear := inMemoryChainDB(t)
 			defer clear()
 
-			fmt.Printf("Prove 0x%x\n", kv.k)
-
 			_, err := trie.Prove(kv.k, 0, proof)
 			require.NoError(t, err)
-
-			fmt.Printf("Verifying 0x%x\n", kv.k)
 			v, err := VerifyProof(root, kv.k, proof)
 
 			require.NoError(t, err)
 			require.Equal(t, kv.v, v)
-		})
+		}(entry)
 	}
+
+	wg.Wait()
 }
 
 func TestVerifyProofOneElement(t *testing.T) {
@@ -85,12 +94,23 @@ func TestVerifyProof_BadProof(t *testing.T) {
 	rootHash, err := trie.Hash()
 	require.NoError(t, err)
 
+	amount := make(chan struct{}, 50)
+	wg := new(sync.WaitGroup)
+
 	for _, entry := range entries {
-		t.Run("", func(t *testing.T) {
+		wg.Add(1)
+
+		go func(kv *kv) {
+			defer func() {
+				wg.Done()
+				<-amount
+			}()
+
+			amount <- struct{}{}
 			proof, cancel := inMemoryChainDB(t)
 			defer cancel()
 
-			nLen, err := trie.Prove(entry.k, 0, proof)
+			nLen, err := trie.Prove(kv.k, 0, proof)
 			require.NoError(t, err)
 
 			it := proof.NewIterator()
@@ -106,10 +126,12 @@ func TestVerifyProof_BadProof(t *testing.T) {
 			require.NoError(t, err)
 			proof.Put(newhash.ToBytes(), val)
 
-			_, err = VerifyProof(rootHash, entry.k, proof)
+			_, err = VerifyProof(rootHash, kv.k, proof)
 			require.Error(t, err)
-		})
+		}(entry)
 	}
+
+	wg.Wait()
 }
 
 type kv struct {
