@@ -51,7 +51,7 @@ jobs:
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
-          service: gossamer-${{ matrix.chain }}
+          service: gossamer-${{ matrix.chain }}-svc
           cluster: gossamer-stg
           wait-for-service-stability: true
 
