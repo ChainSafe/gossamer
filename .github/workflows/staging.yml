@@ -9,6 +9,9 @@ env:
 
 jobs:
   update:
+    strategy:
+      matrix:
+        chain: [polkadot, kusama]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -27,9 +30,10 @@ jobs:
       - name: Build, tag, and push image to Amazon ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: gossamer-polkadot
+          ECR_REPOSITORY: gossamer-${{ matrix.chain }}
           IMAGE_TAG: ${{ github.sha }}
+          CHAIN: ${{ matrix.chain }}
         run: |
-          docker build -f=Dockerfile.staging . --progress=plain -t=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG --build-arg chain=polkadot
+          docker build -f=Dockerfile.staging . --progress=plain -t=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG --build-arg chain=$CHAIN
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
