@@ -287,8 +287,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 		return nil, err
 	}
 
-	// TODO (ed) the importedChan does not seem to get closed, or deleted
-	//  there doesn't seem to be an un-subscribe for this
+	// TODO (ed) the importedChan get deleted by unregister imported channel in defer in Listen (listeners.go line 236)
 	// listen for built blocks
 	esl := &ExtrinsicSubmitListener{
 		importedChan:  make(chan *types.Block, DEFAULT_BUFFER_SIZE),

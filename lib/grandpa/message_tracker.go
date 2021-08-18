@@ -37,7 +37,7 @@ type tracker struct {
 
 func newTracker(bs BlockState, out chan<- *networkVoteMessage) (*tracker, error) {
 	in := make(chan *types.Block, 16)
-	// TODO (ed) import channel is unregistered and closed is tracker.stop()
+	// TODO (ed) import channel is unregistered and closed in tracker.stop()
 	id, err := bs.RegisterImportedChannel(in)
 	if err != nil {
 		return nil, err

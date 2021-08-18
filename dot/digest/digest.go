@@ -75,6 +75,7 @@ type resume struct {
 // NewHandler returns a new Handler
 func NewHandler(blockState BlockState, epochState EpochState, grandpaState GrandpaState) (*Handler, error) {
 	// TODO (ed) imported channel is unregistered and closed in handler.Stop
+	//
 	imported := make(chan *types.Block, 16)
 	finalised := make(chan *types.FinalisationInfo, 16)
 	iid, err := blockState.RegisterImportedChannel(imported)
