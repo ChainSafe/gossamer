@@ -686,12 +686,16 @@ func setDotNetworkConfig(ctx *cli.Context, tomlCfg ctoml.NetworkConfig, cfg *dot
 func setDotRPCConfig(ctx *cli.Context, tomlCfg ctoml.RPCConfig, cfg *dot.RPCConfig) {
 	cfg.Enabled = tomlCfg.Enabled
 	cfg.External = tomlCfg.External
+	cfg.Unsafe = tomlCfg.Unsafe
+	cfg.UnsafeExternal = tomlCfg.UnsafeExternal
 	cfg.Port = tomlCfg.Port
 	cfg.Host = tomlCfg.Host
 	cfg.Modules = tomlCfg.Modules
 	cfg.WSPort = tomlCfg.WSPort
 	cfg.WS = tomlCfg.WS
 	cfg.WSExternal = tomlCfg.WSExternal
+	cfg.WSUnsafe = tomlCfg.WSUnsafe
+	cfg.WSUnsafeExternal = tomlCfg.WSUnsafeExternal
 
 	// check --rpc flag and update node configuration
 	if enabled := ctx.GlobalBool(RPCEnabledFlag.Name); enabled || cfg.Enabled {
