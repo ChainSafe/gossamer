@@ -1,13 +1,12 @@
 package trie
 
 import (
+	crand "crypto/rand"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"os"
 	"testing"
-
-	crand "crypto/rand"
 
 	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -27,9 +26,6 @@ func inMemoryChainDB(t *testing.T) (*chaindb.BadgerDB, func()) {
 	require.NoError(t, err)
 
 	clear := func() {
-		err := db.ClearAll()
-		require.NoError(t, err)
-
 		err = db.Close()
 		require.NoError(t, err)
 
