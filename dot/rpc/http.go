@@ -53,13 +53,34 @@ type HTTPServerConfig struct {
 	TransactionQueueAPI modules.TransactionStateAPI
 	RPCAPI              modules.RPCAPI
 	SystemAPI           modules.SystemAPI
-	External            bool
+	RPC                 bool
+	RPCExternal         bool
+	RPCUnsafe           bool
+	RPCUnsafeExternal   bool
 	Host                string
 	RPCPort             uint32
 	WS                  bool
 	WSExternal          bool
+	WSUnsafe            bool
+	WSUnsafeExternal    bool
 	WSPort              uint32
 	Modules             []string
+}
+
+func (h *HTTPServerConfig) rpcUnsafeEnabled() bool {
+	return h.RPCUnsafe || h.RPCUnsafeExternal
+}
+
+func (h *HTTPServerConfig) wsUnsafeEnabled() bool {
+	return h.WSUnsafe || h.WSUnsafeExternal
+}
+
+func (h *HTTPServerConfig) exposeWS() bool {
+	return h.WSExternal || h.WSUnsafeExternal
+}
+
+func (h *HTTPServerConfig) exposeRPC() bool {
+	return h.RPCExternal || h.RPCUnsafeExternal
 }
 
 var logger log.Logger
@@ -78,10 +99,6 @@ func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
 	}
 
 	server.RegisterModules(cfg.Modules)
-	if !cfg.External {
-		server.rpcServer.RegisterValidateRequestFunc(LocalRequestOnly)
-	}
-
 	return server
 }
 
@@ -138,15 +155,8 @@ func (h *HTTPServer) Start() error {
 	// Add custom validator for `common.Hash`
 	validate.RegisterCustomTypeFunc(common.HashValidator, common.Hash{})
 
-	validateHandler := func(r *rpc.RequestInfo, v interface{}) error {
-		err := validate.Struct(v)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
+	h.rpcServer.RegisterValidateRequestFunc(rpcValidator(h.serverConfig, validate))
 
-	h.rpcServer.RegisterValidateRequestFunc(validateHandler)
 	go func() {
 		err := http.ListenAndServe(fmt.Sprintf(":%d", h.serverConfig.RPCPort), r)
 		if err != nil {
@@ -199,7 +209,7 @@ func (h *HTTPServer) Stop() error {
 func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var upg = websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool {
-			if !h.serverConfig.WSExternal {
+			if !h.serverConfig.exposeWS() {
 				ip, _, error := net.SplitHostPort(r.RemoteAddr)
 				if error != nil {
 					logger.Error("unable to parse IP", "error")
@@ -214,6 +224,7 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				logger.Debug("external websocket request refused", "error")
 				return false
 			}
+
 			return true
 		},
 	}
@@ -233,6 +244,7 @@ func (h *HTTPServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // NewWSConn to create new WebSocket Connection struct
 func NewWSConn(conn *websocket.Conn, cfg *HTTPServerConfig) *subscription.WSConn {
 	c := &subscription.WSConn{
+		UnsafeEnabled: cfg.wsUnsafeEnabled(),
 		Wsconn:        conn,
 		Subscriptions: make(map[uint32]subscription.Listener),
 		StorageAPI:    cfg.StorageAPI,
