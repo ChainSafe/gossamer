@@ -43,7 +43,7 @@ jobs:
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
-          task-definition: .github/worksflows/staging/${{ matrix.chain }}-taskdef.json
+          task-definition: .github/workflows/staging/${{ matrix.chain }}-taskdef.json
           container-name: gossamer-${{ matrix.chain }}
           image: ${{ steps.build-image.outputs.image }}
       
