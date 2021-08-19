@@ -97,10 +97,11 @@ func VerifyProof(rootHash common.Hash, key []byte, db chaindb.Reader) (bool, err
 		return false, ErrEmptyNibbles
 	}
 
-	wantedHash := rootHash
+	var wantedHash []byte
+	wantedHash = rootHash.ToBytes()
 
 	for {
-		enc, err := db.Get(wantedHash[:])
+		enc, err := db.Get(wantedHash)
 		if errors.Is(err, chaindb.ErrKeyNotFound) {
 			return false, nil
 		} else if err != nil {
@@ -137,7 +138,7 @@ func VerifyProof(rootHash common.Hash, key []byte, db chaindb.Reader) (bool, err
 			}
 
 			key = key[length+1:]
-			copy(wantedHash[:], next.getHash())
+			wantedHash = next.getHash()
 		}
 	}
 }
