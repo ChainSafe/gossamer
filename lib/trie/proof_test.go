@@ -53,11 +53,11 @@ func inMemoryChainDB(t *testing.T) (*chaindb.BadgerDB, func()) {
 }
 
 func TestVerifyProof(t *testing.T) {
-	trie, entries := randomTrie(t, 500)
+	trie, entries := randomTrie(t, 200)
 	root, err := trie.Hash()
 	require.NoError(t, err)
 
-	amount := make(chan struct{}, 50)
+	amount := make(chan struct{}, 15)
 	wg := new(sync.WaitGroup)
 
 	for _, entry := range entries {
@@ -110,7 +110,7 @@ func TestVerifyProof_BadProof(t *testing.T) {
 	rootHash, err := trie.Hash()
 	require.NoError(t, err)
 
-	amount := make(chan struct{}, 50)
+	amount := make(chan struct{}, 15)
 	wg := new(sync.WaitGroup)
 
 	for _, entry := range entries {
