@@ -215,13 +215,7 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (L
 func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, error) {
 	// TODO (ed) here the imported Channel get unregistered and closed in http.Stop
 	//  there doesn't seem to be an un-subscribe for this
-	bl := &BlockListener{
-		Channel:       make(chan *types.Block, DEFAULT_BUFFER_SIZE),
-		wsconn:        c,
-		cancel:        make(chan struct{}, 1),
-		cancelTimeout: defaultCancelTimeout,
-		done:          make(chan struct{}, 1),
-	}
+	bl := NewBlockListener(c)
 
 	if c.BlockAPI == nil {
 		c.safeSendError(reqID, nil, "error BlockAPI not set")
@@ -289,15 +283,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 
 	// TODO (ed) the importedChan get deleted by unregister imported channel in defer in Listen (listeners.go line 236)
 	// listen for built blocks
-	esl := &ExtrinsicSubmitListener{
-		importedChan:  make(chan *types.Block, DEFAULT_BUFFER_SIZE),
-		wsconn:        c,
-		extrinsic:     types.Extrinsic(extBytes),
-		finalisedChan: make(chan *types.FinalisationInfo),
-		cancel:        make(chan struct{}, 1),
-		done:          make(chan struct{}, 1),
-		cancelTimeout: defaultCancelTimeout,
-	}
+	esl := NewExtrinsicSubmitListener(c, extBytes)
 
 	if c.BlockAPI == nil {
 		return nil, fmt.Errorf("error BlockAPI not set")

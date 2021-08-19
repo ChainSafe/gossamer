@@ -123,6 +123,18 @@ type BlockListener struct {
 	cancelTimeout time.Duration
 }
 
+// NewBlockListener constructor for creating BlockListener
+func NewBlockListener(conn *WSConn) *BlockListener {
+	bl := &BlockListener{
+		Channel:       make(chan *types.Block, DEFAULT_BUFFER_SIZE),
+		wsconn:        conn,
+		cancel:        make(chan struct{}, 1),
+		cancelTimeout: defaultCancelTimeout,
+		done:          make(chan struct{}, 1),
+	}
+	return bl
+}
+
 // Listen implementation of Listen interface to listen for importedChan changes
 func (l *BlockListener) Listen() {
 	go func() {
@@ -226,6 +238,20 @@ type ExtrinsicSubmitListener struct {
 	done            chan struct{}
 	cancel          chan struct{}
 	cancelTimeout   time.Duration
+}
+
+// NewExtrinsicSubmitListener constructor to build new ExtrinsicSubmitListener
+func NewExtrinsicSubmitListener(conn *WSConn, extBytes []byte) *ExtrinsicSubmitListener {
+	esl := &ExtrinsicSubmitListener{
+		importedChan:  make(chan *types.Block, DEFAULT_BUFFER_SIZE),
+		wsconn:        conn,
+		extrinsic:     types.Extrinsic(extBytes),
+		finalisedChan: make(chan *types.FinalisationInfo),
+		cancel:        make(chan struct{}, 1),
+		done:          make(chan struct{}, 1),
+		cancelTimeout: defaultCancelTimeout,
+	}
+	return esl
 }
 
 // Listen implementation of Listen interface to listen for importedChan changes
