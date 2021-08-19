@@ -101,8 +101,10 @@ func VerifyProof(rootHash common.Hash, key []byte, db chaindb.Reader) (bool, err
 
 	for {
 		enc, err := db.Get(wantedHash[:])
-		if err != nil {
-			return false, fmt.Errorf("could not get hash %s while verifying proof: %w", wantedHash, err)
+		if errors.Is(err, chaindb.ErrKeyNotFound) {
+			return false, nil
+		} else if err != nil {
+			return false, nil
 		}
 
 		currNode, err := decodeBytes(enc)

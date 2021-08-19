@@ -123,10 +123,11 @@ func TestVerifyProof_BadProof(t *testing.T) {
 			}()
 
 			amount <- struct{}{}
-			proof, cancel := inMemoryChainDB(t)
-			defer cancel()
+			proof, clear := inMemoryChainDB(t)
+			defer clear()
 
 			nLen, err := trie.GenerateProof(kv.k, proof)
+			require.Greater(t, nLen, 0)
 			require.NoError(t, err)
 
 			it := proof.NewIterator()
