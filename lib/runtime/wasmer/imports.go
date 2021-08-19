@@ -1348,7 +1348,19 @@ func ext_hashing_twox_64_version_1(context unsafe.Pointer, dataSpan C.int64_t) C
 //export ext_offchain_index_set_version_1
 func ext_offchain_index_set_version_1(context unsafe.Pointer, keySpan, valueSpan C.int64_t) {
 	logger.Trace("[ext_offchain_index_set_version_1] executing...")
-	logger.Warn("[ext_offchain_index_set_version_1] unimplemented")
+	instanceContext := wasm.IntoInstanceContext(context)
+	runtimeCtx := instanceContext.Data().(*runtime.Context)
+
+	storageKey := asMemorySlice(instanceContext, keySpan)
+	newValue := asMemorySlice(instanceContext, valueSpan)
+	cp := make([]byte, len(newValue))
+	copy(cp, newValue)
+
+	err := runtimeCtx.NodeStorage.PersistentStorage.Put(storageKey, cp)
+
+	if err != nil {
+		logger.Error("[ext_offchain_index_set_version_1] failed to set value in storage", "error", err)
+	}
 }
 
 //export ext_offchain_local_storage_clear_version_1
