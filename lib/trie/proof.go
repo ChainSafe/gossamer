@@ -48,7 +48,7 @@ proveLoop:
 	for {
 		switch n := currNode.(type) {
 		case nil:
-			break proveLoop
+			return 0, errors.New("no more paths to follow")
 
 		case *leaf:
 			nodes = append(nodes, n)
@@ -57,7 +57,7 @@ proveLoop:
 				break proveLoop
 			}
 
-			return 0, errors.New("could not found key")
+			return 0, errors.New("leaf node doest not match the key")
 
 		case *branch:
 			nodes = append(nodes, n)
@@ -66,10 +66,6 @@ proveLoop:
 			}
 
 			length := lenCommonPrefix(n.key, key)
-			if length > 0 && len(key) < len(n.key) {
-				return 0, errors.New("could not found key")
-			}
-
 			currNode = n.children[key[length]]
 			key = key[length+1:]
 		}

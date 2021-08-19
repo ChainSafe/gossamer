@@ -151,6 +151,55 @@ func TestVerifyProof_BadProof(t *testing.T) {
 	wg.Wait()
 }
 
+func TestGenerateProofMissingKey(t *testing.T) {
+	trie := NewEmptyTrie()
+
+	parentKey, parentVal := randBytes(32), randBytes(20)
+	chieldKey, chieldValue := modifyLastBytes(parentKey), modifyLastBytes(parentVal)
+	gransonKey, gransonValue := modifyLastBytes(chieldKey), modifyLastBytes(chieldValue)
+
+	trie.Put(parentKey, parentVal)
+	trie.Put(chieldKey, chieldValue)
+	trie.Put(gransonKey, gransonValue)
+
+	proof, clear := inMemoryChainDB(t)
+	defer clear()
+
+	searchfor := make([]byte, len(gransonKey))
+	copy(searchfor[:], gransonKey[:])
+
+	// keep the path til the key but modify the last element
+	searchfor[len(searchfor)-1] = searchfor[len(searchfor)-1] + byte(0xff)
+
+	_, err := trie.GenerateProof(searchfor, proof)
+	require.Error(t, err, "leaf node doest not match the key")
+}
+
+func TestGenerateProofNoMorePathToFollow(t *testing.T) {
+	trie := NewEmptyTrie()
+
+	parentKey, parentVal := randBytes(32), randBytes(20)
+	chieldKey, chieldValue := modifyLastBytes(parentKey), modifyLastBytes(parentVal)
+	gransonKey, gransonValue := modifyLastBytes(chieldKey), modifyLastBytes(chieldValue)
+
+	trie.Put(parentKey, parentVal)
+	trie.Put(chieldKey, chieldValue)
+	trie.Put(gransonKey, gransonValue)
+
+	proof, clear := inMemoryChainDB(t)
+	defer clear()
+
+	searchfor := make([]byte, len(parentKey))
+	copy(searchfor[:], parentKey[:])
+
+	// the keys are equals until the byte number 20 so we modify the byte number 20 to another
+	// value and the branch node will no be able to found the right slot
+	searchfor[20] = searchfor[20] + byte(0xff)
+
+	_, err := trie.GenerateProof(searchfor, proof)
+	require.Error(t, err, "no more paths to follow")
+}
+
 type kv struct {
 	k []byte
 	v []byte
@@ -175,4 +224,14 @@ func randBytes(n int) []byte {
 	r := make([]byte, n)
 	crand.Read(r)
 	return r
+}
+
+func modifyLastBytes(b []byte) []byte {
+	newB := make([]byte, len(b))
+	copy(newB[:], b)
+
+	rb := randBytes(12)
+	copy(newB[20:], rb)
+
+	return newB
 }
