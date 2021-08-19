@@ -35,6 +35,7 @@ const (
 	authorExtrinsicUpdatesMethod = "author_extrinsicUpdate"
 	chainFinalizedHeadMethod     = "chain_finalizedHead"
 	chainNewHeadMethod           = "chain_newHead"
+	chainAllHeadMethod           = "chain_allHead"
 	stateStorageMethod           = "state_storage"
 )
 
@@ -210,6 +211,81 @@ func (l *BlockFinalizedListener) Listen() {
 
 // Stop to cancel the running goroutines to this listener
 func (l *BlockFinalizedListener) Stop() error {
+	return cancelWithTimeout(l.cancel, l.done, l.cancelTimeout)
+}
+
+type AllBlocksListener struct {
+	finalizedChan chan *types.FinalisationInfo
+	importedChan  chan *types.Block
+
+	wsconn          *WSConn
+	finalizedChanID byte
+	importedChanID  byte
+	subID           uint32
+	done            chan struct{}
+	cancel          chan struct{}
+	cancelTimeout   time.Duration
+}
+
+func (l *AllBlocksListener) Listen() {
+	go func() {
+		defer func() {
+			l.wsconn.BlockAPI.UnregisterImportedChannel(l.importedChanID)
+			l.wsconn.BlockAPI.UnregisterFinalisedChannel(l.finalizedChanID)
+			close(l.done)
+		}()
+
+		for {
+			select {
+			case <-l.cancel:
+				return
+			case fin, ok := <-l.finalizedChan:
+				if !ok {
+					return
+				}
+
+				if fin == nil || fin.Header == nil {
+					continue
+				}
+
+				finHead, err := modules.HeaderToJSON(*fin.Header)
+				if err != nil {
+					logger.Error("failed to convert finalized block header to JSON", "error", err)
+					continue
+				}
+
+				res := newSubcriptionBaseResponseJSON()
+				res.Method = chainAllHeadMethod
+				res.Params.Result = finHead
+				res.Params.SubscriptionID = l.subID
+				l.wsconn.safeSend(res)
+
+			case imp, ok := <-l.importedChan:
+				if !ok {
+					return
+				}
+
+				if imp == nil || imp.Header == nil {
+					continue
+				}
+
+				impHead, err := modules.HeaderToJSON(*imp.Header)
+				if err != nil {
+					logger.Error("failed to convert imported block header to JSON", "error", err)
+					continue
+				}
+
+				res := newSubcriptionBaseResponseJSON()
+				res.Method = chainNewHeadMethod
+				res.Params.Result = impHead
+				res.Params.SubscriptionID = l.subID
+				l.wsconn.safeSend(res)
+			}
+		}
+	}()
+}
+
+func (l *AllBlocksListener) Stop() error {
 	return cancelWithTimeout(l.cancel, l.done, l.cancelTimeout)
 }
 
