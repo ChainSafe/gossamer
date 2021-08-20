@@ -228,6 +228,17 @@ type AllBlocksListener struct {
 	cancelTimeout   time.Duration
 }
 
+func newAllBlockListener(conn *WSConn) *AllBlocksListener {
+	return &AllBlocksListener{
+		cancel:        make(chan struct{}, 1),
+		done:          make(chan struct{}, 1),
+		cancelTimeout: defaultCancelTimeout,
+		wsconn:        conn,
+		finalizedChan: make(chan *types.FinalisationInfo, DEFAULT_BUFFER_SIZE),
+		importedChan:  make(chan *types.Block, DEFAULT_BUFFER_SIZE),
+	}
+}
+
 // Listen start a goroutine to listen imported and finalised blocks
 func (l *AllBlocksListener) Listen() {
 	go func() {
@@ -259,11 +270,7 @@ func (l *AllBlocksListener) Listen() {
 					continue
 				}
 
-				res := newSubcriptionBaseResponseJSON()
-				res.Method = chainAllHeadMethod
-				res.Params.Result = finHead
-				res.Params.SubscriptionID = l.subID
-				l.wsconn.safeSend(res)
+				l.wsconn.safeSend(newSubscriptionResponse(chainAllHeadMethod, l.subID, finHead))
 
 			case imp, ok := <-l.importedChan:
 				if !ok {
@@ -280,11 +287,7 @@ func (l *AllBlocksListener) Listen() {
 					continue
 				}
 
-				res := newSubcriptionBaseResponseJSON()
-				res.Method = chainAllHeadMethod
-				res.Params.Result = impHead
-				res.Params.SubscriptionID = l.subID
-				l.wsconn.safeSend(res)
+				l.wsconn.safeSend(newSubscriptionResponse(chainAllHeadMethod, l.subID, impHead))
 			}
 		}
 	}()
