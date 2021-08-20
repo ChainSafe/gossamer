@@ -305,7 +305,7 @@ func TestSubscribeAllHeads(t *testing.T) {
 		Return(uint8(0), errors.New("failed")).Once()
 
 	_, err = wsconn.initAllBlocksListerner(1, nil)
-	require.Error(t, err, "could not register finalized channel")
+	require.Error(t, err, "could not register finalised channel")
 	c.ReadMessage()
 
 	importedChanID := uint8(10)

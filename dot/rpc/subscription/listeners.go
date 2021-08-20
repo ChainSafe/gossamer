@@ -214,6 +214,7 @@ func (l *BlockFinalizedListener) Stop() error {
 	return cancelWithTimeout(l.cancel, l.done, l.cancelTimeout)
 }
 
+// AllBlocksListener is a listener that enables to be awere about new blocks and finalised ones
 type AllBlocksListener struct {
 	finalizedChan chan *types.FinalisationInfo
 	importedChan  chan *types.Block
@@ -227,11 +228,15 @@ type AllBlocksListener struct {
 	cancelTimeout   time.Duration
 }
 
+// Listen start a goroutine to listen imported and finalised blocks
 func (l *AllBlocksListener) Listen() {
 	go func() {
 		defer func() {
 			l.wsconn.BlockAPI.UnregisterImportedChannel(l.importedChanID)
 			l.wsconn.BlockAPI.UnregisterFinalisedChannel(l.finalizedChanID)
+
+			close(l.importedChan)
+			close(l.finalizedChan)
 			close(l.done)
 		}()
 
@@ -250,7 +255,7 @@ func (l *AllBlocksListener) Listen() {
 
 				finHead, err := modules.HeaderToJSON(*fin.Header)
 				if err != nil {
-					logger.Error("failed to convert finalized block header to JSON", "error", err)
+					logger.Error("failed to convert finalised block header to JSON", "error", err)
 					continue
 				}
 
@@ -285,6 +290,7 @@ func (l *AllBlocksListener) Listen() {
 	}()
 }
 
+// Stop will unregister the imported chanells and stop the goroutine
 func (l *AllBlocksListener) Stop() error {
 	return cancelWithTimeout(l.cancel, l.done, l.cancelTimeout)
 }

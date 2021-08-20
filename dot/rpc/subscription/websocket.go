@@ -301,8 +301,8 @@ func (c *WSConn) initAllBlocksListerner(reqID float64, _ interface{}) (Listener,
 
 	listener.finalizedChanID, err = c.BlockAPI.RegisterFinalizedChannel(listener.finalizedChan)
 	if err != nil {
-		c.safeSendError(reqID, nil, "could not register finalized channel")
-		return nil, fmt.Errorf("could not register finalized channel")
+		c.safeSendError(reqID, nil, "could not register finalised channel")
+		return nil, fmt.Errorf("could not register finalised channel")
 	}
 
 	c.mu.Lock()
