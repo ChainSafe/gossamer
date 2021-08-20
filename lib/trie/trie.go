@@ -263,7 +263,7 @@ func (t *Trie) tryPut(key, value []byte) {
 	t.root = t.insert(t.root, k, &leaf{key: nil, value: value, dirty: true, generation: t.generation})
 }
 
-// TryPut attempts to insert a key with value into the trie
+// insert attempts to insert a key with value into the trie
 func (t *Trie) insert(parent node, key []byte, value node) node {
 	switch p := t.maybeUpdateGeneration(parent).(type) {
 	case *branch:
@@ -275,15 +275,8 @@ func (t *Trie) insert(parent node, key []byte, value node) node {
 		}
 		return n
 	case nil:
-		// We are creating new node so it will always have the latest generation.
-		switch v := value.(type) {
-		case *branch:
-			v.key = key
-			return v
-		case *leaf:
-			v.key = key
-			return v
-		}
+		value.setKey(key)
+		return value
 	case *leaf:
 		// if a value already exists in the trie at this key, overwrite it with the new value
 		// if the values are the same, don't mark node dirty
@@ -294,6 +287,7 @@ func (t *Trie) insert(parent node, key []byte, value node) node {
 			}
 			return p
 		}
+
 		length := lenCommonPrefix(key, p.key)
 
 		// need to convert this leaf into a branch
