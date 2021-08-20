@@ -276,7 +276,7 @@ func (l *AllBlocksListener) Listen() {
 				}
 
 				res := newSubcriptionBaseResponseJSON()
-				res.Method = chainNewHeadMethod
+				res.Method = chainAllHeadMethod
 				res.Params.Result = impHead
 				res.Params.SubscriptionID = l.subID
 				l.wsconn.safeSend(res)

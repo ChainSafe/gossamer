@@ -284,6 +284,8 @@ func (c *WSConn) initAllBlocksListerner(reqID float64, _ interface{}) (Listener,
 	listener.done = make(chan struct{})
 	listener.cancelTimeout = defaultCancelTimeout
 	listener.wsconn = c
+	listener.finalizedChan = make(chan *types.FinalisationInfo, DEFAULT_BUFFER_SIZE)
+	listener.importedChan = make(chan *types.Block, DEFAULT_BUFFER_SIZE)
 
 	if c.BlockAPI == nil {
 		c.safeSendError(reqID, nil, "error BlockAPI not set")
