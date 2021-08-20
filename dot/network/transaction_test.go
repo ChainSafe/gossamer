@@ -17,6 +17,8 @@
 package network
 
 import (
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"testing"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -39,17 +41,14 @@ func TestDecodeTransactionHandshake(t *testing.T) {
 	require.Equal(t, testHandshake, msg)
 }
 
-func TestDecodeTransactionMessage(t *testing.T) {
-	testTxMsg := &TransactionMessage{
+func TestEncodeTransactionMessageNew(t *testing.T) {
+	exp := common.MustHexToBytes("0x18080101080202")
+	testTxMsg := TransactionMessage{
 		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
 	}
-
-	enc, err := testTxMsg.Encode()
+	enc, err := scale.Marshal(testTxMsg)
 	require.NoError(t, err)
-
-	msg, err := decodeTransactionMessage(enc)
-	require.NoError(t, err)
-	require.Equal(t, testTxMsg, msg)
+	require.Equal(t, exp, enc)
 }
 
 func TestHandleTransactionMessage(t *testing.T) {
