@@ -98,20 +98,30 @@ func addBlocksToState(t *testing.T, babeService *Service, depth int, blockState 
 		predigest, err := builder.buildBlockPreDigest(slot)
 		require.NoError(t, err)
 
-		block := &types.Block{
-			Header: &types.Header{
+		//block := &types.Block{
+		//	Header: &types.Header{
+		//		ParentHash: previousHash,
+		//		Number:     big.NewInt(int64(i)),
+		//		Digest:     types.Digest{predigest},
+		//	},
+		//	Body: &types.Body{},
+		//}
+		digest := types.NewDigestVdt()
+		digest.Add(predigest)
+		block := &types.BlockVdt{
+			Header: types.HeaderVdt{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)),
-				Digest:     types.Digest{predigest},
+				Digest:     digest,
 			},
-			Body: &types.Body{},
+			Body: types.Body{},
 		}
 
 		arrivalTime := previousAT.Add(duration)
 		previousHash = block.Header.Hash()
 		previousAT = arrivalTime
 
-		err = blockState.(*state.BlockState).AddBlockWithArrivalTime(block, arrivalTime)
+		err = blockState.(*state.BlockState).AddBlockWithArrivalTimeVdt(block, arrivalTime)
 		require.NoError(t, err)
 	}
 }
@@ -164,18 +174,28 @@ func TestEstimateCurrentSlot(t *testing.T) {
 	predigest, err := builder.buildBlockPreDigest(slot)
 	require.NoError(t, err)
 
-	block := &types.Block{
-		Header: &types.Header{
+	//block := &types.Block{
+	//	Header: &types.Header{
+	//		ParentHash: genesisHeader.Hash(),
+	//		Number:     big.NewInt(int64(1)),
+	//		Digest:     types.Digest{predigest},
+	//	},
+	//	Body: &types.Body{},
+	//}
+	digest := types.NewDigestVdt()
+	digest.Add(predigest)
+	block := &types.BlockVdt{
+		Header: types.HeaderVdt{
 			ParentHash: genesisHeader.Hash(),
 			Number:     big.NewInt(int64(1)),
-			Digest:     types.Digest{predigest},
+			Digest:     digest,
 		},
-		Body: &types.Body{},
+		Body: types.Body{},
 	}
 
 	arrivalTime := time.Now().UnixNano() - slot.duration.Nanoseconds()
 
-	err = babeService.blockState.(*state.BlockState).AddBlockWithArrivalTime(block, time.Unix(0, arrivalTime))
+	err = babeService.blockState.(*state.BlockState).AddBlockWithArrivalTimeVdt(block, time.Unix(0, arrivalTime))
 	require.NoError(t, err)
 
 	estimatedSlot, err := babeService.estimateCurrentSlot()

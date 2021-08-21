@@ -88,6 +88,25 @@ func (bs *BlockState) UnregisterFinalisedChannel(id byte) {
 	}
 }
 
+func (bs *BlockState) notifyImportedVdt(block *types.BlockVdt) {
+	bs.importedLock.RLock()
+	defer bs.importedLock.RUnlock()
+
+	if len(bs.imported) == 0 {
+		return
+	}
+
+	logger.Trace("notifying imported block chans...", "chans", bs.imported)
+	for _, ch := range bs.imported {
+		go func(ch chan<- *types.BlockVdt) {
+			select {
+			case ch <- block:
+			default:
+			}
+		}(ch)
+	}
+}
+
 func (bs *BlockState) notifyImported(block *types.Block) {
 	bs.importedLock.RLock()
 	defer bs.importedLock.RUnlock()
@@ -98,7 +117,7 @@ func (bs *BlockState) notifyImported(block *types.Block) {
 
 	logger.Trace("notifying imported block chans...", "chans", bs.imported)
 	for _, ch := range bs.imported {
-		go func(ch chan<- *types.Block) {
+		go func(ch chan<- *types.BlockVdt) {
 			select {
 			case ch <- block:
 			default:

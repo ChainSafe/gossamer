@@ -161,12 +161,12 @@ func TestRemoveIncludedExtrinsics(t *testing.T) {
 	body, err := types.NewBodyFromExtrinsics(exts)
 	require.NoError(t, err)
 
-	bd := &types.BlockData{
-		Body: body.AsOptional(),
+	bd := &types.BlockDataVdt{
+		Body: body,
 	}
 
-	msg := &network.BlockResponseMessage{
-		BlockData: []*types.BlockData{bd},
+	msg := &network.BlockResponseMessageNew{
+		BlockData: []*types.BlockDataVdt{bd},
 	}
 
 	_, err = syncer.ProcessBlockData(msg.BlockData)
@@ -185,23 +185,23 @@ func TestHandleBlockResponse_NoBlockData(t *testing.T) {
 func TestHandleBlockResponse_BlockData(t *testing.T) {
 	syncer := NewTestSyncer(t, false)
 
-	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
+	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeaderVdt()
 	require.NoError(t, err)
 
 	rt, err := syncer.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	block := BuildBlock(t, rt, parent, nil)
+	block := BuildBlockVdt(t, rt, parent, nil)
 
-	bd := []*types.BlockData{{
+	bd := []*types.BlockDataVdt{{
 		Hash:          block.Header.Hash(),
-		Header:        block.Header.AsOptional(),
-		Body:          block.Body.AsOptional(),
+		Header:        &block.Header,
+		Body:          &block.Body,
 		Receipt:       nil,
 		MessageQueue:  nil,
 		Justification: nil,
 	}}
-	msg := &network.BlockResponseMessage{
+	msg := &network.BlockResponseMessageNew{
 		BlockData: bd,
 	}
 

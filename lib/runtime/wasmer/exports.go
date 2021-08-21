@@ -17,7 +17,9 @@
 package wasmer
 
 import (
+	"bytes"
 	"fmt"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"io"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -105,6 +107,17 @@ func (in *Instance) GrandpaAuthorities() ([]types.Authority, error) {
 	return types.GrandpaAuthoritiesRawToAuthorities(adr.([]types.GrandpaAuthoritiesRaw))
 }
 
+func (in *Instance) InitializeBlockVdt(header *types.HeaderVdt) error {
+	//encodedHeader, err := scale.Encode(header)
+	encodedHeader, err := scale2.Marshal(*header)
+	if err != nil {
+		return fmt.Errorf("cannot encode header: %w", err)
+	}
+
+	_, err = in.exec(runtime.CoreInitializeBlock, encodedHeader)
+	return err
+}
+
 // InitializeBlock calls runtime API function Core_initialise_block
 func (in *Instance) InitializeBlock(header *types.Header) error {
 	encodedHeader, err := scale.Encode(header)
@@ -126,6 +139,23 @@ func (in *Instance) ApplyExtrinsic(data types.Extrinsic) ([]byte, error) {
 	return in.exec(runtime.BlockBuilderApplyExtrinsic, data)
 }
 
+func (in *Instance) FinalizeBlockVdt() (*types.HeaderVdt, error) {
+	data, err := in.exec(runtime.BlockBuilderFinalizeBlock, []byte{})
+	if err != nil {
+		return nil, err
+	}
+
+	//bh := new(types.Header)
+	//_, err = scale.Decode(data, bh)
+	bh := types.NewEmptyHeaderVdt()
+	err = scale2.Unmarshal(data, &bh)
+	if err != nil {
+		return nil, err
+	}
+
+	return bh, nil
+}
+
 //nolint
 // FinalizeBlock calls runtime API function BlockBuilder_finalize_block
 func (in *Instance) FinalizeBlock() (*types.Header, error) {
@@ -141,6 +171,41 @@ func (in *Instance) FinalizeBlock() (*types.Header, error) {
 	}
 
 	return bh, nil
+}
+
+func (in *Instance) ExecuteBlockVdt(block *types.BlockVdt) ([]byte, error) {
+	// copy block since we're going to modify it
+	b := block.DeepCopy()
+	b.Header.Digest = types.NewEmptyDigestVdt()
+
+	// TODO: hack since substrate node_runtime can't seem to handle BABE pre-runtime digests
+	// with type prefix (ie Primary, Secondary...)
+	if bytes.Equal(in.version.SpecName(), []byte("kusama")) {
+		// remove seal digest only
+		for _, d := range block.Header.Digest.Types {
+			//if d.Type() == types.SealDigestType {
+			//	continue
+			//}
+
+			//var preDigest types.SealDigest
+			switch d.Value().(type) {
+			case types.SealDigest:
+				continue
+			default:
+				b.Header.Digest.Add(d.Value())
+			}
+
+			//b.Header.Digest = append(b.Header.Digest, d)
+		}
+	}
+
+	//bdEnc, err := b.Encode()
+	bdEnc, err := scale2.Marshal(b)
+	if err != nil {
+		return nil, err
+	}
+
+	return in.Exec(runtime.CoreExecuteBlock, bdEnc)
 }
 
 // ExecuteBlock calls runtime function Core_execute_block

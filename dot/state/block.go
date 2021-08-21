@@ -51,7 +51,7 @@ type BlockState struct {
 	lastFinalised common.Hash
 
 	// block notifiers
-	imported                       map[byte]chan<- *types.Block
+	imported                       map[byte]chan<- *types.BlockVdt
 	finalised                      map[byte]chan<- *types.FinalisationInfo
 	importedLock                   sync.RWMutex
 	finalisedLock                  sync.RWMutex
@@ -74,7 +74,7 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 		dbPath:                     db.Path(),
 		baseState:                  NewBaseState(db),
 		db:                         chaindb.NewTable(db, blockPrefix),
-		imported:                   make(map[byte]chan<- *types.Block),
+		imported:                   make(map[byte]chan<- *types.BlockVdt),
 		finalised:                  make(map[byte]chan<- *types.FinalisationInfo),
 		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
@@ -102,7 +102,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		bt:                         blocktree.NewBlockTreeFromRoot(header, db),
 		baseState:                  NewBaseState(db),
 		db:                         chaindb.NewTable(db, blockPrefix),
-		imported:                   make(map[byte]chan<- *types.Block),
+		imported:                   make(map[byte]chan<- *types.BlockVdt),
 		finalised:                  make(map[byte]chan<- *types.FinalisationInfo),
 		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
@@ -235,6 +235,43 @@ func (bs *BlockState) HasHeader(hash common.Hash) (bool, error) {
 	return bs.db.Has(headerKey(hash))
 }
 
+func (bs *BlockState) GetHeaderVdt(hash common.Hash) (*types.HeaderVdt, error) {
+	//result := new(types.Header)
+	result := types.NewEmptyHeaderVdt()
+
+	if bs.db == nil {
+		return nil, fmt.Errorf("database is nil")
+	}
+
+	if has, _ := bs.HasHeader(hash); !has {
+		return nil, chaindb.ErrKeyNotFound
+	}
+
+	data, err := bs.db.Get(headerKey(hash))
+	if err != nil {
+		return nil, err
+	}
+
+	//rw := &bytes.Buffer{}
+	//_, err = rw.Write(data)
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	//_, err = result.Decode(rw)
+	err = scale.Unmarshal(data, result)
+	if err != nil {
+		return nil, err
+	}
+
+	if reflect.DeepEqual(result, types.NewEmptyHeaderVdt()) {
+		return nil, chaindb.ErrKeyNotFound
+	}
+
+	result.Hash()
+	return result, err
+}
+
 // GetHeader returns a BlockHeader for a given hash
 func (bs *BlockState) GetHeader(hash common.Hash) (*types.Header, error) {
 	result := new(types.Header)
@@ -290,6 +327,19 @@ func (bs *BlockState) GetHeaderByNumber(num *big.Int) (*types.Header, error) {
 
 	hash := common.NewHash(bh)
 	return bs.GetHeader(hash)
+}
+
+func (bs *BlockState) GetBlockByHashVdt(hash common.Hash) (*types.BlockVdt, error) {
+	header, err := bs.GetHeaderVdt(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	blockBody, err := bs.GetBlockBody(hash)
+	if err != nil {
+		return nil, err
+	}
+	return &types.BlockVdt{Header: *header, Body: *blockBody}, nil
 }
 
 // GetBlockByHash returns a block for a given hash
@@ -390,6 +440,26 @@ func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
 	return bs.db.Put(blockBodyKey(hash), body.AsOptional().Value())
 }
 
+func (bs *BlockState) CompareAndSetBlockDataVdt(bd *types.BlockDataVdt) error {
+	hasReceipt, _ := bs.HasReceipt(bd.Hash)
+	if bd.Receipt != nil && !hasReceipt {
+		err := bs.SetReceipt(bd.Hash, *bd.Receipt)
+		if err != nil {
+			return err
+		}
+	}
+
+	hasMessageQueue, _ := bs.HasMessageQueue(bd.Hash)
+	if bd.MessageQueue != nil && !hasMessageQueue {
+		err := bs.SetMessageQueue(bd.Hash, *bd.MessageQueue)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // CompareAndSetBlockData will compare empty fields and set all elements in a block data to db
 func (bs *BlockState) CompareAndSetBlockData(bd *types.BlockData) error {
 	hasReceipt, _ := bs.HasReceipt(bd.Hash)
@@ -411,11 +481,70 @@ func (bs *BlockState) CompareAndSetBlockData(bd *types.BlockData) error {
 	return nil
 }
 
+func (bs *BlockState) AddBlockVdt(block *types.BlockVdt) error {
+	bs.Lock()
+	defer bs.Unlock()
+	return bs.AddBlockWithArrivalTimeVdt(block, time.Now())
+}
+
 // AddBlock adds a block to the blocktree and the DB with arrival time as current unix time
 func (bs *BlockState) AddBlock(block *types.Block) error {
 	bs.Lock()
 	defer bs.Unlock()
 	return bs.AddBlockWithArrivalTime(block, time.Now())
+}
+
+func (bs *BlockState) AddBlockWithArrivalTimeVdt(block *types.BlockVdt, arrivalTime time.Time) error {
+	err := bs.setArrivalTime(block.Header.Hash(), arrivalTime)
+	if err != nil {
+		return err
+	}
+
+	prevHead := bs.bt.DeepestBlockHash()
+
+	// add block to blocktree
+	err = bs.bt.AddBlockVdt(&block.Header, uint64(arrivalTime.UnixNano()))
+	if err != nil {
+		return err
+	}
+
+	// add the header to the DB
+	err = bs.SetHeaderNew(&block.Header)
+	if err != nil {
+		return err
+	}
+	hash := block.Header.Hash()
+
+	// set best block key if this is the highest block we've seen
+	if hash == bs.BestBlockHash() {
+		err = bs.setBestBlockHashKey(hash)
+		if err != nil {
+			return err
+		}
+	}
+
+	// only set number->hash mapping for our current chain
+	var onChain bool
+	if onChain, err = bs.isBlockOnCurrentChainVdt(&block.Header); onChain && err == nil {
+		err = bs.db.Put(headerHashKey(block.Header.Number.Uint64()), hash.ToBytes())
+		if err != nil {
+			return err
+		}
+	}
+
+	err = bs.SetBlockBody(block.Header.Hash(), types.NewBody(block.Body.AsOptional().Value()))
+	if err != nil {
+		return err
+	}
+
+	// check if there was a re-org, if so, re-set the canonical number->hash mapping
+	err = bs.handleAddedBlock(prevHead, bs.bt.DeepestBlockHash())
+	if err != nil {
+		return err
+	}
+
+	go bs.notifyImportedVdt(block)
+	return bs.db.Flush()
 }
 
 // AddBlockWithArrivalTime adds a block to the blocktree and the DB with the given arrival time
@@ -509,6 +638,18 @@ func (bs *BlockState) handleAddedBlock(prev, curr common.Hash) error {
 	return batch.Flush()
 }
 
+func (bs *BlockState) AddBlockToBlockTreeVdt(header *types.HeaderVdt) error {
+	bs.Lock()
+	defer bs.Unlock()
+
+	arrivalTime, err := bs.GetArrivalTime(header.Hash())
+	if err != nil {
+		arrivalTime = time.Now()
+	}
+
+	return bs.bt.AddBlockVdt(header, uint64(arrivalTime.UnixNano()))
+}
+
 // AddBlockToBlockTree adds the given block to the blocktree. It does not write it to the database.
 func (bs *BlockState) AddBlockToBlockTree(header *types.Header) error {
 	bs.Lock()
@@ -525,6 +666,29 @@ func (bs *BlockState) AddBlockToBlockTree(header *types.Header) error {
 // GetAllBlocksAtDepth returns all hashes with the depth of the given hash plus one
 func (bs *BlockState) GetAllBlocksAtDepth(hash common.Hash) []common.Hash {
 	return bs.bt.GetAllBlocksAtDepth(hash)
+}
+
+func (bs *BlockState) isBlockOnCurrentChainVdt(header *types.HeaderVdt) (bool, error) {
+	bestBlock, err := bs.BestBlockHeaderVdt()
+	if err != nil {
+		return false, err
+	}
+
+	// if the new block is ahead of our best block, then it is on our current chain.
+	if header.Number.Cmp(bestBlock.Number) > 0 {
+		return true, nil
+	}
+
+	is, err := bs.IsDescendantOf(header.Hash(), bestBlock.Hash())
+	if err != nil {
+		return false, err
+	}
+
+	if !is {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func (bs *BlockState) isBlockOnCurrentChain(header *types.Header) (bool, error) {
@@ -557,6 +721,10 @@ func (bs *BlockState) BestBlockHash() common.Hash {
 	}
 
 	return bs.bt.DeepestBlockHash()
+}
+
+func (bs *BlockState) BestBlockHeaderVdt() (*types.HeaderVdt, error) {
+	return bs.GetHeaderVdt(bs.BestBlockHash())
 }
 
 // BestBlockHeader returns the block header of the current head of the chain

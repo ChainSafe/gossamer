@@ -145,6 +145,77 @@ func newTestGenesisWithTrieAndHeader(t *testing.T, usePolkadotGenesis bool) (*ge
 	return gen, genTrie, genesisHeader
 }
 
+func BuildBlockVdt(t *testing.T, instance runtime.Instance, parent *types.HeaderVdt, ext types.Extrinsic) *types.BlockVdt {
+	digest := types.NewDigestVdt()
+	digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	header := &types.HeaderVdt{
+		ParentHash: parent.Hash(),
+		Number:     big.NewInt(0).Add(parent.Number, big.NewInt(1)),
+		Digest: digest,
+	}
+
+	err := instance.InitializeBlockVdt(header)
+	require.NoError(t, err)
+
+	idata := types.NewInherentsData()
+	err = idata.SetInt64Inherent(types.Timstap0, uint64(time.Now().Unix()))
+	require.NoError(t, err)
+
+	err = idata.SetInt64Inherent(types.Babeslot, 1)
+	require.NoError(t, err)
+
+	ienc, err := idata.Encode()
+	require.NoError(t, err)
+
+	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
+	inherentExts, err := instance.InherentExtrinsics(ienc)
+	require.NoError(t, err)
+
+	// decode inherent extrinsics
+	var exts [][]byte
+	err = scale.Unmarshal(inherentExts, &exts)
+	require.NoError(t, err)
+
+	inExt := exts
+
+	var body *types.Body
+	if ext != nil {
+		var txn *transaction.Validity
+		externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, ext...))
+		txn, err = instance.ValidateTransaction(externalExt)
+		require.NoError(t, err)
+
+		vtx := transaction.NewValidTransaction(ext, txn)
+		_, err = instance.ApplyExtrinsic(ext) // TODO: Determine error for ret
+		require.NoError(t, err)
+
+		body, err = babe.ExtrinsicsToBody(inExt, []*transaction.ValidTransaction{vtx})
+		require.NoError(t, err)
+
+	} else {
+		body = types.NewBody(inherentExts)
+	}
+
+	// apply each inherent extrinsic
+	for _, ext := range inExt {
+		in, err := scale.Marshal(ext) //nolint
+		require.NoError(t, err)
+
+		ret, err := instance.ApplyExtrinsic(in)
+		require.NoError(t, err)
+		require.Equal(t, ret, []byte{0, 0})
+	}
+
+	res, err := instance.FinalizeBlockVdt()
+	require.NoError(t, err)
+	res.Number = header.Number
+
+	return &types.BlockVdt{
+		Header: *res,
+		Body:   *body,
+	}
+}
+
 // BuildBlock ...
 func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, ext types.Extrinsic) *types.Block {
 	header := &types.Header{

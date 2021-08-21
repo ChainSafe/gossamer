@@ -23,13 +23,12 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 )
 
 var maxResponseSize uint32 = 128 // maximum number of block datas to reply with in a BlockResponse message.
 
 // CreateBlockResponse creates a block response message from a block request message
-func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
+func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage) (*network.BlockResponseMessageNew, error) {
 	var (
 		startHash, endHash     common.Hash
 		startHeader, endHeader *types.Header
@@ -98,7 +97,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 
 	logger.Debug("handling BlockRequestMessage", "start", startHeader.Number, "end", endHeader.Number, "startHash", startHash, "endHash", endHash)
 
-	responseData := []*types.BlockData{}
+	responseData := []*types.BlockDataVdt{}
 
 	switch blockRequest.Direction {
 	case 0: // ascending (ie parent to child)
@@ -122,24 +121,24 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 	}
 
 	logger.Debug("sending BlockResponseMessage", "start", startHeader.Number, "end", endHeader.Number)
-	return &network.BlockResponseMessage{
+	return &network.BlockResponseMessageNew{
 		BlockData: responseData,
 	}, nil
 }
 
-func (s *Service) getBlockData(num *big.Int, requestedData byte) (*types.BlockData, error) {
+func (s *Service) getBlockData(num *big.Int, requestedData byte) (*types.BlockDataVdt, error) {
 	hash, err := s.blockState.GetHashByNumber(num)
 	if err != nil {
 		return nil, err
 	}
 
-	blockData := &types.BlockData{
+	blockData := &types.BlockDataVdt{
 		Hash:          hash,
-		Header:        optional.NewHeader(false, nil),
-		Body:          optional.NewBody(false, nil),
-		Receipt:       optional.NewBytes(false, nil),
-		MessageQueue:  optional.NewBytes(false, nil),
-		Justification: optional.NewBytes(false, nil),
+		Header:        nil,
+		Body:          nil,
+		Receipt:       nil,
+		MessageQueue:  nil,
+		Justification: nil,
 	}
 
 	if requestedData == 0 {
@@ -147,37 +146,37 @@ func (s *Service) getBlockData(num *big.Int, requestedData byte) (*types.BlockDa
 	}
 
 	if (requestedData & network.RequestedDataHeader) == 1 {
-		retData, err := s.blockState.GetHeader(hash)
+		retData, err := s.blockState.GetHeaderVdt(hash)
 		if err == nil && retData != nil {
-			blockData.Header = retData.AsOptional()
+			blockData.Header = retData
 		}
 	}
 
 	if (requestedData&network.RequestedDataBody)>>1 == 1 {
 		retData, err := s.blockState.GetBlockBody(hash)
 		if err == nil && retData != nil {
-			blockData.Body = retData.AsOptional()
+			blockData.Body = retData
 		}
 	}
 
 	if (requestedData&network.RequestedDataReceipt)>>2 == 1 {
 		retData, err := s.blockState.GetReceipt(hash)
 		if err == nil && retData != nil {
-			blockData.Receipt = optional.NewBytes(true, retData)
+			blockData.Receipt = &retData
 		}
 	}
 
 	if (requestedData&network.RequestedDataMessageQueue)>>3 == 1 {
 		retData, err := s.blockState.GetMessageQueue(hash)
 		if err == nil && retData != nil {
-			blockData.MessageQueue = optional.NewBytes(true, retData)
+			blockData.MessageQueue = &retData
 		}
 	}
 
 	if (requestedData&network.RequestedDataJustification)>>4 == 1 {
 		retData, err := s.blockState.GetJustification(hash)
 		if err == nil && retData != nil {
-			blockData.Justification = optional.NewBytes(true, retData)
+			blockData.Justification = &retData
 		}
 	}
 

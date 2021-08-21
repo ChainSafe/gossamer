@@ -80,6 +80,38 @@ func (bt *BlockTree) GenesisHash() Hash {
 	return bt.head.hash
 }
 
+func (bt *BlockTree) AddBlockVdt(header *types.HeaderVdt, arrivalTime uint64) error {
+	bt.Lock()
+	defer bt.Unlock()
+
+	parent := bt.getNode(header.ParentHash)
+	if parent == nil {
+		return ErrParentNotFound
+	}
+
+	// Check if it already exists
+	n := bt.getNode(header.Hash())
+	if n != nil {
+		return ErrBlockExists
+	}
+
+	depth := big.NewInt(0)
+	depth.Add(parent.depth, big.NewInt(1))
+
+	n = &node{
+		hash:        header.Hash(),
+		parent:      parent,
+		children:    []*node{},
+		depth:       depth,
+		arrivalTime: arrivalTime,
+	}
+	parent.addChild(n)
+	bt.leaves.replace(parent, n)
+	bt.setInCache(n)
+
+	return nil
+}
+
 // AddBlock inserts the block as child of its parent node
 // Note: Assumes block has no children
 func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime uint64) error {

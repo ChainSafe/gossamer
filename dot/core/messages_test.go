@@ -93,26 +93,26 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	require.Nil(t, err)
 
 	// simulate block sent from BABE session
-	newBlock := &types.Block{
-		Header: &types.Header{
-			Number:     big.NewInt(1),
-			ParentHash: s.blockState.BestBlockHash(),
-			Digest:     types.Digest{types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()},
-		},
-		Body: types.NewBody([]byte{}),
-	}
+	//newBlock := &types.Block{
+	//	Header: &types.Header{
+	//		Number:     big.NewInt(1),
+	//		ParentHash: s.blockState.BestBlockHash(),
+	//		Digest:     types.Digest{types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()},
+	//	},
+	//	Body: types.NewBody([]byte{}),
+	//}
 
 	digest := types.NewDigestVdt()
 	err = digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 
-	//newBlock := types.BlockVdt{
-	//	Header: types.HeaderVdt{
-	//		Number:     big.NewInt(1),
-	//		ParentHash: s.blockState.BestBlockHash(),
-	//		Digest:     digest,
-	//	},
-	//	Body: *types.NewBody([]byte{}),
-	//}
+	newBlock := types.BlockVdt{
+		Header: types.HeaderVdt{
+			Number:     big.NewInt(1),
+			ParentHash: s.blockState.BestBlockHash(),
+			Digest:     digest,
+		},
+		Body: *types.NewBody([]byte{}),
+	}
 
 	expected := &network.BlockAnnounceMessage{
 		ParentHash:     newBlock.Header.ParentHash,
@@ -128,7 +128,7 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	state, err := s.storageState.TrieState(nil)
 	require.NoError(t, err)
 
-	err = s.HandleBlockProduced(newBlock, state)
+	err = s.HandleBlockProducedVdt(&newBlock, state)
 	require.NoError(t, err)
 
 	time.Sleep(time.Second)
@@ -153,7 +153,7 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 
 	s := NewTestService(t, cfg)
 	genHash := s.blockState.GenesisHash()
-	genHeader, err := s.blockState.BestBlockHeader()
+	genHeader, err := s.blockState.BestBlockHeaderVdt()
 	require.NoError(t, err)
 
 	rt, err := s.blockState.GetRuntime(nil)
@@ -163,9 +163,9 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	require.NoError(t, err)
 	rt.SetContextStorage(ts)
 
-	block := sync.BuildBlock(t, rt, genHeader, nil)
+	block := sync.BuildBlockVdt(t, rt, genHeader, nil)
 
-	err = s.handleBlock(block, ts)
+	err = s.handleBlockVdt(block, ts)
 	require.NoError(t, err)
 
 	extBytes := createExtrinsic(t, rt, genHash, 0)

@@ -49,7 +49,7 @@ type QueryKeyValueChanges map[string]string
 type Service struct {
 	ctx        context.Context
 	cancel     context.CancelFunc
-	blockAddCh chan *types.Block // for asynchronous block handling
+	blockAddCh chan *types.BlockVdt // for asynchronous block handling
 	sync.Mutex                   // lock for channel
 
 	// Service interfaces
@@ -116,7 +116,7 @@ func NewService(cfg *Config) (*Service, error) {
 	h = log.CallerFileHandler(h)
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
 
-	blockAddCh := make(chan *types.Block, 256)
+	blockAddCh := make(chan *types.BlockVdt, 256)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	srv := &Service{
@@ -167,33 +167,22 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 	return ts.Root()
 }
 
+//func (s *Service) HandleBlockImportVdt(block *types.BlockVdt, state *rtstorage.TrieState) error {
+//	return s.handleBlockVdt(block, state)
+//}
+
 // HandleBlockImport handles a block that was imported via the network
-func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieState) error {
-	return s.handleBlock(block, state)
-}
-
-// HandleBlockProducedNew TODO This is a temp workaround, shouldnt take digest as param. To be fixed in types integration
-func (s *Service) HandleBlockProducedNew(block *types.Block, digest scale.VaryingDataTypeSlice, state *rtstorage.TrieState) error {
-	msg := &network.BlockAnnounceMessage{
-		ParentHash:     block.Header.ParentHash,
-		Number:         block.Header.Number,
-		StateRoot:      block.Header.StateRoot,
-		ExtrinsicsRoot: block.Header.ExtrinsicsRoot,
-		Digest:         digest,
-		BestBlock:      true,
-	}
-
-	s.net.GossipMessage(msg)
-	return s.handleBlock(block, state)
+func (s *Service) HandleBlockImport(block *types.BlockVdt, state *rtstorage.TrieState) error {
+	return s.handleBlockVdt(block, state)
 }
 
 // HandleBlockProduced handles a block that was produced by us
 // It is handled the same as an imported block in terms of state updates; the only difference
 // is we send a BlockAnnounceMessage to our peers.
-func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieState) error {
+func (s *Service) HandleBlockProducedVdt(block *types.BlockVdt, state *rtstorage.TrieState) error {
 	digest := types.NewDigestVdt()
-	for i, _ := range block.Header.Digest {
-		err := digest.Add(block.Header.Digest[i].(scale.VaryingDataTypeValue))
+	for i, _ := range block.Header.Digest.Types {
+		err := digest.Add(block.Header.Digest.Types[i].Value())
 		if err != nil {
 			return err
 		}
@@ -209,23 +198,48 @@ func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieS
 	}
 
 	s.net.GossipMessage(msg)
-	return s.handleBlock(block, state)
+	return s.handleBlockVdt(block, state)
 }
 
-func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) error {
-	if block == nil || block.Header == nil || state == nil {
+//// HandleBlockProduced handles a block that was produced by us
+//// It is handled the same as an imported block in terms of state updates; the only difference
+//// is we send a BlockAnnounceMessage to our peers.
+//func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieState) error {
+//	digest := types.NewDigestVdt()
+//	for i, _ := range block.Header.Digest {
+//		err := digest.Add(block.Header.Digest[i].(scale.VaryingDataTypeValue))
+//		if err != nil {
+//			return err
+//		}
+//	}
+//
+//	msg := &network.BlockAnnounceMessage{
+//		ParentHash:     block.Header.ParentHash,
+//		Number:         block.Header.Number,
+//		StateRoot:      block.Header.StateRoot,
+//		ExtrinsicsRoot: block.Header.ExtrinsicsRoot,
+//		Digest:         digest,
+//		BestBlock:      true,
+//	}
+//
+//	s.net.GossipMessage(msg)
+//	return s.handleBlock(block, state)
+//}
+
+func (s *Service) handleBlockVdt(block *types.BlockVdt, state *rtstorage.TrieState) error {
+	if block == nil || state == nil {
 		return nil
 	}
 
 	// store updates state trie nodes in database
-	err := s.storageState.StoreTrie(state, block.Header)
+	err := s.storageState.StoreTrieVdt(state, &block.Header)
 	if err != nil {
 		logger.Warn("failed to store state trie for imported block", "block", block.Header.Hash(), "error", err)
 		return err
 	}
 
 	// store block in database
-	if err = s.blockState.AddBlock(block); err != nil {
+	if err = s.blockState.AddBlockVdt(block); err != nil {
 		if err == blocktree.ErrParentNotFound && block.Header.Number.Cmp(big.NewInt(0)) != 0 {
 			return err
 		} else if err == blocktree.ErrBlockExists || block.Header.Number.Cmp(big.NewInt(0)) == 0 {
@@ -238,7 +252,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	logger.Debug("imported block and stored state trie", "block", block.Header.Hash(), "state root", state.MustRoot())
 
 	// handle consensus digests
-	s.digestHandler.HandleDigests(block.Header)
+	s.digestHandler.HandleDigestsVdt(&block.Header)
 
 	rt, err := s.blockState.GetRuntime(&block.Header.ParentHash)
 	if err != nil {
@@ -258,7 +272,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	}
 
 	// check if block production epoch transitioned
-	if err := s.handleCurrentSlot(block.Header); err != nil {
+	if err := s.handleCurrentSlotVdt(&block.Header); err != nil {
 		logger.Warn("failed to handle epoch for block", "block", block.Header.Hash(), "error", err)
 		return err
 	}
@@ -275,6 +289,70 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 
 	return nil
 }
+
+//func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) error {
+//	if block == nil || block.Header == nil || state == nil {
+//		return nil
+//	}
+//
+//	// store updates state trie nodes in database
+//	err := s.storageState.StoreTrie(state, block.Header)
+//	if err != nil {
+//		logger.Warn("failed to store state trie for imported block", "block", block.Header.Hash(), "error", err)
+//		return err
+//	}
+//
+//	// store block in database
+//	if err = s.blockState.AddBlock(block); err != nil {
+//		if err == blocktree.ErrParentNotFound && block.Header.Number.Cmp(big.NewInt(0)) != 0 {
+//			return err
+//		} else if err == blocktree.ErrBlockExists || block.Header.Number.Cmp(big.NewInt(0)) == 0 {
+//			// this is fine
+//		} else {
+//			return err
+//		}
+//	}
+//
+//	logger.Debug("imported block and stored state trie", "block", block.Header.Hash(), "state root", state.MustRoot())
+//
+//	// handle consensus digests
+//	s.digestHandler.HandleDigests(block.Header)
+//
+//	rt, err := s.blockState.GetRuntime(&block.Header.ParentHash)
+//	if err != nil {
+//		return err
+//	}
+//
+//	// check for runtime changes
+//	if err := s.blockState.HandleRuntimeChanges(state, rt, block.Header.Hash()); err != nil {
+//		logger.Crit("failed to update runtime code", "error", err)
+//		return err
+//	}
+//
+//	// check if there was a runtime code substitution
+//	if err := s.handleCodeSubstitution(block.Header.Hash()); err != nil {
+//		logger.Crit("failed to substitute runtime code", "error", err)
+//		return err
+//	}
+//
+//	// check if block production epoch transitioned
+//	if err := s.handleCurrentSlot(block.Header); err != nil {
+//		logger.Warn("failed to handle epoch for block", "block", block.Header.Hash(), "error", err)
+//		return err
+//	}
+//
+//	go func() {
+//		s.Lock()
+//		defer s.Unlock()
+//		if s.ctx.Err() != nil {
+//			return
+//		}
+//
+//		s.blockAddCh <- block
+//	}()
+//
+//	return nil
+//}
 
 func (s *Service) handleCodeSubstitution(hash common.Hash) error {
 	value := s.codeSubstitute[hash]
@@ -306,6 +384,29 @@ func (s *Service) handleCodeSubstitution(hash common.Hash) error {
 	}
 
 	return nil
+}
+
+func (s *Service) handleCurrentSlotVdt(header *types.HeaderVdt) error {
+	head := s.blockState.BestBlockHash()
+	if header.Hash() != head {
+		return nil
+	}
+
+	epoch, err := s.epochState.GetEpochForBlockVdt(header)
+	if err != nil {
+		return err
+	}
+
+	currEpoch, err := s.epochState.GetCurrentEpoch()
+	if err != nil {
+		return err
+	}
+
+	if currEpoch == epoch {
+		return nil
+	}
+
+	return s.epochState.SetCurrentEpoch(epoch)
 }
 
 func (s *Service) handleCurrentSlot(header *types.Header) error {
@@ -347,7 +448,7 @@ func (s *Service) handleBlocksAsync() {
 				logger.Warn("failed to re-add transactions to chain upon re-org", "error", err)
 			}
 
-			if err := s.maintainTransactionPool(block); err != nil {
+			if err := s.maintainTransactionPoolVdt(block); err != nil {
 				logger.Warn("failed to maintain transaction pool", "error", err)
 			}
 		case <-s.ctx.Done():
@@ -429,6 +530,44 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 			vtx := transaction.NewValidTransaction(encExt, txv)
 			s.transactionState.AddToPool(vtx)
 		}
+	}
+
+	return nil
+}
+
+func (s *Service) maintainTransactionPoolVdt(block *types.BlockVdt) error {
+	exts, err := block.Body.AsExtrinsics()
+	if err != nil {
+		return err
+	}
+
+	// remove extrinsics included in a block
+	for _, ext := range exts {
+		s.transactionState.RemoveExtrinsic(ext)
+	}
+
+	// re-validate transactions in the pool and move them to the queue
+	txs := s.transactionState.PendingInPool()
+	for _, tx := range txs {
+		// TODO: re-add this
+		// val, err := s.rt.ValidateTransaction(tx.Extrinsic)
+		// if err != nil {
+		// 	// failed to validate tx, remove it from the pool or queue
+		// 	s.transactionState.RemoveExtrinsic(tx.Extrinsic)
+		// 	continue
+		// }
+
+		// tx = transaction.NewValidTransaction(tx.Extrinsic, val)
+
+		h, err := s.transactionState.Push(tx)
+		if err != nil && err == transaction.ErrTransactionExists {
+			// transaction is already in queue, remove it from the pool
+			s.transactionState.RemoveExtrinsicFromPool(tx.Extrinsic)
+			continue
+		}
+
+		s.transactionState.RemoveExtrinsicFromPool(tx.Extrinsic)
+		logger.Trace("moved transaction to queue", "hash", h)
 	}
 
 	return nil

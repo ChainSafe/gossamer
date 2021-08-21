@@ -35,6 +35,19 @@ func (_m *MockBlockState) AddBlock(_a0 *types.Block) error {
 	return r0
 }
 
+func (_m *MockBlockState) AddBlockVdt(_a0 *types.BlockVdt) error {
+	ret := _m.Called(_a0)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*types.BlockVdt) error); ok {
+		r0 = rf(_a0)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // BestBlock provides a mock function with given fields:
 func (_m *MockBlockState) BestBlock() (*types.Block, error) {
 	ret := _m.Called()
@@ -84,6 +97,28 @@ func (_m *MockBlockState) BestBlockHeader() (*types.Header, error) {
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.Header)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+func (_m *MockBlockState) BestBlockHeaderVdt() (*types.HeaderVdt, error) {
+	ret := _m.Called()
+
+	var r0 *types.HeaderVdt
+	if rf, ok := ret.Get(0).(func() *types.HeaderVdt); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.HeaderVdt)
 		}
 	}
 

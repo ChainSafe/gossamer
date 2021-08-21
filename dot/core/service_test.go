@@ -119,17 +119,26 @@ func TestAnnounceBlock(t *testing.T) {
 	defer s.Stop()
 
 	// simulate block sent from BABE session
-	newBlock := &types.Block{
-		Header: &types.Header{
-			ParentHash: s.blockState.BestBlockHash(),
-			Number:     big.NewInt(1),
-			Digest:     types.Digest{types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()},
-		},
-		Body: &types.Body{},
-	}
+	//newBlock := &types.Block{
+	//	Header: &types.Header{
+	//		ParentHash: s.blockState.BestBlockHash(),
+	//		Number:     big.NewInt(1),
+	//		Digest:     types.Digest{types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()},
+	//	},
+	//	Body: &types.Body{},
+	//}
 
 	digest := types.NewDigestVdt()
 	err = digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+
+	newBlock := types.BlockVdt{
+		Header: types.HeaderVdt{
+			Number:     big.NewInt(1),
+			ParentHash: s.blockState.BestBlockHash(),
+			Digest:     digest,
+		},
+		Body: *types.NewBody([]byte{}),
+	}
 
 	expected := &network.BlockAnnounceMessage{
 		ParentHash:     newBlock.Header.ParentHash,
@@ -145,7 +154,7 @@ func TestAnnounceBlock(t *testing.T) {
 	state, err := s.storageState.TrieState(nil)
 	require.NoError(t, err)
 
-	err = s.HandleBlockProduced(newBlock, state)
+	err = s.HandleBlockProducedVdt(&newBlock, state)
 	require.NoError(t, err)
 
 	time.Sleep(time.Second)
@@ -188,7 +197,7 @@ func TestHandleChainReorg_NoReorg(t *testing.T) {
 	s := NewTestService(t, nil)
 	addTestBlocksToState(t, 4, s.blockState.(*state.BlockState))
 
-	head, err := s.blockState.BestBlockHeader()
+	head, err := s.blockState.BestBlockHeaderVdt()
 	require.NoError(t, err)
 
 	err = s.handleChainReorg(head.ParentHash, head.Hash())
@@ -200,40 +209,40 @@ func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
 
 	bs := s.blockState
 
-	parent, err := bs.BestBlockHeader()
+	parent, err := bs.BestBlockHeaderVdt()
 	require.NoError(t, err)
 
 	rt, err := s.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	block1 := sync.BuildBlock(t, rt, parent, nil)
+	block1 := sync.BuildBlockVdt(t, rt, parent, nil)
 	bs.StoreRuntime(block1.Header.Hash(), rt)
-	err = bs.AddBlock(block1)
+	err = bs.AddBlockVdt(block1)
 	require.NoError(t, err)
 
-	block2 := sync.BuildBlock(t, rt, block1.Header, nil)
+	block2 := sync.BuildBlockVdt(t, rt, &block1.Header, nil)
 	bs.StoreRuntime(block2.Header.Hash(), rt)
-	err = bs.AddBlock(block2)
+	err = bs.AddBlockVdt(block2)
 	require.NoError(t, err)
 
-	block3 := sync.BuildBlock(t, rt, block2.Header, nil)
+	block3 := sync.BuildBlockVdt(t, rt, &block2.Header, nil)
 	bs.StoreRuntime(block3.Header.Hash(), rt)
-	err = bs.AddBlock(block3)
+	err = bs.AddBlockVdt(block3)
 	require.NoError(t, err)
 
-	block4 := sync.BuildBlock(t, rt, block3.Header, nil)
+	block4 := sync.BuildBlockVdt(t, rt, &block3.Header, nil)
 	bs.StoreRuntime(block4.Header.Hash(), rt)
-	err = bs.AddBlock(block4)
+	err = bs.AddBlockVdt(block4)
 	require.NoError(t, err)
 
-	block5 := sync.BuildBlock(t, rt, block4.Header, nil)
+	block5 := sync.BuildBlockVdt(t, rt, &block4.Header, nil)
 	bs.StoreRuntime(block5.Header.Hash(), rt)
-	err = bs.AddBlock(block5)
+	err = bs.AddBlockVdt(block5)
 	require.NoError(t, err)
 
-	block31 := sync.BuildBlock(t, rt, block2.Header, nil)
+	block31 := sync.BuildBlockVdt(t, rt, &block2.Header, nil)
 	bs.StoreRuntime(block31.Header.Hash(), rt)
-	err = bs.AddBlock(block31)
+	err = bs.AddBlockVdt(block31)
 	require.NoError(t, err)
 
 	nonce := uint64(1)
@@ -241,9 +250,9 @@ func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
 	// Add extrinsic to block `block31`
 	ext := createExtrinsic(t, rt, bs.GenesisHash(), nonce)
 
-	block41 := sync.BuildBlock(t, rt, block31.Header, ext)
+	block41 := sync.BuildBlockVdt(t, rt, &block31.Header, ext)
 	bs.StoreRuntime(block41.Header.Hash(), rt)
-	err = bs.AddBlock(block41)
+	err = bs.AddBlockVdt(block41)
 	require.NoError(t, err)
 
 	err = s.handleChainReorg(block41.Header.Hash(), block5.Header.Hash())
@@ -460,7 +469,7 @@ func TestService_GetRuntimeVersion(t *testing.T) {
 func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 	s := NewTestService(t, nil)
 
-	genHeader, err := s.blockState.BestBlockHeader()
+	genHeader, err := s.blockState.BestBlockHeaderVdt()
 	require.NoError(t, err)
 
 	rt, err := s.blockState.GetRuntime(nil)
@@ -470,9 +479,9 @@ func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 	rt.SetContextStorage(ts)
 
-	block := sync.BuildBlock(t, rt, genHeader, nil)
+	block := sync.BuildBlockVdt(t, rt, genHeader, nil)
 
-	err = s.handleBlock(block, ts)
+	err = s.handleBlockVdt(block, ts)
 	require.NoError(t, err)
 
 	extBytes := createExtrinsic(t, rt, genHeader.Hash(), 0)

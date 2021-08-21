@@ -471,7 +471,7 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 		return ErrNotAuthorized
 	}
 
-	parentHeader, err := b.blockState.BestBlockHeader()
+	parentHeader, err := b.blockState.BestBlockHeaderVdt()
 	if err != nil {
 		logger.Error("block authoring", "error", err)
 		return err
@@ -511,7 +511,7 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 
 	rt.SetContextStorage(ts)
 
-	block, err := b.buildBlock(parent, currentSlot, rt)
+	block, err := b.buildBlockVdt(parent, currentSlot, rt)
 	if err != nil {
 		return err
 	}
@@ -528,7 +528,7 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 		"parent", parent.Hash(),
 	)
 
-	if err := b.blockImportHandler.HandleBlockProduced(block, ts); err != nil {
+	if err := b.blockImportHandler.HandleBlockProducedVdt(block, ts); err != nil {
 		logger.Warn("failed to import built block", "error", err)
 		return err
 	}

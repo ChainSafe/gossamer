@@ -31,6 +31,7 @@ import (
 type BlockState interface {
 	BestBlockHash() common.Hash
 	BestBlockHeader() (*types.Header, error)
+	BestBlockHeaderVdt() (*types.HeaderVdt, error)
 	BestBlockNumber() (*big.Int, error)
 	BestBlock() (*types.Block, error)
 	SubChain(start, end common.Hash) ([]common.Hash, error)
@@ -77,9 +78,11 @@ type EpochState interface {
 	GetLatestConfigData() (*types.ConfigData, error)
 	GetStartSlotForEpoch(epoch uint64) (uint64, error)
 	GetEpochForBlock(header *types.Header) (uint64, error)
+	GetEpochForBlockVdt(header *types.HeaderVdt) (uint64, error)
 	SetFirstSlot(slot uint64) error
 	GetLatestEpochData() (*types.EpochData, error)
 	SkipVerify(*types.Header) (bool, error)
+	SkipVerifyVdt(*types.HeaderVdt) (bool, error)
 	GetEpochFromTime(time.Time) (uint64, error)
 }
 
@@ -91,4 +94,5 @@ type DigestHandler interface {
 // BlockImportHandler is the interface for the handler of new blocks
 type BlockImportHandler interface {
 	HandleBlockProduced(block *types.Block, state *rtstorage.TrieState) error
+	HandleBlockProducedVdt(block *types.BlockVdt, state *rtstorage.TrieState) error
 }

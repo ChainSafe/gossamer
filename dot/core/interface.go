@@ -31,10 +31,12 @@ import (
 type BlockState interface {
 	BestBlockHash() common.Hash
 	BestBlockHeader() (*types.Header, error)
+	BestBlockHeaderVdt() (*types.HeaderVdt, error)
 	BestBlockNumber() (*big.Int, error)
 	BestBlockStateRoot() (common.Hash, error)
 	BestBlock() (*types.Block, error)
 	AddBlock(*types.Block) error
+	AddBlockVdt(*types.BlockVdt) error
 	GetAllBlocksAtDepth(hash common.Hash) []common.Hash
 	GetBlockByHash(common.Hash) (*types.Block, error)
 	GenesisHash() common.Hash
@@ -59,6 +61,7 @@ type StorageState interface {
 	LoadCodeHash(root *common.Hash) (common.Hash, error)
 	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
 	StoreTrie(*rtstorage.TrieState, *types.Header) error
+	StoreTrieVdt(*rtstorage.TrieState, *types.HeaderVdt) error
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 	GetStorage(root *common.Hash, key []byte) ([]byte, error)
 }
@@ -80,6 +83,7 @@ type Network interface {
 // EpochState is the interface for state.EpochState
 type EpochState interface {
 	GetEpochForBlock(header *types.Header) (uint64, error)
+	GetEpochForBlockVdt(header *types.HeaderVdt) (uint64, error)
 	SetCurrentEpoch(epoch uint64) error
 	GetCurrentEpoch() (uint64, error)
 }
@@ -93,4 +97,5 @@ type CodeSubstitutedState interface {
 // DigestHandler is the interface for the consensus digest handler
 type DigestHandler interface {
 	HandleDigests(header *types.Header)
+	HandleDigestsVdt(header *types.HeaderVdt)
 }

@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 	"sync"
 
@@ -136,6 +137,75 @@ func (v *VerificationManager) SetOnDisabled(index uint32, header *types.Header) 
 	})
 
 	return nil
+}
+
+// VerifyBlock verifies that the block producer for the given block was authorized to produce it.
+// It returns an error if the block is invalid.
+func (v *VerificationManager) VerifyBlockVdt(header *types.HeaderVdt) error {
+	var (
+		info *verifierInfo
+		has  bool
+	)
+
+	// special case for block 1 - the network doesn't necessarily start in epoch 1.
+	// if this happens, the database will be missing info for epochs before the first block.
+	if header.Number.Cmp(big.NewInt(1)) == 0 {
+		block1IsFinal, err := v.blockState.NumberIsFinalised(big.NewInt(1))
+		if err != nil {
+			return fmt.Errorf("failed to check if block 1 is finalised: %w", err)
+		}
+
+		if !block1IsFinal {
+			firstSlot, err := types.GetSlotFromHeaderVdt(header)
+			if err != nil {
+				return fmt.Errorf("failed to get slot from block 1: %w", err)
+			}
+
+			logger.Debug("syncing block 1, setting first slot", "slot", firstSlot)
+
+			err = v.epochState.SetFirstSlot(firstSlot)
+			if err != nil {
+				return fmt.Errorf("failed to set current epoch after receiving block 1: %w", err)
+			}
+		}
+	}
+
+	epoch, err := v.epochState.GetEpochForBlockVdt(header)
+	if err != nil {
+		return fmt.Errorf("failed to get epoch for block header: %w", err)
+	}
+
+	v.lock.Lock()
+
+	if info, has = v.epochInfo[epoch]; !has {
+		info, err = v.getVerifierInfo(epoch)
+		if err != nil {
+			v.lock.Unlock()
+			// SkipVerify is set to true only in the case where we have imported a state at a given height,
+			// thus missing the epoch data for previous epochs.
+			skip, err2 := v.epochState.SkipVerifyVdt(header)
+			if err2 != nil {
+				return fmt.Errorf("failed to check if verification can be skipped: %w", err)
+			}
+
+			if skip {
+				return nil
+			}
+
+			return fmt.Errorf("failed to get verifier info for block %d: %w", header.Number, err)
+		}
+
+		v.epochInfo[epoch] = info
+	}
+
+	v.lock.Unlock()
+
+	verifier, err := newVerifier(v.blockState, epoch, info)
+	if err != nil {
+		return fmt.Errorf("failed to create new BABE verifier: %w", err)
+	}
+
+	return verifier.verifyAuthorshipRightVdt(header)
 }
 
 // VerifyBlock verifies that the block producer for the given block was authorized to produce it.
@@ -267,6 +337,111 @@ func newVerifier(blockState BlockState, epoch uint64, info *verifierInfo) (*veri
 		randomness:  info.randomness,
 		threshold:   info.threshold,
 	}, nil
+}
+
+func (b *verifier) verifyAuthorshipRightVdt(header *types.HeaderVdt) error {
+	// header should have 2 digest items (possibly more in the future)
+	// first item should be pre-digest, second should be seal
+	if len(header.Digest.Types) < 2 {
+		return fmt.Errorf("block header is missing digest items")
+	}
+
+	logger.Trace("beginning BABE authorship right verification", "block", header.Hash())
+
+	// check for valid seal by verifying signature
+	preDigestItem := header.Digest.Types[0]
+	sealItem := header.Digest.Types[len(header.Digest.Types)-1]
+
+	//preDigest, ok := preDigestItem.(*types.PreRuntimeDigest)
+	//if !ok {
+	//	return fmt.Errorf("first digest item is not pre-digest")
+	//}
+
+	var preDigest *types.PreRuntimeDigest
+	switch val := preDigestItem.Value().(type) {
+	case types.PreRuntimeDigest:
+		preDigest = &val
+	default:
+		return fmt.Errorf("first digest item is not pre-digest")
+	}
+
+	//seal, ok := sealItem.(*types.SealDigest)
+	//if !ok {
+	//	return fmt.Errorf("last digest item is not seal")
+	//}
+
+	var seal *types.SealDigest
+	switch val := sealItem.Value().(type) {
+	case types.SealDigest:
+		seal = &val
+	default:
+		return fmt.Errorf("last digest item is not seal")
+	}
+
+	babePreDigest, err := b.verifyPreRuntimeDigest(preDigest)
+	if err != nil {
+		return fmt.Errorf("failed to verify pre-runtime digest: %w", err)
+	}
+
+	logger.Trace("verified block BABE pre-runtime digest", "block", header.Hash())
+
+	authorPub := b.authorities[babePreDigest.AuthorityIndex()].Key
+
+	// remove seal before verifying signature
+	h := types.NewDigestVdt()
+	for _, val := range header.Digest.Types[:len(header.Digest.Types)-1] {
+		h.Add(val.Value())
+	}
+
+	header.Digest = h
+	defer func() {
+		//header.Digest = append(header.Digest, sealItem)
+		header.Digest.Add(sealItem.Value())
+	}()
+
+	//encHeader, err := header.Encode()
+	encHeader, err := scale.Marshal(header)
+	if err != nil {
+		return err
+	}
+
+	// verify the seal is valid
+	hash, err := common.Blake2bHash(encHeader)
+	if err != nil {
+		return err
+	}
+
+	ok, err := authorPub.Verify(hash[:], seal.Data)
+	if err != nil {
+		return err
+	}
+
+	if !ok {
+		return ErrBadSignature
+	}
+
+	// check if the producer has equivocated, ie. have they produced a conflicting block?
+	hashes := b.blockState.GetAllBlocksAtDepth(header.ParentHash)
+
+	for _, hash := range hashes {
+		currentHeader, err := b.blockState.GetHeader(hash)
+		if err != nil {
+			continue
+		}
+
+		currentBlockProducerIndex, err := getAuthorityIndex(currentHeader)
+		if err != nil {
+			continue
+		}
+
+		existingBlockProducerIndex := babePreDigest.AuthorityIndex()
+
+		if currentBlockProducerIndex == existingBlockProducerIndex && hash != header.Hash() {
+			return ErrProducerEquivocated
+		}
+	}
+
+	return nil
 }
 
 // verifyAuthorshipRight verifies that the authority that produced a block was authorized to produce it.

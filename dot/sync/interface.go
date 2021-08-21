@@ -32,12 +32,14 @@ type BlockState interface {
 	BestBlockNumber() (*big.Int, error)
 	AddBlock(*types.Block) error
 	CompareAndSetBlockData(bd *types.BlockData) error
+	CompareAndSetBlockDataVdt(bd *types.BlockDataVdt) error
 	GetBlockByNumber(*big.Int) (*types.Block, error)
 	HasBlockBody(hash common.Hash) (bool, error)
 	GetBlockBody(common.Hash) (*types.Body, error)
 	SetHeader(*types.Header) error
 	SetHeaderNew(*types.HeaderVdt) error
 	GetHeader(common.Hash) (*types.Header, error)
+	GetHeaderVdt(common.Hash) (*types.HeaderVdt, error)
 	HasHeader(hash common.Hash) (bool, error)
 	SubChain(start, end common.Hash) ([]common.Hash, error)
 	GetReceipt(common.Hash) ([]byte, error)
@@ -46,8 +48,10 @@ type BlockState interface {
 	SetJustification(hash common.Hash, data []byte) error
 	SetFinalisedHash(hash common.Hash, round, setID uint64) error
 	AddBlockToBlockTree(header *types.Header) error
+	AddBlockToBlockTreeVdt(header *types.HeaderVdt) error
 	GetHashByNumber(*big.Int) (common.Hash, error)
 	GetBlockByHash(common.Hash) (*types.Block, error)
+	GetBlockByHashVdt(common.Hash) (*types.BlockVdt, error)
 	GetRuntime(*common.Hash) (runtime.Instance, error)
 	StoreRuntime(common.Hash, runtime.Instance)
 }
@@ -75,6 +79,7 @@ type TransactionState interface {
 // Verifier deals with block verification
 type Verifier interface {
 	VerifyBlock(header *types.Header) error
+	VerifyBlockVdt(header *types.HeaderVdt) error
 }
 
 // FinalityGadget implements justification verification functionality
@@ -85,4 +90,5 @@ type FinalityGadget interface {
 // BlockImportHandler is the interface for the handler of newly imported blocks
 type BlockImportHandler interface {
 	HandleBlockImport(block *types.Block, state *rtstorage.TrieState) error
+	HandleBlockImportVdt(block *types.BlockVdt, state *rtstorage.TrieState) error
 }

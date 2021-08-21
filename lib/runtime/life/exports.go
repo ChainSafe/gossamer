@@ -3,6 +3,7 @@ package life
 import (
 	"bytes"
 	"fmt"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"io"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -121,6 +122,41 @@ func (in *Instance) FinalizeBlock() (*types.Header, error) {
 	}
 
 	return bh, nil
+}
+
+func (in *Instance) ExecuteBlockVdt(block *types.BlockVdt) ([]byte, error) {
+	// copy block since we're going to modify it
+	b := block.DeepCopy()
+	b.Header.Digest = types.NewEmptyDigestVdt()
+
+	// TODO: hack since substrate node_runtime can't seem to handle BABE pre-runtime digests
+	// with type prefix (ie Primary, Secondary...)
+	if bytes.Equal(in.version.SpecName(), []byte("kusama")) {
+		// remove seal digest only
+		for _, d := range block.Header.Digest.Types {
+			//if d.Type() == types.SealDigestType {
+			//	continue
+			//}
+
+			//var preDigest types.SealDigest
+			switch _ := d.Value().(type) {
+			case types.SealDigest:
+				continue
+			default:
+				b.Header.Digest.Add(d.Value())
+			}
+
+			//b.Header.Digest = append(b.Header.Digest, d)
+		}
+	}
+
+	//bdEnc, err := b.Encode()
+	bdEnc, err := scale2.Marshal(b)
+	if err != nil {
+		return nil, err
+	}
+
+	return in.Exec(runtime.CoreExecuteBlock, bdEnc)
 }
 
 // ExecuteBlock calls runtime function Core_execute_block
