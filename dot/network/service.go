@@ -580,8 +580,8 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 
 	for {
 		tot, err := readStream(stream, msgBytes[:])
-		if err == io.EOF {
-			continue
+		if errors.Is(err, io.EOF) {
+			return
 		} else if err != nil {
 			logger.Trace("failed to read from stream", "peer", stream.Conn().RemotePeer(), "protocol", stream.Protocol(), "error", err)
 			_ = stream.Close()
@@ -625,21 +625,19 @@ func (s *Service) handleLightMsg(stream libp2pnetwork.Stream, msg Message) error
 		return nil
 	}
 
-	l := lr.AsPointers()
-
 	var resp LightResponse
 	var err error
 	switch {
-	case l.RmtCallRequest != nil:
-		resp.RmtCallResponse, err = remoteCallResp(&lr.RmtCallRequest)
-	case l.RmtHeaderRequest != nil:
-		resp.RmtHeaderResponse, err = remoteHeaderResp(&lr.RmtHeaderRequest)
-	case l.RmtChangesRequest != nil:
-		resp.RmtChangeResponse, err = remoteChangeResp(&lr.RmtChangesRequest)
-	case l.RmtReadRequest != nil:
-		resp.RmtReadResponse, err = remoteReadResp(&lr.RmtReadRequest)
-	case l.RmtReadChildRequest != nil:
-		resp.RmtReadResponse, err = remoteReadChildResp(&lr.RmtReadChildRequest)
+	case lr.RmtCallRequest != nil:
+		resp.RmtCallResponse, err = remoteCallResp(lr.RmtCallRequest)
+	case lr.RmtHeaderRequest != nil:
+		resp.RmtHeaderResponse, err = remoteHeaderResp(lr.RmtHeaderRequest)
+	case lr.RmtChangesRequest != nil:
+		resp.RmtChangeResponse, err = remoteChangeResp(lr.RmtChangesRequest)
+	case lr.RmtReadRequest != nil:
+		resp.RmtReadResponse, err = remoteReadResp(lr.RmtReadRequest)
+	case lr.RmtReadChildRequest != nil:
+		resp.RmtReadResponse, err = remoteReadChildResp(lr.RmtReadChildRequest)
 	default:
 		logger.Warn("ignoring LightRequest without request data")
 		return nil
