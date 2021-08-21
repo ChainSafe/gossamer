@@ -17,6 +17,7 @@
 package grandpa
 
 import (
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 	"testing"
 	"time"
@@ -37,6 +38,19 @@ var testHeader = &types.Header{
 	Digest: types.Digest{
 		types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
 	},
+}
+
+func newTestDigest() scale2.VaryingDataTypeSlice {
+	digest := types.NewDigestVdt()
+	digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	return digest
+}
+
+
+var testHeaderVdt = &types.HeaderVdt{
+	ParentHash: testGenesisHeader.Hash(),
+	Number:     big.NewInt(1),
+	Digest:     newTestDigest(),
 }
 
 var testHash = testHeader.Hash()
@@ -196,18 +210,28 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	_, err := h.handleMessage("", msg)
 	require.NoError(t, err)
 
-	block := &types.Block{
-		Header: &types.Header{
+	//block := &types.Block{
+	//	Header: &types.Header{
+	//		Number:     big.NewInt(2),
+	//		ParentHash: st.Block.GenesisHash(),
+	//		Digest: types.Digest{
+	//			types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+	//		},
+	//	},
+	//	Body: &types.Body{0},
+	//}
+	digest := types.NewDigestVdt()
+	digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	block := &types.BlockVdt{
+		Header: types.HeaderVdt{
 			Number:     big.NewInt(2),
 			ParentHash: st.Block.GenesisHash(),
-			Digest: types.Digest{
-				types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
-			},
+			Digest:     digest,
 		},
-		Body: &types.Body{0},
+		Body: types.Body{0},
 	}
 
-	err = st.Block.AddBlock(block)
+	err = st.Block.AddBlockVdt(block)
 	require.NoError(t, err)
 
 	out, err := h.handleMessage("", msg)
@@ -250,18 +274,28 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	require.NoError(t, err)
 	fm.Vote = NewVote(testHash, uint32(round))
 
-	block := &types.Block{
-		Header: &types.Header{
+	//block := &types.Block{
+	//	Header: &types.Header{
+	//		ParentHash: testGenesisHeader.Hash(),
+	//		Number:     big.NewInt(1),
+	//		Digest: types.Digest{
+	//			types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+	//		},
+	//	},
+	//	Body: &types.Body{},
+	//}
+	digest := types.NewDigestVdt()
+	digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	block := &types.BlockVdt{
+		Header: types.HeaderVdt{
 			ParentHash: testGenesisHeader.Hash(),
 			Number:     big.NewInt(1),
-			Digest: types.Digest{
-				types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
-			},
+			Digest:     digest,
 		},
-		Body: &types.Body{},
+		Body: types.Body{},
 	}
 
-	err = st.Block.AddBlock(block)
+	err = st.Block.AddBlockVdt(block)
 	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block)
@@ -342,23 +376,33 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	setID := uint64(0)
 	gs.state.round = round + 1
 
-	block := &types.Block{
-		Header: &types.Header{
+	//block := &types.Block{
+	//	Header: &types.Header{
+	//		ParentHash: testGenesisHeader.Hash(),
+	//		Number:     big.NewInt(2),
+	//		Digest: types.Digest{
+	//			types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+	//		},
+	//	},
+	//	Body: &types.Body{},
+	//}
+	digest := types.NewDigestVdt()
+	digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	block := &types.BlockVdt{
+		Header: types.HeaderVdt{
 			ParentHash: testGenesisHeader.Hash(),
 			Number:     big.NewInt(2),
-			Digest: types.Digest{
-				types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
-			},
+			Digest:     digest,
 		},
-		Body: &types.Body{},
+		Body: types.Body{},
 	}
 
-	err := st.Block.AddBlock(block)
+	err := st.Block.AddBlockVdt(block)
 	require.NoError(t, err)
 
 	err = gs.blockState.SetFinalisedHash(testGenesisHeader.Hash(), round, setID)
 	require.NoError(t, err)
-	err = gs.blockState.(*state.BlockState).SetHeader(block.Header)
+	err = gs.blockState.(*state.BlockState).SetHeaderNew(&block.Header)
 	require.NoError(t, err)
 
 	pvj := []*SignedVote{
@@ -525,12 +569,16 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	err := st.Grandpa.SetNextChange(auths, big.NewInt(1))
 	require.NoError(t, err)
 
-	block := &types.Block{
-		Header: testHeader,
-		Body:   &types.Body{0},
+	//block := &types.Block{
+	//	Header: testHeader,
+	//	Body:   &types.Body{0},
+	//}
+	block := &types.BlockVdt{
+		Header: *testHeaderVdt,
+		Body:   types.Body{0},
 	}
 
-	err = st.Block.AddBlock(block)
+	err = st.Block.AddBlockVdt(block)
 	require.NoError(t, err)
 
 	err = st.Grandpa.IncrementSetID()

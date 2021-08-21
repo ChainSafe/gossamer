@@ -125,6 +125,44 @@ func createTestExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash,
 	return types.Extrinsic(common.MustHexToBytes(extEnc))
 }
 
+func createTestBlockVdt(t *testing.T, babeService *Service, parent *types.HeaderVdt, exts [][]byte, slotNumber, epoch uint64) (*types.BlockVdt, Slot) { //nolint
+	// create proof that we can authorize this block
+	babeService.epochData.authorityIndex = 0
+
+	addAuthorshipProof(t, babeService, slotNumber, epoch)
+
+	for _, ext := range exts {
+		vtx := transaction.NewValidTransaction(ext, &transaction.Validity{})
+		_, _ = babeService.transactionState.Push(vtx)
+	}
+
+	duration, err := time.ParseDuration("1s")
+	require.NoError(t, err)
+
+	slot := Slot{
+		start:    time.Now(),
+		duration: duration,
+		number:   slotNumber,
+	}
+
+	rt, err := babeService.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	// build block
+	var block *types.BlockVdt
+	for i := 0; i < 1; i++ { // retry if error
+		block, err = babeService.buildBlockVdt(parent, slot, rt)
+		if err == nil {
+			babeService.blockState.StoreRuntime(block.Header.Hash(), rt)
+			return block, slot
+		}
+	}
+
+	require.NoError(t, err)
+
+	return block, slot
+}
+
 func createTestBlock(t *testing.T, babeService *Service, parent *types.Header, exts [][]byte, slotNumber, epoch uint64) (*types.Block, Slot) { //nolint
 	// create proof that we can authorize this block
 	babeService.epochData.authorityIndex = 0

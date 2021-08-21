@@ -31,6 +31,7 @@ type BlockState interface {
 	BestBlockHeader() (*types.Header, error)
 	BestBlockNumber() (*big.Int, error)
 	AddBlock(*types.Block) error
+	AddBlockVdt(*types.BlockVdt) error
 	CompareAndSetBlockData(bd *types.BlockData) error
 	CompareAndSetBlockDataVdt(bd *types.BlockDataVdt) error
 	GetBlockByNumber(*big.Int) (*types.Block, error)

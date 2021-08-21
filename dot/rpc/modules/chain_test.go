@@ -339,9 +339,15 @@ func newTestStateService(t *testing.T) *state.Service {
 
 func loadTestBlocks(gh common.Hash, bs *state.BlockState, rt runtime.Instance) error {
 	// Create header
-	header0 := &types.Header{
+	//header0 := &types.Header{
+	//	Number:     big.NewInt(0),
+	//	Digest:     types.Digest{},
+	//	ParentHash: gh,
+	//	StateRoot:  trie.EmptyHash,
+	//}
+	header0 := &types.HeaderVdt{
 		Number:     big.NewInt(0),
-		Digest:     types.Digest{},
+		Digest:     types.NewDigestVdt(),
 		ParentHash: gh,
 		StateRoot:  trie.EmptyHash,
 	}
@@ -350,12 +356,16 @@ func loadTestBlocks(gh common.Hash, bs *state.BlockState, rt runtime.Instance) e
 	// BlockBody with fake extrinsics
 	blockBody0 := types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 
-	block0 := &types.Block{
-		Header: header0,
-		Body:   &blockBody0,
+	//block0 := &types.Block{
+	//	Header: header0,
+	//	Body:   &blockBody0,
+	//}
+	block0 := &types.BlockVdt{
+		Header: *header0,
+		Body:   blockBody0,
 	}
 
-	err := bs.AddBlock(block0)
+	err := bs.AddBlockVdt(block0)
 	if err != nil {
 		return err
 	}
@@ -363,11 +373,19 @@ func loadTestBlocks(gh common.Hash, bs *state.BlockState, rt runtime.Instance) e
 	bs.StoreRuntime(block0.Header.Hash(), rt)
 
 	// Create header & blockData for block 1
-	header1 := &types.Header{
+	//header1 := &types.Header{
+	//	Number: big.NewInt(1),
+	//	Digest: types.Digest{
+	//		types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+	//	},
+	//	ParentHash: blockHash0,
+	//	StateRoot:  trie.EmptyHash,
+	//}
+	digest := types.NewDigestVdt()
+	digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	header1 := &types.HeaderVdt{
 		Number: big.NewInt(1),
-		Digest: types.Digest{
-			types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
-		},
+		Digest: digest,
 		ParentHash: blockHash0,
 		StateRoot:  trie.EmptyHash,
 	}
@@ -375,13 +393,17 @@ func loadTestBlocks(gh common.Hash, bs *state.BlockState, rt runtime.Instance) e
 	// Create Block with fake extrinsics
 	blockBody1 := types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 
-	block1 := &types.Block{
-		Header: header1,
-		Body:   &blockBody1,
+	//block1 := &types.Block{
+	//	Header: header1,
+	//	Body:   &blockBody1,
+	//}
+	block1 := &types.BlockVdt{
+		Header: *header1,
+		Body:   blockBody1,
 	}
 
 	// Add the block1 to the DB
-	err = bs.AddBlock(block1)
+	err = bs.AddBlockVdt(block1)
 	if err != nil {
 		return err
 	}

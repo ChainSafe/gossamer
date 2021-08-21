@@ -20,19 +20,28 @@ func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 	require.Nil(t, err)
 
 	for i := 1; i <= depth; i++ {
-		block := &types.Block{
-			Header: &types.Header{
+		//block := &types.Block{
+		//	Header: &types.Header{
+		//		ParentHash: previousHash,
+		//		Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
+		//		StateRoot:  trie.EmptyHash,
+		//		Digest:     types.Digest{},
+		//	},
+		//	Body: &types.Body{},
+		//}
+		block := &types.BlockVdt{
+			Header: types.HeaderVdt{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
 				StateRoot:  trie.EmptyHash,
-				Digest:     types.Digest{},
+				Digest:     types.NewDigestVdt(),
 			},
-			Body: &types.Body{},
+			Body: types.Body{},
 		}
 
 		previousHash = block.Header.Hash()
 
-		err := blockState.AddBlock(block)
+		err := blockState.AddBlockVdt(block)
 		require.Nil(t, err)
 	}
 }

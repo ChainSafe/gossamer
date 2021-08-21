@@ -70,13 +70,13 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 	parent, err := gs.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
-	next := &types.Header{
+	next := &types.HeaderVdt{
 		ParentHash: parent.Hash(),
 		Number:     big.NewInt(4),
 	}
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(next), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeaderVdt(next), prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
@@ -88,9 +88,9 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 	require.Equal(t, err, ErrBlockDoesNotExist)
 	require.Equal(t, []*networkVoteMessage{expected}, gs.tracker.messages[next.Hash()])
 
-	err = gs.blockState.(*state.BlockState).AddBlock(&types.Block{
-		Header: next,
-		Body:   &types.Body{},
+	err = gs.blockState.(*state.BlockState).AddBlockVdt(&types.BlockVdt{
+		Header: *next,
+		Body:   types.Body{},
 	})
 	require.NoError(t, err)
 
@@ -116,13 +116,13 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	parent, err := gs.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
-	next := &types.Header{
+	next := &types.HeaderVdt{
 		ParentHash: parent.Hash(),
 		Number:     big.NewInt(4),
 	}
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(next), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeaderVdt(next), prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
@@ -134,9 +134,9 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	require.Equal(t, ErrBlockDoesNotExist, err)
 	require.Equal(t, []*networkVoteMessage{expected}, gs.tracker.messages[next.Hash()])
 
-	err = gs.blockState.(*state.BlockState).AddBlock(&types.Block{
-		Header: next,
-		Body:   &types.Body{},
+	err = gs.blockState.(*state.BlockState).AddBlockVdt(&types.BlockVdt{
+		Header: *next,
+		Body:   types.Body{},
 	})
 	require.NoError(t, err)
 

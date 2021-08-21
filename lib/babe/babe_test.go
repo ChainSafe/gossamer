@@ -50,6 +50,7 @@ var (
 	minThreshold = &common.Uint128{}
 
 	genesisHeader *types.Header
+	genesisHeaderVdt *types.HeaderVdt
 	emptyHeader   = &types.Header{
 		Number: big.NewInt(0),
 	}

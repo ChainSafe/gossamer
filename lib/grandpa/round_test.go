@@ -352,7 +352,7 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 	done := false
 
 	// this represents the chains that will be slightly ahead of the others
-	headers := []*types.Header{}
+	headers := []*types.HeaderVdt{}
 	diff := 8
 
 	for i := range gss {
@@ -385,11 +385,15 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 	for _, gs := range gss {
 		for _, h := range headers {
 			time.Sleep(time.Millisecond * 10)
-			block := &types.Block{
-				Header: h,
-				Body:   &types.Body{},
+			//block := &types.Block{
+			//	Header: h,
+			//	Body:   &types.Body{},
+			//}
+			block := &types.BlockVdt{
+				Header: *h,
+				Body:   types.Body{},
 			}
-			gs.blockState.(*state.BlockState).AddBlock(block)
+			gs.blockState.(*state.BlockState).AddBlockVdt(block)
 		}
 	}
 

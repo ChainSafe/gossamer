@@ -128,6 +128,7 @@ func (bs *BlockState) GetHighestFinalisedHeader() (*types.Header, error) {
 
 // SetFinalisedHash sets the latest finalised block header
 func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) error {
+	fmt.Println("Made it to beginning, hash is: ", common.BytesToHex(hash.ToBytes()))
 	bs.Lock()
 	defer bs.Unlock()
 
@@ -139,6 +140,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	// if nothing was previously finalised, set the first slot of the network to the
 	// slot number of block 1, which is now being set as final
 	if bs.lastFinalised.Equal(bs.genesisHash) && !hash.Equal(bs.genesisHash) {
+		fmt.Println("Is first slot")
 		err := bs.setFirstSlotOnFinalisation()
 		if err != nil {
 			return err
@@ -146,11 +148,13 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	}
 
 	if round > 0 {
+		fmt.Println("Round > 0")
 		bs.notifyFinalized(hash, round, setID)
 	}
 
 	pruned := bs.bt.Prune(hash)
 	for _, hash := range pruned {
+		fmt.Println("Pruning")
 		header, err := bs.GetHeader(hash)
 		if err != nil {
 			logger.Debug("failed to get pruned header", "hash", hash, "error", err)
@@ -172,22 +176,25 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	bs.lastFinalised = hash
 
 	if err := bs.db.Put(finalisedHashKey(round, setID), hash[:]); err != nil {
+		fmt.Println("An error occurred")
 		return err
 	}
-
+	fmt.Println("Made it here")
 	return bs.setHighestRoundAndSetID(round, setID)
 }
 
 func (bs *BlockState) setFirstSlotOnFinalisation() error {
 	header, err := bs.GetHeaderByNumber(big.NewInt(1))
 	if err != nil {
+		fmt.Println("Error is happening 1", err)
 		return err
 	}
 
 	slot, err := types.GetSlotFromHeader(header)
 	if err != nil {
+		fmt.Println("Error is happening 2")
 		return err
 	}
-
+	fmt.Println("No errors yet")
 	return bs.baseState.storeFirstSlot(slot)
 }

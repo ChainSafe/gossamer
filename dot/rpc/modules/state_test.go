@@ -492,16 +492,24 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	err = chain.Storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
 
-	b := &types.Block{
-		Header: &types.Header{
+	//b := &types.Block{
+	//	Header: &types.Header{
+	//		ParentHash: chain.Block.BestBlockHash(),
+	//		Number:     big.NewInt(2),
+	//		StateRoot:  sr1,
+	//	},
+	//	Body: types.NewBody([]byte{}),
+	//}
+	b := &types.BlockVdt{
+		Header: types.HeaderVdt{
 			ParentHash: chain.Block.BestBlockHash(),
 			Number:     big.NewInt(2),
 			StateRoot:  sr1,
 		},
-		Body: types.NewBody([]byte{}),
+		Body: *types.NewBody([]byte{}),
 	}
 
-	err = chain.Block.AddBlock(b)
+	err = chain.Block.AddBlockVdt(b)
 	require.NoError(t, err)
 
 	rt, err := chain.Block.GetRuntime(&b.Header.ParentHash)

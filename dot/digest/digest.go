@@ -47,7 +47,7 @@ type Handler struct {
 	grandpaState GrandpaState
 
 	// block notification channels
-	imported    chan *types.Block
+	imported    chan *types.BlockVdt
 	importedID  byte
 	finalised   chan *types.FinalisationInfo
 	finalisedID byte
@@ -74,7 +74,7 @@ type resume struct {
 
 // NewHandler returns a new Handler
 func NewHandler(blockState BlockState, epochState EpochState, grandpaState GrandpaState) (*Handler, error) {
-	imported := make(chan *types.Block, 16)
+	imported := make(chan *types.BlockVdt, 16)
 	finalised := make(chan *types.FinalisationInfo, 16)
 	iid, err := blockState.RegisterImportedChannel(imported)
 	if err != nil {
@@ -248,7 +248,8 @@ func (h *Handler) handleBlockImport(ctx context.Context) {
 	for {
 		select {
 		case block := <-h.imported:
-			if block == nil || block.Header == nil {
+			//if block == nil || block.Header == nil {
+			if block == nil {
 				continue
 			}
 
@@ -373,7 +374,6 @@ func (h *Handler) handleScheduledChangeVdt(d *types.ConsensusDigest, header *typ
 	if err != nil {
 		return err
 	}
-
 	logger.Debug("setting GrandpaScheduledChange", "at block", big.NewInt(0).Add(header.Number, big.NewInt(int64(sc.Delay))))
 	return h.grandpaState.SetNextChange(
 		types.NewGrandpaVotersFromAuthorities(auths),
@@ -382,7 +382,7 @@ func (h *Handler) handleScheduledChangeVdt(d *types.ConsensusDigest, header *typ
 }
 
 func (h *Handler) handleScheduledChange(d *types.ConsensusDigest, header *types.Header) error {
-	curr, err := h.blockState.BestBlockHeader()
+	curr, err := h.blockState.BestBlockHeaderVdt()
 	if err != nil {
 		return err
 	}
@@ -527,7 +527,7 @@ func (h *Handler) handleForcedChange(d *types.ConsensusDigest, header *types.Hea
 }
 
 func (h *Handler) handlePause(d *types.ConsensusDigest) error {
-	curr, err := h.blockState.BestBlockHeader()
+	curr, err := h.blockState.BestBlockHeaderVdt()
 	if err != nil {
 		return err
 	}
@@ -556,7 +556,7 @@ func (h *Handler) handlePause(d *types.ConsensusDigest) error {
 }
 
 func (h *Handler) handleResume(d *types.ConsensusDigest) error {
-	curr, err := h.blockState.BestBlockHeader()
+	curr, err := h.blockState.BestBlockHeaderVdt()
 	if err != nil {
 		return err
 	}

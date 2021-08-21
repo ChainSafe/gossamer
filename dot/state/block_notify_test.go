@@ -33,7 +33,7 @@ var testMessageTimeout = time.Second * 3
 func TestImportChannel(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 
-	ch := make(chan *types.Block, 3)
+	ch := make(chan *types.BlockVdt, 3)
 	id, err := bs.RegisterImportedChannel(ch)
 	require.NoError(t, err)
 
@@ -78,12 +78,12 @@ func TestImportChannel_Multi(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 
 	num := 5
-	chs := make([]chan *types.Block, num)
+	chs := make([]chan *types.BlockVdt, num)
 	ids := make([]byte, num)
 
 	var err error
 	for i := 0; i < num; i++ {
-		chs[i] = make(chan *types.Block)
+		chs[i] = make(chan *types.BlockVdt)
 		ids[i], err = bs.RegisterImportedChannel(chs[i])
 		require.NoError(t, err)
 	}
@@ -93,7 +93,7 @@ func TestImportChannel_Multi(t *testing.T) {
 
 	for i, ch := range chs {
 
-		go func(i int, ch chan *types.Block) {
+		go func(i int, ch chan *types.BlockVdt) {
 			select {
 			case b := <-ch:
 				require.Equal(t, big.NewInt(1), b.Header.Number)

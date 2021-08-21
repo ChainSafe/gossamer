@@ -36,34 +36,48 @@ import (
 )
 
 // TODO: use these from core?
-func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) []*types.Header {
+func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) []*types.HeaderVdt {
 	return addTestBlocksToStateWithParent(t, blockState.(*state.BlockState).BestBlockHash(), depth, blockState)
 }
 
-func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, depth int, blockState BlockState) []*types.Header {
-	prevHeader, err := blockState.(*state.BlockState).GetHeader(previousHash)
+func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, depth int, blockState BlockState) []*types.HeaderVdt {
+	prevHeader, err := blockState.(*state.BlockState).GetHeaderVdt(previousHash)
 	require.NoError(t, err)
 	previousNum := prevHeader.Number
 
-	headers := []*types.Header{}
+	headers := []*types.HeaderVdt{}
 
 	for i := 1; i <= depth; i++ {
-		block := &types.Block{
-			Header: &types.Header{
+		//block := &types.Block{
+		//	Header: &types.Header{
+		//		ParentHash: previousHash,
+		//		Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
+		//		Digest: types.Digest{
+		//			types.NewBabeSecondaryPlainPreDigest(0, uint64(i)).ToPreRuntimeDigest(),
+		//		},
+		//	},
+		//	Body: &types.Body{},
+		//}
+		digest := types.NewDigestVdt()
+		digest.Add(types.NewBabeSecondaryPlainPreDigest(0, uint64(i)).ToPreRuntimeDigest())
+
+		block := &types.BlockVdt{
+			Header: types.HeaderVdt{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
-				Digest: types.Digest{
-					types.NewBabeSecondaryPlainPreDigest(0, uint64(i)).ToPreRuntimeDigest(),
-				},
+				Digest:     digest,
 			},
-			Body: &types.Body{},
+			Body: types.Body{},
 		}
 
 		previousHash = block.Header.Hash()
-
-		err := blockState.(*state.BlockState).AddBlock(block)
+		err = blockState.(*state.BlockState).AddBlockVdt(block)
 		require.NoError(t, err)
-		headers = append(headers, block.Header)
+		headers = append(headers, &block.Header)
+
+		//b, err := blockState.(*state.BlockState).GetBlockByHashVdt(block.Header.Hash())
+		//require.NoError(t, err)
+		//require.Equal(t, block, b)
 	}
 
 	return headers
@@ -119,11 +133,11 @@ func TestHandler_GrandpaScheduledChange(t *testing.T) {
 		Data:              data,
 	}
 
-	header := &types.Header{
+	header := &types.HeaderVdt{
 		Number: big.NewInt(1),
 	}
 
-	err = handler.handleConsensusDigest(d, header)
+	err = handler.handleConsensusDigestVdt(d, header)
 	require.NoError(t, err)
 
 	headers := addTestBlocksToState(t, 2, handler.blockState)

@@ -320,6 +320,7 @@ func (bs *BlockState) GetHashByNumber(num *big.Int) (common.Hash, error) {
 
 // GetHeaderByNumber returns a block header given a number
 func (bs *BlockState) GetHeaderByNumber(num *big.Int) (*types.Header, error) {
+	fmt.Println("GetHeader Key: ", common.BytesToHex(headerHashKey(num.Uint64())))
 	bh, err := bs.db.Get(headerHashKey(num.Uint64()))
 	if err != nil {
 		return nil, fmt.Errorf("cannot get block %d: %w", num, err)
@@ -385,15 +386,17 @@ func (bs *BlockState) GetBlockHash(blockNumber *big.Int) (common.Hash, error) {
 }
 
 func (bs *BlockState) SetHeaderNew(header *types.HeaderVdt) error {
+	fmt.Println("Number is: ", header.Number)
 	hash := header.Hash()
-
+	fmt.Println("SetHeader Hash: ", common.BytesToHex(hash.ToBytes()))
 	// Write the encoded header
 	//bh, err := header.Encode()
-	bh, err := scale.Marshal(header)
+	bh, err := scale.Marshal(*header)
 	if err != nil {
 		return err
 	}
 
+	fmt.Println("SetHeader Key: ", common.BytesToHex(headerKey(hash)))
 	err = bs.db.Put(headerKey(hash), bh)
 	if err != nil {
 		return err
@@ -488,11 +491,11 @@ func (bs *BlockState) AddBlockVdt(block *types.BlockVdt) error {
 }
 
 // AddBlock adds a block to the blocktree and the DB with arrival time as current unix time
-func (bs *BlockState) AddBlock(block *types.Block) error {
-	bs.Lock()
-	defer bs.Unlock()
-	return bs.AddBlockWithArrivalTime(block, time.Now())
-}
+//func (bs *BlockState) AddBlock(block *types.Block) error {
+//	bs.Lock()
+//	defer bs.Unlock()
+//	return bs.AddBlockWithArrivalTime(block, time.Now())
+//}
 
 func (bs *BlockState) AddBlockWithArrivalTimeVdt(block *types.BlockVdt, arrivalTime time.Time) error {
 	err := bs.setArrivalTime(block.Header.Hash(), arrivalTime)
@@ -517,6 +520,7 @@ func (bs *BlockState) AddBlockWithArrivalTimeVdt(block *types.BlockVdt, arrivalT
 
 	// set best block key if this is the highest block we've seen
 	if hash == bs.BestBlockHash() {
+		fmt.Println("Best block hash")
 		err = bs.setBestBlockHashKey(hash)
 		if err != nil {
 			return err
@@ -526,6 +530,7 @@ func (bs *BlockState) AddBlockWithArrivalTimeVdt(block *types.BlockVdt, arrivalT
 	// only set number->hash mapping for our current chain
 	var onChain bool
 	if onChain, err = bs.isBlockOnCurrentChainVdt(&block.Header); onChain && err == nil {
+		fmt.Println("onCurrentChain")
 		err = bs.db.Put(headerHashKey(block.Header.Number.Uint64()), hash.ToBytes())
 		if err != nil {
 			return err
@@ -548,58 +553,58 @@ func (bs *BlockState) AddBlockWithArrivalTimeVdt(block *types.BlockVdt, arrivalT
 }
 
 // AddBlockWithArrivalTime adds a block to the blocktree and the DB with the given arrival time
-func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime time.Time) error {
-	err := bs.setArrivalTime(block.Header.Hash(), arrivalTime)
-	if err != nil {
-		return err
-	}
-
-	prevHead := bs.bt.DeepestBlockHash()
-
-	// add block to blocktree
-	err = bs.bt.AddBlock(block.Header, uint64(arrivalTime.UnixNano()))
-	if err != nil {
-		return err
-	}
-
-	// add the header to the DB
-	err = bs.SetHeader(block.Header)
-	if err != nil {
-		return err
-	}
-	hash := block.Header.Hash()
-
-	// set best block key if this is the highest block we've seen
-	if hash == bs.BestBlockHash() {
-		err = bs.setBestBlockHashKey(hash)
-		if err != nil {
-			return err
-		}
-	}
-
-	// only set number->hash mapping for our current chain
-	var onChain bool
-	if onChain, err = bs.isBlockOnCurrentChain(block.Header); onChain && err == nil {
-		err = bs.db.Put(headerHashKey(block.Header.Number.Uint64()), hash.ToBytes())
-		if err != nil {
-			return err
-		}
-	}
-
-	err = bs.SetBlockBody(block.Header.Hash(), types.NewBody(block.Body.AsOptional().Value()))
-	if err != nil {
-		return err
-	}
-
-	// check if there was a re-org, if so, re-set the canonical number->hash mapping
-	err = bs.handleAddedBlock(prevHead, bs.bt.DeepestBlockHash())
-	if err != nil {
-		return err
-	}
-
-	go bs.notifyImported(block)
-	return bs.db.Flush()
-}
+//func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime time.Time) error {
+//	err := bs.setArrivalTime(block.Header.Hash(), arrivalTime)
+//	if err != nil {
+//		return err
+//	}
+//
+//	prevHead := bs.bt.DeepestBlockHash()
+//
+//	// add block to blocktree
+//	err = bs.bt.AddBlock(block.Header, uint64(arrivalTime.UnixNano()))
+//	if err != nil {
+//		return err
+//	}
+//
+//	// add the header to the DB
+//	err = bs.SetHeader(block.Header)
+//	if err != nil {
+//		return err
+//	}
+//	hash := block.Header.Hash()
+//
+//	// set best block key if this is the highest block we've seen
+//	if hash == bs.BestBlockHash() {
+//		err = bs.setBestBlockHashKey(hash)
+//		if err != nil {
+//			return err
+//		}
+//	}
+//
+//	// only set number->hash mapping for our current chain
+//	var onChain bool
+//	if onChain, err = bs.isBlockOnCurrentChain(block.Header); onChain && err == nil {
+//		err = bs.db.Put(headerHashKey(block.Header.Number.Uint64()), hash.ToBytes())
+//		if err != nil {
+//			return err
+//		}
+//	}
+//
+//	err = bs.SetBlockBody(block.Header.Hash(), types.NewBody(block.Body.AsOptional().Value()))
+//	if err != nil {
+//		return err
+//	}
+//
+//	// check if there was a re-org, if so, re-set the canonical number->hash mapping
+//	err = bs.handleAddedBlock(prevHead, bs.bt.DeepestBlockHash())
+//	if err != nil {
+//		return err
+//	}
+//
+//	go bs.notifyImported(block)
+//	return bs.db.Flush()
+//}
 
 // handleAddedBlock re-sets the canonical number->hash mapping if there was a chain re-org.
 // prev is the previous best block hash before the new block was added to the blocktree.
@@ -673,14 +678,20 @@ func (bs *BlockState) isBlockOnCurrentChainVdt(header *types.HeaderVdt) (bool, e
 	if err != nil {
 		return false, err
 	}
+	fmt.Println(bestBlock)
+
+	fmt.Println("Best block number: ", bestBlock.Number)
+	fmt.Println("header number: ", header.Number)
 
 	// if the new block is ahead of our best block, then it is on our current chain.
 	if header.Number.Cmp(bestBlock.Number) > 0 {
 		return true, nil
 	}
 
+	// Best block isnt being found
 	is, err := bs.IsDescendantOf(header.Hash(), bestBlock.Hash())
 	if err != nil {
+		fmt.Println("ERRRROOORRRR2222", err)
 		return false, err
 	}
 

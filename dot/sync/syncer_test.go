@@ -58,17 +58,17 @@ func TestHandleBlockResponse(t *testing.T) {
 	syncer.highestSeenBlock = big.NewInt(132)
 
 	responder := NewTestSyncer(t, false)
-	parent, err := responder.blockState.(*state.BlockState).BestBlockHeader()
+	parent, err := responder.blockState.(*state.BlockState).BestBlockHeaderVdt()
 	require.NoError(t, err)
 
 	rt, err := responder.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
 	for i := 0; i < 130; i++ {
-		block := BuildBlock(t, rt, parent, nil)
-		err = responder.blockState.AddBlock(block)
+		block := BuildBlockVdt(t, rt, parent, nil)
+		err = responder.blockState.AddBlockVdt(block)
 		require.NoError(t, err)
-		parent = block.Header
+		parent = &block.Header
 	}
 
 	startNum := 1
@@ -98,32 +98,32 @@ func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
 	syncer := NewTestSyncer(t, false)
 	syncer.highestSeenBlock = big.NewInt(20)
 
-	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
+	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeaderVdt()
 	require.NoError(t, err)
 
 	rt, err := syncer.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
 	for i := 0; i < 4; i++ {
-		block := BuildBlock(t, rt, parent, nil)
-		err = syncer.blockState.AddBlock(block)
+		block := BuildBlockVdt(t, rt, parent, nil)
+		err = syncer.blockState.AddBlockVdt(block)
 		require.NoError(t, err)
-		parent = block.Header
+		parent = &block.Header
 	}
 
 	responder := NewTestSyncer(t, false)
 
-	parent, err = responder.blockState.(*state.BlockState).BestBlockHeader()
+	parent, err = responder.blockState.(*state.BlockState).BestBlockHeaderVdt()
 	require.NoError(t, err)
 
 	rt, err = responder.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
 	for i := 0; i < 16; i++ {
-		block := BuildBlock(t, rt, parent, nil)
-		err = responder.blockState.AddBlock(block)
+		block := BuildBlockVdt(t, rt, parent, nil)
+		err = responder.blockState.AddBlockVdt(block)
 		require.NoError(t, err)
-		parent = block.Header
+		parent = &block.Header
 	}
 
 	startNum := 15
@@ -233,21 +233,28 @@ func TestSyncer_HandleJustification(t *testing.T) {
 	syncer := NewTestSyncer(t, false)
 
 	d := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
-	header := &types.Header{
+	//header := &types.Header{
+	//	ParentHash: syncer.blockState.(*state.BlockState).GenesisHash(),
+	//	Number:     big.NewInt(1),
+	//	Digest:     types.Digest{d},
+	//}
+	digest := types.NewDigestVdt()
+	digest.Add(d)
+	header := &types.HeaderVdt{
 		ParentHash: syncer.blockState.(*state.BlockState).GenesisHash(),
 		Number:     big.NewInt(1),
-		Digest:     types.Digest{d},
+		Digest:     digest,
 	}
 
 	just := []byte("testjustification")
 
-	err := syncer.blockState.AddBlock(&types.Block{
-		Header: header,
-		Body:   &types.Body{},
+	err := syncer.blockState.AddBlockVdt(&types.BlockVdt{
+		Header: *header,
+		Body:   types.Body{},
 	})
 	require.NoError(t, err)
 
-	syncer.handleJustification(header, just)
+	syncer.handleJustificationVdt(header, just)
 
 	res, err := syncer.blockState.GetJustification(header.Hash())
 	require.NoError(t, err)
@@ -257,18 +264,18 @@ func TestSyncer_HandleJustification(t *testing.T) {
 func TestSyncer_ProcessJustification(t *testing.T) {
 	syncer := NewTestSyncer(t, false)
 
-	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
+	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeaderVdt()
 	require.NoError(t, err)
 
 	rt, err := syncer.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	block := BuildBlock(t, rt, parent, nil)
-	block.Header.Digest = types.Digest{
-		types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
-	}
+	block := BuildBlockVdt(t, rt, parent, nil)
+	digest := types.NewDigestVdt()
+	digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	block.Header.Digest = digest
 
-	err = syncer.blockState.(*state.BlockState).AddBlock(block)
+	err = syncer.blockState.(*state.BlockState).AddBlockVdt(block)
 	require.NoError(t, err)
 
 	just := []byte("testjustification")

@@ -129,6 +129,13 @@ func NewVote(hash common.Hash, number uint32) *Vote {
 	}
 }
 
+func NewVoteFromHeaderVdt(h *types.HeaderVdt) *Vote {
+	return &Vote{
+		Hash:   h.Hash(),
+		Number: uint32(h.Number.Int64()),
+	}
+}
+
 // NewVoteFromHeader returns a new Vote for a given header
 func NewVoteFromHeader(h *types.Header) *Vote {
 	return &Vote{

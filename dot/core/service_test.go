@@ -50,31 +50,40 @@ func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 	_ = addTestBlocksToStateWithParent(t, blockState.BestBlockHash(), depth, blockState)
 }
 
-func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, depth int, blockState BlockState) []*types.Header {
+func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, depth int, blockState BlockState) []*types.HeaderVdt {
 	prevHeader, err := blockState.(*state.BlockState).GetHeader(previousHash)
 	require.NoError(t, err)
 	previousNum := prevHeader.Number
 
-	var headers []*types.Header
+	var headers []*types.HeaderVdt
 	rt, err := blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
 	for i := 1; i <= depth; i++ {
-		block := &types.Block{
-			Header: &types.Header{
+		//block := &types.Block{
+		//	Header: &types.Header{
+		//		ParentHash: previousHash,
+		//		Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
+		//		Digest:     types.Digest{},
+		//	},
+		//	Body: &types.Body{},
+		//}
+
+		block := &types.BlockVdt{
+			Header: types.HeaderVdt{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
-				Digest:     types.Digest{},
+				Digest:     types.NewDigestVdt(),
 			},
-			Body: &types.Body{},
+			Body: types.Body{},
 		}
 
 		previousHash = block.Header.Hash()
 
 		blockState.StoreRuntime(block.Header.Hash(), rt)
-		err := blockState.AddBlock(block)
+		err := blockState.AddBlockVdt(block)
 		require.NoError(t, err)
-		headers = append(headers, block.Header)
+		headers = append(headers, &block.Header)
 	}
 
 	return headers
@@ -316,19 +325,31 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	body, err := types.NewBodyFromExtrinsics([]types.Extrinsic{tx})
 	require.NoError(t, err)
 
-	block := &types.Block{
-		Header: &types.Header{
+	//block := &types.Block{
+	//	Header: &types.Header{
+	//		ParentHash: ancestor.Header.Hash(),
+	//		Number:     big.NewInt(0).Add(ancestor.Header.Number, big.NewInt(1)),
+	//		Digest: types.Digest{
+	//			utils.NewMockDigestItem(1),
+	//		},
+	//	},
+	//	Body: body,
+	//}
+
+	// TODO might have to create a new mock item here
+	digest := types.NewDigestVdt()
+	//digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	block := &types.BlockVdt{
+		Header: types.HeaderVdt{
 			ParentHash: ancestor.Header.Hash(),
 			Number:     big.NewInt(0).Add(ancestor.Header.Number, big.NewInt(1)),
-			Digest: types.Digest{
-				utils.NewMockDigestItem(1),
-			},
+			Digest: digest,
 		},
-		Body: body,
+		Body: *body,
 	}
 
 	s.blockState.StoreRuntime(block.Header.Hash(), rt)
-	err = s.blockState.AddBlock(block)
+	err = s.blockState.AddBlockVdt(block)
 	require.NoError(t, err)
 
 	leaves := s.blockState.(*state.BlockState).Leaves()
@@ -640,19 +661,23 @@ func TestTryQueryStore_WhenThereIsDataToRetrieve(t *testing.T) {
 	storageStateTrie.Set(testKey, testValue)
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
-		common.Hash{}, big.NewInt(1), nil)
+	//header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
+	//	common.Hash{}, big.NewInt(1), nil)
+	//require.NoError(t, err)
+
+	header, err := types.NewHeaderVdt(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
+		common.Hash{}, big.NewInt(1), types.NewDigestVdt())
 	require.NoError(t, err)
 
-	err = s.storageState.StoreTrie(storageStateTrie, header)
+	err = s.storageState.StoreTrieVdt(storageStateTrie, header)
 	require.NoError(t, err)
 
-	testBlock := &types.Block{
-		Header: header,
-		Body:   types.NewBody([]byte{}),
+	testBlock := &types.BlockVdt{
+		Header: *header,
+		Body:   *types.NewBody([]byte{}),
 	}
 
-	err = s.blockState.AddBlock(testBlock)
+	err = s.blockState.AddBlockVdt(testBlock)
 	require.NoError(t, err)
 
 	blockhash := testBlock.Header.Hash()
@@ -670,19 +695,22 @@ func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
 	storageStateTrie, err := storage.NewTrieState(trie.NewTrie(nil))
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
-		common.Hash{}, big.NewInt(1), nil)
+	//header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
+	//	common.Hash{}, big.NewInt(1), nil)
+	//require.NoError(t, err)
+	header, err := types.NewHeaderVdt(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
+		common.Hash{}, big.NewInt(1), types.NewDigestVdt())
 	require.NoError(t, err)
 
-	err = s.storageState.StoreTrie(storageStateTrie, header)
+	err = s.storageState.StoreTrieVdt(storageStateTrie, header)
 	require.NoError(t, err)
 
-	testBlock := &types.Block{
-		Header: header,
-		Body:   types.NewBody([]byte{}),
+	testBlock := &types.BlockVdt{
+		Header: *header,
+		Body:   *types.NewBody([]byte{}),
 	}
 
-	err = s.blockState.AddBlock(testBlock)
+	err = s.blockState.AddBlockVdt(testBlock)
 	require.NoError(t, err)
 
 	testKey := []byte("to")
@@ -699,15 +727,17 @@ func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
 func TestTryQueryState_WhenDoesNotHaveStateRoot(t *testing.T) {
 	s := NewTestService(t, nil)
 
-	header, err := types.NewHeader(s.blockState.GenesisHash(), common.Hash{}, common.Hash{}, big.NewInt(1), nil)
+	//header, err := types.NewHeader(s.blockState.GenesisHash(), common.Hash{}, common.Hash{}, big.NewInt(1), nil)
+	//require.NoError(t, err)
+	header, err := types.NewHeaderVdt(s.blockState.GenesisHash(), common.Hash{}, common.Hash{}, big.NewInt(1), types.NewDigestVdt())
 	require.NoError(t, err)
 
-	testBlock := &types.Block{
-		Header: header,
-		Body:   types.NewBody([]byte{}),
+	testBlock := &types.BlockVdt{
+		Header: *header,
+		Body:   *types.NewBody([]byte{}),
 	}
 
-	err = s.blockState.AddBlock(testBlock)
+	err = s.blockState.AddBlockVdt(testBlock)
 	require.NoError(t, err)
 
 	testKey := []byte("to")
@@ -774,26 +804,29 @@ func TestQueryStorate_WhenBlocksHasData(t *testing.T) {
 	))
 }
 
-func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service, key, value []byte, parentHash common.Hash, number int64) *types.Block {
+func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service, key, value []byte, parentHash common.Hash, number int64) *types.BlockVdt {
 	t.Helper()
 
 	storageStateTrie, err := storage.NewTrieState(trie.NewTrie(nil))
 	storageStateTrie.Set(key, value)
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(parentHash, storageStateTrie.MustRoot(),
-		common.Hash{}, big.NewInt(number), nil)
+	//header, err := types.NewHeader(parentHash, storageStateTrie.MustRoot(),
+	//	common.Hash{}, big.NewInt(number), nil)
+	//require.NoError(t, err)
+
+	header, err := types.NewHeaderVdt(parentHash, storageStateTrie.MustRoot(), common.Hash{}, big.NewInt(number), types.NewDigestVdt())
 	require.NoError(t, err)
 
-	err = s.storageState.StoreTrie(storageStateTrie, header)
+	err = s.storageState.StoreTrieVdt(storageStateTrie, header)
 	require.NoError(t, err)
 
-	testBlock := &types.Block{
-		Header: header,
-		Body:   types.NewBody([]byte{}),
+	testBlock := &types.BlockVdt{
+		Header: *header,
+		Body:   *types.NewBody([]byte{}),
 	}
 
-	err = s.blockState.AddBlock(testBlock)
+	err = s.blockState.AddBlockVdt(testBlock)
 	require.NoError(t, err)
 
 	return testBlock

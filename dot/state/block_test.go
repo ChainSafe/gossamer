@@ -84,19 +84,23 @@ func TestHasHeader(t *testing.T) {
 func TestGetBlockByNumber(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 
-	blockHeader := &types.Header{
+	blockHeader := &types.HeaderVdt{
 		ParentHash: testGenesisHeader.Hash(),
 		Number:     big.NewInt(1),
-		Digest:     types.Digest{},
+		Digest:     types.NewDigestVdt(),
 	}
 
-	block := &types.Block{
-		Header: blockHeader,
-		Body:   &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+	//block := &types.Block{
+	//	Header: blockHeader,
+	//	Body:   &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+	//}
+	block := &types.BlockVdt{
+		Header: *blockHeader,
+		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	}
 
 	// AddBlock also sets mapping [blockNumber : hash] in DB
-	err := bs.AddBlock(block)
+	err := bs.AddBlockVdt(block)
 	require.NoError(t, err)
 
 	retBlock, err := bs.GetBlockByNumber(blockHeader.Number)
@@ -108,9 +112,9 @@ func TestAddBlock(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 
 	// Create header
-	header0 := &types.Header{
+	header0 := &types.HeaderVdt{
 		Number:     big.NewInt(0),
-		Digest:     types.Digest{},
+		Digest:     types.NewDigestVdt(),
 		ParentHash: testGenesisHeader.Hash(),
 	}
 	// Create blockHash
@@ -118,19 +122,23 @@ func TestAddBlock(t *testing.T) {
 	// BlockBody with fake extrinsics
 	blockBody0 := types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 
-	block0 := &types.Block{
-		Header: header0,
-		Body:   &blockBody0,
+	//block0 := &types.Block{
+	//	Header: header0,
+	//	Body:   &blockBody0,
+	//}
+	block0 := &types.BlockVdt{
+		Header: *header0,
+		Body:   blockBody0,
 	}
 
 	// Add the block0 to the DB
-	err := bs.AddBlock(block0)
+	err := bs.AddBlockVdt(block0)
 	require.NoError(t, err)
 
 	// Create header & blockData for block 1
-	header1 := &types.Header{
+	header1 := &types.HeaderVdt{
 		Number:     big.NewInt(1),
-		Digest:     types.Digest{},
+		Digest:     types.NewDigestVdt(),
 		ParentHash: blockHash0,
 	}
 	blockHash1 := header1.Hash()
@@ -138,13 +146,13 @@ func TestAddBlock(t *testing.T) {
 	// Create Block with fake extrinsics
 	blockBody1 := types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 
-	block1 := &types.Block{
-		Header: header1,
-		Body:   &blockBody1,
+	block1 := &types.BlockVdt{
+		Header: *header1,
+		Body:   blockBody1,
 	}
 
 	// Add the block1 to the DB
-	err = bs.AddBlock(block1)
+	err = bs.AddBlockVdt(block1)
 	require.NoError(t, err)
 
 	// Get the blocks & check if it's the same as the added blocks
@@ -181,16 +189,26 @@ func TestGetSlotForBlock(t *testing.T) {
 	data := babeHeader.Encode()
 	preDigest := types.NewBABEPreRuntimeDigest(data)
 
-	block := &types.Block{
-		Header: &types.Header{
+	//block := &types.Block{
+	//	Header: &types.Header{
+	//		ParentHash: testGenesisHeader.Hash(),
+	//		Number:     big.NewInt(int64(1)),
+	//		Digest:     types.Digest{preDigest},
+	//	},
+	//	Body: &types.Body{},
+	//}
+	digest := types.NewDigestVdt()
+	digest.Add(preDigest)
+	block := &types.BlockVdt{
+		Header: types.HeaderVdt{
 			ParentHash: testGenesisHeader.Hash(),
 			Number:     big.NewInt(int64(1)),
-			Digest:     types.Digest{preDigest},
+			Digest:     digest,
 		},
-		Body: &types.Body{},
+		Body: types.Body{},
 	}
 
-	err := bs.AddBlock(block)
+	err := bs.AddBlockVdt(block)
 	require.NoError(t, err)
 
 	res, err := bs.GetSlotForBlock(block.Header.Hash())
@@ -203,7 +221,7 @@ func TestIsBlockOnCurrentChain(t *testing.T) {
 	currChain, branchChains := AddBlocksToState(t, bs, 3)
 
 	for _, header := range currChain {
-		onChain, err := bs.isBlockOnCurrentChain(header)
+		onChain, err := bs.isBlockOnCurrentChainVdt(header)
 		require.NoError(t, err)
 
 		if !onChain {
@@ -212,7 +230,7 @@ func TestIsBlockOnCurrentChain(t *testing.T) {
 	}
 
 	for _, header := range branchChains {
-		onChain, err := bs.isBlockOnCurrentChain(header)
+		onChain, err := bs.isBlockOnCurrentChainVdt(header)
 		require.NoError(t, err)
 
 		if onChain {
@@ -248,15 +266,23 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 		}
 	}
 
-	newBlock := &types.Block{
-		Header: &types.Header{
+	//newBlock := &types.Block{
+	//	Header: &types.Header{
+	//		ParentHash: bestHash,
+	//		Number:     big.NewInt(0).Add(bestHeader.Number, big.NewInt(1)),
+	//	},
+	//	Body: &types.Body{},
+	//}
+
+	newBlock := &types.BlockVdt{
+		Header: types.HeaderVdt{
 			ParentHash: bestHash,
 			Number:     big.NewInt(0).Add(bestHeader.Number, big.NewInt(1)),
 		},
-		Body: &types.Body{},
+		Body: types.Body{},
 	}
 
-	err = bs.AddBlock(newBlock)
+	err = bs.AddBlockVdt(newBlock)
 	require.NoError(t, err)
 
 	resBlock, err = bs.GetBlockByNumber(newBlock.Header.Number)
@@ -273,21 +299,28 @@ func TestFinalizedHash(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, testGenesisHeader.Hash(), h)
 
-	header := &types.Header{
+	//header := &types.Header{
+	//	ParentHash: testGenesisHeader.Hash(),
+	//	Number:     big.NewInt(1),
+	//	Digest: types.Digest{
+	//		types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
+	//	},
+	//}
+	digest := types.NewDigestVdt()
+	digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	header := &types.HeaderVdt{
 		ParentHash: testGenesisHeader.Hash(),
 		Number:     big.NewInt(1),
-		Digest: types.Digest{
-			types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
-		},
+		Digest: digest,
 	}
 
 	testhash := header.Hash()
 	err = bs.db.Put(headerKey(testhash), []byte{})
 	require.NoError(t, err)
 
-	err = bs.AddBlock(&types.Block{
-		Header: header,
-		Body:   &types.Body{},
+	err = bs.AddBlockVdt(&types.BlockVdt{
+		Header: *header,
+		Body:   types.Body{},
 	})
 	require.NoError(t, err)
 
@@ -378,18 +411,18 @@ func TestGetHashByNumber(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, bs.genesisHash, res)
 
-	header := &types.Header{
+	header := &types.HeaderVdt{
 		Number:     big.NewInt(1),
-		Digest:     types.Digest{},
+		Digest:     types.NewDigestVdt(),
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
-	block := &types.Block{
-		Header: header,
-		Body:   &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+	block := &types.BlockVdt{
+		Header: *header,
+		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	}
 
-	err = bs.AddBlock(block)
+	err = bs.AddBlockVdt(block)
 	require.NoError(t, err)
 
 	res, err = bs.GetHashByNumber(big.NewInt(1))
@@ -400,37 +433,37 @@ func TestGetHashByNumber(t *testing.T) {
 func TestAddBlock_WithReOrg(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 
-	header1a := &types.Header{
+	header1a := &types.HeaderVdt{
 		Number:     big.NewInt(1),
-		Digest:     types.Digest{},
+		Digest:     types.NewDigestVdt(),
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
-	block1a := &types.Block{
-		Header: header1a,
-		Body:   &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+	block1a := &types.BlockVdt{
+		Header: *header1a,
+		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	}
 
-	err := bs.AddBlock(block1a)
+	err := bs.AddBlockVdt(block1a)
 	require.NoError(t, err)
 
 	block1hash, err := bs.GetHashByNumber(big.NewInt(1))
 	require.NoError(t, err)
 	require.Equal(t, header1a.Hash(), block1hash)
 
-	header1b := &types.Header{
+	header1b := &types.HeaderVdt{
 		Number:         big.NewInt(1),
-		Digest:         types.Digest{},
+		Digest:         types.NewDigestVdt(),
 		ParentHash:     testGenesisHeader.Hash(),
 		ExtrinsicsRoot: common.Hash{99},
 	}
 
-	block1b := &types.Block{
-		Header: header1b,
-		Body:   &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+	block1b := &types.BlockVdt{
+		Header: *header1b,
+		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	}
 
-	err = bs.AddBlock(block1b)
+	err = bs.AddBlockVdt(block1b)
 	require.NoError(t, err)
 
 	// should still be hash 1a since it arrived first
@@ -438,19 +471,19 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, header1a.Hash(), block1hash)
 
-	header2b := &types.Header{
+	header2b := &types.HeaderVdt{
 		Number:         big.NewInt(2),
-		Digest:         types.Digest{},
+		Digest:         types.NewDigestVdt(),
 		ParentHash:     header1b.Hash(),
 		ExtrinsicsRoot: common.Hash{99},
 	}
 
-	block2b := &types.Block{
-		Header: header2b,
-		Body:   &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+	block2b := &types.BlockVdt{
+		Header: *header2b,
+		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	}
 
-	err = bs.AddBlock(block2b)
+	err = bs.AddBlockVdt(block2b)
 	require.NoError(t, err)
 
 	// should now be hash 1b since it's on the longer chain
@@ -462,32 +495,32 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, header2b.Hash(), block2hash)
 
-	header2a := &types.Header{
+	header2a := &types.HeaderVdt{
 		Number:     big.NewInt(2),
-		Digest:     types.Digest{},
+		Digest:     types.NewDigestVdt(),
 		ParentHash: header1a.Hash(),
 	}
 
-	block2a := &types.Block{
-		Header: header2a,
-		Body:   &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+	block2a := &types.BlockVdt{
+		Header: *header2a,
+		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	}
 
-	err = bs.AddBlock(block2a)
+	err = bs.AddBlockVdt(block2a)
 	require.NoError(t, err)
 
-	header3a := &types.Header{
+	header3a := &types.HeaderVdt{
 		Number:     big.NewInt(3),
-		Digest:     types.Digest{},
+		Digest:     types.NewDigestVdt(),
 		ParentHash: header2a.Hash(),
 	}
 
-	block3a := &types.Block{
-		Header: header3a,
-		Body:   &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+	block3a := &types.BlockVdt{
+		Header: *header3a,
+		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	}
 
-	err = bs.AddBlock(block3a)
+	err = bs.AddBlockVdt(block3a)
 	require.NoError(t, err)
 
 	// should now be hash 1a since it's on the longer chain

@@ -98,19 +98,19 @@ func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
 		randomness:  babeService.epochData.randomness,
 	}
 
-	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1, testEpochIndex)
-	err = vm.blockState.AddBlock(block)
+	block, _ := createTestBlockVdt(t, babeService, genesisHeaderVdt, [][]byte{}, 1, testEpochIndex)
+	err = vm.blockState.AddBlockVdt(block)
 	require.NoError(t, err)
 
-	err = vm.SetOnDisabled(0, block.Header)
+	err = vm.SetOnDisabledVdt(0, &block.Header)
 	require.NoError(t, err)
 
 	// create an OnDisabled change on a different branch
-	block, _ = createTestBlock(t, babeService, genesisHeader, [][]byte{}, 2, testEpochIndex)
-	err = vm.blockState.AddBlock(block)
+	block, _ = createTestBlockVdt(t, babeService, genesisHeaderVdt, [][]byte{}, 2, testEpochIndex)
+	err = vm.blockState.AddBlockVdt(block)
 	require.NoError(t, err)
 
-	err = vm.SetOnDisabled(0, block.Header)
+	err = vm.SetOnDisabledVdt(0, &block.Header)
 	require.NoError(t, err)
 }
 
@@ -133,19 +133,19 @@ func TestVerificationManager_OnDisabled_DuplicateDigest(t *testing.T) {
 		randomness:  babeService.epochData.randomness,
 	}
 
-	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1, testEpochIndex)
-	err = vm.blockState.AddBlock(block)
+	block, _ := createTestBlockVdt(t, babeService, genesisHeaderVdt, [][]byte{}, 1, testEpochIndex)
+	err = vm.blockState.AddBlockVdt(block)
 	require.NoError(t, err)
 
-	err = vm.SetOnDisabled(0, block.Header)
+	err = vm.SetOnDisabledVdt(0, &block.Header)
 	require.NoError(t, err)
 
 	// create an OnDisabled change on a different branch
-	block2, _ := createTestBlock(t, babeService, block.Header, [][]byte{}, 2, testEpochIndex)
-	err = vm.blockState.AddBlock(block2)
+	block2, _ := createTestBlockVdt(t, babeService, &block.Header, [][]byte{}, 2, testEpochIndex)
+	err = vm.blockState.AddBlockVdt(block2)
 	require.NoError(t, err)
 
-	err = vm.SetOnDisabled(0, block2.Header)
+	err = vm.SetOnDisabledVdt(0, &block2.Header)
 	require.Equal(t, ErrAuthorityAlreadyDisabled, err)
 }
 
@@ -168,36 +168,36 @@ func TestVerificationManager_VerifyBlock_IsDisabled(t *testing.T) {
 	cfg.C2 = 1
 
 	vm := newTestVerificationManager(t, cfg)
-	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1, testEpochIndex)
+	block, _ := createTestBlockVdt(t, babeService, genesisHeaderVdt, [][]byte{}, 1, testEpochIndex)
 
-	err = vm.blockState.AddBlock(block)
+	err = vm.blockState.AddBlockVdt(block)
 	require.NoError(t, err)
 
-	err = vm.SetOnDisabled(0, block.Header)
+	err = vm.SetOnDisabledVdt(0, &block.Header)
 	require.NoError(t, err)
 
 	// a block that we created, that disables ourselves, should still be accepted
-	err = vm.VerifyBlock(block.Header)
+	err = vm.VerifyBlockVdt(&block.Header)
 	require.NoError(t, err)
 
-	block, _ = createTestBlock(t, babeService, block.Header, [][]byte{}, 2, testEpochIndex)
-	err = vm.blockState.AddBlock(block)
+	block, _ = createTestBlockVdt(t, babeService, &block.Header, [][]byte{}, 2, testEpochIndex)
+	err = vm.blockState.AddBlockVdt(block)
 	require.NoError(t, err)
 
 	// any blocks following the one where we are disabled should reject
-	err = vm.VerifyBlock(block.Header)
+	err = vm.VerifyBlockVdt(&block.Header)
 	require.Equal(t, ErrAuthorityDisabled, err)
 
 	// let's try a block on a different chain, it shouldn't reject
-	parentHeader := genesisHeader
+	parentHeader := genesisHeaderVdt
 	for slot := 77; slot < 80; slot++ {
-		block, _ = createTestBlock(t, babeService, parentHeader, [][]byte{}, uint64(slot), testEpochIndex)
-		err = vm.blockState.AddBlock(block)
+		block, _ = createTestBlockVdt(t, babeService, parentHeader, [][]byte{}, uint64(slot), testEpochIndex)
+		err = vm.blockState.AddBlockVdt(block)
 		require.NoError(t, err)
-		parentHeader = block.Header
+		parentHeader = &block.Header
 	}
 
-	err = vm.VerifyBlock(block.Header)
+	err = vm.VerifyBlockVdt(&block.Header)
 	require.NoError(t, err)
 }
 
@@ -404,10 +404,10 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	}
 
 	// create and add first block
-	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1, testEpochIndex)
+	block, _ := createTestBlockVdt(t, babeService, genesisHeaderVdt, [][]byte{}, 1, testEpochIndex)
 	block.Header.Hash()
 
-	err = babeService.blockState.AddBlock(block)
+	err = babeService.blockState.AddBlockVdt(block)
 	require.NoError(t, err)
 
 	verifier, err := newVerifier(babeService.blockState, testEpochIndex, &verifierInfo{
@@ -417,16 +417,16 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = verifier.verifyAuthorshipRight(block.Header)
+	err = verifier.verifyAuthorshipRightVdt(&block.Header)
 	require.NoError(t, err)
 
 	// create new block
-	block2, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1, testEpochIndex)
+	block2, _ := createTestBlockVdt(t, babeService, genesisHeaderVdt, [][]byte{}, 1, testEpochIndex)
 	block2.Header.Hash()
 
-	err = babeService.blockState.AddBlock(block2)
+	err = babeService.blockState.AddBlockVdt(block2)
 	require.NoError(t, err)
 
-	err = verifier.verifyAuthorshipRight(block2.Header)
+	err = verifier.verifyAuthorshipRightVdt(&block2.Header)
 	require.Equal(t, ErrProducerEquivocated, err)
 }

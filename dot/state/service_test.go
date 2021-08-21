@@ -170,17 +170,17 @@ func TestService_StorageTriePruning(t *testing.T) {
 	err = serv.Start()
 	require.NoError(t, err)
 
-	var blocks []*types.Block
+	var blocks []*types.BlockVdt
 	parentHash := serv.Block.GenesisHash()
 
 	totalBlock := 10
 	for i := 1; i < totalBlock; i++ {
-		block, trieState := generateBlockWithRandomTrie(t, serv, &parentHash, int64(i))
+		block, trieState := generateBlockWithRandomTrieVdt(t, serv, &parentHash, int64(i))
 
-		err = serv.Storage.blockState.AddBlock(block)
+		err = serv.Storage.blockState.AddBlockVdt(block)
 		require.NoError(t, err)
 
-		err = serv.Storage.StoreTrie(trieState, block.Header)
+		err = serv.Storage.StoreTrieVdt(trieState, &block.Header)
 		require.NoError(t, err)
 
 		blocks = append(blocks, block)
@@ -224,12 +224,15 @@ func TestService_PruneStorage(t *testing.T) {
 
 	var toFinalize common.Hash
 	for i := 0; i < 3; i++ {
-		block, trieState := generateBlockWithRandomTrie(t, serv, nil, int64(i+1))
-		block.Header.Digest = types.Digest{
-			types.NewBabeSecondaryPlainPreDigest(0, uint64(i+1)).ToPreRuntimeDigest(),
-		}
+		block, trieState := generateBlockWithRandomTrieVdt(t, serv, nil, int64(i+1))
+		//block.Header.Digest = types.Digest{
+		//	types.NewBabeSecondaryPlainPreDigest(0, uint64(i+1)).ToPreRuntimeDigest(),
+		//}
+		digest := types.NewDigestVdt()
+		digest.Add(types.NewBabeSecondaryPlainPreDigest(0, uint64(i+1)).ToPreRuntimeDigest())
+		block.Header.Digest = digest
 
-		err = serv.Storage.blockState.AddBlock(block)
+		err = serv.Storage.blockState.AddBlockVdt(block)
 		require.NoError(t, err)
 
 		err = serv.Storage.StoreTrie(trieState, nil)
@@ -245,9 +248,9 @@ func TestService_PruneStorage(t *testing.T) {
 	var prunedArr []prunedBlock
 	parentHash := serv.Block.GenesisHash()
 	for i := 0; i < 3; i++ {
-		block, trieState := generateBlockWithRandomTrie(t, serv, &parentHash, int64(i+1))
+		block, trieState := generateBlockWithRandomTrieVdt(t, serv, &parentHash, int64(i+1))
 
-		err = serv.Storage.blockState.AddBlock(block)
+		err = serv.Storage.blockState.AddBlockVdt(block)
 		require.NoError(t, err)
 
 		err = serv.Storage.StoreTrie(trieState, nil)
