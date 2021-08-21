@@ -57,6 +57,7 @@ func (s *BaseState) LoadNodeGlobalName() (string, error) {
 // StoreBestBlockHash stores the hash at the BestBlockHashKey
 func (s *BaseState) StoreBestBlockHash(hash common.Hash) error {
 	fmt.Println("Best hash key is: ", common.BytesToHex(hash.ToBytes()))
+	fmt.Println("Common Best hash key is: ", common.BytesToHex(common.BestBlockHashKey))
 	return s.db.Put(common.BestBlockHashKey, hash[:])
 }
 
