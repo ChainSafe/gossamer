@@ -22,8 +22,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/scale"
-
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
@@ -57,7 +56,7 @@ func (tm *TransactionMessage) Encode() ([]byte, error) {
 	// scale encode each extrinsic
 	var encodedExtrinsics = make([]byte, 0)
 	for _, extrinsic := range tm.Extrinsics {
-		encExt, err := scale.Encode([]byte(extrinsic))
+		encExt, err := scale.Marshal([]byte(extrinsic))
 		if err != nil {
 			return nil, err
 		}
@@ -65,25 +64,27 @@ func (tm *TransactionMessage) Encode() ([]byte, error) {
 	}
 
 	// scale encode the set of all extrinsics
-	return scale.Encode(encodedExtrinsics)
+	return scale.Marshal(encodedExtrinsics)
 }
 
 // Decode the message into a TransactionMessage
 func (tm *TransactionMessage) Decode(in []byte) error {
-	decodedMessage, err := scale.Decode(in, []byte{})
+	var decodedMessage []byte
+	err := scale.Unmarshal(in, &decodedMessage)
 	if err != nil {
 		return err
 	}
-	messageSize := len(decodedMessage.([]byte))
+	messageSize := len(decodedMessage)
 	bytesProcessed := 0
 	// loop through the message decoding extrinsics until they have all been decoded
 	for bytesProcessed < messageSize {
-		decodedExtrinsic, err := scale.Decode(decodedMessage.([]byte)[bytesProcessed:], []byte{})
+		var decodedExtrinsic []byte
+		err = scale.Unmarshal(decodedMessage[bytesProcessed:], &decodedExtrinsic)
 		if err != nil {
 			return err
 		}
-		bytesProcessed = bytesProcessed + len(decodedExtrinsic.([]byte)) + 1 // add 1 to processed since the first decode byte is consumed during decoding
-		tm.Extrinsics = append(tm.Extrinsics, decodedExtrinsic.([]byte))
+		bytesProcessed = bytesProcessed + len(decodedExtrinsic) + 1 // add 1 to processed since the first decode byte is consumed during decoding
+		tm.Extrinsics = append(tm.Extrinsics, decodedExtrinsic)
 	}
 
 	return nil
