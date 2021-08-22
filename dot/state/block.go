@@ -262,8 +262,8 @@ func (bs *BlockState) GetHeaderVdt(hash common.Hash) (*types.HeaderVdt, error) {
 		return nil, chaindb.ErrKeyNotFound
 	}
 
-	h := result.Hash()
-	fmt.Println(h)
+	result.Hash()
+
 	return result, err
 }
 
@@ -393,8 +393,6 @@ func (bs *BlockState) SetHeaderNew(header *types.HeaderVdt) error {
 		return err
 	}
 
-	// Data received is same as data sent
-
 	return nil
 }
 
@@ -519,7 +517,6 @@ func (bs *BlockState) AddBlockWithArrivalTimeVdt(block *types.BlockVdt, arrivalT
 			return err
 		}
 	}
-	//fmt.Println("New best block hash: ", bs.BestBlockHash())
 
 	// only set number->hash mapping for our current chain
 	var onChain bool
