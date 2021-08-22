@@ -236,12 +236,12 @@ func (bs *BlockState) HasHeader(hash common.Hash) (bool, error) {
 }
 
 func (bs *BlockState) GetHeaderVdt(hash common.Hash) (*types.HeaderVdt, error) {
-	//result := new(types.Header)
 	result := types.NewEmptyHeaderVdt()
 
 	if bs.db == nil {
 		return nil, fmt.Errorf("database is nil")
 	}
+
 
 	if has, _ := bs.HasHeader(hash); !has {
 		return nil, chaindb.ErrKeyNotFound
@@ -252,22 +252,11 @@ func (bs *BlockState) GetHeaderVdt(hash common.Hash) (*types.HeaderVdt, error) {
 		return nil, err
 	}
 
-	// Encoded Data retrieved is correct
-
-
-	//rw := &bytes.Buffer{}
-	//_, err = rw.Write(data)
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	//_, err = result.Decode(rw)
 	err = scale.Unmarshal(data, result)
 	if err != nil {
 		return nil, err
 	}
-	//fmt.Println("result")
-	//fmt.Println(result)
+
 
 	if reflect.DeepEqual(result, types.NewEmptyHeaderVdt()) {
 		return nil, chaindb.ErrKeyNotFound
@@ -326,7 +315,6 @@ func (bs *BlockState) GetHashByNumber(num *big.Int) (common.Hash, error) {
 
 // GetHeaderByNumber returns a block header given a number
 func (bs *BlockState) GetHeaderByNumber(num *big.Int) (*types.Header, error) {
-	fmt.Println("GetHeader Key: ", common.BytesToHex(headerHashKey(num.Uint64())))
 	bh, err := bs.db.Get(headerHashKey(num.Uint64()))
 	if err != nil {
 		return nil, fmt.Errorf("cannot get block %d: %w", num, err)
@@ -392,9 +380,7 @@ func (bs *BlockState) GetBlockHash(blockNumber *big.Int) (common.Hash, error) {
 }
 
 func (bs *BlockState) SetHeaderNew(header *types.HeaderVdt) error {
-	fmt.Println("Number is: ", header.Number)
 	hash := header.Hash()
-	fmt.Println("SetHeader Hash: ", common.BytesToHex(hash.ToBytes()))
 	// Write the encoded header
 	//bh, err := header.Encode()
 	bh, err := scale.Marshal(*header)
@@ -402,14 +388,12 @@ func (bs *BlockState) SetHeaderNew(header *types.HeaderVdt) error {
 		return err
 	}
 
-	fmt.Println("bh encoded")
-	fmt.Println(bh)
-
-	fmt.Println("SetHeader Key: ", common.BytesToHex(headerKey(hash)))
 	err = bs.db.Put(headerKey(hash), bh)
 	if err != nil {
 		return err
 	}
+
+	// Data received is same as data sent
 
 	return nil
 }
@@ -514,6 +498,7 @@ func (bs *BlockState) AddBlockWithArrivalTimeVdt(block *types.BlockVdt, arrivalT
 
 	prevHead := bs.bt.DeepestBlockHash()
 
+
 	// add block to blocktree
 	err = bs.bt.AddBlockVdt(&block.Header, uint64(arrivalTime.UnixNano()))
 	if err != nil {
@@ -527,12 +512,8 @@ func (bs *BlockState) AddBlockWithArrivalTimeVdt(block *types.BlockVdt, arrivalT
 	}
 	hash := block.Header.Hash()
 
-	fmt.Println("Header")
-	fmt.Println(hash)
-
 	// set best block key if this is the highest block we've seen
 	if hash == bs.BestBlockHash() {
-		fmt.Println("Best block hash: ", bs.BestBlockHash())
 		err = bs.setBestBlockHashKey(hash)
 		if err != nil {
 			return err
@@ -543,7 +524,6 @@ func (bs *BlockState) AddBlockWithArrivalTimeVdt(block *types.BlockVdt, arrivalT
 	// only set number->hash mapping for our current chain
 	var onChain bool
 	if onChain, err = bs.isBlockOnCurrentChainVdt(&block.Header); onChain && err == nil {
-		fmt.Println("onCurrentChain")
 		err = bs.db.Put(headerHashKey(block.Header.Number.Uint64()), hash.ToBytes())
 		if err != nil {
 			return err
@@ -691,10 +671,6 @@ func (bs *BlockState) isBlockOnCurrentChainVdt(header *types.HeaderVdt) (bool, e
 	if err != nil {
 		return false, err
 	}
-	fmt.Println(bestBlock.Hash())
-
-	fmt.Println("Best block number: ", bestBlock.Number)
-	fmt.Println("header number: ", header.Number)
 
 	// if the new block is ahead of our best block, then it is on our current chain.
 	if header.Number.Cmp(bestBlock.Number) > 0 {
@@ -704,7 +680,6 @@ func (bs *BlockState) isBlockOnCurrentChainVdt(header *types.HeaderVdt) (bool, e
 	// Best block isnt being found
 	is, err := bs.IsDescendantOf(header.Hash(), bestBlock.Hash())
 	if err != nil {
-		fmt.Println("ERRRROOORRRR2222", err)
 		return false, err
 	}
 
@@ -748,8 +723,6 @@ func (bs *BlockState) BestBlockHash() common.Hash {
 }
 
 func (bs *BlockState) BestBlockHeaderVdt() (*types.HeaderVdt, error) {
-	fmt.Println("In BestBlockHeaderVdt")
-	fmt.Println("Best hash is: ", bs.BestBlockHash())
 	return bs.GetHeaderVdt(bs.BestBlockHash())
 }
 
