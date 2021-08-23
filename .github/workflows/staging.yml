@@ -2,7 +2,7 @@ name: staging
 on:
   push:
     branches:
-      - tim-staging
+      - staging
 
 env:
   GO111MODULE: on
