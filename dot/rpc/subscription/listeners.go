@@ -141,6 +141,7 @@ func (l *BlockListener) Listen() {
 		defer func() {
 			l.wsconn.BlockAPI.UnregisterImportedChannel(l.ChanID)
 			close(l.done)
+			close(l.Channel)
 		}()
 
 		for {
@@ -192,6 +193,7 @@ func (l *BlockFinalizedListener) Listen() {
 		defer func() {
 			l.wsconn.BlockAPI.UnregisterFinalisedChannel(l.chanID)
 			close(l.done)
+			close(l.channel)
 		}()
 
 		for {
@@ -262,6 +264,8 @@ func (l *ExtrinsicSubmitListener) Listen() {
 			l.wsconn.BlockAPI.UnregisterImportedChannel(l.importedChanID)
 			l.wsconn.BlockAPI.UnregisterFinalisedChannel(l.finalisedChanID)
 			close(l.done)
+			close(l.importedChan)
+			close(l.finalisedChan)
 		}()
 
 		for {
