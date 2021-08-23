@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
-	modulesmocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -231,7 +230,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 	mockedJustBytes, err := mockedJust.Encode()
 	require.NoError(t, err)
 
-	BlockAPI := new(modulesmocks.BlockAPI)
+	BlockAPI := new(mocks.BlockAPI)
 	BlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
 		Run(func(args mock.Arguments) {
 			ch := args.Get(0).(chan<- *types.FinalisationInfo)
