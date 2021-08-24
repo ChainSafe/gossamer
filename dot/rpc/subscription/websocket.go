@@ -278,6 +278,36 @@ func (c *WSConn) initBlockFinalizedListener(reqID float64, _ interface{}) (Liste
 	return bfl, nil
 }
 
+func (c *WSConn) initAllBlocksListerner(reqID float64, _ interface{}) (Listener, error) {
+	listener := newAllBlockListener(c)
+
+	if c.BlockAPI == nil {
+		c.safeSendError(reqID, nil, "error BlockAPI not set")
+		return nil, fmt.Errorf("error BlockAPI not set")
+	}
+
+	var err error
+	listener.importedChanID, err = c.BlockAPI.RegisterImportedChannel(listener.importedChan)
+	if err != nil {
+		c.safeSendError(reqID, nil, "could not register imported channel")
+		return nil, fmt.Errorf("could not register imported channel")
+	}
+
+	listener.finalizedChanID, err = c.BlockAPI.RegisterFinalizedChannel(listener.finalizedChan)
+	if err != nil {
+		c.safeSendError(reqID, nil, "could not register finalised channel")
+		return nil, fmt.Errorf("could not register finalised channel")
+	}
+
+	c.mu.Lock()
+	listener.subID = atomic.AddUint32(&c.qtyListeners, 1)
+	c.Subscriptions[listener.subID] = listener
+	c.mu.Unlock()
+
+	c.safeSend(NewSubscriptionResponseJSON(listener.subID, reqID))
+	return listener, nil
+}
+
 func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener, error) {
 	pA := params.([]interface{})
 	extBytes, err := common.HexToBytes(pA[0].(string))
