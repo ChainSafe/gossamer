@@ -21,12 +21,14 @@ import (
 	"io/ioutil"
 	"math/big"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/babe/mocks"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
@@ -34,11 +36,10 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/lib/utils"
 	log "github.com/ChainSafe/log15"
-	"github.com/stretchr/testify/require"
-
-	"github.com/ChainSafe/gossamer/lib/babe/mocks"
 	mock "github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -98,8 +99,9 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		cfg.TransactionState = state.NewTransactionState()
 	}
 
+	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*") //nolint
+
 	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.EpochState == nil {
-		testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*") //nolint
 		require.NoError(t, err)
 
 		config := state.Config{
@@ -137,6 +139,11 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		storageState := cfg.StorageState.(core.StorageState)
 		rtCfg.CodeHash, err = storageState.LoadCodeHash(nil)
 		require.NoError(t, err)
+
+		nodeStorage := runtime.NodeStorage{}
+		nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
+		require.NoError(t, err)
+		rtCfg.NodeStorage = nodeStorage
 
 		cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(gen, rtCfg)
 		require.NoError(t, err)
