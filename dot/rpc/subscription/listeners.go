@@ -214,7 +214,7 @@ func (l *BlockFinalizedListener) Stop() error {
 	return cancelWithTimeout(l.cancel, l.done, l.cancelTimeout)
 }
 
-// AllBlocksListener is a listener that enables to be awere about new blocks and finalised ones
+// AllBlocksListener is a listener that is aware of new and newly finalised blocks```
 type AllBlocksListener struct {
 	finalizedChan chan *types.FinalisationInfo
 	importedChan  chan *types.Block
