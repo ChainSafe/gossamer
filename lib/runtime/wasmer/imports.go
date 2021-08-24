@@ -1356,14 +1356,9 @@ func ext_offchain_index_set_version_1(context unsafe.Pointer, keySpan, valueSpan
 	cp := make([]byte, len(newValue))
 	copy(cp, newValue)
 
-	err := runtimeCtx.NodeStorage.PersistentStorage.Put(storageKey, cp)
+	err := runtimeCtx.NodeStorage.BaseDB.Put(storageKey, cp)
 	if err != nil {
-		logger.Error("[ext_offchain_index_set_version_1] failed to set value in persistent storage", "error", err)
-	}
-
-	err = runtimeCtx.NodeStorage.LocalStorage.Put(storageKey, cp)
-	if err != nil {
-		logger.Error("[ext_offchain_index_set_version_1] failed to set value in local storage", "error", err)
+		logger.Error("[ext_offchain_index_set_version_1] failed to set value in raw storage", "error", err)
 	}
 }
 

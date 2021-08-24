@@ -120,9 +120,15 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GlobalKeystore, 
 		return nil, err
 	}
 
+	baseDB, err := utils.SetupDatabase(filepath.Join(st.DB().Path(), "offline_storage"), false)
+	if err != nil {
+		return nil, err
+	}
+
 	ns := runtime.NodeStorage{
 		LocalStorage:      localStorage,
 		PersistentStorage: chaindb.NewTable(st.DB(), "offlinestorage"),
+		BaseDB:            baseDB,
 	}
 
 	codeHash, err := st.Storage.LoadCodeHash(nil)

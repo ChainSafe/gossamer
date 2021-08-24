@@ -35,6 +35,7 @@ const NodeStorageTypeLocal NodeStorageType = 2
 type NodeStorage struct {
 	LocalStorage      BasicStorage
 	PersistentStorage BasicStorage
+	BaseDB            BasicStorage
 }
 
 // InstanceConfig represents a runtime instance configuration
