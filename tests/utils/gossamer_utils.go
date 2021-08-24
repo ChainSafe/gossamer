@@ -449,10 +449,12 @@ func generateDefaultConfig() *ctoml.Config {
 			MaxPeers:    3,
 		},
 		RPC: ctoml.RPCConfig{
-			Enabled: false,
-			Host:    "localhost",
-			Modules: []string{"system", "author", "chain", "state"},
-			WS:      false,
+			Enabled:  false,
+			Unsafe:   true,
+			WSUnsafe: true,
+			Host:     "localhost",
+			Modules:  []string{"system", "author", "chain", "state"},
+			WS:       false,
 		},
 	}
 }

@@ -3,6 +3,7 @@ package modules
 import (
 	"math/big"
 
+	"github.com/ChainSafe/gossamer/dot/core"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -29,8 +30,9 @@ type BlockAPI interface {
 	GetHeader(hash common.Hash) (*types.Header, error)
 	BestBlockHash() common.Hash
 	GetBlockByHash(hash common.Hash) (*types.Block, error)
-	GetBlockHash(blockNumber *big.Int) (*common.Hash, error)
+	GetBlockHash(blockNumber *big.Int) (common.Hash, error)
 	GetFinalisedHash(uint64, uint64) (common.Hash, error)
+	GetHighestFinalisedHash() (common.Hash, error)
 	HasJustification(hash common.Hash) (bool, error)
 	GetJustification(hash common.Hash) ([]byte, error)
 	RegisterImportedChannel(ch chan<- *types.Block) (byte, error)
@@ -38,6 +40,8 @@ type BlockAPI interface {
 	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
 	UnregisterFinalisedChannel(id byte)
 	SubChain(start, end common.Hash) ([]common.Hash, error)
+	RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error)
+	UnregisterRuntimeUpdatedChannel(id uint32) bool
 }
 
 // NetworkAPI interface for network state methods
@@ -51,6 +55,8 @@ type NetworkAPI interface {
 	IsStopped() bool
 	HighestBlock() int64
 	StartingBlock() int64
+	AddReservedPeers(addrs ...string) error
+	RemoveReservedPeers(addrs ...string) error
 }
 
 // BlockProducerAPI is the interface for BlockProducer methods
@@ -76,6 +82,8 @@ type CoreAPI interface {
 	GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error)
 	HandleSubmittedExtrinsic(types.Extrinsic) error
 	GetMetadata(bhash *common.Hash) ([]byte, error)
+	QueryStorage(from, to common.Hash, keys ...string) (map[common.Hash]core.QueryKeyValueChanges, error)
+	DecodeSessionKeys(enc []byte) ([]byte, error)
 }
 
 // RPCAPI is the interface for methods related to RPC service

@@ -1,6 +1,7 @@
 package network
 
 import (
+	"errors"
 	"io"
 	"math/big"
 
@@ -15,7 +16,7 @@ import (
 )
 
 // NewMockBlockState create and return a network BlockState interface mock
-func NewMockBlockState(n *big.Int) *MockBlockState {
+func NewMockBlockState(n *big.Int) *mockBlockState {
 	parentHash, _ := common.HexToHash("0x4545454545454545454545454545454545454545454545454545454545454545")
 	stateRoot, _ := common.HexToHash("0xb3266de137d20a5d0ff3a6401eb57127525fd9b2693701f0bf5a8a853fa3ebe0")
 	extrinsicsRoot, _ := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
@@ -31,13 +32,12 @@ func NewMockBlockState(n *big.Int) *MockBlockState {
 		Digest:         types.Digest{},
 	}
 
-	m := new(MockBlockState)
+	m := new(mockBlockState)
 	m.On("BestBlockHeader").Return(header, nil)
-
+	m.On("GetHighestFinalisedHeader").Return(header, nil)
 	m.On("GenesisHash").Return(common.NewHash([]byte{}))
 	m.On("BestBlockNumber").Return(big.NewInt(1), nil)
 	m.On("HasBlockBody", mock.AnythingOfType("common.Hash")).Return(false, nil)
-	m.On("GetFinalisedHeader", mock.AnythingOfType("uint64"), mock.AnythingOfType("uint64")).Return(header, nil)
 	m.On("GetHashByNumber", mock.AnythingOfType("*big.Int")).Return(common.Hash{}, nil)
 
 	return m
@@ -90,6 +90,7 @@ func testBlockResponseMessage() *BlockResponseMessage {
 type testStreamHandler struct {
 	messages map[peer.ID][]Message
 	decoder  messageDecoder
+	exit     bool
 }
 
 func newTestStreamHandler(decoder messageDecoder) *testStreamHandler {
@@ -136,10 +137,14 @@ func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream, peer peer.ID
 		msgBytes              = make([]byte, maxMessageSize)
 	)
 
+	defer func() {
+		s.exit = true
+	}()
+
 	for {
 		tot, err := readStream(stream, msgBytes)
-		if err == io.EOF {
-			continue
+		if errors.Is(err, io.EOF) {
+			return
 		} else if err != nil {
 			logger.Debug("failed to read from stream", "protocol", stream.Protocol(), "error", err)
 			_ = stream.Close()

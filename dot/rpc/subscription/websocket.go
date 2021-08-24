@@ -26,11 +26,12 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
-	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	log "github.com/ChainSafe/log15"
 	"github.com/gorilla/websocket"
 )
@@ -48,17 +49,16 @@ const DEFAULT_BUFFER_SIZE = 100
 
 // WSConn struct to hold WebSocket Connection references
 type WSConn struct {
-	Wsconn             *websocket.Conn
-	mu                 sync.Mutex
-	BlockSubChannels   map[uint]byte
-	StorageSubChannels map[int]byte
-	qtyListeners       uint
-	Subscriptions      map[uint]Listener
-	StorageAPI         modules.StorageAPI
-	BlockAPI           modules.BlockAPI
-	CoreAPI            modules.CoreAPI
-	TxStateAPI         modules.TransactionStateAPI
-	RPCHost            string
+	UnsafeEnabled bool
+	Wsconn        *websocket.Conn
+	mu            sync.Mutex
+	qtyListeners  uint32
+	Subscriptions map[uint32]Listener
+	StorageAPI    modules.StorageAPI
+	BlockAPI      modules.BlockAPI
+	CoreAPI       modules.CoreAPI
+	TxStateAPI    modules.TransactionStateAPI
+	RPCHost       string
 
 	HTTP httpclient
 }
@@ -104,8 +104,13 @@ func (c *WSConn) HandleComm() {
 
 		logger.Debug("ws method called", "method", method, "params", params)
 
-		if strings.Contains(method, "_subscribe") {
+		if !strings.Contains(method, "_unsubscribe") && !strings.Contains(method, "_unwatch") {
 			setup := c.getSetupListener(method)
+
+			if setup == nil {
+				c.executeRPCCall(mbytes)
+				continue
+			}
 
 			listener, err := setup(reqid, params) //nolint
 			if err != nil {
@@ -117,56 +122,48 @@ func (c *WSConn) HandleComm() {
 			continue
 		}
 
-		if strings.Contains(method, "_unsubscribe") {
-			unsub, listener, err := c.getUnsubListener(method, params) //nolint
+		listener, err := c.getUnsubListener(params) //nolint
 
-			if err != nil {
-				logger.Warn("failed to get unsubscriber", "method", method, "error", err)
+		if err != nil {
+			logger.Warn("failed to get unsubscriber", "method", method, "error", err)
 
-				if errors.Is(err, errUknownParamSubscribeID) || errors.Is(err, errCannotFindUnsubsriber) {
-					c.safeSendError(reqid, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
-					continue
-				}
-
-				if errors.Is(err, errCannotParseID) || errors.Is(err, errCannotFindListener) {
-					c.safeSend(newBooleanResponseJSON(false, reqid))
-					continue
-				}
-			}
-
-			unsub(reqid, listener, params)
-			listener.Stop()
-			continue
-		}
-
-		if strings.Contains(method, "submitAndWatchExtrinsic") {
-			listener, err := c.initExtrinsicWatch(reqid, params) //nolint
-			if err != nil {
-				logger.Warn("failed to create listener", "method", method, "error", err)
-				c.safeSendError(reqid, nil, err.Error())
+			if errors.Is(err, errUknownParamSubscribeID) || errors.Is(err, errCannotFindUnsubsriber) {
+				c.safeSendError(reqid, big.NewInt(InvalidRequestCode), InvalidRequestMessage)
 				continue
 			}
 
-			listener.Listen()
-			continue
+			if errors.Is(err, errCannotParseID) || errors.Is(err, errCannotFindListener) {
+				c.safeSend(newBooleanResponseJSON(false, reqid))
+				continue
+			}
 		}
 
-		// handle non-subscribe calls
-		request, err := c.prepareRequest(mbytes)
+		err = listener.Stop()
 		if err != nil {
-			logger.Warn("failed while preparing the request", "error", err)
-			return
+			logger.Warn("failed to cancel listener goroutine", "method", method, "error", err)
+			c.safeSend(newBooleanResponseJSON(false, reqid))
 		}
 
-		var wsresponse interface{}
-		err = c.executeRequest(request, &wsresponse)
-		if err != nil {
-			logger.Warn("problems while executing the request", "error", err)
-			return
-		}
-
-		c.safeSend(wsresponse)
+		c.safeSend(newBooleanResponseJSON(true, reqid))
+		continue
 	}
+}
+
+func (c *WSConn) executeRPCCall(data []byte) {
+	request, err := c.prepareRequest(data)
+	if err != nil {
+		logger.Warn("failed while preparing the request", "error", err)
+		return
+	}
+
+	var wsresponse interface{}
+	err = c.executeRequest(request, &wsresponse)
+	if err != nil {
+		logger.Warn("problems while executing the request", "error", err)
+		return
+	}
+
+	c.safeSend(wsresponse)
 }
 
 func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (Listener, error) {
@@ -203,8 +200,7 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (L
 
 	c.mu.Lock()
 
-	c.qtyListeners++
-	stgobs.id = c.qtyListeners
+	stgobs.id = atomic.AddUint32(&c.qtyListeners, 1)
 	c.Subscriptions[stgobs.id] = stgobs
 
 	c.mu.Unlock()
@@ -216,22 +212,13 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (L
 	return stgobs, nil
 }
 
-func (c *WSConn) unsubscribeStorageListener(reqID float64, l Listener, _ interface{}) {
-	observer, ok := l.(state.Observer)
-	if !ok {
-		initRes := newBooleanResponseJSON(false, reqID)
-		c.safeSend(initRes)
-		return
-	}
-
-	c.StorageAPI.UnregisterStorageObserver(observer)
-	c.safeSend(newBooleanResponseJSON(true, reqID))
-}
-
 func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, error) {
 	bl := &BlockListener{
-		Channel: make(chan *types.Block, DEFAULT_BUFFER_SIZE),
-		wsconn:  c,
+		Channel:       make(chan *types.Block, DEFAULT_BUFFER_SIZE),
+		wsconn:        c,
+		cancel:        make(chan struct{}, 1),
+		cancelTimeout: defaultCancelTimeout,
+		done:          make(chan struct{}, 1),
 	}
 
 	if c.BlockAPI == nil {
@@ -248,10 +235,8 @@ func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, erro
 
 	c.mu.Lock()
 
-	c.qtyListeners++
-	bl.subID = c.qtyListeners
+	bl.subID = atomic.AddUint32(&c.qtyListeners, 1)
 	c.Subscriptions[bl.subID] = bl
-	c.BlockSubChannels[bl.subID] = bl.ChanID
 
 	c.mu.Unlock()
 
@@ -262,8 +247,11 @@ func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, erro
 
 func (c *WSConn) initBlockFinalizedListener(reqID float64, _ interface{}) (Listener, error) {
 	bfl := &BlockFinalizedListener{
-		channel: make(chan *types.FinalisationInfo, DEFAULT_BUFFER_SIZE),
-		wsconn:  c,
+		channel:       make(chan *types.FinalisationInfo),
+		cancel:        make(chan struct{}, 1),
+		done:          make(chan struct{}, 1),
+		cancelTimeout: defaultCancelTimeout,
+		wsconn:        c,
 	}
 
 	if c.BlockAPI == nil {
@@ -279,10 +267,8 @@ func (c *WSConn) initBlockFinalizedListener(reqID float64, _ interface{}) (Liste
 
 	c.mu.Lock()
 
-	c.qtyListeners++
-	bfl.subID = c.qtyListeners
+	bfl.subID = atomic.AddUint32(&c.qtyListeners, 1)
 	c.Subscriptions[bfl.subID] = bfl
-	c.BlockSubChannels[bfl.subID] = bfl.chanID
 
 	c.mu.Unlock()
 
@@ -304,7 +290,10 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 		importedChan:  make(chan *types.Block, DEFAULT_BUFFER_SIZE),
 		wsconn:        c,
 		extrinsic:     types.Extrinsic(extBytes),
-		finalisedChan: make(chan *types.FinalisationInfo, DEFAULT_BUFFER_SIZE),
+		finalisedChan: make(chan *types.FinalisationInfo),
+		cancel:        make(chan struct{}, 1),
+		done:          make(chan struct{}, 1),
+		cancelTimeout: defaultCancelTimeout,
 	}
 
 	if c.BlockAPI == nil {
@@ -322,41 +311,48 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 
 	c.mu.Lock()
 
-	c.qtyListeners++
-	esl.subID = c.qtyListeners
+	esl.subID = atomic.AddUint32(&c.qtyListeners, 1)
 	c.Subscriptions[esl.subID] = esl
-	c.BlockSubChannels[esl.subID] = esl.importedChanID
 
 	c.mu.Unlock()
 
 	err = c.CoreAPI.HandleSubmittedExtrinsic(extBytes)
 	if err != nil {
+		c.safeSendError(reqID, nil, err.Error())
 		return nil, err
 	}
 	c.safeSend(NewSubscriptionResponseJSON(esl.subID, reqID))
 
 	// TODO (ed) since HandleSubmittedExtrinsic has been called we assume the extrinsic is in the tx queue
 	//  should we add a channel to tx queue so we're notified when it's in the queue (See issue #1535)
-	c.safeSend(newSubscriptionResponse(AuthorExtrinsicUpdates, esl.subID, "ready"))
+	c.safeSend(newSubscriptionResponse(authorExtrinsicUpdatesMethod, esl.subID, "ready"))
 
 	// todo (ed) determine which peer extrinsic has been broadcast to, and set status
 	return esl, err
 }
 
 func (c *WSConn) initRuntimeVersionListener(reqID float64, _ interface{}) (Listener, error) {
-	rvl := &RuntimeVersionListener{
-		wsconn: c,
-	}
-
 	if c.CoreAPI == nil {
 		c.safeSendError(reqID, nil, "error CoreAPI not set")
 		return nil, fmt.Errorf("error CoreAPI not set")
 	}
 
+	rvl := &RuntimeVersionListener{
+		wsconn:        c,
+		runtimeUpdate: make(chan runtime.Version),
+		coreAPI:       c.CoreAPI,
+	}
+
+	chanID, err := c.BlockAPI.RegisterRuntimeUpdatedChannel(rvl.runtimeUpdate)
+	if err != nil {
+		return nil, err
+	}
+
 	c.mu.Lock()
 
+	rvl.channelID = chanID
 	c.qtyListeners++
-	rvl.subID = c.qtyListeners
+	rvl.subID = atomic.AddUint32(&c.qtyListeners, 1)
 	c.Subscriptions[rvl.subID] = rvl
 
 	c.mu.Unlock()
@@ -364,6 +360,38 @@ func (c *WSConn) initRuntimeVersionListener(reqID float64, _ interface{}) (Liste
 	c.safeSend(NewSubscriptionResponseJSON(rvl.subID, reqID))
 
 	return rvl, nil
+}
+
+func (c *WSConn) initGrandpaJustificationListener(reqID float64, _ interface{}) (Listener, error) {
+	if c.BlockAPI == nil {
+		c.safeSendError(reqID, nil, "error BlockAPI not set")
+		return nil, fmt.Errorf("error BlockAPI not set")
+	}
+
+	jl := &GrandpaJustificationListener{
+		cancel:        make(chan struct{}, 1),
+		done:          make(chan struct{}, 1),
+		wsconn:        c,
+		finalisedCh:   make(chan *types.FinalisationInfo, 1),
+		cancelTimeout: defaultCancelTimeout,
+	}
+
+	var err error
+	jl.finalisedChID, err = c.BlockAPI.RegisterFinalizedChannel(jl.finalisedCh)
+	if err != nil {
+		return nil, err
+	}
+
+	c.mu.Lock()
+
+	jl.subID = atomic.AddUint32(&c.qtyListeners, 1)
+	c.Subscriptions[jl.subID] = jl
+
+	c.mu.Unlock()
+
+	c.safeSend(NewSubscriptionResponseJSON(jl.subID, reqID))
+
+	return jl, nil
 }
 
 func (c *WSConn) safeSend(msg interface{}) {

@@ -366,15 +366,9 @@ func (s *Service) handleJustification(header *types.Header, justification []byte
 		return
 	}
 
-	err := s.finalityGadget.VerifyBlockJustification(justification)
+	err := s.finalityGadget.VerifyBlockJustification(header.Hash(), justification)
 	if err != nil {
 		logger.Warn("failed to verify block justification", "hash", header.Hash(), "number", header.Number, "error", err)
-		return
-	}
-
-	err = s.blockState.SetFinalisedHash(header.Hash(), 0, 0)
-	if err != nil {
-		logger.Error("failed to set finalised hash", "error", err)
 		return
 	}
 

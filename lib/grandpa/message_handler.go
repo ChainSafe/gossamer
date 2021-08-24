@@ -23,6 +23,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
+	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/scale"
 
@@ -68,7 +69,7 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 		return nil, nil
 	case commitType:
 		if fm, ok := m.(*CommitMessage); ok {
-			return h.handleCommitMessage(fm)
+			return nil, h.handleCommitMessage(fm)
 		}
 	case neighbourType:
 		nm, ok := m.(*NeighbourMessage)
@@ -132,50 +133,34 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 	return nil
 }
 
-func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) (*ConsensusMessage, error) {
-	logger.Debug("received finalisation message", "msg", msg)
+func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
+	logger.Debug("received commit message", "msg", msg)
 
 	if has, _ := h.blockState.HasFinalisedBlock(msg.Round, h.grandpa.state.setID); has {
-		return nil, nil
+		return nil
 	}
 
 	// check justification here
 	if err := h.verifyCommitMessageJustification(msg); err != nil {
-		return nil, err
+		return err
 	}
 
 	// set finalised head for round in db
 	if err := h.blockState.SetFinalisedHash(msg.Vote.Hash, msg.Round, h.grandpa.state.setID); err != nil {
-		return nil, err
+		return err
 	}
 
 	pcs, err := compactToJustification(msg.Precommits, msg.AuthData)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if err = h.grandpa.grandpaState.SetPrecommits(msg.Round, msg.SetID, pcs); err != nil {
-		return nil, err
+		return err
 	}
 
-	if msg.Round >= h.grandpa.state.round {
-		// set latest finalised head in db
-		err = h.blockState.SetFinalisedHash(msg.Vote.Hash, 0, 0)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// check if msg has same setID but is 2 or more rounds ahead of us, if so, return catch-up request to send
-	if msg.Round > h.grandpa.state.round+1 && !h.grandpa.paused.Load().(bool) { // TODO: CommitMessage does not have setID, confirm this is correct
-		h.grandpa.paused.Store(true)
-		h.grandpa.state.round = msg.Round + 1
-		req := newCatchUpRequest(msg.Round, h.grandpa.state.setID)
-		logger.Debug("sending catch-up request; paused service", "round", msg.Round)
-		return req.ToConsensusMessage()
-	}
-
-	return nil, nil
+	// TODO: re-add catch-up logic
+	return nil
 }
 
 func (h *MessageHandler) handleCatchUpRequest(msg *catchUpRequest) (*ConsensusMessage, error) {
@@ -208,7 +193,88 @@ func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponse) {
 	}
 
 	logger.Debug("received catch up response", "round", msg.Round, "setID", msg.SetID, "hash", msg.Hash)
+//<<<<<<< HEAD
 	h.responseCh <- msg
+/*=======
+
+	// TODO: re-add catch-up logic
+	if true {
+		return nil
+	}
+
+	// if we aren't currently expecting a catch up response, return
+	if !h.grandpa.paused.Load().(bool) { //nolint
+		logger.Debug("not currently paused, ignoring catch up response")
+		return nil
+	}
+
+	if msg.SetID != h.grandpa.state.setID {
+		return ErrSetIDMismatch
+	}
+
+	if msg.Round != h.grandpa.state.round-1 {
+		return ErrInvalidCatchUpResponseRound
+	}
+
+	prevote, err := h.verifyPreVoteJustification(msg)
+	if err != nil {
+		return err
+	}
+
+	if err = h.verifyPreCommitJustification(msg); err != nil {
+		return err
+	}
+
+	if (msg.Hash == common.Hash{}) || msg.Number == 0 {
+		return ErrGHOSTlessCatchUp
+	}
+
+	if err = h.verifyCatchUpResponseCompletability(prevote, msg.Hash); err != nil {
+		return err
+	}
+
+	// set prevotes and precommits in db
+	if err = h.grandpa.grandpaState.SetPrevotes(msg.Round, msg.SetID, msg.PreVoteJustification); err != nil {
+		return err
+	}
+
+	if err = h.grandpa.grandpaState.SetPrecommits(msg.Round, msg.SetID, msg.PreCommitJustification); err != nil {
+		return err
+	}
+
+	// update state and signal to grandpa we are ready to initiate
+	head, err := h.grandpa.blockState.GetHeader(msg.Hash)
+	if err != nil {
+		return err
+	}
+
+	h.grandpa.head = head
+	h.grandpa.state.round = msg.Round
+	close(h.grandpa.resumed)
+	h.grandpa.resumed = make(chan struct{})
+	h.grandpa.paused.Store(false)
+	logger.Debug("caught up to round; unpaused service", "round", h.grandpa.state.round)
+	return nil
+}
+
+// verifyCatchUpResponseCompletability verifies that the pre-commit block is a descendant of, or is, the pre-voted block
+func (h *MessageHandler) verifyCatchUpResponseCompletability(prevote, precommit common.Hash) error { //nolint
+	if prevote == precommit {
+		return nil
+	}
+
+	// check if the current block is a descendant of prevoted block
+	isDescendant, err := h.grandpa.blockState.IsDescendantOf(prevote, precommit)
+	if err != nil {
+		return err
+	}
+
+	if !isDescendant {
+		return ErrCatchUpResponseNotCompletable
+	}
+
+	return nil
+>>>>>>> 9b80e0a1a0834c26f974bdf4a9b682ecd57c67f5*/
 }
 
 func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) error {
@@ -232,6 +298,7 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 		isDescendant, err := h.blockState.IsDescendantOf(fm.Vote.Hash, just.Vote.Hash)
 		if err != nil {
 			logger.Warn("verifyCommitMessageJustification", "error", err)
+			continue
 		}
 
 		if isDescendant {
@@ -251,7 +318,7 @@ func (h *MessageHandler) verifyCommitMessageJustification(fm *CommitMessage) err
 }
 
 // VerifyBlockJustification verifies the finality justification for a block
-func (s *Service) VerifyBlockJustification(justification []byte) error {
+func (s *Service) VerifyBlockJustification(hash common.Hash, justification []byte) error {
 	r := &bytes.Buffer{}
 	_, _ = r.Write(justification)
 	fj := new(Justification)
@@ -263,6 +330,15 @@ func (s *Service) VerifyBlockJustification(justification []byte) error {
 	setID, err := s.grandpaState.GetSetIDByBlockNumber(big.NewInt(int64(fj.Commit.Number)))
 	if err != nil {
 		return fmt.Errorf("cannot get set ID from block number: %w", err)
+	}
+
+	has, err := s.blockState.HasFinalisedBlock(fj.Round, setID)
+	if err != nil {
+		return err
+	}
+
+	if has {
+		return fmt.Errorf("already have finalised block with setID=%d and round=%d", setID, fj.Round)
 	}
 
 	auths, err := s.grandpaState.GetAuthorities(setID)
@@ -283,12 +359,14 @@ func (s *Service) VerifyBlockJustification(justification []byte) error {
 	}
 
 	for _, just := range fj.Commit.Precommits {
-		if just.Vote.Hash != fj.Commit.Hash {
-			return ErrJustificationHashMismatch
+		// check if vote was for descendant of committed block
+		isDescendant, err := s.blockState.IsDescendantOf(hash, just.Vote.Hash) //nolint
+		if err != nil {
+			return err
 		}
 
-		if just.Vote.Number != fj.Commit.Number {
-			return ErrJustificationNumberMismatch
+		if !isDescendant {
+			return ErrPrecommitBlockMismatch
 		}
 
 		pk, err := ed25519.NewPublicKey(just.AuthorityID[:])
@@ -322,6 +400,12 @@ func (s *Service) VerifyBlockJustification(justification []byte) error {
 		}
 	}
 
+	err = s.blockState.SetFinalisedHash(hash, fj.Round, setID)
+	if err != nil {
+		return err
+	}
+
+	logger.Debug("set finalised block", "hash", hash, "round", fj.Round, "setID", setID)
 	return nil
 }
 

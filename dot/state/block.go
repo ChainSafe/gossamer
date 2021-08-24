@@ -50,12 +50,14 @@ type BlockState struct {
 	lastFinalised common.Hash
 
 	// block notifiers
-	imported          map[byte]chan<- *types.Block
-	finalised         map[byte]chan<- *types.FinalisationInfo
-	importedLock      sync.RWMutex
-	finalisedLock     sync.RWMutex
-	importedBytePool  *common.BytePool
-	finalisedBytePool *common.BytePool
+	imported                       map[byte]chan<- *types.Block
+	finalised                      map[byte]chan<- *types.FinalisationInfo
+	importedLock                   sync.RWMutex
+	finalisedLock                  sync.RWMutex
+	importedBytePool               *common.BytePool
+	finalisedBytePool              *common.BytePool
+	runtimeUpdateSubscriptionsLock sync.RWMutex
+	runtimeUpdateSubscriptions     map[uint32]chan<- runtime.Version
 
 	pruneKeyCh chan *types.Header
 }
@@ -67,13 +69,14 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 	}
 
 	bs := &BlockState{
-		bt:         bt,
-		dbPath:     db.Path(),
-		baseState:  NewBaseState(db),
-		db:         chaindb.NewTable(db, blockPrefix),
-		imported:   make(map[byte]chan<- *types.Block),
-		finalised:  make(map[byte]chan<- *types.FinalisationInfo),
-		pruneKeyCh: make(chan *types.Header, pruneKeyBufferSize),
+		bt:                         bt,
+		dbPath:                     db.Path(),
+		baseState:                  NewBaseState(db),
+		db:                         chaindb.NewTable(db, blockPrefix),
+		imported:                   make(map[byte]chan<- *types.Block),
+		finalised:                  make(map[byte]chan<- *types.FinalisationInfo),
+		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
+		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
 	}
 
 	genesisBlock, err := bs.GetBlockByNumber(big.NewInt(0))
@@ -88,21 +91,20 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 	}
 
 	bs.importedBytePool = common.NewBytePool256()
-
 	bs.finalisedBytePool = common.NewBytePool256()
-
 	return bs, nil
 }
 
 // NewBlockStateFromGenesis initialises a BlockState from a genesis header, saving it to the database located at basePath
 func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*BlockState, error) {
 	bs := &BlockState{
-		bt:         blocktree.NewBlockTreeFromRoot(header, db),
-		baseState:  NewBaseState(db),
-		db:         chaindb.NewTable(db, blockPrefix),
-		imported:   make(map[byte]chan<- *types.Block),
-		finalised:  make(map[byte]chan<- *types.FinalisationInfo),
-		pruneKeyCh: make(chan *types.Header, pruneKeyBufferSize),
+		bt:                         blocktree.NewBlockTreeFromRoot(header, db),
+		baseState:                  NewBaseState(db),
+		db:                         chaindb.NewTable(db, blockPrefix),
+		imported:                   make(map[byte]chan<- *types.Block),
+		finalised:                  make(map[byte]chan<- *types.FinalisationInfo),
+		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
+		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
 	}
 
 	if err := bs.setArrivalTime(header.Hash(), time.Now()); err != nil {
@@ -123,15 +125,17 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 
 	bs.genesisHash = header.Hash()
 
+	if err := bs.db.Put(highestRoundAndSetIDKey, roundAndSetIDToBytes(0, 0)); err != nil {
+		return nil, err
+	}
+
 	// set the latest finalised head to the genesis header
 	if err := bs.SetFinalisedHash(bs.genesisHash, 0, 0); err != nil {
 		return nil, err
 	}
 
 	bs.importedBytePool = common.NewBytePool256()
-
 	bs.finalisedBytePool = common.NewBytePool256()
-
 	return bs, nil
 }
 
@@ -320,14 +324,13 @@ func (bs *BlockState) GetBlockByNumber(num *big.Int) (*types.Block, error) {
 }
 
 // GetBlockHash returns block hash for a given blockNumber
-func (bs *BlockState) GetBlockHash(blockNumber *big.Int) (*common.Hash, error) {
-	// First retrieve the block hash in a byte array based on the block number from the database
+func (bs *BlockState) GetBlockHash(blockNumber *big.Int) (common.Hash, error) {
 	byteHash, err := bs.db.Get(headerHashKey(blockNumber.Uint64()))
 	if err != nil {
-		return nil, fmt.Errorf("cannot get block %d: %w", blockNumber, err)
+		return common.Hash{}, fmt.Errorf("cannot get block %d: %w", blockNumber, err)
 	}
-	hash := common.NewHash(byteHash)
-	return &hash, nil
+
+	return common.NewHash(byteHash), nil
 }
 
 // SetHeader will set the header into DB
@@ -661,6 +664,7 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState, rt run
 	}
 
 	codeSubBlockHash := bs.baseState.LoadCodeSubstitutedBlockHash()
+
 	if !codeSubBlockHash.Equal(common.Hash{}) {
 		newVersion, err := rt.CheckRuntimeVersion(code) //nolint
 		if err != nil {
@@ -706,6 +710,11 @@ func (bs *BlockState) HandleRuntimeChanges(newState *rtstorage.TrieState, rt run
 		return fmt.Errorf("failed to update code substituted block hash: %w", err)
 	}
 
+	newVersion, err := rt.Version()
+	if err != nil {
+		return fmt.Errorf("failed to retrieve runtime version: %w", err)
+	}
+	go bs.notifyRuntimeUpdated(newVersion)
 	return nil
 }
 

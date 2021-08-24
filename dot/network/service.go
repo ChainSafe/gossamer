@@ -304,9 +304,16 @@ func (s *Service) collectNetworkMetrics() {
 }
 
 func (s *Service) logPeerCount() {
+	ticker := time.NewTicker(time.Second * 30)
+	defer ticker.Stop()
+
 	for {
-		logger.Debug("peer count", "num", s.host.peerCount(), "min", s.cfg.MinPeers, "max", s.cfg.MaxPeers)
-		time.Sleep(time.Second * 30)
+		select {
+		case <-ticker.C:
+			logger.Debug("peer count", "num", s.host.peerCount(), "min", s.cfg.MinPeers, "max", s.cfg.MaxPeers)
+		case <-s.ctx.Done():
+			return
+		}
 	}
 }
 
@@ -343,7 +350,7 @@ func (s *Service) sentBlockIntervalTelemetry() {
 		}
 		bestHash := best.Hash()
 
-		finalized, err := s.blockState.GetFinalisedHeader(0, 0) //nolint
+		finalized, err := s.blockState.GetHighestFinalisedHeader() //nolint
 		if err != nil {
 			continue
 		}
@@ -519,8 +526,9 @@ func (s *Service) GossipMessage(msg NotificationsMessage) {
 func (s *Service) SendMessage(to peer.ID, msg NotificationsMessage) error {
 	s.notificationsMu.Lock()
 	defer s.notificationsMu.Unlock()
+
 	for msgID, prtl := range s.notificationsProtocols {
-		if msg.Type() != msgID || prtl == nil {
+		if msg.Type() != msgID {
 			continue
 		}
 
@@ -534,6 +542,7 @@ func (s *Service) SendMessage(to peer.ID, msg NotificationsMessage) error {
 			return err
 		}
 	}
+
 	return errors.New("message not supported by any notifications protocol")
 }
 
@@ -573,8 +582,8 @@ func (s *Service) readStream(stream libp2pnetwork.Stream, decoder messageDecoder
 
 	for {
 		tot, err := readStream(stream, msgBytes[:])
-		if err == io.EOF {
-			continue
+		if errors.Is(err, io.EOF) {
+			return
 		} else if err != nil {
 			logger.Trace("failed to read from stream", "peer", stream.Conn().RemotePeer(), "protocol", stream.Protocol(), "error", err)
 			_ = stream.Close()
@@ -696,6 +705,16 @@ func (s *Service) Peers() []common.PeerInfo {
 	}
 
 	return peers
+}
+
+// AddReservedPeers insert new peers to the peerstore with PermanentAddrTTL
+func (s *Service) AddReservedPeers(addrs ...string) error {
+	return s.host.addReservedPeers(addrs...)
+}
+
+// RemoveReservedPeers closes all connections with the target peers and remove it from the peerstore
+func (s *Service) RemoveReservedPeers(addrs ...string) error {
+	return s.host.removeReservedPeers(addrs...)
 }
 
 // NodeRoles Returns the roles the node is running as.
