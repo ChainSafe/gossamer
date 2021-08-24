@@ -125,7 +125,7 @@ func (se *Encoder) EncodeCustom(in interface{}) (int, error) {
 func (se *Encoder) encodeCustomOrEncode(in interface{}) (int, error) {
 	n, err := se.EncodeCustom(in)
 	if err == nil {
-		return n, err
+		return n, nil
 	}
 
 	return se.Encode(in)
