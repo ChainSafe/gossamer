@@ -11,6 +11,7 @@ const (
 	chainSubscribeNewHeads         string = "chain_subscribeNewHeads"
 	chainSubscribeNewHead          string = "chain_subscribeNewHead"
 	chainSubscribeFinalizedHeads   string = "chain_subscribeFinalizedHeads"
+	chainSubscribeAllHeads         string = "chain_subscribeAllHeads"
 	stateSubscribeStorage          string = "state_subscribeStorage"
 	stateSubscribeRuntimeVersion   string = "state_subscribeRuntimeVersion"
 	grandpaSubscribeJustifications string = "grandpa_subscribeJustifications"
@@ -35,6 +36,8 @@ func (c *WSConn) getSetupListener(method string) setupListener {
 		return c.initStorageChangeListener
 	case chainSubscribeFinalizedHeads:
 		return c.initBlockFinalizedListener
+	case chainSubscribeAllHeads:
+		return c.initAllBlocksListerner
 	case stateSubscribeRuntimeVersion:
 		return c.initRuntimeVersionListener
 	case grandpaSubscribeJustifications:
