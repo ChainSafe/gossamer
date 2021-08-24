@@ -17,10 +17,10 @@
 package state
 
 import (
+	"crypto/rand"
 	"fmt"
 	"io/ioutil"
 	"math/big"
-	"math/rand"
 	"testing"
 	"time"
 
@@ -61,7 +61,6 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 	previousHash := blockState.BestBlockHash()
 
 	branches := []testBranch{}
-	r := *rand.New(rand.NewSource(rand.Int63())) //nolint
 
 	arrivalTime := time.Now()
 	currentChain := []*types.Header{}
@@ -92,8 +91,9 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 
 		previousHash = hash
 
-		isBranch := r.Intn(2)
-		if isBranch == 1 {
+		isBranch, err := rand.Int(rand.Reader, big.NewInt(2))
+		require.NoError(t, err)
+		if isBranch.Cmp(big.NewInt(1)) == 0 {
 			branches = append(branches, testBranch{
 				hash:  hash,
 				depth: i,

@@ -224,11 +224,6 @@ func (h *host) close() error {
 	return nil
 }
 
-// registerConnHandler registers the connection handler (see handleConn)
-func (h *host) registerConnHandler(handler func(libp2pnetwork.Conn)) { //nolint
-	h.h.Network().SetConnHandler(handler)
-}
-
 // registerStreamHandler registers the stream handler, appending the given sub-protocol to the main protocol ID
 func (h *host) registerStreamHandler(sub protocol.ID, handler func(libp2pnetwork.Stream)) {
 	h.h.SetStreamHandler(h.protocolID+sub, handler)
