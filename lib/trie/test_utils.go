@@ -72,11 +72,13 @@ func generateRandomTest(t testing.TB, kv map[string][]byte) Test {
 	}
 }
 
+// KV helps to export the entries of the generated keys
 type KV struct {
 	K []byte
 	V []byte
 }
 
+// RandomTrieTest generate a trie with random entries
 func RandomTrieTest(t *testing.T, n int) (*Trie, map[string]*KV) {
 	t.Helper()
 
@@ -94,6 +96,6 @@ func RandomTrieTest(t *testing.T, n int) (*Trie, map[string]*KV) {
 
 func randBytes(n int) []byte {
 	r := make([]byte, n)
-	rand.Read(r)
+	rand.Read(r) //nolint
 	return r
 }
