@@ -212,7 +212,7 @@ func (q *syncQueue) syncAtHead() {
 		goal := atomic.LoadInt64(&q.goal)
 
 		// we aren't at the head yet, sleep
-		if curr.Number.Int64() < goal-int64(blockRequestSize) {
+		if curr.Number.Int64() < goal-int64(blockRequestSize) && curr.Number.Cmp(prev.Number) > 0 {
 			prev = curr
 			q.s.noGossip = true
 			q.s.syncer.SetSyncing(true)
