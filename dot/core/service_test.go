@@ -26,7 +26,6 @@ import (
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/core/mocks"
-	coremocks "github.com/ChainSafe/gossamer/dot/core/mocks"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/sync"
@@ -108,7 +107,7 @@ func TestStartService(t *testing.T) {
 }
 
 func TestAnnounceBlock(t *testing.T) {
-	net := new(coremocks.MockNetwork)
+	net := new(mocks.MockNetwork)
 	cfg := &Config{
 		Network: net,
 	}
