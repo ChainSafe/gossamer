@@ -1,6 +1,7 @@
 package trie
 
 import (
+	crand "crypto/rand"
 	"encoding/binary"
 	"math/rand"
 	"testing"
@@ -66,4 +67,30 @@ func generateRandomTest(t testing.TB, kv map[string][]byte) Test {
 			return test
 		}
 	}
+}
+
+type KV struct {
+	K []byte
+	V []byte
+}
+
+func RandomTrieTest(t *testing.T, n int) (*Trie, map[string]*KV) {
+	t.Helper()
+
+	trie := NewEmptyTrie()
+	vals := make(map[string]*KV)
+
+	for i := 0; i < n; i++ {
+		v := &KV{randBytes(32), randBytes(20)}
+		trie.Put(v.K, v.V)
+		vals[string(v.K)] = v
+	}
+
+	return trie, vals
+}
+
+func randBytes(n int) []byte {
+	r := make([]byte, n)
+	crand.Read(r)
+	return r
 }

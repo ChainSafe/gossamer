@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
@@ -35,42 +34,46 @@ var (
 
 // GenerateProof constructs the merkle-proof for key. The result contains all encoded nodes
 // on the path to the key. Returns the amount of nodes of the path and error if could not found the key
-func (t *Trie) GenerateProof(key []byte, db chaindb.Writer) (int, error) {
-	key = keyToNibbles(key)
-	if len(key) == 0 {
-		return 0, ErrEmptyNibbles
-	}
-
+func (t *Trie) GenerateProof(keys [][]byte) (map[string][]byte, error) {
 	var nodes []node
-	currNode := t.root
 
-proveLoop:
-	for {
-		switch n := currNode.(type) {
-		case nil:
-			return 0, errors.New("no more paths to follow")
+	for _, k := range keys {
+		currNode := t.root
 
-		case *leaf:
-			nodes = append(nodes, n)
+		nk := keyToNibbles(k)
+		if len(nk) == 0 {
+			return nil, ErrEmptyNibbles
+		}
 
-			if bytes.Equal(n.key, key) {
-				break proveLoop
+	proveLoop:
+		for {
+			switch n := currNode.(type) {
+			case nil:
+				return nil, errors.New("no more paths to follow")
+
+			case *leaf:
+				nodes = append(nodes, n)
+
+				if bytes.Equal(n.key, nk) {
+					break proveLoop
+				}
+
+				return nil, errors.New("leaf node doest not match the key")
+
+			case *branch:
+				nodes = append(nodes, n)
+				if bytes.Equal(n.key, nk) || len(nk) == 0 {
+					break proveLoop
+				}
+
+				length := lenCommonPrefix(n.key, nk)
+				currNode = n.children[nk[length]]
+				nk = nk[length+1:]
 			}
-
-			return 0, errors.New("leaf node doest not match the key")
-
-		case *branch:
-			nodes = append(nodes, n)
-			if bytes.Equal(n.key, key) || len(key) == 0 {
-				break proveLoop
-			}
-
-			length := lenCommonPrefix(n.key, key)
-			currNode = n.children[key[length]]
-			key = key[length+1:]
 		}
 	}
 
+	proof := make(map[string][]byte)
 	for _, n := range nodes {
 		var (
 			hashNode    []byte
@@ -79,32 +82,29 @@ proveLoop:
 		)
 
 		if encHashNode, hashNode, err = n.encodeAndHash(); err != nil {
-			return 0, fmt.Errorf("problems while encoding and hashing the node: %w", err)
+			return nil, fmt.Errorf("problems while encoding and hashing the node: %w", err)
 		}
 
-		if err = db.Put(hashNode, encHashNode); err != nil {
-			return len(nodes), err
-		}
+		// avoid duplicate hashes
+		proof[common.BytesToHex(hashNode)] = encHashNode
 	}
 
-	return len(nodes), nil
+	return proof, nil
 }
 
 // VerifyProof checks merkle proofs given an proof
-func VerifyProof(rootHash common.Hash, key []byte, db chaindb.Reader) (bool, error) {
+func VerifyProof(rootHash common.Hash, key []byte, proof map[string][]byte) (bool, error) {
 	key = keyToNibbles(key)
 	if len(key) == 0 {
 		return false, ErrEmptyNibbles
 	}
 
-	var wantedHash []byte
-	wantedHash = rootHash.ToBytes()
+	var wantedHash string
+	wantedHash = common.BytesToHex(rootHash.ToBytes())
 
 	for {
-		enc, err := db.Get(wantedHash)
-		if errors.Is(err, chaindb.ErrKeyNotFound) {
-			return false, nil
-		} else if err != nil {
+		enc, ok := proof[wantedHash]
+		if !ok {
 			return false, nil
 		}
 
@@ -138,7 +138,7 @@ func VerifyProof(rootHash common.Hash, key []byte, db chaindb.Reader) (bool, err
 			}
 
 			key = key[length+1:]
-			wantedHash = next.getHash()
+			wantedHash = common.BytesToHex(next.getHash())
 		}
 	}
 }

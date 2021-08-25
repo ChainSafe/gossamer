@@ -66,6 +66,38 @@ func (_m *MockCoreAPI) GetMetadata(bhash *common.Hash) ([]byte, error) {
 	return r0, r1
 }
 
+// GetReadProofAt provides a mock function with given fields: block, keys
+func (_m *MockCoreAPI) GetReadProofAt(block common.Hash, keys []common.Hash) (common.Hash, []string, error) {
+	ret := _m.Called(block, keys)
+
+	var r0 common.Hash
+	if rf, ok := ret.Get(0).(func(common.Hash, []common.Hash) common.Hash); ok {
+		r0 = rf(block, keys)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(common.Hash)
+		}
+	}
+
+	var r1 []string
+	if rf, ok := ret.Get(1).(func(common.Hash, []common.Hash) []string); ok {
+		r1 = rf(block, keys)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).([]string)
+		}
+	}
+
+	var r2 error
+	if rf, ok := ret.Get(2).(func(common.Hash, []common.Hash) error); ok {
+		r2 = rf(block, keys)
+	} else {
+		r2 = ret.Error(2)
+	}
+
+	return r0, r1, r2
+}
+
 // GetRuntimeVersion provides a mock function with given fields: bhash
 func (_m *MockCoreAPI) GetRuntimeVersion(bhash *common.Hash) (runtime.Version, error) {
 	ret := _m.Called(bhash)

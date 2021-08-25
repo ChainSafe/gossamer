@@ -31,6 +31,7 @@ import (
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	log "github.com/ChainSafe/log15"
 )
@@ -617,4 +618,50 @@ func (s *Service) tryQueryStorage(block common.Hash, keys ...string) (QueryKeyVa
 	}
 
 	return changes, nil
+}
+
+// GetReadProofAt will return an array with the proofs for the keys passed as params
+// based on the block hash passed as param as well, if block hash is nil then the current state will take place
+func (s *Service) GetReadProofAt(block common.Hash, keys []common.Hash) (common.Hash, []string, error) {
+	if block == common.EmptyHash {
+		block = s.blockState.BestBlockHash()
+	}
+
+	stateRoot, err := s.blockState.GetBlockStateRoot(block)
+	if err != nil {
+		return common.EmptyHash, nil, err
+	}
+
+	ts, err := s.storageState.TrieState(&stateRoot)
+	if err != nil {
+		return common.EmptyHash, nil, err
+	}
+
+	proofForKeys, err := readProofForKeys(ts.Trie(), keys)
+	if err != nil {
+		return common.EmptyHash, nil, err
+	}
+
+	return block, proofForKeys, nil
+}
+
+// readProofForKeys will go through the keys and generate the proof for each of them
+// and merge the result into a string array containing the hashes in the hexadecimal format
+func readProofForKeys(t *trie.Trie, keys []common.Hash) ([]string, error) {
+	storageKeys := make([][]byte, len(keys))
+	for i, k := range keys {
+		storageKeys[i] = k.ToBytes()
+	}
+
+	proof, err := t.GenerateProof(storageKeys)
+	if err != nil {
+		return nil, err
+	}
+
+	proofSlice := make([]string, 0, len(proof))
+	for k := range proof {
+		proofSlice = append(proofSlice, k)
+	}
+
+	return proofSlice, nil
 }

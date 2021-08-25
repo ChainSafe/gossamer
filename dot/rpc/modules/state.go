@@ -28,6 +28,12 @@ import (
 	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
+//StateGetReadProofRequest json fields
+type StateGetReadProofRequest struct {
+	Keys []common.Hash
+	Hash common.Hash
+}
+
 // StateCallRequest holds json fields
 type StateCallRequest struct {
 	Method string       `json:"method"`
@@ -127,6 +133,12 @@ type StateStorageKeysResponse []string
 // StateMetadataResponse holds the metadata
 //TODO: Determine actual type
 type StateMetadataResponse string
+
+//StateGetReadProofResponse holds the response format
+type StateGetReadProofResponse struct {
+	At    common.Hash `json:"at"`
+	Proof []string    `json:"proof"`
+}
 
 // StorageChangeSetResponse is the struct that holds the block and changes
 type StorageChangeSetResponse struct {
@@ -277,6 +289,21 @@ func (sm *StateModule) GetMetadata(r *http.Request, req *StateRuntimeMetadataQue
 	err = scale.Unmarshal(metadata, &decoded)
 	*res = StateMetadataResponse(common.BytesToHex(decoded))
 	return err
+}
+
+// GetReadProof returns the proof to the received storage keys
+func (sm *StateModule) GetReadProof(r *http.Request, req *StateGetReadProofRequest, res *StateGetReadProofResponse) error {
+	block, proofs, err := sm.coreAPI.GetReadProofAt(req.Hash, req.Keys)
+	if err != nil {
+		return err
+	}
+
+	*res = StateGetReadProofResponse{
+		At:    block,
+		Proof: proofs,
+	}
+
+	return nil
 }
 
 // GetRuntimeVersion Get the runtime version at a given block.

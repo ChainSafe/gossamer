@@ -476,6 +476,47 @@ func TestStateModule_GetKeysPaged(t *testing.T) {
 	}
 }
 
+func TestGetReadProof_WhenCoreAPIReturnsError(t *testing.T) {
+	coreAPIMock := new(mocks.MockCoreAPI)
+	coreAPIMock.
+		On("GetReadProofAt", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[]common.Hash")).
+		Return(common.EmptyHash, nil, errors.New("mocked error"))
+
+	sm := new(StateModule)
+	sm.coreAPI = coreAPIMock
+
+	req := &StateGetReadProofRequest{
+		Keys: []common.Hash{},
+		Hash: common.EmptyHash,
+	}
+	err := sm.GetReadProof(nil, req, nil)
+	require.Error(t, err, "mocked error")
+}
+
+func TestGetReadProof_WhenReturnsProof(t *testing.T) {
+	expectedBlock := common.BytesToHash([]byte("random hash"))
+	expectedProof := []string{"proof-1", "proof-2"}
+
+	coreAPIMock := new(mocks.MockCoreAPI)
+	coreAPIMock.
+		On("GetReadProofAt", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[]common.Hash")).
+		Return(expectedBlock, expectedProof, nil)
+
+	sm := new(StateModule)
+	sm.coreAPI = coreAPIMock
+
+	req := &StateGetReadProofRequest{
+		Keys: []common.Hash{},
+		Hash: common.EmptyHash,
+	}
+
+	res := new(StateGetReadProofResponse)
+	err := sm.GetReadProof(nil, req, res)
+	require.NoError(t, err)
+	require.Equal(t, res.At, expectedBlock)
+	require.Equal(t, res.Proof, expectedProof)
+}
+
 func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	// setup service
 	net := newNetworkService(t)

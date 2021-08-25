@@ -819,3 +819,117 @@ func TestDecodeSessionKeys_WhenGetRuntimeReturnError(t *testing.T) {
 	require.Error(t, err, "problems")
 	require.Nil(t, b)
 }
+
+func TestGetReadProofAt_WhenReceivedBlockIsEmpty(t *testing.T) {
+	tr, entries := trie.RandomTrieTest(t, 50)
+	require.Len(t, entries, 50)
+
+	i := 0
+	var keysToProof []common.Hash
+	var keys [][]byte
+
+	// get the last 2 entries
+	for _, entry := range entries {
+		if i < len(entries)-2 {
+			i++
+			continue
+		}
+
+		keysToProof = append(keysToProof, common.BytesToHash(entry.K))
+		keys = append(keys, entry.K)
+	}
+	require.Len(t, keysToProof, 2)
+
+	expectedProof, err := tr.GenerateProof(keys)
+	require.NoError(t, err)
+
+	ts, err := storage.NewTrieState(tr)
+	require.NoError(t, err)
+	root := ts.MustRoot()
+
+	header, err := types.NewHeader(common.EmptyHash, root, common.EmptyHash, big.NewInt(1), nil)
+	require.NoError(t, err)
+	bestBlock := types.NewBlock(header, nil)
+
+	blockStateMock := new(mocks.MockBlockState)
+	blockStateMock.On("BestBlockHash").Return(bestBlock.Header.Hash())
+	blockStateMock.On("GetBlockStateRoot", bestBlock.Header.Hash()).Return(root, nil)
+
+	storageMock := new(mocks.MockStorageState)
+	storageMock.On("TrieState", &root).Return(ts, nil)
+
+	svc := new(Service)
+	svc.storageState = storageMock
+	svc.blockState = blockStateMock
+
+	block, proof, err := svc.GetReadProofAt(common.EmptyHash, keysToProof)
+	require.NoError(t, err)
+
+	blockStateMock.AssertCalled(t, "BestBlockHash")
+	blockStateMock.AssertCalled(t, "GetBlockStateRoot", bestBlock.Header.Hash())
+	storageMock.AssertCalled(t, "TrieState", &root)
+	require.Equal(t, bestBlock.Header.Hash(), block)
+
+	// all the proof must exists in the expected
+	require.Equal(t, len(expectedProof), len(proof))
+	for _, p := range proof {
+		_, has := expectedProof[p]
+		require.True(t, has)
+	}
+}
+
+func TestGetReadProofAt_OnSpecificBlock(t *testing.T) {
+	tr, entries := trie.RandomTrieTest(t, 50)
+	require.Len(t, entries, 50)
+
+	i := 0
+	var keysToProof []common.Hash
+	var keys [][]byte
+
+	// get the last 2 entries
+	for _, entry := range entries {
+		if i < len(entries)-2 {
+			i++
+			continue
+		}
+
+		keysToProof = append(keysToProof, common.BytesToHash(entry.K))
+		keys = append(keys, entry.K)
+	}
+	require.Len(t, keysToProof, 2)
+
+	expectedProof, err := tr.GenerateProof(keys)
+	require.NoError(t, err)
+
+	ts, err := storage.NewTrieState(tr)
+	require.NoError(t, err)
+	root := ts.MustRoot()
+
+	header, err := types.NewHeader(common.EmptyHash, root, common.EmptyHash, big.NewInt(1), nil)
+	require.NoError(t, err)
+	specifcBlock := types.NewBlock(header, nil)
+
+	blockStateMock := new(mocks.MockBlockState)
+	blockStateMock.On("GetBlockStateRoot", specifcBlock.Header.Hash()).Return(root, nil)
+
+	storageMock := new(mocks.MockStorageState)
+	storageMock.On("TrieState", &root).Return(ts, nil)
+
+	svc := new(Service)
+	svc.storageState = storageMock
+	svc.blockState = blockStateMock
+
+	block, proof, err := svc.GetReadProofAt(specifcBlock.Header.Hash(), keysToProof)
+	require.NoError(t, err)
+
+	blockStateMock.AssertCalled(t, "GetBlockStateRoot", specifcBlock.Header.Hash())
+	storageMock.AssertCalled(t, "TrieState", &root)
+	require.Equal(t, specifcBlock.Header.Hash(), block)
+
+	// all the proof must exists in the expected
+	require.Equal(t, len(expectedProof), len(proof))
+	for _, p := range proof {
+		_, has := expectedProof[p]
+		require.True(t, has)
+	}
+}
