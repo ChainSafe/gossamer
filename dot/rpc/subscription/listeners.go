@@ -214,6 +214,7 @@ func (l *BlockFinalizedListener) Stop() error {
 	return cancelWithTimeout(l.cancel, l.done, l.cancelTimeout)
 }
 
+// AllBlocksListener is a listener that is aware of new and newly finalised blocks```
 type AllBlocksListener struct {
 	finalizedChan chan *types.FinalisationInfo
 	importedChan  chan *types.Block
@@ -227,11 +228,26 @@ type AllBlocksListener struct {
 	cancelTimeout   time.Duration
 }
 
+func newAllBlockListener(conn *WSConn) *AllBlocksListener {
+	return &AllBlocksListener{
+		cancel:        make(chan struct{}, 1),
+		done:          make(chan struct{}, 1),
+		cancelTimeout: defaultCancelTimeout,
+		wsconn:        conn,
+		finalizedChan: make(chan *types.FinalisationInfo, DEFAULT_BUFFER_SIZE),
+		importedChan:  make(chan *types.Block, DEFAULT_BUFFER_SIZE),
+	}
+}
+
+// Listen start a goroutine to listen imported and finalised blocks
 func (l *AllBlocksListener) Listen() {
 	go func() {
 		defer func() {
 			l.wsconn.BlockAPI.UnregisterImportedChannel(l.importedChanID)
 			l.wsconn.BlockAPI.UnregisterFinalisedChannel(l.finalizedChanID)
+
+			close(l.importedChan)
+			close(l.finalizedChan)
 			close(l.done)
 		}()
 
@@ -250,15 +266,11 @@ func (l *AllBlocksListener) Listen() {
 
 				finHead, err := modules.HeaderToJSON(*fin.Header)
 				if err != nil {
-					logger.Error("failed to convert finalized block header to JSON", "error", err)
+					logger.Error("failed to convert finalised block header to JSON", "error", err)
 					continue
 				}
 
-				res := newSubcriptionBaseResponseJSON()
-				res.Method = chainAllHeadMethod
-				res.Params.Result = finHead
-				res.Params.SubscriptionID = l.subID
-				l.wsconn.safeSend(res)
+				l.wsconn.safeSend(newSubscriptionResponse(chainAllHeadMethod, l.subID, finHead))
 
 			case imp, ok := <-l.importedChan:
 				if !ok {
@@ -275,16 +287,13 @@ func (l *AllBlocksListener) Listen() {
 					continue
 				}
 
-				res := newSubcriptionBaseResponseJSON()
-				res.Method = chainAllHeadMethod
-				res.Params.Result = impHead
-				res.Params.SubscriptionID = l.subID
-				l.wsconn.safeSend(res)
+				l.wsconn.safeSend(newSubscriptionResponse(chainAllHeadMethod, l.subID, impHead))
 			}
 		}
 	}()
 }
 
+// Stop will unregister the imported chanells and stop the goroutine
 func (l *AllBlocksListener) Stop() error {
 	return cancelWithTimeout(l.cancel, l.done, l.cancelTimeout)
 }
