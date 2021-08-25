@@ -392,5 +392,5 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
 	_, err = gs.validateMessage("", msg)
-	require.Equal(t, ErrDescendantNotFound, err, gs.prevotes)
+	require.Equal(t, errInvalidVoteBlock, err, gs.prevotes)
 }

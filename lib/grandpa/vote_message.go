@@ -288,7 +288,7 @@ func (s *Service) validateVote(v *Vote) error {
 	}
 
 	if !isDescendant {
-		return errors.New("block in vote is not descendant of previously finalised block")
+		return errInvalidVoteBlock
 	}
 
 	return nil

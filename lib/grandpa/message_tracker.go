@@ -34,8 +34,7 @@ type tracker struct {
 	mapLock        sync.Mutex
 	in             chan *types.Block // receive imported block from BlockState
 	chanID         byte              // BlockState channel ID
-	//out            chan<- *networkVoteMessage // send a VoteMessage back to grandpa. corresponds to grandpa's in channel
-	stopped chan struct{}
+	stopped        chan struct{}
 }
 
 func newTracker(bs BlockState, handler *MessageHandler) (*tracker, error) {
@@ -53,8 +52,7 @@ func newTracker(bs BlockState, handler *MessageHandler) (*tracker, error) {
 		mapLock:        sync.Mutex{},
 		in:             in,
 		chanID:         id,
-		//out:            out,
-		stopped: make(chan struct{}),
+		stopped:        make(chan struct{}),
 	}, nil
 }
 

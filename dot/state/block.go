@@ -450,7 +450,6 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 	}
 
 	go bs.notifyImported(block)
-	fmt.Println("ADDED BLOCK", hash, bs.bt)
 	return bs.db.Flush()
 }
 

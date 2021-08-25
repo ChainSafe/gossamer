@@ -184,14 +184,14 @@ func (q *syncQueue) start() {
 }
 
 func (q *syncQueue) syncAtHead() {
-	// prev, err := q.s.blockState.BestBlockHeader()
-	// if err != nil {
-	// 	logger.Error("failed to get best block header", "error", err)
-	// 	return
-	// }
+	prev, err := q.s.blockState.BestBlockHeader()
+	if err != nil {
+		logger.Error("failed to get best block header", "error", err)
+		return
+	}
 
 	q.s.syncer.SetSyncing(true)
-	//q.s.noGossip = true // don't gossip messages until we're at the head
+	q.s.noGossip = true // don't gossip messages until we're at the head
 
 	t := time.NewTicker(q.slotDuration * 2)
 	defer t.Stop()
@@ -213,22 +213,22 @@ func (q *syncQueue) syncAtHead() {
 
 		// we aren't at the head yet, sleep
 		if curr.Number.Int64() < goal-int64(blockRequestSize) {
-			//prev = curr
-			//q.s.noGossip = true
+			prev = curr
+			q.s.noGossip = true
 			q.s.syncer.SetSyncing(true)
 			continue
 		}
 
 		q.s.syncer.SetSyncing(false)
-		//q.s.noGossip = false
+		q.s.noGossip = false
 
 		// we have received new blocks since the last check, sleep
-		// if prev.Number.Int64() < curr.Number.Int64() {
-		// 	prev = curr
-		// 	continue
-		// }
+		if prev.Number.Int64() < curr.Number.Int64() {
+			prev = curr
+			continue
+		}
 
-		//prev = curr
+		prev = curr
 		start := uint64(curr.Number.Int64()) + 1
 		logger.Debug("pushing request for blocks...", "start", start)
 		q.requestData.Delete(start)
