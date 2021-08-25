@@ -17,6 +17,7 @@
 package grandpa
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -37,7 +38,6 @@ func TestMessageTracker_ValidateMessage(t *testing.T) {
 	state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 3)
 	gs.tracker, err = newTracker(gs.blockState, gs.messageHandler)
 	require.NoError(t, err)
-	gs.tracker.start()
 
 	fake := &types.Header{
 		Number: big.NewInt(77),
@@ -54,7 +54,7 @@ func TestMessageTracker_ValidateMessage(t *testing.T) {
 
 	_, err = gs.validateMessage("", msg)
 	require.Equal(t, err, ErrBlockDoesNotExist)
-	require.Equal(t, []*networkVoteMessage{expected}, gs.tracker.voteMessages[fake.Hash()])
+	require.Equal(t, expected, gs.tracker.voteMessages[fake.Hash()][kr.Alice().Public().(*ed25519.PublicKey).AsBytes()])
 }
 
 func TestMessageTracker_SendMessage(t *testing.T) {
@@ -62,10 +62,12 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	gs, in, _, _ := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
+	fmt.Println(len(in))
 	state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 3)
 	gs.tracker, err = newTracker(gs.blockState, gs.messageHandler)
 	require.NoError(t, err)
 	gs.tracker.start()
+	defer gs.tracker.stop()
 
 	parent, err := gs.blockState.BestBlockHeader()
 	require.NoError(t, err)
@@ -86,7 +88,7 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 
 	_, err = gs.validateMessage("", msg)
 	require.Equal(t, err, ErrBlockDoesNotExist)
-	require.Equal(t, []*networkVoteMessage{expected}, gs.tracker.voteMessages[next.Hash()])
+	require.Equal(t, expected, gs.tracker.voteMessages[next.Hash()][kr.Alice().Public().(*ed25519.PublicKey).AsBytes()])
 
 	err = gs.blockState.(*state.BlockState).AddBlock(&types.Block{
 		Header: next,

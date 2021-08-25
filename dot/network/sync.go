@@ -209,10 +209,10 @@ func (q *syncQueue) syncAtHead() {
 			continue
 		}
 
-		goal := atomic.LoadInt64(&q.goal)
+		goal := atomic.LoadInt64(&q.goal) - int64(blockRequestSize)
 
 		// we aren't at the head yet, sleep
-		if curr.Number.Int64() < goal-int64(blockRequestSize) && curr.Number.Cmp(prev.Number) > 0 {
+		if curr.Number.Int64() < goal && curr.Number.Cmp(prev.Number) > 0 {
 			prev = curr
 			q.s.noGossip = true
 			q.s.syncer.SetSyncing(true)
@@ -451,7 +451,6 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 		return
 	}
 
-	goal = atomic.LoadInt64(&q.goal)
 	if goal-int64(start) < int64(blockRequestSize) {
 		start := best.Int64() + 1
 		req := createBlockRequest(start, uint32(goal)-uint32(start))
