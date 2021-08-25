@@ -32,13 +32,13 @@ type tracker struct {
 	voteMessages   map[common.Hash]map[ed25519.PublicKeyBytes]*networkVoteMessage // map of vote block hash -> array of VoteMessages for that hash
 	commitMessages map[common.Hash]*CommitMessage                                 // map of commit block hash to commit message
 	mapLock        sync.Mutex
-	in             chan *types.Block          // receive imported block from BlockState
-	chanID         byte                       // BlockState channel ID
-	out            chan<- *networkVoteMessage // send a VoteMessage back to grandpa. corresponds to grandpa's in channel
-	stopped        chan struct{}
+	in             chan *types.Block // receive imported block from BlockState
+	chanID         byte              // BlockState channel ID
+	//out            chan<- *networkVoteMessage // send a VoteMessage back to grandpa. corresponds to grandpa's in channel
+	stopped chan struct{}
 }
 
-func newTracker(bs BlockState, handler *MessageHandler, out chan<- *networkVoteMessage) (*tracker, error) {
+func newTracker(bs BlockState, handler *MessageHandler) (*tracker, error) {
 	in := make(chan *types.Block, 16)
 	id, err := bs.RegisterImportedChannel(in)
 	if err != nil {
@@ -53,8 +53,8 @@ func newTracker(bs BlockState, handler *MessageHandler, out chan<- *networkVoteM
 		mapLock:        sync.Mutex{},
 		in:             in,
 		chanID:         id,
-		out:            out,
-		stopped:        make(chan struct{}),
+		//out:            out,
+		stopped: make(chan struct{}),
 	}, nil
 }
 
@@ -105,7 +105,6 @@ func (t *tracker) handleBlocks() {
 			h := b.Header.Hash()
 			if vms, has := t.voteMessages[h]; has {
 				for _, v := range vms {
-					//t.out <- v
 					_, err := t.handler.handleMessage(v.from, v.msg)
 					if err != nil {
 						logger.Warn("failed to handle vote message", "message", v, "error", err)

@@ -21,6 +21,7 @@ import (
 	"errors"
 	"math/big"
 	"net/http"
+	"strings"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/crypto"
@@ -279,4 +280,22 @@ func (sm *SystemModule) LocalPeerId(r *http.Request, req *EmptyRequest, res *str
 
 	*res = base58.Encode([]byte(netstate.PeerID))
 	return nil
+}
+
+// AddReservedPeer adds a reserved peer. The string parameter should encode a p2p multiaddr.
+func (sm *SystemModule) AddReservedPeer(r *http.Request, req *StringRequest, res *[]byte) error {
+	if strings.TrimSpace(req.String) == "" {
+		return errors.New("cannot add an empty reserved peer")
+	}
+
+	return sm.networkAPI.AddReservedPeers(req.String)
+}
+
+// RemoveReservedPeer remove a reserved peer. The string should encode only the PeerId
+func (sm *SystemModule) RemoveReservedPeer(r *http.Request, req *StringRequest, res *[]byte) error {
+	if strings.TrimSpace(req.String) == "" {
+		return errors.New("cannot remove an empty reserved peer")
+	}
+
+	return sm.networkAPI.RemoveReservedPeers(req.String)
 }

@@ -406,3 +406,121 @@ func Test_PeerSupportsProtocol(t *testing.T) {
 		require.Equal(t, test.expect, output)
 	}
 }
+
+func Test_AddReservedPeers(t *testing.T) {
+	basePathA := utils.NewTestBasePath(t, "nodeA")
+	configA := &Config{
+		BasePath:    basePathA,
+		Port:        7001,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeA := createTestService(t, configA)
+	nodeA.noGossip = true
+
+	basePathB := utils.NewTestBasePath(t, "nodeB")
+	configB := &Config{
+		BasePath:    basePathB,
+		Port:        7002,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeB := createTestService(t, configB)
+	nodeB.noGossip = true
+
+	nodeBPeerAddr := nodeB.host.multiaddrs()[0].String()
+	err := nodeA.host.addReservedPeers(nodeBPeerAddr)
+	require.NoError(t, err)
+
+	isProtected := nodeA.host.h.ConnManager().IsProtected(nodeB.host.addrInfo().ID, "")
+	require.True(t, isProtected)
+}
+
+func Test_RemoveReservedPeers(t *testing.T) {
+	basePathA := utils.NewTestBasePath(t, "nodeA")
+	configA := &Config{
+		BasePath:    basePathA,
+		Port:        7001,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeA := createTestService(t, configA)
+	nodeA.noGossip = true
+
+	basePathB := utils.NewTestBasePath(t, "nodeB")
+	configB := &Config{
+		BasePath:    basePathB,
+		Port:        7002,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeB := createTestService(t, configB)
+	nodeB.noGossip = true
+
+	nodeBPeerAddr := nodeB.host.multiaddrs()[0].String()
+	err := nodeA.host.addReservedPeers(nodeBPeerAddr)
+	require.NoError(t, err)
+
+	pID := nodeB.host.addrInfo().ID.String()
+
+	err = nodeA.host.removeReservedPeers(pID)
+	require.NoError(t, err)
+
+	isProtected := nodeA.host.h.ConnManager().IsProtected(nodeB.host.addrInfo().ID, "")
+	require.False(t, isProtected)
+
+	err = nodeA.host.removeReservedPeers("failing peer ID")
+	require.Error(t, err)
+}
+
+func TestStreamCloseEOF(t *testing.T) {
+	basePathA := utils.NewTestBasePath(t, "nodeA")
+	configA := &Config{
+		BasePath:    basePathA,
+		Port:        7001,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeA := createTestService(t, configA)
+	nodeA.noGossip = true
+
+	basePathB := utils.NewTestBasePath(t, "nodeB")
+
+	configB := &Config{
+		BasePath:    basePathB,
+		Port:        7002,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	nodeB := createTestService(t, configB)
+	nodeB.noGossip = true
+	handler := newTestStreamHandler(testBlockRequestMessageDecoder)
+	nodeB.host.registerStreamHandler("", handler.handleStream)
+	require.False(t, handler.exit)
+
+	addrInfoB := nodeB.host.addrInfo()
+	err := nodeA.host.connect(addrInfoB)
+	// retry connect if "failed to dial" error
+	if failedToDial(err) {
+		time.Sleep(TestBackoffTimeout)
+		err = nodeA.host.connect(addrInfoB)
+	}
+	require.NoError(t, err)
+
+	stream, err := nodeA.host.send(addrInfoB.ID, nodeB.host.protocolID, testBlockRequestMessage)
+	require.NoError(t, err)
+	require.False(t, handler.exit)
+
+	err = stream.Close()
+	require.NoError(t, err)
+
+	time.Sleep(TestBackoffTimeout)
+
+	require.True(t, handler.exit)
+}

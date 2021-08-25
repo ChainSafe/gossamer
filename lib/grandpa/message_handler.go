@@ -56,33 +56,15 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 	switch m.Type() {
 	case voteType:
 		vm, ok := m.(*VoteMessage)
-		if !ok {
-			return nil, nil
-		}
-		// if h.grandpa != nil && ok {
-		// 	// send vote message to grandpa service
-		// 	h.grandpa.in <- &networkVoteMessage{
-		// 		from: from,
-		// 		msg:  vm,
-		// 	}
-		// }
-
-		logger.Trace("received vote message", "msg", vm)
-
-		v, err := h.grandpa.validateMessage(from, vm)
-		if err != nil {
-			logger.Debug("failed to validate vote message", "message", vm, "error", err)
+		if h.grandpa == nil || !ok {
 			return nil, nil
 		}
 
-		logger.Debug("validated vote message",
-			"vote", v,
-			"round", vm.Round,
-			"subround", vm.Message.Stage,
-			"prevote count", h.grandpa.lenVotes(prevote),
-			"precommit count", h.grandpa.lenVotes(precommit),
-			"votes needed", h.grandpa.state.threshold(),
-		)
+		// send vote message to grandpa service
+		h.grandpa.in <- &networkVoteMessage{
+			from: from,
+			msg:  vm,
+		}
 
 		return nil, nil
 	case commitType:

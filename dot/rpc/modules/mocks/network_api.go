@@ -12,6 +12,26 @@ type MockNetworkAPI struct {
 	mock.Mock
 }
 
+// AddReservedPeers provides a mock function with given fields: addrs
+func (_m *MockNetworkAPI) AddReservedPeers(addrs ...string) error {
+	_va := make([]interface{}, len(addrs))
+	for _i := range addrs {
+		_va[_i] = addrs[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(...string) error); ok {
+		r0 = rf(addrs...)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // Health provides a mock function with given fields:
 func (_m *MockNetworkAPI) Health() common.Health {
 	ret := _m.Called()
@@ -93,6 +113,26 @@ func (_m *MockNetworkAPI) Peers() []common.PeerInfo {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]common.PeerInfo)
 		}
+	}
+
+	return r0
+}
+
+// RemoveReservedPeers provides a mock function with given fields: addrs
+func (_m *MockNetworkAPI) RemoveReservedPeers(addrs ...string) error {
+	_va := make([]interface{}, len(addrs))
+	for _i := range addrs {
+		_va[_i] = addrs[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(...string) error); ok {
+		r0 = rf(addrs...)
+	} else {
+		r0 = ret.Error(0)
 	}
 
 	return r0

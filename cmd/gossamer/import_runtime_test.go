@@ -46,5 +46,5 @@ func TestCreateGenesisWithRuntime(t *testing.T) {
 	g := new(genesis.Genesis)
 	err = json.Unmarshal([]byte(out), g)
 	require.NoError(t, err)
-	require.Equal(t, testHex, g.Genesis.Runtime["system"]["code"].(string))
+	require.Equal(t, testHex, g.Genesis.Runtime["System"]["code"].(string))
 }

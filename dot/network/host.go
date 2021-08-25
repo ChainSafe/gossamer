@@ -224,11 +224,6 @@ func (h *host) close() error {
 	return nil
 }
 
-// registerConnHandler registers the connection handler (see handleConn)
-func (h *host) registerConnHandler(handler func(libp2pnetwork.Conn)) { //nolint
-	h.h.Network().SetConnHandler(handler)
-}
-
 // registerStreamHandler registers the stream handler, appending the given sub-protocol to the main protocol ID
 func (h *host) registerStreamHandler(sub protocol.ID, handler func(libp2pnetwork.Stream)) {
 	h.h.SetStreamHandler(h.protocolID+sub, handler)
@@ -366,6 +361,42 @@ func (h *host) id() peer.ID {
 // Peers returns connected peers
 func (h *host) peers() []peer.ID {
 	return h.h.Network().Peers()
+}
+
+// addReservedPeers adds the peers `addrs` to the protected peers list and connects to them
+func (h *host) addReservedPeers(addrs ...string) error {
+	for _, addr := range addrs {
+		maddr, err := ma.NewMultiaddr(addr)
+		if err != nil {
+			return err
+		}
+
+		addinfo, err := peer.AddrInfoFromP2pAddr(maddr)
+		if err != nil {
+			return err
+		}
+
+		h.h.ConnManager().Protect(addinfo.ID, "")
+		if err := h.connect(*addinfo); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// removeReservedPeers will remove the given peers from the protected peers list
+func (h *host) removeReservedPeers(ids ...string) error {
+	for _, id := range ids {
+		peerID, err := peer.Decode(id)
+		if err != nil {
+			return err
+		}
+
+		h.h.ConnManager().Unprotect(peerID, "")
+	}
+
+	return nil
 }
 
 // supportsProtocol checks if the protocol is supported by peerID

@@ -35,7 +35,7 @@ func TestMessageTracker_ValidateMessage(t *testing.T) {
 
 	gs, _, _, _ := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
 	state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 3)
-	gs.tracker, err = newTracker(gs.blockState, gs.in)
+	gs.tracker, err = newTracker(gs.blockState, gs.messageHandler)
 	require.NoError(t, err)
 	gs.tracker.start()
 
@@ -54,7 +54,7 @@ func TestMessageTracker_ValidateMessage(t *testing.T) {
 
 	_, err = gs.validateMessage("", msg)
 	require.Equal(t, err, ErrBlockDoesNotExist)
-	require.Equal(t, []*networkVoteMessage{expected}, gs.tracker.messages[fake.Hash()])
+	require.Equal(t, []*networkVoteMessage{expected}, gs.tracker.voteMessages[fake.Hash()])
 }
 
 func TestMessageTracker_SendMessage(t *testing.T) {
@@ -63,7 +63,7 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 
 	gs, in, _, _ := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
 	state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 3)
-	gs.tracker, err = newTracker(gs.blockState, gs.in)
+	gs.tracker, err = newTracker(gs.blockState, gs.messageHandler)
 	require.NoError(t, err)
 	gs.tracker.start()
 
@@ -86,7 +86,7 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 
 	_, err = gs.validateMessage("", msg)
 	require.Equal(t, err, ErrBlockDoesNotExist)
-	require.Equal(t, []*networkVoteMessage{expected}, gs.tracker.messages[next.Hash()])
+	require.Equal(t, []*networkVoteMessage{expected}, gs.tracker.voteMessages[next.Hash()])
 
 	err = gs.blockState.(*state.BlockState).AddBlock(&types.Block{
 		Header: next,
@@ -132,7 +132,7 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 
 	_, err = gs.validateMessage("", msg)
 	require.Equal(t, ErrBlockDoesNotExist, err)
-	require.Equal(t, []*networkVoteMessage{expected}, gs.tracker.messages[next.Hash()])
+	require.Equal(t, []*networkVoteMessage{expected}, gs.tracker.voteMessages[next.Hash()])
 
 	err = gs.blockState.(*state.BlockState).AddBlock(&types.Block{
 		Header: next,
@@ -147,5 +147,5 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	}
 	pv, has := gs.prevotes.Load(kr.Alice().Public().(*ed25519.PublicKey).AsBytes())
 	require.True(t, has)
-	require.Equal(t, expectedVote, pv.(*SignedVote).Vote, gs.tracker.messages)
+	require.Equal(t, expectedVote, pv.(*SignedVote).Vote, gs.tracker.voteMessages)
 }

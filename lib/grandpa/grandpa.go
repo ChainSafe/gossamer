@@ -326,7 +326,7 @@ func (s *Service) initiateRound() error {
 	s.precommits = new(sync.Map)
 	s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*SignedVote)
 	s.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*SignedVote)
-	s.tracker, err = newTracker(s.blockState, s.messageHandler, s.in)
+	s.tracker, err = newTracker(s.blockState, s.messageHandler)
 	if err != nil {
 		return err
 	}
@@ -365,6 +365,7 @@ func (s *Service) initiate() error {
 		}
 
 		if err != nil {
+			logger.Warn("failed to play grandpa round", "error", err)
 			continue
 		}
 
@@ -466,8 +467,8 @@ func (s *Service) primaryBroadcastCommitMessage() {
 // at the end of this round, a block will be finalised.
 func (s *Service) playGrandpaRound() error {
 	logger.Debug("starting round", "round", s.state.round, "setID", s.state.setID)
-	// ctx, cancel := context.WithCancel(s.ctx)
-	// defer cancel()
+	ctx, cancel := context.WithCancel(s.ctx)
+	defer cancel()
 
 	isPrimary, err := s.handleIsPrimary()
 	if err != nil {
@@ -475,7 +476,7 @@ func (s *Service) playGrandpaRound() error {
 	}
 
 	logger.Debug("receiving pre-vote messages...")
-	//go s.receiveMessages(ctx)
+	go s.receiveMessages(ctx)
 	time.Sleep(interval)
 
 	if s.paused.Load().(bool) {
