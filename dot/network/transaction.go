@@ -92,7 +92,7 @@ func (*transactionHandshake) Encode() ([]byte, error) {
 }
 
 // Decode the message into a transactionHandshake
-func (*transactionHandshake) Decode(in []byte) error {
+func (*transactionHandshake) Decode(_ []byte) error {
 	return nil
 }
 
