@@ -73,8 +73,6 @@ func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.
 	default:
 		return nil, ErrInvalidMessageType
 	}
-
-	return nil, nil
 }
 
 func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMessage) error {
