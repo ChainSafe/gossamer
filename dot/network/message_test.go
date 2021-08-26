@@ -270,11 +270,10 @@ func TestDecode_BlockAnnounceMessage(t *testing.T) {
 
 func TestEncodeTransactionMessageSingleExtrinsic(t *testing.T) {
 	// expected:
-	// 0x04 - Message Type
-	// 0x14 - byte array (of all extrinsics encoded) - len 5
-	// 0x10 - btye array (first extrinsic) - len 4
+	// 0x04 - Scale encoded count of Extrinsic array(count = 1)
+	// 0x10 - Scale encoded length of the first Extrinsic(len = 4)
 	// 0x01020304 - value of array extrinsic array
-	expected, err := common.HexToBytes("0x141001020304")
+	expected, err := common.HexToBytes("0x041001020304")
 	require.Nil(t, err)
 
 	extrinsic := types.Extrinsic{0x01, 0x02, 0x03, 0x04}
@@ -289,13 +288,12 @@ func TestEncodeTransactionMessageSingleExtrinsic(t *testing.T) {
 
 func TestEncodeTransactionMessageTwoExtrinsics(t *testing.T) {
 	// expected:
-	// 0x04 - Message Type
-	// 0x24 - byte array (of all extrinsics encoded) - len 9
-	// 0x0C - btye array (first extrinsic) len 3
-	// 0x010203 - value of array first extrinsic array
-	// 0x10 - byte array (second extrinsic) len 4
-	// 0x04050607 - value of second extrinsic array
-	expected, err := common.HexToBytes("0x240C0102031004050607")
+	// 0x08 - Scale encoded count of Extrinsic array(count = 2)
+	// 0x0c - Scale encoded length of the first Extrinsic(len = 3)
+	// 0x010203 - Data of first Extrinsic
+	// 0x10 - Scale encoded length of the second Extrinsic(len = 4)
+	// 0x04050607 - Data of second Extrinsic
+	expected, err := common.HexToBytes("0x080c0102031004050607")
 	require.Nil(t, err)
 
 	extrinsic1 := types.Extrinsic{0x01, 0x02, 0x03}
@@ -310,7 +308,7 @@ func TestEncodeTransactionMessageTwoExtrinsics(t *testing.T) {
 }
 
 func TestDecodeTransactionMessageOneExtrinsic(t *testing.T) {
-	originalMessage, err := common.HexToBytes("0x141001020304") // (without message type byte prepended)
+	originalMessage, err := common.HexToBytes("0x041001020304") // (without message type byte prepended)
 	require.Nil(t, err)
 
 	decodedMessage := new(TransactionMessage)
@@ -325,7 +323,7 @@ func TestDecodeTransactionMessageOneExtrinsic(t *testing.T) {
 }
 
 func TestDecodeTransactionMessageTwoExtrinsics(t *testing.T) {
-	originalMessage, err := common.HexToBytes("0x240C0102031004050607") // (without message type byte prepended)
+	originalMessage, err := common.HexToBytes("0x080c0102031004050607") // (without message type byte prepended)
 	require.Nil(t, err)
 
 	decodedMessage := new(TransactionMessage)
