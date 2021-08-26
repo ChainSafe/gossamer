@@ -97,33 +97,35 @@ func (t *tracker) handleBlocks() {
 				continue
 			}
 
-			func() {
-				t.mapLock.Lock()
-				defer t.mapLock.Unlock()
-
-				h := b.Header.Hash()
-				if vms, has := t.voteMessages[h]; has {
-					for _, v := range vms {
-						_, err := t.handler.handleMessage(v.from, v.msg)
-						if err != nil {
-							logger.Warn("failed to handle vote message", "message", v, "error", err)
-						}
-					}
-
-					delete(t.voteMessages, h)
-				}
-
-				if cm, has := t.commitMessages[h]; has {
-					_, err := t.handler.handleMessage("", cm)
-					if err != nil {
-						logger.Warn("failed to handle commit message", "message", cm, "error", err)
-					}
-
-					delete(t.commitMessages, h)
-				}
-			}()
+			t.handleBlock(b)
 		case <-t.stopped:
 			return
 		}
+	}
+}
+
+func (t *tracker) handleBlock(b *types.Block) {
+	t.mapLock.Lock()
+	defer t.mapLock.Unlock()
+
+	h := b.Header.Hash()
+	if vms, has := t.voteMessages[h]; has {
+		for _, v := range vms {
+			_, err := t.handler.handleMessage(v.from, v.msg)
+			if err != nil {
+				logger.Warn("failed to handle vote message", "message", v, "error", err)
+			}
+		}
+
+		delete(t.voteMessages, h)
+	}
+
+	if cm, has := t.commitMessages[h]; has {
+		_, err := t.handler.handleMessage("", cm)
+		if err != nil {
+			logger.Warn("failed to handle commit message", "message", cm, "error", err)
+		}
+
+		delete(t.commitMessages, h)
 	}
 }

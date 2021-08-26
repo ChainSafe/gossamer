@@ -53,41 +53,23 @@ func NewMessageHandler(grandpa *Service, blockState BlockState) *MessageHandler 
 func (h *MessageHandler) handleMessage(from peer.ID, m GrandpaMessage) (network.NotificationsMessage, error) {
 	logger.Trace("handling grandpa message", "msg", m)
 
-	switch m.Type() {
-	case voteType:
-		vm, ok := m.(*VoteMessage)
-		if h.grandpa == nil || !ok {
-			return nil, nil
-		}
-
+	switch msg := m.(type) {
+	case *VoteMessage:
 		// send vote message to grandpa service
-		go func() {
-			h.grandpa.in <- &networkVoteMessage{
-				from: from,
-				msg:  vm,
-			}
-		}()
+		h.grandpa.in <- &networkVoteMessage{
+			from: from,
+			msg:  msg,
+		}
 
 		return nil, nil
-	case commitType:
-		if fm, ok := m.(*CommitMessage); ok {
-			return nil, h.handleCommitMessage(fm)
-		}
-	case neighbourType:
-		nm, ok := m.(*NeighbourMessage)
-		if !ok {
-			return nil, nil
-		}
-
-		return nil, h.handleNeighbourMessage(from, nm)
-	case catchUpRequestType:
-		if r, ok := m.(*catchUpRequest); ok {
-			return h.handleCatchUpRequest(r)
-		}
-	case catchUpResponseType:
-		if r, ok := m.(*catchUpResponse); ok {
-			return nil, h.handleCatchUpResponse(r)
-		}
+	case *CommitMessage:
+		return nil, h.handleCommitMessage(msg)
+	case *NeighbourMessage:
+		return nil, h.handleNeighbourMessage(from, msg)
+	case *catchUpRequest:
+		return h.handleCatchUpRequest(msg)
+	case *catchUpResponse:
+		return nil, h.handleCatchUpResponse(msg)
 	default:
 		return nil, ErrInvalidMessageType
 	}

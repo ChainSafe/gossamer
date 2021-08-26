@@ -451,32 +451,22 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 		return
 	}
 
+	reqSize := blockRequestSize
 	if goal-int64(start) < int64(blockRequestSize) {
-		start := best.Int64() + 1
-		req := createBlockRequest(start, uint32(goal)-uint32(start))
-
-		logger.Debug("pushing request to queue", "start", start)
-		q.requestData.Store(start, requestData{
-			received: false,
-		})
-
-		q.requestCh <- &syncRequest{
-			req: req,
-			to:  to,
-		}
-		return
+		start = uint64(best.Int64() + 1)
+		reqSize = uint32(goal) - uint32(start)
+	} else {
+		// all requests must start at a multiple of 128 + 1
+		m := start % uint64(blockRequestSize)
+		start = start - m + 1
 	}
-
-	// all requests must start at a multiple of 128 + 1
-	m := start % uint64(blockRequestSize)
-	start = start - m + 1
 
 	for i := 0; i < numRequests; i++ {
 		if start > uint64(goal) {
 			return
 		}
 
-		req := createBlockRequest(int64(start), blockRequestSize)
+		req := createBlockRequest(int64(start), reqSize)
 
 		if d, has := q.requestData.Load(start); has {
 			data := d.(requestData)

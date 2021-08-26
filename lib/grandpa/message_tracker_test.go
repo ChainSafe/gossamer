@@ -17,7 +17,6 @@
 package grandpa
 
 import (
-	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -62,7 +61,6 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	gs, in, _, _ := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
-	fmt.Println(len(in))
 	state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 3)
 	gs.tracker, err = newTracker(gs.blockState, gs.messageHandler)
 	require.NoError(t, err)
@@ -134,7 +132,7 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 
 	_, err = gs.validateMessage("", msg)
 	require.Equal(t, ErrBlockDoesNotExist, err)
-	require.Equal(t, []*networkVoteMessage{expected}, gs.tracker.voteMessages[next.Hash()])
+	require.Equal(t, expected, gs.tracker.voteMessages[next.Hash()][kr.Alice().Public().(*ed25519.PublicKey).AsBytes()])
 
 	err = gs.blockState.(*state.BlockState).AddBlock(&types.Block{
 		Header: next,
@@ -150,4 +148,38 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	pv, has := gs.prevotes.Load(kr.Alice().Public().(*ed25519.PublicKey).AsBytes())
 	require.True(t, has)
 	require.Equal(t, expectedVote, pv.(*SignedVote).Vote, gs.tracker.voteMessages)
+}
+
+func TestMessageTracker_MapInsideMap(t *testing.T) {
+	kr, err := keystore.NewEd25519Keyring()
+	require.NoError(t, err)
+
+	gs, _, _, _ := setupGrandpa(t, kr.Bob().(*ed25519.Keypair))
+	state.AddBlocksToState(t, gs.blockState.(*state.BlockState), 3)
+	gs.tracker, err = newTracker(gs.blockState, gs.messageHandler)
+	require.NoError(t, err)
+
+	header := &types.Header{
+		Number: big.NewInt(77),
+	}
+
+	hash := header.Hash()
+	_, ok := gs.tracker.voteMessages[hash]
+	require.False(t, ok)
+
+	gs.keypair = kr.Alice().(*ed25519.Keypair)
+	authorityID := kr.Alice().Public().(*ed25519.PublicKey).AsBytes()
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(header), prevote)
+	require.NoError(t, err)
+	gs.keypair = kr.Bob().(*ed25519.Keypair)
+
+	gs.tracker.addVote(&networkVoteMessage{
+		msg: msg,
+	})
+
+	voteMsgs, ok := gs.tracker.voteMessages[hash]
+	require.True(t, ok)
+
+	_, ok = voteMsgs[authorityID]
+	require.True(t, ok)
 }
