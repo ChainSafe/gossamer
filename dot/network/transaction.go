@@ -38,12 +38,12 @@ type TransactionMessage struct {
 }
 
 // SubProtocol returns the transactions sub-protocol
-func (tm *TransactionMessage) SubProtocol() string {
+func (*TransactionMessage) SubProtocol() string {
 	return transactionsID
 }
 
 // Type returns TransactionMsgType
-func (tm *TransactionMessage) Type() byte {
+func (*TransactionMessage) Type() byte {
 	return TransactionMsgType
 }
 
@@ -70,52 +70,52 @@ func (tm *TransactionMessage) Hash() common.Hash {
 }
 
 // IsHandshake returns false
-func (tm *TransactionMessage) IsHandshake() bool {
+func (*TransactionMessage) IsHandshake() bool {
 	return false
 }
 
 type transactionHandshake struct{}
 
 // SubProtocol returns the transactions sub-protocol
-func (hs *transactionHandshake) SubProtocol() string {
+func (*transactionHandshake) SubProtocol() string {
 	return transactionsID
 }
 
 // String formats a transactionHandshake as a string
-func (hs *transactionHandshake) String() string {
+func (*transactionHandshake) String() string {
 	return "transactionHandshake"
 }
 
 // Encode encodes a transactionHandshake message using SCALE
-func (hs *transactionHandshake) Encode() ([]byte, error) {
+func (*transactionHandshake) Encode() ([]byte, error) {
 	return []byte{}, nil
 }
 
 // Decode the message into a transactionHandshake
-func (hs *transactionHandshake) Decode(in []byte) error {
+func (*transactionHandshake) Decode(in []byte) error {
 	return nil
 }
 
 // Type ...
-func (hs *transactionHandshake) Type() byte {
+func (*transactionHandshake) Type() byte {
 	return 1
 }
 
 // Hash ...
-func (hs *transactionHandshake) Hash() common.Hash {
+func (*transactionHandshake) Hash() common.Hash {
 	return common.Hash{}
 }
 
 // IsHandshake returns true
-func (hs *transactionHandshake) IsHandshake() bool {
+func (*transactionHandshake) IsHandshake() bool {
 	return true
 }
 
-func (s *Service) getTransactionHandshake() (Handshake, error) {
+func (*Service) getTransactionHandshake() (Handshake, error) {
 	return &transactionHandshake{}, nil
 }
 
-func decodeTransactionHandshake(in []byte) (Handshake, error) {
+func decodeTransactionHandshake(_ []byte) (Handshake, error) {
 	return &transactionHandshake{}, nil
 }
 
