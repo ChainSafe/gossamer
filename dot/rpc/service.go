@@ -93,8 +93,8 @@ func (s *Service) BuildMethodNames(rcvr interface{}, name string) {
 
 // isExported returns true of a string is an exported (upper case) name.
 func isExported(name string) bool {
-	rune, _ := utf8.DecodeRuneInString(name)
-	return unicode.IsUpper(rune)
+	r, _ := utf8.DecodeRuneInString(name)
+	return unicode.IsUpper(r)
 }
 
 // isExportedOrBuiltIn returns true if a type is exported or a built in.

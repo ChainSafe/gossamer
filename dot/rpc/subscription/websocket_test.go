@@ -1,11 +1,13 @@
 package subscription
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"testing"
 	"time"
 
+	"github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 	modulesmocks "github.com/ChainSafe/gossamer/dot/rpc/modules/mocks"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
@@ -269,4 +271,115 @@ func TestWSConn_HandleComm(t *testing.T) {
 
 	err = listener.Stop()
 	require.NoError(t, err)
+}
+
+func TestSubscribeAllHeads(t *testing.T) {
+	wsconn, c, cancel := setupWSConn(t)
+	wsconn.Subscriptions = make(map[uint32]Listener)
+	defer cancel()
+
+	go wsconn.HandleComm()
+	time.Sleep(time.Second * 2)
+
+	_, err := wsconn.initAllBlocksListerner(1, nil)
+	require.EqualError(t, err, "error BlockAPI not set")
+	_, msg, err := c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}`+"\n"), msg)
+
+	mockBlockAPI := new(mocks.BlockAPI)
+	mockBlockAPI.On("RegisterImportedChannel", mock.AnythingOfType("chan<- *types.Block")).
+		Return(uint8(0), errors.New("some mocked error")).Once()
+
+	wsconn.BlockAPI = mockBlockAPI
+	_, err = wsconn.initAllBlocksListerner(1, nil)
+	require.Error(t, err, "could not register imported channel")
+
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"could not register imported channel"},"id":1}`+"\n"), msg)
+
+	mockBlockAPI.On("RegisterImportedChannel", mock.AnythingOfType("chan<- *types.Block")).
+		Return(uint8(10), nil).Once()
+	mockBlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
+		Return(uint8(0), errors.New("failed")).Once()
+
+	_, err = wsconn.initAllBlocksListerner(1, nil)
+	require.Error(t, err, "could not register finalised channel")
+	c.ReadMessage()
+
+	importedChanID := uint8(10)
+	finalizedChanID := uint8(11)
+
+	var fCh chan<- *types.FinalisationInfo
+	var iCh chan<- *types.Block
+
+	mockBlockAPI.On("RegisterImportedChannel", mock.AnythingOfType("chan<- *types.Block")).
+		Run(func(args mock.Arguments) {
+			ch := args.Get(0).(chan<- *types.Block)
+			iCh = ch
+		}).Return(importedChanID, nil).Once()
+
+	mockBlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
+		Run(func(args mock.Arguments) {
+			ch := args.Get(0).(chan<- *types.FinalisationInfo)
+			fCh = ch
+		}).
+		Return(finalizedChanID, nil).Once()
+
+	l, err := wsconn.initAllBlocksListerner(1, nil)
+	require.NoError(t, err)
+	require.NotNil(t, l)
+	require.IsType(t, &AllBlocksListener{}, l)
+	require.Len(t, wsconn.Subscriptions, 1)
+
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, []byte(`{"jsonrpc":"2.0","result":1,"id":1}`+"\n"), msg)
+
+	l.Listen()
+	time.Sleep(time.Millisecond * 500)
+
+	expected := fmt.Sprintf(
+		`{"jsonrpc":"2.0","method":"chain_allHead","params":{"result":{"parentHash":"%s","number":"0x00","stateRoot":"%s","extrinsicsRoot":"%s","digest":{"logs":["0x064241424504ff"]}},"subscription":1}}`,
+		common.EmptyHash,
+		common.EmptyHash,
+		common.EmptyHash,
+	)
+
+	fCh <- &types.FinalisationInfo{
+		Header: &types.Header{
+			ParentHash:     common.EmptyHash,
+			Number:         big.NewInt(0),
+			StateRoot:      common.EmptyHash,
+			ExtrinsicsRoot: common.EmptyHash,
+			Digest:         types.NewDigest(types.NewBABEPreRuntimeDigest([]byte{0xff})),
+		},
+	}
+
+	time.Sleep(time.Millisecond * 500)
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, expected+"\n", string(msg))
+
+	iCh <- &types.Block{
+		Header: &types.Header{
+			ParentHash:     common.EmptyHash,
+			Number:         big.NewInt(0),
+			StateRoot:      common.EmptyHash,
+			ExtrinsicsRoot: common.EmptyHash,
+			Digest:         types.NewDigest(types.NewBABEPreRuntimeDigest([]byte{0xff})),
+		},
+	}
+	time.Sleep(time.Millisecond * 500)
+	_, msg, err = c.ReadMessage()
+	require.NoError(t, err)
+	require.Equal(t, []byte(expected+"\n"), msg)
+
+	mockBlockAPI.On("UnregisterImportedChannel", importedChanID)
+	mockBlockAPI.On("UnregisterFinalisedChannel", finalizedChanID)
+
+	require.NoError(t, l.Stop())
+	mockBlockAPI.AssertCalled(t, "UnregisterImportedChannel", importedChanID)
+	mockBlockAPI.AssertCalled(t, "UnregisterFinalisedChannel", finalizedChanID)
 }
