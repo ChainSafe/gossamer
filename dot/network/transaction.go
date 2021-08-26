@@ -49,7 +49,7 @@ func (tm *TransactionMessage) Type() byte {
 
 // String returns the TransactionMessage extrinsics
 func (tm *TransactionMessage) String() string {
-	return fmt.Sprintf("TransactionMessage extrinsics=%x", tm.Extrinsics)
+	return fmt.Sprintf("TransactionMessage extrinsics count=%d", len(tm.Extrinsics))
 }
 
 // Encode will encode TransactionMessage using scale.Encode

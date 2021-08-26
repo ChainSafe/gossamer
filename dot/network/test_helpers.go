@@ -1,6 +1,7 @@
 package network
 
 import (
+	"errors"
 	"io"
 	"math/big"
 
@@ -89,6 +90,7 @@ func testBlockResponseMessage() *BlockResponseMessage {
 type testStreamHandler struct {
 	messages map[peer.ID][]Message
 	decoder  messageDecoder
+	exit     bool
 }
 
 func newTestStreamHandler(decoder messageDecoder) *testStreamHandler {
@@ -135,10 +137,14 @@ func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream, peer peer.ID
 		msgBytes              = make([]byte, maxMessageSize)
 	)
 
+	defer func() {
+		s.exit = true
+	}()
+
 	for {
 		tot, err := readStream(stream, msgBytes)
-		if err == io.EOF {
-			continue
+		if errors.Is(err, io.EOF) {
+			return
 		} else if err != nil {
 			logger.Debug("failed to read from stream", "protocol", stream.Protocol(), "error", err)
 			_ = stream.Close()

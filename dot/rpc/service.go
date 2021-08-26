@@ -17,6 +17,7 @@
 package rpc
 
 import (
+	"fmt"
 	"net/http"
 	"reflect"
 	"strings"
@@ -85,14 +86,15 @@ func (s *Service) BuildMethodNames(rcvr interface{}, name string) {
 			continue
 		}
 
-		s.rpcMethods = append(s.rpcMethods, name+"_"+strings.ToLower(string(method.Name[0]))+method.Name[1:])
+		s.rpcMethods = append(s.rpcMethods,
+			fmt.Sprintf("%s_%s%s", name, strings.ToLower(string(method.Name[0])), method.Name[1:]))
 	}
 }
 
 // isExported returns true of a string is an exported (upper case) name.
 func isExported(name string) bool {
-	rune, _ := utf8.DecodeRuneInString(name)
-	return unicode.IsUpper(rune)
+	r, _ := utf8.DecodeRuneInString(name)
+	return unicode.IsUpper(r)
 }
 
 // isExportedOrBuiltIn returns true if a type is exported or a built in.

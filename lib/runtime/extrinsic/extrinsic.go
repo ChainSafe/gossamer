@@ -18,7 +18,7 @@ const (
 	TransferType          = 1
 	IncludeDataType       = 2
 	StorageChangeType     = 3
-	// TODO: implement when storage changes trie is completed
+	// TODO: implement when storage changes trie is completed. Also add changesTrieConfig field in genesis.
 	//ChangesTrieConfigUpdateType = 4
 )
 
