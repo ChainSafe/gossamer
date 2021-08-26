@@ -35,8 +35,11 @@ type BlockAPI interface {
 	GetHighestFinalisedHash() (common.Hash, error)
 	HasJustification(hash common.Hash) (bool, error)
 	GetJustification(hash common.Hash) ([]byte, error)
-	RegisterImportedChannel(ch chan<- *types.Block) (byte, error)
-	UnregisterImportedChannel(id byte)
+	// todo ed remove
+	//RegisterImportedChannel(ch chan<- *types.Block) (byte, error)
+	//UnregisterImportedChannel(id byte)
+	GetNotifierChannel() (chan *types.Block, error)
+	FreeNotifierChannel(ch chan *types.Block)
 	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
 	UnregisterFinalisedChannel(id byte)
 	SubChain(start, end common.Hash) ([]common.Hash, error)

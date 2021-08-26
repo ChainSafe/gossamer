@@ -41,8 +41,11 @@ type BlockState interface {
 	GetSlotForBlock(common.Hash) (uint64, error)
 	GetFinalisedHeader(uint64, uint64) (*types.Header, error)
 	GetFinalisedHash(uint64, uint64) (common.Hash, error)
-	RegisterImportedChannel(ch chan<- *types.Block) (byte, error)
-	UnregisterImportedChannel(id byte)
+	// todo ed remove
+	//RegisterImportedChannel(ch chan<- *types.Block) (byte, error)
+	//UnregisterImportedChannel(id byte)
+	GetNotifierChannel() (chan *types.Block, error)
+	FreeNotifierChannel(ch chan *types.Block)
 	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
 	UnregisterFinalisedChannel(id byte)
 	HighestCommonAncestor(a, b common.Hash) (common.Hash, error)

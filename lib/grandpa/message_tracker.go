@@ -30,15 +30,16 @@ type tracker struct {
 	messages   map[common.Hash][]*networkVoteMessage // map of vote block hash -> array of VoteMessages for that hash
 	mapLock    sync.Mutex
 	in         chan *types.Block          // receive imported block from BlockState
-	chanID     byte                       // BlockState channel ID
 	out        chan<- *networkVoteMessage // send a VoteMessage back to grandpa. corresponds to grandpa's in channel
 	stopped    chan struct{}
 }
 
 func newTracker(bs BlockState, out chan<- *networkVoteMessage) (*tracker, error) {
-	in := make(chan *types.Block, 16)
+	//in := make(chan *types.Block, 16)
+	in, err := bs.GetNotifierChannel()
 	// TODO (ed) import channel is unregistered and closed in tracker.stop()
-	id, err := bs.RegisterImportedChannel(in)
+	// todo ed, remove, and get channel makes channel 100, not 16
+	//id, err := bs.RegisterImportedChannel(in)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +49,6 @@ func newTracker(bs BlockState, out chan<- *networkVoteMessage) (*tracker, error)
 		messages:   make(map[common.Hash][]*networkVoteMessage),
 		mapLock:    sync.Mutex{},
 		in:         in,
-		chanID:     id,
 		out:        out,
 		stopped:    make(chan struct{}),
 	}, nil
@@ -60,7 +60,9 @@ func (t *tracker) start() {
 
 func (t *tracker) stop() {
 	close(t.stopped)
-	t.blockState.UnregisterImportedChannel(t.chanID)
+	// todo ed remave and move close
+	//t.blockState.UnregisterImportedChannel(t.chanID)
+	t.blockState.FreeNotifierChannel(t.in)
 	close(t.in)
 }
 

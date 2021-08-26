@@ -231,7 +231,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 	mockedJustBytes, err := mockedJust.Encode()
 	require.NoError(t, err)
 
-	BlockAPI := new(modulesmocks.BlockAPI)
+	BlockAPI := new(modulesmocks.MockBlockAPI)
 	BlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
 		Run(func(args mock.Arguments) {
 			ch := args.Get(0).(chan<- *types.FinalisationInfo)
@@ -287,7 +287,7 @@ func TestSubscribeAllHeads(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}`+"\n"), msg)
 
-	mockBlockAPI := new(mocks.BlockAPI)
+	mockBlockAPI := new(mocks.MockBlockAPI)
 	mockBlockAPI.On("RegisterImportedChannel", mock.AnythingOfType("chan<- *types.Block")).
 		Return(uint8(0), errors.New("some mocked error")).Once()
 

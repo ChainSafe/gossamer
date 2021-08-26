@@ -50,11 +50,13 @@ type BlockState struct {
 	lastFinalised common.Hash
 
 	// block notifiers
-	imported                       map[byte]chan<- *types.Block
+	// todo ed, make this a sync.map so that we can remove importedLock
+	imported                       map[chan<- *types.Block]struct{}
 	finalised                      map[byte]chan<- *types.FinalisationInfo
 	importedLock                   sync.RWMutex
 	finalisedLock                  sync.RWMutex
-	importedBytePool               *common.BytePool
+	//importedBytePool               *common.BytePool
+	importedChanPool *sync.Pool
 	finalisedBytePool              *common.BytePool
 	runtimeUpdateSubscriptionsLock sync.RWMutex
 	runtimeUpdateSubscriptions     map[uint32]chan<- runtime.Version
@@ -73,7 +75,7 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 		dbPath:                     db.Path(),
 		baseState:                  NewBaseState(db),
 		db:                         chaindb.NewTable(db, blockPrefix),
-		imported:                   make(map[byte]chan<- *types.Block),
+		imported:                   make(map[chan<- *types.Block]struct{}),
 		finalised:                  make(map[byte]chan<- *types.FinalisationInfo),
 		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
@@ -90,7 +92,9 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 		return nil, fmt.Errorf("failed to get last finalised hash: %w", err)
 	}
 
-	bs.importedBytePool = common.NewBytePool256()
+	// todo ed remove comments
+	bs.importedChanPool = NewBlockImportChannelPool()
+	//bs.importedBytePool = common.NewBytePool256()
 	bs.finalisedBytePool = common.NewBytePool256()
 	return bs, nil
 }
@@ -101,7 +105,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		bt:                         blocktree.NewBlockTreeFromRoot(header, db),
 		baseState:                  NewBaseState(db),
 		db:                         chaindb.NewTable(db, blockPrefix),
-		imported:                   make(map[byte]chan<- *types.Block),
+		imported:                   make(map[chan<- *types.Block]struct{}),
 		finalised:                  make(map[byte]chan<- *types.FinalisationInfo),
 		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
@@ -134,7 +138,9 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		return nil, err
 	}
 
-	bs.importedBytePool = common.NewBytePool256()
+	// todo ed remove
+	//bs.importedBytePool = common.NewBytePool256()
+	bs.importedChanPool = NewBlockImportChannelPool()
 	bs.finalisedBytePool = common.NewBytePool256()
 	return bs, nil
 }

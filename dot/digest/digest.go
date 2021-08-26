@@ -48,7 +48,8 @@ type Handler struct {
 
 	// block notification channels
 	imported    chan *types.Block
-	importedID  byte
+	// todo remove
+	//importedID  byte
 	finalised   chan *types.FinalisationInfo
 	finalisedID byte
 
@@ -76,12 +77,17 @@ type resume struct {
 func NewHandler(blockState BlockState, epochState EpochState, grandpaState GrandpaState) (*Handler, error) {
 	// TODO (ed) imported channel is unregistered and closed in handler.Stop
 	//
-	imported := make(chan *types.Block, 16)
-	finalised := make(chan *types.FinalisationInfo, 16)
-	iid, err := blockState.RegisterImportedChannel(imported)
+	// todo ed remove
+	//imported := make(chan *types.Block, 16)
+	imported, err := blockState.GetNotifierChannel()
 	if err != nil {
 		return nil, err
 	}
+	finalised := make(chan *types.FinalisationInfo, 16)
+	//iid, err := blockState.RegisterImportedChannel(imported)
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	fid, err := blockState.RegisterFinalizedChannel(finalised)
 	if err != nil {
@@ -97,7 +103,7 @@ func NewHandler(blockState BlockState, epochState EpochState, grandpaState Grand
 		epochState:   epochState,
 		grandpaState: grandpaState,
 		imported:     imported,
-		importedID:   iid,
+		//importedID:   iid,
 		finalised:    finalised,
 		finalisedID:  fid,
 	}, nil
@@ -113,7 +119,9 @@ func (h *Handler) Start() error {
 // Stop stops the Handler
 func (h *Handler) Stop() error {
 	h.cancel()
-	h.blockState.UnregisterImportedChannel(h.importedID)
+	// todo ed remove
+	//h.blockState.UnregisterImportedChannel(h.importedID)
+	h.blockState.FreeNotifierChannel(h.imported)
 	h.blockState.UnregisterFinalisedChannel(h.finalisedID)
 	close(h.imported)
 	close(h.finalised)

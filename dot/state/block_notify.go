@@ -18,6 +18,7 @@ package state
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -26,22 +27,43 @@ import (
 	"github.com/google/uuid"
 )
 
+// DEFAULT_BUFFER_SIZE buffer size for channels
+const DEFAULT_BUFFER_SIZE = 100
+
 // RegisterImportedChannel registers a channel for block notification upon block import.
 // It returns the channel ID (used for unregistering the channel)
-func (bs *BlockState) RegisterImportedChannel(ch chan<- *types.Block) (byte, error) {
-	bs.importedLock.RLock()
+//func (bs *BlockState) RegisterImportedChannel(ch chan<- *types.Block) (byte, error) {
+//	bs.importedLock.RLock()
+//
+//	id, err := bs.importedBytePool.Get()
+//	if err != nil {
+//		return 0, err
+//	}
+//
+//	bs.importedLock.RUnlock()
+//
+//	bs.importedLock.Lock()
+//	bs.imported[id] = ch
+//	bs.importedLock.Unlock()
+//	return id, nil
+//}
 
-	id, err := bs.importedBytePool.Get()
-	if err != nil {
-		return 0, err
-	}
+func (bs *BlockState)GetNotifierChannel() (chan *types.Block, error) {
+	//ch := make(chan *types.Block, 3)
+	ch := bs.importedChanPool.Get().(chan *types.Block)
+	//bs.importedLock.RLock()
+	//
+	//	id, err := bs.importedBytePool.Get()
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//
+	//	bs.importedLock.RUnlock()
 
-	bs.importedLock.RUnlock()
-
-	bs.importedLock.Lock()
-	bs.imported[id] = ch
-	bs.importedLock.Unlock()
-	return id, nil
+		bs.importedLock.Lock()
+		bs.imported[ch] = struct{}{}
+		bs.importedLock.Unlock()
+	return ch, nil
 }
 
 // RegisterFinalizedChannel registers a channel for block notification upon block finalisation.
@@ -62,19 +84,24 @@ func (bs *BlockState) RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo
 	return id, nil
 }
 
-// UnregisterImportedChannel removes the block import notification channel with the given ID.
-// A channel must be unregistered before closing it.
-func (bs *BlockState) UnregisterImportedChannel(id byte) {
-	bs.importedLock.Lock()
-	defer bs.importedLock.Unlock()
+//// UnregisterImportedChannel removes the block import notification channel with the given ID.
+//// A channel must be unregistered before closing it.
+//func (bs *BlockState) UnregisterImportedChannel(id byte) {
+//	bs.importedLock.Lock()
+//	defer bs.importedLock.Unlock()
+//
+//	delete(bs.imported, id)
+//	err := bs.importedBytePool.Put(id)
+//	if err != nil {
+//		logger.Error("failed to unregister imported channel", "error", err)
+//	}
+//}
 
-	delete(bs.imported, id)
-	err := bs.importedBytePool.Put(id)
-	if err != nil {
-		logger.Error("failed to unregister imported channel", "error", err)
-	}
+func (bs *BlockState) FreeNotifierChannel(ch chan *types.Block) {
+	bs.importedChanPool.Put(ch)
+	delete(bs.imported, ch)
+	fmt.Printf("Free Notifier called\n")
 }
-
 // UnregisterFinalisedChannel removes the block finalisation notification channel with the given ID.
 // A channel must be unregistered before closing it.
 func (bs *BlockState) UnregisterFinalisedChannel(id byte) {
@@ -97,7 +124,7 @@ func (bs *BlockState) notifyImported(block *types.Block) {
 	}
 
 	logger.Trace("notifying imported block chans...", "chans", bs.imported)
-	for _, ch := range bs.imported {
+	for ch, _ := range bs.imported {
 		go func(ch chan<- *types.Block) {
 			select {
 			case ch <- block:
@@ -195,4 +222,13 @@ func (bs *BlockState) generateID() uint32 {
 		}
 	}
 	return uid.ID()
+}
+
+func NewBlockImportChannelPool() *sync.Pool {
+	pool := &sync.Pool{
+		New: func() interface{} {
+			return make(chan *types.Block, DEFAULT_BUFFER_SIZE)
+		},
+	}
+	return pool
 }

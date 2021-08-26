@@ -376,14 +376,17 @@ func (s *Service) initiate() error {
 }
 
 func (s *Service) waitForFirstBlock() error {
-	ch := make(chan *types.Block)
+	//ch := make(chan *types.Block)
 	// TODO (ed) import channel is unregistered by defer, doesn't seem to be closed
-	id, err := s.blockState.RegisterImportedChannel(ch)
+	// todo remove
+	ch, err := s.blockState.GetNotifierChannel()
+	//id, err := s.blockState.RegisterImportedChannel(ch)
 	if err != nil {
 		return err
 	}
 
-	defer s.blockState.UnregisterImportedChannel(id)
+	//defer s.blockState.UnregisterImportedChannel(id)
+	defer s.blockState.FreeNotifierChannel(ch)
 
 	// loop until block 1
 	for {

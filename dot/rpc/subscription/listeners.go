@@ -117,7 +117,8 @@ func (s *StorageObserver) Stop() error {
 type BlockListener struct {
 	Channel       chan *types.Block
 	wsconn        *WSConn
-	ChanID        byte
+// todo ed remove
+	//ChanID        byte
 	subID         uint32
 	done          chan struct{}
 	cancel        chan struct{}
@@ -127,7 +128,6 @@ type BlockListener struct {
 // NewBlockListener constructor for creating BlockListener
 func NewBlockListener(conn *WSConn) *BlockListener {
 	bl := &BlockListener{
-		Channel:       make(chan *types.Block, DEFAULT_BUFFER_SIZE),
 		wsconn:        conn,
 		cancel:        make(chan struct{}, 1),
 		cancelTimeout: defaultCancelTimeout,
@@ -140,7 +140,9 @@ func NewBlockListener(conn *WSConn) *BlockListener {
 func (l *BlockListener) Listen() {
 	go func() {
 		defer func() {
-			l.wsconn.BlockAPI.UnregisterImportedChannel(l.ChanID)
+			// todo ed remove, and move close to freeNotifier
+			//l.wsconn.BlockAPI.UnregisterImportedChannel(l.ChanID)
+			l.wsconn.BlockAPI.FreeNotifierChannel(l.Channel)
 			close(l.done)
 			close(l.Channel)
 		}()
@@ -235,7 +237,8 @@ type AllBlocksListener struct {
 
 	wsconn          *WSConn
 	finalizedChanID byte
-	importedChanID  byte
+	// todo ed remove
+	//importedChanID  byte
 	subID           uint32
 	done            chan struct{}
 	cancel          chan struct{}
@@ -249,7 +252,6 @@ func newAllBlockListener(conn *WSConn) *AllBlocksListener {
 		cancelTimeout: defaultCancelTimeout,
 		wsconn:        conn,
 		finalizedChan: make(chan *types.FinalisationInfo, DEFAULT_BUFFER_SIZE),
-		importedChan:  make(chan *types.Block, DEFAULT_BUFFER_SIZE),
 	}
 }
 
@@ -257,7 +259,9 @@ func newAllBlockListener(conn *WSConn) *AllBlocksListener {
 func (l *AllBlocksListener) Listen() {
 	go func() {
 		defer func() {
-			l.wsconn.BlockAPI.UnregisterImportedChannel(l.importedChanID)
+			// todo ed remove, mave close
+			//l.wsconn.BlockAPI.UnregisterImportedChannel(l.importedChanID)
+			l.wsconn.BlockAPI.FreeNotifierChannel(l.importedChan)
 			l.wsconn.BlockAPI.UnregisterFinalisedChannel(l.finalizedChanID)
 
 			close(l.importedChan)
@@ -318,7 +322,7 @@ type ExtrinsicSubmitListener struct {
 	subID           uint32
 	extrinsic       types.Extrinsic
 	importedChan    chan *types.Block
-	importedChanID  byte
+	//importedChanID  byte
 	importedHash    common.Hash
 	finalisedChan   chan *types.FinalisationInfo
 	finalisedChanID byte
@@ -330,7 +334,6 @@ type ExtrinsicSubmitListener struct {
 // NewExtrinsicSubmitListener constructor to build new ExtrinsicSubmitListener
 func NewExtrinsicSubmitListener(conn *WSConn, extBytes []byte) *ExtrinsicSubmitListener {
 	esl := &ExtrinsicSubmitListener{
-		importedChan:  make(chan *types.Block, DEFAULT_BUFFER_SIZE),
 		wsconn:        conn,
 		extrinsic:     types.Extrinsic(extBytes),
 		finalisedChan: make(chan *types.FinalisationInfo),
@@ -346,7 +349,9 @@ func (l *ExtrinsicSubmitListener) Listen() {
 	// listen for imported blocks with extrinsic
 	go func() {
 		defer func() {
-			l.wsconn.BlockAPI.UnregisterImportedChannel(l.importedChanID)
+			// todo ed remove, and move close
+			//l.wsconn.BlockAPI.UnregisterImportedChannel(l.importedChanID)
+			l.wsconn.BlockAPI.FreeNotifierChannel(l.importedChan)
 			l.wsconn.BlockAPI.UnregisterFinalisedChannel(l.finalisedChanID)
 			close(l.done)
 			close(l.importedChan)

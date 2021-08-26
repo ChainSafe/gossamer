@@ -223,7 +223,9 @@ func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, erro
 	}
 
 	var err error
-	bl.ChanID, err = c.BlockAPI.RegisterImportedChannel(bl.Channel)
+	bl.Channel, err = c.BlockAPI.GetNotifierChannel()
+
+	//bl.ChanID, err = c.BlockAPI.RegisterImportedChannel(bl.Channel)
 
 	if err != nil {
 		return nil, err
@@ -283,7 +285,8 @@ func (c *WSConn) initAllBlocksListerner(reqID float64, _ interface{}) (Listener,
 	}
 
 	var err error
-	listener.importedChanID, err = c.BlockAPI.RegisterImportedChannel(listener.importedChan)
+	//listener.importedChanID, err = c.BlockAPI.RegisterImportedChannel(listener.importedChan)
+	listener.importedChan, err = c.BlockAPI.GetNotifierChannel()
 	if err != nil {
 		c.safeSendError(reqID, nil, "could not register imported channel")
 		return nil, fmt.Errorf("could not register imported channel")
@@ -318,7 +321,10 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 	if c.BlockAPI == nil {
 		return nil, fmt.Errorf("error BlockAPI not set")
 	}
-	esl.importedChanID, err = c.BlockAPI.RegisterImportedChannel(esl.importedChan)
+
+	// todo ed remove
+	//esl.importedChanID, err = c.BlockAPI.RegisterImportedChannel(esl.importedChan)
+	esl.importedChan, err = c.BlockAPI.GetNotifierChannel()
 	if err != nil {
 		return nil, err
 	}
