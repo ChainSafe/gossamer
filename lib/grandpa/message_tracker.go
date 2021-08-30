@@ -76,8 +76,8 @@ func (t *tracker) addVote(v *networkVoteMessage) {
 
 	msgs, has := t.voteMessages[v.msg.Message.Hash]
 	if !has {
-		t.voteMessages[v.msg.Message.Hash] = make(map[ed25519.PublicKeyBytes]*networkVoteMessage)
-		msgs = t.voteMessages[v.msg.Message.Hash]
+		msgs = make(map[ed25519.PublicKeyBytes]*networkVoteMessage)
+		t.voteMessages[v.msg.Message.Hash] = msgs
 	}
 
 	msgs[v.msg.Message.AuthorityID] = v

@@ -53,10 +53,10 @@ func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 		return
 	}
 
-	s.readStream(stream, s.decodeSyncMessage, s.handleSyncMessage)
+	s.readStream(stream, decodeSyncMessage, s.handleSyncMessage)
 }
 
-func (s *Service) decodeSyncMessage(in []byte, peer peer.ID, inbound bool) (Message, error) {
+func decodeSyncMessage(in []byte, _ peer.ID, _ bool) (Message, error) {
 	msg := new(BlockRequestMessage)
 	err := msg.Decode(in)
 	return msg, err
@@ -453,7 +453,7 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 
 	reqSize := blockRequestSize
 	if goal-int64(start) < int64(blockRequestSize) {
-		start = uint64(best.Int64() + 1)
+		start = best.Uint64() + 1
 		reqSize = uint32(goal) - uint32(start)
 	} else {
 		// all requests must start at a multiple of 128 + 1
