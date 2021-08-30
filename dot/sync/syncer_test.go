@@ -239,7 +239,7 @@ func TestSyncer_HandleJustification(t *testing.T) {
 	//	Digest:     types.Digest{d},
 	//}
 	digest := types.NewDigestVdt()
-	digest.Add(d)
+	digest.Add(*d)
 	header := &types.HeaderVdt{
 		ParentHash: syncer.blockState.(*state.BlockState).GenesisHash(),
 		Number:     big.NewInt(1),

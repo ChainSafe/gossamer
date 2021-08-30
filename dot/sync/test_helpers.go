@@ -53,6 +53,7 @@ func NewMockFinalityGadget() *syncmocks.FinalityGadget {
 func NewMockVerifier() *syncmocks.MockVerifier {
 	m := new(syncmocks.MockVerifier)
 	m.On("VerifyBlock", mock.AnythingOfType("*types.Header")).Return(nil)
+	m.On("VerifyBlockVdt", mock.AnythingOfType("*types.HeaderVdt")).Return(nil)
 	return m
 }
 
@@ -147,7 +148,7 @@ func newTestGenesisWithTrieAndHeader(t *testing.T, usePolkadotGenesis bool) (*ge
 
 func BuildBlockVdt(t *testing.T, instance runtime.Instance, parent *types.HeaderVdt, ext types.Extrinsic) *types.BlockVdt {
 	digest := types.NewDigestVdt()
-	digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	header := &types.HeaderVdt{
 		ParentHash: parent.Hash(),
 		Number:     big.NewInt(0).Add(parent.Number, big.NewInt(1)),

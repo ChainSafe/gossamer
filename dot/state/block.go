@@ -351,6 +351,23 @@ func (bs *BlockState) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 	return &types.Block{Header: header, Body: blockBody}, nil
 }
 
+func (bs *BlockState) GetBlockByNumberVdt(num *big.Int) (*types.BlockVdt, error) {
+	// First retrieve the block hash in a byte array based on the block number from the database
+	byteHash, err := bs.db.Get(headerHashKey(num.Uint64()))
+	if err != nil {
+		return nil, fmt.Errorf("cannot get block %d: %w", num, err)
+	}
+
+	// Then find the block based on the hash
+	hash := common.NewHash(byteHash)
+	block, err := bs.GetBlockByHashVdt(hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return block, nil
+}
+
 // GetBlockByNumber returns a block for a given blockNumber
 func (bs *BlockState) GetBlockByNumber(num *big.Int) (*types.Block, error) {
 	// First retrieve the block hash in a byte array based on the block number from the database

@@ -237,7 +237,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockDataVdt) (int, error) {
 			logger.Trace("body processed", "hash", bd.Hash)
 		}
 
-		if bd.Header.Exists() && bd.Body != nil {
+		if bd.Header != nil && bd.Body != nil {
 			header = bd.Header
 			body := bd.Body
 
@@ -298,7 +298,7 @@ func (s *Service) handleBlock(block *types.BlockVdt) error {
 		return errors.New("block, header, or body is nil")
 	}
 
-	parent, err := s.blockState.GetHeader(block.Header.ParentHash)
+	parent, err := s.blockState.GetHeaderVdt(block.Header.ParentHash)
 	if err != nil {
 		return fmt.Errorf("failed to get parent hash: %w", err)
 	}

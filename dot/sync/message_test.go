@@ -138,39 +138,42 @@ func TestService_CreateBlockResponse(t *testing.T) {
 	addTestBlocksToState(t, 2, s.blockState)
 
 	bestHash := s.blockState.BestBlockHash()
-	bestBlock, err := s.blockState.GetBlockByNumber(big.NewInt(1))
+	bestBlock, err := s.blockState.GetBlockByNumberVdt(big.NewInt(1))
 	require.NoError(t, err)
 
 	// set some nils and check no error is thrown
-	bds := &types.BlockData{
+	bds := &types.BlockDataVdt{
 		Hash:          bestHash,
 		Header:        nil,
 		Receipt:       nil,
 		MessageQueue:  nil,
 		Justification: nil,
 	}
-	err = s.blockState.CompareAndSetBlockData(bds)
+	err = s.blockState.CompareAndSetBlockDataVdt(bds)
 	require.NoError(t, err)
 
 	// set receipt message and justification
-	bds = &types.BlockData{
+	a := []byte("asdf")
+	b := []byte("ghjkl")
+	c := []byte("qwerty")
+	bds = &types.BlockDataVdt{
 		Hash:          bestHash,
-		Receipt:       optional.NewBytes(true, []byte("asdf")),
-		MessageQueue:  optional.NewBytes(true, []byte("ghjkl")),
-		Justification: optional.NewBytes(true, []byte("qwerty")),
+		Receipt:       &a,
+		MessageQueue:  &b,
+		Justification: &c,
 	}
 
 	endHash := s.blockState.BestBlockHash()
 	start, err := variadic.NewUint64OrHash(uint64(1))
 	require.NoError(t, err)
 
-	err = s.blockState.CompareAndSetBlockData(bds)
+	err = s.blockState.CompareAndSetBlockDataVdt(bds)
 	require.NoError(t, err)
 
 	testCases := []struct {
 		description      string
 		value            *network.BlockRequestMessage
-		expectedMsgValue *network.BlockResponseMessage
+		expectedMsgValue *network.BlockResponseMessageNew
 	}{
 		{
 			description: "test get Header and Body",
@@ -181,12 +184,12 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				Direction:     0,
 				Max:           optional.NewUint32(false, 0),
 			},
-			expectedMsgValue: &network.BlockResponseMessage{
-				BlockData: []*types.BlockData{
+			expectedMsgValue: &network.BlockResponseMessageNew{
+				BlockData: []*types.BlockDataVdt{
 					{
 						Hash:   optional.NewHash(true, bestHash).Value(),
-						Header: bestBlock.Header.AsOptional(),
-						Body:   bestBlock.Body.AsOptional(),
+						Header: &bestBlock.Header,
+						Body:   &bestBlock.Body,
 					},
 				},
 			},
@@ -200,12 +203,12 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				Direction:     0,
 				Max:           optional.NewUint32(false, 0),
 			},
-			expectedMsgValue: &network.BlockResponseMessage{
-				BlockData: []*types.BlockData{
+			expectedMsgValue: &network.BlockResponseMessageNew{
+				BlockData: []*types.BlockDataVdt{
 					{
 						Hash:   optional.NewHash(true, bestHash).Value(),
-						Header: bestBlock.Header.AsOptional(),
-						Body:   optional.NewBody(false, nil),
+						Header: &bestBlock.Header,
+						Body:   nil,
 					},
 				},
 			},
@@ -219,12 +222,12 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				Direction:     0,
 				Max:           optional.NewUint32(false, 0),
 			},
-			expectedMsgValue: &network.BlockResponseMessage{
-				BlockData: []*types.BlockData{
+			expectedMsgValue: &network.BlockResponseMessageNew{
+				BlockData: []*types.BlockDataVdt{
 					{
 						Hash:    optional.NewHash(true, bestHash).Value(),
-						Header:  optional.NewHeader(false, nil),
-						Body:    optional.NewBody(false, nil),
+						Header:  nil,
+						Body:    nil,
 						Receipt: bds.Receipt,
 					},
 				},
@@ -239,12 +242,12 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				Direction:     0,
 				Max:           optional.NewUint32(false, 0),
 			},
-			expectedMsgValue: &network.BlockResponseMessage{
-				BlockData: []*types.BlockData{
+			expectedMsgValue: &network.BlockResponseMessageNew{
+				BlockData: []*types.BlockDataVdt{
 					{
 						Hash:         optional.NewHash(true, bestHash).Value(),
-						Header:       optional.NewHeader(false, nil),
-						Body:         optional.NewBody(false, nil),
+						Header:       nil,
+						Body:         nil,
 						MessageQueue: bds.MessageQueue,
 					},
 				},

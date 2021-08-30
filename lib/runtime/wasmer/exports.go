@@ -148,7 +148,7 @@ func (in *Instance) FinalizeBlockVdt() (*types.HeaderVdt, error) {
 	//bh := new(types.Header)
 	//_, err = scale.Decode(data, bh)
 	bh := types.NewEmptyHeaderVdt()
-	err = scale2.Unmarshal(data, &bh)
+	err = scale2.Unmarshal(data, bh)
 	if err != nil {
 		return nil, err
 	}
@@ -176,12 +176,23 @@ func (in *Instance) FinalizeBlock() (*types.Header, error) {
 func (in *Instance) ExecuteBlockVdt(block *types.BlockVdt) ([]byte, error) {
 	// copy block since we're going to modify it
 	b := block.DeepCopy()
+	fmt.Println("Executing the block!")
+
+	if in.version == nil {
+		var err error
+		in.version, err = in.Version()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	b.Header.Digest = types.NewEmptyDigestVdt()
 
 	// TODO: hack since substrate node_runtime can't seem to handle BABE pre-runtime digests
 	// with type prefix (ie Primary, Secondary...)
 	if bytes.Equal(in.version.SpecName(), []byte("kusama")) {
 		// remove seal digest only
+		fmt.Println("In the loop")
 		for _, d := range block.Header.Digest.Types {
 			//if d.Type() == types.SealDigestType {
 			//	continue
@@ -192,6 +203,7 @@ func (in *Instance) ExecuteBlockVdt(block *types.BlockVdt) ([]byte, error) {
 			case types.SealDigest:
 				continue
 			default:
+				fmt.Println("Adding the digest!")
 				b.Header.Digest.Add(d.Value())
 			}
 

@@ -120,7 +120,10 @@ func (bh *HeaderVdt) DeepCopy() *HeaderVdt {
 
 	if len(bh.Digest.Types) > 0 {
 		cp.Digest = NewDigestVdt()
-		copy(cp.Digest.Types, bh.Digest.Types[:])
+		//copy(cp.Digest.Types, bh.Digest.Types[:])
+		for _, d := range bh.Digest.Types {
+			cp.Digest.Add(d.Value())
+		}
 	}
 
 	return cp
