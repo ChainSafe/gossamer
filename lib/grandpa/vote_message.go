@@ -197,7 +197,7 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 		// TODO: cancel if block is imported; if we refactor the syncing this will likely become cleaner
 		// as we can have an API to synchronously sync and import a block
 		go s.network.SendBlockReqestByHash(vote.Hash)
-		s.tracker.add(&networkVoteMessage{
+		s.tracker.addVote(&networkVoteMessage{
 			from: from,
 			msg:  m,
 		})
@@ -288,7 +288,7 @@ func (s *Service) validateVote(v *Vote) error {
 	}
 
 	if !isDescendant {
-		return ErrDescendantNotFound
+		return errInvalidVoteBlock
 	}
 
 	return nil
