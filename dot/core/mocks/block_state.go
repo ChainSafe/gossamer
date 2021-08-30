@@ -143,8 +143,8 @@ func (_m *MockBlockState) BestBlockStateRoot() (common.Hash, error) {
 	return r0, r1
 }
 
-// FreeNotifierChannel provides a mock function with given fields: ch
-func (_m *MockBlockState) FreeNotifierChannel(ch chan *types.Block) {
+// FreeImportedBlockNotifierChannel provides a mock function with given fields: ch
+func (_m *MockBlockState) FreeImportedBlockNotifierChannel(ch chan *types.Block) {
 	_m.Called(ch)
 }
 
@@ -272,8 +272,8 @@ func (_m *MockBlockState) GetFinalisedHeader(_a0 uint64, _a1 uint64) (*types.Hea
 	return r0, r1
 }
 
-// GetNotifierChannel provides a mock function with given fields:
-func (_m *MockBlockState) GetNotifierChannel() (chan *types.Block, error) {
+// GetImportedBlockNotifierChannel provides a mock function with given fields:
+func (_m *MockBlockState) GetImportedBlockNotifierChannel() (chan *types.Block, error) {
 	ret := _m.Called()
 
 	var r0 chan *types.Block

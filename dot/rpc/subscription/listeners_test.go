@@ -97,7 +97,7 @@ func TestBlockListener_Listen(t *testing.T) {
 	defer cancel()
 
 	BlockAPI := new(mocks.MockBlockAPI)
-	BlockAPI.On("FreeNotifierChannel", mock.AnythingOfType("chan *types.Block"))
+	BlockAPI.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
 
 	wsconn.BlockAPI = BlockAPI
 
@@ -117,7 +117,7 @@ func TestBlockListener_Listen(t *testing.T) {
 	defer func() {
 		require.NoError(t, bl.Stop())
 		time.Sleep(time.Millisecond * 10)
-		BlockAPI.AssertCalled(t, "FreeNotifierChannel", mock.AnythingOfType("chan *types.Block"))
+		BlockAPI.AssertCalled(t, "FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
 	}()
 
 	notifyChan <- block

@@ -55,8 +55,7 @@ type BlockState struct {
 	finalised                      map[byte]chan<- *types.FinalisationInfo
 	importedLock                   sync.RWMutex
 	finalisedLock                  sync.RWMutex
-	//importedBytePool               *common.BytePool
-	importedChanPool *sync.Pool
+	importedChanPool               *sync.Pool
 	finalisedBytePool              *common.BytePool
 	runtimeUpdateSubscriptionsLock sync.RWMutex
 	runtimeUpdateSubscriptions     map[uint32]chan<- runtime.Version
@@ -92,9 +91,7 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 		return nil, fmt.Errorf("failed to get last finalised hash: %w", err)
 	}
 
-	// todo ed remove comments
 	bs.importedChanPool = NewBlockImportChannelPool()
-	//bs.importedBytePool = common.NewBytePool256()
 	bs.finalisedBytePool = common.NewBytePool256()
 	return bs, nil
 }
@@ -138,8 +135,6 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		return nil, err
 	}
 
-	// todo ed remove
-	//bs.importedBytePool = common.NewBytePool256()
 	bs.importedChanPool = NewBlockImportChannelPool()
 	bs.finalisedBytePool = common.NewBytePool256()
 	return bs, nil

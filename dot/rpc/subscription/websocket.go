@@ -213,8 +213,6 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (L
 }
 
 func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, error) {
-	// TODO (ed) here the imported Channel get unregistered and closed in http.Stop
-	//  there doesn't seem to be an un-subscribe for this
 	bl := NewBlockListener(c)
 
 	if c.BlockAPI == nil {
@@ -223,10 +221,7 @@ func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, erro
 	}
 
 	var err error
-	bl.Channel, err = c.BlockAPI.GetNotifierChannel()
-
-	//bl.ChanID, err = c.BlockAPI.RegisterImportedChannel(bl.Channel)
-
+	bl.Channel, err = c.BlockAPI.GetImportedBlockNotifierChannel()
 	if err != nil {
 		return nil, err
 	}
@@ -285,8 +280,7 @@ func (c *WSConn) initAllBlocksListerner(reqID float64, _ interface{}) (Listener,
 	}
 
 	var err error
-	//listener.importedChanID, err = c.BlockAPI.RegisterImportedChannel(listener.importedChan)
-	listener.importedChan, err = c.BlockAPI.GetNotifierChannel()
+	listener.importedChan, err = c.BlockAPI.GetImportedBlockNotifierChannel()
 	if err != nil {
 		c.safeSendError(reqID, nil, "could not register imported channel")
 		return nil, fmt.Errorf("could not register imported channel")
@@ -314,7 +308,6 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 		return nil, err
 	}
 
-	// TODO (ed) the importedChan get deleted by unregister imported channel in defer in Listen (listeners.go line 236)
 	// listen for built blocks
 	esl := NewExtrinsicSubmitListener(c, extBytes)
 
@@ -322,9 +315,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 		return nil, fmt.Errorf("error BlockAPI not set")
 	}
 
-	// todo ed remove
-	//esl.importedChanID, err = c.BlockAPI.RegisterImportedChannel(esl.importedChan)
-	esl.importedChan, err = c.BlockAPI.GetNotifierChannel()
+	esl.importedChan, err = c.BlockAPI.GetImportedBlockNotifierChannel()
 	if err != nil {
 		return nil, err
 	}

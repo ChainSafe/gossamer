@@ -35,7 +35,7 @@ func (_m *MockBlockAPI) BestBlockHash() common.Hash {
 }
 
 // FreeNotifierChannel provides a mock function with given fields: ch
-func (_m *MockBlockAPI) FreeNotifierChannel(ch chan *types.Block) {
+func (_m *MockBlockAPI) FreeImportedBlockNotifierChannel(ch chan *types.Block) {
 	_m.Called(ch)
 }
 
@@ -178,7 +178,7 @@ func (_m *MockBlockAPI) GetJustification(hash common.Hash) ([]byte, error) {
 }
 
 // GetNotifierChannel provides a mock function with given fields:
-func (_m *MockBlockAPI) GetNotifierChannel() (chan *types.Block, error) {
+func (_m *MockBlockAPI) GetImportedBlockNotifierChannel() (chan *types.Block, error) {
 	ret := _m.Called()
 
 	var r0 chan *types.Block

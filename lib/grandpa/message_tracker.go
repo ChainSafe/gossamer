@@ -27,26 +27,17 @@ import (
 // tracker keeps track of messages that have been received that have failed to validate with ErrBlockDoesNotExist
 // these messages may be needed again in the case that we are slightly out of sync with the rest of the network
 type tracker struct {
-
-//func newTracker(bs BlockState, out chan<- *networkVoteMessage) (*tracker, error) {
-//	//in := make(chan *types.Block, 16)
-//	in, err := bs.GetNotifierChannel()
-	// TODO (ed) import channel is unregistered and closed in tracker.stop()
-	// todo ed, remove, and get channel makes channel 100, not 16
-	//id, err := bs.RegisterImportedChannel(in)
 	blockState     BlockState
 	handler        *MessageHandler
 	voteMessages   map[common.Hash]map[ed25519.PublicKeyBytes]*networkVoteMessage // map of vote block hash -> array of VoteMessages for that hash
 	commitMessages map[common.Hash]*CommitMessage                                 // map of commit block hash to commit message
 	mapLock        sync.Mutex
 	in             chan *types.Block // receive imported block from BlockState
-	chanID         byte              // BlockState channel ID
 	stopped        chan struct{}
 }
 
 func newTracker(bs BlockState, handler *MessageHandler) (*tracker, error) {
-	in := make(chan *types.Block, 16)
-	id, err := bs.RegisterImportedChannel(in)
+	in, err := bs.GetImportedBlockNotifierChannel()
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +49,6 @@ func newTracker(bs BlockState, handler *MessageHandler) (*tracker, error) {
 		commitMessages: make(map[common.Hash]*CommitMessage),
 		mapLock:        sync.Mutex{},
 		in:             in,
-		chanID:         id,
 		stopped:        make(chan struct{}),
 	}, nil
 }
@@ -69,10 +59,7 @@ func (t *tracker) start() {
 
 func (t *tracker) stop() {
 	close(t.stopped)
-	// todo ed remave and move close
-	//t.blockState.UnregisterImportedChannel(t.chanID)
-	t.blockState.FreeNotifierChannel(t.in)
-	close(t.in)
+	t.blockState.FreeImportedBlockNotifierChannel(t.in)
 }
 
 func (t *tracker) addVote(v *networkVoteMessage) {

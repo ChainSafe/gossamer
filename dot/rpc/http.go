@@ -191,10 +191,7 @@ func (h *HTTPServer) Stop() error {
 				case *subscription.StorageObserver:
 					h.serverConfig.StorageAPI.UnregisterStorageObserver(v)
 				case *subscription.BlockListener:
-					// todo ed remove, remove close channel?
-					//h.serverConfig.BlockAPI.UnregisterImportedChannel(v.ChanID)
-					h.serverConfig.BlockAPI.FreeNotifierChannel(v.Channel)
-					close(v.Channel)
+					h.serverConfig.BlockAPI.FreeImportedBlockNotifierChannel(v.Channel)
 				}
 			}
 

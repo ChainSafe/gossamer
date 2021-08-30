@@ -117,8 +117,6 @@ func (s *StorageObserver) Stop() error {
 type BlockListener struct {
 	Channel       chan *types.Block
 	wsconn        *WSConn
-// todo ed remove
-	//ChanID        byte
 	subID         uint32
 	done          chan struct{}
 	cancel        chan struct{}
@@ -140,11 +138,8 @@ func NewBlockListener(conn *WSConn) *BlockListener {
 func (l *BlockListener) Listen() {
 	go func() {
 		defer func() {
-			// todo ed remove, and move close to freeNotifier
-			//l.wsconn.BlockAPI.UnregisterImportedChannel(l.ChanID)
-			l.wsconn.BlockAPI.FreeNotifierChannel(l.Channel)
+			l.wsconn.BlockAPI.FreeImportedBlockNotifierChannel(l.Channel)
 			close(l.done)
-			close(l.Channel)
 		}()
 
 		for {
@@ -237,8 +232,6 @@ type AllBlocksListener struct {
 
 	wsconn          *WSConn
 	finalizedChanID byte
-	// todo ed remove
-	//importedChanID  byte
 	subID           uint32
 	done            chan struct{}
 	cancel          chan struct{}
@@ -259,12 +252,9 @@ func newAllBlockListener(conn *WSConn) *AllBlocksListener {
 func (l *AllBlocksListener) Listen() {
 	go func() {
 		defer func() {
-			// todo ed remove, mave close
-			//l.wsconn.BlockAPI.UnregisterImportedChannel(l.importedChanID)
-			l.wsconn.BlockAPI.FreeNotifierChannel(l.importedChan)
+			l.wsconn.BlockAPI.FreeImportedBlockNotifierChannel(l.importedChan)
 			l.wsconn.BlockAPI.UnregisterFinalisedChannel(l.finalizedChanID)
 
-			close(l.importedChan)
 			close(l.finalizedChan)
 			close(l.done)
 		}()
@@ -322,7 +312,6 @@ type ExtrinsicSubmitListener struct {
 	subID           uint32
 	extrinsic       types.Extrinsic
 	importedChan    chan *types.Block
-	//importedChanID  byte
 	importedHash    common.Hash
 	finalisedChan   chan *types.FinalisationInfo
 	finalisedChanID byte
@@ -349,12 +338,9 @@ func (l *ExtrinsicSubmitListener) Listen() {
 	// listen for imported blocks with extrinsic
 	go func() {
 		defer func() {
-			// todo ed remove, and move close
-			//l.wsconn.BlockAPI.UnregisterImportedChannel(l.importedChanID)
-			l.wsconn.BlockAPI.FreeNotifierChannel(l.importedChan)
+			l.wsconn.BlockAPI.FreeImportedBlockNotifierChannel(l.importedChan)
 			l.wsconn.BlockAPI.UnregisterFinalisedChannel(l.finalisedChanID)
 			close(l.done)
-			close(l.importedChan)
 			close(l.finalisedChan)
 		}()
 
