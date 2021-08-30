@@ -29,6 +29,7 @@ import (
 // DEFAULT_BUFFER_SIZE buffer size for channels
 const DEFAULT_BUFFER_SIZE = 100
 
+// GetImportedBlockNotifierChannel function to retrieve a imported block notifier channel
 func (bs *BlockState) GetImportedBlockNotifierChannel() (chan *types.Block, error) {
 	ch := bs.importedChanPool.Get().(chan *types.Block)
 
@@ -57,6 +58,7 @@ func (bs *BlockState) RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo
 	return id, nil
 }
 
+// FreeImportedBlockNotifierChannel to free and close imported block notifier channel
 func (bs *BlockState) FreeImportedBlockNotifierChannel(ch chan *types.Block) {
 	bs.importedChanPool.Put(ch)
 	delete(bs.imported, ch)
@@ -185,6 +187,7 @@ func (bs *BlockState) generateID() uint32 {
 	return uid.ID()
 }
 
+// NewBlockImportChannelPool to create a sync pool of imported block notifier channels
 func NewBlockImportChannelPool() *sync.Pool {
 	pool := &sync.Pool{
 		New: func() interface{} {
