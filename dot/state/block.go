@@ -50,10 +50,8 @@ type BlockState struct {
 	lastFinalised common.Hash
 
 	// block notifiers
-	// todo ed, make this a sync.map so that we can remove importedLock
-	imported                       map[chan<- *types.Block]struct{}
+	imported                       *sync.Map
 	finalised                      map[byte]chan<- *types.FinalisationInfo
-	importedLock                   sync.RWMutex
 	finalisedLock                  sync.RWMutex
 	importedChanPool               *sync.Pool
 	finalisedBytePool              *common.BytePool
@@ -70,11 +68,12 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 	}
 
 	bs := &BlockState{
-		bt:                         bt,
-		dbPath:                     db.Path(),
-		baseState:                  NewBaseState(db),
-		db:                         chaindb.NewTable(db, blockPrefix),
-		imported:                   make(map[chan<- *types.Block]struct{}),
+		bt:        bt,
+		dbPath:    db.Path(),
+		baseState: NewBaseState(db),
+		db:        chaindb.NewTable(db, blockPrefix),
+		//imported:                   make(map[chan<- *types.Block]struct{}),
+		imported:                   new(sync.Map),
 		finalised:                  make(map[byte]chan<- *types.FinalisationInfo),
 		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
@@ -99,10 +98,11 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 // NewBlockStateFromGenesis initialises a BlockState from a genesis header, saving it to the database located at basePath
 func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*BlockState, error) {
 	bs := &BlockState{
-		bt:                         blocktree.NewBlockTreeFromRoot(header, db),
-		baseState:                  NewBaseState(db),
-		db:                         chaindb.NewTable(db, blockPrefix),
-		imported:                   make(map[chan<- *types.Block]struct{}),
+		bt:        blocktree.NewBlockTreeFromRoot(header, db),
+		baseState: NewBaseState(db),
+		db:        chaindb.NewTable(db, blockPrefix),
+		//imported:                   make(map[chan<- *types.Block]struct{}),
+		imported:                   new(sync.Map),
 		finalised:                  make(map[byte]chan<- *types.FinalisationInfo),
 		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),

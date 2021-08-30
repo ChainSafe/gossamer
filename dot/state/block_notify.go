@@ -32,11 +32,7 @@ const DEFAULT_BUFFER_SIZE = 100
 // GetImportedBlockNotifierChannel function to retrieve a imported block notifier channel
 func (bs *BlockState) GetImportedBlockNotifierChannel() (chan *types.Block, error) {
 	ch := bs.importedChanPool.Get().(chan *types.Block)
-
-	// todo ed make this a sync make
-	bs.importedLock.Lock()
-	bs.imported[ch] = struct{}{}
-	bs.importedLock.Unlock()
+	bs.imported.Store(ch, struct{}{})
 	return ch, nil
 }
 
@@ -61,7 +57,8 @@ func (bs *BlockState) RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo
 // FreeImportedBlockNotifierChannel to free and close imported block notifier channel
 func (bs *BlockState) FreeImportedBlockNotifierChannel(ch chan *types.Block) {
 	bs.importedChanPool.Put(ch)
-	delete(bs.imported, ch)
+	//delete(bs.imported, ch)
+	bs.imported.Delete(ch)
 	close(ch)
 }
 
@@ -79,22 +76,32 @@ func (bs *BlockState) UnregisterFinalisedChannel(id byte) {
 }
 
 func (bs *BlockState) notifyImported(block *types.Block) {
-	bs.importedLock.RLock()
-	defer bs.importedLock.RUnlock()
+	//bs.importedLock.RLock()
+	//defer bs.importedLock.RUnlock()
 
-	if len(bs.imported) == 0 {
-		return
-	}
+	//if len(bs.imported) == 0 {
+	//	return
+	//}
 
 	logger.Trace("notifying imported block chans...", "chans", bs.imported)
-	for ch := range bs.imported {
-		go func(ch chan<- *types.Block) {
+	bs.imported.Range(func(k, v interface{}) bool {
+		go func(ch chan *types.Block) {
 			select {
 			case ch <- block:
 			default:
 			}
-		}(ch)
-	}
+		}(k.(chan *types.Block))
+		return true
+	})
+
+	//for ch := range bs.imported {
+	//	go func(ch chan<- *types.Block) {
+	//		select {
+	//		case ch <- block:
+	//		default:
+	//		}
+	//	}(ch)
+	//}
 }
 
 func (bs *BlockState) notifyFinalized(hash common.Hash, round, setID uint64) {
