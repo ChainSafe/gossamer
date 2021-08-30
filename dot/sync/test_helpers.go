@@ -17,6 +17,7 @@
 package sync
 
 import (
+	"fmt"
 	"io/ioutil"
 	"math/big"
 	"testing"
@@ -165,12 +166,24 @@ func BuildBlockVdt(t *testing.T, instance runtime.Instance, parent *types.Header
 	err = idata.SetInt64Inherent(types.Babeslot, 1)
 	require.NoError(t, err)
 
+	// idata ok
+	fmt.Println("idata vdt")
+	fmt.Println(idata)
+
 	ienc, err := idata.Encode()
 	require.NoError(t, err)
+
+	fmt.Println("ienc vdt")
+	fmt.Println(ienc)
 
 	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
 	inherentExts, err := instance.InherentExtrinsics(ienc)
 	require.NoError(t, err)
+
+	// ^^ This is where things get messed up
+
+	fmt.Println("inherentExts vdt")
+	fmt.Println(inherentExts)
 
 	// decode inherent extrinsics
 	var exts [][]byte
@@ -197,6 +210,7 @@ func BuildBlockVdt(t *testing.T, instance runtime.Instance, parent *types.Header
 		body = types.NewBody(inherentExts)
 	}
 
+
 	// apply each inherent extrinsic
 	for _, ext := range inExt {
 		in, err := scale.Marshal(ext) //nolint
@@ -210,6 +224,7 @@ func BuildBlockVdt(t *testing.T, instance runtime.Instance, parent *types.Header
 	res, err := instance.FinalizeBlockVdt()
 	require.NoError(t, err)
 	res.Number = header.Number
+
 
 	return &types.BlockVdt{
 		Header: *res,
@@ -237,12 +252,22 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 	err = idata.SetInt64Inherent(types.Babeslot, 1)
 	require.NoError(t, err)
 
+	//idata ok
+	fmt.Println("idata")
+	fmt.Println(idata)
+
 	ienc, err := idata.Encode()
 	require.NoError(t, err)
+
+	fmt.Println("ienc")
+	fmt.Println(ienc)
 
 	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
 	inherentExts, err := instance.InherentExtrinsics(ienc)
 	require.NoError(t, err)
+
+	fmt.Println("inherentExts")
+	fmt.Println(inherentExts)
 
 	// decode inherent extrinsics
 	var exts [][]byte

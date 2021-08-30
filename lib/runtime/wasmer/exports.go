@@ -17,7 +17,6 @@
 package wasmer
 
 import (
-	"bytes"
 	"fmt"
 	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"io"
@@ -145,6 +144,8 @@ func (in *Instance) FinalizeBlockVdt() (*types.HeaderVdt, error) {
 		return nil, err
 	}
 
+	fmt.Println("Finalized block Vdt")
+	fmt.Println(data)
 	//bh := new(types.Header)
 	//_, err = scale.Decode(data, bh)
 	bh := types.NewEmptyHeaderVdt()
@@ -163,6 +164,8 @@ func (in *Instance) FinalizeBlock() (*types.Header, error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("Finalized block normal")
+	fmt.Println(data)
 
 	bh := new(types.Header)
 	_, err = scale.Decode(data, bh)
@@ -176,7 +179,6 @@ func (in *Instance) FinalizeBlock() (*types.Header, error) {
 func (in *Instance) ExecuteBlockVdt(block *types.BlockVdt) ([]byte, error) {
 	// copy block since we're going to modify it
 	b := block.DeepCopy()
-	fmt.Println("Executing the block!")
 
 	if in.version == nil {
 		var err error
@@ -188,30 +190,17 @@ func (in *Instance) ExecuteBlockVdt(block *types.BlockVdt) ([]byte, error) {
 
 	b.Header.Digest = types.NewEmptyDigestVdt()
 
-	// TODO: hack since substrate node_runtime can't seem to handle BABE pre-runtime digests
-	// with type prefix (ie Primary, Secondary...)
-	if bytes.Equal(in.version.SpecName(), []byte("kusama")) {
-		// remove seal digest only
-		fmt.Println("In the loop")
-		for _, d := range block.Header.Digest.Types {
-			//if d.Type() == types.SealDigestType {
-			//	continue
-			//}
-
-			//var preDigest types.SealDigest
-			switch d.Value().(type) {
-			case types.SealDigest:
-				continue
-			default:
-				fmt.Println("Adding the digest!")
-				b.Header.Digest.Add(d.Value())
-			}
-
-			//b.Header.Digest = append(b.Header.Digest, d)
+	// remove seal digest only
+	for _, d := range block.Header.Digest.Types {
+		switch d.Value().(type) {
+		case types.SealDigest:
+			continue
+		default:
+			b.Header.Digest.Add(d.Value())
 		}
+
 	}
 
-	//bdEnc, err := b.Encode()
 	bdEnc, err := scale2.Marshal(b)
 	if err != nil {
 		return nil, err

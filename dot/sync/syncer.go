@@ -211,7 +211,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockDataVdt) (int, error) {
 
 		var header *types.HeaderVdt
 
-		if bd.Header.Exists() && bd.Header != nil && !hasHeader {
+		if bd.Header != nil && !hasHeader {
 			header = bd.Header
 
 			logger.Trace("processing header", "hash", header.Hash(), "number", header.Number)

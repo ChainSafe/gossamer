@@ -18,6 +18,7 @@ package sync
 
 import (
 	"errors"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 	"os"
 	"testing"
@@ -185,13 +186,41 @@ func TestHandleBlockResponse_NoBlockData(t *testing.T) {
 func TestHandleBlockResponse_BlockData(t *testing.T) {
 	syncer := NewTestSyncer(t, false)
 
+	parent2, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
+	require.NoError(t, err)
+	//fmt.Println("normal parent")
+	//fmt.Println(parent2)
+
+	enc, err := parent2.Encode()
+	require.NoError(t, err)
+	//fmt.Println("normal parent")
+	//fmt.Println(enc)
+
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeaderVdt()
 	require.NoError(t, err)
+	//fmt.Println("vdt parent")
+	//fmt.Println(parent)
+
+	encVdt, err := scale.Marshal(*parent)
+	require.NoError(t, err)
+	require.Equal(t, enc, encVdt)
+
+	//fmt.Println("vdt parent")
+	//fmt.Println(parent)
 
 	rt, err := syncer.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
+	blockO := BuildBlock(t, rt, parent2, nil)
+
 	block := BuildBlockVdt(t, rt, parent, nil)
+
+	//fmt.Println("normal block")
+	//fmt.Println(blockO)
+	//fmt.Println("vdt block")
+	//fmt.Println(block)
+
+	require.Equal(t, blockO.Header.StateRoot, block.Header.StateRoot)
 
 	bd := []*types.BlockDataVdt{{
 		Hash:          block.Header.Hash(),
@@ -212,20 +241,20 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 func TestSyncer_ExecuteBlock(t *testing.T) {
 	syncer := NewTestSyncer(t, false)
 
-	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
+	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeaderVdt()
 	require.NoError(t, err)
 
 	rt, err := syncer.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	block := BuildBlock(t, rt, parent, nil)
+	block := BuildBlockVdt(t, rt, parent, nil)
 
 	// reset parentState
 	parentState, err := syncer.storageState.TrieState(&parent.StateRoot)
 	require.NoError(t, err)
 	rt.SetContextStorage(parentState)
 
-	_, err = rt.ExecuteBlock(block)
+	_, err = rt.ExecuteBlockVdt(block)
 	require.NoError(t, err)
 }
 
@@ -272,7 +301,7 @@ func TestSyncer_ProcessJustification(t *testing.T) {
 
 	block := BuildBlockVdt(t, rt, parent, nil)
 	digest := types.NewDigestVdt()
-	digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	block.Header.Digest = digest
 
 	err = syncer.blockState.(*state.BlockState).AddBlockVdt(block)

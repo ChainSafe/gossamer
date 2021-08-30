@@ -75,6 +75,17 @@ func (b *Block) Encode() ([]byte, error) {
 	return append(enc, []byte(*b.Body)...), nil
 }
 
+func (b *BlockVdt) Encode() ([]byte, error) {
+	//h := b.Header
+	enc, err := scale.Encode(b.Header)
+	if err != nil {
+		return nil, err
+	}
+
+	// block body is already SCALE encoded
+	return append(enc, []byte(b.Body)...), nil
+}
+
 // MustEncode returns the SCALE encoded block and panics if it fails to encode
 func (b *Block) MustEncode() []byte {
 	enc, err := b.Encode()
