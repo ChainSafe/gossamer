@@ -436,7 +436,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEqual(t, hash, common.Hash{})
 
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 20)
 
 	// wait until there's no more pending extrinsics
 	for i := 0; i < maxRetries; i++ {
