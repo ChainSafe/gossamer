@@ -256,7 +256,12 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 	}
 
 	// create runtime
-	err = loadRuntime(cfg, stateSrvc, ks, networkSrvc)
+	ns, err := createRuntimeStorage(stateSrvc)
+	if err != nil {
+		return nil, err
+	}
+
+	err = loadRuntime(cfg, ns, stateSrvc, ks, networkSrvc)
 	if err != nil {
 		return nil, err
 	}
@@ -308,7 +313,7 @@ func NewNode(cfg *Config, ks *keystore.GlobalKeystore, stopFunc func()) (*Node, 
 
 	// check if rpc service is enabled
 	if enabled := cfg.RPC.isRPCEnabled() || cfg.RPC.isWSEnabled(); enabled {
-		rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc, bp, sysSrvc, fg)
+		rpcSrvc := createRPCService(cfg, ns, stateSrvc, coreSrvc, networkSrvc, bp, sysSrvc, fg)
 		nodeSrvcs = append(nodeSrvcs, rpcSrvc)
 	} else {
 		logger.Debug("rpc service disabled by default", "rpc", enabled)
@@ -428,7 +433,7 @@ func (n *Node) Stop() {
 	n.wg.Done()
 }
 
-func loadRuntime(cfg *Config, stateSrvc *state.Service, ks *keystore.GlobalKeystore, net *network.Service) error {
+func loadRuntime(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Service, ks *keystore.GlobalKeystore, net *network.Service) error {
 	blocks := stateSrvc.Block.GetNonFinalisedBlocks()
 	runtimeCode := make(map[string]runtime.Instance)
 	for i := range blocks {
@@ -448,7 +453,7 @@ func loadRuntime(cfg *Config, stateSrvc *state.Service, ks *keystore.GlobalKeyst
 			continue
 		}
 
-		rt, err := createRuntime(cfg, stateSrvc, ks, net, code)
+		rt, err := createRuntime(cfg, *ns, stateSrvc, ks, net, code)
 		if err != nil {
 			return err
 		}
