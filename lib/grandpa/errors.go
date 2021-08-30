@@ -103,4 +103,5 @@ var (
 
 	errVoteExists              = errors.New("already have vote")
 	errVoteToSignatureMismatch = errors.New("votes and authority count mismatch")
+	errInvalidVoteBlock        = errors.New("block in vote is not descendant of previously finalised block")
 )
