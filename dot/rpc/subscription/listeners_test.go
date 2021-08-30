@@ -195,7 +195,7 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	notifyFinalizedChan := make(chan *types.FinalisationInfo, 100)
 
 	BlockAPI := new(mocks.MockBlockAPI)
-	BlockAPI.On("UnregisterImportedChannel", mock.AnythingOfType("uint8"))
+	BlockAPI.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
 	BlockAPI.On("UnregisterFinalisedChannel", mock.AnythingOfType("uint8"))
 
 	wsconn.BlockAPI = BlockAPI
@@ -225,7 +225,7 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 		require.NoError(t, esl.Stop())
 		time.Sleep(time.Millisecond * 10)
 
-		BlockAPI.AssertCalled(t, "UnregisterImportedChannel", mock.AnythingOfType("uint8"))
+		BlockAPI.AssertCalled(t, "FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
 		BlockAPI.AssertCalled(t, "UnregisterFinalisedChannel", mock.AnythingOfType("uint8"))
 	}()
 
