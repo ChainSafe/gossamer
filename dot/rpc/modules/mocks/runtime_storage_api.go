@@ -16,10 +16,8 @@ func (_m *MockRuntimeStorageAPI) GetLocal(k []byte) ([]byte, error) {
 	var r0 []byte
 	if rf, ok := ret.Get(0).(func([]byte) []byte); ok {
 		r0 = rf(k)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]byte)
-		}
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).([]byte)
 	}
 
 	var r1 error
@@ -39,10 +37,8 @@ func (_m *MockRuntimeStorageAPI) GetPersistent(k []byte) ([]byte, error) {
 	var r0 []byte
 	if rf, ok := ret.Get(0).(func([]byte) []byte); ok {
 		r0 = rf(k)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]byte)
-		}
+	} else if ret.Get(0) != nil {
+		r0 = ret.Get(0).([]byte)
 	}
 
 	var r1 error
