@@ -450,9 +450,9 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 	}
 
 	// append new length prefix to start of items array
-	finalVal := append(lengthEnc, valueRes...)
-	logger.Debug("[ext_storage_append_version_1]", "resulting value", fmt.Sprintf("0x%x", finalVal))
-	storage.Set(key, finalVal)
+	lengthEnc = append(lengthEnc, valueRes...)
+	logger.Debug("[ext_storage_append_version_1]", "resulting value", fmt.Sprintf("0x%x", lengthEnc))
+	storage.Set(key, lengthEnc)
 	return nil
 }
 
