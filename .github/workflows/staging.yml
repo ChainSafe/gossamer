@@ -1,0 +1,58 @@
+name: staging
+on:
+  push:
+    branches:
+      - staging
+
+env:
+  GO111MODULE: on
+
+jobs:
+  update:
+    strategy:
+      matrix:
+        chain: [polkadot, kusama]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+      
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: gossamer-${{ matrix.chain }}
+          IMAGE_TAG: ${{ github.sha }}
+          CHAIN: ${{ matrix.chain }}
+          DD_API_KEY: ${{ secrets.DD_API_KEY }}
+        run: |
+          docker build -f=Dockerfile.staging . --progress=plain -t=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG --build-arg chain=$CHAIN --build-arg DD_API_KEY=$DD_API_KEY
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+      
+      - name: Render Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: .github/workflows/staging/${{ matrix.chain }}-taskdef.json
+          container-name: gossamer-${{ matrix.chain }}
+          image: ${{ steps.build-image.outputs.image }}
+      
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: gossamer-${{ matrix.chain }}-svc
+          cluster: gossamer-stg
+          wait-for-service-stability: true
+
