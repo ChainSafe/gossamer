@@ -21,21 +21,23 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 )
 
 // tracker keeps track of messages that have been received that have failed to validate with ErrBlockDoesNotExist
 // these messages may be needed again in the case that we are slightly out of sync with the rest of the network
 type tracker struct {
-	blockState BlockState
-	messages   map[common.Hash][]*networkVoteMessage // map of vote block hash -> array of VoteMessages for that hash
-	mapLock    sync.Mutex
-	in         chan *types.Block          // receive imported block from BlockState
-	chanID     byte                       // BlockState channel ID
-	out        chan<- *networkVoteMessage // send a VoteMessage back to grandpa. corresponds to grandpa's in channel
-	stopped    chan struct{}
+	blockState     BlockState
+	handler        *MessageHandler
+	voteMessages   map[common.Hash]map[ed25519.PublicKeyBytes]*networkVoteMessage // map of vote block hash -> array of VoteMessages for that hash
+	commitMessages map[common.Hash]*CommitMessage                                 // map of commit block hash to commit message
+	mapLock        sync.Mutex
+	in             chan *types.Block // receive imported block from BlockState
+	chanID         byte              // BlockState channel ID
+	stopped        chan struct{}
 }
 
-func newTracker(bs BlockState, out chan<- *networkVoteMessage) (*tracker, error) {
+func newTracker(bs BlockState, handler *MessageHandler) (*tracker, error) {
 	in := make(chan *types.Block, 16)
 	id, err := bs.RegisterImportedChannel(in)
 	if err != nil {
@@ -43,13 +45,14 @@ func newTracker(bs BlockState, out chan<- *networkVoteMessage) (*tracker, error)
 	}
 
 	return &tracker{
-		blockState: bs,
-		messages:   make(map[common.Hash][]*networkVoteMessage),
-		mapLock:    sync.Mutex{},
-		in:         in,
-		chanID:     id,
-		out:        out,
-		stopped:    make(chan struct{}),
+		blockState:     bs,
+		handler:        handler,
+		voteMessages:   make(map[common.Hash]map[ed25519.PublicKeyBytes]*networkVoteMessage),
+		commitMessages: make(map[common.Hash]*CommitMessage),
+		mapLock:        sync.Mutex{},
+		in:             in,
+		chanID:         id,
+		stopped:        make(chan struct{}),
 	}, nil
 }
 
@@ -63,15 +66,27 @@ func (t *tracker) stop() {
 	close(t.in)
 }
 
-func (t *tracker) add(v *networkVoteMessage) {
+func (t *tracker) addVote(v *networkVoteMessage) {
 	if v.msg == nil {
 		return
 	}
 
 	t.mapLock.Lock()
-	// TODO: change to map of maps, this allows duplicates
-	t.messages[v.msg.Message.Hash] = append(t.messages[v.msg.Message.Hash], v)
-	t.mapLock.Unlock()
+	defer t.mapLock.Unlock()
+
+	msgs, has := t.voteMessages[v.msg.Message.Hash]
+	if !has {
+		msgs = make(map[ed25519.PublicKeyBytes]*networkVoteMessage)
+		t.voteMessages[v.msg.Message.Hash] = msgs
+	}
+
+	msgs[v.msg.Message.AuthorityID] = v
+}
+
+func (t *tracker) addCommit(cm *CommitMessage) {
+	t.mapLock.Lock()
+	defer t.mapLock.Unlock()
+	t.commitMessages[cm.Vote.Hash] = cm
 }
 
 func (t *tracker) handleBlocks() {
@@ -82,18 +97,35 @@ func (t *tracker) handleBlocks() {
 				continue
 			}
 
-			t.mapLock.Lock()
-
-			h := b.Header.Hash()
-			if t.messages[h] != nil {
-				for _, v := range t.messages[h] {
-					t.out <- v
-				}
-			}
-
-			t.mapLock.Unlock()
+			t.handleBlock(b)
 		case <-t.stopped:
 			return
 		}
+	}
+}
+
+func (t *tracker) handleBlock(b *types.Block) {
+	t.mapLock.Lock()
+	defer t.mapLock.Unlock()
+
+	h := b.Header.Hash()
+	if vms, has := t.voteMessages[h]; has {
+		for _, v := range vms {
+			_, err := t.handler.handleMessage(v.from, v.msg)
+			if err != nil {
+				logger.Warn("failed to handle vote message", "message", v, "error", err)
+			}
+		}
+
+		delete(t.voteMessages, h)
+	}
+
+	if cm, has := t.commitMessages[h]; has {
+		_, err := t.handler.handleMessage("", cm)
+		if err != nil {
+			logger.Warn("failed to handle commit message", "message", cm, "error", err)
+		}
+
+		delete(t.commitMessages, h)
 	}
 }
