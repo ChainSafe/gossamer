@@ -12,17 +12,20 @@ const (
 	offchainLocal      = "LOCAL"
 )
 
+// OffchainLocalStorageGet represents the request format to retrieve data from offchain storage
 type OffchainLocalStorageGet struct {
 	Kind string
 	Key  string
 }
 
+// OffchainLocalStorageSet represents the request format to store data into offchain storage
 type OffchainLocalStorageSet struct {
 	Kind  string
 	Key   string
 	Value string
 }
 
+// OffchainModule defines the RPC module to Offchain methods
 type OffchainModule struct {
 	nodeStorage RuntimeStorageAPI
 }
@@ -63,6 +66,7 @@ func (s *OffchainModule) LocalStorageGet(r *http.Request, req *OffchainLocalStor
 	return nil
 }
 
+// LocalStorageSet set offchain local storage under given key and prefix
 func (s *OffchainModule) LocalStorageSet(r *http.Request, req *OffchainLocalStorageSet, res *StringResponse) error {
 	var (
 		val []byte
