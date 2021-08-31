@@ -56,7 +56,7 @@ func (_m *MockRuntimeStorageAPI) GetPersistent(k []byte) ([]byte, error) {
 }
 
 // SetLocal provides a mock function with given fields: k, v
-func (_m *MockRuntimeStorageAPI) SetLocal(k []byte, v []byte) error {
+func (_m *MockRuntimeStorageAPI) SetLocal(k, v []byte) error {
 	ret := _m.Called(k, v)
 
 	var r0 error
@@ -70,7 +70,7 @@ func (_m *MockRuntimeStorageAPI) SetLocal(k []byte, v []byte) error {
 }
 
 // SetPersistent provides a mock function with given fields: k, v
-func (_m *MockRuntimeStorageAPI) SetPersistent(k []byte, v []byte) error {
+func (_m *MockRuntimeStorageAPI) SetPersistent(k, v []byte) error {
 	ret := _m.Called(k, v)
 
 	var r0 error
