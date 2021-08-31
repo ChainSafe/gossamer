@@ -105,7 +105,7 @@ func (s *StorageObserver) GetFilter() map[string][]byte {
 }
 
 // Listen to satisfy Listener interface (but is no longer used by StorageObserver)
-func (s *StorageObserver) Listen() {}
+func (*StorageObserver) Listen() {}
 
 // Stop to satisfy Listener interface (but is no longer used by StorageObserver)
 func (s *StorageObserver) Stop() error {
@@ -451,7 +451,7 @@ func (l *RuntimeVersionListener) GetChannelID() uint32 {
 
 // Stop to runtimeVersionListener not implemented yet because the listener
 // does not need to be stoped
-func (l *RuntimeVersionListener) Stop() error { return nil }
+func (*RuntimeVersionListener) Stop() error { return nil }
 
 // GrandpaJustificationListener struct has the finalisedCh and the context to stop the goroutines
 type GrandpaJustificationListener struct {
