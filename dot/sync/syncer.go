@@ -266,10 +266,143 @@ func (s *Service) ProcessBlockData(data []*types.BlockDataVdt) (int, error) {
 	return len(data) - 1, nil
 }
 
+func (s *Service) ProcessBlockDataOld(data []*types.BlockData) (int, error) {
+	if len(data) == 0 {
+		return 0, ErrNilBlockData
+	}
+
+	for i, bd := range data {
+		logger.Debug("starting processing of block", "hash", bd.Hash)
+
+		err := s.blockState.CompareAndSetBlockData(bd)
+		if err != nil {
+			return i, fmt.Errorf("failed to compare and set data: %w", err)
+		}
+
+		hasHeader, _ := s.blockState.HasHeader(bd.Hash)
+		hasBody, _ := s.blockState.HasBlockBody(bd.Hash)
+		if hasHeader && hasBody {
+			// TODO: fix this; sometimes when the node shuts down the "best block" isn't stored properly,
+			// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
+			logger.Debug("skipping block, already have", "hash", bd.Hash)
+
+			block, err := s.blockState.GetBlockByHash(bd.Hash) //nolint
+			if err != nil {
+				logger.Debug("failed to get header", "hash", bd.Hash, "error", err)
+				return i, err
+			}
+
+			err = s.blockState.AddBlockToBlockTree(block.Header)
+			if err != nil && !errors.Is(err, blocktree.ErrBlockExists) {
+				logger.Warn("failed to add block to blocktree", "hash", bd.Hash, "error", err)
+				return i, err
+			}
+
+			if bd.Justification != nil && bd.Justification.Exists() {
+				logger.Debug("handling Justification...", "number", block.Header.Number, "hash", bd.Hash)
+				s.handleJustification(block.Header, bd.Justification.Value())
+			}
+
+			// TODO: this is probably unnecessary, since the state is already in the database
+			// however, this case shouldn't be hit often, since it's only hit if the node state
+			// is rewinded or if the node shuts down unexpectedly
+			state, err := s.storageState.TrieState(&block.Header.StateRoot)
+			if err != nil {
+				logger.Warn("failed to load state for block", "block", block.Header.Hash(), "error", err)
+				return i, err
+			}
+
+			if err := s.blockImportHandler.HandleBlockImport(block, state); err != nil {
+				logger.Warn("failed to handle block import", "error", err)
+			}
+
+			continue
+		}
+
+		var header *types.Header
+
+		if bd.Header.Exists() && !hasHeader {
+			header, err = types.NewHeaderFromOptional(bd.Header)
+			if err != nil {
+				return i, err
+			}
+
+			logger.Trace("processing header", "hash", header.Hash(), "number", header.Number)
+
+			err = s.handleHeaderOld(header)
+			if err != nil {
+				return i, err
+			}
+
+			logger.Trace("header processed", "hash", bd.Hash)
+		}
+
+		if bd.Body.Exists() && !hasBody {
+			body, err := types.NewBodyFromOptional(bd.Body) //nolint
+			if err != nil {
+				return i, err
+			}
+
+			logger.Trace("processing body", "hash", bd.Hash)
+
+			err = s.handleBody(body)
+			if err != nil {
+				return i, err
+			}
+
+			logger.Trace("body processed", "hash", bd.Hash)
+		}
+
+		if bd.Header.Exists() && bd.Body.Exists() {
+			header, err = types.NewHeaderFromOptional(bd.Header)
+			if err != nil {
+				return i, err
+			}
+
+			body, err := types.NewBodyFromOptional(bd.Body)
+			if err != nil {
+				return i, err
+			}
+
+			block := &types.Block{
+				Header: header,
+				Body:   body,
+			}
+
+			logger.Debug("processing block", "hash", bd.Hash)
+
+			err = s.handleBlockOld(block)
+			if err != nil {
+				logger.Error("failed to handle block", "number", block.Header.Number, "error", err)
+				return i, err
+			}
+
+			logger.Debug("block processed", "hash", bd.Hash)
+		}
+
+		if bd.Justification != nil && bd.Justification.Exists() && header != nil {
+			logger.Debug("handling Justification...", "number", bd.Number(), "hash", bd.Hash)
+			s.handleJustification(header, bd.Justification.Value())
+		}
+	}
+
+	return len(data) - 1, nil
+}
+
 // handleHeader handles headers included in BlockResponses
 func (s *Service) handleHeader(header *types.HeaderVdt) error {
 	// TODO: update BABE pre-runtime digest types
 	err := s.verifier.VerifyBlockVdt(header)
+	if err != nil {
+		return fmt.Errorf("%w: %s", ErrInvalidBlock, err.Error())
+	}
+
+	return nil
+}
+
+func (s *Service) handleHeaderOld(header *types.Header) error {
+	// TODO: update BABE pre-runtime digest types
+	err := s.verifier.VerifyBlock(header)
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrInvalidBlock, err.Error())
 	}
@@ -326,12 +459,71 @@ func (s *Service) handleBlock(block *types.BlockVdt) error {
 	rt.SetContextStorage(ts)
 	logger.Trace("going to execute block", "header", block.Header, "exts", block.Body)
 
-	_, err = rt.ExecuteBlockVdt(block)
+	d, err := rt.ExecuteBlockVdt(block)
+	fmt.Println("Encrypted block data after")
+	fmt.Println(d)
 	if err != nil {
 		return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)
 	}
 
 	if err = s.blockImportHandler.HandleBlockImportVdt(block, ts); err != nil {
+		return err
+	}
+
+	logger.Debug("🔗 imported block", "number", block.Header.Number, "hash", block.Header.Hash())
+
+	blockHash := block.Header.Hash()
+	err = telemetry.GetInstance().SendMessage(telemetry.NewBlockImportTM(
+		&blockHash,
+		block.Header.Number,
+		"NetworkInitialSync"))
+	if err != nil {
+		logger.Debug("problem sending block.import telemetry message", "error", err)
+	}
+
+	return nil
+}
+
+// handleHeader handles blocks (header+body) included in BlockResponses
+func (s *Service) handleBlockOld(block *types.Block) error {
+	if block == nil || block.Header == nil || block.Body == nil {
+		return errors.New("block, header, or body is nil")
+	}
+
+	parent, err := s.blockState.GetHeader(block.Header.ParentHash)
+	if err != nil {
+		return fmt.Errorf("failed to get parent hash: %w", err)
+	}
+
+	s.storageState.Lock()
+	defer s.storageState.Unlock()
+
+	logger.Trace("getting parent state", "root", parent.StateRoot)
+	ts, err := s.storageState.TrieState(&parent.StateRoot)
+	if err != nil {
+		return err
+	}
+
+	root := ts.MustRoot()
+	if !bytes.Equal(parent.StateRoot[:], root[:]) {
+		panic("parent state root does not match snapshot state root")
+	}
+
+	hash := parent.Hash()
+	rt, err := s.blockState.GetRuntime(&hash)
+	if err != nil {
+		return err
+	}
+
+	rt.SetContextStorage(ts)
+	logger.Trace("going to execute block", "header", block.Header, "exts", block.Body)
+
+	_, err = rt.ExecuteBlock(block)
+	if err != nil {
+		return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)
+	}
+
+	if err = s.blockImportHandler.HandleBlockImport(block, ts); err != nil {
 		return err
 	}
 
