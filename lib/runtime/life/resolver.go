@@ -26,7 +26,7 @@ import (
 type Resolver struct{} // TODO: move context inside resolver
 
 // ResolveFunc ...
-func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport { // nolint
+func (*Resolver) ResolveFunc(module, field string) exec.FunctionImport { // nolint
 	switch module {
 	case "env":
 		switch field {
@@ -129,7 +129,7 @@ func (r *Resolver) ResolveFunc(module, field string) exec.FunctionImport { // no
 }
 
 // ResolveGlobal ...
-func (r *Resolver) ResolveGlobal(module, field string) int64 {
+func (*Resolver) ResolveGlobal(_, _ string) int64 {
 	panic("we're not resolving global variables for now")
 }
 
@@ -552,17 +552,17 @@ func ext_storage_changes_root_version_1(vm *exec.VirtualMachine) int64 {
 	return rootSpan
 }
 
-func ext_crypto_start_batch_verify_version_1(vm *exec.VirtualMachine) int64 {
+func ext_crypto_start_batch_verify_version_1(_ *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_crypto_start_batch_verify_version_1] executing...")
 	return 0
 }
 
-func ext_crypto_finish_batch_verify_version_1(vm *exec.VirtualMachine) int64 {
+func ext_crypto_finish_batch_verify_version_1(_ *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_crypto_finish_batch_verify_version_1] executing...")
 	return 1
 }
 
-func ext_offchain_index_set_version_1(vm *exec.VirtualMachine) int64 {
+func ext_offchain_index_set_version_1(_ *exec.VirtualMachine) int64 {
 	logger.Trace("[ext_offchain_index_set_version_1] executing...")
 	return 0
 }

@@ -56,7 +56,7 @@ type Instance struct {
 }
 
 // GetCodeHash returns code hash of the runtime
-func (in *Instance) GetCodeHash() common.Hash {
+func (*Instance) GetCodeHash() common.Hash {
 	return common.Hash{}
 }
 
@@ -164,17 +164,17 @@ func (m *Memory) Grow(numPages uint32) error {
 }
 
 // UpdateRuntimeCode ...
-func (in *Instance) UpdateRuntimeCode(_ []byte) error {
+func (*Instance) UpdateRuntimeCode(_ []byte) error {
 	return errors.New("unimplemented")
 }
 
 // CheckRuntimeVersion ...
-func (in *Instance) CheckRuntimeVersion(code []byte) (runtime.Version, error) {
+func (*Instance) CheckRuntimeVersion(_ []byte) (runtime.Version, error) {
 	return nil, errors.New("unimplemented")
 }
 
 // SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.
-func (in *Instance) SetContextStorage(s runtime.Storage) {
+func (*Instance) SetContextStorage(s runtime.Storage) {
 	ctx.Storage = s
 }
 
@@ -207,25 +207,25 @@ func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 }
 
 // Stop ...
-func (in *Instance) Stop() {}
+func (*Instance) Stop() {}
 
 // NodeStorage to get reference to runtime node service
-func (in *Instance) NodeStorage() runtime.NodeStorage {
+func (*Instance) NodeStorage() runtime.NodeStorage {
 	return ctx.NodeStorage
 }
 
 // NetworkService to get referernce to runtime network service
-func (in *Instance) NetworkService() runtime.BasicNetwork {
+func (*Instance) NetworkService() runtime.BasicNetwork {
 	return ctx.Network
 }
 
 // Validator returns the context's Validator
-func (in *Instance) Validator() bool {
+func (*Instance) Validator() bool {
 	return ctx.Validator
 }
 
 // Keystore to get reference to runtime keystore
-func (in *Instance) Keystore() *keystore.GlobalKeystore {
+func (*Instance) Keystore() *keystore.GlobalKeystore {
 	return ctx.Keystore
 }
 
