@@ -173,7 +173,7 @@ func BuildBlockVdt(t *testing.T, instance runtime.Instance, parent *types.Header
 	ienc, err := idata.Encode()
 	require.NoError(t, err)
 
-	fmt.Println("ienc vdt")
+	fmt.Println("InherentExtrinsics input vdt")
 	fmt.Println(ienc)
 
 	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
@@ -259,7 +259,7 @@ func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, e
 	ienc, err := idata.Encode()
 	require.NoError(t, err)
 
-	fmt.Println("ienc")
+	fmt.Println("InherentExtrinsics input")
 	fmt.Println(ienc)
 
 	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
