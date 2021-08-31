@@ -1,0 +1,29 @@
+FROM golang:1.16
+
+ARG chain="polkadot"
+ARG basepath="~/.gossamer"
+ARG DD_API_KEY
+
+ENV GO111MODULE=on
+
+ENV chain=${chain}
+ENV basepath=${basepath}
+ENV DD_API_KEY=${DD_API_KEY}
+
+RUN ["sh", "-c", "DD_AGENT_MAJOR_VERSION=7 DD_INSTALL_ONLY=true DD_API_KEY=${DD_API_KEY} DD_SITE=\"datadoghq.com\" bash -c \"$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh)\""]
+
+WORKDIR /gossamer
+
+COPY . .
+
+RUN ["sh", "-c", "mv .github/workflows/staging/openmetrics.d/${chain}-conf.yaml /etc/datadog-agent/conf.d/openmetrics.d/conf.yaml"]
+RUN ls -la /etc/datadog-agent/conf.d/openmetrics.d/
+RUN cat /etc/hosts
+RUN service datadog-agent start
+
+RUN go get ./...
+RUN go build github.com/ChainSafe/gossamer/cmd/gossamer
+
+RUN ["sh", "-c", "gossamer init --chain=${chain}"]
+ENTRYPOINT ["sh", "-c", "service datadog-agent restart && gossamer --chain=${chain} --basepath=${basepath}/${chain} --publish-metrics"]
+EXPOSE 7001 8546 8540 9876
