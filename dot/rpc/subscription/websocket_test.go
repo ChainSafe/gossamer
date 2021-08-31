@@ -288,8 +288,7 @@ func TestSubscribeAllHeads(t *testing.T) {
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}`+"\n"), msg)
 
 	mockBlockAPI := new(mocks.MockBlockAPI)
-	mockBlockAPI.On("RegisterImportedChannel", mock.AnythingOfType("chan<- *types.Block")).
-		Return(uint8(0), errors.New("some mocked error")).Once()
+	mockBlockAPI.On("GetImportedBlockNotifierChannel").Return(nil, errors.New("some mocked error")).Once()
 
 	wsconn.BlockAPI = mockBlockAPI
 	_, err = wsconn.initAllBlocksListerner(1, nil)
@@ -299,8 +298,7 @@ func TestSubscribeAllHeads(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"could not register imported channel"},"id":1}`+"\n"), msg)
 
-	mockBlockAPI.On("RegisterImportedChannel", mock.AnythingOfType("chan<- *types.Block")).
-		Return(uint8(10), nil).Once()
+	mockBlockAPI.On("GetImportedBlockNotifierChannel").Return(make(chan *types.Block), nil).Once()
 	mockBlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
 		Return(uint8(0), errors.New("failed")).Once()
 
@@ -308,17 +306,11 @@ func TestSubscribeAllHeads(t *testing.T) {
 	require.Error(t, err, "could not register finalised channel")
 	c.ReadMessage()
 
-	importedChanID := uint8(10)
 	finalizedChanID := uint8(11)
 
 	var fCh chan<- *types.FinalisationInfo
-	var iCh chan<- *types.Block
-
-	mockBlockAPI.On("RegisterImportedChannel", mock.AnythingOfType("chan<- *types.Block")).
-		Run(func(args mock.Arguments) {
-			ch := args.Get(0).(chan<- *types.Block)
-			iCh = ch
-		}).Return(importedChanID, nil).Once()
+	iCh := make(chan *types.Block)
+	mockBlockAPI.On("GetImportedBlockNotifierChannel").Return(iCh, nil).Once()
 
 	mockBlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
 		Run(func(args mock.Arguments) {
@@ -361,7 +353,6 @@ func TestSubscribeAllHeads(t *testing.T) {
 	_, msg, err = c.ReadMessage()
 	require.NoError(t, err)
 	require.Equal(t, expected+"\n", string(msg))
-
 	iCh <- &types.Block{
 		Header: &types.Header{
 			ParentHash:     common.EmptyHash,
@@ -376,10 +367,10 @@ func TestSubscribeAllHeads(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte(expected+"\n"), msg)
 
-	mockBlockAPI.On("UnregisterImportedChannel", importedChanID)
+	mockBlockAPI.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
 	mockBlockAPI.On("UnregisterFinalisedChannel", finalizedChanID)
 
 	require.NoError(t, l.Stop())
-	mockBlockAPI.AssertCalled(t, "UnregisterImportedChannel", importedChanID)
+	mockBlockAPI.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
 	mockBlockAPI.AssertCalled(t, "UnregisterFinalisedChannel", finalizedChanID)
 }
