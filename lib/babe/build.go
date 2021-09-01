@@ -144,7 +144,7 @@ func (b *BlockBuilder) buildBlockVdt(parent *types.HeaderVdt, slot Slot, rt runt
 	// create new block header
 	number := big.NewInt(0).Add(parent.Number, big.NewInt(1))
 	digest := types.NewDigestVdt()
-	digest.Add(preDigest)
+	digest.Add(*preDigest)
 	//header, err := types.NewHeader(parent.Hash(), common.Hash{}, common.Hash{}, number, types.NewDigest(preDigest))
 	header, err := types.NewHeaderVdt(parent.Hash(), common.Hash{}, common.Hash{}, number, digest)
 	if err != nil {
@@ -188,7 +188,7 @@ func (b *BlockBuilder) buildBlockVdt(parent *types.HeaderVdt, slot Slot, rt runt
 	}
 
 	//header.Digest = append(header.Digest, seal)
-	header.Digest.Add(seal)
+	header.Digest.Add(*seal)
 
 	logger.Trace("built block seal")
 

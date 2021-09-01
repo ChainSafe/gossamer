@@ -107,7 +107,7 @@ func addBlocksToState(t *testing.T, babeService *Service, depth int, blockState 
 		//	Body: &types.Body{},
 		//}
 		digest := types.NewDigestVdt()
-		digest.Add(predigest)
+		digest.Add(*predigest)
 		block := &types.BlockVdt{
 			Header: types.HeaderVdt{
 				ParentHash: previousHash,

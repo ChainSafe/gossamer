@@ -464,7 +464,7 @@ func (b *verifier) verifyAuthorshipRightVdt(header *types.HeaderVdt) error {
 	}()
 
 	//encHeader, err := header.Encode()
-	encHeader, err := scale.Marshal(header)
+	encHeader, err := scale.Marshal(*header)
 	if err != nil {
 		return err
 	}

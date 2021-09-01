@@ -39,7 +39,9 @@ type BlockState interface {
 	AddBlockVdt(*types.BlockVdt) error
 	GetAllBlocksAtDepth(hash common.Hash) []common.Hash
 	GetHeader(common.Hash) (*types.Header, error)
+	GetHeaderVdt(common.Hash) (*types.HeaderVdt, error)
 	GetBlockByNumber(*big.Int) (*types.Block, error)
+	GetBlockByNumberVdt(*big.Int) (*types.BlockVdt, error)
 	GetBlockByHash(common.Hash) (*types.Block, error)
 	GetArrivalTime(common.Hash) (time.Time, error)
 	GenesisHash() common.Hash

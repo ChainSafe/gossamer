@@ -18,6 +18,7 @@ package babe
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -90,6 +91,8 @@ func TestVerificationManager_OnDisabled_NewDigest(t *testing.T) {
 	}
 
 	babeService := createTestService(t, cfg)
+
+	fmt.Println("Finished creating test service")
 
 	vm := newTestVerificationManager(t, nil)
 	vm.epochInfo[testEpochIndex] = &verifierInfo{
