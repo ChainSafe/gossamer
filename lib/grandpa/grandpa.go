@@ -326,7 +326,7 @@ func (s *Service) initiateRound() error {
 	s.precommits = new(sync.Map)
 	s.pvEquivocations = make(map[ed25519.PublicKeyBytes][]*SignedVote)
 	s.pcEquivocations = make(map[ed25519.PublicKeyBytes][]*SignedVote)
-	s.tracker, err = newTracker(s.blockState, s.in)
+	s.tracker, err = newTracker(s.blockState, s.messageHandler)
 	if err != nil {
 		return err
 	}

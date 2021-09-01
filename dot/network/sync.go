@@ -53,10 +53,10 @@ func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 		return
 	}
 
-	s.readStream(stream, s.decodeSyncMessage, s.handleSyncMessage)
+	s.readStream(stream, decodeSyncMessage, s.handleSyncMessage)
 }
 
-func (s *Service) decodeSyncMessage(in []byte, peer peer.ID, inbound bool) (Message, error) {
+func decodeSyncMessage(in []byte, _ peer.ID, _ bool) (Message, error) {
 	msg := new(BlockRequestMessage)
 	err := msg.Decode(in)
 	return msg, err
@@ -198,7 +198,7 @@ func (q *syncQueue) syncAtHead() {
 
 	for {
 		select {
-		// sleep for average block time TODO: make this configurable from slot duration
+		// sleep for average block time
 		case <-t.C:
 		case <-q.ctx.Done():
 			return
@@ -209,7 +209,7 @@ func (q *syncQueue) syncAtHead() {
 			continue
 		}
 
-		goal := atomic.LoadInt64(&q.goal)
+		goal := atomic.LoadInt64(&q.goal) - int64(blockRequestSize)
 
 		// we aren't at the head yet, sleep
 		if curr.Number.Int64() < goal && curr.Number.Cmp(prev.Number) > 0 {
@@ -230,7 +230,7 @@ func (q *syncQueue) syncAtHead() {
 
 		prev = curr
 		start := uint64(curr.Number.Int64()) + 1
-		logger.Debug("haven't received new blocks since last check, pushing request", "start", start)
+		logger.Debug("pushing request for blocks...", "start", start)
 		q.requestData.Delete(start)
 		q.pushRequest(start, 1, "")
 	}
@@ -444,35 +444,29 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 	goal := atomic.LoadInt64(&q.goal)
 	if goal < best.Int64() {
 		atomic.StoreInt64(&q.goal, best.Int64())
-	}
-
-	goal = atomic.LoadInt64(&q.goal)
-	if goal-int64(start) < int64(blockRequestSize) {
-		start := best.Int64() + 1
-		req := createBlockRequest(start, 0)
-
-		logger.Debug("pushing request to queue", "start", start)
-		q.requestData.Store(start, requestData{
-			received: false,
-		})
-
-		q.requestCh <- &syncRequest{
-			req: req,
-			to:  to,
-		}
 		return
 	}
 
-	// all requests must start at a multiple of 128 + 1
-	m := start % uint64(blockRequestSize)
-	start = start - m + 1
+	if goal == best.Int64() {
+		return
+	}
+
+	reqSize := blockRequestSize
+	if goal-int64(start) < int64(blockRequestSize) {
+		start = best.Uint64() + 1
+		reqSize = uint32(goal) - uint32(start)
+	} else {
+		// all requests must start at a multiple of 128 + 1
+		m := start % uint64(blockRequestSize)
+		start = start - m + 1
+	}
 
 	for i := 0; i < numRequests; i++ {
 		if start > uint64(goal) {
 			return
 		}
 
-		req := createBlockRequest(int64(start), blockRequestSize)
+		req := createBlockRequest(int64(start), reqSize)
 
 		if d, has := q.requestData.Load(start); has {
 			data := d.(requestData)
