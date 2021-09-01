@@ -311,7 +311,7 @@ func TestFinalizedHash(t *testing.T) {
 	header := &types.HeaderVdt{
 		ParentHash: testGenesisHeader.Hash(),
 		Number:     big.NewInt(1),
-		Digest: digest,
+		Digest:     digest,
 	}
 
 	testhash := header.Hash()

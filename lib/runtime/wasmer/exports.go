@@ -204,16 +204,10 @@ func (in *Instance) ExecuteBlockVdt(block *types.BlockVdt) ([]byte, error) {
 
 	}
 
-	fmt.Println("Block body being executed pre matial vdt")
-	fmt.Println(b.Body)
-
-	bdEnc, err := scale2.Marshal(b)
+	bdEnc, err := b.Encode()
 	if err != nil {
 		return nil, err
 	}
-
-	//fmt.Println("Encrypted block data Vdt before")
-	//fmt.Println(common.BytesToHex(bdEnc))
 
 	return in.Exec(runtime.CoreExecuteBlock, bdEnc)
 }

@@ -422,7 +422,7 @@ func blockDataToProtobuf(bd *types.BlockData) (*pb.BlockData, error) {
 
 func protobufToBlockDataNew(pbd *pb.BlockData) (*types.BlockDataVdt, error) {
 	bd := &types.BlockDataVdt{
-		Hash: common.BytesToHash(pbd.Hash),
+		Hash:   common.BytesToHash(pbd.Hash),
 		Header: types.NewEmptyHeaderVdt(),
 	}
 

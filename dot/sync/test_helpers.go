@@ -88,6 +88,7 @@ func NewTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 
 	cfg.BlockImportHandler = new(syncmocks.MockBlockImportHandler)
 	cfg.BlockImportHandler.(*syncmocks.MockBlockImportHandler).On("HandleBlockImport", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).Return(nil)
+	cfg.BlockImportHandler.(*syncmocks.MockBlockImportHandler).On("HandleBlockImportVdt", mock.AnythingOfType("*types.BlockVdt"), mock.AnythingOfType("*storage.TrieState")).Return(nil)
 
 	if cfg.Runtime == nil {
 		// set state to genesis state
@@ -152,7 +153,7 @@ func BuildBlockVdt(t *testing.T, instance runtime.Instance, parent *types.Header
 	header := &types.HeaderVdt{
 		ParentHash: parent.Hash(),
 		Number:     big.NewInt(0).Add(parent.Number, big.NewInt(1)),
-		Digest: digest,
+		Digest:     digest,
 	}
 
 	err := instance.InitializeBlockVdt(header)
@@ -196,7 +197,6 @@ func BuildBlockVdt(t *testing.T, instance runtime.Instance, parent *types.Header
 	} else {
 		body = types.NewBody(inherentExts)
 	}
-
 
 	// apply each inherent extrinsic
 	for _, ext := range inExt {

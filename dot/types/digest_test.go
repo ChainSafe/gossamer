@@ -32,7 +32,6 @@ func TestEncodeWithVdt(t *testing.T) {
 	//digest, err := DecodeDigest(r)
 	//require.NoError(t, err)
 
-
 	vdts := NewDigestVdt()
 	err := vdts.Add(
 		PreRuntimeDigest{
@@ -68,7 +67,6 @@ func TestEncodeWithVdt(t *testing.T) {
 	//exp := digest[0]
 	//act := v.Types[0].Value()
 	//require.Equal(t, exp, act)
-
 
 	//var act interface{}
 	//switch val := v.Types[0].Value().(type) {

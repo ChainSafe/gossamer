@@ -47,7 +47,6 @@ func TestBabeEncodeAndDecode(t *testing.T) {
 		Randomness:  [32]byte{77, 88, 99},
 	})
 
-
 	enc, err := scale.Marshal(d)
 	require.NoError(t, err)
 	require.Equal(t, expData, enc)
@@ -57,4 +56,3 @@ func TestBabeEncodeAndDecode(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, d, dec)
 }
-

@@ -242,7 +242,6 @@ func (bs *BlockState) GetHeaderVdt(hash common.Hash) (*types.HeaderVdt, error) {
 		return nil, fmt.Errorf("database is nil")
 	}
 
-
 	if has, _ := bs.HasHeader(hash); !has {
 		return nil, chaindb.ErrKeyNotFound
 	}
@@ -256,7 +255,6 @@ func (bs *BlockState) GetHeaderVdt(hash common.Hash) (*types.HeaderVdt, error) {
 	if err != nil {
 		return nil, err
 	}
-
 
 	if reflect.DeepEqual(result, types.NewEmptyHeaderVdt()) {
 		return nil, chaindb.ErrKeyNotFound
@@ -512,7 +510,6 @@ func (bs *BlockState) AddBlockWithArrivalTimeVdt(block *types.BlockVdt, arrivalT
 	}
 
 	prevHead := bs.bt.DeepestBlockHash()
-
 
 	// add block to blocktree
 	err = bs.bt.AddBlockVdt(&block.Header, uint64(arrivalTime.UnixNano()))

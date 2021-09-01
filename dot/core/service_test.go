@@ -343,7 +343,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 		Header: types.HeaderVdt{
 			ParentHash: ancestor.Header.Hash(),
 			Number:     big.NewInt(0).Add(ancestor.Header.Number, big.NewInt(1)),
-			Digest: digest,
+			Digest:     digest,
 		},
 		Body: *body,
 	}

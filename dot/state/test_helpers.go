@@ -144,7 +144,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 					ParentHash: previousHash,
 					Number:     big.NewInt(int64(i) + 1),
 					StateRoot:  trie.EmptyHash,
-					Digest: digest,
+					Digest:     digest,
 				},
 				Body: types.Body{},
 			}
@@ -246,7 +246,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 					ParentHash: previousHash,
 					Number:     big.NewInt(int64(i)),
 					StateRoot:  trie.EmptyHash,
-					Digest: digest,
+					Digest:     digest,
 				},
 				Body: types.Body{},
 			}

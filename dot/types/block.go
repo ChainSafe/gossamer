@@ -17,9 +17,11 @@
 package types
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/ChainSafe/gossamer/lib/scale"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 type BlockVdt struct {
@@ -71,16 +73,20 @@ func (b *Block) Encode() ([]byte, error) {
 		return nil, err
 	}
 
+	fmt.Println("header encoding length", len(enc))
+
 	// block body is already SCALE encoded
 	return append(enc, []byte(*b.Body)...), nil
 }
 
 func (b *BlockVdt) Encode() ([]byte, error) {
 	//h := b.Header
-	enc, err := scale.Encode(b.Header)
+	enc, err := scale2.Marshal(b.Header)
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Println("header encoding length", len(enc))
 
 	// block body is already SCALE encoded
 	return append(enc, []byte(b.Body)...), nil

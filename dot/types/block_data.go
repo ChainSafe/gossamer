@@ -45,7 +45,7 @@ type BlockData struct {
 }
 
 // TODO also have a constructor that takes in params, or a reciever ().Initialize
-func NewEmptyBlockDataVdt() *BlockDataVdt{
+func NewEmptyBlockDataVdt() *BlockDataVdt {
 	bd := &BlockDataVdt{
 		Header:        nil,
 		Body:          nil,

@@ -415,7 +415,6 @@ func NewHeader(exists bool, value *CoreHeader) *Header {
 	}
 }
 
-
 // Exists returns true if the value is Some, false if it is None.
 func (x *Header) Exists() bool {
 	if x == nil {
@@ -423,7 +422,6 @@ func (x *Header) Exists() bool {
 	}
 	return x.exists
 }
-
 
 // Value returns the value of the header. It returns nil if the header is None.
 func (x *Header) Value() *CoreHeader {

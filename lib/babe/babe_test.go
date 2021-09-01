@@ -49,9 +49,9 @@ var (
 	maxThreshold = common.MaxUint128
 	minThreshold = &common.Uint128{}
 
-	genesisHeader *types.Header
+	genesisHeader    *types.Header
 	genesisHeaderVdt *types.HeaderVdt
-	emptyHeader   = &types.Header{
+	emptyHeader      = &types.Header{
 		Number: big.NewInt(0),
 	}
 

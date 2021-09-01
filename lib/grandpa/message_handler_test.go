@@ -46,7 +46,6 @@ func newTestDigest() scale2.VaryingDataTypeSlice {
 	return digest
 }
 
-
 var testHeaderVdt = &types.HeaderVdt{
 	ParentHash: testGenesisHeader.Hash(),
 	Number:     big.NewInt(1),

@@ -18,7 +18,6 @@ package sync
 
 import (
 	"errors"
-	"fmt"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 	"os"
@@ -203,7 +202,6 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 
 	//require.Equal(t, blockO.Header.StateRoot, block.Header.StateRoot)
 
-
 	//bdOld := []*types.BlockData{{
 	//	Hash:          blockO.Header.Hash(),
 	//	Header:        blockO.Header.AsOptional(),
@@ -225,8 +223,6 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 	require.NoError(t, err)
 	//require.Equal(t, enc, encVdt)
 
-	fmt.Println("")
-
 	block := BuildBlockVdt(t, rt, parent, nil)
 
 	// Length of 2
@@ -242,14 +238,29 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 		MessageQueue:  nil,
 		Justification: nil,
 	}}
-	msg := &network.BlockResponseMessageNew{
-		BlockData: bd,
-	}
 
-	//fmt.Println(msg.BlockData)
-
-	_, err = syncer.ProcessBlockData(msg.BlockData)
+	_, err = syncer.ProcessBlockData(bd)
 	require.Nil(t, err)
+}
+
+func TestSyncer_ExecuteBlock_Prev(t *testing.T) {
+	syncer := NewTestSyncer(t, false)
+
+	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
+	require.NoError(t, err)
+
+	rt, err := syncer.blockState.GetRuntime(nil)
+	require.NoError(t, err)
+
+	block := BuildBlock(t, rt, parent, nil)
+
+	// reset parentState
+	parentState, err := syncer.storageState.TrieState(&parent.StateRoot)
+	require.NoError(t, err)
+	rt.SetContextStorage(parentState)
+
+	_, err = rt.ExecuteBlock(block)
+	require.NoError(t, err)
 }
 
 func TestSyncer_ExecuteBlock(t *testing.T) {

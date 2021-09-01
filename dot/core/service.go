@@ -50,7 +50,7 @@ type Service struct {
 	ctx        context.Context
 	cancel     context.CancelFunc
 	blockAddCh chan *types.BlockVdt // for asynchronous block handling
-	sync.Mutex                   // lock for channel
+	sync.Mutex                      // lock for channel
 
 	// Service interfaces
 	blockState       BlockState

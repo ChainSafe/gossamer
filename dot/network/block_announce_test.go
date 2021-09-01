@@ -93,8 +93,8 @@ func TestDecodeBlockAnnounce(t *testing.T) {
 	}
 
 	act := BlockAnnounceMessage{
-		Number:         big.NewInt(0),
-		Digest:         types.NewDigestVdt(),
+		Number: big.NewInt(0),
+		Digest: types.NewDigestVdt(),
 	}
 	err = scale.Unmarshal(enc, &act)
 	require.NoError(t, err)

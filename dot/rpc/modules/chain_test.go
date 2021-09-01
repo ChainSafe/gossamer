@@ -384,8 +384,8 @@ func loadTestBlocks(gh common.Hash, bs *state.BlockState, rt runtime.Instance) e
 	digest := types.NewDigestVdt()
 	digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	header1 := &types.HeaderVdt{
-		Number: big.NewInt(1),
-		Digest: digest,
+		Number:     big.NewInt(1),
+		Digest:     digest,
 		ParentHash: blockHash0,
 		StateRoot:  trie.EmptyHash,
 	}
