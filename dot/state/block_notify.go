@@ -18,6 +18,7 @@ package state
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -57,9 +58,10 @@ func (bs *BlockState) RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo
 // FreeImportedBlockNotifierChannel to free and close imported block notifier channel
 func (bs *BlockState) FreeImportedBlockNotifierChannel(ch chan *types.Block) {
 	bs.importedChanPool.Put(ch)
-	//delete(bs.imported, ch)
 	bs.imported.Delete(ch)
 	close(ch)
+
+	fmt.Printf("Freed channel %v\n", ch)
 }
 
 // UnregisterFinalisedChannel removes the block finalisation notification channel with the given ID.
@@ -76,15 +78,9 @@ func (bs *BlockState) UnregisterFinalisedChannel(id byte) {
 }
 
 func (bs *BlockState) notifyImported(block *types.Block) {
-	//bs.importedLock.RLock()
-	//defer bs.importedLock.RUnlock()
-
-	//if len(bs.imported) == 0 {
-	//	return
-	//}
-
 	logger.Trace("notifying imported block chans...", "chans", bs.imported)
 	bs.imported.Range(func(k, v interface{}) bool {
+		fmt.Printf("CHANNEL %v\n", k)
 		go func(ch chan *types.Block) {
 			select {
 			case ch <- block:
@@ -94,14 +90,6 @@ func (bs *BlockState) notifyImported(block *types.Block) {
 		return true
 	})
 
-	//for ch := range bs.imported {
-	//	go func(ch chan<- *types.Block) {
-	//		select {
-	//		case ch <- block:
-	//		default:
-	//		}
-	//	}(ch)
-	//}
 }
 
 func (bs *BlockState) notifyFinalized(hash common.Hash, round, setID uint64) {
