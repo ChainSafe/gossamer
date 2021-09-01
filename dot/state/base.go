@@ -125,6 +125,14 @@ func (s *BaseState) LoadCodeSubstitutedBlockHash() common.Hash {
 	return common.NewHash(hash)
 }
 
+func (s *BaseState) Put(key []byte, value []byte) error {
+	return s.db.Put(key, value)
+}
+
+func (s *BaseState) Get(key []byte) ([]byte, error) {
+	return s.db.Get(key)
+}
+
 func (s *BaseState) storeSkipToEpoch(epoch uint64) error {
 	buf := make([]byte, 8)
 	binary.LittleEndian.PutUint64(buf, epoch)
