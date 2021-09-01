@@ -18,7 +18,9 @@ package life
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -27,6 +29,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	log "github.com/ChainSafe/log15"
 	"github.com/perlin-network/life/exec"
+	wasm_validation "github.com/perlin-network/life/wasm-validation"
 )
 
 // Name represents the name of the interpreter
@@ -53,7 +56,7 @@ type Instance struct {
 }
 
 // GetCodeHash returns code hash of the runtime
-func (in *Instance) GetCodeHash() common.Hash {
+func (*Instance) GetCodeHash() common.Hash {
 	return common.Hash{}
 }
 
@@ -69,8 +72,23 @@ func NewRuntimeFromGenesis(g *genesis.Genesis, cfg *Config) (runtime.Instance, e
 	return NewInstance(code, cfg)
 }
 
+// NewInstanceFromFile instantiates a runtime from a .wasm file
+func NewInstanceFromFile(fp string, cfg *Config) (*Instance, error) {
+	// Reads the WebAssembly module as bytes.
+	bytes, err := ioutil.ReadFile(filepath.Clean(fp))
+	if err != nil {
+		return nil, err
+	}
+
+	if err = wasm_validation.ValidateWasm(bytes); err != nil {
+		return nil, err
+	}
+
+	return NewInstance(bytes, cfg)
+}
+
 // NewInstance ...
-func NewInstance(code []byte, cfg *Config) (runtime.Instance, error) {
+func NewInstance(code []byte, cfg *Config) (*Instance, error) {
 	if len(code) == 0 {
 		return nil, errors.New("code is empty")
 	}
@@ -116,7 +134,10 @@ func NewInstance(code []byte, cfg *Config) (runtime.Instance, error) {
 	}
 
 	ctx = runtimeCtx
-	inst.version, _ = inst.Version()
+	inst.version, err = inst.Version()
+	if err != nil {
+		logger.Error("error checking instance version", "error", err)
+	}
 	return inst, nil
 }
 
@@ -143,17 +164,17 @@ func (m *Memory) Grow(numPages uint32) error {
 }
 
 // UpdateRuntimeCode ...
-func (in *Instance) UpdateRuntimeCode(_ []byte) error {
+func (*Instance) UpdateRuntimeCode(_ []byte) error {
 	return errors.New("unimplemented")
 }
 
 // CheckRuntimeVersion ...
-func (in *Instance) CheckRuntimeVersion(code []byte) (runtime.Version, error) {
+func (*Instance) CheckRuntimeVersion(_ []byte) (runtime.Version, error) {
 	return nil, errors.New("unimplemented")
 }
 
 // SetContextStorage sets the runtime's storage. It should be set before calls to the below functions.
-func (in *Instance) SetContextStorage(s runtime.Storage) {
+func (*Instance) SetContextStorage(s runtime.Storage) {
 	ctx.Storage = s
 }
 
@@ -172,7 +193,7 @@ func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 
 	fnc, ok := in.vm.GetFunctionExport(function)
 	if !ok {
-		panic("entry function not found")
+		return nil, fmt.Errorf("could not find exported function %s", function)
 	}
 
 	ret, err := in.vm.Run(fnc, int64(ptr), int64(len(data)))
@@ -186,25 +207,25 @@ func (in *Instance) Exec(function string, data []byte) ([]byte, error) {
 }
 
 // Stop ...
-func (in *Instance) Stop() {}
+func (*Instance) Stop() {}
 
 // NodeStorage to get reference to runtime node service
-func (in *Instance) NodeStorage() runtime.NodeStorage {
+func (*Instance) NodeStorage() runtime.NodeStorage {
 	return ctx.NodeStorage
 }
 
 // NetworkService to get referernce to runtime network service
-func (in *Instance) NetworkService() runtime.BasicNetwork {
+func (*Instance) NetworkService() runtime.BasicNetwork {
 	return ctx.Network
 }
 
 // Validator returns the context's Validator
-func (in *Instance) Validator() bool {
+func (*Instance) Validator() bool {
 	return ctx.Validator
 }
 
 // Keystore to get reference to runtime keystore
-func (in *Instance) Keystore() *keystore.GlobalKeystore {
+func (*Instance) Keystore() *keystore.GlobalKeystore {
 	return ctx.Keystore
 }
 

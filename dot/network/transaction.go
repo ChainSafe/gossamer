@@ -37,12 +37,12 @@ type TransactionMessage struct {
 }
 
 // SubProtocol returns the transactions sub-protocol
-func (tm *TransactionMessage) SubProtocol() string {
+func (*TransactionMessage) SubProtocol() string {
 	return transactionsID
 }
 
 // Type returns TransactionMsgType
-func (tm *TransactionMessage) Type() byte {
+func (*TransactionMessage) Type() byte {
 	return TransactionMsgType
 }
 
@@ -53,41 +53,44 @@ func (tm *TransactionMessage) String() string {
 
 // Encode will encode TransactionMessage using scale.Encode
 func (tm *TransactionMessage) Encode() ([]byte, error) {
-	// scale encode each extrinsic
-	var encodedExtrinsics = make([]byte, 0)
-	for _, extrinsic := range tm.Extrinsics {
-		encExt, err := scale.Marshal([]byte(extrinsic))
-		if err != nil {
-			return nil, err
-		}
-		encodedExtrinsics = append(encodedExtrinsics, encExt...)
-	}
+	//// scale encode each extrinsic
+	//var encodedExtrinsics = make([]byte, 0)
+	//for _, extrinsic := range tm.Extrinsics {
+	//	encExt, err := scale.Marshal([]byte(extrinsic))
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	encodedExtrinsics = append(encodedExtrinsics, encExt...)
+	//}
+	//
+	//// scale encode the set of all extrinsics
+	//return scale.Marshal(encodedExtrinsics)
+	return scale.Marshal(tm.Extrinsics)
 
-	// scale encode the set of all extrinsics
-	return scale.Marshal(encodedExtrinsics)
 }
 
 // Decode the message into a TransactionMessage
 func (tm *TransactionMessage) Decode(in []byte) error {
-	var decodedMessage []byte
-	err := scale.Unmarshal(in, &decodedMessage)
-	if err != nil {
-		return err
-	}
-	messageSize := len(decodedMessage)
-	bytesProcessed := 0
-	// loop through the message decoding extrinsics until they have all been decoded
-	for bytesProcessed < messageSize {
-		var decodedExtrinsic []byte
-		err = scale.Unmarshal(decodedMessage[bytesProcessed:], &decodedExtrinsic)
-		if err != nil {
-			return err
-		}
-		bytesProcessed = bytesProcessed + len(decodedExtrinsic) + 1 // add 1 to processed since the first decode byte is consumed during decoding
-		tm.Extrinsics = append(tm.Extrinsics, decodedExtrinsic)
-	}
-
-	return nil
+	//var decodedMessage []byte
+	//err := scale.Unmarshal(in, &decodedMessage)
+	//if err != nil {
+	//	return err
+	//}
+	//messageSize := len(decodedMessage)
+	//bytesProcessed := 0
+	//// loop through the message decoding extrinsics until they have all been decoded
+	//for bytesProcessed < messageSize {
+	//	var decodedExtrinsic []byte
+	//	err = scale.Unmarshal(decodedMessage[bytesProcessed:], &decodedExtrinsic)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	bytesProcessed = bytesProcessed + len(decodedExtrinsic) + 1 // add 1 to processed since the first decode byte is consumed during decoding
+	//	tm.Extrinsics = append(tm.Extrinsics, decodedExtrinsic)
+	//}
+	//
+	//return nil
+	return scale.Unmarshal(in, &tm.Extrinsics)
 }
 
 // Hash returns the hash of the TransactionMessage
@@ -98,52 +101,52 @@ func (tm *TransactionMessage) Hash() common.Hash {
 }
 
 // IsHandshake returns false
-func (tm *TransactionMessage) IsHandshake() bool {
+func (*TransactionMessage) IsHandshake() bool {
 	return false
 }
 
 type transactionHandshake struct{}
 
 // SubProtocol returns the transactions sub-protocol
-func (hs *transactionHandshake) SubProtocol() string {
+func (*transactionHandshake) SubProtocol() string {
 	return transactionsID
 }
 
 // String formats a transactionHandshake as a string
-func (hs *transactionHandshake) String() string {
+func (*transactionHandshake) String() string {
 	return "transactionHandshake"
 }
 
 // Encode encodes a transactionHandshake message using SCALE
-func (hs *transactionHandshake) Encode() ([]byte, error) {
+func (*transactionHandshake) Encode() ([]byte, error) {
 	return []byte{}, nil
 }
 
 // Decode the message into a transactionHandshake
-func (hs *transactionHandshake) Decode(in []byte) error {
+func (*transactionHandshake) Decode(_ []byte) error {
 	return nil
 }
 
 // Type ...
-func (hs *transactionHandshake) Type() byte {
+func (*transactionHandshake) Type() byte {
 	return 1
 }
 
 // Hash ...
-func (hs *transactionHandshake) Hash() common.Hash {
+func (*transactionHandshake) Hash() common.Hash {
 	return common.Hash{}
 }
 
 // IsHandshake returns true
-func (hs *transactionHandshake) IsHandshake() bool {
+func (*transactionHandshake) IsHandshake() bool {
 	return true
 }
 
-func (s *Service) getTransactionHandshake() (Handshake, error) {
+func (*Service) getTransactionHandshake() (Handshake, error) {
 	return &transactionHandshake{}, nil
 }
 
-func decodeTransactionHandshake(in []byte) (Handshake, error) {
+func decodeTransactionHandshake(_ []byte) (Handshake, error) {
 	return &transactionHandshake{}, nil
 }
 

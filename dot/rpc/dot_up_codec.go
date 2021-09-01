@@ -24,6 +24,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/ChainSafe/gossamer/dot/rpc/json2"
+	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/gorilla/rpc/v2"
 )
 
@@ -72,6 +73,10 @@ type DotUpCodecRequest struct {
 func (c *DotUpCodecRequest) Method() (string, error) {
 	m, err := c.CodecRequest.Method()
 	if len(m) > 1 && err == nil {
+		if concreteMethod, ok := modules.AliasesMethods[m]; ok {
+			m = concreteMethod
+		}
+
 		parts := strings.Split(m, "_")
 		if len(parts) < 2 {
 			return "", fmt.Errorf("rpc error method %s not found", m)

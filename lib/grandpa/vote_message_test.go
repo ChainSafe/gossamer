@@ -337,7 +337,7 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
 	state.AddBlocksToState(t, st.Block, 3)
-	gs.tracker, err = newTracker(st.Block, gs.in)
+	gs.tracker, err = newTracker(st.Block, gs.messageHandler)
 	require.NoError(t, err)
 
 	fake := &types.Header{
@@ -371,7 +371,7 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
-	gs.tracker, err = newTracker(gs.blockState, gs.in)
+	gs.tracker, err = newTracker(gs.blockState, gs.messageHandler)
 	require.NoError(t, err)
 
 	var branches []*types.Header
@@ -392,5 +392,5 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
 	_, err = gs.validateMessage("", msg)
-	require.Equal(t, ErrDescendantNotFound, err, gs.prevotes)
+	require.Equal(t, errInvalidVoteBlock, err, gs.prevotes)
 }

@@ -35,6 +35,7 @@ const (
 	authorExtrinsicUpdatesMethod = "author_extrinsicUpdate"
 	chainFinalizedHeadMethod     = "chain_finalizedHead"
 	chainNewHeadMethod           = "chain_newHead"
+	chainAllHeadMethod           = "chain_allHead"
 	stateStorageMethod           = "state_storage"
 )
 
@@ -60,7 +61,7 @@ type WSConnAPI interface {
 type StorageObserver struct {
 	id     uint32
 	filter map[string][]byte
-	wsconn WSConnAPI
+	wsconn *WSConn
 }
 
 // Change type defining key value pair representing change
@@ -107,7 +108,10 @@ func (s *StorageObserver) GetFilter() map[string][]byte {
 func (s *StorageObserver) Listen() {}
 
 // Stop to satisfy Listener interface (but is no longer used by StorageObserver)
-func (s *StorageObserver) Stop() error { return nil }
+func (s *StorageObserver) Stop() error {
+	s.wsconn.StorageAPI.UnregisterStorageObserver(s)
+	return nil
+}
 
 // BlockListener to handle listening for blocks importedChan
 type BlockListener struct {
@@ -210,6 +214,90 @@ func (l *BlockFinalizedListener) Stop() error {
 	return cancelWithTimeout(l.cancel, l.done, l.cancelTimeout)
 }
 
+// AllBlocksListener is a listener that is aware of new and newly finalised blocks```
+type AllBlocksListener struct {
+	finalizedChan chan *types.FinalisationInfo
+	importedChan  chan *types.Block
+
+	wsconn          *WSConn
+	finalizedChanID byte
+	importedChanID  byte
+	subID           uint32
+	done            chan struct{}
+	cancel          chan struct{}
+	cancelTimeout   time.Duration
+}
+
+func newAllBlockListener(conn *WSConn) *AllBlocksListener {
+	return &AllBlocksListener{
+		cancel:        make(chan struct{}, 1),
+		done:          make(chan struct{}, 1),
+		cancelTimeout: defaultCancelTimeout,
+		wsconn:        conn,
+		finalizedChan: make(chan *types.FinalisationInfo, DEFAULT_BUFFER_SIZE),
+		importedChan:  make(chan *types.Block, DEFAULT_BUFFER_SIZE),
+	}
+}
+
+// Listen start a goroutine to listen imported and finalised blocks
+func (l *AllBlocksListener) Listen() {
+	go func() {
+		defer func() {
+			l.wsconn.BlockAPI.UnregisterImportedChannel(l.importedChanID)
+			l.wsconn.BlockAPI.UnregisterFinalisedChannel(l.finalizedChanID)
+
+			close(l.importedChan)
+			close(l.finalizedChan)
+			close(l.done)
+		}()
+
+		for {
+			select {
+			case <-l.cancel:
+				return
+			case fin, ok := <-l.finalizedChan:
+				if !ok {
+					return
+				}
+
+				if fin == nil || fin.Header == nil {
+					continue
+				}
+
+				finHead, err := modules.HeaderToJSON(*fin.Header)
+				if err != nil {
+					logger.Error("failed to convert finalised block header to JSON", "error", err)
+					continue
+				}
+
+				l.wsconn.safeSend(newSubscriptionResponse(chainAllHeadMethod, l.subID, finHead))
+
+			case imp, ok := <-l.importedChan:
+				if !ok {
+					return
+				}
+
+				if imp == nil || imp.Header == nil {
+					continue
+				}
+
+				impHead, err := modules.HeaderToJSON(*imp.Header)
+				if err != nil {
+					logger.Error("failed to convert imported block header to JSON", "error", err)
+					continue
+				}
+
+				l.wsconn.safeSend(newSubscriptionResponse(chainAllHeadMethod, l.subID, impHead))
+			}
+		}
+	}()
+}
+
+// Stop will unregister the imported chanells and stop the goroutine
+func (l *AllBlocksListener) Stop() error {
+	return cancelWithTimeout(l.cancel, l.done, l.cancelTimeout)
+}
+
 // ExtrinsicSubmitListener to handle listening for extrinsic events
 type ExtrinsicSubmitListener struct {
 	wsconn          *WSConn
@@ -227,7 +315,6 @@ type ExtrinsicSubmitListener struct {
 
 // Listen implementation of Listen interface to listen for importedChan changes
 func (l *ExtrinsicSubmitListener) Listen() {
-
 	// listen for imported blocks with extrinsic
 	go func() {
 		defer func() {

@@ -18,7 +18,8 @@ package network
 
 import (
 	"context"
-	"math/rand"
+	"crypto/rand"
+	"math/big"
 	"sync"
 	"time"
 
@@ -162,13 +163,17 @@ func (cm *ConnManager) Connected(n network.Network, c network.Conn) {
 			return
 		}
 
-		// TODO: change to crypto/rand
-		i := rand.Intn(len(unprotPeers)) //nolint
-
-		logger.Trace("Over max peer count, disconnecting from random unprotected peer", "peer", unprotPeers[i])
-		err := n.ClosePeer(unprotPeers[i])
+		i, err := rand.Int(rand.Reader, big.NewInt(int64(len(unprotPeers))))
 		if err != nil {
-			logger.Trace("failed to close connection to peer", "peer", unprotPeers[i], "num peers", len(n.Peers()))
+			logger.Error("error generating random number", "error", err)
+			return
+		}
+
+		up := unprotPeers[i.Int64()]
+		logger.Trace("Over max peer count, disconnecting from random unprotected peer", "peer", up)
+		err = n.ClosePeer(up)
+		if err != nil {
+			logger.Trace("failed to close connection to peer", "peer", up, "num peers", len(n.Peers()))
 		}
 	}
 }
