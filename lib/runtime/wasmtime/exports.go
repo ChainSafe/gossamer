@@ -18,6 +18,7 @@ package wasmtime
 
 import (
 	"fmt"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"io"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -110,6 +111,17 @@ func (in *Instance) InitializeBlock(header *types.Header) error {
 	return err
 }
 
+func (in *Instance) InitializeBlockVdt(header *types.HeaderVdt) error {
+	//encodedHeader, err := scale.Encode(header)
+	encodedHeader, err := scale2.Marshal(*header)
+	if err != nil {
+		return fmt.Errorf("cannot encode header: %w", err)
+	}
+
+	_, err = in.exec(runtime.CoreInitializeBlock, encodedHeader)
+	return err
+}
+
 // InherentExtrinsics calls runtime API function BlockBuilder_inherent_extrinsics
 func (in *Instance) InherentExtrinsics(data []byte) ([]byte, error) {
 	return in.exec(runtime.BlockBuilderInherentExtrinsics, data)
@@ -135,6 +147,44 @@ func (in *Instance) FinalizeBlock() (*types.Header, error) {
 	}
 
 	return bh, nil
+}
+
+func (in *Instance) FinalizeBlockVdt() (*types.HeaderVdt, error) {
+	data, err := in.exec(runtime.BlockBuilderFinalizeBlock, []byte{})
+	if err != nil {
+		return nil, err
+	}
+
+	//fmt.Println("Finalized block Vdt")
+	//fmt.Println(data)
+	//bh := new(types.Header)
+	//_, err = scale.Decode(data, bh)
+	bh := types.NewEmptyHeaderVdt()
+	err = scale2.Unmarshal(data, bh)
+	if err != nil {
+		return nil, err
+	}
+
+	return bh, nil
+}
+
+func (in *Instance) ExecuteBlockVdt(block *types.BlockVdt) ([]byte, error) {
+	// copy block since we're going to modify it
+	b := block.DeepCopy()
+	b.Header.Digest = types.NewEmptyDigestVdt()
+
+	//// remove seal digest only
+	//for _, d := range block.Header.Digest.Types {
+	//
+	//		b.Header.Digest.Add(d.Value())
+	//}
+
+	bdEnc, err := b.Encode()
+	if err != nil {
+		return nil, err
+	}
+
+	return in.Exec(runtime.CoreExecuteBlock, bdEnc)
 }
 
 // ExecuteBlock calls runtime function Core_execute_block

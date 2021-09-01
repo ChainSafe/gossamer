@@ -48,6 +48,24 @@ func (bs *BlockState) NumberIsFinalised(num *big.Int) (bool, error) {
 }
 
 // GetFinalisedHeader returns the finalised block header by round and setID
+func (bs *BlockState) GetFinalisedHeaderVdt(round, setID uint64) (*types.HeaderVdt, error) {
+	bs.Lock()
+	defer bs.Unlock()
+
+	h, err := bs.GetFinalisedHash(round, setID)
+	if err != nil {
+		return nil, err
+	}
+
+	header, err := bs.GetHeaderVdt(h)
+	if err != nil {
+		return nil, err
+	}
+
+	return header, nil
+}
+
+// GetFinalisedHeader returns the finalised block header by round and setID
 func (bs *BlockState) GetFinalisedHeader(round, setID uint64) (*types.Header, error) {
 	bs.Lock()
 	defer bs.Unlock()

@@ -86,6 +86,17 @@ func (in *Instance) GrandpaAuthorities() ([]types.Authority, error) {
 	return types.GrandpaAuthoritiesRawToAuthorities(adr.([]types.GrandpaAuthoritiesRaw))
 }
 
+func (in *Instance) InitializeBlockVdt(header *types.HeaderVdt) error {
+	//encodedHeader, err := scale.Encode(header)
+	encodedHeader, err := scale2.Marshal(*header)
+	if err != nil {
+		return fmt.Errorf("cannot encode header: %w", err)
+	}
+
+	_, err = in.Exec(runtime.CoreInitializeBlock, encodedHeader)
+	return err
+}
+
 // InitializeBlock calls runtime API function Core_initialise_block
 func (in *Instance) InitializeBlock(header *types.Header) error {
 	encodedHeader, err := scale.Encode(header)
@@ -105,6 +116,21 @@ func (in *Instance) InherentExtrinsics(data []byte) ([]byte, error) {
 // ApplyExtrinsic calls runtime API function BlockBuilder_apply_extrinsic
 func (in *Instance) ApplyExtrinsic(data types.Extrinsic) ([]byte, error) {
 	return in.Exec(runtime.BlockBuilderApplyExtrinsic, data)
+}
+
+func (in *Instance) FinalizeBlockVdt() (*types.HeaderVdt, error) {
+	data, err := in.Exec(runtime.BlockBuilderFinalizeBlock, []byte{})
+	if err != nil {
+		return nil, err
+	}
+
+	bh := types.NewEmptyHeaderVdt()
+	err = scale2.Unmarshal(data, bh)
+	if err != nil {
+		return nil, err
+	}
+
+	return bh, nil
 }
 
 //nolint

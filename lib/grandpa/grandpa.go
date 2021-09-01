@@ -69,7 +69,7 @@ type Service struct {
 	pvEquivocations map[ed25519.PublicKeyBytes][]*SignedVote // equivocatory votes for current pre-vote stage
 	pcEquivocations map[ed25519.PublicKeyBytes][]*SignedVote // equivocatory votes for current pre-commit stage
 	tracker         *tracker                                 // tracker of vote messages we may need in the future
-	head            *types.Header                            // most recently finalised block
+	head            *types.HeaderVdt                            // most recently finalised block
 
 	// historical information
 	preVotedBlock      map[uint64]*Vote // map of round number -> pre-voted block
@@ -128,7 +128,7 @@ func NewService(cfg *Config) (*Service, error) {
 	logger.Debug("creating service", "authority", cfg.Authority, "key", pub, "voter set", Voters(cfg.Voters))
 
 	// get latest finalised header
-	head, err := cfg.BlockState.GetFinalisedHeader(0, 0)
+	head, err := cfg.BlockState.GetFinalisedHeaderVdt(0, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -298,7 +298,7 @@ func (s *Service) initiateRound() error {
 		s.state.round = round
 	}
 
-	s.head, err = s.blockState.GetFinalisedHeader(s.state.round, s.state.setID)
+	s.head, err = s.blockState.GetFinalisedHeaderVdt(s.state.round, s.state.setID)
 	if err != nil {
 		logger.Crit("failed to get finalised header", "round", s.state.round, "error", err)
 		return err
@@ -308,8 +308,8 @@ func (s *Service) initiateRound() error {
 	if s.state.round == 1 {
 		s.chanLock.Lock()
 		s.mapLock.Lock()
-		s.preVotedBlock[0] = NewVoteFromHeader(s.head)
-		s.bestFinalCandidate[0] = NewVoteFromHeader(s.head)
+		s.preVotedBlock[0] = NewVoteFromHeaderVdt(s.head)
+		s.bestFinalCandidate[0] = NewVoteFromHeaderVdt(s.head)
 		s.mapLock.Unlock()
 		s.chanLock.Unlock()
 	}
@@ -376,7 +376,7 @@ func (s *Service) initiate() error {
 }
 
 func (s *Service) waitForFirstBlock() error {
-	ch := make(chan *types.Block)
+	ch := make(chan *types.BlockVdt)
 	id, err := s.blockState.RegisterImportedChannel(ch)
 	if err != nil {
 		return err
@@ -390,7 +390,7 @@ func (s *Service) waitForFirstBlock() error {
 
 		select {
 		case block := <-ch:
-			if block != nil && block.Header != nil && block.Header.Number.Int64() > 0 {
+			if block != nil && block.Header.Number.Int64() > 0 {
 				done = true
 			}
 		case <-s.ctx.Done():
@@ -449,7 +449,7 @@ func (s *Service) handleIsPrimary() (bool, error) {
 // broadcast commit message from the previous round to the network
 // ignore errors, since it's not critical to broadcast
 func (s *Service) primaryBroadcastCommitMessage() {
-	cm, err := s.newCommitMessage(s.head, s.state.round-1)
+	cm, err := s.newCommitMessageVdt(s.head, s.state.round-1)
 	if err != nil {
 		return
 	}
@@ -622,7 +622,7 @@ func (s *Service) attemptToFinalize() error {
 			"total votes for bfc", pc,
 		)
 
-		cm, err := s.newCommitMessage(s.head, s.state.round)
+		cm, err := s.newCommitMessageVdt(s.head, s.state.round)
 		if err != nil {
 			return err
 		}
@@ -822,7 +822,7 @@ func (s *Service) finalise() error {
 		return err
 	}
 
-	s.head, err = s.blockState.GetHeader(bfc.Hash)
+	s.head, err = s.blockState.GetHeaderVdt(bfc.Hash)
 	if err != nil {
 		return err
 	}

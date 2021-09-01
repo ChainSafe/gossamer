@@ -31,17 +31,19 @@ type BlockState interface {
 	GenesisHash() common.Hash
 	HasHeader(hash common.Hash) (bool, error)
 	GetHeader(hash common.Hash) (*types.Header, error)
+	GetHeaderVdt(hash common.Hash) (*types.HeaderVdt, error)
 	GetHeaderByNumber(num *big.Int) (*types.Header, error)
 	IsDescendantOf(parent, child common.Hash) (bool, error)
 	HighestCommonAncestor(a, b common.Hash) (common.Hash, error)
 	HasFinalisedBlock(round, setID uint64) (bool, error)
 	GetFinalisedHeader(uint64, uint64) (*types.Header, error)
+	GetFinalisedHeaderVdt(uint64, uint64) (*types.HeaderVdt, error)
 	SetFinalisedHash(common.Hash, uint64, uint64) error
 	BestBlockHeader() (*types.Header, error)
 	BestBlockHash() common.Hash
 	Leaves() []common.Hash
 	BlocktreeAsString() string
-	RegisterImportedChannel(ch chan<- *types.Block) (byte, error)
+	RegisterImportedChannel(ch chan<- *types.BlockVdt) (byte, error)
 	UnregisterImportedChannel(id byte)
 	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
 	UnregisterFinalisedChannel(id byte)

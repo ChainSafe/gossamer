@@ -126,7 +126,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
 
-	var branches []*types.Header
+	var branches []*types.HeaderVdt
 	for {
 		_, branches = state.AddBlocksToState(t, st.Block, 8)
 		if len(branches) > 1 {
@@ -134,10 +134,10 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 		}
 	}
 
-	h, err := st.Block.BestBlockHeader()
+	h, err := st.Block.BestBlockHeaderVdt()
 	require.NoError(t, err)
 
-	vote := NewVoteFromHeader(h)
+	vote := NewVoteFromHeaderVdt(h)
 	require.NoError(t, err)
 
 	voter := voters[0]
@@ -146,7 +146,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 		Vote: vote,
 	})
 
-	vote2 := NewVoteFromHeader(branches[0])
+	vote2 := NewVoteFromHeaderVdt(branches[0])
 	require.NoError(t, err)
 
 	equivocated := gs.checkForEquivocation(&voter, &SignedVote{
@@ -157,7 +157,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	require.Equal(t, 0, gs.lenVotes(prevote))
 	require.Equal(t, 1, len(gs.pvEquivocations))
 
-	vote3 := NewVoteFromHeader(branches[1])
+	vote3 := NewVoteFromHeaderVdt(branches[1])
 	require.NoError(t, err)
 
 	equivocated = gs.checkForEquivocation(&voter, &SignedVote{
@@ -289,7 +289,7 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
 
-	var branches []*types.Header
+	var branches []*types.HeaderVdt
 	for {
 		_, branches = state.AddBlocksToState(t, st.Block, 8)
 		if len(branches) != 0 {
@@ -374,7 +374,7 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 	gs.tracker, err = newTracker(gs.blockState, gs.messageHandler)
 	require.NoError(t, err)
 
-	var branches []*types.Header
+	var branches []*types.HeaderVdt
 	for {
 		_, branches = state.AddBlocksToState(t, st.Block, 8)
 		if len(branches) != 0 {
@@ -382,12 +382,12 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 		}
 	}
 
-	h, err := st.Block.BestBlockHeader()
+	h, err := st.Block.BestBlockHeaderVdt()
 	require.NoError(t, err)
 	gs.head = h
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(branches[0]), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeaderVdt(branches[0]), prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 

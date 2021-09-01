@@ -1095,7 +1095,7 @@ func TestDeterminePreVote_WithInvalidPrimaryPreVote(t *testing.T) {
 	})
 
 	state.AddBlocksToState(t, st.Block, 5)
-	gs.head, err = st.Block.BestBlockHeader()
+	gs.head, err = st.Block.BestBlockHeaderVdt()
 	require.NoError(t, err)
 
 	pv, err := gs.determinePreVote()

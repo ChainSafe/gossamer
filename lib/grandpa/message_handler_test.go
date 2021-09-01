@@ -42,7 +42,7 @@ var testHeader = &types.Header{
 
 func newTestDigest() scale2.VaryingDataTypeSlice {
 	digest := types.NewDigestVdt()
-	digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	return digest
 }
 
@@ -269,7 +269,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	err := st.Grandpa.SetPrecommits(round, gs.state.setID, just)
 	require.NoError(t, err)
 
-	fm, err := gs.newCommitMessage(gs.head, round)
+	fm, err := gs.newCommitMessageVdt(gs.head, round)
 	require.NoError(t, err)
 	fm.Vote = NewVote(testHash, uint32(round))
 
@@ -284,7 +284,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	//	Body: &types.Body{},
 	//}
 	digest := types.NewDigestVdt()
-	digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	block := &types.BlockVdt{
 		Header: types.HeaderVdt{
 			ParentHash: testGenesisHeader.Hash(),
@@ -339,7 +339,7 @@ func TestMessageHandler_CommitMessage_WithCatchUpRequest(t *testing.T) {
 	err := st.Grandpa.SetPrecommits(77, gs.state.setID, just)
 	require.NoError(t, err)
 
-	fm, err := gs.newCommitMessage(gs.head, 77)
+	fm, err := gs.newCommitMessageVdt(gs.head, 77)
 	require.NoError(t, err)
 
 	gs.state.voters = gs.state.voters[:1]

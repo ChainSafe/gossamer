@@ -215,7 +215,7 @@ func (h *MessageHandler) handleCatchUpResponse(msg *catchUpResponse) error {
 	}
 
 	// update state and signal to grandpa we are ready to initiate
-	head, err := h.grandpa.blockState.GetHeader(msg.Hash)
+	head, err := h.grandpa.blockState.GetHeaderVdt(msg.Hash)
 	if err != nil {
 		return err
 	}

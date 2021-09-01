@@ -144,10 +144,6 @@ func (in *Instance) FinalizeBlockVdt() (*types.HeaderVdt, error) {
 		return nil, err
 	}
 
-	//fmt.Println("Finalized block Vdt")
-	//fmt.Println(data)
-	//bh := new(types.Header)
-	//_, err = scale.Decode(data, bh)
 	bh := types.NewEmptyHeaderVdt()
 	err = scale2.Unmarshal(data, bh)
 	if err != nil {

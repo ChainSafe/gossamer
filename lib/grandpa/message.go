@@ -271,6 +271,21 @@ func (f *CommitMessage) ToConsensusMessage() (*ConsensusMessage, error) {
 	}, nil
 }
 
+func (s *Service) newCommitMessageVdt(header *types.HeaderVdt, round uint64) (*CommitMessage, error) {
+	pcs, err := s.grandpaState.GetPrecommits(round, s.state.setID)
+	if err != nil {
+		return nil, err
+	}
+
+	precommits, authData := justificationToCompact(pcs)
+	return &CommitMessage{
+		Round:      round,
+		Vote:       NewVoteFromHeaderVdt(header),
+		Precommits: precommits,
+		AuthData:   authData,
+	}, nil
+}
+
 func (s *Service) newCommitMessage(header *types.Header, round uint64) (*CommitMessage, error) {
 	pcs, err := s.grandpaState.GetPrecommits(round, s.state.setID)
 	if err != nil {
