@@ -83,7 +83,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 		//	Body: &types.Body{},
 		//}
 		digest := types.NewDigestVdt()
-		digest.Add(d.ToPreRuntimeDigest())
+		digest.Add(*d.ToPreRuntimeDigest())
 
 		block := &types.BlockVdt{
 			Header: types.HeaderVdt{

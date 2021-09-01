@@ -229,7 +229,7 @@ func TestService_PruneStorage(t *testing.T) {
 		//	types.NewBabeSecondaryPlainPreDigest(0, uint64(i+1)).ToPreRuntimeDigest(),
 		//}
 		digest := types.NewDigestVdt()
-		digest.Add(types.NewBabeSecondaryPlainPreDigest(0, uint64(i+1)).ToPreRuntimeDigest())
+		digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, uint64(i+1)).ToPreRuntimeDigest())
 		block.Header.Digest = digest
 
 		err = serv.Storage.blockState.AddBlockVdt(block)

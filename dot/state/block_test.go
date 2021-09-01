@@ -103,7 +103,7 @@ func TestGetBlockByNumber(t *testing.T) {
 	err := bs.AddBlockVdt(block)
 	require.NoError(t, err)
 
-	retBlock, err := bs.GetBlockByNumber(blockHeader.Number)
+	retBlock, err := bs.GetBlockByNumberVdt(blockHeader.Number)
 	require.NoError(t, err)
 	require.Equal(t, block, retBlock, "Could not validate returned retBlock as expected")
 }
@@ -156,12 +156,12 @@ func TestAddBlock(t *testing.T) {
 	require.NoError(t, err)
 
 	// Get the blocks & check if it's the same as the added blocks
-	retBlock, err := bs.GetBlockByHash(blockHash0)
+	retBlock, err := bs.GetBlockByHashVdt(blockHash0)
 	require.NoError(t, err)
 
 	require.Equal(t, block0, retBlock, "Could not validate returned block0 as expected")
 
-	retBlock, err = bs.GetBlockByHash(blockHash1)
+	retBlock, err = bs.GetBlockByHashVdt(blockHash1)
 	require.NoError(t, err)
 
 	// this will panic if not successful, so catch and fail it so
@@ -198,7 +198,7 @@ func TestGetSlotForBlock(t *testing.T) {
 	//	Body: &types.Body{},
 	//}
 	digest := types.NewDigestVdt()
-	digest.Add(preDigest)
+	digest.Add(*preDigest)
 	block := &types.BlockVdt{
 		Header: types.HeaderVdt{
 			ParentHash: testGenesisHeader.Hash(),
@@ -307,7 +307,7 @@ func TestFinalizedHash(t *testing.T) {
 	//	},
 	//}
 	digest := types.NewDigestVdt()
-	digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	header := &types.HeaderVdt{
 		ParentHash: testGenesisHeader.Hash(),
 		Number:     big.NewInt(1),
