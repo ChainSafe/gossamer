@@ -103,7 +103,7 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	//}
 
 	digest := types.NewDigestVdt()
-	err = digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 
 	newBlock := types.BlockVdt{
 		Header: types.HeaderVdt{

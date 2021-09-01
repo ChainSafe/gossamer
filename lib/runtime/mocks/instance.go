@@ -163,6 +163,29 @@ func (_m *MockInstance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	return r0, r1
 }
 
+// ExecuteBlock provides a mock function with given fields: block
+func (_m *MockInstance) ExecuteBlockVdt(block *types.BlockVdt) ([]byte, error) {
+	ret := _m.Called(block)
+
+	var r0 []byte
+	if rf, ok := ret.Get(0).(func(*types.BlockVdt) []byte); ok {
+		r0 = rf(block)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]byte)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(*types.BlockVdt) error); ok {
+		r1 = rf(block)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // FinalizeBlock provides a mock function with given fields:
 func (_m *MockInstance) FinalizeBlock() (*types.Header, error) {
 	ret := _m.Called()
@@ -173,6 +196,29 @@ func (_m *MockInstance) FinalizeBlock() (*types.Header, error) {
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*types.Header)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func() error); ok {
+		r1 = rf()
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// FinalizeBlockVdt provides a mock function with given fields:
+func (_m *MockInstance) FinalizeBlockVdt() (*types.HeaderVdt, error) {
+	ret := _m.Called()
+
+	var r0 *types.HeaderVdt
+	if rf, ok := ret.Get(0).(func() *types.HeaderVdt); ok {
+		r0 = rf()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.HeaderVdt)
 		}
 	}
 
@@ -259,6 +305,20 @@ func (_m *MockInstance) InitializeBlock(header *types.Header) error {
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(*types.Header) error); ok {
+		r0 = rf(header)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// InitializeBlock provides a mock function with given fields: header
+func (_m *MockInstance) InitializeBlockVdt(header *types.HeaderVdt) error {
+	ret := _m.Called(header)
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(*types.HeaderVdt) error); ok {
 		r0 = rf(header)
 	} else {
 		r0 = ret.Error(0)

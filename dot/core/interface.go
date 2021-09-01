@@ -35,7 +35,7 @@ type BlockState interface {
 	BestBlockNumber() (*big.Int, error)
 	BestBlockStateRoot() (common.Hash, error)
 	BestBlock() (*types.Block, error)
-	AddBlock(*types.Block) error
+	//AddBlock(*types.Block) error
 	AddBlockVdt(*types.BlockVdt) error
 	GetAllBlocksAtDepth(hash common.Hash) []common.Hash
 	GetBlockByHash(common.Hash) (*types.Block, error)
@@ -43,7 +43,7 @@ type BlockState interface {
 	GetSlotForBlock(common.Hash) (uint64, error)
 	GetFinalisedHeader(uint64, uint64) (*types.Header, error)
 	GetFinalisedHash(uint64, uint64) (common.Hash, error)
-	RegisterImportedChannel(ch chan<- *types.Block) (byte, error)
+	RegisterImportedChannel(ch chan<- *types.BlockVdt) (byte, error)
 	UnregisterImportedChannel(id byte)
 	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
 	UnregisterFinalisedChannel(id byte)
