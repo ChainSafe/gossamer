@@ -187,52 +187,52 @@ func TestHandleBlockResponse_NoBlockData(t *testing.T) {
 func TestHandleBlockResponse_BlockData(t *testing.T) {
 	syncer := NewTestSyncer(t, false)
 
-	parent2, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
-	require.NoError(t, err)
-
-	enc, err := parent2.Encode()
-	require.NoError(t, err)
-
+	//parent2, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
+	//require.NoError(t, err)
+	//
+	//enc, err := parent2.Encode()
+	//require.NoError(t, err)
 
 	rt, err := syncer.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	blockO := BuildBlock(t, rt, parent2, nil)
-
-	fmt.Println("Original block digest in test")
-	fmt.Println(blockO.Header.Digest)
-
+	//blockO := BuildBlock(t, rt, parent2, nil)
+	//
+	//fmt.Println("Built block normal")
+	//fmt.Println(blockO)
 
 	//require.Equal(t, blockO.Header.StateRoot, block.Header.StateRoot)
 
 
-	bdOld := []*types.BlockData{{
-		Hash:          blockO.Header.Hash(),
-		Header:        blockO.Header.AsOptional(),
-		Body:          blockO.Body.AsOptional(),
-		Receipt:       nil,
-		MessageQueue:  nil,
-		Justification: nil,
-	}}
-	msgOld := &network.BlockResponseMessage{
-		BlockData: bdOld,
-	}
-
-	_, err = syncer.ProcessBlockDataOld(msgOld.BlockData)
+	//bdOld := []*types.BlockData{{
+	//	Hash:          blockO.Header.Hash(),
+	//	Header:        blockO.Header.AsOptional(),
+	//	Body:          blockO.Body.AsOptional(),
+	//	Receipt:       nil,
+	//	MessageQueue:  nil,
+	//	Justification: nil,
+	//}}
+	//msgOld := &network.BlockResponseMessage{
+	//	BlockData: bdOld,
+	//}
+	//
+	//_, err = syncer.ProcessBlockDataOld(msgOld.BlockData)
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeaderVdt()
 	require.NoError(t, err)
 
-	encVdt, err := scale.Marshal(*parent)
+	_, err = scale.Marshal(*parent)
 	require.NoError(t, err)
-	require.Equal(t, enc, encVdt)
+	//require.Equal(t, enc, encVdt)
 
 	fmt.Println("")
 
 	block := BuildBlockVdt(t, rt, parent, nil)
 
-	fmt.Println("Vdt block digest in test")
-	fmt.Println(block.Header.Digest)
+	// Length of 2
+
+	//fmt.Println("Built block vdt length")
+	//fmt.Println(len(block.Header.Digest.Types))
 
 	bd := []*types.BlockDataVdt{{
 		Hash:          block.Header.Hash(),
@@ -245,6 +245,8 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 	msg := &network.BlockResponseMessageNew{
 		BlockData: bd,
 	}
+
+	//fmt.Println(msg.BlockData)
 
 	_, err = syncer.ProcessBlockData(msg.BlockData)
 	require.Nil(t, err)

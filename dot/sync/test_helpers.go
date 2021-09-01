@@ -208,10 +208,16 @@ func BuildBlockVdt(t *testing.T, instance runtime.Instance, parent *types.Header
 		require.Equal(t, ret, []byte{0, 0})
 	}
 
+	//res2, err := instance.FinalizeBlock()
+	//require.NoError(t, err)
+	//res2.Number = header.Number
+	//
+	//fmt.Println("Result of normal finalize block call")
+	//fmt.Println(res2)
+
 	res, err := instance.FinalizeBlockVdt()
 	require.NoError(t, err)
 	res.Number = header.Number
-
 
 	return &types.BlockVdt{
 		Header: *res,

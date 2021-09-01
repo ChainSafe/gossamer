@@ -18,7 +18,6 @@ package wasmer
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/lib/common"
 	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"io"
 
@@ -178,8 +177,8 @@ func (in *Instance) FinalizeBlock() (*types.Header, error) {
 }
 
 func (in *Instance) ExecuteBlockVdt(block *types.BlockVdt) ([]byte, error) {
-	fmt.Println("block data Vdt before")
-	fmt.Println(block)
+	//fmt.Println("block data Vdt before")
+	//fmt.Println(block)
 
 	// copy block since we're going to modify it
 	b := block.DeepCopy()
@@ -205,21 +204,24 @@ func (in *Instance) ExecuteBlockVdt(block *types.BlockVdt) ([]byte, error) {
 
 	}
 
+	fmt.Println("Block body being executed pre matial vdt")
+	fmt.Println(b.Body)
+
 	bdEnc, err := scale2.Marshal(b)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println("Encrypted block data Vdt before")
-	fmt.Println(common.BytesToHex(bdEnc))
+	//fmt.Println("Encrypted block data Vdt before")
+	//fmt.Println(common.BytesToHex(bdEnc))
 
 	return in.Exec(runtime.CoreExecuteBlock, bdEnc)
 }
 
 // ExecuteBlock calls runtime function Core_execute_block
 func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
-	fmt.Println("block data before")
-	fmt.Println(block)
+	//fmt.Println("block data before")
+	//fmt.Println(block)
 	// copy block since we're going to modify it
 	b := block.DeepCopy()
 
@@ -246,8 +248,8 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 		return nil, err
 	}
 
-	fmt.Println("Encrypted normal block data before")
-	fmt.Println(common.BytesToHex(bdEnc))
+	//fmt.Println("Encrypted normal block data before")
+	//fmt.Println(common.BytesToHex(bdEnc))
 	return in.exec(runtime.CoreExecuteBlock, bdEnc)
 }
 

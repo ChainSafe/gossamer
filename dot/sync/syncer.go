@@ -171,6 +171,9 @@ func (s *Service) ProcessBlockData(data []*types.BlockDataVdt) (int, error) {
 
 		hasHeader, _ := s.blockState.HasHeader(bd.Hash)
 		hasBody, _ := s.blockState.HasBlockBody(bd.Hash)
+
+		fmt.Println("hasHeader: ", hasHeader)
+		fmt.Println("hasBody: ", hasBody)
 		if hasHeader && hasBody {
 			// TODO: fix this; sometimes when the node shuts down the "best block" isn't stored properly,
 			// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
@@ -212,6 +215,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockDataVdt) (int, error) {
 		var header *types.HeaderVdt
 
 		if bd.Header != nil && !hasHeader {
+			fmt.Println("Handling header")
 			header = bd.Header
 
 			logger.Trace("processing header", "hash", header.Hash(), "number", header.Number)
@@ -225,6 +229,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockDataVdt) (int, error) {
 		}
 
 		if bd.Body != nil && !hasBody {
+			fmt.Println("Handling body")
 			body := bd.Body //nolint
 
 			logger.Trace("processing body", "hash", bd.Hash)
@@ -238,6 +243,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockDataVdt) (int, error) {
 		}
 
 		if bd.Header != nil && bd.Body != nil {
+			fmt.Println("Handling header and body now")
 			header = bd.Header
 			body := bd.Body
 
@@ -427,6 +433,8 @@ func (s *Service) handleBody(body *types.Body) error {
 
 // handleHeader handles blocks (header+body) included in BlockResponses
 func (s *Service) handleBlock(block *types.BlockVdt) error {
+	//fmt.Println("Block being handled")
+	//fmt.Println(block)
 	if block == nil {
 		return errors.New("block, header, or body is nil")
 	}
@@ -459,9 +467,11 @@ func (s *Service) handleBlock(block *types.BlockVdt) error {
 	rt.SetContextStorage(ts)
 	logger.Trace("going to execute block", "header", block.Header, "exts", block.Body)
 
-	d, err := rt.ExecuteBlockVdt(block)
-	fmt.Println("Encrypted block data after")
-	fmt.Println(d)
+	fmt.Println("")
+	fmt.Println("Block body being executed vdt")
+	fmt.Println(block.Body)
+	_, err = rt.ExecuteBlockVdt(block)
+
 	if err != nil {
 		return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)
 	}
@@ -518,6 +528,8 @@ func (s *Service) handleBlockOld(block *types.Block) error {
 	rt.SetContextStorage(ts)
 	logger.Trace("going to execute block", "header", block.Header, "exts", block.Body)
 
+	//fmt.Println("Block being executed normal")
+	//fmt.Println(block)
 	_, err = rt.ExecuteBlock(block)
 	if err != nil {
 		return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)
