@@ -87,8 +87,8 @@ func NewTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 	}
 
 	cfg.BlockImportHandler = new(syncmocks.MockBlockImportHandler)
-	cfg.BlockImportHandler.(*syncmocks.MockBlockImportHandler).On("HandleBlockImport", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).Return(nil)
-	cfg.BlockImportHandler.(*syncmocks.MockBlockImportHandler).On("HandleBlockImportVdt", mock.AnythingOfType("*types.BlockVdt"), mock.AnythingOfType("*storage.TrieState")).Return(nil)
+	cfg.BlockImportHandler.(*syncmocks.MockBlockImportHandler).On("HandleBlockImport", mock.AnythingOfType("*types.BlockVdt"), mock.AnythingOfType("*storage.TrieState")).Return(nil)
+	//cfg.BlockImportHandler.(*syncmocks.MockBlockImportHandler).On("HandleBlockImportVdt", mock.AnythingOfType("*types.BlockVdt"), mock.AnythingOfType("*storage.TrieState")).Return(nil)
 
 	if cfg.Runtime == nil {
 		// set state to genesis state

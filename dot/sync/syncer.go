@@ -134,20 +134,20 @@ func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) error {
 }
 
 // ProcessJustification processes block data containing justifications
-func (s *Service) ProcessJustification(data []*types.BlockData) (int, error) {
+func (s *Service) ProcessJustification(data []*types.BlockDataVdt) (int, error) {
 	if len(data) == 0 {
 		return 0, ErrNilBlockData
 	}
 
 	for i, bd := range data {
-		header, err := s.blockState.GetHeader(bd.Hash)
+		header, err := s.blockState.GetHeaderVdt(bd.Hash)
 		if err != nil {
 			return i, err
 		}
 
-		if bd.Justification != nil && bd.Justification.Exists() {
+		if bd.Justification != nil {
 			logger.Debug("handling Justification...", "number", header.Number, "hash", bd.Hash)
-			s.handleJustification(header, bd.Justification.Value())
+			s.handleJustificationVdt(header, *bd.Justification)
 		}
 	}
 

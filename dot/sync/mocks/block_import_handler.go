@@ -15,11 +15,11 @@ type MockBlockImportHandler struct {
 }
 
 // HandleBlockImport provides a mock function with given fields: block, state
-func (_m *MockBlockImportHandler) HandleBlockImport(block *types.Block, state *storage.TrieState) error {
+func (_m *MockBlockImportHandler) HandleBlockImport(block *types.BlockVdt, state *storage.TrieState) error {
 	ret := _m.Called(block, state)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(*types.Block, *storage.TrieState) error); ok {
+	if rf, ok := ret.Get(0).(func(*types.BlockVdt, *storage.TrieState) error); ok {
 		r0 = rf(block, state)
 	} else {
 		r0 = ret.Error(0)

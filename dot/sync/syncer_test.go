@@ -27,7 +27,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
@@ -334,10 +333,10 @@ func TestSyncer_ProcessJustification(t *testing.T) {
 
 	just := []byte("testjustification")
 
-	data := []*types.BlockData{
+	data := []*types.BlockDataVdt{
 		{
 			Hash:          syncer.blockState.BestBlockHash(),
-			Justification: optional.NewBytes(true, just),
+			Justification: &just,
 		},
 	}
 

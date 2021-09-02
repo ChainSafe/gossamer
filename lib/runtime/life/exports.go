@@ -165,7 +165,7 @@ func (in *Instance) ExecuteBlockVdt(block *types.BlockVdt) ([]byte, error) {
 			//}
 
 			//var preDigest types.SealDigest
-			switch _ := d.Value().(type) {
+			switch d.Value().(type) {
 			case types.SealDigest:
 				continue
 			default:
