@@ -101,7 +101,7 @@ func TestBlockListener_Listen(t *testing.T) {
 
 	wsconn.BlockAPI = BlockAPI
 
-	notifyChan := make(chan *types.Block)
+	notifyChan := make(chan *types.BlockVdt)
 	bl := BlockListener{
 		Channel:       notifyChan,
 		wsconn:        wsconn,
@@ -110,7 +110,7 @@ func TestBlockListener_Listen(t *testing.T) {
 		cancelTimeout: time.Second * 5,
 	}
 
-	block := types.NewEmptyBlock()
+	block := types.NewEmptyBlockVdt()
 	block.Header.Number = big.NewInt(1)
 
 	go bl.Listen()
@@ -120,13 +120,13 @@ func TestBlockListener_Listen(t *testing.T) {
 		BlockAPI.AssertCalled(t, "UnregisterImportedChannel", mock.AnythingOfType("uint8"))
 	}()
 
-	notifyChan <- block
+	notifyChan <- &block
 	time.Sleep(time.Second * 2)
 
 	_, msg, err := ws.ReadMessage()
 	require.NoError(t, err)
 
-	head, err := modules.HeaderToJSON(*block.Header)
+	head, err := modules.HeaderToJSONVdt(block.Header)
 	require.NoError(t, err)
 
 	expectedResposnse := newSubcriptionBaseResponseJSON()
@@ -148,7 +148,7 @@ func TestBlockFinalizedListener_Listen(t *testing.T) {
 
 	wsconn.BlockAPI = BlockAPI
 
-	notifyChan := make(chan *types.FinalisationInfo)
+	notifyChan := make(chan *types.FinalisationInfoVdt)
 	bfl := BlockFinalizedListener{
 		channel:       notifyChan,
 		wsconn:        wsconn,
@@ -157,7 +157,7 @@ func TestBlockFinalizedListener_Listen(t *testing.T) {
 		cancelTimeout: time.Second * 5,
 	}
 
-	header := types.NewEmptyHeader()
+	header := types.NewEmptyHeaderVdt()
 
 	bfl.Listen()
 	defer func() {
@@ -166,15 +166,15 @@ func TestBlockFinalizedListener_Listen(t *testing.T) {
 		BlockAPI.AssertCalled(t, "UnregisterFinalisedChannel", mock.AnythingOfType("uint8"))
 	}()
 
-	notifyChan <- &types.FinalisationInfo{
-		Header: header,
+	notifyChan <- &types.FinalisationInfoVdt{
+		Header: *header,
 	}
 	time.Sleep(time.Second * 2)
 
 	_, msg, err := ws.ReadMessage()
 	require.NoError(t, err)
 
-	head, err := modules.HeaderToJSON(*header)
+	head, err := modules.HeaderToJSONVdt(*header)
 	if err != nil {
 		logger.Error("failed to convert header to JSON", "error", err)
 	}
@@ -191,8 +191,8 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	wsconn, ws, cancel := setupWSConn(t)
 	defer cancel()
 
-	notifyImportedChan := make(chan *types.Block, 100)
-	notifyFinalizedChan := make(chan *types.FinalisationInfo, 100)
+	notifyImportedChan := make(chan *types.BlockVdt, 100)
+	notifyFinalizedChan := make(chan *types.FinalisationInfoVdt, 100)
 
 	BlockAPI := new(mocks.BlockAPI)
 	BlockAPI.On("UnregisterImportedChannel", mock.AnythingOfType("uint8"))
@@ -209,15 +209,15 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 		done:          make(chan struct{}),
 		cancelTimeout: time.Second * 5,
 	}
-	header := types.NewEmptyHeader()
+	header := types.NewEmptyHeaderVdt()
 	exts := []types.Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
 
 	body, err := types.NewBodyFromExtrinsics(exts)
 	require.NoError(t, err)
 
-	block := &types.Block{
-		Header: header,
-		Body:   body,
+	block := &types.BlockVdt{
+		Header: *header,
+		Body:   *body,
 	}
 
 	esl.Listen()
@@ -239,8 +239,8 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, string(expectedImportedBytes)+"\n", string(msg))
 
-	notifyFinalizedChan <- &types.FinalisationInfo{
-		Header: header,
+	notifyFinalizedChan <- &types.FinalisationInfoVdt{
+		Header: *header,
 	}
 	time.Sleep(time.Second * 2)
 
@@ -274,7 +274,7 @@ func TestGrandpaJustification_Listen(t *testing.T) {
 		blockStateMock.On("UnregisterFinalisedChannel", mock.AnythingOfType("uint8"))
 		wsconn.BlockAPI = blockStateMock
 
-		finchannel := make(chan *types.FinalisationInfo)
+		finchannel := make(chan *types.FinalisationInfoVdt)
 		sub := GrandpaJustificationListener{
 			subID:         10,
 			wsconn:        wsconn,
@@ -285,8 +285,8 @@ func TestGrandpaJustification_Listen(t *testing.T) {
 		}
 
 		sub.Listen()
-		finchannel <- &types.FinalisationInfo{
-			Header: types.NewEmptyHeader(),
+		finchannel <- &types.FinalisationInfoVdt{
+			Header: *types.NewEmptyHeaderVdt(),
 		}
 
 		time.Sleep(time.Second * 3)

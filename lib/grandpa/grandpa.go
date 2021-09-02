@@ -77,7 +77,7 @@ type Service struct {
 
 	// channels for communication with other services
 	in               chan *networkVoteMessage // only used to receive *VoteMessage
-	finalisedCh      chan *types.FinalisationInfo
+	finalisedCh      chan *types.FinalisationInfoVdt
 	finalisedChID    byte
 	neighbourMessage *NeighbourMessage // cached neighbour message
 }
@@ -138,7 +138,7 @@ func NewService(cfg *Config) (*Service, error) {
 		return nil, err
 	}
 
-	finalisedCh := make(chan *types.FinalisationInfo, 16)
+	finalisedCh := make(chan *types.FinalisationInfoVdt, 16)
 	fid, err := cfg.BlockState.RegisterFinalizedChannel(finalisedCh)
 	if err != nil {
 		return nil, err

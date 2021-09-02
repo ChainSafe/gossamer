@@ -45,7 +45,7 @@ type BlockState interface {
 	GetFinalisedHash(uint64, uint64) (common.Hash, error)
 	RegisterImportedChannel(ch chan<- *types.BlockVdt) (byte, error)
 	UnregisterImportedChannel(id byte)
-	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
+	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfoVdt) (byte, error)
 	UnregisterFinalisedChannel(id byte)
 	HighestCommonAncestor(a, b common.Hash) (common.Hash, error)
 	SubChain(start, end common.Hash) ([]common.Hash, error)

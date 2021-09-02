@@ -166,7 +166,7 @@ func (l *BlockListener) Stop() error {
 
 // BlockFinalizedListener to handle listening for finalised blocks
 type BlockFinalizedListener struct {
-	channel       chan *types.FinalisationInfo
+	channel       chan *types.FinalisationInfoVdt
 	wsconn        *WSConn
 	chanID        byte
 	subID         uint32
@@ -192,10 +192,10 @@ func (l *BlockFinalizedListener) Listen() {
 					return
 				}
 
-				if info == nil || info.Header == nil {
+				if info == nil  {
 					continue
 				}
-				head, err := modules.HeaderToJSON(*info.Header)
+				head, err := modules.HeaderToJSONVdt(info.Header)
 				if err != nil {
 					logger.Error("failed to convert header to JSON", "error", err)
 				}
@@ -216,7 +216,7 @@ func (l *BlockFinalizedListener) Stop() error {
 
 // AllBlocksListener is a listener that is aware of new and newly finalised blocks```
 type AllBlocksListener struct {
-	finalizedChan chan *types.FinalisationInfo
+	finalizedChan chan *types.FinalisationInfoVdt
 	importedChan  chan *types.BlockVdt
 
 	wsconn          *WSConn
@@ -234,7 +234,7 @@ func newAllBlockListener(conn *WSConn) *AllBlocksListener {
 		done:          make(chan struct{}, 1),
 		cancelTimeout: defaultCancelTimeout,
 		wsconn:        conn,
-		finalizedChan: make(chan *types.FinalisationInfo, DEFAULT_BUFFER_SIZE),
+		finalizedChan: make(chan *types.FinalisationInfoVdt, DEFAULT_BUFFER_SIZE),
 		importedChan:  make(chan *types.BlockVdt, DEFAULT_BUFFER_SIZE),
 	}
 }
@@ -260,11 +260,11 @@ func (l *AllBlocksListener) Listen() {
 					return
 				}
 
-				if fin == nil || fin.Header == nil {
+				if fin == nil {
 					continue
 				}
 
-				finHead, err := modules.HeaderToJSON(*fin.Header)
+				finHead, err := modules.HeaderToJSONVdt(fin.Header)
 				if err != nil {
 					logger.Error("failed to convert finalised block header to JSON", "error", err)
 					continue
@@ -306,7 +306,7 @@ type ExtrinsicSubmitListener struct {
 	importedChan    chan *types.BlockVdt
 	importedChanID  byte
 	importedHash    common.Hash
-	finalisedChan   chan *types.FinalisationInfo
+	finalisedChan   chan *types.FinalisationInfoVdt
 	finalisedChanID byte
 	done            chan struct{}
 	cancel          chan struct{}
@@ -440,7 +440,7 @@ type GrandpaJustificationListener struct {
 	wsconn        *WSConn
 	subID         uint32
 	finalisedChID byte
-	finalisedCh   chan *types.FinalisationInfo
+	finalisedCh   chan *types.FinalisationInfoVdt
 }
 
 // Listen will start goroutines that listen to the finaised blocks

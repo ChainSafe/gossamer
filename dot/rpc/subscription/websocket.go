@@ -247,7 +247,7 @@ func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, erro
 
 func (c *WSConn) initBlockFinalizedListener(reqID float64, _ interface{}) (Listener, error) {
 	bfl := &BlockFinalizedListener{
-		channel:       make(chan *types.FinalisationInfo),
+		channel:       make(chan *types.FinalisationInfoVdt),
 		cancel:        make(chan struct{}, 1),
 		done:          make(chan struct{}, 1),
 		cancelTimeout: defaultCancelTimeout,
@@ -320,7 +320,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 		importedChan:  make(chan *types.BlockVdt, DEFAULT_BUFFER_SIZE),
 		wsconn:        c,
 		extrinsic:     types.Extrinsic(extBytes),
-		finalisedChan: make(chan *types.FinalisationInfo),
+		finalisedChan: make(chan *types.FinalisationInfoVdt),
 		cancel:        make(chan struct{}, 1),
 		done:          make(chan struct{}, 1),
 		cancelTimeout: defaultCancelTimeout,
@@ -402,7 +402,7 @@ func (c *WSConn) initGrandpaJustificationListener(reqID float64, _ interface{}) 
 		cancel:        make(chan struct{}, 1),
 		done:          make(chan struct{}, 1),
 		wsconn:        c,
-		finalisedCh:   make(chan *types.FinalisationInfo, 1),
+		finalisedCh:   make(chan *types.FinalisationInfoVdt, 1),
 		cancelTimeout: defaultCancelTimeout,
 	}
 

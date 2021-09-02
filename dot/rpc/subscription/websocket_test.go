@@ -218,7 +218,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, `{"jsonrpc":"2.0","method":"author_extrinsicUpdate","params":{"result":"ready","subscription":8}}`+"\n", string(msg))
 
-	var fCh chan<- *types.FinalisationInfo
+	var fCh chan<- *types.FinalisationInfoVdt
 	mockedJust := grandpa.Justification{
 		Round: 1,
 		Commit: &grandpa.Commit{
@@ -232,9 +232,9 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.NoError(t, err)
 
 	BlockAPI := new(modulesmocks.BlockAPI)
-	BlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
+	BlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfoVdt")).
 		Run(func(args mock.Arguments) {
-			ch := args.Get(0).(chan<- *types.FinalisationInfo)
+			ch := args.Get(0).(chan<- *types.FinalisationInfoVdt)
 			fCh = ch
 		}).
 		Return(uint8(4), nil)
@@ -252,13 +252,13 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.Equal(t, `{"jsonrpc":"2.0","result":9,"id":0}`+"\n", string(msg))
 
 	listener.Listen()
-	header := &types.Header{
+	header := &types.HeaderVdt{
 		ParentHash: common.Hash{},
 		Number:     big.NewInt(1),
 	}
 
-	fCh <- &types.FinalisationInfo{
-		Header: header,
+	fCh <- &types.FinalisationInfoVdt{
+		Header: *header,
 	}
 
 	time.Sleep(time.Second * 2)
@@ -288,7 +288,7 @@ func TestSubscribeAllHeads(t *testing.T) {
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}`+"\n"), msg)
 
 	mockBlockAPI := new(mocks.BlockAPI)
-	mockBlockAPI.On("RegisterImportedChannel", mock.AnythingOfType("chan<- *types.Block")).
+	mockBlockAPI.On("RegisterImportedChannel", mock.AnythingOfType("chan<- *types.BlockVdt")).
 		Return(uint8(0), errors.New("some mocked error")).Once()
 
 	wsconn.BlockAPI = mockBlockAPI
@@ -299,9 +299,9 @@ func TestSubscribeAllHeads(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"could not register imported channel"},"id":1}`+"\n"), msg)
 
-	mockBlockAPI.On("RegisterImportedChannel", mock.AnythingOfType("chan<- *types.Block")).
+	mockBlockAPI.On("RegisterImportedChannel", mock.AnythingOfType("chan<- *types.BlockVdt")).
 		Return(uint8(10), nil).Once()
-	mockBlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
+	mockBlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfoVdt")).
 		Return(uint8(0), errors.New("failed")).Once()
 
 	_, err = wsconn.initAllBlocksListerner(1, nil)
@@ -311,18 +311,18 @@ func TestSubscribeAllHeads(t *testing.T) {
 	importedChanID := uint8(10)
 	finalizedChanID := uint8(11)
 
-	var fCh chan<- *types.FinalisationInfo
-	var iCh chan<- *types.Block
+	var fCh chan<- *types.FinalisationInfoVdt
+	var iCh chan<- *types.BlockVdt
 
-	mockBlockAPI.On("RegisterImportedChannel", mock.AnythingOfType("chan<- *types.Block")).
+	mockBlockAPI.On("RegisterImportedChannel", mock.AnythingOfType("chan<- *types.BlockVdt")).
 		Run(func(args mock.Arguments) {
-			ch := args.Get(0).(chan<- *types.Block)
+			ch := args.Get(0).(chan<- *types.BlockVdt)
 			iCh = ch
 		}).Return(importedChanID, nil).Once()
 
-	mockBlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
+	mockBlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfoVdt")).
 		Run(func(args mock.Arguments) {
-			ch := args.Get(0).(chan<- *types.FinalisationInfo)
+			ch := args.Get(0).(chan<- *types.FinalisationInfoVdt)
 			fCh = ch
 		}).
 		Return(finalizedChanID, nil).Once()
@@ -347,13 +347,15 @@ func TestSubscribeAllHeads(t *testing.T) {
 		common.EmptyHash,
 	)
 
-	fCh <- &types.FinalisationInfo{
-		Header: &types.Header{
+	digest := types.NewDigestVdt()
+	digest.Add(*types.NewBABEPreRuntimeDigest([]byte{0xff}))
+	fCh <- &types.FinalisationInfoVdt{
+		Header: types.HeaderVdt{
 			ParentHash:     common.EmptyHash,
 			Number:         big.NewInt(0),
 			StateRoot:      common.EmptyHash,
 			ExtrinsicsRoot: common.EmptyHash,
-			Digest:         types.NewDigest(types.NewBABEPreRuntimeDigest([]byte{0xff})),
+			Digest:         digest,
 		},
 	}
 
@@ -362,13 +364,16 @@ func TestSubscribeAllHeads(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, expected+"\n", string(msg))
 
-	iCh <- &types.Block{
-		Header: &types.Header{
+	digest = types.NewDigestVdt()
+	digest.Add(*types.NewBABEPreRuntimeDigest([]byte{0xff}))
+
+	iCh <- &types.BlockVdt{
+		Header: types.HeaderVdt{
 			ParentHash:     common.EmptyHash,
 			Number:         big.NewInt(0),
 			StateRoot:      common.EmptyHash,
 			ExtrinsicsRoot: common.EmptyHash,
-			Digest:         types.NewDigest(types.NewBABEPreRuntimeDigest([]byte{0xff})),
+			Digest:         digest,
 		},
 	}
 	time.Sleep(time.Millisecond * 500)
