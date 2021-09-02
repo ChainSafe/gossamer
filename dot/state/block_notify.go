@@ -32,8 +32,10 @@ const DEFAULT_BUFFER_SIZE = 100
 
 // GetImportedBlockNotifierChannel function to retrieve a imported block notifier channel
 func (bs *BlockState) GetImportedBlockNotifierChannel() (chan *types.Block, error) {
-	ch := bs.importedChanPool.Get().(chan *types.Block)
-	bs.imported.Store(ch, struct{}{})
+	ch := make(chan *types.Block, DEFAULT_BUFFER_SIZE)
+	bs.importedLock.Lock()
+	bs.imported[ch] = struct{}{}
+	bs.importedLock.Unlock()
 	return ch, nil
 }
 
@@ -57,8 +59,10 @@ func (bs *BlockState) RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo
 
 // FreeImportedBlockNotifierChannel to free and close imported block notifier channel
 func (bs *BlockState) FreeImportedBlockNotifierChannel(ch chan *types.Block) {
-	bs.importedChanPool.Put(ch)
-	bs.imported.Delete(ch)
+	bs.importedLock.Lock()
+	defer bs.importedLock.Unlock()
+
+	delete(bs.imported, ch)
 	close(ch)
 
 	fmt.Printf("Freed channel %v\n", ch)
@@ -78,18 +82,23 @@ func (bs *BlockState) UnregisterFinalisedChannel(id byte) {
 }
 
 func (bs *BlockState) notifyImported(block *types.Block) {
+	bs.importedLock.RLock()
+	defer bs.importedLock.RUnlock()
+
+	if len(bs.imported) == 0 {
+		return
+	}
+
 	logger.Trace("notifying imported block chans...", "chans", bs.imported)
-	bs.imported.Range(func(k, v interface{}) bool {
-		fmt.Printf("CHANNEL %v\n", k)
-		go func(ch chan *types.Block) {
+	for ch := range bs.imported {
+		fmt.Printf("CHANNEL %v\n", ch)
+		go func(ch chan<- *types.Block) {
 			select {
 			case ch <- block:
 			default:
 			}
-		}(k.(chan *types.Block))
-		return true
-	})
-
+		}(ch)
+	}
 }
 
 func (bs *BlockState) notifyFinalized(hash common.Hash, round, setID uint64) {
@@ -180,14 +189,4 @@ func (bs *BlockState) generateID() uint32 {
 		}
 	}
 	return uid.ID()
-}
-
-// NewBlockImportChannelPool to create a sync pool of imported block notifier channels
-func NewBlockImportChannelPool() *sync.Pool {
-	pool := &sync.Pool{
-		New: func() interface{} {
-			return make(chan *types.Block, DEFAULT_BUFFER_SIZE)
-		},
-	}
-	return pool
 }

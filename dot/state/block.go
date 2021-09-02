@@ -50,10 +50,10 @@ type BlockState struct {
 	lastFinalised common.Hash
 
 	// block notifiers
-	imported                       *sync.Map
+	imported                       map[chan<- *types.Block]struct{}
 	finalised                      map[byte]chan<- *types.FinalisationInfo
 	finalisedLock                  sync.RWMutex
-	importedChanPool               *sync.Pool
+	importedLock                   sync.RWMutex
 	finalisedBytePool              *common.BytePool
 	runtimeUpdateSubscriptionsLock sync.RWMutex
 	runtimeUpdateSubscriptions     map[uint32]chan<- runtime.Version
@@ -68,12 +68,11 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 	}
 
 	bs := &BlockState{
-		bt:        bt,
-		dbPath:    db.Path(),
-		baseState: NewBaseState(db),
-		db:        chaindb.NewTable(db, blockPrefix),
-		//imported:                   make(map[chan<- *types.Block]struct{}),
-		imported:                   new(sync.Map),
+		bt:                         bt,
+		dbPath:                     db.Path(),
+		baseState:                  NewBaseState(db),
+		db:                         chaindb.NewTable(db, blockPrefix),
+		imported:                   make(map[chan<- *types.Block]struct{}),
 		finalised:                  make(map[byte]chan<- *types.FinalisationInfo),
 		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
@@ -90,7 +89,6 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 		return nil, fmt.Errorf("failed to get last finalised hash: %w", err)
 	}
 
-	bs.importedChanPool = NewBlockImportChannelPool()
 	bs.finalisedBytePool = common.NewBytePool256()
 	return bs, nil
 }
@@ -98,11 +96,10 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 // NewBlockStateFromGenesis initialises a BlockState from a genesis header, saving it to the database located at basePath
 func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*BlockState, error) {
 	bs := &BlockState{
-		bt:        blocktree.NewBlockTreeFromRoot(header, db),
-		baseState: NewBaseState(db),
-		db:        chaindb.NewTable(db, blockPrefix),
-		//imported:                   make(map[chan<- *types.Block]struct{}),
-		imported:                   new(sync.Map),
+		bt:                         blocktree.NewBlockTreeFromRoot(header, db),
+		baseState:                  NewBaseState(db),
+		db:                         chaindb.NewTable(db, blockPrefix),
+		imported:                   make(map[chan<- *types.Block]struct{}),
 		finalised:                  make(map[byte]chan<- *types.FinalisationInfo),
 		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
@@ -135,7 +132,6 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		return nil, err
 	}
 
-	bs.importedChanPool = NewBlockImportChannelPool()
 	bs.finalisedBytePool = common.NewBytePool256()
 	return bs, nil
 }
