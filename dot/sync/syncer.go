@@ -17,6 +17,7 @@
 package sync
 
 import (
+	"math/big"
 	"os"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -92,9 +93,13 @@ func NewService(cfg *Config) (*Service, error) {
 	}, nil
 }
 
-// HandleBlockAnnounce creates a block request message from the block
-// announce messages (block announce messages include the header but the full
-// block is required to execute `core_execute_block`).
+// HandleBlockAnnounce notifies the `chainSync` module that we have received a BlockAnnounceHandshake from the given peer.
+func (s *Service) HandleBlockAnnounceHandshake(from peer.ID, msg *network.BlockAnnounceHandshake) error {
+	s.chainSync.setPeerHead(from, msg.BestBlockHash, big.NewInt(int64(msg.BestBlockNumber)))
+	return nil
+}
+
+// HandleBlockAnnounce notifies the `chainSync` module that we have received a block announcement from the given peer.
 func (s *Service) HandleBlockAnnounce( /*from peer.ID, */ msg *network.BlockAnnounceMessage) error {
 	logger.Debug("received BlockAnnounceMessage")
 
@@ -104,29 +109,7 @@ func (s *Service) HandleBlockAnnounce( /*from peer.ID, */ msg *network.BlockAnno
 		return err
 	}
 
-	s.chainSync.setBlockAnnounce(peer.ID(""), header)
-
-	// // check if block header is stored in block state
-	// has, err := s.blockState.HasHeader(header.Hash())
-	// if err != nil {
-	// 	return err
-	// }
-
-	// // save block header if we don't have it already
-	// if has {
-	// 	return nil
-	// }
-
-	// err = s.blockState.SetHeader(header)
-	// if err != nil {
-	// 	return err
-	// }
-	// logger.Debug(
-	// 	"saved block header to block state",
-	// 	"number", header.Number,
-	// 	"hash", header.Hash(),
-	// )
-	return nil
+	return s.chainSync.setBlockAnnounce(peer.ID(""), header)
 }
 
 // IsSynced exposes the synced state
@@ -134,6 +117,7 @@ func (s *Service) IsSynced() bool {
 	return s.chainSync.syncState() == idle
 }
 
+// TODO: remove everything below
 func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 	return 0, nil
 }

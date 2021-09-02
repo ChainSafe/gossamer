@@ -26,7 +26,16 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 )
 
-var maxResponseSize uint32 = 128 // maximum number of block datas to reply with in a BlockResponse message.
+const (
+	// maximum number of block data a BlockResponse message can contain
+	MAX_RESPONSE_SIZE = 128 
+
+	// block response data is in ascending order (ie parent to child)
+	DIR_ASCENDING byte = 0
+
+	// block response data is in descending order (ie child to parent)
+	DIR_DESCENDING byte = 1
+)
 
 // CreateBlockResponse creates a block response message from a block request message
 func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
@@ -43,11 +52,11 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 
 	if blockRequest.Max != nil && blockRequest.Max.Exists() {
 		respSize = blockRequest.Max.Value()
-		if respSize > maxResponseSize {
-			respSize = maxResponseSize
+		if respSize > MAX_RESPONSE_SIZE {
+			respSize = MAX_RESPONSE_SIZE
 		}
 	} else {
-		respSize = maxResponseSize
+		respSize = MAX_RESPONSE_SIZE
 	}
 
 	switch startBlock := blockRequest.StartingBlock.Value().(type) {
@@ -101,7 +110,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 	responseData := []*types.BlockData{}
 
 	switch blockRequest.Direction {
-	case 0: // ascending (ie parent to child)
+	case DIR_ASCENDING: 
 		for i := startHeader.Number.Int64(); i <= endHeader.Number.Int64(); i++ {
 			blockData, err := s.getBlockData(big.NewInt(i), blockRequest.RequestedData)
 			if err != nil {
@@ -109,7 +118,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 			}
 			responseData = append(responseData, blockData)
 		}
-	case 1: // descending (ie child to parent)
+	case DIR_DESCENDING:
 		for i := endHeader.Number.Int64(); i >= startHeader.Number.Int64(); i-- {
 			blockData, err := s.getBlockData(big.NewInt(i), blockRequest.RequestedData)
 			if err != nil {
