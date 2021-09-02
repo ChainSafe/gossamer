@@ -191,11 +191,11 @@ func TestHandler_GrandpaForcedChange(t *testing.T) {
 		Data:              data,
 	}
 
-	header := &types.Header{
+	header := &types.HeaderVdt{
 		Number: big.NewInt(1),
 	}
 
-	err = handler.handleConsensusDigest(d, header)
+	err = handler.handleConsensusDigestVdt(d, header)
 	require.NoError(t, err)
 
 	addTestBlocksToState(t, 3, handler.blockState)

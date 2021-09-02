@@ -53,7 +53,7 @@ func TestImportChannel(t *testing.T) {
 func TestFinalizedChannel(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 
-	ch := make(chan *types.FinalisationInfo, 3)
+	ch := make(chan *types.FinalisationInfoVdt, 3)
 	id, err := bs.RegisterFinalizedChannel(ch)
 	require.NoError(t, err)
 
@@ -118,12 +118,12 @@ func TestFinalizedChannel_Multi(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 
 	num := 5
-	chs := make([]chan *types.FinalisationInfo, num)
+	chs := make([]chan *types.FinalisationInfoVdt, num)
 	ids := make([]byte, num)
 
 	var err error
 	for i := 0; i < num; i++ {
-		chs[i] = make(chan *types.FinalisationInfo)
+		chs[i] = make(chan *types.FinalisationInfoVdt)
 		ids[i], err = bs.RegisterFinalizedChannel(chs[i])
 		require.NoError(t, err)
 	}
@@ -135,7 +135,7 @@ func TestFinalizedChannel_Multi(t *testing.T) {
 
 	for i, ch := range chs {
 
-		go func(i int, ch chan *types.FinalisationInfo) {
+		go func(i int, ch chan *types.FinalisationInfoVdt) {
 			select {
 			case <-ch:
 			case <-time.After(testMessageTimeout):

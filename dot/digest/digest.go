@@ -154,6 +154,7 @@ func (h *Handler) HandleDigestsVdt(header *types.HeaderVdt) {
 	}
 }
 
+// TODO Delete
 // HandleDigests handles consensus digests for an imported block
 func (h *Handler) HandleDigests(header *types.Header) {
 	for i, d := range header.Digest {
