@@ -126,7 +126,7 @@ func (s *BaseState) LoadCodeSubstitutedBlockHash() common.Hash {
 }
 
 // Put stores key/value pair in database
-func (s *BaseState) Put(key []byte, value []byte) error {
+func (s *BaseState) Put(key, value []byte) error {
 	return s.db.Put(key, value)
 }
 
