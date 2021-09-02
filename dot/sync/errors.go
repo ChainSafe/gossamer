@@ -26,6 +26,9 @@ var (
 	errNilStorageState       = errors.New("cannot have nil StorageState")
 	errNilVerifier           = errors.New("cannot have nil Verifier")
 	errNilBlockImportHandler = errors.New("cannot have nil BlockImportHandler")
+	errNilNetwork            = errors.New("cannot have nil Network")
+	errNilFinalityGadget     = errors.New("cannot have nil FinalityGadget")
+	errNilTransactionState   = errors.New("cannot have nil TransactionState")
 
 	// ErrNilBlockData is returned when trying to process a BlockResponseMessage with nil BlockData
 	ErrNilBlockData = errors.New("got nil BlockData")

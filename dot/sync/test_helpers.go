@@ -88,31 +88,28 @@ func NewTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 	cfg.BlockImportHandler = new(syncmocks.MockBlockImportHandler)
 	cfg.BlockImportHandler.(*syncmocks.MockBlockImportHandler).On("HandleBlockImport", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).Return(nil)
 
-	if cfg.Runtime == nil {
-		// set state to genesis state
-		genState, err := rtstorage.NewTrieState(genTrie) //nolint
-		require.NoError(t, err)
+	// initialize runtime
+	genState, err := rtstorage.NewTrieState(genTrie) //nolint
+	require.NoError(t, err)
 
-		rtCfg := &wasmer.Config{}
-		rtCfg.Storage = genState
-		rtCfg.LogLvl = 3
+	rtCfg := &wasmer.Config{}
+	rtCfg.Storage = genState
+	rtCfg.LogLvl = 3
 
-		rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
-		require.NoError(t, err)
+	rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
+	require.NoError(t, err)
 
-		instance, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg) //nolint
-		require.NoError(t, err)
-		cfg.Runtime = instance
+	instance, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg)
+	require.NoError(t, err)
 
-		cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), instance)
-	}
+	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), instance)
 
 	if cfg.TransactionState == nil {
 		cfg.TransactionState = stateSrvc.Transaction
 	}
 
-	if cfg.Verifier == nil {
-		cfg.Verifier = NewMockVerifier()
+	if cfg.BabeVerifier == nil {
+		cfg.BabeVerifier = NewMockVerifier()
 	}
 
 	if cfg.LogLvl == 0 {

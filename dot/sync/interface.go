@@ -23,6 +23,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 // BlockState is the interface for the block state
@@ -72,8 +74,8 @@ type TransactionState interface {
 	RemoveExtrinsic(ext types.Extrinsic)
 }
 
-// Verifier deals with block verification
-type Verifier interface {
+// BabeVerifier deals with BABE block verification
+type BabeVerifier interface {
 	VerifyBlock(header *types.Header) error
 }
 
@@ -85,4 +87,9 @@ type FinalityGadget interface {
 // BlockImportHandler is the interface for the handler of newly imported blocks
 type BlockImportHandler interface {
 	HandleBlockImport(block *types.Block, state *rtstorage.TrieState) error
+}
+
+type Network interface {
+	// DoBlockRequest sends a request to the given peer. If a response is received within a certain time period, it is returned, otherwise an error is returned.
+	DoBlockRequest(to peer.ID, req *BlockRequestMessage) (*BlockResponseMessage, error)
 }

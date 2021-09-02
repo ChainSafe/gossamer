@@ -427,7 +427,7 @@ func newSyncService(cfg *Config, st *state.Service, fg sync.FinalityGadget, veri
 		StorageState:       st.Storage,
 		TransactionState:   st.Transaction,
 		FinalityGadget:     fg,
-		Verifier:           verifier,
+		BabeVerifier:       verifier,
 		BlockImportHandler: cs,
 	}
 
