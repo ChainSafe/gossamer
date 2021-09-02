@@ -104,6 +104,29 @@ func (_m *BlockAPI) GetFinalisedHash(_a0 uint64, _a1 uint64) (common.Hash, error
 }
 
 // GetHeader provides a mock function with given fields: hash
+func (_m *BlockAPI) GetHeaderVdt(hash common.Hash) (*types.HeaderVdt, error) {
+	ret := _m.Called(hash)
+
+	var r0 *types.HeaderVdt
+	if rf, ok := ret.Get(0).(func(common.Hash) *types.HeaderVdt); ok {
+		r0 = rf(hash)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*types.HeaderVdt)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(common.Hash) error); ok {
+		r1 = rf(hash)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetHeader provides a mock function with given fields: hash
 func (_m *BlockAPI) GetHeader(hash common.Hash) (*types.Header, error) {
 	ret := _m.Called(hash)
 

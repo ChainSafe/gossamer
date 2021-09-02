@@ -37,7 +37,7 @@ func TestChainGetHeader_Genesis(t *testing.T) {
 	state := newTestStateService(t)
 	svc := NewChainModule(state.Block)
 
-	header, err := state.Block.BestBlockHeader()
+	header, err := state.Block.BestBlockHeaderVdt()
 	require.NoError(t, err)
 
 	d, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest().Encode()
@@ -58,7 +58,7 @@ func TestChainGetHeader_Genesis(t *testing.T) {
 	res := &ChainBlockHeaderResponse{}
 	req := &ChainHashRequest{Bhash: &hash}
 
-	err = svc.GetHeader(nil, req, res)
+	err = svc.GetHeaderVdt(nil, req, res)
 	require.NoError(t, err)
 	require.Equal(t, expected, res)
 }
@@ -382,7 +382,7 @@ func loadTestBlocks(gh common.Hash, bs *state.BlockState, rt runtime.Instance) e
 	//	StateRoot:  trie.EmptyHash,
 	//}
 	digest := types.NewDigestVdt()
-	digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	header1 := &types.HeaderVdt{
 		Number:     big.NewInt(1),
 		Digest:     digest,

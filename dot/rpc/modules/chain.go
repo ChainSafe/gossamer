@@ -151,6 +151,17 @@ func (cm *ChainModule) GetFinalizedHeadByRound(r *http.Request, req *ChainFinali
 	return nil
 }
 
+func (cm *ChainModule) GetHeaderVdt(r *http.Request, req *ChainHashRequest, res *ChainBlockHeaderResponse) error {
+	hash := cm.hashLookup(req)
+	header, err := cm.blockAPI.GetHeaderVdt(hash)
+	if err != nil {
+		return err
+	}
+
+	*res, err = HeaderToJSONVdt(*header)
+	return err
+}
+
 //GetHeader Get header of a relay chain block. If no block hash is provided, the latest block header will be returned.
 func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *ChainBlockHeaderResponse) error {
 	hash := cm.hashLookup(req)
@@ -288,10 +299,19 @@ func HeaderToJSONVdt(header types.HeaderVdt) (ChainBlockHeaderResponse, error) {
 	//	}
 	//	res.Digest.Logs = append(res.Digest.Logs, common.BytesToHex(enc))
 	//}
-	enc, err := scale.Marshal(header.Digest)
-	if err != nil {
-		return ChainBlockHeaderResponse{}, err
+
+	for _, item := range header.Digest.Types {
+		//enc, err := item.Encode()
+		enc, err := scale.Marshal(item)
+		if err != nil {
+			return ChainBlockHeaderResponse{}, err
+		}
+		res.Digest.Logs = append(res.Digest.Logs, common.BytesToHex(enc))
 	}
-	res.Digest.Logs = append(res.Digest.Logs, common.BytesToHex(enc))
+	//enc, err := scale.Marshal(header.Digest)
+	//if err != nil {
+	//	return ChainBlockHeaderResponse{}, err
+	//}
+	//res.Digest.Logs = append(res.Digest.Logs, common.BytesToHex(enc))
 	return res, nil
 }
