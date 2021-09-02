@@ -46,13 +46,13 @@ func TestConcurrencySetHeader(t *testing.T) {
 				db: dbs[index],
 			}
 
-			header := &types.Header{
+			header := &types.HeaderVdt{
 				Number:    big.NewInt(0),
 				StateRoot: trie.EmptyHash,
-				Digest:    types.Digest{},
+				Digest:    types.NewDigestVdt(),
 			}
 
-			err := bs.SetHeader(header)
+			err := bs.SetHeaderNew(header)
 			require.Nil(t, err)
 
 			res, err := bs.GetHeader(header.Hash())

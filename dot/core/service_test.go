@@ -51,7 +51,7 @@ func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 }
 
 func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, depth int, blockState BlockState) []*types.HeaderVdt {
-	prevHeader, err := blockState.(*state.BlockState).GetHeader(previousHash)
+	prevHeader, err := blockState.(*state.BlockState).GetHeaderVdt(previousHash)
 	require.NoError(t, err)
 	previousNum := prevHeader.Number
 
@@ -318,7 +318,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	require.NoError(t, err)
 
 	// get common ancestor
-	ancestor, err := s.blockState.(*state.BlockState).GetBlockByNumber(big.NewInt(int64(branch - 1)))
+	ancestor, err := s.blockState.(*state.BlockState).GetBlockByNumberVdt(big.NewInt(int64(branch - 1)))
 	require.NoError(t, err)
 
 	// build "re-org" chain

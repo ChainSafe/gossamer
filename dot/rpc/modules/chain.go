@@ -87,17 +87,17 @@ func NewChainModule(api BlockAPI) *ChainModule {
 //  the latest block body will be returned.
 func (cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *ChainBlockResponse) error {
 	hash := cm.hashLookup(req)
-	block, err := cm.blockAPI.GetBlockByHash(hash)
+	block, err := cm.blockAPI.GetBlockByHashVdt(hash)
 	if err != nil {
 		return err
 	}
 
-	res.Block.Header, err = HeaderToJSON(*block.Header)
+	res.Block.Header, err = HeaderToJSONVdt(block.Header)
 	if err != nil {
 		return err
 	}
 
-	if *block.Body != nil {
+	if block.Body != nil {
 		ext, err := block.Body.AsEncodedExtrinsics()
 		if err != nil {
 			return err

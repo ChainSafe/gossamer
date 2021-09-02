@@ -28,10 +28,10 @@ import (
 var maxResponseSize uint32 = 128 // maximum number of block datas to reply with in a BlockResponse message.
 
 // CreateBlockResponse creates a block response message from a block request message
-func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage) (*network.BlockResponseMessageNew, error) {
+func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
 	var (
 		startHash, endHash     common.Hash
-		startHeader, endHeader *types.Header
+		startHeader, endHeader *types.HeaderVdt
 		err                    error
 		respSize               uint32
 	)
@@ -55,16 +55,16 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 			startBlock = 1
 		}
 
-		block, err := s.blockState.GetBlockByNumber(big.NewInt(0).SetUint64(startBlock)) //nolint
+		block, err := s.blockState.GetBlockByNumberVdt(big.NewInt(0).SetUint64(startBlock)) //nolint
 		if err != nil {
 			return nil, err
 		}
 
-		startHeader = block.Header
+		startHeader = &block.Header
 		startHash = block.Header.Hash()
 	case common.Hash:
 		startHash = startBlock
-		startHeader, err = s.blockState.GetHeader(startHash)
+		startHeader, err = s.blockState.GetHeaderVdt(startHash)
 		if err != nil {
 			return nil, err
 		}
@@ -72,7 +72,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 
 	if blockRequest.EndBlockHash != nil && blockRequest.EndBlockHash.Exists() {
 		endHash = blockRequest.EndBlockHash.Value()
-		endHeader, err = s.blockState.GetHeader(endHash)
+		endHeader, err = s.blockState.GetHeaderVdt(endHash)
 		if err != nil {
 			return nil, err
 		}
@@ -87,11 +87,11 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 			endNumber = bestBlockNumber
 		}
 
-		endBlock, err := s.blockState.GetBlockByNumber(endNumber)
+		endBlock, err := s.blockState.GetBlockByNumberVdt(endNumber)
 		if err != nil {
 			return nil, err
 		}
-		endHeader = endBlock.Header
+		endHeader = &endBlock.Header
 		endHash = endHeader.Hash()
 	}
 
@@ -121,7 +121,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 	}
 
 	logger.Debug("sending BlockResponseMessage", "start", startHeader.Number, "end", endHeader.Number)
-	return &network.BlockResponseMessageNew{
+	return &network.BlockResponseMessage{
 		BlockData: responseData,
 	}, nil
 }

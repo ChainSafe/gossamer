@@ -63,8 +63,8 @@ func NewMockTransactionHandler() *MockTransactionHandler {
 	return mocktxhandler
 }
 
-func testBlockResponseMessage() *BlockResponseMessageNew {
-	msg := &BlockResponseMessageNew{
+func testBlockResponseMessage() *BlockResponseMessage {
+	msg := &BlockResponseMessage{
 		BlockData: []*types.BlockDataVdt{},
 	}
 

@@ -526,7 +526,7 @@ func TestMessageHandler_VerifyPreCommitJustification(t *testing.T) {
 func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
 	gs, st := newTestService(t)
 
-	err := st.Block.SetHeader(testHeader)
+	err := st.Block.SetHeaderNew(testHeaderVdt)
 	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block)

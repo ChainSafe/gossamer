@@ -165,7 +165,7 @@ func TestRemoveIncludedExtrinsics(t *testing.T) {
 		Body: body,
 	}
 
-	msg := &network.BlockResponseMessageNew{
+	msg := &network.BlockResponseMessage{
 		BlockData: []*types.BlockDataVdt{bd},
 	}
 

@@ -36,7 +36,7 @@ type BlockState interface {
 // Syncer is implemented by the syncing service
 type Syncer interface {
 	// CreateBlockResponse is called upon receipt of a BlockRequestMessage to create the response
-	CreateBlockResponse(*BlockRequestMessage) (*BlockResponseMessageNew, error)
+	CreateBlockResponse(*BlockRequestMessage) (*BlockResponseMessage, error)
 
 	ProcessJustification(data []*types.BlockDataVdt) (int, error)
 

@@ -491,7 +491,7 @@ func (q *syncQueue) pushRequest(start uint64, numRequests int, to peer.ID) {
 	}
 }
 
-func (q *syncQueue) pushResponse(resp *BlockResponseMessageNew, pid peer.ID) error {
+func (q *syncQueue) pushResponse(resp *BlockResponseMessage, pid peer.ID) error {
 	if len(resp.BlockData) == 0 {
 		return errEmptyResponseData
 	}
@@ -683,7 +683,7 @@ func (q *syncQueue) trySync(req *syncRequest) {
 	}
 }
 
-func (q *syncQueue) syncWithPeer(peer peer.ID, req *BlockRequestMessage) (*BlockResponseMessageNew, error) {
+func (q *syncQueue) syncWithPeer(peer peer.ID, req *BlockRequestMessage) (*BlockResponseMessage, error) {
 	fullSyncID := q.s.host.protocolID + syncID
 
 	q.s.host.h.ConnManager().Protect(peer, "")
@@ -706,13 +706,13 @@ func (q *syncQueue) syncWithPeer(peer peer.ID, req *BlockRequestMessage) (*Block
 	return q.receiveBlockResponse(s)
 }
 
-func (q *syncQueue) receiveBlockResponse(stream libp2pnetwork.Stream) (*BlockResponseMessageNew, error) {
+func (q *syncQueue) receiveBlockResponse(stream libp2pnetwork.Stream) (*BlockResponseMessage, error) {
 	n, err := readStream(stream, q.buf)
 	if err != nil {
 		return nil, err
 	}
 
-	msg := new(BlockResponseMessageNew)
+	msg := new(BlockResponseMessage)
 	err = msg.Decode(q.buf[:n])
 	for _, bd := range msg.BlockData {
 		if bd.Header != nil {

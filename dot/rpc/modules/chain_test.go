@@ -218,7 +218,7 @@ func TestChainGetBlockHash_ByNumber(t *testing.T) {
 	err := svc.GetBlockHash(nil, &req, &res)
 	require.Nil(t, err)
 
-	expected, err := state.Block.GetBlockByNumber(big.NewInt(1))
+	expected, err := state.Block.GetBlockByNumberVdt(big.NewInt(1))
 	require.NoError(t, err)
 	require.Equal(t, expected.Header.Hash().String(), res)
 }
@@ -234,7 +234,7 @@ func TestChainGetBlockHash_ByHex(t *testing.T) {
 	err := svc.GetBlockHash(nil, &req, &res)
 	require.NoError(t, err)
 
-	expected, err := state.Block.GetBlockByNumber(big.NewInt(1))
+	expected, err := state.Block.GetBlockByNumberVdt(big.NewInt(1))
 	require.NoError(t, err)
 	require.Equal(t, expected.Header.Hash().String(), res)
 }
@@ -254,9 +254,9 @@ func TestChainGetBlockHash_Array(t *testing.T) {
 	err := svc.GetBlockHash(nil, &req, &res)
 	require.Nil(t, err)
 
-	expected0, err := state.Block.GetBlockByNumber(big.NewInt(0))
+	expected0, err := state.Block.GetBlockByNumberVdt(big.NewInt(0))
 	require.NoError(t, err)
-	expected1, err := state.Block.GetBlockByNumber(big.NewInt(1))
+	expected1, err := state.Block.GetBlockByNumberVdt(big.NewInt(1))
 	require.NoError(t, err)
 	expected := []string{expected0.Header.Hash().String(), expected1.Header.Hash().String()}
 
@@ -288,13 +288,13 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 	expected := genesisHeader.Hash()
 	require.Equal(t, common.BytesToHex(expected[:]), res)
 
-	header := &types.Header{
+	digest := types.NewDigestVdt()
+	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	header := &types.HeaderVdt{
 		Number: big.NewInt(1),
-		Digest: types.Digest{
-			types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
-		},
+		Digest: digest,
 	}
-	err = state.Block.SetHeader(header)
+	err = state.Block.SetHeaderNew(header)
 	require.NoError(t, err)
 
 	testhash := header.Hash()

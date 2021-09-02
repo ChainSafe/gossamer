@@ -100,7 +100,7 @@ func TestEncodeBlockResponseMessage_Empty(t *testing.T) {
 	bd.Header = types.NewEmptyHeaderVdt()
 	bd.Header.Hash()
 
-	bm := &BlockResponseMessageNew{
+	bm := &BlockResponseMessage{
 		BlockData: []*types.BlockDataVdt{bd},
 	}
 
@@ -110,7 +110,7 @@ func TestEncodeBlockResponseMessage_Empty(t *testing.T) {
 	empty := types.NewEmptyBlockDataVdt()
 	empty.Header = types.NewEmptyHeaderVdt()
 
-	act := &BlockResponseMessageNew{
+	act := &BlockResponseMessage{
 		BlockData: []*types.BlockDataVdt{empty},
 	}
 	err = act.Decode(enc)
@@ -143,7 +143,7 @@ func TestEncodeBlockResponseMessage_WithBody(t *testing.T) {
 		Justification: nil,
 	}
 
-	bm := &BlockResponseMessageNew{
+	bm := &BlockResponseMessage{
 		BlockData: []*types.BlockDataVdt{bd},
 	}
 
@@ -153,7 +153,7 @@ func TestEncodeBlockResponseMessage_WithBody(t *testing.T) {
 	empty := types.NewEmptyBlockDataVdt()
 	empty.Header = types.NewEmptyHeaderVdt()
 
-	act := &BlockResponseMessageNew{
+	act := &BlockResponseMessage{
 		BlockData: []*types.BlockDataVdt{empty},
 	}
 	err = act.Decode(enc)
@@ -189,7 +189,7 @@ func TestEncodeBlockResponseMessage_WithAll(t *testing.T) {
 		Justification: &[]byte{3},
 	}
 
-	bm := &BlockResponseMessageNew{
+	bm := &BlockResponseMessage{
 		BlockData: []*types.BlockDataVdt{bd},
 	}
 
@@ -200,7 +200,7 @@ func TestEncodeBlockResponseMessage_WithAll(t *testing.T) {
 	empty := types.NewEmptyBlockDataVdt()
 	empty.Header = types.NewEmptyHeaderVdt()
 
-	act := &BlockResponseMessageNew{
+	act := &BlockResponseMessage{
 		BlockData: []*types.BlockDataVdt{empty},
 	}
 	err = act.Decode(enc)

@@ -30,7 +30,8 @@ type BlockAPI interface {
 	GetHeader(hash common.Hash) (*types.Header, error)
 	GetHeaderVdt(hash common.Hash) (*types.HeaderVdt, error)
 	BestBlockHash() common.Hash
-	GetBlockByHash(hash common.Hash) (*types.Block, error)
+	//GetBlockByHash(hash common.Hash) (*types.Block, error)
+	GetBlockByHashVdt(hash common.Hash) (*types.BlockVdt, error)
 	GetBlockHash(blockNumber *big.Int) (common.Hash, error)
 	GetFinalisedHash(uint64, uint64) (common.Hash, error)
 	GetHighestFinalisedHash() (common.Hash, error)

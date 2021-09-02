@@ -80,7 +80,7 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
 	}
 
-	genesisBlock, err := bs.GetBlockByNumber(big.NewInt(0))
+	genesisBlock, err := bs.GetBlockByNumberVdt(big.NewInt(0))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get genesis header: %w", err)
 	}
@@ -335,19 +335,20 @@ func (bs *BlockState) GetBlockByHashVdt(hash common.Hash) (*types.BlockVdt, erro
 	return &types.BlockVdt{Header: *header, Body: *blockBody}, nil
 }
 
-// GetBlockByHash returns a block for a given hash
-func (bs *BlockState) GetBlockByHash(hash common.Hash) (*types.Block, error) {
-	header, err := bs.GetHeader(hash)
-	if err != nil {
-		return nil, err
-	}
-
-	blockBody, err := bs.GetBlockBody(hash)
-	if err != nil {
-		return nil, err
-	}
-	return &types.Block{Header: header, Body: blockBody}, nil
-}
+//// TODO delete
+//// GetBlockByHash returns a block for a given hash
+//func (bs *BlockState) GetBlockByHash(hash common.Hash) (*types.Block, error) {
+//	header, err := bs.GetHeader(hash)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	blockBody, err := bs.GetBlockBody(hash)
+//	if err != nil {
+//		return nil, err
+//	}
+//	return &types.Block{Header: header, Body: blockBody}, nil
+//}
 
 func (bs *BlockState) GetBlockByNumberVdt(num *big.Int) (*types.BlockVdt, error) {
 	// First retrieve the block hash in a byte array based on the block number from the database
@@ -366,23 +367,24 @@ func (bs *BlockState) GetBlockByNumberVdt(num *big.Int) (*types.BlockVdt, error)
 	return block, nil
 }
 
-// GetBlockByNumber returns a block for a given blockNumber
-func (bs *BlockState) GetBlockByNumber(num *big.Int) (*types.Block, error) {
-	// First retrieve the block hash in a byte array based on the block number from the database
-	byteHash, err := bs.db.Get(headerHashKey(num.Uint64()))
-	if err != nil {
-		return nil, fmt.Errorf("cannot get block %d: %w", num, err)
-	}
-
-	// Then find the block based on the hash
-	hash := common.NewHash(byteHash)
-	block, err := bs.GetBlockByHash(hash)
-	if err != nil {
-		return nil, err
-	}
-
-	return block, nil
-}
+//// TODO delete
+//// GetBlockByNumber returns a block for a given blockNumber
+//func (bs *BlockState) GetBlockByNumber(num *big.Int) (*types.Block, error) {
+//	// First retrieve the block hash in a byte array based on the block number from the database
+//	byteHash, err := bs.db.Get(headerHashKey(num.Uint64()))
+//	if err != nil {
+//		return nil, fmt.Errorf("cannot get block %d: %w", num, err)
+//	}
+//
+//	// Then find the block based on the hash
+//	hash := common.NewHash(byteHash)
+//	block, err := bs.GetBlockByHash(hash)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	return block, nil
+//}
 
 // GetBlockHash returns block hash for a given blockNumber
 func (bs *BlockState) GetBlockHash(blockNumber *big.Int) (common.Hash, error) {
@@ -469,26 +471,26 @@ func (bs *BlockState) CompareAndSetBlockDataVdt(bd *types.BlockDataVdt) error {
 	return nil
 }
 
-// CompareAndSetBlockData will compare empty fields and set all elements in a block data to db
-func (bs *BlockState) CompareAndSetBlockData(bd *types.BlockData) error {
-	hasReceipt, _ := bs.HasReceipt(bd.Hash)
-	if bd.Receipt != nil && bd.Receipt.Exists() && !hasReceipt {
-		err := bs.SetReceipt(bd.Hash, bd.Receipt.Value())
-		if err != nil {
-			return err
-		}
-	}
-
-	hasMessageQueue, _ := bs.HasMessageQueue(bd.Hash)
-	if bd.MessageQueue != nil && bd.MessageQueue.Exists() && !hasMessageQueue {
-		err := bs.SetMessageQueue(bd.Hash, bd.MessageQueue.Value())
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
+//// CompareAndSetBlockData will compare empty fields and set all elements in a block data to db
+//func (bs *BlockState) CompareAndSetBlockData(bd *types.BlockData) error {
+//	hasReceipt, _ := bs.HasReceipt(bd.Hash)
+//	if bd.Receipt != nil && bd.Receipt.Exists() && !hasReceipt {
+//		err := bs.SetReceipt(bd.Hash, bd.Receipt.Value())
+//		if err != nil {
+//			return err
+//		}
+//	}
+//
+//	hasMessageQueue, _ := bs.HasMessageQueue(bd.Hash)
+//	if bd.MessageQueue != nil && bd.MessageQueue.Exists() && !hasMessageQueue {
+//		err := bs.SetMessageQueue(bd.Hash, bd.MessageQueue.Value())
+//		if err != nil {
+//			return err
+//		}
+//	}
+//
+//	return nil
+//}
 
 func (bs *BlockState) AddBlockVdt(block *types.BlockVdt) error {
 	bs.Lock()
@@ -659,18 +661,18 @@ func (bs *BlockState) AddBlockToBlockTreeVdt(header *types.HeaderVdt) error {
 	return bs.bt.AddBlockVdt(header, uint64(arrivalTime.UnixNano()))
 }
 
-// AddBlockToBlockTree adds the given block to the blocktree. It does not write it to the database.
-func (bs *BlockState) AddBlockToBlockTree(header *types.Header) error {
-	bs.Lock()
-	defer bs.Unlock()
-
-	arrivalTime, err := bs.GetArrivalTime(header.Hash())
-	if err != nil {
-		arrivalTime = time.Now()
-	}
-
-	return bs.bt.AddBlock(header, uint64(arrivalTime.UnixNano()))
-}
+//// AddBlockToBlockTree adds the given block to the blocktree. It does not write it to the database.
+//func (bs *BlockState) AddBlockToBlockTree(header *types.Header) error {
+//	bs.Lock()
+//	defer bs.Unlock()
+//
+//	arrivalTime, err := bs.GetArrivalTime(header.Hash())
+//	if err != nil {
+//		arrivalTime = time.Now()
+//	}
+//
+//	return bs.bt.AddBlock(header, uint64(arrivalTime.UnixNano()))
+//}
 
 // GetAllBlocksAtDepth returns all hashes with the depth of the given hash plus one
 func (bs *BlockState) GetAllBlocksAtDepth(hash common.Hash) []common.Hash {
@@ -701,28 +703,28 @@ func (bs *BlockState) isBlockOnCurrentChainVdt(header *types.HeaderVdt) (bool, e
 	return true, nil
 }
 
-func (bs *BlockState) isBlockOnCurrentChain(header *types.Header) (bool, error) {
-	bestBlock, err := bs.BestBlockHeader()
-	if err != nil {
-		return false, err
-	}
-
-	// if the new block is ahead of our best block, then it is on our current chain.
-	if header.Number.Cmp(bestBlock.Number) > 0 {
-		return true, nil
-	}
-
-	is, err := bs.IsDescendantOf(header.Hash(), bestBlock.Hash())
-	if err != nil {
-		return false, err
-	}
-
-	if !is {
-		return false, nil
-	}
-
-	return true, nil
-}
+//func (bs *BlockState) isBlockOnCurrentChain(header *types.Header) (bool, error) {
+//	bestBlock, err := bs.BestBlockHeader()
+//	if err != nil {
+//		return false, err
+//	}
+//
+//	// if the new block is ahead of our best block, then it is on our current chain.
+//	if header.Number.Cmp(bestBlock.Number) > 0 {
+//		return true, nil
+//	}
+//
+//	is, err := bs.IsDescendantOf(header.Hash(), bestBlock.Hash())
+//	if err != nil {
+//		return false, err
+//	}
+//
+//	if !is {
+//		return false, nil
+//	}
+//
+//	return true, nil
+//}
 
 // BestBlockHash returns the hash of the head of the current chain
 func (bs *BlockState) BestBlockHash() common.Hash {
@@ -767,9 +769,15 @@ func (bs *BlockState) BestBlockNumber() (*big.Int, error) {
 }
 
 // BestBlock returns the current head of the chain
-func (bs *BlockState) BestBlock() (*types.Block, error) {
-	return bs.GetBlockByHash(bs.BestBlockHash())
+func (bs *BlockState) BestBlockVdt() (*types.BlockVdt, error) {
+	return bs.GetBlockByHashVdt(bs.BestBlockHash())
 }
+
+//// TODO Delete
+//// BestBlock returns the current head of the chain
+//func (bs *BlockState) BestBlock() (*types.Block, error) {
+//	return bs.GetBlockByHash(bs.BestBlockHash())
+//}
 
 // GetSlotForBlock returns the slot for a block
 func (bs *BlockState) GetSlotForBlock(hash common.Hash) (uint64, error) {

@@ -32,9 +32,9 @@ type BlockState interface {
 	BestBlockNumber() (*big.Int, error)
 	//AddBlock(*types.Block) error
 	AddBlockVdt(*types.BlockVdt) error
-	CompareAndSetBlockData(bd *types.BlockData) error
+	//CompareAndSetBlockData(bd *types.BlockData) error
 	CompareAndSetBlockDataVdt(bd *types.BlockDataVdt) error
-	GetBlockByNumber(*big.Int) (*types.Block, error)
+	//GetBlockByNumber(*big.Int) (*types.Block, error)
 	GetBlockByNumberVdt(*big.Int) (*types.BlockVdt, error)
 	HasBlockBody(hash common.Hash) (bool, error)
 	GetBlockBody(common.Hash) (*types.Body, error)
@@ -49,10 +49,10 @@ type BlockState interface {
 	GetJustification(common.Hash) ([]byte, error)
 	SetJustification(hash common.Hash, data []byte) error
 	SetFinalisedHash(hash common.Hash, round, setID uint64) error
-	AddBlockToBlockTree(header *types.Header) error
+	//AddBlockToBlockTree(header *types.Header) error
 	AddBlockToBlockTreeVdt(header *types.HeaderVdt) error
 	GetHashByNumber(*big.Int) (common.Hash, error)
-	GetBlockByHash(common.Hash) (*types.Block, error)
+	//GetBlockByHash(common.Hash) (*types.Block, error)
 	GetBlockByHashVdt(common.Hash) (*types.BlockVdt, error)
 	GetRuntime(*common.Hash) (runtime.Instance, error)
 	StoreRuntime(common.Hash, runtime.Instance)

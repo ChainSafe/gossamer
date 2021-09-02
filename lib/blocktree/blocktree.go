@@ -55,6 +55,26 @@ func NewEmptyBlockTree(db database.Database) *BlockTree {
 
 // NewBlockTreeFromRoot initialises a blocktree with a root block. The root block is always the most recently
 // finalised block (ie the genesis block if the node is just starting.)
+func NewBlockTreeFromRootVdt(root *types.HeaderVdt, db database.Database) *BlockTree {
+	head := &node{
+		hash:        root.Hash(),
+		parent:      nil,
+		children:    []*node{},
+		depth:       big.NewInt(0),
+		arrivalTime: uint64(time.Now().Unix()), // TODO: genesis block doesn't need an arrival time, it isn't used in median algo
+	}
+
+	return &BlockTree{
+		head:      head,
+		leaves:    newLeafMap(head),
+		db:        db,
+		nodeCache: make(map[Hash]*node),
+		runtime:   &sync.Map{},
+	}
+}
+
+// NewBlockTreeFromRoot initialises a blocktree with a root block. The root block is always the most recently
+// finalised block (ie the genesis block if the node is just starting.)
 func NewBlockTreeFromRoot(root *types.Header, db database.Database) *BlockTree {
 	head := &node{
 		hash:        root.Hash(),

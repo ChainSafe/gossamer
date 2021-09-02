@@ -173,7 +173,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 	testCases := []struct {
 		description      string
 		value            *network.BlockRequestMessage
-		expectedMsgValue *network.BlockResponseMessageNew
+		expectedMsgValue *network.BlockResponseMessage
 	}{
 		{
 			description: "test get Header and Body",
@@ -184,7 +184,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				Direction:     0,
 				Max:           optional.NewUint32(false, 0),
 			},
-			expectedMsgValue: &network.BlockResponseMessageNew{
+			expectedMsgValue: &network.BlockResponseMessage{
 				BlockData: []*types.BlockDataVdt{
 					{
 						Hash:   optional.NewHash(true, bestHash).Value(),
@@ -203,7 +203,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				Direction:     0,
 				Max:           optional.NewUint32(false, 0),
 			},
-			expectedMsgValue: &network.BlockResponseMessageNew{
+			expectedMsgValue: &network.BlockResponseMessage{
 				BlockData: []*types.BlockDataVdt{
 					{
 						Hash:   optional.NewHash(true, bestHash).Value(),
@@ -222,7 +222,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				Direction:     0,
 				Max:           optional.NewUint32(false, 0),
 			},
-			expectedMsgValue: &network.BlockResponseMessageNew{
+			expectedMsgValue: &network.BlockResponseMessage{
 				BlockData: []*types.BlockDataVdt{
 					{
 						Hash:    optional.NewHash(true, bestHash).Value(),
@@ -242,7 +242,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				Direction:     0,
 				Max:           optional.NewUint32(false, 0),
 			},
-			expectedMsgValue: &network.BlockResponseMessageNew{
+			expectedMsgValue: &network.BlockResponseMessage{
 				BlockData: []*types.BlockDataVdt{
 					{
 						Hash:         optional.NewHash(true, bestHash).Value(),

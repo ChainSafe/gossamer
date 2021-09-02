@@ -82,7 +82,7 @@ func TestSyncQueue_PushResponse(t *testing.T) {
 	s := createTestService(t, config)
 
 	peerID := peer.ID("noot")
-	msg := &BlockResponseMessageNew{
+	msg := &BlockResponseMessage{
 		BlockData: []*types.BlockDataVdt{},
 	}
 

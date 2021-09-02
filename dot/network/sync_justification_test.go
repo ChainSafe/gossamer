@@ -43,7 +43,7 @@ func TestSyncQueue_PushResponse_Justification(t *testing.T) {
 	time.Sleep(time.Second)
 
 	peerID := peer.ID("noot")
-	msg := &BlockResponseMessageNew{
+	msg := &BlockResponseMessage{
 		BlockData: []*types.BlockDataVdt{},
 	}
 
@@ -81,7 +81,7 @@ func TestSyncQueue_PushResponse_EmptyJustification(t *testing.T) {
 	time.Sleep(time.Second)
 
 	peerID := peer.ID("noot")
-	msg := &BlockResponseMessageNew{
+	msg := &BlockResponseMessage{
 		BlockData: []*types.BlockDataVdt{},
 	}
 

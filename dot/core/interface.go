@@ -34,11 +34,11 @@ type BlockState interface {
 	BestBlockHeaderVdt() (*types.HeaderVdt, error)
 	BestBlockNumber() (*big.Int, error)
 	BestBlockStateRoot() (common.Hash, error)
-	BestBlock() (*types.Block, error)
+	BestBlockVdt() (*types.BlockVdt, error)
 	//AddBlock(*types.Block) error
 	AddBlockVdt(*types.BlockVdt) error
 	GetAllBlocksAtDepth(hash common.Hash) []common.Hash
-	GetBlockByHash(common.Hash) (*types.Block, error)
+	GetBlockByHashVdt(common.Hash) (*types.BlockVdt, error)
 	GenesisHash() common.Hash
 	GetSlotForBlock(common.Hash) (uint64, error)
 	GetFinalisedHeader(uint64, uint64) (*types.Header, error)

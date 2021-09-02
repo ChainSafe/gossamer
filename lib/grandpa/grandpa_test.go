@@ -880,7 +880,7 @@ func TestFindParentWithNumber(t *testing.T) {
 	require.NoError(t, err)
 	t.Log(st.Block.BlocktreeAsString())
 
-	expected, err := st.Block.GetBlockByNumber(big.NewInt(1))
+	expected, err := st.Block.GetBlockByNumberVdt(big.NewInt(1))
 	require.NoError(t, err)
 
 	require.Equal(t, expected.Header.Hash(), p.Hash)

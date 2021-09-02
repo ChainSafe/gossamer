@@ -36,7 +36,7 @@ func TestGrandpaProveFinality(t *testing.T) {
 	testStateService := newTestStateService(t)
 
 	state.AddBlocksToState(t, testStateService.Block, 3)
-	bestBlock, err := testStateService.Block.BestBlock()
+	bestBlock, err := testStateService.Block.BestBlockVdt()
 
 	if err != nil {
 		t.Errorf("Fail: bestblock failed")

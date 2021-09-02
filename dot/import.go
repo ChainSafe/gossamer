@@ -17,7 +17,6 @@
 package dot
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
@@ -84,7 +83,7 @@ func newTrieFromPairs(filename string) (*trie.Trie, error) {
 	return tr, nil
 }
 
-func newHeaderFromFile(filename string) (*types.Header, error) {
+func newHeaderFromFile(filename string) (*types.HeaderVdt, error) {
 	data, err := ioutil.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return nil, err
@@ -127,22 +126,29 @@ func newHeaderFromFile(filename string) (*types.Header, error) {
 	}
 	logs := digestRaw["logs"].([]interface{})
 
-	digest := types.Digest{}
+	//digest := types.Digest{}
+	digest := types.NewDigestVdt()
 
 	for _, log := range logs {
 		digestBytes := common.MustHexToBytes(log.(string))
-		r := &bytes.Buffer{}
-		_, _ = r.Write(digestBytes)
-		decoder := scale.NewDecoder(r)
-		digestItem, err := types.DecodeDigestItem(decoder)
+		//r := &bytes.Buffer{}
+		//_, _ = r.Write(digestBytes)
+		//decoder := scale.NewDecoder(r)
+		//digestItem, err := types.DecodeDigestItem(decoder)
+		//if err != nil {
+		//	return nil, err
+		//}
+
+		var digestItem scale.VaryingDataType
+		err := scale.Unmarshal(digestBytes, &digestItem)
 		if err != nil {
 			return nil, err
 		}
-
-		digest = append(digest, digestItem)
+		//digest = append(digest, digestItem)
+		digest.Add(digestItem.Value())
 	}
 
-	header := &types.Header{
+	header := &types.HeaderVdt{
 		ParentHash:     parentHash,
 		Number:         num,
 		StateRoot:      stateRoot,

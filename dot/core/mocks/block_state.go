@@ -49,15 +49,15 @@ func (_m *MockBlockState) AddBlockVdt(_a0 *types.BlockVdt) error {
 }
 
 // BestBlock provides a mock function with given fields:
-func (_m *MockBlockState) BestBlock() (*types.Block, error) {
+func (_m *MockBlockState) BestBlockVdt() (*types.BlockVdt, error) {
 	ret := _m.Called()
 
-	var r0 *types.Block
-	if rf, ok := ret.Get(0).(func() *types.Block); ok {
+	var r0 *types.BlockVdt
+	if rf, ok := ret.Get(0).(func() *types.BlockVdt); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Block)
+			r0 = ret.Get(0).(*types.BlockVdt)
 		}
 	}
 
@@ -234,15 +234,15 @@ func (_m *MockBlockState) GetBlockBody(hash common.Hash) (*types.Body, error) {
 }
 
 // GetBlockByHash provides a mock function with given fields: _a0
-func (_m *MockBlockState) GetBlockByHash(_a0 common.Hash) (*types.Block, error) {
+func (_m *MockBlockState) GetBlockByHashVdt(_a0 common.Hash) (*types.BlockVdt, error) {
 	ret := _m.Called(_a0)
 
-	var r0 *types.Block
-	if rf, ok := ret.Get(0).(func(common.Hash) *types.Block); ok {
+	var r0 *types.BlockVdt
+	if rf, ok := ret.Get(0).(func(common.Hash) *types.BlockVdt); ok {
 		r0 = rf(_a0)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Block)
+			r0 = ret.Get(0).(*types.BlockVdt)
 		}
 	}
 

@@ -182,14 +182,14 @@ func (bm *BlockRequestMessage) Decode(in []byte) error {
 	return nil
 }
 
-var _ Message = &BlockResponseMessageNew{}
+var _ Message = &BlockResponseMessage{}
 
-// BlockResponseMessageNew is sent in response to a BlockRequestMessage
-type BlockResponseMessageNew struct {
+// BlockResponseMessage is sent in response to a BlockRequestMessage
+type BlockResponseMessage struct {
 	BlockData []*types.BlockDataVdt
 }
 
-func (bm *BlockResponseMessageNew) getStartAndEnd() (int64, int64, error) {
+func (bm *BlockResponseMessage) getStartAndEnd() (int64, int64, error) {
 	if len(bm.BlockData) == 0 {
 		return 0, 0, errors.New("no BlockData in BlockResponseMessage")
 	}
@@ -205,11 +205,11 @@ func (bm *BlockResponseMessageNew) getStartAndEnd() (int64, int64, error) {
 	return bm.BlockData[0].Header.Number.Int64(), bm.BlockData[len(bm.BlockData)-1].Header.Number.Int64(), nil
 }
 
-func (bm *BlockResponseMessageNew) SubProtocol() string {
+func (bm *BlockResponseMessage) SubProtocol() string {
 	return syncID
 }
 
-func (bm *BlockResponseMessageNew) String() string {
+func (bm *BlockResponseMessage) String() string {
 	if bm == nil {
 		return "BlockResponseMessage=nil"
 	}
@@ -217,7 +217,7 @@ func (bm *BlockResponseMessageNew) String() string {
 	return fmt.Sprintf("BlockResponseMessage BlockData=%v", bm.BlockData)
 }
 
-func (bm *BlockResponseMessageNew) Encode() ([]byte, error) {
+func (bm *BlockResponseMessage) Encode() ([]byte, error) {
 	var (
 		err error
 	)
@@ -236,7 +236,7 @@ func (bm *BlockResponseMessageNew) Encode() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
-func (bm *BlockResponseMessageNew) Decode(in []byte) (err error) {
+func (bm *BlockResponseMessage) Decode(in []byte) (err error) {
 	msg := &pb.BlockResponse{}
 	err = proto.Unmarshal(in, msg)
 	if err != nil {

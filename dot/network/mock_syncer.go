@@ -13,15 +13,15 @@ type MockSyncer struct {
 }
 
 // CreateBlockResponse provides a mock function with given fields: _a0
-func (_m *MockSyncer) CreateBlockResponse(_a0 *BlockRequestMessage) (*BlockResponseMessageNew, error) {
+func (_m *MockSyncer) CreateBlockResponse(_a0 *BlockRequestMessage) (*BlockResponseMessage, error) {
 	ret := _m.Called(_a0)
 
-	var r0 *BlockResponseMessageNew
-	if rf, ok := ret.Get(0).(func(*BlockRequestMessage) *BlockResponseMessageNew); ok {
+	var r0 *BlockResponseMessage
+	if rf, ok := ret.Get(0).(func(*BlockRequestMessage) *BlockResponseMessage); ok {
 		r0 = rf(_a0)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*BlockResponseMessageNew)
+			r0 = ret.Get(0).(*BlockResponseMessage)
 		}
 	}
 

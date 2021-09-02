@@ -362,10 +362,12 @@ func TestService_Import(t *testing.T) {
 		tr.Put([]byte(tc), []byte(tc))
 	}
 
-	header := &types.Header{
+	digest := types.NewDigestVdt()
+	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 177).ToPreRuntimeDigest())
+	header := &types.HeaderVdt{
 		Number:    big.NewInt(77),
 		StateRoot: tr.MustHash(),
-		Digest:    types.Digest{types.NewBabeSecondaryPlainPreDigest(0, 177).ToPreRuntimeDigest()},
+		Digest:    digest,
 	}
 
 	firstSlot := uint64(100)
@@ -376,7 +378,7 @@ func TestService_Import(t *testing.T) {
 	err = serv.Start()
 	require.NoError(t, err)
 
-	bestBlockHeader, err := serv.Block.BestBlockHeader()
+	bestBlockHeader, err := serv.Block.BestBlockHeaderVdt()
 	require.NoError(t, err)
 	require.Equal(t, header, bestBlockHeader)
 
@@ -384,7 +386,7 @@ func TestService_Import(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, header.StateRoot, root)
 
-	skip, err := serv.Epoch.SkipVerify(header)
+	skip, err := serv.Epoch.SkipVerifyVdt(header)
 	require.NoError(t, err)
 	require.True(t, skip)
 
