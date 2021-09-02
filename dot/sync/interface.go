@@ -49,6 +49,7 @@ type BlockState interface {
 	GetBlockByHash(common.Hash) (*types.Block, error)
 	GetRuntime(*common.Hash) (runtime.Instance, error)
 	StoreRuntime(common.Hash, runtime.Instance)
+	GetHighestFinalisedHeader() (*types.Header, error)
 }
 
 // StorageState is the interface for the storage state
