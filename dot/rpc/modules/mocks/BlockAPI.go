@@ -215,18 +215,18 @@ func (_m *BlockAPI) RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) 
 }
 
 // RegisterImportedChannel provides a mock function with given fields: ch
-func (_m *BlockAPI) RegisterImportedChannel(ch chan<- *types.Block) (byte, error) {
+func (_m *BlockAPI) RegisterImportedChannel(ch chan<- *types.BlockVdt) (byte, error) {
 	ret := _m.Called(ch)
 
 	var r0 byte
-	if rf, ok := ret.Get(0).(func(chan<- *types.Block) byte); ok {
+	if rf, ok := ret.Get(0).(func(chan<- *types.BlockVdt) byte); ok {
 		r0 = rf(ch)
 	} else {
 		r0 = ret.Get(0).(byte)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(chan<- *types.Block) error); ok {
+	if rf, ok := ret.Get(1).(func(chan<- *types.BlockVdt) error); ok {
 		r1 = rf(ch)
 	} else {
 		r1 = ret.Error(1)

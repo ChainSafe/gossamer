@@ -29,7 +29,7 @@ func NewMockBlockAPI() *modulesmocks.BlockAPI {
 	m.On("GetBlockHash", mock.AnythingOfType("*big.Int")).Return(nil, nil)
 	m.On("GetFinalisedHash", mock.AnythingOfType("uint64"), mock.AnythingOfType("uint64")).Return(common.Hash{}, nil)
 	m.On("GetHighestFinalisedHash").Return(common.Hash{}, nil)
-	m.On("RegisterImportedChannel", mock.AnythingOfType("chan<- *types.Block")).Return(byte(0), nil)
+	m.On("RegisterImportedChannel", mock.AnythingOfType("chan<- *types.BlockVdt")).Return(byte(0), nil)
 	m.On("UnregisterImportedChannel", mock.AnythingOfType("uint8"))
 	m.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).Return(byte(0), nil)
 	m.On("UnregisterFinalizedChannel", mock.AnythingOfType("uint8"))

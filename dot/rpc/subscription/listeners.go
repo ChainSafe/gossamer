@@ -115,7 +115,7 @@ func (s *StorageObserver) Stop() error {
 
 // BlockListener to handle listening for blocks importedChan
 type BlockListener struct {
-	Channel       chan *types.Block
+	Channel       chan *types.BlockVdt
 	wsconn        *WSConn
 	ChanID        byte
 	subID         uint32
@@ -144,7 +144,7 @@ func (l *BlockListener) Listen() {
 				if block == nil {
 					continue
 				}
-				head, err := modules.HeaderToJSON(*block.Header)
+				head, err := modules.HeaderToJSONVdt(block.Header)
 				if err != nil {
 					logger.Error("failed to convert header to JSON", "error", err)
 				}
@@ -217,7 +217,7 @@ func (l *BlockFinalizedListener) Stop() error {
 // AllBlocksListener is a listener that is aware of new and newly finalised blocks```
 type AllBlocksListener struct {
 	finalizedChan chan *types.FinalisationInfo
-	importedChan  chan *types.Block
+	importedChan  chan *types.BlockVdt
 
 	wsconn          *WSConn
 	finalizedChanID byte
@@ -235,7 +235,7 @@ func newAllBlockListener(conn *WSConn) *AllBlocksListener {
 		cancelTimeout: defaultCancelTimeout,
 		wsconn:        conn,
 		finalizedChan: make(chan *types.FinalisationInfo, DEFAULT_BUFFER_SIZE),
-		importedChan:  make(chan *types.Block, DEFAULT_BUFFER_SIZE),
+		importedChan:  make(chan *types.BlockVdt, DEFAULT_BUFFER_SIZE),
 	}
 }
 
@@ -277,11 +277,11 @@ func (l *AllBlocksListener) Listen() {
 					return
 				}
 
-				if imp == nil || imp.Header == nil {
+				if imp == nil {
 					continue
 				}
 
-				impHead, err := modules.HeaderToJSON(*imp.Header)
+				impHead, err := modules.HeaderToJSONVdt(imp.Header)
 				if err != nil {
 					logger.Error("failed to convert imported block header to JSON", "error", err)
 					continue
@@ -303,7 +303,7 @@ type ExtrinsicSubmitListener struct {
 	wsconn          *WSConn
 	subID           uint32
 	extrinsic       types.Extrinsic
-	importedChan    chan *types.Block
+	importedChan    chan *types.BlockVdt
 	importedChanID  byte
 	importedHash    common.Hash
 	finalisedChan   chan *types.FinalisationInfo
