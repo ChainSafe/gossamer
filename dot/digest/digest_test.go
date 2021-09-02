@@ -137,7 +137,7 @@ func TestHandler_GrandpaScheduledChange(t *testing.T) {
 		Number: big.NewInt(1),
 	}
 
-	err = handler.handleConsensusDigestVdt(d, header)
+	err = handler.handleConsensusDigest(d, header)
 	require.NoError(t, err)
 
 	headers := addTestBlocksToState(t, 2, handler.blockState)
@@ -195,7 +195,7 @@ func TestHandler_GrandpaForcedChange(t *testing.T) {
 		Number: big.NewInt(1),
 	}
 
-	err = handler.handleConsensusDigestVdt(d, header)
+	err = handler.handleConsensusDigest(d, header)
 	require.NoError(t, err)
 
 	addTestBlocksToState(t, 3, handler.blockState)
@@ -303,7 +303,7 @@ func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
 		ConsensusEngineID: types.GrandpaEngineID,
 		Data:              data,
 	}
-	header := &types.Header{
+	header := &types.HeaderVdt{
 		Number: big.NewInt(1),
 	}
 
@@ -348,7 +348,7 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 		Data:              data,
 	}
 
-	header := &types.Header{
+	header := &types.HeaderVdt{
 		Number: big.NewInt(1),
 	}
 
@@ -398,7 +398,7 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 
 func TestHandler_HandleBABEOnDisabled(t *testing.T) {
 	handler := newTestHandler(t, true, false)
-	header := &types.Header{
+	header := &types.HeaderVdt{
 		Number: big.NewInt(1),
 	}
 
@@ -419,16 +419,18 @@ func TestHandler_HandleBABEOnDisabled(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func createHeaderWithPreDigest(slotNumber uint64) *types.Header {
+func createHeaderWithPreDigest(slotNumber uint64) *types.HeaderVdt {
 	babeHeader := types.NewBabePrimaryPreDigest(0, slotNumber, [32]byte{}, [64]byte{})
 
 	enc := babeHeader.Encode()
-	digest := &types.PreRuntimeDigest{
+	d := &types.PreRuntimeDigest{
 		Data: enc,
 	}
+	digest := types.NewDigestVdt()
+	digest.Add(*d)
 
-	return &types.Header{
-		Digest: types.Digest{digest},
+	return &types.HeaderVdt{
+		Digest: digest,
 	}
 }
 
