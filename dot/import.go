@@ -138,8 +138,8 @@ func newHeaderFromFile(filename string) (*types.HeaderVdt, error) {
 		//if err != nil {
 		//	return nil, err
 		//}
-
-		var digestItem scale.VaryingDataType
+		var digestItem = scale.MustNewVaryingDataType(types.ChangesTrieRootDigest{}, types.PreRuntimeDigest{}, types.ConsensusDigest{}, types.SealDigest{})
+		//var digestItem scale.VaryingDataType
 		err := scale.Unmarshal(digestBytes, &digestItem)
 		if err != nil {
 			return nil, err
