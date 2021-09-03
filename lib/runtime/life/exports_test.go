@@ -316,11 +316,9 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	//r := &bytes.Buffer{}
 	//_, _ = r.Write(digestBytes)
 	//digest, err := types.DecodeDigest(r)
-	require.NoError(t, err)
-
+	//require.NoError(t, err)
 	digest := types.NewDigestVdt()
 	err = scale2.Unmarshal(digestBytes, &digest)
-	require.NoError(t, err)
 
 	// kusama block 1, from polkadot.js
 	block := &types.BlockVdt{
@@ -371,9 +369,9 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	//_, _ = r.Write(digestBytes)
 	//digest, err := types.DecodeDigest(r)
 	//require.NoError(t, err)
+
 	digest := types.NewDigestVdt()
 	err = scale2.Unmarshal(digestBytes, &digest)
-	require.NoError(t, err)
 
 	// polkadot block 1, from polkadot.js
 	block := &types.BlockVdt{
