@@ -19,6 +19,7 @@ package state
 import (
 	"errors"
 	"sync"
+	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -62,6 +63,8 @@ func (bs *BlockState) FreeImportedBlockNotifierChannel(ch chan *types.Block) {
 	defer bs.importedLock.Unlock()
 
 	delete(bs.imported, ch)
+	time.Sleep(time.Millisecond * 50)
+	close(ch)
 }
 
 // UnregisterFinalisedChannel removes the block finalisation notification channel with the given ID.
