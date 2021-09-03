@@ -245,20 +245,20 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 func TestSyncer_ExecuteBlock_Prev(t *testing.T) {
 	syncer := NewTestSyncer(t, false)
 
-	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
+	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeaderVdt()
 	require.NoError(t, err)
 
 	rt, err := syncer.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	block := BuildBlock(t, rt, parent, nil)
+	block := BuildBlockVdt(t, rt, parent, nil)
 
 	// reset parentState
 	parentState, err := syncer.storageState.TrieState(&parent.StateRoot)
 	require.NoError(t, err)
 	rt.SetContextStorage(parentState)
 
-	_, err = rt.ExecuteBlock(block)
+	_, err = rt.ExecuteBlockVdt(block)
 	require.NoError(t, err)
 }
 

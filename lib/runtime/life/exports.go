@@ -160,24 +160,17 @@ func (in *Instance) ExecuteBlockVdt(block *types.BlockVdt) ([]byte, error) {
 	if bytes.Equal(in.version.SpecName(), []byte("kusama")) {
 		// remove seal digest only
 		for _, d := range block.Header.Digest.Types {
-			//if d.Type() == types.SealDigestType {
-			//	continue
-			//}
-
-			//var preDigest types.SealDigest
 			switch d.Value().(type) {
 			case types.SealDigest:
 				continue
 			default:
 				b.Header.Digest.Add(d.Value())
 			}
-
-			//b.Header.Digest = append(b.Header.Digest, d)
 		}
 	}
 
-	//bdEnc, err := b.Encode()
-	bdEnc, err := scale2.Marshal(b)
+	bdEnc, err := b.Encode()
+	//bdEnc, err := scale2.Marshal(b)
 	if err != nil {
 		return nil, err
 	}
