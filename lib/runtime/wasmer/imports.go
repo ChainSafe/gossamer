@@ -157,66 +157,66 @@ func ext_logging_log_version_1(context unsafe.Pointer, level C.int32_t, targetDa
 }
 
 //export ext_logging_max_level_version_1
-func ext_logging_max_level_version_1(_ unsafe.Pointer) C.int32_t {
+func ext_logging_max_level_version_1(context unsafe.Pointer) C.int32_t {
 	logger.Trace("[ext_logging_max_level_version_1] executing...")
 	return 4
 }
 
 //export ext_transaction_index_index_version_1
-func ext_transaction_index_index_version_1(_ unsafe.Pointer, _, _, _ C.int32_t) {
+func ext_transaction_index_index_version_1(context unsafe.Pointer, a, b, c C.int32_t) {
 	logger.Trace("[ext_transaction_index_index_version_1] executing...")
 	logger.Warn("[ext_transaction_index_index_version_1] unimplemented")
 }
 
 //export ext_transaction_index_renew_version_1
-func ext_transaction_index_renew_version_1(_ unsafe.Pointer, _, _ C.int32_t) {
+func ext_transaction_index_renew_version_1(context unsafe.Pointer, a, b C.int32_t) {
 	logger.Trace("[ext_transaction_index_renew_version_1] executing...")
 	logger.Warn("[ext_transaction_index_renew_version_1] unimplemented")
 }
 
 //export ext_sandbox_instance_teardown_version_1
-func ext_sandbox_instance_teardown_version_1(_ unsafe.Pointer, _ C.int32_t) {
+func ext_sandbox_instance_teardown_version_1(context unsafe.Pointer, a C.int32_t) {
 	logger.Trace("[ext_sandbox_instance_teardown_version_1] executing...")
 	logger.Warn("[ext_sandbox_instance_teardown_version_1] unimplemented")
 }
 
 //export ext_sandbox_instantiate_version_1
-func ext_sandbox_instantiate_version_1(_ unsafe.Pointer, _ C.int32_t, _, _ C.int64_t, _ C.int32_t) C.int32_t {
+func ext_sandbox_instantiate_version_1(context unsafe.Pointer, a C.int32_t, x, y C.int64_t, z C.int32_t) C.int32_t {
 	logger.Trace("[ext_sandbox_instantiate_version_1] executing...")
 	logger.Warn("[ext_sandbox_instantiate_version_1] unimplemented")
 	return 0
 }
 
 //export ext_sandbox_invoke_version_1
-func ext_sandbox_invoke_version_1(_ unsafe.Pointer, _ C.int32_t, _, _ C.int64_t, _, _, _ C.int32_t) C.int32_t {
+func ext_sandbox_invoke_version_1(context unsafe.Pointer, a C.int32_t, x, y C.int64_t, z, d, e C.int32_t) C.int32_t {
 	logger.Trace("[ext_sandbox_invoke_version_1] executing...")
 	logger.Warn("[ext_sandbox_invoke_version_1] unimplemented")
 	return 0
 }
 
 //export ext_sandbox_memory_get_version_1
-func ext_sandbox_memory_get_version_1(_ unsafe.Pointer, _, _, _, _ C.int32_t) C.int32_t {
+func ext_sandbox_memory_get_version_1(context unsafe.Pointer, a, z, d, e C.int32_t) C.int32_t {
 	logger.Trace("[ext_sandbox_memory_get_version_1] executing...")
 	logger.Warn("[ext_sandbox_memory_get_version_1] unimplemented")
 	return 0
 }
 
 //export ext_sandbox_memory_new_version_1
-func ext_sandbox_memory_new_version_1(_ unsafe.Pointer, _, _ C.int32_t) C.int32_t {
+func ext_sandbox_memory_new_version_1(context unsafe.Pointer, a, z C.int32_t) C.int32_t {
 	logger.Trace("[ext_sandbox_memory_new_version_1] executing...")
 	logger.Warn("[ext_sandbox_memory_new_version_1] unimplemented")
 	return 0
 }
 
 //export ext_sandbox_memory_set_version_1
-func ext_sandbox_memory_set_version_1(_ unsafe.Pointer, _, _, _, _ C.int32_t) C.int32_t {
+func ext_sandbox_memory_set_version_1(context unsafe.Pointer, a, z, d, e C.int32_t) C.int32_t {
 	logger.Trace("[ext_sandbox_memory_set_version_1] executing...")
 	logger.Warn("[ext_sandbox_memory_set_version_1] unimplemented")
 	return 0
 }
 
 //export ext_sandbox_memory_teardown_version_1
-func ext_sandbox_memory_teardown_version_1(_ unsafe.Pointer, a C.int32_t) {
+func ext_sandbox_memory_teardown_version_1(context unsafe.Pointer, a C.int32_t) {
 	logger.Trace("[ext_sandbox_memory_teardown_version_1] executing...")
 	logger.Warn("[ext_sandbox_memory_teardown_version_1] unimplemented")
 }
@@ -715,7 +715,7 @@ func ext_crypto_sr25519_verify_version_2(context unsafe.Pointer, sig C.int32_t, 
 }
 
 //export ext_crypto_start_batch_verify_version_1
-func ext_crypto_start_batch_verify_version_1(_ unsafe.Pointer) {
+func ext_crypto_start_batch_verify_version_1(context unsafe.Pointer) {
 	logger.Debug("[ext_crypto_start_batch_verify_version_1] executing...")
 
 	// TODO: fix and re-enable signature verification
@@ -856,7 +856,7 @@ func ext_trie_blake2_256_ordered_root_version_1(context unsafe.Pointer, dataSpan
 }
 
 //export ext_trie_blake2_256_verify_proof_version_1
-func ext_trie_blake2_256_verify_proof_version_1(_ unsafe.Pointer, _ C.int32_t, _, _, _ C.int64_t) C.int32_t {
+func ext_trie_blake2_256_verify_proof_version_1(context unsafe.Pointer, a C.int32_t, b, c, d C.int64_t) C.int32_t {
 	logger.Debug("[ext_trie_blake2_256_verify_proof_version_1] executing...")
 	logger.Warn("[ext_trie_blake2_256_verify_proof_version_1] unimplemented")
 	return 0
@@ -1363,7 +1363,7 @@ func ext_offchain_index_set_version_1(context unsafe.Pointer, keySpan, valueSpan
 }
 
 //export ext_offchain_local_storage_clear_version_1
-func ext_offchain_local_storage_clear_version_1(_ unsafe.Pointer, _ C.int32_t, _ C.int64_t) {
+func ext_offchain_local_storage_clear_version_1(context unsafe.Pointer, a C.int32_t, b C.int64_t) {
 	logger.Trace("[ext_offchain_local_storage_clear_version_1] executing...")
 	logger.Warn("[ext_offchain_local_storage_clear_version_1] unimplemented")
 }
@@ -1550,7 +1550,7 @@ func ext_offchain_submit_transaction_version_1(context unsafe.Pointer, data C.in
 }
 
 //export ext_offchain_timestamp_version_1
-func ext_offchain_timestamp_version_1(_ unsafe.Pointer) C.int64_t {
+func ext_offchain_timestamp_version_1(context unsafe.Pointer) C.int64_t {
 	logger.Trace("[ext_offchain_timestamp_version_1] executing...")
 	logger.Warn("[ext_offchain_timestamp_version_1] unimplemented")
 	return 0
@@ -1618,7 +1618,7 @@ func ext_storage_append_version_1(context unsafe.Pointer, keySpan, valueSpan C.i
 }
 
 //export ext_storage_changes_root_version_1
-func ext_storage_changes_root_version_1(context unsafe.Pointer, _ C.int64_t) C.int64_t {
+func ext_storage_changes_root_version_1(context unsafe.Pointer, parentHashSpan C.int64_t) C.int64_t {
 	logger.Trace("[ext_storage_changes_root_version_1] executing...")
 	logger.Debug("[ext_storage_changes_root_version_1] returning None")
 
