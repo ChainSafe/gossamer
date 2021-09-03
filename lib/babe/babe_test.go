@@ -54,6 +54,10 @@ var (
 	emptyHeader      = &types.Header{
 		Number: big.NewInt(0),
 	}
+	emptyHeaderVdt      = &types.HeaderVdt{
+		Number: big.NewInt(0),
+		Digest: types.NewDigestVdt(),
+	}
 
 	genesisBABEConfig = &types.BabeConfiguration{
 		SlotDuration:       1000,

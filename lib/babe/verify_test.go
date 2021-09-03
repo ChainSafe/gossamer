@@ -75,8 +75,8 @@ func TestVerificationManager_OnDisabled_InvalidIndex(t *testing.T) {
 		ThresholdNumerator:   1,
 		ThresholdDenominator: 1,
 	})
-	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1, testEpochIndex)
-	err := vm.SetOnDisabled(1, block.Header)
+	block, _ := createTestBlock(t, babeService, genesisHeaderVdt, [][]byte{}, 1, testEpochIndex)
+	err := vm.SetOnDisabledVdt(1, &block.Header)
 	require.Equal(t, err, ErrInvalidBlockProducerIndex)
 }
 
@@ -222,9 +222,9 @@ func TestVerificationManager_VerifyBlock_Ok(t *testing.T) {
 
 	vm := newTestVerificationManager(t, cfg)
 
-	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1, testEpochIndex)
+	block, _ := createTestBlock(t, babeService, genesisHeaderVdt, [][]byte{}, 1, testEpochIndex)
 
-	err = vm.VerifyBlock(block.Header)
+	err = vm.VerifyBlockVdt(&block.Header)
 	require.NoError(t, err)
 }
 
@@ -255,16 +255,16 @@ func TestVerificationManager_VerifyBlock_MultipleEpochs(t *testing.T) {
 	require.NoError(t, err)
 
 	// create block in future epoch
-	block1, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, cfg.EpochLength*futureEpoch+1, futureEpoch)
-	block2, _ := createTestBlock(t, babeService, block1.Header, [][]byte{}, cfg.EpochLength*futureEpoch+2, futureEpoch)
+	block1, _ := createTestBlock(t, babeService, genesisHeaderVdt, [][]byte{}, cfg.EpochLength*futureEpoch+1, futureEpoch)
+	block2, _ := createTestBlock(t, babeService, &block1.Header, [][]byte{}, cfg.EpochLength*futureEpoch+2, futureEpoch)
 
-	err = vm.VerifyBlock(block2.Header)
+	err = vm.VerifyBlockVdt(&block2.Header)
 	require.NoError(t, err)
 
 	// create block in epoch 1
-	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, cfg.EpochLength-10, testEpochIndex)
+	block, _ := createTestBlock(t, babeService, genesisHeaderVdt, [][]byte{}, cfg.EpochLength-10, testEpochIndex)
 
-	err = vm.VerifyBlock(block.Header)
+	err = vm.VerifyBlockVdt(&block.Header)
 	require.NoError(t, err)
 }
 
@@ -287,9 +287,9 @@ func TestVerificationManager_VerifyBlock_InvalidBlockOverThreshold(t *testing.T)
 
 	vm := newTestVerificationManager(t, cfg)
 
-	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1, testEpochIndex)
+	block, _ := createTestBlock(t, babeService, genesisHeaderVdt, [][]byte{}, 1, testEpochIndex)
 
-	err = vm.VerifyBlock(block.Header)
+	err = vm.VerifyBlockVdt(&block.Header)
 	require.Equal(t, ErrVRFOutputOverThreshold, errors.Unwrap(err))
 }
 
@@ -311,9 +311,9 @@ func TestVerificationManager_VerifyBlock_InvalidBlockAuthority(t *testing.T) {
 
 	vm := newTestVerificationManager(t, cfg)
 
-	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1, testEpochIndex)
+	block, _ := createTestBlock(t, babeService, genesisHeaderVdt, [][]byte{}, 1, testEpochIndex)
 
-	err = vm.VerifyBlock(block.Header)
+	err = vm.VerifyBlockVdt(&block.Header)
 	require.Equal(t, ErrInvalidBlockProducerIndex, errors.Unwrap(err))
 }
 
@@ -377,7 +377,7 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 	babeService := createTestService(t, nil)
 	babeService.epochData.threshold = maxThreshold
 
-	block, _ := createTestBlock(t, babeService, genesisHeader, [][]byte{}, 1, testEpochIndex)
+	block, _ := createTestBlock(t, babeService, genesisHeaderVdt, [][]byte{}, 1, testEpochIndex)
 
 	verifier, err := newVerifier(babeService.blockState, testEpochIndex, &verifierInfo{
 		authorities: babeService.epochData.authorities,
@@ -386,7 +386,7 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = verifier.verifyAuthorshipRight(block.Header)
+	err = verifier.verifyAuthorshipRightVdt(&block.Header)
 	require.NoError(t, err)
 }
 
