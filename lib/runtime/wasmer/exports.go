@@ -208,42 +208,6 @@ func (in *Instance) ExecuteBlockVdt(block *types.BlockVdt) ([]byte, error) {
 	return in.Exec(runtime.CoreExecuteBlock, bdEnc)
 }
 
-// TODO Delete
-// ExecuteBlock calls runtime function Core_execute_block
-func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
-	//fmt.Println("block data before")
-	//fmt.Println(block)
-	// copy block since we're going to modify it
-	b := block.DeepCopy()
-
-	if in.version == nil {
-		var err error
-		in.version, err = in.Version()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// remove seal digest only
-	b.Header.Digest = types.NewEmptyDigest()
-	for _, d := range block.Header.Digest {
-		if d.Type() == types.SealDigestType {
-			continue
-		}
-
-		b.Header.Digest = append(b.Header.Digest, d)
-	}
-
-	bdEnc, err := b.Encode()
-	if err != nil {
-		return nil, err
-	}
-
-	//fmt.Println("Encrypted normal block data before")
-	//fmt.Println(common.BytesToHex(bdEnc))
-	return in.exec(runtime.CoreExecuteBlock, bdEnc)
-}
-
 // DecodeSessionKeys decodes the given public session keys. Returns a list of raw public keys including their key type.
 func (in *Instance) DecodeSessionKeys(enc []byte) ([]byte, error) {
 	return in.exec(runtime.DecodeSessionKeys, enc)

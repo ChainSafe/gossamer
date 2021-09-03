@@ -173,31 +173,12 @@ func (in *Instance) ExecuteBlockVdt(block *types.BlockVdt) ([]byte, error) {
 	b := block.DeepCopy()
 	b.Header.Digest = types.NewEmptyDigestVdt()
 
-	//// remove seal digest only
-	//for _, d := range block.Header.Digest.Types {
-	//
-	//		b.Header.Digest.Add(d.Value())
-	//}
-
 	bdEnc, err := b.Encode()
 	if err != nil {
 		return nil, err
 	}
 
 	return in.Exec(runtime.CoreExecuteBlock, bdEnc)
-}
-
-// ExecuteBlock calls runtime function Core_execute_block
-func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
-	b := block.DeepCopy()
-
-	b.Header.Digest = types.Digest{}
-	bdEnc, err := b.Encode()
-	if err != nil {
-		return nil, err
-	}
-
-	return in.exec(runtime.CoreExecuteBlock, bdEnc)
 }
 
 // DecodeSessionKeys decodes the given public session keys. Returns a list of raw public keys including their key type.

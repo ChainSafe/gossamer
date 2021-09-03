@@ -178,34 +178,6 @@ func (in *Instance) ExecuteBlockVdt(block *types.BlockVdt) ([]byte, error) {
 	return in.Exec(runtime.CoreExecuteBlock, bdEnc)
 }
 
-// TODO Delete
-// ExecuteBlock calls runtime function Core_execute_block
-func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
-	// copy block since we're going to modify it
-	b := block.DeepCopy()
-	b.Header.Digest = types.NewEmptyDigest()
-
-	// TODO: hack since substrate node_runtime can't seem to handle BABE pre-runtime digests
-	// with type prefix (ie Primary, Secondary...)
-	if bytes.Equal(in.version.SpecName(), []byte("kusama")) {
-		// remove seal digest only
-		for _, d := range block.Header.Digest {
-			if d.Type() == types.SealDigestType {
-				continue
-			}
-
-			b.Header.Digest = append(b.Header.Digest, d)
-		}
-	}
-
-	bdEnc, err := b.Encode()
-	if err != nil {
-		return nil, err
-	}
-
-	return in.Exec(runtime.CoreExecuteBlock, bdEnc)
-}
-
 // DecodeSessionKeys decodes the given public session keys. Returns a list of raw public keys including their key type.
 func (in *Instance) DecodeSessionKeys(enc []byte) ([]byte, error) {
 	return in.Exec(runtime.DecodeSessionKeys, enc)
