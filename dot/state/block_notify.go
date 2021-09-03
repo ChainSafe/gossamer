@@ -18,11 +18,12 @@ package state
 
 import (
 	"errors"
+	"sync"
+
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/google/uuid"
-	"sync"
 )
 
 // DEFAULT_BUFFER_SIZE buffer size for channels
