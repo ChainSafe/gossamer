@@ -55,7 +55,7 @@ func TestConcurrencySetHeader(t *testing.T) {
 			err := bs.SetHeaderNew(header)
 			require.Nil(t, err)
 
-			res, err := bs.GetHeader(header.Hash())
+			res, err := bs.GetHeaderVdt(header.Hash())
 			require.Nil(t, err)
 
 			require.Equal(t, header, res)
