@@ -208,6 +208,7 @@ func (in *Instance) ExecuteBlockVdt(block *types.BlockVdt) ([]byte, error) {
 	return in.Exec(runtime.CoreExecuteBlock, bdEnc)
 }
 
+// TODO Delete
 // ExecuteBlock calls runtime function Core_execute_block
 func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	//fmt.Println("block data before")
