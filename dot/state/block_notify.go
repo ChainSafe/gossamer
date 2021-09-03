@@ -18,7 +18,6 @@ package state
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -63,9 +62,6 @@ func (bs *BlockState) FreeImportedBlockNotifierChannel(ch chan *types.Block) {
 	defer bs.importedLock.Unlock()
 
 	delete(bs.imported, ch)
-	close(ch)
-
-	fmt.Printf("Freed channel %v\n", ch)
 }
 
 // UnregisterFinalisedChannel removes the block finalisation notification channel with the given ID.
@@ -91,7 +87,6 @@ func (bs *BlockState) notifyImported(block *types.Block) {
 
 	logger.Trace("notifying imported block chans...", "chans", bs.imported)
 	for ch := range bs.imported {
-		fmt.Printf("CHANNEL %v\n", ch)
 		go func(ch chan<- *types.Block) {
 			select {
 			case ch <- block:
