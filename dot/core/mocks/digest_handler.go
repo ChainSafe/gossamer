@@ -13,11 +13,6 @@ type MockDigestHandler struct {
 }
 
 // HandleDigests provides a mock function with given fields: header
-func (_m *MockDigestHandler) HandleDigests(header *types.Header) {
-	_m.Called(header)
-}
-
-// HandleDigestsVdt provides a mock function with given fields: header
-func (_m *MockDigestHandler) HandleDigestsVdt(header *types.HeaderVdt) {
+func (_m *MockDigestHandler) HandleDigests(header *types.HeaderVdt) {
 	_m.Called(header)
 }

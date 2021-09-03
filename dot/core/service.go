@@ -252,7 +252,7 @@ func (s *Service) handleBlockVdt(block *types.BlockVdt, state *rtstorage.TrieSta
 	logger.Debug("imported block and stored state trie", "block", block.Header.Hash(), "state root", state.MustRoot())
 
 	// handle consensus digests
-	s.digestHandler.HandleDigestsVdt(&block.Header)
+	s.digestHandler.HandleDigests(&block.Header)
 
 	rt, err := s.blockState.GetRuntime(&block.Header.ParentHash)
 	if err != nil {

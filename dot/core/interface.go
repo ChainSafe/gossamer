@@ -96,6 +96,6 @@ type CodeSubstitutedState interface {
 
 // DigestHandler is the interface for the consensus digest handler
 type DigestHandler interface {
-	HandleDigests(header *types.Header)
-	HandleDigestsVdt(header *types.HeaderVdt)
+	HandleDigests(header *types.HeaderVdt)
+	//HandleDigestsVdt(header *types.HeaderVdt)
 }
