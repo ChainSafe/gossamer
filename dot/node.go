@@ -405,6 +405,7 @@ func (n *Node) Start() error {
 	// start all dot node services
 	n.Services.StartAll()
 
+	n.wg.Add(1)
 	go func() {
 		sigc := make(chan os.Signal, 1)
 		signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
@@ -412,10 +413,8 @@ func (n *Node) Start() error {
 		<-sigc
 		logger.Info("signal interrupt, shutting down...")
 		n.Stop()
-		os.Exit(130)
 	}()
 
-	n.wg.Add(1)
 	close(n.started)
 	n.wg.Wait()
 	return nil
