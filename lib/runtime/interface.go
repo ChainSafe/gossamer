@@ -49,7 +49,7 @@ type Instance interface {
 	FinalizeBlock() (*types.Header, error)
 	FinalizeBlockVdt() (*types.HeaderVdt, error)
 	//ExecuteBlock(block *types.Block) ([]byte, error)
-	ExecuteBlockVdt(block *types.BlockVdt) ([]byte, error)
+	ExecuteBlockVdt(block *types.Block) ([]byte, error)
 	DecodeSessionKeys(enc []byte) ([]byte, error)
 
 	// TODO: parameters and return values for these are undefined in the spec

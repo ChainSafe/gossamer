@@ -49,7 +49,7 @@ type QueryKeyValueChanges map[string]string
 type Service struct {
 	ctx        context.Context
 	cancel     context.CancelFunc
-	blockAddCh chan *types.BlockVdt // for asynchronous block handling
+	blockAddCh chan *types.Block // for asynchronous block handling
 	sync.Mutex                      // lock for channel
 
 	// Service interfaces
@@ -116,7 +116,7 @@ func NewService(cfg *Config) (*Service, error) {
 	h = log.CallerFileHandler(h)
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, h))
 
-	blockAddCh := make(chan *types.BlockVdt, 256)
+	blockAddCh := make(chan *types.Block, 256)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	srv := &Service{
@@ -172,14 +172,14 @@ func (s *Service) StorageRoot() (common.Hash, error) {
 //}
 
 // HandleBlockImport handles a block that was imported via the network
-func (s *Service) HandleBlockImport(block *types.BlockVdt, state *rtstorage.TrieState) error {
+func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieState) error {
 	return s.handleBlockVdt(block, state)
 }
 
 // HandleBlockProduced handles a block that was produced by us
 // It is handled the same as an imported block in terms of state updates; the only difference
 // is we send a BlockAnnounceMessage to our peers.
-func (s *Service) HandleBlockProducedVdt(block *types.BlockVdt, state *rtstorage.TrieState) error {
+func (s *Service) HandleBlockProducedVdt(block *types.Block, state *rtstorage.TrieState) error {
 	digest := types.NewDigestVdt()
 	for i, _ := range block.Header.Digest.Types {
 		err := digest.Add(block.Header.Digest.Types[i].Value())
@@ -226,7 +226,7 @@ func (s *Service) HandleBlockProducedVdt(block *types.BlockVdt, state *rtstorage
 //	return s.handleBlock(block, state)
 //}
 
-func (s *Service) handleBlockVdt(block *types.BlockVdt, state *rtstorage.TrieState) error {
+func (s *Service) handleBlockVdt(block *types.Block, state *rtstorage.TrieState) error {
 	if block == nil || state == nil {
 		return nil
 	}
@@ -538,7 +538,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 // maintainTransactionPool removes any transactions that were included in the new block, revalidates the transactions in the pool,
 // and moves them to the queue if valid.
 // See https://github.com/paritytech/substrate/blob/74804b5649eccfb83c90aec87bdca58e5d5c8789/client/transaction-pool/src/lib.rs#L545
-func (s *Service) maintainTransactionPoolVdt(block *types.BlockVdt) error {
+func (s *Service) maintainTransactionPoolVdt(block *types.Block) error {
 	exts, err := block.Body.AsExtrinsics()
 	if err != nil {
 		return err

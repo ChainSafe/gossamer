@@ -148,7 +148,7 @@ func newTestGenesisWithTrieAndHeader(t *testing.T, usePolkadotGenesis bool) (*ge
 }
 
 // BuildBlockVdt ...
-func BuildBlockVdt(t *testing.T, instance runtime.Instance, parent *types.HeaderVdt, ext types.Extrinsic) *types.BlockVdt {
+func BuildBlockVdt(t *testing.T, instance runtime.Instance, parent *types.HeaderVdt, ext types.Extrinsic) *types.Block {
 	digest := types.NewDigestVdt()
 	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	header := &types.HeaderVdt{
@@ -213,7 +213,7 @@ func BuildBlockVdt(t *testing.T, instance runtime.Instance, parent *types.Header
 	require.NoError(t, err)
 	res.Number = header.Number
 
-	return &types.BlockVdt{
+	return &types.Block{
 		Header: *res,
 		Body:   *body,
 	}

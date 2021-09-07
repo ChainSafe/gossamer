@@ -68,7 +68,7 @@ func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, dept
 		//	Body: &types.Body{},
 		//}
 
-		block := &types.BlockVdt{
+		block := &types.Block{
 			Header: types.HeaderVdt{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
@@ -139,7 +139,7 @@ func TestAnnounceBlock(t *testing.T) {
 	digest := types.NewDigestVdt()
 	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 
-	newBlock := types.BlockVdt{
+	newBlock := types.Block{
 		Header: types.HeaderVdt{
 			Number:     big.NewInt(1),
 			ParentHash: s.blockState.BestBlockHash(),
@@ -338,7 +338,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	// TODO might have to create a new mock item here
 	digest := types.NewDigestVdt()
 	//digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
-	block := &types.BlockVdt{
+	block := &types.Block{
 		Header: types.HeaderVdt{
 			ParentHash: ancestor.Header.Hash(),
 			Number:     big.NewInt(0).Add(ancestor.Header.Number, big.NewInt(1)),
@@ -407,7 +407,7 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 		transactionState: ts,
 	}
 
-	err := s.maintainTransactionPoolVdt(&types.BlockVdt{
+	err := s.maintainTransactionPoolVdt(&types.Block{
 		Body: *types.NewBody([]byte{}),
 	})
 	require.NoError(t, err)
@@ -456,7 +456,7 @@ func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 	body, err := types.NewBodyFromExtrinsics([]types.Extrinsic{txs[0].Extrinsic})
 	require.NoError(t, err)
 
-	err = s.maintainTransactionPoolVdt(&types.BlockVdt{
+	err = s.maintainTransactionPoolVdt(&types.Block{
 		Body: *body,
 	})
 	require.NoError(t, err)
@@ -540,7 +540,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	})
 
 	//TODO check that this is an okay way to replace mocks
-	newBlock1 := &types.BlockVdt{
+	newBlock1 := &types.Block{
 		Header: types.HeaderVdt{
 			ParentHash: hash,
 			Number:     big.NewInt(1),
@@ -549,7 +549,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 		Body: *types.NewBody([]byte("Old Runtime")),
 	}
 
-	newBlockRTUpdate := &types.BlockVdt{
+	newBlockRTUpdate := &types.Block{
 		Header: types.HeaderVdt{
 			ParentHash: hash,
 			Number:     big.NewInt(1),
@@ -631,7 +631,7 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	codeHashBefore := parentRt.GetCodeHash()
 	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29") // hash for known test code substitution
 
-	newBlock := &types.BlockVdt{
+	newBlock := &types.Block{
 		Header: types.HeaderVdt{
 			ParentHash: blockHash,
 			Number:     big.NewInt(1),
@@ -682,7 +682,7 @@ func TestTryQueryStore_WhenThereIsDataToRetrieve(t *testing.T) {
 	err = s.storageState.StoreTrieVdt(storageStateTrie, header)
 	require.NoError(t, err)
 
-	testBlock := &types.BlockVdt{
+	testBlock := &types.Block{
 		Header: *header,
 		Body:   *types.NewBody([]byte{}),
 	}
@@ -715,7 +715,7 @@ func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
 	err = s.storageState.StoreTrieVdt(storageStateTrie, header)
 	require.NoError(t, err)
 
-	testBlock := &types.BlockVdt{
+	testBlock := &types.Block{
 		Header: *header,
 		Body:   *types.NewBody([]byte{}),
 	}
@@ -742,7 +742,7 @@ func TestTryQueryState_WhenDoesNotHaveStateRoot(t *testing.T) {
 	header, err := types.NewHeaderVdt(s.blockState.GenesisHash(), common.Hash{}, common.Hash{}, big.NewInt(1), types.NewDigestVdt())
 	require.NoError(t, err)
 
-	testBlock := &types.BlockVdt{
+	testBlock := &types.Block{
 		Header: *header,
 		Body:   *types.NewBody([]byte{}),
 	}
@@ -814,7 +814,7 @@ func TestQueryStorate_WhenBlocksHasData(t *testing.T) {
 	))
 }
 
-func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service, key, value []byte, parentHash common.Hash, number int64) *types.BlockVdt {
+func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service, key, value []byte, parentHash common.Hash, number int64) *types.Block {
 	t.Helper()
 
 	storageStateTrie, err := storage.NewTrieState(trie.NewTrie(nil))
@@ -831,7 +831,7 @@ func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service, key, value []by
 	err = s.storageState.StoreTrieVdt(storageStateTrie, header)
 	require.NoError(t, err)
 
-	testBlock := &types.BlockVdt{
+	testBlock := &types.Block{
 		Header: *header,
 		Body:   *types.NewBody([]byte{}),
 	}

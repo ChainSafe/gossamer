@@ -108,7 +108,7 @@ func addBlocksToState(t *testing.T, babeService *Service, depth int, blockState 
 		//}
 		digest := types.NewDigestVdt()
 		digest.Add(*predigest)
-		block := &types.BlockVdt{
+		block := &types.Block{
 			Header: types.HeaderVdt{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)),
@@ -184,7 +184,7 @@ func TestEstimateCurrentSlot(t *testing.T) {
 	//}
 	digest := types.NewDigestVdt()
 	digest.Add(predigest)
-	block := &types.BlockVdt{
+	block := &types.Block{
 		Header: types.HeaderVdt{
 			ParentHash: genesisHeader.Hash(),
 			Number:     big.NewInt(int64(1)),

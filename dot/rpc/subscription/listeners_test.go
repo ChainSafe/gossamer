@@ -101,7 +101,7 @@ func TestBlockListener_Listen(t *testing.T) {
 
 	wsconn.BlockAPI = BlockAPI
 
-	notifyChan := make(chan *types.BlockVdt)
+	notifyChan := make(chan *types.Block)
 	bl := BlockListener{
 		Channel:       notifyChan,
 		wsconn:        wsconn,
@@ -110,7 +110,7 @@ func TestBlockListener_Listen(t *testing.T) {
 		cancelTimeout: time.Second * 5,
 	}
 
-	block := types.NewEmptyBlockVdt()
+	block := types.NewEmptyBlock()
 	block.Header.Number = big.NewInt(1)
 
 	go bl.Listen()
@@ -191,7 +191,7 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	wsconn, ws, cancel := setupWSConn(t)
 	defer cancel()
 
-	notifyImportedChan := make(chan *types.BlockVdt, 100)
+	notifyImportedChan := make(chan *types.Block, 100)
 	notifyFinalizedChan := make(chan *types.FinalisationInfoVdt, 100)
 
 	BlockAPI := new(mocks.BlockAPI)
@@ -215,7 +215,7 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	body, err := types.NewBodyFromExtrinsics(exts)
 	require.NoError(t, err)
 
-	block := &types.BlockVdt{
+	block := &types.Block{
 		Header: *header,
 		Body:   *body,
 	}

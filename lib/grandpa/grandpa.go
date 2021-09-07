@@ -376,7 +376,7 @@ func (s *Service) initiate() error {
 }
 
 func (s *Service) waitForFirstBlock() error {
-	ch := make(chan *types.BlockVdt)
+	ch := make(chan *types.Block)
 	id, err := s.blockState.RegisterImportedChannel(ch)
 	if err != nil {
 		return err

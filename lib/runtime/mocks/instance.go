@@ -141,11 +141,11 @@ func (_m *MockInstance) Exec(function string, data []byte) ([]byte, error) {
 }
 
 // ExecuteBlock provides a mock function with given fields: block
-func (_m *MockInstance) ExecuteBlockVdt(block *types.BlockVdt) ([]byte, error) {
+func (_m *MockInstance) ExecuteBlockVdt(block *types.Block) ([]byte, error) {
 	ret := _m.Called(block)
 
 	var r0 []byte
-	if rf, ok := ret.Get(0).(func(*types.BlockVdt) []byte); ok {
+	if rf, ok := ret.Get(0).(func(*types.Block) []byte); ok {
 		r0 = rf(block)
 	} else {
 		if ret.Get(0) != nil {
@@ -154,7 +154,7 @@ func (_m *MockInstance) ExecuteBlockVdt(block *types.BlockVdt) ([]byte, error) {
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(*types.BlockVdt) error); ok {
+	if rf, ok := ret.Get(1).(func(*types.Block) error); ok {
 		r1 = rf(block)
 	} else {
 		r1 = ret.Error(1)

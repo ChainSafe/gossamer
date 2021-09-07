@@ -88,7 +88,7 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 	require.Equal(t, err, ErrBlockDoesNotExist)
 	require.Equal(t, expected, gs.tracker.voteMessages[next.Hash()][kr.Alice().Public().(*ed25519.PublicKey).AsBytes()])
 
-	err = gs.blockState.(*state.BlockState).AddBlockVdt(&types.BlockVdt{
+	err = gs.blockState.(*state.BlockState).AddBlockVdt(&types.Block{
 		Header: *next,
 		Body:   types.Body{},
 	})
@@ -134,7 +134,7 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	require.Equal(t, ErrBlockDoesNotExist, err)
 	require.Equal(t, expected, gs.tracker.voteMessages[next.Hash()][kr.Alice().Public().(*ed25519.PublicKey).AsBytes()])
 
-	err = gs.blockState.(*state.BlockState).AddBlockVdt(&types.BlockVdt{
+	err = gs.blockState.(*state.BlockState).AddBlockVdt(&types.Block{
 		Header: *next,
 		Body:   types.Body{},
 	})

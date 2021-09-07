@@ -35,15 +35,15 @@ func (_m *BlockAPI) BestBlockHash() common.Hash {
 }
 
 // GetBlockByHash provides a mock function with given fields: hash
-func (_m *BlockAPI) GetBlockByHashVdt(hash common.Hash) (*types.BlockVdt, error) {
+func (_m *BlockAPI) GetBlockByHashVdt(hash common.Hash) (*types.Block, error) {
 	ret := _m.Called(hash)
 
-	var r0 *types.BlockVdt
-	if rf, ok := ret.Get(0).(func(common.Hash) *types.BlockVdt); ok {
+	var r0 *types.Block
+	if rf, ok := ret.Get(0).(func(common.Hash) *types.Block); ok {
 		r0 = rf(hash)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.BlockVdt)
+			r0 = ret.Get(0).(*types.Block)
 		}
 	}
 
@@ -261,18 +261,18 @@ func (_m *BlockAPI) RegisterFinalizedChannel(ch chan<- *types.FinalisationInfoVd
 }
 
 // RegisterImportedChannel provides a mock function with given fields: ch
-func (_m *BlockAPI) RegisterImportedChannel(ch chan<- *types.BlockVdt) (byte, error) {
+func (_m *BlockAPI) RegisterImportedChannel(ch chan<- *types.Block) (byte, error) {
 	ret := _m.Called(ch)
 
 	var r0 byte
-	if rf, ok := ret.Get(0).(func(chan<- *types.BlockVdt) byte); ok {
+	if rf, ok := ret.Get(0).(func(chan<- *types.Block) byte); ok {
 		r0 = rf(ch)
 	} else {
 		r0 = ret.Get(0).(byte)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(chan<- *types.BlockVdt) error); ok {
+	if rf, ok := ret.Get(1).(func(chan<- *types.Block) error); ok {
 		r1 = rf(ch)
 	} else {
 		r1 = ret.Error(1)

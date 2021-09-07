@@ -221,7 +221,7 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	//}
 	digest := types.NewDigestVdt()
 	digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
-	block := &types.BlockVdt{
+	block := &types.Block{
 		Header: types.HeaderVdt{
 			Number:     big.NewInt(2),
 			ParentHash: st.Block.GenesisHash(),
@@ -285,7 +285,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	//}
 	digest := types.NewDigestVdt()
 	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
-	block := &types.BlockVdt{
+	block := &types.Block{
 		Header: types.HeaderVdt{
 			ParentHash: testGenesisHeader.Hash(),
 			Number:     big.NewInt(1),
@@ -387,7 +387,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	//}
 	digest := types.NewDigestVdt()
 	digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
-	block := &types.BlockVdt{
+	block := &types.Block{
 		Header: types.HeaderVdt{
 			ParentHash: testGenesisHeader.Hash(),
 			Number:     big.NewInt(2),
@@ -572,7 +572,7 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	//	Header: testHeader,
 	//	Body:   &types.Body{0},
 	//}
-	block := &types.BlockVdt{
+	block := &types.Block{
 		Header: *testHeaderVdt,
 		Body:   types.Body{0},
 	}

@@ -94,7 +94,7 @@ func TestGetBlockByNumber(t *testing.T) {
 	//	Header: blockHeader,
 	//	Body:   &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	//}
-	block := &types.BlockVdt{
+	block := &types.Block{
 		Header: *blockHeader,
 		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	}
@@ -126,7 +126,7 @@ func TestAddBlock(t *testing.T) {
 	//	Header: header0,
 	//	Body:   &blockBody0,
 	//}
-	block0 := &types.BlockVdt{
+	block0 := &types.Block{
 		Header: *header0,
 		Body:   blockBody0,
 	}
@@ -146,7 +146,7 @@ func TestAddBlock(t *testing.T) {
 	// Create Block with fake extrinsics
 	blockBody1 := types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 
-	block1 := &types.BlockVdt{
+	block1 := &types.Block{
 		Header: *header1,
 		Body:   blockBody1,
 	}
@@ -199,7 +199,7 @@ func TestGetSlotForBlock(t *testing.T) {
 	//}
 	digest := types.NewDigestVdt()
 	digest.Add(*preDigest)
-	block := &types.BlockVdt{
+	block := &types.Block{
 		Header: types.HeaderVdt{
 			ParentHash: testGenesisHeader.Hash(),
 			Number:     big.NewInt(int64(1)),
@@ -247,7 +247,7 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 	bestHeader, err := bs.BestBlockHeaderVdt()
 	require.NoError(t, err)
 
-	var resBlock *types.BlockVdt
+	var resBlock *types.Block
 	for _, header := range currChain {
 		resBlock, err = bs.GetBlockByNumberVdt(header.Number)
 		require.NoError(t, err)
@@ -274,7 +274,7 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 	//	Body: &types.Body{},
 	//}
 
-	newBlock := &types.BlockVdt{
+	newBlock := &types.Block{
 		Header: types.HeaderVdt{
 			ParentHash: bestHash,
 			Number:     big.NewInt(0).Add(bestHeader.Number, big.NewInt(1)),
@@ -318,7 +318,7 @@ func TestFinalizedHash(t *testing.T) {
 	err = bs.db.Put(headerKey(testhash), []byte{})
 	require.NoError(t, err)
 
-	err = bs.AddBlockVdt(&types.BlockVdt{
+	err = bs.AddBlockVdt(&types.Block{
 		Header: *header,
 		Body:   types.Body{},
 	})
@@ -417,7 +417,7 @@ func TestGetHashByNumber(t *testing.T) {
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
-	block := &types.BlockVdt{
+	block := &types.Block{
 		Header: *header,
 		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	}
@@ -439,7 +439,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
-	block1a := &types.BlockVdt{
+	block1a := &types.Block{
 		Header: *header1a,
 		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	}
@@ -458,7 +458,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 		ExtrinsicsRoot: common.Hash{99},
 	}
 
-	block1b := &types.BlockVdt{
+	block1b := &types.Block{
 		Header: *header1b,
 		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	}
@@ -478,7 +478,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 		ExtrinsicsRoot: common.Hash{99},
 	}
 
-	block2b := &types.BlockVdt{
+	block2b := &types.Block{
 		Header: *header2b,
 		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	}
@@ -501,7 +501,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 		ParentHash: header1a.Hash(),
 	}
 
-	block2a := &types.BlockVdt{
+	block2a := &types.Block{
 		Header: *header2a,
 		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	}
@@ -515,7 +515,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 		ParentHash: header2a.Hash(),
 	}
 
-	block3a := &types.BlockVdt{
+	block3a := &types.Block{
 		Header: *header3a,
 		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	}

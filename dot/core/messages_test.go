@@ -105,7 +105,7 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	digest := types.NewDigestVdt()
 	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 
-	newBlock := types.BlockVdt{
+	newBlock := types.Block{
 		Header: types.HeaderVdt{
 			Number:     big.NewInt(1),
 			ParentHash: s.blockState.BestBlockHash(),
@@ -143,7 +143,7 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	ks.Acco.Insert(kp)
 
 	bp := new(MockBlockProducer) // nolint
-	blockC := make(chan types.BlockVdt)
+	blockC := make(chan types.Block)
 	bp.On("GetBlockChannel", nil).Return(blockC)
 
 	cfg := &Config{

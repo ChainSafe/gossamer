@@ -65,7 +65,7 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 	//	},
 	//	Body: types.NewBody([]byte{}),
 	//}
-	block := &types.BlockVdt{
+	block := &types.Block{
 		Header: types.HeaderVdt{
 			ParentHash: testGenesisHeader.Hash(),
 			Number:     big.NewInt(1),

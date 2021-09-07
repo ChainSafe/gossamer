@@ -360,7 +360,7 @@ func loadTestBlocks(gh common.Hash, bs *state.BlockState, rt runtime.Instance) e
 	//	Header: header0,
 	//	Body:   &blockBody0,
 	//}
-	block0 := &types.BlockVdt{
+	block0 := &types.Block{
 		Header: *header0,
 		Body:   blockBody0,
 	}
@@ -397,7 +397,7 @@ func loadTestBlocks(gh common.Hash, bs *state.BlockState, rt runtime.Instance) e
 	//	Header: header1,
 	//	Body:   &blockBody1,
 	//}
-	block1 := &types.BlockVdt{
+	block1 := &types.Block{
 		Header: *header1,
 		Body:   blockBody1,
 	}

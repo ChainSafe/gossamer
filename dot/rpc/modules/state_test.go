@@ -500,7 +500,7 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 	//	},
 	//	Body: types.NewBody([]byte{}),
 	//}
-	b := &types.BlockVdt{
+	b := &types.Block{
 		Header: types.HeaderVdt{
 			ParentHash: chain.Block.BestBlockHash(),
 			Number:     big.NewInt(2),

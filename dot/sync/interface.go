@@ -31,11 +31,11 @@ type BlockState interface {
 	BestBlockHeader() (*types.Header, error)
 	BestBlockNumber() (*big.Int, error)
 	//AddBlock(*types.Block) error
-	AddBlockVdt(*types.BlockVdt) error
+	AddBlockVdt(*types.Block) error
 	//CompareAndSetBlockData(bd *types.BlockData) error
 	CompareAndSetBlockDataVdt(bd *types.BlockDataVdt) error
 	//GetBlockByNumber(*big.Int) (*types.Block, error)
-	GetBlockByNumberVdt(*big.Int) (*types.BlockVdt, error)
+	GetBlockByNumberVdt(*big.Int) (*types.Block, error)
 	HasBlockBody(hash common.Hash) (bool, error)
 	GetBlockBody(common.Hash) (*types.Body, error)
 	SetHeader(*types.Header) error
@@ -53,7 +53,7 @@ type BlockState interface {
 	AddBlockToBlockTreeVdt(header *types.HeaderVdt) error
 	GetHashByNumber(*big.Int) (common.Hash, error)
 	//GetBlockByHash(common.Hash) (*types.Block, error)
-	GetBlockByHashVdt(common.Hash) (*types.BlockVdt, error)
+	GetBlockByHashVdt(common.Hash) (*types.Block, error)
 	GetRuntime(*common.Hash) (runtime.Instance, error)
 	StoreRuntime(common.Hash, runtime.Instance)
 }
@@ -91,6 +91,5 @@ type FinalityGadget interface {
 
 // BlockImportHandler is the interface for the handler of newly imported blocks
 type BlockImportHandler interface {
-	HandleBlockImport(block *types.BlockVdt, state *rtstorage.TrieState) error
-	//HandleBlockImportVdt(block *types.BlockVdt, state *rtstorage.TrieState) error
+	HandleBlockImport(block *types.Block, state *rtstorage.TrieState) error
 }

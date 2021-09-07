@@ -247,7 +247,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockDataVdt) (int, error) {
 			header = bd.Header
 			body := bd.Body
 
-			block := &types.BlockVdt{
+			block := &types.Block{
 				Header: *header,
 				Body:   *body,
 			}
@@ -309,7 +309,7 @@ func (s *Service) handleBody(body *types.Body) error {
 }
 
 // handleHeader handles blocks (header+body) included in BlockResponses
-func (s *Service) handleBlock(block *types.BlockVdt) error {
+func (s *Service) handleBlock(block *types.Block) error {
 	//fmt.Println("Block being handled")
 	//fmt.Println(block)
 	if block == nil {

@@ -125,7 +125,7 @@ func createTestExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash,
 	return types.Extrinsic(common.MustHexToBytes(extEnc))
 }
 
-func createTestBlockVdt(t *testing.T, babeService *Service, parent *types.HeaderVdt, exts [][]byte, slotNumber, epoch uint64) (*types.BlockVdt, Slot) { //nolint
+func createTestBlockVdt(t *testing.T, babeService *Service, parent *types.HeaderVdt, exts [][]byte, slotNumber, epoch uint64) (*types.Block, Slot) { //nolint
 	// create proof that we can authorize this block
 	babeService.epochData.authorityIndex = 0
 
@@ -149,7 +149,7 @@ func createTestBlockVdt(t *testing.T, babeService *Service, parent *types.Header
 	require.NoError(t, err)
 
 	// build block
-	var block *types.BlockVdt
+	var block *types.Block
 	for i := 0; i < 1; i++ { // retry if error
 		block, err = babeService.buildBlockVdt(parent, slot, rt)
 		if err == nil {
@@ -163,7 +163,7 @@ func createTestBlockVdt(t *testing.T, babeService *Service, parent *types.Header
 	return block, slot
 }
 
-func createTestBlock(t *testing.T, babeService *Service, parent *types.HeaderVdt, exts [][]byte, slotNumber, epoch uint64) (*types.BlockVdt, Slot) { //nolint
+func createTestBlock(t *testing.T, babeService *Service, parent *types.HeaderVdt, exts [][]byte, slotNumber, epoch uint64) (*types.Block, Slot) { //nolint
 	// create proof that we can authorize this block
 	babeService.epochData.authorityIndex = 0
 
@@ -187,7 +187,7 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.HeaderVdt
 	require.NoError(t, err)
 
 	// build block
-	var block *types.BlockVdt
+	var block *types.Block
 	for i := 0; i < 1; i++ { // retry if error
 		block, err = babeService.buildBlockVdt(parent, slot, rt)
 		if err == nil {

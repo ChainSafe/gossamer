@@ -28,7 +28,7 @@ import (
 
 // RegisterImportedChannel registers a channel for block notification upon block import.
 // It returns the channel ID (used for unregistering the channel)
-func (bs *BlockState) RegisterImportedChannel(ch chan<- *types.BlockVdt) (byte, error) {
+func (bs *BlockState) RegisterImportedChannel(ch chan<- *types.Block) (byte, error) {
 	bs.importedLock.RLock()
 
 	id, err := bs.importedBytePool.Get()
@@ -88,7 +88,7 @@ func (bs *BlockState) UnregisterFinalisedChannel(id byte) {
 	}
 }
 
-func (bs *BlockState) notifyImportedVdt(block *types.BlockVdt) {
+func (bs *BlockState) notifyImportedVdt(block *types.Block) {
 	bs.importedLock.RLock()
 	defer bs.importedLock.RUnlock()
 
@@ -98,7 +98,7 @@ func (bs *BlockState) notifyImportedVdt(block *types.BlockVdt) {
 
 	logger.Trace("notifying imported block chans...", "chans", bs.imported)
 	for _, ch := range bs.imported {
-		go func(ch chan<- *types.BlockVdt) {
+		go func(ch chan<- *types.Block) {
 			select {
 			case ch <- block:
 			default:

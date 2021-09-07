@@ -301,7 +301,7 @@ func TestSyncer_HandleJustification(t *testing.T) {
 
 	just := []byte("testjustification")
 
-	err := syncer.blockState.AddBlockVdt(&types.BlockVdt{
+	err := syncer.blockState.AddBlockVdt(&types.Block{
 		Header: *header,
 		Body:   types.Body{},
 	})

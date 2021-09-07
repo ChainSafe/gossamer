@@ -172,7 +172,7 @@ func (in *Instance) FinalizeBlock() (*types.Header, error) {
 	return bh, nil
 }
 
-func (in *Instance) ExecuteBlockVdt(block *types.BlockVdt) ([]byte, error) {
+func (in *Instance) ExecuteBlockVdt(block *types.Block) ([]byte, error) {
 	//fmt.Println("block data Vdt before")
 	//fmt.Println(block)
 

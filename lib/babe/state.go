@@ -33,16 +33,16 @@ type BlockState interface {
 	BestBlockHeader() (*types.Header, error)
 	BestBlockHeaderVdt() (*types.HeaderVdt, error)
 	BestBlockNumber() (*big.Int, error)
-	BestBlockVdt() (*types.BlockVdt, error)
+	BestBlockVdt() (*types.Block, error)
 	SubChain(start, end common.Hash) ([]common.Hash, error)
 	//AddBlock(*types.Block) error
-	AddBlockVdt(*types.BlockVdt) error
+	AddBlockVdt(*types.Block) error
 	GetAllBlocksAtDepth(hash common.Hash) []common.Hash
 	GetHeader(common.Hash) (*types.Header, error)
 	GetHeaderVdt(common.Hash) (*types.HeaderVdt, error)
 	//GetBlockByNumber(*big.Int) (*types.Block, error)
-	GetBlockByNumberVdt(*big.Int) (*types.BlockVdt, error)
-	GetBlockByHashVdt(common.Hash) (*types.BlockVdt, error)
+	GetBlockByNumberVdt(*big.Int) (*types.Block, error)
+	GetBlockByHashVdt(common.Hash) (*types.Block, error)
 	GetArrivalTime(common.Hash) (time.Time, error)
 	GenesisHash() common.Hash
 	GetSlotForBlock(common.Hash) (uint64, error)
@@ -97,5 +97,5 @@ type DigestHandler interface {
 // BlockImportHandler is the interface for the handler of new blocks
 type BlockImportHandler interface {
 	//HandleBlockProduced(block *types.Block, state *rtstorage.TrieState) error
-	HandleBlockProducedVdt(block *types.BlockVdt, state *rtstorage.TrieState) error
+	HandleBlockProducedVdt(block *types.Block, state *rtstorage.TrieState) error
 }

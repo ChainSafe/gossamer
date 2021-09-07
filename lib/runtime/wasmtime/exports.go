@@ -168,7 +168,7 @@ func (in *Instance) FinalizeBlockVdt() (*types.HeaderVdt, error) {
 	return bh, nil
 }
 
-func (in *Instance) ExecuteBlockVdt(block *types.BlockVdt) ([]byte, error) {
+func (in *Instance) ExecuteBlockVdt(block *types.Block) ([]byte, error) {
 	// copy block since we're going to modify it
 	b := block.DeepCopy()
 	b.Header.Digest = types.NewEmptyDigestVdt()

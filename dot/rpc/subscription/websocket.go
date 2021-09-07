@@ -214,7 +214,7 @@ func (c *WSConn) initStorageChangeListener(reqID float64, params interface{}) (L
 
 func (c *WSConn) initBlockListener(reqID float64, _ interface{}) (Listener, error) {
 	bl := &BlockListener{
-		Channel:       make(chan *types.BlockVdt, DEFAULT_BUFFER_SIZE),
+		Channel:       make(chan *types.Block, DEFAULT_BUFFER_SIZE),
 		wsconn:        c,
 		cancel:        make(chan struct{}, 1),
 		cancelTimeout: defaultCancelTimeout,
@@ -317,7 +317,7 @@ func (c *WSConn) initExtrinsicWatch(reqID float64, params interface{}) (Listener
 
 	// listen for built blocks
 	esl := &ExtrinsicSubmitListener{
-		importedChan:  make(chan *types.BlockVdt, DEFAULT_BUFFER_SIZE),
+		importedChan:  make(chan *types.Block, DEFAULT_BUFFER_SIZE),
 		wsconn:        c,
 		extrinsic:     types.Extrinsic(extBytes),
 		finalisedChan: make(chan *types.FinalisationInfoVdt),

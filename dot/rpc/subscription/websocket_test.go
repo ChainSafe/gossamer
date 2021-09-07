@@ -312,11 +312,11 @@ func TestSubscribeAllHeads(t *testing.T) {
 	finalizedChanID := uint8(11)
 
 	var fCh chan<- *types.FinalisationInfoVdt
-	var iCh chan<- *types.BlockVdt
+	var iCh chan<- *types.Block
 
 	mockBlockAPI.On("RegisterImportedChannel", mock.AnythingOfType("chan<- *types.BlockVdt")).
 		Run(func(args mock.Arguments) {
-			ch := args.Get(0).(chan<- *types.BlockVdt)
+			ch := args.Get(0).(chan<- *types.Block)
 			iCh = ch
 		}).Return(importedChanID, nil).Once()
 
@@ -367,7 +367,7 @@ func TestSubscribeAllHeads(t *testing.T) {
 	digest = types.NewDigestVdt()
 	digest.Add(*types.NewBABEPreRuntimeDigest([]byte{0xff}))
 
-	iCh <- &types.BlockVdt{
+	iCh <- &types.Block{
 		Header: types.HeaderVdt{
 			ParentHash:     common.EmptyHash,
 			Number:         big.NewInt(0),

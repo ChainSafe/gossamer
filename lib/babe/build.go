@@ -37,7 +37,7 @@ const (
 	buildBlockErrors = "gossamer/proposer/block/constructed/errors"
 )
 
-func (b *Service) buildBlockVdt(parent *types.HeaderVdt, slot Slot, rt runtime.Instance) (*types.BlockVdt, error) {
+func (b *Service) buildBlockVdt(parent *types.HeaderVdt, slot Slot, rt runtime.Instance) (*types.Block, error) {
 	builder, err := NewBlockBuilder(
 		b.keypair,
 		b.transactionState,
@@ -130,7 +130,7 @@ func NewBlockBuilder(kp *sr25519.Keypair, ts TransactionState, bs BlockState, sp
 	return bb, nil
 }
 
-func (b *BlockBuilder) buildBlockVdt(parent *types.HeaderVdt, slot Slot, rt runtime.Instance) (*types.BlockVdt, error) {
+func (b *BlockBuilder) buildBlockVdt(parent *types.HeaderVdt, slot Slot, rt runtime.Instance) (*types.Block, error) {
 	logger.Trace("build block", "parent", parent, "slot", slot)
 
 	// create pre-digest
@@ -197,7 +197,7 @@ func (b *BlockBuilder) buildBlockVdt(parent *types.HeaderVdt, slot Slot, rt runt
 		return nil, err
 	}
 
-	block := &types.BlockVdt{
+	block := &types.Block{
 		Header: *header,
 		Body:   *body,
 	}

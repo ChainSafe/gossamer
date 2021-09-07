@@ -51,7 +51,7 @@ type BlockState struct {
 	lastFinalised common.Hash
 
 	// block notifiers
-	imported                       map[byte]chan<- *types.BlockVdt
+	imported                       map[byte]chan<- *types.Block
 	finalised                      map[byte]chan<- *types.FinalisationInfoVdt
 	importedLock                   sync.RWMutex
 	finalisedLock                  sync.RWMutex
@@ -74,7 +74,7 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 		dbPath:                     db.Path(),
 		baseState:                  NewBaseState(db),
 		db:                         chaindb.NewTable(db, blockPrefix),
-		imported:                   make(map[byte]chan<- *types.BlockVdt),
+		imported:                   make(map[byte]chan<- *types.Block),
 		finalised:                  make(map[byte]chan<- *types.FinalisationInfoVdt),
 		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
@@ -102,7 +102,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		bt:                         blocktree.NewBlockTreeFromRoot(header, db),
 		baseState:                  NewBaseState(db),
 		db:                         chaindb.NewTable(db, blockPrefix),
-		imported:                   make(map[byte]chan<- *types.BlockVdt),
+		imported:                   make(map[byte]chan<- *types.Block),
 		finalised:                  make(map[byte]chan<- *types.FinalisationInfoVdt),
 		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
@@ -322,7 +322,7 @@ func (bs *BlockState) GetHeaderByNumber(num *big.Int) (*types.Header, error) {
 	return bs.GetHeader(hash)
 }
 
-func (bs *BlockState) GetBlockByHashVdt(hash common.Hash) (*types.BlockVdt, error) {
+func (bs *BlockState) GetBlockByHashVdt(hash common.Hash) (*types.Block, error) {
 	header, err := bs.GetHeaderVdt(hash)
 	if err != nil {
 		return nil, err
@@ -332,7 +332,7 @@ func (bs *BlockState) GetBlockByHashVdt(hash common.Hash) (*types.BlockVdt, erro
 	if err != nil {
 		return nil, err
 	}
-	return &types.BlockVdt{Header: *header, Body: *blockBody}, nil
+	return &types.Block{Header: *header, Body: *blockBody}, nil
 }
 
 //// TODO delete
@@ -350,7 +350,7 @@ func (bs *BlockState) GetBlockByHashVdt(hash common.Hash) (*types.BlockVdt, erro
 //	return &types.Block{Header: header, Body: blockBody}, nil
 //}
 
-func (bs *BlockState) GetBlockByNumberVdt(num *big.Int) (*types.BlockVdt, error) {
+func (bs *BlockState) GetBlockByNumberVdt(num *big.Int) (*types.Block, error) {
 	// First retrieve the block hash in a byte array based on the block number from the database
 	byteHash, err := bs.db.Get(headerHashKey(num.Uint64()))
 	if err != nil {
@@ -492,7 +492,7 @@ func (bs *BlockState) CompareAndSetBlockDataVdt(bd *types.BlockDataVdt) error {
 //	return nil
 //}
 
-func (bs *BlockState) AddBlockVdt(block *types.BlockVdt) error {
+func (bs *BlockState) AddBlockVdt(block *types.Block) error {
 	bs.Lock()
 	defer bs.Unlock()
 	return bs.AddBlockWithArrivalTimeVdt(block, time.Now())
@@ -505,7 +505,7 @@ func (bs *BlockState) AddBlockVdt(block *types.BlockVdt) error {
 //	return bs.AddBlockWithArrivalTime(block, time.Now())
 //}
 
-func (bs *BlockState) AddBlockWithArrivalTimeVdt(block *types.BlockVdt, arrivalTime time.Time) error {
+func (bs *BlockState) AddBlockWithArrivalTimeVdt(block *types.Block, arrivalTime time.Time) error {
 	err := bs.setArrivalTime(block.Header.Hash(), arrivalTime)
 	if err != nil {
 		return err
@@ -769,7 +769,7 @@ func (bs *BlockState) BestBlockNumber() (*big.Int, error) {
 }
 
 // BestBlock returns the current head of the chain
-func (bs *BlockState) BestBlockVdt() (*types.BlockVdt, error) {
+func (bs *BlockState) BestBlockVdt() (*types.Block, error) {
 	return bs.GetBlockByHashVdt(bs.BestBlockHash())
 }
 

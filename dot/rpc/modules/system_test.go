@@ -306,7 +306,7 @@ func setupSystemModule(t *testing.T) *SystemModule {
 
 	err = chain.Storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
-	err = chain.Block.AddBlockVdt(&types.BlockVdt{
+	err = chain.Block.AddBlockVdt(&types.Block{
 		Header: types.HeaderVdt{
 			Number:     big.NewInt(1),
 			ParentHash: chain.Block.BestBlockHash(),

@@ -115,7 +115,7 @@ func (s *StorageObserver) Stop() error {
 
 // BlockListener to handle listening for blocks importedChan
 type BlockListener struct {
-	Channel       chan *types.BlockVdt
+	Channel       chan *types.Block
 	wsconn        *WSConn
 	ChanID        byte
 	subID         uint32
@@ -217,7 +217,7 @@ func (l *BlockFinalizedListener) Stop() error {
 // AllBlocksListener is a listener that is aware of new and newly finalised blocks```
 type AllBlocksListener struct {
 	finalizedChan chan *types.FinalisationInfoVdt
-	importedChan  chan *types.BlockVdt
+	importedChan  chan *types.Block
 
 	wsconn          *WSConn
 	finalizedChanID byte
@@ -235,7 +235,7 @@ func newAllBlockListener(conn *WSConn) *AllBlocksListener {
 		cancelTimeout: defaultCancelTimeout,
 		wsconn:        conn,
 		finalizedChan: make(chan *types.FinalisationInfoVdt, DEFAULT_BUFFER_SIZE),
-		importedChan:  make(chan *types.BlockVdt, DEFAULT_BUFFER_SIZE),
+		importedChan:  make(chan *types.Block, DEFAULT_BUFFER_SIZE),
 	}
 }
 
@@ -303,7 +303,7 @@ type ExtrinsicSubmitListener struct {
 	wsconn          *WSConn
 	subID           uint32
 	extrinsic       types.Extrinsic
-	importedChan    chan *types.BlockVdt
+	importedChan    chan *types.Block
 	importedChanID  byte
 	importedHash    common.Hash
 	finalisedChan   chan *types.FinalisationInfoVdt

@@ -170,7 +170,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 	err = serv.Start()
 	require.NoError(t, err)
 
-	var blocks []*types.BlockVdt
+	var blocks []*types.Block
 	parentHash := serv.Block.GenesisHash()
 
 	totalBlock := 10

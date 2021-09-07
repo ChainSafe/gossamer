@@ -13,15 +13,15 @@ type MockBlockProducer struct {
 }
 
 // GetBlockChannel provides a mock function with given fields:
-func (_m *MockBlockProducer) GetBlockChannel() <-chan types.BlockVdt {
+func (_m *MockBlockProducer) GetBlockChannel() <-chan types.Block {
 	ret := _m.Called()
 
-	var r0 <-chan types.BlockVdt
-	if rf, ok := ret.Get(0).(func() <-chan types.BlockVdt); ok {
+	var r0 <-chan types.Block
+	if rf, ok := ret.Get(0).(func() <-chan types.Block); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(<-chan types.BlockVdt)
+			r0 = ret.Get(0).(<-chan types.Block)
 		}
 	}
 

@@ -85,7 +85,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 		digest := types.NewDigestVdt()
 		digest.Add(*d.ToPreRuntimeDigest())
 
-		block := &types.BlockVdt{
+		block := &types.Block{
 			Header: types.HeaderVdt{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)),
@@ -139,7 +139,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 				Data: []byte{byte(i)},
 			})
 
-			block := &types.BlockVdt{
+			block := &types.Block{
 				Header: types.HeaderVdt{
 					ParentHash: previousHash,
 					Number:     big.NewInt(int64(i) + 1),
@@ -188,7 +188,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 		//	Body: &types.Body{},
 		//}
 
-		block := &types.BlockVdt{
+		block := &types.Block{
 			Header: types.HeaderVdt{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)),
@@ -241,7 +241,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 				Data: []byte{byte(i), byte(j), r},
 			})
 
-			block := &types.BlockVdt{
+			block := &types.Block{
 				Header: types.HeaderVdt{
 					ParentHash: previousHash,
 					Number:     big.NewInt(int64(i)),
@@ -263,7 +263,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 	}
 }
 
-func generateBlockWithRandomTrieVdt(t *testing.T, serv *Service, parent *common.Hash, bNum int64) (*types.BlockVdt, *runtime.TrieState) {
+func generateBlockWithRandomTrieVdt(t *testing.T, serv *Service, parent *common.Hash, bNum int64) (*types.Block, *runtime.TrieState) {
 	trieState, err := serv.Storage.TrieState(nil)
 	require.NoError(t, err)
 
@@ -281,7 +281,7 @@ func generateBlockWithRandomTrieVdt(t *testing.T, serv *Service, parent *common.
 		parent = &bb
 	}
 
-	block := &types.BlockVdt{
+	block := &types.Block{
 		Header: types.HeaderVdt{
 			ParentHash: *parent,
 			Number:     big.NewInt(bNum),

@@ -29,7 +29,7 @@ func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 		//	},
 		//	Body: &types.Body{},
 		//}
-		block := &types.BlockVdt{
+		block := &types.Block{
 			Header: types.HeaderVdt{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),

@@ -120,7 +120,7 @@ func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
 	require.Equal(t, expected, auths)
 }
 
-func buildBlockVdt(t *testing.T, instance runtime.Instance) *types.BlockVdt {
+func buildBlockVdt(t *testing.T, instance runtime.Instance) *types.Block {
 	header := &types.HeaderVdt{
 		ParentHash: trie.EmptyHash,
 		Number:     big.NewInt(1),
@@ -189,7 +189,7 @@ func buildBlockVdt(t *testing.T, instance runtime.Instance) *types.BlockVdt {
 	require.NotEqual(t, common.Hash{}, res.ExtrinsicsRoot)
 	require.NotEqual(t, trie.EmptyHash, res.StateRoot)
 
-	return &types.BlockVdt{
+	return &types.Block{
 		Header: *res,
 		Body:   *types.NewBody(inherentExts),
 	}
@@ -254,7 +254,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 	err = scale2.Unmarshal(digestBytes, &digest)
 
 	// kusama block 1, from polkadot.js
-	block := &types.BlockVdt{
+	block := &types.Block{
 		Header: types.HeaderVdt{
 			ParentHash:     common.MustHexToHash("0xb0a8d493285c2df73290dfb7e61f870f17b41801197a149ca93654499ea3dafe"),
 			Number:         big.NewInt(1),
@@ -307,7 +307,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 	err = scale2.Unmarshal(digestBytes, &digest)
 
 	// polkadot block 1, from polkadot.js
-	block := &types.BlockVdt{
+	block := &types.Block{
 		Header: types.HeaderVdt{
 			ParentHash:     common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"),
 			Number:         big.NewInt(1),

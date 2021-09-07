@@ -22,11 +22,11 @@ type MockBlockState struct {
 }
 
 // AddBlockVdt provides a mock function with given fields: _a0
-func (_m *MockBlockState) AddBlockVdt(_a0 *types.BlockVdt) error {
+func (_m *MockBlockState) AddBlockVdt(_a0 *types.Block) error {
 	ret := _m.Called(_a0)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(*types.BlockVdt) error); ok {
+	if rf, ok := ret.Get(0).(func(*types.Block) error); ok {
 		r0 = rf(_a0)
 	} else {
 		r0 = ret.Error(0)
@@ -36,15 +36,15 @@ func (_m *MockBlockState) AddBlockVdt(_a0 *types.BlockVdt) error {
 }
 
 // BestBlock provides a mock function with given fields:
-func (_m *MockBlockState) BestBlockVdt() (*types.BlockVdt, error) {
+func (_m *MockBlockState) BestBlockVdt() (*types.Block, error) {
 	ret := _m.Called()
 
-	var r0 *types.BlockVdt
-	if rf, ok := ret.Get(0).(func() *types.BlockVdt); ok {
+	var r0 *types.Block
+	if rf, ok := ret.Get(0).(func() *types.Block); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.BlockVdt)
+			r0 = ret.Get(0).(*types.Block)
 		}
 	}
 
@@ -221,15 +221,15 @@ func (_m *MockBlockState) GetBlockBody(hash common.Hash) (*types.Body, error) {
 }
 
 // GetBlockByHash provides a mock function with given fields: _a0
-func (_m *MockBlockState) GetBlockByHashVdt(_a0 common.Hash) (*types.BlockVdt, error) {
+func (_m *MockBlockState) GetBlockByHashVdt(_a0 common.Hash) (*types.Block, error) {
 	ret := _m.Called(_a0)
 
-	var r0 *types.BlockVdt
-	if rf, ok := ret.Get(0).(func(common.Hash) *types.BlockVdt); ok {
+	var r0 *types.Block
+	if rf, ok := ret.Get(0).(func(common.Hash) *types.Block); ok {
 		r0 = rf(_a0)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.BlockVdt)
+			r0 = ret.Get(0).(*types.Block)
 		}
 	}
 
@@ -392,18 +392,18 @@ func (_m *MockBlockState) RegisterFinalizedChannel(ch chan<- *types.Finalisation
 }
 
 // RegisterImportedChannel provides a mock function with given fields: ch
-func (_m *MockBlockState) RegisterImportedChannel(ch chan<- *types.BlockVdt) (byte, error) {
+func (_m *MockBlockState) RegisterImportedChannel(ch chan<- *types.Block) (byte, error) {
 	ret := _m.Called(ch)
 
 	var r0 byte
-	if rf, ok := ret.Get(0).(func(chan<- *types.BlockVdt) byte); ok {
+	if rf, ok := ret.Get(0).(func(chan<- *types.Block) byte); ok {
 		r0 = rf(ch)
 	} else {
 		r0 = ret.Get(0).(byte)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(chan<- *types.BlockVdt) error); ok {
+	if rf, ok := ret.Get(1).(func(chan<- *types.Block) error); ok {
 		r1 = rf(ch)
 	} else {
 		r1 = ret.Error(1)

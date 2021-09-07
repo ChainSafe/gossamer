@@ -121,7 +121,7 @@ func GetFinalizedHeadByRound(t *testing.T, node *Node, round uint64) (common.Has
 }
 
 // GetBlock calls the endpoint chain_getBlock
-func GetBlockVdt(t *testing.T, node *Node, hash common.Hash) *types.BlockVdt {
+func GetBlockVdt(t *testing.T, node *Node, hash common.Hash) *types.Block {
 	respBody, err := PostRPC(ChainGetBlock, NewEndpoint(node.RPCPort), "[\""+hash.String()+"\"]")
 	require.NoError(t, err)
 
@@ -155,7 +155,7 @@ func GetBlockVdt(t *testing.T, node *Node, hash common.Hash) *types.BlockVdt {
 	b, err := types.NewBodyFromExtrinsicStrings(block.Block.Body)
 	require.NoError(t, err, fmt.Sprintf("%v", block.Block.Body))
 
-	return &types.BlockVdt{
+	return &types.Block{
 		Header: *h,
 		Body:   *b,
 	}
