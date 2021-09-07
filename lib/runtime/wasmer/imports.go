@@ -1584,16 +1584,16 @@ func storageAppend(storage runtime.Storage, key, valueToAppend []byte) error {
 		nextLength = big.NewInt(0).Add(currLength, big.NewInt(1))
 	}
 
-	lengthEnc, err := scale.Encode(nextLength)
+	finalVal, err := scale.Encode(nextLength)
 	if err != nil {
 		logger.Trace("[ext_storage_append_version_1] failed to encode new length", "error", err)
 		return err
 	}
 
 	// append new length prefix to start of items array
-	lengthEnc = append(lengthEnc, valueRes...)
-	logger.Debug("[ext_storage_append_version_1]", "resulting value", fmt.Sprintf("0x%x", lengthEnc))
-	storage.Set(key, lengthEnc)
+	finalVal = append(finalVal, valueRes...)
+	logger.Debug("[ext_storage_append_version_1]", "resulting value", fmt.Sprintf("0x%x", finalVal))
+	storage.Set(key, finalVal)
 	return nil
 }
 

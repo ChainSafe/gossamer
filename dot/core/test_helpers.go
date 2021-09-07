@@ -109,8 +109,12 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 
 		nodeStorage := runtime.NodeStorage{}
 
-		nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
-		require.NoError(t, err)
+		if stateSrvc != nil {
+			nodeStorage.BaseDB = stateSrvc.Base
+		} else {
+			nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
+			require.NoError(t, err)
+		}
 
 		rtCfg.NodeStorage = nodeStorage
 

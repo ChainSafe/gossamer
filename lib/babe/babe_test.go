@@ -101,6 +101,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 
 	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*") //nolint
 
+	var dbSrv *state.Service
 	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.EpochState == nil {
 		require.NoError(t, err)
 
@@ -108,7 +109,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 			Path:     testDatadirPath,
 			LogLevel: log.LvlInfo,
 		}
-		dbSrv := state.NewService(config)
+		dbSrv = state.NewService(config)
 		dbSrv.UseMemDB()
 
 		if cfg.EpochLength > 0 {
@@ -141,8 +142,13 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 		require.NoError(t, err)
 
 		nodeStorage := runtime.NodeStorage{}
-		nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
-		require.NoError(t, err)
+		if dbSrv != nil {
+			nodeStorage.BaseDB = dbSrv.Base
+		} else {
+			nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
+			require.NoError(t, err)
+		}
+
 		rtCfg.NodeStorage = nodeStorage
 
 		cfg.Runtime, err = wasmer.NewRuntimeFromGenesis(gen, rtCfg)

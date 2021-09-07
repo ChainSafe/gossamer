@@ -101,8 +101,13 @@ func NewTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 		require.NoError(t, err)
 
 		nodeStorage := runtime.NodeStorage{}
-		nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
-		require.NoError(t, err)
+		if stateSrvc != nil {
+			nodeStorage.BaseDB = stateSrvc.Base
+		} else {
+			nodeStorage.BaseDB, err = utils.SetupDatabase(filepath.Join(testDatadirPath, "offline_storage"), false)
+			require.NoError(t, err)
+		}
+
 		rtCfg.NodeStorage = nodeStorage
 
 		instance, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg) //nolint
