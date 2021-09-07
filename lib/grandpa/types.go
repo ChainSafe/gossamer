@@ -155,12 +155,12 @@ func NewVoteFromHash(hash common.Hash, blockState BlockState) (*Vote, error) {
 		return nil, ErrBlockDoesNotExist
 	}
 
-	h, err := blockState.GetHeader(hash)
+	h, err := blockState.GetHeaderVdt(hash)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewVoteFromHeader(h), nil
+	return NewVoteFromHeaderVdt(h), nil
 }
 
 // Commit contains all the signed precommits for a given block

@@ -1147,8 +1147,8 @@ func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash, s
 		}
 
 		if total >= threshold {
-			var h *types.Header
-			h, err = s.blockState.GetHeader(pred)
+			var h *types.HeaderVdt
+			h, err = s.blockState.GetHeaderVdt(pred)
 			if err != nil {
 				return nil, err
 			}
@@ -1253,7 +1253,7 @@ func (s *Service) findParentWithNumber(v *Vote, n uint32) (*Vote, error) {
 		return v, nil
 	}
 
-	b, err := s.blockState.GetHeader(v.Hash)
+	b, err := s.blockState.GetHeaderVdt(v.Hash)
 	if err != nil {
 		return nil, err
 	}
@@ -1262,7 +1262,7 @@ func (s *Service) findParentWithNumber(v *Vote, n uint32) (*Vote, error) {
 	l := int(v.Number - n)
 
 	for i := 0; i < l; i++ {
-		p, err := s.blockState.GetHeader(b.ParentHash)
+		p, err := s.blockState.GetHeaderVdt(b.ParentHash)
 		if err != nil {
 			return nil, err
 		}
@@ -1270,7 +1270,7 @@ func (s *Service) findParentWithNumber(v *Vote, n uint32) (*Vote, error) {
 		b = p
 	}
 
-	return NewVoteFromHeader(b), nil
+	return NewVoteFromHeaderVdt(b), nil
 }
 
 // GetSetID returns the current setID

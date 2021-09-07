@@ -89,7 +89,7 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	}
 
 	cfg.BlockImportHandler = new(mocks.BlockImportHandler)
-	cfg.BlockImportHandler.(*mocks.BlockImportHandler).On("HandleBlockProducedVdt", mock.AnythingOfType("*types.BlockVdt"), mock.AnythingOfType("*storage.TrieState")).Return(nil)
+	cfg.BlockImportHandler.(*mocks.BlockImportHandler).On("HandleBlockProducedVdt", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).Return(nil)
 
 	if cfg.Keypair == nil {
 		cfg.Keypair, err = sr25519.GenerateKeypair()
@@ -346,7 +346,7 @@ func TestService_ProducesBlocks(t *testing.T) {
 	}()
 
 	time.Sleep(babeService.slotDuration * 2)
-	babeService.blockImportHandler.(*mocks.BlockImportHandler).AssertCalled(t, "HandleBlockProducedVdt", mock.AnythingOfType("*types.BlockVdt"), mock.AnythingOfType("*storage.TrieState"))
+	babeService.blockImportHandler.(*mocks.BlockImportHandler).AssertCalled(t, "HandleBlockProducedVdt", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState"))
 	//babeService.blockImportHandler.(*mocks.BlockImportHandler).AssertCalled(t, "HandleBlockProduced", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState"))
 
 }

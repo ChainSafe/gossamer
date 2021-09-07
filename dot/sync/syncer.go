@@ -283,16 +283,6 @@ func (s *Service) handleHeader(header *types.HeaderVdt) error {
 	return nil
 }
 
-func (s *Service) handleHeaderOld(header *types.Header) error {
-	// TODO: update BABE pre-runtime digest types
-	err := s.verifier.VerifyBlock(header)
-	if err != nil {
-		return fmt.Errorf("%w: %s", ErrInvalidBlock, err.Error())
-	}
-
-	return nil
-}
-
 // handleHeader handles block bodies included in BlockResponses
 func (s *Service) handleBody(body *types.Body) error {
 	exts, err := body.AsExtrinsics()
