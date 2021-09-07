@@ -21,9 +21,15 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
 )
+
+func TestProofGenerationWithRecorder(t *testing.T) {
+	db, err := chaindb.NewBadgerDB(&chaindb.Config{InMemory: true})
+	require.NoError(t, err)
+}
 
 func TestVerifyProof(t *testing.T) {
 	trie, entries := RandomTrieTest(t, 200)

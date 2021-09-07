@@ -288,6 +288,65 @@ func decodeBytes(in []byte) (node, error) {
 	return decode(r)
 }
 
+type nodeHeaderType string
+
+const (
+	LeafPlan   nodeHeaderType = "leaf"
+	BranchPlan nodeHeaderType = "branch"
+
+	LeafPrefix   = 0b01 << 6
+	BranchPrefxi = 0b11 << 6
+)
+
+var (
+	ErrNilDecodedHeader = errors.New("decoded header with empty trie")
+)
+
+func decodeNodeHeader(r io.Reader) (nodeHeaderType, uint32, error) {
+	b, err := readByte(r)
+	if err != nil {
+		return "", 0, err
+	}
+
+	if b == 0 {
+		return "", 0, ErrNilDecodedHeader
+	}
+
+	switch b & (0b11 << 6) {
+	case LeafPrefix:
+		s, err := decodeSize(b, r)
+		return LeafPlan, s, err
+	case BranchPrefxi:
+		s, err := decodeSize(b, r)
+		return BranchPlan, s, err
+	default:
+		return "", 0, errors.New("unknown type of node")
+	}
+}
+
+func decodeSize(f byte, r io.Reader) (uint32, error) {
+	res := uint32(f & 0xff >> 2)
+	if res < 63 {
+		return res, nil
+	}
+
+	res -= 1
+	for res <= uint32((^uint16(0))) {
+		n, err := readByte(r)
+		if err != nil {
+			return 0, err
+		}
+
+		if n < 255 {
+			return res + uint32(n+1), nil
+		}
+
+		res += 255
+	}
+
+	return 0, errors.New("size limit reached for a nibble slice")
+}
+
 // Decode wraps the decoding of different node types back into a node
 func decode(r io.Reader) (node, error) {
 	header, err := readByte(r)

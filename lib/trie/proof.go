@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
@@ -31,6 +32,22 @@ var (
 	// ErrEmptyNibbles occurs when trying to prove or valid a proof to an empty key
 	ErrEmptyNibbles = errors.New("empty nibbles provided from key")
 )
+
+func GenerateProofWithRecorder(root common.Hash, keys [][]byte, db chaindb.Database) ([]byte, error) {
+	for _, k := range keys {
+		rec := NewRecoder()
+		lookup := NewLookup(root, db, rec)
+
+		v, err := lookup.Find(k)
+		if err != nil {
+			return nil, err
+		}
+
+		println(v)
+	}
+
+	return nil, nil
+}
 
 // GenerateProof constructs the merkle-proof for key. The result contains all encoded nodes
 // on the path to the key. Returns the amount of nodes of the path and error if could not found the key
