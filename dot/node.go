@@ -130,19 +130,18 @@ func InitNode(cfg *Config) error {
 
 // NodeInitialized returns true if, within the configured data directory for the
 // node, the state database has been created and the genesis data has been loaded
-func NodeInitialized(basepath string, expected bool) bool {
+func NodeInitialized(basepath string) bool {
 	// check if key registry exists
 	registry := path.Join(basepath, utils.DefaultDatabaseDir, "KEYREGISTRY")
 
 	_, err := os.Stat(registry)
 	if os.IsNotExist(err) {
-		if expected {
-			logger.Debug(
-				"node has not been initialised",
-				"basepath", basepath,
-				"error", "failed to locate KEYREGISTRY file in data directory",
-			)
-		}
+		logger.Debug(
+			"node has not been initialised",
+			"basepath", basepath,
+			"error", "failed to locate KEYREGISTRY file in data directory",
+		)
+
 		return false
 	}
 
