@@ -31,10 +31,12 @@ const DEFAULT_BUFFER_SIZE = 100
 
 // GetImportedBlockNotifierChannel function to retrieve a imported block notifier channel
 func (bs *BlockState) GetImportedBlockNotifierChannel() (chan *types.Block, error) {
-	ch := make(chan *types.Block, DEFAULT_BUFFER_SIZE)
 	bs.importedLock.Lock()
+	defer bs.importedLock.Unlock()
+
+	ch := make(chan *types.Block, DEFAULT_BUFFER_SIZE)
 	bs.imported[ch] = struct{}{}
-	bs.importedLock.Unlock()
+
 	return ch, nil
 }
 
