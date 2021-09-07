@@ -41,7 +41,7 @@ var (
 func compareChainHeads(t *testing.T, nodes []*utils.Node) (map[common.Hash][]string, error) {
 	hashes := make(map[common.Hash][]string)
 	for _, node := range nodes {
-		header := utils.GetChainHead(t, node)
+		header := utils.GetChainHeadVdt(t, node)
 		logger.Info("got header from node", "hash", header.Hash(), "node", node.Key)
 		hashes[header.Hash()] = append(hashes[header.Hash()], node.Key)
 	}

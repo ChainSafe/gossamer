@@ -359,7 +359,7 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 
 func TestSyncState(t *testing.T) {
 	fakeCommonHash := common.NewHash([]byte("fake"))
-	fakeHeader := &types.Header{
+	fakeHeader := &types.HeaderVdt{
 		Number: big.NewInt(int64(49)),
 	}
 

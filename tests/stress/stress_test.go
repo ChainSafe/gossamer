@@ -173,7 +173,7 @@ func TestSync_MultipleEpoch(t *testing.T) {
 	time.Sleep(time.Duration(uint64(slotDuration.Nanoseconds()) * epochLength))
 
 	// Just checking that everythings operating as expected
-	header := utils.GetChainHead(t, nodes[0])
+	header := utils.GetChainHeadVdt(t, nodes[0])
 	currentHeight := header.Number.Int64()
 	for i := int64(0); i < currentHeight; i++ {
 		t.Log("comparing...", i)

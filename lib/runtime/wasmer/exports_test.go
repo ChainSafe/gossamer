@@ -294,7 +294,7 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	// this key is System.UpgradedToDualRefCount -> set to true since all accounts have been upgraded to v0.9 format
 	rt.(*Instance).ctx.Storage.Set(common.UpgradedToDualRefKey, []byte{1})
 
-	genesisHeader := &types.Header{
+	genesisHeader := &types.HeaderVdt{
 		ParentHash: common.Hash{},
 		Number:     big.NewInt(0),
 		StateRoot:  genTrie.MustHash(),
@@ -439,24 +439,24 @@ func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {
 func TestInstance_InitializeBlock_NodeRuntime(t *testing.T) {
 	rt := NewTestInstance(t, runtime.NODE_RUNTIME)
 
-	header := &types.Header{
+	header := &types.HeaderVdt{
 		Number: big.NewInt(1),
-		Digest: types.Digest{},
+		Digest: types.NewDigestVdt(),
 	}
 
-	err := rt.InitializeBlock(header)
+	err := rt.InitializeBlockVdt(header)
 	require.NoError(t, err)
 }
 
 func TestInstance_InitializeBlock_PolkadotRuntime(t *testing.T) {
 	rt := NewTestInstance(t, runtime.POLKADOT_RUNTIME)
 
-	header := &types.Header{
+	header := &types.HeaderVdt{
 		Number: big.NewInt(1),
-		Digest: types.Digest{},
+		Digest: types.NewDigestVdt(),
 	}
 
-	err := rt.InitializeBlock(header)
+	err := rt.InitializeBlockVdt(header)
 	require.NoError(t, err)
 }
 
@@ -607,9 +607,9 @@ func TestInstance_ApplyExtrinsic_GossamerRuntime(t *testing.T) {
 
 	// TODO: where did this hash come from??
 	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
-	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewEmptyDigest())
+	header, err := types.NewHeaderVdt(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewDigestVdt())
 	require.NoError(t, err)
-	err = instance.InitializeBlock(header)
+	err = instance.InitializeBlockVdt(header)
 	require.NoError(t, err)
 
 	ext := createTestExtrinsic(t, instance, parentHash, 0)
