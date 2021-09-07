@@ -48,16 +48,6 @@ func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, dept
 	headers := []*types.HeaderVdt{}
 
 	for i := 1; i <= depth; i++ {
-		//block := &types.Block{
-		//	Header: &types.Header{
-		//		ParentHash: previousHash,
-		//		Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
-		//		Digest: types.Digest{
-		//			types.NewBabeSecondaryPlainPreDigest(0, uint64(i)).ToPreRuntimeDigest(),
-		//		},
-		//	},
-		//	Body: &types.Body{},
-		//}
 		digest := types.NewDigestVdt()
 		digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, uint64(i)).ToPreRuntimeDigest())
 
@@ -74,10 +64,6 @@ func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, dept
 		err = blockState.(*state.BlockState).AddBlockVdt(block)
 		require.NoError(t, err)
 		headers = append(headers, &block.Header)
-
-		//b, err := blockState.(*state.BlockState).GetBlockByHashVdt(block.Header.Hash())
-		//require.NoError(t, err)
-		//require.Equal(t, block, b)
 	}
 
 	return headers
@@ -259,7 +245,6 @@ func TestHandler_GrandpaPauseAndResume(t *testing.T) {
 	err = digest2.Set(r)
 	require.NoError(t, err)
 
-	//data, err = r.Encode()
 	data, err = scale.Marshal(digest2)
 	require.NoError(t, err)
 
@@ -295,7 +280,6 @@ func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
 	err := digest.Set(sc)
 	require.NoError(t, err)
 
-	//data, err := sc.Encode()
 	data, err := scale.Marshal(digest)
 	require.NoError(t, err)
 
@@ -339,7 +323,6 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 	err = digest.Set(sc)
 	require.NoError(t, err)
 
-	//data, err := sc.Encode()
 	data, err := scale.Marshal(digest)
 	require.NoError(t, err)
 

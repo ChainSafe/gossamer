@@ -65,7 +65,6 @@ const (
 var _ Message = &BlockRequestMessage{}
 
 // BlockRequestMessage is sent to request some blocks from a peer
-// TODO remove optionals from this struct
 type BlockRequestMessage struct {
 	RequestedData byte
 	StartingBlock *variadic.Uint64OrHash // first byte 0 = block hash (32 byte), first byte 1 = block number (int64)
@@ -306,7 +305,6 @@ func protobufToBlockDataNew(pbd *pb.BlockData) (*types.BlockDataVdt, error) {
 	if pbd.Header != nil {
 		header := types.NewEmptyHeaderVdt()
 		err := scale2.Unmarshal(pbd.Header, header)
-		//header, err := scale.Decode(pbd.Header, types.NewEmptyHeader())
 		if err != nil {
 			return nil, err
 		}
