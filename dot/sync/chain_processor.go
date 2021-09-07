@@ -151,14 +151,14 @@ func (s *chainProcessor) processBlockData(data []*types.BlockData) (int, error) 
 				return i, err
 			}
 
-			logger.Trace("processing header", "hash", header.Hash(), "number", header.Number)
+			//logger.Trace("processing header", "hash", header.Hash(), "number", header.Number)
 
 			err = s.handleHeader(header)
 			if err != nil {
 				return i, err
 			}
 
-			logger.Trace("header processed", "hash", bd.Hash)
+			//logger.Trace("header processed", "hash", bd.Hash)
 		}
 
 		if bd.Body.Exists() && !hasBody {
@@ -167,14 +167,14 @@ func (s *chainProcessor) processBlockData(data []*types.BlockData) (int, error) 
 				return i, err
 			}
 
-			logger.Trace("processing body", "hash", bd.Hash)
+			//logger.Trace("processing body", "hash", bd.Hash)
 
 			err = s.handleBody(body)
 			if err != nil {
 				return i, err
 			}
 
-			logger.Trace("body processed", "hash", bd.Hash)
+			//logger.Trace("body processed", "hash", bd.Hash)
 		}
 
 		if bd.Header.Exists() && bd.Body.Exists() {
@@ -252,7 +252,7 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 	s.storageState.Lock()
 	defer s.storageState.Unlock()
 
-	logger.Trace("getting parent state", "root", parent.StateRoot)
+	//logger.Trace("getting parent state", "root", parent.StateRoot)
 	ts, err := s.storageState.TrieState(&parent.StateRoot)
 	if err != nil {
 		return err
@@ -270,7 +270,7 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 	}
 
 	rt.SetContextStorage(ts)
-	logger.Trace("going to execute block", "header", block.Header, "exts", block.Body)
+	//logger.Trace("going to execute block", "header", block.Header, "exts", block.Body)
 
 	_, err = rt.ExecuteBlock(block)
 	if err != nil {

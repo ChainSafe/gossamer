@@ -148,7 +148,7 @@ func newChainSync(bs BlockState, net Network, readyBlocks chan<- *types.BlockDat
 		readyBlocks:   readyBlocks,
 		pendingBlocks: newDisjointBlockSet(),
 		state:         bootstrap,
-		handler:       newBootStrapSyncer(),
+		handler:       newBootstrapSyncer(),
 		benchmarker:   newSyncBenchmarker(),
 	}
 }
@@ -243,7 +243,7 @@ func (cs *chainSync) logSyncSpeed() {
 			)
 
 			logger.Info("🚣 currently syncing",
-				// "peer count", len(cs.network.peers()),
+				"peer count", len(cs.network.Peers()),
 				// "target", target, // TODO
 				"average blocks/second", cs.benchmarker.mostRecentAverage(),
 				"overall average", cs.benchmarker.average(),
@@ -252,7 +252,7 @@ func (cs *chainSync) logSyncSpeed() {
 			)
 		case idle:
 			logger.Info("💤 node waiting",
-				// "peer count", len(cs.network.peers()),
+				"peer count", len(cs.network.Peers()),
 				"head", before.Number,
 				"hash", before.Hash(),
 				"finalised", finalised.Number,
@@ -309,7 +309,7 @@ func (cs *chainSync) sync() {
 
 			w := &worker{
 				id:           cs.nextWorker,
-				startHash:    head.Hash(),
+				startHash:    common.EmptyHash, // for bootstrap, just use number
 				startNumber:  head.Number,
 				targetHash:   res.targetHash,
 				targetNumber: res.targetNumber,
@@ -544,6 +544,10 @@ func (cs *chainSync) doSync(req *BlockRequestMessage) *workerError {
 func (cs *chainSync) determineSyncPeers(_ *BlockRequestMessage) []peer.ID {
 	peers := []peer.ID{}
 	for p := range cs.peerState {
+		if _, has := cs.ignorePeers[p]; has {
+			continue
+		}
+
 		peers = append(peers, p)
 	}
 	return peers

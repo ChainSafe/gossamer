@@ -5,7 +5,7 @@ var _ workHandler = &bootstrapSyncer{}
 type bootstrapSyncer struct {
 }
 
-func newBootStrapSyncer() *bootstrapSyncer {
+func newBootstrapSyncer() *bootstrapSyncer {
 	return &bootstrapSyncer{}
 }
 
