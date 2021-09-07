@@ -39,7 +39,7 @@ type BlockAPI interface {
 	GetJustification(hash common.Hash) ([]byte, error)
 	RegisterImportedChannel(ch chan<- *types.Block) (byte, error)
 	UnregisterImportedChannel(id byte)
-	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfoVdt) (byte, error)
+	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
 	UnregisterFinalisedChannel(id byte)
 	SubChain(start, end common.Hash) ([]common.Hash, error)
 	RegisterRuntimeUpdatedChannel(ch chan<- runtime.Version) (uint32, error)

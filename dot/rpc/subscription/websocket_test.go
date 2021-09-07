@@ -218,7 +218,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, `{"jsonrpc":"2.0","method":"author_extrinsicUpdate","params":{"result":"ready","subscription":8}}`+"\n", string(msg))
 
-	var fCh chan<- *types.FinalisationInfoVdt
+	var fCh chan<- *types.FinalisationInfo
 	mockedJust := grandpa.Justification{
 		Round: 1,
 		Commit: &grandpa.Commit{
@@ -234,7 +234,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 	BlockAPI := new(modulesmocks.BlockAPI)
 	BlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfoVdt")).
 		Run(func(args mock.Arguments) {
-			ch := args.Get(0).(chan<- *types.FinalisationInfoVdt)
+			ch := args.Get(0).(chan<- *types.FinalisationInfo)
 			fCh = ch
 		}).
 		Return(uint8(4), nil)
@@ -257,7 +257,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 		Number:     big.NewInt(1),
 	}
 
-	fCh <- &types.FinalisationInfoVdt{
+	fCh <- &types.FinalisationInfo{
 		Header: *header,
 	}
 
@@ -311,7 +311,7 @@ func TestSubscribeAllHeads(t *testing.T) {
 	importedChanID := uint8(10)
 	finalizedChanID := uint8(11)
 
-	var fCh chan<- *types.FinalisationInfoVdt
+	var fCh chan<- *types.FinalisationInfo
 	var iCh chan<- *types.Block
 
 	mockBlockAPI.On("RegisterImportedChannel", mock.AnythingOfType("chan<- *types.BlockVdt")).
@@ -322,7 +322,7 @@ func TestSubscribeAllHeads(t *testing.T) {
 
 	mockBlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfoVdt")).
 		Run(func(args mock.Arguments) {
-			ch := args.Get(0).(chan<- *types.FinalisationInfoVdt)
+			ch := args.Get(0).(chan<- *types.FinalisationInfo)
 			fCh = ch
 		}).
 		Return(finalizedChanID, nil).Once()
@@ -349,7 +349,7 @@ func TestSubscribeAllHeads(t *testing.T) {
 
 	digest := types.NewDigestVdt()
 	digest.Add(*types.NewBABEPreRuntimeDigest([]byte{0xff}))
-	fCh <- &types.FinalisationInfoVdt{
+	fCh <- &types.FinalisationInfo{
 		Header: types.HeaderVdt{
 			ParentHash:     common.EmptyHash,
 			Number:         big.NewInt(0),

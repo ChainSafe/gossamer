@@ -166,7 +166,7 @@ func (l *BlockListener) Stop() error {
 
 // BlockFinalizedListener to handle listening for finalised blocks
 type BlockFinalizedListener struct {
-	channel       chan *types.FinalisationInfoVdt
+	channel       chan *types.FinalisationInfo
 	wsconn        *WSConn
 	chanID        byte
 	subID         uint32
@@ -216,7 +216,7 @@ func (l *BlockFinalizedListener) Stop() error {
 
 // AllBlocksListener is a listener that is aware of new and newly finalised blocks```
 type AllBlocksListener struct {
-	finalizedChan chan *types.FinalisationInfoVdt
+	finalizedChan chan *types.FinalisationInfo
 	importedChan  chan *types.Block
 
 	wsconn          *WSConn
@@ -234,7 +234,7 @@ func newAllBlockListener(conn *WSConn) *AllBlocksListener {
 		done:          make(chan struct{}, 1),
 		cancelTimeout: defaultCancelTimeout,
 		wsconn:        conn,
-		finalizedChan: make(chan *types.FinalisationInfoVdt, DEFAULT_BUFFER_SIZE),
+		finalizedChan: make(chan *types.FinalisationInfo, DEFAULT_BUFFER_SIZE),
 		importedChan:  make(chan *types.Block, DEFAULT_BUFFER_SIZE),
 	}
 }
@@ -306,7 +306,7 @@ type ExtrinsicSubmitListener struct {
 	importedChan    chan *types.Block
 	importedChanID  byte
 	importedHash    common.Hash
-	finalisedChan   chan *types.FinalisationInfoVdt
+	finalisedChan   chan *types.FinalisationInfo
 	finalisedChanID byte
 	done            chan struct{}
 	cancel          chan struct{}
@@ -440,7 +440,7 @@ type GrandpaJustificationListener struct {
 	wsconn        *WSConn
 	subID         uint32
 	finalisedChID byte
-	finalisedCh   chan *types.FinalisationInfoVdt
+	finalisedCh   chan *types.FinalisationInfo
 }
 
 // Listen will start goroutines that listen to the finaised blocks

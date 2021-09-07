@@ -52,7 +52,7 @@ type BlockState struct {
 
 	// block notifiers
 	imported                       map[byte]chan<- *types.Block
-	finalised                      map[byte]chan<- *types.FinalisationInfoVdt
+	finalised                      map[byte]chan<- *types.FinalisationInfo
 	importedLock                   sync.RWMutex
 	finalisedLock                  sync.RWMutex
 	importedBytePool               *common.BytePool
@@ -75,7 +75,7 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 		baseState:                  NewBaseState(db),
 		db:                         chaindb.NewTable(db, blockPrefix),
 		imported:                   make(map[byte]chan<- *types.Block),
-		finalised:                  make(map[byte]chan<- *types.FinalisationInfoVdt),
+		finalised:                  make(map[byte]chan<- *types.FinalisationInfo),
 		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
 	}
@@ -103,7 +103,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		baseState:                  NewBaseState(db),
 		db:                         chaindb.NewTable(db, blockPrefix),
 		imported:                   make(map[byte]chan<- *types.Block),
-		finalised:                  make(map[byte]chan<- *types.FinalisationInfoVdt),
+		finalised:                  make(map[byte]chan<- *types.FinalisationInfo),
 		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
 	}

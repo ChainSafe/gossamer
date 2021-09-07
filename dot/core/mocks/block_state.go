@@ -371,18 +371,18 @@ func (_m *MockBlockState) HighestCommonAncestor(a common.Hash, b common.Hash) (c
 }
 
 // RegisterFinalizedChannel provides a mock function with given fields: ch
-func (_m *MockBlockState) RegisterFinalizedChannel(ch chan<- *types.FinalisationInfoVdt) (byte, error) {
+func (_m *MockBlockState) RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error) {
 	ret := _m.Called(ch)
 
 	var r0 byte
-	if rf, ok := ret.Get(0).(func(chan<- *types.FinalisationInfoVdt) byte); ok {
+	if rf, ok := ret.Get(0).(func(chan<- *types.FinalisationInfo) byte); ok {
 		r0 = rf(ch)
 	} else {
 		r0 = ret.Get(0).(byte)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(chan<- *types.FinalisationInfoVdt) error); ok {
+	if rf, ok := ret.Get(1).(func(chan<- *types.FinalisationInfo) error); ok {
 		r1 = rf(ch)
 	} else {
 		r1 = ret.Error(1)

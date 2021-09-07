@@ -29,7 +29,7 @@ type BlockState interface {
 	BestBlockHeaderVdt() (*types.HeaderVdt, error)
 	RegisterImportedChannel(ch chan<- *types.Block) (byte, error)
 	UnregisterImportedChannel(id byte)
-	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfoVdt) (byte, error)
+	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
 	UnregisterFinalisedChannel(id byte)
 }
 
