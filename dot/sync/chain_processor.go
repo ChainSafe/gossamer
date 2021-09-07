@@ -2,6 +2,7 @@ package sync
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 
@@ -10,9 +11,15 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 )
 
-type ChainProcessor interface{}
+type ChainProcessor interface {
+	start()
+	stop()
+}
 
 type chainProcessor struct {
+	ctx    context.Context
+	cancel context.CancelFunc
+
 	// blocks that are ready for processing. ie. their parent is known, or their parent is ahead
 	// of them within this channel and thus will be processed first
 	readyBlocks <-chan *types.BlockData
@@ -26,7 +33,11 @@ type chainProcessor struct {
 }
 
 func newChainProcessor(readyBlocks <-chan *types.BlockData, blockState BlockState, storageState StorageState, transactionState TransactionState, babeVerifier BabeVerifier, finalityGadget FinalityGadget, blockImportHandler BlockImportHandler) *chainProcessor {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	return &chainProcessor{
+		ctx:                ctx,
+		cancel:             cancel,
 		readyBlocks:        readyBlocks,
 		blockState:         blockState,
 		storageState:       storageState,
@@ -34,6 +45,25 @@ func newChainProcessor(readyBlocks <-chan *types.BlockData, blockState BlockStat
 		babeVerifier:       babeVerifier,
 		finalityGadget:     finalityGadget,
 		blockImportHandler: blockImportHandler,
+	}
+}
+
+func (s *chainProcessor) start() {
+	go s.processReadyBlocks()
+}
+
+func (s *chainProcessor) stop() {
+	s.cancel()
+}
+
+func (s *chainProcessor) processReadyBlocks() {
+	for {
+		select {
+		case bd := <-s.readyBlocks:
+			s.processBlockData([]*types.BlockData{bd})
+		case <-s.ctx.Done():
+			return
+		}
 	}
 }
 

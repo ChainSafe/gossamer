@@ -41,6 +41,10 @@ var (
 
 	// ErrInvalidBlockRequest is returned when an invalid block request is received
 	ErrInvalidBlockRequest = errors.New("invalid block request")
+
+	// chainSync errors
+	errEmptyBlockData      = errors.New("empty block data")
+	errNilHeaderInResponse = errors.New("expected header, received none")
 )
 
 // ErrNilChannel is returned if a channel is nil

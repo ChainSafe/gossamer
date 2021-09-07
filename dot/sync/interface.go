@@ -92,4 +92,6 @@ type BlockImportHandler interface {
 type Network interface {
 	// DoBlockRequest sends a request to the given peer. If a response is received within a certain time period, it is returned, otherwise an error is returned.
 	DoBlockRequest(to peer.ID, req *BlockRequestMessage) (*BlockResponseMessage, error)
+
+	// PeerCount() int
 }

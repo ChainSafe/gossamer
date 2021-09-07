@@ -98,6 +98,8 @@ type Service struct {
 	// telemetry
 	telemetryInterval time.Duration
 	closeCh           chan interface{}
+
+	blockResponseBuf []byte
 }
 
 // NewService creates a new network service from the configuration and message channels
@@ -171,6 +173,7 @@ func NewService(cfg *Config) (*Service, error) {
 		closeCh:                make(chan interface{}),
 		bufPool:                bufPool,
 		streamManager:          newStreamManager(ctx),
+		blockResponseBuf:       make([]byte, maxBlockResponseSize),
 	}
 
 	network.syncQueue = newSyncQueue(network)

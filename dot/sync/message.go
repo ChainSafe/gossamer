@@ -28,7 +28,7 @@ import (
 
 const (
 	// maximum number of block data a BlockResponse message can contain
-	MAX_RESPONSE_SIZE = 128 
+	MAX_RESPONSE_SIZE = 128
 
 	// block response data is in ascending order (ie parent to child)
 	DIR_ASCENDING byte = 0
@@ -110,7 +110,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 	responseData := []*types.BlockData{}
 
 	switch blockRequest.Direction {
-	case DIR_ASCENDING: 
+	case DIR_ASCENDING:
 		for i := startHeader.Number.Int64(); i <= endHeader.Number.Int64(); i++ {
 			blockData, err := s.getBlockData(big.NewInt(i), blockRequest.RequestedData)
 			if err != nil {

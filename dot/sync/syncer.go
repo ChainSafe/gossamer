@@ -36,6 +36,8 @@ type Service struct {
 
 	chainSync      ChainSync
 	chainProcessor ChainProcessor
+
+	readyBlocks chan *types.BlockData
 }
 
 // Config is the configuration for the sync Service.
@@ -86,11 +88,27 @@ func NewService(cfg *Config) (*Service, error) {
 
 	readyBlocks := make(chan *types.BlockData, 2048)
 	chainSync := newChainSync(cfg.BlockState, cfg.Network, readyBlocks)
+	chainProcessor := newChainProcessor(readyBlocks, cfg.BlockState, cfg.StorageState, cfg.TransactionState, cfg.BabeVerifier, cfg.FinalityGadget, cfg.BlockImportHandler)
 
 	return &Service{
-		blockState: cfg.BlockState,
-		chainSync:  chainSync,
+		blockState:     cfg.BlockState,
+		chainSync:      chainSync,
+		chainProcessor: chainProcessor,
+		readyBlocks:    readyBlocks,
 	}, nil
+}
+
+func (s *Service) Start() error {
+	s.chainSync.start()
+	s.chainProcessor.start()
+	return nil
+}
+
+func (s *Service) Stop() error {
+	s.chainSync.stop()
+	s.chainProcessor.stop()
+	close(s.readyBlocks)
+	return nil
 }
 
 // HandleBlockAnnounce notifies the `chainSync` module that we have received a BlockAnnounceHandshake from the given peer.
@@ -100,7 +118,7 @@ func (s *Service) HandleBlockAnnounceHandshake(from peer.ID, msg *network.BlockA
 }
 
 // HandleBlockAnnounce notifies the `chainSync` module that we have received a block announcement from the given peer.
-func (s *Service) HandleBlockAnnounce( /*from peer.ID, */ msg *network.BlockAnnounceMessage) error {
+func (s *Service) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMessage) error {
 	logger.Debug("received BlockAnnounceMessage")
 
 	// create header from message
@@ -109,7 +127,7 @@ func (s *Service) HandleBlockAnnounce( /*from peer.ID, */ msg *network.BlockAnno
 		return err
 	}
 
-	return s.chainSync.setBlockAnnounce(peer.ID(""), header)
+	return s.chainSync.setBlockAnnounce(from, header)
 }
 
 // IsSynced exposes the synced state

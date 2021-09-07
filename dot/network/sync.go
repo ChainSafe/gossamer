@@ -57,9 +57,42 @@ func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
 }
 
 // DoBlockRequest sends a request to the given peer. If a response is received within a certain time period, it is returned, otherwise an error is returned.
-// TODO: implement
 func (s *Service) DoBlockRequest(to peer.ID, req *BlockRequestMessage) (*BlockResponseMessage, error) {
-	return nil, nil
+	fullSyncID := s.host.protocolID + syncID
+
+	s.host.h.ConnManager().Protect(to, "")
+	defer s.host.h.ConnManager().Unprotect(to, "")
+	defer s.host.closeStream(to, fullSyncID)
+
+	// TODO: make this a constant
+	ctx, cancel := context.WithTimeout(s.ctx, time.Second*5)
+	defer cancel()
+
+	stream, err := s.host.h.NewStream(ctx, to, fullSyncID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.host.writeToStream(stream, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.receiveBlockResponse(stream)
+}
+
+func (s *Service) receiveBlockResponse(stream libp2pnetwork.Stream) (*BlockResponseMessage, error) {
+	// TODO: not safe for concurrent use, need to create another buf pool?
+	buf := s.blockResponseBuf
+
+	n, err := readStream(stream, buf[:])
+	if err != nil {
+		return nil, err
+	}
+
+	msg := new(BlockResponseMessage)
+	err = msg.Decode(buf[:n])
+	return msg, err
 }
 
 func decodeSyncMessage(in []byte, _ peer.ID, _ bool) (Message, error) {
@@ -160,25 +193,27 @@ func newSyncQueue(s *Service) *syncQueue {
 	ctx, cancel := context.WithCancel(s.ctx)
 
 	return &syncQueue{
-		s:                           s,
-		slotDuration:                defaultSlotDuration,
-		ctx:                         ctx,
-		cancel:                      cancel,
-		peerScore:                   new(sync.Map),
-		requestData:                 new(sync.Map),
-		requestDataByHash:           new(sync.Map),
-		justificationRequestData:    new(sync.Map),
-		requestCh:                   make(chan *syncRequest, blockRequestBufferSize),
-		responses:                   []*types.BlockData{},
-		responseCh:                  make(chan []*types.BlockData, blockResponseBufferSize),
-		benchmarker:                 newSyncBenchmarker(),
-		buf:                         make([]byte, maxBlockResponseSize),
+		s:                        s,
+		slotDuration:             defaultSlotDuration,
+		ctx:                      ctx,
+		cancel:                   cancel,
+		peerScore:                new(sync.Map),
+		requestData:              new(sync.Map),
+		requestDataByHash:        new(sync.Map),
+		justificationRequestData: new(sync.Map),
+		requestCh:                make(chan *syncRequest, blockRequestBufferSize),
+		responses:                []*types.BlockData{},
+		responseCh:               make(chan []*types.BlockData, blockResponseBufferSize),
+		benchmarker:              newSyncBenchmarker(),
+		//buf:                         make([]byte, maxBlockResponseSize),
 		handleResponseQueueDuration: defaultHandleResponseQueueDuration,
 		prunePeersDuration:          defaultPrunePeersDuration,
 	}
 }
 
 func (q *syncQueue) start() {
+	return
+
 	go q.handleResponseQueue()
 	go q.syncAtHead()
 
