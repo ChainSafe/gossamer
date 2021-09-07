@@ -59,7 +59,7 @@ package wasmer
 // extern int64_t ext_default_child_storage_root_version_1(void *context, int64_t a);
 // extern void ext_default_child_storage_set_version_1(void *context, int64_t a, int64_t b, int64_t c);
 // extern void ext_default_child_storage_storage_kill_version_1(void *context, int64_t a);
-// extern int32_t ext_default_child_storage_storage_kill_version_2(void *context, int64_t a, int64_t b);
+// extern int32_t ext_default_child_storage_storage_kill_version_2(void *context, int64_t a, int32_t b);
 // extern int64_t ext_default_child_storage_storage_kill_version_3(void *context, int64_t a, int64_t b);
 // extern void ext_default_child_storage_clear_prefix_version_1(void *context, int64_t a, int64_t b);
 // extern int32_t ext_default_child_storage_exists_version_1(void *context, int64_t a, int64_t b);
@@ -1120,7 +1120,7 @@ func ext_default_child_storage_storage_kill_version_1(context unsafe.Pointer, ch
 }
 
 //export ext_default_child_storage_storage_kill_version_2
-func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer, childStorageKeySpan, _ C.int64_t) C.int32_t {
+func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer, childStorageKeySpan C.int64_t, lim C.int32_t) C.int32_t {
 	logger.Debug("[ext_default_child_storage_storage_kill_version_2] executing...")
 	logger.Warn("[ext_default_child_storage_storage_kill_version_2] somewhat unimplemented")
 	// TODO: need to use `limit` parameter
@@ -1131,6 +1131,19 @@ func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer, ch
 
 	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
 	storage.DeleteChild(childStorageKey)
+
+	//todo (ed) confirm this is correct way to read limit param
+	limitBuf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(limitBuf, uint32(lim))
+	buf := &bytes.Buffer{}
+	buf.Write(limitBuf)
+
+	limit, err := optional.NewBytes(false, nil).Decode(buf)
+	if err != nil {
+		logger.Warn("[ext_default_child_storage_storage_kill_version_2] cannot generate limit", "error", err)
+		return 0
+	}
+	fmt.Printf("limit %v\n", limit)
 
 	// note: this function always returns `KillStorageResult::AllRemoved`, which is 0
 	return 0
