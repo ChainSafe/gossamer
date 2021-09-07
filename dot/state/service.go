@@ -147,12 +147,12 @@ func (s *Service) Start() error {
 	if !bytes.Equal(btHead[:], bestHash[:]) {
 		logger.Info("detected abnormal node shutdown, restoring from last finalised block")
 
-		lastFinalised, err := s.Block.GetFinalisedHeader(0, 0) //nolint
+		lastFinalised, err := s.Block.GetFinalisedHeaderVdt(0, 0) //nolint
 		if err != nil {
 			return fmt.Errorf("failed to get latest finalised block: %w", err)
 		}
 
-		s.Block.bt = blocktree.NewBlockTreeFromRoot(lastFinalised, db)
+		s.Block.bt = blocktree.NewBlockTreeFromRootVdt(lastFinalised, db)
 	}
 
 	pr, err := s.Base.loadPruningData()
@@ -219,10 +219,10 @@ func (s *Service) Rewind(toBlock int64) error {
 	s.Block.bt = blocktree.NewBlockTreeFromRootVdt(&root.Header, s.db)
 	newHead := s.Block.BestBlockHash()
 
-	header, _ := s.Block.BestBlockHeader()
+	header, _ := s.Block.BestBlockHeaderVdt()
 	logger.Info("rewinding state...", "new height", header.Number, "best block hash", newHead)
 
-	epoch, err := s.Epoch.GetEpochForBlock(header)
+	epoch, err := s.Epoch.GetEpochForBlockVdt(header)
 	if err != nil {
 		return err
 	}

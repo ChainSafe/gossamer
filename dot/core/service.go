@@ -409,29 +409,6 @@ func (s *Service) handleCurrentSlotVdt(header *types.HeaderVdt) error {
 	return s.epochState.SetCurrentEpoch(epoch)
 }
 
-func (s *Service) handleCurrentSlot(header *types.Header) error {
-	head := s.blockState.BestBlockHash()
-	if header.Hash() != head {
-		return nil
-	}
-
-	epoch, err := s.epochState.GetEpochForBlock(header)
-	if err != nil {
-		return err
-	}
-
-	currEpoch, err := s.epochState.GetCurrentEpoch()
-	if err != nil {
-		return err
-	}
-
-	if currEpoch == epoch {
-		return nil
-	}
-
-	return s.epochState.SetCurrentEpoch(epoch)
-}
-
 // handleBlocksAsync handles a block asynchronously; the handling performed by this function
 // does not need to be completed before the next block can be imported.
 func (s *Service) handleBlocksAsync() {

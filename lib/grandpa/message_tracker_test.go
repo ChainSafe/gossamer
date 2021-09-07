@@ -38,12 +38,12 @@ func TestMessageTracker_ValidateMessage(t *testing.T) {
 	gs.tracker, err = newTracker(gs.blockState, gs.messageHandler)
 	require.NoError(t, err)
 
-	fake := &types.Header{
+	fake := &types.HeaderVdt{
 		Number: big.NewInt(77),
 	}
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(fake), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeaderVdt(fake), prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
@@ -67,7 +67,7 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 	gs.tracker.start()
 	defer gs.tracker.stop()
 
-	parent, err := gs.blockState.BestBlockHeader()
+	parent, err := gs.blockState.BestBlockHeaderVdt()
 	require.NoError(t, err)
 
 	next := &types.HeaderVdt{
@@ -113,7 +113,7 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 
 	time.Sleep(time.Second) // wait for round to initiate
 
-	parent, err := gs.blockState.BestBlockHeader()
+	parent, err := gs.blockState.BestBlockHeaderVdt()
 	require.NoError(t, err)
 
 	next := &types.HeaderVdt{
@@ -159,7 +159,7 @@ func TestMessageTracker_MapInsideMap(t *testing.T) {
 	gs.tracker, err = newTracker(gs.blockState, gs.messageHandler)
 	require.NoError(t, err)
 
-	header := &types.Header{
+	header := &types.HeaderVdt{
 		Number: big.NewInt(77),
 	}
 
@@ -169,7 +169,7 @@ func TestMessageTracker_MapInsideMap(t *testing.T) {
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
 	authorityID := kr.Alice().Public().(*ed25519.PublicKey).AsBytes()
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(header), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeaderVdt(header), prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 

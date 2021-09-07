@@ -17,15 +17,15 @@ type mockBlockState struct {
 }
 
 // BestBlockHeader provides a mock function with given fields:
-func (_m *mockBlockState) BestBlockHeader() (*types.Header, error) {
+func (_m *mockBlockState) BestBlockHeaderVdt() (*types.HeaderVdt, error) {
 	ret := _m.Called()
 
-	var r0 *types.Header
-	if rf, ok := ret.Get(0).(func() *types.Header); ok {
+	var r0 *types.HeaderVdt
+	if rf, ok := ret.Get(0).(func() *types.HeaderVdt); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Header)
+			r0 = ret.Get(0).(*types.HeaderVdt)
 		}
 	}
 
@@ -102,15 +102,15 @@ func (_m *mockBlockState) GetHashByNumber(num *big.Int) (common.Hash, error) {
 }
 
 // GetHighestFinalisedHeader provides a mock function with given fields:
-func (_m *mockBlockState) GetHighestFinalisedHeader() (*types.Header, error) {
+func (_m *mockBlockState) GetHighestFinalisedHeader() (*types.HeaderVdt, error) {
 	ret := _m.Called()
 
-	var r0 *types.Header
-	if rf, ok := ret.Get(0).(func() *types.Header); ok {
+	var r0 *types.HeaderVdt
+	if rf, ok := ret.Get(0).(func() *types.HeaderVdt); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Header)
+			r0 = ret.Get(0).(*types.HeaderVdt)
 		}
 	}
 

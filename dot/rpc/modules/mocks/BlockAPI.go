@@ -57,29 +57,6 @@ func (_m *BlockAPI) GetBlockByHashVdt(hash common.Hash) (*types.Block, error) {
 	return r0, r1
 }
 
-//// GetBlockByHash provides a mock function with given fields: hash
-//func (_m *BlockAPI) GetBlockByHash(hash common.Hash) (*types.Block, error) {
-//	ret := _m.Called(hash)
-//
-//	var r0 *types.Block
-//	if rf, ok := ret.Get(0).(func(common.Hash) *types.Block); ok {
-//		r0 = rf(hash)
-//	} else {
-//		if ret.Get(0) != nil {
-//			r0 = ret.Get(0).(*types.Block)
-//		}
-//	}
-//
-//	var r1 error
-//	if rf, ok := ret.Get(1).(func(common.Hash) error); ok {
-//		r1 = rf(hash)
-//	} else {
-//		r1 = ret.Error(1)
-//	}
-//
-//	return r0, r1
-//}
-
 // GetBlockHash provides a mock function with given fields: blockNumber
 func (_m *BlockAPI) GetBlockHash(blockNumber *big.Int) (common.Hash, error) {
 	ret := _m.Called(blockNumber)
@@ -149,28 +126,28 @@ func (_m *BlockAPI) GetHeaderVdt(hash common.Hash) (*types.HeaderVdt, error) {
 	return r0, r1
 }
 
-// GetHeader provides a mock function with given fields: hash
-func (_m *BlockAPI) GetHeader(hash common.Hash) (*types.Header, error) {
-	ret := _m.Called(hash)
-
-	var r0 *types.Header
-	if rf, ok := ret.Get(0).(func(common.Hash) *types.Header); ok {
-		r0 = rf(hash)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.Header)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func(common.Hash) error); ok {
-		r1 = rf(hash)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
+//// GetHeader provides a mock function with given fields: hash
+//func (_m *BlockAPI) GetHeader(hash common.Hash) (*types.Header, error) {
+//	ret := _m.Called(hash)
+//
+//	var r0 *types.Header
+//	if rf, ok := ret.Get(0).(func(common.Hash) *types.Header); ok {
+//		r0 = rf(hash)
+//	} else {
+//		if ret.Get(0) != nil {
+//			r0 = ret.Get(0).(*types.Header)
+//		}
+//	}
+//
+//	var r1 error
+//	if rf, ok := ret.Get(1).(func(common.Hash) error); ok {
+//		r1 = rf(hash)
+//	} else {
+//		r1 = ret.Error(1)
+//	}
+//
+//	return r0, r1
+//}
 
 // GetHighestFinalisedHash provides a mock function with given fields:
 func (_m *BlockAPI) GetHighestFinalisedHash() (common.Hash, error) {

@@ -73,26 +73,6 @@ func NewBlockTreeFromRootVdt(root *types.HeaderVdt, db database.Database) *Block
 	}
 }
 
-// NewBlockTreeFromRoot initialises a blocktree with a root block. The root block is always the most recently
-// finalised block (ie the genesis block if the node is just starting.)
-func NewBlockTreeFromRoot(root *types.Header, db database.Database) *BlockTree {
-	head := &node{
-		hash:        root.Hash(),
-		parent:      nil,
-		children:    []*node{},
-		depth:       big.NewInt(0),
-		arrivalTime: uint64(time.Now().Unix()), // TODO: genesis block doesn't need an arrival time, it isn't used in median algo
-	}
-
-	return &BlockTree{
-		head:      head,
-		leaves:    newLeafMap(head),
-		db:        db,
-		nodeCache: make(map[Hash]*node),
-		runtime:   &sync.Map{},
-	}
-}
-
 // GenesisHash returns the hash of the genesis block
 func (bt *BlockTree) GenesisHash() Hash {
 	bt.RLock()
@@ -100,41 +80,9 @@ func (bt *BlockTree) GenesisHash() Hash {
 	return bt.head.hash
 }
 
-func (bt *BlockTree) AddBlockVdt(header *types.HeaderVdt, arrivalTime uint64) error {
-	bt.Lock()
-	defer bt.Unlock()
-
-	parent := bt.getNode(header.ParentHash)
-	if parent == nil {
-		return ErrParentNotFound
-	}
-
-	// Check if it already exists
-	n := bt.getNode(header.Hash())
-	if n != nil {
-		return ErrBlockExists
-	}
-
-	depth := big.NewInt(0)
-	depth.Add(parent.depth, big.NewInt(1))
-
-	n = &node{
-		hash:        header.Hash(),
-		parent:      parent,
-		children:    []*node{},
-		depth:       depth,
-		arrivalTime: arrivalTime,
-	}
-	parent.addChild(n)
-	bt.leaves.replace(parent, n)
-	bt.setInCache(n)
-
-	return nil
-}
-
 // AddBlock inserts the block as child of its parent node
 // Note: Assumes block has no children
-func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime uint64) error {
+func (bt *BlockTree) AddBlockVdt(header *types.HeaderVdt, arrivalTime uint64) error {
 	bt.Lock()
 	defer bt.Unlock()
 

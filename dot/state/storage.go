@@ -96,54 +96,12 @@ func (s *StorageState) SetSyncing(syncing bool) {
 	s.syncing = syncing
 }
 
-func (s *StorageState) pruneKey(keyHeader *types.Header) {
+func (s *StorageState) pruneKey(keyHeader *types.HeaderVdt) {
 	s.tries.Delete(keyHeader.StateRoot)
 }
 
-func (s *StorageState) StoreTrieVdt(ts *rtstorage.TrieState, header *types.HeaderVdt) error {
-	root := ts.MustRoot()
-
-	if s.syncing {
-		// keep only the trie at the head of the chain when syncing
-		// TODO: probably remove this when memory usage improves
-		s.tries.Range(func(k, _ interface{}) bool {
-			s.tries.Delete(k)
-			return true
-		})
-	}
-
-	_, _ = s.tries.LoadOrStore(root, ts.Trie())
-
-	if _, ok := s.pruner.(*pruner.FullNode); header == nil && ok {
-		return fmt.Errorf("block cannot be empty for Full node pruner")
-	}
-
-	if header != nil {
-		insKeys, err := ts.GetInsertedNodeHashes()
-		if err != nil {
-			return fmt.Errorf("failed to get state trie inserted keys: block %s %w", header.Hash(), err)
-		}
-
-		delKeys := ts.GetDeletedNodeHashes()
-		err = s.pruner.StoreJournalRecord(delKeys, insKeys, header.Hash(), header.Number.Int64())
-		if err != nil {
-			return err
-		}
-	}
-
-	logger.Trace("cached trie in storage state", "root", root)
-
-	if err := ts.Trie().WriteDirty(s.db); err != nil {
-		logger.Warn("failed to write trie to database", "root", root, "error", err)
-		return err
-	}
-
-	go s.notifyAll(root)
-	return nil
-}
-
 // StoreTrie stores the given trie in the StorageState and writes it to the database
-func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) error {
+func (s *StorageState) StoreTrieVdt(ts *rtstorage.TrieState, header *types.HeaderVdt) error {
 	root := ts.MustRoot()
 
 	if s.syncing {
@@ -284,7 +242,7 @@ func (s *StorageState) GetStorage(root *common.Hash, key []byte) ([]byte, error)
 
 // GetStorageByBlockHash returns the value at the given key at the given block hash
 func (s *StorageState) GetStorageByBlockHash(bhash common.Hash, key []byte) ([]byte, error) {
-	header, err := s.blockState.GetHeader(bhash)
+	header, err := s.blockState.GetHeaderVdt(bhash)
 	if err != nil {
 		return nil, err
 	}
@@ -294,7 +252,7 @@ func (s *StorageState) GetStorageByBlockHash(bhash common.Hash, key []byte) ([]b
 
 // GetStateRootFromBlock returns the state root hash of a given block hash
 func (s *StorageState) GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error) {
-	header, err := s.blockState.GetHeader(*bhash)
+	header, err := s.blockState.GetHeaderVdt(*bhash)
 	if err != nil {
 		return nil, err
 	}

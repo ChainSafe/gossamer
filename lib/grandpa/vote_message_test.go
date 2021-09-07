@@ -47,10 +47,10 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 	require.NoError(t, err)
 	state.AddBlocksToState(t, st.Block, 3)
 
-	h, err := st.Block.BestBlockHeader()
+	h, err := st.Block.BestBlockHeaderVdt()
 	require.NoError(t, err)
 
-	vote := NewVoteFromHeader(h)
+	vote := NewVoteFromHeaderVdt(h)
 	require.NoError(t, err)
 
 	for _, v := range voters {
@@ -190,11 +190,11 @@ func TestValidateMessage_Valid(t *testing.T) {
 	require.NoError(t, err)
 	state.AddBlocksToState(t, st.Block, 3)
 
-	h, err := st.Block.BestBlockHeader()
+	h, err := st.Block.BestBlockHeaderVdt()
 	require.NoError(t, err)
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(h), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeaderVdt(h), prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
@@ -223,11 +223,11 @@ func TestValidateMessage_InvalidSignature(t *testing.T) {
 	require.NoError(t, err)
 	state.AddBlocksToState(t, st.Block, 3)
 
-	h, err := st.Block.BestBlockHeader()
+	h, err := st.Block.BestBlockHeaderVdt()
 	require.NoError(t, err)
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(h), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeaderVdt(h), prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
@@ -256,11 +256,11 @@ func TestValidateMessage_SetIDMismatch(t *testing.T) {
 	require.NoError(t, err)
 	state.AddBlocksToState(t, st.Block, 3)
 
-	h, err := st.Block.BestBlockHeader()
+	h, err := st.Block.BestBlockHeaderVdt()
 	require.NoError(t, err)
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(h), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeaderVdt(h), prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
@@ -340,12 +340,12 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 	gs.tracker, err = newTracker(st.Block, gs.messageHandler)
 	require.NoError(t, err)
 
-	fake := &types.Header{
+	fake := &types.HeaderVdt{
 		Number: big.NewInt(77),
 	}
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(fake), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeaderVdt(fake), prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 

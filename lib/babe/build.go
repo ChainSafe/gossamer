@@ -281,33 +281,11 @@ func (b *BlockBuilder) buildBlockVdt(parent *types.HeaderVdt, slot Slot, rt runt
 //	return block, nil
 //}
 
+// buildBlockSeal creates the seal for the block header.
+// the seal consists of the ConsensusEngineID and a signature of the encoded block header.
 func (b *BlockBuilder) buildBlockSealVdt(header *types.HeaderVdt) (*types.SealDigest, error) {
 	//encHeader, err := header.Encode()
 	encHeader, err := scale.Marshal(*header)
-	if err != nil {
-		return nil, err
-	}
-
-	hash, err := common.Blake2bHash(encHeader)
-	if err != nil {
-		return nil, err
-	}
-
-	sig, err := b.keypair.Sign(hash[:])
-	if err != nil {
-		return nil, err
-	}
-
-	return &types.SealDigest{
-		ConsensusEngineID: types.BabeEngineID,
-		Data:              sig,
-	}, nil
-}
-
-// buildBlockSeal creates the seal for the block header.
-// the seal consists of the ConsensusEngineID and a signature of the encoded block header.
-func (b *BlockBuilder) buildBlockSeal(header *types.Header) (*types.SealDigest, error) {
-	encHeader, err := header.Encode()
 	if err != nil {
 		return nil, err
 	}

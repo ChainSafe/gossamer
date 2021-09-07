@@ -381,26 +381,6 @@ func (s *Service) handleJustificationVdt(header *types.HeaderVdt, justification 
 	logger.Info("🔨 finalised block", "number", header.Number, "hash", header.Hash())
 }
 
-func (s *Service) handleJustification(header *types.Header, justification []byte) {
-	if len(justification) == 0 || header == nil {
-		return
-	}
-
-	err := s.finalityGadget.VerifyBlockJustification(header.Hash(), justification)
-	if err != nil {
-		logger.Warn("failed to verify block justification", "hash", header.Hash(), "number", header.Number, "error", err)
-		return
-	}
-
-	err = s.blockState.SetJustification(header.Hash(), justification)
-	if err != nil {
-		logger.Error("failed tostore justification", "error", err)
-		return
-	}
-
-	logger.Info("🔨 finalised block", "number", header.Number, "hash", header.Hash())
-}
-
 // IsSynced exposes the synced state
 func (s *Service) IsSynced() bool {
 	return s.synced

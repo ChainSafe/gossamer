@@ -66,22 +66,13 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 	currentChain := []*types.HeaderVdt{}
 	branchChains := []*types.HeaderVdt{}
 
-	head, err := blockState.BestBlockHeader()
+	head, err := blockState.BestBlockHeaderVdt()
 	require.NoError(t, err)
 
 	// create base tree
 	startNum := int(head.Number.Int64())
 	for i := startNum + 1; i <= depth; i++ {
 		d := types.NewBabePrimaryPreDigest(0, uint64(i), [32]byte{}, [64]byte{})
-		//block := &types.Block{
-		//	Header: &types.Header{
-		//		ParentHash: previousHash,
-		//		Number:     big.NewInt(int64(i)),
-		//		StateRoot:  trie.EmptyHash,
-		//		Digest:     types.Digest{d.ToPreRuntimeDigest()},
-		//	},
-		//	Body: &types.Body{},
-		//}
 		digest := types.NewDigestVdt()
 		digest.Add(*d.ToPreRuntimeDigest())
 
@@ -120,20 +111,6 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 		previousHash = branch.hash
 
 		for i := branch.depth; i < depth; i++ {
-			//block := &types.Block{
-			//	Header: &types.Header{
-			//		ParentHash: previousHash,
-			//		Number:     big.NewInt(int64(i) + 1),
-			//		StateRoot:  trie.EmptyHash,
-			//		Digest: types.Digest{
-			//			&types.PreRuntimeDigest{
-			//				Data: []byte{byte(i)},
-			//			},
-			//		},
-			//	},
-			//	Body: &types.Body{},
-			//}
-
 			digest := types.NewDigestVdt()
 			digest.Add(types.PreRuntimeDigest{
 				Data: []byte{byte(i)},
@@ -179,15 +156,6 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 	// create base tree
 	startNum := int(head.Number.Int64())
 	for i := startNum + 1; i <= depth; i++ {
-		//block := &types.Block{
-		//	Header: &types.Header{
-		//		ParentHash: previousHash,
-		//		Number:     big.NewInt(int64(i)),
-		//		StateRoot:  trie.EmptyHash,
-		//	},
-		//	Body: &types.Body{},
-		//}
-
 		block := &types.Block{
 			Header: types.HeaderVdt{
 				ParentHash: previousHash,
@@ -223,19 +191,6 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 		previousHash = branch.hash
 
 		for i := branch.depth; i < depth; i++ {
-			//block := &types.Block{
-			//	Header: &types.Header{
-			//		ParentHash: previousHash,
-			//		Number:     big.NewInt(int64(i)),
-			//		StateRoot:  trie.EmptyHash,
-			//		Digest: types.Digest{
-			//			&types.PreRuntimeDigest{
-			//				Data: []byte{byte(i), byte(j), r},
-			//			},
-			//		},
-			//	},
-			//	Body: &types.Body{},
-			//}
 			digest := types.NewDigestVdt()
 			digest.Add(types.PreRuntimeDigest{
 				Data: []byte{byte(i), byte(j), r},

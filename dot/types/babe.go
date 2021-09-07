@@ -95,6 +95,7 @@ type ConfigData struct {
 	SecondarySlots byte // TODO: this is unused, will need to update BABE verifier to use this
 }
 
+// GetSlotFromHeader returns the BABE slot from the given header
 func GetSlotFromHeaderVdt(header *HeaderVdt) (uint64, error) {
 	if len(header.Digest.Types) == 0 {
 		return 0, fmt.Errorf("chain head missing digest")
@@ -107,28 +108,6 @@ func GetSlotFromHeaderVdt(header *HeaderVdt) (uint64, error) {
 	case PreRuntimeDigest:
 		preDigest = &val
 	default:
-		return 0, fmt.Errorf("first digest item is not pre-digest")
-	}
-
-	r := &bytes.Buffer{}
-	_, _ = r.Write(preDigest.Data)
-	digest, err := DecodeBabePreDigest(r)
-	if err != nil {
-		return 0, fmt.Errorf("cannot decode BabePreDigest from pre-digest: %s", err)
-	}
-
-	return digest.SlotNumber(), nil
-}
-
-// GetSlotFromHeader returns the BABE slot from the given header
-func GetSlotFromHeader(header *Header) (uint64, error) {
-	if len(header.Digest) == 0 {
-		return 0, fmt.Errorf("chain head missing digest")
-	}
-
-	digestItem := header.Digest[0]
-	preDigest, ok := digestItem.(*PreRuntimeDigest)
-	if !ok {
 		return 0, fmt.Errorf("first digest item is not pre-digest")
 	}
 

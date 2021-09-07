@@ -45,9 +45,10 @@ import (
 )
 
 // testGenesisHeader is a test block header
-var testGenesisHeader = &types.Header{
+var testGenesisHeaderVdt = &types.HeaderVdt{
 	Number:    big.NewInt(0),
 	StateRoot: trie.EmptyHash,
+	Digest:    types.NewDigestVdt(),
 }
 
 var (
@@ -70,8 +71,8 @@ func newTestState(t *testing.T) *state.Service {
 
 	t.Cleanup(func() { db.Close() })
 
-	gen, genTrie, _ := genesis.NewTestGenesisWithTrieAndHeader(t)
-	block, err := state.NewBlockStateFromGenesis(db, testGenesisHeader)
+	gen, genTrie, _ := genesis.NewTestGenesisWithTrieAndHeaderVdt(t)
+	block, err := state.NewBlockStateFromGenesis(db, testGenesisHeaderVdt)
 	require.NoError(t, err)
 
 	rtCfg := &wasmer.Config{}
@@ -1055,7 +1056,7 @@ func TestDeterminePreVote_NoPrimaryPreVote(t *testing.T) {
 	pv, err := gs.determinePreVote()
 	require.NoError(t, err)
 
-	header, err := st.Block.BestBlockHeader()
+	header, err := st.Block.BestBlockHeaderVdt()
 	require.NoError(t, err)
 	require.Equal(t, header.Hash(), pv.Hash)
 }
@@ -1064,14 +1065,14 @@ func TestDeterminePreVote_WithPrimaryPreVote(t *testing.T) {
 	gs, st := newTestService(t)
 
 	state.AddBlocksToState(t, st.Block, 3)
-	header, err := st.Block.BestBlockHeader()
+	header, err := st.Block.BestBlockHeaderVdt()
 	require.NoError(t, err)
 	state.AddBlocksToState(t, st.Block, 1)
 
 	derivePrimary := gs.derivePrimary()
 	primary := derivePrimary.PublicKeyBytes()
 	gs.prevotes.Store(primary, &SignedVote{
-		Vote: NewVoteFromHeader(header),
+		Vote: NewVoteFromHeaderVdt(header),
 	})
 
 	pv, err := gs.determinePreVote()
@@ -1085,13 +1086,13 @@ func TestDeterminePreVote_WithInvalidPrimaryPreVote(t *testing.T) {
 	gs, st := newTestService(t)
 
 	state.AddBlocksToState(t, st.Block, 3)
-	header, err := st.Block.BestBlockHeader()
+	header, err := st.Block.BestBlockHeaderVdt()
 	require.NoError(t, err)
 
 	derivePrimary := gs.derivePrimary()
 	primary := derivePrimary.PublicKeyBytes()
 	gs.prevotes.Store(primary, &SignedVote{
-		Vote: NewVoteFromHeader(header),
+		Vote: NewVoteFromHeaderVdt(header),
 	})
 
 	state.AddBlocksToState(t, st.Block, 5)

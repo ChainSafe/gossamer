@@ -59,16 +59,16 @@ func TestSeal(t *testing.T) {
 	zeroHash, err := common.HexToHash("0x00")
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(zeroHash, zeroHash, zeroHash, big.NewInt(0), types.Digest{})
+	header, err := types.NewHeaderVdt(zeroHash, zeroHash, zeroHash, big.NewInt(0), types.NewDigestVdt())
 	require.NoError(t, err)
 
-	encHeader, err := header.Encode()
+	encHeader, err := scale.Marshal(*header)
 	require.NoError(t, err)
 
 	hash, err := common.Blake2bHash(encHeader)
 	require.NoError(t, err)
 
-	seal, err := builder.buildBlockSeal(header)
+	seal, err := builder.buildBlockSealVdt(header)
 	require.NoError(t, err)
 
 	ok, err := kp.Public().Verify(hash[:], seal.Data)
@@ -231,7 +231,7 @@ func TestBuildBlock_ok(t *testing.T) {
 	digest.Add(*preDigest)
 
 	expectedBlockHeader := &types.HeaderVdt{
-		ParentHash: emptyHeader.Hash(),
+		ParentHash: emptyHeaderVdt.Hash(),
 		Number:     big.NewInt(1),
 		Digest:     digest,
 	}
@@ -307,26 +307,31 @@ func TestApplyExtrinsic(t *testing.T) {
 	preDigest, err := builder.buildBlockPreDigest(slot)
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewDigest(preDigest))
+	digest := types.NewDigestVdt()
+	digest.Add(*preDigest)
+
+	header, err := types.NewHeaderVdt(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), digest)
 	require.NoError(t, err)
 
 	//initialise block header
-	err = rt.InitializeBlock(header)
+	err = rt.InitializeBlockVdt(header)
 	require.NoError(t, err)
 
 	_, err = builder.buildBlockInherents(slot, rt)
 	require.NoError(t, err)
 
-	header1, err := rt.FinalizeBlock()
+	header1, err := rt.FinalizeBlockVdt()
 	require.NoError(t, err)
 
 	ext := createTestExtrinsic(t, rt, parentHash, 0)
 	_, err = rt.ValidateTransaction(append([]byte{byte(types.TxnExternal)}, ext...))
 	require.NoError(t, err)
 
-	header2, err := types.NewHeader(header1.Hash(), common.Hash{}, common.Hash{}, big.NewInt(2), types.NewDigest(preDigest2))
+	digest2 := types.NewDigestVdt()
+	digest2.Add(*preDigest2)
+	header2, err := types.NewHeaderVdt(header1.Hash(), common.Hash{}, common.Hash{}, big.NewInt(2), digest2)
 	require.NoError(t, err)
-	err = rt.InitializeBlock(header2)
+	err = rt.InitializeBlockVdt(header2)
 	require.NoError(t, err)
 
 	_, err = builder.buildBlockInherents(slot, rt)
@@ -336,7 +341,7 @@ func TestApplyExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte{0, 0}, res)
 
-	_, err = rt.FinalizeBlock()
+	_, err = rt.FinalizeBlockVdt()
 	require.NoError(t, err)
 }
 

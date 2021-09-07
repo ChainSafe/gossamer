@@ -39,7 +39,7 @@ func (bs *BlockState) HasFinalisedBlock(round, setID uint64) (bool, error) {
 
 // NumberIsFinalised checks if a block number is finalised or not
 func (bs *BlockState) NumberIsFinalised(num *big.Int) (bool, error) {
-	header, err := bs.GetFinalisedHeader(0, 0)
+	header, err := bs.GetFinalisedHeaderVdt(0, 0)
 	if err != nil {
 		return false, err
 	}
@@ -58,24 +58,6 @@ func (bs *BlockState) GetFinalisedHeaderVdt(round, setID uint64) (*types.HeaderV
 	}
 
 	header, err := bs.GetHeaderVdt(h)
-	if err != nil {
-		return nil, err
-	}
-
-	return header, nil
-}
-
-// GetFinalisedHeader returns the finalised block header by round and setID
-func (bs *BlockState) GetFinalisedHeader(round, setID uint64) (*types.Header, error) {
-	bs.Lock()
-	defer bs.Unlock()
-
-	h, err := bs.GetFinalisedHash(round, setID)
-	if err != nil {
-		return nil, err
-	}
-
-	header, err := bs.GetHeader(h)
 	if err != nil {
 		return nil, err
 	}
@@ -130,13 +112,13 @@ func (bs *BlockState) GetHighestFinalisedHash() (common.Hash, error) {
 }
 
 // GetHighestFinalisedHeader returns the highest finalised block header
-func (bs *BlockState) GetHighestFinalisedHeader() (*types.Header, error) {
+func (bs *BlockState) GetHighestFinalisedHeader() (*types.HeaderVdt, error) {
 	h, err := bs.GetHighestFinalisedHash()
 	if err != nil {
 		return nil, err
 	}
 
-	header, err := bs.GetHeader(h)
+	header, err := bs.GetHeaderVdt(h)
 	if err != nil {
 		return nil, err
 	}
@@ -169,7 +151,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 
 	pruned := bs.bt.Prune(hash)
 	for _, hash := range pruned {
-		header, err := bs.GetHeader(hash)
+		header, err := bs.GetHeaderVdt(hash)
 		if err != nil {
 			logger.Debug("failed to get pruned header", "hash", hash, "error", err)
 			continue
@@ -182,7 +164,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 		}
 
 		logger.Trace("pruned block", "hash", hash, "number", header.Number)
-		go func(header *types.Header) {
+		go func(header *types.HeaderVdt) {
 			bs.pruneKeyCh <- header
 		}(header)
 	}
@@ -196,12 +178,12 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 }
 
 func (bs *BlockState) setFirstSlotOnFinalisation() error {
-	header, err := bs.GetHeaderByNumber(big.NewInt(1))
+	header, err := bs.GetHeaderByNumberVdt(big.NewInt(1))
 	if err != nil {
 		return err
 	}
 
-	slot, err := types.GetSlotFromHeader(header)
+	slot, err := types.GetSlotFromHeaderVdt(header)
 	if err != nil {
 		return err
 	}

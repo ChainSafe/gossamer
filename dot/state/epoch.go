@@ -182,6 +182,7 @@ func (s *EpochState) GetCurrentEpoch() (uint64, error) {
 	return binary.LittleEndian.Uint64(b), nil
 }
 
+// GetEpochForBlock checks the pre-runtime digest to determine what epoch the block was formed in.
 func (s *EpochState) GetEpochForBlockVdt(header *types.HeaderVdt) (uint64, error) {
 	if header == nil {
 		return 0, errors.New("header is nil")
@@ -202,41 +203,6 @@ func (s *EpochState) GetEpochForBlockVdt(header *types.HeaderVdt) (uint64, error
 		}
 
 		//predigest := d.(*types.PreRuntimeDigest)
-
-		r := &bytes.Buffer{}
-		_, _ = r.Write(predigest.Data)
-		digest, err := types.DecodeBabePreDigest(r)
-		if err != nil {
-			return 0, fmt.Errorf("failed to decode babe header: %w", err)
-		}
-
-		if digest.SlotNumber() < firstSlot {
-			return 0, nil
-		}
-
-		return (digest.SlotNumber() - firstSlot) / s.epochLength, nil
-	}
-
-	return 0, errors.New("header does not contain pre-runtime digest")
-}
-
-// GetEpochForBlock checks the pre-runtime digest to determine what epoch the block was formed in.
-func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
-	if header == nil {
-		return 0, errors.New("header is nil")
-	}
-
-	firstSlot, err := s.baseState.loadFirstSlot()
-	if err != nil {
-		return 0, err
-	}
-
-	for _, d := range header.Digest {
-		if d.Type() != types.PreRuntimeDigestType {
-			continue
-		}
-
-		predigest := d.(*types.PreRuntimeDigest)
 
 		r := &bytes.Buffer{}
 		_, _ = r.Write(predigest.Data)
@@ -389,7 +355,7 @@ func (s *EpochState) GetEpochFromTime(t time.Time) (uint64, error) {
 // SetFirstSlot sets the first slot number of the network
 func (s *EpochState) SetFirstSlot(slot uint64) error {
 	// check if block 1 was finalised already; if it has, don't set first slot again
-	header, err := s.blockState.GetFinalisedHeader(0, 0)
+	header, err := s.blockState.GetFinalisedHeaderVdt(0, 0)
 	if err != nil {
 		return err
 	}
@@ -401,23 +367,10 @@ func (s *EpochState) SetFirstSlot(slot uint64) error {
 	return s.baseState.storeFirstSlot(slot)
 }
 
-func (s *EpochState) SkipVerifyVdt(header *types.HeaderVdt) (bool, error) {
-	epoch, err := s.GetEpochForBlockVdt(header)
-	if err != nil {
-		return false, err
-	}
-
-	if epoch <= s.skipToEpoch {
-		return true, nil
-	}
-
-	return false, nil
-}
-
 // SkipVerify returns whether verification for the given header should be skipped or not.
 // Only used in the case of imported state.
-func (s *EpochState) SkipVerify(header *types.Header) (bool, error) {
-	epoch, err := s.GetEpochForBlock(header)
+func (s *EpochState) SkipVerifyVdt(header *types.HeaderVdt) (bool, error) {
+	epoch, err := s.GetEpochForBlockVdt(header)
 	if err != nil {
 		return false, err
 	}

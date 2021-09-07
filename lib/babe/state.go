@@ -30,7 +30,7 @@ import (
 // BlockState interface for block state methods
 type BlockState interface {
 	BestBlockHash() common.Hash
-	BestBlockHeader() (*types.Header, error)
+	//BestBlockHeader() (*types.Header, error)
 	BestBlockHeaderVdt() (*types.HeaderVdt, error)
 	BestBlockNumber() (*big.Int, error)
 	BestBlockVdt() (*types.Block, error)
@@ -38,7 +38,7 @@ type BlockState interface {
 	//AddBlock(*types.Block) error
 	AddBlockVdt(*types.Block) error
 	GetAllBlocksAtDepth(hash common.Hash) []common.Hash
-	GetHeader(common.Hash) (*types.Header, error)
+	//GetHeader(common.Hash) (*types.Header, error)
 	GetHeaderVdt(common.Hash) (*types.HeaderVdt, error)
 	//GetBlockByNumber(*big.Int) (*types.Block, error)
 	GetBlockByNumberVdt(*big.Int) (*types.Block, error)
@@ -46,7 +46,7 @@ type BlockState interface {
 	GetArrivalTime(common.Hash) (time.Time, error)
 	GenesisHash() common.Hash
 	GetSlotForBlock(common.Hash) (uint64, error)
-	GetFinalisedHeader(uint64, uint64) (*types.Header, error)
+	GetFinalisedHeaderVdt(uint64, uint64) (*types.HeaderVdt, error)
 	IsDescendantOf(parent, child common.Hash) (bool, error)
 	NumberIsFinalised(num *big.Int) (bool, error)
 	GetRuntime(*common.Hash) (runtime.Instance, error)
@@ -80,18 +80,18 @@ type EpochState interface {
 	HasConfigData(epoch uint64) (bool, error)
 	GetLatestConfigData() (*types.ConfigData, error)
 	GetStartSlotForEpoch(epoch uint64) (uint64, error)
-	GetEpochForBlock(header *types.Header) (uint64, error)
+	//GetEpochForBlock(header *types.Header) (uint64, error)
 	GetEpochForBlockVdt(header *types.HeaderVdt) (uint64, error)
 	SetFirstSlot(slot uint64) error
 	GetLatestEpochData() (*types.EpochData, error)
-	SkipVerify(*types.Header) (bool, error)
+	//SkipVerify(*types.Header) (bool, error)
 	SkipVerifyVdt(*types.HeaderVdt) (bool, error)
 	GetEpochFromTime(time.Time) (uint64, error)
 }
 
 // DigestHandler is the interface for the consensus digest handler
 type DigestHandler interface {
-	HandleDigests(*types.Header)
+	HandleDigests(*types.HeaderVdt)
 }
 
 // BlockImportHandler is the interface for the handler of new blocks

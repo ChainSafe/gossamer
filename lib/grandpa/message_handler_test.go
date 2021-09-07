@@ -32,14 +32,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var testHeader = &types.Header{
-	ParentHash: testGenesisHeader.Hash(),
-	Number:     big.NewInt(1),
-	Digest: types.Digest{
-		types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
-	},
-}
-
 func newTestDigest() scale2.VaryingDataTypeSlice {
 	digest := types.NewDigestVdt()
 	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
@@ -47,12 +39,12 @@ func newTestDigest() scale2.VaryingDataTypeSlice {
 }
 
 var testHeaderVdt = &types.HeaderVdt{
-	ParentHash: testGenesisHeader.Hash(),
+	ParentHash: testGenesisHeaderVdt.Hash(),
 	Number:     big.NewInt(1),
 	Digest:     newTestDigest(),
 }
 
-var testHash = testHeader.Hash()
+var testHash = testHeaderVdt.Hash()
 
 func buildTestJustification(t *testing.T, qty int, round, setID uint64, kr *keystore.Ed25519Keyring, subround subround) []*SignedVote {
 	var just []*SignedVote
@@ -287,7 +279,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	block := &types.Block{
 		Header: types.HeaderVdt{
-			ParentHash: testGenesisHeader.Hash(),
+			ParentHash: testGenesisHeaderVdt.Hash(),
 			Number:     big.NewInt(1),
 			Digest:     digest,
 		},
@@ -317,7 +309,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T
 	err := st.Grandpa.SetPrecommits(round, gs.state.setID, just)
 	require.NoError(t, err)
 
-	fm, err := gs.newCommitMessage(testGenesisHeader, round)
+	fm, err := gs.newCommitMessageVdt(testGenesisHeaderVdt, round)
 	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block)
@@ -389,7 +381,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	block := &types.Block{
 		Header: types.HeaderVdt{
-			ParentHash: testGenesisHeader.Hash(),
+			ParentHash: testGenesisHeaderVdt.Hash(),
 			Number:     big.NewInt(2),
 			Digest:     digest,
 		},
@@ -399,7 +391,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	err := st.Block.AddBlockVdt(block)
 	require.NoError(t, err)
 
-	err = gs.blockState.SetFinalisedHash(testGenesisHeader.Hash(), round, setID)
+	err = gs.blockState.SetFinalisedHash(testGenesisHeaderVdt.Hash(), round, setID)
 	require.NoError(t, err)
 	err = gs.blockState.(*state.BlockState).SetHeaderNew(&block.Header)
 	require.NoError(t, err)

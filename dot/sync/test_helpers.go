@@ -71,7 +71,7 @@ func NewTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 	stateSrvc := state.NewService(scfg)
 	stateSrvc.UseMemDB()
 
-	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t, usePolkadotGenesis)
+	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeaderVdt(t, usePolkadotGenesis)
 	err := stateSrvc.Initialise(gen, genHeader, genTrie)
 	require.NoError(t, err)
 
@@ -130,7 +130,7 @@ func NewTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 	return syncer
 }
 
-func newTestGenesisWithTrieAndHeader(t *testing.T, usePolkadotGenesis bool) (*genesis.Genesis, *trie.Trie, *types.Header) {
+func newTestGenesisWithTrieAndHeaderVdt(t *testing.T, usePolkadotGenesis bool) (*genesis.Genesis, *trie.Trie, *types.HeaderVdt) {
 	fp := "../../chain/gssmr/genesis.json"
 	if usePolkadotGenesis {
 		fp = "../../chain/polkadot/genesis.json"
@@ -142,7 +142,7 @@ func newTestGenesisWithTrieAndHeader(t *testing.T, usePolkadotGenesis bool) (*ge
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.Digest{})
+	genesisHeader, err := types.NewHeaderVdt(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigestVdt())
 	require.NoError(t, err)
 	return gen, genTrie, genesisHeader
 }

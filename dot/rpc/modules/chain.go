@@ -163,16 +163,16 @@ func (cm *ChainModule) GetHeaderVdt(r *http.Request, req *ChainHashRequest, res 
 }
 
 //GetHeader Get header of a relay chain block. If no block hash is provided, the latest block header will be returned.
-func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *ChainBlockHeaderResponse) error {
-	hash := cm.hashLookup(req)
-	header, err := cm.blockAPI.GetHeader(hash)
-	if err != nil {
-		return err
-	}
-
-	*res, err = HeaderToJSON(*header)
-	return err
-}
+//func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *ChainBlockHeaderResponse) error {
+//	hash := cm.hashLookup(req)
+//	header, err := cm.blockAPI.GetHeader(hash)
+//	if err != nil {
+//		return err
+//	}
+//
+//	*res, err = HeaderToJSON(*header)
+//	return err
+//}
 
 // SubscribeFinalizedHeads handled by websocket handler, but this func should remain
 //  here so it's added to rpc_methods list
@@ -254,29 +254,6 @@ func (cm *ChainModule) lookupHashByInterface(i interface{}) (string, error) {
 	}
 
 	return h.String(), nil
-}
-
-// HeaderToJSON converts types.Header to ChainBlockHeaderResponse
-func HeaderToJSON(header types.Header) (ChainBlockHeaderResponse, error) {
-	res := ChainBlockHeaderResponse{
-		ParentHash:     header.ParentHash.String(),
-		StateRoot:      header.StateRoot.String(),
-		ExtrinsicsRoot: header.ExtrinsicsRoot.String(),
-		Digest:         ChainBlockHeaderDigest{},
-	}
-	if header.Number.Int64() == 0 {
-		res.Number = "0x00" // needs two 0 chars for hex decoding to work
-	} else {
-		res.Number = common.BytesToHex(header.Number.Bytes())
-	}
-	for _, item := range header.Digest {
-		enc, err := item.Encode()
-		if err != nil {
-			return ChainBlockHeaderResponse{}, err
-		}
-		res.Digest.Logs = append(res.Digest.Logs, common.BytesToHex(enc))
-	}
-	return res, nil
 }
 
 // HeaderToJSON converts types.Header to ChainBlockHeaderResponse

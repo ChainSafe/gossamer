@@ -67,7 +67,7 @@ func TestChainGetHeader_Latest(t *testing.T) {
 	state := newTestStateService(t)
 	svc := NewChainModule(state.Block)
 
-	header, err := state.Block.BestBlockHeader()
+	header, err := state.Block.BestBlockHeaderVdt()
 	require.NoError(t, err)
 
 	d, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest().Encode()
@@ -86,7 +86,7 @@ func TestChainGetHeader_Latest(t *testing.T) {
 	res := &ChainBlockHeaderResponse{}
 	req := &ChainHashRequest{} // empty request should return latest hash
 
-	err = svc.GetHeader(nil, req, res)
+	err = svc.GetHeaderVdt(nil, req, res)
 	require.NoError(t, err)
 	require.Equal(t, expected, res)
 }
@@ -101,7 +101,7 @@ func TestChainGetHeader_NotFound(t *testing.T) {
 	res := &ChainBlockHeaderResponse{}
 	req := &ChainHashRequest{Bhash: &bhash}
 
-	err = svc.GetHeader(nil, req, res)
+	err = svc.GetHeaderVdt(nil, req, res)
 	require.EqualError(t, err, database.ErrKeyNotFound.Error())
 }
 
@@ -109,7 +109,7 @@ func TestChainGetBlock_Genesis(t *testing.T) {
 	state := newTestStateService(t)
 	svc := NewChainModule(state.Block)
 
-	header, err := state.Block.BestBlockHeader()
+	header, err := state.Block.BestBlockHeaderVdt()
 	require.NoError(t, err)
 
 	d, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest().Encode()
@@ -147,7 +147,7 @@ func TestChainGetBlock_Latest(t *testing.T) {
 	state := newTestStateService(t)
 	svc := NewChainModule(state.Block)
 
-	header, err := state.Block.BestBlockHeader()
+	header, err := state.Block.BestBlockHeaderVdt()
 	require.NoError(t, err)
 
 	d, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest().Encode()
@@ -266,7 +266,7 @@ func TestChainGetBlockHash_Array(t *testing.T) {
 func TestChainGetFinalizedHead(t *testing.T) {
 	state := newTestStateService(t)
 	svc := NewChainModule(state.Block)
-	_, _, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	_, _, genesisHeader := genesis.NewTestGenesisWithTrieAndHeaderVdt(t)
 	var res ChainHashResponse
 	err := svc.GetFinalizedHead(nil, &EmptyRequest{}, &res)
 	require.NoError(t, err)
@@ -284,7 +284,7 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 	err := svc.GetFinalizedHeadByRound(nil, &req, &res)
 	require.NoError(t, err)
 
-	_, _, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	_, _, genesisHeader := genesis.NewTestGenesisWithTrieAndHeaderVdt(t)
 	expected := genesisHeader.Hash()
 	require.Equal(t, common.BytesToHex(expected[:]), res)
 
@@ -318,7 +318,7 @@ func newTestStateService(t *testing.T) *state.Service {
 	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()
 
-	gen, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	gen, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeaderVdt(t)
 	err = stateSrvc.Initialise(gen, genesisHeader, genTrie)
 	require.NoError(t, err)
 

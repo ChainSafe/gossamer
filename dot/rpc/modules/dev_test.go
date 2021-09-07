@@ -32,7 +32,7 @@ var genesisBABEConfig = &types.BabeConfiguration{
 func newState(t *testing.T) (*state.BlockState, *state.EpochState) {
 	db := state.NewInMemoryDB(t)
 
-	_, _, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	_, _, genesisHeader := genesis.NewTestGenesisWithTrieAndHeaderVdt(t)
 	bs, err := state.NewBlockStateFromGenesis(db, genesisHeader)
 	require.NoError(t, err)
 	es, err := state.NewEpochStateFromGenesis(db, genesisBABEConfig)

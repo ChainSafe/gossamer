@@ -65,7 +65,7 @@ func TestService_Start(t *testing.T) {
 	state := newTestService(t)
 	defer utils.RemoveTestDir(t)
 
-	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeaderVdt(t)
 	err := state.Initialise(genData, genesisHeader, genTrie)
 	require.NoError(t, err)
 
@@ -80,11 +80,11 @@ func TestService_Initialise(t *testing.T) {
 	state := newTestService(t)
 	defer utils.RemoveTestDir(t)
 
-	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeaderVdt(t)
 	err := state.Initialise(genData, genesisHeader, genTrie)
 	require.NoError(t, err)
 
-	genesisHeader, err = types.NewHeader(common.NewHash([]byte{77}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.Digest{})
+	genesisHeader, err = types.NewHeaderVdt(common.NewHash([]byte{77}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigestVdt())
 	require.NoError(t, err)
 
 	err = state.Initialise(genData, genesisHeader, genTrie)
@@ -93,7 +93,7 @@ func TestService_Initialise(t *testing.T) {
 	err = state.Start()
 	require.NoError(t, err)
 
-	head, err := state.Block.BestBlockHeader()
+	head, err := state.Block.BestBlockHeaderVdt()
 	require.NoError(t, err)
 	require.Equal(t, genesisHeader, head)
 }
@@ -101,7 +101,7 @@ func TestService_Initialise(t *testing.T) {
 func TestMemDB_Start(t *testing.T) {
 	state := newTestMemDBService()
 
-	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeaderVdt(t)
 	err := state.Initialise(genData, genesisHeader, genTrie)
 	require.NoError(t, err)
 
@@ -124,7 +124,7 @@ func TestService_BlockTree(t *testing.T) {
 	}
 	stateA := NewService(config)
 
-	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeaderVdt(t)
 	err := stateA.Initialise(genData, genesisHeader, genTrie)
 	require.NoError(t, err)
 
@@ -163,7 +163,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 	serv := NewService(config)
 	serv.UseMemDB()
 
-	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeaderVdt(t)
 	err := serv.Initialise(genData, genesisHeader, genTrie)
 	require.NoError(t, err)
 
@@ -210,7 +210,7 @@ func TestService_PruneStorage(t *testing.T) {
 	serv := NewService(config)
 	serv.UseMemDB()
 
-	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeaderVdt(t)
 	err := serv.Initialise(genData, genesisHeader, genTrie)
 	require.NoError(t, err)
 
@@ -235,7 +235,7 @@ func TestService_PruneStorage(t *testing.T) {
 		err = serv.Storage.blockState.AddBlockVdt(block)
 		require.NoError(t, err)
 
-		err = serv.Storage.StoreTrie(trieState, nil)
+		err = serv.Storage.StoreTrieVdt(trieState, nil)
 		require.NoError(t, err)
 
 		// Only finalise a block at height 3
@@ -253,7 +253,7 @@ func TestService_PruneStorage(t *testing.T) {
 		err = serv.Storage.blockState.AddBlockVdt(block)
 		require.NoError(t, err)
 
-		err = serv.Storage.StoreTrie(trieState, nil)
+		err = serv.Storage.StoreTrieVdt(trieState, nil)
 		require.NoError(t, err)
 
 		// Store the other blocks that will be pruned.
@@ -291,7 +291,7 @@ func TestService_Rewind(t *testing.T) {
 	serv := NewService(config)
 	serv.UseMemDB()
 
-	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeaderVdt(t)
 	err := serv.Initialise(genData, genesisHeader, genTrie)
 	require.NoError(t, err)
 
@@ -343,7 +343,7 @@ func TestService_Import(t *testing.T) {
 	serv := NewService(config)
 	serv.UseMemDB()
 
-	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	genData, genTrie, genesisHeader := genesis.NewTestGenesisWithTrieAndHeaderVdt(t)
 	err := serv.Initialise(genData, genesisHeader, genTrie)
 	require.NoError(t, err)
 	err = serv.db.Close()

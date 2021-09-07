@@ -25,11 +25,12 @@ import (
 
 // BlockState interface for block state methods
 type BlockState interface {
-	BestBlockHeader() (*types.Header, error)
+	//BestBlockHeader() (*types.Header, error)
+	BestBlockHeaderVdt() (*types.HeaderVdt, error)
 	BestBlockNumber() (*big.Int, error)
 	GenesisHash() common.Hash
 	HasBlockBody(common.Hash) (bool, error)
-	GetHighestFinalisedHeader() (*types.Header, error)
+	GetHighestFinalisedHeader() (*types.HeaderVdt, error)
 	GetHashByNumber(num *big.Int) (common.Hash, error)
 }
 

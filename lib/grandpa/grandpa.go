@@ -334,7 +334,7 @@ func (s *Service) initiateRound() error {
 	logger.Trace("started message tracker")
 	s.roundLock.Unlock()
 
-	best, err := s.blockState.BestBlockHeader()
+	best, err := s.blockState.BestBlockHeaderVdt()
 	if err != nil {
 		return err
 	}
@@ -419,7 +419,7 @@ func (s *Service) handleIsPrimary() (bool, error) {
 		s.primaryBroadcastCommitMessage()
 	}
 
-	best, err := s.blockState.BestBlockHeader()
+	best, err := s.blockState.BestBlockHeaderVdt()
 	if err != nil {
 		return false, err
 	}
@@ -679,22 +679,22 @@ func (s *Service) determinePreVote() (*Vote, error) {
 	if has && prm.Vote.Number >= uint32(s.head.Number.Int64()) {
 		vote = prm.Vote
 	} else {
-		header, err := s.blockState.BestBlockHeader()
+		header, err := s.blockState.BestBlockHeaderVdt()
 		if err != nil {
 			return nil, err
 		}
 
-		vote = NewVoteFromHeader(header)
+		vote = NewVoteFromHeaderVdt(header)
 	}
 
 	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
 	if uint64(vote.Number) > nextChange {
 		headerNum := new(big.Int).SetUint64(nextChange)
-		header, err := s.blockState.GetHeaderByNumber(headerNum)
+		header, err := s.blockState.GetHeaderByNumberVdt(headerNum)
 		if err != nil {
 			return nil, err
 		}
-		vote = NewVoteFromHeader(header)
+		vote = NewVoteFromHeaderVdt(header)
 	}
 
 	return vote, nil
@@ -714,12 +714,12 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 
 	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
 	if uint64(pvb.Number) > nextChange {
-		header, err := s.blockState.GetHeaderByNumber(big.NewInt(int64(nextChange)))
+		header, err := s.blockState.GetHeaderByNumberVdt(big.NewInt(int64(nextChange)))
 		if err != nil {
 			return nil, err
 		}
 
-		pvb = *NewVoteFromHeader(header)
+		pvb = *NewVoteFromHeaderVdt(header)
 	}
 
 	return &pvb, nil

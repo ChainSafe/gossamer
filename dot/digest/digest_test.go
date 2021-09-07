@@ -80,7 +80,7 @@ func newTestHandler(t *testing.T, withBABE, withGrandpa bool) *Handler { //nolin
 	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()
 
-	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeaderVdt(t)
 	err = stateSrvc.Initialise(gen, genHeader, genTrie)
 	require.NoError(t, err)
 

@@ -49,11 +49,8 @@ var (
 	maxThreshold = common.MaxUint128
 	minThreshold = &common.Uint128{}
 
-	genesisHeader    *types.Header
 	genesisHeaderVdt *types.HeaderVdt
-	emptyHeader      = &types.Header{
-		Number: big.NewInt(0),
-	}
+
 	emptyHeaderVdt      = &types.HeaderVdt{
 		Number: big.NewInt(0),
 		Digest: types.NewDigestVdt(),
@@ -73,8 +70,8 @@ var (
 func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 	wasmer.DefaultTestLogLvl = 1
 
-	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
-	genesisHeader = genHeader
+	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeaderVdt(t)
+	genesisHeaderVdt = genHeader
 
 	//TODO replace above logic with this. Temp fix just to init genesisHeaderVdt
 	_, _, genHeader2 := genesis.NewTestGenesisWithTrieAndHeaderVdt(t)
@@ -190,7 +187,7 @@ func newTestServiceSetupParameters(t *testing.T) (*Service, *state.EpochState, *
 	dbSrv := state.NewService(config)
 	dbSrv.UseMemDB()
 
-	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
+	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeaderVdt(t)
 	err = dbSrv.Initialise(gen, genHeader, genTrie)
 	require.NoError(t, err)
 

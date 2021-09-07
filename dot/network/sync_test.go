@@ -274,7 +274,7 @@ func TestSyncQueue_HandleBlockAnnounce(t *testing.T) {
 	require.Equal(t, testBlockAnnounceMessage.Number.Int64(), q.goal)
 	require.Equal(t, 1, len(q.requestCh))
 
-	header := &types.Header{
+	header := &types.HeaderVdt{
 		Number: testBlockAnnounceMessage.Number,
 	}
 	expected := createBlockRequestWithHash(header.Hash(), blockRequestSize)

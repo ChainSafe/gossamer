@@ -28,7 +28,7 @@ import (
 // BlockState is the interface for the block state
 type BlockState interface {
 	BestBlockHash() common.Hash
-	BestBlockHeader() (*types.Header, error)
+	BestBlockHeaderVdt() (*types.HeaderVdt, error)
 	BestBlockNumber() (*big.Int, error)
 	//AddBlock(*types.Block) error
 	AddBlockVdt(*types.Block) error
@@ -38,9 +38,9 @@ type BlockState interface {
 	GetBlockByNumberVdt(*big.Int) (*types.Block, error)
 	HasBlockBody(hash common.Hash) (bool, error)
 	GetBlockBody(common.Hash) (*types.Body, error)
-	SetHeader(*types.Header) error
+	//SetHeader(*types.Header) error
 	SetHeaderNew(*types.HeaderVdt) error
-	GetHeader(common.Hash) (*types.Header, error)
+	//GetHeader(common.Hash) (*types.Header, error)
 	GetHeaderVdt(common.Hash) (*types.HeaderVdt, error)
 	HasHeader(hash common.Hash) (bool, error)
 	SubChain(start, end common.Hash) ([]common.Hash, error)
@@ -80,7 +80,7 @@ type TransactionState interface {
 
 // Verifier deals with block verification
 type Verifier interface {
-	VerifyBlock(header *types.Header) error
+	//VerifyBlock(header *types.Header) error
 	VerifyBlockVdt(header *types.HeaderVdt) error
 }
 

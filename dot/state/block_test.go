@@ -29,12 +29,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var testGenesisHeader = &types.Header{
+
+var testGenesisHeader = &types.HeaderVdt{
 	Number:    big.NewInt(0),
 	StateRoot: trie.EmptyHash,
+	Digest:    types.NewDigestVdt(),
 }
 
-func newTestBlockState(t *testing.T, header *types.Header) *BlockState {
+func newTestBlockState(t *testing.T, header *types.HeaderVdt) *BlockState {
 	db := NewInMemoryDB(t)
 	if header == nil {
 		return &BlockState{

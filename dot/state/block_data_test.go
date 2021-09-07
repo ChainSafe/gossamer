@@ -31,9 +31,10 @@ func TestGetSet_ReceiptMessageQueue_Justification(t *testing.T) {
 	s := newTestBlockState(t, nil)
 	require.NotNil(t, s)
 
-	var genesisHeader = &types.Header{
+	var genesisHeader = &types.HeaderVdt{
 		Number:    big.NewInt(0),
 		StateRoot: trie.EmptyHash,
+		Digest:    types.NewDigestVdt(),
 	}
 
 	hash := common.NewHash([]byte{0})

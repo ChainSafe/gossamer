@@ -25,15 +25,14 @@ import (
 	database "github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/utils"
-
 	"github.com/stretchr/testify/require"
 )
 
 var zeroHash, _ = common.HexToHash("0x00")
-var testHeader = &types.Header{
+var testHeader = &types.HeaderVdt{
 	ParentHash: zeroHash,
 	Number:     big.NewInt(0),
+	Digest:     types.NewDigestVdt(),
 }
 
 func newBlockTreeFromNode(head *node, db database.Database) *BlockTree {
@@ -45,22 +44,23 @@ func newBlockTreeFromNode(head *node, db database.Database) *BlockTree {
 }
 
 func createFlatTree(t *testing.T, depth int) (*BlockTree, []common.Hash) {
-	bt := NewBlockTreeFromRoot(testHeader, nil)
+	bt := NewBlockTreeFromRootVdt(testHeader, nil)
 	require.NotNil(t, bt)
 
 	previousHash := bt.head.hash
 
 	hashes := []common.Hash{bt.head.hash}
 	for i := 1; i <= depth; i++ {
-		header := &types.Header{
+		header := &types.HeaderVdt{
 			ParentHash: previousHash,
 			Number:     big.NewInt(int64(i)),
+			Digest:     types.NewDigestVdt(),
 		}
 
 		hash := header.Hash()
 		hashes = append(hashes, hash)
 
-		err := bt.AddBlock(header, 0)
+		err := bt.AddBlockVdt(header, 0)
 		require.Nil(t, err)
 		previousHash = hash
 	}
@@ -103,13 +103,13 @@ func TestBlockTree_GetBlock(t *testing.T) {
 func TestBlockTree_AddBlock(t *testing.T) {
 	bt, hashes := createFlatTree(t, 1)
 
-	header := &types.Header{
+	header := &types.HeaderVdt{
 		ParentHash: hashes[1],
 		Number:     big.NewInt(1),
 	}
 
 	hash := header.Hash()
-	err := bt.AddBlock(header, 0)
+	err := bt.AddBlockVdt(header, 0)
 	require.Nil(t, err)
 
 	node := bt.getNode(hash)
@@ -145,13 +145,13 @@ func TestBlockTree_LongestPath(t *testing.T) {
 	bt, hashes := createFlatTree(t, 3)
 
 	// Insert a block to create a competing path
-	header := &types.Header{
+	header := &types.HeaderVdt{
 		ParentHash: hashes[0],
 		Number:     big.NewInt(1),
 	}
 
 	header.Hash()
-	err := bt.AddBlock(header, 0)
+	err := bt.AddBlockVdt(header, 0)
 	require.NotNil(t, err)
 
 	longestPath := bt.longestPath()
@@ -168,13 +168,14 @@ func TestBlockTree_Subchain(t *testing.T) {
 	expectedPath := hashes[1:]
 
 	// Insert a block to create a competing path
-	extraBlock := &types.Header{
+	extraBlock := &types.HeaderVdt{
 		ParentHash: hashes[0],
 		Number:     big.NewInt(1),
+		Digest:     types.NewDigestVdt(),
 	}
 
 	extraBlock.Hash()
-	err := bt.AddBlock(extraBlock, 0)
+	err := bt.AddBlockVdt(extraBlock, 0)
 	require.NotNil(t, err)
 
 	subChain, err := bt.subChain(hashes[1], hashes[3])
@@ -218,13 +219,13 @@ func TestBlockTree_GetNode(t *testing.T) {
 	bt, branches := createTestBlockTree(testHeader, 16, nil)
 
 	for _, branch := range branches {
-		header := &types.Header{
+		header := &types.HeaderVdt{
 			ParentHash: branch.hash,
 			Number:     branch.depth,
 			StateRoot:  Hash{0x1},
 		}
 
-		err := bt.AddBlock(header, 0)
+		err := bt.AddBlockVdt(header, 0)
 		require.Nil(t, err)
 	}
 }
@@ -233,13 +234,13 @@ func TestBlockTree_GetNodeCache(t *testing.T) {
 	bt, branches := createTestBlockTree(testHeader, 16, nil)
 
 	for _, branch := range branches {
-		header := &types.Header{
+		header := &types.HeaderVdt{
 			ParentHash: branch.hash,
 			Number:     branch.depth,
 			StateRoot:  Hash{0x1},
 		}
 
-		err := bt.AddBlock(header, 0)
+		err := bt.AddBlockVdt(header, 0)
 		require.Nil(t, err)
 	}
 
@@ -274,15 +275,21 @@ func TestBlockTree_GetAllBlocksAtDepth(t *testing.T) {
 	// add branch
 	previousHash := btHashes[4]
 
+
 	for i := 4; i <= btDepth; i++ {
-		header := &types.Header{
+		digest := types.NewDigestVdt()
+		digest.Add(types.ConsensusDigest{
+			ConsensusEngineID: types.BabeEngineID,
+			Data:              common.MustHexToBytes("0x0118ca239392960473fe1bc65f94ee27d890a49c1b200c006ff5dcc525330ecc16770100000000000000b46f01874ce7abbb5220e8fd89bede0adad14c73039d91e28e881823433e723f0100000000000000d684d9176d6eb69887540c9a89fa6097adea82fc4b0ff26d1062b488f352e179010000000000000068195a71bdde49117a616424bdc60a1733e96acb1da5aeab5d268cf2a572e94101000000000000001a0575ef4ae24bdfd31f4cb5bd61239ae67c12d4e64ae51ac756044aa6ad8200010000000000000018168f2aad0081a25728961ee00627cfe35e39833c805016632bf7c14da5800901000000000000000000000000000000000000000000000000000000000000000000000000000000"),
+		})
+		header := &types.HeaderVdt{
 			ParentHash: previousHash,
 			Number:     big.NewInt(int64(i)),
-			Digest:     types.Digest{utils.NewMockDigestItem(9)},
+			Digest:     digest,
 		}
 
 		hash := header.Hash()
-		bt.AddBlock(header, 0)
+		bt.AddBlockVdt(header, 0)
 		previousHash = hash
 
 		if i == desiredDepth-1 {
@@ -294,14 +301,19 @@ func TestBlockTree_GetAllBlocksAtDepth(t *testing.T) {
 	previousHash = btHashes[2]
 
 	for i := 2; i <= btDepth; i++ {
-		header := &types.Header{
+		digest := types.NewDigestVdt()
+		digest.Add(types.SealDigest{
+			ConsensusEngineID: types.BabeEngineID,
+			Data:              common.MustHexToBytes("0x4625284883e564bc1e4063f5ea2b49846cdddaa3761d04f543b698c1c3ee935c40d25b869247c36c6b8a8cbbd7bb2768f560ab7c276df3c62df357a7e3b1ec8d"),
+		})
+		header := &types.HeaderVdt{
 			ParentHash: previousHash,
 			Number:     big.NewInt(int64(i)),
-			Digest:     types.Digest{utils.NewMockDigestItem(7)},
+			Digest:     digest,
 		}
 
 		hash := header.Hash()
-		bt.AddBlock(header, 0)
+		bt.AddBlockVdt(header, 0)
 		previousHash = hash
 
 		if i == desiredDepth-1 {

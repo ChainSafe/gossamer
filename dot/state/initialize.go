@@ -35,7 +35,7 @@ import (
 
 // Initialise initialises the genesis state of the DB using the given storage trie. The trie should be loaded with the genesis storage state.
 // This only needs to be called during genesis initialisation of the node; it is not called during normal startup.
-func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie.Trie) error {
+func (s *Service) Initialise(gen *genesis.Genesis, header *types.HeaderVdt, t *trie.Trie) error {
 	// get data directory from service
 	basepath, err := filepath.Abs(s.dbPath)
 	if err != nil {
@@ -76,7 +76,7 @@ func (s *Service) Initialise(gen *genesis.Genesis, header *types.Header, t *trie
 	}
 
 	// create and store blocktree from genesis block
-	bt := blocktree.NewBlockTreeFromRoot(header, db)
+	bt := blocktree.NewBlockTreeFromRootVdt(header, db)
 	err = bt.Store()
 	if err != nil {
 		return fmt.Errorf("failed to write blocktree to database: %s", err)
@@ -153,7 +153,7 @@ func loadGrandpaAuthorities(t *trie.Trie) ([]types.GrandpaVoter, error) {
 }
 
 // storeInitialValues writes initial genesis values to the state database
-func (s *Service) storeInitialValues(data *genesis.Data, header *types.Header, t *trie.Trie) error {
+func (s *Service) storeInitialValues(data *genesis.Data, header *types.HeaderVdt, t *trie.Trie) error {
 	// write genesis trie to database
 	if err := t.Store(chaindb.NewTable(s.db, storagePrefix)); err != nil {
 		return fmt.Errorf("failed to write trie to database: %s", err)

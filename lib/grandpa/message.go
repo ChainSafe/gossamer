@@ -286,21 +286,6 @@ func (s *Service) newCommitMessageVdt(header *types.HeaderVdt, round uint64) (*C
 	}, nil
 }
 
-func (s *Service) newCommitMessage(header *types.Header, round uint64) (*CommitMessage, error) {
-	pcs, err := s.grandpaState.GetPrecommits(round, s.state.setID)
-	if err != nil {
-		return nil, err
-	}
-
-	precommits, authData := justificationToCompact(pcs)
-	return &CommitMessage{
-		Round:      round,
-		Vote:       NewVoteFromHeader(header),
-		Precommits: precommits,
-		AuthData:   authData,
-	}, nil
-}
-
 func justificationToCompact(just []*SignedVote) ([]*Vote, []*AuthData) {
 	precommits := make([]*Vote, len(just))
 	authData := make([]*AuthData, len(just))
@@ -372,7 +357,7 @@ type catchUpResponse struct {
 }
 
 func (s *Service) newCatchUpResponse(round, setID uint64) (*catchUpResponse, error) {
-	header, err := s.blockState.GetFinalisedHeader(round, setID)
+	header, err := s.blockState.GetFinalisedHeaderVdt(round, setID)
 	if err != nil {
 		return nil, err
 	}

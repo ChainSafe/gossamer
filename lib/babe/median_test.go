@@ -186,7 +186,7 @@ func TestEstimateCurrentSlot(t *testing.T) {
 	digest.Add(predigest)
 	block := &types.Block{
 		Header: types.HeaderVdt{
-			ParentHash: genesisHeader.Hash(),
+			ParentHash: genesisHeaderVdt.Hash(),
 			Number:     big.NewInt(int64(1)),
 			Digest:     digest,
 		},

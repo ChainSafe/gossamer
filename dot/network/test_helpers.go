@@ -24,16 +24,24 @@ func NewMockBlockState(n *big.Int) *mockBlockState {
 	if n == nil {
 		n = big.NewInt(1)
 	}
-	header := &types.Header{
+	//header := &types.Header{
+	//	ParentHash:     parentHash,
+	//	Number:         n,
+	//	StateRoot:      stateRoot,
+	//	ExtrinsicsRoot: extrinsicsRoot,
+	//	Digest:         types.Digest{},
+	//}
+	header := &types.HeaderVdt{
 		ParentHash:     parentHash,
 		Number:         n,
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
-		Digest:         types.Digest{},
+		Digest:         types.NewDigestVdt(),
 	}
 
 	m := new(mockBlockState)
-	m.On("BestBlockHeader").Return(header, nil)
+	//m.On("BestBlockHeader").Return(header, nil)
+	m.On("BestBlockHeaderVdt").Return(header, nil)
 	m.On("GetHighestFinalisedHeader").Return(header, nil)
 	m.On("GenesisHash").Return(common.NewHash([]byte{}))
 	m.On("BestBlockNumber").Return(big.NewInt(1), nil)
