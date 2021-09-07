@@ -38,7 +38,7 @@ func NewOffchainModule(ns RuntimeStorageAPI) *OffchainModule {
 }
 
 // LocalStorageGet get offchain local storage under given key and prefix
-func (s *OffchainModule) LocalStorageGet(r *http.Request, req *OffchainLocalStorageGet, res *StringResponse) error {
+func (s *OffchainModule) LocalStorageGet(_ *http.Request, req *OffchainLocalStorageGet, res *StringResponse) error {
 	var (
 		v   []byte
 		key []byte
@@ -67,7 +67,7 @@ func (s *OffchainModule) LocalStorageGet(r *http.Request, req *OffchainLocalStor
 }
 
 // LocalStorageSet set offchain local storage under given key and prefix
-func (s *OffchainModule) LocalStorageSet(r *http.Request, req *OffchainLocalStorageSet, res *StringResponse) error {
+func (s *OffchainModule) LocalStorageSet(_ *http.Request, req *OffchainLocalStorageSet, _ *StringResponse) error {
 	var (
 		val []byte
 		key []byte
