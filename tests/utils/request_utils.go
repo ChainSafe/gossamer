@@ -160,6 +160,23 @@ func NewEndpoint(port string) string {
 	return "http://" + HOSTNAME + ":" + port
 }
 
+func rpcLogsToDigestVdt(t *testing.T, logs []string) scale2.VaryingDataTypeSlice {
+	digest := types.NewDigestVdt()
+
+	for _, l := range logs {
+		itemBytes, err := common.HexToBytes(l)
+		require.NoError(t, err)
+
+		var di = scale2.MustNewVaryingDataType(types.ChangesTrieRootDigest{}, types.PreRuntimeDigest{}, types.ConsensusDigest{}, types.SealDigest{})
+		err = scale2.Unmarshal(itemBytes, &di)
+		require.NoError(t, err)
+
+		digest.Add(di.Value())
+	}
+
+	return digest
+}
+
 func rpcLogsToDigest(t *testing.T, logs []string) types.Digest {
 	digest := types.Digest{}
 

@@ -45,3 +45,23 @@ func HeaderResponseToHeader(t *testing.T, header *modules.ChainBlockHeaderRespon
 	require.NoError(t, err)
 	return h
 }
+
+// HeaderResponseToHeader converts a *ChainBlockHeaderResponse to a *types.Header
+func HeaderResponseToHeaderVdt(t *testing.T, header *modules.ChainBlockHeaderResponse) *types.HeaderVdt {
+	parentHash, err := common.HexToHash(header.ParentHash)
+	require.NoError(t, err)
+
+	nb, err := common.HexToBytes(header.Number)
+	require.NoError(t, err)
+	number := big.NewInt(0).SetBytes(nb)
+
+	stateRoot, err := common.HexToHash(header.StateRoot)
+	require.NoError(t, err)
+
+	extrinsicsRoot, err := common.HexToHash(header.ExtrinsicsRoot)
+	require.NoError(t, err)
+
+	h, err := types.NewHeaderVdt(parentHash, stateRoot, extrinsicsRoot, number, rpcLogsToDigestVdt(t, header.Digest.Logs))
+	require.NoError(t, err)
+	return h
+}

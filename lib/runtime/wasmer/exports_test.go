@@ -303,7 +303,7 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	ext := createTestExtrinsic(t, rt, genesisHeader.Hash(), 0)
 	ext = append([]byte{byte(types.TxnExternal)}, ext...)
 
-	_ = buildBlock(t, rt, genesisHeader.Hash())
+	_ = buildBlockVdt(t, rt, genesisHeader.Hash())
 	_, err = rt.ValidateTransaction(ext)
 	require.NoError(t, err)
 }
@@ -533,79 +533,9 @@ func buildBlockVdt(t *testing.T, instance runtime.Instance, parentHash common.Ha
 	}
 }
 
-
-func buildBlock(t *testing.T, instance runtime.Instance, parentHash common.Hash) *types.Block {
-	header := &types.Header{
-		ParentHash: parentHash,
-		Number:     big.NewInt(1),
-		Digest:     types.Digest{},
-	}
-
-	err := instance.InitializeBlock(header)
-	require.NoError(t, err)
-
-	idata := types.NewInherentsData()
-	err = idata.SetInt64Inherent(types.Timstap0, uint64(time.Now().Unix()))
-	require.NoError(t, err)
-
-	err = idata.SetInt64Inherent(types.Babeslot, 1)
-	require.NoError(t, err)
-
-	ienc, err := idata.Encode()
-	require.NoError(t, err)
-
-	// Call BlockBuilder_inherent_extrinsics which returns the inherents as extrinsics
-	inherentExts, err := instance.InherentExtrinsics(ienc)
-	require.NoError(t, err)
-
-	// decode inherent extrinsics
-	var exts [][]byte
-	err = scale.Unmarshal(inherentExts, &exts)
-	require.NoError(t, err)
-
-	// apply each inherent extrinsic
-	for _, ext := range exts {
-		//nolint
-		in, err := scale.Marshal(ext)
-		require.NoError(t, err)
-
-		ret, err := instance.ApplyExtrinsic(append([]byte{1}, in...))
-		require.NoError(t, err, in)
-		require.Equal(t, ret, []byte{0, 0})
-	}
-
-	res, err := instance.FinalizeBlock()
-	require.NoError(t, err)
-
-	res.Number = header.Number
-
-	babeDigest := types.NewBabePrimaryPreDigest(0, 1, [32]byte{}, [64]byte{})
-	data := babeDigest.Encode()
-	preDigest := types.NewBABEPreRuntimeDigest(data)
-	res.Digest = types.Digest{preDigest}
-
-	expected := &types.Header{
-		ParentHash: header.ParentHash,
-		Number:     big.NewInt(1),
-		Digest:     types.Digest{preDigest},
-	}
-
-	require.Equal(t, expected.ParentHash, res.ParentHash)
-	require.Equal(t, expected.Number, res.Number)
-	require.Equal(t, expected.Digest, res.Digest)
-	require.NotEqual(t, common.Hash{}, res.StateRoot)
-	require.NotEqual(t, common.Hash{}, res.ExtrinsicsRoot)
-	require.NotEqual(t, trie.EmptyHash, res.StateRoot)
-
-	return &types.Block{
-		Header: res,
-		Body:   types.NewBody(inherentExts),
-	}
-}
-
 func TestInstance_FinalizeBlock_NodeRuntime(t *testing.T) {
 	instance := NewTestInstance(t, runtime.NODE_RUNTIME)
-	buildBlock(t, instance, common.Hash{})
+	buildBlockVdt(t, instance, common.Hash{})
 }
 
 func TestInstance_ExecuteBlock_NodeRuntime(t *testing.T) {

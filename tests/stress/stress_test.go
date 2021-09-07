@@ -429,7 +429,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	extEnc, err := types.EncodeToHexString(ext)
 	require.NoError(t, err)
 
-	prevHeader := utils.GetChainHead(t, nodes[idx]) // get starting header so that we can lookup blocks by number later
+	prevHeader := utils.GetChainHeadVdt(t, nodes[idx]) // get starting header so that we can lookup blocks by number later
 
 	// Send the extrinsic
 	hash, err := api.RPC.Author.SubmitExtrinsic(ext)
@@ -448,7 +448,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 		time.Sleep(time.Second)
 	}
 
-	header := utils.GetChainHead(t, nodes[idx])
+	header := utils.GetChainHeadVdt(t, nodes[idx])
 
 	// search from child -> parent blocks for extrinsic
 	var (
@@ -457,13 +457,13 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	)
 
 	for i := 0; i < maxRetries; i++ {
-		block := utils.GetBlock(t, nodes[idx], header.ParentHash)
+		block := utils.GetBlockVdt(t, nodes[idx], header.ParentHash)
 		if block == nil {
 			// couldn't get block, increment retry counter
 			continue
 		}
 
-		header = block.Header
+		header = &block.Header
 		logger.Debug("got block from node", "header", header, "body", block.Body, "node", nodes[idx].Key)
 
 		if block.Body != nil {

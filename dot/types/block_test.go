@@ -83,31 +83,31 @@ func TestDeepCopyBlock(t *testing.T) {
 }
 
 func TestMustEncodeBlock(t *testing.T) {
-	h1, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, big.NewInt(0), Digest{})
+	h1, err := NewHeaderVdt(common.Hash{}, common.Hash{}, common.Hash{}, big.NewInt(0), NewDigestVdt())
 	require.NoError(t, err)
-	b1 := NewBlock(h1, NewBody([]byte{}))
+	b1 := NewBlockVdt(*h1, *NewBody([]byte{}))
 	enc, err := b1.Encode()
 	require.NoError(t, err)
 
-	h2, err := NewHeader(common.Hash{0x1, 0x2}, common.Hash{}, common.Hash{}, big.NewInt(0), Digest{})
+	h2, err := NewHeaderVdt(common.Hash{0x1, 0x2}, common.Hash{}, common.Hash{}, big.NewInt(0), NewDigestVdt())
 	require.NoError(t, err)
-	b2 := NewBlock(h2, NewBody([]byte{0xa, 0xb}))
+	b2 := NewBlockVdt(*h2, *NewBody([]byte{0xa, 0xb}))
 	enc2, err := b2.Encode()
 	require.NoError(t, err)
 
 	tests := []struct {
 		name string
-		take *Block
+		take *BlockVdt
 		want []byte
 	}{
 		{
 			name: "correct",
-			take: b1,
+			take: &b1,
 			want: enc,
 		},
 		{
 			name: "correct2",
-			take: b2,
+			take: &b2,
 			want: enc2,
 		},
 	}

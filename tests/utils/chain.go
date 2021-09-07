@@ -41,6 +41,18 @@ func GetHeader(t *testing.T, node *Node, hash common.Hash) *types.Header { //nol
 }
 
 // GetChainHead calls the endpoint chain_getHeader to get the latest chain head
+func GetChainHeadVdt(t *testing.T, node *Node) *types.HeaderVdt {
+	respBody, err := PostRPC(ChainGetHeader, NewEndpoint(node.RPCPort), "[]")
+	require.NoError(t, err)
+
+	header := new(modules.ChainBlockHeaderResponse)
+	err = DecodeRPC(t, respBody, header)
+	require.Nil(t, err)
+
+	return HeaderResponseToHeaderVdt(t, header)
+}
+
+// GetChainHead calls the endpoint chain_getHeader to get the latest chain head
 func GetChainHead(t *testing.T, node *Node) *types.Header {
 	respBody, err := PostRPC(ChainGetHeader, NewEndpoint(node.RPCPort), "[]")
 	require.NoError(t, err)
@@ -109,7 +121,7 @@ func GetFinalizedHeadByRound(t *testing.T, node *Node, round uint64) (common.Has
 }
 
 // GetBlock calls the endpoint chain_getBlock
-func GetBlock(t *testing.T, node *Node, hash common.Hash) *types.Block {
+func GetBlockVdt(t *testing.T, node *Node, hash common.Hash) *types.BlockVdt {
 	respBody, err := PostRPC(ChainGetBlock, NewEndpoint(node.RPCPort), "[\""+hash.String()+"\"]")
 	require.NoError(t, err)
 
@@ -134,14 +146,18 @@ func GetBlock(t *testing.T, node *Node, hash common.Hash) *types.Block {
 	extrinsicsRoot, err := common.HexToHash(header.ExtrinsicsRoot)
 	require.NoError(t, err)
 
-	h, err := types.NewHeader(parentHash, stateRoot, extrinsicsRoot, number, rpcLogsToDigest(t, header.Digest.Logs))
+	//h, err := types.NewHeader(parentHash, stateRoot, extrinsicsRoot, number, rpcLogsToDigest(t, header.Digest.Logs))
+	//require.NoError(t, err)
+
+	h, err := types.NewHeaderVdt(parentHash, stateRoot, extrinsicsRoot, number, rpcLogsToDigestVdt(t, header.Digest.Logs))
 	require.NoError(t, err)
 
 	b, err := types.NewBodyFromExtrinsicStrings(block.Block.Body)
 	require.NoError(t, err, fmt.Sprintf("%v", block.Block.Body))
 
-	return &types.Block{
-		Header: h,
-		Body:   b,
+	return &types.BlockVdt{
+		Header: *h,
+		Body:   *b,
 	}
 }
+

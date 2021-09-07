@@ -17,10 +17,6 @@
 package types
 
 import (
-	"fmt"
-	"io"
-
-	"github.com/ChainSafe/gossamer/lib/scale"
 	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 )
 
@@ -30,10 +26,10 @@ type BlockVdt struct {
 }
 
 // Block defines a state block
-type Block struct {
-	Header *Header
-	Body   *Body
-}
+//type Block struct {
+//	Header *Header
+//	Body   *Body
+//}
 
 // NewBlock returns a new Block
 func NewBlockVdt(header HeaderVdt, body Body) BlockVdt {
@@ -44,12 +40,12 @@ func NewBlockVdt(header HeaderVdt, body Body) BlockVdt {
 }
 
 // NewBlock returns a new Block
-func NewBlock(header *Header, body *Body) *Block {
-	return &Block{
-		Header: header,
-		Body:   body,
-	}
-}
+//func NewBlock(header *Header, body *Body) *Block {
+//	return &Block{
+//		Header: header,
+//		Body:   body,
+//	}
+//}
 
 func NewEmptyBlockVdt() BlockVdt {
 	return BlockVdt{
@@ -58,42 +54,39 @@ func NewEmptyBlockVdt() BlockVdt {
 	}
 }
 
-// NewEmptyBlock returns a new Block with an initialised but empty Header and Body
-func NewEmptyBlock() *Block {
-	return &Block{
-		Header: new(Header),
-		Body:   new(Body),
-	}
-}
+//// NewEmptyBlock returns a new Block with an initialised but empty Header and Body
+//func NewEmptyBlock() *Block {
+//	return &Block{
+//		Header: new(Header),
+//		Body:   new(Body),
+//	}
+//}
 
-// Encode returns the SCALE encoding of a block
-func (b *Block) Encode() ([]byte, error) {
-	enc, err := scale.Encode(b.Header)
-	if err != nil {
-		return nil, err
-	}
-
-	fmt.Println("header encoding length", len(enc))
-
-	// block body is already SCALE encoded
-	return append(enc, []byte(*b.Body)...), nil
-}
+//// Encode returns the SCALE encoding of a block
+//func (b *Block) Encode() ([]byte, error) {
+//	enc, err := scale.Encode(b.Header)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	fmt.Println("header encoding length", len(enc))
+//
+//	// block body is already SCALE encoded
+//	return append(enc, []byte(*b.Body)...), nil
+//}
 
 func (b *BlockVdt) Encode() ([]byte, error) {
-	//h := b.Header
 	enc, err := scale2.Marshal(b.Header)
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println("header encoding length", len(enc))
 
 	// block body is already SCALE encoded
 	return append(enc, []byte(b.Body)...), nil
 }
 
 // MustEncode returns the SCALE encoded block and panics if it fails to encode
-func (b *Block) MustEncode() []byte {
+func (b *BlockVdt) MustEncode() []byte {
 	enc, err := b.Encode()
 	if err != nil {
 		panic(err)
@@ -101,12 +94,21 @@ func (b *Block) MustEncode() []byte {
 	return enc
 }
 
-// Decode decodes the SCALE encoded input into this block
-func (b *Block) Decode(r io.Reader) error {
-	sd := scale.Decoder{Reader: r}
-	_, err := sd.Decode(b)
-	return err
-}
+//// MustEncode returns the SCALE encoded block and panics if it fails to encode
+//func (b *Block) MustEncode() []byte {
+//	enc, err := b.Encode()
+//	if err != nil {
+//		panic(err)
+//	}
+//	return enc
+//}
+
+//// Decode decodes the SCALE encoded input into this block
+//func (b *Block) Decode(r io.Reader) error {
+//	sd := scale.Decoder{Reader: r}
+//	_, err := sd.Decode(b)
+//	return err
+//}
 
 func (b *BlockVdt) DeepCopy() BlockVdt {
 	bc := make([]byte, len(b.Body))
@@ -117,12 +119,12 @@ func (b *BlockVdt) DeepCopy() BlockVdt {
 	}
 }
 
-// DeepCopy returns a copy of the block
-func (b *Block) DeepCopy() *Block {
-	bc := make([]byte, len(*b.Body))
-	copy(bc, *b.Body)
-	return &Block{
-		Header: b.Header.DeepCopy(),
-		Body:   NewBody(bc),
-	}
-}
+//// DeepCopy returns a copy of the block
+//func (b *Block) DeepCopy() *Block {
+//	bc := make([]byte, len(*b.Body))
+//	copy(bc, *b.Body)
+//	return &Block{
+//		Header: b.Header.DeepCopy(),
+//		Body:   NewBody(bc),
+//	}
+//}
