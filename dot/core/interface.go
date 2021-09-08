@@ -17,6 +17,7 @@
 package core
 
 import (
+	"github.com/ChainSafe/gossamer/dot/state"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -41,8 +42,10 @@ type BlockState interface {
 	GetSlotForBlock(common.Hash) (uint64, error)
 	GetFinalisedHeader(uint64, uint64) (*types.Header, error)
 	GetFinalisedHash(uint64, uint64) (common.Hash, error)
-	GetImportedBlockNotifierChannel() (chan *types.Block, error)
-	FreeImportedBlockNotifierChannel(ch chan *types.Block)
+	//GetImportedBlockNotifierChannel() (<-chan *types.Block, error)
+	//FreeImportedBlockNotifierChannel(ch <-chan *types.Block)
+	GetImportedBlockNotifierChannel() (*state.ImportNotifier, error)
+	FreeImportedBlockNotifierChannel(notifier *state.ImportNotifier)
 	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
 	UnregisterFinalisedChannel(id byte)
 	HighestCommonAncestor(a, b common.Hash) (common.Hash, error)

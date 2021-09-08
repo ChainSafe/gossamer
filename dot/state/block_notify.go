@@ -29,15 +29,32 @@ import (
 // DEFAULT_BUFFER_SIZE buffer size for channels
 const DEFAULT_BUFFER_SIZE = 100
 
+type ImportNotifier struct {
+	ch chan *types.Block
+}
+
 // GetImportedBlockNotifierChannel function to retrieve a imported block notifier channel
-func (bs *BlockState) GetImportedBlockNotifierChannel() (chan *types.Block, error) {
+//func (bs *BlockState) GetImportedBlockNotifierChannel() (<-chan *types.Block, error) {
+//	bs.importedLock.Lock()
+//	defer bs.importedLock.Unlock()
+//
+//	ch := make(chan *types.Block, DEFAULT_BUFFER_SIZE)
+//	bs.imported[ch] = struct{}{}
+//
+//	return ch, nil
+//}
+
+func (bs *BlockState) GetImportedBlockNotifierChannel() (*ImportNotifier, error) {
 	bs.importedLock.Lock()
 	defer bs.importedLock.Unlock()
 
-	ch := make(chan *types.Block, DEFAULT_BUFFER_SIZE)
-	bs.imported[ch] = struct{}{}
+	in := &ImportNotifier{
+		ch: make(chan *types.Block, DEFAULT_BUFFER_SIZE),
+	}
+	//ch := make(chan *types.Block, DEFAULT_BUFFER_SIZE)
+	bs.imported[in] = struct{}{}
 
-	return ch, nil
+	return in, nil
 }
 
 // RegisterFinalizedChannel registers a channel for block notification upon block finalisation.
@@ -59,10 +76,16 @@ func (bs *BlockState) RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo
 }
 
 // FreeImportedBlockNotifierChannel to free and close imported block notifier channel
-func (bs *BlockState) FreeImportedBlockNotifierChannel(ch chan *types.Block) {
+//func (bs *BlockState) FreeImportedBlockNotifierChannel(ch <-chan *types.Block) {
+//	bs.importedLock.Lock()
+//	defer bs.importedLock.Unlock()
+//fmt.Printf("delete chan %v\n", ch)
+//	delete(bs.imported, ch)
+//}
+func (bs *BlockState) FreeImportedBlockNotifierChannel(ch *ImportNotifier) {
 	bs.importedLock.Lock()
 	defer bs.importedLock.Unlock()
-
+	// todo (ed) add test to confirm this is deleting
 	delete(bs.imported, ch)
 }
 
@@ -94,7 +117,7 @@ func (bs *BlockState) notifyImported(block *types.Block) {
 			case ch <- block:
 			default:
 			}
-		}(ch)
+		}(ch.ch)
 	}
 }
 

@@ -50,7 +50,8 @@ type BlockState struct {
 	lastFinalised common.Hash
 
 	// block notifiers
-	imported                       map[chan<- *types.Block]struct{}
+	//imported                       map[chan *types.Block]struct{}
+	imported                       map[*ImportNotifier]struct{}
 	finalised                      map[byte]chan<- *types.FinalisationInfo
 	finalisedLock                  sync.RWMutex
 	importedLock                   sync.RWMutex
@@ -72,7 +73,7 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 		dbPath:                     db.Path(),
 		baseState:                  NewBaseState(db),
 		db:                         chaindb.NewTable(db, blockPrefix),
-		imported:                   make(map[chan<- *types.Block]struct{}),
+		imported:                   make(map[*ImportNotifier]struct{}),
 		finalised:                  make(map[byte]chan<- *types.FinalisationInfo),
 		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
@@ -99,7 +100,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*Block
 		bt:                         blocktree.NewBlockTreeFromRoot(header, db),
 		baseState:                  NewBaseState(db),
 		db:                         chaindb.NewTable(db, blockPrefix),
-		imported:                   make(map[chan<- *types.Block]struct{}),
+		imported:                   make(map[*ImportNotifier]struct{}),
 		finalised:                  make(map[byte]chan<- *types.FinalisationInfo),
 		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),

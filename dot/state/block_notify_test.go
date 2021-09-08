@@ -42,7 +42,7 @@ func TestImportChannel(t *testing.T) {
 
 	for i := 0; i < 3; i++ {
 		select {
-		case <-ch:
+		case <-ch.ch:
 		case <-time.After(testMessageTimeout):
 			t.Fatal("did not receive imported block")
 		}
@@ -77,7 +77,7 @@ func TestImportChannel_Multi(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 
 	num := 5
-	chs := make([]chan *types.Block, num)
+	chs := make([]*ImportNotifier, num)
 
 	var err error
 	for i := 0; i < num; i++ {
@@ -90,7 +90,7 @@ func TestImportChannel_Multi(t *testing.T) {
 
 	for i, ch := range chs {
 
-		go func(i int, ch chan *types.Block) {
+		go func(i int, ch <-chan *types.Block) {
 			select {
 			case b := <-ch:
 				require.Equal(t, big.NewInt(1), b.Header.Number)
@@ -98,7 +98,7 @@ func TestImportChannel_Multi(t *testing.T) {
 				t.Error("did not receive imported block: ch=", i)
 			}
 			wg.Done()
-		}(i, ch)
+		}(i, ch.ch)
 
 	}
 
