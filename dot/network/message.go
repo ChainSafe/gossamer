@@ -299,11 +299,11 @@ func blockDataToProtobufNew(bd *types.BlockDataVdt) (*pb.BlockData, error) {
 func protobufToBlockDataNew(pbd *pb.BlockData) (*types.BlockDataVdt, error) {
 	bd := &types.BlockDataVdt{
 		Hash:   common.BytesToHash(pbd.Hash),
-		Header: types.NewEmptyHeaderVdt(),
+		Header: types.NewEmptyHeader(),
 	}
 
 	if pbd.Header != nil {
-		header := types.NewEmptyHeaderVdt()
+		header := types.NewEmptyHeader()
 		err := scale2.Unmarshal(pbd.Header, header)
 		if err != nil {
 			return nil, err

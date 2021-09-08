@@ -867,7 +867,7 @@ func (q *syncQueue) handleBlockAnnounce(msg *BlockAnnounceMessage, from peer.ID)
 	logger.Debug("received BlockAnnounce", "number", msg.Number, "from", from)
 
 	//header, err := types.NewHeader(msg.ParentHash, msg.StateRoot, msg.ExtrinsicsRoot, msg.Number, msg.Digest)
-	header, err := types.NewHeaderVdt(msg.ParentHash, msg.StateRoot, msg.ExtrinsicsRoot, msg.Number, msg.Digest)
+	header, err := types.NewHeader(msg.ParentHash, msg.StateRoot, msg.ExtrinsicsRoot, msg.Number, msg.Digest)
 	if err != nil {
 		logger.Error("failed to create header from BlockAnnounce", "error", err)
 		return

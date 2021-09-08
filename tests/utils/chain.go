@@ -134,10 +134,7 @@ func GetBlockVdt(t *testing.T, node *Node, hash common.Hash) *types.Block {
 	extrinsicsRoot, err := common.HexToHash(header.ExtrinsicsRoot)
 	require.NoError(t, err)
 
-	//h, err := types.NewHeader(parentHash, stateRoot, extrinsicsRoot, number, rpcLogsToDigest(t, header.Digest.Logs))
-	//require.NoError(t, err)
-
-	h, err := types.NewHeaderVdt(parentHash, stateRoot, extrinsicsRoot, number, rpcLogsToDigestVdt(t, header.Digest.Logs))
+	h, err := types.NewHeader(parentHash, stateRoot, extrinsicsRoot, number, rpcLogsToDigestVdt(t, header.Digest.Logs))
 	require.NoError(t, err)
 
 	b, err := types.NewBodyFromExtrinsicStrings(block.Block.Body)

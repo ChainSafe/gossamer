@@ -140,7 +140,7 @@ func newTestGenesisWithTrieAndHeaderVdt(t *testing.T, usePolkadotGenesis bool) (
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
-	genesisHeader, err := types.NewHeaderVdt(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigestVdt())
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigestVdt())
 	require.NoError(t, err)
 	return gen, genTrie, genesisHeader
 }

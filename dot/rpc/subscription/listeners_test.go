@@ -157,7 +157,7 @@ func TestBlockFinalizedListener_Listen(t *testing.T) {
 		cancelTimeout: time.Second * 5,
 	}
 
-	header := types.NewEmptyHeaderVdt()
+	header := types.NewEmptyHeader()
 
 	bfl.Listen()
 	defer func() {
@@ -209,7 +209,7 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 		done:          make(chan struct{}),
 		cancelTimeout: time.Second * 5,
 	}
-	header := types.NewEmptyHeaderVdt()
+	header := types.NewEmptyHeader()
 	exts := []types.Extrinsic{{1, 2, 3}, {7, 8, 9, 0}, {0xa, 0xb}}
 
 	body, err := types.NewBodyFromExtrinsics(exts)
@@ -286,7 +286,7 @@ func TestGrandpaJustification_Listen(t *testing.T) {
 
 		sub.Listen()
 		finchannel <- &types.FinalisationInfo{
-			Header: *types.NewEmptyHeaderVdt(),
+			Header: *types.NewEmptyHeader(),
 		}
 
 		time.Sleep(time.Second * 3)

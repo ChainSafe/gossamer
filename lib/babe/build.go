@@ -37,7 +37,7 @@ const (
 	buildBlockErrors = "gossamer/proposer/block/constructed/errors"
 )
 
-func (b *Service) buildBlockVdt(parent *types.HeaderVdt, slot Slot, rt runtime.Instance) (*types.Block, error) {
+func (b *Service) buildBlock(parent *types.HeaderVdt, slot Slot, rt runtime.Instance) (*types.Block, error) {
 	builder, err := NewBlockBuilder(
 		b.keypair,
 		b.transactionState,
@@ -50,7 +50,7 @@ func (b *Service) buildBlockVdt(parent *types.HeaderVdt, slot Slot, rt runtime.I
 	}
 
 	startBuilt := time.Now()
-	block, err := builder.buildBlockVdt(parent, slot, rt)
+	block, err := builder.buildBlock(parent, slot, rt)
 
 	// is necessary to enable ethmetrics to be possible register values
 	ethmetrics.Enabled = true //nolint
@@ -66,37 +66,6 @@ func (b *Service) buildBlockVdt(parent *types.HeaderVdt, slot Slot, rt runtime.I
 	timerMetrics.Update(time.Since(startBuilt))
 	return block, nil
 }
-
-//// construct a block for this slot with the given parent
-//func (b *Service) buildBlock(parent *types.HeaderVdt, slot Slot, rt runtime.Instance) (*types.BlockVdt, error) {
-//	builder, err := NewBlockBuilder(
-//		b.keypair,
-//		b.transactionState,
-//		b.blockState,
-//		b.slotToProof,
-//		b.epochData.authorityIndex,
-//	)
-//	if err != nil {
-//		return nil, fmt.Errorf("failed to create block builder: %w", err)
-//	}
-//
-//	startBuilt := time.Now()
-//	block, err := builder.buildBlockVdt(parent, slot, rt)
-//
-//	// is necessary to enable ethmetrics to be possible register values
-//	ethmetrics.Enabled = true //nolint
-//
-//	if err != nil {
-//		builderErrors := ethmetrics.GetOrRegisterCounter(buildBlockErrors, nil)
-//		builderErrors.Inc(1)
-//
-//		return nil, err
-//	}
-//
-//	timerMetrics := ethmetrics.GetOrRegisterTimer(buildBlockTimer, nil)
-//	timerMetrics.Update(time.Since(startBuilt))
-//	return block, nil
-//}
 
 // nolint
 type BlockBuilder struct {
@@ -130,7 +99,7 @@ func NewBlockBuilder(kp *sr25519.Keypair, ts TransactionState, bs BlockState, sp
 	return bb, nil
 }
 
-func (b *BlockBuilder) buildBlockVdt(parent *types.HeaderVdt, slot Slot, rt runtime.Instance) (*types.Block, error) {
+func (b *BlockBuilder) buildBlock(parent *types.HeaderVdt, slot Slot, rt runtime.Instance) (*types.Block, error) {
 	logger.Trace("build block", "parent", parent, "slot", slot)
 
 	// create pre-digest
@@ -146,13 +115,13 @@ func (b *BlockBuilder) buildBlockVdt(parent *types.HeaderVdt, slot Slot, rt runt
 	digest := types.NewDigestVdt()
 	digest.Add(*preDigest)
 	//header, err := types.NewHeader(parent.Hash(), common.Hash{}, common.Hash{}, number, types.NewDigest(preDigest))
-	header, err := types.NewHeaderVdt(parent.Hash(), common.Hash{}, common.Hash{}, number, digest)
+	header, err := types.NewHeader(parent.Hash(), common.Hash{}, common.Hash{}, number, digest)
 	if err != nil {
 		return nil, err
 	}
 
 	// initialise block header
-	err = rt.InitializeBlockVdt(header)
+	err = rt.InitializeBlock(header)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +142,7 @@ func (b *BlockBuilder) buildBlockVdt(parent *types.HeaderVdt, slot Slot, rt runt
 	logger.Trace("built block extrinsics")
 
 	// finalise block
-	header, err = rt.FinalizeBlockVdt()
+	header, err = rt.FinalizeBlock()
 	if err != nil {
 		b.addToQueue(included)
 		return nil, fmt.Errorf("cannot finalise block: %s", err)
@@ -182,7 +151,7 @@ func (b *BlockBuilder) buildBlockVdt(parent *types.HeaderVdt, slot Slot, rt runt
 	logger.Trace("finalised block")
 
 	// create seal and add to digest
-	seal, err := b.buildBlockSealVdt(header)
+	seal, err := b.buildBlockSeal(header)
 	if err != nil {
 		return nil, err
 	}
@@ -205,85 +174,9 @@ func (b *BlockBuilder) buildBlockVdt(parent *types.HeaderVdt, slot Slot, rt runt
 	return block, nil
 }
 
-//func (b *BlockBuilder) buildBlock(parent *types.HeaderVdt, slot Slot, rt runtime.Instance) (*types.BlockVdt, error) {
-//	logger.Trace("build block", "parent", parent, "slot", slot)
-//
-//	// create pre-digest
-//	preDigest, err := b.buildBlockPreDigest(slot)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	logger.Trace("built pre-digest")
-//
-//	digest := types.NewDigestVdt()
-//	digest.Add(*preDigest)
-//
-//	// create new block header
-//	number := big.NewInt(0).Add(parent.Number, big.NewInt(1))
-//	//header, err := types.NewHeader(parent.Hash(), common.Hash{}, common.Hash{}, number, types.NewDigest(preDigest))
-//	header, err := types.NewHeaderVdt(parent.Hash(), common.Hash{}, common.Hash{}, number, digest)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	// initialise block header
-//	err = rt.InitializeBlockVdt(header)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	logger.Trace("initialised block")
-//
-//	// add block inherents
-//	inherents, err := b.buildBlockInherents(slot, rt)
-//	if err != nil {
-//		return nil, fmt.Errorf("cannot build inherents: %s", err)
-//	}
-//
-//	logger.Trace("built block inherents", "encoded inherents", inherents)
-//
-//	// add block extrinsics
-//	included := b.buildBlockExtrinsics(slot, rt)
-//
-//	logger.Trace("built block extrinsics")
-//
-//	// finalise block
-//	header, err = rt.FinalizeBlockVdt()
-//	if err != nil {
-//		b.addToQueue(included)
-//		return nil, fmt.Errorf("cannot finalise block: %s", err)
-//	}
-//
-//	logger.Trace("finalised block")
-//
-//	// create seal and add to digest
-//	seal, err := b.buildBlockSealVdt(header)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	//header.Digest = append(header.Digest, seal)
-//	header.Digest.Add(*seal)
-//
-//	logger.Trace("built block seal")
-//
-//	body, err := ExtrinsicsToBody(inherents, included)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	block := &types.BlockVdt{
-//		Header: *header,
-//		Body:   *body,
-//	}
-//
-//	return block, nil
-//}
-
 // buildBlockSeal creates the seal for the block header.
 // the seal consists of the ConsensusEngineID and a signature of the encoded block header.
-func (b *BlockBuilder) buildBlockSealVdt(header *types.HeaderVdt) (*types.SealDigest, error) {
+func (b *BlockBuilder) buildBlockSeal(header *types.HeaderVdt) (*types.SealDigest, error) {
 	//encHeader, err := header.Encode()
 	encHeader, err := scale.Marshal(*header)
 	if err != nil {

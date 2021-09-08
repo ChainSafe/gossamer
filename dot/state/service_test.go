@@ -84,7 +84,7 @@ func TestService_Initialise(t *testing.T) {
 	err := state.Initialise(genData, genesisHeader, genTrie)
 	require.NoError(t, err)
 
-	genesisHeader, err = types.NewHeaderVdt(common.NewHash([]byte{77}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigestVdt())
+	genesisHeader, err = types.NewHeader(common.NewHash([]byte{77}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigestVdt())
 	require.NoError(t, err)
 
 	err = state.Initialise(genData, genesisHeader, genTrie)
@@ -180,7 +180,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 		err = serv.Storage.blockState.AddBlock(block)
 		require.NoError(t, err)
 
-		err = serv.Storage.StoreTrieVdt(trieState, &block.Header)
+		err = serv.Storage.StoreTrie(trieState, &block.Header)
 		require.NoError(t, err)
 
 		blocks = append(blocks, block)
@@ -235,7 +235,7 @@ func TestService_PruneStorage(t *testing.T) {
 		err = serv.Storage.blockState.AddBlock(block)
 		require.NoError(t, err)
 
-		err = serv.Storage.StoreTrieVdt(trieState, nil)
+		err = serv.Storage.StoreTrie(trieState, nil)
 		require.NoError(t, err)
 
 		// Only finalise a block at height 3
@@ -253,7 +253,7 @@ func TestService_PruneStorage(t *testing.T) {
 		err = serv.Storage.blockState.AddBlock(block)
 		require.NoError(t, err)
 
-		err = serv.Storage.StoreTrieVdt(trieState, nil)
+		err = serv.Storage.StoreTrie(trieState, nil)
 		require.NoError(t, err)
 
 		// Store the other blocks that will be pruned.

@@ -37,7 +37,7 @@ func NewBlock(header HeaderVdt, body Body) Block {
 // NewEmptyBlock returns a new Block with an initialised but empty Header and Body
 func NewEmptyBlock() Block {
 	return Block{
-		Header: *NewEmptyHeaderVdt(),
+		Header: *NewEmptyHeader(),
 		Body:   *new(Body),
 	}
 }

@@ -36,7 +36,7 @@ type HeaderVdt struct {
 }
 
 // NewHeader creates a new block header and sets its hash field
-func NewHeaderVdt(parentHash, stateRoot, extrinsicsRoot common.Hash, number *big.Int, digest scale.VaryingDataTypeSlice) (*HeaderVdt, error) {
+func NewHeader(parentHash, stateRoot, extrinsicsRoot common.Hash, number *big.Int, digest scale.VaryingDataTypeSlice) (*HeaderVdt, error) {
 	if number == nil {
 		// Hash() will panic if number is nil
 		return nil, errors.New("cannot have nil block number")
@@ -55,7 +55,7 @@ func NewHeaderVdt(parentHash, stateRoot, extrinsicsRoot common.Hash, number *big
 }
 
 // NewEmptyHeader returns a new header with all zero values
-func NewEmptyHeaderVdt() *HeaderVdt {
+func NewEmptyHeader() *HeaderVdt {
 	return &HeaderVdt{
 		Number: big.NewInt(0),
 		Digest: NewDigestVdt(),
@@ -70,7 +70,7 @@ func (bh *HeaderVdt) Exists() bool {
 
 // DeepCopy returns a deep copy of the header to prevent side effects down the road
 func (bh *HeaderVdt) DeepCopy() *HeaderVdt {
-	cp := NewEmptyHeaderVdt()
+	cp := NewEmptyHeader()
 	copy(cp.ParentHash[:], bh.ParentHash[:])
 	copy(cp.StateRoot[:], bh.StateRoot[:])
 	copy(cp.ExtrinsicsRoot[:], bh.ExtrinsicsRoot[:])
@@ -81,7 +81,6 @@ func (bh *HeaderVdt) DeepCopy() *HeaderVdt {
 
 	if len(bh.Digest.Types) > 0 {
 		cp.Digest = NewDigestVdt()
-		//copy(cp.Digest.Types, bh.Digest.Types[:])
 		for _, d := range bh.Digest.Types {
 			cp.Digest.Add(d.Value())
 		}
@@ -101,7 +100,6 @@ func (bh *HeaderVdt) String() string {
 // If hashing the header errors, this will panic.
 func (bh *HeaderVdt) Hash() common.Hash {
 	if bh.hash == [32]byte{} {
-		//enc, err := bh.Encode()
 		enc, err := scale.Marshal(*bh)
 		if err != nil {
 			panic(err)

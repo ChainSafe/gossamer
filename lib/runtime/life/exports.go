@@ -115,7 +115,7 @@ func (in *Instance) FinalizeBlock() (*types.HeaderVdt, error) {
 		return nil, err
 	}
 
-	bh := types.NewEmptyHeaderVdt()
+	bh := types.NewEmptyHeader()
 	err = scale2.Unmarshal(data, bh)
 	if err != nil {
 		return nil, err

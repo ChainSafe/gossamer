@@ -96,7 +96,7 @@ func NewGenesisBlockFromTrie(t *trie.Trie) (*types.HeaderVdt, error) {
 	}
 
 	// create genesis block header
-	header, err := types.NewHeaderVdt(common.NewHash([]byte{0}), stateRoot, trie.EmptyHash, big.NewInt(0), types.NewDigestVdt())
+	header, err := types.NewHeader(common.NewHash([]byte{0}), stateRoot, trie.EmptyHash, big.NewInt(0), types.NewDigestVdt())
 	if err != nil {
 		return nil, fmt.Errorf("failed to create genesis block header: %s", err)
 	}

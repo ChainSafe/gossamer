@@ -511,7 +511,7 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 
 	rt.SetContextStorage(ts)
 
-	block, err := b.buildBlockVdt(parent, currentSlot, rt)
+	block, err := b.buildBlock(parent, currentSlot, rt)
 	if err != nil {
 		return err
 	}

@@ -238,7 +238,7 @@ func (bs *BlockState) HasHeader(hash common.Hash) (bool, error) {
 
 // GetHeader returns a BlockHeader for a given hash
 func (bs *BlockState) GetHeader(hash common.Hash) (*types.HeaderVdt, error) {
-	result := types.NewEmptyHeaderVdt()
+	result := types.NewEmptyHeader()
 
 	if bs.db == nil {
 		return nil, fmt.Errorf("database is nil")
@@ -258,7 +258,7 @@ func (bs *BlockState) GetHeader(hash common.Hash) (*types.HeaderVdt, error) {
 		return nil, err
 	}
 
-	if reflect.DeepEqual(result, types.NewEmptyHeaderVdt()) {
+	if reflect.DeepEqual(result, types.NewEmptyHeader()) {
 		return nil, chaindb.ErrKeyNotFound
 	}
 

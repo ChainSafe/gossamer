@@ -675,7 +675,7 @@ func TestTryQueryStore_WhenThereIsDataToRetrieve(t *testing.T) {
 	//	common.Hash{}, big.NewInt(1), nil)
 	//require.NoError(t, err)
 
-	header, err := types.NewHeaderVdt(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
+	header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
 		common.Hash{}, big.NewInt(1), types.NewDigestVdt())
 	require.NoError(t, err)
 
@@ -708,7 +708,7 @@ func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
 	//header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
 	//	common.Hash{}, big.NewInt(1), nil)
 	//require.NoError(t, err)
-	header, err := types.NewHeaderVdt(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
+	header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
 		common.Hash{}, big.NewInt(1), types.NewDigestVdt())
 	require.NoError(t, err)
 
@@ -739,7 +739,7 @@ func TestTryQueryState_WhenDoesNotHaveStateRoot(t *testing.T) {
 
 	//header, err := types.NewHeader(s.blockState.GenesisHash(), common.Hash{}, common.Hash{}, big.NewInt(1), nil)
 	//require.NoError(t, err)
-	header, err := types.NewHeaderVdt(s.blockState.GenesisHash(), common.Hash{}, common.Hash{}, big.NewInt(1), types.NewDigestVdt())
+	header, err := types.NewHeader(s.blockState.GenesisHash(), common.Hash{}, common.Hash{}, big.NewInt(1), types.NewDigestVdt())
 	require.NoError(t, err)
 
 	testBlock := &types.Block{
@@ -825,7 +825,7 @@ func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service, key, value []by
 	//	common.Hash{}, big.NewInt(number), nil)
 	//require.NoError(t, err)
 
-	header, err := types.NewHeaderVdt(parentHash, storageStateTrie.MustRoot(), common.Hash{}, big.NewInt(number), types.NewDigestVdt())
+	header, err := types.NewHeader(parentHash, storageStateTrie.MustRoot(), common.Hash{}, big.NewInt(number), types.NewDigestVdt())
 	require.NoError(t, err)
 
 	err = s.storageState.StoreTrie(storageStateTrie, header)

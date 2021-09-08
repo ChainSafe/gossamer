@@ -87,10 +87,7 @@ func TestSyncQueue_PushResponse(t *testing.T) {
 	}
 
 	for i := 0; i < int(blockRequestSize); i++ {
-		//testHeader := types.HeaderVdt{
-		//	Number: big.NewInt(int64(77 + i)),
-		//}
-		testHeader := types.NewEmptyHeaderVdt()
+		testHeader := types.NewEmptyHeader()
 		testHeader.Number = big.NewInt(int64(77 + i))
 
 		msg.BlockData = append(msg.BlockData, &types.BlockDataVdt{

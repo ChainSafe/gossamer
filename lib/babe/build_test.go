@@ -59,7 +59,7 @@ func TestSeal(t *testing.T) {
 	zeroHash, err := common.HexToHash("0x00")
 	require.NoError(t, err)
 
-	header, err := types.NewHeaderVdt(zeroHash, zeroHash, zeroHash, big.NewInt(0), types.NewDigestVdt())
+	header, err := types.NewHeader(zeroHash, zeroHash, zeroHash, big.NewInt(0), types.NewDigestVdt())
 	require.NoError(t, err)
 
 	encHeader, err := scale.Marshal(*header)
@@ -68,7 +68,7 @@ func TestSeal(t *testing.T) {
 	hash, err := common.Blake2bHash(encHeader)
 	require.NoError(t, err)
 
-	seal, err := builder.buildBlockSealVdt(header)
+	seal, err := builder.buildBlockSeal(header)
 	require.NoError(t, err)
 
 	ok, err := kp.Public().Verify(hash[:], seal.Data)
@@ -151,7 +151,7 @@ func createTestBlockVdt(t *testing.T, babeService *Service, parent *types.Header
 	// build block
 	var block *types.Block
 	for i := 0; i < 1; i++ { // retry if error
-		block, err = babeService.buildBlockVdt(parent, slot, rt)
+		block, err = babeService.buildBlock(parent, slot, rt)
 		if err == nil {
 			babeService.blockState.StoreRuntime(block.Header.Hash(), rt)
 			return block, slot
@@ -189,7 +189,7 @@ func createTestBlock(t *testing.T, babeService *Service, parent *types.HeaderVdt
 	// build block
 	var block *types.Block
 	for i := 0; i < 1; i++ { // retry if error
-		block, err = babeService.buildBlockVdt(parent, slot, rt)
+		block, err = babeService.buildBlock(parent, slot, rt)
 		if err == nil {
 			babeService.blockState.StoreRuntime(block.Header.Hash(), rt)
 			return block, slot
@@ -310,17 +310,17 @@ func TestApplyExtrinsic(t *testing.T) {
 	digest := types.NewDigestVdt()
 	digest.Add(*preDigest)
 
-	header, err := types.NewHeaderVdt(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), digest)
+	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), digest)
 	require.NoError(t, err)
 
 	//initialise block header
-	err = rt.InitializeBlockVdt(header)
+	err = rt.InitializeBlock(header)
 	require.NoError(t, err)
 
 	_, err = builder.buildBlockInherents(slot, rt)
 	require.NoError(t, err)
 
-	header1, err := rt.FinalizeBlockVdt()
+	header1, err := rt.FinalizeBlock()
 	require.NoError(t, err)
 
 	ext := createTestExtrinsic(t, rt, parentHash, 0)
@@ -329,9 +329,9 @@ func TestApplyExtrinsic(t *testing.T) {
 
 	digest2 := types.NewDigestVdt()
 	digest2.Add(*preDigest2)
-	header2, err := types.NewHeaderVdt(header1.Hash(), common.Hash{}, common.Hash{}, big.NewInt(2), digest2)
+	header2, err := types.NewHeader(header1.Hash(), common.Hash{}, common.Hash{}, big.NewInt(2), digest2)
 	require.NoError(t, err)
-	err = rt.InitializeBlockVdt(header2)
+	err = rt.InitializeBlock(header2)
 	require.NoError(t, err)
 
 	_, err = builder.buildBlockInherents(slot, rt)
@@ -341,7 +341,7 @@ func TestApplyExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte{0, 0}, res)
 
-	_, err = rt.FinalizeBlockVdt()
+	_, err = rt.FinalizeBlock()
 	require.NoError(t, err)
 }
 
@@ -358,14 +358,14 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	babeService.epochData.threshold = maxThreshold
 
 	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
-	header, err := types.NewHeaderVdt(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewDigestVdt())
+	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewDigestVdt())
 	require.NoError(t, err)
 
 	rt, err := babeService.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
 	//initialise block header
-	err = rt.InitializeBlockVdt(header)
+	err = rt.InitializeBlock(header)
 	require.NoError(t, err)
 
 	// build extrinsic
@@ -479,7 +479,7 @@ func TestBuildBlock_failing(t *testing.T) {
 	rt, err := babeService.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	_, err = babeService.buildBlockVdt(parentHeader, slot, rt)
+	_, err = babeService.buildBlock(parentHeader, slot, rt)
 	if err == nil {
 		t.Fatal("should error when attempting to include invalid tx")
 	}
@@ -531,7 +531,7 @@ func TestBuildBlockTimeMonitor(t *testing.T) {
 	rt, err := babeService.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	_, err = babeService.buildBlockVdt(parent, Slot{}, rt)
+	_, err = babeService.buildBlock(parent, Slot{}, rt)
 	require.Error(t, err)
 	buildErrorsMetrics := metrics.GetOrRegisterCounter(buildBlockErrors, nil)
 	require.Equal(t, int64(1), buildErrorsMetrics.Count())

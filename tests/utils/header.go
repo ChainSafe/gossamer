@@ -61,7 +61,7 @@ func HeaderResponseToHeaderVdt(t *testing.T, header *modules.ChainBlockHeaderRes
 	extrinsicsRoot, err := common.HexToHash(header.ExtrinsicsRoot)
 	require.NoError(t, err)
 
-	h, err := types.NewHeaderVdt(parentHash, stateRoot, extrinsicsRoot, number, rpcLogsToDigestVdt(t, header.Digest.Logs))
+	h, err := types.NewHeader(parentHash, stateRoot, extrinsicsRoot, number, rpcLogsToDigestVdt(t, header.Digest.Logs))
 	require.NoError(t, err)
 	return h
 }

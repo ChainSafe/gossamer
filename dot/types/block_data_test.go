@@ -43,7 +43,7 @@ var _ = testDigest.Add(
 func TestNumber(t *testing.T) {
 	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
 
-	headerVdt, err := NewHeaderVdt(testHash, testHash, testHash, big.NewInt(5), testDigest)
+	headerVdt, err := NewHeader(testHash, testHash, testHash, big.NewInt(5), testDigest)
 	require.NoError(t, err)
 
 	bd := BlockDataVdt{
@@ -79,7 +79,7 @@ func TestBlockDataEncodeAndDecodeEmpty(t *testing.T) {
 
 	var block BlockDataVdt
 	if bd.Header != nil {
-		block.Header = NewEmptyHeaderVdt()
+		block.Header = NewEmptyHeader()
 	}
 	err = scale.Unmarshal(enc, &block)
 	require.NoError(t, err)
@@ -95,7 +95,7 @@ func TestBlockDataEncodeAndDecodeHeader(t *testing.T) {
 
 	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
 
-	headerVdt, err := NewHeaderVdt(testHash, testHash, testHash, big.NewInt(1), testDigest)
+	headerVdt, err := NewHeader(testHash, testHash, testHash, big.NewInt(1), testDigest)
 	require.NoError(t, err)
 
 	bd := BlockDataVdt{
@@ -114,7 +114,7 @@ func TestBlockDataEncodeAndDecodeHeader(t *testing.T) {
 
 	var block BlockDataVdt
 	if bd.Header != nil {
-		block.Header = NewEmptyHeaderVdt()
+		block.Header = NewEmptyHeader()
 	}
 	err = scale.Unmarshal(enc, &block)
 	require.NoError(t, err)
@@ -144,7 +144,7 @@ func TestBlockDataEncodeAndDecodeBody(t *testing.T) {
 
 	var block BlockDataVdt
 	if bd.Header != nil {
-		block.Header = NewEmptyHeaderVdt()
+		block.Header = NewEmptyHeader()
 	}
 	err = scale.Unmarshal(enc, &block)
 	require.NoError(t, err)
@@ -162,7 +162,7 @@ func TestBlockDataEncodeAndDecodeAll(t *testing.T) {
 	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
 	body := NewBody([]byte{0xa, 0xb, 0xc, 0xd})
 
-	headerVdt, err := NewHeaderVdt(testHash, testHash, testHash, big.NewInt(1), testDigest)
+	headerVdt, err := NewHeader(testHash, testHash, testHash, big.NewInt(1), testDigest)
 	require.NoError(t, err)
 
 	bd := BlockDataVdt{
@@ -181,7 +181,7 @@ func TestBlockDataEncodeAndDecodeAll(t *testing.T) {
 
 	var block BlockDataVdt
 	if bd.Header != nil {
-		block.Header = NewEmptyHeaderVdt()
+		block.Header = NewEmptyHeader()
 	}
 	err = scale.Unmarshal(enc, &block)
 	require.NoError(t, err)
