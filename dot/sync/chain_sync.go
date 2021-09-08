@@ -35,6 +35,58 @@ var (
 	idle      chainSyncState = 1
 )
 
+// workerState helps track the current worker set and set the upcoming worker ID
+type workerState struct {
+	nextWorker uint64
+	workers    map[uint64]*worker
+}
+
+func newWorkerState() *workerState {
+	return &workerState{
+		workers: make(map[uint64]*worker),
+	}
+}
+
+func (s *workerState) add(w *worker) {
+	w.id = s.nextWorker
+	s.nextWorker += 1
+	s.workers[w.id] = w
+}
+
+func (s *workerState) delete(id uint64) {
+	delete(s.workers, id)
+}
+
+// worker respresents a process that is attempting to sync from the specified start block to target block
+// if it fails for some reason, `err` is set.
+// otherwise, we can assume all the blocks have been received and added to the `readyBlocks` queue
+type worker struct {
+	id uint64
+
+	startHash    common.Hash
+	startNumber  *big.Int
+	targetHash   common.Hash
+	targetNumber *big.Int
+
+	// TODO: add fields to request
+	direction byte
+
+	duration time.Duration
+	err      *workerError
+}
+
+type workerError struct {
+	err error
+	who peer.ID // whose response caused the error, if any
+}
+
+// peerState tracks our peers's best reported blocks
+type peerState struct {
+	who    peer.ID
+	hash   common.Hash
+	number *big.Int
+}
+
 // workHandler handles new potential work (ie. reported peer state, block announces), results from dispatched workers,
 // and stored pending work (ie. pending blocks set)
 // workHandler should be implemented by `bootstrapSync` and `idleSync`
@@ -66,7 +118,7 @@ type ChainSync interface {
 	setBlockAnnounce(from peer.ID, header *types.Header) error
 
 	// called upon receiving a BlockAnnounceHandshake
-	setPeerHead(p peer.ID, hash common.Hash, number *big.Int)
+	setPeerHead(p peer.ID, hash common.Hash, number *big.Int) error
 
 	// syncState returns the current syncing state
 	syncState() chainSyncState
@@ -91,8 +143,7 @@ type chainSync struct {
 	ignorePeers map[peer.ID]struct{}
 
 	// current workers that are attempting to obtain blocks
-	nextWorker uint64
-	workers    map[uint64]*worker
+	workerState *workerState
 
 	// blocks which are ready to be processed are put into this channel
 	// the `chainProcessor` will read from this channel and process the blocks
@@ -115,36 +166,6 @@ type chainSync struct {
 	benchmarker *syncBenchmarker
 }
 
-// peerState tracks our peers's best reported blocks
-type peerState struct {
-	who    peer.ID
-	hash   common.Hash
-	number *big.Int
-}
-
-// worker respresents a process that is attempting to sync from the specified start block to target block
-// if it fails for some reason, `err` is set.
-// otherwise, we can assume all the blocks have been received and added to the `readyBlocks` queue
-type worker struct {
-	id uint64
-
-	startHash    common.Hash
-	startNumber  *big.Int
-	targetHash   common.Hash
-	targetNumber *big.Int
-
-	// TODO: add fields to request
-	direction byte
-
-	duration time.Duration
-	err      *workerError
-}
-
-type workerError struct {
-	err error
-	who peer.ID // whose response caused the error, if any
-}
-
 func newChainSync(bs BlockState, net Network, readyBlocks chan<- *types.BlockData) *chainSync {
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -157,13 +178,30 @@ func newChainSync(bs BlockState, net Network, readyBlocks chan<- *types.BlockDat
 		resultQueue:   make(chan *worker, 1024),
 		peerState:     make(map[peer.ID]*peerState),
 		ignorePeers:   make(map[peer.ID]struct{}),
-		workers:       make(map[uint64]*worker),
+		workerState:   newWorkerState(),
 		readyBlocks:   readyBlocks,
 		pendingBlocks: newDisjointBlockSet(),
 		state:         bootstrap,
-		handler:       newBootstrapSyncer(),
+		handler:       newBootstrapSyncer(bs),
 		benchmarker:   newSyncBenchmarker(),
 	}
+}
+
+func (cs *chainSync) start() {
+	// TODO: wait until we have received ?? peer heads
+	// this should be based off our min/max peers, potentially
+	for {
+		if len(cs.peerState) >= 1 {
+			break
+		}
+	}
+
+	go cs.sync()
+	go cs.logSyncSpeed()
+}
+
+func (cs *chainSync) stop() {
+	cs.cancel()
 }
 
 func (cs *chainSync) syncState() chainSyncState {
@@ -185,38 +223,63 @@ func (cs *chainSync) setBlockAnnounce(from peer.ID, header *types.Header) error 
 	cs.pendingBlocks.addHeader(header)
 
 	// TODO: is it ok to assume if a node announces a block that it has it + its ancestors??
-	cs.setPeerHead(from, header.Hash(), header.Number)
-	return nil
+	return cs.setPeerHead(from, header.Hash(), header.Number)
 }
 
 // setPeerHead sets a peer's best known block and adds the peer's state to the workQueue
 // to potentially trigger a worker
-func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) {
-	cs.peerState[p] = &peerState{
+func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) error {
+	ps := &peerState{
 		hash:   hash,
 		number: number,
 	}
+	cs.peerState[p] = ps
+
+	// if the peer reports a lower or equal best block number than us,
+	// check if they are on a fork or not
+	head, err := cs.blockState.BestBlockHeader()
+	if err != nil {
+		return err
+	}
+
+	if ps.number.Cmp(head.Number) <= 0 {
+		// check if our block hash for that number is the same, if so, do nothing
+		hash, err := cs.blockState.GetHashByNumber(ps.number)
+		if err != nil {
+			return err
+		}
+
+		if hash.Equal(ps.hash) {
+			return nil
+		}
+
+		// check if their best block is on an invalid chain, if it is,
+		// potentially downscore them
+		// for now, we can remove them from the syncing peers set
+		fin, err := cs.blockState.GetHighestFinalisedHeader()
+		if err != nil {
+			return err
+		}
+
+		// their block hash doesn't match ours for that number (ie. they are on a different
+		// chain), and also the highest finalised block is higher than that number.
+		// thus the peer is on an invalid chain
+		if fin.Number.Cmp(ps.number) >= 0 {
+			// TODO: downscore this peer, or temporarily don't sync from them?
+			logger.Trace("peer is on an invalid fork")
+			return nil
+		}
+
+		// TODO: peer is on a fork, add to pendingBlocks and begin fork request
+		return nil
+	}
+
+	// the peer has a higher best block than us, add it to the disjoint block set
+	cs.pendingBlocks.addHashAndNumber(ps.hash, ps.number)
 
 	cs.workQueue <- cs.peerState[p]
 	logger.Trace("set peer head", "peer", p, "hash", hash, "number", number)
-}
-
-func (cs *chainSync) start() {
-	// TODO: wait until we have received ?? peer heads
-	// this should be based off our min/max peers, potentially
-
-	for {
-		if len(cs.peerState) >= 1 {
-			break
-		}
-	}
-
-	go cs.sync()
-	go cs.logSyncSpeed()
-}
-
-func (cs *chainSync) stop() {
-	cs.cancel()
+	return nil
 }
 
 func (cs *chainSync) logSyncSpeed() {
@@ -291,7 +354,7 @@ func (cs *chainSync) sync() {
 			}
 		case res := <-cs.resultQueue:
 			// delete worker from workers map
-			delete(cs.workers, res.id)
+			cs.workerState.delete(res.id)
 
 			// handle results from worker
 			// if there is an error, potentially retry the worker
@@ -323,7 +386,6 @@ func (cs *chainSync) sync() {
 			}
 
 			w := &worker{
-				id:           cs.nextWorker,
 				startHash:    common.EmptyHash, // for bootstrap, just use number
 				startNumber:  head.Number,
 				targetHash:   res.targetHash,
@@ -350,65 +412,14 @@ func (cs *chainSync) sync() {
 // a fork sync
 func (cs *chainSync) handleWork(ps *peerState) error {
 	logger.Trace("handling potential work", "target hash", ps.hash, "target number", ps.number)
+	worker, err := cs.handler.handleWork(ps)
+	if err != nil {
+		return err
+	}
 
-	worker := cs.handler.handleWork(ps)
 	if worker == nil {
 		return nil
 	}
-
-	// // if the peer reports a lower or equal best block number than us,
-	// // check if they are on a fork or not
-	// head, err := cs.blockState.BestBlockHeader()
-	// if err != nil {
-	// 	return err
-	// }
-
-	// if ps.number.Cmp(head.Number) <= 0 {
-	// 	// check if our block hash for that number is the same, if so, do nothing
-	// 	hash, err := cs.blockState.GetHashByNumber(ps.number)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	if hash.Equal(ps.hash) {
-	// 		return nil
-	// 	}
-
-	// 	// check if their best block is on an invalid chain, if it is,
-	// 	// potentially downscore them
-	// 	// for now, we can remove them from the syncing peers set
-	// 	fin, err := cs.blockState.GetHighestFinalisedHeader()
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	// their block hash doesn't match ours for that number (ie. they are on a different
-	// 	// chain), and also the highest finalised block is higher than that number.
-	// 	// thus the peer is on an invalid chain
-	// 	if fin.Number.Cmp(ps.number) >= 0 {
-	// 		// TODO: downscore this peer, or temporarily don't sync from them?
-	// 		delete(cs.peerState, ps.who)
-	// 		logger.Trace("peer is on an invalid fork")
-	// 		return nil
-	// 	}
-
-	// 	// TODO: peer is on a fork, add to pendingBlocks and begin fork request
-	// 	return nil
-	// }
-
-	// // the peer has a higher best block than us, add it to the disjoint block set
-	// cs.pendingBlocks.addHashAndNumber(ps.hash, ps.number)
-
-	// // TODO: this is for bootstrap mode, for idle fork-sync mode
-	// // we may want to reverse the direction and specify start hash
-	// worker := &worker{
-	// 	id:           cs.nextWorker,
-	// 	startHash:    common.EmptyHash,
-	// 	startNumber:  big.NewInt(0).Add(head.Number, big.NewInt(1)),
-	// 	targetHash:   ps.hash,
-	// 	targetNumber: ps.number,
-	// 	direction:    DIR_ASCENDING,
-	// }
 
 	cs.tryDispatchWorker(worker)
 	return nil
@@ -416,7 +427,7 @@ func (cs *chainSync) handleWork(ps *peerState) error {
 
 func (cs *chainSync) tryDispatchWorker(w *worker) {
 	// if we already have the maximum number of workers, don't dispatch another
-	if len(cs.workers) > MAX_WORKERS {
+	if len(cs.workerState.workers) > MAX_WORKERS {
 		logger.Trace("reached max workers, ignoring potential work")
 		return
 	}
@@ -427,9 +438,7 @@ func (cs *chainSync) tryDispatchWorker(w *worker) {
 		return
 	}
 
-	cs.workers[w.id] = w
-	cs.nextWorker++
-
+	cs.workerState.add(w)
 	go cs.dispatchWorker(w)
 }
 
@@ -438,10 +447,10 @@ func (cs *chainSync) tryDispatchWorker(w *worker) {
 func (cs *chainSync) hasCurrentWorker(targetNumber *big.Int) bool {
 	// if we're in bootstrap mode, and there already is a worker, we don't need to dispatch another
 	if cs.state == bootstrap {
-		return len(cs.workers) != 0
+		return len(cs.workerState.workers) != 0
 	}
 
-	for _, w := range cs.workers {
+	for _, w := range cs.workerState.workers {
 		if w.targetNumber.Cmp(targetNumber) >= 0 {
 			// there is some worker already syncing up until this number or further
 			return true
