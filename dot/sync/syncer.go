@@ -36,8 +36,6 @@ type Service struct {
 
 	chainSync      ChainSync
 	chainProcessor ChainProcessor
-
-	readyBlocks chan *types.BlockData
 }
 
 // Config is the configuration for the sync Service.
@@ -94,7 +92,6 @@ func NewService(cfg *Config) (*Service, error) {
 		blockState:     cfg.BlockState,
 		chainSync:      chainSync,
 		chainProcessor: chainProcessor,
-		readyBlocks:    readyBlocks,
 	}, nil
 }
 
@@ -107,7 +104,6 @@ func (s *Service) Start() error {
 func (s *Service) Stop() error {
 	s.chainSync.stop()
 	s.chainProcessor.stop()
-	close(s.readyBlocks)
 	return nil
 }
 

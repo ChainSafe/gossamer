@@ -124,6 +124,10 @@ func (s *chainProcessor) processBlockData(data []*types.BlockData) (int, error) 
 				return i, err
 			}
 
+			if errors.Is(err, blocktree.ErrBlockExists) {
+				continue
+			}
+
 			if bd.Justification != nil && bd.Justification.Exists() {
 				logger.Debug("handling Justification...", "number", block.Header.Number, "hash", bd.Hash)
 				s.handleJustification(block.Header, bd.Justification.Value())

@@ -37,12 +37,30 @@ func (s *bootstrapSyncer) handleWork(ps *peerState) (*worker, error) {
 	}, nil
 }
 
-func (s *bootstrapSyncer) handleWorkerResult(w *worker) *worker {
-	return nil
+func (s *bootstrapSyncer) handleWorkerResult(res *worker) (*worker, error) {
+	// if there is an error, potentially retry the worker
+	if res.err == nil {
+		return nil, nil
+	}
+
+	// new worker should update start block and re-dispatch
+	head, err := s.blockState.BestBlockHeader()
+	if err != nil {
+		return nil, err
+	}
+
+	return &worker{
+		startHash:    common.EmptyHash, // for bootstrap, just use number
+		startNumber:  head.Number,
+		targetHash:   res.targetHash,
+		targetNumber: res.targetNumber,
+		direction:    res.direction,
+	}, nil
 }
 
-func (s *bootstrapSyncer) hasCurrentWorker(w *worker, workers map[uint64]*worker) bool {
-	return false
+func (s *bootstrapSyncer) hasCurrentWorker(_ *worker, workers map[uint64]*worker) bool {
+	// we're in bootstrap mode, and there already is a worker, we don't need to dispatch another
+	return len(workers) != 0
 }
 
 func (s *bootstrapSyncer) handleTick() {}

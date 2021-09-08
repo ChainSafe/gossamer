@@ -97,7 +97,7 @@ type workHandler interface {
 
 	// handleWorkerResult handles the result of a worker, which may be
 	// nil or error. optionally returns a new worker to be dispatched.
-	handleWorkerResult(*worker) *worker
+	handleWorkerResult(*worker) (*worker, error)
 
 	// hasCurrentWorker is called before a worker is to be dispatched to
 	// check whether it is a duplicate. this function returns whether there is
@@ -244,6 +244,7 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) e
 
 	if ps.number.Cmp(head.Number) <= 0 {
 		// check if our block hash for that number is the same, if so, do nothing
+		// as we already have that block
 		hash, err := cs.blockState.GetHashByNumber(ps.number)
 		if err != nil {
 			return err
@@ -266,19 +267,29 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) e
 		// thus the peer is on an invalid chain
 		if fin.Number.Cmp(ps.number) >= 0 {
 			// TODO: downscore this peer, or temporarily don't sync from them?
-			logger.Trace("peer is on an invalid fork")
+			logger.Debug("peer is on an invalid fork")
 			return nil
 		}
 
-		// TODO: peer is on a fork, add to pendingBlocks and begin fork request
-		return nil
+		// peer is on a fork, check if we have processed the fork already or not
+		// ie. is their block written to our db?
+		has, err := cs.blockState.HasHeader(ps.hash)
+		if err != nil {
+			return err
+		}
+
+		// if so, do nothing, as we already have their fork
+		if has {
+			return nil
+		}
 	}
 
-	// the peer has a higher best block than us, add it to the disjoint block set
+	// the peer has a higher best block than us, or they are on some fork we are not aware of
+	// add it to the disjoint block set
 	cs.pendingBlocks.addHashAndNumber(ps.hash, ps.number)
 
 	cs.workQueue <- cs.peerState[p]
-	logger.Trace("set peer head", "peer", p, "hash", hash, "number", number)
+	logger.Debug("set peer head", "peer", p, "hash", hash, "number", number)
 	return nil
 }
 
@@ -298,6 +309,10 @@ func (cs *chainSync) logSyncSpeed() {
 
 		select {
 		case <-t.C:
+			// TODO: why does this function not return when ctx is cancelled???
+			if cs.ctx.Err() != nil {
+				return
+			}
 		case <-cs.ctx.Done():
 			return
 		}
@@ -377,24 +392,20 @@ func (cs *chainSync) sync() {
 				return
 			}
 
-			// TODO: new worker should update start block in case of bootstrap and re-dispatch
-			// in case of idle, check pendingBlocks set again to determine new worker
-			head, err := cs.blockState.BestBlockHeader()
+			worker, err := cs.handler.handleWorkerResult(res)
 			if err != nil {
-				logger.Error("failed to get best block header", "error", err)
+				logger.Error("failed to handle worker result", "error", err)
 				continue
 			}
 
-			w := &worker{
-				startHash:    common.EmptyHash, // for bootstrap, just use number
-				startNumber:  head.Number,
-				targetHash:   res.targetHash,
-				targetNumber: res.targetNumber,
-				direction:    res.direction,
+			if worker == nil {
+				continue
 			}
 
-			cs.tryDispatchWorker(w)
+			cs.tryDispatchWorker(worker)
 		case <-ticker.C:
+			cs.handler.handleTick()
+
 			// bootstrap complete, switch state to idle if not already
 			// and begin near-head fork-sync
 
@@ -434,7 +445,7 @@ func (cs *chainSync) tryDispatchWorker(w *worker) {
 
 	// check current worker set for workers already working on these blocks
 	// if there are none, dispatch new worker
-	if cs.hasCurrentWorker(w.targetNumber) {
+	if cs.handler.hasCurrentWorker(w, cs.workerState.workers) {
 		return
 	}
 
