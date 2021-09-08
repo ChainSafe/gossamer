@@ -300,8 +300,6 @@ func (s *Service) handleBody(body *types.Body) error {
 
 // handleHeader handles blocks (header+body) included in BlockResponses
 func (s *Service) handleBlock(block *types.Block) error {
-	//fmt.Println("Block being handled")
-	//fmt.Println(block)
 	if block == nil {
 		return errors.New("block, header, or body is nil")
 	}
@@ -334,10 +332,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 	rt.SetContextStorage(ts)
 	logger.Trace("going to execute block", "header", block.Header, "exts", block.Body)
 
-	//fmt.Println("")
-	//fmt.Println("Block body being executed vdt")
-	//fmt.Println(block.Body)
-	_, err = rt.ExecuteBlockVdt(block)
+	_, err = rt.ExecuteBlock(block)
 
 	if err != nil {
 		return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)

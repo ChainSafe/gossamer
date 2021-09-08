@@ -162,7 +162,7 @@ func TestAnnounceBlock(t *testing.T) {
 	state, err := s.storageState.TrieState(nil)
 	require.NoError(t, err)
 
-	err = s.HandleBlockProducedVdt(&newBlock, state)
+	err = s.HandleBlockProduced(&newBlock, state)
 	require.NoError(t, err)
 
 	time.Sleep(time.Second)
@@ -501,7 +501,7 @@ func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 
 	block := sync.BuildBlockVdt(t, rt, genHeader, nil)
 
-	err = s.handleBlockVdt(block, ts)
+	err = s.handleBlock(block, ts)
 	require.NoError(t, err)
 
 	extBytes := createExtrinsic(t, rt, genHeader.Hash(), 0)
@@ -679,7 +679,7 @@ func TestTryQueryStore_WhenThereIsDataToRetrieve(t *testing.T) {
 		common.Hash{}, big.NewInt(1), types.NewDigestVdt())
 	require.NoError(t, err)
 
-	err = s.storageState.StoreTrieVdt(storageStateTrie, header)
+	err = s.storageState.StoreTrie(storageStateTrie, header)
 	require.NoError(t, err)
 
 	testBlock := &types.Block{
@@ -712,7 +712,7 @@ func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
 		common.Hash{}, big.NewInt(1), types.NewDigestVdt())
 	require.NoError(t, err)
 
-	err = s.storageState.StoreTrieVdt(storageStateTrie, header)
+	err = s.storageState.StoreTrie(storageStateTrie, header)
 	require.NoError(t, err)
 
 	testBlock := &types.Block{
@@ -828,7 +828,7 @@ func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service, key, value []by
 	header, err := types.NewHeaderVdt(parentHash, storageStateTrie.MustRoot(), common.Hash{}, big.NewInt(number), types.NewDigestVdt())
 	require.NoError(t, err)
 
-	err = s.storageState.StoreTrieVdt(storageStateTrie, header)
+	err = s.storageState.StoreTrie(storageStateTrie, header)
 	require.NoError(t, err)
 
 	testBlock := &types.Block{

@@ -101,7 +101,7 @@ func (s *StorageState) pruneKey(keyHeader *types.HeaderVdt) {
 }
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database
-func (s *StorageState) StoreTrieVdt(ts *rtstorage.TrieState, header *types.HeaderVdt) error {
+func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.HeaderVdt) error {
 	root := ts.MustRoot()
 
 	if s.syncing {

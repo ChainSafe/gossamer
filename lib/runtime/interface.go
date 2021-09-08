@@ -42,11 +42,11 @@ type Instance interface {
 	BabeConfiguration() (*types.BabeConfiguration, error)
 	GrandpaAuthorities() ([]types.Authority, error)
 	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
-	InitializeBlockVdt(header *types.HeaderVdt) error
+	InitializeBlock(header *types.HeaderVdt) error
 	InherentExtrinsics(data []byte) ([]byte, error)
 	ApplyExtrinsic(data types.Extrinsic) ([]byte, error)
-	FinalizeBlockVdt() (*types.HeaderVdt, error)
-	ExecuteBlockVdt(block *types.Block) ([]byte, error)
+	FinalizeBlock() (*types.HeaderVdt, error)
+	ExecuteBlock(block *types.Block) ([]byte, error)
 	DecodeSessionKeys(enc []byte) ([]byte, error)
 
 	// TODO: parameters and return values for these are undefined in the spec

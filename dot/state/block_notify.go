@@ -88,7 +88,7 @@ func (bs *BlockState) UnregisterFinalisedChannel(id byte) {
 	}
 }
 
-func (bs *BlockState) notifyImportedVdt(block *types.Block) {
+func (bs *BlockState) notifyImported(block *types.Block) {
 	bs.importedLock.RLock()
 	defer bs.importedLock.RUnlock()
 

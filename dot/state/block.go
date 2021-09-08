@@ -445,7 +445,7 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 		return err
 	}
 
-	go bs.notifyImportedVdt(block)
+	go bs.notifyImported(block)
 	return bs.db.Flush()
 }
 

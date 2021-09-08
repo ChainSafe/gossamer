@@ -107,8 +107,7 @@ func (in *Instance) GrandpaAuthorities() ([]types.Authority, error) {
 }
 
 // InitializeBlock calls runtime API function Core_initialise_block
-func (in *Instance) InitializeBlockVdt(header *types.HeaderVdt) error {
-	//encodedHeader, err := scale.Encode(header)
+func (in *Instance) InitializeBlock(header *types.HeaderVdt) error {
 	encodedHeader, err := scale2.Marshal(*header)
 	if err != nil {
 		return fmt.Errorf("cannot encode header: %w", err)
@@ -130,7 +129,7 @@ func (in *Instance) ApplyExtrinsic(data types.Extrinsic) ([]byte, error) {
 
 //nolint
 // FinalizeBlock calls runtime API function BlockBuilder_finalize_block
-func (in *Instance) FinalizeBlockVdt() (*types.HeaderVdt, error) {
+func (in *Instance) FinalizeBlock() (*types.HeaderVdt, error) {
 	data, err := in.exec(runtime.BlockBuilderFinalizeBlock, []byte{})
 	if err != nil {
 		return nil, err
@@ -145,7 +144,7 @@ func (in *Instance) FinalizeBlockVdt() (*types.HeaderVdt, error) {
 	return bh, nil
 }
 
-func (in *Instance) ExecuteBlockVdt(block *types.Block) ([]byte, error) {
+func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	// copy block since we're going to modify it
 	b := block.DeepCopy()
 

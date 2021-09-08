@@ -155,7 +155,7 @@ func BuildBlockVdt(t *testing.T, instance runtime.Instance, parent *types.Header
 		Digest:     digest,
 	}
 
-	err := instance.InitializeBlockVdt(header)
+	err := instance.InitializeBlock(header)
 	require.NoError(t, err)
 
 	idata := types.NewInherentsData()
@@ -207,7 +207,7 @@ func BuildBlockVdt(t *testing.T, instance runtime.Instance, parent *types.Header
 		require.Equal(t, ret, []byte{0, 0})
 	}
 
-	res, err := instance.FinalizeBlockVdt()
+	res, err := instance.FinalizeBlock()
 	require.NoError(t, err)
 	res.Number = header.Number
 

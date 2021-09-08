@@ -258,7 +258,7 @@ func TestSyncer_ExecuteBlock_Prev(t *testing.T) {
 	require.NoError(t, err)
 	rt.SetContextStorage(parentState)
 
-	_, err = rt.ExecuteBlockVdt(block)
+	_, err = rt.ExecuteBlock(block)
 	require.NoError(t, err)
 }
 
@@ -278,7 +278,7 @@ func TestSyncer_ExecuteBlock(t *testing.T) {
 	require.NoError(t, err)
 	rt.SetContextStorage(parentState)
 
-	_, err = rt.ExecuteBlockVdt(block)
+	_, err = rt.ExecuteBlock(block)
 	require.NoError(t, err)
 }
 
@@ -286,11 +286,6 @@ func TestSyncer_HandleJustification(t *testing.T) {
 	syncer := NewTestSyncer(t, false)
 
 	d := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
-	//header := &types.Header{
-	//	ParentHash: syncer.blockState.(*state.BlockState).GenesisHash(),
-	//	Number:     big.NewInt(1),
-	//	Digest:     types.Digest{d},
-	//}
 	digest := types.NewDigestVdt()
 	digest.Add(*d)
 	header := &types.HeaderVdt{

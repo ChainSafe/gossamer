@@ -128,7 +128,7 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	state, err := s.storageState.TrieState(nil)
 	require.NoError(t, err)
 
-	err = s.HandleBlockProducedVdt(&newBlock, state)
+	err = s.HandleBlockProduced(&newBlock, state)
 	require.NoError(t, err)
 
 	time.Sleep(time.Second)
@@ -165,7 +165,7 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 
 	block := sync.BuildBlockVdt(t, rt, genHeader, nil)
 
-	err = s.handleBlockVdt(block, ts)
+	err = s.handleBlock(block, ts)
 	require.NoError(t, err)
 
 	extBytes := createExtrinsic(t, rt, genHash, 0)
