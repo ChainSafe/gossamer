@@ -225,7 +225,7 @@ func TestGetVotesForBlock_DescendantVotes(t *testing.T) {
 	state.AddBlocksToStateWithFixedBranches(t, st.Block, 8, branches, byte(rand.Intn(256)))
 	leaves := gs.blockState.Leaves()
 
-	a, err := st.Block.GetHeaderVdt(leaves[0])
+	a, err := st.Block.GetHeader(leaves[0])
 	require.NoError(t, err)
 
 	// A is a descendant of B

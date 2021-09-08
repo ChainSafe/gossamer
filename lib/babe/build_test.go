@@ -358,14 +358,14 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	babeService.epochData.threshold = maxThreshold
 
 	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
-	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewEmptyDigest())
+	header, err := types.NewHeaderVdt(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewDigestVdt())
 	require.NoError(t, err)
 
 	rt, err := babeService.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
 	//initialise block header
-	err = rt.InitializeBlock(header)
+	err = rt.InitializeBlockVdt(header)
 	require.NoError(t, err)
 
 	// build extrinsic
