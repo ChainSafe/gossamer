@@ -46,9 +46,7 @@ type Instance interface {
 	InitializeBlockVdt(header *types.HeaderVdt) error
 	InherentExtrinsics(data []byte) ([]byte, error)
 	ApplyExtrinsic(data types.Extrinsic) ([]byte, error)
-	FinalizeBlock() (*types.Header, error)
 	FinalizeBlockVdt() (*types.HeaderVdt, error)
-	//ExecuteBlock(block *types.Block) ([]byte, error)
 	ExecuteBlockVdt(block *types.Block) ([]byte, error)
 	DecodeSessionKeys(enc []byte) ([]byte, error)
 
