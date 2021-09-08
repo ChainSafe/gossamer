@@ -96,7 +96,7 @@ func (s *chainProcessor) processBlockData(data []*types.BlockData) (int, error) 
 	}
 
 	for i, bd := range data {
-		logger.Debug("starting processing of block", "hash", bd.Hash)
+		//logger.Debug("starting processing of block", "hash", bd.Hash)
 
 		err := s.blockState.CompareAndSetBlockData(bd)
 		if err != nil {
@@ -108,13 +108,15 @@ func (s *chainProcessor) processBlockData(data []*types.BlockData) (int, error) 
 		if hasHeader && hasBody {
 			// TODO: fix this; sometimes when the node shuts down the "best block" isn't stored properly,
 			// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
-			logger.Debug("skipping block, already have", "hash", bd.Hash)
+			//logger.Debug("skipping block, already have", "hash", bd.Hash)
 
 			block, err := s.blockState.GetBlockByHash(bd.Hash) //nolint
 			if err != nil {
 				logger.Debug("failed to get header", "hash", bd.Hash, "error", err)
 				return i, err
 			}
+
+			logger.Debug("skipping block, already have", "hash", bd.Hash, "number", block.Header.Number)
 
 			err = s.blockState.AddBlockToBlockTree(block.Header)
 			if err != nil && !errors.Is(err, blocktree.ErrBlockExists) {

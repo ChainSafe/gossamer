@@ -39,8 +39,21 @@ var (
 // and stored pending work (ie. pending blocks set)
 // workHandler should be implemented by `bootstrapSync` and `idleSync`
 type workHandler interface {
-	handleWork(*peerState)
-	handleWorkerResult(*worker)
+	// handleWork optionally returns a new worker based on a peerState.
+	// returned worker may be nil, in which case we do nothing
+	handleWork(*peerState) (*worker, error)
+
+	// handleWorkerResult handles the result of a worker, which may be
+	// nil or error. optionally returns a new worker to be dispatched.
+	handleWorkerResult(*worker) *worker
+
+	// hasCurrentWorker is called before a worker is to be dispatched to
+	// check whether it is a duplicate. this function returns whether there is
+	// a worker that covers the scope of the proposed worker; if true,
+	// ignore the proposed worker
+	hasCurrentWorker(*worker, map[uint64]*worker) bool
+
+	// handleTick ...
 	handleTick()
 }
 
@@ -170,7 +183,9 @@ func (cs *chainSync) setBlockAnnounce(from peer.ID, header *types.Header) error 
 	}
 
 	cs.pendingBlocks.addHeader(header)
-	// TODO: put into work queue
+
+	// TODO: is it ok to assume if a node announces a block that it has it + its ancestors??
+	cs.setPeerHead(from, header.Hash(), header.Number)
 	return nil
 }
 
@@ -187,14 +202,14 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) {
 }
 
 func (cs *chainSync) start() {
-	// TODO: wait until we have received 5? peer heads
+	// TODO: wait until we have received ?? peer heads
 	// this should be based off our min/max peers, potentially
 
-	// for {
-	// 	if len(cs.peerState) >= 5 {
-	// 		break
-	// 	}
-	// }
+	for {
+		if len(cs.peerState) >= 1 {
+			break
+		}
+	}
 
 	go cs.sync()
 	go cs.logSyncSpeed()
@@ -318,8 +333,11 @@ func (cs *chainSync) sync() {
 
 			cs.tryDispatchWorker(w)
 		case <-ticker.C:
-			// bootstrap complete, switch state to idle
+			// bootstrap complete, switch state to idle if not already
 			// and begin near-head fork-sync
+
+			// TODO: create functionality to switch modes
+			// will require stopping all existing workers and clearing the set
 		case <-cs.ctx.Done():
 			return
 		}
@@ -333,59 +351,64 @@ func (cs *chainSync) sync() {
 func (cs *chainSync) handleWork(ps *peerState) error {
 	logger.Trace("handling potential work", "target hash", ps.hash, "target number", ps.number)
 
-	// if the peer reports a lower or equal best block number than us,
-	// check if they are on a fork or not
-	head, err := cs.blockState.BestBlockHeader()
-	if err != nil {
-		return err
-	}
-
-	if ps.number.Cmp(head.Number) <= 0 {
-		// check if our block hash for that number is the same, if so, do nothing
-		hash, err := cs.blockState.GetHashByNumber(ps.number)
-		if err != nil {
-			return err
-		}
-
-		if hash.Equal(ps.hash) {
-			return nil
-		}
-
-		// check if their best block is on an invalid chain, if it is,
-		// potentially downscore them
-		// for now, we can remove them from the syncing peers set
-		fin, err := cs.blockState.GetHighestFinalisedHeader()
-		if err != nil {
-			return err
-		}
-
-		// their block hash doesn't match ours for that number (ie. they are on a different
-		// chain), and also the highest finalised block is higher than that number.
-		// thus the peer is on an invalid chain
-		if fin.Number.Cmp(ps.number) >= 0 {
-			// TODO: downscore this peer, or temporarily don't sync from them?
-			delete(cs.peerState, ps.who)
-			logger.Trace("peer is on an invalid fork")
-			return nil
-		}
-
-		// TODO: peer is on a fork, add to pendingBlocks and begin fork request
+	worker := cs.handler.handleWork(ps)
+	if worker == nil {
 		return nil
 	}
 
-	// the peer has a higher best block than us, add it to the disjoint block set
-	cs.pendingBlocks.addHashAndNumber(ps.hash, ps.number)
+	// // if the peer reports a lower or equal best block number than us,
+	// // check if they are on a fork or not
+	// head, err := cs.blockState.BestBlockHeader()
+	// if err != nil {
+	// 	return err
+	// }
 
-	// TODO: this is for bootstrap mode, for idle fork-sync mode
-	// we may want to reverse the direction and specify start hash
-	worker := &worker{
-		id:           cs.nextWorker,
-		startHash:    common.EmptyHash,
-		startNumber:  big.NewInt(0).Add(head.Number, big.NewInt(1)),
-		targetHash:   ps.hash,
-		targetNumber: ps.number,
-		direction:    DIR_ASCENDING,
-	}
+	// if ps.number.Cmp(head.Number) <= 0 {
+	// 	// check if our block hash for that number is the same, if so, do nothing
+	// 	hash, err := cs.blockState.GetHashByNumber(ps.number)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+
+	// 	if hash.Equal(ps.hash) {
+	// 		return nil
+	// 	}
+
+	// 	// check if their best block is on an invalid chain, if it is,
+	// 	// potentially downscore them
+	// 	// for now, we can remove them from the syncing peers set
+	// 	fin, err := cs.blockState.GetHighestFinalisedHeader()
+	// 	if err != nil {
+	// 		return err
+	// 	}
+
+	// 	// their block hash doesn't match ours for that number (ie. they are on a different
+	// 	// chain), and also the highest finalised block is higher than that number.
+	// 	// thus the peer is on an invalid chain
+	// 	if fin.Number.Cmp(ps.number) >= 0 {
+	// 		// TODO: downscore this peer, or temporarily don't sync from them?
+	// 		delete(cs.peerState, ps.who)
+	// 		logger.Trace("peer is on an invalid fork")
+	// 		return nil
+	// 	}
+
+	// 	// TODO: peer is on a fork, add to pendingBlocks and begin fork request
+	// 	return nil
+	// }
+
+	// // the peer has a higher best block than us, add it to the disjoint block set
+	// cs.pendingBlocks.addHashAndNumber(ps.hash, ps.number)
+
+	// // TODO: this is for bootstrap mode, for idle fork-sync mode
+	// // we may want to reverse the direction and specify start hash
+	// worker := &worker{
+	// 	id:           cs.nextWorker,
+	// 	startHash:    common.EmptyHash,
+	// 	startNumber:  big.NewInt(0).Add(head.Number, big.NewInt(1)),
+	// 	targetHash:   ps.hash,
+	// 	targetNumber: ps.number,
+	// 	direction:    DIR_ASCENDING,
+	// }
 
 	cs.tryDispatchWorker(worker)
 	return nil
@@ -481,6 +504,7 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 			Max:          optional.NewUint32(false, 0),
 		}
 
+		// TODO: if we find a good peer, do sync with them, right now it re-selects a peer each time
 		err := cs.doSync(req)
 		if err != nil {
 			// failed to sync, set worker error and put into result queue
