@@ -27,6 +27,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
+//TODO This is to save changes
+
 // Metadata calls runtime function Metadata_metadata
 func (in *Instance) Metadata() ([]byte, error) {
 	return in.exec(runtime.Metadata, []byte{})
@@ -101,16 +103,6 @@ func (in *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validit
 
 //nolint
 // InitializeBlock calls runtime API function Core_initialize_block
-func (in *Instance) InitializeBlock(header *types.Header) error {
-	encodedHeader, err := scale.Encode(header)
-	if err != nil {
-		return fmt.Errorf("cannot encode header: %s", err)
-	}
-
-	_, err = in.exec(runtime.CoreInitializeBlock, encodedHeader)
-	return err
-}
-
 func (in *Instance) InitializeBlockVdt(header *types.HeaderVdt) error {
 	//encodedHeader, err := scale.Encode(header)
 	encodedHeader, err := scale2.Marshal(*header)
@@ -134,31 +126,12 @@ func (in *Instance) ApplyExtrinsic(data types.Extrinsic) ([]byte, error) {
 
 //nolint
 // FinalizeBlock calls runtime API function BlockBuilder_finalize_block
-func (in *Instance) FinalizeBlock() (*types.Header, error) {
-	data, err := in.exec(runtime.BlockBuilderFinalizeBlock, []byte{})
-	if err != nil {
-		return nil, err
-	}
-
-	bh := new(types.Header)
-	_, err = scale.Decode(data, bh)
-	if err != nil {
-		return nil, err
-	}
-
-	return bh, nil
-}
-
 func (in *Instance) FinalizeBlockVdt() (*types.HeaderVdt, error) {
 	data, err := in.exec(runtime.BlockBuilderFinalizeBlock, []byte{})
 	if err != nil {
 		return nil, err
 	}
 
-	//fmt.Println("Finalized block Vdt")
-	//fmt.Println(data)
-	//bh := new(types.Header)
-	//_, err = scale.Decode(data, bh)
 	bh := types.NewEmptyHeaderVdt()
 	err = scale2.Unmarshal(data, bh)
 	if err != nil {

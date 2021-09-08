@@ -27,6 +27,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
+//TODO This is to save changes
+
 // ValidateTransaction runs the extrinsic through runtime function TaggedTransactionQueue_validate_transaction and returns *Validity
 func (in *Instance) ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error) {
 	ret, err := in.exec(runtime.TaggedTransactionQueueValidateTransaction, e)
@@ -106,20 +108,10 @@ func (in *Instance) GrandpaAuthorities() ([]types.Authority, error) {
 	return types.GrandpaAuthoritiesRawToAuthorities(adr.([]types.GrandpaAuthoritiesRaw))
 }
 
+// InitializeBlock calls runtime API function Core_initialise_block
 func (in *Instance) InitializeBlockVdt(header *types.HeaderVdt) error {
 	//encodedHeader, err := scale.Encode(header)
 	encodedHeader, err := scale2.Marshal(*header)
-	if err != nil {
-		return fmt.Errorf("cannot encode header: %w", err)
-	}
-
-	_, err = in.exec(runtime.CoreInitializeBlock, encodedHeader)
-	return err
-}
-
-// InitializeBlock calls runtime API function Core_initialise_block
-func (in *Instance) InitializeBlock(header *types.Header) error {
-	encodedHeader, err := scale.Encode(header)
 	if err != nil {
 		return fmt.Errorf("cannot encode header: %w", err)
 	}
@@ -138,6 +130,8 @@ func (in *Instance) ApplyExtrinsic(data types.Extrinsic) ([]byte, error) {
 	return in.exec(runtime.BlockBuilderApplyExtrinsic, data)
 }
 
+//nolint
+// FinalizeBlock calls runtime API function BlockBuilder_finalize_block
 func (in *Instance) FinalizeBlockVdt() (*types.HeaderVdt, error) {
 	data, err := in.exec(runtime.BlockBuilderFinalizeBlock, []byte{})
 	if err != nil {
@@ -153,29 +147,7 @@ func (in *Instance) FinalizeBlockVdt() (*types.HeaderVdt, error) {
 	return bh, nil
 }
 
-//nolint
-// FinalizeBlock calls runtime API function BlockBuilder_finalize_block
-func (in *Instance) FinalizeBlock() (*types.Header, error) {
-	data, err := in.exec(runtime.BlockBuilderFinalizeBlock, []byte{})
-	if err != nil {
-		return nil, err
-	}
-	//fmt.Println("Finalized block normal")
-	//fmt.Println(data)
-
-	bh := new(types.Header)
-	_, err = scale.Decode(data, bh)
-	if err != nil {
-		return nil, err
-	}
-
-	return bh, nil
-}
-
 func (in *Instance) ExecuteBlockVdt(block *types.Block) ([]byte, error) {
-	//fmt.Println("block data Vdt before")
-	//fmt.Println(block)
-
 	// copy block since we're going to modify it
 	b := block.DeepCopy()
 
