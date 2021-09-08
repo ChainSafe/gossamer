@@ -64,6 +64,8 @@ type Service struct {
 	codeSubstitute       map[common.Hash]string
 	codeSubstitutedState CodeSubstitutedState
 
+	transactionMsgs chan *network.TransactionMessage
+
 	// Keystore
 	keys *keystore.GlobalKeystore
 }

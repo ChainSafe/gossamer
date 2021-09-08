@@ -53,7 +53,15 @@ type (
 
 	// NotificationsMessageHandler is called when a (non-handshake) message is received over a notifications stream.
 	NotificationsMessageHandler = func(peer peer.ID, msg NotificationsMessage) (propagate bool, err error)
+
+
+	NotificationsMessageBatchHandler = func(peer peer.ID, msg NotificationsMessage) (batchMsgs []*transactionBatchMessage, err error)
 )
+
+type transactionBatchMessage struct {
+	msg NotificationsMessage
+	peer peer.ID
+}
 
 type handshakeReader struct {
 	hs  Handshake
@@ -119,7 +127,7 @@ func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecode
 	}
 }
 
-func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol, messageHandler NotificationsMessageHandler) messageHandler {
+func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol, messageHandler NotificationsMessageHandler, batchHandler NotificationsMessageBatchHandler) messageHandler {
 	return func(stream libp2pnetwork.Stream, m Message) error {
 		if m == nil || info == nil || info.handshakeValidator == nil || messageHandler == nil {
 			return nil
@@ -187,6 +195,25 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			"message", msg,
 			"peer", stream.Conn().RemotePeer(),
 		)
+
+		if batchHandler != nil {
+			propagateMsgs, err := batchHandler(peer, msg)
+			if err != nil {
+				return err
+			}
+
+			if s.noGossip {
+				return nil
+			}
+
+			for _, data := range propagateMsgs {
+				seen := s.gossip.hasSeen(data.msg)
+				if !seen {
+					s.broadcastExcluding(info, data.peer, data.msg)
+				}
+			}
+			return nil
+		}
 
 		propagate, err := messageHandler(peer, msg)
 		if err != nil {

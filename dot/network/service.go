@@ -218,10 +218,41 @@ func (s *Service) Start() error {
 		s.validateBlockAnnounceHandshake,
 		decodeBlockAnnounceMessage,
 		s.handleBlockAnnounceMessage,
+		nil,
 		false,
 	)
 	if err != nil {
 		logger.Warn("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
+	}
+
+	txnBatch := make(chan *transactionBatchMessage, 100)
+
+	txnBatchHandler := func(peer peer.ID, msg NotificationsMessage) (msgs []*transactionBatchMessage, err error) {
+		data := &transactionBatchMessage{
+			msg:  msg,
+			peer: peer,
+		}
+		txnBatch <- data
+
+		if len(txnBatch) < 100 {
+			return nil, nil
+		}
+
+		var propagateMsgs []*transactionBatchMessage
+		for txnData := range txnBatch {
+			propagate, err := s.handleTransactionMessage(txnData.peer, txnData.msg)
+			if err != nil {
+				continue
+			}
+			if propagate {
+				propagateMsgs = append(propagateMsgs, &transactionBatchMessage{
+					msg:  txnData.msg,
+					peer: txnData.peer,
+				})
+			}
+		}
+		// May be use error to compute peer score.
+		return propagateMsgs, nil
 	}
 
 	// register transactions protocol
@@ -233,6 +264,7 @@ func (s *Service) Start() error {
 		validateTransactionHandshake,
 		decodeTransactionMessage,
 		s.handleTransactionMessage,
+		txnBatchHandler,
 		false,
 	)
 	if err != nil {
@@ -421,6 +453,7 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 	handshakeValidator HandshakeValidator,
 	messageDecoder MessageDecoder,
 	messageHandler NotificationsMessageHandler,
+	batchHandler NotificationsMessageBatchHandler,
 	overwriteProtocol bool,
 ) error {
 	s.notificationsMu.Lock()
@@ -471,7 +504,7 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 	info := s.notificationsProtocols[messageID]
 
 	decoder := createDecoder(info, handshakeDecoder, messageDecoder)
-	handlerWithValidate := s.createNotificationsMessageHandler(info, messageHandler)
+	handlerWithValidate := s.createNotificationsMessageHandler(info, messageHandler, batchHandler)
 
 	s.host.registerStreamHandlerWithOverwrite(sub, overwriteProtocol, func(stream libp2pnetwork.Stream) {
 		logger.Trace("received stream", "sub-protocol", sub)
