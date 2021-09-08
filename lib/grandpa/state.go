@@ -30,14 +30,14 @@ import (
 type BlockState interface {
 	GenesisHash() common.Hash
 	HasHeader(hash common.Hash) (bool, error)
-	GetHeader(hash common.Hash) (*types.HeaderVdt, error)
-	GetHeaderByNumber(num *big.Int) (*types.HeaderVdt, error)
+	GetHeader(hash common.Hash) (*types.Header, error)
+	GetHeaderByNumber(num *big.Int) (*types.Header, error)
 	IsDescendantOf(parent, child common.Hash) (bool, error)
 	HighestCommonAncestor(a, b common.Hash) (common.Hash, error)
 	HasFinalisedBlock(round, setID uint64) (bool, error)
-	GetFinalisedHeader(uint64, uint64) (*types.HeaderVdt, error)
+	GetFinalisedHeader(uint64, uint64) (*types.Header, error)
 	SetFinalisedHash(common.Hash, uint64, uint64) error
-	BestBlockHeader() (*types.HeaderVdt, error)
+	BestBlockHeader() (*types.Header, error)
 	BestBlockHash() common.Hash
 	Leaves() []common.Hash
 	BlocktreeAsString() string

@@ -30,19 +30,19 @@ import (
 // BlockState interface for block state methods
 type BlockState interface {
 	BestBlockHash() common.Hash
-	BestBlockHeader() (*types.HeaderVdt, error)
+	BestBlockHeader() (*types.Header, error)
 	BestBlockNumber() (*big.Int, error)
 	BestBlock() (*types.Block, error)
 	SubChain(start, end common.Hash) ([]common.Hash, error)
 	AddBlock(*types.Block) error
 	GetAllBlocksAtDepth(hash common.Hash) []common.Hash
-	GetHeader(common.Hash) (*types.HeaderVdt, error)
+	GetHeader(common.Hash) (*types.Header, error)
 	GetBlockByNumber(*big.Int) (*types.Block, error)
 	GetBlockByHash(common.Hash) (*types.Block, error)
 	GetArrivalTime(common.Hash) (time.Time, error)
 	GenesisHash() common.Hash
 	GetSlotForBlock(common.Hash) (uint64, error)
-	GetFinalisedHeader(uint64, uint64) (*types.HeaderVdt, error)
+	GetFinalisedHeader(uint64, uint64) (*types.Header, error)
 	IsDescendantOf(parent, child common.Hash) (bool, error)
 	NumberIsFinalised(num *big.Int) (bool, error)
 	GetRuntime(*common.Hash) (runtime.Instance, error)
@@ -76,16 +76,16 @@ type EpochState interface {
 	HasConfigData(epoch uint64) (bool, error)
 	GetLatestConfigData() (*types.ConfigData, error)
 	GetStartSlotForEpoch(epoch uint64) (uint64, error)
-	GetEpochForBlock(header *types.HeaderVdt) (uint64, error)
+	GetEpochForBlock(header *types.Header) (uint64, error)
 	SetFirstSlot(slot uint64) error
 	GetLatestEpochData() (*types.EpochData, error)
-	SkipVerify(*types.HeaderVdt) (bool, error)
+	SkipVerify(*types.Header) (bool, error)
 	GetEpochFromTime(time.Time) (uint64, error)
 }
 
 // DigestHandler is the interface for the consensus digest handler
 type DigestHandler interface {
-	HandleDigests(*types.HeaderVdt)
+	HandleDigests(*types.Header)
 }
 
 // BlockImportHandler is the interface for the handler of new blocks

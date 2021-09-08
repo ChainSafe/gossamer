@@ -294,7 +294,7 @@ func TestNodeRuntime_ValidateTransaction(t *testing.T) {
 	// this key is System.UpgradedToDualRefCount -> set to true since all accounts have been upgraded to v0.9 format
 	rt.(*Instance).ctx.Storage.Set(common.UpgradedToDualRefKey, []byte{1})
 
-	genesisHeader := &types.HeaderVdt{
+	genesisHeader := &types.Header{
 		ParentHash: common.Hash{},
 		Number:     big.NewInt(0),
 		StateRoot:  genTrie.MustHash(),
@@ -439,7 +439,7 @@ func TestInstance_BabeConfiguration_NodeRuntime_WithAuthorities(t *testing.T) {
 func TestInstance_InitializeBlock_NodeRuntime(t *testing.T) {
 	rt := NewTestInstance(t, runtime.NODE_RUNTIME)
 
-	header := &types.HeaderVdt{
+	header := &types.Header{
 		Number: big.NewInt(1),
 		Digest: types.NewDigestVdt(),
 	}
@@ -451,7 +451,7 @@ func TestInstance_InitializeBlock_NodeRuntime(t *testing.T) {
 func TestInstance_InitializeBlock_PolkadotRuntime(t *testing.T) {
 	rt := NewTestInstance(t, runtime.POLKADOT_RUNTIME)
 
-	header := &types.HeaderVdt{
+	header := &types.Header{
 		Number: big.NewInt(1),
 		Digest: types.NewDigestVdt(),
 	}
@@ -461,7 +461,7 @@ func TestInstance_InitializeBlock_PolkadotRuntime(t *testing.T) {
 }
 
 func buildBlockVdt(t *testing.T, instance runtime.Instance, parentHash common.Hash) *types.Block {
-	header := &types.HeaderVdt{
+	header := &types.Header{
 		ParentHash: parentHash,
 		Number:     big.NewInt(1),
 		Digest:     types.NewDigestVdt(),
@@ -514,7 +514,7 @@ func buildBlockVdt(t *testing.T, instance runtime.Instance, parentHash common.Ha
 	digest.Add(preDigest)
 	res.Digest = digest
 
-	expected := &types.HeaderVdt{
+	expected := &types.Header{
 		ParentHash: header.ParentHash,
 		Number:     big.NewInt(1),
 		Digest:     digest,
@@ -667,10 +667,6 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 
 	// digest data received from querying polkadot node
 	digestBytes := common.MustHexToBytes("0x0c0642414245b501010000000093decc0f00000000362ed8d6055645487fe42e9c8640be651f70a3a2a03658046b2b43f021665704501af9b1ca6e974c257e3d26609b5f68b5b0a1da53f7f252bbe5d94948c39705c98ffa4b869dd44ac29528e3723d619cc7edf1d3f7b7a57a957f6a7e9bdb270a044241424549040118fa3437b10f6e7af8f31362df3a179b991a8c56313d1bcd6307a4d0c734c1ae310100000000000000d2419bc8835493ac89eb09d5985281f5dff4bc6c7a7ea988fd23af05f301580a0100000000000000ccb6bef60defc30724545d57440394ed1c71ea7ee6d880ed0e79871a05b5e40601000000000000005e67b64cf07d4d258a47df63835121423551712844f5b67de68e36bb9a21e12701000000000000006236877b05370265640c133fec07e64d7ca823db1dc56f2d3584b3d7c0f1615801000000000000006c52d02d95c30aa567fda284acf25025ca7470f0b0c516ddf94475a1807c4d250100000000000000000000000000000000000000000000000000000000000000000000000000000005424142450101d468680c844b19194d4dfbdc6697a35bf2b494bda2c5a6961d4d4eacfbf74574379ba0d97b5bb650c2e8670a63791a727943bcb699dc7a228bdb9e0a98c9d089")
-	//r := &bytes.Buffer{}
-	//_, _ = r.Write(digestBytes)
-	//digest, err := types.DecodeDigest(r)
-	//require.NoError(t, err)
 
 	digest := types.NewDigestVdt()
 	err = scale.Unmarshal(digestBytes, &digest)
@@ -678,7 +674,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 
 	// polkadot block 1, from polkadot.js
 	block := &types.Block{
-		Header: types.HeaderVdt{
+		Header: types.Header{
 			ParentHash:     common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"),
 			Number:         big.NewInt(1),
 			StateRoot:      common.MustHexToHash("0xc56fcd6e7a757926ace3e1ecff9b4010fc78b90d459202a339266a7f6360002f"),
@@ -729,7 +725,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 
 	// kusama block 1, from polkadot.js
 	block := &types.Block{
-		Header: types.HeaderVdt{
+		Header: types.Header{
 			ParentHash:     common.MustHexToHash("0xb0a8d493285c2df73290dfb7e61f870f17b41801197a149ca93654499ea3dafe"),
 			Number:         big.NewInt(1),
 			StateRoot:      common.MustHexToHash("0xfabb0c6e92d29e8bb2167f3c6fb0ddeb956a4278a3cf853661af74a076fc9cb7"),
@@ -779,7 +775,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock3784(t *testing.T) {
 
 	// kusama block 3784, from polkadot.js
 	block := &types.Block{
-		Header: types.HeaderVdt{
+		Header: types.Header{
 			ParentHash:     common.MustHexToHash("0x4843b4aa38cf2e3e2f6fae401b98dd705bed668a82dd3751dc38f1601c814ca8"),
 			Number:         big.NewInt(3784),
 			StateRoot:      common.MustHexToHash("0xac44cc18ec22f0f3fca39dfe8725c0383af1c982a833e081fbb2540e46eb09a5"),
@@ -817,10 +813,6 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
 
 	// digest from polkadot.js
 	digestBytes := common.MustHexToBytes("0x080642414245340244000000aeffb30f00000000054241424501011cbef2a084a774c34d9990c7bfc6b4d2d5e9f5b59feca792cd2bb89a890c2a6f09668b5e8224879f007f49f299d25fbb3c0f30d94fb8055e07fa8a4ed10f8083")
-	//r := &bytes.Buffer{}
-	//_, _ = r.Write(digestBytes)
-	//digest, err := types.DecodeDigest(r)
-	//require.NoError(t, err)
 
 	digest := types.NewDigestVdt()
 	err = scale.Unmarshal(digestBytes, &digest)
@@ -829,7 +821,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock901442(t *testing.T) {
 
 	// kusama block 901442, from polkadot.js
 	block := &types.Block{
-		Header: types.HeaderVdt{
+		Header: types.Header{
 			ParentHash:     common.MustHexToHash("0x68d9c5f75225f09d7ce493eff8aabac7bae8b65cb81a2fd532a99fbb8c663931"),
 			Number:         big.NewInt(901442),
 			StateRoot:      common.MustHexToHash("0x6ea065f850894c5b58cb1a73ec887e56842851943641149c57cea357cae4f596"),
@@ -879,7 +871,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1377831(t *testing.T) {
 
 	// kusama block 1377831, from polkadot.js
 	block := &types.Block{
-		Header: types.HeaderVdt{
+		Header: types.Header{
 			ParentHash:     common.MustHexToHash("0xca387b3cc045e8848277069d8794cbf077b08218c0b55f74d81dd750b14e768c"),
 			Number:         big.NewInt(1377831),
 			StateRoot:      common.MustHexToHash("0x7e5569e652c4b1a3cecfcf5e5e64a97fe55071d34bab51e25626ec20cae05a02"),
@@ -930,7 +922,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 
 	// kusama block 1482003, from polkadot.js
 	block := &types.Block{
-		Header: types.HeaderVdt{
+		Header: types.Header{
 			ParentHash:     common.MustHexToHash("0x587f6da1bfa71a675f10dfa0f63edfcf168e8ece97eb5f526aaf0e8a8e82db3f"),
 			Number:         big.NewInt(1482003),
 			StateRoot:      common.MustHexToHash("0xd2de750002f33968437bdd54912dd4f55c3bddc5a391a8e0b8332568e1efea8d"),
@@ -968,17 +960,13 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock4939774(t *testing.T) {
 	require.Equal(t, 2, len(exts))
 
 	digestBytes := common.MustHexToBytes("0x080642414245b50101ef0100000815f30f000000004014ed1a99f017ea2c0d879d7317f51106938f879b296ff92c64319c0c70fe453d72035395da8d53e885def26e63cf90461ee549d0864f9691a4f401b31c1801730c014bc0641b307e8a30692e7d074b4656993b40d6f08698bc49dea40c11090542414245010192ed24972a8108b9bad1a8785b443efe72d4bc2069ab40eac65519fb01ff04250f44f6202d30ca88c30fee385bc8d7f51df15dddacf4e5d53788d260ce758c89")
-	//r := &bytes.Buffer{}
-	//_, _ = r.Write(digestBytes)
-	//digest, err := types.DecodeDigest(r)
-	//require.NoError(t, err)
 	digest := types.NewDigestVdt()
 	err = scale.Unmarshal(digestBytes, &digest)
 	require.NoError(t, err)
 	require.Equal(t, 2, len(digest.Types))
 
 	block := &types.Block{
-		Header: types.HeaderVdt{
+		Header: types.Header{
 			ParentHash:     common.MustHexToHash("0xac08290f49cb9760a3a4c5a49351af76ba9432add29178e5cc27d4451f9126c9"),
 			Number:         big.NewInt(4939774),
 			StateRoot:      common.MustHexToHash("0x5d66f43cdbf1740b8ca41f0cd016602f1648fb08b74fe49f5f078845071d0a54"),
@@ -1016,10 +1004,6 @@ func TestInstance_ExecuteBlock_PolkadotBlock1089328(t *testing.T) {
 
 	// digest from polkadot.js
 	digestBytes := common.MustHexToBytes("0x080642414245b501017b000000428edd0f00000000c4fd75c7535d8eec375d70d21cc62262247b599aa67d8a9cf2f7d1b8cb93cd1f9539f04902c33d4c0fe47f723dfed8505d31de1c04d0036a9df233ff902fce0d70060908faa4b3f481e54cbd6a52dfc20c3faac82f746d84dc03c2f824a89a0d0542414245010122041949669a56c8f11b3e3e7c803e477ad24a71ed887bc81c956b59ea8f2b30122e6042494aab60a75e0db8fdff45951e456e6053bd64eb5722600e4a13038b")
-	//r := &bytes.Buffer{}
-	//_, _ = r.Write(digestBytes)
-	//digest, err := types.DecodeDigest(r)
-	//require.NoError(t, err)
 
 	digest := types.NewDigestVdt()
 	err = scale.Unmarshal(digestBytes, &digest)
@@ -1027,7 +1011,7 @@ func TestInstance_ExecuteBlock_PolkadotBlock1089328(t *testing.T) {
 	require.Equal(t, 2, len(digest.Types))
 
 	block := &types.Block{
-		Header: types.HeaderVdt{
+		Header: types.Header{
 			ParentHash:     common.MustHexToHash("0x21dc35454805411be396debf3e1d5aad8d6e9d0d7679cce0cc632ba8a647d07c"),
 			Number:         big.NewInt(1089328),
 			StateRoot:      common.MustHexToHash("0x257b1a7f6bc0287fcbf50676dd29817f2f7ae193cb65b31962e351917406fa23"),

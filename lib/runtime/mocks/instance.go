@@ -164,15 +164,15 @@ func (_m *MockInstance) ExecuteBlockVdt(block *types.Block) ([]byte, error) {
 }
 
 // FinalizeBlockVdt provides a mock function with given fields:
-func (_m *MockInstance) FinalizeBlockVdt() (*types.HeaderVdt, error) {
+func (_m *MockInstance) FinalizeBlockVdt() (*types.Header, error) {
 	ret := _m.Called()
 
-	var r0 *types.HeaderVdt
-	if rf, ok := ret.Get(0).(func() *types.HeaderVdt); ok {
+	var r0 *types.Header
+	if rf, ok := ret.Get(0).(func() *types.Header); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.HeaderVdt)
+			r0 = ret.Get(0).(*types.Header)
 		}
 	}
 
@@ -254,11 +254,11 @@ func (_m *MockInstance) InherentExtrinsics(data []byte) ([]byte, error) {
 }
 
 // InitializeBlock provides a mock function with given fields: header
-func (_m *MockInstance) InitializeBlockVdt(header *types.HeaderVdt) error {
+func (_m *MockInstance) InitializeBlockVdt(header *types.Header) error {
 	ret := _m.Called(header)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(*types.HeaderVdt) error); ok {
+	if rf, ok := ret.Get(0).(func(*types.Header) error); ok {
 		r0 = rf(header)
 	} else {
 		r0 = ret.Error(0)

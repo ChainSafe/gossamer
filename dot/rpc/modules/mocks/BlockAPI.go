@@ -104,15 +104,15 @@ func (_m *BlockAPI) GetFinalisedHash(_a0 uint64, _a1 uint64) (common.Hash, error
 }
 
 // GetHeader provides a mock function with given fields: hash
-func (_m *BlockAPI) GetHeader(hash common.Hash) (*types.HeaderVdt, error) {
+func (_m *BlockAPI) GetHeader(hash common.Hash) (*types.Header, error) {
 	ret := _m.Called(hash)
 
-	var r0 *types.HeaderVdt
-	if rf, ok := ret.Get(0).(func(common.Hash) *types.HeaderVdt); ok {
+	var r0 *types.Header
+	if rf, ok := ret.Get(0).(func(common.Hash) *types.Header); ok {
 		r0 = rf(hash)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.HeaderVdt)
+			r0 = ret.Get(0).(*types.Header)
 		}
 	}
 

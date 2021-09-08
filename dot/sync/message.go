@@ -31,7 +31,7 @@ var maxResponseSize uint32 = 128 // maximum number of block datas to reply with 
 func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage) (*network.BlockResponseMessage, error) {
 	var (
 		startHash, endHash     common.Hash
-		startHeader, endHeader *types.HeaderVdt
+		startHeader, endHeader *types.Header
 		err                    error
 		respSize               uint32
 	)

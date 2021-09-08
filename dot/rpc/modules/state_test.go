@@ -489,11 +489,11 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 
 	sr1, err := ts.Root()
 	require.NoError(t, err)
-	err = chain.Storage.StoreTrieVdt(ts, nil)
+	err = chain.Storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
 
 	b := &types.Block{
-		Header: types.HeaderVdt{
+		Header: types.Header{
 			ParentHash: chain.Block.BestBlockHash(),
 			Number:     big.NewInt(2),
 			StateRoot:  sr1,

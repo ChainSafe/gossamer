@@ -36,23 +36,23 @@ import (
 )
 
 // TODO: use these from core?
-func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) []*types.HeaderVdt {
+func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) []*types.Header {
 	return addTestBlocksToStateWithParent(t, blockState.(*state.BlockState).BestBlockHash(), depth, blockState)
 }
 
-func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, depth int, blockState BlockState) []*types.HeaderVdt {
+func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, depth int, blockState BlockState) []*types.Header {
 	prevHeader, err := blockState.(*state.BlockState).GetHeader(previousHash)
 	require.NoError(t, err)
 	previousNum := prevHeader.Number
 
-	headers := []*types.HeaderVdt{}
+	headers := []*types.Header{}
 
 	for i := 1; i <= depth; i++ {
 		digest := types.NewDigestVdt()
 		digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, uint64(i)).ToPreRuntimeDigest())
 
 		block := &types.Block{
-			Header: types.HeaderVdt{
+			Header: types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
 				Digest:     digest,
@@ -80,7 +80,7 @@ func newTestHandler(t *testing.T, withBABE, withGrandpa bool) *Handler { //nolin
 	stateSrvc := state.NewService(config)
 	stateSrvc.UseMemDB()
 
-	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeaderVdt(t)
+	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 	err = stateSrvc.Initialise(gen, genHeader, genTrie)
 	require.NoError(t, err)
 
@@ -119,7 +119,7 @@ func TestHandler_GrandpaScheduledChange(t *testing.T) {
 		Data:              data,
 	}
 
-	header := &types.HeaderVdt{
+	header := &types.Header{
 		Number: big.NewInt(1),
 	}
 
@@ -177,7 +177,7 @@ func TestHandler_GrandpaForcedChange(t *testing.T) {
 		Data:              data,
 	}
 
-	header := &types.HeaderVdt{
+	header := &types.Header{
 		Number: big.NewInt(1),
 	}
 
@@ -287,7 +287,7 @@ func TestNextGrandpaAuthorityChange_OneChange(t *testing.T) {
 		ConsensusEngineID: types.GrandpaEngineID,
 		Data:              data,
 	}
-	header := &types.HeaderVdt{
+	header := &types.Header{
 		Number: big.NewInt(1),
 	}
 
@@ -331,7 +331,7 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 		Data:              data,
 	}
 
-	header := &types.HeaderVdt{
+	header := &types.Header{
 		Number: big.NewInt(1),
 	}
 
@@ -381,7 +381,7 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 
 func TestHandler_HandleBABEOnDisabled(t *testing.T) {
 	handler := newTestHandler(t, true, false)
-	header := &types.HeaderVdt{
+	header := &types.Header{
 		Number: big.NewInt(1),
 	}
 
@@ -402,7 +402,7 @@ func TestHandler_HandleBABEOnDisabled(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func createHeaderWithPreDigest(slotNumber uint64) *types.HeaderVdt {
+func createHeaderWithPreDigest(slotNumber uint64) *types.Header {
 	babeHeader := types.NewBabePrimaryPreDigest(0, slotNumber, [32]byte{}, [64]byte{})
 
 	enc := babeHeader.Encode()
@@ -412,7 +412,7 @@ func createHeaderWithPreDigest(slotNumber uint64) *types.HeaderVdt {
 	digest := types.NewDigestVdt()
 	digest.Add(*d)
 
-	return &types.HeaderVdt{
+	return &types.Header{
 		Digest: digest,
 	}
 }

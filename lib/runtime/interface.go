@@ -42,10 +42,10 @@ type Instance interface {
 	BabeConfiguration() (*types.BabeConfiguration, error)
 	GrandpaAuthorities() ([]types.Authority, error)
 	ValidateTransaction(e types.Extrinsic) (*transaction.Validity, error)
-	InitializeBlock(header *types.HeaderVdt) error
+	InitializeBlock(header *types.Header) error
 	InherentExtrinsics(data []byte) ([]byte, error)
 	ApplyExtrinsic(data types.Extrinsic) ([]byte, error)
-	FinalizeBlock() (*types.HeaderVdt, error)
+	FinalizeBlock() (*types.Header, error)
 	ExecuteBlock(block *types.Block) ([]byte, error)
 	DecodeSessionKeys(enc []byte) ([]byte, error)
 

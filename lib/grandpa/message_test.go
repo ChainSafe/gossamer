@@ -84,13 +84,13 @@ func TestCommitMessageToConsensusMessage(t *testing.T) {
 	err := st.Grandpa.SetPrecommits(77, gs.state.setID, just)
 	require.NoError(t, err)
 
-	fm, err := gs.newCommitMessageVdt(gs.head, 77)
+	fm, err := gs.newCommitMessage(gs.head, 77)
 	require.NoError(t, err)
 	precommits, authData := justificationToCompact(just)
 
 	expected := &CommitMessage{
 		Round:      77,
-		Vote:       NewVoteFromHeaderVdt(gs.head),
+		Vote:       NewVoteFromHeader(gs.head),
 		Precommits: precommits,
 		AuthData:   authData,
 	}
@@ -104,20 +104,10 @@ func TestNewCatchUpResponse(t *testing.T) {
 	round := uint64(1)
 	setID := uint64(1)
 
-	//block := &types.Block{
-	//	Header: &types.Header{
-	//		ParentHash: testGenesisHeader.Hash(),
-	//		Number:     big.NewInt(1),
-	//		Digest: types.Digest{
-	//			types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
-	//		},
-	//	},
-	//	Body: &types.Body{},
-	//}
 	digest := types.NewDigestVdt()
 	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	block := &types.Block{
-		Header: types.HeaderVdt{
+		Header: types.Header{
 			ParentHash: testGenesisHeaderVdt.Hash(),
 			Number:     big.NewInt(1),
 			Digest:     digest,
@@ -136,7 +126,7 @@ func TestNewCatchUpResponse(t *testing.T) {
 
 	err = gs.blockState.SetFinalisedHash(hash, round, setID)
 	require.NoError(t, err)
-	err = gs.blockState.(*state.BlockState).SetHeader(testHeaderVdt)
+	err = gs.blockState.(*state.BlockState).SetHeader(testHeader)
 	require.NoError(t, err)
 
 	pvj := []*SignedVote{

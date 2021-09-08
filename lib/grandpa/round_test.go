@@ -352,7 +352,7 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 	done := false
 
 	// this represents the chains that will be slightly ahead of the others
-	headers := []*types.HeaderVdt{}
+	headers := []*types.Header{}
 	diff := 8
 
 	for i := range gss {

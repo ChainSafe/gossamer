@@ -75,7 +75,7 @@ func NewVerificationManager(blockState BlockState, epochState EpochState) (*Veri
 }
 
 // SetOnDisabled sets the BABE authority with the given index as disabled for the rest of the epoch
-func (v *VerificationManager) SetOnDisabledVdt(index uint32, header *types.HeaderVdt) error {
+func (v *VerificationManager) SetOnDisabledVdt(index uint32, header *types.Header) error {
 	epoch, err := v.epochState.GetEpochForBlock(header)
 	if err != nil {
 		return err
@@ -141,7 +141,7 @@ func (v *VerificationManager) SetOnDisabledVdt(index uint32, header *types.Heade
 
 // VerifyBlock verifies that the block producer for the given block was authorized to produce it.
 // It returns an error if the block is invalid.
-func (v *VerificationManager) VerifyBlock(header *types.HeaderVdt) error {
+func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 	var (
 		info *verifierInfo
 		has  bool
@@ -271,7 +271,7 @@ func newVerifier(blockState BlockState, epoch uint64, info *verifierInfo) (*veri
 }
 
 // verifyAuthorshipRight verifies that the authority that produced a block was authorized to produce it.
-func (b *verifier) verifyAuthorshipRightVdt(header *types.HeaderVdt) error {
+func (b *verifier) verifyAuthorshipRightVdt(header *types.Header) error {
 	// header should have 2 digest items (possibly more in the future)
 	// first item should be pre-digest, second should be seal
 	if len(header.Digest.Types) < 2 {
@@ -459,7 +459,7 @@ func (b *verifier) verifyPrimarySlotWinner(authorityIndex uint32, slot uint64, v
 	return pk.VrfVerify(t, vrfOutput, vrfProof)
 }
 
-func getAuthorityIndexVdt(header *types.HeaderVdt) (uint32, error) {
+func getAuthorityIndexVdt(header *types.Header) (uint32, error) {
 	if len(header.Digest.Types) == 0 {
 		return 0, fmt.Errorf("no digest provided")
 	}

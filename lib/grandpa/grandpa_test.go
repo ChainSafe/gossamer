@@ -45,7 +45,7 @@ import (
 )
 
 // testGenesisHeader is a test block header
-var testGenesisHeaderVdt = &types.HeaderVdt{
+var testGenesisHeaderVdt = &types.Header{
 	Number:    big.NewInt(0),
 	StateRoot: trie.EmptyHash,
 	Digest:    types.NewDigestVdt(),
@@ -71,7 +71,7 @@ func newTestState(t *testing.T) *state.Service {
 
 	t.Cleanup(func() { db.Close() })
 
-	gen, genTrie, _ := genesis.NewTestGenesisWithTrieAndHeaderVdt(t)
+	gen, genTrie, _ := genesis.NewTestGenesisWithTrieAndHeader(t)
 	block, err := state.NewBlockStateFromGenesis(db, testGenesisHeaderVdt)
 	require.NoError(t, err)
 
@@ -1072,7 +1072,7 @@ func TestDeterminePreVote_WithPrimaryPreVote(t *testing.T) {
 	derivePrimary := gs.derivePrimary()
 	primary := derivePrimary.PublicKeyBytes()
 	gs.prevotes.Store(primary, &SignedVote{
-		Vote: NewVoteFromHeaderVdt(header),
+		Vote: NewVoteFromHeader(header),
 	})
 
 	pv, err := gs.determinePreVote()
@@ -1092,7 +1092,7 @@ func TestDeterminePreVote_WithInvalidPrimaryPreVote(t *testing.T) {
 	derivePrimary := gs.derivePrimary()
 	primary := derivePrimary.PublicKeyBytes()
 	gs.prevotes.Store(primary, &SignedVote{
-		Vote: NewVoteFromHeaderVdt(header),
+		Vote: NewVoteFromHeader(header),
 	})
 
 	state.AddBlocksToState(t, st.Block, 5)

@@ -59,7 +59,7 @@ func TestHandleNetworkMessage(t *testing.T) {
 	err := st.Grandpa.SetPrecommits(77, gs.state.setID, just)
 	require.NoError(t, err)
 
-	fm, err := gs.newCommitMessageVdt(gs.head, 77)
+	fm, err := gs.newCommitMessage(gs.head, 77)
 	require.NoError(t, err)
 
 	cm, err := fm.ToConsensusMessage()
@@ -90,20 +90,10 @@ func TestSendNeighbourMessage(t *testing.T) {
 	}()
 	go gs.sendNeighbourMessage()
 
-	//block := &types.Block{
-	//	Header: &types.Header{
-	//		ParentHash: st.Block.GenesisHash(),
-	//		Number:     big.NewInt(1),
-	//		Digest: types.Digest{
-	//			types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
-	//		},
-	//	},
-	//	Body: &types.Body{},
-	//}
 	digest := types.NewDigestVdt()
 	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	block := &types.Block{
-		Header: types.HeaderVdt{
+		Header: types.Header{
 			ParentHash: st.Block.GenesisHash(),
 			Number:     big.NewInt(1),
 			Digest:     digest,

@@ -25,7 +25,7 @@ import (
 
 // BlockState interface for block state methods
 type BlockState interface {
-	BestBlockHeader() (*types.HeaderVdt, error)
+	BestBlockHeader() (*types.Header, error)
 	RegisterImportedChannel(ch chan<- *types.Block) (byte, error)
 	UnregisterImportedChannel(id byte)
 	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
@@ -34,7 +34,7 @@ type BlockState interface {
 
 // EpochState is the interface for state.EpochState
 type EpochState interface {
-	GetEpochForBlock(header *types.HeaderVdt) (uint64, error)
+	GetEpochForBlock(header *types.Header) (uint64, error)
 	SetEpochData(epoch uint64, info *types.EpochData) error
 	SetConfigData(epoch uint64, info *types.ConfigData) error
 }

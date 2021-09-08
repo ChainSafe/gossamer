@@ -252,7 +252,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.Equal(t, `{"jsonrpc":"2.0","result":9,"id":0}`+"\n", string(msg))
 
 	listener.Listen()
-	header := &types.HeaderVdt{
+	header := &types.Header{
 		ParentHash: common.Hash{},
 		Number:     big.NewInt(1),
 	}
@@ -350,7 +350,7 @@ func TestSubscribeAllHeads(t *testing.T) {
 	digest := types.NewDigestVdt()
 	digest.Add(*types.NewBABEPreRuntimeDigest([]byte{0xff}))
 	fCh <- &types.FinalisationInfo{
-		Header: types.HeaderVdt{
+		Header: types.Header{
 			ParentHash:     common.EmptyHash,
 			Number:         big.NewInt(0),
 			StateRoot:      common.EmptyHash,
@@ -368,7 +368,7 @@ func TestSubscribeAllHeads(t *testing.T) {
 	digest.Add(*types.NewBABEPreRuntimeDigest([]byte{0xff}))
 
 	iCh <- &types.Block{
-		Header: types.HeaderVdt{
+		Header: types.Header{
 			ParentHash:     common.EmptyHash,
 			Number:         big.NewInt(0),
 			StateRoot:      common.EmptyHash,

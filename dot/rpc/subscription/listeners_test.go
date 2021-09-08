@@ -126,7 +126,7 @@ func TestBlockListener_Listen(t *testing.T) {
 	_, msg, err := ws.ReadMessage()
 	require.NoError(t, err)
 
-	head, err := modules.HeaderToJSONVdt(block.Header)
+	head, err := modules.HeaderToJSON(block.Header)
 	require.NoError(t, err)
 
 	expectedResposnse := newSubcriptionBaseResponseJSON()
@@ -174,7 +174,7 @@ func TestBlockFinalizedListener_Listen(t *testing.T) {
 	_, msg, err := ws.ReadMessage()
 	require.NoError(t, err)
 
-	head, err := modules.HeaderToJSONVdt(*header)
+	head, err := modules.HeaderToJSON(*header)
 	if err != nil {
 		logger.Error("failed to convert header to JSON", "error", err)
 	}

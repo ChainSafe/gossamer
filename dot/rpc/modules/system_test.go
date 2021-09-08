@@ -304,10 +304,10 @@ func setupSystemModule(t *testing.T) *SystemModule {
 	require.NoError(t, err)
 	ts.Set(aliceAcctStoKey, aliceAcctEncoded)
 
-	err = chain.Storage.StoreTrieVdt(ts, nil)
+	err = chain.Storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
 	err = chain.Block.AddBlock(&types.Block{
-		Header: types.HeaderVdt{
+		Header: types.Header{
 			Number:     big.NewInt(1),
 			ParentHash: chain.Block.BestBlockHash(),
 			StateRoot:  ts.MustRoot(),
@@ -359,7 +359,7 @@ func newCoreService(t *testing.T, srvc *state.Service) *core.Service {
 
 func TestSyncState(t *testing.T) {
 	fakeCommonHash := common.NewHash([]byte("fake"))
-	fakeHeader := &types.HeaderVdt{
+	fakeHeader := &types.Header{
 		Number: big.NewInt(int64(49)),
 	}
 

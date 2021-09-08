@@ -121,7 +121,7 @@ func TestInstance_GrandpaAuthorities_NodeRuntime(t *testing.T) {
 }
 
 func buildBlockVdt(t *testing.T, instance runtime.Instance) *types.Block {
-	header := &types.HeaderVdt{
+	header := &types.Header{
 		ParentHash: trie.EmptyHash,
 		Number:     big.NewInt(1),
 		Digest:     types.NewDigestVdt(),
@@ -170,13 +170,12 @@ func buildBlockVdt(t *testing.T, instance runtime.Instance) *types.Block {
 	babeDigest := types.NewBabePrimaryPreDigest(0, 1, [32]byte{}, [64]byte{})
 	data := babeDigest.Encode()
 	preDigest := types.NewBABEPreRuntimeDigest(data)
-	//res.Digest = types.Digest{preDigest}
 
 	digest := types.NewDigestVdt()
 	digest.Add(*preDigest)
 	res.Digest = digest
 
-	expected := &types.HeaderVdt{
+	expected := &types.Header{
 		ParentHash: header.ParentHash,
 		Number:     big.NewInt(1),
 		Digest:     digest,
@@ -251,7 +250,7 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1(t *testing.T) {
 
 	// kusama block 1, from polkadot.js
 	block := &types.Block{
-		Header: types.HeaderVdt{
+		Header: types.Header{
 			ParentHash:     common.MustHexToHash("0xb0a8d493285c2df73290dfb7e61f870f17b41801197a149ca93654499ea3dafe"),
 			Number:         big.NewInt(1),
 			StateRoot:      common.MustHexToHash("0xfabb0c6e92d29e8bb2167f3c6fb0ddeb956a4278a3cf853661af74a076fc9cb7"),
@@ -300,7 +299,7 @@ func TestInstance_ExecuteBlock_PolkadotRuntime_PolkadotBlock1(t *testing.T) {
 
 	// polkadot block 1, from polkadot.js
 	block := &types.Block{
-		Header: types.HeaderVdt{
+		Header: types.Header{
 			ParentHash:     common.MustHexToHash("0x91b171bb158e2d3848fa23a9f1c25182fb8e20313b2c1eb49219da7a70ce90c3"),
 			Number:         big.NewInt(1),
 			StateRoot:      common.MustHexToHash("0xc56fcd6e7a757926ace3e1ecff9b4010fc78b90d459202a339266a7f6360002f"),

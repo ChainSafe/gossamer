@@ -26,7 +26,7 @@ import (
 )
 
 // Header is a state block header
-type HeaderVdt struct {
+type Header struct {
 	ParentHash     common.Hash                `json:"parentHash"`
 	Number         *big.Int                   `json:"number"`
 	StateRoot      common.Hash                `json:"stateRoot"`
@@ -36,13 +36,13 @@ type HeaderVdt struct {
 }
 
 // NewHeader creates a new block header and sets its hash field
-func NewHeader(parentHash, stateRoot, extrinsicsRoot common.Hash, number *big.Int, digest scale.VaryingDataTypeSlice) (*HeaderVdt, error) {
+func NewHeader(parentHash, stateRoot, extrinsicsRoot common.Hash, number *big.Int, digest scale.VaryingDataTypeSlice) (*Header, error) {
 	if number == nil {
 		// Hash() will panic if number is nil
 		return nil, errors.New("cannot have nil block number")
 	}
 
-	bh := &HeaderVdt{
+	bh := &Header{
 		ParentHash:     parentHash,
 		Number:         number,
 		StateRoot:      stateRoot,
@@ -55,21 +55,21 @@ func NewHeader(parentHash, stateRoot, extrinsicsRoot common.Hash, number *big.In
 }
 
 // NewEmptyHeader returns a new header with all zero values
-func NewEmptyHeader() *HeaderVdt {
-	return &HeaderVdt{
+func NewEmptyHeader() *Header {
+	return &Header{
 		Number: big.NewInt(0),
 		Digest: NewDigestVdt(),
 	}
 }
 
 // Exists returns a boolean indicating if the header exists
-func (bh *HeaderVdt) Exists() bool {
+func (bh *Header) Exists() bool {
 	exists := bh != nil
 	return exists
 }
 
 // DeepCopy returns a deep copy of the header to prevent side effects down the road
-func (bh *HeaderVdt) DeepCopy() *HeaderVdt {
+func (bh *Header) DeepCopy() *Header {
 	cp := NewEmptyHeader()
 	copy(cp.ParentHash[:], bh.ParentHash[:])
 	copy(cp.StateRoot[:], bh.StateRoot[:])
@@ -90,7 +90,7 @@ func (bh *HeaderVdt) DeepCopy() *HeaderVdt {
 }
 
 // String returns the formatted header as a string
-func (bh *HeaderVdt) String() string {
+func (bh *Header) String() string {
 	return fmt.Sprintf("ParentHash=%s Number=%d StateRoot=%s ExtrinsicsRoot=%s Digest=%v Hash=%s",
 		bh.ParentHash, bh.Number, bh.StateRoot, bh.ExtrinsicsRoot, bh.Digest, bh.Hash())
 }
@@ -98,7 +98,7 @@ func (bh *HeaderVdt) String() string {
 // Hash returns the hash of the block header
 // If the internal hash field is nil, it hashes the block and sets the hash field.
 // If hashing the header errors, this will panic.
-func (bh *HeaderVdt) Hash() common.Hash {
+func (bh *Header) Hash() common.Hash {
 	if bh.hash == [32]byte{} {
 		enc, err := scale.Marshal(*bh)
 		if err != nil {

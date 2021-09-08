@@ -32,19 +32,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func newTestDigest() scale2.VaryingDataTypeSlice {
-	digest := types.NewDigestVdt()
-	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
-	return digest
-}
-
-var testHeaderVdt = &types.HeaderVdt{
+var testHeader = &types.Header{
 	ParentHash: testGenesisHeaderVdt.Hash(),
 	Number:     big.NewInt(1),
 	Digest:     newTestDigest(),
 }
 
-var testHash = testHeaderVdt.Hash()
+var testHash = testHeader.Hash()
+
+func newTestDigest() scale2.VaryingDataTypeSlice {
+	digest := types.NewDigestVdt()
+	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	return digest
+}
 
 func buildTestJustification(t *testing.T, qty int, round, setID uint64, kr *keystore.Ed25519Keyring, subround subround) []*SignedVote {
 	var just []*SignedVote
@@ -201,20 +201,10 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 	_, err := h.handleMessage("", msg)
 	require.NoError(t, err)
 
-	//block := &types.Block{
-	//	Header: &types.Header{
-	//		Number:     big.NewInt(2),
-	//		ParentHash: st.Block.GenesisHash(),
-	//		Digest: types.Digest{
-	//			types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
-	//		},
-	//	},
-	//	Body: &types.Body{0},
-	//}
 	digest := types.NewDigestVdt()
 	digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	block := &types.Block{
-		Header: types.HeaderVdt{
+		Header: types.Header{
 			Number:     big.NewInt(2),
 			ParentHash: st.Block.GenesisHash(),
 			Digest:     digest,
@@ -261,24 +251,14 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	err := st.Grandpa.SetPrecommits(round, gs.state.setID, just)
 	require.NoError(t, err)
 
-	fm, err := gs.newCommitMessageVdt(gs.head, round)
+	fm, err := gs.newCommitMessage(gs.head, round)
 	require.NoError(t, err)
 	fm.Vote = NewVote(testHash, uint32(round))
 
-	//block := &types.Block{
-	//	Header: &types.Header{
-	//		ParentHash: testGenesisHeader.Hash(),
-	//		Number:     big.NewInt(1),
-	//		Digest: types.Digest{
-	//			types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
-	//		},
-	//	},
-	//	Body: &types.Body{},
-	//}
 	digest := types.NewDigestVdt()
 	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	block := &types.Block{
-		Header: types.HeaderVdt{
+		Header: types.Header{
 			ParentHash: testGenesisHeaderVdt.Hash(),
 			Number:     big.NewInt(1),
 			Digest:     digest,
@@ -309,7 +289,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T
 	err := st.Grandpa.SetPrecommits(round, gs.state.setID, just)
 	require.NoError(t, err)
 
-	fm, err := gs.newCommitMessageVdt(testGenesisHeaderVdt, round)
+	fm, err := gs.newCommitMessage(testGenesisHeaderVdt, round)
 	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block)
@@ -331,7 +311,7 @@ func TestMessageHandler_CommitMessage_WithCatchUpRequest(t *testing.T) {
 	err := st.Grandpa.SetPrecommits(77, gs.state.setID, just)
 	require.NoError(t, err)
 
-	fm, err := gs.newCommitMessageVdt(gs.head, 77)
+	fm, err := gs.newCommitMessage(gs.head, 77)
 	require.NoError(t, err)
 
 	gs.state.voters = gs.state.voters[:1]
@@ -367,20 +347,10 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	setID := uint64(0)
 	gs.state.round = round + 1
 
-	//block := &types.Block{
-	//	Header: &types.Header{
-	//		ParentHash: testGenesisHeader.Hash(),
-	//		Number:     big.NewInt(2),
-	//		Digest: types.Digest{
-	//			types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
-	//		},
-	//	},
-	//	Body: &types.Body{},
-	//}
 	digest := types.NewDigestVdt()
 	digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	block := &types.Block{
-		Header: types.HeaderVdt{
+		Header: types.Header{
 			ParentHash: testGenesisHeaderVdt.Hash(),
 			Number:     big.NewInt(2),
 			Digest:     digest,
@@ -518,7 +488,7 @@ func TestMessageHandler_VerifyPreCommitJustification(t *testing.T) {
 func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
 	gs, st := newTestService(t)
 
-	err := st.Block.SetHeader(testHeaderVdt)
+	err := st.Block.SetHeader(testHeader)
 	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block)
@@ -560,12 +530,8 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 	err := st.Grandpa.SetNextChange(auths, big.NewInt(1))
 	require.NoError(t, err)
 
-	//block := &types.Block{
-	//	Header: testHeader,
-	//	Body:   &types.Body{0},
-	//}
 	block := &types.Block{
-		Header: *testHeaderVdt,
+		Header: *testHeader,
 		Body:   types.Body{0},
 	}
 

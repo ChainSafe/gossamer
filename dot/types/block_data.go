@@ -27,7 +27,7 @@ import (
 // BlockData is stored within the BlockDB
 type BlockDataVdt struct {
 	Hash          common.Hash
-	Header        *HeaderVdt
+	Header        *Header
 	Body          *Body
 	Receipt       *[]byte
 	MessageQueue  *[]byte

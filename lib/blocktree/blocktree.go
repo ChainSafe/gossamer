@@ -55,7 +55,7 @@ func NewEmptyBlockTree(db database.Database) *BlockTree {
 
 // NewBlockTreeFromRoot initialises a blocktree with a root block. The root block is always the most recently
 // finalised block (ie the genesis block if the node is just starting.)
-func NewBlockTreeFromRootVdt(root *types.HeaderVdt, db database.Database) *BlockTree {
+func NewBlockTreeFromRoot(root *types.Header, db database.Database) *BlockTree {
 	head := &node{
 		hash:        root.Hash(),
 		parent:      nil,
@@ -82,7 +82,7 @@ func (bt *BlockTree) GenesisHash() Hash {
 
 // AddBlock inserts the block as child of its parent node
 // Note: Assumes block has no children
-func (bt *BlockTree) AddBlockVdt(header *types.HeaderVdt, arrivalTime uint64) error {
+func (bt *BlockTree) AddBlock(header *types.Header, arrivalTime uint64) error {
 	bt.Lock()
 	defer bt.Unlock()
 

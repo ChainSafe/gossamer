@@ -82,7 +82,7 @@ func TestNewHeaderFromFile(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 2, len(digest.Types))
 
-	expected := &types.HeaderVdt{
+	expected := &types.Header{
 		ParentHash:     common.MustHexToHash("0x3b45c9c22dcece75a30acc9c2968cb311e6b0557350f83b430f47559db786975"),
 		Number:         big.NewInt(1482002),
 		StateRoot:      common.MustHexToHash("0x09f9ca28df0560c2291aa16b56e15e07d1e1927088f51356d522722aa90ca7cb"),

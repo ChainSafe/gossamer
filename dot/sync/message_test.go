@@ -21,7 +21,7 @@ func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 
 	for i := 1; i <= depth; i++ {
 		block := &types.Block{
-			Header: types.HeaderVdt{
+			Header: types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
 				StateRoot:  trie.EmptyHash,

@@ -158,7 +158,7 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 				return nil, err
 			}
 
-			cm, err := s.newCommitMessageVdt(header, m.Round)
+			cm, err := s.newCommitMessage(header, m.Round)
 			if err != nil {
 				return nil, err
 			}

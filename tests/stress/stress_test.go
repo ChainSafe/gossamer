@@ -173,7 +173,7 @@ func TestSync_MultipleEpoch(t *testing.T) {
 	time.Sleep(time.Duration(uint64(slotDuration.Nanoseconds()) * epochLength))
 
 	// Just checking that everythings operating as expected
-	header := utils.GetChainHeadVdt(t, nodes[0])
+	header := utils.GetChainHead(t, nodes[0])
 	currentHeight := header.Number.Int64()
 	for i := int64(0); i < currentHeight; i++ {
 		t.Log("comparing...", i)
@@ -429,7 +429,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	extEnc, err := types.EncodeToHexString(ext)
 	require.NoError(t, err)
 
-	prevHeader := utils.GetChainHeadVdt(t, nodes[idx]) // get starting header so that we can lookup blocks by number later
+	prevHeader := utils.GetChainHead(t, nodes[idx]) // get starting header so that we can lookup blocks by number later
 
 	// Send the extrinsic
 	hash, err := api.RPC.Author.SubmitExtrinsic(ext)
@@ -448,7 +448,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 		time.Sleep(time.Second)
 	}
 
-	header := utils.GetChainHeadVdt(t, nodes[idx])
+	header := utils.GetChainHead(t, nodes[idx])
 
 	// search from child -> parent blocks for extrinsic
 	var (
@@ -457,7 +457,7 @@ func TestSync_SubmitExtrinsic(t *testing.T) {
 	)
 
 	for i := 0; i < maxRetries; i++ {
-		block := utils.GetBlockVdt(t, nodes[idx], header.ParentHash)
+		block := utils.GetBlock(t, nodes[idx], header.ParentHash)
 		if block == nil {
 			// couldn't get block, increment retry counter
 			continue

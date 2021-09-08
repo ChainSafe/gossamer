@@ -59,7 +59,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	testDatadirPath, err := ioutil.TempDir("/tmp", "test-datadir-*")
 	require.NoError(t, err)
 
-	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeaderVdt(t)
+	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 
 	if cfg.BlockState == nil || cfg.StorageState == nil || cfg.TransactionState == nil || cfg.EpochState == nil || cfg.CodeSubstitutedState == nil {
 		config := state.Config{

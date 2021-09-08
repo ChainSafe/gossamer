@@ -57,14 +57,14 @@ type testBranch struct {
 }
 
 // AddBlocksToState adds blocks to a BlockState up to depth, with random branches
-func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types.HeaderVdt, []*types.HeaderVdt) {
+func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types.Header, []*types.Header) {
 	previousHash := blockState.BestBlockHash()
 
 	branches := []testBranch{}
 
 	arrivalTime := time.Now()
-	currentChain := []*types.HeaderVdt{}
-	branchChains := []*types.HeaderVdt{}
+	currentChain := []*types.Header{}
+	branchChains := []*types.Header{}
 
 	head, err := blockState.BestBlockHeader()
 	require.NoError(t, err)
@@ -77,7 +77,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 		digest.Add(*d.ToPreRuntimeDigest())
 
 		block := &types.Block{
-			Header: types.HeaderVdt{
+			Header: types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)),
 				StateRoot:  trie.EmptyHash,
@@ -117,7 +117,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 			})
 
 			block := &types.Block{
-				Header: types.HeaderVdt{
+				Header: types.Header{
 					ParentHash: previousHash,
 					Number:     big.NewInt(int64(i) + 1),
 					StateRoot:  trie.EmptyHash,
@@ -157,7 +157,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 	startNum := int(head.Number.Int64())
 	for i := startNum + 1; i <= depth; i++ {
 		block := &types.Block{
-			Header: types.HeaderVdt{
+			Header: types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)),
 				StateRoot:  trie.EmptyHash,
@@ -197,7 +197,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 			})
 
 			block := &types.Block{
-				Header: types.HeaderVdt{
+				Header: types.Header{
 					ParentHash: previousHash,
 					Number:     big.NewInt(int64(i)),
 					StateRoot:  trie.EmptyHash,
@@ -237,7 +237,7 @@ func generateBlockWithRandomTrieVdt(t *testing.T, serv *Service, parent *common.
 	}
 
 	block := &types.Block{
-		Header: types.HeaderVdt{
+		Header: types.Header{
 			ParentHash: *parent,
 			Number:     big.NewInt(bNum),
 			StateRoot:  trieStateRoot,

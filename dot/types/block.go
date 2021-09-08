@@ -22,12 +22,12 @@ import (
 
 // Block defines a state block
 type Block struct {
-	Header HeaderVdt
+	Header Header
 	Body   Body
 }
 
 // NewBlock returns a new Block
-func NewBlock(header HeaderVdt, body Body) Block {
+func NewBlock(header Header, body Body) Block {
 	return Block{
 		Header: header,
 		Body:   body,

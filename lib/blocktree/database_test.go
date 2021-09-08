@@ -20,8 +20,8 @@ type testBranch struct {
 	depth *big.Int
 }
 
-func createTestBlockTree(header *types.HeaderVdt, depth int, db chaindb.Database) (*BlockTree, []testBranch) {
-	bt := NewBlockTreeFromRootVdt(header, db)
+func createTestBlockTree(header *types.Header, depth int, db chaindb.Database) (*BlockTree, []testBranch) {
+	bt := NewBlockTreeFromRoot(header, db)
 	previousHash := header.Hash()
 
 	// branch tree randomly
@@ -30,14 +30,14 @@ func createTestBlockTree(header *types.HeaderVdt, depth int, db chaindb.Database
 
 	// create base tree
 	for i := 1; i <= depth; i++ {
-		header := &types.HeaderVdt{
+		header := &types.Header{
 			ParentHash: previousHash,
 			Number:     big.NewInt(int64(i)),
 			Digest:     types.NewDigestVdt(),
 		}
 
 		hash := header.Hash()
-		bt.AddBlockVdt(header, 0)
+		bt.AddBlock(header, 0)
 		previousHash = hash
 
 		isBranch := r.Intn(2)
@@ -59,14 +59,14 @@ func createTestBlockTree(header *types.HeaderVdt, depth int, db chaindb.Database
 				ConsensusEngineID: types.BabeEngineID,
 				Data:              common.MustHexToBytes("0x0118ca239392960473fe1bc65f94ee27d890a49c1b200c006ff5dcc525330ecc16770100000000000000b46f01874ce7abbb5220e8fd89bede0adad14c73039d91e28e881823433e723f0100000000000000d684d9176d6eb69887540c9a89fa6097adea82fc4b0ff26d1062b488f352e179010000000000000068195a71bdde49117a616424bdc60a1733e96acb1da5aeab5d268cf2a572e94101000000000000001a0575ef4ae24bdfd31f4cb5bd61239ae67c12d4e64ae51ac756044aa6ad8200010000000000000018168f2aad0081a25728961ee00627cfe35e39833c805016632bf7c14da5800901000000000000000000000000000000000000000000000000000000000000000000000000000000"),
 			})
-			header := &types.HeaderVdt{
+			header := &types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)),
 				Digest:     digest,
 			}
 
 			hash := header.Hash()
-			bt.AddBlockVdt(header, 0)
+			bt.AddBlock(header, 0)
 			previousHash = hash
 		}
 	}
@@ -81,7 +81,7 @@ func TestStoreBlockTree(t *testing.T) {
 	err := bt.Store()
 	require.NoError(t, err)
 
-	resBt := NewBlockTreeFromRootVdt(testHeader, db)
+	resBt := NewBlockTreeFromRoot(testHeader, db)
 	err = resBt.Load()
 	require.NoError(t, err)
 

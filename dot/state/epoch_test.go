@@ -155,7 +155,7 @@ func TestEpochState_GetEpochForBlock(t *testing.T) {
 	digest := types.NewDigestVdt()
 	digest.Add(*d)
 
-	header := &types.HeaderVdt{
+	header := &types.Header{
 		Digest: digest,
 	}
 
@@ -169,7 +169,7 @@ func TestEpochState_GetEpochForBlock(t *testing.T) {
 	digest2 := types.NewDigestVdt()
 	digest2.Add(*d)
 
-	header = &types.HeaderVdt{
+	header = &types.Header{
 		Digest: digest2,
 	}
 

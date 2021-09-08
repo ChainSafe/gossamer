@@ -50,7 +50,7 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 	h, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
 
-	vote := NewVoteFromHeaderVdt(h)
+	vote := NewVoteFromHeader(h)
 	require.NoError(t, err)
 
 	for _, v := range voters {
@@ -126,7 +126,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
 
-	var branches []*types.HeaderVdt
+	var branches []*types.Header
 	for {
 		_, branches = state.AddBlocksToState(t, st.Block, 8)
 		if len(branches) > 1 {
@@ -137,7 +137,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	h, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
 
-	vote := NewVoteFromHeaderVdt(h)
+	vote := NewVoteFromHeader(h)
 	require.NoError(t, err)
 
 	voter := voters[0]
@@ -146,7 +146,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 		Vote: vote,
 	})
 
-	vote2 := NewVoteFromHeaderVdt(branches[0])
+	vote2 := NewVoteFromHeader(branches[0])
 	require.NoError(t, err)
 
 	equivocated := gs.checkForEquivocation(&voter, &SignedVote{
@@ -157,7 +157,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 	require.Equal(t, 0, gs.lenVotes(prevote))
 	require.Equal(t, 1, len(gs.pvEquivocations))
 
-	vote3 := NewVoteFromHeaderVdt(branches[1])
+	vote3 := NewVoteFromHeader(branches[1])
 	require.NoError(t, err)
 
 	equivocated = gs.checkForEquivocation(&voter, &SignedVote{
@@ -194,7 +194,7 @@ func TestValidateMessage_Valid(t *testing.T) {
 	require.NoError(t, err)
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeaderVdt(h), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(h), prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
@@ -227,7 +227,7 @@ func TestValidateMessage_InvalidSignature(t *testing.T) {
 	require.NoError(t, err)
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeaderVdt(h), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(h), prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
@@ -260,7 +260,7 @@ func TestValidateMessage_SetIDMismatch(t *testing.T) {
 	require.NoError(t, err)
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeaderVdt(h), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(h), prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
@@ -289,7 +289,7 @@ func TestValidateMessage_Equivocation(t *testing.T) {
 	gs, err := NewService(cfg)
 	require.NoError(t, err)
 
-	var branches []*types.HeaderVdt
+	var branches []*types.Header
 	for {
 		_, branches = state.AddBlocksToState(t, st.Block, 8)
 		if len(branches) != 0 {
@@ -340,12 +340,12 @@ func TestValidateMessage_BlockDoesNotExist(t *testing.T) {
 	gs.tracker, err = newTracker(st.Block, gs.messageHandler)
 	require.NoError(t, err)
 
-	fake := &types.HeaderVdt{
+	fake := &types.Header{
 		Number: big.NewInt(77),
 	}
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeaderVdt(fake), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(fake), prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
@@ -374,7 +374,7 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 	gs.tracker, err = newTracker(gs.blockState, gs.messageHandler)
 	require.NoError(t, err)
 
-	var branches []*types.HeaderVdt
+	var branches []*types.Header
 	for {
 		_, branches = state.AddBlocksToState(t, st.Block, 8)
 		if len(branches) != 0 {
@@ -387,7 +387,7 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 	gs.head = h
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeaderVdt(branches[0]), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(branches[0]), prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 

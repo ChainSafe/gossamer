@@ -24,14 +24,7 @@ func NewMockBlockState(n *big.Int) *mockBlockState {
 	if n == nil {
 		n = big.NewInt(1)
 	}
-	//header := &types.Header{
-	//	ParentHash:     parentHash,
-	//	Number:         n,
-	//	StateRoot:      stateRoot,
-	//	ExtrinsicsRoot: extrinsicsRoot,
-	//	Digest:         types.Digest{},
-	//}
-	header := &types.HeaderVdt{
+	header := &types.Header{
 		ParentHash:     parentHash,
 		Number:         n,
 		StateRoot:      stateRoot,
@@ -76,7 +69,7 @@ func testBlockResponseMessage() *BlockResponseMessage {
 	}
 
 	for i := 0; i < int(blockRequestSize); i++ {
-		testHeader := &types.HeaderVdt{
+		testHeader := &types.Header{
 			Number: big.NewInt(int64(77 + i)),
 			Digest: types.NewEmptyDigestVdt(),
 		}

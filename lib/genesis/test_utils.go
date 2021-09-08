@@ -118,7 +118,7 @@ func CreateTestGenesisJSONFile(asRaw bool) (string, error) {
 }
 
 // NewTestGenesisWithTrieAndHeader generates genesis, genesis trie and genesis header
-func NewTestGenesisWithTrieAndHeaderVdt(t *testing.T) (*Genesis, *trie.Trie, *types.HeaderVdt) {
+func NewTestGenesisWithTrieAndHeader(t *testing.T) (*Genesis, *trie.Trie, *types.Header) {
 	gen, err := NewGenesisFromJSONRaw("../../chain/gssmr/genesis.json")
 	if err != nil {
 		gen, err = NewGenesisFromJSONRaw("../../../chain/gssmr/genesis.json")

@@ -87,7 +87,7 @@ func NewTrieFromGenesis(g *Genesis) (*trie.Trie, error) {
 }
 
 // NewGenesisBlockFromTrie creates a genesis block from the provided trie
-func NewGenesisBlockFromTrie(t *trie.Trie) (*types.HeaderVdt, error) {
+func NewGenesisBlockFromTrie(t *trie.Trie) (*types.Header, error) {
 
 	// create state root from trie hash
 	stateRoot, err := t.Hash()

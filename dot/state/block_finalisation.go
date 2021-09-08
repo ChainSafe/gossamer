@@ -48,7 +48,7 @@ func (bs *BlockState) NumberIsFinalised(num *big.Int) (bool, error) {
 }
 
 // GetFinalisedHeader returns the finalised block header by round and setID
-func (bs *BlockState) GetFinalisedHeader(round, setID uint64) (*types.HeaderVdt, error) {
+func (bs *BlockState) GetFinalisedHeader(round, setID uint64) (*types.Header, error) {
 	bs.Lock()
 	defer bs.Unlock()
 
@@ -112,7 +112,7 @@ func (bs *BlockState) GetHighestFinalisedHash() (common.Hash, error) {
 }
 
 // GetHighestFinalisedHeader returns the highest finalised block header
-func (bs *BlockState) GetHighestFinalisedHeader() (*types.HeaderVdt, error) {
+func (bs *BlockState) GetHighestFinalisedHeader() (*types.Header, error) {
 	h, err := bs.GetHighestFinalisedHash()
 	if err != nil {
 		return nil, err
@@ -164,7 +164,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 		}
 
 		logger.Trace("pruned block", "hash", hash, "number", header.Number)
-		go func(header *types.HeaderVdt) {
+		go func(header *types.Header) {
 			bs.pruneKeyCh <- header
 		}(header)
 	}

@@ -139,17 +139,17 @@ func TestSortRequests_RemoveDuplicates(t *testing.T) {
 }
 
 func TestSortResponses(t *testing.T) {
-	testHeader0 := &types.HeaderVdt{
+	testHeader0 := &types.Header{
 		Number: big.NewInt(77),
 		Digest: types.NewEmptyDigestVdt(),
 	}
 
-	testHeader1 := &types.HeaderVdt{
+	testHeader1 := &types.Header{
 		Number: big.NewInt(78),
 		Digest: types.NewEmptyDigestVdt(),
 	}
 
-	testHeader2 := &types.HeaderVdt{
+	testHeader2 := &types.Header{
 		Number: big.NewInt(79),
 		Digest: types.NewEmptyDigestVdt(),
 	}
@@ -189,17 +189,17 @@ func TestSortResponses(t *testing.T) {
 }
 
 func TestSortResponses_RemoveDuplicated(t *testing.T) {
-	testHeader0 := &types.HeaderVdt{
+	testHeader0 := &types.Header{
 		Number: big.NewInt(77),
 		Digest: types.NewEmptyDigestVdt(),
 	}
 
-	testHeader1 := &types.HeaderVdt{
+	testHeader1 := &types.Header{
 		Number: big.NewInt(78),
 		Digest: types.NewEmptyDigestVdt(),
 	}
 
-	testHeader2 := &types.HeaderVdt{
+	testHeader2 := &types.Header{
 		Number: big.NewInt(79),
 		Digest: types.NewEmptyDigestVdt(),
 	}
@@ -271,7 +271,7 @@ func TestSyncQueue_HandleBlockAnnounce(t *testing.T) {
 	require.Equal(t, testBlockAnnounceMessage.Number.Int64(), q.goal)
 	require.Equal(t, 1, len(q.requestCh))
 
-	header := &types.HeaderVdt{
+	header := &types.Header{
 		Number: testBlockAnnounceMessage.Number,
 	}
 	expected := createBlockRequestWithHash(header.Hash(), blockRequestSize)
@@ -366,7 +366,7 @@ func TestSyncQueue_handleResponseQueue_responseQueueAhead(t *testing.T) {
 	q.goal = int64(blockRequestSize) * 10
 	q.ctx = context.Background()
 
-	testHeader0 := &types.HeaderVdt{
+	testHeader0 := &types.Header{
 		Number: big.NewInt(77),
 		Digest: types.NewEmptyDigestVdt(),
 	}
@@ -392,7 +392,7 @@ func TestSyncQueue_processBlockResponses(t *testing.T) {
 	q.goal = int64(blockRequestSize) * 10
 	q.ctx = context.Background()
 
-	testHeader0 := &types.HeaderVdt{
+	testHeader0 := &types.Header{
 		Number: big.NewInt(0),
 		Digest: types.NewEmptyDigestVdt(),
 	}

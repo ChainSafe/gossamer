@@ -30,7 +30,7 @@ func TestStorage_StoreAndLoadTrie(t *testing.T) {
 
 	root, err := ts.Root()
 	require.NoError(t, err)
-	err = storage.StoreTrieVdt(ts, nil)
+	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
 
 	time.Sleep(time.Millisecond * 100)
@@ -54,19 +54,11 @@ func TestStorage_GetStorageByBlockHash(t *testing.T) {
 
 	root, err := ts.Root()
 	require.NoError(t, err)
-	err = storage.StoreTrieVdt(ts, nil)
+	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
 
-	//block := &types.Block{
-	//	Header: &types.Header{
-	//		ParentHash: testGenesisHeader.Hash(),
-	//		Number:     big.NewInt(1),
-	//		StateRoot:  root,
-	//	},
-	//	Body: types.NewBody([]byte{}),
-	//}
 	block := &types.Block{
-		Header: types.HeaderVdt{
+		Header: types.Header{
 			ParentHash: testGenesisHeader.Hash(),
 			Number:     big.NewInt(1),
 			StateRoot:  root,
@@ -89,7 +81,7 @@ func TestStorage_TrieState(t *testing.T) {
 
 	root, err := ts.Root()
 	require.NoError(t, err)
-	err = storage.StoreTrieVdt(ts, nil)
+	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
 
 	time.Sleep(time.Millisecond * 100)
@@ -123,7 +115,7 @@ func TestStorage_LoadFromDB(t *testing.T) {
 	require.NoError(t, err)
 
 	// Write trie to disk.
-	err = storage.StoreTrieVdt(ts, nil)
+	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
 
 	// Clear trie from cache and fetch data from disk.
@@ -165,7 +157,7 @@ func TestStorage_StoreTrie_Syncing(t *testing.T) {
 	ts.Set(key, value)
 
 	storage.SetSyncing(true)
-	err = storage.StoreTrieVdt(ts, nil)
+	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
 	require.Equal(t, 1, syncMapLen(storage.tries))
 }
@@ -180,7 +172,7 @@ func TestStorage_StoreTrie_NotSyncing(t *testing.T) {
 	ts.Set(key, value)
 
 	storage.SetSyncing(false)
-	err = storage.StoreTrieVdt(ts, nil)
+	err = storage.StoreTrie(ts, nil)
 	require.NoError(t, err)
 	require.Equal(t, 2, syncMapLen(storage.tries))
 }

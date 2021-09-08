@@ -211,7 +211,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockDataVdt) (int, error) {
 			continue
 		}
 
-		var header *types.HeaderVdt
+		var header *types.Header
 
 		if bd.Header != nil && !hasHeader {
 			//fmt.Println("Handling header")
@@ -272,7 +272,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockDataVdt) (int, error) {
 }
 
 // handleHeader handles headers included in BlockResponses
-func (s *Service) handleHeader(header *types.HeaderVdt) error {
+func (s *Service) handleHeader(header *types.Header) error {
 	// TODO: update BABE pre-runtime digest types
 	err := s.verifier.VerifyBlock(header)
 	if err != nil {
@@ -355,7 +355,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 	return nil
 }
 
-func (s *Service) handleJustificationVdt(header *types.HeaderVdt, justification []byte) {
+func (s *Service) handleJustificationVdt(header *types.Header, justification []byte) {
 	if len(justification) == 0 || header == nil {
 		return
 	}

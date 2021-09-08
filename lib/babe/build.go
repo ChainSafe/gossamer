@@ -37,7 +37,7 @@ const (
 	buildBlockErrors = "gossamer/proposer/block/constructed/errors"
 )
 
-func (b *Service) buildBlock(parent *types.HeaderVdt, slot Slot, rt runtime.Instance) (*types.Block, error) {
+func (b *Service) buildBlock(parent *types.Header, slot Slot, rt runtime.Instance) (*types.Block, error) {
 	builder, err := NewBlockBuilder(
 		b.keypair,
 		b.transactionState,
@@ -99,7 +99,7 @@ func NewBlockBuilder(kp *sr25519.Keypair, ts TransactionState, bs BlockState, sp
 	return bb, nil
 }
 
-func (b *BlockBuilder) buildBlock(parent *types.HeaderVdt, slot Slot, rt runtime.Instance) (*types.Block, error) {
+func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.Instance) (*types.Block, error) {
 	logger.Trace("build block", "parent", parent, "slot", slot)
 
 	// create pre-digest
@@ -176,7 +176,7 @@ func (b *BlockBuilder) buildBlock(parent *types.HeaderVdt, slot Slot, rt runtime
 
 // buildBlockSeal creates the seal for the block header.
 // the seal consists of the ConsensusEngineID and a signature of the encoded block header.
-func (b *BlockBuilder) buildBlockSeal(header *types.HeaderVdt) (*types.SealDigest, error) {
+func (b *BlockBuilder) buildBlockSeal(header *types.Header) (*types.SealDigest, error) {
 	//encHeader, err := header.Encode()
 	encHeader, err := scale.Marshal(*header)
 	if err != nil {

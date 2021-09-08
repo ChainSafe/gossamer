@@ -83,7 +83,7 @@ func newTrieFromPairs(filename string) (*trie.Trie, error) {
 	return tr, nil
 }
 
-func newHeaderFromFile(filename string) (*types.HeaderVdt, error) {
+func newHeaderFromFile(filename string) (*types.Header, error) {
 	data, err := ioutil.ReadFile(filepath.Clean(filename))
 	if err != nil {
 		return nil, err
@@ -148,7 +148,7 @@ func newHeaderFromFile(filename string) (*types.HeaderVdt, error) {
 		digest.Add(digestItem.Value())
 	}
 
-	header := &types.HeaderVdt{
+	header := &types.Header{
 		ParentHash:     parentHash,
 		Number:         num,
 		StateRoot:      stateRoot,

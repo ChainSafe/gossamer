@@ -75,15 +75,15 @@ func (_m *MockBlockState) BestBlockHash() common.Hash {
 }
 
 // BestBlockHeader provides a mock function with given fields:
-func (_m *MockBlockState) BestBlockHeader() (*types.HeaderVdt, error) {
+func (_m *MockBlockState) BestBlockHeader() (*types.Header, error) {
 	ret := _m.Called()
 
-	var r0 *types.HeaderVdt
-	if rf, ok := ret.Get(0).(func() *types.HeaderVdt); ok {
+	var r0 *types.Header
+	if rf, ok := ret.Get(0).(func() *types.Header); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.HeaderVdt)
+			r0 = ret.Get(0).(*types.Header)
 		}
 	}
 
@@ -245,15 +245,15 @@ func (_m *MockBlockState) GetFinalisedHash(_a0 uint64, _a1 uint64) (common.Hash,
 }
 
 // GetFinalisedHeader provides a mock function with given fields: _a0, _a1
-func (_m *MockBlockState) GetFinalisedHeader(_a0 uint64, _a1 uint64) (*types.HeaderVdt, error) {
+func (_m *MockBlockState) GetFinalisedHeader(_a0 uint64, _a1 uint64) (*types.Header, error) {
 	ret := _m.Called(_a0, _a1)
 
-	var r0 *types.HeaderVdt
-	if rf, ok := ret.Get(0).(func(uint64, uint64) *types.HeaderVdt); ok {
+	var r0 *types.Header
+	if rf, ok := ret.Get(0).(func(uint64, uint64) *types.Header); ok {
 		r0 = rf(_a0, _a1)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*types.HeaderVdt)
+			r0 = ret.Get(0).(*types.Header)
 		}
 	}
 

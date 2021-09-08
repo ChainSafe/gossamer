@@ -49,27 +49,18 @@ func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 	_ = addTestBlocksToStateWithParent(t, blockState.BestBlockHash(), depth, blockState)
 }
 
-func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, depth int, blockState BlockState) []*types.HeaderVdt {
+func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, depth int, blockState BlockState) []*types.Header {
 	prevHeader, err := blockState.(*state.BlockState).GetHeader(previousHash)
 	require.NoError(t, err)
 	previousNum := prevHeader.Number
 
-	var headers []*types.HeaderVdt
+	var headers []*types.Header
 	rt, err := blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
 	for i := 1; i <= depth; i++ {
-		//block := &types.Block{
-		//	Header: &types.Header{
-		//		ParentHash: previousHash,
-		//		Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
-		//		Digest:     types.Digest{},
-		//	},
-		//	Body: &types.Body{},
-		//}
-
 		block := &types.Block{
-			Header: types.HeaderVdt{
+			Header: types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
 				Digest:     types.NewDigestVdt(),
@@ -140,7 +131,7 @@ func TestAnnounceBlock(t *testing.T) {
 	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 
 	newBlock := types.Block{
-		Header: types.HeaderVdt{
+		Header: types.Header{
 			Number:     big.NewInt(1),
 			ParentHash: s.blockState.BestBlockHash(),
 			Digest:     digest,
@@ -324,22 +315,10 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	body, err := types.NewBodyFromExtrinsics([]types.Extrinsic{tx})
 	require.NoError(t, err)
 
-	//block := &types.Block{
-	//	Header: &types.Header{
-	//		ParentHash: ancestor.Header.Hash(),
-	//		Number:     big.NewInt(0).Add(ancestor.Header.Number, big.NewInt(1)),
-	//		Digest: types.Digest{
-	//			utils.NewMockDigestItem(1),
-	//		},
-	//	},
-	//	Body: body,
-	//}
-
 	// TODO might have to create a new mock item here
 	digest := types.NewDigestVdt()
-	//digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	block := &types.Block{
-		Header: types.HeaderVdt{
+		Header: types.Header{
 			ParentHash: ancestor.Header.Hash(),
 			Number:     big.NewInt(0).Add(ancestor.Header.Number, big.NewInt(1)),
 			Digest:     digest,
@@ -541,7 +520,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 
 	//TODO check that this is an okay way to replace mocks
 	newBlock1 := &types.Block{
-		Header: types.HeaderVdt{
+		Header: types.Header{
 			ParentHash: hash,
 			Number:     big.NewInt(1),
 			////Digest:     types.Digest{utils.NewMockDigestItem(1)}},
@@ -550,7 +529,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	}
 
 	newBlockRTUpdate := &types.Block{
-		Header: types.HeaderVdt{
+		Header: types.Header{
 			ParentHash: hash,
 			Number:     big.NewInt(1),
 			//Digest:     types.Digest{utils.NewMockDigestItem(2)}},
@@ -632,7 +611,7 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 	blockHash := common.MustHexToHash("0x86aa36a140dfc449c30dbce16ce0fea33d5c3786766baa764e33f336841b9e29") // hash for known test code substitution
 
 	newBlock := &types.Block{
-		Header: types.HeaderVdt{
+		Header: types.Header{
 			ParentHash: blockHash,
 			Number:     big.NewInt(1),
 			Digest:     types.NewDigestVdt(),

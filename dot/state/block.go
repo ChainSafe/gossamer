@@ -60,7 +60,7 @@ type BlockState struct {
 	runtimeUpdateSubscriptionsLock sync.RWMutex
 	runtimeUpdateSubscriptions     map[uint32]chan<- runtime.Version
 
-	pruneKeyCh chan *types.HeaderVdt
+	pruneKeyCh chan *types.Header
 }
 
 
@@ -77,7 +77,7 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 		db:                         chaindb.NewTable(db, blockPrefix),
 		imported:                   make(map[byte]chan<- *types.Block),
 		finalised:                  make(map[byte]chan<- *types.FinalisationInfo),
-		pruneKeyCh:                 make(chan *types.HeaderVdt, pruneKeyBufferSize),
+		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
 	}
 
@@ -98,14 +98,14 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 }
 
 // NewBlockStateFromGenesis initialises a BlockState from a genesis header, saving it to the database located at basePath
-func NewBlockStateFromGenesis(db chaindb.Database, header *types.HeaderVdt) (*BlockState, error) {
+func NewBlockStateFromGenesis(db chaindb.Database, header *types.Header) (*BlockState, error) {
 	bs := &BlockState{
-		bt:                         blocktree.NewBlockTreeFromRootVdt(header, db),
+		bt:                         blocktree.NewBlockTreeFromRoot(header, db),
 		baseState:                  NewBaseState(db),
 		db:                         chaindb.NewTable(db, blockPrefix),
 		imported:                   make(map[byte]chan<- *types.Block),
 		finalised:                  make(map[byte]chan<- *types.FinalisationInfo),
-		pruneKeyCh:                 make(chan *types.HeaderVdt, pruneKeyBufferSize),
+		pruneKeyCh:                 make(chan *types.Header, pruneKeyBufferSize),
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
 	}
 
@@ -237,7 +237,7 @@ func (bs *BlockState) HasHeader(hash common.Hash) (bool, error) {
 }
 
 // GetHeader returns a BlockHeader for a given hash
-func (bs *BlockState) GetHeader(hash common.Hash) (*types.HeaderVdt, error) {
+func (bs *BlockState) GetHeader(hash common.Hash) (*types.Header, error) {
 	result := types.NewEmptyHeader()
 
 	if bs.db == nil {
@@ -278,7 +278,7 @@ func (bs *BlockState) GetHashByNumber(num *big.Int) (common.Hash, error) {
 }
 
 // GetHeaderByNumber returns a block header given a number
-func (bs *BlockState) GetHeaderByNumber(num *big.Int) (*types.HeaderVdt, error) {
+func (bs *BlockState) GetHeaderByNumber(num *big.Int) (*types.Header, error) {
 	bh, err := bs.db.Get(headerHashKey(num.Uint64()))
 	if err != nil {
 		return nil, fmt.Errorf("cannot get block %d: %w", num, err)
@@ -331,7 +331,7 @@ func (bs *BlockState) GetBlockHash(blockNumber *big.Int) (common.Hash, error) {
 }
 
 // SetHeader will set the header into DB
-func (bs *BlockState) SetHeader(header *types.HeaderVdt) error {
+func (bs *BlockState) SetHeader(header *types.Header) error {
 	hash := header.Hash()
 	// Write the encoded header
 	bh, err := scale.Marshal(*header)
@@ -405,7 +405,7 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 	prevHead := bs.bt.DeepestBlockHash()
 
 	// add block to blocktree
-	err = bs.bt.AddBlockVdt(&block.Header, uint64(arrivalTime.UnixNano()))
+	err = bs.bt.AddBlock(&block.Header, uint64(arrivalTime.UnixNano()))
 	if err != nil {
 		return err
 	}
@@ -487,7 +487,7 @@ func (bs *BlockState) handleAddedBlock(prev, curr common.Hash) error {
 }
 
 // AddBlockToBlockTree adds the given block to the blocktree. It does not write it to the database.
-func (bs *BlockState) AddBlockToBlockTree(header *types.HeaderVdt) error {
+func (bs *BlockState) AddBlockToBlockTree(header *types.Header) error {
 	bs.Lock()
 	defer bs.Unlock()
 
@@ -496,7 +496,7 @@ func (bs *BlockState) AddBlockToBlockTree(header *types.HeaderVdt) error {
 		arrivalTime = time.Now()
 	}
 
-	return bs.bt.AddBlockVdt(header, uint64(arrivalTime.UnixNano()))
+	return bs.bt.AddBlock(header, uint64(arrivalTime.UnixNano()))
 }
 
 // GetAllBlocksAtDepth returns all hashes with the depth of the given hash plus one
@@ -504,7 +504,7 @@ func (bs *BlockState) GetAllBlocksAtDepth(hash common.Hash) []common.Hash {
 	return bs.bt.GetAllBlocksAtDepth(hash)
 }
 
-func (bs *BlockState) isBlockOnCurrentChain(header *types.HeaderVdt) (bool, error) {
+func (bs *BlockState) isBlockOnCurrentChain(header *types.Header) (bool, error) {
 	bestBlock, err := bs.BestBlockHeader() // Issue might be here
 	if err != nil {
 		return false, err
@@ -538,7 +538,7 @@ func (bs *BlockState) BestBlockHash() common.Hash {
 }
 
 // BestBlockHeader returns the block header of the current head of the chain// BestBlockHeader returns the block header of the current head of the chain
-func (bs *BlockState) BestBlockHeader() (*types.HeaderVdt, error) {
+func (bs *BlockState) BestBlockHeader() (*types.Header, error) {
 	return bs.GetHeader(bs.BestBlockHash())
 }
 

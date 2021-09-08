@@ -14,11 +14,11 @@ type MockVerifier struct {
 }
 
 // VerifyBlock provides a mock function with given fields: header
-func (_m *MockVerifier) VerifyBlock(header *types.HeaderVdt) error {
+func (_m *MockVerifier) VerifyBlock(header *types.Header) error {
 	ret := _m.Called(header)
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(*types.HeaderVdt) error); ok {
+	if rf, ok := ret.Get(0).(func(*types.Header) error); ok {
 		r0 = rf(header)
 	} else {
 		r0 = ret.Error(0)

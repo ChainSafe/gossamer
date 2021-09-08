@@ -30,13 +30,13 @@ import (
 )
 
 
-var testGenesisHeader = &types.HeaderVdt{
+var testGenesisHeader = &types.Header{
 	Number:    big.NewInt(0),
 	StateRoot: trie.EmptyHash,
 	Digest:    types.NewDigestVdt(),
 }
 
-func newTestBlockState(t *testing.T, header *types.HeaderVdt) *BlockState {
+func newTestBlockState(t *testing.T, header *types.Header) *BlockState {
 	db := NewInMemoryDB(t)
 	if header == nil {
 		return &BlockState{
@@ -52,7 +52,7 @@ func newTestBlockState(t *testing.T, header *types.HeaderVdt) *BlockState {
 func TestSetAndGetHeader(t *testing.T) {
 	bs := newTestBlockState(t, nil)
 
-	header := &types.HeaderVdt{
+	header := &types.Header{
 		Number:    big.NewInt(0),
 		StateRoot: trie.EmptyHash,
 		Digest:    types.NewDigestVdt(),
@@ -69,7 +69,7 @@ func TestSetAndGetHeader(t *testing.T) {
 func TestHasHeader(t *testing.T) {
 	bs := newTestBlockState(t, nil)
 
-	header := &types.HeaderVdt{
+	header := &types.Header{
 		Number:    big.NewInt(0),
 		StateRoot: trie.EmptyHash,
 		Digest:    types.NewDigestVdt(),
@@ -86,16 +86,12 @@ func TestHasHeader(t *testing.T) {
 func TestGetBlockByNumber(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 
-	blockHeader := &types.HeaderVdt{
+	blockHeader := &types.Header{
 		ParentHash: testGenesisHeader.Hash(),
 		Number:     big.NewInt(1),
 		Digest:     types.NewDigestVdt(),
 	}
 
-	//block := &types.Block{
-	//	Header: blockHeader,
-	//	Body:   &types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
-	//}
 	block := &types.Block{
 		Header: *blockHeader,
 		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
@@ -114,7 +110,7 @@ func TestAddBlock(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 
 	// Create header
-	header0 := &types.HeaderVdt{
+	header0 := &types.Header{
 		Number:     big.NewInt(0),
 		Digest:     types.NewDigestVdt(),
 		ParentHash: testGenesisHeader.Hash(),
@@ -138,7 +134,7 @@ func TestAddBlock(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create header & blockData for block 1
-	header1 := &types.HeaderVdt{
+	header1 := &types.Header{
 		Number:     big.NewInt(1),
 		Digest:     types.NewDigestVdt(),
 		ParentHash: blockHash0,
@@ -191,18 +187,10 @@ func TestGetSlotForBlock(t *testing.T) {
 	data := babeHeader.Encode()
 	preDigest := types.NewBABEPreRuntimeDigest(data)
 
-	//block := &types.Block{
-	//	Header: &types.Header{
-	//		ParentHash: testGenesisHeader.Hash(),
-	//		Number:     big.NewInt(int64(1)),
-	//		Digest:     types.Digest{preDigest},
-	//	},
-	//	Body: &types.Body{},
-	//}
 	digest := types.NewDigestVdt()
 	digest.Add(*preDigest)
 	block := &types.Block{
-		Header: types.HeaderVdt{
+		Header: types.Header{
 			ParentHash: testGenesisHeader.Hash(),
 			Number:     big.NewInt(int64(1)),
 			Digest:     digest,
@@ -268,16 +256,8 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 		}
 	}
 
-	//newBlock := &types.Block{
-	//	Header: &types.Header{
-	//		ParentHash: bestHash,
-	//		Number:     big.NewInt(0).Add(bestHeader.Number, big.NewInt(1)),
-	//	},
-	//	Body: &types.Body{},
-	//}
-
 	newBlock := &types.Block{
-		Header: types.HeaderVdt{
+		Header: types.Header{
 			ParentHash: bestHash,
 			Number:     big.NewInt(0).Add(bestHeader.Number, big.NewInt(1)),
 		},
@@ -301,16 +281,9 @@ func TestFinalizedHash(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, testGenesisHeader.Hash(), h)
 
-	//header := &types.Header{
-	//	ParentHash: testGenesisHeader.Hash(),
-	//	Number:     big.NewInt(1),
-	//	Digest: types.Digest{
-	//		types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest(),
-	//	},
-	//}
 	digest := types.NewDigestVdt()
 	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
-	header := &types.HeaderVdt{
+	header := &types.Header{
 		ParentHash: testGenesisHeader.Hash(),
 		Number:     big.NewInt(1),
 		Digest:     digest,
@@ -413,7 +386,7 @@ func TestGetHashByNumber(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, bs.genesisHash, res)
 
-	header := &types.HeaderVdt{
+	header := &types.Header{
 		Number:     big.NewInt(1),
 		Digest:     types.NewDigestVdt(),
 		ParentHash: testGenesisHeader.Hash(),
@@ -435,7 +408,7 @@ func TestGetHashByNumber(t *testing.T) {
 func TestAddBlock_WithReOrg(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 
-	header1a := &types.HeaderVdt{
+	header1a := &types.Header{
 		Number:     big.NewInt(1),
 		Digest:     types.NewDigestVdt(),
 		ParentHash: testGenesisHeader.Hash(),
@@ -453,7 +426,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, header1a.Hash(), block1hash)
 
-	header1b := &types.HeaderVdt{
+	header1b := &types.Header{
 		Number:         big.NewInt(1),
 		Digest:         types.NewDigestVdt(),
 		ParentHash:     testGenesisHeader.Hash(),
@@ -473,7 +446,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, header1a.Hash(), block1hash)
 
-	header2b := &types.HeaderVdt{
+	header2b := &types.Header{
 		Number:         big.NewInt(2),
 		Digest:         types.NewDigestVdt(),
 		ParentHash:     header1b.Hash(),
@@ -497,7 +470,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, header2b.Hash(), block2hash)
 
-	header2a := &types.HeaderVdt{
+	header2a := &types.Header{
 		Number:     big.NewInt(2),
 		Digest:     types.NewDigestVdt(),
 		ParentHash: header1a.Hash(),
@@ -511,7 +484,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 	err = bs.AddBlock(block2a)
 	require.NoError(t, err)
 
-	header3a := &types.HeaderVdt{
+	header3a := &types.Header{
 		Number:     big.NewInt(3),
 		Digest:     types.NewDigestVdt(),
 		ParentHash: header2a.Hash(),
@@ -543,7 +516,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 func TestAddBlockToBlockTree(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 
-	header := &types.HeaderVdt{
+	header := &types.Header{
 		Number:     big.NewInt(1),
 		Digest:     types.NewDigestVdt(),
 		ParentHash: testGenesisHeader.Hash(),
@@ -573,13 +546,13 @@ func TestNumberIsFinalised(t *testing.T) {
 	digest2 := types.NewDigestVdt()
 	digest2.Add(*types.NewBabeSecondaryPlainPreDigest(0, 100).ToPreRuntimeDigest())
 
-	header1 := &types.HeaderVdt{
+	header1 := &types.Header{
 		Number: big.NewInt(1),
 		Digest: digest,
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
-	header100 := &types.HeaderVdt{
+	header100 := &types.Header{
 		Number: big.NewInt(100),
 		Digest: digest2,
 		ParentHash: testGenesisHeader.Hash(),
@@ -617,13 +590,13 @@ func TestSetFinalisedHash_setFirstSlotOnFinalisation(t *testing.T) {
 	digest2 := types.NewDigestVdt()
 	digest2.Add(*types.NewBabeSecondaryPlainPreDigest(0, firstSlot+100).ToPreRuntimeDigest())
 
-	header1 := &types.HeaderVdt{
+	header1 := &types.Header{
 		Number: big.NewInt(1),
 		Digest: digest,
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
-	header100 := &types.HeaderVdt{
+	header100 := &types.Header{
 		Number: big.NewInt(100),
 		Digest: digest2,
 		ParentHash: testGenesisHeader.Hash(),

@@ -92,7 +92,7 @@ func (cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *Cha
 		return err
 	}
 
-	res.Block.Header, err = HeaderToJSONVdt(block.Header)
+	res.Block.Header, err = HeaderToJSON(block.Header)
 	if err != nil {
 		return err
 	}
@@ -151,6 +151,7 @@ func (cm *ChainModule) GetFinalizedHeadByRound(r *http.Request, req *ChainFinali
 	return nil
 }
 
+//GetHeader Get header of a relay chain block. If no block hash is provided, the latest block header will be returned.
 func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *ChainBlockHeaderResponse) error {
 	hash := cm.hashLookup(req)
 	header, err := cm.blockAPI.GetHeader(hash)
@@ -158,21 +159,9 @@ func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *Ch
 		return err
 	}
 
-	*res, err = HeaderToJSONVdt(*header)
+	*res, err = HeaderToJSON(*header)
 	return err
 }
-
-//GetHeader Get header of a relay chain block. If no block hash is provided, the latest block header will be returned.
-//func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *ChainBlockHeaderResponse) error {
-//	hash := cm.hashLookup(req)
-//	header, err := cm.blockAPI.GetHeader(hash)
-//	if err != nil {
-//		return err
-//	}
-//
-//	*res, err = HeaderToJSON(*header)
-//	return err
-//}
 
 // SubscribeFinalizedHeads handled by websocket handler, but this func should remain
 //  here so it's added to rpc_methods list
@@ -257,7 +246,7 @@ func (cm *ChainModule) lookupHashByInterface(i interface{}) (string, error) {
 }
 
 // HeaderToJSON converts types.Header to ChainBlockHeaderResponse
-func HeaderToJSONVdt(header types.HeaderVdt) (ChainBlockHeaderResponse, error) {
+func HeaderToJSON(header types.Header) (ChainBlockHeaderResponse, error) {
 	res := ChainBlockHeaderResponse{
 		ParentHash:     header.ParentHash.String(),
 		StateRoot:      header.StateRoot.String(),
@@ -269,26 +258,14 @@ func HeaderToJSONVdt(header types.HeaderVdt) (ChainBlockHeaderResponse, error) {
 	} else {
 		res.Number = common.BytesToHex(header.Number.Bytes())
 	}
-	//for _, item := range header.Digest {
-	//	enc, err := item.Encode()
-	//	if err != nil {
-	//		return ChainBlockHeaderResponse{}, err
-	//	}
-	//	res.Digest.Logs = append(res.Digest.Logs, common.BytesToHex(enc))
-	//}
 
 	for _, item := range header.Digest.Types {
-		//enc, err := item.Encode()
 		enc, err := scale.Marshal(item)
 		if err != nil {
 			return ChainBlockHeaderResponse{}, err
 		}
 		res.Digest.Logs = append(res.Digest.Logs, common.BytesToHex(enc))
 	}
-	//enc, err := scale.Marshal(header.Digest)
-	//if err != nil {
-	//	return ChainBlockHeaderResponse{}, err
-	//}
-	//res.Digest.Logs = append(res.Digest.Logs, common.BytesToHex(enc))
+
 	return res, nil
 }

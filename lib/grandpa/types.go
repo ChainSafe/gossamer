@@ -130,7 +130,7 @@ func NewVote(hash common.Hash, number uint32) *Vote {
 }
 
 // NewVoteFromHeader returns a new Vote for a given header
-func NewVoteFromHeaderVdt(h *types.HeaderVdt) *Vote {
+func NewVoteFromHeader(h *types.Header) *Vote {
 	return &Vote{
 		Hash:   h.Hash(),
 		Number: uint32(h.Number.Int64()),
@@ -153,7 +153,7 @@ func NewVoteFromHash(hash common.Hash, blockState BlockState) (*Vote, error) {
 		return nil, err
 	}
 
-	return NewVoteFromHeaderVdt(h), nil
+	return NewVoteFromHeader(h), nil
 }
 
 // Commit contains all the signed precommits for a given block

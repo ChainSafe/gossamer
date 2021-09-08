@@ -293,7 +293,7 @@ func (s *Service) handleCodeSubstitution(hash common.Hash) error {
 	return nil
 }
 
-func (s *Service) handleCurrentSlotVdt(header *types.HeaderVdt) error {
+func (s *Service) handleCurrentSlotVdt(header *types.Header) error {
 	head := s.blockState.BestBlockHash()
 	if header.Hash() != head {
 		return nil

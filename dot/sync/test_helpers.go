@@ -128,7 +128,7 @@ func NewTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 	return syncer
 }
 
-func newTestGenesisWithTrieAndHeaderVdt(t *testing.T, usePolkadotGenesis bool) (*genesis.Genesis, *trie.Trie, *types.HeaderVdt) {
+func newTestGenesisWithTrieAndHeaderVdt(t *testing.T, usePolkadotGenesis bool) (*genesis.Genesis, *trie.Trie, *types.Header) {
 	fp := "../../chain/gssmr/genesis.json"
 	if usePolkadotGenesis {
 		fp = "../../chain/polkadot/genesis.json"
@@ -146,10 +146,10 @@ func newTestGenesisWithTrieAndHeaderVdt(t *testing.T, usePolkadotGenesis bool) (
 }
 
 // BuildBlockVdt ...
-func BuildBlockVdt(t *testing.T, instance runtime.Instance, parent *types.HeaderVdt, ext types.Extrinsic) *types.Block {
+func BuildBlockVdt(t *testing.T, instance runtime.Instance, parent *types.Header, ext types.Extrinsic) *types.Block {
 	digest := types.NewDigestVdt()
 	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
-	header := &types.HeaderVdt{
+	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     big.NewInt(0).Add(parent.Number, big.NewInt(1)),
 		Digest:     digest,

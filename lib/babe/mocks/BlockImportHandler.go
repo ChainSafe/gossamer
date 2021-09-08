@@ -13,7 +13,7 @@ type BlockImportHandler struct {
 	mock.Mock
 }
 
-func (_m *BlockImportHandler) HandleBlockProducedVdt(block *types.Block, state *storage.TrieState) error {
+func (_m *BlockImportHandler) HandleBlockProduced(block *types.Block, state *storage.TrieState) error {
 	ret := _m.Called(block, state)
 
 	var r0 error

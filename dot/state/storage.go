@@ -96,12 +96,12 @@ func (s *StorageState) SetSyncing(syncing bool) {
 	s.syncing = syncing
 }
 
-func (s *StorageState) pruneKey(keyHeader *types.HeaderVdt) {
+func (s *StorageState) pruneKey(keyHeader *types.Header) {
 	s.tries.Delete(keyHeader.StateRoot)
 }
 
 // StoreTrie stores the given trie in the StorageState and writes it to the database
-func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.HeaderVdt) error {
+func (s *StorageState) StoreTrie(ts *rtstorage.TrieState, header *types.Header) error {
 	root := ts.MustRoot()
 
 	if s.syncing {

@@ -125,7 +125,7 @@ func createTestExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash,
 	return types.Extrinsic(common.MustHexToBytes(extEnc))
 }
 
-func createTestBlockVdt(t *testing.T, babeService *Service, parent *types.HeaderVdt, exts [][]byte, slotNumber, epoch uint64) (*types.Block, Slot) { //nolint
+func createTestBlockVdt(t *testing.T, babeService *Service, parent *types.Header, exts [][]byte, slotNumber, epoch uint64) (*types.Block, Slot) { //nolint
 	// create proof that we can authorize this block
 	babeService.epochData.authorityIndex = 0
 
@@ -163,7 +163,7 @@ func createTestBlockVdt(t *testing.T, babeService *Service, parent *types.Header
 	return block, slot
 }
 
-func createTestBlock(t *testing.T, babeService *Service, parent *types.HeaderVdt, exts [][]byte, slotNumber, epoch uint64) (*types.Block, Slot) { //nolint
+func createTestBlock(t *testing.T, babeService *Service, parent *types.Header, exts [][]byte, slotNumber, epoch uint64) (*types.Block, Slot) { //nolint
 	// create proof that we can authorize this block
 	babeService.epochData.authorityIndex = 0
 
@@ -221,7 +221,7 @@ func TestBuildBlock_ok(t *testing.T) {
 	// TODO: re-add extrinsic
 	exts := [][]byte{}
 
-	block, slot := createTestBlock(t, babeService, emptyHeaderVdt, exts, 1, testEpochIndex)
+	block, slot := createTestBlock(t, babeService, emptyHeader, exts, 1, testEpochIndex)
 
 	// create pre-digest
 	preDigest, err := builder.buildBlockPreDigest(slot)
@@ -230,8 +230,8 @@ func TestBuildBlock_ok(t *testing.T) {
 	digest := types.NewDigestVdt()
 	digest.Add(*preDigest)
 
-	expectedBlockHeader := &types.HeaderVdt{
-		ParentHash: emptyHeaderVdt.Hash(),
+	expectedBlockHeader := &types.Header{
+		ParentHash: emptyHeader.Hash(),
 		Number:     big.NewInt(1),
 		Digest:     digest,
 	}
@@ -462,7 +462,7 @@ func TestBuildBlock_failing(t *testing.T) {
 	zeroHash, err := common.HexToHash("0x00")
 	require.NoError(t, err)
 
-	parentHeader := &types.HeaderVdt{
+	parentHeader := &types.Header{
 		ParentHash: zeroHash,
 		Number:     big.NewInt(0),
 	}

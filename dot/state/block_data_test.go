@@ -31,7 +31,7 @@ func TestGetSet_ReceiptMessageQueue_Justification(t *testing.T) {
 	s := newTestBlockState(t, nil)
 	require.NotNil(t, s)
 
-	var genesisHeader = &types.HeaderVdt{
+	var genesisHeader = &types.Header{
 		Number:    big.NewInt(0),
 		StateRoot: trie.EmptyHash,
 		Digest:    types.NewDigestVdt(),
@@ -48,7 +48,7 @@ func TestGetSet_ReceiptMessageQueue_Justification(t *testing.T) {
 	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
 	require.Nil(t, err)
 
-	header := &types.HeaderVdt{
+	header := &types.Header{
 		ParentHash:     parentHash,
 		Number:         big.NewInt(1),
 		StateRoot:      stateRoot,

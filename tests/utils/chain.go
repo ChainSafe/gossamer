@@ -28,20 +28,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//// GetHeader calls the endpoint chain_getHeader
-//func GetHeader(t *testing.T, node *Node, hash common.Hash) *types.HeaderVdt { //nolint
-//	respBody, err := PostRPC(ChainGetHeader, NewEndpoint(node.RPCPort), "[\""+hash.String()+"\"]")
-//	require.NoError(t, err)
-//
-//	header := new(modules.ChainBlockHeaderResponse)
-//	err = DecodeRPC(t, respBody, header)
-//	require.Nil(t, err)
-//
-//	return HeaderResponseToHeaderVdt(t, header)
-//}
+// GetHeader calls the endpoint chain_getHeader
+func GetHeader(t *testing.T, node *Node, hash common.Hash) *types.Header { //nolint
+	respBody, err := PostRPC(ChainGetHeader, NewEndpoint(node.RPCPort), "[\""+hash.String()+"\"]")
+	require.NoError(t, err)
+
+	header := new(modules.ChainBlockHeaderResponse)
+	err = DecodeRPC(t, respBody, header)
+	require.Nil(t, err)
+
+	return HeaderResponseToHeader(t, header)
+}
 
 // GetChainHead calls the endpoint chain_getHeader to get the latest chain head
-func GetChainHeadVdt(t *testing.T, node *Node) *types.HeaderVdt {
+func GetChainHead(t *testing.T, node *Node) *types.Header {
 	respBody, err := PostRPC(ChainGetHeader, NewEndpoint(node.RPCPort), "[]")
 	require.NoError(t, err)
 
@@ -49,11 +49,11 @@ func GetChainHeadVdt(t *testing.T, node *Node) *types.HeaderVdt {
 	err = DecodeRPC(t, respBody, header)
 	require.Nil(t, err)
 
-	return HeaderResponseToHeaderVdt(t, header)
+	return HeaderResponseToHeader(t, header)
 }
 
 // GetChainHeadWithError calls the endpoint chain_getHeader to get the latest chain head
-func GetChainHeadWithError(t *testing.T, node *Node) (*types.HeaderVdt, error) {
+func GetChainHeadWithError(t *testing.T, node *Node) (*types.Header, error) {
 	respBody, err := PostRPC(ChainGetHeader, NewEndpoint(node.RPCPort), "[]")
 	require.NoError(t, err)
 
@@ -63,7 +63,7 @@ func GetChainHeadWithError(t *testing.T, node *Node) (*types.HeaderVdt, error) {
 		return nil, err
 	}
 
-	return HeaderResponseToHeaderVdt(t, header), nil
+	return HeaderResponseToHeader(t, header), nil
 }
 
 // GetBlockHash calls the endpoint chain_getBlockHash to get the latest chain head
@@ -109,7 +109,7 @@ func GetFinalizedHeadByRound(t *testing.T, node *Node, round uint64) (common.Has
 }
 
 // GetBlock calls the endpoint chain_getBlock
-func GetBlockVdt(t *testing.T, node *Node, hash common.Hash) *types.Block {
+func GetBlock(t *testing.T, node *Node, hash common.Hash) *types.Block {
 	respBody, err := PostRPC(ChainGetBlock, NewEndpoint(node.RPCPort), "[\""+hash.String()+"\"]")
 	require.NoError(t, err)
 

@@ -152,7 +152,7 @@ func (s *Service) Start() error {
 			return fmt.Errorf("failed to get latest finalised block: %w", err)
 		}
 
-		s.Block.bt = blocktree.NewBlockTreeFromRootVdt(lastFinalised, db)
+		s.Block.bt = blocktree.NewBlockTreeFromRoot(lastFinalised, db)
 	}
 
 	pr, err := s.Base.loadPruningData()
@@ -216,7 +216,7 @@ func (s *Service) Rewind(toBlock int64) error {
 		return err
 	}
 
-	s.Block.bt = blocktree.NewBlockTreeFromRootVdt(&root.Header, s.db)
+	s.Block.bt = blocktree.NewBlockTreeFromRoot(&root.Header, s.db)
 	newHead := s.Block.BestBlockHash()
 
 	header, _ := s.Block.BestBlockHeader()
@@ -314,7 +314,7 @@ func (s *Service) Stop() error {
 
 // Import imports the given state corresponding to the given header and sets the head of the chain
 // to it. Additionally, it uses the first slot to correctly set the epoch number of the block.
-func (s *Service) Import(header *types.HeaderVdt, t *trie.Trie, firstSlot uint64) error {
+func (s *Service) Import(header *types.Header, t *trie.Trie, firstSlot uint64) error {
 	var err error
 	// initialise database using data directory
 	s.db, err = utils.SetupDatabase(s.dbPath, s.isMemDB)
@@ -372,7 +372,7 @@ func (s *Service) Import(header *types.HeaderVdt, t *trie.Trie, firstSlot uint64
 		return err
 	}
 
-	bt := blocktree.NewBlockTreeFromRootVdt(header, s.db)
+	bt := blocktree.NewBlockTreeFromRoot(header, s.db)
 	if err := bt.Store(); err != nil {
 		return err
 	}

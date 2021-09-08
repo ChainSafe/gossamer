@@ -69,7 +69,7 @@ type Service struct {
 	pvEquivocations map[ed25519.PublicKeyBytes][]*SignedVote // equivocatory votes for current pre-vote stage
 	pcEquivocations map[ed25519.PublicKeyBytes][]*SignedVote // equivocatory votes for current pre-commit stage
 	tracker         *tracker                                 // tracker of vote messages we may need in the future
-	head            *types.HeaderVdt                            // most recently finalised block
+	head            *types.Header                            // most recently finalised block
 
 	// historical information
 	preVotedBlock      map[uint64]*Vote // map of round number -> pre-voted block
@@ -308,8 +308,8 @@ func (s *Service) initiateRound() error {
 	if s.state.round == 1 {
 		s.chanLock.Lock()
 		s.mapLock.Lock()
-		s.preVotedBlock[0] = NewVoteFromHeaderVdt(s.head)
-		s.bestFinalCandidate[0] = NewVoteFromHeaderVdt(s.head)
+		s.preVotedBlock[0] = NewVoteFromHeader(s.head)
+		s.bestFinalCandidate[0] = NewVoteFromHeader(s.head)
 		s.mapLock.Unlock()
 		s.chanLock.Unlock()
 	}
@@ -449,7 +449,7 @@ func (s *Service) handleIsPrimary() (bool, error) {
 // broadcast commit message from the previous round to the network
 // ignore errors, since it's not critical to broadcast
 func (s *Service) primaryBroadcastCommitMessage() {
-	cm, err := s.newCommitMessageVdt(s.head, s.state.round-1)
+	cm, err := s.newCommitMessage(s.head, s.state.round-1)
 	if err != nil {
 		return
 	}
@@ -622,7 +622,7 @@ func (s *Service) attemptToFinalize() error {
 			"total votes for bfc", pc,
 		)
 
-		cm, err := s.newCommitMessageVdt(s.head, s.state.round)
+		cm, err := s.newCommitMessage(s.head, s.state.round)
 		if err != nil {
 			return err
 		}
@@ -684,7 +684,7 @@ func (s *Service) determinePreVote() (*Vote, error) {
 			return nil, err
 		}
 
-		vote = NewVoteFromHeaderVdt(header)
+		vote = NewVoteFromHeader(header)
 	}
 
 	nextChange := s.digestHandler.NextGrandpaAuthorityChange()
@@ -694,7 +694,7 @@ func (s *Service) determinePreVote() (*Vote, error) {
 		if err != nil {
 			return nil, err
 		}
-		vote = NewVoteFromHeaderVdt(header)
+		vote = NewVoteFromHeader(header)
 	}
 
 	return vote, nil
@@ -719,7 +719,7 @@ func (s *Service) determinePreCommit() (*Vote, error) {
 			return nil, err
 		}
 
-		pvb = *NewVoteFromHeaderVdt(header)
+		pvb = *NewVoteFromHeader(header)
 	}
 
 	return &pvb, nil
@@ -1147,7 +1147,7 @@ func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash, s
 		}
 
 		if total >= threshold {
-			var h *types.HeaderVdt
+			var h *types.Header
 			h, err = s.blockState.GetHeader(pred)
 			if err != nil {
 				return nil, err
@@ -1270,7 +1270,7 @@ func (s *Service) findParentWithNumber(v *Vote, n uint32) (*Vote, error) {
 		b = p
 	}
 
-	return NewVoteFromHeaderVdt(b), nil
+	return NewVoteFromHeader(b), nil
 }
 
 // GetSetID returns the current setID

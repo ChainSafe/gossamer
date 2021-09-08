@@ -144,7 +144,7 @@ func (l *BlockListener) Listen() {
 				if block == nil {
 					continue
 				}
-				head, err := modules.HeaderToJSONVdt(block.Header)
+				head, err := modules.HeaderToJSON(block.Header)
 				if err != nil {
 					logger.Error("failed to convert header to JSON", "error", err)
 				}
@@ -195,7 +195,7 @@ func (l *BlockFinalizedListener) Listen() {
 				if info == nil  {
 					continue
 				}
-				head, err := modules.HeaderToJSONVdt(info.Header)
+				head, err := modules.HeaderToJSON(info.Header)
 				if err != nil {
 					logger.Error("failed to convert header to JSON", "error", err)
 				}
@@ -264,7 +264,7 @@ func (l *AllBlocksListener) Listen() {
 					continue
 				}
 
-				finHead, err := modules.HeaderToJSONVdt(fin.Header)
+				finHead, err := modules.HeaderToJSON(fin.Header)
 				if err != nil {
 					logger.Error("failed to convert finalised block header to JSON", "error", err)
 					continue
@@ -281,7 +281,7 @@ func (l *AllBlocksListener) Listen() {
 					continue
 				}
 
-				impHead, err := modules.HeaderToJSONVdt(imp.Header)
+				impHead, err := modules.HeaderToJSON(imp.Header)
 				if err != nil {
 					logger.Error("failed to convert imported block header to JSON", "error", err)
 					continue

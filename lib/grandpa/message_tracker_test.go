@@ -38,12 +38,12 @@ func TestMessageTracker_ValidateMessage(t *testing.T) {
 	gs.tracker, err = newTracker(gs.blockState, gs.messageHandler)
 	require.NoError(t, err)
 
-	fake := &types.HeaderVdt{
+	fake := &types.Header{
 		Number: big.NewInt(77),
 	}
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeaderVdt(fake), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(fake), prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
@@ -70,13 +70,13 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 	parent, err := gs.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
-	next := &types.HeaderVdt{
+	next := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     big.NewInt(4),
 	}
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeaderVdt(next), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(next), prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
@@ -116,13 +116,13 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	parent, err := gs.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
-	next := &types.HeaderVdt{
+	next := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     big.NewInt(4),
 	}
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeaderVdt(next), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(next), prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
@@ -159,7 +159,7 @@ func TestMessageTracker_MapInsideMap(t *testing.T) {
 	gs.tracker, err = newTracker(gs.blockState, gs.messageHandler)
 	require.NoError(t, err)
 
-	header := &types.HeaderVdt{
+	header := &types.Header{
 		Number: big.NewInt(77),
 	}
 
@@ -169,7 +169,7 @@ func TestMessageTracker_MapInsideMap(t *testing.T) {
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
 	authorityID := kr.Alice().Public().(*ed25519.PublicKey).AsBytes()
-	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeaderVdt(header), prevote)
+	_, msg, err := gs.createSignedVoteAndVoteMessage(NewVoteFromHeader(header), prevote)
 	require.NoError(t, err)
 	gs.keypair = kr.Bob().(*ed25519.Keypair)
 
