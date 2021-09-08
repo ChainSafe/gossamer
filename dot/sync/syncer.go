@@ -130,14 +130,3 @@ func (s *Service) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMe
 func (s *Service) IsSynced() bool {
 	return s.chainSync.syncState() == idle
 }
-
-// TODO: remove everything below
-func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
-	return 0, nil
-}
-
-func (s *Service) ProcessJustification(data []*types.BlockData) (int, error) {
-	return 0, nil
-}
-
-func (s *Service) SetSyncing(_ bool) {}

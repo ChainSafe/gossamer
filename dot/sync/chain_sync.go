@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"sync"
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -37,6 +38,7 @@ var (
 
 // workerState helps track the current worker set and set the upcoming worker ID
 type workerState struct {
+	sync.Mutex
 	nextWorker uint64
 	workers    map[uint64]*worker
 }
@@ -48,13 +50,28 @@ func newWorkerState() *workerState {
 }
 
 func (s *workerState) add(w *worker) {
+	s.Lock()
+	defer s.Unlock()
+
 	w.id = s.nextWorker
 	s.nextWorker += 1
 	s.workers[w.id] = w
 }
 
 func (s *workerState) delete(id uint64) {
+	s.Lock()
+	defer s.Unlock()
 	delete(s.workers, id)
+}
+
+func (s *workerState) clear() {
+	s.Lock()
+	defer s.Unlock()
+
+	for id := range s.workers {
+		delete(s.workers, id)
+	}
+	s.nextWorker = 0
 }
 
 // worker respresents a process that is attempting to sync from the specified start block to target block
@@ -226,8 +243,7 @@ func (cs *chainSync) setBlockAnnounce(from peer.ID, header *types.Header) error 
 	return cs.setPeerHead(from, header.Hash(), header.Number)
 }
 
-// setPeerHead sets a peer's best known block and adds the peer's state to the workQueue
-// to potentially trigger a worker
+// setPeerHead sets a peer's best known block and potentially adds the peer's state to the workQueue
 func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) error {
 	ps := &peerState{
 		hash:   hash,

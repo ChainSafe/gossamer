@@ -15,6 +15,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
+const	blockRequestSize        uint32 = 128
+
 // NewMockBlockState create and return a network BlockState interface mock
 func NewMockBlockState(n *big.Int) *mockBlockState {
 	parentHash, _ := common.HexToHash("0x4545454545454545454545454545454545454545454545454545454545454545")

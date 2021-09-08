@@ -18,34 +18,25 @@ package network
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	"reflect"
-	"sort"
-	"sync"
-	"sync/atomic"
 	"time"
 
-	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/blocktree"
-	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
-	"github.com/ChainSafe/gossamer/lib/common/variadic"
+	//"github.com/ChainSafe/gossamer/lib/common"
 
-	"github.com/ChainSafe/chaindb"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-// SendBlockReqestByHash sends a block request to the network with the given block hash
-func (s *Service) SendBlockReqestByHash(hash common.Hash) {
-	req := createBlockRequestWithHash(hash, blockRequestSize)
-	s.syncQueue.requestDataByHash.Delete(hash)
-	s.syncQueue.trySync(&syncRequest{
-		req: req,
-		to:  "",
-	})
-}
+var maxBlockResponseSize   uint64 = 1024 * 1024 * 4 // 4mb
+
+// // SendBlockReqestByHash sends a block request to the network with the given block hash
+// func (s *Service) SendBlockReqestByHash(hash common.Hash) {
+// 	req := createBlockRequestWithHash(hash, blockRequestSize)
+// 	s.syncQueue.requestDataByHash.Delete(hash)
+// 	s.syncQueue.trySync(&syncRequest{
+// 		req: req,
+// 		to:  "",
+// 	})
+// }
 
 // handleSyncStream handles streams with the <protocol-id>/sync/2 protocol ID
 func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
@@ -128,13 +119,12 @@ func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) er
 
 	return nil
 }
-
+/*
 const (
 	blockRequestSize        uint32 = 128
 	blockRequestBufferSize  int    = 6
 	blockResponseBufferSize int    = 6
 
-	maxBlockResponseSize   uint64 = 1024 * 1024 * 4 // 4mb
 	badPeerThreshold       int    = -2
 	protectedPeerThreshold int    = 7
 
@@ -1025,3 +1015,4 @@ func sortResponses(resps []*types.BlockData) []*types.BlockData {
 		}
 	}
 }
+*/

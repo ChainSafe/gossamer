@@ -45,13 +45,9 @@ type Syncer interface {
 
 	// IsSynced exposes the internal synced state // TODO: use syncQueue for this
 	IsSynced() bool
+	
 	// CreateBlockResponse is called upon receipt of a BlockRequestMessage to create the response
 	CreateBlockResponse(*BlockRequestMessage) (*BlockResponseMessage, error)
-
-	// TODO: remove everything below this
-	SetSyncing(bool)
-	ProcessJustification(data []*types.BlockData) (int, error)
-	ProcessBlockData(data []*types.BlockData) (int, error)
 }
 
 // TransactionHandler is the interface used by the transactions sub-protocol

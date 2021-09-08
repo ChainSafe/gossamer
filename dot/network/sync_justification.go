@@ -16,34 +16,34 @@
 
 package network
 
-import (
-	"math/big"
+// import (
+// 	"math/big"
 
-	"github.com/libp2p/go-libp2p-core/peer"
-)
+// 	"github.com/libp2p/go-libp2p-core/peer"
+// )
 
-// SendJustificationRequest pushes a justification request to the queue to be sent out to the network
-func (s *Service) SendJustificationRequest(to peer.ID, num uint32) {
-	s.syncQueue.pushJustificationRequest(to, uint64(num))
-}
+// // SendJustificationRequest pushes a justification request to the queue to be sent out to the network
+// func (s *Service) SendJustificationRequest(to peer.ID, num uint32) {
+// 	s.syncQueue.pushJustificationRequest(to, uint64(num))
+// }
 
-func (q *syncQueue) pushJustificationRequest(to peer.ID, start uint64) {
-	startHash, err := q.s.blockState.GetHashByNumber(big.NewInt(int64(start)))
-	if err != nil {
-		logger.Debug("failed to get hash for block w/ number", "number", start, "error", err)
-		return
-	}
+// func (q *syncQueue) pushJustificationRequest(to peer.ID, start uint64) {
+// 	startHash, err := q.s.blockState.GetHashByNumber(big.NewInt(int64(start)))
+// 	if err != nil {
+// 		logger.Debug("failed to get hash for block w/ number", "number", start, "error", err)
+// 		return
+// 	}
 
-	req := createBlockRequestWithHash(startHash, blockRequestSize)
-	req.RequestedData = RequestedDataJustification
+// 	req := createBlockRequestWithHash(startHash, blockRequestSize)
+// 	req.RequestedData = RequestedDataJustification
 
-	logger.Debug("pushing justification request to queue", "start", start, "hash", startHash)
-	q.justificationRequestData.Store(startHash, requestData{
-		received: false,
-	})
+// 	logger.Debug("pushing justification request to queue", "start", start, "hash", startHash)
+// 	q.justificationRequestData.Store(startHash, requestData{
+// 		received: false,
+// 	})
 
-	q.requestCh <- &syncRequest{
-		req: req,
-		to:  to,
-	}
-}
+// 	q.requestCh <- &syncRequest{
+// 		req: req,
+// 		to:  to,
+// 	}
+// }

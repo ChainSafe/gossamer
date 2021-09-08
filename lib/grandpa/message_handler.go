@@ -99,7 +99,8 @@ func (h *MessageHandler) handleNeighbourMessage(from peer.ID, msg *NeighbourMess
 	}
 
 	logger.Debug("got neighbour message", "number", msg.Number, "set id", msg.SetID, "round", msg.Round)
-	h.grandpa.network.SendJustificationRequest(from, msg.Number)
+	// TODO: re-connect this to sync package?
+	//h.grandpa.network.SendJustificationRequest(from, msg.Number)
 	return nil
 }
 
@@ -114,7 +115,7 @@ func (h *MessageHandler) handleCommitMessage(msg *CommitMessage) error {
 	if err := h.verifyCommitMessageJustification(msg); err != nil {
 		if errors.Is(err, blocktree.ErrStartNodeNotFound) {
 			// TODO: make this synchronous
-			go h.grandpa.network.SendBlockReqestByHash(msg.Vote.Hash)
+			//go h.grandpa.network.SendBlockReqestByHash(msg.Vote.Hash)
 			h.grandpa.tracker.addCommit(msg)
 		}
 		return err
