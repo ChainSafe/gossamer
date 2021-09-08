@@ -88,7 +88,7 @@ func (b *Service) slotTime(slot, slotTail uint64) (uint64, error) {
 	head := b.blockState.BestBlockHash()
 	tail := new(big.Int).SetUint64(slotTail)
 
-	deepestBlock, err := b.blockState.GetHeaderVdt(head)
+	deepestBlock, err := b.blockState.GetHeader(head)
 	if err != nil {
 		return 0, fmt.Errorf("cannot get deepest block: %s", err)
 	}

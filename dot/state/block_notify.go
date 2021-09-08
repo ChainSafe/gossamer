@@ -134,7 +134,7 @@ func (bs *BlockState) notifyFinalized(hash common.Hash, round, setID uint64) {
 		return
 	}
 
-	header, err := bs.GetHeaderVdt(hash)
+	header, err := bs.GetHeader(hash)
 	if err != nil {
 		logger.Error("failed to get finalised header", "hash", hash, "error", err)
 		return

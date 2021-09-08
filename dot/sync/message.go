@@ -64,7 +64,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 		startHash = block.Header.Hash()
 	case common.Hash:
 		startHash = startBlock
-		startHeader, err = s.blockState.GetHeaderVdt(startHash)
+		startHeader, err = s.blockState.GetHeader(startHash)
 		if err != nil {
 			return nil, err
 		}
@@ -72,7 +72,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 
 	if blockRequest.EndBlockHash != nil && blockRequest.EndBlockHash.Exists() {
 		endHash = blockRequest.EndBlockHash.Value()
-		endHeader, err = s.blockState.GetHeaderVdt(endHash)
+		endHeader, err = s.blockState.GetHeader(endHash)
 		if err != nil {
 			return nil, err
 		}
@@ -146,7 +146,7 @@ func (s *Service) getBlockData(num *big.Int, requestedData byte) (*types.BlockDa
 	}
 
 	if (requestedData & network.RequestedDataHeader) == 1 {
-		retData, err := s.blockState.GetHeaderVdt(hash)
+		retData, err := s.blockState.GetHeader(hash)
 		if err == nil && retData != nil {
 			blockData.Header = retData
 		}

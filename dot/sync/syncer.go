@@ -140,7 +140,7 @@ func (s *Service) ProcessJustification(data []*types.BlockDataVdt) (int, error) 
 	}
 
 	for i, bd := range data {
-		header, err := s.blockState.GetHeaderVdt(bd.Hash)
+		header, err := s.blockState.GetHeader(bd.Hash)
 		if err != nil {
 			return i, err
 		}
@@ -306,7 +306,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 		return errors.New("block, header, or body is nil")
 	}
 
-	parent, err := s.blockState.GetHeaderVdt(block.Header.ParentHash)
+	parent, err := s.blockState.GetHeader(block.Header.ParentHash)
 	if err != nil {
 		return fmt.Errorf("failed to get parent hash: %w", err)
 	}

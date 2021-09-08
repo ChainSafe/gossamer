@@ -31,7 +31,7 @@ type BlockState interface {
 	GenesisHash() common.Hash
 	HasHeader(hash common.Hash) (bool, error)
 	//GetHeader(hash common.Hash) (*types.Header, error)
-	GetHeaderVdt(hash common.Hash) (*types.HeaderVdt, error)
+	GetHeader(hash common.Hash) (*types.HeaderVdt, error)
 	GetHeaderByNumberVdt(num *big.Int) (*types.HeaderVdt, error)
 	IsDescendantOf(parent, child common.Hash) (bool, error)
 	HighestCommonAncestor(a, b common.Hash) (common.Hash, error)

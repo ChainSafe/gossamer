@@ -822,7 +822,7 @@ func (s *Service) finalise() error {
 		return err
 	}
 
-	s.head, err = s.blockState.GetHeaderVdt(bfc.Hash)
+	s.head, err = s.blockState.GetHeader(bfc.Hash)
 	if err != nil {
 		return err
 	}
@@ -1148,7 +1148,7 @@ func (s *Service) getPossibleSelectedAncestors(votes []Vote, curr common.Hash, s
 
 		if total >= threshold {
 			var h *types.HeaderVdt
-			h, err = s.blockState.GetHeaderVdt(pred)
+			h, err = s.blockState.GetHeader(pred)
 			if err != nil {
 				return nil, err
 			}
@@ -1253,7 +1253,7 @@ func (s *Service) findParentWithNumber(v *Vote, n uint32) (*Vote, error) {
 		return v, nil
 	}
 
-	b, err := s.blockState.GetHeaderVdt(v.Hash)
+	b, err := s.blockState.GetHeader(v.Hash)
 	if err != nil {
 		return nil, err
 	}
@@ -1262,7 +1262,7 @@ func (s *Service) findParentWithNumber(v *Vote, n uint32) (*Vote, error) {
 	l := int(v.Number - n)
 
 	for i := 0; i < l; i++ {
-		p, err := s.blockState.GetHeaderVdt(b.ParentHash)
+		p, err := s.blockState.GetHeader(b.ParentHash)
 		if err != nil {
 			return nil, err
 		}

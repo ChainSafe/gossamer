@@ -148,7 +148,7 @@ func NewVoteFromHash(hash common.Hash, blockState BlockState) (*Vote, error) {
 		return nil, ErrBlockDoesNotExist
 	}
 
-	h, err := blockState.GetHeaderVdt(hash)
+	h, err := blockState.GetHeader(hash)
 	if err != nil {
 		return nil, err
 	}

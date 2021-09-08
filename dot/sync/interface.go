@@ -41,7 +41,7 @@ type BlockState interface {
 	//SetHeader(*types.Header) error
 	SetHeaderNew(*types.HeaderVdt) error
 	//GetHeader(common.Hash) (*types.Header, error)
-	GetHeaderVdt(common.Hash) (*types.HeaderVdt, error)
+	GetHeader(common.Hash) (*types.HeaderVdt, error)
 	HasHeader(hash common.Hash) (bool, error)
 	SubChain(start, end common.Hash) ([]common.Hash, error)
 	GetReceipt(common.Hash) ([]byte, error)

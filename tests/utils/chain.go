@@ -29,7 +29,7 @@ import (
 )
 
 //// GetHeader calls the endpoint chain_getHeader
-//func GetHeader(t *testing.T, node *Node, hash common.Hash) *types.Header { //nolint
+//func GetHeader(t *testing.T, node *Node, hash common.Hash) *types.HeaderVdt { //nolint
 //	respBody, err := PostRPC(ChainGetHeader, NewEndpoint(node.RPCPort), "[\""+hash.String()+"\"]")
 //	require.NoError(t, err)
 //
@@ -37,7 +37,7 @@ import (
 //	err = DecodeRPC(t, respBody, header)
 //	require.Nil(t, err)
 //
-//	return HeaderResponseToHeader(t, header)
+//	return HeaderResponseToHeaderVdt(t, header)
 //}
 
 // GetChainHead calls the endpoint chain_getHeader to get the latest chain head

@@ -151,9 +151,9 @@ func (cm *ChainModule) GetFinalizedHeadByRound(r *http.Request, req *ChainFinali
 	return nil
 }
 
-func (cm *ChainModule) GetHeaderVdt(r *http.Request, req *ChainHashRequest, res *ChainBlockHeaderResponse) error {
+func (cm *ChainModule) GetHeader(r *http.Request, req *ChainHashRequest, res *ChainBlockHeaderResponse) error {
 	hash := cm.hashLookup(req)
-	header, err := cm.blockAPI.GetHeaderVdt(hash)
+	header, err := cm.blockAPI.GetHeader(hash)
 	if err != nil {
 		return err
 	}

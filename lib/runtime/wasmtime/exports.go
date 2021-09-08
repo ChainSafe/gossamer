@@ -27,8 +27,6 @@ import (
 	"github.com/ChainSafe/gossamer/lib/transaction"
 )
 
-//TODO This is to save changes
-
 // Metadata calls runtime function Metadata_metadata
 func (in *Instance) Metadata() ([]byte, error) {
 	return in.exec(runtime.Metadata, []byte{})

@@ -88,7 +88,7 @@ func (p *OfflinePruner) SetBloomFilter() error {
 		return err
 	}
 
-	header, err := p.blockState.GetHeaderVdt(finalisedHash)
+	header, err := p.blockState.GetHeader(finalisedHash)
 	if err != nil {
 		return err
 	}
@@ -116,7 +116,7 @@ func (p *OfflinePruner) SetBloomFilter() error {
 		}
 
 		// get parent header of current block
-		header, err = p.blockState.GetHeaderVdt(header.ParentHash)
+		header, err = p.blockState.GetHeader(header.ParentHash)
 		if err != nil {
 			return err
 		}

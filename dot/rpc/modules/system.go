@@ -240,7 +240,7 @@ func (sm *SystemModule) AccountNextIndex(r *http.Request, req *StringRequest, re
 
 // SyncState Returns the state of the syncing of the node.
 func (sm *SystemModule) SyncState(r *http.Request, req *EmptyRequest, res *SyncStateResponse) error {
-	h, err := sm.blockAPI.GetHeaderVdt(sm.blockAPI.BestBlockHash())
+	h, err := sm.blockAPI.GetHeader(sm.blockAPI.BestBlockHash())
 	if err != nil {
 		return err
 	}

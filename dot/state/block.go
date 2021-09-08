@@ -237,7 +237,7 @@ func (bs *BlockState) HasHeader(hash common.Hash) (bool, error) {
 }
 
 // GetHeader returns a BlockHeader for a given hash
-func (bs *BlockState) GetHeaderVdt(hash common.Hash) (*types.HeaderVdt, error) {
+func (bs *BlockState) GetHeader(hash common.Hash) (*types.HeaderVdt, error) {
 	result := types.NewEmptyHeaderVdt()
 
 	if bs.db == nil {
@@ -285,12 +285,12 @@ func (bs *BlockState) GetHeaderByNumberVdt(num *big.Int) (*types.HeaderVdt, erro
 	}
 
 	hash := common.NewHash(bh)
-	return bs.GetHeaderVdt(hash)
+	return bs.GetHeader(hash)
 }
 
 // GetBlockByHash returns a block for a given hash
 func (bs *BlockState) GetBlockByHashVdt(hash common.Hash) (*types.Block, error) {
-	header, err := bs.GetHeaderVdt(hash)
+	header, err := bs.GetHeader(hash)
 	if err != nil {
 		return nil, err
 	}
@@ -334,7 +334,6 @@ func (bs *BlockState) GetBlockHash(blockNumber *big.Int) (common.Hash, error) {
 func (bs *BlockState) SetHeaderNew(header *types.HeaderVdt) error {
 	hash := header.Hash()
 	// Write the encoded header
-	//bh, err := header.Encode()
 	bh, err := scale.Marshal(*header)
 	if err != nil {
 		return err
@@ -473,7 +472,7 @@ func (bs *BlockState) handleAddedBlock(prev, curr common.Hash) error {
 	batch := bs.db.NewBatch()
 	for _, hash := range subchain {
 		// TODO: set number from ancestor.Number + i ?
-		header, err := bs.GetHeaderVdt(hash)
+		header, err := bs.GetHeader(hash)
 		if err != nil {
 			return fmt.Errorf("failed to get header in subchain: %w", err)
 		}
@@ -540,12 +539,12 @@ func (bs *BlockState) BestBlockHash() common.Hash {
 
 // BestBlockHeader returns the block header of the current head of the chain// BestBlockHeader returns the block header of the current head of the chain
 func (bs *BlockState) BestBlockHeaderVdt() (*types.HeaderVdt, error) {
-	return bs.GetHeaderVdt(bs.BestBlockHash())
+	return bs.GetHeader(bs.BestBlockHash())
 }
 
 // BestBlockStateRoot returns the state root of the current head of the chain
 func (bs *BlockState) BestBlockStateRoot() (common.Hash, error) {
-	header, err := bs.GetHeaderVdt(bs.BestBlockHash())
+	header, err := bs.GetHeader(bs.BestBlockHash())
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -555,7 +554,7 @@ func (bs *BlockState) BestBlockStateRoot() (common.Hash, error) {
 
 // BestBlockNumber returns the block number of the current head of the chain
 func (bs *BlockState) BestBlockNumber() (*big.Int, error) {
-	header, err := bs.GetHeaderVdt(bs.BestBlockHash())
+	header, err := bs.GetHeader(bs.BestBlockHash())
 	if err != nil {
 		return nil, err
 	}
@@ -574,7 +573,7 @@ func (bs *BlockState) BestBlockVdt() (*types.Block, error) {
 
 // GetSlotForBlock returns the slot for a block
 func (bs *BlockState) GetSlotForBlock(hash common.Hash) (uint64, error) {
-	header, err := bs.GetHeaderVdt(hash)
+	header, err := bs.GetHeader(hash)
 	if err != nil {
 		return 0, err
 	}

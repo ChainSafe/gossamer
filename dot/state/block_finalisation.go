@@ -57,7 +57,7 @@ func (bs *BlockState) GetFinalisedHeaderVdt(round, setID uint64) (*types.HeaderV
 		return nil, err
 	}
 
-	header, err := bs.GetHeaderVdt(h)
+	header, err := bs.GetHeader(h)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +118,7 @@ func (bs *BlockState) GetHighestFinalisedHeader() (*types.HeaderVdt, error) {
 		return nil, err
 	}
 
-	header, err := bs.GetHeaderVdt(h)
+	header, err := bs.GetHeader(h)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +151,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 
 	pruned := bs.bt.Prune(hash)
 	for _, hash := range pruned {
-		header, err := bs.GetHeaderVdt(hash)
+		header, err := bs.GetHeader(hash)
 		if err != nil {
 			logger.Debug("failed to get pruned header", "hash", hash, "error", err)
 			continue

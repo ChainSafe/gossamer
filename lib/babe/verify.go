@@ -356,7 +356,7 @@ func (b *verifier) verifyAuthorshipRightVdt(header *types.HeaderVdt) error {
 	hashes := b.blockState.GetAllBlocksAtDepth(header.ParentHash)
 
 	for _, hash := range hashes {
-		currentHeader, err := b.blockState.GetHeaderVdt(hash)
+		currentHeader, err := b.blockState.GetHeader(hash)
 		if err != nil {
 			continue
 		}
