@@ -59,17 +59,11 @@ func createBlockRequests(start, end int64) []*BlockRequestMessage {
 }
 
 func TestDecodeSyncMessage(t *testing.T) {
-	s := &Service{
-		ctx: context.Background(),
-	}
-
-	s.syncQueue = newSyncQueue(s)
 	testPeer := peer.ID("noot")
-
 	reqEnc, err := testBlockRequestMessage.Encode()
 	require.NoError(t, err)
 
-	msg, err := s.decodeSyncMessage(reqEnc, testPeer, true)
+	msg, err := decodeSyncMessage(reqEnc, testPeer, true)
 	require.NoError(t, err)
 
 	req, ok := msg.(*BlockRequestMessage)
@@ -468,6 +462,7 @@ func TestSyncQueue_SyncAtHead(t *testing.T) {
 	time.Sleep(time.Second)
 	q.ctx = context.Background()
 	q.slotDuration = time.Millisecond * 100
+	q.goal = 129
 
 	go q.syncAtHead()
 	time.Sleep(q.slotDuration * 3)
@@ -484,9 +479,9 @@ func TestSyncQueue_PushRequest_NearHead(t *testing.T) {
 	q.stop()
 	time.Sleep(time.Second)
 	q.ctx = context.Background()
-	q.goal = 0
+	q.goal = 129
 
-	q.pushRequest(1, 1, "")
+	q.pushRequest(2, 1, "")
 	select {
 	case req := <-q.requestCh:
 		require.Equal(t, uint64(2), req.req.StartingBlock.Uint64())
