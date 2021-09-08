@@ -80,8 +80,7 @@ type TransactionState interface {
 
 // Verifier deals with block verification
 type Verifier interface {
-	//VerifyBlock(header *types.Header) error
-	VerifyBlockVdt(header *types.HeaderVdt) error
+	VerifyBlock(header *types.HeaderVdt) error
 }
 
 // FinalityGadget implements justification verification functionality

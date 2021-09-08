@@ -80,12 +80,10 @@ type EpochState interface {
 	HasConfigData(epoch uint64) (bool, error)
 	GetLatestConfigData() (*types.ConfigData, error)
 	GetStartSlotForEpoch(epoch uint64) (uint64, error)
-	//GetEpochForBlock(header *types.Header) (uint64, error)
-	GetEpochForBlockVdt(header *types.HeaderVdt) (uint64, error)
+	GetEpochForBlock(header *types.HeaderVdt) (uint64, error)
 	SetFirstSlot(slot uint64) error
 	GetLatestEpochData() (*types.EpochData, error)
-	//SkipVerify(*types.Header) (bool, error)
-	SkipVerifyVdt(*types.HeaderVdt) (bool, error)
+	SkipVerify(*types.HeaderVdt) (bool, error)
 	GetEpochFromTime(time.Time) (uint64, error)
 }
 

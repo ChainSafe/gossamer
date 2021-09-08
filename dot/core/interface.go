@@ -82,7 +82,7 @@ type Network interface {
 
 // EpochState is the interface for state.EpochState
 type EpochState interface {
-	GetEpochForBlockVdt(header *types.HeaderVdt) (uint64, error)
+	GetEpochForBlock(header *types.HeaderVdt) (uint64, error)
 	SetCurrentEpoch(epoch uint64) error
 	GetCurrentEpoch() (uint64, error)
 }

@@ -183,7 +183,7 @@ func (s *EpochState) GetCurrentEpoch() (uint64, error) {
 }
 
 // GetEpochForBlock checks the pre-runtime digest to determine what epoch the block was formed in.
-func (s *EpochState) GetEpochForBlockVdt(header *types.HeaderVdt) (uint64, error) {
+func (s *EpochState) GetEpochForBlock(header *types.HeaderVdt) (uint64, error) {
 	if header == nil {
 		return 0, errors.New("header is nil")
 	}
@@ -369,8 +369,8 @@ func (s *EpochState) SetFirstSlot(slot uint64) error {
 
 // SkipVerify returns whether verification for the given header should be skipped or not.
 // Only used in the case of imported state.
-func (s *EpochState) SkipVerifyVdt(header *types.HeaderVdt) (bool, error) {
-	epoch, err := s.GetEpochForBlockVdt(header)
+func (s *EpochState) SkipVerify(header *types.HeaderVdt) (bool, error) {
+	epoch, err := s.GetEpochForBlock(header)
 	if err != nil {
 		return false, err
 	}

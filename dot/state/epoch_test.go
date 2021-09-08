@@ -159,7 +159,7 @@ func TestEpochState_GetEpochForBlock(t *testing.T) {
 		Digest: digest,
 	}
 
-	epoch, err := s.GetEpochForBlockVdt(header)
+	epoch, err := s.GetEpochForBlock(header)
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), epoch)
 
@@ -173,7 +173,7 @@ func TestEpochState_GetEpochForBlock(t *testing.T) {
 		Digest: digest2,
 	}
 
-	epoch, err = s.GetEpochForBlockVdt(header)
+	epoch, err = s.GetEpochForBlock(header)
 	require.NoError(t, err)
 	require.Equal(t, uint64(2), epoch)
 }

@@ -392,7 +392,7 @@ func (s *Service) handleCurrentSlotVdt(header *types.HeaderVdt) error {
 		return nil
 	}
 
-	epoch, err := s.epochState.GetEpochForBlockVdt(header)
+	epoch, err := s.epochState.GetEpochForBlock(header)
 	if err != nil {
 		return err
 	}

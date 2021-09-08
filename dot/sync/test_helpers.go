@@ -52,8 +52,7 @@ func NewMockFinalityGadget() *syncmocks.FinalityGadget {
 // NewMockVerifier create and return sync Verifier interface mock
 func NewMockVerifier() *syncmocks.MockVerifier {
 	m := new(syncmocks.MockVerifier)
-	m.On("VerifyBlock", mock.AnythingOfType("*types.Header")).Return(nil)
-	m.On("VerifyBlockVdt", mock.AnythingOfType("*types.HeaderVdt")).Return(nil)
+	m.On("VerifyBlock", mock.AnythingOfType("*types.HeaderVdt")).Return(nil)
 	return m
 }
 

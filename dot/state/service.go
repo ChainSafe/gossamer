@@ -222,7 +222,7 @@ func (s *Service) Rewind(toBlock int64) error {
 	header, _ := s.Block.BestBlockHeaderVdt()
 	logger.Info("rewinding state...", "new height", header.Number, "best block hash", newHead)
 
-	epoch, err := s.Epoch.GetEpochForBlockVdt(header)
+	epoch, err := s.Epoch.GetEpochForBlock(header)
 	if err != nil {
 		return err
 	}
@@ -341,7 +341,7 @@ func (s *Service) Import(header *types.HeaderVdt, t *trie.Trie, firstSlot uint64
 		return err
 	}
 
-	blockEpoch, err := epoch.GetEpochForBlockVdt(header)
+	blockEpoch, err := epoch.GetEpochForBlock(header)
 	if err != nil {
 		return err
 	}

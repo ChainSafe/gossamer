@@ -462,7 +462,7 @@ func (h *Handler) handleNextEpochData(d *types.ConsensusDigest, header *types.He
 
 	logger.Debug("handling BABENextEpochData", "data", od)
 
-	currEpoch, err := h.epochState.GetEpochForBlockVdt(header)
+	currEpoch, err := h.epochState.GetEpochForBlock(header)
 	if err != nil {
 		return err
 	}
@@ -494,7 +494,7 @@ func (h *Handler) handleNextConfigData(d *types.ConsensusDigest, header *types.H
 
 	logger.Debug("handling BABENextConfigData", "data", od)
 
-	currEpoch, err := h.epochState.GetEpochForBlockVdt(header)
+	currEpoch, err := h.epochState.GetEpochForBlock(header)
 	if err != nil {
 		return err
 	}

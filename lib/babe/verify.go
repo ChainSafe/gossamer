@@ -76,7 +76,7 @@ func NewVerificationManager(blockState BlockState, epochState EpochState) (*Veri
 
 // SetOnDisabled sets the BABE authority with the given index as disabled for the rest of the epoch
 func (v *VerificationManager) SetOnDisabledVdt(index uint32, header *types.HeaderVdt) error {
-	epoch, err := v.epochState.GetEpochForBlockVdt(header)
+	epoch, err := v.epochState.GetEpochForBlock(header)
 	if err != nil {
 		return err
 	}
@@ -141,7 +141,7 @@ func (v *VerificationManager) SetOnDisabledVdt(index uint32, header *types.Heade
 
 // VerifyBlock verifies that the block producer for the given block was authorized to produce it.
 // It returns an error if the block is invalid.
-func (v *VerificationManager) VerifyBlockVdt(header *types.HeaderVdt) error {
+func (v *VerificationManager) VerifyBlock(header *types.HeaderVdt) error {
 	var (
 		info *verifierInfo
 		has  bool
@@ -170,7 +170,7 @@ func (v *VerificationManager) VerifyBlockVdt(header *types.HeaderVdt) error {
 		}
 	}
 
-	epoch, err := v.epochState.GetEpochForBlockVdt(header)
+	epoch, err := v.epochState.GetEpochForBlock(header)
 	if err != nil {
 		return fmt.Errorf("failed to get epoch for block header: %w", err)
 	}
@@ -183,7 +183,7 @@ func (v *VerificationManager) VerifyBlockVdt(header *types.HeaderVdt) error {
 			v.lock.Unlock()
 			// SkipVerify is set to true only in the case where we have imported a state at a given height,
 			// thus missing the epoch data for previous epochs.
-			skip, err2 := v.epochState.SkipVerifyVdt(header)
+			skip, err2 := v.epochState.SkipVerify(header)
 			if err2 != nil {
 				return fmt.Errorf("failed to check if verification can be skipped: %w", err)
 			}

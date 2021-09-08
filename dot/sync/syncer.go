@@ -275,7 +275,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockDataVdt) (int, error) {
 // handleHeader handles headers included in BlockResponses
 func (s *Service) handleHeader(header *types.HeaderVdt) error {
 	// TODO: update BABE pre-runtime digest types
-	err := s.verifier.VerifyBlockVdt(header)
+	err := s.verifier.VerifyBlock(header)
 	if err != nil {
 		return fmt.Errorf("%w: %s", ErrInvalidBlock, err.Error())
 	}
