@@ -107,25 +107,6 @@ func (bs *BlockState) notifyImportedVdt(block *types.Block) {
 	}
 }
 
-//func (bs *BlockState) notifyImported(block *types.Block) {
-//	bs.importedLock.RLock()
-//	defer bs.importedLock.RUnlock()
-//
-//	if len(bs.imported) == 0 {
-//		return
-//	}
-//
-//	logger.Trace("notifying imported block chans...", "chans", bs.imported)
-//	for _, ch := range bs.imported {
-//		go func(ch chan<- *types.BlockVdt) {
-//			select {
-//			case ch <- block:
-//			default:
-//			}
-//		}(ch)
-//	}
-//}
-
 func (bs *BlockState) notifyFinalized(hash common.Hash, round, setID uint64) {
 	bs.finalisedLock.RLock()
 	defer bs.finalisedLock.RUnlock()

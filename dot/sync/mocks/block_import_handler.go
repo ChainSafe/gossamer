@@ -27,16 +27,3 @@ func (_m *MockBlockImportHandler) HandleBlockImport(block *types.Block, state *s
 
 	return r0
 }
-
-func (_m *MockBlockImportHandler) HandleBlockImportVdt(block *types.Block, state *storage.TrieState) error {
-	ret := _m.Called(block, state)
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(*types.Block, *storage.TrieState) error); ok {
-		r0 = rf(block, state)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
