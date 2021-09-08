@@ -250,7 +250,7 @@ func TestInitNode_LoadGenesisData(t *testing.T) {
 	}
 	require.Equal(t, expected, gendata)
 
-	genesisHeader, err = stateSrvc.Block.BestBlockHeaderVdt()
+	genesisHeader, err = stateSrvc.Block.BestBlockHeader()
 	require.NoError(t, err)
 
 	stateRoot := genesisHeader.StateRoot

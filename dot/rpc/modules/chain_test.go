@@ -37,7 +37,7 @@ func TestChainGetHeader_Genesis(t *testing.T) {
 	state := newTestStateService(t)
 	svc := NewChainModule(state.Block)
 
-	header, err := state.Block.BestBlockHeaderVdt()
+	header, err := state.Block.BestBlockHeader()
 	require.NoError(t, err)
 
 	d, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest().Encode()
@@ -58,7 +58,7 @@ func TestChainGetHeader_Genesis(t *testing.T) {
 	res := &ChainBlockHeaderResponse{}
 	req := &ChainHashRequest{Bhash: &hash}
 
-	err = svc.GetHeaderVdt(nil, req, res)
+	err = svc.GetHeader(nil, req, res)
 	require.NoError(t, err)
 	require.Equal(t, expected, res)
 }
@@ -67,7 +67,7 @@ func TestChainGetHeader_Latest(t *testing.T) {
 	state := newTestStateService(t)
 	svc := NewChainModule(state.Block)
 
-	header, err := state.Block.BestBlockHeaderVdt()
+	header, err := state.Block.BestBlockHeader()
 	require.NoError(t, err)
 
 	d, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest().Encode()
@@ -86,7 +86,7 @@ func TestChainGetHeader_Latest(t *testing.T) {
 	res := &ChainBlockHeaderResponse{}
 	req := &ChainHashRequest{} // empty request should return latest hash
 
-	err = svc.GetHeaderVdt(nil, req, res)
+	err = svc.GetHeader(nil, req, res)
 	require.NoError(t, err)
 	require.Equal(t, expected, res)
 }
@@ -101,7 +101,7 @@ func TestChainGetHeader_NotFound(t *testing.T) {
 	res := &ChainBlockHeaderResponse{}
 	req := &ChainHashRequest{Bhash: &bhash}
 
-	err = svc.GetHeaderVdt(nil, req, res)
+	err = svc.GetHeader(nil, req, res)
 	require.EqualError(t, err, database.ErrKeyNotFound.Error())
 }
 
@@ -109,7 +109,7 @@ func TestChainGetBlock_Genesis(t *testing.T) {
 	state := newTestStateService(t)
 	svc := NewChainModule(state.Block)
 
-	header, err := state.Block.BestBlockHeaderVdt()
+	header, err := state.Block.BestBlockHeader()
 	require.NoError(t, err)
 
 	d, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest().Encode()
@@ -147,7 +147,7 @@ func TestChainGetBlock_Latest(t *testing.T) {
 	state := newTestStateService(t)
 	svc := NewChainModule(state.Block)
 
-	header, err := state.Block.BestBlockHeaderVdt()
+	header, err := state.Block.BestBlockHeader()
 	require.NoError(t, err)
 
 	d, err := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest().Encode()
@@ -218,7 +218,7 @@ func TestChainGetBlockHash_ByNumber(t *testing.T) {
 	err := svc.GetBlockHash(nil, &req, &res)
 	require.Nil(t, err)
 
-	expected, err := state.Block.GetBlockByNumberVdt(big.NewInt(1))
+	expected, err := state.Block.GetBlockByNumber(big.NewInt(1))
 	require.NoError(t, err)
 	require.Equal(t, expected.Header.Hash().String(), res)
 }
@@ -234,7 +234,7 @@ func TestChainGetBlockHash_ByHex(t *testing.T) {
 	err := svc.GetBlockHash(nil, &req, &res)
 	require.NoError(t, err)
 
-	expected, err := state.Block.GetBlockByNumberVdt(big.NewInt(1))
+	expected, err := state.Block.GetBlockByNumber(big.NewInt(1))
 	require.NoError(t, err)
 	require.Equal(t, expected.Header.Hash().String(), res)
 }
@@ -254,9 +254,9 @@ func TestChainGetBlockHash_Array(t *testing.T) {
 	err := svc.GetBlockHash(nil, &req, &res)
 	require.Nil(t, err)
 
-	expected0, err := state.Block.GetBlockByNumberVdt(big.NewInt(0))
+	expected0, err := state.Block.GetBlockByNumber(big.NewInt(0))
 	require.NoError(t, err)
-	expected1, err := state.Block.GetBlockByNumberVdt(big.NewInt(1))
+	expected1, err := state.Block.GetBlockByNumber(big.NewInt(1))
 	require.NoError(t, err)
 	expected := []string{expected0.Header.Hash().String(), expected1.Header.Hash().String()}
 
@@ -294,7 +294,7 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 		Number: big.NewInt(1),
 		Digest: digest,
 	}
-	err = state.Block.SetHeaderNew(header)
+	err = state.Block.SetHeader(header)
 	require.NoError(t, err)
 
 	testhash := header.Hash()
@@ -365,7 +365,7 @@ func loadTestBlocks(gh common.Hash, bs *state.BlockState, rt runtime.Instance) e
 		Body:   blockBody0,
 	}
 
-	err := bs.AddBlockVdt(block0)
+	err := bs.AddBlock(block0)
 	if err != nil {
 		return err
 	}
@@ -403,7 +403,7 @@ func loadTestBlocks(gh common.Hash, bs *state.BlockState, rt runtime.Instance) e
 	}
 
 	// Add the block1 to the DB
-	err = bs.AddBlockVdt(block1)
+	err = bs.AddBlock(block1)
 	if err != nil {
 		return err
 	}

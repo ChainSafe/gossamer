@@ -52,10 +52,10 @@ func TestConcurrencySetHeader(t *testing.T) {
 				Digest:    types.NewDigestVdt(),
 			}
 
-			err := bs.SetHeaderNew(header)
+			err := bs.SetHeader(header)
 			require.Nil(t, err)
 
-			res, err := bs.GetHeaderVdt(header.Hash())
+			res, err := bs.GetHeader(header.Hash())
 			require.Nil(t, err)
 
 			require.Equal(t, header, res)

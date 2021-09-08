@@ -232,7 +232,7 @@ func TestWSConn_HandleComm(t *testing.T) {
 	require.NoError(t, err)
 
 	BlockAPI := new(modulesmocks.BlockAPI)
-	BlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfoVdt")).
+	BlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
 		Run(func(args mock.Arguments) {
 			ch := args.Get(0).(chan<- *types.FinalisationInfo)
 			fCh = ch
@@ -288,7 +288,7 @@ func TestSubscribeAllHeads(t *testing.T) {
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}`+"\n"), msg)
 
 	mockBlockAPI := new(mocks.BlockAPI)
-	mockBlockAPI.On("RegisterImportedChannel", mock.AnythingOfType("chan<- *types.BlockVdt")).
+	mockBlockAPI.On("RegisterImportedChannel", mock.AnythingOfType("chan<- *types.Block")).
 		Return(uint8(0), errors.New("some mocked error")).Once()
 
 	wsconn.BlockAPI = mockBlockAPI
@@ -299,9 +299,9 @@ func TestSubscribeAllHeads(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"could not register imported channel"},"id":1}`+"\n"), msg)
 
-	mockBlockAPI.On("RegisterImportedChannel", mock.AnythingOfType("chan<- *types.BlockVdt")).
+	mockBlockAPI.On("RegisterImportedChannel", mock.AnythingOfType("chan<- *types.Block")).
 		Return(uint8(10), nil).Once()
-	mockBlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfoVdt")).
+	mockBlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
 		Return(uint8(0), errors.New("failed")).Once()
 
 	_, err = wsconn.initAllBlocksListerner(1, nil)
@@ -314,13 +314,13 @@ func TestSubscribeAllHeads(t *testing.T) {
 	var fCh chan<- *types.FinalisationInfo
 	var iCh chan<- *types.Block
 
-	mockBlockAPI.On("RegisterImportedChannel", mock.AnythingOfType("chan<- *types.BlockVdt")).
+	mockBlockAPI.On("RegisterImportedChannel", mock.AnythingOfType("chan<- *types.Block")).
 		Run(func(args mock.Arguments) {
 			ch := args.Get(0).(chan<- *types.Block)
 			iCh = ch
 		}).Return(importedChanID, nil).Once()
 
-	mockBlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfoVdt")).
+	mockBlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
 		Run(func(args mock.Arguments) {
 			ch := args.Get(0).(chan<- *types.FinalisationInfo)
 			fCh = ch
