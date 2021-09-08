@@ -41,7 +41,7 @@ func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) []*typ
 }
 
 func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, depth int, blockState BlockState) []*types.HeaderVdt {
-	prevHeader, err := blockState.(*state.BlockState).GetHeaderVdt(previousHash)
+	prevHeader, err := blockState.(*state.BlockState).GetHeader(previousHash)
 	require.NoError(t, err)
 	previousNum := prevHeader.Number
 
@@ -61,7 +61,7 @@ func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, dept
 		}
 
 		previousHash = block.Header.Hash()
-		err = blockState.(*state.BlockState).AddBlockVdt(block)
+		err = blockState.(*state.BlockState).AddBlock(block)
 		require.NoError(t, err)
 		headers = append(headers, &block.Header)
 	}

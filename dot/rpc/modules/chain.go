@@ -87,7 +87,7 @@ func NewChainModule(api BlockAPI) *ChainModule {
 //  the latest block body will be returned.
 func (cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *ChainBlockResponse) error {
 	hash := cm.hashLookup(req)
-	block, err := cm.blockAPI.GetBlockByHashVdt(hash)
+	block, err := cm.blockAPI.GetBlockByHash(hash)
 	if err != nil {
 		return err
 	}

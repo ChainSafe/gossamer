@@ -67,7 +67,7 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 	gs.tracker.start()
 	defer gs.tracker.stop()
 
-	parent, err := gs.blockState.BestBlockHeaderVdt()
+	parent, err := gs.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
 	next := &types.HeaderVdt{
@@ -88,7 +88,7 @@ func TestMessageTracker_SendMessage(t *testing.T) {
 	require.Equal(t, err, ErrBlockDoesNotExist)
 	require.Equal(t, expected, gs.tracker.voteMessages[next.Hash()][kr.Alice().Public().(*ed25519.PublicKey).AsBytes()])
 
-	err = gs.blockState.(*state.BlockState).AddBlockVdt(&types.Block{
+	err = gs.blockState.(*state.BlockState).AddBlock(&types.Block{
 		Header: *next,
 		Body:   types.Body{},
 	})
@@ -113,7 +113,7 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 
 	time.Sleep(time.Second) // wait for round to initiate
 
-	parent, err := gs.blockState.BestBlockHeaderVdt()
+	parent, err := gs.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
 	next := &types.HeaderVdt{
@@ -134,7 +134,7 @@ func TestMessageTracker_ProcessMessage(t *testing.T) {
 	require.Equal(t, ErrBlockDoesNotExist, err)
 	require.Equal(t, expected, gs.tracker.voteMessages[next.Hash()][kr.Alice().Public().(*ed25519.PublicKey).AsBytes()])
 
-	err = gs.blockState.(*state.BlockState).AddBlockVdt(&types.Block{
+	err = gs.blockState.(*state.BlockState).AddBlock(&types.Block{
 		Header: *next,
 		Body:   types.Body{},
 	})

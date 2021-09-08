@@ -47,7 +47,7 @@ func TestCheckForEquivocation_NoEquivocation(t *testing.T) {
 	require.NoError(t, err)
 	state.AddBlocksToState(t, st.Block, 3)
 
-	h, err := st.Block.BestBlockHeaderVdt()
+	h, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
 
 	vote := NewVoteFromHeaderVdt(h)
@@ -134,7 +134,7 @@ func TestCheckForEquivocation_WithExistingEquivocation(t *testing.T) {
 		}
 	}
 
-	h, err := st.Block.BestBlockHeaderVdt()
+	h, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
 
 	vote := NewVoteFromHeaderVdt(h)
@@ -190,7 +190,7 @@ func TestValidateMessage_Valid(t *testing.T) {
 	require.NoError(t, err)
 	state.AddBlocksToState(t, st.Block, 3)
 
-	h, err := st.Block.BestBlockHeaderVdt()
+	h, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
@@ -223,7 +223,7 @@ func TestValidateMessage_InvalidSignature(t *testing.T) {
 	require.NoError(t, err)
 	state.AddBlocksToState(t, st.Block, 3)
 
-	h, err := st.Block.BestBlockHeaderVdt()
+	h, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
@@ -256,7 +256,7 @@ func TestValidateMessage_SetIDMismatch(t *testing.T) {
 	require.NoError(t, err)
 	state.AddBlocksToState(t, st.Block, 3)
 
-	h, err := st.Block.BestBlockHeaderVdt()
+	h, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
 
 	gs.keypair = kr.Alice().(*ed25519.Keypair)
@@ -382,7 +382,7 @@ func TestValidateMessage_IsNotDescendant(t *testing.T) {
 		}
 	}
 
-	h, err := st.Block.BestBlockHeaderVdt()
+	h, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
 	gs.head = h
 

@@ -153,7 +153,7 @@ func (s *Service) validateMessage(from peer.ID, m *VoteMessage) (*Vote, error) {
 	if m.Round != s.state.round {
 		if m.Round < s.state.round {
 			// peer doesn't know round was finalised, send out another commit message
-			header, err := s.blockState.GetFinalisedHeaderVdt(m.Round, m.SetID) //nolint
+			header, err := s.blockState.GetFinalisedHeader(m.Round, m.SetID) //nolint
 			if err != nil {
 				return nil, err
 			}

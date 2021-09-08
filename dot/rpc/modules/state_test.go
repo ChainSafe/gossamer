@@ -501,7 +501,7 @@ func setupStateModule(t *testing.T) (*StateModule, *common.Hash, *common.Hash) {
 		Body: *types.NewBody([]byte{}),
 	}
 
-	err = chain.Block.AddBlockVdt(b)
+	err = chain.Block.AddBlock(b)
 	require.NoError(t, err)
 
 	rt, err := chain.Block.GetRuntime(&b.Header.ParentHash)

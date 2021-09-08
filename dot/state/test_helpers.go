@@ -66,7 +66,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 	currentChain := []*types.HeaderVdt{}
 	branchChains := []*types.HeaderVdt{}
 
-	head, err := blockState.BestBlockHeaderVdt()
+	head, err := blockState.BestBlockHeader()
 	require.NoError(t, err)
 
 	// create base tree
@@ -89,7 +89,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 		currentChain = append(currentChain, &block.Header)
 
 		hash := block.Header.Hash()
-		err := blockState.AddBlockWithArrivalTimeVdt(block, arrivalTime)
+		err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
 		require.Nil(t, err)
 
 		previousHash = hash
@@ -129,7 +129,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 			branchChains = append(branchChains, &block.Header)
 
 			hash := block.Header.Hash()
-			err := blockState.AddBlockWithArrivalTimeVdt(block, arrivalTime)
+			err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
 			require.Nil(t, err)
 
 			previousHash = hash
@@ -150,7 +150,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 	rt, err := blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	head, err := blockState.BestBlockHeaderVdt()
+	head, err := blockState.BestBlockHeader()
 	require.NoError(t, err)
 
 	// create base tree
@@ -166,7 +166,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 		}
 
 		hash := block.Header.Hash()
-		err := blockState.AddBlockWithArrivalTimeVdt(block, arrivalTime)
+		err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
 		require.Nil(t, err)
 
 		blockState.StoreRuntime(hash, rt)
@@ -207,7 +207,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 			}
 
 			hash := block.Header.Hash()
-			err := blockState.AddBlockWithArrivalTimeVdt(block, arrivalTime)
+			err := blockState.AddBlockWithArrivalTime(block, arrivalTime)
 			require.Nil(t, err)
 
 			blockState.StoreRuntime(hash, rt)

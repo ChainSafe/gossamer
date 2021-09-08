@@ -40,8 +40,7 @@ func NewMockBlockState(n *big.Int) *mockBlockState {
 	}
 
 	m := new(mockBlockState)
-	//m.On("BestBlockHeader").Return(header, nil)
-	m.On("BestBlockHeaderVdt").Return(header, nil)
+	m.On("BestBlockHeader").Return(header, nil)
 	m.On("GetHighestFinalisedHeader").Return(header, nil)
 	m.On("GenesisHash").Return(common.NewHash([]byte{}))
 	m.On("BestBlockNumber").Return(big.NewInt(1), nil)

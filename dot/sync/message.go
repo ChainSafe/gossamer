@@ -55,7 +55,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 			startBlock = 1
 		}
 
-		block, err := s.blockState.GetBlockByNumberVdt(big.NewInt(0).SetUint64(startBlock)) //nolint
+		block, err := s.blockState.GetBlockByNumber(big.NewInt(0).SetUint64(startBlock)) //nolint
 		if err != nil {
 			return nil, err
 		}
@@ -87,7 +87,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 			endNumber = bestBlockNumber
 		}
 
-		endBlock, err := s.blockState.GetBlockByNumberVdt(endNumber)
+		endBlock, err := s.blockState.GetBlockByNumber(endNumber)
 		if err != nil {
 			return nil, err
 		}

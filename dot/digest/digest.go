@@ -280,7 +280,7 @@ func (h *Handler) handleGrandpaChangesOnFinalization(num *big.Int) error {
 }
 
 func (h *Handler) handleScheduledChange(d *types.ConsensusDigest, header *types.HeaderVdt) error {
-	curr, err := h.blockState.BestBlockHeaderVdt()
+	curr, err := h.blockState.BestBlockHeader()
 	if err != nil {
 		return err
 	}
@@ -376,7 +376,7 @@ func (h *Handler) handleForcedChange(d *types.ConsensusDigest, header *types.Hea
 }
 
 func (h *Handler) handlePause(d *types.ConsensusDigest) error {
-	curr, err := h.blockState.BestBlockHeaderVdt()
+	curr, err := h.blockState.BestBlockHeader()
 	if err != nil {
 		return err
 	}
@@ -405,7 +405,7 @@ func (h *Handler) handlePause(d *types.ConsensusDigest) error {
 }
 
 func (h *Handler) handleResume(d *types.ConsensusDigest) error {
-	curr, err := h.blockState.BestBlockHeaderVdt()
+	curr, err := h.blockState.BestBlockHeader()
 	if err != nil {
 		return err
 	}

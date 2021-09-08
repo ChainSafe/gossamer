@@ -58,10 +58,10 @@ func TestSetAndGetHeader(t *testing.T) {
 		Digest:    types.NewDigestVdt(),
 	}
 
-	err := bs.SetHeaderNew(header)
+	err := bs.SetHeader(header)
 	require.NoError(t, err)
 
-	res, err := bs.GetHeaderVdt(header.Hash())
+	res, err := bs.GetHeader(header.Hash())
 	require.NoError(t, err)
 	require.Equal(t, header, res)
 }
@@ -75,7 +75,7 @@ func TestHasHeader(t *testing.T) {
 		Digest:    types.NewDigestVdt(),
 	}
 
-	err := bs.SetHeaderNew(header)
+	err := bs.SetHeader(header)
 	require.NoError(t, err)
 
 	has, err := bs.HasHeader(header.Hash())
@@ -102,10 +102,10 @@ func TestGetBlockByNumber(t *testing.T) {
 	}
 
 	// AddBlock also sets mapping [blockNumber : hash] in DB
-	err := bs.AddBlockVdt(block)
+	err := bs.AddBlock(block)
 	require.NoError(t, err)
 
-	retBlock, err := bs.GetBlockByNumberVdt(blockHeader.Number)
+	retBlock, err := bs.GetBlockByNumber(blockHeader.Number)
 	require.NoError(t, err)
 	require.Equal(t, block, retBlock, "Could not validate returned retBlock as expected")
 }
@@ -134,7 +134,7 @@ func TestAddBlock(t *testing.T) {
 	}
 
 	// Add the block0 to the DB
-	err := bs.AddBlockVdt(block0)
+	err := bs.AddBlock(block0)
 	require.NoError(t, err)
 
 	// Create header & blockData for block 1
@@ -154,16 +154,16 @@ func TestAddBlock(t *testing.T) {
 	}
 
 	// Add the block1 to the DB
-	err = bs.AddBlockVdt(block1)
+	err = bs.AddBlock(block1)
 	require.NoError(t, err)
 
 	// Get the blocks & check if it's the same as the added blocks
-	retBlock, err := bs.GetBlockByHashVdt(blockHash0)
+	retBlock, err := bs.GetBlockByHash(blockHash0)
 	require.NoError(t, err)
 
 	require.Equal(t, block0, retBlock, "Could not validate returned block0 as expected")
 
-	retBlock, err = bs.GetBlockByHashVdt(blockHash1)
+	retBlock, err = bs.GetBlockByHash(blockHash1)
 	require.NoError(t, err)
 
 	// this will panic if not successful, so catch and fail it so
@@ -210,7 +210,7 @@ func TestGetSlotForBlock(t *testing.T) {
 		Body: types.Body{},
 	}
 
-	err := bs.AddBlockVdt(block)
+	err := bs.AddBlock(block)
 	require.NoError(t, err)
 
 	res, err := bs.GetSlotForBlock(block.Header.Hash())
@@ -223,7 +223,7 @@ func TestIsBlockOnCurrentChain(t *testing.T) {
 	currChain, branchChains := AddBlocksToState(t, bs, 3)
 
 	for _, header := range currChain {
-		onChain, err := bs.isBlockOnCurrentChainVdt(header)
+		onChain, err := bs.isBlockOnCurrentChain(header)
 		require.NoError(t, err)
 
 		if !onChain {
@@ -232,7 +232,7 @@ func TestIsBlockOnCurrentChain(t *testing.T) {
 	}
 
 	for _, header := range branchChains {
-		onChain, err := bs.isBlockOnCurrentChainVdt(header)
+		onChain, err := bs.isBlockOnCurrentChain(header)
 		require.NoError(t, err)
 
 		if onChain {
@@ -246,12 +246,12 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 	currChain, branchChains := AddBlocksToState(t, bs, 8)
 
 	bestHash := bs.BestBlockHash()
-	bestHeader, err := bs.BestBlockHeaderVdt()
+	bestHeader, err := bs.BestBlockHeader()
 	require.NoError(t, err)
 
 	var resBlock *types.Block
 	for _, header := range currChain {
-		resBlock, err = bs.GetBlockByNumberVdt(header.Number)
+		resBlock, err = bs.GetBlockByNumber(header.Number)
 		require.NoError(t, err)
 
 		if resBlock.Header.Hash() != header.Hash() {
@@ -260,7 +260,7 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 	}
 
 	for _, header := range branchChains {
-		resBlock, err = bs.GetBlockByNumberVdt(header.Number)
+		resBlock, err = bs.GetBlockByNumber(header.Number)
 		require.NoError(t, err)
 
 		if resBlock.Header.Hash() == header.Hash() {
@@ -284,10 +284,10 @@ func TestAddBlock_BlockNumberToHash(t *testing.T) {
 		Body: types.Body{},
 	}
 
-	err = bs.AddBlockVdt(newBlock)
+	err = bs.AddBlock(newBlock)
 	require.NoError(t, err)
 
-	resBlock, err = bs.GetBlockByNumberVdt(newBlock.Header.Number)
+	resBlock, err = bs.GetBlockByNumber(newBlock.Header.Number)
 	require.NoError(t, err)
 
 	if resBlock.Header.Hash() != newBlock.Header.Hash() {
@@ -320,7 +320,7 @@ func TestFinalizedHash(t *testing.T) {
 	err = bs.db.Put(headerKey(testhash), []byte{})
 	require.NoError(t, err)
 
-	err = bs.AddBlockVdt(&types.Block{
+	err = bs.AddBlock(&types.Block{
 		Header: *header,
 		Body:   types.Body{},
 	})
@@ -424,7 +424,7 @@ func TestGetHashByNumber(t *testing.T) {
 		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	}
 
-	err = bs.AddBlockVdt(block)
+	err = bs.AddBlock(block)
 	require.NoError(t, err)
 
 	res, err = bs.GetHashByNumber(big.NewInt(1))
@@ -446,7 +446,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	}
 
-	err := bs.AddBlockVdt(block1a)
+	err := bs.AddBlock(block1a)
 	require.NoError(t, err)
 
 	block1hash, err := bs.GetHashByNumber(big.NewInt(1))
@@ -465,7 +465,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	}
 
-	err = bs.AddBlockVdt(block1b)
+	err = bs.AddBlock(block1b)
 	require.NoError(t, err)
 
 	// should still be hash 1a since it arrived first
@@ -485,7 +485,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	}
 
-	err = bs.AddBlockVdt(block2b)
+	err = bs.AddBlock(block2b)
 	require.NoError(t, err)
 
 	// should now be hash 1b since it's on the longer chain
@@ -508,7 +508,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	}
 
-	err = bs.AddBlockVdt(block2a)
+	err = bs.AddBlock(block2a)
 	require.NoError(t, err)
 
 	header3a := &types.HeaderVdt{
@@ -522,7 +522,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 		Body:   types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 	}
 
-	err = bs.AddBlockVdt(block3a)
+	err = bs.AddBlock(block3a)
 	require.NoError(t, err)
 
 	// should now be hash 1a since it's on the longer chain
@@ -552,7 +552,7 @@ func TestAddBlockToBlockTree(t *testing.T) {
 	err := bs.setArrivalTime(header.Hash(), time.Now())
 	require.NoError(t, err)
 
-	err = bs.AddBlockToBlockTreeVdt(header)
+	err = bs.AddBlockToBlockTree(header)
 	require.NoError(t, err)
 	require.Equal(t, bs.BestBlockHash(), header.Hash())
 }
@@ -585,12 +585,12 @@ func TestNumberIsFinalised(t *testing.T) {
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
-	err = bs.SetHeaderNew(header1)
+	err = bs.SetHeader(header1)
 	require.NoError(t, err)
 	err = bs.db.Put(headerHashKey(header1.Number.Uint64()), header1.Hash().ToBytes())
 	require.NoError(t, err)
 
-	err = bs.SetHeaderNew(header100)
+	err = bs.SetHeader(header100)
 	require.NoError(t, err)
 	err = bs.SetFinalisedHash(header100.Hash(), 0, 0)
 	require.NoError(t, err)
@@ -629,12 +629,12 @@ func TestSetFinalisedHash_setFirstSlotOnFinalisation(t *testing.T) {
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
-	err := bs.SetHeaderNew(header1)
+	err := bs.SetHeader(header1)
 	require.NoError(t, err)
 	err = bs.db.Put(headerHashKey(header1.Number.Uint64()), header1.Hash().ToBytes())
 	require.NoError(t, err)
 
-	err = bs.SetHeaderNew(header100)
+	err = bs.SetHeader(header100)
 	require.NoError(t, err)
 	err = bs.SetFinalisedHash(header100.Hash(), 0, 0)
 	require.NoError(t, err)

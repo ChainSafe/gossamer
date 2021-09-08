@@ -21,8 +21,8 @@ type MockBlockState struct {
 	mock.Mock
 }
 
-// AddBlockVdt provides a mock function with given fields: _a0
-func (_m *MockBlockState) AddBlockVdt(_a0 *types.Block) error {
+// AddBlock provides a mock function with given fields: _a0
+func (_m *MockBlockState) AddBlock(_a0 *types.Block) error {
 	ret := _m.Called(_a0)
 
 	var r0 error
@@ -36,7 +36,7 @@ func (_m *MockBlockState) AddBlockVdt(_a0 *types.Block) error {
 }
 
 // BestBlock provides a mock function with given fields:
-func (_m *MockBlockState) BestBlockVdt() (*types.Block, error) {
+func (_m *MockBlockState) BestBlock() (*types.Block, error) {
 	ret := _m.Called()
 
 	var r0 *types.Block
@@ -75,7 +75,7 @@ func (_m *MockBlockState) BestBlockHash() common.Hash {
 }
 
 // BestBlockHeader provides a mock function with given fields:
-func (_m *MockBlockState) BestBlockHeaderVdt() (*types.HeaderVdt, error) {
+func (_m *MockBlockState) BestBlockHeader() (*types.HeaderVdt, error) {
 	ret := _m.Called()
 
 	var r0 *types.HeaderVdt
@@ -199,7 +199,7 @@ func (_m *MockBlockState) GetBlockBody(hash common.Hash) (*types.Body, error) {
 }
 
 // GetBlockByHash provides a mock function with given fields: _a0
-func (_m *MockBlockState) GetBlockByHashVdt(_a0 common.Hash) (*types.Block, error) {
+func (_m *MockBlockState) GetBlockByHash(_a0 common.Hash) (*types.Block, error) {
 	ret := _m.Called(_a0)
 
 	var r0 *types.Block
@@ -245,7 +245,7 @@ func (_m *MockBlockState) GetFinalisedHash(_a0 uint64, _a1 uint64) (common.Hash,
 }
 
 // GetFinalisedHeader provides a mock function with given fields: _a0, _a1
-func (_m *MockBlockState) GetFinalisedHeaderVdt(_a0 uint64, _a1 uint64) (*types.HeaderVdt, error) {
+func (_m *MockBlockState) GetFinalisedHeader(_a0 uint64, _a1 uint64) (*types.HeaderVdt, error) {
 	ret := _m.Called(_a0, _a1)
 
 	var r0 *types.HeaderVdt

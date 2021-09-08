@@ -344,7 +344,7 @@ main:
 
 func (s *Service) sentBlockIntervalTelemetry() {
 	for {
-		best, err := s.blockState.BestBlockHeaderVdt()
+		best, err := s.blockState.BestBlockHeader()
 		if err != nil {
 			continue
 		}

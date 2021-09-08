@@ -93,7 +93,7 @@ func TestService_Initialise(t *testing.T) {
 	err = state.Start()
 	require.NoError(t, err)
 
-	head, err := state.Block.BestBlockHeaderVdt()
+	head, err := state.Block.BestBlockHeader()
 	require.NoError(t, err)
 	require.Equal(t, genesisHeader, head)
 }
@@ -177,7 +177,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 	for i := 1; i < totalBlock; i++ {
 		block, trieState := generateBlockWithRandomTrieVdt(t, serv, &parentHash, int64(i))
 
-		err = serv.Storage.blockState.AddBlockVdt(block)
+		err = serv.Storage.blockState.AddBlock(block)
 		require.NoError(t, err)
 
 		err = serv.Storage.StoreTrieVdt(trieState, &block.Header)
@@ -232,7 +232,7 @@ func TestService_PruneStorage(t *testing.T) {
 		digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, uint64(i+1)).ToPreRuntimeDigest())
 		block.Header.Digest = digest
 
-		err = serv.Storage.blockState.AddBlockVdt(block)
+		err = serv.Storage.blockState.AddBlock(block)
 		require.NoError(t, err)
 
 		err = serv.Storage.StoreTrieVdt(trieState, nil)
@@ -250,7 +250,7 @@ func TestService_PruneStorage(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		block, trieState := generateBlockWithRandomTrieVdt(t, serv, &parentHash, int64(i+1))
 
-		err = serv.Storage.blockState.AddBlockVdt(block)
+		err = serv.Storage.blockState.AddBlock(block)
 		require.NoError(t, err)
 
 		err = serv.Storage.StoreTrieVdt(trieState, nil)
@@ -378,7 +378,7 @@ func TestService_Import(t *testing.T) {
 	err = serv.Start()
 	require.NoError(t, err)
 
-	bestBlockHeader, err := serv.Block.BestBlockHeaderVdt()
+	bestBlockHeader, err := serv.Block.BestBlockHeader()
 	require.NoError(t, err)
 	require.Equal(t, header, bestBlockHeader)
 
@@ -386,7 +386,7 @@ func TestService_Import(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, header.StateRoot, root)
 
-	skip, err := serv.Epoch.SkipVerifyVdt(header)
+	skip, err := serv.Epoch.SkipVerify(header)
 	require.NoError(t, err)
 	require.True(t, skip)
 

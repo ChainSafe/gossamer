@@ -111,7 +111,7 @@ func TestSendNeighbourMessage(t *testing.T) {
 		Body: types.Body{},
 	}
 
-	err := st.Block.AddBlockVdt(block)
+	err := st.Block.AddBlock(block)
 	require.NoError(t, err)
 
 	hash := block.Header.Hash()

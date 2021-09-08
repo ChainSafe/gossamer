@@ -30,23 +30,19 @@ import (
 // BlockState interface for block state methods
 type BlockState interface {
 	BestBlockHash() common.Hash
-	//BestBlockHeader() (*types.Header, error)
-	BestBlockHeaderVdt() (*types.HeaderVdt, error)
+	BestBlockHeader() (*types.HeaderVdt, error)
 	BestBlockNumber() (*big.Int, error)
-	BestBlockVdt() (*types.Block, error)
+	BestBlock() (*types.Block, error)
 	SubChain(start, end common.Hash) ([]common.Hash, error)
-	//AddBlock(*types.Block) error
-	AddBlockVdt(*types.Block) error
+	AddBlock(*types.Block) error
 	GetAllBlocksAtDepth(hash common.Hash) []common.Hash
-	//GetHeader(common.Hash) (*types.Header, error)
 	GetHeader(common.Hash) (*types.HeaderVdt, error)
-	//GetBlockByNumber(*big.Int) (*types.Block, error)
-	GetBlockByNumberVdt(*big.Int) (*types.Block, error)
-	GetBlockByHashVdt(common.Hash) (*types.Block, error)
+	GetBlockByNumber(*big.Int) (*types.Block, error)
+	GetBlockByHash(common.Hash) (*types.Block, error)
 	GetArrivalTime(common.Hash) (time.Time, error)
 	GenesisHash() common.Hash
 	GetSlotForBlock(common.Hash) (uint64, error)
-	GetFinalisedHeaderVdt(uint64, uint64) (*types.HeaderVdt, error)
+	GetFinalisedHeader(uint64, uint64) (*types.HeaderVdt, error)
 	IsDescendantOf(parent, child common.Hash) (bool, error)
 	NumberIsFinalised(num *big.Int) (bool, error)
 	GetRuntime(*common.Hash) (runtime.Instance, error)

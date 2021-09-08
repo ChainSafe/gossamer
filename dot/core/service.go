@@ -239,7 +239,7 @@ func (s *Service) handleBlockVdt(block *types.Block, state *rtstorage.TrieState)
 	}
 
 	// store block in database
-	if err = s.blockState.AddBlockVdt(block); err != nil {
+	if err = s.blockState.AddBlock(block); err != nil {
 		if err == blocktree.ErrParentNotFound && block.Header.Number.Cmp(big.NewInt(0)) != 0 {
 			return err
 		} else if err == blocktree.ErrBlockExists || block.Header.Number.Cmp(big.NewInt(0)) == 0 {

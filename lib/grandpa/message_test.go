@@ -131,12 +131,12 @@ func TestNewCatchUpResponse(t *testing.T) {
 		Number: 1,
 	}
 
-	err := st.Block.AddBlockVdt(block)
+	err := st.Block.AddBlock(block)
 	require.NoError(t, err)
 
 	err = gs.blockState.SetFinalisedHash(hash, round, setID)
 	require.NoError(t, err)
-	err = gs.blockState.(*state.BlockState).SetHeaderNew(testHeaderVdt)
+	err = gs.blockState.(*state.BlockState).SetHeader(testHeaderVdt)
 	require.NoError(t, err)
 
 	pvj := []*SignedVote{

@@ -471,7 +471,7 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 		return ErrNotAuthorized
 	}
 
-	parentHeader, err := b.blockState.BestBlockHeaderVdt()
+	parentHeader, err := b.blockState.BestBlockHeader()
 	if err != nil {
 		logger.Error("block authoring", "error", err)
 		return err

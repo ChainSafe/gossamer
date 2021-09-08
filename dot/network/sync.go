@@ -184,7 +184,7 @@ func (q *syncQueue) start() {
 }
 
 func (q *syncQueue) syncAtHead() {
-	prev, err := q.s.blockState.BestBlockHeaderVdt()
+	prev, err := q.s.blockState.BestBlockHeader()
 	if err != nil {
 		logger.Error("failed to get best block header", "error", err)
 		return
@@ -204,7 +204,7 @@ func (q *syncQueue) syncAtHead() {
 			return
 		}
 
-		curr, err := q.s.blockState.BestBlockHeaderVdt()
+		curr, err := q.s.blockState.BestBlockHeader()
 		if err != nil {
 			continue
 		}
@@ -343,7 +343,7 @@ func (q *syncQueue) benchmark() {
 			return
 		}
 
-		before, err := q.s.blockState.BestBlockHeaderVdt()
+		before, err := q.s.blockState.BestBlockHeader()
 		if err != nil {
 			continue
 		}
@@ -375,7 +375,7 @@ func (q *syncQueue) benchmark() {
 		t.Reset(time.Second * 5)
 		<-t.C
 
-		after, err := q.s.blockState.BestBlockHeaderVdt()
+		after, err := q.s.blockState.BestBlockHeader()
 		if err != nil {
 			continue
 		}

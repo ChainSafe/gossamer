@@ -50,7 +50,7 @@ func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 }
 
 func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, depth int, blockState BlockState) []*types.HeaderVdt {
-	prevHeader, err := blockState.(*state.BlockState).GetHeaderVdt(previousHash)
+	prevHeader, err := blockState.(*state.BlockState).GetHeader(previousHash)
 	require.NoError(t, err)
 	previousNum := prevHeader.Number
 
@@ -80,7 +80,7 @@ func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, dept
 		previousHash = block.Header.Hash()
 
 		blockState.StoreRuntime(block.Header.Hash(), rt)
-		err := blockState.AddBlockVdt(block)
+		err := blockState.AddBlock(block)
 		require.NoError(t, err)
 		headers = append(headers, &block.Header)
 	}
@@ -205,7 +205,7 @@ func TestHandleChainReorg_NoReorg(t *testing.T) {
 	s := NewTestService(t, nil)
 	addTestBlocksToState(t, 4, s.blockState.(*state.BlockState))
 
-	head, err := s.blockState.BestBlockHeaderVdt()
+	head, err := s.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
 	err = s.handleChainReorg(head.ParentHash, head.Hash())
@@ -217,7 +217,7 @@ func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
 
 	bs := s.blockState
 
-	parent, err := bs.BestBlockHeaderVdt()
+	parent, err := bs.BestBlockHeader()
 	require.NoError(t, err)
 
 	rt, err := s.blockState.GetRuntime(nil)
@@ -225,32 +225,32 @@ func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
 
 	block1 := sync.BuildBlockVdt(t, rt, parent, nil)
 	bs.StoreRuntime(block1.Header.Hash(), rt)
-	err = bs.AddBlockVdt(block1)
+	err = bs.AddBlock(block1)
 	require.NoError(t, err)
 
 	block2 := sync.BuildBlockVdt(t, rt, &block1.Header, nil)
 	bs.StoreRuntime(block2.Header.Hash(), rt)
-	err = bs.AddBlockVdt(block2)
+	err = bs.AddBlock(block2)
 	require.NoError(t, err)
 
 	block3 := sync.BuildBlockVdt(t, rt, &block2.Header, nil)
 	bs.StoreRuntime(block3.Header.Hash(), rt)
-	err = bs.AddBlockVdt(block3)
+	err = bs.AddBlock(block3)
 	require.NoError(t, err)
 
 	block4 := sync.BuildBlockVdt(t, rt, &block3.Header, nil)
 	bs.StoreRuntime(block4.Header.Hash(), rt)
-	err = bs.AddBlockVdt(block4)
+	err = bs.AddBlock(block4)
 	require.NoError(t, err)
 
 	block5 := sync.BuildBlockVdt(t, rt, &block4.Header, nil)
 	bs.StoreRuntime(block5.Header.Hash(), rt)
-	err = bs.AddBlockVdt(block5)
+	err = bs.AddBlock(block5)
 	require.NoError(t, err)
 
 	block31 := sync.BuildBlockVdt(t, rt, &block2.Header, nil)
 	bs.StoreRuntime(block31.Header.Hash(), rt)
-	err = bs.AddBlockVdt(block31)
+	err = bs.AddBlock(block31)
 	require.NoError(t, err)
 
 	nonce := uint64(1)
@@ -260,7 +260,7 @@ func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
 
 	block41 := sync.BuildBlockVdt(t, rt, &block31.Header, ext)
 	bs.StoreRuntime(block41.Header.Hash(), rt)
-	err = bs.AddBlockVdt(block41)
+	err = bs.AddBlock(block41)
 	require.NoError(t, err)
 
 	err = s.handleChainReorg(block41.Header.Hash(), block5.Header.Hash())
@@ -317,7 +317,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	require.NoError(t, err)
 
 	// get common ancestor
-	ancestor, err := s.blockState.(*state.BlockState).GetBlockByNumberVdt(big.NewInt(int64(branch - 1)))
+	ancestor, err := s.blockState.(*state.BlockState).GetBlockByNumber(big.NewInt(int64(branch - 1)))
 	require.NoError(t, err)
 
 	// build "re-org" chain
@@ -348,7 +348,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	}
 
 	s.blockState.StoreRuntime(block.Header.Hash(), rt)
-	err = s.blockState.AddBlockVdt(block)
+	err = s.blockState.AddBlock(block)
 	require.NoError(t, err)
 
 	leaves := s.blockState.(*state.BlockState).Leaves()
@@ -489,7 +489,7 @@ func TestService_GetRuntimeVersion(t *testing.T) {
 func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 	s := NewTestService(t, nil)
 
-	genHeader, err := s.blockState.BestBlockHeaderVdt()
+	genHeader, err := s.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
 	rt, err := s.blockState.GetRuntime(nil)
@@ -687,7 +687,7 @@ func TestTryQueryStore_WhenThereIsDataToRetrieve(t *testing.T) {
 		Body:   *types.NewBody([]byte{}),
 	}
 
-	err = s.blockState.AddBlockVdt(testBlock)
+	err = s.blockState.AddBlock(testBlock)
 	require.NoError(t, err)
 
 	blockhash := testBlock.Header.Hash()
@@ -720,7 +720,7 @@ func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
 		Body:   *types.NewBody([]byte{}),
 	}
 
-	err = s.blockState.AddBlockVdt(testBlock)
+	err = s.blockState.AddBlock(testBlock)
 	require.NoError(t, err)
 
 	testKey := []byte("to")
@@ -747,7 +747,7 @@ func TestTryQueryState_WhenDoesNotHaveStateRoot(t *testing.T) {
 		Body:   *types.NewBody([]byte{}),
 	}
 
-	err = s.blockState.AddBlockVdt(testBlock)
+	err = s.blockState.AddBlock(testBlock)
 	require.NoError(t, err)
 
 	testKey := []byte("to")
@@ -836,7 +836,7 @@ func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service, key, value []by
 		Body:   *types.NewBody([]byte{}),
 	}
 
-	err = s.blockState.AddBlockVdt(testBlock)
+	err = s.blockState.AddBlock(testBlock)
 	require.NoError(t, err)
 
 	return testBlock

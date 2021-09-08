@@ -393,7 +393,7 @@ func TestPlayGrandpaRound_VaryingChain(t *testing.T) {
 				Header: *h,
 				Body:   types.Body{},
 			}
-			gs.blockState.(*state.BlockState).AddBlockVdt(block)
+			gs.blockState.(*state.BlockState).AddBlock(block)
 		}
 	}
 

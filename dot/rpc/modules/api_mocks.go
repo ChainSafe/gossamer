@@ -25,7 +25,7 @@ func NewMockBlockAPI() *modulesmocks.BlockAPI {
 	m := new(modulesmocks.BlockAPI)
 	m.On("GetHeader", mock.AnythingOfType("common.Hash")).Return(nil, nil)
 	m.On("BestBlockHash").Return(common.Hash{})
-	m.On("GetBlockByHashVdt", mock.AnythingOfType("common.Hash")).Return(nil, nil)
+	m.On("GetBlockByHash", mock.AnythingOfType("common.Hash")).Return(nil, nil)
 	m.On("GetBlockHash", mock.AnythingOfType("*big.Int")).Return(nil, nil)
 	m.On("GetFinalisedHash", mock.AnythingOfType("uint64"), mock.AnythingOfType("uint64")).Return(common.Hash{}, nil)
 	m.On("GetHighestFinalisedHash").Return(common.Hash{}, nil)

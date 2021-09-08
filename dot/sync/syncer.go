@@ -121,7 +121,7 @@ func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) error {
 		return nil
 	}
 
-	err = s.blockState.SetHeaderNew(header)
+	err = s.blockState.SetHeader(header)
 	if err != nil {
 		return err
 	}
@@ -164,7 +164,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockDataVdt) (int, error) {
 	for i, bd := range data {
 		logger.Debug("starting processing of block", "hash", bd.Hash)
 
-		err := s.blockState.CompareAndSetBlockDataVdt(bd)
+		err := s.blockState.CompareAndSetBlockData(bd)
 		if err != nil {
 			return i, fmt.Errorf("failed to compare and set data: %w", err)
 		}
@@ -179,13 +179,13 @@ func (s *Service) ProcessBlockData(data []*types.BlockDataVdt) (int, error) {
 			// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
 			logger.Debug("skipping block, already have", "hash", bd.Hash)
 
-			block, err := s.blockState.GetBlockByHashVdt(bd.Hash) //nolint
+			block, err := s.blockState.GetBlockByHash(bd.Hash) //nolint
 			if err != nil {
 				logger.Debug("failed to get header", "hash", bd.Hash, "error", err)
 				return i, err
 			}
 
-			err = s.blockState.AddBlockToBlockTreeVdt(&block.Header)
+			err = s.blockState.AddBlockToBlockTree(&block.Header)
 			if err != nil && !errors.Is(err, blocktree.ErrBlockExists) {
 				logger.Warn("failed to add block to blocktree", "hash", bd.Hash, "error", err)
 				return i, err

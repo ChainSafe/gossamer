@@ -100,7 +100,7 @@ func (b *Service) slotTime(slot, slotTail uint64) (uint64, error) {
 
 	startNumber := tail.Sub(deepestBlock.Number, tail)
 
-	start, err := b.blockState.GetBlockByNumberVdt(startNumber)
+	start, err := b.blockState.GetBlockByNumber(startNumber)
 	if err != nil {
 		return 0, err
 	}

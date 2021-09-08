@@ -519,7 +519,7 @@ func TestBuildBlockTimeMonitor(t *testing.T) {
 	babeService := createTestService(t, nil)
 	babeService.epochData.threshold = maxThreshold
 
-	parent, err := babeService.blockState.BestBlockHeaderVdt()
+	parent, err := babeService.blockState.BestBlockHeader()
 	require.NoError(t, err)
 
 	timerMetrics := metrics.GetOrRegisterTimer(buildBlockTimer, nil)

@@ -30,18 +30,16 @@ import (
 // BlockState interface for block state methods
 type BlockState interface {
 	BestBlockHash() common.Hash
-	//BestBlockHeader() (*types.Header, error)
-	BestBlockHeaderVdt() (*types.HeaderVdt, error)
+	BestBlockHeader() (*types.HeaderVdt, error)
 	BestBlockNumber() (*big.Int, error)
 	BestBlockStateRoot() (common.Hash, error)
-	BestBlockVdt() (*types.Block, error)
-	//AddBlock(*types.Block) error
-	AddBlockVdt(*types.Block) error
+	BestBlock() (*types.Block, error)
+	AddBlock(*types.Block) error
 	GetAllBlocksAtDepth(hash common.Hash) []common.Hash
-	GetBlockByHashVdt(common.Hash) (*types.Block, error)
+	GetBlockByHash(common.Hash) (*types.Block, error)
 	GenesisHash() common.Hash
 	GetSlotForBlock(common.Hash) (uint64, error)
-	GetFinalisedHeaderVdt(uint64, uint64) (*types.HeaderVdt, error)
+	GetFinalisedHeader(uint64, uint64) (*types.HeaderVdt, error)
 	GetFinalisedHash(uint64, uint64) (common.Hash, error)
 	RegisterImportedChannel(ch chan<- *types.Block) (byte, error)
 	UnregisterImportedChannel(id byte)
@@ -96,5 +94,4 @@ type CodeSubstitutedState interface {
 // DigestHandler is the interface for the consensus digest handler
 type DigestHandler interface {
 	HandleDigests(header *types.HeaderVdt)
-	//HandleDigestsVdt(header *types.HeaderVdt)
 }

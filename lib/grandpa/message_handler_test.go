@@ -222,7 +222,7 @@ func TestMessageHandler_NeighbourMessage(t *testing.T) {
 		Body: types.Body{0},
 	}
 
-	err = st.Block.AddBlockVdt(block)
+	err = st.Block.AddBlock(block)
 	require.NoError(t, err)
 
 	out, err := h.handleMessage("", msg)
@@ -286,7 +286,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 		Body: types.Body{},
 	}
 
-	err = st.Block.AddBlockVdt(block)
+	err = st.Block.AddBlock(block)
 	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block)
@@ -388,12 +388,12 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 		Body: types.Body{},
 	}
 
-	err := st.Block.AddBlockVdt(block)
+	err := st.Block.AddBlock(block)
 	require.NoError(t, err)
 
 	err = gs.blockState.SetFinalisedHash(testGenesisHeaderVdt.Hash(), round, setID)
 	require.NoError(t, err)
-	err = gs.blockState.(*state.BlockState).SetHeaderNew(&block.Header)
+	err = gs.blockState.(*state.BlockState).SetHeader(&block.Header)
 	require.NoError(t, err)
 
 	pvj := []*SignedVote{
@@ -518,7 +518,7 @@ func TestMessageHandler_VerifyPreCommitJustification(t *testing.T) {
 func TestMessageHandler_HandleCatchUpResponse(t *testing.T) {
 	gs, st := newTestService(t)
 
-	err := st.Block.SetHeaderNew(testHeaderVdt)
+	err := st.Block.SetHeader(testHeaderVdt)
 	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block)
@@ -569,7 +569,7 @@ func TestMessageHandler_VerifyBlockJustification(t *testing.T) {
 		Body:   types.Body{0},
 	}
 
-	err = st.Block.AddBlockVdt(block)
+	err = st.Block.AddBlock(block)
 	require.NoError(t, err)
 
 	err = st.Grandpa.IncrementSetID()

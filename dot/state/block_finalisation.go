@@ -39,7 +39,7 @@ func (bs *BlockState) HasFinalisedBlock(round, setID uint64) (bool, error) {
 
 // NumberIsFinalised checks if a block number is finalised or not
 func (bs *BlockState) NumberIsFinalised(num *big.Int) (bool, error) {
-	header, err := bs.GetFinalisedHeaderVdt(0, 0)
+	header, err := bs.GetFinalisedHeader(0, 0)
 	if err != nil {
 		return false, err
 	}
@@ -48,7 +48,7 @@ func (bs *BlockState) NumberIsFinalised(num *big.Int) (bool, error) {
 }
 
 // GetFinalisedHeader returns the finalised block header by round and setID
-func (bs *BlockState) GetFinalisedHeaderVdt(round, setID uint64) (*types.HeaderVdt, error) {
+func (bs *BlockState) GetFinalisedHeader(round, setID uint64) (*types.HeaderVdt, error) {
 	bs.Lock()
 	defer bs.Unlock()
 
@@ -178,7 +178,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 }
 
 func (bs *BlockState) setFirstSlotOnFinalisation() error {
-	header, err := bs.GetHeaderByNumberVdt(big.NewInt(1))
+	header, err := bs.GetHeaderByNumber(big.NewInt(1))
 	if err != nil {
 		return err
 	}

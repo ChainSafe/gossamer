@@ -169,7 +169,7 @@ func (hs *BlockAnnounceHandshake) IsHandshake() bool {
 }
 
 func (s *Service) getBlockAnnounceHandshake() (Handshake, error) {
-	latestBlock, err := s.blockState.BestBlockHeaderVdt()
+	latestBlock, err := s.blockState.BestBlockHeader()
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +213,7 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 	}
 
 	// if peer has higher best block than us, begin syncing
-	latestHeader, err := s.blockState.BestBlockHeaderVdt()
+	latestHeader, err := s.blockState.BestBlockHeader()
 	if err != nil {
 		return err
 	}

@@ -17,7 +17,7 @@ type mockBlockState struct {
 }
 
 // BestBlockHeader provides a mock function with given fields:
-func (_m *mockBlockState) BestBlockHeaderVdt() (*types.HeaderVdt, error) {
+func (_m *mockBlockState) BestBlockHeader() (*types.HeaderVdt, error) {
 	ret := _m.Called()
 
 	var r0 *types.HeaderVdt

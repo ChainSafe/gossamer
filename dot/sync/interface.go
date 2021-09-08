@@ -28,19 +28,14 @@ import (
 // BlockState is the interface for the block state
 type BlockState interface {
 	BestBlockHash() common.Hash
-	BestBlockHeaderVdt() (*types.HeaderVdt, error)
+	BestBlockHeader() (*types.HeaderVdt, error)
 	BestBlockNumber() (*big.Int, error)
-	//AddBlock(*types.Block) error
-	AddBlockVdt(*types.Block) error
-	//CompareAndSetBlockData(bd *types.BlockData) error
-	CompareAndSetBlockDataVdt(bd *types.BlockDataVdt) error
-	//GetBlockByNumber(*big.Int) (*types.Block, error)
-	GetBlockByNumberVdt(*big.Int) (*types.Block, error)
+	AddBlock(*types.Block) error
+	CompareAndSetBlockData(bd *types.BlockDataVdt) error
+	GetBlockByNumber(*big.Int) (*types.Block, error)
 	HasBlockBody(hash common.Hash) (bool, error)
 	GetBlockBody(common.Hash) (*types.Body, error)
-	//SetHeader(*types.Header) error
-	SetHeaderNew(*types.HeaderVdt) error
-	//GetHeader(common.Hash) (*types.Header, error)
+	SetHeader(*types.HeaderVdt) error
 	GetHeader(common.Hash) (*types.HeaderVdt, error)
 	HasHeader(hash common.Hash) (bool, error)
 	SubChain(start, end common.Hash) ([]common.Hash, error)
@@ -49,11 +44,9 @@ type BlockState interface {
 	GetJustification(common.Hash) ([]byte, error)
 	SetJustification(hash common.Hash, data []byte) error
 	SetFinalisedHash(hash common.Hash, round, setID uint64) error
-	//AddBlockToBlockTree(header *types.Header) error
-	AddBlockToBlockTreeVdt(header *types.HeaderVdt) error
+	AddBlockToBlockTree(header *types.HeaderVdt) error
 	GetHashByNumber(*big.Int) (common.Hash, error)
-	//GetBlockByHash(common.Hash) (*types.Block, error)
-	GetBlockByHashVdt(common.Hash) (*types.Block, error)
+	GetBlockByHash(common.Hash) (*types.Block, error)
 	GetRuntime(*common.Hash) (runtime.Instance, error)
 	StoreRuntime(common.Hash, runtime.Instance)
 }

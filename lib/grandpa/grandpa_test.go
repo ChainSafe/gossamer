@@ -881,7 +881,7 @@ func TestFindParentWithNumber(t *testing.T) {
 	require.NoError(t, err)
 	t.Log(st.Block.BlocktreeAsString())
 
-	expected, err := st.Block.GetBlockByNumberVdt(big.NewInt(1))
+	expected, err := st.Block.GetBlockByNumber(big.NewInt(1))
 	require.NoError(t, err)
 
 	require.Equal(t, expected.Header.Hash(), p.Hash)
@@ -1056,7 +1056,7 @@ func TestDeterminePreVote_NoPrimaryPreVote(t *testing.T) {
 	pv, err := gs.determinePreVote()
 	require.NoError(t, err)
 
-	header, err := st.Block.BestBlockHeaderVdt()
+	header, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
 	require.Equal(t, header.Hash(), pv.Hash)
 }
@@ -1065,7 +1065,7 @@ func TestDeterminePreVote_WithPrimaryPreVote(t *testing.T) {
 	gs, st := newTestService(t)
 
 	state.AddBlocksToState(t, st.Block, 3)
-	header, err := st.Block.BestBlockHeaderVdt()
+	header, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
 	state.AddBlocksToState(t, st.Block, 1)
 
@@ -1086,7 +1086,7 @@ func TestDeterminePreVote_WithInvalidPrimaryPreVote(t *testing.T) {
 	gs, st := newTestService(t)
 
 	state.AddBlocksToState(t, st.Block, 3)
-	header, err := st.Block.BestBlockHeaderVdt()
+	header, err := st.Block.BestBlockHeader()
 	require.NoError(t, err)
 
 	derivePrimary := gs.derivePrimary()
@@ -1096,7 +1096,7 @@ func TestDeterminePreVote_WithInvalidPrimaryPreVote(t *testing.T) {
 	})
 
 	state.AddBlocksToState(t, st.Block, 5)
-	gs.head, err = st.Block.BestBlockHeaderVdt()
+	gs.head, err = st.Block.BestBlockHeader()
 	require.NoError(t, err)
 
 	pv, err := gs.determinePreVote()

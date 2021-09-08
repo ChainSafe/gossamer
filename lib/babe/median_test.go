@@ -121,7 +121,7 @@ func addBlocksToState(t *testing.T, babeService *Service, depth int, blockState 
 		previousHash = block.Header.Hash()
 		previousAT = arrivalTime
 
-		err = blockState.(*state.BlockState).AddBlockWithArrivalTimeVdt(block, arrivalTime)
+		err = blockState.(*state.BlockState).AddBlockWithArrivalTime(block, arrivalTime)
 		require.NoError(t, err)
 	}
 }
@@ -195,7 +195,7 @@ func TestEstimateCurrentSlot(t *testing.T) {
 
 	arrivalTime := time.Now().UnixNano() - slot.duration.Nanoseconds()
 
-	err = babeService.blockState.(*state.BlockState).AddBlockWithArrivalTimeVdt(block, time.Unix(0, arrivalTime))
+	err = babeService.blockState.(*state.BlockState).AddBlockWithArrivalTime(block, time.Unix(0, arrivalTime))
 	require.NoError(t, err)
 
 	estimatedSlot, err := babeService.estimateCurrentSlot()

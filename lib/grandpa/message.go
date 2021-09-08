@@ -357,7 +357,7 @@ type catchUpResponse struct {
 }
 
 func (s *Service) newCatchUpResponse(round, setID uint64) (*catchUpResponse, error) {
-	header, err := s.blockState.GetFinalisedHeaderVdt(round, setID)
+	header, err := s.blockState.GetFinalisedHeader(round, setID)
 	if err != nil {
 		return nil, err
 	}

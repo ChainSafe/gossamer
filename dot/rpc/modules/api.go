@@ -27,11 +27,9 @@ type StorageAPI interface {
 
 // BlockAPI is the interface for the block state
 type BlockAPI interface {
-	//GetHeader(hash common.Hash) (*types.Header, error)
 	GetHeader(hash common.Hash) (*types.HeaderVdt, error)
 	BestBlockHash() common.Hash
-	//GetBlockByHash(hash common.Hash) (*types.Block, error)
-	GetBlockByHashVdt(hash common.Hash) (*types.Block, error)
+	GetBlockByHash(hash common.Hash) (*types.Block, error)
 	GetBlockHash(blockNumber *big.Int) (common.Hash, error)
 	GetFinalisedHash(uint64, uint64) (common.Hash, error)
 	GetHighestFinalisedHash() (common.Hash, error)

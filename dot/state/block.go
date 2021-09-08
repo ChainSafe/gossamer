@@ -81,7 +81,7 @@ func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, e
 		runtimeUpdateSubscriptions: make(map[uint32]chan<- runtime.Version),
 	}
 
-	genesisBlock, err := bs.GetBlockByNumberVdt(big.NewInt(0))
+	genesisBlock, err := bs.GetBlockByNumber(big.NewInt(0))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get genesis header: %w", err)
 	}
@@ -113,7 +113,7 @@ func NewBlockStateFromGenesis(db chaindb.Database, header *types.HeaderVdt) (*Bl
 		return nil, err
 	}
 
-	if err := bs.SetHeaderNew(header); err != nil {
+	if err := bs.SetHeader(header); err != nil {
 		return nil, err
 	}
 
@@ -278,7 +278,7 @@ func (bs *BlockState) GetHashByNumber(num *big.Int) (common.Hash, error) {
 }
 
 // GetHeaderByNumber returns a block header given a number
-func (bs *BlockState) GetHeaderByNumberVdt(num *big.Int) (*types.HeaderVdt, error) {
+func (bs *BlockState) GetHeaderByNumber(num *big.Int) (*types.HeaderVdt, error) {
 	bh, err := bs.db.Get(headerHashKey(num.Uint64()))
 	if err != nil {
 		return nil, fmt.Errorf("cannot get block %d: %w", num, err)
@@ -289,7 +289,7 @@ func (bs *BlockState) GetHeaderByNumberVdt(num *big.Int) (*types.HeaderVdt, erro
 }
 
 // GetBlockByHash returns a block for a given hash
-func (bs *BlockState) GetBlockByHashVdt(hash common.Hash) (*types.Block, error) {
+func (bs *BlockState) GetBlockByHash(hash common.Hash) (*types.Block, error) {
 	header, err := bs.GetHeader(hash)
 	if err != nil {
 		return nil, err
@@ -303,7 +303,7 @@ func (bs *BlockState) GetBlockByHashVdt(hash common.Hash) (*types.Block, error) 
 }
 
 // GetBlockByNumber returns a block for a given blockNumber
-func (bs *BlockState) GetBlockByNumberVdt(num *big.Int) (*types.Block, error) {
+func (bs *BlockState) GetBlockByNumber(num *big.Int) (*types.Block, error) {
 	// First retrieve the block hash in a byte array based on the block number from the database
 	byteHash, err := bs.db.Get(headerHashKey(num.Uint64()))
 	if err != nil {
@@ -312,7 +312,7 @@ func (bs *BlockState) GetBlockByNumberVdt(num *big.Int) (*types.Block, error) {
 
 	// Then find the block based on the hash
 	hash := common.NewHash(byteHash)
-	block, err := bs.GetBlockByHashVdt(hash)
+	block, err := bs.GetBlockByHash(hash)
 	if err != nil {
 		return nil, err
 	}
@@ -331,7 +331,7 @@ func (bs *BlockState) GetBlockHash(blockNumber *big.Int) (common.Hash, error) {
 }
 
 // SetHeader will set the header into DB
-func (bs *BlockState) SetHeaderNew(header *types.HeaderVdt) error {
+func (bs *BlockState) SetHeader(header *types.HeaderVdt) error {
 	hash := header.Hash()
 	// Write the encoded header
 	bh, err := scale.Marshal(*header)
@@ -368,7 +368,7 @@ func (bs *BlockState) SetBlockBody(hash common.Hash, body *types.Body) error {
 }
 
 // CompareAndSetBlockData will compare empty fields and set all elements in a block data to db
-func (bs *BlockState) CompareAndSetBlockDataVdt(bd *types.BlockDataVdt) error {
+func (bs *BlockState) CompareAndSetBlockData(bd *types.BlockDataVdt) error {
 	hasReceipt, _ := bs.HasReceipt(bd.Hash)
 	if bd.Receipt != nil && !hasReceipt {
 		err := bs.SetReceipt(bd.Hash, *bd.Receipt)
@@ -389,14 +389,14 @@ func (bs *BlockState) CompareAndSetBlockDataVdt(bd *types.BlockDataVdt) error {
 }
 
 // AddBlock adds a block to the blocktree and the DB with arrival time as current unix time
-func (bs *BlockState) AddBlockVdt(block *types.Block) error {
+func (bs *BlockState) AddBlock(block *types.Block) error {
 	bs.Lock()
 	defer bs.Unlock()
-	return bs.AddBlockWithArrivalTimeVdt(block, time.Now())
+	return bs.AddBlockWithArrivalTime(block, time.Now())
 }
 
 // AddBlockWithArrivalTime adds a block to the blocktree and the DB with the given arrival time
-func (bs *BlockState) AddBlockWithArrivalTimeVdt(block *types.Block, arrivalTime time.Time) error {
+func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime time.Time) error {
 	err := bs.setArrivalTime(block.Header.Hash(), arrivalTime)
 	if err != nil {
 		return err
@@ -411,7 +411,7 @@ func (bs *BlockState) AddBlockWithArrivalTimeVdt(block *types.Block, arrivalTime
 	}
 
 	// add the header to the DB
-	err = bs.SetHeaderNew(&block.Header)
+	err = bs.SetHeader(&block.Header)
 	if err != nil {
 		return err
 	}
@@ -427,7 +427,7 @@ func (bs *BlockState) AddBlockWithArrivalTimeVdt(block *types.Block, arrivalTime
 
 	// only set number->hash mapping for our current chain
 	var onChain bool
-	if onChain, err = bs.isBlockOnCurrentChainVdt(&block.Header); onChain && err == nil {
+	if onChain, err = bs.isBlockOnCurrentChain(&block.Header); onChain && err == nil {
 		err = bs.db.Put(headerHashKey(block.Header.Number.Uint64()), hash.ToBytes())
 		if err != nil {
 			return err
@@ -487,7 +487,7 @@ func (bs *BlockState) handleAddedBlock(prev, curr common.Hash) error {
 }
 
 // AddBlockToBlockTree adds the given block to the blocktree. It does not write it to the database.
-func (bs *BlockState) AddBlockToBlockTreeVdt(header *types.HeaderVdt) error {
+func (bs *BlockState) AddBlockToBlockTree(header *types.HeaderVdt) error {
 	bs.Lock()
 	defer bs.Unlock()
 
@@ -504,8 +504,8 @@ func (bs *BlockState) GetAllBlocksAtDepth(hash common.Hash) []common.Hash {
 	return bs.bt.GetAllBlocksAtDepth(hash)
 }
 
-func (bs *BlockState) isBlockOnCurrentChainVdt(header *types.HeaderVdt) (bool, error) {
-	bestBlock, err := bs.BestBlockHeaderVdt() // Issue might be here
+func (bs *BlockState) isBlockOnCurrentChain(header *types.HeaderVdt) (bool, error) {
+	bestBlock, err := bs.BestBlockHeader() // Issue might be here
 	if err != nil {
 		return false, err
 	}
@@ -538,7 +538,7 @@ func (bs *BlockState) BestBlockHash() common.Hash {
 }
 
 // BestBlockHeader returns the block header of the current head of the chain// BestBlockHeader returns the block header of the current head of the chain
-func (bs *BlockState) BestBlockHeaderVdt() (*types.HeaderVdt, error) {
+func (bs *BlockState) BestBlockHeader() (*types.HeaderVdt, error) {
 	return bs.GetHeader(bs.BestBlockHash())
 }
 
@@ -567,8 +567,8 @@ func (bs *BlockState) BestBlockNumber() (*big.Int, error) {
 }
 
 // BestBlock returns the current head of the chain
-func (bs *BlockState) BestBlockVdt() (*types.Block, error) {
-	return bs.GetBlockByHashVdt(bs.BestBlockHash())
+func (bs *BlockState) BestBlock() (*types.Block, error) {
+	return bs.GetBlockByHash(bs.BestBlockHash())
 }
 
 // GetSlotForBlock returns the slot for a block

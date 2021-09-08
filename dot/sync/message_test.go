@@ -41,7 +41,7 @@ func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 
 		previousHash = block.Header.Hash()
 
-		err := blockState.AddBlockVdt(block)
+		err := blockState.AddBlock(block)
 		require.Nil(t, err)
 	}
 }
@@ -138,7 +138,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 	addTestBlocksToState(t, 2, s.blockState)
 
 	bestHash := s.blockState.BestBlockHash()
-	bestBlock, err := s.blockState.GetBlockByNumberVdt(big.NewInt(1))
+	bestBlock, err := s.blockState.GetBlockByNumber(big.NewInt(1))
 	require.NoError(t, err)
 
 	// set some nils and check no error is thrown
@@ -149,7 +149,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 		MessageQueue:  nil,
 		Justification: nil,
 	}
-	err = s.blockState.CompareAndSetBlockDataVdt(bds)
+	err = s.blockState.CompareAndSetBlockData(bds)
 	require.NoError(t, err)
 
 	// set receipt message and justification
@@ -167,7 +167,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 	start, err := variadic.NewUint64OrHash(uint64(1))
 	require.NoError(t, err)
 
-	err = s.blockState.CompareAndSetBlockDataVdt(bds)
+	err = s.blockState.CompareAndSetBlockData(bds)
 	require.NoError(t, err)
 
 	testCases := []struct {
