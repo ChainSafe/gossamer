@@ -29,11 +29,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-
 var testGenesisHeader = &types.Header{
 	Number:    big.NewInt(0),
 	StateRoot: trie.EmptyHash,
-	Digest:    types.NewDigestVdt(),
+	Digest:    types.NewDigest(),
 }
 
 func newTestBlockState(t *testing.T, header *types.Header) *BlockState {
@@ -55,7 +54,7 @@ func TestSetAndGetHeader(t *testing.T) {
 	header := &types.Header{
 		Number:    big.NewInt(0),
 		StateRoot: trie.EmptyHash,
-		Digest:    types.NewDigestVdt(),
+		Digest:    types.NewDigest(),
 	}
 
 	err := bs.SetHeader(header)
@@ -72,7 +71,7 @@ func TestHasHeader(t *testing.T) {
 	header := &types.Header{
 		Number:    big.NewInt(0),
 		StateRoot: trie.EmptyHash,
-		Digest:    types.NewDigestVdt(),
+		Digest:    types.NewDigest(),
 	}
 
 	err := bs.SetHeader(header)
@@ -89,7 +88,7 @@ func TestGetBlockByNumber(t *testing.T) {
 	blockHeader := &types.Header{
 		ParentHash: testGenesisHeader.Hash(),
 		Number:     big.NewInt(1),
-		Digest:     types.NewDigestVdt(),
+		Digest:     types.NewDigest(),
 	}
 
 	block := &types.Block{
@@ -112,7 +111,7 @@ func TestAddBlock(t *testing.T) {
 	// Create header
 	header0 := &types.Header{
 		Number:     big.NewInt(0),
-		Digest:     types.NewDigestVdt(),
+		Digest:     types.NewDigest(),
 		ParentHash: testGenesisHeader.Hash(),
 	}
 	// Create blockHash
@@ -120,10 +119,6 @@ func TestAddBlock(t *testing.T) {
 	// BlockBody with fake extrinsics
 	blockBody0 := types.Body{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 
-	//block0 := &types.Block{
-	//	Header: header0,
-	//	Body:   &blockBody0,
-	//}
 	block0 := &types.Block{
 		Header: *header0,
 		Body:   blockBody0,
@@ -136,7 +131,7 @@ func TestAddBlock(t *testing.T) {
 	// Create header & blockData for block 1
 	header1 := &types.Header{
 		Number:     big.NewInt(1),
-		Digest:     types.NewDigestVdt(),
+		Digest:     types.NewDigest(),
 		ParentHash: blockHash0,
 	}
 	blockHash1 := header1.Hash()
@@ -187,7 +182,7 @@ func TestGetSlotForBlock(t *testing.T) {
 	data := babeHeader.Encode()
 	preDigest := types.NewBABEPreRuntimeDigest(data)
 
-	digest := types.NewDigestVdt()
+	digest := types.NewDigest()
 	digest.Add(*preDigest)
 	block := &types.Block{
 		Header: types.Header{
@@ -281,7 +276,7 @@ func TestFinalizedHash(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, testGenesisHeader.Hash(), h)
 
-	digest := types.NewDigestVdt()
+	digest := types.NewDigest()
 	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	header := &types.Header{
 		ParentHash: testGenesisHeader.Hash(),
@@ -388,7 +383,7 @@ func TestGetHashByNumber(t *testing.T) {
 
 	header := &types.Header{
 		Number:     big.NewInt(1),
-		Digest:     types.NewDigestVdt(),
+		Digest:     types.NewDigest(),
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
@@ -410,7 +405,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 
 	header1a := &types.Header{
 		Number:     big.NewInt(1),
-		Digest:     types.NewDigestVdt(),
+		Digest:     types.NewDigest(),
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
@@ -428,7 +423,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 
 	header1b := &types.Header{
 		Number:         big.NewInt(1),
-		Digest:         types.NewDigestVdt(),
+		Digest:         types.NewDigest(),
 		ParentHash:     testGenesisHeader.Hash(),
 		ExtrinsicsRoot: common.Hash{99},
 	}
@@ -448,7 +443,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 
 	header2b := &types.Header{
 		Number:         big.NewInt(2),
-		Digest:         types.NewDigestVdt(),
+		Digest:         types.NewDigest(),
 		ParentHash:     header1b.Hash(),
 		ExtrinsicsRoot: common.Hash{99},
 	}
@@ -472,7 +467,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 
 	header2a := &types.Header{
 		Number:     big.NewInt(2),
-		Digest:     types.NewDigestVdt(),
+		Digest:     types.NewDigest(),
 		ParentHash: header1a.Hash(),
 	}
 
@@ -486,7 +481,7 @@ func TestAddBlock_WithReOrg(t *testing.T) {
 
 	header3a := &types.Header{
 		Number:     big.NewInt(3),
-		Digest:     types.NewDigestVdt(),
+		Digest:     types.NewDigest(),
 		ParentHash: header2a.Hash(),
 	}
 
@@ -518,7 +513,7 @@ func TestAddBlockToBlockTree(t *testing.T) {
 
 	header := &types.Header{
 		Number:     big.NewInt(1),
-		Digest:     types.NewDigestVdt(),
+		Digest:     types.NewDigest(),
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
@@ -540,10 +535,10 @@ func TestNumberIsFinalised(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, fin)
 
-	digest := types.NewDigestVdt()
+	digest := types.NewDigest()
 	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 
-	digest2 := types.NewDigestVdt()
+	digest2 := types.NewDigest()
 	digest2.Add(*types.NewBabeSecondaryPlainPreDigest(0, 100).ToPreRuntimeDigest())
 
 	header1 := &types.Header{
@@ -585,9 +580,9 @@ func TestSetFinalisedHash_setFirstSlotOnFinalisation(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 	firstSlot := uint64(42069)
 
-	digest := types.NewDigestVdt()
+	digest := types.NewDigest()
 	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, firstSlot).ToPreRuntimeDigest())
-	digest2 := types.NewDigestVdt()
+	digest2 := types.NewDigest()
 	digest2.Add(*types.NewBabeSecondaryPlainPreDigest(0, firstSlot+100).ToPreRuntimeDigest())
 
 	header1 := &types.Header{

@@ -48,7 +48,7 @@ import (
 var testGenesisHeaderVdt = &types.Header{
 	Number:    big.NewInt(0),
 	StateRoot: trie.EmptyHash,
-	Digest:    types.NewDigestVdt(),
+	Digest:    types.NewDigest(),
 }
 
 var (

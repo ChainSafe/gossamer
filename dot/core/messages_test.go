@@ -93,7 +93,7 @@ func TestService_ProcessBlockAnnounceMessage(t *testing.T) {
 	require.Nil(t, err)
 
 	// simulate block sent from BABE session
-	digest := types.NewDigestVdt()
+	digest := types.NewDigest()
 	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 
 	newBlock := types.Block{

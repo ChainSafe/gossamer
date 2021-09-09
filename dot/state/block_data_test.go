@@ -34,7 +34,7 @@ func TestGetSet_ReceiptMessageQueue_Justification(t *testing.T) {
 	var genesisHeader = &types.Header{
 		Number:    big.NewInt(0),
 		StateRoot: trie.EmptyHash,
-		Digest:    types.NewDigestVdt(),
+		Digest:    types.NewDigest(),
 	}
 
 	hash := common.NewHash([]byte{0})
@@ -53,7 +53,7 @@ func TestGetSet_ReceiptMessageQueue_Justification(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
-		Digest:         types.NewDigestVdt(),
+		Digest:         types.NewDigest(),
 	}
 
 	a := []byte("asdf")

@@ -58,7 +58,7 @@ func NewHeader(parentHash, stateRoot, extrinsicsRoot common.Hash, number *big.In
 func NewEmptyHeader() *Header {
 	return &Header{
 		Number: big.NewInt(0),
-		Digest: NewDigestVdt(),
+		Digest: NewDigest(),
 	}
 }
 
@@ -80,7 +80,7 @@ func (bh *Header) DeepCopy() *Header {
 	}
 
 	if len(bh.Digest.Types) > 0 {
-		cp.Digest = NewDigestVdt()
+		cp.Digest = NewDigest()
 		for _, d := range bh.Digest.Types {
 			cp.Digest.Add(d.Value())
 		}

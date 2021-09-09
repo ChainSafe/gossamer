@@ -59,7 +59,7 @@ func TestSeal(t *testing.T) {
 	zeroHash, err := common.HexToHash("0x00")
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(zeroHash, zeroHash, zeroHash, big.NewInt(0), types.NewDigestVdt())
+	header, err := types.NewHeader(zeroHash, zeroHash, zeroHash, big.NewInt(0), types.NewDigest())
 	require.NoError(t, err)
 
 	encHeader, err := scale.Marshal(*header)
@@ -227,7 +227,7 @@ func TestBuildBlock_ok(t *testing.T) {
 	preDigest, err := builder.buildBlockPreDigest(slot)
 	require.NoError(t, err)
 
-	digest := types.NewDigestVdt()
+	digest := types.NewDigest()
 	digest.Add(*preDigest)
 
 	expectedBlockHeader := &types.Header{
@@ -307,7 +307,7 @@ func TestApplyExtrinsic(t *testing.T) {
 	preDigest, err := builder.buildBlockPreDigest(slot)
 	require.NoError(t, err)
 
-	digest := types.NewDigestVdt()
+	digest := types.NewDigest()
 	digest.Add(*preDigest)
 
 	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), digest)
@@ -327,7 +327,7 @@ func TestApplyExtrinsic(t *testing.T) {
 	_, err = rt.ValidateTransaction(append([]byte{byte(types.TxnExternal)}, ext...))
 	require.NoError(t, err)
 
-	digest2 := types.NewDigestVdt()
+	digest2 := types.NewDigest()
 	digest2.Add(*preDigest2)
 	header2, err := types.NewHeader(header1.Hash(), common.Hash{}, common.Hash{}, big.NewInt(2), digest2)
 	require.NoError(t, err)
@@ -358,7 +358,7 @@ func TestBuildAndApplyExtrinsic(t *testing.T) {
 	babeService.epochData.threshold = maxThreshold
 
 	parentHash := common.MustHexToHash("0x35a28a7dbaf0ba07d1485b0f3da7757e3880509edc8c31d0850cb6dd6219361d")
-	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewDigestVdt())
+	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), types.NewDigest())
 	require.NoError(t, err)
 
 	rt, err := babeService.blockState.GetRuntime(nil)

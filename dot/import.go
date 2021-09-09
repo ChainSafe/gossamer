@@ -126,25 +126,16 @@ func newHeaderFromFile(filename string) (*types.Header, error) {
 	}
 	logs := digestRaw["logs"].([]interface{})
 
-	//digest := types.Digest{}
-	digest := types.NewDigestVdt()
+	digest := types.NewDigest()
 
 	for _, log := range logs {
 		digestBytes := common.MustHexToBytes(log.(string))
-		//r := &bytes.Buffer{}
-		//_, _ = r.Write(digestBytes)
-		//decoder := scale.NewDecoder(r)
-		//digestItem, err := types.DecodeDigestItem(decoder)
-		//if err != nil {
-		//	return nil, err
-		//}
 		var digestItem = scale.MustNewVaryingDataType(types.ChangesTrieRootDigest{}, types.PreRuntimeDigest{}, types.ConsensusDigest{}, types.SealDigest{})
-		//var digestItem scale.VaryingDataType
 		err := scale.Unmarshal(digestBytes, &digestItem)
 		if err != nil {
 			return nil, err
 		}
-		//digest = append(digest, digestItem)
+
 		digest.Add(digestItem.Value())
 	}
 

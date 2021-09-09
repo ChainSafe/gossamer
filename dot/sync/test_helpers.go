@@ -140,14 +140,14 @@ func newTestGenesisWithTrieAndHeaderVdt(t *testing.T, usePolkadotGenesis bool) (
 	genTrie, err := genesis.NewTrieFromGenesis(gen)
 	require.NoError(t, err)
 
-	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigestVdt())
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.NewDigest())
 	require.NoError(t, err)
 	return gen, genTrie, genesisHeader
 }
 
 // BuildBlockVdt ...
 func BuildBlockVdt(t *testing.T, instance runtime.Instance, parent *types.Header, ext types.Extrinsic) *types.Block {
-	digest := types.NewDigestVdt()
+	digest := types.NewDigest()
 	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	header := &types.Header{
 		ParentHash: parent.Hash(),

@@ -112,7 +112,7 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.In
 
 	// create new block header
 	number := big.NewInt(0).Add(parent.Number, big.NewInt(1))
-	digest := types.NewDigestVdt()
+	digest := types.NewDigest()
 	digest.Add(*preDigest)
 	//header, err := types.NewHeader(parent.Hash(), common.Hash{}, common.Hash{}, number, types.NewDigest(preDigest))
 	header, err := types.NewHeader(parent.Hash(), common.Hash{}, common.Hash{}, number, digest)

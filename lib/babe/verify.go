@@ -320,18 +320,16 @@ func (b *verifier) verifyAuthorshipRightVdt(header *types.Header) error {
 	authorPub := b.authorities[babePreDigest.AuthorityIndex()].Key
 
 	// remove seal before verifying signature
-	h := types.NewDigestVdt()
+	h := types.NewDigest()
 	for _, val := range header.Digest.Types[:len(header.Digest.Types)-1] {
 		h.Add(val.Value())
 	}
 
 	header.Digest = h
 	defer func() {
-		//header.Digest = append(header.Digest, sealItem)
 		header.Digest.Add(sealItem.Value())
 	}()
 
-	//encHeader, err := header.Encode()
 	encHeader, err := scale.Marshal(*header)
 	if err != nil {
 		return err

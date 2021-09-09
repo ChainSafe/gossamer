@@ -48,7 +48,7 @@ func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, dept
 	headers := []*types.Header{}
 
 	for i := 1; i <= depth; i++ {
-		digest := types.NewDigestVdt()
+		digest := types.NewDigest()
 		digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, uint64(i)).ToPreRuntimeDigest())
 
 		block := &types.Block{
@@ -409,7 +409,7 @@ func createHeaderWithPreDigest(slotNumber uint64) *types.Header {
 	d := &types.PreRuntimeDigest{
 		Data: enc,
 	}
-	digest := types.NewDigestVdt()
+	digest := types.NewDigest()
 	digest.Add(*d)
 
 	return &types.Header{

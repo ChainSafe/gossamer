@@ -161,7 +161,7 @@ func NewEndpoint(port string) string {
 }
 
 func rpcLogsToDigestVdt(t *testing.T, logs []string) scale2.VaryingDataTypeSlice {
-	digest := types.NewDigestVdt()
+	digest := types.NewDigest()
 
 	for _, l := range logs {
 		itemBytes, err := common.HexToBytes(l)

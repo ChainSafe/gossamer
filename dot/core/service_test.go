@@ -63,7 +63,7 @@ func addTestBlocksToStateWithParent(t *testing.T, previousHash common.Hash, dept
 			Header: types.Header{
 				ParentHash: previousHash,
 				Number:     big.NewInt(int64(i)).Add(previousNum, big.NewInt(int64(i))),
-				Digest:     types.NewDigestVdt(),
+				Digest:     types.NewDigest(),
 			},
 			Body: types.Body{},
 		}
@@ -118,7 +118,7 @@ func TestAnnounceBlock(t *testing.T) {
 	defer s.Stop()
 
 	// simulate block sent from BABE session
-	digest := types.NewDigestVdt()
+	digest := types.NewDigest()
 	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 
 	newBlock := types.Block{
@@ -307,7 +307,7 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	require.NoError(t, err)
 
 	// TODO might have to create a new mock item here
-	digest := types.NewDigestVdt()
+	digest := types.NewDigest()
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash: ancestor.Header.Hash(),
@@ -503,7 +503,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	currSpecVersion := v.SpecVersion()   // genesis runtime version.
 	hash := s.blockState.BestBlockHash() // genesisHash
 
-	digest := types.NewDigestVdt()
+	digest := types.NewDigest()
 	digest.Add(types.PreRuntimeDigest{
 		ConsensusEngineID: types.BabeEngineID,
 		Data:              common.MustHexToBytes("0x0201000000ef55a50f00000000"),
@@ -514,8 +514,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 		Header: types.Header{
 			ParentHash: hash,
 			Number:     big.NewInt(1),
-			////Digest:     types.Digest{utils.NewMockDigestItem(1)}},
-			Digest:     types.NewDigestVdt()},
+			Digest:     types.NewDigest()},
 		Body: *types.NewBody([]byte("Old Runtime")),
 	}
 
@@ -605,7 +604,7 @@ func TestService_HandleRuntimeChangesAfterCodeSubstitutes(t *testing.T) {
 		Header: types.Header{
 			ParentHash: blockHash,
 			Number:     big.NewInt(1),
-			Digest:     types.NewDigestVdt(),
+			Digest:     types.NewDigest(),
 		},
 		Body: *types.NewBody([]byte("Updated Runtime")),
 	}
@@ -642,7 +641,7 @@ func TestTryQueryStore_WhenThereIsDataToRetrieve(t *testing.T) {
 	require.NoError(t, err)
 
 	header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
-		common.Hash{}, big.NewInt(1), types.NewDigestVdt())
+		common.Hash{}, big.NewInt(1), types.NewDigest())
 	require.NoError(t, err)
 
 	err = s.storageState.StoreTrie(storageStateTrie, header)
@@ -672,7 +671,7 @@ func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
 	require.NoError(t, err)
 
 	header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
-		common.Hash{}, big.NewInt(1), types.NewDigestVdt())
+		common.Hash{}, big.NewInt(1), types.NewDigest())
 	require.NoError(t, err)
 
 	err = s.storageState.StoreTrie(storageStateTrie, header)
@@ -700,7 +699,7 @@ func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
 func TestTryQueryState_WhenDoesNotHaveStateRoot(t *testing.T) {
 	s := NewTestService(t, nil)
 
-	header, err := types.NewHeader(s.blockState.GenesisHash(), common.Hash{}, common.Hash{}, big.NewInt(1), types.NewDigestVdt())
+	header, err := types.NewHeader(s.blockState.GenesisHash(), common.Hash{}, common.Hash{}, big.NewInt(1), types.NewDigest())
 	require.NoError(t, err)
 
 	testBlock := &types.Block{
@@ -782,7 +781,7 @@ func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service, key, value []by
 	storageStateTrie.Set(key, value)
 	require.NoError(t, err)
 
-	header, err := types.NewHeader(parentHash, storageStateTrie.MustRoot(), common.Hash{}, big.NewInt(number), types.NewDigestVdt())
+	header, err := types.NewHeader(parentHash, storageStateTrie.MustRoot(), common.Hash{}, big.NewInt(number), types.NewDigest())
 	require.NoError(t, err)
 
 	err = s.storageState.StoreTrie(storageStateTrie, header)

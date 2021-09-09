@@ -176,7 +176,7 @@ func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieSta
 // It is handled the same as an imported block in terms of state updates; the only difference
 // is we send a BlockAnnounceMessage to our peers.
 func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieState) error {
-	digest := types.NewDigestVdt()
+	digest := types.NewDigest()
 	for i, _ := range block.Header.Digest.Types {
 		err := digest.Add(block.Header.Digest.Types[i].Value())
 		if err != nil {

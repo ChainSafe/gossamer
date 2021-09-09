@@ -90,7 +90,7 @@ func TestSendNeighbourMessage(t *testing.T) {
 	}()
 	go gs.sendNeighbourMessage()
 
-	digest := types.NewDigestVdt()
+	digest := types.NewDigest()
 	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	block := &types.Block{
 		Header: types.Header{

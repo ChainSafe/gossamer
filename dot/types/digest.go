@@ -28,7 +28,7 @@ func NewDigestItem() scale.VaryingDataType {
 }
 
 // NewDigest returns a new Digest from the given DigestItems
-func NewDigestVdt() scale.VaryingDataTypeSlice {
+func NewDigest() scale.VaryingDataTypeSlice {
 	return scale.NewVaryingDataTypeSlice(NewDigestItem())
 }
 

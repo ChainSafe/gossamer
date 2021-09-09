@@ -152,7 +152,7 @@ func TestEpochState_GetEpochForBlock(t *testing.T) {
 	babeHeader := types.NewBabePrimaryPreDigest(0, s.epochLength+2, [32]byte{}, [64]byte{})
 	enc := babeHeader.Encode()
 	d := types.NewBABEPreRuntimeDigest(enc)
-	digest := types.NewDigestVdt()
+	digest := types.NewDigest()
 	digest.Add(*d)
 
 	header := &types.Header{
@@ -166,7 +166,7 @@ func TestEpochState_GetEpochForBlock(t *testing.T) {
 	babeHeader = types.NewBabePrimaryPreDigest(0, s.epochLength*2+3, [32]byte{}, [64]byte{})
 	enc = babeHeader.Encode()
 	d = types.NewBABEPreRuntimeDigest(enc)
-	digest2 := types.NewDigestVdt()
+	digest2 := types.NewDigest()
 	digest2.Add(*d)
 
 	header = &types.Header{

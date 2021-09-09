@@ -141,7 +141,7 @@ func (in *Instance) FinalizeBlock() (*types.Header, error) {
 func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	// copy block since we're going to modify it
 	b := block.DeepCopy()
-	b.Header.Digest = types.NewDigestVdt()
+	b.Header.Digest = types.NewDigest()
 
 	bdEnc, err := b.Encode()
 	if err != nil {

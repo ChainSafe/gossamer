@@ -301,7 +301,7 @@ func TestChainGetFinalizedHeadByRound(t *testing.T) {
 	expected := genesisHeader.Hash()
 	require.Equal(t, common.BytesToHex(expected[:]), res)
 
-	digest := types.NewDigestVdt()
+	digest := types.NewDigest()
 	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	header := &types.Header{
 		Number: big.NewInt(1),
@@ -354,7 +354,7 @@ func loadTestBlocks(gh common.Hash, bs *state.BlockState, rt runtime.Instance) e
 	// Create header
 	header0 := &types.Header{
 		Number:     big.NewInt(0),
-		Digest:     types.NewDigestVdt(),
+		Digest:     types.NewDigest(),
 		ParentHash: gh,
 		StateRoot:  trie.EmptyHash,
 	}
@@ -376,7 +376,7 @@ func loadTestBlocks(gh common.Hash, bs *state.BlockState, rt runtime.Instance) e
 	bs.StoreRuntime(block0.Header.Hash(), rt)
 
 	// Create header & blockData for block 1
-	digest := types.NewDigestVdt()
+	digest := types.NewDigest()
 	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	header1 := &types.Header{
 		Number:     big.NewInt(1),

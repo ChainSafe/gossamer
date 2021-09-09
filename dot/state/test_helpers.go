@@ -73,7 +73,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 	startNum := int(head.Number.Int64())
 	for i := startNum + 1; i <= depth; i++ {
 		d := types.NewBabePrimaryPreDigest(0, uint64(i), [32]byte{}, [64]byte{})
-		digest := types.NewDigestVdt()
+		digest := types.NewDigest()
 		digest.Add(*d.ToPreRuntimeDigest())
 
 		block := &types.Block{
@@ -111,7 +111,7 @@ func AddBlocksToState(t *testing.T, blockState *BlockState, depth int) ([]*types
 		previousHash = branch.hash
 
 		for i := branch.depth; i < depth; i++ {
-			digest := types.NewDigestVdt()
+			digest := types.NewDigest()
 			digest.Add(types.PreRuntimeDigest{
 				Data: []byte{byte(i)},
 			})
@@ -191,7 +191,7 @@ func AddBlocksToStateWithFixedBranches(t *testing.T, blockState *BlockState, dep
 		previousHash = branch.hash
 
 		for i := branch.depth; i < depth; i++ {
-			digest := types.NewDigestVdt()
+			digest := types.NewDigest()
 			digest.Add(types.PreRuntimeDigest{
 				Data: []byte{byte(i), byte(j), r},
 			})

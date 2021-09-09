@@ -29,7 +29,7 @@ func NewMockBlockState(n *big.Int) *mockBlockState {
 		Number:         n,
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
-		Digest:         types.NewDigestVdt(),
+		Digest:         types.NewDigest(),
 	}
 
 	m := new(mockBlockState)
@@ -71,7 +71,7 @@ func testBlockResponseMessage() *BlockResponseMessage {
 	for i := 0; i < int(blockRequestSize); i++ {
 		testHeader := &types.Header{
 			Number: big.NewInt(int64(77 + i)),
-			Digest: types.NewDigestVdt(),
+			Digest: types.NewDigest(),
 		}
 
 		msg.BlockData = append(msg.BlockData, &types.BlockDataVdt{
@@ -186,7 +186,7 @@ func testBlockRequestMessageDecoder(in []byte, _ peer.ID, _ bool) (Message, erro
 
 var testBlockAnnounceMessage = &BlockAnnounceMessage{
 	Number: big.NewInt(128 * 7),
-	Digest: types.NewDigestVdt(),
+	Digest: types.NewDigest(),
 }
 
 var testBlockAnnounceHandshake = &BlockAnnounceHandshake{
@@ -196,7 +196,7 @@ var testBlockAnnounceHandshake = &BlockAnnounceHandshake{
 func testBlockAnnounceMessageDecoder(in []byte, _ peer.ID, _ bool) (Message, error) {
 	msg := BlockAnnounceMessage{
 		Number: big.NewInt(0),
-		Digest: types.NewDigestVdt(),
+		Digest: types.NewDigest(),
 	}
 	err := msg.Decode(in)
 	return &msg, err

@@ -128,7 +128,7 @@ func TestEncodeBlockResponseMessage_Empty(t *testing.T) {
 func TestEncodeBlockResponseMessage_WithBody(t *testing.T) {
 	hash := common.NewHash([]byte{0})
 	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
-	header, err := types.NewHeader(testHash, testHash, testHash, big.NewInt(1), types.NewDigestVdt())
+	header, err := types.NewHeader(testHash, testHash, testHash, big.NewInt(1), types.NewDigest())
 
 	exts := [][]byte{{1, 3, 5, 7}, {9, 1, 2}, {3, 4, 5}}
 	body, err := types.NewBodyFromBytes(exts)
@@ -174,7 +174,7 @@ func TestEncodeBlockResponseMessage_WithAll(t *testing.T) {
 	hash := common.NewHash([]byte{0})
 	testHash := common.NewHash([]byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf})
 
-	header, err := types.NewHeader(testHash, testHash, testHash, big.NewInt(1), types.NewDigestVdt())
+	header, err := types.NewHeader(testHash, testHash, testHash, big.NewInt(1), types.NewDigest())
 
 	exts := [][]byte{{1, 3, 5, 7}, {9, 1, 2}, {3, 4, 5}}
 	body, err := types.NewBodyFromBytes(exts)
@@ -241,7 +241,7 @@ func TestEncodeBlockAnnounceMessage(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
-		Digest:         types.NewDigestVdt(),
+		Digest:         types.NewDigest(),
 	}
 	encMsg, err := bhm.Encode()
 	require.Nil(t, err)
@@ -255,7 +255,7 @@ func TestDecode_BlockAnnounceMessage(t *testing.T) {
 
 	bhm := BlockAnnounceMessage{
 		Number: big.NewInt(0),
-		Digest: types.NewDigestVdt(),
+		Digest: types.NewDigest(),
 	}
 	err = bhm.Decode(announceMessage)
 	require.Nil(t, err)
@@ -274,7 +274,7 @@ func TestDecode_BlockAnnounceMessage(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
-		Digest:         types.NewDigestVdt(),
+		Digest:         types.NewDigest(),
 	}
 
 	require.Equal(t, expected, bhm)

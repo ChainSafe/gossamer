@@ -53,7 +53,7 @@ var (
 
 	emptyHeader      = &types.Header{
 		Number: big.NewInt(0),
-		Digest: types.NewDigestVdt(),
+		Digest: types.NewDigest(),
 	}
 
 	genesisBABEConfig = &types.BabeConfiguration{
