@@ -312,12 +312,12 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	// remove seal before verifying signature
 	h := types.NewDigest()
 	for _, val := range header.Digest.Types[:len(header.Digest.Types)-1] {
-		h.Add(val.Value())
+		_ = h.Add(val.Value())
 	}
 
 	header.Digest = h
 	defer func() {
-		header.Digest.Add(sealItem.Value())
+		_ = header.Digest.Add(sealItem.Value())
 	}()
 
 	encHeader, err := scale.Marshal(*header)

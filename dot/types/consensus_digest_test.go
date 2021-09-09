@@ -46,6 +46,7 @@ func TestBabeEncodeAndDecode(t *testing.T) {
 		Authorities: []AuthorityRaw{authA, authB},
 		Randomness:  [32]byte{77, 88, 99},
 	})
+	require.NoError(t, err)
 
 	enc, err := scale.Marshal(d)
 	require.NoError(t, err)

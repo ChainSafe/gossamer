@@ -61,7 +61,7 @@ func (bd *BlockData) String() string {
 	}
 
 	if bd.Body != nil {
-		str = str + fmt.Sprintf("Body=%s ", bd.Body)
+		str = str + fmt.Sprintf("Body=%s ", *bd.Body)
 	}
 
 	if bd.Receipt != nil {

@@ -386,6 +386,7 @@ func TestHandler_HandleBABEOnDisabled(t *testing.T) {
 	err := digest.Set(types.BABEOnDisabled{
 		ID: 7,
 	})
+	require.NoError(t, err)
 
 	data, err := scale.Marshal(digest)
 	require.NoError(t, err)
@@ -439,6 +440,7 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 		Authorities: []types.AuthorityRaw{authA, authB},
 		Randomness:  [32]byte{77, 88, 99},
 	})
+	require.NoError(t, err)
 
 	data, err := scale.Marshal(digest)
 	require.NoError(t, err)
@@ -482,6 +484,7 @@ func TestHandler_HandleNextConfigData(t *testing.T) {
 		C2:             8,
 		SecondarySlots: 1,
 	})
+	require.NoError(t, err)
 
 	data, err := scale.Marshal(digest)
 	require.NoError(t, err)

@@ -114,7 +114,7 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.In
 	// create new block header
 	number := big.NewInt(0).Add(parent.Number, big.NewInt(1))
 	digest := types.NewDigest()
-	digest.Add(*preDigest)
+	_ = digest.Add(*preDigest)
 	header, err := types.NewHeader(parent.Hash(), common.Hash{}, common.Hash{}, number, digest)
 	if err != nil {
 		return nil, err
@@ -156,7 +156,7 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.In
 		return nil, err
 	}
 
-	header.Digest.Add(*seal)
+	_ = header.Digest.Add(*seal)
 
 	logger.Trace("built block seal")
 

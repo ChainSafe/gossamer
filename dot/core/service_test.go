@@ -120,6 +120,7 @@ func TestAnnounceBlock(t *testing.T) {
 	// simulate block sent from BABE session
 	digest := types.NewDigest()
 	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	require.NoError(t, err)
 
 	newBlock := types.Block{
 		Header: types.Header{

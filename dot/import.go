@@ -136,7 +136,7 @@ func newHeaderFromFile(filename string) (*types.Header, error) {
 			return nil, err
 		}
 
-		digest.Add(digestItem.Value())
+		_ = digest.Add(digestItem.Value())
 	}
 
 	header := &types.Header{

@@ -167,11 +167,11 @@ func rpcLogsToDigest(t *testing.T, logs []string) scale.VaryingDataTypeSlice {
 		itemBytes, err := common.HexToBytes(l)
 		require.NoError(t, err)
 
-		var di = types.NewDigest()
+		var di = types.NewDigestItem()
 		err = scale.Unmarshal(itemBytes, &di)
 		require.NoError(t, err)
 
-		digest.Add(di.Value())
+		_ = digest.Add(di.Value())
 	}
 
 	return digest
