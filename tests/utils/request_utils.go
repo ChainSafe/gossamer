@@ -176,22 +176,3 @@ func rpcLogsToDigestVdt(t *testing.T, logs []string) scale2.VaryingDataTypeSlice
 
 	return digest
 }
-
-func rpcLogsToDigest(t *testing.T, logs []string) types.Digest {
-	digest := types.Digest{}
-
-	for _, l := range logs {
-		itemBytes, err := common.HexToBytes(l)
-		require.NoError(t, err)
-
-		r := &bytes.Buffer{}
-		_, _ = r.Write(itemBytes)
-		decoder := scale2.NewDecoder(r)
-		item, err := types.DecodeDigestItem(decoder)
-		require.NoError(t, err)
-
-		digest = append(digest, item)
-	}
-
-	return digest
-}

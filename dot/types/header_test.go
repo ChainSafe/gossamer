@@ -17,7 +17,6 @@
 package types
 
 import (
-	"fmt"
 	"math/big"
 	"testing"
 
@@ -87,10 +86,8 @@ func TestHeaderDeepCopy(t *testing.T) {
 
 	header, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, big.NewInt(1), vdts)
 	require.NoError(t, err)
-	fmt.Println("header")
-	fmt.Println(header)
 
 	dc := header.DeepCopy()
-	fmt.Println("dc")
-	fmt.Println(dc)
+	dc.Hash()
+	require.Equal(t, header, dc)
 }
