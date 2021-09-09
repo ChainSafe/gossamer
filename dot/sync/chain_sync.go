@@ -33,7 +33,7 @@ type chainSyncState uint64
 
 var (
 	bootstrap chainSyncState = 0
-	tip      chainSyncState = 1
+	tip       chainSyncState = 1
 )
 
 // workerState helps track the current worker set and set the upcoming worker ID
@@ -167,6 +167,11 @@ type chainSync struct {
 	// the `chainProcessor` will read from this channel and process the blocks
 	// note: blocks must not be put into this channel unless their parent is known
 	// TODO: channel or queue data structure?
+	// there is a case where we request and process "duplicate" blocks, which is where there
+	// are some blocks in this channel, and at the same time, the bootstrap worker errors and dispatches
+	// a new worker with start=(current best head), which results in the blocks in the queue
+	// getting re-requested (as they have not been processed yet)
+	// fix: either make this a readable queue, or track the highest block we've put into the queue
 	readyBlocks chan<- *types.BlockData
 
 	// disjoint set of blocks which are known but not ready to be processed
@@ -207,7 +212,7 @@ func newChainSync(bs BlockState, net Network, readyBlocks chan<- *types.BlockDat
 
 func (cs *chainSync) start() {
 	// TODO: wait until we have received ?? peer heads
-	// this should be based off our min/max peers, potentially	
+	// this should be based off our min/max peers, potentially
 	for {
 		cs.RLock()
 		n := len(cs.peerState)
@@ -501,6 +506,11 @@ func (cs *chainSync) hasCurrentWorker(targetNumber *big.Int) bool {
 func (cs *chainSync) dispatchWorker(w *worker) {
 	logger.Debug("dispatching sync worker", "target hash", w.targetHash, "target number", w.targetNumber)
 
+	if w.targetNumber == nil || w.startNumber == nil {
+		logger.Error("must provide a block start and target number", "startNumber==nil?", w.startNumber == nil, "targetNumber==nil?", w.targetNumber == nil)
+		return
+	}
+
 	// to deal with descending requests (ie. target may be lower than start) which are used in tip mode,
 	// take absolute value of difference between start and target
 	numBlocks := int(big.NewInt(0).Abs(big.NewInt(0).Sub(w.targetNumber, w.startNumber)).Int64())
@@ -521,7 +531,7 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 	startNumber := w.startNumber.Uint64()
 
 	for i := 0; i < numRequests; i++ {
-		// TODO: check if we want to specify a size at any point
+		// TODO: check if we want to specify a size
 		// var max *optional.Uint32
 		// if i == numRequests - 1 {
 		// 	size := int(numBlocks) % MAX_RESPONSE_SIZE
@@ -563,6 +573,24 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 func (cs *chainSync) doSync(req *BlockRequestMessage) *workerError {
 	// determine which peers have the blocks we want to request
 	peers := cs.determineSyncPeers(req)
+
+	if len(peers) == 0 {
+		cs.Lock()
+		for p := range cs.ignorePeers {
+			delete(cs.ignorePeers, p)
+		}
+
+		for p := range cs.peerState {
+			peers = append(peers, p)
+		}
+		cs.Unlock()
+	}
+
+	if len(peers) == 0 {
+		return &workerError{
+			err: errNoPeers,
+		}
+	}
 
 	// send out request and potentially receive response, error if timeout
 	var (
@@ -622,6 +650,7 @@ func (cs *chainSync) determineSyncPeers(_ *BlockRequestMessage) []peer.ID {
 
 		peers = append(peers, p)
 	}
+
 	return peers
 }
 
@@ -648,6 +677,10 @@ func (cs *chainSync) validateResponse(req *BlockRequestMessage, resp *BlockRespo
 }
 
 func (cs *chainSync) validateBlockData(req *BlockRequestMessage, bd *types.BlockData) error {
+	if bd == nil {
+		return errNilBlockData
+	}
+
 	requestedData := req.RequestedData
 
 	if (requestedData&network.RequestedDataHeader) == 1 && bd.Header == nil {

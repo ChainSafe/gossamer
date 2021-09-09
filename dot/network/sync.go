@@ -26,7 +26,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
-var maxBlockResponseSize   uint64 = 1024 * 1024 * 4 // 4mb
+var maxBlockResponseSize uint64 = 1024 * 1024 * 4 // 4mb
 
 // // SendBlockReqestByHash sends a block request to the network with the given block hash
 // func (s *Service) SendBlockReqestByHash(hash common.Hash) {
@@ -120,6 +120,7 @@ func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) er
 
 	return nil
 }
+
 /*
 const (
 	blockRequestSize        uint32 = 128

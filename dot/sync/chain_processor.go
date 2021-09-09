@@ -127,23 +127,23 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 			return nil
 		}
 
-		if bd.Justification != nil && bd.Justification.Exists() {
-			logger.Debug("handling Justification...", "number", block.Header.Number, "hash", bd.Hash)
-			s.handleJustification(block.Header, bd.Justification.Value())
-		}
+		// if bd.Justification != nil && bd.Justification.Exists() {
+		// 	logger.Debug("handling Justification...", "number", block.Header.Number, "hash", bd.Hash)
+		// 	s.handleJustification(block.Header, bd.Justification.Value())
+		// }
 
-		// TODO: this is probably unnecessary, since the state is already in the database
-		// however, this case shouldn't be hit often, since it's only hit if the node state
-		// is rewinded or if the node shuts down unexpectedly
-		state, err := s.storageState.TrieState(&block.Header.StateRoot)
-		if err != nil {
-			logger.Warn("failed to load state for block", "block", block.Header.Hash(), "error", err)
-			return err
-		}
+		// // TODO: this is probably unnecessary, since the state is already in the database
+		// // however, this case shouldn't be hit often, since it's only hit if the node state
+		// // is rewinded or if the node shuts down unexpectedly
+		// state, err := s.storageState.TrieState(&block.Header.StateRoot)
+		// if err != nil {
+		// 	logger.Warn("failed to load state for block", "block", block.Header.Hash(), "error", err)
+		// 	return err
+		// }
 
-		if err := s.blockImportHandler.HandleBlockImport(block, state); err != nil {
-			logger.Warn("failed to handle block import", "error", err)
-		}
+		// if err := s.blockImportHandler.HandleBlockImport(block, state); err != nil {
+		// 	logger.Warn("failed to handle block import", "error", err)
+		// }
 
 		return nil
 	}

@@ -70,10 +70,10 @@ type Service struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	cfg           *Config
-	host          *host
-	mdns          *mdns
-	gossip        *gossip
+	cfg    *Config
+	host   *host
+	mdns   *mdns
+	gossip *gossip
 	//syncQueue     *syncQueue
 	bufPool       *sizedBufferPool
 	streamManager *streamManager
