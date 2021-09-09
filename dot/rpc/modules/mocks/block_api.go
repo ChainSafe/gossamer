@@ -34,9 +34,9 @@ func (_m *MockBlockAPI) BestBlockHash() common.Hash {
 	return r0
 }
 
-// FreeNotifierChannel provides a mock function with given fields: ch
-func (_m *MockBlockAPI) FreeImportedBlockNotifierChannel(ch chan *types.Block) {
-	_m.Called(ch)
+// FreeImportedBlockNotifierChannel provides a mock function with given fields: conn
+func (_m *MockBlockAPI) FreeImportedBlockNotifierChannel(conn interface{}) {
+	_m.Called(conn)
 }
 
 // GetBlockByHash provides a mock function with given fields: hash
@@ -154,6 +154,29 @@ func (_m *MockBlockAPI) GetHighestFinalisedHash() (common.Hash, error) {
 	return r0, r1
 }
 
+// GetImportedBlockNotifierChannel provides a mock function with given fields: conn
+func (_m *MockBlockAPI) GetImportedBlockNotifierChannel(conn interface{}) (<-chan *types.Block, error) {
+	ret := _m.Called(conn)
+
+	var r0 <-chan *types.Block
+	if rf, ok := ret.Get(0).(func(interface{}) <-chan *types.Block); ok {
+		r0 = rf(conn)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(<-chan *types.Block)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(interface{}) error); ok {
+		r1 = rf(conn)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetJustification provides a mock function with given fields: hash
 func (_m *MockBlockAPI) GetJustification(hash common.Hash) ([]byte, error) {
 	ret := _m.Called(hash)
@@ -170,29 +193,6 @@ func (_m *MockBlockAPI) GetJustification(hash common.Hash) ([]byte, error) {
 	var r1 error
 	if rf, ok := ret.Get(1).(func(common.Hash) error); ok {
 		r1 = rf(hash)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// GetNotifierChannel provides a mock function with given fields:
-func (_m *MockBlockAPI) GetImportedBlockNotifierChannel() (chan *types.Block, error) {
-	ret := _m.Called()
-
-	var r0 chan *types.Block
-	if rf, ok := ret.Get(0).(func() chan *types.Block); ok {
-		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(chan *types.Block)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
 	} else {
 		r1 = ret.Error(1)
 	}

@@ -115,7 +115,7 @@ func (s *StorageObserver) Stop() error {
 
 // BlockListener to handle listening for blocks importedChan
 type BlockListener struct {
-	Channel       chan *types.Block
+	Channel       <-chan *types.Block
 	wsconn        *WSConn
 	subID         uint32
 	done          chan struct{}
@@ -228,7 +228,7 @@ func (l *BlockFinalizedListener) Stop() error {
 // AllBlocksListener is a listener that is aware of new and newly finalised blocks```
 type AllBlocksListener struct {
 	finalizedChan chan *types.FinalisationInfo
-	importedChan  chan *types.Block
+	importedChan  <-chan *types.Block
 
 	wsconn          *WSConn
 	finalizedChanID byte
@@ -311,7 +311,7 @@ type ExtrinsicSubmitListener struct {
 	wsconn          *WSConn
 	subID           uint32
 	extrinsic       types.Extrinsic
-	importedChan    chan *types.Block
+	importedChan    <-chan *types.Block
 	importedHash    common.Hash
 	finalisedChan   chan *types.FinalisationInfo
 	finalisedChanID byte

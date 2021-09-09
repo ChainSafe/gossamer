@@ -47,7 +47,7 @@ type Handler struct {
 	grandpaState GrandpaState
 
 	// block notification channels
-	imported    chan *types.Block
+	imported    <-chan *types.Block
 	finalised   chan *types.FinalisationInfo
 	finalisedID byte
 
@@ -73,7 +73,7 @@ type resume struct {
 
 // NewHandler returns a new Handler
 func NewHandler(blockState BlockState, epochState EpochState, grandpaState GrandpaState) (*Handler, error) {
-	imported, err := blockState.GetImportedBlockNotifierChannel()
+	imported, err := blockState.GetImportedBlockNotifierChannel(blockState)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +109,7 @@ func (h *Handler) Start() error {
 // Stop stops the Handler
 func (h *Handler) Stop() error {
 	h.cancel()
-	h.blockState.FreeImportedBlockNotifierChannel(h.imported)
+	h.blockState.FreeImportedBlockNotifierChannel(h.blockState)
 	h.blockState.UnregisterFinalisedChannel(h.finalisedID)
 	close(h.finalised)
 	return nil

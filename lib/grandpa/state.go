@@ -41,8 +41,8 @@ type BlockState interface {
 	BestBlockHash() common.Hash
 	Leaves() []common.Hash
 	BlocktreeAsString() string
-	GetImportedBlockNotifierChannel() (chan *types.Block, error)
-	FreeImportedBlockNotifierChannel(ch chan *types.Block)
+	GetImportedBlockNotifierChannel(conn interface{}) (<-chan *types.Block, error)
+	FreeImportedBlockNotifierChannel(conn interface{})
 	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
 	UnregisterFinalisedChannel(id byte)
 	SetJustification(hash common.Hash, data []byte) error

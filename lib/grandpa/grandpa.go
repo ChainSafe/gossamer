@@ -376,12 +376,12 @@ func (s *Service) initiate() error {
 }
 
 func (s *Service) waitForFirstBlock() error {
-	ch, err := s.blockState.GetImportedBlockNotifierChannel()
+	ch, err := s.blockState.GetImportedBlockNotifierChannel(s.blockState)
 	if err != nil {
 		return err
 	}
 
-	defer s.blockState.FreeImportedBlockNotifierChannel(ch)
+	defer s.blockState.FreeImportedBlockNotifierChannel(s.blockState)
 
 	// loop until block 1
 	for {

@@ -26,8 +26,8 @@ import (
 // BlockState interface for block state methods
 type BlockState interface {
 	BestBlockHeader() (*types.Header, error)
-	GetImportedBlockNotifierChannel() (chan *types.Block, error)
-	FreeImportedBlockNotifierChannel(ch chan *types.Block)
+	GetImportedBlockNotifierChannel(conn interface{}) (<-chan *types.Block, error)
+	FreeImportedBlockNotifierChannel(conn interface{})
 	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
 	UnregisterFinalisedChannel(id byte)
 }
