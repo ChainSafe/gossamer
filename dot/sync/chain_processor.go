@@ -63,7 +63,7 @@ func (s *chainProcessor) processReadyBlocks() {
 			err := s.processBlockData(bd)
 			if err != nil {
 				logger.Crit("ready block failed", "hash", bd.Hash)
-				panic("failed to process block :(")
+				//panic("failed to process block :(")
 			}
 		case <-s.ctx.Done():
 			return

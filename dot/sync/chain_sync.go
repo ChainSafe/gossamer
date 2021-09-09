@@ -315,7 +315,7 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) e
 	// add it to the disjoint block set
 	cs.pendingBlocks.addHashAndNumber(ps.hash, ps.number)
 
-	cs.workQueue <- cs.peerState[p]
+	cs.workQueue <- ps
 	logger.Debug("set peer head", "peer", p, "hash", hash, "number", number)
 	return nil
 }
