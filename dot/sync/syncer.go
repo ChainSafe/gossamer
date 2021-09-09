@@ -128,5 +128,5 @@ func (s *Service) HandleBlockAnnounce(from peer.ID, msg *network.BlockAnnounceMe
 
 // IsSynced exposes the synced state
 func (s *Service) IsSynced() bool {
-	return s.chainSync.syncState() == idle
+	return s.chainSync.syncState() == tip
 }

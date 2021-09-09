@@ -38,15 +38,6 @@ var maxBlockResponseSize   uint64 = 1024 * 1024 * 4 // 4mb
 // 	})
 // }
 
-// handleSyncStream handles streams with the <protocol-id>/sync/2 protocol ID
-func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
-	if stream == nil {
-		return
-	}
-
-	s.readStream(stream, decodeSyncMessage, s.handleSyncMessage)
-}
-
 // DoBlockRequest sends a request to the given peer. If a response is received within a certain time period, it is returned, otherwise an error is returned.
 func (s *Service) DoBlockRequest(to peer.ID, req *BlockRequestMessage) (*BlockResponseMessage, error) {
 	fullSyncID := s.host.protocolID + syncID
@@ -86,13 +77,23 @@ func (s *Service) receiveBlockResponse(stream libp2pnetwork.Stream) (*BlockRespo
 	return msg, err
 }
 
+// handleSyncStream handles streams with the <protocol-id>/sync/2 protocol ID
+func (s *Service) handleSyncStream(stream libp2pnetwork.Stream) {
+	if stream == nil {
+		return
+	}
+
+	s.readStream(stream, decodeSyncMessage, s.handleSyncMessage)
+}
+
 func decodeSyncMessage(in []byte, _ peer.ID, _ bool) (Message, error) {
 	msg := new(BlockRequestMessage)
 	err := msg.Decode(in)
 	return msg, err
 }
 
-// handleSyncMessage handles synchronisation message types (BlockRequest and BlockResponse)
+// handleSyncMessage handles inbound sync streams
+// the only messages we should receive over an inbound stream are BlockRequestMessages, so we only need to handle those
 func (s *Service) handleSyncMessage(stream libp2pnetwork.Stream, msg Message) error {
 	if msg == nil {
 		_ = stream.Close()

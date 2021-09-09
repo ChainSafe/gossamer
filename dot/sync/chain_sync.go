@@ -33,7 +33,7 @@ type chainSyncState uint64
 
 var (
 	bootstrap chainSyncState = 0
-	idle      chainSyncState = 1
+	tip      chainSyncState = 1
 )
 
 // workerState helps track the current worker set and set the upcoming worker ID
@@ -106,7 +106,7 @@ type peerState struct {
 
 // workHandler handles new potential work (ie. reported peer state, block announces), results from dispatched workers,
 // and stored pending work (ie. pending blocks set)
-// workHandler should be implemented by `bootstrapSync` and `idleSync`
+// workHandler should be implemented by `bootstrapSync` and `tipSync`
 type workHandler interface {
 	// handleWork optionally returns a new worker based on a peerState.
 	// returned worker may be nil, in which case we do nothing
@@ -156,6 +156,7 @@ type chainSync struct {
 
 	// tracks the latest state we know of from our peers,
 	// ie. their best block hash and number
+	sync.RWMutex
 	peerState   map[peer.ID]*peerState
 	ignorePeers map[peer.ID]struct{}
 
@@ -173,10 +174,10 @@ type chainSync struct {
 	// note: the block may have empty fields, as some data about it may be unknown
 	pendingBlocks DisjointBlockSet
 
-	// bootstrap or idle (near-head)
+	// bootstrap or tip (near-head)
 	state chainSyncState
 
-	// handler is set to either `bootstrapSyncer` or `idleSyncer`, depending on the current
+	// handler is set to either `bootstrapSyncer` or `tipSyncer`, depending on the current
 	// chain sync state
 	handler workHandler
 
@@ -206,9 +207,12 @@ func newChainSync(bs BlockState, net Network, readyBlocks chan<- *types.BlockDat
 
 func (cs *chainSync) start() {
 	// TODO: wait until we have received ?? peer heads
-	// this should be based off our min/max peers, potentially
+	// this should be based off our min/max peers, potentially	
 	for {
-		if len(cs.peerState) >= 1 {
+		cs.RLock()
+		n := len(cs.peerState)
+		cs.RUnlock()
+		if n >= 1 {
 			break
 		}
 	}
@@ -249,7 +253,9 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) e
 		hash:   hash,
 		number: number,
 	}
+	cs.Lock()
 	cs.peerState[p] = ps
+	cs.Unlock()
 
 	// if the peer reports a lower or equal best block number than us,
 	// check if they are on a fork or not
@@ -359,7 +365,7 @@ func (cs *chainSync) logSyncSpeed() {
 				"finalised", finalised.Number,
 				"hash", finalised.Hash(),
 			)
-		case idle:
+		case tip:
 			logger.Info("💤 node waiting",
 				"peer count", len(cs.network.Peers()),
 				"head", before.Number,
@@ -402,7 +408,9 @@ func (cs *chainSync) sync() {
 			switch res.err.err {
 			case context.DeadlineExceeded:
 				if res.err.who != peer.ID("") {
+					cs.Lock()
 					cs.ignorePeers[res.err.who] = struct{}{}
+					cs.Unlock()
 				}
 			case context.Canceled:
 				return
@@ -422,7 +430,7 @@ func (cs *chainSync) sync() {
 		case <-ticker.C:
 			cs.handler.handleTick()
 
-			// bootstrap complete, switch state to idle if not already
+			// bootstrap complete, switch state to tip if not already
 			// and begin near-head fork-sync
 
 			// TODO: create functionality to switch modes
@@ -435,7 +443,7 @@ func (cs *chainSync) sync() {
 
 // handleWork handles potential new work that may be triggered on receiving a peer's state
 // in bootstrap mode, this begins the bootstrap process
-// in idle mode, this adds the peer's state to the pendingBlocks set and potentially starts
+// in tip mode, this adds the peer's state to the pendingBlocks set and potentially starts
 // a fork sync
 func (cs *chainSync) handleWork(ps *peerState) error {
 	logger.Trace("handling potential work", "target hash", ps.hash, "target number", ps.number)
@@ -470,7 +478,7 @@ func (cs *chainSync) tryDispatchWorker(w *worker) {
 }
 
 // hasCurrentWorker returns whether the current workers cover the blocks reported by this peerState
-// TODO: used only by bootstrap, create targetHash version for idle?
+// TODO: used only by bootstrap, create targetHash version for tip?
 func (cs *chainSync) hasCurrentWorker(targetNumber *big.Int) bool {
 	// if we're in bootstrap mode, and there already is a worker, we don't need to dispatch another
 	if cs.state == bootstrap {
@@ -493,7 +501,7 @@ func (cs *chainSync) hasCurrentWorker(targetNumber *big.Int) bool {
 func (cs *chainSync) dispatchWorker(w *worker) {
 	logger.Debug("dispatching sync worker", "target hash", w.targetHash, "target number", w.targetNumber)
 
-	// to deal with descending requests (ie. target may be lower than start) which are used in idle mode,
+	// to deal with descending requests (ie. target may be lower than start) which are used in tip mode,
 	// take absolute value of difference between start and target
 	numBlocks := int(big.NewInt(0).Abs(big.NewInt(0).Sub(w.targetNumber, w.startNumber)).Int64())
 	numRequests := numBlocks / MAX_RESPONSE_SIZE
@@ -603,6 +611,10 @@ func (cs *chainSync) doSync(req *BlockRequestMessage) *workerError {
 // TODO: implement this
 func (cs *chainSync) determineSyncPeers(_ *BlockRequestMessage) []peer.ID {
 	peers := []peer.ID{}
+
+	cs.RLock()
+	defer cs.RUnlock()
+
 	for p := range cs.peerState {
 		if _, has := cs.ignorePeers[p]; has {
 			continue
