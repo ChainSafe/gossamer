@@ -32,17 +32,16 @@ var testMessageTimeout = time.Second * 3
 
 func TestImportChannel(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
-
-	ch, err := bs.GetImportedBlockNotifierChannel()
+	ch, err := bs.GetImportedBlockNotifierChannel(bs)
 	require.NoError(t, err)
 
-	defer bs.FreeImportedBlockNotifierChannel(ch)
+	defer bs.FreeImportedBlockNotifierChannel(bs)
 
 	AddBlocksToState(t, bs, 3)
 
 	for i := 0; i < 3; i++ {
 		select {
-		case <-ch.ch:
+		case <-ch:
 		case <-time.After(testMessageTimeout):
 			t.Fatal("did not receive imported block")
 		}
@@ -77,11 +76,11 @@ func TestImportChannel_Multi(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 
 	num := 5
-	chs := make([]*ImportNotifier, num)
+	chs := make([]<-chan *types.Block, num)
 
 	var err error
 	for i := 0; i < num; i++ {
-		chs[i], err = bs.GetImportedBlockNotifierChannel()
+		chs[i], err = bs.GetImportedBlockNotifierChannel(i)
 		require.NoError(t, err)
 	}
 
@@ -98,7 +97,7 @@ func TestImportChannel_Multi(t *testing.T) {
 				t.Error("did not receive imported block: ch=", i)
 			}
 			wg.Done()
-		}(i, ch.ch)
+		}(i, ch)
 
 	}
 
