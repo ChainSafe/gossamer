@@ -107,7 +107,7 @@ func decodeBlockAnnounceHandshake(in []byte) (Handshake, error) {
 func decodeBlockAnnounceMessage(in []byte) (NotificationsMessage, error) {
 	msg := BlockAnnounceMessage{
 		Number: big.NewInt(0),
-		Digest: types.NewEmptyDigestVdt(),
+		Digest: types.NewDigestVdt(),
 	}
 	err := msg.Decode(in)
 	if err != nil {

@@ -23,19 +23,13 @@ import (
 )
 
 // NewDigestItem returns a new VaryingDataType to represent a DigestItem
-func NewDigestItemVDT() scale.VaryingDataType {
+func NewDigestItem() scale.VaryingDataType {
 	return scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
 }
 
 // NewDigest returns a new Digest from the given DigestItems
 func NewDigestVdt() scale.VaryingDataTypeSlice {
-	return scale.NewVaryingDataTypeSlice(NewDigestItemVDT())
-}
-
-// NewEmptyDigest returns an empty digest
-func NewEmptyDigestVdt() scale.VaryingDataTypeSlice {
-	var di = scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
-	return scale.NewVaryingDataTypeSlice(di)
+	return scale.NewVaryingDataTypeSlice(NewDigestItem())
 }
 
 // ConsensusEngineID is a 4-character identifier of the consensus engine that produced the digest.

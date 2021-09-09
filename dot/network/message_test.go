@@ -241,7 +241,7 @@ func TestEncodeBlockAnnounceMessage(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
-		Digest:         types.NewEmptyDigestVdt(),
+		Digest:         types.NewDigestVdt(),
 	}
 	encMsg, err := bhm.Encode()
 	require.Nil(t, err)
@@ -255,7 +255,7 @@ func TestDecode_BlockAnnounceMessage(t *testing.T) {
 
 	bhm := BlockAnnounceMessage{
 		Number: big.NewInt(0),
-		Digest: types.NewEmptyDigestVdt(),
+		Digest: types.NewDigestVdt(),
 	}
 	err = bhm.Decode(announceMessage)
 	require.Nil(t, err)
@@ -274,7 +274,7 @@ func TestDecode_BlockAnnounceMessage(t *testing.T) {
 		Number:         big.NewInt(1),
 		StateRoot:      stateRoot,
 		ExtrinsicsRoot: extrinsicsRoot,
-		Digest:         types.NewEmptyDigestVdt(),
+		Digest:         types.NewDigestVdt(),
 	}
 
 	require.Equal(t, expected, bhm)

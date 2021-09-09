@@ -71,7 +71,7 @@ func testBlockResponseMessage() *BlockResponseMessage {
 	for i := 0; i < int(blockRequestSize); i++ {
 		testHeader := &types.Header{
 			Number: big.NewInt(int64(77 + i)),
-			Digest: types.NewEmptyDigestVdt(),
+			Digest: types.NewDigestVdt(),
 		}
 
 		msg.BlockData = append(msg.BlockData, &types.BlockDataVdt{
@@ -186,7 +186,7 @@ func testBlockRequestMessageDecoder(in []byte, _ peer.ID, _ bool) (Message, erro
 
 var testBlockAnnounceMessage = &BlockAnnounceMessage{
 	Number: big.NewInt(128 * 7),
-	Digest: types.NewEmptyDigestVdt(),
+	Digest: types.NewDigestVdt(),
 }
 
 var testBlockAnnounceHandshake = &BlockAnnounceHandshake{
@@ -194,10 +194,9 @@ var testBlockAnnounceHandshake = &BlockAnnounceHandshake{
 }
 
 func testBlockAnnounceMessageDecoder(in []byte, _ peer.ID, _ bool) (Message, error) {
-	//msg := new(BlockAnnounceMessage)
 	msg := BlockAnnounceMessage{
 		Number: big.NewInt(0),
-		Digest: types.NewEmptyDigestVdt(),
+		Digest: types.NewDigestVdt(),
 	}
 	err := msg.Decode(in)
 	return &msg, err

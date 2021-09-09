@@ -41,7 +41,7 @@ func TestChainGetHeader_Genesis(t *testing.T) {
 	header, err := state.Block.BestBlockHeader()
 	require.NoError(t, err)
 
-	di := types.NewDigestItemVDT()
+	di := types.NewDigestItem()
 	di.Set(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 
 	d, err := scale.Marshal(di)
@@ -74,7 +74,7 @@ func TestChainGetHeader_Latest(t *testing.T) {
 	header, err := state.Block.BestBlockHeader()
 	require.NoError(t, err)
 
-	di := types.NewDigestItemVDT()
+	di := types.NewDigestItem()
 	di.Set(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 
 	d, err := scale.Marshal(di)
@@ -119,7 +119,7 @@ func TestChainGetBlock_Genesis(t *testing.T) {
 	header, err := state.Block.BestBlockHeader()
 	require.NoError(t, err)
 
-	di := types.NewDigestItemVDT()
+	di := types.NewDigestItem()
 	di.Set(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 
 	d, err := scale.Marshal(di)
@@ -160,7 +160,7 @@ func TestChainGetBlock_Latest(t *testing.T) {
 	header, err := state.Block.BestBlockHeader()
 	require.NoError(t, err)
 
-	di := types.NewDigestItemVDT()
+	di := types.NewDigestItem()
 	di.Set(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 
 	d, err := scale.Marshal(di)

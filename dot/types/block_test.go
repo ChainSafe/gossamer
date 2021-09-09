@@ -42,7 +42,7 @@ func TestEncodeAndDecodeBlockVdt(t *testing.T) {
 	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
 	require.NoError(t, err)
 
-	header, err := NewHeader(parentHash, stateRoot, extrinsicsRoot, big.NewInt(1), NewEmptyDigestVdt())
+	header, err := NewHeader(parentHash, stateRoot, extrinsicsRoot, big.NewInt(1), NewDigestVdt())
 	require.NoError(t, err)
 
 	body := NewBody([]byte{4, 1})

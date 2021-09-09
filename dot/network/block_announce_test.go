@@ -146,7 +146,7 @@ func TestHandleBlockAnnounceMessage(t *testing.T) {
 	peerID := peer.ID("noot")
 	msg := &BlockAnnounceMessage{
 		Number: big.NewInt(10),
-		Digest: types.NewEmptyDigestVdt(),
+		Digest: types.NewDigestVdt(),
 	}
 
 	propagate, err := s.handleBlockAnnounceMessage(peerID, msg)

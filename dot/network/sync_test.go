@@ -141,17 +141,17 @@ func TestSortRequests_RemoveDuplicates(t *testing.T) {
 func TestSortResponses(t *testing.T) {
 	testHeader0 := &types.Header{
 		Number: big.NewInt(77),
-		Digest: types.NewEmptyDigestVdt(),
+		Digest: types.NewDigestVdt(),
 	}
 
 	testHeader1 := &types.Header{
 		Number: big.NewInt(78),
-		Digest: types.NewEmptyDigestVdt(),
+		Digest: types.NewDigestVdt(),
 	}
 
 	testHeader2 := &types.Header{
 		Number: big.NewInt(79),
-		Digest: types.NewEmptyDigestVdt(),
+		Digest: types.NewDigestVdt(),
 	}
 
 	data := []*types.BlockDataVdt{
@@ -191,17 +191,17 @@ func TestSortResponses(t *testing.T) {
 func TestSortResponses_RemoveDuplicated(t *testing.T) {
 	testHeader0 := &types.Header{
 		Number: big.NewInt(77),
-		Digest: types.NewEmptyDigestVdt(),
+		Digest: types.NewDigestVdt(),
 	}
 
 	testHeader1 := &types.Header{
 		Number: big.NewInt(78),
-		Digest: types.NewEmptyDigestVdt(),
+		Digest: types.NewDigestVdt(),
 	}
 
 	testHeader2 := &types.Header{
 		Number: big.NewInt(79),
-		Digest: types.NewEmptyDigestVdt(),
+		Digest: types.NewDigestVdt(),
 	}
 
 	data := []*types.BlockDataVdt{
@@ -368,7 +368,7 @@ func TestSyncQueue_handleResponseQueue_responseQueueAhead(t *testing.T) {
 
 	testHeader0 := &types.Header{
 		Number: big.NewInt(77),
-		Digest: types.NewEmptyDigestVdt(),
+		Digest: types.NewDigestVdt(),
 	}
 	q.responses = append(q.responses, &types.BlockDataVdt{
 		Hash:          testHeader0.Hash(),
@@ -394,7 +394,7 @@ func TestSyncQueue_processBlockResponses(t *testing.T) {
 
 	testHeader0 := &types.Header{
 		Number: big.NewInt(0),
-		Digest: types.NewEmptyDigestVdt(),
+		Digest: types.NewDigestVdt(),
 	}
 	go func() {
 		q.responseCh <- []*types.BlockDataVdt{

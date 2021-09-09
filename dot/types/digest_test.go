@@ -67,7 +67,7 @@ func TestDecodeSingleDigest(t *testing.T) {
 		Data:              []byte{1, 3, 5, 7},
 	}
 
-	di := NewDigestItemVDT()
+	di := NewDigestItem()
 	err := di.Set(d)
 	require.NoError(t, err)
 
@@ -76,7 +76,7 @@ func TestDecodeSingleDigest(t *testing.T) {
 
 	require.Equal(t, exp, enc)
 
-	v := NewDigestItemVDT()
+	v := NewDigestItem()
 	err = scale.Unmarshal(enc, &v)
 	require.NoError(t, err)
 
@@ -102,7 +102,7 @@ func TestChangesTrieRootDigest(t *testing.T) {
 		Hash: common.Hash{0, 91, 50, 25, 214, 94, 119, 36, 71, 216, 33, 152, 85, 184, 34, 120, 61, 161, 164, 223, 76, 53, 40, 246, 76, 38, 235, 204, 43, 31, 179, 28},
 	}
 
-	di := NewDigestItemVDT()
+	di := NewDigestItem()
 	err := di.Set(d)
 	require.NoError(t, err)
 
@@ -111,7 +111,7 @@ func TestChangesTrieRootDigest(t *testing.T) {
 
 	require.Equal(t, exp, enc)
 
-	v := NewDigestItemVDT()
+	v := NewDigestItem()
 	err = scale.Unmarshal(enc, &v)
 	require.NoError(t, err)
 
@@ -125,7 +125,7 @@ func TestPreRuntimeDigest(t *testing.T) {
 		Data:              []byte{1, 3, 5, 7},
 	}
 
-	di := NewDigestItemVDT()
+	di := NewDigestItem()
 	err := di.Set(d)
 	require.NoError(t, err)
 
@@ -134,7 +134,7 @@ func TestPreRuntimeDigest(t *testing.T) {
 
 	require.Equal(t, exp, enc)
 
-	v := NewDigestItemVDT()
+	v := NewDigestItem()
 	err = scale.Unmarshal(enc, &v)
 	require.NoError(t, err)
 
@@ -148,7 +148,7 @@ func TestConsensusDigest(t *testing.T) {
 		Data:              []byte{1, 3, 5, 7},
 	}
 
-	di := NewDigestItemVDT()
+	di := NewDigestItem()
 	err := di.Set(d)
 	require.NoError(t, err)
 
@@ -157,7 +157,7 @@ func TestConsensusDigest(t *testing.T) {
 
 	require.Equal(t, exp, enc)
 
-	v := NewDigestItemVDT()
+	v := NewDigestItem()
 	err = scale.Unmarshal(enc, &v)
 	require.NoError(t, err)
 
@@ -171,7 +171,7 @@ func TestSealDigest(t *testing.T) {
 		Data:              []byte{1, 3, 5, 7},
 	}
 
-	di := NewDigestItemVDT()
+	di := NewDigestItem()
 	err := di.Set(d)
 	require.NoError(t, err)
 
@@ -180,7 +180,7 @@ func TestSealDigest(t *testing.T) {
 
 	require.Equal(t, exp, enc)
 
-	v := NewDigestItemVDT()
+	v := NewDigestItem()
 	err = scale.Unmarshal(enc, &v)
 	require.NoError(t, err)
 

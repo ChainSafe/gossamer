@@ -156,7 +156,7 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 		}
 	}
 
-	b.Header.Digest = types.NewEmptyDigestVdt()
+	b.Header.Digest = types.NewDigestVdt()
 
 	// remove seal digest only
 	for _, d := range block.Header.Digest.Types {
