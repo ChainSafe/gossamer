@@ -133,7 +133,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 	require.NoError(t, err)
 
 	// set some nils and check no error is thrown
-	bds := &types.BlockDataVdt{
+	bds := &types.BlockData{
 		Hash:          bestHash,
 		Header:        nil,
 		Receipt:       nil,
@@ -147,7 +147,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 	a := []byte("asdf")
 	b := []byte("ghjkl")
 	c := []byte("qwerty")
-	bds = &types.BlockDataVdt{
+	bds = &types.BlockData{
 		Hash:          bestHash,
 		Receipt:       &a,
 		MessageQueue:  &b,
@@ -176,7 +176,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				Max:           optional.NewUint32(false, 0),
 			},
 			expectedMsgValue: &network.BlockResponseMessage{
-				BlockData: []*types.BlockDataVdt{
+				BlockData: []*types.BlockData{
 					{
 						Hash:   optional.NewHash(true, bestHash).Value(),
 						Header: &bestBlock.Header,
@@ -195,7 +195,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				Max:           optional.NewUint32(false, 0),
 			},
 			expectedMsgValue: &network.BlockResponseMessage{
-				BlockData: []*types.BlockDataVdt{
+				BlockData: []*types.BlockData{
 					{
 						Hash:   optional.NewHash(true, bestHash).Value(),
 						Header: &bestBlock.Header,
@@ -214,7 +214,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				Max:           optional.NewUint32(false, 0),
 			},
 			expectedMsgValue: &network.BlockResponseMessage{
-				BlockData: []*types.BlockDataVdt{
+				BlockData: []*types.BlockData{
 					{
 						Hash:    optional.NewHash(true, bestHash).Value(),
 						Header:  nil,
@@ -234,7 +234,7 @@ func TestService_CreateBlockResponse(t *testing.T) {
 				Max:           optional.NewUint32(false, 0),
 			},
 			expectedMsgValue: &network.BlockResponseMessage{
-				BlockData: []*types.BlockDataVdt{
+				BlockData: []*types.BlockData{
 					{
 						Hash:         optional.NewHash(true, bestHash).Value(),
 						Header:       nil,

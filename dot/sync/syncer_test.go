@@ -161,12 +161,12 @@ func TestRemoveIncludedExtrinsics(t *testing.T) {
 	body, err := types.NewBodyFromExtrinsics(exts)
 	require.NoError(t, err)
 
-	bd := &types.BlockDataVdt{
+	bd := &types.BlockData{
 		Body: body,
 	}
 
 	msg := &network.BlockResponseMessage{
-		BlockData: []*types.BlockDataVdt{bd},
+		BlockData: []*types.BlockData{bd},
 	}
 
 	_, err = syncer.ProcessBlockData(msg.BlockData)
@@ -185,51 +185,18 @@ func TestHandleBlockResponse_NoBlockData(t *testing.T) {
 func TestHandleBlockResponse_BlockData(t *testing.T) {
 	syncer := NewTestSyncer(t, false)
 
-	//parent2, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
-	//require.NoError(t, err)
-	//
-	//enc, err := parent2.Encode()
-	//require.NoError(t, err)
-
 	rt, err := syncer.blockState.GetRuntime(nil)
 	require.NoError(t, err)
-
-	//blockO := BuildBlock(t, rt, parent2, nil)
-	//
-	//fmt.Println("Built block normal")
-	//fmt.Println(blockO)
-
-	//require.Equal(t, blockO.Header.StateRoot, block.Header.StateRoot)
-
-	//bdOld := []*types.BlockData{{
-	//	Hash:          blockO.Header.Hash(),
-	//	Header:        blockO.Header.AsOptional(),
-	//	Body:          blockO.Body.AsOptional(),
-	//	Receipt:       nil,
-	//	MessageQueue:  nil,
-	//	Justification: nil,
-	//}}
-	//msgOld := &network.BlockResponseMessage{
-	//	BlockData: bdOld,
-	//}
-	//
-	//_, err = syncer.ProcessBlockDataOld(msgOld.BlockData)
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
 
 	_, err = scale.Marshal(*parent)
 	require.NoError(t, err)
-	//require.Equal(t, enc, encVdt)
 
 	block := BuildBlockVdt(t, rt, parent, nil)
 
-	// Length of 2
-
-	//fmt.Println("Built block vdt length")
-	//fmt.Println(len(block.Header.Digest.Types))
-
-	bd := []*types.BlockDataVdt{{
+	bd := []*types.BlockData{{
 		Hash:          block.Header.Hash(),
 		Header:        &block.Header,
 		Body:          &block.Body,
@@ -328,7 +295,7 @@ func TestSyncer_ProcessJustification(t *testing.T) {
 
 	just := []byte("testjustification")
 
-	data := []*types.BlockDataVdt{
+	data := []*types.BlockData{
 		{
 			Hash:          syncer.blockState.BestBlockHash(),
 			Justification: &just,

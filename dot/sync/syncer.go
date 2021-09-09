@@ -133,7 +133,7 @@ func (s *Service) HandleBlockAnnounce(msg *network.BlockAnnounceMessage) error {
 }
 
 // ProcessJustification processes block data containing justifications
-func (s *Service) ProcessJustification(data []*types.BlockDataVdt) (int, error) {
+func (s *Service) ProcessJustification(data []*types.BlockData) (int, error) {
 	if len(data) == 0 {
 		return 0, ErrNilBlockData
 	}
@@ -155,7 +155,7 @@ func (s *Service) ProcessJustification(data []*types.BlockDataVdt) (int, error) 
 
 // ProcessBlockData processes the BlockData from a BlockResponse and returns the index of the last BlockData it handled on success,
 // or the index of the block data that errored on failure.
-func (s *Service) ProcessBlockData(data []*types.BlockDataVdt) (int, error) {
+func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 	if len(data) == 0 {
 		return 0, ErrNilBlockData
 	}

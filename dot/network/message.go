@@ -185,7 +185,7 @@ var _ Message = &BlockResponseMessage{}
 
 // BlockResponseMessage is sent in response to a BlockRequestMessage
 type BlockResponseMessage struct {
-	BlockData []*types.BlockDataVdt
+	BlockData []*types.BlockData
 }
 
 func (bm *BlockResponseMessage) getStartAndEnd() (int64, int64, error) {
@@ -242,7 +242,7 @@ func (bm *BlockResponseMessage) Decode(in []byte) (err error) {
 		return err
 	}
 
-	bm.BlockData = make([]*types.BlockDataVdt, len(msg.Blocks))
+	bm.BlockData = make([]*types.BlockData, len(msg.Blocks))
 
 	for i, bd := range msg.Blocks {
 		block, err := protobufToBlockDataNew(bd)
@@ -255,7 +255,7 @@ func (bm *BlockResponseMessage) Decode(in []byte) (err error) {
 	return nil
 }
 
-func blockDataToProtobufNew(bd *types.BlockDataVdt) (*pb.BlockData, error) {
+func blockDataToProtobufNew(bd *types.BlockData) (*pb.BlockData, error) {
 	p := &pb.BlockData{
 		Hash: bd.Hash[:],
 	}
@@ -296,8 +296,8 @@ func blockDataToProtobufNew(bd *types.BlockDataVdt) (*pb.BlockData, error) {
 	return p, nil
 }
 
-func protobufToBlockDataNew(pbd *pb.BlockData) (*types.BlockDataVdt, error) {
-	bd := &types.BlockDataVdt{
+func protobufToBlockDataNew(pbd *pb.BlockData) (*types.BlockData, error) {
+	bd := &types.BlockData{
 		Hash:   common.BytesToHash(pbd.Hash),
 		Header: types.NewEmptyHeader(),
 	}

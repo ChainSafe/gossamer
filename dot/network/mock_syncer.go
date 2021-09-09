@@ -64,18 +64,18 @@ func (_m *MockSyncer) IsSynced() bool {
 }
 
 // ProcessBlockData provides a mock function with given fields: data
-func (_m *MockSyncer) ProcessBlockData(data []*types.BlockDataVdt) (int, error) {
+func (_m *MockSyncer) ProcessBlockData(data []*types.BlockData) (int, error) {
 	ret := _m.Called(data)
 
 	var r0 int
-	if rf, ok := ret.Get(0).(func([]*types.BlockDataVdt) int); ok {
+	if rf, ok := ret.Get(0).(func([]*types.BlockData) int); ok {
 		r0 = rf(data)
 	} else {
 		r0 = ret.Get(0).(int)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func([]*types.BlockDataVdt) error); ok {
+	if rf, ok := ret.Get(1).(func([]*types.BlockData) error); ok {
 		r1 = rf(data)
 	} else {
 		r1 = ret.Error(1)
@@ -85,18 +85,18 @@ func (_m *MockSyncer) ProcessBlockData(data []*types.BlockDataVdt) (int, error) 
 }
 
 // ProcessJustification provides a mock function with given fields: data
-func (_m *MockSyncer) ProcessJustification(data []*types.BlockDataVdt) (int, error) {
+func (_m *MockSyncer) ProcessJustification(data []*types.BlockData) (int, error) {
 	ret := _m.Called(data)
 
 	var r0 int
-	if rf, ok := ret.Get(0).(func([]*types.BlockDataVdt) int); ok {
+	if rf, ok := ret.Get(0).(func([]*types.BlockData) int); ok {
 		r0 = rf(data)
 	} else {
 		r0 = ret.Get(0).(int)
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func([]*types.BlockDataVdt) error); ok {
+	if rf, ok := ret.Get(1).(func([]*types.BlockData) error); ok {
 		r1 = rf(data)
 	} else {
 		r1 = ret.Error(1)

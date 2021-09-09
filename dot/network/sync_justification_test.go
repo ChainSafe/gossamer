@@ -44,11 +44,11 @@ func TestSyncQueue_PushResponse_Justification(t *testing.T) {
 
 	peerID := peer.ID("noot")
 	msg := &BlockResponseMessage{
-		BlockData: []*types.BlockDataVdt{},
+		BlockData: []*types.BlockData{},
 	}
 
 	for i := 0; i < int(blockRequestSize); i++ {
-		bd := types.NewEmptyBlockDataVdt()
+		bd := types.NewEmptyBlockData()
 		bd.Hash = common.Hash{byte(i)}
 		bd.Justification = &[]byte{1}
 		msg.BlockData = append(msg.BlockData, bd)
@@ -82,11 +82,11 @@ func TestSyncQueue_PushResponse_EmptyJustification(t *testing.T) {
 
 	peerID := peer.ID("noot")
 	msg := &BlockResponseMessage{
-		BlockData: []*types.BlockDataVdt{},
+		BlockData: []*types.BlockData{},
 	}
 
 	for i := 0; i < int(blockRequestSize); i++ {
-		bd := types.NewEmptyBlockDataVdt()
+		bd := types.NewEmptyBlockData()
 		bd.Hash = common.Hash{byte(i)}
 		msg.BlockData = append(msg.BlockData, bd)
 	}
@@ -103,7 +103,7 @@ func TestSyncQueue_processBlockResponses_Justification(t *testing.T) {
 	q.ctx = context.Background()
 
 	go func() {
-		q.responseCh <- []*types.BlockDataVdt{
+		q.responseCh <- []*types.BlockData{
 			{
 				Hash:          common.Hash{byte(0)},
 				Header:        nil,

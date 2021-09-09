@@ -46,7 +46,7 @@ func TestNumber(t *testing.T) {
 	headerVdt, err := NewHeader(testHash, testHash, testHash, big.NewInt(5), testDigest)
 	require.NoError(t, err)
 
-	bd := BlockDataVdt{
+	bd := BlockData{
 		Hash:          common.NewHash([]byte{0}),
 		Header:        headerVdt,
 		Body:          nil,
@@ -63,7 +63,7 @@ func TestBlockDataEncodeAndDecodeEmpty(t *testing.T) {
 	expected, err := common.HexToBytes("0x00000000000000000000000000000000000000000000000000000000000000000000000000")
 	require.NoError(t, err)
 
-	bd := BlockDataVdt{
+	bd := BlockData{
 		Hash:          common.NewHash([]byte{0}),
 		Header:        nil,
 		Body:          nil,
@@ -77,7 +77,7 @@ func TestBlockDataEncodeAndDecodeEmpty(t *testing.T) {
 
 	require.Equal(t, expected, enc)
 
-	var block BlockDataVdt
+	var block BlockData
 	if bd.Header != nil {
 		block.Header = NewEmptyHeader()
 	}
@@ -98,7 +98,7 @@ func TestBlockDataEncodeAndDecodeHeader(t *testing.T) {
 	headerVdt, err := NewHeader(testHash, testHash, testHash, big.NewInt(1), testDigest)
 	require.NoError(t, err)
 
-	bd := BlockDataVdt{
+	bd := BlockData{
 		Hash:          common.NewHash([]byte{0}),
 		Header:        headerVdt,
 		Body:          nil,
@@ -112,7 +112,7 @@ func TestBlockDataEncodeAndDecodeHeader(t *testing.T) {
 
 	require.Equal(t, expected, enc)
 
-	var block BlockDataVdt
+	var block BlockData
 	if bd.Header != nil {
 		block.Header = NewEmptyHeader()
 	}
@@ -128,7 +128,7 @@ func TestBlockDataEncodeAndDecodeBody(t *testing.T) {
 	expected, err := common.HexToBytes("0x00000000000000000000000000000000000000000000000000000000000000000001100a0b0c0d000000")
 	require.NoError(t, err)
 
-	bd := BlockDataVdt{
+	bd := BlockData{
 		Hash:          common.NewHash([]byte{0}),
 		Header:        nil,
 		Body:          NewBody([]byte{0xa, 0xb, 0xc, 0xd}),
@@ -142,7 +142,7 @@ func TestBlockDataEncodeAndDecodeBody(t *testing.T) {
 
 	require.Equal(t, expected, enc)
 
-	var block BlockDataVdt
+	var block BlockData
 	if bd.Header != nil {
 		block.Header = NewEmptyHeader()
 	}
@@ -165,7 +165,7 @@ func TestBlockDataEncodeAndDecodeAll(t *testing.T) {
 	headerVdt, err := NewHeader(testHash, testHash, testHash, big.NewInt(1), testDigest)
 	require.NoError(t, err)
 
-	bd := BlockDataVdt{
+	bd := BlockData{
 		Hash:          hash,
 		Header:        headerVdt,
 		Body:          body,
@@ -179,7 +179,7 @@ func TestBlockDataEncodeAndDecodeAll(t *testing.T) {
 
 	require.Equal(t, expected, enc)
 
-	var block BlockDataVdt
+	var block BlockData
 	if bd.Header != nil {
 		block.Header = NewEmptyHeader()
 	}

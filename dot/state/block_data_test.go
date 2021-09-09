@@ -60,7 +60,7 @@ func TestGetSet_ReceiptMessageQueue_Justification(t *testing.T) {
 	b := []byte("ghjkl")
 	c := []byte("qwerty")
 
-	bds := []*types.BlockDataVdt{{
+	bds := []*types.BlockData{{
 		Hash:          header.Hash(),
 		Header:        header,
 		Body:          types.NewBody([]byte{}),

@@ -83,14 +83,14 @@ func TestSyncQueue_PushResponse(t *testing.T) {
 
 	peerID := peer.ID("noot")
 	msg := &BlockResponseMessage{
-		BlockData: []*types.BlockDataVdt{},
+		BlockData: []*types.BlockData{},
 	}
 
 	for i := 0; i < int(blockRequestSize); i++ {
 		testHeader := types.NewEmptyHeader()
 		testHeader.Number = big.NewInt(int64(77 + i))
 
-		msg.BlockData = append(msg.BlockData, &types.BlockDataVdt{
+		msg.BlockData = append(msg.BlockData, &types.BlockData{
 			Header: testHeader,
 			Body:   types.NewBody([]byte{0}),
 		})
@@ -154,7 +154,7 @@ func TestSortResponses(t *testing.T) {
 		Digest: types.NewDigest(),
 	}
 
-	data := []*types.BlockDataVdt{
+	data := []*types.BlockData{
 		{
 			Hash:   testHeader2.Hash(),
 			Header: testHeader2,
@@ -169,7 +169,7 @@ func TestSortResponses(t *testing.T) {
 		},
 	}
 
-	expected := []*types.BlockDataVdt{
+	expected := []*types.BlockData{
 		{
 			Hash:   testHeader0.Hash(),
 			Header: testHeader0,
@@ -204,7 +204,7 @@ func TestSortResponses_RemoveDuplicated(t *testing.T) {
 		Digest: types.NewDigest(),
 	}
 
-	data := []*types.BlockDataVdt{
+	data := []*types.BlockData{
 		{
 			Hash:   testHeader0.Hash(),
 			Header: testHeader2,
@@ -220,7 +220,7 @@ func TestSortResponses_RemoveDuplicated(t *testing.T) {
 	}
 
 	// should keep first block in sorted slice w/ duplicated hash
-	expected := []*types.BlockDataVdt{
+	expected := []*types.BlockData{
 		{
 			Hash:   testHeader0.Hash(),
 			Header: testHeader0,
@@ -370,7 +370,7 @@ func TestSyncQueue_handleResponseQueue_responseQueueAhead(t *testing.T) {
 		Number: big.NewInt(77),
 		Digest: types.NewDigest(),
 	}
-	q.responses = append(q.responses, &types.BlockDataVdt{
+	q.responses = append(q.responses, &types.BlockData{
 		Hash:          testHeader0.Hash(),
 		Header:        testHeader0,
 		Body:          types.NewBody([]byte{4, 4, 2}),
@@ -397,7 +397,7 @@ func TestSyncQueue_processBlockResponses(t *testing.T) {
 		Digest: types.NewDigest(),
 	}
 	go func() {
-		q.responseCh <- []*types.BlockDataVdt{
+		q.responseCh <- []*types.BlockData{
 			{
 				Hash:          testHeader0.Hash(),
 				Header:        testHeader0,

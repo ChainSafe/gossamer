@@ -65,7 +65,7 @@ func NewMockTransactionHandler() *MockTransactionHandler {
 
 func testBlockResponseMessage() *BlockResponseMessage {
 	msg := &BlockResponseMessage{
-		BlockData: []*types.BlockDataVdt{},
+		BlockData: []*types.BlockData{},
 	}
 
 	for i := 0; i < int(blockRequestSize); i++ {
@@ -74,7 +74,7 @@ func testBlockResponseMessage() *BlockResponseMessage {
 			Digest: types.NewDigest(),
 		}
 
-		msg.BlockData = append(msg.BlockData, &types.BlockDataVdt{
+		msg.BlockData = append(msg.BlockData, &types.BlockData{
 			Hash:          testHeader.Hash(),
 			Header:        testHeader,
 			Body:          types.NewBody([]byte{4, 4, 2}),

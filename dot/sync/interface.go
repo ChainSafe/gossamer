@@ -31,7 +31,7 @@ type BlockState interface {
 	BestBlockHeader() (*types.Header, error)
 	BestBlockNumber() (*big.Int, error)
 	AddBlock(*types.Block) error
-	CompareAndSetBlockData(bd *types.BlockDataVdt) error
+	CompareAndSetBlockData(bd *types.BlockData) error
 	GetBlockByNumber(*big.Int) (*types.Block, error)
 	HasBlockBody(hash common.Hash) (bool, error)
 	GetBlockBody(common.Hash) (*types.Body, error)

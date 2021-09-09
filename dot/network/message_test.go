@@ -96,22 +96,22 @@ func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
 }
 
 func TestEncodeBlockResponseMessage_Empty(t *testing.T) {
-	bd := types.NewEmptyBlockDataVdt()
+	bd := types.NewEmptyBlockData()
 	bd.Header = types.NewEmptyHeader()
 	bd.Header.Hash()
 
 	bm := &BlockResponseMessage{
-		BlockData: []*types.BlockDataVdt{bd},
+		BlockData: []*types.BlockData{bd},
 	}
 
 	enc, err := bm.Encode()
 	require.NoError(t, err)
 
-	empty := types.NewEmptyBlockDataVdt()
+	empty := types.NewEmptyBlockData()
 	empty.Header = types.NewEmptyHeader()
 
 	act := &BlockResponseMessage{
-		BlockData: []*types.BlockDataVdt{empty},
+		BlockData: []*types.BlockData{empty},
 	}
 	err = act.Decode(enc)
 	require.NoError(t, err)
@@ -134,7 +134,7 @@ func TestEncodeBlockResponseMessage_WithBody(t *testing.T) {
 	body, err := types.NewBodyFromBytes(exts)
 	require.NoError(t, err)
 
-	bd := &types.BlockDataVdt{
+	bd := &types.BlockData{
 		Hash:          hash,
 		Header:        header,
 		Body:          body,
@@ -144,17 +144,17 @@ func TestEncodeBlockResponseMessage_WithBody(t *testing.T) {
 	}
 
 	bm := &BlockResponseMessage{
-		BlockData: []*types.BlockDataVdt{bd},
+		BlockData: []*types.BlockData{bd},
 	}
 
 	enc, err := bm.Encode()
 	require.NoError(t, err)
 
-	empty := types.NewEmptyBlockDataVdt()
+	empty := types.NewEmptyBlockData()
 	empty.Header = types.NewEmptyHeader()
 
 	act := &BlockResponseMessage{
-		BlockData: []*types.BlockDataVdt{empty},
+		BlockData: []*types.BlockData{empty},
 	}
 	err = act.Decode(enc)
 	require.NoError(t, err)
@@ -180,7 +180,7 @@ func TestEncodeBlockResponseMessage_WithAll(t *testing.T) {
 	body, err := types.NewBodyFromBytes(exts)
 	require.NoError(t, err)
 
-	bd := &types.BlockDataVdt{
+	bd := &types.BlockData{
 		Hash:          hash,
 		Header:        header,
 		Body:          body,
@@ -190,18 +190,18 @@ func TestEncodeBlockResponseMessage_WithAll(t *testing.T) {
 	}
 
 	bm := &BlockResponseMessage{
-		BlockData: []*types.BlockDataVdt{bd},
+		BlockData: []*types.BlockData{bd},
 	}
 
 	enc, err := bm.Encode()
 	require.NoError(t, err)
 	require.Equal(t, exp, enc)
 
-	empty := types.NewEmptyBlockDataVdt()
+	empty := types.NewEmptyBlockData()
 	empty.Header = types.NewEmptyHeader()
 
 	act := &BlockResponseMessage{
-		BlockData: []*types.BlockDataVdt{empty},
+		BlockData: []*types.BlockData{empty},
 	}
 	err = act.Decode(enc)
 	require.NoError(t, err)

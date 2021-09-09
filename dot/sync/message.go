@@ -97,7 +97,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 
 	logger.Debug("handling BlockRequestMessage", "start", startHeader.Number, "end", endHeader.Number, "startHash", startHash, "endHash", endHash)
 
-	responseData := []*types.BlockDataVdt{}
+	responseData := []*types.BlockData{}
 
 	switch blockRequest.Direction {
 	case 0: // ascending (ie parent to child)
@@ -126,13 +126,13 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 	}, nil
 }
 
-func (s *Service) getBlockData(num *big.Int, requestedData byte) (*types.BlockDataVdt, error) {
+func (s *Service) getBlockData(num *big.Int, requestedData byte) (*types.BlockData, error) {
 	hash, err := s.blockState.GetHashByNumber(num)
 	if err != nil {
 		return nil, err
 	}
 
-	blockData := &types.BlockDataVdt{
+	blockData := &types.BlockData{
 		Hash:          hash,
 		Header:        nil,
 		Body:          nil,
