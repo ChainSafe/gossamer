@@ -493,7 +493,7 @@ func setDotGlobalConfigFromFlags(ctx *cli.Context, cfg *dot.GlobalConfig) {
 
 func setDotGlobalConfigName(ctx *cli.Context, tomlCfg *ctoml.Config, cfg *dot.GlobalConfig) error {
 	globalBasePath := utils.ExpandDir(cfg.BasePath)
-	initialised := dot.NodeInitialized(globalBasePath, false)
+	initialised := dot.NodeInitialized(globalBasePath)
 
 	// consider the --name flag as higher priority
 	if ctx.GlobalString(NameFlag.Name) != "" {
