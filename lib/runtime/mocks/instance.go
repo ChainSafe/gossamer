@@ -141,7 +141,7 @@ func (_m *MockInstance) Exec(function string, data []byte) ([]byte, error) {
 }
 
 // ExecuteBlock provides a mock function with given fields: block
-func (_m *MockInstance) ExecuteBlockVdt(block *types.Block) ([]byte, error) {
+func (_m *MockInstance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	ret := _m.Called(block)
 
 	var r0 []byte
@@ -163,8 +163,8 @@ func (_m *MockInstance) ExecuteBlockVdt(block *types.Block) ([]byte, error) {
 	return r0, r1
 }
 
-// FinalizeBlockVdt provides a mock function with given fields:
-func (_m *MockInstance) FinalizeBlockVdt() (*types.Header, error) {
+// FinalizeBlock provides a mock function with given fields:
+func (_m *MockInstance) FinalizeBlock() (*types.Header, error) {
 	ret := _m.Called()
 
 	var r0 *types.Header
@@ -254,7 +254,7 @@ func (_m *MockInstance) InherentExtrinsics(data []byte) ([]byte, error) {
 }
 
 // InitializeBlock provides a mock function with given fields: header
-func (_m *MockInstance) InitializeBlockVdt(header *types.Header) error {
+func (_m *MockInstance) InitializeBlock(header *types.Header) error {
 	ret := _m.Called(header)
 
 	var r0 error

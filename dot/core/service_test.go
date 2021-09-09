@@ -118,15 +118,6 @@ func TestAnnounceBlock(t *testing.T) {
 	defer s.Stop()
 
 	// simulate block sent from BABE session
-	//newBlock := &types.Block{
-	//	Header: &types.Header{
-	//		ParentHash: s.blockState.BestBlockHash(),
-	//		Number:     big.NewInt(1),
-	//		Digest:     types.Digest{types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()},
-	//	},
-	//	Body: &types.Body{},
-	//}
-
 	digest := types.NewDigestVdt()
 	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 
@@ -650,10 +641,6 @@ func TestTryQueryStore_WhenThereIsDataToRetrieve(t *testing.T) {
 	storageStateTrie.Set(testKey, testValue)
 	require.NoError(t, err)
 
-	//header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
-	//	common.Hash{}, big.NewInt(1), nil)
-	//require.NoError(t, err)
-
 	header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
 		common.Hash{}, big.NewInt(1), types.NewDigestVdt())
 	require.NoError(t, err)
@@ -684,9 +671,6 @@ func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
 	storageStateTrie, err := storage.NewTrieState(trie.NewTrie(nil))
 	require.NoError(t, err)
 
-	//header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
-	//	common.Hash{}, big.NewInt(1), nil)
-	//require.NoError(t, err)
 	header, err := types.NewHeader(s.blockState.GenesisHash(), storageStateTrie.MustRoot(),
 		common.Hash{}, big.NewInt(1), types.NewDigestVdt())
 	require.NoError(t, err)
@@ -716,8 +700,6 @@ func TestTryQueryStore_WhenDoesNotHaveDataToRetrieve(t *testing.T) {
 func TestTryQueryState_WhenDoesNotHaveStateRoot(t *testing.T) {
 	s := NewTestService(t, nil)
 
-	//header, err := types.NewHeader(s.blockState.GenesisHash(), common.Hash{}, common.Hash{}, big.NewInt(1), nil)
-	//require.NoError(t, err)
 	header, err := types.NewHeader(s.blockState.GenesisHash(), common.Hash{}, common.Hash{}, big.NewInt(1), types.NewDigestVdt())
 	require.NoError(t, err)
 
@@ -799,10 +781,6 @@ func createNewBlockAndStoreDataAtBlock(t *testing.T, s *Service, key, value []by
 	storageStateTrie, err := storage.NewTrieState(trie.NewTrie(nil))
 	storageStateTrie.Set(key, value)
 	require.NoError(t, err)
-
-	//header, err := types.NewHeader(parentHash, storageStateTrie.MustRoot(),
-	//	common.Hash{}, big.NewInt(number), nil)
-	//require.NoError(t, err)
 
 	header, err := types.NewHeader(parentHash, storageStateTrie.MustRoot(), common.Hash{}, big.NewInt(number), types.NewDigestVdt())
 	require.NoError(t, err)
