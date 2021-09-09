@@ -15,7 +15,7 @@ require (
 	github.com/dgraph-io/ristretto v0.0.3-0.20200630154024-f66de99634de
 	github.com/disiqueira/gotree v1.0.0
 	github.com/docker/docker v1.13.1
-	github.com/ethereum/go-ethereum v1.10.2
+	github.com/ethereum/go-ethereum v1.10.8
 	github.com/go-playground/validator/v10 v10.4.1
 	github.com/golang/protobuf v1.4.3
 	github.com/google/go-cmp v0.5.6
@@ -36,7 +36,6 @@ require (
 	github.com/libp2p/go-libp2p-kad-dht v0.11.1
 	github.com/libp2p/go-libp2p-peerstore v0.2.7
 	github.com/libp2p/go-libp2p-secio v0.2.2
-	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-isatty v0.0.13 // indirect
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/nanobox-io/golang-scribble v0.0.0-20190309225732-aa3e7c118975
@@ -51,7 +50,6 @@ require (
 	github.com/wasmerio/go-ext-wasm v0.3.2-0.20200326095750-0a32be6068ec
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210806184541-e5e7981a1069 // indirect
 	golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1
 	golang.org/x/tools v0.1.5 // indirect
 	google.golang.org/appengine v1.6.6 // indirect
