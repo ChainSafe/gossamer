@@ -60,7 +60,11 @@ func (s *chainProcessor) processReadyBlocks() {
 	for {
 		select {
 		case bd := <-s.readyBlocks:
-			s.processBlockData(bd)
+			err := s.processBlockData(bd)
+			if err != nil {
+				logger.Crit("ready block failed", "hash", bd.Hash)
+				panic("failed to process block :(")
+			}
 		case <-s.ctx.Done():
 			return
 		}
