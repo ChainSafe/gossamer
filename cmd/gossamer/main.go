@@ -240,9 +240,7 @@ func gossamerAction(ctx *cli.Context) error {
 	// from createDotConfig because dot config should not include expanded path)
 	cfg.Global.BasePath = utils.ExpandDir(cfg.Global.BasePath)
 
-	// check if node has not been initialised (expected true - add warning log)
 	if !dot.NodeInitialized(cfg.Global.BasePath) {
-
 		// initialise node (initialise state database and load genesis data)
 		err = dot.InitNode(cfg)
 		if err != nil {
