@@ -183,7 +183,7 @@ func (bs *BlockState) setFirstSlotOnFinalisation() error {
 		return err
 	}
 
-	slot, err := types.GetSlotFromHeaderVdt(header)
+	slot, err := types.GetSlotFromHeader(header)
 	if err != nil {
 		return err
 	}

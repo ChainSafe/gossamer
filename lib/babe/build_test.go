@@ -89,7 +89,6 @@ func createTestExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash,
 	rawMeta, err := rt.Metadata()
 	require.NoError(t, err)
 
-	//decoded, err := scale.Decode(rawMeta, []byte{})
 	var decoded []byte
 	err = scale.Unmarshal(rawMeta, &decoded)
 	require.NoError(t, err)
@@ -123,44 +122,6 @@ func createTestExtrinsic(t *testing.T, rt runtime.Instance, genHash common.Hash,
 	require.NoError(t, err)
 
 	return types.Extrinsic(common.MustHexToBytes(extEnc))
-}
-
-func createTestBlockVdt(t *testing.T, babeService *Service, parent *types.Header, exts [][]byte, slotNumber, epoch uint64) (*types.Block, Slot) { //nolint
-	// create proof that we can authorize this block
-	babeService.epochData.authorityIndex = 0
-
-	addAuthorshipProof(t, babeService, slotNumber, epoch)
-
-	for _, ext := range exts {
-		vtx := transaction.NewValidTransaction(ext, &transaction.Validity{})
-		_, _ = babeService.transactionState.Push(vtx)
-	}
-
-	duration, err := time.ParseDuration("1s")
-	require.NoError(t, err)
-
-	slot := Slot{
-		start:    time.Now(),
-		duration: duration,
-		number:   slotNumber,
-	}
-
-	rt, err := babeService.blockState.GetRuntime(nil)
-	require.NoError(t, err)
-
-	// build block
-	var block *types.Block
-	for i := 0; i < 1; i++ { // retry if error
-		block, err = babeService.buildBlock(parent, slot, rt)
-		if err == nil {
-			babeService.blockState.StoreRuntime(block.Header.Hash(), rt)
-			return block, slot
-		}
-	}
-
-	require.NoError(t, err)
-
-	return block, slot
 }
 
 func createTestBlock(t *testing.T, babeService *Service, parent *types.Header, exts [][]byte, slotNumber, epoch uint64) (*types.Block, Slot) { //nolint
@@ -242,11 +203,6 @@ func TestBuildBlock_ok(t *testing.T) {
 	require.NotEqual(t, block.Header.ExtrinsicsRoot, emptyHash)
 	require.Equal(t, 3, len(block.Header.Digest.Types))
 	require.Equal(t, *preDigest, block.Header.Digest.Types[0].Value())
-	// TODO rewrite these tests below
-	//require.Equal(t, types.PreRuntimeDigest{}, block.Header.Digest.Types[0])
-	//require.Equal(t, types.ConsensusDigest{}, block.Header.Digest.Types[1])
-	//require.Equal(t, types.SealDigest{}, block.Header.Digest.Types[2])
-	//require.Equal(t, byte(types.NextEpochData{}.Index()), block.Header.Digest.Types[1].Value().(*types.ConsensusDigest).DataType())
 
 	// confirm block body is correct
 	extsRes, err := block.Body.AsExtrinsics()

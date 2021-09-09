@@ -154,7 +154,7 @@ func TestService_HandleTransactionMessage(t *testing.T) {
 	require.NoError(t, err)
 	rt.SetContextStorage(ts)
 
-	block := sync.BuildBlockVdt(t, rt, genHeader, nil)
+	block := sync.BuildBlock(t, rt, genHeader, nil)
 
 	err = s.handleBlock(block, ts)
 	require.NoError(t, err)

@@ -202,8 +202,6 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 			continue
 		}
 
-		//predigest := d.(*types.PreRuntimeDigest)
-
 		r := &bytes.Buffer{}
 		_, _ = r.Write(predigest.Data)
 		digest, err := types.DecodeBabePreDigest(r)

@@ -59,7 +59,6 @@ func TestGetSet_ReceiptMessageQueue_Justification(t *testing.T) {
 	a := []byte("asdf")
 	b := []byte("ghjkl")
 	c := []byte("qwerty")
-
 	bds := []*types.BlockData{{
 		Hash:          header.Hash(),
 		Header:        header,

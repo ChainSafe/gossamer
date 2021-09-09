@@ -23,6 +23,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+
 	"github.com/libp2p/go-libp2p-core/peer"
 )
 
@@ -54,7 +55,6 @@ func (tm *TransactionMessage) String() string {
 // Encode will encode TransactionMessage using scale.Encode
 func (tm *TransactionMessage) Encode() ([]byte, error) {
 	return scale.Marshal(tm.Extrinsics)
-
 }
 
 // Decode the message into a TransactionMessage

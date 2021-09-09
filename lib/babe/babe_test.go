@@ -50,7 +50,6 @@ var (
 	minThreshold = &common.Uint128{}
 
 	genesisHeader *types.Header
-
 	emptyHeader      = &types.Header{
 		Number: big.NewInt(0),
 		Digest: types.NewDigest(),
@@ -72,10 +71,6 @@ func createTestService(t *testing.T, cfg *ServiceConfig) *Service {
 
 	gen, genTrie, genHeader := genesis.NewTestGenesisWithTrieAndHeader(t)
 	genesisHeader = genHeader
-
-	////TODO replace above logic with this. Temp fix just to init genesisHeaderVdt
-	//_, _, genHeader2 := genesis.NewTestGenesisWithTrieAndHeader(t)
-	//genesisHeaderVdt = genHeader2
 
 	var err error
 
@@ -344,7 +339,6 @@ func TestService_ProducesBlocks(t *testing.T) {
 
 	time.Sleep(babeService.slotDuration * 2)
 	babeService.blockImportHandler.(*mocks.BlockImportHandler).AssertCalled(t, "HandleBlockProduced", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState"))
-
 }
 
 func TestService_GetAuthorityIndex(t *testing.T) {

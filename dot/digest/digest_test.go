@@ -168,7 +168,6 @@ func TestHandler_GrandpaForcedChange(t *testing.T) {
 	err = digest.Set(fc)
 	require.NoError(t, err)
 
-	//data, err := fc.Encode()
 	data, err := scale.Marshal(digest)
 	require.NoError(t, err)
 
@@ -214,7 +213,6 @@ func TestHandler_GrandpaPauseAndResume(t *testing.T) {
 	err := digest.Set(p)
 	require.NoError(t, err)
 
-	//data, err := p.Encode()
 	data, err := scale.Marshal(digest)
 	require.NoError(t, err)
 
@@ -357,7 +355,6 @@ func TestNextGrandpaAuthorityChange_MultipleChanges(t *testing.T) {
 	err = digest.Set(fc)
 	require.NoError(t, err)
 
-	//data, err = fc.Encode()
 	data, err = scale.Marshal(digest)
 	require.NoError(t, err)
 

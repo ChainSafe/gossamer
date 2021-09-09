@@ -205,32 +205,32 @@ func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
 	rt, err := s.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	block1 := sync.BuildBlockVdt(t, rt, parent, nil)
+	block1 := sync.BuildBlock(t, rt, parent, nil)
 	bs.StoreRuntime(block1.Header.Hash(), rt)
 	err = bs.AddBlock(block1)
 	require.NoError(t, err)
 
-	block2 := sync.BuildBlockVdt(t, rt, &block1.Header, nil)
+	block2 := sync.BuildBlock(t, rt, &block1.Header, nil)
 	bs.StoreRuntime(block2.Header.Hash(), rt)
 	err = bs.AddBlock(block2)
 	require.NoError(t, err)
 
-	block3 := sync.BuildBlockVdt(t, rt, &block2.Header, nil)
+	block3 := sync.BuildBlock(t, rt, &block2.Header, nil)
 	bs.StoreRuntime(block3.Header.Hash(), rt)
 	err = bs.AddBlock(block3)
 	require.NoError(t, err)
 
-	block4 := sync.BuildBlockVdt(t, rt, &block3.Header, nil)
+	block4 := sync.BuildBlock(t, rt, &block3.Header, nil)
 	bs.StoreRuntime(block4.Header.Hash(), rt)
 	err = bs.AddBlock(block4)
 	require.NoError(t, err)
 
-	block5 := sync.BuildBlockVdt(t, rt, &block4.Header, nil)
+	block5 := sync.BuildBlock(t, rt, &block4.Header, nil)
 	bs.StoreRuntime(block5.Header.Hash(), rt)
 	err = bs.AddBlock(block5)
 	require.NoError(t, err)
 
-	block31 := sync.BuildBlockVdt(t, rt, &block2.Header, nil)
+	block31 := sync.BuildBlock(t, rt, &block2.Header, nil)
 	bs.StoreRuntime(block31.Header.Hash(), rt)
 	err = bs.AddBlock(block31)
 	require.NoError(t, err)
@@ -240,7 +240,7 @@ func TestHandleChainReorg_WithReorg_Trans(t *testing.T) {
 	// Add extrinsic to block `block31`
 	ext := createExtrinsic(t, rt, bs.GenesisHash(), nonce)
 
-	block41 := sync.BuildBlockVdt(t, rt, &block31.Header, ext)
+	block41 := sync.BuildBlock(t, rt, &block31.Header, ext)
 	bs.StoreRuntime(block41.Header.Hash(), rt)
 	err = bs.AddBlock(block41)
 	require.NoError(t, err)
@@ -377,7 +377,7 @@ func TestMaintainTransactionPool_EmptyBlock(t *testing.T) {
 		transactionState: ts,
 	}
 
-	err := s.maintainTransactionPoolVdt(&types.Block{
+	err := s.maintainTransactionPool(&types.Block{
 		Body: *types.NewBody([]byte{}),
 	})
 	require.NoError(t, err)
@@ -426,7 +426,7 @@ func TestMaintainTransactionPool_BlockWithExtrinsics(t *testing.T) {
 	body, err := types.NewBodyFromExtrinsics([]types.Extrinsic{txs[0].Extrinsic})
 	require.NoError(t, err)
 
-	err = s.maintainTransactionPoolVdt(&types.Block{
+	err = s.maintainTransactionPool(&types.Block{
 		Body: *body,
 	})
 	require.NoError(t, err)
@@ -469,7 +469,7 @@ func TestService_HandleSubmittedExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 	rt.SetContextStorage(ts)
 
-	block := sync.BuildBlockVdt(t, rt, genHeader, nil)
+	block := sync.BuildBlock(t, rt, genHeader, nil)
 
 	err = s.handleBlock(block, ts)
 	require.NoError(t, err)

@@ -175,7 +175,7 @@ func TestService_StorageTriePruning(t *testing.T) {
 
 	totalBlock := 10
 	for i := 1; i < totalBlock; i++ {
-		block, trieState := generateBlockWithRandomTrieVdt(t, serv, &parentHash, int64(i))
+		block, trieState := generateBlockWithRandomTrie(t, serv, &parentHash, int64(i))
 
 		err = serv.Storage.blockState.AddBlock(block)
 		require.NoError(t, err)
@@ -224,7 +224,7 @@ func TestService_PruneStorage(t *testing.T) {
 
 	var toFinalize common.Hash
 	for i := 0; i < 3; i++ {
-		block, trieState := generateBlockWithRandomTrieVdt(t, serv, nil, int64(i+1))
+		block, trieState := generateBlockWithRandomTrie(t, serv, nil, int64(i+1))
 		digest := types.NewDigest()
 		digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, uint64(i+1)).ToPreRuntimeDigest())
 		block.Header.Digest = digest
@@ -245,7 +245,7 @@ func TestService_PruneStorage(t *testing.T) {
 	var prunedArr []prunedBlock
 	parentHash := serv.Block.GenesisHash()
 	for i := 0; i < 3; i++ {
-		block, trieState := generateBlockWithRandomTrieVdt(t, serv, &parentHash, int64(i+1))
+		block, trieState := generateBlockWithRandomTrie(t, serv, &parentHash, int64(i+1))
 
 		err = serv.Storage.blockState.AddBlock(block)
 		require.NoError(t, err)

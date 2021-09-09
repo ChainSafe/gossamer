@@ -146,7 +146,7 @@ func (s *Service) ProcessJustification(data []*types.BlockData) (int, error) {
 
 		if bd.Justification != nil {
 			logger.Debug("handling Justification...", "number", header.Number, "hash", bd.Hash)
-			s.handleJustificationVdt(header, *bd.Justification)
+			s.handleJustification(header, *bd.Justification)
 		}
 	}
 
@@ -171,8 +171,6 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 		hasHeader, _ := s.blockState.HasHeader(bd.Hash)
 		hasBody, _ := s.blockState.HasBlockBody(bd.Hash)
 
-		//fmt.Println("hasHeader: ", hasHeader)
-		//fmt.Println("hasBody: ", hasBody)
 		if hasHeader && hasBody {
 			// TODO: fix this; sometimes when the node shuts down the "best block" isn't stored properly,
 			// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
@@ -192,7 +190,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 
 			if bd.Justification != nil {
 				logger.Debug("handling Justification...", "number", block.Header.Number, "hash", bd.Hash)
-				s.handleJustificationVdt(&block.Header, *bd.Justification)
+				s.handleJustification(&block.Header, *bd.Justification)
 			}
 
 			// TODO: this is probably unnecessary, since the state is already in the database
@@ -228,7 +226,6 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 		}
 
 		if bd.Body != nil && !hasBody {
-			//fmt.Println("Handling body")
 			body := bd.Body //nolint
 
 			logger.Trace("processing body", "hash", bd.Hash)
@@ -242,7 +239,6 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 		}
 
 		if bd.Header != nil && bd.Body != nil {
-			//fmt.Println("Handling header and body now")
 			header = bd.Header
 			body := bd.Body
 
@@ -264,7 +260,7 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 
 		if bd.Justification != nil && header != nil {
 			logger.Debug("handling Justification...", "number", bd.Number(), "hash", bd.Hash)
-			s.handleJustificationVdt(header, *bd.Justification)
+			s.handleJustification(header, *bd.Justification)
 		}
 	}
 
@@ -332,7 +328,6 @@ func (s *Service) handleBlock(block *types.Block) error {
 	logger.Trace("going to execute block", "header", block.Header, "exts", block.Body)
 
 	_, err = rt.ExecuteBlock(block)
-
 	if err != nil {
 		return fmt.Errorf("failed to execute block %d: %w", block.Header.Number, err)
 	}
@@ -355,7 +350,7 @@ func (s *Service) handleBlock(block *types.Block) error {
 	return nil
 }
 
-func (s *Service) handleJustificationVdt(header *types.Header, justification []byte) {
+func (s *Service) handleJustification(header *types.Header, justification []byte) {
 	if len(justification) == 0 || header == nil {
 		return
 	}

@@ -21,7 +21,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 	"reflect"
 	"sync"
@@ -32,6 +31,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/runtime"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+
 	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
 )
@@ -62,7 +63,6 @@ type BlockState struct {
 
 	pruneKeyCh chan *types.Header
 }
-
 
 // NewBlockState will create a new BlockState backed by the database located at basePath
 func NewBlockState(db chaindb.Database, bt *blocktree.BlockTree) (*BlockState, error) {
@@ -263,7 +263,6 @@ func (bs *BlockState) GetHeader(hash common.Hash) (*types.Header, error) {
 	}
 
 	result.Hash()
-
 	return result, err
 }
 
@@ -505,7 +504,7 @@ func (bs *BlockState) GetAllBlocksAtDepth(hash common.Hash) []common.Hash {
 }
 
 func (bs *BlockState) isBlockOnCurrentChain(header *types.Header) (bool, error) {
-	bestBlock, err := bs.BestBlockHeader() // Issue might be here
+	bestBlock, err := bs.BestBlockHeader()
 	if err != nil {
 		return false, err
 	}
@@ -515,7 +514,6 @@ func (bs *BlockState) isBlockOnCurrentChain(header *types.Header) (bool, error) 
 		return true, nil
 	}
 
-	// Best block isnt being found
 	is, err := bs.IsDescendantOf(header.Hash(), bestBlock.Hash())
 	if err != nil {
 		return false, err
@@ -537,7 +535,7 @@ func (bs *BlockState) BestBlockHash() common.Hash {
 	return bs.bt.DeepestBlockHash()
 }
 
-// BestBlockHeader returns the block header of the current head of the chain// BestBlockHeader returns the block header of the current head of the chain
+// BestBlockHeader returns the block header of the current head of the chain
 func (bs *BlockState) BestBlockHeader() (*types.Header, error) {
 	return bs.GetHeader(bs.BestBlockHash())
 }
@@ -578,7 +576,7 @@ func (bs *BlockState) GetSlotForBlock(hash common.Hash) (uint64, error) {
 		return 0, err
 	}
 
-	return types.GetSlotFromHeaderVdt(header)
+	return types.GetSlotFromHeader(header)
 }
 
 // SubChain returns the sub-blockchain between the starting hash and the ending hash using the block tree

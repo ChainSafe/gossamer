@@ -20,13 +20,13 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 
 	pb "github.com/ChainSafe/gossamer/dot/network/proto"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -226,7 +226,7 @@ func (bm *BlockResponseMessage) Encode() ([]byte, error) {
 	}
 
 	for i, bd := range bm.BlockData {
-		msg.Blocks[i], err = blockDataToProtobufNew(bd)
+		msg.Blocks[i], err = blockDataToProtobuf(bd)
 		if err != nil {
 			return nil, err
 		}
@@ -245,7 +245,7 @@ func (bm *BlockResponseMessage) Decode(in []byte) (err error) {
 	bm.BlockData = make([]*types.BlockData, len(msg.Blocks))
 
 	for i, bd := range msg.Blocks {
-		block, err := protobufToBlockDataNew(bd)
+		block, err := protobufToBlockData(bd)
 		if err != nil {
 			return err
 		}
@@ -255,13 +255,13 @@ func (bm *BlockResponseMessage) Decode(in []byte) (err error) {
 	return nil
 }
 
-func blockDataToProtobufNew(bd *types.BlockData) (*pb.BlockData, error) {
+func blockDataToProtobuf(bd *types.BlockData) (*pb.BlockData, error) {
 	p := &pb.BlockData{
 		Hash: bd.Hash[:],
 	}
 
 	if bd.Header != nil {
-		header, err := scale2.Marshal(*bd.Header)
+		header, err := scale.Marshal(*bd.Header)
 		if err != nil {
 			return nil, err
 		}
@@ -296,7 +296,7 @@ func blockDataToProtobufNew(bd *types.BlockData) (*pb.BlockData, error) {
 	return p, nil
 }
 
-func protobufToBlockDataNew(pbd *pb.BlockData) (*types.BlockData, error) {
+func protobufToBlockData(pbd *pb.BlockData) (*types.BlockData, error) {
 	bd := &types.BlockData{
 		Hash:   common.BytesToHash(pbd.Hash),
 		Header: types.NewEmptyHeader(),
@@ -304,7 +304,7 @@ func protobufToBlockDataNew(pbd *pb.BlockData) (*types.BlockData, error) {
 
 	if pbd.Header != nil {
 		header := types.NewEmptyHeader()
-		err := scale2.Unmarshal(pbd.Header, header)
+		err := scale.Unmarshal(pbd.Header, header)
 		if err != nil {
 			return nil, err
 		}

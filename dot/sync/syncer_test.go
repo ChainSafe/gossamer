@@ -18,7 +18,6 @@ package sync
 
 import (
 	"errors"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 	"os"
 	"testing"
@@ -30,6 +29,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
@@ -65,7 +65,7 @@ func TestHandleBlockResponse(t *testing.T) {
 	require.NoError(t, err)
 
 	for i := 0; i < 130; i++ {
-		block := BuildBlockVdt(t, rt, parent, nil)
+		block := BuildBlock(t, rt, parent, nil)
 		err = responder.blockState.AddBlock(block)
 		require.NoError(t, err)
 		parent = &block.Header
@@ -105,7 +105,7 @@ func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
 	require.NoError(t, err)
 
 	for i := 0; i < 4; i++ {
-		block := BuildBlockVdt(t, rt, parent, nil)
+		block := BuildBlock(t, rt, parent, nil)
 		err = syncer.blockState.AddBlock(block)
 		require.NoError(t, err)
 		parent = &block.Header
@@ -120,7 +120,7 @@ func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
 	require.NoError(t, err)
 
 	for i := 0; i < 16; i++ {
-		block := BuildBlockVdt(t, rt, parent, nil)
+		block := BuildBlock(t, rt, parent, nil)
 		err = responder.blockState.AddBlock(block)
 		require.NoError(t, err)
 		parent = &block.Header
@@ -194,7 +194,7 @@ func TestHandleBlockResponse_BlockData(t *testing.T) {
 	_, err = scale.Marshal(*parent)
 	require.NoError(t, err)
 
-	block := BuildBlockVdt(t, rt, parent, nil)
+	block := BuildBlock(t, rt, parent, nil)
 
 	bd := []*types.BlockData{{
 		Hash:          block.Header.Hash(),
@@ -218,7 +218,7 @@ func TestSyncer_ExecuteBlock_Prev(t *testing.T) {
 	rt, err := syncer.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	block := BuildBlockVdt(t, rt, parent, nil)
+	block := BuildBlock(t, rt, parent, nil)
 
 	// reset parentState
 	parentState, err := syncer.storageState.TrieState(&parent.StateRoot)
@@ -238,7 +238,7 @@ func TestSyncer_ExecuteBlock(t *testing.T) {
 	rt, err := syncer.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	block := BuildBlockVdt(t, rt, parent, nil)
+	block := BuildBlock(t, rt, parent, nil)
 
 	// reset parentState
 	parentState, err := syncer.storageState.TrieState(&parent.StateRoot)
@@ -269,7 +269,7 @@ func TestSyncer_HandleJustification(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	syncer.handleJustificationVdt(header, just)
+	syncer.handleJustification(header, just)
 
 	res, err := syncer.blockState.GetJustification(header.Hash())
 	require.NoError(t, err)
@@ -285,7 +285,7 @@ func TestSyncer_ProcessJustification(t *testing.T) {
 	rt, err := syncer.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	block := BuildBlockVdt(t, rt, parent, nil)
+	block := BuildBlock(t, rt, parent, nil)
 	digest := types.NewDigest()
 	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	block.Header.Digest = digest

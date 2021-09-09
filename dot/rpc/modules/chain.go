@@ -18,13 +18,13 @@ package modules
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 	"net/http"
 	"regexp"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // ChainHashRequest Hash as a string
@@ -266,6 +266,5 @@ func HeaderToJSON(header types.Header) (ChainBlockHeaderResponse, error) {
 		}
 		res.Digest.Logs = append(res.Digest.Logs, common.BytesToHex(enc))
 	}
-
 	return res, nil
 }

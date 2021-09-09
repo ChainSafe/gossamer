@@ -37,6 +37,7 @@ const (
 	buildBlockErrors = "gossamer/proposer/block/constructed/errors"
 )
 
+// construct a block for this slot with the given parent
 func (b *Service) buildBlock(parent *types.Header, slot Slot, rt runtime.Instance) (*types.Block, error) {
 	builder, err := NewBlockBuilder(
 		b.keypair,
@@ -114,7 +115,6 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.In
 	number := big.NewInt(0).Add(parent.Number, big.NewInt(1))
 	digest := types.NewDigest()
 	digest.Add(*preDigest)
-	//header, err := types.NewHeader(parent.Hash(), common.Hash{}, common.Hash{}, number, types.NewDigest(preDigest))
 	header, err := types.NewHeader(parent.Hash(), common.Hash{}, common.Hash{}, number, digest)
 	if err != nil {
 		return nil, err
@@ -156,7 +156,6 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.In
 		return nil, err
 	}
 
-	//header.Digest = append(header.Digest, seal)
 	header.Digest.Add(*seal)
 
 	logger.Trace("built block seal")
@@ -177,7 +176,6 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.In
 // buildBlockSeal creates the seal for the block header.
 // the seal consists of the ConsensusEngineID and a signature of the encoded block header.
 func (b *BlockBuilder) buildBlockSeal(header *types.Header) (*types.SealDigest, error) {
-	//encHeader, err := header.Encode()
 	encHeader, err := scale.Marshal(*header)
 	if err != nil {
 		return nil, err

@@ -50,7 +50,7 @@ type Service struct {
 	ctx        context.Context
 	cancel     context.CancelFunc
 	blockAddCh chan *types.Block // for asynchronous block handling
-	sync.Mutex                      // lock for channel
+	sync.Mutex                   // lock for channel
 
 	// Service interfaces
 	blockState       BlockState
@@ -332,7 +332,7 @@ func (s *Service) handleBlocksAsync() {
 				logger.Warn("failed to re-add transactions to chain upon re-org", "error", err)
 			}
 
-			if err := s.maintainTransactionPoolVdt(block); err != nil {
+			if err := s.maintainTransactionPool(block); err != nil {
 				logger.Warn("failed to maintain transaction pool", "error", err)
 			}
 		case <-s.ctx.Done():
@@ -422,7 +422,7 @@ func (s *Service) handleChainReorg(prev, curr common.Hash) error {
 // maintainTransactionPool removes any transactions that were included in the new block, revalidates the transactions in the pool,
 // and moves them to the queue if valid.
 // See https://github.com/paritytech/substrate/blob/74804b5649eccfb83c90aec87bdca58e5d5c8789/client/transaction-pool/src/lib.rs#L545
-func (s *Service) maintainTransactionPoolVdt(block *types.Block) error {
+func (s *Service) maintainTransactionPool(block *types.Block) error {
 	exts, err := block.Body.AsExtrinsics()
 	if err != nil {
 		return err

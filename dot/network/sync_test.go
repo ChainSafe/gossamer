@@ -344,7 +344,6 @@ func TestSyncQueue_ProcessBlockRequests(t *testing.T) {
 	time.Sleep(time.Second * 3)
 	require.Len(t, nodeA.syncQueue.responses, 128)
 	testResp := testBlockResponseMessage()
-	// Sync queue responses arent being hashed
 	require.Equal(t, testResp.BlockData, nodeA.syncQueue.responses)
 }
 

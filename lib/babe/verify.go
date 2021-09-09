@@ -75,7 +75,7 @@ func NewVerificationManager(blockState BlockState, epochState EpochState) (*Veri
 }
 
 // SetOnDisabled sets the BABE authority with the given index as disabled for the rest of the epoch
-func (v *VerificationManager) SetOnDisabledVdt(index uint32, header *types.Header) error {
+func (v *VerificationManager) SetOnDisabled(index uint32, header *types.Header) error {
 	epoch, err := v.epochState.GetEpochForBlock(header)
 	if err != nil {
 		return err
@@ -156,7 +156,7 @@ func (v *VerificationManager) VerifyBlock(header *types.Header) error {
 		}
 
 		if !block1IsFinal {
-			firstSlot, err := types.GetSlotFromHeaderVdt(header)
+			firstSlot, err := types.GetSlotFromHeader(header)
 			if err != nil {
 				return fmt.Errorf("failed to get slot from block 1: %w", err)
 			}

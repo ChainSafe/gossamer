@@ -70,7 +70,7 @@ func NewTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 	stateSrvc := state.NewService(scfg)
 	stateSrvc.UseMemDB()
 
-	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeaderVdt(t, usePolkadotGenesis)
+	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t, usePolkadotGenesis)
 	err := stateSrvc.Initialise(gen, genHeader, genTrie)
 	require.NoError(t, err)
 
@@ -128,7 +128,7 @@ func NewTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 	return syncer
 }
 
-func newTestGenesisWithTrieAndHeaderVdt(t *testing.T, usePolkadotGenesis bool) (*genesis.Genesis, *trie.Trie, *types.Header) {
+func newTestGenesisWithTrieAndHeader(t *testing.T, usePolkadotGenesis bool) (*genesis.Genesis, *trie.Trie, *types.Header) {
 	fp := "../../chain/gssmr/genesis.json"
 	if usePolkadotGenesis {
 		fp = "../../chain/polkadot/genesis.json"
@@ -145,8 +145,8 @@ func newTestGenesisWithTrieAndHeaderVdt(t *testing.T, usePolkadotGenesis bool) (
 	return gen, genTrie, genesisHeader
 }
 
-// BuildBlockVdt ...
-func BuildBlockVdt(t *testing.T, instance runtime.Instance, parent *types.Header, ext types.Extrinsic) *types.Block {
+// BuildBlock ...
+func BuildBlock(t *testing.T, instance runtime.Instance, parent *types.Header, ext types.Extrinsic) *types.Block {
 	digest := types.NewDigest()
 	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	header := &types.Header{

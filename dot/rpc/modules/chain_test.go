@@ -17,7 +17,6 @@
 package modules
 
 import (
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"io/ioutil"
 	"math/big"
 	"testing"
@@ -28,6 +27,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	database "github.com/ChainSafe/chaindb"
 	log "github.com/ChainSafe/log15"
