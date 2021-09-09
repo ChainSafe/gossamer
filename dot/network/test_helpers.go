@@ -48,8 +48,8 @@ func NewMockSyncer() *MockSyncer {
 	mocksyncer := new(MockSyncer)
 	mocksyncer.On("HandleBlockAnnounce", mock.AnythingOfType("*network.BlockAnnounceMessage")).Return(nil, nil)
 	mocksyncer.On("CreateBlockResponse", mock.AnythingOfType("*network.BlockRequestMessage")).Return(testBlockResponseMessage(), nil)
-	mocksyncer.On("ProcessJustification", mock.AnythingOfType("[]*types.BlockDataVdt")).Return(0, nil)
-	mocksyncer.On("ProcessBlockData", mock.AnythingOfType("[]*types.BlockDataVdt")).Return(0, nil)
+	mocksyncer.On("ProcessJustification", mock.AnythingOfType("[]*types.BlockData")).Return(0, nil)
+	mocksyncer.On("ProcessBlockData", mock.AnythingOfType("[]*types.BlockData")).Return(0, nil)
 	mocksyncer.On("SetSyncing", mock.AnythingOfType("bool"))
 	mocksyncer.On("IsSynced").Return(false)
 	return mocksyncer

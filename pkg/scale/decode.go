@@ -25,21 +25,6 @@ import (
 	"reflect"
 )
 
-// NewDecoder constructor for the Decoder struct
-func NewDecoder(r *bytes.Buffer) *Decoder {
-	d := Decoder{Reader: decodeState{r}}
-	return &d
-}
-
-// Decoder public wrapper around decodeState
-type Decoder struct {
-	Reader decodeState
-}
-
-type decodeState struct {
-	*bytes.Buffer
-}
-
 // indirect walks down v allocating pointers as needed,
 // until it gets to a non-pointer.
 func indirect(dstv reflect.Value) (elem reflect.Value) {
@@ -83,29 +68,6 @@ func indirect(dstv reflect.Value) (elem reflect.Value) {
 	return
 }
 
-// Decode takes a destination pointer to unmarshal the data from the Decoder to.
-func (d *Decoder) Decode(dst interface{}) (err error) {
-	dstv := reflect.ValueOf(dst)
-	if dstv.Kind() != reflect.Ptr || dstv.IsNil() {
-		err = fmt.Errorf("unsupported dst: %T, must be a pointer to a destination", dst)
-		return
-	}
-
-	elem := indirect(dstv)
-	if err != nil {
-		return
-	}
-
-	ds := decodeState{}
-	ds.Buffer = d.Reader.Buffer
-
-	err = ds.unmarshal(elem)
-	if err != nil {
-		return
-	}
-	return
-}
-
 // Unmarshal takes data and a destination pointer to unmarshal the data to.
 func Unmarshal(data []byte, dst interface{}) (err error) {
 	dstv := reflect.ValueOf(dst)
@@ -125,13 +87,17 @@ func Unmarshal(data []byte, dst interface{}) (err error) {
 	if err != nil {
 		return
 	}
-	ds.Buffer = buf
+	ds.Buffer = *buf
 
 	err = ds.unmarshal(elem)
 	if err != nil {
 		return
 	}
 	return
+}
+
+type decodeState struct {
+	bytes.Buffer
 }
 
 func (ds *decodeState) unmarshal(dstv reflect.Value) (err error) {

@@ -53,43 +53,12 @@ func (tm *TransactionMessage) String() string {
 
 // Encode will encode TransactionMessage using scale.Encode
 func (tm *TransactionMessage) Encode() ([]byte, error) {
-	//// scale encode each extrinsic
-	//var encodedExtrinsics = make([]byte, 0)
-	//for _, extrinsic := range tm.Extrinsics {
-	//	encExt, err := scale.Marshal([]byte(extrinsic))
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//	encodedExtrinsics = append(encodedExtrinsics, encExt...)
-	//}
-	//
-	//// scale encode the set of all extrinsics
-	//return scale.Marshal(encodedExtrinsics)
 	return scale.Marshal(tm.Extrinsics)
 
 }
 
 // Decode the message into a TransactionMessage
 func (tm *TransactionMessage) Decode(in []byte) error {
-	//var decodedMessage []byte
-	//err := scale.Unmarshal(in, &decodedMessage)
-	//if err != nil {
-	//	return err
-	//}
-	//messageSize := len(decodedMessage)
-	//bytesProcessed := 0
-	//// loop through the message decoding extrinsics until they have all been decoded
-	//for bytesProcessed < messageSize {
-	//	var decodedExtrinsic []byte
-	//	err = scale.Unmarshal(decodedMessage[bytesProcessed:], &decodedExtrinsic)
-	//	if err != nil {
-	//		return err
-	//	}
-	//	bytesProcessed = bytesProcessed + len(decodedExtrinsic) + 1 // add 1 to processed since the first decode byte is consumed during decoding
-	//	tm.Extrinsics = append(tm.Extrinsics, decodedExtrinsic)
-	//}
-	//
-	//return nil
 	return scale.Unmarshal(in, &tm.Extrinsics)
 }
 
