@@ -37,6 +37,26 @@ type NodeStorage struct {
 	PersistentStorage BasicStorage
 }
 
+// SetLocal persists a key and value into LOCAL node storage
+func (n *NodeStorage) SetLocal(k, v []byte) error {
+	return n.LocalStorage.Put(k, v)
+}
+
+// GetLocal retrieve a key and value from LOCAL node storage
+func (n *NodeStorage) GetLocal(k []byte) ([]byte, error) {
+	return n.LocalStorage.Get(k)
+}
+
+// SetPersistent persists a key and value into PERSISTENT node storage
+func (n *NodeStorage) SetPersistent(k, v []byte) error {
+	return n.PersistentStorage.Put(k, v)
+}
+
+// GetPersistent retrieve a key and value from PERSISTENT node storage
+func (n *NodeStorage) GetPersistent(k []byte) ([]byte, error) {
+	return n.PersistentStorage.Get(k)
+}
+
 // InstanceConfig represents a runtime instance configuration
 type InstanceConfig struct {
 	Storage     Storage

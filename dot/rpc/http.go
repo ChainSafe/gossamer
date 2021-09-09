@@ -26,6 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/rpc/modules"
 	"github.com/ChainSafe/gossamer/dot/rpc/subscription"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/runtime"
 	log "github.com/ChainSafe/log15"
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
@@ -53,6 +54,7 @@ type HTTPServerConfig struct {
 	TransactionQueueAPI modules.TransactionStateAPI
 	RPCAPI              modules.RPCAPI
 	SystemAPI           modules.SystemAPI
+	NodeStorage         *runtime.NodeStorage
 	RPC                 bool
 	RPCExternal         bool
 	RPCUnsafe           bool
@@ -104,7 +106,6 @@ func NewHTTPServer(cfg *HTTPServerConfig) *HTTPServer {
 
 // RegisterModules registers the RPC services associated with the given API modules
 func (h *HTTPServer) RegisterModules(mods []string) {
-
 	for _, mod := range mods {
 		h.logger.Debug("Enabling rpc module", "module", mod)
 		var srvc interface{}
@@ -124,6 +125,8 @@ func (h *HTTPServer) RegisterModules(mods []string) {
 			srvc = modules.NewRPCModule(h.serverConfig.RPCAPI)
 		case "dev":
 			srvc = modules.NewDevModule(h.serverConfig.BlockProducerAPI, h.serverConfig.NetworkAPI)
+		case "offchain":
+			srvc = modules.NewOffchainModule(h.serverConfig.NodeStorage)
 		default:
 			h.logger.Warn("Unrecognised module", "module", mod)
 			continue
