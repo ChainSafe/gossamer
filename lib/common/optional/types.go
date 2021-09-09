@@ -407,13 +407,6 @@ type Header struct {
 	value  *CoreHeader
 }
 
-// NewHeader returns a new optional.Header
-func NewHeader(exists bool, value *CoreHeader) *Header {
-	return &Header{
-		exists: exists,
-		value:  value,
-	}
-}
 
 // Exists returns true if the value is Some, false if it is None.
 func (x *Header) Exists() bool {

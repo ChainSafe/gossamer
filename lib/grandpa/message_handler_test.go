@@ -33,7 +33,7 @@ import (
 )
 
 var testHeader = &types.Header{
-	ParentHash: testGenesisHeaderVdt.Hash(),
+	ParentHash: testGenesisHeader.Hash(),
 	Number:     big.NewInt(1),
 	Digest:     newTestDigest(),
 }
@@ -259,7 +259,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_ValidSig(t *testing.T) {
 	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	block := &types.Block{
 		Header: types.Header{
-			ParentHash: testGenesisHeaderVdt.Hash(),
+			ParentHash: testGenesisHeader.Hash(),
 			Number:     big.NewInt(1),
 			Digest:     digest,
 		},
@@ -289,7 +289,7 @@ func TestMessageHandler_CommitMessage_NoCatchUpRequest_MinVoteError(t *testing.T
 	err := st.Grandpa.SetPrecommits(round, gs.state.setID, just)
 	require.NoError(t, err)
 
-	fm, err := gs.newCommitMessage(testGenesisHeaderVdt, round)
+	fm, err := gs.newCommitMessage(testGenesisHeader, round)
 	require.NoError(t, err)
 
 	h := NewMessageHandler(gs, st.Block)
@@ -351,7 +351,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	digest.Add(types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
 	block := &types.Block{
 		Header: types.Header{
-			ParentHash: testGenesisHeaderVdt.Hash(),
+			ParentHash: testGenesisHeader.Hash(),
 			Number:     big.NewInt(2),
 			Digest:     digest,
 		},
@@ -361,7 +361,7 @@ func TestMessageHandler_CatchUpRequest_WithResponse(t *testing.T) {
 	err := st.Block.AddBlock(block)
 	require.NoError(t, err)
 
-	err = gs.blockState.SetFinalisedHash(testGenesisHeaderVdt.Hash(), round, setID)
+	err = gs.blockState.SetFinalisedHash(testGenesisHeader.Hash(), round, setID)
 	require.NoError(t, err)
 	err = gs.blockState.(*state.BlockState).SetHeader(&block.Header)
 	require.NoError(t, err)

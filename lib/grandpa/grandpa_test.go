@@ -45,7 +45,7 @@ import (
 )
 
 // testGenesisHeader is a test block header
-var testGenesisHeaderVdt = &types.Header{
+var testGenesisHeader = &types.Header{
 	Number:    big.NewInt(0),
 	StateRoot: trie.EmptyHash,
 	Digest:    types.NewDigest(),
@@ -72,7 +72,7 @@ func newTestState(t *testing.T) *state.Service {
 	t.Cleanup(func() { db.Close() })
 
 	gen, genTrie, _ := genesis.NewTestGenesisWithTrieAndHeader(t)
-	block, err := state.NewBlockStateFromGenesis(db, testGenesisHeaderVdt)
+	block, err := state.NewBlockStateFromGenesis(db, testGenesisHeader)
 	require.NoError(t, err)
 
 	rtCfg := &wasmer.Config{}

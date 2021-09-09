@@ -138,8 +138,8 @@ func (in *Instance) FinalizeBlock() (*types.Header, error) {
 	return bh, nil
 }
 
+// ExecuteBlock calls runtime function Core_execute_block
 func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
-	// copy block since we're going to modify it
 	b := block.DeepCopy()
 	b.Header.Digest = types.NewDigest()
 

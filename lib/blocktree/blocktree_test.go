@@ -275,7 +275,6 @@ func TestBlockTree_GetAllBlocksAtDepth(t *testing.T) {
 	// add branch
 	previousHash := btHashes[4]
 
-
 	for i := 4; i <= btDepth; i++ {
 		digest := types.NewDigest()
 		digest.Add(types.ConsensusDigest{

@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"io/ioutil"
 	"net/http"
 	"testing"
@@ -30,6 +29,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )
@@ -160,15 +160,15 @@ func NewEndpoint(port string) string {
 	return "http://" + HOSTNAME + ":" + port
 }
 
-func rpcLogsToDigestVdt(t *testing.T, logs []string) scale2.VaryingDataTypeSlice {
+func rpcLogsToDigest(t *testing.T, logs []string) scale.VaryingDataTypeSlice {
 	digest := types.NewDigest()
 
 	for _, l := range logs {
 		itemBytes, err := common.HexToBytes(l)
 		require.NoError(t, err)
 
-		var di = scale2.MustNewVaryingDataType(types.ChangesTrieRootDigest{}, types.PreRuntimeDigest{}, types.ConsensusDigest{}, types.SealDigest{})
-		err = scale2.Unmarshal(itemBytes, &di)
+		var di = types.NewDigest()
+		err = scale.Unmarshal(itemBytes, &di)
 		require.NoError(t, err)
 
 		digest.Add(di.Value())

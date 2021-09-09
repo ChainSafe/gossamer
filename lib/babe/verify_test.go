@@ -386,7 +386,7 @@ func TestVerifyAuthorshipRight(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = verifier.verifyAuthorshipRightVdt(&block.Header)
+	err = verifier.verifyAuthorshipRight(&block.Header)
 	require.NoError(t, err)
 }
 
@@ -420,7 +420,7 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = verifier.verifyAuthorshipRightVdt(&block.Header)
+	err = verifier.verifyAuthorshipRight(&block.Header)
 	require.NoError(t, err)
 
 	// create new block
@@ -430,6 +430,6 @@ func TestVerifyAuthorshipRight_Equivocation(t *testing.T) {
 	err = babeService.blockState.AddBlock(block2)
 	require.NoError(t, err)
 
-	err = verifier.verifyAuthorshipRightVdt(&block2.Header)
+	err = verifier.verifyAuthorshipRight(&block2.Header)
 	require.Equal(t, ErrProducerEquivocated, err)
 }

@@ -433,7 +433,7 @@ func (bs *BlockState) AddBlockWithArrivalTime(block *types.Block, arrivalTime ti
 		}
 	}
 
-	err = bs.SetBlockBody(block.Header.Hash(), types.NewBody(block.Body.AsOptional().Value()))
+	err = bs.SetBlockBody(block.Header.Hash(), types.NewBody(block.Body))
 	if err != nil {
 		return err
 	}
