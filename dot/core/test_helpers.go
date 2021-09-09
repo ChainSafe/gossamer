@@ -42,7 +42,7 @@ func NewTestService(t *testing.T, cfg *Config) *Service {
 	}
 
 	cfg.DigestHandler = new(coremocks.MockDigestHandler)
-	cfg.DigestHandler.(*coremocks.MockDigestHandler).On("HandleDigests", mock.AnythingOfType("*types.HeaderVdt"))
+	cfg.DigestHandler.(*coremocks.MockDigestHandler).On("HandleDigests", mock.AnythingOfType("*types.Header"))
 
 	if cfg.Keystore == nil {
 		cfg.Keystore = keystore.NewGlobalKeystore()
