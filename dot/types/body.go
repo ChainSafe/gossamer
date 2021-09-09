@@ -111,6 +111,7 @@ func (b *Body) AsExtrinsics() ([]Extrinsic, error) {
 	return BytesArrayToExtrinsics(dec.([][]byte)), nil
 }
 
+// AsEncodedExtrinsics decodes the body into an array of SCALE encoded extrinsics
 func (b *Body) AsEncodedExtrinsicsNew() ([]Extrinsic, error) {
 	exts := [][]byte{}
 

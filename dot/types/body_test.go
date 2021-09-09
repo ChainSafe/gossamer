@@ -74,7 +74,7 @@ func TestBody_EncodedExtrinsics(t *testing.T) {
 	body, err := NewBodyFromEncodedBytes(exts)
 	require.NoError(t, err)
 
-	res, err := body.AsEncodedExtrinsics()
+	res, err := body.AsEncodedExtrinsicsNew()
 	require.NoError(t, err)
 	require.Equal(t, BytesArrayToExtrinsics(exts), res)
 }

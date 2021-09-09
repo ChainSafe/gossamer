@@ -142,6 +142,7 @@ func (h *Handler) NextGrandpaAuthorityChange() uint64 {
 	return next
 }
 
+// HandleDigests handles consensus digests for an imported block
 func (h *Handler) HandleDigests(header *types.Header) {
 	for i, d := range header.Digest.Types {
 		switch val := d.Value().(type) {

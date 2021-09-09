@@ -204,10 +204,12 @@ func (bm *BlockResponseMessage) getStartAndEnd() (int64, int64, error) {
 	return bm.BlockData[0].Header.Number.Int64(), bm.BlockData[len(bm.BlockData)-1].Header.Number.Int64(), nil
 }
 
+// SubProtocol returns the sync sub-protocol
 func (bm *BlockResponseMessage) SubProtocol() string {
 	return syncID
 }
 
+// String formats a BlockResponseMessage as a string
 func (bm *BlockResponseMessage) String() string {
 	if bm == nil {
 		return "BlockResponseMessage=nil"
@@ -216,6 +218,7 @@ func (bm *BlockResponseMessage) String() string {
 	return fmt.Sprintf("BlockResponseMessage BlockData=%v", bm.BlockData)
 }
 
+// Encode returns the protobuf encoded BlockResponseMessage
 func (bm *BlockResponseMessage) Encode() ([]byte, error) {
 	var (
 		err error
@@ -235,6 +238,7 @@ func (bm *BlockResponseMessage) Encode() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
+// Decode decodes the protobuf encoded input to a BlockResponseMessage
 func (bm *BlockResponseMessage) Decode(in []byte) (err error) {
 	msg := &pb.BlockResponse{}
 	err = proto.Unmarshal(in, msg)
