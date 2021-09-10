@@ -32,7 +32,9 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (boo
 	txs := msg.Extrinsics
 	var toPropagate []types.Extrinsic
 
-	rt, err := s.blockState.GetRuntime(nil)
+	head := s.blockState.BestBlockHash()
+
+	rt, err := s.blockState.GetRuntime(&head)
 	if err != nil {
 		return false, err
 	}
@@ -42,7 +44,7 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (boo
 			s.storageState.Lock()
 			defer s.storageState.Unlock()
 
-			ts, err := s.storageState.TrieState(nil)
+			ts, err := s.storageState.TrieState(&head)
 			if err != nil {
 				return err
 			}
@@ -78,7 +80,6 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (boo
 	}
 
 	msg.Extrinsics = toPropagate
-
 	return len(msg.Extrinsics) > 0, nil
 }
 
