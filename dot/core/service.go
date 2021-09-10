@@ -243,7 +243,7 @@ func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) er
 	}
 
 	// check if block production epoch transitioned
-	if err := s.handleCurrentSlotVdt(&block.Header); err != nil {
+	if err := s.handleCurrentSlot(&block.Header); err != nil {
 		logger.Warn("failed to handle epoch for block", "block", block.Header.Hash(), "error", err)
 		return err
 	}
@@ -293,7 +293,7 @@ func (s *Service) handleCodeSubstitution(hash common.Hash) error {
 	return nil
 }
 
-func (s *Service) handleCurrentSlotVdt(header *types.Header) error {
+func (s *Service) handleCurrentSlot(header *types.Header) error {
 	head := s.blockState.BestBlockHash()
 	if header.Hash() != head {
 		return nil
