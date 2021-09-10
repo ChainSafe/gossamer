@@ -42,7 +42,7 @@ func TestImportChannel(t *testing.T) {
 
 	for i := 0; i < 3; i++ {
 		select {
-		case <-ch.ch:
+		case <-ch:
 		case <-time.After(testMessageTimeout):
 			t.Fatal("did not receive imported block")
 		}
