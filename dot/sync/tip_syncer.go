@@ -3,12 +3,16 @@ package sync
 var _ workHandler = &tipSyncer{}
 
 type tipSyncer struct {
-	blockState BlockState
+	blockState    BlockState
+	pendingBlocks DisjointBlockSet
+	workerState   *workerState
 }
 
-func newTipSyncer(blockState BlockState) *tipSyncer {
+func newTipSyncer(blockState BlockState, pendingBlocks DisjointBlockSet, workerState *workerState) *tipSyncer {
 	return &tipSyncer{
-		blockState: blockState,
+		blockState:    blockState,
+		pendingBlocks: pendingBlocks,
+		workerState:   workerState,
 	}
 }
 
@@ -17,12 +21,38 @@ func (s *tipSyncer) handleWork(ps *peerState) (*worker, error) {
 }
 
 func (s *tipSyncer) handleWorkerResult(res *worker) (*worker, error) {
+	// TODO: if the worker succeeded, potentially remove some blocks from the pending block set and move them into the ready queue
 	return nil, nil
 }
 
-func (s *tipSyncer) hasCurrentWorker(_ *worker, workers map[uint64]*worker) bool {
-	// we're in bootstrap mode, and there already is a worker, we don't need to dispatch another
+func (s *tipSyncer) hasCurrentWorker(w *worker, workers map[uint64]*worker) bool {
 	return false
 }
 
-func (s *tipSyncer) handleTick() {}
+// handleTick traverses the pending blocks set to find which forks still need to be requested
+func (s *tipSyncer) handleTick() (*worker, error) {
+	if s.pendingBlocks.size() == 0 {
+		return nil, nil
+	}
+
+	// cases for each block in pending set:
+	// 1. only hash and number are known; in this case, request the full block
+	// 2. only header is known; in this case, request the block body
+	// 3. entire block is known; in this case, check if we have become aware of the parent
+
+	for _, block := range s.pendingBlocks.getBlocks() {
+		if block.header == nil {
+			// case 1
+			return &worker{
+				startHash:  block.hash,
+				targetHash: block.hash,
+			}, nil
+		}
+
+		if block.body == nil {
+			// case 2
+		}
+	}
+
+	return nil, nil
+}

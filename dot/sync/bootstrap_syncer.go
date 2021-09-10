@@ -49,6 +49,10 @@ func (s *bootstrapSyncer) handleWorkerResult(res *worker) (*worker, error) {
 		return nil, err
 	}
 
+	if res.targetNumber.Cmp(head.Number) <= 0 {
+		return nil, nil
+	}
+
 	return &worker{
 		startHash:    common.EmptyHash, // for bootstrap, just use number
 		startNumber:  big.NewInt(0).Add(head.Number, big.NewInt(1)),
@@ -63,4 +67,6 @@ func (s *bootstrapSyncer) hasCurrentWorker(_ *worker, workers map[uint64]*worker
 	return len(workers) != 0
 }
 
-func (s *bootstrapSyncer) handleTick() {}
+func (s *bootstrapSyncer) handleTick() (*worker, error) {
+	return nil, nil
+}

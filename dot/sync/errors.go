@@ -46,7 +46,9 @@ var (
 	errEmptyBlockData      = errors.New("empty block data")
 	errNilBlockData        = errors.New("block data is nil")
 	errNilHeaderInResponse = errors.New("expected header, received none")
+	errNilBodyInResponse   = errors.New("expected body, received none")
 	errNoPeers             = errors.New("no peers to sync with")
+	errResponseIsNotChain  = errors.New("block response does not form a chain")
 )
 
 // ErrNilChannel is returned if a channel is nil

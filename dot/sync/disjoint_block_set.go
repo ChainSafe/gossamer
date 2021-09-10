@@ -14,6 +14,8 @@ type DisjointBlockSet interface {
 	addBlock(*types.Block)
 	removeBlock(common.Hash)
 	removeLowerBlocks(num *big.Int)
+	getBlocks() []*pendingBlock
+	size() int
 }
 
 // pendingBlock stores a block that we know of but it not yet ready to be processed
@@ -36,7 +38,7 @@ type pendingBlock struct {
 //
 // if the block is complete, we may not know of its parent.
 type disjointBlockSet struct {
-	sync.Mutex
+	sync.RWMutex
 	blocks map[common.Hash]*pendingBlock
 }
 
@@ -111,4 +113,23 @@ func (s *disjointBlockSet) removeLowerBlocks(num *big.Int) {
 			delete(s.blocks, hash)
 		}
 	}
+}
+
+func (s *disjointBlockSet) size() int {
+	s.RLock()
+	defer s.RUnlock()
+	return len(s.blocks)
+}
+
+func (s *disjointBlockSet) getBlocks() []*pendingBlock {
+	s.RLock()
+	defer s.RUnlock()
+
+	blocks := make([]*pendingBlock, len(s.blocks))
+	i := 0
+	for _, b := range s.blocks {
+		blocks[i] = b
+		i++
+	}
+	return blocks
 }
