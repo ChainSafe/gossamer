@@ -44,7 +44,7 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (boo
 			s.storageState.Lock()
 			defer s.storageState.Unlock()
 
-			ts, err := s.storageState.TrieState(&head)
+			ts, err := s.storageState.TrieState(&head) //nolint
 			if err != nil {
 				return err
 			}
