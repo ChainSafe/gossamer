@@ -54,7 +54,7 @@ const (
 var (
 	_        services.Service = &Service{}
 	logger                    = log.New("pkg", "network")
-	maxReads                  = 16
+	maxReads                  = 128
 )
 
 type (
