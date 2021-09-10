@@ -289,17 +289,9 @@ func TestSubscribeAllHeads(t *testing.T) {
 
 	mockBlockAPI := new(mocks.MockBlockAPI)
 
-	mockBlockAPI.On("GetImportedBlockNotifierChannel").Return(nil, errors.New("some mocked error")).Once()
-
 	wsconn.BlockAPI = mockBlockAPI
-	_, err = wsconn.initAllBlocksListerner(1, nil)
-	require.Error(t, err, "could not register imported channel")
 
-	_, msg, err = c.ReadMessage()
-	require.NoError(t, err)
-	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"could not register imported channel"},"id":1}`+"\n"), msg)
-
-	mockBlockAPI.On("GetImportedBlockNotifierChannel").Return(make(chan *types.Block), nil).Once()
+	mockBlockAPI.On("GetImportedBlockNotifierChannel").Return(make(chan *types.Block)).Once()
 	mockBlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
 		Return(uint8(0), errors.New("failed")).Once()
 
@@ -311,7 +303,7 @@ func TestSubscribeAllHeads(t *testing.T) {
 
 	var fCh chan<- *types.FinalisationInfo
 	iCh := make(chan *types.Block)
-	mockBlockAPI.On("GetImportedBlockNotifierChannel").Return(iCh, nil).Once()
+	mockBlockAPI.On("GetImportedBlockNotifierChannel").Return(iCh).Once()
 
 	mockBlockAPI.On("RegisterFinalizedChannel", mock.AnythingOfType("chan<- *types.FinalisationInfo")).
 		Run(func(args mock.Arguments) {
