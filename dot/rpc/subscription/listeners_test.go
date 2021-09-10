@@ -97,7 +97,7 @@ func TestBlockListener_Listen(t *testing.T) {
 	defer cancel()
 
 	BlockAPI := new(mocks.MockBlockAPI)
-	BlockAPI.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("<-chan *types.Block"))
+	BlockAPI.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
 
 	wsconn.BlockAPI = BlockAPI
 
@@ -117,7 +117,7 @@ func TestBlockListener_Listen(t *testing.T) {
 	defer func() {
 		require.NoError(t, bl.Stop())
 		time.Sleep(time.Millisecond * 10)
-		BlockAPI.AssertCalled(t, "FreeImportedBlockNotifierChannel", mock.AnythingOfType("<-chan *types.Block"))
+		BlockAPI.AssertCalled(t, "FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
 	}()
 
 	notifyChan <- block
@@ -195,7 +195,7 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 	notifyFinalizedChan := make(chan *types.FinalisationInfo, 100)
 
 	BlockAPI := new(mocks.MockBlockAPI)
-	BlockAPI.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("<-chan *types.Block"))
+	BlockAPI.On("FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
 	BlockAPI.On("UnregisterFinalisedChannel", mock.AnythingOfType("uint8"))
 
 	wsconn.BlockAPI = BlockAPI
@@ -225,7 +225,7 @@ func TestExtrinsicSubmitListener_Listen(t *testing.T) {
 		require.NoError(t, esl.Stop())
 		time.Sleep(time.Millisecond * 10)
 
-		BlockAPI.AssertCalled(t, "FreeImportedBlockNotifierChannel", mock.AnythingOfType("<-chan *types.Block"))
+		BlockAPI.AssertCalled(t, "FreeImportedBlockNotifierChannel", mock.AnythingOfType("chan *types.Block"))
 		BlockAPI.AssertCalled(t, "UnregisterFinalisedChannel", mock.AnythingOfType("uint8"))
 	}()
 

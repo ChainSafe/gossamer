@@ -35,8 +35,8 @@ type BlockAPI interface {
 	GetHighestFinalisedHash() (common.Hash, error)
 	HasJustification(hash common.Hash) (bool, error)
 	GetJustification(hash common.Hash) ([]byte, error)
-	GetImportedBlockNotifierChannel(conn interface{}) (<-chan *types.Block, error)
-	FreeImportedBlockNotifierChannel(conn interface{})
+	GetImportedBlockNotifierChannel() chan *types.Block
+	FreeImportedBlockNotifierChannel(ch chan *types.Block)
 	RegisterFinalizedChannel(ch chan<- *types.FinalisationInfo) (byte, error)
 	UnregisterFinalisedChannel(id byte)
 	SubChain(start, end common.Hash) ([]common.Hash, error)

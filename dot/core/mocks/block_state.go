@@ -143,9 +143,9 @@ func (_m *MockBlockState) BestBlockStateRoot() (common.Hash, error) {
 	return r0, r1
 }
 
-// FreeImportedBlockNotifierChannel provides a mock function with given fields: notifier
-func (_m *MockBlockState) FreeImportedBlockNotifierChannel(notifier interface{}) {
-	_m.Called(notifier)
+// FreeImportedBlockNotifierChannel provides a mock function with given fields: ch
+func (_m *MockBlockState) FreeImportedBlockNotifierChannel(ch chan *types.Block) {
+	_m.Called(ch)
 }
 
 // GenesisHash provides a mock function with given fields:
@@ -272,27 +272,20 @@ func (_m *MockBlockState) GetFinalisedHeader(_a0 uint64, _a1 uint64) (*types.Hea
 	return r0, r1
 }
 
-// GetImportedBlockNotifierChannel provides a mock function with given fields: conn
-func (_m *MockBlockState) GetImportedBlockNotifierChannel(conn interface{}) (<-chan *types.Block, error) {
-	ret := _m.Called(conn)
+// GetImportedBlockNotifierChannel provides a mock function with given fields:
+func (_m *MockBlockState) GetImportedBlockNotifierChannel() chan *types.Block {
+	ret := _m.Called()
 
-	var r0 <-chan *types.Block
-	if rf, ok := ret.Get(0).(func(interface{}) <-chan *types.Block); ok {
-		r0 = rf(conn)
+	var r0 chan *types.Block
+	if rf, ok := ret.Get(0).(func() chan *types.Block); ok {
+		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(<-chan *types.Block)
+			r0 = ret.Get(0).(chan *types.Block)
 		}
 	}
 
-	var r1 error
-	if rf, ok := ret.Get(1).(func(interface{}) error); ok {
-		r1 = rf(conn)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
+	return r0
 }
 
 // GetRuntime provides a mock function with given fields: _a0

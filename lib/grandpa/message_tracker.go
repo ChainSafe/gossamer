@@ -32,15 +32,12 @@ type tracker struct {
 	voteMessages   map[common.Hash]map[ed25519.PublicKeyBytes]*networkVoteMessage // map of vote block hash -> array of VoteMessages for that hash
 	commitMessages map[common.Hash]*CommitMessage                                 // map of commit block hash to commit message
 	mapLock        sync.Mutex
-	in             <-chan *types.Block // receive imported block from BlockState
+	in             chan *types.Block // receive imported block from BlockState
 	stopped        chan struct{}
 }
 
-func newTracker(bs BlockState, handler *MessageHandler) (*tracker, error) {
-	in, err := bs.GetImportedBlockNotifierChannel(bs)
-	if err != nil {
-		return nil, err
-	}
+func newTracker(bs BlockState, handler *MessageHandler) *tracker {
+	in := bs.GetImportedBlockNotifierChannel()
 
 	return &tracker{
 		blockState:     bs,
@@ -50,7 +47,7 @@ func newTracker(bs BlockState, handler *MessageHandler) (*tracker, error) {
 		mapLock:        sync.Mutex{},
 		in:             in,
 		stopped:        make(chan struct{}),
-	}, nil
+	}
 }
 
 func (t *tracker) start() {
@@ -59,7 +56,7 @@ func (t *tracker) start() {
 
 func (t *tracker) stop() {
 	close(t.stopped)
-	t.blockState.FreeImportedBlockNotifierChannel(t.blockState)
+	t.blockState.FreeImportedBlockNotifierChannel(t.in)
 }
 
 func (t *tracker) addVote(v *networkVoteMessage) {

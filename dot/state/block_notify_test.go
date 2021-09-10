@@ -32,10 +32,9 @@ var testMessageTimeout = time.Second * 3
 
 func TestImportChannel(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
-	ch, err := bs.GetImportedBlockNotifierChannel(bs)
-	require.NoError(t, err)
+	ch := bs.GetImportedBlockNotifierChannel()
 
-	defer bs.FreeImportedBlockNotifierChannel(bs)
+	defer bs.FreeImportedBlockNotifierChannel(ch)
 
 	AddBlocksToState(t, bs, 3)
 
@@ -76,12 +75,10 @@ func TestImportChannel_Multi(t *testing.T) {
 	bs := newTestBlockState(t, testGenesisHeader)
 
 	num := 5
-	chs := make([]<-chan *types.Block, num)
+	chs := make([]chan *types.Block, num)
 
-	var err error
 	for i := 0; i < num; i++ {
-		chs[i], err = bs.GetImportedBlockNotifierChannel(i)
-		require.NoError(t, err)
+		chs[i] = bs.GetImportedBlockNotifierChannel()
 	}
 
 	var wg sync.WaitGroup

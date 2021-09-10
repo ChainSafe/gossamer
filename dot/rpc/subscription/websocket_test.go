@@ -288,6 +288,7 @@ func TestSubscribeAllHeads(t *testing.T) {
 	require.Equal(t, []byte(`{"jsonrpc":"2.0","error":{"code":null,"message":"error BlockAPI not set"},"id":1}`+"\n"), msg)
 
 	mockBlockAPI := new(mocks.MockBlockAPI)
+
 	mockBlockAPI.On("GetImportedBlockNotifierChannel").Return(nil, errors.New("some mocked error")).Once()
 
 	wsconn.BlockAPI = mockBlockAPI
