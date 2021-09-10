@@ -27,7 +27,7 @@ func (_m *MockInstance) ApplyExtrinsic(data types.Extrinsic) ([]byte, error) {
 	var r0 []byte
 	if rf, ok := ret.Get(0).(func(types.Extrinsic) []byte); ok {
 		r0 = rf(data)
-	} else if ret.Get(0) != nil{
+	} else if ret.Get(0) != nil {
 		r0 = ret.Get(0).([]byte)
 	}
 
@@ -255,7 +255,7 @@ func (_m *MockInstance) Keystore() *keystore.GlobalKeystore {
 	var r0 *keystore.GlobalKeystore
 	if rf, ok := ret.Get(0).(func() *keystore.GlobalKeystore); ok {
 		r0 = rf()
-	} else if ret.Get(0) != nil  {
+	} else if ret.Get(0) != nil {
 		r0 = ret.Get(0).(*keystore.GlobalKeystore)
 	}
 
