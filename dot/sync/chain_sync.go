@@ -466,6 +466,9 @@ func (cs *chainSync) getTarget() *big.Int {
 	count := int64(0)
 	sum := big.NewInt(0)
 
+	cs.RLock()
+	defer cs.RUnlock()
+
 	for _, ps := range cs.peerState {
 		sum = big.NewInt(0).Add(sum, ps.number)
 		count++
