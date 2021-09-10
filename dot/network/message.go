@@ -259,6 +259,7 @@ func (bm *BlockResponseMessage) Decode(in []byte) (err error) {
 	return nil
 }
 
+// blockDataToProtobuf converts a gossamer BlockData to a protobuf-defined BlockData
 func blockDataToProtobuf(bd *types.BlockData) (*pb.BlockData, error) {
 	p := &pb.BlockData{
 		Hash: bd.Hash[:],

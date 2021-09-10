@@ -196,7 +196,6 @@ func (h *Handler) handleBlockImport(ctx context.Context) {
 	for {
 		select {
 		case block := <-h.imported:
-			//if block == nil || block.Header == nil {
 			if block == nil {
 				continue
 			}

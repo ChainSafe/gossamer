@@ -212,7 +212,6 @@ func (s *Service) ProcessBlockData(data []*types.BlockData) (int, error) {
 		var header *types.Header
 
 		if bd.Header != nil && !hasHeader {
-			//fmt.Println("Handling header")
 			header = bd.Header
 
 			logger.Trace("processing header", "hash", header.Hash(), "number", header.Number)

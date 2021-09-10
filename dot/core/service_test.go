@@ -307,7 +307,6 @@ func TestHandleChainReorg_WithReorg_Transactions(t *testing.T) {
 	body, err := types.NewBodyFromExtrinsics([]types.Extrinsic{tx})
 	require.NoError(t, err)
 
-	// TODO might have to create a new mock item here
 	digest := types.NewDigest()
 	block := &types.Block{
 		Header: types.Header{
@@ -510,7 +509,6 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 		Data:              common.MustHexToBytes("0x0201000000ef55a50f00000000"),
 	})
 
-	//TODO check that this is an okay way to replace mocks
 	newBlock1 := &types.Block{
 		Header: types.Header{
 			ParentHash: hash,
@@ -523,8 +521,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 		Header: types.Header{
 			ParentHash: hash,
 			Number:     big.NewInt(1),
-			//Digest:     types.Digest{utils.NewMockDigestItem(2)}},
-			Digest: digest,
+			Digest:     digest,
 		},
 		Body: *types.NewBody([]byte("Updated Runtime")),
 	}

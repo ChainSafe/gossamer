@@ -57,7 +57,7 @@ func TestEncodeAndDecodeBlock(t *testing.T) {
 	dec := NewEmptyBlock()
 	err = scale.Unmarshal(enc, &dec)
 	require.NoError(t, err)
-	if dec.Header.Number != nil { // Hash panics if number is nil
+	if dec.Header.Number != nil {
 		dec.Header.Hash()
 	}
 	require.Equal(t, block, dec)
