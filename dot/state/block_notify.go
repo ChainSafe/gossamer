@@ -29,9 +29,9 @@ import (
 // DEFAULT_BUFFER_SIZE buffer size for channels
 const DEFAULT_BUFFER_SIZE = 100
 
-type ImportNotifier struct {
-	ch chan *types.Block
-}
+// type ImportNotifier struct {
+// 	ch chan *types.Block
+// }
 
 // GetImportedBlockNotifierChannel function to retrieve a imported block notifier channel
 func (bs *BlockState) GetImportedBlockNotifierChannel() (<-chan *types.Block, error) {
