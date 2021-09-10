@@ -82,13 +82,13 @@ func TestNodeInitialized(t *testing.T) {
 
 	cfg.Init.Genesis = genFile.Name()
 
-	expected := NodeInitialized(cfg.Global.BasePath, false)
+	expected := NodeInitialized(cfg.Global.BasePath)
 	require.Equal(t, expected, false)
 
 	err := InitNode(cfg)
 	require.NoError(t, err)
 
-	expected = NodeInitialized(cfg.Global.BasePath, true)
+	expected = NodeInitialized(cfg.Global.BasePath)
 	require.Equal(t, expected, true)
 }
 
