@@ -383,15 +383,28 @@ func (cs *chainSync) logSyncSpeed() {
 }
 
 func (cs *chainSync) sync() {
-	ticker := time.NewTicker(time.Minute)
+	// set to slot time * 2
+	// TODO: make configurable
+	ticker := time.NewTicker(time.Second * 12)
 
 	for {
 		select {
 		case ps := <-cs.workQueue:
-			// if a peer reports a greater head than us, or a chain which
-			// appears to be a fork, begin syncing
-			err := cs.handleWork(ps)
+			// TODO: if the peer's head is >128 than our head, and we are in tip sync mode,
+			// we should switch back to bootstrap
+			head, err := cs.blockState.BestBlockHeader()
 			if err != nil {
+				logger.Error("failed to get best block header", "error", err)
+				continue
+			}
+
+			if head.Number.Cmp(cs.getTarget()) >= 0 {
+				// bootstrap complete, switch state to tip if not already
+				// and begin near-head fork-sync
+				cs.switchMode(tip)
+			}
+
+			if err := cs.handleWork(ps); err != nil {
 				logger.Error("failed to handle chain sync work", "error", err)
 			}
 		case res := <-cs.resultQueue:
@@ -433,17 +446,32 @@ func (cs *chainSync) sync() {
 
 			cs.tryDispatchWorker(worker)
 		case <-ticker.C:
+
 			cs.handler.handleTick()
-
-			// bootstrap complete, switch state to tip if not already
-			// and begin near-head fork-sync
-
-			// TODO: create functionality to switch modes
-			// will require stopping all existing workers and clearing the set
 		case <-cs.ctx.Done():
 			return
 		}
 	}
+}
+
+// switchMode stops all existing workers and clears the worker set and switches the `handler`
+// based on the new mode
+func (cs *chainSync) switchMode(mode chainSyncState) {
+
+}
+
+// getTarget takes the average of all peer heads
+// TODO: should we just return the highest? could be an attack vector potentially
+func (cs *chainSync) getTarget() *big.Int {
+	count := int64(0)
+	sum := big.NewInt(0)
+
+	for _, ps := range cs.peerState {
+		sum = big.NewInt(0).Add(sum, ps.number)
+		count++
+	}
+
+	return big.NewInt(0).Div(sum, big.NewInt(count))
 }
 
 // handleWork handles potential new work that may be triggered on receiving a peer's state
