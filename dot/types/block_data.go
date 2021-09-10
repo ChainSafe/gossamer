@@ -33,6 +33,7 @@ type BlockData struct {
 	Justification *[]byte
 }
 
+// NewEmptyBlockData Creates an empty blockData struct
 func NewEmptyBlockData() *BlockData {
 	bd := &BlockData{
 		Header:        nil,

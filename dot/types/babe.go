@@ -40,7 +40,8 @@ func BABEAuthorityRawToAuthority(adr []AuthorityRaw) ([]Authority, error) {
 	ad := make([]Authority, len(adr))
 	for i, r := range adr {
 		ad[i] = Authority{}
-		err := ad[i].FromRawSr25519(&r)
+		a := r
+		err := ad[i].FromRawSr25519(&a)
 		if err != nil {
 			return nil, err
 		}
@@ -55,6 +56,7 @@ type EpochData struct {
 	Randomness  [RandomnessLength]byte
 }
 
+// ToEpochDataRaw returns the EpochData as an EpochDataRaw, converting the Authority to AuthorityRaw
 func (d *EpochData) ToEpochDataRaw() *EpochDataRaw {
 	raw := &EpochDataRaw{
 		Randomness: d.Randomness,
@@ -69,11 +71,13 @@ func (d *EpochData) ToEpochDataRaw() *EpochDataRaw {
 	return raw
 }
 
+// EpochDataRaw is the data provided for an epoch, with Authority as AuthorityRaw
 type EpochDataRaw struct {
 	Authorities []AuthorityRaw
 	Randomness  [RandomnessLength]byte
 }
 
+// ToEpochData returns the EpochDataRaw as EpochData
 func (d *EpochDataRaw) ToEpochData() (*EpochData, error) {
 	epochData := &EpochData{
 		Randomness: d.Randomness,

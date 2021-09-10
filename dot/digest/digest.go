@@ -26,6 +26,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/services"
 	"github.com/ChainSafe/gossamer/pkg/scale"
+
 	log "github.com/ChainSafe/log15"
 )
 

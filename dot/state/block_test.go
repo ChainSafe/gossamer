@@ -542,14 +542,14 @@ func TestNumberIsFinalised(t *testing.T) {
 	digest2.Add(*types.NewBabeSecondaryPlainPreDigest(0, 100).ToPreRuntimeDigest())
 
 	header1 := &types.Header{
-		Number: big.NewInt(1),
-		Digest: digest,
+		Number:     big.NewInt(1),
+		Digest:     digest,
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
 	header100 := &types.Header{
-		Number: big.NewInt(100),
-		Digest: digest2,
+		Number:     big.NewInt(100),
+		Digest:     digest2,
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
@@ -586,14 +586,14 @@ func TestSetFinalisedHash_setFirstSlotOnFinalisation(t *testing.T) {
 	digest2.Add(*types.NewBabeSecondaryPlainPreDigest(0, firstSlot+100).ToPreRuntimeDigest())
 
 	header1 := &types.Header{
-		Number: big.NewInt(1),
-		Digest: digest,
+		Number:     big.NewInt(1),
+		Digest:     digest,
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
 	header100 := &types.Header{
-		Number: big.NewInt(100),
-		Digest: digest2,
+		Number:     big.NewInt(100),
+		Digest:     digest2,
 		ParentHash: testGenesisHeader.Hash(),
 	}
 

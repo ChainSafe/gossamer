@@ -19,12 +19,12 @@ package types
 import (
 	"bytes"
 	"fmt"
-	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/scale"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // Body is the encoded extrinsics inside a state block
@@ -112,7 +112,7 @@ func (b *Body) AsExtrinsics() ([]Extrinsic, error) {
 }
 
 // AsEncodedExtrinsics decodes the body into an array of SCALE encoded extrinsics
-func (b *Body) AsEncodedExtrinsicsNew() ([]Extrinsic, error) {
+func (b *Body) AsEncodedExtrinsics() ([]Extrinsic, error) {
 	exts := [][]byte{}
 
 	if len(*b) == 0 {
@@ -129,32 +129,6 @@ func (b *Body) AsEncodedExtrinsicsNew() ([]Extrinsic, error) {
 
 	for i, ext := range decodedExts {
 		ret[i], err = scale2.Marshal(ext)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return BytesArrayToExtrinsics(ret), nil
-}
-
-// AsEncodedExtrinsics decodes the body into an array of SCALE encoded extrinsics
-func (b *Body) AsEncodedExtrinsics() ([]Extrinsic, error) {
-	exts := [][]byte{}
-
-	if len(*b) == 0 {
-		return []Extrinsic{}, nil
-	}
-
-	dec, err := scale.Decode(*b, exts)
-	if err != nil {
-		return nil, err
-	}
-
-	decodedExts := dec.([][]byte)
-	ret := make([][]byte, len(decodedExts))
-
-	for i, ext := range decodedExts {
-		ret[i], err = scale.Encode(ext)
 		if err != nil {
 			return nil, err
 		}

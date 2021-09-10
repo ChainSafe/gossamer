@@ -177,7 +177,7 @@ func (s *Service) HandleBlockImport(block *types.Block, state *rtstorage.TrieSta
 // is we send a BlockAnnounceMessage to our peers.
 func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieState) error {
 	digest := types.NewDigest()
-	for i, _ := range block.Header.Digest.Types {
+	for i := range block.Header.Digest.Types {
 		err := digest.Add(block.Header.Digest.Types[i].Value())
 		if err != nil {
 			return err

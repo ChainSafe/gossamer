@@ -524,7 +524,7 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 			ParentHash: hash,
 			Number:     big.NewInt(1),
 			//Digest:     types.Digest{utils.NewMockDigestItem(2)}},
-			Digest:     digest,
+			Digest: digest,
 		},
 		Body: *types.NewBody([]byte("Updated Runtime")),
 	}

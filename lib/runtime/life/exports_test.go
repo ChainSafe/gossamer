@@ -1,7 +1,6 @@
 package life
 
 import (
-	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 	"testing"
 	"time"
@@ -14,6 +13,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/runtime/storage"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/trie"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )

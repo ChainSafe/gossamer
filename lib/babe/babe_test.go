@@ -50,7 +50,7 @@ var (
 	minThreshold = &common.Uint128{}
 
 	genesisHeader *types.Header
-	emptyHeader      = &types.Header{
+	emptyHeader   = &types.Header{
 		Number: big.NewInt(0),
 		Digest: types.NewDigest(),
 	}

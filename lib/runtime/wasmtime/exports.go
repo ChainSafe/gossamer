@@ -18,13 +18,13 @@ package wasmtime
 
 import (
 	"fmt"
-	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"io"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // Metadata calls runtime function Metadata_metadata

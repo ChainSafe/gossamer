@@ -407,7 +407,6 @@ type Header struct {
 	value  *CoreHeader
 }
 
-
 // Exists returns true if the value is Some, false if it is None.
 func (x *Header) Exists() bool {
 	if x == nil {

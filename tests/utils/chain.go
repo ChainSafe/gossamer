@@ -145,4 +145,3 @@ func GetBlock(t *testing.T, node *Node, hash common.Hash) *types.Block {
 		Body:   *b,
 	}
 }
-

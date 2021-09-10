@@ -192,7 +192,7 @@ func (l *BlockFinalizedListener) Listen() {
 					return
 				}
 
-				if info == nil  {
+				if info == nil {
 					continue
 				}
 				head, err := modules.HeaderToJSON(info.Header)

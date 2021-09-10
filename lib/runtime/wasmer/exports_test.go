@@ -905,7 +905,6 @@ func TestInstance_ExecuteBlock_KusamaRuntime_KusamaBlock1482003(t *testing.T) {
 	err = scale.Unmarshal(digestBytes, &digest)
 	require.NoError(t, err)
 
-
 	require.Equal(t, 4, len(digest.Types))
 
 	// kusama block 1482003, from polkadot.js

@@ -3,13 +3,13 @@ package life
 import (
 	"bytes"
 	"fmt"
-	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"io"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/runtime"
 	"github.com/ChainSafe/gossamer/lib/scale"
 	"github.com/ChainSafe/gossamer/lib/transaction"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 )
 
 // ValidateTransaction runs the extrinsic through runtime function TaggedTransactionQueue_validate_transaction and returns *Validity

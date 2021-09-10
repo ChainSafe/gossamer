@@ -98,7 +98,7 @@ func (cm *ChainModule) GetBlock(r *http.Request, req *ChainHashRequest, res *Cha
 	}
 
 	if block.Body != nil {
-		ext, err := block.Body.AsEncodedExtrinsicsNew()
+		ext, err := block.Body.AsEncodedExtrinsics()
 		if err != nil {
 			return err
 		}

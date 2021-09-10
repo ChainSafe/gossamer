@@ -17,7 +17,6 @@
 package grandpa
 
 import (
-	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 	"testing"
 	"time"
@@ -28,6 +27,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/ed25519"
 	"github.com/ChainSafe/gossamer/lib/keystore"
 	"github.com/ChainSafe/gossamer/lib/scale"
+	scale2 "github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/stretchr/testify/require"
 )

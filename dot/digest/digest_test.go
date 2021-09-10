@@ -18,7 +18,6 @@ package digest
 
 import (
 	"fmt"
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"io/ioutil"
 	"math/big"
 	"testing"
@@ -31,6 +30,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/crypto/sr25519"
 	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/keystore"
+	"github.com/ChainSafe/gossamer/pkg/scale"
+
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
 )

@@ -17,7 +17,6 @@
 package network
 
 import (
-	"github.com/ChainSafe/gossamer/pkg/scale"
 	"math/big"
 	"sync"
 	"testing"
@@ -25,6 +24,7 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/utils"
+	"github.com/ChainSafe/gossamer/pkg/scale"
 
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/stretchr/testify/require"
