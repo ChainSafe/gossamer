@@ -17,22 +17,25 @@
 package sync
 
 import (
-	"errors"
+	"io/ioutil"
 	"math/big"
 	"os"
 	"testing"
 
-	"github.com/ChainSafe/chaindb"
-	"github.com/ChainSafe/gossamer/dot/network"
+	"github.com/stretchr/testify/mock"
+
 	"github.com/ChainSafe/gossamer/dot/state"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
-	"github.com/ChainSafe/gossamer/lib/common/variadic"
+	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/genesis"
 	"github.com/ChainSafe/gossamer/lib/runtime"
-	"github.com/ChainSafe/gossamer/lib/transaction"
-
+	rtstorage "github.com/ChainSafe/gossamer/lib/runtime/storage"
+	"github.com/ChainSafe/gossamer/lib/runtime/wasmer"
+	"github.com/ChainSafe/gossamer/lib/trie"
 	log "github.com/ChainSafe/log15"
 	"github.com/stretchr/testify/require"
+
+	syncmocks "github.com/ChainSafe/gossamer/dot/sync/mocks"
 )
 
 func TestMain(m *testing.M) {
@@ -48,6 +51,102 @@ func TestMain(m *testing.M) {
 	runtime.RemoveFiles(wasmFilePaths)
 	os.Exit(code)
 }
+
+func newMockFinalityGadget() *syncmocks.FinalityGadget {
+	m := new(syncmocks.FinalityGadget)
+	// using []uint8 instead of []byte: https://github.com/stretchr/testify/pull/969
+	m.On("VerifyBlockJustification", mock.AnythingOfType("common.Hash"), mock.AnythingOfType("[]uint8")).Return(nil)
+	return m
+}
+
+func newMockVerifier() *syncmocks.MockVerifier {
+	m := new(syncmocks.MockVerifier)
+	m.On("VerifyBlock", mock.AnythingOfType("*types.Header")).Return(nil)
+	return m
+}
+
+func newMockNetwork() *syncmocks.MockNetwork {
+	m := new(syncmocks.MockNetwork)
+	m.On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*BlockRequestMessage")).Return(nil, nil)
+	return m
+}
+
+func newTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
+	wasmer.DefaultTestLogLvl = 3
+
+	cfg := &Config{}
+	testDatadirPath, _ := ioutil.TempDir("/tmp", "test-datadir-*")
+
+	scfg := state.Config{
+		Path:     testDatadirPath,
+		LogLevel: log.LvlInfo,
+	}
+	stateSrvc := state.NewService(scfg)
+	stateSrvc.UseMemDB()
+
+	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t, usePolkadotGenesis)
+	err := stateSrvc.Initialise(gen, genHeader, genTrie)
+	require.NoError(t, err)
+
+	err = stateSrvc.Start()
+	require.NoError(t, err)
+
+	if cfg.BlockState == nil {
+		cfg.BlockState = stateSrvc.Block
+	}
+
+	if cfg.StorageState == nil {
+		cfg.StorageState = stateSrvc.Storage
+	}
+
+	cfg.BlockImportHandler = new(syncmocks.MockBlockImportHandler)
+	cfg.BlockImportHandler.(*syncmocks.MockBlockImportHandler).On("HandleBlockImport", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).Return(nil)
+
+	// initialize runtime
+	genState, err := rtstorage.NewTrieState(genTrie) //nolint
+	require.NoError(t, err)
+
+	rtCfg := &wasmer.Config{}
+	rtCfg.Storage = genState
+	rtCfg.LogLvl = 3
+
+	rtCfg.CodeHash, err = cfg.StorageState.LoadCodeHash(nil)
+	require.NoError(t, err)
+
+	instance, err := wasmer.NewRuntimeFromGenesis(gen, rtCfg)
+	require.NoError(t, err)
+
+	cfg.BlockState.StoreRuntime(cfg.BlockState.BestBlockHash(), instance)
+
+	cfg.TransactionState = stateSrvc.Transaction
+	cfg.BabeVerifier = newMockVerifier()
+	cfg.LogLvl = log.LvlInfo
+	cfg.FinalityGadget = newMockFinalityGadget()
+	cfg.Network = newMockNetwork()
+
+	syncer, err := NewService(cfg)
+	require.NoError(t, err)
+	return syncer
+}
+
+func newTestGenesisWithTrieAndHeader(t *testing.T, usePolkadotGenesis bool) (*genesis.Genesis, *trie.Trie, *types.Header) {
+	fp := "../../chain/gssmr/genesis.json"
+	if usePolkadotGenesis {
+		fp = "../../chain/polkadot/genesis.json"
+	}
+
+	gen, err := genesis.NewGenesisFromJSONRaw(fp)
+	require.NoError(t, err)
+
+	genTrie, err := genesis.NewTrieFromGenesis(gen)
+	require.NoError(t, err)
+
+	genesisHeader, err := types.NewHeader(common.NewHash([]byte{0}), genTrie.MustHash(), trie.EmptyHash, big.NewInt(0), types.Digest{})
+	require.NoError(t, err)
+	return gen, genTrie, genesisHeader
+}
+
+/*
 
 func TestHandleBlockResponse(t *testing.T) {
 	if testing.Short() {
@@ -287,3 +386,5 @@ func TestSyncer_ProcessJustification(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, just, res)
 }
+
+*/
