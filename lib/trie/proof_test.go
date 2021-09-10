@@ -152,6 +152,21 @@ func TestVerifyProof_BadProof(t *testing.T) {
 	wg.Wait()
 }
 
+func TestGenerateProofEmptyNibbles(t *testing.T) {
+	k := []byte{}
+	trie := NewEmptyTrie()
+	_, err := trie.GenerateProof(k, nil)
+	require.Error(t, err, ErrEmptyNibbles)
+}
+
+func TestGenerateProofNilRoot(t *testing.T) {
+	k := []byte{0xff, 0xff}
+	trie := NewEmptyTrie()
+	_, err := trie.GenerateProof(k, nil)
+
+	require.Error(t, err, "no more paths to follow")
+}
+
 func TestGenerateProofMissingKey(t *testing.T) {
 	trie := NewEmptyTrie()
 
