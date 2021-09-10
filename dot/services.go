@@ -186,6 +186,7 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GlobalKeystore, 
 	}
 
 	st.Block.StoreRuntime(st.Block.BestBlockHash(), rt)
+	logger.Info("stored runtime in blocktree", "block hash", st.Block.BestBlockHash())
 	return rt, nil
 }
 

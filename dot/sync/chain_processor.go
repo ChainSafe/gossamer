@@ -63,34 +63,13 @@ func (s *chainProcessor) processReadyBlocks() {
 			err := s.processBlockData(bd)
 			if err != nil {
 				logger.Crit("ready block failed", "hash", bd.Hash)
-				//panic("failed to process block :(")
+				// TODO: we probably want to relay this error to the chainSync module so the block can be retried
 			}
 		case <-s.ctx.Done():
 			return
 		}
 	}
 }
-
-// // ProcessJustification processes block data containing justifications
-// func (s *chainProcessor) ProcessJustification(data []*types.BlockData) (int, error) {
-// 	if len(data) == 0 {
-// 		return 0, ErrNilBlockData
-// 	}
-
-// 	for i, bd := range data {
-// 		header, err := s.blockState.GetHeader(bd.Hash)
-// 		if err != nil {
-// 			return i, err
-// 		}
-
-// 		if bd.Justification != nil && bd.Justification.Exists() {
-// 			logger.Debug("handling Justification...", "number", header.Number, "hash", bd.Hash)
-// 			s.handleJustification(header, bd.Justification.Value())
-// 		}
-// 	}
-
-// 	return 0, nil
-// }
 
 // processBlockData processes the BlockData from a BlockResponse and returns the index of the last BlockData it handled on success,
 // or the index of the block data that errored on failure.
