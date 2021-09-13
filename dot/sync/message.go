@@ -27,13 +27,13 @@ import (
 )
 
 const (
-	// maximum number of block data a BlockResponse message can contain
+	// MAX_RESPONSE_SIZE is maximum number of block data a BlockResponse message can contain
 	MAX_RESPONSE_SIZE = 128
 
-	// block response data is in ascending order (ie parent to child)
+	// DIR_ASCENDING is used when block response data is in ascending order (ie parent to child)
 	DIR_ASCENDING byte = 0
 
-	// block response data is in descending order (ie child to parent)
+	// DIR_DESCENDING is used when block response data is in descending order (ie child to parent)
 	DIR_DESCENDING byte = 1
 )
 

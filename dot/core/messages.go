@@ -27,7 +27,6 @@ import (
 // returns boolean for transaction propagation, true - transactions should be propagated
 func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (bool, error) {
 	logger.Debug("received TransactionMessage")
-	return true, nil
 
 	// get transactions from message extrinsics
 	txs := msg.Extrinsics

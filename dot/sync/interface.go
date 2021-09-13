@@ -89,10 +89,11 @@ type BlockImportHandler interface {
 	HandleBlockImport(block *types.Block, state *rtstorage.TrieState) error
 }
 
+// Network is the interface for the network
 type Network interface {
 	// DoBlockRequest sends a request to the given peer. If a response is received within a certain time period, it is returned, otherwise an error is returned.
 	DoBlockRequest(to peer.ID, req *BlockRequestMessage) (*BlockResponseMessage, error)
 
-	// Peers ...
+	// Peers returns a list of currently connected peers
 	Peers() []common.PeerInfo
 }

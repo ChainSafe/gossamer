@@ -93,22 +93,23 @@ func NewService(cfg *Config) (*Service, error) {
 	}, nil
 }
 
+// Start begins the chainSync and chainProcessor modules. It begins syncing in bootstrap mode
 func (s *Service) Start() error {
 	s.chainSync.start()
 	s.chainProcessor.start()
 	return nil
 }
 
+// Stop stops the chainSync and chainProcessor modules
 func (s *Service) Stop() error {
 	s.chainSync.stop()
 	s.chainProcessor.stop()
 	return nil
 }
 
-// HandleBlockAnnounce notifies the `chainSync` module that we have received a BlockAnnounceHandshake from the given peer.
+// HandleBlockAnnounceHandshake notifies the `chainSync` module that we have received a BlockAnnounceHandshake from the given peer.
 func (s *Service) HandleBlockAnnounceHandshake(from peer.ID, msg *network.BlockAnnounceHandshake) error {
-	s.chainSync.setPeerHead(from, msg.BestBlockHash, big.NewInt(int64(msg.BestBlockNumber)))
-	return nil
+	return s.chainSync.setPeerHead(from, msg.BestBlockHash, big.NewInt(int64(msg.BestBlockNumber)))
 }
 
 // HandleBlockAnnounce notifies the `chainSync` module that we have received a block announcement from the given peer.

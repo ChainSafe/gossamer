@@ -72,7 +72,7 @@ func newMockNetwork() *syncmocks.MockNetwork {
 	return m
 }
 
-func newTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
+func newTestSyncer(t *testing.T) *Service {
 	wasmer.DefaultTestLogLvl = 3
 
 	cfg := &Config{}
@@ -85,7 +85,7 @@ func newTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 	stateSrvc := state.NewService(scfg)
 	stateSrvc.UseMemDB()
 
-	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t, usePolkadotGenesis)
+	gen, genTrie, genHeader := newTestGenesisWithTrieAndHeader(t)
 	err := stateSrvc.Initialise(gen, genHeader, genTrie)
 	require.NoError(t, err)
 
@@ -100,7 +100,7 @@ func newTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 		cfg.StorageState = stateSrvc.Storage
 	}
 
-	// initialize runtime
+	// initialise runtime
 	genState, err := rtstorage.NewTrieState(genTrie) //nolint
 	require.NoError(t, err)
 
@@ -119,8 +119,7 @@ func newTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 	cfg.BlockImportHandler = new(syncmocks.MockBlockImportHandler)
 	cfg.BlockImportHandler.(*syncmocks.MockBlockImportHandler).On("HandleBlockImport", mock.AnythingOfType("*types.Block"), mock.AnythingOfType("*storage.TrieState")).Return(func(block *types.Block, ts *rtstorage.TrieState) error {
 		// store updates state trie nodes in database
-		err := stateSrvc.Storage.StoreTrie(ts, block.Header)
-		if err != nil {
+		if err = stateSrvc.Storage.StoreTrie(ts, block.Header); err != nil {
 			logger.Warn("failed to store state trie for imported block", "block", block.Header.Hash(), "error", err)
 			return err
 		}
@@ -152,12 +151,8 @@ func newTestSyncer(t *testing.T, usePolkadotGenesis bool) *Service {
 	return syncer
 }
 
-func newTestGenesisWithTrieAndHeader(t *testing.T, usePolkadotGenesis bool) (*genesis.Genesis, *trie.Trie, *types.Header) {
+func newTestGenesisWithTrieAndHeader(t *testing.T) (*genesis.Genesis, *trie.Trie, *types.Header) {
 	fp := "../../chain/gssmr/genesis.json"
-	if usePolkadotGenesis {
-		fp = "../../chain/polkadot/genesis.json"
-	}
-
 	gen, err := genesis.NewGenesisFromJSONRaw(fp)
 	require.NoError(t, err)
 

@@ -237,8 +237,7 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 		return nil
 	}
 
-	s.syncer.HandleBlockAnnounceHandshake(from, bhs)
-	return nil
+	return s.syncer.HandleBlockAnnounceHandshake(from, bhs)
 }
 
 // handleBlockAnnounceMessage handles BlockAnnounce messages

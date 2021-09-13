@@ -38,7 +38,7 @@ func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 }
 
 func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
-	s := newTestSyncer(t, false)
+	s := newTestSyncer(t)
 	addTestBlocksToState(t, int(MAX_RESPONSE_SIZE), s.blockState)
 
 	start, err := variadic.NewUint64OrHash(uint64(1))
@@ -74,7 +74,7 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 }
 
 func TestService_CreateBlockResponse_StartHash(t *testing.T) {
-	s := newTestSyncer(t, false)
+	s := newTestSyncer(t)
 	addTestBlocksToState(t, int(MAX_RESPONSE_SIZE), s.blockState)
 
 	startHash, err := s.blockState.GetHashByNumber(big.NewInt(1))
@@ -99,7 +99,7 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 }
 
 func TestService_CreateBlockResponse_Descending(t *testing.T) {
-	s := newTestSyncer(t, false)
+	s := newTestSyncer(t)
 	addTestBlocksToState(t, int(MAX_RESPONSE_SIZE), s.blockState)
 
 	startHash, err := s.blockState.GetHashByNumber(big.NewInt(1))
@@ -125,7 +125,7 @@ func TestService_CreateBlockResponse_Descending(t *testing.T) {
 
 // tests the ProcessBlockRequestMessage method
 func TestService_CreateBlockResponse(t *testing.T) {
-	s := newTestSyncer(t, false)
+	s := newTestSyncer(t)
 	addTestBlocksToState(t, 2, s.blockState)
 
 	bestHash := s.blockState.BestBlockHash()

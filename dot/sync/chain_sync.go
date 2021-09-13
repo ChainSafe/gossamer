@@ -24,21 +24,22 @@ const (
 
 var _ ChainSync = &chainSync{}
 
+//nolint
 type (
 	BlockRequestMessage  = network.BlockRequestMessage
 	BlockResponseMessage = network.BlockResponseMessage
 )
 
-type chainSyncState uint64
+type chainSyncState byte
 
 var (
-	bootstrap chainSyncState = 0
+	bootstrap chainSyncState = 0 //nolint
 	tip       chainSyncState = 1
 )
 
 // peerState tracks our peers's best reported blocks
 type peerState struct {
-	who    peer.ID
+	who    peer.ID //nolint
 	hash   common.Hash
 	number *big.Int
 }
@@ -211,12 +212,12 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) e
 	if ps.number.Cmp(head.Number) <= 0 {
 		// check if our block hash for that number is the same, if so, do nothing
 		// as we already have that block
-		hash, err := cs.blockState.GetHashByNumber(ps.number)
+		ourHash, err := cs.blockState.GetHashByNumber(ps.number)
 		if err != nil {
 			return err
 		}
 
-		if hash.Equal(ps.hash) {
+		if ourHash.Equal(ps.hash) {
 			return nil
 		}
 
@@ -480,24 +481,6 @@ func (cs *chainSync) tryDispatchWorker(w *worker) {
 	go cs.dispatchWorker(w)
 }
 
-// hasCurrentWorker returns whether the current workers cover the blocks reported by this peerState
-// TODO: used only by bootstrap, create targetHash version for tip?
-func (cs *chainSync) hasCurrentWorker(targetNumber *big.Int) bool {
-	// if we're in bootstrap mode, and there already is a worker, we don't need to dispatch another
-	if cs.state == bootstrap {
-		return len(cs.workerState.workers) != 0
-	}
-
-	for _, w := range cs.workerState.workers {
-		if w.targetNumber.Cmp(targetNumber) >= 0 {
-			// there is some worker already syncing up until this number or further
-			return true
-		}
-	}
-
-	return false
-}
-
 // dispatchWorker begins making requests to the network and attempts to receive responses up until the target
 // if it fails due to any reason, it sets the worker `err` and returns
 // this function always places the worker into the `resultCh` for result handling upon return
@@ -532,7 +515,7 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 		// check if we want to specify a size
 		var max *optional.Uint32
 		if i == numRequests-1 {
-			size := int(numBlocks) % MAX_RESPONSE_SIZE
+			size := numBlocks % MAX_RESPONSE_SIZE
 			max = optional.NewUint32(true, uint32(size))
 		} else {
 			max = optional.NewUint32(false, 0)
@@ -591,25 +574,16 @@ func (cs *chainSync) doSync(req *BlockRequestMessage) *workerError {
 	}
 
 	// send out request and potentially receive response, error if timeout
-	var (
-		resp *BlockResponseMessage
-		who  peer.ID
-	)
-
 	logger.Trace("sending out block request", "request", req)
 
-	for _, p := range peers {
-		var err error
-		resp, err = cs.network.DoBlockRequest(p, req)
-		if err != nil {
-			return &workerError{
-				err: err,
-				who: p,
-			}
+	// TODO: either randomly sort or use scoring to determine what peer to try to sync from
+	who := peers[0]
+	resp, err := cs.network.DoBlockRequest(who, req)
+	if err != nil {
+		return &workerError{
+			err: err,
+			who: who,
 		}
-
-		who = p
-		break
 	}
 
 	if req.Direction == DIR_DESCENDING {
@@ -684,7 +658,7 @@ func (cs *chainSync) validateResponse(req *BlockRequestMessage, resp *BlockRespo
 	headerRequested := (req.RequestedData & network.RequestedDataHeader) == 1
 
 	for i, bd := range resp.BlockData {
-		if err := cs.validateBlockData(req, bd); err != nil {
+		if err = cs.validateBlockData(req, bd); err != nil {
 			return err
 		}
 

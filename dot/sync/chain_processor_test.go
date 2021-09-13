@@ -21,8 +21,8 @@ func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
 		t.Skip() // this test takes around 4min to run
 	}
 
-	syncer := newTestSyncer(t, false)
-	responder := newTestSyncer(t, false)
+	syncer := newTestSyncer(t)
+	responder := newTestSyncer(t)
 
 	// get responder to build valid chain
 	parent, err := responder.blockState.(*state.BlockState).BestBlockHeader()
@@ -80,7 +80,7 @@ func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
 }
 
 func TestChainProcessor_HandleBlockResponse_MissingBlocks(t *testing.T) {
-	syncer := newTestSyncer(t, false)
+	syncer := newTestSyncer(t)
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
@@ -95,7 +95,7 @@ func TestChainProcessor_HandleBlockResponse_MissingBlocks(t *testing.T) {
 		parent = block.Header
 	}
 
-	responder := newTestSyncer(t, false)
+	responder := newTestSyncer(t)
 
 	parent, err = responder.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
@@ -130,7 +130,7 @@ func TestChainProcessor_HandleBlockResponse_MissingBlocks(t *testing.T) {
 }
 
 func TestChainProcessor_RemoveIncludedExtrinsics(t *testing.T) {
-	syncer := newTestSyncer(t, false)
+	syncer := newTestSyncer(t)
 
 	ext := []byte("nootwashere")
 	tx := &transaction.ValidTransaction{
@@ -163,13 +163,13 @@ func TestChainProcessor_RemoveIncludedExtrinsics(t *testing.T) {
 }
 
 func TestChainProcessor_HandleBlockResponse_NoBlockData(t *testing.T) {
-	syncer := newTestSyncer(t, false)
+	syncer := newTestSyncer(t)
 	err := syncer.chainProcessor.(*chainProcessor).processBlockData(nil)
 	require.Equal(t, ErrNilBlockData, err)
 }
 
 func TestChainProcessor_HandleBlockResponse_BlockData(t *testing.T) {
-	syncer := newTestSyncer(t, false)
+	syncer := newTestSyncer(t)
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
@@ -198,7 +198,7 @@ func TestChainProcessor_HandleBlockResponse_BlockData(t *testing.T) {
 }
 
 func TestChainProcessor_ExecuteBlock(t *testing.T) {
-	syncer := newTestSyncer(t, false)
+	syncer := newTestSyncer(t)
 
 	parent, err := syncer.blockState.(*state.BlockState).BestBlockHeader()
 	require.NoError(t, err)
@@ -218,7 +218,7 @@ func TestChainProcessor_ExecuteBlock(t *testing.T) {
 }
 
 func TestChainProcessor_HandleJustification(t *testing.T) {
-	syncer := newTestSyncer(t, false)
+	syncer := newTestSyncer(t)
 
 	d := types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest()
 	header := &types.Header{

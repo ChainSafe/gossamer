@@ -8,6 +8,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
+// DisjointBlockSet represents a set of incomplete blocks, or blocks
+// with an unknown parent. it is implemented by *disjointBlockSet
 type DisjointBlockSet interface {
 	addHashAndNumber(common.Hash, *big.Int)
 	addHeader(*types.Header)
@@ -104,7 +106,7 @@ func (s *disjointBlockSet) removeBlock(hash common.Hash) {
 }
 
 // removeLowerBlocks removes all blocks with a number equal or less than the given number
-// from the set. it should be called when a new block is finalized to cleanup the set.
+// from the set. it should be called when a new block is finalised to cleanup the set.
 func (s *disjointBlockSet) removeLowerBlocks(num *big.Int) {
 	s.Lock()
 	defer s.Unlock()

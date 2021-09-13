@@ -11,6 +11,8 @@ import (
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 )
 
+// ChainProcessor processes ready blocks.
+// it is implemented by *chainProcessor
 type ChainProcessor interface {
 	start()
 	stop()

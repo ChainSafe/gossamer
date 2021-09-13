@@ -36,7 +36,7 @@ func (s *workerState) add(w *worker) {
 
 	w.id = s.nextWorker
 	w.ctx = s.ctx
-	s.nextWorker += 1
+	s.nextWorker++
 	s.workers[w.id] = w
 }
 
