@@ -49,6 +49,7 @@ const (
 	maxMessageSize = 1024 * 63 // 63kb for now
 
 	gssmrIsMajorSyncMetric = "gossamer/network/is_major_syncing"
+	batchSize              = 100
 )
 
 var (
@@ -225,7 +226,7 @@ func (s *Service) Start() error {
 		logger.Warn("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
 	}
 
-	txnBatch := make(chan *transactionBatchMessage, 100)
+	txnBatch := make(chan *transactionBatchMessage, batchSize)
 
 	txnBatchHandler := func(peer peer.ID, msg NotificationsMessage) (msgs []*transactionBatchMessage, err error) {
 		data := &transactionBatchMessage{
@@ -234,7 +235,7 @@ func (s *Service) Start() error {
 		}
 		txnBatch <- data
 
-		if len(txnBatch) < 100 {
+		if len(txnBatch) < batchSize {
 			return nil, nil
 		}
 
@@ -249,6 +250,9 @@ func (s *Service) Start() error {
 					msg:  txnData.msg,
 					peer: txnData.peer,
 				})
+			}
+			if len(txnBatch) == 0 {
+				break
 			}
 		}
 		// May be use error to compute peer score.

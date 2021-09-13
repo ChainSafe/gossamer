@@ -28,6 +28,7 @@ import (
 	"github.com/ChainSafe/gossamer/lib/utils"
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -141,7 +142,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounce(t *testing.T) {
 		inboundHandshakeData:  new(sync.Map),
 		outboundHandshakeData: new(sync.Map),
 	}
-	handler := s.createNotificationsMessageHandler(info, s.handleBlockAnnounceMessage)
+	handler := s.createNotificationsMessageHandler(info, s.handleBlockAnnounceMessage, nil)
 
 	// set handshake data to received
 	info.inboundHandshakeData.Store(testPeerID, handshakeData{
@@ -174,7 +175,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 		inboundHandshakeData:  new(sync.Map),
 		outboundHandshakeData: new(sync.Map),
 	}
-	handler := s.createNotificationsMessageHandler(info, s.handleBlockAnnounceMessage)
+	handler := s.createNotificationsMessageHandler(info, s.handleBlockAnnounceMessage, nil)
 
 	configB := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeB"),
@@ -312,4 +313,134 @@ func Test_HandshakeTimeout(t *testing.T) {
 	connAToB = nodeA.host.h.Network().ConnsToPeer(nodeB.host.id())
 	require.Len(t, connAToB, 1)
 	require.Len(t, connAToB[0].GetStreams(), 0)
+}
+
+func TestCreateNotificationsMessageHandler_HandleTransaction(t *testing.T) {
+	basePath := utils.NewTestBasePath(t, "nodeA")
+	mockhandler := &MockTransactionHandler{}
+	mockhandler.On("HandleTransactionMessage", mock.AnythingOfType("*network.TransactionMessage")).Return(true, nil)
+	mockhandler.On("TransactionsCount").Return(0)
+	const channelLen = 5
+	config := &Config{
+		BasePath:           basePath,
+		Port:               7001,
+		NoBootstrap:        true,
+		NoMDNS:             true,
+		TransactionHandler: mockhandler,
+	}
+
+	s := createTestService(t, config)
+
+	configB := &Config{
+		BasePath:    utils.NewTestBasePath(t, "nodeB"),
+		Port:        7002,
+		NoBootstrap: true,
+		NoMDNS:      true,
+	}
+
+	b := createTestService(t, configB)
+
+	txnBatch := make(chan *transactionBatchMessage, channelLen)
+
+	txnBatchHandler := func(peer peer.ID, msg NotificationsMessage) (msgs []*transactionBatchMessage, err error) {
+		data := &transactionBatchMessage{
+			msg:  msg,
+			peer: peer,
+		}
+		txnBatch <- data
+		if len(txnBatch) < channelLen {
+			return nil, nil
+		}
+
+		for txnData := range txnBatch {
+			propagate, err := s.handleTransactionMessage(txnData.peer, txnData.msg)
+			if err != nil {
+				continue
+			}
+			if propagate {
+				msgs = append(msgs, &transactionBatchMessage{
+					msg:  txnData.msg,
+					peer: txnData.peer,
+				})
+			}
+			if len(txnBatch) == 0 {
+				break
+			}
+		}
+		// May be use error to compute peer score.
+		return msgs, nil
+	}
+
+	// don't set handshake data ie. this stream has just been opened
+	testPeerID := b.host.id()
+
+	// connect nodes
+	addrInfoB := b.host.addrInfo()
+	err := s.host.connect(addrInfoB)
+	if failedToDial(err) {
+		time.Sleep(TestBackoffTimeout)
+		err = s.host.connect(addrInfoB)
+	}
+	require.NoError(t, err)
+
+	stream, err := s.host.h.NewStream(s.ctx, b.host.id(), s.host.protocolID+transactionsID)
+	require.NoError(t, err)
+	require.Len(t, txnBatch, 0)
+
+	// create info and handler
+	info := &notificationsProtocol{
+		protocolID:            s.host.protocolID + transactionsID,
+		getHandshake:          s.getTransactionHandshake,
+		handshakeValidator:    validateTransactionHandshake,
+		inboundHandshakeData:  new(sync.Map),
+		outboundHandshakeData: new(sync.Map),
+	}
+	handler := s.createNotificationsMessageHandler(info, s.handleTransactionMessage, txnBatchHandler)
+
+	// set handshake data to received
+	info.inboundHandshakeData.Store(testPeerID, handshakeData{
+		received:  true,
+		validated: true,
+	})
+	msg := &TransactionMessage{
+		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
+	}
+	err = handler(stream, msg)
+	require.NoError(t, err)
+	require.Len(t, txnBatch, 1)
+
+	msg = &TransactionMessage{
+		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
+	}
+	err = handler(stream, msg)
+	require.NoError(t, err)
+	require.Len(t, txnBatch, 2)
+
+	msg = &TransactionMessage{
+		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
+	}
+	err = handler(stream, msg)
+	require.NoError(t, err)
+	require.Len(t, txnBatch, 3)
+
+	msg = &TransactionMessage{
+		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
+	}
+	err = handler(stream, msg)
+	require.NoError(t, err)
+	require.Len(t, txnBatch, 4)
+
+	msg = &TransactionMessage{
+		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
+	}
+	err = handler(stream, msg)
+	require.NoError(t, err)
+	require.Len(t, txnBatch, 0)
+
+	msg = &TransactionMessage{
+		Extrinsics: []types.Extrinsic{{1, 1}, {2, 2}},
+	}
+	err = handler(stream, msg)
+	require.NoError(t, err)
+	require.Len(t, txnBatch, 1)
 }

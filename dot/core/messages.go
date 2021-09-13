@@ -37,6 +37,8 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (boo
 		return false, err
 	}
 
+	s.storageState.Lock()
+	defer s.storageState.Unlock()
 	for _, tx := range txs {
 		ts, err := s.storageState.TrieState(nil)
 		if err != nil {
