@@ -208,6 +208,7 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) e
 	if err != nil {
 		return err
 	}
+	fmt.Println(head.Number, ps.number)
 
 	if ps.number.Cmp(head.Number) <= 0 {
 		// check if our block hash for that number is the same, if so, do nothing
@@ -216,6 +217,8 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) e
 		if err != nil {
 			return err
 		}
+
+		fmt.Println(ourHash, ps.hash)
 
 		if ourHash.Equal(ps.hash) {
 			return nil
@@ -234,8 +237,8 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) e
 		// thus the peer is on an invalid chain
 		if fin.Number.Cmp(ps.number) >= 0 {
 			// TODO: downscore this peer, or temporarily don't sync from them?
-			logger.Debug("peer is on an invalid fork")
-			return nil
+			// perhaps we need another field in `peerState` to mark whether the state is valid or not
+			return errPeerOnInvalidFork
 		}
 
 		// peer is on a fork, check if we have processed the fork already or not
@@ -297,6 +300,7 @@ func (cs *chainSync) logSyncSpeed() {
 			}
 
 			cs.benchmarker.end(after.Number.Uint64())
+			target := cs.getTarget()
 
 			logger.Info("🔗 imported blocks", "from", before.Number, "to", after.Number,
 				"hashes", fmt.Sprintf("[%s ... %s]", before.Hash(), after.Hash()),
@@ -304,7 +308,7 @@ func (cs *chainSync) logSyncSpeed() {
 
 			logger.Info("🚣 currently syncing",
 				"peer count", len(cs.network.Peers()),
-				// "target", target, // TODO
+				"target", target,
 				"average blocks/second", cs.benchmarker.mostRecentAverage(),
 				"overall average", cs.benchmarker.average(),
 				"finalised", finalised.Number,
@@ -330,8 +334,6 @@ func (cs *chainSync) sync() {
 	for {
 		select {
 		case ps := <-cs.workQueue:
-			// TODO: if the peer's head is >128 than our head, and we are in tip sync mode,
-			// we should switch back to bootstrap
 			head, err := cs.blockState.BestBlockHeader()
 			if err != nil {
 				logger.Error("failed to get best block header", "error", err)
@@ -346,7 +348,7 @@ func (cs *chainSync) sync() {
 				cs.switchMode(tip)
 			} else if big.NewInt(0).Add(head.Number, big.NewInt(MAX_RESPONSE_SIZE)).Cmp(target) == -1 {
 				// we are 128 blocks or more behind the target, switch to bootstrap mode
-				logger.Debug("switching to tip bootstrap mode...")
+				logger.Debug("switching to bootstrap sync mode...")
 				cs.switchMode(bootstrap)
 			}
 
@@ -368,7 +370,7 @@ func (cs *chainSync) sync() {
 
 			// handle errors. in the case that a peer did not respond to us in time,
 			// temporarily add them to the ignore list.
-			// TODO: periodically clear out ignore list
+			// TODO: periodically clear out ignore list, currently is done if (ignore list >= peer list)
 			switch res.err.err {
 			case context.DeadlineExceeded:
 				if res.err.who != peer.ID("") {
@@ -426,16 +428,26 @@ func (cs *chainSync) switchMode(mode chainSyncState) {
 	case tip:
 		cs.handler = newTipSyncer(cs.blockState, cs.pendingBlocks, cs.workerState)
 	}
+
+	cs.state = mode
 }
 
 // getTarget takes the average of all peer heads
-// TODO: should we just return the highest? could be an attack vector potentially
+// TODO: should we just return the highest? could be an attack vector potentially, if a peer reports some very large
+// head block number, it would leave us in bootstrap mode forever
+// it would be better to have some sort of standard deviation calculation and discard any outliers
 func (cs *chainSync) getTarget() *big.Int {
 	count := int64(0)
 	sum := big.NewInt(0)
 
 	cs.RLock()
 	defer cs.RUnlock()
+
+	// in practice, this shouldn't happen, as we only start the module once we have some peer states
+	if len(cs.peerState) == 0 {
+		// return max uint32 instead of 0, as returning 0 would switch us to tip mode unexpectedly
+		return big.NewInt(2<<32 - 1)
+	}
 
 	for _, ps := range cs.peerState {
 		sum = big.NewInt(0).Add(sum, ps.number)
@@ -466,7 +478,7 @@ func (cs *chainSync) handleWork(ps *peerState) error {
 
 func (cs *chainSync) tryDispatchWorker(w *worker) {
 	// if we already have the maximum number of workers, don't dispatch another
-	if len(cs.workerState.workers) > MAX_WORKERS {
+	if len(cs.workerState.workers) >= MAX_WORKERS {
 		logger.Trace("reached max workers, ignoring potential work")
 		return
 	}
@@ -485,11 +497,94 @@ func (cs *chainSync) tryDispatchWorker(w *worker) {
 // if it fails due to any reason, it sets the worker `err` and returns
 // this function always places the worker into the `resultCh` for result handling upon return
 func (cs *chainSync) dispatchWorker(w *worker) {
-	logger.Debug("dispatching sync worker", "target hash", w.targetHash, "target number", w.targetNumber)
+	logger.Debug("dispatching sync worker",
+		"target hash", w.targetHash,
+		"target number", w.targetNumber,
+	)
 
 	if w.targetNumber == nil || w.startNumber == nil {
-		logger.Error("must provide a block start and target number", "startNumber==nil?", w.startNumber == nil, "targetNumber==nil?", w.targetNumber == nil)
+		logger.Error("must provide a block start and target number",
+			"startNumber==nil?", w.startNumber == nil,
+			"targetNumber==nil?", w.targetNumber == nil,
+		)
 		return
+	}
+
+	// // to deal with descending requests (ie. target may be lower than start) which are used in tip mode,
+	// // take absolute value of difference between start and target
+	// numBlocks := int(big.NewInt(0).Abs(big.NewInt(0).Sub(w.targetNumber, w.startNumber)).Int64())
+	// numRequests := numBlocks / MAX_RESPONSE_SIZE
+
+	// if numBlocks < MAX_RESPONSE_SIZE {
+	// 	numRequests = 1
+	// }
+
+	start := time.Now()
+	defer func() {
+		end := time.Now()
+		w.duration = end.Sub(start)
+		logger.Debug("sync worker complete", "success?", w.err == nil)
+		cs.resultQueue <- w
+	}()
+
+	//startNumber := w.startNumber.Uint64()
+	reqs, err := workerToRequests(w)
+	if err != nil {
+		// if we are creating valid workers, this should not happen
+		logger.Crit("failed to create requests from worker", "worker", w, "error", err)
+	}
+
+	//for i := 0; i < numRequests; i++ {
+	for _, req := range reqs {
+		// // check if we want to specify a size
+		// var max *optional.Uint32
+		// if i == numRequests-1 {
+		// 	size := numBlocks % MAX_RESPONSE_SIZE
+		// 	max = optional.NewUint32(true, uint32(size))
+		// } else {
+		// 	max = optional.NewUint32(false, 0)
+		// }
+
+		// var start *variadic.Uint64OrHash
+		// if w.startHash.Equal(common.EmptyHash) {
+		// 	// worker startHash is unspecified if we are in bootstrap mode
+		// 	start, _ = variadic.NewUint64OrHash(startNumber)
+		// } else {
+		// 	// in tip-syncing mode, we know the hash of the block on the fork we wish to sync
+		// 	start, _ = variadic.NewUint64OrHash(w.startHash)
+		// }
+
+		// req := &BlockRequestMessage{
+		// 	RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification,
+		// 	StartingBlock: start,
+		// 	// TODO: check target hash and use if fork request
+		// 	EndBlockHash: optional.NewHash(false, common.Hash{}),
+		// 	Direction:    w.direction,
+		// 	Max:          max,
+		// }
+
+		// TODO: if we find a good peer, do sync with them, right now it re-selects a peer each time
+		err := cs.doSync(req)
+		if err != nil {
+			// failed to sync, set worker error and put into result queue
+			w.err = err
+			return
+		}
+
+		//startNumber += MAX_RESPONSE_SIZE
+	}
+}
+
+func workerToRequests(w *worker) ([]*BlockRequestMessage, error) {
+	// one of start number or hash must be provided
+	if w.startNumber == nil && w.startHash.Equal(common.EmptyHash) {
+		return nil, errWorkerMissingStartBlock
+	}
+
+	// worker must specify a target number
+	// empty target hash is ok (eg. in the case of descending fork requests)
+	if w.targetNumber == nil {
+		return nil, errWorkerMissingTargetNumber
 	}
 
 	// to deal with descending requests (ie. target may be lower than start) which are used in tip mode,
@@ -501,21 +596,18 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 		numRequests = 1
 	}
 
-	start := time.Now()
-	defer func() {
-		end := time.Now()
-		w.duration = end.Sub(start)
-		logger.Debug("sync worker complete", "success?", w.err == nil)
-		cs.resultQueue <- w
-	}()
-
 	startNumber := w.startNumber.Uint64()
+
+	reqs := make([]*BlockRequestMessage, numRequests)
 
 	for i := 0; i < numRequests; i++ {
 		// check if we want to specify a size
 		var max *optional.Uint32
 		if i == numRequests-1 {
 			size := numBlocks % MAX_RESPONSE_SIZE
+			if size == 0 {
+				size = MAX_RESPONSE_SIZE
+			}
 			max = optional.NewUint32(true, uint32(size))
 		} else {
 			max = optional.NewUint32(false, 0)
@@ -526,11 +618,11 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 			// worker startHash is unspecified if we are in bootstrap mode
 			start, _ = variadic.NewUint64OrHash(startNumber)
 		} else {
-			// in fork-syncing mode, we know the hash of the block on the fork we wish to sync
+			// in tip-syncing mode, we know the hash of the block on the fork we wish to sync
 			start, _ = variadic.NewUint64OrHash(w.startHash)
 		}
 
-		req := &BlockRequestMessage{
+		reqs[i] = &BlockRequestMessage{
 			RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification,
 			StartingBlock: start,
 			// TODO: check target hash and use if fork request
@@ -538,17 +630,10 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 			Direction:    w.direction,
 			Max:          max,
 		}
-
-		// TODO: if we find a good peer, do sync with them, right now it re-selects a peer each time
-		err := cs.doSync(req)
-		if err != nil {
-			// failed to sync, set worker error and put into result queue
-			w.err = err
-			return
-		}
-
 		startNumber += MAX_RESPONSE_SIZE
 	}
+
+	return reqs, nil
 }
 
 func (cs *chainSync) doSync(req *BlockRequestMessage) *workerError {
@@ -582,6 +667,13 @@ func (cs *chainSync) doSync(req *BlockRequestMessage) *workerError {
 	if err != nil {
 		return &workerError{
 			err: err,
+			who: who,
+		}
+	}
+
+	if resp == nil {
+		return &workerError{
+			err: errNilResponse,
 			who: who,
 		}
 	}

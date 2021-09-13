@@ -43,12 +43,16 @@ var (
 	ErrInvalidBlockRequest = errors.New("invalid block request")
 
 	// chainSync errors
-	errEmptyBlockData      = errors.New("empty block data")
-	errNilBlockData        = errors.New("block data is nil")
-	errNilHeaderInResponse = errors.New("expected header, received none")
-	errNilBodyInResponse   = errors.New("expected body, received none")
-	errNoPeers             = errors.New("no peers to sync with")
-	errResponseIsNotChain  = errors.New("block response does not form a chain")
+	errEmptyBlockData            = errors.New("empty block data")
+	errNilBlockData              = errors.New("block data is nil")
+	errNilResponse               = errors.New("block response is nil")
+	errNilHeaderInResponse       = errors.New("expected header, received none")
+	errNilBodyInResponse         = errors.New("expected body, received none")
+	errNoPeers                   = errors.New("no peers to sync with")
+	errResponseIsNotChain        = errors.New("block response does not form a chain")
+	errPeerOnInvalidFork         = errors.New("peer is on an invalid fork")
+	errWorkerMissingStartBlock   = errors.New("worker has empty block hash and number")
+	errWorkerMissingTargetNumber = errors.New("worker has nil target block number")
 )
 
 // ErrNilChannel is returned if a channel is nil
