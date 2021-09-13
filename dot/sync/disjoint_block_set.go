@@ -14,6 +14,7 @@ type DisjointBlockSet interface {
 	addBlock(*types.Block)
 	removeBlock(common.Hash)
 	removeLowerBlocks(num *big.Int)
+	hasBlock(common.Hash) bool
 	getBlocks() []*pendingBlock
 	size() int
 }
@@ -113,6 +114,13 @@ func (s *disjointBlockSet) removeLowerBlocks(num *big.Int) {
 			delete(s.blocks, hash)
 		}
 	}
+}
+
+func (s *disjointBlockSet) hasBlock(hash common.Hash) bool {
+	s.RLock()
+	defer s.RUnlock()
+	_, has := s.blocks[hash]
+	return has
 }
 
 func (s *disjointBlockSet) size() int {
