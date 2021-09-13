@@ -6,6 +6,8 @@ import (
 
 var _ workHandler = &tipSyncer{}
 
+// tipSyncer handles workers when syncing at the tip of the chain
+// WIP
 type tipSyncer struct {
 	blockState    BlockState
 	pendingBlocks DisjointBlockSet
@@ -63,7 +65,7 @@ func (s *tipSyncer) handleTick() (*worker, error) {
 		}
 
 		// case 3
-
+		// WIP
 	}
 
 	return nil, nil

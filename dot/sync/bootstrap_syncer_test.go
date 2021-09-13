@@ -68,5 +68,30 @@ func TestBootstrapSyncer_handleWork(t *testing.T) {
 }
 
 func TestBootstrapSyncer_handleWorkerResult(t *testing.T) {
+	s := newTestBootstrapSyncer(t)
 
+	// if the worker error is nil, then this function should do nothing
+	res := &worker{}
+	w, err := s.handleWorkerResult(res)
+	require.NoError(t, err)
+	require.Nil(t, w)
+
+	// if there was a worker error, this should return a worker with
+	// startNumber = bestBlockNumber + 1 and the same target as previously
+	expected := &worker{
+		startHash:    common.EmptyHash,
+		startNumber:  big.NewInt(101),
+		targetHash:   common.NewHash([]byte{1}),
+		targetNumber: big.NewInt(201),
+	}
+
+	res = &worker{
+		targetHash:   common.NewHash([]byte{1}),
+		targetNumber: big.NewInt(201),
+		err:          &workerError{},
+	}
+
+	w, err = s.handleWorkerResult(res)
+	require.NoError(t, err)
+	require.Equal(t, expected, w)
 }
