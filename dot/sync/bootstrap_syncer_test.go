@@ -66,3 +66,7 @@ func TestBootstrapSyncer_handleWork(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, expected, w)
 }
+
+func TestBootstrapSyncer_handleWorkerResult(t *testing.T) {
+
+}

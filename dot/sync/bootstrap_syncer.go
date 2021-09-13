@@ -8,6 +8,7 @@ import (
 
 var _ workHandler = &bootstrapSyncer{}
 
+// bootstrapSyncer handles worker logic for bootstrap mode
 type bootstrapSyncer struct {
 	blockState BlockState
 }

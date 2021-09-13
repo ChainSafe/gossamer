@@ -96,8 +96,9 @@ type worker struct {
 	targetHash   common.Hash
 	targetNumber *big.Int
 
-	// TODO: add fields to request
-	direction byte
+	// bitmap of fields to request
+	requestData byte
+	direction   byte
 
 	duration time.Duration
 	err      *workerError

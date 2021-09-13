@@ -52,7 +52,11 @@ func (s *Service) DoBlockRequest(to peer.ID, req *BlockRequestMessage) (*BlockRe
 }
 
 func (s *Service) receiveBlockResponse(stream libp2pnetwork.Stream) (*BlockResponseMessage, error) {
-	// TODO: not safe for concurrent use, need to create another buf pool?
+	// TODO: should we create another buffer pool for block response buffers?
+	// for bootstrap this is ok since it's not parallelized, but will need to be updated for tip-mode
+	s.blockResponseBufMu.Lock()
+	defer s.blockResponseBufMu.Unlock()
+
 	buf := s.blockResponseBuf
 
 	n, err := readStream(stream, buf[:])

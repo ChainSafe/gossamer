@@ -62,8 +62,9 @@ func (s *chainProcessor) processReadyBlocks() {
 		case bd := <-s.readyBlocks:
 			err := s.processBlockData(bd)
 			if err != nil {
-				logger.Crit("ready block failed", "hash", bd.Hash)
+				logger.Error("ready block failed", "hash", bd.Hash)
 				// TODO: we probably want to relay this error to the chainSync module so the block can be retried
+				// depending on the error, we might want to save this block for later
 			}
 		case <-s.ctx.Done():
 			return
@@ -78,8 +79,6 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		return ErrNilBlockData
 	}
 
-	//logger.Debug("starting processing of block", "hash", bd.Hash)
-
 	err := s.blockState.CompareAndSetBlockData(bd)
 	if err != nil {
 		return fmt.Errorf("failed to compare and set data: %w", err)
@@ -90,8 +89,8 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 	if hasHeader && hasBody {
 		// TODO: fix this; sometimes when the node shuts down the "best block" isn't stored properly,
 		// so when the node restarts it has blocks higher than what it thinks is the best, causing it not to sync
-		//logger.Debug("skipping block, already have", "hash", bd.Hash)
-
+		// if we update the node to only store finalised blocks in the database, this should be fixed and the entire
+		// code block can be removed
 		block, err := s.blockState.GetBlockByHash(bd.Hash) //nolint
 		if err != nil {
 			logger.Debug("failed to get header", "hash", bd.Hash, "error", err)
@@ -110,23 +109,23 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 			return nil
 		}
 
-		// if bd.Justification != nil && bd.Justification.Exists() {
-		// 	logger.Debug("handling Justification...", "number", block.Header.Number, "hash", bd.Hash)
-		// 	s.handleJustification(block.Header, bd.Justification.Value())
-		// }
+		if bd.Justification != nil && bd.Justification.Exists() {
+			logger.Debug("handling Justification...", "number", block.Header.Number, "hash", bd.Hash)
+			s.handleJustification(block.Header, bd.Justification.Value())
+		}
 
-		// // TODO: this is probably unnecessary, since the state is already in the database
-		// // however, this case shouldn't be hit often, since it's only hit if the node state
-		// // is rewinded or if the node shuts down unexpectedly
-		// state, err := s.storageState.TrieState(&block.Header.StateRoot)
-		// if err != nil {
-		// 	logger.Warn("failed to load state for block", "block", block.Header.Hash(), "error", err)
-		// 	return err
-		// }
+		// TODO: this is probably unnecessary, since the state is already in the database
+		// however, this case shouldn't be hit often, since it's only hit if the node state
+		// is rewinded or if the node shuts down unexpectedly
+		state, err := s.storageState.TrieState(&block.Header.StateRoot)
+		if err != nil {
+			logger.Warn("failed to load state for block", "block", block.Header.Hash(), "error", err)
+			return err
+		}
 
-		// if err := s.blockImportHandler.HandleBlockImport(block, state); err != nil {
-		// 	logger.Warn("failed to handle block import", "error", err)
-		// }
+		if err := s.blockImportHandler.HandleBlockImport(block, state); err != nil {
+			logger.Warn("failed to handle block import", "error", err)
+		}
 
 		return nil
 	}
@@ -139,14 +138,9 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 			return err
 		}
 
-		//logger.Trace("processing header", "hash", header.Hash(), "number", header.Number)
-
-		err = s.handleHeader(header)
-		if err != nil {
+		if err = s.handleHeader(header); err != nil {
 			return err
 		}
-
-		//logger.Trace("header processed", "hash", bd.Hash)
 	}
 
 	if bd.Body.Exists() && !hasBody {
@@ -155,14 +149,9 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 			return err
 		}
 
-		//logger.Trace("processing body", "hash", bd.Hash)
-
-		err = s.handleBody(body)
-		if err != nil {
+		if err = s.handleBody(body); err != nil {
 			return err
 		}
-
-		//logger.Trace("body processed", "hash", bd.Hash)
 	}
 
 	if bd.Header.Exists() && bd.Body.Exists() {
@@ -183,8 +172,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 
 		logger.Debug("processing block", "hash", bd.Hash)
 
-		err = s.handleBlock(block)
-		if err != nil {
+		if err = s.handleBlock(block); err != nil {
 			logger.Error("failed to handle block", "number", block.Header.Number, "error", err)
 			return err
 		}
@@ -214,8 +202,7 @@ func (s *chainProcessor) handleHeader(header *types.Header) error {
 func (s *chainProcessor) handleBody(body *types.Body) error {
 	exts, err := body.AsExtrinsics()
 	if err != nil {
-		logger.Error("cannot parse body as extrinsics", "error", err)
-		return err
+		return fmt.Errorf("cannot parse body as extrinsics: %w", err)
 	}
 
 	for _, ext := range exts {
@@ -239,7 +226,6 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 	s.storageState.Lock()
 	defer s.storageState.Unlock()
 
-	//logger.Trace("getting parent state", "root", parent.StateRoot)
 	ts, err := s.storageState.TrieState(&parent.StateRoot)
 	if err != nil {
 		return err
@@ -257,7 +243,6 @@ func (s *chainProcessor) handleBlock(block *types.Block) error {
 	}
 
 	rt.SetContextStorage(ts)
-	//logger.Trace("going to execute block", "header", block.Header, "exts", block.Body)
 
 	_, err = rt.ExecuteBlock(block)
 	if err != nil {

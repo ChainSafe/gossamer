@@ -70,11 +70,10 @@ type Service struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	cfg    *Config
-	host   *host
-	mdns   *mdns
-	gossip *gossip
-	//syncQueue     *syncQueue
+	cfg           *Config
+	host          *host
+	mdns          *mdns
+	gossip        *gossip
 	bufPool       *sizedBufferPool
 	streamManager *streamManager
 
@@ -99,7 +98,8 @@ type Service struct {
 	telemetryInterval time.Duration
 	closeCh           chan interface{}
 
-	blockResponseBuf []byte
+	blockResponseBuf   []byte
+	blockResponseBufMu sync.Mutex
 }
 
 // NewService creates a new network service from the configuration and message channels
@@ -176,7 +176,6 @@ func NewService(cfg *Config) (*Service, error) {
 		blockResponseBuf:       make([]byte, maxBlockResponseSize),
 	}
 
-	//network.syncQueue = newSyncQueue(network)
 	return network, err
 }
 
@@ -203,11 +202,6 @@ func (s *Service) Start() error {
 	if s.IsStopped() {
 		s.ctx, s.cancel = context.WithCancel(context.Background())
 	}
-
-	//connMgr := s.host.h.ConnManager().(*ConnManager)
-	// connMgr.registerDisconnectHandler(func(p peer.ID) {
-	// 	s.syncQueue.peerScore.Delete(p)
-	// })
 
 	s.host.registerStreamHandler(syncID, s.handleSyncStream)
 	s.host.registerStreamHandler(lightID, s.handleLightStream)
@@ -270,7 +264,6 @@ func (s *Service) Start() error {
 	time.Sleep(time.Millisecond * 500)
 
 	logger.Info("started network service", "supported protocols", s.host.protocols())
-	//s.syncQueue.start()
 
 	if s.cfg.PublishMetrics {
 		go s.collectNetworkMetrics()
@@ -375,16 +368,13 @@ func (s *Service) sentBlockIntervalTelemetry() {
 }
 
 func (s *Service) handleConn(conn libp2pnetwork.Conn) {
-	// give new peers a slight weight
-	// TODO: do this once handshake is received
-	//s.syncQueue.updatePeerScore(conn.RemotePeer(), 1)
+	// TODO: update this for scoring
 }
 
 // Stop closes running instances of the host and network services as well as
 // the message channel from the network service to the core service (services that
 // are dependent on the host instance should be closed first)
 func (s *Service) Stop() error {
-	//s.syncQueue.stop()
 	s.cancel()
 
 	// close mDNS discovery service
@@ -741,12 +731,10 @@ func (s *Service) CollectGauge() map[string]int64 {
 func (s *Service) HighestBlock() int64 {
 	// TODO: refactor this to get the data from the sync service
 	return 0
-	//return s.syncQueue.goal
 }
 
 // StartingBlock return the starting block number that's currently being synced
 func (s *Service) StartingBlock() int64 {
 	// TODO: refactor this to get the data from the sync service
 	return 0
-	//return s.syncQueue.currStart
 }

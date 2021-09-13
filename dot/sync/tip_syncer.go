@@ -1,5 +1,9 @@
 package sync
 
+import (
+	"github.com/ChainSafe/gossamer/dot/network"
+)
+
 var _ workHandler = &tipSyncer{}
 
 type tipSyncer struct {
@@ -51,7 +55,15 @@ func (s *tipSyncer) handleTick() (*worker, error) {
 
 		if block.body == nil {
 			// case 2
+			return &worker{
+				startHash:   block.hash,
+				targetHash:  block.hash,
+				requestData: network.RequestedDataBody,
+			}, nil
 		}
+
+		// case 3
+
 	}
 
 	return nil, nil

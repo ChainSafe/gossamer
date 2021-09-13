@@ -237,7 +237,6 @@ func (s *Service) validateBlockAnnounceHandshake(from peer.ID, hs Handshake) err
 		return nil
 	}
 
-	//go s.syncQueue.handleBlockAnnounceHandshake(bhs.BestBlockNumber, from)
 	s.syncer.HandleBlockAnnounceHandshake(from, bhs)
 	return nil
 }
@@ -251,9 +250,7 @@ func (s *Service) handleBlockAnnounceMessage(from peer.ID, msg NotificationsMess
 		return false, errors.New("invalid message")
 	}
 
-	//s.syncQueue.handleBlockAnnounce(an, from)
-	err = s.syncer.HandleBlockAnnounce(from, an)
-	if err != nil {
+	if err = s.syncer.HandleBlockAnnounce(from, an); err != nil {
 		return false, err
 	}
 
