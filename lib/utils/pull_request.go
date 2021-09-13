@@ -8,11 +8,11 @@ import (
 
 const (
 	titleRegex = `[A-Za-z]+\([A-Za-z/]+\):.+[A-Za-z]+`
-	bodyRegex  = `## Changes.*- .+[A-Za-z0-9].+## Tests.*- .+[A-Za-z0-9].+## Issues.*- .+[A-Za-z0-9].+## Primary Reviewer.*- @.+[A-Za-z0-9].+`
+	bodyRegex  = `## Changes.*- .*[A-Za-z0-9].*## Tests.*[A-Za-z].*## Issues.*- .*[A-Za-z0-9].*## Primary Reviewer.*- @.+[A-Za-z0-9].*`
 )
 
 // CheckPRDescription matches the PR title and body according to the PR template.
-func CheckPRDescription(title string, body string) error {
+func CheckPRDescription(title, body string) error {
 	match, err := regexp.MatchString(titleRegex, title)
 	if err != nil || !match {
 		return fmt.Errorf("title pattern is not valid: %w match %t", err, match)
