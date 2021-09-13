@@ -90,7 +90,19 @@ func createStateService(cfg *Config) (*state.Service, error) {
 	return stateSrvc, nil
 }
 
-func createRuntime(cfg *Config, st *state.Service, ks *keystore.GlobalKeystore, net *network.Service, code []byte) (runtime.Instance, error) {
+func createRuntimeStorage(st *state.Service) (*runtime.NodeStorage, error) {
+	localStorage, err := newInMemoryDB(st.DB().Path())
+	if err != nil {
+		return nil, err
+	}
+
+	return &runtime.NodeStorage{
+		LocalStorage:      localStorage,
+		PersistentStorage: chaindb.NewTable(st.DB(), "offlinestorage"),
+	}, nil
+}
+
+func createRuntime(cfg *Config, ns runtime.NodeStorage, st *state.Service, ks *keystore.GlobalKeystore, net *network.Service, code []byte) (runtime.Instance, error) {
 	logger.Info(
 		"creating runtime...",
 		"interpreter", cfg.Core.WasmInterpreter,
@@ -113,16 +125,6 @@ func createRuntime(cfg *Config, st *state.Service, ks *keystore.GlobalKeystore, 
 	ts, err := st.Storage.TrieState(nil)
 	if err != nil {
 		return nil, err
-	}
-
-	localStorage, err := newInMemoryDB(st.DB().Path())
-	if err != nil {
-		return nil, err
-	}
-
-	ns := runtime.NodeStorage{
-		LocalStorage:      localStorage,
-		PersistentStorage: chaindb.NewTable(st.DB(), "offlinestorage"),
 	}
 
 	codeHash, err := st.Storage.LoadCodeHash(nil)
@@ -319,7 +321,7 @@ func createNetworkService(cfg *Config, stateSrvc *state.Service) (*network.Servi
 // RPC Service
 
 // createRPCService creates the RPC service from the provided core configuration
-func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service, bp modules.BlockProducerAPI, sysSrvc *system.Service, finSrvc *grandpa.Service) *rpc.HTTPServer {
+func createRPCService(cfg *Config, ns *runtime.NodeStorage, stateSrvc *state.Service, coreSrvc *core.Service, networkSrvc *network.Service, bp modules.BlockProducerAPI, sysSrvc *system.Service, finSrvc *grandpa.Service) *rpc.HTTPServer {
 	logger.Info(
 		"creating rpc service...",
 		"host", cfg.RPC.Host,
@@ -338,6 +340,7 @@ func createRPCService(cfg *Config, stateSrvc *state.Service, coreSrvc *core.Serv
 		StorageAPI:          stateSrvc.Storage,
 		NetworkAPI:          networkSrvc,
 		CoreAPI:             coreSrvc,
+		NodeStorage:         ns,
 		BlockProducerAPI:    bp,
 		BlockFinalityAPI:    finSrvc,
 		TransactionQueueAPI: stateSrvc.Transaction,

@@ -198,7 +198,9 @@ func TestCreateRPCService(t *testing.T) {
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()
 	ks.Gran.Insert(ed25519Keyring.Alice())
 
-	err = loadRuntime(cfg, stateSrvc, ks, networkSrvc)
+	ns, err := createRuntimeStorage(stateSrvc)
+	require.NoError(t, err)
+	err = loadRuntime(cfg, ns, stateSrvc, ks, networkSrvc)
 	require.NoError(t, err)
 
 	dh, err := createDigestHandler(stateSrvc)
@@ -210,7 +212,7 @@ func TestCreateRPCService(t *testing.T) {
 	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
 	require.NoError(t, err)
 
-	rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc, nil, sysSrvc, nil)
+	rpcSrvc := createRPCService(cfg, ns, stateSrvc, coreSrvc, networkSrvc, nil, sysSrvc, nil)
 	require.NotNil(t, rpcSrvc)
 }
 
@@ -238,7 +240,9 @@ func TestCreateBABEService(t *testing.T) {
 	require.NoError(t, err)
 	ks.Babe.Insert(kr.Alice())
 
-	err = loadRuntime(cfg, stateSrvc, ks, &network.Service{})
+	ns, err := createRuntimeStorage(stateSrvc)
+	require.NoError(t, err)
+	err = loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
 	require.NoError(t, err)
 
 	dh, err := createDigestHandler(stateSrvc)
@@ -276,7 +280,10 @@ func TestCreateGrandpaService(t *testing.T) {
 	require.NoError(t, err)
 	ks.Gran.Insert(kr.Alice())
 
-	err = loadRuntime(cfg, stateSrvc, ks, &network.Service{})
+	ns, err := createRuntimeStorage(stateSrvc)
+	require.NoError(t, err)
+
+	err = loadRuntime(cfg, ns, stateSrvc, ks, &network.Service{})
 	require.NoError(t, err)
 
 	dh, err := createDigestHandler(stateSrvc)
@@ -329,7 +336,9 @@ func TestNewWebSocketServer(t *testing.T) {
 	ed25519Keyring, _ := keystore.NewEd25519Keyring()
 	ks.Gran.Insert(ed25519Keyring.Alice())
 
-	err = loadRuntime(cfg, stateSrvc, ks, networkSrvc)
+	ns, err := createRuntimeStorage(stateSrvc)
+	require.NoError(t, err)
+	err = loadRuntime(cfg, ns, stateSrvc, ks, networkSrvc)
 	require.NoError(t, err)
 
 	dh, err := createDigestHandler(stateSrvc)
@@ -341,7 +350,7 @@ func TestNewWebSocketServer(t *testing.T) {
 	sysSrvc, err := createSystemService(&cfg.System, stateSrvc)
 	require.NoError(t, err)
 
-	rpcSrvc := createRPCService(cfg, stateSrvc, coreSrvc, networkSrvc, nil, sysSrvc, nil)
+	rpcSrvc := createRPCService(cfg, ns, stateSrvc, coreSrvc, networkSrvc, nil, sysSrvc, nil)
 	err = rpcSrvc.Start()
 	require.Nil(t, err)
 

@@ -510,15 +510,6 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 		return
 	}
 
-	// // to deal with descending requests (ie. target may be lower than start) which are used in tip mode,
-	// // take absolute value of difference between start and target
-	// numBlocks := int(big.NewInt(0).Abs(big.NewInt(0).Sub(w.targetNumber, w.startNumber)).Int64())
-	// numRequests := numBlocks / MAX_RESPONSE_SIZE
-
-	// if numBlocks < MAX_RESPONSE_SIZE {
-	// 	numRequests = 1
-	// }
-
 	start := time.Now()
 	defer func() {
 		end := time.Now()
@@ -527,42 +518,13 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 		cs.resultQueue <- w
 	}()
 
-	//startNumber := w.startNumber.Uint64()
 	reqs, err := workerToRequests(w)
 	if err != nil {
 		// if we are creating valid workers, this should not happen
 		logger.Crit("failed to create requests from worker", "worker", w, "error", err)
 	}
 
-	//for i := 0; i < numRequests; i++ {
 	for _, req := range reqs {
-		// // check if we want to specify a size
-		// var max *optional.Uint32
-		// if i == numRequests-1 {
-		// 	size := numBlocks % MAX_RESPONSE_SIZE
-		// 	max = optional.NewUint32(true, uint32(size))
-		// } else {
-		// 	max = optional.NewUint32(false, 0)
-		// }
-
-		// var start *variadic.Uint64OrHash
-		// if w.startHash.Equal(common.EmptyHash) {
-		// 	// worker startHash is unspecified if we are in bootstrap mode
-		// 	start, _ = variadic.NewUint64OrHash(startNumber)
-		// } else {
-		// 	// in tip-syncing mode, we know the hash of the block on the fork we wish to sync
-		// 	start, _ = variadic.NewUint64OrHash(w.startHash)
-		// }
-
-		// req := &BlockRequestMessage{
-		// 	RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification,
-		// 	StartingBlock: start,
-		// 	// TODO: check target hash and use if fork request
-		// 	EndBlockHash: optional.NewHash(false, common.Hash{}),
-		// 	Direction:    w.direction,
-		// 	Max:          max,
-		// }
-
 		// TODO: if we find a good peer, do sync with them, right now it re-selects a peer each time
 		err := cs.doSync(req)
 		if err != nil {
@@ -570,8 +532,6 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 			w.err = err
 			return
 		}
-
-		//startNumber += MAX_RESPONSE_SIZE
 	}
 }
 

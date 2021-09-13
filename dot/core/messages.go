@@ -32,17 +32,23 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (boo
 	txs := msg.Extrinsics
 	var toPropagate []types.Extrinsic
 
+	head, err := s.blockState.BestBlockHeader()
+	if err != nil {
+		return false, err
+	}
+
+	hash := head.Hash()
+	rt, err := s.blockState.GetRuntime(&hash)
+	if err != nil {
+		return false, err
+	}
+
 	for _, tx := range txs {
-		err := func() error {
+		err = func() error {
 			s.storageState.Lock()
 			defer s.storageState.Unlock()
 
-			rt, err := s.blockState.GetRuntime(nil)
-			if err != nil {
-				return err
-			}
-
-			ts, err := s.storageState.TrieState(nil)
+			ts, err := s.storageState.TrieState(&head.StateRoot) //nolint
 			if err != nil {
 				return err
 			}
@@ -73,12 +79,11 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (boo
 		}()
 
 		if err != nil {
-			return false, nil
+			return false, err
 		}
 	}
 
 	msg.Extrinsics = toPropagate
-
 	return len(msg.Extrinsics) > 0, nil
 }
 
