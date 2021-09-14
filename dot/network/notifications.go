@@ -54,7 +54,7 @@ type (
 	// NotificationsMessageHandler is called when a (non-handshake) message is received over a notifications stream.
 	NotificationsMessageHandler = func(peer peer.ID, msg NotificationsMessage) (propagate bool, err error)
 
-	// NotificationsMessageBatchHandler is called when a (non-handshake) message is received over a notifications stream with batch.
+	// NotificationsMessageBatchHandler is called when a (non-handshake) message is received over a notifications stream in batch processing mode.
 	NotificationsMessageBatchHandler = func(peer peer.ID, msg NotificationsMessage) (batchMsgs []*transactionBatchMessage, err error)
 )
 
@@ -196,37 +196,38 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			"peer", stream.Conn().RemotePeer(),
 		)
 
+		var (
+			propagate bool
+			err       error
+			msgs      []*transactionBatchMessage
+		)
 		if batchHandler != nil {
-			propagateMsgs, err := batchHandler(peer, msg)
+			msgs, err = batchHandler(peer, msg)
 			if err != nil {
 				return err
 			}
 
-			if s.noGossip {
-				return nil
+			propagate = len(msgs) > 0
+		} else {
+			propagate, err = messageHandler(peer, msg)
+			if err != nil {
+				return err
 			}
-
-			for _, data := range propagateMsgs {
-				seen := s.gossip.hasSeen(data.msg)
-				if !seen {
-					s.broadcastExcluding(info, data.peer, data.msg)
-				}
-			}
-			return nil
-		}
-
-		propagate, err := messageHandler(peer, msg)
-		if err != nil {
-			return err
+			msgs = append(msgs, &transactionBatchMessage{
+				msg:  msg,
+				peer: peer,
+			})
 		}
 
 		if !propagate || s.noGossip {
 			return nil
 		}
 
-		seen := s.gossip.hasSeen(msg)
-		if !seen {
-			s.broadcastExcluding(info, peer, msg)
+		for _, data := range msgs {
+			seen := s.gossip.hasSeen(data.msg)
+			if !seen {
+				s.broadcastExcluding(info, data.peer, data.msg)
+			}
 		}
 
 		return nil
