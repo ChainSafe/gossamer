@@ -82,7 +82,10 @@ func (bh *Header) DeepCopy() *Header {
 	if len(bh.Digest.Types) > 0 {
 		cp.Digest = NewDigest()
 		for _, d := range bh.Digest.Types {
-			_ = cp.Digest.Add(d.Value())
+			err := cp.Digest.Add(d.Value())
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 

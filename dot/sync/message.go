@@ -133,7 +133,7 @@ func (s *Service) getBlockData(num *big.Int, requestedData byte) (*types.BlockDa
 	}
 
 	blockData := &types.BlockData{
-		Hash:          hash,
+		Hash: hash,
 	}
 
 	if requestedData == 0 {

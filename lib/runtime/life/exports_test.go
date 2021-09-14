@@ -169,7 +169,8 @@ func buildBlock(t *testing.T, instance runtime.Instance) *types.Block {
 	preDigest := types.NewBABEPreRuntimeDigest(data)
 
 	digest := types.NewDigest()
-	digest.Add(*preDigest)
+	err = digest.Add(*preDigest)
+	require.NoError(t, err)
 	res.Digest = digest
 
 	expected := &types.Header{

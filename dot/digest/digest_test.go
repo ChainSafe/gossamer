@@ -401,7 +401,7 @@ func TestHandler_HandleBABEOnDisabled(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func createHeaderWithPreDigest(slotNumber uint64) *types.Header {
+func createHeaderWithPreDigest(t *testing.T, slotNumber uint64) *types.Header {
 	babeHeader := types.NewBabePrimaryPreDigest(0, slotNumber, [32]byte{}, [64]byte{})
 
 	enc := babeHeader.Encode()
@@ -409,7 +409,8 @@ func createHeaderWithPreDigest(slotNumber uint64) *types.Header {
 		Data: enc,
 	}
 	digest := types.NewDigest()
-	digest.Add(*d)
+	err := digest.Add(*d)
+	require.NoError(t, err)
 
 	return &types.Header{
 		Digest: digest,
@@ -453,7 +454,7 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 		Data:              data,
 	}
 
-	header := createHeaderWithPreDigest(10)
+	header := createHeaderWithPreDigest(t, 10)
 
 	err = handler.handleConsensusDigest(d, header)
 	require.NoError(t, err)
@@ -495,7 +496,7 @@ func TestHandler_HandleNextConfigData(t *testing.T) {
 		Data:              data,
 	}
 
-	header := createHeaderWithPreDigest(10)
+	header := createHeaderWithPreDigest(t, 10)
 
 	err = handler.handleConsensusDigest(d, header)
 	require.NoError(t, err)

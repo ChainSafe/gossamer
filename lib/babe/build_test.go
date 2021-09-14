@@ -189,7 +189,8 @@ func TestBuildBlock_ok(t *testing.T) {
 	require.NoError(t, err)
 
 	digest := types.NewDigest()
-	digest.Add(*preDigest)
+	err = digest.Add(*preDigest)
+	require.NoError(t, err)
 
 	expectedBlockHeader := &types.Header{
 		ParentHash: emptyHeader.Hash(),
@@ -264,7 +265,8 @@ func TestApplyExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 
 	digest := types.NewDigest()
-	digest.Add(*preDigest)
+	err = digest.Add(*preDigest)
+	require.NoError(t, err)
 
 	header, err := types.NewHeader(parentHash, common.Hash{}, common.Hash{}, big.NewInt(1), digest)
 	require.NoError(t, err)
@@ -284,7 +286,8 @@ func TestApplyExtrinsic(t *testing.T) {
 	require.NoError(t, err)
 
 	digest2 := types.NewDigest()
-	digest2.Add(*preDigest2)
+	err = digest2.Add(*preDigest2)
+	require.NoError(t, err)
 	header2, err := types.NewHeader(header1.Hash(), common.Hash{}, common.Hash{}, big.NewInt(2), digest2)
 	require.NoError(t, err)
 	err = rt.InitializeBlock(header2)

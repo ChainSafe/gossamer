@@ -504,10 +504,11 @@ func TestService_HandleRuntimeChanges(t *testing.T) {
 	hash := s.blockState.BestBlockHash() // genesisHash
 
 	digest := types.NewDigest()
-	digest.Add(types.PreRuntimeDigest{
+	err = digest.Add(types.PreRuntimeDigest{
 		ConsensusEngineID: types.BabeEngineID,
 		Data:              common.MustHexToBytes("0x0201000000ef55a50f00000000"),
 	})
+	require.NoError(t, err)
 
 	newBlock1 := &types.Block{
 		Header: types.Header{

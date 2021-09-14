@@ -348,7 +348,8 @@ func TestSubscribeAllHeads(t *testing.T) {
 	)
 
 	digest := types.NewDigest()
-	digest.Add(*types.NewBABEPreRuntimeDigest([]byte{0xff}))
+	err = digest.Add(*types.NewBABEPreRuntimeDigest([]byte{0xff}))
+	require.NoError(t, err)
 	fCh <- &types.FinalisationInfo{
 		Header: types.Header{
 			ParentHash:     common.EmptyHash,
@@ -365,7 +366,8 @@ func TestSubscribeAllHeads(t *testing.T) {
 	require.Equal(t, expected+"\n", string(msg))
 
 	digest = types.NewDigest()
-	digest.Add(*types.NewBABEPreRuntimeDigest([]byte{0xff}))
+	err = digest.Add(*types.NewBABEPreRuntimeDigest([]byte{0xff}))
+	require.NoError(t, err)
 
 	iCh <- &types.Block{
 		Header: types.Header{

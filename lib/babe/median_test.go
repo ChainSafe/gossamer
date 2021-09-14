@@ -99,7 +99,8 @@ func addBlocksToState(t *testing.T, babeService *Service, depth int, blockState 
 		require.NoError(t, err)
 
 		digest := types.NewDigest()
-		digest.Add(*predigest)
+		err = digest.Add(*predigest)
+		require.NoError(t, err)
 		block := &types.Block{
 			Header: types.Header{
 				ParentHash: previousHash,
@@ -167,7 +168,8 @@ func TestEstimateCurrentSlot(t *testing.T) {
 	require.NoError(t, err)
 
 	digest := types.NewDigest()
-	digest.Add(predigest)
+	err = digest.Add(predigest)
+	require.NoError(t, err)
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash: genesisHeader.Hash(),

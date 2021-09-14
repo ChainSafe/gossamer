@@ -159,7 +159,10 @@ func (b *BlockBuilder) buildBlock(parent *types.Header, slot Slot, rt runtime.In
 		return nil, err
 	}
 
-	_ = header.Digest.Add(*seal)
+	err = header.Digest.Add(*seal)
+	if err != nil {
+		return nil, err
+	}
 
 	logger.Trace("built block seal")
 

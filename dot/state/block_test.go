@@ -183,7 +183,8 @@ func TestGetSlotForBlock(t *testing.T) {
 	preDigest := types.NewBABEPreRuntimeDigest(data)
 
 	digest := types.NewDigest()
-	digest.Add(*preDigest)
+	err := digest.Add(*preDigest)
+	require.NoError(t, err)
 	block := &types.Block{
 		Header: types.Header{
 			ParentHash: testGenesisHeader.Hash(),
@@ -193,7 +194,7 @@ func TestGetSlotForBlock(t *testing.T) {
 		Body: types.Body{},
 	}
 
-	err := bs.AddBlock(block)
+	err = bs.AddBlock(block)
 	require.NoError(t, err)
 
 	res, err := bs.GetSlotForBlock(block.Header.Hash())
@@ -277,7 +278,8 @@ func TestFinalizedHash(t *testing.T) {
 	require.Equal(t, testGenesisHeader.Hash(), h)
 
 	digest := types.NewDigest()
-	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	require.NoError(t, err)
 	header := &types.Header{
 		ParentHash: testGenesisHeader.Hash(),
 		Number:     big.NewInt(1),
@@ -536,10 +538,12 @@ func TestNumberIsFinalised(t *testing.T) {
 	require.False(t, fin)
 
 	digest := types.NewDigest()
-	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	require.NoError(t, err)
 
 	digest2 := types.NewDigest()
-	digest2.Add(*types.NewBabeSecondaryPlainPreDigest(0, 100).ToPreRuntimeDigest())
+	err = digest2.Add(*types.NewBabeSecondaryPlainPreDigest(0, 100).ToPreRuntimeDigest())
+	require.NoError(t, err)
 
 	header1 := &types.Header{
 		Number:     big.NewInt(1),
@@ -581,9 +585,11 @@ func TestSetFinalisedHash_setFirstSlotOnFinalisation(t *testing.T) {
 	firstSlot := uint64(42069)
 
 	digest := types.NewDigest()
-	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, firstSlot).ToPreRuntimeDigest())
+	err := digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, firstSlot).ToPreRuntimeDigest())
+	require.NoError(t, err)
 	digest2 := types.NewDigest()
-	digest2.Add(*types.NewBabeSecondaryPlainPreDigest(0, firstSlot+100).ToPreRuntimeDigest())
+	err = digest2.Add(*types.NewBabeSecondaryPlainPreDigest(0, firstSlot+100).ToPreRuntimeDigest())
+	require.NoError(t, err)
 
 	header1 := &types.Header{
 		Number:     big.NewInt(1),
@@ -597,7 +603,7 @@ func TestSetFinalisedHash_setFirstSlotOnFinalisation(t *testing.T) {
 		ParentHash: testGenesisHeader.Hash(),
 	}
 
-	err := bs.SetHeader(header1)
+	err = bs.SetHeader(header1)
 	require.NoError(t, err)
 	err = bs.db.Put(headerHashKey(header1.Number.Uint64()), header1.Hash().ToBytes())
 	require.NoError(t, err)

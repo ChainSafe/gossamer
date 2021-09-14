@@ -139,7 +139,10 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 			case types.SealDigest:
 				continue
 			default:
-				_ = b.Header.Digest.Add(d.Value())
+				err := b.Header.Digest.Add(d.Value())
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	}

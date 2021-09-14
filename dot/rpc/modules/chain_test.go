@@ -341,7 +341,7 @@ func newTestStateService(t *testing.T) *state.Service {
 	rt, err := stateSrvc.CreateGenesisRuntime(genTrie, gen)
 	require.NoError(t, err)
 
-	err = loadTestBlocks(genesisHeader.Hash(), stateSrvc.Block, rt)
+	err = loadTestBlocks(t, genesisHeader.Hash(), stateSrvc.Block, rt)
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
@@ -350,7 +350,7 @@ func newTestStateService(t *testing.T) *state.Service {
 	return stateSrvc
 }
 
-func loadTestBlocks(gh common.Hash, bs *state.BlockState, rt runtime.Instance) error {
+func loadTestBlocks(t *testing.T, gh common.Hash, bs *state.BlockState, rt runtime.Instance) error {
 	// Create header
 	header0 := &types.Header{
 		Number:     big.NewInt(0),
@@ -377,7 +377,8 @@ func loadTestBlocks(gh common.Hash, bs *state.BlockState, rt runtime.Instance) e
 
 	// Create header & blockData for block 1
 	digest := types.NewDigest()
-	digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	err = digest.Add(*types.NewBabeSecondaryPlainPreDigest(0, 1).ToPreRuntimeDigest())
+	require.NoError(t, err)
 	header1 := &types.Header{
 		Number:     big.NewInt(1),
 		Digest:     digest,
