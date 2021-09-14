@@ -40,8 +40,7 @@ func BABEAuthorityRawToAuthority(adr []AuthorityRaw) ([]Authority, error) {
 	ad := make([]Authority, len(adr))
 	for i, r := range adr {
 		ad[i] = Authority{}
-		a := r
-		err := ad[i].FromRawSr25519(&a)
+		err := ad[i].FromRawSr25519(&r)
 		if err != nil {
 			return nil, err
 		}
