@@ -36,14 +36,7 @@ type BlockData struct {
 
 // NewEmptyBlockData Creates an empty blockData struct
 func NewEmptyBlockData() *BlockData {
-	bd := &BlockData{
-		Header:        nil,
-		Body:          nil,
-		Receipt:       nil,
-		MessageQueue:  nil,
-		Justification: nil,
-	}
-	return bd
+	return &BlockData{}
 }
 
 // Number returns the BlockNumber of the BlockData's header, nil if it doesn't exist
