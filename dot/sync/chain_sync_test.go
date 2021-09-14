@@ -420,4 +420,99 @@ func TestChainSync_validateResponse(t *testing.T) {
 	err = cs.validateResponse(req, resp)
 	require.Equal(t, errResponseIsNotChain, err)
 	require.True(t, cs.pendingBlocks.hasBlock(hash))
+	cs.pendingBlocks.removeBlock(hash)
+
+	parent := (&types.Header{
+		Number: big.NewInt(1),
+	}).Hash()
+	resp = &BlockResponseMessage{
+		BlockData: []*types.BlockData{
+			{
+				Header: (&types.Header{
+					Number: big.NewInt(1),
+				}).AsOptional(),
+				Body: (&types.Body{}).AsOptional(),
+			},
+			{
+				Header: (&types.Header{
+					ParentHash: parent,
+					Number:     big.NewInt(3),
+				}).AsOptional(),
+				Body: (&types.Body{}).AsOptional(),
+			},
+		},
+	}
+
+	hash = (&types.Header{
+		ParentHash: parent,
+		Number:     big.NewInt(3),
+	}).Hash()
+	err = cs.validateResponse(req, resp)
+	require.Equal(t, errResponseIsNotChain, err)
+	require.True(t, cs.pendingBlocks.hasBlock(hash))
+	cs.pendingBlocks.removeBlock(hash)
+
+	parent = (&types.Header{
+		Number: big.NewInt(2),
+	}).Hash()
+	resp = &BlockResponseMessage{
+		BlockData: []*types.BlockData{
+			{
+				Header: (&types.Header{
+					Number: big.NewInt(2),
+				}).AsOptional(),
+				Body: (&types.Body{}).AsOptional(),
+			},
+			{
+				Header: (&types.Header{
+					ParentHash: parent,
+					Number:     big.NewInt(3),
+				}).AsOptional(),
+				Body: (&types.Body{}).AsOptional(),
+			},
+		},
+	}
+
+	err = cs.validateResponse(req, resp)
+	require.NoError(t, err)
+	require.False(t, cs.pendingBlocks.hasBlock(hash))
+}
+
+func TestChainSync_doSync(t *testing.T) {
+	cs, readyBlocks := newTestChainSync(t)
+
+	req := &BlockRequestMessage{
+		RequestedData: bootstrapRequestData,
+		StartingBlock: variadic.MustNewUint64OrHash(1),
+		EndBlockHash:  optional.NewHash(false, common.Hash{}),
+		Direction:     DIR_ASCENDING,
+		Max:           optional.NewUint32(true, uint32(1)),
+	}
+
+	resp := &BlockResponseMessage{
+		BlockData: []*types.BlockData{
+			{
+				Header: (&types.Header{
+					Number: big.NewInt(1),
+				}).AsOptional(),
+				Body: (&types.Body{}).AsOptional(),
+			},
+		},
+	}
+
+	cs.network = new(syncmocks.MockNetwork)
+	cs.network.(*syncmocks.MockNetwork).On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(resp, nil)
+
+	cs.peerState["noot"] = &peerState{
+		number: big.NewInt(100),
+	}
+
+	workerErr := cs.doSync(req)
+	require.Nil(t, workerErr)
+	select {
+	case bd := <-readyBlocks:
+		require.Equal(t, resp.BlockData[0], bd)
+	default:
+		t.Fatal("expected ready block")
+	}
 }

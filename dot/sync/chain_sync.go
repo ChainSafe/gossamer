@@ -680,6 +680,7 @@ func (cs *chainSync) validateResponse(req *BlockRequestMessage, resp *BlockRespo
 				if err != nil {
 					return fmt.Errorf("failed to convert block body from optional: hash=%s err=%s", bd.Hash, err)
 				}
+				fmt.Println(curr)
 
 				cs.pendingBlocks.addBlock(&types.Block{
 					Header: curr,
