@@ -175,7 +175,7 @@ func TestChainSync_getTarget(t *testing.T) {
 	require.Equal(t, big.NewInt(2<<32-1), cs.getTarget())
 
 	cs.peerState = map[peer.ID]*peerState{
-		peer.ID("testA"): &peerState{
+		"testA": {
 			number: big.NewInt(1000),
 		},
 	}
@@ -183,10 +183,10 @@ func TestChainSync_getTarget(t *testing.T) {
 	require.Equal(t, big.NewInt(1000), cs.getTarget())
 
 	cs.peerState = map[peer.ID]*peerState{
-		peer.ID("testA"): &peerState{
+		"testA": {
 			number: big.NewInt(1000),
 		},
-		peer.ID("testB"): &peerState{
+		"testB": {
 			number: big.NewInt(2000),
 		},
 	}
@@ -203,7 +203,7 @@ func TestWorkerToRequests(t *testing.T) {
 
 	start, _ := variadic.NewUint64OrHash(w.startNumber.Uint64())
 	expected := []*BlockRequestMessage{
-		&BlockRequestMessage{
+		{
 			RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification,
 			StartingBlock: start,
 			EndBlockHash:  optional.NewHash(false, common.Hash{}),
