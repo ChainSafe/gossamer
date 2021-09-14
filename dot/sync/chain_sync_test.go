@@ -22,7 +22,7 @@ import (
 
 var testTimeout = time.Second * 5
 
-func newTestChainSync(t *testing.T) (*chainSync, <-chan *types.BlockData) {
+func newTestChainSync(t *testing.T) (*chainSync, <-chan *types.BlockData) { //nolint
 	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(0), types.Digest{})
 	require.NoError(t, err)
 
@@ -166,9 +166,7 @@ func TestChainSync_sync_tip(t *testing.T) {
 	}
 
 	cs.workQueue <- cs.peerState[testPeer]
-	select {
-	case <-time.After(time.Second):
-	}
+	time.Sleep(time.Second)
 	require.Equal(t, tip, cs.state)
 }
 
