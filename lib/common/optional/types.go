@@ -486,5 +486,9 @@ func (x *Body) Value() []byte {
 
 // Exists returns true if the value is Some, false if it is None.
 func (x *Body) Exists() bool {
+	if x == nil {
+		return false
+	}
+
 	return x.exists
 }

@@ -364,3 +364,60 @@ func TestWorkerToRequests(t *testing.T) {
 		require.Equal(t, tc.expected, reqs, fmt.Sprintf("case %d failed", i))
 	}
 }
+
+func TestValidateBlockData(t *testing.T) {
+	req := &BlockRequestMessage{
+		RequestedData: bootstrapRequestData,
+	}
+
+	err := validateBlockData(req, nil)
+	require.Equal(t, errNilBlockData, err)
+
+	err = validateBlockData(req, &types.BlockData{})
+	require.Equal(t, errNilHeaderInResponse, err)
+
+	err = validateBlockData(req, &types.BlockData{
+		Header: &optional.Header{},
+	})
+	require.Equal(t, errNilBodyInResponse, err)
+
+	err = validateBlockData(req, &types.BlockData{
+		Header: &optional.Header{},
+		Body:   &optional.Body{},
+	})
+	require.NoError(t, err)
+}
+
+func TestChainSync_validateResponse(t *testing.T) {
+	cs, _ := newTestChainSync(t)
+	err := cs.validateResponse(nil, nil)
+	require.Equal(t, errEmptyBlockData, err)
+
+	req := &BlockRequestMessage{
+		RequestedData: network.RequestedDataHeader,
+	}
+
+	resp := &BlockResponseMessage{
+		BlockData: []*types.BlockData{
+			{
+				Header: (&types.Header{
+					Number: big.NewInt(1),
+				}).AsOptional(),
+				Body: (&types.Body{}).AsOptional(),
+			},
+			{
+				Header: (&types.Header{
+					Number: big.NewInt(2),
+				}).AsOptional(),
+				Body: (&types.Body{}).AsOptional(),
+			},
+		},
+	}
+
+	hash := (&types.Header{
+		Number: big.NewInt(2),
+	}).Hash()
+	err = cs.validateResponse(req, resp)
+	require.Equal(t, errResponseIsNotChain, err)
+	require.True(t, cs.pendingBlocks.hasBlock(hash))
+}

@@ -522,6 +522,7 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 	if err != nil {
 		// if we are creating valid workers, this should not happen
 		logger.Crit("failed to create requests from worker", "worker", w, "error", err)
+		return
 	}
 
 	for _, req := range reqs {
@@ -636,7 +637,7 @@ func (cs *chainSync) determineSyncPeers(_ *BlockRequestMessage) []peer.ID {
 //  - the response contains all the expected fields
 //  - each block has the correct parent, ie. the response constitutes a valid chain
 func (cs *chainSync) validateResponse(req *BlockRequestMessage, resp *BlockResponseMessage) error {
-	if len(resp.BlockData) == 0 {
+	if resp == nil || len(resp.BlockData) == 0 {
 		return errEmptyBlockData
 	}
 
@@ -649,7 +650,7 @@ func (cs *chainSync) validateResponse(req *BlockRequestMessage, resp *BlockRespo
 	headerRequested := (req.RequestedData & network.RequestedDataHeader) == 1
 
 	for i, bd := range resp.BlockData {
-		if err = cs.validateBlockData(req, bd); err != nil {
+		if err = validateBlockData(req, bd); err != nil {
 			return err
 		}
 
@@ -671,7 +672,8 @@ func (cs *chainSync) validateResponse(req *BlockRequestMessage, resp *BlockRespo
 		}
 
 		// otherwise, check that this response forms a chain
-		if !prev.Hash().Equal(curr.ParentHash) {
+		// ie. curr's parent hash is hash of previous header, and curr's number is previous number + 1
+		if !prev.Hash().Equal(curr.ParentHash) || curr.Number.Cmp(big.NewInt(0).Add(prev.Number, big.NewInt(1))) != 0 {
 			// the response is missing some blocks, place blocks from curr onwards into pending blocks set
 			for _, bd := range resp.BlockData[i:] {
 				body, err := types.NewBodyFromOptional(bd.Body)
@@ -694,7 +696,7 @@ func (cs *chainSync) validateResponse(req *BlockRequestMessage, resp *BlockRespo
 }
 
 // validateBlockData checks that the expected fields are in the block data
-func (cs *chainSync) validateBlockData(req *BlockRequestMessage, bd *types.BlockData) error {
+func validateBlockData(req *BlockRequestMessage, bd *types.BlockData) error {
 	if bd == nil {
 		return errNilBlockData
 	}
@@ -705,7 +707,7 @@ func (cs *chainSync) validateBlockData(req *BlockRequestMessage, bd *types.Block
 		return errNilHeaderInResponse
 	}
 
-	if (requestedData&network.RequestedDataBody) == 1 && bd.Body == nil {
+	if (requestedData&network.RequestedDataBody>>1) == 1 && bd.Body == nil {
 		return errNilBodyInResponse
 	}
 
