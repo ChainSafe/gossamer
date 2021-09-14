@@ -84,7 +84,7 @@ type CoreAPI interface {
 	GetMetadata(bhash *common.Hash) ([]byte, error)
 	QueryStorage(from, to common.Hash, keys ...string) (map[common.Hash]core.QueryKeyValueChanges, error)
 	DecodeSessionKeys(enc []byte) ([]byte, error)
-	GetReadProofAt(block common.Hash, keys []common.Hash) (common.Hash, []string, error)
+	GetReadProofAt(block common.Hash, keys [][]byte) (common.Hash, [][]byte, error)
 }
 
 // RPCAPI is the interface for methods related to RPC service

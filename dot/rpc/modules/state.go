@@ -30,7 +30,7 @@ import (
 
 //StateGetReadProofRequest json fields
 type StateGetReadProofRequest struct {
-	Keys []common.Hash
+	Keys []string
 	Hash common.Hash
 }
 
@@ -293,14 +293,29 @@ func (sm *StateModule) GetMetadata(r *http.Request, req *StateRuntimeMetadataQue
 
 // GetReadProof returns the proof to the received storage keys
 func (sm *StateModule) GetReadProof(r *http.Request, req *StateGetReadProofRequest, res *StateGetReadProofResponse) error {
-	block, proofs, err := sm.coreAPI.GetReadProofAt(req.Hash, req.Keys)
+	keys := make([][]byte, len(req.Keys))
+	for i, hexKey := range req.Keys {
+		bKey, err := common.HexToBytes(hexKey)
+		if err != nil {
+			return err
+		}
+
+		keys[i] = bKey
+	}
+
+	block, proofs, err := sm.coreAPI.GetReadProofAt(req.Hash, keys)
 	if err != nil {
 		return err
 	}
 
+	var decProof []string
+	for _, p := range proofs {
+		decProof = append(decProof, fmt.Sprintf("0x%x", p))
+	}
+
 	*res = StateGetReadProofResponse{
 		At:    block,
-		Proof: proofs,
+		Proof: decProof,
 	}
 
 	return nil

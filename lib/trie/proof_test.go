@@ -18,6 +18,7 @@ package trie
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"testing"
 
@@ -26,13 +27,38 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestProofGenerationWithRecorder(t *testing.T) {
-	db, err := chaindb.NewBadgerDB(&chaindb.Config{InMemory: true})
+func TestGenerateProofWithRecorder(t *testing.T) {
+	tmp, err := ioutil.TempDir("", "*-test-trie")
 	require.NoError(t, err)
+
+	memdb, err := chaindb.NewBadgerDB(&chaindb.Config{
+		InMemory: true,
+		DataDir:  tmp,
+	})
+	require.NoError(t, err)
+
+	trie, entries := RandomTrieTest(t, 20)
+	err = trie.Store(memdb)
+	require.NoError(t, err)
+
+	var lastEntryKey *KV
+	for _, kv := range entries {
+		lastEntryKey = kv
+	}
+
+	fmt.Printf("Test\n\tkey:0x%x\n\tvalue:0x%x\n", lastEntryKey.K, lastEntryKey.V)
+
+	rootHash := trie.root.getHash()
+	proof, err := GenerateProofWithRecorder(rootHash, [][]byte{lastEntryKey.K}, memdb)
+	require.NoError(t, err)
+
+	for _, p := range proof {
+		fmt.Printf("0x%x\n", p)
+	}
 }
 
 func TestVerifyProof(t *testing.T) {
-	trie, entries := RandomTrieTest(t, 200)
+	trie, entries := RandomTrieTest(t, 1000)
 	root, err := trie.Hash()
 	require.NoError(t, err)
 

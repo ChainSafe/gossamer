@@ -486,7 +486,7 @@ func TestGetReadProof_WhenCoreAPIReturnsError(t *testing.T) {
 	sm.coreAPI = coreAPIMock
 
 	req := &StateGetReadProofRequest{
-		Keys: []common.Hash{},
+		Keys: []string{},
 		Hash: common.EmptyHash,
 	}
 	err := sm.GetReadProof(nil, req, nil)
@@ -506,7 +506,7 @@ func TestGetReadProof_WhenReturnsProof(t *testing.T) {
 	sm.coreAPI = coreAPIMock
 
 	req := &StateGetReadProofRequest{
-		Keys: []common.Hash{},
+		Keys: []string{},
 		Hash: common.EmptyHash,
 	}
 

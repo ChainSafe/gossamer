@@ -1,40 +1,40 @@
 package trie
 
-import "github.com/ChainSafe/gossamer/lib/common"
+import "fmt"
 
 // NodeRecord represets a record of a visited node
 type NodeRecord struct {
-	Depth   uint32
 	RawData []byte
-	Hash    common.Hash
+	Hash    []byte
 }
 
-// NodeRecorder records trie nodes as they pass it
-type NodeRecorder struct {
-	Nodes    []NodeRecord
-	MinDepth uint32
+type Recorder []NodeRecord
+
+func (r *Recorder) Record(h, rd []byte) {
+	fmt.Printf("received ==> 0x%x\n", h)
+	*r = append(*r, NodeRecord{
+		RawData: rd,
+		Hash:    h,
+	})
 }
 
-// Record a visited node
-func (r *NodeRecorder) Record(h common.Hash, rd []byte, depth uint32) {
-	if depth >= r.MinDepth {
-		r.Nodes = append(r.Nodes, NodeRecord{
-			Depth:   depth,
-			RawData: rd,
-			Hash:    h,
-		})
+func (r *Recorder) Len() int {
+	return len(*r)
+}
+
+func (r *Recorder) Next() *NodeRecord {
+	if r.Len() > 0 {
+		n := (*r)[0]
+		*r = (*r)[1:]
+		return &n
 	}
+
+	return nil
 }
 
-// RecorderWithDepth create a NodeRecorder which only records nodes beyond a given depth
-func NewRecorderWithDepth(d uint32) *NodeRecorder {
-	return &NodeRecorder{
-		MinDepth: d,
-		Nodes:    []NodeRecord{},
+func (r *Recorder) Peek() *NodeRecord {
+	if r.Len() > 0 {
+		return &(*r)[0]
 	}
-}
-
-// NewRecoder create a NodeRecorder which records all given nodes
-func NewRecoder() *NodeRecorder {
-	return NewRecorderWithDepth(0)
+	return nil
 }

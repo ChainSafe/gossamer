@@ -67,11 +67,11 @@ func (_m *MockCoreAPI) GetMetadata(bhash *common.Hash) ([]byte, error) {
 }
 
 // GetReadProofAt provides a mock function with given fields: block, keys
-func (_m *MockCoreAPI) GetReadProofAt(block common.Hash, keys []common.Hash) (common.Hash, []string, error) {
+func (_m *MockCoreAPI) GetReadProofAt(block common.Hash, keys [][]byte) (common.Hash, [][]byte, error) {
 	ret := _m.Called(block, keys)
 
 	var r0 common.Hash
-	if rf, ok := ret.Get(0).(func(common.Hash, []common.Hash) common.Hash); ok {
+	if rf, ok := ret.Get(0).(func(common.Hash, [][]byte) common.Hash); ok {
 		r0 = rf(block, keys)
 	} else {
 		if ret.Get(0) != nil {
@@ -79,17 +79,17 @@ func (_m *MockCoreAPI) GetReadProofAt(block common.Hash, keys []common.Hash) (co
 		}
 	}
 
-	var r1 []string
-	if rf, ok := ret.Get(1).(func(common.Hash, []common.Hash) []string); ok {
+	var r1 [][]byte
+	if rf, ok := ret.Get(1).(func(common.Hash, [][]byte) [][]byte); ok {
 		r1 = rf(block, keys)
 	} else {
 		if ret.Get(1) != nil {
-			r1 = ret.Get(1).([]string)
+			r1 = ret.Get(1).([][]byte)
 		}
 	}
 
 	var r2 error
-	if rf, ok := ret.Get(2).(func(common.Hash, []common.Hash) error); ok {
+	if rf, ok := ret.Get(2).(func(common.Hash, [][]byte) error); ok {
 		r2 = rf(block, keys)
 	} else {
 		r2 = ret.Error(2)

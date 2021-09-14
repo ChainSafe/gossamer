@@ -21,6 +21,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/ChainSafe/chaindb"
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
@@ -622,8 +623,8 @@ func (s *Service) tryQueryStorage(block common.Hash, keys ...string) (QueryKeyVa
 
 // GetReadProofAt will return an array with the proofs for the keys passed as params
 // based on the block hash passed as param as well, if block hash is nil then the current state will take place
-func (s *Service) GetReadProofAt(block common.Hash, keys []common.Hash) (common.Hash, []string, error) {
-	if block == common.EmptyHash {
+func (s *Service) GetReadProofAt(block common.Hash, keys [][]byte) (common.Hash, [][]byte, error) {
+	if len(block) == 0 {
 		block = s.blockState.BestBlockHash()
 	}
 
@@ -632,12 +633,7 @@ func (s *Service) GetReadProofAt(block common.Hash, keys []common.Hash) (common.
 		return common.EmptyHash, nil, err
 	}
 
-	ts, err := s.storageState.TrieState(&stateRoot)
-	if err != nil {
-		return common.EmptyHash, nil, err
-	}
-
-	proofForKeys, err := readProofForKeys(ts.Trie(), keys)
+	proofForKeys, err := readProofForKeys(stateRoot[:], keys, s.storageState.ExposeDB())
 	if err != nil {
 		return common.EmptyHash, nil, err
 	}
@@ -647,21 +643,11 @@ func (s *Service) GetReadProofAt(block common.Hash, keys []common.Hash) (common.
 
 // readProofForKeys will go through the keys and generate the proof for each of them
 // and merge the result into a string array containing the hashes in the hexadecimal format
-func readProofForKeys(t *trie.Trie, keys []common.Hash) ([]string, error) {
-	storageKeys := make([][]byte, len(keys))
-	for i, k := range keys {
-		storageKeys[i] = k.ToBytes()
-	}
-
-	proof, err := t.GenerateProof(storageKeys)
+func readProofForKeys(root []byte, keys [][]byte, db chaindb.Database) ([][]byte, error) {
+	proof, err := trie.GenerateProofWithRecorder(root, keys, db)
 	if err != nil {
 		return nil, err
 	}
 
-	proofSlice := make([]string, 0, len(proof))
-	for k := range proof {
-		proofSlice = append(proofSlice, k)
-	}
-
-	return proofSlice, nil
+	return proof, nil
 }

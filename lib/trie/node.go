@@ -50,6 +50,13 @@ import (
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
+type nodeType string
+
+const (
+	branchNode nodeType = "branch"
+	leafNode   nodeType = "leaf"
+)
+
 // node is the interface for trie methods
 type node interface {
 	encodeAndHash() ([]byte, []byte, error)
