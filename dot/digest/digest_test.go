@@ -17,7 +17,6 @@
 package digest
 
 import (
-	"fmt"
 	"io/ioutil"
 	"math/big"
 	"testing"
@@ -465,8 +464,6 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 	switch val := digest.Value().(type) {
 	case types.NextEpochData:
 		act = val
-	default:
-		fmt.Println("THIS SHOULDNT HAPPEN")
 	}
 
 	res, err := act.ToEpochData()
@@ -504,8 +501,6 @@ func TestHandler_HandleNextConfigData(t *testing.T) {
 	switch val := digest.Value().(type) {
 	case types.NextConfigData:
 		act = val
-	default:
-		fmt.Println("THIS SHOULDNT HAPPEN")
 	}
 
 	stored, err := handler.epochState.(*state.EpochState).GetConfigData(1)
