@@ -105,11 +105,6 @@ func (d *ConsensusDigest) String() string {
 	return fmt.Sprintf("ConsensusDigest ConsensusEngineID=%s Data=0x%x", d.ConsensusEngineID.ToBytes(), d.Data)
 }
 
-// DataType returns the data type of the runtime-to-consensus engine message
-func (d *ConsensusDigest) DataType() byte {
-	return d.Data[0]
-}
-
 // SealDigest contains the seal or signature. This is only used by native code.
 type SealDigest struct {
 	ConsensusEngineID ConsensusEngineID
