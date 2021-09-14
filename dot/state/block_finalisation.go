@@ -174,6 +174,7 @@ func (bs *BlockState) SetFinalisedHash(hash common.Hash, round, setID uint64) er
 	if err := bs.db.Put(finalisedHashKey(round, setID), hash[:]); err != nil {
 		return err
 	}
+
 	return bs.setHighestRoundAndSetID(round, setID)
 }
 
