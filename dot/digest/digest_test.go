@@ -464,6 +464,8 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 	switch val := digest.Value().(type) {
 	case types.NextEpochData:
 		act = val
+	default:
+		t.Fatal()
 	}
 
 	res, err := act.ToEpochData()
@@ -501,6 +503,8 @@ func TestHandler_HandleNextConfigData(t *testing.T) {
 	switch val := digest.Value().(type) {
 	case types.NextConfigData:
 		act = val
+	default:
+		t.Fatal()
 	}
 
 	stored, err := handler.epochState.(*state.EpochState).GetConfigData(1)
