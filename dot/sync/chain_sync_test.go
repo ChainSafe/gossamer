@@ -2,6 +2,7 @@ package sync
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -195,25 +196,171 @@ func TestChainSync_getTarget(t *testing.T) {
 }
 
 func TestWorkerToRequests(t *testing.T) {
+	_, err := workerToRequests(&worker{})
+	require.Equal(t, errWorkerMissingStartNumber, err)
+
 	w := &worker{
-		startNumber:  big.NewInt(1),
-		targetNumber: big.NewInt(129),
+		startNumber: big.NewInt(1),
+	}
+	_, err = workerToRequests(w)
+	require.Equal(t, errWorkerMissingTargetNumber, err)
+
+	w = &worker{
+		startNumber:  big.NewInt(10),
+		targetNumber: big.NewInt(1),
 		direction:    DIR_ASCENDING,
 	}
+	_, err = workerToRequests(w)
+	require.Equal(t, errInvalidDirection, err)
 
-	start, _ := variadic.NewUint64OrHash(w.startNumber.Uint64())
-	expected := []*BlockRequestMessage{
+	type testCase struct {
+		w        *worker
+		expected []*BlockRequestMessage
+	}
+
+	testCases := []testCase{
 		{
-			RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification,
-			StartingBlock: start,
-			EndBlockHash:  optional.NewHash(false, common.Hash{}),
-			Direction:     DIR_ASCENDING,
-			Max:           optional.NewUint32(true, uint32(128)),
+			w: &worker{
+				startNumber:  big.NewInt(1),
+				targetNumber: big.NewInt(1 + MAX_RESPONSE_SIZE),
+				direction:    DIR_ASCENDING,
+				requestData:  bootstrapRequestData,
+			},
+			expected: []*BlockRequestMessage{
+				{
+					RequestedData: bootstrapRequestData,
+					StartingBlock: variadic.MustNewUint64OrHash(1),
+					EndBlockHash:  optional.NewHash(false, common.Hash{}),
+					Direction:     DIR_ASCENDING,
+					Max:           optional.NewUint32(true, uint32(128)),
+				},
+			},
+		},
+		{
+			w: &worker{
+				startNumber:  big.NewInt(1),
+				targetNumber: big.NewInt(1 + (MAX_RESPONSE_SIZE * 2)),
+				direction:    DIR_ASCENDING,
+				requestData:  bootstrapRequestData,
+			},
+			expected: []*BlockRequestMessage{
+				{
+					RequestedData: bootstrapRequestData,
+					StartingBlock: variadic.MustNewUint64OrHash(1),
+					EndBlockHash:  optional.NewHash(false, common.Hash{}),
+					Direction:     DIR_ASCENDING,
+					Max:           optional.NewUint32(false, 0),
+				},
+				{
+					RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification,
+					StartingBlock: variadic.MustNewUint64OrHash(1 + MAX_RESPONSE_SIZE),
+					EndBlockHash:  optional.NewHash(false, common.Hash{}),
+					Direction:     DIR_ASCENDING,
+					Max:           optional.NewUint32(true, uint32(128)),
+				},
+			},
+		},
+		{
+			w: &worker{
+				startNumber:  big.NewInt(1),
+				targetNumber: big.NewInt(10),
+				direction:    DIR_ASCENDING,
+				requestData:  bootstrapRequestData,
+			},
+			expected: []*BlockRequestMessage{
+				{
+					RequestedData: bootstrapRequestData,
+					StartingBlock: variadic.MustNewUint64OrHash(1),
+					EndBlockHash:  optional.NewHash(false, common.Hash{}),
+					Direction:     DIR_ASCENDING,
+					Max:           optional.NewUint32(true, 9),
+				},
+			},
+		},
+		{
+			w: &worker{
+				startNumber:  big.NewInt(10),
+				targetNumber: big.NewInt(1),
+				direction:    DIR_DESCENDING,
+				requestData:  bootstrapRequestData,
+			},
+			expected: []*BlockRequestMessage{
+				{
+					RequestedData: bootstrapRequestData,
+					StartingBlock: variadic.MustNewUint64OrHash(10),
+					EndBlockHash:  optional.NewHash(false, common.Hash{}),
+					Direction:     DIR_DESCENDING,
+					Max:           optional.NewUint32(true, 9),
+				},
+			},
+		},
+		{
+			w: &worker{
+				startNumber:  big.NewInt(1),
+				targetNumber: big.NewInt(1 + MAX_RESPONSE_SIZE + (MAX_RESPONSE_SIZE / 2)),
+				direction:    DIR_ASCENDING,
+				requestData:  bootstrapRequestData,
+			},
+			expected: []*BlockRequestMessage{
+				{
+					RequestedData: bootstrapRequestData,
+					StartingBlock: variadic.MustNewUint64OrHash(1),
+					EndBlockHash:  optional.NewHash(false, common.Hash{}),
+					Direction:     DIR_ASCENDING,
+					Max:           optional.NewUint32(false, 0),
+				},
+				{
+					RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification,
+					StartingBlock: variadic.MustNewUint64OrHash(1 + MAX_RESPONSE_SIZE),
+					EndBlockHash:  optional.NewHash(false, common.Hash{}),
+					Direction:     DIR_ASCENDING,
+					Max:           optional.NewUint32(true, uint32(MAX_RESPONSE_SIZE/2)),
+				},
+			},
+		},
+		{
+			w: &worker{
+				startNumber:  big.NewInt(1),
+				targetNumber: big.NewInt(10),
+				targetHash:   common.Hash{0xa},
+				direction:    DIR_ASCENDING,
+				requestData:  bootstrapRequestData,
+			},
+			expected: []*BlockRequestMessage{
+				{
+					RequestedData: bootstrapRequestData,
+					StartingBlock: variadic.MustNewUint64OrHash(1),
+					EndBlockHash:  optional.NewHash(true, common.Hash{0xa}),
+					Direction:     DIR_ASCENDING,
+					Max:           optional.NewUint32(true, 9),
+				},
+			},
+		},
+		{
+			w: &worker{
+				startNumber:  big.NewInt(1),
+				startHash:    common.Hash{0xb},
+				targetNumber: big.NewInt(10),
+				targetHash:   common.Hash{0xc},
+				direction:    DIR_ASCENDING,
+				requestData:  bootstrapRequestData,
+			},
+			expected: []*BlockRequestMessage{
+				{
+					RequestedData: bootstrapRequestData,
+					StartingBlock: variadic.MustNewUint64OrHash(common.Hash{0xb}),
+					EndBlockHash:  optional.NewHash(true, common.Hash{0xc}),
+					Direction:     DIR_ASCENDING,
+					Max:           optional.NewUint32(true, 9),
+				},
+			},
 		},
 	}
 
-	reqs, err := workerToRequests(w)
-	require.NoError(t, err)
-	require.Equal(t, 1, len(reqs))
-	require.Equal(t, expected, reqs)
+	for i, tc := range testCases {
+		reqs, err := workerToRequests(tc.w)
+		require.NoError(t, err, fmt.Sprintf("case %d failed", i))
+		require.Equal(t, len(tc.expected), len(reqs), fmt.Sprintf("case %d failed", i))
+		require.Equal(t, tc.expected, reqs, fmt.Sprintf("case %d failed", i))
+	}
 }

@@ -51,8 +51,9 @@ var (
 	errNoPeers                   = errors.New("no peers to sync with")
 	errResponseIsNotChain        = errors.New("block response does not form a chain")
 	errPeerOnInvalidFork         = errors.New("peer is on an invalid fork")
-	errWorkerMissingStartBlock   = errors.New("worker has empty block hash and number")
+	errWorkerMissingStartNumber  = errors.New("worker has nil start block number")
 	errWorkerMissingTargetNumber = errors.New("worker has nil target block number")
+	errInvalidDirection          = errors.New("direction of request does not match specified start and target")
 )
 
 // ErrNilChannel is returned if a channel is nil

@@ -535,67 +535,6 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 	}
 }
 
-func workerToRequests(w *worker) ([]*BlockRequestMessage, error) {
-	// one of start number or hash must be provided
-	if w.startNumber == nil && w.startHash.Equal(common.EmptyHash) {
-		return nil, errWorkerMissingStartBlock
-	}
-
-	// worker must specify a target number
-	// empty target hash is ok (eg. in the case of descending fork requests)
-	if w.targetNumber == nil {
-		return nil, errWorkerMissingTargetNumber
-	}
-
-	// to deal with descending requests (ie. target may be lower than start) which are used in tip mode,
-	// take absolute value of difference between start and target
-	numBlocks := int(big.NewInt(0).Abs(big.NewInt(0).Sub(w.targetNumber, w.startNumber)).Int64())
-	numRequests := numBlocks / MAX_RESPONSE_SIZE
-
-	if numBlocks < MAX_RESPONSE_SIZE {
-		numRequests = 1
-	}
-
-	startNumber := w.startNumber.Uint64()
-
-	reqs := make([]*BlockRequestMessage, numRequests)
-
-	for i := 0; i < numRequests; i++ {
-		// check if we want to specify a size
-		var max *optional.Uint32
-		if i == numRequests-1 {
-			size := numBlocks % MAX_RESPONSE_SIZE
-			if size == 0 {
-				size = MAX_RESPONSE_SIZE
-			}
-			max = optional.NewUint32(true, uint32(size))
-		} else {
-			max = optional.NewUint32(false, 0)
-		}
-
-		var start *variadic.Uint64OrHash
-		if w.startHash.Equal(common.EmptyHash) {
-			// worker startHash is unspecified if we are in bootstrap mode
-			start, _ = variadic.NewUint64OrHash(startNumber)
-		} else {
-			// in tip-syncing mode, we know the hash of the block on the fork we wish to sync
-			start, _ = variadic.NewUint64OrHash(w.startHash)
-		}
-
-		reqs[i] = &BlockRequestMessage{
-			RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification,
-			StartingBlock: start,
-			// TODO: check target hash and use if fork request
-			EndBlockHash: optional.NewHash(false, common.Hash{}),
-			Direction:    w.direction,
-			Max:          max,
-		}
-		startNumber += MAX_RESPONSE_SIZE
-	}
-
-	return reqs, nil
-}
-
 func (cs *chainSync) doSync(req *BlockRequestMessage) *workerError {
 	// determine which peers have the blocks we want to request
 	peers := cs.determineSyncPeers(req)
@@ -771,4 +710,80 @@ func (cs *chainSync) validateBlockData(req *BlockRequestMessage, bd *types.Block
 	}
 
 	return nil
+}
+
+func workerToRequests(w *worker) ([]*BlockRequestMessage, error) {
+	// worker must specify a start number
+	// empty start hash is ok (eg. in the case of bootstrap, start hash is unknown)
+	if w.startNumber == nil {
+		return nil, errWorkerMissingStartNumber
+	}
+
+	// worker must specify a target number
+	// empty target hash is ok (eg. in the case of descending fork requests)
+	if w.targetNumber == nil {
+		return nil, errWorkerMissingTargetNumber
+	}
+
+	diff := big.NewInt(0).Sub(w.targetNumber, w.startNumber)
+	if diff.Int64() < 0 && w.direction != DIR_DESCENDING {
+		return nil, errInvalidDirection
+	}
+
+	if diff.Int64() > 0 && w.direction != DIR_ASCENDING {
+		return nil, errInvalidDirection
+	}
+
+	// to deal with descending requests (ie. target may be lower than start) which are used in tip mode,
+	// take absolute value of difference between start and target
+	numBlocks := int(big.NewInt(0).Abs(diff).Int64())
+	numRequests := numBlocks / MAX_RESPONSE_SIZE
+
+	if numBlocks%MAX_RESPONSE_SIZE != 0 {
+		numRequests++
+	}
+
+	startNumber := w.startNumber.Uint64()
+	reqs := make([]*BlockRequestMessage, numRequests)
+
+	for i := 0; i < numRequests; i++ {
+		// check if we want to specify a size
+		var max *optional.Uint32
+		if i == numRequests-1 {
+			size := numBlocks % MAX_RESPONSE_SIZE
+			if size == 0 {
+				size = MAX_RESPONSE_SIZE
+			}
+			max = optional.NewUint32(true, uint32(size))
+		} else {
+			max = optional.NewUint32(false, 0)
+		}
+
+		var start *variadic.Uint64OrHash
+		if w.startHash.Equal(common.EmptyHash) {
+			// worker startHash is unspecified if we are in bootstrap mode
+			start, _ = variadic.NewUint64OrHash(startNumber)
+		} else {
+			// in tip-syncing mode, we know the hash of the block on the fork we wish to sync
+			start, _ = variadic.NewUint64OrHash(w.startHash)
+		}
+
+		var end *optional.Hash
+		if w.targetHash.Equal(common.EmptyHash) {
+			end = optional.NewHash(false, common.Hash{})
+		} else {
+			end = optional.NewHash(true, w.targetHash)
+		}
+
+		reqs[i] = &BlockRequestMessage{
+			RequestedData: w.requestData,
+			StartingBlock: start,
+			EndBlockHash:  end,
+			Direction:     w.direction,
+			Max:           max,
+		}
+		startNumber += MAX_RESPONSE_SIZE
+	}
+
+	return reqs, nil
 }

@@ -3,10 +3,13 @@ package sync
 import (
 	"math/big"
 
+	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
 var _ workHandler = &bootstrapSyncer{}
+
+var bootstrapRequestData = network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification
 
 // bootstrapSyncer handles worker logic for bootstrap mode
 type bootstrapSyncer struct {
@@ -34,6 +37,7 @@ func (s *bootstrapSyncer) handleWork(ps *peerState) (*worker, error) {
 		startNumber:  big.NewInt(0).Add(head.Number, big.NewInt(1)),
 		targetHash:   ps.hash,
 		targetNumber: ps.number,
+		requestData:  bootstrapRequestData,
 		direction:    DIR_ASCENDING,
 	}, nil
 }
@@ -59,6 +63,7 @@ func (s *bootstrapSyncer) handleWorkerResult(res *worker) (*worker, error) {
 		startNumber:  big.NewInt(0).Add(head.Number, big.NewInt(1)),
 		targetHash:   res.targetHash,
 		targetNumber: res.targetNumber,
+		requestData:  bootstrapRequestData,
 		direction:    res.direction,
 	}, nil
 }
