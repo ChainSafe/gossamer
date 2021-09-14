@@ -130,7 +130,7 @@ func newHeaderFromFile(filename string) (*types.Header, error) {
 
 	for _, log := range logs {
 		digestBytes := common.MustHexToBytes(log.(string))
-		var digestItem = scale.MustNewVaryingDataType(types.ChangesTrieRootDigest{}, types.PreRuntimeDigest{}, types.ConsensusDigest{}, types.SealDigest{})
+		var digestItem = types.NewDigestItem()
 		err := scale.Unmarshal(digestBytes, &digestItem)
 		if err != nil {
 			return nil, err
