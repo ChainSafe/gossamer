@@ -238,7 +238,6 @@ func (s *Service) handleBlockAnnounceMessage(peer peer.ID, msg NotificationsMess
 		s.syncQueue.handleBlockAnnounce(an, peer)
 		err = s.syncer.HandleBlockAnnounce(an)
 		if err != nil {
-			fmt.Println(err)
 			return false, err
 		}
 	}
