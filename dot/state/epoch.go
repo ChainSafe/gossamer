@@ -194,15 +194,7 @@ func (s *EpochState) GetEpochForBlock(header *types.Header) (uint64, error) {
 	}
 
 	for _, d := range header.Digest.Types {
-		//var predigest *types.PreRuntimeDigest
-		//switch val := d.Value().(type) {
-		//case types.PreRuntimeDigest:
-		//	predigest = &val
-		//default:
-		//	continue
-		//}
-
-		predigest, ok := d.Value().(*types.PreRuntimeDigest)
+		predigest, ok := d.Value().(types.PreRuntimeDigest)
 		if !ok {
 			continue
 		}
