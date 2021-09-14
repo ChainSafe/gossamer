@@ -110,7 +110,8 @@ func TestBlockListener_Listen(t *testing.T) {
 		cancelTimeout: time.Second * 5,
 	}
 
-	block := types.NewEmptyBlock()
+	//block := types.NewEmptyBlock()
+	block := types.NewBlock(*types.NewEmptyHeader(), *new(types.Body))
 	block.Header.Number = big.NewInt(1)
 
 	go bl.Listen()

@@ -103,7 +103,7 @@ func GetSlotFromHeader(header *Header) (uint64, error) {
 	if len(header.Digest.Types) == 0 {
 		return 0, fmt.Errorf("chain head missing digest")
 	}
-	
+
 	preDigest, ok := header.Digest.Types[0].Value().(PreRuntimeDigest)
 	if !ok {
 		return 0, fmt.Errorf("first digest item is not pre-digest")

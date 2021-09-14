@@ -54,7 +54,7 @@ func TestEncodeAndDecodeBlock(t *testing.T) {
 
 	require.Equal(t, expected, enc)
 
-	dec := NewEmptyBlock()
+	dec := NewBlock(*NewEmptyHeader(), *new(Body))
 	err = scale.Unmarshal(enc, &dec)
 	require.NoError(t, err)
 	if dec.Header.Number != nil {
@@ -65,7 +65,7 @@ func TestEncodeAndDecodeBlock(t *testing.T) {
 
 func TestDeepCopyBlock(t *testing.T) {
 	data := []byte{69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 4, 39, 71, 171, 124, 13, 195, 139, 127, 42, 251, 168, 43, 213, 226, 214, 172, 239, 140, 49, 224, 152, 0, 246, 96, 183, 94, 200, 74, 112, 5, 9, 159, 3, 23, 10, 46, 117, 151, 183, 183, 227, 216, 76, 5, 57, 29, 19, 154, 98, 177, 87, 231, 135, 134, 216, 192, 130, 242, 157, 207, 76, 17, 19, 20, 0, 0}
-	block := NewEmptyBlock()
+	block := NewBlock(*NewEmptyHeader(), *new(Body))
 
 	err := scale.Unmarshal(data, &block)
 	if err != nil {
