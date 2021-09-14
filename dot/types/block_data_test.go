@@ -25,10 +25,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var digestItem = scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
-var digest = scale.NewVaryingDataTypeSlice(digestItem)
-
-var testDigest = digest
+var ( 
+    digestItem = scale.MustNewVaryingDataType(ChangesTrieRootDigest{}, PreRuntimeDigest{}, ConsensusDigest{}, SealDigest{})
+    digest = scale.NewVaryingDataTypeSlice(digestItem)
+   testDigest = digest
+)
 var _ = testDigest.Add(
 	PreRuntimeDigest{
 		ConsensusEngineID: BabeEngineID,
