@@ -284,23 +284,17 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	preDigestItem := header.Digest.Types[0]
 	sealItem := header.Digest.Types[len(header.Digest.Types)-1]
 
-	var preDigest *types.PreRuntimeDigest
-	switch val := preDigestItem.Value().(type) {
-	case types.PreRuntimeDigest:
-		preDigest = &val
-	default:
+	preDigest, ok := preDigestItem.Value().(types.PreRuntimeDigest)
+	if !ok {
 		return fmt.Errorf("first digest item is not pre-digest")
 	}
 
-	var seal *types.SealDigest
-	switch val := sealItem.Value().(type) {
-	case types.SealDigest:
-		seal = &val
-	default:
-		return fmt.Errorf("last digest item is not seal")
+	seal, ok := sealItem.Value().(types.SealDigest)
+	if !ok {
+		return fmt.Errorf("first digest item is not pre-digest")
 	}
 
-	babePreDigest, err := b.verifyPreRuntimeDigest(preDigest)
+	babePreDigest, err := b.verifyPreRuntimeDigest(&preDigest)
 	if err != nil {
 		return fmt.Errorf("failed to verify pre-runtime digest: %w", err)
 	}
@@ -312,12 +306,16 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 	// remove seal before verifying signature
 	h := types.NewDigest()
 	for _, val := range header.Digest.Types[:len(header.Digest.Types)-1] {
-		_ = h.Add(val.Value())
+		err = h.Add(val.Value())
+		if err != nil {
+			return err
+		}
 	}
 
 	header.Digest = h
 	defer func() {
-		_ = header.Digest.Add(sealItem.Value())
+		err = header.Digest.Add(sealItem.Value())
+		logger.Error("Error adding item to digest", "error", err)
 	}()
 
 	encHeader, err := scale.Marshal(*header)
@@ -331,7 +329,7 @@ func (b *verifier) verifyAuthorshipRight(header *types.Header) error {
 		return err
 	}
 
-	ok, err := authorPub.Verify(hash[:], seal.Data)
+	ok, err = authorPub.Verify(hash[:], seal.Data)
 	if err != nil {
 		return err
 	}
@@ -452,13 +450,8 @@ func getAuthorityIndex(header *types.Header) (uint32, error) {
 		return 0, fmt.Errorf("no digest provided")
 	}
 
-	digestItem := header.Digest.Types[0]
-
-	var preDigest *types.PreRuntimeDigest
-	switch val := digestItem.Value().(type) {
-	case types.PreRuntimeDigest:
-		preDigest = &val
-	default:
+	preDigest, ok := header.Digest.Types[0].Value().(types.PreRuntimeDigest)
+	if !ok {
 		return 0, fmt.Errorf("first digest item is not pre-runtime digest")
 	}
 
