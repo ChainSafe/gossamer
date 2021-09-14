@@ -24,6 +24,7 @@ import (
 )
 
 // BlockData is stored within the BlockDB
+// The BlockData fields are optionals and thus are represented as pointers to ensure correct encoding
 type BlockData struct {
 	Hash          common.Hash
 	Header        *Header
