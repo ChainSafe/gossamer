@@ -134,11 +134,6 @@ func (s *Service) getBlockData(num *big.Int, requestedData byte) (*types.BlockDa
 
 	blockData := &types.BlockData{
 		Hash:          hash,
-		Header:        nil,
-		Body:          nil,
-		Receipt:       nil,
-		MessageQueue:  nil,
-		Justification: nil,
 	}
 
 	if requestedData == 0 {
