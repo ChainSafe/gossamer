@@ -63,7 +63,7 @@ type workHandler interface {
 	hasCurrentWorker(*worker, map[uint64]*worker) bool
 
 	// handleTick handles a timer tick
-	handleTick() (*worker, error)
+	handleTick() ([]*worker, error)
 }
 
 // ChainSync contains the methods used by the high-level service into the `chainSync` module
@@ -331,6 +331,7 @@ func (cs *chainSync) sync() {
 	// TODO: make configurable
 	ticker := time.NewTicker(time.Second * 12)
 
+	// TODO: register block finalisation channel; on finalise, call pendingBlocks.removeLowerBlocks()
 	for {
 		select {
 		case ps := <-cs.workQueue:
@@ -394,17 +395,19 @@ func (cs *chainSync) sync() {
 
 			cs.tryDispatchWorker(worker)
 		case <-ticker.C:
-			worker, err := cs.handler.handleTick()
+			workers, err := cs.handler.handleTick()
 			if err != nil {
 				logger.Error("failed to handle tick", "error", err)
 				continue
 			}
 
-			if worker == nil {
+			if workers == nil {
 				continue
 			}
 
-			cs.tryDispatchWorker(worker)
+			for _, worker := range workers {
+				cs.tryDispatchWorker(worker)
+			}
 		case <-cs.ctx.Done():
 			return
 		}
@@ -426,7 +429,7 @@ func (cs *chainSync) switchMode(mode chainSyncState) {
 	case bootstrap:
 		cs.handler = newBootstrapSyncer(cs.blockState)
 	case tip:
-		cs.handler = newTipSyncer(cs.blockState, cs.pendingBlocks, cs.workerState)
+		cs.handler = newTipSyncer(cs.blockState, cs.pendingBlocks, cs.readyBlocks, cs.workerState)
 	}
 
 	cs.state = mode
@@ -666,7 +669,7 @@ func (cs *chainSync) validateResponse(req *BlockRequestMessage, resp *BlockRespo
 
 		// check that parent of first block in response is known (either in our db or in the ready queue)
 		if i == 0 {
-			// TODO
+			// TODO: check that we know the parent of the first block (or it's in the queue)
 			prev = curr
 			continue
 		}
@@ -680,12 +683,15 @@ func (cs *chainSync) validateResponse(req *BlockRequestMessage, resp *BlockRespo
 				if err != nil {
 					return fmt.Errorf("failed to convert block body from optional: hash=%s err=%s", bd.Hash, err)
 				}
-				fmt.Println(curr)
 
 				cs.pendingBlocks.addBlock(&types.Block{
 					Header: curr,
 					Body:   body,
 				})
+
+				if bd.Justification != nil && bd.Justification.Exists() {
+					cs.pendingBlocks.addJustification(bd.Hash, bd.Justification.Value())
+				}
 			}
 			return errResponseIsNotChain
 		}

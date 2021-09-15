@@ -6,6 +6,7 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/common/optional"
 )
 
 // DisjointBlockSet represents a set of incomplete blocks, or blocks
@@ -14,6 +15,7 @@ type DisjointBlockSet interface {
 	addHashAndNumber(common.Hash, *big.Int)
 	addHeader(*types.Header)
 	addBlock(*types.Block)
+	addJustification(common.Hash, []byte)
 	removeBlock(common.Hash)
 	removeLowerBlocks(num *big.Int)
 	hasBlock(common.Hash) bool
@@ -27,10 +29,38 @@ type DisjointBlockSet interface {
 // hash and number without knowing the entire header yet
 // this allows us easily to check which fields are missing
 type pendingBlock struct {
-	hash   common.Hash
-	number *big.Int
-	header *types.Header
-	body   *types.Body
+	hash          common.Hash
+	number        *big.Int
+	header        *types.Header
+	body          *types.Body
+	justification []byte
+}
+
+func (b *pendingBlock) toBlockData() *types.BlockData {
+	var (
+		header        *optional.Header
+		body          *optional.Body
+		justification *optional.Bytes = optional.NewBytes(false, nil)
+	)
+
+	if b.header != nil {
+		header = b.header.AsOptional()
+	}
+
+	if b.body != nil {
+		body = b.body.AsOptional()
+	}
+
+	if b.justification != nil {
+		justification = optional.NewBytes(true, b.justification)
+	}
+
+	return &types.BlockData{
+		Hash:          b.hash,
+		Header:        header,
+		Body:          body,
+		Justification: justification,
+	}
 }
 
 // disjointBlockSet contains a list of incomplete (pending) blocks
@@ -56,6 +86,10 @@ func newDisjointBlockSet() *disjointBlockSet {
 func (s *disjointBlockSet) addHashAndNumber(hash common.Hash, number *big.Int) {
 	s.Lock()
 	defer s.Unlock()
+
+	if _, has := s.blocks[hash]; has {
+		return // TODO: return err??
+	}
 
 	s.blocks[hash] = &pendingBlock{
 		hash:   hash,
@@ -98,6 +132,24 @@ func (s *disjointBlockSet) addBlock(block *types.Block) {
 		number: block.Header.Number,
 		header: block.Header,
 		body:   block.Body,
+	}
+}
+
+func (s *disjointBlockSet) addJustification(hash common.Hash, just []byte) {
+	s.Lock()
+	defer s.Unlock()
+
+	b, has := s.blocks[hash]
+	if has {
+		b.justification = just
+		return
+	}
+
+	// TODO: block number must not be nil, this should error
+	panic("disjointBlockSet.addJustification: block number unknown!!!")
+	s.blocks[hash] = &pendingBlock{
+		hash:          hash,
+		justification: just,
 	}
 }
 

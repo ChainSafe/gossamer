@@ -73,6 +73,6 @@ func (s *bootstrapSyncer) hasCurrentWorker(_ *worker, workers map[uint64]*worker
 	return len(workers) != 0
 }
 
-func (s *bootstrapSyncer) handleTick() (*worker, error) {
+func (s *bootstrapSyncer) handleTick() ([]*worker, error) {
 	return nil, nil
 }

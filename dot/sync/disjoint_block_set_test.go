@@ -77,3 +77,7 @@ func TestDisjointBlockSet(t *testing.T) {
 	require.False(t, s.hasBlock(header.Hash()))
 	require.True(t, s.hasBlock(header2.Hash()))
 }
+
+func TestPendingBlock_toBlockData(t *testing.T) {
+
+}
