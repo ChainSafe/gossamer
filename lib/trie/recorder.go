@@ -1,7 +1,5 @@
 package trie
 
-import "fmt"
-
 // NodeRecord represets a record of a visited node
 type NodeRecord struct {
 	RawData []byte
@@ -11,11 +9,11 @@ type NodeRecord struct {
 type Recorder []NodeRecord
 
 func (r *Recorder) Record(h, rd []byte) {
-	fmt.Printf("received ==> 0x%x\n", h)
-	*r = append(*r, NodeRecord{
-		RawData: rd,
-		Hash:    h,
-	})
+	nr := NodeRecord{RawData: rd}
+	nr.Hash = make([]byte, len(h))
+	copy(nr.Hash, h[:])
+
+	*r = append(*r, nr)
 }
 
 func (r *Recorder) Len() int {

@@ -3,7 +3,6 @@ package trie
 import (
 	"bytes"
 	"errors"
-	"fmt"
 
 	"github.com/ChainSafe/chaindb"
 )
@@ -20,61 +19,58 @@ type Lookup struct {
 
 // NewLookup returns a Lookup to helps the proof generator
 func NewLookup(h []byte, db chaindb.Database) *Lookup {
-	return &Lookup{
-		db:   db,
-		hash: h,
-	}
+	lk := &Lookup{db: db}
+	lk.hash = make([]byte, len(h))
+	copy(lk.hash, h)
+
+	return lk
 }
 
 // Find will return the desired value or nil if key cannot be found and will record visited nodes
-func (l *Lookup) Find(key []byte) ([]byte, []NodeRecord, error) {
+func (l *Lookup) Find(key []byte, recorder *Recorder) ([]byte, error) {
 	partial := key
 	hash := l.hash
-
-	nr := make([]NodeRecord, 0)
 
 	for {
 		nodeData, err := l.db.Get(hash[:])
 		if err != nil {
-			return nil, nil, ErrInvalidStateRoot
+			return nil, ErrInvalidStateRoot
 		}
 
-		nodeRecord := NodeRecord{Hash: hash, RawData: nodeData}
-		fmt.Println(len(nr))
-		nr = append(nr, nodeRecord)
+		recorder.Record(hash, nodeData)
 
 		decoded, err := decodeBytes(nodeData)
 		if err != nil {
-			return nil, nr, err
+			return nil, err
 		}
 
 		switch currNode := decoded.(type) {
 		case nil:
-			return nil, nr, nil
+			return nil, nil
 
 		case *leaf:
 			if bytes.Equal(currNode.key, partial) {
-				return currNode.value, nr, nil
+				return currNode.value, nil
 			}
-			return nil, nr, nil
+			return nil, nil
 
 		case *branch:
 			switch len(partial) {
 			case 0:
-				return currNode.value, nr, nil
+				return currNode.value, nil
 			default:
 				if !bytes.HasPrefix(partial, currNode.key) {
-					return nil, nr, nil
+					return nil, nil
 				}
 
 				if bytes.Equal(partial, currNode.key) {
-					return currNode.value, nr, nil
+					return currNode.value, nil
 				}
 
 				length := lenCommonPrefix(currNode.key, partial)
 				switch child := currNode.children[partial[length]].(type) {
 				case nil:
-					return nil, nr, nil
+					return nil, nil
 				default:
 					partial = partial[length+1:]
 					copy(hash[:], child.getHash())

@@ -28,18 +28,19 @@ import (
 )
 
 const (
-	NibbleSizeBound   = ^uint16(0)
-	NibblePerByte     = 2
-	BranchWithMask    = byte(0b11 << 6)
-	BranchWithoutMask = byte(0b_10 << 6)
-	BitmapLength      = 2
+	BitmapLength       = 2
+	NibbleLenght       = 16
+	NibblePerByte      = 2
+	NibbleSizeBound    = ^uint16(0)
+	BranchWithMask     = byte(0b11 << 6)
+	BranchWithoutMask  = byte(0b10 << 6)
+	LeafPrefixWithMask = byte(0b01 << 6)
 )
 
 var (
 	// ErrEmptyTrieRoot occurs when trying to craft a prove with an empty trie root
 	ErrEmptyTrieRoot = errors.New("provided trie must have a root")
 
-	// ErrEmptyNibbles occurs when trying to prove or valid a proof to an empty key
 	ErrEmptyNibbles = errors.New("empty nibbles provided from key")
 
 	logger = log.New("lib", "trie")
@@ -54,15 +55,22 @@ type StackEntry struct {
 	children    [][]byte
 	childIndex  int
 	outputIndex int
+	omitValue   bool
 }
 
 func (s *StackEntry) encodeNode() ([]byte, error) {
 	switch ntype := s.node.(type) {
-	case nil, *leaf:
+	case nil:
+		return s.nodeRawData, nil
+	case *leaf:
+		if s.omitValue {
+			return leafNodeOmitValue(ntype.key), nil
+		}
+
 		return s.nodeRawData, nil
 	case *branch:
 		// Populate the remaining references in `children`
-		for i := s.childIndex; i < 16; i++ {
+		for i := s.childIndex; i < NibbleLenght; i++ {
 			nodeChild := ntype.children[i]
 			if nodeChild != nil {
 				var err error
@@ -72,10 +80,97 @@ func (s *StackEntry) encodeNode() ([]byte, error) {
 			}
 		}
 
-		return branchNodeNibbled(ntype.key, s.children, ntype.value), nil
+		v := ntype.value
+		if s.omitValue {
+			v = []byte{}
+		}
+
+		return branchNodeNibbled(ntype.key, s.children, v), nil
 	}
 
 	return nil, nil
+}
+
+func leafNodeOmitValue(path []byte) []byte {
+	split := len(path) % NibblePerByte / NibblePerByte
+	nb := byte(len(path) % NibblePerByte)
+
+	var (
+		first  byte
+		second byte
+		data   []byte
+	)
+
+	if nb > 0 {
+		first, second, data = nb, path[split]&0x0f, path[split+1:]
+	} else {
+		first, second, data = 0, 0, path[split:]
+	}
+
+	nibbleCount := len(data)*NibblePerByte + int(first)
+	if nibbleCount > int(NibbleSizeBound) {
+		nibbleCount = int(NibbleSizeBound)
+	}
+
+	output := make([]byte, 0, 3+len(data))
+	sizeIterator(len(path), LeafPrefixWithMask, &output)
+
+	if first > 0 {
+		output = append(output, second&0x0f)
+	}
+
+	output = append(output, data...)
+	return output
+}
+
+func branchNodeNibbled(path []byte, children [][]byte, value []byte) []byte {
+	nibbleCount := len(path)
+	if nibbleCount > int(NibbleSizeBound) {
+		nibbleCount = int(NibbleSizeBound)
+	}
+
+	output := make([]byte, 0, 3+(nibbleCount/NibblePerByte))
+
+	var prefix byte
+	if len(value) == 0 {
+		prefix = BranchWithoutMask
+	} else {
+		prefix = BranchWithMask
+	}
+
+	sizeIterator(nibbleCount, prefix, &output)
+
+	output = append(output, path...)
+	bitmapIndex := len(output)
+	bitmap := make([]byte, BitmapLength)
+
+	for i := 0; i < BitmapLength; i++ {
+		output = append(output, 0)
+	}
+
+	if len(value) > 0 {
+		output = append(output, value...)
+	}
+
+	var (
+		bitmapValue  uint16 = 0
+		bitmapCursor uint16 = 1
+	)
+
+	for _, c := range children {
+		if len(c) > 0 {
+			output = append(output, c...)
+			bitmapValue |= bitmapCursor
+		}
+
+		bitmapCursor <<= 1
+	}
+
+	bitmap[0] = byte(bitmapValue % 256)
+	bitmap[1] = byte(bitmapValue / 256)
+	copy(output[bitmapIndex:bitmapIndex+BitmapLength], bitmap[:BitmapLength])
+
+	return output
 }
 
 func (s *StackEntry) setChild(enc []byte) error {
@@ -83,7 +178,7 @@ func (s *StackEntry) setChild(enc []byte) error {
 	case *branch:
 		//child := ntype.children[s.childIndex]
 		s.children[s.childIndex] = enc
-		s.childIndex++
+		s.childIndex += 1
 		return nil
 	default:
 		return errors.New("nil, leaf or other nodes does not has children set")
@@ -91,13 +186,18 @@ func (s *StackEntry) setChild(enc []byte) error {
 }
 
 func NewStackEntry(n node, rd []byte, outputIndex, keyOffset int) (*StackEntry, error) {
-	var children [][]byte
+	var (
+		children [][]byte
+		path     []byte
+	)
 
 	switch nt := n.(type) {
 	case *leaf:
 		children = make([][]byte, 0)
+		path = nt.key
 	case *branch:
-		children = make([][]byte, 16, 16)
+		children = make([][]byte, NibbleLenght)
+		path = nt.key
 	default:
 		return nil, fmt.Errorf("could not define a stack entry for node: %s", nt)
 	}
@@ -110,39 +210,64 @@ func NewStackEntry(n node, rd []byte, outputIndex, keyOffset int) (*StackEntry, 
 	return &StackEntry{
 		keyOffset:   keyOffset,
 		nodeHash:    h,
+		path:        path,
 		node:        n,
 		children:    children,
 		childIndex:  0,
 		outputIndex: outputIndex,
 		nodeRawData: rd,
+		omitValue:   false,
 	}, nil
 }
 
 type Stack []*StackEntry
+
+// Push adds a new item to the top of the stack
+func (s *Stack) Push(e *StackEntry) {
+	(*s) = append((*s), e)
+}
+
+// Pop removes and returns the top of the stack if there is some element there otherwise return nil
+func (s *Stack) Pop() *StackEntry {
+	if len(*s) < 1 {
+		return nil
+	}
+
+	// gets the top of the stack
+	entry := (*s)[len(*s)-1]
+	// removes the top of the stack
+	*s = (*s)[:len(*s)-1]
+	return entry
+}
+
+// Last returns the top of the stack without remove from the stack
+func (s *Stack) Last() *StackEntry {
+	if len(*s) < 1 {
+		return nil
+	}
+	return (*s)[len(*s)-1]
+}
+
 type StackIterator struct {
 	index int
 	set   []*StackEntry
 }
 
 func (i *StackIterator) Next() *StackEntry {
-	var t *StackEntry
-
 	if i.HasNext() {
-		t = i.set[i.index]
+		t := i.set[i.index]
 		i.index++
+		return t
 	}
 
-	return t
+	return nil
 }
 
 func (i *StackIterator) Peek() *StackEntry {
-	var t *StackEntry
-
 	if i.HasNext() {
-		t = i.set[i.index]
+		return i.set[i.index]
 	}
-
-	return t
+	return nil
 }
 
 func (i *StackIterator) HasNext() bool {
@@ -155,30 +280,6 @@ func (s *Stack) iter() *StackIterator {
 	copy(iter.set, *s)
 
 	return iter
-}
-
-func (s *Stack) Push(e *StackEntry) {
-	(*s) = append((*s), e)
-}
-
-func (s *Stack) Pop() *StackEntry {
-	if len(*s) < 1 {
-		return nil
-	}
-
-	// gets the top of the stack
-	entry := (*s)[len(*s)-1]
-
-	// removes the top of the stack
-	(*s) = (*s)[:len(*s)-1]
-	return entry
-}
-
-func (s *Stack) Last() *StackEntry {
-	if len(*s) < 1 {
-		return nil
-	}
-	return (*s)[len(*s)-1]
 }
 
 type Step struct {
@@ -197,23 +298,21 @@ func GenerateProofWithRecorder(root []byte, keys [][]byte, db chaindb.Database) 
 		unwindStack(&stack, proofs, nk)
 
 		lookup := NewLookup(root, db)
-		expectedValue, nodes, err := lookup.Find(nk)
+
+		recorder := new(Recorder)
+		expectedValue, err := lookup.Find(nk, recorder)
 		if err != nil {
 			return nil, err
 		}
 
-		for _, recNodes := range nodes {
+		for _, recNodes := range *recorder {
 			fmt.Printf("recorded node ==> 0x%x\n", recNodes.Hash)
 		}
-
-		recorder := Recorder(nodes)
 
 		fmt.Printf("Found at database\n\tkey:0x%x\n\tvalue:0x%x\n", k, expectedValue)
 		fmt.Println("Recorded nodes", recorder.Len())
 
 		stackIter := stack.iter()
-		logger.Warn("generate proof", "stackIter.HasNext()", stackIter.HasNext())
-
 		// Skip over recorded nodes already on the stack
 		for stackIter.HasNext() {
 			nxtRec, nxtEntry := recorder.Peek(), stackIter.Peek()
@@ -227,10 +326,6 @@ func GenerateProofWithRecorder(root []byte, keys [][]byte, db chaindb.Database) 
 
 		for {
 			var step Step
-
-			fmt.Println("stack len", len(stack))
-			fmt.Println("proofs len", len(proofs))
-
 			if len(stack) == 0 {
 				// as the stack is empty then start from the root node
 				step = Step{
@@ -297,6 +392,7 @@ func matchKeyToNode(e *StackEntry, nibbleKey []byte) (Step, error) {
 	case *leaf:
 		keyToCompare := nibbleKey[e.keyOffset:]
 		if bytes.Equal(keyToCompare, ntype.key) && len(nibbleKey) == len(ntype.key)+e.keyOffset {
+			e.omitValue = true
 			return Step{
 				Found: true,
 				Value: ntype.value,
@@ -314,14 +410,15 @@ func matchKeyToNode(e *StackEntry, nibbleKey []byte) (Step, error) {
 func matchKeyToBranchNode(n *branch, e *StackEntry, nibbleKey []byte) (Step, error) {
 	keyToCompare := nibbleKey[e.keyOffset:]
 
-	logger.Warn("matchKeyToBranchNode", "keyToCompare", fmt.Sprintf("0x%x\n", keyToCompare), "len nibbles", len(nibbleKey))
-	logger.Warn("matchKeyToBranchNode", "node key", fmt.Sprintf("x%x\n", n.key), "key offset", e.keyOffset)
+	logger.Warn("matchKeyToBranchNode", "keyToCompare", fmt.Sprintf("0x%x", keyToCompare), "len nibbles", len(nibbleKey))
+	logger.Warn("matchKeyToBranchNode", "node key", fmt.Sprintf("0x%x", n.key), "key offset", e.keyOffset)
 
 	if !bytes.HasPrefix(keyToCompare, n.key) {
 		return Step{Found: true}, nil
 	}
 
 	if len(nibbleKey) == len(n.key)+e.keyOffset {
+		e.omitValue = true
 		return Step{
 			Found: true,
 			Value: n.value,
@@ -379,7 +476,6 @@ func unwindStack(stack *Stack, proof [][]byte, key []byte) error {
 		}
 
 		parent := stack.Last()
-
 		if parent != nil {
 			parent.setChild(enc)
 		}
@@ -390,7 +486,7 @@ func unwindStack(stack *Stack, proof [][]byte, key []byte) error {
 	return nil
 }
 
-func branchEncode(size int, prefix byte, output []byte) {
+func sizeIterator(size int, prefix byte, output *[]byte) {
 	l := make([]byte, 0)
 	l1, rem := 62, 0
 
@@ -406,8 +502,8 @@ func branchEncode(size int, prefix byte, output []byte) {
 		if rem > 0 {
 			if rem < 256 {
 				result := rem - 1
+				rem = 0
 				l = append(l, byte(result))
-				break
 			} else {
 				op := rem - 255
 				if op < 0 {
@@ -415,6 +511,7 @@ func branchEncode(size int, prefix byte, output []byte) {
 				} else {
 					rem = op
 				}
+
 				l = append(l, byte(255))
 			}
 		} else {
@@ -422,57 +519,8 @@ func branchEncode(size int, prefix byte, output []byte) {
 		}
 	}
 
-	copy(output[:len(l)], l[:])
-}
-
-func prefixIterator(size int, prefix byte) []byte {
-	if NibbleSizeBound < uint16(size) {
-		size = NibblePerByte
-	}
-
-	output := make([]byte, 0, 3+(size/NibblePerByte))
-	branchEncode(size, prefix, output)
-	return output
-}
-
-func branchNodeNibbled(path []byte, children [][]byte, value []byte) []byte {
-	var output []byte
-	if len(value) == 0 {
-		output = prefixIterator(len(path), BranchWithMask)
-	} else {
-		output = prefixIterator(len(path), BranchWithoutMask)
-	}
-	output = append(output, path...)
-	bitmapIndex := len(output)
-	bitmap := make([]byte, BitmapLength)
-
-	for i := 0; i < BitmapLength; i++ {
-		output = append(output, 0)
-	}
-
-	if len(value) > 0 {
-		output = append(output, value...)
-	}
-
-	var (
-		bitmapValue  uint16 = 0
-		bitmapCursor uint16 = 1
-	)
-
-	for _, c := range children {
-		if len(c) > 0 {
-			output = append(output, c...)
-			bitmapValue |= bitmapCursor
-		}
-
-		bitmapCursor <<= 1
-	}
-
-	bitmap[0] = byte(bitmapValue % 256)
-	bitmap[1] = byte(bitmapValue / 256)
-	copy(output[bitmapIndex:bitmapIndex+BitmapLength], bitmap[:])
-
-	return output
+	*output = append(*output, l...)
+	fmt.Printf("\n\non encode\noutput == 0x%x\nl == 0x%x\n", output, l)
 }
 
 // GenerateProof constructs the merkle-proof for key. The result contains all encoded nodes
