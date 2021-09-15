@@ -18,6 +18,7 @@ import (
 type StorageAPI interface {
 	GetStorage(root *common.Hash, key []byte) ([]byte, error)
 	GetStorageByBlockHash(bhash common.Hash, key []byte) ([]byte, error)
+	GetStorageFromChild(root *common.Hash, keyToChild, key []byte) ([]byte, error)
 	Entries(root *common.Hash) (map[string][]byte, error)
 	GetStateRootFromBlock(bhash *common.Hash) (*common.Hash, error)
 	GetKeysWithPrefix(root *common.Hash, prefix []byte) ([][]byte, error)

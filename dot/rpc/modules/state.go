@@ -221,9 +221,22 @@ func (sm *StateModule) GetChildKeys(r *http.Request, req *StateChildStorageReque
 	return nil
 }
 
-// GetChildStorage isn't implemented properly yet.
+// GetChildStorage returns a child storage entry.
 func (sm *StateModule) GetChildStorage(r *http.Request, req *StateChildStorageRequest, res *StateStorageDataResponse) error {
-	// TODO implement change storage trie so that block hash parameter works (See issue #834)
+	var (
+		item []byte
+		err  error
+	)
+
+	item, err = sm.storageAPI.GetStorageFromChild(req.Block, req.ChildStorageKey, req.Key)
+	if err != nil {
+		return err
+	}
+
+	if len(item) > 0 {
+		*res = StateStorageDataResponse(common.BytesToHex(item))
+	}
+
 	return nil
 }
 
