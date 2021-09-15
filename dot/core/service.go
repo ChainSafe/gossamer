@@ -17,6 +17,7 @@ package core
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"os"
 	"sync"
@@ -199,7 +200,7 @@ func (s *Service) HandleBlockProduced(block *types.Block, state *rtstorage.TrieS
 
 func (s *Service) handleBlock(block *types.Block, state *rtstorage.TrieState) error {
 	if block == nil || state == nil {
-		return nil
+		return fmt.Errorf("unable to handle block due to nil parameter")
 	}
 
 	// store updates state trie nodes in database
