@@ -49,7 +49,6 @@ const (
 	maxMessageSize = 1024 * 63 // 63kb for now
 
 	gssmrIsMajorSyncMetric = "gossamer/network/is_major_syncing"
-	batchSize              = 100
 )
 
 var (
@@ -99,6 +98,8 @@ type Service struct {
 	// telemetry
 	telemetryInterval time.Duration
 	closeCh           chan interface{}
+
+	batchSize int
 }
 
 // NewService creates a new network service from the configuration and message channels
@@ -172,6 +173,7 @@ func NewService(cfg *Config) (*Service, error) {
 		closeCh:                make(chan interface{}),
 		bufPool:                bufPool,
 		streamManager:          newStreamManager(ctx),
+		batchSize:              100,
 	}
 
 	network.syncQueue = newSyncQueue(network)
@@ -226,38 +228,8 @@ func (s *Service) Start() error {
 		logger.Warn("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
 	}
 
-	txnBatch := make(chan *transactionBatchMessage, batchSize)
-
-	txnBatchHandler := func(peer peer.ID, msg NotificationsMessage) (msgs []*transactionBatchMessage, err error) {
-		data := &transactionBatchMessage{
-			msg:  msg,
-			peer: peer,
-		}
-		txnBatch <- data
-
-		if len(txnBatch) < batchSize {
-			return nil, nil
-		}
-
-		var propagateMsgs []*transactionBatchMessage
-		for txnData := range txnBatch {
-			propagate, err := s.handleTransactionMessage(txnData.peer, txnData.msg)
-			if err != nil {
-				continue
-			}
-			if propagate {
-				propagateMsgs = append(propagateMsgs, &transactionBatchMessage{
-					msg:  txnData.msg,
-					peer: txnData.peer,
-				})
-			}
-			if len(txnBatch) == 0 {
-				break
-			}
-		}
-		// May be use error to compute peer score.
-		return propagateMsgs, nil
-	}
+	txnBatch := make(chan *batchMessage, s.batchSize)
+	txnBatchHandler := s.createBatchMessageHandler(txnBatch)
 
 	// register transactions protocol
 	err = s.RegisterNotificationsProtocol(

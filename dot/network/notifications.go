@@ -55,10 +55,10 @@ type (
 	NotificationsMessageHandler = func(peer peer.ID, msg NotificationsMessage) (propagate bool, err error)
 
 	// NotificationsMessageBatchHandler is called when a (non-handshake) message is received over a notifications stream in batch processing mode.
-	NotificationsMessageBatchHandler = func(peer peer.ID, msg NotificationsMessage) (batchMsgs []*transactionBatchMessage, err error)
+	NotificationsMessageBatchHandler = func(peer peer.ID, msg NotificationsMessage) (batchMsgs []*batchMessage, err error)
 )
 
-type transactionBatchMessage struct {
+type batchMessage struct {
 	msg  NotificationsMessage
 	peer peer.ID
 }
@@ -199,7 +199,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 		var (
 			propagate bool
 			err       error
-			msgs      []*transactionBatchMessage
+			msgs      []*batchMessage
 		)
 		if batchHandler != nil {
 			msgs, err = batchHandler(peer, msg)
@@ -213,7 +213,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			if err != nil {
 				return err
 			}
-			msgs = append(msgs, &transactionBatchMessage{
+			msgs = append(msgs, &batchMessage{
 				msg:  msg,
 				peer: peer,
 			})

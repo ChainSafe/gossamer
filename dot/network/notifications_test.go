@@ -320,7 +320,6 @@ func TestCreateNotificationsMessageHandler_HandleTransaction(t *testing.T) {
 	mockhandler := &MockTransactionHandler{}
 	mockhandler.On("HandleTransactionMessage", mock.AnythingOfType("*network.TransactionMessage")).Return(true, nil)
 	mockhandler.On("TransactionsCount").Return(0)
-	const channelLen = 5
 	config := &Config{
 		BasePath:           basePath,
 		Port:               7001,
@@ -330,6 +329,7 @@ func TestCreateNotificationsMessageHandler_HandleTransaction(t *testing.T) {
 	}
 
 	s := createTestService(t, config)
+	s.batchSize = 5
 
 	configB := &Config{
 		BasePath:    utils.NewTestBasePath(t, "nodeB"),
@@ -340,36 +340,8 @@ func TestCreateNotificationsMessageHandler_HandleTransaction(t *testing.T) {
 
 	b := createTestService(t, configB)
 
-	txnBatch := make(chan *transactionBatchMessage, channelLen)
-
-	txnBatchHandler := func(peer peer.ID, msg NotificationsMessage) (msgs []*transactionBatchMessage, err error) {
-		data := &transactionBatchMessage{
-			msg:  msg,
-			peer: peer,
-		}
-		txnBatch <- data
-		if len(txnBatch) < channelLen {
-			return nil, nil
-		}
-
-		for txnData := range txnBatch {
-			propagate, err := s.handleTransactionMessage(txnData.peer, txnData.msg)
-			if err != nil {
-				continue
-			}
-			if propagate {
-				msgs = append(msgs, &transactionBatchMessage{
-					msg:  txnData.msg,
-					peer: txnData.peer,
-				})
-			}
-			if len(txnBatch) == 0 {
-				break
-			}
-		}
-		// May be use error to compute peer score.
-		return msgs, nil
-	}
+	txnBatch := make(chan *batchMessage, s.batchSize)
+	txnBatchHandler := s.createBatchMessageHandler(txnBatch)
 
 	// don't set handshake data ie. this stream has just been opened
 	testPeerID := b.host.id()
