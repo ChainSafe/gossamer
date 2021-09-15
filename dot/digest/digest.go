@@ -145,8 +145,10 @@ func (h *Handler) NextGrandpaAuthorityChange() uint64 {
 // HandleDigests handles consensus digests for an imported block
 func (h *Handler) HandleDigests(header *types.Header) {
 	for i, d := range header.Digest.Types {
-		switch val := d.Value().(type) {
-		case types.ConsensusDigest:
+		val, ok := d.Value().(types.ConsensusDigest)
+		if !ok {
+			logger.Error("invalid cast to types.ConsensusDigest")
+		} else {
 			err := h.handleConsensusDigest(&val, header)
 			if err != nil {
 				logger.Error("handleDigests", "block number", header.Number, "index", i, "digest", d.Value(), "error", err)
