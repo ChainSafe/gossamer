@@ -92,7 +92,6 @@ func (s *StackEntry) encodeNode() ([]byte, error) {
 }
 
 func leafNodeOmitValue(path []byte) []byte {
-	split := len(path) % NibblePerByte / NibblePerByte
 	nb := byte(len(path) % NibblePerByte)
 
 	var (
@@ -102,9 +101,9 @@ func leafNodeOmitValue(path []byte) []byte {
 	)
 
 	if nb > 0 {
-		first, second, data = nb, path[split]&0x0f, path[split+1:]
+		first, second, data = nb, path[0]&0x0f, path[0+1:]
 	} else {
-		first, second, data = 0, 0, path[split:]
+		first, second, data = 0, 0, path[0:]
 	}
 
 	nibbleCount := len(data)*NibblePerByte + int(first)
