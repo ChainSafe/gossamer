@@ -489,6 +489,18 @@ func TestChainSync_doSync(t *testing.T) {
 		Max:           optional.NewUint32(true, uint32(1)),
 	}
 
+	workerErr := cs.doSync(req)
+	require.NotNil(t, workerErr)
+	require.Equal(t, errNoPeers, workerErr.err)
+
+	cs.peerState["noot"] = &peerState{
+		number: big.NewInt(100),
+	}
+
+	workerErr = cs.doSync(req)
+	require.NotNil(t, workerErr)
+	require.Equal(t, errNilResponse, workerErr.err)
+
 	resp := &BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
@@ -503,15 +515,53 @@ func TestChainSync_doSync(t *testing.T) {
 	cs.network = new(syncmocks.MockNetwork)
 	cs.network.(*syncmocks.MockNetwork).On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(resp, nil)
 
-	cs.peerState["noot"] = &peerState{
-		number: big.NewInt(100),
-	}
-
-	workerErr := cs.doSync(req)
+	workerErr = cs.doSync(req)
 	require.Nil(t, workerErr)
 	select {
 	case bd := <-readyBlocks:
 		require.Equal(t, resp.BlockData[0], bd)
+	default:
+		t.Fatal("expected ready block")
+	}
+
+	parent := (&types.Header{
+		Number: big.NewInt(2),
+	}).Hash()
+	resp = &BlockResponseMessage{
+		BlockData: []*types.BlockData{
+			{
+				Header: (&types.Header{
+					ParentHash: parent,
+					Number:     big.NewInt(3),
+				}).AsOptional(),
+				Body: (&types.Body{}).AsOptional(),
+			},
+			{
+				Header: (&types.Header{
+					Number: big.NewInt(2),
+				}).AsOptional(),
+				Body: (&types.Body{}).AsOptional(),
+			},
+		},
+	}
+
+	// test to see if descending blocks get reversed
+	req.Direction = DIR_DESCENDING
+	cs.network = new(syncmocks.MockNetwork)
+	cs.network.(*syncmocks.MockNetwork).On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(resp, nil)
+	workerErr = cs.doSync(req)
+	require.Nil(t, workerErr)
+
+	select {
+	case bd := <-readyBlocks:
+		require.Equal(t, resp.BlockData[0], bd)
+	default:
+		t.Fatal("expected ready block")
+	}
+
+	select {
+	case bd := <-readyBlocks:
+		require.Equal(t, resp.BlockData[1], bd)
 	default:
 		t.Fatal("expected ready block")
 	}
