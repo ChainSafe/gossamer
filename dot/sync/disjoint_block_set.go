@@ -17,6 +17,7 @@ type DisjointBlockSet interface {
 	removeBlock(common.Hash)
 	removeLowerBlocks(num *big.Int)
 	hasBlock(common.Hash) bool
+	getBlock(common.Hash) *pendingBlock
 	getBlocks() []*pendingBlock
 	size() int
 }
@@ -41,6 +42,7 @@ type pendingBlock struct {
 //
 // if the block is complete, we may not know of its parent.
 type disjointBlockSet struct {
+	// TODO: put a limit on the size of this set
 	sync.RWMutex
 	blocks map[common.Hash]*pendingBlock
 }
@@ -129,6 +131,12 @@ func (s *disjointBlockSet) size() int {
 	s.RLock()
 	defer s.RUnlock()
 	return len(s.blocks)
+}
+
+func (s *disjointBlockSet) getBlock(hash common.Hash) *pendingBlock {
+	s.RLock()
+	defer s.RUnlock()
+	return s.blocks[hash]
 }
 
 func (s *disjointBlockSet) getBlocks() []*pendingBlock {
