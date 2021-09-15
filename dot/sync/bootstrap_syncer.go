@@ -63,7 +63,7 @@ func (s *bootstrapSyncer) handleWorkerResult(res *worker) (*worker, error) {
 		startNumber:  big.NewInt(0).Add(head.Number, big.NewInt(1)),
 		targetHash:   res.targetHash,
 		targetNumber: res.targetNumber,
-		requestData:  bootstrapRequestData,
+		requestData:  res.requestData,
 		direction:    res.direction,
 	}, nil
 }

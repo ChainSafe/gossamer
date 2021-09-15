@@ -41,6 +41,7 @@ func TestBootstrapSyncer_handleWork(t *testing.T) {
 
 	// if peer's number is highest, return worker w/ their block as target
 	expected := &worker{
+		requestData:  bootstrapRequestData,
 		startHash:    common.EmptyHash,
 		startNumber:  big.NewInt(101),
 		targetHash:   common.NewHash([]byte{1}),
@@ -54,6 +55,7 @@ func TestBootstrapSyncer_handleWork(t *testing.T) {
 	require.Equal(t, expected, w)
 
 	expected = &worker{
+		requestData:  bootstrapRequestData,
 		startHash:    common.EmptyHash,
 		startNumber:  big.NewInt(101),
 		targetHash:   common.NewHash([]byte{1}),
@@ -79,6 +81,7 @@ func TestBootstrapSyncer_handleWorkerResult(t *testing.T) {
 	// if there was a worker error, this should return a worker with
 	// startNumber = bestBlockNumber + 1 and the same target as previously
 	expected := &worker{
+		requestData:  bootstrapRequestData,
 		startHash:    common.EmptyHash,
 		startNumber:  big.NewInt(101),
 		targetHash:   common.NewHash([]byte{1}),
@@ -86,6 +89,7 @@ func TestBootstrapSyncer_handleWorkerResult(t *testing.T) {
 	}
 
 	res = &worker{
+		requestData:  bootstrapRequestData,
 		targetHash:   common.NewHash([]byte{1}),
 		targetNumber: big.NewInt(201),
 		err:          &workerError{},
