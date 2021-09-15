@@ -22,7 +22,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"reflect"
 	"sync"
 	"time"
 
@@ -257,8 +256,8 @@ func (bs *BlockState) GetHeader(hash common.Hash) (*types.Header, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	if reflect.DeepEqual(result, types.NewEmptyHeader()) {
+	
+	if result.Empty() {
 		return nil, chaindb.ErrKeyNotFound
 	}
 
