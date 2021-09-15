@@ -256,7 +256,7 @@ func (bs *BlockState) GetHeader(hash common.Hash) (*types.Header, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if result.Empty() {
 		return nil, chaindb.ErrKeyNotFound
 	}
