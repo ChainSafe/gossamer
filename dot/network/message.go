@@ -65,12 +65,22 @@ const (
 
 var _ Message = &BlockRequestMessage{}
 
+type SyncDirection byte
+
+const (
+	// Ascending is used when block response data is in ascending order (ie parent to child)
+	Ascending SyncDirection = iota
+
+	// Descending is used when block response data is in descending order (ie child to parent)
+	Descending
+)
+
 // BlockRequestMessage is sent to request some blocks from a peer
 type BlockRequestMessage struct {
 	RequestedData byte
 	StartingBlock *variadic.Uint64OrHash // first byte 0 = block hash (32 byte), first byte 1 = block number (int64)
 	EndBlockHash  *optional.Hash
-	Direction     byte // 0 = ascending, 1 = descending
+	Direction     SyncDirection // 0 = ascending, 1 = descending
 	Max           *optional.Uint32
 }
 
@@ -176,7 +186,7 @@ func (bm *BlockRequestMessage) Decode(in []byte) error {
 	bm.RequestedData = byte(msg.Fields >> 24)
 	bm.StartingBlock = startingBlock
 	bm.EndBlockHash = endBlockHash
-	bm.Direction = byte(msg.Direction)
+	bm.Direction = SyncDirection(byte(msg.Direction))
 	bm.Max = max
 
 	return nil

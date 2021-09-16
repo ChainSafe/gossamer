@@ -24,17 +24,11 @@ const (
 
 var _ ChainSync = &chainSync{}
 
-//nolint
-type (
-	BlockRequest  = network.BlockRequestMessage
-	BlockResponse = network.BlockResponseMessage
-)
-
 type chainSyncState byte
 
-var (
-	bootstrap chainSyncState = 0 //nolint
-	tip       chainSyncState = 1
+const (
+	bootstrap chainSyncState = iota
+	tip
 )
 
 // peerState tracks our peers's best reported blocks
@@ -346,7 +340,7 @@ func (cs *chainSync) sync() {
 				// and begin near-head fork-sync
 				logger.Debug("switching to tip sync mode...")
 				cs.switchMode(tip)
-			} else if big.NewInt(0).Add(head.Number, big.NewInt(MAX_RESPONSE_SIZE)).Cmp(target) == -1 {
+			} else if big.NewInt(0).Add(head.Number, big.NewInt(maxResponseSize)).Cmp(target) == -1 {
 				// we are 128 blocks or more behind the target, switch to bootstrap mode
 				logger.Debug("switching to bootstrap sync mode...")
 				cs.switchMode(bootstrap)
@@ -536,7 +530,7 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 	}
 }
 
-func (cs *chainSync) doSync(req *BlockRequest) *workerError {
+func (cs *chainSync) doSync(req *network.BlockRequestMessage) *workerError {
 	// determine which peers have the blocks we want to request
 	peers := cs.determineSyncPeers(req)
 
@@ -578,7 +572,7 @@ func (cs *chainSync) doSync(req *BlockRequest) *workerError {
 		}
 	}
 
-	if req.Direction == DIR_DESCENDING {
+	if req.Direction == network.Descending {
 		// reverse blocks before pre-validating and placing in ready queue
 		tmp := make([]*types.BlockData, len(resp.BlockData))
 		for i, bd := range resp.BlockData {
@@ -613,7 +607,7 @@ func (cs *chainSync) doSync(req *BlockRequest) *workerError {
 
 // determineSyncPeers returns a list of peers that likely have the blocks in the given block request.
 // TODO: implement this
-func (cs *chainSync) determineSyncPeers(_ *BlockRequest) []peer.ID {
+func (cs *chainSync) determineSyncPeers(_ *network.BlockRequestMessage) []peer.ID {
 	peers := []peer.ID{}
 
 	cs.RLock()
@@ -636,7 +630,7 @@ func (cs *chainSync) determineSyncPeers(_ *BlockRequest) []peer.ID {
 // 	- the response is not empty
 //  - the response contains all the expected fields
 //  - each block has the correct parent, ie. the response constitutes a valid chain
-func (cs *chainSync) validateResponse(req *BlockRequest, resp *BlockResponse) error {
+func (cs *chainSync) validateResponse(req *network.BlockRequestMessage, resp *network.BlockResponseMessage) error {
 	if resp == nil || len(resp.BlockData) == 0 {
 		return errEmptyBlockData
 	}
@@ -696,7 +690,7 @@ func (cs *chainSync) validateResponse(req *BlockRequest, resp *BlockResponse) er
 }
 
 // validateBlockData checks that the expected fields are in the block data
-func validateBlockData(req *BlockRequest, bd *types.BlockData) error {
+func validateBlockData(req *network.BlockRequestMessage, bd *types.BlockData) error {
 	if bd == nil {
 		return errNilBlockData
 	}
@@ -714,7 +708,7 @@ func validateBlockData(req *BlockRequest, bd *types.BlockData) error {
 	return nil
 }
 
-func workerToRequests(w *worker) ([]*BlockRequest, error) {
+func workerToRequests(w *worker) ([]*network.BlockRequestMessage, error) {
 	// worker must specify a start number
 	// empty start hash is ok (eg. in the case of bootstrap, start hash is unknown)
 	if w.startNumber == nil {
@@ -728,33 +722,33 @@ func workerToRequests(w *worker) ([]*BlockRequest, error) {
 	}
 
 	diff := big.NewInt(0).Sub(w.targetNumber, w.startNumber)
-	if diff.Int64() < 0 && w.direction != DIR_DESCENDING {
+	if diff.Int64() < 0 && w.direction != network.Descending {
 		return nil, errInvalidDirection
 	}
 
-	if diff.Int64() > 0 && w.direction != DIR_ASCENDING {
+	if diff.Int64() > 0 && w.direction != network.Ascending {
 		return nil, errInvalidDirection
 	}
 
 	// to deal with descending requests (ie. target may be lower than start) which are used in tip mode,
 	// take absolute value of difference between start and target
 	numBlocks := int(big.NewInt(0).Abs(diff).Int64())
-	numRequests := numBlocks / MAX_RESPONSE_SIZE
+	numRequests := numBlocks / maxResponseSize
 
-	if numBlocks%MAX_RESPONSE_SIZE != 0 {
+	if numBlocks%maxResponseSize != 0 {
 		numRequests++
 	}
 
 	startNumber := w.startNumber.Uint64()
-	reqs := make([]*BlockRequest, numRequests)
+	reqs := make([]*network.BlockRequestMessage, numRequests)
 
 	for i := 0; i < numRequests; i++ {
 		// check if we want to specify a size
 		var max *optional.Uint32
 		if i == numRequests-1 {
-			size := numBlocks % MAX_RESPONSE_SIZE
+			size := numBlocks % maxResponseSize
 			if size == 0 {
-				size = MAX_RESPONSE_SIZE
+				size = maxResponseSize
 			}
 			max = optional.NewUint32(true, uint32(size))
 		} else {
@@ -777,14 +771,14 @@ func workerToRequests(w *worker) ([]*BlockRequest, error) {
 			end = optional.NewHash(true, w.targetHash)
 		}
 
-		reqs[i] = &BlockRequest{
+		reqs[i] = &network.BlockRequestMessage{
 			RequestedData: w.requestData,
 			StartingBlock: start,
 			EndBlockHash:  end,
 			Direction:     w.direction,
 			Max:           max,
 		}
-		startNumber += MAX_RESPONSE_SIZE
+		startNumber += maxResponseSize
 	}
 
 	return reqs, nil

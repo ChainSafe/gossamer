@@ -27,7 +27,7 @@ func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
 	rt, err := responder.blockState.GetRuntime(nil)
 	require.NoError(t, err)
 
-	for i := 0; i < MAX_RESPONSE_SIZE*2; i++ {
+	for i := 0; i < maxResponseSize*2; i++ {
 		block := BuildBlock(t, rt, parent, nil)
 		err = responder.blockState.AddBlock(block)
 		require.NoError(t, err)

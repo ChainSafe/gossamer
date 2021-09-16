@@ -38,7 +38,7 @@ func (s *bootstrapSyncer) handleWork(ps *peerState) (*worker, error) {
 		targetHash:   ps.hash,
 		targetNumber: ps.number,
 		requestData:  bootstrapRequestData,
-		direction:    DIR_ASCENDING,
+		direction:    network.Ascending,
 	}, nil
 }
 

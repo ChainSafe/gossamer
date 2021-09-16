@@ -39,7 +39,7 @@ func addTestBlocksToState(t *testing.T, depth int, blockState BlockState) {
 
 func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 	s := newTestSyncer(t)
-	addTestBlocksToState(t, int(MAX_RESPONSE_SIZE), s.blockState)
+	addTestBlocksToState(t, int(maxResponseSize), s.blockState)
 
 	start, err := variadic.NewUint64OrHash(uint64(1))
 	require.NoError(t, err)
@@ -54,7 +54,7 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 
 	resp, err := s.CreateBlockResponse(req)
 	require.NoError(t, err)
-	require.Equal(t, int(MAX_RESPONSE_SIZE), len(resp.BlockData))
+	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
 	require.Equal(t, big.NewInt(1), resp.BlockData[0].Number())
 	require.Equal(t, big.NewInt(128), resp.BlockData[127].Number())
 
@@ -63,19 +63,19 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 		StartingBlock: start,
 		EndBlockHash:  optional.NewHash(false, common.Hash{}),
 		Direction:     0,
-		Max:           optional.NewUint32(true, MAX_RESPONSE_SIZE+100),
+		Max:           optional.NewUint32(true, maxResponseSize+100),
 	}
 
 	resp, err = s.CreateBlockResponse(req)
 	require.NoError(t, err)
-	require.Equal(t, int(MAX_RESPONSE_SIZE), len(resp.BlockData))
+	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
 	require.Equal(t, big.NewInt(1), resp.BlockData[0].Number())
 	require.Equal(t, big.NewInt(128), resp.BlockData[127].Number())
 }
 
 func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 	s := newTestSyncer(t)
-	addTestBlocksToState(t, int(MAX_RESPONSE_SIZE), s.blockState)
+	addTestBlocksToState(t, int(maxResponseSize), s.blockState)
 
 	startHash, err := s.blockState.GetHashByNumber(big.NewInt(1))
 	require.NoError(t, err)
@@ -93,14 +93,14 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 
 	resp, err := s.CreateBlockResponse(req)
 	require.NoError(t, err)
-	require.Equal(t, int(MAX_RESPONSE_SIZE), len(resp.BlockData))
+	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
 	require.Equal(t, big.NewInt(1), resp.BlockData[0].Number())
 	require.Equal(t, big.NewInt(128), resp.BlockData[127].Number())
 }
 
 func TestService_CreateBlockResponse_Descending(t *testing.T) {
 	s := newTestSyncer(t)
-	addTestBlocksToState(t, int(MAX_RESPONSE_SIZE), s.blockState)
+	addTestBlocksToState(t, int(maxResponseSize), s.blockState)
 
 	startHash, err := s.blockState.GetHashByNumber(big.NewInt(1))
 	require.NoError(t, err)
@@ -118,7 +118,7 @@ func TestService_CreateBlockResponse_Descending(t *testing.T) {
 
 	resp, err := s.CreateBlockResponse(req)
 	require.NoError(t, err)
-	require.Equal(t, int(MAX_RESPONSE_SIZE), len(resp.BlockData))
+	require.Equal(t, int(maxResponseSize), len(resp.BlockData))
 	require.Equal(t, big.NewInt(128), resp.BlockData[0].Number())
 	require.Equal(t, big.NewInt(1), resp.BlockData[127].Number())
 }

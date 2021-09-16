@@ -33,7 +33,7 @@ func newTestChainSync(t *testing.T) (*chainSync, <-chan *types.BlockData) { //no
 	net := new(syncmocks.MockNetwork)
 	net.On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(nil, nil)
 
-	readyBlocks := make(chan *types.BlockData, MAX_RESPONSE_SIZE)
+	readyBlocks := make(chan *types.BlockData, maxResponseSize)
 	return newChainSync(bs, net, readyBlocks), readyBlocks
 }
 
@@ -208,30 +208,30 @@ func TestWorkerToRequests(t *testing.T) {
 	w = &worker{
 		startNumber:  big.NewInt(10),
 		targetNumber: big.NewInt(1),
-		direction:    DIR_ASCENDING,
+		direction:    network.Ascending,
 	}
 	_, err = workerToRequests(w)
 	require.Equal(t, errInvalidDirection, err)
 
 	type testCase struct {
 		w        *worker
-		expected []*BlockRequest
+		expected []*network.BlockRequestMessage
 	}
 
 	testCases := []testCase{
 		{
 			w: &worker{
 				startNumber:  big.NewInt(1),
-				targetNumber: big.NewInt(1 + MAX_RESPONSE_SIZE),
-				direction:    DIR_ASCENDING,
+				targetNumber: big.NewInt(1 + maxResponseSize),
+				direction:    network.Ascending,
 				requestData:  bootstrapRequestData,
 			},
-			expected: []*BlockRequest{
+			expected: []*network.BlockRequestMessage{
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: variadic.MustNewUint64OrHash(1),
 					EndBlockHash:  optional.NewHash(false, common.Hash{}),
-					Direction:     DIR_ASCENDING,
+					Direction:     network.Ascending,
 					Max:           optional.NewUint32(true, uint32(128)),
 				},
 			},
@@ -239,23 +239,23 @@ func TestWorkerToRequests(t *testing.T) {
 		{
 			w: &worker{
 				startNumber:  big.NewInt(1),
-				targetNumber: big.NewInt(1 + (MAX_RESPONSE_SIZE * 2)),
-				direction:    DIR_ASCENDING,
+				targetNumber: big.NewInt(1 + (maxResponseSize * 2)),
+				direction:    network.Ascending,
 				requestData:  bootstrapRequestData,
 			},
-			expected: []*BlockRequest{
+			expected: []*network.BlockRequestMessage{
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: variadic.MustNewUint64OrHash(1),
 					EndBlockHash:  optional.NewHash(false, common.Hash{}),
-					Direction:     DIR_ASCENDING,
+					Direction:     network.Ascending,
 					Max:           optional.NewUint32(false, 0),
 				},
 				{
 					RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification,
-					StartingBlock: variadic.MustNewUint64OrHash(1 + MAX_RESPONSE_SIZE),
+					StartingBlock: variadic.MustNewUint64OrHash(1 + maxResponseSize),
 					EndBlockHash:  optional.NewHash(false, common.Hash{}),
-					Direction:     DIR_ASCENDING,
+					Direction:     network.Ascending,
 					Max:           optional.NewUint32(true, uint32(128)),
 				},
 			},
@@ -264,15 +264,15 @@ func TestWorkerToRequests(t *testing.T) {
 			w: &worker{
 				startNumber:  big.NewInt(1),
 				targetNumber: big.NewInt(10),
-				direction:    DIR_ASCENDING,
+				direction:    network.Ascending,
 				requestData:  bootstrapRequestData,
 			},
-			expected: []*BlockRequest{
+			expected: []*network.BlockRequestMessage{
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: variadic.MustNewUint64OrHash(1),
 					EndBlockHash:  optional.NewHash(false, common.Hash{}),
-					Direction:     DIR_ASCENDING,
+					Direction:     network.Ascending,
 					Max:           optional.NewUint32(true, 9),
 				},
 			},
@@ -281,15 +281,15 @@ func TestWorkerToRequests(t *testing.T) {
 			w: &worker{
 				startNumber:  big.NewInt(10),
 				targetNumber: big.NewInt(1),
-				direction:    DIR_DESCENDING,
+				direction:    network.Descending,
 				requestData:  bootstrapRequestData,
 			},
-			expected: []*BlockRequest{
+			expected: []*network.BlockRequestMessage{
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: variadic.MustNewUint64OrHash(10),
 					EndBlockHash:  optional.NewHash(false, common.Hash{}),
-					Direction:     DIR_DESCENDING,
+					Direction:     network.Descending,
 					Max:           optional.NewUint32(true, 9),
 				},
 			},
@@ -297,24 +297,24 @@ func TestWorkerToRequests(t *testing.T) {
 		{
 			w: &worker{
 				startNumber:  big.NewInt(1),
-				targetNumber: big.NewInt(1 + MAX_RESPONSE_SIZE + (MAX_RESPONSE_SIZE / 2)),
-				direction:    DIR_ASCENDING,
+				targetNumber: big.NewInt(1 + maxResponseSize + (maxResponseSize / 2)),
+				direction:    network.Ascending,
 				requestData:  bootstrapRequestData,
 			},
-			expected: []*BlockRequest{
+			expected: []*network.BlockRequestMessage{
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: variadic.MustNewUint64OrHash(1),
 					EndBlockHash:  optional.NewHash(false, common.Hash{}),
-					Direction:     DIR_ASCENDING,
+					Direction:     network.Ascending,
 					Max:           optional.NewUint32(false, 0),
 				},
 				{
 					RequestedData: network.RequestedDataHeader + network.RequestedDataBody + network.RequestedDataJustification,
-					StartingBlock: variadic.MustNewUint64OrHash(1 + MAX_RESPONSE_SIZE),
+					StartingBlock: variadic.MustNewUint64OrHash(1 + maxResponseSize),
 					EndBlockHash:  optional.NewHash(false, common.Hash{}),
-					Direction:     DIR_ASCENDING,
-					Max:           optional.NewUint32(true, uint32(MAX_RESPONSE_SIZE/2)),
+					Direction:     network.Ascending,
+					Max:           optional.NewUint32(true, uint32(maxResponseSize/2)),
 				},
 			},
 		},
@@ -323,15 +323,15 @@ func TestWorkerToRequests(t *testing.T) {
 				startNumber:  big.NewInt(1),
 				targetNumber: big.NewInt(10),
 				targetHash:   common.Hash{0xa},
-				direction:    DIR_ASCENDING,
+				direction:    network.Ascending,
 				requestData:  bootstrapRequestData,
 			},
-			expected: []*BlockRequest{
+			expected: []*network.BlockRequestMessage{
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: variadic.MustNewUint64OrHash(1),
 					EndBlockHash:  optional.NewHash(true, common.Hash{0xa}),
-					Direction:     DIR_ASCENDING,
+					Direction:     network.Ascending,
 					Max:           optional.NewUint32(true, 9),
 				},
 			},
@@ -342,15 +342,15 @@ func TestWorkerToRequests(t *testing.T) {
 				startHash:    common.Hash{0xb},
 				targetNumber: big.NewInt(10),
 				targetHash:   common.Hash{0xc},
-				direction:    DIR_ASCENDING,
+				direction:    network.Ascending,
 				requestData:  bootstrapRequestData,
 			},
-			expected: []*BlockRequest{
+			expected: []*network.BlockRequestMessage{
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: variadic.MustNewUint64OrHash(common.Hash{0xb}),
 					EndBlockHash:  optional.NewHash(true, common.Hash{0xc}),
-					Direction:     DIR_ASCENDING,
+					Direction:     network.Ascending,
 					Max:           optional.NewUint32(true, 9),
 				},
 			},
@@ -366,7 +366,7 @@ func TestWorkerToRequests(t *testing.T) {
 }
 
 func TestValidateBlockData(t *testing.T) {
-	req := &BlockRequest{
+	req := &network.BlockRequestMessage{
 		RequestedData: bootstrapRequestData,
 	}
 
@@ -393,11 +393,11 @@ func TestChainSync_validateResponse(t *testing.T) {
 	err := cs.validateResponse(nil, nil)
 	require.Equal(t, errEmptyBlockData, err)
 
-	req := &BlockRequest{
+	req := &network.BlockRequestMessage{
 		RequestedData: network.RequestedDataHeader,
 	}
 
-	resp := &BlockResponse{
+	resp := &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
 				Header: (&types.Header{
@@ -425,7 +425,7 @@ func TestChainSync_validateResponse(t *testing.T) {
 	parent := (&types.Header{
 		Number: big.NewInt(1),
 	}).Hash()
-	resp = &BlockResponse{
+	resp = &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
 				Header: (&types.Header{
@@ -455,7 +455,7 @@ func TestChainSync_validateResponse(t *testing.T) {
 	parent = (&types.Header{
 		Number: big.NewInt(2),
 	}).Hash()
-	resp = &BlockResponse{
+	resp = &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
 				Header: (&types.Header{
@@ -481,11 +481,11 @@ func TestChainSync_validateResponse(t *testing.T) {
 func TestChainSync_doSync(t *testing.T) {
 	cs, readyBlocks := newTestChainSync(t)
 
-	req := &BlockRequest{
+	req := &network.BlockRequestMessage{
 		RequestedData: bootstrapRequestData,
 		StartingBlock: variadic.MustNewUint64OrHash(1),
 		EndBlockHash:  optional.NewHash(false, common.Hash{}),
-		Direction:     DIR_ASCENDING,
+		Direction:     network.Ascending,
 		Max:           optional.NewUint32(true, uint32(1)),
 	}
 
@@ -501,7 +501,7 @@ func TestChainSync_doSync(t *testing.T) {
 	require.NotNil(t, workerErr)
 	require.Equal(t, errNilResponse, workerErr.err)
 
-	resp := &BlockResponse{
+	resp := &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
 				Header: (&types.Header{
@@ -527,7 +527,7 @@ func TestChainSync_doSync(t *testing.T) {
 	parent := (&types.Header{
 		Number: big.NewInt(2),
 	}).Hash()
-	resp = &BlockResponse{
+	resp = &network.BlockResponseMessage{
 		BlockData: []*types.BlockData{
 			{
 				Header: (&types.Header{
@@ -546,7 +546,7 @@ func TestChainSync_doSync(t *testing.T) {
 	}
 
 	// test to see if descending blocks get reversed
-	req.Direction = DIR_DESCENDING
+	req.Direction = network.Descending
 	cs.network = new(syncmocks.MockNetwork)
 	cs.network.(*syncmocks.MockNetwork).On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(resp, nil)
 	workerErr = cs.doSync(req)

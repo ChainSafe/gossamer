@@ -8,6 +8,7 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/peer"
 
+	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/lib/common"
 )
 
@@ -73,7 +74,7 @@ type worker struct {
 
 	// bitmap of fields to request
 	requestData byte
-	direction   byte
+	direction   network.SyncDirection
 
 	duration time.Duration
 	err      *workerError

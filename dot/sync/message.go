@@ -27,14 +27,8 @@ import (
 )
 
 const (
-	// MAX_RESPONSE_SIZE is maximum number of block data a BlockResponse message can contain
-	MAX_RESPONSE_SIZE = 128
-
-	// DIR_ASCENDING is used when block response data is in ascending order (ie parent to child)
-	DIR_ASCENDING byte = 0
-
-	// DIR_DESCENDING is used when block response data is in descending order (ie child to parent)
-	DIR_DESCENDING byte = 1
+	// maxResponseSize is maximum number of block data a BlockResponse message can contain
+	maxResponseSize = 128
 )
 
 // CreateBlockResponse creates a block response message from a block request message
@@ -52,11 +46,11 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 
 	if blockRequest.Max != nil && blockRequest.Max.Exists() {
 		respSize = blockRequest.Max.Value()
-		if respSize > MAX_RESPONSE_SIZE {
-			respSize = MAX_RESPONSE_SIZE
+		if respSize > maxResponseSize {
+			respSize = maxResponseSize
 		}
 	} else {
-		respSize = MAX_RESPONSE_SIZE
+		respSize = maxResponseSize
 	}
 
 	switch startBlock := blockRequest.StartingBlock.Value().(type) {
@@ -110,7 +104,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 	responseData := []*types.BlockData{}
 
 	switch blockRequest.Direction {
-	case DIR_ASCENDING:
+	case network.Ascending:
 		for i := startHeader.Number.Int64(); i <= endHeader.Number.Int64(); i++ {
 			blockData, err := s.getBlockData(big.NewInt(i), blockRequest.RequestedData)
 			if err != nil {
@@ -118,7 +112,7 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 			}
 			responseData = append(responseData, blockData)
 		}
-	case DIR_DESCENDING:
+	case network.Descending:
 		for i := endHeader.Number.Int64(); i >= startHeader.Number.Int64(); i-- {
 			blockData, err := s.getBlockData(big.NewInt(i), blockRequest.RequestedData)
 			if err != nil {
