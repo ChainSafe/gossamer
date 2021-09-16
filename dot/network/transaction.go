@@ -120,7 +120,7 @@ func decodeTransactionHandshake(_ []byte) (Handshake, error) {
 }
 
 func (s *Service) createBatchMessageHandler(txnBatch chan *batchMessage) NotificationsMessageBatchHandler {
-	txnBatchHandler := func(peer peer.ID, msg NotificationsMessage) (msgs []*batchMessage, err error) {
+	return func(peer peer.ID, msg NotificationsMessage) (msgs []*batchMessage, err error) {
 		data := &batchMessage{
 			msg:  msg,
 			peer: peer,
@@ -150,7 +150,6 @@ func (s *Service) createBatchMessageHandler(txnBatch chan *batchMessage) Notific
 		// May be use error to compute peer score.
 		return propagateMsgs, nil
 	}
-	return txnBatchHandler
 }
 
 func validateTransactionHandshake(_ peer.ID, _ Handshake) error {
