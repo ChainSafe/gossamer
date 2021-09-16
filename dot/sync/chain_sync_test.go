@@ -215,7 +215,7 @@ func TestWorkerToRequests(t *testing.T) {
 
 	type testCase struct {
 		w        *worker
-		expected []*BlockRequestMessage
+		expected []*BlockRequest
 	}
 
 	testCases := []testCase{
@@ -226,7 +226,7 @@ func TestWorkerToRequests(t *testing.T) {
 				direction:    DIR_ASCENDING,
 				requestData:  bootstrapRequestData,
 			},
-			expected: []*BlockRequestMessage{
+			expected: []*BlockRequest{
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: variadic.MustNewUint64OrHash(1),
@@ -243,7 +243,7 @@ func TestWorkerToRequests(t *testing.T) {
 				direction:    DIR_ASCENDING,
 				requestData:  bootstrapRequestData,
 			},
-			expected: []*BlockRequestMessage{
+			expected: []*BlockRequest{
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: variadic.MustNewUint64OrHash(1),
@@ -267,7 +267,7 @@ func TestWorkerToRequests(t *testing.T) {
 				direction:    DIR_ASCENDING,
 				requestData:  bootstrapRequestData,
 			},
-			expected: []*BlockRequestMessage{
+			expected: []*BlockRequest{
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: variadic.MustNewUint64OrHash(1),
@@ -284,7 +284,7 @@ func TestWorkerToRequests(t *testing.T) {
 				direction:    DIR_DESCENDING,
 				requestData:  bootstrapRequestData,
 			},
-			expected: []*BlockRequestMessage{
+			expected: []*BlockRequest{
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: variadic.MustNewUint64OrHash(10),
@@ -301,7 +301,7 @@ func TestWorkerToRequests(t *testing.T) {
 				direction:    DIR_ASCENDING,
 				requestData:  bootstrapRequestData,
 			},
-			expected: []*BlockRequestMessage{
+			expected: []*BlockRequest{
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: variadic.MustNewUint64OrHash(1),
@@ -326,7 +326,7 @@ func TestWorkerToRequests(t *testing.T) {
 				direction:    DIR_ASCENDING,
 				requestData:  bootstrapRequestData,
 			},
-			expected: []*BlockRequestMessage{
+			expected: []*BlockRequest{
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: variadic.MustNewUint64OrHash(1),
@@ -345,7 +345,7 @@ func TestWorkerToRequests(t *testing.T) {
 				direction:    DIR_ASCENDING,
 				requestData:  bootstrapRequestData,
 			},
-			expected: []*BlockRequestMessage{
+			expected: []*BlockRequest{
 				{
 					RequestedData: bootstrapRequestData,
 					StartingBlock: variadic.MustNewUint64OrHash(common.Hash{0xb}),
@@ -366,7 +366,7 @@ func TestWorkerToRequests(t *testing.T) {
 }
 
 func TestValidateBlockData(t *testing.T) {
-	req := &BlockRequestMessage{
+	req := &BlockRequest{
 		RequestedData: bootstrapRequestData,
 	}
 
@@ -393,11 +393,11 @@ func TestChainSync_validateResponse(t *testing.T) {
 	err := cs.validateResponse(nil, nil)
 	require.Equal(t, errEmptyBlockData, err)
 
-	req := &BlockRequestMessage{
+	req := &BlockRequest{
 		RequestedData: network.RequestedDataHeader,
 	}
 
-	resp := &BlockResponseMessage{
+	resp := &BlockResponse{
 		BlockData: []*types.BlockData{
 			{
 				Header: (&types.Header{
@@ -425,7 +425,7 @@ func TestChainSync_validateResponse(t *testing.T) {
 	parent := (&types.Header{
 		Number: big.NewInt(1),
 	}).Hash()
-	resp = &BlockResponseMessage{
+	resp = &BlockResponse{
 		BlockData: []*types.BlockData{
 			{
 				Header: (&types.Header{
@@ -455,7 +455,7 @@ func TestChainSync_validateResponse(t *testing.T) {
 	parent = (&types.Header{
 		Number: big.NewInt(2),
 	}).Hash()
-	resp = &BlockResponseMessage{
+	resp = &BlockResponse{
 		BlockData: []*types.BlockData{
 			{
 				Header: (&types.Header{
@@ -481,7 +481,7 @@ func TestChainSync_validateResponse(t *testing.T) {
 func TestChainSync_doSync(t *testing.T) {
 	cs, readyBlocks := newTestChainSync(t)
 
-	req := &BlockRequestMessage{
+	req := &BlockRequest{
 		RequestedData: bootstrapRequestData,
 		StartingBlock: variadic.MustNewUint64OrHash(1),
 		EndBlockHash:  optional.NewHash(false, common.Hash{}),
@@ -501,7 +501,7 @@ func TestChainSync_doSync(t *testing.T) {
 	require.NotNil(t, workerErr)
 	require.Equal(t, errNilResponse, workerErr.err)
 
-	resp := &BlockResponseMessage{
+	resp := &BlockResponse{
 		BlockData: []*types.BlockData{
 			{
 				Header: (&types.Header{
@@ -527,7 +527,7 @@ func TestChainSync_doSync(t *testing.T) {
 	parent := (&types.Header{
 		Number: big.NewInt(2),
 	}).Hash()
-	resp = &BlockResponseMessage{
+	resp = &BlockResponse{
 		BlockData: []*types.BlockData{
 			{
 				Header: (&types.Header{

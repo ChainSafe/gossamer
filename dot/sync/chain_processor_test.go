@@ -17,10 +17,6 @@ import (
 )
 
 func TestChainProcessor_HandleBlockResponse_ValidChain(t *testing.T) {
-	if testing.Short() {
-		t.Skip() // this test takes around 4min to run
-	}
-
 	syncer := newTestSyncer(t)
 	responder := newTestSyncer(t)
 

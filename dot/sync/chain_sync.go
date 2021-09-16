@@ -26,8 +26,8 @@ var _ ChainSync = &chainSync{}
 
 //nolint
 type (
-	BlockRequestMessage  = network.BlockRequestMessage
-	BlockResponseMessage = network.BlockResponseMessage
+	BlockRequest  = network.BlockRequestMessage
+	BlockResponse = network.BlockResponseMessage
 )
 
 type chainSyncState byte
@@ -536,7 +536,7 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 	}
 }
 
-func (cs *chainSync) doSync(req *BlockRequestMessage) *workerError {
+func (cs *chainSync) doSync(req *BlockRequest) *workerError {
 	// determine which peers have the blocks we want to request
 	peers := cs.determineSyncPeers(req)
 
@@ -613,7 +613,7 @@ func (cs *chainSync) doSync(req *BlockRequestMessage) *workerError {
 
 // determineSyncPeers returns a list of peers that likely have the blocks in the given block request.
 // TODO: implement this
-func (cs *chainSync) determineSyncPeers(_ *BlockRequestMessage) []peer.ID {
+func (cs *chainSync) determineSyncPeers(_ *BlockRequest) []peer.ID {
 	peers := []peer.ID{}
 
 	cs.RLock()
@@ -636,7 +636,7 @@ func (cs *chainSync) determineSyncPeers(_ *BlockRequestMessage) []peer.ID {
 // 	- the response is not empty
 //  - the response contains all the expected fields
 //  - each block has the correct parent, ie. the response constitutes a valid chain
-func (cs *chainSync) validateResponse(req *BlockRequestMessage, resp *BlockResponseMessage) error {
+func (cs *chainSync) validateResponse(req *BlockRequest, resp *BlockResponse) error {
 	if resp == nil || len(resp.BlockData) == 0 {
 		return errEmptyBlockData
 	}
@@ -680,7 +680,6 @@ func (cs *chainSync) validateResponse(req *BlockRequestMessage, resp *BlockRespo
 				if err != nil {
 					return fmt.Errorf("failed to convert block body from optional: hash=%s err=%s", bd.Hash, err)
 				}
-				fmt.Println(curr)
 
 				cs.pendingBlocks.addBlock(&types.Block{
 					Header: curr,
@@ -697,7 +696,7 @@ func (cs *chainSync) validateResponse(req *BlockRequestMessage, resp *BlockRespo
 }
 
 // validateBlockData checks that the expected fields are in the block data
-func validateBlockData(req *BlockRequestMessage, bd *types.BlockData) error {
+func validateBlockData(req *BlockRequest, bd *types.BlockData) error {
 	if bd == nil {
 		return errNilBlockData
 	}
@@ -715,7 +714,7 @@ func validateBlockData(req *BlockRequestMessage, bd *types.BlockData) error {
 	return nil
 }
 
-func workerToRequests(w *worker) ([]*BlockRequestMessage, error) {
+func workerToRequests(w *worker) ([]*BlockRequest, error) {
 	// worker must specify a start number
 	// empty start hash is ok (eg. in the case of bootstrap, start hash is unknown)
 	if w.startNumber == nil {
@@ -747,7 +746,7 @@ func workerToRequests(w *worker) ([]*BlockRequestMessage, error) {
 	}
 
 	startNumber := w.startNumber.Uint64()
-	reqs := make([]*BlockRequestMessage, numRequests)
+	reqs := make([]*BlockRequest, numRequests)
 
 	for i := 0; i < numRequests; i++ {
 		// check if we want to specify a size
@@ -778,7 +777,7 @@ func workerToRequests(w *worker) ([]*BlockRequestMessage, error) {
 			end = optional.NewHash(true, w.targetHash)
 		}
 
-		reqs[i] = &BlockRequestMessage{
+		reqs[i] = &BlockRequest{
 			RequestedData: w.requestData,
 			StartingBlock: start,
 			EndBlockHash:  end,

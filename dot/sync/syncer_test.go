@@ -68,7 +68,7 @@ func newMockVerifier() *syncmocks.MockVerifier {
 
 func newMockNetwork() *syncmocks.MockNetwork {
 	m := new(syncmocks.MockNetwork)
-	m.On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*BlockRequestMessage")).Return(nil, nil)
+	m.On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(nil, nil)
 	return m
 }
 
