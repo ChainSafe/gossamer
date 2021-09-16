@@ -60,6 +60,7 @@ const (
 	RequestedDataMessageQueue  = byte(8)
 	RequestedDataJustification = byte(16)
 )
+
 var _ Message = &BlockRequestMessage{}
 
 // BlockRequestMessage is sent to request some blocks from a peer
