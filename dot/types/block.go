@@ -55,11 +55,15 @@ func (b *Block) MustEncode() []byte {
 }
 
 // DeepCopy returns a copy of the block
-func (b *Block) DeepCopy() Block {
+func (b *Block) DeepCopy() (Block, error) {
 	bc := make([]byte, len(b.Body))
 	copy(bc, b.Body)
-	return Block{
-		Header: *b.Header.DeepCopy(),
-		Body:   *NewBody(bc),
+	head, err := b.Header.DeepCopy()
+	if err != nil {
+		return Block{}, err
 	}
+	return Block{
+		Header: *head,
+		Body:   *NewBody(bc),
+	}, nil
 }

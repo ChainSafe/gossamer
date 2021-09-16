@@ -72,7 +72,8 @@ func TestDeepCopyBlock(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	bc := block.DeepCopy()
+	bc, err := block.DeepCopy()
+	require.NoError(t, err)
 	bc.Header.ParentHash = common.Hash{}
 	require.NotEqual(t, block.Header.ParentHash, bc.Header.ParentHash)
 }

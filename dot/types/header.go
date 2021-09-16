@@ -77,7 +77,7 @@ func (bh *Header) Empty() bool {
 }
 
 // DeepCopy returns a deep copy of the header to prevent side effects down the road
-func (bh *Header) DeepCopy() *Header {
+func (bh *Header) DeepCopy() (*Header, error) {
 	cp := NewEmptyHeader()
 	copy(cp.ParentHash[:], bh.ParentHash[:])
 	copy(cp.StateRoot[:], bh.StateRoot[:])
@@ -92,12 +92,12 @@ func (bh *Header) DeepCopy() *Header {
 		for _, d := range bh.Digest.Types {
 			err := cp.Digest.Add(d.Value())
 			if err != nil {
-				panic(err)
+				return nil, err
 			}
 		}
 	}
 
-	return cp
+	return cp, nil
 }
 
 // String returns the formatted header as a string

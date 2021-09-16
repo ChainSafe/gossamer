@@ -147,7 +147,10 @@ func (in *Instance) FinalizeBlock() (*types.Header, error) {
 // ExecuteBlock calls runtime function Core_execute_block
 func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	// copy block since we're going to modify it
-	b := block.DeepCopy()
+	b, err := block.DeepCopy()
+	if err != nil {
+		return nil, err
+	}
 
 	if in.version == nil {
 		var err error

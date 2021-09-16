@@ -484,7 +484,10 @@ func (b *Service) handleSlot(epoch, slotNum uint64) error {
 
 	// there is a chance that the best block header may change in the course of building the block,
 	// so let's copy it first.
-	parent := parentHeader.DeepCopy()
+	parent, err := parentHeader.DeepCopy()
+	if err != nil {
+		return err
+	}
 
 	currentSlot := Slot{
 		start:    time.Now(),

@@ -462,11 +462,8 @@ func TestHandler_HandleNextEpochData(t *testing.T) {
 	stored, err := handler.epochState.(*state.EpochState).GetEpochData(1)
 	require.NoError(t, err)
 
-	var act types.NextEpochData
-	switch val := digest.Value().(type) {
-	case types.NextEpochData:
-		act = val
-	default:
+	act, ok := digest.Value().(types.NextEpochData)
+	if !ok {
 		t.Fatal()
 	}
 
@@ -501,11 +498,8 @@ func TestHandler_HandleNextConfigData(t *testing.T) {
 	err = handler.handleConsensusDigest(d, header)
 	require.NoError(t, err)
 
-	var act types.NextConfigData
-	switch val := digest.Value().(type) {
-	case types.NextConfigData:
-		act = val
-	default:
+	act, ok := digest.Value().(types.NextConfigData)
+	if !ok {
 		t.Fatal()
 	}
 

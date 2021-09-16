@@ -127,7 +127,10 @@ func (in *Instance) FinalizeBlock() (*types.Header, error) {
 // ExecuteBlock calls runtime function Core_execute_block
 func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	// copy block since we're going to modify it
-	b := block.DeepCopy()
+	b, err := block.DeepCopy()
+	if err != nil {
+		return nil, err
+	}
 	b.Header.Digest = types.NewDigest()
 
 	// TODO: hack since substrate node_runtime can't seem to handle BABE pre-runtime digests

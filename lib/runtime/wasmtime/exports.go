@@ -140,7 +140,10 @@ func (in *Instance) FinalizeBlock() (*types.Header, error) {
 
 // ExecuteBlock calls runtime function Core_execute_block
 func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
-	b := block.DeepCopy()
+	b, err := block.DeepCopy()
+	if err != nil {
+		return nil, err
+	}
 	b.Header.Digest = types.NewDigest()
 
 	bdEnc, err := b.Encode()

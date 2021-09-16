@@ -114,7 +114,8 @@ func TestHeaderDeepCopy(t *testing.T) {
 	header, err := NewHeader(common.Hash{}, common.Hash{}, common.Hash{}, big.NewInt(1), vdts)
 	require.NoError(t, err)
 
-	dc := header.DeepCopy()
+	dc, err := header.DeepCopy()
+	require.NoError(t, err)
 	dc.Hash()
 	require.Equal(t, header, dc)
 }

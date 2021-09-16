@@ -106,10 +106,6 @@ func TestSyncQueue_processBlockResponses_Justification(t *testing.T) {
 		q.responseCh <- []*types.BlockData{
 			{
 				Hash:          common.Hash{byte(0)},
-				Header:        nil,
-				Body:          nil,
-				Receipt:       nil,
-				MessageQueue:  nil,
 				Justification: &[]byte{1},
 			},
 		}
