@@ -188,7 +188,7 @@ func TestSend(t *testing.T) {
 	nodeB := createTestService(t, configB)
 	nodeB.noGossip = true
 	handler := newTestStreamHandler(testBlockRequestMessageDecoder)
-	nodeB.host.registerStreamHandler("", handler.handleStream)
+	nodeB.host.registerStreamHandler(nodeB.host.protocolID, handler.handleStream)
 
 	addrInfoB := nodeB.host.addrInfo()
 	err := nodeA.host.connect(addrInfoB)
@@ -223,7 +223,7 @@ func TestExistingStream(t *testing.T) {
 	nodeA := createTestService(t, configA)
 	nodeA.noGossip = true
 	handlerA := newTestStreamHandler(testBlockRequestMessageDecoder)
-	nodeA.host.registerStreamHandler("", handlerA.handleStream)
+	nodeA.host.registerStreamHandler(nodeA.host.protocolID, handlerA.handleStream)
 
 	addrInfoA := nodeA.host.addrInfo()
 	basePathB := utils.NewTestBasePath(t, "nodeB")
@@ -237,7 +237,7 @@ func TestExistingStream(t *testing.T) {
 	nodeB := createTestService(t, configB)
 	nodeB.noGossip = true
 	handlerB := newTestStreamHandler(testBlockRequestMessageDecoder)
-	nodeB.host.registerStreamHandler("", handlerB.handleStream)
+	nodeB.host.registerStreamHandler(nodeB.host.protocolID, handlerB.handleStream)
 
 	addrInfoB := nodeB.host.addrInfo()
 	err := nodeA.host.connect(addrInfoB)
@@ -501,7 +501,7 @@ func TestStreamCloseEOF(t *testing.T) {
 	nodeB := createTestService(t, configB)
 	nodeB.noGossip = true
 	handler := newTestStreamHandler(testBlockRequestMessageDecoder)
-	nodeB.host.registerStreamHandler("", handler.handleStream)
+	nodeB.host.registerStreamHandler(nodeB.host.protocolID, handler.handleStream)
 	require.False(t, handler.exit)
 
 	addrInfoB := nodeB.host.addrInfo()

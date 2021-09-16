@@ -82,14 +82,14 @@ func (n *testNetwork) SendJustificationRequest(to peer.ID, num uint32) {
 	}
 }
 
-func (n *testNetwork) RegisterNotificationsProtocol(sub protocol.ID,
+func (n *testNetwork) RegisterNotificationsProtocol(
+	pid protocol.ID,
 	messageID byte,
 	handshakeGetter network.HandshakeGetter,
 	handshakeDecoder network.HandshakeDecoder,
 	handshakeValidator network.HandshakeValidator,
 	messageDecoder network.MessageDecoder,
 	messageHandler network.NotificationsMessageHandler,
-	overwriteProtocol bool,
 ) error {
 	return nil
 }

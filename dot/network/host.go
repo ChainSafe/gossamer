@@ -225,18 +225,8 @@ func (h *host) close() error {
 }
 
 // registerStreamHandler registers the stream handler, appending the given sub-protocol to the main protocol ID
-func (h *host) registerStreamHandler(sub protocol.ID, handler func(libp2pnetwork.Stream)) {
-	h.h.SetStreamHandler(h.protocolID+sub, handler)
-}
-
-// registerStreamHandlerWithOverwrite registers the stream handler. if overwrite is true, it uses the passed protocol ID
-// for the handler, otherwise it appends the given sub-protocol to the main protocol ID
-func (h *host) registerStreamHandlerWithOverwrite(pid protocol.ID, overwrite bool, handler func(libp2pnetwork.Stream)) {
-	if overwrite {
-		h.h.SetStreamHandler(pid, handler)
-	} else {
-		h.h.SetStreamHandler(h.protocolID+pid, handler)
-	}
+func (h *host) registerStreamHandler(pid protocol.ID, handler func(libp2pnetwork.Stream)) {
+	h.h.SetStreamHandler(pid, handler)
 }
 
 // connect connects the host to a specific peer address

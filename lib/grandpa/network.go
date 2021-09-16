@@ -94,14 +94,14 @@ func (hs *GrandpaHandshake) IsHandshake() bool {
 }
 
 func (s *Service) registerProtocol() error {
-	return s.network.RegisterNotificationsProtocol(grandpaID,
+	return s.network.RegisterNotificationsProtocol(
+		grandpaID,
 		messageID,
 		s.getHandshake,
 		s.decodeHandshake,
 		s.validateHandshake,
 		s.decodeMessage,
 		s.handleNetworkMessage,
-		true,
 	)
 }
 
