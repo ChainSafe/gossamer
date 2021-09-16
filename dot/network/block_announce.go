@@ -220,7 +220,7 @@ func (s *Service) validateBlockAnnounceHandshake(peer peer.ID, hs Handshake) err
 
 	// don't need to lock here, since function is always called inside the func returned by
 	// `createNotificationsMessageHandler` which locks the map beforehand.
-	data, ok := np.getHandshakeData(peer, true)
+	data, ok := np.getInboundHandshakeData(peer)
 	if ok {
 		data.handshake = hs
 		// TODO: since this is used only for rpc system_peers only,

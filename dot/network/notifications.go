@@ -18,18 +18,20 @@ package network
 
 import (
 	"errors"
+	"reflect"
 	"sync"
 	"time"
-	"unsafe"
 
 	libp2pnetwork "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 )
 
-var errCannotValidateHandshake = errors.New("failed to validate handshake")
+var (
+	errCannotValidateHandshake = errors.New("failed to validate handshake")
+	maxHandshakeSize           = reflect.TypeOf(BlockAnnounceHandshake{}).Size()
+)
 
-const maxHandshakeSize = unsafe.Sizeof(BlockAnnounceHandshake{}) //nolint
 const handshakeTimeout = time.Second * 10
 
 // Handshake is the interface all handshakes for notifications protocols must implement
@@ -70,18 +72,27 @@ type notificationsProtocol struct {
 	outboundHandshakeData *sync.Map //map[peer.ID]*handshakeData
 }
 
-func (n *notificationsProtocol) getHandshakeData(pid peer.ID, inbound bool) (handshakeData, bool) {
+func (n *notificationsProtocol) getInboundHandshakeData(pid peer.ID) (handshakeData, bool) {
 	var (
 		data interface{}
 		has  bool
 	)
 
-	if inbound {
-		data, has = n.inboundHandshakeData.Load(pid)
-	} else {
-		data, has = n.outboundHandshakeData.Load(pid)
+	data, has = n.inboundHandshakeData.Load(pid)
+	if !has {
+		return handshakeData{}, false
 	}
 
+	return data.(handshakeData), true
+}
+
+func (n *notificationsProtocol) getOutboundHandshakeData(pid peer.ID) (handshakeData, bool) {
+	var (
+		data interface{}
+		has  bool
+	)
+
+	data, has = n.outboundHandshakeData.Load(pid)
 	if !has {
 		return handshakeData{}, false
 	}
@@ -110,7 +121,18 @@ func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecode
 	return func(in []byte, peer peer.ID, inbound bool) (Message, error) {
 		// if we don't have handshake data on this peer, or we haven't received the handshake from them already,
 		// assume we are receiving the handshake
-		if hsData, has := info.getHandshakeData(peer, inbound); !has || !hsData.received {
+		var (
+			hsData handshakeData
+			has    bool
+		)
+
+		if inbound {
+			hsData, has = info.getInboundHandshakeData(peer)
+		} else {
+			hsData, has = info.getOutboundHandshakeData(peer)
+		}
+
+		if !has || !hsData.received {
 			return handshakeDecoder(in)
 		}
 
@@ -150,7 +172,7 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			// note: if this function is being called, it's being called via SetStreamHandler,
 			// ie it is an inbound stream and we only send the handshake over it.
 			// we do not send any other data over this stream, we would need to open a new outbound stream.
-			if _, has := info.getHandshakeData(peer, true); !has {
+			if _, has := info.getInboundHandshakeData(peer); !has {
 				logger.Trace("receiver: validating handshake", "protocol", info.protocolID)
 
 				hsData := newHandshakeData(true, false, stream)
@@ -211,7 +233,7 @@ func (s *Service) sendData(peer peer.ID, hs Handshake, info *notificationsProtoc
 		return
 	}
 
-	hsData, has := info.getHandshakeData(peer, false)
+	hsData, has := info.getOutboundHandshakeData(peer)
 	if has && !hsData.validated {
 		// peer has sent us an invalid handshake in the past, ignore
 		return

@@ -329,7 +329,7 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	})
 
 	// Verify that handshake data exists.
-	_, ok := info.getHandshakeData(nodeB.host.id(), true)
+	_, ok := info.getInboundHandshakeData(nodeB.host.id())
 	require.True(t, ok)
 
 	time.Sleep(time.Second)
@@ -339,7 +339,7 @@ func TestStreamCloseMetadataCleanup(t *testing.T) {
 	time.Sleep(time.Second)
 
 	// Verify that handshake data is cleared.
-	_, ok = info.getHandshakeData(nodeB.host.id(), true)
+	_, ok = info.getInboundHandshakeData(nodeB.host.id())
 	require.False(t, ok)
 }
 

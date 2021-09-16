@@ -449,7 +449,7 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 
 	connMgr := s.host.h.ConnManager().(*ConnManager)
 	connMgr.registerCloseHandler(protocolID, func(peerID peer.ID) {
-		if _, ok := np.getHandshakeData(peerID, true); ok {
+		if _, ok := np.getInboundHandshakeData(peerID); ok {
 			logger.Trace(
 				"Cleaning up inbound handshake data",
 				"peer", peerID,
@@ -458,7 +458,7 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 			np.inboundHandshakeData.Delete(peerID)
 		}
 
-		if _, ok := np.getHandshakeData(peerID, false); ok {
+		if _, ok := np.getOutboundHandshakeData(peerID); ok {
 			logger.Trace(
 				"Cleaning up outbound handshake data",
 				"peer", peerID,
@@ -684,7 +684,7 @@ func (s *Service) Peers() []common.PeerInfo {
 	s.notificationsMu.RUnlock()
 
 	for _, p := range s.host.peers() {
-		data, has := np.getHandshakeData(p, true)
+		data, has := np.getInboundHandshakeData(p)
 		if !has || data.handshake == nil {
 			peers = append(peers, common.PeerInfo{
 				PeerID: p.String(),
