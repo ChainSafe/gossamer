@@ -65,6 +65,7 @@ const (
 
 var _ Message = &BlockRequestMessage{}
 
+// SyncDirection is the direction of data in a block response
 type SyncDirection byte
 
 const (
