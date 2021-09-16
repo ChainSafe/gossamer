@@ -29,6 +29,38 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestEncodeBlockRequestMessage(t *testing.T) {
+	expected, err := common.HexToBytes("0x08808080082220fd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1280130011220dcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
+	require.Nil(t, err)
+
+	genesisHash, err := common.HexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
+	require.Nil(t, err)
+
+	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
+	require.NoError(t, err)
+
+	one := uint32(1)
+
+	bm := &BlockRequestMessageNew{
+		RequestedData: 1,
+		StartingBlock: *variadic.NewUint64OrHashFromBytes(append([]byte{0}, genesisHash...)),
+		EndBlockHash:  &endBlock,
+		Direction:     1,
+		Max:           &one,
+	}
+
+	encMsg, err := bm.Encode()
+	require.NoError(t, err)
+
+
+	require.Equal(t, expected, encMsg) // Pass!
+
+	res := new(BlockRequestMessageNew)
+	err = res.Decode(encMsg)
+	require.NoError(t, err)
+	require.Equal(t, bm, res)
+}
+
 func TestEncodeBlockRequestMessage_BlockHash(t *testing.T) {
 	genesisHash, err := common.HexToBytes("0xdcd1346701ca8396496e52aa2785b1748deb6db09551b72159dcb3e08991025b")
 	require.Nil(t, err)
