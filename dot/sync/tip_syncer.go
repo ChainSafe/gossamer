@@ -4,7 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/network"
-	"github.com/ChainSafe/gossamer/dot/types"
+	//"github.com/ChainSafe/gossamer/dot/types"
 )
 
 var _ workHandler = &tipSyncer{}
@@ -13,11 +13,11 @@ var _ workHandler = &tipSyncer{}
 type tipSyncer struct {
 	blockState    BlockState
 	pendingBlocks DisjointBlockSet
-	readyBlocks   chan<- *types.BlockData
+	readyBlocks   *blockQueue
 	workerState   *workerState
 }
 
-func newTipSyncer(blockState BlockState, pendingBlocks DisjointBlockSet, readyBlocks chan<- *types.BlockData, workerState *workerState) *tipSyncer {
+func newTipSyncer(blockState BlockState, pendingBlocks DisjointBlockSet, readyBlocks *blockQueue, workerState *workerState) *tipSyncer {
 	return &tipSyncer{
 		blockState:    blockState,
 		pendingBlocks: pendingBlocks,
@@ -87,9 +87,9 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 		has, _ := s.blockState.HasHeader(block.header.ParentHash)
 		if has {
 			// block is ready, as parent is known!
-			// also, move any pendingBlocks that are descendants of this block to the ready blocks queue
+			// TODO: also, move any pendingBlocks that are descendants of this block to the ready blocks queue
 			s.pendingBlocks.removeBlock(block.hash)
-			s.readyBlocks <- block.toBlockData()
+			s.readyBlocks.push(block.toBlockData())
 			continue
 		}
 

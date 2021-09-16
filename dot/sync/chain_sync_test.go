@@ -23,7 +23,7 @@ import (
 
 var testTimeout = time.Second * 5
 
-func newTestChainSync(t *testing.T) (*chainSync, <-chan *types.BlockData) { //nolint
+func newTestChainSync(t *testing.T) (*chainSync, *blockQueue) {
 	header, err := types.NewHeader(common.NewHash([]byte{0}), trie.EmptyHash, trie.EmptyHash, big.NewInt(0), types.Digest{})
 	require.NoError(t, err)
 
@@ -33,7 +33,7 @@ func newTestChainSync(t *testing.T) (*chainSync, <-chan *types.BlockData) { //no
 	net := new(syncmocks.MockNetwork)
 	net.On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(nil, nil)
 
-	readyBlocks := make(chan *types.BlockData, MAX_RESPONSE_SIZE)
+	readyBlocks := newBlockQueue(MAX_RESPONSE_SIZE)
 	return newChainSync(bs, net, readyBlocks), readyBlocks
 }
 
@@ -517,12 +517,9 @@ func TestChainSync_doSync(t *testing.T) {
 
 	workerErr = cs.doSync(req)
 	require.Nil(t, workerErr)
-	select {
-	case bd := <-readyBlocks:
-		require.Equal(t, resp.BlockData[0], bd)
-	default:
-		t.Fatal("expected ready block")
-	}
+	bd := readyBlocks.pop()
+	require.NotNil(t, bd)
+	require.Equal(t, resp.BlockData[0], bd)
 
 	parent := (&types.Header{
 		Number: big.NewInt(2),
@@ -552,17 +549,11 @@ func TestChainSync_doSync(t *testing.T) {
 	workerErr = cs.doSync(req)
 	require.Nil(t, workerErr)
 
-	select {
-	case bd := <-readyBlocks:
-		require.Equal(t, resp.BlockData[0], bd)
-	default:
-		t.Fatal("expected ready block")
-	}
+	bd = readyBlocks.pop()
+	require.NotNil(t, bd)
+	require.Equal(t, resp.BlockData[0], bd)
 
-	select {
-	case bd := <-readyBlocks:
-		require.Equal(t, resp.BlockData[1], bd)
-	default:
-		t.Fatal("expected ready block")
-	}
+	bd = readyBlocks.pop()
+	require.NotNil(t, bd)
+	require.Equal(t, resp.BlockData[1], bd)
 }

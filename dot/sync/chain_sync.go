@@ -103,16 +103,19 @@ type chainSync struct {
 	// current workers that are attempting to obtain blocks
 	workerState *workerState
 
-	// blocks which are ready to be processed are put into this channel
+	// blocks which are ready to be processed are put into this queue
 	// the `chainProcessor` will read from this channel and process the blocks
 	// note: blocks must not be put into this channel unless their parent is known
-	// TODO: channel or queue data structure?
+	//
+	// TODO: ensure this is checked
 	// there is a case where we request and process "duplicate" blocks, which is where there
-	// are some blocks in this channel, and at the same time, the bootstrap worker errors and dispatches
+	// are some blocks in this queue, and at the same time, the bootstrap worker errors and dispatches
 	// a new worker with start=(current best head), which results in the blocks in the queue
 	// getting re-requested (as they have not been processed yet)
-	// fix: either make this a readable queue, or track the highest block we've put into the queue
-	readyBlocks chan<- *types.BlockData
+	// to fix this, we track the blocks that are in the queue
+	//readyBlocksCh chan<- *types.BlockData
+	//readyBlocks map[common.Hash]struct{}
+	readyBlocks *blockQueue
 
 	// disjoint set of blocks which are known but not ready to be processed
 	// ie. we only know the hash, number, or the parent block is unknown, or the body is unknown
@@ -129,7 +132,7 @@ type chainSync struct {
 	benchmarker *syncBenchmarker
 }
 
-func newChainSync(bs BlockState, net Network, readyBlocks chan<- *types.BlockData) *chainSync {
+func newChainSync(bs BlockState, net Network, readyBlocks *blockQueue) *chainSync {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &chainSync{
@@ -608,7 +611,7 @@ func (cs *chainSync) doSync(req *BlockRequestMessage) *workerError {
 		// block is ready to be processed!
 		logger.Trace("new ready block", "hash", bd.Hash, "number", header.Number)
 		cs.pendingBlocks.removeBlock(bd.Hash)
-		cs.readyBlocks <- bd
+		cs.readyBlocks.push(bd)
 	}
 
 	return nil

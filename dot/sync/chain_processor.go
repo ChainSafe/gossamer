@@ -24,7 +24,7 @@ type chainProcessor struct {
 
 	// blocks that are ready for processing. ie. their parent is known, or their parent is ahead
 	// of them within this channel and thus will be processed first
-	readyBlocks <-chan *types.BlockData
+	readyBlocks *blockQueue
 
 	blockState         BlockState
 	storageState       StorageState
@@ -34,7 +34,7 @@ type chainProcessor struct {
 	blockImportHandler BlockImportHandler
 }
 
-func newChainProcessor(readyBlocks <-chan *types.BlockData, blockState BlockState, storageState StorageState, transactionState TransactionState, babeVerifier BabeVerifier, finalityGadget FinalityGadget, blockImportHandler BlockImportHandler) *chainProcessor {
+func newChainProcessor(readyBlocks *blockQueue, blockState BlockState, storageState StorageState, transactionState TransactionState, babeVerifier BabeVerifier, finalityGadget FinalityGadget, blockImportHandler BlockImportHandler) *chainProcessor {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &chainProcessor{
@@ -61,15 +61,19 @@ func (s *chainProcessor) stop() {
 func (s *chainProcessor) processReadyBlocks() {
 	for {
 		select {
-		case bd := <-s.readyBlocks:
-			err := s.processBlockData(bd)
-			if err != nil {
-				logger.Error("ready block failed", "hash", bd.Hash)
-				// TODO: we probably want to relay this error to the chainSync module so the block can be retried
-				// depending on the error, we might want to save this block for later
-			}
 		case <-s.ctx.Done():
 			return
+		}
+
+		bd := s.readyBlocks.pop()
+		if bd == nil {
+			continue
+		}
+
+		if err := s.processBlockData(bd); err != nil {
+			logger.Error("ready block failed", "hash", bd.Hash)
+			// TODO: we probably want to relay this error to the chainSync module so the block can be retried
+			// depending on the error, we might want to save this block for later
 		}
 	}
 }
