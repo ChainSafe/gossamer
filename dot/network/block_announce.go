@@ -45,12 +45,12 @@ type BlockAnnounceMessage struct {
 }
 
 // SubProtocol returns the block-announces sub-protocol
-func (bm *BlockAnnounceMessage) SubProtocol() string {
+func (*BlockAnnounceMessage) SubProtocol() string {
 	return blockAnnounceID
 }
 
 // Type returns BlockAnnounceMsgType
-func (bm *BlockAnnounceMessage) Type() byte {
+func (*BlockAnnounceMessage) Type() byte {
 	return BlockAnnounceMsgType
 }
 
@@ -105,7 +105,7 @@ func (bm *BlockAnnounceMessage) Hash() common.Hash {
 }
 
 // IsHandshake returns false
-func (bm *BlockAnnounceMessage) IsHandshake() bool {
+func (*BlockAnnounceMessage) IsHandshake() bool {
 	return false
 }
 
@@ -137,7 +137,7 @@ type BlockAnnounceHandshake struct {
 }
 
 // SubProtocol returns the block-announces sub-protocol
-func (hs *BlockAnnounceHandshake) SubProtocol() string {
+func (*BlockAnnounceHandshake) SubProtocol() string {
 	return blockAnnounceID
 }
 
@@ -170,17 +170,17 @@ func (hs *BlockAnnounceHandshake) Decode(in []byte) error {
 }
 
 // Type ...
-func (hs *BlockAnnounceHandshake) Type() byte {
+func (*BlockAnnounceHandshake) Type() byte {
 	return 0
 }
 
 // Hash ...
-func (hs *BlockAnnounceHandshake) Hash() common.Hash {
+func (*BlockAnnounceHandshake) Hash() common.Hash {
 	return common.Hash{}
 }
 
 // IsHandshake returns true
-func (hs *BlockAnnounceHandshake) IsHandshake() bool {
+func (*BlockAnnounceHandshake) IsHandshake() bool {
 	return true
 }
 
