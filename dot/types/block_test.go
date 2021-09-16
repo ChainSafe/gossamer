@@ -27,6 +27,36 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestEmptyBlock(t *testing.T) {
+	block := NewEmptyBlock()
+	isEmpty := block.Empty()
+	require.True(t, isEmpty)
+
+	block = NewBlock(*NewEmptyHeader(), Body{})
+	isEmpty = block.Empty()
+	require.True(t, isEmpty)
+
+	parentHash, err := common.HexToHash("0x4545454545454545454545454545454545454545454545454545454545454545")
+	require.NoError(t, err)
+
+	stateRoot, err := common.HexToHash("0x2747ab7c0dc38b7f2afba82bd5e2d6acef8c31e09800f660b75ec84a7005099f")
+	require.NoError(t, err)
+
+	extrinsicsRoot, err := common.HexToHash("0x03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314")
+	require.NoError(t, err)
+
+	header, err := NewHeader(parentHash, stateRoot, extrinsicsRoot, big.NewInt(1), NewDigest())
+	require.NoError(t, err)
+
+	block = NewBlock(*header, Body{})
+	isEmpty = block.Empty()
+	require.False(t, isEmpty)
+
+	block = NewBlock(*NewEmptyHeader(), *NewBody([]byte{4, 1}))
+	isEmpty = block.Empty()
+	require.False(t, isEmpty)
+}
+
 func TestEncodeAndDecodeBlock(t *testing.T) {
 	expected := []byte{69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69,
 		4, 39, 71, 171, 124, 13, 195, 139, 127, 42, 251, 168, 43, 213, 226, 214, 172, 239, 140, 49, 224, 152, 0,

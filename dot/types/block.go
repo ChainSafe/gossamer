@@ -34,6 +34,19 @@ func NewBlock(header Header, body Body) Block {
 	}
 }
 
+// NewEmptyBlock returns a new empty Block
+func NewEmptyBlock() Block {
+	return Block{
+		Header: *NewEmptyHeader(),
+		Body:   *NewBody(nil),
+	}
+}
+
+// Empty returns a boolean indicating is the Block is empty
+func (b *Block) Empty() bool {
+	return b.Header.Empty() && len(b.Body) == 0
+}
+
 // Encode returns the SCALE encoding of a block
 func (b *Block) Encode() ([]byte, error) {
 	enc, err := scale.Marshal(b.Header)

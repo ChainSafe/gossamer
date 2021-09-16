@@ -57,7 +57,7 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 	require.Equal(t, big.NewInt(1), resp.BlockData[0].Number())
 	require.Equal(t, big.NewInt(128), resp.BlockData[127].Number())
 
-	max := maxResponseSize+100
+	max := maxResponseSize + 100
 	req = &network.BlockRequestMessage{
 		RequestedData: 3,
 		StartingBlock: *start,

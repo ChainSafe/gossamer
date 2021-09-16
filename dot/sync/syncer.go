@@ -294,7 +294,7 @@ func (s *Service) handleBody(body *types.Body) error {
 
 // handleHeader handles blocks (header+body) included in BlockResponses
 func (s *Service) handleBlock(block *types.Block) error {
-	if block == nil {
+	if block == nil || block.Empty() || block.Header.Empty() {
 		return errors.New("block, header, or body is nil")
 	}
 

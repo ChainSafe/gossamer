@@ -153,7 +153,6 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 	}
 
 	if in.version == nil {
-		var err error
 		in.version, err = in.Version()
 		if err != nil {
 			return nil, err
@@ -168,7 +167,7 @@ func (in *Instance) ExecuteBlock(block *types.Block) ([]byte, error) {
 		case types.SealDigest:
 			continue
 		default:
-			err := b.Header.Digest.Add(d.Value())
+			err = b.Header.Digest.Add(d.Value())
 			if err != nil {
 				return nil, err
 			}

@@ -51,7 +51,6 @@ func TestEncodeBlockRequestMessage(t *testing.T) {
 	encMsg, err := bm.Encode()
 	require.NoError(t, err)
 
-
 	require.Equal(t, expected, encMsg) // Pass!
 
 	res := new(BlockRequestMessage)

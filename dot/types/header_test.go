@@ -26,7 +26,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestEmpty(t *testing.T) {
+func TestEmptyHeader(t *testing.T) {
 	head := NewEmptyHeader()
 	isEmpty := head.Empty()
 	require.True(t, isEmpty)
