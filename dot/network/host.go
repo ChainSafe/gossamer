@@ -241,8 +241,10 @@ func (h *host) connect(p peer.AddrInfo) (err error) {
 // bootstrap connects the host to the configured bootnodes
 func (h *host) bootstrap() {
 	failed := 0
-	all := append(h.bootnodes, h.persistentPeers...)
-	for _, addrInfo := range all {
+	var allNodes []peer.AddrInfo
+	allNodes = append(allNodes, h.bootnodes...)
+	allNodes = append(allNodes, h.persistentPeers...)
+	for _, addrInfo := range allNodes {
 		logger.Debug("bootstrapping to peer", "peer", addrInfo.ID)
 		err := h.connect(addrInfo)
 		if err != nil {
@@ -250,7 +252,7 @@ func (h *host) bootstrap() {
 			failed++
 		}
 	}
-	if failed == len(all) && len(all) != 0 {
+	if failed == len(allNodes) && len(allNodes) != 0 {
 		logger.Error("failed to bootstrap to any bootnode")
 	}
 }
