@@ -36,12 +36,8 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 		respSize               uint32
 	)
 
-	if blockRequest.StartingBlock == nil {
-		return nil, ErrInvalidBlockRequest
-	}
-
-	if blockRequest.Max != nil && blockRequest.Max.Exists() {
-		respSize = blockRequest.Max.Value()
+	if blockRequest.Max != nil {
+		respSize = *blockRequest.Max
 		if respSize > maxResponseSize {
 			respSize = maxResponseSize
 		}
@@ -68,10 +64,12 @@ func (s *Service) CreateBlockResponse(blockRequest *network.BlockRequestMessage)
 		if err != nil {
 			return nil, err
 		}
+	default:
+		return nil, ErrInvalidBlockRequest
 	}
 
-	if blockRequest.EndBlockHash != nil && blockRequest.EndBlockHash.Exists() {
-		endHash = blockRequest.EndBlockHash.Value()
+	if blockRequest.EndBlockHash != nil {
+		endHash = *blockRequest.EndBlockHash
 		endHeader, err = s.blockState.GetHeader(endHash)
 		if err != nil {
 			return nil, err

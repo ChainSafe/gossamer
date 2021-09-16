@@ -29,7 +29,6 @@ import (
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/blocktree"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 
 	"github.com/ChainSafe/chaindb"
@@ -604,7 +603,7 @@ func (q *syncQueue) processBlockRequests() {
 				continue
 			}
 
-			reqData, ok := q.isRequestDataCached(req.req.StartingBlock)
+			reqData, ok := q.isRequestDataCached(&req.req.StartingBlock)
 
 			if !ok {
 				q.trySync(req)
@@ -891,19 +890,19 @@ func (q *syncQueue) handleBlockAnnounce(msg *BlockAnnounceMessage, from peer.ID)
 }
 
 func createBlockRequest(startInt int64, size uint32) *BlockRequestMessage {
-	var max *optional.Uint32
+	var max *uint32
 	if size != 0 {
-		max = optional.NewUint32(true, size)
+		max = &size
 	} else {
-		max = optional.NewUint32(false, 0)
+		max = nil
 	}
 
 	start, _ := variadic.NewUint64OrHash(uint64(startInt))
 
 	blockRequest := &BlockRequestMessage{
 		RequestedData: RequestedDataHeader + RequestedDataBody + RequestedDataJustification,
-		StartingBlock: start,
-		EndBlockHash:  optional.NewHash(false, common.Hash{}),
+		StartingBlock: *start,
+		EndBlockHash:  nil,
 		Direction:     0, // TODO: define this somewhere
 		Max:           max,
 	}
@@ -912,19 +911,19 @@ func createBlockRequest(startInt int64, size uint32) *BlockRequestMessage {
 }
 
 func createBlockRequestWithHash(startHash common.Hash, size uint32) *BlockRequestMessage {
-	var max *optional.Uint32
+	var max *uint32
 	if size != 0 {
-		max = optional.NewUint32(true, size)
+		max = &size
 	} else {
-		max = optional.NewUint32(false, 0)
+		max = nil
 	}
 
 	start, _ := variadic.NewUint64OrHash(startHash)
 
 	blockRequest := &BlockRequestMessage{
 		RequestedData: RequestedDataHeader + RequestedDataBody + RequestedDataJustification,
-		StartingBlock: start,
-		EndBlockHash:  optional.NewHash(false, common.Hash{}),
+		StartingBlock: *start,
+		EndBlockHash:  nil,
 		Direction:     0, // TODO: define this somewhere
 		Max:           max,
 	}

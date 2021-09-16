@@ -23,7 +23,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 
 	"github.com/stretchr/testify/require"
@@ -41,7 +40,7 @@ func TestEncodeBlockRequestMessage(t *testing.T) {
 
 	one := uint32(1)
 
-	bm := &BlockRequestMessageNew{
+	bm := &BlockRequestMessage{
 		RequestedData: 1,
 		StartingBlock: *variadic.NewUint64OrHashFromBytes(append([]byte{0}, genesisHash...)),
 		EndBlockHash:  &endBlock,
@@ -55,7 +54,7 @@ func TestEncodeBlockRequestMessage(t *testing.T) {
 
 	require.Equal(t, expected, encMsg) // Pass!
 
-	res := new(BlockRequestMessageNew)
+	res := new(BlockRequestMessage)
 	err = res.Decode(encMsg)
 	require.NoError(t, err)
 	require.Equal(t, bm, res)
@@ -68,12 +67,13 @@ func TestEncodeBlockRequestMessage_BlockHash(t *testing.T) {
 	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
 	require.NoError(t, err)
 
+	one := uint32(1)
 	bm := &BlockRequestMessage{
 		RequestedData: 1,
-		StartingBlock: variadic.NewUint64OrHashFromBytes(append([]byte{0}, genesisHash...)),
-		EndBlockHash:  optional.NewHash(true, endBlock),
+		StartingBlock: *variadic.NewUint64OrHashFromBytes(append([]byte{0}, genesisHash...)),
+		EndBlockHash:  &endBlock,
 		Direction:     1,
-		Max:           optional.NewUint32(true, 1),
+		Max:           &one,
 	}
 
 	encMsg, err := bm.Encode()
@@ -89,12 +89,13 @@ func TestEncodeBlockRequestMessage_BlockNumber(t *testing.T) {
 	endBlock, err := common.HexToHash("0xfd19d9ebac759c993fd2e05a1cff9e757d8741c2704c8682c15b5503496b6aa1")
 	require.NoError(t, err)
 
+	one := uint32(1)
 	bm := &BlockRequestMessage{
 		RequestedData: 1,
-		StartingBlock: variadic.NewUint64OrHashFromBytes([]byte{1, 1}),
-		EndBlockHash:  optional.NewHash(true, endBlock),
+		StartingBlock: *variadic.NewUint64OrHashFromBytes([]byte{1, 1}),
+		EndBlockHash:  &endBlock,
 		Direction:     1,
-		Max:           optional.NewUint32(true, 1),
+		Max:           &one,
 	}
 
 	encMsg, err := bm.Encode()
@@ -112,10 +113,10 @@ func TestEncodeBlockRequestMessage_NoOptionals(t *testing.T) {
 
 	bm := &BlockRequestMessage{
 		RequestedData: 1,
-		StartingBlock: variadic.NewUint64OrHashFromBytes(append([]byte{0}, genesisHash...)),
-		EndBlockHash:  optional.NewHash(false, common.Hash{}),
+		StartingBlock: *variadic.NewUint64OrHashFromBytes(append([]byte{0}, genesisHash...)),
+		EndBlockHash:  nil,
 		Direction:     1,
-		Max:           optional.NewUint32(false, 0),
+		Max:           nil,
 	}
 
 	encMsg, err := bm.Encode()

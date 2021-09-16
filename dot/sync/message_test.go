@@ -6,7 +6,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/lib/trie"
@@ -46,10 +45,10 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 
 	req := &network.BlockRequestMessage{
 		RequestedData: 3,
-		StartingBlock: start,
-		EndBlockHash:  optional.NewHash(false, common.Hash{}),
+		StartingBlock: *start,
+		EndBlockHash:  nil,
 		Direction:     0,
-		Max:           optional.NewUint32(false, 0),
+		Max:           nil,
 	}
 
 	resp, err := s.CreateBlockResponse(req)
@@ -58,12 +57,13 @@ func TestService_CreateBlockResponse_MaxSize(t *testing.T) {
 	require.Equal(t, big.NewInt(1), resp.BlockData[0].Number())
 	require.Equal(t, big.NewInt(128), resp.BlockData[127].Number())
 
+	max := maxResponseSize+100
 	req = &network.BlockRequestMessage{
 		RequestedData: 3,
-		StartingBlock: start,
-		EndBlockHash:  optional.NewHash(false, common.Hash{}),
+		StartingBlock: *start,
+		EndBlockHash:  nil,
 		Direction:     0,
-		Max:           optional.NewUint32(true, maxResponseSize+100),
+		Max:           &max,
 	}
 
 	resp, err = s.CreateBlockResponse(req)
@@ -85,10 +85,10 @@ func TestService_CreateBlockResponse_StartHash(t *testing.T) {
 
 	req := &network.BlockRequestMessage{
 		RequestedData: 3,
-		StartingBlock: start,
-		EndBlockHash:  optional.NewHash(false, common.Hash{}),
+		StartingBlock: *start,
+		EndBlockHash:  nil,
 		Direction:     0,
-		Max:           optional.NewUint32(false, 0),
+		Max:           nil,
 	}
 
 	resp, err := s.CreateBlockResponse(req)
@@ -110,10 +110,10 @@ func TestService_CreateBlockResponse_Descending(t *testing.T) {
 
 	req := &network.BlockRequestMessage{
 		RequestedData: 3,
-		StartingBlock: start,
-		EndBlockHash:  optional.NewHash(false, common.Hash{}),
+		StartingBlock: *start,
+		EndBlockHash:  nil,
 		Direction:     1,
-		Max:           optional.NewUint32(false, 0),
+		Max:           nil,
 	}
 
 	resp, err := s.CreateBlockResponse(req)
@@ -170,10 +170,10 @@ func TestService_CreateBlockResponse(t *testing.T) {
 			description: "test get Header and Body",
 			value: &network.BlockRequestMessage{
 				RequestedData: 3,
-				StartingBlock: start,
-				EndBlockHash:  optional.NewHash(true, endHash),
+				StartingBlock: *start,
+				EndBlockHash:  &endHash,
 				Direction:     0,
-				Max:           optional.NewUint32(false, 0),
+				Max:           nil,
 			},
 			expectedMsgValue: &network.BlockResponseMessage{
 				BlockData: []*types.BlockData{
@@ -189,10 +189,10 @@ func TestService_CreateBlockResponse(t *testing.T) {
 			description: "test get Header",
 			value: &network.BlockRequestMessage{
 				RequestedData: 1,
-				StartingBlock: start,
-				EndBlockHash:  optional.NewHash(true, endHash),
+				StartingBlock: *start,
+				EndBlockHash:  &endHash,
 				Direction:     0,
-				Max:           optional.NewUint32(false, 0),
+				Max:           nil,
 			},
 			expectedMsgValue: &network.BlockResponseMessage{
 				BlockData: []*types.BlockData{
@@ -208,10 +208,10 @@ func TestService_CreateBlockResponse(t *testing.T) {
 			description: "test get Receipt",
 			value: &network.BlockRequestMessage{
 				RequestedData: 4,
-				StartingBlock: start,
-				EndBlockHash:  optional.NewHash(true, endHash),
+				StartingBlock: *start,
+				EndBlockHash:  &endHash,
 				Direction:     0,
-				Max:           optional.NewUint32(false, 0),
+				Max:           nil,
 			},
 			expectedMsgValue: &network.BlockResponseMessage{
 				BlockData: []*types.BlockData{
@@ -228,10 +228,10 @@ func TestService_CreateBlockResponse(t *testing.T) {
 			description: "test get MessageQueue",
 			value: &network.BlockRequestMessage{
 				RequestedData: 8,
-				StartingBlock: start,
-				EndBlockHash:  optional.NewHash(true, endHash),
+				StartingBlock: *start,
+				EndBlockHash:  &endHash,
 				Direction:     0,
-				Max:           optional.NewUint32(false, 0),
+				Max:           nil,
 			},
 			expectedMsgValue: &network.BlockResponseMessage{
 				BlockData: []*types.BlockData{

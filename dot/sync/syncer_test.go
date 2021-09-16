@@ -77,7 +77,7 @@ func TestHandleBlockResponse(t *testing.T) {
 
 	req := &network.BlockRequestMessage{
 		RequestedData: 3,
-		StartingBlock: start,
+		StartingBlock: *start,
 	}
 
 	resp, err := responder.CreateBlockResponse(req)
@@ -132,7 +132,7 @@ func TestHandleBlockResponse_MissingBlocks(t *testing.T) {
 
 	req := &network.BlockRequestMessage{
 		RequestedData: 3,
-		StartingBlock: start,
+		StartingBlock: *start,
 	}
 
 	// resp contains blocks 16 + (16 + maxResponseSize)

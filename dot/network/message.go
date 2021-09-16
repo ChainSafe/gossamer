@@ -24,7 +24,6 @@ import (
 	pb "github.com/ChainSafe/gossamer/dot/network/proto"
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/ChainSafe/gossamer/pkg/scale"
 	"google.golang.org/protobuf/proto"
@@ -61,20 +60,10 @@ const (
 	RequestedDataMessageQueue  = byte(8)
 	RequestedDataJustification = byte(16)
 )
-
 var _ Message = &BlockRequestMessage{}
 
 // BlockRequestMessage is sent to request some blocks from a peer
 type BlockRequestMessage struct {
-	RequestedData byte
-	StartingBlock *variadic.Uint64OrHash // first byte 0 = block hash (32 byte), first byte 1 = block number (int64)
-	EndBlockHash  *optional.Hash
-	Direction     byte // 0 = ascending, 1 = descending
-	Max           *optional.Uint32
-}
-
-// BlockRequestMessage is sent to request some blocks from a peer
-type BlockRequestMessageNew struct {
 	RequestedData byte
 	StartingBlock variadic.Uint64OrHash // first byte 0 = block hash (32 byte), first byte 1 = block number (int64)
 	EndBlockHash  *common.Hash
@@ -87,23 +76,8 @@ func (bm *BlockRequestMessage) SubProtocol() string {
 	return syncID
 }
 
-// SubProtocol returns the sync sub-protocol
-func (bm *BlockRequestMessageNew) SubProtocol() string {
-	return syncID
-}
-
 // String formats a BlockRequestMessage as a string
 func (bm *BlockRequestMessage) String() string {
-	return fmt.Sprintf("BlockRequestMessage RequestedData=%d StartingBlock=0x%x EndBlockHash=%s Direction=%d Max=%s",
-		bm.RequestedData,
-		bm.StartingBlock,
-		bm.EndBlockHash.String(),
-		bm.Direction,
-		bm.Max.String())
-}
-
-// String formats a BlockRequestMessage as a string
-func (bm *BlockRequestMessageNew) String() string {
 	return fmt.Sprintf("BlockRequestMessage RequestedData=%d StartingBlock=0x%x EndBlockHash=%s Direction=%d Max=%p",
 		bm.RequestedData,
 		bm.StartingBlock,
@@ -114,47 +88,6 @@ func (bm *BlockRequestMessageNew) String() string {
 
 // Encode returns the protobuf encoded BlockRequestMessage
 func (bm *BlockRequestMessage) Encode() ([]byte, error) {
-	var (
-		toBlock []byte
-		max     uint32
-	)
-
-	if bm.EndBlockHash.Exists() {
-		hash := bm.EndBlockHash.Value()
-		toBlock = hash[:]
-	}
-
-	if bm.Max.Exists() {
-		max = bm.Max.Value()
-	}
-
-	msg := &pb.BlockRequest{
-		Fields:    uint32(bm.RequestedData) << 24, // put byte in most significant byte of uint32
-		ToBlock:   toBlock,
-		Direction: pb.Direction(bm.Direction),
-		MaxBlocks: max,
-	}
-
-	if bm.StartingBlock.IsHash() {
-		hash := bm.StartingBlock.Hash()
-		msg.FromBlock = &pb.BlockRequest_Hash{
-			Hash: hash[:],
-		}
-	} else if bm.StartingBlock.IsUint64() {
-		buf := make([]byte, 8)
-		binary.LittleEndian.PutUint64(buf, bm.StartingBlock.Uint64())
-		msg.FromBlock = &pb.BlockRequest_Number{
-			Number: buf,
-		}
-	} else {
-		return nil, errors.New("invalid StartingBlock in messsage")
-	}
-
-	return proto.Marshal(msg)
-}
-
-// Encode returns the protobuf encoded BlockRequestMessage
-func (bm *BlockRequestMessageNew) Encode() ([]byte, error) {
 	var (
 		toBlock []byte
 		max     uint32
@@ -196,58 +129,6 @@ func (bm *BlockRequestMessageNew) Encode() ([]byte, error) {
 
 // Decode decodes the protobuf encoded input to a BlockRequestMessage
 func (bm *BlockRequestMessage) Decode(in []byte) error {
-	msg := &pb.BlockRequest{}
-	err := proto.Unmarshal(in, msg)
-	if err != nil {
-		return err
-	}
-
-	var (
-		startingBlock *variadic.Uint64OrHash
-		endBlockHash  *optional.Hash
-		max           *optional.Uint32
-	)
-
-	switch from := msg.FromBlock.(type) {
-	case *pb.BlockRequest_Hash:
-		startingBlock, err = variadic.NewUint64OrHash(common.BytesToHash(from.Hash))
-	case *pb.BlockRequest_Number:
-		// TODO: we are receiving block requests w/ 4-byte From field; did the format change?
-		if len(from.Number) != 8 {
-			return errors.New("invalid BlockResponseMessage.From; uint64 is not 8 bytes")
-		}
-		startingBlock, err = variadic.NewUint64OrHash(binary.LittleEndian.Uint64(from.Number))
-	default:
-		err = errors.New("invalid StartingBlock")
-	}
-
-	if err != nil {
-		return err
-	}
-
-	if len(msg.ToBlock) != 0 {
-		endBlockHash = optional.NewHash(true, common.BytesToHash(msg.ToBlock))
-	} else {
-		endBlockHash = optional.NewHash(false, common.Hash{})
-	}
-
-	if msg.MaxBlocks != 0 {
-		max = optional.NewUint32(true, msg.MaxBlocks)
-	} else {
-		max = optional.NewUint32(false, 0)
-	}
-
-	bm.RequestedData = byte(msg.Fields >> 24)
-	bm.StartingBlock = startingBlock
-	bm.EndBlockHash = endBlockHash
-	bm.Direction = byte(msg.Direction)
-	bm.Max = max
-
-	return nil
-}
-
-// Decode decodes the protobuf encoded input to a BlockRequestMessage
-func (bm *BlockRequestMessageNew) Decode(in []byte) error {
 	msg := &pb.BlockRequest{}
 	err := proto.Unmarshal(in, msg)
 	if err != nil {

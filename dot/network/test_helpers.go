@@ -7,7 +7,6 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
-	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/common/variadic"
 	"github.com/stretchr/testify/mock"
 
@@ -170,12 +169,14 @@ func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream, peer peer.ID
 
 var start, _ = variadic.NewUint64OrHash(uint64(1))
 
+var one = uint32(1)
+
 var testBlockRequestMessage = &BlockRequestMessage{
 	RequestedData: RequestedDataHeader + RequestedDataBody + RequestedDataJustification,
-	StartingBlock: start,
-	EndBlockHash:  optional.NewHash(true, common.Hash{}),
+	StartingBlock: *start,
+	EndBlockHash:  &common.Hash{},
 	Direction:     1,
-	Max:           optional.NewUint32(true, 1),
+	Max:           &one,
 }
 
 func testBlockRequestMessageDecoder(in []byte, _ peer.ID, _ bool) (Message, error) {
