@@ -19,6 +19,7 @@ package types
 import (
 	"io"
 
+	"github.com/ChainSafe/gossamer/lib/common/optional"
 	"github.com/ChainSafe/gossamer/lib/scale"
 )
 
@@ -78,5 +79,16 @@ func (b *Block) DeepCopy() *Block {
 	return &Block{
 		Header: b.Header.DeepCopy(),
 		Body:   NewBody(bc),
+	}
+}
+
+func (b *Block) ToBlockData() *BlockData {
+	return &BlockData{
+		Hash:          b.Header.Hash(),
+		Header:        b.Header.AsOptional(),
+		Body:          b.Body.AsOptional(),
+		Justification: optional.NewBytes(false, nil),
+		MessageQueue:  optional.NewBytes(false, nil),
+		Receipt:       optional.NewBytes(false, nil),
 	}
 }

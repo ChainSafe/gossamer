@@ -640,7 +640,7 @@ func (cs *chainSync) handleReadyBlock(bd *types.BlockData) {
 	// see if there are any descendents in the pending queue that are now ready to be processed,
 	// as we have just become aware of their parent block
 	ready := []*types.BlockData{bd}
-	cs.getReadyDescendants(bd.Hash, ready)
+	ready = cs.getReadyDescendants(bd.Hash, ready)
 
 	for _, rb := range ready {
 		cs.pendingBlocks.removeBlock(rb.Hash)
@@ -648,21 +648,25 @@ func (cs *chainSync) handleReadyBlock(bd *types.BlockData) {
 	}
 }
 
-func (cs *chainSync) getReadyDescendants(curr common.Hash, ready []*types.BlockData) {
+// recursively check for descendants that are now ready to be processed
+func (cs *chainSync) getReadyDescendants(curr common.Hash, ready []*types.BlockData) []*types.BlockData {
 	children := cs.pendingBlocks.getChildren(curr)
 	if len(children) == 0 {
-		return
+		return ready
 	}
 
 	for c := range children {
-		if c.body == nil {
+		b := cs.pendingBlocks.getBlock(c)
+		if b.body == nil {
 			continue
 		}
 
 		// if the entire block's data is known, it's ready!
-		ready = append(ready, c.toBlockData())
-		cs.getReadyDescendants(c.hash, ready)
+		ready = append(ready, b.toBlockData())
+		ready = cs.getReadyDescendants(c, ready)
 	}
+
+	return ready
 }
 
 // determineSyncPeers returns a list of peers that likely have the blocks in the given block request.

@@ -27,6 +27,7 @@ type DisjointBlockSet interface {
 	hasBlock(common.Hash) bool
 	getBlock(common.Hash) *pendingBlock
 	getBlocks() []*pendingBlock
+	getChildren(common.Hash) map[common.Hash]struct{}
 	size() int
 }
 
@@ -233,6 +234,10 @@ func (s *disjointBlockSet) size() int {
 	s.RLock()
 	defer s.RUnlock()
 	return len(s.blocks)
+}
+
+func (s *disjointBlockSet) getChildren(hash common.Hash) map[common.Hash]struct{} {
+	return s.parentToChildren[hash]
 }
 
 func (s *disjointBlockSet) getBlock(hash common.Hash) *pendingBlock {
