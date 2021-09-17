@@ -224,7 +224,7 @@ func (h *host) close() error {
 	return nil
 }
 
-// registerStreamHandler registers the stream handler, appending the given sub-protocol to the main protocol ID
+// registerStreamHandler registers the stream handler for the given protocol id.
 func (h *host) registerStreamHandler(pid protocol.ID, handler func(libp2pnetwork.Stream)) {
 	h.h.SetStreamHandler(pid, handler)
 }
