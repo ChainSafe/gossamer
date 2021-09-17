@@ -19,11 +19,9 @@ package trie
 import (
 	"fmt"
 	"io/ioutil"
-	"math/rand"
 	"testing"
 
 	"github.com/ChainSafe/chaindb"
-	"github.com/ChainSafe/gossamer/lib/common"
 	"github.com/stretchr/testify/require"
 )
 
@@ -37,145 +35,31 @@ func TestGenerateProofWithRecorder(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	trie, entries := RandomTrieTest(t, 20)
+	trie, entries := RandomTrieTest(t, 200)
 	err = trie.Store(memdb)
 	require.NoError(t, err)
 
+	var otherKey *KV
 	var lastEntryKey *KV
+
+	i := 0
 	for _, kv := range entries {
+		if len(entries)-2 == i {
+			otherKey = kv
+		}
 		lastEntryKey = kv
+		i++
 	}
 
 	fmt.Printf("Test\n\tkey:0x%x\n\tvalue:0x%x\n", lastEntryKey.K, lastEntryKey.V)
+	fmt.Printf("Test2\n\tkey:0x%x\n\tvalue2:0x%x\n", otherKey.K, otherKey.V)
 
 	rootHash := trie.root.getHash()
-	proof, err := GenerateProofWithRecorder(rootHash, [][]byte{lastEntryKey.K}, memdb)
+	proof, err := GenerateProof(rootHash, [][]byte{lastEntryKey.K, otherKey.K}, memdb)
 	require.NoError(t, err)
 
+	fmt.Printf("\n\n")
 	for _, p := range proof {
-		fmt.Printf("0x%x\n", p)
+		fmt.Printf("generated -> 0x%x\n", p)
 	}
-}
-
-func TestVerifyProof(t *testing.T) {
-	trie, entries := RandomTrieTest(t, 1000)
-	root, err := trie.Hash()
-	require.NoError(t, err)
-
-	for _, entry := range entries {
-		proof, err := trie.GenerateProof([][]byte{entry.K})
-		require.NoError(t, err)
-
-		v, err := VerifyProof(root, entry.K, proof)
-		require.NoError(t, err)
-		require.True(t, v)
-	}
-}
-
-func TestVerifyProofOneElement(t *testing.T) {
-	trie := NewEmptyTrie()
-	key := randBytes(32)
-	trie.Put(key, []byte("V"))
-
-	rootHash, err := trie.Hash()
-	require.NoError(t, err)
-
-	proof, err := trie.GenerateProof([][]byte{key})
-	fmt.Println(proof)
-	require.NoError(t, err)
-
-	val, err := VerifyProof(rootHash, key, proof)
-	require.NoError(t, err)
-
-	require.True(t, val)
-}
-
-func TestVerifyProof_BadProof(t *testing.T) {
-	trie, entries := RandomTrieTest(t, 200)
-	rootHash, err := trie.Hash()
-	require.NoError(t, err)
-
-	for _, entry := range entries {
-		proof, err := trie.GenerateProof([][]byte{entry.K})
-		require.Greater(t, len(proof), 0)
-		require.NoError(t, err)
-
-		i := 0
-		d := rand.Intn(len(proof))
-
-		var toTamper string
-		for k := range proof {
-			if i < d {
-				i++
-				continue
-			}
-
-			toTamper = k
-			break
-		}
-
-		val := proof[toTamper]
-		delete(proof, toTamper)
-
-		newhash, err := common.Keccak256(val)
-		require.NoError(t, err)
-		proof[common.BytesToHex(newhash.ToBytes())] = val
-
-		v, err := VerifyProof(rootHash, entry.K, proof)
-		require.NoError(t, err)
-		require.False(t, v)
-	}
-}
-
-func TestGenerateProofMissingKey(t *testing.T) {
-	trie := NewEmptyTrie()
-
-	parentKey, parentVal := randBytes(32), randBytes(20)
-	chieldKey, chieldValue := modifyLastBytes(parentKey), modifyLastBytes(parentVal)
-	gransonKey, gransonValue := modifyLastBytes(chieldKey), modifyLastBytes(chieldValue)
-
-	trie.Put(parentKey, parentVal)
-	trie.Put(chieldKey, chieldValue)
-	trie.Put(gransonKey, gransonValue)
-
-	searchfor := make([]byte, len(gransonKey))
-	copy(searchfor[:], gransonKey[:])
-
-	// keep the path til the key but modify the last element
-	searchfor[len(searchfor)-1] = searchfor[len(searchfor)-1] + byte(0xff)
-
-	_, err := trie.GenerateProof([][]byte{searchfor})
-	require.Error(t, err, "leaf node doest not match the key")
-}
-
-func TestGenerateProofNoMorePathToFollow(t *testing.T) {
-	trie := NewEmptyTrie()
-
-	parentKey, parentVal := randBytes(32), randBytes(20)
-	chieldKey, chieldValue := modifyLastBytes(parentKey), modifyLastBytes(parentVal)
-	gransonKey, gransonValue := modifyLastBytes(chieldKey), modifyLastBytes(chieldValue)
-
-	trie.Put(parentKey, parentVal)
-	trie.Put(chieldKey, chieldValue)
-	trie.Put(gransonKey, gransonValue)
-
-	searchfor := make([]byte, len(parentKey))
-	copy(searchfor[:], parentKey[:])
-
-	// the keys are equals until the byte number 20 so we modify the byte number 20 to another
-	// value and the branch node will no be able to found the right slot
-	searchfor[20] = searchfor[20] + byte(0xff)
-
-	_, err := trie.GenerateProof([][]byte{searchfor})
-	require.Error(t, err, "no more paths to follow")
-}
-
-func modifyLastBytes(b []byte) []byte {
-	newB := make([]byte, len(b))
-	copy(newB[:], b)
-
-	rb := randBytes(12)
-	copy(newB[20:], rb)
-
-	return newB
 }

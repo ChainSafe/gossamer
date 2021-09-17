@@ -37,7 +37,10 @@ func (l *Lookup) Find(key []byte, recorder *Recorder) ([]byte, error) {
 			return nil, ErrInvalidStateRoot
 		}
 
-		recorder.Record(hash, nodeData)
+		nodeHash := make([]byte, len(hash))
+		copy(nodeHash, hash)
+
+		recorder.Record(nodeHash, nodeData)
 
 		decoded, err := decodeBytes(nodeData)
 		if err != nil {

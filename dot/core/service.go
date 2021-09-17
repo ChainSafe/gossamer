@@ -644,7 +644,7 @@ func (s *Service) GetReadProofAt(block common.Hash, keys [][]byte) (common.Hash,
 // readProofForKeys will go through the keys and generate the proof for each of them
 // and merge the result into a string array containing the hashes in the hexadecimal format
 func readProofForKeys(root []byte, keys [][]byte, db chaindb.Database) ([][]byte, error) {
-	proof, err := trie.GenerateProofWithRecorder(root, keys, db)
+	proof, err := trie.GenerateProof(root, keys, db)
 	if err != nil {
 		return nil, err
 	}

@@ -83,7 +83,6 @@ type (
 		hash       []byte
 		encoding   []byte
 		generation uint64
-		offset     int
 		sync.RWMutex
 	}
 )
@@ -383,7 +382,6 @@ func (l *leaf) decode(r io.Reader, header byte) (err error) {
 
 	keyLen := header & 0x3f
 	l.key, err = decodeKey(r, keyLen)
-	l.offset = int(keyLen) % 2
 	if err != nil {
 		return err
 	}

@@ -9,10 +9,7 @@ type NodeRecord struct {
 type Recorder []NodeRecord
 
 func (r *Recorder) Record(h, rd []byte) {
-	nr := NodeRecord{RawData: rd}
-	nr.Hash = make([]byte, len(h))
-	copy(nr.Hash, h[:])
-
+	nr := NodeRecord{RawData: rd, Hash: h}
 	*r = append(*r, nr)
 }
 
