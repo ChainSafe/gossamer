@@ -17,7 +17,6 @@
 package trie
 
 import (
-	"fmt"
 	"io/ioutil"
 	"testing"
 
@@ -25,7 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGenerateProofWithRecorder(t *testing.T) {
+func TestProofGeneration(t *testing.T) {
 	tmp, err := ioutil.TempDir("", "*-test-trie")
 	require.NoError(t, err)
 
@@ -35,31 +34,21 @@ func TestGenerateProofWithRecorder(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	trie, entries := RandomTrieTest(t, 200)
+	trie := NewEmptyTrie()
+	trie.Put([]byte("cat"), randBytes(32))
+	trie.Put([]byte("catapulta"), randBytes(32))
+	trie.Put([]byte("catapora"), randBytes(32))
+	trie.Put([]byte("dog"), randBytes(32))
+	trie.Put([]byte("doguinho"), randBytes(32))
+
 	err = trie.Store(memdb)
 	require.NoError(t, err)
 
-	var otherKey *KV
-	var lastEntryKey *KV
-
-	i := 0
-	for _, kv := range entries {
-		if len(entries)-2 == i {
-			otherKey = kv
-		}
-		lastEntryKey = kv
-		i++
-	}
-
-	fmt.Printf("Test\n\tkey:0x%x\n\tvalue:0x%x\n", lastEntryKey.K, lastEntryKey.V)
-	fmt.Printf("Test2\n\tkey:0x%x\n\tvalue2:0x%x\n", otherKey.K, otherKey.V)
-
-	rootHash := trie.root.getHash()
-	proof, err := GenerateProof(rootHash, [][]byte{lastEntryKey.K, otherKey.K}, memdb)
+	hash, err := trie.Hash()
 	require.NoError(t, err)
 
-	fmt.Printf("\n\n")
-	for _, p := range proof {
-		fmt.Printf("generated -> 0x%x\n", p)
-	}
+	proof, err := GenerateProof(hash.ToBytes(), [][]byte{[]byte("catapulta"), []byte("catapora")}, memdb)
+	require.NoError(t, err)
+
+	require.Equal(t, len(proof), 5)
 }

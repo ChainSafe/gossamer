@@ -252,6 +252,7 @@ func matchKeyToBranchNode(n *branch, e *StackEntry, nibbleKey []byte) (Step, err
 
 	newIndex := nibbleKey[e.keyOffset+len(n.key)]
 	child := n.children[newIndex]
+
 	if child == nil {
 		return Step{Found: true}, nil
 	}
