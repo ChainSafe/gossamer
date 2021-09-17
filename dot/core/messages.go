@@ -32,42 +32,58 @@ func (s *Service) HandleTransactionMessage(msg *network.TransactionMessage) (boo
 	txs := msg.Extrinsics
 	var toPropagate []types.Extrinsic
 
-	rt, err := s.blockState.GetRuntime(nil)
+	head, err := s.blockState.BestBlockHeader()
+	if err != nil {
+		return false, err
+	}
+
+	hash := head.Hash()
+	rt, err := s.blockState.GetRuntime(&hash)
 	if err != nil {
 		return false, err
 	}
 
 	for _, tx := range txs {
-		ts, err := s.storageState.TrieState(nil)
+		err = func() error {
+			s.storageState.Lock()
+			defer s.storageState.Unlock()
+
+			ts, err := s.storageState.TrieState(&head.StateRoot) //nolint
+			if err != nil {
+				return err
+			}
+
+			rt.SetContextStorage(ts)
+
+			// validate each transaction
+			externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, tx...))
+			val, err := rt.ValidateTransaction(externalExt)
+			if err != nil {
+				logger.Debug("failed to validate transaction", "err", err)
+				return nil
+			}
+
+			// create new valid transaction
+			vtx := transaction.NewValidTransaction(tx, val)
+
+			// push to the transaction queue of BABE session
+			hash := s.transactionState.AddToPool(vtx)
+			logger.Trace("added transaction to pool", "hash", hash)
+
+			// find tx(s) that should propagate
+			if val.Propagate {
+				toPropagate = append(toPropagate, tx)
+			}
+
+			return nil
+		}()
+
 		if err != nil {
 			return false, err
-		}
-
-		rt.SetContextStorage(ts)
-
-		// validate each transaction
-		externalExt := types.Extrinsic(append([]byte{byte(types.TxnExternal)}, tx...))
-		val, err := rt.ValidateTransaction(externalExt)
-		if err != nil {
-			logger.Debug("failed to validate transaction", "err", err)
-			continue
-		}
-
-		// create new valid transaction
-		vtx := transaction.NewValidTransaction(tx, val)
-
-		// push to the transaction queue of BABE session
-		hash := s.transactionState.AddToPool(vtx)
-		logger.Trace("Added transaction to queue", "hash", hash)
-
-		// find tx(s) that should propagate
-		if val.Propagate {
-			toPropagate = append(toPropagate, tx)
 		}
 	}
 
 	msg.Extrinsics = toPropagate
-
 	return len(msg.Extrinsics) > 0, nil
 }
 
