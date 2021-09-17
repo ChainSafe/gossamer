@@ -18,6 +18,7 @@ package babe
 
 import (
 	"math/big"
+	"sync"
 	"time"
 
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -52,8 +53,7 @@ type BlockState interface {
 // StorageState interface for storage state methods
 type StorageState interface {
 	TrieState(hash *common.Hash) (*rtstorage.TrieState, error)
-	Lock()
-	Unlock()
+	sync.Locker
 }
 
 // TransactionState is the interface for transaction queue methods
