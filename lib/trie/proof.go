@@ -43,6 +43,11 @@ type StackEntry struct {
 
 //
 func NewStackEntry(n node, hash, rd, prefix []byte, outputIndex, keyOffset int) (*StackEntry, error) {
+	_, _, err := n.encodeAndHash()
+	if err != nil {
+		return nil, err
+	}
+
 	return &StackEntry{
 		keyOffset:   keyOffset,
 		nodeHash:    hash,
