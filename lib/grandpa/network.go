@@ -53,7 +53,7 @@ type GrandpaHandshake struct { //nolint
 }
 
 // SubProtocol returns the grandpa sub-protocol
-func (hs *GrandpaHandshake) SubProtocol() string {
+func (*GrandpaHandshake) SubProtocol() string {
 	return string(grandpaID)
 }
 
@@ -79,29 +79,29 @@ func (hs *GrandpaHandshake) Decode(in []byte) error {
 }
 
 // Type ...
-func (hs *GrandpaHandshake) Type() byte {
+func (*GrandpaHandshake) Type() byte {
 	return 0
 }
 
 // Hash ...
-func (hs *GrandpaHandshake) Hash() common.Hash {
+func (*GrandpaHandshake) Hash() common.Hash {
 	return common.Hash{}
 }
 
 // IsHandshake returns true
-func (hs *GrandpaHandshake) IsHandshake() bool {
+func (*GrandpaHandshake) IsHandshake() bool {
 	return true
 }
 
 func (s *Service) registerProtocol() error {
-	return s.network.RegisterNotificationsProtocol(grandpaID,
+	return s.network.RegisterNotificationsProtocol(
+		grandpaID,
 		messageID,
 		s.getHandshake,
 		s.decodeHandshake,
 		s.validateHandshake,
 		s.decodeMessage,
 		s.handleNetworkMessage,
-		true,
 	)
 }
 
@@ -119,17 +119,17 @@ func (s *Service) getHandshake() (Handshake, error) {
 	}, nil
 }
 
-func (s *Service) decodeHandshake(in []byte) (Handshake, error) {
+func (*Service) decodeHandshake(in []byte) (Handshake, error) {
 	hs := new(GrandpaHandshake)
 	err := hs.Decode(in)
 	return hs, err
 }
 
-func (s *Service) validateHandshake(_ peer.ID, _ Handshake) error {
+func (*Service) validateHandshake(_ peer.ID, _ Handshake) error {
 	return nil
 }
 
-func (s *Service) decodeMessage(in []byte) (NotificationsMessage, error) {
+func (*Service) decodeMessage(in []byte) (NotificationsMessage, error) {
 	msg := new(network.ConsensusMessage)
 	err := msg.Decode(in)
 	return msg, err

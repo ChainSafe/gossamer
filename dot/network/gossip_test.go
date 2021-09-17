@@ -42,7 +42,7 @@ func TestGossip(t *testing.T) {
 
 	nodeA := createTestService(t, configA)
 	handlerA := newTestStreamHandler(testBlockAnnounceMessageDecoder)
-	nodeA.host.registerStreamHandler("", handlerA.handleStream)
+	nodeA.host.registerStreamHandler(nodeA.host.protocolID, handlerA.handleStream)
 
 	basePathB := utils.NewTestBasePath(t, "nodeB")
 	configB := &Config{
@@ -54,7 +54,7 @@ func TestGossip(t *testing.T) {
 
 	nodeB := createTestService(t, configB)
 	handlerB := newTestStreamHandler(testBlockAnnounceMessageDecoder)
-	nodeB.host.registerStreamHandler("", handlerB.handleStream)
+	nodeB.host.registerStreamHandler(nodeB.host.protocolID, handlerB.handleStream)
 
 	addrInfoA := nodeA.host.addrInfo()
 	err := nodeB.host.connect(addrInfoA)
@@ -75,7 +75,7 @@ func TestGossip(t *testing.T) {
 
 	nodeC := createTestService(t, configC)
 	handlerC := newTestStreamHandler(testBlockAnnounceMessageDecoder)
-	nodeC.host.registerStreamHandler("", handlerC.handleStream)
+	nodeC.host.registerStreamHandler(nodeC.host.protocolID, handlerC.handleStream)
 
 	err = nodeC.host.connect(addrInfoA)
 	// retry connect if "failed to dial" error

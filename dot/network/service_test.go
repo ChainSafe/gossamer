@@ -56,7 +56,7 @@ func createServiceHelper(t *testing.T, num int) []*Service {
 		srvc := createTestService(t, config)
 		srvc.noGossip = true
 		handler := newTestStreamHandler(testBlockAnnounceMessageDecoder)
-		srvc.host.registerStreamHandler("", handler.handleStream)
+		srvc.host.registerStreamHandler(srvc.host.protocolID, handler.handleStream)
 
 		srvcs = append(srvcs, srvc)
 	}
@@ -163,7 +163,7 @@ func TestBroadcastMessages(t *testing.T) {
 	defer nodeB.Stop()
 	nodeB.noGossip = true
 	handler := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
-	nodeB.host.registerStreamHandler(blockAnnounceID, handler.handleStream)
+	nodeB.host.registerStreamHandler(nodeB.host.protocolID+blockAnnounceID, handler.handleStream)
 
 	addrInfoB := nodeB.host.addrInfo()
 	err := nodeA.host.connect(addrInfoB)
@@ -208,7 +208,7 @@ func TestBroadcastDuplicateMessage(t *testing.T) {
 	nodeB.noGossip = true
 
 	handler := newTestStreamHandler(testBlockAnnounceHandshakeDecoder)
-	nodeB.host.registerStreamHandler(blockAnnounceID, handler.handleStream)
+	nodeB.host.registerStreamHandler(nodeB.host.protocolID+blockAnnounceID, handler.handleStream)
 
 	addrInfoB := nodeB.host.addrInfo()
 	err := nodeA.host.connect(addrInfoB)

@@ -19,9 +19,11 @@ package network
 import (
 	"fmt"
 	"math/big"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
+	"unsafe"
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
@@ -89,7 +91,7 @@ func TestCreateDecoder_BlockAnnounce(t *testing.T) {
 	require.NoError(t, err)
 
 	// set handshake data to received
-	hsData, _ := info.getHandshakeData(testPeerID, true)
+	hsData, _ := info.getInboundHandshakeData(testPeerID)
 	hsData.received = true
 	info.inboundHandshakeData.Store(testPeerID, hsData)
 	msg, err = decoder(enc, testPeerID, true)
@@ -210,7 +212,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 
 	err = handler(stream, testHandshake)
 	require.Equal(t, errCannotValidateHandshake, err)
-	data, has := info.getHandshakeData(testPeerID, true)
+	data, has := info.getInboundHandshakeData(testPeerID)
 	require.True(t, has)
 	require.True(t, data.received)
 	require.False(t, data.validated)
@@ -227,7 +229,7 @@ func TestCreateNotificationsMessageHandler_BlockAnnounceHandshake(t *testing.T) 
 
 	err = handler(stream, testHandshake)
 	require.NoError(t, err)
-	data, has = info.getHandshakeData(testPeerID, true)
+	data, has = info.getInboundHandshakeData(testPeerID)
 	require.True(t, has)
 	require.True(t, data.received)
 	require.True(t, data.validated)
@@ -293,7 +295,7 @@ func Test_HandshakeTimeout(t *testing.T) {
 	time.Sleep(time.Second)
 
 	// Verify that handshake data exists.
-	_, ok := info.getHandshakeData(nodeB.host.id(), false)
+	_, ok := info.getOutboundHandshakeData(nodeB.host.id())
 	require.True(t, ok)
 
 	// a stream should be open until timeout
@@ -305,11 +307,15 @@ func Test_HandshakeTimeout(t *testing.T) {
 	time.Sleep(handshakeTimeout)
 
 	// handshake data should be removed
-	_, ok = info.getHandshakeData(nodeB.host.id(), false)
+	_, ok = info.getOutboundHandshakeData(nodeB.host.id())
 	require.False(t, ok)
 
 	// stream should be closed
 	connAToB = nodeA.host.h.Network().ConnsToPeer(nodeB.host.id())
 	require.Len(t, connAToB, 1)
 	require.Len(t, connAToB[0].GetStreams(), 0)
+}
+
+func TestBlockAnnounceHandshakeSize(t *testing.T) {
+	require.Equal(t, unsafe.Sizeof(BlockAnnounceHandshake{}), reflect.TypeOf(BlockAnnounceHandshake{}).Size())
 }
