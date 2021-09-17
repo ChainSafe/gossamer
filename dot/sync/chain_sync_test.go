@@ -562,103 +562,7 @@ func TestChainSync_doSync(t *testing.T) {
 	require.Equal(t, resp.BlockData[1], bd)
 }
 
-func TestChainSync_getReadyDescendants(t *testing.T) {
-	cs, _ := newTestChainSync(t)
-
-	// test that descendant chain gets returned by getReadyDescendants on block 1 being ready
-	header1 := &types.Header{
-		Number: big.NewInt(1),
-	}
-	block1 := &types.Block{
-		Header: header1,
-		Body:   &types.Body{},
-	}
-
-	header2 := &types.Header{
-		ParentHash: header1.Hash(),
-		Number:     big.NewInt(2),
-	}
-	block2 := &types.Block{
-		Header: header2,
-		Body:   &types.Body{},
-	}
-	cs.pendingBlocks.addBlock(block2)
-
-	header3 := &types.Header{
-		ParentHash: header2.Hash(),
-		Number:     big.NewInt(3),
-	}
-	block3 := &types.Block{
-		Header: header3,
-		Body:   &types.Body{},
-	}
-	cs.pendingBlocks.addBlock(block3)
-
-	header2NotDescendant := &types.Header{
-		ParentHash: common.Hash{0xff},
-		Number:     big.NewInt(2),
-	}
-	block2NotDescendant := &types.Block{
-		Header: header2NotDescendant,
-		Body:   &types.Body{},
-	}
-	cs.pendingBlocks.addBlock(block2NotDescendant)
-
-	ready := []*types.BlockData{block1.ToBlockData()}
-	ready = cs.getReadyDescendants(header1.Hash(), ready)
-	require.Equal(t, 3, len(ready))
-	require.Equal(t, block1.ToBlockData(), ready[0])
-	require.Equal(t, block2.ToBlockData(), ready[1])
-	require.Equal(t, block3.ToBlockData(), ready[2])
-}
-
-func TestChainSync_getReadyDescendants_blockNotComplete(t *testing.T) {
-	cs, _ := newTestChainSync(t)
-
-	// test that descendant chain gets returned by getReadyDescendants on block 1 being ready
-	// the ready list should contain only block 1 and 2, as block 3 is incomplete (body is missing)
-	header1 := &types.Header{
-		Number: big.NewInt(1),
-	}
-	block1 := &types.Block{
-		Header: header1,
-		Body:   &types.Body{},
-	}
-
-	header2 := &types.Header{
-		ParentHash: header1.Hash(),
-		Number:     big.NewInt(2),
-	}
-	block2 := &types.Block{
-		Header: header2,
-		Body:   &types.Body{},
-	}
-	cs.pendingBlocks.addBlock(block2)
-
-	header3 := &types.Header{
-		ParentHash: header2.Hash(),
-		Number:     big.NewInt(3),
-	}
-	cs.pendingBlocks.addHeader(header3)
-
-	header2NotDescendant := &types.Header{
-		ParentHash: common.Hash{0xff},
-		Number:     big.NewInt(2),
-	}
-	block2NotDescendant := &types.Block{
-		Header: header2NotDescendant,
-		Body:   &types.Body{},
-	}
-	cs.pendingBlocks.addBlock(block2NotDescendant)
-
-	ready := []*types.BlockData{block1.ToBlockData()}
-	ready = cs.getReadyDescendants(header1.Hash(), ready)
-	require.Equal(t, 2, len(ready))
-	require.Equal(t, block1.ToBlockData(), ready[0])
-	require.Equal(t, block2.ToBlockData(), ready[1])
-}
-
-func TestChainSync_handleReadyBlock(t *testing.T) {
+func TestHandleReadyBlock(t *testing.T) {
 	cs, readyBlocks := newTestChainSync(t)
 
 	// test that descendant chain gets returned by getReadyDescendants on block 1 being ready
@@ -700,7 +604,7 @@ func TestChainSync_handleReadyBlock(t *testing.T) {
 	}
 	cs.pendingBlocks.addBlock(block2NotDescendant)
 
-	cs.handleReadyBlock(block1.ToBlockData())
+	handleReadyBlock(block1.ToBlockData(), cs.pendingBlocks, cs.readyBlocks)
 
 	require.False(t, cs.pendingBlocks.hasBlock(header1.Hash()))
 	require.False(t, cs.pendingBlocks.hasBlock(header2.Hash()))

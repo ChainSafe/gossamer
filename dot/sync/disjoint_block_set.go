@@ -28,6 +28,7 @@ type DisjointBlockSet interface {
 	getBlock(common.Hash) *pendingBlock
 	getBlocks() []*pendingBlock
 	getChildren(common.Hash) map[common.Hash]struct{}
+	getReadyDescendants(curr common.Hash, ready []*types.BlockData) []*types.BlockData
 	size() int
 }
 
@@ -237,6 +238,8 @@ func (s *disjointBlockSet) size() int {
 }
 
 func (s *disjointBlockSet) getChildren(hash common.Hash) map[common.Hash]struct{} {
+	s.RLock()
+	defer s.RUnlock()
 	return s.parentToChildren[hash]
 }
 
@@ -257,4 +260,25 @@ func (s *disjointBlockSet) getBlocks() []*pendingBlock {
 		i++
 	}
 	return blocks
+}
+
+// getReadyDescendants recursively checks for descendants that are ready to be processed
+func (s *disjointBlockSet) getReadyDescendants(curr common.Hash, ready []*types.BlockData) []*types.BlockData {
+	children := s.getChildren(curr)
+	if len(children) == 0 {
+		return ready
+	}
+
+	for c := range children {
+		b := s.getBlock(c)
+		if b.body == nil {
+			continue
+		}
+
+		// if the entire block's data is known, it's ready!
+		ready = append(ready, b.toBlockData())
+		ready = s.getReadyDescendants(c, ready)
+	}
+
+	return ready
 }

@@ -89,9 +89,8 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 		has, _ := s.blockState.HasHeader(block.header.ParentHash)
 		if has || s.readyBlocks.has(block.header.ParentHash) {
 			// block is ready, as parent is known!
-			// TODO: also, move any pendingBlocks that are descendants of this block to the ready blocks queue
-			s.pendingBlocks.removeBlock(block.hash)
-			s.readyBlocks.push(block.toBlockData())
+			// also, move any pendingBlocks that are descendants of this block to the ready blocks queue
+			handleReadyBlock(block.toBlockData(), s.pendingBlocks, s.readyBlocks)
 			continue
 		}
 
