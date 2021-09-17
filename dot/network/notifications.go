@@ -55,7 +55,15 @@ type (
 
 	// NotificationsMessageHandler is called when a (non-handshake) message is received over a notifications stream.
 	NotificationsMessageHandler = func(peer peer.ID, msg NotificationsMessage) (propagate bool, err error)
+
+	// NotificationsMessageBatchHandler is called when a (non-handshake) message is received over a notifications stream in batch processing mode.
+	NotificationsMessageBatchHandler = func(peer peer.ID, msg NotificationsMessage) (batchMsgs []*batchMessage, err error)
 )
+
+type batchMessage struct {
+	msg  NotificationsMessage
+	peer peer.ID
+}
 
 type handshakeReader struct {
 	hs  Handshake
@@ -141,7 +149,7 @@ func createDecoder(info *notificationsProtocol, handshakeDecoder HandshakeDecode
 	}
 }
 
-func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol, messageHandler NotificationsMessageHandler) messageHandler {
+func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol, messageHandler NotificationsMessageHandler, batchHandler NotificationsMessageBatchHandler) messageHandler {
 	return func(stream libp2pnetwork.Stream, m Message) error {
 		if m == nil || info == nil || info.handshakeValidator == nil || messageHandler == nil {
 			return nil
@@ -210,18 +218,38 @@ func (s *Service) createNotificationsMessageHandler(info *notificationsProtocol,
 			"peer", stream.Conn().RemotePeer(),
 		)
 
-		propagate, err := messageHandler(peer, msg)
-		if err != nil {
-			return err
+		var (
+			propagate bool
+			err       error
+			msgs      []*batchMessage
+		)
+		if batchHandler != nil {
+			msgs, err = batchHandler(peer, msg)
+			if err != nil {
+				return err
+			}
+
+			propagate = len(msgs) > 0
+		} else {
+			propagate, err = messageHandler(peer, msg)
+			if err != nil {
+				return err
+			}
+			msgs = append(msgs, &batchMessage{
+				msg:  msg,
+				peer: peer,
+			})
 		}
 
 		if !propagate || s.noGossip {
 			return nil
 		}
 
-		seen := s.gossip.hasSeen(msg)
-		if !seen {
-			s.broadcastExcluding(info, peer, msg)
+		for _, data := range msgs {
+			seen := s.gossip.hasSeen(data.msg)
+			if !seen {
+				s.broadcastExcluding(info, data.peer, data.msg)
+			}
 		}
 
 		return nil

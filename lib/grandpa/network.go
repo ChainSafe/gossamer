@@ -102,6 +102,7 @@ func (s *Service) registerProtocol() error {
 		s.validateHandshake,
 		s.decodeMessage,
 		s.handleNetworkMessage,
+		nil,
 	)
 }
 

@@ -98,6 +98,8 @@ type Service struct {
 	// telemetry
 	telemetryInterval time.Duration
 	closeCh           chan interface{}
+
+	batchSize int
 }
 
 // NewService creates a new network service from the configuration and message channels
@@ -171,6 +173,7 @@ func NewService(cfg *Config) (*Service, error) {
 		closeCh:                make(chan interface{}),
 		bufPool:                bufPool,
 		streamManager:          newStreamManager(ctx),
+		batchSize:              100,
 	}
 
 	network.syncQueue = newSyncQueue(network)
@@ -218,10 +221,14 @@ func (s *Service) Start() error {
 		s.validateBlockAnnounceHandshake,
 		decodeBlockAnnounceMessage,
 		s.handleBlockAnnounceMessage,
+		nil,
 	)
 	if err != nil {
 		logger.Warn("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
 	}
+
+	txnBatch := make(chan *batchMessage, s.batchSize)
+	txnBatchHandler := s.createBatchMessageHandler(txnBatch)
 
 	// register transactions protocol
 	err = s.RegisterNotificationsProtocol(
@@ -232,6 +239,7 @@ func (s *Service) Start() error {
 		validateTransactionHandshake,
 		decodeTransactionMessage,
 		s.handleTransactionMessage,
+		txnBatchHandler,
 	)
 	if err != nil {
 		logger.Warn("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
@@ -420,6 +428,7 @@ func (s *Service) RegisterNotificationsProtocol(
 	handshakeValidator HandshakeValidator,
 	messageDecoder MessageDecoder,
 	messageHandler NotificationsMessageHandler,
+	batchHandler NotificationsMessageBatchHandler,
 ) error {
 	s.notificationsMu.Lock()
 	defer s.notificationsMu.Unlock()
@@ -462,7 +471,7 @@ func (s *Service) RegisterNotificationsProtocol(
 	info := s.notificationsProtocols[messageID]
 
 	decoder := createDecoder(info, handshakeDecoder, messageDecoder)
-	handlerWithValidate := s.createNotificationsMessageHandler(info, messageHandler)
+	handlerWithValidate := s.createNotificationsMessageHandler(info, messageHandler, batchHandler)
 
 	s.host.registerStreamHandler(protocolID, func(stream libp2pnetwork.Stream) {
 		logger.Trace("received stream", "sub-protocol", protocolID)
