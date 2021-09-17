@@ -172,7 +172,7 @@ func NewService(cfg *Config) (*Service, error) {
 		bufPool:                bufPool,
 		streamManager:          newStreamManager(ctx),
 	}
-
+	
 	network.syncQueue = newSyncQueue(network)
 	return network, err
 }
