@@ -85,6 +85,5 @@ type Network interface {
 		messageDecoder network.MessageDecoder,
 		messageHandler network.NotificationsMessageHandler,
 		batchHandler network.NotificationsMessageBatchHandler,
-		overwriteProtocol bool,
 	) error
 }
