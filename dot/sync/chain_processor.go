@@ -134,7 +134,7 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 
 	var header *types.Header
 
-	if bd.Header.Exists() && !hasHeader {
+	if bd.Header.Exists() && bd.Body.Exists() {
 		header, err = types.NewHeaderFromOptional(bd.Header)
 		if err != nil {
 			return err
@@ -143,27 +143,13 @@ func (s *chainProcessor) processBlockData(bd *types.BlockData) error {
 		if err = s.handleHeader(header); err != nil {
 			return err
 		}
-	}
 
-	if bd.Body.Exists() && !hasBody {
-		body, err := types.NewBodyFromOptional(bd.Body) //nolint
+		body, err := types.NewBodyFromOptional(bd.Body)
 		if err != nil {
 			return err
 		}
 
 		if err = s.handleBody(body); err != nil {
-			return err
-		}
-	}
-
-	if bd.Header.Exists() && bd.Body.Exists() {
-		header, err = types.NewHeaderFromOptional(bd.Header)
-		if err != nil {
-			return err
-		}
-
-		body, err := types.NewBodyFromOptional(bd.Body)
-		if err != nil {
 			return err
 		}
 
