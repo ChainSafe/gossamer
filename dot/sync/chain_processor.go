@@ -63,6 +63,7 @@ func (s *chainProcessor) processReadyBlocks() {
 		select {
 		case <-s.ctx.Done():
 			return
+		default:
 		}
 
 		bd := s.readyBlocks.pop()

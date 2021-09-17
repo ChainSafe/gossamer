@@ -37,6 +37,9 @@ var (
 	tip       chainSyncState = 1
 )
 
+// TODO: determine ideal limit for pending blocks set
+var pendingBlocksLimit = MAX_RESPONSE_SIZE * 32
+
 // peerState tracks our peers's best reported blocks
 type peerState struct {
 	who    peer.ID //nolint
@@ -130,9 +133,18 @@ type chainSync struct {
 	handler workHandler
 
 	benchmarker *syncBenchmarker
+
+	finalisedCh   <-chan *types.FinalisationInfo
+	finalisedChID byte
 }
 
-func newChainSync(bs BlockState, net Network, readyBlocks *blockQueue) *chainSync {
+func newChainSync(bs BlockState, net Network, readyBlocks *blockQueue) (*chainSync, error) {
+	finalisedCh := make(chan *types.FinalisationInfo, 128)
+	id, err := bs.RegisterFinalizedChannel(finalisedCh)
+	if err != nil {
+		return nil, err
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &chainSync{
@@ -146,11 +158,13 @@ func newChainSync(bs BlockState, net Network, readyBlocks *blockQueue) *chainSyn
 		ignorePeers:   make(map[peer.ID]struct{}),
 		workerState:   newWorkerState(),
 		readyBlocks:   readyBlocks,
-		pendingBlocks: newDisjointBlockSet(),
+		pendingBlocks: newDisjointBlockSet(pendingBlocksLimit),
 		state:         bootstrap,
 		handler:       newBootstrapSyncer(bs),
 		benchmarker:   newSyncBenchmarker(),
-	}
+		finalisedCh:   finalisedCh,
+		finalisedChID: id,
+	}, nil
 }
 
 func (cs *chainSync) start() {
@@ -170,6 +184,7 @@ func (cs *chainSync) start() {
 }
 
 func (cs *chainSync) stop() {
+	cs.blockState.UnregisterFinalisedChannel(cs.finalisedChID)
 	cs.cancel()
 }
 
@@ -189,9 +204,11 @@ func (cs *chainSync) setBlockAnnounce(from peer.ID, header *types.Header) error 
 		return nil
 	}
 
-	cs.pendingBlocks.addHeader(header)
+	if err = cs.pendingBlocks.addHeader(header); err != nil {
+		return err
+	}
 
-	// TODO: is it ok to assume if a node announces a block that it has it + its ancestors??
+	// TODO: is it ok to assume if a node announces a block that it has it + its ancestors?
 	return cs.setPeerHead(from, header.Hash(), header.Number)
 }
 
@@ -211,7 +228,6 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) e
 	if err != nil {
 		return err
 	}
-	fmt.Println(head.Number, ps.number)
 
 	if ps.number.Cmp(head.Number) <= 0 {
 		// check if our block hash for that number is the same, if so, do nothing
@@ -259,7 +275,9 @@ func (cs *chainSync) setPeerHead(p peer.ID, hash common.Hash, number *big.Int) e
 
 	// the peer has a higher best block than us, or they are on some fork we are not aware of
 	// add it to the disjoint block set
-	cs.pendingBlocks.addHashAndNumber(ps.hash, ps.number)
+	if err = cs.pendingBlocks.addHashAndNumber(ps.hash, ps.number); err != nil {
+		return err
+	}
 
 	cs.workQueue <- ps
 	logger.Debug("set peer head", "peer", p, "hash", hash, "number", number)
@@ -334,7 +352,6 @@ func (cs *chainSync) sync() {
 	// TODO: make configurable
 	ticker := time.NewTicker(time.Second * 12)
 
-	// TODO: register block finalisation channel; on finalise, call pendingBlocks.removeLowerBlocks()
 	for {
 		select {
 		case ps := <-cs.workQueue:
@@ -348,11 +365,9 @@ func (cs *chainSync) sync() {
 			if head.Number.Cmp(target) >= 0 {
 				// bootstrap complete, switch state to tip if not already
 				// and begin near-head fork-sync
-				logger.Debug("switching to tip sync mode...")
 				cs.switchMode(tip)
 			} else if big.NewInt(0).Add(head.Number, big.NewInt(MAX_RESPONSE_SIZE)).Cmp(target) == -1 {
 				// we are 128 blocks or more behind the target, switch to bootstrap mode
-				logger.Debug("switching to bootstrap sync mode...")
 				cs.switchMode(bootstrap)
 			}
 
@@ -411,6 +426,10 @@ func (cs *chainSync) sync() {
 			for _, worker := range workers {
 				cs.tryDispatchWorker(worker)
 			}
+		case fin := <-cs.finalisedCh:
+			// on finalised block, call pendingBlocks.removeLowerBlocks() to remove blocks on
+			// invalid forks from the pending blocks set
+			cs.pendingBlocks.removeLowerBlocks(fin.Header.Number)
 		case <-cs.ctx.Done():
 			return
 		}
@@ -436,6 +455,7 @@ func (cs *chainSync) switchMode(mode chainSyncState) {
 	}
 
 	cs.state = mode
+	logger.Debug("switched sync mode", "mode", mode)
 }
 
 // getTarget takes the average of all peer heads
@@ -610,15 +630,42 @@ func (cs *chainSync) doSync(req *BlockRequestMessage) *workerError {
 
 		// block is ready to be processed!
 		logger.Trace("new ready block", "hash", bd.Hash, "number", header.Number)
-		cs.pendingBlocks.removeBlock(bd.Hash)
-		cs.readyBlocks.push(bd)
+		cs.handleReadyBlock(bd)
 	}
 
 	return nil
 }
 
+func (cs *chainSync) handleReadyBlock(bd *types.BlockData) {
+	// see if there are any descendents in the pending queue that are now ready to be processed,
+	// as we have just become aware of their parent block
+	ready := []*types.BlockData{bd}
+	cs.getReadyDescendants(bd.Hash, ready)
+
+	for _, rb := range ready {
+		cs.pendingBlocks.removeBlock(rb.Hash)
+		cs.readyBlocks.push(rb)
+	}
+}
+
+func (cs *chainSync) getReadyDescendants(curr common.Hash, ready []*types.BlockData) {
+	children := cs.pendingBlocks.getChildren(curr)
+	if len(children) == 0 {
+		return
+	}
+
+	for c := range children {
+		if c.body == nil {
+			continue
+		}
+
+		// if the entire block's data is known, it's ready!
+		ready = append(ready, c.toBlockData())
+		cs.getReadyDescendants(c.hash, ready)
+	}
+}
+
 // determineSyncPeers returns a list of peers that likely have the blocks in the given block request.
-// TODO: implement this
 func (cs *chainSync) determineSyncPeers(_ *BlockRequestMessage) []peer.ID {
 	peers := []peer.ID{}
 
@@ -666,15 +713,28 @@ func (cs *chainSync) validateResponse(req *BlockRequestMessage, resp *BlockRespo
 				return err
 			}
 		} else {
-			// TODO: if this is a justification-only request, make sure we have the block for the justification
+			// if this is a justification-only request, make sure we have the block for the justification
+			if err = cs.validateJustification(bd); err != nil {
+				return err
+			}
 			continue
 		}
 
 		// check that parent of first block in response is known (either in our db or in the ready queue)
 		if i == 0 {
-			// TODO: check that we know the parent of the first block (or it's in the queue)
 			prev = curr
-			continue
+
+			// check that we know the parent of the first block (or it's in the ready queue)
+			has, _ := cs.blockState.HasHeader(curr.ParentHash)
+			if has {
+				continue
+			}
+
+			if cs.readyBlocks.has(curr.ParentHash) {
+				continue
+			}
+
+			return errUnknownParent
 		}
 
 		// otherwise, check that this response forms a chain
@@ -687,13 +747,17 @@ func (cs *chainSync) validateResponse(req *BlockRequestMessage, resp *BlockRespo
 					return fmt.Errorf("failed to convert block body from optional: hash=%s err=%s", bd.Hash, err)
 				}
 
-				cs.pendingBlocks.addBlock(&types.Block{
+				if err := cs.pendingBlocks.addBlock(&types.Block{
 					Header: curr,
 					Body:   body,
-				})
+				}); err != nil {
+					return err
+				}
 
 				if bd.Justification != nil && bd.Justification.Exists() {
-					cs.pendingBlocks.addJustification(bd.Hash, bd.Justification.Value())
+					if err := cs.pendingBlocks.addJustification(bd.Hash, bd.Justification.Value()); err != nil {
+						return err
+					}
 				}
 			}
 			return errResponseIsNotChain
@@ -719,6 +783,25 @@ func validateBlockData(req *BlockRequestMessage, bd *types.BlockData) error {
 
 	if (requestedData&network.RequestedDataBody>>1) == 1 && bd.Body == nil {
 		return errNilBodyInResponse
+	}
+
+	return nil
+}
+
+func (cs *chainSync) validateJustification(bd *types.BlockData) error {
+	if bd == nil {
+		return errNilBlockData
+	}
+
+	// this is ok, since the remote peer doesn't need to provide the info we request from them
+	// especially with justifications, it's common that they don't have them.
+	if bd.Justification == nil || !bd.Justification.Exists() {
+		return nil
+	}
+
+	has, _ := cs.blockState.HasHeader(bd.Hash)
+	if !has {
+		return errUnknownBlockForJustification
 	}
 
 	return nil

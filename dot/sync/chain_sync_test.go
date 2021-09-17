@@ -34,7 +34,10 @@ func newTestChainSync(t *testing.T) (*chainSync, *blockQueue) {
 	net.On("DoBlockRequest", mock.AnythingOfType("peer.ID"), mock.AnythingOfType("*network.BlockRequestMessage")).Return(nil, nil)
 
 	readyBlocks := newBlockQueue(MAX_RESPONSE_SIZE)
-	return newChainSync(bs, net, readyBlocks), readyBlocks
+	cs, err := newChainSync(bs, net, readyBlocks)
+	require.NoError(t, err)
+
+	return cs, readyBlocks
 }
 
 func TestChainSync_SetPeerHead(t *testing.T) {

@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"errors"
 	"math/big"
 	"sync"
 
@@ -9,13 +10,18 @@ import (
 	"github.com/ChainSafe/gossamer/lib/common/optional"
 )
 
+var (
+	errUnknownBlock = errors.New("cannot add justification for unknown block")
+	errSetAtLimit   = errors.New("cannot add block; set is at capacity")
+)
+
 // DisjointBlockSet represents a set of incomplete blocks, or blocks
 // with an unknown parent. it is implemented by *disjointBlockSet
 type DisjointBlockSet interface {
-	addHashAndNumber(common.Hash, *big.Int)
-	addHeader(*types.Header)
-	addBlock(*types.Block)
-	addJustification(common.Hash, []byte)
+	addHashAndNumber(common.Hash, *big.Int) error
+	addHeader(*types.Header) error
+	addBlock(*types.Block) error
+	addJustification(common.Hash, []byte) error
 	removeBlock(common.Hash)
 	removeLowerBlocks(num *big.Int)
 	hasBlock(common.Hash) bool
@@ -60,6 +66,8 @@ func (b *pendingBlock) toBlockData() *types.BlockData {
 		Header:        header,
 		Body:          body,
 		Justification: justification,
+		Receipt:       optional.NewBytes(false, nil),
+		MessageQueue:  optional.NewBytes(false, nil),
 	}
 }
 
@@ -72,32 +80,55 @@ func (b *pendingBlock) toBlockData() *types.BlockData {
 //
 // if the block is complete, we may not know of its parent.
 type disjointBlockSet struct {
-	// TODO: put a limit on the size of this set
 	sync.RWMutex
+	limit int
+
+	// map of block hash -> block data
 	blocks map[common.Hash]*pendingBlock
+
+	// map of parent hash -> child hashes
+	parentToChildren map[common.Hash]map[common.Hash]struct{}
 }
 
-func newDisjointBlockSet() *disjointBlockSet {
+func newDisjointBlockSet(limit int) *disjointBlockSet {
 	return &disjointBlockSet{
-		blocks: make(map[common.Hash]*pendingBlock),
+		blocks:           make(map[common.Hash]*pendingBlock),
+		parentToChildren: make(map[common.Hash]map[common.Hash]struct{}),
+		limit:            limit,
 	}
 }
 
-func (s *disjointBlockSet) addHashAndNumber(hash common.Hash, number *big.Int) {
+func (s *disjointBlockSet) addToParentMap(parent, child common.Hash) {
+	children, has := s.parentToChildren[parent]
+	if !has {
+		children = make(map[common.Hash]struct{})
+		s.parentToChildren[parent] = children
+	}
+
+	children[child] = struct{}{}
+}
+
+func (s *disjointBlockSet) addHashAndNumber(hash common.Hash, number *big.Int) error {
 	s.Lock()
 	defer s.Unlock()
 
 	if _, has := s.blocks[hash]; has {
-		return // TODO: return err??
+		return nil
+	}
+
+	if len(s.blocks) == s.limit {
+		return errSetAtLimit
 	}
 
 	s.blocks[hash] = &pendingBlock{
 		hash:   hash,
 		number: number,
 	}
+
+	return nil
 }
 
-func (s *disjointBlockSet) addHeader(header *types.Header) {
+func (s *disjointBlockSet) addHeader(header *types.Header) error {
 	s.Lock()
 	defer s.Unlock()
 
@@ -105,7 +136,11 @@ func (s *disjointBlockSet) addHeader(header *types.Header) {
 	b, has := s.blocks[hash]
 	if has {
 		b.header = header
-		return
+		return nil
+	}
+
+	if len(s.blocks) == s.limit {
+		return errSetAtLimit
 	}
 
 	s.blocks[hash] = &pendingBlock{
@@ -113,9 +148,11 @@ func (s *disjointBlockSet) addHeader(header *types.Header) {
 		number: header.Number,
 		header: header,
 	}
+	s.addToParentMap(header.ParentHash, hash)
+	return nil
 }
 
-func (s *disjointBlockSet) addBlock(block *types.Block) {
+func (s *disjointBlockSet) addBlock(block *types.Block) error {
 	s.Lock()
 	defer s.Unlock()
 
@@ -124,7 +161,11 @@ func (s *disjointBlockSet) addBlock(block *types.Block) {
 	if has {
 		b.header = block.Header
 		b.body = block.Body
-		return
+		return nil
+	}
+
+	if len(s.blocks) == s.limit {
+		return errSetAtLimit
 	}
 
 	s.blocks[hash] = &pendingBlock{
@@ -133,41 +174,50 @@ func (s *disjointBlockSet) addBlock(block *types.Block) {
 		header: block.Header,
 		body:   block.Body,
 	}
+	s.addToParentMap(block.Header.ParentHash, hash)
+	return nil
 }
 
-func (s *disjointBlockSet) addJustification(hash common.Hash, just []byte) {
+func (s *disjointBlockSet) addJustification(hash common.Hash, just []byte) error {
 	s.Lock()
 	defer s.Unlock()
 
 	b, has := s.blocks[hash]
 	if has {
 		b.justification = just
-		return
+		return nil
 	}
 
-	// TODO: block number must not be nil, this should error
-	panic("disjointBlockSet.addJustification: block number unknown!!!")
-	s.blocks[hash] = &pendingBlock{
-		hash:          hash,
-		justification: just,
-	}
+	// block number must not be nil if we are storing a justification for it
+	return errUnknownBlock
 }
 
 func (s *disjointBlockSet) removeBlock(hash common.Hash) {
 	s.Lock()
 	defer s.Unlock()
+	block, has := s.blocks[hash]
+	if !has {
+		return
+	}
+
+	// clear block from parent->child map if its parent was known
+	if block.header != nil {
+		delete(s.parentToChildren[block.header.ParentHash], hash)
+		if len(s.parentToChildren[block.header.ParentHash]) == 0 {
+			delete(s.parentToChildren, block.header.ParentHash)
+		}
+	}
+
 	delete(s.blocks, hash)
 }
 
 // removeLowerBlocks removes all blocks with a number equal or less than the given number
 // from the set. it should be called when a new block is finalised to cleanup the set.
 func (s *disjointBlockSet) removeLowerBlocks(num *big.Int) {
-	s.Lock()
-	defer s.Unlock()
-
-	for hash, b := range s.blocks {
-		if b.number.Cmp(num) <= 0 {
-			delete(s.blocks, hash)
+	blocks := s.getBlocks()
+	for _, block := range blocks {
+		if block.number.Cmp(num) <= 0 {
+			s.removeBlock(block.hash)
 		}
 	}
 }

@@ -6,12 +6,13 @@ import (
 
 	"github.com/ChainSafe/gossamer/dot/types"
 	"github.com/ChainSafe/gossamer/lib/common"
+	"github.com/ChainSafe/gossamer/lib/common/optional"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestDisjointBlockSet(t *testing.T) {
-	s := newDisjointBlockSet()
+	s := newDisjointBlockSet(pendingBlocksLimit)
 
 	hash := common.Hash{0xa, 0xb}
 	number := big.NewInt(100)
@@ -79,5 +80,23 @@ func TestDisjointBlockSet(t *testing.T) {
 }
 
 func TestPendingBlock_toBlockData(t *testing.T) {
+	pb := &pendingBlock{
+		hash:   common.Hash{0xa, 0xb, 0xc},
+		number: big.NewInt(1),
+		header: &types.Header{
+			Number: big.NewInt(1),
+		},
+		body: &types.Body{0x1, 0x2, 0x3},
+	}
 
+	expected := &types.BlockData{
+		Hash:          pb.hash,
+		Header:        pb.header.AsOptional(),
+		Body:          pb.body.AsOptional(),
+		Justification: optional.NewBytes(false, nil),
+		Receipt:       optional.NewBytes(false, nil),
+		MessageQueue:  optional.NewBytes(false, nil),
+	}
+
+	require.Equal(t, expected, pb.toBlockData())
 }

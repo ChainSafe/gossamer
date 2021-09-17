@@ -31,7 +31,9 @@ func (s *tipSyncer) handleWork(ps *peerState) (*worker, error) {
 }
 
 func (s *tipSyncer) handleWorkerResult(res *worker) (*worker, error) {
-	// TODO: if the worker succeeded, potentially remove some blocks from the pending block set and move them into the ready queue
+	// TODO: if the worker succeeded, potentially remove some blocks from the pending block set and
+	// move them into the ready queue
+	//
 	return nil, nil
 }
 
@@ -54,7 +56,7 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 	// 1. only hash and number are known; in this case, request the full block
 	// 2. only header is known; in this case, request the block body
 	// 3. entire block is known; in this case, check if we have become aware of the parent
-	//    if we have, move it to the ready blocks queue; otherwise, request the chain of ancestors
+	// if we have, move it to the ready blocks queue; otherwise, request the chain of ancestors
 
 	workers := []*worker{}
 
@@ -85,7 +87,7 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 
 		// case 3
 		has, _ := s.blockState.HasHeader(block.header.ParentHash)
-		if has {
+		if has || s.readyBlocks.has(block.header.ParentHash) {
 			// block is ready, as parent is known!
 			// TODO: also, move any pendingBlocks that are descendants of this block to the ready blocks queue
 			s.pendingBlocks.removeBlock(block.hash)

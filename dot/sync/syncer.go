@@ -83,7 +83,11 @@ func NewService(cfg *Config) (*Service, error) {
 	logger.SetHandler(log.LvlFilterHandler(cfg.LogLvl, handler))
 
 	readyBlocks := newBlockQueue(MAX_RESPONSE_SIZE * 30)
-	chainSync := newChainSync(cfg.BlockState, cfg.Network, readyBlocks)
+	chainSync, err := newChainSync(cfg.BlockState, cfg.Network, readyBlocks)
+	if err != nil {
+		return nil, err
+	}
+
 	chainProcessor := newChainProcessor(readyBlocks, cfg.BlockState, cfg.StorageState, cfg.TransactionState, cfg.BabeVerifier, cfg.FinalityGadget, cfg.BlockImportHandler)
 
 	return &Service{
