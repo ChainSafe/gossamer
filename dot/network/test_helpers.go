@@ -167,13 +167,13 @@ func (s *testStreamHandler) readStream(stream libp2pnetwork.Stream, peer peer.ID
 	}
 }
 
-var start, _ = variadic.NewUint64OrHash(uint64(1))
+var starting, _ = variadic.NewUint64OrHash(uint64(1))
 
 var one = uint32(1)
 
 var testBlockRequestMessage = &BlockRequestMessage{
 	RequestedData: RequestedDataHeader + RequestedDataBody + RequestedDataJustification,
-	StartingBlock: *start,
+	StartingBlock: *starting,
 	EndBlockHash:  &common.Hash{},
 	Direction:     1,
 	Max:           &one,
