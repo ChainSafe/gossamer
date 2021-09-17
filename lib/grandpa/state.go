@@ -82,6 +82,6 @@ type Network interface {
 		handshakeValidator network.HandshakeValidator,
 		messageDecoder network.MessageDecoder,
 		messageHandler network.NotificationsMessageHandler,
-		overwriteProtocol bool,
+		batchHandler network.NotificationsMessageBatchHandler,
 	) error
 }

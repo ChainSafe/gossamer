@@ -100,6 +100,8 @@ type Service struct {
 
 	blockResponseBuf   []byte
 	blockResponseBufMu sync.Mutex
+
+	batchSize int
 }
 
 // NewService creates a new network service from the configuration and message channels
@@ -174,6 +176,7 @@ func NewService(cfg *Config) (*Service, error) {
 		bufPool:                bufPool,
 		streamManager:          newStreamManager(ctx),
 		blockResponseBuf:       make([]byte, maxBlockResponseSize),
+		batchSize:              100,
 	}
 
 	return network, err
@@ -203,34 +206,37 @@ func (s *Service) Start() error {
 		s.ctx, s.cancel = context.WithCancel(context.Background())
 	}
 
-	s.host.registerStreamHandler(syncID, s.handleSyncStream)
-	s.host.registerStreamHandler(lightID, s.handleLightStream)
+	s.host.registerStreamHandler(s.host.protocolID+syncID, s.handleSyncStream)
+	s.host.registerStreamHandler(s.host.protocolID+lightID, s.handleLightStream)
 
 	// register block announce protocol
 	err := s.RegisterNotificationsProtocol(
-		blockAnnounceID,
+		s.host.protocolID+blockAnnounceID,
 		BlockAnnounceMsgType,
 		s.getBlockAnnounceHandshake,
 		decodeBlockAnnounceHandshake,
 		s.validateBlockAnnounceHandshake,
 		decodeBlockAnnounceMessage,
 		s.handleBlockAnnounceMessage,
-		false,
+		nil,
 	)
 	if err != nil {
 		logger.Warn("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
 	}
 
+	txnBatch := make(chan *batchMessage, s.batchSize)
+	txnBatchHandler := s.createBatchMessageHandler(txnBatch)
+
 	// register transactions protocol
 	err = s.RegisterNotificationsProtocol(
-		transactionsID,
+		s.host.protocolID+transactionsID,
 		TransactionMsgType,
 		s.getTransactionHandshake,
 		decodeTransactionHandshake,
 		validateTransactionHandshake,
 		decodeTransactionMessage,
 		s.handleTransactionMessage,
-		false,
+		txnBatchHandler,
 	)
 	if err != nil {
 		logger.Warn("failed to register notifications protocol", "sub-protocol", blockAnnounceID, "error", err)
@@ -407,27 +413,21 @@ mainloop:
 
 // RegisterNotificationsProtocol registers a protocol with the network service with the given handler
 // messageID is a user-defined message ID for the message passed over this protocol.
-func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
+func (s *Service) RegisterNotificationsProtocol(
+	protocolID protocol.ID,
 	messageID byte,
 	handshakeGetter HandshakeGetter,
 	handshakeDecoder HandshakeDecoder,
 	handshakeValidator HandshakeValidator,
 	messageDecoder MessageDecoder,
 	messageHandler NotificationsMessageHandler,
-	overwriteProtocol bool,
+	batchHandler NotificationsMessageBatchHandler,
 ) error {
 	s.notificationsMu.Lock()
 	defer s.notificationsMu.Unlock()
 
 	if _, has := s.notificationsProtocols[messageID]; has {
 		return errors.New("notifications protocol with message type already exists")
-	}
-
-	var protocolID protocol.ID
-	if overwriteProtocol {
-		protocolID = sub
-	} else {
-		protocolID = s.host.protocolID + sub
 	}
 
 	np := &notificationsProtocol{
@@ -442,7 +442,7 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 
 	connMgr := s.host.h.ConnManager().(*ConnManager)
 	connMgr.registerCloseHandler(protocolID, func(peerID peer.ID) {
-		if _, ok := np.getHandshakeData(peerID, true); ok {
+		if _, ok := np.getInboundHandshakeData(peerID); ok {
 			logger.Trace(
 				"Cleaning up inbound handshake data",
 				"peer", peerID,
@@ -451,7 +451,7 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 			np.inboundHandshakeData.Delete(peerID)
 		}
 
-		if _, ok := np.getHandshakeData(peerID, false); ok {
+		if _, ok := np.getOutboundHandshakeData(peerID); ok {
 			logger.Trace(
 				"Cleaning up outbound handshake data",
 				"peer", peerID,
@@ -464,10 +464,10 @@ func (s *Service) RegisterNotificationsProtocol(sub protocol.ID,
 	info := s.notificationsProtocols[messageID]
 
 	decoder := createDecoder(info, handshakeDecoder, messageDecoder)
-	handlerWithValidate := s.createNotificationsMessageHandler(info, messageHandler)
+	handlerWithValidate := s.createNotificationsMessageHandler(info, messageHandler, batchHandler)
 
-	s.host.registerStreamHandlerWithOverwrite(sub, overwriteProtocol, func(stream libp2pnetwork.Stream) {
-		logger.Trace("received stream", "sub-protocol", sub)
+	s.host.registerStreamHandler(protocolID, func(stream libp2pnetwork.Stream) {
+		logger.Trace("received stream", "sub-protocol", protocolID)
 		conn := stream.Conn()
 		if conn == nil {
 			logger.Error("Failed to get connection from stream")
@@ -677,7 +677,7 @@ func (s *Service) Peers() []common.PeerInfo {
 	s.notificationsMu.RUnlock()
 
 	for _, p := range s.host.peers() {
-		data, has := np.getHandshakeData(p, true)
+		data, has := np.getInboundHandshakeData(p)
 		if !has || data.handshake == nil {
 			peers = append(peers, common.PeerInfo{
 				PeerID: p.String(),

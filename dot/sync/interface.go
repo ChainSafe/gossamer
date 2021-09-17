@@ -18,6 +18,7 @@ package sync
 
 import (
 	"math/big"
+	"sync"
 
 	"github.com/ChainSafe/gossamer/dot/network"
 	"github.com/ChainSafe/gossamer/dot/types"
@@ -60,8 +61,7 @@ type StorageState interface {
 	TrieState(root *common.Hash) (*rtstorage.TrieState, error)
 	LoadCodeHash(*common.Hash) (common.Hash, error)
 	SetSyncing(bool)
-	Lock()
-	Unlock()
+	sync.Locker
 }
 
 // CodeSubstitutedState interface to handle storage of code substitute state
