@@ -18,6 +18,8 @@ package wasmer
 
 import (
 	"bytes"
+	"encoding/binary"
+	"fmt"
 	"os"
 	"sort"
 	"testing"
@@ -1064,7 +1066,15 @@ func Test_ext_default_child_storage_storage_kill_version_2(t *testing.T) {
 	encChildKey, err := scale.Encode(testChildKey)
 	require.NoError(t, err)
 
-	_, err = inst.Exec("rtm_ext_default_child_storage_storage_kill_version_2", encChildKey)
+	testLimit := uint32(2)
+	testLimitBytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(testLimitBytes, testLimit)
+
+	optLim, err := optional.NewBytes(true, testLimitBytes).Encode()
+	require.NoError(t, err)
+	fmt.Printf("optLimit %v\n", optLim)
+
+	_, err = inst.Exec("rtm_ext_default_child_storage_storage_kill_version_2", append(encChildKey, optLim...))
 	require.NoError(t, err)
 
 	child, _ = inst.ctx.Storage.GetChild(testChildKey)

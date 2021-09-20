@@ -1132,18 +1132,21 @@ func ext_default_child_storage_storage_kill_version_2(context unsafe.Pointer, ch
 	childStorageKey := asMemorySlice(instanceContext, childStorageKeySpan)
 	storage.DeleteChild(childStorageKey)
 
-	//todo (ed) confirm this is correct way to read limit param
+	fmt.Printf("lim %v\n", lim)
 	limitBuf := make([]byte, 4)
 	binary.LittleEndian.PutUint32(limitBuf, uint32(lim))
 	buf := &bytes.Buffer{}
 	buf.Write(limitBuf)
 
-	limit, err := optional.NewBytes(false, nil).Decode(buf)
+	limit, err := optional.NewBytes(true, nil).Decode(buf)
 	if err != nil {
 		logger.Warn("[ext_default_child_storage_storage_kill_version_2] cannot generate limit", "error", err)
 		return 0
 	}
 	fmt.Printf("limit %v\n", limit)
+
+	limitUint := binary.LittleEndian.Uint32(limit.Value())
+	fmt.Printf(" limit uint %v\n", limitUint)
 
 	// note: this function always returns `KillStorageResult::AllRemoved`, which is 0
 	return 0
