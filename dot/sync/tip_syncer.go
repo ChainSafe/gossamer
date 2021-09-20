@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"errors"
 	"math/big"
 
 	"github.com/ChainSafe/gossamer/dot/network"
@@ -37,10 +38,23 @@ func (s *tipSyncer) handleWork(ps *peerState) (*worker, error) {
 }
 
 func (s *tipSyncer) handleWorkerResult(res *worker) (*worker, error) {
-	return nil, nil
+	if errors.Is(res.err.err, errUnknownParent) {
+		// handleTick will handle this case
+		return nil, nil
+	}
+
+	return &worker{
+		startHash:    res.startHash,
+		startNumber:  res.startNumber,
+		targetHash:   res.targetHash,
+		targetNumber: res.targetNumber,
+		direction:    res.direction,
+		requestData:  bootstrapRequestData,
+	}, nil
 }
 
 func (s *tipSyncer) hasCurrentWorker(w *worker, workers map[uint64]*worker) bool {
+	// TODO
 	return false
 }
 
@@ -56,7 +70,7 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 	}
 
 	// cases for each block in pending set:
-	// 1. only hash and number are known; in this case, request the full block
+	// 1. only hash and number are known; in this case, request the full block (and ancestor chain)
 	// 2. only header is known; in this case, request the block body
 	// 3. entire block is known; in this case, check if we have become aware of the parent
 	// if we have, move it to the ready blocks queue; otherwise, request the chain of ancestors
@@ -69,8 +83,9 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 			workers = append(workers, &worker{
 				startHash:    block.hash,
 				startNumber:  block.number,
-				targetHash:   block.hash,
-				targetNumber: block.number,
+				targetHash:   fin.Hash(),
+				targetNumber: fin.Number,
+				direction:    DIR_DESCENDING,
 				requestData:  bootstrapRequestData,
 			})
 			continue
@@ -102,6 +117,8 @@ func (s *tipSyncer) handleTick() ([]*worker, error) {
 			startHash:    block.header.ParentHash,
 			startNumber:  big.NewInt(0).Sub(block.number, big.NewInt(1)),
 			targetNumber: fin.Number,
+			direction:    DIR_DESCENDING,
+			requestData:  bootstrapRequestData,
 		})
 	}
 

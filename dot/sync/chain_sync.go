@@ -324,13 +324,13 @@ func (cs *chainSync) logSyncSpeed() {
 			continue
 		}
 
+		after, err := cs.blockState.BestBlockHeader()
+		if err != nil {
+			continue
+		}
+
 		switch cs.state {
 		case bootstrap:
-			after, err := cs.blockState.BestBlockHeader()
-			if err != nil {
-				continue
-			}
-
 			cs.benchmarker.end(after.Number.Uint64())
 			target := cs.getTarget()
 
@@ -349,8 +349,8 @@ func (cs *chainSync) logSyncSpeed() {
 		case tip:
 			logger.Info("💤 node waiting",
 				"peer count", len(cs.network.Peers()),
-				"head", before.Number,
-				"hash", before.Hash(),
+				"head", after.Number,
+				"hash", after.Hash(),
 				"finalised", finalised.Number,
 				"hash", finalised.Hash(),
 			)
@@ -359,9 +359,9 @@ func (cs *chainSync) logSyncSpeed() {
 }
 
 func (cs *chainSync) sync() {
-	// set to slot time * 2
+	// set to slot time
 	// TODO: make configurable
-	ticker := time.NewTicker(time.Second * 12)
+	ticker := time.NewTicker(time.Second * 6)
 
 	for {
 		select {
@@ -373,13 +373,13 @@ func (cs *chainSync) sync() {
 			}
 
 			target := cs.getTarget()
-			if head.Number.Cmp(target) >= 0 {
+			if big.NewInt(0).Add(head.Number, big.NewInt(MAX_RESPONSE_SIZE)).Cmp(target) == -1 {
+				// we are 128 blocks or more behind the target, switch to bootstrap mode
+				cs.switchMode(bootstrap)
+			} else {
 				// bootstrap complete, switch state to tip if not already
 				// and begin near-head fork-sync
 				cs.switchMode(tip)
-			} else if big.NewInt(0).Add(head.Number, big.NewInt(MAX_RESPONSE_SIZE)).Cmp(target) == -1 {
-				// we are 128 blocks or more behind the target, switch to bootstrap mode
-				cs.switchMode(bootstrap)
 			}
 
 			if err := cs.handleWork(ps); err != nil {
@@ -392,7 +392,6 @@ func (cs *chainSync) sync() {
 			// handle results from worker
 			// if there is an error, potentially retry the worker
 			if res.err == nil {
-				// TODO: log worker time
 				continue
 			}
 
@@ -540,6 +539,8 @@ func (cs *chainSync) dispatchWorker(w *worker) {
 		"start hash", w.startHash,
 		"target hash", w.targetHash,
 		"target number", w.targetNumber,
+		"request data", w.requestData,
+		"direction", w.direction,
 	)
 
 	if w.targetNumber == nil || w.startNumber == nil {
@@ -640,24 +641,17 @@ func (cs *chainSync) doSync(req *BlockRequestMessage) *workerError {
 
 	logger.Trace("success! placing block response data in ready queue")
 
-	if resp == nil {
-		panic("ahhhh")
-	}
-
 	// response was validated! place into ready block queue
 	for _, bd := range resp.BlockData {
-		if bd == nil {
-			panic("ahhh")
-		}
-
 		// if we're expecting headers, validate should ensure we have a header
 		header, _ := types.NewHeaderFromOptional(bd.Header)
-		if header == nil {
-			panic("ahh")
+		if header != nil {
+			logger.Trace("new ready block", "hash", bd.Hash, "number", header.Number)
+		} else {
+			logger.Trace("new ready block", "hash", bd.Hash)
 		}
 
 		// block is ready to be processed!
-		logger.Trace("new ready block", "hash", bd.Hash, "number", header.Number)
 		handleReadyBlock(bd, cs.pendingBlocks, cs.readyBlocks)
 	}
 
@@ -801,11 +795,11 @@ func validateBlockData(req *BlockRequestMessage, bd *types.BlockData) error {
 
 	requestedData := req.RequestedData
 
-	if (requestedData&network.RequestedDataHeader) == 1 && bd.Header == nil {
+	if (requestedData&network.RequestedDataHeader) == 1 && (bd.Header == nil || !bd.Header.Exists()) {
 		return errNilHeaderInResponse
 	}
 
-	if (requestedData&network.RequestedDataBody>>1) == 1 && bd.Body == nil {
+	if (requestedData&network.RequestedDataBody>>1) == 1 && (bd.Body == nil || !bd.Body.Exists()) {
 		return errNilBodyInResponse
 	}
 
