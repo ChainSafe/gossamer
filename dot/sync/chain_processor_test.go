@@ -125,7 +125,7 @@ func TestChainProcessor_HandleBlockResponse_MissingBlocks(t *testing.T) {
 	}
 }
 
-func TestChainProcessor_RemoveIncludedExtrinsics(t *testing.T) {
+func TestChainProcessor_handleBody_ShouldRemoveIncludedExtrinsics(t *testing.T) {
 	syncer := newTestSyncer(t)
 
 	ext := []byte("nootwashere")
@@ -141,18 +141,8 @@ func TestChainProcessor_RemoveIncludedExtrinsics(t *testing.T) {
 	body, err := types.NewBodyFromExtrinsics(exts)
 	require.NoError(t, err)
 
-	bd := &types.BlockData{
-		Body: body.AsOptional(),
-	}
-
-	msg := &network.BlockResponseMessage{
-		BlockData: []*types.BlockData{bd},
-	}
-
-	for _, bd := range msg.BlockData {
-		err = syncer.chainProcessor.(*chainProcessor).processBlockData(bd)
-		require.NoError(t, err)
-	}
+	err = syncer.chainProcessor.(*chainProcessor).handleBody(body)
+	require.NoError(t, err)
 
 	inQueue := syncer.chainProcessor.(*chainProcessor).transactionState.(*state.TransactionState).Pop()
 	require.Nil(t, inQueue, "queue should be empty")
